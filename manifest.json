@@ -1,0 +1,34 @@
+{
+  "games": {
+    "sudoku": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck",
+      "scene": "res://scenes/games/sudoku/sudoku.tscn"
+    },
+    "solitaire": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck",
+      "scene": "res://scenes/games/solitaire/solitaire.tscn"
+    },
+    "geometry_wars": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck",
+      "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"
+    },
+    "tictactoe": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tictactoe.pck",
+      "scene": "res://scenes/games/tictactoe/tictactoe.tscn"
+    },
+    "connect4": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/connect4.pck",
+      "scene": "res://scenes/games/connect4/connect4.tscn"
+    },
+    "g2048": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/g2048.pck",
+      "scene": "res://scenes/games/g2048/g2048.tscn"
+    }
+  }
+}

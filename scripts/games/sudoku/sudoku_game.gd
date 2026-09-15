@@ -13,6 +13,8 @@ const DIFFICULTY_MULTIPLIER := {"easy": 1.0, "medium": 1.5, "hard": 2.0, "expert
 const CORRECT_CELL_POINTS := 10
 const MISTAKE_PENALTY := 5
 const TIME_BONUS_CAP_SECONDS := 600
+const STARTING_HINTS := 3
+const MAX_UNDO_HISTORY := 200
 
 const COLOR_BASE := Color(0.15, 0.15, 0.19)
 const COLOR_SELECTED := Color(0.25, 0.5, 0.7)
@@ -32,6 +34,8 @@ var elapsed_seconds: float = 0.0
 var timer_running: bool = false
 var game_active: bool = false
 var generation_thread: Thread
+var hints_remaining: int = STARTING_HINTS
+var move_history: Array = []
 
 var difficulty_screen: Control
 var game_screen: Control
@@ -47,6 +51,9 @@ var mistakes_label: Label
 var score_label: Label
 var difficulty_label: Label
 var notes_button: Button
+var hint_label: Label
+var notes_status_label: Label
+var number_buttons: Array = []
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -140,44 +147,91 @@ func _build_game_screen() -> void:
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("separation", 12)
+	root.add_theme_constant_override("separation", 10)
 	game_screen.add_child(root)
 
-	# top bar
+	# top icon row: back/menu on the left, pause on the right
 	var top_margin := MarginContainer.new()
-	top_margin.add_theme_constant_override("margin_top", 20)
-	top_margin.add_theme_constant_override("margin_left", 16)
-	top_margin.add_theme_constant_override("margin_right", 16)
+	top_margin.add_theme_constant_override("margin_top", 16)
+	top_margin.add_theme_constant_override("margin_left", 12)
+	top_margin.add_theme_constant_override("margin_right", 12)
 	root.add_child(top_margin)
 
-	var top_bar := HBoxContainer.new()
-	top_margin.add_child(top_bar)
+	var top_row := HBoxContainer.new()
+	top_margin.add_child(top_row)
 
-	difficulty_label = _stat_label("Medium")
-	timer_label = _stat_label("00:00")
-	mistakes_label = _stat_label("Mistakes: 0")
-	score_label = _stat_label("Score: 0")
-	for l in [difficulty_label, timer_label, mistakes_label, score_label]:
-		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		top_bar.add_child(l)
+	var back_btn := Button.new()
+	back_btn.text = "‹"
+	back_btn.add_theme_font_size_override("font_size", 26)
+	back_btn.custom_minimum_size = Vector2(44, 44)
+	back_btn.focus_mode = Control.FOCUS_NONE
+	back_btn.pressed.connect(_on_pause_pressed)
+	top_row.add_child(back_btn)
 
-	# board
+	var top_spacer := Control.new()
+	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_row.add_child(top_spacer)
+
+	var pause_icon_btn := Button.new()
+	pause_icon_btn.text = "⏸"
+	pause_icon_btn.add_theme_font_size_override("font_size", 20)
+	pause_icon_btn.custom_minimum_size = Vector2(44, 44)
+	pause_icon_btn.focus_mode = Control.FOCUS_NONE
+	pause_icon_btn.pressed.connect(_on_pause_pressed)
+	top_row.add_child(pause_icon_btn)
+
+	# stats row: Time / Difficulty / Score / Mistakes
+	var stats_margin := MarginContainer.new()
+	stats_margin.add_theme_constant_override("margin_left", 16)
+	stats_margin.add_theme_constant_override("margin_right", 16)
+	root.add_child(stats_margin)
+
+	var stats_row := HBoxContainer.new()
+	stats_margin.add_child(stats_row)
+
+	var time_block := _stat_block("Time")
+	timer_label = time_block.value_label
+	timer_label.text = "00:00"
+	stats_row.add_child(time_block.box)
+
+	var diff_block := _stat_block("Difficulty")
+	difficulty_label = diff_block.value_label
+	difficulty_label.text = "Medium"
+	stats_row.add_child(diff_block.box)
+
+	var score_block := _stat_block("Score")
+	score_label = score_block.value_label
+	score_label.text = "0"
+	stats_row.add_child(score_block.box)
+
+	var mistakes_block := _stat_block("Mistakes")
+	mistakes_label = mistakes_block.value_label
+	mistakes_label.text = "0"
+	stats_row.add_child(mistakes_block.box)
+
+	# board -- sized to nearly fill the screen width, edge to edge
 	var board_center := CenterContainer.new()
 	board_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(board_center)
 
+	var viewport_width: float = get_viewport_rect().size.x
+	var board_margin := 8.0
+	var separation := 2.0
+	var cell_size: float = floor((viewport_width - board_margin * 2.0 - separation * 8.0) / 9.0)
+	var board_size: float = cell_size * 9.0 + separation * 8.0
+
 	var board_wrap := Control.new()
-	board_wrap.custom_minimum_size = Vector2(664, 664)
+	board_wrap.custom_minimum_size = Vector2(board_size, board_size)
 	board_center.add_child(board_wrap)
 
 	grid_container = GridContainer.new()
 	grid_container.columns = 9
-	grid_container.add_theme_constant_override("h_separation", 2)
-	grid_container.add_theme_constant_override("v_separation", 2)
+	grid_container.add_theme_constant_override("h_separation", int(separation))
+	grid_container.add_theme_constant_override("v_separation", int(separation))
 	board_wrap.add_child(grid_container)
 
 	var grid_lines := GridLines.new()
+	grid_lines.setup(cell_size, separation)
 	grid_lines.set_anchors_preset(Control.PRESET_FULL_RECT)
 	grid_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	board_wrap.add_child(grid_lines)
@@ -186,45 +240,44 @@ func _build_game_screen() -> void:
 		var row: Array = []
 		for c in range(9):
 			var cell := CellButton.new()
-			cell.setup(r, c)
+			cell.setup(r, c, cell_size)
 			cell.cell_pressed.connect(_on_cell_pressed)
 			grid_container.add_child(cell)
 			row.append(cell)
 		cells.append(row)
 
-	# controls row
+	# icon action row: Undo / Erase / Notes / Hint
 	var controls_margin := MarginContainer.new()
-	controls_margin.add_theme_constant_override("margin_left", 16)
-	controls_margin.add_theme_constant_override("margin_right", 16)
+	controls_margin.add_theme_constant_override("margin_left", 12)
+	controls_margin.add_theme_constant_override("margin_right", 12)
+	controls_margin.add_theme_constant_override("margin_top", 4)
 	root.add_child(controls_margin)
 
 	var controls := HBoxContainer.new()
-	controls.add_theme_constant_override("separation", 10)
+	controls.add_theme_constant_override("separation", 4)
 	controls_margin.add_child(controls)
 
-	notes_button = Button.new()
-	notes_button.text = "Notes: Off"
+	var undo_action := _icon_action_button("↺", "Undo")
+	undo_action.button.pressed.connect(_on_undo_pressed)
+	controls.add_child(undo_action.control)
+
+	var erase_action := _icon_action_button("⌫", "Erase")
+	erase_action.button.pressed.connect(_on_erase_pressed)
+	controls.add_child(erase_action.control)
+
+	var notes_action := _icon_action_button("✎", "Notes: Off")
+	notes_button = notes_action.button
 	notes_button.toggle_mode = true
-	notes_button.custom_minimum_size = Vector2(0, 48)
-	notes_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	notes_status_label = notes_action.text_label
 	notes_button.pressed.connect(_on_notes_toggled)
-	controls.add_child(notes_button)
+	controls.add_child(notes_action.control)
 
-	var erase_button := Button.new()
-	erase_button.text = "Erase"
-	erase_button.custom_minimum_size = Vector2(0, 48)
-	erase_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	erase_button.pressed.connect(_on_erase_pressed)
-	controls.add_child(erase_button)
+	var hint_action := _icon_action_button("💡", "Hint: %d" % hints_remaining)
+	hint_label = hint_action.text_label
+	hint_action.button.pressed.connect(_on_hint_pressed)
+	controls.add_child(hint_action.control)
 
-	var pause_button := Button.new()
-	pause_button.text = "Pause"
-	pause_button.custom_minimum_size = Vector2(0, 48)
-	pause_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pause_button.pressed.connect(_on_pause_pressed)
-	controls.add_child(pause_button)
-
-	# number pad
+	# number pad, with a checkmark replacing any digit once all 9 are correctly placed
 	var pad_margin := MarginContainer.new()
 	pad_margin.add_theme_constant_override("margin_left", 16)
 	pad_margin.add_theme_constant_override("margin_right", 16)
@@ -236,20 +289,71 @@ func _build_game_screen() -> void:
 	pad.add_theme_constant_override("h_separation", 4)
 	pad_margin.add_child(pad)
 
+	number_buttons = []
 	for n in range(1, 10):
 		var nb := Button.new()
 		nb.text = str(n)
 		nb.custom_minimum_size = Vector2(0, 52)
 		nb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nb.pressed.connect(func(): _on_number_pressed(n))
+		nb.focus_mode = Control.FOCUS_NONE
+		nb.pressed.connect(_on_number_pressed.bind(n))
 		pad.add_child(nb)
+		number_buttons.append(nb)
 
-func _stat_label(text: String) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", 14)
-	l.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	return l
+func _stat_block(header: String) -> Dictionary:
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var header_label := Label.new()
+	header_label.text = header
+	header_label.add_theme_font_size_override("font_size", 11)
+	header_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(header_label)
+
+	var value_label := Label.new()
+	value_label.add_theme_font_size_override("font_size", 18)
+	value_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(value_label)
+
+	return {"box": box, "value_label": value_label}
+
+## Icon on top, small status label below, with an invisible full-rect button for input.
+func _icon_action_button(icon: String, label_text: String) -> Dictionary:
+	var control := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0)
+	control.add_theme_stylebox_override("panel", sb)
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 2)
+	control.add_child(box)
+
+	var icon_label := Label.new()
+	icon_label.text = icon
+	icon_label.add_theme_font_size_override("font_size", 22)
+	icon_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
+	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(icon_label)
+
+	var text_label := Label.new()
+	text_label.text = label_text
+	text_label.add_theme_font_size_override("font_size", 11)
+	text_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(text_label)
+
+	var button := Button.new()
+	button.flat = true
+	button.set_anchors_preset(Control.PRESET_FULL_RECT)
+	button.focus_mode = Control.FOCUS_NONE
+	control.add_child(button)
+
+	return {"control": control, "icon_label": icon_label, "text_label": text_label, "button": button}
 
 func _build_loading_overlay() -> void:
 	loading_overlay = ColorRect.new()
@@ -439,9 +543,11 @@ func _on_generation_complete(result: Dictionary) -> void:
 	mistakes = 0
 	score = 0
 	elapsed_seconds = 0.0
+	hints_remaining = STARTING_HINTS
+	move_history = []
 	selected = Vector2i(-1, -1)
 	notes_mode = false
-	notes_button.text = "Notes: Off"
+	notes_status_label.text = "Notes: Off"
 	notes_button.button_pressed = false
 
 	_populate_board()
@@ -468,6 +574,7 @@ func _populate_board() -> void:
 			else:
 				cell.update_display()
 	_refresh_highlights()
+	_update_number_pad()
 
 func _on_cell_pressed(r: int, c: int) -> void:
 	selected = Vector2i(r, c)
@@ -480,6 +587,7 @@ func _on_number_pressed(n: int) -> void:
 	if cell.is_given:
 		return
 	if notes_mode:
+		_record_undo(selected.x, selected.y)
 		cell.toggle_note(n)
 	else:
 		_place_number(selected.x, selected.y, n)
@@ -489,12 +597,14 @@ func _place_number(r: int, c: int, n: int) -> void:
 	var cell: CellButton = cells[r][c]
 	if cell.value == n:
 		return
+	_record_undo(r, c)
 	var was_correct_before: bool = cell.value != 0 and cell.value == solution[r][c]
 	cell.set_value(n)
 
 	if n == solution[r][c]:
 		if not was_correct_before:
 			score += CORRECT_CELL_POINTS
+		_update_number_pad()
 		_check_win()
 	else:
 		cell.mark_error()
@@ -509,12 +619,14 @@ func _on_erase_pressed() -> void:
 	var cell: CellButton = cells[selected.x][selected.y]
 	if cell.is_given:
 		return
+	_record_undo(selected.x, selected.y)
 	cell.clear_value()
 	_refresh_highlights()
+	_update_number_pad()
 
 func _on_notes_toggled() -> void:
 	notes_mode = notes_button.button_pressed
-	notes_button.text = "Notes: On" if notes_mode else "Notes: Off"
+	notes_status_label.text = "Notes: On" if notes_mode else "Notes: Off"
 
 func _on_pause_pressed() -> void:
 	if not game_active:
@@ -526,6 +638,74 @@ func _on_pause_pressed() -> void:
 func _on_resume_pressed() -> void:
 	pause_dialog.visible = false
 	timer_running = true
+
+## Snapshots a cell's full state plus current score/mistakes before a mutating action,
+## so _on_undo_pressed can restore everything in one step regardless of what changed.
+func _record_undo(r: int, c: int) -> void:
+	var cell: CellButton = cells[r][c]
+	move_history.append({
+		"row": r, "col": c,
+		"value": cell.value,
+		"notes": cell.notes.duplicate(),
+		"is_error": cell.is_error,
+		"score": score,
+		"mistakes": mistakes,
+	})
+	if move_history.size() > MAX_UNDO_HISTORY:
+		move_history.pop_front()
+
+func _on_undo_pressed() -> void:
+	if not game_active or move_history.is_empty():
+		return
+	var snap: Dictionary = move_history.pop_back()
+	var cell: CellButton = cells[snap.row][snap.col]
+	cell.value = snap.value
+	cell.notes = snap.notes.duplicate()
+	cell.is_error = snap.is_error
+	cell.update_display()
+	score = snap.score
+	mistakes = snap.mistakes
+	selected = Vector2i(snap.row, snap.col)
+	_update_status_bar()
+	_refresh_highlights()
+	_update_number_pad()
+
+func _on_hint_pressed() -> void:
+	if not game_active or hints_remaining <= 0 or selected.x < 0:
+		return
+	var cell: CellButton = cells[selected.x][selected.y]
+	var correct: int = solution[selected.x][selected.y]
+	if cell.is_given or cell.value == correct:
+		return
+	_record_undo(selected.x, selected.y)
+	cell.set_value(correct)
+	cell.is_error = false
+	cell.update_display()
+	hints_remaining -= 1
+	hint_label.text = "Hint: %d" % hints_remaining
+	_update_status_bar()
+	_refresh_highlights()
+	_update_number_pad()
+	_check_win()
+
+## Digit n gets a checkmark in the number pad once all 9 correct instances are placed.
+func _digit_complete(n: int) -> bool:
+	var count := 0
+	for r in range(9):
+		for c in range(9):
+			if cells[r][c].value == n and n == solution[r][c]:
+				count += 1
+	return count >= 9
+
+func _update_number_pad() -> void:
+	for n in range(1, 10):
+		var btn: Button = number_buttons[n - 1]
+		if _digit_complete(n):
+			btn.text = "✓"
+			btn.disabled = true
+		else:
+			btn.text = str(n)
+			btn.disabled = false
 
 func _check_win() -> void:
 	for r in range(9):
@@ -546,8 +726,8 @@ func _compute_final_score() -> int:
 	return int(round((score + time_bonus) * multiplier))
 
 func _update_status_bar() -> void:
-	mistakes_label.text = "Mistakes: %d" % mistakes
-	score_label.text = "Score: %d" % score
+	mistakes_label.text = "%d" % mistakes
+	score_label.text = "%d" % score
 
 # ---------- save / load ----------
 
@@ -571,6 +751,7 @@ func _save_game() -> void:
 		"score": score,
 		"elapsed_seconds": elapsed_seconds,
 		"difficulty": difficulty,
+		"hints_remaining": hints_remaining,
 	})
 
 func _refresh_continue_button() -> void:
@@ -592,10 +773,13 @@ func _load_saved_game() -> void:
 	mistakes = int(data.mistakes)
 	score = int(data.score)
 	elapsed_seconds = float(data.elapsed_seconds)
+	hints_remaining = int(data.get("hints_remaining", STARTING_HINTS))
+	move_history = []
 	selected = Vector2i(-1, -1)
 	notes_mode = false
-	notes_button.text = "Notes: Off"
+	notes_status_label.text = "Notes: Off"
 	notes_button.button_pressed = false
+	hint_label.text = "Hint: %d" % hints_remaining
 
 	var values: Array = data.values
 	var notes_data: Array = data.notes
@@ -626,6 +810,7 @@ func _load_saved_game() -> void:
 	difficulty_label.text = difficulty.capitalize()
 	_update_status_bar()
 	_refresh_highlights()
+	_update_number_pad()
 	game_active = true
 	difficulty_screen.visible = false
 	_show_game_screen()

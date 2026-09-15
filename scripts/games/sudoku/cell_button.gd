@@ -18,10 +18,10 @@ var value_label: Label
 var notes_grid: GridContainer
 var note_labels: Array = []
 
-func setup(r: int, c: int) -> void:
+func setup(r: int, c: int, cell_size: float = 72.0) -> void:
 	row = r
 	col = c
-	custom_minimum_size = Vector2(72, 72)
+	custom_minimum_size = Vector2(cell_size, cell_size)
 	# flat=true suppresses the idle-state stylebox in Godot, which would hide our
 	# background/border overrides while the button isn't hovered or pressed.
 	flat = false
@@ -31,7 +31,7 @@ func setup(r: int, c: int) -> void:
 	value_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	value_label.add_theme_font_size_override("font_size", 28)
+	value_label.add_theme_font_size_override("font_size", int(cell_size * 0.4))
 	value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(value_label)
 
@@ -44,7 +44,7 @@ func setup(r: int, c: int) -> void:
 		l.text = ""
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.add_theme_font_size_override("font_size", 11)
+		l.add_theme_font_size_override("font_size", max(9, int(cell_size * 0.15)))
 		l.add_theme_color_override("font_color", COLOR_NOTE)
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
