@@ -29,6 +29,22 @@ export requires the source to be inside this one project, and the shared helpers
 below need to stay trivially reusable. The games are logically independent (that's
 the whole point of Option B); the repo/project is not.
 
+## Scoping your work: hub vs. a specific game
+
+The only thing connecting a game to the hub is the four registration points
+below (catalog entry, export preset, manifest entry, version bump) — a game's
+code never reads hub internals, and the hub never reads a game's internals
+beyond its `.tscn` path.
+
+- **Fixing or building a specific game?** You need `scripts/games/<id>/`,
+  `scenes/games/<id>/`, this file's "Adding a new game" and "Shipping a change"
+  sections, and nothing else. You should not need to open `scripts/hub/hub.gd`
+  except to add/edit that game's one `CATEGORIES` entry.
+- **Working on the hub shell itself** (the category list, tiles, update flow,
+  download flow)? Read `scripts/hub/CLAUDE.md` instead — it covers `hub.gd`'s
+  internals in depth. You should not need to open any file under
+  `scripts/games/` or `scenes/games/`.
+
 ## Adding a new game — the pattern
 
 Every shipped game follows the same shape. Look at `red_or_black` or `three_man`
