@@ -1,0 +1,9 @@
+# Godot-generated cache/import data -- regenerated automatically, machine-specific
+.godot/
+
+# Build output -- these get distributed via GitHub Releases, not committed to the repo
+builds/
+
+# OS junk
+Thumbs.db
+.DS_Store

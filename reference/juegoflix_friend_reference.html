@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>JuegoFlix — 20 juegos gratis</title>
+<style>
+  :root{
+    --bg:#0A0D14;
+    --surface:#131826;
+    --surface-2:#1B2233;
+    --ink:#F2F4F8;
+    --ink-dim:#8B93A7;
+    --coral:#FF6B5D;
+    --teal:#2FD9C4;
+    --amber:#FFC24B;
+    --violet:#B18CFF;
+    --lime:#B6F169;
+    --pink:#FF8FC7;
+    --sky:#5FC7FF;
+    font-size:16px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Segoe UI,Roboto,sans-serif;
+    overflow-x:hidden;}
+  body{padding-bottom:env(safe-area-inset-bottom);}
+  h1,h2,h3{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Segoe UI,Roboto,sans-serif;}
+  button{font-family:inherit;}
+
+  /* ---------- HOME ---------- */
+  header.top{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 20px;
+    background:linear-gradient(to bottom, rgba(10,13,20,.95), rgba(10,13,20,.65) 70%, transparent);
+    backdrop-filter:blur(6px);
+  }
+  .logo{font-weight:800;font-size:1.35rem;letter-spacing:-0.02em;}
+  .logo span{color:var(--coral);}
+  .hero{
+    position:relative;margin:0 14px 8px;border-radius:20px;overflow:hidden;
+    padding:34px 22px 26px;min-height:190px;display:flex;flex-direction:column;justify-content:flex-end;
+    background:
+      radial-gradient(120% 140% at 15% 0%, rgba(255,107,93,.55), transparent 60%),
+      radial-gradient(120% 140% at 90% 10%, rgba(95,199,255,.35), transparent 55%),
+      linear-gradient(160deg,#161B2C,#0E1220);
+  }
+  .hero-eyebrow{color:var(--ink-dim);font-size:.78rem;margin-bottom:6px;}
+  .hero h2{font-size:1.7rem;line-height:1.15;max-width:80%;}
+  .hero p{color:var(--ink-dim);margin:8px 0 16px;max-width:85%;font-size:.92rem;}
+  .hero-btn{
+    align-self:flex-start;background:var(--ink);color:#0A0D14;border:none;
+    padding:11px 20px;border-radius:10px;font-weight:700;font-size:.95rem;
+  }
+  .hero-emoji{position:absolute;right:14px;top:14px;font-size:3.4rem;opacity:.9;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));}
+
+  .row{margin:22px 0;}
+  .row h3{padding:0 18px;margin-bottom:10px;font-size:1.02rem;font-weight:700;}
+  .row-scroll{display:flex;gap:12px;overflow-x:auto;padding:2px 18px 10px;scroll-snap-type:x proximity;}
+  .row-scroll::-webkit-scrollbar{display:none;}
+  .card{
+    scroll-snap-align:start;flex:0 0 132px;height:170px;border-radius:16px;
+    position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06);
+    display:flex;flex-direction:column;justify-content:flex-end;padding:10px;
+    -webkit-user-select:none;user-select:none;transition:transform .15s ease;
+  }
+  .card:active{transform:scale(.96);}
+  .card .em{position:absolute;top:12px;left:12px;font-size:2rem;}
+  .card .nm{font-weight:700;font-size:.86rem;line-height:1.2;text-shadow:0 2px 6px rgba(0,0,0,.5);}
+  .card .tag{font-size:.66rem;color:rgba(255,255,255,.75);margin-top:2px;}
+  footer.note{padding:24px 20px 40px;color:var(--ink-dim);font-size:.76rem;line-height:1.5;text-align:center;}
+
+  /* ---------- GAME VIEW ---------- */
+  #gameView{
+    position:fixed;inset:0;background:var(--bg);z-index:100;
+    display:none;flex-direction:column;
+  }
+  #gameView.active{display:flex;}
+  .gv-top{
+    display:flex;align-items:center;gap:12px;padding:14px 16px;
+    padding-top:calc(14px + env(safe-area-inset-top));
+    border-bottom:1px solid rgba(255,255,255,.07);
+  }
+  .back-btn{
+    background:var(--surface-2);border:none;color:var(--ink);width:38px;height:38px;
+    border-radius:10px;font-size:1.1rem;display:flex;align-items:center;justify-content:center;
+  }
+  .gv-top h3{font-size:1.05rem;flex:1;}
+  .gv-body{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;
+    padding:18px 14px 40px;gap:14px;}
+  .ghint{color:var(--ink-dim);font-size:.82rem;text-align:center;max-width:420px;}
+  .gbtn{
+    background:var(--surface-2);color:var(--ink);border:1px solid rgba(255,255,255,.08);
+    padding:10px 18px;border-radius:10px;font-weight:700;font-size:.9rem;
+  }
+  .gbtn.primary{background:var(--coral);color:#20090A;border:none;}
+  .gscore{font-weight:800;font-size:1.1rem;}
+  canvas{max-width:100%;touch-action:none;border-radius:14px;background:#0E1220;}
+
+  /* generic board grids */
+  .grid{display:grid;gap:4px;}
+  .cell{
+    display:flex;align-items:center;justify-content:center;background:var(--surface-2);
+    border-radius:6px;font-weight:800;user-select:none;
+  }
+  .cell.dark{background:#232B40;}
+  .cell.light{background:#3A445E;}
+  .cell.sel{outline:2px solid var(--amber);}
+  .cell.legal{box-shadow:inset 0 0 0 3px var(--lime);}
+
+  @media (min-width:720px){
+    .hero h2{font-size:2.1rem;}
+  }
+</style>
+</head>
+<body>
+
+<div id="home">
+  <header class="top">
+    <div class="logo">JUEGO<span>FLIX</span></div>
+  </header>
+
+  <div class="hero" id="heroBanner">
+    <div class="hero-emoji">♟️</div>
+    <div class="hero-eyebrow">JUEGO DESTACADO</div>
+    <h2>Ajedrez</h2>
+    <p>El clásico de siempre, sin anuncios y sin complicaciones. Reta a alguien en el mismo dispositivo.</p>
+    <button class="hero-btn" onclick="openGame('chess')">Jugar ahora</button>
+  </div>
+
+  <div id="rows"></div>
+
+  <footer class="note">JuegoFlix · 20 juegos, cero anuncios, cero descargas.<br>Funciona directo en Safari — puedes añadirlo a tu pantalla de inicio como una app.</footer>
+</div>
+
+<div id="gameView">
+  <div class="gv-top">
+    <button class="back-btn" onclick="closeGame()">←</button>
+    <h3 id="gvTitle"></h3>
+  </div>
+  <div class="gv-body" id="gvBody"></div>
+</div>
+
+<script>
+/* ============================================================
+   CATALOG
+============================================================ */
+const CATALOG = [
+  {cat:"Clásicos de mesa", color:"#3A2A2E", items:[
+    {id:"tictactoe", name:"Tres en Raya", emoji:"❌", tag:"2 jugadores"},
+    {id:"checkers", name:"Damas", emoji:"⚫️", tag:"2 jugadores"},
+    {id:"chess", name:"Ajedrez", emoji:"♟️", tag:"2 jugadores"},
+    {id:"connect4", name:"Conecta 4", emoji:"🔴", tag:"2 jugadores"},
+  ]},
+  {cat:"Rompecabezas", color:"#233246", items:[
+    {id:"sudoku", name:"Sudoku", emoji:"🔢", tag:"Lógica"},
+    {id:"g2048", name:"2048", emoji:"🎯", tag:"Números"},
+    {id:"minesweeper", name:"Buscaminas", emoji:"💣", tag:"Lógica"},
+    {id:"slide", name:"Puzzle Deslizante", emoji:"🧩", tag:"Clásico"},
+  ]},
+  {cat:"Arcade", color:"#1F3A2E", items:[
+    {id:"snake", name:"Serpiente", emoji:"🐍", tag:"Arcade"},
+    {id:"pong", name:"Pong", emoji:"🏓", tag:"Arcade"},
+    {id:"pacman", name:"Come-Puntos", emoji:"🟡", tag:"Estilo Pac-Man"},
+    {id:"whack", name:"Atrapa al Topo", emoji:"🐹", tag:"Reflejos"},
+  ]},
+  {cat:"Fiesta y mente rápida", color:"#3A2A46", items:[
+    {id:"memory", name:"Memorama", emoji:"🃏", tag:"Memoria"},
+    {id:"simon", name:"Simón Dice", emoji:"🎵", tag:"Memoria"},
+    {id:"rps", name:"Piedra, Papel o Tijera", emoji:"✊", tag:"Rápido"},
+    {id:"hangman", name:"Ahorcado", emoji:"📝", tag:"Palabras"},
+  ]},
+  {cat:"Rápidos y curiosos", color:"#463322", items:[
+    {id:"scramble", name:"Adivina la Palabra", emoji:"🔤", tag:"Palabras"},
+    {id:"guess", name:"Adivina el Número", emoji:"🎱", tag:"Lógica"},
+    {id:"reaction", name:"Test de Reflejos", emoji:"⚡️", tag:"Reflejos"},
+    {id:"ouija", name:"Ouija", emoji:"👻", tag:"Solo diversión"},
+  ]},
+];
+
+const home = document.getElementById('rows');
+CATALOG.forEach(section=>{
+  const row = document.createElement('div');
+  row.className='row';
+  row.innerHTML = `<h3>${section.cat}</h3><div class="row-scroll">${
+    section.items.map(g=>`
+      <div class="card" style="background:linear-gradient(160deg, ${section.color}, #0E1220)" onclick="openGame('${g.id}')">
+        <div class="em">${g.emoji}</div>
+        <div class="nm">${g.name}</div>
+        <div class="tag">${g.tag}</div>
+      </div>`).join('')
+  }</div>`;
+  home.appendChild(row);
+});
+
+/* ============================================================
+   NAV
+============================================================ */
+let currentCleanup = null;
+function openGame(id){
+  const meta = CATALOG.flatMap(s=>s.items).find(g=>g.id===id);
+  document.getElementById('gvTitle').textContent = meta ? meta.name : id;
+  const body = document.getElementById('gvBody');
+  body.innerHTML = '';
+  document.getElementById('gameView').classList.add('active');
+  const game = GAMES[id];
+  if(game) currentCleanup = game(body) || null;
+}
+function closeGame(){
+  document.getElementById('gameView').classList.remove('active');
+  if(typeof currentCleanup === 'function') currentCleanup();
+  currentCleanup = null;
+  document.getElementById('gvBody').innerHTML='';
+}
+function el(tag, props={}, children=[]){
+  const e = document.createElement(tag);
+  Object.entries(props).forEach(([k,v])=>{
+    if(k==='style') Object.assign(e.style,v);
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if(k==='class') e.className=v;
+    else e.setAttribute(k,v);
+  });
+  children.forEach(c=> e.appendChild(typeof c==='string'? document.createTextNode(c): c));
+  return e;
+}
+
+/* ============================================================
+   GAMES OBJECT
+============================================================ */
+const GAMES = {};
+
+/* ---------- 1. TIC TAC TOE ---------- */
+GAMES.tictactoe = (root)=>{
+  let board = Array(9).fill(null), turn='X', over=false;
+  const status = el('div',{class:'gscore'});
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:'repeat(3,84px)'}});
+  function render(){
+    grid.innerHTML='';
+    board.forEach((v,i)=>{
+      const c = el('div',{class:'cell',style:{width:'84px',height:'84px',fontSize:'2rem',color:v==='X'?'#FF6B5D':'#5FC7FF'},onclick:()=>move(i)},[v||'']);
+      grid.appendChild(c);
+    });
+    status.textContent = over? status.textContent : `Turno: ${turn}`;
+  }
+  function move(i){
+    if(over||board[i]) return;
+    board[i]=turn;
+    const w = winner();
+    if(w){ over=true; status.textContent = w==='draw' ? '¡Empate!' : `¡Gana ${w}!`; }
+    else turn = turn==='X'?'O':'X';
+    render();
+  }
+  function winner(){
+    const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for(const[a,b,c] of L) if(board[a]&&board[a]===board[b]&&board[a]===board[c]) return board[a];
+    if(board.every(x=>x)) return 'draw';
+    return null;
+  }
+  function reset(){ board=Array(9).fill(null); turn='X'; over=false; render(); }
+  root.append(el('p',{class:'ghint'},['Turnos alternos en el mismo dispositivo.']), status, grid, el('button',{class:'gbtn',onclick:reset},['Reiniciar']));
+  render();
+};
+
+/* ---------- 2. CHECKERS (DAMAS) ---------- */
+GAMES.checkers = (root)=>{
+  const N=8;
+  let board = [], turn='r', sel=null, over=false;
+  function initBoard(){
+    board = Array.from({length:N},()=>Array(N).fill(null));
+    for(let y=0;y<3;y++) for(let x=0;x<N;x++) if((x+y)%2===1) board[y][x]={c:'b',k:false};
+    for(let y=5;y<8;y++) for(let x=0;x<N;x++) if((x+y)%2===1) board[y][x]={c:'r',k:false};
+  }
+  initBoard();
+  const status = el('div',{class:'gscore'});
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:`repeat(${N},38px)`}});
+  function dirsFor(p){ return p.k? [[1,1],[1,-1],[-1,1],[-1,-1]] : (p.c==='r'? [[-1,1],[-1,-1]] : [[1,1],[1,-1]]); }
+  function legalMoves(x,y){
+    const p = board[y][x]; if(!p) return [];
+    let moves=[];
+    for(const[dy,dx] of dirsFor(p)){
+      const nx=x+dx, ny=y+dy;
+      if(nx>=0&&nx<N&&ny>=0&&ny<N&&!board[ny][nx]) moves.push({x:nx,y:ny,cap:null});
+      const jx=x+2*dx, jy=y+2*dy;
+      if(jx>=0&&jx<N&&jy>=0&&jy<N&&board[ny] && board[ny][nx] && board[ny][nx].c!==p.c && !board[jy][jx])
+        moves.push({x:jx,y:jy,cap:{x:nx,y:ny}});
+    }
+    return moves;
+  }
+  function render(){
+    grid.innerHTML='';
+    for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+      const dark=(x+y)%2===1;
+      const p = board[y][x];
+      const cell = el('div',{class:'cell '+(dark?'dark':'light'),style:{width:'38px',height:'38px'}});
+      if(sel && sel.x===x && sel.y===y) cell.classList.add('sel');
+      if(sel && legalMoves(sel.x,sel.y).some(m=>m.x===x&&m.y===y)) cell.classList.add('legal');
+      if(p){
+        const piece = el('div',{style:{width:'28px',height:'28px',borderRadius:'50%',
+          background: p.c==='r'? 'radial-gradient(circle at 35% 30%, #FF9C90, #C6392D)' : 'radial-gradient(circle at 35% 30%, #6b7280, #1f2430)',
+          border: p.k? '2px solid #FFC24B':'2px solid rgba(0,0,0,.3)'}});
+        cell.appendChild(piece);
+      }
+      cell.onclick=()=>handleClick(x,y);
+      grid.appendChild(cell);
+    }
+    status.textContent = over? status.textContent : `Turno: ${turn==='r'?'Rojas':'Negras'}`;
+  }
+  function handleClick(x,y){
+    if(over) return;
+    const p = board[y][x];
+    if(sel){
+      const mv = legalMoves(sel.x,sel.y).find(m=>m.x===x&&m.y===y);
+      if(mv){
+        board[y][x]=board[sel.y][sel.x]; board[sel.y][sel.x]=null;
+        if(mv.cap) board[mv.cap.y][mv.cap.x]=null;
+        if((turn==='r'&&y===0)||(turn==='b'&&y===N-1)) board[y][x].k=true;
+        sel=null;
+        checkWin();
+        if(!over) turn = turn==='r'?'b':'r';
+      } else if(p && p.c===turn){ sel={x,y}; } else { sel=null; }
+    } else if(p && p.c===turn){ sel={x,y}; }
+    render();
+  }
+  function checkWin(){
+    const rCount = board.flat().filter(p=>p&&p.c==='r').length;
+    const bCount = board.flat().filter(p=>p&&p.c==='b').length;
+    if(rCount===0){ over=true; status.textContent='¡Ganan las Negras!'; }
+    if(bCount===0){ over=true; status.textContent='¡Ganan las Rojas!'; }
+  }
+  function reset(){ initBoard(); turn='r'; sel=null; over=false; render(); }
+  root.append(el('p',{class:'ghint'},['Toca una ficha roja o negra y luego la casilla verde para moverte o capturar.']), status, grid, el('button',{class:'gbtn',onclick:reset},['Reiniciar']));
+  render();
+};
+
+/* ---------- 3. CHESS (simplified legal moves) ---------- */
+GAMES.chess = (root)=>{
+  const N=8;
+  let board, turn='w', sel=null, over=false;
+  const initial = ['r','n','b','q','k','b','n','r'];
+  function initBoard(){
+    board = Array.from({length:N},()=>Array(N).fill(null));
+    for(let x=0;x<N;x++){
+      board[0][x]={c:'b',t:initial[x]};
+      board[1][x]={c:'b',t:'p'};
+      board[6][x]={c:'w',t:'p'};
+      board[7][x]={c:'w',t:initial[x]};
+    }
+  }
+  initBoard();
+  const icons = {p:'♟',r:'♜',n:'♞',b:'♝',q:'♛',k:'♚'};
+  const status = el('div',{class:'gscore'});
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:`repeat(${N},38px)`}});
+  function inb(x,y){return x>=0&&x<N&&y>=0&&y<N;}
+  function slide(x,y,dirs,piece,moves){
+    for(const[dx,dy] of dirs){
+      let nx=x+dx, ny=y+dy;
+      while(inb(nx,ny)){
+        if(!board[ny][nx]){ moves.push({x:nx,y:ny}); }
+        else{ if(board[ny][nx].c!==piece.c) moves.push({x:nx,y:ny}); break; }
+        nx+=dx; ny+=dy;
+      }
+    }
+  }
+  function legalMoves(x,y){
+    const p = board[y][x]; if(!p) return [];
+    let moves=[];
+    if(p.t==='p'){
+      const dir = p.c==='w'? -1: 1; const startRow = p.c==='w'?6:1;
+      if(inb(x,y+dir) && !board[y+dir][x]){ moves.push({x,y:y+dir});
+        if(y===startRow && !board[y+2*dir][x]) moves.push({x,y:y+2*dir}); }
+      for(const dx of [-1,1]){ const nx=x+dx, ny=y+dir;
+        if(inb(nx,ny) && board[ny][nx] && board[ny][nx].c!==p.c) moves.push({x:nx,y:ny}); }
+    } else if(p.t==='n'){
+      [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(([dx,dy])=>{
+        const nx=x+dx, ny=y+dy;
+        if(inb(nx,ny) && (!board[ny][nx] || board[ny][nx].c!==p.c)) moves.push({x:nx,y:ny});
+      });
+    } else if(p.t==='b'){ slide(x,y,[[1,1],[1,-1],[-1,1],[-1,-1]],p,moves); }
+    else if(p.t==='r'){ slide(x,y,[[1,0],[-1,0],[0,1],[0,-1]],p,moves); }
+    else if(p.t==='q'){ slide(x,y,[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]],p,moves); }
+    else if(p.t==='k'){
+      [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dx,dy])=>{
+        const nx=x+dx, ny=y+dy;
+        if(inb(nx,ny) && (!board[ny][nx] || board[ny][nx].c!==p.c)) moves.push({x:nx,y:ny});
+      });
+    }
+    return moves;
+  }
+  function render(){
+    grid.innerHTML='';
+    for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+      const dark=(x+y)%2===1;
+      const p = board[y][x];
+      const cell = el('div',{class:'cell '+(dark?'dark':'light'),
+        style:{width:'38px',height:'38px',fontSize:'1.5rem',color:p&&p.c==='w'?'#F2F4F8':'#101522'}});
+      if(sel && sel.x===x && sel.y===y) cell.classList.add('sel');
+      if(sel && legalMoves(sel.x,sel.y).some(m=>m.x===x&&m.y===y)) cell.classList.add('legal');
+      if(p) cell.textContent = icons[p.t];
+      cell.onclick=()=>handleClick(x,y);
+      grid.appendChild(cell);
+    }
+    status.textContent = over? status.textContent : `Turno: ${turn==='w'?'Blancas':'Negras'}`;
+  }
+  function handleClick(x,y){
+    if(over) return;
+    const p = board[y][x];
+    if(sel){
+      const mv = legalMoves(sel.x,sel.y).find(m=>m.x===x&&m.y===y);
+      if(mv){
+        const captured = board[y][x];
+        board[y][x]=board[sel.y][sel.x]; board[sel.y][sel.x]=null;
+        if(board[y][x].t==='p' && (y===0||y===7)) board[y][x].t='q';
+        sel=null;
+        if(captured && captured.t==='k'){ over=true; status.textContent = `¡Ganan las ${turn==='w'?'Blancas':'Negras'}!`; }
+        else turn = turn==='w'?'b':'w';
+      } else if(p && p.c===turn){ sel={x,y}; } else sel=null;
+    } else if(p && p.c===turn){ sel={x,y}; }
+    render();
+  }
+  function reset(){ initBoard(); turn='w'; sel=null; over=false; render(); }
+  root.append(el('p',{class:'ghint'},['Versión básica: movimientos de siempre, sin enroque ni "jaque" formal. Comer al rey gana la partida.']), status, grid, el('button',{class:'gbtn',onclick:reset},['Reiniciar']));
+  render();
+};
+
+/* ---------- 4. CONNECT 4 ---------- */
+GAMES.connect4 = (root)=>{
+  const W=7,H=6;
+  let board, turn='r', over=false;
+  function initBoard(){ board = Array.from({length:H},()=>Array(W).fill(null)); }
+  initBoard();
+  const status = el('div',{class:'gscore'});
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:`repeat(${W},40px)`}});
+  function render(){
+    grid.innerHTML='';
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+      const v = board[y][x];
+      const cell = el('div',{class:'cell',style:{width:'40px',height:'40px',background:'#1B2A45'},onclick:()=>drop(x)});
+      const disc = el('div',{style:{width:'30px',height:'30px',borderRadius:'50%',
+        background: v==='r'?'#FF6B5D': v==='y'?'#FFC24B':'#0E1220'}});
+      cell.appendChild(disc);
+      grid.appendChild(cell);
+    }
+    status.textContent = over? status.textContent : `Turno: ${turn==='r'?'🔴 Rojo':'🟡 Amarillo'}`;
+  }
+  function drop(x){
+    if(over) return;
+    for(let y=H-1;y>=0;y--){
+      if(!board[y][x]){
+        board[y][x]=turn;
+        if(checkWin(x,y)){ over=true; status.textContent = `¡Gana ${turn==='r'?'🔴 Rojo':'🟡 Amarillo'}!`; }
+        else if(board.every(row=>row.every(c=>c))){ over=true; status.textContent='¡Empate!'; }
+        else turn = turn==='r'?'y':'r';
+        render();
+        return;
+      }
+    }
+  }
+  function checkWin(x,y){
+    const c = board[y][x];
+    const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    for(const[dx,dy] of dirs){
+      let count=1;
+      for(const s of [1,-1]){
+        let nx=x+dx*s, ny=y+dy*s;
+        while(nx>=0&&nx<W&&ny>=0&&ny<H&&board[ny][nx]===c){ count++; nx+=dx*s; ny+=dy*s; }
+      }
+      if(count>=4) return true;
+    }
+    return false;
+  }
+  function reset(){ initBoard(); turn='r'; over=false; render(); }
+  root.append(el('p',{class:'ghint'},['Toca una columna para soltar tu ficha.']), status, grid, el('button',{class:'gbtn',onclick:reset},['Reiniciar']));
+  render();
+};
+
+/* ---------- 5. SUDOKU ---------- */
+GAMES.sudoku = (root)=>{
+  function genSolved(){
+    const g = Array.from({length:9},()=>Array(9).fill(0));
+    function valid(r,c,v){
+      for(let i=0;i<9;i++) if(g[r][i]===v||g[i][c]===v) return false;
+      const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+      for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(g[br+i][bc+j]===v) return false;
+      return true;
+    }
+    function fill(pos){
+      if(pos===81) return true;
+      const r=Math.floor(pos/9), c=pos%9;
+      const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-.5);
+      for(const v of nums){ if(valid(r,c,v)){ g[r][c]=v; if(fill(pos+1)) return true; g[r][c]=0; } }
+      return false;
+    }
+    fill(0);
+    return g;
+  }
+  const solved = genSolved();
+  const puzzle = solved.map(row=>row.slice());
+  let holes=40;
+  while(holes>0){ const r=Math.floor(Math.random()*9), c=Math.floor(Math.random()*9); if(puzzle[r][c]!==0){ puzzle[r][c]=0; holes--; } }
+  const fixed = puzzle.map(row=>row.map(v=>v!==0));
+  const status = el('div',{class:'gscore'},['Completa el tablero']);
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:'repeat(9,32px)'}});
+  const inputs = [];
+  for(let r=0;r<9;r++){ inputs.push([]); for(let c=0;c<9;c++){
+    const isFixed = fixed[r][c];
+    const cell = el('input',{class:'cell',style:{width:'32px',height:'32px',fontSize:'1rem',
+      textAlign:'center',border:'none',color: isFixed?'#5FC7FF':'#F2F4F8',
+      background: (Math.floor(r/3)+Math.floor(c/3))%2===0 ? '#1B2233':'#232B40'},
+      maxlength:'1', inputmode:'numeric'});
+    cell.value = isFixed? solved[r][c] : '';
+    cell.disabled = isFixed;
+    cell.oninput = (e)=>{ e.target.value = e.target.value.replace(/[^1-9]/g,'').slice(0,1); };
+    inputs[r].push(cell);
+    grid.appendChild(cell);
+  }}
+  function check(){
+    let ok=true;
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+      const v = parseInt(inputs[r][c].value||'0',10);
+      inputs[r][c].style.outline = (v && v===solved[r][c]) ? 'none' : '2px solid #FF6B5D';
+      if(v!==solved[r][c]) ok=false;
+    }
+    status.textContent = ok ? '¡Resuelto! 🎉' : 'Aún hay errores o casillas vacías';
+  }
+  function reveal(){ for(let r=0;r<9;r++) for(let c=0;c<9;c++){ inputs[r][c].value = solved[r][c]; inputs[r][c].style.outline='none'; } status.textContent='Solución mostrada'; }
+  root.append(el('p',{class:'ghint'},['Rellena del 1 al 9 sin repetir en fila, columna ni bloque de 3x3.']), status, grid,
+    el('div',{style:{display:'flex',gap:'10px'}},[
+      el('button',{class:'gbtn primary',onclick:check},['Comprobar']),
+      el('button',{class:'gbtn',onclick:reveal},['Ver solución'])
+    ]));
+};
+
+/* ---------- 6. 2048 ---------- */
+GAMES.g2048 = (root)=>{
+  let grid, score=0, over=false;
+  const size=4;
+  function empty(){ return Array.from({length:size},()=>Array(size).fill(0)); }
+  function addTile(){
+    const cells=[]; for(let r=0;r<size;r++) for(let c=0;c<size;c++) if(!grid[r][c]) cells.push([r,c]);
+    if(!cells.length) return;
+    const [r,c] = cells[Math.floor(Math.random()*cells.length)];
+    grid[r][c] = Math.random()<0.9?2:4;
+  }
+  function init(){ grid=empty(); score=0; over=false; addTile(); addTile(); }
+  init();
+  const scoreEl = el('div',{class:'gscore'});
+  const board = el('div',{class:'grid',style:{gridTemplateColumns:`repeat(${size},70px)`,gridTemplateRows:`repeat(${size},70px)`,background:'#1B2233',padding:'6px',borderRadius:'12px'}});
+  const colors = {2:'#3A445E',4:'#455073',8:'#FFC24B',16:'#FFA94B',32:'#FF8F5D',64:'#FF6B5D',128:'#2FD9C4',256:'#5FC7FF',512:'#B18CFF',1024:'#FF8FC7',2048:'#B6F169'};
+  function render(){
+    board.innerHTML='';
+    for(let r=0;r<size;r++) for(let c=0;c<size;c++){
+      const v = grid[r][c];
+      board.appendChild(el('div',{class:'cell',style:{width:'70px',height:'70px',fontSize:v>512?'1.1rem':'1.4rem',
+        background: v? colors[v]||'#B6F169' : '#131826', color: v>4? '#101522':'#F2F4F8'}},[v?String(v):'']));
+    }
+    scoreEl.textContent = `Puntos: ${score}` + (over? ' — ¡Sin movimientos!':'');
+  }
+  function slideRow(row){
+    let arr = row.filter(v=>v);
+    for(let i=0;i<arr.length-1;i++){ if(arr[i]===arr[i+1]){ arr[i]*=2; score+=arr[i]; arr.splice(i+1,1);} }
+    while(arr.length<size) arr.push(0);
+    return arr;
+  }
+  function move(dir){
+    if(over) return;
+    let moved=false;
+    const before = JSON.stringify(grid);
+    if(dir==='left'){ grid = grid.map(row=>slideRow(row)); }
+    if(dir==='right'){ grid = grid.map(row=>slideRow(row.slice().reverse()).reverse()); }
+    if(dir==='up'){ for(let c=0;c<size;c++){ let col=grid.map(row=>row[c]); col=slideRow(col); for(let r=0;r<size;r++) grid[r][c]=col[r]; } }
+    if(dir==='down'){ for(let c=0;c<size;c++){ let col=grid.map(row=>row[c]).reverse(); col=slideRow(col).reverse(); for(let r=0;r<size;r++) grid[r][c]=col[r]; } }
+    moved = before !== JSON.stringify(grid);
+    if(moved){ addTile();
+      const anyMove = grid.some((row,r)=>row.some((v,c)=> !v ||
+        (c<size-1&&grid[r][c+1]===v) || (r<size-1&&grid[r+1][c]===v)));
+      if(!anyMove) over=true;
+    }
+    render();
+  }
+  function key(e){ const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}; if(m[e.key]){ e.preventDefault(); move(m[e.key]); } }
+  window.addEventListener('keydown', key);
+  let sx=0, sy=0;
+  board.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; });
+  board.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if(Math.max(Math.abs(dx),Math.abs(dy))<20) return;
+    if(Math.abs(dx)>Math.abs(dy)) move(dx>0?'right':'left'); else move(dy>0?'down':'up');
+  });
+  root.append(el('p',{class:'ghint'},['Desliza (o usa las flechas del teclado) para juntar números iguales.']), scoreEl, board,
+    el('button',{class:'gbtn',onclick:()=>{init();render();}},['Reiniciar']));
+  render();
+  return ()=> window.removeEventListener('keydown', key);
+};
+
+/* ---------- 7. MINESWEEPER ---------- */
+GAMES.minesweeper = (root)=>{
+  const W=9,H=9,MINES=10;
+  let grid, revealed, flagged, over, win;
+  function init(){
+    grid = Array.from({length:H},()=>Array(W).fill(0));
+    revealed = Array.from({length:H},()=>Array(W).fill(false));
+    flagged = Array.from({length:H},()=>Array(W).fill(false));
+    over=false; win=false;
+    let placed=0;
+    while(placed<MINES){ const x=Math.floor(Math.random()*W), y=Math.floor(Math.random()*H); if(grid[y][x]!==-1){ grid[y][x]=-1; placed++; } }
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){ if(grid[y][x]===-1) continue;
+      let c=0; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ const nx=x+dx,ny=y+dy; if(nx>=0&&nx<W&&ny>=0&&ny<H&&grid[ny][nx]===-1) c++; }
+      grid[y][x]=c;
+    }
+  }
+  init();
+  const status = el('div',{class:'gscore'});
+  const grEl = el('div',{class:'grid',style:{gridTemplateColumns:`repeat(${W},32px)`}});
+  let flagMode=false;
+  function flood(x,y){
+    if(x<0||x>=W||y<0||y>=H||revealed[y][x]||flagged[y][x]) return;
+    revealed[y][x]=true;
+    if(grid[y][x]===0){ for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) if(dx||dy) flood(x+dx,y+dy); }
+  }
+  function render(){
+    grEl.innerHTML='';
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+      const isRev = revealed[y][x];
+      const v = grid[y][x];
+      const numColors=['#8B93A7','#5FC7FF','#B6F169','#FF6B5D','#B18CFF','#FFC24B','#2FD9C4','#FF8FC7','#F2F4F8'];
+      const cell = el('div',{class:'cell',style:{width:'32px',height:'32px',fontSize:'.85rem',
+        background: isRev? '#0E1220' : '#2A3350', color: v>0? numColors[v]:'#F2F4F8'},
+        onclick:()=>tap(x,y)},[ isRev? (v===-1?'💣': (v||'')) : (flagged[y][x]?'🚩':'') ]);
+      grEl.appendChild(cell);
+    }
+    status.textContent = over ? (win? '¡Ganaste! 🎉' : '💥 ¡Boom! Intenta de nuevo') : 'Toca para revelar · usa 🚩 para marcar minas';
+  }
+  function tap(x,y){
+    if(over) return;
+    if(flagMode){ flagged[y][x] = !flagged[y][x]; render(); return; }
+    if(flagged[y][x]) return;
+    if(grid[y][x]===-1){ revealed[y][x]=true; over=true; win=false;
+      for(let yy=0;yy<H;yy++) for(let xx=0;xx<W;xx++) if(grid[yy][xx]===-1) revealed[yy][xx]=true;
+      render(); return; }
+    flood(x,y);
+    const total=W*H, safeRevealed = revealed.flat().filter(Boolean).length;
+    if(safeRevealed === total-MINES){ over=true; win=true; }
+    render();
+  }
+  const flagBtn = el('button',{class:'gbtn',onclick:()=>{ flagMode=!flagMode; flagBtn.textContent = flagMode? '🚩 Modo bandera: ON' : '🚩 Modo bandera: OFF'; }},['🚩 Modo bandera: OFF']);
+  root.append(el('p',{class:'ghint'},['Revela casillas sin tocar una mina. El número indica cuántas minas hay alrededor.']), status, grEl,
+    el('div',{style:{display:'flex',gap:'10px'}},[flagBtn, el('button',{class:'gbtn',onclick:()=>{init();render();}},['Reiniciar'])]));
+  render();
+};
+
+/* ---------- 8. SLIDING PUZZLE ---------- */
+GAMES.slide = (root)=>{
+  const N=4;
+  let tiles;
+  function init(){
+    tiles = [...Array(N*N-1).keys()].map(n=>n+1); tiles.push(0);
+    do { shuffle(); } while(!solvable());
+  }
+  function shuffle(){ for(let i=tiles.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [tiles[i],tiles[j]]=[tiles[j],tiles[i]]; } }
+  function solvable(){
+    let inv=0; const arr = tiles.filter(v=>v);
+    for(let i=0;i<arr.length;i++) for(let j=i+1;j<arr.length;j++) if(arr[i]>arr[j]) inv++;
+    const blankRow = Math.floor(tiles.indexOf(0)/N);
+    return N%2? inv%2===0 : (inv + blankRow)%2===1;
+  }
+  init();
+  const status = el('div',{class:'gscore'});
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:`repeat(${N},70px)`}});
+  function render(){
+    grid.innerHTML='';
+    tiles.forEach((v,i)=>{
+      grid.appendChild(el('div',{class:'cell',style:{width:'70px',height:'70px',fontSize:'1.3rem',
+        background: v? '#2FD9C4':'#0E1220', color:'#0A0D14'}, onclick:()=>tap(i)},[v?String(v):'']));
+    });
+    status.textContent = isSolved()? '¡Resuelto! 🎉' : 'Ordena del 1 al 15';
+  }
+  function isSolved(){ return tiles.slice(0,-1).every((v,i)=>v===i+1); }
+  function tap(i){
+    const blank = tiles.indexOf(0);
+    const [r,c]=[Math.floor(i/N), i%N], [br,bc]=[Math.floor(blank/N), blank%N];
+    if(Math.abs(r-br)+Math.abs(c-bc)===1){ [tiles[i],tiles[blank]]=[tiles[blank],tiles[i]]; render(); }
+  }
+  root.append(el('p',{class:'ghint'},['Toca una ficha junto al espacio vacío para moverla.']), status, grid,
+    el('button',{class:'gbtn',onclick:()=>{init();render();}},['Mezclar de nuevo']));
+  render();
+};
+
+/* ---------- 9. SNAKE ---------- */
+GAMES.snake = (root)=>{
+  const cols=18, rows=18, cell=16;
+  const canvas = el('canvas',{width:cols*cell, height:rows*cell});
+  const status = el('div',{class:'gscore'});
+  const ctx = canvas.getContext('2d');
+  let snake, dir, food, alive, score, loopId;
+  function init(){
+    snake=[{x:8,y:9},{x:7,y:9},{x:6,y:9}]; dir={x:1,y:0}; alive=true; score=0; placeFood();
+  }
+  function placeFood(){ food={x:Math.floor(Math.random()*cols), y:Math.floor(Math.random()*rows)}; }
+  function tick(){
+    if(!alive) return;
+    const head = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+    if(head.x<0||head.x>=cols||head.y<0||head.y>=rows || snake.some(s=>s.x===head.x&&s.y===head.y)){
+      alive=false; status.textContent = `Perdiste — puntos: ${score}. Toca reiniciar.`; draw(); return;
+    }
+    snake.unshift(head);
+    if(head.x===food.x && head.y===food.y){ score++; placeFood(); } else snake.pop();
+    status.textContent = `Puntos: ${score}`;
+    draw();
+  }
+  function draw(){
+    ctx.fillStyle='#0E1220'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#FF6B5D'; ctx.fillRect(food.x*cell, food.y*cell, cell-1, cell-1);
+    snake.forEach((s,i)=>{ ctx.fillStyle = i===0? '#B6F169':'#2FD9C4'; ctx.fillRect(s.x*cell, s.y*cell, cell-1, cell-1); });
+  }
+  function key(e){
+    const map={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
+    if(map[e.key]){ e.preventDefault(); const [x,y]=map[e.key]; if(!(x===-dir.x&&y===-dir.y)) dir={x,y}; }
+  }
+  window.addEventListener('keydown', key);
+  let sx=0, sy=0;
+  canvas.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; });
+  canvas.addEventListener('touchend', e=>{
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.max(Math.abs(dx),Math.abs(dy))<15) return;
+    if(Math.abs(dx)>Math.abs(dy)){ if(!(dir.x===(dx>0?-1:1))) dir = {x:dx>0?1:-1, y:0}; }
+    else { if(!(dir.y===(dy>0?-1:1))) dir = {x:0, y:dy>0?1:-1}; }
+  });
+  init(); draw();
+  loopId = setInterval(tick, 130);
+  root.append(el('p',{class:'ghint'},['Desliza o usa las flechas. Come los cuadros rojos, no choques contigo mismo.']), status, canvas,
+    el('button',{class:'gbtn',onclick:()=>{init();draw();}},['Reiniciar']));
+  return ()=>{ clearInterval(loopId); window.removeEventListener('keydown', key); };
+};
+
+/* ---------- 10. PONG ---------- */
+GAMES.pong = (root)=>{
+  const W=300,H=380;
+  const canvas = el('canvas',{width:W,height:H});
+  const ctx = canvas.getContext('2d');
+  const status = el('div',{class:'gscore'});
+  let py=H/2-30, ay=H/2-30, bx=W/2, by=H/2, bvx=3, bvy=3, ps=0, as=0, loopId;
+  const pw=8, ph=60;
+  function reset(){ bx=W/2; by=H/2; bvx = (Math.random()<0.5?-1:1)*3; bvy=(Math.random()<0.5?-1:1)*3; }
+  function tick(){
+    if(ay+ph/2 < by-6) ay+=2.4; else if(ay+ph/2 > by+6) ay-=2.4;
+    ay = Math.max(0, Math.min(H-ph, ay));
+    bx += bvx; by += bvy;
+    if(by<=0||by>=H) bvy*=-1;
+    if(bx<=pw+6 && by>py && by<py+ph){ bvx*=-1.05; bx=pw+7; }
+    if(bx>=W-pw-6 && by>ay && by<ay+ph){ bvx*=-1.05; bx=W-pw-7; }
+    if(bx<0){ as++; reset(); }
+    if(bx>W){ ps++; reset(); }
+    status.textContent = `Tú ${ps} — CPU ${as}`;
+    draw();
+  }
+  function draw(){
+    ctx.fillStyle='#0E1220'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#5FC7FF'; ctx.fillRect(4,py,pw,ph);
+    ctx.fillStyle='#FF6B5D'; ctx.fillRect(W-pw-4,ay,pw,ph);
+    ctx.fillStyle='#F2F4F8'; ctx.beginPath(); ctx.arc(bx,by,6,0,Math.PI*2); ctx.fill();
+  }
+  function move(clientY){
+    const rect = canvas.getBoundingClientRect();
+    py = (clientY-rect.top) - ph/2;
+    py = Math.max(0, Math.min(H-ph, py));
+  }
+  canvas.addEventListener('touchmove', e=>{ e.preventDefault(); move(e.touches[0].clientY); }, {passive:false});
+  canvas.addEventListener('mousemove', e=> move(e.clientY));
+  draw();
+  loopId = setInterval(tick, 16);
+  root.append(el('p',{class:'ghint'},['Arrastra el dedo (o el mouse) arriba y abajo para mover tu paleta azul.']), status, canvas);
+  return ()=> clearInterval(loopId);
+};
+
+/* ---------- 11. PACMAN-STYLE ---------- */
+GAMES.pacman = (root)=>{
+  const map = [
+    "###################",
+    "#........#........#",
+    "#.##.###.#.###.##.#",
+    "#.................#",
+    "#.##.#.#####.#.##.#",
+    "#....#...#...#....#",
+    "####.### # ###.####",
+    "#........#........#",
+    "#.##.###.#.###.##.#",
+    "#..................#".slice(0,19),
+    "###################",
+  ];
+  const rows = map.length, cols = map[0].length, cell=18;
+  const canvas = el('canvas',{width:cols*cell, height:rows*cell});
+  const ctx = canvas.getContext('2d');
+  const status = el('div',{class:'gscore'});
+  let grid = map.map(r=>r.split(''));
+  let player = {x:1,y:1}, dir={x:0,y:0}, nextDir={x:0,y:0};
+  let ghosts = [{x:cols-2,y:rows-2,c:'#FF6B5D'},{x:cols-2,y:1,c:'#B18CFF'}];
+  let score=0, dotsLeft=0, alive=true, loopId;
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) if(grid[y][x]==='.') dotsLeft++;
+  function passable(x,y){ return grid[y] && grid[y][x] && grid[y][x] !== '#'; }
+  function tick(){
+    if(!alive) return;
+    if(passable(player.x+nextDir.x, player.y+nextDir.y)) dir=nextDir;
+    if(passable(player.x+dir.x, player.y+dir.y)){ player.x+=dir.x; player.y+=dir.y; }
+    if(grid[player.y][player.x]==='.'){ grid[player.y][player.x]=' '; score++; dotsLeft--; }
+    ghosts.forEach(g=>{
+      const opts=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>passable(g.x+dx,g.y+dy));
+      if(opts.length){
+        opts.sort((a,b)=> (Math.abs(g.x+a[0]-player.x)+Math.abs(g.y+a[1]-player.y)) - (Math.abs(g.x+b[0]-player.x)+Math.abs(g.y+b[1]-player.y)));
+        const pick = Math.random()<0.6? opts[0] : opts[Math.floor(Math.random()*opts.length)];
+        g.x+=pick[0]; g.y+=pick[1];
+      }
+    });
+    if(ghosts.some(g=>g.x===player.x && g.y===player.y)){ alive=false; status.textContent = `¡Te atraparon! Puntos: ${score}`; }
+    else if(dotsLeft<=0){ alive=false; status.textContent = `¡Ganaste! Puntos: ${score}`; }
+    else status.textContent = `Puntos: ${score}`;
+    draw();
+  }
+  function draw(){
+    ctx.fillStyle='#0E1220'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+      const c = grid[y][x];
+      if(c==='#'){ ctx.fillStyle='#233256'; ctx.fillRect(x*cell,y*cell,cell,cell); }
+      else if(c==='.'){ ctx.fillStyle='#FFC24B'; ctx.beginPath(); ctx.arc(x*cell+cell/2,y*cell+cell/2,2.5,0,Math.PI*2); ctx.fill(); }
+    }
+    ctx.fillStyle='#FFE24B'; ctx.beginPath(); ctx.arc(player.x*cell+cell/2, player.y*cell+cell/2, cell/2-2, 0.25*Math.PI, 1.75*Math.PI); ctx.lineTo(player.x*cell+cell/2, player.y*cell+cell/2); ctx.fill();
+    ghosts.forEach(g=>{ ctx.fillStyle=g.c; ctx.beginPath(); ctx.arc(g.x*cell+cell/2, g.y*cell+cell/2, cell/2-2, Math.PI, 0); ctx.fill(); ctx.fillRect(g.x*cell+2, g.y*cell+cell/2, cell-4, cell/2-2); });
+  }
+  function key(e){
+    const map2={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
+    if(map2[e.key]){ e.preventDefault(); nextDir={x:map2[e.key][0], y:map2[e.key][1]}; }
+  }
+  window.addEventListener('keydown', key);
+  let sx=0, sy=0;
+  canvas.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; });
+  canvas.addEventListener('touchend', e=>{
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.max(Math.abs(dx),Math.abs(dy))<15) return;
+    if(Math.abs(dx)>Math.abs(dy)) nextDir={x:dx>0?1:-1,y:0}; else nextDir={x:0,y:dy>0?1:-1};
+  });
+  draw();
+  loopId = setInterval(tick, 220);
+  root.append(el('p',{class:'ghint'},['Desliza o usa las flechas para comer todos los puntos y esquivar a los fantasmas.']), status, canvas);
+  return ()=>{ clearInterval(loopId); window.removeEventListener('keydown', key); };
+};
+
+/* ---------- 12. WHACK-A-MOLE ---------- */
+GAMES.whack = (root)=>{
+  const status = el('div',{class:'gscore'},['Toca "Empezar" para jugar 30 segundos']);
+  const holes = Array.from({length:9},()=>el('div',{class:'cell',style:{width:'70px',height:'70px',fontSize:'2rem',background:'#2A2033'}},['']));
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:'repeat(3,70px)'}},holes);
+  let score=0, timeLeft=30, running=false, moleIdx=-1, popTimer=null, clock=null;
+  function popRandom(){
+    if(moleIdx>=0) holes[moleIdx].textContent='';
+    moleIdx = Math.floor(Math.random()*9);
+    holes[moleIdx].textContent='🐹';
+    popTimer = setTimeout(popRandom, 550 + Math.random()*450);
+  }
+  holes.forEach((h,i)=> h.onclick = ()=>{
+    if(running && i===moleIdx){ score++; status.textContent = `Puntos: ${score} · Tiempo: ${timeLeft}s`; h.textContent=''; moleIdx=-1; }
+  });
+  function start(){
+    if(running) return;
+    running=true; score=0; timeLeft=30;
+    status.textContent = `Puntos: ${score} · Tiempo: ${timeLeft}s`;
+    popRandom();
+    clock = setInterval(()=>{
+      timeLeft--;
+      status.textContent = `Puntos: ${score} · Tiempo: ${timeLeft}s`;
+      if(timeLeft<=0){ stop(); status.textContent = `¡Tiempo! Puntos finales: ${score}`; }
+    },1000);
+  }
+  function stop(){ running=false; clearTimeout(popTimer); clearInterval(clock); holes.forEach(h=>h.textContent=''); moleIdx=-1; }
+  root.append(el('p',{class:'ghint'},['Toca al topo apenas aparezca.']), status, grid, el('button',{class:'gbtn primary',onclick:start},['Empezar']));
+  return stop;
+};
+
+/* ---------- 13. MEMORY ---------- */
+GAMES.memory = (root)=>{
+  const emojis = ['🍕','🚀','🎧','🐼','🌵','⚽️','🎨','🍩'];
+  let deck, flipped, matched, lock;
+  const status = el('div',{class:'gscore'});
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:'repeat(4,64px)'}});
+  function init(){
+    deck = [...emojis, ...emojis].sort(()=>Math.random()-.5);
+    flipped=[]; matched=new Set(); lock=false;
+    render();
+  }
+  function render(){
+    grid.innerHTML='';
+    deck.forEach((e,i)=>{
+      const shown = matched.has(i) || flipped.includes(i);
+      grid.appendChild(el('div',{class:'cell',style:{width:'64px',height:'64px',fontSize:'1.7rem',
+        background: matched.has(i)? '#1F3A2E':'#232B40'}, onclick:()=>tap(i)},[shown? e: '❔']));
+    });
+    status.textContent = matched.size===deck.length ? '¡Encontraste todas! 🎉' : `Pares encontrados: ${matched.size/2}`;
+  }
+  function tap(i){
+    if(lock || matched.has(i) || flipped.includes(i)) return;
+    flipped.push(i); render();
+    if(flipped.length===2){
+      lock=true;
+      setTimeout(()=>{
+        const [a,b]=flipped;
+        if(deck[a]===deck[b]){ matched.add(a); matched.add(b); }
+        flipped=[]; lock=false; render();
+      }, 550);
+    }
+  }
+  init();
+  root.append(el('p',{class:'ghint'},['Encuentra las parejas de emojis.']), status, grid, el('button',{class:'gbtn',onclick:init},['Volver a mezclar']));
+};
+
+/* ---------- 14. SIMON ---------- */
+GAMES.simon = (root)=>{
+  const colors = [
+    {c:'#FF6B5D', name:'coral'}, {c:'#5FC7FF', name:'azul'}, {c:'#FFC24B', name:'ámbar'}, {c:'#B6F169', name:'lima'}
+  ];
+  let seq=[], userSeq=[], level=0, accepting=false;
+  const status = el('div',{class:'gscore'},['Toca "Empezar"']);
+  const pads = colors.map((cl,i)=> el('div',{class:'cell', style:{width:'80px',height:'80px',background:cl.c,opacity:'.55',borderRadius:'14px'},
+    onclick:()=>tap(i)}));
+  const grid = el('div',{class:'grid',style:{gridTemplateColumns:'repeat(2,80px)'}}, pads);
+  function flash(i){
+    return new Promise(res=>{ pads[i].style.opacity='1'; setTimeout(()=>{ pads[i].style.opacity='.55'; setTimeout(res,150); }, 380); });
+  }
+  async function playSeq(){
+    accepting=false; status.textContent = `Nivel ${level} — observa...`;
+    for(const i of seq) await flash(i);
+    accepting=true; userSeq=[];
+    status.textContent = `Nivel ${level} — tu turno`;
+  }
+  function nextRound(){ level++; seq.push(Math.floor(Math.random()*4)); playSeq(); }
+  function tap(i){
+    if(!accepting) return;
+    userSeq.push(i); flash(i);
+    const idx = userSeq.length-1;
+    if(userSeq[idx] !== seq[idx]){ accepting=false; status.textContent = `Perdiste en el nivel ${level}. Toca "Empezar" para reintentar.`; return; }
+    if(userSeq.length === seq.length){ setTimeout(nextRound, 500); }
+  }
+  function start(){ seq=[]; level=0; nextRound(); }
+  root.append(el('p',{class:'ghint'},['Repite la secuencia de colores que se ilumina. Cada ronda suma uno más.']), status, grid, el('button',{class:'gbtn primary',onclick:start},['Empezar']));
+};
+
+/* ---------- 15. ROCK PAPER SCISSORS ---------- */
+GAMES.rps = (root)=>{
+  let wins=0, losses=0, ties=0;
+  const status = el('div',{class:'gscore'},['Elige tu jugada']);
+  const opts = [{k:'piedra',e:'✊'},{k:'papel',e:'✋'},{k:'tijera',e:'✌️'}];
+  function beats(a,b){ return (a==='piedra'&&b==='tijera') || (a==='papel'&&b==='piedra') || (a==='tijera'&&b==='papel'); }
+  function play(k){
+    const cpu = opts[Math.floor(Math.random()*3)].k;
+    let res;
+    if(k===cpu){ ties++; res='Empate'; } else if(beats(k,cpu)){ wins++; res='¡Ganaste!'; } else { losses++; res='Perdiste'; }
+    status.innerHTML = `${res} — Tú: ${opts.find(o=>o.k===k).e} vs CPU: ${opts.find(o=>o.k===cpu).e}<br><span style="color:var(--ink-dim);font-size:.8rem">V ${wins} · E ${ties} · D ${losses}</span>`;
+  }
+  const btns = el('div',{style:{display:'flex',gap:'10px'}}, opts.map(o=> el('button',{class:'gbtn',style:{fontSize:'1.8rem',padding:'14px 18px'},onclick:()=>play(o.k)},[o.e])));
+  root.append(el('p',{class:'ghint'},['Piedra vence a tijera, tijera vence a papel, papel vence a piedra.']), status, btns);
+};
+
+/* ---------- 16. HANGMAN ---------- */
+GAMES.hangman = (root)=>{
+  const words = ['GUITARRA','ELEFANTE','COMPUTADORA','ZAPATO','MONTAÑA','DELFIN','ESTRELLA','BICICLETA','NARANJA','TELEFONO'];
+  let word, guessed, wrong;
+  const stages = ['','😐','😟 (cabeza)','😰 (cuerpo)','😖 (brazo)','😫 (brazo)','💀 (¡fin!)'];
+  const wordEl = el('div',{style:{fontSize:'1.6rem',letterSpacing:'4px',fontWeight:800}});
+  const stageEl = el('div',{style:{fontSize:'2.4rem'}});
+  const status = el('div',{class:'gscore'});
+  const kbd = el('div',{style:{display:'flex',flexWrap:'wrap',gap:'6px',maxWidth:'360px',justifyContent:'center'}});
+  function init(){
+    word = words[Math.floor(Math.random()*words.length)];
+    guessed = new Set(); wrong=0;
+    render(); buildKbd();
+  }
+  function buildKbd(){
+    kbd.innerHTML='';
+    'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('').forEach(l=>{
+      const b = el('button',{class:'gbtn',style:{padding:'8px 11px',fontSize:'.85rem'},onclick:()=>guess(l,b)},[l]);
+      kbd.appendChild(b);
+    });
+  }
+  function guess(l,btn){
+    if(guessed.has(l) || wrong>=6) return;
+    guessed.add(l);
+    if(!word.includes(l)){ wrong++; btn.style.opacity='.3'; } else btn.style.background='#1F3A2E';
+    btn.disabled=true;
+    render();
+  }
+  function render(){
+    wordEl.textContent = word.split('').map(l=> guessed.has(l)? l : '_').join(' ');
+    stageEl.textContent = stages[wrong];
+    if(!word.split('').some(l=>!guessed.has(l))) status.textContent = '¡Ganaste! 🎉';
+    else if(wrong>=6){ status.textContent = `Perdiste. La palabra era: ${word}`; kbd.querySelectorAll('button').forEach(b=>b.disabled=true); }
+    else status.textContent = `Errores: ${wrong}/6`;
+  }
+  init();
+  root.append(el('p',{class:'ghint'},['Adivina la palabra letra por letra antes de agotar tus 6 intentos.']), wordEl, stageEl, status, kbd, el('button',{class:'gbtn',onclick:init},['Nueva palabra']));
+};
+
+/* ---------- 17. WORD SCRAMBLE ---------- */
+GAMES.scramble = (root)=>{
+  const words = [
+    {w:'PLATANO', h:'Fruta amarilla'}, {w:'JARDIN', h:'Lugar con plantas'}, {w:'VENTANA', h:'Deja entrar la luz'},
+    {w:'PELICULA', h:'Se ve en el cine'}, {w:'ZAPATO', h:'Se usa en el pie'}, {w:'PARAGUAS', h:'Protege de la lluvia'},
+    {w:'CANGURO', h:'Animal que salta'}, {w:'ESCUELA', h:'Ahí se estudia'}
+  ];
+  let current, scrambled;
+  const scEl = el('div',{style:{fontSize:'2rem',fontWeight:800,letterSpacing:'6px'}});
+  const hintEl = el('div',{class:'ghint'});
+  const status = el('div',{class:'gscore'});
+  const input = el('input',{style:{padding:'10px 14px',borderRadius:'10px',border:'none',fontSize:'1rem',textAlign:'center',width:'220px',background:'#1B2233',color:'#F2F4F8'},placeholder:'Escribe tu respuesta'});
+  function scramble(w){ let s; do { s = w.split('').sort(()=>Math.random()-.5).join(''); } while(s===w); return s; }
+  function next(){
+    current = words[Math.floor(Math.random()*words.length)];
+    scrambled = scramble(current.w);
+    scEl.textContent = scrambled.split('').join(' ');
+    hintEl.textContent = 'Pista: ' + current.h;
+    status.textContent=''; input.value='';
+  }
+  function check(){
+    if(input.value.trim().toUpperCase() === current.w){ status.textContent = '¡Correcto! 🎉'; }
+    else status.textContent = 'Aún no — ¡sigue intentando!';
+  }
+  next();
+  root.append(el('p',{class:'ghint'},['Ordena las letras para formar la palabra.']), scEl, hintEl, input,
+    el('div',{style:{display:'flex',gap:'10px'}},[
+      el('button',{class:'gbtn primary',onclick:check},['Comprobar']),
+      el('button',{class:'gbtn',onclick:next},['Otra palabra'])
+    ]), status);
+};
+
+/* ---------- 18. NUMBER GUESS ---------- */
+GAMES.guess = (root)=>{
+  let target, tries;
+  const status = el('div',{class:'gscore'});
+  const input = el('input',{type:'number',style:{padding:'10px 14px',borderRadius:'10px',border:'none',fontSize:'1rem',textAlign:'center',width:'160px',background:'#1B2233',color:'#F2F4F8'},placeholder:'1-100'});
+  function init(){ target=Math.floor(Math.random()*100)+1; tries=0; status.textContent='Pensé un número del 1 al 100. ¡Adivínalo!'; input.value=''; }
+  function guess(){
+    const v = parseInt(input.value,10);
+    if(!v || v<1 || v>100){ status.textContent='Escribe un número entre 1 y 100'; return; }
+    tries++;
+    if(v===target) status.textContent = `¡Correcto! Era ${target}. Lo lograste en ${tries} intento(s). 🎉`;
+    else status.textContent = v<target? `Muy bajo ⬆️ (intento ${tries})` : `Muy alto ⬇️ (intento ${tries})`;
+  }
+  init();
+  root.append(el('p',{class:'ghint'},['Escribe un número y te diré si es más alto o más bajo.']), status, input,
+    el('div',{style:{display:'flex',gap:'10px'}},[
+      el('button',{class:'gbtn primary',onclick:guess},['Adivinar']),
+      el('button',{class:'gbtn',onclick:init},['Nuevo número'])
+    ]));
+};
+
+/* ---------- 19. REACTION TEST ---------- */
+GAMES.reaction = (root)=>{
+  let state='idle', startT=0, best=null, timeoutId=null;
+  const box = el('div',{style:{width:'260px',height:'180px',borderRadius:'16px',display:'flex',alignItems:'center',justifyContent:'center',
+    fontSize:'1.1rem',fontWeight:700,background:'#2A2033',color:'#F2F4F8',textAlign:'center',padding:'14px'}},['Toca "Empezar"']);
+  const status = el('div',{class:'gscore'});
+  function start(){
+    state='waiting'; box.style.background='#3A2A2E'; box.textContent='Espera el verde...';
+    const delay = 1200 + Math.random()*2200;
+    timeoutId = setTimeout(()=>{ state='ready'; startT=Date.now(); box.style.background='#1F3A2E'; box.textContent='¡YA! Toca ahora'; }, delay);
+  }
+  function tap(){
+    if(state==='waiting'){ clearTimeout(timeoutId); state='idle'; box.style.background='#3A2A2E'; box.textContent='¡Muy pronto! Toca "Empezar" de nuevo'; }
+    else if(state==='ready'){
+      const t = Date.now()-startT;
+      if(best===null || t<best) best=t;
+      state='idle'; box.style.background='#2A2033'; box.textContent = `${t} ms`;
+      status.textContent = `Mejor tiempo: ${best} ms`;
+    }
+  }
+  box.onclick = ()=>{ if(state==='idle' || state==='waiting') tap(); else tap(); };
+  root.append(el('p',{class:'ghint'},['Espera a que la caja se ponga verde y tócala lo más rápido posible.']), box, status,
+    el('button',{class:'gbtn primary',onclick:start},['Empezar']));
+  return ()=> clearTimeout(timeoutId);
+};
+
+/* ---------- 20. OUIJA (JUEGO DE FANTASÍA, SOLO DIVERSIÓN) ---------- */
+GAMES.ouija = (root)=>{
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const responses = [
+    'SI','NO','TAL VEZ','PRONTO','ESPERA','NUNCA','CUIDADO','CLARO','ES UN SECRETO','PIENSALO'
+  ];
+  const board = el('div',{style:{position:'relative',width:'320px',height:'220px',borderRadius:'16px',
+    background:'radial-gradient(circle at 50% 30%, #2A2140, #14101F)',border:'1px solid rgba(255,255,255,.08)',overflow:'hidden'}});
+  const planchette = el('div',{style:{position:'absolute',width:'34px',height:'34px',borderRadius:'50%',
+    background:'radial-gradient(circle at 35% 30%, #FFE9B0, #B18CFF)',boxShadow:'0 0 14px rgba(177,140,255,.7)',
+    transition:'left .6s ease, top .6s ease', left:'50%', top:'50%'}});
+  board.appendChild(planchette);
+  const positions = {};
+  const cols=9;
+  letters.forEach((l,i)=>{
+    const x = 14 + (i%cols)*33, y = 26 + Math.floor(i/cols)*40;
+    positions[l] = {x,y};
+    board.appendChild(el('div',{style:{position:'absolute', left:x+'px', top:y+'px', fontSize:'.72rem', color:'rgba(242,244,248,.55)', fontWeight:700}},[l]));
+  });
+  ['SI','NO'].forEach((t,i)=>{
+    board.appendChild(el('div',{style:{position:'absolute', left:(i===0?18:250)+'px', top:'160px', fontSize:'.85rem', color:'rgba(255,196,75,.85)', fontWeight:800}},[t]));
+  });
+  const status = el('div',{class:'gscore'},['Escribe tu pregunta y el espíritu virtual responderá 👻']);
+  const input = el('input',{style:{padding:'10px 14px',borderRadius:'10px',border:'none',fontSize:'.95rem',textAlign:'center',width:'260px',background:'#1B2233',color:'#F2F4F8'},placeholder:'Escribe tu pregunta...'});
+  async function ask(){
+    const answer = responses[Math.floor(Math.random()*responses.length)];
+    status.textContent = 'El espíritu está pensando...';
+    for(const l of answer.replace(' ','')){
+      const p = positions[l]; if(!p) continue;
+      planchette.style.left = (p.x-3)+'px'; planchette.style.top=(p.y-3)+'px';
+      await new Promise(r=>setTimeout(r, 700));
+    }
+    status.textContent = `Respuesta: "${answer}"`;
+  }
+  root.append(el('p',{class:'ghint'},['Solo para divertirse — un generador de respuestas al azar, nada paranormal de verdad. 🙂']),
+    board, input, el('button',{class:'gbtn primary',onclick:ask},['Preguntar al espíritu']), status);
+};
+</script>
+</body>
+</html>
