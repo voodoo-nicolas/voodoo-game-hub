@@ -20,27 +20,27 @@ const CATEGORIES: Array = [
 		"icon": "🧩",
 		"color": Color(0.16, 0.45, 0.4),
 		"games": [
-			{"title": "Sudoku", "pack_id": "sudoku", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
-			{"title": "Minesweeper", "scene": ""},
-			{"title": "Tic-Tac-Toe", "pack_id": "tictactoe", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
-			{"title": "Connect Four", "pack_id": "connect4", "scene": "res://scenes/games/connect4/connect4.tscn"},
-			{"title": "Checkers", "scene": ""},
-			{"title": "Reversi / Othello", "scene": ""},
-			{"title": "Battleship", "scene": ""},
-			{"title": "Dots and Boxes", "scene": ""},
-			{"title": "Mancala", "scene": ""},
-			{"title": "Backgammon", "scene": ""},
-			{"title": "Nine Men's Morris", "scene": ""},
-			{"title": "Peg Solitaire", "scene": ""},
-			{"title": "Lights Out", "scene": ""},
-			{"title": "Sokoban", "scene": ""},
-			{"title": "Sliding 15-Puzzle", "scene": ""},
-			{"title": "2048", "pack_id": "g2048", "scene": "res://scenes/games/g2048/g2048.tscn"},
-			{"title": "Kakuro", "scene": ""},
-			{"title": "Picross / Nonogram", "scene": ""},
-			{"title": "Mastermind", "scene": ""},
-			{"title": "Tower of Hanoi", "scene": ""},
-			{"title": "KenKen", "scene": ""},
+			{"title": "Sudoku", "icon": "🔢", "pack_id": "sudoku", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
+			{"title": "Minesweeper", "icon": "💣", "scene": ""},
+			{"title": "Tic-Tac-Toe", "icon": "⭕", "pack_id": "tictactoe", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
+			{"title": "Connect Four", "icon": "🔴", "pack_id": "connect4", "scene": "res://scenes/games/connect4/connect4.tscn"},
+			{"title": "Checkers", "icon": "⚫", "scene": ""},
+			{"title": "Reversi / Othello", "icon": "⚪", "scene": ""},
+			{"title": "Battleship", "icon": "🚢", "scene": ""},
+			{"title": "Dots and Boxes", "icon": "▫️", "scene": ""},
+			{"title": "Mancala", "icon": "🌰", "scene": ""},
+			{"title": "Backgammon", "icon": "🎲", "scene": ""},
+			{"title": "Nine Men's Morris", "icon": "✳️", "scene": ""},
+			{"title": "Peg Solitaire", "icon": "📌", "scene": ""},
+			{"title": "Lights Out", "icon": "💡", "scene": ""},
+			{"title": "Sokoban", "icon": "📦", "scene": ""},
+			{"title": "Sliding 15-Puzzle", "icon": "🔲", "scene": ""},
+			{"title": "2048", "icon": "🔷", "pack_id": "g2048", "scene": "res://scenes/games/g2048/g2048.tscn"},
+			{"title": "Kakuro", "icon": "➗", "scene": ""},
+			{"title": "Picross / Nonogram", "icon": "🖼️", "scene": ""},
+			{"title": "Mastermind", "icon": "🧠", "scene": ""},
+			{"title": "Tower of Hanoi", "icon": "🗼", "scene": ""},
+			{"title": "KenKen", "icon": "🔟", "scene": ""},
 		],
 	},
 	{
@@ -48,17 +48,17 @@ const CATEGORIES: Array = [
 		"icon": "🃏",
 		"color": Color(0.2, 0.3, 0.5),
 		"games": [
-			{"title": "Solitaire", "pack_id": "solitaire", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
-			{"title": "Blackjack", "scene": ""},
-			{"title": "War", "scene": ""},
-			{"title": "Crazy Eights", "scene": ""},
-			{"title": "Go Fish", "scene": ""},
-			{"title": "Rummy", "scene": ""},
-			{"title": "Spider Solitaire", "scene": ""},
-			{"title": "FreeCell", "scene": ""},
-			{"title": "Pyramid Solitaire", "scene": ""},
-			{"title": "Speed / Spit", "scene": ""},
-			{"title": "Memory Match", "pack_id": "memory", "scene": "res://scenes/games/memory/memory.tscn"},
+			{"title": "Solitaire", "icon": "🂡", "pack_id": "solitaire", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
+			{"title": "Blackjack", "icon": "🂱", "scene": ""},
+			{"title": "War", "icon": "⚔️", "scene": ""},
+			{"title": "Crazy Eights", "icon": "8️⃣", "scene": ""},
+			{"title": "Go Fish", "icon": "🐟", "scene": ""},
+			{"title": "Rummy", "icon": "🃁", "scene": ""},
+			{"title": "Spider Solitaire", "icon": "🕷️", "scene": ""},
+			{"title": "FreeCell", "icon": "🆓", "scene": ""},
+			{"title": "Pyramid Solitaire", "icon": "🔺", "scene": ""},
+			{"title": "Speed / Spit", "icon": "⚡", "scene": ""},
+			{"title": "Memory Match", "icon": "🧠", "pack_id": "memory", "scene": "res://scenes/games/memory/memory.tscn"},
 		],
 	},
 	{
@@ -66,12 +66,12 @@ const CATEGORIES: Array = [
 		"icon": "🔤",
 		"color": Color(0.45, 0.35, 0.15),
 		"games": [
-			{"title": "Hangman", "pack_id": "hangman", "scene": "res://scenes/games/hangman/hangman.tscn"},
-			{"title": "Wordle", "scene": ""},
-			{"title": "Word Search", "scene": ""},
-			{"title": "Crossword", "scene": ""},
-			{"title": "Anagrams", "scene": ""},
-			{"title": "Boggle", "scene": ""},
+			{"title": "Hangman", "icon": "💀", "pack_id": "hangman", "scene": "res://scenes/games/hangman/hangman.tscn"},
+			{"title": "Wordle", "icon": "🟩", "scene": ""},
+			{"title": "Word Search", "icon": "🔍", "scene": ""},
+			{"title": "Crossword", "icon": "📝", "scene": ""},
+			{"title": "Anagrams", "icon": "🔀", "scene": ""},
+			{"title": "Boggle", "icon": "🎲", "scene": ""},
 		],
 	},
 	{
@@ -79,18 +79,18 @@ const CATEGORIES: Array = [
 		"icon": "🕹️",
 		"color": Color(0.5, 0.2, 0.45),
 		"games": [
-			{"title": "Geometry Wars", "pack_id": "geometry_wars", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
-			{"title": "Snake", "scene": ""},
-			{"title": "Tetris", "scene": ""},
-			{"title": "Pong", "scene": ""},
-			{"title": "Breakout", "scene": ""},
-			{"title": "Flappy Bird", "scene": ""},
-			{"title": "Space Invaders", "scene": ""},
-			{"title": "Frogger", "scene": ""},
-			{"title": "Match-3", "scene": ""},
-			{"title": "Simon", "pack_id": "simon", "scene": "res://scenes/games/simon/simon.tscn"},
-			{"title": "Whack-a-Mole", "scene": ""},
-			{"title": "Reaction Test", "scene": ""},
+			{"title": "Geometry Wars", "icon": "🚀", "pack_id": "geometry_wars", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
+			{"title": "Snake", "icon": "🐍", "scene": ""},
+			{"title": "Tetris", "icon": "🧱", "scene": ""},
+			{"title": "Pong", "icon": "🏓", "scene": ""},
+			{"title": "Breakout", "icon": "🎯", "scene": ""},
+			{"title": "Flappy Bird", "icon": "🐦", "scene": ""},
+			{"title": "Space Invaders", "icon": "👾", "scene": ""},
+			{"title": "Frogger", "icon": "🐸", "scene": ""},
+			{"title": "Match-3", "icon": "💎", "scene": ""},
+			{"title": "Simon", "icon": "🎵", "pack_id": "simon", "scene": "res://scenes/games/simon/simon.tscn"},
+			{"title": "Whack-a-Mole", "icon": "🔨", "scene": ""},
+			{"title": "Reaction Test", "icon": "⏱️", "scene": ""},
 		],
 	},
 	{
@@ -98,9 +98,9 @@ const CATEGORIES: Array = [
 		"icon": "🎲",
 		"color": Color(0.5, 0.4, 0.15),
 		"games": [
-			{"title": "Yahtzee", "scene": ""},
-			{"title": "Farkle", "scene": ""},
-			{"title": "Liar's Dice", "scene": ""},
+			{"title": "Yahtzee", "icon": "🎲", "scene": ""},
+			{"title": "Farkle", "icon": "🎯", "scene": ""},
+			{"title": "Liar's Dice", "icon": "🤥", "scene": ""},
 		],
 	},
 	{
@@ -108,8 +108,8 @@ const CATEGORIES: Array = [
 		"icon": "🍹",
 		"color": Color(0.6, 0.2, 0.25),
 		"games": [
-			{"title": "Kings Cup", "pack_id": "kings_cup", "scene": "res://scenes/games/kings_cup/kings_cup.tscn"},
-			{"title": "Red or Black", "pack_id": "red_or_black", "scene": "res://scenes/games/red_or_black/red_or_black.tscn"},
+			{"title": "Kings Cup", "icon": "👑", "pack_id": "kings_cup", "scene": "res://scenes/games/kings_cup/kings_cup.tscn"},
+			{"title": "Red or Black", "icon": "🎴", "pack_id": "red_or_black", "scene": "res://scenes/games/red_or_black/red_or_black.tscn"},
 		],
 	},
 	{
@@ -117,7 +117,7 @@ const CATEGORIES: Array = [
 		"icon": "🎯",
 		"color": Color(0.35, 0.35, 0.4),
 		"games": [
-			{"title": "Twister Spinner", "scene": ""},
+			{"title": "Twister Spinner", "icon": "🌀", "scene": ""},
 		],
 	},
 ]
@@ -155,7 +155,7 @@ func _ready() -> void:
 
 	var title := Label.new()
 	title.text = "VOODOO"
-	title.add_theme_font_size_override("font_size", 48)
+	title.add_theme_font_size_override("font_size", 54)
 	title.add_theme_color_override("font_color", NEON_GREEN)
 	title.add_theme_color_override("font_outline_color", Color(NEON_GREEN.r, NEON_GREEN.g, NEON_GREEN.b, 0.5))
 	title.add_theme_constant_override("outline_size", 10)
@@ -163,7 +163,7 @@ func _ready() -> void:
 
 	var version_label := Label.new()
 	version_label.text = "v%s (build %d)" % [Version.VERSION, Version.BUILD_NUMBER]
-	version_label.add_theme_font_size_override("font_size", 12)
+	version_label.add_theme_font_size_override("font_size", 13)
 	version_label.add_theme_color_override("font_color", Color(0.4, 0.6, 0.5))
 	header_box.add_child(version_label)
 
@@ -234,30 +234,30 @@ func _make_section_header(category: Dictionary, index: int) -> Control:
 			available_count += 1
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 80)
+	panel.custom_minimum_size = Vector2(0, 96)
 	var sb: StyleBoxFlat
 	if is_open:
 		sb = _neon_style(Color(category.color.r, category.color.g, category.color.b, 0.35), NEON_GREEN, 0.9)
 	else:
 		sb = _neon_style(Color(0.06, 0.1, 0.09), NEON_GREEN_DIM, 0.35)
-	sb.content_margin_left = 18
-	sb.content_margin_right = 18
+	sb.content_margin_left = 20
+	sb.content_margin_right = 20
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
+	row.add_theme_constant_override("separation", 18)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_child(row)
 
 	var icon_label := Label.new()
 	icon_label.text = category.icon
-	icon_label.add_theme_font_size_override("font_size", 32)
+	icon_label.add_theme_font_size_override("font_size", 42)
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(icon_label)
 
 	var name_label := Label.new()
 	name_label.text = category.name.to_upper()
-	name_label.add_theme_font_size_override("font_size", 24)
+	name_label.add_theme_font_size_override("font_size", 28)
 	name_label.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else NEON_GREEN)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -265,14 +265,14 @@ func _make_section_header(category: Dictionary, index: int) -> Control:
 
 	var count_label := Label.new()
 	count_label.text = "%d/%d" % [available_count, category.games.size()]
-	count_label.add_theme_font_size_override("font_size", 15)
+	count_label.add_theme_font_size_override("font_size", 17)
 	count_label.add_theme_color_override("font_color", Color(0.85, 1.0, 0.9) if is_open else Color(0.5, 0.7, 0.6))
 	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(count_label)
 
 	var chevron := Label.new()
 	chevron.text = "▾" if is_open else "▸"
-	chevron.add_theme_font_size_override("font_size", 24)
+	chevron.add_theme_font_size_override("font_size", 28)
 	chevron.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else NEON_GREEN)
 	chevron.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(chevron)
@@ -294,7 +294,7 @@ func _make_tile(game: Dictionary, accent: Color) -> Control:
 	var available: bool = bundled or has_pack  # tile is interactive either way
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 88)
+	panel.custom_minimum_size = Vector2(0, 108)
 	var sb: StyleBoxFlat
 	if available:
 		sb = _neon_style(Color(accent.r, accent.g, accent.b, 0.4), NEON_GREEN, 0.55)
@@ -305,21 +305,30 @@ func _make_tile(game: Dictionary, accent: Color) -> Control:
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	panel.add_child(row)
 
+	var icon_label := Label.new()
+	icon_label.text = game.get("icon", "🎮")
+	icon_label.add_theme_font_size_override("font_size", 36)
+	icon_label.modulate = Color(1, 1, 1) if available else Color(1, 1, 1, 0.35)
+	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(icon_label)
+
 	var label := Label.new()
 	label.text = game.title
-	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_font_size_override("font_size", 26)
 	label.add_theme_color_override("font_color", Color(1, 1, 1) if available else Color(0.5, 0.55, 0.53))
 	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	row.add_child(label)
 
 	var tag := Label.new()
-	tag.add_theme_font_size_override("font_size", 14)
+	tag.add_theme_font_size_override("font_size", 16)
 	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	if not available:
 		tag.text = "Coming soon"
