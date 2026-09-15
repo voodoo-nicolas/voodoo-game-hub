@@ -4,6 +4,7 @@ const Version = preload("res://scripts/common/version.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 
 const RELEASE_BASE := "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/"
+const LATEST_RELEASE_API := "https://api.github.com/repos/voodoo-nicolas/voodoo-game-hub/releases/latest"
 
 ## Game catalog, grouped into sections. "scene" empty string with no "pack_id" means
 ## "coming soon" (tile disabled). A game with "pack_id" is downloadable-on-demand: its
@@ -54,7 +55,7 @@ const CATEGORIES: Array = [
 			{"title": "FreeCell", "scene": ""},
 			{"title": "Pyramid Solitaire", "scene": ""},
 			{"title": "Speed / Spit", "scene": ""},
-			{"title": "Memory Match", "scene": ""},
+			{"title": "Memory Match", "pack_id": "memory", "scene": "res://scenes/games/memory/memory.tscn"},
 		],
 	},
 	{
@@ -62,7 +63,7 @@ const CATEGORIES: Array = [
 		"icon": "🔤",
 		"color": Color(0.45, 0.35, 0.15),
 		"games": [
-			{"title": "Hangman", "scene": ""},
+			{"title": "Hangman", "pack_id": "hangman", "scene": "res://scenes/games/hangman/hangman.tscn"},
 			{"title": "Wordle", "scene": ""},
 			{"title": "Word Search", "scene": ""},
 			{"title": "Crossword", "scene": ""},
@@ -84,7 +85,7 @@ const CATEGORIES: Array = [
 			{"title": "Space Invaders", "scene": ""},
 			{"title": "Frogger", "scene": ""},
 			{"title": "Match-3", "scene": ""},
-			{"title": "Simon", "scene": ""},
+			{"title": "Simon", "pack_id": "simon", "scene": "res://scenes/games/simon/simon.tscn"},
 			{"title": "Whack-a-Mole", "scene": ""},
 			{"title": "Reaction Test", "scene": ""},
 		],
@@ -118,6 +119,10 @@ const CATEGORIES: Array = [
 	},
 ]
 
+const NEON_GREEN := Color(0.15, 1.0, 0.55)
+const NEON_GREEN_DIM := Color(0.08, 0.45, 0.28)
+const BG_BLACK := Color(0.015, 0.035, 0.03)
+
 var list_container: VBoxContainer
 var expanded_index: int = -1
 
@@ -129,44 +134,70 @@ func _ready() -> void:
 	add_child(root)
 
 	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
+	bg.color = BG_BLACK
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	move_child(bg, 0)
 
 	var header := MarginContainer.new()
-	header.add_theme_constant_override("margin_top", 40)
+	header.add_theme_constant_override("margin_top", 36)
 	header.add_theme_constant_override("margin_bottom", 20)
-	header.add_theme_constant_override("margin_left", 24)
-	header.add_theme_constant_override("margin_right", 24)
+	header.add_theme_constant_override("margin_left", 14)
+	header.add_theme_constant_override("margin_right", 14)
 	root.add_child(header)
 
+	var header_box := VBoxContainer.new()
+	header_box.add_theme_constant_override("separation", 2)
+	header.add_child(header_box)
+
 	var title := Label.new()
-	title.text = "Voodoo"
-	title.add_theme_font_size_override("font_size", 34)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
-	header.add_child(title)
+	title.text = "VOODOO"
+	title.add_theme_font_size_override("font_size", 48)
+	title.add_theme_color_override("font_color", NEON_GREEN)
+	title.add_theme_color_override("font_outline_color", Color(NEON_GREEN.r, NEON_GREEN.g, NEON_GREEN.b, 0.5))
+	title.add_theme_constant_override("outline_size", 10)
+	header_box.add_child(title)
 
 	var version_label := Label.new()
 	version_label.text = "v%s (build %d)" % [Version.VERSION, Version.BUILD_NUMBER]
 	version_label.add_theme_font_size_override("font_size", 12)
-	version_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.56))
-	header.add_child(version_label)
+	version_label.add_theme_color_override("font_color", Color(0.4, 0.6, 0.5))
+	header_box.add_child(version_label)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(scroll)
 
 	list_container = VBoxContainer.new()
-	list_container.add_theme_constant_override("separation", 10)
+	list_container.add_theme_constant_override("separation", 14)
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
 	margin.add_theme_constant_override("margin_bottom", 30)
 	margin.add_child(list_container)
 	scroll.add_child(margin)
 
 	_rebuild_list()
+	_check_for_update()
+
+## Shared neon-glow panel style: bright border + a blurred shadow of the same hue
+## behind it (Godot's StyleBoxFlat shadow is a real soft blur, not a flat drop shadow),
+## which is what actually reads as "glowing" rather than just "outlined."
+func _neon_style(fill: Color, border: Color, glow_strength: float) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.corner_radius_top_left = 14
+	sb.corner_radius_top_right = 14
+	sb.corner_radius_bottom_left = 14
+	sb.corner_radius_bottom_right = 14
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = border
+	sb.shadow_color = Color(border.r, border.g, border.b, glow_strength)
+	sb.shadow_size = 10
+	return sb
 
 ## Accordion: rebuilds the whole category list from scratch each time it's toggled.
 ## Only expanded_index's games are shown, so opening one category collapses any other.
@@ -200,47 +231,46 @@ func _make_section_header(category: Dictionary, index: int) -> Control:
 			available_count += 1
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 56)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = category.color if is_open else Color(0.16, 0.16, 0.2)
-	sb.corner_radius_top_left = 12
-	sb.corner_radius_top_right = 12
-	sb.corner_radius_bottom_left = 12
-	sb.corner_radius_bottom_right = 12
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
+	panel.custom_minimum_size = Vector2(0, 80)
+	var sb: StyleBoxFlat
+	if is_open:
+		sb = _neon_style(Color(category.color.r, category.color.g, category.color.b, 0.35), NEON_GREEN, 0.9)
+	else:
+		sb = _neon_style(Color(0.06, 0.1, 0.09), NEON_GREEN_DIM, 0.35)
+	sb.content_margin_left = 18
+	sb.content_margin_right = 18
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 16)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_child(row)
 
 	var icon_label := Label.new()
 	icon_label.text = category.icon
-	icon_label.add_theme_font_size_override("font_size", 22)
+	icon_label.add_theme_font_size_override("font_size", 32)
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(icon_label)
 
 	var name_label := Label.new()
-	name_label.text = category.name
-	name_label.add_theme_font_size_override("font_size", 18)
-	name_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	name_label.text = category.name.to_upper()
+	name_label.add_theme_font_size_override("font_size", 24)
+	name_label.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else NEON_GREEN)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(name_label)
 
 	var count_label := Label.new()
 	count_label.text = "%d/%d" % [available_count, category.games.size()]
-	count_label.add_theme_font_size_override("font_size", 13)
-	count_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85) if is_open else Color(0.6, 0.6, 0.65))
+	count_label.add_theme_font_size_override("font_size", 15)
+	count_label.add_theme_color_override("font_color", Color(0.85, 1.0, 0.9) if is_open else Color(0.5, 0.7, 0.6))
 	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(count_label)
 
 	var chevron := Label.new()
 	chevron.text = "▾" if is_open else "▸"
-	chevron.add_theme_font_size_override("font_size", 18)
-	chevron.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95) if is_open else Color(0.6, 0.6, 0.65))
+	chevron.add_theme_font_size_override("font_size", 24)
+	chevron.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else NEON_GREEN)
 	chevron.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(chevron)
 
@@ -261,15 +291,14 @@ func _make_tile(game: Dictionary, accent: Color) -> Control:
 	var available: bool = bundled or has_pack  # tile is interactive either way
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 68)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = accent if available else Color(0.16, 0.16, 0.18)
-	sb.corner_radius_top_left = 12
-	sb.corner_radius_top_right = 12
-	sb.corner_radius_bottom_left = 12
-	sb.corner_radius_bottom_right = 12
-	sb.content_margin_left = 20
-	sb.content_margin_right = 20
+	panel.custom_minimum_size = Vector2(0, 88)
+	var sb: StyleBoxFlat
+	if available:
+		sb = _neon_style(Color(accent.r, accent.g, accent.b, 0.4), NEON_GREEN, 0.55)
+	else:
+		sb = _neon_style(Color(0.05, 0.06, 0.06), Color(0.25, 0.3, 0.28), 0.0)
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var row := HBoxContainer.new()
@@ -279,22 +308,22 @@ func _make_tile(game: Dictionary, accent: Color) -> Control:
 
 	var label := Label.new()
 	label.text = game.title
-	label.add_theme_font_size_override("font_size", 18)
-	label.add_theme_color_override("font_color", Color(1, 1, 1) if available else Color(0.55, 0.55, 0.55))
+	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_color_override("font_color", Color(1, 1, 1) if available else Color(0.5, 0.55, 0.53))
 	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(label)
 
 	var tag := Label.new()
-	tag.add_theme_font_size_override("font_size", 13)
+	tag.add_theme_font_size_override("font_size", 14)
 	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	if not available:
 		tag.text = "Coming soon"
-		tag.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		tag.add_theme_color_override("font_color", Color(0.5, 0.55, 0.53))
 	elif has_pack and not downloaded:
 		tag.text = "⬇ Download"
-		tag.add_theme_color_override("font_color", Color(1, 1, 1))
+		tag.add_theme_color_override("font_color", NEON_GREEN)
 	row.add_child(tag)
 
 	var button := Button.new()
@@ -309,6 +338,103 @@ func _make_tile(game: Dictionary, accent: Color) -> Control:
 	panel.add_child(button)
 
 	return panel
+
+## ---------- app self-update check ----------
+
+## Fires once per hub load; silently does nothing on failure (offline, rate-limited,
+## etc.) so a flaky network never blocks using the app.
+func _check_for_update() -> void:
+	var http := HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(func(result, response_code, headers, body):
+		_on_update_check_completed(result, response_code, body)
+		http.queue_free()
+	)
+	var headers := ["User-Agent: Voodoo-App"]
+	http.request(LATEST_RELEASE_API, headers)
+
+func _on_update_check_completed(result: int, response_code: int, body: PackedByteArray) -> void:
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		return
+
+	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	if typeof(parsed) != TYPE_DICTIONARY or not parsed.has("tag_name"):
+		return
+
+	var remote_version: String = str(parsed.tag_name).lstrip("v")
+	if not _is_newer_version(remote_version, Version.VERSION):
+		return
+
+	var apk_url := ""
+	for asset in parsed.get("assets", []):
+		var name: String = str(asset.get("name", ""))
+		if name.ends_with(".apk"):
+			apk_url = str(asset.get("browser_download_url", ""))
+			break
+	if apk_url == "":
+		return
+
+	_show_update_dialog(remote_version, apk_url)
+
+## Compares dotted version strings ("0.4.0" vs "0.3.0") numerically, segment by segment.
+func _is_newer_version(remote: String, local: String) -> bool:
+	var r: PackedStringArray = remote.split(".")
+	var l: PackedStringArray = local.split(".")
+	for i in range(max(r.size(), l.size())):
+		var rv: int = int(r[i]) if i < r.size() else 0
+		var lv: int = int(l[i]) if i < l.size() else 0
+		if rv != lv:
+			return rv > lv
+	return false
+
+func _show_update_dialog(remote_version: String, apk_url: String) -> void:
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.85)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _neon_style(Color(0.06, 0.1, 0.09), NEON_GREEN, 0.7))
+	center.add_child(panel)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	box.custom_minimum_size = Vector2(260, 0)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = "Update Available"
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", NEON_GREEN)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+
+	var subtitle := Label.new()
+	subtitle.text = "v%s is out (you have v%s)" % [remote_version, Version.VERSION]
+	subtitle.add_theme_font_size_override("font_size", 14)
+	subtitle.add_theme_color_override("font_color", Color(0.8, 0.85, 0.82))
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(subtitle)
+
+	var update_btn := Button.new()
+	update_btn.text = "Update Now"
+	update_btn.custom_minimum_size = Vector2(200, 48)
+	update_btn.pressed.connect(func():
+		OS.shell_open(apk_url)
+		overlay.queue_free()
+	)
+	box.add_child(update_btn)
+
+	var later_btn := Button.new()
+	later_btn.text = "Later"
+	later_btn.custom_minimum_size = Vector2(200, 44)
+	later_btn.pressed.connect(func(): overlay.queue_free())
+	box.add_child(later_btn)
 
 ## ---------- download-on-demand ----------
 

@@ -3,6 +3,7 @@ extends Control
 const TicTacToeEngine = preload("res://scripts/games/tictactoe/tictactoe_engine.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
+const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 
 const SAVE_PATH := "user://tictactoe_save.json"
 const COLOR_BASE := Color(0.15, 0.15, 0.19)
@@ -86,14 +87,19 @@ func _build_ui() -> void:
 
 	var grid := GridContainer.new()
 	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 6)
-	grid.add_theme_constant_override("v_separation", 6)
+	var separation := 8
+	grid.add_theme_constant_override("h_separation", separation)
+	grid.add_theme_constant_override("v_separation", separation)
 	box.add_child(grid)
+
+	var viewport_width: float = get_viewport_rect().size.x
+	var outer_margin := 24.0
+	var cell_size: float = floor((viewport_width - outer_margin * 2.0 - separation * 2.0) / 3.0)
 
 	for i in range(9):
 		var cell := Button.new()
-		cell.custom_minimum_size = Vector2(96, 96)
-		cell.add_theme_font_size_override("font_size", 42)
+		cell.custom_minimum_size = Vector2(cell_size, cell_size)
+		cell.add_theme_font_size_override("font_size", int(cell_size * 0.45))
 		cell.flat = false
 		cell.focus_mode = Control.FOCUS_NONE
 		_style_cell(cell, COLOR_BASE)
@@ -103,6 +109,7 @@ func _build_ui() -> void:
 
 	_build_pause_dialog()
 	_build_win_dialog()
+	add_child(SettingsDrawer.new())
 
 func _style_cell(cell: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()

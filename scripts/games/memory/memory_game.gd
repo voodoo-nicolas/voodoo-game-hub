@@ -1,31 +1,30 @@
 extends Control
 
-const Connect4Engine = preload("res://scripts/games/connect4/connect4_engine.gd")
+const MemoryEngine = preload("res://scripts/games/memory/memory_engine.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 
-const SAVE_PATH := "user://connect4_save.json"
-const BOARD_SEPARATION := 4
-const BOARD_PADDING := 8
-const BOARD_OUTER_MARGIN := 8.0
-const COLOR_EMPTY := Color(0.15, 0.15, 0.19)
-const COLOR_RED := Color(0.9, 0.3, 0.3)
-const COLOR_YELLOW := Color(0.95, 0.8, 0.2)
+const SAVE_PATH := "user://memory_save.json"
+const SYMBOLS := ["🍕", "🚀", "🎧", "🐼", "🌵", "⚽", "🎨", "🍩"]
+const MISMATCH_DELAY := 0.7
+const COLOR_HIDDEN := Color(0.18, 0.18, 0.24)
+const COLOR_FLIPPED := Color(0.25, 0.5, 0.7)
+const COLOR_MATCHED := Color(0.2, 0.45, 0.28)
 
 var engine
 var game_active: bool = false
-var cell_size: float = 46.0
+var waiting_for_resolve: bool = false
 
 var status_label: Label
-var cell_views: Array = []  # ROWS x COLS of Panel/ColorRect-like nodes (we'll use PanelContainer with StyleBoxFlat)
+var cell_buttons: Array = []  # 16 Buttons
 var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
 
 func _ready() -> void:
 	Orientation.lock_portrait()
-	engine = Connect4Engine.new()
+	engine = MemoryEngine.new()
 	_build_ui()
 	if not _load_saved_game():
 		_start_new_game()
@@ -44,7 +43,7 @@ func _build_ui() -> void:
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("separation", 16)
+	root.add_theme_constant_override("separation", 10)
 	add_child(root)
 
 	var top_margin := MarginContainer.new()
@@ -63,7 +62,7 @@ func _build_ui() -> void:
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
-	title.text = "Connect Four"
+	title.text = "Memory"
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -85,62 +84,46 @@ func _build_ui() -> void:
 	center.add_child(box)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 20)
+	status_label.add_theme_font_size_override("font_size", 18)
 	status_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(status_label)
 
 	var viewport_width: float = get_viewport_rect().size.x
-	var available: float = viewport_width - BOARD_OUTER_MARGIN * 2.0 - BOARD_PADDING * 2.0
-	cell_size = floor((available - BOARD_SEPARATION * (Connect4Engine.COLS - 1)) / Connect4Engine.COLS)
-
-	var board_panel := PanelContainer.new()
-	var board_sb := StyleBoxFlat.new()
-	board_sb.bg_color = Color(0.12, 0.2, 0.4)
-	board_sb.corner_radius_top_left = 10
-	board_sb.corner_radius_top_right = 10
-	board_sb.corner_radius_bottom_left = 10
-	board_sb.corner_radius_bottom_right = 10
-	board_sb.content_margin_left = BOARD_PADDING
-	board_sb.content_margin_right = BOARD_PADDING
-	board_sb.content_margin_top = BOARD_PADDING
-	board_sb.content_margin_bottom = BOARD_PADDING
-	board_panel.add_theme_stylebox_override("panel", board_sb)
-	box.add_child(board_panel)
+	var outer_margin := 20.0
+	var separation := 8
+	var cell_size: float = floor((viewport_width - outer_margin * 2.0 - separation * 3.0) / 4.0)
 
 	var grid := GridContainer.new()
-	grid.columns = Connect4Engine.COLS
-	grid.add_theme_constant_override("h_separation", BOARD_SEPARATION)
-	grid.add_theme_constant_override("v_separation", BOARD_SEPARATION)
-	board_panel.add_child(grid)
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", separation)
+	grid.add_theme_constant_override("v_separation", separation)
+	box.add_child(grid)
 
-	for r in range(Connect4Engine.ROWS):
-		var row: Array = []
-		for c in range(Connect4Engine.COLS):
-			var slot := Button.new()
-			slot.custom_minimum_size = Vector2(cell_size, cell_size)
-			slot.flat = false
-			slot.focus_mode = Control.FOCUS_NONE
-			_style_slot(slot, COLOR_EMPTY)
-			slot.pressed.connect(_on_column_pressed.bind(c))
-			grid.add_child(slot)
-			row.append(slot)
-		cell_views.append(row)
+	for i in range(16):
+		var cell := Button.new()
+		cell.custom_minimum_size = Vector2(cell_size, cell_size)
+		cell.add_theme_font_size_override("font_size", int(cell_size * 0.45))
+		cell.flat = false
+		cell.focus_mode = Control.FOCUS_NONE
+		_style_cell(cell, COLOR_HIDDEN)
+		cell.pressed.connect(_on_cell_pressed.bind(i))
+		grid.add_child(cell)
+		cell_buttons.append(cell)
 
 	_build_pause_dialog()
 	_build_win_dialog()
 	add_child(SettingsDrawer.new())
 
-func _style_slot(slot: Button, color: Color) -> void:
+func _style_cell(cell: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = color
-	var radius: int = int(cell_size / 2.0)
-	sb.corner_radius_top_left = radius
-	sb.corner_radius_top_right = radius
-	sb.corner_radius_bottom_left = radius
-	sb.corner_radius_bottom_right = radius
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		slot.add_theme_stylebox_override(state, sb)
+		cell.add_theme_stylebox_override(state, sb)
 
 func _build_pause_dialog() -> void:
 	pause_dialog = ColorRect.new()
@@ -251,18 +234,34 @@ func _panel_style() -> StyleBoxFlat:
 func _start_new_game() -> void:
 	engine.reset()
 	game_active = true
+	waiting_for_resolve = false
 	win_dialog.visible = false
 	pause_dialog.visible = false
 	_render()
 
-func _on_column_pressed(col: int) -> void:
-	if not game_active:
+func _on_cell_pressed(i: int) -> void:
+	if not game_active or waiting_for_resolve:
 		return
-	if engine.drop(col) == -1:
-		return
+	var result: String = engine.flip(i)
+	match result:
+		"match":
+			_render()
+			if engine.is_over():
+				_show_win()
+		"mismatch":
+			_render()
+			waiting_for_resolve = true
+			var timer := get_tree().create_timer(MISMATCH_DELAY)
+			timer.timeout.connect(_on_mismatch_resolved)
+		"first":
+			_render()
+		"ignored":
+			pass
+
+func _on_mismatch_resolved() -> void:
+	engine.resolve_mismatch()
+	waiting_for_resolve = false
 	_render()
-	if engine.is_over():
-		_show_result()
 
 func _on_pause_pressed() -> void:
 	if not game_active:
@@ -270,48 +269,53 @@ func _on_pause_pressed() -> void:
 	_save_game()
 	pause_dialog.visible = true
 
-func _show_result() -> void:
+func _show_win() -> void:
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
-	var w: int = engine.winner()
-	if w == Connect4Engine.EMPTY:
-		win_label.text = "It's a draw!"
-	else:
-		win_label.text = "%s wins!" % ("Red" if w == Connect4Engine.RED else "Yellow")
+	win_label.text = "Solved in %d moves!" % engine.moves
 	win_dialog.visible = true
 
 func _render() -> void:
-	for r in range(Connect4Engine.ROWS):
-		for c in range(Connect4Engine.COLS):
-			var v: int = engine.board[r][c]
-			var color: Color = COLOR_EMPTY
-			if v == Connect4Engine.RED:
-				color = COLOR_RED
-			elif v == Connect4Engine.YELLOW:
-				color = COLOR_YELLOW
-			_style_slot(cell_views[r][c], color)
+	for i in range(16):
+		var btn: Button = cell_buttons[i]
+		var face_up: bool = engine.matched[i] or engine.flipped.has(i)
+		if face_up:
+			btn.text = SYMBOLS[engine.deck[i]]
+			_style_cell(btn, COLOR_MATCHED if engine.matched[i] else COLOR_FLIPPED)
+		else:
+			btn.text = ""
+			_style_cell(btn, COLOR_HIDDEN)
 
-	status_label.text = "Turn: %s" % ("Red" if engine.turn == Connect4Engine.RED else "Yellow")
+	status_label.text = "Moves: %d" % engine.moves
 
 # ---------- save / load ----------
 
 func _save_game() -> void:
 	if not game_active:
 		return
-	SaveUtil.write(SAVE_PATH, {"board": engine.board, "turn": engine.turn})
+	SaveUtil.write(SAVE_PATH, {
+		"deck": engine.deck,
+		"matched": engine.matched,
+		"moves": engine.moves,
+	})
 
 func _load_saved_game() -> bool:
 	var data = SaveUtil.read(SAVE_PATH)
 	if data == null:
 		return false
-	var board: Array = []
-	for row in data.board:
-		var r: Array = []
-		for v in row:
-			r.append(int(v))
-		board.append(r)
-	engine.board = board
-	engine.turn = int(data.turn)
-	game_active = not engine.is_over()
+	engine.deck = []
+	for v in data.deck:
+		engine.deck.append(int(v))
+	engine.matched = []
+	for v in data.matched:
+		engine.matched.append(bool(v))
+	engine.moves = int(data.moves)
+	engine.flipped = []
+
+	if engine.is_over():
+		return false
+
+	game_active = true
+	waiting_for_resolve = false
 	_render()
-	return game_active
+	return true

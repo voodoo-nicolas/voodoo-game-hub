@@ -2,6 +2,7 @@ extends Control
 
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
+const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Core = preload("res://scripts/games/geometry_wars/geometry_wars_core.gd")
 const ArenaCanvas = preload("res://scripts/games/geometry_wars/arena_canvas.gd")
 const JoystickCanvas = preload("res://scripts/games/geometry_wars/joystick_canvas.gd")
@@ -247,6 +248,7 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	_build_game_over_dialog()
 	_build_rotate_hint()
+	add_child(SettingsDrawer.new())
 
 func _build_rotate_hint() -> void:
 	rotate_hint = ColorRect.new()

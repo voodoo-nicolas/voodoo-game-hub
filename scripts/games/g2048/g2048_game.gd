@@ -3,9 +3,12 @@ extends Control
 const G2048Engine = preload("res://scripts/games/g2048/g2048_engine.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
+const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 
 const SAVE_PATH := "user://g2048_save.json"
-const TILE_SIZE := 76
+const BOARD_SEPARATION := 6
+const BOARD_PADDING := 8
+const BOARD_OUTER_MARGIN := 16.0
 const SWIPE_MIN_DISTANCE := 24.0
 
 const TILE_COLORS := {
@@ -25,6 +28,7 @@ const TILE_COLORS := {
 
 var engine
 var game_active: bool = false
+var tile_size: float = 76.0
 var shown_2048_banner: bool = false
 
 var score_label: Label
@@ -147,6 +151,10 @@ func _build_ui() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(hint)
 
+	var viewport_width: float = get_viewport_rect().size.x
+	var available: float = viewport_width - BOARD_OUTER_MARGIN * 2.0 - BOARD_PADDING * 2.0
+	tile_size = floor((available - BOARD_SEPARATION * (G2048Engine.SIZE - 1)) / G2048Engine.SIZE)
+
 	var board_panel := PanelContainer.new()
 	var board_sb := StyleBoxFlat.new()
 	board_sb.bg_color = Color(0.1, 0.1, 0.13)
@@ -154,17 +162,17 @@ func _build_ui() -> void:
 	board_sb.corner_radius_top_right = 10
 	board_sb.corner_radius_bottom_left = 10
 	board_sb.corner_radius_bottom_right = 10
-	board_sb.content_margin_left = 8
-	board_sb.content_margin_right = 8
-	board_sb.content_margin_top = 8
-	board_sb.content_margin_bottom = 8
+	board_sb.content_margin_left = BOARD_PADDING
+	board_sb.content_margin_right = BOARD_PADDING
+	board_sb.content_margin_top = BOARD_PADDING
+	board_sb.content_margin_bottom = BOARD_PADDING
 	board_panel.add_theme_stylebox_override("panel", board_sb)
 	box.add_child(board_panel)
 
 	var grid := GridContainer.new()
 	grid.columns = G2048Engine.SIZE
-	grid.add_theme_constant_override("h_separation", 6)
-	grid.add_theme_constant_override("v_separation", 6)
+	grid.add_theme_constant_override("h_separation", BOARD_SEPARATION)
+	grid.add_theme_constant_override("v_separation", BOARD_SEPARATION)
 	board_panel.add_child(grid)
 
 	for r in range(G2048Engine.SIZE):
@@ -172,7 +180,7 @@ func _build_ui() -> void:
 		var panel_row: Array = []
 		for c in range(G2048Engine.SIZE):
 			var panel := PanelContainer.new()
-			panel.custom_minimum_size = Vector2(TILE_SIZE, TILE_SIZE)
+			panel.custom_minimum_size = Vector2(tile_size, tile_size)
 			var sb := StyleBoxFlat.new()
 			sb.bg_color = TILE_COLORS[0]
 			sb.corner_radius_top_left = 8
@@ -184,7 +192,7 @@ func _build_ui() -> void:
 			var label := Label.new()
 			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			label.add_theme_font_size_override("font_size", 24)
+			label.add_theme_font_size_override("font_size", int(tile_size * 0.4))
 			panel.add_child(label)
 
 			grid.add_child(panel)
@@ -195,6 +203,7 @@ func _build_ui() -> void:
 
 	_build_pause_dialog()
 	_build_end_dialog()
+	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
 	pause_dialog = ColorRect.new()
@@ -349,8 +358,11 @@ func _render() -> void:
 			sb.corner_radius_bottom_left = 8
 			sb.corner_radius_bottom_right = 8
 			tile_panels[r][c].add_theme_stylebox_override("panel", sb)
-			tile_labels[r][c].text = str(v) if v != 0 else ""
+			var text: String = str(v) if v != 0 else ""
+			tile_labels[r][c].text = text
 			tile_labels[r][c].add_theme_color_override("font_color", Color(0.2, 0.2, 0.2) if v != 0 and v <= 4 else Color(1, 1, 1))
+			var scale: float = 0.4 if text.length() <= 2 else (0.32 if text.length() == 3 else 0.26)
+			tile_labels[r][c].add_theme_font_size_override("font_size", int(tile_size * scale))
 
 	score_label.text = "Score: %d" % engine.score
 

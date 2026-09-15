@@ -5,6 +5,7 @@ const CardData = preload("res://scripts/games/solitaire/card_data.gd")
 const CardView = preload("res://scripts/games/solitaire/card_view.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
+const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 
 const SAVE_PATH := "user://solitaire_save.json"
 
@@ -109,6 +110,7 @@ func _build_ui() -> void:
 
 	_build_win_dialog()
 	_build_pause_dialog()
+	add_child(SettingsDrawer.new())
 
 func _stat_label(text: String) -> Label:
 	var l := Label.new()

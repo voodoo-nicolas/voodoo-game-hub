@@ -5,6 +5,7 @@ const CellButton = preload("res://scripts/games/sudoku/cell_button.gd")
 const GridLines = preload("res://scripts/games/sudoku/grid_lines.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
+const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 
 const SAVE_PATH := "user://sudoku_save.json"
 
@@ -89,6 +90,7 @@ func _build_ui() -> void:
 	_build_loading_overlay()
 	_build_win_dialog()
 	_build_pause_dialog()
+	add_child(SettingsDrawer.new())
 
 func _build_difficulty_screen() -> void:
 	difficulty_screen = CenterContainer.new()
