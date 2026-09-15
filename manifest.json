@@ -44,6 +44,16 @@
       "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hangman.pck",
       "scene": "res://scenes/games/hangman/hangman.tscn"
+    },
+    "kings_cup": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/kings_cup.pck",
+      "scene": "res://scenes/games/kings_cup/kings_cup.tscn"
+    },
+    "red_or_black": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/red_or_black.pck",
+      "scene": "res://scenes/games/red_or_black/red_or_black.tscn"
     }
   }
 }

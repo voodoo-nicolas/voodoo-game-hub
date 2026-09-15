@@ -108,8 +108,8 @@ const CATEGORIES: Array = [
 		"icon": "🍹",
 		"color": Color(0.6, 0.2, 0.25),
 		"games": [
-			{"title": "Kings Cup", "scene": ""},
-			{"title": "Higher or Lower", "scene": ""},
+			{"title": "Kings Cup", "pack_id": "kings_cup", "scene": "res://scenes/games/kings_cup/kings_cup.tscn"},
+			{"title": "Red or Black", "pack_id": "red_or_black", "scene": "res://scenes/games/red_or_black/red_or_black.tscn"},
 		],
 	},
 	{
