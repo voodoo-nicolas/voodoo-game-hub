@@ -205,10 +205,13 @@ func _neon_style(fill: Color, border: Color, glow_strength: float) -> StyleBoxFl
 
 ## Accordion: rebuilds the whole category list from scratch each time it's toggled.
 ## Only expanded_index's games are shown, so opening one category collapses any other.
+## Uses queue_free(), not free() -- this runs from inside a header button's own
+## `pressed` signal, and freeing a node immediately while its own signal is still
+## being emitted up the call stack is undefined behavior in Godot (it can crash).
 func _rebuild_list() -> void:
 	for child in list_container.get_children():
 		list_container.remove_child(child)
-		child.free()
+		child.queue_free()
 
 	for i in range(CATEGORIES.size()):
 		var category: Dictionary = CATEGORIES[i]

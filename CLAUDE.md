@@ -153,6 +153,14 @@ tool directly for anything needing real PowerShell semantics, not
 - **32-bit ARM devices**: `export_presets.cfg` preset 0 needs
   `architectures/armeabi-v7a=true` — without it, older/budget Android phones
   are silently rejected as "incompatible" on install.
+- **`free()` vs `queue_free()` inside a signal handler**: never call `.free()`
+  on a node from inside a signal callback that node itself (or an ancestor of
+  it in the same rebuild) is still emitting — freeing while a signal is mid-emit
+  is undefined behavior in Godot and can hard-crash (segfault) rather than
+  erroring cleanly. `hub.gd`'s `_rebuild_list()` hit this: it's called from a
+  header button's own `pressed` handler and used to `.free()` that same button's
+  parent immediately. Always use `queue_free()` when rebuilding a list of nodes
+  in response to one of those nodes' own signal.
 
 ## Reference material
 

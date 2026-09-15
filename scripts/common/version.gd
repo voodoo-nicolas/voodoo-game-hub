@@ -5,9 +5,9 @@ extends RefCounted
 ## MAJOR once this leaves early testing. Keep export_presets.cfg's
 ## version/name and version/code in sync with this by hand on each build
 ## (Godot's exporter doesn't read version info from GDScript).
-const VERSION := "0.5.0"
+const VERSION := "0.5.1"
 
 ## Android requires an integer versionCode that strictly increases with every
 ## release build, or installs of a newer APK over an older one will be rejected.
 ## Bump this every time a new APK is built for testers, independent of VERSION.
-const BUILD_NUMBER := 10
+const BUILD_NUMBER := 11

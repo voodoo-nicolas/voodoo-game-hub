@@ -5,7 +5,7 @@ signal cell_pressed(row: int, col: int)
 const COLOR_GIVEN := Color(0.92, 0.92, 0.92)
 const COLOR_EDITABLE := Color(0.55, 0.8, 1.0)
 const COLOR_ERROR := Color(1.0, 0.4, 0.4)
-const COLOR_NOTE := Color(0.6, 0.6, 0.65)
+const COLOR_NOTE := Color(0.75, 0.78, 0.88)
 
 var row: int = -1
 var col: int = -1
@@ -44,7 +44,7 @@ func setup(r: int, c: int, cell_size: float = 72.0) -> void:
 		l.text = ""
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.add_theme_font_size_override("font_size", max(9, int(cell_size * 0.15)))
+		l.add_theme_font_size_override("font_size", max(14, int(cell_size * 0.26)))
 		l.add_theme_color_override("font_color", COLOR_NOTE)
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL

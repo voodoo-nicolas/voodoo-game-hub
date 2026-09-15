@@ -110,8 +110,8 @@ func _build_difficulty_screen() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = "Choose a difficulty"
-	subtitle.add_theme_font_size_override("font_size", 16)
-	subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	subtitle.add_theme_font_size_override("font_size", 19)
+	subtitle.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(subtitle)
 
@@ -121,8 +121,8 @@ func _build_difficulty_screen() -> void:
 
 	continue_button = Button.new()
 	continue_button.text = "Continue"
-	continue_button.custom_minimum_size = Vector2(240, 56)
-	continue_button.add_theme_font_size_override("font_size", 20)
+	continue_button.custom_minimum_size = Vector2(260, 60)
+	continue_button.add_theme_font_size_override("font_size", 22)
 	continue_button.visible = false
 	continue_button.pressed.connect(_load_saved_game)
 	box.add_child(continue_button)
@@ -130,14 +130,15 @@ func _build_difficulty_screen() -> void:
 	for d in DIFFICULTIES:
 		var btn := Button.new()
 		btn.text = d.capitalize()
-		btn.custom_minimum_size = Vector2(240, 56)
-		btn.add_theme_font_size_override("font_size", 20)
+		btn.custom_minimum_size = Vector2(260, 60)
+		btn.add_theme_font_size_override("font_size", 22)
 		btn.pressed.connect(func(): _start_new_game(d))
 		box.add_child(btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "Back to Hub"
-	back_btn.custom_minimum_size = Vector2(240, 44)
+	back_btn.custom_minimum_size = Vector2(260, 50)
+	back_btn.add_theme_font_size_override("font_size", 18)
 	back_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(back_btn)
 
@@ -152,20 +153,30 @@ func _build_game_screen() -> void:
 	root.add_theme_constant_override("separation", 10)
 	game_screen.add_child(root)
 
+	# Top and bottom sections each get a share of whatever vertical space is left
+	# over after the (fixed-size, width-constrained) board -- on a tall/narrow
+	# phone "expand" stretch reveals extra vertical room, and without this it all
+	# pools as one big empty gap around the board instead of being shared out.
+	var top_section := VBoxContainer.new()
+	top_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_section.size_flags_stretch_ratio = 0.5
+	top_section.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(top_section)
+
 	# top icon row: back/menu on the left, pause on the right
 	var top_margin := MarginContainer.new()
 	top_margin.add_theme_constant_override("margin_top", 16)
 	top_margin.add_theme_constant_override("margin_left", 12)
 	top_margin.add_theme_constant_override("margin_right", 12)
-	root.add_child(top_margin)
+	top_section.add_child(top_margin)
 
 	var top_row := HBoxContainer.new()
 	top_margin.add_child(top_row)
 
 	var back_btn := Button.new()
 	back_btn.text = "‹"
-	back_btn.add_theme_font_size_override("font_size", 26)
-	back_btn.custom_minimum_size = Vector2(44, 44)
+	back_btn.add_theme_font_size_override("font_size", 32)
+	back_btn.custom_minimum_size = Vector2(56, 56)
 	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.pressed.connect(_on_pause_pressed)
 	top_row.add_child(back_btn)
@@ -176,8 +187,8 @@ func _build_game_screen() -> void:
 
 	var pause_icon_btn := Button.new()
 	pause_icon_btn.text = "⏸"
-	pause_icon_btn.add_theme_font_size_override("font_size", 20)
-	pause_icon_btn.custom_minimum_size = Vector2(44, 44)
+	pause_icon_btn.add_theme_font_size_override("font_size", 26)
+	pause_icon_btn.custom_minimum_size = Vector2(56, 56)
 	pause_icon_btn.focus_mode = Control.FOCUS_NONE
 	pause_icon_btn.pressed.connect(_on_pause_pressed)
 	top_row.add_child(pause_icon_btn)
@@ -186,7 +197,8 @@ func _build_game_screen() -> void:
 	var stats_margin := MarginContainer.new()
 	stats_margin.add_theme_constant_override("margin_left", 16)
 	stats_margin.add_theme_constant_override("margin_right", 16)
-	root.add_child(stats_margin)
+	stats_margin.add_theme_constant_override("margin_top", 12)
+	top_section.add_child(stats_margin)
 
 	var stats_row := HBoxContainer.new()
 	stats_margin.add_child(stats_row)
@@ -214,6 +226,7 @@ func _build_game_screen() -> void:
 	# board -- sized to nearly fill the screen width, edge to edge
 	var board_center := CenterContainer.new()
 	board_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	board_center.size_flags_stretch_ratio = 1.5
 	root.add_child(board_center)
 
 	var viewport_width: float = get_viewport_rect().size.x
@@ -248,12 +261,21 @@ func _build_game_screen() -> void:
 			row.append(cell)
 		cells.append(row)
 
+	# Bottom section (icon actions + number pad) gets its own share of leftover
+	# vertical space too -- see top_section above for why this matters.
+	var bottom_section := VBoxContainer.new()
+	bottom_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	bottom_section.size_flags_stretch_ratio = 0.7
+	bottom_section.alignment = BoxContainer.ALIGNMENT_CENTER
+	bottom_section.add_theme_constant_override("separation", 14)
+	root.add_child(bottom_section)
+
 	# icon action row: Undo / Erase / Notes / Hint
 	var controls_margin := MarginContainer.new()
 	controls_margin.add_theme_constant_override("margin_left", 12)
 	controls_margin.add_theme_constant_override("margin_right", 12)
 	controls_margin.add_theme_constant_override("margin_top", 4)
-	root.add_child(controls_margin)
+	bottom_section.add_child(controls_margin)
 
 	var controls := HBoxContainer.new()
 	controls.add_theme_constant_override("separation", 4)
@@ -284,7 +306,7 @@ func _build_game_screen() -> void:
 	pad_margin.add_theme_constant_override("margin_left", 16)
 	pad_margin.add_theme_constant_override("margin_right", 16)
 	pad_margin.add_theme_constant_override("margin_bottom", 20)
-	root.add_child(pad_margin)
+	bottom_section.add_child(pad_margin)
 
 	var pad := GridContainer.new()
 	pad.columns = 9
@@ -295,10 +317,10 @@ func _build_game_screen() -> void:
 	for n in range(1, 10):
 		var nb := Button.new()
 		nb.text = str(n)
-		nb.custom_minimum_size = Vector2(0, 68)
+		nb.custom_minimum_size = Vector2(0, 80)
 		nb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nb.focus_mode = Control.FOCUS_NONE
-		nb.add_theme_font_size_override("font_size", 28)
+		nb.add_theme_font_size_override("font_size", 34)
 		_style_number_button(nb)
 		nb.pressed.connect(_on_number_pressed.bind(n))
 		pad.add_child(nb)
@@ -332,13 +354,13 @@ func _stat_block(header: String) -> Dictionary:
 
 	var header_label := Label.new()
 	header_label.text = header
-	header_label.add_theme_font_size_override("font_size", 11)
-	header_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	header_label.add_theme_font_size_override("font_size", 15)
+	header_label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.72))
 	header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(header_label)
 
 	var value_label := Label.new()
-	value_label.add_theme_font_size_override("font_size", 18)
+	value_label.add_theme_font_size_override("font_size", 26)
 	value_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(value_label)
@@ -360,15 +382,15 @@ func _icon_action_button(icon: String, label_text: String) -> Dictionary:
 
 	var icon_label := Label.new()
 	icon_label.text = icon
-	icon_label.add_theme_font_size_override("font_size", 22)
-	icon_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
+	icon_label.add_theme_font_size_override("font_size", 32)
+	icon_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(icon_label)
 
 	var text_label := Label.new()
 	text_label.text = label_text
-	text_label.add_theme_font_size_override("font_size", 11)
-	text_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	text_label.add_theme_font_size_override("font_size", 15)
+	text_label.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
 	text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(text_label)
 
@@ -393,7 +415,7 @@ func _build_loading_overlay() -> void:
 
 	var label := Label.new()
 	label.text = "Generating puzzle..."
-	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_font_size_override("font_size", 24)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	center.add_child(label)
 
@@ -428,20 +450,21 @@ func _build_win_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Puzzle Solved!"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	win_stats_label = Label.new()
-	win_stats_label.add_theme_font_size_override("font_size", 16)
+	win_stats_label.add_theme_font_size_override("font_size", 22)
 	win_stats_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	win_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(win_stats_label)
 
 	var again_btn := Button.new()
 	again_btn.text = "Play Again"
-	again_btn.custom_minimum_size = Vector2(200, 48)
+	again_btn.custom_minimum_size = Vector2(220, 56)
+	again_btn.add_theme_font_size_override("font_size", 22)
 	again_btn.pressed.connect(func():
 		win_dialog.visible = false
 		_start_new_game(difficulty)
@@ -450,7 +473,8 @@ func _build_win_dialog() -> void:
 
 	var menu_btn := Button.new()
 	menu_btn.text = "Choose Difficulty"
-	menu_btn.custom_minimum_size = Vector2(200, 44)
+	menu_btn.custom_minimum_size = Vector2(220, 50)
+	menu_btn.add_theme_font_size_override("font_size", 19)
 	menu_btn.pressed.connect(func():
 		win_dialog.visible = false
 		_show_difficulty_screen()
@@ -489,20 +513,22 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var resume_btn := Button.new()
 	resume_btn.text = "Resume"
-	resume_btn.custom_minimum_size = Vector2(220, 48)
+	resume_btn.custom_minimum_size = Vector2(240, 56)
+	resume_btn.add_theme_font_size_override("font_size", 22)
 	resume_btn.pressed.connect(_on_resume_pressed)
 	box.add_child(resume_btn)
 
 	var new_puzzle_btn := Button.new()
 	new_puzzle_btn.text = "New Puzzle (Same Difficulty)"
-	new_puzzle_btn.custom_minimum_size = Vector2(220, 44)
+	new_puzzle_btn.custom_minimum_size = Vector2(240, 50)
+	new_puzzle_btn.add_theme_font_size_override("font_size", 17)
 	new_puzzle_btn.pressed.connect(func():
 		pause_dialog.visible = false
 		game_active = false
@@ -513,7 +539,8 @@ func _build_pause_dialog() -> void:
 
 	var change_diff_btn := Button.new()
 	change_diff_btn.text = "Change Difficulty"
-	change_diff_btn.custom_minimum_size = Vector2(220, 44)
+	change_diff_btn.custom_minimum_size = Vector2(240, 50)
+	change_diff_btn.add_theme_font_size_override("font_size", 18)
 	change_diff_btn.pressed.connect(func():
 		pause_dialog.visible = false
 		game_active = false
@@ -524,7 +551,8 @@ func _build_pause_dialog() -> void:
 
 	var exit_btn := Button.new()
 	exit_btn.text = "Exit to Hub"
-	exit_btn.custom_minimum_size = Vector2(220, 44)
+	exit_btn.custom_minimum_size = Vector2(240, 50)
+	exit_btn.add_theme_font_size_override("font_size", 18)
 	exit_btn.pressed.connect(func():
 		_save_game()
 		get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
