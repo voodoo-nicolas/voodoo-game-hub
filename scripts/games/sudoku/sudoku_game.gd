@@ -295,12 +295,35 @@ func _build_game_screen() -> void:
 	for n in range(1, 10):
 		var nb := Button.new()
 		nb.text = str(n)
-		nb.custom_minimum_size = Vector2(0, 52)
+		nb.custom_minimum_size = Vector2(0, 68)
 		nb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nb.focus_mode = Control.FOCUS_NONE
+		nb.add_theme_font_size_override("font_size", 28)
+		_style_number_button(nb)
 		nb.pressed.connect(_on_number_pressed.bind(n))
 		pad.add_child(nb)
 		number_buttons.append(nb)
+
+func _style_number_button(nb: Button) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.18, 0.18, 0.24)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = Color(0.45, 0.45, 0.55)
+	sb.corner_radius_top_left = 8
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	sb.corner_radius_bottom_right = 8
+	var sb_disabled := sb.duplicate()
+	sb_disabled.bg_color = Color(0.1, 0.16, 0.11)
+	sb_disabled.border_color = Color(0.3, 0.5, 0.35)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		nb.add_theme_stylebox_override(state, sb)
+	nb.add_theme_stylebox_override("disabled", sb_disabled)
+	nb.add_theme_color_override("font_color", Color(1, 1, 1))
+	nb.add_theme_color_override("font_disabled_color", Color(0.5, 0.9, 0.6))
 
 func _stat_block(header: String) -> Dictionary:
 	var box := VBoxContainer.new()

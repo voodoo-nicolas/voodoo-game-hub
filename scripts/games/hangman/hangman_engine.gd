@@ -1,18 +1,42 @@
 extends RefCounted
 
 const WORDS := [
-	"PYTHON", "GUITAR", "ELEPHANT", "COMPUTER", "ROCKET", "MOUNTAIN",
-	"DOLPHIN", "BICYCLE", "ORANGE", "GALAXY", "PUZZLE", "JACKET",
-	"PENCIL", "WINDOW", "CANDLE", "TURTLE", "VOLCANO", "WHISTLE",
+	{"word": "PYTHON", "category": "Programming language"},
+	{"word": "GUITAR", "category": "Musical instrument"},
+	{"word": "ELEPHANT", "category": "Animal"},
+	{"word": "COMPUTER", "category": "Electronic device"},
+	{"word": "ROCKET", "category": "Mode of transport"},
+	{"word": "MOUNTAIN", "category": "Geographic feature"},
+	{"word": "DOLPHIN", "category": "Sea creature"},
+	{"word": "BICYCLE", "category": "Mode of transport"},
+	{"word": "ORANGE", "category": "Fruit"},
+	{"word": "GALAXY", "category": "Space object"},
+	{"word": "PUZZLE", "category": "Type of game"},
+	{"word": "JACKET", "category": "Clothing item"},
+	{"word": "PENCIL", "category": "School supply"},
+	{"word": "WINDOW", "category": "Part of a house"},
+	{"word": "CANDLE", "category": "Household item"},
+	{"word": "TURTLE", "category": "Reptile"},
+	{"word": "VOLCANO", "category": "Geographic feature"},
+	{"word": "WHISTLE", "category": "Sports equipment"},
+	{"word": "ROTTWEILER", "category": "Type of dog"},
+	{"word": "POODLE", "category": "Type of dog"},
+	{"word": "CHEETAH", "category": "Animal"},
+	{"word": "TRUMPET", "category": "Musical instrument"},
+	{"word": "BASKETBALL", "category": "Sport"},
+	{"word": "STRAWBERRY", "category": "Fruit"},
 ]
 const MAX_WRONG := 6
 
 var word: String = ""
+var category: String = ""
 var guessed: Dictionary = {}  # letter (String) -> true
 var wrong_count: int = 0
 
 func reset() -> void:
-	word = WORDS[randi() % WORDS.size()]
+	var entry: Dictionary = WORDS[randi() % WORDS.size()]
+	word = entry.word
+	category = entry.category
 	guessed = {}
 	wrong_count = 0
 

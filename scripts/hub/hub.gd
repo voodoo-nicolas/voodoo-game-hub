@@ -2,9 +2,12 @@ extends Control
 
 const Version = preload("res://scripts/common/version.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
+const SaveUtil = preload("res://scripts/common/save_util.gd")
 
 const RELEASE_BASE := "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/"
 const LATEST_RELEASE_API := "https://api.github.com/repos/voodoo-nicolas/voodoo-game-hub/releases/latest"
+const MANIFEST_URL := "https://raw.githubusercontent.com/voodoo-nicolas/voodoo-game-hub/master/manifest.json"
+const PACK_VERSIONS_PATH := "user://pack_versions.json"
 
 ## Game catalog, grouped into sections. "scene" empty string with no "pack_id" means
 ## "coming soon" (tile disabled). A game with "pack_id" is downloadable-on-demand: its
@@ -331,10 +334,10 @@ func _make_tile(game: Dictionary, accent: Color) -> Control:
 	button.set_anchors_preset(Control.PRESET_FULL_RECT)
 	button.disabled = not available
 	button.focus_mode = Control.FOCUS_NONE
-	if playable:
+	if has_pack:
+		button.pressed.connect(func(): _check_and_launch(game))
+	elif bundled:
 		button.pressed.connect(func(): _launch(game))
-	elif has_pack:
-		button.pressed.connect(func(): _start_download(game))
 	panel.add_child(button)
 
 	return panel
@@ -449,6 +452,19 @@ func _local_pack_path(pack_id: String) -> String:
 func _is_downloaded(pack_id: String) -> bool:
 	return FileAccess.file_exists(_local_pack_path(pack_id))
 
+func _local_pack_version(pack_id: String) -> int:
+	var data = SaveUtil.read(PACK_VERSIONS_PATH)
+	if data == null:
+		return 0
+	return int(data.get(pack_id, 0))
+
+func _save_pack_version(pack_id: String, version: int) -> void:
+	var data = SaveUtil.read(PACK_VERSIONS_PATH)
+	if data == null:
+		data = {}
+	data[pack_id] = version
+	SaveUtil.write(PACK_VERSIONS_PATH, data)
+
 ## Mounts a game's pack if needed. Returns true once the scene is actually loadable
 ## (whether it was already bundled, already mounted this session, or just mounted now).
 func _ensure_mounted(game: Dictionary) -> bool:
@@ -463,14 +479,42 @@ func _launch(game: Dictionary) -> void:
 	if _ensure_mounted(game):
 		get_tree().change_scene_to_file(game.scene)
 
-func _start_download(game: Dictionary) -> void:
+## Entry point for every downloadable game tile. Always pings the manifest first
+## (small, fast file) to decide: first-time download, silent re-download because a
+## newer version is published, or just launch the copy already on disk. If the
+## manifest is unreachable (offline) and the game is already downloaded, it just
+## launches with what's local rather than blocking play on a network check.
+func _check_and_launch(game: Dictionary) -> void:
+	var http := HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(func(result, response_code, headers, body):
+		http.queue_free()
+		var remote_version := -1
+		if result == HTTPRequest.RESULT_SUCCESS and response_code == 200:
+			var parsed = JSON.parse_string(body.get_string_from_utf8())
+			if typeof(parsed) == TYPE_DICTIONARY and parsed.has("games") and parsed.games.has(game.pack_id):
+				remote_version = int(parsed.games[game.pack_id].get("version", 1))
+
+		var local_version: int = _local_pack_version(game.pack_id)
+		var downloaded: bool = _is_downloaded(game.pack_id)
+
+		if not downloaded:
+			_start_download(game, max(remote_version, 1))
+		elif remote_version > local_version:
+			_start_download(game, remote_version)
+		else:
+			_launch(game)
+	)
+	http.request(MANIFEST_URL)
+
+func _start_download(game: Dictionary, version: int) -> void:
 	var overlay := _build_download_overlay(game.title)
 	add_child(overlay)
 
 	var http := HTTPRequest.new()
 	add_child(http)
 	http.request_completed.connect(func(result, response_code, headers, body):
-		_on_download_completed(result, response_code, body, game, overlay, http)
+		_on_download_completed(result, response_code, body, game, version, overlay, http)
 	)
 
 	var progress_bar: ProgressBar = overlay.get_meta("progress_bar")
@@ -491,9 +535,9 @@ func _start_download(game: Dictionary) -> void:
 	var url: String = RELEASE_BASE + game.pack_id + ".pck"
 	var err := http.request(url)
 	if err != OK:
-		_on_download_completed(HTTPRequest.RESULT_CANT_CONNECT, 0, PackedByteArray(), game, overlay, http)
+		_on_download_completed(HTTPRequest.RESULT_CANT_CONNECT, 0, PackedByteArray(), game, version, overlay, http)
 
-func _on_download_completed(result: int, response_code: int, body: PackedByteArray, game: Dictionary, overlay: Control, http: HTTPRequest) -> void:
+func _on_download_completed(result: int, response_code: int, body: PackedByteArray, game: Dictionary, version: int, overlay: Control, http: HTTPRequest) -> void:
 	http.queue_free()
 
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
@@ -508,6 +552,7 @@ func _on_download_completed(result: int, response_code: int, body: PackedByteArr
 	var f := FileAccess.open(_local_pack_path(game.pack_id), FileAccess.WRITE)
 	f.store_buffer(body)
 	f.close()
+	_save_pack_version(game.pack_id, version)
 
 	overlay.queue_free()
 	_launch(game)

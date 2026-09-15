@@ -1,7 +1,7 @@
 {
   "games": {
     "sudoku": {
-      "version": 2,
+      "version": 3,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck",
       "scene": "res://scenes/games/sudoku/sudoku.tscn"
     },
@@ -41,7 +41,7 @@
       "scene": "res://scenes/games/simon/simon.tscn"
     },
     "hangman": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hangman.pck",
       "scene": "res://scenes/games/hangman/hangman.tscn"
     }

@@ -10,6 +10,7 @@ const ALPHABET := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 var engine
 var game_active: bool = false
 
+var category_label: Label
 var word_label: Label
 var stage_label: Label
 var status_label: Label
@@ -69,50 +70,87 @@ func _build_ui() -> void:
 	root.add_child(center)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
+	box.add_theme_constant_override("separation", 14)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(box)
 
+	var category_tag := Label.new()
+	category_tag.text = "TOPIC"
+	category_tag.add_theme_font_size_override("font_size", 12)
+	category_tag.add_theme_color_override("font_color", Color(0.5, 0.55, 0.53))
+	category_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(category_tag)
+
+	category_label = Label.new()
+	category_label.add_theme_font_size_override("font_size", 22)
+	category_label.add_theme_color_override("font_color", Color(0.4, 0.95, 0.6))
+	category_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(category_label)
+
 	stage_label = Label.new()
-	stage_label.add_theme_font_size_override("font_size", 64)
+	stage_label.add_theme_font_size_override("font_size", 80)
 	stage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(stage_label)
 
 	word_label = Label.new()
-	word_label.add_theme_font_size_override("font_size", 36)
+	word_label.add_theme_font_size_override("font_size", 46)
 	word_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	word_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(word_label)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 16)
+	status_label.add_theme_font_size_override("font_size", 18)
 	status_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(status_label)
 
 	var keyboard_margin := MarginContainer.new()
-	keyboard_margin.add_theme_constant_override("margin_left", 16)
-	keyboard_margin.add_theme_constant_override("margin_right", 16)
+	keyboard_margin.add_theme_constant_override("margin_left", 14)
+	keyboard_margin.add_theme_constant_override("margin_right", 14)
 	keyboard_margin.add_theme_constant_override("margin_bottom", 24)
+	keyboard_margin.add_theme_constant_override("margin_top", 8)
 	box.add_child(keyboard_margin)
 
 	var keyboard := GridContainer.new()
 	keyboard.columns = 7
-	keyboard.add_theme_constant_override("h_separation", 4)
-	keyboard.add_theme_constant_override("v_separation", 4)
+	keyboard.add_theme_constant_override("h_separation", 6)
+	keyboard.add_theme_constant_override("v_separation", 6)
 	keyboard_margin.add_child(keyboard)
 
 	for letter in ALPHABET:
 		var btn := Button.new()
 		btn.text = letter
-		btn.custom_minimum_size = Vector2(40, 40)
+		btn.custom_minimum_size = Vector2(0, 64)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.focus_mode = Control.FOCUS_NONE
+		btn.add_theme_font_size_override("font_size", 22)
+		_style_letter_button(btn)
 		btn.pressed.connect(_on_letter_pressed.bind(letter))
 		keyboard.add_child(btn)
 		letter_buttons[letter] = btn
 
 	_build_end_dialog()
 	add_child(SettingsDrawer.new())
+
+func _style_letter_button(btn: Button) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.18, 0.18, 0.24)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = Color(0.45, 0.45, 0.55)
+	sb.corner_radius_top_left = 8
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	sb.corner_radius_bottom_right = 8
+	for state in ["normal", "hover", "pressed", "focus"]:
+		btn.add_theme_stylebox_override(state, sb)
+	var sb_disabled := sb.duplicate()
+	sb_disabled.bg_color = Color(0.12, 0.12, 0.16)
+	sb_disabled.border_color = Color(0.3, 0.3, 0.36)
+	btn.add_theme_stylebox_override("disabled", sb_disabled)
+	btn.add_theme_color_override("font_color", Color(1, 1, 1))
 
 func _build_end_dialog() -> void:
 	end_dialog = ColorRect.new()
@@ -174,6 +212,7 @@ func _start_new_game() -> void:
 		var btn: Button = letter_buttons[letter]
 		btn.disabled = false
 		btn.add_theme_color_override("font_color", Color(1, 1, 1))
+		btn.add_theme_color_override("font_disabled_color", Color(1, 1, 1))
 	_render()
 
 func _on_letter_pressed(letter: String) -> void:
@@ -182,7 +221,7 @@ func _on_letter_pressed(letter: String) -> void:
 	var result: String = engine.guess(letter)
 	var btn: Button = letter_buttons[letter]
 	btn.disabled = true
-	btn.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4) if result == "correct" else Color(0.9, 0.4, 0.4))
+	btn.add_theme_color_override("font_disabled_color", Color(0.4, 0.9, 0.4) if result == "correct" else Color(0.9, 0.4, 0.4))
 	_render()
 
 	if engine.is_won():
@@ -197,6 +236,7 @@ func _end_game(text: String, color: Color) -> void:
 	end_dialog.visible = true
 
 func _render() -> void:
+	category_label.text = engine.category
 	word_label.text = engine.display_word()
 	stage_label.text = STAGE_FACES[engine.wrong_count]
 	status_label.text = "Wrong guesses: %d/%d" % [engine.wrong_count, HangmanEngine.MAX_WRONG]
