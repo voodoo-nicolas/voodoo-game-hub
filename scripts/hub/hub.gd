@@ -110,6 +110,7 @@ const CATEGORIES: Array = [
 		"games": [
 			{"title": "Kings Cup", "icon": "👑", "pack_id": "kings_cup", "scene": "res://scenes/games/kings_cup/kings_cup.tscn"},
 			{"title": "Red or Black", "icon": "🎴", "pack_id": "red_or_black", "scene": "res://scenes/games/red_or_black/red_or_black.tscn"},
+			{"title": "Three Man", "icon": "3️⃣", "pack_id": "three_man", "scene": "res://scenes/games/three_man/three_man.tscn"},
 		],
 	},
 	{

@@ -54,6 +54,11 @@
       "version": 1,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/red_or_black.pck",
       "scene": "res://scenes/games/red_or_black/red_or_black.tscn"
+    },
+    "three_man": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/three_man.pck",
+      "scene": "res://scenes/games/three_man/three_man.tscn"
     }
   }
 }
