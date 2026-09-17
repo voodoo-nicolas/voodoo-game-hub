@@ -28,11 +28,11 @@ const CATEGORIES: Array = [
 			{"title": "Reversi / Othello", "icon": "⚪", "pack_id": "reversi", "scene": "res://scenes/games/reversi/reversi.tscn"},
 			{"title": "Battleship", "icon": "🚢", "scene": ""},
 			{"title": "Dots and Boxes", "icon": "▫️", "scene": ""},
-			{"title": "Mancala", "icon": "🌰", "scene": ""},
+			{"title": "Mancala", "icon": "🌰", "pack_id": "mancala", "scene": "res://scenes/games/mancala/mancala.tscn"},
 			{"title": "Backgammon", "icon": "🎲", "scene": ""},
 			{"title": "Nine Men's Morris", "icon": "✳️", "scene": ""},
 			{"title": "Peg Solitaire", "icon": "📌", "scene": ""},
-			{"title": "Lights Out", "icon": "💡", "scene": ""},
+			{"title": "Lights Out", "icon": "💡", "pack_id": "lights_out", "scene": "res://scenes/games/lights_out/lights_out.tscn"},
 			{"title": "Sokoban", "icon": "📦", "scene": ""},
 			{"title": "Sliding 15-Puzzle", "icon": "🔲", "scene": ""},
 			{"title": "2048", "icon": "🔷", "pack_id": "g2048", "scene": "res://scenes/games/g2048/g2048.tscn"},
@@ -89,7 +89,7 @@ const CATEGORIES: Array = [
 			{"title": "Frogger", "icon": "🐸", "scene": ""},
 			{"title": "Match-3", "icon": "💎", "scene": ""},
 			{"title": "Simon", "icon": "🎵", "pack_id": "simon", "scene": "res://scenes/games/simon/simon.tscn"},
-			{"title": "Whack-a-Mole", "icon": "🔨", "scene": ""},
+			{"title": "Whack-a-Mole", "icon": "🔨", "pack_id": "whack_a_mole", "scene": "res://scenes/games/whack_a_mole/whack_a_mole.tscn"},
 			{"title": "Reaction Test", "icon": "⏱️", "pack_id": "reaction_test", "scene": "res://scenes/games/reaction_test/reaction_test.tscn"},
 		],
 	},
@@ -534,8 +534,7 @@ func _start_download(game: Dictionary, version: int) -> void:
 	var poll_timer := Timer.new()
 	poll_timer.wait_time = 0.1
 	poll_timer.timeout.connect(func():
-		if not is_instance_valid(http):
-			poll_timer.queue_free()
+		if not is_instance_valid(http) or not is_instance_valid(progress_bar):
 			return
 		var total: int = http.get_body_size()
 		var downloaded: int = http.get_downloaded_bytes()
@@ -543,6 +542,7 @@ func _start_download(game: Dictionary, version: int) -> void:
 			progress_bar.value = (float(downloaded) / float(total)) * 100.0
 	)
 	overlay.add_child(poll_timer)
+	overlay.set_meta("poll_timer", poll_timer)
 	poll_timer.start()
 
 	var url: String = RELEASE_BASE + game.pack_id + ".pck"
@@ -552,6 +552,15 @@ func _start_download(game: Dictionary, version: int) -> void:
 
 func _on_download_completed(result: int, response_code: int, body: PackedByteArray, game: Dictionary, version: int, overlay: Control, http: HTTPRequest) -> void:
 	http.queue_free()
+
+	# Stop the progress-poll timer the instant we know the request is done, rather
+	# than letting it notice on its own next 0.1s tick -- if that tick landed after
+	# `overlay` (its own parent) was queue_free()'d, the timer's still-in-flight
+	# signal could try to run its callable with an already-freed capture and error.
+	var poll_timer: Timer = overlay.get_meta("poll_timer")
+	if is_instance_valid(poll_timer):
+		poll_timer.stop()
+		poll_timer.queue_free()
 
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
 		var status_label: Label = overlay.get_meta("status_label")

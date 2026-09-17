@@ -74,6 +74,21 @@
       "version": 1,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/reaction_test.pck",
       "scene": "res://scenes/games/reaction_test/reaction_test.tscn"
+    },
+    "lights_out": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/lights_out.pck",
+      "scene": "res://scenes/games/lights_out/lights_out.tscn"
+    },
+    "mancala": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mancala.pck",
+      "scene": "res://scenes/games/mancala/mancala.tscn"
+    },
+    "whack_a_mole": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/whack_a_mole.pck",
+      "scene": "res://scenes/games/whack_a_mole/whack_a_mole.tscn"
     }
   }
 }
