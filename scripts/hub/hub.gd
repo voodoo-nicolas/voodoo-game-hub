@@ -130,6 +130,8 @@ const BG_BLACK := Color(0.015, 0.035, 0.03)
 
 var list_container: VBoxContainer
 var expanded_index: int = -1
+var account_status_label: Label
+var account_status_btn: Button
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -169,6 +171,25 @@ func _ready() -> void:
 	version_label.add_theme_color_override("font_color", Color(0.4, 0.6, 0.5))
 	header_box.add_child(version_label)
 
+	var account_row := HBoxContainer.new()
+	account_row.add_theme_constant_override("separation", 10)
+	header_box.add_child(account_row)
+
+	account_status_label = Label.new()
+	account_status_label.add_theme_font_size_override("font_size", 14)
+	account_status_label.add_theme_color_override("font_color", Color(0.6, 0.85, 0.7))
+	account_row.add_child(account_status_label)
+
+	account_status_btn = Button.new()
+	account_status_btn.flat = true
+	account_status_btn.add_theme_font_size_override("font_size", 14)
+	account_status_btn.pressed.connect(_on_account_status_pressed)
+	account_row.add_child(account_status_btn)
+
+	Auth.signed_in.connect(func(_uid, _name): _update_account_status())
+	Auth.signed_out.connect(_update_account_status)
+	_update_account_status()
+
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(scroll)
@@ -184,6 +205,20 @@ func _ready() -> void:
 
 	_rebuild_list()
 	_check_for_update()
+
+func _update_account_status() -> void:
+	if Auth.is_logged_in():
+		account_status_label.text = "👤 %s" % Auth.get_display_name()
+		account_status_btn.text = "Sign Out"
+	else:
+		account_status_label.text = ""
+		account_status_btn.text = "Sign In"
+
+func _on_account_status_pressed() -> void:
+	if Auth.is_logged_in():
+		Auth.sign_out()
+	else:
+		get_tree().change_scene_to_file("res://scenes/account/account.tscn")
 
 ## Shared neon-glow panel style: bright border + a blurred shadow of the same hue
 ## behind it (Godot's StyleBoxFlat shadow is a real soft blur, not a flat drop shadow),

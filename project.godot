@@ -11,6 +11,10 @@ run/main_scene="res://scenes/hub/hub.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.png"
 
+[autoload]
+
+Auth="*res://scripts/common/auth.gd"
+
 [display]
 
 window/size/viewport_width=720

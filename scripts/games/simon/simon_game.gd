@@ -1,8 +1,11 @@
 extends Control
 
 const SimonEngine = preload("res://scripts/games/simon/simon_engine.gd")
+const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+
+const BEST_PATH := "user://simon_best.json"
 
 const PAD_COLORS := [Color(0.9, 0.3, 0.3), Color(0.3, 0.6, 0.95), Color(0.95, 0.75, 0.2), Color(0.4, 0.85, 0.4)]
 const PAD_DIM := 0.45
@@ -226,17 +229,17 @@ func _update_best_label() -> void:
 	best_label.text = "Best: %d" % best_level
 
 func _save_best() -> void:
-	var f := FileAccess.open("user://simon_best.json", FileAccess.WRITE)
-	f.store_string(JSON.stringify({"best_level": best_level}))
-	f.close()
+	SaveUtil.write(BEST_PATH, {"best_level": best_level})
+	if Auth.is_logged_in():
+		Auth.push_stat("simon_best_level", best_level)
 
 func _load_best() -> void:
-	if not FileAccess.file_exists("user://simon_best.json"):
-		_update_best_label()
-		return
-	var f := FileAccess.open("user://simon_best.json", FileAccess.READ)
-	var parsed = JSON.parse_string(f.get_as_text())
-	f.close()
-	if typeof(parsed) == TYPE_DICTIONARY:
-		best_level = int(parsed.get("best_level", 0))
+	var data = SaveUtil.read(BEST_PATH)
+	best_level = int(data.best_level) if data != null else 0
 	_update_best_label()
+	if Auth.is_logged_in():
+		Auth.reconcile_stat("simon_best_level", best_level, func(merged: int):
+			best_level = merged
+			SaveUtil.write(BEST_PATH, {"best_level": merged})
+			_update_best_label()
+		)

@@ -29,6 +29,51 @@ export requires the source to be inside this one project, and the shared helpers
 below need to stay trivially reusable. The games are logically independent (that's
 the whole point of Option B); the repo/project is not.
 
+## Accounts (Supabase) — the project's first backend
+
+Everything above is static hosting only. Accounts are the one exception: real
+per-user sign-up/sign-in backed by a live Supabase project, added so high
+scores can sync across devices and so later phases (multiplayer, paid
+memberships — see the long-term roadmap the user and Claude discussed) have
+real identity to build on. The app stays fully playable with zero account —
+this is an additive layer, never a login wall.
+
+- **`scripts/common/auth.gd`** — this project's first-ever autoload
+  (registered in `project.godot`'s `[autoload]` section as `Auth`). Wraps
+  Supabase's Auth + PostgREST HTTP APIs over plain `HTTPRequest` (no official
+  Godot Supabase SDK exists), following `hub.gd`'s established HTTP-calling
+  convention exactly. Exposes `sign_up`, `sign_in`, `sign_out`,
+  `request_password_reset`, `is_logged_in`, `get_display_name`,
+  `reconcile_stat`/`push_stat` (for syncing a named integer stat), plus
+  `signed_in`/`signed_out`/`auth_error` signals.
+- **Only the publishable/anon Supabase key lives in this repo** (in
+  `auth.gd` and in `docs/reset-password.html`) — it's safe to embed because it
+  ships inside the APK either way and only grants what the project's Row
+  Level Security policies allow. The secret/`service_role` key must never
+  appear in this codebase; it lives only in the Supabase dashboard.
+- **`scripts/account/account_screen.gd`** — the sign-in/sign-up UI, following
+  every game's own-scene pattern. This is the app's first use of `LineEdit`.
+- **Synced data**: only the three *persistent* best-score files (Snake,
+  Whack-a-Mole, Simon) sync to a `player_stats` table — every other game's
+  save is mid-game state deleted on game-over, not worth syncing. Sync is
+  lazy and per-game: each game's own `_load_best()`/`_save_best()` calls
+  `Auth.reconcile_stat`/`push_stat` if `Auth.is_logged_in()`, never blocking
+  local play if logged out or offline. Reconciliation always takes the max
+  of local vs. cloud, so progress is never silently lost either direction.
+- **Password reset** redirects to `docs/reset-password.html`, a static page
+  published via GitHub Pages — not a deep link into the app. Supabase's
+  recovery email is designed for a web redirect, and this project has no
+  Android deep-linking infrastructure; building that would be a much bigger
+  addition than password reset itself warrants.
+- **Session persistence**: `user://auth_session.json` via the existing
+  `SaveUtil` (access token, refresh token, expiry, user id, display name).
+  Access tokens expire hourly; `Auth` refreshes automatically ~60s before
+  expiry, and Supabase rotates the refresh token on every use — the new one
+  must overwrite the stored one, not just the access token.
+- Schema/RLS policy SQL lives only in the Supabase dashboard's SQL editor,
+  not in this repo (nothing here runs migrations) — see conversation history
+  or ask the user if you need to see the current schema.
+
 ## Scoping your work: hub vs. a specific game
 
 The only thing connecting a game to the hub is the four registration points

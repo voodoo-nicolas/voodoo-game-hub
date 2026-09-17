@@ -289,7 +289,15 @@ func _render() -> void:
 
 func _save_best() -> void:
 	SaveUtil.write(BEST_PATH, {"best": best_score})
+	if Auth.is_logged_in():
+		Auth.push_stat("snake_best", best_score)
 
 func _load_best() -> void:
 	var data = SaveUtil.read(BEST_PATH)
 	best_score = int(data.best) if data != null else 0
+	if Auth.is_logged_in():
+		Auth.reconcile_stat("snake_best", best_score, func(merged: int):
+			best_score = merged
+			SaveUtil.write(BEST_PATH, {"best": merged})
+			best_label.text = "Best: %d" % best_score
+		)
