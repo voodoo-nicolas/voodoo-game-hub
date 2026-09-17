@@ -50,7 +50,7 @@ const CATEGORIES: Array = [
 		"games": [
 			{"title": "Solitaire", "icon": "🂡", "pack_id": "solitaire", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
 			{"title": "Blackjack", "icon": "🂱", "scene": ""},
-			{"title": "War", "icon": "⚔️", "scene": ""},
+			{"title": "War", "icon": "⚔️", "pack_id": "war", "scene": "res://scenes/games/war/war.tscn"},
 			{"title": "Crazy Eights", "icon": "8️⃣", "scene": ""},
 			{"title": "Go Fish", "icon": "🐟", "scene": ""},
 			{"title": "Rummy", "icon": "🃁", "scene": ""},
@@ -80,7 +80,7 @@ const CATEGORIES: Array = [
 		"color": Color(0.5, 0.2, 0.45),
 		"games": [
 			{"title": "Geometry Wars", "icon": "🚀", "pack_id": "geometry_wars", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
-			{"title": "Snake", "icon": "🐍", "scene": ""},
+			{"title": "Snake", "icon": "🐍", "pack_id": "snake", "scene": "res://scenes/games/snake/snake.tscn"},
 			{"title": "Tetris", "icon": "🧱", "scene": ""},
 			{"title": "Pong", "icon": "🏓", "scene": ""},
 			{"title": "Breakout", "icon": "🎯", "scene": ""},
