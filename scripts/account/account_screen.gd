@@ -9,7 +9,8 @@ var display_name_field: LineEdit
 var email_field: LineEdit
 var password_field: LineEdit
 var submit_btn: Button
-var toggle_btn: Button
+var sign_in_tab: Button
+var sign_up_tab: Button
 var forgot_btn: Button
 var status_label: Label
 
@@ -72,10 +73,27 @@ func _build_ui() -> void:
 	box.custom_minimum_size = Vector2(280, 0)
 	center.add_child(box)
 
-	toggle_btn = Button.new()
-	toggle_btn.flat = true
-	toggle_btn.pressed.connect(_toggle_mode)
-	box.add_child(toggle_btn)
+	var tab_row := HBoxContainer.new()
+	tab_row.add_theme_constant_override("separation", 8)
+	box.add_child(tab_row)
+
+	sign_in_tab = Button.new()
+	sign_in_tab.text = "Sign In"
+	sign_in_tab.custom_minimum_size = Vector2(0, 46)
+	sign_in_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sign_in_tab.add_theme_font_size_override("font_size", 17)
+	sign_in_tab.focus_mode = Control.FOCUS_NONE
+	sign_in_tab.pressed.connect(func(): _set_mode(false))
+	tab_row.add_child(sign_in_tab)
+
+	sign_up_tab = Button.new()
+	sign_up_tab.text = "Sign Up"
+	sign_up_tab.custom_minimum_size = Vector2(0, 46)
+	sign_up_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sign_up_tab.add_theme_font_size_override("font_size", 17)
+	sign_up_tab.focus_mode = Control.FOCUS_NONE
+	sign_up_tab.pressed.connect(func(): _set_mode(true))
+	tab_row.add_child(sign_up_tab)
 
 	var sep := HSeparator.new()
 	box.add_child(sep)
@@ -134,8 +152,10 @@ func _build_ui() -> void:
 
 	_update_mode_ui()
 
-func _toggle_mode() -> void:
-	mode_sign_up = not mode_sign_up
+func _set_mode(is_sign_up: bool) -> void:
+	if mode_sign_up == is_sign_up:
+		return
+	mode_sign_up = is_sign_up
 	status_label.text = ""
 	_update_mode_ui()
 
@@ -143,7 +163,29 @@ func _update_mode_ui() -> void:
 	display_name_row.visible = mode_sign_up
 	forgot_btn.visible = not mode_sign_up
 	submit_btn.text = "Create Account" if mode_sign_up else "Sign In"
-	toggle_btn.text = "Already have an account? Sign in" if mode_sign_up else "New here? Create an account"
+	_style_tab(sign_in_tab, not mode_sign_up)
+	_style_tab(sign_up_tab, mode_sign_up)
+
+## Active tab gets a filled neon-green background (matching the hub's own
+## accent color) so it's unmistakably the one you're on; the inactive tab
+## stays visible but clearly secondary. Previously this was a single small
+## flat text toggle, which a real user testing this build could not find --
+## don't reintroduce a low-visibility way to reach sign-up.
+func _style_tab(btn: Button, active: bool) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.45, 0.28) if active else Color(0.16, 0.16, 0.2)
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = Color(0.15, 1.0, 0.55) if active else Color(0.35, 0.35, 0.4)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		btn.add_theme_stylebox_override(state, sb)
+	btn.add_theme_color_override("font_color", Color(1, 1, 1) if active else Color(0.65, 0.65, 0.7))
 
 func _on_submit() -> void:
 	var email: String = email_field.text.strip_edges()
