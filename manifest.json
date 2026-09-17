@@ -59,6 +59,21 @@
       "version": 1,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/three_man.pck",
       "scene": "res://scenes/games/three_man/three_man.tscn"
+    },
+    "checkers": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/checkers.pck",
+      "scene": "res://scenes/games/checkers/checkers.tscn"
+    },
+    "reversi": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/reversi.pck",
+      "scene": "res://scenes/games/reversi/reversi.tscn"
+    },
+    "reaction_test": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/reaction_test.pck",
+      "scene": "res://scenes/games/reaction_test/reaction_test.tscn"
     }
   }
 }
