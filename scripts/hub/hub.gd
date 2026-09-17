@@ -20,6 +20,7 @@ const CATEGORIES: Array = [
 		"icon": "🧩",
 		"color": Color(0.16, 0.45, 0.4),
 		"games": [
+			{"title": "Chess", "icon": "♟️", "pack_id": "chess", "scene": "res://scenes/games/chess/chess.tscn"},
 			{"title": "Sudoku", "icon": "🔢", "pack_id": "sudoku", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
 			{"title": "Minesweeper", "icon": "💣", "scene": ""},
 			{"title": "Tic-Tac-Toe", "icon": "⭕", "pack_id": "tictactoe", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
