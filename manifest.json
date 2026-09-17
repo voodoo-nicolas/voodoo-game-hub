@@ -101,7 +101,7 @@
       "scene": "res://scenes/games/snake/snake.tscn"
     },
     "chess": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck",
       "scene": "res://scenes/games/chess/chess.tscn"
     }
