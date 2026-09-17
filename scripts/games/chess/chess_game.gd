@@ -140,7 +140,7 @@ func _build_ui() -> void:
 			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			label.add_theme_font_size_override("font_size", int(cell_size * 0.62))
-			label.add_theme_constant_override("outline_size", max(2, int(cell_size * 0.045)))
+			label.add_theme_constant_override("outline_size", max(3, int(cell_size * 0.07)))
 			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			sq.add_child(label)
 			piece_labels[idx] = label
