@@ -28,7 +28,7 @@ const CATEGORIES: Array = [
 			{"title": "Checkers", "icon": "⚫", "pack_id": "checkers", "scene": "res://scenes/games/checkers/checkers.tscn"},
 			{"title": "Reversi / Othello", "icon": "⚪", "pack_id": "reversi", "scene": "res://scenes/games/reversi/reversi.tscn"},
 			{"title": "Battleship", "icon": "🚢", "scene": ""},
-			{"title": "Dots and Boxes", "icon": "▫️", "scene": ""},
+			{"title": "Dots and Boxes", "icon": "▫️", "pack_id": "dots_boxes", "scene": "res://scenes/games/dots_boxes/dots_boxes.tscn"},
 			{"title": "Mancala", "icon": "🌰", "pack_id": "mancala", "scene": "res://scenes/games/mancala/mancala.tscn"},
 			{"title": "Backgammon", "icon": "🎲", "scene": ""},
 			{"title": "Nine Men's Morris", "icon": "✳️", "scene": ""},

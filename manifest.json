@@ -104,6 +104,11 @@
       "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck",
       "scene": "res://scenes/games/chess/chess.tscn"
+    },
+    "dots_boxes": {
+      "version": 1,
+      "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dots_boxes.pck",
+      "scene": "res://scenes/games/dots_boxes/dots_boxes.tscn"
     }
   }
 }
