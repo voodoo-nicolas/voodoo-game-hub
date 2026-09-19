@@ -54,7 +54,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "Hangman"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -76,13 +76,13 @@ func _build_ui() -> void:
 
 	var category_tag := Label.new()
 	category_tag.text = "TOPIC"
-	category_tag.add_theme_font_size_override("font_size", 12)
+	category_tag.add_theme_font_size_override("font_size", 18)
 	category_tag.add_theme_color_override("font_color", Color(0.5, 0.55, 0.53))
 	category_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(category_tag)
 
 	category_label = Label.new()
-	category_label.add_theme_font_size_override("font_size", 22)
+	category_label.add_theme_font_size_override("font_size", 28)
 	category_label.add_theme_color_override("font_color", Color(0.4, 0.95, 0.6))
 	category_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(category_label)
@@ -93,13 +93,13 @@ func _build_ui() -> void:
 	box.add_child(stage_label)
 
 	word_label = Label.new()
-	word_label.add_theme_font_size_override("font_size", 46)
+	word_label.add_theme_font_size_override("font_size", 50)
 	word_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	word_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(word_label)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 18)
+	status_label.add_theme_font_size_override("font_size", 24)
 	status_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(status_label)
@@ -123,7 +123,7 @@ func _build_ui() -> void:
 		btn.custom_minimum_size = Vector2(0, 64)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.focus_mode = Control.FOCUS_NONE
-		btn.add_theme_font_size_override("font_size", 22)
+		btn.add_theme_font_size_override("font_size", 28)
 		_style_letter_button(btn)
 		btn.pressed.connect(_on_letter_pressed.bind(letter))
 		keyboard.add_child(btn)
@@ -183,7 +183,7 @@ func _build_end_dialog() -> void:
 	panel.add_child(box)
 
 	end_label = Label.new()
-	end_label.add_theme_font_size_override("font_size", 22)
+	end_label.add_theme_font_size_override("font_size", 28)
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(end_label)
 

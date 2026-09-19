@@ -66,7 +66,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "🔨 Whack-a-Mole"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -82,17 +82,17 @@ func _build_ui() -> void:
 	root.add_child(stats_row)
 
 	score_label = Label.new()
-	score_label.add_theme_font_size_override("font_size", 20)
+	score_label.add_theme_font_size_override("font_size", 26)
 	score_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
 	stats_row.add_child(score_label)
 
 	time_label = Label.new()
-	time_label.add_theme_font_size_override("font_size", 20)
+	time_label.add_theme_font_size_override("font_size", 26)
 	time_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
 	stats_row.add_child(time_label)
 
 	best_label = Label.new()
-	best_label.add_theme_font_size_override("font_size", 20)
+	best_label.add_theme_font_size_override("font_size", 26)
 	best_label.add_theme_color_override("font_color", Color(0.7, 0.75, 0.85))
 	stats_row.add_child(best_label)
 
@@ -140,7 +140,7 @@ func _build_ui() -> void:
 	start_btn = Button.new()
 	start_btn.text = "Start Round"
 	start_btn.custom_minimum_size = Vector2(220, 56)
-	start_btn.add_theme_font_size_override("font_size", 20)
+	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_start_round)
 	box.add_child(start_btn)
 
@@ -177,7 +177,7 @@ func _build_result_dialog() -> void:
 	panel.add_child(box)
 
 	result_label = Label.new()
-	result_label.add_theme_font_size_override("font_size", 24)
+	result_label.add_theme_font_size_override("font_size", 31)
 	result_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(result_label)

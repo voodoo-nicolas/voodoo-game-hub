@@ -88,7 +88,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "♟️ Chess"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -100,7 +100,7 @@ func _build_ui() -> void:
 	top_bar.add_child(restart_btn)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 20)
+	status_label.add_theme_font_size_override("font_size", 26)
 	status_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(status_label)
@@ -173,7 +173,7 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
@@ -224,7 +224,7 @@ func _build_promotion_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Promote to:"
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_font_size_override("font_size", 26)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
@@ -237,7 +237,7 @@ func _build_promotion_dialog() -> void:
 	for choice in [ChessEngine.QUEEN, ChessEngine.ROOK, ChessEngine.BISHOP, ChessEngine.KNIGHT]:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(64, 64)
-		btn.add_theme_font_size_override("font_size", 36)
+		btn.add_theme_font_size_override("font_size", 43)
 		btn.pressed.connect(_on_promotion_chosen.bind(choice))
 		row.add_child(btn)
 		# Glyph shown always matches the mover's color, set at prompt-time in
@@ -265,7 +265,7 @@ func _build_result_dialog() -> void:
 	panel.add_child(box)
 
 	result_label = Label.new()
-	result_label.add_theme_font_size_override("font_size", 24)
+	result_label.add_theme_font_size_override("font_size", 31)
 	result_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(result_label)

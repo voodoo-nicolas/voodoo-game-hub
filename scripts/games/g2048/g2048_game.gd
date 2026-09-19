@@ -119,7 +119,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "2048"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -140,14 +140,14 @@ func _build_ui() -> void:
 	center.add_child(box)
 
 	score_label = Label.new()
-	score_label.add_theme_font_size_override("font_size", 20)
+	score_label.add_theme_font_size_override("font_size", 26)
 	score_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(score_label)
 
 	var hint := Label.new()
 	hint.text = "Swipe or use arrow keys"
-	hint.add_theme_font_size_override("font_size", 13)
+	hint.add_theme_font_size_override("font_size", 19)
 	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(hint)
@@ -228,7 +228,7 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
@@ -277,7 +277,7 @@ func _build_end_dialog() -> void:
 	panel.add_child(end_buttons_box)
 
 	end_title = Label.new()
-	end_title.add_theme_font_size_override("font_size", 24)
+	end_title.add_theme_font_size_override("font_size", 31)
 	end_title.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	end_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_buttons_box.add_child(end_title)

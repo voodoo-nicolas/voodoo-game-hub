@@ -103,14 +103,14 @@ func _build_difficulty_screen() -> void:
 
 	var title := Label.new()
 	title.text = "Sudoku"
-	title.add_theme_font_size_override("font_size", 40)
+	title.add_theme_font_size_override("font_size", 46)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var subtitle := Label.new()
 	subtitle.text = "Choose a difficulty"
-	subtitle.add_theme_font_size_override("font_size", 19)
+	subtitle.add_theme_font_size_override("font_size", 25)
 	subtitle.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(subtitle)
@@ -122,7 +122,7 @@ func _build_difficulty_screen() -> void:
 	continue_button = Button.new()
 	continue_button.text = "Continue"
 	continue_button.custom_minimum_size = Vector2(260, 60)
-	continue_button.add_theme_font_size_override("font_size", 22)
+	continue_button.add_theme_font_size_override("font_size", 28)
 	continue_button.visible = false
 	continue_button.pressed.connect(_load_saved_game)
 	box.add_child(continue_button)
@@ -131,14 +131,14 @@ func _build_difficulty_screen() -> void:
 		var btn := Button.new()
 		btn.text = d.capitalize()
 		btn.custom_minimum_size = Vector2(260, 60)
-		btn.add_theme_font_size_override("font_size", 22)
+		btn.add_theme_font_size_override("font_size", 28)
 		btn.pressed.connect(func(): _start_new_game(d))
 		box.add_child(btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "Back to Hub"
 	back_btn.custom_minimum_size = Vector2(260, 50)
-	back_btn.add_theme_font_size_override("font_size", 18)
+	back_btn.add_theme_font_size_override("font_size", 24)
 	back_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(back_btn)
 
@@ -175,7 +175,7 @@ func _build_game_screen() -> void:
 
 	var back_btn := Button.new()
 	back_btn.text = "‹"
-	back_btn.add_theme_font_size_override("font_size", 32)
+	back_btn.add_theme_font_size_override("font_size", 39)
 	back_btn.custom_minimum_size = Vector2(56, 56)
 	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.pressed.connect(_on_pause_pressed)
@@ -187,7 +187,7 @@ func _build_game_screen() -> void:
 
 	var pause_icon_btn := Button.new()
 	pause_icon_btn.text = "⏸"
-	pause_icon_btn.add_theme_font_size_override("font_size", 26)
+	pause_icon_btn.add_theme_font_size_override("font_size", 33)
 	pause_icon_btn.custom_minimum_size = Vector2(56, 56)
 	pause_icon_btn.focus_mode = Control.FOCUS_NONE
 	pause_icon_btn.pressed.connect(_on_pause_pressed)
@@ -320,7 +320,7 @@ func _build_game_screen() -> void:
 		nb.custom_minimum_size = Vector2(0, 80)
 		nb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nb.focus_mode = Control.FOCUS_NONE
-		nb.add_theme_font_size_override("font_size", 34)
+		nb.add_theme_font_size_override("font_size", 41)
 		_style_number_button(nb)
 		nb.pressed.connect(_on_number_pressed.bind(n))
 		pad.add_child(nb)
@@ -354,13 +354,13 @@ func _stat_block(header: String) -> Dictionary:
 
 	var header_label := Label.new()
 	header_label.text = header
-	header_label.add_theme_font_size_override("font_size", 15)
+	header_label.add_theme_font_size_override("font_size", 21)
 	header_label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.72))
 	header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(header_label)
 
 	var value_label := Label.new()
-	value_label.add_theme_font_size_override("font_size", 26)
+	value_label.add_theme_font_size_override("font_size", 33)
 	value_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(value_label)
@@ -382,14 +382,14 @@ func _icon_action_button(icon: String, label_text: String) -> Dictionary:
 
 	var icon_label := Label.new()
 	icon_label.text = icon
-	icon_label.add_theme_font_size_override("font_size", 32)
+	icon_label.add_theme_font_size_override("font_size", 39)
 	icon_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(icon_label)
 
 	var text_label := Label.new()
 	text_label.text = label_text
-	text_label.add_theme_font_size_override("font_size", 15)
+	text_label.add_theme_font_size_override("font_size", 21)
 	text_label.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
 	text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(text_label)
@@ -415,7 +415,7 @@ func _build_loading_overlay() -> void:
 
 	var label := Label.new()
 	label.text = "Generating puzzle..."
-	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_font_size_override("font_size", 31)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	center.add_child(label)
 
@@ -450,13 +450,13 @@ func _build_win_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Puzzle Solved!"
-	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_font_size_override("font_size", 41)
 	title.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	win_stats_label = Label.new()
-	win_stats_label.add_theme_font_size_override("font_size", 22)
+	win_stats_label.add_theme_font_size_override("font_size", 28)
 	win_stats_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	win_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(win_stats_label)
@@ -464,7 +464,7 @@ func _build_win_dialog() -> void:
 	var again_btn := Button.new()
 	again_btn.text = "Play Again"
 	again_btn.custom_minimum_size = Vector2(220, 56)
-	again_btn.add_theme_font_size_override("font_size", 22)
+	again_btn.add_theme_font_size_override("font_size", 28)
 	again_btn.pressed.connect(func():
 		win_dialog.visible = false
 		_start_new_game(difficulty)
@@ -474,7 +474,7 @@ func _build_win_dialog() -> void:
 	var menu_btn := Button.new()
 	menu_btn.text = "Choose Difficulty"
 	menu_btn.custom_minimum_size = Vector2(220, 50)
-	menu_btn.add_theme_font_size_override("font_size", 19)
+	menu_btn.add_theme_font_size_override("font_size", 25)
 	menu_btn.pressed.connect(func():
 		win_dialog.visible = false
 		_show_difficulty_screen()
@@ -513,7 +513,7 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_font_size_override("font_size", 41)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
@@ -521,14 +521,14 @@ func _build_pause_dialog() -> void:
 	var resume_btn := Button.new()
 	resume_btn.text = "Resume"
 	resume_btn.custom_minimum_size = Vector2(240, 56)
-	resume_btn.add_theme_font_size_override("font_size", 22)
+	resume_btn.add_theme_font_size_override("font_size", 28)
 	resume_btn.pressed.connect(_on_resume_pressed)
 	box.add_child(resume_btn)
 
 	var new_puzzle_btn := Button.new()
 	new_puzzle_btn.text = "New Puzzle (Same Difficulty)"
 	new_puzzle_btn.custom_minimum_size = Vector2(240, 50)
-	new_puzzle_btn.add_theme_font_size_override("font_size", 17)
+	new_puzzle_btn.add_theme_font_size_override("font_size", 23)
 	new_puzzle_btn.pressed.connect(func():
 		pause_dialog.visible = false
 		game_active = false
@@ -540,7 +540,7 @@ func _build_pause_dialog() -> void:
 	var change_diff_btn := Button.new()
 	change_diff_btn.text = "Change Difficulty"
 	change_diff_btn.custom_minimum_size = Vector2(240, 50)
-	change_diff_btn.add_theme_font_size_override("font_size", 18)
+	change_diff_btn.add_theme_font_size_override("font_size", 24)
 	change_diff_btn.pressed.connect(func():
 		pause_dialog.visible = false
 		game_active = false
@@ -552,7 +552,7 @@ func _build_pause_dialog() -> void:
 	var exit_btn := Button.new()
 	exit_btn.text = "Exit to Hub"
 	exit_btn.custom_minimum_size = Vector2(240, 50)
-	exit_btn.add_theme_font_size_override("font_size", 18)
+	exit_btn.add_theme_font_size_override("font_size", 24)
 	exit_btn.pressed.connect(func():
 		_save_game()
 		get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")

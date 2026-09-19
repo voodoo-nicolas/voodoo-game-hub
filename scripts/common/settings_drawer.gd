@@ -37,7 +37,7 @@ func _format_time(s: float) -> String:
 func _build_tab() -> void:
 	tab_button = Button.new()
 	tab_button.text = "⚙"
-	tab_button.add_theme_font_size_override("font_size", 18)
+	tab_button.add_theme_font_size_override("font_size", 24)
 	tab_button.focus_mode = Control.FOCUS_NONE
 	tab_button.anchor_left = 1.0
 	tab_button.anchor_right = 1.0
@@ -82,13 +82,13 @@ func _build_panel() -> void:
 
 	var title := Label.new()
 	title.text = "Quick Settings"
-	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_font_size_override("font_size", 19)
 	title.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
 	box.add_child(title)
 
 	timer_label = Label.new()
 	timer_label.text = "00:00"
-	timer_label.add_theme_font_size_override("font_size", 20)
+	timer_label.add_theme_font_size_override("font_size", 26)
 	timer_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(timer_label)
@@ -200,7 +200,7 @@ func _show_toast(text: String) -> void:
 
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_font_size_override("font_size", 20)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	toast_panel.add_child(label)
 	add_child(toast_panel)

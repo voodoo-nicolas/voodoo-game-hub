@@ -58,7 +58,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "🂡 Red or Black"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -85,7 +85,7 @@ func _build_setup(root: VBoxContainer) -> void:
 
 	var label := Label.new()
 	label.text = "How many players?"
-	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_font_size_override("font_size", 31)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(label)
@@ -98,7 +98,7 @@ func _build_setup(root: VBoxContainer) -> void:
 	var minus_btn := Button.new()
 	minus_btn.text = "－"
 	minus_btn.custom_minimum_size = Vector2(64, 64)
-	minus_btn.add_theme_font_size_override("font_size", 28)
+	minus_btn.add_theme_font_size_override("font_size", 35)
 	minus_btn.pressed.connect(func():
 		num_players = max(2, num_players - 1)
 		players_label.text = str(num_players)
@@ -107,7 +107,7 @@ func _build_setup(root: VBoxContainer) -> void:
 
 	players_label = Label.new()
 	players_label.text = str(num_players)
-	players_label.add_theme_font_size_override("font_size", 40)
+	players_label.add_theme_font_size_override("font_size", 46)
 	players_label.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
 	players_label.custom_minimum_size = Vector2(70, 0)
 	players_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -116,7 +116,7 @@ func _build_setup(root: VBoxContainer) -> void:
 	var plus_btn := Button.new()
 	plus_btn.text = "＋"
 	plus_btn.custom_minimum_size = Vector2(64, 64)
-	plus_btn.add_theme_font_size_override("font_size", 28)
+	plus_btn.add_theme_font_size_override("font_size", 35)
 	plus_btn.pressed.connect(func():
 		num_players = min(12, num_players + 1)
 		players_label.text = str(num_players)
@@ -126,13 +126,13 @@ func _build_setup(root: VBoxContainer) -> void:
 	var start_btn := Button.new()
 	start_btn.text = "Start Game"
 	start_btn.custom_minimum_size = Vector2(220, 56)
-	start_btn.add_theme_font_size_override("font_size", 20)
+	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_on_start_pressed)
 	box.add_child(start_btn)
 
 	var rules_label := Label.new()
 	rules_label.text = "4 rounds, each player draws one card per round.\nGuess right, give a drink. Guess wrong, take a drink.\nRound 1: Red/Black (1) · 2: Higher/Lower (2)\n3: Inside/Outside (3) · 4: Suit (4)"
-	rules_label.add_theme_font_size_override("font_size", 13)
+	rules_label.add_theme_font_size_override("font_size", 19)
 	rules_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	rules_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(rules_label)
@@ -149,25 +149,25 @@ func _build_play(root: VBoxContainer) -> void:
 	play_box.add_child(box)
 
 	turn_label = Label.new()
-	turn_label.add_theme_font_size_override("font_size", 22)
+	turn_label.add_theme_font_size_override("font_size", 28)
 	turn_label.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
 	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(turn_label)
 
 	round_label = Label.new()
-	round_label.add_theme_font_size_override("font_size", 18)
+	round_label.add_theme_font_size_override("font_size", 24)
 	round_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(round_label)
 
 	stakes_label = Label.new()
-	stakes_label.add_theme_font_size_override("font_size", 14)
+	stakes_label.add_theme_font_size_override("font_size", 20)
 	stakes_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	stakes_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(stakes_label)
 
 	history_label = Label.new()
-	history_label.add_theme_font_size_override("font_size", 26)
+	history_label.add_theme_font_size_override("font_size", 33)
 	history_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(history_label)
 
@@ -179,7 +179,7 @@ func _build_play(root: VBoxContainer) -> void:
 	box.add_child(card_label)
 
 	result_label = Label.new()
-	result_label.add_theme_font_size_override("font_size", 20)
+	result_label.add_theme_font_size_override("font_size", 26)
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	result_label.custom_minimum_size = Vector2(300, 0)
@@ -193,7 +193,7 @@ func _build_play(root: VBoxContainer) -> void:
 	next_btn = Button.new()
 	next_btn.text = "Next Player ➜"
 	next_btn.custom_minimum_size = Vector2(240, 56)
-	next_btn.add_theme_font_size_override("font_size", 18)
+	next_btn.add_theme_font_size_override("font_size", 24)
 	next_btn.visible = false
 	next_btn.pressed.connect(_on_next_pressed)
 	box.add_child(next_btn)
@@ -211,7 +211,7 @@ func _build_end(root: VBoxContainer) -> void:
 
 	var big := Label.new()
 	big.text = "🍻 Game Over!"
-	big.add_theme_font_size_override("font_size", 32)
+	big.add_theme_font_size_override("font_size", 39)
 	big.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
 	big.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(big)
@@ -283,7 +283,7 @@ func _add_guess_button(label_text: String, guess: String, color: Color) -> void:
 	var btn := Button.new()
 	btn.text = label_text
 	btn.custom_minimum_size = Vector2(90, 64)
-	btn.add_theme_font_size_override("font_size", 18)
+	btn.add_theme_font_size_override("font_size", 24)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = color
 	sb.corner_radius_top_left = 10

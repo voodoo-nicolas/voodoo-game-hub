@@ -128,6 +128,26 @@ const NEON_GREEN := Color(0.15, 1.0, 0.55)
 const NEON_GREEN_DIM := Color(0.08, 0.45, 0.28)
 const BG_BLACK := Color(0.015, 0.035, 0.03)
 
+## Category headers are electric blue so the tier rows read as a different kind
+## of thing from the game tiles underneath them, which are colored by state:
+## green = ready to play right now, red = needs downloading first,
+## gray = not built yet. One glance should tell you what you can tap.
+const ELECTRIC_BLUE := Color(0.15, 0.68, 1.0)
+const ELECTRIC_BLUE_DIM := Color(0.06, 0.26, 0.45)
+const STATE_READY := Color(0.15, 1.0, 0.55)
+const STATE_DOWNLOAD := Color(1.0, 0.32, 0.34)
+const STATE_SOON := Color(0.42, 0.46, 0.48)
+
+## Height the category rows collapse to once one is expanded, plus roughly how
+## much vertical space the VOODOO header + margins eat. Only used to decide how
+## tall the rows grow to fill the screen when nothing is expanded.
+const HEADER_HEIGHT_COMPACT := 104.0
+## VOODOO title + version + account row + the list's own bottom margin, in the
+## 720x1280 design space. Constant across devices: stretch mode scales these
+## logical sizes, so only the viewport's logical height varies.
+const HEADER_CHROME_HEIGHT := 245.0
+const LIST_SEPARATION := 14
+
 var list_container: VBoxContainer
 var expanded_index: int = -1
 var account_status_label: Label
@@ -159,30 +179,31 @@ func _ready() -> void:
 
 	var title := Label.new()
 	title.text = "VOODOO"
-	title.add_theme_font_size_override("font_size", 54)
+	title.add_theme_font_size_override("font_size", 76)
 	title.add_theme_color_override("font_color", NEON_GREEN)
 	title.add_theme_color_override("font_outline_color", Color(NEON_GREEN.r, NEON_GREEN.g, NEON_GREEN.b, 0.5))
-	title.add_theme_constant_override("outline_size", 10)
+	title.add_theme_constant_override("outline_size", 12)
 	header_box.add_child(title)
 
 	var version_label := Label.new()
 	version_label.text = "v%s (build %d)" % [Version.VERSION, Version.BUILD_NUMBER]
-	version_label.add_theme_font_size_override("font_size", 13)
+	version_label.add_theme_font_size_override("font_size", 20)
 	version_label.add_theme_color_override("font_color", Color(0.4, 0.6, 0.5))
 	header_box.add_child(version_label)
 
 	var account_row := HBoxContainer.new()
-	account_row.add_theme_constant_override("separation", 10)
+	account_row.add_theme_constant_override("separation", 12)
 	header_box.add_child(account_row)
 
 	account_status_label = Label.new()
-	account_status_label.add_theme_font_size_override("font_size", 14)
+	account_status_label.add_theme_font_size_override("font_size", 22)
 	account_status_label.add_theme_color_override("font_color", Color(0.6, 0.85, 0.7))
 	account_row.add_child(account_status_label)
 
 	account_status_btn = Button.new()
 	account_status_btn.flat = true
-	account_status_btn.add_theme_font_size_override("font_size", 14)
+	account_status_btn.add_theme_font_size_override("font_size", 22)
+	account_status_btn.add_theme_color_override("font_color", ELECTRIC_BLUE)
 	account_status_btn.pressed.connect(_on_account_status_pressed)
 	account_row.add_child(account_status_btn)
 
@@ -201,8 +222,13 @@ func _ready() -> void:
 	root.add_child(scroll)
 
 	list_container = VBoxContainer.new()
-	list_container.add_theme_constant_override("separation", 14)
+	list_container.add_theme_constant_override("separation", LIST_SEPARATION)
+	list_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var margin := MarginContainer.new()
+	# Without EXPAND_FILL a ScrollContainer only gives its child that child's
+	# minimum width, which leaves the rows hugging the left edge instead of
+	# spanning the screen.
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left", 14)
 	margin.add_theme_constant_override("margin_right", 14)
 	margin.add_theme_constant_override("margin_bottom", 30)
@@ -247,22 +273,31 @@ func _neon_style(fill: Color, border: Color, glow_strength: float) -> StyleBoxFl
 
 ## Accordion: rebuilds the whole category list from scratch each time it's toggled.
 ## Only expanded_index's games are shown, so opening one category collapses any other.
-## Uses queue_free(), not free() -- this runs from inside a header button's own
-## `pressed` signal, and freeing a node immediately while its own signal is still
-## being emitted up the call stack is undefined behavior in Godot (it can crash).
+## Uses queue_free(), not free() -- see the CLAUDE.md gotcha: this runs from inside
+## a header button's own `pressed` signal, and Godot refuses to free a node whose
+## signal is still emitting, leaking it instead.
 func _rebuild_list() -> void:
 	for child in list_container.get_children():
 		list_container.remove_child(child)
 		child.queue_free()
 
+	# With nothing expanded there'd otherwise be dead space under the last row,
+	# so the headers grow to divide up whatever height this screen actually has.
+	# Once a category opens, they drop back to compact so its games get the room.
+	var row_height := HEADER_HEIGHT_COMPACT
+	if expanded_index == -1:
+		var available: float = get_viewport_rect().size.y - HEADER_CHROME_HEIGHT
+		var gaps: float = LIST_SEPARATION * (CATEGORIES.size() - 1)
+		row_height = max(HEADER_HEIGHT_COMPACT, (available - gaps) / CATEGORIES.size())
+
 	for i in range(CATEGORIES.size()):
 		var category: Dictionary = CATEGORIES[i]
-		list_container.add_child(_make_section_header(category, i))
+		list_container.add_child(_make_section_header(category, i, row_height))
 		if expanded_index == i:
 			var section := VBoxContainer.new()
-			section.add_theme_constant_override("separation", 10)
+			section.add_theme_constant_override("separation", 12)
 			var section_margin := MarginContainer.new()
-			section_margin.add_theme_constant_override("margin_top", 10)
+			section_margin.add_theme_constant_override("margin_top", 12)
 			section_margin.add_child(section)
 			list_container.add_child(section_margin)
 			for game in category.games:
@@ -272,7 +307,7 @@ func _toggle_category(index: int) -> void:
 	expanded_index = -1 if expanded_index == index else index
 	_rebuild_list()
 
-func _make_section_header(category: Dictionary, index: int) -> Control:
+func _make_section_header(category: Dictionary, index: int, row_height: float) -> Control:
 	var is_open: bool = expanded_index == index
 	var available_count := 0
 	for game in category.games:
@@ -280,46 +315,47 @@ func _make_section_header(category: Dictionary, index: int) -> Control:
 			available_count += 1
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 96)
+	panel.custom_minimum_size = Vector2(0, row_height)
 	var sb: StyleBoxFlat
 	if is_open:
-		sb = _neon_style(Color(category.color.r, category.color.g, category.color.b, 0.35), NEON_GREEN, 0.9)
+		sb = _neon_style(Color(ELECTRIC_BLUE.r, ELECTRIC_BLUE.g, ELECTRIC_BLUE.b, 0.4), ELECTRIC_BLUE, 1.0)
 	else:
-		sb = _neon_style(Color(0.06, 0.1, 0.09), NEON_GREEN_DIM, 0.35)
-	sb.content_margin_left = 20
-	sb.content_margin_right = 20
+		sb = _neon_style(Color(0.03, 0.09, 0.16), ELECTRIC_BLUE_DIM, 0.5)
+	sb.content_margin_left = 24
+	sb.content_margin_right = 24
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
+	row.add_theme_constant_override("separation", 20)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_child(row)
 
 	var icon_label := Label.new()
 	icon_label.text = category.icon
-	icon_label.add_theme_font_size_override("font_size", 42)
+	icon_label.add_theme_font_size_override("font_size", 52)
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(icon_label)
 
 	var name_label := Label.new()
 	name_label.text = category.name.to_upper()
-	name_label.add_theme_font_size_override("font_size", 28)
-	name_label.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else NEON_GREEN)
+	name_label.add_theme_font_size_override("font_size", 36)
+	name_label.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else ELECTRIC_BLUE)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.clip_text = true
 	row.add_child(name_label)
 
 	var count_label := Label.new()
 	count_label.text = "%d/%d" % [available_count, category.games.size()]
-	count_label.add_theme_font_size_override("font_size", 17)
-	count_label.add_theme_color_override("font_color", Color(0.85, 1.0, 0.9) if is_open else Color(0.5, 0.7, 0.6))
+	count_label.add_theme_font_size_override("font_size", 24)
+	count_label.add_theme_color_override("font_color", Color(0.9, 0.97, 1.0) if is_open else Color(0.45, 0.65, 0.8))
 	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(count_label)
 
 	var chevron := Label.new()
 	chevron.text = "▾" if is_open else "▸"
-	chevron.add_theme_font_size_override("font_size", 28)
-	chevron.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else NEON_GREEN)
+	chevron.add_theme_font_size_override("font_size", 36)
+	chevron.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else ELECTRIC_BLUE)
 	chevron.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(chevron)
 
@@ -332,40 +368,54 @@ func _make_section_header(category: Dictionary, index: int) -> Control:
 
 	return panel
 
-func _make_tile(game: Dictionary, accent: Color) -> Control:
+## Tiles are color-coded by what tapping them will actually do:
+## green = playable right now, red = will download first, gray = not built yet.
+func _make_tile(game: Dictionary, _accent: Color) -> Control:
 	var has_pack: bool = game.has("pack_id")
 	var bundled: bool = not has_pack and game.scene != ""
 	var downloaded: bool = has_pack and _is_downloaded(game.pack_id)
 	var playable: bool = bundled or downloaded
 	var available: bool = bundled or has_pack  # tile is interactive either way
 
+	var state_color: Color
+	var tag_text := ""
+	if playable:
+		state_color = STATE_READY
+		tag_text = "▶ Play"
+	elif available:
+		state_color = STATE_DOWNLOAD
+		tag_text = "⬇ Download"
+	else:
+		state_color = STATE_SOON
+		tag_text = "Coming soon"
+
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 108)
+	panel.custom_minimum_size = Vector2(0, 128)
 	var sb: StyleBoxFlat
 	if available:
-		sb = _neon_style(Color(accent.r, accent.g, accent.b, 0.4), NEON_GREEN, 0.55)
+		sb = _neon_style(Color(state_color.r, state_color.g, state_color.b, 0.22), state_color, 0.6)
 	else:
-		sb = _neon_style(Color(0.05, 0.06, 0.06), Color(0.25, 0.3, 0.28), 0.0)
-	sb.content_margin_left = 22
-	sb.content_margin_right = 22
+		sb = _neon_style(Color(0.05, 0.06, 0.06), Color(0.25, 0.28, 0.29), 0.0)
+	sb.content_margin_left = 24
+	sb.content_margin_right = 24
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
+	row.add_theme_constant_override("separation", 18)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	panel.add_child(row)
 
 	var icon_label := Label.new()
 	icon_label.text = game.get("icon", "🎮")
-	icon_label.add_theme_font_size_override("font_size", 36)
+	icon_label.add_theme_font_size_override("font_size", 46)
 	icon_label.modulate = Color(1, 1, 1) if available else Color(1, 1, 1, 0.35)
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(icon_label)
 
 	var label := Label.new()
 	label.text = game.title
-	label.add_theme_font_size_override("font_size", 26)
+	label.add_theme_font_size_override("font_size", 34)
 	label.add_theme_color_override("font_color", Color(1, 1, 1) if available else Color(0.5, 0.55, 0.53))
 	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -374,14 +424,10 @@ func _make_tile(game: Dictionary, accent: Color) -> Control:
 	row.add_child(label)
 
 	var tag := Label.new()
-	tag.add_theme_font_size_override("font_size", 16)
+	tag.text = tag_text
+	tag.add_theme_font_size_override("font_size", 22)
+	tag.add_theme_color_override("font_color", state_color)
 	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	if not available:
-		tag.text = "Coming soon"
-		tag.add_theme_color_override("font_color", Color(0.5, 0.55, 0.53))
-	elif has_pack and not downloaded:
-		tag.text = "⬇ Download"
-		tag.add_theme_color_override("font_color", NEON_GREEN)
 	row.add_child(tag)
 
 	var button := Button.new()

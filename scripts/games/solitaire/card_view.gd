@@ -31,7 +31,7 @@ func setup(p: String, p_index: int, c_index: int) -> void:
 	rank_label = Label.new()
 	rank_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	rank_label.position = Vector2(6, 2)
-	rank_label.add_theme_font_size_override("font_size", 18)
+	rank_label.add_theme_font_size_override("font_size", 24)
 	rank_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(rank_label)
 
@@ -39,7 +39,7 @@ func setup(p: String, p_index: int, c_index: int) -> void:
 	suit_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	suit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	suit_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	suit_label.add_theme_font_size_override("font_size", 30)
+	suit_label.add_theme_font_size_override("font_size", 37)
 	suit_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(suit_label)
 

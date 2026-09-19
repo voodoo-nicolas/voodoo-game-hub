@@ -60,14 +60,14 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "Simon"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	best_label = Label.new()
-	best_label.add_theme_font_size_override("font_size", 14)
+	best_label.add_theme_font_size_override("font_size", 20)
 	best_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))
 	top_bar.add_child(best_label)
 
@@ -81,7 +81,7 @@ func _build_ui() -> void:
 	center.add_child(box)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 20)
+	status_label.add_theme_font_size_override("font_size", 26)
 	status_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(status_label)
@@ -155,7 +155,7 @@ func _build_start_dialog() -> void:
 
 	game_over_label = Label.new()
 	game_over_label.text = "Simon"
-	game_over_label.add_theme_font_size_override("font_size", 24)
+	game_over_label.add_theme_font_size_override("font_size", 31)
 	game_over_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(game_over_label)

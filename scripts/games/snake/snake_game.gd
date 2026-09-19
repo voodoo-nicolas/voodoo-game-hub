@@ -59,7 +59,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "🐍 Snake"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -76,12 +76,12 @@ func _build_ui() -> void:
 	root.add_child(stats_row)
 
 	score_label = Label.new()
-	score_label.add_theme_font_size_override("font_size", 20)
+	score_label.add_theme_font_size_override("font_size", 26)
 	score_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
 	stats_row.add_child(score_label)
 
 	best_label = Label.new()
-	best_label.add_theme_font_size_override("font_size", 20)
+	best_label.add_theme_font_size_override("font_size", 26)
 	best_label.add_theme_color_override("font_color", Color(0.7, 0.75, 0.85))
 	stats_row.add_child(best_label)
 
@@ -162,7 +162,7 @@ func _dpad_button(label_text: String, dir: int) -> Button:
 	var btn := Button.new()
 	btn.text = label_text
 	btn.custom_minimum_size = Vector2(64, 64)
-	btn.add_theme_font_size_override("font_size", 24)
+	btn.add_theme_font_size_override("font_size", 31)
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.pressed.connect(func(): engine.set_direction(dir))
 	return btn
@@ -185,7 +185,7 @@ func _build_start_overlay() -> void:
 
 	var label := Label.new()
 	label.text = "🐍 Snake"
-	label.add_theme_font_size_override("font_size", 30)
+	label.add_theme_font_size_override("font_size", 37)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(label)
@@ -193,7 +193,7 @@ func _build_start_overlay() -> void:
 	var start_btn := Button.new()
 	start_btn.text = "Start"
 	start_btn.custom_minimum_size = Vector2(200, 56)
-	start_btn.add_theme_font_size_override("font_size", 20)
+	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_start_game)
 	box.add_child(start_btn)
 
@@ -227,7 +227,7 @@ func _build_game_over_dialog() -> void:
 	panel.add_child(box)
 
 	game_over_label = Label.new()
-	game_over_label.add_theme_font_size_override("font_size", 24)
+	game_over_label.add_theme_font_size_override("font_size", 31)
 	game_over_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(game_over_label)

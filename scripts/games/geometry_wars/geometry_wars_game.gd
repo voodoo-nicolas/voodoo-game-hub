@@ -269,14 +269,14 @@ func _build_rotate_hint() -> void:
 
 	var icon := Label.new()
 	icon.text = "⟳"
-	icon.add_theme_font_size_override("font_size", 48)
+	icon.add_theme_font_size_override("font_size", 52)
 	icon.add_theme_color_override("font_color", Color(0.3, 1.0, 1.0))
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(icon)
 
 	var label := Label.new()
 	label.text = "Rotate your device to landscape"
-	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_font_size_override("font_size", 24)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(label)
@@ -292,14 +292,14 @@ func _build_start_screen() -> void:
 
 	var title := Label.new()
 	title.text = "Geometry Wars"
-	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_font_size_override("font_size", 43)
 	title.add_theme_color_override("font_color", Color(0.3, 1.0, 1.0))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var subtitle := Label.new()
 	subtitle.text = "Dual-stick neon shooter"
-	subtitle.add_theme_font_size_override("font_size", 15)
+	subtitle.add_theme_font_size_override("font_size", 21)
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(subtitle)
@@ -311,7 +311,7 @@ func _build_start_screen() -> void:
 	continue_button = Button.new()
 	continue_button.text = "Continue"
 	continue_button.custom_minimum_size = Vector2(240, 56)
-	continue_button.add_theme_font_size_override("font_size", 20)
+	continue_button.add_theme_font_size_override("font_size", 26)
 	continue_button.visible = false
 	continue_button.pressed.connect(_load_saved_game)
 	box.add_child(continue_button)
@@ -319,7 +319,7 @@ func _build_start_screen() -> void:
 	var start_btn := Button.new()
 	start_btn.text = "Start"
 	start_btn.custom_minimum_size = Vector2(240, 56)
-	start_btn.add_theme_font_size_override("font_size", 20)
+	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_start_new_game)
 	box.add_child(start_btn)
 
@@ -367,7 +367,7 @@ func _build_game_screen() -> void:
 func _stat_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 14)
+	l.add_theme_font_size_override("font_size", 20)
 	l.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
 	return l
 
@@ -394,7 +394,7 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
@@ -442,13 +442,13 @@ func _build_game_over_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Game Over"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	game_over_stats = Label.new()
-	game_over_stats.add_theme_font_size_override("font_size", 16)
+	game_over_stats.add_theme_font_size_override("font_size", 22)
 	game_over_stats.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	game_over_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(game_over_stats)

@@ -114,7 +114,7 @@ func _build_size_screen() -> void:
 
 	var title := Label.new()
 	title.text = "Dots and Boxes"
-	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_font_size_override("font_size", 39)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
@@ -141,7 +141,7 @@ func _build_size_screen() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = "Choose a board size"
-	subtitle.add_theme_font_size_override("font_size", 15)
+	subtitle.add_theme_font_size_override("font_size", 21)
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(subtitle)
@@ -150,7 +150,7 @@ func _build_size_screen() -> void:
 		var btn := Button.new()
 		btn.text = opt.label
 		btn.custom_minimum_size = Vector2(220, 52)
-		btn.add_theme_font_size_override("font_size", 18)
+		btn.add_theme_font_size_override("font_size", 24)
 		btn.pressed.connect(_start_new_game.bind(opt.rows, opt.cols))
 		box.add_child(btn)
 
@@ -210,7 +210,7 @@ func _build_game_screen() -> void:
 
 	var title := Label.new()
 	title.text = "Dots and Boxes"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -227,17 +227,17 @@ func _build_game_screen() -> void:
 	root.add_child(score_row)
 
 	score_p1_label = Label.new()
-	score_p1_label.add_theme_font_size_override("font_size", 20)
+	score_p1_label.add_theme_font_size_override("font_size", 26)
 	score_p1_label.add_theme_color_override("font_color", COLOR_P1)
 	score_row.add_child(score_p1_label)
 
 	score_p2_label = Label.new()
-	score_p2_label.add_theme_font_size_override("font_size", 20)
+	score_p2_label.add_theme_font_size_override("font_size", 26)
 	score_p2_label.add_theme_color_override("font_color", COLOR_P2)
 	score_row.add_child(score_p2_label)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 17)
+	status_label.add_theme_font_size_override("font_size", 23)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(status_label)
 
@@ -279,7 +279,7 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
@@ -334,7 +334,7 @@ func _build_win_dialog() -> void:
 	panel.add_child(box)
 
 	win_label = Label.new()
-	win_label.add_theme_font_size_override("font_size", 22)
+	win_label.add_theme_font_size_override("font_size", 28)
 	win_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	win_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	win_label.autowrap_mode = TextServer.AUTOWRAP_WORD

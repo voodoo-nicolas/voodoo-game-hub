@@ -115,7 +115,7 @@ func _build_ui() -> void:
 func _stat_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 14)
+	l.add_theme_font_size_override("font_size", 20)
 	l.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
 	return l
 
@@ -150,13 +150,13 @@ func _build_win_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "You Win!"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	win_stats_label = Label.new()
-	win_stats_label.add_theme_font_size_override("font_size", 16)
+	win_stats_label.add_theme_font_size_override("font_size", 22)
 	win_stats_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	win_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(win_stats_label)
@@ -208,7 +208,7 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)

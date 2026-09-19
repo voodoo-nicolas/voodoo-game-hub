@@ -1,112 +1,112 @@
 {
   "games": {
     "sudoku": {
-      "version": 4,
+      "version": 5,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck",
       "scene": "res://scenes/games/sudoku/sudoku.tscn"
     },
     "solitaire": {
-      "version": 2,
+      "version": 3,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck",
       "scene": "res://scenes/games/solitaire/solitaire.tscn"
     },
     "geometry_wars": {
-      "version": 2,
+      "version": 3,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck",
       "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"
     },
     "tictactoe": {
-      "version": 2,
+      "version": 3,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tictactoe.pck",
       "scene": "res://scenes/games/tictactoe/tictactoe.tscn"
     },
     "connect4": {
-      "version": 2,
+      "version": 3,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/connect4.pck",
       "scene": "res://scenes/games/connect4/connect4.tscn"
     },
     "g2048": {
-      "version": 2,
+      "version": 3,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/g2048.pck",
       "scene": "res://scenes/games/g2048/g2048.tscn"
     },
     "memory": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/memory.pck",
       "scene": "res://scenes/games/memory/memory.tscn"
     },
     "simon": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/simon.pck",
       "scene": "res://scenes/games/simon/simon.tscn"
     },
     "hangman": {
-      "version": 2,
+      "version": 3,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hangman.pck",
       "scene": "res://scenes/games/hangman/hangman.tscn"
     },
     "kings_cup": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/kings_cup.pck",
       "scene": "res://scenes/games/kings_cup/kings_cup.tscn"
     },
     "red_or_black": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/red_or_black.pck",
       "scene": "res://scenes/games/red_or_black/red_or_black.tscn"
     },
     "three_man": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/three_man.pck",
       "scene": "res://scenes/games/three_man/three_man.tscn"
     },
     "checkers": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/checkers.pck",
       "scene": "res://scenes/games/checkers/checkers.tscn"
     },
     "reversi": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/reversi.pck",
       "scene": "res://scenes/games/reversi/reversi.tscn"
     },
     "reaction_test": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/reaction_test.pck",
       "scene": "res://scenes/games/reaction_test/reaction_test.tscn"
     },
     "lights_out": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/lights_out.pck",
       "scene": "res://scenes/games/lights_out/lights_out.tscn"
     },
     "mancala": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mancala.pck",
       "scene": "res://scenes/games/mancala/mancala.tscn"
     },
     "whack_a_mole": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/whack_a_mole.pck",
       "scene": "res://scenes/games/whack_a_mole/whack_a_mole.tscn"
     },
     "war": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/war.pck",
       "scene": "res://scenes/games/war/war.tscn"
     },
     "snake": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/snake.pck",
       "scene": "res://scenes/games/snake/snake.tscn"
     },
     "chess": {
-      "version": 2,
+      "version": 3,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck",
       "scene": "res://scenes/games/chess/chess.tscn"
     },
     "dots_boxes": {
-      "version": 1,
+      "version": 2,
       "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dots_boxes.pck",
       "scene": "res://scenes/games/dots_boxes/dots_boxes.tscn"
     }

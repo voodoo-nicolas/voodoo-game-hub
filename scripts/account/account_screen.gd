@@ -48,7 +48,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "Account"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -75,7 +75,7 @@ func _build_ui() -> void:
 	sign_in_tab.text = "Sign In"
 	sign_in_tab.custom_minimum_size = Vector2(0, 46)
 	sign_in_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sign_in_tab.add_theme_font_size_override("font_size", 17)
+	sign_in_tab.add_theme_font_size_override("font_size", 23)
 	sign_in_tab.focus_mode = Control.FOCUS_NONE
 	sign_in_tab.pressed.connect(func(): _set_mode(false))
 	tab_row.add_child(sign_in_tab)
@@ -84,7 +84,7 @@ func _build_ui() -> void:
 	sign_up_tab.text = "Sign Up"
 	sign_up_tab.custom_minimum_size = Vector2(0, 46)
 	sign_up_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sign_up_tab.add_theme_font_size_override("font_size", 17)
+	sign_up_tab.add_theme_font_size_override("font_size", 23)
 	sign_up_tab.focus_mode = Control.FOCUS_NONE
 	sign_up_tab.pressed.connect(func(): _set_mode(true))
 	tab_row.add_child(sign_up_tab)
@@ -97,7 +97,7 @@ func _build_ui() -> void:
 	box.add_child(display_name_row)
 	var dn_label := Label.new()
 	dn_label.text = "Display name"
-	dn_label.add_theme_font_size_override("font_size", 13)
+	dn_label.add_theme_font_size_override("font_size", 19)
 	dn_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	display_name_row.add_child(dn_label)
 	display_name_field = LineEdit.new()
@@ -107,7 +107,7 @@ func _build_ui() -> void:
 
 	var email_label := Label.new()
 	email_label.text = "Email"
-	email_label.add_theme_font_size_override("font_size", 13)
+	email_label.add_theme_font_size_override("font_size", 19)
 	email_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	box.add_child(email_label)
 	email_field = LineEdit.new()
@@ -117,7 +117,7 @@ func _build_ui() -> void:
 
 	var password_label := Label.new()
 	password_label.text = "Password"
-	password_label.add_theme_font_size_override("font_size", 13)
+	password_label.add_theme_font_size_override("font_size", 19)
 	password_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	box.add_child(password_label)
 	password_field = LineEdit.new()
@@ -128,7 +128,7 @@ func _build_ui() -> void:
 
 	submit_btn = Button.new()
 	submit_btn.custom_minimum_size = Vector2(0, 52)
-	submit_btn.add_theme_font_size_override("font_size", 18)
+	submit_btn.add_theme_font_size_override("font_size", 24)
 	submit_btn.pressed.connect(_on_submit)
 	box.add_child(submit_btn)
 
@@ -139,7 +139,7 @@ func _build_ui() -> void:
 	box.add_child(forgot_btn)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 14)
+	status_label.add_theme_font_size_override("font_size", 20)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(status_label)

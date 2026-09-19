@@ -49,7 +49,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "💡 Lights Out"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -61,7 +61,7 @@ func _build_ui() -> void:
 	top_bar.add_child(restart_btn)
 
 	moves_label = Label.new()
-	moves_label.add_theme_font_size_override("font_size", 18)
+	moves_label.add_theme_font_size_override("font_size", 24)
 	moves_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	moves_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(moves_label)
@@ -127,7 +127,7 @@ func _build_win_dialog() -> void:
 	panel.add_child(box)
 
 	win_label = Label.new()
-	win_label.add_theme_font_size_override("font_size", 24)
+	win_label.add_theme_font_size_override("font_size", 31)
 	win_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	win_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(win_label)

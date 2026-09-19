@@ -69,7 +69,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "Checkers"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -81,7 +81,7 @@ func _build_ui() -> void:
 	top_bar.add_child(restart_btn)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 20)
+	status_label.add_theme_font_size_override("font_size", 26)
 	status_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(status_label)
@@ -144,97 +144,20 @@ func _build_ui() -> void:
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
-	pause_dialog = ColorRect.new()
-	pause_dialog.color = Color(0, 0, 0, 0.75)
-	pause_dialog.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pause_dialog.mouse_filter = Control.MOUSE_FILTER_STOP
-	pause_dialog.visible = false
+	pause_dialog = Ui.build_dialog("Paused", [
+		{"text": "Resume", "action": Callable()},
+		{"text": "Restart", "action": _start_new_game},
+		{"text": "Exit to Hub", "action": Ui.exit_to_hub.bind(self)},
+	])
 	add_child(pause_dialog)
 
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pause_dialog.add_child(center)
-
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Ui.panel_style())
-	center.add_child(panel)
-
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	panel.add_child(box)
-
-	var title := Label.new()
-	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 26)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-
-	var resume_btn := Button.new()
-	resume_btn.text = "Resume"
-	resume_btn.custom_minimum_size = Vector2(200, 48)
-	resume_btn.pressed.connect(func(): pause_dialog.visible = false)
-	box.add_child(resume_btn)
-
-	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
-	restart_btn.custom_minimum_size = Vector2(200, 44)
-	restart_btn.pressed.connect(func():
-		pause_dialog.visible = false
-		_start_new_game()
-	)
-	box.add_child(restart_btn)
-
-	var exit_btn := Button.new()
-	exit_btn.text = "Exit to Hub"
-	exit_btn.custom_minimum_size = Vector2(200, 44)
-	exit_btn.pressed.connect(func():
-		_save_game()
-		get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
-	)
-	box.add_child(exit_btn)
-
 func _build_win_dialog() -> void:
-	win_dialog = ColorRect.new()
-	win_dialog.color = Color(0, 0, 0, 0.75)
-	win_dialog.set_anchors_preset(Control.PRESET_FULL_RECT)
-	win_dialog.visible = false
+	win_dialog = Ui.build_dialog("", [
+		{"text": "Play Again", "action": _start_new_game},
+		{"text": "Back to Hub", "action": Ui.exit_to_hub.bind(self)},
+	], true)
 	add_child(win_dialog)
-
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	win_dialog.add_child(center)
-
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Ui.panel_style())
-	center.add_child(panel)
-
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	panel.add_child(box)
-
-	win_label = Label.new()
-	win_label.add_theme_font_size_override("font_size", 24)
-	win_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
-	win_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(win_label)
-
-	var again_btn := Button.new()
-	again_btn.text = "Play Again"
-	again_btn.custom_minimum_size = Vector2(200, 48)
-	again_btn.pressed.connect(func():
-		win_dialog.visible = false
-		_start_new_game()
-	)
-	box.add_child(again_btn)
-
-	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
-	box.add_child(menu_btn)
-
-# ---------- game flow ----------
+	win_label = win_dialog.get_meta("message_label")
 
 func _start_new_game() -> void:
 	engine.reset()

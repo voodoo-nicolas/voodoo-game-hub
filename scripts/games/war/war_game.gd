@@ -50,7 +50,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "⚔️ War"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -91,7 +91,7 @@ func _build_ui() -> void:
 	cards_row.add_child(p2_card_label)
 
 	result_label = Label.new()
-	result_label.add_theme_font_size_override("font_size", 20)
+	result_label.add_theme_font_size_override("font_size", 26)
 	result_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -101,7 +101,7 @@ func _build_ui() -> void:
 	play_btn = Button.new()
 	play_btn.text = "Play Round"
 	play_btn.custom_minimum_size = Vector2(220, 56)
-	play_btn.add_theme_font_size_override("font_size", 20)
+	play_btn.add_theme_font_size_override("font_size", 26)
 	play_btn.pressed.connect(_on_play_pressed)
 	box.add_child(play_btn)
 
@@ -111,7 +111,7 @@ func _build_ui() -> void:
 func _pile_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", 24)
 	l.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
 	return l
 
@@ -154,7 +154,7 @@ func _build_win_dialog() -> void:
 	panel.add_child(box)
 
 	win_label = Label.new()
-	win_label.add_theme_font_size_override("font_size", 24)
+	win_label.add_theme_font_size_override("font_size", 31)
 	win_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	win_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(win_label)

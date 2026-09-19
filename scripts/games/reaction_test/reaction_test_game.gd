@@ -50,7 +50,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "⏱️ Reaction Test"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -70,7 +70,7 @@ func _build_ui() -> void:
 	center.add_child(box)
 
 	best_label = Label.new()
-	best_label.add_theme_font_size_override("font_size", 18)
+	best_label.add_theme_font_size_override("font_size", 24)
 	best_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
 	best_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(best_label)
@@ -90,14 +90,14 @@ func _build_ui() -> void:
 	pad_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pad_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pad_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pad_label.add_theme_font_size_override("font_size", 26)
+	pad_label.add_theme_font_size_override("font_size", 33)
 	pad_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	pad_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	pad_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.add_child(pad_label)
 
 	result_label = Label.new()
-	result_label.add_theme_font_size_override("font_size", 20)
+	result_label.add_theme_font_size_override("font_size", 26)
 	result_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD

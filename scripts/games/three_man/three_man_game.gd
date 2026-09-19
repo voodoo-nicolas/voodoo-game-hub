@@ -58,7 +58,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "3️⃣ Three Man"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -85,7 +85,7 @@ func _build_setup(root: VBoxContainer) -> void:
 
 	var label := Label.new()
 	label.text = "How many players?"
-	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_font_size_override("font_size", 31)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(label)
@@ -98,7 +98,7 @@ func _build_setup(root: VBoxContainer) -> void:
 	var minus_btn := Button.new()
 	minus_btn.text = "－"
 	minus_btn.custom_minimum_size = Vector2(64, 64)
-	minus_btn.add_theme_font_size_override("font_size", 28)
+	minus_btn.add_theme_font_size_override("font_size", 35)
 	minus_btn.pressed.connect(func():
 		num_players = max(2, num_players - 1)
 		players_label.text = str(num_players)
@@ -107,7 +107,7 @@ func _build_setup(root: VBoxContainer) -> void:
 
 	players_label = Label.new()
 	players_label.text = str(num_players)
-	players_label.add_theme_font_size_override("font_size", 40)
+	players_label.add_theme_font_size_override("font_size", 46)
 	players_label.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
 	players_label.custom_minimum_size = Vector2(70, 0)
 	players_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -116,7 +116,7 @@ func _build_setup(root: VBoxContainer) -> void:
 	var plus_btn := Button.new()
 	plus_btn.text = "＋"
 	plus_btn.custom_minimum_size = Vector2(64, 64)
-	plus_btn.add_theme_font_size_override("font_size", 28)
+	plus_btn.add_theme_font_size_override("font_size", 35)
 	plus_btn.pressed.connect(func():
 		num_players = min(12, num_players + 1)
 		players_label.text = str(num_players)
@@ -126,13 +126,13 @@ func _build_setup(root: VBoxContainer) -> void:
 	var start_btn := Button.new()
 	start_btn.text = "Start Game"
 	start_btn.custom_minimum_size = Vector2(220, 56)
-	start_btn.add_theme_font_size_override("font_size", 20)
+	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_on_start_pressed)
 	box.add_child(start_btn)
 
 	var rules_label := Label.new()
 	rules_label.text = "Roll 1 die each — lowest goes first (ties re-roll).\nThen pass the phone: roll 2 dice on your turn.\n7 = right drinks · 11 = left drinks · Doubles = give that many\nAny 3 (or 2&1) = become/feed 3 Man. Keep rolling while someone drinks!"
-	rules_label.add_theme_font_size_override("font_size", 13)
+	rules_label.add_theme_font_size_override("font_size", 19)
 	rules_label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.6))
 	rules_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rules_label.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -152,13 +152,13 @@ func _build_tiebreak(root: VBoxContainer) -> void:
 
 	var label := Label.new()
 	label.text = "Rolling to see who goes first…"
-	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_font_size_override("font_size", 26)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(label)
 
 	tiebreak_rolls_label = Label.new()
-	tiebreak_rolls_label.add_theme_font_size_override("font_size", 18)
+	tiebreak_rolls_label.add_theme_font_size_override("font_size", 24)
 	tiebreak_rolls_label.add_theme_color_override("font_color", Color(0.85, 0.8, 0.75))
 	tiebreak_rolls_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tiebreak_rolls_label.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -166,7 +166,7 @@ func _build_tiebreak(root: VBoxContainer) -> void:
 	box.add_child(tiebreak_rolls_label)
 
 	tiebreak_status_label = Label.new()
-	tiebreak_status_label.add_theme_font_size_override("font_size", 22)
+	tiebreak_status_label.add_theme_font_size_override("font_size", 28)
 	tiebreak_status_label.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
 	tiebreak_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(tiebreak_status_label)
@@ -174,7 +174,7 @@ func _build_tiebreak(root: VBoxContainer) -> void:
 	tiebreak_btn = Button.new()
 	tiebreak_btn.text = "Roll for First"
 	tiebreak_btn.custom_minimum_size = Vector2(220, 56)
-	tiebreak_btn.add_theme_font_size_override("font_size", 20)
+	tiebreak_btn.add_theme_font_size_override("font_size", 26)
 	tiebreak_btn.pressed.connect(_on_tiebreak_pressed)
 	box.add_child(tiebreak_btn)
 
@@ -190,13 +190,13 @@ func _build_play(root: VBoxContainer) -> void:
 	play_box.add_child(box)
 
 	turn_label = Label.new()
-	turn_label.add_theme_font_size_override("font_size", 24)
+	turn_label.add_theme_font_size_override("font_size", 31)
 	turn_label.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
 	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(turn_label)
 
 	three_man_label = Label.new()
-	three_man_label.add_theme_font_size_override("font_size", 16)
+	three_man_label.add_theme_font_size_override("font_size", 22)
 	three_man_label.add_theme_color_override("font_color", Color(0.8, 0.75, 0.7))
 	three_man_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(three_man_label)
@@ -209,7 +209,7 @@ func _build_play(root: VBoxContainer) -> void:
 	box.add_child(dice_label)
 
 	messages_label = Label.new()
-	messages_label.add_theme_font_size_override("font_size", 19)
+	messages_label.add_theme_font_size_override("font_size", 25)
 	messages_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
 	messages_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	messages_label.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -219,7 +219,7 @@ func _build_play(root: VBoxContainer) -> void:
 	roll_btn = Button.new()
 	roll_btn.text = "🎲 Roll"
 	roll_btn.custom_minimum_size = Vector2(220, 56)
-	roll_btn.add_theme_font_size_override("font_size", 20)
+	roll_btn.add_theme_font_size_override("font_size", 26)
 	roll_btn.pressed.connect(_on_roll_pressed)
 	box.add_child(roll_btn)
 
