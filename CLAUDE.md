@@ -200,12 +200,26 @@ tool directly for anything needing real PowerShell semantics, not
   are silently rejected as "incompatible" on install.
 - **`free()` vs `queue_free()` inside a signal handler**: never call `.free()`
   on a node from inside a signal callback that node itself (or an ancestor of
-  it in the same rebuild) is still emitting — freeing while a signal is mid-emit
-  is undefined behavior in Godot and can hard-crash (segfault) rather than
-  erroring cleanly. `hub.gd`'s `_rebuild_list()` hit this: it's called from a
-  header button's own `pressed` handler and used to `.free()` that same button's
-  parent immediately. Always use `queue_free()` when rebuilding a list of nodes
-  in response to one of those nodes' own signal.
+  it in the same rebuild) is still emitting. Godot 4.7 refuses the call
+  ("Attempted to free a locked object (calling or emitting)") rather than
+  crashing, but the consequence is worse than an error line: the node was
+  already `remove_child()`'d, so refusing to free it **leaks it** — one
+  orphaned node per interaction, which adds up over a long session — and the
+  rebuilt container is left a child short. `hub.gd`'s `_rebuild_list()` hit
+  this, as did `solitaire`, `kings_cup`, `red_or_black` and `g2048`. Always use
+  `queue_free()` when rebuilding a list of nodes in response to one of those
+  nodes' own signal; it defers past the emission, so nothing is locked.
+
+- **Connecting a lambda to a long-lived signal (an autoload like `Auth`)**:
+  Godot only auto-disconnects a connection when the connected `Callable` points
+  at the freed object. A lambda is a separate object that merely *captures*
+  `self`, so it outlives the scene that created it — every visit leaves another
+  stale connection on the autoload, and the next emission errors once per stale
+  copy ("Lambda capture at index 0 was freed"). Connect a plain method instead,
+  using `.unbind(n)` to drop unwanted signal arguments
+  (`Auth.signed_in.connect(_update_account_status.unbind(2))`). Plain method
+  callables — including `.unbind()`ed ones — are cleaned up automatically, which
+  is also why games don't need manual `disconnect()` calls in `_exit_tree()`.
 
 ## Reference material
 

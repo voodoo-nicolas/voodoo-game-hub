@@ -228,4 +228,8 @@ func _request(method: HTTPClient.Method, path: String, body: Dictionary, extra_h
 	var err := http.request(SUPABASE_URL + path, headers, method, body_str)
 	if err != OK:
 		http.queue_free()
+		# Still report failure: request_completed never fires for a request that
+		# didn't start, and callers wait on this callback to re-enable their UI.
+		# Dropping it silently leaves the sign-in button disabled forever.
+		on_done.call(false, {}, 0)
 		on_done.call(false, {}, 0)

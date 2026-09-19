@@ -263,7 +263,7 @@ func _update_round_display() -> void:
 
 	for child in guess_row.get_children():
 		guess_row.remove_child(child)
-		child.free()
+		child.queue_free()
 
 	match engine.round_index:
 		0:

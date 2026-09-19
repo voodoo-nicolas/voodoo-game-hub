@@ -293,7 +293,7 @@ func _update_turn_display() -> void:
 func _render_circle() -> void:
 	for child in circle_area.get_children():
 		circle_area.remove_child(child)
-		child.free()
+		child.queue_free()
 
 	var count: int = engine.deck.size()
 	if count == 0:

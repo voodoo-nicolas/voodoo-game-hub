@@ -14,7 +14,6 @@ var pad: PanelContainer
 var pad_label: Label
 var result_label: Label
 var best_label: Label
-var wait_started_at: int = 0
 var ready_started_at: int = 0
 
 func _ready() -> void:

@@ -186,7 +186,13 @@ func _ready() -> void:
 	account_status_btn.pressed.connect(_on_account_status_pressed)
 	account_row.add_child(account_status_btn)
 
-	Auth.signed_in.connect(func(_uid, _name): _update_account_status())
+	# .unbind(2) rather than a lambda on purpose: Godot only auto-disconnects a
+	# signal when the connected Callable points at the freed object. A lambda is
+	# a separate object that merely captures `self`, so connecting one to a
+	# long-lived autoload like Auth survives this scene being freed -- every hub
+	# visit would leave another stale connection behind, and the next sign-in
+	# would error on each one ("Lambda capture was freed").
+	Auth.signed_in.connect(_update_account_status.unbind(2))
 	Auth.signed_out.connect(_update_account_status)
 	_update_account_status()
 
@@ -554,7 +560,14 @@ func _check_and_launch(game: Dictionary) -> void:
 		else:
 			_launch(game)
 	)
-	http.request(MANIFEST_URL)
+	if http.request(MANIFEST_URL) != OK:
+		# The manifest check couldn't even start. Fall back to whatever is on
+		# disk rather than letting the tile tap do nothing at all.
+		http.queue_free()
+		if _is_downloaded(game.pack_id):
+			_launch(game)
+		else:
+			_start_download(game, 1)
 
 func _start_download(game: Dictionary, version: int) -> void:
 	var overlay := _build_download_overlay(game.title)
@@ -607,7 +620,15 @@ func _on_download_completed(result: int, response_code: int, body: PackedByteArr
 		progress_bar.visible = false
 		return
 
+	# Can be null if the device is out of space. Recording the version before
+	# confirming the write would mark a game "downloaded" that isn't on disk.
 	var f := FileAccess.open(_local_pack_path(game.pack_id), FileAccess.WRITE)
+	if f == null:
+		var status_label: Label = overlay.get_meta("status_label")
+		status_label.text = "Couldn't save the download. Check your free space."
+		overlay.get_meta("retry_button").visible = true
+		overlay.get_meta("progress_bar").visible = false
+		return
 	f.store_buffer(body)
 	f.close()
 	_save_pack_version(game.pack_id, version)

@@ -4,6 +4,7 @@ const CheckersEngine = preload("res://scripts/games/checkers/checkers_engine.gd"
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://checkers_save.json"
 
@@ -142,19 +143,6 @@ func _build_ui() -> void:
 	_build_win_dialog()
 	add_child(SettingsDrawer.new())
 
-func _panel_style() -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.14, 0.14, 0.18)
-	sb.corner_radius_top_left = 16
-	sb.corner_radius_top_right = 16
-	sb.corner_radius_bottom_left = 16
-	sb.corner_radius_bottom_right = 16
-	sb.content_margin_left = 28
-	sb.content_margin_right = 28
-	sb.content_margin_top = 24
-	sb.content_margin_bottom = 24
-	return sb
-
 func _build_pause_dialog() -> void:
 	pause_dialog = ColorRect.new()
 	pause_dialog.color = Color(0, 0, 0, 0.75)
@@ -168,7 +156,7 @@ func _build_pause_dialog() -> void:
 	pause_dialog.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _panel_style())
+	panel.add_theme_stylebox_override("panel", Ui.panel_style())
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
@@ -218,7 +206,7 @@ func _build_win_dialog() -> void:
 	win_dialog.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _panel_style())
+	panel.add_theme_stylebox_override("panel", Ui.panel_style())
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()

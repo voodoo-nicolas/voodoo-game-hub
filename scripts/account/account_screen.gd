@@ -20,12 +20,6 @@ func _ready() -> void:
 	Auth.signed_in.connect(_on_signed_in)
 	Auth.auth_error.connect(_on_auth_error)
 
-func _exit_tree() -> void:
-	if Auth.signed_in.is_connected(_on_signed_in):
-		Auth.signed_in.disconnect(_on_signed_in)
-	if Auth.auth_error.is_connected(_on_auth_error):
-		Auth.auth_error.disconnect(_on_auth_error)
-
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 

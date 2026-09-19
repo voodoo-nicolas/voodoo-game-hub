@@ -6,6 +6,7 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Core = preload("res://scripts/games/geometry_wars/geometry_wars_core.gd")
 const ArenaCanvas = preload("res://scripts/games/geometry_wars/arena_canvas.gd")
 const JoystickCanvas = preload("res://scripts/games/geometry_wars/joystick_canvas.gd")
+const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://geometry_wars_save.json"
 
@@ -383,7 +384,7 @@ func _build_pause_dialog() -> void:
 	pause_dialog.add_child(center)
 
 	var panel := PanelContainer.new()
-	var sb := _panel_style()
+	var sb := Ui.panel_style()
 	panel.add_theme_stylebox_override("panel", sb)
 	center.add_child(panel)
 
@@ -432,7 +433,7 @@ func _build_game_over_dialog() -> void:
 	game_over_dialog.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _panel_style())
+	panel.add_theme_stylebox_override("panel", Ui.panel_style())
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
@@ -466,19 +467,6 @@ func _build_game_over_dialog() -> void:
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(_exit_to_hub)
 	box.add_child(menu_btn)
-
-func _panel_style() -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.14, 0.14, 0.18)
-	sb.corner_radius_top_left = 16
-	sb.corner_radius_top_right = 16
-	sb.corner_radius_bottom_left = 16
-	sb.corner_radius_bottom_right = 16
-	sb.content_margin_left = 28
-	sb.content_margin_right = 28
-	sb.content_margin_top = 24
-	sb.content_margin_bottom = 24
-	return sb
 
 # ---------- screen state ----------
 

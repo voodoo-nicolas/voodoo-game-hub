@@ -280,7 +280,7 @@ func _col_x(col: int) -> float:
 func _render() -> void:
 	for child in board_area.get_children():
 		board_area.remove_child(child)
-		child.free()
+		child.queue_free()
 
 	# stock (column 0)
 	var stock_view := CardView.new()

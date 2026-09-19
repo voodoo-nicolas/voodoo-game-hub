@@ -4,6 +4,7 @@ const DotsBoxesEngine = preload("res://scripts/games/dots_boxes/dots_boxes_engin
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://dots_boxes_save.json"
 
@@ -50,8 +51,6 @@ var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
 
-var h_buttons: Array = []   # [r][c] Button, r in 0..rows, c in 0..cols-1
-var v_buttons: Array = []   # [r][c] Button, r in 0..rows-1, c in 0..cols
 var h_lines_view: Array = []
 var v_lines_view: Array = []
 var box_panels: Array = []  # [r][c] ColorRect
@@ -258,19 +257,6 @@ func _build_game_screen() -> void:
 	board_slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(board_slot)
 
-func _panel_style() -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.14, 0.14, 0.18)
-	sb.corner_radius_top_left = 16
-	sb.corner_radius_top_right = 16
-	sb.corner_radius_bottom_left = 16
-	sb.corner_radius_bottom_right = 16
-	sb.content_margin_left = 28
-	sb.content_margin_right = 28
-	sb.content_margin_top = 24
-	sb.content_margin_bottom = 24
-	return sb
-
 func _build_pause_dialog() -> void:
 	pause_dialog = ColorRect.new()
 	pause_dialog.color = Color(0, 0, 0, 0.75)
@@ -284,7 +270,7 @@ func _build_pause_dialog() -> void:
 	pause_dialog.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _panel_style())
+	panel.add_theme_stylebox_override("panel", Ui.panel_style())
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
@@ -340,7 +326,7 @@ func _build_win_dialog() -> void:
 	win_dialog.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _panel_style())
+	panel.add_theme_stylebox_override("panel", Ui.panel_style())
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
@@ -525,10 +511,8 @@ func _build_board() -> void:
 			row.append(panel)
 		box_panels.append(row)
 
-	h_buttons = []
 	h_lines_view = []
 	for r in range(rows + 1):
-		var brow: Array = []
 		var vrow: Array = []
 		for c in range(cols):
 			var btn := Button.new()
@@ -549,15 +533,11 @@ func _build_board() -> void:
 			btn.mouse_entered.connect(_on_edge_mouse_entered.bind("h", r, c, line))
 			btn.mouse_exited.connect(_on_edge_mouse_exited.bind("h", r, c, line))
 
-			brow.append(btn)
 			vrow.append(line)
-		h_buttons.append(brow)
 		h_lines_view.append(vrow)
 
-	v_buttons = []
 	v_lines_view = []
 	for r in range(rows):
-		var brow2: Array = []
 		var vrow2: Array = []
 		for c in range(cols + 1):
 			var btn := Button.new()
@@ -578,9 +558,7 @@ func _build_board() -> void:
 			btn.mouse_entered.connect(_on_edge_mouse_entered.bind("v", r, c, line))
 			btn.mouse_exited.connect(_on_edge_mouse_exited.bind("v", r, c, line))
 
-			brow2.append(btn)
 			vrow2.append(line)
-		v_buttons.append(brow2)
 		v_lines_view.append(vrow2)
 
 	for r in range(rows + 1):

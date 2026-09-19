@@ -4,6 +4,7 @@ const G2048Engine = preload("res://scripts/games/g2048/g2048_engine.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://g2048_save.json"
 const BOARD_SEPARATION := 6
@@ -218,7 +219,7 @@ func _build_pause_dialog() -> void:
 	pause_dialog.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _panel_style())
+	panel.add_theme_stylebox_override("panel", Ui.panel_style())
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
@@ -268,7 +269,7 @@ func _build_end_dialog() -> void:
 	end_dialog.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _panel_style())
+	panel.add_theme_stylebox_override("panel", Ui.panel_style())
 	center.add_child(panel)
 
 	end_buttons_box = VBoxContainer.new()
@@ -280,19 +281,6 @@ func _build_end_dialog() -> void:
 	end_title.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	end_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_buttons_box.add_child(end_title)
-
-func _panel_style() -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.14, 0.14, 0.18)
-	sb.corner_radius_top_left = 16
-	sb.corner_radius_top_right = 16
-	sb.corner_radius_bottom_left = 16
-	sb.corner_radius_bottom_right = 16
-	sb.content_margin_left = 28
-	sb.content_margin_right = 28
-	sb.content_margin_top = 24
-	sb.content_margin_bottom = 24
-	return sb
 
 # ---------- game flow ----------
 
@@ -320,7 +308,7 @@ func _show_end(title: String, can_continue: bool) -> void:
 	for child in end_buttons_box.get_children():
 		if child != end_title:
 			end_buttons_box.remove_child(child)
-			child.free()
+			child.queue_free()
 
 	if can_continue:
 		var continue_btn := Button.new()
