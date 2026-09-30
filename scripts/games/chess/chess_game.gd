@@ -30,6 +30,7 @@ const RESULT_MESSAGES := {
 	"stalemate": "Stalemate — draw",
 	"draw_50move": "Draw — 50-move rule",
 	"draw_insufficient_material": "Draw — insufficient material",
+	"draw_repetition": "Draw — same position 3 times",
 }
 
 var engine
@@ -423,6 +424,7 @@ func _save_game() -> void:
 		"castling_rights": engine.castling_rights,
 		"en_passant_target": [engine.en_passant_target.x, engine.en_passant_target.y],
 		"halfmove_clock": engine.halfmove_clock,
+		"position_counts": engine.position_counts,
 	})
 
 func _load_saved_game() -> bool:
@@ -447,6 +449,13 @@ func _load_saved_game() -> bool:
 	var ep: Array = data.en_passant_target
 	engine.en_passant_target = Vector2i(int(ep[0]), int(ep[1]))
 	engine.halfmove_clock = int(data.halfmove_clock)
+	engine.position_counts = {}
+	var counts = data.get("position_counts", {})
+	if typeof(counts) == TYPE_DICTIONARY:
+		for key in counts:
+			engine.position_counts[str(key)] = int(counts[key])
+	if engine.position_counts.is_empty():
+		engine.record_position()  # saves from before repetition tracking
 	engine.move_history = []
 	engine.game_over = false
 	engine.winner = 0

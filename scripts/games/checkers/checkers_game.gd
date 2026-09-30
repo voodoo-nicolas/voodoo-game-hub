@@ -210,7 +210,10 @@ func _on_square_pressed(r: int, c: int) -> void:
 func _show_result() -> void:
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
-	win_label.text = "Player %d wins!" % (1 if engine.winner == 1 else 2)
+	if engine.winner == 0:
+		win_label.text = "Draw — 40 moves each with no captures"
+	else:
+		win_label.text = "Player %d wins!" % (1 if engine.winner == 1 else 2)
 	win_dialog.visible = true
 
 # ---------- rendering ----------
@@ -290,6 +293,7 @@ func _save_game() -> void:
 		"board": engine.board,
 		"current_player": engine.current_player,
 		"must_continue_from": [engine.must_continue_from.x, engine.must_continue_from.y],
+		"quiet_moves": engine.quiet_moves,
 	})
 
 func _load_saved_game() -> bool:
@@ -306,6 +310,7 @@ func _load_saved_game() -> bool:
 	engine.current_player = int(data.current_player)
 	var mc: Array = data.must_continue_from
 	engine.must_continue_from = Vector2i(int(mc[0]), int(mc[1]))
+	engine.quiet_moves = int(data.get("quiet_moves", 0))
 	engine.game_over = false
 	engine.winner = 0
 	game_active = true

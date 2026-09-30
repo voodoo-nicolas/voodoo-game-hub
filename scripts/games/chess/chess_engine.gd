@@ -34,7 +34,10 @@ var halfmove_clock: int = 0
 var move_history: Array = []
 var game_over: bool = false
 var winner: int = 0  # 0 = none/draw, else WHITE or BLACK
-var result_reason: String = ""  # "checkmate" | "stalemate" | "draw_50move" | "draw_insufficient_material"
+var result_reason: String = ""  # "checkmate" | "stalemate" | "draw_50move" | "draw_insufficient_material" | "draw_repetition"
+## How many times each position (see position_key) has occurred, for the
+## threefold-repetition draw.
+var position_counts: Dictionary = {}
 
 func reset() -> void:
 	board = []
@@ -59,6 +62,17 @@ func reset() -> void:
 	game_over = false
 	winner = 0
 	result_reason = ""
+	position_counts = {}
+	record_position()
+
+## Same pieces on the same squares, same side to move, same castling and
+## en-passant rights = the same position for repetition purposes.
+func position_key() -> String:
+	return "%s|%d|%s|%s" % [str(board), current_player, str(castling_rights), str(en_passant_target)]
+
+func record_position() -> void:
+	var key := position_key()
+	position_counts[key] = int(position_counts.get(key, 0)) + 1
 
 func _in_bounds(r: int, c: int) -> bool:
 	return r >= 0 and r < 8 and c >= 0 and c < 8
@@ -416,6 +430,7 @@ func move(from: Vector2i, to: Vector2i, promotion_piece: int = QUEEN) -> Diction
 	move_history.append(record)
 
 	current_player = -current_player
+	record_position()
 	_update_game_over_status()
 
 	return {
@@ -440,6 +455,12 @@ func _update_game_over_status() -> void:
 		else:
 			result_reason = "stalemate"
 			winner = 0
+		return
+
+	if int(position_counts.get(position_key(), 0)) >= 3:
+		game_over = true
+		result_reason = "draw_repetition"
+		winner = 0
 		return
 
 	if halfmove_clock >= 100:

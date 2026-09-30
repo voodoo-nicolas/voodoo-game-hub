@@ -238,5 +238,8 @@ func _end_game(text: String, color: Color) -> void:
 func _render() -> void:
 	category_label.text = engine.category
 	word_label.text = engine.display_word()
+	# Long words ("FIREFIGHTER" = 21 characters with spaces) would run off a
+	# narrow phone at full size.
+	word_label.add_theme_font_size_override("font_size", 50 if engine.word.length() <= 8 else 40)
 	stage_label.text = STAGE_FACES[engine.wrong_count]
 	status_label.text = "Wrong guesses: %d/%d" % [engine.wrong_count, HangmanEngine.MAX_WRONG]

@@ -11,6 +11,12 @@ var current_player: int = 1
 var winner: int = 0
 var game_over: bool = false
 var must_continue_from: Vector2i = Vector2i(-1, -1)
+## Moves in a row (both players) with no capture and no man moving -- only
+## kings shuffling around. At DRAW_QUIET_MOVES the game is a draw, the
+## standard American "40 moves each without progress" rule; without it two
+## kings could chase each other forever.
+var quiet_moves: int = 0
+const DRAW_QUIET_MOVES := 80
 
 func reset() -> void:
 	board = []
@@ -31,6 +37,7 @@ func reset() -> void:
 	winner = 0
 	game_over = false
 	must_continue_from = Vector2i(-1, -1)
+	quiet_moves = 0
 
 func _is_king(v: int) -> bool:
 	return absi(v) == 2
@@ -128,6 +135,11 @@ func move(from: Vector2i, to: Vector2i) -> Dictionary:
 	if is_capture:
 		board[captured_pos.x][captured_pos.y] = 0
 
+	if is_capture or not _is_king(v):
+		quiet_moves = 0
+	else:
+		quiet_moves += 1
+
 	var promoted := false
 	if not _is_king(v):
 		if (v > 0 and to.x == 0) or (v < 0 and to.x == 7):
@@ -144,6 +156,9 @@ func move(from: Vector2i, to: Vector2i) -> Dictionary:
 		must_continue_from = Vector2i(-1, -1)
 		current_player = -current_player
 		_check_game_over()
+		if not game_over and quiet_moves >= DRAW_QUIET_MOVES:
+			game_over = true
+			winner = 0  # draw
 
 	return {
 		"valid": true,
