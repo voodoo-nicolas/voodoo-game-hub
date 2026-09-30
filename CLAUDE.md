@@ -87,6 +87,31 @@ this is an additive layer, never a login wall.
   not in this repo (nothing here runs migrations) — see conversation history
   or ask the user if you need to see the current schema.
 
+## Online two-player (Supabase Realtime) -- no tables, nothing stored
+
+`scripts/common/online_session.gd` speaks Supabase Realtime's Phoenix
+WebSocket protocol directly: a room is a broadcast channel named
+`voodoo-<game_id>-<4-letter code>`, presence shows who's in it (roles
+`host` / `guest`), and moves are broadcast messages. Nothing is written to
+the database, so there's no schema to maintain and it works with the anon
+key as-is. `online_lobby.gd` is the shared Host / Join-by-code screen.
+
+- **Wiring a game** (see `tictactoe_game.gd` / `connect4_game.gd`): add the
+  lobby, and on `started(session, my_player)` connect `message`,
+  `opponent_left`, `opponent_joined`. Host = player 1 and is the authority:
+  it sends `sync` (full state) whenever the guest (re)appears or asks
+  (`sync_request`). Every `move` also carries the sender's resulting board;
+  a receiver whose board differs re-syncs, so missed messages heal.
+  `new_game` resets both. Online games are never saved locally, and an
+  online game ending must not delete the local save.
+- **Never `preload` the online scripts from a game**: they ship in the APK
+  (v0.14+), and packs also run on older apps. Check
+  `ResourceLoader.exists(ONLINE_LOBBY_PATH)` and `load()` it; without it the
+  game simply has no Online button.
+- **Free Supabase projects pause after ~1 week idle** -- the project's domain
+  then stops resolving and sign-in, score sync and online play all fail.
+  The user restores it from supabase.com/dashboard. (Happened 2026-09-30.)
+
 ## Scoping your work: hub vs. a specific game
 
 The only thing connecting a game to the hub is its `manifest.json` entry (a

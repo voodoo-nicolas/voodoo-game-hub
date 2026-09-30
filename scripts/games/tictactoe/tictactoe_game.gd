@@ -7,6 +7,9 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://tictactoe_save.json"
+## Not preloaded: apps older than v0.14 don't have it, and the game must still
+## run there (without the Online button).
+const ONLINE_LOBBY_PATH := "res://scripts/common/online_lobby.gd"
 const COLOR_BASE := Color(0.15, 0.15, 0.19)
 const COLOR_WIN := Color(0.25, 0.5, 0.3)
 
@@ -18,6 +21,13 @@ var cells: Array = []  # 9 Buttons
 var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
+var online_btn: Button
+var lobby: Control
+## Online play: the session, and which mark this phone plays (host = X).
+## my_mark == 0 means ordinary same-phone play.
+var online: Node = null
+var my_mark: int = 0
+var opponent_here: bool = false
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -108,8 +118,20 @@ func _build_ui() -> void:
 		grid.add_child(cell)
 		cells.append(cell)
 
+	if ResourceLoader.exists(ONLINE_LOBBY_PATH):
+		online_btn = Button.new()
+		online_btn.text = "🌐 Play Online"
+		online_btn.custom_minimum_size = Vector2(0, 80)
+		online_btn.add_theme_font_size_override("font_size", 30)
+		online_btn.pressed.connect(_open_lobby)
+		box.add_child(online_btn)
+
 	_build_pause_dialog()
 	_build_win_dialog()
+	if ResourceLoader.exists(ONLINE_LOBBY_PATH):
+		lobby = load(ONLINE_LOBBY_PATH).new("tictactoe", "Tic-Tac-Toe")
+		lobby.started.connect(_on_online_started)
+		add_child(lobby)
 	add_child(SettingsDrawer.new())
 
 func _style_cell(cell: Button, color: Color) -> void:
@@ -140,6 +162,11 @@ func _build_win_dialog() -> void:
 	win_label = win_dialog.get_meta("message_label")
 
 func _start_new_game() -> void:
+	if online:
+		online.send("new_game")
+	_reset_board()
+
+func _reset_board() -> void:
 	engine.reset()
 	game_active = true
 	win_dialog.visible = false
@@ -147,10 +174,84 @@ func _start_new_game() -> void:
 	_render()
 
 func _on_cell_pressed(i: int) -> void:
+	if online and (engine.turn != my_mark or not opponent_here):
+		return  # not your turn (or nobody to play against right now)
 	if engine.move(i):
-		_render()
-		if engine.is_over():
-			_show_result()
+		if online:
+			online.send("move", {"i": i, "board": engine.board})
+		_after_move()
+
+func _after_move() -> void:
+	_render()
+	if engine.is_over():
+		_show_result()
+
+# ---------- online ----------
+
+func _int_array(a: Variant) -> Array:
+	var out: Array = []
+	if typeof(a) == TYPE_ARRAY:
+		for v in a:
+			out.append(int(v))
+	return out
+
+func _open_lobby() -> void:
+	lobby.open()
+
+func _on_online_started(session: Node, my_player: int) -> void:
+	online = session
+	my_mark = TicTacToeEngine.X if my_player == 1 else TicTacToeEngine.O
+	opponent_here = true
+	online.message.connect(_on_online_message)
+	online.opponent_left.connect(_on_opponent_left)
+	online.opponent_joined.connect(_on_opponent_back)
+	online_btn.visible = false
+	_reset_board()
+	if my_mark == TicTacToeEngine.X:
+		_send_sync()
+
+func _send_sync() -> void:
+	online.send("sync", {"board": engine.board, "turn": engine.turn})
+
+## The host owns the truth: whenever the guest (re)appears it gets the whole
+## board, so a dropped connection or a missed message heals itself.
+func _on_opponent_back() -> void:
+	opponent_here = true
+	if my_mark == TicTacToeEngine.X:
+		_send_sync()
+	_render()
+
+func _on_opponent_left() -> void:
+	opponent_here = false
+	_render()
+
+func _on_online_message(event: String, p: Dictionary) -> void:
+	match event:
+		"move":
+			if engine.turn != my_mark and engine.move(int(p.get("i", -1))):
+				_after_move()
+			# Each move carries the sender's resulting board. If ours differs
+			# (a missed message, a reconnect mid-move), converge on the host's.
+			if _int_array(p.get("board", [])) != engine.board:
+				if my_mark == TicTacToeEngine.X:
+					_send_sync()
+				else:
+					online.send("sync_request")
+		"sync":
+			var board: Array = []
+			for v in p.get("board", []):
+				board.append(int(v))
+			if board.size() == 9:
+				engine.board = board
+				engine.turn = int(p.get("turn", TicTacToeEngine.X))
+				game_active = not engine.is_over()
+				win_dialog.visible = false
+				_render()
+		"sync_request":
+			if my_mark == TicTacToeEngine.X:
+				_send_sync()
+		"new_game":
+			_reset_board()
 
 func _on_pause_pressed() -> void:
 	if not game_active:
@@ -160,10 +261,13 @@ func _on_pause_pressed() -> void:
 
 func _show_result() -> void:
 	game_active = false
-	SaveUtil.delete(SAVE_PATH)
+	if not online:  # an online game ending mustn't wipe a paused local one
+		SaveUtil.delete(SAVE_PATH)
 	var w: int = engine.winner()
 	if w == TicTacToeEngine.EMPTY:
 		win_label.text = "It's a draw!"
+	elif online:
+		win_label.text = "You win!" if w == my_mark else "You lose!"
 	else:
 		win_label.text = "%s wins!" % ("X" if w == TicTacToeEngine.X else "O")
 	win_dialog.visible = true
@@ -185,13 +289,21 @@ func _render() -> void:
 		for c in cells:
 			_style_cell(c, COLOR_BASE)
 
-	status_label.text = "Turn: %s" % ("X" if engine.turn == TicTacToeEngine.X else "O")
+	var mark_name := "X" if engine.turn == TicTacToeEngine.X else "O"
+	if not online:
+		status_label.text = "Turn: %s" % mark_name
+	elif not opponent_here:
+		status_label.text = "Opponent disconnected — waiting..."
+	elif engine.turn == my_mark:
+		status_label.text = "Your turn (%s)" % mark_name
+	else:
+		status_label.text = "Opponent's turn (%s)" % mark_name
 
 # ---------- save / load ----------
 
 func _save_game() -> void:
-	if not game_active:
-		return
+	if not game_active or online:
+		return  # online games aren't resumable alone
 	SaveUtil.write(SAVE_PATH, {"board": engine.board, "turn": engine.turn})
 
 func _load_saved_game() -> bool:
