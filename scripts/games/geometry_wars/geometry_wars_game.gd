@@ -69,6 +69,7 @@ var game_over_stats: Label
 var rotate_hint: Control
 
 func _ready() -> void:
+	preload("res://scripts/games/geometry_wars/geometry_wars_i18n.gd").install(self)
 	randomize()
 	Orientation.lock_landscape()
 	_build_ui()
@@ -239,10 +240,10 @@ func _on_player_hit() -> void:
 		_show_game_over()
 
 func _update_hud() -> void:
-	score_label.text = "Score: %d" % score
-	lives_label.text = "Lives: %d" % lives
+	score_label.text = tr("Score: %d") % score
+	lives_label.text = tr("Lives: %d") % lives
 	var multiplier: int = 1 + int(combo / COMBO_STEP)
-	combo_label.text = ("x%d Combo" % multiplier) if combo > 0 else ""
+	combo_label.text = (tr("x%d Combo") % multiplier) if combo > 0 else ""
 
 # ---------- UI construction ----------
 
@@ -290,7 +291,7 @@ func _build_rotate_hint() -> void:
 	box.add_child(icon)
 
 	var label := Label.new()
-	label.text = "Rotate your device to landscape"
+	label.text = tr("Rotate your device to landscape")
 	label.add_theme_font_size_override("font_size", 24)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -306,14 +307,14 @@ func _build_start_screen() -> void:
 	start_screen.add_child(box)
 
 	var title := Label.new()
-	title.text = "Geometry Wars"
+	title.text = tr("Geometry Wars")
 	title.add_theme_font_size_override("font_size", 43)
 	title.add_theme_color_override("font_color", Color(0.3, 1.0, 1.0))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "Dual-stick neon shooter"
+	subtitle.text = tr("Dual-stick neon shooter")
 	subtitle.add_theme_font_size_override("font_size", 21)
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -324,7 +325,7 @@ func _build_start_screen() -> void:
 	box.add_child(spacer)
 
 	continue_button = Button.new()
-	continue_button.text = "Continue"
+	continue_button.text = tr("Continue")
 	continue_button.custom_minimum_size = Vector2(240, 56)
 	continue_button.add_theme_font_size_override("font_size", 26)
 	continue_button.visible = false
@@ -332,14 +333,14 @@ func _build_start_screen() -> void:
 	box.add_child(continue_button)
 
 	var start_btn := Button.new()
-	start_btn.text = "Start"
+	start_btn.text = tr("Start")
 	start_btn.custom_minimum_size = Vector2(240, 56)
 	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_start_new_game)
 	box.add_child(start_btn)
 
 	var back_btn := Button.new()
-	back_btn.text = "Back to Hub"
+	back_btn.text = tr("Back to Hub")
 	back_btn.custom_minimum_size = Vector2(240, 44)
 	back_btn.pressed.connect(_exit_to_hub)
 	box.add_child(back_btn)
@@ -362,12 +363,12 @@ func _build_game_screen() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = "Pause"
+	pause_btn.text = tr("Pause")
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
-	score_label = _stat_label("Score: 0")
-	lives_label = _stat_label("Lives: 3")
+	score_label = _stat_label(tr("Score: 0"))
+	lives_label = _stat_label(tr("Lives: 3"))
 	combo_label = _stat_label("")
 	for l in [score_label, lives_label, combo_label]:
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -408,20 +409,20 @@ func _build_pause_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Paused"
+	title.text = tr("Paused")
 	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var resume_btn := Button.new()
-	resume_btn.text = "Resume"
+	resume_btn.text = tr("Resume")
 	resume_btn.custom_minimum_size = Vector2(220, 48)
 	resume_btn.pressed.connect(_on_resume_pressed)
 	box.add_child(resume_btn)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.custom_minimum_size = Vector2(220, 44)
 	restart_btn.pressed.connect(func():
 		pause_dialog.visible = false
@@ -431,7 +432,7 @@ func _build_pause_dialog() -> void:
 	box.add_child(restart_btn)
 
 	var exit_btn := Button.new()
-	exit_btn.text = "Exit to Hub"
+	exit_btn.text = tr("Exit to Hub")
 	exit_btn.custom_minimum_size = Vector2(220, 44)
 	exit_btn.pressed.connect(_exit_to_hub)
 	box.add_child(exit_btn)
@@ -456,7 +457,7 @@ func _build_game_over_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Game Over"
+	title.text = tr("Game Over")
 	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -469,7 +470,7 @@ func _build_game_over_dialog() -> void:
 	box.add_child(game_over_stats)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 48)
 	again_btn.pressed.connect(func():
 		game_over_dialog.visible = false
@@ -478,7 +479,7 @@ func _build_game_over_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(_exit_to_hub)
 	box.add_child(menu_btn)
@@ -544,7 +545,7 @@ func _show_game_over() -> void:
 	game_over = true
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
-	game_over_stats.text = "Score: %d   Time survived: %s" % [score, _format_time(elapsed_seconds)]
+	game_over_stats.text = tr("Score: %d   Time survived: %s") % [score, _format_time(elapsed_seconds)]
 	game_over_dialog.visible = true
 
 # ---------- save / load ----------
@@ -573,7 +574,7 @@ func _refresh_continue_button() -> void:
 		continue_button.visible = false
 		return
 	continue_button.visible = true
-	continue_button.text = "Continue (Score %d)" % int(data.get("score", 0))
+	continue_button.text = tr("Continue (Score %d)") % int(data.get("score", 0))
 
 func _load_saved_game() -> bool:
 	var data = SaveUtil.read(SAVE_PATH)

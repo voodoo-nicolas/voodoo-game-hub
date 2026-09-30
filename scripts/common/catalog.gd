@@ -180,24 +180,31 @@ func _apply_manifest(data: Variant) -> bool:
 			var title := str(raw_game.get("title", "?"))
 			var icon := str(raw_game.get("icon", "🎮"))
 			var id := str(raw_game.get("id", ""))
-			if id != "" and games_by_id.has(id):
-				var game: Dictionary = games_by_id[id]
-				game["title"] = title
-				game["icon"] = icon
-				cat_games.append(game)
-			else:
-				cat_games.append({"title": title, "icon": icon})
-		new_categories.append({
+			var game: Dictionary = games_by_id[id] if id != "" and games_by_id.has(id) else {}
+			game["title"] = title
+			game["icon"] = icon
+			_copy_localized(raw_game, game, "title")
+			cat_games.append(game)
+		var category := {
 			"name": str(raw_cat.get("name", "")),
 			"icon": str(raw_cat.get("icon", "")),
 			"games": cat_games,
-		})
+		}
+		_copy_localized(raw_cat, category, "name")
+		new_categories.append(category)
 	if new_categories.is_empty():
 		return false
 
 	categories = new_categories
 	_games_by_id = games_by_id
 	return true
+
+## Carries "<field>_<lang>" translations (e.g. "title_es") from the manifest
+## into the entry; Lang.pick() chooses between them at display time.
+func _copy_localized(from: Dictionary, to: Dictionary, field: String) -> void:
+	for key in from:
+		if str(key).begins_with(field + "_"):
+			to[str(key)] = str(from[key])
 
 # ---------- download + mount ----------
 
@@ -207,7 +214,7 @@ func _apply_manifest(data: Variant) -> bool:
 func download(id: String, on_done: Callable) -> HTTPRequest:
 	var game := get_game(id)
 	if game.is_empty():
-		_safe_call.call_deferred(on_done, ["This game isn't in the catalog."])
+		_safe_call.call_deferred(on_done, [tr("This game isn't in the catalog.")])
 		return null
 	if _downloads.has(id):
 		return _downloads[id]
@@ -242,13 +249,13 @@ func _on_download_completed(result: int, code: int, _headers: PackedStringArray,
 
 	var error := ""
 	if result == HTTPRequest.RESULT_TIMEOUT:
-		error = "The download timed out. Check your connection and try again."
+		error = tr("The download timed out. Check your connection and try again.")
 	elif result == HTTPRequest.RESULT_DOWNLOAD_FILE_CANT_OPEN or result == HTTPRequest.RESULT_DOWNLOAD_FILE_WRITE_ERROR:
-		error = "Couldn't save the download. Check your free space."
+		error = tr("Couldn't save the download. Check your free space.")
 	elif result != HTTPRequest.RESULT_SUCCESS or code != 200:
-		error = "Download failed. Check your connection and try again."
+		error = tr("Download failed. Check your connection and try again.")
 	elif not _looks_like_pack(part_path):
-		error = "The download was damaged. Please try again."
+		error = tr("The download was damaged. Please try again.")
 
 	if error != "":
 		DirAccess.remove_absolute(part_path)
@@ -263,7 +270,7 @@ func _on_download_completed(result: int, code: int, _headers: PackedStringArray,
 		DirAccess.remove_absolute(final_path)
 	if DirAccess.rename_absolute(part_path, final_path) != OK:
 		DirAccess.remove_absolute(part_path)
-		_safe_call(on_done, ["Couldn't save the download. Check your free space."])
+		_safe_call(on_done, [tr("Couldn't save the download. Check your free space.")])
 		return
 	_set_local_version(id, version)
 	_safe_call(on_done, [""])
@@ -274,11 +281,11 @@ func _on_download_completed(result: int, code: int, _headers: PackedStringArray,
 func mount(id: String) -> String:
 	var game := get_game(id)
 	if game.is_empty():
-		return "This game isn't in the catalog."
+		return tr("This game isn't in the catalog.")
 	if _bundled.has(id) or _mounted.has(id):
 		return ""
 	if not is_downloaded(id):
-		return "This game hasn't been downloaded yet."
+		return tr("This game hasn't been downloaded yet.")
 	# replace_files = false: a pack may only ADD its own files. Older packs
 	# carry stray copies of shared scripts (auth.gd, project.binary...) that
 	# must never shadow the versions this APK shipped with.
@@ -287,7 +294,7 @@ func mount(id: String) -> String:
 		return ""
 	DirAccess.remove_absolute(_pack_path(id))
 	_set_local_version(id, 0)
-	return "This game's files were damaged and have been removed. Tap it again to re-download."
+	return tr("This game's files were damaged and have been removed. Tap it again to re-download.")
 
 # ---------- app update ----------
 

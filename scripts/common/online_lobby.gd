@@ -51,18 +51,18 @@ func _ready() -> void:
 	panel.add_child(box)
 	_menu = box
 
-	box.add_child(_label("🌐 Play %s Online" % game_title, 36, Color(1, 1, 1)))
+	box.add_child(_label(tr("🌐 Play %s Online") % game_title, 36, Color(1, 1, 1)))
 
-	_host_btn = _button("Host a Game")
+	_host_btn = _button(tr("Host a Game"))
 	_host_btn.pressed.connect(_on_host)
 	box.add_child(_host_btn)
 
-	box.add_child(_label("— or join a friend's game —", 24, Color(0.7, 0.72, 0.78)))
+	box.add_child(_label(tr("— or join a friend's game —"), 24, Color(0.7, 0.72, 0.78)))
 	var join_row := HBoxContainer.new()
 	join_row.add_theme_constant_override("separation", 12)
 	box.add_child(join_row)
 	_code_edit = LineEdit.new()
-	_code_edit.placeholder_text = "CODE"
+	_code_edit.placeholder_text = tr("Code")
 	_code_edit.max_length = OnlineSession.CODE_LENGTH
 	_code_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_code_edit.custom_minimum_size = Vector2(240, 80)
@@ -71,7 +71,7 @@ func _ready() -> void:
 	_code_edit.text_changed.connect(_on_code_changed)
 	_code_edit.text_submitted.connect(func(_t): _on_join())
 	join_row.add_child(_code_edit)
-	_join_btn = _button("Join")
+	_join_btn = _button(tr("Join"))
 	_join_btn.custom_minimum_size = Vector2(180, 80)
 	_join_btn.pressed.connect(_on_join)
 	join_row.add_child(_join_btn)
@@ -83,7 +83,7 @@ func _ready() -> void:
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_status)
 
-	var cancel := _button("Cancel")
+	var cancel := _button(tr("Cancel"))
 	cancel.pressed.connect(_on_cancel)
 	box.add_child(cancel)
 
@@ -137,24 +137,24 @@ func _on_host() -> void:
 	s.room_created.connect(_on_room_created)
 	s.opponent_joined.connect(_on_both_in.bind(1), CONNECT_ONE_SHOT)
 	_set_busy(true)
-	_status.text = "Creating a game..."
+	_status.text = tr("Creating a game...")
 	s.host(game_id)
 
 func _on_room_created(code: String) -> void:
 	_code_label.text = code
 	_code_label.visible = true
-	_status.text = "Tell your friend this code.\nWaiting for them to join..."
+	_status.text = tr("Tell your friend this code.\nWaiting for them to join...")
 
 func _on_join() -> void:
 	var code := _code_edit.text.strip_edges()
 	if code.length() != OnlineSession.CODE_LENGTH:
-		_status.text = "Type the %d-letter code from your friend." % OnlineSession.CODE_LENGTH
+		_status.text = tr("Type the %d-letter code from your friend.") % OnlineSession.CODE_LENGTH
 		return
 	var s := _new_session()
 	s.joined.connect(_on_both_in.bind(2), CONNECT_ONE_SHOT)
 	s.join_failed.connect(_on_join_failed)
 	_set_busy(true)
-	_status.text = "Joining %s..." % code
+	_status.text = tr("Joining %s...") % code
 	s.join(game_id, code)
 
 func _on_join_failed(reason: String) -> void:

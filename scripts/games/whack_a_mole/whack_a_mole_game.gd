@@ -25,6 +25,7 @@ var mole_visible_timer: Timer
 var pause_dialog: Control
 
 func _ready() -> void:
+	preload("res://scripts/games/whack_a_mole/whack_a_mole_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = WhackEngine.new()
 	engine.running = false
@@ -37,7 +38,7 @@ func _process(delta: float) -> void:
 		if engine.tick(delta):
 			_end_round()
 		else:
-			time_label.text = "Time: %d" % ceili(engine.time_remaining)
+			time_label.text = tr("Time: %d") % ceili(engine.time_remaining)
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -62,12 +63,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "🔨 Whack-a-Mole"
+	title.text = tr("🔨 Whack-a-Mole")
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -140,7 +141,7 @@ func _build_ui() -> void:
 		mole_labels.append(mole)
 
 	start_btn = Button.new()
-	start_btn.text = "Start Round"
+	start_btn.text = tr("Start Round")
 	start_btn.custom_minimum_size = Vector2(220, 56)
 	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_start_round)
@@ -186,7 +187,7 @@ func _build_result_dialog() -> void:
 	box.add_child(result_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 48)
 	again_btn.pressed.connect(func():
 		result_dialog.visible = false
@@ -195,7 +196,7 @@ func _build_result_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -249,7 +250,7 @@ func _on_hole_pressed(hole: int) -> void:
 		return
 	if engine.whack(hole):
 		mole_labels[hole].visible = false
-		score_label.text = "Score: %d" % engine.score
+		score_label.text = tr("Score: %d") % engine.score
 		_schedule_next_pop()
 
 func _end_round() -> void:
@@ -265,15 +266,15 @@ func _end_round() -> void:
 		_save_best()
 
 	_update_labels()
-	result_label.text = "Time's up!\nScore: %d" % engine.score
+	result_label.text = tr("Time's up!\nScore: %d") % engine.score
 	result_dialog.visible = true
 	start_btn.visible = true
-	start_btn.text = "Play Again"
+	start_btn.text = tr("Play Again")
 
 func _update_labels() -> void:
-	score_label.text = "Score: %d" % engine.score
-	time_label.text = "Time: %d" % ceili(engine.time_remaining)
-	best_label.text = "Best: %d" % best_score
+	score_label.text = tr("Score: %d") % engine.score
+	time_label.text = tr("Time: %d") % ceili(engine.time_remaining)
+	best_label.text = tr("Best: %d") % best_score
 
 func _style_hole(hole: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
@@ -330,9 +331,9 @@ func _exit_tree() -> void:
 	get_tree().paused = false
 
 func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog("Paused", [
-		{"text": "Resume", "action": _resume},
-		{"text": "Exit to Hub", "action": _exit_paused_to_hub},
+	pause_dialog = Ui.build_dialog(tr("Paused"), [
+		{"text": tr("Resume"), "action": _resume},
+		{"text": tr("Exit to Hub"), "action": _exit_paused_to_hub},
 	])
 	pause_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(pause_dialog)

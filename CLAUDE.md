@@ -118,6 +118,41 @@ key as-is. `online_lobby.gd` is the shared Host / Join-by-code screen.
   then stops resolving and sign-in, score sync and online play all fail.
   The user restores it from supabase.com/dashboard. (Happened 2026-09-30.)
 
+## Languages (English / Spanish) -- since v0.16.0
+
+The `Lang` autoload (`scripts/common/lang.gd`) holds the language: first
+launch follows the phone's language, the hub's 🌐 button switches it (saved
+in `user://language.json`). Translation is Godot's own: every Label/Button
+translates its text automatically when a translation for that exact English
+string exists.
+
+- **Source of truth: `tools/i18n/es.json`** -- English string -> Spanish
+  (`null` = not UI text). `python tools/hub.py i18n` regenerates
+  `scripts/common/strings_es.gd` (hub + shared screens, in the APK) and each
+  catalog game's `scripts/games/<id>/<id>_i18n.gd` (in its pack, so new games
+  bring their own Spanish). Anything new it can't find in es.json goes to
+  `tools/i18n/untranslated.json`; translate it and rerun. Never hand-edit the
+  generated files.
+- **Every game's `_ready()` starts with**
+  `preload("res://scripts/games/<id>/<id>_i18n.gd").install(self)` -- it
+  registers straight with TranslationServer (not Lang), so packs also work
+  on apps from before Lang existed (those just follow the phone's language).
+- **Formatted / concatenated text must go through `tr()` first**:
+  `tr("Score: %d") % score`, `tr("Your turn (%s)") % tr("White")`. Plain
+  `label.text = "Play Again"` needs nothing. Not in `const` initializers (tr
+  isn't constant) -- call tr() where the const value is used. In static
+  functions use `str(TranslationServer.translate("..."))`.
+- **Never tr() data**: text sent to the server or compared in logic stays
+  English (e.g. the default account display name "Player").
+- The extractor skips ALL-CAPS literals (word lists), so an all-caps label
+  must be written `tr("Code").to_upper()`.
+- **Game and category names**: `"title_es"` / `"name_es"` in manifest.json
+  (`Lang.pick(entry, "title")` chooses).
+- **Word games switch content, not just buttons**: Hangman and Wordle use
+  Spanish word lists (accents dropped, Ñ kept, Ñ key added) when
+  `TranslationServer.get_locale().begins_with("es")`.
+- Spanish style: neutral Latin American with "tú".
+
 ## Scoping your work: hub vs. a specific game
 
 The only thing connecting a game to the hub is its `manifest.json` entry (a

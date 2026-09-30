@@ -98,13 +98,13 @@ func new_game() -> void:
 ## description of whose turn it is ("White", "Red"...).
 func status_text(my_turn: bool, turn_text: String) -> String:
 	if not opponent_here:
-		return "Opponent disconnected — waiting..."
+		return tr("Opponent disconnected — waiting...")
 	if my_turn:
-		return "Your turn (%s)" % turn_text
-	return "Opponent's turn (%s)" % turn_text
+		return tr("Your turn (%s)") % turn_text
+	return tr("Opponent's turn (%s)") % turn_text
 
 func result_text(i_won: bool) -> String:
-	return "You win!" if i_won else "You lose!"
+	return tr("You win!") if i_won else tr("You lose!")
 
 # ---------- internals ----------
 

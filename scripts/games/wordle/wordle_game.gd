@@ -11,6 +11,7 @@ const UI = preload("res://scripts/common/ui.gd")
 
 const STATS_PATH := "user://wordle_stats.json"
 const KEY_ROWS := ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
+const KEY_ROWS_ES := ["QWERTYUIOP", "ASDFGHJKLÑ", "ZXCVBNM"]
 const COLOR_BG := Color(0.09, 0.09, 0.13)
 const COLOR_EMPTY := Color(0.16, 0.16, 0.2)
 const COLOR_TYPED := Color(0.24, 0.24, 0.3)
@@ -32,8 +33,11 @@ var result_dialog: Control
 var result_label: Label
 
 func _ready() -> void:
+	preload("res://scripts/games/wordle/wordle_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = WordleEngine.new()
+	# Language is fixed for the visit: switching happens in the hub.
+	engine.spanish = TranslationServer.get_locale().begins_with("es")
 	var data = SaveUtil.read(STATS_PATH)
 	if data != null:
 		for k in stats:
@@ -61,18 +65,18 @@ func _build_ui() -> void:
 	var bar := HBoxContainer.new()
 	top_margin.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.add_theme_font_size_override("font_size", 26)
 	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
 	bar.add_child(hub_btn)
 	var title := Label.new()
-	title.text = "🟩 Wordle"
+	title.text = tr("🟩 Wordle")
 	title.add_theme_font_size_override("font_size", 34)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var new_btn := Button.new()
-	new_btn.text = "New"
+	new_btn.text = tr("New")
 	new_btn.add_theme_font_size_override("font_size", 26)
 	new_btn.pressed.connect(_new_game)
 	bar.add_child(new_btn)
@@ -114,22 +118,23 @@ func _build_ui() -> void:
 	var kb := VBoxContainer.new()
 	kb.add_theme_constant_override("separation", 10)
 	kb_margin.add_child(kb)
-	for i in range(KEY_ROWS.size()):
+	var key_rows: Array = KEY_ROWS_ES if engine.spanish else KEY_ROWS
+	for i in range(key_rows.size()):
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 6)
 		kb.add_child(row)
 		if i == 2:
-			row.add_child(_make_key("ENTER", 104, _submit))
-		for letter in KEY_ROWS[i]:
+			row.add_child(_make_key(tr("Enter").to_upper(), 104, _submit))
+		for letter in key_rows[i]:
 			key_buttons[letter] = _make_key(letter, 64, _type_letter.bind(letter))
 			row.add_child(key_buttons[letter])
 		if i == 2:
 			row.add_child(_make_key("⌫", 104, _backspace))
 
 	result_dialog = UI.build_dialog("", [
-		{"text": "Next Word", "action": _new_game},
-		{"text": "Back to Hub", "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("Next Word"), "action": _new_game},
+		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	result_label = result_dialog.get_meta("message_label")
 	add_child(result_dialog)
@@ -152,8 +157,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_submit()
 	elif event.keycode == KEY_BACKSPACE:
 		_backspace()
-	elif event.keycode >= KEY_A and event.keycode <= KEY_Z:
-		_type_letter(char(event.keycode))
+	elif event.unicode > 0:
+		var letter := char(event.unicode).to_upper()
+		if key_buttons.has(letter):  # A-Z, plus Ñ in Spanish
+			_type_letter(letter)
 
 # ---------- flow ----------
 
@@ -182,7 +189,7 @@ func _submit() -> void:
 		return
 	var result: String = engine.submit(current)
 	if result == "short":
-		message_label.text = "Not enough letters"
+		message_label.text = tr("Not enough letters")
 		return
 	current = ""
 	_render()
@@ -200,10 +207,10 @@ func _record_result(won: bool) -> void:
 	SaveUtil.write(STATS_PATH, stats)
 	var headline: String
 	if won:
-		headline = ["Genius!", "Magnificent!", "Impressive!", "Splendid!", "Great!", "Phew!"][engine.guesses.size() - 1]
+		headline = [tr("Genius!"), tr("Magnificent!"), tr("Impressive!"), tr("Splendid!"), tr("Great!"), tr("Phew!")][engine.guesses.size() - 1]
 	else:
-		headline = "The word was %s" % engine.answer
-	result_label.text = "%s\n\nPlayed %d · Won %d%%\nStreak %d · Best %d" % [
+		headline = tr("The word was %s") % engine.answer
+	result_label.text = tr("%s\n\nPlayed %d · Won %d%%\nStreak %d · Best %d") % [
 		headline, stats.played, int(round(100.0 * stats.wins / max(stats.played, 1))), stats.streak, stats.best_streak]
 	create_tween().tween_callback(_show_result).set_delay(0.6)
 

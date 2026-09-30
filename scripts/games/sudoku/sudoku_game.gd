@@ -60,6 +60,7 @@ var notes_status_label: Label
 var number_buttons: Array = []
 
 func _ready() -> void:
+	preload("res://scripts/games/sudoku/sudoku_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	randomize()
 	_build_ui()
@@ -112,14 +113,14 @@ func _build_difficulty_screen() -> void:
 	difficulty_screen.add_child(box)
 
 	var title := Label.new()
-	title.text = "Sudoku"
+	title.text = tr("Sudoku")
 	title.add_theme_font_size_override("font_size", 46)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "Choose a difficulty"
+	subtitle.text = tr("Choose a difficulty")
 	subtitle.add_theme_font_size_override("font_size", 25)
 	subtitle.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -130,7 +131,7 @@ func _build_difficulty_screen() -> void:
 	box.add_child(spacer)
 
 	continue_button = Button.new()
-	continue_button.text = "Continue"
+	continue_button.text = tr("Continue")
 	continue_button.custom_minimum_size = Vector2(260, 60)
 	continue_button.add_theme_font_size_override("font_size", 28)
 	continue_button.visible = false
@@ -146,7 +147,7 @@ func _build_difficulty_screen() -> void:
 		box.add_child(btn)
 
 	var back_btn := Button.new()
-	back_btn.text = "Back to Hub"
+	back_btn.text = tr("Back to Hub")
 	back_btn.custom_minimum_size = Vector2(260, 50)
 	back_btn.add_theme_font_size_override("font_size", 24)
 	back_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
@@ -213,22 +214,22 @@ func _build_game_screen() -> void:
 	var stats_row := HBoxContainer.new()
 	stats_margin.add_child(stats_row)
 
-	var time_block := _stat_block("Time")
+	var time_block := _stat_block(tr("Time"))
 	timer_label = time_block.value_label
 	timer_label.text = "00:00"
 	stats_row.add_child(time_block.box)
 
-	var diff_block := _stat_block("Difficulty")
+	var diff_block := _stat_block(tr("Difficulty"))
 	difficulty_label = diff_block.value_label
-	difficulty_label.text = "Medium"
+	difficulty_label.text = tr("Medium")
 	stats_row.add_child(diff_block.box)
 
-	var score_block := _stat_block("Score")
+	var score_block := _stat_block(tr("Score"))
 	score_label = score_block.value_label
 	score_label.text = "0"
 	stats_row.add_child(score_block.box)
 
-	var mistakes_block := _stat_block("Mistakes")
+	var mistakes_block := _stat_block(tr("Mistakes"))
 	mistakes_label = mistakes_block.value_label
 	mistakes_label.text = "0"
 	stats_row.add_child(mistakes_block.box)
@@ -291,22 +292,22 @@ func _build_game_screen() -> void:
 	controls.add_theme_constant_override("separation", 4)
 	controls_margin.add_child(controls)
 
-	var undo_action := _icon_action_button("↺", "Undo")
+	var undo_action := _icon_action_button("↺", tr("Undo"))
 	undo_action.button.pressed.connect(_on_undo_pressed)
 	controls.add_child(undo_action.control)
 
-	var erase_action := _icon_action_button("⌫", "Erase")
+	var erase_action := _icon_action_button("⌫", tr("Erase"))
 	erase_action.button.pressed.connect(_on_erase_pressed)
 	controls.add_child(erase_action.control)
 
-	var notes_action := _icon_action_button("✎", "Notes: Off")
+	var notes_action := _icon_action_button("✎", tr("Notes: Off"))
 	notes_button = notes_action.button
 	notes_button.toggle_mode = true
 	notes_status_label = notes_action.text_label
 	notes_button.pressed.connect(_on_notes_toggled)
 	controls.add_child(notes_action.control)
 
-	var hint_action := _icon_action_button("💡", "Hint: %d" % hints_remaining)
+	var hint_action := _icon_action_button("💡", tr("Hint: %d") % hints_remaining)
 	hint_label = hint_action.text_label
 	hint_action.button.pressed.connect(_on_hint_pressed)
 	controls.add_child(hint_action.control)
@@ -424,7 +425,7 @@ func _build_loading_overlay() -> void:
 	loading_overlay.add_child(center)
 
 	var label := Label.new()
-	label.text = "Generating puzzle..."
+	label.text = tr("Generating puzzle...")
 	label.add_theme_font_size_override("font_size", 31)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	center.add_child(label)
@@ -459,7 +460,7 @@ func _build_win_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Puzzle Solved!"
+	title.text = tr("Puzzle Solved!")
 	title.add_theme_font_size_override("font_size", 41)
 	title.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -472,7 +473,7 @@ func _build_win_dialog() -> void:
 	box.add_child(win_stats_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(220, 56)
 	again_btn.add_theme_font_size_override("font_size", 28)
 	again_btn.pressed.connect(func():
@@ -482,7 +483,7 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Choose Difficulty"
+	menu_btn.text = tr("Choose Difficulty")
 	menu_btn.custom_minimum_size = Vector2(220, 50)
 	menu_btn.add_theme_font_size_override("font_size", 25)
 	menu_btn.pressed.connect(func():
@@ -522,21 +523,21 @@ func _build_pause_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Paused"
+	title.text = tr("Paused")
 	title.add_theme_font_size_override("font_size", 41)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var resume_btn := Button.new()
-	resume_btn.text = "Resume"
+	resume_btn.text = tr("Resume")
 	resume_btn.custom_minimum_size = Vector2(240, 56)
 	resume_btn.add_theme_font_size_override("font_size", 28)
 	resume_btn.pressed.connect(_on_resume_pressed)
 	box.add_child(resume_btn)
 
 	var new_puzzle_btn := Button.new()
-	new_puzzle_btn.text = "New Puzzle (Same Difficulty)"
+	new_puzzle_btn.text = tr("New Puzzle (Same Difficulty)")
 	new_puzzle_btn.custom_minimum_size = Vector2(240, 50)
 	new_puzzle_btn.add_theme_font_size_override("font_size", 23)
 	new_puzzle_btn.pressed.connect(func():
@@ -548,7 +549,7 @@ func _build_pause_dialog() -> void:
 	box.add_child(new_puzzle_btn)
 
 	var change_diff_btn := Button.new()
-	change_diff_btn.text = "Change Difficulty"
+	change_diff_btn.text = tr("Change Difficulty")
 	change_diff_btn.custom_minimum_size = Vector2(240, 50)
 	change_diff_btn.add_theme_font_size_override("font_size", 24)
 	change_diff_btn.pressed.connect(func():
@@ -560,7 +561,7 @@ func _build_pause_dialog() -> void:
 	box.add_child(change_diff_btn)
 
 	var exit_btn := Button.new()
-	exit_btn.text = "Exit to Hub"
+	exit_btn.text = tr("Exit to Hub")
 	exit_btn.custom_minimum_size = Vector2(240, 50)
 	exit_btn.add_theme_font_size_override("font_size", 24)
 	exit_btn.pressed.connect(func():
@@ -611,7 +612,7 @@ func _on_generation_complete(result: Dictionary) -> void:
 	scored_cells = {}
 	selected = Vector2i(-1, -1)
 	notes_mode = false
-	notes_status_label.text = "Notes: Off"
+	notes_status_label.text = tr("Notes: Off")
 	notes_button.button_pressed = false
 
 	_populate_board()
@@ -690,7 +691,7 @@ func _on_erase_pressed() -> void:
 
 func _on_notes_toggled() -> void:
 	notes_mode = notes_button.button_pressed
-	notes_status_label.text = "Notes: On" if notes_mode else "Notes: Off"
+	notes_status_label.text = tr("Notes: On") if notes_mode else tr("Notes: Off")
 
 func _on_pause_pressed() -> void:
 	if not game_active:
@@ -752,7 +753,7 @@ func _on_hint_pressed() -> void:
 	cell.is_error = false
 	cell.update_display()
 	hints_remaining -= 1
-	hint_label.text = "Hint: %d" % hints_remaining
+	hint_label.text = tr("Hint: %d") % hints_remaining
 	_update_status_bar()
 	_refresh_highlights()
 	_update_number_pad()
@@ -787,7 +788,7 @@ func _check_win() -> void:
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
 	var final_score := _compute_final_score()
-	win_stats_label.text = "Time: %s   Mistakes: %d\nFinal Score: %d" % [_format_time(elapsed_seconds), mistakes, final_score]
+	win_stats_label.text = tr("Time: %s   Mistakes: %d\nFinal Score: %d") % [_format_time(elapsed_seconds), mistakes, final_score]
 	win_dialog.visible = true
 
 func _compute_final_score() -> int:
@@ -831,7 +832,7 @@ func _refresh_continue_button() -> void:
 		continue_button.visible = false
 		return
 	continue_button.visible = true
-	continue_button.text = "Continue (%s - %s)" % [str(data.get("difficulty", "medium")).capitalize(), _format_time(float(data.get("elapsed_seconds", 0.0)))]
+	continue_button.text = tr("Continue (%s - %s)") % [tr(str(data.get("difficulty", "medium")).capitalize()), _format_time(float(data.get("elapsed_seconds", 0.0)))]
 
 func _load_saved_game() -> void:
 	var data = SaveUtil.read(SAVE_PATH)
@@ -851,9 +852,9 @@ func _load_saved_game() -> void:
 		scored_cells[int(key)] = true
 	selected = Vector2i(-1, -1)
 	notes_mode = false
-	notes_status_label.text = "Notes: Off"
+	notes_status_label.text = tr("Notes: Off")
 	notes_button.button_pressed = false
-	hint_label.text = "Hint: %d" % hints_remaining
+	hint_label.text = tr("Hint: %d") % hints_remaining
 
 	var values: Array = data.values
 	var notes_data: Array = data.notes

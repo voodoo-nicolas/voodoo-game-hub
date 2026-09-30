@@ -24,6 +24,7 @@ var game_over_label: Label
 var best_level: int = 0
 
 func _ready() -> void:
+	preload("res://scripts/games/simon/simon_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = SimonEngine.new()
 	_build_ui()
@@ -54,12 +55,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "Simon"
+	title.text = tr("Simon")
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -154,20 +155,20 @@ func _build_start_dialog() -> void:
 	panel.add_child(box)
 
 	game_over_label = Label.new()
-	game_over_label.text = "Simon"
+	game_over_label.text = tr("Simon")
 	game_over_label.add_theme_font_size_override("font_size", 31)
 	game_over_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(game_over_label)
 
 	var start_btn := Button.new()
-	start_btn.text = "Start"
+	start_btn.text = tr("Start")
 	start_btn.custom_minimum_size = Vector2(200, 48)
 	start_btn.pressed.connect(_start_game)
 	box.add_child(start_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -175,8 +176,8 @@ func _build_start_dialog() -> void:
 # ---------- game flow ----------
 
 func _show_start_dialog() -> void:
-	game_over_label.text = "Simon"
-	status_label.text = "Watch, then repeat the sequence"
+	game_over_label.text = tr("Simon")
+	status_label.text = tr("Watch, then repeat the sequence")
 	start_dialog.visible = true
 
 func _start_game() -> void:
@@ -186,7 +187,7 @@ func _start_game() -> void:
 
 func _next_round() -> void:
 	engine.next_round()
-	status_label.text = "Level %d" % engine.level
+	status_label.text = tr("Level %d") % engine.level
 	_play_sequence()
 
 ## A Tween owned by this scene rather than a chain of awaits on SceneTree
@@ -227,12 +228,12 @@ func _on_pad_pressed(i: int) -> void:
 			pause_timer.timeout.connect(_next_round)
 		"wrong":
 			accepting_input = false
-			game_over_label.text = "Game Over — reached level %d" % engine.level
+			game_over_label.text = tr("Game Over — reached level %d") % engine.level
 			status_label.text = ""
 			start_dialog.visible = true
 
 func _update_best_label() -> void:
-	best_label.text = "Best: %d" % best_level
+	best_label.text = tr("Best: %d") % best_level
 
 func _save_best() -> void:
 	SaveUtil.write(BEST_PATH, {"best_level": best_level})

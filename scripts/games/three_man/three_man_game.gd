@@ -25,6 +25,7 @@ var messages_label: Label
 var roll_btn: Button
 
 func _ready() -> void:
+	preload("res://scripts/games/three_man/three_man_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = ThreeManEngine.new()
 	_build_ui()
@@ -52,12 +53,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "3️⃣ Three Man"
+	title.text = tr("3️⃣ Three Man")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -84,7 +85,7 @@ func _build_setup(root: VBoxContainer) -> void:
 	setup_box.add_child(box)
 
 	var label := Label.new()
-	label.text = "How many players?"
+	label.text = tr("How many players?")
 	label.add_theme_font_size_override("font_size", 31)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -124,14 +125,14 @@ func _build_setup(root: VBoxContainer) -> void:
 	counter_row.add_child(plus_btn)
 
 	var start_btn := Button.new()
-	start_btn.text = "Start Game"
+	start_btn.text = tr("Start Game")
 	start_btn.custom_minimum_size = Vector2(220, 56)
 	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_on_start_pressed)
 	box.add_child(start_btn)
 
 	var rules_label := Label.new()
-	rules_label.text = "Roll 1 die each — lowest goes first (ties re-roll).\nThen pass the phone: roll 2 dice on your turn.\n7 = right drinks · 11 = left drinks · Doubles = give that many\nAny 3 (or 2&1) = become/feed 3 Man. Keep rolling while someone drinks!"
+	rules_label.text = tr("Roll 1 die each — lowest goes first (ties re-roll).\nThen pass the phone: roll 2 dice on your turn.\n7 = right drinks · 11 = left drinks · Doubles = give that many\nAny 3 (or 2&1) = become/feed 3 Man. Keep rolling while someone drinks!")
 	rules_label.add_theme_font_size_override("font_size", 19)
 	rules_label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.6))
 	rules_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -151,7 +152,7 @@ func _build_tiebreak(root: VBoxContainer) -> void:
 	tiebreak_box.add_child(box)
 
 	var label := Label.new()
-	label.text = "Rolling to see who goes first…"
+	label.text = tr("Rolling to see who goes first…")
 	label.add_theme_font_size_override("font_size", 26)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -172,7 +173,7 @@ func _build_tiebreak(root: VBoxContainer) -> void:
 	box.add_child(tiebreak_status_label)
 
 	tiebreak_btn = Button.new()
-	tiebreak_btn.text = "Roll for First"
+	tiebreak_btn.text = tr("Roll for First")
 	tiebreak_btn.custom_minimum_size = Vector2(220, 56)
 	tiebreak_btn.add_theme_font_size_override("font_size", 26)
 	tiebreak_btn.pressed.connect(_on_tiebreak_pressed)
@@ -217,7 +218,7 @@ func _build_play(root: VBoxContainer) -> void:
 	box.add_child(messages_label)
 
 	roll_btn = Button.new()
-	roll_btn.text = "🎲 Roll"
+	roll_btn.text = tr("🎲 Roll")
 	roll_btn.custom_minimum_size = Vector2(220, 56)
 	roll_btn.add_theme_font_size_override("font_size", 26)
 	roll_btn.pressed.connect(_on_roll_pressed)
@@ -237,7 +238,7 @@ func _on_start_pressed() -> void:
 	tiebreak_box.visible = true
 	tiebreak_rolls_label.text = ""
 	tiebreak_status_label.text = ""
-	tiebreak_btn.text = "Roll for First"
+	tiebreak_btn.text = tr("Roll for First")
 
 func _on_tiebreak_pressed() -> void:
 	var result: Dictionary = engine.roll_tiebreak()
@@ -247,15 +248,15 @@ func _on_tiebreak_pressed() -> void:
 	tiebreak_rolls_label.text = ", ".join(pieces)
 
 	if result.resolved:
-		tiebreak_status_label.text = "Player %d goes first!" % (result.first_player + 1)
-		tiebreak_btn.text = "Start Playing ➜"
+		tiebreak_status_label.text = tr("Player %d goes first!") % (result.first_player + 1)
+		tiebreak_btn.text = tr("Start Playing ➜")
 		tiebreak_btn.pressed.disconnect(_on_tiebreak_pressed)
 		tiebreak_btn.pressed.connect(_on_begin_play)
 	else:
 		var names: PackedStringArray = []
 		for p in result.pool:
 			names.append("P%d" % (p + 1))
-		tiebreak_status_label.text = "Tied: %s — reroll!" % ", ".join(names)
+		tiebreak_status_label.text = tr("Tied: %s — reroll!") % ", ".join(names)
 
 func _on_begin_play() -> void:
 	tiebreak_box.visible = false
@@ -265,20 +266,20 @@ func _on_begin_play() -> void:
 	_update_turn_display()
 
 func _update_turn_display() -> void:
-	turn_label.text = "Player %d's turn" % (engine.current_player + 1)
-	three_man_label.text = "3 Man: Player %d" % (engine.three_man + 1) if engine.three_man >= 0 else "3 Man: not assigned yet"
-	roll_btn.text = "🎲 Roll"
+	turn_label.text = tr("Player %d's turn") % (engine.current_player + 1)
+	three_man_label.text = tr("3 Man: Player %d") % (engine.three_man + 1) if engine.three_man >= 0 else tr("3 Man: not assigned yet")
+	roll_btn.text = tr("🎲 Roll")
 
 func _on_roll_pressed() -> void:
 	var result: Dictionary = engine.roll_turn()
 	dice_label.text = "%s %s" % [DIE_FACES[result.die1], DIE_FACES[result.die2]]
 	messages_label.text = "\n".join(result.messages)
-	three_man_label.text = "3 Man: Player %d" % (engine.three_man + 1) if engine.three_man >= 0 else "3 Man: not assigned yet"
+	three_man_label.text = tr("3 Man: Player %d") % (engine.three_man + 1) if engine.three_man >= 0 else tr("3 Man: not assigned yet")
 
 	if result.continue_turn:
-		roll_btn.text = "🎲 Roll Again"
+		roll_btn.text = tr("🎲 Roll Again")
 	else:
-		roll_btn.text = "Next Player ➜"
+		roll_btn.text = tr("Next Player ➜")
 		roll_btn.pressed.disconnect(_on_roll_pressed)
 		roll_btn.pressed.connect(_on_next_player_pressed)
 

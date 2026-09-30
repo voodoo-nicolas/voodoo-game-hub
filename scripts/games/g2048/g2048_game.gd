@@ -44,6 +44,7 @@ var touch_start: Vector2 = Vector2.ZERO
 var touch_active: bool = false
 
 func _ready() -> void:
+	preload("res://scripts/games/g2048/g2048_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = G2048Engine.new()
 	_build_ui()
@@ -86,9 +87,9 @@ func _try_move(dir: String) -> void:
 		_render()
 		if not shown_2048_banner and engine.has_2048():
 			shown_2048_banner = true
-			_show_end("You reached 2048!", true)
+			_show_end(tr("You reached 2048!"), true)
 		elif not engine.can_move():
-			_show_end("Game Over", false)
+			_show_end(tr("Game Over"), false)
 
 # ---------- UI construction ----------
 
@@ -116,7 +117,7 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = "Pause"
+	pause_btn.text = tr("Pause")
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
@@ -129,7 +130,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -149,7 +150,7 @@ func _build_ui() -> void:
 	box.add_child(score_label)
 
 	var hint := Label.new()
-	hint.text = "Swipe or use arrow keys"
+	hint.text = tr("Swipe or use arrow keys")
 	hint.add_theme_font_size_override("font_size", 19)
 	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -230,20 +231,20 @@ func _build_pause_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Paused"
+	title.text = tr("Paused")
 	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var resume_btn := Button.new()
-	resume_btn.text = "Resume"
+	resume_btn.text = tr("Resume")
 	resume_btn.custom_minimum_size = Vector2(200, 48)
 	resume_btn.pressed.connect(func(): pause_dialog.visible = false)
 	box.add_child(resume_btn)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.custom_minimum_size = Vector2(200, 44)
 	restart_btn.pressed.connect(func():
 		pause_dialog.visible = false
@@ -252,7 +253,7 @@ func _build_pause_dialog() -> void:
 	box.add_child(restart_btn)
 
 	var exit_btn := Button.new()
-	exit_btn.text = "Exit to Hub"
+	exit_btn.text = tr("Exit to Hub")
 	exit_btn.custom_minimum_size = Vector2(200, 44)
 	exit_btn.pressed.connect(func():
 		_save_game()
@@ -306,7 +307,7 @@ func _show_end(title: String, can_continue: bool) -> void:
 		game_active = false
 		SaveUtil.delete(SAVE_PATH)
 
-	end_title.text = "%s\nScore: %d" % [title, engine.score]
+	end_title.text = tr("%s\nScore: %d") % [title, engine.score]
 
 	for child in end_buttons_box.get_children():
 		if child != end_title:
@@ -315,13 +316,13 @@ func _show_end(title: String, can_continue: bool) -> void:
 
 	if can_continue:
 		var continue_btn := Button.new()
-		continue_btn.text = "Keep Going"
+		continue_btn.text = tr("Keep Going")
 		continue_btn.custom_minimum_size = Vector2(200, 48)
 		continue_btn.pressed.connect(func(): end_dialog.visible = false)
 		end_buttons_box.add_child(continue_btn)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 44)
 	again_btn.pressed.connect(func():
 		end_dialog.visible = false
@@ -330,7 +331,7 @@ func _show_end(title: String, can_continue: bool) -> void:
 	end_buttons_box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	end_buttons_box.add_child(menu_btn)
@@ -355,7 +356,7 @@ func _render() -> void:
 			var scale: float = 0.4 if text.length() <= 2 else (0.32 if text.length() == 3 else 0.26)
 			tile_labels[r][c].add_theme_font_size_override("font_size", int(tile_size * scale))
 
-	score_label.text = "Score: %d" % engine.score
+	score_label.text = tr("Score: %d") % engine.score
 
 # ---------- save / load ----------
 

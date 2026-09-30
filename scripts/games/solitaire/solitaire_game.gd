@@ -36,6 +36,7 @@ var timer_running: bool = false
 var game_active: bool = false
 
 func _ready() -> void:
+	preload("res://scripts/games/solitaire/solitaire_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = SolitaireEngine.new()
 	_build_ui()
@@ -81,19 +82,19 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_button := Button.new()
-	pause_button.text = "Pause"
+	pause_button.text = tr("Pause")
 	pause_button.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_button)
 
 	timer_label = _stat_label("00:00")
-	moves_label = _stat_label("Moves: 0")
+	moves_label = _stat_label(tr("Moves: 0"))
 	for l in [timer_label, moves_label]:
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		top_bar.add_child(l)
 
 	undo_button = Button.new()
-	undo_button.text = "Undo"
+	undo_button.text = tr("Undo")
 	undo_button.pressed.connect(_on_undo_pressed)
 	top_bar.add_child(undo_button)
 
@@ -149,7 +150,7 @@ func _build_win_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "You Win!"
+	title.text = tr("You Win!")
 	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -162,7 +163,7 @@ func _build_win_dialog() -> void:
 	box.add_child(win_stats_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 48)
 	again_btn.pressed.connect(func():
 		win_dialog.visible = false
@@ -171,7 +172,7 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -207,20 +208,20 @@ func _build_pause_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Paused"
+	title.text = tr("Paused")
 	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var resume_btn := Button.new()
-	resume_btn.text = "Resume"
+	resume_btn.text = tr("Resume")
 	resume_btn.custom_minimum_size = Vector2(220, 48)
 	resume_btn.pressed.connect(_on_resume_pressed)
 	box.add_child(resume_btn)
 
 	var new_deal_btn := Button.new()
-	new_deal_btn.text = "New Deal"
+	new_deal_btn.text = tr("New Deal")
 	new_deal_btn.custom_minimum_size = Vector2(220, 44)
 	new_deal_btn.pressed.connect(func():
 		pause_dialog.visible = false
@@ -230,7 +231,7 @@ func _build_pause_dialog() -> void:
 	box.add_child(new_deal_btn)
 
 	var exit_btn := Button.new()
-	exit_btn.text = "Exit to Hub"
+	exit_btn.text = tr("Exit to Hub")
 	exit_btn.custom_minimum_size = Vector2(220, 44)
 	exit_btn.pressed.connect(func():
 		_save_game()
@@ -348,7 +349,7 @@ func _render() -> void:
 			cview.card_pressed.connect(_on_card_pressed)
 			board_area.add_child(cview)
 
-	moves_label.text = "Moves: %d" % engine.move_count
+	moves_label.text = tr("Moves: %d") % engine.move_count
 
 # ---------- interaction ----------
 
@@ -412,7 +413,7 @@ func _show_win() -> void:
 	timer_running = false
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
-	win_stats_label.text = "Time: %s   Moves: %d" % [_format_time(elapsed_seconds), engine.move_count]
+	win_stats_label.text = tr("Time: %s   Moves: %d") % [_format_time(elapsed_seconds), engine.move_count]
 	win_dialog.visible = true
 
 # ---------- save / load ----------

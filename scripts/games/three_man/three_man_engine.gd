@@ -73,45 +73,45 @@ func roll_turn() -> Dictionary:
 		# 3&3: always gives out 3 drinks; only changes 3 Man status if the
 		# current 3 Man rolled it themselves (net no-op — they stay 3 Man).
 		if three_man == -1:
-			messages.append("No one is 3 Man yet — stays that way.")
+			messages.append(tr("No one is 3 Man yet — stays that way."))
 		elif three_man == current_player:
-			messages.append("%s is still 3 Man." % _name(current_player))
+			messages.append(tr("%s is still 3 Man.") % _name(current_player))
 		else:
-			messages.append("%s (3 Man) drinks twice." % _name(three_man))
-		messages.append("Give out 3 drinks, your choice.")
+			messages.append(tr("%s (3 Man) drinks twice.") % _name(three_man))
+		messages.append(tr("Give out 3 drinks, your choice."))
 		continue_turn = true
 	elif is_double:
-		messages.append("Doubles! Give out %d drinks, your choice." % d1)
+		messages.append(tr("Doubles! Give out %d drinks, your choice.") % d1)
 		continue_turn = true
 	elif has_three and s == 7:
 		# 3&4: hybrid of the 3 Man trigger and the sum-of-7 "give right" rule.
 		if three_man == -1:
 			three_man = current_player
-			messages.append("%s becomes 3 Man!" % _name(current_player))
+			messages.append(tr("%s becomes 3 Man!") % _name(current_player))
 		elif three_man == current_player:
 			three_man = -1
-			messages.append("%s is no longer 3 Man!" % _name(current_player))
+			messages.append(tr("%s is no longer 3 Man!") % _name(current_player))
 		else:
-			messages.append("%s (3 Man) drinks 1." % _name(three_man))
-		messages.append("%s drinks 1 (to your right)." % _name(right))
+			messages.append(tr("%s (3 Man) drinks 1.") % _name(three_man))
+		messages.append(tr("%s drinks 1 (to your right).") % _name(right))
 		continue_turn = true
 	elif has_three or s == 3:
 		# Plain 3 trigger: a literal 3 on a die, or the 2&1 combo.
 		if three_man == -1:
 			three_man = current_player
-			messages.append("%s becomes 3 Man!" % _name(current_player))
+			messages.append(tr("%s becomes 3 Man!") % _name(current_player))
 			continue_turn = false
 		else:
-			messages.append("%s (3 Man) drinks 1." % _name(three_man))
+			messages.append(tr("%s (3 Man) drinks 1.") % _name(three_man))
 			continue_turn = true
 	elif s == 7:
-		messages.append("%s drinks 1 (to your right)." % _name(right))
+		messages.append(tr("%s drinks 1 (to your right).") % _name(right))
 		continue_turn = true
 	elif s == 11:
-		messages.append("%s drinks 1 (to your left)." % _name(left))
+		messages.append(tr("%s drinks 1 (to your left).") % _name(left))
 		continue_turn = true
 	else:
-		messages.append("Nothing happens.")
+		messages.append(tr("Nothing happens."))
 		continue_turn = false
 
 	return {
@@ -125,4 +125,4 @@ func advance_player() -> void:
 	current_player = left_of(current_player)
 
 func _name(player: int) -> String:
-	return "Player %d" % (player + 1)
+	return tr("Player %d") % (player + 1)

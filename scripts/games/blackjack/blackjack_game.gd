@@ -40,6 +40,7 @@ var double_btn: Button
 var next_row: Control
 
 func _ready() -> void:
+	preload("res://scripts/games/blackjack/blackjack_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = BlackjackEngine.new()
 	var data = SaveUtil.read(CHIPS_PATH)
@@ -86,12 +87,12 @@ func _build_ui() -> void:
 	var bar := HBoxContainer.new()
 	top_margin.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.add_theme_font_size_override("font_size", 26)
 	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
 	bar.add_child(hub_btn)
 	var title := Label.new()
-	title.text = "🂱 Blackjack"
+	title.text = tr("🂱 Blackjack")
 	title.add_theme_font_size_override("font_size", 34)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -101,7 +102,7 @@ func _build_ui() -> void:
 	chips_label.add_theme_color_override("font_color", Color(1, 0.84, 0.3))
 	bar.add_child(chips_label)
 
-	root.add_child(_section_label("Dealer"))
+	root.add_child(_section_label(tr("Dealer")))
 	dealer_value = _value_label()
 	root.add_child(dealer_value)
 	dealer_cards = _card_row()
@@ -119,7 +120,7 @@ func _build_ui() -> void:
 	root.add_child(player_cards)
 	player_value = _value_label()
 	root.add_child(player_value)
-	root.add_child(_section_label("You"))
+	root.add_child(_section_label(tr("You")))
 
 	var controls := MarginContainer.new()
 	controls.add_theme_constant_override("margin_bottom", 40)
@@ -147,8 +148,8 @@ func _build_ui() -> void:
 	deal_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	deal_row.add_theme_constant_override("separation", 12)
 	bet_box.add_child(deal_row)
-	deal_row.add_child(_button("Clear", 200, _clear_bet))
-	deal_row.add_child(_button("Deal", 300, _deal))
+	deal_row.add_child(_button(tr("Clear"), 200, _clear_bet))
+	deal_row.add_child(_button(tr("Deal"), 300, _deal))
 
 	# Playing controls
 	var act := HBoxContainer.new()
@@ -157,16 +158,16 @@ func _build_ui() -> void:
 	act.add_theme_constant_override("separation", 12)
 	action_row = act
 	controls.add_child(act)
-	act.add_child(_button("Hit", 200, _hit))
-	act.add_child(_button("Stand", 200, _stand))
-	double_btn = _button("Double", 200, _double)
+	act.add_child(_button(tr("Hit"), 200, _hit))
+	act.add_child(_button(tr("Stand"), 200, _stand))
+	double_btn = _button(tr("Double"), 200, _double)
 	act.add_child(double_btn)
 
 	# After the hand
 	var nxt := CenterContainer.new()
 	next_row = nxt
 	controls.add_child(nxt)
-	nxt.add_child(_button("Next Hand", 360, _to_betting))
+	nxt.add_child(_button(tr("Next Hand"), 360, _to_betting))
 
 	add_child(SettingsDrawer.new())
 
@@ -227,9 +228,9 @@ func _make_card(card: Dictionary, face_up: bool) -> Control:
 func _to_betting() -> void:
 	if engine.is_broke():
 		engine.rebuy()
-		message_label.text = "Out of chips — here's a fresh %d." % BlackjackEngine.STARTING_CHIPS
+		message_label.text = tr("Out of chips — here's a fresh %d.") % BlackjackEngine.STARTING_CHIPS
 	else:
-		message_label.text = "Place your bet"
+		message_label.text = tr("Place your bet")
 	engine.phase = BlackjackEngine.Phase.BETTING
 	pending_bet = min(last_bet, engine.chips) if last_bet >= BlackjackEngine.MIN_BET else 0
 	_render()
@@ -244,7 +245,7 @@ func _clear_bet() -> void:
 
 func _deal() -> void:
 	if pending_bet < BlackjackEngine.MIN_BET:
-		message_label.text = "Minimum bet is %d" % BlackjackEngine.MIN_BET
+		message_label.text = tr("Minimum bet is %d") % BlackjackEngine.MIN_BET
 		return
 	last_bet = pending_bet
 	if engine.deal(pending_bet):
@@ -265,7 +266,7 @@ func _double() -> void:
 
 func _after_action() -> void:
 	if engine.phase == BlackjackEngine.Phase.ROUND_OVER:
-		var text: String = OUTCOME_TEXT.get(engine.outcome, "")
+		var text: String = tr(OUTCOME_TEXT.get(engine.outcome, ""))
 		message_label.text = text % engine.payout if text.contains("%d") else text
 		_save_game()
 	_render()
@@ -279,7 +280,7 @@ func _render() -> void:
 	action_row.visible = phase == BlackjackEngine.Phase.PLAYER_TURN
 	next_row.visible = phase == BlackjackEngine.Phase.ROUND_OVER
 	double_btn.disabled = not engine.can_double()
-	bet_label.text = "Bet: %d" % pending_bet
+	bet_label.text = tr("Bet: %d") % pending_bet
 
 	for row in [dealer_cards, player_cards]:
 		for child in row.get_children():
@@ -295,7 +296,7 @@ func _render() -> void:
 	for card in engine.player:
 		player_cards.add_child(_make_card(card, true))
 	dealer_value.text = "?" if hide_hole else _value_text(engine.dealer)
-	player_value.text = "%s   (bet %d)" % [_value_text(engine.player), engine.bet]
+	player_value.text = tr("%s   (bet %d)") % [_value_text(engine.player), engine.bet]
 
 func _value_text(hand: Array) -> String:
 	var v: Dictionary = BlackjackEngine.hand_value(hand)

@@ -42,12 +42,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(_go_to_hub)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "Account"
+	title.text = tr("Account")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -72,7 +72,7 @@ func _build_ui() -> void:
 	box.add_child(tab_row)
 
 	sign_in_tab = Button.new()
-	sign_in_tab.text = "Sign In"
+	sign_in_tab.text = tr("Sign In")
 	sign_in_tab.custom_minimum_size = Vector2(0, 46)
 	sign_in_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sign_in_tab.add_theme_font_size_override("font_size", 23)
@@ -81,7 +81,7 @@ func _build_ui() -> void:
 	tab_row.add_child(sign_in_tab)
 
 	sign_up_tab = Button.new()
-	sign_up_tab.text = "Sign Up"
+	sign_up_tab.text = tr("Sign Up")
 	sign_up_tab.custom_minimum_size = Vector2(0, 46)
 	sign_up_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sign_up_tab.add_theme_font_size_override("font_size", 23)
@@ -96,33 +96,33 @@ func _build_ui() -> void:
 	display_name_row.add_theme_constant_override("separation", 4)
 	box.add_child(display_name_row)
 	var dn_label := Label.new()
-	dn_label.text = "Display name"
+	dn_label.text = tr("Display name")
 	dn_label.add_theme_font_size_override("font_size", 19)
 	dn_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	display_name_row.add_child(dn_label)
 	display_name_field = LineEdit.new()
-	display_name_field.placeholder_text = "What should we call you?"
+	display_name_field.placeholder_text = tr("What should we call you?")
 	display_name_field.custom_minimum_size = Vector2(0, 44)
 	display_name_row.add_child(display_name_field)
 
 	var email_label := Label.new()
-	email_label.text = "Email"
+	email_label.text = tr("Email")
 	email_label.add_theme_font_size_override("font_size", 19)
 	email_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	box.add_child(email_label)
 	email_field = LineEdit.new()
-	email_field.placeholder_text = "you@example.com"
+	email_field.placeholder_text = tr("you@example.com")
 	email_field.custom_minimum_size = Vector2(0, 44)
 	box.add_child(email_field)
 
 	var password_label := Label.new()
-	password_label.text = "Password"
+	password_label.text = tr("Password")
 	password_label.add_theme_font_size_override("font_size", 19)
 	password_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	box.add_child(password_label)
 	password_field = LineEdit.new()
 	password_field.secret = true
-	password_field.placeholder_text = "At least 6 characters"
+	password_field.placeholder_text = tr("At least 6 characters")
 	password_field.custom_minimum_size = Vector2(0, 44)
 	box.add_child(password_field)
 
@@ -133,7 +133,7 @@ func _build_ui() -> void:
 	box.add_child(submit_btn)
 
 	forgot_btn = Button.new()
-	forgot_btn.text = "Forgot password?"
+	forgot_btn.text = tr("Forgot password?")
 	forgot_btn.flat = true
 	forgot_btn.pressed.connect(_on_forgot_password)
 	box.add_child(forgot_btn)
@@ -156,7 +156,7 @@ func _set_mode(is_sign_up: bool) -> void:
 func _update_mode_ui() -> void:
 	display_name_row.visible = mode_sign_up
 	forgot_btn.visible = not mode_sign_up
-	submit_btn.text = "Create Account" if mode_sign_up else "Sign In"
+	submit_btn.text = tr("Create Account") if mode_sign_up else tr("Sign In")
 	_style_tab(sign_in_tab, not mode_sign_up)
 	_style_tab(sign_up_tab, mode_sign_up)
 
@@ -185,29 +185,29 @@ func _on_submit() -> void:
 	var email: String = email_field.text.strip_edges()
 	var password: String = password_field.text
 	if email == "" or password == "":
-		_show_status("Enter an email and password.", false)
+		_show_status(tr("Enter an email and password."), false)
 		return
 
 	submit_btn.disabled = true
 	if mode_sign_up:
 		var chosen_name: String = display_name_field.text.strip_edges()
-		_show_status("Creating your account...", true)
+		_show_status(tr("Creating your account..."), true)
 		Auth.sign_up(email, password, chosen_name if chosen_name != "" else "Player")
 	else:
-		_show_status("Signing in...", true)
+		_show_status(tr("Signing in..."), true)
 		Auth.sign_in(email, password)
 
 func _on_forgot_password() -> void:
 	var email: String = email_field.text.strip_edges()
 	if email == "":
-		_show_status("Enter your email above first, then tap Forgot password.", false)
+		_show_status(tr("Enter your email above first, then tap Forgot password."), false)
 		return
 	Auth.request_password_reset(email)
-	_show_status("If that email has an account, a reset link is on its way.", true)
+	_show_status(tr("If that email has an account, a reset link is on its way."), true)
 
 func _on_signed_in(_user_id: String, name: String) -> void:
 	submit_btn.disabled = false
-	_show_status("Signed in as %s!" % name, true)
+	_show_status(tr("Signed in as %s!") % name, true)
 	# Timer owned by this scene: if the player taps Hub first, it's freed
 	# along with the scene instead of firing into a node that's gone.
 	var t := Timer.new()

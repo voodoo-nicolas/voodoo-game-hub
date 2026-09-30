@@ -57,12 +57,12 @@ func pick_by_id(card_id: int) -> Dictionary:
 		king_count += 1
 		king_number = king_count
 		if king_count >= 4:
-			title = "DRINK THE CUP!"
-			desc = "You drew the 4th king. Chug the cup!"
+			title = tr("DRINK THE CUP!")
+			desc = tr("You drew the 4th king. Chug the cup!")
 			game_over = true
 		else:
-			title = "KING'S CUP"
-			desc = "Pour a bit of your drink into the cup. (King %d/4)" % king_count
+			title = tr("KING'S CUP")
+			desc = tr("Pour a bit of your drink into the cup. (King %d/4)") % king_count
 	else:
 		var rule: Dictionary = RULES.get(card.rank, {"title": "", "desc": ""})
 		title = rule.title

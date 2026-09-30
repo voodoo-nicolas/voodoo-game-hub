@@ -19,10 +19,11 @@ var ready_started_at: int = 0
 var arm_count: int = 0
 
 func _ready() -> void:
+	preload("res://scripts/games/reaction_test/reaction_test_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = ReactionEngine.new()
 	_build_ui()
-	_show_idle("Tap the button below to start")
+	_show_idle(tr("Tap the button below to start"))
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -46,12 +47,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "⏱️ Reaction Test"
+	title.text = tr("⏱️ Reaction Test")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -126,7 +127,7 @@ func _on_pad_pressed() -> void:
 
 func _arm() -> void:
 	engine.start_waiting()
-	_set_pad(COLOR_WAITING, "Wait for green...")
+	_set_pad(COLOR_WAITING, tr("Wait for green..."))
 	result_label.text = ""
 	var delay := randf_range(1.0, 4.0)
 	arm_count += 1
@@ -140,14 +141,14 @@ func _on_delay_elapsed(armed_as: int) -> void:
 		return
 	engine.mark_ready()
 	ready_started_at = Time.get_ticks_msec()
-	_set_pad(COLOR_READY, "TAP NOW!")
+	_set_pad(COLOR_READY, tr("TAP NOW!"))
 
 func _show_too_early() -> void:
-	_set_pad(COLOR_TOO_EARLY, "Too soon!\nTap to try again")
+	_set_pad(COLOR_TOO_EARLY, tr("Too soon!\nTap to try again"))
 
 func _show_result(reaction_ms: int) -> void:
-	_set_pad(COLOR_IDLE, "%d ms\nTap to try again" % reaction_ms)
-	result_label.text = "Attempt #%d" % engine.attempts
+	_set_pad(COLOR_IDLE, tr("%d ms\nTap to try again") % reaction_ms)
+	result_label.text = tr("Attempt #%d") % engine.attempts
 	_update_best_label()
 
 func _show_idle(text: String) -> void:
@@ -155,7 +156,7 @@ func _show_idle(text: String) -> void:
 	_update_best_label()
 
 func _update_best_label() -> void:
-	best_label.text = "Best: %d ms" % engine.best_ms if engine.best_ms >= 0 else "Best: —"
+	best_label.text = tr("Best: %d ms") % engine.best_ms if engine.best_ms >= 0 else tr("Best: —")
 
 func _set_pad(color: Color, text: String) -> void:
 	var sb := StyleBoxFlat.new()

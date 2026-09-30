@@ -26,6 +26,7 @@ var game_over_label: Label
 var pause_dialog: Control
 
 func _ready() -> void:
+	preload("res://scripts/games/snake/snake_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = SnakeEngine.new()
 	_load_best()
@@ -55,12 +56,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "🐍 Snake"
+	title.text = tr("🐍 Snake")
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -68,7 +69,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_show_start_overlay)
 	top_bar.add_child(restart_btn)
 
@@ -187,14 +188,14 @@ func _build_start_overlay() -> void:
 	center.add_child(box)
 
 	var label := Label.new()
-	label.text = "🐍 Snake"
+	label.text = tr("🐍 Snake")
 	label.add_theme_font_size_override("font_size", 37)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(label)
 
 	var start_btn := Button.new()
-	start_btn.text = "Start"
+	start_btn.text = tr("Start")
 	start_btn.custom_minimum_size = Vector2(200, 56)
 	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_start_game)
@@ -236,7 +237,7 @@ func _build_game_over_dialog() -> void:
 	box.add_child(game_over_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 48)
 	again_btn.pressed.connect(func():
 		game_over_dialog.visible = false
@@ -245,7 +246,7 @@ func _build_game_over_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -274,7 +275,7 @@ func _on_step() -> void:
 			_save_best()
 			_render()
 		var won: bool = engine.food.x < 0  # the snake filled the whole board
-		game_over_label.text = ("You filled the board!\nScore: %d" if won else "Game Over!\nScore: %d") % engine.score
+		game_over_label.text = (tr("You filled the board!\nScore: %d") if won else tr("Game Over!\nScore: %d")) % engine.score
 		game_over_dialog.visible = true
 
 func _render() -> void:
@@ -286,8 +287,8 @@ func _render() -> void:
 		cells[seg.y][seg.x].color = COLOR_HEAD if i == 0 else COLOR_SNAKE
 	if engine.food.x >= 0:
 		cells[engine.food.y][engine.food.x].color = COLOR_FOOD
-	score_label.text = "Score: %d" % engine.score
-	best_label.text = "Best: %d" % best_score
+	score_label.text = tr("Score: %d") % engine.score
+	best_label.text = tr("Best: %d") % best_score
 
 # ---------- persistence ----------
 
@@ -308,7 +309,7 @@ func _on_best_reconciled(merged: int) -> void:
 	best_score = merged
 	SaveUtil.write(BEST_PATH, {"best": merged})
 	if best_label:  # can land before _build_ui() if the request fails instantly
-		best_label.text = "Best: %d" % best_score
+		best_label.text = tr("Best: %d") % best_score
 
 # ---------- auto-pause ----------
 
@@ -333,9 +334,9 @@ func _exit_tree() -> void:
 	get_tree().paused = false
 
 func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog("Paused", [
-		{"text": "Resume", "action": _resume},
-		{"text": "Exit to Hub", "action": _exit_paused_to_hub},
+	pause_dialog = Ui.build_dialog(tr("Paused"), [
+		{"text": tr("Resume"), "action": _resume},
+		{"text": tr("Exit to Hub"), "action": _exit_paused_to_hub},
 	])
 	pause_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(pause_dialog)

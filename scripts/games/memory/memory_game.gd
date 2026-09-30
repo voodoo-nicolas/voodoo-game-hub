@@ -27,6 +27,7 @@ var win_dialog: Control
 var win_label: Label
 
 func _ready() -> void:
+	preload("res://scripts/games/memory/memory_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = MemoryEngine.new()
 	_build_ui()
@@ -61,12 +62,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = "Pause"
+	pause_btn.text = tr("Pause")
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
-	title.text = "Memory"
+	title.text = tr("Memory")
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -74,7 +75,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -130,17 +131,17 @@ func _style_cell(cell: Button, color: Color) -> void:
 		cell.add_theme_stylebox_override(state, sb)
 
 func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog("Paused", [
-		{"text": "Resume", "action": Callable()},
-		{"text": "Restart", "action": _start_new_game},
-		{"text": "Exit to Hub", "action": Ui.exit_to_hub.bind(self)},
+	pause_dialog = Ui.build_dialog(tr("Paused"), [
+		{"text": tr("Resume"), "action": Callable()},
+		{"text": tr("Restart"), "action": _start_new_game},
+		{"text": tr("Exit to Hub"), "action": Ui.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
 
 func _build_win_dialog() -> void:
 	win_dialog = Ui.build_dialog("", [
-		{"text": "Play Again", "action": _start_new_game},
-		{"text": "Back to Hub", "action": Ui.exit_to_hub.bind(self)},
+		{"text": tr("Play Again"), "action": _start_new_game},
+		{"text": tr("Back to Hub"), "action": Ui.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
@@ -189,7 +190,7 @@ func _on_pause_pressed() -> void:
 func _show_win() -> void:
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
-	win_label.text = "Solved in %d moves!" % engine.moves
+	win_label.text = tr("Solved in %d moves!") % engine.moves
 	win_dialog.visible = true
 
 func _render() -> void:
@@ -203,7 +204,7 @@ func _render() -> void:
 			btn.text = ""
 			_style_cell(btn, COLOR_HIDDEN)
 
-	status_label.text = "Moves: %d" % engine.moves
+	status_label.text = tr("Moves: %d") % engine.moves
 
 # ---------- save / load ----------
 

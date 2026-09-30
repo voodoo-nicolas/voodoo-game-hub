@@ -6,6 +6,7 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 
 const STAGE_FACES := ["🙂", "😐", "😟", "😧", "😨", "😰", "💀"]
 const ALPHABET := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const ALPHABET_ES := "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
 
 var engine
 var game_active: bool = false
@@ -19,8 +20,11 @@ var end_dialog: Control
 var end_label: Label
 
 func _ready() -> void:
+	preload("res://scripts/games/hangman/hangman_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = HangmanEngine.new()
+	# Language is fixed for the visit: switching happens in the hub.
+	engine.spanish = TranslationServer.get_locale().begins_with("es")
 	_build_ui()
 	_start_new_game()
 
@@ -48,12 +52,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "Hangman"
+	title.text = tr("Hangman")
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -61,7 +65,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "New Word"
+	restart_btn.text = tr("New Word")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -72,10 +76,13 @@ func _build_ui() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	# A CenterContainer shrinks its child to its minimum width, which squeezed
+	# the letter keys into a narrow column. Claim the screen's width instead.
+	box.custom_minimum_size = Vector2(get_viewport_rect().size.x - 24, 0)
 	center.add_child(box)
 
 	var category_tag := Label.new()
-	category_tag.text = "TOPIC"
+	category_tag.text = tr("Topic").to_upper()
 	category_tag.add_theme_font_size_override("font_size", 18)
 	category_tag.add_theme_color_override("font_color", Color(0.5, 0.55, 0.53))
 	category_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -117,10 +124,10 @@ func _build_ui() -> void:
 	keyboard.add_theme_constant_override("v_separation", 6)
 	keyboard_margin.add_child(keyboard)
 
-	for letter in ALPHABET:
+	for letter in (ALPHABET_ES if engine.spanish else ALPHABET):
 		var btn := Button.new()
 		btn.text = letter
-		btn.custom_minimum_size = Vector2(0, 64)
+		btn.custom_minimum_size = Vector2(0, 84)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.add_theme_font_size_override("font_size", 28)
@@ -188,7 +195,7 @@ func _build_end_dialog() -> void:
 	box.add_child(end_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 48)
 	again_btn.pressed.connect(func():
 		end_dialog.visible = false
@@ -197,7 +204,7 @@ func _build_end_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -225,9 +232,9 @@ func _on_letter_pressed(letter: String) -> void:
 	_render()
 
 	if engine.is_won():
-		_end_game("You win! The word was %s" % engine.word, Color(0.4, 0.9, 0.4))
+		_end_game(tr("You win! The word was %s") % engine.word, Color(0.4, 0.9, 0.4))
 	elif engine.is_lost():
-		_end_game("Game over — the word was %s" % engine.word, Color(0.9, 0.4, 0.4))
+		_end_game(tr("Game over — the word was %s") % engine.word, Color(0.9, 0.4, 0.4))
 
 func _end_game(text: String, color: Color) -> void:
 	game_active = false
@@ -242,4 +249,4 @@ func _render() -> void:
 	# narrow phone at full size.
 	word_label.add_theme_font_size_override("font_size", 50 if engine.word.length() <= 8 else 40)
 	stage_label.text = STAGE_FACES[engine.wrong_count]
-	status_label.text = "Wrong guesses: %d/%d" % [engine.wrong_count, HangmanEngine.MAX_WRONG]
+	status_label.text = tr("Wrong guesses: %d/%d") % [engine.wrong_count, HangmanEngine.MAX_WRONG]

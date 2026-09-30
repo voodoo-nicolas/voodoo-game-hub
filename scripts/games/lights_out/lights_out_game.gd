@@ -14,6 +14,7 @@ var win_dialog: Control
 var win_label: Label
 
 func _ready() -> void:
+	preload("res://scripts/games/lights_out/lights_out_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = LightsOutEngine.new()
 	_build_ui()
@@ -43,12 +44,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "💡 Lights Out"
+	title.text = tr("💡 Lights Out")
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -56,7 +57,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -133,7 +134,7 @@ func _build_win_dialog() -> void:
 	box.add_child(win_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 48)
 	again_btn.pressed.connect(func():
 		win_dialog.visible = false
@@ -142,7 +143,7 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -160,7 +161,7 @@ func _on_cell_pressed(r: int, c: int) -> void:
 	engine.press(r, c)
 	_render()
 	if engine.is_solved():
-		win_label.text = "Solved in %d moves!" % engine.moves
+		win_label.text = tr("Solved in %d moves!") % engine.moves
 		win_dialog.visible = true
 
 func _render() -> void:
@@ -174,4 +175,4 @@ func _render() -> void:
 			sb.corner_radius_bottom_right = 8
 			for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 				cells[r][c].add_theme_stylebox_override(state, sb)
-	moves_label.text = "Moves: %d" % engine.moves
+	moves_label.text = tr("Moves: %d") % engine.moves

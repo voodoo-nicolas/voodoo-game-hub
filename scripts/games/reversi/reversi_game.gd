@@ -34,6 +34,7 @@ var online: Control = null
 var my_color: int = 0
 
 func _ready() -> void:
+	preload("res://scripts/games/reversi/reversi_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = ReversiEngine.new()
 	_build_ui()
@@ -68,12 +69,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = "Pause"
+	pause_btn.text = tr("Pause")
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
-	title.text = "Reversi"
+	title.text = tr("Reversi")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -81,7 +82,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -167,7 +168,7 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online_btn = Button.new()
-		online_btn.text = "🌐 Play Online"
+		online_btn.text = tr("🌐 Play Online")
 		online_btn.custom_minimum_size = Vector2(0, 80)
 		online_btn.add_theme_font_size_override("font_size", 30)
 		online_btn.pressed.connect(func(): online.open_lobby())
@@ -181,7 +182,7 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	_build_win_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online = load(ONLINE_MATCH_PATH).new("reversi", "Reversi", _online_state)
+		online = load(ONLINE_MATCH_PATH).new("reversi", tr("Reversi"), _online_state)
 		online.started.connect(_on_online_started)
 		online.remote_move.connect(_on_remote_move)
 		online.remote_state.connect(_on_remote_state)
@@ -191,17 +192,17 @@ func _build_ui() -> void:
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog("Paused", [
-		{"text": "Resume", "action": Callable()},
-		{"text": "Restart", "action": _start_new_game},
-		{"text": "Exit to Hub", "action": Ui.exit_to_hub.bind(self)},
+	pause_dialog = Ui.build_dialog(tr("Paused"), [
+		{"text": tr("Resume"), "action": Callable()},
+		{"text": tr("Restart"), "action": _start_new_game},
+		{"text": tr("Exit to Hub"), "action": Ui.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
 
 func _build_win_dialog() -> void:
 	win_dialog = Ui.build_dialog("", [
-		{"text": "Play Again", "action": _start_new_game},
-		{"text": "Back to Hub", "action": Ui.exit_to_hub.bind(self)},
+		{"text": tr("Play Again"), "action": _start_new_game},
+		{"text": tr("Back to Hub"), "action": Ui.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
@@ -247,8 +248,8 @@ func _place(r: int, c: int) -> Dictionary:
 	if engine.game_over:
 		_show_result()
 	elif result.passed:
-		var passed_player_name: String = "Black" if mover == ReversiEngine.BLACK else "White"
-		status_label.text = "%s has no move — turn passes back!" % ("White" if mover == ReversiEngine.BLACK else "Black")
+		var passed_player_name: String = tr("Black") if mover == ReversiEngine.BLACK else tr("White")
+		status_label.text = tr("%s has no move — turn passes back!") % (tr("White") if mover == ReversiEngine.BLACK else tr("Black"))
 	return result
 
 # ---------- online ----------
@@ -290,11 +291,11 @@ func _show_result() -> void:
 	var w: int = engine.winner()
 	var s: Dictionary = engine.score()
 	if w == ReversiEngine.EMPTY:
-		win_label.text = "It's a tie! %d - %d" % [s.black, s.white]
+		win_label.text = tr("It's a tie! %d - %d") % [s.black, s.white]
 	elif _is_online():
 		win_label.text = "%s %d - %d" % [online.result_text(w == my_color), s.black, s.white]
 	else:
-		win_label.text = "%s wins! %d - %d" % ["Black" if w == ReversiEngine.BLACK else "White", s.black, s.white]
+		win_label.text = tr("%s wins! %d - %d") % [tr("Black") if w == ReversiEngine.BLACK else tr("White"), s.black, s.white]
 	win_dialog.visible = true
 
 # ---------- rendering ----------
@@ -319,13 +320,13 @@ func _render() -> void:
 			hint_views[idx].visible = legal_set.has(Vector2i(r, c)) and game_active and my_turn
 
 	var s: Dictionary = engine.score()
-	score_label.text = "⚫ Black: %d      ⚪ White: %d" % [s.black, s.white]
+	score_label.text = tr("⚫ Black: %d      ⚪ White: %d") % [s.black, s.white]
 	if game_active:
-		var turn_name := "Black" if engine.current_player == ReversiEngine.BLACK else "White"
+		var turn_name := tr("Black") if engine.current_player == ReversiEngine.BLACK else tr("White")
 		if _is_online():
 			status_label.text = online.status_text(engine.current_player == my_color, turn_name)
 		else:
-			status_label.text = "%s's turn" % turn_name
+			status_label.text = tr("%s's turn") % turn_name
 
 func _style_square(sq: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()

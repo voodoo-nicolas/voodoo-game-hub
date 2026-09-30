@@ -81,7 +81,7 @@ func _build_panel() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Quick Settings"
+	title.text = tr("Quick Settings")
 	title.add_theme_font_size_override("font_size", 19)
 	title.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
 	box.add_child(title)
@@ -94,12 +94,12 @@ func _build_panel() -> void:
 	box.add_child(timer_label)
 
 	timer_button = Button.new()
-	timer_button.text = "▶ Start Timer"
+	timer_button.text = tr("▶ Start Timer")
 	timer_button.pressed.connect(_on_timer_toggle)
 	box.add_child(timer_button)
 
 	var reset_btn := Button.new()
-	reset_btn.text = "↺ Reset Timer"
+	reset_btn.text = tr("↺ Reset Timer")
 	reset_btn.pressed.connect(_on_timer_reset)
 	box.add_child(reset_btn)
 
@@ -107,17 +107,17 @@ func _build_panel() -> void:
 	box.add_child(sep)
 
 	var rotate_btn := Button.new()
-	rotate_btn.text = "🔄 Rotate Screen"
+	rotate_btn.text = tr("🔄 Rotate Screen")
 	rotate_btn.pressed.connect(_on_rotate_pressed)
 	box.add_child(rotate_btn)
 
 	var screenshot_btn := Button.new()
-	screenshot_btn.text = "📷 Screenshot"
+	screenshot_btn.text = tr("📷 Screenshot")
 	screenshot_btn.pressed.connect(_on_screenshot_pressed)
 	box.add_child(screenshot_btn)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "🏠 Main Hub"
+	hub_btn.text = tr("🏠 Main Hub")
 	hub_btn.pressed.connect(_on_hub_pressed)
 	box.add_child(hub_btn)
 
@@ -136,13 +136,13 @@ func _toggle_drawer() -> void:
 
 func _on_timer_toggle() -> void:
 	timer_running = not timer_running
-	timer_button.text = "⏸ Pause Timer" if timer_running else "▶ Start Timer"
+	timer_button.text = tr("⏸ Pause Timer") if timer_running else tr("▶ Start Timer")
 
 func _on_timer_reset() -> void:
 	timer_running = false
 	timer_elapsed = 0.0
 	timer_label.text = "00:00"
-	timer_button.text = "▶ Start Timer"
+	timer_button.text = tr("▶ Start Timer")
 
 func _on_rotate_pressed() -> void:
 	_save_current_scene_if_possible()
@@ -176,7 +176,7 @@ func _on_screenshot_pressed() -> void:
 	if pictures_dir != "":
 		img.save_png(pictures_dir.path_join("voodoo_screenshot_%d.png" % stamp))
 
-	_show_toast("Screenshot saved!")
+	_show_toast(tr("Screenshot saved!"))
 
 func _show_toast(text: String) -> void:
 	var toast_panel := PanelContainer.new()

@@ -70,7 +70,7 @@ func join(p_game_id: String, p_code: String) -> void:
 	game_id = p_game_id
 	code = p_code.strip_edges().to_upper()
 	if code.length() != CODE_LENGTH:
-		join_failed.emit("Codes are %d letters." % CODE_LENGTH)
+		join_failed.emit(tr("Codes are %d letters.") % CODE_LENGTH)
 		return
 	_join_deadline = JOIN_TIMEOUT_SEC
 	_start()
@@ -119,7 +119,7 @@ func _process(delta: float) -> void:
 		if _join_deadline <= 0.0 and not opponent_present:
 			active = false
 			_ws.close()
-			join_failed.emit("No game found with code %s." % code)
+			join_failed.emit(tr("No game found with code %s.") % code)
 			return
 	if _reconnect_left > 0.0:
 		_reconnect_left -= delta
@@ -214,7 +214,7 @@ func _update_opponent() -> void:
 			if key != my_id and _presence[key] == "guest" and not opponent_present and _join_deadline > 0.0:
 				active = false
 				_ws.close()
-				join_failed.emit("That game already has two players.")
+				join_failed.emit(tr("That game already has two players."))
 				return
 	if present == opponent_present:
 		return

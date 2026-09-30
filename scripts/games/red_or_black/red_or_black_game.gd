@@ -25,6 +25,7 @@ var guess_row: HBoxContainer
 var next_btn: Button
 
 func _ready() -> void:
+	preload("res://scripts/games/red_or_black/red_or_black_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = RedOrBlackEngine.new()
 	_build_ui()
@@ -52,12 +53,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "🂡 Red or Black"
+	title.text = tr("🂡 Red or Black")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -84,7 +85,7 @@ func _build_setup(root: VBoxContainer) -> void:
 	setup_box.add_child(box)
 
 	var label := Label.new()
-	label.text = "How many players?"
+	label.text = tr("How many players?")
 	label.add_theme_font_size_override("font_size", 31)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -124,14 +125,14 @@ func _build_setup(root: VBoxContainer) -> void:
 	counter_row.add_child(plus_btn)
 
 	var start_btn := Button.new()
-	start_btn.text = "Start Game"
+	start_btn.text = tr("Start Game")
 	start_btn.custom_minimum_size = Vector2(220, 56)
 	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_on_start_pressed)
 	box.add_child(start_btn)
 
 	var rules_label := Label.new()
-	rules_label.text = "4 rounds, each player draws one card per round.\nGuess right, give a drink. Guess wrong, take a drink.\nRound 1: Red/Black (1) · 2: Higher/Lower (2)\n3: Inside/Outside (3) · 4: Suit (4)"
+	rules_label.text = tr("4 rounds, each player draws one card per round.\nGuess right, give a drink. Guess wrong, take a drink.\nRound 1: Red/Black (1) · 2: Higher/Lower (2)\n3: Inside/Outside (3) · 4: Suit (4)")
 	rules_label.add_theme_font_size_override("font_size", 19)
 	rules_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	rules_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -191,7 +192,7 @@ func _build_play(root: VBoxContainer) -> void:
 	box.add_child(guess_row)
 
 	next_btn = Button.new()
-	next_btn.text = "Next Player ➜"
+	next_btn.text = tr("Next Player ➜")
 	next_btn.custom_minimum_size = Vector2(240, 56)
 	next_btn.add_theme_font_size_override("font_size", 24)
 	next_btn.visible = false
@@ -210,20 +211,20 @@ func _build_end(root: VBoxContainer) -> void:
 	end_box.add_child(box)
 
 	var big := Label.new()
-	big.text = "🍻 Game Over!"
+	big.text = tr("🍻 Game Over!")
 	big.add_theme_font_size_override("font_size", 39)
 	big.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
 	big.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(big)
 
 	var again_btn := Button.new()
-	again_btn.text = "New Game"
+	again_btn.text = tr("New Game")
 	again_btn.custom_minimum_size = Vector2(220, 56)
 	again_btn.pressed.connect(_show_setup)
 	box.add_child(again_btn)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Back to Hub"
+	hub_btn.text = tr("Back to Hub")
 	hub_btn.custom_minimum_size = Vector2(220, 48)
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(hub_btn)
@@ -250,10 +251,10 @@ func _card_text(card: Dictionary) -> String:
 	return "%s%s" % [card.rank, card.suit]
 
 func _update_round_display() -> void:
-	turn_label.text = "Player %d's turn" % (engine.current_player + 1)
+	turn_label.text = tr("Player %d's turn") % (engine.current_player + 1)
 	var r: Dictionary = engine.current_round()
-	round_label.text = "ROUND %d: %s" % [engine.round_index + 1, r.name.to_upper()]
-	stakes_label.text = "Correct: give %d  ·  Wrong: take %d" % [r.drink, r.drink]
+	round_label.text = tr("ROUND %d: %s") % [engine.round_index + 1, tr(r.name).to_upper()]
+	stakes_label.text = tr("Correct: give %d  ·  Wrong: take %d") % [r.drink, r.drink]
 
 	var history: Array = engine.player_cards[engine.current_player]
 	var pieces: PackedStringArray = []
@@ -267,14 +268,14 @@ func _update_round_display() -> void:
 
 	match engine.round_index:
 		0:
-			_add_guess_button("Red", "red", Color(0.8, 0.2, 0.2))
-			_add_guess_button("Black", "black", Color(0.15, 0.15, 0.18))
+			_add_guess_button(tr("Red"), "red", Color(0.8, 0.2, 0.2))
+			_add_guess_button(tr("Black"), "black", Color(0.15, 0.15, 0.18))
 		1:
-			_add_guess_button("Higher", "higher", Color(0.2, 0.5, 0.3))
-			_add_guess_button("Lower", "lower", Color(0.5, 0.3, 0.2))
+			_add_guess_button(tr("Higher"), "higher", Color(0.2, 0.5, 0.3))
+			_add_guess_button(tr("Lower"), "lower", Color(0.5, 0.3, 0.2))
 		2:
-			_add_guess_button("Inside", "inside", Color(0.2, 0.4, 0.55))
-			_add_guess_button("Outside", "outside", Color(0.5, 0.35, 0.15))
+			_add_guess_button(tr("Inside"), "inside", Color(0.2, 0.4, 0.55))
+			_add_guess_button(tr("Outside"), "outside", Color(0.5, 0.35, 0.15))
 		3:
 			for suit in SUITS:
 				_add_guess_button(suit, suit, Color(0.8, 0.2, 0.2) if RED_SUITS.has(suit) else Color(0.15, 0.15, 0.18))
@@ -304,16 +305,16 @@ func _on_guess_pressed(guess: String) -> void:
 	card_label.add_theme_color_override("font_color", color)
 
 	if result.correct:
-		result_label.text = "✅ Correct! Give %d away." % result.drink_amount
+		result_label.text = tr("✅ Correct! Give %d away.") % result.drink_amount
 		result_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
 	else:
-		result_label.text = "❌ Wrong! Drink %d." % result.drink_amount
+		result_label.text = tr("❌ Wrong! Drink %d.") % result.drink_amount
 		result_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
 
 	for child in guess_row.get_children():
 		child.visible = false
 	next_btn.visible = true
-	next_btn.text = "See Results ➜" if result.game_finished else "Next Player ➜"
+	next_btn.text = tr("See Results ➜") if result.game_finished else tr("Next Player ➜")
 	next_btn.set_meta("finished", result.game_finished)
 
 func _on_next_pressed() -> void:

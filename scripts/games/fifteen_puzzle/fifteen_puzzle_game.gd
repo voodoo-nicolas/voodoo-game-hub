@@ -30,6 +30,7 @@ var win_dialog: Control
 var win_label: Label
 
 func _ready() -> void:
+	preload("res://scripts/games/fifteen_puzzle/fifteen_puzzle_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = FifteenPuzzleEngine.new()
 	var data = SaveUtil.read(BEST_PATH)
@@ -71,18 +72,18 @@ func _build_ui() -> void:
 	var bar := HBoxContainer.new()
 	top_margin.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.add_theme_font_size_override("font_size", 26)
 	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
 	bar.add_child(hub_btn)
 	var title := Label.new()
-	title.text = "🔲 15-Puzzle"
+	title.text = tr("🔲 15-Puzzle")
 	title.add_theme_font_size_override("font_size", 34)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var new_btn := Button.new()
-	new_btn.text = "Shuffle"
+	new_btn.text = tr("Shuffle")
 	new_btn.add_theme_font_size_override("font_size", 26)
 	new_btn.pressed.connect(_new_game)
 	bar.add_child(new_btn)
@@ -127,9 +128,9 @@ func _build_ui() -> void:
 	spacer.custom_minimum_size = Vector2(0, 60)
 	root.add_child(spacer)
 
-	win_dialog = UI.build_dialog("Solved!", [
-		{"text": "Play Again", "action": _new_game},
-		{"text": "Back to Hub", "action": UI.exit_to_hub.bind(self)},
+	win_dialog = UI.build_dialog(tr("Solved!"), [
+		{"text": tr("Play Again"), "action": _new_game},
+		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	win_label = win_dialog.get_meta("message_label")
 	add_child(win_dialog)
@@ -161,12 +162,12 @@ func _win() -> void:
 	var record := ""
 	if not best.has("moves") or engine.moves < int(best.moves):
 		best["moves"] = engine.moves
-		record += "\nFewest moves yet!"
+		record += tr("\nFewest moves yet!")
 	if not best.has("time") or elapsed < float(best.time):
 		best["time"] = elapsed
-		record += "\nFastest time yet!"
+		record += tr("\nFastest time yet!")
 	SaveUtil.write(BEST_PATH, best)
-	win_label.text = "%d moves in %s%s" % [engine.moves, _format_time(elapsed), record]
+	win_label.text = tr("%d moves in %s%s") % [engine.moves, _format_time(elapsed), record]
 	_render()
 	create_tween().tween_callback(func(): win_dialog.visible = not game_active).set_delay(0.5)
 
@@ -183,11 +184,11 @@ func _render() -> void:
 			sb.bg_color = COLOR_TILE_HOME if n == i + 1 else COLOR_TILE
 		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 			btn.add_theme_stylebox_override(state, sb)
-	moves_label.text = "Moves: %d" % engine.moves
+	moves_label.text = tr("Moves: %d") % engine.moves
 	if best.has("moves"):
-		best_label.text = "Best: %d moves · %s" % [int(best.moves), _format_time(float(best.time))]
+		best_label.text = tr("Best: %d moves · %s") % [int(best.moves), _format_time(float(best.time))]
 	else:
-		best_label.text = "Tiles turn green when they're in the right spot"
+		best_label.text = tr("Tiles turn green when they're in the right spot")
 
 func _save_game() -> void:
 	if not game_active:

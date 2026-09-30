@@ -72,6 +72,7 @@ var size_buttons: Array = []
 var mode_row: HBoxContainer
 
 func _ready() -> void:
+	preload("res://scripts/games/dots_boxes/dots_boxes_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	touch_mode = DisplayServer.is_touchscreen_available()
 	engine = DotsBoxesEngine.new()
@@ -98,7 +99,7 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	_build_win_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online = load(ONLINE_MATCH_PATH).new("dots_boxes", "Dots and Boxes", _online_state)
+		online = load(ONLINE_MATCH_PATH).new("dots_boxes", tr("Dots and Boxes"), _online_state)
 		online.started.connect(_on_online_started)
 		online.remote_move.connect(_on_remote_move)
 		online.remote_state.connect(_on_remote_state)
@@ -124,7 +125,7 @@ func _build_size_screen() -> void:
 	root.add_child(top_margin)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_margin.add_child(hub_btn)
 
@@ -137,7 +138,7 @@ func _build_size_screen() -> void:
 	center.add_child(box)
 
 	var title := Label.new()
-	title.text = "Dots and Boxes"
+	title.text = tr("Dots and Boxes")
 	title.add_theme_font_size_override("font_size", 39)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -148,7 +149,7 @@ func _build_size_screen() -> void:
 	box.add_child(mode_row)
 
 	mode_2p_tab = Button.new()
-	mode_2p_tab.text = "2 Players"
+	mode_2p_tab.text = tr("2 Players")
 	mode_2p_tab.custom_minimum_size = Vector2(0, 44)
 	mode_2p_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mode_2p_tab.focus_mode = Control.FOCUS_NONE
@@ -156,7 +157,7 @@ func _build_size_screen() -> void:
 	mode_row.add_child(mode_2p_tab)
 
 	mode_cpu_tab = Button.new()
-	mode_cpu_tab.text = "vs Computer"
+	mode_cpu_tab.text = tr("vs Computer")
 	mode_cpu_tab.custom_minimum_size = Vector2(0, 44)
 	mode_cpu_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mode_cpu_tab.focus_mode = Control.FOCUS_NONE
@@ -165,7 +166,7 @@ func _build_size_screen() -> void:
 
 	var subtitle := Label.new()
 	size_subtitle = subtitle
-	subtitle.text = "Choose a board size"
+	subtitle.text = tr("Choose a board size")
 	subtitle.add_theme_font_size_override("font_size", 21)
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -182,7 +183,7 @@ func _build_size_screen() -> void:
 
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online_btn = Button.new()
-		online_btn.text = "🌐 Play Online"
+		online_btn.text = tr("🌐 Play Online")
 		online_btn.custom_minimum_size = Vector2(220, 60)
 		online_btn.add_theme_font_size_override("font_size", 26)
 		online_btn.pressed.connect(func(): online.open_lobby())
@@ -233,17 +234,17 @@ func _build_game_screen() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = "Pause"
+	pause_btn.text = tr("Pause")
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(func(): _start_new_game(rows, cols))
 	top_bar.add_child(restart_btn)
 
 	var title := Label.new()
-	title.text = "Dots and Boxes"
+	title.text = tr("Dots and Boxes")
 	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -276,7 +277,7 @@ func _build_game_screen() -> void:
 	root.add_child(status_label)
 
 	confirm_btn = Button.new()
-	confirm_btn.text = "Confirm Line"
+	confirm_btn.text = tr("Confirm Line")
 	confirm_btn.custom_minimum_size = Vector2(0, 44)
 	confirm_btn.disabled = true
 	confirm_btn.visible = touch_mode
@@ -312,14 +313,14 @@ func _build_pause_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Paused"
+	title.text = tr("Paused")
 	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var resume_btn := Button.new()
-	resume_btn.text = "Resume"
+	resume_btn.text = tr("Resume")
 	resume_btn.custom_minimum_size = Vector2(200, 48)
 	resume_btn.pressed.connect(func():
 		pause_dialog.visible = false
@@ -328,7 +329,7 @@ func _build_pause_dialog() -> void:
 	box.add_child(resume_btn)
 
 	var new_game_btn := Button.new()
-	new_game_btn.text = "New Game"
+	new_game_btn.text = tr("New Game")
 	new_game_btn.custom_minimum_size = Vector2(200, 44)
 	new_game_btn.pressed.connect(func():
 		pause_dialog.visible = false
@@ -343,7 +344,7 @@ func _build_pause_dialog() -> void:
 	box.add_child(new_game_btn)
 
 	var exit_btn := Button.new()
-	exit_btn.text = "Exit to Hub"
+	exit_btn.text = tr("Exit to Hub")
 	exit_btn.custom_minimum_size = Vector2(200, 44)
 	exit_btn.pressed.connect(func():
 		_save_game()
@@ -379,7 +380,7 @@ func _build_win_dialog() -> void:
 	box.add_child(win_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again (Same Setup)"
+	again_btn.text = tr("Play Again (Same Setup)")
 	again_btn.custom_minimum_size = Vector2(240, 48)
 	again_btn.pressed.connect(func():
 		win_dialog.visible = false
@@ -388,7 +389,7 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var new_size_btn := Button.new()
-	new_size_btn.text = "Change Board Size"
+	new_size_btn.text = tr("Change Board Size")
 	new_size_btn.custom_minimum_size = Vector2(240, 44)
 	new_size_btn.pressed.connect(func():
 		win_dialog.visible = false
@@ -398,7 +399,7 @@ func _build_win_dialog() -> void:
 	box.add_child(new_size_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(240, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -417,10 +418,10 @@ func _on_pause_pressed() -> void:
 
 func _player_label(player: int) -> String:
 	if _is_online():
-		return "You" if player == my_player else "Friend"
+		return tr("You") if player == my_player else tr("Friend")
 	if player == 1:
-		return "Blue"
-	return "Computer" if vs_computer else "Red"
+		return tr("Blue")
+	return tr("Computer") if vs_computer else tr("Red")
 
 func _is_online() -> bool:
 	return online != null and online.is_online()
@@ -558,11 +559,11 @@ func _on_online_status() -> void:
 	for b in size_buttons:
 		b.disabled = not host
 	if not online.opponent_here:
-		size_subtitle.text = "Friend disconnected — waiting..."
+		size_subtitle.text = tr("Friend disconnected — waiting...")
 	elif host:
-		size_subtitle.text = "Choose a board size for both of you"
+		size_subtitle.text = tr("Choose a board size for both of you")
 	else:
-		size_subtitle.text = "Waiting for your friend to choose a board..."
+		size_subtitle.text = tr("Waiting for your friend to choose a board...")
 	if game_screen.visible:
 		_render()
 
@@ -614,12 +615,12 @@ func _show_result() -> void:
 	var p1 := _player_label(1)
 	var p2 := _player_label(2)
 	if engine.winner == 0:
-		win_label.text = "It's a tie!\n%s %d - %s %d" % [p1, engine.scores[1], p2, engine.scores[2]]
+		win_label.text = tr("It's a tie!\n%s %d - %s %d") % [p1, engine.scores[1], p2, engine.scores[2]]
 	elif _is_online():
 		win_label.text = "%s\n%s %d - %s %d" % [online.result_text(engine.winner == my_player), p1, engine.scores[1], p2, engine.scores[2]]
 	else:
 		var name := _player_label(engine.winner)
-		win_label.text = "%s wins!\n%s %d - %s %d" % [name, p1, engine.scores[1], p2, engine.scores[2]]
+		win_label.text = tr("%s wins!\n%s %d - %s %d") % [name, p1, engine.scores[1], p2, engine.scores[2]]
 	win_dialog.visible = true
 
 # ---------- board construction ----------
@@ -753,14 +754,14 @@ func _render() -> void:
 		return
 	if vs_computer and engine.current_player == AI_PLAYER and ai_thinking:
 		status_label.add_theme_color_override("font_color", COLOR_P2)
-		status_label.text = "Computer is thinking..."
+		status_label.text = tr("Computer is thinking...")
 	else:
 		var turn_color: Color = COLOR_P1 if engine.current_player == 1 else COLOR_P2
 		status_label.add_theme_color_override("font_color", turn_color)
 		if _is_online():
-			status_label.text = online.status_text(engine.current_player == my_player, "Blue" if engine.current_player == 1 else "Red")
+			status_label.text = online.status_text(engine.current_player == my_player, tr("Blue") if engine.current_player == 1 else tr("Red"))
 		else:
-			status_label.text = "%s's turn" % _player_label(engine.current_player)
+			status_label.text = tr("%s's turn") % _player_label(engine.current_player)
 
 func _owner_color(line_owner: int) -> Color:
 	if line_owner == 0:

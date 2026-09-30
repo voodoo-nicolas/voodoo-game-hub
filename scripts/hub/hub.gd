@@ -36,6 +36,7 @@ var list_container: VBoxContainer
 var expanded_index: int = -1
 var account_status_label: Label
 var account_status_btn: Button
+var language_btn: Button
 ## Set while a tap is being resolved (manifest check, download, mount), so a
 ## second tap -- on the same tile or another -- can't start a parallel flow.
 var busy: bool = false
@@ -74,7 +75,7 @@ func _ready() -> void:
 	header_box.add_child(title)
 
 	var version_label := Label.new()
-	version_label.text = "v%s (build %d)" % [Version.VERSION, Version.BUILD_NUMBER]
+	version_label.text = tr("v%s (build %d)") % [Version.VERSION, Version.BUILD_NUMBER]
 	version_label.add_theme_font_size_override("font_size", 20)
 	version_label.add_theme_color_override("font_color", Color(0.4, 0.6, 0.5))
 	header_box.add_child(version_label)
@@ -94,6 +95,22 @@ func _ready() -> void:
 	account_status_btn.add_theme_color_override("font_color", ELECTRIC_BLUE)
 	account_status_btn.pressed.connect(_on_account_status_pressed)
 	account_row.add_child(account_status_btn)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	account_row.add_child(spacer)
+
+	# Shows the language you'd switch TO, in that language -- the one word a
+	# person who can't read the current language will still recognize.
+	language_btn = Button.new()
+	language_btn.flat = true
+	language_btn.add_theme_font_size_override("font_size", 24)
+	language_btn.add_theme_color_override("font_color", ELECTRIC_BLUE)
+	language_btn.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	language_btn.pressed.connect(Lang.toggle)
+	account_row.add_child(language_btn)
+	Lang.changed.connect(_on_language_changed.unbind(1))
+	_update_language_button()
 
 	# .unbind(2) rather than a lambda on purpose: Godot only auto-disconnects a
 	# signal when the connected Callable points at the freed object. A lambda is
@@ -131,13 +148,24 @@ func _ready() -> void:
 	if not Catalog.app_update_checked:
 		Catalog.check_app_update(_show_update_dialog)
 
+func _update_language_button() -> void:
+	var other: String = "en" if Lang.current == "es" else "es"
+	language_btn.text = "🌐 " + Lang.NAMES[other]
+
+## Text set through tr() (names, formatted strings) doesn't re-translate on
+## its own; rebuilding the list and labels picks up the new language.
+func _on_language_changed() -> void:
+	_update_language_button()
+	_update_account_status()
+	_rebuild_list()
+
 func _update_account_status() -> void:
 	if Auth.is_logged_in():
 		account_status_label.text = "👤 %s" % Auth.get_display_name()
-		account_status_btn.text = "Sign Out"
+		account_status_btn.text = tr("Sign Out")
 	else:
 		account_status_label.text = ""
-		account_status_btn.text = "Sign In"
+		account_status_btn.text = tr("Sign In")
 
 func _on_account_status_pressed() -> void:
 	if Auth.is_logged_in():
@@ -229,11 +257,12 @@ func _make_section_header(category: Dictionary, index: int, row_height: float) -
 	var icon_label := Label.new()
 	icon_label.text = category.icon
 	icon_label.add_theme_font_size_override("font_size", 52)
+	icon_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(icon_label)
 
 	var name_label := Label.new()
-	name_label.text = category.name.to_upper()
+	name_label.text = Lang.pick(category, "name").to_upper()
 	name_label.add_theme_font_size_override("font_size", 36)
 	name_label.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else ELECTRIC_BLUE)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -276,16 +305,16 @@ func _make_tile(game: Dictionary) -> Control:
 	match state:
 		Catalog.STATE_READY:
 			state_color = STATE_READY
-			tag_text = "▶ Play"
+			tag_text = tr("▶ Play")
 		Catalog.STATE_DOWNLOAD:
 			state_color = STATE_DOWNLOAD
-			tag_text = "⬇ Download"
+			tag_text = tr("⬇ Download")
 		Catalog.STATE_NEEDS_APP_UPDATE:
 			state_color = STATE_APP_UPDATE
-			tag_text = "⬆ Update app"
+			tag_text = tr("⬆ Update app")
 		_:
 			state_color = STATE_SOON
-			tag_text = "Coming soon"
+			tag_text = tr("Coming soon")
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 128)
@@ -312,7 +341,7 @@ func _make_tile(game: Dictionary) -> Control:
 	row.add_child(icon_label)
 
 	var label := Label.new()
-	label.text = game.title
+	label.text = Lang.pick(game, "title")
 	label.add_theme_font_size_override("font_size", 34)
 	label.add_theme_color_override("font_color", Color(1, 1, 1) if available else Color(0.5, 0.55, 0.53))
 	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -353,9 +382,9 @@ func _on_tile_pressed(id: String) -> void:
 	if game.is_empty():
 		return
 	if Catalog.state_of(game) == Catalog.STATE_NEEDS_APP_UPDATE:
-		_show_dialog("Update Needed", "%s needs a newer version of Voodoo." % game.title, [
-			{"text": "Get Update", "action": Callable(OS, "shell_open").bind(Config.RELEASES_PAGE_URL)},
-			{"text": "Later", "action": Callable()},
+		_show_dialog(tr("Update Needed"), tr("%s needs a newer version of Voodoo.") % Lang.pick(game, "title"), [
+			{"text": tr("Get Update"), "action": Callable(OS, "shell_open").bind(Config.RELEASES_PAGE_URL)},
+			{"text": tr("Later"), "action": Callable()},
 		])
 		return
 	if Catalog.needs_download(id):
@@ -366,11 +395,11 @@ func _on_tile_pressed(id: String) -> void:
 func _launch(game: Dictionary) -> void:
 	var error: String = Catalog.mount(game.id)
 	if error == "" and get_tree().change_scene_to_file(game.scene) != OK:
-		error = "Something went wrong opening this game."
+		error = tr("Something went wrong opening this game.")
 	if error != "":
 		busy = false
 		_rebuild_list()  # a damaged pack was removed; its tile is red again
-		_show_dialog("Couldn't Start %s" % game.title, error, [{"text": "OK", "action": Callable()}])
+		_show_dialog(tr("Couldn't Start %s") % Lang.pick(game, "title"), error, [{"text": "OK", "action": Callable()}])
 
 ## ---------- download-on-demand ----------
 
@@ -378,7 +407,7 @@ func _start_download(game: Dictionary) -> void:
 	busy = true
 	var is_update: bool = Catalog.is_downloaded(game.id)
 	download_overlay = _build_download_overlay(
-			("Updating %s..." if is_update else "Downloading %s...") % game.title, game.id)
+			(tr("Updating %s...") if is_update else tr("Downloading %s...")) % Lang.pick(game, "title"), game.id)
 	add_child(download_overlay)
 	var http: HTTPRequest = Catalog.download(game.id, _on_download_done.bind(game.id))
 	download_overlay.set_meta("http", http)
@@ -406,7 +435,7 @@ func _on_download_done(error: String, id: String) -> void:
 		download_overlay.set_meta("http", null)
 		download_overlay.get_meta("status_label").text = error
 		download_overlay.get_meta("progress_bar").visible = false
-		download_overlay.get_meta("close_button").text = "Close"
+		download_overlay.get_meta("close_button").text = tr("Close")
 
 ## Both "Cancel" mid-download and "Close" after a failure.
 func _close_download_overlay(id: String = "") -> void:
@@ -431,7 +460,7 @@ func _build_download_overlay(status_text: String, id: String) -> Control:
 	progress_bar.max_value = 100
 	box.add_child(progress_bar)
 
-	var close_btn := _dialog_button("Cancel")
+	var close_btn := _dialog_button(tr("Cancel"))
 	close_btn.pressed.connect(_close_download_overlay.bind(id))
 	box.add_child(close_btn)
 
@@ -443,9 +472,9 @@ func _build_download_overlay(status_text: String, id: String) -> Control:
 ## ---------- dialogs ----------
 
 func _show_update_dialog(remote_version: String, apk_url: String) -> void:
-	_show_dialog("Update Available", "v%s is out (you have v%s)" % [remote_version, Version.VERSION], [
-		{"text": "Update Now", "action": Callable(OS, "shell_open").bind(apk_url)},
-		{"text": "Later", "action": Callable()},
+	_show_dialog(tr("Update Available"), tr("v%s is out (you have v%s)") % [remote_version, Version.VERSION], [
+		{"text": tr("Update Now"), "action": Callable(OS, "shell_open").bind(apk_url)},
+		{"text": tr("Later"), "action": Callable()},
 	])
 
 ## `buttons` is [{"text": String, "action": Callable}]; every button closes

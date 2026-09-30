@@ -59,6 +59,7 @@ var my_color: int = 0
 var flipped: bool = false
 
 func _ready() -> void:
+	preload("res://scripts/games/chess/chess_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = ChessEngine.new()
 	_build_ui()
@@ -93,12 +94,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = "Pause"
+	pause_btn.text = tr("Pause")
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
-	title.text = "♟️ Chess"
+	title.text = tr("♟️ Chess")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -106,7 +107,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -159,7 +160,7 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online_btn = Button.new()
-		online_btn.text = "🌐 Play Online"
+		online_btn.text = tr("🌐 Play Online")
 		online_btn.custom_minimum_size = Vector2(0, 80)
 		online_btn.add_theme_font_size_override("font_size", 30)
 		online_btn.pressed.connect(func(): online.open_lobby())
@@ -174,7 +175,7 @@ func _build_ui() -> void:
 	_build_promotion_dialog()
 	_build_result_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online = load(ONLINE_MATCH_PATH).new("chess", "Chess", _online_state)
+		online = load(ONLINE_MATCH_PATH).new("chess", tr("Chess"), _online_state)
 		online.started.connect(_on_online_started)
 		online.remote_move.connect(_on_remote_move)
 		online.remote_state.connect(_on_remote_state)
@@ -204,20 +205,20 @@ func _build_pause_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Paused"
+	title.text = tr("Paused")
 	title.add_theme_font_size_override("font_size", 33)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var resume_btn := Button.new()
-	resume_btn.text = "Resume"
+	resume_btn.text = tr("Resume")
 	resume_btn.custom_minimum_size = Vector2(200, 48)
 	resume_btn.pressed.connect(func(): pause_dialog.visible = false)
 	box.add_child(resume_btn)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.custom_minimum_size = Vector2(200, 44)
 	restart_btn.pressed.connect(func():
 		pause_dialog.visible = false
@@ -226,7 +227,7 @@ func _build_pause_dialog() -> void:
 	box.add_child(restart_btn)
 
 	var exit_btn := Button.new()
-	exit_btn.text = "Exit to Hub"
+	exit_btn.text = tr("Exit to Hub")
 	exit_btn.custom_minimum_size = Vector2(200, 44)
 	exit_btn.pressed.connect(func():
 		_save_game()
@@ -255,7 +256,7 @@ func _build_promotion_dialog() -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Promote to:"
+	title.text = tr("Promote to:")
 	title.add_theme_font_size_override("font_size", 26)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -303,7 +304,7 @@ func _build_result_dialog() -> void:
 	box.add_child(result_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 48)
 	again_btn.pressed.connect(func():
 		result_dialog.visible = false
@@ -312,7 +313,7 @@ func _build_result_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -466,11 +467,11 @@ func _show_result() -> void:
 	game_active = false
 	if not _is_online():  # an online game ending mustn't wipe a paused local one
 		SaveUtil.delete(SAVE_PATH)
-	var msg: String = RESULT_MESSAGES.get(engine.result_reason, "Game over")
+	var msg: String = RESULT_MESSAGES.get(engine.result_reason, tr("Game over"))
 	if engine.result_reason == "checkmate" and _is_online():
 		msg += "\n" + online.result_text(engine.winner == my_color)
 	elif engine.result_reason == "checkmate":
-		msg += "\n%s wins!" % ("White" if engine.winner == ChessEngine.WHITE else "Black")
+		msg += tr("\n%s wins!") % (tr("White") if engine.winner == ChessEngine.WHITE else tr("Black"))
 	result_label.text = msg
 	result_dialog.visible = true
 
@@ -517,12 +518,12 @@ func _render() -> void:
 
 	if not game_active:
 		return
-	var check_suffix := " — Check!" if checked_king.x >= 0 else ""
-	var side := "White" if engine.current_player == ChessEngine.WHITE else "Black"
+	var check_suffix := tr(" — Check!") if checked_king.x >= 0 else ""
+	var side := tr("White") if engine.current_player == ChessEngine.WHITE else tr("Black")
 	if _is_online():
 		status_label.text = online.status_text(engine.current_player == my_color, side + check_suffix)
 	else:
-		status_label.text = "%s's turn%s" % [side, check_suffix]
+		status_label.text = tr("%s's turn%s") % [side, check_suffix]
 
 func _style_square(sq: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()

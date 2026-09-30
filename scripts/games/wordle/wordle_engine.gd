@@ -30,7 +30,7 @@ const ANSWERS := [
 	"DRAIN", "DRAMA", "DRANK", "DREAM", "DRESS", "DRIFT", "DRILL", "DRINK", "DRIVE", "EAGER",
 	"EAGLE", "EARLY", "EARTH", "EIGHT", "ELBOW", "EMPTY", "ENEMY", "ENJOY", "ENTER", "ENTRY",
 	"EQUAL", "ERROR", "EVENT", "EVERY", "EXACT", "EXIST", "EXTRA", "FABLE", "FAINT", "FAIRY",
-	"FAITH", "FALSE", "FANCY", "FEAST", "FENCE", "FERRY", "FEVER", "FIELD", "FIFTH", "FIGHT",
+	"FAITH", "FALSE", "FANCY", "FEAST", "FENCE", "FERRY", "FEVER", "FIFTH", "FIGHT",
 	"FINAL", "FIRST", "FLAME", "FLASH", "FLEET", "FLOAT", "FLOOD", "FLOOR", "FLOUR", "FLUTE",
 	"FOCUS", "FORCE", "FORGE", "FORTH", "FORUM", "FOUND", "FRAME", "FRESH", "FRONT", "FROST",
 	"FRUIT", "FUNNY", "GHOST", "GIANT", "GLASS", "GLOBE", "GLORY", "GLOVE", "GRACE", "GRADE",
@@ -71,23 +71,73 @@ const ANSWERS := [
 	"YOUNG", "YOUTH", "ZEBRA",
 ]
 
+## Spanish answers: accents dropped, as Spanish Wordle games do.
+const ANSWERS_ES := [
+	"ABRIL", "ACERO", "ACTOR", "AGUDO", "AHORA", "AJENO", "ALBUM", "ALDEA", "ALGUN", "ALMAS",
+	"ALTAR", "ALTOS", "AMIGO", "ANCHO", "ANGEL", "ANIMO", "ANTES", "APODO", "ARBOL", "ARCOS",
+	"ARENA", "ARMAR", "AROMA", "ARROZ", "ASADO", "ATLAS", "AUDIO", "AVION", "AYUDA", "BAILE",
+	"BAJAR", "BALON", "BANCO", "BARCO", "BARRO", "BASTA", "BEBER", "BELLO", "BESOS", "BICHO",
+	"BLUSA", "BOCAS", "BOLSA", "BOMBA", "BORDE", "BOTAS", "BRAZO", "BREVE", "BRISA", "BROMA",
+	"BUENO", "BURRO", "CABLE", "CABRA", "CACAO", "CAJON", "CALLE", "CALMA", "CALOR", "CAMPO",
+	"CANAL", "CANTO", "CAPAZ", "CARGA", "CARNE", "CARTA", "CASAS", "CAUSA", "CAZAR", "CEBRA",
+	"CERCA", "CERDO", "CHICO", "CIELO", "CIFRA", "CINCO", "CINTA", "CIRCO", "CLARO", "CLASE",
+	"CLAVO", "CLIMA", "COBRE", "COCHE", "COMER", "COPAS", "CORAL", "CORTO", "COSTA", "CREMA",
+	"CRUCE", "CUERO", "CUEVA", "CULPA", "CURSO", "DANZA", "DATOS", "DEBER", "DECIR", "DEDOS",
+	"DEJAR", "DESDE", "DICHA", "DIETA", "DOLOR", "DONDE", "DUCHA", "DUDAS", "DULCE", "DUROS",
+	"ECHAR", "ENERO", "ENTRE", "ERROR", "ESTAR", "ETAPA", "EXITO", "FALDA", "FALSO", "FALTA",
+	"FAROL", "FECHA", "FELIZ", "FERIA", "FIBRA", "FIRMA", "FLACO", "FLOTA", "FONDO",
+	"FORMA", "FOTOS", "FRASE", "FRENO", "FRESA", "FRUTA", "FUEGO", "FUERA", "FUMAR", "GAFAS",
+	"GALLO", "GANAR", "GANSO", "GASTO", "GATOS", "GENTE", "GIRAR", "GLOBO", "GOLPE", "GORDO",
+	"GORRA", "GOTAS", "GRADO", "GRANO", "GRASA", "GRAVE", "GRITO", "GRUPO", "GUAPO", "GUSTO",
+	"HABER", "HABLA", "HACER", "HASTA", "HIELO", "HIGOS", "HILOS", "HOJAS", "HONOR", "HORAS",
+	"HOTEL", "HUEVO", "HUMOR", "IDEAS", "IGUAL", "ISLAS", "JABON", "JAMON", "JARRA", "JAULA",
+	"JOVEN", "JUEGO", "JUGAR", "JUNIO", "JUNTO", "JUSTO", "LABIO", "LADOS", "LAGOS", "LANZA",
+	"LAPIZ", "LARGO", "LATAS", "LAVAR", "LECHE", "LEGAL", "LEJOS", "LENTO", "LETRA", "LIBRO",
+	"LIGAR", "LIMON", "LINEA", "LISTO", "LLAMA", "LLAVE", "LLENO", "LOBOS", "LOCAL", "LOMAS",
+	"LUCHA", "LUGAR", "LUNES", "MADRE", "MAGIA", "MALLA", "MANGO", "MANOS", "MANTA", "MARCO",
+	"MAREA", "MARZO", "MASAS", "MAYOR", "MEDIA", "MEDIO", "MELON", "MENTA", "MENOR", "MENTE",
+	"MESAS", "METAL", "METRO", "MIEDO", "MIRAR", "MISMO", "MITAD", "MODAS", "MONTE", "MORAL",
+	"MORIR", "MOTOR", "MUCHO", "MUNDO", "MUSEO", "NACER", "NADAR", "NARIZ", "NIEVE", "NIÑOS",
+	"NIVEL", "NOCHE", "NORTE", "NOTAS", "NOVIA", "NUEVO", "NUNCA", "OBRAS", "OCASO", "ODIAR",
+	"OLIVO", "ONDAS", "ORDEN", "OREJA", "PADRE", "PAGAR", "PAJAR", "PALMA", "PALOS", "PANAL",
+	"PAPEL", "PARED", "PARTE", "PASAR", "PASEO", "PASTA", "PATIO", "PECES", "PEDIR", "PEINE",
+	"PELEA", "PERRO", "PESCA", "PIANO", "PIEZA", "PILAS", "PINTA", "PISAR", "PISTA", "PIZZA",
+	"PLATA", "PLATO", "PLAYA", "PLAZA", "PLUMA", "POBRE", "POCOS", "PODER", "POEMA", "POLLO",
+	"PONER", "PRADO", "PRESO", "PRIMO", "PULGA", "PUNTA", "PUNTO", "QUESO", "RADIO", "RAMAS",
+	"RATON", "RAZON", "REGLA", "RELOJ", "REMOS", "RESTO", "REYES", "RIEGO", "RISAS", "RITMO",
+	"ROBOT", "ROCAS", "RONDA", "ROPAS", "RUBIO", "RUEDA", "RUIDO", "RUMBO", "SABER", "SABOR",
+	"SACAR", "SALIR", "SALSA", "SALTO", "SALUD", "SANTO", "SELVA", "SEÑAL", "SERIE", "SIGLO",
+	"SILLA", "SITIO", "SOBRE", "SOLAR", "SOÑAR", "SUAVE", "SUBIR", "SUCIO", "SUELO", "SUEÑO",
+	"SUMAR", "TABLA", "TACOS", "TALLA", "TANGO", "TARDE", "TAREA", "TAXIS", "TECHO", "TEJER",
+	"TELAS", "TEMAS", "TENER", "TENIS", "TIGRE", "TIMON", "TINTA", "TIRAR", "TOCAR", "TODOS",
+	"TOMAR", "TORRE", "TORTA", "TOSER", "TOTAL", "TRAJE", "TRAMO", "TRATO", "TRIGO", "TROZO",
+	"TUMBA", "TURNO", "UNION", "UNICO", "USUAL", "VACAS", "VAGON", "VALLE", "VAPOR", "VASOS",
+	"VECES", "VELAS", "VENTA", "VERDE", "VIAJE", "VIDEO", "VIEJO", "VINOS", "VIRUS", "VISTA",
+	"VIVIR", "VOLAR", "VOTAR", "VUELO", "YEGUA", "YERBA", "ZORRO", "ZUMOS",
+]
+
 var answer: String = ""
 var guesses: Array = []  # submitted words
 var marks: Array = []    # per guess, Array of Mark
 var game_over: bool = false
 var won: bool = false
-var _bag: Array = []
+var _bags: Dictionary = {}
+## Spanish word list instead of English.
+var spanish: bool = false
 
-## Deals the next answer from a shuffled bag so none repeats until every
-## word has come up. Pass `word` to force one (tests).
+## Deals the next answer from a shuffled bag (per language) so none repeats
+## until every word has come up. Pass `word` to force one (tests).
 func reset(word: String = "") -> void:
 	if word != "":
 		answer = word.to_upper()
 	else:
-		if _bag.is_empty():
-			_bag = range(ANSWERS.size())
-			_bag.shuffle()
-		answer = ANSWERS[_bag.pop_back()]
+		var list: Array = ANSWERS_ES if spanish else ANSWERS
+		var bag: Array = _bags.get(spanish, [])
+		if bag.is_empty():
+			bag = range(list.size())
+			bag.shuffle()
+			_bags[spanish] = bag
+		answer = list[bag.pop_back()]
 	guesses = []
 	marks = []
 	game_over = false

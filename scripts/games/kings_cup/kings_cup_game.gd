@@ -30,6 +30,7 @@ var done_btn: Button
 var hint_label: Label
 
 func _ready() -> void:
+	preload("res://scripts/games/kings_cup/kings_cup_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = KingsCupEngine.new()
 	_build_ui()
@@ -57,12 +58,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "👑 Kings Cup"
+	title.text = tr("👑 Kings Cup")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -89,7 +90,7 @@ func _build_setup(root: VBoxContainer) -> void:
 	setup_box.add_child(box)
 
 	var label := Label.new()
-	label.text = "How many players?"
+	label.text = tr("How many players?")
 	label.add_theme_font_size_override("font_size", 31)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -129,14 +130,14 @@ func _build_setup(root: VBoxContainer) -> void:
 	counter_row.add_child(plus_btn)
 
 	var start_btn := Button.new()
-	start_btn.text = "Start Game"
+	start_btn.text = tr("Start Game")
 	start_btn.custom_minimum_size = Vector2(220, 56)
 	start_btn.add_theme_font_size_override("font_size", 26)
 	start_btn.pressed.connect(_on_start_pressed)
 	box.add_child(start_btn)
 
 	var rules_label := Label.new()
-	rules_label.text = "Pass the phone around. Pick a card from the circle,\nfollow the rule, tap Done. The 4th King drinks the cup!"
+	rules_label.text = tr("Pass the phone around. Pick a card from the circle,\nfollow the rule, tap Done. The 4th King drinks the cup!")
 	rules_label.add_theme_font_size_override("font_size", 20)
 	rules_label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.6))
 	rules_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -170,7 +171,7 @@ func _build_play(root: VBoxContainer) -> void:
 	circle_center.add_child(circle_area)
 
 	hint_label = Label.new()
-	hint_label.text = "Tap a card to draw it"
+	hint_label.text = tr("Tap a card to draw it")
 	hint_label.add_theme_font_size_override("font_size", 20)
 	hint_label.add_theme_color_override("font_color", Color(0.65, 0.6, 0.55))
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -229,7 +230,7 @@ func _build_reveal_panel(parent: VBoxContainer) -> void:
 	box.add_child(reveal_desc_label)
 
 	done_btn = Button.new()
-	done_btn.text = "✓ Done"
+	done_btn.text = tr("✓ Done")
 	done_btn.custom_minimum_size = Vector2(200, 56)
 	done_btn.add_theme_font_size_override("font_size", 26)
 	done_btn.pressed.connect(_on_done_pressed)
@@ -247,20 +248,20 @@ func _build_end(root: VBoxContainer) -> void:
 	end_box.add_child(box)
 
 	var big := Label.new()
-	big.text = "🍺 DRINK\nTHE CUP! 🍺"
+	big.text = tr("🍺 DRINK\nTHE CUP! 🍺")
 	big.add_theme_font_size_override("font_size", 43)
 	big.add_theme_color_override("font_color", Color(1, 0.4, 0.4))
 	big.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(big)
 
 	var again_btn := Button.new()
-	again_btn.text = "New Game"
+	again_btn.text = tr("New Game")
 	again_btn.custom_minimum_size = Vector2(220, 56)
 	again_btn.pressed.connect(_show_setup)
 	box.add_child(again_btn)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Back to Hub"
+	hub_btn.text = tr("Back to Hub")
 	hub_btn.custom_minimum_size = Vector2(220, 48)
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(hub_btn)
@@ -284,7 +285,7 @@ func _on_start_pressed() -> void:
 	_render_circle()
 
 func _update_turn_display() -> void:
-	turn_label.text = "Player %d's turn" % (engine.current_player + 1)
+	turn_label.text = tr("Player %d's turn") % (engine.current_player + 1)
 	crown_label.text = "👑 " + "♔".repeat(engine.king_count) + "▫".repeat(4 - engine.king_count) + "  (%d/4)" % engine.king_count
 
 ## Rebuilds every card-back button around a ring; the ring's radius shrinks as the

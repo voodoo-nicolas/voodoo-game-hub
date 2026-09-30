@@ -17,6 +17,7 @@ var win_dialog: Control
 var win_label: Label
 
 func _ready() -> void:
+	preload("res://scripts/games/war/war_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = WarEngine.new()
 	_build_ui()
@@ -44,12 +45,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "⚔️ War"
+	title.text = tr("⚔️ War")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -57,7 +58,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -75,9 +76,9 @@ func _build_ui() -> void:
 	piles_row.add_theme_constant_override("separation", 60)
 	box.add_child(piles_row)
 
-	p1_pile_label = _pile_label("You: 26")
+	p1_pile_label = _pile_label(tr("You: 26"))
 	piles_row.add_child(p1_pile_label)
-	p2_pile_label = _pile_label("CPU: 26")
+	p2_pile_label = _pile_label(tr("CPU: 26"))
 	piles_row.add_child(p2_pile_label)
 
 	var cards_row := HBoxContainer.new()
@@ -99,7 +100,7 @@ func _build_ui() -> void:
 	box.add_child(result_label)
 
 	play_btn = Button.new()
-	play_btn.text = "Play Round"
+	play_btn.text = tr("Play Round")
 	play_btn.custom_minimum_size = Vector2(220, 56)
 	play_btn.add_theme_font_size_override("font_size", 26)
 	play_btn.pressed.connect(_on_play_pressed)
@@ -160,7 +161,7 @@ func _build_win_dialog() -> void:
 	box.add_child(win_label)
 
 	var again_btn := Button.new()
-	again_btn.text = "Play Again"
+	again_btn.text = tr("Play Again")
 	again_btn.custom_minimum_size = Vector2(200, 48)
 	again_btn.pressed.connect(func():
 		win_dialog.visible = false
@@ -169,7 +170,7 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "Back to Hub"
+	menu_btn.text = tr("Back to Hub")
 	menu_btn.custom_minimum_size = Vector2(200, 44)
 	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
 	box.add_child(menu_btn)
@@ -179,7 +180,7 @@ func _build_win_dialog() -> void:
 func _start_new_game() -> void:
 	engine.reset()
 	win_dialog.visible = false
-	result_label.text = "Tap Play Round to begin!"
+	result_label.text = tr("Tap Play Round to begin!")
 	p1_card_label.text = "🂠"
 	p2_card_label.text = "🂠"
 	p1_card_label.add_theme_color_override("font_color", Color(1, 1, 1))
@@ -198,21 +199,21 @@ func _on_play_pressed() -> void:
 		p1_card_label.add_theme_color_override("font_color", Color(1, 0.4, 0.4) if RED_SUITS.has(c1.suit) else Color(1, 1, 1))
 		p2_card_label.add_theme_color_override("font_color", Color(1, 0.4, 0.4) if RED_SUITS.has(c2.suit) else Color(1, 1, 1))
 
-		var prefix := "⚔️ WAR! " if result.war_happened else ""
+		var prefix := tr("⚔️ WAR! ") if result.war_happened else ""
 		if result.round_winner == 1:
-			result_label.text = "%sYou win %d cards!" % [prefix, result.cards_won]
+			result_label.text = tr("%sYou win %d cards!") % [prefix, result.cards_won]
 		else:
-			result_label.text = "%sCPU wins %d cards!" % [prefix, result.cards_won]
+			result_label.text = tr("%sCPU wins %d cards!") % [prefix, result.cards_won]
 	elif result.has("ran_out"):
-		result_label.text = "%s ran out of cards mid-war!" % ("You" if result.ran_out == 1 else "CPU")
+		result_label.text = tr("%s ran out of cards mid-war!") % (tr("You") if result.ran_out == 1 else "CPU")
 
 	if result.game_over:
 		_show_result()
 
 func _update_piles() -> void:
-	p1_pile_label.text = "You: %d" % engine.p1_pile.size()
-	p2_pile_label.text = "CPU: %d" % engine.p2_pile.size()
+	p1_pile_label.text = tr("You: %d") % engine.p1_pile.size()
+	p2_pile_label.text = tr("CPU: %d") % engine.p2_pile.size()
 
 func _show_result() -> void:
-	win_label.text = "You win the game!" if engine.winner == 1 else "CPU wins the game!"
+	win_label.text = tr("You win the game!") if engine.winner == 1 else tr("CPU wins the game!")
 	win_dialog.visible = true

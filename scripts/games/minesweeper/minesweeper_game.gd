@@ -38,6 +38,7 @@ var result_dialog: Control
 var result_label: Label
 
 func _ready() -> void:
+	preload("res://scripts/games/minesweeper/minesweeper_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = MinesweeperEngine.new()
 	var data = SaveUtil.read(BEST_PATH)
@@ -67,9 +68,9 @@ func _build_ui() -> void:
 	_build_game_screen()
 
 	result_dialog = UI.build_dialog("", [
-		{"text": "Play Again", "action": _restart},
-		{"text": "Change Difficulty", "action": _show_start_screen},
-		{"text": "Back to Hub", "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("Play Again"), "action": _restart},
+		{"text": tr("Change Difficulty"), "action": _show_start_screen},
+		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	result_label = result_dialog.get_meta("message_label")
 	add_child(result_dialog)
@@ -87,13 +88,13 @@ func _top_bar(parent: Control, show_new: bool) -> void:
 	margin.add_child(bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
+	hub_btn.text = tr("Hub")
 	hub_btn.add_theme_font_size_override("font_size", 26)
 	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
 	bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = "💣 Minesweeper"
+	title.text = tr("💣 Minesweeper")
 	title.add_theme_font_size_override("font_size", 34)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -101,7 +102,7 @@ func _top_bar(parent: Control, show_new: bool) -> void:
 
 	if show_new:
 		var new_btn := Button.new()
-		new_btn.text = "New"
+		new_btn.text = tr("New")
 		new_btn.add_theme_font_size_override("font_size", 26)
 		new_btn.pressed.connect(_show_start_screen)
 		bar.add_child(new_btn)
@@ -121,7 +122,7 @@ func _build_start_screen() -> void:
 	center.add_child(box)
 
 	var prompt := Label.new()
-	prompt.text = "Choose a board"
+	prompt.text = tr("Choose a board")
 	prompt.add_theme_font_size_override("font_size", 36)
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(prompt)
@@ -129,14 +130,14 @@ func _build_start_screen() -> void:
 	for d in ["easy", "medium", "hard"]:
 		var spec: Dictionary = MinesweeperEngine.DIFFICULTIES[d]
 		var btn := Button.new()
-		btn.text = "%s  —  %d×%d, %d mines" % [d.capitalize(), spec.rows, spec.cols, spec.mines]
+		btn.text = tr("%s  —  %d×%d, %d mines") % [tr(d.capitalize()), spec.rows, spec.cols, spec.mines]
 		btn.custom_minimum_size = Vector2(520, 96)
 		btn.add_theme_font_size_override("font_size", 30)
 		btn.pressed.connect(_start_game.bind(d))
 		box.add_child(btn)
 
 	var hint := Label.new()
-	hint.text = "Tap to dig. Switch to 🚩 mode to flag mines.\nTap a number with all its flags placed to clear around it."
+	hint.text = tr("Tap to dig. Switch to 🚩 mode to flag mines.\nTap a number with all its flags placed to clear around it.")
 	hint.add_theme_font_size_override("font_size", 22)
 	hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.78))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -263,9 +264,9 @@ func _finish(won: bool) -> void:
 		if is_record:
 			best_times[difficulty] = elapsed
 			SaveUtil.write(BEST_PATH, best_times)
-		msg = "You cleared the board!\nTime: %s%s" % [_format_time(elapsed), "\nNew best!" if is_record else "\nBest: %s" % _format_time(float(best))]
+		msg = tr("You cleared the board!\nTime: %s%s") % [_format_time(elapsed), tr("\nNew best!") if is_record else tr("\nBest: %s") % _format_time(float(best))]
 	else:
-		msg = "Boom! You hit a mine."
+		msg = tr("Boom! You hit a mine.")
 	result_label.text = msg
 	# Let the player see the final board for a moment before the dialog.
 	create_tween().tween_callback(_show_result).set_delay(0.8)
@@ -278,7 +279,7 @@ func _show_result() -> void:
 
 func _render() -> void:
 	mines_label.text = "💣 %d" % engine.flags_left()
-	mode_btn.text = "🚩 Flag mode" if flag_mode else "⛏ Dig mode"
+	mode_btn.text = tr("🚩 Flag mode") if flag_mode else tr("⛏ Dig mode")
 	for r in range(engine.rows):
 		for c in range(engine.cols):
 			var btn: Button = cells[r][c]

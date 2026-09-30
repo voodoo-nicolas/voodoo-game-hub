@@ -33,6 +33,7 @@ var online: Control = null
 var my_color: int = 0
 
 func _ready() -> void:
+	preload("res://scripts/games/connect4/connect4_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = Connect4Engine.new()
 	_build_ui()
@@ -67,12 +68,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = "Pause"
+	pause_btn.text = tr("Pause")
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
-	title.text = "Connect Four"
+	title.text = tr("Connect Four")
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -80,7 +81,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -138,7 +139,7 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online_btn = Button.new()
-		online_btn.text = "🌐 Play Online"
+		online_btn.text = tr("🌐 Play Online")
 		online_btn.custom_minimum_size = Vector2(0, 80)
 		online_btn.add_theme_font_size_override("font_size", 30)
 		online_btn.pressed.connect(_open_lobby)
@@ -147,7 +148,7 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	_build_win_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online = load(ONLINE_MATCH_PATH).new("connect4", "Connect Four", _online_state)
+		online = load(ONLINE_MATCH_PATH).new("connect4", tr("Connect Four"), _online_state)
 		online.started.connect(_on_online_started)
 		online.remote_move.connect(_on_remote_move)
 		online.remote_state.connect(_on_remote_state)
@@ -168,17 +169,17 @@ func _style_slot(slot: Button, color: Color) -> void:
 		slot.add_theme_stylebox_override(state, sb)
 
 func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog("Paused", [
-		{"text": "Resume", "action": Callable()},
-		{"text": "Restart", "action": _start_new_game},
-		{"text": "Exit to Hub", "action": Ui.exit_to_hub.bind(self)},
+	pause_dialog = Ui.build_dialog(tr("Paused"), [
+		{"text": tr("Resume"), "action": Callable()},
+		{"text": tr("Restart"), "action": _start_new_game},
+		{"text": tr("Exit to Hub"), "action": Ui.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
 
 func _build_win_dialog() -> void:
 	win_dialog = Ui.build_dialog("", [
-		{"text": "Play Again", "action": _start_new_game},
-		{"text": "Back to Hub", "action": Ui.exit_to_hub.bind(self)},
+		{"text": tr("Play Again"), "action": _start_new_game},
+		{"text": tr("Back to Hub"), "action": Ui.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
@@ -261,11 +262,11 @@ func _show_result() -> void:
 		SaveUtil.delete(SAVE_PATH)
 	var w: int = engine.winner()
 	if w == Connect4Engine.EMPTY:
-		win_label.text = "It's a draw!"
+		win_label.text = tr("It's a draw!")
 	elif _is_online():
 		win_label.text = online.result_text(w == my_color)
 	else:
-		win_label.text = "%s wins!" % ("Red" if w == Connect4Engine.RED else "Yellow")
+		win_label.text = tr("%s wins!") % (tr("Red") if w == Connect4Engine.RED else tr("Yellow"))
 	win_dialog.visible = true
 
 func _render() -> void:
@@ -279,11 +280,11 @@ func _render() -> void:
 				color = COLOR_YELLOW
 			_style_slot(cell_views[r][c], color)
 
-	var color_name := "Red" if engine.turn == Connect4Engine.RED else "Yellow"
+	var color_name := tr("Red") if engine.turn == Connect4Engine.RED else tr("Yellow")
 	if _is_online():
 		status_label.text = online.status_text(engine.turn == my_color, color_name)
 	else:
-		status_label.text = "Turn: %s" % color_name
+		status_label.text = tr("Turn: %s") % color_name
 
 # ---------- save / load ----------
 

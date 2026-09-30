@@ -14,6 +14,7 @@ config/icon.game_pack=""
 
 [autoload]
 
+Lang="*res://scripts/common/lang.gd"
 Auth="*res://scripts/common/auth.gd"
 Catalog="*res://scripts/common/catalog.gd"
 

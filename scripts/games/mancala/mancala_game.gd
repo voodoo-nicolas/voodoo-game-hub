@@ -30,6 +30,7 @@ var online: Control = null
 var my_player: int = 0
 
 func _ready() -> void:
+	preload("res://scripts/games/mancala/mancala_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = MancalaEngine.new()
 	_build_ui()
@@ -64,12 +65,12 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = "Pause"
+	pause_btn.text = tr("Pause")
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
-	title.text = "Mancala"
+	title.text = tr("Mancala")
 	title.add_theme_font_size_override("font_size", 31)
 	title.add_theme_color_override("font_color", Color(1, 1, 1))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -77,7 +78,7 @@ func _build_ui() -> void:
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = tr("Restart")
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -125,7 +126,7 @@ func _build_ui() -> void:
 	_build_win_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online_btn = Button.new()
-		online_btn.text = "🌐 Play Online"
+		online_btn.text = tr("🌐 Play Online")
 		online_btn.custom_minimum_size = Vector2(0, 80)
 		online_btn.add_theme_font_size_override("font_size", 30)
 		online_btn.pressed.connect(func(): online.open_lobby())
@@ -135,7 +136,7 @@ func _build_ui() -> void:
 		btn_margin.add_theme_constant_override("margin_right", 60)
 		btn_margin.add_child(online_btn)
 		root.add_child(btn_margin)
-		online = load(ONLINE_MATCH_PATH).new("mancala", "Mancala", _online_state)
+		online = load(ONLINE_MATCH_PATH).new("mancala", tr("Mancala"), _online_state)
 		online.started.connect(_on_online_started)
 		online.remote_move.connect(_on_remote_move)
 		online.remote_state.connect(_on_remote_state)
@@ -186,17 +187,17 @@ func _make_store(index: int, width: float, height: float) -> Control:
 	return panel
 
 func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog("Paused", [
-		{"text": "Resume", "action": Callable()},
-		{"text": "Restart", "action": _start_new_game},
-		{"text": "Exit to Hub", "action": Ui.exit_to_hub.bind(self)},
+	pause_dialog = Ui.build_dialog(tr("Paused"), [
+		{"text": tr("Resume"), "action": Callable()},
+		{"text": tr("Restart"), "action": _start_new_game},
+		{"text": tr("Exit to Hub"), "action": Ui.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
 
 func _build_win_dialog() -> void:
 	win_dialog = Ui.build_dialog("", [
-		{"text": "Play Again", "action": _start_new_game},
-		{"text": "Back to Hub", "action": Ui.exit_to_hub.bind(self)},
+		{"text": tr("Play Again"), "action": _start_new_game},
+		{"text": tr("Back to Hub"), "action": Ui.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
@@ -240,7 +241,7 @@ func _sow(index: int) -> bool:
 	if engine.game_over:
 		_show_result()
 	elif result.extra_turn:
-		status_label.text = "Player %d goes again!" % engine.current_player
+		status_label.text = tr("Player %d goes again!") % engine.current_player
 	return true
 
 # ---------- online ----------
@@ -280,11 +281,11 @@ func _show_result() -> void:
 	var p1: int = engine.board[MancalaEngine.P1_STORE]
 	var p2: int = engine.board[MancalaEngine.P2_STORE]
 	if engine.winner == 0:
-		win_label.text = "It's a tie! %d - %d" % [p1, p2]
+		win_label.text = tr("It's a tie! %d - %d") % [p1, p2]
 	elif _is_online():
 		win_label.text = "%s %d - %d" % [online.result_text(engine.winner == my_player), p1, p2]
 	else:
-		win_label.text = "Player %d wins! %d - %d" % [engine.winner, p1, p2]
+		win_label.text = tr("Player %d wins! %d - %d") % [engine.winner, p1, p2]
 	win_dialog.visible = true
 
 # ---------- rendering ----------
@@ -303,10 +304,10 @@ func _render() -> void:
 
 	if game_active:
 		if _is_online():
-			var side := "bottom row" if current == 1 else "top row"
-			status_label.text = online.status_text(current == my_player, "Player %d, %s" % [current, side])
+			var side := tr("bottom row") if current == 1 else tr("top row")
+			status_label.text = online.status_text(current == my_player, tr("Player %d, %s") % [current, side])
 		else:
-			status_label.text = "Player %d's turn" % current
+			status_label.text = tr("Player %d's turn") % current
 
 func _style_pit(btn: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
