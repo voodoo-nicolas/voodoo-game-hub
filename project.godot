@@ -10,10 +10,12 @@ config/name="Voodoo"
 run/main_scene="res://scenes/hub/hub.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.png"
+config/icon.game_pack=""
 
 [autoload]
 
 Auth="*res://scripts/common/auth.gd"
+Catalog="*res://scripts/common/catalog.gd"
 
 [display]
 

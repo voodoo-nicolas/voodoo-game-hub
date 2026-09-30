@@ -1,0 +1,13 @@
+extends RefCounted
+
+## Pure game logic for {{TITLE}} -- no Nodes, no UI, so it can be tested
+## headlessly (see CLAUDE.md's "Shipping a change").
+
+var score: int = 0
+
+func reset() -> void:
+	score = 0
+
+## Replace with the game's real move/turn logic.
+func tap() -> void:
+	score += 1

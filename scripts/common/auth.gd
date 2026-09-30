@@ -13,9 +13,10 @@ extends Node
 ## Supabase project allow. Never put the secret/service_role key here.
 
 const SaveUtil = preload("res://scripts/common/save_util.gd")
+const Config = preload("res://scripts/common/config.gd")
 
-const SUPABASE_URL := "https://swyzfsyvmqxabhvvhhtn.supabase.co"
-const SUPABASE_ANON_KEY := "sb_publishable_uyB6Ssw-KTcOAAB-QJCRDQ_sTNfPuhT"
+const SUPABASE_URL := Config.SUPABASE_URL
+const SUPABASE_ANON_KEY := Config.SUPABASE_ANON_KEY
 const SESSION_PATH := "user://auth_session.json"
 
 signal signed_in(user_id: String, display_name: String)
@@ -28,10 +29,16 @@ var expires_at: int = 0
 var user_id: String = ""
 var display_name: String = ""
 
+## Callbacks waiting on the refresh currently in flight. Supabase rotates the
+## refresh token on every use, so two overlapping refreshes would spend the
+## same token twice -- the second is rejected as reuse and can revoke the
+## whole session. Every caller joins the one refresh instead.
+var _refresh_waiters: Array[Callable] = []
+
 func _ready() -> void:
 	_load_session()
 	if refresh_token != "":
-		_refresh_session(func(_ok): pass)  # silent background refresh on launch
+		_refresh_session(Callable())  # silent background refresh on launch
 
 func is_logged_in() -> bool:
 	return access_token != "" and user_id != ""
@@ -96,7 +103,7 @@ func request_password_reset(email: String) -> void:
 func reconcile_stat(field_name: String, local_value: int, on_done: Callable) -> void:
 	_ensure_fresh_token(func(ok):
 		if not ok:
-			on_done.call(local_value)
+			_safe_call(on_done, [local_value])
 			return
 		var headers: PackedStringArray = ["Authorization: Bearer " + access_token]
 		_request(HTTPClient.METHOD_GET, "/rest/v1/player_stats?select=" + field_name, {}, headers, func(ok2, parsed, _code):
@@ -106,7 +113,7 @@ func reconcile_stat(field_name: String, local_value: int, on_done: Callable) -> 
 			var merged: int = merge_stat(local_value, cloud_value)
 			if merged > cloud_value:
 				push_stat(field_name, merged)
-			on_done.call(merged)
+			_safe_call(on_done, [merged])
 		)
 	)
 
@@ -142,19 +149,31 @@ func _extract_display_name(parsed: Dictionary) -> String:
 
 func _extract_error(parsed, fallback: String) -> String:
 	if typeof(parsed) == TYPE_DICTIONARY:
-		return str(parsed.get("error_description", parsed.get("msg", fallback)))
+		for key in ["error_description", "msg", "message"]:
+			if parsed.has(key) and str(parsed[key]) != "":
+				return str(parsed[key])
 	return fallback
 
+## Only a definite rejection from Supabase (4xx: token revoked, expired or
+## already used) signs the player out. A network failure -- offline, timeout,
+## server hiccup -- keeps the stored session so it can refresh next time;
+## launching the app on a plane must not log anyone out.
 func _refresh_session(on_done: Callable) -> void:
+	_refresh_waiters.append(on_done)
+	if _refresh_waiters.size() > 1:
+		return  # a refresh is already in flight; wait for its result
 	var body := {"refresh_token": refresh_token}
-	_request(HTTPClient.METHOD_POST, "/auth/v1/token?grant_type=refresh_token", body, PackedStringArray(), func(ok, parsed, _code):
-		if not ok or typeof(parsed) != TYPE_DICTIONARY or not parsed.has("access_token"):
+	_request(HTTPClient.METHOD_POST, "/auth/v1/token?grant_type=refresh_token", body, PackedStringArray(), func(ok, parsed, code):
+		var success: bool = ok and typeof(parsed) == TYPE_DICTIONARY and parsed.has("access_token")
+		if success:
+			_apply_session(parsed, display_name)
+		elif code >= 400 and code < 500:
 			_clear_session()
 			signed_out.emit()
-			on_done.call(false)
-			return
-		_apply_session(parsed, display_name)
-		on_done.call(true)
+		var waiters := _refresh_waiters
+		_refresh_waiters = []
+		for cb in waiters:
+			_safe_call(cb, [success])
 	)
 
 ## Refreshes first if the access token is expired or about to be (60s grace),
@@ -166,7 +185,7 @@ func _ensure_fresh_token(on_ready: Callable) -> void:
 		return
 	var now := int(Time.get_unix_time_from_system())
 	if needs_refresh(now, expires_at):
-		_refresh_session(func(ok): on_ready.call(ok))
+		_refresh_session(on_ready)
 	else:
 		on_ready.call(true)
 
@@ -206,6 +225,7 @@ func _clear_session() -> void:
 ## because `ok` is true (a 2xx with an empty/malformed body still reports ok).
 func _request(method: HTTPClient.Method, path: String, body: Dictionary, extra_headers: PackedStringArray, on_done: Callable) -> void:
 	var http := HTTPRequest.new()
+	http.timeout = Config.HTTP_TIMEOUT
 	add_child(http)
 	http.request_completed.connect(func(result, response_code, _headers, response_body):
 		http.queue_free()
@@ -232,4 +252,9 @@ func _request(method: HTTPClient.Method, path: String, body: Dictionary, extra_h
 		# didn't start, and callers wait on this callback to re-enable their UI.
 		# Dropping it silently leaves the sign-in button disabled forever.
 		on_done.call(false, {}, 0)
-		on_done.call(false, {}, 0)
+
+## Game scenes pass lambdas/methods that may belong to a scene the player has
+## already left by the time the network answers; skip those quietly.
+static func _safe_call(cb: Callable, args: Array) -> void:
+	if cb.is_valid():
+		cb.callv(args)

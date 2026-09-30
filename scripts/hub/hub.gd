@@ -2,127 +2,10 @@ extends Control
 
 const Version = preload("res://scripts/common/version.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
-const SaveUtil = preload("res://scripts/common/save_util.gd")
+const Config = preload("res://scripts/common/config.gd")
 
-const RELEASE_BASE := "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/"
-const LATEST_RELEASE_API := "https://api.github.com/repos/voodoo-nicolas/voodoo-game-hub/releases/latest"
-const MANIFEST_URL := "https://raw.githubusercontent.com/voodoo-nicolas/voodoo-game-hub/master/manifest.json"
-const PACK_VERSIONS_PATH := "user://pack_versions.json"
-
-## Game catalog, grouped into sections. "scene" empty string with no "pack_id" means
-## "coming soon" (tile disabled). A game with "pack_id" is downloadable-on-demand: its
-## code/scenes live in a separately-hosted .pck, not bundled into the hub app itself.
-## The tile shows "Download" until user://packs/<pack_id>.pck exists, at which point it
-## mounts on demand and plays like any other game.
-const CATEGORIES: Array = [
-	{
-		"name": "Puzzle & Board",
-		"icon": "🧩",
-		"color": Color(0.16, 0.45, 0.4),
-		"games": [
-			{"title": "Chess", "icon": "♟️", "pack_id": "chess", "scene": "res://scenes/games/chess/chess.tscn"},
-			{"title": "Sudoku", "icon": "🔢", "pack_id": "sudoku", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
-			{"title": "Minesweeper", "icon": "💣", "scene": ""},
-			{"title": "Tic-Tac-Toe", "icon": "⭕", "pack_id": "tictactoe", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
-			{"title": "Connect Four", "icon": "🔴", "pack_id": "connect4", "scene": "res://scenes/games/connect4/connect4.tscn"},
-			{"title": "Checkers", "icon": "⚫", "pack_id": "checkers", "scene": "res://scenes/games/checkers/checkers.tscn"},
-			{"title": "Reversi / Othello", "icon": "⚪", "pack_id": "reversi", "scene": "res://scenes/games/reversi/reversi.tscn"},
-			{"title": "Battleship", "icon": "🚢", "scene": ""},
-			{"title": "Dots and Boxes", "icon": "▫️", "pack_id": "dots_boxes", "scene": "res://scenes/games/dots_boxes/dots_boxes.tscn"},
-			{"title": "Mancala", "icon": "🌰", "pack_id": "mancala", "scene": "res://scenes/games/mancala/mancala.tscn"},
-			{"title": "Backgammon", "icon": "🎲", "scene": ""},
-			{"title": "Nine Men's Morris", "icon": "✳️", "scene": ""},
-			{"title": "Peg Solitaire", "icon": "📌", "scene": ""},
-			{"title": "Lights Out", "icon": "💡", "pack_id": "lights_out", "scene": "res://scenes/games/lights_out/lights_out.tscn"},
-			{"title": "Sokoban", "icon": "📦", "scene": ""},
-			{"title": "Sliding 15-Puzzle", "icon": "🔲", "scene": ""},
-			{"title": "2048", "icon": "🔷", "pack_id": "g2048", "scene": "res://scenes/games/g2048/g2048.tscn"},
-			{"title": "Kakuro", "icon": "➗", "scene": ""},
-			{"title": "Picross / Nonogram", "icon": "🖼️", "scene": ""},
-			{"title": "Mastermind", "icon": "🧠", "scene": ""},
-			{"title": "Tower of Hanoi", "icon": "🗼", "scene": ""},
-			{"title": "KenKen", "icon": "🔟", "scene": ""},
-		],
-	},
-	{
-		"name": "Cards",
-		"icon": "🃏",
-		"color": Color(0.2, 0.3, 0.5),
-		"games": [
-			{"title": "Solitaire", "icon": "🂡", "pack_id": "solitaire", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
-			{"title": "Blackjack", "icon": "🂱", "scene": ""},
-			{"title": "War", "icon": "⚔️", "pack_id": "war", "scene": "res://scenes/games/war/war.tscn"},
-			{"title": "Crazy Eights", "icon": "8️⃣", "scene": ""},
-			{"title": "Go Fish", "icon": "🐟", "scene": ""},
-			{"title": "Rummy", "icon": "🃁", "scene": ""},
-			{"title": "Spider Solitaire", "icon": "🕷️", "scene": ""},
-			{"title": "FreeCell", "icon": "🆓", "scene": ""},
-			{"title": "Pyramid Solitaire", "icon": "🔺", "scene": ""},
-			{"title": "Speed / Spit", "icon": "⚡", "scene": ""},
-			{"title": "Memory Match", "icon": "🧠", "pack_id": "memory", "scene": "res://scenes/games/memory/memory.tscn"},
-		],
-	},
-	{
-		"name": "Word",
-		"icon": "🔤",
-		"color": Color(0.45, 0.35, 0.15),
-		"games": [
-			{"title": "Hangman", "icon": "💀", "pack_id": "hangman", "scene": "res://scenes/games/hangman/hangman.tscn"},
-			{"title": "Wordle", "icon": "🟩", "scene": ""},
-			{"title": "Word Search", "icon": "🔍", "scene": ""},
-			{"title": "Crossword", "icon": "📝", "scene": ""},
-			{"title": "Anagrams", "icon": "🔀", "scene": ""},
-			{"title": "Boggle", "icon": "🎲", "scene": ""},
-		],
-	},
-	{
-		"name": "Arcade",
-		"icon": "🕹️",
-		"color": Color(0.5, 0.2, 0.45),
-		"games": [
-			{"title": "Geometry Wars", "icon": "🚀", "pack_id": "geometry_wars", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
-			{"title": "Snake", "icon": "🐍", "pack_id": "snake", "scene": "res://scenes/games/snake/snake.tscn"},
-			{"title": "Tetris", "icon": "🧱", "scene": ""},
-			{"title": "Pong", "icon": "🏓", "scene": ""},
-			{"title": "Breakout", "icon": "🎯", "scene": ""},
-			{"title": "Flappy Bird", "icon": "🐦", "scene": ""},
-			{"title": "Space Invaders", "icon": "👾", "scene": ""},
-			{"title": "Frogger", "icon": "🐸", "scene": ""},
-			{"title": "Match-3", "icon": "💎", "scene": ""},
-			{"title": "Simon", "icon": "🎵", "pack_id": "simon", "scene": "res://scenes/games/simon/simon.tscn"},
-			{"title": "Whack-a-Mole", "icon": "🔨", "pack_id": "whack_a_mole", "scene": "res://scenes/games/whack_a_mole/whack_a_mole.tscn"},
-			{"title": "Reaction Test", "icon": "⏱️", "pack_id": "reaction_test", "scene": "res://scenes/games/reaction_test/reaction_test.tscn"},
-		],
-	},
-	{
-		"name": "Dice & Party",
-		"icon": "🎲",
-		"color": Color(0.5, 0.4, 0.15),
-		"games": [
-			{"title": "Yahtzee", "icon": "🎲", "scene": ""},
-			{"title": "Farkle", "icon": "🎯", "scene": ""},
-			{"title": "Liar's Dice", "icon": "🤥", "scene": ""},
-		],
-	},
-	{
-		"name": "Drinking Games",
-		"icon": "🍹",
-		"color": Color(0.6, 0.2, 0.25),
-		"games": [
-			{"title": "Kings Cup", "icon": "👑", "pack_id": "kings_cup", "scene": "res://scenes/games/kings_cup/kings_cup.tscn"},
-			{"title": "Red or Black", "icon": "🎴", "pack_id": "red_or_black", "scene": "res://scenes/games/red_or_black/red_or_black.tscn"},
-			{"title": "Three Man", "icon": "3️⃣", "pack_id": "three_man", "scene": "res://scenes/games/three_man/three_man.tscn"},
-		],
-	},
-	{
-		"name": "Other",
-		"icon": "🎯",
-		"color": Color(0.35, 0.35, 0.4),
-		"games": [
-			{"title": "Twister Spinner", "icon": "🌀", "scene": ""},
-		],
-	},
-]
+## The game catalog itself lives in manifest.json (see the Catalog autoload),
+## not here -- this file only draws it.
 
 const NEON_GREEN := Color(0.15, 1.0, 0.55)
 const NEON_GREEN_DIM := Color(0.08, 0.45, 0.28)
@@ -137,6 +20,7 @@ const ELECTRIC_BLUE_DIM := Color(0.06, 0.26, 0.45)
 const STATE_READY := Color(0.15, 1.0, 0.55)
 const STATE_DOWNLOAD := Color(1.0, 0.32, 0.34)
 const STATE_SOON := Color(0.42, 0.46, 0.48)
+const STATE_APP_UPDATE := Color(1.0, 0.75, 0.2)
 
 ## Height the category rows collapse to once one is expanded, plus roughly how
 ## much vertical space the VOODOO header + margins eat. Only used to decide how
@@ -152,6 +36,10 @@ var list_container: VBoxContainer
 var expanded_index: int = -1
 var account_status_label: Label
 var account_status_btn: Button
+## Set while a tap is being resolved (manifest check, download, mount), so a
+## second tap -- on the same tile or another -- can't start a parallel flow.
+var busy: bool = false
+var download_overlay: Control
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -235,8 +123,13 @@ func _ready() -> void:
 	margin.add_child(list_container)
 	scroll.add_child(margin)
 
+	# A newer live manifest can add games or change versions while the hub is
+	# open. Plain method connection, not a lambda -- see CLAUDE.md gotcha.
+	Catalog.catalog_changed.connect(_rebuild_list)
+	Catalog.refresh_manifest(Config.MANIFEST_MAX_AGE_SEC)
 	_rebuild_list()
-	_check_for_update()
+	if not Catalog.app_update_checked:
+		Catalog.check_app_update(_show_update_dialog)
 
 func _update_account_status() -> void:
 	if Auth.is_logged_in():
@@ -284,14 +177,17 @@ func _rebuild_list() -> void:
 	# With nothing expanded there'd otherwise be dead space under the last row,
 	# so the headers grow to divide up whatever height this screen actually has.
 	# Once a category opens, they drop back to compact so its games get the room.
+	var categories: Array = Catalog.categories
+	if expanded_index >= categories.size():
+		expanded_index = -1
 	var row_height := HEADER_HEIGHT_COMPACT
-	if expanded_index == -1:
+	if expanded_index == -1 and not categories.is_empty():
 		var available: float = get_viewport_rect().size.y - HEADER_CHROME_HEIGHT
-		var gaps: float = LIST_SEPARATION * (CATEGORIES.size() - 1)
-		row_height = max(HEADER_HEIGHT_COMPACT, (available - gaps) / CATEGORIES.size())
+		var gaps: float = LIST_SEPARATION * (categories.size() - 1)
+		row_height = max(HEADER_HEIGHT_COMPACT, (available - gaps) / categories.size())
 
-	for i in range(CATEGORIES.size()):
-		var category: Dictionary = CATEGORIES[i]
+	for i in range(categories.size()):
+		var category: Dictionary = categories[i]
 		list_container.add_child(_make_section_header(category, i, row_height))
 		if expanded_index == i:
 			var section := VBoxContainer.new()
@@ -301,7 +197,7 @@ func _rebuild_list() -> void:
 			section_margin.add_child(section)
 			list_container.add_child(section_margin)
 			for game in category.games:
-				section.add_child(_make_tile(game, category.color))
+				section.add_child(_make_tile(game))
 
 func _toggle_category(index: int) -> void:
 	expanded_index = -1 if expanded_index == index else index
@@ -311,7 +207,7 @@ func _make_section_header(category: Dictionary, index: int, row_height: float) -
 	var is_open: bool = expanded_index == index
 	var available_count := 0
 	for game in category.games:
-		if game.scene != "":
+		if game.has("id"):
 			available_count += 1
 
 	var panel := PanelContainer.new()
@@ -369,25 +265,27 @@ func _make_section_header(category: Dictionary, index: int, row_height: float) -
 	return panel
 
 ## Tiles are color-coded by what tapping them will actually do:
-## green = playable right now, red = will download first, gray = not built yet.
-func _make_tile(game: Dictionary, _accent: Color) -> Control:
-	var has_pack: bool = game.has("pack_id")
-	var bundled: bool = not has_pack and game.scene != ""
-	var downloaded: bool = has_pack and _is_downloaded(game.pack_id)
-	var playable: bool = bundled or downloaded
-	var available: bool = bundled or has_pack  # tile is interactive either way
+## green = playable right now, red = will download first, amber = needs a
+## newer app first, gray = not built yet.
+func _make_tile(game: Dictionary) -> Control:
+	var state: String = Catalog.state_of(game)
+	var available: bool = state != Catalog.STATE_SOON
 
 	var state_color: Color
 	var tag_text := ""
-	if playable:
-		state_color = STATE_READY
-		tag_text = "▶ Play"
-	elif available:
-		state_color = STATE_DOWNLOAD
-		tag_text = "⬇ Download"
-	else:
-		state_color = STATE_SOON
-		tag_text = "Coming soon"
+	match state:
+		Catalog.STATE_READY:
+			state_color = STATE_READY
+			tag_text = "▶ Play"
+		Catalog.STATE_DOWNLOAD:
+			state_color = STATE_DOWNLOAD
+			tag_text = "⬇ Download"
+		Catalog.STATE_NEEDS_APP_UPDATE:
+			state_color = STATE_APP_UPDATE
+			tag_text = "⬆ Update app"
+		_:
+			state_color = STATE_SOON
+			tag_text = "Coming soon"
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 128)
@@ -435,303 +333,181 @@ func _make_tile(game: Dictionary, _accent: Color) -> Control:
 	button.set_anchors_preset(Control.PRESET_FULL_RECT)
 	button.disabled = not available
 	button.focus_mode = Control.FOCUS_NONE
-	if has_pack:
-		button.pressed.connect(func(): _check_and_launch(game))
-	elif bundled:
-		button.pressed.connect(func(): _launch(game))
+	if available:
+		button.pressed.connect(_on_tile_pressed.bind(str(game.id)))
 	panel.add_child(button)
 
 	return panel
 
-## ---------- app self-update check ----------
 
-## Fires once per hub load; silently does nothing on failure (offline, rate-limited,
-## etc.) so a flaky network never blocks using the app.
-func _check_for_update() -> void:
-	var http := HTTPRequest.new()
-	add_child(http)
-	http.request_completed.connect(func(result, response_code, headers, body):
-		_on_update_check_completed(result, response_code, body)
-		http.queue_free()
-	)
-	var headers := ["User-Agent: Voodoo-App"]
-	http.request(LATEST_RELEASE_API, headers)
+## ---------- tapping a game ----------
 
-func _on_update_check_completed(result: int, response_code: int, body: PackedByteArray) -> void:
-	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+## Never waits on the network before acting: the manifest is refreshed in the
+## background when the hub opens, so by the time a player taps, Catalog
+## already knows whether an update exists. Offline, a downloaded game just
+## launches, and a failed update download falls back to the copy on disk.
+func _on_tile_pressed(id: String) -> void:
+	if busy:
 		return
-
-	var parsed = JSON.parse_string(body.get_string_from_utf8())
-	if typeof(parsed) != TYPE_DICTIONARY or not parsed.has("tag_name"):
+	var game: Dictionary = Catalog.get_game(id)
+	if game.is_empty():
 		return
-
-	var remote_version: String = str(parsed.tag_name).lstrip("v")
-	if not _is_newer_version(remote_version, Version.VERSION):
+	if Catalog.state_of(game) == Catalog.STATE_NEEDS_APP_UPDATE:
+		_show_dialog("Update Needed", "%s needs a newer version of Voodoo." % game.title, [
+			{"text": "Get Update", "action": Callable(OS, "shell_open").bind(Config.RELEASES_PAGE_URL)},
+			{"text": "Later", "action": Callable()},
+		])
 		return
+	if Catalog.needs_download(id):
+		_start_download(game)
+	else:
+		_launch(game)
 
-	var apk_url := ""
-	for asset in parsed.get("assets", []):
-		var name: String = str(asset.get("name", ""))
-		if name.ends_with(".apk"):
-			apk_url = str(asset.get("browser_download_url", ""))
-			break
-	if apk_url == "":
+func _launch(game: Dictionary) -> void:
+	var error: String = Catalog.mount(game.id)
+	if error == "" and get_tree().change_scene_to_file(game.scene) != OK:
+		error = "Something went wrong opening this game."
+	if error != "":
+		busy = false
+		_rebuild_list()  # a damaged pack was removed; its tile is red again
+		_show_dialog("Couldn't Start %s" % game.title, error, [{"text": "OK", "action": Callable()}])
+
+## ---------- download-on-demand ----------
+
+func _start_download(game: Dictionary) -> void:
+	busy = true
+	var is_update: bool = Catalog.is_downloaded(game.id)
+	download_overlay = _build_download_overlay(
+			("Updating %s..." if is_update else "Downloading %s...") % game.title, game.id)
+	add_child(download_overlay)
+	var http: HTTPRequest = Catalog.download(game.id, _on_download_done.bind(game.id))
+	download_overlay.set_meta("http", http)
+
+func _process(_delta: float) -> void:
+	if download_overlay == null or not is_instance_valid(download_overlay):
 		return
+	var http = download_overlay.get_meta("http", null)
+	if http == null or not is_instance_valid(http):
+		return
+	var total: int = http.get_body_size()
+	if total > 0:
+		var bar: ProgressBar = download_overlay.get_meta("progress_bar")
+		bar.value = 100.0 * float(http.get_downloaded_bytes()) / float(total)
 
-	_show_update_dialog(remote_version, apk_url)
+func _on_download_done(error: String, id: String) -> void:
+	var game: Dictionary = Catalog.get_game(id)
+	if error == "" or Catalog.is_downloaded(id):
+		# Success -- or an update failed but the previous version is still on
+		# disk, which beats blocking play on a flaky connection.
+		_close_download_overlay()
+		_launch(game)
+		return
+	if download_overlay and is_instance_valid(download_overlay):
+		download_overlay.set_meta("http", null)
+		download_overlay.get_meta("status_label").text = error
+		download_overlay.get_meta("progress_bar").visible = false
+		download_overlay.get_meta("close_button").text = "Close"
 
-## Compares dotted version strings ("0.4.0" vs "0.3.0") numerically, segment by segment.
-func _is_newer_version(remote: String, local: String) -> bool:
-	var r: PackedStringArray = remote.split(".")
-	var l: PackedStringArray = local.split(".")
-	for i in range(max(r.size(), l.size())):
-		var rv: int = int(r[i]) if i < r.size() else 0
-		var lv: int = int(l[i]) if i < l.size() else 0
-		if rv != lv:
-			return rv > lv
-	return false
+## Both "Cancel" mid-download and "Close" after a failure.
+func _close_download_overlay(id: String = "") -> void:
+	if id != "":
+		Catalog.cancel_download(id)
+	if download_overlay and is_instance_valid(download_overlay):
+		download_overlay.queue_free()
+	download_overlay = null
+	busy = false
+	_rebuild_list()
+
+func _build_download_overlay(status_text: String, id: String) -> Control:
+	var parts: Array = _build_dialog_frame("")
+	var overlay: Control = parts[0]
+	var box: VBoxContainer = parts[1]
+
+	var status_label := _dialog_label(status_text, 30, Color(1, 1, 1))
+	box.add_child(status_label)
+
+	var progress_bar := ProgressBar.new()
+	progress_bar.custom_minimum_size = Vector2(0, 36)
+	progress_bar.max_value = 100
+	box.add_child(progress_bar)
+
+	var close_btn := _dialog_button("Cancel")
+	close_btn.pressed.connect(_close_download_overlay.bind(id))
+	box.add_child(close_btn)
+
+	overlay.set_meta("status_label", status_label)
+	overlay.set_meta("progress_bar", progress_bar)
+	overlay.set_meta("close_button", close_btn)
+	return overlay
+
+## ---------- dialogs ----------
 
 func _show_update_dialog(remote_version: String, apk_url: String) -> void:
+	_show_dialog("Update Available", "v%s is out (you have v%s)" % [remote_version, Version.VERSION], [
+		{"text": "Update Now", "action": Callable(OS, "shell_open").bind(apk_url)},
+		{"text": "Later", "action": Callable()},
+	])
+
+## `buttons` is [{"text": String, "action": Callable}]; every button closes
+## the dialog, and an empty Callable() means it does nothing else.
+func _show_dialog(title_text: String, message: String, buttons: Array) -> void:
+	var parts: Array = _build_dialog_frame(title_text)
+	var overlay: Control = parts[0]
+	var box: VBoxContainer = parts[1]
+	box.add_child(_dialog_label(message, 28, Color(0.85, 0.9, 0.87)))
+	for spec in buttons:
+		var btn := _dialog_button(spec.text)
+		btn.pressed.connect(_on_dialog_button.bind(overlay, spec.action))
+		box.add_child(btn)
+	add_child(overlay)
+
+func _on_dialog_button(overlay: Control, action: Callable) -> void:
+	overlay.queue_free()
+	if action.is_valid():
+		action.call()
+
+## Returns [overlay, content_box]. Sized for the 720x1280 design space.
+func _build_dialog_frame(title_text: String) -> Array:
 	var overlay := ColorRect.new()
 	overlay.color = Color(0, 0, 0, 0.85)
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
 
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _neon_style(Color(0.06, 0.1, 0.09), NEON_GREEN, 0.7))
-	center.add_child(panel)
-
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	box.custom_minimum_size = Vector2(260, 0)
-	panel.add_child(box)
-
-	var title := Label.new()
-	title.text = "Update Available"
-	title.add_theme_font_size_override("font_size", 22)
-	title.add_theme_color_override("font_color", NEON_GREEN)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.text = "v%s is out (you have v%s)" % [remote_version, Version.VERSION]
-	subtitle.add_theme_font_size_override("font_size", 14)
-	subtitle.add_theme_color_override("font_color", Color(0.8, 0.85, 0.82))
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(subtitle)
-
-	var update_btn := Button.new()
-	update_btn.text = "Update Now"
-	update_btn.custom_minimum_size = Vector2(200, 48)
-	update_btn.pressed.connect(func():
-		OS.shell_open(apk_url)
-		overlay.queue_free()
-	)
-	box.add_child(update_btn)
-
-	var later_btn := Button.new()
-	later_btn.text = "Later"
-	later_btn.custom_minimum_size = Vector2(200, 44)
-	later_btn.pressed.connect(func(): overlay.queue_free())
-	box.add_child(later_btn)
-
-## ---------- download-on-demand ----------
-
-func _packs_dir() -> String:
-	if not DirAccess.dir_exists_absolute("user://packs"):
-		DirAccess.make_dir_absolute("user://packs")
-	return "user://packs"
-
-func _local_pack_path(pack_id: String) -> String:
-	return "%s/%s.pck" % [_packs_dir(), pack_id]
-
-func _is_downloaded(pack_id: String) -> bool:
-	return FileAccess.file_exists(_local_pack_path(pack_id))
-
-func _local_pack_version(pack_id: String) -> int:
-	var data = SaveUtil.read(PACK_VERSIONS_PATH)
-	if data == null:
-		return 0
-	return int(data.get(pack_id, 0))
-
-func _save_pack_version(pack_id: String, version: int) -> void:
-	var data = SaveUtil.read(PACK_VERSIONS_PATH)
-	if data == null:
-		data = {}
-	data[pack_id] = version
-	SaveUtil.write(PACK_VERSIONS_PATH, data)
-
-## Mounts a game's pack if needed. Returns true once the scene is actually loadable
-## (whether it was already bundled, already mounted this session, or just mounted now).
-func _ensure_mounted(game: Dictionary) -> bool:
-	if ResourceLoader.exists(game.scene):
-		return true
-	if not game.has("pack_id") or not _is_downloaded(game.pack_id):
-		return false
-	ProjectSettings.load_resource_pack(_local_pack_path(game.pack_id))
-	return ResourceLoader.exists(game.scene)
-
-func _launch(game: Dictionary) -> void:
-	if _ensure_mounted(game):
-		get_tree().change_scene_to_file(game.scene)
-
-## Entry point for every downloadable game tile. Always pings the manifest first
-## (small, fast file) to decide: first-time download, silent re-download because a
-## newer version is published, or just launch the copy already on disk. If the
-## manifest is unreachable (offline) and the game is already downloaded, it just
-## launches with what's local rather than blocking play on a network check.
-func _check_and_launch(game: Dictionary) -> void:
-	var http := HTTPRequest.new()
-	add_child(http)
-	http.request_completed.connect(func(result, response_code, headers, body):
-		http.queue_free()
-		var remote_version := -1
-		if result == HTTPRequest.RESULT_SUCCESS and response_code == 200:
-			var parsed = JSON.parse_string(body.get_string_from_utf8())
-			if typeof(parsed) == TYPE_DICTIONARY and parsed.has("games") and parsed.games.has(game.pack_id):
-				remote_version = int(parsed.games[game.pack_id].get("version", 1))
-
-		var local_version: int = _local_pack_version(game.pack_id)
-		var downloaded: bool = _is_downloaded(game.pack_id)
-
-		if not downloaded:
-			_start_download(game, max(remote_version, 1))
-		elif remote_version > local_version:
-			_start_download(game, remote_version)
-		else:
-			_launch(game)
-	)
-	if http.request(MANIFEST_URL) != OK:
-		# The manifest check couldn't even start. Fall back to whatever is on
-		# disk rather than letting the tile tap do nothing at all.
-		http.queue_free()
-		if _is_downloaded(game.pack_id):
-			_launch(game)
-		else:
-			_start_download(game, 1)
-
-func _start_download(game: Dictionary, version: int) -> void:
-	var overlay := _build_download_overlay(game.title)
-	add_child(overlay)
-
-	var http := HTTPRequest.new()
-	add_child(http)
-	http.request_completed.connect(func(result, response_code, headers, body):
-		_on_download_completed(result, response_code, body, game, version, overlay, http)
-	)
-
-	var progress_bar: ProgressBar = overlay.get_meta("progress_bar")
-	var poll_timer := Timer.new()
-	poll_timer.wait_time = 0.1
-	poll_timer.timeout.connect(func():
-		if not is_instance_valid(http) or not is_instance_valid(progress_bar):
-			return
-		var total: int = http.get_body_size()
-		var downloaded: int = http.get_downloaded_bytes()
-		if total > 0:
-			progress_bar.value = (float(downloaded) / float(total)) * 100.0
-	)
-	overlay.add_child(poll_timer)
-	overlay.set_meta("poll_timer", poll_timer)
-	poll_timer.start()
-
-	var url: String = RELEASE_BASE + game.pack_id + ".pck"
-	var err := http.request(url)
-	if err != OK:
-		_on_download_completed(HTTPRequest.RESULT_CANT_CONNECT, 0, PackedByteArray(), game, version, overlay, http)
-
-func _on_download_completed(result: int, response_code: int, body: PackedByteArray, game: Dictionary, version: int, overlay: Control, http: HTTPRequest) -> void:
-	http.queue_free()
-
-	# Stop the progress-poll timer the instant we know the request is done, rather
-	# than letting it notice on its own next 0.1s tick -- if that tick landed after
-	# `overlay` (its own parent) was queue_free()'d, the timer's still-in-flight
-	# signal could try to run its callable with an already-freed capture and error.
-	var poll_timer: Timer = overlay.get_meta("poll_timer")
-	if is_instance_valid(poll_timer):
-		poll_timer.stop()
-		poll_timer.queue_free()
-
-	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
-		var status_label: Label = overlay.get_meta("status_label")
-		status_label.text = "Download failed. Check your connection and try again."
-		var retry_btn: Button = overlay.get_meta("retry_button")
-		retry_btn.visible = true
-		var progress_bar: ProgressBar = overlay.get_meta("progress_bar")
-		progress_bar.visible = false
-		return
-
-	# Can be null if the device is out of space. Recording the version before
-	# confirming the write would mark a game "downloaded" that isn't on disk.
-	var f := FileAccess.open(_local_pack_path(game.pack_id), FileAccess.WRITE)
-	if f == null:
-		var status_label: Label = overlay.get_meta("status_label")
-		status_label.text = "Couldn't save the download. Check your free space."
-		overlay.get_meta("retry_button").visible = true
-		overlay.get_meta("progress_bar").visible = false
-		return
-	f.store_buffer(body)
-	f.close()
-	_save_pack_version(game.pack_id, version)
-
-	overlay.queue_free()
-	_launch(game)
-
-func _build_download_overlay(title: String) -> Control:
-	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.8)
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(center)
-
-	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.14, 0.14, 0.18)
-	sb.corner_radius_top_left = 16
-	sb.corner_radius_top_right = 16
-	sb.corner_radius_bottom_left = 16
-	sb.corner_radius_bottom_right = 16
-	sb.content_margin_left = 28
-	sb.content_margin_right = 28
-	sb.content_margin_top = 24
-	sb.content_margin_bottom = 24
+	var sb := _neon_style(Color(0.06, 0.1, 0.09), NEON_GREEN, 0.7)
+	sb.content_margin_left = 32
+	sb.content_margin_right = 32
+	sb.content_margin_top = 28
+	sb.content_margin_bottom = 28
 	panel.add_theme_stylebox_override("panel", sb)
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	box.custom_minimum_size = Vector2(260, 0)
+	box.add_theme_constant_override("separation", 20)
+	box.custom_minimum_size = Vector2(520, 0)
 	panel.add_child(box)
 
-	var status_label := Label.new()
-	status_label.text = "Downloading %s..." % title
-	status_label.add_theme_font_size_override("font_size", 16)
-	status_label.add_theme_color_override("font_color", Color(1, 1, 1))
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	box.add_child(status_label)
+	if title_text != "":
+		box.add_child(_dialog_label(title_text, 40, NEON_GREEN))
+	return [overlay, box]
 
-	var progress_bar := ProgressBar.new()
-	progress_bar.min_value = 0
-	progress_bar.max_value = 100
-	progress_bar.value = 0
-	box.add_child(progress_bar)
+func _dialog_label(text: String, font_size: int, color: Color) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	return label
 
-	var retry_btn := Button.new()
-	retry_btn.text = "Close"
-	retry_btn.visible = false
-	retry_btn.pressed.connect(func(): overlay.queue_free())
-	box.add_child(retry_btn)
-
-	overlay.set_meta("status_label", status_label)
-	overlay.set_meta("progress_bar", progress_bar)
-	overlay.set_meta("retry_button", retry_btn)
-	return overlay
+func _dialog_button(text: String) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(0, 72)
+	btn.add_theme_font_size_override("font_size", 28)
+	btn.focus_mode = Control.FOCUS_NONE
+	return btn

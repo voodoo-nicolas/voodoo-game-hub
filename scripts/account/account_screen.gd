@@ -43,7 +43,7 @@ func _build_ui() -> void:
 
 	var hub_btn := Button.new()
 	hub_btn.text = "Hub"
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.pressed.connect(_go_to_hub)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
@@ -208,7 +208,16 @@ func _on_forgot_password() -> void:
 func _on_signed_in(_user_id: String, name: String) -> void:
 	submit_btn.disabled = false
 	_show_status("Signed in as %s!" % name, true)
-	await get_tree().create_timer(0.6).timeout
+	# Timer owned by this scene: if the player taps Hub first, it's freed
+	# along with the scene instead of firing into a node that's gone.
+	var t := Timer.new()
+	t.one_shot = true
+	t.wait_time = 0.6
+	t.timeout.connect(_go_to_hub)
+	add_child(t)
+	t.start()
+
+func _go_to_hub() -> void:
 	get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
 
 func _on_auth_error(_context: String, message: String) -> void:

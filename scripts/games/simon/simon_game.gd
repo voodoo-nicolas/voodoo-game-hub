@@ -187,25 +187,31 @@ func _start_game() -> void:
 func _next_round() -> void:
 	engine.next_round()
 	status_label.text = "Level %d" % engine.level
-	await _play_sequence()
-	accepting_input = true
+	_play_sequence()
 
+## A Tween owned by this scene rather than a chain of awaits on SceneTree
+## timers: leaving mid-sequence frees the tween with the scene, where an
+## await would try to resume into the freed scene.
 func _play_sequence() -> void:
 	playing_sequence = true
 	accepting_input = false
+	var tween := create_tween()
 	for pad_index in engine.sequence:
-		_set_pad_color(pads[pad_index], pad_index, true)
-		await get_tree().create_timer(FLASH_DURATION).timeout
-		_set_pad_color(pads[pad_index], pad_index, false)
-		await get_tree().create_timer(GAP_DURATION).timeout
+		tween.tween_callback(_set_pad_color.bind(pads[pad_index], pad_index, true))
+		tween.tween_interval(FLASH_DURATION)
+		tween.tween_callback(_set_pad_color.bind(pads[pad_index], pad_index, false))
+		tween.tween_interval(GAP_DURATION)
+	tween.tween_callback(_on_sequence_done)
+
+func _on_sequence_done() -> void:
 	playing_sequence = false
+	accepting_input = true
 
 func _on_pad_pressed(i: int) -> void:
 	if not accepting_input or playing_sequence:
 		return
 	_set_pad_color(pads[i], i, true)
-	var reset_timer := get_tree().create_timer(0.15)
-	reset_timer.timeout.connect(func(): _set_pad_color(pads[i], i, false))
+	create_tween().tween_callback(_set_pad_color.bind(pads[i], i, false)).set_delay(0.15)
 
 	var result: String = engine.tap(i)
 	match result:
@@ -235,11 +241,14 @@ func _save_best() -> void:
 
 func _load_best() -> void:
 	var data = SaveUtil.read(BEST_PATH)
-	best_level = int(data.best_level) if data != null else 0
+	best_level = int(data.get("best_level", 0)) if data != null else 0
 	_update_best_label()
 	if Auth.is_logged_in():
-		Auth.reconcile_stat("simon_best_level", best_level, func(merged: int):
-			best_level = merged
-			SaveUtil.write(BEST_PATH, {"best_level": merged})
-			_update_best_label()
-		)
+		# A method, not a lambda: if the player leaves before the reply lands,
+		# a method callable on a freed scene is skipped instead of erroring.
+		Auth.reconcile_stat("simon_best_level", best_level, _on_best_reconciled)
+
+func _on_best_reconciled(merged: int) -> void:
+	best_level = merged
+	SaveUtil.write(BEST_PATH, {"best_level": merged})
+	_update_best_label()

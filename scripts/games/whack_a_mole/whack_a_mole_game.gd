@@ -292,10 +292,14 @@ func _save_best() -> void:
 
 func _load_best() -> void:
 	var data = SaveUtil.read(BEST_PATH)
-	best_score = int(data.best) if data != null else 0
+	best_score = int(data.get("best", 0)) if data != null else 0
 	if Auth.is_logged_in():
-		Auth.reconcile_stat("whackamole_best", best_score, func(merged: int):
-			best_score = merged
-			SaveUtil.write(BEST_PATH, {"best": merged})
-			_update_labels()
-		)
+		# A method, not a lambda: if the player leaves before the reply lands,
+		# a method callable on a freed scene is skipped instead of erroring.
+		Auth.reconcile_stat("whackamole_best", best_score, _on_best_reconciled)
+
+func _on_best_reconciled(merged: int) -> void:
+	best_score = merged
+	SaveUtil.write(BEST_PATH, {"best": merged})
+	if is_node_ready():  # can land before _build_ui() if the request fails instantly
+		_update_labels()

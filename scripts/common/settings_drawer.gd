@@ -147,10 +147,9 @@ func _on_timer_reset() -> void:
 func _on_rotate_pressed() -> void:
 	_save_current_scene_if_possible()
 	var vp_size: Vector2 = get_viewport_rect().size
-	if vp_size.x > vp_size.y:
-		Orientation.lock_portrait()
-	else:
-		Orientation.lock_landscape()
+	# The reloaded scene's _ready() re-locks its default orientation; the
+	# override makes that one call rotate instead.
+	Orientation.override_next(vp_size.x <= vp_size.y)
 	get_tree().reload_current_scene()
 
 func _on_hub_pressed() -> void:
@@ -205,8 +204,10 @@ func _show_toast(text: String) -> void:
 	toast_panel.add_child(label)
 	add_child(toast_panel)
 
-	await get_tree().create_timer(0.01).timeout
-	toast_panel.position = Vector2(-toast_panel.size.x / 2.0, 0)
-
-	await get_tree().create_timer(1.5).timeout
-	toast_panel.queue_free()
+	# grow_horizontal BOTH centers it on the anchor without waiting a frame
+	# for its size. The tween belongs to the toast, so leaving the scene
+	# mid-toast just frees both -- no timer resuming into a freed node.
+	toast_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	var tween := toast_panel.create_tween()
+	tween.tween_interval(1.5)
+	tween.tween_callback(toast_panel.queue_free)
