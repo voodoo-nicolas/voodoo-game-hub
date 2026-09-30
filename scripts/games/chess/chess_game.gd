@@ -7,6 +7,9 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://chess_save.json"
+## Not preloaded: apps older than v0.14 don't have it, and the game must still
+## run there (without the Online button).
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
 const COLOR_DARK_SQUARE := Color(0.35, 0.24, 0.15)
 const COLOR_LIGHT_SQUARE := Color(0.72, 0.6, 0.48)
@@ -47,6 +50,13 @@ var promotion_dialog: Control
 var promotion_buttons: Array = []  # 4 Buttons: Queen, Rook, Bishop, Knight
 var result_dialog: Control
 var result_label: Label
+var online_btn: Button
+## Online play (null on apps without it). Host plays White, guest Black and
+## sees the board flipped (Black at the bottom). my_color uses the engine's
+## WHITE / BLACK; 0 = same-phone play.
+var online: Control = null
+var my_color: int = 0
+var flipped: bool = false
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -147,9 +157,30 @@ func _build_ui() -> void:
 			sq.add_child(label)
 			piece_labels[idx] = label
 
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online_btn = Button.new()
+		online_btn.text = "🌐 Play Online"
+		online_btn.custom_minimum_size = Vector2(0, 80)
+		online_btn.add_theme_font_size_override("font_size", 30)
+		online_btn.pressed.connect(func(): online.open_lobby())
+		var btn_margin := MarginContainer.new()
+		btn_margin.add_theme_constant_override("margin_bottom", 40)
+		btn_margin.add_theme_constant_override("margin_left", 60)
+		btn_margin.add_theme_constant_override("margin_right", 60)
+		btn_margin.add_child(online_btn)
+		root.add_child(btn_margin)
+
 	_build_pause_dialog()
 	_build_promotion_dialog()
 	_build_result_dialog()
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online = load(ONLINE_MATCH_PATH).new("chess", "Chess", _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_reset_board)
+		online.status_changed.connect(_render)
+		add_child(online)
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
@@ -288,7 +319,15 @@ func _build_result_dialog() -> void:
 
 # ---------- game flow ----------
 
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
 func _start_new_game() -> void:
+	if online:
+		online.new_game()
+	_reset_board()
+
+func _reset_board() -> void:
 	engine.reset()
 	game_active = true
 	selected = Vector2i(-1, -1)
@@ -305,9 +344,17 @@ func _on_pause_pressed() -> void:
 	_save_game()
 	pause_dialog.visible = true
 
-func _on_square_pressed(r: int, c: int) -> void:
+## Screen square -> board square. Black's view is rotated 180 degrees.
+func _view_index(r: int, c: int) -> int:
+	return (7 - r) * 8 + (7 - c) if flipped else r * 8 + c
+
+func _on_square_pressed(vr: int, vc: int) -> void:
 	if not game_active or promotion_dialog.visible:
 		return
+	if _is_online() and not online.can_act(engine.current_player == my_color):
+		return
+	var r: int = 7 - vr if flipped else vr
+	var c: int = 7 - vc if flipped else vc
 	var pos := Vector2i(r, c)
 
 	if dest_map.has(pos):
@@ -347,16 +394,82 @@ func _apply_move(from: Vector2i, to: Vector2i, promotion_piece: int) -> void:
 	var result: Dictionary = engine.move(from, to, promotion_piece)
 	if not result.valid:
 		return
+	if _is_online() and engine.current_player != my_color:  # it was our move
+		online.send_move({"from": [from.x, from.y], "to": [to.x, to.y], "promo": promotion_piece})
 	selected = Vector2i(-1, -1)
 	_render()
 	if result.game_over:
 		_show_result()
 
+# ---------- online ----------
+
+func _online_state() -> Dictionary:
+	return {
+		"board": engine.board, "current_player": engine.current_player,
+		"castling_rights": engine.castling_rights,
+		"en_passant_target": [engine.en_passant_target.x, engine.en_passant_target.y],
+		"halfmove_clock": engine.halfmove_clock, "position_counts": engine.position_counts,
+		"game_over": engine.game_over, "winner": engine.winner, "result_reason": engine.result_reason,
+	}
+
+func _on_online_started(my_player: int) -> void:
+	my_color = ChessEngine.WHITE if my_player == 1 else ChessEngine.BLACK
+	flipped = my_color == ChessEngine.BLACK
+	online_btn.visible = false
+	_reset_board()
+
+func _on_remote_move(p: Dictionary) -> void:
+	if not game_active or engine.current_player == my_color:
+		return
+	var f: Array = p.get("from", [-1, -1])
+	var t: Array = p.get("to", [-1, -1])
+	promotion_dialog.visible = false
+	pending_promotion = {}
+	_apply_move(Vector2i(int(f[0]), int(f[1])), Vector2i(int(t[0]), int(t[1])), int(p.get("promo", ChessEngine.QUEEN)))
+
+func _on_remote_state(st: Dictionary) -> void:
+	var board: Array = []
+	for row in st.get("board", []):
+		var r: Array = []
+		for v in row:
+			r.append(int(v))
+		board.append(r)
+	if board.size() != 8:
+		return
+	engine.board = board
+	engine.current_player = int(st.get("current_player", ChessEngine.WHITE))
+	var rights = st.get("castling_rights", {})
+	engine.castling_rights = {
+		"K": bool(rights.get("K", false)), "Q": bool(rights.get("Q", false)),
+		"k": bool(rights.get("k", false)), "q": bool(rights.get("q", false)),
+	}
+	var ep: Array = st.get("en_passant_target", [-1, -1])
+	engine.en_passant_target = Vector2i(int(ep[0]), int(ep[1]))
+	engine.halfmove_clock = int(st.get("halfmove_clock", 0))
+	engine.position_counts = {}
+	var counts = st.get("position_counts", {})
+	for key in counts:
+		engine.position_counts[str(key)] = int(counts[key])
+	engine.game_over = bool(st.get("game_over", false))
+	engine.winner = int(st.get("winner", 0))
+	engine.result_reason = str(st.get("result_reason", ""))
+	game_active = not engine.game_over
+	selected = Vector2i(-1, -1)
+	pending_promotion = {}
+	promotion_dialog.visible = false
+	result_dialog.visible = false
+	_render()
+	if engine.game_over:
+		_show_result()
+
 func _show_result() -> void:
 	game_active = false
-	SaveUtil.delete(SAVE_PATH)
+	if not _is_online():  # an online game ending mustn't wipe a paused local one
+		SaveUtil.delete(SAVE_PATH)
 	var msg: String = RESULT_MESSAGES.get(engine.result_reason, "Game over")
-	if engine.result_reason == "checkmate":
+	if engine.result_reason == "checkmate" and _is_online():
+		msg += "\n" + online.result_text(engine.winner == my_color)
+	elif engine.result_reason == "checkmate":
 		msg += "\n%s wins!" % ("White" if engine.winner == ChessEngine.WHITE else "Black")
 	result_label.text = msg
 	result_dialog.visible = true
@@ -375,7 +488,7 @@ func _render() -> void:
 
 	for r in range(8):
 		for c in range(8):
-			var idx := r * 8 + c
+			var idx := _view_index(r, c)
 			var pos := Vector2i(r, c)
 			var sq: Button = squares[idx]
 			var is_dark: bool = (r + c) % 2 == 1
@@ -405,7 +518,11 @@ func _render() -> void:
 	if not game_active:
 		return
 	var check_suffix := " — Check!" if checked_king.x >= 0 else ""
-	status_label.text = "%s's turn%s" % ["White" if engine.current_player == ChessEngine.WHITE else "Black", check_suffix]
+	var side := "White" if engine.current_player == ChessEngine.WHITE else "Black"
+	if _is_online():
+		status_label.text = online.status_text(engine.current_player == my_color, side + check_suffix)
+	else:
+		status_label.text = "%s's turn%s" % [side, check_suffix]
 
 func _style_square(sq: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
@@ -416,8 +533,8 @@ func _style_square(sq: Button, color: Color) -> void:
 # ---------- save / load ----------
 
 func _save_game() -> void:
-	if not game_active:
-		return
+	if not game_active or _is_online():
+		return  # online games aren't resumable alone
 	SaveUtil.write(SAVE_PATH, {
 		"board": engine.board,
 		"current_player": engine.current_player,

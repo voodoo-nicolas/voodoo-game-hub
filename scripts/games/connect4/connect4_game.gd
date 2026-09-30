@@ -9,7 +9,7 @@ const Ui = preload("res://scripts/common/ui.gd")
 const SAVE_PATH := "user://connect4_save.json"
 ## Not preloaded: apps older than v0.14 don't have it, and the game must still
 ## run there (without the Online button).
-const ONLINE_LOBBY_PATH := "res://scripts/common/online_lobby.gd"
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 const BOARD_SEPARATION := 4
 const BOARD_PADDING := 8
 const BOARD_OUTER_MARGIN := 8.0
@@ -27,12 +27,10 @@ var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
 var online_btn: Button
-var lobby: Control
-## Online play: the session, and which color this phone plays (host = Red).
-## my_color == 0 means ordinary same-phone play.
-var online: Node = null
+## Online play (null on apps without it). my_color: host plays Red, guest
+## Yellow; 0 means ordinary same-phone play.
+var online: Control = null
 var my_color: int = 0
-var opponent_here: bool = false
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -138,7 +136,7 @@ func _build_ui() -> void:
 			row.append(slot)
 		cell_views.append(row)
 
-	if ResourceLoader.exists(ONLINE_LOBBY_PATH):
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online_btn = Button.new()
 		online_btn.text = "🌐 Play Online"
 		online_btn.custom_minimum_size = Vector2(0, 80)
@@ -148,10 +146,14 @@ func _build_ui() -> void:
 
 	_build_pause_dialog()
 	_build_win_dialog()
-	if ResourceLoader.exists(ONLINE_LOBBY_PATH):
-		lobby = load(ONLINE_LOBBY_PATH).new("connect4", "Connect Four")
-		lobby.started.connect(_on_online_started)
-		add_child(lobby)
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online = load(ONLINE_MATCH_PATH).new("connect4", "Connect Four", _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_reset_board)
+		online.status_changed.connect(_render)
+		add_child(online)
 	add_child(SettingsDrawer.new())
 
 func _style_slot(slot: Button, color: Color) -> void:
@@ -181,9 +183,12 @@ func _build_win_dialog() -> void:
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
 
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
 func _start_new_game() -> void:
 	if online:
-		online.send("new_game")
+		online.new_game()
 	_reset_board()
 
 func _reset_board() -> void:
@@ -196,12 +201,12 @@ func _reset_board() -> void:
 func _on_column_pressed(col: int) -> void:
 	if not game_active:
 		return
-	if online and (engine.turn != my_color or not opponent_here):
+	if _is_online() and not online.can_act(engine.turn == my_color):
 		return  # not your turn (or nobody to play against right now)
 	if engine.drop(col) == -1:
 		return
-	if online:
-		online.send("move", {"col": col, "board": engine.board})
+	if _is_online():
+		online.send_move({"col": col})
 	_after_move()
 
 func _after_move() -> void:
@@ -211,78 +216,38 @@ func _after_move() -> void:
 
 # ---------- online ----------
 
-func _int_grid(g: Variant) -> Array:
-	var out: Array = []
-	if typeof(g) == TYPE_ARRAY:
-		for row in g:
-			var r: Array = []
-			if typeof(row) == TYPE_ARRAY:
-				for v in row:
-					r.append(int(v))
-			out.append(r)
-	return out
-
 func _open_lobby() -> void:
-	lobby.open()
+	online.open_lobby()
 
-func _on_online_started(session: Node, my_player: int) -> void:
-	online = session
+func _online_state() -> Dictionary:
+	return {"board": engine.board, "turn": engine.turn}
+
+func _on_online_started(my_player: int) -> void:
 	my_color = Connect4Engine.RED if my_player == 1 else Connect4Engine.YELLOW
-	opponent_here = true
-	online.message.connect(_on_online_message)
-	online.opponent_left.connect(_on_opponent_left)
-	online.opponent_joined.connect(_on_opponent_back)
 	online_btn.visible = false
 	_reset_board()
-	if my_color == Connect4Engine.RED:
-		_send_sync()
 
-func _send_sync() -> void:
-	online.send("sync", {"board": engine.board, "turn": engine.turn})
+func _on_remote_move(p: Dictionary) -> void:
+	var col: int = int(p.get("col", -1))
+	if engine.turn != my_color and col >= 0 and col < Connect4Engine.COLS and not engine.is_over() and engine.drop(col) != -1:
+		_after_move()
 
-## The host owns the truth: whenever the guest (re)appears it gets the whole
-## board, so a dropped connection or a missed message heals itself.
-func _on_opponent_back() -> void:
-	opponent_here = true
-	if my_color == Connect4Engine.RED:
-		_send_sync()
+func _on_remote_state(st: Dictionary) -> void:
+	var board: Array = []
+	for row in st.get("board", []):
+		var r: Array = []
+		for v in row:
+			r.append(int(v))
+		board.append(r)
+	if board.size() != Connect4Engine.ROWS:
+		return
+	engine.board = board
+	engine.turn = int(st.get("turn", Connect4Engine.RED))
+	game_active = not engine.is_over()
+	win_dialog.visible = false
 	_render()
-
-func _on_opponent_left() -> void:
-	opponent_here = false
-	_render()
-
-func _on_online_message(event: String, p: Dictionary) -> void:
-	match event:
-		"move":
-			var col: int = int(p.get("col", -1))
-			if engine.turn != my_color and col >= 0 and col < Connect4Engine.COLS and not engine.is_over() and engine.drop(col) != -1:
-				_after_move()
-			# Each move carries the sender's resulting board. If ours differs
-			# (a missed message, a reconnect mid-move), converge on the host's.
-			if _int_grid(p.get("board", [])) != engine.board:
-				if my_color == Connect4Engine.RED:
-					_send_sync()
-				else:
-					online.send("sync_request")
-		"sync":
-			var board: Array = []
-			for row in p.get("board", []):
-				var r: Array = []
-				for v in row:
-					r.append(int(v))
-				board.append(r)
-			if board.size() == Connect4Engine.ROWS:
-				engine.board = board
-				engine.turn = int(p.get("turn", Connect4Engine.RED))
-				game_active = not engine.is_over()
-				win_dialog.visible = false
-				_render()
-		"sync_request":
-			if my_color == Connect4Engine.RED:
-				_send_sync()
-		"new_game":
-			_reset_board()
+	if engine.is_over():
+		_show_result()
 
 func _on_pause_pressed() -> void:
 	if not game_active:
@@ -292,13 +257,13 @@ func _on_pause_pressed() -> void:
 
 func _show_result() -> void:
 	game_active = false
-	if not online:  # an online game ending mustn't wipe a paused local one
+	if not _is_online():  # an online game ending mustn't wipe a paused local one
 		SaveUtil.delete(SAVE_PATH)
 	var w: int = engine.winner()
 	if w == Connect4Engine.EMPTY:
 		win_label.text = "It's a draw!"
-	elif online:
-		win_label.text = "You win!" if w == my_color else "You lose!"
+	elif _is_online():
+		win_label.text = online.result_text(w == my_color)
 	else:
 		win_label.text = "%s wins!" % ("Red" if w == Connect4Engine.RED else "Yellow")
 	win_dialog.visible = true
@@ -315,19 +280,15 @@ func _render() -> void:
 			_style_slot(cell_views[r][c], color)
 
 	var color_name := "Red" if engine.turn == Connect4Engine.RED else "Yellow"
-	if not online:
-		status_label.text = "Turn: %s" % color_name
-	elif not opponent_here:
-		status_label.text = "Opponent disconnected — waiting..."
-	elif engine.turn == my_color:
-		status_label.text = "Your turn (%s)" % color_name
+	if _is_online():
+		status_label.text = online.status_text(engine.turn == my_color, color_name)
 	else:
-		status_label.text = "Opponent's turn (%s)" % color_name
+		status_label.text = "Turn: %s" % color_name
 
 # ---------- save / load ----------
 
 func _save_game() -> void:
-	if not game_active or online:
+	if not game_active or _is_online():
 		return  # online games aren't resumable alone
 	SaveUtil.write(SAVE_PATH, {"board": engine.board, "turn": engine.turn})
 

@@ -7,6 +7,9 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://dots_boxes_save.json"
+## Not preloaded: apps older than v0.14 don't have it, and the game must still
+## run there (without the Online button).
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
 const COLOR_P1 := Color(0.25, 0.55, 0.95)   # blue
 const COLOR_P2 := Color(0.9, 0.25, 0.3)     # red
@@ -59,6 +62,15 @@ var h_lines_view: Array = []
 var v_lines_view: Array = []
 var box_panels: Array = []  # [r][c] ColorRect
 
+## Online play (null on apps without it). Host is Blue (player 1) and picks
+## the board size; guest is Red. my_player == 0 means same-phone play.
+var online: Control = null
+var my_player: int = 0
+var online_btn: Button
+var size_subtitle: Label
+var size_buttons: Array = []
+var mode_row: HBoxContainer
+
 func _ready() -> void:
 	Orientation.lock_portrait()
 	touch_mode = DisplayServer.is_touchscreen_available()
@@ -85,6 +97,14 @@ func _build_ui() -> void:
 	_build_game_screen()
 	_build_pause_dialog()
 	_build_win_dialog()
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online = load(ONLINE_MATCH_PATH).new("dots_boxes", "Dots and Boxes", _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_on_remote_new_game)
+		online.status_changed.connect(_on_online_status)
+		add_child(online)
 	add_child(SettingsDrawer.new())
 
 func _build_size_screen() -> void:
@@ -123,7 +143,7 @@ func _build_size_screen() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
-	var mode_row := HBoxContainer.new()
+	mode_row = HBoxContainer.new()
 	mode_row.add_theme_constant_override("separation", 8)
 	box.add_child(mode_row)
 
@@ -144,6 +164,7 @@ func _build_size_screen() -> void:
 	mode_row.add_child(mode_cpu_tab)
 
 	var subtitle := Label.new()
+	size_subtitle = subtitle
 	subtitle.text = "Choose a board size"
 	subtitle.add_theme_font_size_override("font_size", 21)
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
@@ -157,6 +178,15 @@ func _build_size_screen() -> void:
 		btn.add_theme_font_size_override("font_size", 24)
 		btn.pressed.connect(_start_new_game.bind(opt.rows, opt.cols))
 		box.add_child(btn)
+		size_buttons.append(btn)
+
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online_btn = Button.new()
+		online_btn.text = "🌐 Play Online"
+		online_btn.custom_minimum_size = Vector2(220, 60)
+		online_btn.add_theme_font_size_override("font_size", 26)
+		online_btn.pressed.connect(func(): online.open_lobby())
+		box.add_child(online_btn)
 
 	_set_pending_mode(false)
 
@@ -302,6 +332,9 @@ func _build_pause_dialog() -> void:
 	new_game_btn.custom_minimum_size = Vector2(200, 44)
 	new_game_btn.pressed.connect(func():
 		pause_dialog.visible = false
+		if _is_online():
+			_start_new_game(rows, cols)  # host restarts; guest asks the host to
+			return
 		game_active = false
 		SaveUtil.delete(SAVE_PATH)
 		game_screen.visible = false
@@ -383,11 +416,19 @@ func _on_pause_pressed() -> void:
 	pause_dialog.visible = true
 
 func _player_label(player: int) -> String:
+	if _is_online():
+		return "You" if player == my_player else "Friend"
 	if player == 1:
 		return "Blue"
 	return "Computer" if vs_computer else "Red"
 
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
 func _start_new_game(p_rows: int, p_cols: int) -> void:
+	if _is_online() and not online.is_host():
+		online.new_game()  # the host decides; it will push the new board
+		return
 	rows = p_rows
 	cols = p_cols
 	vs_computer = pending_vs_computer
@@ -402,11 +443,15 @@ func _start_new_game(p_rows: int, p_cols: int) -> void:
 	pause_dialog.visible = false
 	_build_board()
 	_render()
+	if _is_online():
+		online.push_state()
 
 func _on_edge_pressed(orientation: String, r: int, c: int) -> void:
 	if not game_active or pause_dialog.visible:
 		return
 	if vs_computer and engine.current_player == AI_PLAYER:
+		return
+	if _is_online() and not online.can_act(engine.current_player == my_player):
 		return
 	var taken: bool = engine.is_h_taken(r, c) if orientation == "h" else engine.is_v_taken(r, c)
 	if taken:
@@ -430,6 +475,8 @@ func _commit_edge(orientation: String, r: int, c: int) -> void:
 	var res: Dictionary = engine.play_line(orientation, r, c)
 	if not res.valid:
 		return
+	if _is_online():
+		online.send_move({"o": orientation, "r": r, "c": c})
 	_render()
 	if engine.game_over:
 		_show_result()
@@ -479,13 +526,97 @@ func _on_edge_mouse_exited(orientation: String, r: int, c: int, line: ColorRect)
 func _edge_owner(orientation: String, r: int, c: int) -> int:
 	return engine.h_lines[r][c] if orientation == "h" else engine.v_lines[r][c]
 
+# ---------- online ----------
+
+func _online_state() -> Dictionary:
+	return {
+		"in_game": game_screen.visible,
+		"rows": rows, "cols": cols,
+		"h": engine.h_lines, "v": engine.v_lines, "boxes": engine.box_owner,
+		"scores": [engine.scores[1], engine.scores[2]],
+		"current": engine.current_player,
+		"game_over": engine.game_over, "winner": engine.winner,
+	}
+
+func _on_online_started(p_my_player: int) -> void:
+	my_player = p_my_player
+	vs_computer = false
+	pending_vs_computer = false
+	mode_row.visible = false
+	online_btn.visible = false
+	game_active = false
+	win_dialog.visible = false
+	pause_dialog.visible = false
+	_show_size_screen()
+	_on_online_status()
+
+## Keeps the size screen honest about who's choosing.
+func _on_online_status() -> void:
+	if not _is_online():
+		return
+	var host: bool = online.is_host()
+	for b in size_buttons:
+		b.disabled = not host
+	if not online.opponent_here:
+		size_subtitle.text = "Friend disconnected — waiting..."
+	elif host:
+		size_subtitle.text = "Choose a board size for both of you"
+	else:
+		size_subtitle.text = "Waiting for your friend to choose a board..."
+	if game_screen.visible:
+		_render()
+
+func _on_remote_move(p: Dictionary) -> void:
+	if not game_active or engine.current_player == my_player:
+		return
+	if engine.play_line(str(p.get("o", "")), int(p.get("r", -1)), int(p.get("c", -1))).valid:
+		_render()
+		if engine.game_over:
+			_show_result()
+
+func _on_remote_new_game() -> void:
+	if online.is_host():
+		win_dialog.visible = false
+		_start_new_game(rows, cols)
+
+func _on_remote_state(st: Dictionary) -> void:
+	win_dialog.visible = false
+	pause_dialog.visible = false
+	if not bool(st.get("in_game", false)):
+		game_active = false
+		_show_size_screen()
+		_on_online_status()
+		return
+	rows = int(st.get("rows", 5))
+	cols = int(st.get("cols", 5))
+	engine.reset(rows, cols)
+	engine.h_lines = _to_int_grid(st.get("h", []))
+	engine.v_lines = _to_int_grid(st.get("v", []))
+	engine.box_owner = _to_int_grid(st.get("boxes", []))
+	var sc: Array = st.get("scores", [0, 0])
+	engine.scores = {1: int(sc[0]), 2: int(sc[1])}
+	engine.current_player = int(st.get("current", 1))
+	engine.game_over = bool(st.get("game_over", false))
+	engine.winner = int(st.get("winner", 0))
+	game_active = not engine.game_over
+	selected_edge = null
+	size_screen.visible = false
+	game_screen.visible = true
+	_build_board()
+	_render()
+	if engine.game_over:
+		_show_result()
+
 func _show_result() -> void:
 	game_active = false
-	SaveUtil.delete(SAVE_PATH)
+	if not _is_online():  # an online game ending mustn't wipe a paused local one
+		SaveUtil.delete(SAVE_PATH)
 	var p1 := _player_label(1)
 	var p2 := _player_label(2)
 	if engine.winner == 0:
 		win_label.text = "It's a tie!\n%s %d - %s %d" % [p1, engine.scores[1], p2, engine.scores[2]]
+	elif _is_online():
+		win_label.text = "%s\n%s %d - %s %d" % [online.result_text(engine.winner == my_player), p1, engine.scores[1], p2, engine.scores[2]]
 	else:
 		var name := _player_label(engine.winner)
 		win_label.text = "%s wins!\n%s %d - %s %d" % [name, p1, engine.scores[1], p2, engine.scores[2]]
@@ -626,7 +757,10 @@ func _render() -> void:
 	else:
 		var turn_color: Color = COLOR_P1 if engine.current_player == 1 else COLOR_P2
 		status_label.add_theme_color_override("font_color", turn_color)
-		status_label.text = "%s's turn" % _player_label(engine.current_player)
+		if _is_online():
+			status_label.text = online.status_text(engine.current_player == my_player, "Blue" if engine.current_player == 1 else "Red")
+		else:
+			status_label.text = "%s's turn" % _player_label(engine.current_player)
 
 func _owner_color(line_owner: int) -> Color:
 	if line_owner == 0:
@@ -636,8 +770,8 @@ func _owner_color(line_owner: int) -> Color:
 # ---------- save / load ----------
 
 func _save_game() -> void:
-	if not game_active:
-		return
+	if not game_active or _is_online():
+		return  # online games aren't resumable alone
 	SaveUtil.write(SAVE_PATH, {
 		"rows": rows,
 		"cols": cols,

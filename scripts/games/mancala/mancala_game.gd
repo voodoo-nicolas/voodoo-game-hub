@@ -7,6 +7,9 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://mancala_save.json"
+## Not preloaded: apps older than v0.14 don't have it, and the game must still
+## run there (without the Online button).
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 const COLOR_PIT := Color(0.35, 0.24, 0.15)
 const COLOR_PIT_ACTIVE := Color(0.5, 0.35, 0.18)
 const COLOR_STORE := Color(0.25, 0.17, 0.1)
@@ -20,6 +23,11 @@ var status_label: Label
 var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
+var online_btn: Button
+## Online play (null on apps without it). Host is Player 1 (bottom row),
+## guest Player 2 (top row); my_player == 0 means same-phone play.
+var online: Control = null
+var my_player: int = 0
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -115,6 +123,25 @@ func _build_ui() -> void:
 
 	_build_pause_dialog()
 	_build_win_dialog()
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online_btn = Button.new()
+		online_btn.text = "🌐 Play Online"
+		online_btn.custom_minimum_size = Vector2(0, 80)
+		online_btn.add_theme_font_size_override("font_size", 30)
+		online_btn.pressed.connect(func(): online.open_lobby())
+		var btn_margin := MarginContainer.new()
+		btn_margin.add_theme_constant_override("margin_bottom", 40)
+		btn_margin.add_theme_constant_override("margin_left", 60)
+		btn_margin.add_theme_constant_override("margin_right", 60)
+		btn_margin.add_child(online_btn)
+		root.add_child(btn_margin)
+		online = load(ONLINE_MATCH_PATH).new("mancala", "Mancala", _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_reset_board)
+		online.status_changed.connect(_render)
+		add_child(online)
 	add_child(SettingsDrawer.new())
 
 func _make_pit(index: int, size: float) -> Control:
@@ -174,7 +201,15 @@ func _build_win_dialog() -> void:
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
 
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
 func _start_new_game() -> void:
+	if online:
+		online.new_game()
+	_reset_board()
+
+func _reset_board() -> void:
 	engine.reset()
 	game_active = true
 	win_dialog.visible = false
@@ -190,24 +225,64 @@ func _on_pause_pressed() -> void:
 func _on_pit_pressed(index: int) -> void:
 	if not game_active:
 		return
-	if not engine.legal_pits(engine.current_player).has(index):
+	if _is_online() and not online.can_act(engine.current_player == my_player):
 		return
+	if _sow(index) and _is_online():
+		online.send_move({"pit": index})
+
+func _sow(index: int) -> bool:
+	if not engine.legal_pits(engine.current_player).has(index):
+		return false
 	var result: Dictionary = engine.sow(index)
 	if not result.valid:
-		return
+		return false
 	_render()
 	if engine.game_over:
 		_show_result()
 	elif result.extra_turn:
 		status_label.text = "Player %d goes again!" % engine.current_player
+	return true
+
+# ---------- online ----------
+
+func _online_state() -> Dictionary:
+	return {"board": engine.board, "current_player": engine.current_player, "game_over": engine.game_over, "winner": engine.winner}
+
+func _on_online_started(p_my_player: int) -> void:
+	my_player = p_my_player
+	online_btn.visible = false
+	_reset_board()
+
+func _on_remote_move(p: Dictionary) -> void:
+	if game_active and engine.current_player != my_player:
+		_sow(int(p.get("pit", -1)))
+
+func _on_remote_state(st: Dictionary) -> void:
+	var board: Array = []
+	for v in st.get("board", []):
+		board.append(int(v))
+	if board.size() != 14:
+		return
+	engine.board = board
+	engine.current_player = int(st.get("current_player", 1))
+	engine.game_over = bool(st.get("game_over", false))
+	engine.winner = int(st.get("winner", 0))
+	game_active = not engine.game_over
+	win_dialog.visible = false
+	_render()
+	if engine.game_over:
+		_show_result()
 
 func _show_result() -> void:
 	game_active = false
-	SaveUtil.delete(SAVE_PATH)
+	if not _is_online():  # an online game ending mustn't wipe a paused local one
+		SaveUtil.delete(SAVE_PATH)
 	var p1: int = engine.board[MancalaEngine.P1_STORE]
 	var p2: int = engine.board[MancalaEngine.P2_STORE]
 	if engine.winner == 0:
 		win_label.text = "It's a tie! %d - %d" % [p1, p2]
+	elif _is_online():
+		win_label.text = "%s %d - %d" % [online.result_text(engine.winner == my_player), p1, p2]
 	else:
 		win_label.text = "Player %d wins! %d - %d" % [engine.winner, p1, p2]
 	win_dialog.visible = true
@@ -223,11 +298,15 @@ func _render() -> void:
 	var current: int = engine.current_player
 	for i in pit_buttons.keys():
 		var is_current_side: bool = (current == 1 and i >= 0 and i <= 5) or (current == 2 and i >= 7 and i <= 12)
-		var can_play: bool = is_current_side and engine.board[i] > 0 and game_active
+		var can_play: bool = is_current_side and engine.board[i] > 0 and game_active 			and (not _is_online() or current == my_player)
 		_style_pit(pit_buttons[i], COLOR_PIT_ACTIVE if can_play else COLOR_PIT)
 
 	if game_active:
-		status_label.text = "Player %d's turn" % current
+		if _is_online():
+			var side := "bottom row" if current == 1 else "top row"
+			status_label.text = online.status_text(current == my_player, "Player %d, %s" % [current, side])
+		else:
+			status_label.text = "Player %d's turn" % current
 
 func _style_pit(btn: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
@@ -243,8 +322,8 @@ func _style_pit(btn: Button, color: Color) -> void:
 # ---------- save / load ----------
 
 func _save_game() -> void:
-	if not game_active:
-		return
+	if not game_active or _is_online():
+		return  # online games aren't resumable alone
 	SaveUtil.write(SAVE_PATH, {
 		"board": engine.board,
 		"current_player": engine.current_player,

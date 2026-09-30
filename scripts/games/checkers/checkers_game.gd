@@ -7,6 +7,9 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://checkers_save.json"
+## Not preloaded: apps older than v0.14 don't have it, and the game must still
+## run there (without the Online button).
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
 const COLOR_DARK_SQUARE := Color(0.3, 0.2, 0.15)
 const COLOR_LIGHT_SQUARE := Color(0.55, 0.42, 0.32)
@@ -27,6 +30,13 @@ var status_label: Label
 var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
+var online_btn: Button
+## Online play (null on apps without it). Host is Player 1 (red, bottom),
+## guest Player 2 (white) and sees the board flipped so their own pieces are
+## at the bottom. my_side: 1 / -1 as the engine counts; 0 = same-phone play.
+var online: Control = null
+var my_side: int = 0
+var flipped: bool = false
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -139,8 +149,29 @@ func _build_ui() -> void:
 			piece.add_child(king_label)
 			king_labels[idx] = king_label
 
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online_btn = Button.new()
+		online_btn.text = "🌐 Play Online"
+		online_btn.custom_minimum_size = Vector2(0, 80)
+		online_btn.add_theme_font_size_override("font_size", 30)
+		online_btn.pressed.connect(func(): online.open_lobby())
+		var btn_margin := MarginContainer.new()
+		btn_margin.add_theme_constant_override("margin_bottom", 40)
+		btn_margin.add_theme_constant_override("margin_left", 60)
+		btn_margin.add_theme_constant_override("margin_right", 60)
+		btn_margin.add_child(online_btn)
+		root.add_child(btn_margin)
+
 	_build_pause_dialog()
 	_build_win_dialog()
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online = load(ONLINE_MATCH_PATH).new("checkers", "Checkers", _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_reset_board)
+		online.status_changed.connect(_render)
+		add_child(online)
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
@@ -159,7 +190,15 @@ func _build_win_dialog() -> void:
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
 
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
 func _start_new_game() -> void:
+	if online:
+		online.new_game()
+	_reset_board()
+
+func _reset_board() -> void:
 	engine.reset()
 	game_active = true
 	selected = Vector2i(-1, -1)
@@ -174,15 +213,25 @@ func _on_pause_pressed() -> void:
 	_save_game()
 	pause_dialog.visible = true
 
-func _on_square_pressed(r: int, c: int) -> void:
+## Screen square -> board square. The guest's view is rotated 180 degrees.
+func _view_index(r: int, c: int) -> int:
+	return (7 - r) * 8 + (7 - c) if flipped else r * 8 + c
+
+func _on_square_pressed(vr: int, vc: int) -> void:
 	if not game_active:
 		return
+	if _is_online() and not online.can_act(engine.current_player == my_side):
+		return
+	var r: int = 7 - vr if flipped else vr
+	var c: int = 7 - vc if flipped else vc
 	var pos := Vector2i(r, c)
 
 	if dest_map.has(pos):
-		var captured: Vector2i = dest_map[pos]
+		var from := selected
 		var result: Dictionary = engine.move(selected, pos)
 		if result.valid:
+			if _is_online():
+				online.send_move({"from": [from.x, from.y], "to": [pos.x, pos.y]})
 			if result.chain_continues:
 				selected = pos
 			else:
@@ -207,11 +256,64 @@ func _on_square_pressed(r: int, c: int) -> void:
 		selected = Vector2i(-1, -1)
 	_render()
 
+# ---------- online ----------
+
+func _online_state() -> Dictionary:
+	return {
+		"board": engine.board, "current_player": engine.current_player,
+		"must_continue_from": [engine.must_continue_from.x, engine.must_continue_from.y],
+		"quiet_moves": engine.quiet_moves, "game_over": engine.game_over, "winner": engine.winner,
+	}
+
+func _on_online_started(my_player: int) -> void:
+	my_side = 1 if my_player == 1 else -1
+	flipped = my_side == -1
+	online_btn.visible = false
+	_reset_board()
+
+func _on_remote_move(p: Dictionary) -> void:
+	if not game_active or engine.current_player == my_side:
+		return
+	var f: Array = p.get("from", [-1, -1])
+	var t: Array = p.get("to", [-1, -1])
+	var result: Dictionary = engine.move(Vector2i(int(f[0]), int(f[1])), Vector2i(int(t[0]), int(t[1])))
+	if result.valid:
+		selected = Vector2i(-1, -1)
+		_render()
+		if engine.game_over:
+			_show_result()
+
+func _on_remote_state(st: Dictionary) -> void:
+	var board: Array = []
+	for row in st.get("board", []):
+		var r: Array = []
+		for v in row:
+			r.append(int(v))
+		board.append(r)
+	if board.size() != 8:
+		return
+	engine.board = board
+	engine.current_player = int(st.get("current_player", 1))
+	var mc: Array = st.get("must_continue_from", [-1, -1])
+	engine.must_continue_from = Vector2i(int(mc[0]), int(mc[1]))
+	engine.quiet_moves = int(st.get("quiet_moves", 0))
+	engine.game_over = bool(st.get("game_over", false))
+	engine.winner = int(st.get("winner", 0))
+	game_active = not engine.game_over
+	selected = Vector2i(-1, -1)
+	win_dialog.visible = false
+	_render()
+	if engine.game_over:
+		_show_result()
+
 func _show_result() -> void:
 	game_active = false
-	SaveUtil.delete(SAVE_PATH)
+	if not _is_online():  # an online game ending mustn't wipe a paused local one
+		SaveUtil.delete(SAVE_PATH)
 	if engine.winner == 0:
 		win_label.text = "Draw — 40 moves each with no captures"
+	elif _is_online():
+		win_label.text = online.result_text(engine.winner == my_side)
 	else:
 		win_label.text = "Player %d wins!" % (1 if engine.winner == 1 else 2)
 	win_dialog.visible = true
@@ -231,7 +333,7 @@ func _render() -> void:
 
 	for r in range(8):
 		for c in range(8):
-			var idx := r * 8 + c
+			var idx := _view_index(r, c)
 			var sq: Button = squares[idx]
 			var is_dark: bool = (r + c) % 2 == 1
 			var pos := Vector2i(r, c)
@@ -258,7 +360,12 @@ func _render() -> void:
 
 	if not game_active:
 		return
-	if engine.must_continue_from.x >= 0:
+	if _is_online():
+		var turn_text := "Red" if engine.current_player == 1 else "White"
+		if engine.must_continue_from.x >= 0:
+			turn_text += " — keep capturing!"
+		status_label.text = online.status_text(engine.current_player == my_side, turn_text)
+	elif engine.must_continue_from.x >= 0:
 		status_label.text = "Player %d must continue capturing!" % (1 if engine.current_player == 1 else 2)
 	else:
 		status_label.text = "Player %d's turn" % (1 if engine.current_player == 1 else 2)
@@ -287,8 +394,8 @@ func _style_piece(piece: PanelContainer, color: Color) -> void:
 # ---------- save / load ----------
 
 func _save_game() -> void:
-	if not game_active:
-		return
+	if not game_active or _is_online():
+		return  # online games aren't resumable alone
 	SaveUtil.write(SAVE_PATH, {
 		"board": engine.board,
 		"current_player": engine.current_player,

@@ -96,14 +96,20 @@ WebSocket protocol directly: a room is a broadcast channel named
 the database, so there's no schema to maintain and it works with the anon
 key as-is. `online_lobby.gd` is the shared Host / Join-by-code screen.
 
-- **Wiring a game** (see `tictactoe_game.gd` / `connect4_game.gd`): add the
-  lobby, and on `started(session, my_player)` connect `message`,
-  `opponent_left`, `opponent_joined`. Host = player 1 and is the authority:
-  it sends `sync` (full state) whenever the guest (re)appears or asks
-  (`sync_request`). Every `move` also carries the sender's resulting board;
-  a receiver whose board differs re-syncs, so missed messages heal.
-  `new_game` resets both. Online games are never saved locally, and an
-  online game ending must not delete the local save.
+- **Wiring a game**: use `scripts/common/online_match.gd` (`OnlineMatch`) --
+  it owns the lobby, roles, sync and consistency checks; its header comment
+  is the how-to. The game supplies `_online_state()` (whole game as
+  JSON-safe values), applies `remote_move` / `remote_state`, and calls
+  `send_move()` after a local move. Host = player 1 and the authority: it
+  pushes full state when the guest (re)appears or asks; every move carries
+  the sender's resulting state and a mismatch triggers a resync, so missed
+  messages heal. Online games are never saved locally, and an online game
+  ending must not delete the local save. Online so far: Tic-Tac-Toe,
+  Connect Four, Checkers, Reversi, Chess, Mancala, Dots and Boxes.
+- **Seat view**: in Chess and Checkers the guest's board is drawn rotated
+  180 degrees (`flipped`, `_view_index()`) so their pieces are at the bottom;
+  only drawing and tap handling convert, the engine always uses real
+  coordinates.
 - **Never `preload` the online scripts from a game**: they ship in the APK
   (v0.14+), and packs also run on older apps. Check
   `ResourceLoader.exists(ONLINE_LOBBY_PATH)` and `load()` it; without it the

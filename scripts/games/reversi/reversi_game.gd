@@ -7,6 +7,9 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
 
 const SAVE_PATH := "user://reversi_save.json"
+## Not preloaded: apps older than v0.14 don't have it, and the game must still
+## run there (without the Online button).
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
 const COLOR_BOARD := Color(0.08, 0.35, 0.16)
 const COLOR_HINT := Color(0.15, 0.5, 0.22)
@@ -24,6 +27,11 @@ var score_label: Label
 var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
+var online_btn: Button
+## Online play (null on apps without it). Host plays Black, guest White;
+## my_color == 0 means ordinary same-phone play.
+var online: Control = null
+var my_color: int = 0
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -157,8 +165,29 @@ func _build_ui() -> void:
 			sq.add_child(hint)
 			hint_views[idx] = hint
 
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online_btn = Button.new()
+		online_btn.text = "🌐 Play Online"
+		online_btn.custom_minimum_size = Vector2(0, 80)
+		online_btn.add_theme_font_size_override("font_size", 30)
+		online_btn.pressed.connect(func(): online.open_lobby())
+		var btn_margin := MarginContainer.new()
+		btn_margin.add_theme_constant_override("margin_bottom", 40)
+		btn_margin.add_theme_constant_override("margin_left", 60)
+		btn_margin.add_theme_constant_override("margin_right", 60)
+		btn_margin.add_child(online_btn)
+		root.add_child(btn_margin)
+
 	_build_pause_dialog()
 	_build_win_dialog()
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online = load(ONLINE_MATCH_PATH).new("reversi", "Reversi", _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_reset_board)
+		online.status_changed.connect(_render)
+		add_child(online)
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
@@ -177,7 +206,15 @@ func _build_win_dialog() -> void:
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
 
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
 func _start_new_game() -> void:
+	if online:
+		online.new_game()
+	_reset_board()
+
+func _reset_board() -> void:
 	engine.reset()
 	game_active = true
 	win_dialog.visible = false
@@ -193,26 +230,69 @@ func _on_pause_pressed() -> void:
 func _on_square_pressed(r: int, c: int) -> void:
 	if not game_active:
 		return
+	if _is_online() and not online.can_act(engine.current_player == my_color):
+		return
 	if not legal_now.has(Vector2i(r, c)):
 		return
+	var result: Dictionary = _place(r, c)
+	if result.valid and _is_online():
+		online.send_move({"r": r, "c": c})
+
+func _place(r: int, c: int) -> Dictionary:
 	var mover: int = engine.current_player
 	var result: Dictionary = engine.place(r, c)
 	if not result.valid:
-		return
+		return result
 	_render()
 	if engine.game_over:
 		_show_result()
 	elif result.passed:
 		var passed_player_name: String = "Black" if mover == ReversiEngine.BLACK else "White"
 		status_label.text = "%s has no move — turn passes back!" % ("White" if mover == ReversiEngine.BLACK else "Black")
+	return result
+
+# ---------- online ----------
+
+func _online_state() -> Dictionary:
+	return {"board": engine.board, "current_player": engine.current_player, "game_over": engine.game_over}
+
+func _on_online_started(my_player: int) -> void:
+	my_color = ReversiEngine.BLACK if my_player == 1 else ReversiEngine.WHITE
+	online_btn.visible = false
+	_reset_board()
+
+func _on_remote_move(p: Dictionary) -> void:
+	if game_active and engine.current_player != my_color:
+		_place(int(p.get("r", -1)), int(p.get("c", -1)))
+
+func _on_remote_state(st: Dictionary) -> void:
+	var board: Array = []
+	for row in st.get("board", []):
+		var r: Array = []
+		for v in row:
+			r.append(int(v))
+		board.append(r)
+	if board.size() != 8:
+		return
+	engine.board = board
+	engine.current_player = int(st.get("current_player", ReversiEngine.BLACK))
+	engine.game_over = bool(st.get("game_over", false))
+	game_active = not engine.game_over
+	win_dialog.visible = false
+	_render()
+	if engine.game_over:
+		_show_result()
 
 func _show_result() -> void:
 	game_active = false
-	SaveUtil.delete(SAVE_PATH)
+	if not _is_online():  # an online game ending mustn't wipe a paused local one
+		SaveUtil.delete(SAVE_PATH)
 	var w: int = engine.winner()
 	var s: Dictionary = engine.score()
 	if w == ReversiEngine.EMPTY:
 		win_label.text = "It's a tie! %d - %d" % [s.black, s.white]
+	elif _is_online():
+		win_label.text = "%s %d - %d" % [online.result_text(w == my_color), s.black, s.white]
 	else:
 		win_label.text = "%s wins! %d - %d" % ["Black" if w == ReversiEngine.BLACK else "White", s.black, s.white]
 	win_dialog.visible = true
@@ -235,12 +315,17 @@ func _render() -> void:
 			else:
 				piece.visible = true
 				_style_piece(piece, COLOR_BLACK if v == ReversiEngine.BLACK else COLOR_WHITE)
-			hint_views[idx].visible = legal_set.has(Vector2i(r, c)) and game_active
+			var my_turn: bool = not _is_online() or engine.current_player == my_color
+			hint_views[idx].visible = legal_set.has(Vector2i(r, c)) and game_active and my_turn
 
 	var s: Dictionary = engine.score()
 	score_label.text = "⚫ Black: %d      ⚪ White: %d" % [s.black, s.white]
 	if game_active:
-		status_label.text = "%s's turn" % ("Black" if engine.current_player == ReversiEngine.BLACK else "White")
+		var turn_name := "Black" if engine.current_player == ReversiEngine.BLACK else "White"
+		if _is_online():
+			status_label.text = online.status_text(engine.current_player == my_color, turn_name)
+		else:
+			status_label.text = "%s's turn" % turn_name
 
 func _style_square(sq: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
@@ -271,8 +356,8 @@ func _style_piece(piece: PanelContainer, color: Color) -> void:
 # ---------- save / load ----------
 
 func _save_game() -> void:
-	if not game_active:
-		return
+	if not game_active or _is_online():
+		return  # online games aren't resumable alone
 	SaveUtil.write(SAVE_PATH, {
 		"board": engine.board,
 		"current_player": engine.current_player,
