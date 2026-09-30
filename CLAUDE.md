@@ -246,6 +246,11 @@ signed with the project's own key:
   Developer Console, Play Protect blocks installs with "hasn't seen an app
   from this developer". Workaround: temporarily turn off "Scan apps with
   Play Protect" in the Play Store.
+- **Status (2026-09-30):** Android Developer Console account "Viral" created
+  as **Personal (Limited distribution)** -- the free tier: max 20 devices,
+  installs by invitation. `com.viral.voodoo` + the release key are
+  **Registered**. Sharing publicly needs an upgrade to Full distribution
+  ($25 one-time, ID check).
 
 ## Local tool locations (portable installs, not on PATH)
 
