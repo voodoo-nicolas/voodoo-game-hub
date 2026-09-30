@@ -112,6 +112,11 @@ Every chore that used to be a hand-edit across several files is one command
 | `scripts/common/version.gd` — `VERSION`, `BUILD_NUMBER` | Android preset's `version/name` + `version/code` |
 | `scripts/common/config.gd` — repo, release tag, Supabase, timeouts | `games` entries (url/scene) for new ids in `manifest.json` |
 
+**PC test build**: `python tools/hub.py pc` exports every game bundled into
+`%LOCALAPPDATA%\VoodooGameHub\Voodoo.exe` and (re)creates the "Voodoo Game
+Hub" desktop shortcut. The user plays it to test games before release --
+re-run it after changing any game so their copy stays current.
+
 `python tools/hub.py check` validates all of it (scenes exist, ids unique,
 presets and version in sync) and changes nothing — run it before committing.
 `tools/` has a `.gdignore`, so Godot never imports or exports it.

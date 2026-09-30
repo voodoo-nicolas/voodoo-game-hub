@@ -5,7 +5,7 @@
     {"name": "Puzzle & Board", "icon": "🧩", "games": [
       {"id": "chess", "title": "Chess", "icon": "♟️"},
       {"id": "sudoku", "title": "Sudoku", "icon": "🔢"},
-      {"title": "Minesweeper", "icon": "💣"},
+      {"id": "minesweeper", "title": "Minesweeper", "icon": "💣"},
       {"id": "tictactoe", "title": "Tic-Tac-Toe", "icon": "⭕"},
       {"id": "connect4", "title": "Connect Four", "icon": "🔴"},
       {"id": "checkers", "title": "Checkers", "icon": "⚫"},
@@ -18,7 +18,7 @@
       {"title": "Peg Solitaire", "icon": "📌"},
       {"id": "lights_out", "title": "Lights Out", "icon": "💡"},
       {"title": "Sokoban", "icon": "📦"},
-      {"title": "Sliding 15-Puzzle", "icon": "🔲"},
+      {"id": "fifteen_puzzle", "title": "Sliding 15-Puzzle", "icon": "🔲"},
       {"id": "g2048", "title": "2048", "icon": "🔷"},
       {"title": "Kakuro", "icon": "➗"},
       {"title": "Picross / Nonogram", "icon": "🖼️"},
@@ -28,7 +28,7 @@
     ]},
     {"name": "Cards", "icon": "🃏", "games": [
       {"id": "solitaire", "title": "Solitaire", "icon": "🂡"},
-      {"title": "Blackjack", "icon": "🂱"},
+      {"id": "blackjack", "title": "Blackjack", "icon": "🂱"},
       {"id": "war", "title": "War", "icon": "⚔️"},
       {"title": "Crazy Eights", "icon": "8️⃣"},
       {"title": "Go Fish", "icon": "🐟"},
@@ -41,7 +41,7 @@
     ]},
     {"name": "Word", "icon": "🔤", "games": [
       {"id": "hangman", "title": "Hangman", "icon": "💀"},
-      {"title": "Wordle", "icon": "🟩"},
+      {"id": "wordle", "title": "Wordle", "icon": "🟩"},
       {"title": "Word Search", "icon": "🔍"},
       {"title": "Crossword", "icon": "📝"},
       {"title": "Anagrams", "icon": "🔀"},
@@ -97,6 +97,10 @@
     "war": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/war.pck", "scene": "res://scenes/games/war/war.tscn"},
     "snake": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/snake.pck", "scene": "res://scenes/games/snake/snake.tscn"},
     "chess": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck", "scene": "res://scenes/games/chess/chess.tscn"},
-    "dots_boxes": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dots_boxes.pck", "scene": "res://scenes/games/dots_boxes/dots_boxes.tscn"}
+    "dots_boxes": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dots_boxes.pck", "scene": "res://scenes/games/dots_boxes/dots_boxes.tscn"},
+    "minesweeper": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/minesweeper.pck", "scene": "res://scenes/games/minesweeper/minesweeper.tscn"},
+    "wordle": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wordle.pck", "scene": "res://scenes/games/wordle/wordle.tscn"},
+    "fifteen_puzzle": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fifteen_puzzle.pck", "scene": "res://scenes/games/fifteen_puzzle/fifteen_puzzle.tscn"},
+    "blackjack": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/blackjack.pck", "scene": "res://scenes/games/blackjack/blackjack.tscn"}
   }
 }

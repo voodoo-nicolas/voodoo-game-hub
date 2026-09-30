@@ -10,6 +10,7 @@ hand-edit across several files.
     python tools/hub.py test [ID...]          headless-boot the hub, account screen and games
     python tools/hub.py export [ID...|--all]  build game .pck files into builds/packs/
     python tools/hub.py apk                   build the Android APK into builds/
+    python tools/hub.py pc                    build the Windows version (every game built in) + desktop shortcut
     python tools/hub.py verify                check live release assets match local builds
     python tools/hub.py publish-packs ID...   upload packs to the GitHub pack release
     python tools/hub.py release               create the GitHub release for the current APK
@@ -464,6 +465,38 @@ def cmd_apk(_args) -> None:
     print(f"  built {versioned.relative_to(ROOT)} ({versioned.stat().st_size:,} bytes), arches OK")
 
 
+PC_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "VoodooGameHub"
+PC_PRESET = "WindowsTest"  # all_resources: every game bundled, no downloads
+
+
+def cmd_pc(_args) -> None:
+    """Windows build for playtesting on this PC. Games are bundled, so it
+    always runs the current source -- including changes not yet published."""
+    PC_DIR.mkdir(parents=True, exist_ok=True)
+    exe = PC_DIR / "Voodoo.exe"
+    code, log = run_godot("--export-debug", PC_PRESET, str(exe), timeout=900)
+    if code != 0 or not exe.is_file():
+        print(log)
+        raise ToolError("Windows export failed")
+    shortcut = Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Desktop" / "Voodoo Game Hub.lnk"
+    icon = PC_DIR / "icon.ico"
+    try:  # the exported .exe carries Godot's icon; give the shortcut ours
+        from PIL import Image
+        Image.open(ROOT / "assets" / "icon.png").save(icon, sizes=[(256, 256), (64, 64), (32, 32), (16, 16)])
+    except Exception:  # noqa: BLE001 -- Pillow missing: fall back to the exe icon
+        pass
+    ps = (
+        "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');"
+        "$s.TargetPath = '{exe}'; $s.WorkingDirectory = '{dir}';"
+        "$s.Description = 'Voodoo Game Hub (PC test build)';"
+        "{icon_line}$s.Save()"
+    ).format(lnk=shortcut, exe=exe, dir=PC_DIR,
+             icon_line=f"$s.IconLocation = '{icon}';" if icon.is_file() else f"$s.IconLocation = '{exe},0';")
+    subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True)
+    print(f"  built {exe}")
+    print(f"  shortcut: {shortcut}")
+
+
 # ---- GitHub
 
 def gh() -> str:
@@ -558,6 +591,7 @@ def main() -> int:
     p.set_defaults(fn=cmd_export)
     sub.add_parser("apk").set_defaults(fn=cmd_apk)
     sub.add_parser("verify").set_defaults(fn=cmd_verify)
+    sub.add_parser("pc").set_defaults(fn=cmd_pc)
     p = sub.add_parser("publish-packs")
     p.add_argument("ids", nargs="+")
     p.set_defaults(fn=cmd_publish_packs)

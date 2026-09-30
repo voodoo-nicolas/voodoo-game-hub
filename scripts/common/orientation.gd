@@ -28,4 +28,6 @@ static func _lock(requested: int) -> void:
 	if Engine.has_meta(OVERRIDE_META):
 		orientation = int(Engine.get_meta(OVERRIDE_META))
 		Engine.remove_meta(OVERRIDE_META)
-	DisplayServer.screen_set_orientation(orientation)
+	# Desktop builds (the PC test version) can't rotate; skip the warning.
+	if DisplayServer.has_feature(DisplayServer.FEATURE_ORIENTATION):
+		DisplayServer.screen_set_orientation(orientation)

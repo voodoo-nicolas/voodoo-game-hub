@@ -24,8 +24,8 @@ window/size/viewport_height=1280
 window/handheld/orientation="portrait"
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/size/window_width_override=360
-window/size/window_height_override=640
+window/size/window_width_override=396
+window/size/window_height_override=704
 
 [rendering]
 
