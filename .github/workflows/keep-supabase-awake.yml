@@ -1,0 +1,39 @@
+# Free Supabase projects pause after about a week with no database activity,
+# which takes down sign-in, score sync and online play (it happened on
+# 2026-09-30). This does one harmless read every 3 days so that never
+# happens. If the project is already paused or unreachable, the run fails
+# and GitHub emails the repo owner -- a useful early warning.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: "17 9 */3 * *"  # every 3 days, 09:17 UTC
+  workflow_dispatch:         # "Run workflow" button, for testing
+
+permissions:
+  contents: read
+  actions: write  # for the re-enable step below
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read from the database
+        run: |
+          # Same public (anon) address and key the app uses -- one source of truth.
+          URL=$(grep -oP 'SUPABASE_URL := "\K[^"]+' scripts/common/config.gd)
+          KEY=$(grep -oP 'SUPABASE_ANON_KEY := "\K[^"]+' scripts/common/config.gd)
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "$URL/rest/v1/player_stats?select=user_id&limit=1" -H "apikey: $KEY")
+          echo "Supabase answered HTTP $code"
+          test "$code" = "200"
+
+      - name: Keep this schedule from being switched off
+        # GitHub disables scheduled workflows in repos with no activity for
+        # 60 days; re-enabling on each run keeps this one going.
+        run: gh workflow enable keep-supabase-awake.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
