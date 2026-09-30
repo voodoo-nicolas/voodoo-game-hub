@@ -9,7 +9,7 @@ hand-edit across several files.
     python tools/hub.py bump-app [patch|minor|major]
     python tools/hub.py test [ID...]          headless-boot the hub, account screen and games
     python tools/hub.py export [ID...|--all]  build game .pck files into builds/packs/
-    python tools/hub.py apk                   build the Android APK into builds/
+    python tools/hub.py apk                   build the release Android APK (signed with the private key) into builds/
     python tools/hub.py pc                    build the Windows version (every game built in) + desktop shortcut
     python tools/hub.py verify                check live release assets match local builds
     python tools/hub.py publish-packs ID...   upload packs to the GitHub pack release
@@ -398,9 +398,10 @@ def godot() -> str:
     raise ToolError("Godot not found -- set the GODOT environment variable to the console .exe")
 
 
-def run_godot(*args: str, timeout: int = 300) -> tuple[int, str]:
+def run_godot(*args: str, timeout: int = 300, env: dict | None = None) -> tuple[int, str]:
     proc = subprocess.run([godot(), "--headless", "--path", str(ROOT), *args],
-                          capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
+                          env={**os.environ, **(env or {})})
     return proc.returncode, proc.stdout + proc.stderr
 
 
@@ -445,14 +446,44 @@ def cmd_export(args) -> None:
         print(f"  {gid}: {out_path.relative_to(ROOT)} ({out_path.stat().st_size:,} bytes)")
 
 
-def cmd_apk(_args) -> None:
+# The release signing key lives OUTSIDE the repo, with its password in a
+# small JSON file next to it. Losing it means installed apps can never be
+# updated again (Android only accepts updates signed by the same key), so
+# the user keeps a backup copy. Never commit either file.
+RELEASE_KEY_INFO = Path(os.environ.get(
+    "VOODOO_RELEASE_KEY", str(Path.home() / "Android" / "keystore" / "voodoo-release.json")))
+BUILD_TOOLS = Path.home() / "Android" / "sdk" / "build-tools" / "34.0.0"
+
+
+def release_signing_env() -> dict:
+    if not RELEASE_KEY_INFO.is_file():
+        raise ToolError(f"release key info not found at {RELEASE_KEY_INFO} -- see CLAUDE.md 'App signing'")
+    info = json.loads(RELEASE_KEY_INFO.read_text(encoding="utf-8"))
+    # Godot reads these instead of the (committed) export_presets.cfg, so the
+    # password never lands in the repo.
+    return {
+        "GODOT_ANDROID_KEYSTORE_RELEASE_PATH": info["keystore"],
+        "GODOT_ANDROID_KEYSTORE_RELEASE_USER": info["alias"],
+        "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD": info["password"],
+    }
+
+
+def cmd_apk(args) -> None:
     cmd_check()
     version, _ = read_version()
     apk = ROOT / "builds/game-hub.apk"
-    code, log = run_godot("--export-debug", ANDROID_PRESET, str(apk), timeout=900)
+    if args.debug:
+        code, log = run_godot("--export-debug", ANDROID_PRESET, str(apk), timeout=900)
+    else:
+        code, log = run_godot("--export-release", ANDROID_PRESET, str(apk), timeout=900, env=release_signing_env())
     if code != 0 or not apk.is_file():
         print(log)
         raise ToolError("APK export failed")
+    aapt = BUILD_TOOLS / "aapt.exe"
+    if not args.debug and aapt.is_file():
+        badging = subprocess.run([str(aapt), "dump", "badging", str(apk)], capture_output=True, text=True).stdout
+        if "application-debuggable" in badging:
+            raise ToolError("release APK is still marked debuggable")
     with zipfile.ZipFile(apk) as z:
         names = z.namelist()
     missing = [a for a in APK_ARCHES if not any(n.startswith(f"lib/{a}/") for n in names)]
@@ -589,7 +620,9 @@ def main() -> int:
     p.add_argument("ids", nargs="*")
     p.add_argument("--all", action="store_true")
     p.set_defaults(fn=cmd_export)
-    sub.add_parser("apk").set_defaults(fn=cmd_apk)
+    p = sub.add_parser("apk")
+    p.add_argument("--debug", action="store_true", help="test build signed with the shared debug key (never ship this)")
+    p.set_defaults(fn=cmd_apk)
     sub.add_parser("verify").set_defaults(fn=cmd_verify)
     sub.add_parser("pc").set_defaults(fn=cmd_pc)
     p = sub.add_parser("publish-packs")

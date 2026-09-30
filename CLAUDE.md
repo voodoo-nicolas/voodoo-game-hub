@@ -203,7 +203,7 @@ references.
      `python tools/hub.py bump-app [patch|minor|major]` — bumps `VERSION` and
      `BUILD_NUMBER` together and syncs the Android preset.
 4. **Build**: `python tools/hub.py export <id>...` (or `--all`) for packs;
-   `python tools/hub.py apk` for the APK (fails if any of arm64-v8a,
+   `python tools/hub.py apk` for the release-signed APK (see "App signing") (fails if any of arm64-v8a,
    armeabi-v7a, x86_64 is missing; copies to `builds/voodoo-vX.Y.Z.apk`).
 5. **Upload packs**: `python tools/hub.py publish-packs <id>...`
 6. **Commit and push** source changes including `manifest.json` (not
@@ -213,6 +213,26 @@ references.
    `python tools/hub.py release --notes "..."`
 8. **Verify live**: `python tools/hub.py verify` fetches every pack URL and the
    live manifest and compares them with the local builds.
+
+## App signing (since v0.15.0)
+
+Up to v0.14.0 every APK was a debug build signed with the shared Android
+debug key -- Play Protect flags that ("App blocked to protect your
+device"). From v0.15.0, `python tools/hub.py apk` makes a **release** build
+signed with the project's own key:
+
+- Key: `C:\Users\Cliente\Android\keystore\voodoo-release.keystore`
+  (alias `voodoo`); its password is in `voodoo-release.json` next to it.
+  `hub.py` passes them to Godot via the `GODOT_ANDROID_KEYSTORE_RELEASE_*`
+  environment variables, so they never appear in `export_presets.cfg` or
+  the repo. **Never commit either file, never print the password.**
+- **If this key is lost, installed apps can never be updated again**
+  (Android only accepts updates signed with the same key). The user keeps a
+  backup copy of both files somewhere safe (USB drive / cloud).
+- The v0.14 -> v0.15 switch changed the signing key, so Android refused to
+  update in place: users had to uninstall once and reinstall (losing
+  phone-only saves). Later updates install normally.
+- `hub.py apk --debug` still makes a debug build for local testing only.
 
 ## Local tool locations (portable installs, not on PATH)
 
