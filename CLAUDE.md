@@ -377,6 +377,28 @@ tool directly for anything needing real PowerShell semantics, not
   `Callable.is_valid()` — which only detects freed *method* callables, so
   pass methods, not lambdas.
 
+## Catalog conventions (since the catalog was completed, 2026-09-30)
+
+- **No "coming soon" tiles**: every catalog entry is a real game. Add a
+  placeholder only if the user asks for one.
+- **Trademark-safe titles**: the app is heading for public distribution, so
+  games use generic names, not brand names (Block Drop, not Tetris; Sea
+  Battle, Box Pusher, Code Breaker, Calcudoku, Word Hunt, Yacht Dice, Paddle
+  Ball, Brick Breaker, Bird Hop, Alien Attack, Frog Crossing, Party Spinner).
+  "Wordle" predates this and is a NYT trademark -- rename it before a public
+  store listing.
+- **Card games** each carry their own copy of `<id>_cards.gd` (ints 0..51,
+  `draw_card()`), so every pack stays self-contained; fix bugs in all copies.
+- **Word lists**: Word Hunt and Anagrams ship the public-domain ENABLE list as
+  gzipped text (`<id>_words.txt.gz`, read with `decompress_dynamic` and
+  searched with `PackedStringArray.bsearch`). Non-resource files only get
+  into an export through `include_filter`: pack presets already include the
+  game folder; the `WindowsTest` preset has `scripts/games/*/*.txt.gz`.
+  Word Hunt is English-only (no Spanish dictionary yet); Word Search,
+  Crossword and Anagrams switch to Spanish content.
+- Most new games draw their board in one Control via its `draw` signal
+  (`board.draw.connect(_draw_board)`) instead of a grid of Buttons.
+
 ## Reference material
 
 `reference/juegoflix_friend_reference.html` — a friend's competing 20-game hub

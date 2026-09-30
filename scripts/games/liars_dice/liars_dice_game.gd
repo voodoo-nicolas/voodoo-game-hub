@@ -1,0 +1,309 @@
+extends Control
+
+## Liar's Dice vs two computer players. Raise the bid or call "Liar!".
+
+const LDEngine = preload("res://scripts/games/liars_dice/liars_dice_engine.gd")
+const Orientation = preload("res://scripts/common/orientation.gd")
+const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+const UI = preload("res://scripts/common/ui.gd")
+
+const PIPS := {1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]],
+	5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]}
+
+var engine: LDEngine
+var table: Control
+var status_label: Label
+var qty_label: Label
+var bid_btn: Button
+var liar_btn: Button
+var next_btn: Button
+var face_buttons: Array = []
+var controls: Control
+var cpu_timer: Timer
+var end_dialog: ColorRect
+var my_qty: int = 1
+var my_face: int = 2
+var revealing := false
+var log_lines: Array = []
+
+func _ready() -> void:
+	preload("res://scripts/games/liars_dice/liars_dice_i18n.gd").install(self)
+	Orientation.lock_portrait()
+	engine = LDEngine.new()
+	_build_ui()
+	_start()
+
+func _build_ui() -> void:
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	var bg := ColorRect.new()
+	bg.color = Color(0.2, 0.12, 0.08)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(bg)
+
+	var root := VBoxContainer.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_theme_constant_override("separation", 10)
+	add_child(root)
+
+	var top := MarginContainer.new()
+	top.add_theme_constant_override("margin_top", 20)
+	top.add_theme_constant_override("margin_left", 16)
+	top.add_theme_constant_override("margin_right", 16)
+	root.add_child(top)
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 10)
+	top.add_child(bar)
+	var hub_btn := Button.new()
+	hub_btn.text = tr("Hub")
+	hub_btn.add_theme_font_size_override("font_size", 26)
+	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	bar.add_child(hub_btn)
+	var title := Label.new()
+	title.text = tr("🤥 Liar's Dice")
+	title.add_theme_font_size_override("font_size", 30)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bar.add_child(title)
+	var restart_btn := Button.new()
+	restart_btn.text = tr("Restart")
+	restart_btn.add_theme_font_size_override("font_size", 26)
+	restart_btn.pressed.connect(_start)
+	bar.add_child(restart_btn)
+
+	status_label = Label.new()
+	status_label.add_theme_font_size_override("font_size", 25)
+	status_label.add_theme_color_override("font_color", Color(1, 0.9, 0.5))
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	status_label.custom_minimum_size = Vector2(0, 70)
+	root.add_child(status_label)
+
+	table = Control.new()
+	table.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	table.draw.connect(_draw_table)
+	table.resized.connect(table.queue_redraw)
+	root.add_child(table)
+
+	var cbox := VBoxContainer.new()
+	cbox.add_theme_constant_override("separation", 10)
+	controls = cbox
+	var cm := MarginContainer.new()
+	cm.add_theme_constant_override("margin_bottom", 30)
+	cm.add_theme_constant_override("margin_left", 16)
+	cm.add_theme_constant_override("margin_right", 16)
+	cm.add_child(cbox)
+	root.add_child(cm)
+
+	var qrow := HBoxContainer.new()
+	qrow.alignment = BoxContainer.ALIGNMENT_CENTER
+	qrow.add_theme_constant_override("separation", 16)
+	cbox.add_child(qrow)
+	qrow.add_child(_small_button("−", _change_qty.bind(-1)))
+	qty_label = Label.new()
+	qty_label.add_theme_font_size_override("font_size", 30)
+	qty_label.custom_minimum_size = Vector2(200, 0)
+	qty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	qrow.add_child(qty_label)
+	qrow.add_child(_small_button("+", _change_qty.bind(1)))
+
+	var frow := HBoxContainer.new()
+	frow.alignment = BoxContainer.ALIGNMENT_CENTER
+	frow.add_theme_constant_override("separation", 10)
+	cbox.add_child(frow)
+	for f in range(1, 7):
+		var b := Button.new()
+		b.text = str(f)
+		b.custom_minimum_size = Vector2(92, 80)
+		b.add_theme_font_size_override("font_size", 46)
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(_pick_face.bind(f))
+		frow.add_child(b)
+		face_buttons.append(b)
+
+	var arow := HBoxContainer.new()
+	arow.alignment = BoxContainer.ALIGNMENT_CENTER
+	arow.add_theme_constant_override("separation", 16)
+	cbox.add_child(arow)
+	bid_btn = Button.new()
+	bid_btn.custom_minimum_size = Vector2(300, 76)
+	bid_btn.add_theme_font_size_override("font_size", 26)
+	bid_btn.pressed.connect(_on_bid)
+	arow.add_child(bid_btn)
+	liar_btn = Button.new()
+	liar_btn.text = tr("Liar!")
+	liar_btn.custom_minimum_size = Vector2(220, 76)
+	liar_btn.add_theme_font_size_override("font_size", 28)
+	liar_btn.pressed.connect(_on_liar)
+	arow.add_child(liar_btn)
+	next_btn = Button.new()
+	next_btn.text = tr("Next Round")
+	next_btn.custom_minimum_size = Vector2(300, 76)
+	next_btn.add_theme_font_size_override("font_size", 26)
+	next_btn.pressed.connect(_next_round)
+	arow.add_child(next_btn)
+
+	cpu_timer = Timer.new()
+	cpu_timer.one_shot = true
+	cpu_timer.wait_time = 1.3
+	cpu_timer.timeout.connect(_cpu_turn)
+	add_child(cpu_timer)
+
+	end_dialog = UI.build_dialog("", [
+		{"text": tr("Play Again"), "action": _start},
+		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+	], true)
+	add_child(end_dialog)
+	add_child(SettingsDrawer.new())
+
+func _small_button(text: String, action: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(90, 70)
+	b.add_theme_font_size_override("font_size", 34)
+	b.pressed.connect(action)
+	return b
+
+func _name(p: int) -> String:
+	return tr("You") if p == 0 else tr("CPU %d") % p
+
+func _bid_text(b: Vector2i) -> String:
+	return tr("%d × face %d") % [b.x, b.y]
+
+func _start() -> void:
+	cpu_timer.stop()
+	engine.reset()
+	end_dialog.visible = false
+	revealing = false
+	log_lines = []
+	_after_change()
+
+func _next_round() -> void:
+	if not revealing:
+		return
+	revealing = false
+	log_lines = []
+	engine.new_round(engine.next_starter())
+	_after_change()
+
+## Picks a legal default for the bid controls and schedules computer turns.
+func _after_change() -> void:
+	if engine.turn == 0 and not revealing:
+		my_face = max(engine.bid.y, 1)
+		my_qty = max(engine.bid.x, 1)
+		if not LDEngine.beats(Vector2i(my_qty, my_face), engine.bid):
+			if my_face < 6:
+				my_face += 1
+			else:
+				my_qty += 1
+	_refresh()
+	if engine.turn != 0 and not revealing and engine.winner == -1:
+		cpu_timer.start()
+
+func _refresh() -> void:
+	var mine: bool = engine.turn == 0 and not revealing and engine.alive(0)
+	for n in [qty_label, bid_btn, liar_btn]:
+		n.visible = not revealing
+	for b in face_buttons:
+		b.get_parent().visible = not revealing
+	qty_label.get_parent().visible = not revealing
+	next_btn.visible = revealing and engine.winner == -1
+	bid_btn.text = tr("Bid %s") % _bid_text(Vector2i(my_qty, my_face))
+	bid_btn.disabled = not mine or not LDEngine.beats(Vector2i(my_qty, my_face), engine.bid) or my_qty > engine.total_dice()
+	liar_btn.disabled = not mine or engine.bid == Vector2i.ZERO
+	qty_label.text = tr("%d dice") % my_qty
+	for i in face_buttons.size():
+		face_buttons[i].modulate = Color(1, 0.85, 0.3) if i + 1 == my_face else Color(1, 1, 1)
+	if not revealing:
+		var who := _name(engine.turn)
+		var bid_part := tr("No bid yet.") if engine.bid == Vector2i.ZERO else tr("Current bid: %s by %s.") % [_bid_text(engine.bid), _name(engine.bidder)]
+		status_label.text = bid_part + "\n" + (tr("Your move.") if engine.turn == 0 else tr("%s is thinking...") % who)
+		if not engine.alive(0):
+			status_label.text = bid_part + "\n" + tr("You're out — watching the computers.")
+	table.queue_redraw()
+
+func _change_qty(d: int) -> void:
+	my_qty = clampi(my_qty + d, 1, engine.total_dice())
+	_refresh()
+
+func _pick_face(f: int) -> void:
+	my_face = f
+	_refresh()
+
+func _on_bid() -> void:
+	if engine.turn == 0 and engine.place_bid(Vector2i(my_qty, my_face)):
+		log_lines.append(tr("You bid %s.") % _bid_text(engine.bid))
+		_after_change()
+
+func _on_liar() -> void:
+	if engine.turn == 0 and engine.bid != Vector2i.ZERO:
+		_resolve()
+
+func _cpu_turn() -> void:
+	var p: int = engine.turn
+	if p == 0 or revealing:
+		return
+	var choice := engine.cpu_decide(p)
+	if choice == Vector2i.ZERO or not engine.place_bid(choice):
+		if engine.bid == Vector2i.ZERO:
+			engine.place_bid(Vector2i(1, randi_range(1, 6)))
+			log_lines.append(tr("%s bids %s.") % [_name(p), _bid_text(engine.bid)])
+		else:
+			_resolve()
+			return
+	else:
+		log_lines.append(tr("%s bids %s.") % [_name(p), _bid_text(engine.bid)])
+	_after_change()
+
+func _resolve() -> void:
+	var r := engine.challenge()
+	revealing = true
+	var msg := tr("%s calls Liar on %s!") % [_name(r.caller), _bid_text(r.bid)] + "\n"
+	msg += tr("There are %d. %s loses a die.") % [r.actual, _name(r.loser)]
+	status_label.text = msg
+	_refresh()
+	if engine.winner != -1:
+		end_dialog.get_meta("message_label").text = tr("You win!") if engine.winner == 0 else tr("%s wins!") % _name(engine.winner)
+		end_dialog.visible = true
+	elif not engine.alive(0):
+		end_dialog.get_meta("message_label").text = tr("You're out of dice!")
+		end_dialog.visible = true
+
+# ---------- drawing ----------
+
+func _draw_die(pos: Vector2, s: float, v: int, hidden: bool, hilite: bool) -> void:
+	var r := Rect2(pos, Vector2(s, s))
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.3, 0.2, 0.15) if hidden else Color(0.97, 0.97, 0.95)
+	sb.set_corner_radius_all(int(s * 0.16))
+	if hilite:
+		sb.set_border_width_all(4)
+		sb.border_color = Color(1, 0.8, 0.2)
+	table.draw_style_box(sb, r)
+	if hidden:
+		table.draw_string(ThemeDB.fallback_font, Vector2(r.position.x, r.get_center().y + s * 0.2), "?", HORIZONTAL_ALIGNMENT_CENTER, s, int(s * 0.55), Color(1, 1, 1, 0.5))
+		return
+	for sp in PIPS[v]:
+		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.085, Color(0.12, 0.12, 0.14))
+
+func _draw_table() -> void:
+	if engine.dice.is_empty():
+		return
+	var font: Font = ThemeDB.fallback_font
+	var face: int = engine.bid.y if revealing else 0
+	var rows := [1, 2, 0]
+	var y := 10.0
+	for p in rows:
+		var n: int = engine.counts[p]
+		var col := Color(1, 0.85, 0.4) if engine.turn == p and not revealing else Color(0.9, 0.85, 0.8)
+		table.draw_string(font, Vector2(0, y + 24), tr("%s — %d dice") % [_name(p), n], HORIZONTAL_ALIGNMENT_CENTER, table.size.x, 24, col)
+		var s: float = 76.0 if p == 0 else 58.0
+		var total: float = n * s + max(0, n - 1) * 10.0
+		for i in n:
+			var v: int = engine.dice[p][i]
+			var hidden: bool = p != 0 and not revealing
+			_draw_die(Vector2((table.size.x - total) / 2.0 + i * (s + 10.0), y + 40), s, v, hidden, revealing and v == face)
+		y += s + 70
+	var ly := y + 10
+	for line in log_lines.slice(max(0, log_lines.size() - 3)):
+		table.draw_string(font, Vector2(0, ly), line, HORIZONTAL_ALIGNMENT_CENTER, table.size.x, 21, Color(0.8, 0.75, 0.7))
+		ly += 28
