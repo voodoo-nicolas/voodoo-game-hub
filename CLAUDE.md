@@ -233,6 +233,19 @@ signed with the project's own key:
   update in place: users had to uninstall once and reinstall (losing
   phone-only saves). Later updates install normally.
 - `hub.py apk --debug` still makes a debug build for local testing only.
+- **Package ID is `com.viral.voodoo`** (developer "viral", app "Voodoo") since
+  v0.15.1. It was `com.voodoo.app` before -- changed because "Voodoo" is also
+  a big mobile-game publisher, and the ID must be registrable under the
+  user's own identity. A package ID change is a different app to Android,
+  so testers uninstalled the old one. Never change it again: the ID and the
+  signing key are what Google's developer verification registers.
+- **Developer verification** (Google, mandatory for sideloaded installs on
+  certified devices: some countries from Sept 2026, everywhere in 2027):
+  until the user registers (one-time $25 per developer account, government
+  ID) and registers `com.viral.voodoo` + the release key in the Android
+  Developer Console, Play Protect blocks installs with "hasn't seen an app
+  from this developer". Workaround: temporarily turn off "Scan apps with
+  Play Protect" in the Play Store.
 
 ## Local tool locations (portable installs, not on PATH)
 
