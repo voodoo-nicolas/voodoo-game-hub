@@ -16,6 +16,9 @@ const COLOR_MATCHED := Color(0.2, 0.45, 0.28)
 var engine
 var game_active: bool = false
 var waiting_for_resolve: bool = false
+## Bumped on every new game so a flip-back timer from the previous game
+## (restarted while two cards were showing) can't flip cards in this one.
+var game_id: int = 0
 
 var status_label: Label
 var cell_buttons: Array = []  # 16 Buttons
@@ -144,6 +147,7 @@ func _build_win_dialog() -> void:
 
 func _start_new_game() -> void:
 	engine.reset()
+	game_id += 1
 	game_active = true
 	waiting_for_resolve = false
 	win_dialog.visible = false
@@ -163,13 +167,15 @@ func _on_cell_pressed(i: int) -> void:
 			_render()
 			waiting_for_resolve = true
 			var timer := get_tree().create_timer(MISMATCH_DELAY)
-			timer.timeout.connect(_on_mismatch_resolved)
+			timer.timeout.connect(_on_mismatch_resolved.bind(game_id))
 		"first":
 			_render()
 		"ignored":
 			pass
 
-func _on_mismatch_resolved() -> void:
+func _on_mismatch_resolved(for_game: int) -> void:
+	if for_game != game_id:
+		return
 	engine.resolve_mismatch()
 	waiting_for_resolve = false
 	_render()

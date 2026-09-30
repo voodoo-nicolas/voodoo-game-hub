@@ -32,6 +32,10 @@ var game_active: bool = false
 var vs_computer: bool = false
 var pending_vs_computer: bool = false
 var ai_thinking: bool = false
+## Bumped every time an AI move is scheduled or a game starts, so a delayed
+## AI move that belongs to an earlier request (paused and resumed, or a new
+## game started meanwhile) knows it's stale and does nothing.
+var ai_request: int = 0
 var touch_mode: bool = false
 var selected_edge: Variant = null  # {"o","r","c"} or null
 
@@ -391,6 +395,7 @@ func _start_new_game(p_rows: int, p_cols: int) -> void:
 	game_active = true
 	selected_edge = null
 	ai_thinking = false
+	ai_request += 1
 	size_screen.visible = false
 	game_screen.visible = true
 	win_dialog.visible = false
@@ -434,11 +439,19 @@ func _commit_edge(orientation: String, r: int, c: int) -> void:
 func _maybe_ai_move() -> void:
 	if not game_active or pause_dialog.visible or not vs_computer or engine.current_player != AI_PLAYER:
 		return
+	ai_request += 1
 	ai_thinking = true
 	_render()
-	await get_tree().create_timer(AI_MOVE_DELAY).timeout
+	# A tween owned by this scene, not an await on a SceneTree timer: it dies
+	# with the scene if the player leaves during the delay.
+	create_tween().tween_callback(_play_ai_move.bind(ai_request)).set_delay(AI_MOVE_DELAY)
+
+func _play_ai_move(request: int) -> void:
+	if request != ai_request:
+		return  # superseded by a newer request or a new game
 	ai_thinking = false
-	if not game_active or pause_dialog.visible:
+	if not game_active or pause_dialog.visible or engine.current_player != AI_PLAYER:
+		_render()
 		return
 	var m: Dictionary = engine.pick_ai_move()
 	var res: Dictionary = engine.play_line(m.o, m.r, m.c)

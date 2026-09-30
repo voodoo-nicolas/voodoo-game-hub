@@ -77,6 +77,11 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
 		_save_game()
+	# Leaving the app mid-wave (home button, a phone call) opens the pause
+	# menu, so coming back doesn't drop the player straight into enemies.
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		if game_active and not paused and not game_over:
+			_on_pause_pressed()
 
 ## The hub locks back to portrait on its own _ready(), so leaving here doesn't need to
 ## reset orientation itself -- that used to be the only thing restoring portrait, which broke
@@ -92,8 +97,18 @@ func _format_time(s: float) -> String:
 
 # ---------- input ----------
 
+## Forget both thumbs. A release that arrives while paused is otherwise
+## never seen, leaving a stick "held" forever after resuming: the ship keeps
+## drifting and new touches on that side are ignored.
+func _release_sticks() -> void:
+	move_touch_index = -1
+	aim_touch_index = -1
+	move_value = Vector2.ZERO
+	aim_value = Vector2.ZERO
+
 func _input(event: InputEvent) -> void:
 	if not game_active or paused or game_over:
+		_release_sticks()
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
@@ -521,6 +536,7 @@ func _on_pause_pressed() -> void:
 	pause_dialog.visible = true
 
 func _on_resume_pressed() -> void:
+	_release_sticks()
 	paused = false
 	pause_dialog.visible = false
 

@@ -37,6 +37,9 @@ var game_active: bool = false
 var generation_thread: Thread
 var hints_remaining: int = STARTING_HINTS
 var move_history: Array = []
+## Cells (r * 9 + c) that have already paid out CORRECT_CELL_POINTS, or were
+## filled by a hint. Without this, erase + re-place farmed unlimited points.
+var scored_cells: Dictionary = {}
 
 var difficulty_screen: Control
 var game_screen: Control
@@ -61,6 +64,13 @@ func _ready() -> void:
 	randomize()
 	_build_ui()
 	_show_difficulty_screen()
+
+## Leaving mid-generation (settings drawer -> Hub) would destroy a Thread
+## that's still running, which Godot treats as an error and can crash on.
+## Waiting here blocks for at most one generation.
+func _exit_tree() -> void:
+	if generation_thread and generation_thread.is_started():
+		generation_thread.wait_to_finish()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -598,6 +608,7 @@ func _on_generation_complete(result: Dictionary) -> void:
 	elapsed_seconds = 0.0
 	hints_remaining = STARTING_HINTS
 	move_history = []
+	scored_cells = {}
 	selected = Vector2i(-1, -1)
 	notes_mode = false
 	notes_status_label.text = "Notes: Off"
@@ -651,11 +662,11 @@ func _place_number(r: int, c: int, n: int) -> void:
 	if cell.value == n:
 		return
 	_record_undo(r, c)
-	var was_correct_before: bool = cell.value != 0 and cell.value == solution[r][c]
 	cell.set_value(n)
 
 	if n == solution[r][c]:
-		if not was_correct_before:
+		if not scored_cells.has(r * 9 + c):
+			scored_cells[r * 9 + c] = true
 			score += CORRECT_CELL_POINTS
 		_update_number_pad()
 		_check_win()
@@ -703,6 +714,7 @@ func _record_undo(r: int, c: int) -> void:
 		"is_error": cell.is_error,
 		"score": score,
 		"mistakes": mistakes,
+		"scored": scored_cells.has(r * 9 + c),
 	})
 	if move_history.size() > MAX_UNDO_HISTORY:
 		move_history.pop_front()
@@ -718,6 +730,10 @@ func _on_undo_pressed() -> void:
 	cell.update_display()
 	score = snap.score
 	mistakes = snap.mistakes
+	if snap.get("scored", false):
+		scored_cells[snap.row * 9 + snap.col] = true
+	else:
+		scored_cells.erase(snap.row * 9 + snap.col)
 	selected = Vector2i(snap.row, snap.col)
 	_update_status_bar()
 	_refresh_highlights()
@@ -731,6 +747,7 @@ func _on_hint_pressed() -> void:
 	if cell.is_given or cell.value == correct:
 		return
 	_record_undo(selected.x, selected.y)
+	scored_cells[selected.x * 9 + selected.y] = true  # hints never earn points
 	cell.set_value(correct)
 	cell.is_error = false
 	cell.update_display()
@@ -805,6 +822,7 @@ func _save_game() -> void:
 		"elapsed_seconds": elapsed_seconds,
 		"difficulty": difficulty,
 		"hints_remaining": hints_remaining,
+		"scored_cells": scored_cells.keys(),
 	})
 
 func _refresh_continue_button() -> void:
@@ -828,6 +846,9 @@ func _load_saved_game() -> void:
 	elapsed_seconds = float(data.elapsed_seconds)
 	hints_remaining = int(data.get("hints_remaining", STARTING_HINTS))
 	move_history = []
+	scored_cells = {}
+	for key in data.get("scored_cells", []):
+		scored_cells[int(key)] = true
 	selected = Vector2i(-1, -1)
 	notes_mode = false
 	notes_status_label.text = "Notes: Off"
@@ -858,6 +879,10 @@ func _load_saved_game() -> void:
 					cell.notes[i] = bool(stored_notes[i])
 				if v != 0 and v != solution[r][c]:
 					cell.is_error = true
+				# Saves from before scored_cells existed: whatever is correct
+				# on the board now has already been paid for.
+				if not data.has("scored_cells") and v != 0 and v == solution[r][c]:
+					scored_cells[idx] = true
 				cell.update_display()
 
 	difficulty_label.text = difficulty.capitalize()

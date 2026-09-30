@@ -55,7 +55,10 @@ func _notification(what: int) -> void:
 		_save_game()
 
 func _input(event: InputEvent) -> void:
-	if not game_active:
+	# _input sees every swipe, even ones over an open dialog -- without this,
+	# swiping while paused (or on the "2048!" banner) moved tiles behind it.
+	if not game_active or pause_dialog.visible or end_dialog.visible:
+		touch_active = false
 		return
 
 	if event is InputEventKey and event.pressed:

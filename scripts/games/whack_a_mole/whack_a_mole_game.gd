@@ -4,6 +4,7 @@ const WhackEngine = preload("res://scripts/games/whack_a_mole/whack_a_mole_engin
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+const Ui = preload("res://scripts/common/ui.gd")
 
 const BEST_PATH := "user://whackamole_best.json"
 const COLOR_HOLE := Color(0.28, 0.2, 0.13)
@@ -21,6 +22,7 @@ var result_dialog: Control
 var result_label: Label
 var mole_timer: Timer
 var mole_visible_timer: Timer
+var pause_dialog: Control
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -145,6 +147,7 @@ func _build_ui() -> void:
 	box.add_child(start_btn)
 
 	_build_result_dialog()
+	_build_pause_dialog()
 	add_child(SettingsDrawer.new())
 
 func _build_result_dialog() -> void:
@@ -303,3 +306,33 @@ func _on_best_reconciled(merged: int) -> void:
 	SaveUtil.write(BEST_PATH, {"best": merged})
 	if is_node_ready():  # can land before _build_ui() if the request fails instantly
 		_update_labels()
+
+# ---------- auto-pause ----------
+
+## Leaving the app (home button, a phone call) pauses mid-round instead of
+## letting the game run on unseen. Pausing the whole tree stops this scene's
+## Timers and _process; the dialog itself keeps processing so it can resume.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		if is_node_ready() and engine.running and not get_tree().paused:
+			get_tree().paused = true
+			pause_dialog.visible = true
+
+func _resume() -> void:
+	get_tree().paused = false
+
+func _exit_paused_to_hub() -> void:
+	get_tree().paused = false
+	Ui.exit_to_hub(self)
+
+## Never leave the tree paused behind us -- the next scene would be frozen.
+func _exit_tree() -> void:
+	get_tree().paused = false
+
+func _build_pause_dialog() -> void:
+	pause_dialog = Ui.build_dialog("Paused", [
+		{"text": "Resume", "action": _resume},
+		{"text": "Exit to Hub", "action": _exit_paused_to_hub},
+	])
+	pause_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(pause_dialog)

@@ -4,6 +4,7 @@ const SnakeEngine = preload("res://scripts/games/snake/snake_engine.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+const Ui = preload("res://scripts/common/ui.gd")
 
 const BEST_PATH := "user://snake_best.json"
 const GRID_SIZE := 15
@@ -22,6 +23,7 @@ var step_timer: Timer
 var start_overlay: Control
 var game_over_dialog: Control
 var game_over_label: Label
+var pause_dialog: Control
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -126,6 +128,7 @@ func _build_ui() -> void:
 
 	_build_start_overlay()
 	_build_game_over_dialog()
+	_build_pause_dialog()
 	add_child(SettingsDrawer.new())
 
 func _build_dpad() -> Control:
@@ -270,7 +273,8 @@ func _on_step() -> void:
 			best_score = engine.score
 			_save_best()
 			_render()
-		game_over_label.text = "Game Over!\nScore: %d" % engine.score
+		var won: bool = engine.food.x < 0  # the snake filled the whole board
+		game_over_label.text = ("You filled the board!\nScore: %d" if won else "Game Over!\nScore: %d") % engine.score
 		game_over_dialog.visible = true
 
 func _render() -> void:
@@ -305,3 +309,33 @@ func _on_best_reconciled(merged: int) -> void:
 	SaveUtil.write(BEST_PATH, {"best": merged})
 	if best_label:  # can land before _build_ui() if the request fails instantly
 		best_label.text = "Best: %d" % best_score
+
+# ---------- auto-pause ----------
+
+## Leaving the app (home button, a phone call) pauses mid-round instead of
+## letting the game run on unseen. Pausing the whole tree stops this scene's
+## Timers and _process; the dialog itself keeps processing so it can resume.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		if is_node_ready() and not step_timer.is_stopped() and not get_tree().paused:
+			get_tree().paused = true
+			pause_dialog.visible = true
+
+func _resume() -> void:
+	get_tree().paused = false
+
+func _exit_paused_to_hub() -> void:
+	get_tree().paused = false
+	Ui.exit_to_hub(self)
+
+## Never leave the tree paused behind us -- the next scene would be frozen.
+func _exit_tree() -> void:
+	get_tree().paused = false
+
+func _build_pause_dialog() -> void:
+	pause_dialog = Ui.build_dialog("Paused", [
+		{"text": "Resume", "action": _resume},
+		{"text": "Exit to Hub", "action": _exit_paused_to_hub},
+	])
+	pause_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(pause_dialog)

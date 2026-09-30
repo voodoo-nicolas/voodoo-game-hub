@@ -15,6 +15,8 @@ var pad_label: Label
 var result_label: Label
 var best_label: Label
 var ready_started_at: int = 0
+## Counts every arming; each delay timer carries the count it was armed with.
+var arm_count: int = 0
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -127,12 +129,14 @@ func _arm() -> void:
 	_set_pad(COLOR_WAITING, "Wait for green...")
 	result_label.text = ""
 	var delay := randf_range(1.0, 4.0)
-	get_tree().create_timer(delay).timeout.connect(_on_delay_elapsed.bind(engine.state))
+	arm_count += 1
+	get_tree().create_timer(delay).timeout.connect(_on_delay_elapsed.bind(arm_count))
 
-## Bound arg guards against a stale timer firing after the player already
-## false-started and re-armed a new round in the meantime.
-func _on_delay_elapsed(state_when_started: int) -> void:
-	if engine.state != ReactionEngine.State.WAITING:
+## A timer from an earlier arming (the player false-started and re-armed
+## before it fired) must not turn the pad green early -- the state alone
+## can't tell them apart, both are WAITING.
+func _on_delay_elapsed(armed_as: int) -> void:
+	if armed_as != arm_count or engine.state != ReactionEngine.State.WAITING:
 		return
 	engine.mark_ready()
 	ready_started_at = Time.get_ticks_msec()

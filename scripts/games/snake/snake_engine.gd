@@ -29,12 +29,20 @@ func reset(size: int = 15) -> void:
 	game_over = false
 	_spawn_food()
 
+## Picks from the actually-free cells, so it can't spin forever once the
+## snake covers most of the board. A full board means the player won.
 func _spawn_food() -> void:
-	while true:
-		var candidate := Vector2i(randi() % grid_size, randi() % grid_size)
-		if not snake.has(candidate):
-			food = candidate
-			return
+	var free: Array = []
+	for x in range(grid_size):
+		for y in range(grid_size):
+			var cell := Vector2i(x, y)
+			if not snake.has(cell):
+				free.append(cell)
+	if free.is_empty():
+		food = Vector2i(-1, -1)
+		game_over = true
+		return
+	food = free.pick_random()
 
 ## Ignores a 180-degree reversal into the snake's own neck; queues everything
 ## else for the next step() call.
@@ -67,6 +75,7 @@ func step() -> bool:
 	if will_eat:
 		score += 1
 		_spawn_food()
+		return game_over  # true only if that meal filled the board
 	else:
 		snake.pop_back()
 	return false
