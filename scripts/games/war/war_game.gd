@@ -3,9 +3,14 @@ extends Control
 const WarEngine = preload("res://scripts/games/war/war_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const RED_SUITS := ["♥", "♦"]
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var p1_pile_label: Label
 var p2_pile_label: Label
@@ -107,6 +112,9 @@ func _build_ui() -> void:
 	box.add_child(play_btn)
 
 	_build_win_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/war/war_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _pile_label(text: String) -> Label:
@@ -178,6 +186,7 @@ func _build_win_dialog() -> void:
 # ---------- game flow ----------
 
 func _start_new_game() -> void:
+	result_recorded = false
 	engine.reset()
 	win_dialog.visible = false
 	result_label.text = tr("Tap Play Round to begin!")
@@ -215,5 +224,16 @@ func _update_piles() -> void:
 	p2_pile_label.text = tr("CPU: %d") % engine.p2_pile.size()
 
 func _show_result() -> void:
-	win_label.text = tr("You win the game!") if engine.winner == 1 else tr("CPU wins the game!")
+	win_label.text = (tr("You win the game!") if engine.winner == 1 else tr("CPU wins the game!")) + _record_result("win" if engine.winner == 1 else "loss")
 	win_dialog.visible = true
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

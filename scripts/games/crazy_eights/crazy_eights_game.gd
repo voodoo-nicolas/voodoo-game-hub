@@ -8,9 +8,14 @@ const Cards = preload("res://scripts/games/crazy_eights/crazy_eights_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_FELT := Color(0.05, 0.3, 0.17)
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: C8Engine
 var board: Control
 var status_label: Label
@@ -101,9 +106,13 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/crazy_eights/crazy_eights_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
+	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game()
 	pending_eight = -1
@@ -198,6 +207,7 @@ func _check_end() -> bool:
 		msg = tr("Nobody can move — it's a draw.")
 	else:
 		msg = tr("%s wins!") % _player_name(engine.winner)
+	msg += _record_result("win" if engine.winner == 0 else ("draw" if engine.winner == C8Engine.PLAYERS else "loss"))
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
 	board.queue_redraw()
@@ -279,3 +289,14 @@ func _on_board_input(event: InputEvent) -> void:
 			if engine.can_play(card):
 				_human_play(card)
 			return
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

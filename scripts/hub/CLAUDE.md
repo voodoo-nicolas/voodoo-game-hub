@@ -34,6 +34,22 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   real soft blur, which is what reads as "glowing"). Used by headers, tiles and
   the hub's dialogs (`_show_dialog` / `_build_dialog_frame`), so the whole hub
   reads as one visual system; use it for any new hub element.
+- **Drag-to-scroll**: every row/tile is a full-size Button that swallows
+  presses, so the list scrolls through a shared `DragScroll` child
+  (`scripts/common/drag_scroll.gd`); `_toggle_category` / `_on_tile_pressed`
+  ignore a release while `drag.moved`. Hub dialogs join the `modal_overlay`
+  group so dragging over one doesn't scroll the list behind it.
+- **Look (since v0.21)**: the user's VOODOO title art (`assets/hub/banner.png`,
+  made from `art_inbox/1.png` with its black backdrop faded to transparent)
+  over a drifting shader mist (`scripts/common/mist.gd`) -- full screen in
+  the dark theme, just behind the banner in the light one. Style the user
+  asked for: mystical, misty, smoky, magical, bright, vibrant. Panel fills
+  go through `_tinted_fill()` (nearly opaque), because a see-through fill
+  lets the glow behind it wash the panel out.
+- `art_inbox/` is where the user drops artwork; it has a `.gdignore` so
+  Godot never imports or exports the raw files.
+- **Colors** all come from `pal` (`Settings.palette()`, dark or light theme
+  from Options); don't add literal colors to the hub.
 - **Tapping a game** (`_on_tile_pressed` → `_start_download` or `_launch`):
   never waits on the network first — the manifest is refreshed in the
   background when the hub opens. `busy` blocks a second tap while one is being
@@ -54,6 +70,8 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   intentional, tapping starts the download+launch flow.
 - The category header shows `available/total` — `available` counts every game
   with an `id`, downloaded or not. It is not an "already downloaded" count.
+  When the two are equal (every game real) it shows just the number, so long
+  category names fit at large text sizes.
 - Playing a game, returning to the hub, and not getting an update that was
   published meanwhile: by design, a mounted pack is never replaced
   mid-session (see root `CLAUDE.md` gotchas). The next app start updates it.

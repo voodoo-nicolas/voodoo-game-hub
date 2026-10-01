@@ -8,6 +8,9 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const CHIPS_PATH := "user://blackjack_chips.json"
 const CHIP_VALUES := [10, 25, 50, 100]
@@ -23,6 +26,8 @@ const OUTCOME_TEXT := {
 	"bust": "Bust!",
 }
 
+var hand_recorded := false  # this hand's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var pending_bet: int = 0
 var last_bet: int = 0
@@ -169,6 +174,9 @@ func _build_ui() -> void:
 	controls.add_child(nxt)
 	nxt.add_child(_button(tr("Next Hand"), 360, _to_betting))
 
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/blackjack/blackjack_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _section_label(text: String) -> Label:
@@ -250,6 +258,7 @@ func _deal() -> void:
 	last_bet = pending_bet
 	if engine.deal(pending_bet):
 		message_label.text = ""
+		hand_recorded = false
 		_after_action()
 
 func _hit() -> void:
@@ -268,6 +277,19 @@ func _after_action() -> void:
 	if engine.phase == BlackjackEngine.Phase.ROUND_OVER:
 		var text: String = tr(OUTCOME_TEXT.get(engine.outcome, ""))
 		message_label.text = text % engine.payout if text.contains("%d") else text
+		if info and not hand_recorded:
+			hand_recorded = true
+			match engine.outcome:
+				"blackjack", "win", "dealer_bust":
+					info.add("Hands won")
+					if engine.outcome == "blackjack":
+						info.add("Blackjacks")
+						info.celebrate(tr("Blackjack!"))
+				"push":
+					info.add("Pushes")
+				_:
+					info.add("Hands lost")
+			info.high("Most chips", engine.chips)
 		_save_game()
 	_render()
 

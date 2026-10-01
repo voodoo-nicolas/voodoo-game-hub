@@ -6,6 +6,9 @@ const GridLines = preload("res://scripts/games/sudoku/grid_lines.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://sudoku_save.json"
 
@@ -23,6 +26,7 @@ const COLOR_PEER := Color(0.24, 0.3, 0.36)
 const COLOR_SAME_VALUE := Color(0.32, 0.37, 0.22)
 const COLOR_ERROR_BG := Color(0.45, 0.15, 0.17)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var puzzle: Array = []
 var solution: Array = []
 var cells: Array = []  # 9x9 of CellButton
@@ -101,6 +105,9 @@ func _build_ui() -> void:
 	_build_loading_overlay()
 	_build_win_dialog()
 	_build_pause_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/sudoku/sudoku_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_difficulty_screen() -> void:
@@ -789,6 +796,17 @@ func _check_win() -> void:
 	SaveUtil.delete(SAVE_PATH)
 	var final_score := _compute_final_score()
 	win_stats_label.text = tr("Time: %s   Mistakes: %d\nFinal Score: %d") % [_format_time(elapsed_seconds), mistakes, final_score]
+	if info:
+		var level := difficulty.capitalize()
+		info.add("Puzzles solved")
+		info.celebrate("Solved!")
+		info.add("Puzzles solved (%s)" % level)
+		var fast: bool = info.low("Best time (%s)" % level, elapsed_seconds)
+		var high: bool = info.best("Best score", final_score)
+		if mistakes == 0:
+			info.add("Perfect games")
+		if fast or high:
+			win_stats_label.text += "\n" + tr("New best!")
 	win_dialog.visible = true
 
 func _compute_final_score() -> int:

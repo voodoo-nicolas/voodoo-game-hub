@@ -5,6 +5,9 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://snake_best.json"
 const GRID_SIZE := 15
@@ -14,6 +17,7 @@ const COLOR_SNAKE := Color(0.3, 0.85, 0.4)
 const COLOR_HEAD := Color(0.5, 0.95, 0.55)
 const COLOR_FOOD := Color(0.9, 0.3, 0.3)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var best_score: int = 0
 var cells: Array = []  # GRID_SIZE x GRID_SIZE Panel
@@ -130,6 +134,11 @@ func _build_ui() -> void:
 	_build_start_overlay()
 	_build_game_over_dialog()
 	_build_pause_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/snake/snake_help.gd"))
+		add_child(info)
+		if best_score > 0:
+			info.high("Best score", best_score)
 	add_child(SettingsDrawer.new())
 
 func _build_dpad() -> Control:
@@ -274,6 +283,9 @@ func _on_step() -> void:
 			best_score = engine.score
 			_save_best()
 			_render()
+		if info:
+			info.add("Games played")
+			info.best("Best score", best_score)
 		var won: bool = engine.food.x < 0  # the snake filled the whole board
 		game_over_label.text = (tr("You filled the board!\nScore: %d") if won else tr("Game Over!\nScore: %d")) % engine.score
 		game_over_dialog.visible = true
@@ -307,6 +319,8 @@ func _load_best() -> void:
 
 func _on_best_reconciled(merged: int) -> void:
 	best_score = merged
+	if info:
+		info.high("Best score", merged)
 	SaveUtil.write(BEST_PATH, {"best": merged})
 	if best_label:  # can land before _build_ui() if the request fails instantly
 		best_label.text = tr("Best: %d") % best_score

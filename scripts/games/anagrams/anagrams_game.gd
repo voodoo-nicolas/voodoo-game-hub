@@ -8,12 +8,16 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://anagrams_best.json"
 const COLOR_TILE := Color(0.96, 0.9, 0.75)
 const COLOR_USED := Color(0.35, 0.35, 0.42)
 const COLOR_INK := Color(0.15, 0.1, 0.05)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: AnEngine
 var progress_label: Label
 var answer_label: Label
@@ -127,6 +131,11 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/anagrams/anagrams_help.gd"))
+		add_child(info)
+		if best > 0:
+			info.high("Best score", best)
 	add_child(SettingsDrawer.new())
 
 func _button(text: String, action: Callable) -> Button:
@@ -208,6 +217,9 @@ func _advance() -> void:
 		if engine.score > best:
 			best = engine.score
 			SaveUtil.write(BEST_PATH, {"best": best})
+		if info:
+			info.add("Rounds played")
+			info.best("Best score", best)
 		end_dialog.get_meta("message_label").text = tr("Score: %d") % engine.score + "\n" + tr("Best: %d") % best
 		end_dialog.visible = true
 		_render()

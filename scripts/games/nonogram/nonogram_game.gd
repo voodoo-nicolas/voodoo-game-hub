@@ -7,6 +7,9 @@ const NonoEngine = preload("res://scripts/games/nonogram/nonogram_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SIZES := [5, 10, 15]
 const COLOR_FILL := Color(0.25, 0.7, 0.95)
@@ -14,6 +17,7 @@ const COLOR_CELL := Color(0.92, 0.92, 0.9)
 const COLOR_CLUE := Color(0.95, 0.95, 1.0)
 const COLOR_CLUE_DONE := Color(0.45, 0.45, 0.52)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: NonoEngine
 var board: Control
 var size_btn: Button
@@ -109,10 +113,15 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/nonogram/nonogram_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
 	engine.new_puzzle(SIZES[size_index])
+	if info:
+		info.start_clock()
 	win_dialog.visible = false
 	_update_buttons()
 	board.queue_redraw()
@@ -223,5 +232,16 @@ func _paint(c: Vector2i) -> void:
 	board.queue_redraw()
 	if engine.is_solved():
 		painting = false
+		var secs := 0.0
+		var record := false
+		if info:
+			info.add("Puzzles solved")
+			info.celebrate("Solved!")
+			secs = info.stop_clock()
+			record = info.low("Best time (%s)" % ("%d×%d" % [SIZES[size_index], SIZES[size_index]]), secs)
 		win_dialog.get_meta("message_label").text = tr("Every line matches its clues.")
+		if info:
+			win_dialog.get_meta("message_label").text += "\n" + tr("Time: %d:%02d") % [int(secs) / 60, int(secs) % 60]
+			if record:
+				win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
 		win_dialog.visible = true

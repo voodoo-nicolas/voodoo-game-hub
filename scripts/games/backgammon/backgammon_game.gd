@@ -9,6 +9,9 @@ const BgEngine = preload("res://scripts/games/backgammon/backgammon_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const HUMAN := 0
 const CPU := 1
@@ -20,6 +23,8 @@ const COLOR_WHITE := Color(0.96, 0.94, 0.88)
 const COLOR_BLACK := Color(0.14, 0.14, 0.16)
 const COLOR_HILITE := Color(0.35, 0.9, 1.0)
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: BgEngine
 var board: Control
 var status_label: Label
@@ -126,11 +131,15 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/backgammon/backgammon_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 # ---------- turn flow ----------
 
 func _start_new_game() -> void:
+	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game()
 	end_dialog.visible = false
@@ -258,6 +267,9 @@ func _check_winner() -> bool:
 		msg = tr("You win %s!") % kinds[kind - 1]
 	else:
 		msg = tr("The computer wins %s.") % kinds[kind - 1]
+	msg += _record_result("win" if w == HUMAN else "loss")
+	if info and w == HUMAN and kind > 1:
+		info.add("Gammons won")
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
 	board.queue_redraw()
@@ -440,3 +452,14 @@ func _on_board_input(event: InputEvent) -> void:
 	else:
 		selected = -1
 	board.queue_redraw()
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

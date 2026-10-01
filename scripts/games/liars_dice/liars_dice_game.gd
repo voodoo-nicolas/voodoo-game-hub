@@ -6,10 +6,15 @@ const LDEngine = preload("res://scripts/games/liars_dice/liars_dice_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const PIPS := {1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]],
 	5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]}
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: LDEngine
 var table: Control
 var status_label: Label
@@ -153,6 +158,9 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/liars_dice/liars_dice_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _small_button(text: String, action: Callable) -> Button:
@@ -170,6 +178,7 @@ func _bid_text(b: Vector2i) -> String:
 	return tr("%d × face %d") % [b.x, b.y]
 
 func _start() -> void:
+	result_recorded = false
 	cpu_timer.stop()
 	engine.reset()
 	end_dialog.visible = false
@@ -262,10 +271,10 @@ func _resolve() -> void:
 	status_label.text = msg
 	_refresh()
 	if engine.winner != -1:
-		end_dialog.get_meta("message_label").text = tr("You win!") if engine.winner == 0 else tr("%s wins!") % _name(engine.winner)
+		end_dialog.get_meta("message_label").text = (tr("You win!") if engine.winner == 0 else tr("%s wins!") % _name(engine.winner)) + _record_result("win" if engine.winner == 0 else "loss")
 		end_dialog.visible = true
 	elif not engine.alive(0):
-		end_dialog.get_meta("message_label").text = tr("You're out of dice!")
+		end_dialog.get_meta("message_label").text = tr("You're out of dice!") + _record_result("loss")
 		end_dialog.visible = true
 
 # ---------- drawing ----------
@@ -307,3 +316,14 @@ func _draw_table() -> void:
 	for line in log_lines.slice(max(0, log_lines.size() - 3)):
 		table.draw_string(font, Vector2(0, ly), line, HORIZONTAL_ALIGNMENT_CENTER, table.size.x, 21, Color(0.8, 0.75, 0.7))
 		ly += 28
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

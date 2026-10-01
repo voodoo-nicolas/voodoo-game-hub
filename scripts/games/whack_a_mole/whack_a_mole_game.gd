@@ -5,11 +5,15 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://whackamole_best.json"
 const COLOR_HOLE := Color(0.28, 0.2, 0.13)
 const COLOR_MOLE := Color(0.5, 0.32, 0.15)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var best_score: int = 0
 var hole_buttons: Array = []
@@ -149,6 +153,11 @@ func _build_ui() -> void:
 
 	_build_result_dialog()
 	_build_pause_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/whack_a_mole/whack_a_mole_help.gd"))
+		add_child(info)
+		if best_score > 0:
+			info.high("Best score", best_score)
 	add_child(SettingsDrawer.new())
 
 func _build_result_dialog() -> void:
@@ -266,6 +275,9 @@ func _end_round() -> void:
 		_save_best()
 
 	_update_labels()
+	if info:
+		info.add("Rounds played")
+		info.best("Best score", best_score)
 	result_label.text = tr("Time's up!\nScore: %d") % engine.score
 	result_dialog.visible = true
 	start_btn.visible = true
@@ -304,6 +316,8 @@ func _load_best() -> void:
 
 func _on_best_reconciled(merged: int) -> void:
 	best_score = merged
+	if info:
+		info.high("Best score", merged)
 	SaveUtil.write(BEST_PATH, {"best": merged})
 	if is_node_ready():  # can land before _build_ui() if the request fails instantly
 		_update_labels()

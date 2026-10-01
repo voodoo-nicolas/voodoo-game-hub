@@ -5,6 +5,9 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://chess_save.json"
 ## Not preloaded: apps older than v0.14 don't have it, and the game must still
@@ -36,6 +39,7 @@ const RESULT_MESSAGES := {
 	"draw_repetition": "Draw — same position 3 times",
 }
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var game_active: bool = false
 var selected: Vector2i = Vector2i(-1, -1)
@@ -182,6 +186,9 @@ func _build_ui() -> void:
 		online.remote_new_game.connect(_reset_board)
 		online.status_changed.connect(_render)
 		add_child(online)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/chess/chess_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
@@ -464,6 +471,7 @@ func _on_remote_state(st: Dictionary) -> void:
 		_show_result()
 
 func _show_result() -> void:
+	var just_ended := game_active  # a resync of a finished game isn't a new result
 	game_active = false
 	if not _is_online():  # an online game ending mustn't wipe a paused local one
 		SaveUtil.delete(SAVE_PATH)
@@ -473,6 +481,15 @@ func _show_result() -> void:
 	elif engine.result_reason == "checkmate":
 		msg += tr("\n%s wins!") % (tr("White") if engine.winner == ChessEngine.WHITE else tr("Black"))
 	result_label.text = msg
+	if info and just_ended:
+		if _is_online():
+			info.result("draw" if engine.result_reason != "checkmate" else ("win" if engine.winner == my_color else "loss"), true)
+			result_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		else:
+			info.add("Draws" if engine.result_reason != "checkmate" else ("White wins" if engine.winner == ChessEngine.WHITE else "Black wins"))
+			if not (engine.result_reason != "checkmate"):
+				info.celebrate(result_label.text.split("\n")[0])
+			result_label.text += "\n" + info.summary()
 	result_dialog.visible = true
 
 # ---------- rendering ----------

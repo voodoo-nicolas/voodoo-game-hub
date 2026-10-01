@@ -5,6 +5,9 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://checkers_save.json"
 ## Not preloaded: apps older than v0.14 don't have it, and the game must still
@@ -18,6 +21,7 @@ const COLOR_DEST := Color(0.4, 0.9, 0.4, 0.55)
 const COLOR_P1 := Color(0.8, 0.15, 0.15)
 const COLOR_P2 := Color(0.93, 0.9, 0.85)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var game_active: bool = false
 var selected: Vector2i = Vector2i(-1, -1)
@@ -173,6 +177,9 @@ func _build_ui() -> void:
 		online.remote_new_game.connect(_reset_board)
 		online.status_changed.connect(_render)
 		add_child(online)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/checkers/checkers_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
@@ -308,6 +315,7 @@ func _on_remote_state(st: Dictionary) -> void:
 		_show_result()
 
 func _show_result() -> void:
+	var just_ended := game_active  # a resync of a finished game isn't a new result
 	game_active = false
 	if not _is_online():  # an online game ending mustn't wipe a paused local one
 		SaveUtil.delete(SAVE_PATH)
@@ -317,6 +325,15 @@ func _show_result() -> void:
 		win_label.text = online.result_text(engine.winner == my_side)
 	else:
 		win_label.text = tr("Player %d wins!") % (1 if engine.winner == 1 else 2)
+	if info and just_ended:
+		if _is_online():
+			info.result("draw" if engine.winner == 0 else ("win" if engine.winner == my_side else "loss"), true)
+			win_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		else:
+			info.add("Draws" if engine.winner == 0 else ("Red wins" if engine.winner == 1 else "White wins"))
+			if not (engine.winner == 0):
+				info.celebrate(win_label.text.split("\n")[0])
+			win_label.text += "\n" + info.summary()
 	win_dialog.visible = true
 
 # ---------- rendering ----------

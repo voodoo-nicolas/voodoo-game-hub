@@ -9,9 +9,14 @@ const Cards = preload("res://scripts/games/gin_rummy/gin_rummy_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_FELT := Color(0.05, 0.3, 0.17)
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: GinEngine
 var board: Control
 var status_label: Label
@@ -115,6 +120,9 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/gin_rummy/gin_rummy_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _button(text: String, action: Callable) -> Button:
@@ -126,6 +134,7 @@ func _button(text: String, action: Callable) -> Button:
 	return b
 
 func _new_match() -> void:
+	result_recorded = false
 	cpu_timer.stop()
 	engine.new_match()
 	end_dialog.visible = false
@@ -209,7 +218,8 @@ func _after_action() -> void:
 	_refresh()
 	if engine.phase == "over":
 		if engine.match_over():
-			end_dialog.get_meta("message_label").text = tr("You win the match!") if engine.scores[0] >= GinEngine.TARGET else tr("The computer wins the match.")
+			var won: bool = engine.scores[0] >= GinEngine.TARGET
+			end_dialog.get_meta("message_label").text = (tr("You win the match!") if won else tr("The computer wins the match.")) + _record_result("win" if won else "loss")
 			end_dialog.visible = true
 		return
 	if engine.turn == 1:
@@ -331,3 +341,14 @@ func _on_board_input(event: InputEvent) -> void:
 			selected = -1 if selected == layout[i] else layout[i]
 			_refresh()
 			return
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

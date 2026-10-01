@@ -5,6 +5,11 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+## Voodoo Mode (black and white skulls); not preloaded either (apps before v0.21).
+const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 
 const SAVE_PATH := "user://reversi_save.json"
 ## Not preloaded: apps older than v0.14 don't have it, and the game must still
@@ -16,6 +21,11 @@ const COLOR_HINT := Color(0.15, 0.5, 0.22)
 const COLOR_BLACK := Color(0.08, 0.08, 0.1)
 const COLOR_WHITE := Color(0.95, 0.95, 0.92)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
+var voodoo = null  # the Voodoo script, null on apps without it
+var voodoo_on: bool = false
+var marks: Array = []  # 64 Voodoo pieces, one per piece view (empty without Voodoo)
+var bg: ColorRect
 var engine
 var game_active: bool = false
 var legal_now: Array = []
@@ -36,6 +46,9 @@ var my_color: int = 0
 func _ready() -> void:
 	preload("res://scripts/games/reversi/reversi_i18n.gd").install(self)
 	Orientation.lock_portrait()
+	if ResourceLoader.exists(VOODOO_PATH):
+		voodoo = load(VOODOO_PATH)
+		voodoo_on = voodoo.is_on()
 	engine = ReversiEngine.new()
 	_build_ui()
 	if not _load_saved_game():
@@ -48,7 +61,7 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
+	bg = ColorRect.new()
 	bg.color = Color(0.09, 0.09, 0.13)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
@@ -148,6 +161,11 @@ func _build_ui() -> void:
 			piece.visible = false
 			sq.add_child(piece)
 			piece_views[idx] = piece
+			if voodoo:
+				var mark: Control = voodoo.new()
+				mark.span = 1.15
+				piece.add_child(mark)
+				marks.append(mark)
 
 			var hint := PanelContainer.new()
 			hint.custom_minimum_size = Vector2(cell_size * 0.28, cell_size * 0.28)
@@ -189,6 +207,9 @@ func _build_ui() -> void:
 		online.remote_new_game.connect(_reset_board)
 		online.status_changed.connect(_render)
 		add_child(online)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/reversi/reversi_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
@@ -285,6 +306,7 @@ func _on_remote_state(st: Dictionary) -> void:
 		_show_result()
 
 func _show_result() -> void:
+	var just_ended := game_active  # a resync of a finished game isn't a new result
 	game_active = false
 	if not _is_online():  # an online game ending mustn't wipe a paused local one
 		SaveUtil.delete(SAVE_PATH)
@@ -296,11 +318,28 @@ func _show_result() -> void:
 		win_label.text = "%s %d - %d" % [online.result_text(w == my_color), s.black, s.white]
 	else:
 		win_label.text = tr("%s wins! %d - %d") % [tr("Black") if w == ReversiEngine.BLACK else tr("White"), s.black, s.white]
+	if info and just_ended:
+		if _is_online():
+			info.result("draw" if w == ReversiEngine.EMPTY else ("win" if w == my_color else "loss"), true)
+			win_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		else:
+			info.add("Draws" if w == ReversiEngine.EMPTY else ("Black wins" if w == ReversiEngine.BLACK else "White wins"))
+			if not (w == ReversiEngine.EMPTY):
+				info.celebrate(win_label.text.split("\n")[0])
+			win_label.text += "\n" + info.summary()
 	win_dialog.visible = true
 
 # ---------- rendering ----------
 
+## Called by the settings drawer's Voodoo toggle.
+func _set_voodoo(on: bool) -> void:
+	if voodoo == null:
+		return
+	voodoo_on = on
+	_render()
+
 func _render() -> void:
+	bg.color = voodoo.BG if voodoo_on else Color(0.09, 0.09, 0.13)
 	legal_now = engine.legal_moves(engine.current_player)
 	var legal_set := {}
 	for m in legal_now:
@@ -315,7 +354,12 @@ func _render() -> void:
 				piece.visible = false
 			else:
 				piece.visible = true
-				_style_piece(piece, COLOR_BLACK if v == ReversiEngine.BLACK else COLOR_WHITE)
+				if voodoo_on:
+					_style_skull(piece, marks[idx], v == ReversiEngine.BLACK)
+				else:
+					_style_piece(piece, COLOR_BLACK if v == ReversiEngine.BLACK else COLOR_WHITE)
+					if voodoo:
+						marks[idx].kind = voodoo.NONE
 			var my_turn: bool = not _is_online() or engine.current_player == my_color
 			hint_views[idx].visible = legal_set.has(Vector2i(r, c)) and game_active and my_turn
 
@@ -353,6 +397,15 @@ func _style_piece(piece: PanelContainer, color: Color) -> void:
 	sb.border_width_bottom = 1
 	sb.border_color = Color(0, 0, 0, 0.5)
 	piece.add_theme_stylebox_override("panel", sb)
+
+## Voodoo Mode: the disc disappears and the skull is the piece -- black with
+## glowing red eyes, or bone white.
+func _style_skull(piece: PanelContainer, mark: Control, black: bool) -> void:
+	piece.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	mark.kind = voodoo.SKULL
+	mark.fill = COLOR_BLACK if black else COLOR_WHITE
+	mark.ink = Color(0.95, 0.22, 0.18) if black else voodoo.INK
+	mark.outline = Color(1, 1, 1, 0.3) if black else Color(0, 0, 0, 0.55)
 
 # ---------- save / load ----------
 

@@ -6,7 +6,12 @@ const PBEngine = preload("res://scripts/games/paddle_ball/paddle_ball_engine.gd"
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: PBEngine
 var board: Control
 var start_dialog: ColorRect
@@ -95,6 +100,9 @@ func _build_ui() -> void:
 		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/paddle_ball/paddle_ball_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _cycle_level() -> void:
@@ -112,6 +120,7 @@ func _show_start() -> void:
 	start_dialog.visible = true
 
 func _start() -> void:
+	result_recorded = false
 	engine.reset(difficulty)
 	running = true
 
@@ -131,7 +140,7 @@ func _process(delta: float) -> void:
 	if engine.winner() != -1:
 		running = false
 		end_dialog.get_meta("message_label").text = (tr("You win!") if engine.winner() == 0 else tr("You lose!")) + \
-			"\n%d – %d" % [engine.scores[0], engine.scores[1]]
+			"\n%d – %d" % [engine.scores[0], engine.scores[1]] + _record_result("win" if engine.winner() == 0 else "loss")
 		end_dialog.visible = true
 	board.queue_redraw()
 
@@ -169,3 +178,14 @@ func _on_board_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton or event is InputEventMouseMotion:
 		if event is InputEventMouseMotion or event.pressed:
 			engine.set_player_x((event.position.x - _origin().x) / _scale())
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

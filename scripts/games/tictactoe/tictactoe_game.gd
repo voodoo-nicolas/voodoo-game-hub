@@ -10,6 +10,10 @@ const SAVE_PATH := "user://tictactoe_save.json"
 ## Not preloaded: apps older than v0.14 don't have it, and the game must still
 ## run there (without the Online button).
 const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
+## How to Play + stats; not preloaded for the same reason (apps before v0.20).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+## Voodoo Mode (crossbones vs skulls); not preloaded either (apps before v0.21).
+const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 const COLOR_BASE := Color(0.15, 0.15, 0.19)
 const COLOR_WIN := Color(0.25, 0.5, 0.3)
 
@@ -26,10 +30,18 @@ var online_btn: Button
 ## 0 means ordinary same-phone play.
 var online: Control = null
 var my_mark: int = 0
+var info = null  # GameInfo, null on apps without it
+var voodoo = null  # the Voodoo script, null on apps without it
+var voodoo_on: bool = false
+var marks: Array = []  # 9 Voodoo pieces, one per cell (empty without Voodoo)
+var bg: ColorRect
 
 func _ready() -> void:
 	preload("res://scripts/games/tictactoe/tictactoe_i18n.gd").install(self)
 	Orientation.lock_portrait()
+	if ResourceLoader.exists(VOODOO_PATH):
+		voodoo = load(VOODOO_PATH)
+		voodoo_on = voodoo.is_on()
 	engine = TicTacToeEngine.new()
 	_build_ui()
 	if not _load_saved_game():
@@ -42,7 +54,7 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
+	bg = ColorRect.new()
 	bg.color = Color(0.09, 0.09, 0.13)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
@@ -116,6 +128,11 @@ func _build_ui() -> void:
 		cell.pressed.connect(_on_cell_pressed.bind(i))
 		grid.add_child(cell)
 		cells.append(cell)
+		if voodoo:
+			var mark: Control = voodoo.new()
+			mark.span = 0.7
+			cell.add_child(mark)
+			marks.append(mark)
 
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online_btn = Button.new()
@@ -135,6 +152,9 @@ func _build_ui() -> void:
 		online.remote_new_game.connect(_reset_board)
 		online.status_changed.connect(_render)
 		add_child(online)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/tictactoe/tictactoe_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _style_cell(cell: Button, color: Color) -> void:
@@ -230,6 +250,7 @@ func _on_pause_pressed() -> void:
 	pause_dialog.visible = true
 
 func _show_result() -> void:
+	var just_ended := game_active  # a resync of a finished game isn't a new result
 	game_active = false
 	if not _is_online():  # an online game ending mustn't wipe a paused local one
 		SaveUtil.delete(SAVE_PATH)
@@ -239,14 +260,44 @@ func _show_result() -> void:
 	elif _is_online():
 		win_label.text = online.result_text(w == my_mark)
 	else:
-		win_label.text = tr("%s wins!") % ("X" if w == TicTacToeEngine.X else "O")
+		win_label.text = tr("%s wins!") % _mark_name(w)
+	if info and just_ended:
+		if _is_online():
+			info.result("draw" if w == TicTacToeEngine.EMPTY else ("win" if w == my_mark else "loss"), true)
+			win_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		else:
+			info.add("Draws" if w == TicTacToeEngine.EMPTY else ("X wins" if w == TicTacToeEngine.X else "O wins"))
+			if not (w == TicTacToeEngine.EMPTY):
+				info.celebrate(win_label.text.split("\n")[0])
+			win_label.text += "\n" + info.summary()
 	win_dialog.visible = true
 
+## Called by the settings drawer's Voodoo toggle.
+func _set_voodoo(on: bool) -> void:
+	if voodoo == null:
+		return
+	voodoo_on = on
+	_render()
+
+func _mark_name(mark: int) -> String:
+	if voodoo_on:
+		return tr("Bones") if mark == TicTacToeEngine.X else tr("Skull")
+	return "X" if mark == TicTacToeEngine.X else "O"
+
 func _render() -> void:
+	bg.color = voodoo.BG if voodoo_on else Color(0.09, 0.09, 0.13)
 	for i in range(9):
 		var v: int = engine.board[i]
-		cells[i].text = "X" if v == TicTacToeEngine.X else ("O" if v == TicTacToeEngine.O else "")
-		cells[i].add_theme_color_override("font_color", Color(0.55, 0.8, 1.0) if v == TicTacToeEngine.X else Color(1.0, 0.6, 0.4))
+		var color := Color(0.55, 0.8, 1.0) if v == TicTacToeEngine.X else Color(1.0, 0.6, 0.4)
+		if voodoo_on:
+			cells[i].text = ""
+			marks[i].kind = voodoo.BONES if v == TicTacToeEngine.X else (voodoo.SKULL if v == TicTacToeEngine.O else voodoo.NONE)
+			marks[i].fill = color
+		else:
+			cells[i].text = "X" if v == TicTacToeEngine.X else ("O" if v == TicTacToeEngine.O else "")
+			if voodoo:
+				marks[i].kind = voodoo.NONE
+		cells[i].add_theme_color_override("font_color", color)
 
 	if engine.is_over():
 		var w: int = engine.winner()
@@ -259,7 +310,7 @@ func _render() -> void:
 		for c in cells:
 			_style_cell(c, COLOR_BASE)
 
-	var mark_name := "X" if engine.turn == TicTacToeEngine.X else "O"
+	var mark_name := _mark_name(engine.turn)
 	if _is_online():
 		status_label.text = online.status_text(engine.turn == my_mark, mark_name)
 	else:

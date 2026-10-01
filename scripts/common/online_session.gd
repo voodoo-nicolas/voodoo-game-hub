@@ -56,6 +56,9 @@ var _presence: Dictionary = {}  # presence key -> role
 
 func _init() -> void:
 	my_id = "%d%d" % [Time.get_unix_time_from_system(), randi()]
+	# Keep the socket alive while the game is paused (GameInfo pauses the
+	# tree while its How to Play card is open).
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 # ---------- public API ----------
 

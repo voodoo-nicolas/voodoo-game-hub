@@ -6,6 +6,7 @@ extends Control
 ## this full-rect Control lets clicks fall through (mouse_filter = IGNORE) to whatever
 ## is actually underneath -- the dialog if one is open, or the game board otherwise.
 const Orientation = preload("res://scripts/common/orientation.gd")
+const Voodoo = preload("res://scripts/common/voodoo.gd")
 
 const TAB_SIZE := 44.0
 const DRAWER_WIDTH := 190.0
@@ -18,9 +19,12 @@ var tab_button: Button
 var panel: PanelContainer
 var timer_label: Label
 var timer_button: Button
+var voodoo_button: Button
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# In the tree already, so set_anchors_preset alone would keep our 0×0 size
+	# and the tab would sit off-screen above the top-left corner.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_panel()
 	_build_tab()
@@ -111,6 +115,13 @@ func _build_panel() -> void:
 	rotate_btn.pressed.connect(_on_rotate_pressed)
 	box.add_child(rotate_btn)
 
+	# Only games that support the skin (they define _set_voodoo) get the toggle.
+	if get_parent() and get_parent().has_method("_set_voodoo"):
+		voodoo_button = Button.new()
+		voodoo_button.pressed.connect(_on_voodoo_pressed)
+		box.add_child(voodoo_button)
+		_update_voodoo_button()
+
 	var screenshot_btn := Button.new()
 	screenshot_btn.text = tr("📷 Screenshot")
 	screenshot_btn.pressed.connect(_on_screenshot_pressed)
@@ -151,6 +162,17 @@ func _on_rotate_pressed() -> void:
 	# override makes that one call rotate instead.
 	Orientation.override_next(vp_size.x <= vp_size.y)
 	get_tree().reload_current_scene()
+
+func _update_voodoo_button() -> void:
+	voodoo_button.text = tr("💀 Voodoo: On") if Voodoo.is_on() else tr("💀 Voodoo: Off")
+
+## Re-skins the game in place rather than reloading it, so an online match
+## keeps going.
+func _on_voodoo_pressed() -> void:
+	var on := not Voodoo.is_on()
+	Voodoo.set_on(on)
+	_update_voodoo_button()
+	get_parent()._set_voodoo(on)
 
 func _on_hub_pressed() -> void:
 	_save_current_scene_if_possible()

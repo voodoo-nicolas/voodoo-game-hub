@@ -7,9 +7,13 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://bird_hop_best.json"
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: BHEngine
 var board: Control
 var over_dialog: ColorRect
@@ -86,6 +90,11 @@ func _build_ui() -> void:
 		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/bird_hop/bird_hop_help.gd"))
+		add_child(info)
+		if best > 0:
+			info.high("Best score", best)
 	add_child(SettingsDrawer.new())
 
 func _start() -> void:
@@ -111,6 +120,9 @@ func _process(delta: float) -> void:
 		if engine.score > best:
 			best = engine.score
 			SaveUtil.write(BEST_PATH, {"best": best})
+		if info:
+			info.add("Games played")
+			info.best("Best score", best)
 		over_dialog.get_meta("message_label").text = tr("Score: %d") % engine.score + "\n" + tr("Best: %d") % best
 		over_dialog.visible = true
 	board.queue_redraw()

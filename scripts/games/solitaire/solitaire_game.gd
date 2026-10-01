@@ -6,6 +6,9 @@ const CardView = preload("res://scripts/games/solitaire/card_view.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://solitaire_save.json"
 
@@ -17,6 +20,7 @@ const FAN := 28
 const BOARD_WIDTH := 7 * CARD_W + 6 * COL_GAP  # 648
 const BOARD_HEIGHT := CARD_H + ROW_GAP + 18 * FAN + CARD_H  # generous room for deep piles
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 
 var selected_pile: String = ""
@@ -32,6 +36,15 @@ var win_stats_label: Label
 var pause_dialog: Control
 
 var elapsed_seconds: float = 0.0
+## Double-click / double-tap: a second press on the same card this soon after
+## the first sends it to its foundation.
+const DOUBLE_TAP_MS := 400
+const AUTO_STEP := 0.05  # seconds per card when finishing the game by itself
+var last_press: Array = []  # [pile, pile_index, card_index, ticks_msec]
+## Finishing by itself (every card face up, stock and waste empty). Input is
+## ignored meanwhile; the tween belongs to this scene, so leaving stops it.
+var autoplaying: bool = false
+var autoplay_tween: Tween
 var timer_running: bool = false
 var game_active: bool = false
 
@@ -111,6 +124,9 @@ func _build_ui() -> void:
 
 	_build_win_dialog()
 	_build_pause_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/solitaire/solitaire_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _stat_label(text: String) -> Label:
@@ -242,6 +258,7 @@ func _build_pause_dialog() -> void:
 # ---------- game flow ----------
 
 func _start_new_game() -> void:
+	_stop_autoplay()
 	engine.new_game()
 	elapsed_seconds = 0.0
 	timer_running = true
@@ -262,7 +279,7 @@ func _on_resume_pressed() -> void:
 	timer_running = true
 
 func _on_undo_pressed() -> void:
-	if not engine.can_undo():
+	if autoplaying or not engine.can_undo():
 		return
 	engine.undo()
 	_clear_selection()
@@ -354,6 +371,17 @@ func _render() -> void:
 # ---------- interaction ----------
 
 func _on_card_pressed(pile: String, pile_index: int, card_index: int) -> void:
+	if autoplaying:
+		return
+	var now := Time.get_ticks_msec()
+	var is_double: bool = not last_press.is_empty() and last_press[0] == pile and last_press[1] == pile_index \
+		and last_press[2] == card_index and now - int(last_press[3]) <= DOUBLE_TAP_MS
+	last_press = [] if is_double else [pile, pile_index, card_index, now]
+	if is_double and _send_to_foundation(pile, pile_index, card_index):
+		_clear_selection()
+		_after_move()
+		return
+
 	if pile == "stock":
 		engine.draw_from_stock()
 		_clear_selection()
@@ -373,12 +401,87 @@ func _on_card_pressed(pile: String, pile_index: int, card_index: int) -> void:
 	var moved := _try_move_to(pile, pile_index)
 	if moved:
 		_clear_selection()
-		if engine.is_won():
-			_show_win()
-	else:
-		# not a valid destination -- maybe they're picking a new source instead
-		_try_select(pile, pile_index, card_index)
+		_after_move()
+		return
+	# not a valid destination -- maybe they're picking a new source instead
+	_try_select(pile, pile_index, card_index)
 	_render()
+
+## The top card of a tableau column (or the waste) straight to its foundation.
+func _send_to_foundation(pile: String, pile_index: int, card_index: int) -> bool:
+	if pile == "waste":
+		return engine.move_waste_to_foundation()
+	if pile == "tableau" and card_index >= 0 and card_index == engine.tableau[pile_index].size() - 1:
+		return engine.move_tableau_to_foundation(pile_index)
+	return false
+
+func _after_move() -> void:
+	_render()
+	if engine.is_won():
+		_show_win()
+	elif _can_autocomplete():
+		_start_autoplay()
+
+## Like the classic Windows game: once nothing is hidden and the stock is
+## used up, the rest is a formality, so the cards fly up by themselves.
+func _can_autocomplete() -> bool:
+	if not engine.stock.is_empty() or not engine.waste.is_empty():
+		return false
+	for pile in engine.tableau:
+		for c in pile:
+			if not c.face_up:
+				return false
+	return true
+
+func _start_autoplay() -> void:
+	autoplaying = true
+	_autoplay_step()
+
+func _autoplay_step() -> void:
+	if not autoplaying:
+		return
+	if engine.is_won():
+		autoplaying = false
+		_show_win()
+		return
+	# lowest card that can go up first, so every foundation fills evenly
+	var best_col := -1
+	for col in range(7):
+		var pile: Array = engine.tableau[col]
+		if pile.is_empty():
+			continue
+		var card = pile.back()
+		if engine._can_place_on_foundation(card, card.suit) and (best_col < 0 or card.rank < engine.tableau[best_col].back().rank):
+			best_col = col
+	if best_col < 0:
+		autoplaying = false  # can't happen with everything face up, but never hang
+		return
+	var pile: Array = engine.tableau[best_col]
+	var card = pile.back()
+	var from := Vector2(_col_x(best_col), CARD_H + ROW_GAP + (pile.size() - 1) * FAN)
+	var to := Vector2(_col_x(3 + card.suit), 0)
+	for child in board_area.get_children():
+		if child.pile == "tableau" and child.pile_index == best_col and child.card_index == pile.size() - 1:
+			child.visible = false
+	var flyer := CardView.new()
+	flyer.setup("flying", -1, -1)
+	flyer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flyer.position = from
+	flyer.show_face_up(card)
+	board_area.add_child(flyer)
+	autoplay_tween = create_tween()
+	autoplay_tween.tween_property(flyer, "position", to, AUTO_STEP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	autoplay_tween.tween_callback(_land_autoplay_card.bind(best_col))
+
+func _land_autoplay_card(col: int) -> void:
+	engine.move_tableau_to_foundation(col)
+	_render()
+	_autoplay_step()
+
+func _stop_autoplay() -> void:
+	autoplaying = false
+	if autoplay_tween:
+		autoplay_tween.kill()
 
 func _try_select(pile: String, pile_index: int, card_index: int) -> void:
 	if pile == "tableau" and card_index >= 0 and engine.tableau[pile_index][card_index].face_up:
@@ -414,6 +517,13 @@ func _show_win() -> void:
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
 	win_stats_label.text = tr("Time: %s   Moves: %d") % [_format_time(elapsed_seconds), engine.move_count]
+	if info:
+		info.add("Games won")
+		info.celebrate("You win!")
+		var fast: bool = info.low("Best time", elapsed_seconds)
+		var few: bool = info.low("Fewest moves", engine.move_count)
+		if fast or few:
+			win_stats_label.text += "\n" + tr("New best!")
 	win_dialog.visible = true
 
 # ---------- save / load ----------

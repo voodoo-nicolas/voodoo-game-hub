@@ -3,6 +3,9 @@ extends Control
 const KingsCupEngine = preload("res://scripts/games/kings_cup/kings_cup_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const RED_SUITS := ["♥", "♦"]
 const CIRCLE_SIZE := 320.0
@@ -10,6 +13,7 @@ const CARD_SIZE := Vector2(26, 36)
 const MIN_RADIUS := 55.0
 const MAX_RADIUS := 145.0
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var num_players: int = 4
 var reveal_active: bool = false
@@ -77,6 +81,9 @@ func _build_ui() -> void:
 	_build_setup(root)
 	_build_play(root)
 	_build_end(root)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/kings_cup/kings_cup_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_setup(root: VBoxContainer) -> void:
@@ -274,6 +281,9 @@ func _show_setup() -> void:
 	end_box.visible = false
 
 func _on_start_pressed() -> void:
+	if info:
+		info.add("Games played")
+		info.high("Most players", num_players)
 	engine.reset(num_players)
 	reveal_active = false
 	setup_box.visible = false

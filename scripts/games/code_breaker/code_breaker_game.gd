@@ -8,10 +8,15 @@ const CBEngine = preload("res://scripts/games/code_breaker/code_breaker_engine.g
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const PEG_COLORS := [Color(0.93, 0.26, 0.26), Color(0.26, 0.6, 0.95), Color(0.3, 0.8, 0.35),
 	Color(0.98, 0.84, 0.2), Color(0.7, 0.4, 0.95), Color(0.98, 0.55, 0.15)]
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: CBEngine
 var board: Control
 var current: Array = []
@@ -118,9 +123,13 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/code_breaker/code_breaker_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
+	result_recorded = false
 	engine.reset()
 	current = [-1, -1, -1, -1]
 	end_dialog.visible = false
@@ -156,6 +165,10 @@ func _on_check() -> void:
 			msg = tr("Cracked in %d tries!") % engine.guesses.size()
 		else:
 			msg = tr("Out of tries — the code is shown at the top.")
+		if info and engine.solved and not result_recorded:
+			if info.low("Fewest tries", engine.guesses.size()):
+				msg += "\n" + tr("New best!")
+		msg += _record_result("win" if engine.solved else "loss")
 		end_dialog.get_meta("message_label").text = msg
 		end_dialog.visible = true
 
@@ -222,3 +235,14 @@ func _on_board_input(event: InputEvent) -> void:
 			current[s] = -1
 			_refresh()
 			return
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

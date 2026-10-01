@@ -8,9 +8,14 @@ const Cards = preload("res://scripts/games/spider/spider_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_FELT := Color(0.05, 0.3, 0.17)
 
+var result_recorded := false  # this deal's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: SpiderEngine
 var board: Control
 var info_label: Label
@@ -107,6 +112,9 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/spider/spider_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _cycle_suits() -> void:
@@ -114,6 +122,9 @@ func _cycle_suits() -> void:
 	_start_new_game()
 
 func _start_new_game() -> void:
+	result_recorded = false
+	if info:
+		info.start_clock()
 	engine.new_game(suit_choice)
 	win_dialog.visible = false
 	_refresh()
@@ -227,4 +238,15 @@ func _after_change() -> void:
 	_refresh()
 	if engine.is_won():
 		win_dialog.get_meta("message_label").text = tr("Cleared in %d moves!") % engine.moves
+		if info and not result_recorded:
+			result_recorded = true
+			var suits: String = {1: "1 suit", 2: "2 suits", 4: "4 suits"}.get(engine.suits, "%d suits" % engine.suits)
+			info.add("Games won")
+			info.celebrate("You win!")
+			info.add("Games won (%s)" % suits)
+			var secs: float = info.stop_clock()
+			var fast: bool = info.low("Best time (%s)" % suits, secs)
+			win_dialog.get_meta("message_label").text += "\n" + tr("Time: %d:%02d") % [int(secs) / 60, int(secs) % 60]
+			if fast:
+				win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
 		win_dialog.visible = true

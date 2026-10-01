@@ -8,6 +8,9 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const ROUND_SECONDS := 180.0
 const BEST_PATH := "user://word_hunt_best.json"
@@ -15,6 +18,7 @@ const COLOR_TILE := Color(0.96, 0.9, 0.75)
 const COLOR_TILE_ON := Color(1.0, 0.75, 0.3)
 const COLOR_INK := Color(0.15, 0.1, 0.05)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: WHEngine
 var board: Control
 var word_label: Label
@@ -137,6 +141,11 @@ func _build_ui() -> void:
 		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/word_hunt/word_hunt_help.gd"))
+		add_child(info)
+		if best > 0:
+			info.high("Best score", best)
 	add_child(SettingsDrawer.new())
 
 func _show_start() -> void:
@@ -193,6 +202,10 @@ func _end_round() -> void:
 	if engine.score > best:
 		best = engine.score
 		SaveUtil.write(BEST_PATH, {"best": best})
+	if info:
+		info.add("Rounds played")
+		info.best("Best score", best)
+		info.high("Most words found", engine.found.size())
 	var all := engine.all_words()
 	var missed: Array = all.filter(func(w): return not engine.found.has(w))
 	var msg := tr("Score: %d — %d of %d words found.") % [engine.score, engine.found.size(), all.size()]

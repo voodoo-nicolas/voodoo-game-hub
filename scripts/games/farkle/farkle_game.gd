@@ -7,10 +7,15 @@ const FEngine = preload("res://scripts/games/farkle/farkle_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const PIPS := {1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]],
 	5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]}
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: FEngine
 var table: Control
 var score_label: Label
@@ -125,9 +130,13 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/farkle/farkle_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start() -> void:
+	result_recorded = false
 	cpu_timer.stop()
 	engine.reset()
 	end_dialog.visible = false
@@ -246,7 +255,7 @@ func _check_winner() -> bool:
 	if engine.winner == -1:
 		return false
 	_refresh()
-	end_dialog.get_meta("message_label").text = tr("You win!") if engine.winner == 0 else tr("You lose!")
+	end_dialog.get_meta("message_label").text = (tr("You win!") if engine.winner == 0 else tr("You lose!")) + _record_result("win" if engine.winner == 0 else "loss")
 	end_dialog.visible = true
 	return true
 
@@ -296,3 +305,14 @@ func _on_table_input(event: InputEvent) -> void:
 				selected.append(i)
 			_refresh()
 			return
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

@@ -3,11 +3,16 @@ extends Control
 const HangmanEngine = preload("res://scripts/games/hangman/hangman_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const STAGE_FACES := ["🙂", "😐", "😟", "😧", "😨", "😰", "💀"]
 const ALPHABET := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const ALPHABET_ES := "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var game_active: bool = false
 
@@ -137,6 +142,9 @@ func _build_ui() -> void:
 		letter_buttons[letter] = btn
 
 	_build_end_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/hangman/hangman_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _style_letter_button(btn: Button) -> void:
@@ -212,6 +220,7 @@ func _build_end_dialog() -> void:
 # ---------- game flow ----------
 
 func _start_new_game() -> void:
+	result_recorded = false
 	engine.reset()
 	game_active = true
 	end_dialog.visible = false
@@ -232,9 +241,9 @@ func _on_letter_pressed(letter: String) -> void:
 	_render()
 
 	if engine.is_won():
-		_end_game(tr("You win! The word was %s") % engine.word, Color(0.4, 0.9, 0.4))
+		_end_game(tr("You win! The word was %s") % engine.word + _record_result("win"), Color(0.4, 0.9, 0.4))
 	elif engine.is_lost():
-		_end_game(tr("Game over — the word was %s") % engine.word, Color(0.9, 0.4, 0.4))
+		_end_game(tr("Game over — the word was %s") % engine.word + _record_result("loss"), Color(0.9, 0.4, 0.4))
 
 func _end_game(text: String, color: Color) -> void:
 	game_active = false
@@ -250,3 +259,14 @@ func _render() -> void:
 	word_label.add_theme_font_size_override("font_size", 50 if engine.word.length() <= 8 else 40)
 	stage_label.text = STAGE_FACES[engine.wrong_count]
 	status_label.text = tr("Wrong guesses: %d/%d") % [engine.wrong_count, HangmanEngine.MAX_WRONG]
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

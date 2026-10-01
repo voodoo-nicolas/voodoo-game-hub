@@ -3,12 +3,16 @@ extends Control
 const ReactionEngine = preload("res://scripts/games/reaction_test/reaction_test_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_IDLE := Color(0.16, 0.16, 0.22)
 const COLOR_WAITING := Color(0.55, 0.15, 0.15)
 const COLOR_READY := Color(0.15, 0.55, 0.2)
 const COLOR_TOO_EARLY := Color(0.6, 0.4, 0.05)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var pad: PanelContainer
 var pad_label: Label
@@ -107,6 +111,9 @@ func _build_ui() -> void:
 	result_label.custom_minimum_size = Vector2(280, 0)
 	box.add_child(result_label)
 
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/reaction_test/reaction_test_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 # ---------- flow ----------
@@ -147,6 +154,9 @@ func _show_too_early() -> void:
 	_set_pad(COLOR_TOO_EARLY, tr("Too soon!\nTap to try again"))
 
 func _show_result(reaction_ms: int) -> void:
+	if info:
+		info.add("Tests taken")
+		info.best("Fastest reaction (ms)", reaction_ms, true)
 	_set_pad(COLOR_IDLE, tr("%d ms\nTap to try again") % reaction_ms)
 	result_label.text = tr("Attempt #%d") % engine.attempts
 	_update_best_label()
@@ -156,7 +166,11 @@ func _show_idle(text: String) -> void:
 	_update_best_label()
 
 func _update_best_label() -> void:
-	best_label.text = tr("Best: %d ms") % engine.best_ms if engine.best_ms >= 0 else tr("Best: —")
+	var best_ms: int = engine.best_ms
+	if info and int(info.get_stat("Fastest reaction (ms)", -1)) >= 0:
+		var saved := int(info.get_stat("Fastest reaction (ms)"))
+		best_ms = saved if best_ms < 0 else mini(best_ms, saved)
+	best_label.text = tr("Best: %d ms") % best_ms if best_ms >= 0 else tr("Best: —")
 
 func _set_pad(color: Color, text: String) -> void:
 	var sb := StyleBoxFlat.new()

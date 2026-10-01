@@ -6,11 +6,15 @@ const WSEngine = preload("res://scripts/games/word_search/word_search_engine.gd"
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const HIGHLIGHTS := [Color(1, 0.4, 0.4, 0.45), Color(0.4, 0.8, 1, 0.45), Color(0.5, 1, 0.5, 0.45),
 	Color(1, 0.85, 0.3, 0.45), Color(0.85, 0.5, 1, 0.45), Color(1, 0.6, 0.2, 0.45), Color(0.3, 1, 0.85, 0.45),
 	Color(1, 0.5, 0.8, 0.45)]
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: WSEngine
 var board: Control
 var theme_label: Label
@@ -97,10 +101,15 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/word_search/word_search_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
 	engine.new_puzzle(TranslationServer.get_locale().begins_with("es"))
+	if info:
+		info.start_clock()
 	win_dialog.visible = false
 	drag_start = Vector2i(-1, -1)
 	theme_label.text = tr("Theme: %s") % engine.theme
@@ -165,7 +174,18 @@ func _on_board_input(event: InputEvent) -> void:
 			if engine.try_select(drag_start, drag_end) >= 0:
 				_update_list()
 				if engine.all_found():
+					var secs := 0.0
+					var record := false
+					if info:
+						info.add("Puzzles solved")
+						info.celebrate("Solved!")
+						secs = info.stop_clock()
+						record = info.low("Best time", secs)
 					win_dialog.get_meta("message_label").text = tr("You found all %d words.") % engine.words.size()
+					if info:
+						win_dialog.get_meta("message_label").text += "\n" + tr("Time: %d:%02d") % [int(secs) / 60, int(secs) % 60]
+						if record:
+							win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
 					win_dialog.visible = true
 			drag_start = Vector2i(-1, -1)
 		board.queue_redraw()

@@ -7,11 +7,15 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://brick_breaker_best.json"
 const ROW_COLORS := [Color(0.95, 0.35, 0.35), Color(0.98, 0.6, 0.2), Color(0.98, 0.85, 0.25), Color(0.4, 0.85, 0.4),
 	Color(0.3, 0.75, 0.95), Color(0.45, 0.45, 0.95), Color(0.75, 0.45, 0.95)]
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: BBEngine
 var board: Control
 var info_label: Label
@@ -105,6 +109,11 @@ func _build_ui() -> void:
 		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/brick_breaker/brick_breaker_help.gd"))
+		add_child(info)
+		if best > 0:
+			info.high("Best score", best)
 	add_child(SettingsDrawer.new())
 
 func _start() -> void:
@@ -144,6 +153,10 @@ func _process(delta: float) -> void:
 			if engine.score > best:
 				best = engine.score
 				SaveUtil.write(BEST_PATH, {"best": best})
+			if info:
+				info.add("Games played")
+				info.best("Best score", best)
+				info.high("Highest level", engine.level)
 			over_dialog.get_meta("message_label").text = tr("Score: %d") % engine.score + "\n" + tr("Best: %d") % best
 			over_dialog.visible = true
 	if res != "":

@@ -7,6 +7,9 @@ const Core = preload("res://scripts/games/geometry_wars/geometry_wars_core.gd")
 const ArenaCanvas = preload("res://scripts/games/geometry_wars/arena_canvas.gd")
 const JoystickCanvas = preload("res://scripts/games/geometry_wars/joystick_canvas.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://geometry_wars_save.json"
 
@@ -26,6 +29,7 @@ const COMBO_STEP := 5
 const JOYSTICK_RADIUS := 70.0
 const JOYSTICK_DEADZONE := 0.15
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var arena_size: Vector2 = Vector2(600, 900)
 var arena_offset: Vector2 = Vector2(20, 90)
 
@@ -265,6 +269,9 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	_build_game_over_dialog()
 	_build_rotate_hint()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/geometry_wars/geometry_wars_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_rotate_hint() -> void:
@@ -546,6 +553,11 @@ func _show_game_over() -> void:
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
 	game_over_stats.text = tr("Score: %d   Time survived: %s") % [score, _format_time(elapsed_seconds)]
+	if info:
+		info.add("Games played")
+		var record: bool = info.best("Best score", score)
+		info.high("Longest time survived", elapsed_seconds)
+		game_over_stats.text += "\n" + (tr("New best!") if record else tr("Best: %d") % int(info.get_stat("Best score")))
 	game_over_dialog.visible = true
 
 # ---------- save / load ----------

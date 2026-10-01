@@ -8,10 +8,15 @@ const Cards = preload("res://scripts/games/speed/speed_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_FELT := Color(0.05, 0.3, 0.17)
 const CPU_SPEEDS := [1.8, 1.2, 0.8]
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: SpeedEngine
 var board: Control
 var status_label: Label
@@ -119,6 +124,9 @@ func _build_ui() -> void:
 		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/speed/speed_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _cycle_level() -> void:
@@ -142,6 +150,7 @@ func _show_start() -> void:
 	board.queue_redraw()
 
 func _start_game() -> void:
+	result_recorded = false
 	running = true
 	cpu_timer.wait_time = CPU_SPEEDS[level]
 	cpu_timer.start()
@@ -180,7 +189,7 @@ func _check_state() -> void:
 		running = false
 		cpu_timer.stop()
 		stuck_timer.stop()
-		end_dialog.get_meta("message_label").text = tr("You win!") if engine.winner == 0 else tr("The computer was faster!")
+		end_dialog.get_meta("message_label").text = (tr("You win!") if engine.winner == 0 else tr("The computer was faster!")) + _record_result("win" if engine.winner == 0 else "loss")
 		end_dialog.visible = true
 		return
 	if engine.stuck():
@@ -267,3 +276,14 @@ func _on_board_input(event: InputEvent) -> void:
 				engine.play(0, c, t)
 				_check_state()
 			return
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

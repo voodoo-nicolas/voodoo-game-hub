@@ -5,6 +5,9 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://g2048_save.json"
 const BOARD_SEPARATION := 6
@@ -27,6 +30,7 @@ const TILE_COLORS := {
 	2048: Color(0.71, 0.95, 0.41),
 }
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var game_active: bool = false
 var tile_size: float = 76.0
@@ -208,6 +212,9 @@ func _build_ui() -> void:
 
 	_build_pause_dialog()
 	_build_end_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/g2048/g2048_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_pause_dialog() -> void:
@@ -308,6 +315,15 @@ func _show_end(title: String, can_continue: bool) -> void:
 		SaveUtil.delete(SAVE_PATH)
 
 	end_title.text = tr("%s\nScore: %d") % [title, engine.score]
+	if info and not can_continue:
+		var top := 0
+		for row in engine.grid:
+			for v in row:
+				top = maxi(top, int(v))
+		info.add("Games played")
+		var record: bool = info.best("Best score", engine.score)
+		info.high("Best tile", top)
+		end_title.text += "\n" + (tr("New best!") if record else tr("Best: %d") % int(info.get_stat("Best score")))
 
 	for child in end_buttons_box.get_children():
 		if child != end_title:

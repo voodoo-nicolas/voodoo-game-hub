@@ -17,6 +17,7 @@ config/icon.game_pack=""
 Lang="*res://scripts/common/lang.gd"
 Auth="*res://scripts/common/auth.gd"
 Catalog="*res://scripts/common/catalog.gd"
+Settings="*res://scripts/common/settings.gd"
 
 [display]
 

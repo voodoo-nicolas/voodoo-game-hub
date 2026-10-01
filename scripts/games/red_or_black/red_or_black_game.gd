@@ -3,10 +3,14 @@ extends Control
 const RedOrBlackEngine = preload("res://scripts/games/red_or_black/red_or_black_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const RED_SUITS := ["♥", "♦"]
 const SUITS := ["♠", "♥", "♦", "♣"]
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var num_players: int = 2
 
@@ -72,6 +76,9 @@ func _build_ui() -> void:
 	_build_setup(root)
 	_build_play(root)
 	_build_end(root)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/red_or_black/red_or_black_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_setup(root: VBoxContainer) -> void:
@@ -237,6 +244,8 @@ func _show_setup() -> void:
 	end_box.visible = false
 
 func _on_start_pressed() -> void:
+	if info:
+		info.add("Games played")
 	engine.reset(num_players)
 	setup_box.visible = false
 	end_box.visible = false
@@ -299,6 +308,8 @@ func _add_guess_button(label_text: String, guess: String, color: Color) -> void:
 
 func _on_guess_pressed(guess: String) -> void:
 	var result: Dictionary = engine.answer(guess)
+	if info:
+		info.add("Right guesses" if result.correct else "Wrong guesses")
 	var card: Dictionary = result.card
 	var color := Color(1, 0.4, 0.4) if RED_SUITS.has(card.suit) else Color(1, 1, 1)
 	card_label.text = _card_text(card)

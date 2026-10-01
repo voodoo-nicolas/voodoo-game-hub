@@ -7,10 +7,14 @@ const PSEngine = preload("res://scripts/games/party_spinner/party_spinner_engine
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const WHEEL_COLORS := [Color(0.9, 0.22, 0.27), Color(0.2, 0.45, 0.9), Color(1.0, 0.82, 0.1), Color(0.18, 0.7, 0.35)]
 const AUTO_OPTIONS := [0, 8, 12, 20]
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: PSEngine
 var wheel: Control
 var result_label: Label
@@ -125,6 +129,9 @@ func _build_ui() -> void:
 	auto_timer.timeout.connect(_spin)
 	add_child(auto_timer)
 	_update_auto()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/party_spinner/party_spinner_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _cycle_auto() -> void:
@@ -145,6 +152,8 @@ func _spin() -> void:
 	if spin_t < 1.0:
 		return
 	pending = engine.spin()
+	if info:
+		info.add("Spins")
 	# the pointer is at the top; land the middle of the chosen sector there
 	var sector_angle := TAU / 16.0
 	var target := -(pending + 0.5) * sector_angle

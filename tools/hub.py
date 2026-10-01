@@ -339,6 +339,7 @@ def cmd_new_game(args) -> None:
     targets = {
         "engine.gd.tmpl": ROOT / f"scripts/games/{gid}/{gid}_engine.gd",
         "game.gd.tmpl": ROOT / f"scripts/games/{gid}/{gid}_game.gd",
+        "help.gd.tmpl": ROOT / f"scripts/games/{gid}/{gid}_help.gd",
         "scene.tscn.tmpl": ROOT / f"scenes/games/{gid}/{gid}.tscn",
     }
     for dest in targets.values():
@@ -412,7 +413,7 @@ ERROR_RE = re.compile(r"SCRIPT ERROR|Parse Error|^ERROR:|Failed to load", re.M)
 def cmd_test(args) -> None:
     m = load_manifest()
     ids = args.ids or catalog_ids(m)
-    scenes = [] if args.ids else ["res://scenes/hub/hub.tscn", "res://scenes/account/account.tscn"]
+    scenes = [] if args.ids else ["res://scenes/hub/hub.tscn", "res://scenes/hub/options.tscn", "res://scenes/account/account.tscn"]
     scenes += [m["games"][gid]["scene"] for gid in ids]
     # First run imports any new files so the boots below see them.
     run_godot("--import", timeout=600)

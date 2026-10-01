@@ -58,6 +58,8 @@ var _manifest_waiters: Array[Callable] = []
 var app_update_checked := false
 
 func _ready() -> void:
+	# Keep working while a game is paused (GameInfo pauses the tree).
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	DirAccess.make_dir_recursive_absolute(PACKS_DIR)
 	_remove_partial_downloads()
 
@@ -300,18 +302,22 @@ func mount(id: String) -> String:
 
 ## on_newer(remote_version: String, apk_url: String) fires only if GitHub's
 ## latest release is newer than this build and has an APK attached.
-func check_app_update(on_newer: Callable) -> void:
+## Otherwise on_none(reached: bool) fires, if given -- reached is false when
+## GitHub couldn't be asked (offline). The Options screen's "Check for
+## updates" uses it; the hub's silent launch check doesn't.
+func check_app_update(on_newer: Callable, on_none: Callable = Callable()) -> void:
 	app_update_checked = true
 	_get_json(Config.LATEST_RELEASE_API, func(parsed):
 		if typeof(parsed) != TYPE_DICTIONARY or not parsed.has("tag_name"):
+			_safe_call(on_none, [false])
 			return
 		var remote_version: String = str(parsed.tag_name).trim_prefix("v")
-		if not is_newer_version(remote_version, Version.VERSION):
-			return
-		for asset in parsed.get("assets", []):
-			if typeof(asset) == TYPE_DICTIONARY and str(asset.get("name", "")).ends_with(".apk"):
-				_safe_call(on_newer, [remote_version, str(asset.get("browser_download_url", ""))])
-				return
+		if is_newer_version(remote_version, Version.VERSION):
+			for asset in parsed.get("assets", []):
+				if typeof(asset) == TYPE_DICTIONARY and str(asset.get("name", "")).ends_with(".apk"):
+					_safe_call(on_newer, [remote_version, str(asset.get("browser_download_url", ""))])
+					return
+		_safe_call(on_none, [true])
 	)
 
 ## Dotted versions compared numerically segment by segment ("0.10.0" > "0.9.1").

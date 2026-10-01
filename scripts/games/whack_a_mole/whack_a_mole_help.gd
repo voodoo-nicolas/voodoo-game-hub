@@ -1,0 +1,17 @@
+extends RefCounted
+
+## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
+
+const ID := "whack_a_mole"
+const TITLE := "Whack-a-Mole"
+const GOAL := "Whack as many moles as you can in 30 seconds."
+const HOW := [
+	"Tap Start Round, then tap each mole as it pops up out of a hole.",
+	"Every hit scores a point. Moles duck back down if you're too slow.",
+	"The round ends when the timer runs out.",
+]
+const TIPS := [
+	"Keep your finger near the middle of the board: every hole is close by.",
+	"Don't tap empty holes — watch for the mole, then strike.",
+]
+const STATS := ["Best score", "Rounds played"]

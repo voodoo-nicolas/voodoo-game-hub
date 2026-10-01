@@ -5,6 +5,9 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://memory_save.json"
 const SYMBOLS := ["🍕", "🚀", "🎧", "🐼", "🌵", "⚽", "🎨", "🍩"]
@@ -13,6 +16,7 @@ const COLOR_HIDDEN := Color(0.18, 0.18, 0.24)
 const COLOR_FLIPPED := Color(0.25, 0.5, 0.7)
 const COLOR_MATCHED := Color(0.2, 0.45, 0.28)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var game_active: bool = false
 var waiting_for_resolve: bool = false
@@ -118,6 +122,9 @@ func _build_ui() -> void:
 
 	_build_pause_dialog()
 	_build_win_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/memory/memory_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _style_cell(cell: Button, color: Color) -> void:
@@ -191,6 +198,11 @@ func _show_win() -> void:
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
 	win_label.text = tr("Solved in %d moves!") % engine.moves
+	if info:
+		info.add("Games solved")
+		info.celebrate("Solved!")
+		if info.low("Fewest moves", engine.moves):
+			win_label.text += "\n" + tr("New best!")
 	win_dialog.visible = true
 
 func _render() -> void:

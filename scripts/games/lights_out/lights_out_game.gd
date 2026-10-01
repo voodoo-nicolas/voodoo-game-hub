@@ -3,10 +3,14 @@ extends Control
 const LightsOutEngine = preload("res://scripts/games/lights_out/lights_out_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_ON := Color(1.0, 0.84, 0.1)
 const COLOR_OFF := Color(0.16, 0.16, 0.2)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var cells: Array = []
 var moves_label: Label
@@ -96,6 +100,9 @@ func _build_ui() -> void:
 		cells.append(row)
 
 	_build_win_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/lights_out/lights_out_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_win_dialog() -> void:
@@ -162,6 +169,11 @@ func _on_cell_pressed(r: int, c: int) -> void:
 	_render()
 	if engine.is_solved():
 		win_label.text = tr("Solved in %d moves!") % engine.moves
+		if info:
+			info.add("Puzzles solved")
+			info.celebrate("Solved!")
+			if info.low("Fewest moves", engine.moves):
+				win_label.text += "\n" + tr("New best!")
 		win_dialog.visible = true
 
 func _render() -> void:

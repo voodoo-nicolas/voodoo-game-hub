@@ -5,6 +5,9 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://dots_boxes_save.json"
 ## Not preloaded: apps older than v0.14 don't have it, and the game must still
@@ -28,6 +31,7 @@ const SIZE_OPTIONS := [
 	{"label": "10 × 10", "rows": 10, "cols": 10},
 ]
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var rows: int = 5
 var cols: int = 5
@@ -106,6 +110,9 @@ func _build_ui() -> void:
 		online.remote_new_game.connect(_on_remote_new_game)
 		online.status_changed.connect(_on_online_status)
 		add_child(online)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/dots_boxes/dots_boxes_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_size_screen() -> void:
@@ -609,6 +616,7 @@ func _on_remote_state(st: Dictionary) -> void:
 		_show_result()
 
 func _show_result() -> void:
+	var just_ended := game_active  # a resync of a finished game isn't a new result
 	game_active = false
 	if not _is_online():  # an online game ending mustn't wipe a paused local one
 		SaveUtil.delete(SAVE_PATH)
@@ -621,6 +629,16 @@ func _show_result() -> void:
 	else:
 		var name := _player_label(engine.winner)
 		win_label.text = tr("%s wins!\n%s %d - %s %d") % [name, p1, engine.scores[1], p2, engine.scores[2]]
+	if info and just_ended:
+		if _is_online() or vs_computer:
+			var me: int = my_player if _is_online() else 1
+			info.result("draw" if engine.winner == 0 else ("win" if engine.winner == me else "loss"), _is_online())
+			win_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"] if _is_online() else ["Wins", "Losses", "Draws"])
+		else:
+			info.add("2-player ties" if engine.winner == 0 else ("Blue wins" if engine.winner == 1 else "Red wins"))
+			if not (engine.winner == 0):
+				info.celebrate(win_label.text.split("\n")[0])
+			win_label.text += "\n" + info.summary(["Blue wins", "Red wins", "2-player ties"])
 	win_dialog.visible = true
 
 # ---------- board construction ----------

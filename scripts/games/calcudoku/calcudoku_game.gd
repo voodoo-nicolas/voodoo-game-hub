@@ -7,6 +7,9 @@ const CalcEngine = preload("res://scripts/games/calcudoku/calcudoku_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SIZES := [4, 5, 6]
 const COLOR_CELL := Color(0.95, 0.95, 0.92)
@@ -15,6 +18,7 @@ const COLOR_CAGE_DONE := Color(0.85, 0.95, 0.85)
 const COLOR_INK := Color(0.12, 0.12, 0.16)
 const COLOR_BAD := Color(0.85, 0.15, 0.15)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: CalcEngine
 var board: Control
 var pad: HBoxContainer
@@ -107,6 +111,9 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/calcudoku/calcudoku_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _rebuild_pad() -> void:
@@ -131,6 +138,8 @@ func _cycle_size() -> void:
 
 func _start_new_game() -> void:
 	engine.new_puzzle(SIZES[size_index])
+	if info:
+		info.start_clock()
 	selected = -1
 	win_dialog.visible = false
 	size_btn.text = tr("Size: %d×%d") % [engine.n, engine.n]
@@ -143,7 +152,18 @@ func _on_number(v: int) -> void:
 	engine.values[selected] = v
 	board.queue_redraw()
 	if engine.is_solved():
+		var secs := 0.0
+		var record := false
+		if info:
+			info.add("Puzzles solved")
+			info.celebrate("Solved!")
+			secs = info.stop_clock()
+			record = info.low("Best time (%s)" % ("%d×%d" % [SIZES[size_index], SIZES[size_index]]), secs)
 		win_dialog.get_meta("message_label").text = tr("Every cage adds up.")
+		if info:
+			win_dialog.get_meta("message_label").text += "\n" + tr("Time: %d:%02d") % [int(secs) / 60, int(secs) % 60]
+			if record:
+				win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
 		win_dialog.visible = true
 
 # ---------- drawing ----------

@@ -8,6 +8,9 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const STATS_PATH := "user://wordle_stats.json"
 const KEY_ROWS := ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
@@ -22,6 +25,7 @@ const MARK_COLORS := {
 	WordleEngine.Mark.CORRECT: Color(0.3, 0.62, 0.3),
 }
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var current: String = ""
 var stats: Dictionary = {"played": 0, "wins": 0, "streak": 0, "best_streak": 0}
@@ -139,6 +143,12 @@ func _build_ui() -> void:
 	result_label = result_dialog.get_meta("message_label")
 	add_child(result_dialog)
 
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/wordle/wordle_help.gd"))
+		add_child(info)
+		info.high("Wins", int(stats.wins))
+		info.high("Losses", int(stats.played) - int(stats.wins))
+		info.high("Best streak", int(stats.best_streak))
 	add_child(SettingsDrawer.new())
 
 func _make_key(text: String, width: int, action: Callable) -> Button:
@@ -205,6 +215,10 @@ func _record_result(won: bool) -> void:
 	else:
 		stats.streak = 0
 	SaveUtil.write(STATS_PATH, stats)
+	if info:
+		info.result("win" if won else "loss")
+		if won:
+			info.low("Fewest guesses", engine.guesses.size())
 	var headline: String
 	if won:
 		headline = [tr("Genius!"), tr("Magnificent!"), tr("Impressive!"), tr("Splendid!"), tr("Great!"), tr("Phew!")][engine.guesses.size() - 1]

@@ -7,3 +7,6 @@ builds/
 # OS junk
 Thumbs.db
 .DS_Store
+
+# Raw artwork dropped in by the user; the processed copies live in assets/
+art_inbox/

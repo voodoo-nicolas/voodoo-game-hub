@@ -7,6 +7,9 @@ const PegEngine = preload("res://scripts/games/peg_solitaire/peg_solitaire_engin
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_BOARD := Color(0.35, 0.22, 0.12)
 const COLOR_HOLE := Color(0.18, 0.1, 0.05)
@@ -14,6 +17,7 @@ const COLOR_PEG := Color(0.95, 0.75, 0.25)
 const COLOR_SELECTED := Color(0.4, 0.9, 1.0)
 const COLOR_TARGET := Color(0.4, 0.9, 1.0, 0.45)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: PegEngine
 var board: Control
 var status_label: Label
@@ -104,6 +108,9 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/peg_solitaire/peg_solitaire_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
@@ -184,5 +191,14 @@ func _check_end() -> void:
 		msg = tr("Solved! Just one peg left.")
 	else:
 		msg = tr("No more jumps. %d pegs left.") % left
+	if info:
+		info.add("Games played")
+		if left == 1:
+			info.add("Games solved")
+			info.celebrate("Solved!")
+		if left == 1 and engine.at(3, 3) == PegEngine.PEG:
+			info.add("Perfect games")
+		if info.low("Fewest pegs left", left) and left > 1:
+			msg += "\n" + tr("New best!")
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true

@@ -8,6 +8,9 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://fifteen_puzzle_save.json"
 const BEST_PATH := "user://fifteen_puzzle_best.json"
@@ -16,6 +19,7 @@ const COLOR_TILE := Color(0.22, 0.45, 0.75)
 const COLOR_TILE_HOME := Color(0.25, 0.6, 0.4)  # already in its solved spot
 const COLOR_GAP := Color(0.13, 0.13, 0.17)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var elapsed: float = 0.0
 var timer_running: bool = false
@@ -135,6 +139,12 @@ func _build_ui() -> void:
 	win_label = win_dialog.get_meta("message_label")
 	add_child(win_dialog)
 
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/fifteen_puzzle/fifteen_puzzle_help.gd"))
+		add_child(info)
+		if best.has("moves"):
+			info.low("Fewest moves", int(best.moves))
+			info.low("Best time", float(best.time))
 	add_child(SettingsDrawer.new())
 
 func _new_game() -> void:
@@ -167,6 +177,11 @@ func _win() -> void:
 		best["time"] = elapsed
 		record += tr("\nFastest time yet!")
 	SaveUtil.write(BEST_PATH, best)
+	if info:
+		info.add("Puzzles solved")
+		info.celebrate("Solved!")
+		info.low("Fewest moves", engine.moves)
+		info.low("Best time", elapsed)
 	win_label.text = tr("%d moves in %s%s") % [engine.moves, _format_time(elapsed), record]
 	_render()
 	create_tween().tween_callback(func(): win_dialog.visible = not game_active).set_delay(0.5)

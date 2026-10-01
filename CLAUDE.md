@@ -153,6 +153,93 @@ string exists.
   `TranslationServer.get_locale().begins_with("es")`.
 - Spanish style: neutral Latin American with "tú".
 
+## How to Play + stats (GameInfo) -- since v0.20.0
+
+`scripts/common/game_info.gd` (ships in the APK) gives every game a "?" tab
+just above the ⚙ tab. It pauses the game (`get_tree().paused`) and opens a
+card with 🎯 Goal, 📋 How to Play, 💡 Tips and 📊 Your Stats, and opens by
+itself the first time a game is played. Its header comment is the how-to.
+
+- **Text lives in `scripts/games/<id>/<id>_help.gd`** (in the pack): only
+  constants -- `ID`, `TITLE`, `GOAL`, `HOW`, `TIPS`, `STATS` (stat keys always
+  shown, in order). Write it from the game's actual code, not from general
+  knowledge of the game (controls, variants, limits differ). The strings go
+  through es.json like any other text.
+- **Stats** are saved to `user://stats_<id>.json`: `info.result("win" |
+  "loss" | "draw")` (streaks and win rate come free; online games pass
+  `true` to count "Online wins" apart), `info.add(key)`, `info.high(key, v)`,
+  `info.low(key, v)` (both return true on a new record), `info.summary()`
+  for the game-over text, and `start_clock()` / `stop_clock()` for puzzles
+  without their own timer. Keys containing "time" show as m:ss. Per-variant
+  keys are written `"Best time (%s)" % "Hard"` so the extractor sees both parts.
+- **Load it, never preload it** (`GAME_INFO_PATH`, `var info = null`, guard
+  every use with `if info:`), like the online scripts: packs also run on
+  apps before v0.20, which simply have no ? button.
+- **Record each result once.** End checks often run again after a game is
+  over (a refresh, an online resync); games keep a `result_recorded` flag
+  reset on new game, or a `just_ended := game_active` guard in `_show_result()`.
+- Games that already had their own best-score file (and the account-synced
+  Snake / Simon / Whack-a-Mole bests) keep it -- packs must work without
+  GameInfo -- and also feed it into GameInfo with `high()`, including when
+  `Auth.reconcile_stat` merges a higher cloud value.
+- Anything that must keep running while a game is paused sets
+  `process_mode = PROCESS_MODE_ALWAYS` (Auth, Catalog, OnlineSession do).
+
+## Voodoo Mode (skulls skin) -- since v0.21.0
+
+`scripts/common/voodoo.gd` (ships in the APK) is an optional skin that swaps
+game pieces for skulls, crossbones and voodoo dolls (the doll is the app
+logo: button X eyes, stitched seam, a pin), all drawn in code -- no image
+assets. One global switch, saved in `user://voodoo_mode.json`: "💀 Skull
+mode" in the hub's Options screen, and a "💀 Voodoo" button in the ⚙ drawer
+of games that support it. Its header comment is the how-to.
+
+- So far: Tic-Tac-Toe (crossbones vs skulls), Connect Four (red skulls vs
+  yellow dolls), Reversi (black skulls with red eyes vs white skulls).
+  Pieces keep each player's color, so turn/result text and stats keys don't
+  change meaning; only the displayed names do ("Bones", "Skull", "Doll").
+- **Load it, never preload it** (`VOODOO_PATH`, `var voodoo = null`), like
+  GameInfo: packs also run on apps before v0.21, which keep plain pieces.
+- A game opts in by defining `_set_voodoo(on)` (re-skin + re-render in
+  place). The ⚙ drawer shows the toggle only then, and calls it instead of
+  reloading the scene, so an online match keeps going.
+- Each player's skin is local: online opponents can see different pieces.
+
+## Options screen + Settings autoload -- since v0.21.0
+
+The hub's "⚙ Options" button (replacing the old 🌐 / 💀 header buttons) opens
+`scenes/hub/options.tscn` (`scripts/hub/options_screen.gd`): text size,
+theme, language, skull mode, sound, vibration, keep screen on, account,
+check for updates, send feedback (GitHub issues). Values live in the
+`Settings` autoload (`scripts/common/settings.gd`, `user://settings.json`);
+its header comment is the how-to.
+
+- **Text size works through `root.content_scale_factor`** (Normal 1.0 /
+  Large 1.2 / Extra large 1.4; new installs start at Large because players
+  everywhere found 1.0 too small). It reaches every game and every pack
+  with no game code -- but many games have fixed-pixel parts laid out for
+  720 wide, so `Settings._fit_scene()` measures each new screen (on
+  `SceneTree.scene_changed`) and backs the scale off just enough to fit,
+  never below 1.0. As of v0.21 Wordle, Crossword and Anagrams fit only
+  ~1.0 (fixed-width keyboards) and Blackjack, Block Drop, Liar's Dice and
+  Morris ~1.1-1.2: making their fixed sizes follow the viewport width is
+  how to give them the full size. New UI should size from the viewport,
+  not assume 720.
+- **Theme** covers the hub and Options only (`Settings.palette()`, keys
+  like `bg`, `text`, `accent`, `link`, `ready`...). Games keep their own
+  colors -- a games-wide light theme would mean touching every game.
+- **Sound** mutes the Master audio bus. The app has no sounds yet; any
+  added later obey the toggle with no extra code.
+- **Vibration**: `Settings` connects every `BaseButton.pressed` in the tree
+  (`node_added`) to a 12 ms tick, and GameInfo buzzes 70 ms on a win
+  (`celebrate()`) or loss. Needs `permissions/vibrate=true` in the Android
+  preset. Games must not reference `Settings` directly:
+  `get_node_or_null("/root/Settings")` (packs run on older apps).
+- **Drag-to-scroll** for lists of buttons is `scripts/common/drag_scroll.gd`
+  (child of a ScrollContainer; tap handlers check its `moved`); dialogs
+  over such a list join the `modal_overlay` group.
+- `python tools/hub.py test` boots the Options screen too.
+
 ## Scoping your work: hub vs. a specific game
 
 The only thing connecting a game to the hub is its `manifest.json` entry (a
@@ -208,6 +295,8 @@ references.
      reset it on exit (see Gotchas below for why).
    - `add_child(SettingsDrawer.new())` as the **last** child of `_build_ui()` —
      gives every game the floating settings tab (timer, rotate, screenshot, hub).
+     Just before it, the GameInfo block (see "How to Play + stats") with the
+     game's `<id>_help.gd`, and record results/records at the game's end.
    - A "Hub" button reachable at all times, in addition to the settings drawer.
    - If the game has meaningful mid-session state worth resuming, save/load via
      `SaveUtil` (see `solitaire_game.gd` for the full pause/save/resume pattern).
@@ -369,6 +458,17 @@ tool directly for anything needing real PowerShell semantics, not
 - **`await get_tree().create_timer(...)` in a scene**: if the player leaves
   before it fires, the coroutine resumes into a freed scene. Use the node's
   own `create_tween()` or a child `Timer` — both die with the scene.
+- **`set_anchors_preset()` on a node already in the tree keeps its size**
+  (a full-rect preset from `_ready()` leaves a 0×0 Control). Use
+  `set_anchors_and_offsets_preset()` there. SettingsDrawer had this until
+  v0.20: its ⚙ tab was drawn off-screen above the top-left corner.
+- **Tests and the PC build share `%APPDATA%\Godot\app_userdata\Voodoo`**:
+  `hub.py test` and any headless test script read and write the same saves,
+  best scores and stats the user plays with. Back that folder up before a
+  test that finishes games, and restore it afterwards. Every run also
+  refreshes the user's Supabase session (refresh tokens rotate), so a
+  killed or failed run can sign them out of the PC build -- an old
+  `auth_session.json` from a backup doesn't help; they sign in again.
 - **Settings drawer "Rotate Screen"** reloads the scene, whose `_ready()`
   re-locks its default orientation — which used to undo the rotation
   instantly. `Orientation.override_next()` makes that one next lock rotate.

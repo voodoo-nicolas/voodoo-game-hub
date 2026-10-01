@@ -7,6 +7,9 @@ const SeaEngine = preload("res://scripts/games/sea_battle/sea_battle_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_WATER := Color(0.1, 0.25, 0.42)
 const COLOR_GRID := Color(0.18, 0.36, 0.56)
@@ -15,6 +18,8 @@ const COLOR_HIT := Color(0.95, 0.35, 0.2)
 const COLOR_SUNK := Color(0.45, 0.12, 0.1)
 const COLOR_MISS := Color(0.75, 0.85, 0.95)
 
+var result_recorded := false  # this game's result is already in the stats
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: SeaEngine
 var enemy_board: Control
 var own_board: Control
@@ -129,9 +134,13 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/sea_battle/sea_battle_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
+	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game()
 	player_turn = true
@@ -197,7 +206,7 @@ func _cpu_shot() -> void:
 func _finish() -> void:
 	player_turn = false
 	var won: bool = engine.winner == 0
-	end_dialog.get_meta("message_label").text = tr("Victory! Their fleet is sunk.") if won else tr("Defeat. Your fleet is sunk.")
+	end_dialog.get_meta("message_label").text = (tr("Victory! Their fleet is sunk.") if won else tr("Defeat. Your fleet is sunk.")) + _record_result("win" if won else "loss")
 	end_dialog.visible = true
 
 # ---------- drawing ----------
@@ -241,3 +250,14 @@ func _draw_own() -> void:
 	if engine.ship_at[0].is_empty():
 		return
 	_draw_grid(own_board, 0, true)
+
+
+## Records this game's result in the stats once (end checks can run again
+## after a game is over) and returns the recap line for the end screen.
+func _record_result(outcome: String) -> String:
+	if not info:
+		return ""
+	if not result_recorded:
+		result_recorded = true
+		info.result(outcome)
+	return "\n" + info.summary()

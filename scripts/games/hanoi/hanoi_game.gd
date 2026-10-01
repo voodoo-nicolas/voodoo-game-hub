@@ -7,12 +7,16 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://hanoi_best.json"
 const DISC_COLORS := [Color(0.95, 0.3, 0.3), Color(0.98, 0.6, 0.2), Color(0.98, 0.85, 0.25),
 	Color(0.4, 0.85, 0.4), Color(0.3, 0.75, 0.95), Color(0.45, 0.45, 0.95), Color(0.75, 0.45, 0.95),
 	Color(0.95, 0.45, 0.75)]
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: HanoiEngine
 var board: Control
 var moves_label: Label
@@ -115,6 +119,9 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/hanoi/hanoi_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _change_discs(delta: int) -> void:
@@ -190,5 +197,11 @@ func _on_solved() -> void:
 	var msg := tr("%d moves") % engine.moves
 	if engine.moves == engine.optimal_moves():
 		msg += "\n" + tr("A perfect solve!")
+	if info:
+		info.add("Puzzles solved")
+		info.celebrate("Solved!")
+		if engine.moves == engine.optimal_moves():
+			info.add("Perfect solves")
+		info.high("Most discs solved", engine.discs)
 	win_dialog.get_meta("message_label").text = msg
 	win_dialog.visible = true

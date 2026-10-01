@@ -8,6 +8,9 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://box_pusher.json"
 const COLOR_WALL := Color(0.32, 0.26, 0.36)
@@ -17,6 +20,7 @@ const COLOR_BOX := Color(0.85, 0.6, 0.25)
 const COLOR_BOX_DONE := Color(0.35, 0.8, 0.4)
 const COLOR_PLAYER := Color(0.35, 0.75, 1.0)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: BoxEngine
 var board: Control
 var level_label: Label
@@ -131,6 +135,10 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/box_pusher/box_pusher_help.gd"))
+		add_child(info)
+		info.high("Highest level unlocked", unlocked)
 	add_child(SettingsDrawer.new())
 
 func _build_dpad() -> Control:
@@ -186,6 +194,10 @@ func _on_move(dir_index: int) -> void:
 			SaveUtil.write(SAVE_PATH, {"unlocked": unlocked, "level": level})
 			_refresh()
 			win_dialog.get_meta("message_label").text = tr("%d moves, %d pushes") % [engine.moves, engine.pushes]
+			if info:
+				info.add("Levels solved")
+				info.celebrate("Solved!")
+				info.high("Highest level unlocked", unlocked)
 			win_dialog.visible = true
 
 func _refresh() -> void:

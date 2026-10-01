@@ -3,9 +3,13 @@ extends Control
 const ThreeManEngine = preload("res://scripts/games/three_man/three_man_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const DIE_FACES := ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"]
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var num_players: int = 4
 
@@ -72,6 +76,9 @@ func _build_ui() -> void:
 	_build_setup(root)
 	_build_tiebreak(root)
 	_build_play(root)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/three_man/three_man_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _build_setup(root: VBoxContainer) -> void:
@@ -232,6 +239,8 @@ func _show_setup() -> void:
 	play_box.visible = false
 
 func _on_start_pressed() -> void:
+	if info:
+		info.add("Games played")
 	engine.reset(num_players)
 	setup_box.visible = false
 	play_box.visible = false
@@ -272,6 +281,8 @@ func _update_turn_display() -> void:
 
 func _on_roll_pressed() -> void:
 	var result: Dictionary = engine.roll_turn()
+	if info:
+		info.add("Rolls")
 	dice_label.text = "%s %s" % [DIE_FACES[result.die1], DIE_FACES[result.die2]]
 	messages_label.text = "\n".join(result.messages)
 	three_man_label.text = tr("3 Man: Player %d") % (engine.three_man + 1) if engine.three_man >= 0 else tr("3 Man: not assigned yet")

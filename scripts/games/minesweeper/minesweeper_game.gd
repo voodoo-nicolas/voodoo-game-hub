@@ -9,6 +9,9 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://minesweeper_best.json"
 const COLOR_BG := Color(0.09, 0.09, 0.13)
@@ -20,6 +23,7 @@ const NUMBER_COLORS := [
 	Color(0.2, 0.1, 0.6), Color(0.55, 0.1, 0.1), Color(0.1, 0.5, 0.55), Color(0.1, 0.1, 0.1), Color(0.4, 0.4, 0.4),
 ]
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var difficulty: String = "easy"
 var flag_mode: bool = false
@@ -75,6 +79,11 @@ func _build_ui() -> void:
 	result_label = result_dialog.get_meta("message_label")
 	add_child(result_dialog)
 
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/minesweeper/minesweeper_help.gd"))
+		add_child(info)
+		for d in best_times:
+			info.low("Best time (%s)" % str(d).capitalize(), float(best_times[d]))
 	add_child(SettingsDrawer.new())
 
 func _top_bar(parent: Control, show_new: bool) -> void:
@@ -258,6 +267,10 @@ func _flag(r: int, c: int) -> void:
 func _finish(won: bool) -> void:
 	timer_running = false
 	var msg: String
+	if info:
+		info.result("win" if won else "loss")
+		if won:
+			info.low("Best time (%s)" % difficulty.capitalize(), elapsed)
 	if won:
 		var best = best_times.get(difficulty)
 		var is_record: bool = best == null or elapsed < float(best)

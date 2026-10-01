@@ -3,61 +3,95 @@ extends Control
 const Version = preload("res://scripts/common/version.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const Config = preload("res://scripts/common/config.gd")
+const DragScroll = preload("res://scripts/common/drag_scroll.gd")
+const Mist = preload("res://scripts/common/mist.gd")
+## The VOODOO title art (skull in a top hat, purple smoke). Its black backdrop
+## was faded to transparent so the mist shows through. If it's ever missing,
+## the hub falls back to the plain text title.
+const BANNER_PATH := "res://assets/hub/banner.png"
+const BANNER_HEIGHT := 330.0
 
 ## The game catalog itself lives in manifest.json (see the Catalog autoload),
 ## not here -- this file only draws it.
 
-const NEON_GREEN := Color(0.15, 1.0, 0.55)
-const NEON_GREEN_DIM := Color(0.08, 0.45, 0.28)
-const BG_BLACK := Color(0.015, 0.035, 0.03)
-
-## Category headers are electric blue so the tier rows read as a different kind
-## of thing from the game tiles underneath them, which are colored by state:
-## green = ready to play right now, red = needs downloading first,
-## gray = not built yet. One glance should tell you what you can tap.
-const ELECTRIC_BLUE := Color(0.15, 0.68, 1.0)
-const ELECTRIC_BLUE_DIM := Color(0.06, 0.26, 0.45)
-const STATE_READY := Color(0.15, 1.0, 0.55)
-const STATE_DOWNLOAD := Color(1.0, 0.32, 0.34)
-const STATE_SOON := Color(0.42, 0.46, 0.48)
-const STATE_APP_UPDATE := Color(1.0, 0.75, 0.2)
+## Colors come from Settings.palette() (dark or light theme, chosen in
+## Options). Category headers use "link" (electric blue) so the tier rows read
+## as a different kind of thing from the game tiles underneath them, which are
+## colored by state: "ready" green = play right now, "download" red = needs
+## downloading first, "update" amber = needs a newer app, "soon" gray = not
+## built yet. One glance should tell you what you can tap.
+var pal: Dictionary
 
 ## Height the category rows collapse to once one is expanded, plus roughly how
 ## much vertical space the VOODOO header + margins eat. Only used to decide how
 ## tall the rows grow to fill the screen when nothing is expanded.
 const HEADER_HEIGHT_COMPACT := 104.0
-## VOODOO title + version + account row + the list's own bottom margin, in the
+## Banner + version + account row + the list's own bottom margin, in the
 ## 720x1280 design space. Constant across devices: stretch mode scales these
 ## logical sizes, so only the viewport's logical height varies.
-const HEADER_CHROME_HEIGHT := 245.0
+const HEADER_CHROME_HEIGHT := 470.0
 const LIST_SEPARATION := 14
 
 var list_container: VBoxContainer
 var expanded_index: int = -1
 var account_status_label: Label
 var account_status_btn: Button
-var language_btn: Button
 ## Set while a tap is being resolved (manifest check, download, mount), so a
 ## second tap -- on the same tile or another -- can't start a parallel flow.
 var busy: bool = false
 var download_overlay: Control
+var list_scroll: ScrollContainer
+## Drag-anywhere scrolling; tap handlers ignore a press that became a drag.
+var drag: Node
 
 func _ready() -> void:
 	Orientation.lock_portrait()
+	pal = Settings.palette()
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 0)
 	add_child(root)
 
-	var bg := ColorRect.new()
-	bg.color = BG_BLACK
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Dark theme: the whole screen is drifting mist. Light theme: a plain
+	# background, with the mist only behind the banner so the art never sits
+	# on white.
+	var bg: Control
+	if Settings.is_light():
+		bg = ColorRect.new()
+		bg.color = pal.bg
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	else:
+		bg = Mist.new()
 	add_child(bg)
 	move_child(bg, 0)
 
+	var banner_panel := PanelContainer.new()
+	banner_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	banner_panel.custom_minimum_size = Vector2(0, BANNER_HEIGHT)
+	root.add_child(banner_panel)
+	if Settings.is_light():
+		banner_panel.add_child(Mist.new())
+	if ResourceLoader.exists(BANNER_PATH):
+		var banner := TextureRect.new()
+		banner.texture = load(BANNER_PATH)
+		banner.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		banner.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		banner_panel.add_child(banner)
+	else:
+		var title := Label.new()
+		title.text = "VOODOO"
+		title.add_theme_font_size_override("font_size", 76)
+		title.add_theme_color_override("font_color", pal.accent)
+		title.add_theme_color_override("font_outline_color", Color(pal.accent, 0.5 * pal.glow))
+		title.add_theme_constant_override("outline_size", 12)
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		banner_panel.add_child(title)
+
 	var header := MarginContainer.new()
-	header.add_theme_constant_override("margin_top", 36)
-	header.add_theme_constant_override("margin_bottom", 20)
+	header.add_theme_constant_override("margin_top", 6)
+	header.add_theme_constant_override("margin_bottom", 16)
 	header.add_theme_constant_override("margin_left", 14)
 	header.add_theme_constant_override("margin_right", 14)
 	root.add_child(header)
@@ -66,18 +100,10 @@ func _ready() -> void:
 	header_box.add_theme_constant_override("separation", 2)
 	header.add_child(header_box)
 
-	var title := Label.new()
-	title.text = "VOODOO"
-	title.add_theme_font_size_override("font_size", 76)
-	title.add_theme_color_override("font_color", NEON_GREEN)
-	title.add_theme_color_override("font_outline_color", Color(NEON_GREEN.r, NEON_GREEN.g, NEON_GREEN.b, 0.5))
-	title.add_theme_constant_override("outline_size", 12)
-	header_box.add_child(title)
-
 	var version_label := Label.new()
 	version_label.text = tr("v%s (build %d)") % [Version.VERSION, Version.BUILD_NUMBER]
 	version_label.add_theme_font_size_override("font_size", 20)
-	version_label.add_theme_color_override("font_color", Color(0.4, 0.6, 0.5))
+	version_label.add_theme_color_override("font_color", pal.version)
 	header_box.add_child(version_label)
 
 	var account_row := HBoxContainer.new()
@@ -86,31 +112,38 @@ func _ready() -> void:
 
 	account_status_label = Label.new()
 	account_status_label.add_theme_font_size_override("font_size", 22)
-	account_status_label.add_theme_color_override("font_color", Color(0.6, 0.85, 0.7))
+	account_status_label.add_theme_color_override("font_color", pal.account)
+	# Takes the free space but clips a long name, so Options never gets pushed
+	# off-screen (at large text sizes the row is tight).
+	account_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	account_status_label.clip_text = true
 	account_row.add_child(account_status_label)
 
 	account_status_btn = Button.new()
 	account_status_btn.flat = true
 	account_status_btn.add_theme_font_size_override("font_size", 22)
-	account_status_btn.add_theme_color_override("font_color", ELECTRIC_BLUE)
+	account_status_btn.add_theme_color_override("font_color", pal.link)
 	account_status_btn.pressed.connect(_on_account_status_pressed)
 	account_row.add_child(account_status_btn)
 
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	account_row.add_child(spacer)
-
-	# Shows the language you'd switch TO, in that language -- the one word a
-	# person who can't read the current language will still recognize.
-	language_btn = Button.new()
-	language_btn.flat = true
-	language_btn.add_theme_font_size_override("font_size", 24)
-	language_btn.add_theme_color_override("font_color", ELECTRIC_BLUE)
-	language_btn.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	language_btn.pressed.connect(Lang.toggle)
-	account_row.add_child(language_btn)
-	Lang.changed.connect(_on_language_changed.unbind(1))
-	_update_language_button()
+	# Language, text size, theme, skull mode, sound, vibration... all live in
+	# Options. A bordered pill, not flat text, so it's easy to find.
+	var options_btn := Button.new()
+	options_btn.text = tr("⚙ Options")
+	options_btn.add_theme_font_size_override("font_size", 26)
+	options_btn.add_theme_color_override("font_color", pal.accent)
+	options_btn.add_theme_color_override("font_hover_color", pal.accent)
+	options_btn.add_theme_color_override("font_pressed_color", pal.accent)
+	var opt_sb := _neon_style(pal.header_fill, pal.accent, 0.5)
+	opt_sb.content_margin_left = 18
+	opt_sb.content_margin_right = 18
+	opt_sb.content_margin_top = 6
+	opt_sb.content_margin_bottom = 6
+	for state in ["normal", "hover", "pressed", "focus"]:
+		options_btn.add_theme_stylebox_override(state, opt_sb)
+	options_btn.focus_mode = Control.FOCUS_NONE
+	options_btn.pressed.connect(_open_options)
+	account_row.add_child(options_btn)
 
 	# .unbind(2) rather than a lambda on purpose: Godot only auto-disconnects a
 	# signal when the connected Callable points at the freed object. A lambda is
@@ -125,6 +158,9 @@ func _ready() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(scroll)
+	list_scroll = scroll
+	drag = DragScroll.new()
+	scroll.add_child(drag)
 
 	list_container = VBoxContainer.new()
 	list_container.add_theme_constant_override("separation", LIST_SEPARATION)
@@ -148,16 +184,8 @@ func _ready() -> void:
 	if not Catalog.app_update_checked:
 		Catalog.check_app_update(_show_update_dialog)
 
-func _update_language_button() -> void:
-	var other: String = "en" if Lang.current == "es" else "es"
-	language_btn.text = "🌐 " + Lang.NAMES[other]
-
-## Text set through tr() (names, formatted strings) doesn't re-translate on
-## its own; rebuilding the list and labels picks up the new language.
-func _on_language_changed() -> void:
-	_update_language_button()
-	_update_account_status()
-	_rebuild_list()
+func _open_options() -> void:
+	get_tree().change_scene_to_file("res://scenes/hub/options.tscn")
 
 func _update_account_status() -> void:
 	if Auth.is_logged_in():
@@ -188,9 +216,17 @@ func _neon_style(fill: Color, border: Color, glow_strength: float) -> StyleBoxFl
 	sb.border_width_right = 2
 	sb.border_width_bottom = 2
 	sb.border_color = border
-	sb.shadow_color = Color(border.r, border.g, border.b, glow_strength)
+	sb.shadow_color = Color(border.r, border.g, border.b, glow_strength * pal.glow)
 	sb.shadow_size = 10
 	return sb
+
+## A panel fill tinted with `color` but nearly opaque: a see-through fill
+## lets the glow (drawn behind the panel) shine through and wash the panel
+## out to a pale pastel that white text can't be read on.
+func _tinted_fill(color: Color) -> Color:
+	if Settings.is_light():
+		return color.lerp(Color(1, 1, 1), 0.85)
+	return Color(color.lerp(Color(0.03, 0.0, 0.06), 0.72), 0.93)
 
 ## Accordion: rebuilds the whole category list from scratch each time it's toggled.
 ## Only expanded_index's games are shown, so opening one category collapses any other.
@@ -228,6 +264,8 @@ func _rebuild_list() -> void:
 				section.add_child(_make_tile(game))
 
 func _toggle_category(index: int) -> void:
+	if drag.moved:
+		return
 	expanded_index = -1 if expanded_index == index else index
 	_rebuild_list()
 
@@ -242,15 +280,15 @@ func _make_section_header(category: Dictionary, index: int, row_height: float) -
 	panel.custom_minimum_size = Vector2(0, row_height)
 	var sb: StyleBoxFlat
 	if is_open:
-		sb = _neon_style(Color(ELECTRIC_BLUE.r, ELECTRIC_BLUE.g, ELECTRIC_BLUE.b, 0.4), ELECTRIC_BLUE, 1.0)
+		sb = _neon_style(_tinted_fill(pal.link), pal.link, 1.0)
 	else:
-		sb = _neon_style(Color(0.03, 0.09, 0.16), ELECTRIC_BLUE_DIM, 0.5)
+		sb = _neon_style(pal.header_fill, pal.link_dim, 0.5)
 	sb.content_margin_left = 24
 	sb.content_margin_right = 24
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 20)
+	row.add_theme_constant_override("separation", 14)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_child(row)
 
@@ -264,23 +302,29 @@ func _make_section_header(category: Dictionary, index: int, row_height: float) -
 	var name_label := Label.new()
 	name_label.text = Lang.pick(category, "name").to_upper()
 	name_label.add_theme_font_size_override("font_size", 36)
-	name_label.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else ELECTRIC_BLUE)
+	name_label.add_theme_color_override("font_color", pal.header_open_text if is_open else pal.link)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.clip_text = true
+	# Wraps to a second line rather than cutting off at large text sizes.
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(name_label)
 
 	var count_label := Label.new()
-	count_label.text = "%d/%d" % [available_count, category.games.size()]
+	# Just "22" when every game in it is real; "3/5" only while some are
+	# "coming soon". Short, so long category names fit at large text sizes.
+	if available_count == category.games.size():
+		count_label.text = str(available_count)
+	else:
+		count_label.text = "%d/%d" % [available_count, category.games.size()]
 	count_label.add_theme_font_size_override("font_size", 24)
-	count_label.add_theme_color_override("font_color", Color(0.9, 0.97, 1.0) if is_open else Color(0.45, 0.65, 0.8))
+	count_label.add_theme_color_override("font_color", pal.count_open if is_open else pal.count)
 	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(count_label)
 
 	var chevron := Label.new()
 	chevron.text = "▾" if is_open else "▸"
 	chevron.add_theme_font_size_override("font_size", 36)
-	chevron.add_theme_color_override("font_color", Color(1, 1, 1) if is_open else ELECTRIC_BLUE)
+	chevron.add_theme_color_override("font_color", pal.header_open_text if is_open else pal.link)
 	chevron.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(chevron)
 
@@ -304,25 +348,25 @@ func _make_tile(game: Dictionary) -> Control:
 	var tag_text := ""
 	match state:
 		Catalog.STATE_READY:
-			state_color = STATE_READY
+			state_color = pal.ready
 			tag_text = tr("▶ Play")
 		Catalog.STATE_DOWNLOAD:
-			state_color = STATE_DOWNLOAD
+			state_color = pal.download
 			tag_text = tr("⬇ Download")
 		Catalog.STATE_NEEDS_APP_UPDATE:
-			state_color = STATE_APP_UPDATE
+			state_color = pal.update
 			tag_text = tr("⬆ Update app")
 		_:
-			state_color = STATE_SOON
+			state_color = pal.soon
 			tag_text = tr("Coming soon")
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 128)
 	var sb: StyleBoxFlat
 	if available:
-		sb = _neon_style(Color(state_color.r, state_color.g, state_color.b, 0.22), state_color, 0.6)
+		sb = _neon_style(_tinted_fill(state_color), state_color, 0.6)
 	else:
-		sb = _neon_style(Color(0.05, 0.06, 0.06), Color(0.25, 0.28, 0.29), 0.0)
+		sb = _neon_style(pal.soon_fill, pal.soon_border, 0.0)
 	sb.content_margin_left = 24
 	sb.content_margin_right = 24
 	panel.add_theme_stylebox_override("panel", sb)
@@ -343,7 +387,7 @@ func _make_tile(game: Dictionary) -> Control:
 	var label := Label.new()
 	label.text = Lang.pick(game, "title")
 	label.add_theme_font_size_override("font_size", 34)
-	label.add_theme_color_override("font_color", Color(1, 1, 1) if available else Color(0.5, 0.55, 0.53))
+	label.add_theme_color_override("font_color", pal.text if available else pal.soon_text)
 	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -376,7 +420,7 @@ func _make_tile(game: Dictionary) -> Control:
 ## already knows whether an update exists. Offline, a downloaded game just
 ## launches, and a failed update download falls back to the copy on disk.
 func _on_tile_pressed(id: String) -> void:
-	if busy:
+	if busy or drag.moved:
 		return
 	var game: Dictionary = Catalog.get_game(id)
 	if game.is_empty():
@@ -452,7 +496,7 @@ func _build_download_overlay(status_text: String, id: String) -> Control:
 	var overlay: Control = parts[0]
 	var box: VBoxContainer = parts[1]
 
-	var status_label := _dialog_label(status_text, 30, Color(1, 1, 1))
+	var status_label := _dialog_label(status_text, 30, pal.text)
 	box.add_child(status_label)
 
 	var progress_bar := ProgressBar.new()
@@ -483,7 +527,7 @@ func _show_dialog(title_text: String, message: String, buttons: Array) -> void:
 	var parts: Array = _build_dialog_frame(title_text)
 	var overlay: Control = parts[0]
 	var box: VBoxContainer = parts[1]
-	box.add_child(_dialog_label(message, 28, Color(0.85, 0.9, 0.87)))
+	box.add_child(_dialog_label(message, 28, pal.card_message))
 	for spec in buttons:
 		var btn := _dialog_button(spec.text)
 		btn.pressed.connect(_on_dialog_button.bind(overlay, spec.action))
@@ -498,16 +542,17 @@ func _on_dialog_button(overlay: Control, action: Callable) -> void:
 ## Returns [overlay, content_box]. Sized for the 720x1280 design space.
 func _build_dialog_frame(title_text: String) -> Array:
 	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.85)
+	overlay.color = pal.overlay
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_to_group("modal_overlay")  # stops the list's drag-scrolling
 
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
 
 	var panel := PanelContainer.new()
-	var sb := _neon_style(Color(0.06, 0.1, 0.09), NEON_GREEN, 0.7)
+	var sb := _neon_style(pal.card_fill, pal.accent, 0.7)
 	sb.content_margin_left = 32
 	sb.content_margin_right = 32
 	sb.content_margin_top = 28
@@ -521,7 +566,7 @@ func _build_dialog_frame(title_text: String) -> Array:
 	panel.add_child(box)
 
 	if title_text != "":
-		box.add_child(_dialog_label(title_text, 40, NEON_GREEN))
+		box.add_child(_dialog_label(title_text, 40, pal.accent))
 	return [overlay, box]
 
 func _dialog_label(text: String, font_size: int, color: Color) -> Label:

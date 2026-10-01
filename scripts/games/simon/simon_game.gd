@@ -4,6 +4,9 @@ const SimonEngine = preload("res://scripts/games/simon/simon_engine.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://simon_best.json"
 
@@ -12,6 +15,7 @@ const PAD_DIM := 0.45
 const FLASH_DURATION := 0.4
 const GAP_DURATION := 0.2
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
 var accepting_input: bool = false
 var playing_sequence: bool = false
@@ -112,6 +116,11 @@ func _build_ui() -> void:
 		pads.append(pad)
 
 	_build_start_dialog()
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/simon/simon_help.gd"))
+		add_child(info)
+		if best_level > 0:
+			info.high("Best level", best_level)
 	add_child(SettingsDrawer.new())
 
 func _set_pad_color(pad: PanelContainer, i: int, lit: bool) -> void:
@@ -228,6 +237,9 @@ func _on_pad_pressed(i: int) -> void:
 			pause_timer.timeout.connect(_next_round)
 		"wrong":
 			accepting_input = false
+			if info:
+				info.add("Games played")
+				info.best("Best level", best_level)
 			game_over_label.text = tr("Game Over — reached level %d") % engine.level
 			status_label.text = ""
 			start_dialog.visible = true
@@ -251,5 +263,7 @@ func _load_best() -> void:
 
 func _on_best_reconciled(merged: int) -> void:
 	best_level = merged
+	if info:
+		info.high("Best level", merged)
 	SaveUtil.write(BEST_PATH, {"best_level": merged})
 	_update_best_label()

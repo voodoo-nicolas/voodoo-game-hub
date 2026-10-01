@@ -36,6 +36,8 @@ var display_name: String = ""
 var _refresh_waiters: Array[Callable] = []
 
 func _ready() -> void:
+	# Keep working while a game is paused (GameInfo pauses the tree).
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_load_session()
 	if refresh_token != "":
 		_refresh_session(Callable())  # silent background refresh on launch

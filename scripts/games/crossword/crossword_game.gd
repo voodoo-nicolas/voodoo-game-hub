@@ -7,6 +7,9 @@ const CWEngine = preload("res://scripts/games/crossword/crossword_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
+## and the game must still run there (without the ? button).
+const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const COLOR_CELL := Color(0.97, 0.97, 0.94)
 const COLOR_WORD := Color(0.8, 0.9, 1.0)
@@ -14,6 +17,7 @@ const COLOR_CURSOR := Color(1.0, 0.85, 0.35)
 const COLOR_INK := Color(0.1, 0.1, 0.14)
 const COLOR_WRONG := Color(0.85, 0.15, 0.15)
 
+var info = null  # GameInfo; null on apps without it, so guard every use
 var engine: CWEngine
 var board: Control
 var clue_label: Label
@@ -133,6 +137,9 @@ func _build_ui() -> void:
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
 	add_child(win_dialog)
+	if ResourceLoader.exists(GAME_INFO_PATH):
+		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/crossword/crossword_help.gd"))
+		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _tool_button(text: String, action: Callable) -> Button:
@@ -154,6 +161,8 @@ func _key(label: String, value: String) -> Button:
 
 func _start_new_game() -> void:
 	engine.new_puzzle(spanish)
+	if info:
+		info.start_clock()
 	win_dialog.visible = false
 	show_wrong = false
 	var first: Dictionary = engine.entries[0]
@@ -194,7 +203,18 @@ func _on_key(value: String) -> void:
 		if cursor != end:
 			cursor += d
 		if engine.is_solved():
+			var secs := 0.0
+			var record := false
+			if info:
+				info.add("Puzzles solved")
+				info.celebrate("Solved!")
+				secs = info.stop_clock()
+				record = info.low("Best time", secs)
 			win_dialog.get_meta("message_label").text = tr("Every word is right.")
+			if info:
+				win_dialog.get_meta("message_label").text += "\n" + tr("Time: %d:%02d") % [int(secs) / 60, int(secs) % 60]
+				if record:
+					win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
 			win_dialog.visible = true
 	_refresh()
 
