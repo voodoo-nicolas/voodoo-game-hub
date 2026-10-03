@@ -1,6 +1,7 @@
 extends Control
 
 const ChessEngine = preload("res://scripts/games/chess/chess_engine.gd")
+const HomeKit = preload("res://scripts/games/chess/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -14,13 +15,18 @@ const SAVE_PATH := "user://chess_save.json"
 ## run there (without the Online button).
 const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
-const COLOR_DARK_SQUARE := Color(0.35, 0.24, 0.15)
-const COLOR_LIGHT_SQUARE := Color(0.72, 0.6, 0.48)
-const COLOR_SELECTED := Color(1.0, 0.84, 0.04)
-const COLOR_DEST := Color(0.4, 0.9, 0.4, 0.6)
-const COLOR_CHECK := Color(0.9, 0.2, 0.2, 0.75)
-const COLOR_WHITE_PIECE := Color(0.98, 0.98, 0.96)
-const COLOR_BLACK_PIECE := Color(0.08, 0.08, 0.1)
+const COLOR_DARK_SQUARE := Color(0.07, 0.1, 0.2)
+const COLOR_LIGHT_SQUARE := Color(0.15, 0.2, 0.35)
+const COLOR_SELECTED := HomeKit.GOLD
+const COLOR_DEST := HomeKit.LIME
+const COLOR_CHECK := Color("ff3b4f")
+const COLOR_WHITE_PIECE := Color(0.96, 0.99, 1.0)
+const COLOR_BLACK_PIECE := Color(0.05, 0.04, 0.08)
+## Neon outlines: White's pieces glow cyan, Black's magenta.
+const GLOW_WHITE := HomeKit.CYAN
+const GLOW_BLACK := HomeKit.MAGENTA
+const LEVELS := ["Easy", "Medium", "Hard"]
+const CPU_DELAY := 0.35
 
 const PIECE_GLYPHS := {
 	1: "♙", -1: "♟",
@@ -49,12 +55,20 @@ var pending_promotion: Dictionary = {}  # {from, to} awaiting a piece choice
 var squares: Array = []       # 64 Buttons
 var piece_labels: Array = []  # 64 Labels
 var status_label: Label
-var pause_dialog: Control
 var promotion_dialog: Control
 var promotion_buttons: Array = []  # 4 Buttons: Queen, Rook, Bishop, Knight
 var result_dialog: Control
 var result_label: Label
-var online_btn: Button
+var home  # HomeKit
+## -1 = two players on one phone; 0..2 = against the computer, which plays Black.
+var cpu_level: int = -1
+var cpu_timer: Timer
+## The computer thinks in a thread (up to ~1.6 s) so the screen stays alive.
+var cpu_thread: Thread
+## Bumped on every new game, so a reply to an old position is thrown away.
+var cpu_token: int = 0
+var cpu_busy: bool = false
+var rng := RandomNumberGenerator.new()
 ## Online play (null on apps without it). Host plays White, guest Black and
 ## sees the board flipped (Black at the bottom). my_color uses the engine's
 ## WHITE / BLACK; 0 = same-phone play.
@@ -65,10 +79,14 @@ var flipped: bool = false
 func _ready() -> void:
 	preload("res://scripts/games/chess/chess_i18n.gd").install(self)
 	Orientation.lock_portrait()
+	rng.randomize()
 	engine = ChessEngine.new()
 	_build_ui()
-	if not _load_saved_game():
-		_start_new_game()
+	_reset_board()
+
+func _exit_tree() -> void:
+	if cpu_thread and cpu_thread.is_started():
+		cpu_thread.wait_to_finish()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -76,11 +94,8 @@ func _notification(what: int) -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	theme = HomeKit.neon_theme()
+	add_child(HomeKit.backdrop())
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -98,26 +113,30 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = tr("Pause")
+	pause_btn.text = "⏸"
+	pause_btn.custom_minimum_size = Vector2(76, 64)
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
-	title.text = tr("♟️ Chess")
-	title.add_theme_font_size_override("font_size", 31)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.text = tr("Chess")
+	title.add_theme_font_size_override("font_size", 38)
+	title.add_theme_color_override("font_color", Color(0.85, 0.98, 1.0))
+	title.add_theme_color_override("font_outline_color", Color(GLOW_WHITE, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 26)
-	status_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	status_label.add_theme_font_size_override("font_size", 32)
+	status_label.add_theme_color_override("font_color", Color(1, 0.88, 0.6))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(status_label)
 
@@ -136,6 +155,8 @@ func _build_ui() -> void:
 
 	var grid := GridContainer.new()
 	grid.columns = 8
+	grid.add_theme_constant_override("h_separation", 0)
+	grid.add_theme_constant_override("v_separation", 0)
 	board_wrap.add_child(grid)
 
 	squares.resize(64)
@@ -162,20 +183,11 @@ func _build_ui() -> void:
 			sq.add_child(label)
 			piece_labels[idx] = label
 
-	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online_btn = Button.new()
-		online_btn.text = tr("🌐 Play Online")
-		online_btn.custom_minimum_size = Vector2(0, 80)
-		online_btn.add_theme_font_size_override("font_size", 30)
-		online_btn.pressed.connect(func(): online.open_lobby())
-		var btn_margin := MarginContainer.new()
-		btn_margin.add_theme_constant_override("margin_bottom", 40)
-		btn_margin.add_theme_constant_override("margin_left", 60)
-		btn_margin.add_theme_constant_override("margin_right", 60)
-		btn_margin.add_child(online_btn)
-		root.add_child(btn_margin)
+	cpu_timer = Timer.new()
+	cpu_timer.one_shot = true
+	cpu_timer.timeout.connect(_cpu_start)
+	add_child(cpu_timer)
 
-	_build_pause_dialog()
 	_build_promotion_dialog()
 	_build_result_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
@@ -188,59 +200,105 @@ func _build_ui() -> void:
 		add_child(online)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/chess/chess_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
-func _build_pause_dialog() -> void:
-	pause_dialog = ColorRect.new()
-	pause_dialog.color = Color(0, 0, 0, 0.75)
-	pause_dialog.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pause_dialog.mouse_filter = Control.MOUSE_FILTER_STOP
-	pause_dialog.visible = false
-	add_child(pause_dialog)
+func _build_home() -> void:
+	var modes: Array = []
+	for i in LEVELS.size():
+		modes.append({"text": ["🙂 Easy", "😐 Medium", "😈 Hard"][i], "row": "cpu",
+			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_vs_cpu.bind(i)})
+	modes.append({"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_two_player})
+	if online:
+		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": online.open_lobby})
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/chess/chess_help.gd"),
+		"info": info,
+		"accent": GLOW_WHITE,
+		"solo_heading": "vs Computer",
+		"subtitle": "Checkmate the king. Play the computer or a friend.",
+		"logo": _draw_home_logo,
+		"modes": modes,
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Games won against the computer, at any level.",
+		"online": online,
+	})
+	add_child(home)
 
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pause_dialog.add_child(center)
+func _draw_home_logo(c: Control) -> void:
+	var n := 4
+	var k := minf(c.size.y / (n + 0.3), 44.0)
+	var o := Vector2((c.size.x - k * n) / 2.0, (c.size.y - k * n) / 2.0)
+	for y in n:
+		for x in n:
+			if (x + y) % 2 == 1:
+				c.draw_rect(Rect2(o + Vector2(x, y) * k, Vector2(k, k)), Color(HomeKit.BLUE, 0.2))
+	HomeKit.glow_rect(c, Rect2(o, Vector2(k * n, k * n)), HomeKit.BLUE, 2.5)
+	var font := ThemeDB.fallback_font
+	var fs := int(k * 1.5)
+	for spec in [["♚", Vector2(1.45, 2.05), GLOW_BLACK, COLOR_BLACK_PIECE], ["♔", Vector2(2.55, 2.05), GLOW_WHITE, COLOR_WHITE_PIECE]]:
+		var w := font.get_string_size(spec[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var pos: Vector2 = o + spec[1] * k + Vector2(-w / 2.0, font.get_ascent(fs) * 0.5)
+		for g in [[12, 0.12], [6, 0.35], [3, 1.0]]:
+			c.draw_string_outline(font, pos, spec[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, g[0], Color(spec[2], g[1]))
+		c.draw_string(font, pos, spec[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, spec[3])
 
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Ui.panel_style())
-	center.add_child(panel)
+func _new_vs_cpu(level: int) -> void:
+	cpu_level = level
+	SaveUtil.delete(SAVE_PATH)
+	_reset_board()
 
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	panel.add_child(box)
+func _new_two_player() -> void:
+	cpu_level = -1
+	SaveUtil.delete(SAVE_PATH)
+	_reset_board()
 
-	var title := Label.new()
-	title.text = tr("Paused")
-	title.add_theme_font_size_override("font_size", 33)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
+func _vs_cpu() -> bool:
+	return cpu_level >= 0 and not _is_online()
 
-	var resume_btn := Button.new()
-	resume_btn.text = tr("Resume")
-	resume_btn.custom_minimum_size = Vector2(200, 48)
-	resume_btn.pressed.connect(func(): pause_dialog.visible = false)
-	box.add_child(resume_btn)
+func _maybe_cpu() -> void:
+	if game_active and _vs_cpu() and engine.current_player == ChessEngine.BLACK and not cpu_busy:
+		cpu_busy = true
+		cpu_timer.start(CPU_DELAY)
+		_render()
 
-	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
-	restart_btn.custom_minimum_size = Vector2(200, 44)
-	restart_btn.pressed.connect(func():
-		pause_dialog.visible = false
-		_start_new_game()
-	)
-	box.add_child(restart_btn)
+func _cpu_start() -> void:
+	if not game_active or not _vs_cpu():
+		cpu_busy = false
+		return
+	if cpu_thread and cpu_thread.is_started():
+		cpu_thread.wait_to_finish()
+	cpu_thread = Thread.new()
+	cpu_thread.start(_cpu_think.bind(engine.clone(), cpu_level, rng.randi(), cpu_token))
 
-	var exit_btn := Button.new()
-	exit_btn.text = tr("Exit to Hub")
-	exit_btn.custom_minimum_size = Vector2(200, 44)
-	exit_btn.pressed.connect(func():
-		_save_game()
-		get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
-	)
-	box.add_child(exit_btn)
+## Runs in the thread, on a copy of the game.
+func _cpu_think(copy, level: int, seed_value: int, token: int) -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_value
+	var mv: Dictionary = copy.cpu_move(level, r)
+	call_deferred("_cpu_done", mv, token)
+
+func _cpu_done(mv: Dictionary, token: int) -> void:
+	if cpu_thread and cpu_thread.is_started():
+		cpu_thread.wait_to_finish()
+	cpu_busy = false
+	if token != cpu_token or not game_active or mv.is_empty() or engine.current_player != ChessEngine.BLACK:
+		return
+	_apply_move(mv.from, mv.to, ChessEngine.QUEEN)
+
+func _resume_text() -> String:
+	var data = SaveUtil.read(SAVE_PATH)
+	if data == null:
+		return ""
+	var lvl := int(data.get("cpu", -1))
+	return tr("2 Players") if lvl < 0 else tr(LEVELS[clampi(lvl, 0, 2)])
 
 func _build_promotion_dialog() -> void:
 	promotion_dialog = ColorRect.new()
@@ -312,7 +370,7 @@ func _build_result_dialog() -> void:
 
 	var again_btn := Button.new()
 	again_btn.text = tr("Play Again")
-	again_btn.custom_minimum_size = Vector2(200, 48)
+	again_btn.custom_minimum_size = Vector2(320, 64)
 	again_btn.pressed.connect(func():
 		result_dialog.visible = false
 		_start_new_game()
@@ -320,10 +378,13 @@ func _build_result_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	menu_btn.text = tr("🏠 Chess Home")
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	box.add_child(menu_btn)
+
+func _go_home() -> void:
+	home.go_home()
 
 # ---------- game flow ----------
 
@@ -337,20 +398,19 @@ func _start_new_game() -> void:
 
 func _reset_board() -> void:
 	engine.reset()
+	cpu_token += 1
+	cpu_busy = false
+	cpu_timer.stop()
 	game_active = true
 	selected = Vector2i(-1, -1)
 	dest_map = {}
 	pending_promotion = {}
 	result_dialog.visible = false
-	pause_dialog.visible = false
 	promotion_dialog.visible = false
 	_render()
 
 func _on_pause_pressed() -> void:
-	if not game_active:
-		return
-	_save_game()
-	pause_dialog.visible = true
+	home.pause()
 
 ## Screen square -> board square. Black's view is rotated 180 degrees.
 func _view_index(r: int, c: int) -> int:
@@ -361,6 +421,8 @@ func _on_square_pressed(vr: int, vc: int) -> void:
 		return
 	if _is_online() and not online.can_act(engine.current_player == my_color):
 		return
+	if _vs_cpu() and engine.current_player != ChessEngine.WHITE:
+		return  # the computer is thinking
 	var r: int = 7 - vr if flipped else vr
 	var c: int = 7 - vc if flipped else vc
 	var pos := Vector2i(r, c)
@@ -409,6 +471,8 @@ func _apply_move(from: Vector2i, to: Vector2i, promotion_piece: int) -> void:
 	_sfx("capture" if result.is_capture else "place")
 	if result.game_over:
 		_show_result()
+	else:
+		_maybe_cpu()
 
 ## Plays a sound from the app's library (silent on apps from before v0.23).
 func _sfx(sound: String) -> void:
@@ -430,7 +494,8 @@ func _online_state() -> Dictionary:
 func _on_online_started(my_player: int) -> void:
 	my_color = ChessEngine.WHITE if my_player == 1 else ChessEngine.BLACK
 	flipped = my_color == ChessEngine.BLACK
-	online_btn.visible = false
+	cpu_level = -1
+	home.hide_home()
 	_reset_board()
 
 func _on_remote_move(p: Dictionary) -> void:
@@ -485,6 +550,8 @@ func _show_result() -> void:
 	var msg: String = RESULT_MESSAGES.get(engine.result_reason, tr("Game over"))
 	if engine.result_reason == "checkmate" and _is_online():
 		msg += "\n" + online.result_text(engine.winner == my_color)
+	elif engine.result_reason == "checkmate" and _vs_cpu():
+		msg += "\n" + (tr("You win!") if engine.winner == ChessEngine.WHITE else tr("The computer wins!"))
 	elif engine.result_reason == "checkmate":
 		msg += tr("\n%s wins!") % (tr("White") if engine.winner == ChessEngine.WHITE else tr("Black"))
 	result_label.text = msg
@@ -492,11 +559,16 @@ func _show_result() -> void:
 		if _is_online():
 			info.result("draw" if engine.result_reason != "checkmate" else ("win" if engine.winner == my_color else "loss"), true)
 			result_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		elif _vs_cpu():
+			info.result("draw" if engine.result_reason != "checkmate" else ("win" if engine.winner == ChessEngine.WHITE else "loss"))
+			if engine.result_reason == "checkmate" and engine.winner == ChessEngine.WHITE:
+				info.add("Wins (%s)" % LEVELS[cpu_level])
+			result_label.text += "\n" + info.summary(["Wins", "Losses", "Draws"])
 		else:
 			info.add("Draws" if engine.result_reason != "checkmate" else ("White wins" if engine.winner == ChessEngine.WHITE else "Black wins"))
 			if not (engine.result_reason != "checkmate"):
 				info.celebrate(result_label.text.split("\n")[0])
-			result_label.text += "\n" + info.summary()
+			result_label.text += "\n" + info.summary(["White wins", "Black wins"])
 	result_dialog.visible = true
 
 # ---------- rendering ----------
@@ -518,16 +590,14 @@ func _render() -> void:
 			var sq: Button = squares[idx]
 			var is_dark: bool = (r + c) % 2 == 1
 
-			var square_color: Color
+			var edge := Color(0, 0, 0, 0)
 			if pos == selected:
-				square_color = COLOR_SELECTED
+				edge = COLOR_SELECTED
 			elif dest_map.has(pos):
-				square_color = COLOR_DEST
+				edge = COLOR_DEST
 			elif pos == checked_king:
-				square_color = COLOR_CHECK
-			else:
-				square_color = COLOR_DARK_SQUARE if is_dark else COLOR_LIGHT_SQUARE
-			_style_square(sq, square_color)
+				edge = COLOR_CHECK
+			_style_square(sq, COLOR_DARK_SQUARE if is_dark else COLOR_LIGHT_SQUARE, edge)
 
 			var v: int = engine.board[r][c]
 			var label: Label = piece_labels[idx]
@@ -536,7 +606,7 @@ func _render() -> void:
 			else:
 				label.text = PIECE_GLYPHS[v]
 				var piece_color: Color = COLOR_WHITE_PIECE if v > 0 else COLOR_BLACK_PIECE
-				var outline_color: Color = COLOR_BLACK_PIECE if v > 0 else COLOR_WHITE_PIECE
+				var outline_color: Color = GLOW_WHITE if v > 0 else GLOW_BLACK
 				label.add_theme_color_override("font_color", piece_color)
 				label.add_theme_color_override("font_outline_color", outline_color)
 
@@ -546,12 +616,18 @@ func _render() -> void:
 	var side := tr("White") if engine.current_player == ChessEngine.WHITE else tr("Black")
 	if _is_online():
 		status_label.text = online.status_text(engine.current_player == my_color, side + check_suffix)
+	elif _vs_cpu():
+		status_label.text = (tr("Your turn (%s)") % side + check_suffix) if engine.current_player == ChessEngine.WHITE \
+			else tr("Computer is thinking...")
 	else:
 		status_label.text = tr("%s's turn%s") % [side, check_suffix]
 
-func _style_square(sq: Button, color: Color) -> void:
+func _style_square(sq: Button, color: Color, edge: Color = Color(0, 0, 0, 0)) -> void:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
+	sb.bg_color = color if edge.a == 0.0 else color.lerp(edge, 0.28)
+	if edge.a > 0.0:
+		sb.border_color = edge
+		sb.set_border_width_all(3)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		sq.add_theme_stylebox_override(state, sb)
 
@@ -567,11 +643,13 @@ func _save_game() -> void:
 		"en_passant_target": [engine.en_passant_target.x, engine.en_passant_target.y],
 		"halfmove_clock": engine.halfmove_clock,
 		"position_counts": engine.position_counts,
+		"cpu": cpu_level,
 	})
 
 func _load_saved_game() -> bool:
 	var data = SaveUtil.read(SAVE_PATH)
 	if data == null:
+		_reset_board()
 		return false
 
 	var board: Array = []
@@ -604,9 +682,12 @@ func _load_saved_game() -> bool:
 	engine.result_reason = ""
 
 	game_active = true
+	cpu_level = clampi(int(data.get("cpu", -1)), -1, 2)
+	cpu_token += 1
+	cpu_busy = false
 	selected = Vector2i(-1, -1)
 	result_dialog.visible = false
-	pause_dialog.visible = false
 	promotion_dialog.visible = false
 	_render()
+	_maybe_cpu()
 	return true

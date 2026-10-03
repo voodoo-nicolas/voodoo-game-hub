@@ -514,3 +514,197 @@ func _side_has_mating_material(player: int) -> bool:
 	if (bishops_light + bishops_dark) > 0 and knights > 0:
 		return true
 	return false
+
+# ---------- computer opponent ----------
+# Alpha-beta over the same make/unmake the legality filter uses. Depth per
+# level is small (GDScript is slow); a short capture-only search at the
+# leaves stops it from hanging pieces at the horizon.
+
+const _VALUE := [0, 100, 320, 330, 500, 900, 0]
+## Deepest search and thinking time (ms) per level: easy, medium, hard.
+## Iterative deepening: when time runs out, the deepest finished search wins.
+const _CPU_DEPTH := [1, 3, 5]
+const _CPU_BUDGET_MS := [400, 700, 1600]
+const _CPU_SLIP := [0.35, 0.05, 0.0]
+const _Q_DEPTH := [0, 2, 3]
+const _MATE := 100000
+## Centre bonus by distance from the middle, for knights, bishops and the queen.
+const _CENTRE := [
+	[0, 1, 2, 3, 3, 2, 1, 0],
+	[1, 3, 4, 5, 5, 4, 3, 1],
+	[2, 4, 6, 7, 7, 6, 4, 2],
+	[3, 5, 7, 9, 9, 7, 5, 3],
+	[3, 5, 7, 9, 9, 7, 5, 3],
+	[2, 4, 6, 7, 7, 6, 4, 2],
+	[1, 3, 4, 5, 5, 4, 3, 1],
+	[0, 1, 2, 3, 3, 2, 1, 0],
+]
+
+var _q_limit: int = 0
+var _deadline: int = 0
+var _aborted: bool = false
+
+func clone():
+	var e = get_script().new()
+	e.board = []
+	for row in board:
+		e.board.append(row.duplicate())
+	e.current_player = current_player
+	e.castling_rights = castling_rights.duplicate()
+	e.en_passant_target = en_passant_target
+	e.halfmove_clock = halfmove_clock
+	e.game_over = game_over
+	return e
+
+## {from, to} for the side to move, or {} if it has no move. Run it on a
+## clone() -- the game does, in a thread.
+func cpu_move(level: int, rng: RandomNumberGenerator) -> Dictionary:
+	level = clampi(level, 0, 2)
+	var side := current_player
+	var moves := _legal_all(side)
+	if moves.is_empty():
+		return {}
+	if rng.randf() < _CPU_SLIP[level]:
+		var pick: Dictionary = moves[rng.randi() % moves.size()]
+		return {"from": pick.from, "to": pick.move.to}
+	_q_limit = _Q_DEPTH[level]
+	_deadline = Time.get_ticks_msec() + _CPU_BUDGET_MS[level]
+	_aborted = false
+	_order(moves)
+	var chosen: Dictionary = moves[0]
+	for depth in range(1, _CPU_DEPTH[level] + 1):
+		var best_score := -_MATE * 2
+		var best: Array = []
+		var alpha := -_MATE * 2
+		for m in moves:
+			var rec: Dictionary = _make_move_raw(m.from, m.move, QUEEN)
+			var s: int = -_negamax(-side, depth - 1, -_MATE * 2, -alpha + 1, 1)
+			_unmake_move_raw(rec)
+			if _aborted:
+				break
+			m["s"] = s
+			if s > best_score:
+				best_score = s
+				best = [m]
+			elif s == best_score:
+				best.append(m)
+			alpha = maxi(alpha, s)
+		if _aborted or best.is_empty():
+			break
+		chosen = best[rng.randi() % best.size()]
+		if best_score >= _MATE - 100:
+			break  # a forced mate: no need to look further
+		# the next, deeper pass looks at this pass's best moves first
+		moves.sort_custom(func(a, b): return a.get("s", -_MATE * 3) > b.get("s", -_MATE * 3))
+	return {"from": chosen.from, "to": chosen.move.to}
+
+func _negamax(side: int, depth: int, alpha: int, beta: int, ply: int) -> int:
+	if _aborted or Time.get_ticks_msec() > _deadline:
+		_aborted = true
+		return 0
+	if depth <= 0:
+		return _quiesce(side, alpha, beta, _q_limit)
+	var moves := _legal_all(side)
+	if moves.is_empty():
+		return -_MATE + ply if is_in_check(side) else 0
+	_order(moves)
+	for m in moves:
+		var rec: Dictionary = _make_move_raw(m.from, m.move, QUEEN)
+		var s: int = -_negamax(-side, depth - 1, -beta, -alpha, ply + 1)
+		_unmake_move_raw(rec)
+		if s > alpha:
+			alpha = s
+		if alpha >= beta:
+			break
+	return alpha
+
+## Captures only, so a search never stops in the middle of a trade.
+func _quiesce(side: int, alpha: int, beta: int, depth: int) -> int:
+	if _aborted or Time.get_ticks_msec() > _deadline:
+		_aborted = true
+		return 0
+	var stand := _evaluate(side)
+	if depth <= 0 or stand >= beta:
+		return maxi(alpha, stand) if stand < beta else stand
+	alpha = maxi(alpha, stand)
+	var caps: Array = []
+	for m in _legal_all(side):
+		if m.move.is_capture:
+			caps.append(m)
+	_order(caps)
+	for m in caps:
+		var rec: Dictionary = _make_move_raw(m.from, m.move, QUEEN)
+		var s: int = -_quiesce(-side, -beta, -alpha, depth - 1)
+		_unmake_move_raw(rec)
+		if s > alpha:
+			alpha = s
+		if alpha >= beta:
+			break
+	return alpha
+
+func _legal_all(side: int) -> Array:
+	var out: Array = []
+	for r in range(8):
+		for c in range(8):
+			if _owner(board[r][c]) != side:
+				continue
+			var from := Vector2i(r, c)
+			for m in _pseudo_legal_moves_for(r, c):
+				var rec: Dictionary = _make_move_raw(from, m, QUEEN)
+				if not is_in_check(side):
+					out.append({"from": from, "move": m})
+				_unmake_move_raw(rec)
+	return out
+
+## Best-first: big captures by small pieces, then promotions, then the rest.
+func _order(moves: Array) -> void:
+	for m in moves:
+		var key := 0
+		if m.move.is_capture:
+			var victim: int = absi(board[m.move.to.x][m.move.to.y])
+			key = 10 * _VALUE[victim if victim > 0 else PAWN] - _VALUE[absi(board[m.from.x][m.from.y])] / 10 + 1000
+		if m.move.promotes:
+			key += 900
+		m["k"] = key
+	moves.sort_custom(func(a, b): return a.k > b.k)
+
+## Material plus position, from `side`'s point of view. When one side is
+## well ahead with few pieces left, it also gets points for pushing the
+## other king to the edge and bringing its own king close (so it can mate).
+func _evaluate(side: int) -> int:
+	var s := 0
+	var material := 0
+	var pieces := 0
+	var kings := {}
+	for r in range(8):
+		for c in range(8):
+			var v: int = board[r][c]
+			if v == 0:
+				continue
+			var t: int = absi(v)
+			var worth: int = _VALUE[t]
+			match t:
+				PAWN:
+					worth += (6 - r if v > 0 else r - 1) * 6 + (4 if c >= 2 and c <= 5 else 0)
+				KNIGHT, BISHOP:
+					worth += _CENTRE[r][c] * 3
+				QUEEN:
+					worth += _CENTRE[r][c]
+				KING:
+					var home: int = 7 if v > 0 else 0
+					worth += 15 if r == home and (c <= 2 or c >= 6) else (0 if r == home else -10)
+			s += worth if v * side > 0 else -worth
+			if t == KING:
+				kings[1 if v > 0 else -1] = Vector2i(r, c)
+			else:
+				pieces += 1
+				material += _VALUE[t] * (1 if v * side > 0 else -1)
+	if pieces <= 8 and absi(material) >= 300 and kings.size() == 2:
+		var strong: int = side if material > 0 else -side
+		var weak_k: Vector2i = kings[-strong]
+		var strong_k: Vector2i = kings[strong]
+		var edge: int = maxi(absi(weak_k.x * 2 - 7), absi(weak_k.y * 2 - 7))  # 1 centre .. 7 edge
+		var close: int = 14 - (absi(weak_k.x - strong_k.x) + absi(weak_k.y - strong_k.y))
+		var bonus := edge * 10 + close * 4
+		s += bonus if strong == side else -bonus
+	return s
