@@ -60,6 +60,9 @@ var count_label: Label
 var qarea: VBoxContainer
 var pending_start: Dictionary = {}
 var finish_reason := "time"
+var screen_name := ""  # the screen _on_screen_resized redraws
+var last_result: Dictionary = {}
+var fresh_result := true
 
 func _ready() -> void:
 	preload("res://scripts/games/voodoo_iq/voodoo_iq_i18n.gd").install(self)
@@ -72,6 +75,7 @@ func _ready() -> void:
 	setup.dur = int(setup.dur)
 	setup.bdur = int(setup.bdur)
 	_build_ui()
+	get_viewport().size_changed.connect(_on_screen_resized)
 	_show_home()
 
 func _build_ui() -> void:
@@ -172,9 +176,30 @@ func _new_page(scroll: bool) -> VBoxContainer:
 
 ## Size everything from the screen we actually have: the root's width in canvas units
 ## (the text-size setting scales the canvas, and the safe area insets the root).
+## Size everything from the screen we actually have: the visible canvas (the text-size
+## setting scales it: Large leaves 600 of the 720-wide design) minus the safe-area inset
+## Settings puts on this root. Not this Control's own size: content that is too wide
+## stretches it past the screen, which is how options ended up cut off on phones.
 func _fit_width() -> void:
-	W = clampf(size.x - 40.0, 300.0, 680.0)
+	var screen := get_viewport_rect().size.x - offset_left + offset_right
+	W = clampf(screen - 40.0, 280.0, 680.0)
 	Items.W = W
+
+## Settings applies the text size (and safe area) after _ready and when the window
+## turns, so lay the current screen out again whenever the visible width changes.
+## Not mid-test: an item on screen is never rebuilt.
+func _on_screen_resized() -> void:
+	var old := W
+	_fit_width()
+	if absf(W - old) < 1.0 or running or waiting:
+		return
+	match screen_name:
+		"home":
+			_show_home()
+		"boards":
+			_show_boards()
+		"results":
+			_show_results(last_result)
 
 func _toast(msg: String) -> void:
 	toast_label.text = msg
@@ -231,6 +256,7 @@ func _icon(sec: String, size: float) -> Control:
 # ================================================================== HOME (brain menu + setup)
 
 func _show_home() -> void:
+	screen_name = "home"
 	running = false
 	_close_overlays()
 	var box := _new_page(true)
@@ -586,6 +612,7 @@ func _is_blitz() -> bool:
 	return str(session.get("mode", "")) == "blitz"
 
 func _build_runner() -> void:
+	screen_name = "runner"
 	var box := _new_page(true)
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 10)
@@ -828,11 +855,15 @@ func _on_finished(ok: bool, _code: int, data: Dictionary) -> void:
 # ================================================================== RESULTS
 
 func _show_results(res: Dictionary) -> void:
+	screen_name = "results"
+	# a redraw (screen resized) shows the same result: record it and celebrate only once
+	fresh_result = res != last_result
+	last_result = res
 	running = false
 	view = null
 	_close_overlays()
 	var blitz := bool(res.get("blitz", false))
-	if info:
+	if info and fresh_result:
 		info.add("Blitz runs" if blitz else "Tests taken")
 		if blitz:
 			info.high("Best Blitz points", float(res.get("pts", 0.0)))
@@ -879,7 +910,7 @@ func _blitz_results(box: VBoxContainer, res: Dictionary) -> void:
 	p.add_child(facts)
 	if res.get("best", false):
 		p.add_child(_label("★ " + T.t("new_best"), 26, GOOD))
-		if info:
+		if info and fresh_result:
 			info.celebrate(T.t("new_best"))
 	elif res.get("monthBest", false):
 		p.add_child(_label("★ " + T.t("month_best"), 26, GOOD))
@@ -1017,6 +1048,7 @@ var boards := {"tab": "viq", "sec": "LOG", "bscope": "ALL", "bdur": 120, "season
 var board_box: VBoxContainer
 
 func _show_boards() -> void:
+	screen_name = "boards"
 	running = false
 	_close_overlays()
 	var box := _new_page(true)

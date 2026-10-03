@@ -13,6 +13,7 @@ import sessionStart from "../session-start/handler.ts";
 import itemAnswer from "../item-answer/handler.ts";
 import sessionFinish from "../session-finish/handler.ts";
 import blitzSubmit from "../blitz-submit/handler.ts";
+import leaderboard from "../leaderboard/handler.ts";
 
 const ME = "11111111-1111-4111-8111-111111111111", OTHER = "22222222-2222-4222-8222-222222222222";
 const call = (h: (c: Call) => Promise<unknown>, db: FakeDb, uid: string, body: Record<string, any>) => h({ db: db as any, uid, body }) as Promise<any>;
@@ -40,7 +41,7 @@ Deno.test("profile-save: validates and keeps only the age band", async () => {
   assertEquals([kid.age_band, kid.minor], [null, true]);
 });
 
-Deno.test("ranked IQ test: answer loop, finish, section_scores, one ranked attempt per scope per day", async () => {
+Deno.test("ranked IQ test: answer loop, finish, section_scores, retakes allowed", async () => {
   const db = new FakeDb();
   assertEquals((await code(call(sessionStart, db, ME, { mode: "iq", scope: "ALL", dur: 5, ranked: true })))?.code, "no_profile");
   await newPlayer(db);
@@ -84,7 +85,7 @@ Deno.test("ranked IQ test: answer loop, finish, section_scores, one ranked attem
   assertEquals(db.tables.section_scores.length, rows.length);
   assertEquals((await code(call(itemAnswer, db, ME, { session_id: sid, seq: item.seq, value: 0, client_ms: 4000 })))?.code, "session_over");
 
-  assertEquals(await code(call(sessionStart, db, ME, { mode: "iq", scope: "ALL", dur: 5, ranked: true })), { code: "not_eligible", why: "used_today" });
+  assert((await call(sessionStart, db, ME, { mode: "iq", scope: "ALL", dur: 5, ranked: true })).ranked, "ranked IQ has no daily limit");
   assert((await call(sessionStart, db, ME, { mode: "iq", scope: "ALL", dur: 5, ranked: false })).session_id, "practice stays open");
   assert((await call(sessionStart, db, ME, { mode: "iq", scope: "LOG", dur: 5, ranked: true })).session_id, "another scope is its own attempt");
 });
@@ -248,4 +249,44 @@ Deno.test("item-answer judges with the stored key exactly like the generator's c
     await call(itemAnswer, db, ME, { session_id: st.session_id, seq: 0, value: v, client_ms: 8000 });
     assertEquals(db.tables.responses.find((r) => r.session_id === st.session_id && r.seq === 0)!.u, row.answer_key.maxMs < 8000 ? 0 : 1);
   }
+});
+
+Deno.test("leaderboards: section gates, Voodoo IQ verification, Blitz bests, filters, no ids", async () => {
+  const db = new FakeDb();
+  await newPlayer(db);
+  await newPlayer(db, OTHER);
+  const rival = db.tables.profiles.find((p) => p.id === OTHER)!;
+  rival.nick = "Rival";
+  rival.country = "MX";
+  const ago = (n: number) => new Date(Date.now() - n * 864e5);
+  const row = (user: string, sec: string, theta: number, se: number, n: number, days: number) => ({
+    session_id: crypto.randomUUID(), user_id: user, sec, day: ago(days).toISOString().slice(0, 10), theta, se, n,
+    hard: 1, lang: "es", flagged: false, auc: null, bias: null, created_at: ago(days).toISOString(),
+  });
+  db.tables.section_scores = [
+    // ME: LOG / SPA / LIN on two different days, tight and consistent -> verified Voodoo IQ
+    row(ME, "LOG", 1.0, 0.35, 20, 1), row(ME, "SPA", 0.8, 0.35, 20, 1), row(ME, "LIN", 0.9, 0.35, 20, 3),
+    // OTHER: LOG with too few items -> provisional on the LOG board
+    row(OTHER, "LOG", 2.0, 0.6, 8, 2),
+    // older than 90 days: ignored
+    row(OTHER, "SPA", 2.5, 0.2, 40, 120),
+  ];
+  const log = await call(leaderboard, db, ME, { board: "sec", sec: "LOG" });
+  assertEquals(log.rows.map((r: any) => [r.nick, r.me]), [["Nico", true]]);
+  assertEquals(log.provisional.map((r: any) => [r.nick, r.need_items]), [["Rival", 7]]);
+  assert(!JSON.stringify(log).includes(ME) && !JSON.stringify(log).includes(OTHER), "no user ids");
+  assertEquals((await call(leaderboard, db, ME, { board: "sec", sec: "SPA" })).rows.map((r: any) => r.nick), ["Nico"]);
+  const viq = await call(leaderboard, db, ME, { board: "viq" });
+  assertEquals(viq.rows.map((r: any) => r.nick), ["Nico"]);
+  assert(viq.rows[0].score > 100 && viq.rows[0].score < 130);
+  assertEquals((await call(leaderboard, db, ME, { board: "sec", sec: "LOG", country: "MX" })).provisional.map((r: any) => r.nick), ["Rival"]);
+  assertEquals((await call(leaderboard, db, ME, { board: "nine" })).rows, []);
+  db.tables.blitz_best = [
+    { user_id: ME, scope: "ALL", dur_s: 120, season: monthKey(), pts: 12, correct: 14 },
+    { user_id: OTHER, scope: "ALL", dur_s: 120, season: monthKey(), pts: 12, correct: 16 },
+    { user_id: OTHER, scope: "ALL", dur_s: 120, season: "all", pts: 30, correct: 31 },
+  ];
+  assertEquals((await call(leaderboard, db, ME, { board: "blitz", scope: "ALL", dur_s: 120 })).rows.map((r: any) => r.nick), ["Rival", "Nico"]);
+  assertEquals((await call(leaderboard, db, ME, { board: "blitz", scope: "ALL", dur_s: 120, season: "all" })).rows.map((r: any) => r.score), [30]);
+  assertEquals((await code(call(leaderboard, db, ME, { board: "nope" })))?.code, "bad_board");
 });

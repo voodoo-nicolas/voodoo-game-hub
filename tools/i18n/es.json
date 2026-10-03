@@ -2750,5 +2750,9 @@
  "Not solved yet": "Sin resolver aún",
  "Scores: points for each correct square, minus mistakes, plus a time bonus, times the difficulty (Expert ×3).": "Puntaje: puntos por cada casilla correcta, menos los errores, más un bono por tiempo, multiplicado por la dificultad (Experto ×3).",
  "Update the app to see the leaderboards.": "Actualiza la app para ver las clasificaciones.",
- "🏠 Sudoku Home": "🏠 Inicio de Sudoku"
+ "🏠 Sudoku Home": "🏠 Inicio de Sudoku",
+ "Counts for the leaderboard. Your last 3 ranked tests in each section count, so one lucky run can't carry you.": "Cuenta para el ranking. Cuentan tus últimos 3 tests ranked de cada sección, así que una partida con suerte no alcanza.",
+ "This ranked test will be scored with the answers you gave.": "Este test ranked se va a puntuar con las respuestas que diste.",
+ "Ranked counts for the leaderboards: your last 3 ranked tests in each section are combined, and a quit test still counts. Practice is never saved.": "Ranked cuenta para los rankings: se combinan tus últimos 3 tests ranked de cada sección, y un test abandonado igual cuenta. La práctica nunca se guarda.",
+ "🏆 Leaderboards: the Voodoo IQ board, the 9-Mind board, one board per section and the Blitz bests, filtered by age, country and language.": "🏆 Rankings: el de Voodoo IQ, el de 9-Mentes, uno por sección y los mejores Blitz, filtrados por edad, país e idioma."
 }

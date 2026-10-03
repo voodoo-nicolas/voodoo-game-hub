@@ -7,8 +7,10 @@
 // -> Blitz: { session_id, deadline, ..., first_item, items }   (whole batch, no keys)
 //
 // Ranked eligibility (409 { error: "not_eligible", why }): needs a profile with age 16+
-// ("age"); IQ: one ranked attempt per scope per UTC day ("used_today"); Daily Brain:
-// one ranked attempt per UTC day ("daily_done"). Daily and Duel force their own
+// ("age"); Daily Brain: one ranked attempt per UTC day ("daily_done"). Ranked IQ tests
+// are unlimited (the user's decision 2026-10-03, replacing spec §2's one per scope per
+// day): standings combine the last 3 unflagged sessions and rank by estimate - 2 SE,
+// so retakes can't luck a score up much. Daily and Duel force their own
 // scope / time / seed; duels are never ranked and allow one attempt per player.
 // deno-lint-ignore-file no-explicit-any
 
@@ -63,9 +65,6 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
     else if (kind === "daily") {
       const used = must(await db.from("sessions").select("id").eq("user_id", uid).eq("kind", "daily").eq("ranked", true).gte("started_at", todayStart).limit(1)) as any[];
       if (used.length) why = "daily_done";
-    } else if (mode === "iq") {
-      const used = must(await db.from("sessions").select("id").eq("user_id", uid).eq("mode", "iq").eq("ranked", true).eq("scope", scope).gte("started_at", todayStart).limit(1)) as any[];
-      if (used.length) why = "used_today";
     }
     if (why) throw new HttpError(409, "not_eligible", undefined, { why });
   }
