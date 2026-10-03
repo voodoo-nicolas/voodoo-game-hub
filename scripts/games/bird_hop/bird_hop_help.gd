@@ -9,6 +9,7 @@ const HOW := [
 	"Tap anywhere (or press Space) to flap. Gravity pulls you down between taps.",
 	"Every pillar you pass is one point.",
 	"Touching a pillar or the ground ends the run.",
+	"⏸ pauses the game. A round can't be saved for later: leaving it ends it.",
 ]
 const TIPS := [
 	"Short, gentle taps work better than frantic ones.",

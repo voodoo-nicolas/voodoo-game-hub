@@ -242,7 +242,7 @@ func _build_home() -> void:
 	title.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size", 60 if title.text.length() <= 14 else 48)
+	title.add_theme_font_size_override("font_size", _title_size(title.text))
 	title.add_theme_color_override("font_color", accent.lerp(Color.WHITE, 0.72))
 	title.add_theme_color_override("font_outline_color", Color(accent, 0.6))
 	title.add_theme_constant_override("outline_size", 12)
@@ -309,6 +309,20 @@ func _add_modes(box: VBoxContainer, modes: Array, color: Color) -> void:
 			row = null
 			row_id = null
 			box.add_child(b)
+
+## The biggest title size (up to 60) whose longest word fits the screen, so a
+## long name ("Rompeladrillos") shrinks instead of breaking mid-word.
+func _title_size(text: String) -> int:
+	var avail: float = get_viewport_rect().size.x - 100.0
+	var font := ThemeDB.fallback_font
+	var longest := ""
+	for w in text.split(" "):
+		if w.length() > longest.length():
+			longest = w
+	var fs := 60
+	while fs > 30 and font.get_string_size(longest, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail:
+		fs -= 2
+	return fs
 
 func _mode_button(m: Dictionary, default_color: Color) -> Button:
 	var text: String = tr(str(m.get("text", "")))

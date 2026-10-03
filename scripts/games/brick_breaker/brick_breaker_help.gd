@@ -11,6 +11,7 @@ const HOW := [
 	"Darker bricks take two hits.",
 	"Miss the ball and you lose one of your three lives.",
 	"Clear the wall to move on to a new, tougher one. The ball speeds up as you go.",
+	"⏸ pauses the game. A round can't be saved for later: leaving it ends it.",
 ]
 const TIPS := [
 	"Break through one side and get the ball above the wall — it will clear bricks from behind.",

@@ -10,6 +10,7 @@ const HOW := [
 	"Where the ball hits your paddle sets its angle: near the edge sends it off at a sharp angle.",
 	"Every hit makes the ball a little faster.",
 	"Choose Easy, Medium or Hard for the computer.",
+	"⏸ pauses the game. A round can't be saved for later: leaving it ends it.",
 ]
 const TIPS := [
 	"Hit the ball with the edge of your paddle to send it at an angle the computer can't reach.",
