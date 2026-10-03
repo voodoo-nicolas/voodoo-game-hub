@@ -16,7 +16,9 @@ const BG := Color("#07070C")
 const PANEL := Color("#12121C")
 const FG := Color("#EDEDF5")
 const FG2 := Color("#A8A8C0")
-const W := 680.0  # content width inside the 720-wide design
+## Content width, set by the game from the real screen before building (Large text
+## leaves ~600 of the 720-wide design, so nothing may assume 680).
+static var W := 680.0
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -71,7 +73,9 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 
 # ------------------------------------------------------------------ widgets
 
-static func _label(text: String, size: int, color: Color, width: float = W, align := HORIZONTAL_ALIGNMENT_CENTER) -> Label:
+static func _label(text: String, size: int, color: Color, width: float = -1.0, align := HORIZONTAL_ALIGNMENT_CENTER) -> Label:
+	if width < 0.0:
+		width = W
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
@@ -274,7 +278,7 @@ static func _arith(v: ItemView, d: Dictionary) -> void:
 static func _topview(v: ItemView, d: Dictionary) -> void:
 	_prompt(v, T.t("q_topview"), T.t("q_topview_sub"))
 	var stack: Array = d.get("stack", [])
-	v.add_child(_center(_canvas(func(ci, sz): Art.tv_iso(ci, stack, Rect2(Vector2.ZERO, sz)), Vector2(460, 300))))
+	v.add_child(_center(_canvas(func(ci, sz): Art.tv_iso(ci, stack, Rect2(Vector2.ZERO, sz)), Vector2(minf(460, W), 300))))
 	var opts: Array = []
 	for o in d.get("options", []):
 		var g: Array = o
@@ -674,7 +678,7 @@ static func _emo_texts(opts: Array) -> Array:
 static func _face(v: ItemView, d: Dictionary) -> void:
 	var eyes := bool(d.get("eyesOnly", false))
 	_prompt(v, T.t("q_eyes") if eyes else T.t("q_face"))
-	v.add_child(_center(_face_canvas(d.get("params", {}), d.get("face", {}), eyes, 520.0 if eyes else 280.0)))
+	v.add_child(_center(_face_canvas(d.get("params", {}), d.get("face", {}), eyes, minf(520.0, W) if eyes else 280.0)))
 	_mc(v, _emo_texts(d.get("options", [])), 2)
 
 static func _faceodd(v: ItemView, d: Dictionary) -> void:

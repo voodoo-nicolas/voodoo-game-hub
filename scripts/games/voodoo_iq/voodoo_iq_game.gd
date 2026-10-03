@@ -28,7 +28,8 @@ const FG2 := Color("#A8A8C0")
 const ACCENT := Color("#9b4dff")  # voodoo purple (art standard)
 const GOOD := Color("#7dff3a")
 const WARN := Color("#FFAE2B")
-const W := 680.0
+## Content width: the real screen minus margins (see _fit_width), never a fixed 680.
+var W := 680.0
 
 var info = null  # GameInfo; null on apps without it
 var api: Node
@@ -146,6 +147,7 @@ func _panel_of(box: VBoxContainer) -> Control:
 
 ## A fresh full-screen page; with scroll, its content scrolls (drag anywhere).
 func _new_page(scroll: bool) -> VBoxContainer:
+	_fit_width()
 	for c in page.get_children():
 		c.queue_free()
 	var margin := MarginContainer.new()
@@ -168,8 +170,16 @@ func _new_page(scroll: bool) -> VBoxContainer:
 		margin.add_child(box)
 	return box
 
+## Size everything from the screen we actually have: the root's width in canvas units
+## (the text-size setting scales the canvas, and the safe area insets the root).
+func _fit_width() -> void:
+	W = clampf(size.x - 40.0, 300.0, 680.0)
+	Items.W = W
+
 func _toast(msg: String) -> void:
 	toast_label.text = msg
+	toast_label.offset_left = -W / 2
+	toast_label.offset_right = W / 2
 	toast_label.visible = true
 	toast_label.modulate.a = 1.0
 	var tw := toast_label.create_tween()
@@ -184,6 +194,7 @@ func _sfx(sound: String) -> void:
 
 ## A dialog card over everything; returns its content box. Close with _close_overlays().
 func _overlay() -> VBoxContainer:
+	_fit_width()
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.8)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -231,6 +242,7 @@ func _show_home() -> void:
 	brand.add_child(_neon_title("VOODOO IQ", 48))
 	brand.add_child(_label(T.t("tagline"), 22, FG2))
 	top.add_child(brand)
+	top.add_child(_button("🏆", _show_boards, WARN, Vector2(70, 60), 26))
 	top.add_child(_button("👤", _show_profile_form, FG2, Vector2(70, 60), 26))
 	box.add_child(top)
 
@@ -302,13 +314,15 @@ func _show_home() -> void:
 	rk.add_theme_font_size_override("font_size", 26)
 	rk.toggled.connect(_set_ranked)
 	sp.add_child(rk)
-	var note: String = (T.t("ranked_iq_note") if iq_mode else T.t("ranked_blitz_note")) if setup.ranked else T.t("practice_note")
+	# not the prototype's ranked_iq_note: ranked IQ has no daily limit any more (user, 2026-10-03)
+	var note: String = (tr("Counts for the leaderboard. Your last 3 ranked tests in each section count, so one lucky run can't carry you.") if iq_mode else T.t("ranked_blitz_note")) if setup.ranked else T.t("practice_note")
 	sp.add_child(_label(note, 19, FG2, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	var start_text := "▶ %s · %s" % [T.t("start"), T.t("iqtest") if iq_mode else T.t("blitz")]
 	sp.add_child(_button(start_text, _start_from_setup, GOOD, Vector2(0, 90), 32))
 	if scope in ["LIN", "EXI", "ALL"]:
 		sp.add_child(_label(T.t("lang_note", {"l": "Español" if T.lang() == "es" else "English"}), 18, FG2, W - 40))
 	box.add_child(_panel_of(sp))
+	box.add_child(_button("🏆 " + T.t("nav_boards"), _show_boards, WARN, Vector2(0, 76), 28))
 
 	# how scoring works
 	var hp := _panel()
@@ -773,7 +787,7 @@ func _skip() -> void:
 func _confirm_quit() -> void:
 	var box := _overlay()
 	box.add_child(_label(T.t("quit_q"), 34, Color.WHITE))
-	box.add_child(_label(T.t("quit_ranked") if session.get("ranked", false) else T.t("quit_practice"), 22, FG, W - 80))
+	box.add_child(_label(tr("This ranked test will be scored with the answers you gave.") if session.get("ranked", false) else T.t("quit_practice"), 22, FG, W - 80))
 	box.add_child(_button(T.t("keep_going"), _close_overlays, GOOD))
 	box.add_child(_button(T.t("quit_score"), func():
 		_close_overlays()
@@ -842,6 +856,7 @@ func _show_results(res: Dictionary) -> void:
 	home.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(home)
 	box.add_child(row)
+	box.add_child(_button("🏆 " + T.t("nav_boards"), _show_boards, WARN, Vector2(0, 72), 26))
 	box.add_child(_label(T.t("footer"), 17, FG2, W))
 
 func _stat(parent: Container, lab: String, value: String) -> void:
@@ -990,4 +1005,207 @@ func _verify_list(v: Dictionary) -> Control:
 	rows.append([verified, T.t("chk_verified") if verified else T.t("chk_unverified")])
 	for r in rows:
 		p.add_child(_label(("✓  " if r[0] else "○  ") + r[1], 20, GOOD if r[0] else FG, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+	return _panel_of(p)
+
+# ================================================================== LEADERBOARDS
+
+const AGE_BANDS := ["16-24", "25-34", "35-44", "45-54", "55+"]
+const BOARD_TABS := [["viq", "b_viq"], ["nine", "b_nine"], ["sec", "b_sec"], ["blitz", "blitz"]]
+
+## Board settings, like the prototype's S.boards (kept while the scene lives).
+var boards := {"tab": "viq", "sec": "LOG", "bscope": "ALL", "bdur": 120, "season": "month", "age": "", "country": "", "province": "", "lang": "", "show_prov": false}
+var board_box: VBoxContainer
+
+func _show_boards() -> void:
+	running = false
+	_close_overlays()
+	var box := _new_page(true)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.add_child(_button("◀", _show_home, FG2, Vector2(70, 60), 26))
+	var title := _neon_title("🏆 " + T.t("nav_boards"), 36)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(title)
+	box.add_child(top)
+	# board tabs
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 6)
+	for tb in BOARD_TABS:
+		tabs.add_child(_seg_button(T.t(tb[1]), "tab", tb[0]))
+	box.add_child(tabs)
+	if boards.tab == "sec":
+		box.add_child(_board_chips("sec", T.secs()))
+	elif boards.tab == "blitz":
+		var scopes: Array = ["ALL"]
+		for s in T.secs():
+			if s != "SELF":
+				scopes.append(s)
+		box.add_child(_board_chips("bscope", scopes))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		for dv in T.data().get("BLITZ_DURS", []):
+			var d := int(dv)
+			row.add_child(_seg_button("%d min" % (d / 60), "bdur", d))
+		box.add_child(row)
+		var row2 := HBoxContainer.new()
+		row2.add_theme_constant_override("separation", 6)
+		row2.add_child(_seg_button(T.t("this_month"), "season", "month"))
+		row2.add_child(_seg_button(T.t("all_time"), "season", "all"))
+		box.add_child(row2)
+	# filters: age, country, province (Argentina), verbal language
+	var filters := GridContainer.new()
+	filters.columns = 2
+	filters.add_theme_constant_override("h_separation", 10)
+	filters.add_theme_constant_override("v_separation", 6)
+	var ages: Array = [["", T.t("any")]]
+	for a in AGE_BANDS:
+		ages.append([a, a])
+	_board_filter(filters, T.t("age"), "age", ages)
+	var countries: Array = [["", T.t("world")]]
+	for c in T.data().get("COUNTRIES", []):
+		countries.append([c, TranslationServer.get_country_name(c)])
+	_board_filter(filters, T.t("country"), "country", countries)
+	if boards.country == "AR":
+		var provs: Array = [["", T.t("all_provinces")]]
+		for pv in T.data().get("AR_PROV", []):
+			provs.append([pv, pv])
+		_board_filter(filters, T.t("province"), "province", provs)
+	if boards.tab == "viq" or (boards.tab == "sec" and boards.sec == "LIN"):
+		_board_filter(filters, T.t("verbal_lang"), "lang", [["", T.t("any")], ["es", "Español"], ["en", "English"]])
+	box.add_child(filters)
+	box.add_child(_label(T.t("bnote_" + str(boards.tab)), 18, FG2, W, HORIZONTAL_ALIGNMENT_LEFT))
+	board_box = VBoxContainer.new()
+	board_box.add_theme_constant_override("separation", 10)
+	board_box.add_child(_label(T.t("loading"), 24, FG2, W))
+	box.add_child(board_box)
+	var req := {"board": boards.tab, "age": boards.age, "country": boards.country, "province": boards.province, "lang": boards.lang}
+	if boards.tab == "sec":
+		req.sec = boards.sec
+	if boards.tab == "blitz":
+		req.scope = boards.bscope
+		req.dur_s = boards.bdur
+		req.season = boards.season
+	api.call_fn("leaderboard", req, _on_board)
+
+func _set_board(key: String, value) -> void:
+	boards[key] = value
+	if key == "country":
+		boards.province = ""
+	_show_boards()
+
+func _seg_button(text: String, key: String, value) -> Button:
+	var on: bool = boards[key] == value
+	var b := _button(text, _set_board.bind(key, value), GOOD if on else FG2, Vector2(0, 56), 20)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if on:
+		b.add_theme_stylebox_override("normal", Items.box_style(Color(GOOD, 0.22), GOOD, 3))
+	return b
+
+func _board_chips(key: String, secs: Array) -> GridContainer:
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	for s in secs:
+		var col := Color.WHITE if s == "ALL" else T.sec_color(s)
+		var b := _button(T.t("short_all") if s == "ALL" else T.t("short_" + s), _set_board.bind(key, s), col, Vector2((W - 12) / 3.0, 54), 19)
+		if boards[key] == s:
+			b.add_theme_stylebox_override("normal", Items.box_style(Color(col, 0.28), col, 3))
+		grid.add_child(b)
+	return grid
+
+func _board_filter(grid: GridContainer, label: String, key: String, options: Array) -> void:
+	grid.add_child(_label(label, 20, FG2, 0, HORIZONTAL_ALIGNMENT_LEFT))
+	var ob := OptionButton.new()
+	ob.add_theme_font_size_override("font_size", 20)
+	ob.custom_minimum_size = Vector2(W * 0.6, 50)
+	for i in options.size():
+		ob.add_item(str(options[i][1]))
+		ob.set_item_metadata(i, options[i][0])
+		if options[i][0] == boards[key]:
+			ob.select(i)
+	ob.item_selected.connect(_on_filter_picked.bind(ob, key))
+	grid.add_child(ob)
+
+func _on_filter_picked(i: int, ob: OptionButton, key: String) -> void:
+	_set_board(key, ob.get_item_metadata(i))
+
+func _on_board(ok: bool, _code: int, data: Dictionary) -> void:
+	if board_box == null or not is_instance_valid(board_box):
+		return
+	for c in board_box.get_children():
+		c.queue_free()
+	if not ok:
+		board_box.add_child(_label(_error_text(data), 22, WARN, W))
+		return
+	var ranked: Array = data.get("rows", [])
+	var prov: Array = data.get("provisional", [])
+	if ranked.is_empty():
+		board_box.add_child(_label(T.t("board_empty"), 24, FG, W))
+	else:
+		board_box.add_child(_board_table(ranked, false))
+	if not prov.is_empty():
+		var tp := _board_table(prov, true)
+		tp.visible = bool(boards.show_prov)
+		board_box.add_child(_button(T.t("provisional_n", {"n": prov.size()}), _toggle_prov.bind(tp), FG2, Vector2(0, 60), 20))
+		board_box.add_child(tp)
+
+func _toggle_prov(tp: Control) -> void:
+	boards.show_prov = not tp.visible
+	tp.visible = boards.show_prov
+
+## The prototype's boardTable: # | player (+ you / 130+, place · age) | rank score,
+## points or status | estimate ± or correct answers.
+func _board_table(rows: Array, prov: bool) -> Control:
+	var p := _panel(Color("#2A2A3E") if prov else ACCENT)
+	var blitz: bool = boards.tab == "blitz"
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 8)
+	var name_w := maxf(140.0, W - 300.0)
+	for h in ["#", T.t("player"), T.t("points") if blitz else (T.t("status") if prov else T.t("rank_score")), T.t("correct") if blitz else T.t("estimate")]:
+		grid.add_child(_label(h, 17, FG2))
+	for i in rows.size():
+		var r: Dictionary = rows[i]
+		var me := bool(r.get("me", false))
+		var col := GOOD if me else Color.WHITE
+		grid.add_child(_label("–" if prov else str(i + 1), 22, col))
+		var who := VBoxContainer.new()
+		var nick := str(r.get("nick", "—"))
+		if me:
+			nick += "  (" + T.t("you") + ")"
+		if r.get("genius", false):
+			nick += "  ★130+"
+		who.add_child(_label(nick, 22, col, name_w, HORIZONTAL_ALIGNMENT_LEFT))
+		var loc: Array = []
+		for k in ["country", "province", "age_band"]:
+			var v = r.get(k, null)
+			if v != null and str(v) != "" and str(v) != "XX":
+				loc.append(str(v))
+		if not loc.is_empty():
+			who.add_child(_label(" · ".join(loc), 16, FG2, name_w, HORIZONTAL_ALIGNMENT_LEFT))
+		grid.add_child(who)
+		var main := ""
+		if blitz:
+			main = "%.1f" % float(r.get("score", 0.0))
+		elif prov:
+			if r.has("sections"):
+				main = "%d/9" % int(r.sections)
+			elif int(r.get("need_items", 0)) > 0:
+				main = T.t("need_items", {"n": int(r.need_items)})
+			elif r.has("need_items"):
+				main = T.t("need_precision")
+			else:
+				main = T.t("provisional")
+		else:
+			main = str(int(round(float(r.get("score", 0.0)))))
+		grid.add_child(_label(main, 16 if prov else 24, col, 110.0 if prov else 0.0))
+		var est := "—"
+		if blitz:
+			est = str(int(r.get("correct", 0)))
+		elif r.get("theta", null) != null:
+			est = "%s ±%d" % [T.fmt_iq(float(r.theta)), int(round(15 * float(r.get("se", 0.0))))]
+		grid.add_child(_label(est, 20, FG))
+	p.add_child(grid)
 	return _panel_of(p)

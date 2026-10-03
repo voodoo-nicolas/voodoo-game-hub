@@ -6,6 +6,9 @@ extends Control
 ## into the tray below. Tap a checker, then a highlighted point.
 
 const BgEngine = preload("res://scripts/games/backgammon/backgammon_engine.gd")
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://backgammon_save.json"
+const HomeKit = preload("res://scripts/games/backgammon/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -15,16 +18,19 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const HUMAN := 0
 const CPU := 1
-const COLOR_FELT := Color(0.12, 0.3, 0.2)
-const COLOR_FRAME := Color(0.35, 0.22, 0.12)
-const COLOR_TRI_A := Color(0.78, 0.62, 0.42)
-const COLOR_TRI_B := Color(0.55, 0.18, 0.15)
-const COLOR_WHITE := Color(0.96, 0.94, 0.88)
-const COLOR_BLACK := Color(0.14, 0.14, 0.16)
-const COLOR_HILITE := Color(0.35, 0.9, 1.0)
+const COLOR_FELT := Color(0.04, 0.06, 0.13)
+const COLOR_FRAME := Color(0.16, 0.08, 0.3)
+const COLOR_TRI_A := Color(0.16, 0.45, 0.6)
+const COLOR_TRI_B := Color(0.55, 0.12, 0.45)
+const COLOR_WHITE := Color(0.95, 0.98, 1.0)
+const COLOR_BLACK := Color(0.07, 0.05, 0.1)
+const RIM_WHITE := Color("29e6ff")
+const RIM_BLACK := Color("ff2bd6")
+const COLOR_HILITE := Color("7dff3a")
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: BgEngine
 var board: Control
 var status_label: Label
@@ -41,6 +47,10 @@ var turn_start: Dictionary = {}
 var selected: int = -1        # relative source, BgEngine.BAR for the bar
 var legal: Array = []
 var cpu_moves: Array = []
+## Two players on one phone: Black is a person, not the computer.
+var two_player: bool = false
+## The position when the computer's turn began (what a save keeps).
+var cpu_start: Dictionary = {}
 
 func _ready() -> void:
 	preload("res://scripts/games/backgammon/backgammon_i18n.gd").install(self)
@@ -52,9 +62,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -71,9 +80,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🎲 Backgammon")
@@ -82,7 +92,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_start_new_game)
 	bar.add_child(restart_btn)
@@ -128,11 +140,13 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/backgammon/backgammon_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -151,16 +165,30 @@ func _start_new_game() -> void:
 	_begin_human_turn()
 
 func _begin_human_turn() -> void:
-	turn = HUMAN
+	_begin_turn(HUMAN)
+
+## A person's turn: White, or Black in a two-player game.
+func _begin_turn(side: int) -> void:
+	turn = side
 	dice = []
 	rolled = []
+	selected = -1
+	legal = []
 	roll_btn.disabled = false
 	undo_btn.disabled = true
-	status_label.text = tr("Your turn — roll the dice.")
+	status_label.text = _side_text(tr("Your turn — roll the dice."), tr("Black's turn — roll the dice."))
 	board.queue_redraw()
 
+func _side_text(white: String, black: String) -> String:
+	if not two_player:
+		return white
+	return (tr("White: %s") % white) if turn == HUMAN else black
+
+func _is_person_turn() -> bool:
+	return turn == HUMAN or (turn == CPU and two_player)
+
 func _on_roll() -> void:
-	if turn != HUMAN or not dice.is_empty():
+	if not _is_person_turn() or not dice.is_empty():
 		return
 	dice = BgEngine.roll_dice()
 	rolled = dice.duplicate()
@@ -170,23 +198,30 @@ func _on_roll() -> void:
 	if legal.is_empty():
 		status_label.text = tr("No legal moves — turn passes.")
 		dice = []
-		_schedule_cpu(1.2)
+		_end_person_turn(1.2)
 	else:
-		status_label.text = tr("Tap a white checker to move it.")
+		status_label.text = _side_text(tr("Tap a white checker to move it."), tr("Tap a black checker to move it."))
 	board.queue_redraw()
 
+func _end_person_turn(delay: float) -> void:
+	if two_player:
+		cpu_timer.stop()
+		_begin_turn(CPU if turn == HUMAN else HUMAN)
+	else:
+		_schedule_cpu(delay)
+
 func _refresh_legal() -> void:
-	legal = BgEngine.legal_moves(engine.state, HUMAN, dice) if not dice.is_empty() else []
-	undo_btn.disabled = engine.state == turn_start or turn != HUMAN
+	legal = BgEngine.legal_moves(engine.state, turn, dice) if not dice.is_empty() else []
+	undo_btn.disabled = engine.state == turn_start or not _is_person_turn()
 
 func _on_undo() -> void:
-	if turn != HUMAN or turn_start.is_empty():
+	if not _is_person_turn() or turn_start.is_empty():
 		return
 	engine.state = turn_start
 	dice = rolled.duplicate()
 	selected = -1
 	_refresh_legal()
-	status_label.text = tr("Tap a white checker to move it.")
+	status_label.text = _side_text(tr("Tap a white checker to move it."), tr("Tap a black checker to move it."))
 	board.queue_redraw()
 
 func _targets_from(from: int) -> Array:
@@ -197,7 +232,7 @@ func _targets_from(from: int) -> Array:
 	return out
 
 func _do_human_move(m: Array) -> void:
-	engine.state = BgEngine.apply(engine.state, HUMAN, m[0], m[1])
+	engine.state = BgEngine.apply(engine.state, turn, m[0], m[1])
 	dice.erase(m[1])
 	selected = -1
 	_refresh_legal()
@@ -207,18 +242,20 @@ func _do_human_move(m: Array) -> void:
 	if legal.is_empty():
 		dice = []
 		undo_btn.disabled = true
-		status_label.text = tr("Computer's turn...")
-		_schedule_cpu(0.8)
+		if not two_player:
+			status_label.text = tr("Computer's turn...")
+		_end_person_turn(0.8)
 
 func _schedule_cpu(delay: float) -> void:
 	turn = CPU
+	cpu_start = engine.state
 	undo_btn.disabled = true
 	cpu_moves = []
 	cpu_timer.wait_time = delay
 	cpu_timer.start()
 
 func _cpu_step() -> void:
-	if turn != CPU:
+	if turn != CPU or two_player:
 		return
 	if dice.is_empty() and cpu_moves.is_empty():
 		dice = BgEngine.roll_dice()
@@ -263,12 +300,20 @@ func _check_winner() -> bool:
 	var kind := BgEngine.win_kind(engine.state, w)
 	var kinds := [tr("a single game"), tr("a gammon"), tr("a backgammon")]
 	var msg: String
-	if w == HUMAN:
+	SaveUtil.delete(SAVE_PATH)
+	if two_player:
+		msg = (tr("White wins %s!") if w == HUMAN else tr("Black wins %s!")) % kinds[kind - 1]
+		if info and not result_recorded:
+			result_recorded = true
+			info.add("White wins" if w == HUMAN else "Black wins")
+			info.celebrate(msg)
+	elif w == HUMAN:
 		msg = tr("You win %s!") % kinds[kind - 1]
 	else:
 		msg = tr("The computer wins %s.") % kinds[kind - 1]
-	msg += _record_result("win" if w == HUMAN else "loss")
-	if info and w == HUMAN and kind > 1:
+	if not two_player:
+		msg += _record_result("win" if w == HUMAN else "loss")
+	if info and w == HUMAN and kind > 1 and not two_player:
 		info.add("Gammons won")
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
@@ -326,23 +371,26 @@ func _draw_board() -> void:
 	var top_tray := Rect2(x0, 0, w, g.tray_h - 6)
 	var bottom_tray := Rect2(x0, g.y0 + full_h + 10, w, g.tray_h - 6)
 	var bear_target: bool = selected >= 0 and _targets_from(selected).any(func(m): return m[0] - m[1] < 0)
-	board.draw_rect(top_tray, Color(0.2, 0.15, 0.1))
-	board.draw_rect(bottom_tray, Color(0.3, 0.45, 0.5) if bear_target else Color(0.2, 0.15, 0.1))
+	var tray_off := Color(0.1, 0.06, 0.18)
+	var tray_on := Color(COLOR_HILITE, 0.25)
+	board.draw_rect(top_tray, tray_on if bear_target and turn == CPU else tray_off)
+	board.draw_rect(bottom_tray, tray_on if bear_target and turn == HUMAN else tray_off)
 	_draw_tray_checkers(top_tray, s.off[CPU], COLOR_BLACK)
 	_draw_tray_checkers(bottom_tray, s.off[HUMAN], COLOR_WHITE)
 	if bear_target:
-		board.draw_string(font, Vector2(bottom_tray.position.x, bottom_tray.get_center().y + 9), tr("Tap here to bear off"),
-			HORIZONTAL_ALIGNMENT_RIGHT, bottom_tray.size.x - 12, 24, COLOR_HILITE)
+		var tray := bottom_tray if turn == HUMAN else top_tray
+		board.draw_string(font, Vector2(tray.position.x, tray.get_center().y + 9), tr("Tap here to bear off"),
+			HORIZONTAL_ALIGNMENT_RIGHT, tray.size.x - 12, 26, COLOR_HILITE)
 
 	var targets: Array = []
 	if selected >= 0:
 		for m in _targets_from(selected):
 			if m[0] - m[1] >= 0:
-				targets.append(BgEngine.idx(HUMAN, m[0] - m[1]))
+				targets.append(BgEngine.idx(turn, m[0] - m[1]))
 	var sources: Array = []
 	for m in legal:
 		if m[0] != BgEngine.BAR:
-			sources.append(BgEngine.idx(HUMAN, m[0]))
+			sources.append(BgEngine.idx(turn, m[0]))
 
 	for point in 24:
 		var cr := _point_row(point)
@@ -368,9 +416,9 @@ func _draw_board() -> void:
 			board.draw_string(font, c + Vector2(-r, r * 0.4), str(n), HORIZONTAL_ALIGNMENT_CENTER, r * 2, int(r * 1.1),
 				Color(0.1, 0.1, 0.1) if count > 0 else Color(1, 1, 1))
 		var home_c := Vector2(base_x + dir * (r + 2), y + row_h / 2.0)
-		if point in sources and turn == HUMAN:
+		if point in sources and _is_person_turn():
 			board.draw_arc(home_c, r + 3, 0, TAU, 28, Color(COLOR_HILITE, 0.6), 2)
-		if selected >= 0 and selected != BgEngine.BAR and BgEngine.idx(HUMAN, selected) == point:
+		if selected >= 0 and selected != BgEngine.BAR and BgEngine.idx(turn, selected) == point:
 			board.draw_arc(home_c, r + 4, 0, TAU, 28, COLOR_HILITE, 5)
 
 	# bar band with dice and checkers on the bar
@@ -382,7 +430,8 @@ func _draw_board() -> void:
 	for k in s.bar[CPU]:
 		_draw_checker(Vector2(x0 + w - br - 6 - k * br * 1.6, band.get_center().y), br, false)
 	if selected == BgEngine.BAR:
-		board.draw_arc(Vector2(x0 + br + 6, band.get_center().y), br + 4, 0, TAU, 28, COLOR_HILITE, 4)
+		var bx: float = x0 + br + 6 if turn == HUMAN else x0 + w - br - 6
+		board.draw_arc(Vector2(bx, band.get_center().y), br + 4, 0, TAU, 28, COLOR_HILITE, 4)
 	var ds: float = g.bar_h * 0.8
 	var dx: float = x0 + w / 2.0 - (rolled.size() * (ds + 8)) / 2.0
 	var remaining: Array = dice.duplicate()
@@ -392,9 +441,11 @@ func _draw_board() -> void:
 		_draw_die(Rect2(dx + i * (ds + 8), band.get_center().y - ds / 2.0, ds, ds), rolled[i], used)
 
 func _draw_checker(c: Vector2, r: float, white: bool) -> void:
+	var rim: Color = RIM_WHITE if white else RIM_BLACK
+	board.draw_circle(c, r + 2, Color(rim, 0.25))
 	board.draw_circle(c, r, COLOR_WHITE if white else COLOR_BLACK)
-	board.draw_arc(c, r, 0, TAU, 24, Color(0.45, 0.45, 0.45), 1.5)
-	board.draw_arc(c, r * 0.6, 0, TAU, 24, Color(0.6, 0.6, 0.6, 0.6), 1.0)
+	board.draw_arc(c, r, 0, TAU, 24, rim, 2.0, true)
+	board.draw_arc(c, r * 0.6, 0, TAU, 24, Color(rim, 0.45), 1.0, true)
 
 func _draw_tray_checkers(rect: Rect2, n: int, col: Color) -> void:
 	for k in n:
@@ -417,13 +468,14 @@ func _draw_die(rect: Rect2, v: int, used: bool) -> void:
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if turn != HUMAN or legal.is_empty():
+	if not _is_person_turn() or legal.is_empty():
 		return
 	var g := _geom()
 	var pos: Vector2 = event.position
 	var full_h: float = 12 * g.row_h + g.bar_h
-	# bottom tray = bear off
-	if pos.y > g.y0 + full_h + 4 and selected >= 0:
+	# White bears off into the bottom tray, Black into the top one
+	var in_tray: bool = pos.y > g.y0 + full_h + 4 if turn == HUMAN else pos.y < g.y0 - 4
+	if in_tray and selected >= 0:
 		var offs := _targets_from(selected).filter(func(m): return m[0] - m[1] < 0)
 		if not offs.is_empty():
 			offs.sort_custom(func(a, b): return a[1] < b[1])
@@ -432,14 +484,14 @@ func _on_board_input(event: InputEvent) -> void:
 	# bar band
 	var band_y: float = g.y0 + 6 * g.row_h
 	if pos.y >= band_y and pos.y <= band_y + g.bar_h:
-		if engine.state.bar[HUMAN] > 0:
+		if engine.state.bar[turn] > 0:
 			selected = BgEngine.BAR
 			board.queue_redraw()
 		return
 	var point := _point_at(g, pos)
 	if point < 0:
 		return
-	var rel := BgEngine.idx(HUMAN, point)
+	var rel := BgEngine.idx(turn, point)
 	if selected >= 0:
 		for m in _targets_from(selected):
 			if m[0] - m[1] == rel:
@@ -447,7 +499,7 @@ func _on_board_input(event: InputEvent) -> void:
 				return
 	if not _targets_from(rel).is_empty():
 		selected = rel
-	elif engine.state.bar[HUMAN] > 0 and not _targets_from(BgEngine.BAR).is_empty():
+	elif engine.state.bar[turn] > 0 and not _targets_from(BgEngine.BAR).is_empty():
 		selected = BgEngine.BAR
 	else:
 		selected = -1
@@ -463,3 +515,125 @@ func _record_result(outcome: String) -> String:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/backgammon/backgammon_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/backgammon/backgammon_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Race your checkers home and bear them off first.",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "🤖 vs Computer", "sub": "You play White", "action": _new_game.bind(false)},
+			{"text": "👥 2 Players", "sub": "White and Black share one phone", "multi": true, "action": _new_game.bind(true)},
+		],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Games won against the computer.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.9, 170.0)
+	var w := h * 1.3
+	var o := Vector2((c.size.x - w) / 2.0, (c.size.y - h) / 2.0)
+	HomeKit.glow_rect(c, Rect2(o, Vector2(w, h)), HomeKit.PURPLE, 2.5, 0.06)
+	var n := 6
+	var tw := w / n
+	for i in n:
+		var col: Color = HomeKit.CYAN if i % 2 == 0 else HomeKit.MAGENTA
+		var top := PackedVector2Array([o + Vector2(i * tw + 3, 4), o + Vector2((i + 1) * tw - 3, 4), o + Vector2((i + 0.5) * tw, h * 0.42)])
+		var bot := PackedVector2Array([o + Vector2(i * tw + 3, h - 4), o + Vector2((i + 1) * tw - 3, h - 4), o + Vector2((i + 0.5) * tw, h * 0.58)])
+		c.draw_colored_polygon(top, Color(col, 0.18))
+		c.draw_colored_polygon(bot, Color(HomeKit.MAGENTA if i % 2 == 0 else HomeKit.CYAN, 0.18))
+		HomeKit.glow_polyline(c, top, col, 1.5, true)
+	var r := tw * 0.36
+	for k in 3:
+		_logo_checker(c, o + Vector2(tw * 0.5, h - r - 6 - k * r * 1.9), r, true)
+		_logo_checker(c, o + Vector2(tw * 4.5, r + 6 + k * r * 1.9), r, false)
+	_logo_checker(c, o + Vector2(tw * 2.5, r + 6), r, true)
+
+func _logo_checker(c: Control, p: Vector2, r: float, white: bool) -> void:
+	c.draw_circle(p, r, COLOR_WHITE if white else COLOR_BLACK)
+	HomeKit.glow_circle(c, p, r, RIM_WHITE if white else RIM_BLACK, 1.5)
+
+func _new_game(two: bool) -> void:
+	two_player = two
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+## The computer's turn is saved as it began, and replays from there.
+func _save_game() -> void:
+	if turn < 0 or engine.state.is_empty() or BgEngine.winner(engine.state) != -1:
+		return
+	var computer_moving: bool = turn == CPU and not two_player
+	SaveUtil.write(SAVE_PATH, {
+		"state": cpu_start if computer_moving else engine.state,
+		"turn": turn, "two": two_player,
+		"dice": [] if computer_moving else dice, "rolled": [] if computer_moving else rolled,
+		"turn_start": {} if computer_moving else turn_start,
+	})
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		return ""
+	return tr("2 Players") if bool(d.get("two", false)) else tr("vs Computer")
+
+static func _state_from(d: Variant) -> Dictionary:
+	if typeof(d) != TYPE_DICTIONARY or not d.has("pts"):
+		return {}
+	var pts: Array = []
+	for v in d.pts:
+		pts.append(int(v))
+	return {"pts": pts, "bar": [int(d.bar[0]), int(d.bar[1])], "off": [int(d.off[0]), int(d.off[1])]}
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	if typeof(a) == TYPE_ARRAY:
+		for v in a:
+			out.append(int(v))
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	var st := _state_from(d.get("state") if d else null)
+	if st.is_empty() or st.pts.size() != 24:
+		_start_new_game()
+		return
+	_start_new_game()
+	two_player = bool(d.get("two", false))
+	engine.state = st
+	var t := int(d.get("turn", HUMAN))
+	if t == CPU and not two_player:
+		dice = []
+		rolled = []
+		_schedule_cpu(0.8)
+		return
+	_begin_turn(t)
+	dice = _ints(d.get("dice", []))
+	rolled = _ints(d.get("rolled", []))
+	var ts := _state_from(d.get("turn_start"))
+	turn_start = ts if not ts.is_empty() else engine.state
+	if not dice.is_empty():
+		roll_btn.disabled = true
+		_refresh_legal()
+		status_label.text = _side_text(tr("Tap a white checker to move it."), tr("Tap a black checker to move it."))
+	board.queue_redraw()

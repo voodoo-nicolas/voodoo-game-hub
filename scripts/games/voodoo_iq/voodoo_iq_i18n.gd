@@ -24,7 +24,6 @@ const STRINGS := {
 		"Missing about half is normal: the test keeps raising the difficulty until you do.": "Fallar más o menos la mitad es normal: el test sube la dificultad hasta que pase.",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
-		"Ranked counts for your scores: one ranked IQ attempt per section per day, and quitting still uses it. Practice is unlimited and never saved.": "Ranked cuenta para tus puntajes: un intento ranked de IQ por sección por día, y si abandonas igual se usa. La práctica es ilimitada y nunca se guarda.",
 		"Ranked play needs an account, a player profile and age 16+.": "Para jugar ranked necesitas una cuenta, un perfil de jugador y 16 años o más.",
 		"Retry": "Reintentar",
 		"Sign in to take the IQ test: hub → ⚙ Options → Account. Scores are saved to your account.": "Inicia sesión para hacer el test de IQ: inicio → ⚙ Opciones → Cuenta. Los puntajes se guardan en tu cuenta.",

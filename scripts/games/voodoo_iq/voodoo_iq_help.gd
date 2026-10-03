@@ -11,7 +11,8 @@ const HOW := [
 	"IQ Test: questions adapt to you. Get them right and they get harder; the score comes from how hard the questions you handled were, not from percent correct.",
 	"Blitz: quick questions against the clock. Harder types earn more points, wrong multiple-choice answers lose a fraction, Skip costs 2 seconds.",
 	"Each new kind of question starts with untimed instructions; the clock is paused while you read.",
-	"Ranked counts for your scores: one ranked IQ attempt per section per day, and quitting still uses it. Practice is unlimited and never saved.",
+	"Ranked counts for the leaderboards: your last 3 ranked tests in each section are combined, and a quit test still counts. Practice is never saved.",
+	"🏆 Leaderboards: the Voodoo IQ board, the 9-Mind board, one board per section and the Blitz bests, filtered by age, country and language.",
 	"Leaving the app during a question counts that question as wrong. A test can't be paused or resumed later.",
 	"Ranked play needs an account, a player profile and age 16+.",
 ]
