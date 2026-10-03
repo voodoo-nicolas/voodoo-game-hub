@@ -31,16 +31,29 @@ var best: int = 0
 var anim: float = 0.0
 var stars: Array = []
 var banner_time: float = 0.0
+## Skull mode (skulls and voodoo dolls instead of aliens). Loaded, never
+## preloaded: packs also run on apps before v0.21, which keep the aliens.
+const VOODOO_PATH := "res://scripts/common/voodoo.gd"
+var Voodoo = load(VOODOO_PATH) if ResourceLoader.exists(VOODOO_PATH) else null
+var voodoo_on: bool = false
+var rotate_hint: Control
+
+## Called by the ⚙ drawer's Skull mode toggle; redraws in place.
+func _set_voodoo(on: bool) -> void:
+	voodoo_on = on and Voodoo != null
+	if board:
+		board.queue_redraw()
 
 func _ready() -> void:
 	preload("res://scripts/games/alien_attack/alien_attack_i18n.gd").install(self)
-	Orientation.lock_portrait()
+	Orientation.lock_landscape()
 	engine = AAEngine.new()
 	var data = SaveUtil.read(BEST_PATH)
 	if data != null:
 		best = int(data.get("best", 0))
 	for i in 60:
 		stars.append(Vector2(randf() * AAEngine.FIELD.x, randf() * AAEngine.FIELD.y))
+	voodoo_on = Voodoo != null and Voodoo.is_on()
 	_build_ui()
 	engine.reset()
 	_update_info()
@@ -58,41 +71,37 @@ func _build_ui() -> void:
 	root.add_theme_constant_override("separation", 8)
 	add_child(root)
 
+	# Landscape: one slim bar (Hub · score line · Restart) so the field gets
+	# the height.
 	var top := MarginContainer.new()
-	top.add_theme_constant_override("margin_top", 20)
+	top.add_theme_constant_override("margin_top", 8)
 	top.add_theme_constant_override("margin_left", 16)
-	top.add_theme_constant_override("margin_right", 16)
+	top.add_theme_constant_override("margin_right", 60)
 	root.add_child(top)
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
 	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
+	hub_btn.add_theme_font_size_override("font_size", 24)
 	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
 	bar.add_child(hub_btn)
-	var title := Label.new()
-	title.text = tr("👾 Alien Attack")
-	title.add_theme_font_size_override("font_size", 30)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bar.add_child(title)
+	info_label = Label.new()
+	info_label.add_theme_font_size_override("font_size", 24)
+	info_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bar.add_child(info_label)
 	var restart_btn := Button.new()
 	restart_btn.text = tr("Restart")
-	restart_btn.add_theme_font_size_override("font_size", 26)
+	restart_btn.add_theme_font_size_override("font_size", 24)
 	restart_btn.pressed.connect(_start)
 	bar.add_child(restart_btn)
-
-	info_label = Label.new()
-	info_label.add_theme_font_size_override("font_size", 26)
-	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(info_label)
 
 	var bm := MarginContainer.new()
 	bm.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	bm.add_theme_constant_override("margin_left", 8)
 	bm.add_theme_constant_override("margin_right", 8)
-	bm.add_theme_constant_override("margin_bottom", 24)
+	bm.add_theme_constant_override("margin_bottom", 8)
 	root.add_child(bm)
 	board = Control.new()
 	board.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -116,6 +125,20 @@ func _build_ui() -> void:
 		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
 	])
 	add_child(pause_dialog)
+	# Phones that ignore the landscape lock (or the PC build) get asked to turn.
+	rotate_hint = ColorRect.new()
+	rotate_hint.color = Color(0.03, 0.03, 0.07, 0.96)
+	rotate_hint.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rotate_hint.mouse_filter = Control.MOUSE_FILTER_STOP
+	rotate_hint.visible = false
+	var hint := Label.new()
+	hint.text = "⟳\n" + tr("Rotate your device to landscape")
+	hint.add_theme_font_size_override("font_size", 30)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rotate_hint.add_child(hint)
+	add_child(rotate_hint)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/alien_attack/alien_attack_help.gd"))
 		add_child(info)
@@ -140,10 +163,12 @@ func _notification(what: int) -> void:
 			pause_dialog.visible = true
 
 func _update_info() -> void:
-	info_label.text = tr("Wave %d   Score: %d   Lives: %s   Best: %d") % [engine.wave, engine.score, "♥".repeat(max(0, engine.lives)), best]
+	info_label.text = tr("👾 Alien Attack") + "     " + tr("Wave %d   Score: %d   Lives: %s   Best: %d") % [engine.wave, engine.score, "♥".repeat(max(0, engine.lives)), best]
 
 func _process(delta: float) -> void:
 	anim += delta
+	var vp := get_viewport_rect().size
+	rotate_hint.visible = vp.x < vp.y
 	banner_time = max(0.0, banner_time - delta)
 	if running:
 		var ev := engine.step(min(delta, 0.05))
@@ -176,10 +201,24 @@ func _draw_board() -> void:
 	for st in stars:
 		board.draw_rect(Rect2(o + st * s, Vector2(2, 2)), Color(1, 1, 1, 0.4))
 	var frame := int(anim * 2.0) % 2
+	for b in engine.shield_blocks:
+		var sc := Color(0.35, 1, 0.5) if b.hp >= AAEngine.SHIELD_HP else Color(0.25, 0.7, 0.35)
+		board.draw_rect(Rect2(o + b.rect.position * s, b.rect.size * s + Vector2(0.5, 0.5)), sc)
 	for a in engine.aliens:
 		if not a.alive:
 			continue
 		var r := engine.alien_rect(a)
+		if voodoo_on:
+			# Skull mode: rows of skulls, with voodoo dolls in the middle row,
+			# bobbing in step with the march.
+			var bob := Vector2(0, (2.0 if frame == 0 else -2.0) * s)
+			var center: Vector2 = o + r.get_center() * s + bob
+			var size: float = r.size.y * s * 1.25
+			if a.row == 2:
+				Voodoo.draw_doll(board, center, size, Voodoo.BONE, Voodoo.INK, Color(0, 0, 0, 0.6))
+			else:
+				Voodoo.draw_skull(board, center, size, ROW_COLORS[a.row].lerp(Voodoo.BONE, 0.55), Voodoo.INK, Color(0, 0, 0, 0.6))
+			continue
 		var sprite: Array = SPRITES[frame]
 		var px := r.size.x / 8.0
 		var py := r.size.y / 6.0

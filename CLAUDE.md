@@ -155,8 +155,8 @@ string exists.
 
 ## How to Play + stats (GameInfo) -- since v0.20.0
 
-`scripts/common/game_info.gd` (ships in the APK) gives every game a "?" tab
-just above the ⚙ tab. It pauses the game (`get_tree().paused`) and opens a
+`scripts/common/game_info.gd` (ships in the APK) gives every game a How to
+Play card, opened from the ⚙ drawer (a "?" tab before v0.22). It pauses the game (`get_tree().paused`) and opens a
 card with 🎯 Goal, 📋 How to Play, 💡 Tips and 📊 Your Stats, and opens by
 itself the first time a game is played. Its header comment is the how-to.
 
@@ -228,8 +228,13 @@ its header comment is the how-to.
 - **Theme** covers the hub and Options only (`Settings.palette()`, keys
   like `bg`, `text`, `accent`, `link`, `ready`...). Games keep their own
   colors -- a games-wide light theme would mean touching every game.
-- **Sound** mutes the Master audio bus. The app has no sounds yet; any
-  added later obey the toggle with no extra code.
+- **Sound** (its own section since v0.23): "🔊 Sound" Off = mute all
+  (mutes the Master bus), a Volume slider (Master bus volume), and an
+  on/off + volume per sound group (`Settings.SOUND_GROUPS`: taps & keys,
+  game sounds, wins & losses, notifications). Drawn by
+  `scripts/common/sound_options.gd`, which the in-game ⚙ drawer's "🔊 Sound"
+  button also opens, so it can be changed mid-game. Sliders apply live and
+  save on release (`set_volume(v, save)`), and every change plays a sample.
 - **Vibration**: `Settings` connects every `BaseButton.pressed` in the tree
   (`node_added`) to a 12 ms tick, and GameInfo buzzes 70 ms on a win
   (`celebrate()`) or loss. Needs `permissions/vibrate=true` in the Android
@@ -239,6 +244,85 @@ its header comment is the how-to.
   (child of a ScrollContainer; tap handlers check its `moved`); dialogs
   over such a list join the `modal_overlay` group.
 - `python tools/hub.py test` boots the Options screen too.
+
+## Screen edges, the ⚙ tab, resuming, names, leaderboards -- since v0.22.0
+
+From the 2026-10-02 round of player feedback. All of it is in the APK
+(`scripts/common/`) and reaches every game with no game code, except where
+noted.
+
+- **Safe area**: `Settings._apply_safe_area()` insets each screen's root
+  Control by the phone's camera cutout (`DisplayServer.get_display_safe_area`,
+  min 24 units at the top in portrait) and the clear color goes black, like a
+  status bar. Test on PC with `VOODOO_SAFE_INSET="l,t,r,b"` (canvas units).
+- **Landscape is scaled up**: the design is 720x1280 and "expand" keeps the
+  1280 sideways, so landscape screens used to render at ~56% (Geometry Wars'
+  Pause "barely visible"). `Settings._landscape_boost()` multiplies the
+  content scale by 1280/720 when the window is wider than tall.
+  **Gotcha**: the root's `size_changed` also fires when the content scale
+  changes; refit only when the *window* size changed (`_on_root_resized`),
+  or a screen that `_fit_scene` shrinks (Block Drop) loops forever.
+- **One floating tab**: GameInfo no longer draws its "?" tab -- "❓ How to
+  Play" is a button in the ⚙ drawer. The ⚙ tab is small, half see-through,
+  draggable (position saved per scene in `user://drawer_pos.json`), and until
+  the player moves it, it slides off any button/board under it
+  (`_avoid_controls`). A game whose whole table is one tap area can set a
+  default: `drawer.set("default_frac", 0.6)` (set(), so packs run on older
+  apps). The drawer's panel is placed with offsets -- `position` on an
+  anchored Control is from its top-left, which had the drawer off-screen
+  ("the settings button does nothing").
+- **Resume after Android kills the app**: on pause inside a game, Settings
+  writes `user://resume.json`; the hub's first `_ready` reopens that game
+  (`Settings.take_resume_scene()`), and games with `_save_game` continue.
+- **Online names + rejoin** (`online_match.gd` header): the lobby has a "Your
+  name" field (saved, defaults to the account name) carried in presence;
+  `my_name()` / `opponent_name()`; `status_text`/`result_text` use them. The
+  room is saved in `user://online_room.json` during a match; a killed app
+  reopens to "↩ Rejoin game XXXX" with the same code, role and presence key.
+  A returning host asks the guest for the game (`state_please`) instead of
+  pushing a blank board. Tested with two Godot processes on the live project.
+- **Leaderboards**: table `scores` (one best per player per game), created by
+  `docs/leaderboards.sql` (run once in the Supabase SQL editor). GameInfo
+  posts a new "Best score" via `Auth.submit_score` when signed in and shows a
+  🏆 Top 10 on the card (`Auth.fetch_leaderboard`); if the table isn't there
+  the section simply hides. Only games whose STATS include "Best score".
+- **Names stay generic** (user's decision 2026-10-02): players asked for
+  Tetris / Battleship / Frogger; kept Block Drop / Sea Battle / Frog Crossing
+  for trademark safety.
+- Wordle checks English guesses against `wordle_words.txt.gz` (the 5-letter
+  ENABLE words + every answer); Spanish has no dictionary, so any 5 letters.
+
+## Sound library (Sfx autoload) -- since v0.23.0
+
+`scripts/common/sfx.gd` (ships in the APK, autoload `Sfx`) is the shared
+sound library: Basic (tap, back, toggle, invalid, win, lose, draw, record,
+tick, notify) plus per-category sets (Cards, Board, Dice & Party, Arcade,
+Word). Its header comment lists every name and is the how-to.
+
+- **Every sound is synthesized in code** (sfxr-style recipes, rendered on a
+  worker thread at launch, ~0.5 s total on PC) -- no audio files, no
+  download cost. Dropping `assets/sfx/<name>.ogg` in replaces one with a
+  recording, no code change (the user's decision 2026-10-03: synth first,
+  real recordings for cards/dice later if the synth ones sound too fake).
+- **Free with no game code**: every button press plays "tap" (like the
+  vibration tick), and GameInfo plays win / lose / draw / record with
+  `result()` and `celebrate()`. A button that should sound different gets
+  `btn.set_meta("sfx", "key")`, or `""` for silence when the game plays its
+  own sound for that action (Yacht's Roll, Spin the Bottle's Spin, the
+  Wordle keyboard).
+- **Games never reference `Sfx` directly** (packs run on older apps): each
+  wired game has a tiny `_sfx(name)` that does
+  `get_node_or_null("/root/Sfx")`. No `min_build` needed -- older apps are
+  simply silent.
+- A sound only one game uses goes in that game's folder (its pack) and plays
+  with `Sfx.play_stream(stream, 0.0, 1.0, group)`.
+- **Player controls**: every sound belongs to a group (`Sfx.GROUP_OF`;
+  unlisted = "game"), and `play_stream` skips it or adjusts its volume from
+  Settings (`group_db`). A new library sound that's a tap, a result or an
+  alert must be added to `GROUP_OF`, or the player's switches won't cover it.
+- Wired so far, one per category: Chess, Blackjack, Wordle, Snake, Yacht,
+  King's Cup, Spin the Bottle (Dots & Boxes still has its own chime from
+  before the library).
 
 ## Scoping your work: hub vs. a specific game
 
@@ -390,6 +474,17 @@ tool directly for anything needing real PowerShell semantics, not
 - **Debug keystore**: `C:\Users\Cliente\Android\keystore\debug.keystore`
 - **Python 3.12** (runs `tools/hub.py`): on PATH as `python`.
 - **GitHub CLI**: `C:\Program Files\GitHub CLI\gh.exe` (authenticated as `voodoo-nicolas`)
+
+Second PC (user `nick_`, set up 2026-10-02 for editing and testing only):
+Godot 4.7.2 at the same WinGet path (so `hub.py` finds it), Python 3.12 at
+`%LOCALAPPDATA%\Programs\Python\Python312\python.exe` (not on PATH), Git at
+`C:\Program Files\Git\cmd\git.exe`. No GitHub CLI, Android SDK, JDK or
+release keystore there: build the APK, publish packs and release from the
+main PC. Windows was reinstalled 2026-10-03; since then the Godot 4.7.2
+Windows export templates are installed (only `windows_*` extracted from the
+official .tpz into `%APPDATA%\Godot\export_templates\4.7.2.stable`), so
+`hub.py pc` works there. Its Desktop is redirected to OneDrive (`hub.py pc`
+asks Windows for the Desktop path).
 
 ## Gotchas already found and fixed (don't reintroduce)
 

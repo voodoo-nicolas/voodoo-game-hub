@@ -259,19 +259,29 @@ func _deal() -> void:
 	if engine.deal(pending_bet):
 		message_label.text = ""
 		hand_recorded = false
+		_sfx("card_shuffle")
 		_after_action()
 
 func _hit() -> void:
 	engine.hit()
+	_sfx("card_deal")
 	_after_action()
 
 func _stand() -> void:
 	engine.stand()
+	_sfx("card_flip")  # the dealer turns over the hole card
 	_after_action()
 
 func _double() -> void:
 	engine.double_down()
+	_sfx("card_deal")
 	_after_action()
+
+## Plays a sound from the app's library (silent on apps from before v0.23).
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
 
 func _after_action() -> void:
 	if engine.phase == BlackjackEngine.Phase.ROUND_OVER:
@@ -282,6 +292,8 @@ func _after_action() -> void:
 			match engine.outcome:
 				"blackjack", "win", "dealer_bust":
 					info.add("Hands won")
+					if engine.outcome != "blackjack":
+						_sfx("pickup")  # chips coming in; a blackjack celebrates
 					if engine.outcome == "blackjack":
 						info.add("Blackjacks")
 						info.celebrate(tr("Blackjack!"))
@@ -289,6 +301,7 @@ func _after_action() -> void:
 					info.add("Pushes")
 				_:
 					info.add("Hands lost")
+					_sfx("letter_wrong")
 			info.high("Most chips", engine.chips)
 		_save_game()
 	_render()

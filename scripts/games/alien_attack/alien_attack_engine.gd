@@ -3,18 +3,27 @@ extends RefCounted
 ## Alien Attack: a marching grid of aliens edges down the screen, dropping
 ## bombs. Your cannon fires automatically; slide to aim. Clear a wave to face
 ## a faster one. Three lives; game over if the aliens reach the bottom.
-## Pure simulation in a fixed 600×1000 field.
+## Four shields stand between you and them; shots and bombs chip them away.
+## Pure simulation in a fixed 1000×600 (landscape) field.
 
-const FIELD := Vector2(600, 1000)
-const SHIP_Y := 920.0
+const FIELD := Vector2(1000, 600)
+const SHIP_Y := 560.0
 const SHIP_W := 60.0
 const ROWS := 5
-const COLS := 8
-const ALIEN := Vector2(44, 32)
-const GAP := Vector2(20, 18)
+const COLS := 11
+const ALIEN := Vector2(44, 30)
+const GAP := Vector2(22, 14)
 const FIRE_EVERY := 0.42
-const SHOT_SPEED := 900.0
-const BOMB_SPEED := 330.0
+const SHOT_SPEED := 800.0
+const BOMB_SPEED := 240.0
+## Shields: SHIELDS bunkers of SHIELD_COLS x SHIELD_ROWS blocks; each block
+## takes SHIELD_HP hits. The bottom middle is open, like an arch.
+const SHIELDS := 4
+const SHIELD_COLS := 8
+const SHIELD_ROWS := 5
+const SHIELD_BLOCK := Vector2(10, 9)
+const SHIELD_Y := 450.0
+const SHIELD_HP := 2
 
 var ship_x: float = 300.0
 var aliens: Array = []      # [{pos: Vector2, row: int, alive: bool}]
@@ -29,6 +38,8 @@ var score: int = 0
 var wave: int = 1
 var hit_flash: float = 0.0
 var over: bool = false
+## Shield blocks: [{rect: Rect2, hp: int}]; rebuilt every wave.
+var shield_blocks: Array = []
 
 func reset() -> void:
 	lives = 3
@@ -42,12 +53,39 @@ func _new_wave() -> void:
 	shots.clear()
 	bombs.clear()
 	dir = 1.0
-	march_offset = Vector2(0, min(wave - 1, 5) * 20.0)
+	march_offset = Vector2(0, min(wave - 1, 4) * 12.0)
 	var width := COLS * ALIEN.x + (COLS - 1) * GAP.x
 	var x0 := (FIELD.x - width) / 2.0
 	for r in ROWS:
 		for c in COLS:
-			aliens.append({"pos": Vector2(x0 + c * (ALIEN.x + GAP.x), 120 + r * (ALIEN.y + GAP.y)), "row": r, "alive": true})
+			aliens.append({"pos": Vector2(x0 + c * (ALIEN.x + GAP.x), 50 + r * (ALIEN.y + GAP.y)), "row": r, "alive": true})
+	_build_shields()
+
+func _build_shields() -> void:
+	shield_blocks.clear()
+	var w := SHIELD_COLS * SHIELD_BLOCK.x
+	var spacing := FIELD.x / SHIELDS
+	for s in SHIELDS:
+		var x0 := spacing * (s + 0.5) - w / 2.0
+		for r in SHIELD_ROWS:
+			for c in SHIELD_COLS:
+				# rounded top corners, open arch at the bottom middle
+				if r == 0 and (c == 0 or c == SHIELD_COLS - 1):
+					continue
+				if r >= SHIELD_ROWS - 2 and c >= 3 and c <= 4:
+					continue
+				shield_blocks.append({"rect": Rect2(Vector2(x0 + c * SHIELD_BLOCK.x, SHIELD_Y + r * SHIELD_BLOCK.y), SHIELD_BLOCK), "hp": SHIELD_HP})
+
+## Damages the first shield block containing p; true if one absorbed it.
+func _hit_shield(p: Vector2) -> bool:
+	for i in shield_blocks.size():
+		var b: Dictionary = shield_blocks[i]
+		if b.rect.grow(1.5).has_point(p):
+			b.hp -= 1
+			if b.hp <= 0:
+				shield_blocks.remove_at(i)
+			return true
+	return false
 
 func alive_count() -> int:
 	var n := 0
@@ -62,9 +100,11 @@ func alien_rect(a: Dictionary) -> Rect2:
 func set_ship(x: float) -> void:
 	ship_x = clamp(x, SHIP_W / 2.0, FIELD.x - SHIP_W / 2.0)
 
+## Gentler than before (players found it too hard): a slower start, slower
+## growth per wave, and less of a rush as the grid thins out.
 func march_speed() -> float:
 	var left := float(alive_count()) / (ROWS * COLS)
-	return (40.0 + 20.0 * wave) * (1.0 + (1.0 - left) * 2.5)
+	return (24.0 + 10.0 * wave) * (1.0 + (1.0 - left) * 1.6)
 
 ## Returns "", "hit", "wave" or "over".
 func step(delta: float) -> String:
@@ -85,10 +125,18 @@ func step(delta: float) -> String:
 			bottom = max(bottom, r.end.y)
 	if hi > FIELD.x - 8 and dir > 0 or lo < 8 and dir < 0:
 		dir = -dir
-		march_offset.y += 22.0
+		march_offset.y += 16.0
 	if bottom >= SHIP_Y - 10:
 		over = true
 		return "over"
+	# aliens marching through a shield wipe out what they touch
+	if bottom >= SHIELD_Y:
+		for a in aliens:
+			if a.alive:
+				var ar := alien_rect(a)
+				for i in range(shield_blocks.size() - 1, -1, -1):
+					if ar.intersects(shield_blocks[i].rect):
+						shield_blocks.remove_at(i)
 	# your cannon
 	fire_cool -= delta
 	if fire_cool <= 0.0:
@@ -96,6 +144,8 @@ func step(delta: float) -> String:
 		shots.append(Vector2(ship_x, SHIP_Y - 20))
 	for i in range(shots.size() - 1, -1, -1):
 		shots[i].y -= SHOT_SPEED * delta
+		# The cannon fires by itself, so its shots pass through the shields --
+		# otherwise standing behind one would shoot it to pieces.
 		var hit := false
 		for a in aliens:
 			if a.alive and alien_rect(a).grow(2).has_point(shots[i]):
@@ -108,7 +158,7 @@ func step(delta: float) -> String:
 	# alien bombs from the lowest alien in a random column
 	bomb_cool -= delta
 	if bomb_cool <= 0.0:
-		bomb_cool = max(0.35, 1.3 - wave * 0.12) * randf_range(0.6, 1.4)
+		bomb_cool = max(0.5, 1.7 - wave * 0.1) * randf_range(0.6, 1.4)
 		var shooters: Array = []
 		for a in aliens:
 			if a.alive:
@@ -118,7 +168,10 @@ func step(delta: float) -> String:
 			var r := alien_rect(s)
 			bombs.append(Vector2(r.get_center().x, r.end.y))
 	for i in range(bombs.size() - 1, -1, -1):
-		bombs[i].y += BOMB_SPEED * (1.0 + wave * 0.05) * delta
+		bombs[i].y += BOMB_SPEED * (1.0 + wave * 0.04) * delta
+		if _hit_shield(bombs[i]):
+			bombs.remove_at(i)
+			continue
 		if bombs[i].y >= SHIP_Y - 14 and bombs[i].y <= SHIP_Y + 14 and abs(bombs[i].x - ship_x) < SHIP_W / 2.0 and hit_flash <= 0.0:
 			bombs.remove_at(i)
 			lives -= 1

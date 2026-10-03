@@ -499,6 +499,17 @@ func _build_win_dialog() -> void:
 	)
 	box.add_child(menu_btn)
 
+	var hub_btn := Button.new()
+	hub_btn.text = tr("Back to Hub")
+	hub_btn.custom_minimum_size = Vector2(220, 50)
+	hub_btn.add_theme_font_size_override("font_size", 25)
+	hub_btn.pressed.connect(_on_win_hub_pressed)
+	box.add_child(hub_btn)
+
+## The game is over, so there's nothing to save -- straight back to the hub.
+func _on_win_hub_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
+
 func _build_pause_dialog() -> void:
 	pause_dialog = ColorRect.new()
 	pause_dialog.color = Color(0, 0, 0, 0.75)

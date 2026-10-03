@@ -16,11 +16,21 @@ const UI = preload("res://scripts/common/ui.gd")
 signal started(session: Node, my_player: int)
 signal cancelled()
 
+## Your name as the other player sees it; remembered between games. Starts
+## as your account's display name.
+const NAME_PATH := "user://player_name.json"
+const NAME_MAX := 16
+
 var game_id: String
 var game_title: String
 var session: Node = null
+## {code, host: bool, id} of a game this app can take its seat in again
+## (set by OnlineMatch from its saved room), or empty.
+var rejoin_room: Dictionary = {}
 
 var _menu: Control
+var _name_edit: LineEdit
+var _rejoin_btn: Button
 var _code_edit: LineEdit
 var _status: Label
 var _code_label: Label
@@ -52,6 +62,25 @@ func _ready() -> void:
 	_menu = box
 
 	box.add_child(_label(tr("🌐 Play %s Online") % game_title, 36, Color(1, 1, 1)))
+
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 12)
+	box.add_child(name_row)
+	var name_label := _label(tr("Your name"), 26, Color(0.75, 0.78, 0.85))
+	name_row.add_child(name_label)
+	_name_edit = LineEdit.new()
+	_name_edit.max_length = NAME_MAX
+	_name_edit.placeholder_text = tr("Player")
+	_name_edit.custom_minimum_size = Vector2(0, 64)
+	_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name_edit.add_theme_font_size_override("font_size", 30)
+	_name_edit.text = load_name()
+	name_row.add_child(_name_edit)
+
+	_rejoin_btn = _button("")
+	_rejoin_btn.visible = false
+	_rejoin_btn.pressed.connect(_on_rejoin)
+	box.add_child(_rejoin_btn)
 
 	_host_btn = _button(tr("Host a Game"))
 	_host_btn.pressed.connect(_on_host)
@@ -92,8 +121,47 @@ func open() -> void:
 	_code_edit.text = ""
 	_code_label.visible = false
 	_status.text = ""
+	_rejoin_btn.visible = not rejoin_room.is_empty()
+	if not rejoin_room.is_empty():
+		_rejoin_btn.text = tr("↩ Rejoin game %s") % rejoin_room.code
+		_status.text = tr("You were in game %s when you left. Rejoin to pick up where you were.") % rejoin_room.code
 	_set_busy(false)
 	visible = true
+
+## The saved name, else the account's display name, else "".
+static func load_name() -> String:
+	if FileAccess.file_exists(NAME_PATH):
+		var data = JSON.parse_string(FileAccess.get_file_as_string(NAME_PATH))
+		if typeof(data) == TYPE_DICTIONARY and str(data.get("name", "")) != "":
+			return str(data.name)
+	var tree := Engine.get_main_loop() as SceneTree
+	var auth = tree.root.get_node_or_null("Auth") if tree else null
+	if auth and auth.has_method("is_logged_in") and auth.is_logged_in():
+		return str(auth.get_display_name())
+	return ""
+
+func _my_name() -> String:
+	var n := _name_edit.text.strip_edges().left(NAME_MAX)
+	var f := FileAccess.open(NAME_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"name": n}))
+	return n
+
+func _on_rejoin() -> void:
+	var s := _new_session()
+	var as_host: bool = bool(rejoin_room.get("host", false))
+	if as_host:
+		s.opponent_joined.connect(_on_both_in.bind(1), CONNECT_ONE_SHOT)
+		s.room_created.connect(_on_rejoin_waiting)
+	else:
+		s.joined.connect(_on_both_in.bind(2), CONNECT_ONE_SHOT)
+		s.join_failed.connect(_on_join_failed)
+	_set_busy(true)
+	_status.text = tr("Rejoining %s...") % rejoin_room.code
+	s.rejoin(game_id, str(rejoin_room.code), as_host, str(rejoin_room.get("id", "")))
+
+func _on_rejoin_waiting(code: String) -> void:
+	_status.text = tr("Back in game %s. Waiting for your friend...") % code
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
@@ -114,7 +182,9 @@ func _button(text: String) -> Button:
 func _set_busy(busy: bool) -> void:
 	_host_btn.disabled = busy
 	_join_btn.disabled = busy
+	_rejoin_btn.disabled = busy
 	_code_edit.editable = not busy
+	_name_edit.editable = not busy
 
 func _on_code_changed(t: String) -> void:
 	var caret := _code_edit.caret_column
@@ -124,6 +194,7 @@ func _on_code_changed(t: String) -> void:
 func _new_session() -> Node:
 	_reset_session()
 	session = OnlineSession.new()
+	session.my_name = _my_name()
 	add_child(session)
 	return session
 
@@ -161,6 +232,8 @@ func _on_join_failed(reason: String) -> void:
 	_set_busy(false)
 	_status.text = reason
 	_reset_session()
+	if not rejoin_room.is_empty():
+		_rejoin_btn.visible = true  # the host may just be slow to come back
 
 func _on_both_in(my_player: int) -> void:
 	visible = false

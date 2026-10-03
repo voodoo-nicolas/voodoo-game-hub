@@ -29,8 +29,21 @@ extends Control
 ##
 ## Games must not preload this: packs also run on apps from before it
 ## existed (< v0.14), where the file isn't there. Without it: no Online button.
+##
+## Coming back after a drop-out (since v0.22): the room (game, code, role,
+## presence id) is saved in ROOM_PATH while a match is on and deleted when
+## the player leaves the game normally. If Android kills the app mid-match,
+## the game opens again with the lobby offering "Rejoin game XXXX", which
+## takes the same seat. A returning HOST has lost its game state, so it asks
+## the guest for theirs ("state_please") instead of pushing a blank board.
+##
+## Names: my_name() / opponent_name() (from the lobby's "Your name" field)
+## and status_text() / result_text() use them.
 
 const OnlineLobby = preload("res://scripts/common/online_lobby.gd")
+const ROOM_PATH := "user://online_room.json"
+## A saved room older than this is stale -- the other player has gone.
+const ROOM_MAX_AGE_SEC := 30 * 60
 
 signal started(my_player: int)
 signal remote_move(payload: Dictionary)
@@ -47,6 +60,8 @@ var session: Node = null
 var my_player: int = 0  # 0 = not online; 1 = host; 2 = guest
 var opponent_here: bool = false
 var connected: bool = true
+## True while a returning host waits for the guest's copy of the game.
+var adopting: bool = false
 
 func _init(p_game_id: String = "", p_title: String = "", p_get_state: Callable = Callable()) -> void:
 	game_id = p_game_id
@@ -62,6 +77,39 @@ func _ready() -> void:
 	lobby = OnlineLobby.new(game_id, title)
 	lobby.started.connect(_on_lobby_started)
 	add_child(lobby)
+	var room := _saved_room()
+	if not room.is_empty():
+		lobby.rejoin_room = room
+		lobby.call_deferred("open")  # straight back to "Rejoin game XXXX"
+
+## Leaving the game normally ends the match for us: forget the room.
+func _exit_tree() -> void:
+	if is_online() and FileAccess.file_exists(ROOM_PATH):
+		DirAccess.remove_absolute(ROOM_PATH)
+
+func _saved_room() -> Dictionary:
+	if not FileAccess.file_exists(ROOM_PATH):
+		return {}
+	var data = JSON.parse_string(FileAccess.get_file_as_string(ROOM_PATH))
+	if typeof(data) != TYPE_DICTIONARY or str(data.get("game", "")) != game_id:
+		return {}
+	if Time.get_unix_time_from_system() - float(data.get("t", 0)) > ROOM_MAX_AGE_SEC:
+		return {}
+	return data
+
+func _save_room() -> void:
+	var f := FileAccess.open(ROOM_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"game": game_id, "code": session.code, "host": is_host(),
+			"id": session.my_id, "t": int(Time.get_unix_time_from_system())}))
+
+func my_name() -> String:
+	var n: String = str(session.my_name) if session else ""
+	return n if n != "" else tr("You")
+
+func opponent_name() -> String:
+	var n: String = str(session.opponent_name) if session else ""
+	return n if n != "" else tr("Friend")
 
 func is_online() -> bool:
 	return my_player != 0
@@ -83,6 +131,7 @@ func send_move(payload: Dictionary) -> void:
 	var p := payload.duplicate()
 	p["state"] = get_state.call()
 	session.send("move", p)
+	_save_room()  # keeps the saved room fresh through a long match
 
 ## Host: send the whole current state now (e.g. after choosing a new board
 ## that a plain "new_game" can't describe).
@@ -98,13 +147,13 @@ func new_game() -> void:
 ## description of whose turn it is ("White", "Red"...).
 func status_text(my_turn: bool, turn_text: String) -> String:
 	if not opponent_here:
-		return tr("Opponent disconnected — waiting...")
+		return tr("%s disconnected — waiting...") % opponent_name()
 	if my_turn:
 		return tr("Your turn (%s)") % turn_text
-	return tr("Opponent's turn (%s)") % turn_text
+	return tr("%s's turn (%s)") % [opponent_name(), turn_text]
 
 func result_text(i_won: bool) -> String:
-	return tr("You win!") if i_won else tr("You lose!")
+	return tr("You win!") if i_won else tr("%s wins!") % opponent_name()
 
 # ---------- internals ----------
 
@@ -112,13 +161,22 @@ func _on_lobby_started(p_session: Node, p_my_player: int) -> void:
 	session = p_session
 	my_player = p_my_player
 	opponent_here = true
+	var rejoined: bool = not lobby.rejoin_room.is_empty() and str(lobby.rejoin_room.get("code", "")) == str(session.code)
+	lobby.rejoin_room = {}
 	session.message.connect(_on_message)
 	session.opponent_left.connect(_on_opponent_left)
 	session.opponent_joined.connect(_on_opponent_back)
 	session.connection_changed.connect(_on_connection_changed)
+	_save_room()
 	started.emit(my_player)
 	if is_host():
-		_send_sync()
+		if rejoined:
+			adopting = true  # our board is blank; the guest still has the game
+			session.send("state_please")
+		else:
+			_send_sync()
+	elif rejoined:
+		session.send("sync_request")
 
 func _send_sync() -> void:
 	session.send("sync", {"state": get_state.call()})
@@ -126,7 +184,10 @@ func _send_sync() -> void:
 func _on_opponent_back() -> void:
 	opponent_here = true
 	if is_host():
-		_send_sync()
+		if adopting:
+			session.send("state_please")
+		else:
+			_send_sync()
 	status_changed.emit()
 
 func _on_opponent_left() -> void:
@@ -150,9 +211,14 @@ func _on_message(event: String, p: Dictionary) -> void:
 					session.send("sync_request")
 		"sync":
 			if typeof(p.get("state")) == TYPE_DICTIONARY:
+				adopting = false
 				remote_state.emit(p.state)
 		"sync_request":
-			if is_host():
+			if is_host() and not adopting:
+				_send_sync()
+		"state_please":
+			# The host came back with a blank board: give it our copy.
+			if not is_host():
 				_send_sync()
 		"new_game":
 			remote_new_game.emit()

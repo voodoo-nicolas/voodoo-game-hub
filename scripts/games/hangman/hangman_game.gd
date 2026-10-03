@@ -7,7 +7,10 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const STAGE_FACES := ["🙂", "😐", "😟", "😧", "😨", "😰", "💀"]
+const WOOD := Color(0.55, 0.36, 0.2)
+const WOOD_DARK := Color(0.36, 0.22, 0.12)
+const ROPE := Color(0.85, 0.75, 0.5)
+const FIGURE := Color(0.95, 0.95, 0.97)
 const ALPHABET := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const ALPHABET_ES := "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
 
@@ -18,7 +21,14 @@ var game_active: bool = false
 
 var category_label: Label
 var word_label: Label
-var stage_label: Label
+var gallows: Control
+var shown_parts: int = 0
+## 0..1 while the newest body part fades in; redraws as it changes.
+var part_fade: float = 1.0:
+	set(v):
+		part_fade = v
+		if gallows:
+			gallows.queue_redraw()
 var status_label: Label
 var letter_buttons: Dictionary = {}  # letter -> Button
 var end_dialog: Control
@@ -99,10 +109,11 @@ func _build_ui() -> void:
 	category_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(category_label)
 
-	stage_label = Label.new()
-	stage_label.add_theme_font_size_override("font_size", 80)
-	stage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(stage_label)
+	gallows = Control.new()
+	gallows.custom_minimum_size = Vector2(260, 250)
+	gallows.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	gallows.draw.connect(_draw_gallows)
+	box.add_child(gallows)
 
 	word_label = Label.new()
 	word_label.add_theme_font_size_override("font_size", 50)
@@ -257,9 +268,55 @@ func _render() -> void:
 	# Long words ("FIREFIGHTER" = 21 characters with spaces) would run off a
 	# narrow phone at full size.
 	word_label.add_theme_font_size_override("font_size", 50 if engine.word.length() <= 8 else 40)
-	stage_label.text = STAGE_FACES[engine.wrong_count]
+	if engine.wrong_count != shown_parts:
+		# The newest body part fades in instead of popping.
+		shown_parts = engine.wrong_count
+		part_fade = 0.0
+		var tw := create_tween()
+		tw.tween_property(self, "part_fade", 1.0, 0.35)
+	gallows.queue_redraw()
 	status_label.text = tr("Wrong guesses: %d/%d") % [engine.wrong_count, HangmanEngine.MAX_WRONG]
 
+
+## The wooden gallows, then one body part per wrong guess: head, body, left
+## arm, right arm, left leg, right leg (HangmanEngine.MAX_WRONG = 6).
+func _draw_gallows() -> void:
+	var s: Vector2 = gallows.size
+	var k: float = minf(s.x / 260.0, s.y / 250.0)
+	var o := Vector2((s.x - 260.0 * k) / 2.0, (s.y - 250.0 * k) / 2.0)
+	var p := func(x: float, y: float) -> Vector2: return o + Vector2(x, y) * k
+	var beam := 12.0 * k
+	# Base, post, top beam, brace -- planks with a darker edge.
+	for seg in [[p.call(20, 240), p.call(180, 240)], [p.call(60, 240), p.call(60, 18)],
+			[p.call(54, 18), p.call(190, 18)], [p.call(60, 62), p.call(104, 18)]]:
+		gallows.draw_line(seg[0], seg[1], WOOD_DARK, beam + 4.0 * k, true)
+		gallows.draw_line(seg[0], seg[1], WOOD, beam, true)
+	gallows.draw_line(p.call(180, 18), p.call(180, 56), ROPE, 4.0 * k, true)
+
+	var n: int = engine.wrong_count if engine else 0
+	var lost: bool = engine != null and engine.is_lost()
+	var w := 5.0 * k
+	for i in n:
+		var c := FIGURE
+		if i == n - 1:
+			c.a = part_fade
+		match i:
+			0:
+				gallows.draw_arc(p.call(180, 78), 22.0 * k, 0, TAU, 32, c, w, true)
+				if lost:  # X eyes
+					for ex in [172.0, 188.0]:
+						gallows.draw_line(p.call(ex - 4, 72), p.call(ex + 4, 80), c, 3.0 * k, true)
+						gallows.draw_line(p.call(ex + 4, 72), p.call(ex - 4, 80), c, 3.0 * k, true)
+			1:
+				gallows.draw_line(p.call(180, 100), p.call(180, 168), c, w, true)
+			2:
+				gallows.draw_line(p.call(180, 116), p.call(150, 146), c, w, true)
+			3:
+				gallows.draw_line(p.call(180, 116), p.call(210, 146), c, w, true)
+			4:
+				gallows.draw_line(p.call(180, 166), p.call(156, 212), c, w, true)
+			5:
+				gallows.draw_line(p.call(180, 166), p.call(204, 212), c, w, true)
 
 ## Records this game's result in the stats once (end checks can run again
 ## after a game is over) and returns the recap line for the end screen.

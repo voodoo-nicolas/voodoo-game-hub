@@ -115,6 +115,7 @@ func _build_ui() -> void:
 	spin_btn.custom_minimum_size = Vector2(0, 90)
 	spin_btn.add_theme_font_size_override("font_size", 32)
 	spin_btn.pressed.connect(_on_spin)
+	spin_btn.set_meta("sfx", "")  # the spin whooshes (_started) instead of a tap
 	bottom.add_child(spin_btn)
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
@@ -143,17 +144,35 @@ func _on_spin() -> void:
 func _started() -> void:
 	winner = -1
 	result_label.text = tr("Spinning…")
+	_sfx("whoosh")
 	if info:
 		info.add("Spins")
 
 func _process(delta: float) -> void:
+	var before := engine.angle
 	if engine.step(delta):
 		winner = engine.chosen()
 		result_label.text = tr("Player %d!") % (winner + 1)
+		_sfx("notify")
+	elif engine.spinning:
+		_tick_past_seats(before, engine.angle)
 	if winner >= 0:
 		glow += delta
 	if engine.spinning or dragging or winner >= 0:
 		board.queue_redraw()
+
+## A click each time the neck swings past a seat, like a prize wheel.
+func _tick_past_seats(a: float, b: float) -> void:
+	var step := TAU / engine.players
+	# Seats sit at -PI/2 + i*step; tick when the neck crosses one.
+	if floori(fposmod(a + PI / 2.0, TAU) / step) != floori(fposmod(b + PI / 2.0, TAU) / step):
+		_sfx("spin_tick")
+
+## Plays a sound from the app's library (silent on apps from before v0.23).
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
 
 # ---------- input: grab the bottle and fling it ----------
 

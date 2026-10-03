@@ -33,7 +33,7 @@ const STRINGS := {
 		"Score: %d": "Puntos: %d",
 		"Start": "Empezar",
 		"Swipe (or use the arrow keys) to hop one square up, down, left or right.": "Desliza (o usa las flechas) para saltar una casilla arriba, abajo, a la izquierda o a la derecha.",
-		"Swipe to hop. Dodge the cars, ride the logs, and fill all five homes!": "Desliza para saltar. Esquiva los autos, súbete a los troncos y llena las cinco casitas.",
+		"Swipe to hop. Dodge the cars, ride the logs, and land on all five glowing lily pads at the top!": "Desliza para saltar. Esquiva los autos, súbete a los troncos y llega a los cinco nenúfares brillantes de arriba.",
 		"Wait on the grass strip in the middle to time the river.": "Espera en el pasto del medio para calcular el momento de cruzar el río.",
 		"You lose!": "¡Perdiste!",
 		"You win!": "¡Ganaste!",

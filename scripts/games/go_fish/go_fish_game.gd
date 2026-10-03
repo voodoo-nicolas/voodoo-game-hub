@@ -100,7 +100,9 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/go_fish/go_fish_help.gd"))
 		add_child(info)
-	add_child(SettingsDrawer.new())
+	var drawer := SettingsDrawer.new()
+	drawer.set("default_frac", 0.6)  # the hand fills the bottom edge
+	add_child(drawer)
 
 func _start_new_game() -> void:
 	result_recorded = false

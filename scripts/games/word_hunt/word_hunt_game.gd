@@ -24,6 +24,12 @@ var board: Control
 var word_label: Label
 var info_label: Label
 var found_label: Label
+var tally_grid: GridContainer
+## Word length -> how many words of that length are on this board.
+## The last bucket (TALLY_MAX) also counts every longer word.
+var totals: Dictionary = {}
+const TALLY_MIN := 3
+const TALLY_MAX := 8
 var clock: Timer
 var start_dialog: ColorRect
 var end_dialog: ColorRect
@@ -104,6 +110,17 @@ func _build_ui() -> void:
 	board.resized.connect(board.queue_redraw)
 	root.add_child(board)
 
+	# How many words of each length this board holds, and how many are found.
+	var tally_margin := MarginContainer.new()
+	tally_margin.add_theme_constant_override("margin_left", 24)
+	tally_margin.add_theme_constant_override("margin_right", 24)
+	root.add_child(tally_margin)
+	tally_grid = GridContainer.new()
+	tally_grid.columns = 3
+	tally_grid.add_theme_constant_override("h_separation", 18)
+	tally_grid.add_theme_constant_override("v_separation", 2)
+	tally_margin.add_child(tally_grid)
+
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -161,8 +178,42 @@ func _show_start() -> void:
 	start_dialog.visible = true
 	word_label.text = ""
 	found_label.text = ""
+	totals.clear()
+	for w in engine.all_words():
+		var n: int = _bucket(w)
+		totals[n] = int(totals.get(n, 0)) + 1
+	_update_tally()
 	_update_info()
 	board.queue_redraw()
+
+static func _bucket(w: String) -> int:
+	return mini(w.length(), TALLY_MAX)
+
+## "3 letters  2/12" per length, green once a length is complete.
+func _update_tally() -> void:
+	for c in tally_grid.get_children():
+		c.queue_free()
+	var got := {}
+	for w in engine.found:
+		var n: int = _bucket(w)
+		got[n] = int(got.get(n, 0)) + 1
+	var longest := TALLY_MIN + 3
+	for n in totals:
+		longest = maxi(longest, n)
+	for n in range(TALLY_MIN, longest + 1):
+		var total: int = int(totals.get(n, 0))
+		var have: int = int(got.get(n, 0))
+		var l := Label.new()
+		var len_text: String = (tr("%d+ letters") if n == TALLY_MAX else tr("%d letters")) % n
+		l.text = "%s  %d/%d" % [len_text, have, total]
+		l.add_theme_font_size_override("font_size", 20)
+		var col := Color(0.7, 0.72, 0.8)
+		if total > 0 and have == total:
+			col = Color(0.45, 0.95, 0.5)
+		elif have > 0:
+			col = Color(1, 0.85, 0.4)
+		l.add_theme_color_override("font_color", col)
+		tally_grid.add_child(l)
 
 func _start_round() -> void:
 	time_left = ROUND_SECONDS
@@ -295,6 +346,7 @@ func _submit() -> void:
 			var shown: Array = engine.found.duplicate()
 			shown.reverse()
 			found_label.text = tr("Found:") + " " + ", ".join(PackedStringArray(shown)).to_upper()
+			_update_tally()
 		"repeat":
 			word_label.text = tr("%s — already found") % w
 			col = Color(0.9, 0.8, 0.4)

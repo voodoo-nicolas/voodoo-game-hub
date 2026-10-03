@@ -29,6 +29,7 @@ const STRINGS := {
 		"Play Again": "Jugar de nuevo",
 		"Restart": "Reiniciar",
 		"Resume": "Continuar",
+		"Rotate your device to landscape": "Gira tu teléfono a horizontal",
 		"Score: %d": "Puntos: %d",
 		"Shoot down the marching aliens before they reach the bottom.": "Derriba a los alienígenas que avanzan antes de que lleguen abajo.",
 		"Slide to move. Your cannon fires by itself — dodge the bombs!": "Desliza para moverte. Tu cañón dispara solo — ¡esquiva las bombas!",

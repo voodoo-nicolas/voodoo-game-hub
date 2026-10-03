@@ -5,11 +5,28 @@ extends Control
 ## so its tab stays clickable even over pause/win dialogs, while everywhere else on
 ## this full-rect Control lets clicks fall through (mouse_filter = IGNORE) to whatever
 ## is actually underneath -- the dialog if one is open, or the game board otherwise.
+##
+## The tab is the only floating button in a game: GameInfo's "How to Play"
+## lives inside the drawer. It sits low on the right edge, half see-through,
+## and the player can drag it up or down; where it was left is remembered
+## per game (`user://drawer_pos.json`). Until the player has moved it, the tab
+## keeps itself off the game's buttons and boards (`_avoid_controls`): if
+## something interactive is under it, it slides to the nearest free spot on
+## the right edge.
 const Orientation = preload("res://scripts/common/orientation.gd")
 const Voodoo = preload("res://scripts/common/voodoo.gd")
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SoundOptions = preload("res://scripts/common/sound_options.gd")
+const UI = preload("res://scripts/common/ui.gd")
 
-const TAB_SIZE := 44.0
-const DRAWER_WIDTH := 190.0
+const TAB_SIZE := 40.0
+const DRAWER_WIDTH := 210.0
+const POS_PATH := "user://drawer_pos.json"
+## Default height of the tab's centre, as a fraction of the screen.
+const DEFAULT_FRAC := 0.94
+## How far a press must move before it's a drag rather than a tap.
+const DRAG_SLOP := 10.0
+const IDLE_ALPHA := 0.55
 
 var is_open: bool = false
 var timer_running: bool = false
@@ -21,18 +38,91 @@ var timer_label: Label
 var timer_button: Button
 var voodoo_button: Button
 
+## Where the tab sits until the player drags it. A game whose controls are in
+## the default spot sets this before adding the drawer, with set() so packs
+## still run on older apps: `d.set("default_frac", 0.55)`.
+var default_frac: float = DEFAULT_FRAC
+var _frac: float = DEFAULT_FRAC
+var _press_y: float = -1.0
+var _dragged: bool = false
+## True once the player has put the tab somewhere: then it stays put.
+var _user_placed: bool = false
+var _avoid_t: float = 0.0
+## Heights tried, nearest-first from wherever the tab is now.
+const SPOTS := [0.94, 0.86, 0.78, 0.7, 0.62, 0.55, 0.48, 0.4, 0.33, 0.26, 0.19, 0.12]
+const AVOID_EVERY := 0.5
+
 func _ready() -> void:
 	# In the tree already, so set_anchors_preset alone would keep our 0×0 size
 	# and the tab would sit off-screen above the top-left corner.
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_frac = _load_frac()
 	_build_panel()
 	_build_tab()
+	resized.connect(_place_tab)
 
 func _process(delta: float) -> void:
 	if timer_running:
 		timer_elapsed += delta
 		timer_label.text = _format_time(timer_elapsed)
+	if not _user_placed and not is_open:
+		_avoid_t += delta
+		if _avoid_t >= AVOID_EVERY:
+			_avoid_t = 0.0
+			_avoid_controls()
+
+## Screens change (a start menu, then the board), so this runs every half
+## second until the player places the tab themselves.
+func _avoid_controls() -> void:
+	if size.y <= 0.0:
+		return
+	var blockers := _blockers()
+	if not _tab_hits(_frac, blockers):
+		return
+	var spots: Array = SPOTS.duplicate()
+	spots.sort_custom(func(a, b): return absf(a - _frac) < absf(b - _frac))
+	for f in spots:
+		if not _tab_hits(f, blockers):
+			_frac = f
+			_place_tab()
+			return
+
+## On-screen rects of everything the player might tap: buttons, text fields
+## and custom-drawn boards (Controls listening to gui_input) -- but not
+## full-screen layers, which every screen has.
+func _blockers() -> Array:
+	var out: Array = []
+	var scene := get_parent()
+	if scene == null:
+		return out
+	var screen: float = size.x * size.y
+	var stack: Array = [scene]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n == self or (n.has_method("open") and n.has_method("celebrate")):
+			continue  # ourselves and the How to Play card
+		if n is CanvasItem and not n.is_visible_in_tree():
+			continue
+		if n is Control and n != scene:
+			var r: Rect2 = n.get_global_rect()
+			var interactive: bool = n is BaseButton or n is LineEdit \
+					or (n.mouse_filter == Control.MOUSE_FILTER_STOP and not n.gui_input.get_connections().is_empty())
+			if interactive and r.get_area() < screen * 0.85:
+				out.append(r)
+		for c in n.get_children():
+			stack.append(c)
+	return out
+
+func _tab_hits(f: float, blockers: Array) -> bool:
+	var y := f * size.y
+	var half := TAB_SIZE / 2.0
+	y = clampf(y, half, size.y - half)
+	var r := Rect2(global_position + Vector2(size.x - TAB_SIZE, y - half), Vector2(TAB_SIZE, TAB_SIZE)).grow(2.0)
+	for b in blockers:
+		if r.intersects(b):
+			return true
+	return false
 
 func _format_time(s: float) -> String:
 	var total := int(s)
@@ -41,14 +131,13 @@ func _format_time(s: float) -> String:
 func _build_tab() -> void:
 	tab_button = Button.new()
 	tab_button.text = "⚙"
-	tab_button.add_theme_font_size_override("font_size", 24)
+	tab_button.add_theme_font_size_override("font_size", 22)
 	tab_button.focus_mode = Control.FOCUS_NONE
 	tab_button.anchor_left = 1.0
 	tab_button.anchor_right = 1.0
-	tab_button.anchor_top = 0.5
-	tab_button.anchor_bottom = 0.5
-	tab_button.position = Vector2(-TAB_SIZE, -TAB_SIZE / 2.0)
-	tab_button.size = Vector2(TAB_SIZE, TAB_SIZE)
+	tab_button.offset_left = -TAB_SIZE
+	tab_button.offset_right = 0.0
+	tab_button.modulate.a = IDLE_ALPHA
 
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.15, 0.15, 0.2, 0.9)
@@ -57,15 +146,86 @@ func _build_tab() -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		tab_button.add_theme_stylebox_override(state, sb)
 
-	tab_button.pressed.connect(_toggle_drawer)
+	tab_button.pressed.connect(_on_tab_pressed)
+	tab_button.gui_input.connect(_on_tab_input)
 	add_child(tab_button)
+	_place_tab()
+
+## Anchored at _frac of the height, clamped so it never leaves the screen.
+func _place_tab() -> void:
+	if tab_button == null:
+		return
+	var h: float = size.y
+	var half := TAB_SIZE / 2.0
+	var y := _frac * h
+	if h > TAB_SIZE:
+		y = clampf(y, half, h - half)
+	tab_button.anchor_top = 0.0
+	tab_button.anchor_bottom = 0.0
+	tab_button.offset_top = y - half
+	tab_button.offset_bottom = y + half
+	if is_open:
+		_center_panel()
+
+func _on_tab_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_press_y = event.global_position.y
+			_dragged = false
+		elif _dragged:
+			_user_placed = true
+			_save_frac()
+			_press_y = -1.0
+	elif event is InputEventMouseMotion and _press_y >= 0.0:
+		var dy: float = event.global_position.y - _press_y
+		if _dragged or absf(dy) > DRAG_SLOP:
+			_dragged = true
+			var local_y: float = event.global_position.y - global_position.y
+			_frac = clampf(local_y / maxf(size.y, 1.0), 0.0, 1.0)
+			_place_tab()
+
+func _on_tab_pressed() -> void:
+	if _dragged:  # the release that ended a drag isn't a tap
+		_dragged = false
+		return
+	_toggle_drawer()
+
+func _load_frac() -> float:
+	var data = SaveUtil.read(POS_PATH)
+	var key := _scene_key()
+	if data != null and data.has(key):
+		_user_placed = true
+		return clampf(float(data[key]), 0.0, 1.0)
+	return default_frac
+
+func _save_frac() -> void:
+	var data = SaveUtil.read(POS_PATH)
+	if data == null:
+		data = {}
+	data[_scene_key()] = snappedf(_frac, 0.001)
+	SaveUtil.write(POS_PATH, data)
+
+func _scene_key() -> String:
+	var scene := get_tree().current_scene if is_inside_tree() else null
+	if scene and scene.scene_file_path != "":
+		return scene.scene_file_path
+	return get_parent().scene_file_path if get_parent() else "default"
+
+## GameInfo (the How to Play card), if this game has one: a sibling with open().
+func _find_game_info() -> Node:
+	if get_parent() == null:
+		return null
+	for c in get_parent().get_children():
+		if c != self and c.has_method("open") and c.has_method("celebrate"):
+			return c
+	return null
 
 func _build_panel() -> void:
 	panel = PanelContainer.new()
 	panel.anchor_left = 1.0
 	panel.anchor_right = 1.0
-	panel.anchor_top = 0.5
-	panel.anchor_bottom = 0.5
+	panel.anchor_top = 0.0
+	panel.anchor_bottom = 0.0
 	panel.custom_minimum_size = Vector2(DRAWER_WIDTH, 0)
 	panel.visible = false
 
@@ -89,6 +249,12 @@ func _build_panel() -> void:
 	title.add_theme_font_size_override("font_size", 19)
 	title.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
 	box.add_child(title)
+
+	if _find_game_info():
+		var help_btn := Button.new()
+		help_btn.text = tr("❓ How to Play")
+		help_btn.pressed.connect(_on_help_pressed)
+		box.add_child(help_btn)
 
 	timer_label = Label.new()
 	timer_label.text = "00:00"
@@ -122,6 +288,11 @@ func _build_panel() -> void:
 		box.add_child(voodoo_button)
 		_update_voodoo_button()
 
+	var sound_btn := Button.new()
+	sound_btn.text = tr("🔊 Sound")
+	sound_btn.pressed.connect(_on_sound_pressed)
+	box.add_child(sound_btn)
+
 	var screenshot_btn := Button.new()
 	screenshot_btn.text = tr("📷 Screenshot")
 	screenshot_btn.pressed.connect(_on_screenshot_pressed)
@@ -132,18 +303,33 @@ func _build_panel() -> void:
 	hub_btn.pressed.connect(_on_hub_pressed)
 	box.add_child(hub_btn)
 
-	# vertical size isn't known until children are laid out; center after one frame
-	call_deferred("_center_panel")
 
+## Beside the tab, centred on it but kept fully on screen. Offsets, not
+## `position`: position is measured from our top-left corner, so the old
+## `position = (-width, ...)` put the whole drawer off-screen.
 func _center_panel() -> void:
-	panel.position = Vector2(-TAB_SIZE - DRAWER_WIDTH, -panel.size.y / 2.0)
+	var w: float = maxf(DRAWER_WIDTH, panel.get_combined_minimum_size().x)
+	var h: float = panel.get_combined_minimum_size().y
+	var tab_mid: float = (tab_button.offset_top + tab_button.offset_bottom) / 2.0
+	var top: float = clampf(tab_mid - h / 2.0, 4.0, maxf(4.0, size.y - h - 4.0))
+	panel.offset_right = -TAB_SIZE - 4.0
+	panel.offset_left = panel.offset_right - w
+	panel.offset_top = top
+	panel.offset_bottom = top + h
 
 func _toggle_drawer() -> void:
 	is_open = not is_open
 	panel.visible = is_open
 	tab_button.text = "✕" if is_open else "⚙"
+	tab_button.modulate.a = 1.0 if is_open else IDLE_ALPHA
 	if is_open:
 		_center_panel()
+
+func _on_help_pressed() -> void:
+	_toggle_drawer()
+	var info := _find_game_info()
+	if info:
+		info.open()
 
 func _on_timer_toggle() -> void:
 	timer_running = not timer_running
@@ -173,6 +359,42 @@ func _on_voodoo_pressed() -> void:
 	Voodoo.set_on(on)
 	_update_voodoo_button()
 	get_parent()._set_voodoo(on)
+
+## The same sound controls as the hub's Options screen (sound_options.gd),
+## in a card over the game, so the player can change them mid-game.
+func _on_sound_pressed() -> void:
+	_toggle_drawer()
+	var settings = get_node_or_null("/root/Settings")
+	if settings == null:
+		return
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.6)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_to_group("modal_overlay")
+	add_child(overlay)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	overlay.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", UI.panel_style())
+	card.custom_minimum_size.x = minf(560.0, get_viewport_rect().size.x - 40.0)
+	center.add_child(card)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	card.add_child(box)
+	var title := Label.new()
+	title.text = tr("🔊 Sound")
+	title.add_theme_font_size_override("font_size", 30)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	box.add_child(SoundOptions.new(settings.DARK, true))
+	var done := Button.new()
+	done.text = tr("Done")
+	done.custom_minimum_size = Vector2(0, 56)
+	done.add_theme_font_size_override("font_size", 24)
+	done.pressed.connect(overlay.queue_free)
+	box.add_child(done)
 
 func _on_hub_pressed() -> void:
 	_save_current_scene_if_possible()

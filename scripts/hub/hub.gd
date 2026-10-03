@@ -183,6 +183,21 @@ func _ready() -> void:
 	_rebuild_list()
 	if not Catalog.app_update_checked:
 		Catalog.check_app_update(_show_update_dialog)
+	_resume_last_game()
+
+## Android kills apps left in the background; if that happened mid-game,
+## go straight back into it (games with a save pick up where they were).
+func _resume_last_game() -> void:
+	var scene: String = Settings.take_resume_scene()
+	if scene == "":
+		return
+	for category in Catalog.categories:
+		for entry in category.get("games", []):
+			var game: Dictionary = Catalog.get_game(entry.get("id", ""))
+			if game.get("scene", "") == scene and Catalog.state_of(game) == Catalog.STATE_READY:
+				busy = true
+				call_deferred("_launch", game)
+				return
 
 func _open_options() -> void:
 	get_tree().change_scene_to_file("res://scenes/hub/options.tscn")

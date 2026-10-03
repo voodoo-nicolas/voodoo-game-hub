@@ -17,7 +17,13 @@ extends Node
 ## "sync" with the full game state, so a dropped connection recovers.
 ##
 ## Protocol: Phoenix channels over a WebSocket (what supabase-js speaks),
-## with presence used to see who is in the room.
+## with presence used to see who is in the room. Presence also carries each
+## player's name (`my_name` -> the other side's `opponent_name`).
+##
+## Rejoining: rejoin() comes back into a room with the same code, role and
+## presence key as before (OnlineMatch remembers them in ROOM_PATH), so an
+## app that Android killed mid-game takes its old seat instead of looking
+## like a third player.
 
 const Config = preload("res://scripts/common/config.gd")
 
@@ -42,6 +48,8 @@ var game_id: String = ""
 var my_id: String = ""
 var opponent_present: bool = false
 var active: bool = false
+var my_name: String = ""
+var opponent_name: String = ""
 
 var _ws := WebSocketPeer.new()
 var _topic: String = ""
@@ -53,6 +61,7 @@ var _reconnect_left: float = -1.0
 var _join_deadline: float = -1.0
 var _was_open: bool = false
 var _presence: Dictionary = {}  # presence key -> role
+var _names: Dictionary = {}     # presence key -> name
 
 func _init() -> void:
 	my_id = "%d%d" % [Time.get_unix_time_from_system(), randi()]
@@ -76,6 +85,17 @@ func join(p_game_id: String, p_code: String) -> void:
 		join_failed.emit(tr("Codes are %d letters.") % CODE_LENGTH)
 		return
 	_join_deadline = JOIN_TIMEOUT_SEC
+	_start()
+
+## Back into a room this app was in before (see the header). The guest waits
+## for the host as usual; the host just reopens the room.
+func rejoin(p_game_id: String, p_code: String, as_host: bool, p_id: String) -> void:
+	is_host = as_host
+	game_id = p_game_id
+	code = p_code
+	if p_id != "":
+		my_id = p_id
+	_join_deadline = -1.0 if as_host else JOIN_TIMEOUT_SEC
 	_start()
 
 ## Sends an event to the opponent. Silently dropped while disconnected --
@@ -175,7 +195,7 @@ func _handle(msg: Variant) -> void:
 					_channel_joined = true
 					connection_changed.emit(true)
 					_push(_topic, "presence", {"type": "presence", "event": "track",
-						"payload": {"role": "host" if is_host else "guest"}})
+						"payload": {"role": "host" if is_host else "guest", "name": my_name}})
 					if is_host and code != "" and not opponent_present:
 						room_created.emit(code)
 				else:
@@ -184,10 +204,12 @@ func _handle(msg: Variant) -> void:
 			_presence = {}
 			for key in payload:
 				_presence[key] = _role_of(payload[key])
+				_names[key] = _meta_of(payload[key], "name")
 			_update_opponent()
 		"presence_diff":
 			for key in payload.get("joins", {}):
 				_presence[key] = _role_of(payload.joins[key])
+				_names[key] = _meta_of(payload.joins[key], "name")
 			for key in payload.get("leaves", {}):
 				_presence.erase(key)
 			_update_opponent()
@@ -199,10 +221,15 @@ func _handle(msg: Variant) -> void:
 			_schedule_reconnect()
 
 func _role_of(entry: Variant) -> String:
+	return _meta_of(entry, "role")
+
+## The newest value of `field` in a presence entry (a rejoin can briefly
+## leave the old one listed too).
+func _meta_of(entry: Variant, field: String) -> String:
 	if typeof(entry) == TYPE_DICTIONARY:
 		var metas = entry.get("metas", [])
-		if typeof(metas) == TYPE_ARRAY and metas.size() > 0 and typeof(metas[0]) == TYPE_DICTIONARY:
-			return str(metas[0].get("role", ""))
+		if typeof(metas) == TYPE_ARRAY and metas.size() > 0 and typeof(metas[-1]) == TYPE_DICTIONARY:
+			return str(metas[-1].get(field, ""))
 	return ""
 
 func _update_opponent() -> void:
@@ -211,6 +238,8 @@ func _update_opponent() -> void:
 	for key in _presence:
 		if key != my_id and _presence[key] == want:
 			present = true
+			if str(_names.get(key, "")) != "":
+				opponent_name = str(_names[key])
 	if not is_host:
 		# A host already occupied by another guest means the room is full.
 		for key in _presence:

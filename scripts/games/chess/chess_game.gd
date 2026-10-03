@@ -406,8 +406,15 @@ func _apply_move(from: Vector2i, to: Vector2i, promotion_piece: int) -> void:
 		online.send_move({"from": [from.x, from.y], "to": [to.x, to.y], "promo": promotion_piece})
 	selected = Vector2i(-1, -1)
 	_render()
+	_sfx("capture" if result.is_capture else "place")
 	if result.game_over:
 		_show_result()
+
+## Plays a sound from the app's library (silent on apps from before v0.23).
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
 
 # ---------- online ----------
 

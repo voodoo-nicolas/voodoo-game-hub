@@ -1,7 +1,8 @@
 extends Control
 
 ## The ⚙ Options screen, opened from the hub. Every value lives in the
-## `Settings` autoload (text size, theme, sound, vibration, keep screen on),
+## `Settings` autoload (text size, theme, sound -- drawn by sound_options.gd,
+## shared with the in-game drawer -- vibration, keep screen on),
 ## `Lang` (language) or voodoo.gd (skull mode); this file only draws them.
 ##
 ## Text size, theme and language reload this scene to apply (sizes and
@@ -14,6 +15,7 @@ const Config = preload("res://scripts/common/config.gd")
 const Voodoo = preload("res://scripts/common/voodoo.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
+const SoundOptions = preload("res://scripts/common/sound_options.gd")
 
 const FEEDBACK_URL := Config.REPO_URL + "/issues/new"
 
@@ -121,9 +123,14 @@ func _build_ui() -> void:
 			tr("Skulls, crossbones and voodoo dolls in Tic-Tac-Toe, Connect Four and Reversi."),
 			Voodoo.is_on(), _on_skull_mode)
 
-	# ---- Sound & feel ----
-	var feel := _section(list, tr("Sound & vibration"))
-	_toggle_row(feel, tr("🔊 Sound"), tr("Sound effects are on the way."), Settings.sound, Settings.set_sound)
+	# ---- Sound ----
+	var sound := _section(list, tr("Sound"))
+	var sound_opts := SoundOptions.new(pal)
+	sound_opts.drag = drag
+	sound.add_child(sound_opts)
+
+	# ---- Vibration & screen ----
+	var feel := _section(list, tr("Vibration & screen"))
 	_toggle_row(feel, tr("📳 Vibration"), tr("A buzz when you tap, win or lose."), Settings.vibrate, Settings.set_vibrate)
 	_toggle_row(feel, tr("☀ Keep screen on"), tr("The screen won't turn off while you play."),
 			Settings.keep_awake, Settings.set_keep_awake)

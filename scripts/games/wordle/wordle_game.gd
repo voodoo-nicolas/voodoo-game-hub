@@ -157,6 +157,7 @@ func _make_key(text: String, width: int, action: Callable) -> Button:
 	btn.custom_minimum_size = Vector2(width, 88)
 	btn.add_theme_font_size_override("font_size", 28 if text.length() == 1 else 22)
 	btn.focus_mode = Control.FOCUS_NONE
+	btn.set_meta("sfx", "")  # no tap: typing sounds play in _type_letter etc. (PC keyboard too)
 	btn.pressed.connect(action)
 	return btn
 
@@ -186,12 +187,14 @@ func _type_letter(letter: String) -> void:
 		return
 	current += letter
 	message_label.text = ""
+	_sfx("key")
 	_render()
 
 func _backspace() -> void:
 	if engine.game_over or current.is_empty():
 		return
 	current = current.left(current.length() - 1)
+	_sfx("back")
 	_render()
 
 func _submit() -> void:
@@ -200,11 +203,25 @@ func _submit() -> void:
 	var result: String = engine.submit(current)
 	if result == "short":
 		message_label.text = tr("Not enough letters")
+		_sfx("invalid")
+		return
+	if result == "not_word":
+		message_label.text = tr("Not in word list")
+		_sfx("invalid")
 		return
 	current = ""
 	_render()
 	if result == "won" or result == "lost":
 		_record_result(result == "won")
+	else:
+		# Bright if the guess hit a letter in its right spot, dull if not.
+		_sfx("letter_right" if WordleEngine.Mark.CORRECT in engine.marks[-1] else "letter_wrong")
+
+## Plays a sound from the app's library (silent on apps from before v0.23).
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
 
 func _record_result(won: bool) -> void:
 	stats.played += 1

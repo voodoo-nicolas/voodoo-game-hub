@@ -26,7 +26,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			moved = false
-			_tracking = not _overlay_open() and scroll.get_global_rect().has_point(event.position)
+			_tracking = not _overlay_open() and scroll.get_global_rect().has_point(event.position) \
+					and not get_viewport().gui_get_hovered_control() is Slider  # sliding a volume isn't scrolling
 			_start = event.position
 			_start_scroll = scroll.scroll_vertical
 		else:

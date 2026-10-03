@@ -116,7 +116,7 @@ func _build_ui() -> void:
 		{"text": tr("Start"), "action": _start},
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
-	start_dialog.get_meta("message_label").text = tr("Swipe to hop. Dodge the cars, ride the logs, and fill all five homes!")
+	start_dialog.get_meta("message_label").text = tr("Swipe to hop. Dodge the cars, ride the logs, and land on all five glowing lily pads at the top!")
 	add_child(start_dialog)
 	over_dialog = UI.build_dialog(tr("Game Over"), [
 		{"text": tr("Play Again"), "action": _start},
@@ -201,54 +201,156 @@ func _draw_board() -> void:
 	# time bar
 	board.draw_rect(Rect2(o + Vector2(0, -c * 0.45), Vector2(width * engine.time_left / FCEngine.LIFE_TIME, c * 0.25)),
 		Color(0.4, 0.9, 0.4) if engine.time_left > 8.0 else Color(1, 0.4, 0.3))
+	var t := Time.get_ticks_msec() / 1000.0
+	var field := Rect2(o.x, o.y, width, c * FCEngine.ROWS)
 	for r in FCEngine.ROWS:
 		var y := o.y + r * c
 		var lane: Dictionary = engine.lanes[r]
-		var col := Color(0.25, 0.55, 0.25)
-		if lane.kind == "river":
-			col = Color(0.15, 0.35, 0.7)
+		var row_rect := Rect2(o.x, y, width, c)
+		if r == 0:
+			_draw_hedge(row_rect, c)
+		elif lane.kind == "river":
+			_draw_water(row_rect, c, t, lane.speed)
 		elif lane.kind == "road":
-			col = Color(0.2, 0.2, 0.23)
-		elif r == 0:
-			col = Color(0.1, 0.3, 0.12)
-		board.draw_rect(Rect2(o.x, y, width, c), col)
-		if lane.kind == "road" and r < 11:
-			var x := 0.0
-			while x < width:
-				board.draw_rect(Rect2(o.x + x, y + c - 2, c * 0.4, 3), Color(1, 1, 1, 0.3))
-				x += c
+			board.draw_rect(row_rect, Color(0.19, 0.19, 0.22))
+			if r < 11:  # dashed line between this road lane and the next
+				var x := 0.0
+				while x < width:
+					board.draw_rect(Rect2(o.x + x + c * 0.3, y + c - 2, c * 0.45, 4), Color(1, 0.9, 0.5, 0.55))
+					x += c
+		else:
+			_draw_grass(row_rect, c, r)
 		for i in lane.objects.size():
 			var obj: Dictionary = lane.objects[i]
 			var ox := FCEngine.object_x(obj)
 			for shift in [-span, 0.0, span]:
 				var full := Rect2(o.x + (ox + shift) * c, y + c * 0.12, obj.len * c, c * 0.76)
-				# only the part inside the playfield
-				var rect := full.intersection(Rect2(o.x, y, width, c))
-				if rect.size.x <= 1.0:
+				if full.intersection(row_rect).size.x <= 1.0:
 					continue
 				if lane.kind == "river":
-					var sb := StyleBoxFlat.new()
-					sb.bg_color = Color(0.55, 0.35, 0.18)
-					sb.set_corner_radius_all(int(c * 0.3))
-					board.draw_style_box(sb, rect)
+					_draw_log(full, c)
 				else:
-					var sb := StyleBoxFlat.new()
-					sb.bg_color = CAR_COLORS[(r + i) % CAR_COLORS.size()]
-					sb.set_corner_radius_all(int(c * 0.18))
-					board.draw_style_box(sb, rect.grow(-c * 0.04))
-					var front: float = full.end.x - c * 0.25 if lane.speed > 0 else full.position.x + c * 0.1
-					if front < rect.position.x or front + c * 0.15 > rect.end.x:
-						continue
-					board.draw_rect(Rect2(front, rect.position.y + c * 0.12, c * 0.15, rect.size.y - c * 0.24), Color(0.8, 0.95, 1, 0.8))
-	# homes
+					_draw_car(full, c, CAR_COLORS[(r + i) % CAR_COLORS.size()], lane.speed > 0)
+	# Cars and logs wrap around; cover what's drawn past the sides.
+	board.draw_rect(Rect2(0, field.position.y, field.position.x, field.size.y), Color(0.09, 0.09, 0.13))
+	board.draw_rect(Rect2(field.end.x, field.position.y, board.size.x - field.end.x, field.size.y), Color(0.09, 0.09, 0.13))
+	# homes: lily pads in gaps of the hedge, pulsing gold while still empty
 	for k in FCEngine.HOMES.size():
-		var hx: float = o.x + FCEngine.HOMES[k] * c
-		board.draw_rect(Rect2(hx + 3, o.y + 3, c - 6, c - 6), Color(0.15, 0.35, 0.7))
+		var hc := Vector2(o.x + (FCEngine.HOMES[k] + 0.5) * c, o.y + c * 0.5)
 		if engine.homes[k]:
-			_draw_frog(Vector2(hx + c / 2.0, o.y + c / 2.0), c * 0.8)
+			_draw_lily_pad(hc, c, 0.0)
+			_draw_frog(hc, c * 0.8)
+		else:
+			_draw_lily_pad(hc, c, 0.5 + 0.5 * sin(t * 4.0 + k))
 	if not engine.over:
 		var alpha := 1.0 if engine.death_flash <= 0.0 else 0.4
 		_draw_frog(o + (engine.frog + Vector2(0.5, 0.5)) * c, c * 0.8, alpha)
+
+## The goal row: a dark hedge with a water nook at each home.
+func _draw_hedge(row: Rect2, c: float) -> void:
+	board.draw_rect(row, Color(0.08, 0.26, 0.1))
+	var x := row.position.x
+	var k := 0
+	while x < row.end.x:  # round bush tops
+		board.draw_circle(Vector2(x + c * 0.25, row.position.y + c * 0.3), c * 0.32, Color(0.12, 0.36, 0.14) if k % 2 == 0 else Color(0.1, 0.32, 0.12))
+		x += c * 0.5
+		k += 1
+	for hx in FCEngine.HOMES:
+		var nook := Rect2(row.position.x + hx * c + c * 0.06, row.position.y + c * 0.1, c * 0.88, c * 0.9)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.13, 0.33, 0.6)
+		sb.corner_radius_top_left = int(c * 0.4)
+		sb.corner_radius_top_right = int(c * 0.4)
+		board.draw_style_box(sb, nook)
+
+## A round green pad with a notch and a pink flower; `glow` (0..1) rings it
+## in gold to say "jump in here".
+func _draw_lily_pad(center: Vector2, c: float, glow: float) -> void:
+	var r := c * 0.36
+	if glow > 0.0:
+		board.draw_arc(center, r + c * 0.07, 0, TAU, 32, Color(1, 0.85, 0.2, 0.35 + 0.6 * glow), c * 0.06, true)
+	var pad := PackedVector2Array()
+	for i in 29:  # a circle missing a wedge
+		var a := deg_to_rad(20.0 + i * 11.4)
+		pad.append(center + Vector2(cos(a), sin(a)) * r)
+	pad.append(center)
+	board.draw_colored_polygon(pad, Color(0.3, 0.75, 0.3))
+	board.draw_arc(center, r * 0.6, deg_to_rad(40), deg_to_rad(330), 16, Color(0.22, 0.6, 0.24), maxf(1.0, c * 0.03))
+	var f := center + Vector2(-r * 0.35, -r * 0.35)
+	for i in 5:
+		var a := TAU * i / 5.0
+		board.draw_circle(f + Vector2(cos(a), sin(a)) * c * 0.06, c * 0.055, Color(1, 0.6, 0.8))
+	board.draw_circle(f, c * 0.04, Color(1, 0.9, 0.3))
+
+## Water with light ripples drifting the way the current flows.
+func _draw_water(row: Rect2, c: float, t: float, speed: float) -> void:
+	board.draw_rect(row, Color(0.13, 0.33, 0.62))
+	var drift := fmod(t * speed * 0.6, 1.0)
+	for j in 2:
+		var y := row.position.y + c * (0.3 + 0.4 * j)
+		var x := row.position.x + (drift + 0.5 * j) * c - c
+		while x < row.end.x:
+			board.draw_line(Vector2(x, y), Vector2(x + c * 0.35, y), Color(0.55, 0.75, 1, 0.35), maxf(1.0, c * 0.04))
+			x += c * 1.3
+
+## Grass with darker tufts; the safe middle bank and the start are grass.
+func _draw_grass(row: Rect2, c: float, r: int) -> void:
+	board.draw_rect(row, Color(0.25, 0.55, 0.25))
+	for i in int(row.size.x / c):
+		var k := (i * 7 + r * 13) % 5
+		var p := Vector2(row.position.x + (i + 0.2 + k * 0.12) * c, row.position.y + c * (0.3 + 0.1 * (k % 3)))
+		for dx in [-1.0, 0.0, 1.0]:
+			board.draw_line(p + Vector2(dx * c * 0.05, c * 0.12), p + Vector2(dx * c * 0.09, -c * 0.02), Color(0.18, 0.45, 0.18), maxf(1.0, c * 0.035))
+
+func _draw_log(rect: Rect2, c: float) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.5, 0.31, 0.15)
+	sb.set_corner_radius_all(int(c * 0.3))
+	sb.border_color = Color(0.32, 0.19, 0.08)
+	sb.set_border_width_all(maxi(1, int(c * 0.05)))
+	board.draw_style_box(sb, rect)
+	var y1 := rect.position.y + rect.size.y * 0.35
+	var y2 := rect.position.y + rect.size.y * 0.65
+	var x := rect.position.x + c * 0.4
+	while x < rect.end.x - c * 0.5:  # bark grain
+		board.draw_line(Vector2(x, y1), Vector2(x + c * 0.4, y1), Color(0.38, 0.22, 0.1), maxf(1.0, c * 0.03))
+		board.draw_line(Vector2(x + c * 0.25, y2), Vector2(x + c * 0.6, y2), Color(0.38, 0.22, 0.1), maxf(1.0, c * 0.03))
+		x += c * 0.9
+	var end_c := Vector2(rect.end.x - rect.size.y * 0.32, rect.get_center().y)  # cut end with rings
+	board.draw_circle(end_c, rect.size.y * 0.3, Color(0.78, 0.6, 0.38))
+	board.draw_arc(end_c, rect.size.y * 0.17, 0, TAU, 16, Color(0.55, 0.38, 0.2), maxf(1.0, c * 0.025))
+
+## Car (1 cell) or truck (longer): body, cab glass, wheels, headlights at the
+## front (the direction it drives).
+func _draw_car(full: Rect2, c: float, color: Color, right: bool) -> void:
+	var body := full.grow(-c * 0.04)
+	var wheel := Color(0.08, 0.08, 0.1)
+	for wx in [body.position.x + c * 0.12, body.end.x - c * 0.32]:  # wheels peek out
+		board.draw_rect(Rect2(wx, body.position.y - c * 0.05, c * 0.2, c * 0.1), wheel)
+		board.draw_rect(Rect2(wx, body.end.y - c * 0.05, c * 0.2, c * 0.1), wheel)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = color
+	sb.set_corner_radius_all(int(c * 0.18))
+	board.draw_style_box(sb, body)
+	var long := full.size.x > c * 1.5
+	var dir := 1.0 if right else -1.0
+	var front_x: float = body.end.x if right else body.position.x
+	if long:  # truck: cab at the front, a lighter trailer behind
+		var cab_w := c * 0.75
+		var trailer := Rect2(body.position.x, body.position.y, body.size.x - cab_w, body.size.y)
+		if not right:
+			trailer.position.x = body.position.x + cab_w
+		var tsb := StyleBoxFlat.new()
+		tsb.bg_color = color.lightened(0.35)
+		tsb.set_corner_radius_all(int(c * 0.1))
+		board.draw_style_box(tsb, trailer)
+	# windshield, set back from the front
+	var glass_x: float = front_x - dir * c * 0.42 - (c * 0.18 if right else 0.0)
+	board.draw_rect(Rect2(glass_x, body.position.y + body.size.y * 0.18, c * 0.18, body.size.y * 0.64), Color(0.75, 0.9, 1, 0.9))
+	# headlights
+	var hl_x: float = front_x - (c * 0.08 if right else 0.0)
+	for hy in [body.position.y + body.size.y * 0.15, body.end.y - body.size.y * 0.15 - c * 0.08]:
+		board.draw_rect(Rect2(hl_x, hy, c * 0.08, c * 0.08), Color(1, 0.95, 0.6))
 
 func _draw_frog(center: Vector2, size: float, alpha: float = 1.0) -> void:
 	var green := Color(0.35, 0.9, 0.35, alpha)

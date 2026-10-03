@@ -2,10 +2,12 @@ extends RefCounted
 
 ## Wordle: guess a 5-letter word in 6 tries. After each guess every letter is
 ## marked CORRECT (right spot), PRESENT (in the word, elsewhere) or ABSENT.
-## Any 5 letters are accepted as a guess -- a small built-in list rejecting
-## real words would be more annoying than a free-form guess is exploitable.
+## English guesses must be real words: every 5-letter word of the
+## public-domain ENABLE list (plus all ANSWERS) ships gzipped in this folder.
+## Spanish has no dictionary yet, so any 5 letters are accepted there.
 
 const WORD_LENGTH := 5
+const WORDS_PATH := "res://scripts/games/wordle/wordle_words.txt.gz"
 const MAX_GUESSES := 6
 
 enum Mark { ABSENT, PRESENT, CORRECT }
@@ -124,6 +126,24 @@ var won: bool = false
 var _bags: Dictionary = {}
 ## Spanish word list instead of English.
 var spanish: bool = false
+## Sorted lowercase English guesses; empty if the file couldn't be read, in
+## which case any 5 letters are accepted rather than blocking play.
+var _valid: PackedStringArray = PackedStringArray()
+
+func _init() -> void:
+	if not FileAccess.file_exists(WORDS_PATH):
+		return
+	var raw := FileAccess.get_file_as_bytes(WORDS_PATH)
+	if raw.is_empty():
+		return
+	_valid = raw.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP).get_string_from_utf8().split("\n", false)
+
+func is_valid_guess(guess: String) -> bool:
+	if spanish or _valid.is_empty():
+		return true
+	var w := guess.to_lower()
+	var i := _valid.bsearch(w)
+	return i < _valid.size() and _valid[i] == w
 
 ## Deals the next answer from a shuffled bag (per language) so none repeats
 ## until every word has come up. Pass `word` to force one (tests).
@@ -143,13 +163,15 @@ func reset(word: String = "") -> void:
 	game_over = false
 	won = false
 
-## Returns "ok", "won", "lost", or an error ("short", "over").
+## Returns "ok", "won", "lost", or an error ("short", "not_word", "over").
 func submit(guess: String) -> String:
 	if game_over:
 		return "over"
 	guess = guess.to_upper()
 	if guess.length() != WORD_LENGTH:
 		return "short"
+	if not is_valid_guess(guess):
+		return "not_word"
 	guesses.append(guess)
 	marks.append(score_guess(guess, answer))
 	if guess == answer:

@@ -146,16 +146,32 @@ func _draw_board() -> void:
 		var w: Dictionary = engine.words[i]
 		if w.found:
 			var e: Vector2i = w.start + w.dir * (w.word.length() - 1)
-			board.draw_line(_center_of(g, w.start), _center_of(g, e), HIGHLIGHTS[i % HIGHLIGHTS.size()], cell * 0.75)
+			_draw_capsule(_center_of(g, w.start), _center_of(g, e), cell * 0.4, HIGHLIGHTS[i % HIGHLIGHTS.size()])
 	if drag_start.x >= 0 and drag_end.x >= 0:
 		var cells := WSEngine.line(drag_start, drag_end)
 		if not cells.is_empty():
-			board.draw_line(_center_of(g, drag_start), _center_of(g, drag_end), Color(0.3, 0.5, 1, 0.4), cell * 0.75)
+			_draw_capsule(_center_of(g, drag_start), _center_of(g, drag_end), cell * 0.4, Color(0.3, 0.5, 1, 0.4))
 	var fs := int(cell * 0.55)
 	for i in WSEngine.SIZE * WSEngine.SIZE:
 		var p := Vector2i(i % WSEngine.SIZE, i / WSEngine.SIZE)
 		var c := _center_of(g, p)
 		board.draw_string(font, Vector2(c.x - cell / 2.0, c.y + fs * 0.36), engine.grid[i], HORIZONTAL_ALIGNMENT_CENTER, cell, fs, Color(0.12, 0.12, 0.16))
+
+## A pill with round ends that reach past the first and last letters' centres
+## by `radius`, so both end letters sit fully inside it. One polygon, so the
+## see-through color doesn't double up where ends and middle would overlap.
+func _draw_capsule(a: Vector2, b: Vector2, radius: float, color: Color) -> void:
+	var dir := (b - a).normalized() if a != b else Vector2.RIGHT
+	var normal := Vector2(-dir.y, dir.x)
+	var pts := PackedVector2Array()
+	var steps := 12
+	for i in steps + 1:  # half circle around b
+		var t := -PI / 2.0 + PI * i / steps
+		pts.append(b + (dir * cos(t) + normal * -sin(t)) * radius)
+	for i in steps + 1:  # half circle around a
+		var t := PI / 2.0 + PI * i / steps
+		pts.append(a + (dir * cos(t) + normal * -sin(t)) * radius)
+	board.draw_colored_polygon(pts, color)
 
 func _cell_at(pos: Vector2) -> Vector2i:
 	var g := _geom()
