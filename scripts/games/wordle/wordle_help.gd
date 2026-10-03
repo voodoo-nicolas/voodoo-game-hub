@@ -11,10 +11,12 @@ const HOW := [
 	"🟨 Yellow means the letter is in the word, but in a different spot.",
 	"⬜ Grey means the letter isn't in the word at all.",
 	"The keyboard shows what you've learned about each letter.",
+	"Two players: one types a secret 5-letter word and presses Enter, then hands the phone over to guess.",
+	"⏸ pauses and keeps the word; Resume on the Home screen carries on.",
 ]
 const TIPS := [
 	"Start with a word full of common letters, like CRANE, SLATE or AUDIO.",
 	"Use your second guess to try five new letters.",
 	"Remember that letters can appear twice.",
 ]
-const STATS := ["Wins", "Losses", "Best streak", "Fewest guesses"]
+const STATS := ["Wins", "Losses", "Best streak", "Fewest guesses", "Words guessed (2 players)", "Words kept (2 players)"]

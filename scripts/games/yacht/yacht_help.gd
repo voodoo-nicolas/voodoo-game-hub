@@ -11,6 +11,7 @@ const HOW := [
 	"Ones to Sixes: the total of that number. 3 and 4 of a Kind and Chance: the total of all dice.",
 	"Full House is 25, Small Straight (4 in a row) is 30, Large Straight (5 in a row) is 40, and Yacht (five of a kind) is 50.",
 	"63 or more in Ones to Sixes earns a 35-point bonus. Every extra Yacht after the first is worth 100.",
+	"⏸ pauses and keeps the score card; Resume on the Home screen carries on.",
 ]
 const TIPS := [
 	"Aim for three of each number in the upper section — that's exactly 63 and the bonus.",

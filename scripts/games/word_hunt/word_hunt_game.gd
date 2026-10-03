@@ -4,6 +4,7 @@ extends Control
 ## Three minutes per board. English words only (the word list is English).
 
 const WHEngine = preload("res://scripts/games/word_hunt/word_hunt_engine.gd")
+const HomeKit = preload("res://scripts/games/word_hunt/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -14,12 +15,13 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const ROUND_SECONDS := 180.0
 const BEST_PATH := "user://word_hunt_best.json"
-const COLOR_TILE := Color(0.96, 0.9, 0.75)
-const COLOR_TILE_ON := Color(1.0, 0.75, 0.3)
-const COLOR_TILE_SHOWN := Color(0.55, 0.85, 1.0)
-const COLOR_INK := Color(0.15, 0.1, 0.05)
+const COLOR_TILE := Color("3a8cff")
+const COLOR_TILE_ON := Color("ffae2b")
+const COLOR_TILE_SHOWN := Color("29e6ff")
+const COLOR_INK := Color.WHITE
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: WHEngine
 var board: Control
 var word_label: Label
@@ -57,12 +59,12 @@ func _ready() -> void:
 	_build_ui()
 	engine.load_words()
 	_show_start()
+	start_dialog.visible = false  # the Home screen replaces it
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -79,9 +81,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🎲 Word Hunt")
@@ -90,7 +93,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_show_start)
 	bar.add_child(restart_btn)
@@ -158,22 +163,24 @@ func _build_ui() -> void:
 
 	start_dialog = UI.build_dialog(tr("🎲 Word Hunt"), [
 		{"text": tr("Start"), "action": _start_round},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(start_dialog)
 	end_dialog = UI.build_dialog(tr("Time's up!"), [
 		{"text": tr("Show missed words"), "action": _show_missed},
 		{"text": tr("Play Again"), "action": _show_start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	pause_dialog = UI.build_dialog(tr("Paused"), [
 		{"text": tr("Resume"), "action": _resume},
-		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	])
 	add_child(pause_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/word_hunt/word_hunt_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best > 0:
 			info.high("Best score", best)
@@ -221,7 +228,7 @@ func _update_tally() -> void:
 		var l := Label.new()
 		var len_text: String = (tr("%d+ letters") if n == TALLY_MAX else tr("%d letters")) % n
 		l.text = "%s  %d/%d" % [len_text, have, total]
-		l.add_theme_font_size_override("font_size", 20)
+		l.add_theme_font_size_override("font_size", 24)
 		var col := Color(0.7, 0.72, 0.8)
 		if total > 0 and have == total:
 			col = Color(0.45, 0.95, 0.5)
@@ -242,10 +249,8 @@ func _resume() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
-		if is_node_ready() and running:
-			running = false
-			clock.stop()
-			pause_dialog.visible = true
+		if is_node_ready() and running and home:
+			home.pause()
 
 func _on_tick() -> void:
 	if not running:
@@ -304,7 +309,7 @@ func _show_missed() -> void:
 	for w in missed:
 		var b := Button.new()
 		b.text = w.to_upper()
-		b.add_theme_font_size_override("font_size", 22)
+		b.add_theme_font_size_override("font_size", 24)
 		b.custom_minimum_size = Vector2(0, 48)
 		b.pressed.connect(_show_path.bind(w))
 		missed_box.add_child(b)
@@ -334,10 +339,15 @@ func _draw_board() -> void:
 		var r := i / 4
 		var c := i % 4
 		var rect := Rect2(g.origin + Vector2(c, r) * cell, Vector2(cell, cell)).grow(-6)
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = COLOR_TILE_ON if i in path else COLOR_TILE
+		var rim: Color = COLOR_TILE_ON if i in path else COLOR_TILE
 		if i in shown_path:
-			sb.bg_color = COLOR_TILE_SHOWN
+			rim = COLOR_TILE_SHOWN
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(rim, 0.3 if rim != COLOR_TILE else 0.1)
+		sb.border_color = rim
+		sb.set_border_width_all(3)
+		sb.shadow_color = Color(rim, 0.35)
+		sb.shadow_size = 7
 		sb.set_corner_radius_all(14)
 		board.draw_style_box(sb, rect)
 		var txt: String = engine.grid[i] if engine.grid[i] != "QU" else "Qu"
@@ -424,3 +434,45 @@ func _submit() -> void:
 	word_label.add_theme_color_override("font_color", col)
 	_update_info()
 	board.queue_redraw()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/word_hunt/word_hunt_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/word_hunt/word_hunt_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Drag across touching letters to make words. Three minutes!",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🔎  Play", "sub": "3-minute round (English words)", "action": _play_round}],
+		"restart": _play_round,
+		"board_note": "Your best score in one round.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 3.3, 52.0)
+	var o := Vector2(c.size.x / 2.0 - k * 1.5, c.size.y / 2.0 - k * 1.5)
+	var letters := ["W", "O", "R", "N", "E", "D", "S", "T", "H"]
+	var path := [0, 1, 2, 5]
+	for i in 9:
+		var r := Rect2(o + Vector2(i % 3, int(i / 3)) * k, Vector2(k, k)).grow(-4)
+		HomeKit.glow_rect(c, r, COLOR_TILE_ON if i in path else HomeKit.BLUE, 2.0, 0.2 if i in path else 0.06)
+		HomeKit.glow_text(c, r.get_center(), letters[i], int(k * 0.5), Color.WHITE)
+	var pts := PackedVector2Array()
+	for i in path:
+		pts.append(o + Vector2(i % 3 + 0.5, int(i / 3) + 0.5) * k)
+	HomeKit.glow_polyline(c, pts, Color(COLOR_TILE_ON, 0.7), 2.0)
+
+func _play_round() -> void:
+	_show_start()
+	start_dialog.visible = false
+	_start_round()

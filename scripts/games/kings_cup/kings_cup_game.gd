@@ -1,6 +1,7 @@
 extends Control
 
 const KingsCupEngine = preload("res://scripts/games/kings_cup/kings_cup_engine.gd")
+const HomeKit = preload("res://scripts/games/kings_cup/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
@@ -19,6 +20,7 @@ const CARD_W_EMPTY := 0.2
 const CARD_ASPECT := 1.4
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var num_players: int = 4
 var reveal_active: bool = false
@@ -49,9 +51,8 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.1, 0.06, 0.08)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -68,15 +69,18 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 24)
-	hub_btn.pressed.connect(_go_hub)
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("👑 Kings Cup")
-	title.add_theme_font_size_override("font_size", 31)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.GOLD.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.GOLD, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
@@ -91,6 +95,8 @@ func _build_ui() -> void:
 	_build_reveal()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/kings_cup/kings_cup_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -167,7 +173,7 @@ func _build_setup(root: VBoxContainer) -> void:
 
 	var rules_label := Label.new()
 	rules_label.text = tr("Pass the phone around. Pick a card from the circle,\nfollow the rule, tap Done. The 4th King drinks the cup!")
-	rules_label.add_theme_font_size_override("font_size", 20)
+	rules_label.add_theme_font_size_override("font_size", 24)
 	rules_label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.6))
 	rules_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(rules_label)
@@ -302,8 +308,8 @@ func _build_end(root: VBoxContainer) -> void:
 	again_btn.pressed.connect(_show_setup)
 	box.add_child(again_btn)
 
-	var hub_btn := _big_button(tr("Back to Hub"), 60, 26)
-	hub_btn.pressed.connect(_go_hub)
+	var hub_btn := _big_button(tr("🏠 %s Home") % tr(TITLE_FOR_HOME), 60, 26)
+	hub_btn.pressed.connect(_go_home)
 	box.add_child(hub_btn)
 
 # ---------- flow ----------
@@ -418,3 +424,38 @@ func _on_done_pressed() -> void:
 	hint_label.visible = true
 	engine.advance_player()
 	_update_turn_display()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/kings_cup/kings_cup_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Draw a card, follow its rule — don't draw the fourth King!",
+		"logo": _draw_home_logo,
+		"multi_heading": "Party · one phone in the middle of the table",
+		"modes": [{"text": "👑  Play", "sub": "Choose the number of players", "multi": true, "color": HomeKit.GOLD, "action": _show_setup}],
+		"restart": _show_setup,
+		"board": "Games played",
+		"board_note": "Games played, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	var crown := PackedVector2Array([ctr + Vector2(-h * 0.4, h * 0.2), ctr + Vector2(-h * 0.45, -h * 0.25), ctr + Vector2(-h * 0.2, 0),
+		ctr + Vector2(0, -h * 0.35), ctr + Vector2(h * 0.2, 0), ctr + Vector2(h * 0.45, -h * 0.25), ctr + Vector2(h * 0.4, h * 0.2)])
+	c.draw_colored_polygon(crown, Color(HomeKit.GOLD, 0.2))
+	HomeKit.glow_polyline(c, crown, HomeKit.GOLD, 3.0, true)
+	for p in [Vector2(-0.45, -0.25), Vector2(0, -0.35), Vector2(0.45, -0.25)]:
+		HomeKit.glow_circle(c, ctr + p * h, h * 0.05, HomeKit.PINK, 2.0, 0.8)
+
+const TITLE_FOR_HOME := preload("res://scripts/games/kings_cup/kings_cup_help.gd").TITLE

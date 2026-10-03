@@ -4,6 +4,7 @@ extends Control
 ## on the scorecard to score this turn.
 
 const YEngine = preload("res://scripts/games/yacht/yacht_engine.gd")
+const HomeKit = preload("res://scripts/games/yacht/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -13,10 +14,12 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://yacht_best.json"
+const SAVE_PATH := "user://yacht_save.json"
 const PIPS := {1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]],
 	5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]}
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: YEngine
 var dice_row: Control
 var roll_btn: Button
@@ -24,6 +27,7 @@ var total_label: Label
 var hint_label: Label
 var cat_buttons: Dictionary = {}
 var end_dialog: ColorRect
+var started := false  # a game is on (not just the one behind Home)
 var best: int = 0
 var shake: float = 0.0
 
@@ -36,6 +40,7 @@ func _ready() -> void:
 		best = int(data.get("best", 0))
 	_build_ui()
 	_start()
+	started = false
 
 func _names() -> Dictionary:
 	return {"ones": tr("Ones"), "twos": tr("Twos"), "threes": tr("Threes"), "fours": tr("Fours"), "fives": tr("Fives"),
@@ -44,9 +49,8 @@ func _names() -> Dictionary:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.25, 0.2)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -63,9 +67,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🎲 Yacht Dice")
@@ -74,7 +79,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_start)
 	bar.add_child(restart_btn)
@@ -92,7 +99,7 @@ func _build_ui() -> void:
 	root.add_child(dice_row)
 
 	hint_label = Label.new()
-	hint_label.add_theme_font_size_override("font_size", 22)
+	hint_label.add_theme_font_size_override("font_size", 24)
 	hint_label.add_theme_color_override("font_color", Color(0.8, 0.9, 0.85))
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(hint_label)
@@ -121,7 +128,7 @@ func _build_ui() -> void:
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(0, 62)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.add_theme_font_size_override("font_size", 23)
+		b.add_theme_font_size_override("font_size", 24)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(_on_category.bind(cat))
 		grid.add_child(b)
@@ -129,17 +136,20 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog(tr("Game Over"), [
 		{"text": tr("Play Again"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/yacht/yacht_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best > 0:
 			info.high("Best score", best)
 	add_child(SettingsDrawer.new())
 
 func _start() -> void:
+	started = true
 	engine.reset()
 	end_dialog.visible = false
 	_refresh()
@@ -160,6 +170,7 @@ func _on_category(cat: String) -> void:
 		_sfx("merge")
 		_refresh()
 		if engine.is_over():
+			SaveUtil.delete(SAVE_PATH)
 			var t := engine.total()
 			if t > best:
 				best = t
@@ -234,3 +245,70 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/yacht/yacht_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/yacht/yacht_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Five dice, three rolls, thirteen boxes to fill.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🎲  New game", "sub": "Solo, beat your best", "action": _fresh_game}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr("%d boxes left") % (13 - d.scores.size()),
+		"restart": _start,
+		"board_note": "Your best total.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var s := minf(c.size.y * 0.4, 62.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	for i in 5:
+		var r := Rect2(ctr + Vector2((i - 2.5) * s * 1.15, -s / 2.0 + (i % 2) * s * 0.2), Vector2(s, s))
+		HomeKit.glow_rect(c, r, HomeKit.GOLD if i != 2 else HomeKit.CYAN, 2.0, 0.12)
+		for sp in [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]]:
+			c.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.08, Color.WHITE)
+
+func _fresh_game() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not started or engine.is_over():
+		return
+	SaveUtil.write(SAVE_PATH, {"dice": engine.dice, "held": engine.held, "rolls": engine.rolls_left, "scores": engine.scores, "bonus": engine.yacht_bonus})
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start()
+		return
+	_start()
+	engine.dice = []
+	for v in d.dice:
+		engine.dice.append(int(v))
+	engine.held = []
+	for v in d.held:
+		engine.held.append(bool(v))
+	engine.rolls_left = int(d.rolls)
+	engine.scores = {}
+	for k in d.scores:
+		engine.scores[str(k)] = int(d.scores[k])
+	engine.yacht_bonus = int(d.get("bonus", 0))
+	_refresh()

@@ -22,6 +22,7 @@ const HOW := [
 	"J — Make a rule: everyone follows it for the rest of the game.",
 	"Q — Question master: anyone who answers your questions drinks.",
 	"K — King's cup: pour some of your drink into the cup. The 4th King drinks it!",
+	"⏸ pauses. A game is played at the table, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Any drink works — water and soda count too. Know your limits and play responsibly.",
