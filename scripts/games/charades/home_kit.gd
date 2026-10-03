@@ -368,11 +368,21 @@ func _on_mode(m: Dictionary) -> void:
 	var action: Callable = m.get("action", Callable())
 	if action.is_valid():
 		action.call()
+	_refit()
 
 func _on_resume() -> void:
 	hide_home()
 	if cfg.has("resume"):
 		cfg.resume.call()
+	_refit()
+
+## The app sizes each screen to fit when it opens -- while Home was showing.
+## A game screen that only appears now (its own start box hidden until
+## Play) is measured again, so nothing wider than the phone is cut off.
+func _refit() -> void:
+	var s = get_node_or_null("/root/Settings")
+	if s and s.has_method("_fit_scene"):
+		s.call_deferred("_fit_scene")
 
 func _draw_logo() -> void:
 	var f: Callable = cfg.get("logo", Callable())

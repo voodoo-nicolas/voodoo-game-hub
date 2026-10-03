@@ -11,6 +11,7 @@ const HOW := [
 	"Get it right and the next number is one digit longer.",
 	"Get it wrong and you lose one of your 3 lives; you then try a new number of the same length. Lose all 3 and the game ends.",
 	"Your score is the length of the longest number you recalled.",
+	"⏸ pauses. A game is quick, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Chunk the digits into groups of two or three, like a phone number, instead of memorizing them one by one.",

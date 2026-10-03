@@ -5,6 +5,7 @@ extends Control
 ## no longer needed fly to the foundations by themselves.
 
 const FCEngine = preload("res://scripts/games/freecell/freecell_engine.gd")
+const HomeKit = preload("res://scripts/games/freecell/home_kit.gd")
 const Cards = preload("res://scripts/games/freecell/freecell_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -13,14 +14,18 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_FELT := Color(0.05, 0.3, 0.17)
+const COLOR_FELT := Color(0.03, 0.04, 0.1)
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://freecell_save.json"
 
 var result_recorded := false  # this deal's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: FCEngine
 var board: Control
 var info_label: Label
 var win_dialog: ColorRect
+var started := false  # a deal is on (not just the one behind Home)
 var flash_timer: Timer
 var flash := Vector2i(-2, -2)   # (column or -1 for cell, index)
 
@@ -30,12 +35,12 @@ func _ready() -> void:
 	engine = FCEngine.new()
 	_build_ui()
 	_start_new_game()
+	started = false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_FELT
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -52,9 +57,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🆓 FreeCell")
@@ -102,15 +108,18 @@ func _build_ui() -> void:
 
 	win_dialog = UI.build_dialog(tr("You Win!"), [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/freecell/freecell_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
+	started = true
 	result_recorded = false
 	if info:
 		info.start_clock()
@@ -214,6 +223,7 @@ func _flash(v: Vector2i) -> void:
 func _after_change() -> void:
 	_refresh()
 	if engine.is_won():
+		SaveUtil.delete(SAVE_PATH)
 		win_dialog.get_meta("message_label").text = tr("Solved in %d moves!") % engine.moves
 		if info and not result_recorded:
 			result_recorded = true
@@ -226,3 +236,75 @@ func _after_change() -> void:
 			if fast or few:
 				win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
 		win_dialog.visible = true
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/freecell/freecell_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/freecell/freecell_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Four free cells. Every deal can be won.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🃏  New deal", "sub": "Solitaire", "action": _new_deal}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": func(): return tr("Moves: %d") % int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("moves", 0)),
+		"restart": _start_new_game,
+		"board": "Games won",
+		"board_note": "Deals won, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.8, 140.0)
+	var w := h * 0.68
+	var o := Vector2(c.size.x / 2.0 - w * 2.2, c.size.y / 2.0 - h / 2.0)
+	for i in 4:
+		var r := Rect2(o + Vector2(i * w * 1.1, 0), Vector2(w, h))
+		if i < 2:
+			Cards.draw_card(c, r, -1)
+		else:
+			Cards.draw_card(c, r, [12, 51][i - 2])
+
+func _new_deal() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not started or win_dialog.visible:
+		return
+	SaveUtil.write(SAVE_PATH, {"cols": engine.cols, "cells": engine.cells, "found": engine.found, "moves": engine.moves})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	_start_new_game()
+	engine.cols = []
+	for col in d.cols:
+		engine.cols.append(_ints(col))
+	engine.cells = _ints(d.cells)
+	engine.found = _ints(d.found)
+	engine.moves = int(d.get("moves", 0))
+	engine.history = []
+	_refresh()

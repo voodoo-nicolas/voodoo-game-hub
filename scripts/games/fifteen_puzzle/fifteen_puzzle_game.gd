@@ -4,6 +4,7 @@ extends Control
 ## to slide it (and everything between) into the gap.
 
 const FifteenPuzzleEngine = preload("res://scripts/games/fifteen_puzzle/fifteen_puzzle_engine.gd")
+const HomeKit = preload("res://scripts/games/fifteen_puzzle/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -14,12 +15,13 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://fifteen_puzzle_save.json"
 const BEST_PATH := "user://fifteen_puzzle_best.json"
-const COLOR_BG := Color(0.09, 0.09, 0.13)
-const COLOR_TILE := Color(0.22, 0.45, 0.75)
-const COLOR_TILE_HOME := Color(0.25, 0.6, 0.4)  # already in its solved spot
-const COLOR_GAP := Color(0.13, 0.13, 0.17)
+const COLOR_BG := Color("070a14")
+const COLOR_TILE := Color("3a8cff")
+const COLOR_TILE_HOME := Color("7dff3a")  # already in its solved spot
+const COLOR_GAP := Color(0.04, 0.05, 0.1)
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var elapsed: float = 0.0
 var timer_running: bool = false
@@ -40,8 +42,8 @@ func _ready() -> void:
 	var data = SaveUtil.read(BEST_PATH)
 	best = data if data != null else {}
 	_build_ui()
-	if not _load_saved_game():
-		_new_game()
+	engine.reset()  # a board behind the Home screen; Home offers Resume / New
+	_render()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -58,9 +60,8 @@ func _format_time(s: float) -> String:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -76,9 +77,10 @@ func _build_ui() -> void:
 	var bar := HBoxContainer.new()
 	top_margin.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🔲 15-Puzzle")
@@ -134,13 +136,15 @@ func _build_ui() -> void:
 
 	win_dialog = UI.build_dialog(tr("Solved!"), [
 		{"text": tr("Play Again"), "action": _new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	win_label = win_dialog.get_meta("message_label")
 	add_child(win_dialog)
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/fifteen_puzzle/fifteen_puzzle_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best.has("moves"):
 			info.low("Fewest moves", int(best.moves))
@@ -196,7 +200,12 @@ func _render() -> void:
 		if n == 0:
 			sb.bg_color = COLOR_GAP
 		else:
-			sb.bg_color = COLOR_TILE_HOME if n == i + 1 else COLOR_TILE
+			# neon tile: dark glass, glowing rim (green once it's home)
+			var col: Color = COLOR_TILE_HOME if n == i + 1 else COLOR_TILE
+			sb = HomeKit.neon_box(col, "normal")
+			sb.bg_color = Color(col, 0.2)
+			sb.set_border_width_all(3)
+			sb.set_corner_radius_all(12)
 		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 			btn.add_theme_stylebox_override(state, sb)
 	moves_label.text = tr("Moves: %d") % engine.moves
@@ -223,3 +232,46 @@ func _load_saved_game() -> bool:
 	time_label.text = "⏱ %s" % _format_time(elapsed)
 	_render()
 	return true
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/fifteen_puzzle/fifteen_puzzle_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/fifteen_puzzle/fifteen_puzzle_help.gd"),
+		"info": info,
+		"accent": HomeKit.BLUE,
+		"subtitle": "Slide the tiles back into order, 1 to 15.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  New puzzle", "sub": "4 × 4", "action": _new_game}],
+		"save_path": SAVE_PATH,
+		"resume": _resume_saved,
+		"resume_text": func(): return tr("Moves: %d") % int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("moves", 0)),
+		"restart": _new_game,
+		"board": "Puzzles solved",
+		"board_note": "Puzzles solved, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 3.2, 52.0)
+	var o := Vector2(c.size.x / 2.0 - k * 1.5, c.size.y / 2.0 - k * 1.5)
+	var nums := ["1", "2", "3", "5", "", "6", "4", "7", "8"]
+	for i in 9:
+		if nums[i] == "":
+			continue
+		var r := Rect2(o + Vector2(i % 3, int(i / 3)) * k, Vector2(k, k)).grow(-3)
+		var home_spot: bool = nums[i] in ["1", "2", "3"]
+		HomeKit.glow_rect(c, r, COLOR_TILE_HOME if home_spot else COLOR_TILE, 2.0, 0.2)
+		HomeKit.glow_text(c, r.get_center(), nums[i], int(k * 0.5), Color.WHITE)
+
+func _resume_saved() -> void:
+	if not _load_saved_game():
+		_new_game()

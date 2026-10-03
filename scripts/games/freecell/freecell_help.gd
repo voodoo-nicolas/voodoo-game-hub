@@ -11,6 +11,7 @@ const HOW := [
 	"Tap a card to send it to the best spot: a foundation, another column, or a free cell. Cards below it move along if there's room.",
 	"The more free cells and empty columns you have, the longer the runs you can move at once.",
 	"Cards that aren't needed any more go up to the foundations by themselves.",
+	"⏸ pauses and keeps the deal; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Free cells are precious — try to keep at least one empty.",

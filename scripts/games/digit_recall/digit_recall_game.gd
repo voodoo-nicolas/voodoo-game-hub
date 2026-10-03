@@ -4,6 +4,7 @@ extends Control
 ## Builds its whole UI in code.
 
 const DigitRecallEngine = preload("res://scripts/games/digit_recall/digit_recall_engine.gd")
+const HomeKit = preload("res://scripts/games/digit_recall/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -16,6 +17,7 @@ const COLOR_KEY := Color(0.22, 0.26, 0.4)
 enum Phase { IDLE, SHOW, ENTER, BETWEEN, OVER }
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var phase: int = Phase.IDLE
 var phase_id: int = 0  # bumped on every change, so a stale timer is ignored
@@ -37,14 +39,13 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = DigitRecallEngine.new()
 	_build_ui()
-	_show_start()
+	_show_start()  # Home covers it
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -63,8 +64,10 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
@@ -84,6 +87,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/digit_recall/digit_recall_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	# Must stay the last child so its tab sits above any dialog.
 	add_child(SettingsDrawer.new())
@@ -182,10 +187,9 @@ func _build_end(root: VBoxContainer) -> void:
 	again.pressed.connect(_start_game)
 	box.add_child(again)
 	var hub := Button.new()
-	hub.text = tr("Back to Hub")
-	hub.custom_minimum_size = Vector2(300, 60)
-	hub.add_theme_font_size_override("font_size", 24)
-	hub.pressed.connect(UI.exit_to_hub.bind(self))
+	hub.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	hub.custom_minimum_size = Vector2(320, 64)
+	hub.pressed.connect(_go_home)
 	box.add_child(hub)
 
 func _label(text: String, size: int, color: Color, width: float = 0.0) -> Label:
@@ -200,11 +204,12 @@ func _label(text: String, size: int, color: Color, width: float = 0.0) -> Label:
 	return l
 
 func _paint(button: Button, color: Color) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
+	var rim: Color = HomeKit.CYAN if color == COLOR_KEY else color
+	var sb := HomeKit.neon_box(rim, "normal")
+	sb.bg_color = Color(rim, 0.1)
 	sb.set_corner_radius_all(14)
-	var pressed := sb.duplicate()
-	pressed.bg_color = color.lightened(0.25)
+	var pressed := HomeKit.neon_box(rim, "pressed")
+	pressed.set_corner_radius_all(14)
 	button.add_theme_stylebox_override("normal", sb)
 	button.add_theme_stylebox_override("hover", sb)
 	button.add_theme_stylebox_override("pressed", pressed)
@@ -345,3 +350,32 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/digit_recall/digit_recall_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/digit_recall/digit_recall_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Remember the number, then type it back. It grows every round.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  Play", "sub": "Until you miss", "action": _start_game}],
+		"restart": _start_game,
+		"board_note": "Your best score.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	HomeKit.glow_text(c, ctr + Vector2(0, -h * 0.18), "3 1 4 1 5", int(h * 0.3), HomeKit.CYAN)
+	HomeKit.glow_text(c, ctr + Vector2(0, h * 0.22), "3 1 4 _ _", int(h * 0.24), HomeKit.LIME)

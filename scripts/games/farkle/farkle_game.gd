@@ -4,6 +4,7 @@ extends Control
 ## rest or bank your points.
 
 const FEngine = preload("res://scripts/games/farkle/farkle_engine.gd")
+const HomeKit = preload("res://scripts/games/farkle/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -16,6 +17,7 @@ const PIPS := {1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4:
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: FEngine
 var table: Control
 var score_label: Label
@@ -25,6 +27,8 @@ var bank_btn: Button
 var cpu_timer: Timer
 var end_dialog: ColorRect
 var selected: Array = []
+## Two players on one phone: the second player is a person, not the computer.
+var two_player := false
 var rolled := false      # the human has rolled at least once this turn
 var farkled := false
 var cpu_phase := ""
@@ -38,9 +42,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.25, 0.2)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -57,9 +60,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🎯 Farkle")
@@ -68,7 +72,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_start)
 	bar.add_child(restart_btn)
@@ -95,7 +101,7 @@ func _build_ui() -> void:
 
 	var rules := Label.new()
 	rules.text = tr("1 = 100 · 5 = 50 · three of a kind = face × 100 (1s = 1000), each extra doubles · straight or three pairs = 1500")
-	rules.add_theme_font_size_override("font_size", 19)
+	rules.add_theme_font_size_override("font_size", 24)
 	rules.add_theme_color_override("font_color", Color(0.75, 0.85, 0.8))
 	rules.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rules.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -127,11 +133,13 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/farkle/farkle_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -146,7 +154,7 @@ func _begin_human() -> void:
 	selected = []
 	rolled = false
 	farkled = false
-	status_label.text = tr("Your turn — roll the dice!")
+	status_label.text = (tr("%s: roll the dice!") % _who()) if two_player else tr("Your turn — roll the dice!")
 	_refresh()
 
 func _selection_values() -> Array:
@@ -156,8 +164,11 @@ func _selection_values() -> Array:
 	return out
 
 func _refresh() -> void:
-	score_label.text = tr("You: %d   ·   Computer: %d   (to %d)") % [engine.scores[0], engine.scores[1], FEngine.TARGET]
-	var mine: bool = engine.turn == 0 and engine.winner == -1 and not farkled
+	if two_player:
+		score_label.text = tr("Player 1: %d   ·   Player 2: %d   (to %d)") % [engine.scores[0], engine.scores[1], FEngine.TARGET]
+	else:
+		score_label.text = tr("You: %d   ·   Computer: %d   (to %d)") % [engine.scores[0], engine.scores[1], FEngine.TARGET]
+	var mine: bool = _person() and engine.winner == -1 and not farkled
 	var sel_score := FEngine.score_of(_selection_values())
 	if not rolled:
 		roll_btn.text = tr("🎲 Roll")
@@ -180,7 +191,7 @@ func _refresh() -> void:
 	table.queue_redraw()
 
 func _on_roll() -> void:
-	if engine.turn != 0 or farkled:
+	if not _person() or farkled:
 		return
 	if rolled:
 		if not engine.keep(selected):
@@ -198,13 +209,16 @@ func _on_roll() -> void:
 	_refresh()
 
 func _on_bank() -> void:
-	if engine.turn != 0 or not engine.keep(selected):
+	if not _person() or not engine.keep(selected):
 		return
 	selected = []
 	engine.bank()
 	if _check_winner():
 		return
-	_start_cpu()
+	if two_player:
+		_begin_human()
+	else:
+		_start_cpu()
 
 func _start_cpu() -> void:
 	rolled = false
@@ -219,7 +233,10 @@ func _cpu_step() -> void:
 	match cpu_phase:
 		"handover":
 			engine.end_turn()
-			_start_cpu()
+			if two_player:
+				_begin_human()
+			else:
+				_start_cpu()
 			return
 		"roll":
 			if engine.roll():
@@ -255,6 +272,15 @@ func _check_winner() -> bool:
 	if engine.winner == -1:
 		return false
 	_refresh()
+	if two_player:
+		var msg := tr("Player %d wins!") % (engine.winner + 1)
+		if info and not result_recorded:
+			result_recorded = true
+			info.add("Player 1 wins" if engine.winner == 0 else "Player 2 wins")
+			info.celebrate(msg)
+		end_dialog.get_meta("message_label").text = msg
+		end_dialog.visible = true
+		return true
 	end_dialog.get_meta("message_label").text = (tr("You win!") if engine.winner == 0 else tr("You lose!")) + _record_result("win" if engine.winner == 0 else "loss")
 	end_dialog.visible = true
 	return true
@@ -269,15 +295,17 @@ func _die_rect(i: int, n: int, y: float, s: float) -> Rect2:
 	return Rect2(Vector2((table.size.x - total) / 2.0 + i * (s + 14.0), y), Vector2(s, s))
 
 func _draw_die(r: Rect2, v: int, hilite: bool, dim: bool) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.97, 0.97, 0.95, 0.5 if dim else 1.0)
+	var col: Color = HomeKit.GOLD if hilite else HomeKit.CYAN
+	var sb := HomeKit.neon_box(col, "pressed" if hilite else "normal")
+	sb.bg_color = Color(col, 0.28 if hilite else 0.08)
+	sb.set_border_width_all(4 if hilite else 2)
 	sb.set_corner_radius_all(int(r.size.x * 0.16))
-	if hilite:
-		sb.set_border_width_all(6)
-		sb.border_color = Color(1, 0.8, 0.2)
+	if dim:
+		sb.border_color = Color(col, 0.4)
+		sb.shadow_size = 0
 	table.draw_style_box(sb, r)
 	for sp in PIPS[v]:
-		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * r.size.x, r.size.x * 0.085, Color(0.12, 0.12, 0.14, 0.5 if dim else 1.0))
+		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * r.size.x, r.size.x * 0.085, Color(1, 1, 1, 0.45 if dim else 1.0))
 
 func _draw_table() -> void:
 	var font: Font = ThemeDB.fallback_font
@@ -286,7 +314,7 @@ func _draw_table() -> void:
 	for i in engine.dice.size():
 		_draw_die(_die_rect(i, engine.dice.size(), y, s), engine.dice[i], selected.has(i), farkled)
 	if not engine.kept.is_empty():
-		table.draw_string(font, Vector2(0, table.size.y * 0.66), tr("Set aside:"), HORIZONTAL_ALIGNMENT_CENTER, table.size.x, 22, Color(0.8, 0.9, 0.85))
+		table.draw_string(font, Vector2(0, table.size.y * 0.66), tr("Set aside:"), HORIZONTAL_ALIGNMENT_CENTER, table.size.x, 26, Color(0.8, 0.9, 0.85))
 		var ks := s * 0.6
 		for i in engine.kept.size():
 			_draw_die(_die_rect(i, engine.kept.size(), table.size.y * 0.7, ks), engine.kept[i], false, true)
@@ -294,7 +322,7 @@ func _draw_table() -> void:
 func _on_table_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if engine.turn != 0 or not rolled or farkled:
+	if not _person() or not rolled or farkled:
 		return
 	var s := _die_size()
 	for i in engine.dice.size():
@@ -316,3 +344,54 @@ func _record_result(outcome: String) -> String:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/farkle/farkle_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/farkle/farkle_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Push your luck with six dice. First to 10,000 wins.",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "🤖 vs Computer", "sub": "First to 10,000", "action": _new_game.bind(false)},
+			{"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_game.bind(true)},
+		],
+		"restart": _start,
+		"board": "Wins",
+		"board_note": "Games won against the computer.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var s := minf(c.size.y * 0.42, 70.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	var faces := [5, 1, 3]
+	for i in 3:
+		var r := Rect2(ctr + Vector2((i - 1) * s * 1.25 - s / 2.0, -s / 2.0 + (i % 2) * s * 0.25 - s * 0.1), Vector2(s, s))
+		c.draw_set_transform(r.get_center(), [-0.2, 0.1, 0.25][i], Vector2.ONE)
+		var rr := Rect2(-r.size / 2.0, r.size)
+		HomeKit.glow_rect(c, rr, [HomeKit.CYAN, HomeKit.GOLD, HomeKit.PINK][i], 2.5, 0.12)
+		for sp in PIPS[faces[i]]:
+			c.draw_circle(rr.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.08, Color.WHITE)
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _new_game(two: bool) -> void:
+	two_player = two
+	_start()
+
+## Is a person (not the computer) to move?
+func _person() -> bool:
+	return engine.turn == 0 or two_player
+
+func _who() -> String:
+	return tr("Player %d") % (engine.turn + 1)

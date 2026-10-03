@@ -9,6 +9,7 @@ const HOW := [
 	"Tap a tile in the same row or column as the gap to slide it (and any tiles between) into the gap.",
 	"Tiles turn green when they're in their correct spot.",
 	"Shuffle starts a new puzzle. Every shuffle can be solved.",
+	"⏸ pauses the clock and keeps the puzzle; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Solve the top row first, then the second row. Never disturb a finished row.",
