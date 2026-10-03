@@ -11,6 +11,7 @@ const HOW := [
 	"When neither of you can play, a new card is flipped onto each centre pile.",
 	"The first to empty their hand and draw pile wins.",
 	"Choose how fast the computer plays: Relaxed, Quick or Lightning.",
+	"⏸ pauses the race. A race is quick, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Look at both centre piles at once — there's often a play on the other one.",

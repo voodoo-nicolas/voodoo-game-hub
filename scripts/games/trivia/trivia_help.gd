@@ -10,6 +10,7 @@ const HOW := [
 	"Each question has four answers and you have 20 seconds. Tap the right one.",
 	"A right answer scores 10 points, plus up to 5 bonus points for answering quickly. A wrong answer or running out of time scores nothing.",
 	"The questions come in your app's language, English or Spanish.",
+	"⏸ pauses the clock. A game is ten quick questions, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Rule out the answers you know are wrong first; it is faster than hunting for the right one.",

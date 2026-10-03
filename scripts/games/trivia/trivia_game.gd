@@ -3,6 +3,7 @@ extends Control
 ## Trivia -- pick a topic, answer ten questions. Builds its whole UI in code.
 
 const TriviaEngine = preload("res://scripts/games/trivia/trivia_engine.gd")
+const HomeKit = preload("res://scripts/games/trivia/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -10,11 +11,12 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_RIGHT := Color(0.2, 0.6, 0.35)
-const COLOR_WRONG := Color(0.7, 0.25, 0.25)
-const COLOR_BUTTON := Color(0.22, 0.26, 0.4)
+const COLOR_RIGHT := Color("7dff3a")
+const COLOR_WRONG := Color("ff4f6a")
+const COLOR_BUTTON := Color("29e6ff")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var answering: bool = false
 var elapsed: float = 0.0
@@ -37,14 +39,13 @@ func _ready() -> void:
 	engine = TriviaEngine.new()
 	engine.load_bank()
 	_build_ui()
-	_show_topics()
+	_show_topics()  # behind the Home screen
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -63,8 +64,10 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
@@ -84,6 +87,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/trivia/trivia_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	# Must stay the last child so its tab sits above any dialog.
 	add_child(SettingsDrawer.new())
@@ -192,10 +197,9 @@ func _build_end(root: VBoxContainer) -> void:
 	other.pressed.connect(_show_topics)
 	box.add_child(other)
 	var hub := Button.new()
-	hub.text = tr("Back to Hub")
-	hub.custom_minimum_size = Vector2(300, 60)
-	hub.add_theme_font_size_override("font_size", 24)
-	hub.pressed.connect(UI.exit_to_hub.bind(self))
+	hub.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	hub.custom_minimum_size = Vector2(320, 64)
+	hub.pressed.connect(_go_home)
 	box.add_child(hub)
 
 func _label(text: String, size: int, color: Color, width: float = 0.0) -> Label:
@@ -210,11 +214,12 @@ func _label(text: String, size: int, color: Color, width: float = 0.0) -> Label:
 	return l
 
 func _paint(button: Button, color: Color) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
+	var sb := HomeKit.neon_box(color, "normal")
+	sb.bg_color = Color(color, 0.12 if color == COLOR_BUTTON else 0.35)
 	sb.set_corner_radius_all(14)
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		button.add_theme_stylebox_override(state, sb)
+	for st in ["normal", "hover", "focus", "disabled"]:
+		button.add_theme_stylebox_override(st, sb)
+	button.add_theme_stylebox_override("pressed", HomeKit.neon_box(color, "pressed"))
 
 func _show_topics() -> void:
 	answering = false
@@ -308,3 +313,32 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/trivia/trivia_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/trivia/trivia_help.gd"),
+		"info": info,
+		"accent": HomeKit.PURPLE,
+		"subtitle": "Ten questions. Answer fast for more points.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "❓  Play", "sub": "Pick a topic", "action": _show_topics}],
+		"restart": _show_topics,
+		"board_note": "Your best score in one game.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	HomeKit.glow_circle(c, ctr, h * 0.42, HomeKit.PURPLE, 3.0, 0.1)
+	HomeKit.glow_text(c, ctr + Vector2(0, h * 0.03), "?", int(h * 0.6), HomeKit.GOLD)

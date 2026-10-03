@@ -12,6 +12,7 @@ const HOW := [
 	"A total of 7: the player to your right drinks. 11: the player to your left drinks.",
 	"Doubles: give out that many drinks. Double 3s: give out 3 drinks, and 3 Man drinks twice.",
 	"Roll a 3 and a 4 as 3 Man and you're free — the next 3 makes someone else 3 Man.",
+	"⏸ pauses. A game is played at the table, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Any drink works — water and soda count too. Know your limits and play responsibly.",

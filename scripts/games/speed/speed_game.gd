@@ -4,6 +4,7 @@ extends Control
 ## centre pile to play it. Be quick: the computer plays at the same time.
 
 const SpeedEngine = preload("res://scripts/games/speed/speed_engine.gd")
+const HomeKit = preload("res://scripts/games/speed/home_kit.gd")
 const Cards = preload("res://scripts/games/speed/speed_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -12,11 +13,12 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_FELT := Color(0.05, 0.3, 0.17)
+const COLOR_FELT := Color(0.03, 0.04, 0.1)
 const CPU_SPEEDS := [1.8, 1.2, 0.8]
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: SpeedEngine
 var board: Control
 var status_label: Label
@@ -38,12 +40,12 @@ func _ready() -> void:
 	engine = SpeedEngine.new()
 	_build_ui()
 	_show_start()
+	start_dialog.visible = false  # the Home screen picks the speed now
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_FELT
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -60,9 +62,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("⚡ Speed")
@@ -71,7 +74,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_show_start)
 	bar.add_child(restart_btn)
@@ -104,7 +109,7 @@ func _build_ui() -> void:
 
 	start_dialog = UI.build_dialog(tr("⚡ Speed"), [
 		{"text": tr("Start"), "action": _start_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	var box: Node = start_dialog.get_meta("message_label").get_parent()
 	level_btn = Button.new()
@@ -116,16 +121,18 @@ func _build_ui() -> void:
 	add_child(start_dialog)
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _show_start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	pause_dialog = UI.build_dialog(tr("Paused"), [
 		{"text": tr("Resume"), "action": _resume},
-		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	])
 	add_child(pause_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/speed/speed_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -165,6 +172,9 @@ func _resume() -> void:
 ## Leaving the app mid-race pauses it.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		if is_node_ready() and running and home:
+			home.pause()
+			return
 		if is_node_ready() and running:
 			running = false
 			cpu_timer.stop()
@@ -287,3 +297,47 @@ func _record_result(outcome: String) -> String:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/speed/speed_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/speed/speed_help.gd"),
+		"info": info,
+		"accent": HomeKit.PINK,
+		"subtitle": "No turns — race the computer to empty your hand.",
+		"logo": _draw_home_logo,
+		"solo_heading": "vs Computer",
+		"modes": [
+			{"text": "🐢 Relaxed", "row": "lvl", "color": HomeKit.LIME, "action": _start_level.bind(0)},
+			{"text": "🐇 Quick", "row": "lvl", "color": HomeKit.CYAN, "action": _start_level.bind(1)},
+			{"text": "⚡ Lightning", "row": "lvl", "color": HomeKit.PINK, "action": _start_level.bind(2)},
+		],
+		"restart": _show_start,
+		"board": "Wins",
+		"board_note": "Races won against the computer.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.85, 150.0)
+	var w := h * 0.68
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	Cards.draw_card(c, Rect2(ctr + Vector2(-w * 1.15, -h / 2.0), Vector2(w, h)), 8)
+	Cards.draw_card(c, Rect2(ctr + Vector2(w * 0.15, -h / 2.0), Vector2(w, h)), 22)
+	for k in 3:
+		HomeKit.glow_line(c, ctr + Vector2(-w * 1.55 - k * 8, -h * 0.2 + k * h * 0.2), ctr + Vector2(-w * 1.3 - k * 8, -h * 0.2 + k * h * 0.2), HomeKit.GOLD, 2.0)
+
+func _start_level(l: int) -> void:
+	level = l
+	_show_start()
+	start_dialog.visible = false
+	_start_game()

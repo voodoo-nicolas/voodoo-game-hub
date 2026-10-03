@@ -12,6 +12,7 @@ const HOW := [
 	"A complete King-to-Ace run in one suit is removed from the table.",
 	"Tap the stock (top left) to deal one new card onto every column. Every column needs at least one card first.",
 	"Choose 1, 2 or 4 suits for a new game — more suits is much harder.",
+	"⏸ pauses and keeps the deal; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Build in the same suit whenever you can: mixed runs can't be moved as one.",

@@ -4,6 +4,7 @@ extends Control
 ## slows down and points at one of the seats around it.
 
 const SBEngine = preload("res://scripts/games/spin_the_bottle/spin_the_bottle_engine.gd")
+const HomeKit = preload("res://scripts/games/spin_the_bottle/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -15,6 +16,7 @@ const SEAT_COLORS := [Color(1, 0.4, 0.45), Color(0.4, 0.75, 1), Color(1, 0.8, 0.
 	Color(0.85, 0.55, 1), Color(1, 0.6, 0.3)]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: SBEngine
 var board: Control
 var result_label: Label
@@ -35,9 +37,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.12, 0.07, 0.14)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -53,9 +54,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🍾 Spin the Bottle")
@@ -120,6 +122,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/spin_the_bottle/spin_the_bottle_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -224,8 +228,8 @@ func _draw_board() -> void:
 	var c := _center()
 	var r := _radius()
 	var font: Font = ThemeDB.fallback_font
-	board.draw_circle(c, r * 1.08, Color(0.2, 0.12, 0.22))
-	board.draw_arc(c, r * 1.08, 0, TAU, 96, Color(1, 1, 1, 0.12), 4)
+	board.draw_circle(c, r * 1.08, Color(0.06, 0.03, 0.12))
+	HomeKit.glow_circle(board, c, r * 1.08, HomeKit.PURPLE, 2.0)
 	for i in engine.players:
 		var a := engine.seat_angle(i)
 		var p := c + Vector2.from_angle(a) * r
@@ -257,3 +261,38 @@ func _draw_bottle(c: Vector2, a: float, length: float) -> void:
 	board.draw_rect(Rect2(Vector2(-length * 0.32, -w / 2.0), Vector2(length * 0.24, w)), Color(0.95, 0.9, 0.75, 0.9))
 	board.draw_rect(Rect2(Vector2(-length * 0.45, -w * 0.38), Vector2(length * 0.5, w * 0.1)), Color(1, 1, 1, 0.3))
 	board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/spin_the_bottle/spin_the_bottle_help.gd"),
+		"info": info,
+		"accent": HomeKit.PINK,
+		"subtitle": "Sit in a circle, spin the bottle, see who it picks.",
+		"logo": _draw_home_logo,
+		"multi_heading": "Party · one phone in the middle of the circle",
+		"modes": [{"text": "🍾  Play", "sub": "Choose how many are playing", "multi": true, "color": HomeKit.PINK, "action": _update_players}],
+		"board": "Spins",
+		"board_note": "Spins, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var r := minf(c.size.y * 0.45, 80.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	for i in 6:
+		var a := TAU * i / 6.0 - PI / 2.0
+		HomeKit.glow_circle(c, ctr + Vector2(cos(a), sin(a)) * r, r * 0.13, SEAT_COLORS[i], 2.0, 0.4)
+	c.draw_set_transform(ctr, -0.5, Vector2.ONE)
+	var pts := PackedVector2Array([Vector2(-r * 0.6, -r * 0.14), Vector2(r * 0.15, -r * 0.14), Vector2(r * 0.3, -r * 0.05),
+		Vector2(r * 0.6, -r * 0.05), Vector2(r * 0.6, r * 0.05), Vector2(r * 0.3, r * 0.05), Vector2(r * 0.15, r * 0.14), Vector2(-r * 0.6, r * 0.14)])
+	c.draw_colored_polygon(pts, Color(HomeKit.LIME, 0.2))
+	HomeKit.glow_polyline(c, pts, HomeKit.LIME, 2.5, true)
+	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

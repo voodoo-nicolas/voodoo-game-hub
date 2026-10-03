@@ -11,6 +11,7 @@ const HOW := [
 	"Grab the bottle with your finger and fling it round, or just tap Spin.",
 	"It slows down and stops pointing at someone. That player is up!",
 	"Decide together what the chosen player has to do — a dare, a question, a sip, or a kiss on the cheek.",
+	"⏸ pauses. There's nothing to save: every spin is fresh.",
 ]
 const TIPS := [
 	"Agree on the rules before you start, and keep it fun for everyone.",

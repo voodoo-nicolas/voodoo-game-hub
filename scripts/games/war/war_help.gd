@@ -10,6 +10,7 @@ const HOW := [
 	"The higher card wins both. Aces are high.",
 	"A tie means War: each player puts three cards face down and one face up. The higher face-up card takes them all.",
 	"Run out of cards and you lose.",
+	"⏸ pauses and keeps the game; Resume on the Home screen carries on.",
 ]
 const TIPS := [
 	"War is pure luck — there's nothing to decide, so just enjoy it.",

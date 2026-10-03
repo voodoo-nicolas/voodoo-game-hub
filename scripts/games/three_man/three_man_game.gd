@@ -1,6 +1,7 @@
 extends Control
 
 const ThreeManEngine = preload("res://scripts/games/three_man/three_man_engine.gd")
+const HomeKit = preload("res://scripts/games/three_man/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
@@ -12,6 +13,7 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const DIE_GOLD := Color("ffae2b")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var num_players: int = 4
 
@@ -41,9 +43,8 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.07, 0.05)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -60,14 +61,18 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("3️⃣ Three Man")
-	title.add_theme_font_size_override("font_size", 31)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.GOLD.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.GOLD, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
@@ -81,6 +86,8 @@ func _build_ui() -> void:
 	_build_play(root)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/three_man/three_man_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -143,7 +150,7 @@ func _build_setup(root: VBoxContainer) -> void:
 
 	var rules_label := Label.new()
 	rules_label.text = tr("Roll 1 die each — lowest goes first (ties re-roll).\nThen pass the phone: roll 2 dice on your turn.\n7 = right drinks · 11 = left drinks · Doubles = give that many\nAny 3 (or 2&1) = become/feed 3 Man. Keep rolling while someone drinks!")
-	rules_label.add_theme_font_size_override("font_size", 19)
+	rules_label.add_theme_font_size_override("font_size", 24)
 	rules_label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.6))
 	rules_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rules_label.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -207,7 +214,7 @@ func _build_play(root: VBoxContainer) -> void:
 	box.add_child(turn_label)
 
 	three_man_label = Label.new()
-	three_man_label.add_theme_font_size_override("font_size", 22)
+	three_man_label.add_theme_font_size_override("font_size", 24)
 	three_man_label.add_theme_color_override("font_color", Color(0.8, 0.75, 0.7))
 	three_man_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(three_man_label)
@@ -348,3 +355,35 @@ func _die_slab(c: CanvasItem, rect: Rect2, fill: Color, border: Color, radius: f
 		sb.shadow_color = Color(border, glow * 0.6)
 		sb.shadow_size = 8
 	c.draw_style_box(sb, rect)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/three_man/three_man_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Roll two dice and do what they say. Don't become 3 Man!",
+		"logo": _draw_home_logo,
+		"multi_heading": "Party · one phone, pass it around",
+		"modes": [{"text": "🎲  Play", "sub": "Choose the number of players", "multi": true, "color": HomeKit.GOLD, "action": _show_setup}],
+		"restart": _show_setup,
+		"board": "Rolls",
+		"board_note": "Dice rolled, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var d := minf(c.size.y * 0.55, 90.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	c.draw_set_transform(ctr + Vector2(-d * 0.6, 0), -0.15, Vector2.ONE)
+	_draw_die(c, d, 1)
+	c.draw_set_transform(ctr + Vector2(d * 0.6, 0), 0.2, Vector2.ONE)
+	_draw_die(c, d, 2)
+	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

@@ -1,6 +1,7 @@
 extends Control
 
 const WarEngine = preload("res://scripts/games/war/war_engine.gd")
+const HomeKit = preload("res://scripts/games/war/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
@@ -11,6 +12,7 @@ const RED_SUITS := ["♥", "♦"]
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var p1_pile_label: Label
 var p2_pile_label: Label
@@ -19,6 +21,9 @@ var p2_card_label: Label
 var result_label: Label
 var play_btn: Button
 var win_dialog: Control
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://war_save.json"
+var started := false  # a game is on (not just the one behind Home)
 var win_label: Label
 
 func _ready() -> void:
@@ -27,13 +32,13 @@ func _ready() -> void:
 	engine = WarEngine.new()
 	_build_ui()
 	_start_new_game()
+	started = false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.08, 0.08, 0.11)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -50,20 +55,26 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("⚔️ War")
-	title.add_theme_font_size_override("font_size", 31)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.PINK.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.PINK, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -114,6 +125,8 @@ func _build_ui() -> void:
 	_build_win_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/war/war_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -178,20 +191,21 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	box.add_child(menu_btn)
 
 # ---------- game flow ----------
 
 func _start_new_game() -> void:
+	started = true
 	result_recorded = false
 	engine.reset()
 	win_dialog.visible = false
 	result_label.text = tr("Tap Play Round to begin!")
-	p1_card_label.text = "🂠"
-	p2_card_label.text = "🂠"
+	p1_card_label.text = "✦"
+	p2_card_label.text = "✦"
 	p1_card_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	p2_card_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	_update_piles()
@@ -224,6 +238,7 @@ func _update_piles() -> void:
 	p2_pile_label.text = tr("CPU: %d") % engine.p2_pile.size()
 
 func _show_result() -> void:
+	SaveUtil.delete(SAVE_PATH)
 	win_label.text = (tr("You win the game!") if engine.winner == 1 else tr("CPU wins the game!")) + _record_result("win" if engine.winner == 1 else "loss")
 	win_dialog.visible = true
 
@@ -237,3 +252,70 @@ func _record_result(outcome: String) -> String:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/war/war_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/war/war_help.gd"),
+		"info": info,
+		"accent": HomeKit.PINK,
+		"subtitle": "Flip, compare, win the cards. Take all 52!",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "⚔️  Play", "sub": "vs the computer", "action": _fresh_game}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr("You: %d") % d.p1.size(),
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Games won against the computer.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.85, 150.0)
+	var w := h * 0.68
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	for spec in [[-0.2, -w * 0.45, "K", "♥", HomeKit.PINK], [0.2, w * 0.45, "Q", "♠", HomeKit.CYAN]]:
+		c.draw_set_transform(ctr + Vector2(spec[1], 0), spec[0], Vector2.ONE)
+		var r := Rect2(Vector2(-w / 2.0, -h / 2.0), Vector2(w, h))
+		c.draw_rect(r, Color(0.05, 0.07, 0.15))
+		HomeKit.glow_rect(c, r, spec[4], 2.5)
+		HomeKit.glow_text(c, Vector2(0, -h * 0.1), spec[2], int(h * 0.36), Color.WHITE)
+		HomeKit.glow_text(c, Vector2(0, h * 0.24), spec[3], int(h * 0.24), spec[4])
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _fresh_game() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not started or engine.game_over:
+		return
+	SaveUtil.write(SAVE_PATH, {"p1": engine.p1_pile, "p2": engine.p2_pile})
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	_start_new_game()
+	engine.p1_pile = []
+	for card in d.p1:
+		engine.p1_pile.append({"rank": str(card.rank), "suit": str(card.suit), "value": int(card.value)} if typeof(card) == TYPE_DICTIONARY and card.has("value") else card)
+	engine.p2_pile = []
+	for card in d.p2:
+		engine.p2_pile.append({"rank": str(card.rank), "suit": str(card.suit), "value": int(card.value)} if typeof(card) == TYPE_DICTIONARY and card.has("value") else card)
+	_update_piles()

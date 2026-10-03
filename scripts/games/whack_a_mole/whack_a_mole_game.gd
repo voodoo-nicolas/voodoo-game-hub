@@ -1,6 +1,7 @@
 extends Control
 
 const WhackEngine = preload("res://scripts/games/whack_a_mole/whack_a_mole_engine.gd")
+const HomeKit = preload("res://scripts/games/whack_a_mole/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -10,7 +11,7 @@ const Ui = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://whackamole_best.json"
-const COLOR_HOLE := Color(0.28, 0.2, 0.13)
+const COLOR_HOLE := Color(0.07, 0.05, 0.16)
 const COLOR_HOLE_VOODOO := Color(0.2, 0.1, 0.24)
 const COLOR_MOLE := Color(0.5, 0.32, 0.15)
 ## Skull mode (skulls and voodoo dolls instead of moles). Loaded, never
@@ -20,6 +21,7 @@ var Voodoo = load(VOODOO_PATH) if ResourceLoader.exists(VOODOO_PATH) else null
 var voodoo_on: bool = false
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var best_score: int = 0
 var hole_buttons: Array = []
@@ -56,7 +58,7 @@ func _set_voodoo(on: bool) -> void:
 			m.get_child(1).visible = voodoo_on
 	for h in hole_buttons:
 		_style_hole(h, COLOR_HOLE_VOODOO if voodoo_on else COLOR_HOLE)
-	bg_rect.color = Voodoo.BG if voodoo_on else Color(0.09, 0.09, 0.13)
+	bg_rect.color = Voodoo.BG if voodoo_on else HomeKit.BG
 
 func _process(delta: float) -> void:
 	if engine.running:
@@ -68,9 +70,8 @@ func _process(delta: float) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	bg_rect = ColorRect.new()
-	bg_rect.color = Color(0.09, 0.09, 0.13)
-	bg_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	bg_rect = HomeKit.backdrop()
 	add_child(bg_rect)
 
 	var root := VBoxContainer.new()
@@ -88,14 +89,18 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("🔨 Whack-a-Mole")
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.GOLD.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.GOLD, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
@@ -189,6 +194,8 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/whack_a_mole/whack_a_mole_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best_score > 0:
 			info.high("Best score", best_score)
@@ -239,9 +246,9 @@ func _build_result_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	box.add_child(menu_btn)
 
 # ---------- game flow ----------
@@ -374,6 +381,10 @@ func _update_labels() -> void:
 func _style_hole(hole: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = color
+	sb.border_color = HomeKit.PURPLE if color == COLOR_HOLE else color.lightened(0.4)
+	sb.set_border_width_all(3)
+	sb.shadow_color = Color(sb.border_color, 0.3)
+	sb.shadow_size = 8
 	var radius: int = int(hole.custom_minimum_size.x * 0.2)
 	sb.corner_radius_top_left = radius
 	sb.corner_radius_top_right = radius
@@ -412,9 +423,8 @@ func _on_best_reconciled(merged: int) -> void:
 ## Timers and _process; the dialog itself keeps processing so it can resume.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
-		if is_node_ready() and engine.running and not get_tree().paused:
-			get_tree().paused = true
-			pause_dialog.visible = true
+		if is_node_ready() and engine.running and not get_tree().paused and home:
+			home.pause()
 
 func _resume() -> void:
 	get_tree().paused = false
@@ -434,3 +444,41 @@ func _build_pause_dialog() -> void:
 	])
 	pause_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(pause_dialog)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/whack_a_mole/whack_a_mole_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/whack_a_mole/whack_a_mole_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Whack as many moles as you can in 30 seconds!",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🔨  Play", "sub": "30-second round", "action": _start_round}],
+		"restart": _start_round,
+		"board_note": "Your best score in one round.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0 + h * 0.15)
+	# a hole, a mole popping out, and the hammer
+	var hole := PackedVector2Array()
+	for i in 33:
+		var a := TAU * i / 32.0
+		hole.append(ctr + Vector2(cos(a) * h * 0.38, sin(a) * h * 0.1))
+	HomeKit.glow_polyline(c, hole, HomeKit.PURPLE, 2.5)
+	HomeKit.glow_circle(c, ctr + Vector2(0, -h * 0.16), h * 0.17, HomeKit.GOLD, 2.5, 0.25)
+	c.draw_circle(ctr + Vector2(-h * 0.06, -h * 0.2), h * 0.025, Color.WHITE)
+	c.draw_circle(ctr + Vector2(h * 0.06, -h * 0.2), h * 0.025, Color.WHITE)
+	HomeKit.glow_line(c, ctr + Vector2(h * 0.25, -h * 0.55), ctr + Vector2(h * 0.55, -h * 0.25), HomeKit.CYAN, 3.0)
+	HomeKit.glow_rect(c, Rect2(ctr + Vector2(h * 0.08, -h * 0.72), Vector2(h * 0.26, h * 0.16)), HomeKit.CYAN, 2.5, 0.2)

@@ -9,6 +9,7 @@ const HOW := [
 	"Tap Start Round, then tap each mole as it pops up out of a hole.",
 	"Every hit scores a point. Moles duck back down if you're too slow.",
 	"The round ends when the timer runs out.",
+	"⏸ pauses the clock. A round is only 30 seconds, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Keep your finger near the middle of the board: every hole is close by.",
