@@ -7,7 +7,9 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const DIE_FACES := ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"]
+## Dice are drawn, not typeset: the Unicode die glyphs (⚀-⚅) are missing from
+## most phone fonts and rendered as boxes.
+const DIE_GOLD := Color("ffae2b")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
@@ -24,7 +26,8 @@ var tiebreak_btn: Button
 
 var turn_label: Label
 var three_man_label: Label
-var dice_label: Label
+var dice_view: Control
+var dice_values := [1, 1]
 var messages_label: Label
 var roll_btn: Button
 
@@ -209,12 +212,10 @@ func _build_play(root: VBoxContainer) -> void:
 	three_man_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(three_man_label)
 
-	dice_label = Label.new()
-	dice_label.text = "⚀ ⚀"
-	dice_label.add_theme_font_size_override("font_size", 80)
-	dice_label.add_theme_color_override("font_color", Color(1, 1, 1))
-	dice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(dice_label)
+	dice_view = Control.new()
+	dice_view.custom_minimum_size = Vector2(300, 150)
+	dice_view.draw.connect(_draw_dice)
+	box.add_child(dice_view)
 
 	messages_label = Label.new()
 	messages_label.add_theme_font_size_override("font_size", 25)
@@ -271,7 +272,7 @@ func _on_begin_play() -> void:
 	tiebreak_box.visible = false
 	play_box.visible = true
 	messages_label.text = ""
-	dice_label.text = "⚀ ⚀"
+	_set_dice(1, 1)
 	_update_turn_display()
 
 func _update_turn_display() -> void:
@@ -283,7 +284,7 @@ func _on_roll_pressed() -> void:
 	var result: Dictionary = engine.roll_turn()
 	if info:
 		info.add("Rolls")
-	dice_label.text = "%s %s" % [DIE_FACES[result.die1], DIE_FACES[result.die2]]
+	_set_dice(result.die1, result.die2)
 	messages_label.text = "\n".join(result.messages)
 	three_man_label.text = tr("3 Man: Player %d") % (engine.three_man + 1) if engine.three_man >= 0 else tr("3 Man: not assigned yet")
 
@@ -299,5 +300,51 @@ func _on_next_player_pressed() -> void:
 	roll_btn.pressed.disconnect(_on_next_player_pressed)
 	roll_btn.pressed.connect(_on_roll_pressed)
 	messages_label.text = ""
-	dice_label.text = "⚀ ⚀"
+	_set_dice(1, 1)
 	_update_turn_display()
+
+# ---------- dice ----------
+
+func _set_dice(a: int, b: int) -> void:
+	dice_values = [a, b]
+	dice_view.queue_redraw()
+
+func _draw_dice() -> void:
+	var c := dice_view.size * 0.5
+	dice_view.draw_set_transform(c + Vector2(-72, 4), deg_to_rad(-8.0), Vector2.ONE)
+	_draw_die(dice_view, 110.0, dice_values[0])
+	dice_view.draw_set_transform(c + Vector2(72, -4), deg_to_rad(9.0), Vector2.ONE)
+	_draw_die(dice_view, 110.0, dice_values[1])
+	dice_view.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+## A neon die of side `d` centered on the canvas transform's origin: dark body
+## with a glowing gold edge, a slab underneath for thickness, glowing pips.
+func _draw_die(c: CanvasItem, d: float, value: int) -> void:
+	var h := d * 0.5
+	var col := DIE_GOLD
+	_die_slab(c, Rect2(-h + d * 0.05, -h + d * 0.1, d, d), col.darkened(0.65), col.darkened(0.45), d * 0.2, 0.0)
+	_die_slab(c, Rect2(-h, -h, d, d), Color(0.08, 0.06, 0.1), col, d * 0.2, 0.55)
+	_die_slab(c, Rect2(-h + d * 0.07, -h + d * 0.06, d * 0.86, d * 0.38), Color(col, 0.13), Color(col, 0.0), d * 0.14, 0.0)
+	var o := d * 0.25
+	var spots := {
+		1: [Vector2.ZERO],
+		2: [Vector2(-o, -o), Vector2(o, o)],
+		3: [Vector2(-o, -o), Vector2.ZERO, Vector2(o, o)],
+		4: [Vector2(-o, -o), Vector2(o, -o), Vector2(-o, o), Vector2(o, o)],
+		5: [Vector2(-o, -o), Vector2(o, -o), Vector2.ZERO, Vector2(-o, o), Vector2(o, o)],
+		6: [Vector2(-o, -o), Vector2(o, -o), Vector2(-o, 0), Vector2(o, 0), Vector2(-o, o), Vector2(o, o)],
+	}
+	for p in spots.get(clampi(value, 1, 6), []):
+		c.draw_circle(p, d * 0.1 + 2.5, Color(col, 0.28))
+		c.draw_circle(p, d * 0.1, col.lightened(0.75))
+
+func _die_slab(c: CanvasItem, rect: Rect2, fill: Color, border: Color, radius: float, glow: float) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.set_corner_radius_all(int(radius))
+	sb.set_border_width_all(2 if border.a > 0.0 else 0)
+	sb.border_color = border
+	if glow > 0.0:
+		sb.shadow_color = Color(border, glow * 0.6)
+		sb.shadow_size = 8
+	c.draw_style_box(sb, rect)

@@ -121,7 +121,7 @@ func _draw() -> void:
 		var left: float = Core.CRYSTAL_LIFE - c.age
 		var a: float = 1.0 if left > 1.0 else (0.35 + 0.65 * absf(sin(left * 18.0)))
 		var big: bool = int(c.get("v", 1)) > 1
-		_draw_gem(c.pos, (0.5 if big else 0.28) * u, t * 4.0 + c.pos.x, Color(1.0, 0.85, 0.3, a) if big else Color(0.35, 1.0, 0.5, a))
+		_draw_gem(c.pos, (0.5 if big else 0.2) * u, t * 3.0 + c.pos.x, Color(1.0, 0.65, 0.15, a) if big else Color(1.0, 0.92, 0.25, a), big)
 
 	for e in game.enemies:
 		_draw_enemy(e, t, u)
@@ -172,8 +172,15 @@ func _poly(pos: Vector2, r: float, sides: int, rot: float) -> PackedVector2Array
 		pts.append(pos + Vector2(r, 0).rotated(rot + i * TAU / sides))
 	return pts
 
-func _draw_gem(pos: Vector2, r: float, angle: float, color: Color) -> void:
-	_neon(_poly(pos, r, 4, angle), color, true, 1.6)
+## A tiny yellow crystal: a thin elongated gem (not a box, so it can't be
+## mistaken for an enemy) that shimmers rather than spins.
+func _draw_gem(pos: Vector2, r: float, phase: float, color: Color, big: bool = false) -> void:
+	var w := r * (0.55 if not big else 0.7)
+	var h := r * 1.5
+	var pts := PackedVector2Array([pos + Vector2(0, -h), pos + Vector2(w, -h * 0.2), pos + Vector2(0, h), pos + Vector2(-w, -h * 0.2)])
+	_neon(pts, color, true, 1.2)
+	var glint: float = 0.5 + 0.5 * sin(phase * 2.0)
+	draw_circle(pos + Vector2(0, -h * 0.25), maxf(1.0, r * 0.18), Color(1, 1, 0.85, color.a * (0.5 + 0.5 * glint)))
 
 # ---------- enemies ----------
 

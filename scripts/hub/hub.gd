@@ -5,6 +5,7 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const Config = preload("res://scripts/common/config.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
+const GameIcons = preload("res://scripts/common/game_icons.gd")
 ## The VOODOO title art (skull in a top hat, purple smoke). Its black backdrop
 ## was faded to transparent so the mist shows through. If it's ever missing,
 ## the hub falls back to the plain text title.
@@ -17,8 +18,8 @@ const BANNER_HEIGHT := 330.0
 ## Colors come from Settings.palette() (dark or light theme, chosen in
 ## Options). Category headers use "link" (electric blue) so the tier rows read
 ## as a different kind of thing from the game tiles underneath them, which are
-## colored by state: "ready" green = play right now, "download" red = needs
-## downloading first, "update" amber = needs a newer app, "soon" gray = not
+## colored by state: "ready" green = play right now, "download" dim blue =
+## needs downloading first (never red: red reads as "bad"), "update" amber = needs a newer app, "soon" gray = not
 ## built yet. One glance should tell you what you can tap.
 var pal: Dictionary
 
@@ -205,16 +206,15 @@ func _open_options() -> void:
 func _update_account_status() -> void:
 	if Auth.is_logged_in():
 		account_status_label.text = "👤 %s" % Auth.get_display_name()
-		account_status_btn.text = tr("Sign Out")
+		# Signing out lives in Options, not on the home screen.
+		account_status_btn.visible = false
 	else:
 		account_status_label.text = ""
 		account_status_btn.text = tr("Sign In")
+		account_status_btn.visible = true
 
 func _on_account_status_pressed() -> void:
-	if Auth.is_logged_in():
-		Auth.sign_out()
-	else:
-		get_tree().change_scene_to_file("res://scenes/account/account.tscn")
+	get_tree().change_scene_to_file("res://scenes/account/account.tscn")
 
 ## Shared neon-glow panel style: bright border + a blurred shadow of the same hue
 ## behind it (Godot's StyleBoxFlat shadow is a real soft blur, not a flat drop shadow),
@@ -353,7 +353,7 @@ func _make_section_header(category: Dictionary, index: int, row_height: float) -
 	return panel
 
 ## Tiles are color-coded by what tapping them will actually do:
-## green = playable right now, red = will download first, amber = needs a
+## green = playable right now, dim blue = will download first, amber = needs a
 ## newer app first, gray = not built yet.
 func _make_tile(game: Dictionary) -> Control:
 	var state: String = Catalog.state_of(game)
@@ -392,12 +392,20 @@ func _make_tile(game: Dictionary) -> Control:
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	panel.add_child(row)
 
-	var icon_label := Label.new()
-	icon_label.text = game.get("icon", "🎮")
-	icon_label.add_theme_font_size_override("font_size", 46)
-	icon_label.modulate = Color(1, 1, 1) if available else Color(1, 1, 1, 0.35)
-	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(icon_label)
+	if GameIcons.has(str(game.get("id", ""))):
+		var icon_art := Control.new()
+		icon_art.custom_minimum_size = Vector2(76, 76)
+		icon_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		icon_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_art.draw.connect(GameIcons.draw.bind(icon_art, str(game.id)))
+		row.add_child(icon_art)
+	else:
+		var icon_label := Label.new()
+		icon_label.text = game.get("icon", "🎮")
+		icon_label.add_theme_font_size_override("font_size", 46)
+		icon_label.modulate = Color(1, 1, 1) if available else Color(1, 1, 1, 0.35)
+		icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(icon_label)
 
 	var label := Label.new()
 	label.text = Lang.pick(game, "title")
@@ -457,7 +465,7 @@ func _launch(game: Dictionary) -> void:
 		error = tr("Something went wrong opening this game.")
 	if error != "":
 		busy = false
-		_rebuild_list()  # a damaged pack was removed; its tile is red again
+		_rebuild_list()  # a damaged pack was removed; its tile is blue again
 		_show_dialog(tr("Couldn't Start %s") % Lang.pick(game, "title"), error, [{"text": "OK", "action": Callable()}])
 
 ## ---------- download-on-demand ----------

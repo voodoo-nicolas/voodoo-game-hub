@@ -24,7 +24,7 @@ const STRINGS := {
 		"Hold the phone sideways. The left stick flies the ship, and it points the way you steer. The right stick aims and fires without turning the ship.": "Sostén el teléfono en horizontal. El stick izquierdo mueve la nave, y esta apunta hacia donde la diriges. El stick derecho apunta y dispara sin girar la nave.",
 		"Keep moving in wide circles — standing still gets you surrounded.": "Muévete en círculos amplios — si te quedas quieto te rodean.",
 		"Kill grunts early: the older they get, the faster they chase.": "Elimina pronto a los soldados: cuanto más viejos, más rápido te persiguen.",
-		"Kills drop green geoms. Fly over one to raise your score multiplier by 1 — they vanish after 3 seconds. Huge gold geoms are worth 10.": "Los enemigos destruidos sueltan geoms verdes. Pasa sobre uno para subir tu multiplicador en 1; desaparecen a los 3 segundos. Los geoms dorados enormes valen 10.",
+		"Kills drop tiny yellow crystals called geoms. Fly over one to raise your score multiplier by 1 — they vanish after 3 seconds. Huge orange geoms are worth 10.": "Los enemigos destruidos sueltan pequeños cristales amarillos llamados geoms. Pasa sobre uno para subir tu multiplicador en 1; desaparecen a los 3 segundos. Los geoms naranjas enormes valen 10.",
 		"Lives: %d": "Vidas: %d",
 		"Lives: 3": "Vidas: 3",
 		"Longest time survived": "Mayor tiempo sobrevivido",

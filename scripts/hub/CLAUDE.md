@@ -27,8 +27,15 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   `_make_tile`): fully rebuilds the visible list from `Catalog.categories` +
   `expanded_index` on every change rather than showing/hiding pre-built
   nodes. Simpler than diffing, cheap at a few dozen tiles.
-- **Tile state** is `Catalog.state_of(game)`: green ready, red download, amber
-  needs a newer app (`min_build` > this `BUILD_NUMBER`), gray coming soon.
+- **Tile state** is `Catalog.state_of(game)`: green ready, dim blue download
+  (never red -- the user: red reads as "bad"), amber needs a newer app
+  (`min_build` > this `BUILD_NUMBER`), gray coming soon.
+- **Tile icons**: `scripts/common/game_icons.gd` draws neon-vector 3D-ish
+  icons in code for the ids in its `IDS` (chess, sudoku, tictactoe, connect4,
+  checkers, reversi, three_man); other games still show their manifest emoji.
+  To give another game one, add `_icon_<id>` + the id (header comment).
+- **Sign out** is only in Options; the home screen shows the name when signed
+  in and a Sign In button when not.
 - **`_neon_style()`**: the shared Tron-glow `StyleBoxFlat` builder (bright
   border + a blurred shadow of the same hue — Godot's StyleBoxFlat shadow is a
   real soft blur, which is what reads as "glowing"). Used by headers, tiles and
@@ -56,7 +63,7 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   resolved. `Catalog.needs_download()` decides; a failed update falls back to
   the copy already on disk; the download overlay's Cancel aborts the request.
   `_launch` surfaces mount failures (a damaged pack is deleted by `Catalog`,
-  so its tile turns red again and the next tap re-downloads).
+  so its tile turns blue again and the next tap re-downloads).
 - **App self-update**: `Catalog.check_app_update()` runs once per app session,
   not per hub visit — the GitHub API is rate-limited and "Later" should stick.
 - **Editor / full desktop builds**: games whose scene already exists before

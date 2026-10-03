@@ -2542,7 +2542,6 @@
  "Highest multiplier": "Multiplicador máximo",
  "Hold the phone sideways. The left stick flies the ship, and it points the way you steer. The right stick aims and fires without turning the ship.": "Sostén el teléfono en horizontal. El stick izquierdo mueve la nave, y esta apunta hacia donde la diriges. El stick derecho apunta y dispara sin girar la nave.",
  "Kill grunts early: the older they get, the faster they chase.": "Elimina pronto a los soldados: cuanto más viejos, más rápido te persiguen.",
- "Kills drop green geoms. Fly over one to raise your score multiplier by 1 — they vanish after 3 seconds. Huge gold geoms are worth 10.": "Los enemigos destruidos sueltan geoms verdes. Pasa sobre uno para subir tu multiplicador en 1; desaparecen a los 3 segundos. Los geoms dorados enormes valen 10.",
  "Snakes can only be killed by hitting the head. Rockets charge in straight lines. Shoot a gravity well to wake it — it sucks in enemies, shots and you. Kill it to blow up everything around it, or let it eat too much and it bursts into protons.": "A las serpientes solo se las destruye golpeando la cabeza. Los cohetes embisten en línea recta. Dispara a un pozo de gravedad para despertarlo: absorbe enemigos, disparos y a ti. Destrúyelo para volar todo lo que lo rodea, o deja que coma demasiado y estallará en protones.",
  "Sweep through geoms after a fight, before they vanish.": "Recoge los geoms después de una pelea, antes de que desaparezcan.",
  "Touching anything costs one of your three lives, clears the screen and resets the multiplier.": "Tocar cualquier cosa te cuesta una de tus tres vidas, limpia la pantalla y reinicia el multiplicador.",
@@ -2679,5 +2678,6 @@
  "Type the number": "Escribe el número",
  "When it disappears, type it back on the keypad. Use ⌫ to fix a slip before you finish.": "Cuando desaparezca, escríbelo en el teclado. Usa ⌫ para corregir un error antes de terminar.",
  "Your score is the length of the longest number you recalled.": "Tu puntaje es la longitud del número más largo que recordaste.",
- "🔟 Digit Recall": "🔟 Recuerdo de dígitos"
+ "🔟 Digit Recall": "🔟 Recuerdo de dígitos",
+ "Kills drop tiny yellow crystals called geoms. Fly over one to raise your score multiplier by 1 — they vanish after 3 seconds. Huge orange geoms are worth 10.": "Los enemigos destruidos sueltan pequeños cristales amarillos llamados geoms. Pasa sobre uno para subir tu multiplicador en 1; desaparecen a los 3 segundos. Los geoms naranjas enormes valen 10."
 }

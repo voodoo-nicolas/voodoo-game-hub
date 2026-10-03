@@ -179,7 +179,7 @@ const DARK := {
 	"link": Color(0.8, 0.45, 1.0),           # violet neon: headers, links
 	"link_dim": Color(0.42, 0.2, 0.62),
 	"ready": Color(0.25, 1.0, 0.6),
-	"download": Color(1.0, 0.3, 0.45),
+	"download": Color(0.36, 0.55, 0.9),
 	"soon": Color(0.5, 0.46, 0.56),
 	"update": Color(1.0, 0.78, 0.25),
 	"header_fill": Color(0.07, 0.02, 0.13, 0.78),
@@ -208,7 +208,7 @@ const LIGHT := {
 	"link": Color(0.03, 0.36, 0.75),
 	"link_dim": Color(0.62, 0.74, 0.86),
 	"ready": Color(0.0, 0.55, 0.3),
-	"download": Color(0.8, 0.12, 0.18),
+	"download": Color(0.25, 0.42, 0.7),
 	"soon": Color(0.55, 0.58, 0.6),
 	"update": Color(0.72, 0.45, 0.0),
 	"header_fill": Color(1, 1, 1),

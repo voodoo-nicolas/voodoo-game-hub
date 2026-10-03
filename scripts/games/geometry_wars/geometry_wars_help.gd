@@ -9,7 +9,7 @@ const HOW := [
 	"Hold the phone sideways. The left stick flies the ship, and it points the way you steer. The right stick aims and fires without turning the ship.",
 	"You fire bursts of three shots, ten bursts a second. The middle shot is faster and flies farther.",
 	"After you appear, a glowing halo keeps you safe for 5 seconds. Six quick beeps warn that it is about to fade.",
-	"Kills drop green geoms. Fly over one to raise your score multiplier by 1 — they vanish after 3 seconds. Huge gold geoms are worth 10.",
+	"Kills drop tiny yellow crystals called geoms. Fly over one to raise your score multiplier by 1 — they vanish after 3 seconds. Huge orange geoms are worth 10.",
 	"Every kill scores its points times your multiplier.",
 	"💣 Bomb wipes out every enemy on screen. You start with 3 and earn another every 2,500 points.",
 	"Touching anything costs one of your three lives, clears the screen and resets the multiplier.",

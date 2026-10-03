@@ -358,6 +358,57 @@ re-run it after changing any game so their copy stays current.
 presets and version in sync) and changes nothing — run it before committing.
 `tools/` has a `.gdignore`, so Godot never imports or exports it.
 
+## Minigame standards (the user's rules, 2026-10-03)
+
+Apply these to **every new game and every existing game you modify** (when
+touching an older game, bring it up to these standards as part of the change,
+or tell the user what's still missing).
+
+1. **Follow every other project standard**, especially the art standards in
+   `reference/art/ART_STYLE.md` (neon vector glow on near-black), plus the
+   i18n, GameInfo, Sfx and "Adding a new game" rules in this file.
+2. **Each game has its own Home / landing screen**, designed for that game
+   and built in the game's own code (in its pack) -- not one shared screen
+   for all games. Tapping a game's tile opens its Home screen, never
+   straight into play. Today a game opens on the How to Play card and then
+   play; a few already have a setup screen (number of players, basic
+   options) -- grow those into the full Home screen. A game's Home screen
+   offers, where they apply:
+   - **Single player** (with that game's own options: difficulty, size...).
+   - **Multiplayer**, where the game allows it:
+     - one phone, several players (pass-and-play / same screen);
+     - several phones (online room, `OnlineMatch` / `online_lobby.gd`);
+     - **invite another online player** to the game.
+   - **Leaderboard** info (GameInfo's 🏆 Top 10 / the player's bests).
+   - **Gameplay info** (the How to Play card from `<id>_help.gd`).
+   - **Options / settings**: sound, vibration, blocking notifications.
+   - **Resume** a game in progress (shown only when a saved game exists).
+   Shared pieces (GameInfo card, sound options, online lobby) are reused by
+   `load()`ing them from `scripts/common/`, never `preload`, so the pack
+   still runs on older apps (those simply lack that button).
+   Not implemented anywhere yet: "invite an online player" (online play is
+   Host / Join-by-code only) and "block notifications".
+3. **Nothing important under the camera**: the game's title, HUD, scores and
+   board stay fully inside the phone's safe area. `Settings._apply_safe_area()`
+   insets the scene's root Control, so lay out from the root's own rect, never
+   absolute window coordinates or draw outside it. Check with
+   `VOODOO_SAFE_INSET="l,t,r,b"` on PC (e.g. a big top notch).
+4. **The floating ⚙ tab never covers anything that matters**: board,
+   cards, HUD, scores, the title or buttons. `_avoid_controls` only dodges
+   Buttons/Controls, not things drawn inside a board Control, so each game
+   sets a safe default spot (`drawer.set("default_frac", ...)`) or leaves a
+   clear margin for it, and you check it on the game screen and the Home
+   screen, portrait and landscape.
+5. **Pause, exit, recover**: every game can be paused (a visible Pause
+   button / menu, not only the ⚙ drawer; timers, animations and AI stop),
+   exited to its Home screen or the hub at any moment, and its progress
+   recovered whenever possible -- saved with `SaveUtil` on pause, exit and
+   app suspend, and offered as **Resume** on the Home screen (Android
+   killing the app already reopens the last game via `user://resume.json`).
+   Only a game with nothing worth keeping mid-round may skip saving; say so
+   in its help text if a round can't be resumed. Online matches aren't saved
+   locally (they rejoin instead, see OnlineMatch).
+
 ## Adding a new game — the pattern
 
 ```
@@ -384,7 +435,9 @@ references.
    - A "Hub" button reachable at all times, in addition to the settings drawer.
    - If the game has meaningful mid-session state worth resuming, save/load via
      `SaveUtil` (see `solitaire_game.gd` for the full pause/save/resume pattern).
-     Short round-based games (Simon, Hangman, the drinking games) skip this.
+     The Minigame standards above require pause / exit / Resume; only a game
+     with nothing worth keeping mid-round may skip saving (its Home screen
+     just shows no Resume button).
    - Anything asynchronous (network replies, delays) must not call back into
      the scene after the player leaves: connect **methods**, not lambdas, and
      prefer the node's own `create_tween()` or a child `Timer` (both freed
@@ -429,7 +482,7 @@ debug key -- Play Protect flags that ("App blocked to protect your
 device"). From v0.15.0, `python tools/hub.py apk` makes a **release** build
 signed with the project's own key:
 
-- Key: `C:\Users\Cliente\Android\keystore\voodoo-release.keystore`
+- Key: `C:\Users\nick_\Android\Keystore\voodoo-release.keystore`
   (alias `voodoo`); its password is in `voodoo-release.json` next to it.
   `hub.py` passes them to Godot via the `GODOT_ANDROID_KEYSTORE_RELEASE_*`
   environment variables, so they never appear in `export_presets.cfg` or
@@ -462,29 +515,28 @@ signed with the project's own key:
 
 ## Local tool locations (portable installs, not on PATH)
 
-No admin rights on this machine, so everything below was installed as a portable
-zip rather than via an installer, and none of it is on PATH. Bash tool calls
-`powershell.exe` in a way that mangles `$_`/env-var syntax — use the PowerShell
-tool directly for anything needing real PowerShell semantics, not
-`Bash("powershell.exe ...")`.
+**This PC (user `nick_`) is the main PC** (since 2026-10-03): it builds the
+APK, publishes packs and releases. No admin rights, so everything is a
+portable copy and none of it is on PATH. Bash tool calls `powershell.exe` in
+a way that mangles `$_`/env-var syntax -- use the PowerShell tool directly
+for anything needing real PowerShell semantics, not
+`Bash("powershell.exe ...")`. Set `PYTHONIOENCODING=utf-8` before running
+`tools/hub.py` from Bash, or `-h` and some output crash on emoji (cp1252).
 
-- **Godot 4.7.2**: `C:\Users\Cliente\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64_console.exe`
-- **Android SDK**: `C:\Users\Cliente\Android\sdk` (cmdline-tools, platform-tools, build-tools 34.0.0, platforms)
-- **JDK**: `C:\Users\Cliente\Android\jdk-17.0.20.1+1`
-- **Debug keystore**: `C:\Users\Cliente\Android\keystore\debug.keystore`
-- **Python 3.12** (runs `tools/hub.py`): on PATH as `python`.
+- **Godot 4.7.2**: `C:\Users\nick_\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64_console.exe`
+  (Windows export templates are installed in
+  `%APPDATA%\Godot\export_templates\4.7.2.stable`, so `hub.py pc` works)
+- **Android SDK**: `C:\Users\nick_\Android\sdk` (cmdline-tools, platform-tools, build-tools 34.0.0, platforms)
+- **JDK**: `C:\Users\nick_\Android\jdk-17.0.20.1+1`
+- **Keystores**: `C:\Users\nick_\Android\Keystore\` (`debug.keystore`,
+  `voodoo-release.keystore`, `voodoo-release.json`); rules in "App signing".
+- **Python 3.12** (runs `tools/hub.py`): `%LOCALAPPDATA%\Programs\Python\Python312\python.exe`; `python` also resolves in the Bash tool.
 - **GitHub CLI**: `C:\Program Files\GitHub CLI\gh.exe` (authenticated as `voodoo-nicolas`)
+- **Git**: `C:\Program Files\Git\cmd\git.exe`
 
-Second PC (user `nick_`, set up 2026-10-02 for editing and testing only):
-Godot 4.7.2 at the same WinGet path (so `hub.py` finds it), Python 3.12 at
-`%LOCALAPPDATA%\Programs\Python\Python312\python.exe` (not on PATH), Git at
-`C:\Program Files\Git\cmd\git.exe`. No GitHub CLI, Android SDK, JDK or
-release keystore there: build the APK, publish packs and release from the
-main PC. Windows was reinstalled 2026-10-03; since then the Godot 4.7.2
-Windows export templates are installed (only `windows_*` extracted from the
-official .tpz into `%APPDATA%\Godot\export_templates\4.7.2.stable`), so
-`hub.py pc` works there. Its Desktop is redirected to OneDrive (`hub.py pc`
-asks Windows for the Desktop path).
+The old PC (user `Cliente`) used the same layout under `C:\Users\Cliente\`.
+This PC's Desktop is redirected to OneDrive (`hub.py pc` asks Windows for the
+Desktop path). Windows was reinstalled 2026-10-03.
 
 ## Gotchas already found and fixed (don't reintroduce)
 
@@ -572,6 +624,64 @@ asks Windows for the Desktop path).
   `Callable.is_valid()` — which only detects freed *method* callables, so
   pass methods, not lambdas.
 
+## Intelligence category (2026-10-03)
+
+Six brain games, one pack each, all following the usual game pattern (engine
+tested headlessly, UI in code, GameInfo with "Best score" so they appear on
+the leaderboards): `trivia`, `quick_math`, `memory_grid`, `color_clash`,
+`number_series`, `reaction` (Reaction Test; milliseconds, lower is better, so
+no leaderboard). **The IQ test is deliberately not here** -- it is its own
+planned project, with its own code session.
+
+- **Trivia's questions are data, not code**: `scripts/games/trivia/
+  trivia_questions.json`, each question `{"en": [...], "es": [...]}` as
+  `[question, correct, wrong1, wrong2, wrong3]` (the correct answer is always
+  listed first; the engine shuffles). Keeping them out of `.gd` files keeps
+  hundreds of sentences out of `es.json` -- the bank carries its own Spanish
+  and the game picks by `TranslationServer.get_locale()`. Pack presets already
+  include the whole game folder; the PC build's `WindowsTest` preset needed
+  `scripts/games/*/*.json` added to its `include_filter`. To add questions,
+  append to a topic (or add a topic id to `TriviaEngine.TOPICS`); keep facts
+  timeless and the answer unambiguous.
+- **Number Series** keeps the rule behind every sequence and shows it after
+  an answer, so a miss teaches something.
+- **GameInfo's first-play card pauses the tree**: any test script that drives a
+  game must call `game.info.close()` first, or its timers and tweens never fire.
+
+## Voodoo IQ backend (Phase 1, 2026-10-03)
+
+Spec: `docs/voodoo-iq-spec.md`. Reference implementation: `docs/voodoo-iq-prototype.html`
+(its generators, scoring math, gates and EN/ES text are final -- port, don't redesign).
+Phases: 1 backend (done), 2 Godot screens (brain menu, test runner, results),
+3 leaderboards / Daily Brain / Duels, 4 certificate + Google Play build.
+
+- **The server is the referee**: items are generated and scored in Supabase Edge
+  Functions (`supabase/functions/`, TypeScript/Deno). The client gets render params
+  (`display`) only; answer keys stay in `responses.answer_key`.
+- `supabase/functions/_shared/`: `rng.ts` (mulberry32 -- its whole state is one int32,
+  saved in `sessions.state.rng` so an adaptive test resumes across calls), `irt.ts`,
+  `gens/` (all 27 generators; `gens/data.ts` is extracted verbatim from the prototype --
+  re-extract, don't hand-edit), `engine.ts` (next item, scoreIQ, Blitz), `standings.ts`
+  (gates), `session.ts` (finishing + board writes), `http.ts`.
+- Functions: `session-start`, `item-answer`, `session-finish`, `blitz-submit`, plus
+  `profile-save` (clients can't write `profiles`). Each has `index.ts` (just `serve`) and
+  `handler.ts` (the logic, imported by the tests). Request/response shapes are in each
+  handler's header comment.
+- **Tables + RLS**: `supabase/migrations/20261003000000_voodoo_iq.sql` (spec §4 plus a
+  `sessions.state` column and the `profiles_public` view). Clients read the leaderboard
+  tables; nothing is client-writable. Run it once in the SQL editor / `supabase db push`.
+- **Tests** (`supabase/functions/_tests/`, Deno): `gens_test` (every generator, d 1..10,
+  en/es: exactly one correct answer, checked independently), `parity_test` (the port vs
+  the prototype's own JS, seed for seed: metadata, display params via a probe injected into
+  each `mount()`, RNG consumption, adaptive sequences, scoreIQ, standings), `engine_test`,
+  `functions_test` (handlers end to end on an in-memory `FakeDb`). Run:
+  `deno test --allow-read --allow-env supabase/functions/_tests/` (`GEN_SEEDS=1000` for a
+  deeper run, ~2 min).
+- **One deliberate deviation**: `melody` rebuilds a melody when no note can change validly
+  (the prototype keeps an unchanged copy, ~1 in 100,000 items at d = 8, no correct answer).
+- **`real` columns are never used for math**: `responses.a/b/c` are float4; the engine rebuilds them
+  from the generator and stored key so estimates match the prototype's doubles.
+
 ## Catalog conventions (since the catalog was completed, 2026-09-30)
 
 - **No "coming soon" tiles**: every catalog entry is a real game. Add a
@@ -594,7 +704,26 @@ asks Windows for the Desktop path).
 - Most new games draw their board in one Control via its `draw` signal
   (`board.draw.connect(_draw_board)`) instead of a grid of Buttons.
 
+## Hub look changes -- since v0.24.0 (2026-10-03)
+
+- **Sign Out is only in Options**; the home screen shows the name (signed in)
+  or a Sign In button.
+- **Not-downloaded tiles are dim blue, never red** (red reads as "bad").
+- **Tile icons drawn in code**: `scripts/common/game_icons.gd` (neon vector
+  with depth: shaded spheres, stacked discs, bevelled slabs) for chess,
+  sudoku, tictactoe, connect4, checkers, reversi, three_man. Other games
+  still use their manifest emoji; add more by adding `_icon_<id>` + the id to
+  `IDS` (header comment). The user wants better icons for "many more".
+- **Three Man's dice are drawn** (the Unicode die glyphs are missing from
+  phone fonts). Never use those glyphs for dice in a game.
+
 ## Reference material
+
+**Art / graphics standards: `reference/art/ART_STYLE.md`** -- the target
+look for the hub and every game (neon vector glow on near-black, voodoo
+motifs), with the user's mood-board images beside it. Read it before
+designing or restyling any visuals. The images are references only (never
+shipped; `reference/art/` has a `.gdignore`); art stays drawn in code.
 
 `reference/juegoflix_friend_reference.html` — a friend's competing 20-game hub
 (single-file HTML), saved for layout/game-idea inspiration. Never copy from it
