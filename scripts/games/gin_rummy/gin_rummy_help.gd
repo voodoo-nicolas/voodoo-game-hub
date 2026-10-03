@@ -11,6 +11,7 @@ const HOW := [
 	"Cards that aren't in a meld are deadwood. Face cards count 10, Aces 1, others their number.",
 	"When your deadwood is 10 or less you can Knock to end the hand. Zero deadwood is Gin, worth a 25-point bonus.",
 	"After a knock, the other player can lay off deadwood onto the knocker's melds. If they end up with less or equal deadwood, they undercut and score a 25 bonus instead.",
+	"⏸ pauses and keeps the match; Resume on the Home screen carries on.",
 ]
 const TIPS := [
 	"Get rid of high cards early — a stray King is 10 points of deadwood.",

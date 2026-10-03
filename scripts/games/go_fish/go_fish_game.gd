@@ -3,6 +3,7 @@ extends Control
 ## Go Fish vs the computer -- tap one of your cards to ask for that rank.
 
 const GFEngine = preload("res://scripts/games/go_fish/go_fish_engine.gd")
+const HomeKit = preload("res://scripts/games/go_fish/home_kit.gd")
 const Cards = preload("res://scripts/games/go_fish/go_fish_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -11,16 +12,20 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_FELT := Color(0.05, 0.3, 0.17)
+const COLOR_FELT := Color(0.03, 0.04, 0.1)
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://go_fish_save.json"
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: GFEngine
 var board: Control
 var status_label: Label
 var log_text: String = ""
 var cpu_timer: Timer
 var end_dialog: ColorRect
+var started := false  # a game is on (not just the one behind Home)
 var font: Font
 
 func _ready() -> void:
@@ -30,12 +35,12 @@ func _ready() -> void:
 	engine = GFEngine.new()
 	_build_ui()
 	_start_new_game()
+	started = false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_FELT
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -52,9 +57,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🐟 Go Fish")
@@ -94,17 +100,20 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/go_fish/go_fish_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	var drawer := SettingsDrawer.new()
 	drawer.set("default_frac", 0.6)  # the hand fills the bottom edge
 	add_child(drawer)
 
 func _start_new_game() -> void:
+	started = true
 	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game()
@@ -221,12 +230,11 @@ func _draw_board() -> void:
 		for k in min(4, engine.deck.size()):
 			Cards.draw_card(board, Rect2(pond.position + Vector2(k * 3, -k * 3), cs), 0, false)
 	board.draw_string(font, pond.position + Vector2(-100, cs.y + 30), tr("Pond: %d") % engine.deck.size(),
-		HORIZONTAL_ALIGNMENT_CENTER, cs.x + 200, 22, Color(0.85, 0.9, 0.85))
+		HORIZONTAL_ALIGNMENT_CENTER, cs.x + 200, 25, Color(0.85, 0.9, 0.85))
 	# log text between pond and hand
 	var log_y := pond.position.y + cs.y + 70
-	var lines: PackedStringArray = log_text.split("\n")
-	for i in lines.size():
-		board.draw_string(font, Vector2(10, log_y + i * 30), lines[i], HORIZONTAL_ALIGNMENT_CENTER, board.size.x - 20, 23, Color(1, 1, 1))
+	# wrapped to the board's width, so long (Spanish) lines stay on screen
+	board.draw_multiline_string(font, Vector2(10, log_y), log_text, HORIZONTAL_ALIGNMENT_CENTER, board.size.x - 20, 25, 4, Color(1, 1, 1))
 	var rects := _hand_rects()
 	var top_y: float = rects[0].position.y if not rects.is_empty() else board.size.y - cs.y
 	board.draw_string(font, Vector2(20, top_y - 64), tr("Your books: %d") % engine.books[0].size(),
@@ -253,9 +261,90 @@ func _on_board_input(event: InputEvent) -> void:
 ## Records this game's result in the stats once (end checks can run again
 ## after a game is over) and returns the recap line for the end screen.
 func _record_result(outcome: String) -> String:
+	SaveUtil.delete(SAVE_PATH)
 	if not info:
 		return ""
 	if not result_recorded:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/go_fish/go_fish_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/go_fish/go_fish_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Ask for ranks, collect books of four. You vs the computer.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🐟  Play", "sub": "vs the computer", "action": _fresh_game}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Games won against the computer.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	# a neon fish
+	var body := PackedVector2Array()
+	for i in 33:
+		var a := TAU * i / 32.0
+		body.append(ctr + Vector2(cos(a) * h * 0.32, sin(a) * h * 0.18))
+	HomeKit.glow_polyline(c, body, HomeKit.CYAN, 3.0)
+	var tail := PackedVector2Array([ctr + Vector2(h * 0.3, 0), ctr + Vector2(h * 0.55, -h * 0.17), ctr + Vector2(h * 0.55, h * 0.17)])
+	HomeKit.glow_polyline(c, tail, HomeKit.CYAN, 3.0, true)
+	HomeKit.glow_circle(c, ctr + Vector2(-h * 0.18, -h * 0.04), h * 0.035, Color.WHITE, 2.0, 1.0)
+	for k in 3:
+		HomeKit.glow_circle(c, ctr + Vector2(-h * (0.42 + k * 0.08), -h * (0.18 + k * 0.1)), h * (0.025 + k * 0.01), HomeKit.BLUE, 1.5)
+
+func _fresh_game() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not started or engine.is_over():
+		return
+	var mem: Array = []
+	for r in engine.cpu_memory:
+		mem.append(int(r))
+	SaveUtil.write(SAVE_PATH, {"hands": engine.hands, "deck": engine.deck, "books": engine.books,
+		"turn": engine.turn, "memory": mem})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	_start_new_game()
+	cpu_timer.stop()
+	engine.hands = [_ints(d.hands[0]), _ints(d.hands[1])]
+	engine.deck = _ints(d.deck)
+	engine.books = [_ints(d.books[0]), _ints(d.books[1])]
+	engine.turn = int(d.turn)
+	engine.cpu_memory = {}
+	for r in d.get("memory", []):
+		engine.cpu_memory[int(r)] = true
+	_begin_turn()

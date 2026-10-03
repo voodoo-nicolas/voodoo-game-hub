@@ -9,6 +9,7 @@ const HOW := [
 	"Tap a peg to lift its top disc, then tap another peg to put it down.",
 	"Only one disc moves at a time, and a bigger disc can never sit on a smaller one.",
 	"Use − and + to change the number of discs. The best possible number of moves is shown.",
+	"⏸ pauses and keeps the tower; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"The smallest disc moves every other turn, always around the pegs in the same direction.",

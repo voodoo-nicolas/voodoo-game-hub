@@ -10,6 +10,7 @@ const HOW := [
 	"If it has any, it hands them all over and you ask again.",
 	"If not, \"go fish\": you draw a card. If it's the rank you asked for, you go again.",
 	"Four of a kind make a book. When all 13 books are made, the most books wins.",
+	"⏸ pauses and keeps the game; Resume on the Home screen carries on.",
 ]
 const TIPS := [
 	"Ask for ranks the computer asked you for earlier — it probably still has them.",

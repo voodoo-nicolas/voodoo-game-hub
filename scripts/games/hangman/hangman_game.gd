@@ -1,21 +1,25 @@
 extends Control
 
 const HangmanEngine = preload("res://scripts/games/hangman/hangman_engine.gd")
+const HomeKit = preload("res://scripts/games/hangman/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const WOOD := Color(0.55, 0.36, 0.2)
-const WOOD_DARK := Color(0.36, 0.22, 0.12)
-const ROPE := Color(0.85, 0.75, 0.5)
-const FIGURE := Color(0.95, 0.95, 0.97)
+const WOOD := Color("9b4dff")
+const WOOD_DARK := Color(0.25, 0.1, 0.45)
+const ROPE := Color("ffae2b")
+const FIGURE := Color("29e6ff")
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://hangman_save.json"
 const ALPHABET := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const ALPHABET_ES := "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var game_active: bool = false
 
@@ -32,6 +36,11 @@ var part_fade: float = 1.0:
 var status_label: Label
 var letter_buttons: Dictionary = {}  # letter -> Button
 var end_dialog: Control
+## Two players on one phone: one types the word (setting), the other guesses.
+var two_player := false
+var setting := false
+var typed := ""
+var set_row: HBoxContainer
 var end_label: Label
 
 func _ready() -> void:
@@ -46,9 +55,8 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -67,20 +75,25 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("Hangman")
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.LIME.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.LIME, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("New Word")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -98,7 +111,7 @@ func _build_ui() -> void:
 
 	var category_tag := Label.new()
 	category_tag.text = tr("Topic").to_upper()
-	category_tag.add_theme_font_size_override("font_size", 18)
+	category_tag.add_theme_font_size_override("font_size", 24)
 	category_tag.add_theme_color_override("font_color", Color(0.5, 0.55, 0.53))
 	category_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(category_tag)
@@ -126,6 +139,20 @@ func _build_ui() -> void:
 	status_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(status_label)
+
+	set_row = HBoxContainer.new()
+	set_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	set_row.add_theme_constant_override("separation", 16)
+	set_row.visible = false
+	box.add_child(set_row)
+	var back_btn := HomeKit.neon_button("⌫", HomeKit.PINK, 30, 72)
+	back_btn.custom_minimum_size.x = 140
+	back_btn.pressed.connect(_on_set_back)
+	set_row.add_child(back_btn)
+	var done_btn := HomeKit.neon_button(tr("🔒 Lock word"), HomeKit.LIME, 28, 72)
+	done_btn.custom_minimum_size.x = 280
+	done_btn.pressed.connect(_on_set_done)
+	set_row.add_child(done_btn)
 
 	var keyboard_margin := MarginContainer.new()
 	keyboard_margin.add_theme_constant_override("margin_left", 14)
@@ -155,26 +182,20 @@ func _build_ui() -> void:
 	_build_end_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/hangman/hangman_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _style_letter_button(btn: Button) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.18, 0.18, 0.24)
-	sb.border_width_left = 2
-	sb.border_width_top = 2
-	sb.border_width_right = 2
-	sb.border_width_bottom = 2
-	sb.border_color = Color(0.45, 0.45, 0.55)
-	sb.corner_radius_top_left = 8
-	sb.corner_radius_top_right = 8
-	sb.corner_radius_bottom_left = 8
-	sb.corner_radius_bottom_right = 8
+	var sb := HomeKit.neon_box(HomeKit.CYAN)
+	sb.set_corner_radius_all(10)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		btn.add_theme_stylebox_override(state, sb)
 	var sb_disabled := sb.duplicate()
-	sb_disabled.bg_color = Color(0.12, 0.12, 0.16)
-	sb_disabled.border_color = Color(0.3, 0.3, 0.36)
+	sb_disabled.bg_color = Color(0.04, 0.05, 0.1)
+	sb_disabled.border_color = Color(HomeKit.CYAN, 0.2)
+	sb_disabled.shadow_size = 0
 	btn.add_theme_stylebox_override("disabled", sb_disabled)
 	btn.add_theme_color_override("font_color", Color(1, 1, 1))
 
@@ -201,7 +222,6 @@ func _build_end_dialog() -> void:
 	sb.content_margin_right = 28
 	sb.content_margin_top = 24
 	sb.content_margin_bottom = 24
-	panel.add_theme_stylebox_override("panel", sb)
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
@@ -215,7 +235,7 @@ func _build_end_dialog() -> void:
 
 	var again_btn := Button.new()
 	again_btn.text = tr("Play Again")
-	again_btn.custom_minimum_size = Vector2(200, 48)
+	again_btn.custom_minimum_size = Vector2(320, 64)
 	again_btn.pressed.connect(func():
 		end_dialog.visible = false
 		_start_new_game()
@@ -223,9 +243,9 @@ func _build_end_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	box.add_child(menu_btn)
 
 # ---------- game flow ----------
@@ -241,16 +261,32 @@ func _start_new_game() -> void:
 		btn.add_theme_color_override("font_color", Color(1, 1, 1))
 		btn.add_theme_color_override("font_disabled_color", Color(1, 1, 1))
 	_render()
+	if two_player:
+		_begin_setting()
 
 func _on_letter_pressed(letter: String) -> void:
+	if setting:
+		if typed.length() < 14:
+			typed += letter
+		_render_setting()
+		return
 	if not game_active:
 		return
 	var result: String = engine.guess(letter)
 	var btn: Button = letter_buttons[letter]
 	btn.disabled = true
-	btn.add_theme_color_override("font_disabled_color", Color(0.4, 0.9, 0.4) if result == "correct" else Color(0.9, 0.4, 0.4))
+	btn.add_theme_color_override("font_disabled_color", HomeKit.LIME if result == "correct" else HomeKit.PINK)
 	_render()
 
+	if engine.is_won() or engine.is_lost():
+		SaveUtil.delete(SAVE_PATH)
+	if two_player and (engine.is_won() or engine.is_lost()):
+		if info and not result_recorded:
+			result_recorded = true
+			info.add("Words guessed (2 players)" if engine.is_won() else "Words kept (2 players)")
+		var t := (tr("The guesser wins! The word was %s") if engine.is_won() else tr("The setter wins — the word was %s")) % engine.word
+		_end_game(t, HomeKit.LIME if engine.is_won() else HomeKit.PINK)
+		return
 	if engine.is_won():
 		_end_game(tr("You win! The word was %s") % engine.word + _record_result("win"), Color(0.4, 0.9, 0.4))
 	elif engine.is_lost():
@@ -327,3 +363,112 @@ func _record_result(outcome: String) -> String:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/hangman/hangman_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/hangman/hangman_help.gd"),
+		"info": info,
+		"accent": HomeKit.LIME,
+		"subtitle": "Guess the word one letter at a time.",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "🔤  Guess a word", "sub": "Solo", "action": _new_game.bind(false)},
+			{"text": "👥  Set a word for a friend", "sub": "One player picks the word, the other guesses", "multi": true, "action": _new_game.bind(true)},
+		],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Words guessed on your own.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 250.0, 0.75)
+	var o := Vector2(c.size.x / 2.0 - 130 * k, (c.size.y - 250 * k) / 2.0)
+	var p := func(x: float, y: float) -> Vector2: return o + Vector2(x, y) * k
+	for seg in [[p.call(20, 240), p.call(180, 240)], [p.call(60, 240), p.call(60, 18)], [p.call(54, 18), p.call(190, 18)], [p.call(60, 62), p.call(104, 18)]]:
+		HomeKit.glow_line(c, seg[0], seg[1], WOOD, 3.0)
+	HomeKit.glow_line(c, p.call(180, 18), p.call(180, 56), ROPE, 2.0)
+	HomeKit.glow_circle(c, p.call(180, 78), 22.0 * k, FIGURE, 2.5)
+	HomeKit.glow_line(c, p.call(180, 100), p.call(180, 168), FIGURE, 2.5)
+
+func _new_game(two: bool) -> void:
+	two_player = two
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+## Two players: the setter types the word with the letter keys first.
+func _begin_setting() -> void:
+	setting = true
+	typed = ""
+	game_active = false
+	set_row.visible = true
+	for letter in letter_buttons:
+		letter_buttons[letter].disabled = false
+	_render_setting()
+
+func _render_setting() -> void:
+	category_label.text = tr("Word setter: type a word")
+	word_label.text = " ".join(typed.split("")) if typed != "" else "…"
+	status_label.text = tr("Guesser — look away!")
+	gallows.queue_redraw()
+
+func _on_set_back() -> void:
+	typed = typed.substr(0, maxi(0, typed.length() - 1))
+	_render_setting()
+
+func _on_set_done() -> void:
+	if typed.length() < 2:
+		status_label.text = tr("At least 2 letters.")
+		return
+	setting = false
+	set_row.visible = false
+	engine.word = typed
+	engine.category = tr("A friend's word")
+	engine.guessed = {}
+	engine.wrong_count = 0
+	game_active = true
+	_render()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not game_active or setting or engine.is_won() or engine.is_lost():
+		return
+	SaveUtil.write(SAVE_PATH, {"word": engine.word, "category": engine.category, "guessed": engine.guessed.keys(),
+		"wrong": engine.wrong_count, "two": two_player})
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	two_player = bool(d.get("two", false))
+	_start_new_game()
+	setting = false
+	set_row.visible = false
+	game_active = true
+	engine.word = str(d.word)
+	engine.category = str(d.category)
+	engine.guessed = {}
+	for l in d.get("guessed", []):
+		engine.guessed[str(l)] = true
+		if letter_buttons.has(str(l)):
+			var btn: Button = letter_buttons[str(l)]
+			btn.disabled = true
+			btn.add_theme_color_override("font_disabled_color", HomeKit.LIME if engine.word.contains(str(l)) else HomeKit.PINK)
+	engine.wrong_count = int(d.get("wrong", 0))
+	_render()
