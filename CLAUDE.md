@@ -679,8 +679,21 @@ AudioStreamWAV), `_api.gd` (Edge Function calls), `_text.gd` + `_data.json`.
   (refresh + single-flight), both in every app since accounts -- no APK change needed.
 - Blitz gets no per-item right/wrong feedback (the client never has keys); the score
   arrives from blitz-submit at the end.
+- **No daily limit on ranked IQ** (user's decision 2026-10-03, after a disconnect
+  cost them the day's attempt): spec §2's one-per-scope-per-day is gone from
+  session-start; the Daily Brain keeps its once a day. Standings still combine the
+  last 3 sessions and rank by estimate - 2 SE.
+- **Leaderboards** (pack v2): the `leaderboard` function builds the Voodoo IQ, 9-Mind,
+  section and Blitz boards server-side with `standings.ts` + filters; the 🏆 screen
+  (home top bar, under Setup, and on results) is the prototype's boards page.
+- **Width comes from the visible screen**, never 680: `_fit_width()` = viewport width
+  minus the safe-area offsets, re-run on `size_changed` (Settings applies the text size
+  after `_ready`). At Large text a phone has ~600 units; measuring the root Control was
+  wrong because too-wide content stretches it. Test phone layouts in a phone-shaped
+  window (`--resolution 300x650`): a 540x960 request gets shrunk by Windows to a wider
+  shape that hides the bug.
 - Not built yet: the prototype's untimed "Try an example" (needs a server endpoint),
-  its fonts, Daily Brain / Duels / leaderboards (Phase 3). Cube stacks use the prototype's
+  its fonts, Daily Brain / Duels (Phase 3). Cube stacks use the prototype's
   2D isometric drawing, not the spec's "real 3D", because the server's visibility check
   uses exactly that projection.
 - Testing without a release: the hub lists games from the LIVE manifest, so a new
