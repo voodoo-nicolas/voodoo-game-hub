@@ -55,6 +55,8 @@ var player_pos: Vector2 = Vector2.ZERO
 ## The ship points where the move stick points; the aim stick only fires.
 var ship_dir: Vector2 = Vector2.RIGHT
 var thrust: float = 0.0
+## Set by the first real touch; from then on the mouse/Enter test controls are off.
+var touch_seen: bool = false
 var beep_step: int = 99
 var burst_count: int = 0
 var invuln_timer: float = 0.0
@@ -144,6 +146,8 @@ func _release_sticks() -> void:
 	aim_value = Vector2.ZERO
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		touch_seen = true
 	if not game_active or paused or game_over:
 		_release_sticks()
 		return
@@ -205,6 +209,12 @@ func _get_aim() -> Dictionary:
 	if aim_touch_index != -1:
 		if aim_value.length() > JOYSTICK_DEADZONE:
 			return {"dir": aim_value.normalized(), "firing": true}
+		return {"dir": Vector2.ZERO, "firing": false}
+
+	# Only the aim stick fires on a touchscreen. A finger on the MOVE stick is
+	# also reported as an emulated left-mouse click, which used to make the ship
+	# shoot toward that finger while merely flying.
+	if touch_seen:
 		return {"dir": Vector2.ZERO, "firing": false}
 
 	var mouse_pos: Vector2 = get_local_mouse_position() - arena_offset
