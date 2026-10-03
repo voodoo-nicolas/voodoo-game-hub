@@ -9,7 +9,10 @@ extends Control
 ## The tab is the only floating button in a game: GameInfo's "How to Play"
 ## lives inside the drawer. It sits low on the right edge, half see-through,
 ## and the player can drag it up or down; where it was left is remembered
-## per game (`user://drawer_pos.json`).
+## per game (`user://drawer_pos.json`). Until the player has moved it, the tab
+## keeps itself off the game's buttons and boards (`_avoid_controls`): if
+## something interactive is under it, it slides to the nearest free spot on
+## the right edge.
 const Orientation = preload("res://scripts/common/orientation.gd")
 const Voodoo = preload("res://scripts/common/voodoo.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -40,6 +43,12 @@ var default_frac: float = DEFAULT_FRAC
 var _frac: float = DEFAULT_FRAC
 var _press_y: float = -1.0
 var _dragged: bool = false
+## True once the player has put the tab somewhere: then it stays put.
+var _user_placed: bool = false
+var _avoid_t: float = 0.0
+## Heights tried, nearest-first from wherever the tab is now.
+const SPOTS := [0.94, 0.86, 0.78, 0.7, 0.62, 0.55, 0.48, 0.4, 0.33, 0.26, 0.19, 0.12]
+const AVOID_EVERY := 0.5
 
 func _ready() -> void:
 	# In the tree already, so set_anchors_preset alone would keep our 0×0 size
@@ -55,6 +64,63 @@ func _process(delta: float) -> void:
 	if timer_running:
 		timer_elapsed += delta
 		timer_label.text = _format_time(timer_elapsed)
+	if not _user_placed and not is_open:
+		_avoid_t += delta
+		if _avoid_t >= AVOID_EVERY:
+			_avoid_t = 0.0
+			_avoid_controls()
+
+## Screens change (a start menu, then the board), so this runs every half
+## second until the player places the tab themselves.
+func _avoid_controls() -> void:
+	if size.y <= 0.0:
+		return
+	var blockers := _blockers()
+	if not _tab_hits(_frac, blockers):
+		return
+	var spots: Array = SPOTS.duplicate()
+	spots.sort_custom(func(a, b): return absf(a - _frac) < absf(b - _frac))
+	for f in spots:
+		if not _tab_hits(f, blockers):
+			_frac = f
+			_place_tab()
+			return
+
+## On-screen rects of everything the player might tap: buttons, text fields
+## and custom-drawn boards (Controls listening to gui_input) -- but not
+## full-screen layers, which every screen has.
+func _blockers() -> Array:
+	var out: Array = []
+	var scene := get_parent()
+	if scene == null:
+		return out
+	var screen: float = size.x * size.y
+	var stack: Array = [scene]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n == self or (n.has_method("open") and n.has_method("celebrate")):
+			continue  # ourselves and the How to Play card
+		if n is CanvasItem and not n.is_visible_in_tree():
+			continue
+		if n is Control and n != scene:
+			var r: Rect2 = n.get_global_rect()
+			var interactive: bool = n is BaseButton or n is LineEdit \
+					or (n.mouse_filter == Control.MOUSE_FILTER_STOP and not n.gui_input.get_connections().is_empty())
+			if interactive and r.get_area() < screen * 0.85:
+				out.append(r)
+		for c in n.get_children():
+			stack.append(c)
+	return out
+
+func _tab_hits(f: float, blockers: Array) -> bool:
+	var y := f * size.y
+	var half := TAB_SIZE / 2.0
+	y = clampf(y, half, size.y - half)
+	var r := Rect2(global_position + Vector2(size.x - TAB_SIZE, y - half), Vector2(TAB_SIZE, TAB_SIZE)).grow(2.0)
+	for b in blockers:
+		if r.intersects(b):
+			return true
+	return false
 
 func _format_time(s: float) -> String:
 	var total := int(s)
@@ -105,6 +171,7 @@ func _on_tab_input(event: InputEvent) -> void:
 			_press_y = event.global_position.y
 			_dragged = false
 		elif _dragged:
+			_user_placed = true
 			_save_frac()
 			_press_y = -1.0
 	elif event is InputEventMouseMotion and _press_y >= 0.0:
@@ -125,6 +192,7 @@ func _load_frac() -> float:
 	var data = SaveUtil.read(POS_PATH)
 	var key := _scene_key()
 	if data != null and data.has(key):
+		_user_placed = true
 		return clampf(float(data[key]), 0.0, 1.0)
 	return default_frac
 

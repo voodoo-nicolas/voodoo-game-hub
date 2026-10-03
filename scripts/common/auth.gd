@@ -129,6 +129,41 @@ func push_stat(field_name: String, value: int) -> void:
 		_request(HTTPClient.METHOD_PATCH, "/rest/v1/player_stats", body, headers, func(_ok2, _parsed, _code): pass)
 	)
 
+# ---------- leaderboards ----------
+#
+# One row per player per game in the public `scores` table (set up by
+# docs/leaderboards.sql, run once in the Supabase SQL editor). Anyone can
+# read it; a signed-in player can only write their own row, and a trigger
+# keeps the higher of the old and new score.
+
+## Posts `score` as this player's best for `game` (ignored if lower than
+## what's there). Does nothing when signed out or offline.
+func submit_score(game: String, score: int) -> void:
+	_ensure_fresh_token(_post_score.bind(game, score))
+
+func _post_score(ok: bool, game: String, score: int) -> void:
+	if not ok:
+		return
+	var headers: PackedStringArray = ["Authorization: Bearer " + access_token,
+		"Prefer: resolution=merge-duplicates,return=minimal"]
+	var body := {"user_id": user_id, "game": game, "score": score,
+		"display_name": display_name if display_name != "" else "Player"}
+	_request(HTTPClient.METHOD_POST, "/rest/v1/scores?on_conflict=user_id,game", body, headers, _ignore_reply)
+
+func _ignore_reply(_ok: bool, _parsed: Variant, _code: int) -> void:
+	pass
+
+## Top `limit` rows for `game`: on_done.call(rows) with rows an Array of
+## {display_name, score, user_id}, or null if leaderboards aren't set up or
+## the network is down. Works signed out too.
+func fetch_leaderboard(game: String, limit: int, on_done: Callable) -> void:
+	var path := "/rest/v1/scores?select=display_name,score,user_id&game=eq.%s&order=score.desc,updated_at.asc&limit=%d" \
+		% [game.uri_encode(), limit]
+	_request(HTTPClient.METHOD_GET, path, {}, PackedStringArray(), _on_leaderboard.bind(on_done))
+
+func _on_leaderboard(ok: bool, parsed: Variant, _code: int, on_done: Callable) -> void:
+	_safe_call(on_done, [parsed if ok and typeof(parsed) == TYPE_ARRAY else null])
+
 # ---------- session lifecycle ----------
 
 func _apply_session(parsed: Dictionary, name_hint: String) -> void:

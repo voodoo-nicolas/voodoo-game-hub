@@ -527,7 +527,7 @@ func _on_online_status() -> void:
 	start_buttons[0].text = tr("Start")
 	start_buttons[0].disabled = not (online.is_host() and online.opponent_here)
 	if not online.opponent_here:
-		start_status.text = tr("Opponent disconnected — waiting...")
+		start_status.text = online.status_text(false, "") if online.has_method("opponent_name") else tr("Opponent disconnected — waiting...")
 	elif online.is_host():
 		start_status.text = tr("You are Green. Tap Start when you're both ready!")
 	else:
@@ -543,6 +543,22 @@ func _on_remote_new_game() -> void:
 
 func _on_remote_state(st: Dictionary) -> void:
 	if online.is_host():
+		# Only a host that came back after a drop-out takes the guest's copy;
+		# it then carries on running the game from there.
+		if running:
+			return
+		engine.from_dict(st)
+		var hw = st.get("wins", [0, 0])
+		wins = [int(hw[0]), int(hw[1])]
+		mode = Mode.ONLINE
+		if bool(st.get("running", false)) and not engine.game_over:
+			start_overlay.visible = false
+			game_over_dialog.visible = false
+			running = true
+			step_timer.wait_time = VERSUS_STEP_SECONDS
+			step_timer.start()
+			_update_hint()
+		_render()
 		return
 	engine.from_dict(st)
 	var w = st.get("wins", [0, 0])

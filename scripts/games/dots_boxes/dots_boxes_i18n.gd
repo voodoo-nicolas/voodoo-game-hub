@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%s disconnected — waiting...": "%s se desconectó — esperando...",
 		"%s wins!\n%s %d - %s %d": "¡Gana %s!\n%s %d - %s %d",
 		"%s's turn": "Turno de %s",
 		"2 Players": "2 jugadores",

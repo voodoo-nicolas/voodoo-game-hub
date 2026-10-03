@@ -4,6 +4,8 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d letters": "%d letras",
+		"%d+ letters": "%d+ letras",
 		"%s — already found": "%s — ya la encontraste",
 		"%s — not a word": "%s — no es una palabra",
 		"3–4 letters score 1 point, 5 letters 2, 6 letters 3, 7 letters 5, and 8 or more 11.": "3–4 letras valen 1 punto, 5 letras 2, 6 letras 3, 7 letras 5, y 8 o más 11.",

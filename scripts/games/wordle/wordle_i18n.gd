@@ -23,6 +23,7 @@ const STRINGS := {
 		"New": "Nuevo",
 		"Next Word": "Siguiente palabra",
 		"Not enough letters": "Faltan letras",
+		"Not in word list": "No está en la lista de palabras",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
 		"Phew!": "¡Uf, por poco!",

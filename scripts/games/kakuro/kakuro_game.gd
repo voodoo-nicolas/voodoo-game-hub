@@ -178,6 +178,8 @@ func _draw_board() -> void:
 		return
 	var n: int = engine.size
 	var cs := _cell_size()
+	if cs < 8.0:
+		return  # not laid out yet: text this small has a font size of 0
 	var o := _origin()
 	var bad: Array = engine.conflicts()
 	var run_cells: Array = []

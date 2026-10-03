@@ -35,6 +35,11 @@ extends Control
 const Ui = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 
+## Games with this stat get a 🏆 Leaderboard on the card (see Auth's
+## leaderboard section and docs/leaderboards.sql).
+const LEADERBOARD_KEY := "Best score"
+const LEADERBOARD_SIZE := 10
+
 const TAB_SIZE := 44.0
 ## Matches SettingsDrawer: its tab is centred on the right edge; ours sits above.
 const TAB_GAP := 10.0
@@ -47,6 +52,8 @@ var save_path: String
 var tab_button: Button
 var overlay: ColorRect
 var stats_box: VBoxContainer
+var lb_heading: Label
+var lb_box: VBoxContainer
 var _paused_tree: bool = false
 var _clock: float = 0.0
 var _clock_on: bool = false
@@ -114,12 +121,15 @@ func add(key: String, n: int = 1) -> void:
 	stats[key] = int(stats.get(key, 0)) + n
 	_save()
 
-## Higher is better. Returns true if `value` is a new record.
+## Higher is better. Returns true if `value` is a new record. A new
+## "Best score" also goes on the online leaderboard when signed in.
 func high(key: String, value: float) -> bool:
 	if stats.has(key) and value <= float(stats[key]):
 		return false
 	stats[key] = value
 	_save()
+	if key == LEADERBOARD_KEY:
+		_submit_best()
 	return true
 
 ## Lower is better (times, move counts). Returns true if `value` is a new record.
@@ -310,6 +320,7 @@ func open() -> void:
 	if overlay == null:
 		_build_overlay()
 	_fill_stats()
+	_load_leaderboard()
 	overlay.visible = true
 	if tab_button:
 		tab_button.visible = false
@@ -384,6 +395,12 @@ func _build_overlay() -> void:
 	stats_box = VBoxContainer.new()
 	stats_box.add_theme_constant_override("separation", 4)
 	body.add_child(stats_box)
+	if _has_leaderboard():
+		_heading(body, tr("🏆 Leaderboard"))
+		lb_heading = body.get_child(body.get_child_count() - 1)
+		lb_box = VBoxContainer.new()
+		lb_box.add_theme_constant_override("separation", 4)
+		body.add_child(lb_box)
 
 	var close_btn := Button.new()
 	close_btn.text = tr("Got it!")
@@ -429,6 +446,68 @@ func _fill_stats() -> void:
 		rows += 1
 	if rows == 0:
 		_paragraph(stats_box, tr("Play a game and your records will show up here."), Color(0.65, 0.65, 0.7))
+
+# ---------- leaderboard ----------
+
+func _auth() -> Node:
+	var a := get_node_or_null("/root/Auth")
+	return a if a and a.has_method("fetch_leaderboard") else null
+
+func _has_leaderboard() -> bool:
+	return _auth() != null and consts.get("STATS", []).has(LEADERBOARD_KEY)
+
+func _submit_best() -> void:
+	var a := _auth()
+	if a and a.is_logged_in() and stats.has(LEADERBOARD_KEY):
+		a.submit_score(str(consts.get("ID", "")), int(stats[LEADERBOARD_KEY]))
+
+## Fetches the top scores each time the card opens (posting ours first, in
+## case it was set before signing in -- the server keeps the higher one).
+func _load_leaderboard() -> void:
+	if lb_box == null:
+		return
+	_submit_best()
+	for c in lb_box.get_children():
+		c.queue_free()
+	_paragraph(lb_box, tr("Loading..."), Color(0.65, 0.65, 0.7))
+	_auth().fetch_leaderboard(str(consts.get("ID", "")), LEADERBOARD_SIZE, _show_leaderboard)
+
+func _show_leaderboard(rows: Variant) -> void:
+	if lb_box == null or not is_instance_valid(lb_box):
+		return
+	for c in lb_box.get_children():
+		c.queue_free()
+	# Not set up on the server yet (or offline): no section at all.
+	lb_heading.visible = rows != null
+	lb_box.visible = rows != null
+	if rows == null:
+		return
+	var a := _auth()
+	var me: String = str(a.user_id) if a.is_logged_in() else ""
+	if rows.is_empty():
+		_paragraph(lb_box, tr("No scores yet — be the first!"), Color(0.65, 0.65, 0.7))
+	for i in rows.size():
+		var r: Dictionary = rows[i]
+		var medal: String = ["🥇", "🥈", "🥉"][i] if i < 3 else "%d." % (i + 1)
+		var mine: bool = str(r.get("user_id", "")) == me
+		_lb_row("%s  %s" % [medal, str(r.get("display_name", "Player"))], str(int(r.get("score", 0))), mine)
+	if not a.is_logged_in():
+		_paragraph(lb_box, tr("Sign in (hub ⚙ Options) to put your best score on the board."), Color(0.65, 0.65, 0.7))
+
+func _lb_row(who: String, score_text: String, mine: bool) -> void:
+	var row := HBoxContainer.new()
+	var col := Color(1, 0.84, 0.3) if mine else Color(0.85, 0.85, 0.9)
+	for spec in [[who, true], [score_text, false]]:
+		var l := Label.new()
+		l.text = spec[0]
+		l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		l.add_theme_font_size_override("font_size", 22)
+		l.add_theme_color_override("font_color", col)
+		if spec[1]:
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			l.clip_text = true
+		row.add_child(l)
+	lb_box.add_child(row)
 
 func _stat_row(label_text: String, value_text: String) -> void:
 	var row := HBoxContainer.new()

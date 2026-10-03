@@ -445,6 +445,9 @@ func _on_pause_pressed() -> void:
 
 func _player_label(player: int) -> String:
 	if _is_online():
+		# Player names from the lobby (apps before v0.22: You / Friend).
+		if online.has_method("my_name"):
+			return online.my_name() if player == my_player else online.opponent_name()
 		return tr("You") if player == my_player else tr("Friend")
 	if player == 1:
 		return tr("Blue")
@@ -637,7 +640,7 @@ func _on_online_status() -> void:
 	for b in size_buttons:
 		b.disabled = not host
 	if not online.opponent_here:
-		size_subtitle.text = tr("Friend disconnected — waiting...")
+		size_subtitle.text = (tr("%s disconnected — waiting...") % online.opponent_name()) if online.has_method("opponent_name") else tr("Friend disconnected — waiting...")
 	elif host:
 		size_subtitle.text = tr("Choose a board size for both of you")
 	else:
