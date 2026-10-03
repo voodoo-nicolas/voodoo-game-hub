@@ -4,6 +4,7 @@ extends Control
 ## to drop. The buttons below do the same.
 
 const BDEngine = preload("res://scripts/games/block_drop/block_drop_engine.gd")
+const HomeKit = preload("res://scripts/games/block_drop/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -14,6 +15,7 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://block_drop_best.json"
 const PREFS_PATH := "user://block_drop_prefs.json"
+const SAVE_PATH := "user://block_drop_save.json"
 ## [name, first level, step-time multiplier]
 const DIFFICULTIES := [["Easy", 1, 1.4], ["Normal", 1, 1.0], ["Hard", 5, 1.0]]
 ## [name, columns, rows]
@@ -22,6 +24,7 @@ const COLORS := [Color(0.3, 0.85, 0.95), Color(0.98, 0.85, 0.25), Color(0.7, 0.4
 	Color(0.95, 0.35, 0.35), Color(0.3, 0.5, 0.95), Color(0.98, 0.6, 0.2)]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: BDEngine
 var board: Control
 var side: Control
@@ -51,13 +54,11 @@ func _ready() -> void:
 		board_size = clampi(int(prefs.get("board", 0)), 0, BOARDS.size() - 1)
 	_build_ui()
 	engine.reset()
-	start_dialog.visible = true
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.07, 0.07, 0.11)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -74,9 +75,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🧱 Block Drop")
@@ -85,7 +87,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_start)
 	bar.add_child(restart_btn)
@@ -127,23 +131,25 @@ func _build_ui() -> void:
 
 	start_dialog = UI.build_dialog(tr("🧱 Block Drop"), [
 		{"text": tr("Start"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	start_dialog.get_meta("message_label").text = tr("Fill whole rows to clear them. Tap to rotate, drag to move, flick down to drop.")
 	_add_mode_pickers(start_dialog)
 	add_child(start_dialog)
 	over_dialog = UI.build_dialog(tr("Game Over"), [
 		{"text": tr("Play Again"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(over_dialog)
 	pause_dialog = UI.build_dialog(tr("Paused"), [
 		{"text": tr("Resume"), "action": _resume},
-		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	])
 	add_child(pause_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/block_drop/block_drop_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best > 0:
 			info.high("Best score", best)
@@ -161,7 +167,7 @@ func _add_mode_pickers(dialog: Control) -> void:
 	for spec in rows:
 		var label := Label.new()
 		label.text = spec[0]
-		label.add_theme_font_size_override("font_size", 22)
+		label.add_theme_font_size_override("font_size", 24)
 		label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.8))
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(label)
@@ -180,7 +186,7 @@ func _add_mode_pickers(dialog: Control) -> void:
 			b.toggle_mode = true
 			b.button_group = group
 			b.custom_minimum_size = Vector2(104, 52)
-			b.add_theme_font_size_override("font_size", 22)
+			b.add_theme_font_size_override("font_size", 24)
 			b.button_pressed = i == (difficulty if spec[2] == "difficulty" else board_size)
 			b.pressed.connect(_pick_mode.bind(spec[2], i))
 			var on := StyleBoxFlat.new()
@@ -222,10 +228,8 @@ func _resume() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
-		if is_node_ready() and running:
-			running = false
-			gravity.stop()
-			pause_dialog.visible = true
+		if is_node_ready() and running and home:
+			home.pause()
 
 func _redraw() -> void:
 	board.queue_redraw()
@@ -236,6 +240,7 @@ func _after_lock(_cleared: int) -> void:
 	if engine.over:
 		running = false
 		gravity.stop()
+		SaveUtil.delete(SAVE_PATH)
 		if engine.score > best:
 			best = engine.score
 			SaveUtil.write(BEST_PATH, {"best": best})
@@ -309,16 +314,20 @@ func _origin() -> Vector2:
 	var c := _cell()
 	return Vector2((board.size.x - c * engine.w) / 2.0, (board.size.y - c * engine.h) / 2.0)
 
+## A neon block: dark translucent fill, bright outline, a faint halo.
 func _block(canvas: CanvasItem, rect: Rect2, col: Color) -> void:
-	canvas.draw_rect(rect.grow(-1), col)
-	canvas.draw_rect(Rect2(rect.position + Vector2(2, 2), Vector2(rect.size.x - 4, rect.size.y * 0.18)), col.lightened(0.3))
+	var r := rect.grow(-2)
+	canvas.draw_rect(r, Color(col, 0.32))
+	canvas.draw_rect(r, col, false, 2.0)
+	canvas.draw_rect(r.grow(2), Color(col, 0.22), false, 3.0)
 
 func _draw_board() -> void:
 	var c := _cell()
 	var o := _origin()
-	board.draw_rect(Rect2(o, Vector2(c * engine.w, c * engine.h)), Color(0.12, 0.12, 0.17))
+	board.draw_rect(Rect2(o, Vector2(c * engine.w, c * engine.h)), Color(0.03, 0.04, 0.1))
+	HomeKit.glow_rect(board, Rect2(o, Vector2(c * engine.w, c * engine.h)), HomeKit.BLUE, 2.0)
 	for x in range(1, engine.w):
-		board.draw_line(o + Vector2(x * c, 0), o + Vector2(x * c, c * engine.h), Color(1, 1, 1, 0.04))
+		board.draw_line(o + Vector2(x * c, 0), o + Vector2(x * c, c * engine.h), Color(HomeKit.BLUE, 0.08))
 	for i in engine.w * engine.h:
 		var v: int = engine.well[i]
 		if v != 0:
@@ -337,10 +346,10 @@ func _draw_side() -> void:
 	var font: Font = ThemeDB.fallback_font
 	var y := 30.0
 	for pair in [[tr("Score"), engine.score], [tr("Lines"), engine.lines], [tr("Level"), engine.level], [tr("Best"), best]]:
-		side.draw_string(font, Vector2(0, y), pair[0], HORIZONTAL_ALIGNMENT_CENTER, side.size.x, 22, Color(0.65, 0.65, 0.75))
+		side.draw_string(font, Vector2(0, y), pair[0], HORIZONTAL_ALIGNMENT_CENTER, side.size.x, 24, Color(0.65, 0.65, 0.75))
 		side.draw_string(font, Vector2(0, y + 36), str(pair[1]), HORIZONTAL_ALIGNMENT_CENTER, side.size.x, 32, Color(1, 1, 1))
 		y += 90
-	side.draw_string(font, Vector2(0, y), tr("Next"), HORIZONTAL_ALIGNMENT_CENTER, side.size.x, 22, Color(0.65, 0.65, 0.75))
+	side.draw_string(font, Vector2(0, y), tr("Next"), HORIZONTAL_ALIGNMENT_CENTER, side.size.x, 24, Color(0.65, 0.65, 0.75))
 	var c: float = min(30.0, side.size.x / 5.0)
 	for cell in engine.cells(engine.next_piece, 0, Vector2i.ZERO):
 		_block(side, Rect2(Vector2(side.size.x / 2.0 - 2 * c + cell.x * c, y + 20 + cell.y * c), Vector2(c, c)), COLORS[engine.next_piece])
@@ -372,3 +381,107 @@ func _on_board_input(event: InputEvent) -> void:
 			engine.move(-1)
 			drag_moved -= 1
 		_redraw()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/block_drop/block_drop_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/block_drop/block_drop_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Fill whole rows to clear them. Tap to rotate, drag to move, flick down to drop.",
+		"logo": _draw_home_logo,
+		"extra": _add_board_picker,
+		"modes": [
+			{"text": "🙂 Easy", "row": "lvl", "color": HomeKit.LIME, "action": _start_level.bind(0)},
+			{"text": "😐 Normal", "row": "lvl", "color": HomeKit.CYAN, "action": _start_level.bind(1)},
+			{"text": "😈 Hard", "row": "lvl", "color": HomeKit.PINK, "action": _start_level.bind(2)},
+		],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
+		"restart": _start,
+		"board_note": "Your best score.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 5.0, 34.0)
+	var o := Vector2(c.size.x / 2.0 - k * 2.5, c.size.y / 2.0 - k * 2.5)
+	var cells := [[0, 4, 0], [1, 4, 0], [2, 4, 3], [3, 4, 3], [4, 4, 3], [0, 3, 0], [1, 3, 5], [3, 3, 3], [4, 3, 6],
+		[1, 2, 5], [4, 2, 6], [1, 1, 5], [2, 1, 2], [2, 0, 2], [3, 1, 2]]
+	for cl in cells:
+		var r := Rect2(o + Vector2(cl[0], cl[1]) * k, Vector2(k, k)).grow(-2)
+		c.draw_rect(r, Color(COLORS[cl[2]], 0.3))
+		c.draw_rect(r, COLORS[cl[2]], false, 2.0)
+		c.draw_rect(r.grow(2), Color(COLORS[cl[2]], 0.2), false, 3.0)
+
+func _add_board_picker(box: VBoxContainer) -> void:
+	box.add_child(home.section("Board"))
+	var names: Array = []
+	for b in BOARDS:
+		names.append(b[0])
+	box.add_child(home.choice_row(names, board_size, _pick_board, HomeKit.PURPLE))
+
+func _pick_board(i: int) -> void:
+	_pick_mode("board", i)
+
+func _start_level(level: int) -> void:
+	_pick_mode("difficulty", level)
+	SaveUtil.delete(SAVE_PATH)
+	_start()
+
+func _save_game() -> void:
+	if not running:
+		return
+	if engine.over or engine.well.is_empty():
+		return
+	SaveUtil.write(SAVE_PATH, {"w": engine.w, "h": engine.h, "start_level": engine.start_level, "speed": engine.speed_scale,
+		"well": engine.well, "piece": engine.piece, "rot": engine.rot, "pos": [engine.pos.x, engine.pos.y],
+		"next": engine.next_piece, "bag": engine.bag, "score": engine.score, "lines": engine.lines, "level": engine.level,
+		"difficulty": difficulty, "board": board_size})
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	return "" if d == null else tr("Score: %d") % int(d.get("score", 0))
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start()
+		return
+	difficulty = clampi(int(d.get("difficulty", difficulty)), 0, DIFFICULTIES.size() - 1)
+	board_size = clampi(int(d.get("board", board_size)), 0, BOARDS.size() - 1)
+	engine.configure(int(d.w), int(d.h), int(d.get("start_level", 1)), float(d.get("speed", 1.0)))
+	engine.reset()
+	var well: Array = []
+	for v in d.get("well", []):
+		well.append(int(v))
+	if well.size() != engine.w * engine.h:
+		_start()
+		return
+	engine.well = well
+	engine.piece = int(d.piece)
+	engine.rot = int(d.rot)
+	engine.pos = Vector2i(int(d.pos[0]), int(d.pos[1]))
+	engine.next_piece = int(d.next)
+	engine.bag = []
+	for v in d.get("bag", []):
+		engine.bag.append(int(v))
+	engine.score = int(d.score)
+	engine.lines = int(d.lines)
+	engine.level = int(d.level)
+	engine.over = false
+	over_dialog.visible = false
+	running = true
+	gravity.wait_time = engine.step_seconds()
+	gravity.start()
+	_redraw()

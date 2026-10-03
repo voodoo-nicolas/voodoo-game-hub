@@ -33,6 +33,7 @@ extends Control
 ##         "board": "Best score",            # the stat the 🏆 Leaderboard ranks
 ##         "board_note": "How the score is counted.",
 ##         "online": online,                 # OnlineMatch node, if any
+##         "extra": _add_options,            # func(box): the game's own pickers above the modes
 ##     })
 ##     add_child(home)
 ##     if info: add_child(info)
@@ -183,6 +184,30 @@ func pause_button(text: String = "⏸") -> Button:
 	b.pressed.connect(pause)
 	return b
 
+## A section heading in the Home style, for a game's "extra" controls.
+func section(text: String) -> Label:
+	return _section(tr(text))
+
+## A row of toggle buttons for a game's own option (cfg "extra"): `names`
+## are English, `current` the chosen index; `on_pick` gets the new index.
+func choice_row(names: Array, current: int, on_pick: Callable, color: Color = CYAN) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var group := ButtonGroup.new()
+	for i in names.size():
+		var b := neon_button(tr(str(names[i])), color, 24, 62)
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = i == current
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var on := neon_box(color, "pressed")
+		on.bg_color = Color(color, 0.45)
+		on.set_border_width_all(3)
+		b.add_theme_stylebox_override("pressed", on)
+		b.pressed.connect(on_pick.bind(i))
+		row.add_child(b)
+	return row
+
 ## Re-reads the save and the stats (called every time Home shows).
 func refresh() -> void:
 	var path: String = cfg.get("save_path", "")
@@ -256,6 +281,11 @@ func _build_home() -> void:
 	resume_btn = neon_button("", LIME, 30, 84)
 	resume_btn.pressed.connect(_on_resume)
 	box.add_child(resume_btn)
+
+	# A game's own choices that go with every mode (board size, deck...):
+	# cfg "extra" is func(box: VBoxContainer) that adds them.
+	if cfg.has("extra"):
+		cfg.extra.call(box)
 
 	var modes: Array = cfg.get("modes", [])
 	var solo := modes.filter(func(m): return not m.get("multi", false))

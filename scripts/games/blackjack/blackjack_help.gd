@@ -12,6 +12,7 @@ const HOW := [
 	"Double doubles your bet on your first two cards and gives you exactly one more card.",
 	"The dealer must hit until 17. Win and you double your bet; a Blackjack (Ace + 10 on the first two cards) pays 3 to 2; a tie returns your bet.",
 	"These are play chips only. Run out and you get a fresh stack.",
+	"Your chips are kept between visits. ⏸ pauses; leaving mid-hand returns that bet to your chips.",
 ]
 const TIPS := [
 	"Always stand on hard 17 or more.",

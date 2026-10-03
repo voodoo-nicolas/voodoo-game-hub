@@ -13,6 +13,7 @@ const HOW := [
 	"Clearing 1, 2, 3 or 4 rows at once scores 100, 300, 500 or 800 points, times the level.",
 	"Every 10 rows the level goes up and pieces fall faster.",
 	"The game ends when the pieces stack up to the top.",
+	"⏸ pauses and keeps the game; Resume on the Home screen picks it up where you left off.",
 ]
 const TIPS := [
 	"Keep the surface flat and leave one column open at the side for the long piece — four rows at once scores the most.",

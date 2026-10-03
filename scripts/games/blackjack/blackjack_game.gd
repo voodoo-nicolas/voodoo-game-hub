@@ -4,6 +4,7 @@ extends Control
 ## The chip stack persists between visits; leaving mid-hand refunds the bet.
 
 const BlackjackEngine = preload("res://scripts/games/blackjack/blackjack_engine.gd")
+const HomeKit = preload("res://scripts/games/blackjack/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -14,9 +15,9 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const CHIPS_PATH := "user://blackjack_chips.json"
 const CHIP_VALUES := [10, 25, 50, 100]
-const COLOR_FELT := Color(0.05, 0.3, 0.17)
-const COLOR_CARD := Color(0.97, 0.97, 0.95)
-const COLOR_CARD_BACK := Color(0.55, 0.12, 0.15)
+const COLOR_FELT := Color(0.03, 0.05, 0.1)
+const COLOR_CARD := Color(0.05, 0.07, 0.15)
+const COLOR_CARD_BACK := Color(0.2, 0.06, 0.32)
 const OUTCOME_TEXT := {
 	"blackjack": "Blackjack! You win %d",
 	"win": "You win %d!",
@@ -28,6 +29,7 @@ const OUTCOME_TEXT := {
 
 var hand_recorded := false  # this hand's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var pending_bet: int = 0
 var last_bet: int = 0
@@ -53,7 +55,7 @@ func _ready() -> void:
 		engine.chips = int(data.get("chips", BlackjackEngine.STARTING_CHIPS))
 		last_bet = int(data.get("last_bet", 0))
 	_build_ui()
-	_to_betting()
+	_to_betting()  # behind the Home screen until Play
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -74,9 +76,8 @@ func _save_game() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_FELT
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -92,12 +93,13 @@ func _build_ui() -> void:
 	var bar := HBoxContainer.new()
 	top_margin.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
-	title.text = tr("🂱 Blackjack")
+	title.text = "♠ " + tr("Blackjack")
 	title.add_theme_font_size_override("font_size", 34)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -176,6 +178,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/blackjack/blackjack_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -213,10 +217,13 @@ func _make_card(card: Dictionary, face_up: bool) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(120, 172)
 	var sb := StyleBoxFlat.new()
+	var rim: Color = (HomeKit.PINK if BlackjackEngine.is_red(card) else HomeKit.CYAN) if face_up else HomeKit.PURPLE
 	sb.bg_color = COLOR_CARD if face_up else COLOR_CARD_BACK
 	sb.set_corner_radius_all(12)
-	sb.border_color = Color(0.2, 0.2, 0.2)
-	sb.set_border_width_all(2)
+	sb.border_color = rim
+	sb.set_border_width_all(3)
+	sb.shadow_color = Color(rim, 0.35)
+	sb.shadow_size = 8
 	panel.add_theme_stylebox_override("panel", sb)
 	var l := Label.new()
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -224,10 +231,10 @@ func _make_card(card: Dictionary, face_up: bool) -> Control:
 	l.add_theme_font_size_override("font_size", 44)
 	if face_up:
 		l.text = BlackjackEngine.card_text(card)
-		l.add_theme_color_override("font_color", Color(0.8, 0.1, 0.1) if BlackjackEngine.is_red(card) else Color(0.1, 0.1, 0.1))
+		l.add_theme_color_override("font_color", HomeKit.PINK.lerp(Color.WHITE, 0.2) if BlackjackEngine.is_red(card) else Color(0.9, 0.98, 1.0))
 	else:
 		l.text = "✦"
-		l.add_theme_color_override("font_color", Color(1, 0.85, 0.85))
+		l.add_theme_color_override("font_color", HomeKit.PURPLE.lerp(Color.WHITE, 0.4))
 	panel.add_child(l)
 	return panel
 
@@ -338,3 +345,38 @@ func _value_text(hand: Array) -> String:
 	if v.soft and v.total < 21:
 		return "%d / %d" % [v.total - 10, v.total]
 	return str(v.total)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/blackjack/blackjack_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Beat the dealer to 21. Your chips carry over between visits.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "♠  Play", "sub": "vs the dealer", "action": _to_betting}],
+		"restart": _to_betting,
+		"board": "Most chips",
+		"board_note": "The most chips you have ever held.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.9, 170.0)
+	var w := h * 0.7
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	for spec in [[-0.22, Vector2(-w * 0.32, 4), "A", HomeKit.CYAN], [0.18, Vector2(w * 0.32, 0), "K", HomeKit.PINK]]:
+		c.draw_set_transform(ctr + spec[1], spec[0], Vector2.ONE)
+		var r := Rect2(Vector2(-w / 2.0, -h / 2.0), Vector2(w, h))
+		c.draw_rect(r, Color(0.05, 0.07, 0.15))
+		HomeKit.glow_rect(c, r, spec[3], 2.5)
+		HomeKit.glow_text(c, Vector2(0, -h * 0.08), spec[2], int(h * 0.42), spec[3])
+		HomeKit.glow_text(c, Vector2(0, h * 0.28), "♠" if spec[2] == "A" else "♥", int(h * 0.22), spec[3])
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
