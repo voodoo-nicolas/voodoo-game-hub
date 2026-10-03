@@ -10,7 +10,7 @@ const HOW := [
 	"Each letter can be used only once in a word.",
 	"Words need at least 3 letters. They're checked against an English dictionary.",
 	"3–4 letters score 1 point, 5 letters 2, 6 letters 3, 7 letters 5, and 8 or more 11.",
-	"When time's up you'll see how many words were hiding in the grid.",
+	"When time's up you'll see how many words were hiding in the grid. Tap Show missed words, then any word, to see its path on the board.",
 ]
 const TIPS := [
 	"Once you find a word, try adding S, ED or ER to the end.",

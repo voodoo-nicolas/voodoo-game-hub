@@ -96,6 +96,28 @@ func all_words() -> Array:
 	list.sort_custom(func(a, b): return a.length() > b.length() or (a.length() == b.length() and a < b))
 	return list
 
+## The tiles that spell `w` (lowercase), in order, or [] if it isn't on the board.
+## Lets the end screen show where a missed word was hiding.
+func find_path(w: String) -> Array:
+	for start in SIZE * SIZE:
+		var path := [start]
+		if _trace(w, grid[start].to_lower(), path):
+			return path
+	return []
+
+func _trace(w: String, s: String, path: Array) -> bool:
+	if not w.begins_with(s):
+		return false
+	if s == w:
+		return true
+	for nb in SIZE * SIZE:
+		if adjacent(path.back(), nb) and not path.has(nb):
+			path.append(nb)
+			if _trace(w, s + grid[nb].to_lower(), path):
+				return true
+			path.pop_back()
+	return false
+
 func _dfs(cell: int, path: Array, s: String, out: Dictionary) -> void:
 	if not is_prefix(s):
 		return

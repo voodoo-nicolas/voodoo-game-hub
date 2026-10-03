@@ -16,6 +16,7 @@ const ROUND_SECONDS := 180.0
 const BEST_PATH := "user://word_hunt_best.json"
 const COLOR_TILE := Color(0.96, 0.9, 0.75)
 const COLOR_TILE_ON := Color(1.0, 0.75, 0.3)
+const COLOR_TILE_SHOWN := Color(0.55, 0.85, 1.0)
 const COLOR_INK := Color(0.15, 0.1, 0.05)
 
 var info = null  # GameInfo; null on apps without it, so guard every use
@@ -35,6 +36,10 @@ var start_dialog: ColorRect
 var end_dialog: ColorRect
 var pause_dialog: ColorRect
 var path: Array = []
+## After a round: the missed word being shown on the board, and its tiles.
+var shown_word := ""
+var shown_path: Array = []
+var missed_box: HFlowContainer
 var dragging := false
 var time_left: float = ROUND_SECONDS
 var running := false
@@ -130,12 +135,20 @@ func _build_ui() -> void:
 	sm.add_theme_constant_override("margin_bottom", 24)
 	sm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(sm)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 12)
+	sm.add_child(list)
 	found_label = Label.new()
 	found_label.add_theme_font_size_override("font_size", 24)
 	found_label.add_theme_color_override("font_color", Color(0.8, 0.85, 0.95))
 	found_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	found_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sm.add_child(found_label)
+	list.add_child(found_label)
+	# After a round: every missed word as a button that shows its path.
+	missed_box = HFlowContainer.new()
+	missed_box.add_theme_constant_override("h_separation", 8)
+	missed_box.add_theme_constant_override("v_separation", 8)
+	list.add_child(missed_box)
 	root.add_child(scroll)
 
 	clock = Timer.new()
@@ -149,6 +162,7 @@ func _build_ui() -> void:
 	], true)
 	add_child(start_dialog)
 	end_dialog = UI.build_dialog(tr("Time's up!"), [
+		{"text": tr("Show missed words"), "action": _show_missed},
 		{"text": tr("Play Again"), "action": _show_start},
 		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
 	], true)
@@ -171,6 +185,7 @@ func _show_start() -> void:
 	end_dialog.visible = false
 	engine.new_board()
 	path = []
+	_clear_missed()
 	var msg := tr("Drag across touching letters to make words of 3+ letters. You have 3 minutes.")
 	if TranslationServer.get_locale().begins_with("es"):
 		msg += "\n" + tr("Words are in English.")
@@ -266,6 +281,43 @@ func _end_round() -> void:
 	end_dialog.visible = true
 	board.queue_redraw()
 
+# ---------- missed words ----------
+
+func _clear_missed() -> void:
+	shown_word = ""
+	shown_path = []
+	for c in missed_box.get_children():
+		c.queue_free()
+
+## Lists every missed word (longest first) under the board; tapping one
+## lights up its tiles in order, so the player can see how it was made.
+func _show_missed() -> void:
+	_clear_missed()
+	var missed: Array = engine.all_words().filter(func(w): return not engine.found.has(w))
+	var head := Label.new()
+	head.text = tr("Words you missed (tap one to see it):")
+	head.add_theme_font_size_override("font_size", 24)
+	head.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	head.autowrap_mode = TextServer.AUTOWRAP_WORD
+	head.custom_minimum_size = Vector2(board.size.x - 60.0, 0)
+	missed_box.add_child(head)
+	for w in missed:
+		var b := Button.new()
+		b.text = w.to_upper()
+		b.add_theme_font_size_override("font_size", 22)
+		b.custom_minimum_size = Vector2(0, 48)
+		b.pressed.connect(_show_path.bind(w))
+		missed_box.add_child(b)
+	if not missed.is_empty():
+		_show_path(missed[0])
+
+func _show_path(w: String) -> void:
+	shown_word = w
+	shown_path = engine.find_path(w)
+	word_label.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	word_label.text = "%s  +%d" % [w.to_upper(), WHEngine.points(w)]
+	board.queue_redraw()
+
 # ---------- board ----------
 
 func _geom() -> Dictionary:
@@ -284,15 +336,29 @@ func _draw_board() -> void:
 		var rect := Rect2(g.origin + Vector2(c, r) * cell, Vector2(cell, cell)).grow(-6)
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = COLOR_TILE_ON if i in path else COLOR_TILE
+		if i in shown_path:
+			sb.bg_color = COLOR_TILE_SHOWN
 		sb.set_corner_radius_all(14)
 		board.draw_style_box(sb, rect)
 		var txt: String = engine.grid[i] if engine.grid[i] != "QU" else "Qu"
 		var fs := int(cell * (0.42 if txt.length() == 1 else 0.34))
 		board.draw_string(font, Vector2(rect.position.x, rect.get_center().y + fs * 0.36), txt, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, fs, COLOR_INK)
-	for k in range(1, path.size()):
-		var a: Vector2 = g.origin + (Vector2(path[k - 1] % 4, path[k - 1] / 4) + Vector2(0.5, 0.5)) * cell
-		var b: Vector2 = g.origin + (Vector2(path[k] % 4, path[k] / 4) + Vector2(0.5, 0.5)) * cell
-		board.draw_line(a, b, Color(0.9, 0.3, 0.1, 0.6), 10)
+	_draw_path(path, Color(0.9, 0.3, 0.1, 0.6), g)
+	_draw_path(shown_path, Color(0.1, 0.45, 0.85, 0.7), g)
+	# Number the shown word's tiles so the order is clear.
+	for k in shown_path.size():
+		var i: int = shown_path[k]
+		var corner: Vector2 = g.origin + Vector2(i % 4, i / 4) * cell + Vector2(14, 12)
+		var nfs := int(cell * 0.18)
+		board.draw_circle(corner + Vector2(nfs * 0.6, nfs * 0.6), nfs * 0.75, Color(0.1, 0.45, 0.85))
+		board.draw_string(font, corner + Vector2(0, nfs * 0.95), str(k + 1), HORIZONTAL_ALIGNMENT_CENTER, nfs * 1.2, nfs, Color.WHITE)
+
+func _cell_center(i: int, g: Dictionary) -> Vector2:
+	return g.origin + (Vector2(i % 4, i / 4) + Vector2(0.5, 0.5)) * float(g.cell)
+
+func _draw_path(p: Array, col: Color, g: Dictionary) -> void:
+	for k in range(1, p.size()):
+		board.draw_line(_cell_center(p[k - 1], g), _cell_center(p[k], g), col, 10)
 
 func _cell_at(pos: Vector2, strict: bool) -> int:
 	var g := _geom()

@@ -137,7 +137,7 @@
     "word_search": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_search.pck", "scene": "res://scenes/games/word_search/word_search.tscn"},
     "crossword": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/crossword.pck", "scene": "res://scenes/games/crossword/crossword.tscn"},
     "anagrams": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/anagrams.pck", "scene": "res://scenes/games/anagrams/anagrams.tscn"},
-    "word_hunt": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_hunt.pck", "scene": "res://scenes/games/word_hunt/word_hunt.tscn"},
+    "word_hunt": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_hunt.pck", "scene": "res://scenes/games/word_hunt/word_hunt.tscn"},
     "block_drop": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/block_drop.pck", "scene": "res://scenes/games/block_drop/block_drop.tscn"},
     "paddle_ball": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/paddle_ball.pck", "scene": "res://scenes/games/paddle_ball/paddle_ball.tscn"},
     "brick_breaker": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/brick_breaker.pck", "scene": "res://scenes/games/brick_breaker/brick_breaker.tscn"},
