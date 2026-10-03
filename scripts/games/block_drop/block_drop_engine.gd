@@ -24,7 +24,14 @@ const PIECES := [
 ]
 const LINE_POINTS := [0, 100, 300, 500, 800]
 
-var well: Array = []       # W*H: 0 empty, else piece type + 1
+## Well size and starting speed, set by configure() before reset(). A wider
+## well makes every piece smaller on screen (more room to fit them).
+var w: int = W
+var h: int = H
+var start_level: int = 1
+## Multiplies the time per gravity step: > 1 is slower (Easy).
+var speed_scale: float = 1.0
+var well: Array = []       # w*h: 0 empty, else piece type + 1
 var piece: int = 0
 var rot: int = 0
 var pos := Vector2i.ZERO
@@ -35,14 +42,20 @@ var lines: int = 0
 var level: int = 1
 var over: bool = false
 
+func configure(width: int, height: int, first_level: int = 1, slow: float = 1.0) -> void:
+	w = width
+	h = height
+	start_level = max(1, first_level)
+	speed_scale = slow
+
 func reset() -> void:
 	well.clear()
-	well.resize(W * H)
+	well.resize(w * h)
 	well.fill(0)
 	bag.clear()
 	score = 0
 	lines = 0
-	level = 1
+	level = start_level
 	over = false
 	next_piece = _from_bag()
 	_spawn()
@@ -57,7 +70,7 @@ func _spawn() -> void:
 	piece = next_piece
 	next_piece = _from_bag()
 	rot = 0
-	pos = Vector2i(3, 0)
+	pos = Vector2i(w / 2 - 2, 0)
 	if not _fits(piece, rot, pos):
 		over = true
 
@@ -70,9 +83,9 @@ func cells(p: int = piece, r: int = rot, at: Vector2i = pos) -> Array:
 
 func _fits(p: int, r: int, at: Vector2i) -> bool:
 	for c in cells(p, r, at):
-		if c.x < 0 or c.x >= W or c.y >= H:
+		if c.x < 0 or c.x >= w or c.y >= h:
 			return false
-		if c.y >= 0 and well[c.y * W + c.x] != 0:
+		if c.y >= 0 and well[c.y * w + c.x] != 0:
 			return false
 	return true
 
@@ -82,11 +95,13 @@ func move(dx: int) -> bool:
 	pos.x += dx
 	return true
 
-## Rotates clockwise, nudging sideways/up if blocked (simple wall kicks).
-func rotate() -> bool:
+## Rotates clockwise (dir 1) or counter-clockwise (dir -1), nudging
+## sideways/up if blocked (simple wall kicks).
+func rotate(dir: int = 1) -> bool:
 	if over:
 		return false
-	var r: int = (rot + 1) % PIECES[piece].size()
+	var n: int = PIECES[piece].size()
+	var r: int = (rot + dir + n) % n
 	for kick in [Vector2i.ZERO, Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-2, 0), Vector2i(2, 0), Vector2i(0, -1)]:
 		if _fits(piece, r, pos + kick):
 			rot = r
@@ -123,29 +138,29 @@ func _lock() -> int:
 		if c.y < 0:
 			over = true
 			return 0
-		well[c.y * W + c.x] = piece + 1
+		well[c.y * w + c.x] = piece + 1
 	var cleared := 0
-	var y := H - 1
+	var y := h - 1
 	while y >= 0:
 		var full := true
-		for x in W:
-			if well[y * W + x] == 0:
+		for x in w:
+			if well[y * w + x] == 0:
 				full = false
 				break
 		if full:
 			for yy in range(y, 0, -1):
-				for x in W:
-					well[yy * W + x] = well[(yy - 1) * W + x]
-			for x in W:
+				for x in w:
+					well[yy * w + x] = well[(yy - 1) * w + x]
+			for x in w:
 				well[x] = 0
 			cleared += 1
 		else:
 			y -= 1
 	lines += cleared
-	score += LINE_POINTS[cleared] * level
-	level = 1 + lines / 10
+	score += LINE_POINTS[mini(cleared, 4)] * level
+	level = start_level + lines / 10
 	_spawn()
 	return cleared
 
 func step_seconds() -> float:
-	return max(0.08, 0.8 * pow(0.85, level - 1))
+	return max(0.08, 0.8 * pow(0.85, level - 1) * speed_scale)

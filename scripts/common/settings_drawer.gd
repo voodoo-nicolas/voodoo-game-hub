@@ -33,6 +33,10 @@ var timer_label: Label
 var timer_button: Button
 var voodoo_button: Button
 
+## Where the tab sits until the player drags it. A game whose controls are in
+## the default spot sets this before adding the drawer, with set() so packs
+## still run on older apps: `d.set("default_frac", 0.55)`.
+var default_frac: float = DEFAULT_FRAC
 var _frac: float = DEFAULT_FRAC
 var _press_y: float = -1.0
 var _dragged: bool = false
@@ -122,7 +126,7 @@ func _load_frac() -> float:
 	var key := _scene_key()
 	if data != null and data.has(key):
 		return clampf(float(data[key]), 0.0, 1.0)
-	return DEFAULT_FRAC
+	return default_frac
 
 func _save_frac() -> void:
 	var data = SaveUtil.read(POS_PATH)

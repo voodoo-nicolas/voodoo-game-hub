@@ -68,7 +68,19 @@ func _ready() -> void:
 	get_tree().scene_changed.connect(_fit_scene)
 	get_tree().scene_changed.connect(_on_scene_changed)
 	# A rotation changes which way is "landscape": rescale and re-inset.
-	get_tree().root.size_changed.connect(_fit_scene)
+	get_tree().root.size_changed.connect(_on_root_resized)
+
+## Only a real window change (rotation) refits. The root also reports
+## size_changed when _fit_scene itself changes the content scale, and
+## refitting on that would loop forever.
+var _last_window := Vector2i.ZERO
+
+func _on_root_resized() -> void:
+	var win := DisplayServer.window_get_size()
+	if win == _last_window:
+		return
+	_last_window = win
+	_fit_scene()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
