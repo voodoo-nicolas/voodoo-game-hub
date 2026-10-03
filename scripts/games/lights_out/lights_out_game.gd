@@ -1,16 +1,20 @@
 extends Control
 
 const LightsOutEngine = preload("res://scripts/games/lights_out/lights_out_engine.gd")
+const HomeKit = preload("res://scripts/games/lights_out/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://lights_out_save.json"
 
-const COLOR_ON := Color(1.0, 0.84, 0.1)
-const COLOR_OFF := Color(0.16, 0.16, 0.2)
+const COLOR_ON := HomeKit.GOLD
+const COLOR_OFF := HomeKit.BLUE
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var cells: Array = []
 var moves_label: Label
@@ -24,12 +28,15 @@ func _ready() -> void:
 	_build_ui()
 	_start_new_game()
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -48,20 +55,26 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("💡 Lights Out")
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.GOLD.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.GOLD, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -102,6 +115,8 @@ func _build_ui() -> void:
 	_build_win_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/lights_out/lights_out_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -127,7 +142,6 @@ func _build_win_dialog() -> void:
 	sb.content_margin_right = 28
 	sb.content_margin_top = 24
 	sb.content_margin_bottom = 24
-	panel.add_theme_stylebox_override("panel", sb)
 	center.add_child(panel)
 
 	var box := VBoxContainer.new()
@@ -150,15 +164,16 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	box.add_child(menu_btn)
 
 # ---------- game flow ----------
 
 func _start_new_game() -> void:
 	engine.reset()
+	SaveUtil.delete(SAVE_PATH)
 	win_dialog.visible = false
 	_render()
 
@@ -168,6 +183,7 @@ func _on_cell_pressed(r: int, c: int) -> void:
 	engine.press(r, c)
 	_render()
 	if engine.is_solved():
+		SaveUtil.delete(SAVE_PATH)
 		win_label.text = tr("Solved in %d moves!") % engine.moves
 		if info:
 			info.add("Puzzles solved")
@@ -179,12 +195,73 @@ func _on_cell_pressed(r: int, c: int) -> void:
 func _render() -> void:
 	for r in range(LightsOutEngine.SIZE):
 		for c in range(LightsOutEngine.SIZE):
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = COLOR_ON if engine.grid[r][c] else COLOR_OFF
-			sb.corner_radius_top_left = 8
-			sb.corner_radius_top_right = 8
-			sb.corner_radius_bottom_left = 8
-			sb.corner_radius_bottom_right = 8
+			var on: bool = engine.grid[r][c]
+			var sb := HomeKit.neon_box(COLOR_ON if on else COLOR_OFF, "pressed" if on else "normal")
+			sb.bg_color = Color(COLOR_ON, 0.55) if on else Color(COLOR_OFF, 0.06)
+			sb.shadow_size = 14 if on else 4
 			for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 				cells[r][c].add_theme_stylebox_override(state, sb)
 	moves_label.text = tr("Moves: %d") % engine.moves
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/lights_out/lights_out_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/lights_out/lights_out_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Tap to flip a light and its neighbours. Turn them all off.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  New puzzle", "sub": "5 × 5 lights", "action": _start_new_game}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": func(): return tr("Moves: %d") % int(SaveUtil.read(SAVE_PATH).get("moves", 0)) if SaveUtil.read(SAVE_PATH) else "",
+		"restart": _start_new_game,
+		"board": "Puzzles solved",
+		"board_note": "Puzzles solved, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var n := 3
+	var k := minf(c.size.y / (n + 0.4), 52.0)
+	var o := Vector2((c.size.x - k * n) / 2.0, (c.size.y - k * n) / 2.0)
+	var lit := [1, 3, 4, 5, 7]  # a plus sign: what one tap flips
+	for i in 9:
+		var r := Rect2(o + Vector2(i % 3, int(i / 3)) * k + Vector2(5, 5), Vector2(k - 10, k - 10))
+		if lit.has(i):
+			HomeKit.glow_rect(c, r, COLOR_ON, 2.5, 0.45)
+		else:
+			HomeKit.glow_rect(c, r, HomeKit.BLUE, 1.5, 0.05)
+
+func _save_game() -> void:
+	if engine.is_solved() or win_dialog.visible:
+		return
+	SaveUtil.write(SAVE_PATH, {"grid": engine.grid, "moves": engine.moves})
+
+func _load_saved_game() -> void:
+	var data = SaveUtil.read(SAVE_PATH)
+	if data == null:
+		_start_new_game()
+		return
+	var grid: Array = []
+	for row in data.get("grid", []):
+		var r: Array = []
+		for v in row:
+			r.append(bool(v))
+		grid.append(r)
+	if grid.size() != LightsOutEngine.SIZE:
+		_start_new_game()
+		return
+	engine.grid = grid
+	engine.moves = int(data.get("moves", 0))
+	win_dialog.visible = false
+	_render()

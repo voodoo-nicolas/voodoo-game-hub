@@ -8,7 +8,7 @@ const GOAL := "Switch off every light on the board."
 const HOW := [
 	"Tapping a square toggles it and the squares directly above, below, left and right of it.",
 	"Lit squares turn off and dark ones turn on.",
-	"Every puzzle can be solved.",
+	"Every puzzle can be solved. Leave any time: ⏸ saves the puzzle and Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"The order of your taps doesn't matter, and tapping a square twice undoes it — so each square only ever needs one tap or none.",
