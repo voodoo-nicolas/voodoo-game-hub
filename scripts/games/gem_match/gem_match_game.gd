@@ -6,6 +6,7 @@ extends Control
 ## 5 clears a whole colour. See gem_match_engine.gd for the rules.
 
 const GMEngine = preload("res://scripts/games/gem_match/gem_match_engine.gd")
+const HomeKit = preload("res://scripts/games/gem_match/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -28,6 +29,7 @@ const GRAVITY := 70.0
 enum State { IDLE, SWAP, SWAP_BACK, FLASH, FALL, OVER, READY }
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var Voodoo = load(VOODOO_PATH) if ResourceLoader.exists(VOODOO_PATH) else null
 var voodoo_on: bool = false
 var engine: GMEngine
@@ -64,13 +66,13 @@ func _ready() -> void:
 	_build_ui()
 	engine.reset()
 	_reset_anim()
-	start_dialog.visible = true
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
 	var bg := ColorRect.new()
 	bg.name = "Bg"
-	bg.color = Color(0.08, 0.07, 0.13)
+	bg.color = HomeKit.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -88,9 +90,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 24)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("💎 Gem Match")
@@ -99,7 +102,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 24)
 	restart_btn.pressed.connect(_start)
 	bar.add_child(restart_btn)
@@ -171,22 +176,24 @@ func _build_ui() -> void:
 
 	start_dialog = UI.build_dialog(tr("💎 Gem Match"), [
 		{"text": tr("Start"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	start_dialog.get_meta("message_label").text = tr("Beat the clock! Every match adds time. Match fast for a multiplier, 4 in a row for a bomb, 5 to clear a colour.")
 	add_child(start_dialog)
 	over_dialog = UI.build_dialog(tr("Time's up!"), [
 		{"text": tr("Play Again"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(over_dialog)
 	pause_dialog = UI.build_dialog(tr("Paused"), [
 		{"text": tr("Resume"), "action": _resume},
-		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	])
 	add_child(pause_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/gem_match/gem_match_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best > 0:
 			info.high("Best score", best)
@@ -228,8 +235,8 @@ func _resume() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
-		if is_node_ready() and state != State.READY and state != State.OVER:
-			pause_dialog.visible = true
+		if is_node_ready() and state != State.READY and state != State.OVER and home:
+			home.pause()
 
 func _set_state(s: int) -> void:
 	state = s
@@ -565,3 +572,36 @@ func _swipe_from(cell: int, d: Vector2) -> void:
 		n += GMEngine.SIZE if d.y > 0 else -GMEngine.SIZE
 	if n >= 0 and n < GMEngine.SIZE * GMEngine.SIZE and GMEngine.adjacent(cell, n):
 		_attempt(cell, n)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/gem_match/gem_match_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/gem_match/gem_match_help.gd"),
+		"info": info,
+		"accent": HomeKit.MAGENTA,
+		"subtitle": "Swap gems to line up three or more. Race the clock!",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "💎  Play", "sub": "Beat the clock", "action": _start}],
+		"restart": _start,
+		"board_note": "Your best score.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var r := minf(c.size.y / 6.5, 26.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	var cols := [HomeKit.MAGENTA, HomeKit.MAGENTA, HomeKit.CYAN, HomeKit.MAGENTA, HomeKit.LIME, HomeKit.GOLD, HomeKit.CYAN, HomeKit.LIME, HomeKit.PURPLE]
+	for i in 9:
+		var p := ctr + Vector2((i % 3 - 1) * r * 2.7, (int(i / 3) - 1) * r * 2.7)
+		var pts := PackedVector2Array([p + Vector2(0, -r), p + Vector2(r, 0), p + Vector2(0, r), p + Vector2(-r, 0)])
+		c.draw_colored_polygon(pts, Color(cols[i], 0.25))
+		HomeKit.glow_polyline(c, pts, cols[i], 2.0, true)

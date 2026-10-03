@@ -15,6 +15,7 @@ const HOW := [
 	"Touching anything costs one of your three lives, clears the screen and resets the multiplier.",
 	"Wanderers and neutrons drift and bounce. Blue grunts chase you and get faster the longer they live. Green weavers dodge your shots. Pink spinners split in three. Tiny mayflies swarm in hordes, and one shot pierces many.",
 	"Snakes can only be killed by hitting the head. Rockets charge in straight lines. Shoot a gravity well to wake it — it sucks in enemies, shots and you. Kill it to blow up everything around it, or let it eat too much and it bursts into protons.",
+	"The pause button keeps the game; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Keep moving in wide circles — standing still gets you surrounded.",

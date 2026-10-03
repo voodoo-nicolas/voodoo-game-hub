@@ -13,6 +13,7 @@ const HOW := [
 	"5 in a row clears every gem of that kind from the board.",
 	"Gems fall into the gaps and new ones drop in; falls that make new matches are chains and score extra.",
 	"💡 Hint shows you a swap that works.",
+	"⏸ pauses the clock. A round is short, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Keep moving — a fast ×5 is worth much more than one perfect move.",

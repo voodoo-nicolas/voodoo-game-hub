@@ -11,6 +11,7 @@ const HOW := [
 	"Each merge adds the new tile's number to your score.",
 	"A new 2 or 4 appears after every move.",
 	"The game ends when the board is full and nothing can merge. Reach 2048 and you can keep going for a bigger score.",
+	"⏸ pauses and keeps the game; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Pick a corner and keep your biggest tile in it.",

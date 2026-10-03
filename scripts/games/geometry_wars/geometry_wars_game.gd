@@ -4,6 +4,7 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const Core = preload("res://scripts/games/geometry_wars/geometry_wars_core.gd")
+const HomeKit = preload("res://scripts/games/geometry_wars/home_kit.gd")
 const ArenaCanvas = preload("res://scripts/games/geometry_wars/arena_canvas.gd")
 const JoystickCanvas = preload("res://scripts/games/geometry_wars/joystick_canvas.gd")
 const Ui = preload("res://scripts/common/ui.gd")
@@ -46,6 +47,7 @@ const MAX_PARTICLES := 500
 const MAX_CRYSTALS := 250
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var arena_size: Vector2 = Vector2(600, 900)
 var arena_offset: Vector2 = Vector2(20, 90)
 
@@ -107,6 +109,7 @@ func _ready() -> void:
 	Orientation.lock_landscape()
 	_build_ui()
 	_show_start_screen()
+	start_screen.visible = false  # the Home screen replaces it
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -424,9 +427,8 @@ func _update_hud() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.04, 0.04, 0.07)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	_build_start_screen()
@@ -441,6 +443,8 @@ func _build_ui() -> void:
 	_build_rotate_hint()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/geometry_wars/geometry_wars_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -492,7 +496,7 @@ func _build_start_screen() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = tr("Dual-stick neon shooter")
-	subtitle.add_theme_font_size_override("font_size", 21)
+	subtitle.add_theme_font_size_override("font_size", 24)
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(subtitle)
@@ -517,9 +521,9 @@ func _build_start_screen() -> void:
 	box.add_child(start_btn)
 
 	var back_btn := Button.new()
-	back_btn.text = tr("Back to Hub")
-	back_btn.custom_minimum_size = Vector2(240, 44)
-	back_btn.pressed.connect(_exit_to_hub)
+	back_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	back_btn.custom_minimum_size = Vector2(320, 64)
+	back_btn.pressed.connect(_go_home)
 	box.add_child(back_btn)
 
 func _build_game_screen() -> void:
@@ -617,8 +621,10 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = tr("Paused")
-	title.add_theme_font_size_override("font_size", 33)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.CYAN.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.CYAN, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
@@ -639,9 +645,9 @@ func _build_pause_dialog() -> void:
 	box.add_child(restart_btn)
 
 	var exit_btn := Button.new()
-	exit_btn.text = tr("Exit to Hub")
-	exit_btn.custom_minimum_size = Vector2(220, 44)
-	exit_btn.pressed.connect(_exit_to_hub)
+	exit_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	exit_btn.custom_minimum_size = Vector2(320, 64)
+	exit_btn.pressed.connect(_go_home)
 	box.add_child(exit_btn)
 
 func _build_game_over_dialog() -> void:
@@ -671,7 +677,7 @@ func _build_game_over_dialog() -> void:
 	box.add_child(title)
 
 	game_over_stats = Label.new()
-	game_over_stats.add_theme_font_size_override("font_size", 22)
+	game_over_stats.add_theme_font_size_override("font_size", 24)
 	game_over_stats.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	game_over_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(game_over_stats)
@@ -686,9 +692,9 @@ func _build_game_over_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(_exit_to_hub)
+	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	box.add_child(menu_btn)
 
 # ---------- screen state ----------
@@ -848,3 +854,45 @@ func _load_saved_game() -> bool:
 	game_screen.visible = true
 	_update_hud()
 	return true
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/geometry_wars/geometry_wars_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/geometry_wars/geometry_wars_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Dual-stick neon shooter. Survive the swarm.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🚀  Play", "sub": "Left thumb moves, right thumb aims", "action": _start_new_game}],
+		"save_path": SAVE_PATH,
+		"resume": _resume_saved,
+		"resume_text": func(): return tr("Score: %d") % int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("score", 0)),
+		"board_note": "Your best score.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	# the player's ship, a wanderer and a diamond chasing it
+	var ship := PackedVector2Array([ctr + Vector2(h * 0.2, 0), ctr + Vector2(-h * 0.14, -h * 0.13), ctr + Vector2(-h * 0.05, 0), ctr + Vector2(-h * 0.14, h * 0.13)])
+	HomeKit.glow_polyline(c, ship, Color.WHITE, 2.5, true)
+	var d := ctr + Vector2(h * 0.62, -h * 0.18)
+	HomeKit.glow_polyline(c, PackedVector2Array([d + Vector2(0, -h * 0.12), d + Vector2(h * 0.1, 0), d + Vector2(0, h * 0.12), d + Vector2(-h * 0.1, 0)]), HomeKit.CYAN, 2.5, true)
+	var p := ctr + Vector2(-h * 0.6, h * 0.18)
+	HomeKit.glow_rect(c, Rect2(p - Vector2(h * 0.09, h * 0.09), Vector2(h * 0.18, h * 0.18)), HomeKit.MAGENTA, 2.5)
+	for k in 3:
+		HomeKit.glow_line(c, ctr + Vector2(h * (0.28 + k * 0.1), 0), ctr + Vector2(h * (0.32 + k * 0.1), 0), HomeKit.GOLD, 2.0)
+
+func _resume_saved() -> void:
+	if not _load_saved_game():
+		_start_new_game()

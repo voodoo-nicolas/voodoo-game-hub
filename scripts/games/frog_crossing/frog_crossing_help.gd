@@ -10,6 +10,7 @@ const HOW := [
 	"On the road, dodge the cars. On the river, ride the logs — the water is deadly.",
 	"Each life has 30 seconds. Getting hit, falling in or running out of time costs a life.",
 	"Fill all five homes to reach the next, faster level. You have three lives.",
+	"⏸ pauses the game. A round can't be saved for later: leaving it ends it.",
 ]
 const TIPS := [
 	"Every new row you reach is 10 points; a home is worth 50 plus a bonus for the time left.",

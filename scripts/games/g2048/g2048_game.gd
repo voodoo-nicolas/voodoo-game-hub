@@ -1,6 +1,7 @@
 extends Control
 
 const G2048Engine = preload("res://scripts/games/g2048/g2048_engine.gd")
+const HomeKit = preload("res://scripts/games/g2048/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -16,21 +17,22 @@ const BOARD_OUTER_MARGIN := 16.0
 const SWIPE_MIN_DISTANCE := 24.0
 
 const TILE_COLORS := {
-	0: Color(0.15, 0.15, 0.19),
-	2: Color(0.23, 0.23, 0.28),
-	4: Color(0.27, 0.27, 0.34),
-	8: Color(1.0, 0.76, 0.29),
-	16: Color(1.0, 0.66, 0.29),
-	32: Color(1.0, 0.56, 0.36),
-	64: Color(1.0, 0.42, 0.36),
-	128: Color(0.18, 0.85, 0.77),
-	256: Color(0.37, 0.78, 1.0),
-	512: Color(0.69, 0.55, 1.0),
-	1024: Color(1.0, 0.56, 0.78),
-	2048: Color(0.71, 0.95, 0.41),
+	0: Color(0.06, 0.08, 0.15),
+	2: Color("3a8cff"),
+	4: Color("29e6ff"),
+	8: Color("ffae2b"),
+	16: Color("ff8a2b"),
+	32: Color("ff5a4f"),
+	64: Color("ff2b6b"),
+	128: Color("2bffd0"),
+	256: Color("29b6ff"),
+	512: Color("9b4dff"),
+	1024: Color("ff2bd6"),
+	2048: Color("7dff3a"),
 }
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var game_active: bool = false
 var tile_size: float = 76.0
@@ -52,8 +54,7 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = G2048Engine.new()
 	_build_ui()
-	if not _load_saved_game():
-		_start_new_game()
+	_start_new_game()  # behind the Home screen; Resume / New game there
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -100,9 +101,8 @@ func _try_move(dir: String) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -121,20 +121,26 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = tr("Pause")
+	pause_btn.text = "⏸"
+	pause_btn.custom_minimum_size = Vector2(76, 64)
+	pause_btn.add_theme_font_size_override("font_size", 30)
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
 	title.text = "2048"
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.GOLD.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.GOLD, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -155,7 +161,7 @@ func _build_ui() -> void:
 
 	var hint := Label.new()
 	hint.text = tr("Swipe or use arrow keys")
-	hint.add_theme_font_size_override("font_size", 19)
+	hint.add_theme_font_size_override("font_size", 24)
 	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(hint)
@@ -214,6 +220,8 @@ func _build_ui() -> void:
 	_build_end_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/g2048/g2048_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -304,10 +312,7 @@ func _start_new_game() -> void:
 	_render()
 
 func _on_pause_pressed() -> void:
-	if not game_active:
-		return
-	_save_game()
-	pause_dialog.visible = true
+	home.pause()
 
 func _show_end(title: String, can_continue: bool) -> void:
 	if not can_continue:
@@ -347,9 +352,9 @@ func _show_end(title: String, can_continue: bool) -> void:
 	end_buttons_box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	end_buttons_box.add_child(menu_btn)
 
 	end_dialog.visible = true
@@ -360,15 +365,20 @@ func _render() -> void:
 			var v: int = engine.grid[r][c]
 			var color: Color = TILE_COLORS.get(v, Color(0.71, 0.95, 0.41))
 			var sb := StyleBoxFlat.new()
-			sb.bg_color = color
-			sb.corner_radius_top_left = 8
-			sb.corner_radius_top_right = 8
-			sb.corner_radius_bottom_left = 8
-			sb.corner_radius_bottom_right = 8
+			sb.set_corner_radius_all(10)
+			if v == 0:
+				sb.bg_color = color
+			else:
+				# neon tile: tinted glass with a glowing rim in the value's colour
+				sb.bg_color = Color(color, 0.22)
+				sb.border_color = color
+				sb.set_border_width_all(3)
+				sb.shadow_color = Color(color, 0.4)
+				sb.shadow_size = 8
 			tile_panels[r][c].add_theme_stylebox_override("panel", sb)
 			var text: String = str(v) if v != 0 else ""
 			tile_labels[r][c].text = text
-			tile_labels[r][c].add_theme_color_override("font_color", Color(0.2, 0.2, 0.2) if v != 0 and v <= 4 else Color(1, 1, 1))
+			tile_labels[r][c].add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.55))
 			var scale: float = 0.4 if text.length() <= 2 else (0.32 if text.length() == 3 else 0.26)
 			tile_labels[r][c].add_theme_font_size_override("font_size", int(tile_size * scale))
 
@@ -397,3 +407,46 @@ func _load_saved_game() -> bool:
 	game_active = engine.can_move()
 	_render()
 	return game_active
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/g2048/g2048_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/g2048/g2048_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Slide and merge the tiles. Can you reach 2048?",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  New game", "sub": "4 × 4", "action": _new_2048}],
+		"save_path": SAVE_PATH,
+		"resume": _resume_saved,
+		"resume_text": func(): return tr("Score: %d") % int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("score", 0)),
+		"restart": _start_new_game,
+		"board_note": "Your best score.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 2.2, 80.0)
+	var o := Vector2(c.size.x / 2.0 - k, c.size.y / 2.0 - k)
+	var tiles := [["2", HomeKit.CYAN], ["0", HomeKit.LIME], ["4", HomeKit.GOLD], ["8", HomeKit.PINK]]
+	for i in 4:
+		var r := Rect2(o + Vector2(i % 2, int(i / 2)) * k, Vector2(k, k)).grow(-4)
+		HomeKit.glow_rect(c, r, tiles[i][1], 2.5, 0.18)
+		HomeKit.glow_text(c, r.get_center(), tiles[i][0], int(k * 0.55), Color.WHITE)
+
+func _new_2048() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _resume_saved() -> void:
+	if not _load_saved_game():
+		_start_new_game()
