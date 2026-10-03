@@ -91,3 +91,61 @@ func _check_game_over() -> void:
 		winner = 2
 	else:
 		winner = 0
+
+# ---------- computer opponent ----------
+
+const _CPU_DEPTH := [1, 3, 6]
+const _CPU_SLIP := [0.4, 0.1, 0.0]
+
+func clone():
+	var e = get_script().new()
+	e.board = board.duplicate()
+	e.current_player = current_player
+	e.game_over = game_over
+	e.winner = winner
+	return e
+
+## The pit the computer sows for the player to move (level 0..2).
+func cpu_move(level: int, rng: RandomNumberGenerator) -> int:
+	var pits := legal_pits(current_player)
+	if pits.is_empty():
+		return -1
+	level = clampi(level, 0, 2)
+	if rng.randf() < _CPU_SLIP[level]:
+		return pits[rng.randi() % pits.size()]
+	var me := current_player
+	var best_score := -1000000
+	var best: Array = []
+	for p in pits:
+		var e = clone()
+		e.sow(p)
+		var s: int = e._search(me, _CPU_DEPTH[level] - 1, -1000000, 1000000)
+		if s > best_score:
+			best_score = s
+			best = [p]
+		elif s == best_score:
+			best.append(p)
+	return best[rng.randi() % best.size()]
+
+## Minimax from `me`'s side (an extra turn keeps the same player moving).
+func _search(me: int, depth: int, alpha: int, beta: int) -> int:
+	var diff: int = board[_own_store(me)] - board[_own_store(3 - me)]
+	if game_over:
+		return diff * 100 + (10000 if diff > 0 else (-10000 if diff < 0 else 0))
+	if depth <= 0:
+		return diff * 100
+	var maximize := current_player == me
+	var best := -1000000 if maximize else 1000000
+	for p in legal_pits(current_player):
+		var e = clone()
+		e.sow(p)
+		var v: int = e._search(me, depth - 1, alpha, beta)
+		if maximize:
+			best = maxi(best, v)
+			alpha = maxi(alpha, v)
+		else:
+			best = mini(best, v)
+			beta = mini(beta, v)
+		if beta <= alpha:
+			break
+	return best
