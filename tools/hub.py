@@ -511,7 +511,11 @@ def cmd_pc(_args) -> None:
     if code != 0 or not exe.is_file():
         print(log)
         raise ToolError("Windows export failed")
-    shortcut = Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Desktop" / "Voodoo Game Hub.lnk"
+    # Ask Windows: the Desktop is often redirected (e.g. into OneDrive)
+    desktop = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", "[Environment]::GetFolderPath('Desktop')"],
+        capture_output=True, text=True).stdout.strip()
+    shortcut = Path(desktop or Path.home() / "Desktop") / "Voodoo Game Hub.lnk"
     icon = PC_DIR / "icon.ico"
     try:  # the exported .exe carries Godot's icon; give the shortcut ours
         from PIL import Image

@@ -443,7 +443,11 @@ Godot 4.7.2 at the same WinGet path (so `hub.py` finds it), Python 3.12 at
 `%LOCALAPPDATA%\Programs\Python\Python312\python.exe` (not on PATH), Git at
 `C:\Program Files\Git\cmd\git.exe`. No GitHub CLI, Android SDK, JDK or
 release keystore there: build the APK, publish packs and release from the
-main PC.
+main PC. Windows was reinstalled 2026-10-03; since then the Godot 4.7.2
+Windows export templates are installed (only `windows_*` extracted from the
+official .tpz into `%APPDATA%\Godot\export_templates\4.7.2.stable`), so
+`hub.py pc` works there. Its Desktop is redirected to OneDrive (`hub.py pc`
+asks Windows for the Desktop path).
 
 ## Gotchas already found and fixed (don't reintroduce)
 
