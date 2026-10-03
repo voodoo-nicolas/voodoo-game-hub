@@ -90,7 +90,7 @@
     ]}
   ],
   "games": {
-    "sudoku": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
+    "sudoku": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
     "solitaire": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
     "geometry_wars": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
     "tictactoe": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tictactoe.pck", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},

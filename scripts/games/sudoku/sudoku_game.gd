@@ -3,6 +3,7 @@ extends Control
 const SudokuGenerator = preload("res://scripts/games/sudoku/sudoku_generator.gd")
 const CellButton = preload("res://scripts/games/sudoku/cell_button.gd")
 const GridLines = preload("res://scripts/games/sudoku/grid_lines.gd")
+const SudokuHome = preload("res://scripts/games/sudoku/sudoku_home.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -51,7 +52,8 @@ var loading_overlay: Control
 var win_dialog: Control
 var win_stats_label: Label
 var pause_dialog: Control
-var continue_button: Button
+var stats_overlay: Control
+var stats_grid: GridContainer
 
 var grid_container: GridContainer
 var timer_label: Label
@@ -100,65 +102,32 @@ func _build_ui() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
-	_build_difficulty_screen()
 	_build_game_screen()
 	_build_loading_overlay()
 	_build_win_dialog()
 	_build_pause_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/sudoku/sudoku_help.gd"))
+	# Home sits under the dialogs and GameInfo's own card (first-play How to Play).
+	_build_home()
+	if info:
 		add_child(info)
+		_migrate_level_stats()
+		_build_stats_overlay()
 	add_child(SettingsDrawer.new())
 
-func _build_difficulty_screen() -> void:
-	difficulty_screen = CenterContainer.new()
-	difficulty_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+## The Home screen (sudoku_home.gd); `difficulty_screen` is its old name.
+func _build_home() -> void:
+	difficulty_screen = SudokuHome.new()
+	difficulty_screen.setup(DIFFICULTIES, info)
+	difficulty_screen.play.connect(_start_new_game)
+	difficulty_screen.resume.connect(_load_saved_game)
+	difficulty_screen.stats_requested.connect(_show_stats)
+	difficulty_screen.hub_requested.connect(_on_home_hub)
 	add_child(difficulty_screen)
 
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
-	difficulty_screen.add_child(box)
-
-	var title := Label.new()
-	title.text = tr("Sudoku")
-	title.add_theme_font_size_override("font_size", 46)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.text = tr("Choose a difficulty")
-	subtitle.add_theme_font_size_override("font_size", 25)
-	subtitle.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(subtitle)
-
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, 10)
-	box.add_child(spacer)
-
-	continue_button = Button.new()
-	continue_button.text = tr("Continue")
-	continue_button.custom_minimum_size = Vector2(260, 60)
-	continue_button.add_theme_font_size_override("font_size", 28)
-	continue_button.visible = false
-	continue_button.pressed.connect(_load_saved_game)
-	box.add_child(continue_button)
-
-	for d in DIFFICULTIES:
-		var btn := Button.new()
-		btn.text = d.capitalize()
-		btn.custom_minimum_size = Vector2(260, 60)
-		btn.add_theme_font_size_override("font_size", 28)
-		btn.pressed.connect(func(): _start_new_game(d))
-		box.add_child(btn)
-
-	var back_btn := Button.new()
-	back_btn.text = tr("Back to Hub")
-	back_btn.custom_minimum_size = Vector2(260, 50)
-	back_btn.add_theme_font_size_override("font_size", 24)
-	back_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
-	box.add_child(back_btn)
+func _on_home_hub() -> void:
+	get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
 
 func _build_game_screen() -> void:
 	game_screen = Control.new()
@@ -490,7 +459,7 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Choose Difficulty")
+	menu_btn.text = tr("🏠 Sudoku Home")
 	menu_btn.custom_minimum_size = Vector2(220, 50)
 	menu_btn.add_theme_font_size_override("font_size", 25)
 	menu_btn.pressed.connect(func():
@@ -567,13 +536,12 @@ func _build_pause_dialog() -> void:
 	box.add_child(new_puzzle_btn)
 
 	var change_diff_btn := Button.new()
-	change_diff_btn.text = tr("Change Difficulty")
+	change_diff_btn.text = tr("🏠 Sudoku Home")
 	change_diff_btn.custom_minimum_size = Vector2(240, 50)
 	change_diff_btn.add_theme_font_size_override("font_size", 24)
 	change_diff_btn.pressed.connect(func():
-		pause_dialog.visible = false
-		game_active = false
-		SaveUtil.delete(SAVE_PATH)
+		# Saved, so Home offers Resume -- leaving no longer throws the puzzle away.
+		_save_game()
 		_show_difficulty_screen()
 	)
 	box.add_child(change_diff_btn)
@@ -636,6 +604,8 @@ func _on_generation_complete(result: Dictionary) -> void:
 	_populate_board()
 	difficulty_label.text = difficulty.capitalize()
 	_update_status_bar()
+	if info:
+		info.add("_played_" + difficulty)
 
 	loading_overlay.visible = false
 	_show_game_screen()
@@ -808,17 +778,137 @@ func _check_win() -> void:
 	var final_score := _compute_final_score()
 	win_stats_label.text = tr("Time: %s   Mistakes: %d\nFinal Score: %d") % [_format_time(elapsed_seconds), mistakes, final_score]
 	if info:
-		var level := difficulty.capitalize()
+		var d := difficulty
 		info.add("Puzzles solved")
 		info.celebrate("Solved!")
-		info.add("Puzzles solved (%s)" % level)
-		var fast: bool = info.low("Best time (%s)" % level, elapsed_seconds)
+		info.add("_solved_" + d)
+		info.add("_time_sum_" + d, int(round(elapsed_seconds)))
+		var fast: bool = info.low("_best_time_" + d, elapsed_seconds)
+		var level_high: bool = info.high("_best_score_" + d, final_score)
 		var high: bool = info.best("Best score", final_score)
 		if mistakes == 0:
 			info.add("Perfect games")
+			info.add("_perfect_" + d)
+		high = high or level_high
 		if fast or high:
 			win_stats_label.text += "\n" + tr("New best!")
 	win_dialog.visible = true
+
+# ---------- statistics per difficulty ----------
+
+## Per-level stats are "_" keys (GameInfo's card hides those -- it shows the
+## totals; the table below shows each level). Earlier versions kept two of
+## them as visible "Puzzles solved (Medium)" / "Best time (Medium)" keys.
+func _migrate_level_stats() -> void:
+	if not ("stats" in info):
+		return
+	for d in DIFFICULTIES:
+		var level: String = d.capitalize()
+		var old_time := "Best time (%s)" % level
+		var old_solved := "Puzzles solved (%s)" % level
+		if not info.stats.has(old_time) and not info.stats.has(old_solved):
+			continue
+		if info.stats.has(old_time):
+			info.stats["_best_time_" + d] = info.stats[old_time]
+			info.stats.erase(old_time)
+		var n := int(info.stats.get(old_solved, 0))
+		info.stats.erase(old_solved)
+		info.stats["_solved_" + d] = int(info.stats.get("_solved_" + d, 0)) + n
+		# Those solves have no time in "_time_sum_", so Avg. time skips them. add() saves.
+		info.add("_untimed_" + d, n)
+
+func _build_stats_overlay() -> void:
+	stats_overlay = ColorRect.new()
+	stats_overlay.color = Color(0.05, 0.05, 0.08, 0.97)
+	stats_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stats_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	stats_overlay.visible = false
+	add_child(stats_overlay)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stats_overlay.add_child(center)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 24)
+	center.add_child(box)
+
+	var title := Label.new()
+	title.text = tr("📊 Statistics")
+	title.add_theme_font_size_override("font_size", 38)
+	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+
+	stats_grid = GridContainer.new()
+	stats_grid.columns = DIFFICULTIES.size() + 1
+	stats_grid.add_theme_constant_override("h_separation", 14)
+	stats_grid.add_theme_constant_override("v_separation", 16)
+	box.add_child(stats_grid)
+
+	var close_btn := Button.new()
+	close_btn.text = tr("Close")
+	close_btn.custom_minimum_size = Vector2(260, 56)
+	close_btn.add_theme_font_size_override("font_size", 26)
+	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	close_btn.pressed.connect(func(): stats_overlay.visible = false)
+	box.add_child(close_btn)
+
+func _show_stats() -> void:
+	if not info or stats_overlay == null:
+		return
+	for c in stats_grid.get_children():
+		c.queue_free()
+	var col_w: float = floor((get_rect().size.x - 40.0 - 14.0 * DIFFICULTIES.size()) / (DIFFICULTIES.size() + 1.4))
+	_stats_cell("", col_w * 1.4, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT)
+	for d in DIFFICULTIES:
+		_stats_cell(tr(d.capitalize()), col_w, Color(0.55, 0.8, 1.0))
+	for row in ["Played", "Solved", "Solve rate", "Perfect", "Best time", "Avg. time", "Best score"]:
+		_stats_cell(tr(row), col_w * 1.4, Color(0.8, 0.8, 0.85), HORIZONTAL_ALIGNMENT_LEFT)
+		for d in DIFFICULTIES:
+			_stats_cell(_level_stat(row, d), col_w, Color.WHITE)
+	stats_overlay.visible = true
+
+func _stats_cell(text: String, width: float, color: Color, align := HORIZONTAL_ALIGNMENT_CENTER) -> void:
+	var l := Label.new()
+	l.text = text
+	l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	l.custom_minimum_size = Vector2(width, 0)
+	l.horizontal_alignment = align
+	l.clip_text = true
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", color)
+	stats_grid.add_child(l)
+
+func _level_stat(row: String, d: String) -> String:
+	var solved := int(_stat("_solved_" + d, 0))
+	# Saves from before "played" was counted can have more solves than plays.
+	var played: int = max(int(_stat("_played_" + d, 0)), solved)
+	match row:
+		"Played":
+			return str(played)
+		"Solved":
+			return str(solved)
+		"Solve rate":
+			return "%d%%" % roundi(100.0 * solved / played) if played > 0 else "—"
+		"Perfect":
+			return str(int(_stat("_perfect_" + d, 0)))
+		"Best time":
+			var t = _stat("_best_time_" + d, null)
+			return _format_time(float(t)) if t != null else "—"
+		"Avg. time":
+			var sum := int(_stat("_time_sum_" + d, 0))
+			# Solves recorded before the time sum existed have no time to average.
+			var timed: int = solved - int(_stat("_untimed_" + d, 0))
+			return _format_time(float(sum) / timed) if sum > 0 and timed > 0 else "—"
+		"Best score":
+			var b = _stat("_best_score_" + d, null)
+			return str(int(b)) if b != null else "—"
+	return ""
+
+## A GameInfo stat, read from its dictionary (get_stat() is v0.21+).
+func _stat(key: String, default: Variant = 0) -> Variant:
+	return info.stats.get(key, default) if info and "stats" in info else default
 
 func _compute_final_score() -> int:
 	var multiplier: float = DIFFICULTY_MULTIPLIER.get(difficulty, 1.0)
@@ -856,12 +946,7 @@ func _save_game() -> void:
 	})
 
 func _refresh_continue_button() -> void:
-	var data = SaveUtil.read(SAVE_PATH)
-	if data == null:
-		continue_button.visible = false
-		return
-	continue_button.visible = true
-	continue_button.text = tr("Continue (%s - %s)") % [tr(str(data.get("difficulty", "medium")).capitalize()), _format_time(float(data.get("elapsed_seconds", 0.0)))]
+	difficulty_screen.refresh(SaveUtil.read(SAVE_PATH))
 
 func _load_saved_game() -> void:
 	var data = SaveUtil.read(SAVE_PATH)

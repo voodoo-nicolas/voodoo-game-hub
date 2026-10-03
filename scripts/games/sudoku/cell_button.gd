@@ -5,7 +5,7 @@ signal cell_pressed(row: int, col: int)
 const COLOR_GIVEN := Color(0.92, 0.92, 0.92)
 const COLOR_EDITABLE := Color(0.55, 0.8, 1.0)
 const COLOR_ERROR := Color(1.0, 0.4, 0.4)
-const COLOR_NOTE := Color(0.75, 0.78, 0.88)
+const COLOR_NOTE := Color(0.85, 0.88, 0.97)
 
 var row: int = -1
 var col: int = -1
@@ -15,8 +15,8 @@ var is_error: bool = false
 var notes: Array = [false, false, false, false, false, false, false, false, false]
 
 var value_label: Label
-var notes_grid: GridContainer
-var note_labels: Array = []
+var notes_layer: Control
+var note_font_size: int = 18
 
 func setup(r: int, c: int, cell_size: float = 72.0) -> void:
 	row = r
@@ -35,23 +35,14 @@ func setup(r: int, c: int, cell_size: float = 72.0) -> void:
 	value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(value_label)
 
-	notes_grid = GridContainer.new()
-	notes_grid.columns = 3
-	notes_grid.set_anchors_preset(Control.PRESET_FULL_RECT)
-	notes_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for i in range(9):
-		var l := Label.new()
-		l.text = ""
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.add_theme_font_size_override("font_size", max(14, int(cell_size * 0.26)))
-		l.add_theme_color_override("font_color", COLOR_NOTE)
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		l.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		note_labels.append(l)
-		notes_grid.add_child(l)
-	add_child(notes_grid)
+	# Notes are drawn, not a 3x3 grid of Labels: a Label's line height is
+	# taller than a third of the cell, so the bottom row (7 8 9) was clipped.
+	notes_layer = Control.new()
+	notes_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	notes_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	notes_layer.draw.connect(_draw_notes)
+	add_child(notes_layer)
+	note_font_size = max(14, int(cell_size * 0.28))
 
 	pressed.connect(func(): cell_pressed.emit(row, col))
 	set_background(Color(0.16, 0.16, 0.2))
@@ -89,7 +80,7 @@ func update_display() -> void:
 	if value != 0:
 		value_label.text = str(value)
 		value_label.visible = true
-		notes_grid.visible = false
+		notes_layer.visible = false
 		if is_given:
 			value_label.add_theme_color_override("font_color", COLOR_GIVEN)
 		elif is_error:
@@ -98,9 +89,24 @@ func update_display() -> void:
 			value_label.add_theme_color_override("font_color", COLOR_EDITABLE)
 	else:
 		value_label.visible = false
-		notes_grid.visible = true
-		for i in range(9):
-			note_labels[i].text = str(i + 1) if notes[i] else ""
+		notes_layer.visible = true
+		notes_layer.queue_redraw()
+
+## Each note centred in its third of the cell: 1 2 3 / 4 5 6 / 7 8 9.
+func _draw_notes() -> void:
+	var font := get_theme_default_font()
+	var s := notes_layer.size
+	var third := Vector2(s.x / 3.0, s.y / 3.0)
+	var ascent := font.get_ascent(note_font_size)
+	var height := font.get_height(note_font_size)
+	for i in range(9):
+		if not notes[i]:
+			continue
+		var text := str(i + 1)
+		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size).x
+		var centre := Vector2((i % 3 + 0.5) * third.x, (int(i / 3) + 0.5) * third.y)
+		var pos := Vector2(centre.x - w / 2.0, centre.y - height / 2.0 + ascent)
+		notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, COLOR_NOTE)
 
 const THIN_LINE := 1
 const COLOR_THIN_LINE := Color(0.42, 0.42, 0.5)

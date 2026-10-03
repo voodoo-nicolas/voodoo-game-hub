@@ -11,6 +11,7 @@ const HOW := [
 	"Notes mode lets you pencil in small candidate numbers. Erase clears a square and Undo takes back your last move.",
 	"💡 Hint fills in one correct square — you get 3 per puzzle.",
 	"Each correct square scores points, mistakes cost points, and fast solves earn a time bonus. Harder levels multiply your score.",
+	"📊 Statistics on the Sudoku menu shows your games, solves, best and average times and best scores for each difficulty.",
 ]
 const TIPS := [
 	"Look for a number that can only go in one place in a row, column or box.",

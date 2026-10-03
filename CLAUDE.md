@@ -388,6 +388,12 @@ or tell the user what's still missing).
    still runs on older apps (those simply lack that button).
    Not implemented anywhere yet: "invite an online player" (online play is
    Host / Join-by-code only) and "block notifications".
+   **Reference Home screen: Sudoku** (`scripts/games/sudoku/sudoku_home.gd`,
+   2026-10-03): neon title + drawn logo, Resume, one button per difficulty
+   showing its best, and How to Play / 🏆 Leaderboard / 📊 Statistics /
+   🔊 Sound / Hub, each opening its own screen in the game's style. Players
+   never found the leaderboard on the GameInfo card, so every Home screen
+   gets its own 🏆 button (`Auth.fetch_leaderboard`, guarded).
 3. **Nothing important under the camera**: the game's title, HUD, scores and
    board stay fully inside the phone's safe area. `Settings._apply_safe_area()`
    insets the scene's root Control, so lay out from the root's own rect, never

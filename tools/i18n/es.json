@@ -2679,5 +2679,20 @@
  "When it disappears, type it back on the keypad. Use ⌫ to fix a slip before you finish.": "Cuando desaparezca, escríbelo en el teclado. Usa ⌫ para corregir un error antes de terminar.",
  "Your score is the length of the longest number you recalled.": "Tu puntaje es la longitud del número más largo que recordaste.",
  "🔟 Digit Recall": "🔟 Recuerdo de dígitos",
- "Kills drop tiny yellow crystals called geoms. Fly over one to raise your score multiplier by 1 — they vanish after 3 seconds. Huge orange geoms are worth 10.": "Los enemigos destruidos sueltan pequeños cristales amarillos llamados geoms. Pasa sobre uno para subir tu multiplicador en 1; desaparecen a los 3 segundos. Los geoms naranjas enormes valen 10."
+ "Kills drop tiny yellow crystals called geoms. Fly over one to raise your score multiplier by 1 — they vanish after 3 seconds. Huge orange geoms are worth 10.": "Los enemigos destruidos sueltan pequeños cristales amarillos llamados geoms. Pasa sobre uno para subir tu multiplicador en 1; desaparecen a los 3 segundos. Los geoms naranjas enormes valen 10.",
+ "📊 Statistics": "📊 Estadísticas",
+ "Played": "Jugadas",
+ "Solved": "Resueltas",
+ "Solve rate": "% resueltas",
+ "Perfect": "Perfectas",
+ "Avg. time": "Tiempo prom.",
+ "📊 Statistics on the Sudoku menu shows your games, solves, best and average times and best scores for each difficulty.": "📊 Estadísticas, en el menú de Sudoku, muestra tus partidas, resueltas, mejores tiempos, tiempos promedio y mejores puntajes en cada dificultad.",
+ "Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
+ "Fill the grid. Every row, column and box: 1 to 9.": "Completa la cuadrícula. Cada fila, columna y caja: del 1 al 9.",
+ "More": "Más",
+ "New puzzle": "Nuevo sudoku",
+ "Not solved yet": "Sin resolver aún",
+ "Scores: points for each correct square, minus mistakes, plus a time bonus, times the difficulty (Expert ×3).": "Puntaje: puntos por cada casilla correcta, menos los errores, más un bono por tiempo, multiplicado por la dificultad (Experto ×3).",
+ "Update the app to see the leaderboards.": "Actualiza la app para ver las clasificaciones.",
+ "🏠 Sudoku Home": "🏠 Inicio de Sudoku"
 }
