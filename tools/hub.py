@@ -229,6 +229,41 @@ def render_presets(ids: list[str]) -> str:
     return "\n".join(chunks)
 
 
+# ---------------------------------------------------------------- home kit
+
+# Every game that uses the Home screen kit carries its own copy of it
+# (scripts/games/<id>/home_kit.gd), so its pack runs on any app version.
+# The template is the only one ever edited; `sync` copies it out.
+HOME_KIT = TEMPLATES / "home_kit.gd"
+
+
+def home_kit_users(ids: list[str]) -> list[str]:
+    users = []
+    for gid in ids:
+        game_dir = ROOT / "scripts/games" / gid
+        if any("home_kit.gd" in f.read_text(encoding="utf-8")
+               for f in game_dir.glob("*.gd") if f.name != "home_kit.gd"):
+            users.append(gid)
+    return users
+
+
+def stale_home_kits(ids: list[str]) -> list[Path]:
+    want = HOME_KIT.read_text(encoding="utf-8")
+    stale = []
+    for gid in home_kit_users(ids):
+        kit = ROOT / "scripts/games" / gid / "home_kit.gd"
+        if not kit.is_file() or kit.read_text(encoding="utf-8") != want:
+            stale.append(kit)
+    return stale
+
+
+def sync_home_kits(ids: list[str]) -> None:
+    text = HOME_KIT.read_text(encoding="utf-8")
+    for kit in stale_home_kits(ids):
+        kit.write_text(text, encoding="utf-8", newline="\n")
+        print(f"  {kit.relative_to(ROOT)} updated from the template")
+
+
 # ---------------------------------------------------------------- validation
 
 def validate() -> tuple[list[str], list[str]]:
@@ -278,6 +313,9 @@ def validate() -> tuple[list[str], list[str]]:
         if gid not in seen:
             warnings.append(f'{gid}: in "games" but not in any category, so the hub never shows it')
 
+    for kit in stale_home_kits(catalog_ids(m)):
+        errors.append(f"{kit.relative_to(ROOT)} differs from tools/templates/home_kit.gd -- run sync")
+
     current = PRESETS.read_text(encoding="utf-8")
     if render_presets(catalog_ids(m)) != current:
         errors.append("export_presets.cfg is out of date (pack presets or Android version) -- run sync")
@@ -304,6 +342,7 @@ def cmd_sync(_args=None) -> None:
                 entry["url"] = wanted
                 print(f"  {gid}: url -> {wanted}")
     save_manifest(m)
+    sync_home_kits(ids)
     new = render_presets(ids)
     if new != PRESETS.read_text(encoding="utf-8"):
         PRESETS.write_text(new, encoding="utf-8", newline="\n")

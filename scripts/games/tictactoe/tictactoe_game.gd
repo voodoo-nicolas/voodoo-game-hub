@@ -1,6 +1,7 @@
 extends Control
 
 const TicTacToeEngine = preload("res://scripts/games/tictactoe/tictactoe_engine.gd")
+const HomeKit = preload("res://scripts/games/tictactoe/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -14,23 +15,29 @@ const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 ## Voodoo Mode (crossbones vs skulls); not preloaded either (apps before v0.21).
 const VOODOO_PATH := "res://scripts/common/voodoo.gd"
-const COLOR_BASE := Color(0.15, 0.15, 0.19)
-const COLOR_WIN := Color(0.25, 0.5, 0.3)
+const X_COLOR := HomeKit.CYAN
+const O_COLOR := HomeKit.MAGENTA
+const LEVELS := ["Easy", "Medium", "Hard"]
+const CPU_DELAY := 0.45
 
 var engine
 var game_active: bool = false
+## -1 = two players on one phone; 0..2 = against the computer at that level
+## (the player is X, the computer O).
+var cpu_level: int = -1
+var rng := RandomNumberGenerator.new()
 
 var status_label: Label
 var cells: Array = []  # 9 Buttons
-var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
-var online_btn: Button
+var cpu_timer: Timer
 ## Online play (null on apps without it). my_mark: host plays X, guest O;
 ## 0 means ordinary same-phone play.
 var online: Control = null
 var my_mark: int = 0
 var info = null  # GameInfo, null on apps without it
+var home  # HomeKit
 var voodoo = null  # the Voodoo script, null on apps without it
 var voodoo_on: bool = false
 var marks: Array = []  # 9 Voodoo pieces, one per cell (empty without Voodoo)
@@ -39,13 +46,13 @@ var bg: ColorRect
 func _ready() -> void:
 	preload("res://scripts/games/tictactoe/tictactoe_i18n.gd").install(self)
 	Orientation.lock_portrait()
+	rng.randomize()
 	if ResourceLoader.exists(VOODOO_PATH):
 		voodoo = load(VOODOO_PATH)
 		voodoo_on = voodoo.is_on()
 	engine = TicTacToeEngine.new()
 	_build_ui()
-	if not _load_saved_game():
-		_start_new_game()
+	_reset_board()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -53,10 +60,9 @@ func _notification(what: int) -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
 
-	bg = ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -75,20 +81,26 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = tr("Pause")
+	pause_btn.text = "⏸"
+	pause_btn.custom_minimum_size = Vector2(76, 64)
+	pause_btn.add_theme_font_size_override("font_size", 30)
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
 	title.text = tr("Tic-Tac-Toe")
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 38)
+	title.add_theme_color_override("font_color", Color(0.85, 0.98, 1.0))
+	title.add_theme_color_override("font_outline_color", Color(X_COLOR, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -97,34 +109,32 @@ func _build_ui() -> void:
 	root.add_child(center)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 20)
+	box.add_theme_constant_override("separation", 28)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(box)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 26)
-	status_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	status_label.add_theme_font_size_override("font_size", 36)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(status_label)
 
 	var grid := GridContainer.new()
 	grid.columns = 3
-	var separation := 8
+	var separation := 12
 	grid.add_theme_constant_override("h_separation", separation)
 	grid.add_theme_constant_override("v_separation", separation)
 	box.add_child(grid)
 
 	var viewport_width: float = get_viewport_rect().size.x
-	var outer_margin := 24.0
+	var outer_margin := 36.0
 	var cell_size: float = floor((viewport_width - outer_margin * 2.0 - separation * 2.0) / 3.0)
 
 	for i in range(9):
 		var cell := Button.new()
 		cell.custom_minimum_size = Vector2(cell_size, cell_size)
-		cell.add_theme_font_size_override("font_size", int(cell_size * 0.45))
-		cell.flat = false
+		cell.add_theme_font_size_override("font_size", int(cell_size * 0.5))
 		cell.focus_mode = Control.FOCUS_NONE
-		_style_cell(cell, COLOR_BASE)
+		_style_cell(cell, HomeKit.BLUE, false)
 		cell.pressed.connect(_on_cell_pressed.bind(i))
 		grid.add_child(cell)
 		cells.append(cell)
@@ -134,15 +144,11 @@ func _build_ui() -> void:
 			cell.add_child(mark)
 			marks.append(mark)
 
-	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online_btn = Button.new()
-		online_btn.text = tr("🌐 Play Online")
-		online_btn.custom_minimum_size = Vector2(0, 80)
-		online_btn.add_theme_font_size_override("font_size", 30)
-		online_btn.pressed.connect(_open_lobby)
-		box.add_child(online_btn)
+	cpu_timer = Timer.new()
+	cpu_timer.one_shot = true
+	cpu_timer.timeout.connect(_cpu_turn)
+	add_child(cpu_timer)
 
-	_build_pause_dialog()
 	_build_win_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online = load(ONLINE_MATCH_PATH).new("tictactoe", tr("Tic-Tac-Toe"), _online_state)
@@ -154,38 +160,84 @@ func _build_ui() -> void:
 		add_child(online)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/tictactoe/tictactoe_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
-func _style_cell(cell: Button, color: Color) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
-	sb.border_width_left = 2
-	sb.border_width_top = 2
-	sb.border_width_right = 2
-	sb.border_width_bottom = 2
-	sb.border_color = Color(0.4, 0.4, 0.48)
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		cell.add_theme_stylebox_override(state, sb)
+func _build_home() -> void:
+	var modes: Array = []
+	for i in LEVELS.size():
+		modes.append({"text": ["🙂 Easy", "😐 Medium", "😈 Hard"][i], "row": "cpu",
+			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_vs_cpu.bind(i)})
+	modes.append({"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_two_player})
+	if online:
+		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": online.open_lobby})
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/tictactoe/tictactoe_help.gd"),
+		"info": info,
+		"accent": X_COLOR,
+		"solo_heading": "vs Computer",
+		"subtitle": "Three in a row wins. Beat the computer or a friend.",
+		"logo": _draw_home_logo,
+		"modes": modes,
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Games won against the computer, at any level.",
+		"online": online,
+	})
+	add_child(home)
 
-func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog(tr("Paused"), [
-		{"text": tr("Resume"), "action": Callable()},
-		{"text": tr("Restart"), "action": _start_new_game},
-		{"text": tr("Exit to Hub"), "action": Ui.exit_to_hub.bind(self)},
-	])
-	add_child(pause_dialog)
+func _draw_home_logo(c: Control) -> void:
+	var s := minf(c.size.y, 190.0)
+	var o := Vector2((c.size.x - s) / 2.0, (c.size.y - s) / 2.0)
+	var k := s / 3.0
+	for i in [1, 2]:
+		HomeKit.glow_line(c, o + Vector2(k * i, 6), o + Vector2(k * i, s - 6), HomeKit.BLUE, 3.0)
+		HomeKit.glow_line(c, o + Vector2(6, k * i), o + Vector2(s - 6, k * i), HomeKit.BLUE, 3.0)
+	var pad := k * 0.24
+	for idx in [0, 4, 8]:
+		var cell := o + Vector2((idx % 3) * k, int(idx / 3) * k)
+		HomeKit.glow_line(c, cell + Vector2(pad, pad), cell + Vector2(k - pad, k - pad), X_COLOR, 4.0)
+		HomeKit.glow_line(c, cell + Vector2(k - pad, pad), cell + Vector2(pad, k - pad), X_COLOR, 4.0)
+	for idx in [2, 6]:
+		HomeKit.glow_circle(c, o + Vector2((idx % 3 + 0.5) * k, (int(idx / 3) + 0.5) * k), k * 0.3, O_COLOR, 4.0)
+	# the winning line
+	HomeKit.glow_line(c, o + Vector2(k * 0.2, k * 0.2), o + Vector2(s - k * 0.2, s - k * 0.2), HomeKit.LIME, 2.0)
+
+func _style_cell(cell: Button, color: Color, lit: bool) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var sb := HomeKit.neon_box(color, "pressed" if lit else ("hover" if state == "hover" else "normal"))
+		sb.bg_color = Color(color, 0.22 if lit else 0.05)
+		cell.add_theme_stylebox_override(state, sb)
 
 func _build_win_dialog() -> void:
 	win_dialog = Ui.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": Ui.exit_to_hub.bind(self)},
+		{"text": tr("🏠 Tic-Tac-Toe Home"), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
 
+func _go_home() -> void:
+	home.go_home()
+
 func _is_online() -> bool:
 	return online != null and online.is_online()
+
+func _new_vs_cpu(level: int) -> void:
+	cpu_level = level
+	SaveUtil.delete(SAVE_PATH)
+	_reset_board()
+
+func _new_two_player() -> void:
+	cpu_level = -1
+	SaveUtil.delete(SAVE_PATH)
+	_reset_board()
 
 func _start_new_game() -> void:
 	if online:
@@ -194,14 +246,19 @@ func _start_new_game() -> void:
 
 func _reset_board() -> void:
 	engine.reset()
+	cpu_timer.stop()
 	game_active = true
 	win_dialog.visible = false
-	pause_dialog.visible = false
 	_render()
+
+func _vs_cpu() -> bool:
+	return cpu_level >= 0 and not _is_online()
 
 func _on_cell_pressed(i: int) -> void:
 	if _is_online() and not online.can_act(engine.turn == my_mark):
 		return  # not your turn (or nobody to play against right now)
+	if _vs_cpu() and engine.turn != TicTacToeEngine.X:
+		return  # the computer is thinking
 	if engine.move(i):
 		if _is_online():
 			online.send_move({"i": i})
@@ -211,18 +268,25 @@ func _after_move() -> void:
 	_render()
 	if engine.is_over():
 		_show_result()
+	elif _vs_cpu() and engine.turn == TicTacToeEngine.O:
+		cpu_timer.start(CPU_DELAY)
+
+func _cpu_turn() -> void:
+	if not game_active or not _vs_cpu() or engine.turn != TicTacToeEngine.O:
+		return
+	var i: int = engine.cpu_move(cpu_level, rng)
+	if i >= 0 and engine.move(i):
+		_after_move()
 
 # ---------- online ----------
-
-func _open_lobby() -> void:
-	online.open_lobby()
 
 func _online_state() -> Dictionary:
 	return {"board": engine.board, "turn": engine.turn}
 
 func _on_online_started(my_player: int) -> void:
 	my_mark = TicTacToeEngine.X if my_player == 1 else TicTacToeEngine.O
-	online_btn.visible = false
+	cpu_level = -1
+	home.hide_home()
 	_reset_board()
 
 func _on_remote_move(p: Dictionary) -> void:
@@ -244,10 +308,7 @@ func _on_remote_state(st: Dictionary) -> void:
 		_show_result()
 
 func _on_pause_pressed() -> void:
-	if not game_active:
-		return
-	_save_game()
-	pause_dialog.visible = true
+	home.pause()
 
 func _show_result() -> void:
 	var just_ended := game_active  # a resync of a finished game isn't a new result
@@ -259,17 +320,24 @@ func _show_result() -> void:
 		win_label.text = tr("It's a draw!")
 	elif _is_online():
 		win_label.text = online.result_text(w == my_mark)
+	elif _vs_cpu():
+		win_label.text = tr("You win!") if w == TicTacToeEngine.X else tr("The computer wins!")
 	else:
 		win_label.text = tr("%s wins!") % _mark_name(w)
 	if info and just_ended:
 		if _is_online():
 			info.result("draw" if w == TicTacToeEngine.EMPTY else ("win" if w == my_mark else "loss"), true)
 			win_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		elif _vs_cpu():
+			info.result("draw" if w == TicTacToeEngine.EMPTY else ("win" if w == TicTacToeEngine.X else "loss"))
+			if w == TicTacToeEngine.X:
+				info.add("Wins (%s)" % LEVELS[cpu_level])
+			win_label.text += "\n" + info.summary(["Wins", "Losses", "Draws"])
 		else:
 			info.add("Draws" if w == TicTacToeEngine.EMPTY else ("X wins" if w == TicTacToeEngine.X else "O wins"))
 			if not (w == TicTacToeEngine.EMPTY):
 				info.celebrate(win_label.text.split("\n")[0])
-			win_label.text += "\n" + info.summary()
+			win_label.text += "\n" + info.summary(["X wins", "O wins"])
 	win_dialog.visible = true
 
 ## Called by the settings drawer's Voodoo toggle.
@@ -285,10 +353,15 @@ func _mark_name(mark: int) -> String:
 	return "X" if mark == TicTacToeEngine.X else "O"
 
 func _render() -> void:
-	bg.color = voodoo.BG if voodoo_on else Color(0.09, 0.09, 0.13)
+	bg.color = voodoo.BG if voodoo_on else HomeKit.BG
+	var line: Array = []
+	if engine.winner() != TicTacToeEngine.EMPTY:
+		for l in TicTacToeEngine.WIN_LINES:
+			if engine.board[l[0]] == engine.winner() and engine.board[l[1]] == engine.winner() and engine.board[l[2]] == engine.winner():
+				line = l
 	for i in range(9):
 		var v: int = engine.board[i]
-		var color := Color(0.55, 0.8, 1.0) if v == TicTacToeEngine.X else Color(1.0, 0.6, 0.4)
+		var color := X_COLOR if v == TicTacToeEngine.X else O_COLOR
 		if voodoo_on:
 			cells[i].text = ""
 			marks[i].kind = voodoo.BONES if v == TicTacToeEngine.X else (voodoo.SKULL if v == TicTacToeEngine.O else voodoo.NONE)
@@ -297,41 +370,50 @@ func _render() -> void:
 			cells[i].text = "X" if v == TicTacToeEngine.X else ("O" if v == TicTacToeEngine.O else "")
 			if voodoo:
 				marks[i].kind = voodoo.NONE
-		cells[i].add_theme_color_override("font_color", color)
-
-	if engine.is_over():
-		var w: int = engine.winner()
-		if w != TicTacToeEngine.EMPTY:
-			for line in TicTacToeEngine.WIN_LINES:
-				if engine.board[line[0]] == w and engine.board[line[1]] == w and engine.board[line[2]] == w:
-					for idx in line:
-						_style_cell(cells[idx], COLOR_WIN)
-	else:
-		for c in cells:
-			_style_cell(c, COLOR_BASE)
+		for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+			cells[i].add_theme_color_override(key, color.lerp(Color.WHITE, 0.25))
+		cells[i].add_theme_color_override("font_outline_color", Color(color, 0.5))
+		cells[i].add_theme_constant_override("outline_size", 10)
+		_style_cell(cells[i], HomeKit.LIME if line.has(i) else HomeKit.BLUE, line.has(i))
 
 	var mark_name := _mark_name(engine.turn)
 	if _is_online():
 		status_label.text = online.status_text(engine.turn == my_mark, mark_name)
+	elif _vs_cpu():
+		status_label.text = tr("Your turn (%s)") % mark_name if engine.turn == TicTacToeEngine.X \
+			else tr("Computer is thinking...")
 	else:
 		status_label.text = tr("Turn: %s") % mark_name
+	status_label.add_theme_color_override("font_color", (X_COLOR if engine.turn == TicTacToeEngine.X else O_COLOR).lerp(Color.WHITE, 0.4))
 
 # ---------- save / load ----------
 
 func _save_game() -> void:
 	if not game_active or _is_online():
 		return  # online games aren't resumable alone
-	SaveUtil.write(SAVE_PATH, {"board": engine.board, "turn": engine.turn})
+	SaveUtil.write(SAVE_PATH, {"board": engine.board, "turn": engine.turn, "cpu": cpu_level})
+
+func _resume_text() -> String:
+	var data = SaveUtil.read(SAVE_PATH)
+	if data == null:
+		return ""
+	var lvl := int(data.get("cpu", -1))
+	return tr("2 Players") if lvl < 0 else tr(LEVELS[clampi(lvl, 0, 2)])
 
 func _load_saved_game() -> bool:
 	var data = SaveUtil.read(SAVE_PATH)
 	if data == null:
+		_reset_board()
 		return false
 	var board: Array = []
 	for v in data.board:
 		board.append(int(v))
 	engine.board = board
 	engine.turn = int(data.turn)
+	cpu_level = clampi(int(data.get("cpu", -1)), -1, 2)
 	game_active = not engine.is_over()
+	win_dialog.visible = false
 	_render()
+	if _vs_cpu() and engine.turn == TicTacToeEngine.O and game_active:
+		cpu_timer.start(CPU_DELAY)
 	return game_active

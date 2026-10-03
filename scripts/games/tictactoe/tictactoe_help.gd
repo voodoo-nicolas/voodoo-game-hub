@@ -6,10 +6,11 @@ const ID := "tictactoe"
 const TITLE := "Tic-Tac-Toe"
 const GOAL := "Get three of your marks in a row — across, down or diagonally."
 const HOW := [
-	"Two players share the phone and take turns. X always goes first.",
+	"Play the computer (Easy, Medium or Hard) or a friend: on one phone you take turns, X always goes first.",
+	"Against the computer you are X and move first.",
 	"Tap an empty square to place your mark.",
 	"The first to line up three wins. If all nine squares fill up with no line, it's a draw.",
-	"Tap 🌐 Play Online to play a friend on another phone with a room code.",
+	"Tap 🌐 Online on the Home screen to play a friend on another phone with a room code.",
 ]
 const TIPS := [
 	"The centre square is part of four lines — take it if you can.",
@@ -17,4 +18,4 @@ const TIPS := [
 	"Always block when your opponent has two in a row.",
 	"Win by making two threats at once — they can only block one.",
 ]
-const STATS := ["X wins", "O wins", "Draws"]
+const STATS := ["Wins", "Losses", "Draws", "Best streak", "X wins", "O wins"]

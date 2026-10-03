@@ -46,3 +46,44 @@ func is_draw() -> bool:
 
 func is_over() -> bool:
 	return winner() != EMPTY or is_draw()
+
+## The computer's move for whoever's turn it is. level 0 = easy (often
+## random), 1 = medium (sometimes misses), 2 = hard (perfect play).
+func cpu_move(level: int, rng: RandomNumberGenerator) -> int:
+	var free: Array = []
+	for i in 9:
+		if board[i] == EMPTY:
+			free.append(i)
+	if free.is_empty():
+		return -1
+	var slip: float = [0.6, 0.25, 0.0][clampi(level, 0, 2)]
+	if rng.randf() < slip:
+		return free[rng.randi() % free.size()]
+	var me := turn
+	var best_score := -100
+	var best: Array = []
+	for i in free:
+		board[i] = me
+		var s := -_negamax(O if me == X else X, 1)
+		board[i] = EMPTY
+		if s > best_score:
+			best_score = s
+			best = [i]
+		elif s == best_score:
+			best.append(i)
+	return best[rng.randi() % best.size()]
+
+## Score for `side` to move: +10 - depth for a win, 0 for a draw.
+func _negamax(side: int, depth: int) -> int:
+	var w := winner()
+	if w != EMPTY:
+		return (10 - depth) * (1 if w == side else -1)
+	var any := false
+	var best := -100
+	for i in 9:
+		if board[i] == EMPTY:
+			any = true
+			board[i] = side
+			best = maxi(best, -_negamax(O if side == X else X, depth + 1))
+			board[i] = EMPTY
+	return best if any else 0
