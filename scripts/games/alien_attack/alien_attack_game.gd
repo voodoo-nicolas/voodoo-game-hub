@@ -3,6 +3,7 @@ extends Control
 ## Alien Attack -- slide to move your cannon; it fires on its own.
 
 const AAEngine = preload("res://scripts/games/alien_attack/alien_attack_engine.gd")
+const HomeKit = preload("res://scripts/games/alien_attack/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -20,6 +21,7 @@ const SPRITES := [
 ]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: AAEngine
 var board: Control
 var info_label: Label
@@ -57,13 +59,11 @@ func _ready() -> void:
 	_build_ui()
 	engine.reset()
 	_update_info()
-	start_dialog.visible = true
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.03, 0.03, 0.07)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -82,9 +82,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 24)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	info_label = Label.new()
 	info_label.add_theme_font_size_override("font_size", 24)
@@ -92,7 +93,9 @@ func _build_ui() -> void:
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(info_label)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 24)
 	restart_btn.pressed.connect(_start)
 	bar.add_child(restart_btn)
@@ -111,18 +114,18 @@ func _build_ui() -> void:
 
 	start_dialog = UI.build_dialog(tr("👾 Alien Attack"), [
 		{"text": tr("Start"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	start_dialog.get_meta("message_label").text = tr("Slide to move. Your cannon fires by itself — dodge the bombs!")
 	add_child(start_dialog)
 	over_dialog = UI.build_dialog(tr("Game Over"), [
 		{"text": tr("Play Again"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(over_dialog)
 	pause_dialog = UI.build_dialog(tr("Paused"), [
 		{"text": tr("Resume"), "action": _resume},
-		{"text": tr("Exit to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	])
 	add_child(pause_dialog)
 	# Phones that ignore the landscape lock (or the PC build) get asked to turn.
@@ -141,6 +144,8 @@ func _build_ui() -> void:
 	add_child(rotate_hint)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/alien_attack/alien_attack_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best > 0:
 			info.high("Best score", best)
@@ -158,9 +163,8 @@ func _resume() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
-		if is_node_ready() and running:
-			running = false
-			pause_dialog.visible = true
+		if is_node_ready() and running and home:
+			home.pause()
 
 func _update_info() -> void:
 	info_label.text = tr("👾 Alien Attack") + "     " + tr("Wave %d   Score: %d   Lives: %s   Best: %d") % [engine.wave, engine.score, "♥".repeat(max(0, engine.lives)), best]
@@ -247,3 +251,41 @@ func _on_board_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion or (event is InputEventMouseButton and event.pressed):
 		engine.set_ship((event.position.x - _origin().x) / _scale())
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/alien_attack/alien_attack_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/alien_attack/alien_attack_help.gd"),
+		"info": info,
+		"accent": HomeKit.LIME,
+		"subtitle": "Slide to aim. Your cannon fires by itself — dodge the bombs!",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  Play", "sub": "Three lives, endless waves", "action": _start}],
+		"restart": _start,
+		"board_note": "Your best score.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var px := minf(c.size.y / 9.0, 16.0)
+	var sprite: Array = SPRITES[0]
+	var o := Vector2(c.size.x / 2.0 - px * 4.0, c.size.y / 2.0 - px * 4.5)
+	for yy in 6:
+		for xx in 8:
+			if sprite[yy][xx] == "#":
+				var r := Rect2(o + Vector2(xx, yy) * px, Vector2(px - 1, px - 1))
+				c.draw_rect(r.grow(3), Color(ROW_COLORS[0], 0.18))
+				c.draw_rect(r, ROW_COLORS[0])
+	# the cannon and its shot
+	var base := Vector2(c.size.x / 2.0, c.size.y - 10)
+	HomeKit.glow_line(c, base + Vector2(0, -px * 1.2), base + Vector2(0, -px * 2.6), HomeKit.CYAN, 3.0)
+	HomeKit.glow_rect(c, Rect2(base + Vector2(-px * 1.6, -px * 1.0), Vector2(px * 3.2, px)), HomeKit.LIME, 2.0, 0.3)

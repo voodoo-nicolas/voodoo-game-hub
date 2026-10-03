@@ -82,6 +82,7 @@ var stats_box: VBoxContainer
 var lb_overlay: Control
 var lb_box: VBoxContainer
 var pause_overlay: Control
+var pause_grid: GridContainer
 var _logo: Control
 var _paused_by_me: bool = false
 
@@ -150,6 +151,9 @@ func pause() -> void:
 	if home.visible or pause_overlay.visible:
 		return
 	_save_game()
+	# Two columns when the phone is sideways, so the menu fits the height.
+	var view := get_viewport_rect().size
+	pause_grid.columns = 2 if view.x > view.y else 1
 	pause_overlay.visible = true
 	_pause_tree()
 
@@ -491,7 +495,6 @@ func _build_pause_overlay() -> void:
 	pause_overlay.add_child(center)
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var box := VBoxContainer.new()
-	box.custom_minimum_size = Vector2(440, 0)
 	box.add_theme_constant_override("separation", 16)
 	center.add_child(box)
 	var title := label(tr("Paused").to_upper(), 56, accent.lerp(Color.WHITE, 0.72))
@@ -500,6 +503,10 @@ func _build_pause_overlay() -> void:
 	title.add_theme_constant_override("outline_size", 12)
 	box.add_child(title)
 	box.add_child(gap(8))
+	pause_grid = GridContainer.new()
+	pause_grid.add_theme_constant_override("h_separation", 16)
+	pause_grid.add_theme_constant_override("v_separation", 16)
+	box.add_child(pause_grid)
 	var specs := [[tr("▶  Continue"), LIME, resume_play]]
 	if cfg.has("restart"):
 		specs.append([tr("↺  Restart"), GOLD, _on_restart])
@@ -510,8 +517,9 @@ func _build_pause_overlay() -> void:
 	specs.append([tr("Back to Hub"), DIM, go_hub])
 	for s in specs:
 		var b := neon_button(s[0], s[1], 30, 80)
+		b.custom_minimum_size.x = 440
 		b.pressed.connect(s[2])
-		box.add_child(b)
+		pause_grid.add_child(b)
 
 func _on_restart() -> void:
 	resume_play()

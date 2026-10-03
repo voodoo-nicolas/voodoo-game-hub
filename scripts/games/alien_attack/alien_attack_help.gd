@@ -11,6 +11,7 @@ const HOW := [
 	"Dodge their falling bombs — a hit costs one of your three lives.",
 	"Clear the whole wave and a faster one arrives.",
 	"Game over when you run out of lives or the aliens reach the bottom.",
+	"⏸ pauses the game. A round can't be saved for later: leaving it ends it.",
 ]
 const TIPS := [
 	"Aliens in the top rows are worth more points.",
