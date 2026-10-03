@@ -4,6 +4,7 @@ extends Control
 ## card out loud, everyone who has done it drinks, tap for the next card.
 
 const NHEngine = preload("res://scripts/games/never_have_i_ever/never_have_i_ever_engine.gd")
+const HomeKit = preload("res://scripts/games/never_have_i_ever/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -15,6 +16,7 @@ const DECKS := ["mild", "spicy", "mixed"]
 const CARD_COLORS := {"mild": Color(0.2, 0.45, 0.75), "spicy": Color(0.75, 0.18, 0.3), "mixed": Color(0.5, 0.25, 0.7)}
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: NHEngine
 var deck_index := 0
 
@@ -32,9 +34,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.08, 0.06, 0.1)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -51,9 +52,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🙊 Never Have I Ever")
@@ -67,7 +69,7 @@ func _build_ui() -> void:
 
 	var hint := Label.new()
 	hint.text = tr("Read it out loud. Everyone who HAS done it drinks!")
-	hint.add_theme_font_size_override("font_size", 22)
+	hint.add_theme_font_size_override("font_size", 24)
 	hint.add_theme_color_override("font_color", Color(0.75, 0.72, 0.8))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -92,7 +94,7 @@ func _build_ui() -> void:
 	card_panel.add_child(card_label)
 
 	count_label = Label.new()
-	count_label.add_theme_font_size_override("font_size", 22)
+	count_label.add_theme_font_size_override("font_size", 24)
 	count_label.add_theme_color_override("font_color", Color(0.7, 0.68, 0.75))
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(count_label)
@@ -119,6 +121,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/never_have_i_ever/never_have_i_ever_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -127,13 +131,13 @@ func _start_deck() -> void:
 	engine.reset(deck, TranslationServer.get_locale().begins_with("es"))
 	deck_btn.text = {"mild": tr("Deck: 😇 Mild"), "spicy": tr("Deck: 🌶️ Spicy"), "mixed": tr("Deck: 🎲 Mixed")}[deck]
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = CARD_COLORS[deck]
+	sb.bg_color = Color(CARD_COLORS[deck], 0.18)
 	sb.set_corner_radius_all(28)
-	sb.set_border_width_all(6)
-	sb.border_color = Color(1, 1, 1, 0.85)
+	sb.set_border_width_all(4)
+	sb.border_color = CARD_COLORS[deck].lightened(0.35)
 	sb.set_content_margin_all(36)
-	sb.shadow_size = 18
-	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 20
+	sb.shadow_color = Color(CARD_COLORS[deck].lightened(0.3), 0.4)
 	card_panel.add_theme_stylebox_override("panel", sb)
 	_next()
 
@@ -155,3 +159,47 @@ func _next() -> void:
 	card_panel.pivot_offset = card_panel.size / 2.0
 	card_panel.scale = Vector2(0.85, 0.85)
 	card_panel.create_tween().tween_property(card_panel, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/never_have_i_ever/never_have_i_ever_help.gd"),
+		"info": info,
+		"accent": HomeKit.PURPLE,
+		"subtitle": "Read it out loud. Everyone who HAS done it drinks!",
+		"logo": _draw_home_logo,
+		"multi_heading": "Party · one phone, pass it around",
+		"modes": [
+			{"text": "😇 Mild", "row": "deck", "multi": true, "color": HomeKit.CYAN, "action": _play_deck.bind(0)},
+			{"text": "🌶️ Spicy", "row": "deck", "multi": true, "color": HomeKit.PINK, "action": _play_deck.bind(1)},
+			{"text": "🎲 Mixed", "row": "deck", "multi": true, "color": HomeKit.PURPLE, "action": _play_deck.bind(2)},
+		],
+		"restart": _start_deck,
+		"board": "Cards played",
+		"board_note": "Cards played, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.9, 160.0)
+	var w := h * 0.72
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	for k in 3:
+		var col: Color = [HomeKit.PURPLE, HomeKit.PINK, HomeKit.CYAN][k]
+		c.draw_set_transform(ctr + Vector2((k - 1) * w * 0.35, 0), (k - 1) * 0.16, Vector2.ONE)
+		var r := Rect2(Vector2(-w / 2.0, -h / 2.0), Vector2(w, h))
+		c.draw_rect(r, Color(0.04, 0.05, 0.11))
+		HomeKit.glow_rect(c, r, col, 2.5, 0.1)
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	HomeKit.glow_text(c, ctr, "🙊", int(h * 0.42), Color.WHITE)
+
+func _play_deck(i: int) -> void:
+	deck_index = i
+	_start_deck()

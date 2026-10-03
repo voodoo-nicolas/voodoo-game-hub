@@ -10,6 +10,7 @@ const HOW := [
 	"Read the card out loud. Everyone who HAS done it takes a drink.",
 	"Tap the card (or Next card) for the next one. No card repeats until the whole deck has been played.",
 	"Pick a deck: 😇 Mild for anyone, 🌶️ Spicy for flirty questions, or 🎲 Mixed.",
+	"⏸ pauses. There's nothing to save: every card is drawn fresh.",
 ]
 const TIPS := [
 	"Any drink works — water and soda count too. Know your limits and play responsibly.",

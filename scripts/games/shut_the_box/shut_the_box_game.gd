@@ -5,6 +5,7 @@ extends Control
 ## (you play your round, then it plays its own; lower score wins).
 
 const STBEngine = preload("res://scripts/games/shut_the_box/shut_the_box_engine.gd")
+const HomeKit = preload("res://scripts/games/shut_the_box/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -14,11 +15,12 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const PIPS := {1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]],
 	5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]}
-const COLOR_FELT := Color(0.08, 0.3, 0.2)
-const COLOR_WOOD := Color(0.86, 0.68, 0.42)
-const COLOR_WOOD_DOWN := Color(0.36, 0.24, 0.13)
+const COLOR_FELT := Color(0.03, 0.04, 0.1)
+const COLOR_WOOD := Color("ffae2b")
+const COLOR_WOOD_DOWN := Color(0.4, 0.28, 0.1)
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: STBEngine
 var vs_computer := true
 var phase := "roll"       # roll | pick | cpu | over
@@ -32,6 +34,9 @@ var roll_btn: Button
 var roll_one_btn: Button
 var cpu_timer: Timer
 var end_dialog: ColorRect
+## Two players on one phone: Player 1 plays a full round, then Player 2.
+var two_player := false
+var p2_turn := false
 
 func _ready() -> void:
 	preload("res://scripts/games/shut_the_box/shut_the_box_i18n.gd").install(self)
@@ -42,9 +47,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_FELT
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -61,9 +65,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("📦 Shut the Box")
@@ -72,7 +77,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_start_new_game)
 	bar.add_child(restart_btn)
@@ -118,11 +125,13 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/shut_the_box/shut_the_box_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -143,8 +152,9 @@ func _start_new_game() -> void:
 	phase = "roll"
 	selected = []
 	player_score = -1
+	p2_turn = false
 	end_dialog.visible = false
-	_refresh(tr("Roll the dice to start."))
+	_refresh(tr("Player 1: roll the dice!") if two_player else tr("Roll the dice to start."))
 
 func _toggle_mode() -> void:
 	vs_computer = not vs_computer
@@ -198,6 +208,20 @@ func _after_pick() -> void:
 		_refresh(tr("You rolled %d — tap tiles that add up to %d.") % [engine.total, engine.total] + "\n" + tr("Selected: %d") % sum)
 
 func _end_player_round() -> void:
+	if two_player:
+		if not p2_turn:
+			player_score = engine.score()
+			if player_score == 0:
+				_finish()
+				return
+			p2_turn = true
+			engine.reset()
+			phase = "roll"
+			selected = []
+			_refresh(tr("Player 1 scored %d. Player 2: roll the dice!") % player_score)
+			return
+		_finish()
+		return
 	player_score = engine.score()
 	if not vs_computer or engine.is_shut():
 		_finish()
@@ -230,6 +254,25 @@ func _cpu_step() -> void:
 func _finish() -> void:
 	phase = "over"
 	var msg: String
+	if two_player:
+		var p2 := engine.score() if p2_turn else 99
+		if player_score == 0:
+			msg = tr("Player 1 shut the box!")
+		elif p2 == 0:
+			msg = tr("Player 2 shut the box!")
+		elif player_score == p2:
+			msg = tr("It's a draw!") + "  %d – %d" % [player_score, p2]
+		else:
+			msg = tr("Player %d wins!") % (1 if player_score < p2 else 2) + "  %d – %d" % [player_score, p2]
+		if info:
+			info.add("2-player games")
+			if player_score == 0 or p2 == 0:
+				info.add("Boxes shut")
+			info.celebrate(msg)
+		_refresh(msg)
+		end_dialog.get_meta("message_label").text = msg
+		end_dialog.visible = true
+		return
 	if not vs_computer:
 		msg = tr("You shut the box!") if player_score == 0 else tr("Your score: %d") % player_score
 		if info:
@@ -266,6 +309,7 @@ func _refresh(text: String) -> void:
 	roll_btn.disabled = phase != "roll"
 	roll_one_btn.disabled = phase != "roll" or not engine.can_roll_one_die()
 	mode_btn.text = tr("Mode: vs Computer") if vs_computer else tr("Mode: Solo")
+	mode_btn.visible = not two_player
 	board.queue_redraw()
 
 # ---------- drawing ----------
@@ -282,17 +326,20 @@ func _draw_board() -> void:
 		var sb := StyleBoxFlat.new()
 		sb.set_corner_radius_all(8)
 		if engine.up[n]:
-			sb.bg_color = COLOR_WOOD
-			if selected.has(n):
-				sb.set_border_width_all(6)
-				sb.border_color = Color(1, 0.85, 0.2)
-				sb.bg_color = COLOR_WOOD.lightened(0.25)
+			var rim: Color = HomeKit.CYAN if selected.has(n) else COLOR_WOOD
+			sb.bg_color = Color(rim, 0.3 if selected.has(n) else 0.14)
+			sb.border_color = rim
+			sb.set_border_width_all(5 if selected.has(n) else 3)
+			sb.shadow_color = Color(rim, 0.4)
+			sb.shadow_size = 8
 		else:
-			sb.bg_color = COLOR_WOOD_DOWN
+			sb.bg_color = Color(0.08, 0.06, 0.04)
+			sb.border_color = COLOR_WOOD_DOWN
+			sb.set_border_width_all(2)
 			r = Rect2(r.position + Vector2(0, r.size.y * 0.55), Vector2(r.size.x, r.size.y * 0.45))
 		board.draw_style_box(sb, r)
 		var fs := int(r.size.x * 0.62)
-		var col := Color(0.25, 0.13, 0.05) if engine.up[n] else Color(0.6, 0.48, 0.35)
+		var col := Color(1, 0.95, 0.85) if engine.up[n] else COLOR_WOOD_DOWN
 		board.draw_string(font, Vector2(r.position.x, r.position.y + r.size.y / 2.0 + fs * 0.35), str(n), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, col)
 	# dice
 	var s: float = minf(120.0, board.size.x * 0.2)
@@ -303,9 +350,52 @@ func _draw_board() -> void:
 		_draw_die(Rect2(Vector2((board.size.x - total_w) / 2.0 + i * (s + 30.0), y), Vector2(s, s)), engine.dice[i])
 
 func _draw_die(r: Rect2, v: int) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.97, 0.97, 0.95)
+	var sb := HomeKit.neon_box(HomeKit.CYAN)
+	sb.bg_color = Color(HomeKit.CYAN, 0.1)
 	sb.set_corner_radius_all(int(r.size.x * 0.16))
 	board.draw_style_box(sb, r)
 	for sp in PIPS[v]:
-		board.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * r.size.x, r.size.x * 0.085, Color(0.12, 0.12, 0.14))
+		board.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * r.size.x, r.size.x * 0.085, Color.WHITE)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/shut_the_box/shut_the_box_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/shut_the_box/shut_the_box_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Roll the dice and flip down tiles that add up. Shut them all!",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "🎲 Solo", "sub": "Lowest score you can", "row": "solo", "action": _new_mode.bind("solo")},
+			{"text": "🤖 vs Computer", "sub": "Lower score wins", "row": "solo", "action": _new_mode.bind("cpu")},
+			{"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_mode.bind("two")},
+		],
+		"restart": _start_new_game,
+		"board": "Boxes shut",
+		"board_note": "Times you shut the box, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var w := minf(c.size.x * 0.8, 360.0) / 9.0
+	var o := Vector2(c.size.x / 2.0 - w * 4.5, c.size.y / 2.0 - w)
+	for n in 9:
+		var up: bool = n in [0, 3, 4, 7]
+		var r := Rect2(o + Vector2(n * w + 2, 0 if up else w * 1.1), Vector2(w - 4, w * 2.0 if up else w * 0.9))
+		HomeKit.glow_rect(c, r, HomeKit.GOLD if up else Color(HomeKit.GOLD, 0.4), 2.0, 0.15)
+		if up:
+			HomeKit.glow_text(c, r.get_center(), str(n + 1), int(w * 0.6), Color.WHITE)
+
+func _new_mode(m: String) -> void:
+	vs_computer = m == "cpu"
+	two_player = m == "two"
+	_start_new_game()

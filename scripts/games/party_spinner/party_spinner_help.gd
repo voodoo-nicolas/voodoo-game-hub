@@ -10,6 +10,7 @@ const HOW := [
 	"It picks a hand or foot and a colour. That player puts that hand or foot on a circle of that colour.",
 	"Anyone who falls, or touches the mat with a knee or elbow, is out. The last player standing wins.",
 	"Turn on auto-spin to spin by itself every few seconds, so nobody has to hold the phone. The last move is shown under Before.",
+	"⏸ pauses. There's nothing to save: every spin is fresh.",
 ]
 const TIPS := [
 	"Put the phone where everyone can see it.",

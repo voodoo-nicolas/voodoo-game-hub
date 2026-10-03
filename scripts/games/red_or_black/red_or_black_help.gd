@@ -10,6 +10,7 @@ const HOW := [
 	"Round 1: red or black? Round 2: higher or lower than your first card?",
 	"Round 3: inside or outside your first two cards? (A tie counts as outside.) Round 4: guess the suit.",
 	"Right guesses let you give drinks away; wrong ones mean you drink. Later rounds are worth more.",
+	"⏸ pauses. A round is quick and played at the table, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Any drink works — water and soda count too. Know your limits and play responsibly.",

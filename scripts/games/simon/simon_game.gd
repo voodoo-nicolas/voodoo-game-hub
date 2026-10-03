@@ -1,6 +1,7 @@
 extends Control
 
 const SimonEngine = preload("res://scripts/games/simon/simon_engine.gd")
+const HomeKit = preload("res://scripts/games/simon/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -16,6 +17,7 @@ const FLASH_DURATION := 0.4
 const GAP_DURATION := 0.2
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var accepting_input: bool = false
 var playing_sequence: bool = false
@@ -34,13 +36,13 @@ func _ready() -> void:
 	_build_ui()
 	_load_best()
 	_show_start_dialog()
+	start_dialog.visible = false  # the Home screen replaces it
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -59,20 +61,24 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("Simon")
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.LIME.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.LIME, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	best_label = Label.new()
-	best_label.add_theme_font_size_override("font_size", 20)
+	best_label.add_theme_font_size_override("font_size", 24)
 	best_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))
 	top_bar.add_child(best_label)
 
@@ -118,6 +124,8 @@ func _build_ui() -> void:
 	_build_start_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/simon/simon_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best_level > 0:
 			info.high("Best level", best_level)
@@ -177,9 +185,9 @@ func _build_start_dialog() -> void:
 	box.add_child(start_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	box.add_child(menu_btn)
 
 # ---------- game flow ----------
@@ -267,3 +275,42 @@ func _on_best_reconciled(merged: int) -> void:
 		info.high("Best level", merged)
 	SaveUtil.write(BEST_PATH, {"best_level": merged})
 	_update_best_label()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/simon/simon_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/simon/simon_help.gd"),
+		"info": info,
+		"accent": HomeKit.LIME,
+		"subtitle": "Watch the lights, then repeat the sequence. It grows every round.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  Play", "sub": "One mistake ends it", "action": _start_game}],
+		"restart": _start_game,
+		"board": "Best level",
+		"board_note": "The longest sequence you've repeated.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var r := minf(c.size.y * 0.45, 80.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	var cols := [HomeKit.LIME, HomeKit.PINK, HomeKit.GOLD, HomeKit.CYAN]
+	for k in 4:
+		var pts := PackedVector2Array()
+		for i in 13:
+			var a := TAU * (k + 0.06 + i * 0.88 / 12.0) / 4.0 - PI
+			pts.append(ctr + Vector2(cos(a), sin(a)) * r)
+		for i in range(12, -1, -1):
+			var a := TAU * (k + 0.06 + i * 0.88 / 12.0) / 4.0 - PI
+			pts.append(ctr + Vector2(cos(a), sin(a)) * r * 0.45)
+		c.draw_colored_polygon(pts, Color(cols[k], 0.5 if k == 1 else 0.15))
+		HomeKit.glow_polyline(c, pts, cols[k], 2.0, true)

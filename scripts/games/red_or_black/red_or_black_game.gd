@@ -1,6 +1,7 @@
 extends Control
 
 const RedOrBlackEngine = preload("res://scripts/games/red_or_black/red_or_black_engine.gd")
+const HomeKit = preload("res://scripts/games/red_or_black/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
@@ -11,6 +12,7 @@ const RED_SUITS := ["♥", "♦"]
 const SUITS := ["♠", "♥", "♦", "♣"]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var num_players: int = 2
 
@@ -40,9 +42,8 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.08, 0.08, 0.11)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -59,14 +60,18 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = tr("🂡 Red or Black")
-	title.add_theme_font_size_override("font_size", 31)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.text = "♥ " + tr("Red or Black")
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.PINK.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.PINK, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
@@ -80,6 +85,8 @@ func _build_ui() -> void:
 	_build_end(root)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/red_or_black/red_or_black_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -130,7 +137,7 @@ func _build_setup(root: VBoxContainer) -> void:
 
 	var rules_label := Label.new()
 	rules_label.text = tr("4 rounds, each player draws one card per round.\nGuess right, give a drink. Guess wrong, take a drink.\nRound 1: Red/Black (1) · 2: Higher/Lower (2)\n3: Inside/Outside (3) · 4: Suit (4)")
-	rules_label.add_theme_font_size_override("font_size", 19)
+	rules_label.add_theme_font_size_override("font_size", 24)
 	rules_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	rules_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(rules_label)
@@ -161,7 +168,7 @@ func _build_play(root: VBoxContainer) -> void:
 	box.add_child(round_label)
 
 	stakes_label = Label.new()
-	stakes_label.add_theme_font_size_override("font_size", 22)
+	stakes_label.add_theme_font_size_override("font_size", 24)
 	stakes_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	stakes_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(stakes_label)
@@ -203,7 +210,7 @@ func _build_play(root: VBoxContainer) -> void:
 	# Every card already drawn from this one deck, so players can work the odds.
 	var tracker_title := Label.new()
 	tracker_title.text = tr("Cards played")
-	tracker_title.add_theme_font_size_override("font_size", 22)
+	tracker_title.add_theme_font_size_override("font_size", 24)
 	tracker_title.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	tracker_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(tracker_title)
@@ -214,7 +221,7 @@ func _build_play(root: VBoxContainer) -> void:
 	tracker_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(tracker_grid)
 	odds_label = Label.new()
-	odds_label.add_theme_font_size_override("font_size", 22)
+	odds_label.add_theme_font_size_override("font_size", 24)
 	odds_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
 	odds_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(odds_label)
@@ -244,9 +251,9 @@ func _build_end(root: VBoxContainer) -> void:
 	box.add_child(again_btn)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Back to Hub")
-	hub_btn.custom_minimum_size = Vector2(220, 48)
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	hub_btn.custom_minimum_size = Vector2(320, 64)
+	hub_btn.pressed.connect(_go_home)
 	box.add_child(hub_btn)
 
 # ---------- flow ----------
@@ -283,9 +290,11 @@ static func _counter_button(text: String) -> Button:
 	btn.focus_mode = Control.FOCUS_NONE
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(0.2, 0.2, 0.26) if state != "pressed" else Color(0.3, 0.3, 0.38)
+		sb.bg_color = Color(1, 0.68, 0.17, 0.1 if state != "pressed" else 0.28)
 		sb.set_border_width_all(3)
-		sb.border_color = Color(1, 0.8, 0.3)
+		sb.border_color = Color(1, 0.68, 0.17)
+		sb.shadow_color = Color(1, 0.68, 0.17, 0.3)
+		sb.shadow_size = 8
 		sb.set_corner_radius_all(18)
 		btn.add_theme_stylebox_override(state, sb)
 	for c in ["font_color", "font_hover_color", "font_pressed_color"]:
@@ -302,11 +311,13 @@ func _make_card(card: Dictionary, w: float) -> Control:
 	sb.set_corner_radius_all(int(w * 0.1))
 	sb.set_border_width_all(maxi(2, int(w * 0.03)))
 	if card.is_empty():
-		sb.bg_color = Color(0.55, 0.1, 0.14)
-		sb.border_color = Color(0.95, 0.95, 0.95)
+		sb.bg_color = Color(0.16, 0.06, 0.28)
+		sb.border_color = HomeKit.PURPLE
 	else:
-		sb.bg_color = Color(0.97, 0.96, 0.92)
-		sb.border_color = Color(0.3, 0.3, 0.35)
+		sb.bg_color = Color(0.05, 0.07, 0.15)
+		sb.border_color = HomeKit.PINK if RED_SUITS.has(card.suit) else HomeKit.CYAN
+	sb.shadow_color = Color(sb.border_color, 0.35)
+	sb.shadow_size = 8
 	panel.add_theme_stylebox_override("panel", sb)
 	var l := Label.new()
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -318,7 +329,7 @@ func _make_card(card: Dictionary, w: float) -> Control:
 	else:
 		l.text = "%s\n%s" % [card.rank, card.suit]
 		l.add_theme_font_size_override("font_size", int(w * 0.36))
-		l.add_theme_color_override("font_color", Color(0.85, 0.12, 0.15) if RED_SUITS.has(card.suit) else Color(0.08, 0.08, 0.1))
+		l.add_theme_color_override("font_color", HomeKit.PINK.lerp(Color.WHITE, 0.2) if RED_SUITS.has(card.suit) else Color(0.9, 0.98, 1.0))
 	panel.add_child(l)
 	return panel
 
@@ -365,7 +376,7 @@ func _tracker_cell(text: String, ink: Color, bright: bool, w: float) -> Control:
 	l.text = text
 	l.custom_minimum_size = Vector2(w, 0)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_font_size_override("font_size", 24)
 	l.add_theme_color_override("font_color", ink if bright else Color(ink, 0.18))
 	return l
 
@@ -384,17 +395,17 @@ func _update_round_display() -> void:
 
 	match engine.round_index:
 		0:
-			_add_guess_button(tr("Red"), "red", Color(0.8, 0.2, 0.2))
-			_add_guess_button(tr("Black"), "black", Color(0.15, 0.15, 0.18))
+			_add_guess_button(tr("Red"), "red", HomeKit.PINK)
+			_add_guess_button(tr("Black"), "black", HomeKit.CYAN)
 		1:
-			_add_guess_button(tr("Higher"), "higher", Color(0.2, 0.5, 0.3))
-			_add_guess_button(tr("Lower"), "lower", Color(0.5, 0.3, 0.2))
+			_add_guess_button(tr("Higher"), "higher", HomeKit.LIME)
+			_add_guess_button(tr("Lower"), "lower", HomeKit.GOLD)
 		2:
-			_add_guess_button(tr("Inside"), "inside", Color(0.2, 0.4, 0.55))
-			_add_guess_button(tr("Outside"), "outside", Color(0.5, 0.35, 0.15))
+			_add_guess_button(tr("Inside"), "inside", HomeKit.BLUE)
+			_add_guess_button(tr("Outside"), "outside", HomeKit.PURPLE)
 		3:
 			for suit in SUITS:
-				_add_guess_button(suit, suit, Color(0.8, 0.2, 0.2) if RED_SUITS.has(suit) else Color(0.15, 0.15, 0.18))
+				_add_guess_button(suit, suit, HomeKit.PINK if RED_SUITS.has(suit) else HomeKit.CYAN)
 
 func _add_guess_button(label_text: String, guess: String, color: Color) -> void:
 	var btn := Button.new()
@@ -403,10 +414,12 @@ func _add_guess_button(label_text: String, guess: String, color: Color) -> void:
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.add_theme_font_size_override("font_size", 38 if label_text.length() > 1 else 52)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
+	sb.bg_color = Color(color, 0.16)
 	sb.set_corner_radius_all(16)
-	sb.set_border_width_all(2)
-	sb.border_color = Color(1, 1, 1, 0.35)
+	sb.set_border_width_all(3)
+	sb.border_color = color
+	sb.shadow_color = Color(color, 0.35)
+	sb.shadow_size = 8
 	for state in ["normal", "hover", "pressed", "focus"]:
 		btn.add_theme_stylebox_override(state, sb)
 	btn.add_theme_color_override("font_color", Color(1, 1, 1))
@@ -442,3 +455,40 @@ func _on_next_pressed() -> void:
 	result_label.text = ""
 	next_btn.visible = false
 	_update_round_display()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/red_or_black/red_or_black_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/red_or_black/red_or_black_help.gd"),
+		"info": info,
+		"accent": HomeKit.PINK,
+		"subtitle": "Guess right to hand out drinks, guess wrong to take them.",
+		"logo": _draw_home_logo,
+		"multi_heading": "Party · one phone, pass it around",
+		"modes": [{"text": "🃏  Play", "sub": "Choose the number of players", "multi": true, "color": HomeKit.PINK, "action": _show_setup}],
+		"restart": _show_setup,
+		"board": "Right guesses",
+		"board_note": "Right guesses, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.85, 150.0)
+	var w := h * 0.7
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	for spec in [[-0.18, -w * 0.38, "♥", HomeKit.PINK], [0.18, w * 0.38, "♠", HomeKit.CYAN]]:
+		c.draw_set_transform(ctr + Vector2(spec[1], 0), spec[0], Vector2.ONE)
+		var r := Rect2(Vector2(-w / 2.0, -h / 2.0), Vector2(w, h))
+		c.draw_rect(r, Color(0.05, 0.07, 0.15))
+		HomeKit.glow_rect(c, r, spec[3], 2.5)
+		HomeKit.glow_text(c, Vector2.ZERO, spec[2], int(h * 0.42), spec[3])
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

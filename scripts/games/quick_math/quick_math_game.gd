@@ -3,6 +3,7 @@ extends Control
 ## Quick Math -- 60 seconds of multiple-choice arithmetic. Builds its whole UI in code.
 
 const QuickMathEngine = preload("res://scripts/games/quick_math/quick_math_engine.gd")
+const HomeKit = preload("res://scripts/games/quick_math/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -11,6 +12,7 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var running: bool = false
 
@@ -35,9 +37,8 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -56,8 +57,10 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
@@ -77,6 +80,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/quick_math/quick_math_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	# Must stay the last child so its tab sits above any dialog.
 	add_child(SettingsDrawer.new())
@@ -163,10 +168,9 @@ func _build_end(root: VBoxContainer) -> void:
 	again.pressed.connect(_start_round)
 	box.add_child(again)
 	var hub := Button.new()
-	hub.text = tr("Back to Hub")
-	hub.custom_minimum_size = Vector2(300, 60)
-	hub.add_theme_font_size_override("font_size", 24)
-	hub.pressed.connect(UI.exit_to_hub.bind(self))
+	hub.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	hub.custom_minimum_size = Vector2(320, 64)
+	hub.pressed.connect(_go_home)
 	box.add_child(hub)
 
 func _label(text: String, size: int, color: Color, width: float = 0.0) -> Label:
@@ -181,11 +185,11 @@ func _label(text: String, size: int, color: Color, width: float = 0.0) -> Label:
 	return l
 
 func _paint(button: Button, color: Color) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
+	var sb := HomeKit.neon_box(color, "normal")
+	sb.bg_color = Color(color, 0.14)
 	sb.set_corner_radius_all(14)
-	var pressed := sb.duplicate()
-	pressed.bg_color = color.lightened(0.25)
+	var pressed := HomeKit.neon_box(color, "pressed")
+	pressed.set_corner_radius_all(14)
 	button.add_theme_stylebox_override("normal", sb)
 	button.add_theme_stylebox_override("hover", sb)
 	button.add_theme_stylebox_override("pressed", pressed)
@@ -258,3 +262,32 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/quick_math/quick_math_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/quick_math/quick_math_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "As many sums as you can in 60 seconds.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  Play", "sub": "60-second round", "action": _start_round}],
+		"restart": _start_round,
+		"board_note": "Your best score in one round.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	HomeKit.glow_text(c, ctr + Vector2(0, -h * 0.15), "7 × 8", int(h * 0.32), HomeKit.CYAN)
+	HomeKit.glow_text(c, ctr + Vector2(0, h * 0.25), "= 56", int(h * 0.26), HomeKit.LIME)

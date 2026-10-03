@@ -5,6 +5,7 @@ extends Control
 ## all four guesses right in a row.
 
 const RBEngine = preload("res://scripts/games/ride_the_bus/ride_the_bus_engine.gd")
+const HomeKit = preload("res://scripts/games/ride_the_bus/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -14,10 +15,11 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SUITS := ["♠", "♥", "♦", "♣"]
 const RANKS := {11: "J", 12: "Q", 13: "K", 14: "A"}
-const COLOR_RED := Color(0.85, 0.12, 0.15)
-const COLOR_BLACK := Color(0.1, 0.1, 0.12)
+const COLOR_RED := Color("ff4f9a")
+const COLOR_BLACK := Color("29e6ff")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: RBEngine
 var num_players := 4
 var waiting_next := false   # a result is showing; the Next button continues
@@ -55,9 +57,8 @@ static func card_text(c: Dictionary) -> String:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.07, 0.2, 0.14)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -72,9 +73,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🚌 Ride the Bus")
@@ -94,11 +96,13 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _show_setup},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/ride_the_bus/ride_the_bus_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -418,3 +422,39 @@ func _off_the_bus() -> void:
 	var tw := create_tween()
 	tw.tween_interval(1.0)
 	tw.tween_callback(end_dialog.set_visible.bind(true))
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/ride_the_bus/ride_the_bus_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/ride_the_bus/ride_the_bus_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Guess the cards, empty your hand in the pyramid — don't ride the bus!",
+		"logo": _draw_home_logo,
+		"multi_heading": "Party · one phone, pass it around",
+		"modes": [{"text": "🚌  Play", "sub": "Choose the number of players", "multi": true, "color": HomeKit.GOLD, "action": _show_setup}],
+		"restart": _show_setup,
+		"board": "Games played",
+		"board_note": "Games played, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var w := h * 1.5
+	var o := Vector2((c.size.x - w) / 2.0, c.size.y / 2.0 - h * 0.3)
+	# a neon bus
+	HomeKit.glow_rect(c, Rect2(o, Vector2(w, h * 0.5)), HomeKit.GOLD, 3.0, 0.12)
+	for i in 4:
+		HomeKit.glow_rect(c, Rect2(o + Vector2(w * (0.06 + i * 0.22), h * 0.08), Vector2(w * 0.16, h * 0.18)), HomeKit.CYAN, 1.5, 0.2)
+	for x in [0.22, 0.78]:
+		HomeKit.glow_circle(c, o + Vector2(w * x, h * 0.52), h * 0.1, HomeKit.PINK, 2.5, 0.2)

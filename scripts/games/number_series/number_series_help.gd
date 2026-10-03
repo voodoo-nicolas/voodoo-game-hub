@@ -10,6 +10,7 @@ const HOW := [
 	"There are 12 questions, and they get harder: simple steps first, then squares, growing gaps and number sequences woven together.",
 	"Each right answer scores 10 points, plus up to 5 bonus points for answering quickly. You have 25 seconds per question.",
 	"After a miss you see the rule, so you can learn it for next time.",
+	"⏸ pauses. A game is quick, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Check the gaps between neighbors first: are they equal, growing, or alternating?",

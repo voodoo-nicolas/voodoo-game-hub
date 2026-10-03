@@ -10,6 +10,7 @@ const HOW := [
 	"Tap 🔀 Shuffle to rearrange your ships before the first shot.",
 	"Tap a square in the enemy waters to fire. A hit, or sinking a ship, lets you fire again.",
 	"The first to sink every enemy ship wins.",
+	"⏸ pauses and keeps the battle; Resume on the Home screen carries on.",
 ]
 const TIPS := [
 	"Fire in a checkerboard pattern — every ship covers at least two squares, so you can't miss one.",

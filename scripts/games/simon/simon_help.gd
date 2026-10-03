@@ -9,6 +9,7 @@ const HOW := [
 	"Watch the pads light up, then tap them in the same order.",
 	"Each round adds one more colour to the end of the sequence.",
 	"One wrong tap and the game is over. Your level is the longest sequence you repeated.",
+	"⏸ pauses. A game is quick, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Say the colours out loud, or give each one a number.",

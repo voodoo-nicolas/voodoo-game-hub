@@ -10,6 +10,7 @@ const HOW := [
 	"Aces are 1, Jacks 11, Queens 12. Kings are 13 on their own — tap one to remove it.",
 	"Tap the stock to turn over a card onto the waste pile. The top waste card can pair too.",
 	"You can go through the stock three times. The game ends when no pairs are left.",
+	"⏸ pauses and keeps the game; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Before pairing, check which pair uncovers more cards.",

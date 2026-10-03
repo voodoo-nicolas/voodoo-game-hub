@@ -1,18 +1,20 @@
 extends Control
 
 const ReactionEngine = preload("res://scripts/games/reaction_test/reaction_test_engine.gd")
+const HomeKit = preload("res://scripts/games/reaction_test/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_IDLE := Color(0.16, 0.16, 0.22)
-const COLOR_WAITING := Color(0.55, 0.15, 0.15)
-const COLOR_READY := Color(0.15, 0.55, 0.2)
-const COLOR_TOO_EARLY := Color(0.6, 0.4, 0.05)
+const COLOR_IDLE := Color("3a8cff")
+const COLOR_WAITING := Color("ff2b6b")
+const COLOR_READY := Color("7dff3a")
+const COLOR_TOO_EARLY := Color("ffae2b")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var pad: PanelContainer
 var pad_label: Label
@@ -32,9 +34,8 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -51,14 +52,18 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("⏱️ Reaction Test")
-	title.add_theme_font_size_override("font_size", 31)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.LIME.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.LIME, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
@@ -113,6 +118,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/reaction_test/reaction_test_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -173,11 +180,45 @@ func _update_best_label() -> void:
 	best_label.text = tr("Best: %d ms") % best_ms if best_ms >= 0 else tr("Best: —")
 
 func _set_pad(color: Color, text: String) -> void:
+	# a glowing neon pad: the colour is the signal, so the fill stays strong
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
-	sb.corner_radius_top_left = 20
-	sb.corner_radius_top_right = 20
-	sb.corner_radius_bottom_left = 20
-	sb.corner_radius_bottom_right = 20
+	sb.bg_color = Color(color, 0.12 if color == COLOR_IDLE else 0.45)
+	sb.border_color = color
+	sb.set_border_width_all(4)
+	sb.shadow_color = Color(color, 0.5)
+	sb.shadow_size = 18
+	sb.set_corner_radius_all(24)
 	pad.add_theme_stylebox_override("panel", sb)
 	pad_label.text = text
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/reaction_test/reaction_test_help.gd"),
+		"info": info,
+		"accent": HomeKit.LIME,
+		"subtitle": "Wait for green… then tap as fast as you can.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "⚡  Start", "sub": "Tap the pad when it turns green", "action": _start_test}],
+		"board": "Tests taken",
+		"board_note": "Tests taken, all time. (Your fastest time is in Statistics.)",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	var bolt := PackedVector2Array([ctr + Vector2(h * 0.08, -h * 0.45), ctr + Vector2(-h * 0.2, h * 0.05), ctr + Vector2(0, h * 0.05),
+		ctr + Vector2(-h * 0.08, h * 0.45), ctr + Vector2(h * 0.2, -h * 0.05), ctr + Vector2(0, -h * 0.05)])
+	c.draw_colored_polygon(bolt, Color(HomeKit.LIME, 0.25))
+	HomeKit.glow_polyline(c, bolt, HomeKit.LIME, 3.0, true)
+
+func _start_test() -> void:
+	_show_idle(tr("Tap the pad to start"))

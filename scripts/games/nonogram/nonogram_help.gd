@@ -11,6 +11,7 @@ const HOW := [
 	"Tap or drag to fill squares. Switch to ✕ mode to mark squares you know are empty.",
 	"The puzzle is solved when every row and column matches its numbers.",
 	"Every puzzle can be solved by logic alone — no guessing needed.",
+	"⏸ pauses and keeps the puzzle; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Start with big numbers: a 7 in a 10-square row must cover its middle four squares.",

@@ -4,6 +4,7 @@ extends Control
 ## you know are empty. Clues turn grey once their line matches.
 
 const NonoEngine = preload("res://scripts/games/nonogram/nonogram_engine.gd")
+const HomeKit = preload("res://scripts/games/nonogram/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -12,17 +13,21 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SIZES := [5, 10, 15]
-const COLOR_FILL := Color(0.25, 0.7, 0.95)
-const COLOR_CELL := Color(0.92, 0.92, 0.9)
-const COLOR_CLUE := Color(0.95, 0.95, 1.0)
-const COLOR_CLUE_DONE := Color(0.45, 0.45, 0.52)
+const COLOR_FILL := Color("29e6ff")
+const COLOR_CELL := Color(0.06, 0.08, 0.16)
+const COLOR_CLUE := Color("ffae2b")
+const COLOR_CLUE_DONE := Color(0.4, 0.42, 0.5)
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://nonogram_save.json"
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: NonoEngine
 var board: Control
 var size_btn: Button
 var mode_btn: Button
 var win_dialog: ColorRect
+var started := false  # a puzzle is on (not just the one behind Home)
 var size_index: int = 1
 var mark_mode: bool = false
 var painting: bool = false
@@ -36,12 +41,12 @@ func _ready() -> void:
 	engine = NonoEngine.new()
 	_build_ui()
 	_start_new_game()
+	started = false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -58,9 +63,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🖼️ Nonogram")
@@ -76,7 +82,7 @@ func _build_ui() -> void:
 
 	var hint := Label.new()
 	hint.text = tr("Numbers are the runs of filled squares in each row and column, in order.")
-	hint.add_theme_font_size_override("font_size", 21)
+	hint.add_theme_font_size_override("font_size", 24)
 	hint.add_theme_color_override("font_color", Color(0.7, 0.7, 0.78))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -110,15 +116,18 @@ func _build_ui() -> void:
 
 	win_dialog = UI.build_dialog(tr("Solved!"), [
 		{"text": tr("Next Puzzle"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/nonogram/nonogram_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
+	started = true
 	engine.new_puzzle(SIZES[size_index])
 	if info:
 		info.start_clock()
@@ -171,16 +180,17 @@ func _draw_board() -> void:
 		for c in n:
 			var rect := Rect2(o + Vector2(c, r) * cell, Vector2(cell, cell)).grow(-1)
 			var v: int = engine.get_cell(r, c)
-			board.draw_rect(rect, COLOR_FILL if v == NonoEngine.FILLED else COLOR_CELL)
+			board.draw_rect(rect, Color(COLOR_FILL, 0.75) if v == NonoEngine.FILLED else COLOR_CELL)
+			board.draw_rect(rect, Color(HomeKit.BLUE, 0.35), false, 1.0)
 			if v == NonoEngine.MARKED:
 				var m := cell * 0.28
 				var ce := rect.get_center()
-				board.draw_line(ce - Vector2(m, m), ce + Vector2(m, m), Color(0.6, 0.2, 0.2), 3)
-				board.draw_line(ce + Vector2(-m, m), ce + Vector2(m, -m), Color(0.6, 0.2, 0.2), 3)
+				board.draw_line(ce - Vector2(m, m), ce + Vector2(m, m), HomeKit.PINK, 3)
+				board.draw_line(ce + Vector2(-m, m), ce + Vector2(m, -m), HomeKit.PINK, 3)
 	# thicker lines every 5 cells
 	for i in range(0, n + 1, 5):
-		board.draw_line(o + Vector2(i * cell, 0), o + Vector2(i * cell, n * cell), Color(0.09, 0.09, 0.13), 3)
-		board.draw_line(o + Vector2(0, i * cell), o + Vector2(n * cell, i * cell), Color(0.09, 0.09, 0.13), 3)
+		board.draw_line(o + Vector2(i * cell, 0), o + Vector2(i * cell, n * cell), Color(HomeKit.PURPLE, 0.9), 2)
+		board.draw_line(o + Vector2(0, i * cell), o + Vector2(n * cell, i * cell), Color(HomeKit.PURPLE, 0.9), 2)
 	var step := cell * 0.62
 	for r in n:
 		var clue: Array = engine.row_clues[r]
@@ -231,6 +241,7 @@ func _paint(c: Vector2i) -> void:
 	engine.set_cell(c.y, c.x, paint_value)
 	board.queue_redraw()
 	if engine.is_solved():
+		SaveUtil.delete(SAVE_PATH)
 		painting = false
 		var secs := 0.0
 		var record := false
@@ -245,3 +256,98 @@ func _paint(c: Vector2i) -> void:
 			if record:
 				win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
 		win_dialog.visible = true
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/nonogram/nonogram_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/nonogram/nonogram_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Use the number clues to fill in the hidden picture.",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "5 × 5", "row": "size", "color": HomeKit.LIME, "action": _new_size.bind(0)},
+			{"text": "10 × 10", "row": "size", "color": HomeKit.CYAN, "action": _new_size.bind(1)},
+			{"text": "15 × 15", "row": "size", "color": HomeKit.PINK, "action": _new_size.bind(2)},
+		],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"restart": _start_new_game,
+		"board": "Puzzles solved",
+		"board_note": "Pictures revealed, all sizes.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 6.0, 28.0)
+	var o := Vector2(c.size.x / 2.0 - k * 2.0, c.size.y / 2.0 - k * 2.2)
+	var heart := ["01010", "11111", "11111", "01110", "00100"]
+	var font := ThemeDB.fallback_font
+	for r in 5:
+		for col in 5:
+			var rect := Rect2(o + Vector2(col, r) * k, Vector2(k, k)).grow(-1)
+			if heart[r][col] == "1":
+				c.draw_rect(rect, Color(COLOR_FILL, 0.6))
+				c.draw_rect(rect, COLOR_FILL, false, 1.5)
+			else:
+				c.draw_rect(rect, Color(HomeKit.BLUE, 0.25), false, 1.0)
+	for r in 5:
+		c.draw_string(font, o + Vector2(-k * 1.6, (r + 0.75) * k), ["1 1", "5", "5", "3", "1"][r], HORIZONTAL_ALIGNMENT_RIGHT, k * 1.4, int(k * 0.6), HomeKit.GOLD)
+
+func _new_size(i: int) -> void:
+	size_index = i
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not started or win_dialog.visible or engine.solution.is_empty():
+		return
+	SaveUtil.write(SAVE_PATH, {"size_index": size_index, "n": engine.n, "solution": engine.solution,
+		"rows": engine.row_clues, "cols": engine.col_clues, "cells": engine.cells})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+static func _grid(a: Variant, as_bool: bool) -> Array:
+	var out: Array = []
+	for row in a:
+		var r: Array = []
+		for v in row:
+			r.append(bool(v) if as_bool else int(v))
+		out.append(r)
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	size_index = clampi(int(d.get("size_index", 0)), 0, SIZES.size() - 1)
+	_start_new_game()
+	engine.n = int(d.n)
+	engine.solution = _ints(d.solution)
+	engine.row_clues = []
+	for rc in d.rows:
+		engine.row_clues.append(_ints(rc))
+	engine.col_clues = []
+	for cc in d.cols:
+		engine.col_clues.append(_ints(cc))
+	engine.cells = _ints(d.cells)
+	_update_buttons()
+	board.queue_redraw()

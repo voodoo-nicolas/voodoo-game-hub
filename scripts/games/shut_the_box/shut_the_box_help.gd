@@ -12,6 +12,8 @@ const HOW := [
 	"When no tiles add up to your roll, the round is over. Your score is the total of the tiles still up — lower is better.",
 	"Flip every tile and you've shut the box: an instant win!",
 	"vs Computer: you play your round, then the computer plays its own. The lower score wins. Solo: chase your lowest score.",
+	"Two players: Player 1 plays a whole round, then Player 2. Lower score wins.",
+	"⏸ pauses. A round is short, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Knock down the high tiles first — 7, 8 and 9 are the hardest to get rid of later.",
@@ -19,4 +21,4 @@ const TIPS := [
 	"Totals of 6, 7 and 8 come up most often with two dice.",
 	"With only small tiles left, roll one die: low totals are much easier to hit.",
 ]
-const STATS := ["Wins", "Losses", "Draws", "Boxes shut", "Lowest score"]
+const STATS := ["Wins", "Losses", "Draws", "Boxes shut", "Lowest score", "2-player games"]

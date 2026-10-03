@@ -5,6 +5,7 @@ extends Control
 ## whose flags are all placed digs its remaining neighbors.
 
 const MinesweeperEngine = preload("res://scripts/games/minesweeper/minesweeper_engine.gd")
+const HomeKit = preload("res://scripts/games/minesweeper/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -14,16 +15,18 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://minesweeper_best.json"
-const COLOR_BG := Color(0.09, 0.09, 0.13)
-const COLOR_HIDDEN := Color(0.3, 0.36, 0.48)
-const COLOR_REVEALED := Color(0.82, 0.84, 0.88)
-const COLOR_EXPLODED := Color(0.9, 0.25, 0.25)
+const SAVE_PATH := "user://minesweeper_save.json"
+const COLOR_BG := HomeKit.BG
+const COLOR_HIDDEN := Color(0.12, 0.2, 0.42)
+const COLOR_REVEALED := Color(0.04, 0.05, 0.1)
+const COLOR_EXPLODED := Color("ff2b6b")
 const NUMBER_COLORS := [
-	Color(0, 0, 0), Color(0.1, 0.3, 0.9), Color(0.1, 0.55, 0.15), Color(0.85, 0.15, 0.15),
-	Color(0.2, 0.1, 0.6), Color(0.55, 0.1, 0.1), Color(0.1, 0.5, 0.55), Color(0.1, 0.1, 0.1), Color(0.4, 0.4, 0.4),
+	Color(1, 1, 1), Color("29e6ff"), Color("7dff3a"), Color("ff4f9a"),
+	Color("9b4dff"), Color("ffae2b"), Color("2bffd0"), Color(1, 1, 1), Color(0.7, 0.7, 0.8),
 ]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var difficulty: String = "easy"
 var flag_mode: bool = false
@@ -48,7 +51,7 @@ func _ready() -> void:
 	var data = SaveUtil.read(BEST_PATH)
 	best_times = data if data != null else {}
 	_build_ui()
-	_show_start_screen()
+	_restart()  # a board behind the Home screen, which replaces the old start screen
 
 func _process(delta: float) -> void:
 	if timer_running:
@@ -63,9 +66,8 @@ func _format_time(s: float) -> String:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	_build_start_screen()
@@ -74,13 +76,15 @@ func _build_ui() -> void:
 	result_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _restart},
 		{"text": tr("Change Difficulty"), "action": _show_start_screen},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	result_label = result_dialog.get_meta("message_label")
 	add_child(result_dialog)
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/minesweeper/minesweeper_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		for d in best_times:
 			info.low("Best time (%s)" % str(d).capitalize(), float(best_times[d]))
@@ -97,9 +101,10 @@ func _top_bar(parent: Control, show_new: bool) -> void:
 	margin.add_child(bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 
 	var title := Label.new()
@@ -111,9 +116,10 @@ func _top_bar(parent: Control, show_new: bool) -> void:
 
 	if show_new:
 		var new_btn := Button.new()
-		new_btn.text = tr("New")
-		new_btn.add_theme_font_size_override("font_size", 26)
-		new_btn.pressed.connect(_show_start_screen)
+		new_btn.text = "↺"
+		new_btn.custom_minimum_size = Vector2(76, 64)
+		new_btn.add_theme_font_size_override("font_size", 30)
+		new_btn.pressed.connect(_restart)
 		bar.add_child(new_btn)
 
 func _build_start_screen() -> void:
@@ -147,7 +153,7 @@ func _build_start_screen() -> void:
 
 	var hint := Label.new()
 	hint.text = tr("Tap to dig. Switch to 🚩 mode to flag mines.\nTap a number with all its flags placed to clear around it.")
-	hint.add_theme_font_size_override("font_size", 22)
+	hint.add_theme_font_size_override("font_size", 24)
 	hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.78))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(hint)
@@ -266,6 +272,7 @@ func _flag(r: int, c: int) -> void:
 
 func _finish(won: bool) -> void:
 	timer_running = false
+	SaveUtil.delete(SAVE_PATH)
 	var msg: String
 	if info:
 		info.result("win" if won else "loss")
@@ -319,5 +326,98 @@ func _render() -> void:
 			var sb := StyleBoxFlat.new()
 			sb.bg_color = color
 			sb.set_corner_radius_all(4)
+			if color == COLOR_HIDDEN:
+				sb.border_color = Color(HomeKit.BLUE, 0.9)
+				sb.set_border_width_all(1)
+			elif color == COLOR_REVEALED:
+				sb.border_color = Color(HomeKit.BLUE, 0.18)
+				sb.set_border_width_all(1)
 			for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 				btn.add_theme_stylebox_override(state, sb)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/minesweeper/minesweeper_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/minesweeper/minesweeper_help.gd"),
+		"info": info,
+		"accent": HomeKit.PINK,
+		"subtitle": "Dig every safe square. Numbers count the mines next door.",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "🙂 Easy", "sub": "9 × 9", "row": "lvl", "color": HomeKit.LIME, "action": _new_board.bind("easy")},
+			{"text": "😐 Medium", "sub": "12 × 12", "row": "lvl", "color": HomeKit.CYAN, "action": _new_board.bind("medium")},
+			{"text": "😈 Hard", "sub": "14 × 14", "row": "lvl", "color": HomeKit.PINK, "action": _new_board.bind("hard")},
+		],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr(str(d.difficulty).capitalize()),
+		"restart": _restart,
+		"board": "Wins",
+		"board_note": "Boards cleared, any size.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 3.3, 52.0)
+	var o := Vector2(c.size.x / 2.0 - k * 1.5, c.size.y / 2.0 - k * 1.5)
+	var cells := [["1", 0], ["", 1], ["2", 0], ["1", 0], ["💣", 2], ["", 1], ["🚩", 1], ["2", 0], ["1", 0]]
+	for i in 9:
+		var r := Rect2(o + Vector2(i % 3, int(i / 3)) * k, Vector2(k, k)).grow(-3)
+		var hidden: bool = cells[i][1] == 1
+		HomeKit.glow_rect(c, r, HomeKit.BLUE if hidden else (HomeKit.PINK if cells[i][1] == 2 else Color(HomeKit.CYAN, 0.6)), 2.0, 0.3 if hidden else 0.06)
+		if cells[i][0] != "":
+			HomeKit.glow_text(c, r.get_center(), cells[i][0], int(k * 0.5), NUMBER_COLORS[int(cells[i][0])] if cells[i][0].is_valid_int() else Color.WHITE)
+
+func _new_board(d: String) -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_game(d)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not game_screen.visible or engine.game_over or not engine.mines_placed:
+		return
+	SaveUtil.write(SAVE_PATH, {"difficulty": difficulty, "mines": engine.mines, "adjacent": engine.adjacent,
+		"revealed": engine.revealed, "flagged": engine.flagged, "count": engine.revealed_count, "elapsed": elapsed})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+static func _grid(a: Variant, as_bool: bool) -> Array:
+	var out: Array = []
+	for row in a:
+		var r: Array = []
+		for v in row:
+			r.append(bool(v) if as_bool else int(v))
+		out.append(r)
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_game("easy")
+		return
+	_start_game(str(d.difficulty))
+	engine.mines = _grid(d.mines, true)
+	engine.adjacent = _grid(d.adjacent, false)
+	engine.revealed = _grid(d.revealed, true)
+	engine.flagged = _grid(d.flagged, true)
+	engine.revealed_count = int(d.count)
+	engine.mines_placed = true
+	elapsed = float(d.get("elapsed", 0.0))
+	timer_running = true
+	_render()

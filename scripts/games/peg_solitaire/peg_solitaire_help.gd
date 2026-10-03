@@ -10,6 +10,7 @@ const HOW := [
 	"The peg you jump over is removed. Jumps go up, down, left or right — never diagonally.",
 	"The game ends when no jumps are left. One peg left is a win; one peg in the very centre is perfect.",
 	"↶ Undo takes back your last jump.",
+	"⏸ pauses and keeps the board; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Work from the outside in, and avoid leaving pegs stranded alone on the arms of the cross.",

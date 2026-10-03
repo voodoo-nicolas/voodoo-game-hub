@@ -4,6 +4,7 @@ extends Control
 ## a new move every few seconds so nobody has to leave the mat.
 
 const PSEngine = preload("res://scripts/games/party_spinner/party_spinner_engine.gd")
+const HomeKit = preload("res://scripts/games/party_spinner/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -15,6 +16,7 @@ const WHEEL_COLORS := [Color(0.9, 0.22, 0.27), Color(0.2, 0.45, 0.9), Color(1.0,
 const AUTO_OPTIONS := [0, 8, 12, 20]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: PSEngine
 var wheel: Control
 var result_label: Label
@@ -44,9 +46,8 @@ func _color_names() -> Array:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.11, 0.11, 0.17)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -63,9 +64,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🌀 Party Spinner")
@@ -100,7 +102,7 @@ func _build_ui() -> void:
 	root.add_child(wheel)
 
 	history_label = Label.new()
-	history_label.add_theme_font_size_override("font_size", 21)
+	history_label.add_theme_font_size_override("font_size", 24)
 	history_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.78))
 	history_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	history_label.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -131,6 +133,8 @@ func _build_ui() -> void:
 	_update_auto()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/party_spinner/party_spinner_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -230,3 +234,39 @@ func _draw_wheel() -> void:
 func _on_wheel_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_spin()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/party_spinner/party_spinner_help.gd"),
+		"info": info,
+		"accent": HomeKit.LIME,
+		"subtitle": "The spinner for the body-twisting mat game.",
+		"logo": _draw_home_logo,
+		"multi_heading": "Party · one phone, a group of friends",
+		"modes": [{"text": "🌀  Spin", "sub": "Tap the wheel or the button", "multi": true, "color": HomeKit.LIME, "action": _update_result}],
+		"board": "Spins",
+		"board_note": "Spins, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var r := minf(c.size.y * 0.45, 80.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	var cols := [HomeKit.PINK, HomeKit.BLUE, HomeKit.GOLD, HomeKit.LIME]
+	for k in 4:
+		var pts := PackedVector2Array([ctr])
+		for i in 13:
+			var a := TAU * (k + i / 12.0) / 4.0
+			pts.append(ctr + Vector2(cos(a), sin(a)) * r)
+		c.draw_colored_polygon(pts, Color(cols[k], 0.22))
+	HomeKit.glow_circle(c, ctr, r, Color.WHITE, 2.0)
+	HomeKit.glow_line(c, ctr, ctr + Vector2(cos(-0.9), sin(-0.9)) * r * 0.85, Color.WHITE, 3.0)
+	HomeKit.glow_circle(c, ctr, r * 0.08, Color.WHITE, 2.0, 1.0)

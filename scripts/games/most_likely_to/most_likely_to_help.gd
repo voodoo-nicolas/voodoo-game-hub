@@ -11,6 +11,7 @@ const HOW := [
 	"Count to three together, then everyone points at someone at the same time.",
 	"Whoever gets the most fingers drinks — one sip per finger if you're feeling brave.",
 	"Tap the card (or Next card) for the next one. Pick a deck: 😇 Mild, 🌶️ Spicy or 🎲 Mixed.",
+	"⏸ pauses. There's nothing to save: every card is drawn fresh.",
 ]
 const TIPS := [
 	"Any drink works — water and soda count too. Know your limits and play responsibly.",

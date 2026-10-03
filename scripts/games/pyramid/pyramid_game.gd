@@ -4,6 +4,7 @@ extends Control
 ## alone). Tap the stock to turn a card onto the waste pile.
 
 const PyrEngine = preload("res://scripts/games/pyramid/pyramid_engine.gd")
+const HomeKit = preload("res://scripts/games/pyramid/home_kit.gd")
 const Cards = preload("res://scripts/games/pyramid/pyramid_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -12,16 +13,20 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_FELT := Color(0.05, 0.3, 0.17)
+const COLOR_FELT := Color(0.03, 0.04, 0.1)
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://pyramid_save.json"
 const WASTE := 100
 const STOCK := 200
 
 var result_recorded := false  # this deal's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: PyrEngine
 var board: Control
 var info_label: Label
 var end_dialog: ColorRect
+var started := false  # a game is on (not just the one behind Home)
 var selected: int = -1
 
 func _ready() -> void:
@@ -30,12 +35,12 @@ func _ready() -> void:
 	engine = PyrEngine.new()
 	_build_ui()
 	_start_new_game()
+	started = false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_FELT
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -52,9 +57,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🔺 Pyramid")
@@ -69,7 +75,7 @@ func _build_ui() -> void:
 	bar.add_child(new_btn)
 
 	info_label = Label.new()
-	info_label.add_theme_font_size_override("font_size", 22)
+	info_label.add_theme_font_size_override("font_size", 24)
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	root.add_child(info_label)
@@ -98,15 +104,18 @@ func _build_ui() -> void:
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
 		{"text": tr("↶ Undo"), "action": _on_undo},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/pyramid/pyramid_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
+	started = true
 	result_recorded = false
 	engine.new_game()
 	selected = -1
@@ -133,6 +142,7 @@ func _refresh() -> void:
 		end_dialog.visible = true
 
 func _record_result(outcome: String) -> void:
+	SaveUtil.delete(SAVE_PATH)
 	if not info or result_recorded:
 		return
 	result_recorded = true
@@ -222,4 +232,71 @@ func _on_board_input(event: InputEvent) -> void:
 		selected = -1
 	else:
 		selected = slot
+	_refresh()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/pyramid/pyramid_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/pyramid/pyramid_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Pair cards that add up to 13 and clear the pyramid.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🔺  New game", "sub": "Solitaire", "action": _fresh_game}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Pyramids cleared.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.42, 70.0)
+	var w := h * 0.7
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	var cards := [[0, 0, 12], [-1, 1, 7], [1, 1, 18], [-2, 2, 3], [0, 2, 47], [2, 2, 22]]
+	for cd in cards:
+		var r := Rect2(ctr + Vector2(cd[0] * w * 0.55 - w / 2.0, (cd[1] - 1.5) * h * 0.55), Vector2(w, h))
+		Cards.draw_card(c, r, cd[2])
+
+func _fresh_game() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not started or end_dialog.visible or engine.is_won() or engine.is_stuck():
+		return
+	SaveUtil.write(SAVE_PATH, {"pyramid": engine.pyramid, "stock": engine.stock, "waste": engine.waste, "pass": engine.pass_no})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	_start_new_game()
+	engine.pyramid = _ints(d.pyramid)
+	engine.stock = _ints(d.stock)
+	engine.waste = _ints(d.waste)
+	engine.pass_no = int(d.get("pass", 1))
+	engine.history = []
 	_refresh()

@@ -11,6 +11,7 @@ const HOW := [
 	"Switch to 🚩 mode to flag squares you think hide mines.",
 	"Tap a number that already has all its flags around it to dig every other square next to it.",
 	"Dig up a mine and you lose. Pick Easy, Medium or Hard for bigger boards with more mines.",
+	"⏸ pauses the clock and keeps the board; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"A 1 with only one hidden square next to it: that square is a mine.",

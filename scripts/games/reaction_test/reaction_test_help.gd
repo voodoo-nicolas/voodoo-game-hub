@@ -10,6 +10,7 @@ const HOW := [
 	"After a random delay it turns green — tap it right away.",
 	"Your reaction time is shown in milliseconds (1000 ms = 1 second).",
 	"Tap before it turns green and it counts as a false start.",
+	"⏸ pauses. Every test is a single tap, so there's nothing to save.",
 ]
 const TIPS := [
 	"Don't try to guess the moment — the delay is random every time.",

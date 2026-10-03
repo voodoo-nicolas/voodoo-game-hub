@@ -4,6 +4,7 @@ extends Control
 ## shot. Your own fleet is the small grid below. Shuffle it before firing.
 
 const SeaEngine = preload("res://scripts/games/sea_battle/sea_battle_engine.gd")
+const HomeKit = preload("res://scripts/games/sea_battle/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -11,15 +12,18 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_WATER := Color(0.1, 0.25, 0.42)
-const COLOR_GRID := Color(0.18, 0.36, 0.56)
-const COLOR_SHIP := Color(0.55, 0.58, 0.62)
-const COLOR_HIT := Color(0.95, 0.35, 0.2)
-const COLOR_SUNK := Color(0.45, 0.12, 0.1)
-const COLOR_MISS := Color(0.75, 0.85, 0.95)
+const COLOR_WATER := Color(0.02, 0.06, 0.16)
+const COLOR_GRID := Color(0.16, 0.45, 0.9, 0.5)
+const COLOR_SHIP := Color(0.16, 0.9, 1.0, 0.35)
+const COLOR_HIT := Color("ff2b6b")
+const COLOR_SUNK := Color(0.45, 0.06, 0.2)
+const COLOR_MISS := Color(0.75, 0.85, 1.0)
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://sea_battle_save.json"
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: SeaEngine
 var enemy_board: Control
 var own_board: Control
@@ -28,6 +32,7 @@ var shuffle_btn: Button
 var ships_label: Label
 var cpu_timer: Timer
 var end_dialog: ColorRect
+var playing := false  # a battle is on (not just the one behind Home)
 var player_turn := true
 var started := false
 
@@ -37,12 +42,12 @@ func _ready() -> void:
 	engine = SeaEngine.new()
 	_build_ui()
 	_start_new_game()
+	playing = false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.06, 0.09, 0.14)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -59,9 +64,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🚢 Sea Battle")
@@ -70,7 +76,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_start_new_game)
 	bar.add_child(restart_btn)
@@ -114,7 +122,7 @@ func _build_ui() -> void:
 	shuffle_btn.pressed.connect(_on_shuffle)
 	side.add_child(shuffle_btn)
 	ships_label = Label.new()
-	ships_label.add_theme_font_size_override("font_size", 21)
+	ships_label.add_theme_font_size_override("font_size", 24)
 	ships_label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
 	ships_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	side.add_child(ships_label)
@@ -131,15 +139,18 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/sea_battle/sea_battle_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
+	playing = true
 	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game()
@@ -205,6 +216,7 @@ func _cpu_shot() -> void:
 
 func _finish() -> void:
 	player_turn = false
+	SaveUtil.delete(SAVE_PATH)
 	var won: bool = engine.winner == 0
 	end_dialog.get_meta("message_label").text = (tr("Victory! Their fleet is sunk.") if won else tr("Defeat. Your fleet is sunk.")) + _record_result("win" if won else "loss")
 	end_dialog.visible = true
@@ -261,3 +273,79 @@ func _record_result(outcome: String) -> String:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/sea_battle/sea_battle_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/sea_battle/sea_battle_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Find and sink the computer's fleet before it sinks yours.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "⚓  Play", "sub": "vs the computer", "action": _fresh_game}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Battles won.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 5.4, 32.0)
+	var o := Vector2(c.size.x / 2.0 - k * 2.5, c.size.y / 2.0 - k * 2.5)
+	for i in 6:
+		c.draw_line(o + Vector2(i * k, 0), o + Vector2(i * k, 5 * k), Color(HomeKit.BLUE, 0.4), 1.5)
+		c.draw_line(o + Vector2(0, i * k), o + Vector2(5 * k, i * k), Color(HomeKit.BLUE, 0.4), 1.5)
+	HomeKit.glow_rect(c, Rect2(o + Vector2(1, 1) * k, Vector2(3 * k, k)).grow(-4), HomeKit.CYAN, 2.0, 0.25)
+	for p in [Vector2(2, 1), Vector2(3, 1)]:
+		var ce := o + (p + Vector2(0.5, 0.5)) * k
+		HomeKit.glow_line(c, ce - Vector2(k, k) * 0.25, ce + Vector2(k, k) * 0.25, HomeKit.PINK, 2.0)
+		HomeKit.glow_line(c, ce + Vector2(-k, k) * 0.25, ce + Vector2(k, -k) * 0.25, HomeKit.PINK, 2.0)
+	for p in [Vector2(0, 3), Vector2(3, 3), Vector2(4, 0)]:
+		c.draw_circle(o + (p + Vector2(0.5, 0.5)) * k, k * 0.12, Color.WHITE)
+
+func _fresh_game() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+## Saved on your turn (a computer volley replays from there).
+func _save_game() -> void:
+	if not playing or engine.winner != -1 or not player_turn:
+		return
+	SaveUtil.write(SAVE_PATH, {"ship_at": engine.ship_at, "ships": engine.ships, "shots": engine.shots, "started": started})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	_start_new_game()
+	engine.ship_at = [_ints(d.ship_at[0]), _ints(d.ship_at[1])]
+	engine.shots = [_ints(d.shots[0]), _ints(d.shots[1])]
+	engine.ships = [[], []]
+	for side in 2:
+		for s in d.ships[side]:
+			engine.ships[side].append({"cells": _ints(s.cells), "hits": int(s.hits)})
+	started = bool(d.get("started", true))
+	shuffle_btn.disabled = started
+	_redraw()
