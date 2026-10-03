@@ -4,6 +4,7 @@ extends Control
 ## swipes on their own half), vs the computer, or online.
 
 const SnakeEngine = preload("res://scripts/games/snake/snake_engine.gd")
+const HomeKit = preload("res://scripts/games/snake/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -20,9 +21,12 @@ const COLS := 22
 const STEP_SECONDS := 0.14
 const VERSUS_STEP_SECONDS := 0.16
 ## How far a finger travels before it counts as a turn.
-const SWIPE_PX := 28.0
-const COLOR_BG := Color(0.08, 0.12, 0.09)
-const COLOR_BG_ALT := Color(0.09, 0.135, 0.1)
+const SWIPE_PX := 18.0
+## Solo: a turn that comes in this late in a step (fraction of the step
+## left) makes the step happen now instead of waiting it out.
+const EARLY_STEP := 0.4
+const COLOR_BG := Color(0.03, 0.04, 0.1)
+const COLOR_BG_ALT := Color(0.04, 0.055, 0.12)
 const COLOR_FOOD := Color(0.95, 0.3, 0.3)
 ## Per snake: body, head.
 const SNAKE_COLORS := [[Color(0.3, 0.85, 0.4), Color(0.55, 1.0, 0.6)], [Color(0.3, 0.6, 1.0), Color(0.55, 0.8, 1.0)]]
@@ -30,11 +34,13 @@ const SNAKE_COLORS := [[Color(0.3, 0.85, 0.4), Color(0.55, 1.0, 0.6)], [Color(0.
 enum Mode { SOLO, TWO_PLAYER, VS_CPU, ONLINE }
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var mode: int = Mode.SOLO
 var best_score: int = 0
 var wins := [0, 0]
 var board: Control
+var board_bg: Control  # the field and checkerboard, redrawn only on resize
 var score_label: Label
 var best_label: Label
 var hint_label: Label
@@ -61,13 +67,13 @@ func _ready() -> void:
 	_build_ui()
 	engine.reset(COLS, 30)
 	_show_start_overlay()
+	start_overlay.visible = false  # the Home screen replaces it (online still uses it)
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -85,21 +91,26 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 24)
-	hub_btn.pressed.connect(_go_hub)
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
 	title.text = tr("🐍 Snake")
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.LIME.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.LIME, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 24)
 	restart_btn.pressed.connect(_show_start_overlay)
 	top_bar.add_child(restart_btn)
@@ -124,6 +135,11 @@ func _build_ui() -> void:
 	bm.add_theme_constant_override("margin_left", 10)
 	bm.add_theme_constant_override("margin_right", 10)
 	root.add_child(bm)
+	board_bg = Control.new()
+	board_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	board_bg.draw.connect(_draw_field)
+	board_bg.resized.connect(board_bg.queue_redraw)
+	bm.add_child(board_bg)
 	board = Control.new()
 	board.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	board.draw.connect(_draw_board)
@@ -132,7 +148,7 @@ func _build_ui() -> void:
 
 	hint_label = Label.new()
 	hint_label.text = tr("Swipe anywhere to turn")
-	hint_label.add_theme_font_size_override("font_size", 20)
+	hint_label.add_theme_font_size_override("font_size", 24)
 	hint_label.add_theme_color_override("font_color", Color(0.55, 0.6, 0.65))
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var hm := MarginContainer.new()
@@ -158,6 +174,8 @@ func _build_ui() -> void:
 		online.status_changed.connect(_on_online_status)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/snake/snake_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best_score > 0:
 			info.high("Best score", best_score)
@@ -192,7 +210,7 @@ func _build_start_overlay() -> void:
 	box.add_child(start_title)
 
 	start_status = Label.new()
-	start_status.add_theme_font_size_override("font_size", 22)
+	start_status.add_theme_font_size_override("font_size", 24)
 	start_status.add_theme_color_override("font_color", Color(0.75, 0.8, 0.85))
 	start_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	start_status.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -219,7 +237,7 @@ func _build_start_overlay() -> void:
 func _build_game_over_dialog() -> void:
 	game_over_dialog = Ui.build_dialog("", [
 		{"text": tr("Play Again"), "action": _play_again},
-		{"text": tr("Change Mode"), "action": _show_start_overlay},
+		{"text": tr("Change Mode"), "action": _go_home},
 		{"text": tr("Back to Hub"), "action": _go_hub},
 	], true)
 	game_over_label = game_over_dialog.get_meta("message_label")
@@ -263,6 +281,7 @@ func _start_game(p_mode: int) -> void:
 	step_timer.start()
 	_update_hint()
 	_render()
+	board_bg.queue_redraw()  # the rows may have changed
 	if _is_online():
 		online.push_state()
 
@@ -311,7 +330,7 @@ func _sfx(sound: String) -> void:
 
 func _process(_delta: float) -> void:
 	if running:
-		board.queue_redraw()  # the food pulses
+		board.queue_redraw()  # the food pulses and the snakes glide
 
 func _end_round() -> void:
 	step_timer.stop()
@@ -380,17 +399,24 @@ func _geom() -> Dictionary:
 	var size := Vector2(engine.cols, engine.rows) * cell
 	return {"cell": cell, "origin": (board.size - size) / 2.0, "size": size}
 
+func _draw_field() -> void:
+	if engine.snakes.is_empty():
+		return
+	var g := _geom()
+	var c: float = g.cell
+	var o: Vector2 = g.origin
+	board_bg.draw_rect(Rect2(o, g.size), COLOR_BG)
+	for y in engine.rows:  # faint checkerboard
+		for x in range(y % 2, engine.cols, 2):
+			board_bg.draw_rect(Rect2(o + Vector2(x, y) * c, Vector2(c, c)), COLOR_BG_ALT)
+	board_bg.draw_rect(Rect2(o, g.size), Color(0.3, 0.5, 0.35, 0.6), false, 2.0)
+
 func _draw_board() -> void:
 	if engine.snakes.is_empty():
 		return
 	var g := _geom()
 	var c: float = g.cell
 	var o: Vector2 = g.origin
-	board.draw_rect(Rect2(o, g.size), COLOR_BG)
-	for y in engine.rows:  # faint checkerboard
-		for x in range(y % 2, engine.cols, 2):
-			board.draw_rect(Rect2(o + Vector2(x, y) * c, Vector2(c, c)), COLOR_BG_ALT)
-	board.draw_rect(Rect2(o, g.size), Color(0.3, 0.5, 0.35, 0.6), false, 2.0)
 	var pulse := 0.85 + 0.15 * sin(Time.get_ticks_msec() / 160.0)
 	for f in engine.foods:
 		var fc: Vector2 = o + (Vector2(f) + Vector2(0.5, 0.55)) * c
@@ -400,8 +426,16 @@ func _draw_board() -> void:
 	for i in engine.snakes.size():
 		_draw_snake(engine.snakes[i], SNAKE_COLORS[i % 2], o, c)
 
+## How far into the current step we are (0..1), for gliding between cells.
+func _step_progress() -> float:
+	if not running or step_timer.is_stopped() or get_tree().paused:
+		return 0.0
+	return clampf(1.0 - step_timer.time_left / step_timer.wait_time, 0.0, 1.0)
+
 ## A thin, rounded snake: a thick line through the segment centres, a
-## slightly bigger head with eyes looking where it's going.
+## slightly bigger head with eyes looking where it's going. Between steps the
+## head glides toward its next cell (already bending the way you swiped) and
+## the tail follows, so the snake moves smoothly and a swipe shows at once.
 func _draw_snake(s: Dictionary, colors: Array, o: Vector2, c: float) -> void:
 	var body: Array = s.body
 	if body.is_empty():
@@ -413,13 +447,22 @@ func _draw_snake(s: Dictionary, colors: Array, o: Vector2, c: float) -> void:
 	var pts := PackedVector2Array()
 	for seg in body:
 		pts.append(o + (Vector2(seg) + Vector2(0.5, 0.5)) * c)
+	var t: float = _step_progress() if s.alive else 0.0
+	var dir: int = s.dir
+	if t > 0.0:
+		dir = s.pending
+		var next: Vector2i = body[0] + SnakeEngine.DELTA[dir]
+		pts.insert(0, pts[0] + Vector2(SnakeEngine.DELTA[dir]) * c * t)
+		if pts.size() > 2 and not engine.foods.has(next):  # not growing: the tail follows
+			var n := pts.size()
+			pts[n - 1] = pts[n - 1].lerp(pts[n - 2], t)
 	if pts.size() > 1:
 		board.draw_polyline(pts, col, w, true)
 		for p in pts:  # round the joints
 			board.draw_circle(p, w / 2.0, col)
 	var head: Vector2 = pts[0]
 	board.draw_circle(head, c * 0.36, head_col)
-	var d: Vector2 = Vector2(SnakeEngine.DELTA[s.dir])
+	var d: Vector2 = Vector2(SnakeEngine.DELTA[dir])
 	var side := Vector2(-d.y, d.x)
 	for k in [-1.0, 1.0]:
 		var e: Vector2 = head + d * c * 0.12 + side * k * c * 0.16
@@ -464,12 +507,11 @@ func _input(event: InputEvent) -> void:
 	if pressed:
 		swipes[idx] = {"origin": pos, "player": _player_for(pos)}
 		return
-	if released:
-		swipes.erase(idx)
-		return
 	if not swipes.has(idx):
 		return
 	var sw: Dictionary = swipes[idx]
+	if released:  # a quick flick can end before any drag event arrives
+		swipes.erase(idx)
 	var delta: Vector2 = pos - sw.origin
 	if maxf(absf(delta.x), absf(delta.y)) < SWIPE_PX:
 		return
@@ -508,7 +550,14 @@ func _steer(who: int, d: int) -> void:
 	if mode == Mode.ONLINE and not online.is_host():
 		online.send_move({"d": d})  # the host moves our snake
 		return
-	engine.set_direction(who, d)
+	if not engine.set_direction(who, d):
+		return
+	# Solo: a late turn steps right away rather than waiting out the step.
+	# (Versus keeps a fixed clock -- an early step would move both snakes.)
+	var s: Dictionary = engine.snakes[who]
+	if mode == Mode.SOLO and s.pending != s.dir and not step_timer.is_stopped() 			and step_timer.time_left < step_timer.wait_time * EARLY_STEP:
+		step_timer.start()
+		_on_step()
 
 # ---------- online (host runs the game, guest sends turns) ----------
 
@@ -526,6 +575,7 @@ func _on_online_started(p_my_player: int) -> void:
 	my_player = p_my_player
 	mode = Mode.ONLINE
 	wins = [0, 0]
+	home.hide_home()
 	_show_start_overlay()
 
 func _on_online_status() -> void:
@@ -633,9 +683,8 @@ func _on_best_reconciled(merged: int) -> void:
 ## player is still playing.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
-		if is_node_ready() and running and mode != Mode.ONLINE and not get_tree().paused:
-			get_tree().paused = true
-			pause_dialog.visible = true
+		if is_node_ready() and running and mode != Mode.ONLINE and not get_tree().paused and home:
+			home.pause()
 
 func _resume() -> void:
 	get_tree().paused = false
@@ -655,3 +704,40 @@ func _build_pause_dialog() -> void:
 	])
 	pause_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(pause_dialog)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/snake/snake_help.gd"),
+		"info": info,
+		"accent": HomeKit.LIME,
+		"subtitle": "Eat, grow, don't crash. Swipe anywhere to turn.",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "🐍 Solo", "sub": "Beat your best score", "action": _start_game.bind(Mode.SOLO)},
+			{"text": "🤖 vs Computer", "sub": "Make its snake crash first", "action": _start_game.bind(Mode.VS_CPU)},
+			{"text": "👥 2 Players", "sub": "Same phone: bottom half vs top half", "multi": true, "action": _start_game.bind(Mode.TWO_PLAYER)},
+		] + ([{"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true, "color": HomeKit.PURPLE, "action": _on_online_pressed}] if online else []),
+		"restart": _play_again,
+		"online": online,
+		"board_note": "Your best solo score.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 5.0, 34.0)
+	var o := Vector2(c.size.x / 2.0 - k * 3.5, c.size.y / 2.0 - k * 1.5)
+	var body := [Vector2(0, 2), Vector2(1, 2), Vector2(2, 2), Vector2(2, 1), Vector2(3, 1), Vector2(4, 1), Vector2(5, 1), Vector2(5, 0)]
+	var pts := PackedVector2Array()
+	for b in body:
+		pts.append(o + (b + Vector2(0.5, 0.5)) * k)
+	HomeKit.glow_polyline(c, pts, SNAKE_COLORS[0][0], k * 0.3)
+	HomeKit.glow_circle(c, pts[pts.size() - 1], k * 0.36, SNAKE_COLORS[0][1], 2.5, 0.6)
+	HomeKit.glow_circle(c, o + Vector2(6.8, 0.5) * k, k * 0.28, HomeKit.PINK, 2.5, 0.5)

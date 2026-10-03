@@ -18,10 +18,14 @@ const OPPOSITE := {
 	Dir.LEFT: Dir.RIGHT, Dir.RIGHT: Dir.LEFT,
 }
 const START_LEN := 3
+## Swipes that can wait behind the next step's turn.
+const MAX_TURNS := 2
 
 var cols: int = 15
 var rows: int = 15
-## [{body: Array[Vector2i] (0 = head), dir, pending, alive: bool, score: int}]
+## [{body: Array[Vector2i] (0 = head), dir, pending, turns: Array, alive: bool, score: int}]
+## pending = the direction of the next step; turns = later swipes waiting
+## their turn, so two quick swipes (a U-turn) inside one step both count.
 var snakes: Array = []
 var foods: Array = []  # Vector2i
 var game_over: bool = false
@@ -58,7 +62,7 @@ func _add_snake(head: Vector2i, d: int) -> void:
 	var body: Array = []
 	for k in START_LEN:
 		body.append(head - DELTA[d] * k)
-	snakes.append({"body": body, "dir": d, "pending": d, "alive": true, "score": 0})
+	snakes.append({"body": body, "dir": d, "pending": d, "turns": [], "alive": true, "score": 0})
 
 func players() -> int:
 	return snakes.size()
@@ -84,18 +88,29 @@ func _spawn_food() -> void:
 		return
 	foods.append(free.pick_random())
 
-## Ignores a 180-degree reversal into the snake's own neck; queues everything
-## else for the next step() call.
-func set_direction(i: int, d: int = -1) -> void:
+## Queues a turn for the coming steps (up to MAX_TURNS ahead). Ignores a
+## repeat of the direction it will already be going and a 180-degree
+## reversal into its own neck. Returns true if the turn was taken.
+func set_direction(i: int, d: int = -1) -> bool:
 	# Old solo signature: set_direction(dir)
 	if d == -1:
 		d = i
 		i = 0
 	if i < 0 or i >= snakes.size():
-		return
+		return false
 	var s: Dictionary = snakes[i]
-	if OPPOSITE[d] != s.dir:
+	if not s.has("turns"):
+		s.turns = []
+	if s.pending == s.dir:
+		if d == s.dir or OPPOSITE[d] == s.dir:
+			return false
 		s.pending = d
+		return true
+	var last: int = s.turns.back() if not s.turns.is_empty() else s.pending
+	if d == last or OPPOSITE[d] == last or s.turns.size() >= MAX_TURNS:
+		return false
+	s.turns.append(d)
+	return true
 
 ## Advances one tick. Returns true if this step just ended the game.
 func step() -> bool:
@@ -109,6 +124,8 @@ func step() -> bool:
 			eats.append(false)
 			continue
 		s.dir = s.pending
+		if not s.get("turns", []).is_empty():
+			s.pending = s.turns.pop_front()
 		var h: Vector2i = s.body[0] + DELTA[s.dir]
 		heads.append(h)
 		eats.append(foods.has(h))
@@ -232,7 +249,7 @@ func from_dict(d: Dictionary) -> void:
 		var body := []
 		for c in s.b:
 			body.append(Vector2i(int(c[0]), int(c[1])))
-		snakes.append({"body": body, "dir": int(s.d), "pending": int(s.p), "alive": bool(s.a), "score": int(s.s)})
+		snakes.append({"body": body, "dir": int(s.d), "pending": int(s.p), "turns": [], "alive": bool(s.a), "score": int(s.s)})
 	foods.clear()
 	for f in d.get("foods", []):
 		foods.append(Vector2i(int(f[0]), int(f[1])))

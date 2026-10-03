@@ -1,6 +1,7 @@
 extends Control
 
 const SolitaireEngine = preload("res://scripts/games/solitaire/solitaire_engine.gd")
+const HomeKit = preload("res://scripts/games/solitaire/home_kit.gd")
 const CardData = preload("res://scripts/games/solitaire/card_data.gd")
 const CardView = preload("res://scripts/games/solitaire/card_view.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -21,6 +22,7 @@ const BOARD_WIDTH := 7 * CARD_W + 6 * COL_GAP  # 648
 const BOARD_HEIGHT := CARD_H + ROW_GAP + 18 * FAN + CARD_H  # generous room for deep piles
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 
 var selected_pile: String = ""
@@ -55,8 +57,7 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = SolitaireEngine.new()
 	_build_ui()
-	if not _load_saved_game():
-		_start_new_game()
+	_start_new_game()  # a deal behind the Home screen; Resume / New deal there
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -76,9 +77,8 @@ func _format_time(s: float) -> String:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.07, 0.28, 0.14)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -97,7 +97,8 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_button := Button.new()
-	pause_button.text = tr("Pause")
+	pause_button.text = "⏸"
+	pause_button.custom_minimum_size = Vector2(76, 64)
 	pause_button.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_button)
 
@@ -137,6 +138,8 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/solitaire/solitaire_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -149,7 +152,7 @@ func _fit_board() -> void:
 func _stat_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 20)
+	l.add_theme_font_size_override("font_size", 24)
 	l.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
 	return l
 
@@ -190,7 +193,7 @@ func _build_win_dialog() -> void:
 	box.add_child(title)
 
 	win_stats_label = Label.new()
-	win_stats_label.add_theme_font_size_override("font_size", 22)
+	win_stats_label.add_theme_font_size_override("font_size", 24)
 	win_stats_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	win_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(win_stats_label)
@@ -205,9 +208,9 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(200, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	menu_btn.custom_minimum_size = Vector2(320, 64)
+	menu_btn.pressed.connect(_go_home)
 	box.add_child(menu_btn)
 
 func _build_pause_dialog() -> void:
@@ -242,8 +245,10 @@ func _build_pause_dialog() -> void:
 
 	var title := Label.new()
 	title.text = tr("Paused")
-	title.add_theme_font_size_override("font_size", 33)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", HomeKit.LIME.lerp(Color.WHITE, 0.7))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.LIME, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
@@ -285,11 +290,7 @@ func _start_new_game() -> void:
 	_render()
 
 func _on_pause_pressed() -> void:
-	if not game_active:
-		return
-	timer_running = false
-	_save_game()
-	pause_dialog.visible = true
+	home.pause()
 
 func _on_resume_pressed() -> void:
 	pause_dialog.visible = false
@@ -600,3 +601,50 @@ func _load_saved_game() -> bool:
 	pause_dialog.visible = false
 	_render()
 	return true
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/solitaire/solitaire_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/solitaire/solitaire_help.gd"),
+		"info": info,
+		"accent": HomeKit.LIME,
+		"subtitle": "Classic Klondike: build up the foundations from Ace to King.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🃏  New deal", "sub": "Draw one", "action": _fresh_deal}],
+		"save_path": SAVE_PATH,
+		"resume": _resume_saved,
+		"restart": _start_new_game,
+		"board": "Games won",
+		"board_note": "Games won, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.8, 140.0)
+	var w := h * 0.68
+	var o := Vector2(c.size.x / 2.0 - w * 2.2, c.size.y / 2.0 - h / 2.0)
+	var suits := ["♠", "♥", "♦", "♣"]
+	for i in 4:
+		var r := Rect2(o + Vector2(i * w * 1.1, 0), Vector2(w, h))
+		var red: bool = i == 1 or i == 2
+		c.draw_rect(r, Color(0.05, 0.07, 0.15))
+		HomeKit.glow_rect(c, r, HomeKit.PINK if red else HomeKit.CYAN, 2.0)
+		HomeKit.glow_text(c, r.get_center() + Vector2(0, -h * 0.12), "A", int(h * 0.3), Color.WHITE)
+		HomeKit.glow_text(c, r.get_center() + Vector2(0, h * 0.2), suits[i], int(h * 0.26), HomeKit.PINK if red else HomeKit.CYAN)
+
+func _fresh_deal() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _resume_saved() -> void:
+	if not _load_saved_game():
+		_start_new_game()

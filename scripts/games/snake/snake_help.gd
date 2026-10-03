@@ -12,6 +12,7 @@ const HOW := [
 	"Versus (2 players, the computer or online): run into the other snake's body and you're out — so trap them against your side! Two heads meeting is a draw.",
 	"2 players on one phone: green swipes on the bottom half, blue on the top half.",
 	"Fill the entire board and you win!",
+	"⏸ pauses the game (not online). A round can't be saved for later: leaving it ends it.",
 ]
 const TIPS := [
 	"Go around the edges in wide loops rather than zig-zagging through the middle.",

@@ -11,6 +11,7 @@ const HOW := [
 	"Only a King (or a run starting with a King) can go into an empty column.",
 	"Tap the stock to turn over a card. When it runs out, tap it again to turn the pile back over.",
 	"Undo takes back a move. New Deal starts over.",
+	"⏸ pauses the clock and keeps the deal; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Turning over face-down cards in the columns is usually the best move.",
