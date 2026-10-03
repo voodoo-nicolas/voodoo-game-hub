@@ -11,6 +11,7 @@ const HOW := [
 	"Type letters with the keyboard — the cursor moves to the next square by itself.",
 	"◀ Prev and Next ▶ jump between clues.",
 	"Check shows any wrong letters. Reveal letter fills in the current square if you're stuck.",
+	"⏸ pauses and keeps the puzzle; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Fill in the words you're sure of first — every letter helps the words that cross it.",

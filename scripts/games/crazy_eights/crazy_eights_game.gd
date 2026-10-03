@@ -4,6 +4,7 @@ extends Control
 ## the deck to draw when you have nothing to play.
 
 const C8Engine = preload("res://scripts/games/crazy_eights/crazy_eights_engine.gd")
+const HomeKit = preload("res://scripts/games/crazy_eights/home_kit.gd")
 const Cards = preload("res://scripts/games/crazy_eights/crazy_eights_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -12,10 +13,13 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_FELT := Color(0.05, 0.3, 0.17)
+const COLOR_FELT := Color(0.03, 0.04, 0.1)
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://crazy_eights_save.json"
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: C8Engine
 var board: Control
 var status_label: Label
@@ -24,6 +28,7 @@ var end_dialog: ColorRect
 var cpu_timer: Timer
 var pending_eight: int = -1
 var font: Font
+var started := false  # a game is on (not just the one behind Home)
 
 func _ready() -> void:
 	preload("res://scripts/games/crazy_eights/crazy_eights_i18n.gd").install(self)
@@ -32,12 +37,12 @@ func _ready() -> void:
 	engine = C8Engine.new()
 	_build_ui()
 	_start_new_game()
+	started = false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = COLOR_FELT
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -54,9 +59,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("8️⃣ Crazy Eights")
@@ -103,15 +109,18 @@ func _build_ui() -> void:
 	add_child(suit_dialog)
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/crazy_eights/crazy_eights_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
 func _start_new_game() -> void:
+	started = true
 	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game()
@@ -294,9 +303,84 @@ func _on_board_input(event: InputEvent) -> void:
 ## Records this game's result in the stats once (end checks can run again
 ## after a game is over) and returns the recap line for the end screen.
 func _record_result(outcome: String) -> String:
+	SaveUtil.delete(SAVE_PATH)
 	if not info:
 		return ""
 	if not result_recorded:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/crazy_eights/crazy_eights_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/crazy_eights/crazy_eights_help.gd"),
+		"info": info,
+		"accent": HomeKit.PINK,
+		"subtitle": "Match the suit or the rank — eights are wild. You vs two computers.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🃏  Play", "sub": "vs two computer players", "action": _new_game}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Games won.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y * 0.85, 160.0)
+	var w := h * 0.68
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0 + 6)
+	var cards := [[-0.35, Cards.new_deck()[7 + 13]], [0.0, Cards.new_deck()[7]], [0.35, Cards.new_deck()[7 + 39]]]
+	for spec in cards:
+		c.draw_set_transform(ctr + Vector2(spec[0] * w * 1.1, abs(spec[0]) * h * 0.18), spec[0], Vector2.ONE)
+		Cards.draw_card(c, Rect2(Vector2(-w / 2.0, -h / 2.0), Vector2(w, h)), spec[1])
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _new_game() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+## Saved only on your turn: the computers' turns replay from there.
+func _save_game() -> void:
+	if not started or engine.winner != -1 or engine.turn != 0 or pending_eight >= 0:
+		return
+	SaveUtil.write(SAVE_PATH, {"hands": engine.hands, "deck": engine.deck, "discard": engine.discard,
+		"suit": engine.suit_now, "passes": engine.passes})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	_start_new_game()
+	engine.hands = []
+	for hnd in d.hands:
+		engine.hands.append(_ints(hnd))
+	engine.deck = _ints(d.deck)
+	engine.discard = _ints(d.discard)
+	engine.suit_now = int(d.suit)
+	engine.passes = int(d.get("passes", 0))
+	engine.turn = 0
+	engine.winner = -1
+	_update_status()

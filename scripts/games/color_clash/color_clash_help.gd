@@ -10,6 +10,7 @@ const HOW := [
 	"Tap ✔ Match if the word names the color it is printed in, or ✖ No match if it doesn't.",
 	"Every right answer scores a point. A wrong answer breaks your streak and costs 2 seconds.",
 	"You have 45 seconds.",
+	"⏸ pauses the clock. A round is only a minute, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Ignore what the word says and look only at the ink, then compare in your head.",
