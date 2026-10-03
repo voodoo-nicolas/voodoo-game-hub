@@ -4,10 +4,12 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"60-second round": "Ronda de 60 segundos",
 		"A sum appears. Tap the right answer from the four choices.": "Aparece una operación. Toca la respuesta correcta entre las cuatro opciones.",
 		"A wrong answer breaks your streak and costs you 3 seconds.": "Una respuesta incorrecta rompe tu racha y te cuesta 3 segundos.",
 		"A wrong answer costs 3 seconds, about the time of a fast right one, so guessing blindly rarely pays.": "Una respuesta incorrecta cuesta 3 segundos, casi lo que tardas en acertar una rápida, así que adivinar a ciegas casi nunca conviene.",
 		"Answer as many sums as you can in 60 seconds.": "Resuelve cuantas operaciones puedas en 60 segundos.",
+		"As many sums as you can in 60 seconds.": "Todas las cuentas que puedas en 60 segundos.",
 		"Back to Hub": "Volver al inicio",
 		"Best score": "Mejor puntaje",
 		"Best streak": "Mejor racha",
@@ -52,9 +54,12 @@ const STRINGS := {
 		"You lose!": "¡Perdiste!",
 		"You win!": "¡Ganaste!",
 		"You: %s": "Tú: %s",
+		"Your best score in one round.": "Tu mejor puntaje en una ronda.",
 		"Your turn (%s)": "Tu turno (%s)",
 		"↺  Restart": "↺  Reiniciar",
+		"⏸ pauses the clock. A round is only a minute, so it isn't saved for later.": "⏸ pausa el reloj. Una ronda dura solo un minuto, así que no se guarda.",
 		"▶  Continue": "▶  Continuar",
+		"▶  Play": "▶  Jugar",
 		"❓ How to Play": "❓ Cómo jugar",
 		"➕ Quick Math": "➕ Cálculo rápido",
 		"🎯 Goal": "🎯 Objetivo",

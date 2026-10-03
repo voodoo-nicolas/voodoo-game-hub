@@ -7,11 +7,15 @@ const {{CLASS}}Engine = preload("res://scripts/games/{{ID}}/{{ID}}_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+## Home screen + pause menu + neon look, copied into this game's folder by
+## `hub.py sync` (CLAUDE.md "Home screen kit").
+const HomeKit = preload("res://scripts/games/{{ID}}/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit
 var engine
 var score_label: Label
 
@@ -23,11 +27,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	theme = HomeKit.neon_theme()
+	add_child(HomeKit.backdrop())
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -44,25 +45,27 @@ func _build_ui() -> void:
 	top_bar.add_theme_constant_override("separation", 10)
 	top_margin.add_child(top_bar)
 
-	var hub_btn := Button.new()
-	hub_btn.text = "Hub"
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
-	top_bar.add_child(hub_btn)
+	var pause_btn := Button.new()
+	pause_btn.text = "⏸"
+	pause_btn.custom_minimum_size = Vector2(76, 64)
+	pause_btn.pressed.connect(func(): home.pause())
+	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
 	title.text = "{{ICON}} {{TITLE}}"
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", 36)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = "Restart"
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
 	score_label = Label.new()
-	score_label.add_theme_font_size_override("font_size", 24)
+	score_label.add_theme_font_size_override("font_size", 30)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(score_label)
 
@@ -79,9 +82,24 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/{{ID}}/{{ID}}_help.gd"))
+	# The game's own Home screen: draw a logo, list the ways to play.
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/{{ID}}/{{ID}}_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "One line that sells the game.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  Play", "action": _start_new_game}],
+		"restart": _start_new_game,
+	})
+	add_child(home)
+	if info:
 		add_child(info)
 	# Must stay the last child so its tab sits above any dialog.
 	add_child(SettingsDrawer.new())
+
+func _draw_home_logo(c: Control) -> void:
+	HomeKit.glow_text(c, c.size / 2.0, "{{ICON}}", int(c.size.y * 0.6), HomeKit.CYAN)
 
 func _start_new_game() -> void:
 	engine.reset()

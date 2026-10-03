@@ -394,6 +394,61 @@ or tell the user what's still missing).
    🔊 Sound / Hub, each opening its own screen in the game's style. Players
    never found the leaderboard on the GameInfo card, so every Home screen
    gets its own 🏆 button (`Auth.fetch_leaderboard`, guarded).
+   **Every other game uses the Home screen kit** (next section).
+
+## Home screen kit (`home_kit.gd`) -- since 2026-10-03
+
+Every game except Sudoku (its own reference Home) and Voodoo IQ (its brain
+map) builds its Home screen, pause menu and neon look with the kit.
+`tools/templates/home_kit.gd` is the only copy ever edited: `hub.py sync`
+copies it to `scripts/games/<id>/home_kit.gd` for every game that mentions
+it, so each pack carries its own copy and runs on any app version, and
+`hub.py check` fails if a copy differs. Its header comment is the how-to.
+
+- **What the game supplies** (`HomeKit.new({...})`): its logo
+  (`_draw_home_logo(c)`, drawn with the kit's `glow_line/rect/circle/text`
+  helpers -- that is what makes each Home the game's own), accent colour,
+  subtitle, and `modes` -- one button per way to play
+  (`"row"` puts difficulty levels side by side, `"multi": true` files it
+  under Multiplayer; `solo_heading` / `multi_heading` rename the sections;
+  `"extra"` adds the game's own pickers, e.g. Block Drop's board size).
+  Plus `save_path` + `resume` (+ `resume_text`) for the Resume button,
+  `restart`, `board` (the stat the 🏆 Leaderboard ranks -- default
+  "Best score", else e.g. "Wins" or "Puzzles solved") and `online`.
+- **What the kit does**: Home (Resume, the modes, How to Play, 🏆
+  Leaderboard, 📊 Statistics, 🔊 Sound, Back to Hub); the pause menu
+  (`home.pause()` from the game's ⏸ button: Continue, Restart, How to Play,
+  Sound, the game's Home, Hub -- two columns in landscape); Android's back
+  gesture; `neon_theme()` (set as the game root's `theme`: neon buttons and
+  26 px default text) and `backdrop()` (near-black + faint grid).
+- **The tree is paused while Home or the pause menu shows** (the kit runs
+  with PROCESS_MODE_ALWAYS), so a game that starts itself in `_ready()`
+  simply waits underneath. A mode button un-pauses and calls its action,
+  which must start a fresh game. "Home" from the pause menu saves
+  (`_save_game()`) and reloads the scene. After a mode starts, the kit asks
+  Settings to re-fit the screen (`_fit_scene`), because a game screen that
+  was hidden behind Home was not measured at load.
+- **Saves**: only the Home "New …" buttons delete a save. `_ready()` may
+  start a game behind Home, so it must NOT delete the save (Resume would
+  find nothing) -- games keep a `started` flag that `_ready()` clears, and
+  `_save_game()` skips when it's false.
+- **Leaderboard metric**: the `scores` table keeps each player's highest
+  number, so games without a "Best score" rank a counter that only grows
+  ("Wins" vs the computer, "Puzzles solved", "Cards played"...). The kit
+  posts it whenever Home shows (signed in).
+- **Two-player modes added 2026-10-03**: vs-computer AIs for Tic-Tac-Toe,
+  Connect Four, Checkers, Reversi, Chess (alpha-beta in a thread, time
+  budget per level), Mancala; same-phone 2 Players for Backgammon, Farkle,
+  Morris, Memory, Shut the Box; "one sets, one guesses" for Code Breaker,
+  Hangman and Wordle.
+- **Card games** draw neon cards (dark face, pink/cyan rim): the shared
+  `<id>_cards.gd` copies are still identical, and Solitaire's `card_view.gd`
+  matches them.
+- **Testing**: `godot --headless --path . --script res://tools/crawl.gd -- [ids]`
+  presses every Home card, every (offline) mode, the pause menu and Resume
+  for each game and prints a summary; `tools/shot.gd` drives one scene and
+  saves screenshots (`--resolution 405x720` for a phone, 720x405 landscape;
+  steps listed in its header). Both play real games: back up user data.
 3. **Nothing important under the camera**: the game's title, HUD, scores and
    board stay fully inside the phone's safe area. `Settings._apply_safe_area()`
    insets the scene's root Control, so lay out from the root's own rect, never
@@ -430,7 +485,9 @@ references.
 
 1. **`<id>_engine.gd`** — `extends RefCounted`, pure game logic, no Godot
    UI/Node dependencies. This is what gets unit-tested headlessly.
-2. **`<id>_game.gd`** — `extends Control`, builds its entire UI in code. Always:
+2. **`<id>_game.gd`** — `extends Control`, builds its entire UI in code, with
+   its Home screen from the kit (see "Home screen kit"; the template already
+   wires it -- give it a real logo and its modes). Always:
    - `Orientation.lock_portrait()` (or `lock_landscape()`) in `_ready()` — every
      scene declares its own required orientation; never rely on another scene to
      reset it on exit (see Gotchas below for why).

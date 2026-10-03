@@ -72,10 +72,15 @@ static func exit_to_hub(from: Node) -> void:
 		from._save_game()
 	from.get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
 
-## The dark rounded card behind every pause and game-over dialog.
+## The dark rounded card behind every pause and game-over dialog: deep navy
+## with a glowing purple rim (reference/art/ART_STYLE.md).
 static func panel_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.14, 0.14, 0.18)
+	sb.bg_color = Color(0.05, 0.07, 0.14, 0.97)
+	sb.border_color = Color(0.61, 0.3, 1.0, 0.75)
+	sb.set_border_width_all(2)
+	sb.shadow_color = Color(0.61, 0.3, 1.0, 0.25)
+	sb.shadow_size = 14
 	sb.corner_radius_top_left = 16
 	sb.corner_radius_top_right = 16
 	sb.corner_radius_bottom_left = 16

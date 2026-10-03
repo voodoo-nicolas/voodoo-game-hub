@@ -325,7 +325,7 @@ func _build_home() -> void:
 		"accent": HomeKit.PURPLE,
 		"subtitle": "Ten questions. Answer fast for more points.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "❓  Play", "sub": "Pick a topic", "action": _show_topics}],
+		"modes": [{"text": "🧠  Play", "sub": "Pick a topic", "action": _show_topics}],
 		"restart": _show_topics,
 		"board_note": "Your best score in one game.",
 	})
