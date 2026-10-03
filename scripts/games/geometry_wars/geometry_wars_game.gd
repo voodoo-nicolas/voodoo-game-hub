@@ -13,33 +13,48 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://geometry_wars_save.json"
 
-const PLAYER_SPEED := 400.0
 const START_BOMBS := 3
 const MAX_BOMBS := 6
 ## A free bomb every this many points.
 const BOMB_EVERY_POINTS := 2500
 const SHOCKWAVE_TIME := 0.6
-const PLAYER_RADIUS := 14.0
-const ENEMY_RADIUS := 16.0
-const BULLET_SPEED := 520.0
-const BULLET_RADIUS := 4.0
-const FIRE_COOLDOWN := 0.15
+## Hit circles, in grid squares (Core.U pixels each).
+const PLAYER_RADIUS := 0.35
+const BULLET_RADIUS := 0.2
+## A burst of three shots, ten bursts a second = 30 rounds a second. The
+## middle shot is faster and flies farther than the two beside it.
+const FIRE_INTERVAL := 0.1
+const BULLET_SPEED := 22.0
+const MID_BULLET_SPEED := 27.0
+const BULLET_LIFE := 0.6
+const MID_BULLET_LIFE := 1.0
 const SPAWN_INTERVAL_START := 1.8
-const SPAWN_INTERVAL_MIN := 0.5
-const SPAWN_RAMP_TIME := 60.0
-const INVULN_TIME := 1.5
+const SPAWN_INTERVAL_MIN := 0.55
+const SPAWN_RAMP_TIME := 90.0
+const MAX_ENEMIES := 90
+## The shield after (re)spawning: a halo for 5 s, and 6 quick beeps in the
+## last 1.2 s warn that it is about to drop.
+const INVULN_TIME := 5.0
+const BEEP_WINDOW := 1.2
+const BEEP_COUNT := 6
 const STARTING_LIVES := 3
 const COMBO_WINDOW := 2.0
 const COMBO_STEP := 5
 const JOYSTICK_RADIUS := 70.0
 const JOYSTICK_DEADZONE := 0.15
+const MAX_PARTICLES := 500
+const MAX_CRYSTALS := 250
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var arena_size: Vector2 = Vector2(600, 900)
 var arena_offset: Vector2 = Vector2(20, 90)
 
 var player_pos: Vector2 = Vector2.ZERO
-var last_aim_dir: Vector2 = Vector2.UP
+## The ship points where the move stick points; the aim stick only fires.
+var ship_dir: Vector2 = Vector2.RIGHT
+var thrust: float = 0.0
+var beep_step: int = 99
+var burst_count: int = 0
 var invuln_timer: float = 0.0
 var lives: int = STARTING_LIVES
 var score: int = 0
@@ -173,6 +188,10 @@ func _get_move_dir() -> Vector2:
 		v = move_value
 	else:
 		v = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+		if v == Vector2.ZERO:
+			v = Vector2(
+				float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)),
+				float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W)))
 	if v.length() > 1.0:
 		v = v.normalized()
 	return v
@@ -194,99 +213,192 @@ func _get_aim() -> Dictionary:
 
 # ---------- main loop ----------
 
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
+
 func _process(delta: float) -> void:
 	rotate_hint.visible = get_viewport_rect().size.x < get_viewport_rect().size.y
 
 	if not game_active or paused or game_over:
 		return
 	elapsed_seconds += delta
+	var u: float = Core.U
 
 	var move_dir: Vector2 = _get_move_dir()
-	player_pos += move_dir * PLAYER_SPEED * delta
+	thrust = move_dir.length()
+	if thrust > 0.2:
+		ship_dir = ship_dir.slerp(move_dir.normalized(), clampf(delta * 20.0, 0.0, 1.0))
+	player_pos += move_dir * Core.PLAYER_TOP_SPEED * u * delta + Core.well_pull(enemies, player_pos) * delta
 	player_pos.x = clamp(player_pos.x, 0, arena_size.x)
 	player_pos.y = clamp(player_pos.y, 0, arena_size.y)
 
 	var aim: Dictionary = _get_aim()
 	var aim_dir: Vector2 = aim.dir
-	if aim_dir.length() > 0.01:
-		last_aim_dir = aim_dir
 
 	if invuln_timer > 0.0:
 		invuln_timer = max(0.0, invuln_timer - delta)
+		if invuln_timer < BEEP_WINDOW:
+			var step := int(invuln_timer / (BEEP_WINDOW / BEEP_COUNT))
+			if step != beep_step:
+				beep_step = step
+				_sfx("tick")
 	if shockwave_t >= 0.0:
 		shockwave_t += delta
 		if shockwave_t > SHOCKWAVE_TIME:
 			shockwave_t = -1.0
 
 	fire_cooldown_timer -= delta
-	if aim.firing and aim_dir.length() > 0.01 and fire_cooldown_timer <= 0.0:
-		bullets.append({"id": next_entity_id, "pos": player_pos, "vel": aim_dir * BULLET_SPEED})
-		next_entity_id += 1
-		fire_cooldown_timer = FIRE_COOLDOWN
+	if aim.firing and aim_dir.length() > 0.01:
+		if fire_cooldown_timer <= 0.0:
+			_fire_burst(aim_dir)
+			fire_cooldown_timer += FIRE_INTERVAL
+	elif fire_cooldown_timer < 0.0:
+		fire_cooldown_timer = 0.0
 
 	spawn_timer -= delta
 	if spawn_timer <= 0.0:
 		var t: float = clamp(elapsed_seconds / SPAWN_RAMP_TIME, 0.0, 1.0)
 		spawn_timer = lerp(SPAWN_INTERVAL_START, SPAWN_INTERVAL_MIN, t)
-		enemies.append(Core.spawn_enemy(next_entity_id, arena_size, elapsed_seconds))
-		next_entity_id += 1
+		if enemies.size() < MAX_ENEMIES:
+			for e in Core.spawn_group(arena_size, elapsed_seconds, player_pos):
+				e.id = next_entity_id
+				next_entity_id += 1
+				enemies.append(e)
 
-	Core.update_enemies(enemies, player_pos, arena_size, delta, bullets)
-	Core.update_bullets(bullets, arena_size, delta)
+	for ev in Core.update_enemies(enemies, player_pos, arena_size, delta, bullets, crystals):
+		_on_event(ev)
+	Core.update_bullets(bullets, arena_size, delta, enemies)
+	for w in enemies:
+		if w.type == "well" and w.active:
+			arena_canvas.pulse(w.pos, -35.0, 5.0 * u)
 
-	for k in Core.resolve_bullet_hits(bullets, enemies, BULLET_RADIUS + ENEMY_RADIUS):
+	for k in Core.resolve_bullet_hits(bullets, enemies, BULLET_RADIUS * u):
 		_on_kill(k)
 
 	var picked: int = Core.update_crystals(crystals, player_pos, delta)
 	if picked > 0:
 		multiplier += picked
 		combo = multiplier  # kept for old saves
+		_sfx("pickup")
 
 	for i in range(particles.size() - 1, -1, -1):
-		particles[i].age += delta
-		if particles[i].age >= particles[i].lifetime:
+		var p: Dictionary = particles[i]
+		p.age += delta
+		if p.age >= p.lifetime:
 			particles.remove_at(i)
+			continue
+		p.pos += p.vel * delta
+		p.vel *= maxf(0.0, 1.0 - 2.4 * delta)
 
-	if invuln_timer <= 0.0 and Core.player_hit(player_pos, enemies, PLAYER_RADIUS + ENEMY_RADIUS):
+	if invuln_timer <= 0.0 and Core.player_hit(player_pos, enemies, PLAYER_RADIUS * u):
 		_on_player_hit()
 
 	_update_hud()
 	arena_canvas.queue_redraw()
 	joystick_canvas.queue_redraw()
 
-## Points (times the multiplier), a burst, crystals to collect, and a
-## splitter breaks into three fast minis.
+## Three shots in a tight triangle: the middle one leads, and is faster and
+## longer-ranged than its two wingmen.
+func _fire_burst(dir: Vector2) -> void:
+	var u: float = Core.U
+	var side := Vector2(-dir.y, dir.x)
+	var muzzle: Vector2 = player_pos + dir * 0.6 * u
+	bullets.append({"pos": muzzle + dir * 0.3 * u, "vel": dir * MID_BULLET_SPEED * u, "life": MID_BULLET_LIFE})
+	for s in [-1.0, 1.0]:
+		bullets.append({"pos": muzzle + side * s * 0.32 * u, "vel": dir.rotated(s * 0.04) * BULLET_SPEED * u, "life": BULLET_LIFE})
+	burst_count += 1
+	if burst_count % 4 == 0:
+		_sfx("shoot")
+
+## A shower of sparks in `color`.
+func _spark_burst(pos: Vector2, color: Color, n: int, speed: float = 1.0) -> void:
+	var u: float = Core.U
+	for i in n:
+		if particles.size() >= MAX_PARTICLES:
+			return
+		var a := randf() * TAU
+		var v := Vector2(cos(a), sin(a)) * randf_range(3.0, 13.0) * u * speed
+		particles.append({"pos": pos, "vel": v, "age": 0.0, "lifetime": randf_range(0.35, 0.8), "color": color, "len": randf_range(0.4, 1.0) * u})
+
+func _on_event(ev: Dictionary) -> void:
+	var u: float = Core.U
+	match ev.kind:
+		"gear_pop":
+			_spark_burst(ev.pos, Core.color_of("gear"), 16)
+			arena_canvas.pulse(ev.pos, 80.0, 4.0 * u)
+		"well_burst":
+			_spark_burst(ev.pos, Core.color_of("well"), 40, 1.3)
+			arena_canvas.pulse(ev.pos, 280.0, 9.0 * u)
+			_sfx("explode")
+			for i in int(ev.n):
+				var a := TAU * i / float(ev.n) + randf() * 0.4
+				var pr := Core.make_enemy(next_entity_id, "proton", ev.pos + Vector2(cos(a), sin(a)) * 0.8 * u)
+				pr.vel = Vector2(cos(a), sin(a)) * 9.0 * u
+				next_entity_id += 1
+				enemies.append(pr)
+
+## Points (times the multiplier), sparks, a ripple through the grid, and
+## geoms to collect. Spinners split in three, wells blow up their neighbours.
 func _on_kill(k: Dictionary) -> void:
-	score += int(Core.POINTS.get(k.type, 10)) * multiplier
-	particles.append({"pos": k.pos, "age": 0.0, "lifetime": 0.4})
-	var drops := 3 if k.type == "tank" else 1
-	for i in drops:
-		var jitter := Vector2(randf_range(-14, 14), randf_range(-14, 14)) if drops > 1 else Vector2.ZERO
-		crystals.append({"pos": k.pos + jitter, "age": 0.0})
-	if k.type == "splitter":
+	var u: float = Core.U
+	var type: String = k.type
+	var eaten := int(k.get("eaten", 0))
+	var pts := int(Core.POINTS.get(type, 10))
+	if type == "well":
+		pts += 100 * eaten
+	score += pts * multiplier
+	var big: bool = type == "well" or type == "ufo" or type == "snake"
+	_spark_burst(k.pos, Core.color_of(type), 30 if big else 12)
+	arena_canvas.pulse(k.pos, 260.0 if type == "well" else (120.0 if big else 70.0), (8.0 if big else 3.5) * u)
+	_sfx("explode")
+
+	var drops := int(Core.GEOMS.get(type, 1)) + eaten
+	if type == "ufo":
+		for i in 2:  # the huge ones: +10 multiplier each
+			crystals.append({"pos": k.pos + Vector2(randf_range(-1, 1), randf_range(-1, 1)) * u, "age": 0.0, "v": 10})
+	else:
+		for i in drops:
+			if crystals.size() >= MAX_CRYSTALS:
+				break
+			var jitter := Vector2(randf_range(-0.5, 0.5), randf_range(-0.5, 0.5)) * u if drops > 1 else Vector2.ZERO
+			crystals.append({"pos": k.pos + jitter, "age": 0.0, "v": 1})
+
+	if type == "spinner":
 		for i in 3:
 			var a := TAU * i / 3.0 + randf() * 0.5
-			enemies.append(Core.make_enemy(next_entity_id, "mini", k.pos + Vector2(cos(a), sin(a)) * 18.0))
+			var kid := Core.make_enemy(next_entity_id, "mini", k.pos + Vector2(cos(a), sin(a)) * 0.6 * u)
+			kid.vel = Vector2(cos(a), sin(a)) * 8.0 * u
+			enemies.append(kid)
 			next_entity_id += 1
+	elif type == "well":
+		for kk in Core.blast(enemies, k.pos, 4.5 * u):
+			_on_kill(kk)
 	while score >= next_bomb_at:
 		next_bomb_at += BOMB_EVERY_POINTS
 		bombs = mini(bombs + 1, MAX_BOMBS)
 
 ## Smart bomb: a shockwave wipes out every enemy on screen. No points or
-## crystals for those -- it's an escape, not a farm.
+## geoms for those -- it's an escape, not a farm.
 func _on_bomb_pressed() -> void:
 	if not game_active or paused or game_over or bombs <= 0:
 		return
 	bombs -= 1
 	for e in enemies:
-		particles.append({"pos": e.pos, "age": 0.0, "lifetime": 0.5})
+		_spark_burst(e.pos, Core.color_of(e.type), 4)
 	enemies.clear()
 	shockwave_t = 0.0
 	spawn_timer = maxf(spawn_timer, 1.0)
+	arena_canvas.pulse(player_pos, 300.0, 12.0 * Core.U)
+	_sfx("explode")
 	_update_hud()
 
 func _on_player_hit() -> void:
 	lives -= 1
+	_spark_burst(player_pos, Color(0.8, 0.95, 1.0), 45, 1.4)
+	arena_canvas.pulse(player_pos, 300.0, 10.0 * Core.U)
+	_sfx("lose" if lives <= 0 else "hit")
 	enemies.clear()
 	bullets.clear()
 	crystals.clear()
@@ -294,6 +406,8 @@ func _on_player_hit() -> void:
 	combo_timer = 0.0
 	multiplier = 1
 	invuln_timer = INVULN_TIME
+	beep_step = 99
+	spawn_timer = 1.5
 	player_pos = arena_size / 2.0
 	if lives <= 0:
 		_show_game_over()
@@ -596,16 +710,21 @@ func _compute_arena() -> void:
 	arena_offset = Vector2(20, 90)
 	arena_size = Vector2(vp.x - 40, vp.y - 90 - 30)
 	arena_canvas.position = arena_offset
+	# One grid square: the arena is 19 squares tall, as in the original.
+	Core.U = arena_size.y / 19.0
+	arena_canvas.reset_grid()
 
 func _start_new_game() -> void:
 	_compute_arena()
 	player_pos = arena_size / 2.0
-	last_aim_dir = Vector2.UP
+	ship_dir = Vector2.RIGHT
 	lives = STARTING_LIVES
 	score = 0
 	combo = 0
 	combo_timer = 0.0
-	invuln_timer = 0.0
+	invuln_timer = INVULN_TIME
+	beep_step = 99
+	burst_count = 0
 	fire_cooldown_timer = 0.0
 	spawn_timer = 0.0
 	elapsed_seconds = 0.0
@@ -648,6 +767,7 @@ func _show_game_over() -> void:
 		info.add("Games played")
 		var record: bool = info.best("Best score", score)
 		info.high("Longest time survived", elapsed_seconds)
+		info.high("Highest multiplier", multiplier)
 		game_over_stats.text += "\n" + (tr("New best!") if record else tr("Best: %d") % int(info.get_stat("Best score")))
 	game_over_dialog.visible = true
 
@@ -714,11 +834,12 @@ func _load_saved_game() -> bool:
 	bullets = []
 	particles = []
 	invuln_timer = INVULN_TIME
+	beep_step = 99
 	fire_cooldown_timer = 0.0
 	spawn_timer = 0.5
 	move_touch_index = -1
 	aim_touch_index = -1
-	last_aim_dir = Vector2.UP
+	ship_dir = Vector2.RIGHT
 
 	game_active = true
 	paused = false

@@ -26,6 +26,14 @@
       {"id": "hanoi", "title": "Tower of Hanoi", "icon": "🗼", "title_es": "Torre de Hanói"},
       {"id": "calcudoku", "title": "Calcudoku", "icon": "🔟", "title_es": "Calcudoku"}
     ]},
+    {"name": "Intelligence", "icon": "🧠", "name_es": "Inteligencia", "games": [
+      {"id": "trivia", "title": "Trivia", "icon": "❓", "title_es": "Trivia"},
+      {"id": "quick_math", "title": "Quick Math", "icon": "➕", "title_es": "Cálculo rápido"},
+      {"id": "memory_grid", "title": "Memory Grid", "icon": "🔲", "title_es": "Cuadrícula de memoria"},
+      {"id": "color_clash", "title": "Color Clash", "icon": "🎨", "title_es": "Choque de colores"},
+      {"id": "number_series", "title": "Number Series", "icon": "🔢", "title_es": "Series numéricas"},
+      {"id": "digit_recall", "title": "Digit Recall", "icon": "🔟", "title_es": "Recuerdo de dígitos"}
+    ]},
     {"name": "Cards", "icon": "🃏", "name_es": "Cartas", "games": [
       {"id": "solitaire", "title": "Solitaire", "icon": "🂡", "title_es": "Solitario"},
       {"id": "blackjack", "title": "Blackjack", "icon": "🂱", "title_es": "Blackjack"},
@@ -84,7 +92,7 @@
   "games": {
     "sudoku": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
     "solitaire": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
-    "geometry_wars": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
+    "geometry_wars": {"version": 9, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
     "tictactoe": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tictactoe.pck", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
     "connect4": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/connect4.pck", "scene": "res://scenes/games/connect4/connect4.tscn"},
     "g2048": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/g2048.pck", "scene": "res://scenes/games/g2048/g2048.tscn"},
@@ -145,6 +153,12 @@
     "most_likely_to": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/most_likely_to.pck", "scene": "res://scenes/games/most_likely_to/most_likely_to.tscn"},
     "ride_the_bus": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ride_the_bus.pck", "scene": "res://scenes/games/ride_the_bus/ride_the_bus.tscn"},
     "spin_the_bottle": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/spin_the_bottle.pck", "scene": "res://scenes/games/spin_the_bottle/spin_the_bottle.tscn"},
-    "charades": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/charades.pck", "scene": "res://scenes/games/charades/charades.tscn"}
+    "charades": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/charades.pck", "scene": "res://scenes/games/charades/charades.tscn"},
+    "trivia": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trivia.pck", "scene": "res://scenes/games/trivia/trivia.tscn"},
+    "quick_math": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/quick_math.pck", "scene": "res://scenes/games/quick_math/quick_math.tscn"},
+    "memory_grid": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/memory_grid.pck", "scene": "res://scenes/games/memory_grid/memory_grid.tscn"},
+    "color_clash": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_clash.pck", "scene": "res://scenes/games/color_clash/color_clash.tscn"},
+    "number_series": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/number_series.pck", "scene": "res://scenes/games/number_series/number_series.tscn"},
+    "digit_recall": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/digit_recall.pck", "scene": "res://scenes/games/digit_recall/digit_recall.tscn"}
   }
 }
