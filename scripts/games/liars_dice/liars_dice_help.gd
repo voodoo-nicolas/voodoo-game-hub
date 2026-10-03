@@ -11,6 +11,7 @@ const HOW := [
 	"A raise must be more dice, or the same number of a higher face.",
 	"Instead of raising, call Liar! on the last bid. All dice are shown: if the bid was wrong, the bidder loses a die; if it was right, the caller does.",
 	"Lose all your dice and you're out.",
+	"⏸ pauses the game. A game isn't saved for later: leaving it ends it.",
 ]
 const TIPS := [
 	"On average, one in six of the other players' dice shows any given face. Add that to what you hold.",

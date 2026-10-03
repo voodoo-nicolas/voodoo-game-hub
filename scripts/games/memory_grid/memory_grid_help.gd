@@ -11,6 +11,7 @@ const HOW := [
 	"Find them all to clear the level. Each level has more tiles and a bigger grid.",
 	"Tapping a tile that wasn't lit costs one of your 3 lives, and you try a new pattern of the same level. Lose all 3 and the game ends.",
 	"Your score is the number of levels cleared.",
+	"⏸ pauses. A game is quick, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Look for shapes (a line, an L, a corner) instead of memorizing single tiles.",

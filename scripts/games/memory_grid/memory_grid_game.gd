@@ -3,6 +3,7 @@ extends Control
 ## Memory Grid -- watch the lit tiles, then tap them from memory. Builds its whole UI in code.
 
 const MemoryGridEngine = preload("res://scripts/games/memory_grid/memory_grid_engine.gd")
+const HomeKit = preload("res://scripts/games/memory_grid/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -10,14 +11,15 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const COLOR_IDLE := Color(0.2, 0.25, 0.4)
-const COLOR_LIT := Color(1, 0.8, 0.2)
-const COLOR_HIT := Color(0.3, 0.8, 0.45)
-const COLOR_MISS := Color(0.9, 0.3, 0.3)
+const COLOR_IDLE := Color(0.08, 0.12, 0.26)
+const COLOR_LIT := Color("ffae2b")
+const COLOR_HIT := Color("7dff3a")
+const COLOR_MISS := Color("ff4f6a")
 
 enum Phase { IDLE, SHOW, RECALL, BETWEEN, OVER }
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine
 var phase: int = Phase.IDLE
 var phase_id: int = 0  # bumped on every change, so a stale timer is ignored
@@ -43,9 +45,8 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -64,8 +65,10 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
@@ -85,6 +88,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/memory_grid/memory_grid_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	# Must stay the last child so its tab sits above any dialog.
 	add_child(SettingsDrawer.new())
@@ -149,10 +154,9 @@ func _build_end(root: VBoxContainer) -> void:
 	again.pressed.connect(_start_game)
 	box.add_child(again)
 	var hub := Button.new()
-	hub.text = tr("Back to Hub")
-	hub.custom_minimum_size = Vector2(300, 60)
-	hub.add_theme_font_size_override("font_size", 24)
-	hub.pressed.connect(UI.exit_to_hub.bind(self))
+	hub.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
+	hub.custom_minimum_size = Vector2(320, 64)
+	hub.pressed.connect(_go_home)
 	box.add_child(hub)
 
 func _label(text: String, size: int, color: Color, width: float = 0.0) -> Label:
@@ -309,3 +313,37 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/memory_grid/memory_grid_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/memory_grid/memory_grid_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Tiles light up — tap the same ones back. The grid keeps growing.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  Play", "sub": "Three misses and you're out", "action": _start_game}],
+		"restart": _start_game,
+		"board_note": "Your best score.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 4.3, 40.0)
+	var o := Vector2(c.size.x / 2.0 - k * 2, c.size.y / 2.0 - k * 2)
+	var lit := [1, 6, 8, 11, 14]
+	for i in 16:
+		var r := Rect2(o + Vector2(i % 4, int(i / 4)) * k, Vector2(k, k)).grow(-3)
+		if lit.has(i):
+			HomeKit.glow_rect(c, r, COLOR_LIT, 2.0, 0.5)
+		else:
+			HomeKit.glow_rect(c, r, HomeKit.BLUE, 1.0, 0.06)

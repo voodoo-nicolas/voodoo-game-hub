@@ -4,6 +4,7 @@ extends Control
 ## up to the clue at its start (→ across, ↓ down) without repeating a digit.
 
 const KakuroEngine = preload("res://scripts/games/kakuro/kakuro_engine.gd")
+const HomeKit = preload("res://scripts/games/kakuro/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -12,18 +13,22 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SIZES := [6, 8]
-const COLOR_BLACK := Color(0.2, 0.2, 0.26)
-const COLOR_CELL := Color(0.95, 0.95, 0.92)
-const COLOR_RUN := Color(0.86, 0.92, 1.0)
-const COLOR_SELECTED := Color(0.7, 0.84, 1.0)
-const COLOR_INK := Color(0.12, 0.12, 0.16)
-const COLOR_BAD := Color(0.85, 0.15, 0.15)
+const COLOR_BLACK := Color(0.1, 0.05, 0.18)
+const COLOR_CELL := Color(0.05, 0.07, 0.15)
+const COLOR_RUN := Color(0.07, 0.15, 0.28)
+const COLOR_SELECTED := Color(0.1, 0.25, 0.45)
+const COLOR_INK := Color(0.93, 0.97, 1.0)
+const COLOR_BAD := Color("ff4f6a")
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://kakuro_save.json"
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: KakuroEngine
 var board: Control
 var size_btn: Button
 var win_dialog: ColorRect
+var started := false  # a puzzle is on (not just the one behind Home)
 var size_index: int = 0
 var selected: int = -1
 var font: Font
@@ -35,12 +40,12 @@ func _ready() -> void:
 	engine = KakuroEngine.new()
 	_build_ui()
 	_start_new_game()
+	started = false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -57,9 +62,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("➗ Kakuro")
@@ -75,7 +81,7 @@ func _build_ui() -> void:
 
 	var hint := Label.new()
 	hint.text = tr("Each run adds up to its clue (top-right → across, bottom-left ↓ down). No repeats in a run.")
-	hint.add_theme_font_size_override("font_size", 21)
+	hint.add_theme_font_size_override("font_size", 24)
 	hint.add_theme_color_override("font_color", Color(0.7, 0.7, 0.78))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -114,11 +120,13 @@ func _build_ui() -> void:
 
 	win_dialog = UI.build_dialog(tr("Solved!"), [
 		{"text": tr("Next Puzzle"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/kakuro/kakuro_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -136,6 +144,7 @@ func _cycle_size() -> void:
 	_start_new_game()
 
 func _start_new_game() -> void:
+	started = true
 	engine.new_puzzle(SIZES[size_index])
 	if info:
 		info.start_clock()
@@ -150,6 +159,7 @@ func _on_number(v: int) -> void:
 	engine.values[selected] = v
 	board.queue_redraw()
 	if engine.is_solved():
+		SaveUtil.delete(SAVE_PATH)
 		var secs := 0.0
 		var record := false
 		if info:
@@ -198,6 +208,7 @@ func _draw_board() -> void:
 		elif i in run_cells:
 			col = COLOR_RUN
 		board.draw_rect(rect, col)
+		board.draw_rect(rect, Color(HomeKit.CYAN, 0.45) if i != selected else HomeKit.GOLD, false, 1.5)
 		var v: int = engine.values[i]
 		if v > 0:
 			var fs := int(cs * 0.55)
@@ -210,7 +221,7 @@ func _draw_board() -> void:
 		var p := o + Vector2(cc % n, cc / n) * cs
 		board.draw_line(p + Vector2(2, 2), p + Vector2(cs - 2, cs - 2), Color(0.45, 0.45, 0.52), 1.5)
 		var done: bool = engine.run_complete_ok(ri)
-		var tc := Color(0.5, 0.8, 0.5) if done else Color(1, 1, 1)
+		var tc: Color = HomeKit.LIME if done else HomeKit.GOLD
 		if run.across:
 			board.draw_string(font, p + Vector2(cs * 0.5, cs * 0.42), str(run.sum), HORIZONTAL_ALIGNMENT_CENTER, cs * 0.5, cfs, tc)
 		else:
@@ -226,3 +237,93 @@ func _on_board_input(event: InputEvent) -> void:
 	if r >= 0 and c >= 0 and r < n and c < n and engine.white[r * n + c]:
 		selected = r * n + c
 		board.queue_redraw()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/kakuro/kakuro_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/kakuro/kakuro_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Fill the white squares with 1–9 so every run adds up to its clue.",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "Small", "sub": "6 × 6", "row": "size", "color": HomeKit.LIME, "action": _new_size.bind(0)},
+			{"text": "Large", "sub": "8 × 8", "row": "size", "color": HomeKit.PINK, "action": _new_size.bind(1)},
+		],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"restart": _start_new_game,
+		"board": "Puzzles solved",
+		"board_note": "Puzzles solved, both sizes.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 3.3, 54.0)
+	var o := Vector2(c.size.x / 2.0 - k * 1.5, c.size.y / 2.0 - k * 1.5)
+	var font := ThemeDB.fallback_font
+	for i in 9:
+		var r := Rect2(o + Vector2(i % 3, int(i / 3)) * k, Vector2(k, k)).grow(-2)
+		var clue: bool = i % 3 == 0 or i < 3
+		if clue:
+			c.draw_rect(r, Color(HomeKit.PURPLE, 0.18))
+			c.draw_line(r.position, r.end, Color(HomeKit.PURPLE, 0.6), 1.5)
+		else:
+			HomeKit.glow_rect(c, r, HomeKit.CYAN, 2.0, 0.08)
+	c.draw_string(font, o + Vector2(k * 1.5, k * 0.45), "4", HORIZONTAL_ALIGNMENT_LEFT, -1, int(k * 0.3), HomeKit.GOLD)
+	c.draw_string(font, o + Vector2(k * 2.5, k * 0.45), "9", HORIZONTAL_ALIGNMENT_LEFT, -1, int(k * 0.3), HomeKit.GOLD)
+	c.draw_string(font, o + Vector2(k * 0.05, k * 1.95), "10", HORIZONTAL_ALIGNMENT_LEFT, -1, int(k * 0.3), HomeKit.GOLD)
+	for d in [[1, 1, "3"], [2, 1, "7"], [1, 2, "1"], [2, 2, "2"]]:
+		HomeKit.glow_text(c, o + Vector2(d[0] + 0.5, d[1] + 0.55) * k, d[2], int(k * 0.5), Color.WHITE)
+
+func _new_size(i: int) -> void:
+	size_index = i
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not started or win_dialog.visible or engine.white.is_empty():
+		return
+	SaveUtil.write(SAVE_PATH, {"size_index": size_index, "size": engine.size, "white": engine.white, "runs": engine.runs,
+		"cell_runs": engine.cell_runs, "solution": engine.solution, "values": engine.values})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	size_index = clampi(int(d.get("size_index", 0)), 0, SIZES.size() - 1)
+	_start_new_game()
+	engine.size = int(d.size)
+	engine.white = []
+	for v in d.white:
+		engine.white.append(bool(v))
+	engine.runs = []
+	for r in d.runs:
+		engine.runs.append({"cells": _ints(r.cells), "sum": int(r.sum), "across": bool(r.across), "clue_cell": int(r.clue_cell)})
+	engine.cell_runs = []
+	for cr in d.cell_runs:
+		engine.cell_runs.append(_ints(cr))
+	engine.solution = _ints(d.solution)
+	engine.values = _ints(d.values)
+	selected = -1
+	board.queue_redraw()

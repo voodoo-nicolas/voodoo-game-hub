@@ -3,6 +3,7 @@ extends Control
 ## Liar's Dice vs two computer players. Raise the bid or call "Liar!".
 
 const LDEngine = preload("res://scripts/games/liars_dice/liars_dice_engine.gd")
+const HomeKit = preload("res://scripts/games/liars_dice/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -15,6 +16,7 @@ const PIPS := {1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4:
 
 var result_recorded := false  # this game's result is already in the stats
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: LDEngine
 var table: Control
 var status_label: Label
@@ -40,9 +42,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.2, 0.12, 0.08)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -59,9 +60,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🤥 Liar's Dice")
@@ -70,7 +72,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_start)
 	bar.add_child(restart_btn)
@@ -155,11 +159,13 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/liars_dice/liars_dice_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -281,18 +287,20 @@ func _resolve() -> void:
 
 func _draw_die(pos: Vector2, s: float, v: int, hidden: bool, hilite: bool) -> void:
 	var r := Rect2(pos, Vector2(s, s))
+	var col: Color = HomeKit.GOLD if hilite else (HomeKit.PURPLE if hidden else HomeKit.CYAN)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.3, 0.2, 0.15) if hidden else Color(0.97, 0.97, 0.95)
+	sb.bg_color = Color(col, 0.2 if hilite else 0.1)
+	sb.border_color = col
+	sb.set_border_width_all(4 if hilite else 2)
+	sb.shadow_color = Color(col, 0.35)
+	sb.shadow_size = 6
 	sb.set_corner_radius_all(int(s * 0.16))
-	if hilite:
-		sb.set_border_width_all(4)
-		sb.border_color = Color(1, 0.8, 0.2)
 	table.draw_style_box(sb, r)
 	if hidden:
-		table.draw_string(ThemeDB.fallback_font, Vector2(r.position.x, r.get_center().y + s * 0.2), "?", HORIZONTAL_ALIGNMENT_CENTER, s, int(s * 0.55), Color(1, 1, 1, 0.5))
+		table.draw_string(ThemeDB.fallback_font, Vector2(r.position.x, r.get_center().y + s * 0.2), "?", HORIZONTAL_ALIGNMENT_CENTER, s, int(s * 0.55), Color(1, 1, 1, 0.6))
 		return
 	for sp in PIPS[v]:
-		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.085, Color(0.12, 0.12, 0.14))
+		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.085, Color.WHITE)
 
 func _draw_table() -> void:
 	if engine.dice.is_empty():
@@ -327,3 +335,44 @@ func _record_result(outcome: String) -> String:
 		result_recorded = true
 		info.result(outcome)
 	return "\n" + info.summary()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/liars_dice/liars_dice_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/liars_dice/liars_dice_help.gd"),
+		"info": info,
+		"accent": HomeKit.PURPLE,
+		"subtitle": "Bluff about the dice under your cup. Last player with dice wins.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "🎲  Play", "sub": "vs two computer players", "action": _start}],
+		"restart": _start,
+		"board": "Wins",
+		"board_note": "Games won.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	# a dice cup and three dice, one hidden
+	var cup := PackedVector2Array([ctr + Vector2(-h * 0.5, -h * 0.4), ctr + Vector2(-h * 0.2, -h * 0.4), ctr + Vector2(-h * 0.14, h * 0.3), ctr + Vector2(-h * 0.56, h * 0.3)])
+	c.draw_colored_polygon(cup, Color(HomeKit.PURPLE, 0.2))
+	HomeKit.glow_polyline(c, cup, HomeKit.PURPLE, 2.5, true)
+	var s := h * 0.24
+	for i in 3:
+		var r := Rect2(ctr + Vector2(h * (0.02 + i * 0.3), h * 0.06), Vector2(s, s))
+		HomeKit.glow_rect(c, r, [HomeKit.CYAN, HomeKit.CYAN, HomeKit.GOLD][i], 2.0, 0.12)
+		if i == 2:
+			HomeKit.glow_text(c, r.get_center(), "?", int(s * 0.6), HomeKit.GOLD)
+		else:
+			for sp in PIPS[[5, 3][i]]:
+				c.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.08, Color.WHITE)

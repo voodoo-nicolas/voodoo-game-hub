@@ -11,6 +11,7 @@ const HOW := [
 	"No digit can repeat within a run.",
 	"Tap a square, then a digit to fill it (⌫ clears it). Repeated digits are shown in red.",
 	"Switch between Small and Large boards with the size button.",
+	"⏸ pauses and keeps the puzzle; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Learn the runs with only one answer: 3 in two squares is always 1+2, 4 is 1+3, 16 is 7+9 and 17 is 8+9.",
