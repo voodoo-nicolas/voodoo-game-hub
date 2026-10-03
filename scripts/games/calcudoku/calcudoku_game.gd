@@ -4,21 +4,26 @@ extends Control
 ## outlined cage must make its target with the operation shown.
 
 const CalcEngine = preload("res://scripts/games/calcudoku/calcudoku_engine.gd")
+const HomeKit = preload("res://scripts/games/calcudoku/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SAVE_PATH := "user://calcudoku_save.json"
 
 const SIZES := [4, 5, 6]
-const COLOR_CELL := Color(0.95, 0.95, 0.92)
-const COLOR_SELECTED := Color(0.75, 0.88, 1.0)
-const COLOR_CAGE_DONE := Color(0.85, 0.95, 0.85)
-const COLOR_INK := Color(0.12, 0.12, 0.16)
-const COLOR_BAD := Color(0.85, 0.15, 0.15)
+const COLOR_CELL := Color(0.05, 0.07, 0.15)
+const COLOR_SELECTED := Color(0.1, 0.25, 0.45)
+const COLOR_CAGE_DONE := Color(0.06, 0.2, 0.12)
+const COLOR_INK := Color(0.93, 0.97, 1.0)
+const COLOR_BAD := Color("ff4f6a")
+const COLOR_CAGE := Color("29e6ff")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: CalcEngine
 var board: Control
 var pad: HBoxContainer
@@ -27,6 +32,7 @@ var win_dialog: ColorRect
 var size_index: int = 0
 var selected: int = -1
 var font: Font
+var started := false  # a puzzle is on the board (not just the one behind Home)
 
 func _ready() -> void:
 	preload("res://scripts/games/calcudoku/calcudoku_i18n.gd").install(self)
@@ -35,12 +41,12 @@ func _ready() -> void:
 	engine = CalcEngine.new()
 	_build_ui()
 	_start_new_game()
+	started = false  # the puzzle behind Home isn't a game in progress yet
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -57,9 +63,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🔟 Calcudoku")
@@ -75,7 +82,7 @@ func _build_ui() -> void:
 
 	var hint := Label.new()
 	hint.text = tr("No repeats in any row or column. Each cage must make its number using its operation.")
-	hint.add_theme_font_size_override("font_size", 21)
+	hint.add_theme_font_size_override("font_size", 24)
 	hint.add_theme_color_override("font_color", Color(0.7, 0.7, 0.78))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -108,11 +115,13 @@ func _build_ui() -> void:
 
 	win_dialog = UI.build_dialog(tr("Solved!"), [
 		{"text": tr("Next Puzzle"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/calcudoku/calcudoku_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -137,6 +146,7 @@ func _cycle_size() -> void:
 	_start_new_game()
 
 func _start_new_game() -> void:
+	started = true
 	engine.new_puzzle(SIZES[size_index])
 	if info:
 		info.start_clock()
@@ -152,6 +162,7 @@ func _on_number(v: int) -> void:
 	engine.values[selected] = v
 	board.queue_redraw()
 	if engine.is_solved():
+		SaveUtil.delete(SAVE_PATH)
 		var secs := 0.0
 		var record := false
 		if info:
@@ -192,7 +203,7 @@ func _draw_board() -> void:
 		if i == selected:
 			col = COLOR_SELECTED
 		board.draw_rect(rect, col)
-		board.draw_rect(rect, Color(0.7, 0.7, 0.72), false, 1.0)
+		board.draw_rect(rect, Color(HomeKit.BLUE, 0.3), false, 1.0)
 		var v: int = engine.values[i]
 		if v > 0:
 			var fs := int(cs * 0.5)
@@ -205,19 +216,19 @@ func _draw_board() -> void:
 		var c := i % n
 		var p := o + Vector2(c, r) * cs
 		if c == n - 1 or engine.cage_of[i] != engine.cage_of[i + 1]:
-			board.draw_line(p + Vector2(cs, 0), p + Vector2(cs, cs), COLOR_INK, thick)
+			board.draw_line(p + Vector2(cs, 0), p + Vector2(cs, cs), COLOR_CAGE, thick)
 		if r == n - 1 or engine.cage_of[i] != engine.cage_of[i + n]:
-			board.draw_line(p + Vector2(0, cs), p + Vector2(cs, cs), COLOR_INK, thick)
+			board.draw_line(p + Vector2(0, cs), p + Vector2(cs, cs), COLOR_CAGE, thick)
 		if c == 0:
-			board.draw_line(p, p + Vector2(0, cs), COLOR_INK, thick)
+			board.draw_line(p, p + Vector2(0, cs), COLOR_CAGE, thick)
 		if r == 0:
-			board.draw_line(p, p + Vector2(cs, 0), COLOR_INK, thick)
+			board.draw_line(p, p + Vector2(cs, 0), COLOR_CAGE, thick)
 	for cage in engine.cages:
 		var first: int = cage.cells.min()
 		var p := o + Vector2(first % n, first / n) * cs
 		var label: String = str(cage.target) + cage.op
 		var fs := int(cs * 0.22)
-		board.draw_string(font, p + Vector2(6, fs + 4), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, COLOR_INK)
+		board.draw_string(font, p + Vector2(6, fs + 4), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HomeKit.GOLD)
 
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
@@ -228,3 +239,94 @@ func _on_board_input(event: InputEvent) -> void:
 	if r >= 0 and c >= 0 and r < engine.n and c < engine.n:
 		selected = r * engine.n + c
 		board.queue_redraw()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/calcudoku/calcudoku_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/calcudoku/calcudoku_help.gd"),
+		"info": info,
+		"accent": HomeKit.CYAN,
+		"subtitle": "Every row and column once. Every cage hits its target.",
+		"logo": _draw_home_logo,
+		"modes": [
+			{"text": "4 × 4", "sub": "Easy", "row": "size", "color": HomeKit.LIME, "action": _new_size.bind(0)},
+			{"text": "5 × 5", "sub": "Medium", "row": "size", "color": HomeKit.CYAN, "action": _new_size.bind(1)},
+			{"text": "6 × 6", "sub": "Hard", "row": "size", "color": HomeKit.PINK, "action": _new_size.bind(2)},
+		],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": func(): return "%d × %d" % [int(SaveUtil.read(SAVE_PATH).get("n", 4)), int(SaveUtil.read(SAVE_PATH).get("n", 4))] if SaveUtil.read(SAVE_PATH) else "",
+		"restart": _start_new_game,
+		"board": "Puzzles solved",
+		"board_note": "Puzzles solved, all sizes.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 3.3, 54.0)
+	var o := Vector2(c.size.x / 2.0 - k * 1.5, c.size.y / 2.0 - k * 1.5)
+	for i in 4:
+		c.draw_line(o + Vector2(i * k, 0), o + Vector2(i * k, 3 * k), Color(HomeKit.BLUE, 0.35), 1.5)
+		c.draw_line(o + Vector2(0, i * k), o + Vector2(3 * k, i * k), Color(HomeKit.BLUE, 0.35), 1.5)
+	HomeKit.glow_polyline(c, PackedVector2Array([o, o + Vector2(2 * k, 0), o + Vector2(2 * k, k), o + Vector2(k, k), o + Vector2(k, 2 * k), o + Vector2(0, 2 * k)]), HomeKit.CYAN, 2.5, true)
+	HomeKit.glow_rect(c, Rect2(o + Vector2(2 * k, 0), Vector2(k, 3 * k)), HomeKit.MAGENTA, 2.5)
+	var font := ThemeDB.fallback_font
+	c.draw_string(font, o + Vector2(6, k * 0.32), "6+", HORIZONTAL_ALIGNMENT_LEFT, -1, int(k * 0.26), HomeKit.GOLD)
+	c.draw_string(font, o + Vector2(2 * k + 6, k * 0.32), "6×", HORIZONTAL_ALIGNMENT_LEFT, -1, int(k * 0.26), HomeKit.GOLD)
+	for d in [[0, 0, "1"], [1, 0, "3"], [0, 1, "2"], [2, 1, "2"], [2, 2, "3"], [1, 2, "1"]]:
+		HomeKit.glow_text(c, o + Vector2(d[0] + 0.5, d[1] + 0.58) * k, d[2], int(k * 0.5), Color.WHITE)
+
+func _new_size(i: int) -> void:
+	size_index = i
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if engine.cages.is_empty() or engine.is_solved() or win_dialog.visible or not started:
+		return
+	SaveUtil.write(SAVE_PATH, {"n": engine.n, "size_index": size_index, "solution": engine.solution,
+		"cage_of": engine.cage_of, "cages": engine.cages, "values": engine.values})
+
+static func _ints(a: Variant) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(v))
+	return out
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		_start_new_game()
+		return
+	size_index = clampi(int(d.get("size_index", 0)), 0, SIZES.size() - 1)
+	engine.n = int(d.n)
+	engine.solution = _ints(d.solution)
+	engine.cage_of = _ints(d.cage_of)
+	engine.values = _ints(d.values)
+	engine.cages = []
+	for cg in d.cages:
+		engine.cages.append({"cells": _ints(cg.cells), "op": str(cg.op), "target": int(cg.target)})
+	if engine.values.size() != engine.n * engine.n:
+		_start_new_game()
+		return
+	started = true
+	if info:
+		info.start_clock()
+	selected = -1
+	win_dialog.visible = false
+	size_btn.text = tr("Size: %d×%d") % [engine.n, engine.n]
+	_rebuild_pad()
+	board.queue_redraw()

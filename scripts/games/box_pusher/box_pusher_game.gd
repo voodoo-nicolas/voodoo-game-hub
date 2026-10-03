@@ -4,6 +4,7 @@ extends Control
 ## box onto a goal. Levels unlock one after another; progress is saved.
 
 const BoxEngine = preload("res://scripts/games/box_pusher/box_pusher_engine.gd")
+const HomeKit = preload("res://scripts/games/box_pusher/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -13,14 +14,15 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://box_pusher.json"
-const COLOR_WALL := Color(0.32, 0.26, 0.36)
-const COLOR_FLOOR := Color(0.17, 0.17, 0.22)
-const COLOR_GOAL := Color(0.95, 0.3, 0.4)
-const COLOR_BOX := Color(0.85, 0.6, 0.25)
-const COLOR_BOX_DONE := Color(0.35, 0.8, 0.4)
-const COLOR_PLAYER := Color(0.35, 0.75, 1.0)
+const COLOR_WALL := Color(0.45, 0.25, 0.85)
+const COLOR_FLOOR := Color(0.05, 0.07, 0.14)
+const COLOR_GOAL := Color("ff2bd6")
+const COLOR_BOX := Color("ffae2b")
+const COLOR_BOX_DONE := Color("7dff3a")
+const COLOR_PLAYER := Color("29e6ff")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: BoxEngine
 var board: Control
 var level_label: Label
@@ -46,9 +48,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -65,9 +66,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("📦 Box Pusher")
@@ -76,7 +78,9 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_on_restart)
 	bar.add_child(restart_btn)
@@ -132,11 +136,13 @@ func _build_ui() -> void:
 
 	win_dialog = UI.build_dialog(tr("Level Complete!"), [
 		{"text": tr("Next Level"), "action": _change_level.bind(1)},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/box_pusher/box_pusher_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		info.high("Highest level unlocked", unlocked)
 	add_child(SettingsDrawer.new())
@@ -230,21 +236,17 @@ func _draw_board() -> void:
 					if engine.is_floor(p + d):
 						edge = true
 				if edge:
-					board.draw_rect(rect.grow(-1), COLOR_WALL)
+					board.draw_rect(rect.grow(-1), Color(COLOR_WALL, 0.35))
+					board.draw_rect(rect.grow(-2), COLOR_WALL, false, 2.0)
 				continue
 			board.draw_rect(rect, COLOR_FLOOR)
 			if engine.goals.has(p):
-				board.draw_circle(rect.get_center(), cs * 0.18, COLOR_GOAL)
+				HomeKit.glow_circle(board, rect.get_center(), cs * 0.16, COLOR_GOAL, 2.0, 0.5)
 	for b in engine.boxes:
 		var rect := Rect2(o + Vector2(b) * cs, Vector2(cs, cs)).grow(-cs * 0.1)
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = COLOR_BOX_DONE if engine.goals.has(b) else COLOR_BOX
-		sb.set_corner_radius_all(int(cs * 0.12))
-		sb.set_border_width_all(int(max(2.0, cs * 0.06)))
-		sb.border_color = sb.bg_color.darkened(0.35)
-		board.draw_style_box(sb, rect)
+		HomeKit.glow_rect(board, rect, COLOR_BOX_DONE if engine.goals.has(b) else COLOR_BOX, maxf(2.0, cs * 0.05), 0.3)
 	var pc := o + (Vector2(engine.player) + Vector2(0.5, 0.5)) * cs
-	board.draw_circle(pc, cs * 0.34, COLOR_PLAYER)
+	HomeKit.glow_circle(board, pc, cs * 0.34, COLOR_PLAYER, maxf(2.0, cs * 0.05), 0.5)
 	board.draw_circle(pc + Vector2(-cs * 0.11, -cs * 0.06), cs * 0.06, Color(0.05, 0.05, 0.1))
 	board.draw_circle(pc + Vector2(cs * 0.11, -cs * 0.06), cs * 0.06, Color(0.05, 0.05, 0.1))
 
@@ -275,3 +277,46 @@ func _step_towards_tap(pos: Vector2) -> void:
 		_on_move(1 if d.x > 0 else 3)
 	else:
 		_on_move(2 if d.y > 0 else 0)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/box_pusher/box_pusher_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/box_pusher/box_pusher_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Push every box onto a goal. You can't pull!",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  Play", "sub": "Pick up at your latest level", "action": _play_latest}],
+		"can_resume": func(): return level > 1 or unlocked > 1,
+		"resume": func(): _load_level(level),
+		"resume_text": func(): return tr("Level %d") % level,
+		"restart": _on_restart,
+		"board": "Levels solved",
+		"board_note": "Levels solved, all time.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var k := minf(c.size.y / 4.0, 44.0)
+	var o := Vector2(c.size.x / 2.0 - k * 2.5, c.size.y / 2.0 - k * 1.5)
+	for x in 5:
+		for y in 3:
+			var r := Rect2(o + Vector2(x, y) * k, Vector2(k, k))
+			if y == 0 or y == 2 or x == 0 or x == 4:
+				c.draw_rect(r.grow(-2), Color(COLOR_WALL, 0.5))
+				c.draw_rect(r.grow(-2), COLOR_WALL.lightened(0.3), false, 1.5)
+	HomeKit.glow_circle(c, o + Vector2(1.5, 1.5) * k, k * 0.32, COLOR_PLAYER, 2.5, 0.35)
+	HomeKit.glow_rect(c, Rect2(o + Vector2(2, 1) * k, Vector2(k, k)).grow(-k * 0.12), COLOR_BOX, 2.5, 0.3)
+	HomeKit.glow_circle(c, o + Vector2(3.5, 1.5) * k, k * 0.16, COLOR_GOAL, 2.0, 0.6)
+
+func _play_latest() -> void:
+	_load_level(unlocked)

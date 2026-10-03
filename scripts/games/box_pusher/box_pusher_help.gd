@@ -10,6 +10,7 @@ const HOW := [
 	"Walk into a box to push it. You can only push one box at a time, and you can never pull.",
 	"The level is done when every box sits on a goal.",
 	"Stuck? ↶ Undo takes back a step, and Restart resets the level. Finished levels unlock the next one.",
+	"Your level progress is kept. ⏸ pauses; Resume on the Home screen goes back to the level you were on.",
 ]
 const TIPS := [
 	"A box pushed into a corner can never come out again — unless the corner is a goal.",

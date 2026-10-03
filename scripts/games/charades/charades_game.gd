@@ -6,6 +6,7 @@ extends Control
 ## without a working tilt sensor.
 
 const CHEngine = preload("res://scripts/games/charades/charades_engine.gd")
+const HomeKit = preload("res://scripts/games/charades/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -24,6 +25,7 @@ const TILT_ON := 0.6
 const TILT_REARM := 0.35
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: CHEngine
 var state := "menu"         # menu | countdown | play | results
 var time_left := 0.0
@@ -52,9 +54,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg = ColorRect.new()
-	bg.color = Color(0.1, 0.08, 0.16)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -69,9 +70,10 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
 	hub_btn.add_theme_font_size_override("font_size", 30)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🎭 Charades")
@@ -91,6 +93,8 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/charades/charades_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
@@ -196,7 +200,7 @@ func _build_results(root: VBoxContainer) -> void:
 
 func _show_menu() -> void:
 	state = "menu"
-	bg.color = Color(0.1, 0.08, 0.16)
+	bg.color = HomeKit.BG
 	menu_box.visible = true
 	play_box.visible = false
 	results_box.visible = false
@@ -304,3 +308,38 @@ func _end_round() -> void:
 		info.add("Rounds played")
 		info.add("Words guessed", n)
 		info.best("Most words in a round", n)
+
+# ---------- Home screen (home_kit.gd) ----------
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/charades/charades_help.gd"),
+		"info": info,
+		"accent": HomeKit.PINK,
+		"subtitle": "Phone on your forehead, friends act it out. 60 seconds a round!",
+		"logo": _draw_home_logo,
+		"multi_heading": "Party · one phone, a group of friends",
+		"modes": [{"text": "🎭  Play", "sub": "Pick a category", "multi": true, "color": HomeKit.PINK, "action": _show_menu}],
+		"restart": _show_menu,
+		"board": "Most words in a round",
+		"board_note": "The most words guessed in one 60-second round.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var h := minf(c.size.y, 170.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
+	# a phone held sideways with a word on it, and two tilt arrows
+	var r := Rect2(ctr - Vector2(h * 0.75, h * 0.32), Vector2(h * 1.5, h * 0.64))
+	HomeKit.glow_rect(c, r, HomeKit.PINK, 3.0, 0.1)
+	HomeKit.glow_text(c, ctr, tr("Charades").to_upper(), int(h * 0.17), Color.WHITE)
+	for side in [-1, 1]:
+		var a := ctr + Vector2(side * h * 0.95, 0)
+		HomeKit.glow_polyline(c, PackedVector2Array([a + Vector2(0, -h * 0.2), a + Vector2(side * h * 0.06, 0), a + Vector2(0, h * 0.2)]),
+			HomeKit.LIME if side > 0 else HomeKit.GOLD, 2.5)

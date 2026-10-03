@@ -11,6 +11,7 @@ const HOW := [
 	"For − and ÷, start with the bigger number: a \"2÷\" cage could be 4 and 2.",
 	"A one-square cage just gives you its number.",
 	"Tap a square, then a number to fill it (⌫ clears it). Repeated numbers are shown in red.",
+	"⏸ pauses and keeps the puzzle; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
 	"Fill the one-square cages first — they're free.",

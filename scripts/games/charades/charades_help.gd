@@ -11,6 +11,7 @@ const HOW := [
 	"Guessed it? Tilt the phone down. Want to pass? Tilt it up. The screen flashes green or orange.",
 	"No tilt sensor, or it feels backwards? Tap the right half of the screen for ✓ and the left half to pass — or swap the tilt on the category screen.",
 	"When time's up you'll see every word and how many you got. Pass the phone to the next player!",
+	"⏸ pauses the round. A round is only a minute, so it isn't saved for later.",
 ]
 const TIPS := [
 	"Friends: act it out for actions and animals, describe it for jobs and things.",
