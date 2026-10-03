@@ -6,7 +6,7 @@ const ID := "dots_boxes"
 const TITLE := "Dots and Boxes"
 const GOAL := "Close more boxes than your opponent."
 const HOW := [
-	"Pick vs Computer or 2 Players and a board size. You can also play a friend online.",
+	"On the Home screen, pick a board size under vs Computer or 2 Players (one phone), or 🌐 Online to play a friend on another phone.",
 	"Take turns drawing one line between two neighbouring dots.",
 	"Draw the fourth side of a box and it's yours — and you must draw another line.",
 	"When every line is drawn, the player with the most boxes wins.",
@@ -17,4 +17,4 @@ const TIPS := [
 	"Early on, draw lines that don't give anything away. The player forced to open a chain of boxes first usually loses.",
 	"When you take a long chain, consider leaving the last two boxes for your opponent: then they have to open the next chain for you.",
 ]
-const STATS := ["Wins", "Losses", "Draws"]
+const STATS := ["Wins", "Losses", "Draws", "Best streak", "Blue wins", "Red wins", "2-player ties"]

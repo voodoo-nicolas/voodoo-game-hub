@@ -1,6 +1,7 @@
 extends Control
 
 const DotsBoxesEngine = preload("res://scripts/games/dots_boxes/dots_boxes_engine.gd")
+const HomeKit = preload("res://scripts/games/dots_boxes/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -14,8 +15,8 @@ const SAVE_PATH := "user://dots_boxes_save.json"
 ## run there (without the Online button).
 const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
-const COLOR_P1 := Color(0.25, 0.55, 0.95)   # blue
-const COLOR_P2 := Color(0.9, 0.25, 0.3)     # red
+const COLOR_P1 := HomeKit.CYAN   # "Blue"
+const COLOR_P2 := Color("ff3b6b")  # "Red"
 const COLOR_DOT := Color(0.92, 0.92, 0.95)
 const COLOR_EDGE_HIDDEN := Color(1, 1, 1, 0)
 const COLOR_HOVER := Color(1, 1, 1, 0.35)
@@ -82,6 +83,7 @@ var online_btn: Button
 var size_subtitle: Label
 var size_buttons: Array = []
 var mode_row: HBoxContainer
+var home  # HomeKit
 
 func _ready() -> void:
 	preload("res://scripts/games/dots_boxes/dots_boxes_i18n.gd").install(self)
@@ -89,8 +91,9 @@ func _ready() -> void:
 	touch_mode = DisplayServer.is_touchscreen_available()
 	engine = DotsBoxesEngine.new()
 	_build_ui()
-	if not _load_saved_game():
-		_show_size_screen()
+	# Home is on top; the size screen behind it is only used by online games
+	# (the host picks the board there).
+	size_screen.visible = false
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -100,11 +103,8 @@ func _notification(what: int) -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	theme = HomeKit.neon_theme()
+	add_child(HomeKit.backdrop())
 
 	_build_size_screen()
 	_build_game_screen()
@@ -120,8 +120,74 @@ func _build_ui() -> void:
 		add_child(online)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/dots_boxes/dots_boxes_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
+
+func _build_home() -> void:
+	var modes: Array = []
+	for vs_cpu in [true, false]:
+		for i in SIZE_OPTIONS.size():
+			var opt: Dictionary = SIZE_OPTIONS[i]
+			modes.append({"text": opt.label, "row": "cpu" if vs_cpu else "2p", "multi": not vs_cpu,
+				"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i] if vs_cpu else HomeKit.MAGENTA,
+				"action": _new_local.bind(vs_cpu, opt.rows, opt.cols)})
+	if online:
+		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": online.open_lobby})
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/dots_boxes/dots_boxes_help.gd"),
+		"info": info,
+		"accent": COLOR_P1,
+		"solo_heading": "vs Computer · board size",
+		"multi_heading": "2 Players on one phone · board size",
+		"subtitle": "Draw lines, close boxes, take the most.",
+		"logo": _draw_home_logo,
+		"modes": modes,
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
+		"restart": _restart_same,
+		"board": "Wins",
+		"board_note": "Games won against the computer.",
+		"online": online,
+	})
+	add_child(home)
+
+func _draw_home_logo(c: Control) -> void:
+	var n := 3
+	var k := minf(c.size.y / (n + 0.6), 52.0)
+	var o := Vector2((c.size.x - k * n) / 2.0, (c.size.y - k * n) / 2.0)
+	c.draw_rect(Rect2(o, Vector2(k, k)), Color(COLOR_P1, 0.3))
+	c.draw_rect(Rect2(o + Vector2(k * 2, k), Vector2(k, k)), Color(COLOR_P2, 0.3))
+	var lines := [[0, 0, 1, 0, COLOR_P1], [0, 0, 0, 1, COLOR_P2], [1, 0, 1, 1, COLOR_P1], [0, 1, 1, 1, COLOR_P2],
+		[2, 1, 3, 1, COLOR_P2], [3, 1, 3, 2, COLOR_P1], [2, 2, 3, 2, COLOR_P2], [2, 1, 2, 2, COLOR_P2],
+		[1, 2, 1, 3, COLOR_P1], [1, 1, 2, 1, COLOR_P1]]
+	for l in lines:
+		HomeKit.glow_line(c, o + Vector2(l[0], l[1]) * k, o + Vector2(l[2], l[3]) * k, l[4], 3.0)
+	for y in n + 1:
+		for x in n + 1:
+			HomeKit.glow_circle(c, o + Vector2(x, y) * k, 4.0, Color.WHITE, 1.5, 1.0)
+
+func _new_local(vs_cpu: bool, p_rows: int, p_cols: int) -> void:
+	pending_vs_computer = vs_cpu
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game(p_rows, p_cols)
+
+func _restart_same() -> void:
+	pending_vs_computer = vs_computer
+	_start_new_game(rows, cols)
+
+func _resume_text() -> String:
+	var data = SaveUtil.read(SAVE_PATH)
+	if data == null:
+		return ""
+	var who := tr("vs Computer") if bool(data.get("vs_computer", false)) else tr("2 Players")
+	return "%s  %d × %d" % [who, int(data.get("rows", 5)), int(data.get("cols", 5))]
+
+func _go_home() -> void:
+	home.go_home()
 
 func _build_size_screen() -> void:
 	size_screen = Control.new()
@@ -140,8 +206,9 @@ func _build_size_screen() -> void:
 	root.add_child(top_margin)
 
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
+	hub_btn.text = tr("🏠 Home")
+	hub_btn.custom_minimum_size = Vector2(0, 64)
+	hub_btn.pressed.connect(_go_home)
 	top_margin.add_child(hub_btn)
 
 	var center := CenterContainer.new()
@@ -182,7 +249,7 @@ func _build_size_screen() -> void:
 	var subtitle := Label.new()
 	size_subtitle = subtitle
 	subtitle.text = tr("Choose a board size")
-	subtitle.add_theme_font_size_override("font_size", 21)
+	subtitle.add_theme_font_size_override("font_size", 26)
 	subtitle.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(subtitle)
@@ -190,20 +257,13 @@ func _build_size_screen() -> void:
 	for opt in SIZE_OPTIONS:
 		var btn := Button.new()
 		btn.text = opt.label
-		btn.custom_minimum_size = Vector2(220, 52)
-		btn.add_theme_font_size_override("font_size", 24)
+		btn.custom_minimum_size = Vector2(300, 76)
+		btn.add_theme_font_size_override("font_size", 30)
 		btn.pressed.connect(_start_new_game.bind(opt.rows, opt.cols))
 		box.add_child(btn)
 		size_buttons.append(btn)
 
-	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online_btn = Button.new()
-		online_btn.text = tr("🌐 Play Online")
-		online_btn.custom_minimum_size = Vector2(220, 60)
-		online_btn.add_theme_font_size_override("font_size", 26)
-		online_btn.pressed.connect(func(): online.open_lobby())
-		box.add_child(online_btn)
-
+	mode_row.visible = false  # chosen on the Home screen now
 	_set_pending_mode(false)
 
 func _set_pending_mode(is_cpu: bool) -> void:
@@ -249,26 +309,30 @@ func _build_game_screen() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = tr("Pause")
+	pause_btn.text = "⏸"
+	pause_btn.custom_minimum_size = Vector2(76, 64)
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
 	restart_btn.pressed.connect(func(): _start_new_game(rows, cols))
 	top_bar.add_child(restart_btn)
 
 	var title := Label.new()
 	title.text = tr("Dots and Boxes")
-	title.add_theme_font_size_override("font_size", 33)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", Color(0.85, 0.98, 1.0))
+	title.add_theme_color_override("font_outline_color", Color(COLOR_P1, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.clip_text = true
 	top_bar.add_child(title)
 
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(120, 0)
+	spacer.custom_minimum_size = Vector2(76, 0)
 	top_bar.add_child(spacer)
 
 	var score_row := HBoxContainer.new()
@@ -277,12 +341,12 @@ func _build_game_screen() -> void:
 	root.add_child(score_row)
 
 	score_p1_label = Label.new()
-	score_p1_label.add_theme_font_size_override("font_size", 26)
+	score_p1_label.add_theme_font_size_override("font_size", 30)
 	score_p1_label.add_theme_color_override("font_color", COLOR_P1)
 	score_row.add_child(score_p1_label)
 
 	score_p2_label = Label.new()
-	score_p2_label.add_theme_font_size_override("font_size", 26)
+	score_p2_label.add_theme_font_size_override("font_size", 30)
 	score_p2_label.add_theme_color_override("font_color", COLOR_P2)
 	score_row.add_child(score_p2_label)
 
@@ -304,8 +368,8 @@ func _build_game_screen() -> void:
 
 	confirm_btn = Button.new()
 	confirm_btn.text = tr("Confirm Line")
-	confirm_btn.custom_minimum_size = Vector2(0, 56)
-	confirm_btn.add_theme_font_size_override("font_size", 26)
+	confirm_btn.custom_minimum_size = Vector2(0, 72)
+	confirm_btn.add_theme_font_size_override("font_size", 30)
 	confirm_btn.disabled = true
 	confirm_btn.visible = touch_mode
 	confirm_btn.pressed.connect(_on_confirm_pressed)
@@ -408,7 +472,7 @@ func _build_win_dialog() -> void:
 
 	var again_btn := Button.new()
 	again_btn.text = tr("Play Again (Same Setup)")
-	again_btn.custom_minimum_size = Vector2(240, 48)
+	again_btn.custom_minimum_size = Vector2(320, 64)
 	again_btn.pressed.connect(func():
 		win_dialog.visible = false
 		_start_new_game(rows, cols)
@@ -416,20 +480,12 @@ func _build_win_dialog() -> void:
 	box.add_child(again_btn)
 
 	var new_size_btn := Button.new()
-	new_size_btn.text = tr("Change Board Size")
-	new_size_btn.custom_minimum_size = Vector2(240, 44)
-	new_size_btn.pressed.connect(func():
-		win_dialog.visible = false
-		game_screen.visible = false
-		_show_size_screen()
-	)
+	new_size_btn.text = tr("🏠 Dots and Boxes Home")
+	new_size_btn.custom_minimum_size = Vector2(320, 64)
+	new_size_btn.pressed.connect(_go_home)
 	box.add_child(new_size_btn)
 
-	var menu_btn := Button.new()
-	menu_btn.text = tr("Back to Hub")
-	menu_btn.custom_minimum_size = Vector2(240, 44)
-	menu_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/hub/hub.tscn"))
-	box.add_child(menu_btn)
+
 
 # ---------- game flow ----------
 
@@ -438,10 +494,7 @@ func _show_size_screen() -> void:
 	game_screen.visible = false
 
 func _on_pause_pressed() -> void:
-	if not game_active:
-		return
-	_save_game()
-	pause_dialog.visible = true
+	home.pause()
 
 func _player_label(player: int) -> String:
 	if _is_online():
@@ -625,7 +678,7 @@ func _on_online_started(p_my_player: int) -> void:
 	vs_computer = false
 	pending_vs_computer = false
 	mode_row.visible = false
-	online_btn.visible = false
+	home.hide_home()
 	game_active = false
 	win_dialog.visible = false
 	pause_dialog.visible = false
@@ -927,6 +980,7 @@ func _save_game() -> void:
 func _load_saved_game() -> bool:
 	var data = SaveUtil.read(SAVE_PATH)
 	if data == null:
+		_new_local(false, 5, 5)
 		return false
 	rows = int(data.rows)
 	cols = int(data.cols)
