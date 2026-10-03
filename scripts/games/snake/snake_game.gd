@@ -286,12 +286,28 @@ func _on_step() -> void:
 		return
 	if mode == Mode.VS_CPU and engine.snakes[1].alive:
 		engine.set_direction(1, engine.ai_direction(1))
+	var eaten := _total_score()
 	var ended: bool = engine.step()
 	_render()
 	if ended:
+		_sfx("hit")
 		_end_round()  # before the push, so the guest sees running = false
+	elif _total_score() > eaten:
+		_sfx("pickup")
 	if _is_online():
 		online.push_state()
+
+func _total_score() -> int:
+	var n := 0
+	for s in engine.snakes:
+		n += int(s.score)
+	return n
+
+## Plays a sound from the app's library (silent on apps from before v0.23).
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
 
 func _process(_delta: float) -> void:
 	if running:

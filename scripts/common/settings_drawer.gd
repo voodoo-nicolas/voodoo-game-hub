@@ -16,6 +16,8 @@ extends Control
 const Orientation = preload("res://scripts/common/orientation.gd")
 const Voodoo = preload("res://scripts/common/voodoo.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
+const SoundOptions = preload("res://scripts/common/sound_options.gd")
+const UI = preload("res://scripts/common/ui.gd")
 
 const TAB_SIZE := 40.0
 const DRAWER_WIDTH := 210.0
@@ -286,6 +288,11 @@ func _build_panel() -> void:
 		box.add_child(voodoo_button)
 		_update_voodoo_button()
 
+	var sound_btn := Button.new()
+	sound_btn.text = tr("🔊 Sound")
+	sound_btn.pressed.connect(_on_sound_pressed)
+	box.add_child(sound_btn)
+
 	var screenshot_btn := Button.new()
 	screenshot_btn.text = tr("📷 Screenshot")
 	screenshot_btn.pressed.connect(_on_screenshot_pressed)
@@ -352,6 +359,42 @@ func _on_voodoo_pressed() -> void:
 	Voodoo.set_on(on)
 	_update_voodoo_button()
 	get_parent()._set_voodoo(on)
+
+## The same sound controls as the hub's Options screen (sound_options.gd),
+## in a card over the game, so the player can change them mid-game.
+func _on_sound_pressed() -> void:
+	_toggle_drawer()
+	var settings = get_node_or_null("/root/Settings")
+	if settings == null:
+		return
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.6)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_to_group("modal_overlay")
+	add_child(overlay)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	overlay.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", UI.panel_style())
+	card.custom_minimum_size.x = minf(560.0, get_viewport_rect().size.x - 40.0)
+	center.add_child(card)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	card.add_child(box)
+	var title := Label.new()
+	title.text = tr("🔊 Sound")
+	title.add_theme_font_size_override("font_size", 30)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	box.add_child(SoundOptions.new(settings.DARK, true))
+	var done := Button.new()
+	done.text = tr("Done")
+	done.custom_minimum_size = Vector2(0, 56)
+	done.add_theme_font_size_override("font_size", 24)
+	done.pressed.connect(overlay.queue_free)
+	box.add_child(done)
 
 func _on_hub_pressed() -> void:
 	_save_current_scene_if_possible()

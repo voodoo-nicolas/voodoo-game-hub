@@ -99,6 +99,9 @@ func _exit_tree() -> void:
 func result(outcome: String, online: bool = false) -> void:
 	if outcome == "loss":
 		_buzz()  # wins buzz in celebrate(), which many games call directly
+		_sfx("lose")
+	elif outcome != "win":
+		_sfx("draw")
 	if outcome == "win":
 		celebrate("You win!")
 	if online:
@@ -165,6 +168,7 @@ func _process(delta: float) -> void:
 ## translated here: "You win!", "Solved!" and "New best!" are the stock ones.
 func celebrate(text: String = "You win!") -> void:
 	_buzz()
+	_sfx("record" if text == "New best!" else "win")
 	if _party:
 		_party.queue_free()
 	var vp: Vector2 = get_viewport_rect().size
@@ -561,3 +565,8 @@ func _buzz() -> void:
 	var settings = get_node_or_null("/root/Settings")
 	if settings:
 		settings.buzz(settings.RESULT_BUZZ_MS)
+
+func _sfx(sound: String) -> void:
+	var sfx = get_node_or_null("/root/Sfx")
+	if sfx:
+		sfx.play(sound)

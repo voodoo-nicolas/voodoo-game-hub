@@ -12,7 +12,11 @@ extends Node
 ##   the original look. A game that fits gets the full size.
 ## - theme: "dark" / "light" for the hub and Options screen (`palette()`).
 ##   Games keep their own colors.
-## - sound: mutes the Master bus, so any sound added later obeys it for free.
+## - sound: "Mute all" -- mutes the Master bus, so every sound obeys it.
+## - volume: overall loudness 0..100 (the Master bus volume).
+## - sound groups (SOUND_GROUPS): each kind of sound has its own on/off and
+##   volume 0..100 -- `group_on(id)`, `group_volume(id)`; Sfx asks
+##   `group_db(id)` before playing (null = that group is off).
 ## - vibrate: `buzz()` -- every button press gives a short tick (hooked up
 ##   here, app-wide), and GameInfo buzzes on wins and losses.
 ## - keep_awake: stops the screen dimming/locking while the app is open.
@@ -37,6 +41,16 @@ const TEXT_SCALES := [1.0, 1.2, 1.4]
 const TEXT_SIZE_NAMES := ["Normal", "Large", "Extra large"]
 const DEFAULT_TEXT_SIZE := 1
 
+const DEFAULT_VOLUME := 80
+## The kinds of sound players can turn on/off and set the volume of, each
+## [id, title, hint]. Which sound is in which group is Sfx.GROUP_OF.
+const SOUND_GROUPS := [
+	["taps", "👆 Taps & keys", "Button taps and keyboard clicks."],
+	["game", "🎲 Game sounds", "Cards, dice, pieces, arcade action."],
+	["results", "🏆 Wins & losses", "The fanfare at the end of a game."],
+	["alerts", "🔔 Notifications", "Your-turn chimes and warning buzzes."],
+]
+
 const TAP_BUZZ_MS := 12
 const RESULT_BUZZ_MS := 70
 
@@ -56,6 +70,9 @@ var resume_checked: bool = false
 var text_size: int = DEFAULT_TEXT_SIZE
 var theme: String = "dark"
 var sound: bool = true
+var volume: int = DEFAULT_VOLUME
+## group id -> {"on": bool, "vol": int}; filled from SOUND_GROUPS by _load().
+var sound_groups: Dictionary = {}
 var vibrate: bool = true
 var keep_awake: bool = false
 
@@ -97,6 +114,38 @@ func set_theme(t: String) -> void:
 func set_sound(on: bool) -> void:
 	sound = on
 	_commit()
+
+## `save` = false while a slider is being dragged: applied live, written once
+## on release.
+func set_volume(v: int, save: bool = true) -> void:
+	volume = clampi(v, 0, 100)
+	_apply_audio()
+	if save:
+		_save()
+
+func group_on(id: String) -> bool:
+	return bool(sound_groups.get(id, {}).get("on", true))
+
+func group_volume(id: String) -> int:
+	return int(sound_groups.get(id, {}).get("vol", 100))
+
+func set_group_on(id: String, on: bool) -> void:
+	if sound_groups.has(id):
+		sound_groups[id]["on"] = on
+		_save()
+
+func set_group_volume(id: String, v: int, save: bool = true) -> void:
+	if sound_groups.has(id):
+		sound_groups[id]["vol"] = clampi(v, 0, 100)
+		if save:
+			_save()
+
+## Extra volume (dB) for a sound in this group, or null if it shouldn't play.
+func group_db(id: String) -> Variant:
+	var v := group_volume(id)
+	if not group_on(id) or v <= 0:
+		return null
+	return linear_to_db(v / 100.0)
 
 func set_vibrate(on: bool) -> void:
 	vibrate = on
@@ -188,8 +237,12 @@ func _commit() -> void:
 
 func _apply() -> void:
 	_fit_scene()
-	AudioServer.set_bus_mute(0, not sound)
+	_apply_audio()
 	DisplayServer.screen_set_keep_on(keep_awake)
+
+func _apply_audio() -> void:
+	AudioServer.set_bus_mute(0, not sound or volume <= 0)
+	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 1) / 100.0))
 
 ## Starts each screen at the chosen size, then -- once its layout has
 ## settled -- shrinks the scale just enough that the screen's content fits
@@ -331,11 +384,20 @@ func _on_node_added(node: Node) -> void:
 		node.pressed.connect(buzz.bind(TAP_BUZZ_MS))
 
 func _load() -> void:
+	for g in SOUND_GROUPS:
+		sound_groups[g[0]] = {"on": true, "vol": 100}
 	if not FileAccess.file_exists(PATH):
 		return
 	var data = JSON.parse_string(FileAccess.get_file_as_string(PATH))
 	if typeof(data) != TYPE_DICTIONARY:
 		return
+	volume = clampi(int(data.get("volume", DEFAULT_VOLUME)), 0, 100)
+	var saved = data.get("sound_groups", {})
+	if typeof(saved) == TYPE_DICTIONARY:
+		for id in sound_groups:
+			var g = saved.get(id)
+			if typeof(g) == TYPE_DICTIONARY:
+				sound_groups[id] = {"on": bool(g.get("on", true)), "vol": clampi(int(g.get("vol", 100)), 0, 100)}
 	text_size = clampi(int(data.get("text_size", DEFAULT_TEXT_SIZE)), 0, TEXT_SCALES.size() - 1)
 	theme = "light" if str(data.get("theme", "dark")) == "light" else "dark"
 	sound = bool(data.get("sound", true))
@@ -347,5 +409,6 @@ func _save() -> void:
 	if f:
 		f.store_string(JSON.stringify({
 			"text_size": text_size, "theme": theme, "sound": sound,
+			"volume": volume, "sound_groups": sound_groups,
 			"vibrate": vibrate, "keep_awake": keep_awake,
 		}))

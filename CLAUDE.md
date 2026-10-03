@@ -228,8 +228,13 @@ its header comment is the how-to.
 - **Theme** covers the hub and Options only (`Settings.palette()`, keys
   like `bg`, `text`, `accent`, `link`, `ready`...). Games keep their own
   colors -- a games-wide light theme would mean touching every game.
-- **Sound** mutes the Master audio bus. The app has no sounds yet; any
-  added later obey the toggle with no extra code.
+- **Sound** (its own section since v0.23): "🔊 Sound" Off = mute all
+  (mutes the Master bus), a Volume slider (Master bus volume), and an
+  on/off + volume per sound group (`Settings.SOUND_GROUPS`: taps & keys,
+  game sounds, wins & losses, notifications). Drawn by
+  `scripts/common/sound_options.gd`, which the in-game ⚙ drawer's "🔊 Sound"
+  button also opens, so it can be changed mid-game. Sliders apply live and
+  save on release (`set_volume(v, save)`), and every change plays a sample.
 - **Vibration**: `Settings` connects every `BaseButton.pressed` in the tree
   (`node_added`) to a 12 ms tick, and GameInfo buzzes 70 ms on a win
   (`celebrate()`) or loss. Needs `permissions/vibrate=true` in the Android
@@ -286,6 +291,38 @@ noted.
   for trademark safety.
 - Wordle checks English guesses against `wordle_words.txt.gz` (the 5-letter
   ENABLE words + every answer); Spanish has no dictionary, so any 5 letters.
+
+## Sound library (Sfx autoload) -- since v0.23.0
+
+`scripts/common/sfx.gd` (ships in the APK, autoload `Sfx`) is the shared
+sound library: Basic (tap, back, toggle, invalid, win, lose, draw, record,
+tick, notify) plus per-category sets (Cards, Board, Dice & Party, Arcade,
+Word). Its header comment lists every name and is the how-to.
+
+- **Every sound is synthesized in code** (sfxr-style recipes, rendered on a
+  worker thread at launch, ~0.5 s total on PC) -- no audio files, no
+  download cost. Dropping `assets/sfx/<name>.ogg` in replaces one with a
+  recording, no code change (the user's decision 2026-10-03: synth first,
+  real recordings for cards/dice later if the synth ones sound too fake).
+- **Free with no game code**: every button press plays "tap" (like the
+  vibration tick), and GameInfo plays win / lose / draw / record with
+  `result()` and `celebrate()`. A button that should sound different gets
+  `btn.set_meta("sfx", "key")`, or `""` for silence when the game plays its
+  own sound for that action (Yacht's Roll, Spin the Bottle's Spin, the
+  Wordle keyboard).
+- **Games never reference `Sfx` directly** (packs run on older apps): each
+  wired game has a tiny `_sfx(name)` that does
+  `get_node_or_null("/root/Sfx")`. No `min_build` needed -- older apps are
+  simply silent.
+- A sound only one game uses goes in that game's folder (its pack) and plays
+  with `Sfx.play_stream(stream, 0.0, 1.0, group)`.
+- **Player controls**: every sound belongs to a group (`Sfx.GROUP_OF`;
+  unlisted = "game"), and `play_stream` skips it or adjusts its volume from
+  Settings (`group_db`). A new library sound that's a tap, a result or an
+  alert must be added to `GROUP_OF`, or the player's switches won't cover it.
+- Wired so far, one per category: Chess, Blackjack, Wordle, Snake, Yacht,
+  King's Cup, Spin the Bottle (Dots & Boxes still has its own chime from
+  before the library).
 
 ## Scoping your work: hub vs. a specific game
 

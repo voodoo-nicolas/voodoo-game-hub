@@ -379,13 +379,22 @@ func _make_card_back_button(card_id: int, card_size: Vector2) -> Button:
 		btn.add_theme_stylebox_override(state, sb)
 
 	btn.pressed.connect(_on_card_picked.bind(card_id))
+	btn.set_meta("sfx", "")  # _on_card_picked flips the card instead of a tap
 	return btn
+
+## Plays a sound from the app's library (silent on apps from before v0.23).
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
 
 func _on_card_picked(card_id: int) -> void:
 	if reveal_active:
 		return
 	var result: Dictionary = engine.pick_by_id(card_id)
 	reveal_active = true
+	# The 4th King (chug the cup!) gets a drumroll; every other card a flip.
+	_sfx("drumroll" if int(result.king_number) == 4 else "card_flip")
 	hint_label.visible = false
 
 	var color := Color(1, 0.4, 0.4) if RED_SUITS.has(result.suit) else Color(1, 1, 1)

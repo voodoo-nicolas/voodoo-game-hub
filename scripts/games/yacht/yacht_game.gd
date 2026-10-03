@@ -103,6 +103,7 @@ func _build_ui() -> void:
 	roll_btn.custom_minimum_size = Vector2(320, 80)
 	roll_btn.add_theme_font_size_override("font_size", 30)
 	roll_btn.pressed.connect(_on_roll)
+	roll_btn.set_meta("sfx", "")  # _on_roll rattles the dice instead of a tap
 	rc.add_child(roll_btn)
 
 	var gm := MarginContainer.new()
@@ -151,10 +152,12 @@ func _process(delta: float) -> void:
 func _on_roll() -> void:
 	if engine.roll():
 		shake = 0.25
+		_sfx("dice_roll")
 		_refresh()
 
 func _on_category(cat: String) -> void:
 	if engine.use(cat):
+		_sfx("merge")
 		_refresh()
 		if engine.is_over():
 			var t := engine.total()
@@ -219,6 +222,15 @@ func _on_dice_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		for i in 5:
 			if _die_rect(i).has_point(event.position):
+				var was: bool = engine.held[i]
 				engine.toggle_hold(i)
+				if engine.held[i] != was:
+					_sfx("toggle" if engine.held[i] else "back")
 				dice_row.queue_redraw()
 				return
+
+## Plays a sound from the app's library (silent on apps from before v0.23).
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
