@@ -125,9 +125,10 @@ export interface Judged { u: number; rapid: boolean; hidden: boolean; timeout: b
  *  during the item. Rapid rule (spec §3): a correct answer faster than gen.minMs is scored
  *  wrong. `serverMs` is the server-measured time since the item was served (always >= the
  *  real answering time), so a client can't dodge the rule by reporting a slow `clientMs`. */
-export function judge(item: Pick<Item, "key" | "minMs" | "maxMs">, value: unknown, clientMs: number, serverMs = Infinity): Judged {
+/** `untimed`: endless tests have no per-question limit (only an explicit null times out). */
+export function judge(item: Pick<Item, "key" | "minMs" | "maxMs">, value: unknown, clientMs: number, serverMs = Infinity, untimed = false): Judged {
   const hidden = value === "__hidden";
-  const timeout = value == null || clientMs > item.maxMs + 1000;
+  const timeout = value == null || (!untimed && clientMs > item.maxMs + 1000);
   let u = (!timeout && !hidden && checkAnswer(item.key, value)) ? 1 : 0;
   let rapid = false;
   if (u && item.minMs && (clientMs < item.minMs || serverMs < item.minMs)) { rapid = true; u = 0; }

@@ -47,13 +47,10 @@ static func gate(key: String) -> float:
 static func iq(theta: float) -> float:
 	return 100.0 + 15.0 * theta
 
+## The real number, never clamped (the prototype showed 145+ / <55; the user wants
+## nothing hidden, 2026-10-03).
 static func fmt_iq(theta: float) -> String:
-	var v := int(round(iq(theta)))
-	if v > 145:
-		return "145+"
-	if v < 55:
-		return "<55"
-	return str(v)
+	return str(int(round(iq(theta))))
 
 static func band_label(point: float) -> String:
 	if point < 70:

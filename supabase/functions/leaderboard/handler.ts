@@ -7,9 +7,12 @@
 // -> { rows: [...], provisional: [...] }, each row:
 //    { nick, country, province, age_band, score, theta, se, genius, need_items, sections, correct, me }
 //
-// Ranked rows pass the gates (Voodoo IQ verified / section on its board / all 9 sections);
-// the rest come back as `provisional`. Score = rank score IQ(theta - 2 se), capped at 129
-// without the 130+ proof (standings.ts). Blitz: best points, then correct answers.
+// Nothing is hidden or capped (the user's decision 2026-10-03, replacing spec §3's
+// cautious rank score and 129 cap): every player with a standing is ranked by their
+// estimate, score = IQ(theta). `verified` marks the ones that pass the gates (Voodoo IQ
+// verification / a section's board: 15+ items, SE <= 0.45); `genius` = 130+ proven.
+// Only 9-Mind needs all nine sections to compute, so it still lists the rest as
+// `provisional` (k/9). Blitz: best points, then correct answers.
 // Reads with the service role; no user ids leave the server (`me` marks the caller).
 // deno-lint-ignore-file no-explicit-any
 
@@ -18,6 +21,7 @@ import { IQ } from "../_shared/irt.ts";
 import { BLITZ_DURS, MIXED_POOL, SECS } from "../_shared/engine.ts";
 import { nineStanding, type ScoreRow, secStanding, viqStanding } from "../_shared/standings.ts";
 import { monthKey } from "../_shared/rng.ts";
+import { closeStaleSessions } from "../_shared/session.ts";
 
 const DAY = 864e5;
 const MAX_ROWS = 100;
@@ -26,6 +30,8 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   const board = String(body.board ?? "");
   if (!["viq", "nine", "sec", "blitz"].includes(board)) throw new HttpError(400, "bad_board");
   const lang = body.lang === "en" || body.lang === "es" ? body.lang : null;
+  // an endless test the player walked away from (idle 30 min) shows up on the boards
+  await closeStaleSessions(db, uid, 30 * 60_000);
 
   // players, filtered by age band / country / province
   let pq = db.from("profiles").select("id, nick, age_band, country, province, minor");
@@ -66,20 +72,18 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
       if (board === "viq") {
         const v: any = viqStanding(list, lang);
         if (v.theta == null) continue;
-        const row = { ...base(id), score: v.score, theta: v.theta, se: v.se, genius: v.genius && v.verified };
-        (v.verified ? rows : provisional).push(row);
+        rows.push({ ...base(id), score: IQ(v.theta), theta: v.theta, se: v.se, verified: v.verified, genius: v.genius && v.verified });
       } else if (board === "nine") {
         const v: any = nineStanding(list);
         if (!v.ok) {
           if (v.ranked) provisional.push({ ...base(id), score: -1, sections: v.ranked });
           continue;
         }
-        rows.push({ ...base(id), score: v.score, theta: v.theta, se: v.se, genius: v.genius });
+        rows.push({ ...base(id), score: IQ(v.theta), theta: v.theta, se: v.se, verified: true, genius: v.genius });
       } else {
         const v = secStanding(list, sec, sec === "LIN" ? lang : null);
         if (!v) continue;
-        const row = { ...base(id), score: v.score, theta: v.theta, se: v.se, genius: v.genius && v.ranked && IQ(v.cons) >= 130, need_items: v.needItems };
-        (v.ranked ? rows : provisional).push(row);
+        rows.push({ ...base(id), score: IQ(v.theta), theta: v.theta, se: v.se, verified: v.ranked, genius: v.genius && v.ranked && IQ(v.theta) >= 130, need_items: v.needItems });
       }
     }
   }

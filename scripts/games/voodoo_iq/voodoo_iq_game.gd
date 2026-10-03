@@ -37,7 +37,8 @@ var page: Control  # the current screen
 var overlay_layer: Control
 var toast_label: Label
 
-var setup := {"mode": "iq", "scope": "ALL", "dur": 15, "bdur": 120, "ranked": true}
+## dur 0 = endless (no clock; the player ends it with Finish)
+var setup := {"mode": "iq", "scope": "ALL", "dur": 0, "bdur": 120, "ranked": true}
 
 # ---- runner state
 var session: Dictionary = {}
@@ -45,6 +46,7 @@ var running := false
 var waiting := false  # a request is out: the clocks stop
 var paused := false  # instructions / prediction on screen: the clocks stop
 var remaining_ms := 0.0
+var endless := false  # IQ test with no clock (dur 0)
 var item: Dictionary = {}
 var view = null  # Items.ItemView of the current item
 var item_ms := 0.0
@@ -325,13 +327,19 @@ func _show_home() -> void:
 	var durs := HBoxContainer.new()
 	durs.add_theme_constant_override("separation", 8)
 	var iq_mode: bool = setup.mode == "iq"
-	for dv in (T.data().get("IQ_DURS", []) if iq_mode else T.data().get("BLITZ_DURS", [])):
+	var choices: Array = ([0] + T.data().get("IQ_DURS", [])) if iq_mode else T.data().get("BLITZ_DURS", [])
+	for dv in choices:
 		var dur := int(dv)
 		var on: bool = (setup.dur if iq_mode else setup.bdur) == dur
-		var b := _button("%d min" % (dur if iq_mode else dur / 60), _set_dur.bind(dur), GOOD if on else FG2, Vector2(0, 64), 24)
+		var text := "∞" if dur == 0 else "%d min" % (dur if iq_mode else dur / 60)
+		var b := _button(text, _set_dur.bind(dur), GOOD if on else FG2, Vector2(0, 64), 30 if dur == 0 else 24)
+		if on:
+			b.add_theme_stylebox_override("normal", Items.box_style(Color(GOOD, 0.22), GOOD, 3))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		durs.add_child(b)
 	sp.add_child(durs)
+	if iq_mode and int(setup.dur) == 0:
+		sp.add_child(_label(tr("∞ No time limit: answer as many questions as you like and tap Finish when you're done. Every answer counts, so long runs reach the boards faster."), 19, GOOD, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	sp.add_child(_label(T.t("questions_from") + ": " + _sec_name(scope), 24, Color.WHITE if scope == "ALL" else T.sec_color(scope), W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	sp.add_child(_label(T.t("pick_hint"), 18, FG2, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	var rk := CheckButton.new()
@@ -354,8 +362,10 @@ func _show_home() -> void:
 	var hp := _panel()
 	var body := VBoxContainer.new()
 	body.visible = false
-	for k in ["how_1", "how_2", "how_3", "how_4", "how_5", "how_6"]:
+	# the prototype's how_3 (cautious rank score) and how_5 (129 cap) no longer apply
+	for k in ["how_1", "how_2", "how_4", "how_6"]:
 		body.add_child(_label("• " + T.t(k), 20, FG, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+	body.add_child(_label("• " + tr("Leaderboards show everyone's real estimate, high or low, with its ± range. ✓ marks a score with enough evidence behind it: 15+ questions and a tight ±."), 20, FG, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	hp.add_child(_button(T.t("how_title"), func(): body.visible = not body.visible, FG2, Vector2(0, 64), 22))
 	hp.add_child(body)
 	box.add_child(_panel_of(hp))
@@ -603,6 +613,7 @@ func _begin_session(data: Dictionary) -> void:
 	blitz_index = 0
 	blitz_answers = []
 	remaining_ms = float(data.get("dur_s", 300)) * 1000.0
+	endless = not _is_blitz() and int(data.get("dur_s", 0)) == 0
 	running = true
 	paused = false
 	_build_runner()
@@ -624,7 +635,7 @@ func _build_runner() -> void:
 	bar.add_child(meta)
 	clock_label = _label("0:00", 40, Color.WHITE)
 	bar.add_child(clock_label)
-	bar.add_child(_button(T.t("quit"), _confirm_quit, Color("#ff4f9a"), Vector2(110, 60), 24))
+	bar.add_child(_button(tr("Finish") if endless else T.t("quit"), _confirm_quit, GOOD if endless else Color("#ff4f9a"), Vector2(110, 60), 24))
 	box.add_child(bar)
 	item_bar = ProgressBar.new()
 	item_bar.show_percentage = false
@@ -671,7 +682,7 @@ func _mount_item() -> void:
 	view.submitted.connect(_on_item_submitted)
 	view.timer_ready.connect(_on_item_ready)
 	qarea.add_child(view)
-	item_bar.visible = not bool(item.get("noTimerBar", false))
+	item_bar.visible = not endless and not bool(item.get("noTimerBar", false))
 	item_bar.value = 1.0
 	if not bool(item.get("deferTimer", false)):
 		item_timing = true
@@ -709,19 +720,23 @@ func _process(delta: float) -> void:
 	if not running or waiting or paused:
 		return
 	var ms := delta * 1000.0
-	remaining_ms -= ms
+	if not endless:
+		remaining_ms -= ms
 	if view != null and not view.done and item_timing:
 		item_ms += ms
 		var max_ms := float(item.get("maxMs", 60000))
 		item_bar.value = clampf(1.0 - item_ms / max_ms, 0.0, 1.0)
-		if item_ms > max_ms:
+		if item_ms > max_ms and not endless:  # ∞ has no per-question limit
 			view.submit(null)
 	_update_clock()
-	if remaining_ms <= 0.0:
+	if not endless and remaining_ms <= 0.0:
 		_finish("time")
 
 func _update_clock() -> void:
 	if clock_label == null:
+		return
+	if endless:  # no clock: show how far the player has gone
+		clock_label.text = "∞ #%d" % (int(item.get("seq", 0)) + 1)
 		return
 	var s := int(ceil(maxf(0.0, remaining_ms) / 1000.0))
 	clock_label.text = "%d:%02d" % [s / 60, s % 60]
@@ -811,8 +826,19 @@ func _skip() -> void:
 	blitz_index += 1
 	_next_blitz()
 
+func _finish_endless() -> void:
+	_close_overlays()
+	_finish("time")
+
+## Quit (timed tests) or Finish (endless): confirm, then score what was answered.
 func _confirm_quit() -> void:
 	var box := _overlay()
+	if endless:
+		box.add_child(_label(tr("Finish the test?"), 34, Color.WHITE))
+		box.add_child(_label(tr("You'll see your score now. Every answer you gave counts."), 22, FG, W - 80))
+		box.add_child(_button(T.t("keep_going"), _close_overlays, FG2))
+		box.add_child(_button(tr("See my score"), _finish_endless, GOOD))
+		return
 	box.add_child(_label(T.t("quit_q"), 34, Color.WHITE))
 	box.add_child(_label(tr("This ranked test will be scored with the answers you gave.") if session.get("ranked", false) else T.t("quit_practice"), 22, FG, W - 80))
 	box.add_child(_button(T.t("keep_going"), _close_overlays, GOOD))
@@ -1105,7 +1131,12 @@ func _show_boards() -> void:
 	if boards.tab == "viq" or (boards.tab == "sec" and boards.sec == "LIN"):
 		_board_filter(filters, T.t("verbal_lang"), "lang", [["", T.t("any")], ["es", "Español"], ["en", "English"]])
 	box.add_child(filters)
-	box.add_child(_label(T.t("bnote_" + str(boards.tab)), 18, FG2, W, HORIZONTAL_ALIGNMENT_LEFT))
+	var bnote: String = T.t("bnote_" + str(boards.tab))
+	if boards.tab == "viq":
+		bnote = tr("Logic + Spatial + Verbal combined, highest first. Everyone with all three is shown; ✓ = verified (sessions on 2 days that agree).")
+	elif boards.tab == "sec":
+		bnote = tr("Your last 3 ranked tests in this section (90 days), highest first. ✓ = enough questions for a tight ±.")
+	box.add_child(_label(bnote, 18, FG2, W, HORIZONTAL_ALIGNMENT_LEFT))
 	board_box = VBoxContainer.new()
 	board_box.add_theme_constant_override("separation", 10)
 	board_box.add_child(_label(T.t("loading"), 24, FG2, W))
@@ -1196,7 +1227,7 @@ func _board_table(rows: Array, prov: bool) -> Control:
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 8)
 	var name_w := maxf(140.0, W - 300.0)
-	for h in ["#", T.t("player"), T.t("points") if blitz else (T.t("status") if prov else T.t("rank_score")), T.t("correct") if blitz else T.t("estimate")]:
+	for h in ["#", T.t("player"), T.t("points") if blitz else (T.t("status") if prov else "IQ"), T.t("correct") if blitz else T.t("status")]:
 		grid.add_child(_label(h, 17, FG2))
 	for i in rows.size():
 		var r: Dictionary = rows[i]
@@ -1237,7 +1268,11 @@ func _board_table(rows: Array, prov: bool) -> Control:
 		if blitz:
 			est = str(int(r.get("correct", 0)))
 		elif r.get("theta", null) != null:
-			est = "%s ±%d" % [T.fmt_iq(float(r.theta)), int(round(15 * float(r.get("se", 0.0))))]
-		grid.add_child(_label(est, 20, FG))
+			est = "±%d" % int(round(15 * float(r.get("se", 0.0))))
+			if r.get("verified", false):
+				est += "  ✓"
+			elif int(r.get("need_items", 0)) > 0:
+				est += "\n" + T.t("need_items", {"n": int(r.need_items)})
+		grid.add_child(_label(est, 18, GOOD if r.get("verified", false) else FG, 0.0 if blitz else 130.0))
 	p.add_child(grid)
 	return _panel_of(p)

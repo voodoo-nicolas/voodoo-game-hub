@@ -692,6 +692,16 @@ AudioStreamWAV), `_api.gd` (Edge Function calls), `_text.gd` + `_data.json`.
   wrong because too-wide content stretches it. Test phone layouts in a phone-shaped
   window (`--resolution 300x650`): a 540x960 request gets shrunk by Windows to a wider
   shape that hides the bug.
+- **∞ Endless IQ tests are the default** (`dur: 0`, user 2026-10-03): no clock and no
+  per-question limit (`judge(..., untimed)`; the motor trials keep their own speed and
+  the too-fast rule stays). The player taps Finish. A test left open is scored with its
+  answers by `closeStaleSessions()`: on the next session-start, and by `leaderboard`
+  after 30 idle minutes.
+- **Nothing hidden or capped** (user 2026-10-03, replacing spec §3's cautious rank score,
+  the 129 cap and the 55-145 display clamp): boards rank everyone by IQ(theta) and mark
+  `verified` with a ✓; `fmt_iq` shows the real number. `standings.ts` itself stays 1:1
+  with the prototype (the parity tests check it); the policy lives in `leaderboard`.
+  The EAP grid (theta -4..4) still bounds estimates to IQ 40-160.
 - Not built yet: the prototype's untimed "Try an example" (needs a server endpoint),
   its fonts, Daily Brain / Duels (Phase 3). Cube stacks use the prototype's
   2D isometric drawing, not the spec's "real 3D", because the server's visibility check

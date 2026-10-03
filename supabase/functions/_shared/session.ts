@@ -123,3 +123,22 @@ export async function finishBlitz(db: Db, s: SessionRow, scored: BlitzScored | n
   }
   return result;
 }
+
+/** Finish the player's IQ tests that are still 'live' but idle for `idleMs` (0 = any):
+ *  the app was closed or lost its connection without session-finish, most often in
+ *  an endless test. They're scored with the answers they got (reason "abandoned"),
+ *  so a long ranked session is never lost. Blitz runs left unsubmitted are abandoned
+ *  with no points (their answers never reached the server). */
+export async function closeStaleSessions(db: Db, uid: string, idleMs: number) {
+  const live = must(await db.from("sessions").select("id, mode, started_at").eq("user_id", uid).eq("status", "live")) as any[];
+  for (const row of live) {
+    if (idleMs > 0) {
+      const last = must(await db.from("responses").select("served_at").eq("session_id", row.id).order("seq", { ascending: false }).limit(1)) as any[];
+      const at = Date.parse(last[0]?.served_at ?? row.started_at);
+      if (Date.now() - at < idleMs) continue;
+    }
+    const s = await loadSession(db, row.id, uid);
+    if (s.mode === "iq") await finishIq(db, s, "abandoned");
+    else await finishBlitz(db, s, null, "abandoned");
+  }
+}

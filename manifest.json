@@ -161,6 +161,6 @@
     "color_clash": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_clash.pck", "scene": "res://scenes/games/color_clash/color_clash.tscn"},
     "number_series": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/number_series.pck", "scene": "res://scenes/games/number_series/number_series.tscn"},
     "digit_recall": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/digit_recall.pck", "scene": "res://scenes/games/digit_recall/digit_recall.tscn"},
-    "voodoo_iq": {"version": 2, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"}
+    "voodoo_iq": {"version": 3, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"}
   }
 }

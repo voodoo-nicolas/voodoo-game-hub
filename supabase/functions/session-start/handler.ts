@@ -1,7 +1,8 @@
 // session-start: create an IQ test or Blitz session (spec §5).
 //
 // POST { mode: "iq"|"blitz", kind?: "normal"|"daily"|"duel", scope: "ALL"|<section>,
-//        dur: minutes (iq: 5/15/30/60) | seconds (blitz: 60/120/180/300),
+//        dur: minutes (iq: 5/15/30/60, or 0 = endless: no clock, the player ends it)
+//             | seconds (blitz: 60/120/180/300),
 //        ranked: bool, duel?: "<6-char code>", lang?: "en"|"es", pred?: 0..1 (SELF only) }
 // -> IQ:    { session_id, deadline, ..., first_item }
 // -> Blitz: { session_id, deadline, ..., first_item, items }   (whole batch, no keys)
@@ -15,6 +16,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { type Call, HttpError, must } from "../_shared/http.ts";
+import { closeStaleSessions } from "../_shared/session.ts";
 import { blitzBatch, blitzBatchSize, BLITZ_DURS, IQ_DURS, type IqState, MIXED_POOL, newIqState, nextIqItem, publicItem, SECS, storedKey } from "../_shared/engine.ts";
 import { dailySeed, randomSeed, utcDay } from "../_shared/rng.ts";
 import { type ScoreRow, secStanding } from "../_shared/standings.ts";
@@ -23,6 +25,8 @@ import type { Lang } from "../_shared/gens/index.ts";
 /** Instructions pause the client's clock, so the server allows 10 extra minutes
  *  (the prototype's own session deadline). */
 const DEADLINE_GRACE_MS = 600_000;
+/** An endless test has no clock; the server still closes it after this long. */
+const ENDLESS_MS = 12 * 3600_000;
 
 export default async function handler({ body, uid, db }: Call): Promise<unknown> {
   const profile = (must(await db.from("profiles").select("*").eq("id", uid).limit(1)) as any[])[0];
@@ -51,7 +55,7 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   }
 
   if (mode === "iq") {
-    if (!IQ_DURS.includes(dur)) throw new HttpError(400, "bad_dur");
+    if (!IQ_DURS.includes(dur) && dur !== 0) throw new HttpError(400, "bad_dur");
     if (scope !== "ALL" && !SECS.includes(scope)) throw new HttpError(400, "bad_scope");
   } else {
     if (!BLITZ_DURS.includes(dur)) throw new HttpError(400, "bad_dur");
@@ -79,7 +83,9 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   }
 
   const now = Date.now();
-  const deadline = new Date(now + durS * 1000 + DEADLINE_GRACE_MS).toISOString();
+  // a test left without finishing (app closed) is scored now with the answers it got
+  await closeStaleSessions(db, uid, 0);
+  const deadline = new Date(now + (durS ? durS * 1000 + DEADLINE_GRACE_MS : ENDLESS_MS)).toISOString();
   const base = { user_id: uid, mode, kind, scope, dur_s: durS, ranked, seed, lang, started_at: new Date(now).toISOString(), deadline };
   const meta = { mode, kind, scope, dur_s: durS, ranked, lang };
 

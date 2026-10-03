@@ -39,7 +39,8 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
 
   const clientMs = clamp(Math.round(Number(body.client_ms) || 0), 0, 3_600_000);
   const serverMs = now - Date.parse(p.served_at);
-  const j = judge(p.answer_key, body.value ?? null, clientMs, serverMs);
+  // endless tests (dur 0) have no per-question time limit
+  const j = judge(p.answer_key, body.value ?? null, clientMs, serverMs, s.dur_s === 0);
   if (j.hidden) s.flags.hidden++;
   if (j.rapid) s.flags.rapid++;
 
