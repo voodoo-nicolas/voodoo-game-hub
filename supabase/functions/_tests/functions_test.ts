@@ -75,6 +75,10 @@ Deno.test("ranked IQ test: answer loop, finish, section_scores, one ranked attem
   assertEquals(rows.length, Object.keys(fin.result.secs).length);
   assertEquals(rows.reduce((t, r) => t + r.n, 0), 40);
   assert(rows.every((r) => r.user_id === ME && r.day === utcDay() && r.lang === "es"));
+  // the Voodoo IQ checklist comes back with a ranked result (one session: 1 day, not verified)
+  assertEquals(fin.result.viq.verified, false);
+  assertEquals(fin.result.viq.checks.days, false);
+  assertEquals(fin.result.viq.checks.secs.map((c: any) => c.sec), ["LOG", "SPA", "LIN"]);
   // finishing again returns the stored result and writes nothing new
   assertEquals((await call(sessionFinish, db, ME, { session_id: sid, reason: "quit" })).result.n, 40);
   assertEquals(db.tables.section_scores.length, rows.length);

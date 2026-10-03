@@ -32,7 +32,8 @@
       {"id": "memory_grid", "title": "Memory Grid", "icon": "🔲", "title_es": "Cuadrícula de memoria"},
       {"id": "color_clash", "title": "Color Clash", "icon": "🎨", "title_es": "Choque de colores"},
       {"id": "number_series", "title": "Number Series", "icon": "🔢", "title_es": "Series numéricas"},
-      {"id": "digit_recall", "title": "Digit Recall", "icon": "🔟", "title_es": "Recuerdo de dígitos"}
+      {"id": "digit_recall", "title": "Digit Recall", "icon": "🔟", "title_es": "Recuerdo de dígitos"},
+      {"id": "voodoo_iq", "title": "Voodoo IQ", "icon": "🧠", "title_es": "Voodoo IQ"}
     ]},
     {"name": "Cards", "icon": "🃏", "name_es": "Cartas", "games": [
       {"id": "solitaire", "title": "Solitaire", "icon": "🂡", "title_es": "Solitario"},
@@ -159,6 +160,7 @@
     "memory_grid": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/memory_grid.pck", "scene": "res://scenes/games/memory_grid/memory_grid.tscn"},
     "color_clash": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_clash.pck", "scene": "res://scenes/games/color_clash/color_clash.tscn"},
     "number_series": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/number_series.pck", "scene": "res://scenes/games/number_series/number_series.tscn"},
-    "digit_recall": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/digit_recall.pck", "scene": "res://scenes/games/digit_recall/digit_recall.tscn"}
+    "digit_recall": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/digit_recall.pck", "scene": "res://scenes/games/digit_recall/digit_recall.tscn"},
+    "voodoo_iq": {"version": 1, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"}
   }
 }

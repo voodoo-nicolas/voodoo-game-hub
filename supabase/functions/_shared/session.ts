@@ -3,7 +3,8 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { type Db, HttpError, must } from "./http.ts";
-import { type BlitzResult, type BlitzScored, type Flags, type IqState, type Resp, scoreIQ, storedKey } from "./engine.ts";
+import { type BlitzResult, type BlitzScored, CORE, type Flags, type IqState, type Resp, scoreIQ, storedKey } from "./engine.ts";
+import { type ScoreRow, viqStanding } from "./standings.ts";
 import { monthKey, utcDay } from "./rng.ts";
 import { GENS, type Lang } from "./gens/index.ts";
 import { bOf } from "./irt.ts";
@@ -60,7 +61,7 @@ export async function finishIq(db: Db, s: SessionRow, reason: string) {
   const resp = await answeredResponses(db, s.id);
   const self = s.scope === "SELF";
   const res = scoreIQ(resp, s.flags, self ? { rows: resp.map((r) => ({ u: r.u, conf: r.conf ?? 0 })), pred: s.state.pred ?? null } : null);
-  const result = { ...res, reason, lang: s.lang, ranked: s.ranked, mode: s.mode, scope: s.scope };
+  const result: Record<string, unknown> = { ...res, reason, lang: s.lang, ranked: s.ranked, mode: s.mode, scope: s.scope };
   if (!await claim(db, s, reason === "abandoned" ? "abandoned" : "done", result, s.flags)) return await storedResult(db, s);
   if (s.ranked) {
     const day = utcDay();
@@ -69,6 +70,13 @@ export async function finishIq(db: Db, s: SessionRow, reason: string) {
       lang: s.lang, flagged: r.misfit || res.flagged, auc: r.auc ?? null, bias: r.bias ?? null,
     }));
     if (rows.length) must(await db.from("section_scores").insert(rows));
+    // the Voodoo IQ verification checklist the results screen shows (spec §3 gates)
+    const all = must(await db.from("section_scores").select("sec, day, theta, se, n, hard, lang, flagged, created_at")
+      .eq("user_id", s.user_id).in("sec", CORE)) as ScoreRow[];
+    const viq: Record<string, unknown> = viqStanding(all);
+    viq.checks = { ...(viq.checks as any), secs: (viq.checks as any).secs.map((c: any) => ({ sec: c.sec, ok: c.ok, n: c.st?.n ?? 0, se: c.st?.se ?? null })) };
+    Object.assign(result, { viq });
+    must(await db.from("sessions").update({ result }).eq("id", s.id));
   }
   return result;
 }

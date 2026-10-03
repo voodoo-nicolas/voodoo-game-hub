@@ -6,10 +6,10 @@
 
 const HTML = new URL("../../../docs/voodoo-iq-prototype.html", import.meta.url);
 
-export async function loadPrototype(lang: "en" | "es" = "en"): Promise<any> {
+export async function loadPrototype(lang: "en" | "es" = "en", extraExports = "", until = "/* ============ Brain map"): Promise<any> {
   const html = await Deno.readTextFile(HTML);
   const start = html.indexOf("<script>\n'use strict';");
-  const end = html.indexOf("/* ============ Brain map");
+  const end = html.indexOf(until);
   if (start < 0 || end < 0) throw new Error("prototype layout changed: script markers not found");
   let code = html.slice(start + "<script>".length, end);
   // Probe hook: item.mount({ __probe: f => f("<expr>") }) evaluates <expr> inside the
@@ -20,7 +20,7 @@ export async function loadPrototype(lang: "en" | "es" = "en"): Promise<any> {
   const S = { lang };
   const window = { crypto: globalThis.crypto };
   const exportsList = "GENS, IRT, RNG, hashStr, mulberry32, scoreIQ, Runner, SY_POOL, SY_TERMS, syText, secStanding, viqStanding, nineStanding, SEC_GENS, SELF_POOL, BLITZ_GEN, GATE, CORE, SECS, t";
-  const fn = new Function("S", "window", code + `\nreturn { ${exportsList} };`);
+  const fn = new Function("S", "window", code + `\nreturn { ${exportsList}${extraExports ? ", " + extraExports : ""} };`);
   return fn(S, window);
 }
 
