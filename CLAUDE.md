@@ -654,6 +654,10 @@ Spec: `docs/voodoo-iq-spec.md`. Reference implementation: `docs/voodoo-iq-protot
 (its generators, scoring math, gates and EN/ES text are final -- port, don't redesign).
 Phases: 1 backend (done), 2 Godot screens (brain menu, test runner, results),
 3 leaderboards / Daily Brain / Duels, 4 certificate + Google Play build.
+Live since 2026-10-03: migration run in the SQL editor, functions deployed with the
+Supabase CLI (`%LOCALAPPDATA%\Programs\supabase\supabase.exe functions deploy
+--project-ref swyzfsyvmqxabhvvhhtn --use-api`, PowerShell needs `& "..."`). Only checked
+live that unauthenticated calls get 401; the first real signed-in run is Phase 2.
 
 - **The server is the referee**: items are generated and scored in Supabase Edge
   Functions (`supabase/functions/`, TypeScript/Deno). The client gets render params
