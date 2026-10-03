@@ -1,6 +1,7 @@
 extends Control
 
 const CheckersEngine = preload("res://scripts/games/checkers/checkers_engine.gd")
+const HomeKit = preload("res://scripts/games/checkers/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -14,12 +15,16 @@ const SAVE_PATH := "user://checkers_save.json"
 ## run there (without the Online button).
 const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
-const COLOR_DARK_SQUARE := Color(0.3, 0.2, 0.15)
-const COLOR_LIGHT_SQUARE := Color(0.55, 0.42, 0.32)
-const COLOR_SELECTED := Color(1.0, 0.84, 0.04)
-const COLOR_DEST := Color(0.4, 0.9, 0.4, 0.55)
-const COLOR_P1 := Color(0.8, 0.15, 0.15)
-const COLOR_P2 := Color(0.93, 0.9, 0.85)
+const COLOR_DARK_SQUARE := Color(0.07, 0.1, 0.2)
+const COLOR_LIGHT_SQUARE := Color(0.12, 0.16, 0.3)
+const COLOR_SELECTED := HomeKit.GOLD
+const COLOR_DEST := HomeKit.LIME
+const COLOR_P1 := Color("ff3b6b")
+const COLOR_P2 := Color("bff6ff")
+const LEVELS := ["Easy", "Medium", "Hard"]
+## Pause before the computer moves, and between the hops of a multi-jump.
+const CPU_DELAY := 0.55
+const CPU_STEP := 0.4
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
@@ -31,10 +36,14 @@ var squares: Array = []  # 8x8 Buttons
 var piece_views: Array = []  # 8x8 Panel (may be null-equivalent hidden)
 var king_labels: Array = []  # 8x8 Label
 var status_label: Label
-var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
-var online_btn: Button
+var home  # HomeKit
+## -1 = two players on one phone; 0..2 = against the computer, which plays White.
+var cpu_level: int = -1
+var cpu_steps: Array = []  # the computer's turn still to show, [from, to] each
+var cpu_timer: Timer
+var rng := RandomNumberGenerator.new()
 ## Online play (null on apps without it). Host is Player 1 (red, bottom),
 ## guest Player 2 (white) and sees the board flipped so their own pieces are
 ## at the bottom. my_side: 1 / -1 as the engine counts; 0 = same-phone play.
@@ -45,10 +54,10 @@ var flipped: bool = false
 func _ready() -> void:
 	preload("res://scripts/games/checkers/checkers_i18n.gd").install(self)
 	Orientation.lock_portrait()
+	rng.randomize()
 	engine = CheckersEngine.new()
 	_build_ui()
-	if not _load_saved_game():
-		_start_new_game()
+	_reset_board()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -56,11 +65,8 @@ func _notification(what: int) -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	theme = HomeKit.neon_theme()
+	add_child(HomeKit.backdrop())
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -78,26 +84,30 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = tr("Pause")
+	pause_btn.text = "⏸"
+	pause_btn.custom_minimum_size = Vector2(76, 64)
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
 	title.text = tr("Checkers")
-	title.add_theme_font_size_override("font_size", 31)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 38)
+	title.add_theme_color_override("font_color", Color(1, 0.9, 0.93))
+	title.add_theme_color_override("font_outline_color", Color(COLOR_P1, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 26)
-	status_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	status_label.add_theme_font_size_override("font_size", 32)
+	status_label.add_theme_color_override("font_color", Color(1, 0.88, 0.6))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(status_label)
 
@@ -116,6 +126,8 @@ func _build_ui() -> void:
 
 	var grid := GridContainer.new()
 	grid.columns = 8
+	grid.add_theme_constant_override("h_separation", 0)
+	grid.add_theme_constant_override("v_separation", 0)
 	board_wrap.add_child(grid)
 
 	squares.resize(64)
@@ -154,20 +166,11 @@ func _build_ui() -> void:
 			piece.add_child(king_label)
 			king_labels[idx] = king_label
 
-	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online_btn = Button.new()
-		online_btn.text = tr("🌐 Play Online")
-		online_btn.custom_minimum_size = Vector2(0, 80)
-		online_btn.add_theme_font_size_override("font_size", 30)
-		online_btn.pressed.connect(func(): online.open_lobby())
-		var btn_margin := MarginContainer.new()
-		btn_margin.add_theme_constant_override("margin_bottom", 40)
-		btn_margin.add_theme_constant_override("margin_left", 60)
-		btn_margin.add_theme_constant_override("margin_right", 60)
-		btn_margin.add_child(online_btn)
-		root.add_child(btn_margin)
+	cpu_timer = Timer.new()
+	cpu_timer.one_shot = true
+	cpu_timer.timeout.connect(_cpu_step)
+	add_child(cpu_timer)
 
-	_build_pause_dialog()
 	_build_win_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online = load(ONLINE_MATCH_PATH).new("checkers", tr("Checkers"), _online_state)
@@ -179,24 +182,110 @@ func _build_ui() -> void:
 		add_child(online)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/checkers/checkers_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
-func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog(tr("Paused"), [
-		{"text": tr("Resume"), "action": Callable()},
-		{"text": tr("Restart"), "action": _start_new_game},
-		{"text": tr("Exit to Hub"), "action": Ui.exit_to_hub.bind(self)},
-	])
-	add_child(pause_dialog)
+func _build_home() -> void:
+	var modes: Array = []
+	for i in LEVELS.size():
+		modes.append({"text": ["🙂 Easy", "😐 Medium", "😈 Hard"][i], "row": "cpu",
+			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_vs_cpu.bind(i)})
+	modes.append({"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_two_player})
+	if online:
+		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": online.open_lobby})
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/checkers/checkers_help.gd"),
+		"info": info,
+		"accent": COLOR_P1,
+		"solo_heading": "vs Computer",
+		"subtitle": "Jump, capture, crown your kings. Beat the computer or a friend.",
+		"logo": _draw_home_logo,
+		"modes": modes,
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Games won against the computer, at any level.",
+		"online": online,
+	})
+	add_child(home)
+
+func _draw_home_logo(c: Control) -> void:
+	var n := 4
+	var k := minf(c.size.y / (n + 0.4), 44.0)
+	var o := Vector2((c.size.x - k * n) / 2.0, (c.size.y - k * n) / 2.0)
+	for y in n:
+		for x in n:
+			if (x + y) % 2 == 1:
+				c.draw_rect(Rect2(o + Vector2(x, y) * k, Vector2(k, k)), Color(HomeKit.BLUE, 0.18))
+	HomeKit.glow_rect(c, Rect2(o, Vector2(k * n, k * n)), HomeKit.BLUE, 2.5)
+	var pieces := {Vector2i(1, 0): COLOR_P2, Vector2i(3, 0): COLOR_P2, Vector2i(2, 1): COLOR_P2,
+		Vector2i(1, 2): COLOR_P1, Vector2i(0, 3): COLOR_P1, Vector2i(2, 3): COLOR_P1}
+	for p in pieces:
+		HomeKit.glow_circle(c, o + (Vector2(p) + Vector2(0.5, 0.5)) * k, k * 0.36, pieces[p], 2.5, 0.3)
+	# a jump arrow: red takes white
+	var from := o + Vector2(1.5, 2.5) * k
+	var to := o + Vector2(3.5, 0.5) * k
+	HomeKit.glow_line(c, from, to, HomeKit.GOLD, 2.0)
+	HomeKit.glow_line(c, to, to + Vector2(-k * 0.35, k * 0.05), HomeKit.GOLD, 2.0)
+	HomeKit.glow_line(c, to, to + Vector2(-k * 0.05, k * 0.35), HomeKit.GOLD, 2.0)
+	HomeKit.glow_text(c, o + Vector2(0.5, 3.5) * k, "♛", int(k * 0.42), HomeKit.GOLD)
+
+func _new_vs_cpu(level: int) -> void:
+	cpu_level = level
+	SaveUtil.delete(SAVE_PATH)
+	_reset_board()
+
+func _new_two_player() -> void:
+	cpu_level = -1
+	SaveUtil.delete(SAVE_PATH)
+	_reset_board()
+
+func _vs_cpu() -> bool:
+	return cpu_level >= 0 and not _is_online()
+
+## Plans the computer's whole turn, then shows it one hop at a time.
+func _maybe_cpu() -> void:
+	if game_active and _vs_cpu() and engine.current_player == -1 and cpu_steps.is_empty():
+		cpu_steps = engine.cpu_turn(cpu_level, rng)
+		if not cpu_steps.is_empty():
+			cpu_timer.start(CPU_DELAY)
+			_render()
+
+func _cpu_step() -> void:
+	if not game_active or cpu_steps.is_empty():
+		return
+	var s: Array = cpu_steps.pop_front()
+	engine.move(s[0], s[1])
+	selected = s[1] if not cpu_steps.is_empty() else Vector2i(-1, -1)
+	_render()
+	if engine.game_over:
+		cpu_steps.clear()
+		_show_result()
+	elif not cpu_steps.is_empty():
+		cpu_timer.start(CPU_STEP)
+
+func _resume_text() -> String:
+	var data = SaveUtil.read(SAVE_PATH)
+	if data == null:
+		return ""
+	var lvl := int(data.get("cpu", -1))
+	return tr("2 Players") if lvl < 0 else tr(LEVELS[clampi(lvl, 0, 2)])
 
 func _build_win_dialog() -> void:
 	win_dialog = Ui.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": Ui.exit_to_hub.bind(self)},
+		{"text": tr("🏠 Checkers Home"), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
+
+func _go_home() -> void:
+	home.go_home()
 
 func _is_online() -> bool:
 	return online != null and online.is_online()
@@ -208,18 +297,16 @@ func _start_new_game() -> void:
 
 func _reset_board() -> void:
 	engine.reset()
+	cpu_timer.stop()
+	cpu_steps.clear()
 	game_active = true
 	selected = Vector2i(-1, -1)
 	dest_map = {}
 	win_dialog.visible = false
-	pause_dialog.visible = false
 	_render()
 
 func _on_pause_pressed() -> void:
-	if not game_active:
-		return
-	_save_game()
-	pause_dialog.visible = true
+	home.pause()
 
 ## Screen square -> board square. The guest's view is rotated 180 degrees.
 func _view_index(r: int, c: int) -> int:
@@ -230,6 +317,8 @@ func _on_square_pressed(vr: int, vc: int) -> void:
 		return
 	if _is_online() and not online.can_act(engine.current_player == my_side):
 		return
+	if _vs_cpu() and (engine.current_player != 1 or not cpu_steps.is_empty()):
+		return  # the computer's turn
 	var r: int = 7 - vr if flipped else vr
 	var c: int = 7 - vc if flipped else vc
 	var pos := Vector2i(r, c)
@@ -247,6 +336,8 @@ func _on_square_pressed(vr: int, vc: int) -> void:
 			_render()
 			if engine.game_over:
 				_show_result()
+			else:
+				_maybe_cpu()
 		return
 
 	if pos == selected:
@@ -276,7 +367,8 @@ func _online_state() -> Dictionary:
 func _on_online_started(my_player: int) -> void:
 	my_side = 1 if my_player == 1 else -1
 	flipped = my_side == -1
-	online_btn.visible = false
+	cpu_level = -1
+	home.hide_home()
 	_reset_board()
 
 func _on_remote_move(p: Dictionary) -> void:
@@ -323,17 +415,24 @@ func _show_result() -> void:
 		win_label.text = tr("Draw — 40 moves each with no captures")
 	elif _is_online():
 		win_label.text = online.result_text(engine.winner == my_side)
+	elif _vs_cpu():
+		win_label.text = tr("You win!") if engine.winner == 1 else tr("The computer wins!")
 	else:
 		win_label.text = tr("Player %d wins!") % (1 if engine.winner == 1 else 2)
 	if info and just_ended:
 		if _is_online():
 			info.result("draw" if engine.winner == 0 else ("win" if engine.winner == my_side else "loss"), true)
 			win_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		elif _vs_cpu():
+			info.result("draw" if engine.winner == 0 else ("win" if engine.winner == 1 else "loss"))
+			if engine.winner == 1:
+				info.add("Wins (%s)" % LEVELS[cpu_level])
+			win_label.text += "\n" + info.summary(["Wins", "Losses", "Draws"])
 		else:
 			info.add("Draws" if engine.winner == 0 else ("Red wins" if engine.winner == 1 else "White wins"))
 			if not (engine.winner == 0):
 				info.celebrate(win_label.text.split("\n")[0])
-			win_label.text += "\n" + info.summary()
+			win_label.text += "\n" + info.summary(["Red wins", "White wins"])
 	win_dialog.visible = true
 
 # ---------- rendering ----------
@@ -356,14 +455,13 @@ func _render() -> void:
 			var is_dark: bool = (r + c) % 2 == 1
 			var pos := Vector2i(r, c)
 
-			var square_color: Color
+			var square_color: Color = COLOR_DARK_SQUARE if is_dark else COLOR_LIGHT_SQUARE
+			var edge := Color(0, 0, 0, 0)
 			if pos == selected:
-				square_color = COLOR_SELECTED
+				edge = COLOR_SELECTED
 			elif dest_map.has(pos):
-				square_color = COLOR_DEST
-			else:
-				square_color = COLOR_DARK_SQUARE if is_dark else COLOR_LIGHT_SQUARE
-			_style_square(sq, square_color)
+				edge = COLOR_DEST
+			_style_square(sq, square_color, edge)
 
 			var v: int = engine.board[r][c]
 			var piece: PanelContainer = piece_views[idx]
@@ -383,30 +481,39 @@ func _render() -> void:
 		if engine.must_continue_from.x >= 0:
 			turn_text += tr(" — keep capturing!")
 		status_label.text = online.status_text(engine.current_player == my_side, turn_text)
+	elif _vs_cpu():
+		if engine.current_player == -1:
+			status_label.text = tr("Computer is thinking...")
+		elif engine.must_continue_from.x >= 0:
+			status_label.text = tr("Keep capturing!")
+		else:
+			status_label.text = tr("Your turn (%s)") % tr("Red")
 	elif engine.must_continue_from.x >= 0:
 		status_label.text = tr("Player %d must continue capturing!") % (1 if engine.current_player == 1 else 2)
 	else:
 		status_label.text = tr("Player %d's turn") % (1 if engine.current_player == 1 else 2)
 
-func _style_square(sq: Button, color: Color) -> void:
+func _style_square(sq: Button, color: Color, edge: Color = Color(0, 0, 0, 0)) -> void:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
+	sb.bg_color = color if edge.a == 0.0 else color.lerp(edge, 0.25)
+	if edge.a > 0.0:
+		sb.border_color = edge
+		sb.set_border_width_all(3)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		sq.add_theme_stylebox_override(state, sb)
 
 func _style_piece(piece: PanelContainer, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
+	sb.bg_color = Color(color, 0.28)
+	sb.shadow_color = Color(color, 0.45)
+	sb.shadow_size = 6
 	var radius: int = int(piece.custom_minimum_size.x / 2.0)
 	sb.corner_radius_top_left = radius
 	sb.corner_radius_top_right = radius
 	sb.corner_radius_bottom_left = radius
 	sb.corner_radius_bottom_right = radius
-	sb.border_width_left = 2
-	sb.border_width_top = 2
-	sb.border_width_right = 2
-	sb.border_width_bottom = 2
-	sb.border_color = Color(0, 0, 0, 0.4)
+	sb.set_border_width_all(4)
+	sb.border_color = color
 	piece.add_theme_stylebox_override("panel", sb)
 
 # ---------- save / load ----------
@@ -419,11 +526,13 @@ func _save_game() -> void:
 		"current_player": engine.current_player,
 		"must_continue_from": [engine.must_continue_from.x, engine.must_continue_from.y],
 		"quiet_moves": engine.quiet_moves,
+		"cpu": cpu_level,
 	})
 
 func _load_saved_game() -> bool:
 	var data = SaveUtil.read(SAVE_PATH)
 	if data == null:
+		_reset_board()
 		return false
 	var board: Array = []
 	for row in data.board:
@@ -440,7 +549,9 @@ func _load_saved_game() -> bool:
 	engine.winner = 0
 	game_active = true
 	selected = Vector2i(-1, -1)
+	cpu_level = clampi(int(data.get("cpu", -1)), -1, 2)
+	cpu_steps.clear()
 	win_dialog.visible = false
-	pause_dialog.visible = false
 	_render()
+	_maybe_cpu()
 	return true

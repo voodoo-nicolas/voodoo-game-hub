@@ -1,6 +1,7 @@
 extends Control
 
 const Connect4Engine = preload("res://scripts/games/connect4/connect4_engine.gd")
+const HomeKit = preload("res://scripts/games/connect4/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -18,9 +19,11 @@ const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 const BOARD_SEPARATION := 4
 const BOARD_PADDING := 8
 const BOARD_OUTER_MARGIN := 8.0
-const COLOR_EMPTY := Color(0.15, 0.15, 0.19)
-const COLOR_RED := Color(0.9, 0.3, 0.3)
-const COLOR_YELLOW := Color(0.95, 0.8, 0.2)
+const COLOR_EMPTY := Color(0.05, 0.08, 0.16)
+const COLOR_RED := Color("ff3b6b")
+const COLOR_YELLOW := Color("ffd23b")
+const LEVELS := ["Easy", "Medium", "Hard"]
+const CPU_DELAY := 0.5
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var voodoo = null  # the Voodoo script, null on apps without it
@@ -33,10 +36,13 @@ var cell_size: float = 46.0
 
 var status_label: Label
 var cell_views: Array = []  # ROWS x COLS of Panel/ColorRect-like nodes (we'll use PanelContainer with StyleBoxFlat)
-var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
-var online_btn: Button
+var home  # HomeKit
+var cpu_timer: Timer
+## -1 = two players on one phone; 0..2 = against the computer (you are Red).
+var cpu_level: int = -1
+var rng := RandomNumberGenerator.new()
 ## Online play (null on apps without it). my_color: host plays Red, guest
 ## Yellow; 0 means ordinary same-phone play.
 var online: Control = null
@@ -48,10 +54,10 @@ func _ready() -> void:
 	if ResourceLoader.exists(VOODOO_PATH):
 		voodoo = load(VOODOO_PATH)
 		voodoo_on = voodoo.is_on()
+	rng.randomize()
 	engine = Connect4Engine.new()
 	_build_ui()
-	if not _load_saved_game():
-		_start_new_game()
+	_reset_board()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -59,10 +65,9 @@ func _notification(what: int) -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
 
-	bg = ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -81,20 +86,24 @@ func _build_ui() -> void:
 	top_margin.add_child(top_bar)
 
 	var pause_btn := Button.new()
-	pause_btn.text = tr("Pause")
+	pause_btn.text = "⏸"
+	pause_btn.custom_minimum_size = Vector2(76, 64)
 	pause_btn.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
 	title.text = tr("Connect Four")
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 38)
+	title.add_theme_color_override("font_color", Color(1, 0.9, 0.93))
+	title.add_theme_color_override("font_outline_color", Color(COLOR_RED, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_bar.add_child(title)
 
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
 	restart_btn.pressed.connect(_start_new_game)
 	top_bar.add_child(restart_btn)
 
@@ -108,8 +117,7 @@ func _build_ui() -> void:
 	center.add_child(box)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 26)
-	status_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	status_label.add_theme_font_size_override("font_size", 34)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(status_label)
 
@@ -119,7 +127,11 @@ func _build_ui() -> void:
 
 	var board_panel := PanelContainer.new()
 	var board_sb := StyleBoxFlat.new()
-	board_sb.bg_color = Color(0.12, 0.2, 0.4)
+	board_sb.bg_color = Color(HomeKit.BLUE, 0.1)
+	board_sb.border_color = HomeKit.BLUE
+	board_sb.set_border_width_all(3)
+	board_sb.shadow_color = Color(HomeKit.BLUE, 0.35)
+	board_sb.shadow_size = 14
 	board_sb.corner_radius_top_left = 10
 	board_sb.corner_radius_top_right = 10
 	board_sb.corner_radius_bottom_left = 10
@@ -157,15 +169,11 @@ func _build_ui() -> void:
 		cell_views.append(row)
 		marks.append(mark_row)
 
-	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online_btn = Button.new()
-		online_btn.text = tr("🌐 Play Online")
-		online_btn.custom_minimum_size = Vector2(0, 80)
-		online_btn.add_theme_font_size_override("font_size", 30)
-		online_btn.pressed.connect(_open_lobby)
-		box.add_child(online_btn)
+	cpu_timer = Timer.new()
+	cpu_timer.one_shot = true
+	cpu_timer.timeout.connect(_cpu_turn)
+	add_child(cpu_timer)
 
-	_build_pause_dialog()
 	_build_win_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online = load(ONLINE_MATCH_PATH).new("connect4", tr("Connect Four"), _online_state)
@@ -177,8 +185,83 @@ func _build_ui() -> void:
 		add_child(online)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/connect4/connect4_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
+
+func _build_home() -> void:
+	var modes: Array = []
+	for i in LEVELS.size():
+		modes.append({"text": ["🙂 Easy", "😐 Medium", "😈 Hard"][i], "row": "cpu",
+			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_vs_cpu.bind(i)})
+	modes.append({"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_two_player})
+	if online:
+		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": online.open_lobby})
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/connect4/connect4_help.gd"),
+		"info": info,
+		"accent": COLOR_RED,
+		"solo_heading": "vs Computer",
+		"subtitle": "Drop discs, line up four. Beat the computer or a friend.",
+		"logo": _draw_home_logo,
+		"modes": modes,
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
+		"restart": _start_new_game,
+		"board": "Wins",
+		"board_note": "Games won against the computer, at any level.",
+		"online": online,
+	})
+	add_child(home)
+
+func _draw_home_logo(c: Control) -> void:
+	var cols := 5
+	var rows := 4
+	var k := minf(c.size.y / (rows + 0.5), 44.0)
+	var o := Vector2((c.size.x - k * cols) / 2.0, (c.size.y - k * rows) / 2.0)
+	HomeKit.glow_rect(c, Rect2(o - Vector2(8, 8), Vector2(k * cols + 16, k * rows + 16)), HomeKit.BLUE, 3.0, 0.08)
+	var pieces := {Vector2i(0, 3): COLOR_RED, Vector2i(1, 3): COLOR_YELLOW, Vector2i(1, 2): COLOR_RED,
+		Vector2i(2, 3): COLOR_YELLOW, Vector2i(2, 2): COLOR_YELLOW, Vector2i(2, 1): COLOR_RED,
+		Vector2i(3, 3): COLOR_YELLOW, Vector2i(3, 2): COLOR_RED, Vector2i(3, 1): COLOR_YELLOW, Vector2i(3, 0): COLOR_RED,
+		Vector2i(4, 3): COLOR_YELLOW}
+	for x in cols:
+		for y in rows:
+			var centre := o + Vector2((x + 0.5) * k, (y + 0.5) * k)
+			if pieces.has(Vector2i(x, y)):
+				HomeKit.glow_circle(c, centre, k * 0.36, pieces[Vector2i(x, y)], 2.5, 0.35)
+			else:
+				c.draw_arc(centre, k * 0.36, 0, TAU, 32, Color(HomeKit.BLUE, 0.35), 1.5, true)
+	HomeKit.glow_line(c, o + Vector2(0.5 * k, 3.5 * k), o + Vector2(3.5 * k, 0.5 * k), HomeKit.LIME, 2.0)
+
+func _new_vs_cpu(level: int) -> void:
+	cpu_level = level
+	SaveUtil.delete(SAVE_PATH)
+	_reset_board()
+
+func _new_two_player() -> void:
+	cpu_level = -1
+	SaveUtil.delete(SAVE_PATH)
+	_reset_board()
+
+func _vs_cpu() -> bool:
+	return cpu_level >= 0 and not _is_online()
+
+func _cpu_turn() -> void:
+	if not game_active or not _vs_cpu() or engine.turn != Connect4Engine.YELLOW:
+		return
+	var col: int = engine.cpu_move(cpu_level, rng)
+	if col >= 0 and engine.drop(col) != -1:
+		_after_move()
+
+func _resume_text() -> String:
+	var data = SaveUtil.read(SAVE_PATH)
+	if data == null:
+		return ""
+	var lvl := int(data.get("cpu", -1))
+	return tr("2 Players") if lvl < 0 else tr(LEVELS[clampi(lvl, 0, 2)])
 
 func _style_slot(slot: Button, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
@@ -191,21 +274,16 @@ func _style_slot(slot: Button, color: Color) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		slot.add_theme_stylebox_override(state, sb)
 
-func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog(tr("Paused"), [
-		{"text": tr("Resume"), "action": Callable()},
-		{"text": tr("Restart"), "action": _start_new_game},
-		{"text": tr("Exit to Hub"), "action": Ui.exit_to_hub.bind(self)},
-	])
-	add_child(pause_dialog)
-
 func _build_win_dialog() -> void:
 	win_dialog = Ui.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": Ui.exit_to_hub.bind(self)},
+		{"text": tr("🏠 Connect Four Home"), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
+
+func _go_home() -> void:
+	home.go_home()
 
 func _is_online() -> bool:
 	return online != null and online.is_online()
@@ -217,9 +295,9 @@ func _start_new_game() -> void:
 
 func _reset_board() -> void:
 	engine.reset()
+	cpu_timer.stop()
 	game_active = true
 	win_dialog.visible = false
-	pause_dialog.visible = false
 	_render()
 
 func _on_column_pressed(col: int) -> void:
@@ -227,6 +305,8 @@ func _on_column_pressed(col: int) -> void:
 		return
 	if _is_online() and not online.can_act(engine.turn == my_color):
 		return  # not your turn (or nobody to play against right now)
+	if _vs_cpu() and engine.turn != Connect4Engine.RED:
+		return  # the computer is thinking
 	if engine.drop(col) == -1:
 		return
 	if _is_online():
@@ -237,18 +317,18 @@ func _after_move() -> void:
 	_render()
 	if engine.is_over():
 		_show_result()
+	elif _vs_cpu() and engine.turn == Connect4Engine.YELLOW:
+		cpu_timer.start(CPU_DELAY)
 
 # ---------- online ----------
-
-func _open_lobby() -> void:
-	online.open_lobby()
 
 func _online_state() -> Dictionary:
 	return {"board": engine.board, "turn": engine.turn}
 
 func _on_online_started(my_player: int) -> void:
 	my_color = Connect4Engine.RED if my_player == 1 else Connect4Engine.YELLOW
-	online_btn.visible = false
+	cpu_level = -1
+	home.hide_home()
 	_reset_board()
 
 func _on_remote_move(p: Dictionary) -> void:
@@ -274,10 +354,7 @@ func _on_remote_state(st: Dictionary) -> void:
 		_show_result()
 
 func _on_pause_pressed() -> void:
-	if not game_active:
-		return
-	_save_game()
-	pause_dialog.visible = true
+	home.pause()
 
 func _show_result() -> void:
 	var just_ended := game_active  # a resync of a finished game isn't a new result
@@ -289,17 +366,24 @@ func _show_result() -> void:
 		win_label.text = tr("It's a draw!")
 	elif _is_online():
 		win_label.text = online.result_text(w == my_color)
+	elif _vs_cpu():
+		win_label.text = tr("You win!") if w == Connect4Engine.RED else tr("The computer wins!")
 	else:
 		win_label.text = tr("%s wins!") % _color_name(w)
 	if info and just_ended:
 		if _is_online():
 			info.result("draw" if w == Connect4Engine.EMPTY else ("win" if w == my_color else "loss"), true)
 			win_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		elif _vs_cpu():
+			info.result("draw" if w == Connect4Engine.EMPTY else ("win" if w == Connect4Engine.RED else "loss"))
+			if w == Connect4Engine.RED:
+				info.add("Wins (%s)" % LEVELS[cpu_level])
+			win_label.text += "\n" + info.summary(["Wins", "Losses", "Draws"])
 		else:
 			info.add("Draws" if w == Connect4Engine.EMPTY else ("Red wins" if w == Connect4Engine.RED else "Yellow wins"))
 			if not (w == Connect4Engine.EMPTY):
 				info.celebrate(win_label.text.split("\n")[0])
-			win_label.text += "\n" + info.summary()
+			win_label.text += "\n" + info.summary(["Red wins", "Yellow wins"])
 	win_dialog.visible = true
 
 ## Called by the settings drawer's Voodoo toggle.
@@ -315,7 +399,7 @@ func _color_name(player: int) -> String:
 	return tr("Red") if player == Connect4Engine.RED else tr("Yellow")
 
 func _render() -> void:
-	bg.color = voodoo.BG if voodoo_on else Color(0.09, 0.09, 0.13)
+	bg.color = voodoo.BG if voodoo_on else HomeKit.BG
 	for r in range(Connect4Engine.ROWS):
 		for c in range(Connect4Engine.COLS):
 			var v: int = engine.board[r][c]
@@ -337,19 +421,24 @@ func _render() -> void:
 	var color_name := _color_name(engine.turn)
 	if _is_online():
 		status_label.text = online.status_text(engine.turn == my_color, color_name)
+	elif _vs_cpu():
+		status_label.text = tr("Your turn (%s)") % color_name if engine.turn == Connect4Engine.RED \
+			else tr("Computer is thinking...")
 	else:
 		status_label.text = tr("Turn: %s") % color_name
+	status_label.add_theme_color_override("font_color", (COLOR_RED if engine.turn == Connect4Engine.RED else COLOR_YELLOW).lerp(Color.WHITE, 0.3))
 
 # ---------- save / load ----------
 
 func _save_game() -> void:
 	if not game_active or _is_online():
 		return  # online games aren't resumable alone
-	SaveUtil.write(SAVE_PATH, {"board": engine.board, "turn": engine.turn})
+	SaveUtil.write(SAVE_PATH, {"board": engine.board, "turn": engine.turn, "cpu": cpu_level})
 
 func _load_saved_game() -> bool:
 	var data = SaveUtil.read(SAVE_PATH)
 	if data == null:
+		_reset_board()
 		return false
 	var board: Array = []
 	for row in data.board:
@@ -359,6 +448,10 @@ func _load_saved_game() -> bool:
 		board.append(r)
 	engine.board = board
 	engine.turn = int(data.turn)
+	cpu_level = clampi(int(data.get("cpu", -1)), -1, 2)
 	game_active = not engine.is_over()
+	win_dialog.visible = false
 	_render()
+	if game_active and _vs_cpu() and engine.turn == Connect4Engine.YELLOW:
+		cpu_timer.start(CPU_DELAY)
 	return game_active

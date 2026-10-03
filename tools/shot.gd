@@ -10,6 +10,7 @@ extends SceneTree
 ##         wait:<frames> let the game run
 ##         press:<text>  press the topmost visible button whose text contains <text>
 ##         buttons       print every visible button's text
+##         scale         print the content scale and canvas size
 ##         close_info    close GameInfo's first-play card if it's open
 ##         tap:<x>,<y>   a mouse click at that fraction of the window (0..1)
 ##         inset:l,t,r,b nothing here -- use VOODOO_SAFE_INSET for that
@@ -26,10 +27,14 @@ func _initialize() -> void:
 		return
 	out_dir = args[1]
 	DirAccess.make_dir_recursive_absolute(out_dir)
-	change_scene_to_file(args[0])
-	_run(args.slice(2))
+	_run(args[0], args.slice(2))
 
-func _run(steps: Array) -> void:
+func _run(scene: String, steps: Array) -> void:
+	# Change scene once the autoloads are listening, like the app does
+	# (Settings fits each new screen on scene_changed).
+	for i in 3:
+		await process_frame
+	change_scene_to_file(scene)
 	for i in 20:
 		await process_frame
 	for s in steps:
@@ -55,6 +60,8 @@ func _run(steps: Array) -> void:
 				b.pressed.emit()
 			for i in 12:
 				await process_frame
+		elif step == "scale":
+			print("SCALE ", root.content_scale_factor, " visible ", root.get_visible_rect().size, " window ", DisplayServer.window_get_size())
 		elif step == "buttons":
 			for b in _buttons(root):
 				print("  BUTTON [", b.text.replace("\n", " / "), "] ", b.get_global_rect())

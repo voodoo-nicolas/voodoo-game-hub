@@ -6,10 +6,10 @@ const ID := "connect4"
 const TITLE := "Connect Four"
 const GOAL := "Get four of your discs in a row — across, down or diagonally."
 const HOW := [
-	"Two players share the phone. Red goes first.",
+	"Play the computer (Easy, Medium or Hard) or a friend on one phone. Red goes first; against the computer you are Red.",
 	"Tap a column to drop a disc into it. It falls to the lowest empty spot.",
 	"The first to line up four wins. If the board fills up with no line, it's a draw.",
-	"Tap 🌐 Play Online to play a friend on another phone with a room code.",
+	"Tap 🌐 Online on the Home screen to play a friend on another phone with a room code.",
 ]
 const TIPS := [
 	"The middle column is part of the most lines — play there early.",
@@ -17,4 +17,4 @@ const TIPS := [
 	"Build threats where your opponent must block — then the disc they drop may give you the spot above.",
 	"Don't drop a disc that lets your opponent win in the spot right above it.",
 ]
-const STATS := ["Red wins", "Yellow wins", "Draws"]
+const STATS := ["Wins", "Losses", "Draws", "Best streak", "Red wins", "Yellow wins"]

@@ -311,7 +311,7 @@ func _mode_button(m: Dictionary, default_color: Color) -> Button:
 	if m.has("sub") and str(m.sub) != "":
 		text += "\n" + tr(str(m.sub))
 	var small: bool = m.has("row")
-	var b := neon_button(text, m.get("color", default_color), 26 if small else 30, 100 if m.has("sub") else 84)
+	var b := neon_button(text, m.get("color", default_color), 24 if small else 30, 100 if m.has("sub") else 84)
 	b.pressed.connect(_on_mode.bind(m))
 	return b
 

@@ -177,3 +177,114 @@ func _check_game_over() -> void:
 					return
 	game_over = true
 	winner = -current_player
+
+# ---------- computer opponent ----------
+
+## Plies (whole turns) searched per level: easy, medium, hard.
+const _CPU_DEPTH := [1, 2, 3]
+const _CPU_SLIP := [0.4, 0.1, 0.0]
+
+func clone():
+	var e = get_script().new()
+	e.board = []
+	for row in board:
+		e.board.append(row.duplicate())
+	e.current_player = current_player
+	e.winner = winner
+	e.game_over = game_over
+	e.must_continue_from = must_continue_from
+	e.quiet_moves = quiet_moves
+	return e
+
+## Every complete turn for the player to move: each is an Array of
+## [from, to] steps (several for a multi-jump).
+func all_turns() -> Array:
+	var out: Array = []
+	for r in range(8):
+		for c in range(8):
+			if _owner(board[r][c]) != current_player:
+				continue
+			var lm: Dictionary = legal_moves_for(r, c)
+			var targets: Array = []
+			for cap in lm.captures:
+				targets.append(cap.to)
+			targets.append_array(lm.moves)
+			for t in targets:
+				_extend_turn(self, [[Vector2i(r, c), t]], out)
+	return out
+
+## `e` is the position before the last step of `steps`.
+static func _extend_turn(e, steps: Array, out: Array) -> void:
+	var after = e.clone()
+	var last: Array = steps[steps.size() - 1]
+	var res: Dictionary = after.move(last[0], last[1])
+	if not res.get("valid", false):
+		return
+	if not res.chain_continues:
+		out.append(steps)
+		return
+	for cap in after.legal_moves_for(last[1].x, last[1].y).captures:
+		var next := steps.duplicate()
+		next.append([last[1], cap.to])
+		_extend_turn(after, next, out)
+
+func apply_turn(steps: Array) -> void:
+	for s in steps:
+		move(s[0], s[1])
+
+## The computer's whole turn for the player to move.
+func cpu_turn(level: int, rng: RandomNumberGenerator) -> Array:
+	var turns := all_turns()
+	if turns.is_empty():
+		return []
+	level = clampi(level, 0, 2)
+	if rng.randf() < _CPU_SLIP[level]:
+		return turns[rng.randi() % turns.size()]
+	var me := current_player
+	var best_score := -1000000
+	var best: Array = []
+	for t in turns:
+		var e = clone()
+		e.apply_turn(t)
+		var s: int = -e._negamax(_CPU_DEPTH[level] - 1, -1000000, 1000000)
+		if s > best_score:
+			best_score = s
+			best = [t]
+		elif s == best_score:
+			best.append(t)
+	return best[rng.randi() % best.size()]
+
+func _negamax(depth: int, alpha: int, beta: int) -> int:
+	if game_over:
+		return 0 if winner == 0 else (100000 + depth if winner == current_player else -100000 - depth)
+	if depth <= 0:
+		return _evaluate(current_player)
+	var turns := all_turns()
+	for t in turns:
+		var e = clone()
+		e.apply_turn(t)
+		var s: int = -e._negamax(depth - 1, -beta, -alpha)
+		if s > alpha:
+			alpha = s
+		if alpha >= beta:
+			break
+	return alpha
+
+## Material (kings worth more), plus a little for advancing men and holding the back row.
+func _evaluate(side: int) -> int:
+	var score := 0
+	for r in range(8):
+		for c in range(8):
+			var v: int = board[r][c]
+			if v == 0:
+				continue
+			var worth := 160 if _is_king(v) else 100
+			if not _is_king(v):
+				var advance: int = (7 - r) if v > 0 else r
+				worth += advance * 3
+				if (v > 0 and r == 7) or (v < 0 and r == 0):
+					worth += 6
+			if c == 0 or c == 7:
+				worth += 4
+			score += worth if _owner(v) == side else -worth
+	return score
