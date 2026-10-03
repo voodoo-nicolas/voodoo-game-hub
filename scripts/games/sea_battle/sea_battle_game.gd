@@ -308,7 +308,7 @@ func _draw_home_logo(c: Control) -> void:
 		c.draw_line(o + Vector2(0, i * k), o + Vector2(5 * k, i * k), Color(HomeKit.BLUE, 0.4), 1.5)
 	HomeKit.glow_rect(c, Rect2(o + Vector2(1, 1) * k, Vector2(3 * k, k)).grow(-4), HomeKit.CYAN, 2.0, 0.25)
 	for p in [Vector2(2, 1), Vector2(3, 1)]:
-		var ce := o + (p + Vector2(0.5, 0.5)) * k
+		var ce: Vector2 = o + (p + Vector2(0.5, 0.5)) * k
 		HomeKit.glow_line(c, ce - Vector2(k, k) * 0.25, ce + Vector2(k, k) * 0.25, HomeKit.PINK, 2.0)
 		HomeKit.glow_line(c, ce + Vector2(-k, k) * 0.25, ce + Vector2(k, -k) * 0.25, HomeKit.PINK, 2.0)
 	for p in [Vector2(0, 3), Vector2(3, 3), Vector2(4, 0)]:
