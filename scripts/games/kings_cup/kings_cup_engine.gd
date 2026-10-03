@@ -4,8 +4,9 @@ const SUITS := ["♠", "♥", "♦", "♣"]
 const RANKS := ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
 ## title/desc pairs shown on reveal, e.g. "TWO IS YOU" / "Give 1 drink to another player."
+## The classic set: Ace is Waterfall and Jack is Make a Rule.
 const RULES := {
-	"A": {"title": "MAKE A RULE", "desc": "Create a new rule everyone must follow for the rest of the game."},
+	"A": {"title": "WATERFALL", "desc": "Everyone starts drinking at once. You can only stop when the person before you stops — you go first."},
 	"2": {"title": "TWO IS YOU", "desc": "Give 1 drink to another player."},
 	"3": {"title": "THREE IS ME", "desc": "You drink 1."},
 	"4": {"title": "FLOOR", "desc": "Last hand to touch the floor drinks."},
@@ -15,7 +16,7 @@ const RULES := {
 	"8": {"title": "PICK A MATE", "desc": "Choose a drinking buddy — they drink whenever you do, for the rest of the game."},
 	"9": {"title": "BUST A RHYME", "desc": "Say a word. Go around rhyming until someone fails — they drink."},
 	"10": {"title": "CATEGORIES", "desc": "Name a category. Go around with examples until someone repeats or hesitates — they drink."},
-	"J": {"title": "NEVER HAVE I EVER", "desc": "Say something you've never done. Anyone who has, drinks."},
+	"J": {"title": "MAKE A RULE", "desc": "Create a new rule everyone must follow for the rest of the game. Break it, drink."},
 	"Q": {"title": "QUESTION MASTER", "desc": "Ask a question. Whoever answers you drinks — until the next Q is drawn."},
 }
 
@@ -56,10 +57,11 @@ func pick_by_id(card_id: int) -> Dictionary:
 	if card.rank == "K":
 		king_count += 1
 		king_number = king_count
-		if king_count >= 4:
+		# The 4th King drinks the cup, but the game goes on until the circle
+		# is empty.
+		if king_count == 4:
 			title = tr("DRINK THE CUP!")
 			desc = tr("You drew the 4th king. Chug the cup!")
-			game_over = true
 		else:
 			title = tr("KING'S CUP")
 			desc = tr("Pour a bit of your drink into the cup. (King %d/4)") % king_count

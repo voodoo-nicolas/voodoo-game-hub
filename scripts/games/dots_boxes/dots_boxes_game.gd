@@ -62,6 +62,14 @@ var pause_dialog: Control
 var win_dialog: Control
 var win_label: Label
 
+## The most recently drawn line ({"o","r","c"}) glows so the other player
+## can see what just changed.
+var last_edge: Variant = null
+var glow_rect: ColorRect
+var cell_px: float = 0.0
+var line_px: float = 0.0
+var chime: AudioStreamPlayer
+
 var h_lines_view: Array = []
 var v_lines_view: Array = []
 var box_panels: Array = []  # [r][c] ColorRect
@@ -279,25 +287,37 @@ func _build_game_screen() -> void:
 	score_row.add_child(score_p2_label)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 23)
+	status_label.add_theme_font_size_override("font_size", 36)
+	status_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	status_label.add_theme_constant_override("outline_size", 6)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(status_label)
 
+	# Board and Confirm sit together in the middle of the free space, so the
+	# button is right under the line being confirmed.
+	var top_space := Control.new()
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(top_space)
+
+	board_slot = CenterContainer.new()
+	root.add_child(board_slot)
+
 	confirm_btn = Button.new()
 	confirm_btn.text = tr("Confirm Line")
-	confirm_btn.custom_minimum_size = Vector2(0, 44)
+	confirm_btn.custom_minimum_size = Vector2(0, 56)
+	confirm_btn.add_theme_font_size_override("font_size", 26)
 	confirm_btn.disabled = true
 	confirm_btn.visible = touch_mode
 	confirm_btn.pressed.connect(_on_confirm_pressed)
 	var confirm_margin := MarginContainer.new()
-	confirm_margin.add_theme_constant_override("margin_left", 40)
-	confirm_margin.add_theme_constant_override("margin_right", 40)
+	confirm_margin.add_theme_constant_override("margin_left", 60)
+	confirm_margin.add_theme_constant_override("margin_right", 60)
 	confirm_margin.add_child(confirm_btn)
 	root.add_child(confirm_margin)
 
-	board_slot = CenterContainer.new()
-	board_slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(board_slot)
+	var bottom_space := Control.new()
+	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(bottom_space)
 
 func _build_pause_dialog() -> void:
 	pause_dialog = ColorRect.new()
@@ -443,6 +463,7 @@ func _start_new_game(p_rows: int, p_cols: int) -> void:
 	engine.reset(rows, cols)
 	game_active = true
 	selected_edge = null
+	last_edge = null
 	ai_thinking = false
 	ai_request += 1
 	size_screen.visible = false
@@ -480,9 +501,11 @@ func _on_confirm_pressed() -> void:
 	_commit_edge(o, r, c)
 
 func _commit_edge(orientation: String, r: int, c: int) -> void:
+	var before: int = engine.current_player
 	var res: Dictionary = engine.play_line(orientation, r, c)
 	if not res.valid:
 		return
+	_after_line(orientation, r, c, before)
 	if _is_online():
 		online.send_move({"o": orientation, "r": r, "c": c})
 	_render()
@@ -509,14 +532,61 @@ func _play_ai_move(request: int) -> void:
 		_render()
 		return
 	var m: Dictionary = engine.pick_ai_move()
+	var before: int = engine.current_player
 	var res: Dictionary = engine.play_line(m.o, m.r, m.c)
 	if not res.valid:
 		return
+	_after_line(m.o, m.r, m.c, before)
 	_render()
 	if engine.game_over:
 		_show_result()
 		return
 	_maybe_ai_move()
+
+## Marks the line as the latest, and chimes when the turn passes to a player
+## at this phone: the other side in pass-and-play, never the computer, and
+## online only when it becomes my turn.
+func _after_line(o: String, r: int, c: int, player_before: int) -> void:
+	last_edge = {"o": o, "r": r, "c": c}
+	if engine.game_over or engine.current_player == player_before:
+		return
+	var now: int = engine.current_player
+	if vs_computer and now == AI_PLAYER:
+		return
+	if _is_online() and now != my_player:
+		return
+	_play_chime()
+
+func _play_chime() -> void:
+	if chime == null:
+		chime = AudioStreamPlayer.new()
+		chime.stream = _make_chime()
+		chime.volume_db = -6.0
+		add_child(chime)
+	chime.play()
+
+## A soft two-note "ding-dong" built in code (the app ships no sound files).
+static func _make_chime() -> AudioStreamWAV:
+	var rate := 22050
+	var notes := [[880.0, 0.0, 0.22], [1318.5, 0.12, 0.35]]  # [Hz, start s, length s]
+	var total := int(rate * 0.5)
+	var data := PackedByteArray()
+	data.resize(total * 2)
+	for i in total:
+		var t := float(i) / rate
+		var v := 0.0
+		for n in notes:
+			var lt: float = t - n[1]
+			if lt >= 0.0 and lt < n[2]:
+				var env: float = minf(lt / 0.01, 1.0) * exp(-lt * 9.0)
+				v += sin(TAU * n[0] * lt) * env * 0.35
+		data.encode_s16(i * 2, int(clampf(v, -1.0, 1.0) * 32000.0))
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.stereo = false
+	wav.data = data
+	return wav
 
 func _on_edge_mouse_entered(orientation: String, r: int, c: int, line: ColorRect) -> void:
 	if touch_mode or not game_active:
@@ -544,6 +614,7 @@ func _online_state() -> Dictionary:
 		"scores": [engine.scores[1], engine.scores[2]],
 		"current": engine.current_player,
 		"game_over": engine.game_over, "winner": engine.winner,
+		"last": last_edge,
 	}
 
 func _on_online_started(p_my_player: int) -> void:
@@ -577,7 +648,12 @@ func _on_online_status() -> void:
 func _on_remote_move(p: Dictionary) -> void:
 	if not game_active or engine.current_player == my_player:
 		return
-	if engine.play_line(str(p.get("o", "")), int(p.get("r", -1)), int(p.get("c", -1))).valid:
+	var before: int = engine.current_player
+	var o := str(p.get("o", ""))
+	var r := int(p.get("r", -1))
+	var c := int(p.get("c", -1))
+	if engine.play_line(o, r, c).valid:
+		_after_line(o, r, c, before)
 		_render()
 		if engine.game_over:
 			_show_result()
@@ -608,6 +684,10 @@ func _on_remote_state(st: Dictionary) -> void:
 	engine.winner = int(st.get("winner", 0))
 	game_active = not engine.game_over
 	selected_edge = null
+	var last = st.get("last", null)
+	last_edge = null
+	if typeof(last) == TYPE_DICTIONARY and last.has("o"):
+		last_edge = {"o": str(last.o), "r": int(last.r), "c": int(last.c)}
 	size_screen.visible = false
 	game_screen.visible = true
 	_build_board()
@@ -724,6 +804,17 @@ func _build_board() -> void:
 			vrow2.append(line)
 		v_lines_view.append(vrow2)
 
+	cell_px = cell_size
+	line_px = line_thickness
+	glow_rect = ColorRect.new()
+	glow_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow_rect.visible = false
+	board_wrap.add_child(glow_rect)
+	board_wrap.move_child(glow_rect, rows * cols)  # above the boxes, under the lines
+	var pulse := glow_rect.create_tween().set_loops()
+	pulse.tween_property(glow_rect, "modulate:a", 0.35, 0.6).set_trans(Tween.TRANS_SINE)
+	pulse.tween_property(glow_rect, "modulate:a", 1.0, 0.6).set_trans(Tween.TRANS_SINE)
+
 	for r in range(rows + 1):
 		for c in range(cols + 1):
 			var dot := ColorRect.new()
@@ -757,6 +848,8 @@ func _render() -> void:
 				var col: Color = COLOR_P1 if box_owner_val == 1 else COLOR_P2
 				box_panels[r][c].color = Color(col.r, col.g, col.b, COLOR_BOX_FILL_ALPHA)
 
+	_place_glow()
+
 	if touch_mode and selected_edge != null:
 		var sel: Dictionary = selected_edge
 		var sel_line: ColorRect = h_lines_view[sel.r][sel.c] if sel.o == "h" else v_lines_view[sel.r][sel.c]
@@ -780,6 +873,32 @@ func _render() -> void:
 			status_label.text = online.status_text(engine.current_player == my_player, tr("Blue") if engine.current_player == 1 else tr("Red"))
 		else:
 			status_label.text = tr("%s's turn") % _player_label(engine.current_player)
+
+## A wide, pulsing halo in the drawer's color behind the latest line.
+func _place_glow() -> void:
+	if glow_rect == null or not is_instance_valid(glow_rect):
+		return
+	if last_edge == null:
+		glow_rect.visible = false
+		return
+	var e: Dictionary = last_edge
+	var line_owner: int = _edge_owner(e.o, e.r, e.c)
+	if line_owner == 0:
+		glow_rect.visible = false
+		return
+	var w: float = line_px * 3.5
+	var start := Vector2(BOARD_PADDING + e.c * cell_px, BOARD_PADDING + e.r * cell_px)
+	if e.o == "h":
+		glow_rect.position = start - Vector2(0, w / 2.0)
+		glow_rect.size = Vector2(cell_px, w)
+	else:
+		glow_rect.position = start - Vector2(w / 2.0, 0)
+		glow_rect.size = Vector2(w, cell_px)
+	var col: Color = _owner_color(line_owner).lightened(0.35)
+	glow_rect.color = Color(col.r, col.g, col.b, 0.55)
+	glow_rect.visible = true
+	var line: ColorRect = h_lines_view[e.r][e.c] if e.o == "h" else v_lines_view[e.r][e.c]
+	line.color = _owner_color(line_owner).lightened(0.3)
 
 func _owner_color(line_owner: int) -> Color:
 	if line_owner == 0:
@@ -821,6 +940,7 @@ func _load_saved_game() -> bool:
 
 	game_active = true
 	selected_edge = null
+	last_edge = null
 	ai_thinking = false
 	size_screen.visible = false
 	game_screen.visible = true

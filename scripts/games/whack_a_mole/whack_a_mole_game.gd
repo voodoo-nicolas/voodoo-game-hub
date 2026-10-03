@@ -11,7 +11,13 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://whackamole_best.json"
 const COLOR_HOLE := Color(0.28, 0.2, 0.13)
+const COLOR_HOLE_VOODOO := Color(0.2, 0.1, 0.24)
 const COLOR_MOLE := Color(0.5, 0.32, 0.15)
+## Skull mode (skulls and voodoo dolls instead of moles). Loaded, never
+## preloaded: packs also run on apps before v0.21, which keep the moles.
+const VOODOO_PATH := "res://scripts/common/voodoo.gd"
+var Voodoo = load(VOODOO_PATH) if ResourceLoader.exists(VOODOO_PATH) else null
+var voodoo_on: bool = false
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var engine
@@ -27,6 +33,7 @@ var result_label: Label
 var mole_timer: Timer
 var mole_visible_timer: Timer
 var pause_dialog: Control
+var bg_rect: ColorRect
 
 func _ready() -> void:
 	preload("res://scripts/games/whack_a_mole/whack_a_mole_i18n.gd").install(self)
@@ -34,8 +41,22 @@ func _ready() -> void:
 	engine = WhackEngine.new()
 	engine.running = false
 	_load_best()
+	voodoo_on = Voodoo != null and Voodoo.is_on()
 	_build_ui()
+	_set_voodoo(voodoo_on)
 	_update_labels()
+
+## Skull mode: skulls and voodoo dolls pop up instead of moles. Called by the
+## ⚙ drawer's toggle too, so it re-skins in place.
+func _set_voodoo(on: bool) -> void:
+	voodoo_on = on and Voodoo != null
+	for m in mole_labels:
+		m.get_child(0).visible = not voodoo_on
+		if m.get_child_count() > 1:
+			m.get_child(1).visible = voodoo_on
+	for h in hole_buttons:
+		_style_hole(h, COLOR_HOLE_VOODOO if voodoo_on else COLOR_HOLE)
+	bg_rect.color = Voodoo.BG if voodoo_on else Color(0.09, 0.09, 0.13)
 
 func _process(delta: float) -> void:
 	if engine.running:
@@ -47,10 +68,10 @@ func _process(delta: float) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	bg_rect = ColorRect.new()
+	bg_rect.color = Color(0.09, 0.09, 0.13)
+	bg_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(bg_rect)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -133,15 +154,28 @@ func _build_ui() -> void:
 		grid.add_child(hole)
 		hole_buttons.append(hole)
 
-		var mole := Label.new()
-		mole.text = "🐹"
-		mole.set_anchors_preset(Control.PRESET_FULL_RECT)
-		mole.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		mole.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		mole.add_theme_font_size_override("font_size", int(hole_size * 0.55))
+		# The mole: a holder (so hits can squash it from its centre) with the
+		# 🐹 and, in Skull mode, a drawn skull or voodoo doll instead.
+		var mole := Control.new()
 		mole.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mole.size = Vector2(hole_size, hole_size)
+		mole.pivot_offset = Vector2(hole_size, hole_size) / 2.0
 		mole.visible = false
 		hole.add_child(mole)
+		var face := Label.new()
+		face.text = "🐹"
+		face.size = Vector2(hole_size, hole_size)
+		face.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		face.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		face.add_theme_font_size_override("font_size", int(hole_size * 0.55))
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mole.add_child(face)
+		if Voodoo:
+			var skin = Voodoo.new()
+			skin.span = 0.7
+			skin.kind = Voodoo.DOLL if i % 3 == 1 else Voodoo.SKULL
+			mole.add_child(skin)
+			skin.size = Vector2(hole_size, hole_size)
 		mole_labels.append(mole)
 
 	start_btn = Button.new()
@@ -258,9 +292,58 @@ func _on_hole_pressed(hole: int) -> void:
 	if not engine.running:
 		return
 	if engine.whack(hole):
-		mole_labels[hole].visible = false
+		_hit_effect(hole)
 		score_label.text = tr("Score: %d") % engine.score
 		_schedule_next_pop()
+	else:
+		_miss_effect(hole)
+
+## Bonk: the mole squashes down and vanishes, a 💥 bursts and "+1" floats up.
+func _hit_effect(hole: int) -> void:
+	var mole: Control = mole_labels[hole]
+	var squash := mole.create_tween()
+	squash.tween_property(mole, "scale", Vector2(1.25, 0.55), 0.07)
+	squash.tween_property(mole, "scale", Vector2(0.2, 0.2), 0.1)
+	squash.tween_callback(_hide_mole.bind(mole))
+	var hb: Button = hole_buttons[hole]
+	var s: float = hb.size.x
+	_float_label(hb, "💥", s * 0.6, Vector2(0, 0), Vector2(1.6, 1.6), 0.0, 0.35)
+	_float_label(hb, "+1", s * 0.28, Vector2(0, -s * 0.45), Vector2(1, 1), -s * 0.35, 0.6,
+			Color(1, 0.85, 0.2))
+
+func _hide_mole(mole: Control) -> void:
+	mole.visible = false
+	mole.scale = Vector2.ONE
+
+## A tap on an empty hole kicks up a little dust cloud that drifts and fades.
+func _miss_effect(hole: int) -> void:
+	var hb: Button = hole_buttons[hole]
+	var s: float = hb.size.x
+	_float_label(hb, "💨", s * 0.35, Vector2(0, s * 0.1), Vector2(1.5, 1.5), -s * 0.12, 0.5)
+
+## A label centred in `parent`, offset by `at`, that grows to `grow`, rises
+## by `rise` px and fades over `secs`, then frees itself.
+func _float_label(parent: Control, text: String, font_px: float, at: Vector2, grow: Vector2,
+		rise: float, secs: float, color: Color = Color(1, 1, 1)) -> void:
+	var l := Label.new()
+	l.text = text
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", int(font_px))
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	l.add_theme_constant_override("outline_size", int(font_px * 0.12))
+	l.size = parent.size
+	l.position = at
+	l.pivot_offset = parent.size / 2.0
+	l.scale = Vector2(0.6, 0.6)
+	parent.add_child(l)
+	var tw := l.create_tween().set_parallel()
+	tw.tween_property(l, "scale", grow, secs).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(l, "position:y", at.y + rise, secs)
+	tw.tween_property(l, "modulate:a", 0.0, secs * 0.6).set_delay(secs * 0.4)
+	tw.chain().tween_callback(l.queue_free)
 
 func _end_round() -> void:
 	for m in mole_labels:

@@ -18,6 +18,14 @@ extends Node
 ## - keep_awake: stops the screen dimming/locking while the app is open.
 ## Skull mode (Voodoo) keeps its own file -- see voodoo.gd.
 ##
+## Also app-wide, with no game code:
+## - Safe area: every screen's root Control is inset from the phone's camera
+##   cutout (`_apply_safe_area`), so titles aren't hidden under it.
+## - Resume: when the app goes to the background inside a game, that game is
+##   remembered in `user://resume.json`; if Android then kills the app, the
+##   hub reopens the game on the next launch (`take_resume_scene`). Games
+##   that save their state (`_save_game`) pick up where they were.
+##
 ## Games must not reference `Settings` directly (packs also run on apps
 ## without it): `var s = get_node_or_null("/root/Settings")`, then `if s:`.
 
@@ -32,7 +40,18 @@ const DEFAULT_TEXT_SIZE := 1
 const TAP_BUZZ_MS := 12
 const RESULT_BUZZ_MS := 70
 
+const RESUME_PATH := "user://resume.json"
+## A game left in the background longer than this opens on the hub instead.
+const RESUME_MAX_AGE_SEC := 12 * 3600
+const GAMES_DIR := "res://scenes/games/"
+## Space kept clear at the top of portrait screens on phones that report no
+## cutout, so a title never sits flush against the camera / status area.
+const MIN_TOP_INSET := 24.0
+
 signal changed
+
+## Set once the hub has had its chance to reopen a game after a restart.
+var resume_checked: bool = false
 
 var text_size: int = DEFAULT_TEXT_SIZE
 var theme: String = "dark"
@@ -47,6 +66,13 @@ func _ready() -> void:
 	# Every button, in every scene (packs included), ticks when pressed.
 	get_tree().node_added.connect(_on_node_added)
 	get_tree().scene_changed.connect(_fit_scene)
+	get_tree().scene_changed.connect(_on_scene_changed)
+	# A rotation changes which way is "landscape": rescale and re-inset.
+	get_tree().root.size_changed.connect(_fit_scene)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_remember_scene()
 
 func set_text_size(i: int) -> void:
 	text_size = clampi(i, 0, TEXT_SCALES.size() - 1)
@@ -149,7 +175,6 @@ func _commit() -> void:
 	changed.emit()
 
 func _apply() -> void:
-	get_tree().root.content_scale_factor = TEXT_SCALES[text_size]
 	_fit_scene()
 	AudioServer.set_bus_mute(0, not sound)
 	DisplayServer.screen_set_keep_on(keep_awake)
@@ -161,8 +186,9 @@ func _fit_scene() -> void:
 	if not is_inside_tree():
 		return
 	var root := get_tree().root
-	var wanted: float = TEXT_SCALES[text_size]
+	var wanted: float = TEXT_SCALES[text_size] * _landscape_boost()
 	root.content_scale_factor = wanted
+	_apply_safe_area()
 	if wanted <= 1.0:
 		return
 	var scene := get_tree().current_scene
@@ -170,7 +196,8 @@ func _fit_scene() -> void:
 		await get_tree().process_frame
 	if not is_instance_valid(scene) or scene != get_tree().current_scene:
 		return
-	var view: Vector2 = root.get_visible_rect().size
+	var m := safe_margins()
+	var view: Vector2 = root.get_visible_rect().size - Vector2(m[0] + m[2], m[1] + m[3])
 	var need := Vector2.ZERO
 	for c in scene.get_children():
 		if c is Control and c.visible:
@@ -182,6 +209,109 @@ func _fit_scene() -> void:
 		fit = minf(fit, view.y / need.y)
 	if fit < 1.0:
 		root.content_scale_factor = maxf(1.0, wanted * fit * 0.99)
+		_apply_safe_area()  # margins are in canvas units, which just changed
+
+## The design is 720 wide x 1280 tall, and "expand" stretch keeps the 1280
+## when the phone turns sideways -- so a landscape screen got a 1280-tall
+## canvas and everything drawn on it shrank to ~56% (Geometry Wars' Pause
+## button was barely visible). Turned sideways, scale up by 1280/720 so the
+## short side is 720 units again, like portrait.
+func _landscape_boost() -> float:
+	var win := Vector2(DisplayServer.window_get_size())
+	if win.y <= 0.0 or win.x <= win.y:
+		return 1.0
+	var w := float(ProjectSettings.get_setting("display/window/size/viewport_width", 720))
+	var h := float(ProjectSettings.get_setting("display/window/size/viewport_height", 1280))
+	return maxf(1.0, h / w)
+
+## [left, top, right, bottom] the screen's cutouts cover, in canvas units.
+## Zero on desktop. VOODOO_SAFE_INSET="l,t,r,b" fakes it for PC testing.
+func safe_margins() -> Array:
+	var fake := OS.get_environment("VOODOO_SAFE_INSET")
+	if fake != "":
+		var p := fake.split(",")
+		if p.size() == 4:
+			return [float(p[0]), float(p[1]), float(p[2]), float(p[3])]
+	if not OS.has_feature("mobile"):
+		return [0.0, 0.0, 0.0, 0.0]
+	var win := Vector2(DisplayServer.window_get_size())
+	if win.x <= 0 or win.y <= 0:
+		return [0.0, 0.0, 0.0, 0.0]
+	var safe := Rect2(DisplayServer.get_display_safe_area())
+	var k: float = get_tree().root.get_visible_rect().size.y / win.y
+	var m := [
+		maxf(safe.position.x, 0.0) * k,
+		maxf(safe.position.y, 0.0) * k,
+		maxf(win.x - safe.end.x, 0.0) * k,
+		maxf(win.y - safe.end.y, 0.0) * k,
+	]
+	if win.y > win.x:
+		m[1] = maxf(m[1], MIN_TOP_INSET)
+	return m
+
+## Insets the current screen's root Control by the safe margins. The band
+## left uncovered shows the clear color, so it's black like a status bar.
+func _apply_safe_area() -> void:
+	if not is_inside_tree():
+		return
+	var scene := get_tree().current_scene
+	if not scene is Control:
+		return
+	var m := safe_margins()
+	if m[0] + m[1] + m[2] + m[3] > 0.0:
+		RenderingServer.set_default_clear_color(Color.BLACK)
+	var c := scene as Control
+	c.anchor_left = 0.0
+	c.anchor_top = 0.0
+	c.anchor_right = 1.0
+	c.anchor_bottom = 1.0
+	c.offset_left = m[0]
+	c.offset_top = m[1]
+	c.offset_right = -m[2]
+	c.offset_bottom = -m[3]
+
+# ---------- resume after the app is killed in the background ----------
+
+func _is_game_scene(path: String) -> bool:
+	return path.begins_with(GAMES_DIR)
+
+func _remember_scene() -> void:
+	if not is_inside_tree() or get_tree().current_scene == null:
+		return
+	var path := get_tree().current_scene.scene_file_path
+	if not _is_game_scene(path):
+		return
+	var f := FileAccess.open(RESUME_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"scene": path, "t": int(Time.get_unix_time_from_system())}))
+
+func _forget_scene() -> void:
+	if FileAccess.file_exists(RESUME_PATH):
+		DirAccess.remove_absolute(RESUME_PATH)
+
+## Leaving a game normally (to the hub, Options...) means there's nothing
+## to resume. Not before the hub has checked, or launch would erase it.
+func _on_scene_changed() -> void:
+	var scene := get_tree().current_scene
+	if resume_checked and scene and not _is_game_scene(scene.scene_file_path):
+		_forget_scene()
+
+## The game scene the app was last in when Android killed it, or "". Only
+## the first call per app run answers; it also clears the record.
+func take_resume_scene() -> String:
+	if resume_checked:
+		return ""
+	resume_checked = true
+	if not FileAccess.file_exists(RESUME_PATH):
+		return ""
+	var data = JSON.parse_string(FileAccess.get_file_as_string(RESUME_PATH))
+	_forget_scene()
+	if typeof(data) != TYPE_DICTIONARY:
+		return ""
+	var age: float = Time.get_unix_time_from_system() - float(data.get("t", 0))
+	if age < 0 or age > RESUME_MAX_AGE_SEC:
+		return ""
+	return str(data.get("scene", ""))
 
 func _on_node_added(node: Node) -> void:
 	if node is BaseButton:

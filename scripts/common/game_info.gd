@@ -1,8 +1,8 @@
 extends Control
 
-## "How to Play" + "Your Stats" for one game: a "?" tab docked just above the
-## settings drawer's ⚙ tab, opening a card with the game's goal, rules, tips
-## and the player's records. Opens by itself the first time a game is played.
+## "How to Play" + "Your Stats" for one game: a card with the game's goal,
+## rules, tips and the player's records, opened from the settings drawer's
+## "How to Play" button. Opens by itself the first time a game is played.
 ##
 ## Games never preload this (packs also run on apps from before v0.20):
 ##
@@ -74,7 +74,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# The card pauses the game underneath; it must keep working itself.
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_build_tab()
+	call_deferred("_build_tab")
 	if not stats.has("_seen"):
 		stats["_seen"] = 1
 		_save()
@@ -277,7 +277,16 @@ func summary(keys: Array = []) -> String:
 
 # ---------- UI ----------
 
+## No floating "?" tab any more (since v0.22): it covered game boards, so the
+## card opens from the ⚙ drawer's "How to Play" button instead. Kept for a
+## game with no SettingsDrawer, which would otherwise have no way to open it.
+## Deferred from _ready(): the drawer is added just after us.
 func _build_tab() -> void:
+	var parent := get_parent()
+	if parent:
+		for c in parent.get_children():
+			if c != self and c.get_script() and str(c.get_script().resource_path).ends_with("settings_drawer.gd"):
+				return
 	tab_button = Button.new()
 	tab_button.text = "?"
 	tab_button.add_theme_font_size_override("font_size", 26)
@@ -302,7 +311,8 @@ func open() -> void:
 		_build_overlay()
 	_fill_stats()
 	overlay.visible = true
-	tab_button.visible = false
+	if tab_button:
+		tab_button.visible = false
 	if not get_tree().paused:
 		get_tree().paused = true
 		_paused_tree = true
@@ -310,7 +320,8 @@ func open() -> void:
 func close() -> void:
 	if overlay:
 		overlay.visible = false
-	tab_button.visible = true
+	if tab_button:
+		tab_button.visible = true
 	_unpause()
 
 func _unpause() -> void:

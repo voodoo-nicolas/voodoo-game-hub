@@ -13,7 +13,12 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://geometry_wars_save.json"
 
-const PLAYER_SPEED := 260.0
+const PLAYER_SPEED := 400.0
+const START_BOMBS := 3
+const MAX_BOMBS := 6
+## A free bomb every this many points.
+const BOMB_EVERY_POINTS := 2500
+const SHOCKWAVE_TIME := 0.6
 const PLAYER_RADIUS := 14.0
 const ENEMY_RADIUS := 16.0
 const BULLET_SPEED := 520.0
@@ -47,6 +52,15 @@ var next_entity_id: int = 1
 var enemies: Array = []
 var bullets: Array = []
 var particles: Array = []
+## Dropped by every kill; each one picked up adds 1 to the score multiplier.
+## They fade after Core.CRYSTAL_LIFE seconds. Dying resets the multiplier.
+var crystals: Array = []
+var multiplier: int = 1
+var bombs: int = START_BOMBS
+var next_bomb_at: int = BOMB_EVERY_POINTS
+var shockwave_t: float = -1.0  # seconds since the last bomb, -1 = none
+var bomb_button: Button
+var pause_button: Button
 
 var game_active: bool = false
 var paused: bool = false
@@ -116,6 +130,8 @@ func _input(event: InputEvent) -> void:
 		_release_sticks()
 		return
 	if event is InputEventScreenTouch:
+		if event.pressed and _on_hud_button(event.position):
+			return  # a tap on Pause / Bomb isn't a thumbstick
 		if event.pressed:
 			var is_left: bool = event.position.x < get_viewport_rect().size.x / 2.0
 			if is_left and move_touch_index == -1:
@@ -138,6 +154,12 @@ func _input(event: InputEvent) -> void:
 			move_value = _clamp_stick(event.position - move_origin)
 		elif event.index == aim_touch_index:
 			aim_value = _clamp_stick(event.position - aim_origin)
+
+func _on_hud_button(p: Vector2) -> bool:
+	for b in [bomb_button, pause_button]:
+		if b and b.is_visible_in_tree() and b.get_global_rect().grow(8).has_point(p):
+			return true
+	return false
 
 func _clamp_stick(delta: Vector2) -> Vector2:
 	var length: float = delta.length()
@@ -191,10 +213,10 @@ func _process(delta: float) -> void:
 
 	if invuln_timer > 0.0:
 		invuln_timer = max(0.0, invuln_timer - delta)
-	if combo_timer > 0.0:
-		combo_timer -= delta
-		if combo_timer <= 0.0:
-			combo = 0
+	if shockwave_t >= 0.0:
+		shockwave_t += delta
+		if shockwave_t > SHOCKWAVE_TIME:
+			shockwave_t = -1.0
 
 	fire_cooldown_timer -= delta
 	if aim.firing and aim_dir.length() > 0.01 and fire_cooldown_timer <= 0.0:
@@ -206,19 +228,19 @@ func _process(delta: float) -> void:
 	if spawn_timer <= 0.0:
 		var t: float = clamp(elapsed_seconds / SPAWN_RAMP_TIME, 0.0, 1.0)
 		spawn_timer = lerp(SPAWN_INTERVAL_START, SPAWN_INTERVAL_MIN, t)
-		enemies.append(Core.spawn_enemy(next_entity_id, arena_size))
+		enemies.append(Core.spawn_enemy(next_entity_id, arena_size, elapsed_seconds))
 		next_entity_id += 1
 
-	Core.update_enemies(enemies, player_pos, arena_size, delta)
+	Core.update_enemies(enemies, player_pos, arena_size, delta, bullets)
 	Core.update_bullets(bullets, arena_size, delta)
 
-	var kills: Array = Core.resolve_bullet_hits(bullets, enemies, BULLET_RADIUS + ENEMY_RADIUS)
-	for pos in kills:
-		combo += 1
-		combo_timer = COMBO_WINDOW
-		var multiplier: int = 1 + int(combo / COMBO_STEP)
-		score += 10 * multiplier
-		particles.append({"pos": pos, "age": 0.0, "lifetime": 0.4})
+	for k in Core.resolve_bullet_hits(bullets, enemies, BULLET_RADIUS + ENEMY_RADIUS):
+		_on_kill(k)
+
+	var picked: int = Core.update_crystals(crystals, player_pos, delta)
+	if picked > 0:
+		multiplier += picked
+		combo = multiplier  # kept for old saves
 
 	for i in range(particles.size() - 1, -1, -1):
 		particles[i].age += delta
@@ -232,12 +254,45 @@ func _process(delta: float) -> void:
 	arena_canvas.queue_redraw()
 	joystick_canvas.queue_redraw()
 
+## Points (times the multiplier), a burst, crystals to collect, and a
+## splitter breaks into three fast minis.
+func _on_kill(k: Dictionary) -> void:
+	score += int(Core.POINTS.get(k.type, 10)) * multiplier
+	particles.append({"pos": k.pos, "age": 0.0, "lifetime": 0.4})
+	var drops := 3 if k.type == "tank" else 1
+	for i in drops:
+		var jitter := Vector2(randf_range(-14, 14), randf_range(-14, 14)) if drops > 1 else Vector2.ZERO
+		crystals.append({"pos": k.pos + jitter, "age": 0.0})
+	if k.type == "splitter":
+		for i in 3:
+			var a := TAU * i / 3.0 + randf() * 0.5
+			enemies.append(Core.make_enemy(next_entity_id, "mini", k.pos + Vector2(cos(a), sin(a)) * 18.0))
+			next_entity_id += 1
+	while score >= next_bomb_at:
+		next_bomb_at += BOMB_EVERY_POINTS
+		bombs = mini(bombs + 1, MAX_BOMBS)
+
+## Smart bomb: a shockwave wipes out every enemy on screen. No points or
+## crystals for those -- it's an escape, not a farm.
+func _on_bomb_pressed() -> void:
+	if not game_active or paused or game_over or bombs <= 0:
+		return
+	bombs -= 1
+	for e in enemies:
+		particles.append({"pos": e.pos, "age": 0.0, "lifetime": 0.5})
+	enemies.clear()
+	shockwave_t = 0.0
+	spawn_timer = maxf(spawn_timer, 1.0)
+	_update_hud()
+
 func _on_player_hit() -> void:
 	lives -= 1
 	enemies.clear()
 	bullets.clear()
+	crystals.clear()
 	combo = 0
 	combo_timer = 0.0
+	multiplier = 1
 	invuln_timer = INVULN_TIME
 	player_pos = arena_size / 2.0
 	if lives <= 0:
@@ -246,8 +301,9 @@ func _on_player_hit() -> void:
 func _update_hud() -> void:
 	score_label.text = tr("Score: %d") % score
 	lives_label.text = tr("Lives: %d") % lives
-	var multiplier: int = 1 + int(combo / COMBO_STEP)
-	combo_label.text = (tr("x%d Combo") % multiplier) if combo > 0 else ""
+	combo_label.text = tr("x%d") % multiplier
+	bomb_button.text = tr("💣 Bomb ×%d") % bombs
+	bomb_button.disabled = bombs <= 0
 
 # ---------- UI construction ----------
 
@@ -369,28 +425,58 @@ func _build_game_screen() -> void:
 	top_bar.add_theme_constant_override("separation", 10)
 	top_margin.add_child(top_bar)
 
-	var pause_btn := Button.new()
-	pause_btn.text = tr("Pause")
-	pause_btn.pressed.connect(_on_pause_pressed)
-	top_bar.add_child(pause_btn)
+	pause_button = _neon_button("⏸ " + tr("Pause"), Color(0.3, 1.0, 1.0))
+	pause_button.pressed.connect(_on_pause_pressed)
+	top_bar.add_child(pause_button)
 
 	score_label = _stat_label(tr("Score: 0"))
 	lives_label = _stat_label(tr("Lives: 3"))
 	combo_label = _stat_label("")
+	combo_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.55))
 	for l in [score_label, lives_label, combo_label]:
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		top_bar.add_child(l)
+
+	bomb_button = _neon_button(tr("💣 Bomb ×%d") % START_BOMBS, Color(1.0, 0.55, 0.2))
+	bomb_button.pressed.connect(_on_bomb_pressed)
+	top_bar.add_child(bomb_button)
+	var drawer_gap := Control.new()  # keeps Bomb clear of the ⚙ tab
+	drawer_gap.custom_minimum_size = Vector2(36, 0)
+	top_bar.add_child(drawer_gap)
 
 	arena_canvas = ArenaCanvas.new()
 	arena_canvas.game = self
 	arena_canvas.position = arena_offset
 	game_screen.add_child(arena_canvas)
 
+## A dark button with a bright neon rim, readable over the arena.
+func _neon_button(text: String, color: Color) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(140, 52)
+	b.add_theme_font_size_override("font_size", 24)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.06, 0.06, 0.12, 0.9) if state != "pressed" else Color(color, 0.3)
+		sb.set_border_width_all(2)
+		sb.border_color = color if state != "disabled" else Color(color, 0.3)
+		sb.set_corner_radius_all(10)
+		sb.shadow_color = Color(color, 0.35)
+		sb.shadow_size = 6 if state != "disabled" else 0
+		sb.content_margin_left = 14
+		sb.content_margin_right = 14
+		b.add_theme_stylebox_override(state, sb)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(c, color.lightened(0.3))
+	b.add_theme_color_override("font_disabled_color", Color(color, 0.35))
+	return b
+
 func _stat_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 20)
+	l.add_theme_font_size_override("font_size", 24)
 	l.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
 	return l
 
@@ -527,6 +613,11 @@ func _start_new_game() -> void:
 	enemies = []
 	bullets = []
 	particles = []
+	crystals = []
+	multiplier = 1
+	bombs = START_BOMBS
+	next_bomb_at = BOMB_EVERY_POINTS
+	shockwave_t = -1.0
 	move_touch_index = -1
 	aim_touch_index = -1
 	game_active = true
@@ -567,12 +658,15 @@ func _save_game() -> void:
 		return
 	var enemy_data := []
 	for e in enemies:
-		enemy_data.append({"type": e.type, "px": e.pos.x, "py": e.pos.y, "vx": e.vel.x, "vy": e.vel.y})
+		enemy_data.append({"type": e.type, "px": e.pos.x, "py": e.pos.y, "vx": e.vel.x, "vy": e.vel.y, "hp": e.get("hp", 1)})
 
 	SaveUtil.write(SAVE_PATH, {
 		"lives": lives,
 		"score": score,
 		"combo": combo,
+		"multiplier": multiplier,
+		"bombs": bombs,
+		"next_bomb_at": next_bomb_at,
 		"elapsed_seconds": elapsed_seconds,
 		"player_x": player_pos.x,
 		"player_y": player_pos.y,
@@ -597,7 +691,12 @@ func _load_saved_game() -> bool:
 	lives = int(data.lives)
 	score = int(data.score)
 	combo = int(data.combo)
-	combo_timer = COMBO_WINDOW if combo > 0 else 0.0
+	combo_timer = 0.0
+	multiplier = maxi(1, int(data.get("multiplier", 1)))
+	bombs = int(data.get("bombs", START_BOMBS))
+	next_bomb_at = int(data.get("next_bomb_at", (score / BOMB_EVERY_POINTS + 1) * BOMB_EVERY_POINTS))
+	crystals = []
+	shockwave_t = -1.0
 	elapsed_seconds = float(data.elapsed_seconds)
 	player_pos = Vector2(float(data.player_x), float(data.player_y))
 	player_pos.x = clamp(player_pos.x, 0, arena_size.x)
@@ -606,12 +705,10 @@ func _load_saved_game() -> bool:
 	enemies = []
 	next_entity_id = int(data.get("next_entity_id", 1))
 	for ed in data.enemies:
-		enemies.append({
-			"id": next_entity_id,
-			"type": str(ed.type),
-			"pos": Vector2(float(ed.px), float(ed.py)),
-			"vel": Vector2(float(ed.vx), float(ed.vy)),
-		})
+		var e: Dictionary = Core.make_enemy(next_entity_id, str(ed.type), Vector2(float(ed.px), float(ed.py)))
+		e.vel = Vector2(float(ed.vx), float(ed.vy))
+		e.hp = int(ed.get("hp", e.hp))
+		enemies.append(e)
 		next_entity_id += 1
 
 	bullets = []

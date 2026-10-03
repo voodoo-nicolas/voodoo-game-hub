@@ -28,6 +28,8 @@ var selected_pile_index: int = -1
 var selected_card_index: int = -1
 
 var board_area: Control
+var board_holder: Control
+var board_scroll: ScrollContainer
 var timer_label: Label
 var moves_label: Label
 var undo_button: Button
@@ -111,16 +113,25 @@ func _build_ui() -> void:
 	undo_button.pressed.connect(_on_undo_pressed)
 	top_bar.add_child(undo_button)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(scroll)
+	board_scroll = ScrollContainer.new()
+	board_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# The board shrinks to the screen width instead of scrolling sideways.
+	board_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(board_scroll)
 
 	var center := CenterContainer.new()
-	scroll.add_child(center)
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	board_scroll.add_child(center)
 
+	# board_area keeps the fixed 648-wide layout and is scaled down to fit;
+	# the holder reserves the scaled size so the containers lay out around it.
+	board_holder = Control.new()
+	center.add_child(board_holder)
 	board_area = Control.new()
 	board_area.custom_minimum_size = Vector2(BOARD_WIDTH, BOARD_HEIGHT)
-	center.add_child(board_area)
+	board_area.size = Vector2(BOARD_WIDTH, BOARD_HEIGHT)
+	board_holder.add_child(board_area)
+	board_scroll.resized.connect(_fit_board)
 
 	_build_win_dialog()
 	_build_pause_dialog()
@@ -128,6 +139,12 @@ func _build_ui() -> void:
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/solitaire/solitaire_help.gd"))
 		add_child(info)
 	add_child(SettingsDrawer.new())
+
+func _fit_board() -> void:
+	var avail: float = board_scroll.size.x - 8.0
+	var s: float = clampf(avail / BOARD_WIDTH, 0.3, 1.25)
+	board_area.scale = Vector2(s, s)
+	board_holder.custom_minimum_size = Vector2(BOARD_WIDTH, BOARD_HEIGHT) * s
 
 func _stat_label(text: String) -> Label:
 	var l := Label.new()

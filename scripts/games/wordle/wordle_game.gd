@@ -201,6 +201,9 @@ func _submit() -> void:
 	if result == "short":
 		message_label.text = tr("Not enough letters")
 		return
+	if result == "not_word":
+		message_label.text = tr("Not in word list")
+		return
 	current = ""
 	_render()
 	if result == "won" or result == "lost":
