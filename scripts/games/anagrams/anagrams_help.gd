@@ -11,6 +11,7 @@ const HOW := [
 	"A right answer scores 10 points per letter.",
 	"💡 Hint reveals the next letter but halves the points for that word. Skip moves on with no points.",
 	"🔀 Shuffle mixes the letters up again — a fresh order often shows you the word.",
+	"⏸ pauses; a round in progress is kept, and Resume on the Home screen carries on.",
 ]
 const TIPS := [
 	"Look for common endings first: -ING, -ED, -ER, -LY, -TION.",

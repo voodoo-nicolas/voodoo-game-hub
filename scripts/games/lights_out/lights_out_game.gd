@@ -173,7 +173,6 @@ func _build_win_dialog() -> void:
 
 func _start_new_game() -> void:
 	engine.reset()
-	SaveUtil.delete(SAVE_PATH)
 	win_dialog.visible = false
 	_render()
 
@@ -214,7 +213,7 @@ func _build_home() -> void:
 		"accent": HomeKit.GOLD,
 		"subtitle": "Tap to flip a light and its neighbours. Turn them all off.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "▶  New puzzle", "sub": "5 × 5 lights", "action": _start_new_game}],
+		"modes": [{"text": "▶  New puzzle", "sub": "5 × 5 lights", "action": _new_puzzle}],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": func(): return tr("Moves: %d") % int(SaveUtil.read(SAVE_PATH).get("moves", 0)) if SaveUtil.read(SAVE_PATH) else "",
@@ -241,6 +240,11 @@ func _draw_home_logo(c: Control) -> void:
 			HomeKit.glow_rect(c, r, COLOR_ON, 2.5, 0.45)
 		else:
 			HomeKit.glow_rect(c, r, HomeKit.BLUE, 1.5, 0.05)
+
+## From Home: a fresh puzzle replaces any saved one.
+func _new_puzzle() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
 
 func _save_game() -> void:
 	if engine.is_solved() or win_dialog.visible:

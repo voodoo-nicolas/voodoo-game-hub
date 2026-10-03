@@ -4,6 +4,7 @@ extends Control
 ## word checks itself once every tile is used.
 
 const AnEngine = preload("res://scripts/games/anagrams/anagrams_engine.gd")
+const HomeKit = preload("res://scripts/games/anagrams/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -13,11 +14,13 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://anagrams_best.json"
-const COLOR_TILE := Color(0.96, 0.9, 0.75)
+const SAVE_PATH := "user://anagrams_save.json"
+const COLOR_TILE := HomeKit.GOLD
 const COLOR_USED := Color(0.35, 0.35, 0.42)
-const COLOR_INK := Color(0.15, 0.1, 0.05)
+const COLOR_INK := Color.WHITE
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var home  # HomeKit: Home screen + pause menu
 var engine: AnEngine
 var progress_label: Label
 var answer_label: Label
@@ -43,9 +46,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = HomeKit.neon_theme()
+	var bg := HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -62,18 +64,24 @@ func _build_ui() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
 	var hub_btn := Button.new()
-	hub_btn.text = tr("Hub")
-	hub_btn.add_theme_font_size_override("font_size", 26)
-	hub_btn.pressed.connect(UI.exit_to_hub.bind(self))
+	hub_btn.text = "⏸"
+	hub_btn.custom_minimum_size = Vector2(76, 64)
+	hub_btn.add_theme_font_size_override("font_size", 30)
+	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
 	title.text = tr("🔀 Anagrams")
-	title.add_theme_font_size_override("font_size", 30)
+	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_color_override("font_color", Color(1, 0.93, 0.8))
+	title.add_theme_color_override("font_outline_color", Color(HomeKit.GOLD, 0.5))
+	title.add_theme_constant_override("outline_size", 8)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = tr("Restart")
+	restart_btn.text = "↺"
+	restart_btn.custom_minimum_size = Vector2(76, 64)
+	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
 	restart_btn.pressed.connect(_start_new_game)
 	bar.add_child(restart_btn)
@@ -128,21 +136,25 @@ func _build_ui() -> void:
 
 	end_dialog = UI.build_dialog(tr("Round Over"), [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("Back to Hub"), "action": UI.exit_to_hub.bind(self)},
+		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/anagrams/anagrams_help.gd"))
+	_build_home()
+	if info:
 		add_child(info)
 		if best > 0:
 			info.high("Best score", best)
-	add_child(SettingsDrawer.new())
+	var drawer := SettingsDrawer.new()
+	drawer.set("default_frac", 0.75)  # between the tiles and the buttons
+	add_child(drawer)
 
 func _button(text: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(160, 70)
-	b.add_theme_font_size_override("font_size", 24)
+	b.custom_minimum_size = Vector2(128, 76)
+	b.add_theme_font_size_override("font_size", 26)
 	b.pressed.connect(action)
 	return b
 
@@ -181,9 +193,8 @@ func _render() -> void:
 		var used: bool = picked.has(i)
 		tiles[i].text = engine.letters[i]
 		tiles[i].disabled = used
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = COLOR_USED if used else COLOR_TILE
-		sb.set_corner_radius_all(12)
+		var sb := HomeKit.neon_box(COLOR_USED if used else COLOR_TILE, "disabled" if used else "normal")
+		sb.bg_color = Color(COLOR_USED, 0.15) if used else Color(COLOR_TILE, 0.16)
 		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
 			tiles[i].add_theme_stylebox_override(st, sb)
 
@@ -214,6 +225,7 @@ func _check() -> void:
 
 func _advance() -> void:
 	if engine.is_over():
+		SaveUtil.delete(SAVE_PATH)
 		if engine.score > best:
 			best = engine.score
 			SaveUtil.write(BEST_PATH, {"best": best})
@@ -273,3 +285,83 @@ func _on_skip() -> void:
 	_feedback(tr("It was %s") % engine.target, Color(0.9, 0.8, 0.4))
 	engine.skip()
 	_advance()
+
+# ---------- Home screen (home_kit.gd) ----------
+
+const TITLE_FOR_HOME := preload("res://scripts/games/anagrams/anagrams_help.gd").TITLE
+
+func _build_home() -> void:
+	home = HomeKit.new({
+		"help": preload("res://scripts/games/anagrams/anagrams_help.gd"),
+		"info": info,
+		"accent": HomeKit.GOLD,
+		"subtitle": "Unscramble the letters. Ten words a round.",
+		"logo": _draw_home_logo,
+		"modes": [{"text": "▶  New round", "sub": "10 words", "action": _new_round}],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
+		"restart": _start_new_game,
+		"board_note": "Your best round: 10 points per letter, halved on hinted words.",
+	})
+	add_child(home)
+
+func _on_pause_home() -> void:
+	home.pause()
+
+func _go_home() -> void:
+	home.go_home()
+
+func _draw_home_logo(c: Control) -> void:
+	var word := ["W", "O", "R", "D"]
+	var k := minf(c.size.y * 0.42, 62.0)
+	var o := Vector2(c.size.x / 2.0 - k * 2.2, c.size.y / 2.0 - k / 2.0)
+	var tilt := [-0.12, 0.08, -0.05, 0.14]
+	for i in 4:
+		var ctr := o + Vector2(i * k * 1.12 + k / 2.0, k / 2.0 + (8 if i % 2 == 0 else -8))
+		c.draw_set_transform(ctr, tilt[i], Vector2.ONE)
+		HomeKit.glow_rect(c, Rect2(Vector2(-k / 2.0, -k / 2.0), Vector2(k, k)), COLOR_TILE, 2.5, 0.12)
+		HomeKit.glow_text(c, Vector2.ZERO, ["R", "D", "W", "O"][i], int(k * 0.6), Color.WHITE)
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if engine == null or engine.is_over() or engine.target == "":
+		return
+	SaveUtil.write(SAVE_PATH, {"queue": engine.queue, "target": engine.target, "letters": engine.letters,
+		"index": engine.index, "score": engine.score, "hints": engine.hints, "spanish": engine.spanish, "locked": locked})
+
+## From Home: a fresh round replaces any saved one.
+func _new_round() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	return "" if d == null else tr("Word %d of %d") % [int(d.get("index", 0)) + 1, AnEngine.ROUND]
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null or str(d.get("target", "")) == "":
+		_start_new_game()
+		return
+	engine.spanish = bool(d.get("spanish", false))
+	engine.queue = Array(d.get("queue", []))
+	engine.target = str(d.target)
+	engine.letters = Array(d.get("letters", []))
+	engine.index = int(d.get("index", 0))
+	engine.score = int(d.get("score", 0))
+	engine.hints = int(d.get("hints", 0))
+	end_dialog.visible = false
+	_new_word()
+	locked = clampi(int(d.get("locked", 0)), 0, engine.target.length() - 1)
+	for k in locked:
+		var ch: String = engine.target[k]
+		for i in engine.letters.size():
+			if engine.letters[i] == ch and not picked.has(i):
+				picked.append(i)
+				break
+	_render()
