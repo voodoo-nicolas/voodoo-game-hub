@@ -3114,5 +3114,7 @@
  "Wins from before the history was kept: %d": "Victorias de antes del historial: %d",
  "📜 History": "📜 Historial",
  "Once every card is face up and the stock is used up, the rest fly up to the foundations by themselves.": "Cuando todas las cartas están boca arriba y el mazo se acabó, el resto vuela solo a las bases.",
- "📜 History on the Home screen lists every win with its time and moves.": "📜 Historial, en la pantalla de inicio, muestra cada victoria con su tiempo y sus movimientos."
+ "📜 History on the Home screen lists every win with its time and moves.": "📜 Historial, en la pantalla de inicio, muestra cada victoria con su tiempo y sus movimientos.",
+ "Swipe to continue": "Desliza para continuar",
+ "⏸ pauses the game (not online). A round you leave is kept: Resume on the Snake screen picks it up, and the snake waits for your first swipe.": "⏸ pausa el juego (no en línea). Si sales a mitad de partida, se guarda: Continuar en la pantalla de Snake la retoma, y la serpiente espera tu primer deslizamiento."
 }

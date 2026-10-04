@@ -16,6 +16,8 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
 const BEST_PATH := "user://snake_best.json"
+## The round in progress (not online), kept on pause, exit and app suspend.
+const SAVE_PATH := "user://snake_save.json"
 ## Columns across the screen; rows follow from the space available.
 const COLS := 22
 const STEP_SECONDS := 0.14
@@ -51,11 +53,12 @@ var start_status: Label
 var start_buttons: Array = []
 var game_over_dialog: Control
 var game_over_label: Label
-var pause_dialog: Control
 var online = null
 var online_btn: Button
 var my_player: int = 0
 var running := false
+## A resumed round waits for the first swipe before the snake moves again.
+var waiting_start := false
 ## Active swipes: touch index -> {origin: Vector2, player: int}
 var swipes: Dictionary = {}
 
@@ -111,8 +114,7 @@ func _build_ui() -> void:
 	restart_btn.text = "↺"
 	restart_btn.custom_minimum_size = Vector2(76, 64)
 	restart_btn.add_theme_font_size_override("font_size", 30)
-	restart_btn.add_theme_font_size_override("font_size", 24)
-	restart_btn.pressed.connect(_show_start_overlay)
+	restart_btn.pressed.connect(_on_restart_pressed)
 	top_bar.add_child(restart_btn)
 
 	var stats_row := HBoxContainer.new()
@@ -163,7 +165,6 @@ func _build_ui() -> void:
 
 	_build_start_overlay()
 	_build_game_over_dialog()
-	_build_pause_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online = load(ONLINE_MATCH_PATH).new("snake", tr("🐍 Snake"), _online_state)
 		add_child(online)
@@ -272,10 +273,12 @@ func _start_game(p_mode: int) -> void:
 			return  # the host starts online rounds
 		p_mode = Mode.ONLINE
 	mode = p_mode
+	SaveUtil.delete(SAVE_PATH)  # a new round replaces any saved one
 	engine.reset(COLS, _rows_for_board(), 2 if _versus() else 1)
 	start_overlay.visible = false
 	game_over_dialog.visible = false
 	swipes.clear()
+	waiting_start = false
 	running = true
 	step_timer.wait_time = VERSUS_STEP_SECONDS if _versus() else STEP_SECONDS
 	step_timer.start()
@@ -291,7 +294,18 @@ func _play_again() -> void:
 		return
 	_start_game(mode)
 
+## ↺ in the top bar: a fresh round in the same mode (online: back to the
+## Start box, where the host starts the next round).
+func _on_restart_pressed() -> void:
+	if _is_online():
+		_show_start_overlay()
+	else:
+		_play_again()
+
 func _update_hint() -> void:
+	if waiting_start:
+		hint_label.text = tr("Swipe to continue")
+		return
 	match mode:
 		Mode.TWO_PLAYER:
 			hint_label.text = tr("Green swipes on the bottom half, blue on the top half")
@@ -335,6 +349,7 @@ func _process(_delta: float) -> void:
 func _end_round() -> void:
 	step_timer.stop()
 	running = false
+	SaveUtil.delete(SAVE_PATH)
 	if not _versus():
 		if engine.score > best_score:
 			best_score = engine.score
@@ -550,6 +565,10 @@ func _steer(who: int, d: int) -> void:
 	if mode == Mode.ONLINE and not online.is_host():
 		online.send_move({"d": d})  # the host moves our snake
 		return
+	if waiting_start:  # a resumed round: the first swipe sets it going
+		waiting_start = false
+		step_timer.start()
+		_update_hint()
 	if not engine.set_direction(who, d):
 		return
 	# Solo: a late turn steps right away rather than waiting out the step.
@@ -679,31 +698,60 @@ func _on_best_reconciled(merged: int) -> void:
 # ---------- auto-pause ----------
 
 ## Leaving the app (home button, a phone call) pauses mid-round instead of
-## letting the game run on unseen. Online rounds can't pause -- the other
-## player is still playing.
+## letting the game run on unseen, and saves it in case Android closes the
+## app. Online rounds can't pause -- the other player is still playing.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
-		if is_node_ready() and running and mode != Mode.ONLINE and not get_tree().paused and home:
+		if not is_node_ready():
+			return
+		_save_game()
+		if running and mode != Mode.ONLINE and not get_tree().paused and home:
 			home.pause()
-
-func _resume() -> void:
-	get_tree().paused = false
-
-func _exit_paused_to_hub() -> void:
-	get_tree().paused = false
-	Ui.exit_to_hub(self)
 
 ## Never leave the tree paused behind us -- the next scene would be frozen.
 func _exit_tree() -> void:
 	get_tree().paused = false
 
-func _build_pause_dialog() -> void:
-	pause_dialog = Ui.build_dialog(tr("Paused"), [
-		{"text": tr("Resume"), "action": _resume},
-		{"text": tr("Exit to Hub"), "action": _exit_paused_to_hub},
-	])
-	pause_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
-	add_child(pause_dialog)
+## Called by HomeKit on pause, Home and Hub. Only a live offline round is
+## worth keeping; a finished one was already deleted in _end_round().
+func _save_game() -> void:
+	if not running or mode == Mode.ONLINE or engine.game_over or engine.snakes.is_empty():
+		return
+	SaveUtil.write(SAVE_PATH, {"mode": mode, "wins": wins, "engine": engine.to_dict()})
+
+func _load_saved_game() -> void:
+	var data = SaveUtil.read(SAVE_PATH)
+	if data == null or not data.has("engine"):
+		_start_game(Mode.SOLO)
+		return
+	mode = int(data.get("mode", Mode.SOLO))
+	var w = data.get("wins", [0, 0])
+	wins = [int(w[0]), int(w[1])]
+	engine.from_dict(data.engine)
+	if engine.snakes.is_empty() or engine.game_over:
+		_start_game(mode)
+		return
+	start_overlay.visible = false
+	game_over_dialog.visible = false
+	swipes.clear()
+	step_timer.stop()
+	step_timer.wait_time = VERSUS_STEP_SECONDS if _versus() else STEP_SECONDS
+	running = true
+	waiting_start = true
+	_update_hint()
+	_render()
+	board_bg.queue_redraw()
+
+## Shown on Home's Resume button.
+func _resume_text() -> String:
+	var data = SaveUtil.read(SAVE_PATH)
+	if data == null:
+		return ""
+	var m := int(data.get("mode", Mode.SOLO))
+	var ss: Array = data.get("engine", {}).get("snakes", [])
+	if m == Mode.SOLO or ss.size() < 2:
+		return tr("Score: %d") % (int(ss[0].get("s", 0)) if not ss.is_empty() else 0)
+	return tr("Green %d — %d Blue") % [int(ss[0].get("s", 0)), int(ss[1].get("s", 0))]
 
 # ---------- Home screen (home_kit.gd) ----------
 
@@ -720,6 +768,9 @@ func _build_home() -> void:
 			{"text": "👥 2 Players", "sub": "Same phone: bottom half vs top half", "multi": true, "action": _start_game.bind(Mode.TWO_PLAYER)},
 		] + ([{"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true, "color": HomeKit.PURPLE, "action": _on_online_pressed}] if online else []),
 		"restart": _play_again,
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
 		"online": online,
 		"board_note": "Your best solo score.",
 	})
