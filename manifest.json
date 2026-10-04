@@ -85,7 +85,8 @@
       {"id": "maze_muncher", "title": "Maze Muncher", "icon": "👻", "title_es": "Come laberintos", "board": "Best score"},
       {"id": "moon_lander", "title": "Moon Lander", "icon": "🚀", "title_es": "Alunizaje", "board": "Best score"},
       {"id": "stack_tower", "title": "Stack Tower", "icon": "🧱", "title_es": "Torre", "board": "Best score"},
-      {"id": "sky_hop", "title": "Sky Hop", "icon": "🦘", "title_es": "Salto al cielo", "board": "Best score"}
+      {"id": "sky_hop", "title": "Sky Hop", "icon": "🦘", "title_es": "Salto al cielo", "board": "Best score"},
+      {"id": "air_hockey", "title": "Air Hockey", "icon": "🏒", "title_es": "Hockey de mesa", "modes": "local,cpu", "board": "Wins"}
     ]},
     {"name": "Dice & Party", "icon": "🎲", "name_es": "Dados y fiesta", "games": [
       {"id": "yacht", "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala"},
@@ -203,6 +204,7 @@
     "hex": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hex.pck", "scene": "res://scenes/games/hex/hex.tscn"},
     "would_you_rather": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/would_you_rather.pck", "scene": "res://scenes/games/would_you_rather/would_you_rather.tscn"},
     "truth_or_dare": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/truth_or_dare.pck", "scene": "res://scenes/games/truth_or_dare/truth_or_dare.tscn"},
-    "video_poker": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/video_poker.pck", "scene": "res://scenes/games/video_poker/video_poker.tscn"}
+    "video_poker": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/video_poker.pck", "scene": "res://scenes/games/video_poker/video_poker.tscn"},
+    "air_hockey": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/air_hockey.pck", "scene": "res://scenes/games/air_hockey/air_hockey.tscn"}
   }
 }

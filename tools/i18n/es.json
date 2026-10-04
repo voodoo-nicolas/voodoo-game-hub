@@ -3786,5 +3786,21 @@
  "You have: %s": "Tienes: %s",
  "You start with 100 credits. Set your bet (1 to 5) with − and +, then tap Deal.": "Empiezas con 100 créditos. Elige tu apuesta (de 1 a 5) con − y +, y toca Repartir.",
  "Your final hand pays by the table at the top, times your bet. The lowest win is a pair of Jacks or better (J, Q, K or A).": "Tu mano final paga según la tabla de arriba, multiplicado por tu apuesta. El premio más bajo es un par de jotas o mejor (J, Q, K o A).",
- "⏸ pauses and keeps your credits (and the hand you're holding); Resume on the Home screen carries on.": "⏸ pausa y guarda tus créditos (y la mano que tienes); Continuar en la pantalla de inicio sigue."
+ "⏸ pauses and keeps your credits (and the hand you're holding); Resume on the Home screen carries on.": "⏸ pausa y guarda tus créditos (y la mano que tienes); Continuar en la pantalla de inicio sigue.",
+ "A match is short, so it isn't saved: ⏸ pauses it, but leaving ends it.": "Un partido es corto, así que no se guarda: ⏸ lo pausa, pero si sales se termina.",
+ "After a goal, the player who conceded gets the puck.": "Después de un gol, el disco va para quien lo recibió.",
+ "Against the computer you're at the bottom (cyan). Pick Easy, Normal or Hard.": "Contra la computadora juegas abajo (celeste). Elige Fácil, Normal o Difícil.",
+ "Air Hockey": "Hockey de mesa",
+ "Bank shots off the side walls get past a defender in the middle.": "Los rebotes en las paredes laterales pasan a un defensor que está en el centro.",
+ "Bottom player wins!": "¡Gana el jugador de abajo!",
+ "Don't chase too far forward — a rebound can fly straight into your goal.": "No te adelantes demasiado: un rebote puede ir directo a tu portería.",
+ "Drag your mallet anywhere in your half of the table and hit the puck into the other goal.": "Arrastra tu mazo por tu mitad de la mesa y mete el disco en la otra portería.",
+ "Drag your mallet, smash the puck, first to 7.": "Arrastra tu mazo, golpea el disco, gana quien llegue a 7.",
+ "Faster swings send the puck faster. It bounces off the side walls.": "Cuanto más rápido golpeas, más rápido va el disco. Rebota en las paredes laterales.",
+ "One at each end of the phone": "Uno en cada extremo del teléfono",
+ "Score 7 goals before your opponent does.": "Mete 7 goles antes que tu rival.",
+ "Stay between the puck and your goal when it's in your half.": "Quédate entre el disco y tu portería cuando esté en tu mitad.",
+ "Top player wins!": "¡Gana el jugador de arriba!",
+ "Two players: hold the phone flat between you. Bottom player is cyan, top player is pink — both can drag at the same time.": "Dos jugadores: pongan el teléfono plano entre ustedes. Abajo juega celeste y arriba rosa; los dos pueden arrastrar a la vez.",
+ "goal%d": null
 }
