@@ -12,7 +12,8 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
-const WHEEL_COLORS := [Color(0.9, 0.22, 0.27), Color(0.2, 0.45, 0.9), Color(1.0, 0.82, 0.1), Color(0.18, 0.7, 0.35)]
+## The mat's four colours as neons (red, blue, yellow, green).
+const WHEEL_COLORS := [Color("ff3b6b"), Color("29a8ff"), Color("ffd23a"), Color("7dff3a")]
 const AUTO_OPTIONS := [0, 8, 12, 20]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
@@ -180,18 +181,22 @@ func _process(delta: float) -> void:
 
 func _update_result() -> void:
 	var r := engine.last()
-	var sb := StyleBoxFlat.new()
+	# A neon sign in the colour that came up.
+	var col: Color = HomeKit.PURPLE if r.x < 0 else WHEEL_COLORS[r.y]
+	var sb := HomeKit.neon_box(col, "pressed")
 	sb.set_corner_radius_all(18)
+	sb.bg_color = Color(col, 0.16)
+	sb.shadow_size = 16
 	sb.content_margin_left = 16
 	sb.content_margin_right = 16
+	result_label.add_theme_color_override("font_outline_color", Color(col, 0.55))
+	result_label.add_theme_constant_override("outline_size", 8)
 	if r.x < 0:
-		sb.bg_color = Color(0.2, 0.2, 0.26)
 		result_label.text = tr("Tap the wheel to spin!")
 		result_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	else:
-		sb.bg_color = WHEEL_COLORS[r.y]
 		result_label.text = "%s → %s" % [_limb_names()[r.x], _color_names()[r.y]]
-		result_label.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1) if r.y == 2 else Color(1, 1, 1))
+		result_label.add_theme_color_override("font_color", col.lerp(Color.WHITE, 0.6))
 	result_panel.add_theme_stylebox_override("panel", sb)
 	var parts: Array = []
 	var hist: Array = engine.history.duplicate()
@@ -203,7 +208,10 @@ func _update_result() -> void:
 func _draw_wheel() -> void:
 	var c := wheel.size / 2.0
 	var r: float = min(wheel.size.x, wheel.size.y) / 2.0 - 20.0
-	wheel.draw_circle(c, r + 10, Color(0.05, 0.05, 0.08))
+	# Neon wheel (ART_STYLE): dark glass segments tinted by colour, each with
+	# a glowing rim arc; glowing spokes between limbs; a white-hot hub.
+	wheel.draw_circle(c, r + 12, Color(0.02, 0.02, 0.06))
+	HomeKit.glow_circle(wheel, c, r + 8, Color(HomeKit.PURPLE, 0.9), 2.0)
 	var font: Font = ThemeDB.fallback_font
 	var limb_short := [tr("Lh").to_upper(), tr("Rh").to_upper(), tr("Lf").to_upper(), tr("Rf").to_upper()]
 	var seg := TAU / 16.0
@@ -214,22 +222,28 @@ func _draw_wheel() -> void:
 			var a := a0 + seg * k / 8.0
 			pts.append(c + Vector2(cos(a), sin(a)) * r)
 		var col: Color = WHEEL_COLORS[s % 4]
-		if (s / 4) % 2 == 1:
-			col = col.darkened(0.15)
-		wheel.draw_colored_polygon(pts, col)
+		wheel.draw_colored_polygon(pts, Color(col, 0.2 if (s / 4) % 2 == 0 else 0.13))
+		# rim arc for this segment, a little inset so neighbours don't merge
+		var rim := PackedVector2Array()
+		for k in 9:
+			var a := a0 + seg * (0.06 + 0.88 * k / 8.0)
+			rim.append(c + Vector2(cos(a), sin(a)) * (r - 6.0))
+		HomeKit.glow_polyline(wheel, rim, col, 3.0)
 		var mid := a0 + seg / 2.0
 		var lp := c + Vector2(cos(mid), sin(mid)) * r * 0.72
-		wheel.draw_string(font, lp + Vector2(-30, 10), limb_short[s / 4], HORIZONTAL_ALIGNMENT_CENTER, 60, int(r * 0.09),
-			Color(0.1, 0.1, 0.1) if s % 4 == 2 else Color(1, 1, 1))
+		HomeKit.glow_text(wheel, lp, limb_short[s / 4], int(r * 0.09), col)
 	# dividers between limbs
 	for q in 4:
 		var a := angle + q * 4 * seg - PI / 2.0
-		wheel.draw_line(c, c + Vector2(cos(a), sin(a)) * r, Color(0.05, 0.05, 0.08), 5)
-	wheel.draw_circle(c, r * 0.16, Color(0.95, 0.95, 0.95))
-	wheel.draw_circle(c, r * 0.07, Color(0.2, 0.2, 0.25))
+		HomeKit.glow_line(wheel, c + Vector2(cos(a), sin(a)) * r * 0.17, c + Vector2(cos(a), sin(a)) * r, HomeKit.WHITE, 2.0)
+	wheel.draw_circle(c, r * 0.16, Color(0.03, 0.03, 0.08))
+	HomeKit.glow_circle(wheel, c, r * 0.16, HomeKit.WHITE, 2.5)
+	HomeKit.glow_circle(wheel, c, r * 0.06, HomeKit.GOLD, 2.0, 0.9)
 	# the pointer at the top
 	var tip := c + Vector2(0, -r + 26)
-	wheel.draw_colored_polygon(PackedVector2Array([tip, c + Vector2(-24, -r - 18), c + Vector2(24, -r - 18)]), Color(1, 1, 1))
+	var ptr := PackedVector2Array([tip, c + Vector2(-24, -r - 18), c + Vector2(24, -r - 18)])
+	wheel.draw_colored_polygon(ptr, Color(1, 1, 1, 0.25))
+	HomeKit.glow_polyline(wheel, ptr, HomeKit.WHITE, 2.5, true)
 
 func _on_wheel_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:

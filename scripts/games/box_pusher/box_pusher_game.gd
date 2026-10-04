@@ -20,6 +20,8 @@ const COLOR_GOAL := Color("ff2bd6")
 const COLOR_BOX := Color("ffae2b")
 const COLOR_BOX_DONE := Color("7dff3a")
 const COLOR_PLAYER := Color("29e6ff")
+## Which way the player last moved (the eyes look that way).
+var facing := Vector2.ZERO
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit: Home screen + pause menu
@@ -192,6 +194,7 @@ func _on_undo() -> void:
 func _on_move(dir_index: int) -> void:
 	if win_dialog.visible:
 		return
+	facing = Vector2(BoxEngine.DIRS[dir_index])
 	if engine.move(BoxEngine.DIRS[dir_index]):
 		_refresh()
 		if engine.is_solved():
@@ -222,33 +225,89 @@ func _origin() -> Vector2:
 	var cs := _cell_size()
 	return Vector2((board.size.x - cs * engine.w) / 2.0, (board.size.y - cs * engine.h) / 2.0)
 
+## Keeps the goal rings pulsing.
+func _process(_delta: float) -> void:
+	if board and not engine.goals.is_empty():
+		board.queue_redraw()
+
 func _draw_board() -> void:
 	var cs := _cell_size()
 	var o := _origin()
+	var t := Time.get_ticks_msec() / 1000.0
+	# Floor: dark tiles with a faint grid.
 	for y in engine.h:
 		for x in engine.w:
 			var p := Vector2i(x, y)
-			var rect := Rect2(o + Vector2(x, y) * cs, Vector2(cs, cs))
-			if engine.walls.has(p):
-				# only draw walls that touch the floor, so the outside stays empty
-				var edge := false
-				for d in BoxEngine.DIRS:
-					if engine.is_floor(p + d):
-						edge = true
-				if edge:
-					board.draw_rect(rect.grow(-1), Color(COLOR_WALL, 0.35))
-					board.draw_rect(rect.grow(-2), COLOR_WALL, false, 2.0)
+			if engine.is_floor(p):
+				var rect := Rect2(o + Vector2(x, y) * cs, Vector2(cs, cs))
+				board.draw_rect(rect, COLOR_FLOOR)
+				board.draw_rect(rect, Color(HomeKit.BLUE, 0.08), false, 1.0)
+	# Walls: one continuous neon tube along every wall edge that faces the
+	# floor (ART_STYLE rule 2), with a dim fill inside the wall cells.
+	var wall_w := maxf(2.0, cs * 0.06)
+	for y in engine.h:
+		for x in engine.w:
+			var p := Vector2i(x, y)
+			if not engine.walls.has(p):
 				continue
-			board.draw_rect(rect, COLOR_FLOOR)
-			if engine.goals.has(p):
-				HomeKit.glow_circle(board, rect.get_center(), cs * 0.16, COLOR_GOAL, 2.0, 0.5)
-	for b in engine.boxes:
-		var rect := Rect2(o + Vector2(b) * cs, Vector2(cs, cs)).grow(-cs * 0.1)
-		HomeKit.glow_rect(board, rect, COLOR_BOX_DONE if engine.goals.has(b) else COLOR_BOX, maxf(2.0, cs * 0.05), 0.3)
+			var rect := Rect2(o + Vector2(x, y) * cs, Vector2(cs, cs))
+			var touches := false
+			for d in BoxEngine.DIRS:
+				if engine.is_floor(p + d):
+					touches = true
+			if not touches:
+				continue
+			for d in BoxEngine.DIRS:
+				if not engine.is_floor(p + d):
+					continue
+				var a: Vector2
+				var b: Vector2
+				if d == Vector2i(0, -1):
+					a = rect.position
+					b = rect.position + Vector2(cs, 0)
+				elif d == Vector2i(0, 1):
+					a = rect.position + Vector2(0, cs)
+					b = rect.end
+				elif d == Vector2i(-1, 0):
+					a = rect.position
+					b = rect.position + Vector2(0, cs)
+				else:
+					a = rect.position + Vector2(cs, 0)
+					b = rect.end
+				HomeKit.glow_line(board, a, b, COLOR_WALL.lightened(0.15), wall_w)
+	# Goals: pulsing rings.
+	for g in engine.goals:
+		if engine.boxes.has(g):
+			continue
+		var gc := o + (Vector2(g) + Vector2(0.5, 0.5)) * cs
+		var pulse := 0.8 + 0.2 * sin(t * 4.0 + g.x + g.y)
+		HomeKit.glow_circle(board, gc, cs * 0.2 * pulse, COLOR_GOAL, maxf(1.5, cs * 0.04), 0.25)
+		board.draw_circle(gc, cs * 0.05, Color(1, 1, 1, 0.8))
+	# Crates: a neon outline with cross bracing; lime with a tick on a goal.
+	for bx in engine.boxes:
+		var done: bool = engine.goals.has(bx)
+		var col := COLOR_BOX_DONE if done else COLOR_BOX
+		var r := Rect2(o + Vector2(bx) * cs, Vector2(cs, cs)).grow(-cs * 0.1)
+		board.draw_rect(r, Color(col, 0.14))
+		var w := maxf(2.0, cs * 0.05)
+		HomeKit.glow_rect(board, r, col, w)
+		var inner := r.grow(-cs * 0.1)
+		if done:
+			var ck := PackedVector2Array([inner.position + Vector2(inner.size.x * 0.18, inner.size.y * 0.55),
+				inner.position + Vector2(inner.size.x * 0.42, inner.size.y * 0.78), inner.position + Vector2(inner.size.x * 0.85, inner.size.y * 0.25)])
+			HomeKit.glow_polyline(board, ck, Color.WHITE.lerp(col, 0.3), w)
+		else:
+			board.draw_line(inner.position, inner.end, Color(col, 0.55), w * 0.6, true)
+			board.draw_line(inner.position + Vector2(inner.size.x, 0), inner.position + Vector2(0, inner.size.y), Color(col, 0.55), w * 0.6, true)
+	# The player: a glowing orb whose eyes look the way it last moved.
 	var pc := o + (Vector2(engine.player) + Vector2(0.5, 0.5)) * cs
-	HomeKit.glow_circle(board, pc, cs * 0.34, COLOR_PLAYER, maxf(2.0, cs * 0.05), 0.5)
-	board.draw_circle(pc + Vector2(-cs * 0.11, -cs * 0.06), cs * 0.06, Color(0.05, 0.05, 0.1))
-	board.draw_circle(pc + Vector2(cs * 0.11, -cs * 0.06), cs * 0.06, Color(0.05, 0.05, 0.1))
+	board.draw_circle(pc, cs * 0.34, Color(COLOR_PLAYER, 0.18))
+	HomeKit.glow_circle(board, pc, cs * 0.34, COLOR_PLAYER, maxf(2.0, cs * 0.05))
+	var look := facing * cs * 0.07
+	for sx in [-0.11, 0.11]:
+		var e := pc + Vector2(cs * sx, -cs * 0.05)
+		board.draw_circle(e, cs * 0.075, Color(1, 1, 1, 0.95))
+		board.draw_circle(e + look, cs * 0.04, Color(0.03, 0.05, 0.12))
 
 func _on_board_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:

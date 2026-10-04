@@ -19,8 +19,9 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 
 const BEST_PATH := "user://gem_match_best.json"
-const GEM_COLORS := [Color(0.95, 0.3, 0.35), Color(0.3, 0.65, 1), Color(0.35, 0.9, 0.45), Color(1, 0.85, 0.25),
-	Color(0.75, 0.45, 1), Color(1, 0.55, 0.2)]
+## Neon gem colours (ART_STYLE.md palette), one hue per gem kind.
+const GEM_COLORS := [Color("ff3b6b"), Color("29e6ff"), Color("7dff3a"), Color("ffd23a"),
+	Color("9b4dff"), Color("ff8a2b")]
 const SWAP_TIME := 0.13
 const FLASH_TIME := 0.2
 ## Cells per second², for falling gems.
@@ -393,18 +394,24 @@ func _draw_board() -> void:
 	var o := _origin()
 	var n := GMEngine.SIZE
 	var board_rect := Rect2(o, Vector2(cs, cs) * n)
+	# A dark glass panel with a neon frame and a faint cell grid.
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1, 1, 1, 0.04)
+	sb.bg_color = Color(0.02, 0.03, 0.08, 0.9)
 	sb.set_corner_radius_all(int(cs * 0.2))
-	board.draw_style_box(sb, board_rect.grow(6))
-	for i in n * n:
-		var p := o + _cell_pos(i) * cs
-		board.draw_rect(Rect2(p, Vector2(cs, cs)), Color(1, 1, 1, 0.03 if (i + i / n) % 2 == 0 else 0.07))
+	sb.border_color = Color(HomeKit.PURPLE, 0.85)
+	sb.set_border_width_all(2)
+	sb.shadow_color = Color(HomeKit.PURPLE, 0.3)
+	sb.shadow_size = 14
+	board.draw_style_box(sb, board_rect.grow(8))
+	for k in range(1, n):
+		var a := Color(HomeKit.BLUE, 0.13)
+		board.draw_line(o + Vector2(k * cs, 0), o + Vector2(k * cs, n * cs), a, 1.0)
+		board.draw_line(o + Vector2(0, k * cs), o + Vector2(n * cs, k * cs), a, 1.0)
 	for i in n * n:
 		if i == selected or i in hint_pair:
 			var p := o + _cell_pos(i) * cs
 			var pulse := 0.6 + 0.4 * sin(Time.get_ticks_msec() / 120.0)
-			board.draw_rect(Rect2(p, Vector2(cs, cs)).grow(-2), Color(1, 1, 1, pulse), false, 3.0)
+			HomeKit.glow_rect(board, Rect2(p, Vector2(cs, cs)).grow(-3), Color(HomeKit.WHITE, pulse), 2.0)
 	var t := Time.get_ticks_msec() / 1000.0
 	for i in n * n:
 		var k: int = engine.grid[i]
@@ -457,30 +464,36 @@ func _draw_piece(c: Vector2, r: float, kind: int, flash: bool, t: float) -> void
 	if voodoo_on:
 		_draw_voodoo_piece(c, r, kind, flash, t)
 		return
+	# Neon gems: a dark glassy body, a glowing rim, facet lines from the
+	# rim to an inner table, and a white-hot core (ART_STYLE rules 2-3).
 	var col: Color = Color(1, 1, 1) if flash else GEM_COLORS[kind]
-	var sides: int = [0, 4, 3, 6, 5, 8][kind]
-	if sides == 0:
-		board.draw_circle(c, r, col)
-	else:
-		var pts := PackedVector2Array()
-		var rot := -PI / 2.0 if sides != 4 else 0.0
-		for k in sides:
-			var a := rot + TAU * k / sides
-			pts.append(c + Vector2(cos(a), sin(a)) * r * (1.1 if sides == 3 else 1.0))
-		board.draw_colored_polygon(pts, col.darkened(0.15))
-		var inner := PackedVector2Array()
-		for p in pts:
-			inner.append(c + (p - c) * 0.7)
-		board.draw_colored_polygon(inner, col)
-	board.draw_circle(c - Vector2(r * 0.3, r * 0.3), r * 0.2, Color(1, 1, 1, 0.45))
+	var sides: int = [12, 4, 3, 6, 5, 8][kind]   # 12 = a round brilliant
+	var rot := -PI / 2.0 if sides != 4 else 0.0
+	var pts := PackedVector2Array()
+	for k in sides:
+		var a := rot + TAU * k / sides
+		pts.append(c + Vector2(cos(a), sin(a)) * r * (1.12 if sides == 3 else 1.0))
+	board.draw_colored_polygon(pts, Color(col.darkened(0.55), 0.85))
+	var inner := PackedVector2Array()
+	for q in pts:
+		inner.append(c + (q - c) * 0.5)
+	board.draw_colored_polygon(inner, Color(col, 0.28))
+	for k in sides:
+		board.draw_line(pts[k], inner[k], Color(col, 0.45), maxf(1.0, r * 0.05), true)
+	board.draw_polyline(inner + PackedVector2Array([inner[0]]), Color(col.lightened(0.3), 0.8), maxf(1.0, r * 0.05), true)
+	var w := maxf(1.5, r * 0.09)
+	HomeKit.glow_polyline(board, pts, col, w, true)
+	board.draw_circle(c - Vector2(r * 0.18, r * 0.22), r * 0.13, Color(1, 1, 1, 0.85))
+	board.draw_circle(c - Vector2(r * 0.18, r * 0.22), r * 0.26, Color(1, 1, 1, 0.12))
 
 ## A round black bomb with a fizzing fuse: the wildcard.
 func _draw_bomb(c: Vector2, r: float, t: float) -> void:
-	board.draw_circle(c + Vector2(0, r * 0.1), r * 0.85, Color(0.12, 0.12, 0.15))
-	board.draw_circle(c + Vector2(-r * 0.3, -r * 0.15), r * 0.22, Color(1, 1, 1, 0.3))
-	board.draw_rect(Rect2(c + Vector2(-r * 0.2, -r * 0.85), Vector2(r * 0.4, r * 0.25)), Color(0.35, 0.35, 0.4))
+	board.draw_circle(c + Vector2(0, r * 0.1), r * 0.85, Color(0.04, 0.03, 0.08))
+	HomeKit.glow_circle(board, c + Vector2(0, r * 0.1), r * 0.85, HomeKit.WHITE, maxf(1.5, r * 0.07))
+	board.draw_circle(c + Vector2(-r * 0.3, -r * 0.15), r * 0.16, Color(1, 1, 1, 0.6))
+	HomeKit.glow_rect(board, Rect2(c + Vector2(-r * 0.2, -r * 0.85), Vector2(r * 0.4, r * 0.22)), HomeKit.PURPLE, maxf(1.0, r * 0.05), 0.4)
 	var fuse_end := c + Vector2(r * 0.35, -r * 1.05)
-	board.draw_line(c + Vector2(0, -r * 0.8), fuse_end, Color(0.8, 0.7, 0.5), maxf(2.0, r * 0.1))
+	HomeKit.glow_line(board, c + Vector2(0, -r * 0.8), fuse_end, HomeKit.GOLD, maxf(1.5, r * 0.07))
 	var spark := 0.6 + 0.4 * sin(t * 25.0)
 	board.draw_circle(fuse_end, r * 0.2 * spark, Color(1, 0.8, 0.2))
 	board.draw_circle(fuse_end, r * 0.1 * spark, Color(1, 1, 0.8))
