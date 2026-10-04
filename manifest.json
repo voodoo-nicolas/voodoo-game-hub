@@ -24,7 +24,8 @@
       {"id": "nonogram", "title": "Nonogram", "icon": "🖼️", "title_es": "Nonograma", "board": "Puzzles solved"},
       {"id": "code_breaker", "title": "Code Breaker", "icon": "🧠", "title_es": "Descifra el código", "modes": "local,cpu", "board": "Wins"},
       {"id": "hanoi", "title": "Tower of Hanoi", "icon": "🗼", "title_es": "Torre de Hanói", "board": "Puzzles solved"},
-      {"id": "calcudoku", "title": "Calcudoku", "icon": "🔟", "title_es": "Calcudoku", "board": "Puzzles solved"}
+      {"id": "calcudoku", "title": "Calcudoku", "icon": "🔟", "title_es": "Calcudoku", "board": "Puzzles solved"},
+      {"id": "pipe_flow", "title": "Pipe Flow", "icon": "🚰", "title_es": "Tuberías", "board": "Puzzles solved"}
     ]},
     {"name": "Intelligence", "icon": "🧠", "name_es": "Inteligencia", "games": [
       {"id": "trivia", "title": "Trivia", "icon": "❓", "title_es": "Trivia"},
@@ -68,7 +69,8 @@
       {"id": "gem_match", "title": "Gem Match", "icon": "💎", "title_es": "Joyas"},
       {"id": "simon", "title": "Simon", "icon": "🎵", "title_es": "Simón dice", "board": "Best level"},
       {"id": "whack_a_mole", "title": "Whack-a-Mole", "icon": "🔨", "title_es": "Golpea al topo"},
-      {"id": "reaction_test", "title": "Reaction Test", "icon": "⏱️", "title_es": "Test de reacción", "board": "Tests taken"}
+      {"id": "reaction_test", "title": "Reaction Test", "icon": "⏱️", "title_es": "Test de reacción", "board": "Tests taken"},
+      {"id": "bubble_pop", "title": "Bubble Pop", "icon": "🫧", "title_es": "Burbujas", "board": "Best score"}
     ]},
     {"name": "Dice & Party", "icon": "🎲", "name_es": "Dados y fiesta", "games": [
       {"id": "yacht", "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala"},
@@ -161,6 +163,8 @@
     "color_clash": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_clash.pck", "scene": "res://scenes/games/color_clash/color_clash.tscn"},
     "number_series": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/number_series.pck", "scene": "res://scenes/games/number_series/number_series.tscn"},
     "digit_recall": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/digit_recall.pck", "scene": "res://scenes/games/digit_recall/digit_recall.tscn"},
-    "voodoo_iq": {"version": 3, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"}
+    "voodoo_iq": {"version": 3, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"},
+    "pipe_flow": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pipe_flow.pck", "scene": "res://scenes/games/pipe_flow/pipe_flow.tscn"},
+    "bubble_pop": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bubble_pop.pck", "scene": "res://scenes/games/bubble_pop/bubble_pop.tscn"}
   }
 }
