@@ -3605,5 +3605,22 @@
  "Tilt: %d°": "Inclinación: %d°",
  "To land safely: on a green pad, falling slower than 42, sliding slower than 26 and tilted less than about 12°. The numbers turn green when they're safe.": "Para aterrizar bien: en una plataforma verde, cayendo a menos de 42, deslizando a menos de 26 e inclinado menos de unos 12°. Los números se ponen verdes cuando son seguros.",
  "Use short bursts of the engine — long burns waste fuel and shoot you upwards.": "Usa el motor en ráfagas cortas: los encendidos largos gastan combustible y te lanzan hacia arriba.",
- "⏸ pauses; Resume on the Home screen keeps your score, level and landers, and starts a fresh descent.": "⏸ pausa; Continuar en la pantalla de inicio conserva tus puntos, nivel y módulos, y empieza un descenso nuevo."
+ "⏸ pauses; Resume on the Home screen keeps your score, level and landers, and starts a fresh descent.": "⏸ pausa; Continuar en la pantalla de inicio conserva tus puntos, nivel y módulos, y empieza un descenso nuevo.",
+ "A narrow tower is fast to miss: chase perfect drops to earn width back.": "Una torre angosta es fácil de fallar: busca caídas perfectas para recuperar ancho.",
+ "A slab slides back and forth above the tower. Tap anywhere to drop it.": "Un bloque se desliza de un lado a otro sobre la torre. Toca en cualquier lugar para soltarlo.",
+ "Any part that hangs over the slab below is sliced off and falls — so the next slab is narrower.": "Lo que sobresale del bloque de abajo se corta y cae, así que el siguiente bloque es más angosto.",
+ "Build the tallest tower you can.": "Construye la torre más alta que puedas.",
+ "Find a rhythm — the slab takes the same time to cross each way.": "Encuentra el ritmo: el bloque tarda lo mismo en cruzar en cada sentido.",
+ "How high can you build?": "¿Qué tan alto puedes llegar?",
+ "Line it up almost exactly for a Perfect drop: nothing is sliced. Three perfect drops in a row win back a little width.": "Alinéalo casi exacto para una caída Perfecta: no se corta nada. Tres perfectas seguidas te devuelven un poco de ancho.",
+ "Miss the tower completely and the game is over. The slabs slide faster as the tower grows.": "Si fallas la torre por completo, se acaba el juego. Los bloques van más rápido a medida que la torre crece.",
+ "Most perfect drops in a row": "Más caídas perfectas seguidas",
+ "Perfect ×%d": "Perfecto ×%d",
+ "Perfect!": "¡Perfecto!",
+ "Stack Tower": "Torre",
+ "Tap anywhere to drop.": "Toca en cualquier lugar para soltar.",
+ "Tap to drop. Line it up — the overhang gets sliced off.": "Toca para soltar. Alinéalo: lo que sobresale se corta.",
+ "The slab missed!": "¡El bloque no cayó en la torre!",
+ "Watch the edge of the slab, not its middle: drop when its edge meets the edge below.": "Mira el borde del bloque, no el centro: suéltalo cuando su borde coincida con el de abajo.",
+ "⏸ pauses and keeps the tower; Resume on the Home screen carries on.": "⏸ pausa y guarda la torre; Continuar en la pantalla de inicio sigue la partida."
 }
