@@ -29,7 +29,8 @@
       {"id": "five_in_row", "title": "Five in a Row", "icon": "⚫", "title_es": "Cinco en línea", "modes": "online,local,cpu", "board": "Wins"},
       {"id": "mahjong", "title": "Mahjong Solitaire", "icon": "🀄", "title_es": "Mahjong solitario", "board": "Games solved"},
       {"id": "flood_it", "title": "Flood It", "icon": "🌊", "title_es": "Inunda", "board": "Puzzles solved"},
-      {"id": "same_game", "title": "Block Collapse", "icon": "🟪", "title_es": "Derrumbe", "board": "Best score"}
+      {"id": "same_game", "title": "Block Collapse", "icon": "🟪", "title_es": "Derrumbe", "board": "Best score"},
+      {"id": "binary_grid", "title": "Binary Grid", "icon": "⚪", "title_es": "Cuadrícula binaria", "board": "Puzzles solved"}
     ]},
     {"name": "Intelligence", "icon": "🧠", "name_es": "Inteligencia", "games": [
       {"id": "trivia", "title": "Trivia", "icon": "❓", "title_es": "Trivia"},
@@ -193,6 +194,7 @@
     "stack_tower": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/stack_tower.pck", "scene": "res://scenes/games/stack_tower/stack_tower.tscn"},
     "sky_hop": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sky_hop.pck", "scene": "res://scenes/games/sky_hop/sky_hop.tscn"},
     "flood_it": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/flood_it.pck", "scene": "res://scenes/games/flood_it/flood_it.tscn"},
-    "same_game": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/same_game.pck", "scene": "res://scenes/games/same_game/same_game.tscn"}
+    "same_game": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/same_game.pck", "scene": "res://scenes/games/same_game/same_game.tscn"},
+    "binary_grid": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/binary_grid.pck", "scene": "res://scenes/games/binary_grid/binary_grid.tscn"}
   }
 }

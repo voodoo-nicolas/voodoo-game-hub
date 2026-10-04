@@ -3674,5 +3674,17 @@
  "Pick one colour to save for a giant group at the end, and clear the others out of its way.": "Elige un color para guardar un grupo gigante al final y quita los demás de su camino.",
  "Tap a block to light up its group: every block of the same colour joined to it side by side. The line above the board shows what it's worth.": "Toca un bloque para iluminar su grupo: todos los bloques del mismo color unidos por los lados. La línea de arriba muestra cuánto vale.",
  "Tap the group again to clear it. Single blocks can't be cleared.": "Toca el grupo otra vez para quitarlo. Los bloques sueltos no se pueden quitar.",
- "The game ends when no group of two is left. ↶ Undo takes back a move.": "El juego termina cuando no quedan grupos de dos. ↶ Deshacer devuelve una jugada."
+ "The game ends when no group of two is left. ↶ Undo takes back a move.": "El juego termina cuando no quedan grupos de dos. ↶ Deshacer devuelve una jugada.",
+ "A circle breaking a rule glows red. A green dot beside a row or under a column means it's complete and balanced.": "Un círculo que rompe una regla brilla en rojo. Un punto verde junto a una fila o bajo una columna indica que está completa y equilibrada.",
+ "A gap between two of a colour (cyan, empty, cyan) must be the other colour.": "Un hueco entre dos del mismo color (celeste, vacío, celeste) debe ser del otro color.",
+ "Binary Grid": "Cuadrícula binaria",
+ "Easy is 6 × 6, Medium 8 × 8, Hard 10 × 10.": "Fácil es 6 × 6, Medio 8 × 8, Difícil 10 × 10.",
+ "Every puzzle has exactly one answer, and you can always reach it by logic — no guessing. 💡 Hint marks a cell you can work out now (or one that's wrong).": "Cada rompecabezas tiene una sola respuesta y siempre se llega por lógica, sin adivinar. 💡 Pista marca una casilla que puedes deducir ahora (o una que está mal).",
+ "Fill every cell with cyan or pink so the grid follows both rules.": "Llena cada casilla de celeste o rosa para que la cuadrícula cumpla las dos reglas.",
+ "Rule 1: never three of the same colour next to each other in a row or a column.": "Regla 1: nunca tres del mismo color seguidos en una fila o columna.",
+ "Rule 2: every row and every column has as many cyan as pink cells.": "Regla 2: cada fila y cada columna tiene tantas casillas celestes como rosas.",
+ "Tap an empty cell to make it cyan, again for pink, again to empty it. Cells with a white dot are part of the puzzle and can't change.": "Toca una casilla vacía para ponerla celeste, otra vez para rosa y otra para vaciarla. Las casillas con un punto blanco son parte del rompecabezas y no cambian.",
+ "Two colours, half and half, never three in a row.": "Dos colores, mitad y mitad, nunca tres seguidos.",
+ "Two of a colour side by side? The cells on both ends must be the other colour.": "¿Dos del mismo color juntos? Las casillas de ambos extremos deben ser del otro color.",
+ "When a row already has half its cells in one colour, the rest are the other colour.": "Cuando una fila ya tiene la mitad de un color, el resto es del otro color."
 }
