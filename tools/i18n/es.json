@@ -3686,5 +3686,18 @@
  "Tap an empty cell to make it cyan, again for pink, again to empty it. Cells with a white dot are part of the puzzle and can't change.": "Toca una casilla vacía para ponerla celeste, otra vez para rosa y otra para vaciarla. Las casillas con un punto blanco son parte del rompecabezas y no cambian.",
  "Two colours, half and half, never three in a row.": "Dos colores, mitad y mitad, nunca tres seguidos.",
  "Two of a colour side by side? The cells on both ends must be the other colour.": "¿Dos del mismo color juntos? Las casillas de ambos extremos deben ser del otro color.",
- "When a row already has half its cells in one colour, the rest are the other colour.": "Cuando una fila ya tiene la mitad de un color, el resto es del otro color."
+ "When a row already has half its cells in one colour, the rest are the other colour.": "Cuando una fila ya tiene la mitad de un color, el resto es del otro color.",
+ "A \"bridge\" (two of your hexagons with two empty cells between them) can't be cut: if they block one, take the other.": "Un \"puente\" (dos de tus hexágonos con dos casillas vacías entre ellos) no se puede cortar: si bloquean una, toma la otra.",
+ "Against the computer you play Red. Easy, Normal or Hard.": "Contra la computadora juegas con rojo. Fácil, Normal o Difícil.",
+ "Blocking from a distance works better than blocking right next to the enemy's chain.": "Bloquear desde lejos funciona mejor que bloquear justo al lado de la cadena rival.",
+ "Blue wins!": "¡Gana el azul!",
+ "Hex": "Hex",
+ "Link your two sides of the board with an unbroken chain of your hexagons.": "Une tus dos lados del tablero con una cadena continua de tus hexágonos.",
+ "Red and Blue share one phone": "Rojo y azul comparten un teléfono",
+ "Red links top to bottom, Blue links left to right. No draws.": "Rojo une arriba con abajo, azul une izquierda con derecha. Sin empates.",
+ "Red owns the top and bottom edges and moves first. Blue owns the left and right edges.": "Rojo tiene los bordes de arriba y abajo y empieza. Azul tiene los bordes izquierdo y derecho.",
+ "Take turns tapping an empty hexagon to claim it. Hexagons never move and are never taken.": "Túrnense para tocar un hexágono vacío y quedárselo. Los hexágonos nunca se mueven ni se capturan.",
+ "The centre is the strongest opening — it's close to every edge.": "El centro es la mejor apertura: está cerca de todos los bordes.",
+ "The first player whose hexagons form a chain joining their two edges wins. There are no draws in Hex: someone always gets through.": "Gana el primero cuyos hexágonos formen una cadena que una sus dos bordes. En Hex no hay empates: alguien siempre pasa.",
+ "Two players can share one phone, or tap 🌐 Online to play a friend on another phone (the host is Red).": "Dos jugadores pueden compartir un teléfono, o toca 🌐 En línea para jugar con un amigo en otro teléfono (el anfitrión juega con rojo)."
 }
