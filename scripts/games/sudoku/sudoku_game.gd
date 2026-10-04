@@ -4,6 +4,7 @@ const SudokuGenerator = preload("res://scripts/games/sudoku/sudoku_generator.gd"
 const CellButton = preload("res://scripts/games/sudoku/cell_button.gd")
 const GridLines = preload("res://scripts/games/sudoku/grid_lines.gd")
 const SudokuHome = preload("res://scripts/games/sudoku/sudoku_home.gd")
+const SudokuHints = preload("res://scripts/games/sudoku/sudoku_hints.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -26,6 +27,8 @@ const COLOR_SELECTED := Color(0.25, 0.5, 0.7)
 const COLOR_PEER := Color(0.24, 0.3, 0.36)
 const COLOR_SAME_VALUE := Color(0.32, 0.37, 0.22)
 const COLOR_ERROR_BG := Color(0.45, 0.15, 0.17)
+const COLOR_HINT_AREA := Color(0.36, 0.24, 0.44)
+const COLOR_HINT_TARGET := Color(0.62, 0.48, 0.12)
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var puzzle: Array = []
@@ -45,6 +48,16 @@ var move_history: Array = []
 ## Cells (r * 9 + c) that have already paid out CORRECT_CELL_POINTS, or were
 ## filled by a hint. Without this, erase + re-place farmed unlimited points.
 var scored_cells: Dictionary = {}
+## Teaching hints (sudoku_hints.gd): the step on screen (empty = none), how
+## far it has been explained (1 = where to look, 2 = why), and the
+## candidates earlier hints crossed out ("idx:d"), so the next one builds on them.
+var current_hint: Dictionary = {}
+var hint_step: int = 0
+var hint_elim: Dictionary = {}
+var hint_panel: PanelContainer
+var hint_box: Control
+var stats_box: Control
+var hint_text: Label
 
 var difficulty_screen: Control
 var game_screen: Control
@@ -189,6 +202,10 @@ func _build_game_screen() -> void:
 
 	var stats_row := HBoxContainer.new()
 	stats_margin.add_child(stats_row)
+	stats_box = stats_margin
+	# A hint's text takes the stats row's place while it shows, so the
+	# board and number pad never move.
+	_build_hint_panel(top_section)
 
 	var time_block := _stat_block(tr("Time"))
 	timer_label = time_block.value_label
@@ -312,6 +329,40 @@ func _build_game_screen() -> void:
 		nb.pressed.connect(_on_number_pressed.bind(n))
 		pad.add_child(nb)
 		number_buttons.append(nb)
+
+## The hint's explanation, in the stats row's place; hidden until 💡 is tapped.
+## Tapping it closes it.
+func _build_hint_panel(parent: Control) -> void:
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.visible = false
+	parent.add_child(margin)
+	hint_box = margin
+	hint_panel = PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.12, 0.1, 0.17)
+	sb.border_color = Color(0.95, 0.75, 0.25)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(10)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	hint_panel.add_theme_stylebox_override("panel", sb)
+	hint_panel.gui_input.connect(_on_hint_panel_input)
+	margin.add_child(hint_panel)
+	hint_text = Label.new()
+	hint_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint_text.add_theme_font_size_override("font_size", 22)
+	hint_text.add_theme_color_override("font_color", Color(0.98, 0.92, 0.75))
+	hint_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_panel.add_child(hint_text)
+
+func _on_hint_panel_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		_clear_hint()
 
 func _style_number_button(nb: Button) -> void:
 	var sb := StyleBoxFlat.new()
@@ -596,6 +647,9 @@ func _on_generation_complete(result: Dictionary) -> void:
 	hints_remaining = STARTING_HINTS
 	move_history = []
 	scored_cells = {}
+	hint_elim = {}
+	_clear_hint()
+	hint_label.text = tr("Hint: %d") % hints_remaining
 	selected = Vector2i(-1, -1)
 	notes_mode = false
 	notes_status_label.text = tr("Notes: Off")
@@ -650,10 +704,13 @@ func _place_number(r: int, c: int, n: int) -> void:
 	var cell: CellButton = cells[r][c]
 	if cell.value == n:
 		return
-	_record_undo(r, c)
+	var snap := _record_undo(r, c)
 	cell.set_value(n)
+	_clear_hint()
 
 	if n == solution[r][c]:
+		snap["peers"] = _clear_peer_notes(r, c, n)
+		snap["peer_digit"] = n
 		if not scored_cells.has(r * 9 + c):
 			scored_cells[r * 9 + c] = true
 			score += CORRECT_CELL_POINTS
@@ -666,6 +723,22 @@ func _place_number(r: int, c: int, n: int) -> void:
 
 	_update_status_bar()
 
+## A correct number crosses itself out of the notes in its row, column and
+## box. Returns what it cleared, so Undo can put the notes back.
+func _clear_peer_notes(r: int, c: int, n: int) -> Array:
+	var cleared := []
+	for rr in range(9):
+		for cc in range(9):
+			if rr == r and cc == c:
+				continue
+			var peer: bool = rr == r or cc == c or (int(rr / 3) == int(r / 3) and int(cc / 3) == int(c / 3))
+			var cell: CellButton = cells[rr][cc]
+			if peer and cell.value == 0 and cell.notes[n - 1]:
+				cleared.append([rr, cc])
+				cell.notes[n - 1] = false
+				cell.update_display()
+	return cleared
+
 func _on_erase_pressed() -> void:
 	if selected.x < 0:
 		return
@@ -674,6 +747,7 @@ func _on_erase_pressed() -> void:
 		return
 	_record_undo(selected.x, selected.y)
 	cell.clear_value()
+	_clear_hint()
 	_refresh_highlights()
 	_update_number_pad()
 
@@ -694,9 +768,9 @@ func _on_resume_pressed() -> void:
 
 ## Snapshots a cell's full state plus current score/mistakes before a mutating action,
 ## so _on_undo_pressed can restore everything in one step regardless of what changed.
-func _record_undo(r: int, c: int) -> void:
+func _record_undo(r: int, c: int) -> Dictionary:
 	var cell: CellButton = cells[r][c]
-	move_history.append({
+	var snap := {
 		"row": r, "col": c,
 		"value": cell.value,
 		"notes": cell.notes.duplicate(),
@@ -704,9 +778,11 @@ func _record_undo(r: int, c: int) -> void:
 		"score": score,
 		"mistakes": mistakes,
 		"scored": scored_cells.has(r * 9 + c),
-	})
+	}
+	move_history.append(snap)
 	if move_history.size() > MAX_UNDO_HISTORY:
 		move_history.pop_front()
+	return snap
 
 func _on_undo_pressed() -> void:
 	if not game_active or move_history.is_empty():
@@ -717,6 +793,11 @@ func _on_undo_pressed() -> void:
 	cell.notes = snap.notes.duplicate()
 	cell.is_error = snap.is_error
 	cell.update_display()
+	for p in snap.get("peers", []):
+		var peer: CellButton = cells[p[0]][p[1]]
+		peer.notes[snap.peer_digit - 1] = true
+		peer.update_display()
+	_clear_hint()
 	score = snap.score
 	mistakes = snap.mistakes
 	if snap.get("scored", false):
@@ -728,24 +809,117 @@ func _on_undo_pressed() -> void:
 	_refresh_highlights()
 	_update_number_pad()
 
+## 💡 teaches the next step instead of filling a square: the first tap
+## shows where to look (and costs a hint), a second tap explains why.
+## A red number gets pointed out first, for free.
 func _on_hint_pressed() -> void:
-	if not game_active or hints_remaining <= 0 or selected.x < 0:
+	if not game_active:
 		return
-	var cell: CellButton = cells[selected.x][selected.y]
-	var correct: int = solution[selected.x][selected.y]
-	if cell.is_given or cell.value == correct:
+	if not current_hint.is_empty() and hint_step == 1:
+		hint_step = 2
+		if current_hint.cell >= 0 and current_hint.kind != "fewest":
+			scored_cells[current_hint.cell] = true  # a revealed square earns no points
+		_show_hint()
 		return
-	_record_undo(selected.x, selected.y)
-	scored_cells[selected.x * 9 + selected.y] = true  # hints never earn points
-	cell.set_value(correct)
-	cell.is_error = false
-	cell.update_display()
+	for r in range(9):
+		for c in range(9):
+			if cells[r][c].is_error:
+				current_hint = {"kind": "error", "cell": r * 9 + c, "cells": [], "unit": []}
+				hint_step = 2
+				_show_hint()
+				return
+	if hints_remaining <= 0:
+		current_hint = {"kind": "none", "cell": -1, "cells": [], "unit": []}
+		hint_step = 2
+		_show_hint()
+		return
+	var grid := []
+	for r in range(9):
+		for c in range(9):
+			grid.append(cells[r][c].value)
+	var prefer := selected.x * 9 + selected.y if selected.x >= 0 else -1
+	current_hint = SudokuHints.find(grid, hint_elim, prefer)
+	if current_hint.is_empty():
+		return
+	for key in current_hint.elim:
+		hint_elim[key] = true
+	hint_step = 1
 	hints_remaining -= 1
 	hint_label.text = tr("Hint: %d") % hints_remaining
-	_update_status_bar()
+	_show_hint()
+
+func _show_hint() -> void:
+	var h := current_hint
+	var t := ""
+	var digit_list := _join_digits(h.get("digits", []))
+	match h.kind:
+		"error":
+			t = tr("A red number is wrong. Erase it first, then ask again.")
+		"none":
+			t = tr("No hints left for this puzzle. Look for a number that fits in only one square of a box.")
+		"hidden":
+			if hint_step == 1:
+				t = {"box": tr("Look at the highlighted box. The %d fits in only one of its squares. Can you find it?"),
+					"row": tr("Look at the highlighted row. The %d fits in only one of its squares. Can you find it?"),
+					"column": tr("Look at the highlighted column. The %d fits in only one of its squares. Can you find it?"),
+				}[h.unit_kind] % h.digit
+			else:
+				t = {"box": tr("Every other empty square in this box already sees a %d in its row or column, so the %d must go in the gold square."),
+					"row": tr("Every other empty square in this row already sees a %d in its column or box, so the %d must go in the gold square."),
+					"column": tr("Every other empty square in this column already sees a %d in its row or box, so the %d must go in the gold square."),
+				}[h.unit_kind] % [h.digit, h.digit]
+		"naked":
+			if hint_step == 1:
+				t = tr("Look at the gold square. Check its row, column and box: only one number is missing from all of them.")
+			else:
+				t = tr("Its row, column and box already use %s. The only number left is %d.") % [_join_digits(h.seen), h.digit]
+		"pointing":
+			if hint_step == 1:
+				t = tr("Look at the highlighted box: where can the %d go in it?") % h.digit
+			else:
+				t = (tr("In this box the %d can only go in one row, so no other square of that row can be a %d. Cross it out of your notes.") if h.line_kind == "row"
+					else tr("In this box the %d can only go in one column, so no other square of that column can be a %d. Cross it out of your notes.")) % [h.digit, h.digit]
+		"pair":
+			if hint_step == 1:
+				t = tr("Look at the two gold squares. Which numbers can each of them be?")
+			else:
+				t = {"box": tr("Both can only be %s. Those two numbers are used up by this pair, so no other square in this box can be either of them."),
+					"row": tr("Both can only be %s. Those two numbers are used up by this pair, so no other square in this row can be either of them."),
+					"column": tr("Both can only be %s. Those two numbers are used up by this pair, so no other square in this column can be either of them."),
+				}[h.unit_kind] % (tr("%d or %d") % [h.digits[0], h.digits[1]])
+		"fewest":
+			if hint_step == 1:
+				t = tr("No square is easy right now. The gold square has only %d possible numbers.") % h.digits.size()
+			else:
+				t = tr("It can be %s. Pencil them in with Notes, and look at what each one would block.") % digit_list
+	if hint_step == 1:
+		t = tr("%s\nTap 💡 again to see why.") % t
+	hint_text.text = t
+	hint_box.visible = true
+	stats_box.visible = false
+	if _hint_cell_shown():
+		selected = Vector2i(int(h.cell / 9), h.cell % 9)
 	_refresh_highlights()
-	_update_number_pad()
-	_check_win()
+
+## Whether the gold square may be shown yet: a hidden single's square is
+## the puzzle the first step asks the player to find.
+func _hint_cell_shown() -> bool:
+	if current_hint.is_empty() or current_hint.cell < 0:
+		return false
+	return current_hint.kind in ["naked", "fewest", "error"] or hint_step == 2
+
+func _join_digits(digits: Array) -> String:
+	var parts := PackedStringArray()
+	for d in digits:
+		parts.append(str(d))
+	return ", ".join(parts)
+
+func _clear_hint() -> void:
+	current_hint = {}
+	hint_step = 0
+	if hint_box:
+		hint_box.visible = false
+		stats_box.visible = true
 
 ## Digit n gets a checkmark in the number pad once all 9 correct instances are placed.
 func _digit_complete(n: int) -> bool:
@@ -962,6 +1136,8 @@ func _load_saved_game() -> void:
 	hints_remaining = int(data.get("hints_remaining", STARTING_HINTS))
 	move_history = []
 	scored_cells = {}
+	hint_elim = {}
+	_clear_hint()
 	for key in data.get("scored_cells", []):
 		scored_cells[int(key)] = true
 	selected = Vector2i(-1, -1)
@@ -1039,6 +1215,26 @@ func _refresh_highlights() -> void:
 					cells[r][c].set_background(COLOR_SAME_VALUE)
 
 		cells[selected.x][selected.y].set_background(COLOR_SELECTED)
+
+	if not current_hint.is_empty():
+		var shade := []
+		shade.append_array(current_hint.unit)
+		if hint_step == 2:
+			shade.append_array(current_hint.get("line", []))
+		for i in shade:
+			if i != selected.x * 9 + selected.y:
+				cells[int(i / 9)][i % 9].set_background(COLOR_HINT_AREA)
+		var gold: Array = current_hint.cells.duplicate()
+		if _hint_cell_shown():
+			gold.append(current_hint.cell)
+		if current_hint.kind in ["hidden", "pointing"] and hint_step == 2:
+			# the numbers doing the blocking
+			for r in range(9):
+				for c in range(9):
+					if cells[r][c].value == current_hint.digit and not cells[r][c].is_error:
+						cells[r][c].set_background(COLOR_SAME_VALUE)
+		for i in gold:
+			cells[int(i / 9)][i % 9].set_background(COLOR_HINT_TARGET)
 
 	# errors always win, so a mistake stays visible even under peer/selection highlighting
 	for r in range(9):

@@ -8,8 +8,8 @@ const GOAL := "Fill the grid so every row, column and 3×3 box has the numbers 1
 const HOW := [
 	"Tap an empty square, then tap a number to place it.",
 	"A wrong number turns red and counts as a mistake.",
-	"Notes mode lets you pencil in small candidate numbers. Erase clears a square and Undo takes back your last move.",
-	"💡 Hint fills in one correct square — you get 3 per puzzle.",
+	"Notes mode lets you pencil in small candidate numbers. Placing a correct number clears it from the notes in its row, column and box. Erase clears a square and Undo takes back your last move.",
+	"💡 Hint never fills in a square: it shows you where to look and which rule to use. Tap it again to see why. You get 3 per puzzle, and a square it reveals earns no points.",
 	"Each correct square scores points, mistakes cost points, and fast solves earn a time bonus. Harder levels multiply your score.",
 	"📊 Statistics on the Sudoku menu shows your games, solves, best and average times and best scores for each difficulty.",
 ]
