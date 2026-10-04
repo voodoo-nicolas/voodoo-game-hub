@@ -16,3 +16,10 @@ const TIPS := [
 	"Don't tap empty holes — watch for the mole, then strike.",
 ]
 const STATS := ["Best score", "Rounds played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🔨", "title": "Mole Bopper", "key": "Best score", "at": 20},
+	{"id": "goal2", "icon": "🐹", "title": "Whack Pro", "key": "Best score", "at": 40},
+	{"id": "goal3", "icon": "⚡", "title": "Lightning Hands", "key": "Best score", "at": 60},
+]

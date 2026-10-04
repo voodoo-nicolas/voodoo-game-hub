@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"Back to Hub": "Volver al inicio",
 		"Best score": "Mejor puntaje",
 		"Best streak": "Mejor racha",
@@ -18,6 +19,7 @@ const STRINGS := {
 		"Get rid of all your cards before the computer does. It's a race — no turns!": "Quédate sin cartas antes que la computadora. ¡Es una carrera, no hay turnos!",
 		"Go!": "¡Ya!",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Lightning": "Relámpago",
 		"Loading...": "Cargando...",
 		"Look at both centre piles at once — there's often a play on the other one.": "Mira las dos pilas del centro a la vez — muchas veces hay jugada en la otra.",
@@ -26,6 +28,7 @@ const STRINGS := {
 		"Medium": "Medio",
 		"More": "Más",
 		"Multiplayer": "Multijugador",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"No turns — race the computer to empty your hand.": "Sin turnos: corre contra la computadora para vaciar tu mano.",
 		"Nobody can play — flipping new centre cards...": "Nadie puede jugar — volteando cartas nuevas al centro...",
@@ -68,14 +71,18 @@ const STRINGS := {
 		"⚡ Lightning": "⚡ Relámpago",
 		"⚡ Speed": "⚡ Speed",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
 		"🐇 Quick": "🐇 Rápida",
 		"🐢 Relaxed": "🐢 Tranquila",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

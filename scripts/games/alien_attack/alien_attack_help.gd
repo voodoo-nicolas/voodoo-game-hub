@@ -19,3 +19,10 @@ const TIPS := [
 	"Keep moving — standing still under the wave is how bombs find you.",
 ]
 const STATS := ["Best score", "Highest wave", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🛸", "title": "Invader Swatter", "key": "Best score", "at": 500},
+	{"id": "goal2", "icon": "🚀", "title": "Defender", "key": "Best score", "at": 2000},
+	{"id": "goal3", "icon": "🌌", "title": "Galaxy Guardian", "key": "Best score", "at": 5000},
+]

@@ -20,3 +20,10 @@ const TIPS := [
 	"In versus, cut across in front of your opponent so they have nowhere to go.",
 ]
 const STATS := ["Best score", "Games played", "Wins", "Losses", "Online wins", "Online losses"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🐍", "title": "Hungry", "key": "Best score", "at": 10},
+	{"id": "goal2", "icon": "🐉", "title": "Long Boi", "key": "Best score", "at": 25},
+	{"id": "goal3", "icon": "🐲", "title": "Serpent King", "key": "Best score", "at": 50},
+]

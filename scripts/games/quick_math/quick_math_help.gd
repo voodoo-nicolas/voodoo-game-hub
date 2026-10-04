@@ -16,3 +16,10 @@ const TIPS := [
 	"A wrong answer costs 3 seconds, about the time of a fast right one, so guessing blindly rarely pays.",
 ]
 const STATS := ["Best score", "Best streak", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "➕", "title": "Quick Thinker", "key": "Best score", "at": 15},
+	{"id": "goal2", "icon": "✖️", "title": "Mental Math", "key": "Best score", "at": 30},
+	{"id": "goal3", "icon": "🧮", "title": "Human Calculator", "key": "Best score", "at": 50},
+]

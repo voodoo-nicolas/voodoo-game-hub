@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"Ask for ranks the computer asked you for earlier — it probably still has them.": "Pide los números que la computadora te pidió antes — seguramente todavía los tiene.",
 		"Ask for ranks, collect books of four. You vs the computer.": "Pide números y junta grupos de cuatro. Tú contra la computadora.",
 		"Ask for the rank you hold the most of: you're closest to a book.": "Pide el número del que más cartas tienes: es el que tienes más cerca de un libro.",
@@ -28,6 +29,7 @@ const STRINGS := {
 		"Go fish! The pond is empty.": "¡A pescar! El mazo está vacío.",
 		"Go fish! You drew %s.": "¡A pescar! Robaste %s.",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If it has any, it hands them all over and you ask again.": "Si tiene alguna, te las da todas y vuelves a pedir.",
 		"If not, \"go fish\": you draw a card. If it's the rank you asked for, you go again.": "Si no, \"a pescar\": robas una carta. Si es el número que pediste, vuelves a jugar.",
 		"It drew one and goes again.": "Robó justo esa y vuelve a jugar.",
@@ -37,6 +39,7 @@ const STRINGS := {
 		"More": "Más",
 		"Multiplayer": "Multijugador",
 		"New": "Nuevo",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"On your turn, tap one of your cards to ask the computer for that rank.": "En tu turno, toca una de tus cartas para pedirle ese número a la computadora.",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
@@ -71,14 +74,18 @@ const STRINGS := {
 		"⏸ pauses and keeps the game; Resume on the Home screen carries on.": "⏸ pausa y guarda la partida; Continuar en la pantalla de inicio la retoma.",
 		"▶  Continue": "▶  Continuar",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
 		"🐟  Play": "🐟  Jugar",
 		"🐟 Go Fish": "🐟 Pesca",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

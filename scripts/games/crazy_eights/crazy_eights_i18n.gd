@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%s drew %d.": "%s robó %d.",
 		"%s is thinking...": "%s está pensando...",
 		"%s passes.": "%s pasa.",
@@ -27,6 +28,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Games won.": "Partidas ganadas.",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep your 8s for when you're stuck.": "Guarda tus 8 para cuando te trabes.",
 		"Loading...": "Cargando...",
 		"Losses": "Derrotas",
@@ -35,6 +37,7 @@ const STRINGS := {
 		"More": "Más",
 		"Multiplayer": "Multijugador",
 		"New": "Nuevo",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No match and no cards left — tap the deck to pass.": "No hay jugada ni cartas — toca el mazo para pasar.",
 		"No match — tap the deck to draw.": "No hay jugada — toca el mazo para robar.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
@@ -70,12 +73,16 @@ const STRINGS := {
 		"▶  Continue": "▶  Continuar",
 		"❓ How to Play": "❓ Cómo jugar",
 		"🃏  Play": "🃏  Jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

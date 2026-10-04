@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"Actions": "Acciones",
 		"After the 3-2-1 countdown a word appears. Your friends act it out or describe it — without saying it!": "Tras la cuenta regresiva 3-2-1 aparece una palabra. Tus amigos la actúan o la describen — ¡sin decirla!",
 		"Back to Hub": "Volver al inicio",
@@ -23,6 +24,7 @@ const STRINGS := {
 		"Guessed it? Tilt the phone down. Want to pass? Tilt it up. The screen flashes green or orange.": "¿Adivinaste? Inclina el teléfono hacia abajo. ¿Quieres pasar? Inclínalo hacia arriba. La pantalla destella verde o naranja.",
 		"Hard": "Difícil",
 		"Hold the phone to your forehead. Tilt down = got it ✓ · tilt up = pass ✗": "Pon el teléfono en tu frente. Inclinar abajo = adivinó ✓ · inclinar arriba = pasar ✗",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Jobs": "Oficios",
 		"Loading...": "Cargando...",
 		"Losses": "Derrotas",
@@ -30,6 +32,7 @@ const STRINGS := {
 		"More": "Más",
 		"Most words in a round": "Más palabras en una ronda",
 		"Multiplayer": "Multijugador",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"No tilt sensor, or it feels backwards? Tap the right half of the screen for ✓ and the left half to pass — or swap the tilt on the category screen.": "¿Sin sensor de inclinación, o parece al revés? Toca la mitad derecha de la pantalla para ✓ y la izquierda para pasar — o invierte la inclinación en la pantalla de categorías.",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
@@ -72,14 +75,18 @@ const STRINGS := {
 		"▶  Continue": "▶  Continuar",
 		"✗ tap left to pass · tap right if they got it ✓": "✗ toca a la izquierda para pasar · a la derecha si adivinó ✓",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎭  Play": "🎭  Jugar",
 		"🎭 Charades": "🎭 Charadas",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%s   (bet %d)": "%s   (apuesta %d)",
 		"Always stand on hard 17 or more.": "Plántate siempre con 17 duro o más.",
 		"An Ace that can still count as 11 (a soft hand) can't bust on the next card, so hit soft 17 or less.": "Un As que todavía cuenta como 11 (mano blanda) no puede pasarse con la próxima carta, así que pide con 17 blando o menos.",
@@ -36,6 +37,7 @@ const STRINGS := {
 		"Hit": "Pedir",
 		"Hit on 12–16 when the dealer shows 7 or higher; stand when the dealer shows 2–6 — they're likely to bust.": "Pide con 12–16 cuando el crupier muestra 7 o más; plántate si muestra 2–6 — es probable que se pase.",
 		"Hit to take another card, Stand to keep your hand. Go over 21 and you bust.": "Pide para recibir otra carta y Plántate para quedarte con tu mano. Si pasas de 21, pierdes.",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Loading...": "Cargando...",
 		"Losses": "Derrotas",
 		"Medium": "Medio",
@@ -44,6 +46,7 @@ const STRINGS := {
 		"Most chips": "Más fichas",
 		"Multiplayer": "Multijugador",
 		"Next Hand": "Siguiente mano",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Number cards count their number, J, Q and K count 10, and an Ace counts 1 or 11.": "Las cartas numéricas valen su número, J, Q y K valen 10, y el As vale 1 u 11.",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
@@ -80,12 +83,16 @@ const STRINGS := {
 		"▶  Continue": "▶  Continuar",
 		"♠  Play": "♠  Jugar",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

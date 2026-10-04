@@ -20,6 +20,9 @@ extends Node
 ## - vibrate: `buzz()` -- every button press gives a short tick (hooked up
 ##   here, app-wide), and GameInfo buzzes on wins and losses.
 ## - keep_awake: stops the screen dimming/locking while the app is open.
+## - invites (since v0.25): when friends' game invites pop up -- INVITE_MODES
+##   "all", "hub" (not while playing a game) or "off". Social asks
+##   `invites_allowed()`.
 ## Skull mode (Voodoo) keeps its own file -- see voodoo.gd.
 ##
 ## Also app-wide, with no game code:
@@ -51,6 +54,10 @@ const SOUND_GROUPS := [
 	["alerts", "🔔 Notifications", "Your-turn chimes and warning buzzes."],
 ]
 
+## Friend invite pop-ups (Minigame standard: "block notifications").
+const INVITE_MODES := ["all", "hub", "off"]
+const INVITE_MODE_NAMES := ["Always", "Not during games", "Off"]
+
 const TAP_BUZZ_MS := 12
 const RESULT_BUZZ_MS := 70
 
@@ -75,6 +82,7 @@ var volume: int = DEFAULT_VOLUME
 var sound_groups: Dictionary = {}
 var vibrate: bool = true
 var keep_awake: bool = false
+var invites: String = "all"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -155,6 +163,18 @@ func set_vibrate(on: bool) -> void:
 func set_keep_awake(on: bool) -> void:
 	keep_awake = on
 	_commit()
+
+func set_invites(mode: String) -> void:
+	invites = mode if INVITE_MODES.has(mode) else "all"
+	_commit()
+
+## May a friend's invite pop up right now?
+func invites_allowed() -> bool:
+	if invites == "off":
+		return false
+	if invites == "hub" and is_inside_tree() and get_tree().current_scene and _is_game_scene(get_tree().current_scene.scene_file_path):
+		return false
+	return true
 
 func buzz(ms: int = TAP_BUZZ_MS) -> void:
 	if vibrate:
@@ -403,6 +423,9 @@ func _load() -> void:
 	sound = bool(data.get("sound", true))
 	vibrate = bool(data.get("vibrate", true))
 	keep_awake = bool(data.get("keep_awake", false))
+	invites = str(data.get("invites", "all"))
+	if not INVITE_MODES.has(invites):
+		invites = "all"
 
 func _save() -> void:
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
@@ -410,5 +433,5 @@ func _save() -> void:
 		f.store_string(JSON.stringify({
 			"text_size": text_size, "theme": theme, "sound": sound,
 			"volume": volume, "sound_groups": sound_groups,
-			"vibrate": vibrate, "keep_awake": keep_awake,
+			"vibrate": vibrate, "keep_awake": keep_awake, "invites": invites,
 		}))

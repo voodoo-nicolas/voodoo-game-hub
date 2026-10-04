@@ -25,3 +25,10 @@ const TIPS := [
 	"Save a bomb for when you're cornered.",
 ]
 const STATS := ["Best score", "Highest multiplier", "Longest time survived", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🔺", "title": "Survivor", "key": "Best score", "at": 10000},
+	{"id": "goal2", "icon": "✴️", "title": "Grid Warrior", "key": "Best score", "at": 50000},
+	{"id": "goal3", "icon": "🌟", "title": "Geometry God", "key": "Best score", "at": 200000},
+]

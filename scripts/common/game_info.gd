@@ -34,6 +34,7 @@ extends Control
 
 const Ui = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
+const Achievements = preload("res://scripts/common/achievements.gd")
 
 ## Games with this stat get a 🏆 Leaderboard on the card (see Auth's
 ## leaderboard section and docs/leaderboards.sql).
@@ -74,6 +75,10 @@ func _init(help_script: Script) -> void:
 	var data = SaveUtil.read(save_path)
 	if data != null:
 		stats = data
+	# Badges already earned before achievements existed (or in an older
+	# version of this game) unlock quietly -- no toast flood on opening.
+	if not stats.is_empty() and not Achievements.check(consts, stats).is_empty():
+		SaveUtil.write(save_path, stats)
 
 func _ready() -> void:
 	# In the tree already, so set_anchors_preset alone would keep our 0×0 size.
@@ -129,6 +134,7 @@ func add(key: String, n: int = 1) -> void:
 func high(key: String, value: float) -> bool:
 	if stats.has(key) and value <= float(stats[key]):
 		return false
+	_count_record(key)
 	stats[key] = value
 	_save()
 	if key == LEADERBOARD_KEY:
@@ -139,6 +145,7 @@ func high(key: String, value: float) -> bool:
 func low(key: String, value: float) -> bool:
 	if stats.has(key) and value >= float(stats[key]):
 		return false
+	_count_record(key)
 	stats[key] = value
 	_save()
 	return true
@@ -175,7 +182,7 @@ func celebrate(text: String = "You win!") -> void:
 	_party = Control.new()
 	_party.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_party.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_party.draw.connect(_draw_party)
+	_party.draw.connect(_draw_party.bind(_party))
 	add_child(_party)
 	move_child(_party, 0)  # under the ? tab and the help card
 	_party_t = 0.0
@@ -245,7 +252,11 @@ func _step_party(delta: float) -> void:
 		c.rot += c.spin * delta
 	_party.queue_redraw()
 
-func _draw_party() -> void:
+## `layer` is the one being drawn: a second celebrate() replaces _party while
+## the old one may still get one last draw.
+func _draw_party(layer: Control) -> void:
+	if layer != _party:
+		return
 	var vp: Vector2 = get_viewport_rect().size
 	var fade: float = clampf((CELEBRATE_SECS - _party_t) / 0.8, 0.0, 1.0)
 	# starburst behind the banner
@@ -557,8 +568,104 @@ func _value_text(key: String) -> String:
 		return "%d:%02d" % [int(total / 60), total % 60]
 	return str(int(round(v)))
 
+## Beating a record that already existed (not setting the first one)
+## counts toward the "Record Breaker" achievements.
+func _count_record(key: String) -> void:
+	if stats.has(key) and not key.begins_with("_") and not Achievements.SKIP_KEYS.has(key):
+		stats["_records"] = int(stats.get("_records", 0)) + 1
+
 func _save() -> void:
+	var got: Array = Achievements.check(consts, stats)
 	SaveUtil.write(save_path, stats)
+	for def in got:
+		_toast_achievement(def)
+	if not got.is_empty():
+		_after_unlock()
+
+# ---------- achievements ----------
+
+## Every badge this game offers, for the Home kit's 🏅 screen:
+## [{icon, title, desc (translated), unlocked: bool, progress: 0..1}],
+## unlocked ones first.
+func achievement_rows() -> Array:
+	var rows: Array = []
+	for def in Achievements.defs_for(consts, stats):
+		rows.append({"icon": def.icon, "title": tr(def.title), "desc": Achievements.describe(def),
+			"unlocked": Achievements.is_unlocked(stats, def), "progress": Achievements.progress(stats, def)})
+	rows.sort_custom(func(a, b): return a.unlocked and not b.unlocked)
+	return rows
+
+var _toasts: Array = []  # queued badge defs
+var _toast_panel: Control
+
+func _toast_achievement(def: Dictionary) -> void:
+	_toasts.append(def)
+	if _toast_panel == null:
+		_next_toast()
+
+## A banner sliding down from the top for each new badge, one at a time.
+## Ignores the mouse, so it never blocks the game.
+func _next_toast() -> void:
+	if _toasts.is_empty() or not is_inside_tree():
+		_toast_panel = null
+		return
+	var def: Dictionary = _toasts.pop_front()
+	var vp: Vector2 = get_viewport_rect().size
+	var panel := PanelContainer.new()
+	var sb := Ui.panel_style()
+	sb.border_color = Color(1, 0.75, 0.2)
+	sb.shadow_color = Color(1, 0.7, 0.1, 0.5)
+	sb.shadow_size = 14
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(row)
+	var icon := Label.new()
+	icon.text = str(def.icon)
+	icon.add_theme_font_size_override("font_size", 48)
+	icon.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	row.add_child(icon)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 0)
+	row.add_child(col)
+	for spec in [[tr("Achievement unlocked!"), 20, Color(1, 0.8, 0.3)], [tr(def.title), 28, Color(1, 1, 1)],
+			[Achievements.describe(def), 20, Color(0.75, 0.8, 0.9)]]:
+		var l := Label.new()
+		l.text = spec[0]
+		l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		l.add_theme_font_size_override("font_size", spec[1])
+		l.add_theme_color_override("font_color", spec[2])
+		col.add_child(l)
+	add_child(panel)
+	var w: float = minf(vp.x - 40.0, 560.0)
+	panel.custom_minimum_size = Vector2(w, 0)
+	panel.reset_size()
+	panel.position = Vector2((vp.x - w) / 2.0, -panel.size.y - 20.0)
+	_toast_panel = panel
+	var top: float = 70.0  # below the safe-area inset and most top bars' text
+	var tw := panel.create_tween()
+	tw.tween_property(panel, "position:y", top, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(2.6)
+	tw.tween_property(panel, "position:y", -panel.size.y - 20.0, 0.3)
+	tw.tween_callback(_end_toast.bind(panel))
+	_sfx("notify")
+
+func _end_toast(panel: Control) -> void:
+	panel.queue_free()
+	_toast_panel = null
+	_next_toast()
+
+## Hub-wide badges may follow (games tried, badges total), and the badge
+## count goes on the 🏅 leaderboard when signed in.
+func _after_unlock() -> void:
+	for h in Achievements.check_hub():
+		_toast_achievement({"icon": h[1], "title": h[2], "desc": h[3]})
+	var a := _auth()
+	if a and a.is_logged_in():
+		a.submit_score(Achievements.BOARD_ID, Achievements.total_unlocked())
 
 ## A longer vibration for a game's result, if the player has vibration on.
 func _buzz() -> void:

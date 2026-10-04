@@ -18,3 +18,10 @@ const TIPS := [
 	"Logs carry you sideways — don't ride one off the edge of the screen.",
 ]
 const STATS := ["Best score", "Highest level", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🐸", "title": "Road Hopper", "key": "Best score", "at": 500},
+	{"id": "goal2", "icon": "🚗", "title": "Traffic Dodger", "key": "Best score", "at": 1500},
+	{"id": "goal3", "icon": "👑", "title": "Frog Prince", "key": "Best score", "at": 4000},
+]

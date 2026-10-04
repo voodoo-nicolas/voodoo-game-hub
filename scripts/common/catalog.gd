@@ -186,6 +186,11 @@ func _apply_manifest(data: Variant) -> bool:
 			game["title"] = title
 			game["icon"] = icon
 			_copy_localized(raw_game, game, "title")
+			# Since v0.25, for the Multiplayer and Leaderboards screens:
+			# "modes" ("online,local,cpu,party") and "board" (the stat its
+			# leaderboard ranks; "none" = no board).
+			game["modes"] = str(raw_game.get("modes", ""))
+			game["board"] = str(raw_game.get("board", "Best score"))
 			cat_games.append(game)
 		var category := {
 			"name": str(raw_cat.get("name", "")),

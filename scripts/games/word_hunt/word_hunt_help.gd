@@ -19,3 +19,10 @@ const TIPS := [
 	"Long words are worth far more than short ones.",
 ]
 const STATS := ["Best score", "Most words found", "Rounds played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🔎", "title": "Word Spotter", "key": "Best score", "at": 20},
+	{"id": "goal2", "icon": "📖", "title": "Lexicon", "key": "Best score", "at": 50},
+	{"id": "goal3", "icon": "🏅", "title": "Word Hunter", "key": "Best score", "at": 100},
+]

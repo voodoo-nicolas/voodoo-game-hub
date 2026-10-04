@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"Back to Hub": "Volver al inicio",
 		"Best score": "Mejor puntaje",
 		"Boards solved down to one peg.": "Tableros resueltos hasta una sola ficha.",
@@ -19,6 +20,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Games solved": "Partidas resueltas",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Jump a peg over another into an empty hole. Leave just one!": "Salta una ficha sobre otra hasta un hueco vacío. ¡Deja solo una!",
 		"Jump pegs to remove them. End with one in the centre.": "Salta fichas para quitarlas. Termina con una en el centro.",
 		"Loading...": "Cargando...",
@@ -27,6 +29,7 @@ const STRINGS := {
 		"More": "Más",
 		"Multiplayer": "Multijugador",
 		"New best!": "¡Nuevo récord!",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No more jumps. %d pegs left.": "No hay más saltos. Quedan %d fichas.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
@@ -66,13 +69,17 @@ const STRINGS := {
 		"▶  Continue": "▶  Continuar",
 		"▶  New game": "▶  Nueva partida",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
 		"📌 Peg Solitaire": "📌 Senku",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

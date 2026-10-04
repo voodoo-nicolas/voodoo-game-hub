@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%s disconnected — waiting...": "%s se desconectó — esperando...",
 		"%s wins!\n%s %d - %s %d": "¡Gana %s!\n%s %d - %s %d",
 		"%s's turn": "Turno de %s",
@@ -35,6 +36,7 @@ const STRINGS := {
 		"Friend disconnected — waiting...": "Tu amigo se desconectó — esperando...",
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It's a tie!\n%s %d - %s %d": "¡Empate!\n%s %d - %s %d",
 		"Loading...": "Cargando...",
 		"Losses": "Derrotas",
@@ -43,6 +45,7 @@ const STRINGS := {
 		"Multiplayer": "Multijugador",
 		"Never draw the third side of a box — your opponent will take it.": "Nunca dibujes el tercer lado de un cuadro — tu rival se lo llevará.",
 		"New Game": "Nueva partida",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"On a touch screen, tap a line and then Confirm Line, so a slip of the finger doesn't cost you.": "En pantalla táctil, toca una línea y luego Confirmar línea, así un error del dedo no te cuesta caro.",
 		"On the Home screen, pick a board size under vs Computer or 2 Players (one phone), or 🌐 Online to play a friend on another phone.": "En la pantalla de inicio, elige un tamaño en vs Computadora o 2 jugadores (un teléfono), o 🌐 En línea para jugar con un amigo en otro teléfono.",
@@ -80,15 +83,19 @@ const STRINGS := {
 		"↺  Restart": "↺  Reiniciar",
 		"▶  Continue": "▶  Continuar",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🌐 Online": "🌐 En línea",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
 		"🏠 Dots and Boxes Home": "🏠 Inicio de Timbiriche",
 		"🏠 Home": "🏠 Inicio",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

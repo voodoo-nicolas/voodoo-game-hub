@@ -39,6 +39,11 @@ extends Control
 ##
 ## Names: my_name() / opponent_name() (from the lobby's "Your name" field)
 ## and status_text() / result_text() use them.
+##
+## Friends (since v0.25): the lobby's "📨 Invite a friend" sends the room code
+## to a friend (Social), whose app pops up "Join"; joining -- or the hub's
+## Multiplayer screen -- reopens the game through Social.launch_online, and
+## _ready() below hosts / joins by itself. No game code involved.
 
 const OnlineLobby = preload("res://scripts/common/online_lobby.gd")
 const ROOM_PATH := "user://online_room.json"
@@ -78,7 +83,13 @@ func _ready() -> void:
 	lobby.started.connect(_on_lobby_started)
 	add_child(lobby)
 	var room := _saved_room()
-	if not room.is_empty():
+	var social := get_node_or_null("/root/Social")
+	var invite: Dictionary = social.take_pending(game_id) if social and social.has_method("take_pending") else {}
+	if not invite.is_empty():
+		# Opened from a friend's invite or the hub's Multiplayer screen
+		# (Social.launch_online): host, join or show the lobby straight away.
+		lobby.call_deferred("auto_start", invite)
+	elif not room.is_empty():
 		lobby.rejoin_room = room
 		lobby.call_deferred("open")  # straight back to "Rejoin game XXXX"
 

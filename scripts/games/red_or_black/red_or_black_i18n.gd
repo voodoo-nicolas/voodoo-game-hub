@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"4 rounds, each player draws one card per round.\nGuess right, give a drink. Guess wrong, take a drink.\nRound 1: Red/Black (1) · 2: Higher/Lower (2)\n3: Inside/Outside (3) · 4: Suit (4)": "4 rondas, cada jugador saca una carta por ronda.\nSi aciertas, das un trago. Si fallas, tomas.\nRonda 1: Rojo/Negro (1) · 2: Mayor/Menor (2)\n3: Adentro/Afuera (3) · 4: Palo (4)",
 		"A party card game: guess right to hand out drinks, guess wrong to take them.": "Un juego de cartas para fiestas: si aciertas repartes tragos, si fallas te los tomas.",
 		"Any drink works — water and soda count too. Know your limits and play responsibly.": "Vale cualquier bebida — agua y refresco también. Conoce tus límites y juega con responsabilidad.",
@@ -25,6 +26,7 @@ const STRINGS := {
 		"Hard": "Difícil",
 		"Higher": "Mayor",
 		"Higher or Lower": "Mayor o menor",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"How many players?": "¿Cuántos jugadores?",
 		"In round 2, go higher when your first card is low and lower when it's high.": "En la ronda 2, di mayor cuando tu primera carta sea baja y menor cuando sea alta.",
 		"In round 3, the wider the gap between your first two cards, the better inside looks.": "En la ronda 3, cuanto más separadas estén tus dos primeras cartas, mejor pinta adentro.",
@@ -39,6 +41,7 @@ const STRINGS := {
 		"Multiplayer": "Multijugador",
 		"New Game": "Nueva partida",
 		"Next Player ➜": "Siguiente jugador ➜",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
@@ -78,13 +81,17 @@ const STRINGS := {
 		"❌ Wrong! Drink %d.": "❌ ¡Fallaste! Toma %d.",
 		"❓ How to Play": "❓ Cómo jugar",
 		"🃏  Play": "🃏  Jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🍻 Game Over!": "🍻 ¡Fin del juego!",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

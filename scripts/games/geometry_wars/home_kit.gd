@@ -11,7 +11,12 @@ extends Control
 ## The game designs its Home: its logo is drawn by the game's own code, and
 ## it picks the title colour, the subtitle and the ways to play. The kit
 ## draws the rest the same way everywhere: Resume, the play buttons, How to
-## Play, 🏆 Leaderboard, 📊 Statistics, 🔊 Sound and Back to Hub.
+## Play, 🏆 Leaderboard (Everyone / Friends), 📊 Statistics, 🏅 Achievements,
+## 🔊 Sound and Back to Hub. Online games also get "📨 Invite a friend"
+## (hosts and lists friends), and Home steps aside whenever the online lobby
+## opens -- also when a friend's invite opened the game. The friends and
+## achievements parts need app v0.25+ (Social, GameInfo.achievement_rows)
+## and simply don't show on older apps.
 ##
 ##     const HomeKit = preload("res://scripts/games/<id>/home_kit.gd")
 ##     var home  # this kit
@@ -83,6 +88,9 @@ var stats_overlay: Control
 var stats_box: VBoxContainer
 var lb_overlay: Control
 var lb_box: VBoxContainer
+var lb_friends: bool = false  # 👥 Friends tab of the leaderboard (Social, app v0.25+)
+var ach_overlay: Control
+var ach_box: VBoxContainer
 var pause_overlay: Control
 var pause_grid: GridContainer
 var _logo: Control
@@ -104,6 +112,7 @@ func _ready() -> void:
 	_build_info_overlay()
 	_build_stats_overlay()
 	_build_leaderboard_overlay()
+	_build_achievements_overlay()
 	_build_pause_overlay()
 	var online: Node = cfg.get("online")
 	if online and "lobby" in online and online.lobby and online.lobby.has_signal("cancelled"):
@@ -288,7 +297,11 @@ func _build_home() -> void:
 	if cfg.has("extra"):
 		cfg.extra.call(box)
 
-	var modes: Array = cfg.get("modes", [])
+	var modes: Array = cfg.get("modes", []).duplicate()
+	if cfg.has("online"):
+		var inv := _invite_mode()
+		if not inv.is_empty():
+			modes.append(inv)
 	var solo := modes.filter(func(m): return not m.get("multi", false))
 	var multi := modes.filter(func(m): return m.get("multi", false))
 	if not solo.is_empty():
@@ -309,6 +322,8 @@ func _build_home() -> void:
 		[tr("🏆 Leaderboard"), GOLD, _show_leaderboard],
 		[tr("📊 Statistics"), PURPLE, _show_stats],
 	]
+	if info and info.has_method("achievement_rows"):
+		items.append([tr("🏅 Achievements"), PINK, _show_achievements])
 	if ResourceLoader.exists(SOUND_OPTIONS_PATH) and get_node_or_null("/root/Settings"):
 		items.append([tr("🔊 Sound"), CYAN, _show_sound])
 	# A game's own screens (cfg "more": [[English text, colour, callable], ...]).
@@ -395,8 +410,34 @@ func _draw_logo() -> void:
 
 func _check_rejoin() -> void:
 	var online: Node = cfg.get("online")
-	if online and "lobby" in online and online.lobby and online.lobby.visible:
+	if online and "lobby" in online and online.lobby:
+		# The lobby can also open by itself later: a friend's invite or the
+		# hub's Multiplayer screen opens the game straight into online play.
+		if not online.lobby.visibility_changed.is_connected(_on_lobby_shown):
+			online.lobby.visibility_changed.connect(_on_lobby_shown)
+		if online.lobby.visible:
+			hide_home()
+
+func _on_lobby_shown() -> void:
+	var online: Node = cfg.get("online")
+	if online and online.lobby.visible and home.visible:
 		hide_home()
+
+## "📨 Invite a friend" for online games, when the app has friends (v0.25+)
+## and the player is signed in: hosts a room and lists friends to invite.
+func _invite_mode() -> Dictionary:
+	var online: Node = cfg.get("online")
+	var social := get_node_or_null("/root/Social")
+	if online == null or not ("lobby" in online) or online.lobby == null or not online.lobby.has_method("auto_start"):
+		return {}
+	if social == null or not bool(social.get("available")):
+		return {}
+	return {"text": "📨 Invite a friend", "sub": "Host a game and invite a friend", "multi": true,
+		"color": PINK, "action": _invite_friend}
+
+func _invite_friend() -> void:
+	var online: Node = cfg.get("online")
+	online.lobby.auto_start({"mode": "invite"})
 
 # ---------- How to Play ----------
 
@@ -458,6 +499,65 @@ func _stat_value(key: String, v: Variant) -> String:
 		return "%d:%02d" % [int(t / 60), t % 60]
 	return str(int(round(float(v))))
 
+# ---------- Achievements (GameInfo, app v0.25+) ----------
+
+func _build_achievements_overlay() -> void:
+	var parts := _overlay(tr("🏅 Achievements"), PINK)
+	ach_overlay = parts[0]
+	ach_box = parts[1]
+
+func _show_achievements() -> void:
+	_clear(ach_box)
+	var rows: Array = info.achievement_rows()
+	var have := rows.filter(func(r): return r.unlocked).size()
+	ach_box.add_child(label(tr("%d of %d unlocked") % [have, rows.size()], 30, PINK, true, true))
+	ach_box.add_child(gap(4))
+	for r in rows:
+		ach_box.add_child(_badge(r))
+	ach_overlay.visible = true
+
+func _badge(r: Dictionary) -> Control:
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(PINK, 0.12) if r.unlocked else Color(1, 1, 1, 0.03)
+	sb.border_color = Color(PINK, 0.8) if r.unlocked else Color(1, 1, 1, 0.1)
+	sb.set_border_width_all(2 if r.unlocked else 1)
+	sb.set_corner_radius_all(12)
+	for side in ["left", "right", "top", "bottom"]:
+		sb.set("content_margin_" + side, 12)
+	panel.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	panel.add_child(row)
+	var icon := label(str(r.icon) if r.unlocked else "🔒", 40, WHITE)
+	icon.custom_minimum_size = Vector2(58, 0)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.modulate.a = 1.0 if r.unlocked else 0.55
+	row.add_child(icon)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 2)
+	row.add_child(col)
+	col.add_child(label(str(r.title), 27, GOLD if r.unlocked else WHITE, true))
+	col.add_child(label(str(r.desc), 22, DIM, true))
+	if not r.unlocked and float(r.progress) > 0.0:
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.custom_minimum_size = Vector2(0, 10)
+		bar.value = 100.0 * float(r.progress)
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = PINK
+		fill.set_corner_radius_all(5)
+		var back := StyleBoxFlat.new()
+		back.bg_color = Color(1, 1, 1, 0.08)
+		back.set_corner_radius_all(5)
+		bar.add_theme_stylebox_override("fill", fill)
+		bar.add_theme_stylebox_override("background", back)
+		col.add_child(bar)
+	if r.unlocked:
+		row.add_child(label("✓", 32, LIME))
+	return panel
+
 # ---------- Leaderboard ----------
 
 func _build_leaderboard_overlay() -> void:
@@ -499,13 +599,44 @@ func _show_leaderboard() -> void:
 		return
 	_submit_board()
 	lb_box.add_child(label(tr("Loading..."), 24, DIM))
-	a.fetch_leaderboard(str(consts.get("ID", "")), LEADERBOARD_SIZE, _on_leaderboard)
+	var social := get_node_or_null("/root/Social")
+	if lb_friends and social and a.has_method("fetch_leaderboard_for"):
+		a.fetch_leaderboard_for(str(consts.get("ID", "")), social.friend_ids(), _on_leaderboard)
+	else:
+		a.fetch_leaderboard(str(consts.get("ID", "")), LEADERBOARD_SIZE, _on_leaderboard)
+
+## Everyone / Friends, when the app has friends (v0.25+).
+func _board_tabs() -> Control:
+	var social := get_node_or_null("/root/Social")
+	if social == null or not bool(social.get("available")):
+		return null
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	for i in 2:
+		var b := neon_button(tr(["🌍 Everyone", "👥 Friends"][i]), GOLD, 24, 60)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if (i == 1) == lb_friends:
+			var on := neon_box(GOLD, "pressed")
+			on.bg_color = Color(GOLD, 0.4)
+			on.set_border_width_all(3)
+			for st in ["normal", "hover", "focus"]:
+				b.add_theme_stylebox_override(st, on)
+		b.pressed.connect(_set_board_scope.bind(i == 1))
+		row.add_child(b)
+	return row
+
+func _set_board_scope(friends: bool) -> void:
+	lb_friends = friends
+	_show_leaderboard()
 
 func _on_leaderboard(rows: Variant) -> void:
 	if not is_instance_valid(lb_box):
 		return
 	_clear(lb_box)
 	var a := _auth()
+	var tabs := _board_tabs()
+	if tabs:
+		lb_box.add_child(tabs)
 	lb_box.add_child(label(_stat_label(_board_key()), 30, GOLD))
 	var mine = _my_board_value()
 	if mine != null:
@@ -515,7 +646,7 @@ func _on_leaderboard(rows: Variant) -> void:
 		lb_box.add_child(label(tr("Couldn't load the leaderboard. Check your connection and try again."), 24, DIM, true))
 		return
 	if rows.is_empty():
-		lb_box.add_child(label(tr("No scores yet — be the first!"), 24, DIM, true))
+		lb_box.add_child(label(tr("No friends on this board yet.") if lb_friends else tr("No scores yet — be the first!"), 24, DIM, true))
 	var me: String = str(a.user_id) if a and a.is_logged_in() else ""
 	for i in rows.size():
 		var r: Dictionary = rows[i]
@@ -622,13 +753,13 @@ func _hide_drawer_late() -> void:
 					c.visible = false
 
 func _any_overlay_open() -> bool:
-	for o in [info_overlay, stats_overlay, lb_overlay]:
+	for o in [info_overlay, stats_overlay, lb_overlay, ach_overlay]:
 		if o and o.visible:
 			return true
 	return false
 
 func _close_overlays() -> void:
-	for o in [info_overlay, stats_overlay, lb_overlay]:
+	for o in [info_overlay, stats_overlay, lb_overlay, ach_overlay]:
 		if o:
 			o.visible = false
 

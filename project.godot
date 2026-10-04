@@ -19,6 +19,7 @@ Auth="*res://scripts/common/auth.gd"
 Catalog="*res://scripts/common/catalog.gd"
 Settings="*res://scripts/common/settings.gd"
 Sfx="*res://scripts/common/sfx.gd"
+Social="*res://scripts/common/social.gd"
 
 [display]
 

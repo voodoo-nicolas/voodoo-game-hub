@@ -21,3 +21,10 @@ const TIPS := [
 	"Save a bomb next to a crowded spot, then set it off with a match.",
 ]
 const STATS := ["Best score", "Longest chain", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "💎", "title": "Gem Finder", "key": "Best score", "at": 2000},
+	{"id": "goal2", "icon": "💍", "title": "Jeweler", "key": "Best score", "at": 8000},
+	{"id": "goal3", "icon": "👑", "title": "Crown Jewels", "key": "Best score", "at": 20000},
+]

@@ -18,3 +18,10 @@ const TIPS := [
 	"Don't touch the screen while the tiles are lit; take it all in first.",
 ]
 const STATS := ["Best score", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🔲", "title": "Pattern Spotter", "key": "Best score", "at": 5},
+	{"id": "goal2", "icon": "🧩", "title": "Grid Mind", "key": "Best score", "at": 10},
+	{"id": "goal3", "icon": "🧠", "title": "Photographic", "key": "Best score", "at": 15},
+]

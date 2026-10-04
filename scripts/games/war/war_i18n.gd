@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%s ran out of cards mid-war!": "¡%s se quedó sin cartas en plena guerra!",
 		"%sCPU wins %d cards!": "%s¡La CPU gana %d cartas!",
 		"%sYou win %d cards!": "%s¡Ganas %d cartas!",
@@ -23,11 +24,13 @@ const STRINGS := {
 		"Flip, compare, win the cards. Take all 52!": "Voltea, compara y gánate las cartas. ¡Llévate las 52!",
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Loading...": "Cargando...",
 		"Losses": "Derrotas",
 		"Medium": "Medio",
 		"More": "Más",
 		"Multiplayer": "Multijugador",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
@@ -67,12 +70,16 @@ const STRINGS := {
 		"⚔️ WAR! ": "⚔️ ¡GUERRA! ",
 		"⚔️ War": "⚔️ Guerra",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

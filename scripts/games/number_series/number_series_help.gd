@@ -17,3 +17,10 @@ const TIPS := [
 	"If the numbers grow fast, try multiplying. If they seem to zigzag, look at every second number.",
 ]
 const STATS := ["Best score", "Best streak", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🔢", "title": "Pattern Seeker", "key": "Best score", "at": 100},
+	{"id": "goal2", "icon": "📈", "title": "Sequence Solver", "key": "Best score", "at": 150},
+	{"id": "goal3", "icon": "♾️", "title": "Number Oracle", "key": "Best score", "at": 170},
+]

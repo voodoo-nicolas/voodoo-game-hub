@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"Anyone who falls, or touches the mat with a knee or elbow, is out. The last player standing wins.": "Quien se caiga o toque el tapete con una rodilla o un codo queda fuera. Gana el último que quede.",
 		"Auto-spin: %ds": "Giro automático: %ds",
 		"Auto-spin: off": "Giro automático: no",
@@ -18,6 +19,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Green": "Verde",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It picks a hand or foot and a colour. That player puts that hand or foot on a circle of that colour.": "Elige una mano o un pie y un color. Ese jugador pone esa mano o pie en un círculo de ese color.",
 		"Keep your weight low and centred to stay balanced.": "Mantén el peso bajo y centrado para no perder el equilibrio.",
 		"Left foot": "Pie izquierdo",
@@ -29,6 +31,7 @@ const STRINGS := {
 		"Medium": "Medio",
 		"More": "Más",
 		"Multiplayer": "Multijugador",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
@@ -72,12 +75,16 @@ const STRINGS := {
 		"🌀  Spin": "🌀  Girar",
 		"🌀 Party Spinner": "🌀 Ruleta de fiesta",
 		"🌀 Spin": "🌀 Girar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

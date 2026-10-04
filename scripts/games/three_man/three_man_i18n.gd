@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%s (3 Man) drinks 1.": "%s (el 3 Man) toma 1.",
 		"%s (3 Man) drinks twice.": "%s (el 3 Man) toma 2.",
 		"%s becomes 3 Man!": "¡%s es el nuevo 3 Man!",
@@ -33,6 +34,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Give out 3 drinks, your choice.": "Reparte 3 tragos a quien quieras.",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"How many players?": "¿Cuántos jugadores?",
 		"Loading...": "Cargando...",
 		"Losses": "Derrotas",
@@ -40,6 +42,7 @@ const STRINGS := {
 		"More": "Más",
 		"Multiplayer": "Multijugador",
 		"Next Player ➜": "Siguiente jugador ➜",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No one is 3 Man yet — stays that way.": "Todavía no hay 3 Man — sigue así.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Nothing happens.": "No pasa nada.",
@@ -80,15 +83,19 @@ const STRINGS := {
 		"⏸ pauses. A game is played at the table, so it isn't saved for later.": "⏸ pausa. La partida se juega en la mesa, así que no se guarda.",
 		"▶  Continue": "▶  Continuar",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
 		"🎲  Play": "🎲  Jugar",
 		"🎲 Roll": "🎲 Tirar",
 		"🎲 Roll Again": "🎲 Tirar otra vez",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

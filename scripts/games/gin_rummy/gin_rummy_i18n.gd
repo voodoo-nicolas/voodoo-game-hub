@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%d points.": "%d puntos.",
 		"%s undercut the knock": "%s contraatacó el golpe",
 		"%s went gin": "%s hizo gin",
@@ -31,6 +32,7 @@ const STRINGS := {
 		"Gin Rummy": "Gin Rummy",
 		"Gin!": "¡Gin!",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Knock": "Golpear",
 		"Knock (%d)": "Golpear (%d)",
 		"Knock as soon as you can early in the hand; go for Gin when the computer seems slow.": "Golpea apenas puedas al principio de la mano; busca Gin cuando la computadora parezca lenta.",
@@ -45,6 +47,7 @@ const STRINGS := {
 		"Multiplayer": "Multijugador",
 		"New": "Nuevo",
 		"Next Hand": "Siguiente mano",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
@@ -81,12 +84,16 @@ const STRINGS := {
 		"❓ How to Play": "❓ Cómo jugar",
 		"🃁 Gin Rummy": "🃁 Gin Rummy",
 		"🃏  New match": "🃏  Nuevo partido",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

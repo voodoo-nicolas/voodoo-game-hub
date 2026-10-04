@@ -164,6 +164,41 @@ func fetch_leaderboard(game: String, limit: int, on_done: Callable) -> void:
 func _on_leaderboard(ok: bool, parsed: Variant, _code: int, on_done: Callable) -> void:
 	_safe_call(on_done, [parsed if ok and typeof(parsed) == TYPE_ARRAY else null])
 
+## Best rows for `game` among `user_ids` (friends + me), same shape as
+## fetch_leaderboard. Since v0.25.
+func fetch_leaderboard_for(game: String, user_ids: Array, on_done: Callable) -> void:
+	if user_ids.is_empty():
+		_safe_call.call_deferred(on_done, [[]])
+		return
+	var path := "/rest/v1/scores?select=display_name,score,user_id&game=eq.%s&user_id=in.(%s)&order=score.desc,updated_at.asc&limit=100" \
+		% [game.uri_encode(), ",".join(PackedStringArray(user_ids))]
+	_request(HTTPClient.METHOD_GET, path, {}, PackedStringArray(), _on_leaderboard.bind(on_done))
+
+## This player's rank on every board, for the hub's leaderboard screen:
+## on_done.call(rows) with rows [{game, score}] (or null offline).
+func fetch_my_scores(on_done: Callable) -> void:
+	if not is_logged_in():
+		_safe_call.call_deferred(on_done, [null])
+		return
+	var path := "/rest/v1/scores?select=game,score&user_id=eq.%s" % user_id
+	_request(HTTPClient.METHOD_GET, path, {}, PackedStringArray(), _on_leaderboard.bind(on_done))
+
+## Calls a Postgres function (`/rest/v1/rpc/<fn>`) as the signed-in player:
+## on_done.call(ok, result). ok is false when signed out, offline, or the
+## function doesn't exist yet (its SQL not run). Since v0.25.
+func db_call(fn: String, args: Dictionary, on_done: Callable) -> void:
+	_ensure_fresh_token(_db_call_with_token.bind(fn, args, on_done))
+
+func _db_call_with_token(ok: bool, fn: String, args: Dictionary, on_done: Callable) -> void:
+	if not ok:
+		_safe_call(on_done, [false, null])
+		return
+	var headers: PackedStringArray = ["Authorization: Bearer " + access_token]
+	_request(HTTPClient.METHOD_POST, "/rest/v1/rpc/" + fn, args, headers, _on_db_call.bind(on_done))
+
+func _on_db_call(ok: bool, parsed: Variant, _code: int, on_done: Callable) -> void:
+	_safe_call(on_done, [ok, parsed])
+
 # ---------- session lifecycle ----------
 
 func _apply_session(parsed: Dictionary, name_hint: String) -> void:
@@ -272,7 +307,8 @@ func _request(method: HTTPClient.Method, path: String, body: Dictionary, extra_h
 		var ok: bool = response_code >= 200 and response_code < 300
 		var parsed = JSON.parse_string(response_body.get_string_from_utf8())
 		if typeof(parsed) != TYPE_DICTIONARY and typeof(parsed) != TYPE_ARRAY:
-			on_done.call(ok, {}, response_code)
+			# A Postgres function can return a plain value ("ABC123", true).
+			on_done.call(ok, parsed if parsed != null else {}, response_code)
 			return
 		on_done.call(ok, parsed, response_code)
 	)
@@ -281,7 +317,9 @@ func _request(method: HTTPClient.Method, path: String, body: Dictionary, extra_h
 	for h in extra_headers:
 		headers.append(h)
 
-	var body_str: String = "" if body.is_empty() else JSON.stringify(body)
+	# A POST always carries a JSON body: PostgREST functions with no
+	# arguments still want "{}".
+	var body_str: String = "" if body.is_empty() and method != HTTPClient.METHOD_POST else JSON.stringify(body)
 	var err := http.request(SUPABASE_URL + path, headers, method, body_str)
 	if err != OK:
 		http.queue_free()

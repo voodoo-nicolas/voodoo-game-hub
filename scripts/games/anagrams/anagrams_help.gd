@@ -19,3 +19,10 @@ const TIPS := [
 	"Long words are worth the most, so a single hint on one is often still a good deal.",
 ]
 const STATS := ["Best score", "Rounds played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🔤", "title": "Word Juggler", "key": "Best score", "at": 50},
+	{"id": "goal2", "icon": "📚", "title": "Letter Wizard", "key": "Best score", "at": 150},
+	{"id": "goal3", "icon": "🧙", "title": "Anagram Master", "key": "Best score", "at": 300},
+]

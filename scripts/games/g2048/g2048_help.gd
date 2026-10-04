@@ -20,3 +20,10 @@ const TIPS := [
 	"Build a chain of shrinking numbers leading away from the corner, so merges cascade into it.",
 ]
 const STATS := ["Best score", "Best tile", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🔷", "title": "512 Tile", "key": "Best tile", "at": 512},
+	{"id": "goal2", "icon": "💠", "title": "1024 Tile", "key": "Best tile", "at": 1024},
+	{"id": "goal3", "icon": "🏆", "title": "2048!", "key": "Best tile", "at": 2048},
+]

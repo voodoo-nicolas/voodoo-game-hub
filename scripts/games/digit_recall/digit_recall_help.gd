@@ -18,3 +18,10 @@ const TIPS := [
 	"Say the digits quietly to yourself in a steady rhythm while the number is on screen.",
 ]
 const STATS := ["Best score", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🔢", "title": "Good Memory", "key": "Best score", "at": 6},
+	{"id": "goal2", "icon": "🧠", "title": "Number Vault", "key": "Best score", "at": 8},
+	{"id": "goal3", "icon": "💾", "title": "Human Hard Drive", "key": "Best score", "at": 10},
+]

@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"All cards are dealt face up in eight columns. Build down in alternating colours.": "Todas las cartas se reparten boca arriba en ocho columnas. Construye hacia abajo alternando colores.",
 		"Almost every deal can be won, so if you get stuck, Undo and try another way.": "Casi todas las manos se pueden ganar, así que si te trabas, deshaz y prueba otro camino.",
 		"An empty column is worth even more than a free cell.": "Una columna vacía vale todavía más que una celda libre.",
@@ -23,6 +24,7 @@ const STRINGS := {
 		"Free cells are precious — try to keep at least one empty.": "Las celdas libres son valiosas — intenta dejar al menos una vacía.",
 		"Games won": "Partidas ganadas",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Loading...": "Cargando...",
 		"Losses": "Derrotas",
 		"Medium": "Medio",
@@ -33,6 +35,7 @@ const STRINGS := {
 		"Multiplayer": "Multijugador",
 		"New": "Nuevo",
 		"New best!": "¡Nuevo récord!",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
@@ -66,12 +69,16 @@ const STRINGS := {
 		"❓ How to Play": "❓ Cómo jugar",
 		"🃏  New deal": "🃏  Nueva mano",
 		"🆓 FreeCell": "🆓 FreeCell",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

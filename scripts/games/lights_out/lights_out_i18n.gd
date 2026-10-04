@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"5 × 5 lights": "5 × 5 luces",
 		"Back to Hub": "Volver al inicio",
 		"Best score": "Mejor puntaje",
@@ -16,6 +17,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Fewest moves": "Menos movimientos",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Lights Out": "Lights Out",
 		"Lit squares turn off and dark ones turn on.": "Las casillas encendidas se apagan y las apagadas se encienden.",
 		"Loading...": "Cargando...",
@@ -25,6 +27,7 @@ const STRINGS := {
 		"Moves: %d": "Movimientos: %d",
 		"Multiplayer": "Multijugador",
 		"New best!": "¡Nuevo récord!",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
@@ -57,13 +60,17 @@ const STRINGS := {
 		"▶  Continue": "▶  Continuar",
 		"▶  New puzzle": "▶  Nuevo tablero",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Lights Out": "💡 Lights Out",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

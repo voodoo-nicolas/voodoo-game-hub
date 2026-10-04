@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"A clue in the bottom-left is the total for the run going down below it.": "Una pista abajo a la izquierda es el total de la fila de casillas que baja debajo de ella.",
 		"A clue in the top-right of a dark square is the total for the run of white squares to its right.": "Una pista arriba a la derecha de una casilla oscura es el total de las casillas blancas a su derecha.",
 		"Back to Hub": "Volver al inicio",
@@ -20,6 +21,7 @@ const STRINGS := {
 		"Fill the white squares with 1–9 so each run adds up to its clue.": "Llena las casillas blancas con 1–9 para que cada fila sume su pista.",
 		"Fill the white squares with 1–9 so every run adds up to its clue.": "Llena las casillas blancas con 1–9 para que cada tramo sume su pista.",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Kakuro": "Kakuro",
 		"Large": "Grande",
 		"Learn the runs with only one answer: 3 in two squares is always 1+2, 4 is 1+3, 16 is 7+9 and 17 is 8+9.": "Aprende las filas con una sola respuesta: 3 en dos casillas siempre es 1+2, 4 es 1+3, 16 es 7+9 y 17 es 8+9.",
@@ -32,6 +34,7 @@ const STRINGS := {
 		"New best!": "¡Nuevo récord!",
 		"Next Puzzle": "Siguiente puzzle",
 		"No digit can repeat within a run.": "Ningún dígito se puede repetir en una misma fila.",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
@@ -63,12 +66,16 @@ const STRINGS := {
 		"▶  Continue": "▶  Continuar",
 		"❓ How to Play": "❓ Cómo jugar",
 		"➗ Kakuro": "➗ Kakuro",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

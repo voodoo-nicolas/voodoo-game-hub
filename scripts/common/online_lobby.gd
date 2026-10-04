@@ -36,6 +36,13 @@ var _status: Label
 var _code_label: Label
 var _host_btn: Button
 var _join_btn: Button
+## Friends to invite into the room once it exists (since v0.25, needs Social).
+var _invite_btn: Button
+var _friend_box: VBoxContainer
+## A friend to invite as soon as the room is created (Social.launch_online).
+var _auto_invite: Dictionary = {}
+## Show the friend list as soon as the room exists ("invite" mode).
+var _auto_friends: bool = false
 
 func _init(p_game_id: String = "", p_title: String = "") -> void:
 	game_id = p_game_id
@@ -108,6 +115,15 @@ func _ready() -> void:
 	_code_label = _label("", 64, Color(1, 0.84, 0.3))
 	_code_label.visible = false
 	box.add_child(_code_label)
+
+	_invite_btn = _button(tr("📨 Invite a friend"))
+	_invite_btn.visible = false
+	_invite_btn.pressed.connect(_show_friends)
+	box.add_child(_invite_btn)
+	_friend_box = VBoxContainer.new()
+	_friend_box.add_theme_constant_override("separation", 8)
+	_friend_box.visible = false
+	box.add_child(_friend_box)
 	_status = _label("", 26, Color(0.85, 0.9, 0.87))
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_status)
@@ -120,6 +136,8 @@ func open() -> void:
 	_reset_session()
 	_code_edit.text = ""
 	_code_label.visible = false
+	_invite_btn.visible = false
+	_friend_box.visible = false
 	_status.text = ""
 	_rejoin_btn.visible = not rejoin_room.is_empty()
 	if not rejoin_room.is_empty():
@@ -215,6 +233,72 @@ func _on_room_created(code: String) -> void:
 	_code_label.text = code
 	_code_label.visible = true
 	_status.text = tr("Tell your friend this code.\nWaiting for them to join...")
+	var social := _social()
+	_invite_btn.visible = social != null and social.available
+	if not _auto_invite.is_empty() and social:
+		_send_invite(str(_auto_invite.user_id), str(_auto_invite.get("name", "")))
+		_auto_invite = {}
+	elif _auto_friends and _invite_btn.visible:
+		_show_friends()
+	_auto_friends = false
+
+# ---------- invites (Social, since v0.25) ----------
+
+func _social() -> Node:
+	var s := get_node_or_null("/root/Social")
+	return s if s and s.has_method("invite") else null
+
+## Opened by Social.launch_online through OnlineMatch: host (and invite a
+## friend once the room exists), join a code, or just show the lobby.
+## "invite" (a game Home's "📨 Invite a friend") hosts and lists friends.
+func auto_start(p: Dictionary) -> void:
+	open()
+	match str(p.get("mode", "")):
+		"invite":
+			_auto_friends = true
+			_on_host()
+		"host":
+			if str(p.get("invite_to", "")) != "":
+				_auto_invite = {"user_id": str(p.invite_to), "name": str(p.get("invite_name", ""))}
+			_on_host()
+		"join":
+			_code_edit.text = str(p.get("code", ""))
+			_on_join()
+
+func _show_friends() -> void:
+	var social := _social()
+	for c in _friend_box.get_children():
+		c.queue_free()
+	_friend_box.visible = true
+	_invite_btn.visible = false
+	var list: Array = social.friends.filter(func(f): return str(f.get("status", "")) == "friend") if social else []
+	if list.is_empty():
+		_friend_box.add_child(_label(tr("No friends yet. Add them in the hub: 👥 Friends."), 22, Color(0.7, 0.72, 0.78)))
+		return
+	# Online friends first: they'll see the invite right away.
+	list.sort_custom(func(a, b): return bool(a.get("online", false)) and not bool(b.get("online", false)))
+	for f in list.slice(0, 6):
+		var b := _button(("🟢 " if bool(f.get("online", false)) else "⚪ ") + str(f.get("display_name", "Player")))
+		b.custom_minimum_size = Vector2(0, 64)
+		b.add_theme_font_size_override("font_size", 26)
+		b.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		b.pressed.connect(_send_invite.bind(str(f.user_id), str(f.get("display_name", ""))))
+		_friend_box.add_child(b)
+
+func _send_invite(user_id: String, who: String) -> void:
+	var social := _social()
+	if social == null or session == null or str(session.code) == "":
+		return
+	_status.text = tr("Inviting %s...") % who
+	social.invite(user_id, game_id, game_title, str(session.code), _on_invite_sent.bind(who))
+
+func _on_invite_sent(ok: bool, who: String) -> void:
+	if not is_inside_tree():
+		return
+	if ok:
+		_status.text = tr("Invite sent to %s. Waiting for them to join...") % who
+	else:
+		_status.text = tr("Couldn't send the invite. Check your connection and try again.")
 
 func _on_join() -> void:
 	var code := _code_edit.text.strip_edges()
@@ -240,6 +324,8 @@ func _on_both_in(my_player: int) -> void:
 	started.emit(session, my_player)
 
 func _on_cancel() -> void:
+	_auto_invite = {}
+	_auto_friends = false
 	_reset_session()
 	visible = false
 	cancelled.emit()

@@ -34,6 +34,12 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   icons in code for the ids in its `IDS` (chess, sudoku, tictactoe, connect4,
   checkers, reversi, three_man); other games still show their manifest emoji.
   To give another game one, add `_icon_<id>` + the id (header comment).
+- **Screens row** (since v0.25): 🏆 Leaderboards / 🏅 Achievements / 👥
+  Friends / 🎮 Multiplayer under the account line (`HUB_SCREENS`), each its
+  own scene extending `hub_screen.gd` (Options' look, `section()`, `pill()`,
+  `dialog()`). They open games via `Social.launch_request` /
+  `Social.launch_online`, which `_ready()` turns into a tile tap. The row's
+  height is part of `HEADER_CHROME_HEIGHT`.
 - **Sign out** is only in Options; the home screen shows the name when signed
   in and a Sign In button when not.
 - **`_neon_style()`**: the shared Tron-glow `StyleBoxFlat` builder (bright

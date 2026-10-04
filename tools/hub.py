@@ -11,6 +11,7 @@ hand-edit across several files.
     python tools/hub.py export [ID...|--all]  build game .pck files into builds/packs/
     python tools/hub.py apk                   build the release Android APK (signed with the private key) into builds/
     python tools/hub.py pc                    build the Windows version (every game built in) + desktop shortcut
+    python tools/hub.py pc-zip                the same, zipped into builds/ to copy to other PCs
     python tools/hub.py i18n                  regenerate translation files from tools/i18n/es.json; list untranslated text
     python tools/hub.py verify                check live release assets match local builds
     python tools/hub.py publish-packs ID...   upload packs to the GitHub pack release
@@ -452,7 +453,9 @@ ERROR_RE = re.compile(r"SCRIPT ERROR|Parse Error|^ERROR:|Failed to load", re.M)
 def cmd_test(args) -> None:
     m = load_manifest()
     ids = args.ids or catalog_ids(m)
-    scenes = [] if args.ids else ["res://scenes/hub/hub.tscn", "res://scenes/hub/options.tscn", "res://scenes/account/account.tscn"]
+    scenes = [] if args.ids else ["res://scenes/hub/hub.tscn", "res://scenes/hub/options.tscn", "res://scenes/account/account.tscn",
+              "res://scenes/hub/leaderboards.tscn", "res://scenes/hub/achievements.tscn",
+              "res://scenes/hub/friends.tscn", "res://scenes/hub/multiplayer.tscn"]
     scenes += [m["games"][gid]["scene"] for gid in ids]
     # First run imports any new files so the boots below see them.
     run_godot("--import", timeout=600)
@@ -571,6 +574,45 @@ def cmd_pc(_args) -> None:
     subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True)
     print(f"  built {exe}")
     print(f"  shortcut: {shortcut}")
+
+
+PC_README = """VOODOO GAME HUB - PC test build v{version}
+=========================================
+
+1. Unzip this whole folder anywhere (Desktop, USB stick...). Keep
+   Voodoo.exe and Voodoo.pck together.
+2. Double-click Voodoo.exe.
+   Windows may say "Windows protected your PC" (the file isn't signed):
+   click "More info" -> "Run anyway".
+
+Every game is built in, so nothing downloads. Sign-in, leaderboards,
+friends and online play need an internet connection.
+
+Saves and settings live on each PC in
+   %APPDATA%\\Godot\\app_userdata\\Voodoo
+Delete that folder to start fresh.
+
+Voodoo.console.exe is the same game with a log window, for reporting
+problems. The window is phone-shaped; drag its edges to resize, or use
+the in-game settings tab to rotate.
+"""
+
+
+def cmd_pc_zip(_args) -> None:
+    """The PC build as a zip to copy to other Windows PCs for testing."""
+    cmd_pc(_args)
+    version, _ = read_version()
+    out_dir = ROOT / "builds"
+    out_dir.mkdir(exist_ok=True)
+    zip_path = out_dir / f"VoodooGameHub-PC-v{version}.zip"
+    import zipfile
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for name in ["Voodoo.exe", "Voodoo.pck", "Voodoo.console.exe", "icon.ico"]:
+            f = PC_DIR / name
+            if f.is_file():
+                z.write(f, f"VoodooGameHub/{name}")
+        z.writestr("VoodooGameHub/README.txt", PC_README.format(version=version))
+    print(f"  zip: {zip_path} ({zip_path.stat().st_size // (1024 * 1024)} MB)")
 
 
 # ---- translations
@@ -788,6 +830,7 @@ def main() -> int:
     p.set_defaults(fn=cmd_apk)
     sub.add_parser("verify").set_defaults(fn=cmd_verify)
     sub.add_parser("pc").set_defaults(fn=cmd_pc)
+    sub.add_parser("pc-zip").set_defaults(fn=cmd_pc_zip)
     sub.add_parser("i18n").set_defaults(fn=cmd_i18n)
     p = sub.add_parser("publish-packs")
     p.add_argument("ids", nargs="+")

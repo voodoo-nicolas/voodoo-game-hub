@@ -135,6 +135,14 @@ func _build_ui() -> void:
 	_toggle_row(feel, tr("☀ Keep screen on"), tr("The screen won't turn off while you play."),
 			Settings.keep_awake, Settings.set_keep_awake)
 
+	# ---- Notifications ----
+	var notes := _section(list, tr("Notifications"))
+	var invite_names: Array = []
+	for n in Settings.INVITE_MODE_NAMES:
+		invite_names.append(tr(n))
+	_choice_row(notes, tr("🔔 Game invites from friends"), tr("When a friend invites you to an online game."),
+			invite_names, maxi(0, Settings.INVITE_MODES.find(Settings.invites)), _on_invites)
+
 	# ---- Account ----
 	var account := _section(list, tr("Account"))
 	account_label = _body_label("")
@@ -312,6 +320,10 @@ func _on_language(i: int) -> void:
 
 func _on_skull_mode(on: bool) -> void:
 	Voodoo.set_on(on)
+
+func _on_invites(i: int) -> void:
+	Settings.set_invites(Settings.INVITE_MODES[i])
+	get_tree().reload_current_scene()  # relights the chosen tab
 
 func _update_account() -> void:
 	if Auth.is_logged_in():

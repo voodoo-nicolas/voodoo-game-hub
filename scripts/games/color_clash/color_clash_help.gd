@@ -17,3 +17,10 @@ const TIPS := [
 	"Your brain reads before it sees color; that clash is what makes this a real attention workout.",
 ]
 const STATS := ["Best score", "Best streak", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🎨", "title": "Sharp Eyes", "key": "Best score", "at": 15},
+	{"id": "goal2", "icon": "🌈", "title": "Color Sense", "key": "Best score", "at": 30},
+	{"id": "goal3", "icon": "🧠", "title": "Unfoolable", "key": "Best score", "at": 50},
+]

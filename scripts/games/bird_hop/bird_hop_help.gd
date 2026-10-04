@@ -17,3 +17,10 @@ const TIPS := [
 	"Look at the next gap, not at the bird.",
 ]
 const STATS := ["Best score", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🐣", "title": "Fledgling", "key": "Best score", "at": 10},
+	{"id": "goal2", "icon": "🐦", "title": "High Flyer", "key": "Best score", "at": 25},
+	{"id": "goal3", "icon": "🦅", "title": "Sky King", "key": "Best score", "at": 50},
+]

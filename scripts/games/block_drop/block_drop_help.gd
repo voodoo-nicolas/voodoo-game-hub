@@ -22,3 +22,10 @@ const TIPS := [
 	"Dropping fast earns a few bonus points.",
 ]
 const STATS := ["Best score", "Most lines", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🧱", "title": "Stacker", "key": "Best score", "at": 2000},
+	{"id": "goal2", "icon": "🏗️", "title": "Builder", "key": "Best score", "at": 10000},
+	{"id": "goal3", "icon": "🗼", "title": "Architect", "key": "Best score", "at": 30000},
+]

@@ -324,6 +324,41 @@ Word). Its header comment lists every name and is the how-to.
   King's Cup, Spin the Bottle (Dots & Boxes still has its own chime from
   before the library).
 
+## Achievements, friends, invites, hub screens -- since v0.25.0 (2026-10-04)
+
+All APK-side (`scripts/common/`, `scripts/hub/`), so every game gets them
+with no game code; the Home kit shows them when the app has them.
+
+- **Achievements** (`scripts/common/achievements.gd`, header is the how-to):
+  generic badges derived from each game's GameInfo stats (tiers of "Wins",
+  "Games played", any other counter, "Best streak", "Online wins", beating
+  your own records -- GameInfo counts those in `_records`), plus optional
+  per-game `ACHIEVEMENTS` in `<id>_help.gd` ({id, icon, title, desc, key,
+  at, lower}), plus hub-wide ones (`HUB`: games tried, badges, friends,
+  invites; `user://achievements.json`). Unlocked badges live in the stats
+  file as `_ach`. GameInfo checks on every save and slides a toast; earned
+  badges backfill silently. The total goes on the leaderboard as game id
+  `achievements`. Test: `tools/test_achievements.gd`.
+- **Friends + invites**: `Social` autoload (`scripts/common/social.gd`) over
+  `Auth.db_call()` (PostgREST RPC; never name it `rpc` -- clashes with
+  Node.rpc). Server: `supabase/migrations/20261004000000_friends.sql`, run
+  once in the SQL editor by the user (Claude can't touch the prod DB).
+  Until it exists `Social.available` is false and friend UI hides.
+  Friend codes (6 letters), requests, online status (heartbeat 60 s),
+  invites polled every 12 s and popped up anywhere ("Join" / "Not now";
+  Options "🔔 Game invites": Always / Not during games / Off).
+- **Opening a game into online play**: `Social.launch_online(id, mode,
+  code, invite_to)` -> hub (`Social.take_launch_request()`, same path as a
+  tile tap) -> the game's OnlineMatch `take_pending()` -> lobby
+  `auto_start()` ("host" + invite, "join", "invite", "lobby"). The kit hides
+  Home when the lobby opens. Test: `tools/test_social_launch.gd`.
+- **Hub screens** (`scripts/hub/hub_screen.gd` base): 🏆 Leaderboards (every
+  board, Everyone / Friends), 🏅 Achievements, 👥 Friends, 🎮 Multiplayer --
+  the row of four under the account line. Multiplayer and the board names
+  come from the manifest's per-game `"modes"` ("online,local,party,cpu")
+  and `"board"` (stat ranked; omitted = "Best score", "none" = no board);
+  Catalog carries both. Keep them right when adding a game.
+
 ## Scoping your work: hub vs. a specific game
 
 The only thing connecting a game to the hub is its `manifest.json` entry (a
@@ -386,8 +421,8 @@ or tell the user what's still missing).
    Shared pieces (GameInfo card, sound options, online lobby) are reused by
    `load()`ing them from `scripts/common/`, never `preload`, so the pack
    still runs on older apps (those simply lack that button).
-   Not implemented anywhere yet: "invite an online player" (online play is
-   Host / Join-by-code only) and "block notifications".
+   "Invite an online player" and "block notifications" exist since v0.25
+   (lobby / kit "📨 Invite a friend", Options "🔔 Game invites").
    **Reference Home screen: Sudoku** (`scripts/games/sudoku/sudoku_home.gd`,
    2026-10-03): neon title + drawn logo, Resume, one button per difficulty
    showing its best, and How to Play / 🏆 Leaderboard / 📊 Statistics /

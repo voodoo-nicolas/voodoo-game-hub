@@ -17,3 +17,10 @@ const TIPS := [
 	"Don't linger: the speed bonus shrinks every 3 seconds.",
 ]
 const STATS := ["Best score", "Best streak", "Correct answers", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "❓", "title": "Know-It-Some", "key": "Best score", "at": 80},
+	{"id": "goal2", "icon": "🎓", "title": "Scholar", "key": "Best score", "at": 120},
+	{"id": "goal3", "icon": "🦉", "title": "Walking Encyclopedia", "key": "Best score", "at": 145},
+]

@@ -4,7 +4,10 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%s\nScore: %d": "%s\nPuntos: %d",
+		"1024 Tile": "Ficha 1024",
+		"512 Tile": "Ficha 512",
 		"A new 2 or 4 appears after every move.": "Después de cada movimiento aparece un 2 o un 4 nuevo.",
 		"Back to Hub": "Volver al inicio",
 		"Best score": "Mejor puntaje",
@@ -21,6 +24,7 @@ const STRINGS := {
 		"Game Over": "Fin del juego",
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
+		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep Going": "Seguir jugando",
 		"Keep the row along your corner full, so it can't shift out of place.": "Mantén llena la fila de tu esquina para que no se desacomode.",
 		"Loading...": "Cargando...",
@@ -30,6 +34,7 @@ const STRINGS := {
 		"Mostly use just two or three directions, so the big tile never gets pushed out of its corner.": "Usa casi siempre solo dos o tres direcciones, para que la ficha grande nunca salga de su esquina.",
 		"Multiplayer": "Multijugador",
 		"New best!": "¡Nuevo récord!",
+		"No friends on this board yet.": "Aún no hay amigos en esta tabla.",
 		"No scores yet — be the first!": "Aún no hay puntajes — ¡sé el primero!",
 		"Opponent disconnected — waiting...": "Tu rival se desconectó — esperando...",
 		"Opponent's turn (%s)": "Turno del rival (%s)",
@@ -65,12 +70,16 @@ const STRINGS := {
 		"▶  Continue": "▶  Continuar",
 		"▶  New game": "▶  Nueva partida",
 		"❓ How to Play": "❓ Cómo jugar",
+		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
+		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
+		"👥 Friends": "👥 Amigos",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
+		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 	},
 }

@@ -19,3 +19,10 @@ const TIPS := [
 	"If a turn goes badly, put a 0 in a box you're unlikely to fill anyway, like Yacht or Ones.",
 ]
 const STATS := ["Best score", "Games played"]
+
+## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
+const ACHIEVEMENTS := [
+	{"id": "goal1", "icon": "🎲", "title": "Roller", "key": "Best score", "at": 150},
+	{"id": "goal2", "icon": "🎯", "title": "High Roller", "key": "Best score", "at": 200},
+	{"id": "goal3", "icon": "⛵", "title": "Yacht Captain", "key": "Best score", "at": 250},
+]

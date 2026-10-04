@@ -27,10 +27,18 @@ var pal: Dictionary
 ## much vertical space the VOODOO header + margins eat. Only used to decide how
 ## tall the rows grow to fill the screen when nothing is expanded.
 const HEADER_HEIGHT_COMPACT := 104.0
-## Banner + version + account row + the list's own bottom margin, in the
-## 720x1280 design space. Constant across devices: stretch mode scales these
-## logical sizes, so only the viewport's logical height varies.
-const HEADER_CHROME_HEIGHT := 470.0
+## Banner + version + account row + the Leaderboards/Achievements/Friends/
+## Multiplayer row + the list's own bottom margin, in the 720x1280 design
+## space. Constant across devices: stretch mode scales these logical sizes,
+## so only the viewport's logical height varies.
+const HEADER_CHROME_HEIGHT := 580.0
+## The four hub screens (since v0.25): [icon, label, scene, colour key].
+const HUB_SCREENS := [
+	["🏆", "Leaderboards", "res://scenes/hub/leaderboards.tscn", "update"],
+	["🏅", "Achievements", "res://scenes/hub/achievements.tscn", "accent"],
+	["👥", "Friends", "res://scenes/hub/friends.tscn", "ready"],
+	["🎮", "Multiplayer", "res://scenes/hub/multiplayer.tscn", "link"],
+]
 const LIST_SEPARATION := 14
 
 var list_container: VBoxContainer
@@ -156,6 +164,15 @@ func _ready() -> void:
 	Auth.signed_out.connect(_update_account_status)
 	_update_account_status()
 
+	var screens_row := HBoxContainer.new()
+	screens_row.add_theme_constant_override("separation", 10)
+	header_box.add_child(_gap(10))
+	header_box.add_child(screens_row)
+	for spec in HUB_SCREENS:
+		screens_row.add_child(_screen_button(spec))
+	Social.friends_changed.connect(_update_friend_badge)
+	_update_friend_badge()
+
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(scroll)
@@ -184,7 +201,13 @@ func _ready() -> void:
 	_rebuild_list()
 	if not Catalog.app_update_checked:
 		Catalog.check_app_update(_show_update_dialog)
-	_resume_last_game()
+	var requested: String = Social.take_launch_request()
+	if requested != "":
+		# A game opened from Multiplayer / Friends / an invite: same path as a tile tap.
+		Settings.take_resume_scene()  # an invite wins over reopening the last game
+		call_deferred("_on_tile_pressed", requested)
+	else:
+		_resume_last_game()
 
 ## Android kills apps left in the background; if that happened mid-game,
 ## go straight back into it (games with a save pick up where they were).
@@ -202,6 +225,65 @@ func _resume_last_game() -> void:
 
 func _open_options() -> void:
 	get_tree().change_scene_to_file("res://scenes/hub/options.tscn")
+
+func _gap(h: float) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(0, h)
+	return c
+
+var friends_label: Label
+
+## Icon over a short label, glowing in its own colour; the four share the
+## row. The text is two Labels over a flat Button (a Button's own text can't
+## size its emoji line apart from the word, and the emoji came out tiny).
+func _screen_button(spec: Array) -> Button:
+	var color: Color = pal[spec[3]]
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(0, 100)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.focus_mode = Control.FOCUS_NONE
+	var sb := _neon_style(_tinted_fill(color), color, 0.55)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		b.add_theme_stylebox_override(state, sb)
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 0)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(col)
+	var icon := Label.new()
+	icon.text = spec[0]
+	icon.add_theme_font_size_override("font_size", 36)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	col.add_child(icon)
+	var name_label := Label.new()
+	name_label.text = tr(spec[1])
+	name_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	name_label.add_theme_font_size_override("font_size", 17)
+	name_label.add_theme_color_override("font_color", pal.text)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.clip_text = true
+	name_label.custom_minimum_size = Vector2(10, 0)  # lets the four share the row however long the word
+	col.add_child(name_label)
+	b.pressed.connect(_open_screen.bind(str(spec[2])))
+	if spec[1] == "Friends":
+		friends_label = name_label
+	return b
+
+func _open_screen(scene: String) -> void:
+	if not busy:
+		get_tree().change_scene_to_file(scene)
+
+## "👥 Friends" shows how many requests are waiting.
+func _update_friend_badge() -> void:
+	if friends_label == null:
+		return
+	var waiting := 0
+	for f in Social.friends:
+		if str(f.get("status", "")) == "incoming":
+			waiting += 1
+	friends_label.text = tr("Friends") + (" (%d)" % waiting if waiting > 0 else "")
 
 func _update_account_status() -> void:
 	if Auth.is_logged_in():
