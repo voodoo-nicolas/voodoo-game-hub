@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 ## Truth or Dare: pass the phone round the group. On your turn pick Truth or
 ## Dare, read your card out loud, then Done (+1) or Skip (-1).
