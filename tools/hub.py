@@ -592,22 +592,44 @@ Saves and settings live on each PC in
    %APPDATA%\\Godot\\app_userdata\\Voodoo
 Delete that folder to start fresh.
 
+"Voodoo needs SSE4.2" or a CPU error? That PC is older: run
+Voodoo-older-PCs.exe instead (the same game, 32-bit, works on any PC).
+
 Voodoo.console.exe is the same game with a log window, for reporting
 problems. The window is phone-shaped; drag its edges to resize, or use
 the in-game settings tab to rotate.
 """
 
 
+def _template_dir() -> Path:
+    """Godot's export templates for the engine version hub.py runs."""
+    base = Path(os.environ.get("APPDATA", "")) / "Godot" / "export_templates"
+    out = subprocess.run([godot(), "--version"], capture_output=True, text=True).stdout.strip()
+    m = re.match(r"(\d+\.\d+(?:\.\d+)?)\.(\w+)", out)
+    d = base / f"{m.group(1)}.{m.group(2)}" if m else None
+    if d is None or not d.is_dir():
+        raise ToolError(f"export templates not found for Godot '{out}' in {base}")
+    return d
+
+
 def cmd_pc_zip(_args) -> None:
-    """The PC build as a zip to copy to other Windows PCs for testing."""
+    """The PC build as a zip to copy to other Windows PCs for testing.
+
+    Godot 4.5+ 64-bit builds refuse CPUs without SSE4.2 (roughly pre-2011);
+    its 32-bit build only needs SSE2. The .pck holds no CPU code, so the zip
+    also carries the 32-bit engine as Voodoo-older-PCs.exe beside a copy of
+    the same .pck (an exe loads the .pck with its own name)."""
     cmd_pc(_args)
+    shutil.copyfile(_template_dir() / "windows_debug_x86_32.exe", PC_DIR / "Voodoo-older-PCs.exe")
+    shutil.copyfile(PC_DIR / "Voodoo.pck", PC_DIR / "Voodoo-older-PCs.pck")
     version, _ = read_version()
     out_dir = ROOT / "builds"
     out_dir.mkdir(exist_ok=True)
     zip_path = out_dir / f"VoodooGameHub-PC-v{version}.zip"
     import zipfile
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-        for name in ["Voodoo.exe", "Voodoo.pck", "Voodoo.console.exe", "icon.ico"]:
+        for name in ["Voodoo.exe", "Voodoo.pck", "Voodoo.console.exe", "Voodoo-older-PCs.exe",
+                     "Voodoo-older-PCs.pck", "icon.ico"]:
             f = PC_DIR / name
             if f.is_file():
                 z.write(f, f"VoodooGameHub/{name}")
