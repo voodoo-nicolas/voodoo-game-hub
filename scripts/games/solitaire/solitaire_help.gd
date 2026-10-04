@@ -12,6 +12,8 @@ const HOW := [
 	"Tap the stock to turn over a card. When it runs out, tap it again to turn the pile back over.",
 	"Undo takes back a move. New Deal starts over.",
 	"⏸ pauses the clock and keeps the deal; Resume on the Home screen picks it up.",
+	"Once every card is face up and the stock is used up, the rest fly up to the foundations by themselves.",
+	"📜 History on the Home screen lists every win with its time and moves.",
 ]
 const TIPS := [
 	"Turning over face-down cards in the columns is usually the best move.",

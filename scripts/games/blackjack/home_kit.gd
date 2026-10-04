@@ -34,6 +34,7 @@ extends Control
 ##         "board_note": "How the score is counted.",
 ##         "online": online,                 # OnlineMatch node, if any
 ##         "extra": _add_options,            # func(box): the game's own pickers above the modes
+##         "more": [["📜 History", PURPLE, _show_history]],  # the game's own buttons under More
 ##     })
 ##     add_child(home)
 ##     if info: add_child(info)
@@ -310,6 +311,9 @@ func _build_home() -> void:
 	]
 	if ResourceLoader.exists(SOUND_OPTIONS_PATH) and get_node_or_null("/root/Settings"):
 		items.append([tr("🔊 Sound"), CYAN, _show_sound])
+	# A game's own screens (cfg "more": [[English text, colour, callable], ...]).
+	for it in cfg.get("more", []):
+		items.append([tr(str(it[0])), it[1], it[2]])
 	for it in items:
 		var b := neon_button(it[0], it[1], 26, 74)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL

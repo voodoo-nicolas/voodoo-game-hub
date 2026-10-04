@@ -3105,5 +3105,14 @@
  "🤖 vs Computer": "🤖 vs Computadora",
  "🧠  Crack the computer's code": "🧠  Descifra el código de la computadora",
  "🧩  Solo": "🧩  Solo",
- "🧠  Play": "🧠  Jugar"
+ "🧠  Play": "🧠  Jugar",
+ "Average time": "Tiempo promedio",
+ "Moves": "Movimientos",
+ "No wins yet. Finish a deal and it shows up here.": "Aún no hay victorias. Termina una partida y aparecerá aquí.",
+ "Recent wins": "Victorias recientes",
+ "Win #%d": "Victoria n.º %d",
+ "Wins from before the history was kept: %d": "Victorias de antes del historial: %d",
+ "📜 History": "📜 Historial",
+ "Once every card is face up and the stock is used up, the rest fly up to the foundations by themselves.": "Cuando todas las cartas están boca arriba y el mazo se acabó, el resto vuela solo a las bases.",
+ "📜 History on the Home screen lists every win with its time and moves.": "📜 Historial, en la pantalla de inicio, muestra cada victoria con su tiempo y sus movimientos."
 }

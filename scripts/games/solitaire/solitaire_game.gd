@@ -4,6 +4,7 @@ const SolitaireEngine = preload("res://scripts/games/solitaire/solitaire_engine.
 const HomeKit = preload("res://scripts/games/solitaire/home_kit.gd")
 const CardData = preload("res://scripts/games/solitaire/card_data.gd")
 const CardView = preload("res://scripts/games/solitaire/card_view.gd")
+const Victory = preload("res://scripts/games/solitaire/solitaire_victory.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -12,6 +13,9 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://solitaire_save.json"
+## Every win, newest first: {"d": unix time, "t": seconds, "m": moves}.
+const HISTORY_PATH := "user://solitaire_history.json"
+const HISTORY_MAX := 200
 
 const CARD_W := 84
 const CARD_H := 118
@@ -35,15 +39,17 @@ var board_scroll: ScrollContainer
 var timer_label: Label
 var moves_label: Label
 var undo_button: Button
-var win_dialog: Control
-var win_stats_label: Label
+var victory  # solitaire_victory.gd: the cascade + results panel
 var pause_dialog: Control
 
 var elapsed_seconds: float = 0.0
 ## Double-click / double-tap: a second press on the same card this soon after
 ## the first sends it to its foundation.
 const DOUBLE_TAP_MS := 400
-const AUTO_STEP := 0.05  # seconds per card when finishing the game by itself
+## Finishing by itself: every card flies to its foundation, a new one
+## taking off every FLY_GAP seconds, so several are in the air at once.
+const FLY_TIME := 0.26
+const FLY_GAP := 0.035
 var last_press: Array = []  # [pile, pile_index, card_index, ticks_msec]
 ## Finishing by itself (every card face up, stock and waste empty). Input is
 ## ignored meanwhile; the tween belongs to this scene, so leaving stops it.
@@ -157,61 +163,19 @@ func _stat_label(text: String) -> Label:
 	return l
 
 func _build_win_dialog() -> void:
-	win_dialog = ColorRect.new()
-	win_dialog.color = Color(0, 0, 0, 0.75)
-	win_dialog.set_anchors_preset(Control.PRESET_FULL_RECT)
-	win_dialog.visible = false
-	add_child(win_dialog)
+	victory = Victory.new()
+	add_child(victory)
+	victory.new_deal.connect(_on_victory_new_deal)
+	victory.show_history.connect(_show_history)
+	victory.show_leaderboard.connect(_on_victory_leaderboard)
+	victory.go_home.connect(_go_home)
 
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	win_dialog.add_child(center)
+func _on_victory_new_deal() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	_start_new_game()
 
-	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.14, 0.14, 0.18)
-	sb.corner_radius_top_left = 16
-	sb.corner_radius_top_right = 16
-	sb.corner_radius_bottom_left = 16
-	sb.corner_radius_bottom_right = 16
-	sb.content_margin_left = 28
-	sb.content_margin_right = 28
-	sb.content_margin_top = 24
-	sb.content_margin_bottom = 24
-	panel.add_theme_stylebox_override("panel", sb)
-	center.add_child(panel)
-
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	panel.add_child(box)
-
-	var title := Label.new()
-	title.text = tr("You Win!")
-	title.add_theme_font_size_override("font_size", 33)
-	title.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-
-	win_stats_label = Label.new()
-	win_stats_label.add_theme_font_size_override("font_size", 24)
-	win_stats_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	win_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(win_stats_label)
-
-	var again_btn := Button.new()
-	again_btn.text = tr("Play Again")
-	again_btn.custom_minimum_size = Vector2(200, 48)
-	again_btn.pressed.connect(func():
-		win_dialog.visible = false
-		_start_new_game()
-	)
-	box.add_child(again_btn)
-
-	var menu_btn := Button.new()
-	menu_btn.text = tr("🏠 %s Home") % tr(TITLE_FOR_HOME)
-	menu_btn.custom_minimum_size = Vector2(320, 64)
-	menu_btn.pressed.connect(_go_home)
-	box.add_child(menu_btn)
+func _on_victory_leaderboard() -> void:
+	home._show_leaderboard()
 
 func _build_pause_dialog() -> void:
 	pause_dialog = ColorRect.new()
@@ -286,7 +250,8 @@ func _start_new_game() -> void:
 	timer_running = true
 	game_active = true
 	_clear_selection()
-	win_dialog.visible = false
+	victory.stop()
+	board_area.visible = true
 	_render()
 
 func _on_pause_pressed() -> void:
@@ -297,7 +262,7 @@ func _on_resume_pressed() -> void:
 	timer_running = true
 
 func _on_undo_pressed() -> void:
-	if autoplaying or not engine.can_undo():
+	if autoplaying or not game_active or not engine.can_undo():
 		return
 	engine.undo()
 	_clear_selection()
@@ -402,6 +367,7 @@ func _on_card_pressed(pile: String, pile_index: int, card_index: int) -> void:
 
 	if pile == "stock":
 		engine.draw_from_stock()
+		_sfx("card_flip")
 		_clear_selection()
 		_render()
 		return
@@ -434,8 +400,10 @@ func _send_to_foundation(pile: String, pile_index: int, card_index: int) -> bool
 	return false
 
 func _after_move() -> void:
+	_sfx("card_place")
 	_render()
 	if engine.is_won():
+		_record_win()
 		_show_win()
 	elif _can_autocomplete():
 		_start_autoplay()
@@ -451,50 +419,64 @@ func _can_autocomplete() -> bool:
 				return false
 	return true
 
+## The game is decided, so it's recorded now; the board keeps showing the
+## old layout while the cards fly (they land on top of the foundations),
+## then one _render() shows the result.
 func _start_autoplay() -> void:
 	autoplaying = true
-	_autoplay_step()
-
-func _autoplay_step() -> void:
-	if not autoplaying:
-		return
-	if engine.is_won():
+	var flights: Array = []  # [card, column, index in column]
+	while not engine.is_won():
+		# lowest card that can go up first, so every foundation fills evenly
+		var best_col := -1
+		for col in range(7):
+			var pile: Array = engine.tableau[col]
+			if pile.is_empty():
+				continue
+			var card = pile.back()
+			if engine._can_place_on_foundation(card, card.suit) and (best_col < 0 or card.rank < engine.tableau[best_col].back().rank):
+				best_col = col
+		if best_col < 0:
+			break  # can't happen with everything face up, but never hang
+		var idx: int = engine.tableau[best_col].size() - 1
+		flights.append([engine.tableau[best_col][idx], best_col, idx])
+		engine.move_tableau_to_foundation(best_col)
+	if not engine.is_won():
 		autoplaying = false
-		_show_win()
+		_render()
 		return
-	# lowest card that can go up first, so every foundation fills evenly
-	var best_col := -1
-	for col in range(7):
-		var pile: Array = engine.tableau[col]
-		if pile.is_empty():
-			continue
-		var card = pile.back()
-		if engine._can_place_on_foundation(card, card.suit) and (best_col < 0 or card.rank < engine.tableau[best_col].back().rank):
-			best_col = col
-	if best_col < 0:
-		autoplaying = false  # can't happen with everything face up, but never hang
-		return
-	var pile: Array = engine.tableau[best_col]
-	var card = pile.back()
-	var from := Vector2(_col_x(best_col), CARD_H + ROW_GAP + (pile.size() - 1) * FAN)
-	var to := Vector2(_col_x(3 + card.suit), 0)
-	for child in board_area.get_children():
-		if child.pile == "tableau" and child.pile_index == best_col and child.card_index == pile.size() - 1:
-			child.visible = false
-	var flyer := CardView.new()
-	flyer.setup("flying", -1, -1)
-	flyer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	flyer.position = from
-	flyer.show_face_up(card)
-	board_area.add_child(flyer)
-	autoplay_tween = create_tween()
-	autoplay_tween.tween_property(flyer, "position", to, AUTO_STEP).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	autoplay_tween.tween_callback(_land_autoplay_card.bind(best_col))
+	_record_win()
+	autoplay_tween = create_tween().set_parallel(true)
+	for i in flights.size():
+		var card = flights[i][0]
+		var col: int = flights[i][1]
+		var idx: int = flights[i][2]
+		var source: Control = null
+		for child in board_area.get_children():
+			if child.pile == "tableau" and child.pile_index == col and child.card_index == idx:
+				source = child
+		var flyer := CardView.new()
+		flyer.setup("flying", -1, -1)
+		flyer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		flyer.position = Vector2(_col_x(col), CARD_H + ROW_GAP + idx * FAN)
+		flyer.show_face_up(card)
+		flyer.visible = false
+		board_area.add_child(flyer)
+		var t0: float = i * FLY_GAP
+		autoplay_tween.tween_callback(_launch_flyer.bind(source, flyer)).set_delay(t0)
+		autoplay_tween.tween_property(flyer, "position", Vector2(_col_x(3 + card.suit), 0), FLY_TIME) \
+			.set_delay(t0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		autoplay_tween.tween_callback(_sfx.bind("card_place")).set_delay(t0 + FLY_TIME)
+	autoplay_tween.chain().tween_callback(_finish_autoplay)
 
-func _land_autoplay_card(col: int) -> void:
-	engine.move_tableau_to_foundation(col)
+func _launch_flyer(source: Control, flyer: Control) -> void:
+	if is_instance_valid(source):
+		source.visible = false
+	flyer.visible = true
+
+func _finish_autoplay() -> void:
+	autoplaying = false
 	_render()
-	_autoplay_step()
+	_show_win()
 
 func _stop_autoplay() -> void:
 	autoplaying = false
@@ -530,19 +512,122 @@ func _try_move_to(dest_pile: String, dest_index: int) -> bool:
 			return engine.move_waste_to_foundation()
 	return false
 
-func _show_win() -> void:
+var _last_win: Dictionary = {}
+
+## Stats, history and the save, once per game (the cards may still be flying).
+func _record_win() -> void:
 	timer_running = false
 	game_active = false
 	SaveUtil.delete(SAVE_PATH)
-	win_stats_label.text = tr("Time: %s   Moves: %d") % [_format_time(elapsed_seconds), engine.move_count]
+	var history := _read_history()
+	history.push_front({"d": int(Time.get_unix_time_from_system()), "t": int(elapsed_seconds), "m": engine.move_count})
+	if history.size() > HISTORY_MAX:
+		history.resize(HISTORY_MAX)
+	SaveUtil.write(HISTORY_PATH, {"wins": history})
+	_last_win = {"time": int(elapsed_seconds), "moves": engine.move_count, "wins": history.size(), "win_no": history.size()}
 	if info:
 		info.add("Games won")
-		info.celebrate("You win!")
-		var fast: bool = info.low("Best time", elapsed_seconds)
-		var few: bool = info.low("Fewest moves", engine.move_count)
-		if fast or few:
-			win_stats_label.text += "\n" + tr("New best!")
-	win_dialog.visible = true
+		_last_win.best_time = info.low("Best time", int(elapsed_seconds))
+		_last_win.best_moves = info.low("Fewest moves", engine.move_count)
+		_last_win.wins = int(info.stats.get("Games won", history.size()))
+		_last_win.win_no = _last_win.wins
+
+func _show_win() -> void:
+	_sfx("record" if _last_win.get("best_time", false) or _last_win.get("best_moves", false) else "win")
+	if info and info.has_method("_buzz"):
+		info._buzz()
+	var to_me: Transform2D = victory.get_global_transform().affine_inverse() * board_area.get_global_transform()
+	var slots: Array = []
+	for s in 4:
+		var p: Vector2 = to_me * Vector2(_col_x(3 + s), 0)
+		slots.append(Rect2(p, to_me * Vector2(_col_x(3 + s) + CARD_W, CARD_H) - p))
+	board_area.visible = false
+	victory.start(engine.foundations, slots, _last_win)
+
+func _read_history() -> Array:
+	var data = SaveUtil.read(HISTORY_PATH)
+	if data is Dictionary and data.get("wins") is Array:
+		return data.wins
+	return []
+
+## 📜 History: the totals, then every win (newest first), bests marked.
+func _show_history() -> void:
+	var parts: Array = home._overlay(tr("📜 History"), HomeKit.PURPLE, true)
+	parts[0].visible = true
+	var body: VBoxContainer = parts[1]
+	var wins := _read_history()
+	var total: int = int(info.stats.get("Games won", wins.size())) if info else wins.size()
+	var best_t := -1
+	var best_m := -1
+	var sum_t := 0
+	for w in wins:
+		var t := int(w.get("t", 0))
+		var m := int(w.get("m", 0))
+		best_t = t if best_t < 0 else mini(best_t, t)
+		best_m = m if best_m < 0 else mini(best_m, m)
+		sum_t += t
+	body.add_child(home._row(tr("Games won"), str(total), HomeKit.WHITE, HomeKit.LIME, true))
+	if not wins.is_empty():
+		body.add_child(home._row(tr("Best time"), _format_clock(best_t), HomeKit.WHITE, HomeKit.CYAN))
+		body.add_child(home._row(tr("Fewest moves"), str(best_m), HomeKit.WHITE, HomeKit.PINK))
+		body.add_child(home._row(tr("Average time"), _format_clock(roundi(float(sum_t) / wins.size())), HomeKit.WHITE, HomeKit.CYAN))
+	body.add_child(HomeKit.gap(6))
+	body.add_child(home._section(tr("Recent wins")))
+	if wins.is_empty():
+		body.add_child(HomeKit.label(tr("No wins yet. Finish a deal and it shows up here."), 24, HomeKit.DIM, true))
+	var bias: int = int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+	for i in wins.size():
+		var w: Dictionary = wins[i]
+		var t := int(w.get("t", 0))
+		var m := int(w.get("m", 0))
+		var when: Dictionary = Time.get_datetime_dict_from_unix_time(int(w.get("d", 0)) + bias)
+		var date := "%04d-%02d-%02d  %02d:%02d" % [when.year, when.month, when.day, when.hour, when.minute]
+		body.add_child(_history_row(total - i, date, t, m, t == best_t, m == best_m))
+	if total > wins.size():
+		body.add_child(HomeKit.label(tr("Wins from before the history was kept: %d") % (total - wins.size()), 22, HomeKit.DIM, true))
+
+## One win: number and date on the left, time and moves on the right; a
+## best time or fewest moves is gold.
+func _history_row(n: int, date: String, t: int, m: int, best_time: bool, best_moves: bool) -> Control:
+	var star: bool = best_time or best_moves
+	var edge: Color = HomeKit.GOLD if star else HomeKit.PURPLE
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(edge, 0.12) if star else Color(1, 1, 1, 0.04)
+	sb.border_color = Color(edge, 0.8) if star else Color(1, 1, 1, 0.1)
+	sb.set_border_width_all(2 if star else 1)
+	sb.set_corner_radius_all(10)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	panel.add_child(row)
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", 0)
+	row.add_child(left)
+	left.add_child(HomeKit.label(("★ " if star else "") + "#%d" % n, 28, HomeKit.GOLD if star else HomeKit.WHITE))
+	left.add_child(HomeKit.label(date, 20, HomeKit.DIM))
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 0)
+	row.add_child(right)
+	var tl := HomeKit.label(_format_clock(t), 28, HomeKit.GOLD if best_time else HomeKit.CYAN)
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_child(tl)
+	var ml := HomeKit.label(tr("%d moves") % m, 20, HomeKit.GOLD if best_moves else HomeKit.DIM)
+	ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_child(ml)
+	return panel
+
+func _format_clock(s: int) -> String:
+	return "%d:%02d" % [int(s / 60), s % 60]
+
+func _sfx(sound: String) -> void:
+	var sfx := get_node_or_null("/root/Sfx")
+	if sfx:
+		sfx.play(sound)
 
 # ---------- save / load ----------
 
@@ -597,7 +682,8 @@ func _load_saved_game() -> bool:
 	timer_running = true
 	game_active = true
 	_clear_selection()
-	win_dialog.visible = false
+	victory.stop()
+	board_area.visible = true
 	pause_dialog.visible = false
 	_render()
 	return true
@@ -619,6 +705,7 @@ func _build_home() -> void:
 		"restart": _start_new_game,
 		"board": "Games won",
 		"board_note": "Games won, all time.",
+		"more": [["📜 History", HomeKit.PURPLE, _show_history]],
 	})
 	add_child(home)
 
