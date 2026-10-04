@@ -74,7 +74,8 @@
       {"id": "simon", "title": "Simon", "icon": "🎵", "title_es": "Simón dice", "board": "Best level"},
       {"id": "whack_a_mole", "title": "Whack-a-Mole", "icon": "🔨", "title_es": "Golpea al topo"},
       {"id": "reaction_test", "title": "Reaction Test", "icon": "⏱️", "title_es": "Test de reacción", "board": "Tests taken"},
-      {"id": "bubble_pop", "title": "Bubble Pop", "icon": "🫧", "title_es": "Burbujas", "board": "Best score"}
+      {"id": "bubble_pop", "title": "Bubble Pop", "icon": "🫧", "title_es": "Burbujas", "board": "Best score"},
+      {"id": "rock_blaster", "title": "Rock Blaster", "icon": "☄️", "title_es": "Rompe rocas", "board": "Best score"}
     ]},
     {"name": "Dice & Party", "icon": "🎲", "name_es": "Dados y fiesta", "games": [
       {"id": "yacht", "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala"},
@@ -177,6 +178,7 @@
     "dominoes": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dominoes.pck", "scene": "res://scenes/games/dominoes/dominoes.tscn"},
     "mahjong": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mahjong.pck", "scene": "res://scenes/games/mahjong/mahjong.tscn"},
     "tri_peaks": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tri_peaks.pck", "scene": "res://scenes/games/tri_peaks/tri_peaks.tscn"},
-    "hearts": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hearts.pck", "scene": "res://scenes/games/hearts/hearts.tscn"}
+    "hearts": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hearts.pck", "scene": "res://scenes/games/hearts/hearts.tscn"},
+    "rock_blaster": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rock_blaster.pck", "scene": "res://scenes/games/rock_blaster/rock_blaster.tscn"}
   }
 }
