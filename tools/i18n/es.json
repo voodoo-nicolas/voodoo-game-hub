@@ -3622,5 +3622,20 @@
  "Tap to drop. Line it up — the overhang gets sliced off.": "Toca para soltar. Alinéalo: lo que sobresale se corta.",
  "The slab missed!": "¡El bloque no cayó en la torre!",
  "Watch the edge of the slab, not its middle: drop when its edge meets the edge below.": "Mira el borde del bloque, no el centro: suéltalo cuando su borde coincida con el de abajo.",
- "⏸ pauses and keeps the tower; Resume on the Home screen carries on.": "⏸ pausa y guarda la torre; Continuar en la pantalla de inicio sigue la partida."
+ "⏸ pauses and keeps the tower; Resume on the Home screen carries on.": "⏸ pausa y guarda la torre; Continuar en la pantalla de inicio sigue la partida.",
+ "Bounce up and up. Hold a side of the screen to steer.": "Rebota más y más alto. Mantén un lado de la pantalla para moverte.",
+ "Cyan platforms are solid. Purple ones slide back and forth. Pink ones crumble the moment you land on them. Green springs launch you extra high.": "Las plataformas celestes son firmes. Las moradas se deslizan de un lado a otro. Las rosas se rompen en cuanto caes en ellas. Los resortes verdes te lanzan más alto.",
+ "Hold left or right to steer": "Mantén izquierda o derecha para moverte",
+ "Hold the left or right half of the screen to steer. Go off one side and you come back on the other.": "Mantén la mitad izquierda o derecha de la pantalla para moverte. Si sales por un lado, vuelves por el otro.",
+ "Hop from platform to platform and climb as high as you can.": "Salta de plataforma en plataforma y sube lo más alto que puedas.",
+ "How high can you hop?": "¿Qué tan alto puedes saltar?",
+ "Never count on a pink platform; there's always a safe one near it.": "Nunca confíes en una plataforma rosa; siempre hay una segura cerca.",
+ "Sky Hop": "Salto al cielo",
+ "Steer while you're still going up — by the time you're falling it can be too late.": "Muévete mientras todavía subes: cuando ya vas cayendo puede ser tarde.",
+ "The higher you go, the further apart the platforms are. Fall off the bottom of the screen and the game is over.": "Cuanto más alto subes, más separadas están las plataformas. Si caes por debajo de la pantalla, se acaba el juego.",
+ "The hopper bounces by itself every time it lands on a platform.": "El saltarín rebota solo cada vez que cae en una plataforma.",
+ "Use the wrap-around: a platform on the far edge is often closer the other way round.": "Aprovecha que la pantalla da la vuelta: una plataforma en el otro borde suele estar más cerca por el otro lado.",
+ "You fell!": "¡Te caíste!",
+ "Your score is the highest point you reached.": "Tu puntaje es el punto más alto que alcanzaste.",
+ "⏸ pauses and keeps the climb; Resume on the Home screen carries on.": "⏸ pausa y guarda la subida; Continuar en la pantalla de inicio sigue la partida."
 }

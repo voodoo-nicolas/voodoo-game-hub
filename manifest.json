@@ -79,7 +79,8 @@
       {"id": "city_defense", "title": "City Defense", "icon": "🛡️", "title_es": "Defensa urbana", "board": "Best score"},
       {"id": "maze_muncher", "title": "Maze Muncher", "icon": "👻", "title_es": "Come laberintos", "board": "Best score"},
       {"id": "moon_lander", "title": "Moon Lander", "icon": "🚀", "title_es": "Alunizaje", "board": "Best score"},
-      {"id": "stack_tower", "title": "Stack Tower", "icon": "🧱", "title_es": "Torre", "board": "Best score"}
+      {"id": "stack_tower", "title": "Stack Tower", "icon": "🧱", "title_es": "Torre", "board": "Best score"},
+      {"id": "sky_hop", "title": "Sky Hop", "icon": "🦘", "title_es": "Salto al cielo", "board": "Best score"}
     ]},
     {"name": "Dice & Party", "icon": "🎲", "name_es": "Dados y fiesta", "games": [
       {"id": "yacht", "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala"},
@@ -187,6 +188,7 @@
     "city_defense": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/city_defense.pck", "scene": "res://scenes/games/city_defense/city_defense.tscn"},
     "maze_muncher": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/maze_muncher.pck", "scene": "res://scenes/games/maze_muncher/maze_muncher.tscn"},
     "moon_lander": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/moon_lander.pck", "scene": "res://scenes/games/moon_lander/moon_lander.tscn"},
-    "stack_tower": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/stack_tower.pck", "scene": "res://scenes/games/stack_tower/stack_tower.tscn"}
+    "stack_tower": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/stack_tower.pck", "scene": "res://scenes/games/stack_tower/stack_tower.tscn"},
+    "sky_hop": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sky_hop.pck", "scene": "res://scenes/games/sky_hop/sky_hop.tscn"}
   }
 }
