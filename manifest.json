@@ -105,7 +105,9 @@
       {"id": "party_spinner", "title": "Party Spinner", "icon": "🌀", "title_es": "Ruleta de fiesta", "modes": "party", "board": "Spins"},
       {"id": "spin_the_bottle", "title": "Spin the Bottle", "icon": "🍾", "title_es": "La botella", "modes": "party", "board": "Spins"},
       {"id": "charades", "title": "Charades", "icon": "🎭", "title_es": "Charadas", "modes": "party", "board": "Most words in a round"},
-      {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed"}
+      {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed"},
+      {"id": "would_you_rather", "title": "Would You Rather", "icon": "🤔", "title_es": "¿Qué prefieres?", "modes": "party", "board": "Cards played"},
+      {"id": "truth_or_dare", "title": "Truth or Dare", "icon": "🎲", "title_es": "Verdad o reto", "modes": "party", "board": "Cards played"}
     ]}
   ],
   "games": {
@@ -197,6 +199,8 @@
     "flood_it": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/flood_it.pck", "scene": "res://scenes/games/flood_it/flood_it.tscn"},
     "same_game": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/same_game.pck", "scene": "res://scenes/games/same_game/same_game.tscn"},
     "binary_grid": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/binary_grid.pck", "scene": "res://scenes/games/binary_grid/binary_grid.tscn"},
-    "hex": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hex.pck", "scene": "res://scenes/games/hex/hex.tscn"}
+    "hex": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hex.pck", "scene": "res://scenes/games/hex/hex.tscn"},
+    "would_you_rather": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/would_you_rather.pck", "scene": "res://scenes/games/would_you_rather/would_you_rather.tscn"},
+    "truth_or_dare": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/truth_or_dare.pck", "scene": "res://scenes/games/truth_or_dare/truth_or_dare.tscn"}
   }
 }

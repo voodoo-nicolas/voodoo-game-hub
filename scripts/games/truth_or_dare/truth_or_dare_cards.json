@@ -1,0 +1,78 @@
+{
+ "truth": {
+  "mild": [
+   {"en": "What's the most embarrassing thing that happened to you at school?", "es": "¿Qué es lo más vergonzoso que te pasó en la escuela?"},
+   {"en": "What's a habit you have that nobody knows about?", "es": "¿Qué costumbre tienes que nadie conoce?"},
+   {"en": "What's the weirdest food you actually like?", "es": "¿Cuál es la comida más rara que te gusta de verdad?"},
+   {"en": "Who in this room would you call in an emergency?", "es": "¿A quién de aquí llamarías en una emergencia?"},
+   {"en": "What's the last lie you told?", "es": "¿Cuál fue la última mentira que dijiste?"},
+   {"en": "What's your most-played song right now?", "es": "¿Cuál es la canción que más escuchas ahora?"},
+   {"en": "What's something you're secretly proud of?", "es": "¿De qué estás orgulloso en secreto?"},
+   {"en": "What's the silliest thing you've cried about?", "es": "¿Por qué es lo más tonto por lo que has llorado?"},
+   {"en": "If you could swap lives with someone here for a day, who would it be?", "es": "Si pudieras cambiar de vida por un día con alguien de aquí, ¿con quién sería?"},
+   {"en": "What's the worst gift you've ever received?", "es": "¿Cuál es el peor regalo que has recibido?"},
+   {"en": "What's your guilty-pleasure TV show?", "es": "¿Qué serie ves aunque te dé vergüenza?"},
+   {"en": "What's the longest you've gone without showering?", "es": "¿Cuánto es lo máximo que has pasado sin bañarte?"},
+   {"en": "What did you want to be when you were little?", "es": "¿Qué querías ser de pequeño?"},
+   {"en": "What's a rule you broke and never got caught?", "es": "¿Qué regla rompiste sin que te descubrieran?"},
+   {"en": "What's the most childish thing you still do?", "es": "¿Qué es lo más infantil que todavía haces?"},
+   {"en": "Which app do you spend too much time on?", "es": "¿En qué app pasas demasiado tiempo?"},
+   {"en": "What's your most irrational fear?", "es": "¿Cuál es tu miedo más irracional?"},
+   {"en": "What's the best compliment you've ever received?", "es": "¿Cuál es el mejor cumplido que te han hecho?"},
+   {"en": "Who was your first celebrity crush?", "es": "¿Quién fue tu primer famoso favorito?"},
+   {"en": "What's something you pretend to like but don't?", "es": "¿Qué finges que te gusta pero no?"}
+  ],
+  "spicy": [
+   {"en": "Who here would you most like to go on a date with?", "es": "¿Con quién de aquí te gustaría tener una cita?"},
+   {"en": "What's the most awkward date you've been on?", "es": "¿Cuál ha sido tu cita más incómoda?"},
+   {"en": "Have you ever stalked an ex online? Who?", "es": "¿Alguna vez espiaste a un ex en redes? ¿A quién?"},
+   {"en": "What's the cheesiest pickup line you've ever used?", "es": "¿Cuál es la frase para ligar más cursi que has usado?"},
+   {"en": "What's your biggest turn-off?", "es": "¿Qué es lo que más te quita las ganas?"},
+   {"en": "Have you ever had a crush on a friend's partner?", "es": "¿Te ha gustado alguna vez la pareja de un amigo?"},
+   {"en": "What's the last message you deleted before anyone could see it?", "es": "¿Cuál fue el último mensaje que borraste antes de que alguien lo viera?"},
+   {"en": "Who was your worst kiss?", "es": "¿Quién fue tu peor beso?"},
+   {"en": "What's something you've never told your best friend?", "es": "¿Qué nunca le has contado a tu mejor amigo?"},
+   {"en": "Rate everyone in this room's style from 1 to 10.", "es": "Califica del 1 al 10 el estilo de cada persona aquí."},
+   {"en": "What's the most romantic thing you've ever done?", "es": "¿Qué es lo más romántico que has hecho?"},
+   {"en": "Have you ever ghosted someone? Why?", "es": "¿Alguna vez dejaste a alguien en visto para siempre? ¿Por qué?"}
+  ]
+ },
+ "dare": {
+  "mild": [
+   {"en": "Do your best impression of someone in the room until someone guesses who.", "es": "Imita a alguien del grupo hasta que adivinen quién es."},
+   {"en": "Speak in an accent for the next three rounds.", "es": "Habla con acento durante las próximas tres rondas."},
+   {"en": "Do 15 jumping jacks.", "es": "Haz 15 saltos de tijera."},
+   {"en": "Sing the chorus of the last song you listened to.", "es": "Canta el estribillo de la última canción que escuchaste."},
+   {"en": "Let the group pick an emoji you must use as your only reply for 10 minutes.", "es": "Deja que el grupo elija un emoji: será tu única respuesta durante 10 minutos."},
+   {"en": "Talk without closing your mouth for 30 seconds.", "es": "Habla sin cerrar la boca durante 30 segundos."},
+   {"en": "Do your best dance move for 20 seconds.", "es": "Haz tu mejor paso de baile durante 20 segundos."},
+   {"en": "Tell a joke. If nobody laughs, tell another.", "es": "Cuenta un chiste. Si nadie se ríe, cuenta otro."},
+   {"en": "Balance a spoon on your nose for 10 seconds.", "es": "Mantén una cuchara en la nariz durante 10 segundos."},
+   {"en": "Act out a famous movie scene without words.", "es": "Actúa una escena famosa de película sin palabras."},
+   {"en": "Let someone draw a moustache on your hand and show it off.", "es": "Deja que alguien te dibuje un bigote en la mano y presúmelo."},
+   {"en": "Talk like a robot until your next turn.", "es": "Habla como robot hasta tu próximo turno."},
+   {"en": "Do an infomercial selling the nearest object.", "es": "Haz un comercial vendiendo el objeto más cercano."},
+   {"en": "Hold a plank for 30 seconds.", "es": "Haz plancha durante 30 segundos."},
+   {"en": "Say the alphabet backwards as fast as you can.", "es": "Di el abecedario al revés lo más rápido que puedas."},
+   {"en": "Give a 30-second speech about why socks are important.", "es": "Da un discurso de 30 segundos sobre por qué los calcetines son importantes."},
+   {"en": "Walk like a penguin across the room.", "es": "Camina como pingüino de un lado a otro."},
+   {"en": "Compliment every person in the room.", "es": "Hazle un cumplido a cada persona del grupo."},
+   {"en": "Make the group laugh within one minute.", "es": "Haz reír al grupo en menos de un minuto."},
+   {"en": "Pretend to be a news reporter describing this party.", "es": "Finge ser reportero y describe esta reunión."}
+  ],
+  "spicy": [
+   {"en": "Show the group your last three photos.", "es": "Muéstrale al grupo tus últimas tres fotos."},
+   {"en": "Let the person to your left post a story from your phone (they choose the photo).", "es": "Deja que la persona a tu izquierda suba una historia desde tu teléfono (ella elige la foto)."},
+   {"en": "Read your last text message out loud.", "es": "Lee en voz alta tu último mensaje."},
+   {"en": "Send a heart emoji to the third contact in your chat list.", "es": "Mándale un corazón al tercer contacto de tu lista de chats."},
+   {"en": "Let the group look through your playlist and judge it.", "es": "Deja que el grupo revise tu lista de canciones y la juzgue."},
+   {"en": "Give someone in the room a 30-second shoulder massage.", "es": "Dale a alguien del grupo un masaje en los hombros de 30 segundos."},
+   {"en": "Serenade the person on your right.", "es": "Dale una serenata a la persona de tu derecha."},
+   {"en": "Do your most flirty wink at everyone.", "es": "Guíñale el ojo a todos de la forma más coqueta posible."},
+   {"en": "Let the group write your next status update.", "es": "Deja que el grupo escriba tu próximo estado."},
+   {"en": "Describe your ideal date in detail.", "es": "Describe con detalle tu cita ideal."},
+   {"en": "Call a friend and tell them you just adopted a goat.", "es": "Llama a un amigo y dile que acabas de adoptar una cabra."},
+   {"en": "Swap an item of clothing with someone for one round.", "es": "Intercambia una prenda con alguien durante una ronda."}
+  ]
+ }
+}
