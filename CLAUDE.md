@@ -893,6 +893,47 @@ headlessly, Home kit, GameInfo, Sfx, EN/ES, save/Resume).
 - GameInfo's confetti (`game_info.gd` `_draw_party`) logs "triangulation
   failed" in headless tests at zero size -- harmless, APK-side.
 
+## The last 7 to 100 games -- 2026-10-04
+
+Packs only, all in Arcade, each with Home kit, GameInfo, Sfx, EN/ES and
+save/Resume. The arcade ones have Easy / Normal / Hard rows on Home and a
+"Best score (%s)" stat per level.
+
+- **Barrel Climb** (`barrel_climb`, Donkey Kong-like): six slanted girders
+  (`y_at(floor, x)`; each leans down the way barrels roll and is open at
+  that end), random ladders per level, the Bone King throws barrels, a
+  hammer pickup, a BONUS countdown (0 = a life lost).
+- **Cannon Duel** (`cannon_duel`, Worms-like): heightmap ground with
+  craters (`_explode` removes the circle's overlap, what was above falls),
+  wind, 3 weapons, driving with fuel; vs CPU x3 or 2 players.
+  **The CPU's aim search uses `predict()`, a tight local-variable copy of
+  the shell physics** -- going through the Dictionary-based `_advance` was
+  ~30x slower (minutes per test). Keep the two in step if the physics change.
+- **Crypt Crawler** (`crypt_crawler`, Doom-like): a DDA raycaster
+  (`engine.cast`, 120 columns), neon wall edges drawn as polylines broken
+  at every face change, billboard sprites hidden by a per-column z-buffer,
+  maze floors (backtracker + loops + halls), skulls / wraiths / brutes.
+- **Star Runner** (`star_runner`, Star Fox-like): pseudo-3D (x, y, z) with
+  `_proj()`; the view is stretched upright (`V_STRETCH`) and the camera
+  rides above the ship, or on a tall phone the ship sits on the horizon.
+- **Sky Raider** (`sky_raider`): vertical shooter, relative-drag steering,
+  tiny hitbox, P / B / 1UP drops, a battleship per stage.
+- **Mini Golf** (`mini_golf`): 18 holes as data in `HOLES` (outline,
+  blocks, sand, water, slopes, bumpers, mills, sliders; rects are
+  `[x0, y0, x1, y1]`); Front 9 / Back 9 / 18 picker; 1-4 players pass the
+  phone. Moving parts also push a resting ball (`_hit_moving`). New holes:
+  check them with a brute-force bot (try ~400 putts per stroke, score by
+  BFS path distance to the cup) -- every hole must be holed and the ball
+  must never leave the outline.
+- **Pool** (`pool`): 8-ball with the rules in `resolve()` (targets fixed at
+  `shoot()` time in `shot_targets`), ghost-ball guide, ball in hand, vs CPU
+  x3 or 2 players. Hard tries its best 4 shots on `clone()`s; **the CPU
+  thinks on a `WorkerThreadPool` task** (`_cpu_think`, waited for in
+  `_exit_tree`) so the table keeps animating.
+- Balance was set with bots in throwaway tests: Star Runner / Sky Raider
+  "a random or dodging bot survives Easy, mostly dies on Hard", Cannon Duel
+  CPU vs CPU shots-to-win by level, Pool Hard beats Easy ~90%.
+
 ## Hub look changes -- since v0.24.0 (2026-10-03)
 
 - **Sign Out is only in Options**; the home screen shows the name (signed in)

@@ -86,7 +86,14 @@
       {"id": "moon_lander", "title": "Moon Lander", "icon": "🚀", "title_es": "Alunizaje", "board": "Best score"},
       {"id": "stack_tower", "title": "Stack Tower", "icon": "🧱", "title_es": "Torre", "board": "Best score"},
       {"id": "sky_hop", "title": "Sky Hop", "icon": "🦘", "title_es": "Salto al cielo", "board": "Best score"},
-      {"id": "air_hockey", "title": "Air Hockey", "icon": "🏒", "title_es": "Hockey de mesa", "modes": "local,cpu", "board": "Wins"}
+      {"id": "air_hockey", "title": "Air Hockey", "icon": "🏒", "title_es": "Hockey de mesa", "modes": "local,cpu", "board": "Wins"},
+      {"id": "barrel_climb", "title": "Barrel Climb", "icon": "🛢️", "title_es": "Escala barriles", "board": "Best score"},
+      {"id": "cannon_duel", "title": "Cannon Duel", "icon": "💣", "title_es": "Duelo de cañones", "modes": "local,cpu", "board": "Wins"},
+      {"id": "crypt_crawler", "title": "Crypt Crawler", "icon": "💀", "title_es": "La cripta", "board": "Best score"},
+      {"id": "star_runner", "title": "Star Runner", "icon": "🌠", "title_es": "Carrera estelar", "board": "Best score"},
+      {"id": "sky_raider", "title": "Sky Raider", "icon": "✈️", "title_es": "Asalto aéreo", "board": "Best score"},
+      {"id": "mini_golf", "title": "Mini Golf", "icon": "⛳", "title_es": "Minigolf", "modes": "local", "board": "Birdies or better"},
+      {"id": "pool", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins"}
     ]},
     {"name": "Dice & Party", "icon": "🎲", "name_es": "Dados y fiesta", "games": [
       {"id": "yacht", "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala", "modes": "local"},
@@ -205,6 +212,13 @@
     "would_you_rather": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/would_you_rather.pck", "scene": "res://scenes/games/would_you_rather/would_you_rather.tscn"},
     "truth_or_dare": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/truth_or_dare.pck", "scene": "res://scenes/games/truth_or_dare/truth_or_dare.tscn"},
     "video_poker": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/video_poker.pck", "scene": "res://scenes/games/video_poker/video_poker.tscn"},
-    "air_hockey": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/air_hockey.pck", "scene": "res://scenes/games/air_hockey/air_hockey.tscn"}
+    "air_hockey": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/air_hockey.pck", "scene": "res://scenes/games/air_hockey/air_hockey.tscn"},
+    "barrel_climb": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/barrel_climb.pck", "scene": "res://scenes/games/barrel_climb/barrel_climb.tscn"},
+    "cannon_duel": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/cannon_duel.pck", "scene": "res://scenes/games/cannon_duel/cannon_duel.tscn"},
+    "crypt_crawler": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/crypt_crawler.pck", "scene": "res://scenes/games/crypt_crawler/crypt_crawler.tscn"},
+    "star_runner": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/star_runner.pck", "scene": "res://scenes/games/star_runner/star_runner.tscn"},
+    "sky_raider": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sky_raider.pck", "scene": "res://scenes/games/sky_raider/sky_raider.tscn"},
+    "mini_golf": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf.pck", "scene": "res://scenes/games/mini_golf/mini_golf.tscn"},
+    "pool": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pool.pck", "scene": "res://scenes/games/pool/pool.tscn"}
   }
 }
