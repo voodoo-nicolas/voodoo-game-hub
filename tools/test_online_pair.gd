@@ -5,13 +5,14 @@ extends SceneTree
 ## (through a JSON round trip, as the network does). After every action it
 ## checks both copies hold the same game, and at the end that both saw it end.
 ##   godot --headless --path . --script res://tools/test_online_pair.gd -- [ids]
-## Ids: morris backgammon memory (default: all). Records online results in
+## Ids: morris backgammon memory five_in_row (default: all). Records online results in
 ## the stats files: back up user data first (see CLAUDE.md).
 
 const SCENES := {
 	"morris": "res://scenes/games/morris/morris.tscn",
 	"backgammon": "res://scenes/games/backgammon/backgammon.tscn",
 	"memory": "res://scenes/games/memory/memory.tscn",
+	"five_in_row": "res://scenes/games/five_in_row/five_in_row.tscn",
 }
 const GAMES_EACH := 3
 
@@ -112,6 +113,8 @@ func _ended(id: String, g: Node) -> bool:
 			return g.BgEngine.winner(g.engine.state) != -1 and g.end_dialog.visible
 		"memory":
 			return g.engine.is_over() and g.win_dialog.visible
+		"five_in_row":
+			return g.engine.winner != 0 and g.end_dialog.visible
 	return false
 
 ## Random legal play until the game ends; returns the number of actions.
@@ -147,6 +150,8 @@ func _can_act(id: String, g: Node) -> bool:
 			return g.turn >= 0 and g._is_person_turn() and (g.dice.is_empty() or not g.legal.is_empty())
 		"memory":
 			return g.game_active and not g.waiting_for_resolve and g.online.can_act(g.turn_player + 1 == g.my_player)
+		"five_in_row":
+			return g.engine.winner == 0 and g.online.can_act(g.engine.turn == g.my_player)
 	return false
 
 ## No half-made turn (Morris waiting for a removal).
@@ -175,6 +180,14 @@ func _act(id: String, g: Node) -> void:
 				if not g.engine.matched[i] and not g.engine.flipped.has(i):
 					choices.append(i)
 			g._on_cell_pressed(choices.pick_random())
+		"five_in_row":
+			var i: int = g.engine.candidates().pick_random()
+			var geo: Dictionary = g._geom()
+			var ev := InputEventMouseButton.new()
+			ev.button_index = MOUSE_BUTTON_LEFT
+			ev.pressed = true
+			ev.position = geo.origin + Vector2(i % 15, i / 15) * geo.step
+			g._on_board_input(ev)
 
 func _click(g: Node, point: int) -> void:
 	var ev := InputEventMouseButton.new()

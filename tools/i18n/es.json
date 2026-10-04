@@ -3401,5 +3401,19 @@
  "✖ Give up": "✖ Me rindo",
  "🎨 I'm the artist — show the word": "🎨 Soy el artista: muestra la palabra",
  "🎨 Sketch It": "🎨 Dibújalo",
- "👁 Word": "👁 Palabra"
+ "👁 Word": "👁 Palabra",
+ "%s to play": "Juegan las %s",
+ "Against the computer you play Black. Pick Easy, Normal or Hard.": "Contra la computadora juegas con negras. Elige Fácil, Normal o Difícil.",
+ "An open three (three in a row with both ends free) must be blocked at once — or it becomes an unstoppable four.": "Un tres abierto (tres en línea con ambos extremos libres) hay que bloquearlo de inmediato, o se vuelve un cuatro imparable.",
+ "Be the first to get five of your stones in an unbroken line — across, down or diagonally.": "Sé el primero en poner cinco de tus piedras en una línea seguida: horizontal, vertical o diagonal.",
+ "Black and White share one phone": "Negras y blancas comparten un teléfono",
+ "Black moves first; then the players take turns placing one stone on any empty point of the 15 × 15 grid.": "Empiezan las negras; luego los jugadores se turnan para poner una piedra en cualquier punto libre de la cuadrícula de 15 × 15.",
+ "Build two threats with one stone: your opponent can only block one.": "Crea dos amenazas con una piedra: tu rival solo puede bloquear una.",
+ "Five in a Row": "Cinco en línea",
+ "Five or more in a row wins. A gold dot marks the last stone played.": "Cinco o más en línea gana. Un punto dorado marca la última piedra jugada.",
+ "Get five stones in a row before your opponent does.": "Pon cinco piedras en línea antes que tu rival.",
+ "Play near the middle early; stones at the edge have fewer lines through them.": "Al principio juega cerca del centro; las piedras del borde tienen menos líneas.",
+ "Stones never move and are never taken.": "Las piedras nunca se mueven ni se capturan.",
+ "Two players can share one phone, or tap 🌐 Online to play a friend on another phone (the host is Black).": "Dos jugadores pueden compartir un teléfono, o toca 🌐 En línea para jugar con un amigo en otro teléfono (el anfitrión juega con negras).",
+ "Wins (Hard)": "Victorias (Difícil)"
 }
