@@ -106,7 +106,7 @@ key as-is. `online_lobby.gd` is the shared Host / Join-by-code screen.
   messages heal. Online games are never saved locally, and an online game
   ending must not delete the local save. Online so far: Tic-Tac-Toe,
   Connect Four, Checkers, Reversi, Chess, Mancala, Dots and Boxes, Morris,
-  Backgammon, Memory (2026-10-04). Games with dice or a shuffle send the whole
+  Backgammon, Memory, Five in a Row, Hex (2026-10-04). Games with dice or a shuffle send the whole
   state as the move (Backgammon: every roll and checker move; Memory: the host
   deals, each flip is a move).
 - **Testing online without the server**: `tools/test_online_pair.gd` plays
@@ -858,6 +858,40 @@ AudioStreamWAV), `_api.gd` (Edge Function calls), `_text.gd` + `_data.json`.
   Crossword and Anagrams switch to Spanish content.
 - Most new games draw their board in one Control via its `draw` signal
   (`board.draw.connect(_draw_board)`) instead of a grid of Buttons.
+
+## 22 new games + 2-player modes -- 2026-10-04 (93 games)
+
+All packs only (no APK change), built with the usual pattern (engine tested
+headlessly, Home kit, GameInfo, Sfx, EN/ES, save/Resume).
+
+- **New**: Pipe Flow, Bubble Pop, Sketch It (draw-and-guess, word list in
+  `sketch_it_words.json`), Five in a Row (online), Dominoes, Mahjong Solitaire
+  (deals made by "un-playing" the layout, so always solvable), Tri-Peaks,
+  Hearts, Rock Blaster, City Defense, Maze Muncher, Moon Lander, Stack Tower,
+  Sky Hop, Flood It, Block Collapse (`same_game`), Binary Grid (puzzles kept
+  only while pure rule-logic still solves them -- fast and no guessing), Hex
+  (Monte-Carlo playout computer; online), Would You Rather + Truth or Dare
+  (decks in `<id>_cards.json`, EN/ES, like Trivia), Video Poker (play credits
+  only), Air Hockey (multi-touch 2 players).
+- **Pass-and-play pattern** (Sea Battle, Liar's Dice, Crazy Eights, Go Fish,
+  Gin Rummy): a full-screen opaque `cover` ("Pass the phone to Player N" +
+  I'm ready) whenever the phone changes hands; `viewer` = the seat whose cards
+  are face up, set when I'm ready is tapped; drawing returns early while the
+  cover shows. Engines that assumed "seat 0 = you" now take a player count
+  (`PLAYERS` is a var). Yacht is 2-4 scorecards swapped into the engine;
+  War has a Flip button per player; Speed puts Player 2's hand at the top,
+  drawn upside down (`draw_set_transform(c, PI)`), both tapping at once.
+- **Air Hockey bots**: two perfect-defender bots never score -- test the
+  engine with a bank-shot bot, not two mirror bots.
+- **Bash heredocs mangle `\\`**: a `"\\n"` inside a heredoc'd Python patch
+  becomes a real newline in the .gd file. Write patch scripts with the Write
+  tool (or check with `grep -n` after) -- it broke three files this session.
+- `--check-only` catches GDScript parse errors in an engine before a test
+  hangs on it: `godot --headless --path . --check-only --script res://...`.
+  An engine that fails to parse makes `load(...).new()` fail and a test
+  script never reaches `quit()`.
+- GameInfo's confetti (`game_info.gd` `_draw_party`) logs "triangulation
+  failed" in headless tests at zero size -- harmless, APK-side.
 
 ## Hub look changes -- since v0.24.0 (2026-10-03)
 
