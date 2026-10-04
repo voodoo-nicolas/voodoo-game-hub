@@ -105,7 +105,14 @@ key as-is. `online_lobby.gd` is the shared Host / Join-by-code screen.
   the sender's resulting state and a mismatch triggers a resync, so missed
   messages heal. Online games are never saved locally, and an online game
   ending must not delete the local save. Online so far: Tic-Tac-Toe,
-  Connect Four, Checkers, Reversi, Chess, Mancala, Dots and Boxes.
+  Connect Four, Checkers, Reversi, Chess, Mancala, Dots and Boxes, Morris,
+  Backgammon, Memory (2026-10-04). Games with dice or a shuffle send the whole
+  state as the move (Backgammon: every roll and checker move; Memory: the host
+  deals, each flip is a move).
+- **Testing online without the server**: `tools/test_online_pair.gd` plays
+  whole games between two copies of a game joined by a fake session (JSON
+  round trip) and checks they never disagree; add a driver there when wiring
+  a new game. It records online results: back up user data first.
 - **Seat view**: in Chess and Checkers the guest's board is drawn rotated
   180 degrees (`flipped`, `_view_index()`) so their pieces are at the bottom;
   only drawing and tap handling convert, the engine always uses real

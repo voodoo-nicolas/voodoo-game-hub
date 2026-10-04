@@ -1,6 +1,7 @@
 extends Control
 
-## Nine Men's Morris vs the computer. You are white and move first.
+## Nine Men's Morris vs the computer, a friend on the same phone, or online
+## (host = White, moves first; guest = Black).
 
 const MorrisEngine = preload("res://scripts/games/morris/morris_engine.gd")
 const HomeKit = preload("res://scripts/games/morris/home_kit.gd")
@@ -10,6 +11,8 @@ const UI = preload("res://scripts/common/ui.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+## Not preloaded either: apps older than v0.14 don't have it (no Online button).
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
 const HUMAN := 1
 const CPU := 2
@@ -40,6 +43,11 @@ var depth: int = 2
 ## Two players on one phone: Black is a person, not the computer.
 var two_player := false
 var started := false  # a game is on (not just the one behind Home)
+## Online play (null on apps without it); my_player 1 = White (host), 2 = Black.
+var online: Control = null
+var my_player: int = 0
+## This turn's move, sent once the turn is complete: [from, to, removed].
+var turn_move: Array = [-1, -1, -1]
 
 func _ready() -> void:
 	preload("res://scripts/games/morris/morris_i18n.gd").install(self)
@@ -130,6 +138,14 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online = load(ONLINE_MATCH_PATH).new("morris", tr(TITLE_FOR_HOME), _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_reset_game)
+		online.status_changed.connect(_update_labels)
+		add_child(online)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/morris/morris_help.gd"))
 	_build_home()
@@ -142,6 +158,11 @@ func _toggle_difficulty() -> void:
 	_update_labels()
 
 func _start_new_game() -> void:
+	if online:
+		online.new_game()
+	_reset_game()
+
+func _reset_game() -> void:
 	started = true
 	result_recorded = false
 	cpu_timer.stop()
@@ -153,8 +174,8 @@ func _start_new_game() -> void:
 
 func _update_labels() -> void:
 	difficulty_btn.text = tr("Computer: Hard") if depth == 3 else tr("Computer: Normal")
-	difficulty_btn.visible = not two_player
-	if two_player:
+	difficulty_btn.visible = not two_player and not _is_online()
+	if two_player or _is_online():
 		info_label.text = tr("White: %d to place, %d on board   ·   Black: %d to place, %d on board") % [
 			engine.to_place[0], engine.count(HUMAN), engine.to_place[1], engine.count(CPU)]
 	else:
@@ -164,6 +185,8 @@ func _update_labels() -> void:
 	var who := ((tr("White") if me == HUMAN else tr("Black")) + ": ") if two_player else ""
 	if engine.winner != 0:
 		status_label.text = ""
+	elif _is_online() and not _my_turn():
+		status_label.text = online.status_text(me == my_player, tr("White") if me == HUMAN else tr("Black"))
 	elif not _person():
 		status_label.text = tr("Computer is thinking...")
 	elif must_remove:
@@ -175,21 +198,13 @@ func _update_labels() -> void:
 	else:
 		status_label.text = who + tr("Select a piece, then an empty neighbour.")
 	board.queue_redraw()
-	return
-	if engine.placing(HUMAN):
-		status_label.text = tr("Tap a point to place a piece.")
-	elif engine.flying(HUMAN):
-		status_label.text = tr("Only 3 left: you can fly anywhere!")
-	else:
-		status_label.text = tr("Select a piece, then an empty neighbour.")
-	board.queue_redraw()
 
 # ---------- player input ----------
 
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if not _person() or engine.winner != 0:
+	if not _my_turn() or engine.winner != 0:
 		return
 	var me: int = engine.turn
 	var foe: int = CPU if me == HUMAN else HUMAN
@@ -199,12 +214,14 @@ func _on_board_input(event: InputEvent) -> void:
 	if must_remove:
 		if pos in engine.removable(foe):
 			engine.remove_piece(pos)
+			turn_move[2] = pos
 			must_remove = false
 			_end_human_turn()
 		return
 	var legal: Array = engine.moves_for(me)
 	if engine.placing(me):
 		if [-1, pos] in legal:
+			turn_move = [-1, pos, -1]
 			_after_move(engine.apply_move(-1, pos))
 		return
 	if engine.board[pos] == me:
@@ -213,6 +230,7 @@ func _on_board_input(event: InputEvent) -> void:
 	elif selected >= 0 and [selected, pos] in legal:
 		var from := selected
 		selected = -1
+		turn_move = [from, pos, -1]
 		_after_move(engine.apply_move(from, pos))
 
 func _after_move(mill: bool) -> void:
@@ -225,7 +243,9 @@ func _after_move(mill: bool) -> void:
 func _end_human_turn() -> void:
 	engine.end_turn()
 	_update_labels()
-	if not _check_game_over() and not two_player:
+	if _is_online():
+		online.send_move({"m": turn_move})
+	if not _check_game_over() and not two_player and not _is_online():
 		cpu_timer.start()
 
 func _cpu_turn() -> void:
@@ -241,6 +261,17 @@ func _check_game_over() -> bool:
 	if engine.winner == 0:
 		return false
 	var msg: String
+	if _is_online():  # an online game ending mustn't wipe a paused local one
+		var draw: bool = engine.winner == 3
+		msg = tr("Draw — no mills for too long.") if draw else online.result_text(engine.winner == my_player)
+		if info and not result_recorded:
+			result_recorded = true
+			info.result("draw" if draw else ("win" if engine.winner == my_player else "loss"), true)
+		if info:
+			msg += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		end_dialog.get_meta("message_label").text = msg
+		end_dialog.visible = true
+		return true
 	SaveUtil.delete(SAVE_PATH)
 	if two_player:
 		msg = tr("White wins!") if engine.winner == HUMAN else (tr("Black wins!") if engine.winner == CPU else tr("Draw — no mills for too long."))
@@ -337,13 +368,15 @@ func _build_home() -> void:
 			{"text": "😐 Normal", "row": "cpu", "color": HomeKit.CYAN, "action": _new_game.bind(2, false)},
 			{"text": "😈 Hard", "row": "cpu", "color": HomeKit.PINK, "action": _new_game.bind(3, false)},
 			{"text": "👥 2 Players", "sub": "White and Black share one phone", "multi": true, "action": _new_game.bind(2, true)},
-		],
+		] + ([{"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": online.open_lobby}] if online else []),
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else (tr("2 Players") if bool(d.get("two", false)) else tr("vs Computer")),
 		"restart": _start_new_game,
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
+		"online": online,
 	})
 	add_child(home)
 
@@ -374,7 +407,62 @@ func _new_game(d: int, two: bool) -> void:
 
 ## Is a person (not the computer) to move?
 func _person() -> bool:
-	return engine.turn == HUMAN or two_player
+	return engine.turn == HUMAN or two_player or _is_online()
+
+## May the player on this phone touch the board now?
+func _my_turn() -> bool:
+	if _is_online():
+		return online.can_act(engine.turn == my_player)
+	return _person()
+
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
+# ---------- online ----------
+
+func _online_state() -> Dictionary:
+	return {"board": engine.board, "to_place": engine.to_place, "turn": engine.turn,
+		"quiet": engine.quiet_moves, "winner": engine.winner}
+
+func _on_online_started(p_my_player: int) -> void:
+	my_player = p_my_player
+	two_player = false
+	home.hide_home()
+	_reset_game()
+
+## The other player's whole turn: [from, to, removed] (-1 = none).
+func _on_remote_move(p: Dictionary) -> void:
+	var m: Array = p.get("m", [])
+	if engine.winner != 0 or engine.turn == my_player or m.size() != 3:
+		return
+	var from := int(m[0])
+	var to := int(m[1])
+	var removed := int(m[2])
+	if not ([from, to] in engine.moves_for(engine.turn)):
+		return  # out of step: the state check that follows resyncs us
+	var mill := engine.apply_move(from, to)
+	if mill and removed in engine.removable(3 - engine.turn):
+		engine.remove_piece(removed)
+	engine.end_turn()
+	selected = -1
+	must_remove = false
+	_update_labels()
+	_check_game_over()
+
+func _on_remote_state(st: Dictionary) -> void:
+	var b := _ints(st.get("board", []))
+	if b.size() != 24:
+		return
+	engine.board = b
+	engine.to_place = _ints(st.get("to_place", [9, 9]))
+	engine.turn = int(st.get("turn", 1))
+	engine.quiet_moves = int(st.get("quiet", 0))
+	engine.winner = int(st.get("winner", 0))
+	selected = -1
+	must_remove = false
+	end_dialog.visible = false
+	_update_labels()
+	_check_game_over()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -382,7 +470,7 @@ func _notification(what: int) -> void:
 
 ## Saved when a person is to move, so a computer turn replays from there.
 func _save_game() -> void:
-	if not started or engine.winner != 0 or not _person() or must_remove:
+	if _is_online() or not started or engine.winner != 0 or not _person() or must_remove:
 		return
 	SaveUtil.write(SAVE_PATH, {"board": engine.board, "to_place": engine.to_place, "turn": engine.turn,
 		"quiet": engine.quiet_moves, "depth": depth, "two": two_player})

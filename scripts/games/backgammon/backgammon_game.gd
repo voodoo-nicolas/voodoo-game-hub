@@ -4,6 +4,8 @@ extends Control
 ## You are white: your checkers travel up the left side, across the top and
 ## down the right side into your home board (bottom right), then bear off
 ## into the tray below. Tap a checker, then a highlighted point.
+## Online, the host plays White and the guest Black; every roll and checker
+## move sends the whole position, so the other phone watches it live.
 
 const BgEngine = preload("res://scripts/games/backgammon/backgammon_engine.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -15,6 +17,8 @@ const UI = preload("res://scripts/common/ui.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+## Not preloaded either: apps older than v0.14 don't have it (no Online button).
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
 const HUMAN := 0
 const CPU := 1
@@ -51,6 +55,10 @@ var cpu_moves: Array = []
 var two_player: bool = false
 ## The position when the computer's turn began (what a save keeps).
 var cpu_start: Dictionary = {}
+## Online play (null on apps without it). my_side: HUMAN (White, host) or
+## CPU (Black, guest); only meaningful while online.is_online().
+var online: Control = null
+var my_side: int = HUMAN
 
 func _ready() -> void:
 	preload("res://scripts/games/backgammon/backgammon_i18n.gd").install(self)
@@ -143,6 +151,14 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online = load(ONLINE_MATCH_PATH).new("backgammon", tr(TITLE_FOR_HOME), _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_reset_game)
+		online.status_changed.connect(_on_online_status)
+		add_child(online)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/backgammon/backgammon_help.gd"))
 	_build_home()
@@ -153,6 +169,11 @@ func _build_ui() -> void:
 # ---------- turn flow ----------
 
 func _start_new_game() -> void:
+	if online:
+		online.new_game()
+	_reset_game()
+
+func _reset_game() -> void:
 	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game()
@@ -174,17 +195,21 @@ func _begin_turn(side: int) -> void:
 	rolled = []
 	selected = -1
 	legal = []
-	roll_btn.disabled = false
+	roll_btn.disabled = _is_online() and side != my_side
 	undo_btn.disabled = true
 	status_label.text = _side_text(tr("Your turn — roll the dice."), tr("Black's turn — roll the dice."))
 	board.queue_redraw()
 
 func _side_text(white: String, black: String) -> String:
+	if _is_online():
+		return _online_text()
 	if not two_player:
 		return white
 	return (tr("White: %s") % white) if turn == HUMAN else black
 
 func _is_person_turn() -> bool:
+	if _is_online():
+		return turn == my_side and online.can_act(true)
 	return turn == HUMAN or (turn == CPU and two_player)
 
 func _on_roll() -> void:
@@ -202,9 +227,10 @@ func _on_roll() -> void:
 	else:
 		status_label.text = _side_text(tr("Tap a white checker to move it."), tr("Tap a black checker to move it."))
 	board.queue_redraw()
+	_send()
 
 func _end_person_turn(delay: float) -> void:
-	if two_player:
+	if two_player or _is_online():
 		cpu_timer.stop()
 		_begin_turn(CPU if turn == HUMAN else HUMAN)
 	else:
@@ -223,6 +249,7 @@ func _on_undo() -> void:
 	_refresh_legal()
 	status_label.text = _side_text(tr("Tap a white checker to move it."), tr("Tap a black checker to move it."))
 	board.queue_redraw()
+	_send()
 
 func _targets_from(from: int) -> Array:
 	var out: Array = []
@@ -238,13 +265,15 @@ func _do_human_move(m: Array) -> void:
 	_refresh_legal()
 	board.queue_redraw()
 	if _check_winner():
+		_send()
 		return
 	if legal.is_empty():
 		dice = []
 		undo_btn.disabled = true
-		if not two_player:
+		if not two_player and not _is_online():
 			status_label.text = tr("Computer's turn...")
 		_end_person_turn(0.8)
+	_send()
 
 func _schedule_cpu(delay: float) -> void:
 	turn = CPU
@@ -255,7 +284,7 @@ func _schedule_cpu(delay: float) -> void:
 	cpu_timer.start()
 
 func _cpu_step() -> void:
-	if turn != CPU or two_player:
+	if turn != CPU or two_player or _is_online():
 		return
 	if dice.is_empty() and cpu_moves.is_empty():
 		dice = BgEngine.roll_dice()
@@ -300,6 +329,17 @@ func _check_winner() -> bool:
 	var kind := BgEngine.win_kind(engine.state, w)
 	var kinds := [tr("a single game"), tr("a gammon"), tr("a backgammon")]
 	var msg: String
+	if _is_online():  # an online game ending mustn't wipe a paused local one
+		msg = online.result_text(w == my_side) + " (%s)" % kinds[kind - 1]
+		if info and not result_recorded:
+			result_recorded = true
+			info.result("win" if w == my_side else "loss", true)
+		if info:
+			msg += "\n" + info.summary(["Online wins", "Online losses"])
+		end_dialog.get_meta("message_label").text = msg
+		end_dialog.visible = true
+		board.queue_redraw()
+		return true
 	SaveUtil.delete(SAVE_PATH)
 	if two_player:
 		msg = (tr("White wins %s!") if w == HUMAN else tr("Black wins %s!")) % kinds[kind - 1]
@@ -530,13 +570,15 @@ func _build_home() -> void:
 		"modes": [
 			{"text": "🤖 vs Computer", "sub": "You play White", "action": _new_game.bind(false)},
 			{"text": "👥 2 Players", "sub": "White and Black share one phone", "multi": true, "action": _new_game.bind(true)},
-		],
+		] + ([{"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": online.open_lobby}] if online else []),
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start_new_game,
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
+		"online": online,
 	})
 	add_child(home)
 
@@ -581,7 +623,7 @@ func _notification(what: int) -> void:
 
 ## The computer's turn is saved as it began, and replays from there.
 func _save_game() -> void:
-	if turn < 0 or engine.state.is_empty() or BgEngine.winner(engine.state) != -1:
+	if _is_online() or turn < 0 or engine.state.is_empty() or BgEngine.winner(engine.state) != -1:
 		return
 	var computer_moving: bool = turn == CPU and not two_player
 	SaveUtil.write(SAVE_PATH, {
@@ -616,9 +658,9 @@ func _load_saved_game() -> void:
 	var d = SaveUtil.read(SAVE_PATH)
 	var st := _state_from(d.get("state") if d else null)
 	if st.is_empty() or st.pts.size() != 24:
-		_start_new_game()
+		_reset_game()
 		return
-	_start_new_game()
+	_reset_game()
 	two_player = bool(d.get("two", false))
 	engine.state = st
 	var t := int(d.get("turn", HUMAN))
@@ -636,4 +678,62 @@ func _load_saved_game() -> void:
 		roll_btn.disabled = true
 		_refresh_legal()
 		status_label.text = _side_text(tr("Tap a white checker to move it."), tr("Tap a black checker to move it."))
+	board.queue_redraw()
+
+# ---------- online ----------
+
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
+## Status line while online: whose turn, or what to do on mine.
+func _online_text() -> String:
+	var mine: bool = turn == my_side
+	if not mine or not online.opponent_here:
+		return online.status_text(mine, tr("White") if turn == HUMAN else tr("Black"))
+	if dice.is_empty():
+		return tr("Your turn — roll the dice.")
+	return tr("Tap a white checker to move it.") if turn == HUMAN else tr("Tap a black checker to move it.")
+
+func _on_online_status() -> void:
+	if turn >= 0 and _is_online():
+		status_label.text = _online_text()
+	board.queue_redraw()
+
+## Every roll and checker move sends the whole position (the state *is* the move).
+func _send() -> void:
+	if _is_online():
+		online.send_move({})
+
+func _online_state() -> Dictionary:
+	return {"s": engine.state, "turn": turn, "dice": dice, "rolled": rolled}
+
+func _on_online_started(p_my_player: int) -> void:
+	my_side = HUMAN if p_my_player == 1 else CPU
+	two_player = false
+	home.hide_home()
+	_reset_game()
+
+func _on_remote_move(p: Dictionary) -> void:
+	if typeof(p.get("state")) == TYPE_DICTIONARY:
+		_on_remote_state(p.state)
+
+func _on_remote_state(st: Dictionary) -> void:
+	var s := _state_from(st.get("s"))
+	if s.is_empty() or s.pts.size() != 24:
+		return
+	cpu_timer.stop()
+	engine.state = s
+	turn = int(st.get("turn", HUMAN))
+	dice = _ints(st.get("dice", []))
+	rolled = _ints(st.get("rolled", []))
+	turn_start = engine.state  # Undo can't reach back past what the other phone saw
+	selected = -1
+	if BgEngine.winner(engine.state) != -1:
+		_check_winner()
+		return
+	result_recorded = false
+	end_dialog.visible = false
+	_refresh_legal()
+	roll_btn.disabled = turn != my_side or not dice.is_empty()
+	status_label.text = _online_text()
 	board.queue_redraw()

@@ -10,6 +10,7 @@ const HOW := [
 	"If they match, they stay face up. If not, they turn back over.",
 	"Every pair of cards you turn over counts as one move.",
 	"Two players: take turns flipping; find a pair and you go again. Most pairs wins.",
+	"Tap 🌐 Online on the Home screen to play a friend on another phone with a room code.",
 	"⏸ pauses and keeps the board; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
@@ -17,4 +18,4 @@ const TIPS := [
 	"Remember cards by their position: say them to yourself, like \"star, top left\".",
 	"Work through the board in order, row by row.",
 ]
-const STATS := ["Games solved", "Fewest moves", "2-player games"]
+const STATS := ["Games solved", "Fewest moves", "2-player games", "Online wins"]

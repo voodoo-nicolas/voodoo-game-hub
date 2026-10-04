@@ -12,6 +12,7 @@ const HOW := [
 	"Once you're down to three pieces you can fly — move to any empty point.",
 	"Choose Normal or Hard for the computer.",
 	"Two players share the phone: White moves first, then Black.",
+	"Tap 🌐 Online on the Home screen to play a friend on another phone with a room code.",
 	"⏸ pauses and keeps the game; Resume on the Home screen carries on.",
 ]
 const TIPS := [
@@ -19,4 +20,4 @@ const TIPS := [
 	"Don't place all your pieces on the outside — middle points connect to more lines.",
 	"Block the computer whenever it has two in a row with the third point empty.",
 ]
-const STATS := ["Wins", "Losses", "Draws", "Best streak", "White wins", "Black wins"]
+const STATS := ["Wins", "Losses", "Draws", "Best streak", "White wins", "Black wins", "Online wins"]

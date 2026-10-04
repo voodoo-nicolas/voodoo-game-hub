@@ -9,6 +9,10 @@ const Ui = preload("res://scripts/common/ui.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+## Not preloaded either: apps older than v0.14 don't have it (no Online button).
+## Online, the host deals the board; each flip is sent as a move. Player 1
+## is the host, player 2 the guest; a match earns another go, as on one phone.
+const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 
 const SAVE_PATH := "user://memory_save.json"
 const SYMBOLS := ["🍕", "🚀", "🎧", "🐼", "🌵", "⚽", "🎨", "🍩"]
@@ -29,6 +33,10 @@ var game_id: int = 0
 var two_player := false
 var turn_player: int = 0
 var pairs: Array = [0, 0]
+## Online play (null on apps without it); my_player 1 = host, 2 = guest.
+var online: Control = null
+var my_player: int = 0
+var result_recorded := false
 
 var status_label: Label
 var cell_buttons: Array = []  # 16 Buttons
@@ -131,6 +139,14 @@ func _build_ui() -> void:
 
 	_build_pause_dialog()
 	_build_win_dialog()
+	if ResourceLoader.exists(ONLINE_MATCH_PATH):
+		online = load(ONLINE_MATCH_PATH).new("memory", tr(TITLE_FOR_HOME), _online_state)
+		online.started.connect(_on_online_started)
+		online.remote_move.connect(_on_remote_move)
+		online.remote_state.connect(_on_remote_state)
+		online.remote_new_game.connect(_on_remote_new_game)
+		online.status_changed.connect(_render)
+		add_child(online)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/memory/memory_help.gd"))
 	_build_home()
@@ -166,8 +182,18 @@ func _build_win_dialog() -> void:
 	win_label = win_dialog.get_meta("message_label")
 
 func _start_new_game() -> void:
+	if _is_online():
+		online.new_game()
+		if not online.is_host():
+			return  # the host deals; its new board arrives as a sync
+	_reset_game()
+	if _is_online():
+		online.push_state()
+
+func _reset_game() -> void:
 	engine.reset()
 	game_id += 1
+	result_recorded = false
 	turn_player = 0
 	pairs = [0, 0]
 	game_active = true
@@ -179,10 +205,17 @@ func _start_new_game() -> void:
 func _on_cell_pressed(i: int) -> void:
 	if not game_active or waiting_for_resolve:
 		return
+	if _is_online() and not online.can_act(turn_player + 1 == my_player):
+		return
+	if _flip(i) and _is_online():
+		online.send_move({"card": i})
+
+## Turns card `i` over; false if that wasn't a legal flip.
+func _flip(i: int) -> bool:
 	var result: String = engine.flip(i)
 	match result:
 		"match":
-			if two_player:
+			if two_player or _is_online():
 				pairs[turn_player] += 1  # and the same player goes again
 			_render()
 			if engine.is_over():
@@ -195,14 +228,15 @@ func _on_cell_pressed(i: int) -> void:
 		"first":
 			_render()
 		"ignored":
-			pass
+			return false
+	return true
 
 func _on_mismatch_resolved(for_game: int) -> void:
 	if for_game != game_id:
 		return
 	engine.resolve_mismatch()
 	waiting_for_resolve = false
-	if two_player:
+	if two_player or _is_online():
 		turn_player = 1 - turn_player
 	_render()
 
@@ -211,6 +245,18 @@ func _on_pause_pressed() -> void:
 
 func _show_win() -> void:
 	game_active = false
+	if _is_online():  # an online game ending mustn't wipe a paused local one
+		var mine: int = pairs[my_player - 1]
+		var theirs: int = pairs[2 - my_player]
+		win_label.text = (tr("It's a tie! %d - %d") % [mine, theirs]) if mine == theirs \
+			else online.result_text(mine > theirs) + "  %d - %d" % [mine, theirs]
+		if info and not result_recorded:
+			result_recorded = true
+			info.result("draw" if mine == theirs else ("win" if mine > theirs else "loss"), true)
+		if info:
+			win_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		win_dialog.visible = true
+		return
 	SaveUtil.delete(SAVE_PATH)
 	if two_player:
 		win_label.text = (tr("It's a tie! %d - %d") % [pairs[0], pairs[1]]) if pairs[0] == pairs[1] \
@@ -240,7 +286,11 @@ func _render() -> void:
 			btn.text = ""
 			_style_cell(btn, COLOR_HIDDEN)
 
-	if two_player:
+	if _is_online():
+		var mine: bool = turn_player + 1 == my_player
+		status_label.text = online.status_text(mine, "%d – %d" % [pairs[my_player - 1], pairs[2 - my_player]])
+		status_label.add_theme_color_override("font_color", COLOR_FLIPPED if mine else HomeKit.PINK)
+	elif two_player:
 		status_label.text = tr("Player %d's turn") % (turn_player + 1) + "   ·   " + "%d – %d" % [pairs[0], pairs[1]]
 		status_label.add_theme_color_override("font_color", COLOR_FLIPPED if turn_player == 0 else HomeKit.PINK)
 	else:
@@ -249,7 +299,7 @@ func _render() -> void:
 # ---------- save / load ----------
 
 func _save_game() -> void:
-	if not game_active:
+	if not game_active or _is_online():
 		return
 	SaveUtil.write(SAVE_PATH, {
 		"deck": engine.deck,
@@ -297,12 +347,14 @@ func _build_home() -> void:
 		"modes": [
 			{"text": "🧩  Solo", "sub": "In as few moves as you can", "action": _new_game.bind(false)},
 			{"text": "👥  2 Players", "sub": "Take turns; a match earns another go", "multi": true, "action": _new_game.bind(true)},
-		],
+		] + ([{"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": online.open_lobby}] if online else []),
 		"save_path": SAVE_PATH,
 		"resume": _resume_saved,
 		"restart": _start_new_game,
 		"board": "Games solved",
 		"board_note": "Boards cleared on your own.",
+		"online": online,
 	})
 	add_child(home)
 
@@ -330,3 +382,59 @@ func _new_game(two: bool) -> void:
 func _resume_saved() -> void:
 	if not _load_saved_game():
 		_start_new_game()
+
+# ---------- online ----------
+
+func _is_online() -> bool:
+	return online != null and online.is_online()
+
+## The whole game, including the deck (the host deals it) and any card
+## turned over but not yet resolved.
+func _online_state() -> Dictionary:
+	return {"deck": engine.deck, "matched": engine.matched, "flipped": engine.flipped,
+		"moves": engine.moves, "turn": turn_player, "pairs": pairs}
+
+func _on_online_started(p_my_player: int) -> void:
+	my_player = p_my_player
+	two_player = false
+	home.hide_home()
+	_reset_game()  # the host's deal arrives right after as a sync
+
+## Either player may ask for a new game; the host deals it.
+func _on_remote_new_game() -> void:
+	_reset_game()  # the guest's deal is a placeholder until the host's arrives
+	if online.is_host():
+		online.push_state()
+
+func _on_remote_move(p: Dictionary) -> void:
+	if game_active and not waiting_for_resolve and turn_player + 1 != my_player:
+		_flip(int(p.get("card", -1)))
+
+func _on_remote_state(st: Dictionary) -> void:
+	var deck: Array = []
+	for v in st.get("deck", []):
+		deck.append(int(v))
+	if deck.size() != MemoryEngine.NUM_PAIRS * 2:
+		return
+	engine.deck = deck
+	engine.matched = []
+	for v in st.get("matched", []):
+		engine.matched.append(bool(v))
+	engine.flipped = []
+	for v in st.get("flipped", []):
+		engine.flipped.append(int(v))
+	engine.moves = int(st.get("moves", 0))
+	turn_player = int(st.get("turn", 0))
+	var pp: Array = st.get("pairs", [0, 0])
+	pairs = [int(pp[0]), int(pp[1])]
+	game_id += 1  # drop any flip-back timer from before
+	waiting_for_resolve = false
+	if engine.flipped.size() >= 2:
+		# Two cards were showing: let them be seen, then turn them back.
+		waiting_for_resolve = true
+		get_tree().create_timer(MISMATCH_DELAY).timeout.connect(_on_mismatch_resolved.bind(game_id))
+	game_active = not engine.is_over()
+	win_dialog.visible = false
+	_render()
+	if engine.is_over():
+		_show_win()

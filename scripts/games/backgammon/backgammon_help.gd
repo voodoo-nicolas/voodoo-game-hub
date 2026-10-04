@@ -14,6 +14,7 @@ const HOW := [
 	"Once all your checkers are home, bear them off into the tray below. If the loser hasn't borne off any, it's a gammon (2×); with a checker still in the winner's home or on the bar, a backgammon (3×).",
 	"You must use both dice if you can. ↶ Undo takes back moves this turn.",
 	"Black's checkers go the other way round and bear off into the top tray.",
+	"Tap 🌐 Online on the Home screen to play a friend on another phone with a room code: the host is White, the guest Black.",
 	"⏸ pauses; the game is kept and Resume on the Home screen carries on.",
 ]
 const TIPS := [
@@ -22,4 +23,4 @@ const TIPS := [
 	"Hitting a blot costs your opponent a lot of ground — take the chance when it's safe.",
 	"When you're far ahead, just race home.",
 ]
-const STATS := ["Wins", "Losses", "Gammons won", "Best streak", "White wins", "Black wins"]
+const STATS := ["Wins", "Losses", "Gammons won", "Best streak", "White wins", "Black wins", "Online wins"]
