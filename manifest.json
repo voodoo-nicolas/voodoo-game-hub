@@ -77,7 +77,8 @@
       {"id": "yacht", "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala"},
       {"id": "farkle", "title": "Farkle", "icon": "🎯", "title_es": "Farkle", "modes": "local,cpu", "board": "Wins"},
       {"id": "liars_dice", "title": "Liar's Dice", "icon": "🤥", "title_es": "Dudo", "modes": "cpu", "board": "Wins"},
-      {"id": "shut_the_box", "title": "Shut the Box", "icon": "📦", "title_es": "Cierra la caja", "modes": "local,cpu", "board": "Boxes shut"}
+      {"id": "shut_the_box", "title": "Shut the Box", "icon": "📦", "title_es": "Cierra la caja", "modes": "local,cpu", "board": "Boxes shut"},
+      {"id": "dominoes", "title": "Dominoes", "icon": "🁫", "title_es": "Dominó", "modes": "cpu", "board": "Wins"}
     ]},
     {"name": "Drinking Games", "icon": "🍹", "name_es": "Juegos para tomar", "games": [
       {"id": "kings_cup", "title": "Kings Cup", "icon": "👑", "title_es": "Kings Cup", "modes": "party", "board": "Games played"},
@@ -169,6 +170,7 @@
     "pipe_flow": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pipe_flow.pck", "scene": "res://scenes/games/pipe_flow/pipe_flow.tscn"},
     "bubble_pop": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bubble_pop.pck", "scene": "res://scenes/games/bubble_pop/bubble_pop.tscn"},
     "sketch_it": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sketch_it.pck", "scene": "res://scenes/games/sketch_it/sketch_it.tscn"},
-    "five_in_row": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/five_in_row.pck", "scene": "res://scenes/games/five_in_row/five_in_row.tscn"}
+    "five_in_row": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/five_in_row.pck", "scene": "res://scenes/games/five_in_row/five_in_row.tscn"},
+    "dominoes": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dominoes.pck", "scene": "res://scenes/games/dominoes/dominoes.tscn"}
   }
 }
