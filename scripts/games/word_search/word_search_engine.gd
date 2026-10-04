@@ -3,10 +3,17 @@ extends RefCounted
 ## Word Search: themed words hidden in a letter grid in any of 8 directions.
 ## Pure logic, no Nodes.
 
-const SIZE := 10
-const WORD_COUNT := 8
+## The first 4 read forwards (right, down, down-right, up-right); Easy uses
+## only those, harder levels add the 4 backwards ones.
 const DIRS := [Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(1, -1),
 	Vector2i(-1, 0), Vector2i(0, -1), Vector2i(-1, -1), Vector2i(-1, 1)]
+## Easy / Medium / Hard. Words longer than the grid are skipped, so every
+## theme still needs `words` entries that fit (themes have 15, longest 9).
+const LEVELS := [
+	{"name": "Easy", "size": 8, "words": 6, "dirs": 4},
+	{"name": "Medium", "size": 10, "words": 8, "dirs": 8},
+	{"name": "Hard", "size": 14, "words": 12, "dirs": 8},
+]
 const ALPHABET_EN := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const ALPHABET_ES := "ABCDEFGHIJLMNÑOPQRSTUVXYZ"
 
@@ -35,11 +42,19 @@ const THEMES_ES := {
 	"Cuerpo": ["CORAZON", "CEREBRO", "MANO", "PIE", "RODILLA", "CODO", "HOMBRO", "NARIZ", "BOCA", "DIENTE", "DEDO", "TOBILLO", "MUÑECA", "PULMON", "PIEL"],
 }
 
-var grid: Array = []          # SIZE*SIZE letters
+var level: int = 1
+var size: int = 10
+var word_count: int = 8
+var dir_count: int = 8
+var grid: Array = []          # size*size letters
 var words: Array = []         # [{word, start: Vector2i, dir: Vector2i, found: bool}]
 var theme: String = ""
 
-func new_puzzle(spanish: bool, rng_seed: int = -1) -> void:
+func new_puzzle(spanish: bool, rng_seed: int = -1, p_level: int = 1) -> void:
+	level = clampi(p_level, 0, LEVELS.size() - 1)
+	size = LEVELS[level].size
+	word_count = LEVELS[level].words
+	dir_count = LEVELS[level].dirs
 	var rng := RandomNumberGenerator.new()
 	if rng_seed >= 0:
 		rng.seed = rng_seed
@@ -54,38 +69,38 @@ func new_puzzle(spanish: bool, rng_seed: int = -1) -> void:
 		if _place_all(pool, rng):
 			break
 	var alphabet: String = ALPHABET_ES if spanish else ALPHABET_EN
-	for i in SIZE * SIZE:
+	for i in size * size:
 		if grid[i] == "":
 			grid[i] = alphabet[rng.randi_range(0, alphabet.length() - 1)]
 
 func _place_all(pool: Array, rng: RandomNumberGenerator) -> bool:
 	grid.clear()
-	grid.resize(SIZE * SIZE)
+	grid.resize(size * size)
 	grid.fill("")
 	words.clear()
 	for w in pool:
-		if words.size() == WORD_COUNT:
+		if words.size() == word_count:
 			break
-		if w.length() > SIZE:
+		if w.length() > size:
 			continue
 		for attempt in 100:
-			var d: Vector2i = DIRS[rng.randi_range(0, DIRS.size() - 1)]
-			var s := Vector2i(rng.randi_range(0, SIZE - 1), rng.randi_range(0, SIZE - 1))
+			var d: Vector2i = DIRS[rng.randi_range(0, dir_count - 1)]
+			var s := Vector2i(rng.randi_range(0, size - 1), rng.randi_range(0, size - 1))
 			if _fits(w, s, d):
 				for k in w.length():
 					var p: Vector2i = s + d * k
-					grid[p.y * SIZE + p.x] = w[k]
+					grid[p.y * size + p.x] = w[k]
 				words.append({"word": w, "start": s, "dir": d, "found": false})
 				break
-	return words.size() == WORD_COUNT
+	return words.size() == word_count
 
 func _fits(w: String, s: Vector2i, d: Vector2i) -> bool:
 	var e := s + d * (w.length() - 1)
-	if e.x < 0 or e.y < 0 or e.x >= SIZE or e.y >= SIZE:
+	if e.x < 0 or e.y < 0 or e.x >= size or e.y >= size:
 		return false
 	for k in w.length():
 		var p := s + d * k
-		var ch: String = grid[p.y * SIZE + p.x]
+		var ch: String = grid[p.y * size + p.x]
 		if ch != "" and ch != w[k]:
 			return false
 	return true

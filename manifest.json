@@ -134,7 +134,7 @@
     "freecell": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/freecell.pck", "scene": "res://scenes/games/freecell/freecell.tscn"},
     "pyramid": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pyramid.pck", "scene": "res://scenes/games/pyramid/pyramid.tscn"},
     "speed": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/speed.pck", "scene": "res://scenes/games/speed/speed.tscn"},
-    "word_search": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_search.pck", "scene": "res://scenes/games/word_search/word_search.tscn"},
+    "word_search": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_search.pck", "scene": "res://scenes/games/word_search/word_search.tscn"},
     "crossword": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/crossword.pck", "scene": "res://scenes/games/crossword/crossword.tscn"},
     "anagrams": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/anagrams.pck", "scene": "res://scenes/games/anagrams/anagrams.tscn"},
     "word_hunt": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_hunt.pck", "scene": "res://scenes/games/word_hunt/word_hunt.tscn"},
