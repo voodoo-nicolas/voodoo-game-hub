@@ -114,6 +114,30 @@ for you (see "Decisions" at the bottom).
 - **Options**: "⭐ Membership" row — status, Subscribe / Manage, Restore.
 - **Games need no code change.** Nothing in a pack knows about the store.
 
+### House promos ("ads for the hub" — no ad network, ever)
+
+Our own cards, promoting the subscription and other games. Decided
+2026-10-04: no third-party ads, so "ad-free" stays true.
+
+- **Where**: a card that slides up a moment after a game ends
+  (`GameInfo.result()` / `celebrate()` — APK-side, so every game gets it
+  with no game code), reusing the achievement toast's slide-in but
+  tappable, with a ✕. Not on game Home screens: the Home kit lives in
+  each pack, and promos stay APK-side so they can change without
+  re-exporting 100 packs.
+- **What** (picked by `Store.promo_for(game_id)`):
+  - trial / free game, not subscribed → "All 100 games — 7 days free";
+  - owns this game only → "Unlock the other 99 for $4.99/mo";
+  - otherwise → "Liked Snake? Try Sky Hop" (a game from the same category
+    the player hasn't tried — Achievements already tracks games tried).
+- **Rules**: never during play; never to subscribers (cross-promo of
+  other games still allowed, rarer); at most one per 3 finished games and
+  one per 10 minutes (counters in `user://store.json`); never in an online
+  match; manifest `"store": {"promos": false}` turns them off remotely.
+- **Tap**: subscribe → Play's purchase sheet straight from the game
+  (`Store` is an autoload); "Try X" → `Social.launch_request = id` + go to
+  the hub, the same path invites use.
+
 ### Online play
 
 Recommended: **only the host needs access**. A guest invited into a room
@@ -181,6 +205,83 @@ link it to the player.
 
 Rough size: phase 1 is the riskiest (build tooling); phases 3–4 are a
 couple of sessions each, similar to Voodoo IQ's backend + client.
+
+## Implementation map (read 2026-10-04, for the build sessions)
+
+Findings from reading the code, so tomorrow starts at the keyboard.
+
+**Play Store requirements found while reading**
+- New Play apps must upload an **Android App Bundle (.aab)**, not an APK:
+  `export_presets.cfg` `gradle_build/export_format=1` for the Play preset;
+  `hub.py` gets an `aab` command next to `apk` (keep `apk` for local/PC
+  testing). Needs `use_gradle_build=true` + Godot's Android build template
+  installed into the project (`android/` folder — mostly gitignored).
+- **Target SDK**: Play requires a recent `targetSdk` (API 35 since Aug
+  2025, likely 36 by Aug 2026) — check what Godot 4.7.2 defaults to and
+  install that platform; build-tools here are 34.0.0.
+- Billing plugin: `godot-sdk-integrations/godot-google-play-billing` (v2
+  Android plugin, goes in `addons/`, enabled in project settings). Check
+  its 4.7 compatibility and the Play Billing Library version it bundles
+  (Play requires PBL 7+).
+- Play App Signing with our own key: upload `voodoo-release` via Play's
+  PEPK tool when creating the app (Decision 5).
+
+**Client — new files (APK)**
+- `scripts/common/store.gd` — autoload `Store`, registered in
+  `project.godot` after `Social` (it uses `Auth.db_call`, `Catalog`).
+  `PROCESS_MODE_ALWAYS`. Pure helpers kept static for headless tests:
+  `static func access_state(game, status, now, cfg) -> Dictionary`,
+  `static func promo_pick(...)`. Cache `user://store.json`.
+- `scripts/hub/paywall.gd` — overlay built like `hub.gd`'s
+  `_build_dialog_frame` (same neon dialog look), reachable from the hub
+  and from Options.
+- `tools/test_store.gd` — headless: trial math (server `now` vs
+  `started_at`, 72 h edge, offline cache, clock set back), entitlement
+  precedence (free > sub > owned > trial), promo frequency caps.
+
+**Client — edits (APK)**
+- `scripts/common/catalog.gd` `_apply_manifest()`: carry `"free"` from the
+  category entry (like `modes`/`board`), and read a top-level `"store"`
+  block into `Catalog.store_config` (missing = `{enabled: false}`).
+- `scripts/hub/hub.gd`: `_launch()` (line ~544) starts with
+  `Store.gate(game, _launch_now)`; that one spot covers tile taps,
+  `_resume_last_game()` and `Social.take_launch_request()`. Online guests:
+  `Social.pending.mode in ["join"]` passes the gate. `_make_tile()` (~440)
+  adds the trial badge.
+- `scripts/hub/options_screen.gd`: new "⭐ Membership" `_section` next to
+  Account (status, Subscribe / Manage, Restore purchases).
+- `scripts/common/game_info.gd`: after `result()` / `celebrate()`, ask
+  `Store.promo_for(ID)` and show the promo card (toast code at ~600 is the
+  model; make it tappable).
+- `scripts/common/config.gd`: `const PLAY_BUILD := false` flipped by the
+  Play export (custom feature `play` → `OS.has_feature("play")` is
+  cleaner, no file edit): skips `Catalog.check_app_update()` and hides
+  Options' "Check for updates".
+- `tools/i18n/es.json` + `hub.py i18n` for every new string.
+
+**Server**
+- `supabase/migrations/<date>_store.sql` from `entitlements_draft.sql`.
+- `supabase/functions/purchase-verify/`, `supabase/functions/play-rtdn/`
+  (`index.ts` + `handler.ts`), `_shared/play.ts` (service-account JWT →
+  OAuth token via WebCrypto RS256, Play Developer API calls),
+  `_tests/store_test.ts` on the FakeDb with a fake Play API.
+- Secrets (user sets with the Supabase CLI): `PLAY_SERVICE_ACCOUNT_JSON`,
+  `PLAY_PACKAGE_NAME=com.viral.voodoo`.
+
+**Tooling**
+- `hub.py products` → CSV of `game_<id>` products from manifest (paid
+  games only, Voodoo IQ at 1.99); `hub.py check` → every paid game has a
+  valid product id, the free list ⊂ catalog.
+- `hub.py aab` (Play bundle), `hub.py apk` unchanged.
+
+**Manifest**
+- `"free": true` on the 13 free games' category entries (older apps ignore
+  unknown fields, so this can be pushed any time).
+- `"store": {"enabled": false, "trial_days": 3, "promos": true}` — flip
+  `enabled` at launch.
+
+**Docs**: CLAUDE.md gets a "Store" section and the softened login-wall rule
+when this ships.
 
 ## Decisions (approved 2026-10-04)
 
