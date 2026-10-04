@@ -89,7 +89,8 @@
     {"name": "Other", "icon": "🎯", "name_es": "Otros", "games": [
       {"id": "party_spinner", "title": "Party Spinner", "icon": "🌀", "title_es": "Ruleta de fiesta", "modes": "party", "board": "Spins"},
       {"id": "spin_the_bottle", "title": "Spin the Bottle", "icon": "🍾", "title_es": "La botella", "modes": "party", "board": "Spins"},
-      {"id": "charades", "title": "Charades", "icon": "🎭", "title_es": "Charadas", "modes": "party", "board": "Most words in a round"}
+      {"id": "charades", "title": "Charades", "icon": "🎭", "title_es": "Charadas", "modes": "party", "board": "Most words in a round"},
+      {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed"}
     ]}
   ],
   "games": {
@@ -165,6 +166,7 @@
     "digit_recall": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/digit_recall.pck", "scene": "res://scenes/games/digit_recall/digit_recall.tscn"},
     "voodoo_iq": {"version": 3, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"},
     "pipe_flow": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pipe_flow.pck", "scene": "res://scenes/games/pipe_flow/pipe_flow.tscn"},
-    "bubble_pop": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bubble_pop.pck", "scene": "res://scenes/games/bubble_pop/bubble_pop.tscn"}
+    "bubble_pop": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bubble_pop.pck", "scene": "res://scenes/games/bubble_pop/bubble_pop.tscn"},
+    "sketch_it": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sketch_it.pck", "scene": "res://scenes/games/sketch_it/sketch_it.tscn"}
   }
 }
