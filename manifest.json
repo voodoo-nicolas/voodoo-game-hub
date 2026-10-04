@@ -92,7 +92,7 @@
   ],
   "games": {
     "sudoku": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
-    "solitaire": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
+    "solitaire": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
     "geometry_wars": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
     "tictactoe": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tictactoe.pck", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
     "connect4": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/connect4.pck", "scene": "res://scenes/games/connect4/connect4.tscn"},
@@ -134,7 +134,7 @@
     "freecell": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/freecell.pck", "scene": "res://scenes/games/freecell/freecell.tscn"},
     "pyramid": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pyramid.pck", "scene": "res://scenes/games/pyramid/pyramid.tscn"},
     "speed": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/speed.pck", "scene": "res://scenes/games/speed/speed.tscn"},
-    "word_search": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_search.pck", "scene": "res://scenes/games/word_search/word_search.tscn"},
+    "word_search": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_search.pck", "scene": "res://scenes/games/word_search/word_search.tscn"},
     "crossword": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/crossword.pck", "scene": "res://scenes/games/crossword/crossword.tscn"},
     "anagrams": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/anagrams.pck", "scene": "res://scenes/games/anagrams/anagrams.tscn"},
     "word_hunt": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_hunt.pck", "scene": "res://scenes/games/word_hunt/word_hunt.tscn"},
