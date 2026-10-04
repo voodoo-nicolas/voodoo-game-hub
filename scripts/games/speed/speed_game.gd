@@ -33,6 +33,11 @@ var running := false
 var flash_card: int = -1
 var font: Font
 
+## Two players face to face: Player 2's hand is at the top, upside down, and
+## both play at once (multi-touch). No computer.
+var two_player := false
+var touch_seen := false
+
 func _ready() -> void:
 	preload("res://scripts/games/speed/speed_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -160,13 +165,15 @@ func _start_game() -> void:
 	result_recorded = false
 	running = true
 	cpu_timer.wait_time = CPU_SPEEDS[level]
-	cpu_timer.start()
+	if not two_player:
+		cpu_timer.start()
 	status_label.text = tr("Go!")
 	_check_state()
 
 func _resume() -> void:
 	running = true
-	cpu_timer.start()
+	if not two_player:
+		cpu_timer.start()
 	_check_state()
 
 ## Leaving the app mid-race pauses it.
@@ -182,7 +189,7 @@ func _notification(what: int) -> void:
 			pause_dialog.visible = true
 
 func _cpu_play() -> void:
-	if not running:
+	if not running or two_player:
 		return
 	for c in engine.hands[1]:
 		var t := engine.target_for(c, randi() % 2)
@@ -199,6 +206,15 @@ func _check_state() -> void:
 		running = false
 		cpu_timer.stop()
 		stuck_timer.stop()
+		if two_player:
+			var msg := tr("Player %d wins!") % (engine.winner + 1)
+			if info and not result_recorded:
+				result_recorded = true
+				info.add("2-player games")
+				info.celebrate(msg)
+			end_dialog.get_meta("message_label").text = msg
+			end_dialog.visible = true
+			return
 		end_dialog.get_meta("message_label").text = (tr("You win!") if engine.winner == 0 else tr("The computer was faster!")) + _record_result("win" if engine.winner == 0 else "loss")
 		end_dialog.visible = true
 		return
@@ -206,6 +222,8 @@ func _check_state() -> void:
 		status_label.text = tr("Nobody can play — flipping new centre cards...")
 		if stuck_timer.is_stopped():
 			stuck_timer.start()
+	elif two_player:
+		status_label.text = tr("Player 1: %d cards left  ·  Player 2: %d") % [engine.cards_left(0), engine.cards_left(1)]
 	else:
 		status_label.text = tr("You: %d cards left  ·  Computer: %d") % [engine.cards_left(0), engine.cards_left(1)]
 
@@ -230,28 +248,52 @@ func _center_rects() -> Array:
 	var y := board.size.y / 2.0 - cs.y / 2.0
 	return [Rect2(Vector2(board.size.x / 2.0 - cs.x - 14, y), cs), Rect2(Vector2(board.size.x / 2.0 + 14, y), cs)]
 
-func _hand_rects() -> Array:
+func _hand_rects(p: int = 0) -> Array:
 	var cs := _card_size()
 	var out: Array = []
-	var n: int = engine.hands[0].size()
+	var n: int = engine.hands[p].size()
 	var step := cs.x + 8.0
 	var x0 := (board.size.x - (step * (n - 1) + cs.x)) / 2.0
 	for i in n:
-		out.append(Rect2(Vector2(x0 + i * step, board.size.y - cs.y - 50.0), cs))
+		if p == 0:
+			out.append(Rect2(Vector2(x0 + i * step, board.size.y - cs.y - 50.0), cs))
+		else:
+			# Player 2 sits opposite: their cards run right-to-left along the top.
+			out.append(Rect2(Vector2(board.size.x - (x0 + i * step) - cs.x, 50.0), cs))
 	return out
+
+## A card drawn upside down (for the player across the table).
+func _draw_flipped(rect: Rect2, card: int, face_up: bool, hilite: bool) -> void:
+	var c := rect.get_center()
+	board.draw_set_transform(c, PI, Vector2.ONE)
+	Cards.draw_card(board, Rect2(-rect.size / 2.0, rect.size), card, face_up, hilite)
+	board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _flipped_text(center: Vector2, text: String, size: int) -> void:
+	board.draw_set_transform(center, PI, Vector2.ONE)
+	board.draw_string(font, Vector2(-300, size * 0.35), text, HORIZONTAL_ALIGNMENT_CENTER, 600, size, Color(0.85, 0.9, 0.85))
+	board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw_board() -> void:
 	if engine.hands[0].is_empty() and engine.draws[0].is_empty() and engine.winner == -1:
 		return
 	var cs := _card_size()
-	# computer's hand (backs) and pile
 	var small := cs * 0.7
-	var n: int = engine.hands[1].size()
-	var x0 := (board.size.x - (n * (small.x + 6))) / 2.0
-	for i in n:
-		Cards.draw_card(board, Rect2(Vector2(x0 + i * (small.x + 6), 36), small), 0, false)
-	board.draw_string(font, Vector2(0, 26), tr("Computer — draw pile: %d") % engine.draws[1].size(),
-		HORIZONTAL_ALIGNMENT_CENTER, board.size.x, 22, Color(0.85, 0.9, 0.85))
+	if two_player:
+		# Player 2's hand, face up and upside down, across the table.
+		var top_rects := _hand_rects(1)
+		for i in top_rects.size():
+			var c2: int = engine.hands[1][i]
+			_draw_flipped(top_rects[i], c2, true, running and engine.target_for(c2) >= 0)
+		_flipped_text(Vector2(board.size.x / 2.0, 24), tr("Player 2 — draw pile: %d") % engine.draws[1].size(), 22)
+	else:
+		# computer's hand (backs) and pile
+		var n: int = engine.hands[1].size()
+		var x0 := (board.size.x - (n * (small.x + 6))) / 2.0
+		for i in n:
+			Cards.draw_card(board, Rect2(Vector2(x0 + i * (small.x + 6), 36), small), 0, false)
+		board.draw_string(font, Vector2(0, 26), tr("Computer — draw pile: %d") % engine.draws[1].size(),
+			HORIZONTAL_ALIGNMENT_CENTER, board.size.x, 22, Color(0.85, 0.9, 0.85))
 	var centers := _center_rects()
 	for k in 2:
 		Cards.draw_card(board, centers[k], engine.top(k))
@@ -267,25 +309,32 @@ func _draw_board() -> void:
 		var c: int = engine.hands[0][i]
 		var ok: bool = running and engine.target_for(c) >= 0
 		Cards.draw_card(board, rects[i], c, true, ok or c == flash_card)
-	board.draw_string(font, Vector2(0, board.size.y - 14), tr("Your draw pile: %d") % engine.draws[0].size(),
+	board.draw_string(font, Vector2(0, board.size.y - 14), (tr("Player 1 — draw pile: %d") if two_player else tr("Your draw pile: %d")) % engine.draws[0].size(),
 		HORIZONTAL_ALIGNMENT_CENTER, board.size.x, 22, Color(0.85, 0.9, 0.85))
 
 func _on_board_input(event: InputEvent) -> void:
-	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+	var pos := Vector2.ZERO
+	if event is InputEventScreenTouch and event.pressed:
+		touch_seen = true
+		pos = event.position
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not (two_player and touch_seen):
+		pos = event.position
+	else:
 		return
 	if not running:
 		return
-	var rects := _hand_rects()
-	for i in rects.size():
-		if rects[i].has_point(event.position):
-			var c: int = engine.hands[0][i]
-			# play on the pile nearest to where the card is
-			var prefer := 0 if rects[i].get_center().x < board.size.x / 2.0 else 1
-			var t := engine.target_for(c, prefer)
-			if t >= 0:
-				engine.play(0, c, t)
-				_check_state()
-			return
+	for p in ([0, 1] if two_player else [0]):
+		var rects := _hand_rects(p)
+		for i in rects.size():
+			if rects[i].has_point(pos):
+				var c: int = engine.hands[p][i]
+				# play on the pile nearest to where the card is
+				var prefer := 0 if rects[i].get_center().x < board.size.x / 2.0 else 1
+				var t := engine.target_for(c, prefer)
+				if t >= 0:
+					engine.play(p, c, t)
+					_check_state()
+				return
 
 
 ## Records this game's result in the stats once (end checks can run again
@@ -314,6 +363,7 @@ func _build_home() -> void:
 			{"text": "🐢 Relaxed", "row": "lvl", "color": HomeKit.LIME, "action": _start_level.bind(0)},
 			{"text": "🐇 Quick", "row": "lvl", "color": HomeKit.CYAN, "action": _start_level.bind(1)},
 			{"text": "⚡ Lightning", "row": "lvl", "color": HomeKit.PINK, "action": _start_level.bind(2)},
+			{"text": "👥 2 Players", "sub": "Face to face — both play at once", "multi": true, "action": _start_two},
 		],
 		"restart": _show_start,
 		"board": "Wins",
@@ -336,8 +386,15 @@ func _draw_home_logo(c: Control) -> void:
 	for k in 3:
 		HomeKit.glow_line(c, ctr + Vector2(-w * 1.55 - k * 8, -h * 0.2 + k * h * 0.2), ctr + Vector2(-w * 1.3 - k * 8, -h * 0.2 + k * h * 0.2), HomeKit.GOLD, 2.0)
 
+func _start_two() -> void:
+	two_player = true
+	_show_start()
+	start_dialog.visible = false
+	_start_game()
+
 func _start_level(l: int) -> void:
 	level = l
+	two_player = false
 	_show_start()
 	start_dialog.visible = false
 	_start_game()

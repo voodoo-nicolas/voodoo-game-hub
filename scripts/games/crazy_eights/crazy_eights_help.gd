@@ -4,12 +4,13 @@ extends RefCounted
 
 const ID := "crazy_eights"
 const TITLE := "Crazy Eights"
-const GOAL := "Be the first to get rid of all your cards. You play against two computers."
+const GOAL := "Be the first to get rid of all your cards — against two computers, or 2 to 4 friends passing the phone."
 const HOW := [
 	"On your turn, play a card that matches the top card's suit or rank.",
 	"8s are wild: play one on anything and choose the next suit.",
 	"Can't play? Tap the deck to draw until you can. If the deck is empty too, you pass.",
 	"The first player with no cards left wins.",
+	"Pass the phone (2-4 players): a cover screen hides the cards whenever the phone changes hands. Tap I'm ready only when it's your turn.",
 	"⏸ pauses; the game is kept on your turn, and Resume on the Home screen carries on.",
 ]
 const TIPS := [
@@ -17,4 +18,4 @@ const TIPS := [
 	"When you play an 8, pick the suit you hold the most of.",
 	"Watch how many cards the computers have left, and change the suit when one is about to go out.",
 ]
-const STATS := ["Wins", "Losses", "Draws", "Best streak"]
+const STATS := ["Wins", "Losses", "Draws", "Best streak", "Pass-and-play games"]

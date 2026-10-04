@@ -1,7 +1,9 @@
 extends Control
 
-## Sea Battle vs the computer. Tap the enemy grid to fire; a hit earns another
-## shot. Your own fleet is the small grid below. Shuffle it before firing.
+## Sea Battle vs the computer, or two players passing the phone. Tap the
+## enemy grid to fire; a hit earns another shot. Your own fleet is the small
+## grid below. Shuffle it before firing. With two players, a cover screen
+## hides both boards whenever the phone changes hands.
 
 const SeaEngine = preload("res://scripts/games/sea_battle/sea_battle_engine.gd")
 const HomeKit = preload("res://scripts/games/sea_battle/home_kit.gd")
@@ -35,6 +37,14 @@ var end_dialog: ColorRect
 var playing := false  # a battle is on (not just the one behind Home)
 var player_turn := true
 var started := false
+## Two players on one phone: `cur` is the side whose turn it is (0 / 1); each
+## player can shuffle their own fleet until they fire their first shot.
+var two_player := false
+var cur: int = 0
+var fired: Array = [false, false]
+var cover: ColorRect
+var cover_label: Label
+var own_label: Label
 
 func _ready() -> void:
 	preload("res://scripts/games/sea_battle/sea_battle_i18n.gd").install(self)
@@ -110,7 +120,7 @@ func _build_ui() -> void:
 	side.alignment = BoxContainer.ALIGNMENT_CENTER
 	side.custom_minimum_size = Vector2(230, 0)
 	own_row.add_child(side)
-	var own_label := Label.new()
+	own_label = Label.new()
 	own_label.text = tr("Your fleet")
 	own_label.add_theme_font_size_override("font_size", 24)
 	own_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -142,12 +152,58 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	_build_cover()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/sea_battle/sea_battle_help.gd"))
 	_build_home()
 	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
+
+func _build_cover() -> void:
+	cover = ColorRect.new()
+	cover.color = Color(0.01, 0.02, 0.06, 1.0)
+	cover.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.mouse_filter = Control.MOUSE_FILTER_STOP
+	cover.visible = false
+	add_child(cover)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.add_child(center)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 30)
+	center.add_child(box)
+	cover_label = Label.new()
+	cover_label.add_theme_font_size_override("font_size", 38)
+	cover_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cover_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cover_label.custom_minimum_size = Vector2(560, 0)
+	box.add_child(cover_label)
+	var go := Button.new()
+	go.text = tr("I'm ready")
+	go.custom_minimum_size = Vector2(360, 90)
+	go.add_theme_font_size_override("font_size", 32)
+	go.pressed.connect(_on_cover_ready)
+	box.add_child(go)
+
+func _show_cover() -> void:
+	cover_label.text = tr("Pass the phone to Player %d") % (cur + 1) + "\n\n" + tr("No peeking at the other fleet!")
+	cover.visible = true
+
+func _on_cover_ready() -> void:
+	cover.visible = false
+	_update_turn_text()
+	_redraw()
+
+func _pname(side: int) -> String:
+	return tr("Player %d") % (side + 1)
+
+func _update_turn_text() -> void:
+	if not two_player:
+		return
+	own_label.text = tr("%s's fleet") % _pname(cur)
+	shuffle_btn.disabled = fired[cur]
+	status_label.text = tr("%s, fire at the enemy waters!") % _pname(cur)
 
 func _start_new_game() -> void:
 	playing = true
@@ -156,13 +212,24 @@ func _start_new_game() -> void:
 	engine.new_game()
 	player_turn = true
 	started = false
+	cur = 0
+	fired = [false, false]
 	shuffle_btn.disabled = false
 	end_dialog.visible = false
+	own_label.text = tr("Your fleet")
 	status_label.text = tr("Tap the enemy waters to fire!")
+	cover.visible = false
+	if two_player:
+		_update_turn_text()
+		_show_cover()
 	_redraw()
 
 func _on_shuffle() -> void:
-	if not started:
+	if two_player:
+		if not fired[cur]:
+			engine.random_fleet(cur)
+			_redraw()
+	elif not started:
 		engine.random_fleet(0)
 		_redraw()
 
@@ -183,14 +250,29 @@ func _on_enemy_input(event: InputEvent) -> void:
 	var r := floori(p.y)
 	if r < 0 or c < 0 or r >= SeaEngine.SIZE or c >= SeaEngine.SIZE:
 		return
-	var res: Dictionary = engine.fire(1, r * SeaEngine.SIZE + c)
+	var target: int = (1 - cur) if two_player else 1
+	var res: Dictionary = engine.fire(target, r * SeaEngine.SIZE + c)
 	if not res.valid:
 		return
 	started = true
+	fired[cur] = true
 	shuffle_btn.disabled = true
+	_sfx("explode" if res.hit else "shoot")
 	_redraw()
 	if res.win:
 		_finish()
+		return
+	if two_player:
+		if res.sunk > 0:
+			status_label.text = tr("You sank a ship! Fire again.")
+		elif res.hit:
+			status_label.text = tr("Hit! Fire again.")
+		else:
+			status_label.text = tr("Miss.")
+			player_turn = false
+			var t := create_tween()
+			t.tween_interval(0.9)
+			t.tween_callback(_pass_turn)
 		return
 	if res.sunk > 0:
 		status_label.text = tr("You sank a ship! Fire again.")
@@ -200,6 +282,14 @@ func _on_enemy_input(event: InputEvent) -> void:
 		status_label.text = tr("Miss. The enemy is aiming...")
 		player_turn = false
 		cpu_timer.start()
+
+func _pass_turn() -> void:
+	if engine.winner != -1:
+		return
+	cur = 1 - cur
+	player_turn = true
+	_update_turn_text()
+	_show_cover()
 
 func _cpu_shot() -> void:
 	var res: Dictionary = engine.fire(0, engine.cpu_pick())
@@ -217,6 +307,16 @@ func _cpu_shot() -> void:
 func _finish() -> void:
 	player_turn = false
 	SaveUtil.delete(SAVE_PATH)
+	if two_player:
+		var msg := tr("%s wins! The other fleet is sunk.") % _pname(engine.winner)
+		if info and not result_recorded:
+			result_recorded = true
+			info.add("2-player games")
+			info.celebrate(msg)
+		end_dialog.get_meta("message_label").text = msg
+		end_dialog.visible = true
+		_redraw()
+		return
 	var won: bool = engine.winner == 0
 	end_dialog.get_meta("message_label").text = (tr("Victory! Their fleet is sunk.") if won else tr("Defeat. Your fleet is sunk.")) + _record_result("win" if won else "loss")
 	end_dialog.visible = true
@@ -255,13 +355,15 @@ func _draw_grid(b: Control, side: int, reveal: bool) -> void:
 func _draw_enemy() -> void:
 	if engine.ship_at[1].is_empty():
 		return
-	_draw_grid(enemy_board, 1, false)
-	ships_label.text = tr("Enemy ships left: %d") % engine.ships_left(1) + "\n" + tr("Your ships left: %d") % engine.ships_left(0)
+	var enemy: int = (1 - cur) if two_player else 1
+	var mine: int = cur if two_player else 0
+	_draw_grid(enemy_board, enemy, false)
+	ships_label.text = tr("Enemy ships left: %d") % engine.ships_left(enemy) + "\n" + tr("Your ships left: %d") % engine.ships_left(mine)
 
 func _draw_own() -> void:
 	if engine.ship_at[0].is_empty():
 		return
-	_draw_grid(own_board, 0, true)
+	_draw_grid(own_board, cur if two_player else 0, true)
 
 
 ## Records this game's result in the stats once (end checks can run again
@@ -285,7 +387,11 @@ func _build_home() -> void:
 		"accent": HomeKit.CYAN,
 		"subtitle": "Find and sink the computer's fleet before it sinks yours.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "⚓  Play", "sub": "vs the computer", "action": _fresh_game}],
+		"modes": [
+			{"text": "⚓  Play", "sub": "vs the computer", "action": _fresh_game.bind(false)},
+			{"text": "👥 2 Players", "sub": "Pass the phone; no peeking", "multi": true, "action": _fresh_game.bind(true)},
+		],
+		"resume_text": _resume_text,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
@@ -314,9 +420,21 @@ func _draw_home_logo(c: Control) -> void:
 	for p in [Vector2(0, 3), Vector2(3, 3), Vector2(4, 0)]:
 		c.draw_circle(o + (p + Vector2(0.5, 0.5)) * k, k * 0.12, Color.WHITE)
 
-func _fresh_game() -> void:
+func _fresh_game(two: bool = false) -> void:
+	two_player = two
 	SaveUtil.delete(SAVE_PATH)
 	_start_new_game()
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		return ""
+	return tr("2 Players") if bool(d.get("two", false)) else tr("vs Computer")
+
+func _sfx(sound: String) -> void:
+	var sx = get_node_or_null("/root/Sfx")
+	if sx:
+		sx.play(sound)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -326,7 +444,8 @@ func _notification(what: int) -> void:
 func _save_game() -> void:
 	if not playing or engine.winner != -1 or not player_turn:
 		return
-	SaveUtil.write(SAVE_PATH, {"ship_at": engine.ship_at, "ships": engine.ships, "shots": engine.shots, "started": started})
+	SaveUtil.write(SAVE_PATH, {"ship_at": engine.ship_at, "ships": engine.ships, "shots": engine.shots, "started": started,
+		"two": two_player, "cur": cur, "fired": fired})
 
 static func _ints(a: Variant) -> Array:
 	var out: Array = []
@@ -339,6 +458,7 @@ func _load_saved_game() -> void:
 	if d == null:
 		_start_new_game()
 		return
+	two_player = bool(d.get("two", false))
 	_start_new_game()
 	engine.ship_at = [_ints(d.ship_at[0]), _ints(d.ship_at[1])]
 	engine.shots = [_ints(d.shots[0]), _ints(d.shots[1])]
@@ -348,4 +468,10 @@ func _load_saved_game() -> void:
 			engine.ships[side].append({"cells": _ints(s.cells), "hits": int(s.hits)})
 	started = bool(d.get("started", true))
 	shuffle_btn.disabled = started
+	if two_player:
+		cur = clampi(int(d.get("cur", 0)), 0, 1)
+		var f: Array = d.get("fired", [true, true])
+		fired = [bool(f[0]), bool(f[1])]
+		_update_turn_text()
+		_show_cover()
 	_redraw()

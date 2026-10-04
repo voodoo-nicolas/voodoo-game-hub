@@ -1,6 +1,8 @@
 extends Control
 
-## Liar's Dice vs two computer players. Raise the bid or call "Liar!".
+## Liar's Dice vs two computer players, or 2-4 people passing the phone.
+## Raise the bid or call "Liar!". In pass-and-play only the player whose turn
+## it is sees their own dice; a cover screen hides the table between turns.
 
 const LDEngine = preload("res://scripts/games/liars_dice/liars_dice_engine.gd")
 const HomeKit = preload("res://scripts/games/liars_dice/home_kit.gd")
@@ -32,6 +34,11 @@ var my_qty: int = 1
 var my_face: int = 2
 var revealing := false
 var log_lines: Array = []
+## Pass-and-play: every seat is a person; `viewer` is whose dice are shown.
+var hotseat := false
+var viewer: int = 0
+var cover: ColorRect
+var cover_label: Label
 
 func _ready() -> void:
 	preload("res://scripts/games/liars_dice/liars_dice_i18n.gd").install(self)
@@ -162,6 +169,7 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	_build_cover()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/liars_dice/liars_dice_help.gd"))
 	_build_home()
@@ -178,7 +186,43 @@ func _small_button(text: String, action: Callable) -> Button:
 	return b
 
 func _name(p: int) -> String:
+	if hotseat:
+		return tr("Player %d") % (p + 1)
 	return tr("You") if p == 0 else tr("CPU %d") % p
+
+func _is_person(p: int) -> bool:
+	return hotseat or p == 0
+
+func _build_cover() -> void:
+	cover = ColorRect.new()
+	cover.color = Color(0.01, 0.02, 0.06, 1.0)
+	cover.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.mouse_filter = Control.MOUSE_FILTER_STOP
+	cover.visible = false
+	add_child(cover)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.add_child(center)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 30)
+	center.add_child(box)
+	cover_label = Label.new()
+	cover_label.add_theme_font_size_override("font_size", 38)
+	cover_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cover_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cover_label.custom_minimum_size = Vector2(560, 0)
+	box.add_child(cover_label)
+	var go := Button.new()
+	go.text = tr("I'm ready")
+	go.custom_minimum_size = Vector2(360, 90)
+	go.add_theme_font_size_override("font_size", 32)
+	go.pressed.connect(_on_cover_ready)
+	box.add_child(go)
+
+func _on_cover_ready() -> void:
+	cover.visible = false
+	viewer = engine.turn
+	_refresh()
 
 func _bid_text(b: Vector2i) -> String:
 	return tr("%d × face %d") % [b.x, b.y]
@@ -186,7 +230,8 @@ func _bid_text(b: Vector2i) -> String:
 func _start() -> void:
 	result_recorded = false
 	cpu_timer.stop()
-	engine.reset()
+	engine.reset(engine.PLAYERS if hotseat else 3)
+	viewer = 0
 	end_dialog.visible = false
 	revealing = false
 	log_lines = []
@@ -202,7 +247,10 @@ func _next_round() -> void:
 
 ## Picks a legal default for the bid controls and schedules computer turns.
 func _after_change() -> void:
-	if engine.turn == 0 and not revealing:
+	if hotseat and not revealing and engine.winner == -1 and viewer != engine.turn:
+		cover_label.text = tr("Pass the phone to %s") % _name(engine.turn) + "\n\n" + tr("Only they may look at their dice!")
+		cover.visible = true
+	if _is_person(engine.turn) and not revealing:
 		my_face = max(engine.bid.y, 1)
 		my_qty = max(engine.bid.x, 1)
 		if not LDEngine.beats(Vector2i(my_qty, my_face), engine.bid):
@@ -211,11 +259,11 @@ func _after_change() -> void:
 			else:
 				my_qty += 1
 	_refresh()
-	if engine.turn != 0 and not revealing and engine.winner == -1:
+	if not _is_person(engine.turn) and not revealing and engine.winner == -1:
 		cpu_timer.start()
 
 func _refresh() -> void:
-	var mine: bool = engine.turn == 0 and not revealing and engine.alive(0)
+	var mine: bool = _is_person(engine.turn) and engine.turn == viewer and not revealing and engine.alive(engine.turn)
 	for n in [qty_label, bid_btn, liar_btn]:
 		n.visible = not revealing
 	for b in face_buttons:
@@ -231,8 +279,10 @@ func _refresh() -> void:
 	if not revealing:
 		var who := _name(engine.turn)
 		var bid_part := tr("No bid yet.") if engine.bid == Vector2i.ZERO else tr("Current bid: %s by %s.") % [_bid_text(engine.bid), _name(engine.bidder)]
-		status_label.text = bid_part + "\n" + (tr("Your move.") if engine.turn == 0 else tr("%s is thinking...") % who)
-		if not engine.alive(0):
+		status_label.text = bid_part + "\n" + (tr("Your move.") if mine else tr("%s is thinking...") % who)
+		if hotseat and mine:
+			status_label.text = bid_part + "\n" + tr("%s, your move.") % who
+		if not hotseat and not engine.alive(0):
 			status_label.text = bid_part + "\n" + tr("You're out — watching the computers.")
 	table.queue_redraw()
 
@@ -245,17 +295,21 @@ func _pick_face(f: int) -> void:
 	_refresh()
 
 func _on_bid() -> void:
-	if engine.turn == 0 and engine.place_bid(Vector2i(my_qty, my_face)):
-		log_lines.append(tr("You bid %s.") % _bid_text(engine.bid))
+	var p: int = engine.turn
+	if _is_person(p) and p == viewer and engine.place_bid(Vector2i(my_qty, my_face)):
+		if hotseat:
+			log_lines.append(tr("%s bids %s.") % [_name(p), _bid_text(engine.bid)])
+		else:
+			log_lines.append(tr("You bid %s.") % _bid_text(engine.bid))
 		_after_change()
 
 func _on_liar() -> void:
-	if engine.turn == 0 and engine.bid != Vector2i.ZERO:
+	if _is_person(engine.turn) and engine.turn == viewer and engine.bid != Vector2i.ZERO:
 		_resolve()
 
 func _cpu_turn() -> void:
 	var p: int = engine.turn
-	if p == 0 or revealing:
+	if _is_person(p) or revealing:
 		return
 	var choice := engine.cpu_decide(p)
 	if choice == Vector2i.ZERO or not engine.place_bid(choice):
@@ -276,6 +330,16 @@ func _resolve() -> void:
 	msg += tr("There are %d. %s loses a die.") % [r.actual, _name(r.loser)]
 	status_label.text = msg
 	_refresh()
+	if hotseat:
+		if engine.winner != -1:
+			var win_msg := tr("%s wins!") % _name(engine.winner)
+			if info and not result_recorded:
+				result_recorded = true
+				info.add("Pass-and-play games")
+				info.celebrate(win_msg)
+			end_dialog.get_meta("message_label").text = win_msg
+			end_dialog.visible = true
+		return
 	if engine.winner != -1:
 		end_dialog.get_meta("message_label").text = (tr("You win!") if engine.winner == 0 else tr("%s wins!") % _name(engine.winner)) + _record_result("win" if engine.winner == 0 else "loss")
 		end_dialog.visible = true
@@ -307,19 +371,24 @@ func _draw_table() -> void:
 		return
 	var font: Font = ThemeDB.fallback_font
 	var face: int = engine.bid.y if revealing else 0
-	var rows := [1, 2, 0]
+	# The other seats on top, the one looking at the phone at the bottom.
+	var me: int = viewer if hotseat else 0
+	var rows: Array = []
+	for k in range(1, engine.PLAYERS):
+		rows.append((me + k) % engine.PLAYERS)
+	rows.append(me)
 	var y := 10.0
 	for p in rows:
 		var n: int = engine.counts[p]
 		var col := Color(1, 0.85, 0.4) if engine.turn == p and not revealing else Color(0.9, 0.85, 0.8)
 		table.draw_string(font, Vector2(0, y + 24), tr("%s — %d dice") % [_name(p), n], HORIZONTAL_ALIGNMENT_CENTER, table.size.x, 24, col)
-		var s: float = 76.0 if p == 0 else 58.0
+		var s: float = 76.0 if p == me else (58.0 if engine.PLAYERS <= 3 else 46.0)
 		var total: float = n * s + max(0, n - 1) * 10.0
 		for i in n:
 			var v: int = engine.dice[p][i]
-			var hidden: bool = p != 0 and not revealing
+			var hidden: bool = (p != me or (hotseat and cover.visible)) and not revealing
 			_draw_die(Vector2((table.size.x - total) / 2.0 + i * (s + 10.0), y + 40), s, v, hidden, revealing and v == face)
-		y += s + 70
+		y += s + (70 if engine.PLAYERS <= 3 else 58)
 	var ly := y + 10
 	for line in log_lines.slice(max(0, log_lines.size() - 3)):
 		table.draw_string(font, Vector2(0, ly), line, HORIZONTAL_ALIGNMENT_CENTER, table.size.x, 21, Color(0.8, 0.75, 0.7))
@@ -347,7 +416,13 @@ func _build_home() -> void:
 		"accent": HomeKit.PURPLE,
 		"subtitle": "Bluff about the dice under your cup. Last player with dice wins.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "🎲  Play", "sub": "vs two computer players", "action": _start}],
+		"modes": [
+			{"text": "🎲  Play", "sub": "vs two computer players", "action": _new_game.bind(0)},
+			{"text": "👥 2", "row": "players", "multi": true, "color": HomeKit.CYAN, "action": _new_game.bind(2)},
+			{"text": "👥 3", "row": "players", "multi": true, "color": HomeKit.PINK, "action": _new_game.bind(3)},
+			{"text": "👥 4", "row": "players", "multi": true, "color": HomeKit.LIME, "action": _new_game.bind(4)},
+		],
+		"multi_heading": "Pass the phone",
 		"restart": _start,
 		"board": "Wins",
 		"board_note": "Games won.",
@@ -356,6 +431,12 @@ func _build_home() -> void:
 
 func _on_pause_home() -> void:
 	home.pause()
+
+## 0 = vs the computers; 2-4 = that many people passing the phone.
+func _new_game(n: int) -> void:
+	hotseat = n > 0
+	engine.PLAYERS = n if hotseat else 3
+	_start()
 
 func _go_home() -> void:
 	home.go_home()

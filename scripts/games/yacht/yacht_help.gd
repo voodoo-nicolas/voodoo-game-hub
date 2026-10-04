@@ -11,6 +11,7 @@ const HOW := [
 	"Ones to Sixes: the total of that number. 3 and 4 of a Kind and Chance: the total of all dice.",
 	"Full House is 25, Small Straight (4 in a row) is 30, Large Straight (5 in a row) is 40, and Yacht (five of a kind) is 50.",
 	"63 or more in Ones to Sixes earns a 35-point bonus. Every extra Yacht after the first is worth 100.",
+	"2 to 4 players can share one phone: each has their own score card and you take turns, passing the phone. Highest total wins.",
 	"⏸ pauses and keeps the score card; Resume on the Home screen carries on.",
 ]
 const TIPS := [
@@ -18,7 +19,7 @@ const TIPS := [
 	"Keep Chance for a bad turn.",
 	"If a turn goes badly, put a 0 in a box you're unlikely to fill anyway, like Yacht or Ones.",
 ]
-const STATS := ["Best score", "Games played"]
+const STATS := ["Best score", "Games played", "Multiplayer games"]
 
 ## Score goals (app v0.25+ shows them as achievements; see achievements.gd).
 const ACHIEVEMENTS := [

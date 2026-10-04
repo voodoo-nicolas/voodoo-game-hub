@@ -4,12 +4,13 @@ extends RefCounted
 
 const ID := "sea_battle"
 const TITLE := "Sea Battle"
-const GOAL := "Sink the computer's whole fleet before it sinks yours."
+const GOAL := "Sink the enemy's whole fleet before they sink yours — the computer's, or a friend's."
 const HOW := [
 	"Both fleets have five ships: 5, 4, 3, 3 and 2 squares long. Ships never touch, not even at the corners.",
-	"Tap 🔀 Shuffle to rearrange your ships before the first shot.",
+	"Tap 🔀 Shuffle to rearrange your ships before your first shot.",
 	"Tap a square in the enemy waters to fire. A hit, or sinking a ship, lets you fire again.",
 	"The first to sink every enemy ship wins.",
+	"2 Players: pass the phone. A cover screen hides the boards every time it changes hands — tap I'm ready only when it's your turn.",
 	"⏸ pauses and keeps the battle; Resume on the Home screen carries on.",
 ]
 const TIPS := [
@@ -17,4 +18,4 @@ const TIPS := [
 	"After a hit, try the squares above, below, left and right to find which way the ship runs.",
 	"Once a ship is sunk, skip the squares around it — ships never touch.",
 ]
-const STATS := ["Wins", "Losses", "Best streak"]
+const STATS := ["Wins", "Losses", "Best streak", "2-player games"]

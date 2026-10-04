@@ -1,6 +1,8 @@
 extends Control
 
-## Go Fish vs the computer -- tap one of your cards to ask for that rank.
+## Go Fish vs the computer, or two players passing the phone -- tap one of
+## your cards to ask for that rank. With two players a cover screen hides
+## the hands whenever the phone changes hands.
 
 const GFEngine = preload("res://scripts/games/go_fish/go_fish_engine.gd")
 const HomeKit = preload("res://scripts/games/go_fish/home_kit.gd")
@@ -27,6 +29,11 @@ var cpu_timer: Timer
 var end_dialog: ColorRect
 var started := false  # a game is on (not just the one behind Home)
 var font: Font
+## Two players on one phone: `viewer` is whose hand is face up.
+var hotseat := false
+var viewer: int = 0
+var cover: ColorRect
+var cover_label: Label
 
 func _ready() -> void:
 	preload("res://scripts/games/go_fish/go_fish_i18n.gd").install(self)
@@ -103,6 +110,7 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	_build_cover()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/go_fish/go_fish_help.gd"))
 	_build_home()
@@ -118,7 +126,52 @@ func _start_new_game() -> void:
 	cpu_timer.stop()
 	engine.new_game()
 	end_dialog.visible = false
+	viewer = 0
+	cover.visible = false
 	log_text = tr("Tap one of your cards to ask the computer for that rank.")
+	if hotseat:
+		log_text = tr("Tap one of your cards to ask the other player for that rank.")
+		viewer = -1  # nobody has looked yet: start behind the cover
+	_begin_turn()
+
+func _pname(p: int) -> String:
+	if hotseat:
+		return tr("Player %d") % (p + 1)
+	return tr("You") if p == 0 else tr("Computer")
+
+## The seat whose hand is face up on this phone.
+func _me() -> int:
+	return maxi(0, viewer) if hotseat else 0
+
+func _build_cover() -> void:
+	cover = ColorRect.new()
+	cover.color = Color(0.01, 0.02, 0.06, 1.0)
+	cover.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.mouse_filter = Control.MOUSE_FILTER_STOP
+	cover.visible = false
+	add_child(cover)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.add_child(center)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 30)
+	center.add_child(box)
+	cover_label = Label.new()
+	cover_label.add_theme_font_size_override("font_size", 34)
+	cover_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cover_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cover_label.custom_minimum_size = Vector2(560, 0)
+	box.add_child(cover_label)
+	var go := Button.new()
+	go.text = tr("I'm ready")
+	go.custom_minimum_size = Vector2(360, 90)
+	go.add_theme_font_size_override("font_size", 32)
+	go.pressed.connect(_on_cover_ready)
+	box.add_child(go)
+
+func _on_cover_ready() -> void:
+	cover.visible = false
+	viewer = engine.turn
 	_begin_turn()
 
 func _rank_name(r: int) -> String:
@@ -133,8 +186,15 @@ func _begin_turn() -> void:
 		# that player had no cards and the deck is empty
 		_begin_turn()
 		return
-	engine.hands[0].sort_custom(func(a, b): return GFEngine.rank(a) < GFEngine.rank(b))
-	if engine.turn == 0:
+	if hotseat and viewer != engine.turn:
+		cover_label.text = log_text + "\n\n" + tr("Pass the phone to %s") % _pname(engine.turn)
+		cover.visible = true
+		board.queue_redraw()
+		return
+	engine.hands[_me()].sort_custom(func(a, b): return GFEngine.rank(a) < GFEngine.rank(b))
+	if hotseat:
+		status_label.text = tr("%s, ask for a rank.") % _pname(engine.turn)
+	elif engine.turn == 0:
 		status_label.text = tr("Your turn — ask for a rank.")
 	else:
 		status_label.text = tr("Computer's turn...")
@@ -144,6 +204,18 @@ func _begin_turn() -> void:
 func _describe(who_asks: int, r: int, res: Dictionary) -> String:
 	var rn := _rank_name(r)
 	var msg: String
+	if hotseat:
+		var asker := _pname(who_asks)
+		var other := _pname(1 - who_asks)
+		if res.got > 0:
+			msg = tr("%s asked for %s — %s handed over %d!") % [asker, rn, other, res.got]
+		else:
+			msg = tr("%s asked for %s — go fish!") % [asker, rn]
+			if res.again:
+				msg += " " + tr("They drew it and go again.")
+		for b in res.new_books:
+			msg += "\n" + tr("%s made a book of %s!") % [asker, _rank_name(b)]
+		return msg
 	if who_asks == 0:
 		if res.got > 0:
 			msg = tr("The computer gives you %d × %s!") % [res.got, rn]
@@ -175,6 +247,18 @@ func _cpu_turn() -> void:
 func _finish() -> void:
 	var a: int = engine.books[0].size()
 	var b: int = engine.books[1].size()
+	cover.visible = false
+	if hotseat:
+		var head := tr("It's a tie!") if a == b else tr("%s wins!") % _pname(0 if a > b else 1)
+		if info and not result_recorded:
+			result_recorded = true
+			info.add("2-player games")
+			info.celebrate(head)
+		SaveUtil.delete(SAVE_PATH)
+		end_dialog.get_meta("message_label").text = tr("Books: %s %d, %s %d.") % [_pname(0), a, _pname(1), b] + "\n" + head
+		end_dialog.visible = true
+		board.queue_redraw()
+		return
 	var msg := tr("Books: you %d, computer %d.") % [a, b] + "\n"
 	msg += tr("You win!") if a > b else tr("You lose!")
 	msg += _record_result("win" if a > b else "loss")
@@ -190,7 +274,7 @@ func _card_size() -> Vector2:
 
 func _hand_rects() -> Array:
 	var cs := _card_size()
-	var n: int = engine.hands[0].size()
+	var n: int = engine.hands[_me()].size()
 	var out: Array = []
 	var per_row: int = n if n <= 8 else ceili(n / 2.0)
 	var rows: int = ceili(float(n) / max(1, per_row))
@@ -212,16 +296,22 @@ func _draw_books(y: float, p: int) -> void:
 func _draw_board() -> void:
 	if engine.hands[0].is_empty() and engine.hands[1].is_empty() and engine.deck.is_empty() and engine.books[0].is_empty():
 		return
+	if hotseat and cover.visible:
+		return  # nothing on show while the phone changes hands
+	var me := _me()
+	var them := 1 - me
 	var cs := _card_size()
 	var small := cs * 0.5
-	var n: int = engine.hands[1].size()
+	var n: int = engine.hands[them].size()
 	var spread: float = min(small.x * 0.4, 300.0 / max(1, n))
 	var x0 := board.size.x / 2.0 - (spread * (n - 1) + small.x) / 2.0
 	for k in n:
 		Cards.draw_card(board, Rect2(Vector2(x0 + k * spread, 34), small), 0, false)
-	board.draw_string(font, Vector2(0, 24), tr("Computer: %d cards, %d books") % [n, engine.books[1].size()],
-		HORIZONTAL_ALIGNMENT_CENTER, board.size.x, 22, Color(0.85, 0.9, 0.85))
-	_draw_books(34 + small.y + 10, 1)
+	var top_line := tr("Computer: %d cards, %d books") % [n, engine.books[them].size()]
+	if hotseat:
+		top_line = tr("%s: %d cards, %d books") % [_pname(them), n, engine.books[them].size()]
+	board.draw_string(font, Vector2(0, 24), top_line, HORIZONTAL_ALIGNMENT_CENTER, board.size.x, 22, Color(0.85, 0.9, 0.85))
+	_draw_books(34 + small.y + 10, them)
 	# the pond
 	var pond := Rect2(Vector2(board.size.x / 2.0 - cs.x / 2.0, board.size.y * 0.3), cs)
 	if engine.deck.is_empty():
@@ -237,23 +327,27 @@ func _draw_board() -> void:
 	board.draw_multiline_string(font, Vector2(10, log_y), log_text, HORIZONTAL_ALIGNMENT_CENTER, board.size.x - 20, 25, 4, Color(1, 1, 1))
 	var rects := _hand_rects()
 	var top_y: float = rects[0].position.y if not rects.is_empty() else board.size.y - cs.y
-	board.draw_string(font, Vector2(20, top_y - 64), tr("Your books: %d") % engine.books[0].size(),
+	board.draw_string(font, Vector2(20, top_y - 64), tr("Your books: %d") % engine.books[me].size(),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.85, 0.9, 0.85))
-	_draw_books(top_y - 56, 0)
+	_draw_books(top_y - 56, me)
 	for i in rects.size():
-		Cards.draw_card(board, rects[i], engine.hands[0][i], true, engine.turn == 0)
+		Cards.draw_card(board, rects[i], engine.hands[me][i], true, engine.turn == me)
 
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if engine.turn != 0 or engine.is_over() or end_dialog.visible:
+	if engine.turn != _me() or engine.is_over() or end_dialog.visible or (hotseat and cover.visible):
 		return
 	var rects := _hand_rects()
 	for i in range(rects.size() - 1, -1, -1):
 		if rects[i].has_point(event.position):
-			var r := GFEngine.rank(engine.hands[0][i])
+			var asker: int = engine.turn
+			var r := GFEngine.rank(engine.hands[asker][i])
 			var res := engine.ask(r)
-			log_text = tr("You asked for %s.") % _rank_name(r) + " " + _describe(0, r, res)
+			if hotseat:
+				log_text = _describe(asker, r, res)
+			else:
+				log_text = tr("You asked for %s.") % _rank_name(r) + " " + _describe(0, r, res)
 			_begin_turn()
 			return
 
@@ -280,7 +374,11 @@ func _build_home() -> void:
 		"accent": HomeKit.CYAN,
 		"subtitle": "Ask for ranks, collect books of four. You vs the computer.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "🐟  Play", "sub": "vs the computer", "action": _fresh_game}],
+		"modes": [
+			{"text": "🐟  Play", "sub": "vs the computer", "action": _fresh_game.bind(false)},
+			{"text": "👥 2 Players", "sub": "Pass the phone; hands stay hidden", "multi": true, "action": _fresh_game.bind(true)},
+		],
+		"resume_text": _resume_text,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
@@ -310,9 +408,16 @@ func _draw_home_logo(c: Control) -> void:
 	for k in 3:
 		HomeKit.glow_circle(c, ctr + Vector2(-h * (0.42 + k * 0.08), -h * (0.18 + k * 0.1)), h * (0.025 + k * 0.01), HomeKit.BLUE, 1.5)
 
-func _fresh_game() -> void:
+func _fresh_game(two: bool = false) -> void:
+	hotseat = two
 	SaveUtil.delete(SAVE_PATH)
 	_start_new_game()
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		return ""
+	return tr("2 Players") if bool(d.get("two", false)) else tr("vs Computer")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -325,7 +430,7 @@ func _save_game() -> void:
 	for r in engine.cpu_memory:
 		mem.append(int(r))
 	SaveUtil.write(SAVE_PATH, {"hands": engine.hands, "deck": engine.deck, "books": engine.books,
-		"turn": engine.turn, "memory": mem})
+		"turn": engine.turn, "memory": mem, "two": hotseat})
 
 static func _ints(a: Variant) -> Array:
 	var out: Array = []
@@ -338,8 +443,11 @@ func _load_saved_game() -> void:
 	if d == null:
 		_start_new_game()
 		return
+	hotseat = bool(d.get("two", false))
 	_start_new_game()
 	cpu_timer.stop()
+	cover.visible = false
+	viewer = -1
 	engine.hands = [_ints(d.hands[0]), _ints(d.hands[1])]
 	engine.deck = _ints(d.deck)
 	engine.books = [_ints(d.books[0]), _ints(d.books[1])]

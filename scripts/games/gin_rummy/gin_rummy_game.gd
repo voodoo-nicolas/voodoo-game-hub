@@ -1,6 +1,7 @@
 extends Control
 
-## Gin Rummy vs the computer. Tap the stock or the discard pile to draw, tap a
+## Gin Rummy vs the computer, or two players passing the phone (a cover
+## screen hides the hands between turns). Tap the stock or the discard pile to draw, tap a
 ## card to select it, then Discard (or Knock / Gin when your deadwood allows).
 ## Your hand is kept sorted into melds (left) and deadwood (right).
 
@@ -35,6 +36,12 @@ var selected: int = -1
 var layout: Array = []     # the player's cards in display order
 var group_breaks: Array = []
 var font: Font
+## Two players on one phone: `viewer` is whose hand is face up.
+var hotseat := false
+var viewer: int = 0
+var cover: ColorRect
+var cover_label: Label
+var last_msg := ""
 
 func _ready() -> void:
 	preload("res://scripts/games/gin_rummy/gin_rummy_i18n.gd").install(self)
@@ -126,6 +133,7 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	_build_cover()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/gin_rummy/gin_rummy_help.gd"))
 	_build_home()
@@ -140,6 +148,55 @@ func _button(text: String, action: Callable) -> Button:
 	b.add_theme_font_size_override("font_size", 26)
 	b.pressed.connect(action)
 	return b
+
+func _pname(p: int) -> String:
+	if hotseat:
+		return tr("Player %d") % (p + 1)
+	return tr("You") if p == 0 else tr("The computer")
+
+## The seat whose hand is face up on this phone.
+func _me() -> int:
+	return viewer if hotseat else 0
+
+func _my_turn() -> bool:
+	return engine.turn == _me() and engine.phase != "over" and not (hotseat and cover.visible)
+
+func _build_cover() -> void:
+	cover = ColorRect.new()
+	cover.color = Color(0.01, 0.02, 0.06, 1.0)
+	cover.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.mouse_filter = Control.MOUSE_FILTER_STOP
+	cover.visible = false
+	add_child(cover)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.add_child(center)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 30)
+	center.add_child(box)
+	cover_label = Label.new()
+	cover_label.add_theme_font_size_override("font_size", 34)
+	cover_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cover_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cover_label.custom_minimum_size = Vector2(560, 0)
+	box.add_child(cover_label)
+	var go := Button.new()
+	go.text = tr("I'm ready")
+	go.custom_minimum_size = Vector2(360, 90)
+	go.add_theme_font_size_override("font_size", 32)
+	go.pressed.connect(_on_cover_ready)
+	box.add_child(go)
+
+func _show_cover() -> void:
+	cover_label.text = (last_msg + "\n\n" if last_msg != "" else "") + tr("Pass the phone to %s") % _pname(engine.turn)
+	cover.visible = true
+	board.queue_redraw()
+
+func _on_cover_ready() -> void:
+	cover.visible = false
+	viewer = engine.turn
+	selected = -1
+	_refresh()
 
 func _new_match() -> void:
 	started = true
@@ -159,14 +216,18 @@ func _next_hand() -> void:
 
 func _start_hand() -> void:
 	selected = -1
+	last_msg = ""
 	_refresh()
+	if hotseat:
+		_show_cover()
+		return
 	if engine.turn == 1:
 		cpu_timer.start()
 
 # ---------- state -> UI ----------
 
 func _refresh() -> void:
-	var mine := GinEngine.best_melds(engine.hands[0])
+	var mine := GinEngine.best_melds(engine.hands[_me()])
 	layout = []
 	group_breaks = []
 	for m in mine.melds:
@@ -178,7 +239,9 @@ func _refresh() -> void:
 	dead.sort_custom(func(a, b): return GinEngine.rank(a) * 4 + GinEngine.suit(a) < GinEngine.rank(b) * 4 + GinEngine.suit(b))
 	layout.append_array(dead)
 	score_label.text = tr("You %d  ·  Computer %d   (to %d)") % [engine.scores[0], engine.scores[1], GinEngine.TARGET]
-	var my_turn: bool = engine.turn == 0 and engine.phase != "over"
+	if hotseat:
+		score_label.text = "%s %d  ·  %s %d   (%s)" % [_pname(0), engine.scores[0], _pname(1), engine.scores[1], tr("to %d") % GinEngine.TARGET]
+	var my_turn: bool = _my_turn()
 	next_btn.visible = engine.phase == "over"
 	discard_btn.visible = engine.phase != "over"
 	knock_btn.visible = engine.phase != "over"
@@ -192,7 +255,7 @@ func _refresh() -> void:
 	if engine.phase == "over":
 		status_label.text = _result_text()
 	elif not my_turn:
-		status_label.text = tr("Computer's turn...")
+		status_label.text = tr("Computer's turn...") if not hotseat else ""
 	elif engine.phase == "draw":
 		status_label.text = tr("Draw from the stock or the discard pile.  Deadwood: %d") % mine.points
 	else:
@@ -203,7 +266,7 @@ func _result_text() -> String:
 	var r: Dictionary = engine.result
 	if r.get("draw", false):
 		return tr("The stock ran out — this hand is a draw.")
-	var who := tr("You") if r.winner == 0 else tr("The computer")
+	var who := _pname(r.winner)
 	var how: String
 	match r.kind:
 		"gin":
@@ -217,25 +280,42 @@ func _result_text() -> String:
 # ---------- player actions ----------
 
 func _on_discard(knock: bool) -> void:
-	if engine.turn != 0 or selected < 0:
+	if not _my_turn() or selected < 0:
 		return
+	var card := selected
 	if engine.do_discard(selected, knock):
 		selected = -1
+		if hotseat:
+			last_msg = tr("%s discarded %s.") % [_pname(1 - engine.turn), Cards.label(card)]
 		_after_action()
 
 func _after_action() -> void:
 	_refresh()
 	if engine.phase == "over":
 		if engine.match_over():
+			if hotseat:
+				var w := 0 if engine.scores[0] >= GinEngine.TARGET else 1
+				var msg := tr("%s wins the match!") % _pname(w)
+				SaveUtil.delete(SAVE_PATH)
+				if info and not result_recorded:
+					result_recorded = true
+					info.add("2-player games")
+					info.celebrate(msg)
+				end_dialog.get_meta("message_label").text = msg
+				end_dialog.visible = true
+				return
 			var won: bool = engine.scores[0] >= GinEngine.TARGET
 			end_dialog.get_meta("message_label").text = (tr("You win the match!") if won else tr("The computer wins the match.")) + _record_result("win" if won else "loss")
 			end_dialog.visible = true
+		return
+	if hotseat:
+		_show_cover()
 		return
 	if engine.turn == 1:
 		cpu_timer.start()
 
 func _cpu_step() -> void:
-	if engine.turn != 1 or engine.phase == "over":
+	if hotseat or engine.turn != 1 or engine.phase == "over":
 		return
 	if engine.phase == "draw":
 		if engine.cpu_wants_discard():
@@ -284,9 +364,11 @@ func _hand_rects() -> Array:
 func _draw_board() -> void:
 	if engine.hands[0].is_empty():
 		return
+	if hotseat and cover.visible:
+		return  # nothing on show while the phone changes hands
 	var cs := _card_size()
-	# computer's hand: hidden until the hand ends
-	var cpu_hand: Array = engine.hands[1]
+	# the other hand: hidden until the hand ends
+	var cpu_hand: Array = engine.hands[1 - _me()]
 	var reveal: bool = engine.phase == "over"
 	var shown: Array = cpu_hand
 	var cpu_breaks: Array = []
@@ -307,10 +389,10 @@ func _draw_board() -> void:
 			x += 8
 		Cards.draw_card(board, Rect2(Vector2(x, 30), small), shown[i], reveal)
 		x += step
-	board.draw_string(font, Vector2(0, 22), tr("Computer") + ("" if not reveal else "  " + tr("(deadwood %d)") % GinEngine.deadwood(cpu_hand)),
+	board.draw_string(font, Vector2(0, 22), (_pname(1 - _me()) if hotseat else tr("Computer")) + ("" if not reveal else "  " + tr("(deadwood %d)") % GinEngine.deadwood(cpu_hand)),
 		HORIZONTAL_ALIGNMENT_CENTER, board.size.x, 22, Color(0.85, 0.9, 0.85))
 	var piles := _pile_rects()
-	var can_draw: bool = engine.turn == 0 and engine.phase == "draw"
+	var can_draw: bool = _my_turn() and engine.phase == "draw"
 	if engine.stock.is_empty():
 		Cards.draw_card(board, piles[0], -1)
 	else:
@@ -332,7 +414,7 @@ func _draw_board() -> void:
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if engine.turn != 0 or engine.phase == "over":
+	if not _my_turn():
 		return
 	var pos: Vector2 = event.position
 	if engine.phase == "draw":
@@ -374,10 +456,13 @@ func _build_home() -> void:
 		"accent": HomeKit.CYAN,
 		"subtitle": "Meld your cards, knock, and race to 100 points.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "🃏  New match", "sub": "vs the computer, to 100", "action": _fresh_match}],
+		"modes": [
+			{"text": "🃏  New match", "sub": "vs the computer, to 100", "action": _fresh_match.bind(false)},
+			{"text": "👥 2 Players", "sub": "Pass the phone; hands stay hidden", "multi": true, "action": _fresh_match.bind(true)},
+		],
+		"resume_text": _resume_text,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
-		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else "%d – %d" % [int(d.scores[0]), int(d.scores[1])],
 		"restart": _new_match,
 		"board": "Wins",
 		"board_note": "Matches won against the computer.",
@@ -398,9 +483,17 @@ func _draw_home_logo(c: Control) -> void:
 	for i in run.size():
 		Cards.draw_card(c, Rect2(ctr + Vector2((i - 2) * w * 0.55, -h / 2.0 + abs(i - 1.5) * 6), Vector2(w, h)), run[i])
 
-func _fresh_match() -> void:
+func _fresh_match(two: bool = false) -> void:
+	hotseat = two
 	SaveUtil.delete(SAVE_PATH)
 	_new_match()
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		return ""
+	var sc: Array = d.get("scores", [0, 0])
+	return (tr("2 Players") + "   ·   " if bool(d.get("two", false)) else "") + "%d – %d" % [int(sc[0]), int(sc[1])]
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -411,11 +504,11 @@ func _save_game() -> void:
 	if not started or engine.match_over():
 		return
 	if engine.phase == "over":
-		SaveUtil.write(SAVE_PATH, {"scores": engine.scores, "starter": engine.starter, "between": true})
+		SaveUtil.write(SAVE_PATH, {"scores": engine.scores, "starter": engine.starter, "between": true, "two": hotseat})
 		return
 	SaveUtil.write(SAVE_PATH, {"hands": engine.hands, "stock": engine.stock, "discard": engine.discard,
 		"turn": engine.turn, "phase": engine.phase, "taken": engine.taken_discard, "scores": engine.scores,
-		"starter": engine.starter})
+		"starter": engine.starter, "two": hotseat})
 
 static func _ints(a: Variant) -> Array:
 	var out: Array = []
@@ -428,6 +521,7 @@ func _load_saved_game() -> void:
 	if d == null:
 		_new_match()
 		return
+	hotseat = bool(d.get("two", false))
 	_new_match()
 	engine.scores = _ints(d.scores)
 	engine.starter = int(d.get("starter", 0))

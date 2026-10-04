@@ -1,7 +1,8 @@
 extends Control
 
 ## Yacht Dice -- roll up to three times, tap dice to hold them, then tap a box
-## on the scorecard to score this turn.
+## on the scorecard to score this turn. Solo, or 2-4 players passing the
+## phone: each has their own scorecard and they take turns.
 
 const YEngine = preload("res://scripts/games/yacht/yacht_engine.gd")
 const HomeKit = preload("res://scripts/games/yacht/home_kit.gd")
@@ -30,6 +31,12 @@ var end_dialog: ColorRect
 var started := false  # a game is on (not just the one behind Home)
 var best: int = 0
 var shake: float = 0.0
+## Pass-and-play: how many players, whose turn, and each one's scorecard
+## ({"scores", "bonus"}); the engine holds the current player's card.
+var players: int = 1
+var turn: int = 0
+var cards: Array = []
+const P_COLORS := [Color("29e6ff"), Color("ff2bd6"), Color("7dff3a"), Color("ffae2b")]
 
 func _ready() -> void:
 	preload("res://scripts/games/yacht/yacht_i18n.gd").install(self)
@@ -151,8 +158,41 @@ func _build_ui() -> void:
 func _start() -> void:
 	started = true
 	engine.reset()
+	turn = 0
+	cards = []
+	for i in players:
+		cards.append({"scores": {}, "bonus": 0})
 	end_dialog.visible = false
 	_refresh()
+
+## Stores the current scorecard and hands the dice to the next player.
+func _next_player() -> void:
+	cards[turn] = {"scores": engine.scores.duplicate(), "bonus": engine.yacht_bonus}
+	turn = (turn + 1) % players
+	engine.scores = cards[turn].scores.duplicate()
+	engine.yacht_bonus = int(cards[turn].bonus)
+
+func _card_total(i: int) -> int:
+	var e := YEngine.new()
+	e.scores = cards[i].scores
+	e.yacht_bonus = int(cards[i].bonus)
+	return e.total()
+
+func _multi_over() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	var order: Array = range(players)
+	order.sort_custom(func(a, b): return _card_total(a) > _card_total(b))
+	var lines: Array = []
+	for i in order:
+		lines.append(tr("Player %d") % (i + 1) + ": %d" % _card_total(i))
+	var top: int = _card_total(order[0])
+	var tied: bool = players > 1 and _card_total(order[1]) == top
+	var head := tr("It's a tie!") if tied else tr("Player %d wins!") % (order[0] + 1)
+	if info:
+		info.add("Multiplayer games")
+		info.celebrate(head)
+	end_dialog.get_meta("message_label").text = head + "\n" + "\n".join(lines)
+	end_dialog.visible = true
 
 func _process(delta: float) -> void:
 	if shake > 0.0:
@@ -168,6 +208,16 @@ func _on_roll() -> void:
 func _on_category(cat: String) -> void:
 	if engine.use(cat):
 		_sfx("merge")
+		if players > 1:
+			var last_turn: bool = turn == players - 1 and engine.is_over()
+			if last_turn:
+				cards[turn] = {"scores": engine.scores.duplicate(), "bonus": engine.yacht_bonus}
+				_refresh()
+				_multi_over()
+				return
+			_next_player()
+			_refresh()
+			return
 		_refresh()
 		if engine.is_over():
 			SaveUtil.delete(SAVE_PATH)
@@ -185,9 +235,19 @@ func _refresh() -> void:
 	var names := _names()
 	var up := engine.upper_total()
 	total_label.text = tr("Total: %d   Upper: %d/63   Best: %d") % [engine.total(), up, best]
+	total_label.remove_theme_color_override("font_color")
+	if players > 1:
+		var others: Array = []
+		for i in players:
+			if i != turn:
+				others.append("P%d %d" % [i + 1, _card_total(i)])
+		total_label.text = tr("Player %d: %d") % [turn + 1, engine.total()] + "   ·   " + "  ".join(others)
+		total_label.add_theme_color_override("font_color", P_COLORS[turn])
 	roll_btn.disabled = not engine.can_roll()
 	roll_btn.text = tr("🎲 Roll (%d left)") % engine.rolls_left
-	if not engine.has_rolled():
+	if not engine.has_rolled() and players > 1:
+		hint_label.text = tr("Player %d, roll the dice!") % (turn + 1)
+	elif not engine.has_rolled():
 		hint_label.text = tr("Roll the dice to start your turn.")
 	elif engine.rolls_left > 0:
 		hint_label.text = tr("Tap dice to hold them, roll again, or pick a box.")
@@ -257,10 +317,16 @@ func _build_home() -> void:
 		"accent": HomeKit.GOLD,
 		"subtitle": "Five dice, three rolls, thirteen boxes to fill.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "🎲  New game", "sub": "Solo, beat your best", "action": _fresh_game}],
+		"modes": [
+			{"text": "🎲  New game", "sub": "Solo, beat your best", "action": _fresh_game.bind(1)},
+			{"text": "👥 2", "row": "players", "multi": true, "color": P_COLORS[0], "action": _fresh_game.bind(2)},
+			{"text": "👥 3", "row": "players", "multi": true, "color": P_COLORS[1], "action": _fresh_game.bind(3)},
+			{"text": "👥 4", "row": "players", "multi": true, "color": P_COLORS[2], "action": _fresh_game.bind(4)},
+		],
+		"multi_heading": "Players on one phone",
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
-		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr("%d boxes left") % (13 - d.scores.size()),
+		"resume_text": _resume_text,
 		"restart": _start,
 		"board_note": "Your best total.",
 	})
@@ -281,9 +347,18 @@ func _draw_home_logo(c: Control) -> void:
 		for sp in [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]]:
 			c.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.08, Color.WHITE)
 
-func _fresh_game() -> void:
+func _fresh_game(n: int = 1) -> void:
+	players = n
 	SaveUtil.delete(SAVE_PATH)
 	_start()
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		return ""
+	var n := int(d.get("players", 1))
+	var left := tr("%d boxes left") % (13 - d.scores.size())
+	return left if n <= 1 else tr("%d players") % n + "   ·   " + left
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -292,14 +367,24 @@ func _notification(what: int) -> void:
 func _save_game() -> void:
 	if not started or engine.is_over():
 		return
-	SaveUtil.write(SAVE_PATH, {"dice": engine.dice, "held": engine.held, "rolls": engine.rolls_left, "scores": engine.scores, "bonus": engine.yacht_bonus})
+	SaveUtil.write(SAVE_PATH, {"dice": engine.dice, "held": engine.held, "rolls": engine.rolls_left, "scores": engine.scores, "bonus": engine.yacht_bonus,
+		"players": players, "turn": turn, "cards": cards})
 
 func _load_saved_game() -> void:
 	var d = SaveUtil.read(SAVE_PATH)
 	if d == null:
 		_start()
 		return
+	players = clampi(int(d.get("players", 1)), 1, 4)
 	_start()
+	if players > 1:
+		var saved: Array = d.get("cards", [])
+		for i in mini(saved.size(), players):
+			var sc := {}
+			for k in saved[i].get("scores", {}):
+				sc[str(k)] = int(saved[i].scores[k])
+			cards[i] = {"scores": sc, "bonus": int(saved[i].get("bonus", 0))}
+		turn = clampi(int(d.get("turn", 0)), 0, players - 1)
 	engine.dice = []
 	for v in d.dice:
 		engine.dice.append(int(v))

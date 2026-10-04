@@ -1,14 +1,16 @@
 extends RefCounted
 
-## Liar's Dice for 3 players (you = 0, computers = 1 and 2). Everyone rolls
+## Liar's Dice for 2-4 players (vs the computer: you = 0, computers = 1
+## and 2; pass-and-play: everyone is a person). Everyone rolls
 ## their dice in secret. In turn, raise the bid -- "at least N dice on the
 ## whole table show face F" -- by bidding more dice, or the same number of a
 ## higher face. Or call "Liar!": if the bid was wrong the bidder loses a die,
 ## otherwise the caller does. Lose all your dice and you're out.
 ## Pure logic, no Nodes.
 
-const PLAYERS := 3
 const START_DICE := 5
+
+var PLAYERS: int = 3  # seats this game (kept in caps: it used to be a const)
 
 var dice: Array = []          # per player: Array of faces
 var counts: Array = []        # dice per player
@@ -18,7 +20,8 @@ var bidder: int = -1
 var last_result: Dictionary = {}
 var winner: int = -1
 
-func reset() -> void:
+func reset(n: int = 3) -> void:
+	PLAYERS = n
 	counts = []
 	for p in PLAYERS:
 		counts.append(START_DICE)

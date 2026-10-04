@@ -25,6 +25,12 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const SAVE_PATH := "user://war_save.json"
 var started := false  # a game is on (not just the one behind Home)
 var win_label: Label
+## Two players on one phone: each flips with their own button; a round is
+## played once both have flipped.
+var two_player := false
+var flip_row: HBoxContainer
+var flip_btns: Array = []
+var ready_flags: Array = [false, false]
 
 func _ready() -> void:
 	preload("res://scripts/games/war/war_i18n.gd").install(self)
@@ -122,6 +128,21 @@ func _build_ui() -> void:
 	play_btn.pressed.connect(_on_play_pressed)
 	box.add_child(play_btn)
 
+	flip_row = HBoxContainer.new()
+	flip_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	flip_row.add_theme_constant_override("separation", 30)
+	box.add_child(flip_row)
+	for p in 2:
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(240, 110)
+		b.add_theme_font_size_override("font_size", 28)
+		b.set_meta("sfx", "card_flip")
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+			b.add_theme_stylebox_override(st, HomeKit.neon_box([HomeKit.CYAN, HomeKit.PINK][p], st))
+		b.pressed.connect(_on_flip.bind(p))
+		flip_row.add_child(b)
+		flip_btns.append(b)
+
 	_build_win_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/war/war_help.gd"))
@@ -208,7 +229,33 @@ func _start_new_game() -> void:
 	p2_card_label.text = "✦"
 	p1_card_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	p2_card_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	ready_flags = [false, false]
+	play_btn.visible = not two_player
+	flip_row.visible = two_player
+	if two_player:
+		result_label.text = tr("Both players tap Flip!")
+	_update_flip_buttons()
 	_update_piles()
+
+func _pname(p: int) -> String:
+	if two_player:
+		return tr("Player %d") % p
+	return tr("You") if p == 1 else tr("CPU")
+
+func _on_flip(p: int) -> void:
+	if engine.game_over or ready_flags[p]:
+		return
+	ready_flags[p] = true
+	_update_flip_buttons()
+	if ready_flags[0] and ready_flags[1]:
+		ready_flags = [false, false]
+		_on_play_pressed()
+		_update_flip_buttons()
+
+func _update_flip_buttons() -> void:
+	for p in 2:
+		flip_btns[p].text = (tr("Player %d") % (p + 1)) + "\n" + (tr("Ready!") if ready_flags[p] else tr("Flip"))
+		flip_btns[p].disabled = ready_flags[p]
 
 func _on_play_pressed() -> void:
 	var result: Dictionary = engine.play_round()
@@ -223,22 +270,32 @@ func _on_play_pressed() -> void:
 		p2_card_label.add_theme_color_override("font_color", Color(1, 0.4, 0.4) if RED_SUITS.has(c2.suit) else Color(1, 1, 1))
 
 		var prefix := tr("⚔️ WAR! ") if result.war_happened else ""
-		if result.round_winner == 1:
+		if two_player:
+			result_label.text = prefix + tr("%s wins %d cards!") % [_pname(result.round_winner), result.cards_won]
+		elif result.round_winner == 1:
 			result_label.text = tr("%sYou win %d cards!") % [prefix, result.cards_won]
 		else:
 			result_label.text = tr("%sCPU wins %d cards!") % [prefix, result.cards_won]
 	elif result.has("ran_out"):
-		result_label.text = tr("%s ran out of cards mid-war!") % (tr("You") if result.ran_out == 1 else "CPU")
+		result_label.text = tr("%s ran out of cards mid-war!") % _pname(result.ran_out)
 
 	if result.game_over:
 		_show_result()
 
 func _update_piles() -> void:
-	p1_pile_label.text = tr("You: %d") % engine.p1_pile.size()
-	p2_pile_label.text = tr("CPU: %d") % engine.p2_pile.size()
+	p1_pile_label.text = _pname(1) + ": %d" % engine.p1_pile.size()
+	p2_pile_label.text = _pname(2) + ": %d" % engine.p2_pile.size()
 
 func _show_result() -> void:
 	SaveUtil.delete(SAVE_PATH)
+	if two_player:
+		win_label.text = tr("%s wins the game!") % _pname(engine.winner)
+		if info and not result_recorded:
+			result_recorded = true
+			info.add("2-player games")
+			info.celebrate(win_label.text)
+		win_dialog.visible = true
+		return
 	win_label.text = (tr("You win the game!") if engine.winner == 1 else tr("CPU wins the game!")) + _record_result("win" if engine.winner == 1 else "loss")
 	win_dialog.visible = true
 
@@ -264,10 +321,13 @@ func _build_home() -> void:
 		"accent": HomeKit.PINK,
 		"subtitle": "Flip, compare, win the cards. Take all 52!",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "⚔️  Play", "sub": "vs the computer", "action": _fresh_game}],
+		"modes": [
+			{"text": "⚔️  Play", "sub": "vs the computer", "action": _fresh_game.bind(false)},
+			{"text": "👥 2 Players", "sub": "Each flips their own card", "multi": true, "action": _fresh_game.bind(true)},
+		],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
-		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr("You: %d") % d.p1.size(),
+		"resume_text": _resume_text,
 		"restart": _start_new_game,
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
@@ -293,9 +353,16 @@ func _draw_home_logo(c: Control) -> void:
 		HomeKit.glow_text(c, Vector2(0, h * 0.24), spec[3], int(h * 0.24), spec[4])
 		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-func _fresh_game() -> void:
+func _fresh_game(two: bool = false) -> void:
+	two_player = two
 	SaveUtil.delete(SAVE_PATH)
 	_start_new_game()
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		return ""
+	return (tr("2 Players") + "   ·   " if bool(d.get("two", false)) else "") + tr("%d cards") % d.p1.size()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -304,13 +371,14 @@ func _notification(what: int) -> void:
 func _save_game() -> void:
 	if not started or engine.game_over:
 		return
-	SaveUtil.write(SAVE_PATH, {"p1": engine.p1_pile, "p2": engine.p2_pile})
+	SaveUtil.write(SAVE_PATH, {"p1": engine.p1_pile, "p2": engine.p2_pile, "two": two_player})
 
 func _load_saved_game() -> void:
 	var d = SaveUtil.read(SAVE_PATH)
 	if d == null:
 		_start_new_game()
 		return
+	two_player = bool(d.get("two", false))
 	_start_new_game()
 	engine.p1_pile = []
 	for card in d.p1:

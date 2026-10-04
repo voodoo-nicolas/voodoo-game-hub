@@ -1,7 +1,8 @@
 extends Control
 
-## Crazy Eights vs two computer players. Tap a glowing card to play it; tap
-## the deck to draw when you have nothing to play.
+## Crazy Eights vs two computer players, or 2-4 people passing the phone.
+## Tap a glowing card to play it; tap the deck to draw when you have nothing
+## to play. In pass-and-play a cover screen hides the hand between turns.
 
 const C8Engine = preload("res://scripts/games/crazy_eights/crazy_eights_engine.gd")
 const HomeKit = preload("res://scripts/games/crazy_eights/home_kit.gd")
@@ -29,6 +30,12 @@ var cpu_timer: Timer
 var pending_eight: int = -1
 var font: Font
 var started := false  # a game is on (not just the one behind Home)
+## Pass-and-play: every seat is a person; `viewer` is the one holding the phone.
+var hotseat := false
+var viewer: int = 0
+var cover: ColorRect
+var cover_label: Label
+var last_msg := ""
 
 func _ready() -> void:
 	preload("res://scripts/games/crazy_eights/crazy_eights_i18n.gd").install(self)
@@ -112,6 +119,7 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	_build_cover()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/crazy_eights/crazy_eights_help.gd"))
 	_build_home()
@@ -123,22 +131,74 @@ func _start_new_game() -> void:
 	started = true
 	result_recorded = false
 	cpu_timer.stop()
-	engine.new_game()
+	engine.new_game(engine.PLAYERS if hotseat else 3)
 	pending_eight = -1
+	viewer = 0
+	last_msg = ""
 	end_dialog.visible = false
 	suit_dialog.visible = false
+	cover.visible = false
 	_update_status()
+	if hotseat:
+		_show_cover()
 
 func _player_name(p: int) -> String:
+	if hotseat:
+		return tr("Player %d") % (p + 1)
 	return tr("You") if p == 0 else tr("CPU %d") % p
 
+## The seat whose hand is face up on this phone.
+func _me() -> int:
+	return viewer if hotseat else 0
+
+func _my_turn() -> bool:
+	return engine.winner == -1 and engine.turn == _me() and not (hotseat and cover.visible)
+
+func _build_cover() -> void:
+	cover = ColorRect.new()
+	cover.color = Color(0.01, 0.02, 0.06, 1.0)
+	cover.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.mouse_filter = Control.MOUSE_FILTER_STOP
+	cover.visible = false
+	add_child(cover)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.add_child(center)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 30)
+	center.add_child(box)
+	cover_label = Label.new()
+	cover_label.add_theme_font_size_override("font_size", 36)
+	cover_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cover_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cover_label.custom_minimum_size = Vector2(560, 0)
+	box.add_child(cover_label)
+	var go := Button.new()
+	go.text = tr("I'm ready")
+	go.custom_minimum_size = Vector2(360, 90)
+	go.add_theme_font_size_override("font_size", 32)
+	go.pressed.connect(_on_cover_ready)
+	box.add_child(go)
+
+func _show_cover() -> void:
+	cover_label.text = (last_msg + "\n\n" if last_msg != "" else "") + tr("Pass the phone to %s") % _player_name(engine.turn)
+	cover.visible = true
+
+func _on_cover_ready() -> void:
+	cover.visible = false
+	viewer = engine.turn
+	_update_status(last_msg)
+
 func _update_status(extra: String = "") -> void:
-	engine.hands[0].sort()
-	if engine.turn == 0 and engine.winner == -1:
-		if engine.playable(0).is_empty():
-			status_label.text = tr("No match — tap the deck to draw.") if engine.can_draw() else tr("No match and no cards left — tap the deck to pass.")
+	engine.hands[_me()].sort()
+	if _my_turn():
+		var who := (_player_name(_me()) + ": ") if hotseat else ""
+		if engine.playable(_me()).is_empty():
+			status_label.text = who + (tr("No match — tap the deck to draw.") if engine.can_draw() else tr("No match and no cards left — tap the deck to pass."))
 		else:
-			status_label.text = tr("Your turn: match %s or a rank, 8s are wild.") % Cards.SUITS[engine.suit_now]
+			status_label.text = who + tr("Your turn: match %s or a rank, 8s are wild.") % Cards.SUITS[engine.suit_now]
+		if hotseat and extra != "":
+			status_label.text = extra + "\n" + status_label.text
 	else:
 		status_label.text = extra
 	board.queue_redraw()
@@ -150,19 +210,24 @@ func _human_play(card: int) -> void:
 		pending_eight = card
 		suit_dialog.visible = true
 		return
-	engine.play(0, card)
+	var who := _me()
+	engine.play(who, card)
+	last_msg = tr("%s plays %s") % [_player_name(who), Cards.label(card)]
 	_after_turn()
 
 func _choose_suit(s: int) -> void:
 	if pending_eight >= 0:
-		engine.play(0, pending_eight, s)
+		var who := _me()
+		engine.play(who, pending_eight, s)
+		last_msg = tr("%s plays %s") % [_player_name(who), Cards.label(pending_eight)] + " — " + tr("suit is now %s") % Cards.SUITS[engine.suit_now]
 		pending_eight = -1
 		_after_turn()
 
 func _human_draw() -> void:
-	if not engine.playable(0).is_empty():
+	if not engine.playable(_me()).is_empty():
 		return
 	if engine.draw() == -1:
+		last_msg = tr("%s passes.") % _player_name(_me())
 		engine.pass_turn()
 		_after_turn()
 		return
@@ -171,13 +236,17 @@ func _human_draw() -> void:
 func _after_turn() -> void:
 	if _check_end():
 		return
+	if hotseat:
+		_update_status()
+		_show_cover()
+		return
 	_update_status(tr("%s is thinking...") % _player_name(engine.turn))
 	if engine.turn != 0:
 		cpu_timer.start()
 
 func _cpu_turn() -> void:
 	var p: int = engine.turn
-	if p == 0 or engine.winner != -1:
+	if p == 0 or hotseat or engine.winner != -1:
 		return
 	var drew := 0
 	var choice: Array = engine.cpu_choice(p)
@@ -210,13 +279,28 @@ func _check_end() -> bool:
 	if engine.winner == -1:
 		return false
 	var msg: String
+	if hotseat:
+		cover.visible = false
+		if engine.winner == engine.PLAYERS:
+			msg = tr("Nobody can move — it's a draw.")
+		else:
+			msg = tr("%s wins!") % _player_name(engine.winner)
+		SaveUtil.delete(SAVE_PATH)
+		if info and not result_recorded:
+			result_recorded = true
+			info.add("Pass-and-play games")
+			info.celebrate(msg)
+		end_dialog.get_meta("message_label").text = msg
+		end_dialog.visible = true
+		board.queue_redraw()
+		return true
 	if engine.winner == 0:
 		msg = tr("You win!")
-	elif engine.winner == C8Engine.PLAYERS:
+	elif engine.winner == engine.PLAYERS:
 		msg = tr("Nobody can move — it's a draw.")
 	else:
 		msg = tr("%s wins!") % _player_name(engine.winner)
-	msg += _record_result("win" if engine.winner == 0 else ("draw" if engine.winner == C8Engine.PLAYERS else "loss"))
+	msg += _record_result("win" if engine.winner == 0 else ("draw" if engine.winner == engine.PLAYERS else "loss"))
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
 	board.queue_redraw()
@@ -236,7 +320,7 @@ func _pile_rects() -> Array:
 ## Positions of the player's cards (up to two rows).
 func _hand_rects() -> Array:
 	var cs := _card_size()
-	var hand: Array = engine.hands[0]
+	var hand: Array = engine.hands[_me()]
 	var n := hand.size()
 	var per_row: int = max(1, ceili(n / 2.0)) if n > 7 else n
 	var out: Array = []
@@ -255,9 +339,14 @@ func _draw_board() -> void:
 	if engine.hands.is_empty():
 		return
 	var cs := _card_size()
-	# opponents
-	for p in [1, 2]:
-		var x: float = board.size.x * (0.25 if p == 1 else 0.75)
+	# opponents: everyone but the player holding the phone
+	var others: Array = []
+	for k in range(1, engine.PLAYERS):
+		others.append((_me() + k) % engine.PLAYERS)
+	var xs: Array = [[0.5], [0.25, 0.75], [0.17, 0.5, 0.83]][others.size() - 1]
+	for oi in others.size():
+		var p: int = others[oi]
+		var x: float = board.size.x * xs[oi]
 		var small := cs * 0.55
 		var n: int = engine.hands[p].size()
 		var spread: float = min(small.x * 0.35, 200.0 / max(1, n))
@@ -265,27 +354,30 @@ func _draw_board() -> void:
 		for k in n:
 			Cards.draw_card(board, Rect2(Vector2(x0 + k * spread, 36), small), 0, false)
 		var name_col := Color(1, 0.9, 0.4) if engine.turn == p else Color(0.85, 0.9, 0.85)
-		board.draw_string(font, Vector2(x - 150, 26), tr("%s: %d cards") % [_player_name(p), n], HORIZONTAL_ALIGNMENT_CENTER, 300, 22, name_col)
+		board.draw_string(font, Vector2(x - 120, 26), tr("%s: %d cards") % [_player_name(p), n], HORIZONTAL_ALIGNMENT_CENTER, 240, 20 if others.size() > 2 else 22, name_col)
 	var piles := _pile_rects()
+	var stuck: bool = _my_turn() and engine.playable(_me()).is_empty()
 	if engine.can_draw():
-		Cards.draw_card(board, piles[0], 0, false, engine.turn == 0 and engine.playable(0).is_empty())
+		Cards.draw_card(board, piles[0], 0, false, stuck)
 	else:
-		Cards.draw_card(board, piles[0], -1, true, engine.turn == 0 and engine.playable(0).is_empty())
+		Cards.draw_card(board, piles[0], -1, true, stuck)
 	Cards.draw_card(board, piles[1], engine.top())
 	# current suit marker (matters after an 8)
 	board.draw_string(font, piles[1].position + Vector2(piles[1].size.x + 12, piles[1].size.y * 0.6), Cards.SUITS[engine.suit_now],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 44, Cards.COLOR_RED if engine.suit_now in [1, 2] else Color(1, 1, 1))
+	if hotseat and cover.visible:
+		return  # never show a hand while the phone changes hands
 	var rects := _hand_rects()
-	var my_turn: bool = engine.turn == 0 and engine.winner == -1
+	var my_turn: bool = _my_turn()
 	for i in rects.size():
-		var card: int = engine.hands[0][i]
+		var card: int = engine.hands[_me()][i]
 		var ok: bool = my_turn and engine.can_play(card)
 		Cards.draw_card(board, rects[i], card, true, ok, my_turn and not ok)
 
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if engine.turn != 0 or engine.winner != -1 or suit_dialog.visible:
+	if not _my_turn() or suit_dialog.visible:
 		return
 	var pos: Vector2 = event.position
 	if _pile_rects()[0].has_point(pos):
@@ -294,7 +386,7 @@ func _on_board_input(event: InputEvent) -> void:
 	var rects := _hand_rects()
 	for i in range(rects.size() - 1, -1, -1):
 		if rects[i].has_point(pos):
-			var card: int = engine.hands[0][i]
+			var card: int = engine.hands[_me()][i]
 			if engine.can_play(card):
 				_human_play(card)
 			return
@@ -322,7 +414,14 @@ func _build_home() -> void:
 		"accent": HomeKit.PINK,
 		"subtitle": "Match the suit or the rank — eights are wild. You vs two computers.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "🃏  Play", "sub": "vs two computer players", "action": _new_game}],
+		"modes": [
+			{"text": "🃏  Play", "sub": "vs two computer players", "action": _new_game.bind(0)},
+			{"text": "👥 2", "row": "players", "multi": true, "color": HomeKit.CYAN, "action": _new_game.bind(2)},
+			{"text": "👥 3", "row": "players", "multi": true, "color": HomeKit.PINK, "action": _new_game.bind(3)},
+			{"text": "👥 4", "row": "players", "multi": true, "color": HomeKit.LIME, "action": _new_game.bind(4)},
+		],
+		"multi_heading": "Pass the phone",
+		"resume_text": _resume_text,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
@@ -347,20 +446,32 @@ func _draw_home_logo(c: Control) -> void:
 		Cards.draw_card(c, Rect2(Vector2(-w / 2.0, -h / 2.0), Vector2(w, h)), spec[1])
 		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-func _new_game() -> void:
+## 0 = vs the computers; 2-4 = that many people passing the phone.
+func _new_game(n: int = 0) -> void:
+	hotseat = n > 0
+	engine.PLAYERS = n if hotseat else 3
 	SaveUtil.delete(SAVE_PATH)
 	_start_new_game()
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		return ""
+	var n := int(d.get("players", 0))
+	return tr("%d players") % n if n > 0 else tr("vs Computer")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
 		_save_game()
 
-## Saved only on your turn: the computers' turns replay from there.
+## Saved on a person's turn: the computers' turns replay from there.
 func _save_game() -> void:
-	if not started or engine.winner != -1 or engine.turn != 0 or pending_eight >= 0:
+	if not started or engine.winner != -1 or pending_eight >= 0:
+		return
+	if not hotseat and engine.turn != 0:
 		return
 	SaveUtil.write(SAVE_PATH, {"hands": engine.hands, "deck": engine.deck, "discard": engine.discard,
-		"suit": engine.suit_now, "passes": engine.passes})
+		"suit": engine.suit_now, "passes": engine.passes, "players": engine.PLAYERS if hotseat else 0, "turn": engine.turn})
 
 static func _ints(a: Variant) -> Array:
 	var out: Array = []
@@ -373,6 +484,9 @@ func _load_saved_game() -> void:
 	if d == null:
 		_start_new_game()
 		return
+	var n := int(d.get("players", 0))
+	hotseat = n > 0
+	engine.PLAYERS = n if hotseat else 3
 	_start_new_game()
 	engine.hands = []
 	for hnd in d.hands:
@@ -381,6 +495,9 @@ func _load_saved_game() -> void:
 	engine.discard = _ints(d.discard)
 	engine.suit_now = int(d.suit)
 	engine.passes = int(d.get("passes", 0))
-	engine.turn = 0
+	engine.turn = clampi(int(d.get("turn", 0)), 0, engine.PLAYERS - 1) if hotseat else 0
 	engine.winner = -1
 	_update_status()
+	if hotseat:
+		last_msg = ""
+		_show_cover()

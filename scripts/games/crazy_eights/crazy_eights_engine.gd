@@ -1,12 +1,14 @@
 extends RefCounted
 
-## Crazy Eights for 3 players (you = 0, computers = 1 and 2). Match the top
+## Crazy Eights for 2-4 players (vs the computer: you = 0, computers = 1
+## and 2; pass-and-play: every seat is a person). Match the top
 ## card's suit or rank; an 8 is wild and names the next suit. If you can't
 ## play, draw until you can (or the deck runs out, then pass). First to empty
 ## their hand wins. Pure logic, no Nodes. Cards are ints 0..51.
 
-const PLAYERS := 3
 const HAND := 7
+
+var PLAYERS: int = 3  # seats this game (kept in caps: it used to be a const)
 
 var hands: Array = []
 var deck: Array = []
@@ -22,7 +24,8 @@ static func rank(card: int) -> int:
 static func suit(card: int) -> int:
 	return card / 13
 
-func new_game() -> void:
+func new_game(n: int = 3) -> void:
+	PLAYERS = n
 	deck = []
 	for c in 52:
 		deck.append(c)
