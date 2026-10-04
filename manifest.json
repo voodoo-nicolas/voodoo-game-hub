@@ -26,7 +26,8 @@
       {"id": "hanoi", "title": "Tower of Hanoi", "icon": "🗼", "title_es": "Torre de Hanói", "board": "Puzzles solved"},
       {"id": "calcudoku", "title": "Calcudoku", "icon": "🔟", "title_es": "Calcudoku", "board": "Puzzles solved"},
       {"id": "pipe_flow", "title": "Pipe Flow", "icon": "🚰", "title_es": "Tuberías", "board": "Puzzles solved"},
-      {"id": "five_in_row", "title": "Five in a Row", "icon": "⚫", "title_es": "Cinco en línea", "modes": "online,local,cpu", "board": "Wins"}
+      {"id": "five_in_row", "title": "Five in a Row", "icon": "⚫", "title_es": "Cinco en línea", "modes": "online,local,cpu", "board": "Wins"},
+      {"id": "mahjong", "title": "Mahjong Solitaire", "icon": "🀄", "title_es": "Mahjong solitario", "board": "Games solved"}
     ]},
     {"name": "Intelligence", "icon": "🧠", "name_es": "Inteligencia", "games": [
       {"id": "trivia", "title": "Trivia", "icon": "❓", "title_es": "Trivia"},
@@ -171,6 +172,7 @@
     "bubble_pop": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bubble_pop.pck", "scene": "res://scenes/games/bubble_pop/bubble_pop.tscn"},
     "sketch_it": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sketch_it.pck", "scene": "res://scenes/games/sketch_it/sketch_it.tscn"},
     "five_in_row": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/five_in_row.pck", "scene": "res://scenes/games/five_in_row/five_in_row.tscn"},
-    "dominoes": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dominoes.pck", "scene": "res://scenes/games/dominoes/dominoes.tscn"}
+    "dominoes": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dominoes.pck", "scene": "res://scenes/games/dominoes/dominoes.tscn"},
+    "mahjong": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mahjong.pck", "scene": "res://scenes/games/mahjong/mahjong.tscn"}
   }
 }
