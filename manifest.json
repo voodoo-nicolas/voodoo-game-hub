@@ -50,7 +50,8 @@
       {"id": "pyramid", "title": "Pyramid Solitaire", "icon": "🔺", "title_es": "Solitario Pirámide", "board": "Wins"},
       {"id": "speed", "title": "Speed", "icon": "⚡", "title_es": "Speed", "modes": "cpu", "board": "Wins"},
       {"id": "memory", "title": "Memory Match", "icon": "🧠", "title_es": "Memoria", "modes": "online,local", "board": "Games solved"},
-      {"id": "tri_peaks", "title": "Tri-Peaks", "icon": "🏔️", "title_es": "Tres picos", "board": "Best score"}
+      {"id": "tri_peaks", "title": "Tri-Peaks", "icon": "🏔️", "title_es": "Tres picos", "board": "Best score"},
+      {"id": "hearts", "title": "Hearts", "icon": "♥️", "title_es": "Corazones", "modes": "cpu", "board": "Wins"}
     ]},
     {"name": "Word", "icon": "🔤", "name_es": "Palabras", "games": [
       {"id": "hangman", "title": "Hangman", "icon": "💀", "title_es": "Ahorcado", "modes": "local", "board": "Wins"},
@@ -175,6 +176,7 @@
     "five_in_row": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/five_in_row.pck", "scene": "res://scenes/games/five_in_row/five_in_row.tscn"},
     "dominoes": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dominoes.pck", "scene": "res://scenes/games/dominoes/dominoes.tscn"},
     "mahjong": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mahjong.pck", "scene": "res://scenes/games/mahjong/mahjong.tscn"},
-    "tri_peaks": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tri_peaks.pck", "scene": "res://scenes/games/tri_peaks/tri_peaks.tscn"}
+    "tri_peaks": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tri_peaks.pck", "scene": "res://scenes/games/tri_peaks/tri_peaks.tscn"},
+    "hearts": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hearts.pck", "scene": "res://scenes/games/hearts/hearts.tscn"}
   }
 }
