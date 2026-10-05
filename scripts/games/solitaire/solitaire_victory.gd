@@ -146,15 +146,20 @@ func _draw() -> void:
 
 func _draw_card(p: Vector2, card, alpha: float, glow: bool) -> void:
 	var r := Rect2(p, _card_size)
-	var rim: Color = CardView.COLOR_RED if card.is_red() else CardView.COLOR_BLACK
-	draw_rect(r, Color(CardView.COLOR_FACE, alpha))
-	if glow:
+	var classic: bool = CardView.classic
+	var rim: Color
+	if classic:
+		rim = CardView.CLASSIC_RED if card.is_red() else CardView.CLASSIC_BLACK
+	else:
+		rim = CardView.COLOR_RED if card.is_red() else CardView.COLOR_BLACK
+	draw_rect(r, Color(CardView.CLASSIC_FACE if classic else CardView.COLOR_FACE, alpha))
+	if glow and not classic:
 		draw_rect(r.grow(3), Color(rim, 0.25), false, 4.0)
-	draw_rect(r, Color(rim, alpha), false, 2.0)
+	draw_rect(r, Color(CardView.CLASSIC_RIM if classic else rim, alpha), false, 2.0)
 	var k: float = _card_size.x / 84.0
 	var sym: String = card.suit_symbol()
 	draw_string(_font, p + Vector2(6, 26) * k, card.rank_str() + sym, HORIZONTAL_ALIGNMENT_LEFT, -1,
-		int(22 * k), Color(rim.lerp(Color.WHITE, 0.25), alpha))
+		int(22 * k), Color(rim if classic else rim.lerp(Color.WHITE, 0.25), alpha))
 	draw_string(_font, p + Vector2(0, _card_size.y * 0.72), sym, HORIZONTAL_ALIGNMENT_CENTER, _card_size.x,
 		int(40 * k), Color(rim, alpha))
 

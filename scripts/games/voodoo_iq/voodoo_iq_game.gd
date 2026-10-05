@@ -65,6 +65,15 @@ var finish_reason := "time"
 var screen_name := ""  # the screen _on_screen_resized redraws
 var last_result: Dictionary = {}
 var fresh_result := true
+## The player can't play sound right now: musical questions are passed over
+## (sent as unanswered, like a timeout) for the rest of this test.
+var skip_music := false
+## The text size changed while paused: the question is laid out again on Continue.
+var relayout_item := false
+const SOUND_OPTIONS_PATH := "res://scripts/common/sound_options.gd"
+## Worked examples for the question types players found unclear (Existential).
+const EXAMPLE_GIDS := ["syll", "syllquick", "fallacy"]
+var info_back: Callable  # where the Info screen's Back goes
 
 func _ready() -> void:
 	preload("res://scripts/games/voodoo_iq/voodoo_iq_i18n.gd").install(self)
@@ -202,6 +211,8 @@ func _on_screen_resized() -> void:
 			_show_boards()
 		"results":
 			_show_results(last_result)
+		"info":
+			_show_info(info_back)
 
 func _toast(msg: String) -> void:
 	toast_label.text = msg
@@ -258,16 +269,25 @@ func _icon(sec: String, size: float) -> Control:
 # ================================================================== HOME (brain menu + setup)
 
 func _show_home() -> void:
+	# Tapping an option rebuilds Home: keep the player where they were instead
+	# of jumping back to the top.
+	var keep_scroll := 0
+	if screen_name == "home":
+		var old_sc := _page_scroller()
+		if old_sc:
+			keep_scroll = old_sc.scroll_vertical
 	screen_name = "home"
 	running = false
+	skip_music = false
 	_close_overlays()
 	var box := _new_page(true)
+	_restore_scroll(keep_scroll)
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
 	top.add_child(_button(tr("Hub"), UI.exit_to_hub.bind(self), FG2, Vector2(100, 60), 24))
 	var brand := VBoxContainer.new()
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	brand.add_child(_neon_title("VOODOO IQ", 48))
+	brand.add_child(_neon_title(T.app_name().to_upper(), 48))
 	brand.add_child(_label(T.t("tagline"), 22, FG2))
 	top.add_child(brand)
 	top.add_child(_button("🏆", _show_boards, WARN, Vector2(70, 60), 26))
@@ -276,6 +296,7 @@ func _show_home() -> void:
 
 	box.add_child(_label(T.t("hero"), 30, Color.WHITE, W))
 	box.add_child(_label(T.t("hero_sub"), 21, FG2, W))
+	box.add_child(_button(T.info("button"), _show_info.bind(_show_home), ACCENT, Vector2(0, 68), 24))
 	if not api.is_signed_in():
 		var warn := _panel(WARN)
 		warn.add_child(_label(tr("Sign in to take the IQ test: hub → ⚙ Options → Account. Scores are saved to your account."), 24, WARN, W - 40))
@@ -320,6 +341,8 @@ func _show_home() -> void:
 	modes.add_theme_constant_override("separation", 10)
 	for m in [["iq", T.t("iqtest"), T.t("iq_hint")], ["blitz", T.t("blitz"), T.t("blitz_hint")]]:
 		var b := _button(m[1] + "\n" + m[2], _set_mode.bind(m[0]), GOOD if setup.mode == m[0] else FG2, Vector2(0, 90), 24)
+		if setup.mode == m[0]:
+			b.add_theme_stylebox_override("normal", Items.box_style(Color(GOOD, 0.22), GOOD, 3))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		modes.add_child(b)
 	sp.add_child(modes)
@@ -342,16 +365,26 @@ func _show_home() -> void:
 		sp.add_child(_label(tr("∞ No time limit: answer as many questions as you like and tap Finish when you're done. Every answer counts, so long runs reach the boards faster."), 19, GOOD, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	sp.add_child(_label(T.t("questions_from") + ": " + _sec_name(scope), 24, Color.WHITE if scope == "ALL" else T.sec_color(scope), W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	sp.add_child(_label(T.t("pick_hint"), 18, FG2, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
-	var rk := CheckButton.new()
-	rk.text = T.t("ranked") if setup.ranked else T.t("practice")
-	rk.button_pressed = bool(setup.ranked)
-	rk.add_theme_font_size_override("font_size", 26)
-	rk.toggled.connect(_set_ranked)
-	sp.add_child(rk)
+	# Ranked or practice: two big buttons, the chosen one lit (players missed
+	# the old small switch).
+	sp.add_child(_label(tr("Does this test count?"), 22, FG2, 0, HORIZONTAL_ALIGNMENT_LEFT))
+	var rrow := HBoxContainer.new()
+	rrow.add_theme_constant_override("separation", 10)
+	for opt in [[true, "🏆 " + T.t("ranked"), tr("Saved, on the boards"), WARN], [false, "🎯 " + T.t("practice"), tr("Not saved"), Color("#29e6ff")]]:
+		var on: bool = bool(setup.ranked) == opt[0]
+		var col: Color = opt[3]
+		var rb := _button(("✓ " if on else "") + str(opt[1]) + "\n" + str(opt[2]), _set_ranked.bind(opt[0]), col if on else FG2, Vector2(0, 96), 26)
+		if on:
+			rb.add_theme_stylebox_override("normal", Items.box_style(Color(col, 0.28), col, 4))
+		else:
+			rb.add_theme_color_override("font_color", FG2)
+		rb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rrow.add_child(rb)
+	sp.add_child(rrow)
 	# not the prototype's ranked_iq_note: ranked IQ has no daily limit any more (user, 2026-10-03)
 	var note: String = (tr("Counts for the leaderboard. Your last 3 ranked tests in each section count, so one lucky run can't carry you.") if iq_mode else T.t("ranked_blitz_note")) if setup.ranked else T.t("practice_note")
 	sp.add_child(_label(note, 19, FG2, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
-	var start_text := "▶ %s · %s" % [T.t("start"), T.t("iqtest") if iq_mode else T.t("blitz")]
+	var start_text := "▶ %s · %s\n%s" % [T.t("start"), T.t("iqtest") if iq_mode else T.t("blitz"), ("🏆 " + T.t("ranked")) if setup.ranked else ("🎯 " + T.t("practice"))]
 	sp.add_child(_button(start_text, _start_from_setup, GOOD, Vector2(0, 90), 32))
 	if scope in ["LIN", "EXI", "ALL"]:
 		sp.add_child(_label(T.t("lang_note", {"l": "Español" if T.lang() == "es" else "English"}), 18, FG2, W - 40))
@@ -369,7 +402,101 @@ func _show_home() -> void:
 	hp.add_child(_button(T.t("how_title"), func(): body.visible = not body.visible, FG2, Vector2(0, 64), 22))
 	hp.add_child(body)
 	box.add_child(_panel_of(hp))
-	box.add_child(_label(T.t("footer"), 17, FG2, W))
+
+# ================================================================== INFO (intelligence, genius, quotes)
+
+## `back` reopens the screen the player came from (home or results).
+func _show_info(back: Callable) -> void:
+	screen_name = "info"
+	info_back = back
+	_close_overlays()
+	var box := _new_page(true)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.add_child(_button("← " + str(T.info("back")), back, FG2, Vector2(120, 60), 24))
+	var brand := VBoxContainer.new()
+	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand.add_child(_neon_title(str(T.info("title")), 40))
+	brand.add_child(_label(str(T.info("subtitle")), 22, FG2))
+	top.add_child(brand)
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(120, 0)  # balances the Back button
+	top.add_child(spacer)
+	box.add_child(top)
+
+	var wp := _info_panel(str(T.info("what_h")), ACCENT)
+	for p in T.info("what"):
+		wp.add_child(_info_text(str(p), FG))
+	box.add_child(_panel_of(wp))
+
+	var tp := _info_panel(str(T.info("types_h")), ACCENT)
+	tp.add_child(_info_text(str(T.info("types_intro")), FG2))
+	var descs: Dictionary = T.info("types")
+	for sec in T.secs():
+		var head := HBoxContainer.new()
+		head.add_child(_icon(sec, 32))
+		head.add_child(_label(" " + T.t("sec_" + sec), 24, T.sec_color(sec)))
+		tp.add_child(head)
+		tp.add_child(_info_text(str(descs.get(sec, "")), FG))
+		if T.core().has(sec):
+			tp.add_child(_label("★ " + str(T.info("core_tag")), 18, GOOD, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+	tp.add_child(_info_text(str(T.info("types_note")), FG2, 18))
+	box.add_child(_panel_of(tp))
+
+	var op := _info_panel(str(T.info("one_h")), WARN)
+	for p in T.info("one"):
+		op.add_child(_info_text(str(p), FG))
+	box.add_child(_panel_of(op))
+
+	var gp := _info_panel(str(T.info("genius_h")), GOOD)
+	gp.add_child(_info_text(str(T.info("genius_intro")), FG2))
+	var points: Array = T.info("genius")
+	for i in points.size():
+		gp.add_child(_label("%d. %s" % [i + 1, points[i][0]], 24, GOOD, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+		gp.add_child(_info_text(str(points[i][1]), FG))
+	gp.add_child(_info_text(str(T.info("genius_outro")), FG2))
+	box.add_child(_panel_of(gp))
+
+	var qp := _info_panel(str(T.info("quotes_h")), Color("#00e5ff"))
+	qp.add_child(_info_text(str(T.info("quotes_note")), FG2, 18))
+	for q in T.info("quotes"):
+		qp.add_child(_info_text("“%s”" % q[0], Color.WHITE, 22))
+		qp.add_child(_label("— " + str(q[1]), 18, Color("#00e5ff"), W - 40, HORIZONTAL_ALIGNMENT_RIGHT))
+	box.add_child(_panel_of(qp))
+
+	var ap := _info_panel(str(T.info("about_h")), Color("#2A2A3E"))
+	ap.add_child(_info_text(T.t("footer"), FG2))
+	ap.add_child(_info_text(T.t("brain_disclaimer"), FG2, 18))
+	box.add_child(_panel_of(ap))
+	box.add_child(_button("← " + str(T.info("back")), back, FG2, Vector2(0, 68), 24))
+
+func _info_panel(heading: String, border: Color) -> VBoxContainer:
+	var p := _panel(border)
+	p.add_child(_label(heading, 30, Color.WHITE if border == Color("#2A2A3E") else border, W - 40))
+	return p
+
+func _info_text(text: String, color: Color, size := 21) -> Label:
+	return _label(text, size, color, W - 40, HORIZONTAL_ALIGNMENT_LEFT)
+
+func _page_scroller() -> ScrollContainer:
+	for m in page.get_children():
+		if m.is_queued_for_deletion():
+			continue
+		for c in m.get_children():
+			if c is ScrollContainer:
+				return c
+	return null
+
+## Sets the new page's scroll once its content has been laid out (a few
+## frames: the scroll range is 0 until then). The tween dies with the page.
+func _restore_scroll(v: int) -> void:
+	var sc := _page_scroller()
+	if sc == null or v <= 0:
+		return
+	var tw := sc.create_tween()
+	for wait in [0.0, 0.03, 0.08]:
+		tw.tween_interval(wait)
+		tw.tween_callback(sc.set_deferred.bind("scroll_vertical", v))
 
 func _neon_title(text: String, size: int) -> Label:
 	var l := _label(text, size, Color.WHITE)
@@ -635,6 +762,7 @@ func _build_runner() -> void:
 	bar.add_child(meta)
 	clock_label = _label("0:00", 40, Color.WHITE)
 	bar.add_child(clock_label)
+	bar.add_child(_button("⏸", _pause_test, FG2, Vector2(64, 60), 26))
 	bar.add_child(_button(tr("Finish") if endless else T.t("quit"), _confirm_quit, GOOD if endless else Color("#ff4f9a"), Vector2(110, 60), 24))
 	box.add_child(bar)
 	item_bar = ProgressBar.new()
@@ -666,6 +794,9 @@ func _present(it: Dictionary) -> void:
 	if count_label:
 		count_label.text = "# %d" % (blitz_index + 1)
 	var gid := str(it.get("gid", ""))
+	if skip_music and str(it.get("sec", "")) == "MUS":
+		_pass_music_item()
+		return
 	if not seen.has(gid):
 		seen[gid] = true
 		_show_instructions(it)
@@ -678,6 +809,13 @@ func _mount_item() -> void:
 	chip.add_child(_icon(sec, 28))
 	chip.add_child(_label(" " + T.t("sec_" + sec), 22, T.sec_color(sec)))
 	qarea.add_child(chip)
+	var gid := str(item.get("gid", ""))
+	if gid in EXAMPLE_GIDS and not _is_blitz():
+		chip.add_child(_spacer())
+		chip.add_child(_button("💡 " + tr("Example"), _show_example.bind(gid), FG2, Vector2(0, 48), 20))
+	elif sec == "MUS":
+		chip.add_child(_spacer())
+		chip.add_child(_button("🔇 " + tr("No sound?"), _no_sound, FG2, Vector2(0, 48), 20))
 	view = Items.build(item, _is_blitz())
 	view.submitted.connect(_on_item_submitted)
 	view.timer_ready.connect(_on_item_ready)
@@ -710,11 +848,172 @@ func _show_instructions(it: Dictionary) -> void:
 		player.stream = Audio.test_tone()
 		box.add_child(player)
 		box.add_child(_button("▶ " + T.t("test_tone"), player.play, T.sec_color("MUS"), Vector2(0, 64), 24))
+		box.add_child(_button("🔇 " + tr("I can't play sound right now"), _no_sound, FG2, Vector2(0, 64), 22))
+	if gid in EXAMPLE_GIDS:
+		_add_example(box, gid)
 	box.add_child(_label(T.t("clock_paused"), 18, FG2, W - 80))
 	box.add_child(_button(T.t("start_timer"), func():
 		_close_overlays()
 		paused = false
 		_mount_item(), GOOD, Vector2(0, 84), 30))
+
+func _spacer() -> Control:
+	var c := Control.new()
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return c
+
+# ------------------------------------------------------------------ examples
+
+func _add_example(box: VBoxContainer, gid: String) -> void:
+	var ex := _panel(T.sec_color("EXI"))
+	ex.add_child(_label("💡 " + tr("Example"), 24, T.sec_color("EXI"), 0, HORIZONTAL_ALIGNMENT_LEFT))
+	var lines: Array
+	if gid == "fallacy":
+		lines = [
+			tr("Don't judge whether you agree with the conclusion. Pick the description of the mistake in HOW the argument reasons."),
+			tr("“Nobody has proven that ghosts don't exist, so they must exist.”  →  Not disproven, so it must be true."),
+			tr("“My grandmother took this herb and got better, so it cures everyone.”  →  Generalizes from too few cases."),
+		]
+	else:
+		lines = [
+			tr("Forget the real world: the statements are the only facts. Picture each group as a circle. A conclusion is right only if it is true in EVERY way the circles could be drawn."),
+			tr("“All poets are dreamers.” + “All dreamers are mortals.”  →  “All poets are mortals.” must be true."),
+			tr("“No ghosts are mortals.” + “All poets are mortals.”  →  “No poets are ghosts.” must be true."),
+			tr("“Some poets are ghosts.” + “Some ghosts are sages.”  →  nothing is guaranteed: the poets who are ghosts may not be the ghosts who are sages. Pick “None”."),
+		]
+	for l in lines:
+		ex.add_child(_label(str(l), 21, FG, W - 120, HORIZONTAL_ALIGNMENT_LEFT))
+	box.add_child(_panel_of(ex))
+
+## 💡 during a question: the example card, with the clock stopped.
+func _show_example(gid: String) -> void:
+	if not running or waiting or paused:
+		return
+	paused = true
+	var box := _overlay()
+	_add_example(box, gid)
+	box.add_child(_button(tr("Back to the question"), _close_example, GOOD, Vector2(0, 76), 26))
+
+func _close_example() -> void:
+	_close_overlays()
+	paused = false
+
+# ------------------------------------------------------------------ no sound
+
+## Musical questions need sound. In a mixed test they can be passed over for the
+## rest of the test (each counts as unanswered, for the Musical section only);
+## a Musical-only test can just end here.
+func _no_sound() -> void:
+	if not running or waiting:
+		return
+	_close_overlays()
+	paused = true
+	var box := _overlay()
+	box.add_child(_label("🔇 " + tr("No sound right now?"), 32, Color.WHITE))
+	if str(session.get("scope", "")) == "MUS":
+		box.add_child(_label(tr("This section is all musical questions, so it needs sound. End the test now and come back when you can listen."), 22, FG, W - 80))
+	else:
+		box.add_child(_label(tr("You can skip the musical questions for the rest of this test. Each one counts as unanswered for the Musical section only: your IQ score (Logic, Spatial and Verbal) isn't affected."), 22, FG, W - 80))
+		box.add_child(_button(tr("Skip musical questions"), _start_skipping_music, GOOD, Vector2(0, 76), 26))
+	box.add_child(_button(tr("End the test"), _end_from_no_sound, Color("#ff4f9a"), Vector2(0, 68), 24))
+	box.add_child(_button(tr("Back"), _back_from_no_sound, FG2, Vector2(0, 64), 24))
+
+func _start_skipping_music() -> void:
+	skip_music = true
+	_close_overlays()
+	paused = false
+	_pass_music_item()
+
+func _end_from_no_sound() -> void:
+	_close_overlays()
+	paused = false
+	_finish("time" if endless else "quit")
+
+func _back_from_no_sound() -> void:
+	_close_overlays()
+	if view == null:
+		_show_instructions(item)  # still before the first musical question
+	else:
+		paused = false
+
+## Passes over the current musical question: Blitz skips it, the IQ test sends
+## it as unanswered (null = the timer ran out; never scored as too fast).
+func _pass_music_item() -> void:
+	if view != null and not view.done:
+		view.done = true
+	_toast("🔇 " + tr("Musical question skipped"))
+	if _is_blitz():
+		blitz_answers.append({"seq": int(item.get("seq", 0)), "skip": true, "ms": int(round(item_ms))})
+		blitz_index += 1
+		var tw := create_tween()
+		tw.tween_interval(0.14)
+		tw.tween_callback(_next_blitz)
+		return
+	_send_answer({"seq": int(item.get("seq", 0)), "value": null, "ms": int(round(item_ms))})
+
+# ------------------------------------------------------------------ pause
+
+## ⏸: the clock stops and the question is hidden until Continue. The card has
+## the text size and sound settings, so they can be changed mid-test.
+func _pause_test() -> void:
+	if not running or waiting or paused:
+		return
+	paused = true
+	qarea.visible = false
+	_show_pause_card()
+
+func _show_pause_card() -> void:
+	_close_overlays()
+	var box := _overlay()
+	box.add_child(_label("⏸ " + tr("Paused"), 40, Color.WHITE))
+	box.add_child(_label(tr("The clock is stopped and the question is hidden until you continue."), 21, FG2, W - 80))
+	box.add_child(_button("▶ " + tr("Continue"), _resume_test, GOOD, Vector2(0, 84), 30))
+	var settings = get_node_or_null("/root/Settings")
+	if settings and "TEXT_SCALES" in settings and settings.has_method("set_text_size"):
+		box.add_child(_label(tr("Text size"), 22, FG2, 0, HORIZONTAL_ALIGNMENT_LEFT))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var names: Array = settings.TEXT_SIZE_NAMES if "TEXT_SIZE_NAMES" in settings else ["Normal", "Large", "Extra large"]
+		for i in names.size():
+			var on: bool = int(settings.text_size) == i
+			var b := _button(("✓ " if on else "") + tr(str(names[i])), _set_text_size.bind(i), GOOD if on else FG2, Vector2(0, 64), 20)
+			if on:
+				b.add_theme_stylebox_override("normal", Items.box_style(Color(GOOD, 0.22), GOOD, 3))
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(b)
+		box.add_child(row)
+	if settings and ResourceLoader.exists(SOUND_OPTIONS_PATH):
+		box.add_child(_label("🔊 " + tr("Sound"), 22, FG2, 0, HORIZONTAL_ALIGNMENT_LEFT))
+		box.add_child(load(SOUND_OPTIONS_PATH).new(settings.DARK if "DARK" in settings else settings.palette(), true))
+	box.add_child(_button(tr("Finish") if endless else T.t("quit"), _quit_from_pause, Color("#ff4f9a"), Vector2(0, 64), 24))
+
+func _set_text_size(i: int) -> void:
+	var settings = get_node_or_null("/root/Settings")
+	if settings == null:
+		return
+	settings.set_text_size(i)
+	relayout_item = true
+	# the screen is re-scaled first; then lay the card out at the new width
+	call_deferred("_show_pause_card")
+
+func _resume_test() -> void:
+	_close_overlays()
+	qarea.visible = true
+	# Lay the question out again at the new text size -- unless it times itself
+	# (memory sequences, audio, motor trials): rebuilding would replay it.
+	if relayout_item and view != null and not view.done and not bool(item.get("deferTimer", false)):
+		_fit_width()
+		for c in qarea.get_children():
+			c.queue_free()
+		_mount_item()
+	relayout_item = false
+	paused = false
+
+func _quit_from_pause() -> void:
+	_close_overlays()
+	qarea.visible = true
+	paused = false
+	_confirm_quit()
 
 func _process(delta: float) -> void:
 	if not running or waiting or paused:
@@ -753,7 +1052,9 @@ func _on_item_submitted(value) -> void:
 		tw.tween_interval(0.14)
 		tw.tween_callback(_next_blitz)
 		return
-	if str(session.get("scope", "")) == "SELF" and value != "__hidden":
+	# `value` is usually an int (option index): compare as text, or Godot stops
+	# here with "Invalid operands" and the test froze after the first tap.
+	if str(session.get("scope", "")) == "SELF" and str(value) != "__hidden":
 		_ask_confidence(answer)
 		return
 	_send_answer(answer)
@@ -914,7 +1215,7 @@ func _show_results(res: Dictionary) -> void:
 	row.add_child(home)
 	box.add_child(row)
 	box.add_child(_button("🏆 " + T.t("nav_boards"), _show_boards, WARN, Vector2(0, 72), 26))
-	box.add_child(_label(T.t("footer"), 17, FG2, W))
+	box.add_child(_button(T.info("button"), _show_info.bind(_show_results.bind(res)), ACCENT, Vector2(0, 68), 24))
 
 func _stat(parent: Container, lab: String, value: String) -> void:
 	var col := VBoxContainer.new()

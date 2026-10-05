@@ -41,6 +41,10 @@ var moves_label: Label
 var undo_button: Button
 var victory  # solitaire_victory.gd: the cascade + results panel
 var pause_dialog: Control
+var neon_bg: Control
+var felt_bg: ColorRect
+const FELT := Color(0.05, 0.34, 0.17)
+const STYLE_PATH := "user://solitaire_style.json"
 
 var elapsed_seconds: float = 0.0
 ## Double-click / double-tap: a second press on the same card this soon after
@@ -84,8 +88,16 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
-	add_child(bg)
+	neon_bg = HomeKit.backdrop()
+	add_child(neon_bg)
+	felt_bg = ColorRect.new()
+	felt_bg.color = FELT
+	felt_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	felt_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(felt_bg)
+	var style = SaveUtil.read(STYLE_PATH)
+	CardView.classic = style == null or str(style.get("cards", "classic")) != "neon"
+	_apply_card_style()
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -148,6 +160,21 @@ func _build_ui() -> void:
 	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
+
+## Classic (white cards on green felt, the default) or Neon cards.
+func _apply_card_style() -> void:
+	felt_bg.visible = CardView.classic
+	neon_bg.visible = not CardView.classic
+
+func _pick_card_style(i: int) -> void:
+	CardView.classic = i == 0
+	SaveUtil.write(STYLE_PATH, {"cards": "classic" if CardView.classic else "neon"})
+	_apply_card_style()
+	_render()
+
+func _add_style_picker(box: VBoxContainer) -> void:
+	box.add_child(home.section("Cards"))
+	box.add_child(home.choice_row(["Classic", "Neon"], 0 if CardView.classic else 1, _pick_card_style))
 
 func _fit_board() -> void:
 	var avail: float = board_scroll.size.x - 8.0
@@ -706,6 +733,7 @@ func _build_home() -> void:
 		"board": "Games won",
 		"board_note": "Games won, all time.",
 		"more": [["📜 History", HomeKit.PURPLE, _show_history]],
+		"extra": _add_style_picker,
 	})
 	add_child(home)
 

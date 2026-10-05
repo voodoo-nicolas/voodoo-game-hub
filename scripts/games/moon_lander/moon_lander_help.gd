@@ -8,9 +8,10 @@ const GOAL := "Land on the green pads, gently and upright, as many times as you 
 const HOW := [
 	"Hold ⟲ or ⟳ to tilt the lander. Hold 🔥 to fire the engine: it pushes the way the nose points and burns fuel.",
 	"Gravity always pulls you down. Without fuel the engine stops.",
-	"To land safely: on a green pad, falling slower than 42, sliding slower than 26 and tilted less than about 12°. The numbers turn green when they're safe.",
+	"To land safely: touch down on a green pad, slowly and nearly upright. The Down, Sideways and Tilt numbers turn green when they're safe.",
+	"The first levels are forgiving: wide pads, lots of fuel, gentle limits, and the lander straightens itself when you let go of ⟲ / ⟳. It gets stricter with every landing until level 6.",
 	"Narrow pads pay more: ×2, ×3 and ×5. Fuel left over and a soft touchdown add to the score.",
-	"Each landing brings new mountains, a little less fuel and a little more gravity. A crash costs one of your 3 landers.",
+	"Each landing brings new mountains, narrower pads, a little less fuel and a little more gravity. A crash costs one of your 3 landers.",
 	"⏸ pauses; Resume on the Home screen keeps your score, level and landers, and starts a fresh descent.",
 ]
 const TIPS := [

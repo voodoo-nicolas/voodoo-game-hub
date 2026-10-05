@@ -14,6 +14,7 @@ const HOW := [
 	"⏸ pauses the clock and keeps the deal; Resume on the Home screen picks it up.",
 	"Once every card is face up and the stock is used up, the rest fly up to the foundations by themselves.",
 	"📜 History on the Home screen lists every win with its time and moves.",
+	"Cards on the Home screen switches between Classic cards on green felt and glowing Neon cards.",
 ]
 const TIPS := [
 	"Turning over face-down cards in the columns is usually the best move.",

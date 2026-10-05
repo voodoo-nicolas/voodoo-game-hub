@@ -276,12 +276,12 @@ func _draw_field() -> void:
 	if engine.state != "crashed" and engine.state != "over":
 		_draw_lander(field, engine.pos * k, engine.angle, 1.0, thrust and engine.fuel > 0.0 and engine.state == "flying")
 	# HUD: fuel, speeds (green when safe), altitude.
-	var safe_vy: bool = engine.vel.y <= MlEngine.SAFE_VY
-	var safe_vx: bool = absf(engine.vel.x) <= MlEngine.SAFE_VX
-	var safe_a: bool = absf(engine.angle) <= MlEngine.SAFE_TILT
+	var safe_vy: bool = engine.vel.y <= engine.safe_vy()
+	var safe_vx: bool = absf(engine.vel.x) <= engine.safe_vx()
+	var safe_a: bool = absf(engine.angle) <= engine.safe_tilt()
 	var y := 26.0
 	field.draw_rect(Rect2(14, y - 14, 160, 14), Color(1, 1, 1, 0.1))
-	var fuel_k: float = engine.fuel / maxf(60.0, 140.0 - (engine.level - 1) * 8.0)
+	var fuel_k: float = engine.fuel / engine.max_fuel()
 	field.draw_rect(Rect2(14, y - 14, 160 * clampf(fuel_k, 0.0, 1.0), 14), HomeKit.GOLD if fuel_k > 0.25 else DANGER)
 	field.draw_string(font, Vector2(182, y), tr("Fuel"), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, HomeKit.DIM)
 	field.draw_string(font, Vector2(14, y + 28), tr("Down: %d") % int(engine.vel.y), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, SAFE if safe_vy else DANGER)

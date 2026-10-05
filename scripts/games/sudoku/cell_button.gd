@@ -6,6 +6,10 @@ const COLOR_GIVEN := Color(0.92, 0.92, 0.92)
 const COLOR_EDITABLE := Color(0.55, 0.8, 1.0)
 const COLOR_ERROR := Color(1.0, 0.4, 0.4)
 const COLOR_NOTE := Color(0.85, 0.88, 0.97)
+## A note matching the selected cell's number: a green chip behind it, like
+## the same-number cells' green background.
+const COLOR_NOTE_MATCH := Color(0.62, 1.0, 0.45)
+const COLOR_NOTE_MATCH_BG := Color(0.32, 0.5, 0.18)
 
 var row: int = -1
 var col: int = -1
@@ -17,6 +21,8 @@ var notes: Array = [false, false, false, false, false, false, false, false, fals
 var value_label: Label
 var notes_layer: Control
 var note_font_size: int = 18
+## The digit whose note stands out (the selected cell's number), 0 = none.
+var match_note: int = 0
 
 func setup(r: int, c: int, cell_size: float = 72.0) -> void:
 	row = r
@@ -76,6 +82,13 @@ func toggle_note(n: int) -> void:
 	notes[n - 1] = not notes[n - 1]
 	update_display()
 
+func set_match_note(n: int) -> void:
+	if n == match_note:
+		return
+	match_note = n
+	if value == 0:
+		notes_layer.queue_redraw()
+
 func update_display() -> void:
 	if value != 0:
 		value_label.text = str(value)
@@ -106,7 +119,13 @@ func _draw_notes() -> void:
 		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size).x
 		var centre := Vector2((i % 3 + 0.5) * third.x, (int(i / 3) + 0.5) * third.y)
 		var pos := Vector2(centre.x - w / 2.0, centre.y - height / 2.0 + ascent)
-		notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, COLOR_NOTE)
+		if i + 1 == match_note:
+			var chip := Rect2(centre - third * 0.46, third * 0.92)
+			notes_layer.draw_rect(chip, COLOR_NOTE_MATCH_BG)
+			notes_layer.draw_rect(chip, COLOR_NOTE_MATCH, false, 1.5)
+			notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, COLOR_NOTE_MATCH)
+		else:
+			notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, COLOR_NOTE)
 
 const THIN_LINE := 1
 const COLOR_THIN_LINE := Color(0.42, 0.42, 0.5)

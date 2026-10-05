@@ -295,6 +295,23 @@ func _on_letter_pressed(letter: String) -> void:
 	elif engine.is_lost():
 		_end_game(tr("Game over — the word was %s") % engine.word + _record_result("loss"), Color(0.9, 0.4, 0.4))
 
+## A keyboard works too: letters guess (or type the word when setting),
+## Backspace / Enter edit and finish the setter's word.
+func _unhandled_key_input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k == null or not k.pressed or k.echo or get_tree().paused:
+		return
+	if setting and (k.keycode == KEY_BACKSPACE or k.keycode == KEY_DELETE):
+		_on_set_back()
+	elif setting and (k.keycode == KEY_ENTER or k.keycode == KEY_KP_ENTER):
+		_on_set_done()
+	else:
+		var letter := String.chr(k.unicode).to_upper() if k.unicode > 0 else ""
+		if not letter_buttons.has(letter) or letter_buttons[letter].disabled or not (setting or game_active):
+			return
+		_on_letter_pressed(letter)
+	get_viewport().set_input_as_handled()
+
 func _end_game(text: String, color: Color) -> void:
 	game_active = false
 	end_label.text = text

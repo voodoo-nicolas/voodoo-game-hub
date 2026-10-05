@@ -316,6 +316,22 @@ func _on_key(digit: int) -> void:
 			_update_hud()
 			_wait(2.2, _finish)
 
+## A keyboard works too: digits / numpad type, Backspace erases.
+func _unhandled_key_input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k == null or not k.pressed or k.echo or get_tree().paused or phase != Phase.ENTER:
+		return
+	var code := k.physical_keycode
+	if code >= KEY_0 and code <= KEY_9:
+		_on_key(code - KEY_0)
+	elif code >= KEY_KP_0 and code <= KEY_KP_9:
+		_on_key(code - KEY_KP_0)
+	elif code == KEY_BACKSPACE or code == KEY_DELETE:
+		_on_backspace()
+	else:
+		return
+	get_viewport().set_input_as_handled()
+
 func _on_backspace() -> void:
 	if phase == Phase.ENTER:
 		engine.backspace()

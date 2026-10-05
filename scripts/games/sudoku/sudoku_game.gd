@@ -101,6 +101,50 @@ func _process(delta: float) -> void:
 		elapsed_seconds += delta
 		timer_label.text = _format_time(elapsed_seconds)
 
+## A keyboard works too (PC, or a phone with one): 1-9 / numpad place a
+## number, arrows move the selection, Backspace / Delete / 0 erase, N toggles
+## notes, Ctrl+Z undoes.
+func _unhandled_key_input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k == null or not k.pressed or get_tree().paused:
+		return
+	if not game_screen.visible or pause_dialog.visible or win_dialog.visible or cells.is_empty():
+		return
+	var code := k.physical_keycode
+	var digit := -1
+	if code >= KEY_0 and code <= KEY_9:
+		digit = code - KEY_0
+	elif code >= KEY_KP_0 and code <= KEY_KP_9:
+		digit = code - KEY_KP_0
+	var handled := true
+	if k.ctrl_pressed and code == KEY_Z:
+		_on_undo_pressed()
+	elif digit > 0 and not k.echo:
+		if selected.x < 0:
+			selected = Vector2i(0, 0)
+		_on_number_pressed(digit)
+	elif digit == 0 or code == KEY_BACKSPACE or code == KEY_DELETE:
+		_on_erase_pressed()
+	elif code == KEY_N and not k.echo:
+		notes_button.button_pressed = not notes_button.button_pressed
+		_on_notes_toggled()
+	elif code in [KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_W, KEY_A, KEY_S, KEY_D]:
+		var d := Vector2i.ZERO
+		match code:
+			KEY_UP, KEY_W: d = Vector2i(-1, 0)
+			KEY_DOWN, KEY_S: d = Vector2i(1, 0)
+			KEY_LEFT, KEY_A: d = Vector2i(0, -1)
+			_: d = Vector2i(0, 1)
+		if selected.x < 0:
+			selected = Vector2i(4, 4)
+		else:
+			selected = Vector2i(posmod(selected.x + d.x, 9), posmod(selected.y + d.y, 9))
+		_refresh_highlights()
+	else:
+		handled = false
+	if handled:
+		get_viewport().set_input_as_handled()
+
 func _format_time(s: float) -> String:
 	var total := int(s)
 	return "%02d:%02d" % [int(total / 60), total % 60]
@@ -1197,9 +1241,11 @@ func _to_int_grid(arr: Array) -> Array:
 # ---------- highlighting ----------
 
 func _refresh_highlights() -> void:
+	var match_digit: int = cells[selected.x][selected.y].value if selected.x >= 0 else 0
 	for r in range(9):
 		for c in range(9):
 			cells[r][c].set_background(COLOR_BASE)
+			cells[r][c].set_match_note(match_digit)
 
 	if selected.x >= 0:
 		var sel_value: int = cells[selected.x][selected.y].value

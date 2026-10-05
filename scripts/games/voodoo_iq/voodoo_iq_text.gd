@@ -22,11 +22,20 @@ static func data() -> Dictionary:
 static func lang() -> String:
 	return "es" if TranslationServer.get_locale().begins_with("es") else "en"
 
+## The game's name. It was "Voodoo IQ" (still in the prototype's text and the
+## data file); the user renamed it "IQ Test" for now (2026-10-05), and t()
+## swaps the old name everywhere, so a new name is this one line.
+const APP_NAME := {"en": "IQ Test", "es": "Test de IQ"}
+
+static func app_name() -> String:
+	return str(APP_NAME.get(lang(), APP_NAME.en))
+
 ## The prototype's t(): text for `key` in the current language, English as the
 ## fallback, with {name} placeholders filled from `vars`.
 static func t(key: String, vars: Dictionary = {}) -> String:
 	var str_tables: Dictionary = data().get("STR", {})
 	var s: String = str(str_tables.get(lang(), {}).get(key, str_tables.get("en", {}).get(key, key)))
+	s = s.replace("Voodoo IQ", app_name())
 	for k in vars:
 		s = s.replace("{" + str(k) + "}", str(vars[k]))
 	return s
@@ -68,3 +77,18 @@ static func norm_cdf(z: float) -> float:
 	var d := 0.3989423 * exp(-z * z / 2.0)
 	var p := d * tt * (0.3193815 + tt * (-0.3565638 + tt * (1.781478 + tt * (-1.821256 + tt * 1.330274))))
 	return 1.0 - p if z > 0 else p
+
+## The Info screen's text (voodoo_iq_info.json, hand-written, EN / ES like Trivia's
+## question bank, so its long paragraphs stay out of es.json).
+const INFO_PATH := "res://scripts/games/voodoo_iq/voodoo_iq_info.json"
+
+static var _info: Dictionary = {}
+
+static func info(key: String):
+	if _info.is_empty():
+		var f := FileAccess.open(INFO_PATH, FileAccess.READ)
+		if f:
+			var parsed = JSON.parse_string(f.get_as_text())
+			if parsed is Dictionary:
+				_info = parsed
+	return _info.get(lang(), {}).get(key, _info.get("en", {}).get(key, ""))

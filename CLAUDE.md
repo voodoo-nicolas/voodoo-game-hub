@@ -488,6 +488,10 @@ it, so each pack carries its own copy and runs on any app version, and
 - **Card games** draw neon cards (dark face, pink/cyan rim): the shared
   `<id>_cards.gd` copies are still identical, and Solitaire's `card_view.gd`
   matches them.
+- **Home scrolls by dragging** (the kit's own `_DragScroll`, since 2026-10-05):
+  sideways phones couldn't reach the play buttons. Kit buttons ignore the
+  release that ends a drag (`_dragged()`); landscape gets a shorter logo and
+  three More buttons per row (`_fit_home_layout`).
 - **Testing**: `godot --headless --path . --script res://tools/crawl.gd -- [ids]`
   presses every Home card, every (offline) mode, the pause menu and Resume
   for each game and prints a summary; `tools/shot.gd` drives one scene and
@@ -769,6 +773,14 @@ planned project, with its own code session.
   game must call `game.info.close()` first, or its timers and tweens never fire.
 
 ## Voodoo IQ backend (Phase 1, 2026-10-03)
+
+**Shown to players as "IQ Test" / "Test de IQ"** since 2026-10-05 (the user is
+still choosing a final name): `T.APP_NAME` in `voodoo_iq_text.gd`, and `T.t()`
+swaps "Voodoo IQ" in the prototype's text for it. The id, pack and server keep
+`voodoo_iq`. The runner has ⏸ (clock stopped, question hidden, text size +
+sound), 🔇 for musical questions (skip them for the rest of the test: sent as
+null = unanswered, Musical section only) and 💡 worked examples for the
+Existential types.
 
 Spec: `docs/voodoo-iq-spec.md`. Reference implementation: `docs/voodoo-iq-prototype.html`
 (its generators, scoring math, gates and EN/ES text are final -- port, don't redesign).

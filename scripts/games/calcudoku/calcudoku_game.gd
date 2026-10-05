@@ -177,6 +177,50 @@ func _on_number(v: int) -> void:
 				win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
 		win_dialog.visible = true
 
+## A keyboard works too: 1-9 / numpad enter a digit, Backspace / Delete / 0
+## erase, arrows move the selection.
+func _unhandled_key_input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k == null or not k.pressed or get_tree().paused or not started or win_dialog.visible:
+		return
+	var code := k.physical_keycode
+	var digit := -1
+	if code >= KEY_0 and code <= KEY_9:
+		digit = code - KEY_0
+	elif code >= KEY_KP_0 and code <= KEY_KP_9:
+		digit = code - KEY_KP_0
+	if code == KEY_BACKSPACE or code == KEY_DELETE or digit == 0:
+		_on_number(0)
+	elif digit > 0 and digit <= engine.n:
+		if selected < 0:
+			_move_selection(Vector2i(1, 0))
+		_on_number(digit)
+	elif code in [KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]:
+		var d := {KEY_UP: Vector2i(0, -1), KEY_DOWN: Vector2i(0, 1), KEY_LEFT: Vector2i(-1, 0), KEY_RIGHT: Vector2i(1, 0)}[code] as Vector2i
+		_move_selection(d)
+	else:
+		return
+	get_viewport().set_input_as_handled()
+
+## Steps the selection one cell in direction d (wrapping), or picks the
+## first one when nothing is selected.
+func _move_selection(d: Vector2i) -> void:
+	var n: int = engine.n
+	if selected < 0:
+		for i in n * n:
+			if true:
+				selected = i
+				break
+		board.queue_redraw()
+		return
+	var cur := Vector2i(selected % n, selected / n)
+	for _step in n * n:
+		cur = Vector2i(posmod(cur.x + d.x, n), posmod(cur.y + d.y, n))
+		if true:
+			selected = cur.y * n + cur.x
+			board.queue_redraw()
+			return
+
 # ---------- drawing ----------
 
 func _cell_size() -> float:

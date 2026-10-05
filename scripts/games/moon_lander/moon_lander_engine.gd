@@ -4,6 +4,12 @@ extends RefCounted
 ## Gravity pulls it down; the engine pushes it the way its nose points and
 ## burns fuel. Touch down slowly and upright on a pad to land (narrow pads
 ## score more). Pure simulation in world units, stepped by the game.
+##
+## Difficulty ramps with the level (players found level 1 far too hard on a
+## phone): early levels have weaker gravity, more fuel, wider pads, roomier
+## safe-landing limits, no sideways drift at the start and a stabiliser that
+## eases the nose back upright when no tilt button is held. By EASY_LEVELS
+## it is the full-strength game; gravity keeps creeping up after that.
 
 const GRAVITY_BASE := 26.0
 const THRUST := 70.0
@@ -14,6 +20,8 @@ const SAFE_VX := 26.0
 const SAFE_TILT := 0.22       # radians
 const LANDER_H := 18.0        # from centre to feet
 const MULTS := [2, 3, 5]
+## Levels over which the help fades out (level 1 = most help).
+const EASY_LEVELS := 6
 
 var size := Vector2(704, 1000)
 var terrain: PackedVector2Array = PackedVector2Array()
@@ -40,8 +48,29 @@ func reset(world: Vector2, seed_: int = -1) -> void:
 	score = 0
 	new_terrain()
 
+## 0.0 on level 1, 1.0 from EASY_LEVELS on.
+func ramp() -> float:
+	return clampf(float(level - 1) / float(EASY_LEVELS - 1), 0.0, 1.0)
+
 func gravity() -> float:
-	return GRAVITY_BASE * (1.0 + 0.08 * (level - 1))
+	return GRAVITY_BASE * (0.7 + 0.3 * ramp() + 0.06 * maxi(0, level - EASY_LEVELS))
+
+## Safe-landing limits: generous at first, the full rules by EASY_LEVELS.
+func safe_vy() -> float:
+	return lerpf(65.0, SAFE_VY, ramp())
+
+func safe_vx() -> float:
+	return lerpf(40.0, SAFE_VX, ramp())
+
+func safe_tilt() -> float:
+	return lerpf(0.4, SAFE_TILT, ramp())
+
+func max_fuel() -> float:
+	return maxf(60.0, lerpf(200.0, 140.0, ramp()) - maxi(0, level - EASY_LEVELS) * 8.0)
+
+## How fast (rad/s) the nose settles back upright with no tilt button held.
+func stabiliser() -> float:
+	return lerpf(1.4, 0.0, ramp())
 
 func new_terrain() -> void:
 	var w := size.x
@@ -56,8 +85,8 @@ func new_terrain() -> void:
 	pads = []
 	var used := {}
 	for mult in MULTS:
-		var cells := 3 if mult == 2 else (2 if mult == 3 else 1)
-		for tries in 40:
+		var cells := (3 if mult == 2 else (2 if mult == 3 else 1)) + (1 if level <= 3 else 0)
+		for tries in 60:
 			var i0 := rng.randi_range(1, n - cells - 1)
 			var clash := false
 			for k in range(i0 - 1, i0 + cells + 2):
@@ -78,9 +107,10 @@ func new_terrain() -> void:
 
 func _spawn() -> void:
 	pos = Vector2(rng.randf_range(size.x * 0.35, size.x * 0.8), 175.0)  # below the readouts
-	vel = Vector2(rng.randf_range(-30.0, 30.0), 0.0)
+	var drift := 30.0 * ramp()
+	vel = Vector2(rng.randf_range(-drift, drift), 0.0)
 	angle = 0.0
-	fuel = maxf(60.0, 140.0 - (level - 1) * 8.0)
+	fuel = max_fuel()
 	state = "flying"
 
 func ground_at(x: float) -> float:
@@ -103,6 +133,8 @@ func step(dt: float, turn: int, thrust: bool) -> String:
 	if state != "flying":
 		return ""
 	angle = clampf(angle + turn * TURN * dt, -PI / 2.0, PI / 2.0)
+	if turn == 0:
+		angle = move_toward(angle, 0.0, stabiliser() * dt)
 	vel.y += gravity() * dt
 	if thrust and fuel > 0.0:
 		vel += Vector2(sin(angle), -cos(angle)) * THRUST * dt
@@ -117,7 +149,7 @@ func step(dt: float, turn: int, thrust: bool) -> String:
 	var feet := pos.y + LANDER_H
 	if feet >= ground_at(pos.x) or feet >= ground_at(pos.x - 10.0) or feet >= ground_at(pos.x + 10.0):
 		var pad := pad_under(pos.x)
-		if not pad.is_empty() and vel.y <= SAFE_VY and absf(vel.x) <= SAFE_VX and absf(angle) <= SAFE_TILT:
+		if not pad.is_empty() and vel.y <= safe_vy() and absf(vel.x) <= safe_vx() and absf(angle) <= safe_tilt():
 			state = "landed"
 			last_pad = pad
 			pos.y = pad.y - LANDER_H
@@ -131,7 +163,7 @@ func step(dt: float, turn: int, thrust: bool) -> String:
 func landing_points() -> int:
 	if last_pad.is_empty():
 		return 0
-	var softness := clampf(1.0 - vel.y / SAFE_VY, 0.0, 1.0)
+	var softness := clampf(1.0 - vel.y / safe_vy(), 0.0, 1.0)
 	return int(50 * last_pad.mult + fuel * 2.0 + softness * 50.0)
 
 ## After a landing: the next level; after a crash: try again (or game over).

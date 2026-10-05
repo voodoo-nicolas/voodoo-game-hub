@@ -226,6 +226,53 @@ func _render() -> void:
 	level_label.text = tr("Level %d") % (engine.level() + 1)
 	time_label.text = tr("⏱ %d") % ceili(engine.time_left)
 
+## A keyboard works too: type the answer's digits and it's picked as soon as
+## exactly one choice fits; Enter picks an exact match, Backspace erases.
+var typed_answer := ""
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k == null or not k.pressed or k.echo or get_tree().paused or not play_box.visible:
+		return
+	var code := k.physical_keycode
+	var ch := ""
+	if code >= KEY_0 and code <= KEY_9:
+		ch = str(code - KEY_0)
+	elif code >= KEY_KP_0 and code <= KEY_KP_9:
+		ch = str(code - KEY_KP_0)
+	elif code == KEY_MINUS or code == KEY_KP_SUBTRACT:
+		ch = "-"
+	elif code == KEY_PERIOD or code == KEY_KP_PERIOD:
+		ch = "."
+	if code == KEY_BACKSPACE:
+		typed_answer = typed_answer.substr(0, maxi(0, typed_answer.length() - 1))
+	elif code == KEY_ENTER or code == KEY_KP_ENTER:
+		var exact := _choices_matching(typed_answer, true)
+		typed_answer = ""
+		if exact.size() == 1:
+			_on_answer(exact[0])
+	elif ch != "":
+		typed_answer += ch
+		if _choices_matching(typed_answer, false).is_empty():
+			typed_answer = ch
+		var fits := _choices_matching(typed_answer, false)
+		if fits.size() == 1 and str(engine.choices[fits[0]]) == typed_answer:
+			typed_answer = ""
+			_on_answer(fits[0])
+	else:
+		return
+	get_viewport().set_input_as_handled()
+
+func _choices_matching(prefix: String, exact: bool) -> Array:
+	var out := []
+	if prefix == "":
+		return out
+	for i in engine.choices.size():
+		var t := str(engine.choices[i])
+		if (t == prefix) if exact else t.begins_with(prefix):
+			out.append(i)
+	return out
+
 func _on_answer(index: int) -> void:
 	if not running:
 		return

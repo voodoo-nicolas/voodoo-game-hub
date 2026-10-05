@@ -467,63 +467,264 @@ static func creature(ci: CanvasItem, x: Array, rect: Rect2) -> void:
 
 # ------------------------------------------------------------------ INT: faces (viewBox 0 0 200 230; eyes only: 20 52 160 62)
 
+## The faces were the prototype's flat cartoon (black outlines, ellipse eyes). Since
+## 2026-10-05 they are drawn semi-realistic -- shaded skin, ears, neck, almond eyes
+## with irises, tapered brows, a shaded nose, coloured lips and teeth, smile lines --
+## from the SAME action-unit params and in the same places, so every expression the
+## server's faceParams() makes reads as it did:
+##   ul upper lid raise · lt lid tighten · cr cheek raise · bi / bo inner / outer brow
+##   raise · bl brow lower · nw nose wrinkle · ur upper lip raise · ls lip stretch ·
+##   lc lip corners (+ up) · lp lip press · mo mouth open
+const IRIS := ["#3B2414", "#5A3A1E", "#7A5A2E", "#4E6B3A", "#3E6E9A", "#6A7F8C"]
+const SHIRTS := ["#2E4A7A", "#6A2E4A", "#2E6A5A", "#5A4A2E", "#3A3A4A", "#7A3A2E"]
+
 static func face(ci: CanvasItem, p: Dictionary, id: Dictionary, rect: Rect2, eyes_only: bool) -> void:
-	ci.draw_rect(rect, Color("#2C2C40"))  # prototype .facewrap
+	# a soft studio backdrop
+	ci.draw_polygon(PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]),
+		PackedColorArray([Color("#41415C"), Color("#41415C"), Color("#1D1D2B"), Color("#1D1D2B")]))
 	begin(ci, Rect2(20, 52, 160, 62) if eyes_only else Rect2(0, 0, 200, 230), rect)
-	var ink := Color("#14100C")
-	var skin := Color(str(T.data().get("SKIN", [])[int(id.skin)]))
+	var g := func(k: String) -> float: return float(p.get(k, 0.0))
+	var skin_i := int(id.skin)
+	var skin := Color(str(T.data().get("SKIN", [])[skin_i]))
 	var hair := Color(str(T.data().get("HAIR", [])[int(id.hair)]))
+	var skin_hi := skin.lightened(0.16)
+	var skin_sh := skin.darkened(0.24)
+	var crease := Color(skin.darkened(0.5), 0.75)  # facial lines: shadowed skin, not black ink
 	var fw := 72.0 + float(id.w) * 6.0
 	var style := int(id.style)
-	var hair_d := ""
+	var iris_c := Color(IRIS[(skin_i * 2 + int(id.hair) * 3 + style) % (3 if skin_i >= 3 else IRIS.size())])
+
+	# neck and shoulders
+	var shirt := Color(SHIRTS[(style * 2 + int(id.hair) + skin_i) % SHIRTS.size()])
+	fill(ci, PackedVector2Array([Vector2(100 - fw * 0.42, 168), Vector2(100 + fw * 0.42, 168), Vector2(100 + fw * 0.5, 232), Vector2(100 - fw * 0.5, 232)]), skin_sh)
+	var shoulders := PackedVector2Array([Vector2(-10, 240), Vector2(-10, 226)])
+	shoulders.append_array(_q(Vector2(-10, 226), Vector2(30, 204), Vector2(100 - fw * 0.5, 210), 10))
+	shoulders.append_array(_q(Vector2(100 - fw * 0.5, 210), Vector2(100, 232), Vector2(100 + fw * 0.5, 210), 10))
+	shoulders.append_array(_q(Vector2(100 + fw * 0.5, 210), Vector2(170, 204), Vector2(210, 226), 10))
+	shoulders.append(Vector2(210, 240))
+	fill(ci, shoulders, shirt)
+
+	# long hair falls behind the head
+	var hair_dark := hair.darkened(0.3)
 	if style == 0:
-		hair_d = "M%s 120 Q%s 18 100 16 Q%s 18 %s 120 Z" % [100 - fw - 6, 100 - fw - 10, 100 + fw + 10, 100 + fw + 6]
+		fill(ci, _hair_pts("M%s 128 Q%s 18 100 16 Q%s 18 %s 128 Z" % [100 - fw - 8, 100 - fw - 12, 100 + fw + 12, 100 + fw + 8]), hair.darkened(0.12))
+
+	# ears
+	for s in [-1, 1]:
+		var ec := Vector2(100 + s * (fw - 3), 112)
+		var ear := ellipse_pts(ec, 10, 19, 24)
+		_fan(ci, ear, ec, skin, skin_sh)
+		stroke(ci, _q(ec + Vector2(-s * 2, -11), ec + Vector2(s * 7, 0), ec + Vector2(-s * 1, 12), 8), crease, 1.4, false)
+
+	# head: wide at the temples, tapering to the chin, lit from the upper left
+	var head := _head_pts(fw)
+	_fan(ci, head, Vector2(92, 104), skin_hi, skin_sh)
+	stroke(ci, head, Color(skin.darkened(0.4), 0.85), 1.6)
+	# cheeks flush with a smile (cheek raise)
+	var blush := Color("#D2504E", 0.06 + clampf(g.call("cr"), 0.0, 1.0) * 0.16)
+	for s in [-1, 1]:
+		fill(ci, ellipse_pts(Vector2(100 + s * (fw * 0.55), 132 - g.call("cr") * 3), 15, 10, 24), blush)
+
+	# hair over the head
+	if style == 0:
+		_hair(ci, "M%s 104 Q%s 12 100 12 Q%s 12 %s 104 Q%s 44 100 38 Q%s 44 %s 104 Z" % [100 - fw - 3, 100 - fw, 100 + fw, 100 + fw + 3, 100 + fw - 8, 100 - fw + 8, 100 - fw - 3], hair, hair_dark)
 	elif style == 1:
-		hair_d = "M%s 90 Q100 -4 %s 90 Q%s 40 100 40 Q%s 40 %s 90 Z" % [100 - fw - 4, 100 + fw + 4, 100 + fw - 10, 100 - fw + 10, 100 - fw - 4]
+		_hair(ci, "M%s 96 Q100 -62 %s 96 Q%s 40 100 47 Q%s 40 %s 96 Z" % [100 - fw - 4, 100 + fw + 4, 100 + fw - 34, 100 - fw + 34, 100 - fw - 4], hair, hair_dark)
 	else:
-		hair_d = "M%s 74 Q100 8 %s 74 L%s 64 Q100 36 %s 64 Z" % [100 - fw, 100 + fw, 100 + fw - 8, 100 - fw + 8]
-	path(ci, hair_d, hair, ink, 3.0)
-	var head := ellipse_pts(Vector2(100, 118), fw, 98, 64)
-	fill(ci, head, skin)
-	stroke(ci, head, ink, 3.5)
-	if style == 2:
-		path(ci, "M%s 70 Q100 30 %s 70 Q100 52 %s 70 Z" % [100 - fw + 4, 100 + fw - 4, 100 - fw + 4], hair, ink, 3.0)
-	var g := func(k: String) -> float: return float(p.get(k, 0.0))
+		_hair(ci, "M%s 74 Q100 8 %s 74 L%s 64 Q100 36 %s 64 Z" % [100 - fw, 100 + fw, 100 + fw - 8, 100 - fw + 8], hair, hair_dark)
+		_hair(ci, "M%s 70 Q100 30 %s 70 Q100 52 %s 70 Z" % [100 - fw + 4, 100 + fw - 4, 100 - fw + 4], hair, hair_dark)
+
+	# eyes and brows
 	var eye_y := 92.0
 	var ex := 30.0 + float(id.sp) * 3.0
+	var brow_c := hair.darkened(0.25) if hair.get_luminance() < 0.5 else hair.darkened(0.45)
 	for s in [-1, 1]:
 		var cx: float = 100 + s * ex
 		var open := clampf(9 + g.call("ul") * 7 - g.call("lt") * 4 - g.call("cr") * 3, 2.5, 18)
-		var eye := ellipse_pts(Vector2(cx, eye_y), 15, open, 32)
-		fill(ci, eye, Color.WHITE)
-		stroke(ci, eye, ink, 3.0)
-		ci.draw_circle(Vector2(cx, eye_y + 1), minf(6.5, open), ink)
-		if g.call("cr") > .3:
-			path(ci, "M%s %s q14 %s 28 0" % [cx - 14, eye_y + open + 6, -4 - g.call("cr") * 4], Color(0, 0, 0, 0), ink, 2.2)
+		var inner_c := Vector2(cx - s * 15, eye_y + 1.5)
+		var outer_c := Vector2(cx + s * 16, eye_y - 0.5)
+		var top := _q(inner_c, Vector2(cx - s * 2, eye_y - open * 1.9), outer_c, 14)
+		var bottom := _q(outer_c, Vector2(cx, eye_y + open * 1.15 + 1.5), inner_c, 14)
+		var eye := PackedVector2Array(top)
+		eye.append_array(bottom)
+		# socket shadow, then the white
+		fill(ci, ellipse_pts(Vector2(cx, eye_y - 2), 20, open + 8, 28), Color(skin_sh, 0.18))
+		fill(ci, eye, Color("#F3EFE8"))
+		var iris_pts := ellipse_pts(Vector2(cx, eye_y + 0.5), 7.6, 7.6, 28)
+		for part in Geometry2D.intersect_polygons(iris_pts, eye):
+			fill(ci, part, iris_c.darkened(0.25))
+		for part in Geometry2D.intersect_polygons(ellipse_pts(Vector2(cx, eye_y + 0.5), 5.6, 5.6, 24), eye):
+			fill(ci, part, iris_c)
+		for part in Geometry2D.intersect_polygons(ellipse_pts(Vector2(cx, eye_y + 0.5), 3.0, 3.0, 20), eye):
+			fill(ci, part, Color("#0B0806"))
+		if open > 4.5:
+			ci.draw_circle(Vector2(cx - 2.6, eye_y - 2.2), 1.5, Color(1, 1, 1, 0.9))
+		# the upper lid's shadow on the eyeball, lashes, lower lid
+		stroke(ci, _q(inner_c + Vector2(0, 1.5), Vector2(cx - s * 2, eye_y - open * 1.9 + 3), outer_c + Vector2(0, 1.5), 14), Color(0, 0, 0, 0.18), 2.5, false)
+		stroke(ci, top, Color("#1A120C"), 2.6, false)
+		stroke(ci, bottom, Color(skin.darkened(0.45), 0.7), 1.1, false)
+		if open > 5.0:  # lid crease
+			stroke(ci, _q(inner_c + Vector2(s * 2, -4), Vector2(cx - s * 2, eye_y - open * 1.9 - 6), outer_c + Vector2(-s * 1, -5), 12), crease, 1.3, false)
+		if g.call("cr") > .3:  # cheeks pushing up under the eye
+			stroke(ci, _q(Vector2(cx - 14, eye_y + open + 6), Vector2(cx, eye_y + open + 6 - 4 - g.call("cr") * 4), Vector2(cx + 14, eye_y + open + 6), 10), crease, 1.6, false)
+		# brow: thick at the inner end, thin at the tail
 		var base := eye_y - 22
 		var inner: float = base - g.call("bi") * 12 + g.call("bl") * 10
 		var outer: float = base - g.call("bo") * 10 - g.call("bi") * 2 + g.call("bl") * 2
 		var ix: float = cx - s * 14
 		var ox: float = cx + s * 16
-		path(ci, "M%s %s Q%s %s %s %s" % [ix, inner, cx, minf(inner, outer) - 6 + g.call("bl") * 4, ox, outer], Color(0, 0, 0, 0), ink, 6.0, true)
-	if g.call("bl") > .5:
-		line(ci, Vector2(96, 78), Vector2(96, 86), ink, 2.0, false)
-		line(ci, Vector2(104, 78), Vector2(104, 86), ink, 2.0, false)
+		var spine := _q(Vector2(ix, inner), Vector2(cx, minf(inner, outer) - 6 + g.call("bl") * 4), Vector2(ox, outer), 14)
+		fill(ci, _tapered(spine, 6.0, 2.0), brow_c)
+		stroke(ci, _tapered(spine, 6.0, 2.0), Color(brow_c, 0.6), 0.8)
+	if g.call("bl") > .5:  # frown lines between the brows
+		line(ci, Vector2(96, 77), Vector2(97, 87), crease, 1.6, false)
+		line(ci, Vector2(104, 77), Vector2(103, 87), crease, 1.6, false)
+
 	if not eyes_only:
-		path(ci, "M100 100 L94 %s Q100 %s 108 %s" % [140 - g.call("nw") * 3, 146 - g.call("nw") * 2, 140 - g.call("nw") * 3], Color(0, 0, 0, 0), ink, 3.0)
-		if g.call("nw") > .35:
+		# nose: a shadow down one side of the bridge, a lit tip, nostrils
+		var nup: float = g.call("nw") * 3.0
+		stroke(ci, _q(Vector2(96, 104), Vector2(92, 120), Vector2(92, 133 - nup)), Color(skin_sh, 0.4), 3.5, false)
+		fill(ci, ellipse_pts(Vector2(101, 136 - nup), 7, 6, 20), Color(skin_hi, 0.55))
+		for s in [-1, 1]:
+			stroke(ci, _q(Vector2(100 + s * 10, 134 - nup), Vector2(100 + s * 13, 143 - nup), Vector2(100 + s * 5, 145 - nup), 8), crease, 1.8, false)
+			fill(ci, ellipse_pts(Vector2(100 + s * 5.5, 143.5 - nup), 3.4, 1.8, 14), Color(skin.darkened(0.6), 0.85))
+		if g.call("nw") > .35:  # nose wrinkle
 			for seg in [[86, 112, 94, 116], [114, 112, 106, 116], [88, 120, 95, 123], [112, 120, 105, 123]]:
-				line(ci, Vector2(seg[0], seg[1]), Vector2(seg[2], seg[3]), ink, 2.2, false)
+				line(ci, Vector2(seg[0], seg[1]), Vector2(seg[2], seg[3]), crease, 1.8, false)
+		# smile lines from the nose to the mouth corners
+		var smile: float = g.call("cr") * 0.6 + maxf(g.call("lc"), 0.0) * 0.6 + g.call("nw") * 0.6
+		if smile > 0.4:
+			var a: float = clampf(smile, 0.4, 1.0) * 0.55
+			var smw: float = 30 + g.call("ls") * 10 + g.call("cr") * 4 - g.call("lp") * 6
+			var scy: float = 172 - g.call("ur") * 6 - g.call("lc") * 14
+			for s in [-1, 1]:
+				stroke(ci, _q(Vector2(100 + s * 13, 139), Vector2(100 + s * (smw + 2), 145), Vector2(100 + s * (smw + 5), scy + 3)), Color(crease, a), 1.6, false)
+
+		# mouth: the same corners and curve as before, now with lips
 		var my: float = 172 - g.call("ur") * 6
 		var mw: float = 30 + g.call("ls") * 10 + g.call("cr") * 4 - g.call("lp") * 6
 		var cy: float = my - g.call("lc") * 14
 		var mopen := clampf(g.call("mo") * 20 + g.call("ur") * 6, 0, 26)
 		var curve: float = my + g.call("lc") * 10
+		var lip := skin.lerp(Color("#B04A58"), 0.5)
+		var lip_dark := lip.darkened(0.2)
+		var press := clampf(g.call("lp"), 0.0, 1.0)
+		var up_th: float = 5.5 * (1.0 - press * 0.75)
+		var lo_th: float = 7.5 * (1.0 - press * 0.7)
+		var L := Vector2(100 - mw, cy)
+		var R := Vector2(100 + mw, cy)
 		if mopen > 3:
-			path(ci, "M%s %s Q100 %s %s %s Q100 %s %s %s Z" % [100 - mw, cy, curve - 4 - g.call("ur") * 6, 100 + mw, cy, curve + mopen * 1.3, 100 - mw, cy], Color("#3A0E0E"), ink, 3.5)
+			var upper_in := _q(L, Vector2(100, curve - 4 - g.call("ur") * 6), R)
+			var lower_in := _q(R, Vector2(100, curve + mopen * 1.3), L)
+			var mouth := PackedVector2Array(upper_in)
+			mouth.append_array(lower_in)
+			fill(ci, mouth, Color("#3A0E14"))
+			# teeth along the upper lip; lower teeth only when wide open
+			var top_y: float = (cy + curve - 4 - g.call("ur") * 6) / 2.0
+			var teeth := round_rect_pts(100 - mw, top_y - 10, mw * 2, 10 + 5 + g.call("ur") * 3, 2)
+			for part in Geometry2D.intersect_polygons(teeth, mouth):
+				fill(ci, part, Color("#EFEBE2"))
+			if mopen > 14:
+				var bot_y: float = (cy + curve + mopen * 1.3) / 2.0
+				for part in Geometry2D.intersect_polygons(round_rect_pts(100 - mw * 0.7, bot_y - 5, mw * 1.4, 8, 2), mouth):
+					fill(ci, part, Color("#DCD6CA"))
+			var upper_out := _q(L, Vector2(100, curve - 4 - g.call("ur") * 6 - up_th * 2), R)
+			_lip(ci, upper_out, upper_in, lip_dark)
+			var lower_out := _q(R, Vector2(100, curve + mopen * 1.3 + lo_th * 2), L)
+			_lip(ci, lower_in, lower_out, lip)
+			stroke(ci, mouth, Color(lip.darkened(0.45), 0.8), 1.2)
 		else:
-			path(ci, "M%s %s Q100 %s %s %s" % [100 - mw, cy, curve, 100 + mw, cy], Color(0, 0, 0, 0), ink, 4 + g.call("lp") * 2.5, true)
+			var seam := _q(L, Vector2(100, curve), R)
+			var upper_out := _q(L, Vector2(100, curve - up_th * 2.2), R)
+			var lower_out := _q(L, Vector2(100, curve + lo_th * 2.2), R)
+			_lip(ci, upper_out, seam, lip_dark)
+			_lip(ci, seam, lower_out, lip)
+			fill(ci, ellipse_pts(Vector2(100, (cy + curve) / 2.0 + lo_th * 0.7), mw * 0.3, 1.6, 16), Color(1, 1, 1, 0.18))
+			stroke(ci, seam, Color(lip.darkened(0.55), 0.95), 1.8 + press * 1.5, false)
+			for s in [-1, 1]:  # dimples at the corners
+				ci.draw_circle(Vector2(100 + s * mw, cy), 1.4, Color(crease, 0.6))
 	finish(ci)
+
+## Points along a quadratic curve a -> (control c) -> b.
+static func _q(a: Vector2, c: Vector2, b: Vector2, n: int = 12) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in n + 1:
+		var t := float(i) / n
+		out.append(a.lerp(c, t).lerp(c.lerp(b, t), t))
+	return out
+
+## A shape between two curves that run the same way (a lip).
+static func _lip(ci: CanvasItem, a: PackedVector2Array, b: PackedVector2Array, color: Color) -> void:
+	var pts := PackedVector2Array(a)
+	var rb := b.duplicate()
+	rb.reverse()
+	pts.append_array(rb)
+	fill(ci, pts, color)
+
+## A stroke as a filled shape whose width goes from w0 to w1 (eyebrows).
+static func _tapered(spine: PackedVector2Array, w0: float, w1: float) -> PackedVector2Array:
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	var n := spine.size()
+	for i in n:
+		var t := float(i) / (n - 1)
+		var d := (spine[mini(i + 1, n - 1)] - spine[maxi(i - 1, 0)]).normalized()
+		var nrm := Vector2(-d.y, d.x) * lerpf(w0, w1, t) / 2.0
+		left.append(spine[i] + nrm)
+		right.append(spine[i] - nrm)
+	right.reverse()
+	left.append_array(right)
+	return left
+
+## Shading: a fan from a lit point to the darker rim (the polygon must be star-shaped
+## around `center`).
+static func _fan(ci: CanvasItem, pts: PackedVector2Array, center: Vector2, c_center: Color, c_rim: Color) -> void:
+	for i in pts.size():
+		var a := pts[i]
+		var b := pts[(i + 1) % pts.size()]
+		ci.draw_polygon(PackedVector2Array([center, a, b]), PackedColorArray([c_center, c_rim, c_rim]))
+
+static func _head_pts(fw: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in 72:
+		var a := TAU * i / 72.0
+		var sn := sin(a)
+		var narrow := 1.0 - 0.2 * pow(maxf(sn, 0.0), 2.0)  # jaw and chin
+		out.append(Vector2(100 + cos(a) * fw * narrow, 116 + sn * (98.0 if sn > 0 else 96.0)))
+	return out
+
+static func _hair_pts(d: String) -> PackedVector2Array:
+	var subs := parse_path(d)
+	return _clean(subs[0].pts) if not subs.is_empty() else PackedVector2Array()
+
+## Hair: the shape, a sheen along the top and a few strands.
+static func _hair(ci: CanvasItem, d: String, color: Color, dark: Color) -> void:
+	var pts := _hair_pts(d)
+	if pts.size() < 3:
+		return
+	fill(ci, pts, color)
+	stroke(ci, pts, Color(dark, 0.9), 1.4)
+	var box := Rect2(pts[0], Vector2.ZERO)
+	for q in pts:
+		box = box.expand(q)
+	var c := box.get_center()
+	for k in 7:
+		var x := box.position.x + box.size.x * (0.15 + 0.7 * k / 6.0)
+		var strand := _q(Vector2(c.x + (x - c.x) * 0.2, box.position.y + 4), Vector2(x, box.position.y + box.size.y * 0.25), Vector2(x + (x - c.x) * 0.15, box.end.y - 6), 10)
+		var inside := PackedVector2Array()
+		for q in strand:
+			if Geometry2D.is_point_in_polygon(q, pts):
+				inside.append(q)
+			elif inside.size() > 1:
+				break
+		if inside.size() > 1:
+			stroke(ci, inside, Color(dark, 0.55), 1.0, false)
+	var sheen := PackedVector2Array()
+	for q in _q(Vector2(box.position.x + box.size.x * 0.28, box.position.y + 14), Vector2(c.x, box.position.y + 2), Vector2(box.position.x + box.size.x * 0.6, box.position.y + 10), 10):
+		if Geometry2D.is_point_in_polygon(q, pts):
+			sheen.append(q)
+	if sheen.size() > 1:
+		stroke(ci, sheen, Color(color.lightened(0.35), 0.5), 3.0, false)
 
 # ------------------------------------------------------------------ brain map (viewBox 40 20 560 440)
 

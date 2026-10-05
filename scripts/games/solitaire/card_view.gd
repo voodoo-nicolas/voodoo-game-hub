@@ -13,6 +13,18 @@ const COLOR_BORDER := Color(0.6, 0.3, 1.0)
 const COLOR_SELECTED_BORDER := Color(1.0, 0.68, 0.17)
 const COLOR_RED := Color(1.0, 0.31, 0.6)
 const COLOR_BLACK := Color(0.16, 0.9, 1.0)
+## Classic cards (the default since players asked for "normal" colours):
+## white faces, red and black suits, blue backs, on green felt.
+const CLASSIC_FACE := Color(0.98, 0.97, 0.93)
+const CLASSIC_RED := Color(0.8, 0.08, 0.12)
+const CLASSIC_BLACK := Color(0.07, 0.07, 0.1)
+const CLASSIC_RIM := Color(0.45, 0.45, 0.5)
+const CLASSIC_BACK := Color(0.1, 0.24, 0.62)
+const CLASSIC_BACK_LINE := Color(0.55, 0.7, 1.0, 0.55)
+
+## Which look every card uses; the game sets it from the player's choice.
+static var classic: bool = true
+var _face_down := false
 
 var pile: String = ""
 var pile_index: int = -1
@@ -53,26 +65,39 @@ func show_face_up(card) -> void:
 	suit_label.visible = true
 	rank_label.text = "%s%s" % [card.rank_str(), card.suit_symbol()]
 	suit_label.text = card.suit_symbol()
-	var color: Color = COLOR_RED if card.is_red() else COLOR_BLACK
-	rank_label.add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.25))
-	suit_label.add_theme_color_override("font_color", color)
-	_rim = color
-	_base_color = COLOR_FACE
+	_face_down = false
+	if classic:
+		var ink: Color = CLASSIC_RED if card.is_red() else CLASSIC_BLACK
+		rank_label.add_theme_color_override("font_color", ink)
+		suit_label.add_theme_color_override("font_color", ink)
+		_rim = CLASSIC_RIM
+		_base_color = CLASSIC_FACE
+	else:
+		var color: Color = COLOR_RED if card.is_red() else COLOR_BLACK
+		rank_label.add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.25))
+		suit_label.add_theme_color_override("font_color", color)
+		_rim = color
+		_base_color = COLOR_FACE
 	_set_style(_base_color, false)
+	queue_redraw()
 
 func show_face_down() -> void:
 	rank_label.visible = false
 	suit_label.visible = false
-	_rim = COLOR_BORDER
-	_base_color = COLOR_BACK
+	_face_down = true
+	_rim = Color.WHITE if classic else COLOR_BORDER
+	_base_color = CLASSIC_BACK if classic else COLOR_BACK
 	_set_style(_base_color, false)
+	queue_redraw()
 
 func show_empty_slot() -> void:
 	rank_label.visible = false
 	suit_label.visible = false
-	_rim = Color(1, 1, 1, 0.2)
-	_base_color = Color(1, 1, 1, 0.05)
+	_face_down = false
+	_rim = Color(1, 1, 1, 0.35 if classic else 0.2)
+	_base_color = Color(0, 0, 0, 0.18) if classic else Color(1, 1, 1, 0.05)
 	_set_style(_base_color, false)
+	queue_redraw()
 
 func set_selected(selected: bool) -> void:
 	_set_style(_base_color, selected)
@@ -89,7 +114,43 @@ func _set_style(bg: Color, selected: bool) -> void:
 	sb.border_width_right = 4 if selected else 2
 	sb.border_width_bottom = 4 if selected else 2
 	sb.border_color = COLOR_SELECTED_BORDER if selected else _rim
-	sb.shadow_color = Color(sb.border_color, 0.35 if selected else 0.18)
-	sb.shadow_size = 7 if selected else 3
+	if classic and not selected:
+		sb.shadow_color = Color(0, 0, 0, 0.3)  # a plain drop shadow, no glow
+		sb.shadow_size = 2
+		sb.shadow_offset = Vector2(1, 2)
+	else:
+		sb.shadow_color = Color(sb.border_color, 0.35 if selected else 0.18)
+		sb.shadow_size = 7 if selected else 3
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		add_theme_stylebox_override(state, sb)
+
+## Classic backs get a lattice inside a white frame.
+func _draw() -> void:
+	if not (classic and _face_down):
+		return
+	var inner := Rect2(Vector2(7, 7), size - Vector2(14, 14))
+	draw_rect(inner, CLASSIC_BACK_LINE, false, 1.5)
+	var step := 12.0
+	var x := -inner.size.y
+	while x < inner.size.x:
+		var a := inner.position + Vector2(x, 0)
+		var b := a + Vector2(inner.size.y, inner.size.y)
+		var c := inner.position + Vector2(x + inner.size.y, 0)
+		var d := c + Vector2(-inner.size.y, inner.size.y)
+		draw_line(_clip(inner, a, b, true), _clip(inner, a, b, false), CLASSIC_BACK_LINE, 1.0)
+		draw_line(_clip(inner, c, d, true), _clip(inner, c, d, false), CLASSIC_BACK_LINE, 1.0)
+		x += step
+
+## The start (or end) of segment a-b clipped to rect r (a-b runs at 45°).
+func _clip(r: Rect2, a: Vector2, b: Vector2, start: bool) -> Vector2:
+	var dir := (b - a).normalized()
+	var t0 := 0.0
+	var t1 := a.distance_to(b)
+	for axis in 2:
+		if absf(dir[axis]) < 0.0001:
+			continue
+		var lo := (r.position[axis] - a[axis]) / dir[axis]
+		var hi := (r.end[axis] - a[axis]) / dir[axis]
+		t0 = maxf(t0, minf(lo, hi))
+		t1 = minf(t1, maxf(lo, hi))
+	return a + dir * (t0 if start else maxf(t0, t1))

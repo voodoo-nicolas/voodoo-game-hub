@@ -74,10 +74,25 @@ func _ready() -> void:
 	add_child(bg)
 	move_child(bg, 0)
 
+	# The banner, account line and screens row scroll away with the list (on
+	# a short/wide desktop window they used to pin ~75% of the screen), so
+	# everything lives in one ScrollContainer.
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(scroll)
+	list_scroll = scroll
+	drag = DragScroll.new()
+	scroll.add_child(drag)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 0)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(content)
+
 	var banner_panel := PanelContainer.new()
 	banner_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	banner_panel.custom_minimum_size = Vector2(0, BANNER_HEIGHT)
-	root.add_child(banner_panel)
+	content.add_child(banner_panel)
 	if Settings.is_light():
 		banner_panel.add_child(Mist.new())
 	if ResourceLoader.exists(BANNER_PATH):
@@ -103,7 +118,7 @@ func _ready() -> void:
 	header.add_theme_constant_override("margin_bottom", 16)
 	header.add_theme_constant_override("margin_left", 14)
 	header.add_theme_constant_override("margin_right", 14)
-	root.add_child(header)
+	content.add_child(header)
 
 	var header_box := VBoxContainer.new()
 	header_box.add_theme_constant_override("separation", 2)
@@ -173,13 +188,6 @@ func _ready() -> void:
 	Social.friends_changed.connect(_update_friend_badge)
 	_update_friend_badge()
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(scroll)
-	list_scroll = scroll
-	drag = DragScroll.new()
-	scroll.add_child(drag)
-
 	list_container = VBoxContainer.new()
 	list_container.add_theme_constant_override("separation", LIST_SEPARATION)
 	list_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -192,7 +200,7 @@ func _ready() -> void:
 	margin.add_theme_constant_override("margin_right", 14)
 	margin.add_theme_constant_override("margin_bottom", 30)
 	margin.add_child(list_container)
-	scroll.add_child(margin)
+	content.add_child(margin)
 
 	# A newer live manifest can add games or change versions while the hub is
 	# open. Plain method connection, not a lambda -- see CLAUDE.md gotcha.
@@ -224,6 +232,8 @@ func _resume_last_game() -> void:
 				return
 
 func _open_options() -> void:
+	if drag.moved:
+		return
 	get_tree().change_scene_to_file("res://scenes/hub/options.tscn")
 
 func _gap(h: float) -> Control:
@@ -272,7 +282,7 @@ func _screen_button(spec: Array) -> Button:
 	return b
 
 func _open_screen(scene: String) -> void:
-	if not busy:
+	if not busy and not drag.moved:
 		get_tree().change_scene_to_file(scene)
 
 ## "👥 Friends" shows how many requests are waiting.
@@ -296,6 +306,8 @@ func _update_account_status() -> void:
 		account_status_btn.visible = true
 
 func _on_account_status_pressed() -> void:
+	if drag.moved:
+		return
 	get_tree().change_scene_to_file("res://scenes/account/account.tscn")
 
 ## Shared neon-glow panel style: bright border + a blurred shadow of the same hue

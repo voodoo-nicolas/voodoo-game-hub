@@ -295,15 +295,16 @@ func _draw_home_logo(c: Control) -> void:
 ## Sounds from what changed this frame (the engine only reports waves).
 func _watch_sfx(pre: Array, ev: String) -> void:
 	if engine.lives < pre[1] or ev == "over":
-		_sfx("explode")
+		_sfx("explode", 2.0)
 	elif engine.score > pre[0]:
-		_sfx("hit")
+		_sfx("explode", -5.0)  # an alien blown up
 	elif ev == "wave":
 		_sfx("powerup")
+	# The cannon fires every 0.42 s, so its shot stays well under the rest.
 	if engine.shots.size() > pre[2]:
-		_sfx("shoot")
+		_sfx("shoot", -14.0)
 
-func _sfx(sound: String) -> void:
+func _sfx(sound: String, volume_db: float = 0.0) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
-		s.play(sound)
+		s.play(sound, volume_db)

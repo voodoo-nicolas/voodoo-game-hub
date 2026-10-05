@@ -95,6 +95,41 @@ var pause_overlay: Control
 var pause_grid: GridContainer
 var _logo: Control
 var _paused_by_me: bool = false
+var _more: GridContainer
+var _home_margin: MarginContainer
+## Drag-anywhere scrolling for Home: its buttons swallow presses, so without
+## this a sideways phone (where Home is taller than the screen) could only
+## scroll from the thin scrollbar and the buttons below stayed out of reach.
+var _drag: _DragScroll
+
+## A small copy of scripts/common/drag_scroll.gd (the kit can't rely on the
+## app having it). `moved` is true once a press travels past THRESHOLD, until
+## the next press; the kit's buttons ignore the release that ends a drag.
+class _DragScroll extends Node:
+	const THRESHOLD := 14.0
+	var moved := false
+	var _tracking := false
+	var _start := Vector2.ZERO
+	var _start_scroll := 0
+
+	func _input(event: InputEvent) -> void:
+		var scroll := get_parent() as ScrollContainer
+		if scroll == null or not scroll.is_visible_in_tree():
+			return
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				moved = false
+				_tracking = scroll.get_global_rect().has_point(event.position)
+				_start = event.position
+				_start_scroll = scroll.scroll_vertical
+			else:
+				_tracking = false
+		elif event is InputEventMouseMotion and _tracking and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+			var dy: float = event.position.y - _start.y
+			if not moved and absf(dy) > THRESHOLD:
+				moved = true
+			if moved:
+				scroll.scroll_vertical = _start_scroll - int(dy)
 
 func _init(p_cfg: Dictionary = {}) -> void:
 	cfg = p_cfg
@@ -260,6 +295,8 @@ func _build_home() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	home.add_child(scroll)
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_drag = _DragScroll.new()
+	scroll.add_child(_drag)
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -268,6 +305,7 @@ func _build_home() -> void:
 	margin.add_theme_constant_override("margin_top", 36)
 	margin.add_theme_constant_override("margin_bottom", 40)
 	scroll.add_child(margin)
+	_home_margin = margin
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 16)
@@ -321,6 +359,7 @@ func _build_home() -> void:
 
 	box.add_child(_section(tr("More")))
 	var more := GridContainer.new()
+	_more = more
 	more.columns = 2
 	more.add_theme_constant_override("h_separation", 16)
 	more.add_theme_constant_override("v_separation", 16)
@@ -340,13 +379,40 @@ func _build_home() -> void:
 	for it in items:
 		var b := neon_button(it[0], it[1], 26, 74)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.pressed.connect(it[2])
+		b.pressed.connect(_on_more.bind(it[2]))
 		more.add_child(b)
 
 	box.add_child(gap(4))
 	var hub := neon_button(tr("Back to Hub"), DIM, 26, 68)
-	hub.pressed.connect(go_hub)
+	hub.pressed.connect(_on_hub_pressed)
 	box.add_child(hub)
+	get_viewport().size_changed.connect(_fit_home_layout)
+	_fit_home_layout()
+
+## Sideways phones: a shorter logo, tighter margins and three buttons per row
+## under More, so the play buttons are on screen without scrolling far.
+func _fit_home_layout() -> void:
+	var view := get_viewport_rect().size
+	var wide: bool = view.x > view.y
+	if _logo:
+		var h: float = cfg.get("logo_height", 190)
+		_logo.custom_minimum_size.y = minf(h, 110.0) if wide else h
+	if _more:
+		_more.columns = 3 if wide else 2
+	if _home_margin:
+		_home_margin.add_theme_constant_override("margin_top", 14 if wide else 36)
+		_home_margin.add_theme_constant_override("margin_bottom", 20 if wide else 40)
+
+func _dragged() -> bool:
+	return _drag != null and _drag.moved
+
+func _on_more(action: Callable) -> void:
+	if not _dragged():
+		action.call()
+
+func _on_hub_pressed() -> void:
+	if not _dragged():
+		go_hub()
 
 ## Modes sharing a "row" value sit side by side (difficulty levels).
 func _add_modes(box: VBoxContainer, modes: Array, color: Color) -> void:
@@ -391,6 +457,8 @@ func _mode_button(m: Dictionary, default_color: Color) -> Button:
 	return b
 
 func _on_mode(m: Dictionary) -> void:
+	if _dragged():
+		return
 	hide_home()
 	var action: Callable = m.get("action", Callable())
 	if action.is_valid():
@@ -398,6 +466,8 @@ func _on_mode(m: Dictionary) -> void:
 	_refit()
 
 func _on_resume() -> void:
+	if _dragged():
+		return
 	hide_home()
 	if cfg.has("resume"):
 		cfg.resume.call()
