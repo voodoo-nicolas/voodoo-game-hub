@@ -106,7 +106,7 @@ key as-is. `online_lobby.gd` is the shared Host / Join-by-code screen.
   messages heal. Online games are never saved locally, and an online game
   ending must not delete the local save. Online so far: Tic-Tac-Toe,
   Connect Four, Checkers, Reversi, Chess, Mancala, Dots and Boxes, Morris,
-  Backgammon, Memory, Five in a Row, Hex (2026-10-04). Games with dice or a shuffle send the whole
+  Backgammon, Memory, Five in a Row, Hex (2026-10-04), Poker (heads-up, 2026-10-05). Games with dice or a shuffle send the whole
   state as the move (Backgammon: every roll and checker move; Memory: the host
   deals, each flip is a move).
 - **Testing online without the server**: `tools/test_online_pair.gd` plays
@@ -1016,6 +1016,40 @@ lessons, coaching feedback, help that fades.
   filter can't re-add a folder the exclude filter drops.)
 - Tests: logic in a throwaway test (pinch keeps both fingers' points, lock,
   save round trip, every drawing in bounds); screens with `tools/shot.gd`.
+
+## Poker (`video_poker`) -- the full game (pack v4, 2026-10-05)
+
+Video Poker grew into Poker: Texas Hold'em, Omaha, Five Card Draw, Seven
+Card Stud (No limit / Pot limit / Limit; Stud is Limit only), vs the
+computer (cash tables at 3 stakes, free tournaments), pass and play 2-6,
+online heads-up, Video Poker as a mode, and 🎓 Training. **The id stays
+`video_poker`** so stats and the board carry over (board: "Most chips").
+
+- **Files**: `_eval.gd` (hand scores: one int, bigger wins; `score5` is the
+  fast path Omaha needs), `_table.gd` (pure engine, JSON-safe `to_dict` =
+  the save AND the online state; side pots from each seat's `total`),
+  `_ai.gd` (Monte Carlo win chance + pot odds; computer players and the
+  coach, both on `WorkerThreadPool`, keyed by `_decision_key()` so a stale
+  answer is dropped), `_view.gd` (draws the table; the viewer's seat is
+  always at the bottom), `_machine.gd` (Video Poker screen), `_training.gd`
+  + `_drills.gd`, `_engine.gd` (Video Poker logic + the Jacks or Better
+  hint), `_game.gd` (modes, chips, saves, online).
+- **Chips** live in `user://video_poker_chips.json` (with the Home picks),
+  shared by cash tables and Video Poker. A cash table's stack is NOT in it
+  while seated (it's in the table save); `_discard_save()` pays it back
+  before any New… deletes the save. Video Poker saves its own hand in
+  `user://video_poker_machine.json`, so it never clobbers a table save.
+- **Online**: host = seat 0 and deals every hand (the shuffled deck is in
+  the state); each move sends the whole table and the other phone adopts
+  it. `_hand_over()` must not change shared state online (no elimination
+  bookkeeping there) or every hand triggers a resync. Tested by the
+  `video_poker` driver in `tools/test_online_pair.gd`.
+- **i18n gotcha**: plain "Check" is already Code Breaker / Crossword's
+  "Revisar" in es.json, so poker's check uses the key `"Check "` (trailing
+  space, `View.CHECK`) → "Pasar". Same idea for any word whose Spanish
+  differs by game.
+- The coach follows the Starting hands drill's Chen tiers before the flop
+  in Hold'em, and win chance vs pot odds after it, so advice and drills agree.
 
 ## Hub look changes -- since v0.24.0 (2026-10-03)
 
