@@ -16,16 +16,30 @@ const MAX_SIDE := 1024
 const LINE_WIDTH := 7.0   # px at MAX_SIDE
 
 static var _drawings: Array = []
+static var _collections: Array = []
+
+
+static func _load() -> void:
+	if not _drawings.is_empty():
+		return
+	var f := FileAccess.open(DATA_PATH, FileAccess.READ)
+	if f:
+		var data = JSON.parse_string(f.get_as_text())
+		if data is Dictionary:
+			_drawings = data.get("drawings", [])
+			_collections = data.get("collections", [])
 
 
 static func drawings() -> Array:
-	if _drawings.is_empty():
-		var f := FileAccess.open(DATA_PATH, FileAccess.READ)
-		if f:
-			var data = JSON.parse_string(f.get_as_text())
-			if data is Dictionary:
-				_drawings = data.get("drawings", [])
+	_load()
 	return _drawings
+
+
+## The studies: [{id, title, icon, lesson: [paragraphs], drawings: [ids]}]
+## (+ "_es" texts). The Free mode picker lists them; courses will too.
+static func collections() -> Array:
+	_load()
+	return _collections
 
 
 static func find(id: String) -> Dictionary:
@@ -53,7 +67,9 @@ static func step_count(d: Dictionary) -> int:
 	return maxi(n, 1)
 
 
-## Every stroke as [points, closed] in drawing units; `only` = one step.
+## Every stroke as [points, closed, width factor, dots] in drawing units;
+## `only` = one step. Stroke "w" scales the line (0.5 = a thin guide line);
+## "dots" strokes are stippled points, not lines.
 static func polylines(d: Dictionary, only: int = -1) -> Array:
 	var out := []
 	for s in d.get("strokes", []):
@@ -84,8 +100,42 @@ static func polylines(d: Dictionary, only: int = -1) -> Array:
 			var a: Array = s.ellipse
 			pts = _ellipse(Vector2(a[0], a[1]), a[2], a[3], deg_to_rad(float(a[4])))
 			closed = true
+		elif s.has("arc"):
+			# [cx, cy, r, from degrees, to degrees] (clockwise on screen when to > from)
+			var a: Array = s.arc
+			var n := clampi(int(absf(float(a[4]) - float(a[3])) / 4.0), 6, 90)
+			for k in n + 1:
+				var t := deg_to_rad(lerpf(float(a[3]), float(a[4]), float(k) / n))
+				pts.append(Vector2(a[0], a[1]) + Vector2(cos(t), sin(t)) * float(a[2]))
+		elif s.has("spiral"):
+			# [cx, cy, r from, r to, turns, start degrees]: an even (Archimedean)
+			# spiral -- scrolls and swirls; negative turns wind the other way.
+			var a: Array = s.spiral
+			var turns := float(a[4])
+			var n := clampi(int(absf(turns) * 48), 12, 400)
+			for k in n + 1:
+				var f := float(k) / n
+				var t := deg_to_rad(float(a[5])) + TAU * turns * f
+				pts.append(Vector2(a[0], a[1]) + Vector2(cos(t), sin(t)) * lerpf(float(a[2]), float(a[3]), f))
+		elif s.has("golden_spiral") or s.has("golden_squares"):
+			# [x, y, w, h]: TraceItEngine.golden_layout placed at (x, y).
+			var a: Array = s.golden_spiral if s.has("golden_spiral") else s.golden_squares
+			var g: Dictionary = ENGINE.golden_layout(float(a[2]), float(a[3]), int(s.get("turns", 10)))
+			var at := Vector2(a[0], a[1])
+			if s.has("golden_spiral"):
+				for p in g.points:
+					pts.append(at + p)
+			else:
+				for q in g.squares:
+					var r: Rect2 = q
+					var sq := PackedVector2Array([at + r.position, at + Vector2(r.end.x, r.position.y), at + r.end, at + Vector2(r.position.x, r.end.y)])
+					out.append([sq, true, float(s.get("w", 1.0)), false])
+				continue
+		elif s.has("dots"):
+			out.append([_pairs(s.dots), false, float(s.get("w", 1.0)), true])
+			continue
 		if pts.size() >= 2:
-			out.append([pts, closed])
+			out.append([pts, closed, float(s.get("w", 1.0)), false])
 	return out
 
 
@@ -132,17 +182,21 @@ static func render(d: Dictionary, only: int = -1, long_side: int = MAX_SIDE, wid
 	var box: Array = d.get("size", [400, 400])
 	var k := long_side / maxf(float(box[0]), float(box[1]))
 	var img := Image.create_empty(maxi(1, int(box[0] * k)), maxi(1, int(box[1] * k)), false, Image.FORMAT_RGBA8)
-	var r := width / 2.0
-	var bs := int(ceil(r * 2.0 + 2.0))
-	var brush := Image.create_empty(bs, bs, false, Image.FORMAT_RGBA8)
-	for y in bs:
-		for x in bs:
-			var dist := Vector2(x + 0.5 - bs / 2.0, y + 0.5 - bs / 2.0).length()
-			brush.set_pixel(x, y, Color(1, 1, 1, clampf(r + 0.5 - dist, 0.0, 1.0)))
-	var src := Rect2i(0, 0, bs, bs)
-	var spacing := maxf(1.0, r * 0.6)
+	var brushes := {}
 	for pl in polylines(d, only):
 		var pts: PackedVector2Array = pl[0]
+		var dots: bool = pl[3]
+		var r := maxf(0.75, width * float(pl[2]) * (0.9 if dots else 0.5))
+		if not brushes.has(r):
+			brushes[r] = _brush(r)
+		var brush: Image = brushes[r]
+		var bs := brush.get_width()
+		var src := Rect2i(0, 0, bs, bs)
+		if dots:
+			for p in pts:
+				img.blend_rect(brush, src, Vector2i(int(p.x * k) - bs / 2, int(p.y * k) - bs / 2))
+			continue
+		var spacing := maxf(1.0, r * 0.6)
 		var count := pts.size() + (1 if pl[1] else 0) - 1
 		for i in count:
 			var a := pts[i] * k
@@ -152,6 +206,17 @@ static func render(d: Dictionary, only: int = -1, long_side: int = MAX_SIDE, wid
 				var p := a.lerp(b, float(j) / n)
 				img.blend_rect(brush, src, Vector2i(int(p.x) - bs / 2, int(p.y) - bs / 2))
 	return img
+
+
+## A soft round brush of radius r (white, alpha falls off over a pixel).
+static func _brush(r: float) -> Image:
+	var bs := int(ceil(r * 2.0 + 2.0))
+	var brush := Image.create_empty(bs, bs, false, Image.FORMAT_RGBA8)
+	for y in bs:
+		for x in bs:
+			var dist := Vector2(x + 0.5 - bs / 2.0, y + 0.5 - bs / 2.0).length()
+			brush.set_pixel(x, y, Color(1, 1, 1, clampf(r + 0.5 - dist, 0.0, 1.0)))
+	return brush
 
 
 ## A built-in drawing ready for the overlay.

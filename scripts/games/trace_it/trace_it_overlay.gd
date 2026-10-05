@@ -12,6 +12,7 @@ signal changed   # placement or look changed (the game saves a bit later)
 
 const FX = preload("res://scripts/games/trace_it/trace_it_fx.gd")
 const GRID_COLOR := Color(0.16, 0.9, 1.0, 0.75)
+const GOLD_COLOR := Color(1.0, 0.68, 0.17, 0.85)
 
 var engine   # TraceItEngine, shared with the game
 var source: Dictionary = {}
@@ -21,21 +22,23 @@ var _holder: Control
 var _main: TextureRect
 var _steps: Array = []    # TextureRect per step
 var _touches := {}        # index -> position
+var _order: Array = []    # touch indices in press order; only the first two count
+var _fit_for := Vector2.ZERO   # the screen size `fit` was computed for
 var _mouse_drag := 0      # 0 none, 1 move, 2 turn
 
 
 func _init(p_engine) -> void:
 	engine = p_engine
-
-
-func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_holder = Control.new()
 	_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_holder.draw.connect(_draw_holder)
 	add_child(_holder)
 	_main = _layer()
+
+
+func _ready() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	resized.connect(refresh)
 
 
@@ -76,6 +79,7 @@ func set_source(s: Dictionary) -> void:
 		_steps.append(t)
 	engine.step_count = maxi(1, _steps.size())
 	engine.set_step(engine.step)
+	_fit_for = Vector2.ZERO
 	refresh()
 
 
@@ -87,8 +91,13 @@ func refresh() -> void:
 	if source.is_empty():
 		return
 	# Scale 1 fits the part of the screen between the top bar and the
-	# bottom bars (stable, so showing the tools doesn't resize the picture).
-	fit = engine.fit_size(source.size, size * Vector2(1.0, 0.58))
+	# bottom bars. Fixed when the picture arrives: only the player's pinch
+	# changes its size -- small screen-size changes (status bar, text-size
+	# fitting) used to make it grow and shrink. Turning the phone refits.
+	var turned := (size.x > size.y) != (_fit_for.x > _fit_for.y)
+	if size.x > 0 and size.y > 0 and (_fit_for == Vector2.ZERO or turned):
+		fit = engine.fit_size(source.size, size * Vector2(1.0, 0.58))
+		_fit_for = size
 	_holder.size = fit
 	_holder.pivot_offset = fit / 2.0
 	_holder.position = size / 2.0 + engine.offset - fit / 2.0
@@ -107,12 +116,17 @@ func refresh() -> void:
 		_apply(_main, {"mode": "mask"}, engine.opacity, color)
 	else:
 		_main.texture = _tex("full")
-		_apply(_main, {"mode": style}, engine.opacity, color)
+		_apply(_main, {"mode": style, "lo": source.get("lo", 0.0), "hi": source.get("hi", 1.0)}, engine.opacity, color)
 	var defs: Array = source.get("steps", [])
 	for i in _steps.size():
 		var a: float = engine.layer_alpha(i)
 		_steps[i].visible = a > 0.0
-		_apply(_steps[i], defs[i], engine.opacity * a, color)
+		var look: Dictionary = defs[i]
+		# The Shading step shades with the technique the player picked.
+		if look.get("mode") == "tones" and engine.shading != "tones":
+			look = look.duplicate()
+			look.mode = engine.shading
+		_apply(_steps[i], look, engine.opacity * a, color)
 	_holder.queue_redraw()
 
 
@@ -142,7 +156,18 @@ func _apply(t: TextureRect, look: Dictionary, alpha: float, color: Color) -> voi
 func _draw_holder() -> void:
 	var r := Rect2(Vector2.ZERO, _holder.size)
 	var w := 2.0 / maxf(engine.scale, 0.1)
-	if engine.grid > 0:
+	if engine.grid == engine.GOLDEN_GRID:
+		# Lines at 1/phi^2 and 1/phi (0.382, 0.618): the golden sections.
+		for f in [0.381966, 0.618034]:
+			_holder.draw_line(Vector2(r.size.x * f, 0), Vector2(r.size.x * f, r.size.y), GOLD_COLOR, w)
+			_holder.draw_line(Vector2(0, r.size.y * f), Vector2(r.size.x, r.size.y * f), GOLD_COLOR, w)
+		_holder.draw_rect(r, GOLD_COLOR, false, w)
+	elif engine.grid == engine.GOLDEN_SPIRAL:
+		var g: Dictionary = engine.golden_layout(r.size.x, r.size.y)
+		for q in g.squares:
+			_holder.draw_rect(q, Color(GOLD_COLOR, 0.35), false, w * 0.75)
+		_holder.draw_polyline(g.points, GOLD_COLOR, w * 1.4, true)
+	elif engine.grid > 0:
 		for i in range(1, engine.grid):
 			var x: float = r.size.x * i / engine.grid
 			var y: float = r.size.y * i / engine.grid
@@ -160,28 +185,36 @@ func _gui_input(event: InputEvent) -> void:
 	if source.is_empty() or engine.locked:
 		if event is InputEventScreenTouch and not event.pressed:
 			_touches.erase(event.index)
+			_order.erase(event.index)
 		return
 	var touch := DisplayServer.is_touchscreen_available()
 	var c := size / 2.0
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_touches[event.index] = event.position
+			if not _order.has(event.index):
+				_order.append(event.index)
 		else:
 			_touches.erase(event.index)
+			_order.erase(event.index)
 		accept_event()
 	elif event is InputEventScreenDrag:
+		# Only the first two fingers move the picture: a third finger or the
+		# side of the hand would otherwise make it jump.
+		if not _order.has(event.index):
+			_order.append(event.index)
+		if _order.find(event.index) >= 2:
+			accept_event()
+			return
 		if not _touches.has(event.index):
 			_touches[event.index] = event.position - event.relative
 		var prev: Vector2 = _touches[event.index]
 		_touches[event.index] = event.position
-		if _touches.size() == 1:
+		var pair: Array = _order.slice(0, 2)
+		if pair.size() < 2 or not pair.has(event.index):
 			engine.pan(event.relative)
 		else:
-			var other := Vector2.ZERO
-			for k in _touches:
-				if k != event.index:
-					other = _touches[k]
-					break
+			var other: Vector2 = _touches.get(pair[1] if pair[0] == event.index else pair[0], event.position)
 			engine.pinch(prev - c, other - c, event.position - c, other - c)
 		_moved()
 		accept_event()

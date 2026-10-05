@@ -30,6 +30,20 @@ player option (step by step, lessons, coaching, help that fades).
 8. Store / manifest (trial, $1, hub subscription; the funnel question).
 9. Polish.
 
+## Done in round 2 (2026-10-05, after the user's first phone test)
+
+- Zoom fixes: the overlay's size is fixed when the picture loads (only a
+  pinch changes it); only the first two fingers move it; 📷 steps through
+  every camera (a wide fixed-focus lens doesn't "breathe" while refocusing).
+- **Studies** in the Free mode picker, each with a 📖 lesson (shown first
+  the first time, a player option): Warm-up, The golden ratio (golden
+  rectangle, golden spiral, nautilus), Perspective (1-point road, 2-point
+  box), Ornament (S-scroll, filigree corner, acanthus leaf), Shading
+  techniques (sphere with cross-hatching, apple with stippling), Drawing
+  styles (doodle, geometric mandala, cartoon robot, water-cycle diagram).
+- Looks: hatching and dots on any photo; the Shading step can shade with
+  tones / hatching / dots. Guides: 3x3, 4x4, golden ratio lines, golden spiral.
+
 ## Content ideas from the user (not scheduled yet)
 
 **Courses** (original or CC0 art only):
@@ -56,3 +70,9 @@ Each one comes with a short lesson on how to do it by hand.
   them — worth doing with the accuracy check, which compares against these
   masks. A "fewer / more lines" control is cheap (it's the `keep` share).
 - EXIF rotation isn't read; the ⟳90° tool covers sideways phone photos.
+- **Focus lock + torch** need a native camera plugin (Kotlin + CameraX
+  replacing Godot's CameraServer for this game): Godot exposes neither. Only
+  worth it if the wide-camera workaround isn't enough on players' phones.
+- Still to add from the user's list: perspective guides you can drag
+  (horizon + vanishing points over any picture), more ornament (Greek key,
+  rosettes), more styles drawings, contour hatching / scribble looks.

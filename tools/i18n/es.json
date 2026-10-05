@@ -4310,5 +4310,18 @@
  "Preparing your picture...": "Preparando tu imagen...",
  "trace_it photo": null,
  "✏ Keep drawing": "✏ Seguir dibujando",
- "✓ Yes, finished": "✓ Sí, terminé"
+ "✓ Yes, finished": "✓ Sí, terminé",
+ "# Guides": "# Guías",
+ "Dots": "Puntos",
+ "Free mode: pick a photo from your gallery, take one with the camera, or a drawing from one of the studies: warm-up, golden ratio, perspective, ornament, shading techniques and drawing styles. Each study has a short 📖 lesson.": "Modo libre: elige una foto de tu galería, saca una con la cámara o elige un dibujo de uno de los estudios: para empezar, proporción áurea, perspectiva, ornamento, técnicas de sombreado y estilos de dibujo. Cada estudio tiene una 📖 lección corta.",
+ "Hatching": "Rayado",
+ "If the picture slowly zooms in and out by itself, the camera is refocusing: tap 📷 to try another camera -- the wide one often has fixed focus.": "Si la imagen se agranda y se achica sola, la cámara está enfocando de nuevo: toca 📷 para probar otra cámara; la gran angular suele tener foco fijo.",
+ "Shade with:": "Sombrear con:",
+ "The tools: opacity, the look (photo, gray, lines, inverted, hatching, dots), the line colour, flips, and guides -- a grid, the golden ratio lines or the golden spiral.": "Las herramientas: opacidad, el estilo (foto, gris, líneas, invertido, rayado, puntos), el color de las líneas, voltear y guías: una cuadrícula, las líneas de la proporción áurea o la espiral áurea.",
+ "Tones": "Tonos",
+ "✏ Draw it": "✏ Dibujarlo",
+ "📖 Lesson": "📖 Lección",
+ "📖 Lessons: OFF": "📖 Lecciones: NO",
+ "📖 Lessons: ON": "📖 Lecciones: SÍ",
+ "🪜 Steps: draw it the way artists do -- big shapes first, then the main lines, then the details and the shading. Next shows the next step. A photo's shading can be tones, hatching or dots.": "🪜 Pasos: dibuja como los artistas: primero las formas grandes, después las líneas principales, luego los detalles y el sombreado. ▶ muestra el paso siguiente. El sombreado de una foto puede ser en tonos, rayado o puntos."
 }

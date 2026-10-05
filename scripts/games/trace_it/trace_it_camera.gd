@@ -14,6 +14,11 @@ extends Control
 ##   (30 fps), the other back camera only 24-26. 1280x720 is plenty.
 ## - In a dark room every camera drops to ~10 fps: `light_changed` tells the
 ##   game to ask for more light.
+## - Godot exposes no focus control, and a refocusing camera makes the picture
+##   "breathe" (zoom in and out a little) when a hand moves under it. The
+##   player can step through every camera (`next_camera`): on many phones the
+##   wide back camera has fixed focus and doesn't breathe. A real focus lock
+##   (and the torch) would need a native camera plugin.
 ## - Android pauses and resumes the camera with the app by itself.
 ##
 ## The camera permission must be in the APK (app build 34+), so the game's
@@ -28,7 +33,7 @@ const PERMISSION := "android.permission.CAMERA"
 const DARK_LUMA := 55.0
 const SLOW_FPS := 14.0
 
-var front := false
+var choice := 0   # which camera: index into cameras() (backs by id, then fronts)
 var state := ""
 var dark := false
 var feed: CameraFeed = null
@@ -129,42 +134,50 @@ static func open_app_settings() -> bool:
 	return true
 
 
-func switch_camera() -> void:
-	front = not front
+## Every camera, back ones first in id order (Android names feeds
+## "<camera id> | BACK"; the lowest id is the main camera), then front ones.
+static func cameras() -> Array:
+	var list := CameraServer.feeds()
+	var key := func(f: CameraFeed) -> int:
+		var cam_id := str(f.get_name()).get_slice("|", 0).strip_edges()
+		var n := int(cam_id) if cam_id.is_valid_int() else 1000 + f.get_id()
+		return n + (0 if f.get_position() != CameraFeed.FEED_FRONT else 100000)
+	list.sort_custom(func(a, b): return key.call(a) < key.call(b))
+	return list
+
+
+func camera_count() -> int:
+	return cameras().size()
+
+
+## The next camera (wraps around); the game remembers `choice`.
+func next_camera() -> void:
+	var n := camera_count()
+	if n < 2:
+		return
+	choice = (choice + 1) % n
 	if state == "running" or state == "starting":
 		_pick_feed(true)
 
 
-func has_front_and_back() -> bool:
-	var f := false
-	var b := false
-	for x in CameraServer.feeds():
-		f = f or x.get_position() == CameraFeed.FEED_FRONT
-		b = b or x.get_position() == CameraFeed.FEED_BACK
-	return f and b
+## Short name for the camera button: 📷1, 📷2 ... for back cameras, 🤳 front.
+func camera_label() -> String:
+	if feed == null:
+		return "📷"
+	if feed.get_position() == CameraFeed.FEED_FRONT:
+		return "🤳"
+	var backs := cameras().filter(func(f): return f.get_position() != CameraFeed.FEED_FRONT)
+	return "📷%d" % (backs.find(feed) + 1)
 
 
 func _pick_feed(force: bool = false) -> void:
-	var want := CameraFeed.FEED_FRONT if front else CameraFeed.FEED_BACK
-	var best: CameraFeed = null
-	var best_id := 1 << 30
-	var any: CameraFeed = null
-	for f in CameraServer.feeds():
-		if any == null:
-			any = f
-		if f.get_position() != want:
-			continue
-		# Android names feeds "<camera id> | BACK": the lowest id is the main camera.
-		var cam_id := str(f.get_name()).get_slice("|", 0).strip_edges()
-		var n := int(cam_id) if cam_id.is_valid_int() else 1000 + f.get_id()
-		if n < best_id:
-			best_id = n
-			best = f
-	if best == null:
-		best = any
-	if best == null:
+	var list := cameras()
+	if list.is_empty():
 		_set_state("no_camera")
 		return
+	if choice < 0 or choice >= list.size():
+		choice = 0
+	var best: CameraFeed = list[choice]
 	if best == feed and not force:
 		return
 	_open(best)

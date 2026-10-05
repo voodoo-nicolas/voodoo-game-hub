@@ -43,7 +43,7 @@ var snapping := false
 var source: Dictionary = {}
 var source_desc: Dictionary = {}   # what Resume rebuilds: {kind, id}
 var draw_time := 0.0
-var prefs := {"tutorial_seen": false, "steps_on": true}
+var prefs := {"tutorial_seen": false, "steps_on": true, "lessons_on": true, "lessons_seen": []}
 var _save_t := -1.0
 var _hold_t := -1.0
 var _just_unlocked := false
@@ -64,7 +64,9 @@ var tools_btn: Button
 var lock_btn: Button
 var opacity_slider: HSlider
 var opacity_label: Label
-var look_row: HBoxContainer
+var look_row: GridContainer
+var shade_row: HBoxContainer
+var shade_btns := {}
 var look_btns := {}
 var color_btns: Array = []
 var grid_btn: Button
@@ -76,6 +78,15 @@ var prev_btn: Button
 var next_btn: Button
 var snap_bar: Control
 var picker: Control
+var picker_box: VBoxContainer
+var picker_drag: Node
+var picker_filled := false
+var lessons_toggle: Button
+var lesson_card: Control
+var lesson_title: Label
+var lesson_text: Label
+var lesson_go: Button
+var _lesson_then := ""   # drawing id to open after the lesson ("" = back to the picker)
 var steps_toggle: Button
 var perm_card: Control
 var perm_text: Label
@@ -95,6 +106,7 @@ func _ready() -> void:
 		prefs.merge(p, true)
 	engine.steps_on = bool(prefs.steps_on)
 	_build_ui()
+	camera.choice = int(prefs.get("camera", 0))
 
 
 func _exit_tree() -> void:
@@ -133,6 +145,7 @@ func _build_ui() -> void:
 	_build_session_ui()
 	_build_snap_bar()
 	_build_picker()
+	_build_lesson_card()
 	_build_permission_card()
 	_build_tutorial()
 	_build_done_card()
@@ -245,8 +258,8 @@ func _build_session_ui() -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.clip_text = true
 	bar.add_child(title_label)
-	swap_btn = _btn("⇄📷", HomeKit.BLUE, _on_swap_camera, 24, 64)
-	swap_btn.custom_minimum_size.x = 84
+	swap_btn = _btn("📷", HomeKit.BLUE, _on_swap_camera, 24, 64)
+	swap_btn.custom_minimum_size.x = 96
 	bar.add_child(swap_btn)
 	var done := _btn(tr("✓ Done"), HomeKit.LIME, _on_done, 26, 64)
 	done.custom_minimum_size.x = 150
@@ -307,14 +320,27 @@ func _build_session_ui() -> void:
 	opacity_slider.value_changed.connect(_on_opacity)
 	orow.add_child(opacity_slider)
 
-	look_row = HBoxContainer.new()
-	look_row.add_theme_constant_override("separation", 8)
+	look_row = GridContainer.new()
+	look_row.columns = 3
+	look_row.add_theme_constant_override("h_separation", 8)
+	look_row.add_theme_constant_override("v_separation", 8)
 	tcol.add_child(look_row)
-	for st in [["photo", "Photo"], ["gray", "Gray"], ["lines", "Lines"], ["invert", "Invert"]]:
+	for st in [["photo", "Photo"], ["gray", "Gray"], ["lines", "Lines"], ["invert", "Invert"], ["hatch", "Hatching"], ["dots", "Dots"]]:
 		var b := _btn(tr(st[1]), HomeKit.CYAN, _on_look.bind(st[0]), 22, 56)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		look_row.add_child(b)
 		look_btns[st[0]] = b
+
+	# The Shading step of a photo: shade with tones, hatching or dots.
+	shade_row = HBoxContainer.new()
+	shade_row.add_theme_constant_override("separation", 8)
+	tcol.add_child(shade_row)
+	shade_row.add_child(HomeKit.label(tr("Shade with:"), 22, HomeKit.WHITE))
+	for st in [["tones", "Tones"], ["hatch", "Hatching"], ["dots", "Dots"]]:
+		var b := _btn(tr(st[1]), HomeKit.PURPLE, _on_shading.bind(st[0]), 22, 56)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		shade_row.add_child(b)
+		shade_btns[st[0]] = b
 
 	var crow := HBoxContainer.new()
 	crow.add_theme_constant_override("separation", 8)
@@ -408,7 +434,8 @@ func _screen(title: String, color: Color) -> Array:
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root.add_child(scroll)
-	scroll.add_child(HomeKit._DragScroll.new())
+	var drag := HomeKit._DragScroll.new()
+	scroll.add_child(drag)
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for side in ["left", "right"]:
@@ -420,52 +447,97 @@ func _screen(title: String, color: Color) -> Array:
 	box.add_theme_constant_override("separation", 16)
 	margin.add_child(box)
 	box.add_child(HomeKit.label(title, 40, color, true, true))
-	return [root, box]
+	return [root, box, drag]
 
 
 func _build_picker() -> void:
 	var parts := _screen(tr("🖼 Free mode"), HomeKit.CYAN)
 	picker = parts[0]
-	var box: VBoxContainer = parts[1]
+	picker_box = parts[1]
+	picker_drag = parts[2]
+
+
+## Filled the first time it opens (rendering every thumbnail takes a moment).
+func _fill_picker() -> void:
+	if picker_filled:
+		return
+	picker_filled = true
+	var box := picker_box
 	box.add_child(HomeKit.label(tr("What do you want to draw?"), 24, HomeKit.DIM, true, true))
 	box.add_child(_btn(tr("🖼 A photo from my gallery"), HomeKit.CYAN, _pick_gallery, 26, 84))
 	box.add_child(_btn(tr("📷 Take a photo with the camera"), HomeKit.BLUE, _start_snap, 26, 84))
-	steps_toggle = _btn("", HomeKit.PURPLE, _on_picker_steps, 24, 70)
-	box.add_child(steps_toggle)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	box.add_child(row)
+	steps_toggle = _btn("", HomeKit.PURPLE, _on_picker_steps, 22, 70)
+	steps_toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(steps_toggle)
+	lessons_toggle = _btn("", HomeKit.GOLD, _on_lessons_toggle, 22, 70)
+	lessons_toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(lessons_toggle)
 	box.add_child(HomeKit.label(tr("Or trace one of our drawings"), 26, HomeKit.WHITE, true, true))
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 16)
-	box.add_child(grid)
-	for d in Art.drawings():
-		var b := Button.new()
-		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(0, 250)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		HomeKit.style_button(b, HomeKit.CYAN)
-		b.pressed.connect(_pick_drawing.bind(str(d.get("id", ""))))
-		var v := VBoxContainer.new()
-		v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		v.offset_left = 10
-		v.offset_right = -10
-		v.offset_top = 10
-		v.offset_bottom = -8
-		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_child(v)
-		var thumb := TextureRect.new()
-		thumb.texture = ImageTexture.create_from_image(Art.render(d, -1, 200, 5.0))
-		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		thumb.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v.add_child(thumb)
-		var cap := HomeKit.label(Art.text(d, "title"), 24, HomeKit.WHITE, false, true)
-		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v.add_child(cap)
-		grid.add_child(b)
+	for c in Art.collections():
+		var head := HBoxContainer.new()
+		head.add_theme_constant_override("separation", 10)
+		box.add_child(head)
+		var study := HomeKit.label("%s %s" % [c.get("icon", ""), Art.text(c, "title")], 28, HomeKit.CYAN)
+		study.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		study.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		head.add_child(study)
+		var lb := _btn(tr("📖 Lesson"), HomeKit.GOLD, _on_lesson_button.bind(str(c.get("id", ""))), 22, 60)
+		lb.custom_minimum_size.x = 170
+		head.add_child(lb)
+		var grid := GridContainer.new()
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 16)
+		grid.add_theme_constant_override("v_separation", 16)
+		box.add_child(grid)
+		for id in c.get("drawings", []):
+			var d := Art.find(str(id))
+			if not d.is_empty():
+				grid.add_child(_drawing_button(d, str(c.get("id", ""))))
 	box.add_child(HomeKit.label(tr("Your pictures never leave your phone."), 20, HomeKit.DIM, true, true))
 	box.add_child(_btn(tr("Back"), HomeKit.DIM, _close_picker, 24, 64))
+
+
+func _drawing_button(d: Dictionary, study: String) -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(0, 260)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	HomeKit.style_button(b, HomeKit.CYAN)
+	b.pressed.connect(_pick_drawing.bind(str(d.get("id", "")), study))
+	var v := VBoxContainer.new()
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	v.offset_left = 10
+	v.offset_right = -10
+	v.offset_top = 10
+	v.offset_bottom = -8
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(v)
+	var thumb := TextureRect.new()
+	thumb.texture = ImageTexture.create_from_image(Art.render(d, -1, 200, 4.0))
+	thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	thumb.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(thumb)
+	var cap := HomeKit.label(Art.text(d, "title"), 20, HomeKit.WHITE, true, true)
+	cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(cap)
+	return b
+
+
+func _build_lesson_card() -> void:
+	var parts := _screen("", HomeKit.GOLD)
+	lesson_card = parts[0]
+	var box: VBoxContainer = parts[1]
+	lesson_title = box.get_child(0)
+	lesson_text = HomeKit.label("", 25, HomeKit.WHITE, true)
+	box.add_child(lesson_text)
+	lesson_go = _btn(tr("✏ Draw it"), HomeKit.LIME, _on_lesson_go, 28, 84)
+	box.add_child(lesson_go)
+	box.add_child(_btn(tr("Back"), HomeKit.DIM, _close_lesson, 24, 64))
 
 
 func _build_permission_card() -> void:
@@ -580,6 +652,7 @@ func _build_confirm_card() -> void:
 # ---------------------------------------------------------------- picker
 
 func _open_picker() -> void:
+	_fill_picker()
 	_refresh_picker()
 	picker.visible = true
 
@@ -592,6 +665,56 @@ func _close_picker() -> void:
 
 func _refresh_picker() -> void:
 	steps_toggle.text = tr("🪜 Step by step: ON") if engine.steps_on else tr("🪜 Step by step: OFF")
+	lessons_toggle.text = tr("📖 Lessons: ON") if prefs.lessons_on else tr("📖 Lessons: OFF")
+
+
+## Lessons are a teaching option: when on, a study's lesson shows the first
+## time one of its drawings is picked. 📖 always opens it.
+func _on_lessons_toggle() -> void:
+	prefs["lessons_on"] = not bool(prefs.lessons_on)
+	SaveUtil.write(PREFS_PATH, prefs)
+	_refresh_picker()
+
+
+func _on_lesson_button(study: String) -> void:
+	if picker_drag.moved:
+		return
+	_show_lesson(study, "")
+
+
+func _show_lesson(study: String, then_draw: String) -> void:
+	var c := _collection(study)
+	if c.is_empty():
+		return
+	lesson_title.text = "%s %s" % [c.get("icon", ""), Art.text(c, "title")]
+	var paras: Array = c.get("lesson_es", []) if Art.spanish() and c.has("lesson_es") else c.get("lesson", [])
+	lesson_text.text = "\n\n".join(PackedStringArray(paras))
+	_lesson_then = then_draw
+	lesson_go.visible = then_draw != ""
+	var seen: Array = prefs.get("lessons_seen", [])
+	if not seen.has(study):
+		seen.append(study)
+		prefs["lessons_seen"] = seen
+		SaveUtil.write(PREFS_PATH, prefs)
+	lesson_card.visible = true
+
+
+func _close_lesson() -> void:
+	lesson_card.visible = false
+
+
+func _on_lesson_go() -> void:
+	lesson_card.visible = false
+	var d := Art.find(_lesson_then)
+	if not d.is_empty():
+		_begin(Art.drawing_source(d), {"kind": "drawing", "id": _lesson_then}, true)
+
+
+static func _collection(id: String) -> Dictionary:
+	for c in Art.collections():
+		if c.get("id") == id:
+			return c
+	return {}
 
 
 func _on_picker_steps() -> void:
@@ -601,9 +724,14 @@ func _on_picker_steps() -> void:
 	_refresh_picker()
 
 
-func _pick_drawing(id: String) -> void:
+func _pick_drawing(id: String, study: String = "") -> void:
+	if picker_drag and picker_drag.moved:
+		return   # the release that ended a scroll, not a tap
 	var d := Art.find(id)
 	if d.is_empty():
+		return
+	if bool(prefs.lessons_on) and study != "" and not prefs.get("lessons_seen", []).has(study):
+		_show_lesson(study, id)
 		return
 	_begin(Art.drawing_source(d), {"kind": "drawing", "id": id}, true)
 
@@ -683,7 +811,6 @@ func _start_snap() -> void:
 	session_ui.visible = false
 	overlay.visible = false
 	snap_bar.visible = true
-	camera.front = false
 	camera.start()
 
 
@@ -730,6 +857,7 @@ func _begin(s: Dictionary, desc: Dictionary, fresh: bool) -> void:
 		elif info:
 			info.add("Photos traced")
 	picker.visible = false
+	lesson_card.visible = false
 	started = true
 	session_on = true
 	overlay.set_source(s)
@@ -754,7 +882,8 @@ func _refresh_session() -> void:
 	var drawing: bool = source.get("kind") == "drawing"
 	var what: String = source.get("title", "")
 	title_label.text = what if what != "" else tr("Your picture")
-	swap_btn.visible = camera.has_front_and_back() and not locked
+	swap_btn.visible = camera.camera_count() > 1 and not locked
+	swap_btn.text = camera.camera_label()
 	tools_panel.visible = not locked and bool(prefs.get("tools_open", false))
 	tools_btn.visible = not locked
 	tools_btn.text = tr("🛠 Hide tools") if tools_panel.visible else tr("🛠 Tools")
@@ -764,6 +893,9 @@ func _refresh_session() -> void:
 	look_row.visible = not drawing and not engine.steps_on
 	for k in look_btns:
 		HomeKit.style_button(look_btns[k], HomeKit.LIME if k == engine.style else HomeKit.CYAN)
+	shade_row.visible = not drawing and engine.steps_on
+	for k in shade_btns:
+		HomeKit.style_button(shade_btns[k], HomeKit.LIME if k == engine.shading else HomeKit.PURPLE)
 	for i in color_btns.size():
 		var c: Color = engine.LINE_COLORS[i]
 		var sb := StyleBoxFlat.new()
@@ -773,7 +905,14 @@ func _refresh_session() -> void:
 		sb.border_color = HomeKit.LIME if i == engine.line_color else Color(0.5, 0.5, 0.6)
 		for st in ["normal", "hover", "pressed"]:
 			color_btns[i].add_theme_stylebox_override(st, sb)
-	grid_btn.text = tr("# Grid") if engine.grid == 0 else "# %d×%d" % [engine.grid, engine.grid]
+	if engine.grid == 0:
+		grid_btn.text = tr("# Guides")
+	elif engine.grid == TraceItEngine.GOLDEN_GRID:
+		grid_btn.text = "# φ"
+	elif engine.grid == TraceItEngine.GOLDEN_SPIRAL:
+		grid_btn.text = "# 🌀"
+	else:
+		grid_btn.text = "# %d×%d" % [engine.grid, engine.grid]
 	steps_btn.text = tr("🪜 Step by step: ON") if engine.steps_on else tr("🪜 Step by step: OFF")
 	steps_bar.visible = engine.steps_on
 	if engine.steps_on:
@@ -826,6 +965,12 @@ func _on_look(style: String) -> void:
 
 func _on_color(i: int) -> void:
 	engine.line_color = i
+	_refresh_session()
+	_save_t = 0.5
+
+
+func _on_shading(technique: String) -> void:
+	engine.shading = technique
 	_refresh_session()
 	_save_t = 0.5
 
@@ -896,8 +1041,12 @@ func _on_next_step() -> void:
 	_save_t = 0.5
 
 
+## Steps through every camera. A picture that "breathes" is the camera
+## refocusing; another back camera (often the wide one) may have fixed focus.
 func _on_swap_camera() -> void:
-	camera.switch_camera()
+	camera.next_camera()
+	prefs["camera"] = camera.choice
+	SaveUtil.write(PREFS_PATH, prefs)
 
 
 # Lock: one tap locks; unlocking needs a hold, so a hand brushing the
@@ -950,6 +1099,8 @@ func _on_camera_state(state: String) -> void:
 				_cancel_snap()
 	if session_on:
 		_refresh_session()
+	elif snapping:
+		swap_btn.text = camera.camera_label()
 
 
 func _show_permission(denied: bool) -> void:
@@ -1049,7 +1200,7 @@ func _save_game() -> void:
 		return
 	SaveUtil.write(SAVE_PATH, {
 		"source": source_desc, "engine": engine.to_dict(),
-		"time": draw_time, "front": camera.front,
+		"time": draw_time,
 	})
 
 
@@ -1080,7 +1231,6 @@ func _resume() -> void:
 		if img:
 			engine.from_dict(d.get("engine", {}))
 			draw_time = float(d.get("time", 0.0))
-			camera.front = bool(d.get("front", false))
 			_prepare_photo(img, desc, false)
 			return
 	if s.is_empty():
@@ -1089,7 +1239,6 @@ func _resume() -> void:
 		return
 	engine.from_dict(d.get("engine", {}))
 	draw_time = float(d.get("time", 0.0))
-	camera.front = bool(d.get("front", false))
 	_begin(s, desc, false)
 
 

@@ -991,7 +991,17 @@ lessons, coaching feedback, help that fades.
   thinning, keep the strongest share (same density on any photo); "Big
   shapes" posterizes into 3 tones and traces the mass borders. The accuracy
   check will reuse these masks. Built-in drawings are data
-  (`trace_it_drawings.json`, strokes tagged by step, own Spanish).
+  (`trace_it_drawings.json`: strokes tagged by step, own Spanish, stroke
+  kinds incl. arc / spiral / golden_spiral / dots, "w" for thin guides),
+  grouped into **studies** ("collections", each with a short lesson).
+  Looks: photo / gray / lines / invert / hatch / dots (shader, sized to the
+  picture so it's pencil-traceable); guides: grid, golden lines, golden
+  spiral (`TraceItEngine.golden_layout`).
+- The overlay's size is fixed when a picture loads (only the player's pinch
+  changes it -- it used to follow small screen-size changes), only the first
+  two fingers move it, and 📷 cycles every camera: phone autofocus makes the
+  picture "breathe" and Godot can't lock focus; a wide fixed-focus lens
+  doesn't.
 - **Dev build on a phone**: export preset `TraceDev` (package
   `com.viral.voodoo.dev`, arm64 only, every other game excluded, feature
   `trace_dev` whose `run/main_scene` override opens Trace It) installs next

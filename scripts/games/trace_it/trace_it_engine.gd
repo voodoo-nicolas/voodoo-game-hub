@@ -4,12 +4,21 @@ extends RefCounted
 ## fingers move it), the look settings, the teaching steps, and the session
 ## as a saveable Dictionary. Tested headlessly; the game draws from it.
 
-## Overlay looks. "photo" keeps the picture's colours; "lines" turns a photo
-## into line art (edge shader) -- a line drawing is always drawn as lines.
-const STYLES := ["photo", "gray", "lines", "invert"]
+## Overlay looks. "photo" keeps the picture's colours; "lines" is the photo's
+## line art; "hatch" and "dots" draw its tones as cross-hatching and as
+## stipple (pointillism) -- shading techniques to trace. A line drawing is
+## always drawn as lines.
+const STYLES := ["photo", "gray", "lines", "invert", "hatch", "dots"]
+## How the Shading step shades: flat tones, cross-hatching or dots.
+const SHADINGS := ["tones", "hatch", "dots"]
 ## Line colours: dark for white paper, light for dark paper, two bright ones.
 const LINE_COLORS := [Color(0.05, 0.05, 0.08), Color(1, 1, 1), Color("ff2b4a"), Color("1f6bff"), Color("29e6ff")]
-const GRIDS := [0, 3, 4]
+## Guides drawn over the picture: none, a 3x3 grid (thirds), 4x4, the golden
+## ratio grid (lines at 0.382 / 0.618) and the golden spiral.
+const GRIDS := [0, 3, 4, GOLDEN_GRID, GOLDEN_SPIRAL]
+const GOLDEN_GRID := -1
+const GOLDEN_SPIRAL := -2
+const PHI := 1.6180339887
 const MIN_SCALE := 0.1
 const MAX_SCALE := 10.0
 
@@ -40,6 +49,7 @@ var opacity := 0.7
 var style := "lines"
 var line_color := 0
 var grid := 0
+var shading := "tones"
 var steps_on := false
 var step := 0
 var step_count := 4
@@ -115,6 +125,68 @@ func next_style() -> String:
 	return style
 
 
+func next_shading() -> String:
+	shading = SHADINGS[(SHADINGS.find(shading) + 1) % SHADINGS.size()]
+	return shading
+
+
+## The golden spiral in a w x h box, as {points: PackedVector2Array,
+## squares: [Rect2]}: the largest golden rectangle that fits (centred),
+## split into ever smaller squares, and a quarter arc through each one.
+## Biggest square first, turning inwards clockwise; a tall box is worked
+## out sideways and transposed. Flip the picture for the other turns.
+static func golden_layout(w: float, h: float, turns: int = 10) -> Dictionary:
+	var tall := h > w
+	var bw := h if tall else w
+	var bh := w if tall else h
+	var gw := minf(bw, bh * PHI)
+	var gh := gw / PHI
+	var pts := PackedVector2Array()
+	var squares := []
+	var r := Rect2((bw - gw) / 2.0, (bh - gh) / 2.0, gw, gh)
+	for i in turns:
+		var s := minf(r.size.x, r.size.y)
+		if s < 1.0:
+			break
+		var c: Vector2
+		var a0: float
+		var sq: Rect2
+		match i % 4:
+			0:   # square on the left
+				sq = Rect2(r.position, Vector2(s, s))
+				c = r.position + Vector2(s, s)
+				a0 = PI
+				r = Rect2(r.position.x + s, r.position.y, r.size.x - s, r.size.y)
+			1:   # on top
+				sq = Rect2(r.position, Vector2(s, s))
+				c = r.position + Vector2(0, s)
+				a0 = -PI / 2.0
+				r = Rect2(r.position.x, r.position.y + s, r.size.x, r.size.y - s)
+			2:   # on the right
+				sq = Rect2(Vector2(r.end.x - s, r.position.y), Vector2(s, s))
+				c = Vector2(r.end.x - s, r.position.y)
+				a0 = 0.0
+				r = Rect2(r.position, Vector2(r.size.x - s, r.size.y))
+			_:   # at the bottom
+				sq = Rect2(Vector2(r.position.x, r.end.y - s), Vector2(s, s))
+				c = Vector2(r.end.x, r.end.y - s)
+				a0 = PI / 2.0
+				r = Rect2(r.position, Vector2(r.size.x, r.size.y - s))
+		squares.append(sq)
+		for k in 17:
+			if k == 0 and pts.size() > 0:
+				continue
+			var a := a0 + PI / 2.0 * k / 16.0
+			pts.append(c + Vector2(cos(a), sin(a)) * s)
+	if tall:
+		for i in pts.size():
+			pts[i] = Vector2(pts[i].y, pts[i].x)
+		for i in squares.size():
+			var q: Rect2 = squares[i]
+			squares[i] = Rect2(Vector2(q.position.y, q.position.x), Vector2(q.size.y, q.size.x))
+	return {"points": pts, "squares": squares}
+
+
 func next_grid() -> int:
 	grid = GRIDS[(GRIDS.find(grid) + 1) % GRIDS.size()]
 	return grid
@@ -149,7 +221,7 @@ func to_dict() -> Dictionary:
 	return {
 		"offset": [offset.x, offset.y], "scale": scale, "rotation": rotation,
 		"flip_h": flip_h, "flip_v": flip_v, "locked": locked,
-		"opacity": opacity, "style": style, "line_color": line_color, "grid": grid,
+		"opacity": opacity, "style": style, "line_color": line_color, "grid": grid, "shading": shading,
 		"steps_on": steps_on, "step": step,
 	}
 
@@ -168,5 +240,7 @@ func from_dict(d: Dictionary) -> void:
 	line_color = clampi(int(d.get("line_color", 0)), 0, LINE_COLORS.size() - 1)
 	var g := int(d.get("grid", 0))
 	grid = g if GRIDS.has(g) else 0
+	var sh := str(d.get("shading", "tones"))
+	shading = sh if SHADINGS.has(sh) else "tones"
 	steps_on = bool(d.get("steps_on", false))
 	set_step(int(d.get("step", 0)))

@@ -1,6 +1,14 @@
 {
-  "_readme": "Trace It's built-in line drawings: original art only (no characters, logos or crests). Each drawing has a 'size' box, its teaching 'steps' (EN + _es) and 'strokes' in that box's units. Stroke kinds: line [x0,y0,x1,y1], rect [x0,y0,x1,y1], poly [x,y,...] (+ \"closed\": true), curve [x,y,...] (smooth, through every point; closed when the last point repeats the first), circle [cx,cy,r], ellipse [cx,cy,rx,ry,degrees]. 'step' = which step the stroke belongs to (0 first). The game draws the strokes itself, so a drawing costs a few hundred bytes. Courses will list drawings from here by id.",
+  "_readme": "Trace It's built-in line drawings: original art only (no characters, logos or crests). Each drawing has a 'size' box, its teaching 'steps' (EN + _es) and 'strokes' in that box's units. Stroke kinds: line [x0,y0,x1,y1], rect [x0,y0,x1,y1], poly [x,y,...] (+ \"closed\": true), curve [x,y,...] (smooth, through every point; closed when the last point repeats the first), circle [cx,cy,r], ellipse [cx,cy,rx,ry,degrees]. 'step' = which step the stroke belongs to (0 first). The game draws the strokes itself, so a drawing costs a few hundred bytes. Courses will list drawings from here by id. Extra kinds: arc [cx,cy,r,from deg,to deg], spiral [cx,cy,r from,r to,turns,start deg] (negative turns wind the other way), golden_spiral / golden_squares [x,y,w,h] (+ \"turns\"), dots [x,y,...] (stippled points). \"w\" scales a stroke's line (0.5 = thin guide line). 'collections' are the studies the Free mode picker lists, each with a short lesson (EN + _es). Extra kinds: arc [cx,cy,r,from deg,to deg], spiral [cx,cy,r from,r to,turns,start deg] (negative turns wind the other way), golden_spiral / golden_squares [x,y,w,h] (+ \"turns\"), dots [x,y,...] (stippled points). \"w\" scales a stroke's line (0.5 = thin guide line). 'collections' are the studies the Free mode picker lists, each with a short lesson (EN + _es).",
   "format": 1,
+  "collections": [
+    {"id": "warmup", "title": "Warm-up", "title_es": "Para empezar", "icon": "✏️", "drawings": ["star", "house", "cat", "flower"], "lesson": ["Every drawing is made of simple lines and shapes: straight lines, curves, circles and boxes.", "Draw lightly first and look at the picture more than at your hand. Move from the elbow and shoulder for long lines, not just the wrist."], "lesson_es": ["Todo dibujo está hecho de líneas y formas simples: rectas, curvas, círculos y cajas.", "Dibuja suave al principio y mira más la imagen que tu mano. Para las líneas largas mueve el codo y el hombro, no solo la muñeca."]},
+    {"id": "golden", "title": "The golden ratio", "title_es": "La proporción áurea", "icon": "🌀", "drawings": ["golden_rectangle", "golden_spiral", "nautilus"], "lesson": ["The golden ratio, φ (phi), is about 1.618. A rectangle with sides in that ratio can be split into a square and a smaller rectangle of the same shape -- again and again.", "Quarter circles through those squares make the golden spiral, close to the shape of many shells and flowers.", "Artists place important things on the golden lines, 0.382 and 0.618 of the way across. In the tools, the # guide button shows them -- and the spiral -- over any picture."], "lesson_es": ["La proporción áurea, φ (fi), vale aproximadamente 1,618. Un rectángulo con lados en esa proporción se puede dividir en un cuadrado y un rectángulo más chico de la misma forma, una y otra vez.", "Cuartos de círculo a través de esos cuadrados forman la espiral áurea, parecida a la forma de muchos caracoles y flores.", "Los artistas ubican lo importante sobre las líneas áureas, a 0,382 y 0,618 del ancho. En las herramientas, el botón # de guías las muestra (y la espiral) sobre cualquier imagen."]},
+    {"id": "perspective", "title": "Perspective", "title_es": "Perspectiva", "icon": "🛣", "drawings": ["perspective_road", "perspective_box"], "lesson": ["Lines that go away from you seem to meet at a point on the horizon: the vanishing point. The horizon is always at the height of your eyes.", "One-point perspective has one vanishing point: roads, hallways, rails. Two-point perspective has two, for things seen from a corner.", "Draw the horizon and the guide lines first, very lightly, then the objects along them."], "lesson_es": ["Las líneas que se alejan de ti parecen juntarse en un punto del horizonte: el punto de fuga. El horizonte siempre está a la altura de tus ojos.", "La perspectiva de un punto tiene un solo punto de fuga: caminos, pasillos, vías. La de dos puntos tiene dos, para cosas vistas desde una esquina.", "Dibuja primero el horizonte y las líneas guía, muy suave, y después los objetos sobre ellas."]},
+    {"id": "ornament", "title": "Ornament", "title_es": "Ornamento", "icon": "🌿", "drawings": ["scroll", "filigree", "acanthus"], "lesson": ["Ornament has been drawn for thousands of years: on columns, books, iron gates and picture frames. The acanthus leaf has decorated buildings since ancient Greece.", "Most ornament grows from a few moves: the C-curve, the S-curve and the spiral. Draw the main curve -- the spine -- in one smooth stroke, then let curls and leaves grow from it.", "Turn the paper rather than twisting your wrist, so every curve comes out of a comfortable movement."], "lesson_es": ["El ornamento se dibuja hace miles de años: en columnas, libros, rejas y marcos. La hoja de acanto decora edificios desde la antigua Grecia.", "Casi todo ornamento nace de unos pocos movimientos: la curva en C, la curva en S y la espiral. Dibuja la curva principal (la columna) de un solo trazo suave y deja que las volutas y hojas crezcan de ella.", "Gira el papel en lugar de torcer la muñeca, así cada curva sale de un movimiento cómodo."]},
+    {"id": "shading", "title": "Shading techniques", "title_es": "Técnicas de sombreado", "icon": "✒️", "drawings": ["sphere_hatching", "apple_stipple"], "lesson": ["Shading turns a flat outline into a solid object. First find where the light comes from: the side facing it stays light, the far side gets dark, and the object casts a shadow.", "Hatching shades with parallel lines. Cross-hatching adds lines the other way where it's darker -- more layers, darker tone. Stippling (pointillism) uses only dots: more and closer dots mean darker.", "With a photo in Free mode, the Shading step can be shown as tones, hatching or dots: tap \"Shade with\" in the tools."], "lesson_es": ["El sombreado convierte un contorno plano en un objeto sólido. Primero busca de dónde viene la luz: el lado que la mira queda claro, el otro se oscurece y el objeto proyecta una sombra.", "El rayado sombrea con líneas paralelas. La trama cruzada agrega líneas en el otro sentido donde es más oscuro: más capas, tono más oscuro. El punteado (puntillismo) usa solo puntos: más puntos y más juntos es más oscuro.", "Con una foto en Modo libre, el paso de Sombreado se puede mostrar en tonos, rayado o puntos: toca \"Sombrear con\" en las herramientas."]},
+    {"id": "styles", "title": "Drawing styles", "title_es": "Estilos de dibujo", "icon": "🎨", "drawings": ["doodle", "mandala", "robot", "water_cycle"], "lesson": ["The same subject can be drawn in many ways.", "Doodling: free, playful, repeating patterns -- relax and fill the space. Geometric: straight edges, circles and symmetry. Cartoon: simple shapes, big expressions, clean outlines. Diagram: clear and simple, made to explain.", "Realistic: careful shapes, proportions and shading -- try it with a photo in Free mode and Step by step."], "lesson_es": ["El mismo tema se puede dibujar de muchas maneras.", "Garabato: libre, juguetón, con patrones que se repiten; relájate y llena el espacio. Geométrico: bordes rectos, círculos y simetría. Caricatura: formas simples, expresiones grandes, contornos limpios. Diagrama: claro y simple, hecho para explicar.", "Realista: formas, proporciones y sombras cuidadas; pruébalo con una foto en Modo libre y Paso a paso."]}
+  ],
   "drawings": [
     {
       "id": "star", "title": "Star", "title_es": "Estrella", "size": [400, 400],
@@ -79,6 +87,319 @@
         {"step": 2, "curve": [202, 400, 245, 365, 290, 358, 255, 398, 202, 400]},
         {"step": 2, "line": [198, 340, 125, 300]},
         {"step": 2, "line": [202, 400, 280, 362]}
+      ]
+    },
+    {
+      "id": "golden_rectangle", "title": "Golden rectangle", "title_es": "Rectángulo áureo", "size": [500, 320],
+      "steps": [
+        {"name": "The rectangle", "name_es": "El rectángulo", "tip": "One side is 1.618 times the other: the golden ratio.", "tip_es": "Un lado mide 1,618 veces el otro: la proporción áurea."},
+        {"name": "Squares", "name_es": "Cuadrados", "tip": "Cut off a square: what's left is a smaller golden rectangle. Repeat.", "tip_es": "Corta un cuadrado: lo que queda es un rectángulo áureo más chico. Repite."}
+      ],
+      "strokes": [
+        {"step": 0, "rect": [7.3, 10, 492.7, 310]},
+        {"step": 1, "golden_squares": [7.3, 10, 485.4, 300], "turns": 7, "w": 0.8}
+      ]
+    },
+    {
+      "id": "golden_spiral", "title": "Golden spiral", "title_es": "Espiral áurea", "size": [500, 320],
+      "steps": [
+        {"name": "Squares", "name_es": "Cuadrados", "tip": "Lightly: the rectangle split into ever smaller squares.", "tip_es": "Suave: el rectángulo dividido en cuadrados cada vez más chicos."},
+        {"name": "The spiral", "name_es": "La espiral", "tip": "A quarter circle through each square, corner to corner, in one flowing line.", "tip_es": "Un cuarto de círculo en cada cuadrado, de esquina a esquina, en una sola línea."}
+      ],
+      "strokes": [
+        {"step": 0, "golden_squares": [7.3, 10, 485.4, 300], "turns": 8, "w": 0.5},
+        {"step": 1, "golden_spiral": [7.3, 10, 485.4, 300], "turns": 9}
+      ]
+    },
+    {
+      "id": "nautilus", "title": "Nautilus shell", "title_es": "Caracol nautilus", "size": [500, 320],
+      "steps": [
+        {"name": "The spiral", "name_es": "La espiral", "tip": "The shell grows in a golden spiral: draw it in one smooth line.", "tip_es": "La concha crece en espiral áurea: dibújala en una sola línea suave."},
+        {"name": "Chambers", "name_es": "Cámaras", "tip": "Curved walls across the spiral, closer together towards the middle.", "tip_es": "Paredes curvas a través de la espiral, más juntas hacia el centro."}
+      ],
+      "strokes": [
+        {"step": 0, "golden_spiral": [7.3, 10, 485.4, 300], "turns": 9},
+        {"step": 1, "curve": [30.1, 195.2, 204.1, 211.3, 310.6, 222.4], "w": 0.8},
+        {"step": 1, "curve": [165.9, 45.4, 267.8, 140.9, 330.4, 200.6], "w": 0.8},
+        {"step": 1, "curve": [343.5, 13.6, 351.3, 125.9, 356.3, 195.9], "w": 0.8},
+        {"step": 1, "curve": [450.6, 77.8, 401.6, 156.1, 372.0, 205.3], "w": 0.8},
+        {"step": 1, "curve": [492.7, 195.4, 421.4, 211.4, 378.1, 222.5], "w": 0.8},
+        {"step": 1, "curve": [466.7, 268.1, 409.2, 245.5, 374.3, 233.1], "w": 0.8},
+        {"step": 1, "curve": [400.5, 307.8, 378.0, 264.2, 364.7, 238.9], "w": 0.8},
+        {"step": 1, "curve": [344.7, 301.6, 351.9, 261.3, 356.5, 238.0], "w": 0.8},
+        {"step": 1, "curve": [312.7, 266.3, 336.8, 244.7, 351.9, 232.8], "w": 0.8},
+        {"step": 1, "curve": [309.2, 226.5, 335.2, 226.0, 351.3, 227.0], "w": 0.8},
+        {"step": 1, "curve": [326.7, 202.8, 343.4, 214.8, 353.9, 223.5], "w": 0.8}
+      ]
+    },
+    {
+      "id": "perspective_road", "title": "Road (1-point perspective)", "title_es": "Camino (perspectiva de 1 punto)", "size": [400, 500],
+      "steps": [
+        {"name": "Horizon and vanishing point", "name_es": "Horizonte y punto de fuga", "tip": "A level line at eye height, one point on it, and light guide lines from it.", "tip_es": "Una línea a la altura de los ojos, un punto sobre ella y líneas guía suaves desde él."},
+        {"name": "The road", "name_es": "El camino", "tip": "Both edges of the road run to the vanishing point.", "tip_es": "Los dos bordes del camino van hacia el punto de fuga."},
+        {"name": "Dashes and poles", "name_es": "Líneas y postes", "tip": "Things get smaller and closer together as they go back.", "tip_es": "Las cosas se ven más chicas y más juntas a medida que se alejan."}
+      ],
+      "strokes": [
+        {"step": 0, "line": [0, 200, 400, 200], "w": 0.5},
+        {"step": 0, "circle": [200, 200, 5]},
+        {"step": 0, "line": [200, 200, 0, 300], "w": 0.5},
+        {"step": 0, "line": [200, 200, 0, 500], "w": 0.5},
+        {"step": 0, "line": [200, 200, 400, 500], "w": 0.5},
+        {"step": 1, "line": [200, 200, 40, 500]},
+        {"step": 1, "line": [200, 200, 360, 500]},
+        {"step": 2, "line": [200, 222, 200, 228], "w": 1.3},
+        {"step": 2, "line": [200, 240, 200, 252], "w": 1.3},
+        {"step": 2, "line": [200, 268, 200, 288], "w": 1.3},
+        {"step": 2, "line": [200, 310, 200, 345], "w": 1.3},
+        {"step": 2, "line": [200, 380, 200, 440], "w": 1.3},
+        {"step": 2, "line": [26.0, 500.0, 26.0, 280.0]},
+        {"step": 2, "line": [92.1, 386.0, 92.1, 249.6]},
+        {"step": 2, "line": [130.4, 320.0, 130.4, 232.0]},
+        {"step": 2, "line": [154.8, 278.0, 154.8, 220.8]},
+        {"step": 2, "line": [170.4, 251.0, 170.4, 213.6]}
+      ]
+    },
+    {
+      "id": "perspective_box", "title": "Box (2-point perspective)", "title_es": "Caja (perspectiva de 2 puntos)", "size": [500, 400],
+      "steps": [
+        {"name": "Horizon, 2 points, front edge", "name_es": "Horizonte, 2 puntos, arista", "tip": "Two vanishing points far apart on the horizon, and the box's nearest edge.", "tip_es": "Dos puntos de fuga separados sobre el horizonte y la arista más cercana de la caja."},
+        {"name": "The sides", "name_es": "Los lados", "tip": "Top and bottom of each side run to its vanishing point.", "tip_es": "Arriba y abajo de cada lado van hacia su punto de fuga."},
+        {"name": "The top", "name_es": "La tapa", "tip": "Lines from the far corners, each to the other point, close the top.", "tip_es": "Líneas desde las esquinas lejanas, cada una al otro punto, cierran la tapa."}
+      ],
+      "strokes": [
+        {"step": 0, "line": [0, 150, 500, 150], "w": 0.5},
+        {"step": 0, "circle": [20, 150, 5]},
+        {"step": 0, "circle": [480, 150, 5]},
+        {"step": 0, "line": [20, 150, 250, 215], "w": 0.5},
+        {"step": 0, "line": [20, 150, 250, 295], "w": 0.5},
+        {"step": 0, "line": [480, 150, 250, 215], "w": 0.5},
+        {"step": 0, "line": [480, 150, 250, 295], "w": 0.5},
+        {"step": 0, "line": [250, 215, 250, 295]},
+        {"step": 1, "line": [250, 215, 150, 186.7]},
+        {"step": 1, "line": [250, 295, 150, 232.0]},
+        {"step": 1, "line": [150, 186.7, 150, 232.0]},
+        {"step": 1, "line": [250, 215, 360, 183.9]},
+        {"step": 1, "line": [250, 295, 360, 225.7]},
+        {"step": 1, "line": [360, 183.9, 360, 225.7]},
+        {"step": 2, "line": [150, 186.7, 262.6, 174.2]},
+        {"step": 2, "line": [360, 183.9, 262.6, 174.2]}
+      ]
+    },
+    {
+      "id": "scroll", "title": "S-scroll", "title_es": "Voluta en S", "size": [500, 300],
+      "steps": [
+        {"name": "The S-curve", "name_es": "La curva en S", "tip": "One smooth S from end to end: the spine everything grows from.", "tip_es": "Una S suave de punta a punta: la columna de la que crece todo."},
+        {"name": "Curls", "name_es": "Volutas", "tip": "Each end rolls into a spiral, tighter and tighter.", "tip_es": "Cada punta se enrolla en una espiral, cada vez más cerrada."},
+        {"name": "Inner line", "name_es": "Línea interior", "tip": "A second line inside each curl gives the scroll its thickness.", "tip_es": "Una segunda línea dentro de cada voluta le da grosor."}
+      ],
+      "strokes": [
+        {"step": 0, "curve": [60, 150, 150, 80, 250, 150, 350, 220, 440, 150]},
+        {"step": 1, "spiral": [110, 150, 50, 6, -1.6, 180]},
+        {"step": 1, "spiral": [390, 150, 50, 6, -1.6, 0]},
+        {"step": 2, "spiral": [110, 150, 37, 6, -1.35, 180], "w": 0.8},
+        {"step": 2, "spiral": [390, 150, 37, 6, -1.35, 0], "w": 0.8}
+      ]
+    },
+    {
+      "id": "filigree", "title": "Filigree corner", "title_es": "Esquina de filigrana", "size": [400, 400],
+      "steps": [
+        {"name": "Frame", "name_es": "Marco", "tip": "The corner of the frame: two straight lines.", "tip_es": "La esquina del marco: dos líneas rectas."},
+        {"name": "Swirls", "name_es": "Remolinos", "tip": "Swirls along each edge -- the same shape mirrored across the diagonal.", "tip_es": "Remolinos en cada borde: la misma forma reflejada en la diagonal."},
+        {"name": "Teardrop and dots", "name_es": "Gota y puntos", "tip": "A teardrop in the corner and dots running out from it.", "tip_es": "Una gota en la esquina y puntos que salen de ella."}
+      ],
+      "strokes": [
+        {"step": 0, "poly": [20, 380, 20, 20, 380, 20]},
+        {"step": 1, "spiral": [150, 70, 50, 5, 1.25, 180]},
+        {"step": 1, "spiral": [70, 150, 50, 5, -1.25, -90]},
+        {"step": 1, "curve": [20, 20, 60, 45, 100, 70]},
+        {"step": 1, "curve": [20, 20, 45, 60, 70, 100]},
+        {"step": 1, "spiral": [260, 45, 25, 4, 1.1, 180], "w": 0.8},
+        {"step": 1, "spiral": [45, 260, 25, 4, -1.1, -90], "w": 0.8},
+        {"step": 2, "curve": [60, 60, 110, 85, 125, 125, 85, 110, 60, 60]},
+        {"step": 2, "dots": [150, 150, 172, 172, 192, 192], "w": 1.4},
+        {"step": 2, "curve": [200, 22, 225, 40, 255, 20]},
+        {"step": 2, "curve": [22, 200, 40, 225, 20, 255]}
+      ]
+    },
+    {
+      "id": "acanthus", "title": "Acanthus leaf", "title_es": "Hoja de acanto", "size": [360, 500],
+      "steps": [
+        {"name": "Spine", "name_es": "Nervio central", "tip": "The leaf's spine: up from the base and curling over at the tip.", "tip_es": "El nervio de la hoja: sube desde la base y se enrolla en la punta."},
+        {"name": "Lobes", "name_es": "Lóbulos", "tip": "The outline in pointed lobes, three on each side, getting smaller towards the tip.", "tip_es": "El contorno en lóbulos puntiagudos, tres por lado, más chicos hacia la punta."},
+        {"name": "Veins", "name_es": "Nervaduras", "tip": "A curved vein from the spine to the point of each lobe.", "tip_es": "Una nervadura curva desde el centro hasta la punta de cada lóbulo."}
+      ],
+      "strokes": [
+        {"step": 0, "curve": [180, 480, 176, 380, 184, 260, 200, 150, 228, 75, 258, 60, 266, 92, 244, 100]},
+        {"step": 1, "curve": [180, 480, 120, 445, 70, 385, 102, 368, 58, 302, 112, 292, 82, 222, 136, 214, 124, 152, 176, 152, 196, 146]},
+        {"step": 1, "curve": [180, 480, 244, 446, 300, 388, 266, 368, 310, 302, 254, 290, 286, 222, 232, 206, 248, 140, 216, 138, 204, 146]},
+        {"step": 2, "curve": [178, 410, 124, 400, 70, 385], "w": 0.7},
+        {"step": 2, "curve": [181, 330, 120, 314, 58, 302], "w": 0.7},
+        {"step": 2, "curve": [187, 250, 134, 234, 82, 222], "w": 0.7},
+        {"step": 2, "curve": [179, 410, 240, 401, 300, 388], "w": 0.7},
+        {"step": 2, "curve": [183, 330, 250, 314, 310, 302], "w": 0.7},
+        {"step": 2, "curve": [189, 250, 244, 233, 286, 222], "w": 0.7}
+      ]
+    },
+    {
+      "id": "sphere_hatching", "title": "Sphere: cross-hatching", "title_es": "Esfera: trama cruzada", "size": [400, 400],
+      "steps": [
+        {"name": "Circle", "name_es": "Círculo", "tip": "A clean circle. Light comes from the upper left.", "tip_es": "Un círculo limpio. La luz viene de arriba a la izquierda."},
+        {"name": "Light and shadow", "name_es": "Luz y sombra", "tip": "The shadow line, the shadow on the table, and the bright spot.", "tip_es": "La línea de sombra, la sombra sobre la mesa y el brillo."},
+        {"name": "Hatching", "name_es": "Rayado", "tip": "Parallel lines over the whole shadow side, evenly spaced.", "tip_es": "Líneas paralelas en todo el lado oscuro, con la misma separación."},
+        {"name": "Cross-hatching", "name_es": "Trama cruzada", "tip": "Lines the other way where it's darkest. More layers = darker.", "tip_es": "Líneas en el otro sentido donde es más oscuro. Más capas = más oscuro."}
+      ],
+      "strokes": [
+        {"step": 0, "circle": [200.0, 190.0, 140.0]},
+        {"step": 1, "curve": [286.8, 80.2, 295.3, 91.7, 299.1, 106.9, 298.1, 125.1, 292.2, 145.6, 281.7, 167.4, 267.2, 189.6, 249.1, 211.3, 228.4, 231.5, 205.9, 249.2, 182.6, 263.8, 159.5, 274.5, 137.6, 281.0, 118.0, 282.9, 101.3, 280.2, 88.4, 272.9, 85.9, 270.5]},
+        {"step": 1, "ellipse": [255, 338, 135, 24, 0], "w": 0.8},
+        {"step": 1, "ellipse": [148, 128, 20, 12, -35], "w": 0.6},
+        {"step": 2, "line": [96.6, 283.7, 98.8, 281.0], "w": 0.6},
+        {"step": 2, "line": [105.0, 290.8, 111.8, 282.7], "w": 0.6},
+        {"step": 2, "line": [113.4, 297.8, 125.8, 283.1], "w": 0.6},
+        {"step": 2, "line": [121.9, 304.9, 142.1, 280.8], "w": 0.6},
+        {"step": 2, "line": [297.3, 95.8, 299.6, 93.1], "w": 0.6},
+        {"step": 2, "line": [131.4, 310.6, 161.8, 274.4], "w": 0.6},
+        {"step": 2, "line": [300.1, 109.5, 306.9, 101.5], "w": 0.6},
+        {"step": 2, "line": [141.0, 316.4, 187.1, 261.4], "w": 0.6},
+        {"step": 2, "line": [297.3, 130.0, 314.2, 109.9], "w": 0.6},
+        {"step": 2, "line": [151.6, 320.8, 221.4, 237.6], "w": 0.6},
+        {"step": 2, "line": [285.5, 161.2, 320.4, 119.7], "w": 0.6},
+        {"step": 2, "line": [163.4, 323.8, 325.4, 130.8], "w": 0.6},
+        {"step": 2, "line": [175.2, 326.9, 330.5, 141.9], "w": 0.6},
+        {"step": 2, "line": [188.2, 328.6, 334.4, 154.3], "w": 0.6},
+        {"step": 2, "line": [202.2, 328.9, 337.2, 168.1], "w": 0.6},
+        {"step": 2, "line": [217.4, 328.0, 338.9, 183.2], "w": 0.6},
+        {"step": 2, "line": [233.7, 325.6, 339.4, 199.6], "w": 0.6},
+        {"step": 2, "line": [253.4, 319.3, 336.6, 220.1], "w": 0.6},
+        {"step": 2, "line": [279.8, 304.9, 327.0, 248.6], "w": 0.6},
+        {"step": 3, "line": [328.1, 143.5, 333.5, 148.0], "w": 0.6},
+        {"step": 3, "line": [326.4, 156.4, 337.1, 165.4], "w": 0.6},
+        {"step": 3, "line": [323.4, 168.2, 339.5, 181.7], "w": 0.6},
+        {"step": 3, "line": [320.3, 180.0, 339.1, 195.8], "w": 0.6},
+        {"step": 3, "line": [315.9, 190.7, 337.4, 208.7], "w": 0.6},
+        {"step": 3, "line": [310.2, 200.2, 335.7, 221.6], "w": 0.6},
+        {"step": 3, "line": [304.5, 209.8, 332.6, 233.4], "w": 0.6},
+        {"step": 3, "line": [297.4, 218.2, 328.2, 244.1], "w": 0.6},
+        {"step": 3, "line": [291.7, 227.8, 323.8, 254.8], "w": 0.6},
+        {"step": 3, "line": [284.6, 236.2, 318.1, 264.3], "w": 0.6},
+        {"step": 3, "line": [277.5, 244.6, 311.0, 272.7], "w": 0.6},
+        {"step": 3, "line": [269.1, 251.9, 304.0, 281.2], "w": 0.6},
+        {"step": 3, "line": [260.7, 259.2, 296.9, 289.6], "w": 0.6},
+        {"step": 3, "line": [252.3, 266.5, 288.5, 296.9], "w": 0.6},
+        {"step": 3, "line": [243.9, 273.8, 280.1, 304.2], "w": 0.6},
+        {"step": 3, "line": [235.5, 281.1, 270.3, 310.4], "w": 0.6},
+        {"step": 3, "line": [225.7, 287.3, 259.2, 315.4], "w": 0.6},
+        {"step": 3, "line": [216.0, 293.5, 248.1, 320.5], "w": 0.6},
+        {"step": 3, "line": [204.9, 298.5, 235.7, 324.4], "w": 0.6},
+        {"step": 3, "line": [193.8, 303.6, 221.9, 327.2], "w": 0.6},
+        {"step": 3, "line": [182.7, 308.6, 206.8, 328.9], "w": 0.6},
+        {"step": 3, "line": [168.9, 311.4, 190.4, 329.4], "w": 0.6},
+        {"step": 3, "line": [155.1, 314.2, 169.9, 326.6], "w": 0.6},
+        {"step": 3, "line": [136.0, 312.5, 141.4, 317.0], "w": 0.6}
+      ]
+    },
+    {
+      "id": "apple_stipple", "title": "Apple: stippling", "title_es": "Manzana: punteado", "size": [400, 400],
+      "steps": [
+        {"name": "Outline", "name_es": "Contorno", "tip": "The apple, its stem and a leaf.", "tip_es": "La manzana, el cabo y una hoja."},
+        {"name": "Dots", "name_es": "Puntos", "tip": "Shade with dots only: many and close in the dark, few and far apart in the light.", "tip_es": "Sombrea solo con puntos: muchos y juntos en lo oscuro, pocos y separados en la luz."}
+      ],
+      "strokes": [
+        {"step": 0, "curve": [200, 95, 250, 70, 315, 95, 345, 170, 330, 270, 280, 345, 230, 360, 200, 345, 170, 360, 120, 345, 70, 270, 55, 170, 85, 95, 150, 70, 200, 95]},
+        {"step": 0, "curve": [200, 95, 197, 70, 205, 40]},
+        {"step": 0, "curve": [205, 60, 240, 35, 285, 40, 250, 65, 205, 60]},
+        {"step": 1, "dots": [169.5, 319.6, 292.1, 124.4, 326.3, 225.3, 149.2, 278.6, 237.6, 300.4, 262.8, 256.9, 270.2, 310.8, 213.8, 277.9, 339.0, 203.7, 257.3, 164.5, 158.4, 342.8, 162.0, 326.7, 205.9, 334.5, 333.2, 212.8, 297.0, 308.0, 263.0, 326.8, 217.5, 288.3, 129.6, 328.5, 279.2, 276.7, 255.2, 282.6, 197.2, 348.0, 323.4, 222.8, 313.6, 295.6, 292.8, 254.1, 238.4, 254.9, 239.7, 336.8, 301.1, 213.7, 208.5, 227.8, 303.5, 277.2, 288.2, 313.1, 304.0, 201.0, 179.4, 330.4, 231.6, 301.8, 294.2, 301.4, 299.2, 247.0, 184.1, 346.7, 233.6, 303.1, 304.5, 300.1, 188.6, 351.3, 218.0, 351.6, 206.5, 338.8, 266.6, 333.4, 172.5, 317.6, 279.5, 329.8, 283.5, 288.7, 312.4, 288.2, 267.3, 190.5, 270.9, 235.2, 288.7, 319.8, 184.6, 321.5, 313.6, 268.6, 141.7, 324.9, 279.5, 275.5, 189.3, 333.2, 208.9, 340.1, 247.4, 327.9, 241.7, 321.6, 294.8, 169.4, 262.3, 277.9, 280.1, 207.5, 308.9, 226.9, 314.5, 244.7, 294.4, 277.1, 210.4, 345.6, 155.9, 308.9, 242.8, 221.5, 172.6, 266.8, 105.4, 307.7, 222.8, 323.8, 108.5, 271.4, 209.3, 279.2, 321.5, 250.2, 191.4, 352.4, 214.3, 333.5, 280.1, 221.6, 179.6, 336.7, 264.5, 258.4, 326.0, 210.0, 183.3, 353.1, 327.5, 181.6, 291.8, 223.2, 201.0, 310.1, 216.1, 317.8, 243.9, 260.9, 127.5, 310.9, 301.2, 183.2, 224.0, 239.6, 149.7, 321.0, 286.9, 143.0, 302.9, 307.2, 193.8, 345.2, 175.7, 352.5, 284.0, 281.0, 180.5, 327.0, 294.0, 165.0, 318.5, 154.4, 295.5, 281.2, 310.3, 208.8, 298.3, 269.5, 253.9, 335.9, 208.2, 344.1, 230.7, 302.4, 281.0, 297.7, 259.6, 298.1, 268.3, 328.9, 305.7, 142.6, 192.5, 276.1, 322.7, 148.2, 293.9, 245.5, 240.7, 302.0, 233.0, 320.9, 314.2, 259.8, 212.7, 321.9, 283.6, 198.8, 158.4, 278.4, 196.9, 315.9, 162.7, 341.8, 105.2, 286.8, 321.2, 253.5, 131.4, 306.6, 277.4, 265.1, 283.9, 321.8, 239.2, 271.0, 275.3, 214.7, 239.4, 330.1, 334.6, 184.6, 193.6, 354.2, 250.9, 331.7, 270.0, 251.3, 124.4, 258.8, 253.8, 252.5, 255.3, 289.7, 282.5, 168.6, 212.7, 335.3, 213.6, 329.4, 212.2, 240.5, 309.7, 169.3, 206.6, 312.5, 287.9, 299.0, 293.6, 259.8, 310.9, 257.6, 216.7, 293.9, 276.4, 144.2, 146.5, 343.0, 305.6, 181.3, 282.4, 266.9, 130.4, 336.0, 233.7, 325.9, 200.8, 304.9, 309.2, 274.0, 195.1, 242.0, 156.0, 329.7, 275.8, 225.3, 218.0, 320.0, 207.4, 341.4, 330.4, 265.4, 289.2, 268.6, 266.8, 302.0, 278.3, 164.6, 227.2, 255.0, 119.8, 297.9], "w": 0.7}
+      ]
+    },
+    {
+      "id": "doodle", "title": "Doodle", "title_es": "Garabato", "size": [400, 400],
+      "steps": [
+        {"name": "Big shapes", "name_es": "Formas grandes", "tip": "A cloud, a sun, a zigzag and a wave. Loose and quick -- doodles don't need to be perfect.", "tip_es": "Una nube, un sol, un zigzag y una ola. Suelto y rápido: un garabato no tiene que ser perfecto."},
+        {"name": "Patterns", "name_es": "Patrones", "tip": "Fill them with spirals, rays, rain, stars and dots.", "tip_es": "Llénalos de espirales, rayos, lluvia, estrellas y puntos."}
+      ],
+      "strokes": [
+        {"step": 0, "curve": [70, 120, 100, 80, 150, 85, 180, 60, 230, 70, 260, 100, 300, 110, 310, 150, 270, 175, 200, 170, 130, 175, 80, 160, 70, 120]},
+        {"step": 0, "circle": [320, 60, 30]},
+        {"step": 0, "poly": [30, 260, 60, 230, 90, 260, 120, 230, 150, 260, 180, 230, 210, 260, 240, 230, 270, 260, 300, 230, 330, 260, 360, 230]},
+        {"step": 0, "curve": [30, 330, 80, 300, 130, 330, 180, 360, 230, 330, 280, 300, 330, 330, 380, 360]},
+        {"step": 1, "spiral": [320, 60, 2, 22, 2.5, 0], "w": 0.7},
+        {"step": 1, "line": [120, 190, 110, 212], "w": 0.8},
+        {"step": 1, "line": [170, 190, 160, 212], "w": 0.8},
+        {"step": 1, "line": [220, 190, 210, 212], "w": 0.8},
+        {"step": 1, "poly": [55.0, 177.0, 59.4, 188.9, 72.1, 189.4, 62.2, 197.3, 65.6, 209.6, 55.0, 202.6, 44.4, 209.6, 47.8, 197.3, 37.9, 189.4, 50.6, 188.9], "closed": true, "w": 0.8},
+        {"step": 1, "poly": [345.0, 176.0, 348.5, 185.2, 358.3, 185.7, 350.6, 191.8, 353.2, 201.3, 345.0, 195.9, 336.8, 201.3, 339.4, 191.8, 331.7, 185.7, 341.5, 185.2], "closed": true, "w": 0.8},
+        {"step": 1, "dots": [60, 250, 120, 250, 180, 250, 240, 250, 300, 250], "w": 1.4},
+        {"step": 1, "spiral": [200, 120, 3, 26, 2, 90], "w": 0.7}
+      ]
+    },
+    {
+      "id": "mandala", "title": "Geometric mandala", "title_es": "Mandala geométrico", "size": [400, 400],
+      "steps": [
+        {"name": "Circles", "name_es": "Círculos", "tip": "Three circles around the same centre.", "tip_es": "Tres círculos con el mismo centro."},
+        {"name": "Star", "name_es": "Estrella", "tip": "Two triangles, one pointing up and one down, touching the outer circle.", "tip_es": "Dos triángulos, uno hacia arriba y otro hacia abajo, tocando el círculo de afuera."},
+        {"name": "Seed of life", "name_es": "Semilla de la vida", "tip": "Six circles, each centred on the middle circle -- the petals appear by themselves.", "tip_es": "Seis círculos, cada uno con centro sobre el círculo del medio: los pétalos aparecen solos."}
+      ],
+      "strokes": [
+        {"step": 0, "circle": [200, 200, 180]},
+        {"step": 0, "circle": [200, 200, 120]},
+        {"step": 0, "circle": [200, 200, 60]},
+        {"step": 1, "poly": [200.0, 25.0, 351.6, 287.5, 48.4, 287.5], "closed": true},
+        {"step": 1, "poly": [200.0, 375.0, 48.4, 112.5, 351.6, 112.5], "closed": true},
+        {"step": 2, "circle": [260.0, 200.0, 60], "w": 0.8},
+        {"step": 2, "circle": [230.0, 252.0, 60], "w": 0.8},
+        {"step": 2, "circle": [170.0, 252.0, 60], "w": 0.8},
+        {"step": 2, "circle": [140.0, 200.0, 60], "w": 0.8},
+        {"step": 2, "circle": [170.0, 148.0, 60], "w": 0.8},
+        {"step": 2, "circle": [230.0, 148.0, 60], "w": 0.8}
+      ]
+    },
+    {
+      "id": "robot", "title": "Cartoon robot", "title_es": "Robot de caricatura", "size": [400, 400],
+      "steps": [
+        {"name": "Head", "name_es": "Cabeza", "tip": "A box, two ear boxes and an antenna. Cartoons are built from simple shapes.", "tip_es": "Una caja, dos orejas cuadradas y una antena. Las caricaturas se hacen con formas simples."},
+        {"name": "Face", "name_es": "Cara", "tip": "Big round eyes looking the same way, and a wide mouth: the expression is everything.", "tip_es": "Ojos grandes y redondos mirando hacia el mismo lado y una boca ancha: la expresión lo es todo."},
+        {"name": "Details", "name_es": "Detalles", "tip": "Teeth, cheeks and bolts.", "tip_es": "Dientes, cachetes y tornillos."}
+      ],
+      "strokes": [
+        {"step": 0, "rect": [90, 120, 310, 330]},
+        {"step": 0, "rect": [62, 190, 90, 260]},
+        {"step": 0, "rect": [310, 190, 338, 260]},
+        {"step": 0, "line": [200, 120, 200, 72]},
+        {"step": 0, "circle": [200, 60, 12]},
+        {"step": 1, "circle": [150, 200, 34]},
+        {"step": 1, "circle": [250, 200, 34]},
+        {"step": 1, "circle": [160, 208, 13]},
+        {"step": 1, "circle": [260, 208, 13]},
+        {"step": 1, "rect": [140, 265, 260, 298]},
+        {"step": 2, "line": [170, 265, 170, 298], "w": 0.8},
+        {"step": 2, "line": [200, 265, 200, 298], "w": 0.8},
+        {"step": 2, "line": [230, 265, 230, 298], "w": 0.8},
+        {"step": 2, "circle": [112, 275, 10], "w": 0.6},
+        {"step": 2, "circle": [288, 275, 10], "w": 0.6},
+        {"step": 2, "dots": [104, 134, 296, 134, 104, 316, 296, 316], "w": 1.3}
+      ]
+    },
+    {
+      "id": "water_cycle", "title": "Diagram: the water cycle", "title_es": "Diagrama: el ciclo del agua", "size": [400, 400],
+      "steps": [
+        {"name": "The scene", "name_es": "La escena", "tip": "Simple shapes: sun, cloud, mountain and sea. A diagram explains, it doesn't need detail.", "tip_es": "Formas simples: sol, nube, montaña y mar. Un diagrama explica, no necesita detalles."},
+        {"name": "Arrows", "name_es": "Flechas", "tip": "Arrows show what happens: water rises, falls as rain, and runs back to the sea.", "tip_es": "Las flechas muestran lo que pasa: el agua sube, cae como lluvia y vuelve al mar."}
+      ],
+      "strokes": [
+        {"step": 0, "circle": [70, 70, 34]},
+        {"step": 0, "curve": [200, 90, 225, 60, 270, 65, 300, 45, 345, 60, 360, 95, 330, 115, 270, 110, 220, 118, 200, 90]},
+        {"step": 0, "poly": [230, 400, 300, 230, 340, 290, 370, 250, 400, 400]},
+        {"step": 0, "curve": [0, 340, 40, 325, 80, 340, 120, 355, 160, 340, 200, 325, 230, 340]},
+        {"step": 0, "line": [0, 400, 230, 400]},
+        {"step": 1, "curve": [80, 320, 70, 240, 110, 170, 190, 115], "w": 1.0},
+        {"step": 1, "poly": [182.1, 128.9, 190, 115, 174.2, 117.4], "w": 1.0},
+        {"step": 1, "curve": [300, 125, 305, 170, 310, 215], "w": 1.0},
+        {"step": 1, "poly": [301.5, 201.4, 310, 215, 315.3, 199.9], "w": 1.0},
+        {"step": 1, "curve": [300, 245, 260, 300, 215, 350, 175, 360], "w": 1.0},
+        {"step": 1, "poly": [187.3, 349.8, 175, 360, 190.7, 363.3], "w": 1.0},
+        {"step": 1, "line": [270, 128, 264, 150], "w": 0.7},
+        {"step": 1, "line": [290, 128, 284, 150], "w": 0.7},
+        {"step": 1, "line": [320, 128, 314, 150], "w": 0.7}
       ]
     }
   ]
