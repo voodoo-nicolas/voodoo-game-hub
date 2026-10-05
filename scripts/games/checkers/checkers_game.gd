@@ -260,7 +260,7 @@ func _cpu_step() -> void:
 	if not game_active or cpu_steps.is_empty():
 		return
 	var s: Array = cpu_steps.pop_front()
-	engine.move(s[0], s[1])
+	_move_sfx(engine.move(s[0], s[1]))
 	selected = s[1] if not cpu_steps.is_empty() else Vector2i(-1, -1)
 	_render()
 	if engine.game_over:
@@ -327,6 +327,7 @@ func _on_square_pressed(vr: int, vc: int) -> void:
 		var from := selected
 		var result: Dictionary = engine.move(selected, pos)
 		if result.valid:
+			_move_sfx(result)
 			if _is_online():
 				online.send_move({"from": [from.x, from.y], "to": [pos.x, pos.y]})
 			if result.chain_continues:
@@ -378,6 +379,7 @@ func _on_remote_move(p: Dictionary) -> void:
 	var t: Array = p.get("to", [-1, -1])
 	var result: Dictionary = engine.move(Vector2i(int(f[0]), int(f[1])), Vector2i(int(t[0]), int(t[1])))
 	if result.valid:
+		_move_sfx(result)
 		selected = Vector2i(-1, -1)
 		_render()
 		if engine.game_over:
@@ -555,3 +557,18 @@ func _load_saved_game() -> bool:
 	_render()
 	_maybe_cpu()
 	return true
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
+
+func _move_sfx(result: Dictionary) -> void:
+	if not result.get("valid", false):
+		return
+	if result.get("captured", Vector2i(-1, -1)) != Vector2i(-1, -1):
+		_sfx("capture")
+	elif result.get("promoted", false):
+		_sfx("powerup")
+	else:
+		_sfx("place")

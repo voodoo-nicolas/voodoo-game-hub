@@ -77,7 +77,7 @@ const STRINGS := {
 		"Your turn (%s)": "Tu turno (%s)",
 		"Your turn — roll the dice!": "Tu turno — ¡tira los dados!",
 		"↺  Restart": "↺  Reiniciar",
-		"⏸ pauses the game. A game isn't saved for later: leaving it ends it.": "⏸ pausa el juego. La partida no se guarda: si sales, termina.",
+		"⏸ pauses the game. Leaving saves it: Resume on the Home screen picks it up (a computer turn in progress starts over).": "⏸ pausa el juego. Al salir se guarda: Continuar en la pantalla de inicio lo retoma (si la computadora estaba jugando su turno, vuelve a empezarlo).",
 		"▶  Continue": "▶  Continuar",
 		"❓ How to Play": "❓ Cómo jugar",
 		"🌍 Everyone": "🌍 Todos",

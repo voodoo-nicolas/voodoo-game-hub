@@ -301,6 +301,7 @@ func _process(delta: float) -> void:
 
 func _clear_and_drop() -> void:
 	var res: Dictionary = engine.clear_matches()
+	_sfx("explode" if not res.bombs.is_empty() else ("powerup" if engine.chain > 1 else "merge"))
 	flashing = []
 	var cs := GMEngine.SIZE
 	for c in res.bombs:
@@ -366,8 +367,10 @@ func _attempt(a: int, b: int) -> void:
 	hint_pair = []
 	swap_pair = [a, b]
 	if engine.try_swap(a, b):
+		_sfx("slide")
 		_set_state(State.SWAP)
 	else:
+		_sfx("invalid")
 		_set_state(State.SWAP_BACK)
 
 func _on_hint() -> void:
@@ -618,3 +621,8 @@ func _draw_home_logo(c: Control) -> void:
 		var pts := PackedVector2Array([p + Vector2(0, -r), p + Vector2(r, 0), p + Vector2(0, r), p + Vector2(-r, 0)])
 		c.draw_colored_polygon(pts, Color(cols[i], 0.25))
 		HomeKit.glow_polyline(c, pts, cols[i], 2.0, true)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

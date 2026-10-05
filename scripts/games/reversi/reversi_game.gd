@@ -158,6 +158,7 @@ func _build_ui() -> void:
 			sq.custom_minimum_size = Vector2(cell_size, cell_size)
 			sq.flat = false
 			sq.focus_mode = Control.FOCUS_NONE
+			sq.set_meta("sfx", "")  # a move plays its own sound
 			_style_square(sq, COLOR_BOARD)
 			sq.pressed.connect(_on_square_pressed.bind(r, c))
 			grid.add_child(sq)
@@ -341,6 +342,7 @@ func _place(r: int, c: int) -> Dictionary:
 	var result: Dictionary = engine.place(r, c)
 	if not result.valid:
 		return result
+	_sfx("capture" if result.flips.size() > 2 else "place")
 	_render()
 	if engine.game_over:
 		_show_result()
@@ -526,3 +528,8 @@ func _load_saved_game() -> bool:
 	_render()
 	_maybe_cpu()
 	return true
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -175,6 +175,7 @@ func _build_ui() -> void:
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.add_theme_font_size_override("font_size", 28)
 		_style_letter_button(btn)
+		btn.set_meta("sfx", "key")
 		btn.pressed.connect(_on_letter_pressed.bind(letter))
 		keyboard.add_child(btn)
 		letter_buttons[letter] = btn
@@ -273,6 +274,8 @@ func _on_letter_pressed(letter: String) -> void:
 	if not game_active:
 		return
 	var result: String = engine.guess(letter)
+	if result != "ignored":
+		_sfx("letter_right" if result == "correct" else "letter_wrong")
 	var btn: Button = letter_buttons[letter]
 	btn.disabled = true
 	btn.add_theme_color_override("font_disabled_color", HomeKit.LIME if result == "correct" else HomeKit.PINK)
@@ -472,3 +475,8 @@ func _load_saved_game() -> void:
 			btn.add_theme_color_override("font_disabled_color", HomeKit.LIME if engine.word.contains(str(l)) else HomeKit.PINK)
 	engine.wrong_count = int(d.get("wrong", 0))
 	_render()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

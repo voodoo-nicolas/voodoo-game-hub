@@ -212,6 +212,7 @@ func _next_hand() -> void:
 	if engine.match_over():
 		return
 	engine.new_hand()
+	_sfx("card_shuffle")
 	_start_hand()
 
 func _start_hand() -> void:
@@ -284,6 +285,7 @@ func _on_discard(knock: bool) -> void:
 		return
 	var card := selected
 	if engine.do_discard(selected, knock):
+		_sfx("card_place")
 		selected = -1
 		if hotseat:
 			last_msg = tr("%s discarded %s.") % [_pname(1 - engine.turn), Cards.label(card)]
@@ -320,15 +322,18 @@ func _cpu_step() -> void:
 	if engine.phase == "draw":
 		if engine.cpu_wants_discard():
 			var c := engine.draw_discard()
+			_sfx("card_deal")
 			status_label.text = tr("Computer takes the %s.") % Cards.label(c)
 		else:
 			engine.draw_stock()
+			_sfx("card_deal")
 			status_label.text = tr("Computer draws from the stock.")
 		board.queue_redraw()
 		cpu_timer.start()
 		return
 	var choice := engine.cpu_discard()
 	engine.do_discard(choice[0], choice[1])
+	_sfx("card_place")
 	_after_action()
 
 # ---------- drawing ----------
@@ -421,9 +426,11 @@ func _on_board_input(event: InputEvent) -> void:
 		var piles := _pile_rects()
 		if piles[0].has_point(pos):
 			engine.draw_stock()
+			_sfx("card_deal")
 			_refresh()
 		elif piles[1].has_point(pos):
 			engine.draw_discard()
+			_sfx("card_deal")
 			_refresh()
 		return
 	var rects := _hand_rects()
@@ -537,3 +544,8 @@ func _load_saved_game() -> void:
 	engine.taken_discard = int(d.get("taken", -1))
 	cpu_timer.stop()
 	_start_hand()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

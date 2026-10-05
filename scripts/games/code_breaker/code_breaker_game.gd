@@ -189,7 +189,9 @@ func _on_check() -> void:
 		_refresh()
 		return
 	if not engine.submit(current):
+		_sfx("invalid")
 		return
+	_sfx("place")
 	current = [-1, -1, -1, -1]
 	_refresh()
 	if engine.is_over():
@@ -372,3 +374,8 @@ func _load_saved_game() -> void:
 	var cur := _ints(d.get("current", [-1, -1, -1, -1]))
 	current = cur if cur.size() == CBEngine.SLOTS else [-1, -1, -1, -1]
 	_refresh()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -126,6 +126,7 @@ func _build_ui() -> void:
 		btn.custom_minimum_size = Vector2(tile_size, tile_size)
 		btn.add_theme_font_size_override("font_size", int(tile_size * 0.45))
 		btn.focus_mode = Control.FOCUS_NONE
+		btn.set_meta("sfx", "")  # a move plays "slide"
 		btn.pressed.connect(_on_tile_pressed.bind(i))
 		grid.add_child(btn)
 		buttons.append(btn)
@@ -165,6 +166,7 @@ func _on_tile_pressed(i: int) -> void:
 	if not game_active or not engine.tap(i):
 		return
 	timer_running = true
+	_sfx("slide")
 	_render()
 	if engine.is_solved():
 		_win()
@@ -275,3 +277,8 @@ func _draw_home_logo(c: Control) -> void:
 func _resume_saved() -> void:
 	if not _load_saved_game():
 		_new_game()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

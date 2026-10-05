@@ -74,7 +74,13 @@ func _build_ui() -> void:
 	result_label.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	result_label.custom_minimum_size = Vector2(0, 70)
-	root.add_child(result_label)
+	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	result_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var result_label_m := MarginContainer.new()  # side room for the floating ⚙ tab
+	result_label_m.add_theme_constant_override("margin_left", 48)
+	result_label_m.add_theme_constant_override("margin_right", 48)
+	result_label_m.add_child(result_label)
+	root.add_child(result_label_m)
 
 	board = Control.new()
 	board.size_flags_vertical = Control.SIZE_EXPAND_FILL

@@ -141,7 +141,16 @@ func _notification(what: int) -> void:
 func _process(delta: float) -> void:
 	if not running:
 		return
+	var pre := [engine.vel, engine.scores[0], engine.scores[1]]
 	engine.step(min(delta, 0.05))
+	if engine.scores[0] > pre[1]:
+		_sfx("pickup")
+	elif engine.scores[1] > pre[2]:
+		_sfx("buzzer")
+	elif signf(engine.vel.y) != signf(pre[0].y):
+		_sfx("hit")
+	elif signf(engine.vel.x) != signf(pre[0].x):
+		_sfx("tick")
 	if engine.winner() != -1:
 		running = false
 		end_dialog.get_meta("message_label").text = (tr("You win!") if engine.winner() == 0 else tr("You lose!")) + \
@@ -235,3 +244,8 @@ func _draw_home_logo(c: Control) -> void:
 func _start_level(level: int) -> void:
 	difficulty = level
 	_start()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

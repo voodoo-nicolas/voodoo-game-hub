@@ -135,6 +135,7 @@ func _start_new_game() -> void:
 	if info:
 		info.start_clock()
 	engine.new_game(suit_choice)
+	_sfx("card_shuffle")
 	win_dialog.visible = false
 	_refresh()
 
@@ -214,6 +215,7 @@ func _on_board_input(event: InputEvent) -> void:
 	if pos.y < _tableau_top() - 10.0:
 		if pos.x < _col_x(0) + cs.x + 40.0:
 			if engine.deal():
+				_sfx("card_deal")
 				_after_change()
 			elif not engine.stock.is_empty():
 				info_label.text = tr("Fill every empty column before dealing.")
@@ -237,6 +239,7 @@ func _on_board_input(event: InputEvent) -> void:
 			return
 	var to := engine.best_target(c, k)
 	if to >= 0 and engine.move(c, k, to):
+		_sfx("card_place")
 		_after_change()
 	else:
 		flash_col = c
@@ -344,3 +347,8 @@ func _load_saved_game() -> void:
 	engine.suits = suit_choice
 	engine.history = []
 	_refresh()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

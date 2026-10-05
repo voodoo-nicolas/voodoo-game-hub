@@ -243,6 +243,7 @@ func _next_round() -> void:
 	revealing = false
 	log_lines = []
 	engine.new_round(engine.next_starter())
+	_sfx("dice_roll")
 	_after_change()
 
 ## Picks a legal default for the bid controls and schedules computer turns.
@@ -325,6 +326,7 @@ func _cpu_turn() -> void:
 
 func _resolve() -> void:
 	var r := engine.challenge()
+	_sfx("drumroll")
 	revealing = true
 	var msg := tr("%s calls Liar on %s!") % [_name(r.caller), _bid_text(r.bid)] + "\n"
 	msg += tr("There are %d. %s loses a die.") % [r.actual, _name(r.loser)]
@@ -457,3 +459,8 @@ func _draw_home_logo(c: Control) -> void:
 		else:
 			for sp in PIPS[[5, 3][i]]:
 				c.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.08, Color.WHITE)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

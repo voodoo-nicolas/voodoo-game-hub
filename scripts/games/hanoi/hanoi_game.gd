@@ -193,13 +193,17 @@ func _on_board_input(event: InputEvent) -> void:
 	if lifted < 0:
 		if not engine.pegs[i].is_empty():
 			lifted = i
+			_sfx("tick")
 	elif i == lifted:
+		_sfx("tick")
 		lifted = -1
 	elif engine.move(lifted, i):
+		_sfx("place")
 		lifted = -1
 		if engine.is_solved():
 			_on_solved()
 	else:
+		_sfx("invalid")
 		lifted = i if not engine.pegs[i].is_empty() else lifted
 	_refresh()
 
@@ -301,3 +305,8 @@ func _load_saved_game() -> void:
 	engine.pegs = [_ints(d.pegs[0]), _ints(d.pegs[1]), _ints(d.pegs[2])]
 	engine.moves = int(d.get("moves", 0))
 	_refresh()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

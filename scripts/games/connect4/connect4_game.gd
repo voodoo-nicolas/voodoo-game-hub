@@ -154,6 +154,7 @@ func _build_ui() -> void:
 		var mark_row: Array = []
 		for c in range(Connect4Engine.COLS):
 			var slot := Button.new()
+			slot.set_meta("sfx", "")  # the drop plays "place"
 			slot.custom_minimum_size = Vector2(cell_size, cell_size)
 			slot.flat = false
 			slot.focus_mode = Control.FOCUS_NONE
@@ -314,6 +315,7 @@ func _on_column_pressed(col: int) -> void:
 	_after_move()
 
 func _after_move() -> void:
+	_sfx("place")
 	_render()
 	if engine.is_over():
 		_show_result()
@@ -455,3 +457,8 @@ func _load_saved_game() -> bool:
 	if game_active and _vs_cpu() and engine.turn == Connect4Engine.YELLOW:
 		cpu_timer.start(CPU_DELAY)
 	return game_active
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

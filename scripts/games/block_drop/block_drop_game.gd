@@ -236,6 +236,7 @@ func _redraw() -> void:
 	side.queue_redraw()
 
 func _after_lock(_cleared: int) -> void:
+	_sfx("explode" if engine.over else ("merge" if _cleared > 0 else "place"))
 	gravity.wait_time = engine.step_seconds()
 	if engine.over:
 		running = false
@@ -485,3 +486,8 @@ func _load_saved_game() -> void:
 	gravity.wait_time = engine.step_seconds()
 	gravity.start()
 	_redraw()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

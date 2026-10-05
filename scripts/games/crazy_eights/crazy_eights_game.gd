@@ -87,7 +87,11 @@ func _build_ui() -> void:
 	status_label.add_theme_font_size_override("font_size", 26)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	root.add_child(status_label)
+	var status_label_m := MarginContainer.new()  # side room for the floating ⚙ tab
+	status_label_m.add_theme_constant_override("margin_left", 48)
+	status_label_m.add_theme_constant_override("margin_right", 48)
+	status_label_m.add_child(status_label)
+	root.add_child(status_label_m)
 
 	board = Control.new()
 	board.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -132,6 +136,7 @@ func _start_new_game() -> void:
 	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game(engine.PLAYERS if hotseat else 3)
+	_sfx("card_shuffle")
 	pending_eight = -1
 	viewer = 0
 	last_msg = ""
@@ -212,6 +217,7 @@ func _human_play(card: int) -> void:
 		return
 	var who := _me()
 	engine.play(who, card)
+	_sfx("card_place")
 	last_msg = tr("%s plays %s") % [_player_name(who), Cards.label(card)]
 	_after_turn()
 
@@ -219,6 +225,7 @@ func _choose_suit(s: int) -> void:
 	if pending_eight >= 0:
 		var who := _me()
 		engine.play(who, pending_eight, s)
+		_sfx("card_place")
 		last_msg = tr("%s plays %s") % [_player_name(who), Cards.label(pending_eight)] + " — " + tr("suit is now %s") % Cards.SUITS[engine.suit_now]
 		pending_eight = -1
 		_after_turn()
@@ -231,6 +238,7 @@ func _human_draw() -> void:
 		engine.pass_turn()
 		_after_turn()
 		return
+	_sfx("card_deal")
 	_update_status()
 
 func _after_turn() -> void:
@@ -254,6 +262,7 @@ func _cpu_turn() -> void:
 		if engine.draw() == -1:
 			break
 		drew += 1
+		_sfx("card_deal")
 		choice = engine.cpu_choice(p)
 	var msg := ""
 	if choice.is_empty():
@@ -261,6 +270,7 @@ func _cpu_turn() -> void:
 		msg = tr("%s passes.") % _player_name(p)
 	else:
 		engine.play(p, choice[0], choice[1])
+		_sfx("card_place")
 		msg = tr("%s plays %s") % [_player_name(p), Cards.label(choice[0])]
 		if C8Engine.rank(choice[0]) == 8:
 			msg += " — " + tr("suit is now %s") % Cards.SUITS[engine.suit_now]
@@ -501,3 +511,8 @@ func _load_saved_game() -> void:
 	if hotseat:
 		last_msg = ""
 		_show_cover()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

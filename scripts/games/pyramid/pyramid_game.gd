@@ -118,6 +118,7 @@ func _start_new_game() -> void:
 	started = true
 	result_recorded = false
 	engine.new_game()
+	_sfx("card_shuffle")
 	selected = -1
 	end_dialog.visible = false
 	_refresh()
@@ -217,6 +218,7 @@ func _on_board_input(event: InputEvent) -> void:
 	if slot == STOCK:
 		selected = -1
 		engine.draw()
+		_sfx("card_flip")
 		_refresh()
 		return
 	if slot == -1 or engine.card_at(slot) == -1:
@@ -225,10 +227,12 @@ func _on_board_input(event: InputEvent) -> void:
 		return
 	if PyrEngine.rank(engine.card_at(slot)) == 13:
 		engine.try_remove(slot)
+		_sfx("merge")
 		selected = -1
 	elif selected == -1 or selected == slot:
 		selected = -1 if selected == slot else slot
 	elif engine.try_remove(selected, slot):
+		_sfx("merge")
 		selected = -1
 	else:
 		selected = slot
@@ -300,3 +304,8 @@ func _load_saved_game() -> void:
 	engine.pass_no = int(d.get("pass", 1))
 	engine.history = []
 	_refresh()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -195,6 +195,7 @@ func _cpu_play() -> void:
 		var t := engine.target_for(c, randi() % 2)
 		if t >= 0:
 			engine.play(1, c, t)
+			_sfx("card_place")
 			# a little human-like jitter
 			cpu_timer.wait_time = CPU_SPEEDS[level] * randf_range(0.7, 1.3)
 			break
@@ -232,6 +233,7 @@ func _on_stuck_flip() -> void:
 		return
 	var before := [engine.top(0), engine.top(1)]
 	engine.flip()
+	_sfx("card_flip")
 	if [engine.top(0), engine.top(1)] == before and engine.stuck():
 		# nothing left to flip: fewest cards wins
 		engine.winner = 0 if engine.cards_left(0) <= engine.cards_left(1) else 1
@@ -317,7 +319,10 @@ func _on_board_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and event.pressed:
 		touch_seen = true
 		pos = event.position
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not (two_player and touch_seen):
+	# On a touchscreen the mouse click is the phone's emulated copy of the
+	# same tap (it arrives first), which could play a second card.
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not touch_seen \
+			and not DisplayServer.is_touchscreen_available():
 		pos = event.position
 	else:
 		return
@@ -333,6 +338,7 @@ func _on_board_input(event: InputEvent) -> void:
 				var t := engine.target_for(c, prefer)
 				if t >= 0:
 					engine.play(p, c, t)
+					_sfx("card_place")
 					_check_state()
 				return
 
@@ -398,3 +404,8 @@ func _start_level(l: int) -> void:
 	_show_start()
 	start_dialog.visible = false
 	_start_game()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

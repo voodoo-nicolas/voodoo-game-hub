@@ -423,12 +423,14 @@ func _add_guess_button(label_text: String, guess: String, color: Color) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		btn.add_theme_stylebox_override(state, sb)
 	btn.add_theme_color_override("font_color", Color(1, 1, 1))
+	btn.set_meta("sfx", "card_flip")
 	btn.pressed.connect(_on_guess_pressed.bind(guess))
 	guess_row.add_child(btn)
 
 func _on_guess_pressed(guess: String) -> void:
 	var earlier: Array = engine.player_cards[engine.current_player].duplicate()
 	var result: Dictionary = engine.answer(guess)
+	_sfx("letter_right" if result.correct else "buzzer")
 	if info:
 		info.add("Right guesses" if result.correct else "Wrong guesses")
 	_render_cards(result.card, earlier)
@@ -492,3 +494,8 @@ func _draw_home_logo(c: Control) -> void:
 		HomeKit.glow_rect(c, r, spec[3], 2.5)
 		HomeKit.glow_text(c, Vector2.ZERO, spec[2], int(h * 0.42), spec[3])
 		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

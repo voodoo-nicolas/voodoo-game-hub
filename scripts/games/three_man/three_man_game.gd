@@ -190,6 +190,7 @@ func _build_tiebreak(root: VBoxContainer) -> void:
 	box.add_child(tiebreak_status_label)
 
 	tiebreak_btn = Button.new()
+	tiebreak_btn.set_meta("sfx", "")
 	tiebreak_btn.text = tr("Roll for First")
 	tiebreak_btn.custom_minimum_size = Vector2(220, 56)
 	tiebreak_btn.add_theme_font_size_override("font_size", 26)
@@ -233,6 +234,7 @@ func _build_play(root: VBoxContainer) -> void:
 	box.add_child(messages_label)
 
 	roll_btn = Button.new()
+	roll_btn.set_meta("sfx", "")  # rolls play dice_roll
 	roll_btn.text = tr("🎲 Roll")
 	roll_btn.custom_minimum_size = Vector2(220, 56)
 	roll_btn.add_theme_font_size_override("font_size", 26)
@@ -259,6 +261,7 @@ func _on_start_pressed() -> void:
 
 func _on_tiebreak_pressed() -> void:
 	var result: Dictionary = engine.roll_tiebreak()
+	_sfx("dice_roll")
 	var pieces: PackedStringArray = []
 	for p in result.rolls.keys():
 		pieces.append("P%d: %d" % [p + 1, result.rolls[p]])
@@ -289,6 +292,7 @@ func _update_turn_display() -> void:
 
 func _on_roll_pressed() -> void:
 	var result: Dictionary = engine.roll_turn()
+	_sfx("dice_roll")
 	if info:
 		info.add("Rolls")
 	_set_dice(result.die1, result.die2)
@@ -387,3 +391,8 @@ func _draw_home_logo(c: Control) -> void:
 	c.draw_set_transform(ctr + Vector2(d * 0.6, 0), 0.2, Vector2.ONE)
 	_draw_die(c, d, 2)
 	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

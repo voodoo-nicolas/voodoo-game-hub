@@ -73,7 +73,11 @@ func _build_ui() -> void:
 	hint.add_theme_color_override("font_color", Color(0.75, 0.72, 0.8))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
-	root.add_child(hint)
+	var hint_m := MarginContainer.new()  # side room for the floating ⚙ tab
+	hint_m.add_theme_constant_override("margin_left", 48)
+	hint_m.add_theme_constant_override("margin_right", 48)
+	hint_m.add_child(hint)
+	root.add_child(hint_m)
 
 	var cm := MarginContainer.new()
 	cm.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -146,12 +150,14 @@ func _cycle_deck() -> void:
 	_start_deck()
 
 func _on_card_input(event: InputEvent) -> void:
-	if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) \
-			or (event is InputEventScreenTouch and event.pressed):
+	# Mouse only: a phone turns each tap into a ScreenTouch AND an emulated
+	# mouse click, so handling both drew two cards per tap.
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_next()
 
 func _next() -> void:
 	card_label.text = engine.next_card()
+	_sfx("card_flip")
 	count_label.text = tr("Card %d") % engine.dealt
 	if info:
 		info.add("Cards played")
@@ -203,3 +209,8 @@ func _draw_home_logo(c: Control) -> void:
 func _play_deck(i: int) -> void:
 	deck_index = i
 	_start_deck()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -175,7 +175,9 @@ func _process(delta: float) -> void:
 	rotate_hint.visible = vp.x < vp.y
 	banner_time = max(0.0, banner_time - delta)
 	if running:
+		var pre := [engine.score, engine.lives, engine.shots.size()]
 		var ev := engine.step(min(delta, 0.05))
+		_watch_sfx(pre, ev)
 		if ev == "wave":
 			banner_time = 1.5
 		elif ev == "over":
@@ -289,3 +291,19 @@ func _draw_home_logo(c: Control) -> void:
 	var base := Vector2(c.size.x / 2.0, c.size.y - 10)
 	HomeKit.glow_line(c, base + Vector2(0, -px * 1.2), base + Vector2(0, -px * 2.6), HomeKit.CYAN, 3.0)
 	HomeKit.glow_rect(c, Rect2(base + Vector2(-px * 1.6, -px * 1.0), Vector2(px * 3.2, px)), HomeKit.LIME, 2.0, 0.3)
+
+## Sounds from what changed this frame (the engine only reports waves).
+func _watch_sfx(pre: Array, ev: String) -> void:
+	if engine.lives < pre[1] or ev == "over":
+		_sfx("explode")
+	elif engine.score > pre[0]:
+		_sfx("hit")
+	elif ev == "wave":
+		_sfx("powerup")
+	if engine.shots.size() > pre[2]:
+		_sfx("shoot")
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

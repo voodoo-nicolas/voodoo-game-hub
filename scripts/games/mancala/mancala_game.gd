@@ -226,6 +226,7 @@ func _make_pit(index: int, size: float) -> Control:
 	btn.custom_minimum_size = Vector2(size, size)
 	btn.flat = false
 	btn.focus_mode = Control.FOCUS_NONE
+	btn.set_meta("sfx", "")  # sowing plays its own sound
 	btn.pressed.connect(_on_pit_pressed.bind(index))
 	pit_buttons[index] = btn
 
@@ -303,6 +304,7 @@ func _sow(index: int) -> bool:
 	var result: Dictionary = engine.sow(index)
 	if not result.valid:
 		return false
+	_sfx("capture" if int(result.captured) > 0 else ("merge" if result.landed_in_store else "slide"))
 	_render()
 	if engine.game_over:
 		_show_result()
@@ -441,3 +443,8 @@ func _load_saved_game() -> bool:
 	_render()
 	_maybe_cpu()
 	return true
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

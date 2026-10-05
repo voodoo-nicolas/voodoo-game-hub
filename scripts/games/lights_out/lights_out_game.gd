@@ -107,6 +107,7 @@ func _build_ui() -> void:
 			cell.custom_minimum_size = Vector2(cell_size, cell_size)
 			cell.flat = false
 			cell.focus_mode = Control.FOCUS_NONE
+			cell.set_meta("sfx", "toggle")
 			cell.pressed.connect(_on_cell_pressed.bind(r, c))
 			grid.add_child(cell)
 			row.append(cell)
@@ -269,3 +270,8 @@ func _load_saved_game() -> void:
 	engine.moves = int(data.get("moves", 0))
 	win_dialog.visible = false
 	_render()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

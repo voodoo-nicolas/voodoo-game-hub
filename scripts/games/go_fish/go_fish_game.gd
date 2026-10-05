@@ -117,7 +117,7 @@ func _build_ui() -> void:
 	if info:
 		add_child(info)
 	var drawer := SettingsDrawer.new()
-	drawer.set("default_frac", 0.6)  # the hand fills the bottom edge
+	drawer.set("default_frac", 0.5)  # the hand fills the bottom edge
 	add_child(drawer)
 
 func _start_new_game() -> void:
@@ -125,6 +125,7 @@ func _start_new_game() -> void:
 	result_recorded = false
 	cpu_timer.stop()
 	engine.new_game()
+	_sfx("card_shuffle")
 	end_dialog.visible = false
 	viewer = 0
 	cover.visible = false
@@ -241,6 +242,7 @@ func _cpu_turn() -> void:
 		return
 	var r := engine.cpu_pick()
 	var res := engine.ask(r)
+	_ask_sfx(res)
 	log_text = _describe(1, r, res)
 	_begin_turn()
 
@@ -344,6 +346,7 @@ func _on_board_input(event: InputEvent) -> void:
 			var asker: int = engine.turn
 			var r := GFEngine.rank(engine.hands[asker][i])
 			var res := engine.ask(r)
+			_ask_sfx(res)
 			if hotseat:
 				log_text = _describe(asker, r, res)
 			else:
@@ -456,3 +459,16 @@ func _load_saved_game() -> void:
 	for r in d.get("memory", []):
 		engine.cpu_memory[int(r)] = true
 	_begin_turn()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
+
+func _ask_sfx(res: Dictionary) -> void:
+	if not res.get("new_books", []).is_empty():
+		_sfx("pickup")
+	elif int(res.get("got", 0)) > 0:
+		_sfx("card_place")
+	else:
+		_sfx("card_deal")  # go fish: drew from the pond

@@ -134,6 +134,7 @@ func _build_ui() -> void:
 		cell.custom_minimum_size = Vector2(cell_size, cell_size)
 		cell.add_theme_font_size_override("font_size", int(cell_size * 0.5))
 		cell.focus_mode = Control.FOCUS_NONE
+		cell.set_meta("sfx", "")  # the move plays "place"
 		_style_cell(cell, HomeKit.BLUE, false)
 		cell.pressed.connect(_on_cell_pressed.bind(i))
 		grid.add_child(cell)
@@ -265,6 +266,7 @@ func _on_cell_pressed(i: int) -> void:
 		_after_move()
 
 func _after_move() -> void:
+	_sfx("place")
 	_render()
 	if engine.is_over():
 		_show_result()
@@ -417,3 +419,8 @@ func _load_saved_game() -> bool:
 	if _vs_cpu() and engine.turn == TicTacToeEngine.O and game_active:
 		cpu_timer.start(CPU_DELAY)
 	return game_active
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

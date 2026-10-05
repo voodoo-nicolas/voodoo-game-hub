@@ -8,14 +8,18 @@ const HomeKit = preload("res://scripts/games/farkle/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
+const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+
+const SAVE_PATH := "user://farkle_save.json"
 
 const PIPS := {1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]],
 	5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]}
 
 var result_recorded := false  # this game's result is already in the stats
+var started := false  # a game is on (not just the one behind Home)
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit: Home screen + pause menu
 var engine: FEngine
@@ -39,6 +43,7 @@ func _ready() -> void:
 	engine = FEngine.new()
 	_build_ui()
 	_start()
+	started = false  # the game behind Home isn't worth saving
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -144,6 +149,7 @@ func _build_ui() -> void:
 	add_child(SettingsDrawer.new())
 
 func _start() -> void:
+	started = true
 	result_recorded = false
 	cpu_timer.stop()
 	engine.reset()
@@ -271,6 +277,7 @@ func _cpu_step() -> void:
 func _check_winner() -> bool:
 	if engine.winner == -1:
 		return false
+	SaveUtil.delete(SAVE_PATH)
 	_refresh()
 	if two_player:
 		var msg := tr("Player %d wins!") % (engine.winner + 1)
@@ -360,6 +367,9 @@ func _build_home() -> void:
 			{"text": "🤖 vs Computer", "sub": "First to 10,000", "action": _new_game.bind(false)},
 			{"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_game.bind(true)},
 		],
+		"save_path": SAVE_PATH,
+		"resume": _load_saved_game,
+		"resume_text": _resume_text,
 		"restart": _start,
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
@@ -387,7 +397,58 @@ func _draw_home_logo(c: Control) -> void:
 
 func _new_game(two: bool) -> void:
 	two_player = two
+	SaveUtil.delete(SAVE_PATH)
 	_start()
+
+# ---------- save / resume ----------
+# Saved between rolls: the scores, whose turn it is and, on a person's turn,
+# the dice in front of them. The computer's turn starts over on Resume.
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_save_game()
+
+func _save_game() -> void:
+	if not started or engine == null or engine.winner != -1:
+		return
+	var d := {"two": two_player, "scores": engine.scores, "turn": engine.turn}
+	if farkled:
+		d.turn = 1 - engine.turn  # the turn was already lost
+	elif _person() and rolled:
+		d["dice"] = engine.dice
+		d["kept"] = engine.kept
+		d["points"] = engine.turn_points
+	SaveUtil.write(SAVE_PATH, d)
+
+func _load_saved_game() -> void:
+	var d = SaveUtil.read(SAVE_PATH)
+	two_player = d != null and bool(d.get("two", false))
+	_start()
+	if d == null:
+		return
+	for i in 2:
+		engine.scores[i] = int(d.scores[i])
+	engine.turn = clampi(int(d.get("turn", 0)), 0, 1)
+	if not _person():
+		_start_cpu()
+		return
+	_begin_human()
+	if d.has("dice"):
+		engine.dice = []
+		for v in d.dice:
+			engine.dice.append(int(v))
+		engine.kept = []
+		for v in d.kept:
+			engine.kept.append(int(v))
+		engine.turn_points = int(d.points)
+		rolled = true
+		_refresh()
+
+func _resume_text() -> String:
+	var d = SaveUtil.read(SAVE_PATH)
+	if d == null:
+		return ""
+	return "%d – %d" % [int(d.scores[0]), int(d.scores[1])]
 
 ## Is a person (not the computer) to move?
 func _person() -> bool:

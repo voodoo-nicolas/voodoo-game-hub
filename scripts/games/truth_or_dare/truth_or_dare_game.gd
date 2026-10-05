@@ -213,6 +213,7 @@ func _start(spicy: bool) -> void:
 
 func _draw_card(k: String) -> void:
 	engine.draw(k, rng)
+	_sfx("card_flip")
 	_render()
 
 func _finish(done: bool) -> void:
@@ -283,3 +284,8 @@ func _load_saved_game() -> void:
 	engine.played = int(d.get("played", 0))
 	started = true
 	_render()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

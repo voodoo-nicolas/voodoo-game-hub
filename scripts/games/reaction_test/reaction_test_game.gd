@@ -95,7 +95,9 @@ func _build_ui() -> void:
 	pad_button.flat = true
 	pad_button.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pad_button.focus_mode = Control.FOCUS_NONE
-	pad_button.pressed.connect(_on_pad_pressed)
+	# button_down, not pressed: pressed fires on release, which would add
+	# however long the finger rests on the glass to every reaction time.
+	pad_button.button_down.connect(_on_pad_pressed)
 	pad.add_child(pad_button)
 
 	pad_label = Label.new()
@@ -145,7 +147,15 @@ func _arm() -> void:
 	result_label.text = ""
 	var delay := randf_range(1.0, 4.0)
 	arm_count += 1
-	get_tree().create_timer(delay).timeout.connect(_on_delay_elapsed.bind(arm_count))
+	# process_always = false: the delay stops while the pause menu is up.
+	get_tree().create_timer(delay, false).timeout.connect(_on_delay_elapsed.bind(arm_count))
+
+## Coming back from the pause menu mid-test: the pause would count in the
+## reaction time (or the light turned green unseen), so start this one over.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_UNPAUSED and engine != null:
+		if engine.state == ReactionEngine.State.WAITING or engine.state == ReactionEngine.State.READY:
+			_arm()
 
 ## A timer from an earlier arming (the player false-started and re-armed
 ## before it fired) must not turn the pad green early -- the state alone
@@ -156,9 +166,11 @@ func _on_delay_elapsed(armed_as: int) -> void:
 	engine.mark_ready()
 	ready_started_at = Time.get_ticks_msec()
 	_set_pad(COLOR_READY, tr("TAP NOW!"))
+	_sfx("notify")
 
 func _show_too_early() -> void:
 	_set_pad(COLOR_TOO_EARLY, tr("Too soon!\nTap to try again"))
+	_sfx("invalid")
 
 func _show_result(reaction_ms: int) -> void:
 	if info:
@@ -222,3 +234,8 @@ func _draw_home_logo(c: Control) -> void:
 
 func _start_test() -> void:
 	_show_idle(tr("Tap the pad to start"))
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

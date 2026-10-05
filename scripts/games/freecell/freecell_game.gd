@@ -124,6 +124,7 @@ func _start_new_game() -> void:
 	if info:
 		info.start_clock()
 	engine.new_game()
+	_sfx("card_shuffle")
 	engine.auto_foundation()
 	win_dialog.visible = false
 	_refresh()
@@ -195,6 +196,7 @@ func _on_board_input(event: InputEvent) -> void:
 	if pos.y < _tableau_top() - 10.0:
 		if c < 4 and engine.cells[c] != -1:
 			if engine.auto_move(-1, 0, c):
+				_sfx("card_place")
 				_after_change()
 			else:
 				_flash(Vector2i(-1, c))
@@ -211,6 +213,7 @@ func _on_board_input(event: InputEvent) -> void:
 		_flash(Vector2i(c, k))
 		return
 	if engine.auto_move(c, k):
+		_sfx("card_place")
 		_after_change()
 	else:
 		_flash(Vector2i(c, k))
@@ -308,3 +311,8 @@ func _load_saved_game() -> void:
 	engine.moves = int(d.get("moves", 0))
 	engine.history = []
 	_refresh()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

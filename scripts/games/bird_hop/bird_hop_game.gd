@@ -119,7 +119,13 @@ func _notification(what: int) -> void:
 
 func _process(delta: float) -> void:
 	if not paused:
+		var pre_score: int = engine.score
+		var was_dead: bool = engine.dead
 		engine.step(min(delta, 0.05))
+		if engine.dead and not was_dead:
+			_sfx("hit")
+		elif engine.score > pre_score:
+			_sfx("pickup")
 	if engine.dead and not over_shown:
 		over_shown = true
 		if engine.score > best:
@@ -191,11 +197,11 @@ func _on_board_input(event: InputEvent) -> void:
 	if paused:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		engine.flap()
+		_flap()
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_SPACE and not paused:
-		engine.flap()
+		_flap()
 
 # ---------- Home screen (home_kit.gd) ----------
 
@@ -231,3 +237,13 @@ func _draw_home_logo(c: Control) -> void:
 	c.draw_circle(o + Vector2(h * 0.05, -h * 0.04), h * 0.03, Color.WHITE)
 	HomeKit.glow_polyline(c, PackedVector2Array([o + Vector2(h * 0.13, 0), o + Vector2(h * 0.24, h * 0.03), o + Vector2(h * 0.13, h * 0.06)]), HomeKit.PINK, 2.0)
 	HomeKit.glow_polyline(c, PackedVector2Array([o + Vector2(-h * 0.1, 0), o + Vector2(-h * 0.24, -h * 0.1), o + Vector2(-h * 0.14, h * 0.04)]), HomeKit.GOLD, 2.0)
+
+func _flap() -> void:
+	if not engine.dead:
+		_sfx("jump")
+	engine.flap()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

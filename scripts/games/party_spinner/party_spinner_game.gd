@@ -31,6 +31,7 @@ var spin_to: float = 0.0
 var spin_t: float = 1.0
 var auto_index: int = 0
 var pending: int = -1
+var last_sector: int = 0  # for the tick as each sector passes the pointer
 
 func _ready() -> void:
 	preload("res://scripts/games/party_spinner/party_spinner_i18n.gd").install(self)
@@ -81,8 +82,8 @@ func _build_ui() -> void:
 	bar.add_child(spacer_btn)
 
 	var rm := MarginContainer.new()
-	rm.add_theme_constant_override("margin_left", 30)
-	rm.add_theme_constant_override("margin_right", 30)
+	rm.add_theme_constant_override("margin_left", 48)  # room for the ⚙ tab
+	rm.add_theme_constant_override("margin_right", 48)
 	root.add_child(rm)
 	result_panel = PanelContainer.new()
 	rm.add_child(result_panel)
@@ -120,6 +121,7 @@ func _build_ui() -> void:
 	spin_btn.text = tr("🌀 Spin")
 	spin_btn.custom_minimum_size = Vector2(260, 84)
 	spin_btn.add_theme_font_size_override("font_size", 32)
+	spin_btn.set_meta("sfx", "")  # the wheel ticks itself
 	spin_btn.pressed.connect(_spin)
 	row.add_child(spin_btn)
 	auto_btn = Button.new()
@@ -175,8 +177,14 @@ func _process(delta: float) -> void:
 	var eased := 1.0 - pow(1.0 - spin_t, 3.0)
 	angle = lerp(spin_from, spin_to, eased)
 	wheel.queue_redraw()
+	var sector := int(floor(angle / (TAU / 16.0)))
+	if sector != last_sector:
+		last_sector = sector
+		_sfx("spin_tick")
 	if spin_t >= 1.0:
 		angle = fposmod(angle, TAU)
+		last_sector = int(floor(angle / (TAU / 16.0)))
+		_sfx("notify")
 		_update_result()
 
 func _update_result() -> void:
@@ -284,3 +292,8 @@ func _draw_home_logo(c: Control) -> void:
 	HomeKit.glow_circle(c, ctr, r, Color.WHITE, 2.0)
 	HomeKit.glow_line(c, ctr, ctr + Vector2(cos(-0.9), sin(-0.9)) * r * 0.85, Color.WHITE, 3.0)
 	HomeKit.glow_circle(c, ctr, r * 0.08, Color.WHITE, 2.0, 1.0)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -187,6 +187,7 @@ func _on_board_input(event: InputEvent) -> void:
 	if engine.at(cell.y, cell.x) == PegEngine.PEG:
 		selected = Vector2i(-1, -1) if cell == selected else cell
 	elif selected.x >= 0 and engine.try_move(selected.y, selected.x, cell.y, cell.x):
+		_sfx("capture")
 		# keep chaining from the landing hole when another jump is possible
 		selected = cell if not engine.targets_from(cell.y, cell.x).is_empty() else Vector2i(-1, -1)
 		_refresh()
@@ -284,3 +285,8 @@ func _load_saved_game() -> void:
 		engine.grid = g
 		engine.history = []
 	_refresh()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

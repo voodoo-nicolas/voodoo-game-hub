@@ -11,7 +11,7 @@ const HOW := [
 	"Roll with nothing that scores and it's a Farkle: you lose that turn's points.",
 	"Score all six dice (hot dice) and you get to roll all six again.",
 	"Scoring: a 1 is 100, a 5 is 50. Three of a kind is the number × 100 (three 1s are 1,000); each extra die of the kind doubles it. 1-2-3-4-5-6 or three pairs is 1,500.",
-	"⏸ pauses the game. A game isn't saved for later: leaving it ends it.",
+	"⏸ pauses the game. Leaving saves it: Resume on the Home screen picks it up (a computer turn in progress starts over).",
 ]
 const TIPS := [
 	"With only one or two dice left, banking is usually smart — farkling is very likely.",

@@ -259,6 +259,7 @@ func _update_flip_buttons() -> void:
 
 func _on_play_pressed() -> void:
 	var result: Dictionary = engine.play_round()
+	_sfx("card_flip")
 	_update_piles()
 
 	if result.has("p1_card"):
@@ -387,3 +388,8 @@ func _load_saved_game() -> void:
 	for card in d.p2:
 		engine.p2_pile.append({"rank": str(card.rank), "suit": str(card.suit), "value": int(card.value)} if typeof(card) == TYPE_DICTIONARY and card.has("value") else card)
 	_update_piles()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -214,6 +214,7 @@ func _on_board_input(event: InputEvent) -> void:
 	if must_remove:
 		if pos in engine.removable(foe):
 			engine.remove_piece(pos)
+			_sfx("capture")
 			turn_move[2] = pos
 			must_remove = false
 			_end_human_turn()
@@ -234,6 +235,7 @@ func _on_board_input(event: InputEvent) -> void:
 		_after_move(engine.apply_move(from, pos))
 
 func _after_move(mill: bool) -> void:
+	_sfx("powerup" if mill else "place")
 	if mill and not engine.removable(CPU if engine.turn == HUMAN else HUMAN).is_empty():
 		must_remove = true
 		_update_labels()
@@ -251,6 +253,7 @@ func _end_human_turn() -> void:
 func _cpu_turn() -> void:
 	var m: Array = engine.best_move(depth)
 	engine.apply_move(m[0], m[1])
+	_sfx("capture" if m[2] >= 0 else "place")
 	if m[2] >= 0:
 		engine.remove_piece(m[2])
 	engine.end_turn()
@@ -441,6 +444,7 @@ func _on_remote_move(p: Dictionary) -> void:
 	if not ([from, to] in engine.moves_for(engine.turn)):
 		return  # out of step: the state check that follows resyncs us
 	var mill := engine.apply_move(from, to)
+	_sfx("capture" if mill and removed >= 0 else "place")
 	if mill and removed in engine.removable(3 - engine.turn):
 		engine.remove_piece(removed)
 	engine.end_turn()
@@ -505,3 +509,8 @@ func _load_saved_game() -> void:
 	_update_labels()
 	if not _person():
 		cpu_timer.start()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

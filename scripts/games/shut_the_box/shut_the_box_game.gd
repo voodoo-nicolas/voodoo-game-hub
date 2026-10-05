@@ -164,6 +164,7 @@ func _on_roll(one_die: bool) -> void:
 	if phase != "roll":
 		return
 	engine.roll(one_die)
+	_sfx("dice_roll")
 	selected = []
 	if engine.can_play():
 		phase = "pick"
@@ -175,9 +176,9 @@ func _on_board_input(event: InputEvent) -> void:
 	if phase != "pick":
 		return
 	var pos := Vector2(-1, -1)
+	# Mouse only: a phone sends each tap as a ScreenTouch AND an emulated
+	# mouse click, and handling both selected then unselected the tile.
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		pos = event.position
-	elif event is InputEventScreenTouch and event.pressed:
 		pos = event.position
 	else:
 		return
@@ -399,3 +400,8 @@ func _new_mode(m: String) -> void:
 	vs_computer = m == "cpu"
 	two_player = m == "two"
 	_start_new_game()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

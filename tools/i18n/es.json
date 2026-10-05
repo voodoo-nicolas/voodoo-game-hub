@@ -4053,5 +4053,6 @@
  "⛳  Play": "⛳  Jugar",
  "💣 Bomb clears everything ahead and wounds the boss. You get 3, and one more after every stage (up to 5).": "💣 Bomba limpia todo lo que hay adelante y daña al jefe. Tienes 3, y una más después de cada etapa (hasta 5).",
  "💣 Bomb wipes every bullet off the screen and blasts every plane. You start with 2.": "💣 Bomba borra todas las balas de la pantalla y golpea a todos los aviones. Empiezas con 2.",
- "📋 shows the scorecard. ⏸ pauses; Resume on the Home screen carries on the round where the ball lies.": "📋 muestra la tarjeta. ⏸ pausa; Continuar en la pantalla de inicio sigue la ronda donde quedó la bola."
+ "📋 shows the scorecard. ⏸ pauses; Resume on the Home screen carries on the round where the ball lies.": "📋 muestra la tarjeta. ⏸ pausa; Continuar en la pantalla de inicio sigue la ronda donde quedó la bola.",
+ "⏸ pauses the game. Leaving saves it: Resume on the Home screen picks it up (a computer turn in progress starts over).": "⏸ pausa el juego. Al salir se guarda: Continuar en la pantalla de inicio lo retoma (si la computadora estaba jugando su turno, vuelve a empezarlo)."
 }

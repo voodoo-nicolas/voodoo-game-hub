@@ -137,6 +137,14 @@ func _notification(what: int) -> void:
 			go_hub()
 		else:
 			pause()
+	# The app went to the background mid-game (standard #5): pause, which
+	# also saves, so the player comes back to the menu instead of a game that
+	# ran on (or ended) without them. Not while the online lobby is up.
+	elif what == NOTIFICATION_APPLICATION_PAUSED and is_inside_tree() and home:
+		var online: Node = cfg.get("online")
+		var lobby_up: bool = online != null and "lobby" in online and online.lobby is CanvasItem and online.lobby.visible
+		if not lobby_up:
+			pause()
 
 # ---------- public ----------
 
@@ -630,7 +638,8 @@ func _set_board_scope(friends: bool) -> void:
 	_show_leaderboard()
 
 func _on_leaderboard(rows: Variant) -> void:
-	if not is_instance_valid(lb_box):
+	# The reply can land after the game was closed (removed, not yet freed).
+	if not is_instance_valid(lb_box) or not is_inside_tree() or _auth() == null:
 		return
 	_clear(lb_box)
 	var a := _auth()

@@ -488,7 +488,9 @@ func _load_leaderboard() -> void:
 	_auth().fetch_leaderboard(str(consts.get("ID", "")), LEADERBOARD_SIZE, _show_leaderboard)
 
 func _show_leaderboard(rows: Variant) -> void:
-	if lb_box == null or not is_instance_valid(lb_box):
+	# The reply can land after the game was closed (removed, not yet freed):
+	# get_node() from outside the tree would fail and _auth() return null.
+	if lb_box == null or not is_instance_valid(lb_box) or not is_inside_tree() or _auth() == null:
 		return
 	for c in lb_box.get_children():
 		c.queue_free()

@@ -178,6 +178,7 @@ func _new_word() -> void:
 		b.add_theme_color_override("font_color", COLOR_INK)
 		b.add_theme_color_override("font_disabled_color", Color(0.6, 0.6, 0.65))
 		b.focus_mode = Control.FOCUS_NONE
+		b.set_meta("sfx", "key")
 		b.pressed.connect(_on_tile.bind(i))
 		tiles_box.add_child(b)
 		tiles.append(b)
@@ -216,9 +217,11 @@ func _check() -> void:
 	var g := _guess()
 	var pts := engine.points_for_current()
 	if engine.submit(g):
+		_sfx("letter_right")
 		_feedback(tr("✓ %s  +%d") % [g, pts], Color(0.5, 0.95, 0.5))
 		_advance()
 	else:
+		_sfx("letter_wrong")
 		_feedback(tr("✗ Not it — try again"), Color(1, 0.45, 0.45))
 		picked = picked.slice(0, locked)
 		_render()
@@ -365,3 +368,8 @@ func _load_saved_game() -> void:
 				picked.append(i)
 				break
 	_render()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

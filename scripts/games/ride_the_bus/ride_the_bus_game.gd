@@ -317,6 +317,7 @@ func _on_guess(g: String) -> void:
 		return
 	waiting_next = true
 	var res: Dictionary = engine.bus_guess(g) if engine.phase == "bus" else engine.guess(g)
+	_sfx("card_flip")
 	var c: Dictionary = res.card
 	_style_card(card_panel, true)
 	card_label.text = card_text(c)
@@ -401,6 +402,7 @@ func _on_flip() -> void:
 		_show_question()
 		return
 	var res: Dictionary = engine.flip_next()
+	_sfx("card_flip")
 	var msg := card_text(res.card) + " — " + tr("row %d: %d drinks each") % [res.row + 1, res.drinks]
 	if res.matches.is_empty():
 		msg += "\n" + tr("Nobody has one. Phew!")
@@ -458,3 +460,8 @@ func _draw_home_logo(c: Control) -> void:
 		HomeKit.glow_rect(c, Rect2(o + Vector2(w * (0.06 + i * 0.22), h * 0.08), Vector2(w * 0.16, h * 0.18)), HomeKit.CYAN, 1.5, 0.2)
 	for x in [0.22, 0.78]:
 		HomeKit.glow_circle(c, o + Vector2(w * x, h * 0.52), h * 0.1, HomeKit.PINK, 2.5, 0.2)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -70,6 +70,7 @@ var glow_rect: ColorRect
 var cell_px: float = 0.0
 var line_px: float = 0.0
 var chime: AudioStreamPlayer
+var chime_stream: AudioStreamWAV
 
 var h_lines_view: Array = []
 var v_lines_view: Array = []
@@ -604,6 +605,8 @@ func _play_ai_move(request: int) -> void:
 ## online only when it becomes my turn.
 func _after_line(o: String, r: int, c: int, player_before: int) -> void:
 	last_edge = {"o": o, "r": r, "c": c}
+	# Same player again = they closed a box.
+	_sfx("merge" if engine.current_player == player_before or engine.game_over else "place")
 	if engine.game_over or engine.current_player == player_before:
 		return
 	var now: int = engine.current_player
@@ -614,6 +617,14 @@ func _after_line(o: String, r: int, c: int, player_before: int) -> void:
 	_play_chime()
 
 func _play_chime() -> void:
+	# Through the app's sound library when it has one (v0.23+), so the
+	# player's Sound settings apply; older apps play it directly.
+	var sfx = get_node_or_null("/root/Sfx")
+	if sfx and sfx.has_method("play_stream"):
+		if chime_stream == null:
+			chime_stream = _make_chime()
+		sfx.play_stream(chime_stream, -6.0, 1.0, "alerts")
+		return
 	if chime == null:
 		chime = AudioStreamPlayer.new()
 		chime.stream = _make_chime()
@@ -1016,3 +1027,8 @@ func _to_int_grid(grid: Array) -> Array:
 			r.append(int(v))
 		out.append(r)
 	return out
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

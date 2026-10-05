@@ -414,6 +414,7 @@ func _show_word() -> void:
 func _submit() -> void:
 	var w := engine.path_word(path).to_upper()
 	var res := engine.submit(path)
+	_sfx("letter_right" if res == "ok" else "letter_wrong")
 	path = []
 	var col := Color(0.5, 0.95, 0.5)
 	match res:
@@ -476,3 +477,8 @@ func _play_round() -> void:
 	_show_start()
 	start_dialog.visible = false
 	_start_round()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

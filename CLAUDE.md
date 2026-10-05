@@ -327,9 +327,11 @@ Word). Its header comment lists every name and is the how-to.
   unlisted = "game"), and `play_stream` skips it or adjusts its volume from
   Settings (`group_db`). A new library sound that's a tap, a result or an
   alert must be added to `GROUP_OF`, or the player's switches won't cover it.
-- Wired so far, one per category: Chess, Blackjack, Wordle, Snake, Yacht,
-  King's Cup, Spin the Bottle (Dots & Boxes still has its own chime from
-  before the library).
+- Every game plays its own action sounds since 2026-10-04 (Simon's pad
+  tones are made in its pack; Dots & Boxes' turn chime goes through
+  `play_stream` in the "alerts" group). Number-pad puzzles (Sudoku, Kakuro,
+  Calcudoku) rely on the free key taps. Arcade engines that don't report
+  events get sounds from state deltas each frame (score up, lives down).
 
 ## Achievements, friends, invites, hub screens -- since v0.25.0 (2026-10-04)
 
@@ -721,6 +723,19 @@ Desktop path). Windows was reinstalled 2026-10-03.
   refreshes the user's Supabase session (refresh tokens rotate), so a
   killed or failed run can sign them out of the PC build -- an old
   `auth_session.json` from a backup doesn't help; they sign in again.
+- **A phone sends every tap twice**: a `ScreenTouch` AND an emulated
+  `MouseButton` (`emulate_mouse_from_touch` is on; the mouse copy arrives
+  first). A handler that accepts both ran twice per tap -- Shut the Box
+  selected then unselected each tile, the party decks skipped cards. For
+  single taps handle `MouseButton` only; games that need real multi-touch
+  (Speed, Air Hockey) ignore the mouse when
+  `DisplayServer.is_touchscreen_available()`. Tested 2026-10-04.
+- **`get_tree().create_timer(t)` keeps running while paused** (its
+  `process_always` defaults to true): Reaction Test lit "TAP NOW" behind the
+  pause menu. Pass `create_timer(t, false)`, or use the scene's own tween.
+- **The kit pauses (and so saves) on `NOTIFICATION_APPLICATION_PAUSED`**
+  (since 2026-10-04), so a game sent to the background comes back to its
+  pause menu. Not on focus loss, so pulling the notification shade doesn't.
 - **Settings drawer "Rotate Screen"** reloads the scene, whose `_ready()`
   re-locks its default orientation — which used to undo the rotation
   instantly. `Orientation.override_next()` makes that one next lock rotate.

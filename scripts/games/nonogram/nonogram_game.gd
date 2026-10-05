@@ -239,6 +239,7 @@ func _paint(c: Vector2i) -> void:
 	if engine.get_cell(c.y, c.x) == paint_value:
 		return
 	engine.set_cell(c.y, c.x, paint_value)
+	_sfx("tick")
 	board.queue_redraw()
 	if engine.is_solved():
 		SaveUtil.delete(SAVE_PATH)
@@ -351,3 +352,8 @@ func _load_saved_game() -> void:
 	engine.cells = _ints(d.cells)
 	_update_buttons()
 	board.queue_redraw()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

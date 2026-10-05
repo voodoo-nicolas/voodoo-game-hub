@@ -195,7 +195,9 @@ func _on_move(dir_index: int) -> void:
 	if win_dialog.visible:
 		return
 	facing = Vector2(BoxEngine.DIRS[dir_index])
+	var pushes_before: int = engine.pushes
 	if engine.move(BoxEngine.DIRS[dir_index]):
+		if engine.pushes > pushes_before: _sfx("slide")
 		_refresh()
 		if engine.is_solved():
 			if level == unlocked:
@@ -379,3 +381,8 @@ func _draw_home_logo(c: Control) -> void:
 
 func _play_latest() -> void:
 	_load_level(unlocked)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

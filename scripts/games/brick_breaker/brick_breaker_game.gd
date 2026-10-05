@@ -144,7 +144,14 @@ func _process(delta: float) -> void:
 	if not running:
 		board.queue_redraw()
 		return
+	var pre_score: int = engine.score
 	var res := engine.step(min(delta, 0.05))
+	if res == "cleared":
+		_sfx("powerup")
+	elif res != "":
+		_sfx("explode")
+	elif engine.score > pre_score:
+		_sfx("hit")
 	match res:
 		"cleared":
 			banner = tr("Level %d!") % engine.level
@@ -241,3 +248,8 @@ func _draw_home_logo(c: Control) -> void:
 	HomeKit.glow_circle(c, o + Vector2(w * 0.62, h * 0.62), h * 0.05, Color.WHITE, 2.0, 0.8)
 	HomeKit.glow_line(c, o + Vector2(w * 0.62, h * 0.62), o + Vector2(w * 0.5, h * 0.86), Color(HomeKit.CYAN, 0.5), 1.0)
 	HomeKit.glow_rect(c, Rect2(o + Vector2(w * 0.32, h * 0.9), Vector2(w * 0.36, h * 0.07)), HomeKit.CYAN, 2.5, 0.4)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

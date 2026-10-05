@@ -88,7 +88,9 @@ func _input(event: InputEvent) -> void:
 					_try_move("down" if delta.y > 0 else "up")
 
 func _try_move(dir: String) -> void:
+	var score_before: int = engine.score
 	if engine.move(dir):
+		_sfx("merge" if engine.score > score_before else "slide")
 		_render()
 		if not shown_2048_banner and engine.has_2048():
 			shown_2048_banner = true
@@ -450,3 +452,8 @@ func _new_2048() -> void:
 func _resume_saved() -> void:
 	if not _load_saved_game():
 		_start_new_game()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

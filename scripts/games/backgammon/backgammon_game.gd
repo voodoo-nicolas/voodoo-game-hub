@@ -139,6 +139,7 @@ func _build_ui() -> void:
 	roll_btn.custom_minimum_size = Vector2(260, 72)
 	roll_btn.add_theme_font_size_override("font_size", 28)
 	roll_btn.pressed.connect(_on_roll)
+	roll_btn.set_meta("sfx", "")  # plays dice_roll itself
 	controls.add_child(roll_btn)
 
 	cpu_timer = Timer.new()
@@ -216,6 +217,7 @@ func _on_roll() -> void:
 	if not _is_person_turn() or not dice.is_empty():
 		return
 	dice = BgEngine.roll_dice()
+	_sfx("dice_roll")
 	rolled = dice.duplicate()
 	turn_start = engine.state
 	roll_btn.disabled = true
@@ -260,6 +262,7 @@ func _targets_from(from: int) -> Array:
 
 func _do_human_move(m: Array) -> void:
 	engine.state = BgEngine.apply(engine.state, turn, m[0], m[1])
+	_sfx("place")
 	dice.erase(m[1])
 	selected = -1
 	_refresh_legal()
@@ -288,6 +291,7 @@ func _cpu_step() -> void:
 		return
 	if dice.is_empty() and cpu_moves.is_empty():
 		dice = BgEngine.roll_dice()
+		_sfx("dice_roll")
 		rolled = dice.duplicate()
 		cpu_moves = BgEngine.best_turn(engine.state, CPU, dice)
 		status_label.text = tr("Computer rolled %d and %d.") % [rolled[0], rolled[1]] if rolled.size() == 2 \
@@ -311,6 +315,7 @@ func _cpu_step() -> void:
 		return
 	var m: Array = cpu_moves.pop_front()
 	engine.state = BgEngine.apply(engine.state, CPU, m[0], m[1])
+	_sfx("place")
 	dice.erase(m[1])
 	board.queue_redraw()
 	if _check_winner():
@@ -737,3 +742,8 @@ func _on_remote_state(st: Dictionary) -> void:
 	roll_btn.disabled = turn != my_side or not dice.is_empty()
 	status_label.text = _online_text()
 	board.queue_redraw()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

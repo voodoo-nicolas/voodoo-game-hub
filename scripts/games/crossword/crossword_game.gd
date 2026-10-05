@@ -170,6 +170,7 @@ func _key(label: String, value: String) -> Button:
 	b.custom_minimum_size = Vector2(kw if value != "" else kw * 1.7, 76)
 	b.add_theme_font_size_override("font_size", 28)
 	b.focus_mode = Control.FOCUS_NONE
+	b.set_meta("sfx", "key")
 	b.pressed.connect(_on_key.bind(value))
 	return b
 
@@ -391,3 +392,8 @@ func _load_saved_game() -> void:
 	for t in d.get("letters", []):
 		engine.letters[Vector2i(int(t[0]), int(t[1]))] = str(t[2])
 	_refresh()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

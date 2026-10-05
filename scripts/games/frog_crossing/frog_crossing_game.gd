@@ -108,6 +108,7 @@ func _build_ui() -> void:
 			b.custom_minimum_size = Vector2(120, 64)
 			b.add_theme_font_size_override("font_size", 30)
 			b.focus_mode = Control.FOCUS_NONE
+			b.set_meta("sfx", "")  # a hop plays "jump"
 			b.pressed.connect(_hop.bind(arrows[i][1]))
 			pad.add_child(b)
 		else:
@@ -155,6 +156,7 @@ func _notification(what: int) -> void:
 
 func _hop(d: Vector2i) -> void:
 	if running:
+		_sfx("jump")
 		engine.hop(d)
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -171,7 +173,12 @@ func _update_info() -> void:
 
 func _process(delta: float) -> void:
 	if running:
+		var pre := [engine.lives, engine.level]
 		engine.step(min(delta, 0.05))
+		if engine.lives < pre[0]:
+			_sfx("hit")
+		elif engine.level > pre[1]:
+			_sfx("powerup")
 		if engine.over:
 			running = false
 			if engine.score > best:
@@ -390,3 +397,8 @@ func _draw_home_logo(c: Control) -> void:
 	HomeKit.glow_circle(c, f, h * 0.09, HomeKit.LIME, 2.5, 0.4)
 	c.draw_circle(f + Vector2(-h * 0.04, -h * 0.07), h * 0.03, Color.WHITE)
 	c.draw_circle(f + Vector2(h * 0.04, -h * 0.07), h * 0.03, Color.WHITE)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

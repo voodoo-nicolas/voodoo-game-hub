@@ -155,6 +155,7 @@ func _build_ui() -> void:
 		hole.flat = false
 		hole.focus_mode = Control.FOCUS_NONE
 		_style_hole(hole, COLOR_HOLE)
+		hole.set_meta("sfx", "")  # a whack plays its own sound
 		hole.pressed.connect(_on_hole_pressed.bind(i))
 		grid.add_child(hole)
 		hole_buttons.append(hole)
@@ -299,10 +300,12 @@ func _on_hole_pressed(hole: int) -> void:
 	if not engine.running:
 		return
 	if engine.whack(hole):
+		_sfx("hit")
 		_hit_effect(hole)
 		score_label.text = tr("Score: %d") % engine.score
 		_schedule_next_pop()
 	else:
+		_sfx("tap")
 		_miss_effect(hole)
 
 ## Bonk: the mole squashes down and vanishes, a 💥 bursts and "+1" floats up.
@@ -482,3 +485,8 @@ func _draw_home_logo(c: Control) -> void:
 	c.draw_circle(ctr + Vector2(h * 0.06, -h * 0.2), h * 0.025, Color.WHITE)
 	HomeKit.glow_line(c, ctr + Vector2(h * 0.25, -h * 0.55), ctr + Vector2(h * 0.55, -h * 0.25), HomeKit.CYAN, 3.0)
 	HomeKit.glow_rect(c, Rect2(ctr + Vector2(h * 0.08, -h * 0.72), Vector2(h * 0.26, h * 0.16)), HomeKit.CYAN, 2.5, 0.2)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -13,6 +13,8 @@ const BEST_PATH := "user://simon_best.json"
 
 const PAD_COLORS := [Color(0.9, 0.3, 0.3), Color(0.3, 0.6, 0.95), Color(0.95, 0.75, 0.2), Color(0.4, 0.85, 0.4)]
 const PAD_DIM := 0.45
+## Each pad's tone (Hz), the classic four: red, blue, yellow, green.
+const PAD_TONES := [310.0, 209.0, 252.0, 415.0]
 const FLASH_DURATION := 0.4
 const GAP_DURATION := 0.2
 
@@ -28,11 +30,14 @@ var pads: Array = []  # 4 PanelContainer
 var start_dialog: Control
 var game_over_label: Label
 var best_level: int = 0
+var tones: Array = []  # AudioStreamWAV per pad, made in _ready
 
 func _ready() -> void:
 	preload("res://scripts/games/simon/simon_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = SimonEngine.new()
+	for f in PAD_TONES:
+		tones.append(_make_tone(f, FLASH_DURATION))
 	_build_ui()
 	_load_best()
 	_show_start_dialog()
@@ -115,6 +120,7 @@ func _build_ui() -> void:
 		btn.flat = true
 		btn.set_anchors_preset(Control.PRESET_FULL_RECT)
 		btn.focus_mode = Control.FOCUS_NONE
+		btn.set_meta("sfx", "")  # the pad plays its own tone
 		btn.pressed.connect(_on_pad_pressed.bind(i))
 		pad.add_child(btn)
 
@@ -215,7 +221,7 @@ func _play_sequence() -> void:
 	accepting_input = false
 	var tween := create_tween()
 	for pad_index in engine.sequence:
-		tween.tween_callback(_set_pad_color.bind(pads[pad_index], pad_index, true))
+		tween.tween_callback(_light_pad.bind(pad_index))
 		tween.tween_interval(FLASH_DURATION)
 		tween.tween_callback(_set_pad_color.bind(pads[pad_index], pad_index, false))
 		tween.tween_interval(GAP_DURATION)
@@ -228,7 +234,7 @@ func _on_sequence_done() -> void:
 func _on_pad_pressed(i: int) -> void:
 	if not accepting_input or playing_sequence:
 		return
-	_set_pad_color(pads[i], i, true)
+	_light_pad(i)
 	create_tween().tween_callback(_set_pad_color.bind(pads[i], i, false)).set_delay(0.15)
 
 	var result: String = engine.tap(i)
@@ -241,16 +247,45 @@ func _on_pad_pressed(i: int) -> void:
 				best_level = engine.level
 				_save_best()
 				_update_best_label()
-			var pause_timer := get_tree().create_timer(0.6)
-			pause_timer.timeout.connect(_next_round)
+			# The scene's own tween: it stops while paused and dies with the scene.
+			create_tween().tween_callback(_next_round).set_delay(0.6)
 		"wrong":
 			accepting_input = false
+			_sfx("buzzer")
 			if info:
 				info.add("Games played")
 				info.best("Best level", best_level)
 			game_over_label.text = tr("Game Over — reached level %d") % engine.level
 			status_label.text = ""
 			start_dialog.visible = true
+
+func _light_pad(i: int) -> void:
+	_set_pad_color(pads[i], i, true)
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play_stream(tones[i])
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
+
+## A soft square-ish tone with a short fade in and out, as 16-bit mono WAV.
+static func _make_tone(freq: float, length: float) -> AudioStreamWAV:
+	var rate := 22050
+	var n := int(rate * length)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	for k in n:
+		var t := float(k) / rate
+		var v := sin(TAU * freq * t) + 0.3 * sin(TAU * freq * 3.0 * t) / 3.0
+		var env := minf(1.0, minf(t / 0.01, (length - t) / 0.06))
+		data.encode_s16(k * 2, int(clampf(v * env * 0.45, -1.0, 1.0) * 32767.0))
+	var w := AudioStreamWAV.new()
+	w.format = AudioStreamWAV.FORMAT_16_BITS
+	w.mix_rate = rate
+	w.data = data
+	return w
 
 func _update_best_label() -> void:
 	best_label.text = tr("Best: %d") % best_level

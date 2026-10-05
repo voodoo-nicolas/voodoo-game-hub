@@ -226,7 +226,10 @@ func _start(cat: String) -> void:
 func _process(delta: float) -> void:
 	match state:
 		"countdown":
+			var before := ceili(countdown)
 			countdown -= delta
+			if ceili(countdown) != before:
+				_sfx("tick" if countdown > 0 else "whoosh")
 			word_label.text = str(ceili(countdown)) if countdown > 0 else ""
 			if countdown <= 0:
 				state = "play"
@@ -235,7 +238,10 @@ func _process(delta: float) -> void:
 				word_label.text = engine.current
 				hint_label.text = tr("✗ tap left to pass · tap right if they got it ✓")
 		"play":
+			var secs_before := ceili(time_left)
 			time_left -= delta
+			if ceili(time_left) != secs_before and secs_before <= 5 and time_left > 0:
+				_sfx("tick")
 			timer_label.text = "%d" % ceili(maxf(time_left, 0))
 			if time_left <= 0:
 				_end_round()
@@ -274,6 +280,7 @@ func _on_play_input(event: InputEvent) -> void:
 
 func _mark(correct: bool) -> void:
 	engine.mark(correct)
+	_sfx("letter_right" if correct else "whoosh")
 	armed = false
 	cooldown = 0.6
 	var flash := COLOR_RIGHT if correct else COLOR_PASS
@@ -290,6 +297,7 @@ func _show_current_word() -> void:
 
 func _end_round() -> void:
 	state = "results"
+	_sfx("buzzer")
 	timer_label.text = ""
 	play_box.visible = false
 	results_box.visible = true
@@ -343,3 +351,8 @@ func _draw_home_logo(c: Control) -> void:
 		var a := ctr + Vector2(side * h * 0.95, 0)
 		HomeKit.glow_polyline(c, PackedVector2Array([a + Vector2(0, -h * 0.2), a + Vector2(side * h * 0.06, 0), a + Vector2(0, h * 0.2)]),
 			HomeKit.LIME if side > 0 else HomeKit.GOLD, 2.5)
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

@@ -133,6 +133,7 @@ func _build_ui() -> void:
 		cell.flat = false
 		cell.focus_mode = Control.FOCUS_NONE
 		_style_cell(cell, COLOR_HIDDEN)
+		cell.set_meta("sfx", "")  # a flip plays its own sound
 		cell.pressed.connect(_on_cell_pressed.bind(i))
 		grid.add_child(cell)
 		cell_buttons.append(cell)
@@ -213,6 +214,8 @@ func _on_cell_pressed(i: int) -> void:
 ## Turns card `i` over; false if that wasn't a legal flip.
 func _flip(i: int) -> bool:
 	var result: String = engine.flip(i)
+	if result != "ignored":
+		_sfx("merge" if result == "match" else "card_flip")
 	match result:
 		"match":
 			if two_player or _is_online():
@@ -223,7 +226,7 @@ func _flip(i: int) -> bool:
 		"mismatch":
 			_render()
 			waiting_for_resolve = true
-			var timer := get_tree().create_timer(MISMATCH_DELAY)
+			var timer := get_tree().create_timer(MISMATCH_DELAY, false)
 			timer.timeout.connect(_on_mismatch_resolved.bind(game_id))
 		"first":
 			_render()
@@ -432,9 +435,14 @@ func _on_remote_state(st: Dictionary) -> void:
 	if engine.flipped.size() >= 2:
 		# Two cards were showing: let them be seen, then turn them back.
 		waiting_for_resolve = true
-		get_tree().create_timer(MISMATCH_DELAY).timeout.connect(_on_mismatch_resolved.bind(game_id))
+		get_tree().create_timer(MISMATCH_DELAY, false).timeout.connect(_on_mismatch_resolved.bind(game_id))
 	game_active = not engine.is_over()
 	win_dialog.visible = false
 	_render()
 	if engine.is_over():
 		_show_win()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)

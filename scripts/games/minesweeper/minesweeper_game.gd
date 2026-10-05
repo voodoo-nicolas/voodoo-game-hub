@@ -259,6 +259,7 @@ func _on_cell_pressed(r: int, c: int) -> void:
 		return
 	timer_running = true
 	_render()
+	_sfx("explode" if result == "lost" else "tick")
 	if result == "lost":
 		_finish(false)
 	elif result == "won":
@@ -268,6 +269,7 @@ func _flag(r: int, c: int) -> void:
 	if engine.game_over:
 		return
 	engine.toggle_flag(r, c)
+	_sfx("toggle")
 	_render()
 
 func _finish(won: bool) -> void:
@@ -421,3 +423,8 @@ func _load_saved_game() -> void:
 	elapsed = float(d.get("elapsed", 0.0))
 	timer_running = true
 	_render()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)
