@@ -993,9 +993,17 @@ lessons, coaching feedback, help that fades.
   check will reuse these masks. Built-in drawings are data
   (`trace_it_drawings.json`, strokes tagged by step, own Spanish).
 - **Dev build on a phone**: export preset `TraceDev` (package
-  `com.viral.voodoo.dev`, debug key, all games, feature `trace_dev` whose
-  `run/main_scene` override opens Trace It) installs next to the real app:
-  `godot --headless --path . --export-debug TraceDev <abs>/builds/trace_dev.apk`.
+  `com.viral.voodoo.dev`, arm64 only, every other game excluded, feature
+  `trace_dev` whose `run/main_scene` override opens Trace It) installs next
+  to the real app. Release template signed with the shared *debug* key
+  (never the real one) keeps it at ~29 MiB, under Remote Control's 30 MiB
+  file limit, so it can go straight to the user's phone:
+  `GODOT_ANDROID_KEYSTORE_RELEASE_PATH=<Keystore>/debug.keystore
+  GODOT_ANDROID_KEYSTORE_RELEASE_USER=androiddebugkey
+  GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android godot --headless --path .
+  --export-release TraceDev <abs>/builds/trace_dev.apk`. Its exclude list
+  names each other game: regenerate it when games are added. (An include
+  filter can't re-add a folder the exclude filter drops.)
 - Tests: logic in a throwaway test (pinch keeps both fingers' points, lock,
   save round trip, every drawing in bounds); screens with `tools/shot.gd`.
 
