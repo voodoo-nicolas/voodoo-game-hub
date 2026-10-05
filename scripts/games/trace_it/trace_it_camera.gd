@@ -310,6 +310,38 @@ func _process(delta: float) -> void:
 		light_changed.emit(dark)
 
 
+## The whole camera picture in grey (L8, camera orientation), for the
+## accuracy check. Android's Y plane is already grey; its R8 bytes are taken
+## as L8 as they are (Image.convert(L8) would average three channels and
+## divide the brightness by 3).
+func grab_gray() -> Image:
+	if feed == null or not feed.feed_is_active:
+		return null
+	var img: Image = _y.get_image()
+	if img == null or img.is_empty():
+		return null
+	if img.get_format() == Image.FORMAT_R8:
+		return Image.create_from_data(img.get_width(), img.get_height(), false, Image.FORMAT_L8, img.get_data())
+	img.convert(Image.FORMAT_L8)
+	return img
+
+
+## A small grey picture of the whole view (`w` wide), for the movement watch.
+func grab_small(w: int = 64) -> Image:
+	var img := grab_gray()
+	if img == null:
+		return null
+	img.resize(w, maxi(1, int(w * float(img.get_height()) / img.get_width())), Image.INTERPOLATE_BILINEAR)
+	return img
+
+
+## Where the camera picture sits on screen and how screen UV maps to camera
+## UV -- what TraceItAccuracy.make_map needs.
+func geometry() -> Dictionary:
+	var b := _basis()
+	return {"view_pos": _view.position, "view_size": _view.size, "bx": b.x, "by": b.y}
+
+
 ## Average brightness (0-255) of the middle of the picture, from the Y plane.
 func mean_luma() -> float:
 	if feed == null or not feed.feed_is_active or feed.get_datatype() == CameraFeed.FEED_RGB:

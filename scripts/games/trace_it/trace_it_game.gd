@@ -29,6 +29,9 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const SAVE_PATH := "user://trace_it_free.json"
 const SOURCE_PATH := "user://trace_it_free_source.png"
 const PREFS_PATH := "user://trace_it_prefs.json"
+const BASELINE_PATH := "user://trace_it_baseline.png"   # blank paper, for Resume
+const PROGRESS_PATH := "user://trace_it_progress.json"  # personal bests per drawing
+const Acc = preload("res://scripts/games/trace_it/trace_it_accuracy.gd")
 const UNLOCK_HOLD := 0.8   # seconds to hold 🔒 to unlock
 const PANEL_BG := Color(0.03, 0.04, 0.08, 0.86)
 
@@ -43,16 +46,47 @@ var snapping := false
 var source: Dictionary = {}
 var source_desc: Dictionary = {}   # what Resume rebuilds: {kind, id}
 var draw_time := 0.0
-var prefs := {"tutorial_seen": false, "steps_on": true, "lessons_on": true, "lessons_seen": []}
+var prefs := {"tutorial_seen": false, "steps_on": true, "lessons_on": true, "lessons_seen": [], "accuracy": "normal"}
 var _save_t := -1.0
 var _hold_t := -1.0
-var _just_unlocked := false
+var _just_unlocked := false   # the release that ends an unlock hold isn't a tap
 # A photo being prepared on a worker thread (TraceItArt.photo_source).
 var _prep_task := -1
 var _prep_result: Dictionary = {}
 var _prep_desc: Dictionary = {}
 var _prep_fresh := true
-var busy_card: Control   # the release that ends an unlock hold isn't a tap
+var busy_card: Control
+var busy_label: Label
+# Accuracy check (TraceItAccuracy): the blank paper photographed at Lock,
+# the movement watch, the countdowns, the check on a worker thread.
+var baseline: Image = null           # grey camera picture of the blank paper
+var baseline_small: Image = null     # 64 px wide, for the movement watch
+var acc_broken := false              # the phone or paper moved since
+var _move_t := 0.0
+var _move_strikes := 0
+var _acc_task := -1
+var _acc_job: Dictionary = {}
+var _acc_result: Dictionary = {}
+var count_card: Control
+var count_num: Label
+var count_text: Label
+var count_timer: Timer
+var _count_left := 0
+var _count_then: Callable
+var accuracy_btn: Button
+var results: Control
+var res_score: Label
+var res_head: Label
+var res_best: Label
+var res_tips: Label
+var res_heat: TextureRect
+var res_guide: TextureRect
+var res_drawing: TextureRect
+var res_debug: VBoxContainer
+var res_debug_text: Label
+var res_ink: TextureRect
+var res_tpl: TextureRect
+var _last_result: Dictionary = {}
 
 var paper: ColorRect           # stands in for the camera when there is none
 var session_ui: Control
@@ -110,6 +144,9 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if _acc_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_acc_task)
+		_acc_task = -1
 	if _prep_task >= 0:
 		WorkerThreadPool.wait_for_task_completion(_prep_task)
 		_prep_task = -1
@@ -150,6 +187,8 @@ func _build_ui() -> void:
 	_build_tutorial()
 	_build_done_card()
 	_build_confirm_card()
+	_build_count_card()
+	_build_results()
 	busy_card = Control.new()
 	busy_card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	busy_card.visible = false
@@ -158,11 +197,11 @@ func _build_ui() -> void:
 	bdim.color = Color(0, 0, 0, 0.75)
 	bdim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	busy_card.add_child(bdim)
-	var blabel := HomeKit.label(tr("Preparing your picture..."), 30, HomeKit.CYAN, true, true)
-	blabel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	blabel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	blabel.grow_vertical = Control.GROW_DIRECTION_BOTH
-	busy_card.add_child(blabel)
+	busy_label = HomeKit.label(tr("Preparing your picture..."), 30, HomeKit.CYAN, true, true)
+	busy_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	busy_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	busy_label.grow_vertical = Control.GROW_DIRECTION_BOTH
+	busy_card.add_child(busy_label)
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/trace_it/trace_it_help.gd"))
@@ -475,6 +514,8 @@ func _fill_picker() -> void:
 	lessons_toggle = _btn("", HomeKit.GOLD, _on_lessons_toggle, 22, 70)
 	lessons_toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(lessons_toggle)
+	accuracy_btn = _btn("", HomeKit.LIME, _on_accuracy_level, 22, 70)
+	box.add_child(accuracy_btn)
 	box.add_child(HomeKit.label(tr("Or trace one of our drawings"), 26, HomeKit.WHITE, true, true))
 	for c in Art.collections():
 		var head := HBoxContainer.new()
@@ -666,6 +707,30 @@ func _close_picker() -> void:
 func _refresh_picker() -> void:
 	steps_toggle.text = tr("🪜 Step by step: ON") if engine.steps_on else tr("🪜 Step by step: OFF")
 	lessons_toggle.text = tr("📖 Lessons: ON") if prefs.lessons_on else tr("📖 Lessons: OFF")
+	accuracy_btn.text = tr("🎯 Accuracy check: %s") % _level_name(str(prefs.accuracy))
+
+
+func _level_name(level: String) -> String:
+	match level:
+		"relaxed":
+			return tr("Relaxed")
+		"strict":
+			return tr("Strict")
+		"normal":
+			return tr("Normal")
+	return tr("Off (free sketch)")
+
+
+## Off (free sketch) -> Relaxed -> Normal -> Strict: how close a line must be.
+func _on_accuracy_level() -> void:
+	var i := Acc.LEVELS.find(str(prefs.accuracy))
+	prefs["accuracy"] = Acc.LEVELS[(i + 1) % Acc.LEVELS.size()]
+	SaveUtil.write(PREFS_PATH, prefs)
+	_refresh_picker()
+
+
+func _accuracy_on() -> bool:
+	return str(prefs.get("accuracy", "normal")) != "off"
 
 
 ## Lessons are a teaching option: when on, a study's lesson shows the first
@@ -779,6 +844,7 @@ func _prepare_photo(img: Image, desc: Dictionary, fresh: bool) -> void:
 	if _prep_task >= 0:
 		return
 	picker.visible = false
+	busy_label.text = tr("Preparing your picture...")
 	busy_card.visible = true
 	_prep_desc = desc
 	_prep_fresh = fresh
@@ -848,6 +914,7 @@ func _begin(s: Dictionary, desc: Dictionary, fresh: bool) -> void:
 	source = s
 	source_desc = desc
 	if fresh:
+		_clear_baseline()
 		_reset_place()
 		engine.locked = false
 		engine.step = 0
@@ -931,6 +998,9 @@ func _on_overlay_changed() -> void:
 func _process(delta: float) -> void:
 	if _prep_task >= 0 and WorkerThreadPool.is_task_completed(_prep_task):
 		_prep_done()
+	if _acc_task >= 0 and WorkerThreadPool.is_task_completed(_acc_task):
+		_acc_done()
+	_watch_movement(delta)
 	if session_on and not snapping and not done_card.visible and not confirm_card.visible:
 		draw_time += delta
 	if _save_t > 0:
@@ -1058,6 +1128,10 @@ func _on_lock_pressed() -> void:
 	engine.locked = true
 	_refresh_session()
 	_save_game()
+	# The accuracy check starts here: the blank paper, before any drawing.
+	# Locking again after the phone moved starts the check over.
+	if _accuracy_on() and camera.state == "running" and (baseline == null or acc_broken):
+		_start_count(tr("Clear the paper and take your hands out of the picture."), _capture_baseline)
 
 
 func _on_lock_down() -> void:
@@ -1159,19 +1233,32 @@ func _on_done() -> void:
 	confirm_card.visible = true
 
 
-## Where the accuracy check will come in (next milestone).
 func _on_done_confirmed() -> void:
 	confirm_card.visible = false
-	_sfx("win")
+	if _accuracy_on() and baseline != null and not acc_broken and camera.state == "running":
+		_start_count(tr("Take your hands and pencil out of the picture."), _capture_final)
+		return
+	_finish_plain()
+
+
+func _record_finish() -> int:
 	var secs := int(draw_time)
 	if info:
 		info.add("Drawings finished")
 		info.add("Time drawing", secs)
-	done_text.text = tr("Well done! You drew for %d:%02d.") % [secs / 60, secs % 60] + "\n\n" + tr("Each drawing makes the next one easier. Try the same picture with less opacity, or with Step by step.")
-	done_card.visible = true
 	session_on = false
 	SaveUtil.delete(SAVE_PATH)
 	SaveUtil.delete(SOURCE_PATH)
+	return secs
+
+
+## Done without an accuracy check (free sketch, no camera, phone moved).
+func _finish_plain() -> void:
+	_sfx("win")
+	var secs := _record_finish()
+	_clear_baseline()
+	done_text.text = tr("Well done! You drew for %d:%02d.") % [secs / 60, secs % 60] + "\n\n" + tr("Each drawing makes the next one easier. Try the same picture with less opacity, or with Step by step.")
+	done_card.visible = true
 
 
 func _on_draw_another() -> void:
@@ -1193,6 +1280,368 @@ func _restart_drawing() -> void:
 	_refresh_session()
 
 
+# ---------------------------------------------------------------- accuracy
+
+func _build_count_card() -> void:
+	count_card = Control.new()
+	count_card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	count_card.visible = false
+	add_child(count_card)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	count_card.add_child(dim)
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	col.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	col.grow_vertical = Control.GROW_DIRECTION_BOTH
+	col.custom_minimum_size = Vector2(600, 0)
+	col.add_theme_constant_override("separation", 20)
+	count_card.add_child(col)
+	count_text = HomeKit.label("", 30, HomeKit.WHITE, true, true)
+	col.add_child(count_text)
+	count_num = HomeKit.label("", 150, HomeKit.LIME, false, true)
+	col.add_child(count_num)
+	count_timer = Timer.new()
+	count_timer.wait_time = 1.0
+	count_timer.timeout.connect(_on_count_tick)
+	add_child(count_timer)
+
+
+## 3, 2, 1 -- then `then` runs (the camera takes its picture).
+func _start_count(text: String, then: Callable) -> void:
+	count_text.text = text
+	_count_left = 3
+	count_num.text = "3"
+	_count_then = then
+	count_card.visible = true
+	_sfx("tick")
+	count_timer.start()
+
+
+func _on_count_tick() -> void:
+	_count_left -= 1
+	if _count_left > 0:
+		count_num.text = str(_count_left)
+		_sfx("tick")
+		return
+	count_timer.stop()
+	count_card.visible = false
+	_count_then.call()
+
+
+func _capture_baseline() -> void:
+	var img := camera.grab_gray()
+	if img == null:
+		_toast(tr("The camera isn't ready yet."))
+		return
+	baseline = img
+	baseline_small = img.duplicate() as Image
+	baseline_small.resize(64, maxi(1, int(64.0 * img.get_height() / img.get_width())), Image.INTERPOLATE_BILINEAR)
+	acc_broken = false
+	_move_strikes = 0
+	if FileAccess.file_exists(BASELINE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(BASELINE_PATH))
+	_save_game()
+	_sfx("toggle")
+	_toast(tr("Ready! Draw away -- the check runs when you tap ✓ Done."))
+	_refresh_session()
+
+
+func _clear_baseline() -> void:
+	baseline = null
+	baseline_small = null
+	acc_broken = false
+	_move_strikes = 0
+	if FileAccess.file_exists(BASELINE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(BASELINE_PATH))
+
+
+func _load_baseline(d: Dictionary) -> void:
+	_clear_baseline_memory()
+	if bool(d.get("baseline", false)) and FileAccess.file_exists(BASELINE_PATH):
+		var img := Image.load_from_file(BASELINE_PATH)
+		if img and not img.is_empty():
+			if img.get_format() != Image.FORMAT_L8:
+				img.convert(Image.FORMAT_L8)
+			baseline = img
+			baseline_small = img.duplicate() as Image
+			baseline_small.resize(64, maxi(1, int(64.0 * img.get_height() / img.get_width())), Image.INTERPOLATE_BILINEAR)
+	acc_broken = bool(d.get("acc_broken", false))
+
+
+func _clear_baseline_memory() -> void:
+	baseline = null
+	baseline_small = null
+	acc_broken = false
+
+
+## About twice a second: has the paper shifted under the camera? (A wide
+## brighter patch can't be ink or a hand -- those only darken.)
+func _watch_movement(delta: float) -> void:
+	if baseline_small == null or acc_broken or not session_on or camera.state != "running" or count_card.visible:
+		return
+	_move_t += delta
+	if _move_t < 0.5:
+		return
+	_move_t = 0.0
+	var now := camera.grab_small(64)
+	if now == null or now.get_size() != baseline_small.get_size():
+		return
+	if Acc.brightened_share(baseline_small, now) > 0.04:
+		_move_strikes += 1
+	else:
+		_move_strikes = 0
+	if _move_strikes >= 3:
+		acc_broken = true
+		hint_label.text = tr("📱 The phone or the paper moved, so this drawing can't be checked. Lock again on a fresh sheet to restart the check.")
+		hint_label.visible = true
+		_save_game()
+
+
+## `fin` is for tests (a simulated camera picture); the game passes none.
+func _capture_final(fin: Image = null) -> void:
+	if fin == null:
+		fin = camera.grab_gray()
+	if fin == null or baseline == null or fin.get_size() != baseline.get_size():
+		_finish_plain()
+		return
+	var geo := camera.geometry()
+	var pic: Vector2 = source.size
+	var map := Acc.make_map(pic, overlay.fit, overlay.holder_transform(), geo.view_pos, geo.view_size, geo.bx, geo.by, Vector2(fin.get_size()))
+	var lines: Image = source.full if source.kind == "drawing" else source.lines
+	_acc_job = {"base": baseline, "final": fin, "map": map, "pic": pic,
+		"template": Acc.template_mask(lines, Acc.grid_size(pic)), "tol": int(Acc.TOLERANCES.get(str(prefs.accuracy), 4))}
+	_acc_result = {}
+	busy_label.text = tr("Checking your drawing...")
+	busy_card.visible = true
+	_acc_task = WorkerThreadPool.add_task(_acc_work, false, "trace_it accuracy")
+
+
+func _acc_work() -> void:
+	var j := _acc_job
+	_acc_result = Acc.measure(j.base, j.final, j.map, j.pic, j.template, j.tol)
+
+
+func _acc_done() -> void:
+	WorkerThreadPool.wait_for_task_completion(_acc_task)
+	_acc_task = -1
+	busy_card.visible = false
+	var r := _acc_result
+	_record_finish()
+	_clear_baseline()
+	if r.is_empty():
+		_finish_plain()
+		return
+	var pct := int(round(r.accuracy * 100.0))
+	var key: String = source_desc.get("id", "") if source_desc.get("kind") == "drawing" else ""
+	var best := _record_accuracy(key, pct)
+	if info:
+		info.add("Accuracy checks")
+		info.high("Best accuracy", pct)
+	_show_results(r, pct, best)
+
+
+## Keeps the personal best per drawing (and the level it was set at).
+## Returns the previous best (-1 = first time).
+func _record_accuracy(key: String, pct: int) -> int:
+	if key == "":
+		return -1
+	var p = SaveUtil.read(PROGRESS_PATH)
+	var data: Dictionary = p if p is Dictionary else {}
+	var all: Dictionary = data.get("drawings", {})
+	var rec: Dictionary = all.get(key, {})
+	var before := int(rec.get("best", -1))
+	rec["attempts"] = int(rec.get("attempts", 0)) + 1
+	rec["last"] = pct
+	if pct > before:
+		rec["best"] = pct
+		rec["level"] = str(prefs.accuracy)
+	all[key] = rec
+	data["drawings"] = all
+	SaveUtil.write(PROGRESS_PATH, data)
+	return before
+
+
+func _build_results() -> void:
+	var parts := _screen(tr("🎯 Accuracy"), HomeKit.LIME)
+	results = parts[0]
+	var box: VBoxContainer = parts[1]
+	res_score = HomeKit.label("", 110, HomeKit.LIME, false, true)
+	box.add_child(res_score)
+	res_head = HomeKit.label("", 34, HomeKit.WHITE, true, true)
+	box.add_child(res_head)
+	res_best = HomeKit.label("", 24, HomeKit.GOLD, true, true)
+	box.add_child(res_best)
+	res_tips = HomeKit.label("", 24, HomeKit.WHITE, true)
+	box.add_child(res_tips)
+	var paper_bg := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.96, 0.95, 0.9)
+	sb.set_corner_radius_all(12)
+	sb.set_content_margin_all(10)
+	paper_bg.add_theme_stylebox_override("panel", sb)
+	box.add_child(paper_bg)
+	res_heat = _res_image(520)
+	paper_bg.add_child(res_heat)
+	box.add_child(HomeKit.label(tr("🟩 on the line   🟥 off the line   ⬜ missed"), 22, HomeKit.DIM, true, true))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	box.add_child(row)
+	for spec in [["Guide", "guide"], ["Your drawing", "drawing"]]:
+		var col := VBoxContainer.new()
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(col)
+		var t := _res_image(260)
+		col.add_child(t)
+		col.add_child(HomeKit.label(tr(spec[0]), 22, HomeKit.DIM, false, true))
+		if spec[1] == "guide":
+			res_guide = t
+		else:
+			res_drawing = t
+	box.add_child(_btn(tr("🔍 What the camera saw"), HomeKit.BLUE, _on_res_debug, 22, 64))
+	res_debug = VBoxContainer.new()
+	res_debug.visible = false
+	box.add_child(res_debug)
+	res_debug_text = HomeKit.label("", 20, HomeKit.DIM, true)
+	res_debug.add_child(res_debug_text)
+	var drow := HBoxContainer.new()
+	drow.add_theme_constant_override("separation", 12)
+	res_debug.add_child(drow)
+	res_ink = _res_image(240)
+	res_ink.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	drow.add_child(res_ink)
+	res_tpl = _res_image(240)
+	res_tpl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	drow.add_child(res_tpl)
+	box.add_child(_btn(tr("✏ Try again on a new sheet"), HomeKit.LIME, _on_res_again, 26, 80))
+	box.add_child(_btn(tr("💾 Save the result"), HomeKit.CYAN, _on_res_save, 24, 70))
+	box.add_child(_btn(tr("🖼 Draw another"), HomeKit.CYAN, _on_res_another, 24, 70))
+	box.add_child(_btn(tr("🏠 Home"), HomeKit.DIM, _on_done_home, 24, 64))
+
+
+func _res_image(h: float) -> TextureRect:
+	var t := TextureRect.new()
+	t.custom_minimum_size = Vector2(0, h)
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	return t
+
+
+func _show_results(r: Dictionary, pct: int, best: int) -> void:
+	_last_result = r
+	_sfx("record" if best >= 0 and pct > best else "win")
+	res_score.text = "%d%%" % pct
+	res_score.add_theme_color_override("font_color", HomeKit.LIME if pct >= 75 else (HomeKit.GOLD if pct >= 50 else HomeKit.PINK))
+	var head := tr("Keep practising!")
+	if pct >= 90:
+		head = tr("Excellent!")
+	elif pct >= 75:
+		head = tr("Great job!")
+	elif pct >= 60:
+		head = tr("Good work!")
+	elif pct >= 40:
+		head = tr("Nice try!")
+	res_head.text = head
+	if best < 0:
+		res_best.text = tr("First check of this drawing.") if source_desc.get("kind") == "drawing" else ""
+	elif pct > best:
+		res_best.text = tr("New personal best! (was %d%%)") % best
+	else:
+		res_best.text = tr("Your best on this drawing: %d%%") % best
+	var lines := PackedStringArray()
+	for t in r.tips:
+		lines.append("• " + _tip_text(str(t), r))
+	res_tips.text = "\n".join(lines)
+	res_heat.texture = ImageTexture.create_from_image(r.heat)
+	var lines_img: Image = source.full if source.kind == "drawing" else source.lines
+	var guide := Acc.mask_image(Acc.template_mask(lines_img, r.grid), r.grid, Color(0.1, 0.1, 0.15))
+	res_guide.texture = ImageTexture.create_from_image(guide)
+	res_drawing.texture = ImageTexture.create_from_image(r.drawing)
+	res_ink.texture = ImageTexture.create_from_image(r.ink_mask)
+	res_tpl.texture = ImageTexture.create_from_image(r.template_img)
+	res_debug_text.text = tr("On the line: %d%% of your strokes. Covered: %d%% of the guide. Tolerance: %s.") % [
+		int(r.precision * 100), int(r.recall * 100), _level_name(str(prefs.accuracy))]
+	res_debug.visible = false
+	session_ui.visible = false
+	overlay.visible = false
+	results.visible = true
+
+
+func _tip_text(key: String, r: Dictionary) -> String:
+	match key:
+		"crowded":
+			return tr("Something was still in the picture when it was taken (a hand or the pencil?). Next time, take them out during the countdown.")
+		"off_paper":
+			return tr("Part of the picture is off the paper or outside the camera's view, so it couldn't be checked.")
+		"no_ink":
+			return tr("The camera couldn't see your lines. Draw a little darker, or add more light.")
+		"shift":
+			var words := PackedStringArray()
+			for w in Acc.shift_words(r.shift):
+				words.append({"above": tr("up the page"), "below": tr("down the page"), "left": tr("to the left"), "right": tr("to the right")}[w])
+			return tr("Your whole drawing is shifted %s compared with the guide. The phone may have moved, or try to look straight down at the screen while drawing.") % tr(" and ").join(words)
+		"missed":
+			return tr("You followed the lines well, but missed some: the grey parts of the map. Take your time to finish every line.")
+		"off_line":
+			return tr("Many strokes landed off the guide (red). Slow down and keep the pencil on the line, even if it takes longer.")
+		"great":
+			return tr("Very accurate! Next time try less opacity, a stricter check, or Step by step off.")
+	return tr("Compare the red parts with the picture to see where your hand drifted.")
+
+
+func _on_res_debug() -> void:
+	res_debug.visible = not res_debug.visible
+
+
+## Same picture, same place: a new sheet goes where the old one was, and
+## locking photographs it as the new blank paper.
+func _on_res_again() -> void:
+	results.visible = false
+	engine.locked = false
+	draw_time = 0.0
+	engine.set_step(0)
+	session_on = true
+	_show_session()
+	_save_game()
+	_toast(tr("Put a new sheet where the last one was, then lock."))
+
+
+func _on_res_another() -> void:
+	results.visible = false
+	_open_picker()
+
+
+## The result (your drawing beside the map) as a PNG, where the gallery
+## can find it. Scoped storage differs between phones, so it tries the
+## Pictures folder first, then Documents, and says where it went.
+func _on_res_save() -> void:
+	if _last_result.is_empty():
+		return
+	var a: Image = _last_result.drawing.duplicate()
+	a.convert(Image.FORMAT_RGBA8)
+	var heat: Image = _last_result.heat
+	var w := a.get_width()
+	var h := a.get_height()
+	var out := Image.create_empty(w * 2 + 10, h, false, Image.FORMAT_RGBA8)
+	out.fill(Color(0.96, 0.95, 0.9))
+	out.blit_rect(a, Rect2i(0, 0, w, h), Vector2i.ZERO)
+	out.blend_rect(heat, Rect2i(0, 0, w, h), Vector2i(w + 10, 0))
+	out.resize(out.get_width() * 2, out.get_height() * 2, Image.INTERPOLATE_NEAREST)
+	var name := "trace_it_%d.png" % int(Time.get_unix_time_from_system())
+	for dir in [OS.get_system_dir(OS.SYSTEM_DIR_PICTURES).path_join("TraceIt"), OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS).path_join("TraceIt")]:
+		DirAccess.make_dir_recursive_absolute(dir)
+		var path: String = dir.path_join(name)
+		if out.save_png(path) == OK and FileAccess.file_exists(path):
+			if Engine.has_singleton("AndroidRuntime"):
+				var rt = Engine.get_singleton("AndroidRuntime")
+				JavaClassWrapper.wrap("android.media.MediaScannerConnection").scanFile(rt.getActivity(), PackedStringArray([path]), PackedStringArray(["image/png"]), null)
+			_toast(tr("Saved to %s") % path.get_base_dir().get_file())
+			return
+	_toast(tr("Couldn't save the picture on this phone."))
+
+
 # ---------------------------------------------------------------- save
 
 func _save_game() -> void:
@@ -1200,8 +1649,10 @@ func _save_game() -> void:
 		return
 	SaveUtil.write(SAVE_PATH, {
 		"source": source_desc, "engine": engine.to_dict(),
-		"time": draw_time,
+		"time": draw_time, "baseline": baseline != null, "acc_broken": acc_broken,
 	})
+	if baseline != null and not FileAccess.file_exists(BASELINE_PATH):
+		baseline.save_png(BASELINE_PATH)
 
 
 ## Resume's detail on Home: what was being drawn.
@@ -1231,6 +1682,7 @@ func _resume() -> void:
 		if img:
 			engine.from_dict(d.get("engine", {}))
 			draw_time = float(d.get("time", 0.0))
+			_load_baseline(d)
 			_prepare_photo(img, desc, false)
 			return
 	if s.is_empty():
@@ -1239,6 +1691,7 @@ func _resume() -> void:
 		return
 	engine.from_dict(d.get("engine", {}))
 	draw_time = float(d.get("time", 0.0))
+	_load_baseline(d)
 	_begin(s, desc, false)
 
 

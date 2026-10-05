@@ -14,12 +14,14 @@ const HOW := [
 	"The tools: opacity, the look (photo, gray, lines, inverted, hatching, dots), the line colour, flips, and guides -- a grid, the golden ratio lines or the golden spiral.",
 	"🪜 Steps: draw it the way artists do -- big shapes first, then the main lines, then the details and the shading. Next shows the next step. A photo's shading can be tones, hatching or dots.",
 	"Tap ✓ Done when your drawing is finished.",
+	"🎯 Accuracy check (Relaxed / Normal / Strict, or Off for free sketching): when you lock, the camera photographs the blank paper; after ✓ Done it photographs your drawing and shows how much landed on the lines, a map of what was on, off and missed, and what to work on.",
 ]
 const TIPS := [
 	"Draw lightly at first: early lines are guides you can erase or draw over.",
 	"Turn the opacity down as you go, to see your own lines better.",
 	"On dark paper, use white lines.",
 	"If the picture slowly zooms in and out by itself, the camera is refocusing: tap 📷 to try another camera -- the wide one often has fixed focus.",
+	"For the accuracy check, don't move the phone or the paper while you draw, and use a pen or a dark pencil.",
 	"Your pictures never leave your phone.",
 ]
-const STATS := ["Drawings finished", "Time drawing", "Photos traced"]
+const STATS := ["Drawings finished", "Time drawing", "Photos traced", "Accuracy checks", "Best accuracy"]
