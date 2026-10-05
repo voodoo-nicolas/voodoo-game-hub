@@ -53,3 +53,23 @@ adb install -r tools/camera_spike/camera_spike.apk
   places.
 - v2 adds: "View" (color / Y plane / CbCr, for debugging), a light reading,
   and the save variants.
+- **v2 on the A52 -- verdict: Godot's own CameraServer is good enough, no
+  plugin.** Real image, correct colors (BT.601 full-range shader, no UV
+  swap).
+  - fps is set by the light, not by Godot: main back camera (feed id 0)
+    30.0 fps at 1280x720 in a normally lit room (mean Y ~110); the second
+    back camera (id 2) 24-26; front 19-20; a dark room (mean Y ~70) drops
+    every camera to 10. Render stays 58-60 with the overlay shader. So the
+    game picks the **first** back camera (lowest id -- the spike wrongly put
+    the last one first), asks for good light in the tutorial, and shows a
+    "more light" hint when the feed is dark/slow.
+  - **Orientation**: upright needed `feed_transform`'s rotation *inverted*
+    (back: feed 90°, needed +180° on top = -90°; front: -90° -> +90°, plus a
+    horizontal mirror). In the game: `basis = feed_transform basis inverse`,
+    then mirror X for FRONT.
+  - 1088x1088 once dropped render to 34 fps; stay at 1280x720 (or 960x720).
+  - Resume after Home: frames back in ~650-690 ms, no code needed.
+  - The flash latency test strobes the whole screen -- don't use it in the
+    game. Not measured; lag looked fine by eye.
+  - Not yet run on the phone: Capture, Distance, Pick image, Save image,
+    App settings (checked again in the Free mode milestone).
