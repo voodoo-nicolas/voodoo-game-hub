@@ -5,7 +5,7 @@ extends SceneTree
 ## (through a JSON round trip, as the network does). After every action it
 ## checks both copies hold the same game, and at the end that both saw it end.
 ##   godot --headless --path . --script res://tools/test_online_pair.gd -- [ids]
-## Ids: morris backgammon memory five_in_row hex (default: all). Records online results in
+## Ids: morris backgammon memory five_in_row hex video_poker (default: all). Records online results in
 ## the stats files: back up user data first (see CLAUDE.md).
 
 const SCENES := {
@@ -14,6 +14,7 @@ const SCENES := {
 	"memory": "res://scenes/games/memory/memory.tscn",
 	"five_in_row": "res://scenes/games/five_in_row/five_in_row.tscn",
 	"hex": "res://scenes/games/hex/hex.tscn",
+	"video_poker": "res://scenes/games/video_poker/video_poker.tscn",
 }
 const GAMES_EACH := 3
 
@@ -116,6 +117,8 @@ func _ended(id: String, g: Node) -> bool:
 			return g.engine.is_over() and g.win_dialog.visible
 		"five_in_row", "hex":
 			return g.engine.winner != 0 and g.end_dialog.visible
+		"video_poker":
+			return g.end_dialog.visible
 	return false
 
 ## Random legal play until the game ends; returns the number of actions.
@@ -153,6 +156,9 @@ func _can_act(id: String, g: Node) -> bool:
 			return g.game_active and not g.waiting_for_resolve and g.online.can_act(g.turn_player + 1 == g.my_player)
 		"five_in_row", "hex":
 			return g.engine.winner == 0 and g.online.can_act(g.engine.turn == g.my_player)
+		"video_poker":
+			# The host also deals the next hand (instead of waiting its timer).
+			return g._hero_can_act() or (g.online.is_host() and g.t.phase == "done" and not g.end_dialog.visible)
 	return false
 
 ## No half-made turn (Morris waiting for a removal).
@@ -189,6 +195,21 @@ func _act(id: String, g: Node) -> void:
 			ev.pressed = true
 			ev.position = geo.origin + Vector2(i % 15, i / 15) * geo.step
 			g._on_board_input(ev)
+		"video_poker":
+			if g.t.phase == "done":
+				g._on_next()
+			elif g.t.phase == "draw":
+				g.discards = [0, 1, 2].slice(0, randi_range(0, 3))
+				g._on_call()
+			else:
+				var r := randf()
+				if r < 0.15 and g.fold_btn.visible:
+					g._on_fold()
+				elif r < 0.7 or not g.raise_btn.visible:
+					g._on_call()
+				else:
+					g._size_preset(["min", "half", "pot", "all"].pick_random())
+					g._on_raise()
 		"hex":
 			var free: Array = []
 			for k in g.engine.board.size():
