@@ -116,7 +116,9 @@
       {"id": "charades", "title": "Charades", "icon": "🎭", "title_es": "Charadas", "modes": "party", "board": "Most words in a round"},
       {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed"},
       {"id": "would_you_rather", "title": "Would You Rather", "icon": "🤔", "title_es": "¿Qué prefieres?", "modes": "party", "board": "Cards played"},
-      {"id": "truth_or_dare", "title": "Truth or Dare", "icon": "🎲", "title_es": "Verdad o reto", "modes": "party", "board": "Cards played"}
+      {"id": "truth_or_dare", "title": "Truth or Dare", "icon": "🎲", "title_es": "Verdad o reto", "modes": "party", "board": "Cards played"},
+      {"id": "fortune_ball", "title": "Fortune Ball", "icon": "🎱", "title_es": "Bola de la fortuna", "modes": "party", "board": "Questions asked"},
+      {"id": "spirit_board", "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked"}
     ]}
   ],
   "games": {
@@ -219,6 +221,8 @@
     "star_runner": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/star_runner.pck", "scene": "res://scenes/games/star_runner/star_runner.tscn"},
     "sky_raider": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sky_raider.pck", "scene": "res://scenes/games/sky_raider/sky_raider.tscn"},
     "mini_golf": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf.pck", "scene": "res://scenes/games/mini_golf/mini_golf.tscn"},
-    "pool": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pool.pck", "scene": "res://scenes/games/pool/pool.tscn"}
+    "pool": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pool.pck", "scene": "res://scenes/games/pool/pool.tscn"},
+    "fortune_ball": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fortune_ball.pck", "scene": "res://scenes/games/fortune_ball/fortune_ball.tscn"},
+    "spirit_board": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/spirit_board.pck", "scene": "res://scenes/games/spirit_board/spirit_board.tscn"}
   }
 }
