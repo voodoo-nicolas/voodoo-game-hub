@@ -961,6 +961,44 @@ save/Resume. The arcade ones have Easy / Normal / Hard rows on Home and a
   "a random or dodging bot survives Easy, mostly dies on Hard", Cannon Duel
   CPU vs CPU shots-to-win by level, Pool Hard beats Easy ~90%.
 
+## Trace It / Calcá (`trace_it`) -- learn-to-draw camera tracing (2026-10-05)
+
+The hub's first **educational** game and first camera user. Single player,
+no scores, no leaderboard (`"board": "none"` -- the Home kit hides 🏆 and
+posts nothing). The phone is propped over paper, the back camera shows the
+paper live and the picture sits on top; the player traces it in pencil.
+Being built in milestones on branch `trace-it` (worktree
+`../voodoo-game-hub-trace`, so `master` pushes can't list it early): Free
+mode is done; next the accuracy check, guide levels, courses + lessons,
+progress/achievements, Supabase sync, store. **Teaching is the point** (the
+user's direction): every teaching aid is a player option -- step by step,
+lessons, coaching feedback, help that fades.
+
+- **Camera: Godot's own `CameraServer`** (Android Camera2 since 4.5), no
+  plugin -- measured in `tools/camera_spike/` (README has the numbers).
+  `trace_it_camera.gd` holds the lessons: bind the CameraTextures to the
+  material *after* setting `camera_feed_id` (else a placeholder), upright =
+  inverse of `feed_transform` (+ mirror X for FRONT), pick the lowest-id back
+  camera at ~1280x720, warn when dark (fps drops to 10). No torch (Godot
+  doesn't expose it).
+- **The camera permission is in the APK** (`permissions/camera=true`, from
+  build 34), hence `"min_build": 34`. Runtime: `OS.request_permission`,
+  denied -> "Open settings" via `JavaClassWrapper` + `AndroidRuntime`.
+- **Pictures never leave the phone**: an imported photo is kept only as
+  `user://trace_it_free_source.png` for Resume.
+- **Photo -> lines on the CPU** (`TraceItArt.line_art`, on a
+  `WorkerThreadPool` task, ~0.6 s): blur to the step's detail, Sobel,
+  thinning, keep the strongest share (same density on any photo); "Big
+  shapes" posterizes into 3 tones and traces the mass borders. The accuracy
+  check will reuse these masks. Built-in drawings are data
+  (`trace_it_drawings.json`, strokes tagged by step, own Spanish).
+- **Dev build on a phone**: export preset `TraceDev` (package
+  `com.viral.voodoo.dev`, debug key, all games, feature `trace_dev` whose
+  `run/main_scene` override opens Trace It) installs next to the real app:
+  `godot --headless --path . --export-debug TraceDev <abs>/builds/trace_dev.apk`.
+- Tests: logic in a throwaway test (pinch keeps both fingers' points, lock,
+  save round trip, every drawing in bounds); screens with `tools/shot.gd`.
+
 ## Hub look changes -- since v0.24.0 (2026-10-03)
 
 - **Sign Out is only in Options**; the home screen shows the name (signed in)

@@ -35,7 +35,7 @@ extends Control
 ##         ],
 ##         "save_path": SAVE_PATH,           # Resume shows while this file exists
 ##         "resume": _load_saved_game,
-##         "board": "Best score",            # the stat the 🏆 Leaderboard ranks
+##         "board": "Best score",            # the stat the 🏆 Leaderboard ranks ("none": no board)
 ##         "board_note": "How the score is counted.",
 ##         "online": online,                 # OnlineMatch node, if any
 ##         "extra": _add_options,            # func(box): the game's own pickers above the modes
@@ -364,11 +364,10 @@ func _build_home() -> void:
 	more.add_theme_constant_override("h_separation", 16)
 	more.add_theme_constant_override("v_separation", 16)
 	box.add_child(more)
-	var items := [
-		[tr("❓ How to Play"), BLUE, func(): info_overlay.visible = true],
-		[tr("🏆 Leaderboard"), GOLD, _show_leaderboard],
-		[tr("📊 Statistics"), PURPLE, _show_stats],
-	]
+	var items := [[tr("❓ How to Play"), BLUE, func(): info_overlay.visible = true]]
+	if _board_key() != "none":
+		items.append([tr("🏆 Leaderboard"), GOLD, _show_leaderboard])
+	items.append([tr("📊 Statistics"), PURPLE, _show_stats])
 	if info and info.has_method("achievement_rows"):
 		items.append([tr("🏅 Achievements"), PINK, _show_achievements])
 	if ResourceLoader.exists(SOUND_OPTIONS_PATH) and get_node_or_null("/root/Settings"):
@@ -663,6 +662,8 @@ func _my_board_value() -> Variant:
 ## Posts our number (the server keeps the higher one), so a best set while
 ## signed out still reaches the board.
 func _submit_board() -> void:
+	if _board_key() == "none":
+		return
 	var a := _auth()
 	var mine = _my_board_value()
 	if a and mine != null and int(mine) > 0 and a.is_logged_in() and a.has_method("submit_score"):

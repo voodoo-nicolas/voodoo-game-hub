@@ -1,0 +1,85 @@
+{
+  "_readme": "Trace It's built-in line drawings: original art only (no characters, logos or crests). Each drawing has a 'size' box, its teaching 'steps' (EN + _es) and 'strokes' in that box's units. Stroke kinds: line [x0,y0,x1,y1], rect [x0,y0,x1,y1], poly [x,y,...] (+ \"closed\": true), curve [x,y,...] (smooth, through every point; closed when the last point repeats the first), circle [cx,cy,r], ellipse [cx,cy,rx,ry,degrees]. 'step' = which step the stroke belongs to (0 first). The game draws the strokes itself, so a drawing costs a few hundred bytes. Courses will list drawings from here by id.",
+  "format": 1,
+  "drawings": [
+    {
+      "id": "star", "title": "Star", "title_es": "Estrella", "size": [400, 400],
+      "steps": [
+        {"name": "Guide lines", "name_es": "Líneas guía", "tip": "Draw the five long straight lines. They cross in the middle -- that's fine.", "tip_es": "Dibuja las cinco líneas largas y rectas. Se cruzan en el medio, no pasa nada."},
+        {"name": "Outline", "name_es": "Contorno", "tip": "Now go over the outside edge only, firmly.", "tip_es": "Ahora repasa solo el borde de afuera, con firmeza."}
+      ],
+      "strokes": [
+        {"step": 0, "poly": [200, 30, 305.8, 355.6, 28.8, 154.4, 371.2, 154.4, 94.2, 355.6], "closed": true},
+        {"step": 1, "poly": [200, 30, 240.4, 154.3, 371.2, 154.4, 265.4, 231.3, 305.8, 355.6, 200, 278.8, 94.2, 355.6, 134.6, 231.3, 28.8, 154.4, 159.6, 154.3], "closed": true}
+      ]
+    },
+    {
+      "id": "house", "title": "House", "title_es": "Casa", "size": [400, 400],
+      "steps": [
+        {"name": "Big shapes", "name_es": "Formas grandes", "tip": "A box and a triangle on top. Light lines, don't press yet.", "tip_es": "Una caja y un triángulo arriba. Líneas suaves, todavía sin apretar."},
+        {"name": "Door and windows", "name_es": "Puerta y ventanas", "tip": "Smaller boxes inside the big one. Check they line up.", "tip_es": "Cajas más chicas dentro de la grande. Fíjate que queden alineadas."},
+        {"name": "Details", "name_es": "Detalles", "tip": "Chimney, window frames, the door knob and the ground.", "tip_es": "Chimenea, marcos de las ventanas, el picaporte y el suelo."}
+      ],
+      "strokes": [
+        {"step": 0, "rect": [80, 190, 320, 360]},
+        {"step": 0, "poly": [60, 190, 200, 70, 340, 190], "closed": true},
+        {"step": 1, "rect": [172, 268, 228, 360]},
+        {"step": 1, "rect": [100, 220, 152, 266]},
+        {"step": 1, "rect": [248, 220, 300, 266]},
+        {"step": 2, "line": [126, 220, 126, 266]},
+        {"step": 2, "line": [100, 243, 152, 243]},
+        {"step": 2, "line": [274, 220, 274, 266]},
+        {"step": 2, "line": [248, 243, 300, 243]},
+        {"step": 2, "circle": [218, 316, 4]},
+        {"step": 2, "poly": [250, 113, 250, 62, 285, 62, 285, 143]},
+        {"step": 2, "line": [30, 360, 370, 360]}
+      ]
+    },
+    {
+      "id": "cat", "title": "Cat", "title_es": "Gato", "size": [400, 400],
+      "steps": [
+        {"name": "Head", "name_es": "Cabeza", "tip": "One big circle. Go round in one smooth movement, from the shoulder.", "tip_es": "Un círculo grande. Dibújalo de un solo movimiento suave, desde el hombro."},
+        {"name": "Ears", "name_es": "Orejas", "tip": "Two triangles that start and end on the circle.", "tip_es": "Dos triángulos que empiezan y terminan sobre el círculo."},
+        {"name": "Face", "name_es": "Cara", "tip": "Eyes, nose, mouth and whiskers. The eyes sit halfway down the head.", "tip_es": "Ojos, nariz, boca y bigotes. Los ojos van a mitad de la cabeza."}
+      ],
+      "strokes": [
+        {"step": 0, "circle": [200, 225, 125]},
+        {"step": 1, "poly": [119.7, 129.2, 112, 45, 178.3, 101.9]},
+        {"step": 1, "poly": [221.7, 101.9, 288, 45, 280.3, 129.2]},
+        {"step": 2, "ellipse": [155, 205, 24, 16, 0]},
+        {"step": 2, "ellipse": [245, 205, 24, 16, 0]},
+        {"step": 2, "ellipse": [155, 205, 5, 13, 0]},
+        {"step": 2, "ellipse": [245, 205, 5, 13, 0]},
+        {"step": 2, "poly": [188, 248, 212, 248, 200, 262], "closed": true},
+        {"step": 2, "curve": [200, 262, 194, 276, 180, 282, 168, 276]},
+        {"step": 2, "curve": [200, 262, 206, 276, 220, 282, 232, 276]},
+        {"step": 2, "line": [150, 262, 70, 250]},
+        {"step": 2, "line": [150, 271, 72, 280]},
+        {"step": 2, "line": [250, 262, 330, 250]},
+        {"step": 2, "line": [250, 271, 328, 280]}
+      ]
+    },
+    {
+      "id": "flower", "title": "Flower", "title_es": "Flor", "size": [400, 500],
+      "steps": [
+        {"name": "Centre and stem", "name_es": "Centro y tallo", "tip": "A small circle, then one long gentle curve down.", "tip_es": "Un círculo chico y después una curva larga y suave hacia abajo."},
+        {"name": "Petals", "name_es": "Pétalos", "tip": "Six ovals around the centre, like the hours on a clock.", "tip_es": "Seis óvalos alrededor del centro, como las horas de un reloj."},
+        {"name": "Leaves", "name_es": "Hojas", "tip": "Two leaves on the stem, then a line down the middle of each.", "tip_es": "Dos hojas en el tallo y una línea por el medio de cada una."}
+      ],
+      "strokes": [
+        {"step": 0, "circle": [200, 170, 32]},
+        {"step": 0, "curve": [200, 202, 196, 280, 204, 360, 200, 470]},
+        {"step": 1, "ellipse": [278, 170, 46, 24, 0]},
+        {"step": 1, "ellipse": [239, 237.5, 46, 24, 60]},
+        {"step": 1, "ellipse": [161, 237.5, 46, 24, 120]},
+        {"step": 1, "ellipse": [122, 170, 46, 24, 180]},
+        {"step": 1, "ellipse": [161, 102.5, 46, 24, 240]},
+        {"step": 1, "ellipse": [239, 102.5, 46, 24, 300]},
+        {"step": 2, "curve": [198, 340, 160, 305, 115, 295, 150, 335, 198, 340]},
+        {"step": 2, "curve": [202, 400, 245, 365, 290, 358, 255, 398, 202, 400]},
+        {"step": 2, "line": [198, 340, 125, 300]},
+        {"step": 2, "line": [202, 400, 280, 362]}
+      ]
+    }
+  ]
+}

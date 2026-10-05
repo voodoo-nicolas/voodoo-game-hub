@@ -8,6 +8,7 @@ config_version=5
 
 config/name="Voodoo"
 run/main_scene="res://scenes/hub/hub.tscn"
+run/main_scene.trace_dev="res://scenes/games/trace_it/trace_it.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.png"
 config/icon.game_pack=""
