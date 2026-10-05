@@ -1002,6 +1002,19 @@ lessons, coaching feedback, help that fades.
   two fingers move it, and 📷 cycles every camera: phone autofocus makes the
   picture "breathe" and Godot can't lock focus; a wide fixed-focus lens
   doesn't.
+- **Accuracy check** (`trace_it_accuracy.gd`, pure, worker thread): Lock
+  photographs the blank paper (3-2-1 "hands out"), ✓ Done the drawing; both
+  are mapped into the picture's coordinates (`make_map`: overlay holder
+  transform + camera view rect + basis), ink = darker than the blank paper
+  (exposure from the paper's bright end, capped), chamfer distances give
+  precision / recall / F1 on a 320-px grid (tolerance 6/4/2 = relaxed /
+  normal / strict). Coaching tips come from the result (shift, missed,
+  off-line, hand in view, off paper). A movement watch (brighter patches)
+  disables the check for that drawing. **Never `Image.convert(L8)` an R8
+  camera plane** -- it averages three channels (1/3 brightness); take the
+  bytes as L8 (`grab_gray`). Tested with simulated cameras (perfect, shifted,
+  half, hand, faint pencil, tolerances, movement) and end to end through the
+  game with a fake camera picture (`_capture_final(fin)`).
 - **Dev build on a phone**: export preset `TraceDev` (package
   `com.viral.voodoo.dev`, arm64 only, every other game excluded, feature
   `trace_dev` whose `run/main_scene` override opens Trace It) installs next

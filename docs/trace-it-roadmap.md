@@ -10,7 +10,7 @@ player option (step by step, lessons, coaching, help that fades).
 2. ✅ Free mode — overlay over the live camera, move/pinch/turn, lock, opacity,
    looks, line colour, flips, grid, step by step (photos and drawings),
    permission screens, set-up tutorial, Done, Resume.
-3. Accuracy check — baseline frame, movement watch, final frame, ink mask vs
+3. ✅ (built 2026-10-05, not yet phone-tested) Accuracy check — baseline frame, movement watch, final frame, ink mask vs
    the template lines (`TraceItArt.line_art` masks), F1, heatmap, debug view.
    Then **coaching feedback** from it ("you missed the small details",
    "lines drift right"), not just a %.
