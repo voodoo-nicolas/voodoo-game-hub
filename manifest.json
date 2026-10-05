@@ -56,7 +56,7 @@
       {"id": "memory", "title": "Memory Match", "icon": "🧠", "title_es": "Memoria", "modes": "online,local", "board": "Games solved"},
       {"id": "tri_peaks", "title": "Tri-Peaks", "icon": "🏔️", "title_es": "Tres picos", "board": "Best score"},
       {"id": "hearts", "title": "Hearts", "icon": "♥️", "title_es": "Corazones", "modes": "cpu", "board": "Wins"},
-      {"id": "video_poker", "title": "Video Poker", "icon": "🃏", "title_es": "Video póker", "board": "Most credits"}
+      {"id": "video_poker", "title": "Poker", "icon": "♠️", "title_es": "Póker", "modes": "online,local,cpu", "board": "Most chips"}
     ]},
     {"name": "Word", "icon": "🔤", "name_es": "Palabras", "games": [
       {"id": "hangman", "title": "Hangman", "icon": "💀", "title_es": "Ahorcado", "modes": "local", "board": "Wins"},
@@ -214,7 +214,7 @@
     "hex": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hex.pck", "scene": "res://scenes/games/hex/hex.tscn"},
     "would_you_rather": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/would_you_rather.pck", "scene": "res://scenes/games/would_you_rather/would_you_rather.tscn"},
     "truth_or_dare": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/truth_or_dare.pck", "scene": "res://scenes/games/truth_or_dare/truth_or_dare.tscn"},
-    "video_poker": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/video_poker.pck", "scene": "res://scenes/games/video_poker/video_poker.tscn"},
+    "video_poker": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/video_poker.pck", "scene": "res://scenes/games/video_poker/video_poker.tscn"},
     "air_hockey": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/air_hockey.pck", "scene": "res://scenes/games/air_hockey/air_hockey.tscn"},
     "barrel_climb": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/barrel_climb.pck", "scene": "res://scenes/games/barrel_climb/barrel_climb.tscn"},
     "cannon_duel": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/cannon_duel.pck", "scene": "res://scenes/games/cannon_duel/cannon_duel.tscn"},

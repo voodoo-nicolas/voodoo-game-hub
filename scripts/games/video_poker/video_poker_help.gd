@@ -1,21 +1,36 @@
 extends RefCounted
 
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
+## The id stays video_poker: Poker grew out of the Video Poker game.
 
 const ID := "video_poker"
-const TITLE := "Video Poker"
-const GOAL := "Build your credits as high as they'll go. Play money only — nothing to buy, nothing to win but bragging rights."
+const TITLE := "Poker"
+const GOAL := "Win chips with the best hand, or by making everyone else fold. Play chips only: nothing to buy, nothing to win but bragging rights."
 const HOW := [
-	"You start with 100 credits. Set your bet (1 to 5) with − and +, then tap Deal.",
-	"Tap the cards you want to keep — they rise and show HELD. Tap Draw to replace the others.",
-	"Your final hand pays by the table at the top, times your bet. The lowest win is a pair of Jacks or better (J, Q, K or A).",
-	"A Royal Flush on a 5-credit bet pays 4000.",
-	"Run out of credits and the session ends; start a new one any time.",
-	"⏸ pauses and keeps your credits (and the hand you're holding); Resume on the Home screen carries on.",
+	"Pick the game and the betting on Home: Texas Hold'em, Omaha, Five Card Draw or Seven Card Stud; No limit, Pot limit or Limit (Stud is always Limit).",
+	"Hold'em: two cards each and five shared cards on the board; make your best five from all seven. Omaha: four cards each, and you must use exactly two of them with three from the board.",
+	"Five Card Draw: five cards each, a round of betting, then swap up to 3 cards (4 if you keep an Ace) and bet again. Seven Card Stud: three down, four up, one more down; antes and a bring-in instead of blinds.",
+	"On your turn: Fold, Check or Call, or Bet / Raise. In No limit and Pot limit, size your raise with Min, ½ Pot, Pot, All in, − and +.",
+	"Cash game: buy in from your chips at low, mid or high stakes, play as long as you like and Leave table to take your chips home. Busted computer players are replaced.",
+	"Tournament: free to enter. Everyone starts with 1,500, the blinds go up every 6 hands, and the last player with chips wins.",
+	"Video Poker (Jacks or Better): bet 1-5 coins of 10, 50 or 250 chips, tap cards to hold, then draw. 💡 shows the textbook hold.",
+	"Pass and play: 2 to 6 people on one phone. The screen hides the cards whenever the phone changes hands. Online: heads-up against a friend; the first to take all the chips wins.",
+	"🎓 Training: the coach table, hand rankings and five drills. At any table the 🎓 button turns the coach on: your win chance, the pot odds and what it would do.",
+	"Out of chips with nothing at a table? The house spots you 1,000. ⏸ pauses; tables and the machine are saved, and Resume on Home carries on.",
 ]
 const TIPS := [
-	"Always keep a pair of Jacks or better — it already pays back your bet.",
-	"Four cards to a flush or straight flush are worth holding; four to an inside straight usually aren't.",
-	"Bet 5 if you can: the Royal Flush pays far more on a full bet.",
+	"Call when your chance of winning is bigger than the price: calling 25 into a pot of 75 needs a 25% chance.",
+	"Count your outs: with two cards to come, outs × 4 is roughly your percentage; with one card, outs × 2.",
+	"Position matters: acting last lets you see what everyone else does first.",
+	"Play fewer, stronger starting hands, and bet them. Most hands in Hold'em should be folded before the flop.",
+	"Turn the coach on to see each computer player's style: don't bluff a Calling Station, and believe a Rock's bets.",
 ]
-const STATS := ["Most credits", "Biggest win", "Hands played", "Royal flushes", "Sessions played"]
+const STATS := ["Most chips", "Hands played", "Hands won", "Biggest pot", "Wins", "Royal flushes", "Drills done"]
+const ACHIEVEMENTS := [
+	{"id": "royal", "icon": "👑", "title": "Royal Treatment", "key": "Royal flushes", "at": 1},
+	{"id": "pot5k", "icon": "💰", "title": "Big Pot", "key": "Biggest pot", "at": 5000},
+	{"id": "pot50k", "icon": "🏦", "title": "Monster Pot", "key": "Biggest pot", "at": 50000},
+	{"id": "chips10k", "icon": "🎩", "title": "High Roller", "key": "Most chips", "at": 10000},
+	{"id": "chips100k", "icon": "💎", "title": "Whale", "key": "Most chips", "at": 100000},
+	{"id": "perfect", "icon": "🎓", "title": "Star Student", "key": "Perfect drills", "at": 1},
+]
