@@ -23,7 +23,7 @@ adb install -r tools/camera_spike/camera_spike.apk
    camera fills the screen with a test picture drawn over it as line art.
 2. **Is the picture upright and not mirrored?** If not, tap "Rot +90" /
    "Mirror" until it is (the report records what it took).
-3. Leave it 10 s on a still scene and read CAMERA fps / RENDER fps. Tap
+3. In BRIGHT light (daylight or a lamp over the paper), leave it 10 s on a still scene and read CAMERA fps / RENDER fps. Tap
    "Format ▶" through 640x480 / 1280x720 / 1920x1080 and note the fps
    for each.
 4. "Capture ×10" (reads a frame back as grayscale, as the accuracy check
@@ -34,12 +34,22 @@ adb install -r tools/camera_spike/camera_spike.apk
    phone and a stopwatch together with a second phone.
 6. Home button, wait 5 s, reopen: the report shows how long until frames
    flow again.
-7. "Pick image" (gallery picker), "Save image" (does it show in the
+7. "Pick image" (gallery picker), "Save image" (which of the 4 files show in the
    gallery app under TraceIt?), "Overlay" / "Opacity" (shader styles).
 8. Deny path: in Android settings revoke the camera permission, reopen,
    deny, then "App settings" must open this app's settings page.
 
-## Findings so far (from the 4.7.2 source and docs, before device numbers)
+## Findings
 
-See the Step 0 report in the conversation; the device results get added
-here when they come back.
+- **v1 on a Galaxy A52 (Adreno 618, Android 14)**: the "camera" was green and
+  cyan blobs -- Godot's placeholder texture. `ShaderMaterial` stores a
+  texture's RID when the parameter is set (`material.cpp`), and a
+  `CameraTexture` whose feed doesn't exist yet returns a placeholder RID. Bind
+  the camera textures to the material *after* setting `camera_feed_id` (the
+  real game must do the same). Camera fps read 10 at every size up to 1440x1080
+  (7.7 at 1080p): rerun in bright light, the auto exposure may cap it in a dim
+  room. Resume: frames back ~650 ms after returning to the app. Saving into
+  Pictures/ failed (it goes through Godot's MediaStore path); v2 tries four
+  places.
+- v2 adds: "View" (color / Y plane / CbCr, for debugging), a light reading,
+  and the save variants.

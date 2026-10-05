@@ -33,6 +33,7 @@ var ui: Control
 var extra_rot := 0                    # manual 90-degree steps on top of feed_transform
 var mirror := false
 var swap_uv := false
+var view_mode := 0                    # 0 color, 1 Y only, 2 CbCr only
 var overlay_style := 2                # 0 original, 1 gray, 2 line art, 3 inverted
 var overlay_opacity := 0.5
 var frame_times: Array = []           # usec of recent frames
@@ -55,6 +56,7 @@ uniform sampler2D y_tex : filter_linear;
 uniform sampler2D c_tex : filter_linear;
 uniform bool rgb_mode = false;
 uniform bool swap_uv = false;
+uniform int view_mode = 0;
 uniform vec2 bx = vec2(1.0, 0.0);
 uniform vec2 by = vec2(0.0, 1.0);
 void fragment() {
@@ -66,7 +68,9 @@ void fragment() {
 		float y = texture(y_tex, cuv).r;
 		vec2 c = texture(c_tex, cuv).rg - 0.5;
 		if (swap_uv) { c = c.yx; }
-		COLOR = vec4(y + 1.402 * c.y, y - 0.344136 * c.x - 0.714136 * c.y, y + 1.772 * c.x, 1.0);
+		if (view_mode == 1) { COLOR = vec4(vec3(y), 1.0); }
+		else if (view_mode == 2) { COLOR = vec4(c + 0.5, 0.5, 1.0); }
+		else COLOR = vec4(y + 1.402 * c.y, y - 0.344136 * c.x - 0.714136 * c.y, y + 1.772 * c.x, 1.0);
 	}
 }
 """
@@ -214,6 +218,7 @@ func _activate() -> void:
 	y_tex.which_feed = CameraServer.FEED_Y_IMAGE
 	c_tex.camera_feed_id = feed.get_id()
 	c_tex.which_feed = CameraServer.FEED_CBCR_IMAGE
+	_bind_textures()
 	frame_times.clear()
 	feed.feed_is_active = true
 	_log("active", "%s %s" % [feed.get_name(), _fmt_text()] if feed.feed_is_active else "activation FAILED")
@@ -228,7 +233,15 @@ func _fmt_text() -> String:
 
 
 func _on_format_changed() -> void:
+	_bind_textures()
 	_layout_view()
+
+
+# Must run after camera_feed_id is set: the material keeps the texture's RID
+# from the moment the parameter is assigned, not the CameraTexture itself.
+func _bind_textures() -> void:
+	view_mat.set_shader_parameter("y_tex", y_tex)
+	view_mat.set_shader_parameter("c_tex", c_tex)
 
 
 func _on_frame() -> void:
@@ -298,8 +311,6 @@ func _build_ui() -> void:
 	view_mat = ShaderMaterial.new()
 	view_mat.shader = Shader.new()
 	view_mat.shader.code = VIEW_SHADER
-	view_mat.set_shader_parameter("y_tex", y_tex)
-	view_mat.set_shader_parameter("c_tex", c_tex)
 	view.material = view_mat
 	add_child(view)
 
@@ -362,7 +373,7 @@ func _build_ui() -> void:
 		["Format ▶", _next_format], ["Camera ⇄", _next_camera], ["Rot +90", _rot], ["Mirror", _toggle_mirror],
 		["Swap UV", _toggle_swap], ["Overlay", _next_style], ["Opacity", _next_opacity], ["Hide UI", _hide_ui],
 		["Capture ×10", _bench_capture], ["Distance", _bench_distance], ["Latency", _start_latency], ["Pick image", _pick_image],
-		["Save image", _save_image], ["App settings", _open_settings], ["Copy report", _copy_report], ["Quit", get_tree().quit],
+		["Save image", _save_image], ["App settings", _open_settings], ["Copy report", _copy_report], ["View", _next_view],
 	]:
 		var btn := Button.new()
 		btn.text = spec[0]
@@ -430,6 +441,10 @@ func _process(delta: float) -> void:
 		for i in range(1, frame_times.size()):
 			gap = maxf(gap, (int(frame_times[i]) - int(frame_times[i - 1])) / 1000.0)
 	var rot := rad_to_deg(feed.feed_transform.get_rotation()) if feed else 0.0
+	if feed and feed.feed_is_active and frames_total > 0 and lat_phase == "":
+		var m := _frame_mean()
+		if m >= 0:
+			results["light"] = "mean Y %d/255 at screen centre" % int(m)
 	results["camera fps"] = "%.1f (5 s avg), worst gap %d ms" % [cam_fps, int(gap)]
 	results["render fps"] = "%d, process %.1f ms" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0]
 	var lines := PackedStringArray()
@@ -492,6 +507,12 @@ func _next_opacity() -> void:
 	overlay_opacity = fmod(overlay_opacity + 0.25, 1.25)
 	_log("opacity", "%d%%" % int(overlay_opacity * 100))
 	_apply_overlay()
+
+
+func _next_view() -> void:
+	view_mode = (view_mode + 1) % 3
+	view_mat.set_shader_parameter("view_mode", view_mode)
+	_log("view", ["color", "Y plane only", "CbCr only"][view_mode])
 
 
 func _hide_ui() -> void:
@@ -700,9 +721,10 @@ func _pick_image() -> void:
 
 func _on_picked(status: bool, paths: PackedStringArray, _filter: int) -> void:
 	if not status or paths.is_empty():
-		_log("pick", "cancelled")
+		_log("pick", "nothing picked (status %s, %d paths)" % [status, paths.size()])
 		return
 	var path := paths[0]
+	_log("pick", "got %s" % path)
 	var t0 := Time.get_ticks_msec()
 	var img := Image.load_from_file(path)
 	var how := "load_from_file"
@@ -722,22 +744,39 @@ func _on_picked(status: bool, paths: PackedStringArray, _filter: int) -> void:
 
 
 func _save_image() -> void:
-	var img: Image = y_tex.get_image() if feed and feed.feed_is_active else _test_picture()
+	var img: Image = y_tex.get_image() if feed and feed.feed_is_active else null
 	if img == null or img.is_empty():
 		img = _test_picture()
 	if img.get_format() == Image.FORMAT_R8:
 		img.convert(Image.FORMAT_L8)
-	var dir := OS.get_system_dir(OS.SYSTEM_DIR_PICTURES).path_join("TraceIt")
-	var mk := DirAccess.make_dir_recursive_absolute(dir)
-	var file := dir.path_join("spike_%d.png" % int(Time.get_unix_time_from_system()))
-	var err := img.save_png(file)
-	var scanned := "no AndroidRuntime"
+	var buf := img.save_png_to_buffer()
+	var stamp := int(Time.get_unix_time_from_system())
 	var rt: Object = Engine.get_singleton("AndroidRuntime") if Engine.has_singleton("AndroidRuntime") else null
-	if err == OK and rt:
-		var msc = JavaClassWrapper.wrap("android.media.MediaScannerConnection")
-		msc.scanFile(rt.getActivity(), PackedStringArray([file]), PackedStringArray(["image/png"]), null)
-		scanned = "media scan requested"
-	_log("save", "%s -> %s (mkdir %d), %s" % [file, "OK" if err == OK else "ERROR %d" % err, mk, scanned])
+	var out := PackedStringArray(["AndroidRuntime %s" % ("yes" if rt else "NO")])
+	var dirs := [
+		OS.get_system_dir(OS.SYSTEM_DIR_PICTURES).path_join("TraceIt"),
+		OS.get_system_dir(OS.SYSTEM_DIR_PICTURES),
+		OS.get_system_dir(OS.SYSTEM_DIR_DCIM),
+		OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS).path_join("TraceIt"),
+	]
+	for k in dirs.size():
+		var d: String = dirs[k]
+		var mk := DirAccess.make_dir_recursive_absolute(d)
+		var file := d.path_join("traceit_%d_%d.png" % [stamp, k])
+		var res := ""
+		var f := FileAccess.open(file, FileAccess.WRITE)
+		if f == null:
+			res = "open error %d" % FileAccess.get_open_error()
+		else:
+			f.store_buffer(buf)
+			f.close()
+			res = "written, exists=%s" % FileAccess.file_exists(file)
+			if rt:
+				var msc = JavaClassWrapper.wrap("android.media.MediaScannerConnection")
+				msc.scanFile(rt.getActivity(), PackedStringArray([file]), PackedStringArray(["image/png"]), null)
+				res += ", scanned"
+		out.append("%d) %s: mkdir %d, %s" % [k + 1, file.trim_prefix("/storage/emulated/0/"), mk, res])
+	_log("save", "\n  ".join(out))
 
 
 func _open_settings() -> void:
