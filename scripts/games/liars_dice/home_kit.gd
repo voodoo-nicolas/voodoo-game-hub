@@ -55,7 +55,7 @@ extends Control
 ##         "online": online,                 # OnlineMatch node, if any
 ##         "extra": _add_options,            # func(box): the game's own pickers, on the setup screens
 ##         "more": [["📜 History", PURPLE, _show_history]],  # the game's own buttons under More
-##         "music": "menu",                  # optional: track on the Landing (Music autoload, v0.30+)
+##         "music": "menu",                  # optional: track on the Landing (Music autoload, v0.31+)
 ##         "music_play": "",                 # optional: track while playing ("" = quiet)
 ##         "category": "cards",              # optional: for the media-cat-<category> tier
 ##     })
@@ -79,7 +79,7 @@ extends Control
 ## Music (STANDARDS §10): only games that set cfg "music" touch it. The track
 ## is looked up in the media tiers by the app's Music autoload (game pack,
 ## then category, common, hub), so the game's manifest entry lists the media
-## pack it comes from in "requires_media". Apps before v0.30 have no Music
+## pack it comes from in "requires_media". Apps before v0.31 have no Music
 ## autoload and stay quiet; so does a track whose pack isn't downloaded.
 
 const SOUND_OPTIONS_PATH := "res://scripts/common/sound_options.gd"
@@ -282,7 +282,7 @@ func start_mode(m: Dictionary) -> void:
 	_refit()
 
 ## Plays a track from the media tiers ("" = fade out), for games with cfg
-## "music". Guarded: the Music autoload ships in apps from v0.30.
+## "music". Guarded: the Music autoload ships in apps from v0.31.
 func _music(track: String) -> void:
 	if not cfg.has("music"):
 		return

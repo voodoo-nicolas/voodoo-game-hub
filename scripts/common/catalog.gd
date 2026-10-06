@@ -90,6 +90,8 @@ var _media_mounted: Dictionary = {}
 var _media_bundled: Dictionary = {}
 var _media_downloads: Dictionary = {}  # name -> HTTPRequest
 var _media_waiters: Dictionary = {}  # name -> [Callable(error: String)]
+## Paths removed while mounted (PENDING_DELETE_PATH), deleted at next launch.
+var _pending: Dictionary = {}
 
 var _fetch_in_flight := false
 var _last_fetch_ok_msec := -1
@@ -144,8 +146,10 @@ func state_of(game: Dictionary) -> String:
 		return STATE_READY
 	return STATE_DOWNLOAD
 
+## A pack the player removed while it was mounted is gone as far as the
+## app is concerned; its file just waits for the next launch.
 func is_downloaded(id: String) -> bool:
-	return FileAccess.file_exists(_pack_path(id))
+	return FileAccess.file_exists(_pack_path(id)) and not _pending.has(_pack_path(id))
 
 func local_version(id: String) -> int:
 	var data = SaveUtil.read(PACK_VERSIONS_PATH)
@@ -672,24 +676,22 @@ func _file_size(path: String) -> int:
 	return 0 if f == null else int(f.get_length())
 
 func _pending_deletes() -> Dictionary:
-	var data = SaveUtil.read(PENDING_DELETE_PATH)
-	var out := {}
-	if data != null and typeof(data.get("paths")) == TYPE_ARRAY:
-		for p in data.paths:
-			out[str(p)] = true
-	return out
+	return _pending
 
 func _defer_delete(paths: Array) -> void:
-	var all := _pending_deletes()
 	for p in paths:
-		all[str(p)] = true
-	SaveUtil.write(PENDING_DELETE_PATH, {"paths": all.keys()})
+		_pending[str(p)] = true
+	SaveUtil.write(PENDING_DELETE_PATH, {"paths": _pending.keys()})
 
 ## At launch, before anything is mounted.
 func _run_pending_deletes() -> void:
-	for path in _pending_deletes():
-		if path.begins_with(PACKS_DIR):
-			DirAccess.remove_absolute(path)
+	var data = SaveUtil.read(PENDING_DELETE_PATH)
+	var paths: Array = data.get("paths", []) if data != null and typeof(data.get("paths")) == TYPE_ARRAY else []
+	paths.append_array(_pending.keys())
+	for path in paths:
+		if str(path).begins_with(PACKS_DIR):
+			DirAccess.remove_absolute(str(path))
+	_pending.clear()
 	if FileAccess.file_exists(PENDING_DELETE_PATH):
 		DirAccess.remove_absolute(PENDING_DELETE_PATH)
 

@@ -27,8 +27,6 @@ func _run() -> void:
 	var catalog = root.get_node("Catalog")
 	var music = root.get_node("Music")
 	var m = JSON.parse_string(FileAccess.get_file_as_string("res://manifest.json"))
-	# The repo's manifest, not a cached live copy from an earlier run.
-	catalog._apply_manifest(m)
 	var media: Dictionary = m.media_packs["media-common"]
 	var media_file := "media-common.v%d.pck" % int(media.version)
 	var builds := ProjectSettings.globalize_path("res://builds")
@@ -41,6 +39,11 @@ func _run() -> void:
 		if _server_pid > 0:
 			break
 	await create_timer(1.5).timeout
+	# The repo's manifest -- not the cached or live copy, which the Catalog
+	# may have adopted meanwhile (the live one has no media_packs yet).
+	while catalog._fetch_in_flight:
+		await process_frame
+	check(catalog._apply_manifest(m), "repo manifest accepted")
 
 	# A clean slate, as on a phone: nothing downloaded, nothing bundled.
 	_wipe("user://packs/media")

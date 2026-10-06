@@ -708,7 +708,9 @@ references.
    `python tools/hub.py apk` for the release-signed APK (see "App signing") (fails if any of arm64-v8a,
    armeabi-v7a, x86_64 is missing; copies to `builds/voodoo-vX.Y.Z.apk`).
 5. **Upload packs**: `python tools/hub.py publish-packs <id>...` (media packs
-   too, when changed). **Ask the owner first.**
+   too, when changed: `bump-media <name>`, `export-media <name>`, then
+   `publish-packs <name>` -- export-media writes size + sha256 into the
+   manifest, so upload exactly that build). **Ask the owner first.**
 6. **Commit and push** source changes including `manifest.json` (not
    `builds/` — gitignored), **`manifest.json` last**. Pushing `manifest.json`
    is what tells installed apps about new versions/games, so do it *after*
@@ -1302,11 +1304,53 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
   four under the account line is gone), language, Sign Out, Delete my account
   (RPC `delete_my_account`: `docs/delete_my_account.sql`, run once by the
   owner -- until then the button says to use Send feedback).
-- **Options**: Storage (downloaded games + sizes, Remove; a pack opened this
-  session shows "In use" -- `Catalog.can_remove`), Credits & licences (from
-  `res://media/CREDITS.json`, which ships in the APK).
+- **Options**: Storage (downloaded games and, since v0.31, shared media packs
+  + sizes, Remove; since v0.31 a pack opened this session is removed on the
+  next launch -- `Catalog.storage_items()` / `delete_pack()`), Credits &
+  licences (from `res://media/CREDITS.json`, in the APK through the Android
+  preset's `include_filter` since v0.31 -- JSON isn't exported otherwise --
+  plus the Godot Engine licence text).
 - Not built (no data yet): ratings / Top rated, "New", size badges, trial /
-  owned badges (store), Music (Phase 3), N3's "Landing before download".
+  owned badges (store), N3's "Landing before download".
+
+## Media tiers + Music -- since v0.31.0 (2026-10-06, Phase 3, STANDARDS §10)
+
+All APK-side except the pilot; STANDARDS §10 has the rules, the headers of
+`music.gd` and `catalog.gd` are the how-to.
+
+- **Buses**: Master + Music / SFX / UI, created by `Settings.ensure_buses()`
+  (no `default_bus_layout.tres`). Sfx plays the "taps" group on UI, the rest
+  on SFX, and asks Music to `duck()` for results and alerts.
+- **`Music` autoload** (`scripts/common/music.gd`): two players crossfading,
+  every track loops, keeps playing while paused. Games reach it with
+  `get_node_or_null("/root/Music")`. `play_track(name, game_id, category)`
+  searches `res://games/<id>/music/`, `res://media/cat/<cat>/music/`,
+  `res://media/common/music/`, `res://media/hub/music/`. Settings: `music`,
+  `music_volume` (Options / ⚙ Sound via `sound_options.gd`). With the Dummy
+  audio driver (headless tests) it tracks everything but never starts a
+  playback -- that driver never mixes, so a started one is reported leaked at
+  exit and `hub.py test` fails.
+- **Media packs in Catalog**: `media_packs` + `requires_media` (see
+  STANDARDS §10). `download(id)` is now a chain (missing media, then the
+  game); the hub's bar uses `Catalog.download_progress(id)`. Files in
+  `user://packs/media/<name>.v<N>.pck`; removals of mounted packs wait in
+  `user://packs/pending_delete.json` (and count as gone at once:
+  `is_downloaded` is false). In the editor / PC build a media folder that
+  exists in res:// counts as bundled (no download).
+- **Kit**: cfg `"music"` (Landing), `"music_play"` (playing, "" = quiet),
+  `"category"`. Games without `"music"` never touch it.
+- **Pilot**: `media/common/music/menu.ogg` (32 s calm loop, made by
+  `tools/music/make_pilot.py`, own work, −16 LUFS, 96 kbps) in
+  `media-common` v1; Solitaire plays it (`requires_media: ["media-common>=1"]`).
+  The owner's licensed tracks replace it under the same name.
+- **hub.py**: `export-media`, `bump-media`, `publish-packs` takes media names,
+  `verify` checks them; `sync` makes one `<Name>Media` preset per pack and
+  keeps the Android preset's filters (`ANDROID_EXCLUDE`: no game, no Tier 1/2
+  media; `APP_INCLUDE`: manifest + credits). Lints: media_packs fields,
+  requires_media targets, OGG only, music `loop=true`, no NC/ND licences.
+- **Test**: `tools/test_media.gd` (serves `builds/` over a local
+  `python -m http.server`: chain, sha256, mount, Music, ref counts, deferred
+  deletes). Needs `export-media media-common` + `export solitaire` first.
 
 ## Hub look changes -- since v0.24.0 (2026-10-03)
 

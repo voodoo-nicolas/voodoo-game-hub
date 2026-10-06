@@ -51,9 +51,14 @@ var _base_db: Array[float] = [0.0, 0.0]  # the track's own level
 var _front := 0
 var _duck_left := 0.0
 var _duck := 0.0  # 0 = full volume, 1 = fully ducked
+## No audio device (headless tests, the Dummy driver): everything is tracked
+## but nothing is started. That driver never mixes, so a started playback is
+## never released and Godot reports the track as leaked at exit.
+var _silent := false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_silent = AudioServer.get_driver_name() == "Dummy"
 	preload("res://scripts/common/settings.gd").ensure_buses()
 	for i in 2:
 		var p := AudioStreamPlayer.new()
@@ -109,7 +114,8 @@ func play(stream: AudioStream, fade: float = FADE_SEC, volume_db: float = 0.0) -
 	_fade(_front, 1.0, fade)
 	_fade(old, 0.0, fade)
 	_apply_volumes()
-	p.play()
+	if not _silent:
+		p.play()
 	current = key
 
 func stop(fade: float = FADE_SEC) -> void:
@@ -118,7 +124,7 @@ func stop(fade: float = FADE_SEC) -> void:
 	current = ""
 
 func is_playing() -> bool:
-	return current != "" and _players[_front].playing
+	return current != "" and (_silent or _players[_front].playing)
 
 ## Dips the music for `sec` seconds (plus the time to come back up).
 func duck(sec: float = 1.0) -> void:

@@ -58,7 +58,7 @@ subscription status, account (sign in/out, sync, delete account), language.
 Friend list with online status, requests, add by username or friend code, invite to a game (pick game →
 goes through that game's multiplayer setup), recent opponents, pending invites (accept → game Landing → lobby).
 
-### 2d. Options (app-wide) [CURRENT since v0.30.0 — Storage + Credits added; Music waits for Phase 3]
+### 2d. Options (app-wide) [CURRENT since v0.30.0 — Storage + Credits; Music + shared media in Storage since v0.31.0]
 Sound on/off + SFX volume, **Music on/off + volume** (new), vibration, UI theme (light/dark), text size,
 language, notifications (invites), rotate screen, keep screen on, **Storage** (downloaded games + sizes,
 delete), account & privacy, About / Credits / Licences (renders `CREDITS.json`).
@@ -119,7 +119,7 @@ them too, but editing them changes the global value. Per-game items are stored p
 | Setting | Scope | Notes |
 |---|---|---|
 | Sound on/off, SFX volume | Global | `Settings` + `Sfx` groups |
-| Music on/off, music volume | Global | new `Music` bus |
+| Music on/off, music volume | Global | `Music` bus (`Settings.music`, `music_volume`, since v0.31) |
 | Vibration | Global | |
 | UI theme light/dark | Global | applies to menus/chrome |
 | Text size (1.0–1.4) | Global | `Settings.content_scale_factor` |
@@ -147,7 +147,7 @@ game's traditional colours (it does not follow the app's light/dark theme; only 
   `skins/VOODOO.md`, palette tokens, motif sheet; brand sources in `reference/art/brand/`). All art must be
   original or licensed (see `IP_AUDIT.md`).
 
-## 10. Media libraries (3 tiers) [NEW]
+## 10. Media libraries (3 tiers) [CURRENT since v0.31.0 — Tier 1 piloted with `media-common` v1]
 Goal: players with many games download shared media once.
 
 | Tier | Pack | `res://` root | Examples |
@@ -161,9 +161,23 @@ Rules:
 - Promote an asset to Tier 2 only when ≥ 3 games in the category use it; to Tier 1 when ≥ 2 categories do.
 - Manifest: `media_packs` block (version, url, size, sha256) + per game `requires_media: ["media-common>=3", ...]`.
   `catalog.gd` downloads dependencies before the game pack and reference-counts them for Storage deletion.
-- Never overwrite a mounted media pack (new filename per version; mount next launch).
-- Audio: OGG Vorbis; music ~64–96 kbps with loop points; SFX synthesized via `Sfx` where possible (0 bytes).
-- Audio buses: Master / Music / SFX / UI. Music ducks under important SFX.
+  Pack names: `media-common`, `media-cat-<category>` (folder `media/common/`, `media/cat/<category>/`).
+  `hub.py export-media <name>` writes size + sha256 into the manifest; `bump-media <name>` for a new version.
+- Never overwrite a mounted media pack (new filename per version, `<name>.v<N>.pck`). The newest local version
+  of each is mounted at launch and older files are deleted then; one downloaded mid-session is mounted on top at
+  once (new files appear now, changed ones on the next launch). Missing / outdated media of downloaded games is
+  fetched silently at launch.
+- A media pack is deleted only when no downloaded game needs it; anything mounted this session is deleted on the
+  next launch. Deleting never touches saves or stats.
+- Games guard every media file (`ResourceLoader.exists`, or the `Music` autoload's own lookup): apps before v0.31
+  ignore `requires_media`, so the game must still run without it. `min_build` only if it truly can't.
+- Audio: OGG Vorbis (`hub.py check` rejects other audio under `media/`); music ~64–96 kbps with loop points;
+  SFX synthesized via `Sfx` where possible (0 bytes).
+- Audio buses: Master / Music / SFX / UI (`Settings.ensure_buses()`; Sfx plays taps on UI, the rest on SFX).
+  Music ducks (a −12 dB volume dip) under results and alerts.
+- Music: `Music.play_track(name, game_id, category)` looks in Tier 3 → 2 → 1 → 0 (`<root>/music/<name>.ogg`),
+  so a game overrides a shared track with a same-named file. Landing-kit games opt in with cfg `"music"` /
+  `"music_play"` / `"category"`; the hub stops music. Music import files must set `loop=true` (lint).
 - Every asset has an entry in `media/CREDITS.json` (file, source, author, licence, URL, date). Allowed: own work,
   CC0, CC-BY (with credit shown in About). **Not allowed: NC or ND licences** (the app is commercial).
   AI-generated assets: record tool + plan; only use tiers whose terms allow commercial use.
@@ -210,10 +224,10 @@ if ResourceLoader.exists(ONLINE_LOBBY_PATH):
 | System | File | Purpose |
 |---|---|---|
 | Auth | `auth.gd` | sign up/in/out, reset, sync, leaderboards |
-| Catalog | `catalog.gd` | manifest, download/mount packs, versions; [NEW] media deps + ref counts |
+| Catalog | `catalog.gd` | manifest, download/mount packs, versions, media deps + ref counts, storage |
 | GameInfo | `game_info.gd` | How to Play card, first-play pause, results/stats |
 | Sfx | `sfx.gd` | synthesized sounds, grouped volume |
-| Music | `music.gd` [NEW] | music bus, tiered tracks, ducking |
+| Music | `music.gd` (v0.31) | music bus, tiered tracks, crossfade, ducking |
 | Settings | `settings.gd` | global options, safe area, landscape boost |
 | Skin | `skin.gd` [NEW, from `voodoo.gd`] | Classic/Voodoo skins |
 | Online | `online_match.gd`, `online_lobby.gd` | Supabase Realtime rooms, rejoin |

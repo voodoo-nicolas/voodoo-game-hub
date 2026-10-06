@@ -78,7 +78,9 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   resolved. `Catalog.needs_download()` decides; a failed update falls back to
   the copy already on disk; the download overlay's Cancel aborts the request.
   `_launch` surfaces mount failures (a damaged pack is deleted by `Catalog`,
-  so its tile turns blue again and the next tap re-downloads).
+  so its tile turns blue again and the next tap re-downloads). Since v0.31
+  `Catalog.download()` also fetches the game's missing media packs first;
+  the overlay's bar follows `Catalog.download_progress(id)` over the chain.
 - **App self-update**: `Catalog.check_app_update()` runs once per app session,
   not per hub visit — the GitHub API is rate-limited and "Later" should stick.
 - **Editor / full desktop builds**: games whose scene already exists before

@@ -5013,5 +5013,16 @@
  "🎮 Games": "🎮 Juegos",
  "👤 Profile": "👤 Perfil",
  "🔍 Search games": "🔍 Buscar juegos",
- "🤖 Single player": "🤖 Un jugador"
+ "🤖 Single player": "🤖 Un jugador",
+ "%s.v%d.pck": null,
+ "%s/%s.v%d.pck": null,
+ "• Godot Engine — ": null,
+ "Background music in menus and games.": "Música de fondo en los menús y los juegos.",
+ "Games opened since the app started are removed the next time it starts.": "Los juegos abiertos desde que se inició la app se eliminan la próxima vez que se inicie.",
+ "Games you have downloaded still use this.": "Juegos que descargaste todavía lo usan.",
+ "MIT licence:": "licencia MIT:",
+ "This game is downloading.": "Este juego se está descargando.",
+ "used by %d games": "lo usan %d juegos",
+ "used by 1 game": "lo usa 1 juego",
+ "🎵 Shared music & sounds": "🎵 Música y sonidos compartidos"
 }
