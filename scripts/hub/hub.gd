@@ -6,10 +6,11 @@ const Config = preload("res://scripts/common/config.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
-## The VOODOO title art (skull in a top hat, purple smoke). Its black backdrop
-## was faded to transparent so the mist shows through. If it's ever missing,
-## the hub falls back to the plain text title.
-const BANNER_PATH := "res://assets/hub/banner.png"
+const Brand = preload("res://scripts/common/brand.gd")
+## The title art: the V-skull + VIRAL wordmark (Brand.WORDMARK), its own
+## backdrop faded out at the edges so the hub background shows through. If
+## it's ever missing, the hub falls back to the plain text title.
+const BANNER_PATH := Brand.WORDMARK
 const BANNER_HEIGHT := 330.0
 
 ## The game catalog itself lives in manifest.json (see the Catalog autoload),
@@ -61,16 +62,16 @@ func _ready() -> void:
 	root.add_theme_constant_override("separation", 0)
 	add_child(root)
 
-	# Dark theme: the whole screen is drifting mist. Light theme: a plain
-	# background, with the mist only behind the banner so the art never sits
-	# on white.
+	# Dark theme: the brand background fills the screen. Light theme: a
+	# plain background, with the mist only behind the banner so the art
+	# never sits on white.
 	var bg: Control
 	if Settings.is_light():
 		bg = ColorRect.new()
 		bg.color = pal.bg
 		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	else:
-		bg = Mist.new()
+		bg = Brand.backdrop()
 	add_child(bg)
 	move_child(bg, 0)
 
@@ -104,8 +105,8 @@ func _ready() -> void:
 		banner_panel.add_child(banner)
 	else:
 		var title := Label.new()
-		title.text = "VOODOO"
-		title.add_theme_font_size_override("font_size", 76)
+		title.text = Brand.NAME.to_upper()
+		title.add_theme_font_size_override("font_size", 56)
 		title.add_theme_color_override("font_color", pal.accent)
 		title.add_theme_color_override("font_outline_color", Color(pal.accent, 0.5 * pal.glow))
 		title.add_theme_constant_override("outline_size", 12)
@@ -543,7 +544,7 @@ func _on_tile_pressed(id: String) -> void:
 	if game.is_empty():
 		return
 	if Catalog.state_of(game) == Catalog.STATE_NEEDS_APP_UPDATE:
-		_show_dialog(tr("Update Needed"), tr("%s needs a newer version of Voodoo.") % Lang.pick(game, "title"), [
+		_show_dialog(tr("Update Needed"), tr("%s needs a newer version of %s.") % [Lang.pick(game, "title"), Brand.NAME], [
 			{"text": tr("Get Update"), "action": Callable(OS, "shell_open").bind(Config.RELEASES_PAGE_URL)},
 			{"text": tr("Later"), "action": Callable()},
 		])

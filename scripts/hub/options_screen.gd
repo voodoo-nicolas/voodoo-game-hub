@@ -15,6 +15,7 @@ const Config = preload("res://scripts/common/config.gd")
 const Voodoo = preload("res://scripts/common/voodoo.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
+const Brand = preload("res://scripts/common/brand.gd")
 const SoundOptions = preload("res://scripts/common/sound_options.gd")
 
 const FEEDBACK_URL := Config.REPO_URL + "/issues/new"
@@ -48,7 +49,7 @@ func _build_ui() -> void:
 		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 		add_child(bg)
 	else:
-		add_child(Mist.new())
+		add_child(Brand.backdrop())
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -154,7 +155,8 @@ func _build_ui() -> void:
 
 	# ---- About ----
 	var about := _section(list, tr("About"))
-	about.add_child(_body_label(tr("Voodoo v%s (build %d)") % [Version.VERSION, Version.BUILD_NUMBER]))
+	about.add_child(_body_label(tr("%s v%s (build %d)") % [Brand.NAME, Version.VERSION, Version.BUILD_NUMBER]))
+	about.add_child(_body_label(Brand.tagline()))
 	update_btn = _pill_button(tr("Check for updates"), true)
 	update_btn.pressed.connect(_on_update_pressed)
 	about.add_child(update_btn)

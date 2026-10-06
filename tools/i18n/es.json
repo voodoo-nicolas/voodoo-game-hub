@@ -4814,5 +4814,13 @@
  "★★ needs a run without losing a life": "★★ requiere una partida sin perder vidas",
  "★★★ needs %s points": "★★★ requiere %s puntos",
  "No lives lost": "Sin perder vidas",
- "%s points": "%s puntos"
+ "%s points": "%s puntos",
+ "%s needs a newer version of %s.": "%s necesita una versión más nueva de %s.",
+ "%s v%s (build %d)": "%s v%s (build %d)",
+ "No ads, ever.": "Sin anuncios, nunca.",
+ "Welcome!": "¡Te damos la bienvenida!",
+ "Viral Game Hub": null,
+ "Viral": null,
+ "Viral Game Hub – No Ads": null,
+ "Viral: Juegos sin anuncios": null
 }

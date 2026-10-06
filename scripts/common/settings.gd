@@ -86,6 +86,9 @@ var invites: String = "all"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# The PC window title shows the brand. project.godot's config/name stays
+	# "Voodoo": on PC it names the save folder (CLAUDE.md "Rename safety").
+	DisplayServer.window_set_title(preload("res://scripts/common/brand.gd").NAME)
 	_load()
 	_apply()
 	# Every button, in every scene (packs included), ticks when pressed.

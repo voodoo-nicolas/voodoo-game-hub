@@ -12,6 +12,7 @@ extends Control
 const Orientation = preload("res://scripts/common/orientation.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
+const Brand = preload("res://scripts/common/brand.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
 const HUB_SCENE := "res://scenes/hub/hub.tscn"
 
@@ -30,7 +31,7 @@ func _ready() -> void:
 		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 		add_child(bg)
 	else:
-		add_child(Mist.new())
+		add_child(Brand.backdrop())
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)

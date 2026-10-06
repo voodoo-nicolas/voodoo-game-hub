@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Voodoo Game Hub project tool -- one command per chore that used to be a
-hand-edit across several files.
+"""Viral Game Hub project tool (repo voodoo-game-hub) -- one command per
+chore that used to be a hand-edit across several files.
 
     python tools/hub.py check                 validate everything, change nothing
     python tools/hub.py sync                  regenerate derived config from the sources of truth
@@ -21,9 +21,11 @@ Sources of truth (edit these by hand):
     manifest.json               the game catalog: categories, titles, icons, pack versions
     scripts/common/version.gd   VERSION + BUILD_NUMBER
     scripts/common/config.gd    repo / release / Supabase addresses
+    scripts/common/brand.gd     the app's visible name (Brand.NAME)
 
 Derived (never edit by hand -- `sync` rewrites them):
-    export_presets.cfg          one "<Name>Pack" preset per game; Android version fields
+    export_presets.cfg          one "<Name>Pack" preset per game; Android version fields;
+                                the app name shown by Android / Windows (from Brand.NAME)
     manifest.json "games"       entries for new ids are filled in from the categories
 
 Godot is located via the GODOT environment variable, then the known portable
@@ -47,6 +49,9 @@ MANIFEST = ROOT / "manifest.json"
 PRESETS = ROOT / "export_presets.cfg"
 VERSION_GD = ROOT / "scripts/common/version.gd"
 CONFIG_GD = ROOT / "scripts/common/config.gd"
+BRAND_GD = ROOT / "scripts/common/brand.gd"
+MEDIA = ROOT / "media"
+CREDITS = MEDIA / "CREDITS.json"
 TEMPLATES = ROOT / "tools/templates"
 PACKS_OUT = ROOT / "builds/packs"
 KNOWN_GODOT = Path(os.path.expandvars(
@@ -76,6 +81,14 @@ def read_version() -> tuple[str, int]:
     if not v or not b:
         raise ToolError(f"couldn't find VERSION / BUILD_NUMBER in {VERSION_GD}")
     return v.group(1), int(b.group(1))
+
+
+def read_brand() -> str:
+    """Brand.NAME -- the app's visible name (internal ids keep "voodoo")."""
+    m = re.search(r'^const NAME := "([^"]+)"', BRAND_GD.read_text(encoding="utf-8"), re.M)
+    if not m:
+        raise ToolError(f"couldn't find NAME in {BRAND_GD}")
+    return m.group(1)
 
 
 def write_version(version: str, build: int) -> None:
@@ -165,7 +178,8 @@ def is_pack_preset(p: dict) -> bool:
 
 # Godot drags the project icon and autoload scripts into every pack. The icon
 # alone was ~1.1 MB of each ~1.1 MB pack; the scripts already ship in the APK.
-PACK_EXCLUDE = "assets/*, scripts/common/*, scripts/hub/*, scripts/account/*"
+# media/ is the hub's own art (and later the shared media packs).
+PACK_EXCLUDE = "assets/*, media/*, scripts/common/*, scripts/hub/*, scripts/account/*"
 
 
 def pack_preset_text(index: int, name: str, gid: str) -> str:
@@ -206,9 +220,11 @@ def pack_preset_names() -> dict[str, str]:
 
 
 def render_presets(ids: list[str]) -> str:
-    """export_presets.cfg with every pack preset regenerated from `ids` and the
-    Android preset's version fields synced to version.gd."""
+    """export_presets.cfg with every pack preset regenerated from `ids`, the
+    Android preset's version fields synced to version.gd, and the app name
+    every platform shows synced to Brand.NAME (package ids never change)."""
     version, build = read_version()
+    brand = read_brand()
     presets = split_presets(PRESETS.read_text(encoding="utf-8"))
     base = [p for p in presets if not is_pack_preset(p)]
     old_names = {Path(p["export_path"]).stem: p["name"] for p in presets if is_pack_preset(p)}
@@ -222,6 +238,10 @@ def render_presets(ids: list[str]) -> str:
             body = re.sub(r'(?m)^version/name=.*$', f'version/name="{version}"', body)
             # The bundled manifest.json is the offline fallback catalog.
             body = re.sub(r'(?m)^include_filter=.*$', 'include_filter="manifest.json"', body)
+        # The name players see: Android's app label, Windows' product name.
+        suffix = " Dev" if p["name"].endswith("Dev") else ""
+        body = re.sub(r'(?m)^package/name=.*$', f'package/name="{brand}{suffix}"', body)
+        body = re.sub(r'(?m)^application/product_name=.*$', f'application/product_name="{brand}"', body)
         chunks.append(body)
     # Existing presets keep their order (stable diffs); new games go last.
     ordered = [gid for gid in old_names if gid in ids] + [gid for gid in ids if gid not in old_names]
@@ -319,8 +339,59 @@ def validate() -> tuple[list[str], list[str]]:
 
     current = PRESETS.read_text(encoding="utf-8")
     if render_presets(catalog_ids(m)) != current:
-        errors.append("export_presets.cfg is out of date (pack presets or Android version) -- run sync")
+        errors.append("export_presets.cfg is out of date (pack presets, Android version or app name) -- run sync")
+    errors += lint_credits()
+    errors += lint_hub_name()
     return errors, warnings
+
+
+def lint_credits() -> list[str]:
+    """STANDARDS §10: every file under media/ has a media/CREDITS.json entry."""
+    if not MEDIA.is_dir():
+        return []
+    try:
+        credits = json.loads(CREDITS.read_text(encoding="utf-8")) if CREDITS.is_file() else {}
+    except json.JSONDecodeError as e:
+        return [f"media/CREDITS.json is not valid JSON: {e}"]
+    listed = {str(e.get("file", "")) for e in credits.get("assets", [])}
+    errors = []
+    for f in sorted(MEDIA.rglob("*")):
+        rel = f.relative_to(ROOT).as_posix()
+        if (f.is_dir() or f.suffix in (".import", ".uid") or f.name in (".gdignore", "CREDITS.json")
+                or rel.startswith("media/licenses/")):
+            continue
+        if rel not in listed:
+            errors.append(f"{rel}: no entry in media/CREDITS.json (STANDARDS §10)")
+    for rel in sorted(listed - {""}):
+        if not (ROOT / rel).is_file():
+            errors.append(f"media/CREDITS.json lists {rel}, which doesn't exist")
+    return errors
+
+
+# Text the APK shows that may say "Voodoo": the skin's own labels. Anything
+# else naming the app must use Brand.NAME (CLAUDE.md "Rename safety" -- ids
+# and paths keep "voodoo"; only visible text changed).
+VOODOO_TEXT_OK = {
+    "💀 Voodoo: On", "💀 Voodoo: Off",
+    "Skulls, crossbones and voodoo dolls in Tic-Tac-Toe, Connect Four and Reversi.",
+}
+
+
+def lint_hub_name() -> list[str]:
+    # es.json already sorts literals into UI text and not-UI text (null), so
+    # internal strings like the User-Agent are skipped.
+    master = json.loads(I18N_MASTER.read_text(encoding="utf-8")) if I18N_MASTER.is_file() else {}
+    errors = []
+    for d in ("scripts/common", "scripts/hub", "scripts/account"):
+        for f in sorted((ROOT / d).glob("*.gd")):
+            if f.name == "strings_es.gd":
+                continue
+            for text in _display_literals(f):
+                if (re.search(r"voodoo", text, re.I) and text not in VOODOO_TEXT_OK
+                        and not (text in master and master[text] is None)):
+                    errors.append(f"{f.relative_to(ROOT).as_posix()}: {text!r} names Voodoo -- use "
+                                  "Brand.NAME (Voodoo is only the skin's name)")
+    return errors
 
 
 # ---------------------------------------------------------------- commands
@@ -557,7 +628,8 @@ def cmd_pc(_args) -> None:
     desktop = subprocess.run(
         ["powershell", "-NoProfile", "-Command", "[Environment]::GetFolderPath('Desktop')"],
         capture_output=True, text=True).stdout.strip()
-    shortcut = Path(desktop or Path.home() / "Desktop") / "Voodoo Game Hub.lnk"
+    brand = read_brand()
+    shortcut = Path(desktop or Path.home() / "Desktop") / f"{brand}.lnk"
     icon = PC_DIR / "icon.ico"
     try:  # the exported .exe carries Godot's icon; give the shortcut ours
         from PIL import Image
@@ -567,16 +639,16 @@ def cmd_pc(_args) -> None:
     ps = (
         "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');"
         "$s.TargetPath = '{exe}'; $s.WorkingDirectory = '{dir}';"
-        "$s.Description = 'Voodoo Game Hub (PC test build)';"
+        "$s.Description = '{brand} (PC test build)';"
         "{icon_line}$s.Save()"
-    ).format(lnk=shortcut, exe=exe, dir=PC_DIR,
+    ).format(lnk=shortcut, exe=exe, dir=PC_DIR, brand=brand,
              icon_line=f"$s.IconLocation = '{icon}';" if icon.is_file() else f"$s.IconLocation = '{exe},0';")
     subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True)
     print(f"  built {exe}")
     print(f"  shortcut: {shortcut}")
 
 
-PC_README = """VOODOO GAME HUB - PC test build v{version}
+PC_README = """{title} - PC test build v{version}
 =========================================
 
 1. Unzip this whole folder anywhere (Desktop, USB stick...). Keep
@@ -592,7 +664,7 @@ Saves and settings live on each PC in
    %APPDATA%\\Godot\\app_userdata\\Voodoo
 Delete that folder to start fresh.
 
-"Voodoo needs SSE4.2" or a CPU error? That PC is older: run
+"Voodoo.exe needs SSE4.2" or a CPU error? That PC is older: run
 Voodoo-older-PCs.exe instead (the same game, 32-bit, works on any PC).
 
 Voodoo.console.exe is the same game with a log window, for reporting
@@ -625,15 +697,16 @@ def cmd_pc_zip(_args) -> None:
     version, _ = read_version()
     out_dir = ROOT / "builds"
     out_dir.mkdir(exist_ok=True)
-    zip_path = out_dir / f"VoodooGameHub-PC-v{version}.zip"
+    folder = read_brand().replace(" ", "")
+    zip_path = out_dir / f"{folder}-PC-v{version}.zip"
     import zipfile
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         for name in ["Voodoo.exe", "Voodoo.pck", "Voodoo.console.exe", "Voodoo-older-PCs.exe",
                      "Voodoo-older-PCs.pck", "icon.ico"]:
             f = PC_DIR / name
             if f.is_file():
-                z.write(f, f"VoodooGameHub/{name}")
-        z.writestr("VoodooGameHub/README.txt", PC_README.format(version=version))
+                z.write(f, f"{folder}/{name}")
+        z.writestr(f"{folder}/README.txt", PC_README.format(title=read_brand().upper(), version=version))
     print(f"  zip: {zip_path} ({zip_path.stat().st_size // (1024 * 1024)} MB)")
 
 
@@ -782,7 +855,7 @@ def cmd_release(args) -> None:
     if not apk.is_file():
         raise ToolError(f"{apk.relative_to(ROOT)} not built -- run apk first")
     subprocess.run([gh(), "release", "create", f"v{version}", str(apk), "--title", f"v{version}",
-                    "--notes", args.notes or f"Voodoo v{version}"], cwd=ROOT, check=True)
+                    "--notes", args.notes or f"{read_brand()} v{version}"], cwd=ROOT, check=True)
 
 
 def fetch_size(url: str) -> tuple[int, int]:

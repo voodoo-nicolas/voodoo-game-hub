@@ -36,7 +36,7 @@ func _build() -> void:
 	lb.pressed.connect(_to_leaderboards)
 	head.add_child(lb)
 
-	var hb := section(tr("Voodoo"))
+	var hb := section(Brand.NAME)
 	for h in Achievements.HUB:
 		var have: bool = hub.unlocked.has(h[0])
 		var value: int = Achievements.hub_value(h[4], all, hub)

@@ -48,7 +48,7 @@ const SKIP_KEYS := ["Best streak", "Losses", "Draws", "Hands lost", "Wrong guess
 ## "games" (different games played), "badges" (all badges unlocked),
 ## "friends" or "invites".
 const HUB := [
-	["hub_games_1", "🎮", "Welcome to Voodoo", "Play your first game", "games", 1],
+	["hub_games_1", "🎮", "Welcome!", "Play your first game", "games", 1],
 	["hub_games_5", "🧭", "Explorer", "Play 5 different games", "games", 5],
 	["hub_games_20", "🗺️", "Globetrotter", "Play 20 different games", "games", 20],
 	["hub_games_50", "🌍", "World Tour", "Play 50 different games", "games", 50],

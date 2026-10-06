@@ -12,6 +12,10 @@ run/main_scene.trace_dev="res://scenes/games/trace_it/trace_it.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.png"
 config/icon.game_pack=""
+boot_splash/bg_color=Color(0.02, 0.01, 0.03, 1)
+boot_splash/image="res://media/hub/brand/boot/splash.png"
+boot_splash/image.game_pack=""
+boot_splash/stretch_mode=4
 
 [autoload]
 
