@@ -1,9 +1,11 @@
 extends Control
 
-## Sudoku's Home screen (Minigame standards #2): Resume, a new puzzle per
-## difficulty, How to Play, Statistics, Leaderboard, Sound and Hub, plus the
-## How to Play and Leaderboard screens it opens. sudoku_game.gd owns the game
-## and answers the signals; this file only draws and asks.
+## Sudoku's Landing page (STANDARDS §3; custom visuals, the same buttons as
+## the Landing kit): ← Hub (the only way to the hub, N1), Resume, a new puzzle
+## per difficulty, How to Play, Leaderboard, Achievements, Statistics and
+## Options, plus the cards they open (each with 🏠 Home, or ‹ Back when
+## opened from the pause menu). sudoku_game.gd owns the game and answers the
+## signals; this file only draws and asks.
 ##
 ## Shared pieces are load()ed, never preloaded (packs run on older apps):
 ## no Auth -> the Leaderboard says so; no Settings -> no Sound button.
@@ -15,6 +17,7 @@ signal hub_requested
 
 const HELP = preload("res://scripts/games/sudoku/sudoku_help.gd")
 const SOUND_OPTIONS_PATH := "res://scripts/common/sound_options.gd"
+const ORIENTATION_PATH := "res://scripts/common/orientation.gd"
 const LEADERBOARD_SIZE := 10
 
 const BG := Color(0.035, 0.043, 0.075)
@@ -73,6 +76,13 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 18)
 	margin.add_child(box)
 
+	var top := HBoxContainer.new()
+	var hub_top := _neon_button(tr("← Hub"), DIM, 22, 58)
+	hub_top.custom_minimum_size.x = 150
+	hub_top.pressed.connect(func(): hub_requested.emit())
+	top.add_child(hub_top)
+	box.add_child(top)
+
 	_grid_logo = Control.new()
 	_grid_logo.custom_minimum_size = Vector2(0, 170)
 	_grid_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -124,20 +134,17 @@ func _ready() -> void:
 		[tr("❓ How to Play"), BLUE, _show_info],
 		[tr("🏆 Leaderboard"), GOLD, _show_leaderboard],
 	]
+	if info and info.has_method("achievement_rows"):
+		items.append([tr("🏅 Achievements"), PINK, _show_achievements])
 	if info:
 		items.append([tr("📊 Statistics"), PURPLE, func(): stats_requested.emit()])
-	if ResourceLoader.exists(SOUND_OPTIONS_PATH) and get_node_or_null("/root/Settings"):
-		items.append([tr("🔊 Sound"), CYAN, _show_sound])
+	items.append([tr("⚙ Options"), CYAN, _show_options])
 	for it in items:
 		var b := _neon_button(it[0], it[1], 23, 66)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(it[2])
 		more.add_child(b)
 
-	box.add_child(_gap(4))
-	var hub := _neon_button(tr("Back to Hub"), DIM, 22, 58)
-	hub.pressed.connect(func(): hub_requested.emit())
-	box.add_child(hub)
 
 	_build_info_overlay()
 	_build_leaderboard_overlay()
@@ -282,17 +289,97 @@ func _show_sound() -> void:
 	parts[1].add_child(load(SOUND_OPTIONS_PATH).new(settings.DARK, true))
 	parts[0].visible = true
 
+## ⚙ Options (STANDARDS §7): 🔄 Rotate, then the app-wide settings (the same
+## values as the hub's Options). `parent` = where the card goes (the game
+## puts it over its pause menu, with ‹ Back).
+func _show_options(parent: Node = null, from_pause: bool = false) -> void:
+	var parts := _overlay(tr("⚙ Options"), CYAN, true, parent, from_pause)
+	var body: VBoxContainer = parts[1]
+	if ResourceLoader.exists(ORIENTATION_PATH):
+		body.add_child(_section(tr("Screen")))
+		var rot := _neon_button(tr("🔄 Rotate Screen"), BLUE, 24, 64)
+		rot.pressed.connect(_rotate)
+		body.add_child(rot)
+	var s := get_node_or_null("/root/Settings")
+	if s:
+		_note(body, tr("These settings are app-wide: they change every game."))
+		if s.has_method("set_text_size") and "TEXT_SIZE_NAMES" in s:
+			body.add_child(_section(tr("Text & button size")))
+			body.add_child(_choice(s.TEXT_SIZE_NAMES, int(s.text_size), func(i): s.set_text_size(i), GOLD))
+		if s.has_method("set_vibrate"):
+			body.add_child(_section(tr("Vibration")))
+			body.add_child(_choice(["On", "Off"], 0 if s.vibrate else 1, func(i): s.set_vibrate(i == 0), LIME))
+		if s.has_method("set_keep_awake"):
+			body.add_child(_section(tr("Keep screen on")))
+			body.add_child(_choice(["On", "Off"], 0 if s.keep_awake else 1, func(i): s.set_keep_awake(i == 0), LIME))
+		if s.has_method("set_invites") and "INVITE_MODES" in s:
+			body.add_child(_section(tr("🔔 Game invites")))
+			body.add_child(_choice(s.INVITE_MODE_NAMES, maxi(0, s.INVITE_MODES.find(s.invites)),
+				func(i): s.set_invites(str(s.INVITE_MODES[i])), PINK))
+		if ResourceLoader.exists(SOUND_OPTIONS_PATH):
+			body.add_child(_section(tr("🔊 Sound")))
+			body.add_child(load(SOUND_OPTIONS_PATH).new(s.DARK, true))
+	parts[0].visible = true
+
+## Saves (through the game), then reloads the scene turned the other way.
+func _rotate() -> void:
+	var g := get_parent()
+	if g and g.has_method("_save_game"):
+		g._save_game()
+	get_tree().paused = false
+	var view := get_viewport_rect().size
+	load(ORIENTATION_PATH).override_next(view.x <= view.y)
+	get_tree().reload_current_scene()
+
+## A row of toggle buttons; `on_pick(index)`.
+func _choice(names: Array, current: int, on_pick: Callable, color: Color) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var group := ButtonGroup.new()
+	for i in names.size():
+		var b := _neon_button(tr(str(names[i])), color, 22, 56)
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = i == current
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var on := StyleBoxFlat.new()
+		on.bg_color = Color(color, 0.45)
+		on.border_color = color
+		on.set_border_width_all(3)
+		on.set_corner_radius_all(14)
+		b.add_theme_stylebox_override("pressed", on)
+		b.pressed.connect(on_pick.bind(i))
+		row.add_child(b)
+	return row
+
+## 🏅 Achievements (GameInfo, app v0.25+): earned first, then the rest.
+func _show_achievements() -> void:
+	var parts := _overlay(tr("🏅 Achievements"), PINK, true)
+	var body: VBoxContainer = parts[1]
+	var rows: Array = info.achievement_rows()
+	var have := rows.filter(func(r): return r.unlocked).size()
+	_note(body, tr("%d of %d unlocked") % [have, rows.size()])
+	var sorted := rows.filter(func(r): return r.unlocked) + rows.filter(func(r): return not r.unlocked)
+	for r in sorted:
+		var l := Label.new()
+		l.text = "%s  %s\n      %s" % [str(r.icon) if r.unlocked else "🔒", str(r.title), str(r.desc)]
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.add_theme_font_size_override("font_size", 23)
+		l.add_theme_color_override("font_color", GOLD if r.unlocked else DIM)
+		body.add_child(l)
+	parts[0].visible = true
+
 # ---------- building blocks ----------
 
 ## A full-screen card with a title, a scrolling body and a Close button.
 ## Returns [overlay, body]. `temporary` overlays free themselves on close.
-func _overlay(title_text: String, color: Color, temporary: bool = false) -> Array:
+func _overlay(title_text: String, color: Color, temporary: bool = false, parent: Node = null, from_pause: bool = false) -> Array:
 	var overlay := ColorRect.new()
-	overlay.color = Color(0.02, 0.025, 0.05, 0.97)
+	overlay.color = Color(0.02, 0.025, 0.05, 1.0)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	overlay.visible = false
 	overlay.add_to_group("modal_overlay")
-	add_child(overlay)
+	(parent if parent else self).add_child(overlay)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var margin := MarginContainer.new()
@@ -325,7 +412,8 @@ func _overlay(title_text: String, color: Color, temporary: bool = false) -> Arra
 	body.add_theme_constant_override("separation", 10)
 	scroll.add_child(body)
 
-	var close := _neon_button(tr("Close"), color, 26, 62)
+	# 🏠 Home back to this Landing, or ‹ Back to the pause menu (N2).
+	var close := _neon_button(("‹  " + tr("Back")) if from_pause else tr("🏠 Home"), color, 26, 62)
 	if temporary:
 		close.pressed.connect(overlay.queue_free)
 	else:

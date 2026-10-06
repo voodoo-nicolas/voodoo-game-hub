@@ -65,6 +65,7 @@ var loading_overlay: Control
 var win_dialog: Control
 var win_stats_label: Label
 var pause_dialog: Control
+var pause_note: Label
 var stats_overlay: Control
 var stats_grid: GridContainer
 
@@ -171,7 +172,10 @@ func _build_ui() -> void:
 		add_child(info)
 		_migrate_level_stats()
 		_build_stats_overlay()
-	add_child(SettingsDrawer.new())
+	# No floating SettingsDrawer (retired, STANDARDS §6): its items are in the
+	# pause menu and Home's ⚙ Options -- nor GameInfo's "?" tab, which it adds
+	# when there's no drawer (How to Play is on Home and in the pause menu).
+	call_deferred("_drop_info_tab")
 
 ## The Home screen (sudoku_home.gd); `difficulty_screen` is its old name.
 func _build_home() -> void:
@@ -562,13 +566,7 @@ func _build_win_dialog() -> void:
 		_show_difficulty_screen()
 	)
 	box.add_child(menu_btn)
-
-	var hub_btn := Button.new()
-	hub_btn.text = tr("Back to Hub")
-	hub_btn.custom_minimum_size = Vector2(220, 50)
-	hub_btn.add_theme_font_size_override("font_size", 25)
-	hub_btn.pressed.connect(_on_win_hub_pressed)
-	box.add_child(hub_btn)
+	# No hub button here: only the Landing links to the hub (STANDARDS N1).
 
 ## The game is over, so there's nothing to save -- straight back to the hub.
 func _on_win_hub_pressed() -> void:
@@ -641,15 +639,52 @@ func _build_pause_dialog() -> void:
 	)
 	box.add_child(change_diff_btn)
 
-	var exit_btn := Button.new()
-	exit_btn.text = tr("Exit to Hub")
-	exit_btn.custom_minimum_size = Vector2(240, 50)
-	exit_btn.add_theme_font_size_override("font_size", 24)
-	exit_btn.pressed.connect(func():
-		_save_game()
-		get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
-	)
-	box.add_child(exit_btn)
+	# The rest of the standard pause menu (STANDARDS §6); no hub button (N1).
+	for spec in [[tr("❓ How to Play"), _on_pause_help], [tr("📊 Statistics"), _show_stats],
+			[tr("📸 Screenshot"), _on_pause_screenshot], [tr("⚙ Options"), _on_pause_options]]:
+		var b := Button.new()
+		b.text = spec[0]
+		b.custom_minimum_size = Vector2(240, 50)
+		b.add_theme_font_size_override("font_size", 24)
+		b.pressed.connect(spec[1])
+		box.add_child(b)
+	pause_note = Label.new()
+	pause_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pause_note.add_theme_font_size_override("font_size", 20)
+	box.add_child(pause_note)
+
+func _drop_info_tab() -> void:
+	if info and "tab_button" in info and is_instance_valid(info.tab_button):
+		info.tab_button.queue_free()
+	elif info and not is_queued_for_deletion():
+		call_deferred("_drop_info_tab_late")
+
+func _drop_info_tab_late() -> void:
+	if info and "tab_button" in info and is_instance_valid(info.tab_button):
+		info.tab_button.queue_free()
+
+func _on_pause_help() -> void:
+	if info:
+		info.open()
+
+func _on_pause_options() -> void:
+	difficulty_screen._show_options(self, true)
+
+## 📸 the board as it is under the menu.
+func _on_pause_screenshot() -> void:
+	pause_dialog.visible = false
+	await RenderingServer.frame_post_draw
+	if not is_inside_tree():
+		return
+	var img: Image = get_viewport().get_texture().get_image()
+	pause_dialog.visible = true
+	DirAccess.make_dir_recursive_absolute("user://screenshots")
+	var stamp := int(Time.get_unix_time_from_system())
+	img.save_png("user://screenshots/sudoku_%d.png" % stamp)
+	var pictures: String = OS.get_system_dir(OS.SYSTEM_DIR_PICTURES)
+	if pictures != "":
+		img.save_png(pictures.path_join("viral_sudoku_%d.png" % stamp))
+	pause_note.text = tr("Screenshot saved!")
 
 # ---------- screen state ----------
 

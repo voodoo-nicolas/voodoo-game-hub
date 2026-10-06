@@ -530,6 +530,19 @@ or tell the user what's still missing).
 
 ## Home screen kit (`home_kit.gd`) -- since 2026-10-03
 
+> **Since 2026-10-06 it is the Landing kit** (STANDARDS §1-§7): the Home
+> screen became the game's Landing page (only screen with "← Hub"; ▶ Resume,
+> ⚡ Quick Play = the last mode started, 🎮 Single player / 👥 Multiplayer ->
+> setup screens with the game's `extra` pickers and ▶ Start; ❓ 🏆 🏅 📊 ⚙),
+> every card has 🏠 Home (‹ Back over the pause menu), the pause menu is
+> Resume / Restart / How to Play / 🏆 / 📊 / 📸 / ⚙ Options / 🏠 Home (no Hub),
+> ⚙ Options = app-wide settings + per-game Rotate and Classic / Voodoo, and
+> the kit frees the floating SettingsDrawer. Per-game choices:
+> `user://landing_<ID>.json`. Public API unchanged (`start_mode(m)` added),
+> so no game code changed. `tools/crawl.gd` walks all of it. The notes below
+> describe the parts that didn't change. Spanish: game Home is "🏠 Menú",
+> the hub is "Inicio".
+
 Every game except Sudoku (its own reference Home) and Voodoo IQ (its brain
 map) builds its Home screen, pause menu and neon look with the kit.
 `tools/templates/home_kit.gd` is the only copy ever edited: `hub.py sync`

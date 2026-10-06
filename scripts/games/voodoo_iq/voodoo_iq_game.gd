@@ -117,10 +117,8 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/voodoo_iq/voodoo_iq_help.gd"))
 		add_child(info)
-	var drawer := SettingsDrawer.new()
-	drawer.set("default_frac", 0.3)
-	# Must stay the last child so its tab sits above any dialog.
-	add_child(drawer)
+	# No floating SettingsDrawer (retired, STANDARDS §6): the test's own ⏸
+	# card has text size and sound, and Hub is only on the home page (N1).
 
 # ================================================================== helpers
 

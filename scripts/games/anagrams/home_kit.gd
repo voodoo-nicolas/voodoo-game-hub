@@ -1,22 +1,37 @@
 extends Control
 
-## Home screen kit (Minigame standards #2 and #5): a game's own Home screen,
-## its pause menu and the neon look, in one file.
+## Landing kit (docs/STANDARDS.md §1-§7; it grew out of the Home screen kit):
+## a game's own Landing page, its setup screens, pause menu, game Options
+## and the neon look, in one file.
 ##
 ## GENERATED: `python tools/hub.py sync` copies tools/templates/home_kit.gd to
 ## scripts/games/<id>/home_kit.gd for every game that uses it, so each pack
-## carries its own copy (packs must run on any app version). Edit the
+## carries its own copy (packs must run on any app version -- that is why the
+## navigation lives here rather than APK-side; STANDARDS §1 N7). Edit the
 ## template, never a copy -- `hub.py check` fails if a copy differs.
 ##
-## The game designs its Home: its logo is drawn by the game's own code, and
-## it picks the title colour, the subtitle and the ways to play. The kit
-## draws the rest the same way everywhere: Resume, the play buttons, How to
-## Play, 🏆 Leaderboard (Everyone / Friends), 📊 Statistics, 🏅 Achievements,
-## 🔊 Sound and Back to Hub. Online games also get "📨 Invite a friend"
-## (hosts and lists friends), and Home steps aside whenever the online lobby
-## opens -- also when a friend's invite opened the game. The friends and
-## achievements parts need app v0.25+ (Social, GameInfo.achievement_rows)
-## and simply don't show on older apps.
+## Navigation (STANDARDS §1):
+## - The Landing page is the only screen with "← Hub" (N1). Every other screen
+##   has 🏠 Home (back to the Landing) -- or ‹ Back when it was opened from the
+##   pause menu (N2). Android back is one step up: a card closes, the pause
+##   menu resumes, the game pauses, the Landing leaves to the hub (N4).
+## - Landing (§3): the game's logo + title + subtitle, ▶ Resume (a save
+##   exists), ⚡ Quick Play (the way you played last), then 🎮 Single player
+##   and/or 👥 Multiplayer. Each opens a setup screen (§4/§5): the game's own
+##   pickers (cfg "extra"), the ways to play (pick one -- tap it again or ▶
+##   Start), remembered for Quick Play. A group with one way to play and no
+##   pickers starts straight from the Landing (N6). Then ❓ How to Play,
+##   🏆 Leaderboard, 🏅 Achievements (All / Earned / Locked), 📊 Statistics,
+##   ⚙ Options and the game's own cfg "more" screens.
+## - Pause menu (§6): ▶ Resume, ↺ Restart, ❓ How to Play, 🏆, 📊,
+##   📸 Screenshot, ⚙ Options, 🏠 Home -- no Hub (N1). It saves first.
+## - Options (§7): the app-wide settings (text size, sound, vibration, keep
+##   screen on, game invites -- changing one changes it everywhere) and, per
+##   game, 🔄 Rotate and Classic / 💀 Voodoo for games with a skin (default:
+##   the app-wide skull mode). Per-game choices are in user://landing_<ID>.json.
+## - The old floating ⚙ SettingsDrawer is removed from every kit game: its
+##   items are in the pause menu and Options now (§6). Games may still add it
+##   (older copies of this kit used it); the kit frees it.
 ##
 ##     const HomeKit = preload("res://scripts/games/<id>/home_kit.gd")
 ##     var home  # this kit
@@ -38,27 +53,29 @@ extends Control
 ##         "board": "Best score",            # the stat the 🏆 Leaderboard ranks ("none": no board)
 ##         "board_note": "How the score is counted.",
 ##         "online": online,                 # OnlineMatch node, if any
-##         "extra": _add_options,            # func(box): the game's own pickers above the modes
+##         "extra": _add_options,            # func(box): the game's own pickers, on the setup screens
 ##         "more": [["📜 History", PURPLE, _show_history]],  # the game's own buttons under More
 ##     })
 ##     add_child(home)
 ##     if info: add_child(info)
-##     add_child(SettingsDrawer.new())       # stays last
 ##
-## While Home (or the pause menu) is up the scene tree is paused, so the game
-## underneath -- even one that started itself in _ready() -- stands still;
-## Home itself runs with PROCESS_MODE_ALWAYS. A play button hides Home,
-## un-pauses and calls the mode's action, which starts a fresh game.
+## Modes sharing a "row" value sit side by side (difficulty levels); "key"
+## (optional, else "text") is what Quick Play remembers. "solo_heading" /
+## "multi_heading" rename the two groups.
 ##
-## Pause (standard #5): the game's own ⏸ button calls `home.pause()` (or
-## use `home.pause_button()`). The menu saves (the game's `_save_game()`),
-## and offers Continue, Restart (cfg "restart"), How to Play, Sound, the
-## game's Home and the Hub. Going Home saves and reloads the scene, so it
-## opens on Home with Resume -- no game has to unwind its own state.
+## While the Landing (or the pause menu) is up the scene tree is paused, so
+## the game underneath -- even one that started itself in _ready() -- stands
+## still; the kit runs with PROCESS_MODE_ALWAYS. Starting a mode hides the
+## Landing, un-pauses and calls the mode's action, which starts a fresh game.
+## The game's own ⏸ button calls `home.pause()` (or use `home.pause_button()`).
+## Going 🏠 Home saves and reloads the scene, so it opens on the Landing with
+## Resume -- no game has to unwind its own state.
 ##
 ## Strings given in cfg are English; the kit translates them.
 
 const SOUND_OPTIONS_PATH := "res://scripts/common/sound_options.gd"
+const VOODOO_PATH := "res://scripts/common/voodoo.gd"
+const ORIENTATION_PATH := "res://scripts/common/orientation.gd"
 const HUB_SCENE := "res://scenes/hub/hub.tscn"
 const LEADERBOARD_SIZE := 10
 
@@ -83,6 +100,7 @@ var accent: Color = CYAN
 
 var home: Control
 var resume_btn: Button
+var quick_btn: Button
 var info_overlay: Control
 var stats_overlay: Control
 var stats_box: VBoxContainer
@@ -91,15 +109,24 @@ var lb_box: VBoxContainer
 var lb_friends: bool = false  # 👥 Friends tab of the leaderboard (Social, app v0.25+)
 var ach_overlay: Control
 var ach_box: VBoxContainer
+var ach_filter: int = 0  # 0 all, 1 earned, 2 locked
 var pause_overlay: Control
 var pause_grid: GridContainer
+var _toast: Label
 var _logo: Control
 var _paused_by_me: bool = false
 var _more: GridContainer
 var _home_margin: MarginContainer
-## Drag-anywhere scrolling for Home: its buttons swallow presses, so without
-## this a sideways phone (where Home is taller than the screen) could only
-## scroll from the thin scrollbar and the buttons below stayed out of reach.
+## The ways to play, split the way the Landing shows them.
+var _solo: Array = []
+var _multi: Array = []
+## Per-game choices (user://landing_<ID>.json): "last" = Quick Play's mode
+## key, "skin" = "classic" / "voodoo".
+var _prefs: Dictionary = {}
+var _drawer_checked_twice := false
+## Drag-anywhere scrolling for the Landing: its buttons swallow presses, so
+## without this a sideways phone (where it is taller than the screen) could
+## only scroll from the thin scrollbar and the buttons below stayed out of reach.
 var _drag: _DragScroll
 
 ## A small copy of scripts/common/drag_scroll.gd (the kit can't rely on the
@@ -143,6 +170,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_load_prefs()
 	_build_home()
 	_build_info_overlay()
 	_build_stats_overlay()
@@ -159,15 +187,21 @@ func _ready() -> void:
 	# A killed app reopening mid-match goes straight back to the lobby's
 	# "Rejoin game" (OnlineMatch opens it deferred): get out of its way.
 	call_deferred("_check_rejoin")
+	# The game adds the old floating drawer after us, and builds its pieces
+	# from the app-wide skull mode: both are sorted out once it's all there.
+	call_deferred("_remove_drawer")
+	call_deferred("_apply_skin_pref")
 
 func _exit_tree() -> void:
 	_unpause()
 
 func _notification(what: int) -> void:
-	# Android's back gesture: from the game it pauses, from Home it leaves.
+	# Android's back gesture: one step up (STANDARDS N4).
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_inside_tree():
 		if _any_overlay_open():
-			_close_overlays()
+			_close_top_overlay()
+		elif pause_overlay.visible:
+			resume_play()
 		elif home.visible:
 			go_hub()
 		else:
@@ -192,22 +226,20 @@ func show_home() -> void:
 	home.visible = true
 	refresh()
 	_pause_tree()
-	_set_drawer_visible(false)
+	_remove_drawer()
 
 func hide_home() -> void:
 	home.visible = false
 	_close_overlays()
 	_unpause()
-	_set_drawer_visible(true)
 
 ## The pause menu (standard #5). Saves first, so leaving from here loses nothing.
 func pause() -> void:
 	if home.visible or pause_overlay.visible:
 		return
 	_save_game()
-	# Two columns when the phone is sideways, so the menu fits the height.
-	var view := get_viewport_rect().size
-	pause_grid.columns = 2 if view.x > view.y else 1
+	_fit_pause_layout()
+	_toast.visible = false
 	pause_overlay.visible = true
 	_pause_tree()
 
@@ -216,7 +248,7 @@ func resume_play() -> void:
 	_close_overlays()
 	_unpause()
 
-## Back to this game's Home: save, then reload the scene (it opens on Home).
+## Back to this game's Landing: save, then reload the scene (it opens there).
 func go_home() -> void:
 	_save_game()
 	_unpause()
@@ -226,6 +258,17 @@ func go_hub() -> void:
 	_save_game()
 	_unpause()
 	get_tree().change_scene_to_file(HUB_SCENE)
+
+## Starts one of cfg "modes" as if picked on its setup screen (also used by
+## tools/crawl.gd).
+func start_mode(m: Dictionary) -> void:
+	_prefs["last"] = _mode_key(m)
+	_save_prefs()
+	hide_home()
+	var action: Callable = m.get("action", Callable())
+	if action.is_valid():
+		action.call()
+	_refit()
 
 ## A ⏸ button for the game's top bar, already wired to pause().
 func pause_button(text: String = "⏸") -> Button:
@@ -237,7 +280,7 @@ func pause_button(text: String = "⏸") -> Button:
 	b.pressed.connect(pause)
 	return b
 
-## A section heading in the Home style, for a game's "extra" controls.
+## A section heading in the kit's style, for a game's "extra" controls.
 func section(text: String) -> Label:
 	return _section(tr(text))
 
@@ -253,15 +296,12 @@ func choice_row(names: Array, current: int, on_pick: Callable, color: Color = CY
 		b.button_group = group
 		b.button_pressed = i == current
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var on := neon_box(color, "pressed")
-		on.bg_color = Color(color, 0.45)
-		on.set_border_width_all(3)
-		b.add_theme_stylebox_override("pressed", on)
+		_style_toggle(b, color)
 		b.pressed.connect(on_pick.bind(i))
 		row.add_child(b)
 	return row
 
-## Re-reads the save and the stats (called every time Home shows).
+## Re-reads the save and the stats (called every time the Landing shows).
 func refresh() -> void:
 	var path: String = cfg.get("save_path", "")
 	var can_resume: bool = cfg.has("resume") and path != "" and FileAccess.file_exists(path)
@@ -271,9 +311,15 @@ func refresh() -> void:
 	if can_resume:
 		var detail: String = str(cfg.resume_text.call()) if cfg.has("resume_text") else ""
 		resume_btn.text = "▶  " + tr("Resume") + ("   ·   " + detail if detail != "" else "")
+	var last := _last_mode()
+	# Quick Play only when there's a choice to skip (one way to play is
+	# already one tap on the Landing).
+	quick_btn.visible = not last.is_empty() and _solo.size() + _multi.size() > 1
+	if quick_btn.visible:
+		quick_btn.text = "⚡  " + tr("Quick Play") + "\n" + tr(str(last.get("text", ""))).strip_edges()
 	_submit_board()
 
-# ---------- Home ----------
+# ---------- Landing ----------
 
 func _build_home() -> void:
 	home = Control.new()
@@ -302,7 +348,7 @@ func _build_home() -> void:
 	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	for side in ["left", "right"]:
 		margin.add_theme_constant_override("margin_" + side, 40)
-	margin.add_theme_constant_override("margin_top", 36)
+	margin.add_theme_constant_override("margin_top", 24)
 	margin.add_theme_constant_override("margin_bottom", 40)
 	scroll.add_child(margin)
 	_home_margin = margin
@@ -310,6 +356,14 @@ func _build_home() -> void:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 16)
 	margin.add_child(box)
+
+	# ← Hub: the only way from a game to the hub (N1).
+	var top := HBoxContainer.new()
+	var hub := neon_button(tr("← Hub"), DIM, 24, 60)
+	hub.custom_minimum_size.x = 150
+	hub.pressed.connect(_on_hub_pressed)
+	top.add_child(hub)
+	box.add_child(top)
 
 	if cfg.has("logo"):
 		_logo = Control.new()
@@ -337,25 +391,22 @@ func _build_home() -> void:
 	resume_btn = neon_button("", LIME, 30, 84)
 	resume_btn.pressed.connect(_on_resume)
 	box.add_child(resume_btn)
-
-	# A game's own choices that go with every mode (board size, deck...):
-	# cfg "extra" is func(box: VBoxContainer) that adds them.
-	if cfg.has("extra"):
-		cfg.extra.call(box)
+	quick_btn = neon_button("", GOLD, 26, 92)
+	quick_btn.pressed.connect(_on_quick)
+	box.add_child(quick_btn)
 
 	var modes: Array = cfg.get("modes", []).duplicate()
 	if cfg.has("online"):
 		var inv := _invite_mode()
 		if not inv.is_empty():
 			modes.append(inv)
-	var solo := modes.filter(func(m): return not m.get("multi", false))
-	var multi := modes.filter(func(m): return m.get("multi", false))
-	if not solo.is_empty():
-		box.add_child(_section(tr(str(cfg.get("solo_heading", "Single player" if not multi.is_empty() else "Play")))))
-		_add_modes(box, solo, accent)
-	if not multi.is_empty():
-		box.add_child(_section(tr(str(cfg.get("multi_heading", "Multiplayer")))))
-		_add_modes(box, multi, MAGENTA)
+	_solo = modes.filter(func(m): return not m.get("multi", false))
+	_multi = modes.filter(func(m): return m.get("multi", false))
+	var both: bool = not _solo.is_empty() and not _multi.is_empty()
+	if not _solo.is_empty():
+		box.add_child(_group_button(_solo, false, both))
+	if not _multi.is_empty():
+		box.add_child(_group_button(_multi, true, both))
 
 	box.add_child(_section(tr("More")))
 	var more := GridContainer.new()
@@ -364,14 +415,13 @@ func _build_home() -> void:
 	more.add_theme_constant_override("h_separation", 16)
 	more.add_theme_constant_override("v_separation", 16)
 	box.add_child(more)
-	var items := [[tr("❓ How to Play"), BLUE, func(): info_overlay.visible = true]]
+	var items := [[tr("❓ How to Play"), BLUE, _show_overlay.bind(null, "info")]]
 	if _board_key() != "none":
 		items.append([tr("🏆 Leaderboard"), GOLD, _show_leaderboard])
-	items.append([tr("📊 Statistics"), PURPLE, _show_stats])
 	if info and info.has_method("achievement_rows"):
 		items.append([tr("🏅 Achievements"), PINK, _show_achievements])
-	if ResourceLoader.exists(SOUND_OPTIONS_PATH) and get_node_or_null("/root/Settings"):
-		items.append([tr("🔊 Sound"), CYAN, _show_sound])
+	items.append([tr("📊 Statistics"), PURPLE, _show_stats])
+	items.append([tr("⚙ Options"), CYAN, _show_options])
 	# A game's own screens (cfg "more": [[English text, colour, callable], ...]).
 	for it in cfg.get("more", []):
 		items.append([tr(str(it[0])), it[1], it[2]])
@@ -380,13 +430,27 @@ func _build_home() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(_on_more.bind(it[2]))
 		more.add_child(b)
-
-	box.add_child(gap(4))
-	var hub := neon_button(tr("Back to Hub"), DIM, 26, 68)
-	hub.pressed.connect(_on_hub_pressed)
-	box.add_child(hub)
 	get_viewport().size_changed.connect(_fit_home_layout)
 	_fit_home_layout()
+
+## The Landing's button for a group of modes: one way to play with no pickers
+## starts straight away (N6); otherwise it opens that group's setup screen.
+func _group_button(modes: Array, multi: bool, both: bool) -> Button:
+	var color: Color = MAGENTA if multi else accent
+	if modes.size() == 1 and not cfg.has("extra"):
+		return _mode_button(modes[0], color)
+	var heading := str(cfg.get("multi_heading" if multi else "solo_heading", ""))
+	var text: String
+	if heading != "":
+		text = tr(heading)
+	elif not both:
+		text = "▶  " + tr("Play")
+	else:
+		text = tr("👥 Multiplayer") if multi else tr("🎮 Single player")
+	var sub: String = tr("%d ways to play") % modes.size() if modes.size() > 1 else tr(str(modes[0].get("text", ""))).strip_edges()
+	var b := neon_button(text + "\n" + sub, color, 30, 100)
+	b.pressed.connect(_on_group.bind(multi))
+	return b
 
 ## Sideways phones: a shorter logo, tighter margins and three buttons per row
 ## under More, so the play buttons are on screen without scrolling far.
@@ -399,7 +463,7 @@ func _fit_home_layout() -> void:
 	if _more:
 		_more.columns = 3 if wide else 2
 	if _home_margin:
-		_home_margin.add_theme_constant_override("margin_top", 14 if wide else 36)
+		_home_margin.add_theme_constant_override("margin_top", 10 if wide else 24)
 		_home_margin.add_theme_constant_override("margin_bottom", 20 if wide else 40)
 
 func _dragged() -> bool:
@@ -412,25 +476,6 @@ func _on_more(action: Callable) -> void:
 func _on_hub_pressed() -> void:
 	if not _dragged():
 		go_hub()
-
-## Modes sharing a "row" value sit side by side (difficulty levels).
-func _add_modes(box: VBoxContainer, modes: Array, color: Color) -> void:
-	var row: HBoxContainer = null
-	var row_id = null
-	for m in modes:
-		var b := _mode_button(m, color)
-		if m.has("row"):
-			if row == null or m.row != row_id:
-				row = HBoxContainer.new()
-				row.add_theme_constant_override("separation", 14)
-				box.add_child(row)
-				row_id = m.row
-			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			row.add_child(b)
-		else:
-			row = null
-			row_id = null
-			box.add_child(b)
 
 ## The biggest title size (up to 60) whose longest word fits the screen, so a
 ## long name ("Rompeladrillos") shrinks instead of breaking mid-word.
@@ -446,23 +491,22 @@ func _title_size(text: String) -> int:
 		fs -= 2
 	return fs
 
-func _mode_button(m: Dictionary, default_color: Color) -> Button:
+func _mode_text(m: Dictionary) -> String:
 	var text: String = tr(str(m.get("text", "")))
 	if m.has("sub") and str(m.sub) != "":
 		text += "\n" + tr(str(m.sub))
+	return text
+
+func _mode_button(m: Dictionary, default_color: Color) -> Button:
 	var small: bool = m.has("row")
-	var b := neon_button(text, m.get("color", default_color), 24 if small else 30, 100 if m.has("sub") else 84)
+	var b := neon_button(_mode_text(m), m.get("color", default_color), 24 if small else 30, 100 if m.has("sub") else 84)
 	b.pressed.connect(_on_mode.bind(m))
 	return b
 
 func _on_mode(m: Dictionary) -> void:
 	if _dragged():
 		return
-	hide_home()
-	var action: Callable = m.get("action", Callable())
-	if action.is_valid():
-		action.call()
-	_refit()
+	start_mode(m)
 
 func _on_resume() -> void:
 	if _dragged():
@@ -472,9 +516,33 @@ func _on_resume() -> void:
 		cfg.resume.call()
 	_refit()
 
-## The app sizes each screen to fit when it opens -- while Home was showing.
-## A game screen that only appears now (its own start box hidden until
-## Play) is measured again, so nothing wider than the phone is cut off.
+func _on_quick() -> void:
+	if _dragged():
+		return
+	var last := _last_mode()
+	if not last.is_empty():
+		start_mode(last)
+
+func _on_group(multi: bool) -> void:
+	if not _dragged():
+		_open_setup(multi)
+
+func _mode_key(m: Dictionary) -> String:
+	return str(m.get("key", m.get("text", "")))
+
+## The mode Quick Play would start, or {} if none (or it no longer exists).
+func _last_mode() -> Dictionary:
+	var key := str(_prefs.get("last", ""))
+	if key == "":
+		return {}
+	for m in _solo + _multi:
+		if _mode_key(m) == key:
+			return m
+	return {}
+
+## The app sizes each screen to fit when it opens -- while the Landing was
+## showing. A game screen that only appears now is measured again, so
+## nothing wider than the phone is cut off.
 func _refit() -> void:
 	var s = get_node_or_null("/root/Settings")
 	if s and s.has_method("_fit_scene"):
@@ -515,6 +583,61 @@ func _invite_mode() -> Dictionary:
 func _invite_friend() -> void:
 	var online: Node = cfg.get("online")
 	online.lobby.auto_start({"mode": "invite"})
+
+# ---------- setup screens (STANDARDS §4 / §5) ----------
+
+## Single player or Multiplayer setup: the game's own pickers, then its ways
+## to play. The last one played starts out picked; tapping the picked one
+## again (or ▶ Start) starts it. Built fresh each time, so pickers show the
+## current choice.
+func _open_setup(multi: bool) -> void:
+	var modes: Array = _multi if multi else _solo
+	var color: Color = MAGENTA if multi else accent
+	var heading := str(cfg.get("multi_heading" if multi else "solo_heading", ""))
+	var title_text: String = tr(heading) if heading != "" else (tr("👥 Multiplayer") if multi else tr("🎮 Single player"))
+	var parts := _overlay(title_text, color, true)
+	var body: VBoxContainer = parts[1]
+	var col: VBoxContainer = parts[2]
+	if cfg.has("extra"):
+		cfg.extra.call(body)
+	body.add_child(_section(tr("Choose how to play")))
+	var last := _last_mode()
+	var chosen := {"m": last if modes.has(last) else modes[0]}
+	var group := ButtonGroup.new()
+	var row: HBoxContainer = null
+	var row_id = null
+	for m in modes:
+		var b := neon_button(_mode_text(m), m.get("color", color), 24 if m.has("row") else 28, 96 if m.has("sub") else 80)
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = m == chosen.m
+		_style_toggle(b, m.get("color", color))
+		b.pressed.connect(_on_setup_pick.bind(m, chosen))
+		if m.has("row"):
+			if row == null or m.row != row_id:
+				row = HBoxContainer.new()
+				row.add_theme_constant_override("separation", 14)
+				body.add_child(row)
+				row_id = m.row
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(b)
+		else:
+			row = null
+			row_id = null
+			body.add_child(b)
+	var start := neon_button("▶  " + tr("Start"), LIME, 32, 90)
+	start.pressed.connect(_on_setup_start.bind(chosen))
+	col.add_child(start)
+	_show_overlay(parts[0])
+
+func _on_setup_pick(m: Dictionary, chosen: Dictionary) -> void:
+	if chosen.m == m:
+		start_mode(m)
+	else:
+		chosen.m = m
+
+func _on_setup_start(chosen: Dictionary) -> void:
+	start_mode(chosen.m)
 
 # ---------- How to Play ----------
 
@@ -565,7 +688,7 @@ func _show_stats() -> void:
 	if rows == 0:
 		stats_box.add_child(label(tr("Play a game and your records will show up here.") if info
 			else tr("Update the app to keep statistics."), 24, DIM, true))
-	stats_overlay.visible = true
+	_show_overlay(stats_overlay)
 
 func _stat_label(key: String) -> String:
 	return info._label(key) if info and info.has_method("_label") else tr(key)
@@ -583,17 +706,30 @@ func _build_achievements_overlay() -> void:
 	ach_overlay = parts[0]
 	ach_box = parts[1]
 
+## All / Earned / Locked (STANDARDS §3b), progress bars on locked counters.
 func _show_achievements() -> void:
 	_clear(ach_box)
 	var rows: Array = info.achievement_rows()
 	var have := rows.filter(func(r): return r.unlocked).size()
 	ach_box.add_child(label(tr("%d of %d unlocked") % [have, rows.size()], 30, PINK, true, true))
+	ach_box.add_child(choice_row(["All", "Earned", "Locked"], ach_filter, _on_ach_filter, PINK))
 	ach_box.add_child(gap(4))
+	var shown := 0
 	for r in rows:
+		if (ach_filter == 1 and not r.unlocked) or (ach_filter == 2 and r.unlocked):
+			continue
 		ach_box.add_child(_badge(r))
-	ach_overlay.visible = true
+		shown += 1
+	if shown == 0:
+		ach_box.add_child(label(tr("None yet — keep playing!") if ach_filter == 1 else tr("All unlocked!"), 24, DIM, true, true))
+	_show_overlay(ach_overlay)
+
+func _on_ach_filter(i: int) -> void:
+	ach_filter = i
+	_show_achievements()
 
 func _badge(r: Dictionary) -> Control:
+	var secret: bool = bool(r.get("hidden", false)) and not r.unlocked
 	var panel := PanelContainer.new()
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(PINK, 0.12) if r.unlocked else Color(1, 1, 1, 0.03)
@@ -615,9 +751,9 @@ func _badge(r: Dictionary) -> Control:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 2)
 	row.add_child(col)
-	col.add_child(label(str(r.title), 27, GOLD if r.unlocked else WHITE, true))
-	col.add_child(label(str(r.desc), 22, DIM, true))
-	if not r.unlocked and float(r.progress) > 0.0:
+	col.add_child(label("???" if secret else str(r.title), 27, GOLD if r.unlocked else WHITE, true))
+	col.add_child(label(tr("Keep playing to find out.") if secret else str(r.desc), 22, DIM, true))
+	if not r.unlocked and not secret and float(r.progress) > 0.0:
 		var bar := ProgressBar.new()
 		bar.show_percentage = false
 		bar.custom_minimum_size = Vector2(0, 10)
@@ -670,7 +806,7 @@ func _submit_board() -> void:
 		a.submit_score(str(consts.get("ID", "")), int(mine))
 
 func _show_leaderboard() -> void:
-	lb_overlay.visible = true
+	_show_overlay(lb_overlay)
 	_clear(lb_box)
 	var a := _auth()
 	if a == null:
@@ -740,15 +876,122 @@ func _on_leaderboard(rows: Variant) -> void:
 	if cfg.has("board_note"):
 		lb_box.add_child(label(tr(str(cfg.board_note)), 23, DIM, true))
 
-# ---------- Sound ----------
+# ---------- Options (STANDARDS §7) ----------
 
+## This game's choices first, then the app-wide settings (the same values as
+## the hub's Options: changing one here changes it everywhere).
+func _show_options() -> void:
+	var parts := _overlay(tr("⚙ Options"), CYAN, true)
+	var body: VBoxContainer = parts[1]
+	var g := get_parent()
+	if g and g.has_method("_set_voodoo") and ResourceLoader.exists(VOODOO_PATH):
+		body.add_child(_section(tr("Look")))
+		body.add_child(choice_row(["Classic", "💀 Voodoo"], 1 if _skin_on() else 0, _on_skin_pick, PURPLE))
+	if ResourceLoader.exists(ORIENTATION_PATH):
+		body.add_child(_section(tr("Screen")))
+		var rot := neon_button(tr("🔄 Rotate Screen"), BLUE, 26, 70)
+		rot.pressed.connect(_rotate)
+		body.add_child(rot)
+	var last := _last_mode()
+	if not last.is_empty():
+		body.add_child(_section(tr("Quick Play")))
+		body.add_child(label(tr(str(last.get("text", ""))).strip_edges(), 25, WHITE, true))
+		body.add_child(label(tr("Whatever you start from a setup screen becomes Quick Play."), 22, DIM, true))
+	var s := get_node_or_null("/root/Settings")
+	if s:
+		body.add_child(gap(6))
+		body.add_child(label(tr("These settings are app-wide: they change every game."), 22, DIM, true))
+		if s.has_method("set_text_size") and "TEXT_SIZE_NAMES" in s:
+			body.add_child(_section(tr("Text & button size")))
+			body.add_child(choice_row(s.TEXT_SIZE_NAMES, int(s.text_size), _on_text_size, GOLD))
+		if s.has_method("set_vibrate"):
+			body.add_child(_section(tr("Vibration")))
+			body.add_child(choice_row(["On", "Off"], 0 if s.vibrate else 1, _on_vibrate, LIME))
+		if s.has_method("set_keep_awake"):
+			body.add_child(_section(tr("Keep screen on")))
+			body.add_child(choice_row(["On", "Off"], 0 if s.keep_awake else 1, _on_keep_awake, LIME))
+		if s.has_method("set_invites") and "INVITE_MODES" in s:
+			body.add_child(_section(tr("🔔 Game invites")))
+			body.add_child(choice_row(s.INVITE_MODE_NAMES, maxi(0, s.INVITE_MODES.find(s.invites)), _on_invites, PINK))
+		if ResourceLoader.exists(SOUND_OPTIONS_PATH):
+			body.add_child(_section(tr("🔊 Sound")))
+			body.add_child(load(SOUND_OPTIONS_PATH).new(s.DARK if "DARK" in s else s.palette(), false))
+	_show_overlay(parts[0])
+
+func _skin_on() -> bool:
+	if _prefs.has("skin"):
+		return str(_prefs.skin) == "voodoo"
+	return ResourceLoader.exists(VOODOO_PATH) and load(VOODOO_PATH).is_on()
+
+func _on_skin_pick(i: int) -> void:
+	_prefs["skin"] = "voodoo" if i == 1 else "classic"
+	_save_prefs()
+	var g := get_parent()
+	if g and g.has_method("_set_voodoo"):
+		g._set_voodoo(i == 1)
+
+## A game picks up the app-wide skull mode when it builds itself; this
+## game's own choice (Options) wins.
+func _apply_skin_pref() -> void:
+	var g := get_parent()
+	if not _prefs.has("skin") or g == null or not g.has_method("_set_voodoo") or not ResourceLoader.exists(VOODOO_PATH):
+		return
+	var want: bool = str(_prefs.skin) == "voodoo"
+	if want != bool(load(VOODOO_PATH).is_on()):
+		g._set_voodoo(want)
+
+## Saves, then reloads the scene turned the other way (the scene's own
+## orientation lock rotates once instead of undoing it).
+func _rotate() -> void:
+	_save_game()
+	_unpause()
+	var view := get_viewport_rect().size
+	load(ORIENTATION_PATH).override_next(view.x <= view.y)
+	get_tree().reload_current_scene()
+
+func _on_text_size(i: int) -> void:
+	var s := get_node_or_null("/root/Settings")
+	if s:
+		s.set_text_size(i)
+
+func _on_vibrate(i: int) -> void:
+	var s := get_node_or_null("/root/Settings")
+	if s:
+		s.set_vibrate(i == 0)
+
+func _on_keep_awake(i: int) -> void:
+	var s := get_node_or_null("/root/Settings")
+	if s:
+		s.set_keep_awake(i == 0)
+
+func _on_invites(i: int) -> void:
+	var s := get_node_or_null("/root/Settings")
+	if s:
+		s.set_invites(str(s.INVITE_MODES[i]))
+
+## The sound card on its own (kept for games that open it themselves).
 func _show_sound() -> void:
 	var settings = get_node_or_null("/root/Settings")
-	if settings == null:
+	if settings == null or not ResourceLoader.exists(SOUND_OPTIONS_PATH):
 		return
 	var parts := _overlay(tr("🔊 Sound"), CYAN, true)
 	parts[1].add_child(load(SOUND_OPTIONS_PATH).new(settings.DARK if "DARK" in settings else settings.palette(), false))
-	parts[0].visible = true
+	_show_overlay(parts[0])
+
+# ---------- per-game choices ----------
+
+func _prefs_path() -> String:
+	return "user://landing_%s.json" % str(consts.get("ID", "game"))
+
+func _load_prefs() -> void:
+	var text := FileAccess.get_file_as_string(_prefs_path())
+	var parsed = JSON.parse_string(text) if text != "" else null
+	_prefs = parsed if parsed is Dictionary else {}
+
+func _save_prefs() -> void:
+	var f := FileAccess.open(_prefs_path(), FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(_prefs))
 
 # ---------- Pause ----------
 
@@ -764,35 +1007,69 @@ func _build_pause_overlay() -> void:
 	pause_overlay.add_child(center)
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
+	box.add_theme_constant_override("separation", 14)
 	center.add_child(box)
-	var title := label(tr("Paused").to_upper(), 56, accent.lerp(Color.WHITE, 0.72))
+	var title := label(tr("Paused").to_upper(), 52, accent.lerp(Color.WHITE, 0.72))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_outline_color", Color(accent, 0.6))
 	title.add_theme_constant_override("outline_size", 12)
 	box.add_child(title)
-	box.add_child(gap(8))
+	box.add_child(gap(4))
 	pause_grid = GridContainer.new()
 	pause_grid.add_theme_constant_override("h_separation", 16)
-	pause_grid.add_theme_constant_override("v_separation", 16)
+	pause_grid.add_theme_constant_override("v_separation", 14)
 	box.add_child(pause_grid)
-	var specs := [[tr("▶  Continue"), LIME, resume_play]]
+	var specs := [[tr("▶  Resume"), LIME, resume_play]]
 	if cfg.has("restart"):
 		specs.append([tr("↺  Restart"), GOLD, _on_restart])
-	specs.append([tr("❓ How to Play"), BLUE, func(): info_overlay.visible = true])
-	if ResourceLoader.exists(SOUND_OPTIONS_PATH) and get_node_or_null("/root/Settings"):
-		specs.append([tr("🔊 Sound"), CYAN, _show_sound])
+	specs.append([tr("❓ How to Play"), BLUE, _show_overlay.bind(null, "info")])
+	if _board_key() != "none":
+		specs.append([tr("🏆 Leaderboard"), GOLD, _show_leaderboard])
+	specs.append([tr("📊 Statistics"), PURPLE, _show_stats])
+	specs.append([tr("📸 Screenshot"), CYAN, _screenshot])
+	specs.append([tr("⚙ Options"), BLUE, _show_options])
 	specs.append([tr("🏠 %s Home") % tr(cfg.get("title", consts.get("TITLE", ""))), PURPLE, go_home])
-	specs.append([tr("Back to Hub"), DIM, go_hub])
 	for s in specs:
-		var b := neon_button(s[0], s[1], 30, 80)
-		b.custom_minimum_size.x = 440
+		var b := neon_button(s[0], s[1], 28, 74)
 		b.pressed.connect(s[2])
 		pause_grid.add_child(b)
+	_toast = label("", 24, LIME, true, true)
+	_toast.visible = false
+	box.add_child(_toast)
+
+## One column on a tall phone, two when it's sideways or short.
+func _fit_pause_layout() -> void:
+	var view := get_viewport_rect().size
+	var two: bool = view.x > view.y or view.y < 1000.0
+	pause_grid.columns = 2 if two else 1
+	var w: float = minf(440.0, (view.x - 90.0) / 2.0) if two else minf(440.0, view.x - 80.0)
+	for b in pause_grid.get_children():
+		b.custom_minimum_size.x = w
 
 func _on_restart() -> void:
 	resume_play()
 	cfg.restart.call()
+
+## 📸 (STANDARDS §6): the game as it is under the menu, saved to the app's
+## folder and, where Android allows it, the phone's Pictures.
+func _screenshot() -> void:
+	pause_overlay.visible = false
+	await RenderingServer.frame_post_draw
+	if not is_inside_tree():
+		return
+	var img: Image = get_viewport().get_texture().get_image()
+	pause_overlay.visible = true
+	DirAccess.make_dir_recursive_absolute("user://screenshots")
+	var stamp: int = int(Time.get_unix_time_from_system())
+	img.save_png("user://screenshots/%s_%d.png" % [str(consts.get("ID", "game")), stamp])
+	var pictures: String = OS.get_system_dir(OS.SYSTEM_DIR_PICTURES)
+	if pictures != "":
+		img.save_png(pictures.path_join("viral_%s_%d.png" % [str(consts.get("ID", "game")), stamp]))
+	_toast.text = tr("Screenshot saved!")
+	_toast.visible = true
+	var tw := create_tween()
+	tw.tween_interval(1.8)
+	tw.tween_callback(_toast.hide)
 
 # ---------- pausing ----------
 
@@ -813,43 +1090,76 @@ func _save_game() -> void:
 	if g and g.has_method("_save_game"):
 		g._save_game()
 
-func _set_drawer_visible(on: bool) -> void:
+## The floating ⚙ drawer is retired (STANDARDS §6): its items are in the
+## pause menu and Options. Games still add it (and older apps need it for
+## packs that don't have this kit yet), so the kit frees it here.
+func _remove_drawer() -> void:
 	var g := get_parent()
 	if g == null:
 		return
 	for c in g.get_children():
 		if c != self and c.get_script() and str(c.get_script().resource_path).ends_with("settings_drawer.gd"):
-			c.visible = on
-	if not on:
-		# The drawer is added after us; hide it once it's there.
-		call_deferred("_hide_drawer_late")
+			c.queue_free()
+	# GameInfo adds a floating "?" tab when it finds no drawer; How to Play is
+	# on the Landing and in the pause menu here, so it goes too. Checked again
+	# a frame later, since GameInfo builds it deferred as well.
+	if info and "tab_button" in info and is_instance_valid(info.tab_button):
+		info.tab_button.queue_free()
+	if not _drawer_checked_twice:
+		_drawer_checked_twice = true
+		call_deferred("_remove_drawer")
 
-func _hide_drawer_late() -> void:
-	if home.visible:
-		var g := get_parent()
-		if g:
-			for c in g.get_children():
-				if c != self and c.get_script() and str(c.get_script().resource_path).ends_with("settings_drawer.gd"):
-					c.visible = false
+# ---------- cards over the Landing / pause menu ----------
+
+func _fixed_overlays() -> Array:
+	return [info_overlay, stats_overlay, lb_overlay, ach_overlay]
+
+func _open_overlays() -> Array:
+	var out: Array = []
+	for c in get_children():
+		if c is ColorRect and c != pause_overlay and c.has_meta("nav") and c.visible and not c.is_queued_for_deletion():
+			out.append(c)
+	return out
 
 func _any_overlay_open() -> bool:
-	for o in [info_overlay, stats_overlay, lb_overlay, ach_overlay]:
-		if o and o.visible:
-			return true
-	return false
+	return not _open_overlays().is_empty()
+
+func _close_top_overlay() -> void:
+	var open := _open_overlays()
+	if not open.is_empty():
+		_close_overlay(open[-1])
 
 func _close_overlays() -> void:
-	for o in [info_overlay, stats_overlay, lb_overlay, ach_overlay]:
-		if o:
-			o.visible = false
+	for o in _open_overlays():
+		_close_overlay(o)
+
+func _close_overlay(o: Control) -> void:
+	if o.get_meta("temporary", false):
+		o.queue_free()
+	else:
+		o.hide()
+
+## Shows a card on top, its corner button reading 🏠 Home over the Landing
+## (N2) or ‹ Back over the pause menu. `which` = "info" for How to Play
+## (so it can be bound before the card exists).
+func _show_overlay(o: Control, which: String = "") -> void:
+	if which == "info":
+		o = info_overlay
+	if o == null:
+		return
+	var nav: Button = o.get_meta("nav")
+	nav.text = ("‹  " + tr("Back")) if pause_overlay.visible else tr("🏠 Home")
+	move_child(o, get_child_count() - 1)
+	o.visible = true
 
 # ---------- building blocks ----------
 
-## A full-screen card with a title, a scrolling body and a Close button.
-## Returns [overlay, body]. `temporary` overlays free themselves on close.
+## A full-screen card: a top bar (🏠 Home / ‹ Back + title), a scrolling
+## body, and room under it for a fixed button. Returns [overlay, body,
+## column]. `temporary` cards free themselves when closed.
 func _overlay(title_text: String, color: Color, temporary: bool = false) -> Array:
 	var overlay := ColorRect.new()
-	overlay.color = Color(0.02, 0.025, 0.05, 0.97)
+	overlay.color = Color(0.02, 0.025, 0.05, 1.0)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	overlay.visible = false
 	overlay.add_to_group("modal_overlay")
@@ -857,19 +1167,31 @@ func _overlay(title_text: String, color: Color, temporary: bool = false) -> Arra
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var margin := MarginContainer.new()
 	for side in ["left", "right"]:
-		margin.add_theme_constant_override("margin_" + side, 36)
-	margin.add_theme_constant_override("margin_top", 40)
-	margin.add_theme_constant_override("margin_bottom", 32)
+		margin.add_theme_constant_override("margin_" + side, 32)
+	margin.add_theme_constant_override("margin_top", 24)
+	margin.add_theme_constant_override("margin_bottom", 28)
 	overlay.add_child(margin)
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 18)
+	col.add_theme_constant_override("separation", 16)
 	margin.add_child(col)
-	var title := label(title_text, 44, WHITE)
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 12)
+	col.add_child(bar)
+	var nav := neon_button(tr("🏠 Home"), DIM, 22, 58)
+	nav.custom_minimum_size.x = 150
+	nav.pressed.connect(_close_overlay.bind(overlay))
+	bar.add_child(nav)
+	var title := label(title_text, 38, WHITE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_color_override("font_outline_color", Color(color, 0.5))
 	title.add_theme_constant_override("outline_size", 8)
-	col.add_child(title)
+	bar.add_child(title)
+	var balance := Control.new()
+	balance.custom_minimum_size.x = 150
+	bar.add_child(balance)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -878,13 +1200,17 @@ func _overlay(title_text: String, color: Color, temporary: bool = false) -> Arra
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 12)
 	scroll.add_child(body)
-	var close := neon_button(tr("Close"), color, 30, 76)
-	if temporary:
-		close.pressed.connect(overlay.queue_free)
-	else:
-		close.pressed.connect(overlay.hide)
-	col.add_child(close)
-	return [overlay, body]
+	overlay.set_meta("nav", nav)
+	overlay.set_meta("temporary", temporary)
+	return [overlay, body, col]
+
+## The picked look for a toggle button (setup screens, choice rows).
+func _style_toggle(b: Button, color: Color) -> void:
+	var on := neon_box(color, "pressed")
+	on.bg_color = Color(color, 0.45)
+	on.set_border_width_all(3)
+	b.add_theme_stylebox_override("pressed", on)
+	b.add_theme_stylebox_override("hover_pressed", on)
 
 func _row(left: String, right: String, color: Color, edge: Color, strong: bool = false) -> Control:
 	var panel := PanelContainer.new()

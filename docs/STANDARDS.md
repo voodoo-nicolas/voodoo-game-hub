@@ -28,7 +28,10 @@ Rules (apply to every game, no exceptions):
 - **N4** Android back button/gesture = one step up. From Landing → Hub. During play → opens the pause menu (never exits).
 - **N5** Leaving play by any route saves via `SaveUtil` (local games). Online games offer "Leave match" with a forfeit warning.
 - **N6** Max depth from Landing to playing: 2 screens (setup → play). **Resume** and **Quick Play** are 1 tap.
-- **N7** Navigation is implemented once, APK-side (`scripts/common/game_router.gd`, `landing_kit.gd`).
+- **N7** Navigation is implemented once, in the **Landing kit** (`tools/templates/home_kit.gd`; `hub.py sync`
+  copies it into every pack as `scripts/games/<id>/home_kit.gd`, so it works on every installed app version).
+  [CHANGED 2026-10-06: was "APK-side game_router.gd + landing_kit.gd"; per-pack copies need no `min_build` and no
+  fallback. The kit's screen handling and Android back cover the router's job.]
   Games register screens/modes; they don't hand-roll back buttons.
 
 ## 2. Hub screen [CHANGED]
@@ -61,7 +64,7 @@ language, notifications (invites), rotate screen, keep screen on, **Storage** (d
 delete), account & privacy, About / Credits / Licences (renders `CREDITS.json`).
 
 ## 3. Game Landing page [NEW — replaces "Home screen per game"]
-Built with the **Landing kit** (`landing_kit.gd`, APK-side; evolution of `home_kit.gd`).
+Built with the **Landing kit** (`home_kit.gd`, copied into every pack; see N7) [CURRENT since 2026-10-06].
 Contents (show only what applies to the game):
 - Per-game hero artwork (one per skin), title, short tagline.
 - **Resume** (only if a save exists) · **Quick Play** (last-used mode + difficulty).
@@ -103,6 +106,8 @@ Vs CPU · Custom. Difficulty: Easy · Normal · Hard (+ Expert where meaningful)
 - Save on pause/exit with `SaveUtil`; Resume appears on the Landing.
 - [CHANGED] **The floating ⚙ SettingsDrawer is removed.** Its items moved: How to Play, 🏆, 📊, 📸 → pause menu;
   🔊 Sound, 📺 Rotate → Options; 🏠 Hub → dropped (rule N1).
+- [CURRENT 2026-10-06] Every Landing-kit game: the kit frees the drawer the game still adds. Sudoku and the IQ Test
+  (custom screens) still show it until they get the same pause menu.
 - Back-compat: old packs still call `add_child(SettingsDrawer.new())`, so `settings_drawer.gd` stays in the APK as a
   **no-op stub** (keeps the class name, builds nothing, `queue_free()`s itself) until every pack is migrated.
   Never delete the class while any published pack references it.
@@ -216,8 +221,8 @@ if ResourceLoader.exists(ONLINE_LOBBY_PATH):
 | Achievements | `achievements.gd` | generic + per-game badges, toasts |
 | Lang | `lang.gd` | EN/ES picker |
 | Store | `store.gd`, `store_billing.gd`, `paywall.gd` | trials, purchases, entitlements |
-| Router | `game_router.gd` [NEW] | screen stack, N1–N7 rules, Android back |
-| Landing kit | `landing_kit.gd` [NEW, from `home_kit.gd`] | Landing + setup screens |
+| Router | in the Landing kit (N7) | screens, N1–N7 rules, Android back |
+| Landing kit | `tools/templates/home_kit.gd` → each pack | Landing, setup screens, pause menu, game Options |
 | SettingsDrawer | `settings_drawer.gd` | **retired** — no-op stub kept only for old packs |
 | Brand | `brand.gd` [NEW] | hub name, links, store text keys |
 
