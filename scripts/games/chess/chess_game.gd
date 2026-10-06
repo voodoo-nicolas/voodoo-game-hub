@@ -95,7 +95,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -573,6 +574,24 @@ func _show_result() -> void:
 
 # ---------- rendering ----------
 
+## Look (STANDARDS §9): "classic" = wooden board, ivory and black pieces
+## (default); "voodoo" = the neon board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	_render()
+
+func _square_color(dark: bool) -> Color:
+	if skin == "classic":
+		return HomeKit.CLASSIC.wood_dark if dark else HomeKit.CLASSIC.wood_light
+	return COLOR_DARK_SQUARE if dark else COLOR_LIGHT_SQUARE
+
 func _render() -> void:
 	dest_map = {}
 	if selected.x >= 0:
@@ -597,7 +616,7 @@ func _render() -> void:
 				edge = COLOR_DEST
 			elif pos == checked_king:
 				edge = COLOR_CHECK
-			_style_square(sq, COLOR_DARK_SQUARE if is_dark else COLOR_LIGHT_SQUARE, edge)
+			_style_square(sq, _square_color(is_dark), edge)
 
 			var v: int = engine.board[r][c]
 			var label: Label = piece_labels[idx]
@@ -607,6 +626,9 @@ func _render() -> void:
 				label.text = PIECE_GLYPHS[v]
 				var piece_color: Color = COLOR_WHITE_PIECE if v > 0 else COLOR_BLACK_PIECE
 				var outline_color: Color = GLOW_WHITE if v > 0 else GLOW_BLACK
+				if skin == "classic":
+					piece_color = HomeKit.CLASSIC.white_piece if v > 0 else HomeKit.CLASSIC.black_piece
+					outline_color = Color(0.25, 0.15, 0.08) if v > 0 else Color(0.9, 0.85, 0.75, 0.5)
 				label.add_theme_color_override("font_color", piece_color)
 				label.add_theme_color_override("font_outline_color", outline_color)
 

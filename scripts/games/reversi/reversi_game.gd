@@ -38,6 +38,7 @@ var legal_now: Array = []
 
 var piece_views: Array = []
 var hint_views: Array = []
+var squares: Array = []
 var status_label: Label
 var score_label: Label
 var win_dialog: Control
@@ -159,8 +160,9 @@ func _build_ui() -> void:
 			sq.flat = false
 			sq.focus_mode = Control.FOCUS_NONE
 			sq.set_meta("sfx", "")  # a move plays its own sound
-			_style_square(sq, COLOR_BOARD)
+			_style_square(sq, _board_color())
 			sq.pressed.connect(_on_square_pressed.bind(r, c))
+			squares.append(sq)
 			grid.add_child(sq)
 
 			var piece := PanelContainer.new()
@@ -418,15 +420,24 @@ func _show_result() -> void:
 
 # ---------- rendering ----------
 
-## Called by the settings drawer's Voodoo toggle.
-func _set_voodoo(on: bool) -> void:
-	if voodoo == null:
-		return
-	voodoo_on = on
+## Look (STANDARDS §9): "classic" = green board, black and white discs
+## (default); "voodoo" = the neon board with skulls. Set by the kit.
+var skin: String = "classic"
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	voodoo_on = skin == "voodoo" and voodoo != null
+	if bg.get_child_count() > 0:
+		bg.get_child(0).visible = skin != "classic"
+	for sq in squares:
+		_style_square(sq, _board_color())
 	_render()
 
+func _board_color() -> Color:
+	return HomeKit.CLASSIC.felt if skin == "classic" else COLOR_BOARD
+
 func _render() -> void:
-	bg.color = voodoo.BG if voodoo_on else HomeKit.BG
+	bg.color = HomeKit.CLASSIC.table if skin == "classic" else (voodoo.BG if voodoo_on else HomeKit.BG)
 	legal_now = engine.legal_moves(engine.current_player)
 	var legal_set := {}
 	for m in legal_now:
@@ -444,7 +455,11 @@ func _render() -> void:
 				if voodoo_on:
 					_style_skull(piece, marks[idx], v == ReversiEngine.BLACK)
 				else:
-					_style_piece(piece, COLOR_BLACK if v == ReversiEngine.BLACK else COLOR_WHITE, RIM_BLACK if v == ReversiEngine.BLACK else RIM_WHITE)
+					var black: bool = v == ReversiEngine.BLACK
+					if skin == "classic":
+						_style_piece(piece, HomeKit.CLASSIC.black_piece if black else HomeKit.CLASSIC.white_piece, Color(0, 0, 0, 1) if black else Color("b9b3a3"), true)
+					else:
+						_style_piece(piece, COLOR_BLACK if black else COLOR_WHITE, RIM_BLACK if black else RIM_WHITE)
 					if voodoo:
 						marks[idx].kind = voodoo.NONE
 			var my_turn: bool = (not _is_online() or engine.current_player == my_color) \
@@ -470,15 +485,17 @@ func _style_square(sq: Button, color: Color) -> void:
 	sb.border_width_top = 1
 	sb.border_width_right = 1
 	sb.border_width_bottom = 1
-	sb.border_color = Color(HomeKit.LIME, 0.18)
+	sb.border_color = Color(0, 0, 0, 0.45) if skin == "classic" else Color(HomeKit.LIME, 0.18)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		sq.add_theme_stylebox_override(state, sb)
 
-func _style_piece(piece: PanelContainer, color: Color, rim: Color = Color.BLACK) -> void:
+func _style_piece(piece: PanelContainer, color: Color, rim: Color = Color.BLACK, plain: bool = false) -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = color
-	sb.shadow_color = Color(rim, 0.5)
-	sb.shadow_size = 5
+	sb.shadow_color = Color(0, 0, 0, 0.4) if plain else Color(rim, 0.5)
+	sb.shadow_size = 3 if plain else 5
+	if plain:
+		sb.shadow_offset = Vector2(1, 2)
 	var radius: int = int(piece.custom_minimum_size.x / 2.0)
 	sb.corner_radius_top_left = radius
 	sb.corner_radius_top_right = radius

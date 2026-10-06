@@ -24,3 +24,6 @@ no faint grid, plain drop shadows.
   product's exact trade dress (e.g. not the falling-block game's per-piece
   palette, not the Magic 8 Ball).
 - Pilots (2026-10-06): Four in a Row, Tic-Tac-Toe, Checkers, Solitaire.
+- Phase 5, batch 1 (Puzzle & Board, 2026-10-06): Chess (wood board), Reversi
+  (green felt, black/white discs), Mancala (carved wood), Backgammon (green
+  felt, cream/brown points).

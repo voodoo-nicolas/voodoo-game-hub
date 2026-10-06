@@ -54,7 +54,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -245,9 +246,8 @@ func _make_pit(index: int, size: float) -> Control:
 func _make_store(index: int, width: float, height: float) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(width, height)
-	var sb := HomeKit.neon_box(COLOR_STORE)
-	sb.set_corner_radius_all(18)
-	panel.add_theme_stylebox_override("panel", sb)
+	store_panels.append(panel)
+	_style_store(panel)
 
 	var label := Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -381,6 +381,34 @@ func _show_result() -> void:
 
 # ---------- rendering ----------
 
+## Look (STANDARDS §9): "classic" = a carved wooden board (default);
+## "voodoo" = the neon board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+var store_panels: Array = []
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.wood_frame if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	for p in store_panels:
+		_style_store(p)
+	_render()
+
+func _style_store(panel: PanelContainer) -> void:
+	var sb: StyleBoxFlat
+	if skin == "classic":
+		sb = StyleBoxFlat.new()
+		sb.bg_color = HomeKit.CLASSIC.wood_frame.darkened(0.35)
+		sb.border_color = HomeKit.CLASSIC.wood_dark
+		sb.set_border_width_all(3)
+	else:
+		sb = HomeKit.neon_box(COLOR_STORE)
+	sb.set_corner_radius_all(18)
+	panel.add_theme_stylebox_override("panel", sb)
+
 func _render() -> void:
 	for i in pit_labels.keys():
 		pit_labels[i].text = str(engine.board[i])
@@ -404,6 +432,16 @@ func _render() -> void:
 			status_label.text = tr("Player %d's turn") % current
 
 func _style_pit(btn: Button, color: Color) -> void:
+	if skin == "classic":
+		var cb := StyleBoxFlat.new()
+		var active: bool = color == COLOR_PIT_ACTIVE
+		cb.bg_color = HomeKit.CLASSIC.wood_dark if active else HomeKit.CLASSIC.wood_frame.darkened(0.35)
+		cb.border_color = HomeKit.CLASSIC.wood_light if active else HomeKit.CLASSIC.wood_dark
+		cb.set_border_width_all(4 if active else 3)
+		cb.set_corner_radius_all(int(btn.custom_minimum_size.x / 2.0))
+		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+			btn.add_theme_stylebox_override(state, cb)
+		return
 	var sb := HomeKit.neon_box(color, "normal")
 	sb.bg_color = Color(color, 0.16 if color == COLOR_PIT_ACTIVE else 0.06)
 	sb.shadow_size = 8 if color == COLOR_PIT_ACTIVE else 3

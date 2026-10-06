@@ -71,7 +71,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -400,6 +400,23 @@ func _point_at(g: Dictionary, pos: Vector2) -> int:
 		return -1
 	return 12 + row if col == 0 else 11 - row
 
+## Look (STANDARDS §9): "classic" = wooden frame, green felt, cream and brown
+## points (default); "voodoo" = the neon board. Set by the kit.
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.state.is_empty():
 		return
@@ -410,13 +427,13 @@ func _draw_board() -> void:
 	var row_h: float = g.row_h
 	var col_w: float = g.col_w
 	var full_h: float = 12 * row_h + g.bar_h
-	board.draw_rect(Rect2(x0 - 8, g.y0 - 8, w + 16, full_h + 16), COLOR_FRAME)
-	board.draw_rect(Rect2(x0, g.y0, w, full_h), COLOR_FELT)
+	board.draw_rect(Rect2(x0 - 8, g.y0 - 8, w + 16, full_h + 16), HomeKit.CLASSIC.wood_frame if _is_classic() else COLOR_FRAME)
+	board.draw_rect(Rect2(x0, g.y0, w, full_h), HomeKit.CLASSIC.felt_dark if _is_classic() else COLOR_FELT)
 	# trays: black's borne-off checkers on top, white's below
 	var top_tray := Rect2(x0, 0, w, g.tray_h - 6)
 	var bottom_tray := Rect2(x0, g.y0 + full_h + 10, w, g.tray_h - 6)
 	var bear_target: bool = selected >= 0 and _targets_from(selected).any(func(m): return m[0] - m[1] < 0)
-	var tray_off := Color(0.1, 0.06, 0.18)
+	var tray_off := HomeKit.CLASSIC.wood_frame.darkened(0.3) if _is_classic() else Color(0.1, 0.06, 0.18)
 	var tray_on := Color(COLOR_HILITE, 0.25)
 	board.draw_rect(top_tray, tray_on if bear_target and turn == CPU else tray_off)
 	board.draw_rect(bottom_tray, tray_on if bear_target and turn == HUMAN else tray_off)
@@ -443,6 +460,8 @@ func _draw_board() -> void:
 		var base_x: float = x0 if cr.x == 0 else x0 + w
 		var dir: float = 1.0 if cr.x == 0 else -1.0
 		var tri_col := COLOR_TRI_A if point % 2 == 0 else COLOR_TRI_B
+		if _is_classic():
+			tri_col = HomeKit.CLASSIC.wood_light if point % 2 == 0 else HomeKit.CLASSIC.wood_dark
 		if point in targets:
 			tri_col = COLOR_HILITE
 		var tip := Vector2(base_x + dir * col_w * 0.95, y + row_h / 2.0)
@@ -468,7 +487,7 @@ func _draw_board() -> void:
 
 	# bar band with dice and checkers on the bar
 	var band := Rect2(x0, g.y0 + 6 * row_h, w, g.bar_h)
-	board.draw_rect(band, COLOR_FRAME.darkened(0.2))
+	board.draw_rect(band, HomeKit.CLASSIC.wood_frame.darkened(0.2) if _is_classic() else COLOR_FRAME.darkened(0.2))
 	var br: float = g.bar_h * 0.36
 	for k in s.bar[HUMAN]:
 		_draw_checker(Vector2(x0 + br + 6 + k * br * 1.6, band.get_center().y), br, true)
@@ -486,6 +505,13 @@ func _draw_board() -> void:
 		_draw_die(Rect2(dx + i * (ds + 8), band.get_center().y - ds / 2.0, ds, ds), rolled[i], used)
 
 func _draw_checker(c: Vector2, r: float, white: bool) -> void:
+	if _is_classic():
+		var fill: Color = HomeKit.CLASSIC.white_piece if white else HomeKit.CLASSIC.black_piece
+		board.draw_circle(c + Vector2(1, 2), r, Color(0, 0, 0, 0.35))
+		board.draw_circle(c, r, fill)
+		board.draw_arc(c, r, 0, TAU, 24, fill.darkened(0.35), 2.0, true)
+		board.draw_arc(c, r * 0.6, 0, TAU, 24, fill.darkened(0.2), 1.0, true)
+		return
 	var rim: Color = RIM_WHITE if white else RIM_BLACK
 	board.draw_circle(c, r + 2, Color(rim, 0.25))
 	board.draw_circle(c, r, COLOR_WHITE if white else COLOR_BLACK)
