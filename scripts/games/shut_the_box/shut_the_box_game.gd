@@ -48,7 +48,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -320,13 +320,43 @@ func _tile_rect(n: int) -> Rect2:
 	var h: float = minf(w * 2.1, board.size.y * 0.42)
 	return Rect2(Vector2(20.0 + (n - 1) * w + 3.0, board.size.y * 0.08), Vector2(w - 6.0, h))
 
+## Look (STANDARDS §9): "classic" = wooden tiles and ivory dice (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.felt_dark if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	var font: Font = ThemeDB.fallback_font
 	for n in range(1, STBEngine.TILES + 1):
 		var r := _tile_rect(n)
 		var sb := StyleBoxFlat.new()
 		sb.set_corner_radius_all(8)
-		if engine.up[n]:
+		if _is_classic():
+			if engine.up[n]:
+				sb.bg_color = HomeKit.CLASSIC.wood_light
+				sb.border_color = HomeKit.CLASSIC.yellow if selected.has(n) else HomeKit.CLASSIC.wood_frame
+				sb.set_border_width_all(5 if selected.has(n) else 3)
+				sb.shadow_color = Color(0, 0, 0, 0.3)
+				sb.shadow_size = 3
+				sb.shadow_offset = Vector2(1, 2)
+			else:
+				sb.bg_color = HomeKit.CLASSIC.wood_frame.darkened(0.3)
+				sb.border_color = HomeKit.CLASSIC.wood_frame
+				sb.set_border_width_all(2)
+				r = Rect2(r.position + Vector2(0, r.size.y * 0.55), Vector2(r.size.x, r.size.y * 0.45))
+		elif engine.up[n]:
 			var rim: Color = HomeKit.CYAN if selected.has(n) else COLOR_WOOD
 			sb.bg_color = Color(rim, 0.3 if selected.has(n) else 0.14)
 			sb.border_color = rim
@@ -341,6 +371,8 @@ func _draw_board() -> void:
 		board.draw_style_box(sb, r)
 		var fs := int(r.size.x * 0.62)
 		var col := Color(1, 0.95, 0.85) if engine.up[n] else COLOR_WOOD_DOWN
+		if _is_classic():
+			col = HomeKit.CLASSIC.ink if engine.up[n] else HomeKit.CLASSIC.wood_dark
 		board.draw_string(font, Vector2(r.position.x, r.position.y + r.size.y / 2.0 + fs * 0.35), str(n), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, col)
 	# dice
 	var s: float = minf(120.0, board.size.x * 0.2)
@@ -354,9 +386,21 @@ func _draw_die(r: Rect2, v: int) -> void:
 	var sb := HomeKit.neon_box(HomeKit.CYAN)
 	sb.bg_color = Color(HomeKit.CYAN, 0.1)
 	sb.set_corner_radius_all(int(r.size.x * 0.16))
+	var pip := Color.WHITE
+	var hilite := false
+	if _is_classic():
+		sb = StyleBoxFlat.new()
+		sb.bg_color = Color("f4efe4")
+		sb.set_corner_radius_all(int(r.size.x * 0.16))
+		sb.border_color = Color("b9b3a3")
+		sb.set_border_width_all(5 if hilite else 2)
+		sb.shadow_color = Color(0, 0, 0, 0.3)
+		sb.shadow_size = 3
+		sb.shadow_offset = Vector2(1, 2)
+		pip = HomeKit.CLASSIC.ink
 	board.draw_style_box(sb, r)
 	for sp in PIPS[v]:
-		board.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * r.size.x, r.size.x * 0.085, Color.WHITE)
+		board.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * r.size.x, r.size.x * 0.085, pip)
 
 # ---------- Home screen (home_kit.gd) ----------
 

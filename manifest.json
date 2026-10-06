@@ -96,11 +96,11 @@
       {"id": "pool", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins"}
     ]},
     {"name": "Dice & Party", "icon": "🎲", "name_es": "Dados y fiesta", "games": [
-      {"id": "yacht", "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala", "modes": "local"},
-      {"id": "farkle", "title": "Farkle", "icon": "🎯", "title_es": "Farkle", "modes": "local,cpu", "board": "Wins"},
-      {"id": "liars_dice", "title": "Liar's Dice", "icon": "🤥", "title_es": "Dudo", "modes": "local,cpu", "board": "Wins"},
-      {"id": "shut_the_box", "title": "Shut the Box", "icon": "📦", "title_es": "Cierra la caja", "modes": "local,cpu", "board": "Boxes shut"},
-      {"id": "dominoes", "title": "Dominoes", "icon": "🁫", "title_es": "Dominó", "modes": "cpu", "board": "Wins"}
+      {"id": "yacht", "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala", "modes": "local", "skins": "classic,voodoo"},
+      {"id": "farkle", "title": "Farkle", "icon": "🎯", "title_es": "Farkle", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo"},
+      {"id": "liars_dice", "title": "Liar's Dice", "icon": "🤥", "title_es": "Dudo", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo"},
+      {"id": "shut_the_box", "title": "Shut the Box", "icon": "📦", "title_es": "Cierra la caja", "modes": "local,cpu", "board": "Boxes shut", "skins": "classic,voodoo"},
+      {"id": "dominoes", "title": "Dominoes", "icon": "🁫", "title_es": "Dominó", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo"}
     ]},
     {"name": "Drinking Games", "icon": "🍹", "name_es": "Juegos para tomar", "archived": true, "games": [
       {"id": "kings_cup", "title": "Kings Cup", "icon": "👑", "title_es": "Kings Cup", "modes": "party", "board": "Games played", "archived": true},
@@ -177,11 +177,11 @@
     "alien_attack": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/alien_attack.pck", "scene": "res://scenes/games/alien_attack/alien_attack.tscn"},
     "frog_crossing": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/frog_crossing.pck", "scene": "res://scenes/games/frog_crossing/frog_crossing.tscn"},
     "gem_match": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/gem_match.pck", "scene": "res://scenes/games/gem_match/gem_match.tscn"},
-    "yacht": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/yacht.pck", "scene": "res://scenes/games/yacht/yacht.tscn"},
-    "farkle": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/farkle.pck", "scene": "res://scenes/games/farkle/farkle.tscn"},
-    "liars_dice": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/liars_dice.pck", "scene": "res://scenes/games/liars_dice/liars_dice.tscn"},
+    "yacht": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/yacht.pck", "scene": "res://scenes/games/yacht/yacht.tscn"},
+    "farkle": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/farkle.pck", "scene": "res://scenes/games/farkle/farkle.tscn"},
+    "liars_dice": {"version": 9, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/liars_dice.pck", "scene": "res://scenes/games/liars_dice/liars_dice.tscn"},
     "party_spinner": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/party_spinner.pck", "scene": "res://scenes/games/party_spinner/party_spinner.tscn"},
-    "shut_the_box": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/shut_the_box.pck", "scene": "res://scenes/games/shut_the_box/shut_the_box.tscn"},
+    "shut_the_box": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/shut_the_box.pck", "scene": "res://scenes/games/shut_the_box/shut_the_box.tscn"},
     "never_have_i_ever": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/never_have_i_ever.pck", "scene": "res://scenes/games/never_have_i_ever/never_have_i_ever.tscn"},
     "most_likely_to": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/most_likely_to.pck", "scene": "res://scenes/games/most_likely_to/most_likely_to.tscn"},
     "ride_the_bus": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ride_the_bus.pck", "scene": "res://scenes/games/ride_the_bus/ride_the_bus.tscn"},
@@ -198,7 +198,7 @@
     "bubble_pop": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bubble_pop.pck", "scene": "res://scenes/games/bubble_pop/bubble_pop.tscn"},
     "sketch_it": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sketch_it.pck", "scene": "res://scenes/games/sketch_it/sketch_it.tscn"},
     "five_in_row": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/five_in_row.pck", "scene": "res://scenes/games/five_in_row/five_in_row.tscn"},
-    "dominoes": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dominoes.pck", "scene": "res://scenes/games/dominoes/dominoes.tscn"},
+    "dominoes": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dominoes.pck", "scene": "res://scenes/games/dominoes/dominoes.tscn"},
     "mahjong": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mahjong.pck", "scene": "res://scenes/games/mahjong/mahjong.tscn"},
     "tri_peaks": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tri_peaks.pck", "scene": "res://scenes/games/tri_peaks/tri_peaks.tscn"},
     "hearts": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hearts.pck", "scene": "res://scenes/games/hearts/hearts.tscn"},

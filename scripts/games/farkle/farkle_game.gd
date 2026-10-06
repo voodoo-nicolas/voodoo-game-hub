@@ -48,7 +48,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -301,6 +301,23 @@ func _die_rect(i: int, n: int, y: float, s: float) -> Rect2:
 	var total := n * s + (n - 1) * 14.0
 	return Rect2(Vector2((table.size.x - total) / 2.0 + i * (s + 14.0), y), Vector2(s, s))
 
+## Look (STANDARDS §9): "classic" = ivory dice on green felt (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.felt_dark if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if table:
+		table.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_die(r: Rect2, v: int, hilite: bool, dim: bool) -> void:
 	var col: Color = HomeKit.GOLD if hilite else HomeKit.CYAN
 	var sb := HomeKit.neon_box(col, "pressed" if hilite else "normal")
@@ -310,9 +327,20 @@ func _draw_die(r: Rect2, v: int, hilite: bool, dim: bool) -> void:
 	if dim:
 		sb.border_color = Color(col, 0.4)
 		sb.shadow_size = 0
+	var pip := Color(1, 1, 1, 0.45 if dim else 1.0)
+	if _is_classic():
+		sb = StyleBoxFlat.new()
+		sb.bg_color = Color("b9b3a3") if dim else Color("f4efe4")
+		sb.set_corner_radius_all(int(r.size.x * 0.16))
+		sb.border_color = HomeKit.CLASSIC.yellow if hilite else Color("b9b3a3")
+		sb.set_border_width_all(5 if hilite else 2)
+		sb.shadow_color = Color(0, 0, 0, 0.3)
+		sb.shadow_size = 3
+		sb.shadow_offset = Vector2(1, 2)
+		pip = HomeKit.CLASSIC.ink
 	table.draw_style_box(sb, r)
 	for sp in PIPS[v]:
-		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * r.size.x, r.size.x * 0.085, Color(1, 1, 1, 0.45 if dim else 1.0))
+		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * r.size.x, r.size.x * 0.085, pip)
 
 func _draw_table() -> void:
 	var font: Font = ThemeDB.fallback_font

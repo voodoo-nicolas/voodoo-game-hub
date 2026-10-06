@@ -50,7 +50,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -351,6 +351,23 @@ func _resolve() -> void:
 
 # ---------- drawing ----------
 
+## Look (STANDARDS §9): "classic" = ivory dice, wooden cups (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.felt_dark if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if table:
+		table.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_die(pos: Vector2, s: float, v: int, hidden: bool, hilite: bool) -> void:
 	var r := Rect2(pos, Vector2(s, s))
 	var col: Color = HomeKit.GOLD if hilite else (HomeKit.PURPLE if hidden else HomeKit.CYAN)
@@ -361,12 +378,23 @@ func _draw_die(pos: Vector2, s: float, v: int, hidden: bool, hilite: bool) -> vo
 	sb.shadow_color = Color(col, 0.35)
 	sb.shadow_size = 6
 	sb.set_corner_radius_all(int(s * 0.16))
+	var pip := Color.WHITE
+	if _is_classic():
+		sb = StyleBoxFlat.new()
+		sb.bg_color = HomeKit.CLASSIC.wood_dark if hidden else Color("f4efe4")
+		sb.set_corner_radius_all(int(s * 0.16))
+		sb.border_color = HomeKit.CLASSIC.yellow if hilite else (HomeKit.CLASSIC.wood_frame if hidden else Color("b9b3a3"))
+		sb.set_border_width_all(5 if hilite else 2)
+		sb.shadow_color = Color(0, 0, 0, 0.3)
+		sb.shadow_size = 3
+		sb.shadow_offset = Vector2(1, 2)
+		pip = HomeKit.CLASSIC.ink
 	table.draw_style_box(sb, r)
 	if hidden:
 		table.draw_string(ThemeDB.fallback_font, Vector2(r.position.x, r.get_center().y + s * 0.2), "?", HORIZONTAL_ALIGNMENT_CENTER, s, int(s * 0.55), Color(1, 1, 1, 0.6))
 		return
 	for sp in PIPS[v]:
-		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.085, Color.WHITE)
+		table.draw_circle(r.position + Vector2(0.22 + sp[0] * 0.28, 0.22 + sp[1] * 0.28) * s, s * 0.085, pip)
 
 func _draw_table() -> void:
 	if engine.dice.is_empty():

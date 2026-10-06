@@ -62,7 +62,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -372,7 +373,8 @@ func _draw_table() -> void:
 	board_rect = Rect2(Vector2(ox, 0), Vector2(u * COLS, table.size.y))
 	board_rect = board_rect.grow_individual(8, 0, 8, 0)
 	table.draw_rect(Rect2(Vector2(ox - 10, 4), Vector2(u * COLS + 20, table.size.y - 8)), Color(0.02, 0.05, 0.08, 0.7))
-	HomeKit.glow_rect(table, Rect2(Vector2(ox - 10, 4), Vector2(u * COLS + 20, table.size.y - 8)), Color(RIM_CPU, 0.5), 1.5)
+	if not _is_classic():
+		HomeKit.glow_rect(table, Rect2(Vector2(ox - 10, 4), Vector2(u * COLS + 20, table.size.y - 8)), Color(RIM_CPU, 0.5), 1.5)
 	placed = []
 	for k in lay.size():
 		var t = lay[k]
@@ -400,6 +402,25 @@ func _draw_table() -> void:
 var board_rect := Rect2()
 var end_targets: Dictionary = {}
 
+## Look (STANDARDS §9): "classic" = ivory tiles on green felt (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.felt_dark if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if table:
+		table.queue_redraw()
+	if hand_view:
+		hand_view.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_tile(c: Control, rect: Rect2, a: int, b: int, vertical: bool, rim: Color, glow := false) -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = FACE
@@ -408,17 +429,26 @@ func _draw_tile(c: Control, rect: Rect2, a: int, b: int, vertical: bool, rim: Co
 	sb.set_border_width_all(2)
 	sb.shadow_color = Color(rim, 0.45 if glow else 0.18)
 	sb.shadow_size = 10 if glow else 4
+	var line_col := Color(rim, 0.6)
+	if _is_classic():
+		sb.bg_color = Color("f4efe4")
+		sb.border_color = HomeKit.CLASSIC.yellow if glow else Color("8a8473")
+		sb.set_border_width_all(4 if glow else 2)
+		sb.shadow_color = Color(0, 0, 0, 0.3)
+		sb.shadow_size = 3
+		sb.shadow_offset = Vector2(1, 2)
+		line_col = Color("8a8473")
 	c.draw_style_box(sb, rect.grow(-2))
 	var half: Rect2
 	var other: Rect2
 	if vertical:
 		half = Rect2(rect.position, Vector2(rect.size.x, rect.size.y / 2.0))
 		other = Rect2(rect.position + Vector2(0, rect.size.y / 2.0), half.size)
-		c.draw_line(Vector2(rect.position.x + 6, rect.get_center().y), Vector2(rect.end.x - 6, rect.get_center().y), Color(rim, 0.6), 1.5)
+		c.draw_line(Vector2(rect.position.x + 6, rect.get_center().y), Vector2(rect.end.x - 6, rect.get_center().y), line_col, 1.5)
 	else:
 		half = Rect2(rect.position, Vector2(rect.size.x / 2.0, rect.size.y))
 		other = Rect2(rect.position + Vector2(rect.size.x / 2.0, 0), half.size)
-		c.draw_line(Vector2(rect.get_center().x, rect.position.y + 6), Vector2(rect.get_center().x, rect.end.y - 6), Color(rim, 0.6), 1.5)
+		c.draw_line(Vector2(rect.get_center().x, rect.position.y + 6), Vector2(rect.get_center().x, rect.end.y - 6), line_col, 1.5)
 	_pips(c, half, a)
 	_pips(c, other, b)
 
@@ -430,7 +460,7 @@ func _pips(c: Control, r: Rect2, v: int) -> void:
 	var s := minf(r.size.x, r.size.y)
 	var o := r.get_center() - Vector2(s, s) * 0.5
 	for sp in SPOTS[v]:
-		c.draw_circle(o + Vector2(0.24 + sp[0] * 0.26, 0.24 + sp[1] * 0.26) * s, s * 0.085, PIP)
+		c.draw_circle(o + Vector2(0.24 + sp[0] * 0.26, 0.24 + sp[1] * 0.26) * s, s * 0.085, HomeKit.CLASSIC.ink if _is_classic() else PIP)
 
 # ---------- hand ----------
 
