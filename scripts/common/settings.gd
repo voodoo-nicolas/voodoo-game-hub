@@ -14,6 +14,11 @@ extends Node
 ##   Games keep their own colors.
 ## - sound: "Mute all" -- mutes the Master bus, so every sound obeys it.
 ## - volume: overall loudness 0..100 (the Master bus volume).
+## - music / music_volume (since v0.31): on/off and 0..100 for the Music bus
+##   (the Music autoload plays there). Mute all still silences it.
+## - Audio buses (STANDARDS §10): Master, with Music, SFX and UI feeding it.
+##   `ensure_buses()` creates any that are missing, so it doesn't matter
+##   which autoload asks first.
 ## - sound groups (SOUND_GROUPS): each kind of sound has its own on/off and
 ##   volume 0..100 -- `group_on(id)`, `group_volume(id)`; Sfx asks
 ##   `group_db(id)` before playing (null = that group is off).
@@ -45,6 +50,9 @@ const TEXT_SIZE_NAMES := ["Normal", "Large", "Extra large"]
 const DEFAULT_TEXT_SIZE := 1
 
 const DEFAULT_VOLUME := 80
+const DEFAULT_MUSIC_VOLUME := 60
+## Every bus the app plays on; each sends to Master.
+const BUSES := ["Music", "SFX", "UI"]
 ## The kinds of sound players can turn on/off and set the volume of, each
 ## [id, title, hint]. Which sound is in which group is Sfx.GROUP_OF.
 const SOUND_GROUPS := [
@@ -78,6 +86,8 @@ var text_size: int = DEFAULT_TEXT_SIZE
 var theme: String = "dark"
 var sound: bool = true
 var volume: int = DEFAULT_VOLUME
+var music: bool = true
+var music_volume: int = DEFAULT_MUSIC_VOLUME
 ## group id -> {"on": bool, "vol": int}; filled from SOUND_GROUPS by _load().
 var sound_groups: Dictionary = {}
 var vibrate: bool = true
@@ -130,6 +140,16 @@ func set_sound(on: bool) -> void:
 ## on release.
 func set_volume(v: int, save: bool = true) -> void:
 	volume = clampi(v, 0, 100)
+	_apply_audio()
+	if save:
+		_save()
+
+func set_music(on: bool) -> void:
+	music = on
+	_commit()
+
+func set_music_volume(v: int, save: bool = true) -> void:
+	music_volume = clampi(v, 0, 100)
 	_apply_audio()
 	if save:
 		_save()
@@ -264,8 +284,21 @@ func _apply() -> void:
 	DisplayServer.screen_set_keep_on(keep_awake)
 
 func _apply_audio() -> void:
+	ensure_buses()
 	AudioServer.set_bus_mute(0, not sound or volume <= 0)
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 1) / 100.0))
+	var m := AudioServer.get_bus_index("Music")
+	AudioServer.set_bus_mute(m, not music or music_volume <= 0)
+	AudioServer.set_bus_volume_db(m, linear_to_db(maxf(music_volume, 1) / 100.0))
+
+## Creates the Music / SFX / UI buses (each feeding Master) if missing.
+static func ensure_buses() -> void:
+	for bus in BUSES:
+		if AudioServer.get_bus_index(bus) == -1:
+			AudioServer.add_bus()
+			var i := AudioServer.bus_count - 1
+			AudioServer.set_bus_name(i, bus)
+			AudioServer.set_bus_send(i, "Master")
 
 ## Starts each screen at the chosen size, then -- once its layout has
 ## settled -- shrinks the scale just enough that the screen's content fits
@@ -415,6 +448,8 @@ func _load() -> void:
 	if typeof(data) != TYPE_DICTIONARY:
 		return
 	volume = clampi(int(data.get("volume", DEFAULT_VOLUME)), 0, 100)
+	music = bool(data.get("music", true))
+	music_volume = clampi(int(data.get("music_volume", DEFAULT_MUSIC_VOLUME)), 0, 100)
 	var saved = data.get("sound_groups", {})
 	if typeof(saved) == TYPE_DICTIONARY:
 		for id in sound_groups:
@@ -436,5 +471,6 @@ func _save() -> void:
 		f.store_string(JSON.stringify({
 			"text_size": text_size, "theme": theme, "sound": sound,
 			"volume": volume, "sound_groups": sound_groups,
+			"music": music, "music_volume": music_volume,
 			"vibrate": vibrate, "keep_awake": keep_awake, "invites": invites,
 		}))

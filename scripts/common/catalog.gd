@@ -19,6 +19,26 @@ extends Node
 ## "archived": true stays in manifest.json -- packs, ids and saves are kept --
 ## but is dropped here, so the hub never lists, launches, resumes or accepts
 ## invites for it. Apps before v0.29 ignore the flag and still list it.
+##
+## Media packs (since v0.31, STANDARDS §10): shared music / sounds / art in
+## their own .pck files, downloaded once for every game that uses them.
+##   manifest "media_packs": {"media-common": {version, url, size, sha256}}
+##   a game's entry: "requires_media": ["media-common>=1"]
+## - A media pack lives at user://packs/media/<name>.v<N>.pck -- a NEW file
+##   per version, because a mounted pack must never be overwritten. All of
+##   them are mounted at launch (newest only; older files are deleted then).
+##   One downloaded mid-session is mounted at once, on top of an older one
+##   if any (replace_files = false: its new files appear now, changed ones
+##   on the next launch).
+## - Tapping a game downloads its missing media first, then its own pack
+##   (download() runs the chain; download_progress() covers all of it).
+## - At launch (and when a live manifest arrives) every downloaded game's
+##   media is checked and missing or outdated packs are fetched silently.
+## - Storage (storage_items / delete_pack): a media pack is only deleted
+##   when no downloaded game needs it (media_users); anything mounted this
+##   session is deleted on the next launch instead (pending_delete.json).
+## Apps before v0.31 ignore both fields: games guard every media file with
+## ResourceLoader.exists(), so they just run without it there.
 
 const Config = preload("res://scripts/common/config.gd")
 const Version = preload("res://scripts/common/version.gd")
@@ -29,6 +49,9 @@ const CACHED_MANIFEST := "user://manifest_cache.json"
 const PACK_VERSIONS_PATH := "user://pack_versions.json"
 const PACKS_DIR := "user://packs"
 const PACK_MAGIC := "GDPC"
+const MEDIA_DIR := "user://packs/media"
+## Packs the player deleted while they were mounted: removed at next launch.
+const PENDING_DELETE_PATH := "user://packs/pending_delete.json"
 
 ## Tile states, see state_of().
 const STATE_SOON := "soon"
@@ -55,7 +78,18 @@ var _bundled: Dictionary = {}
 ## the next app start: Godot reads a mounted .pck lazily by file offset, so
 ## overwriting it underneath would feed the game corrupt data.
 var _mounted: Dictionary = {}
-var _downloads: Dictionary = {}  # pack id -> HTTPRequest in flight
+var _downloads: Dictionary = {}  # pack id -> HTTPRequest in flight (the chain's current step)
+## game id -> {steps: ["media:<name>"..., "game"], total, on_done} while download() runs.
+var _chains: Dictionary = {}
+
+## name -> {name, version, url, size, sha256} from the manifest's media_packs.
+var media_packs: Dictionary = {}
+## name -> highest version mounted this session.
+var _media_mounted: Dictionary = {}
+## Media packs whose files exist in res:// already (editor, PC test build).
+var _media_bundled: Dictionary = {}
+var _media_downloads: Dictionary = {}  # name -> HTTPRequest
+var _media_waiters: Dictionary = {}  # name -> [Callable(error: String)]
 
 var _fetch_in_flight := false
 var _last_fetch_ok_msec := -1
@@ -69,6 +103,8 @@ func _ready() -> void:
 	# Keep working while a game is paused (GameInfo pauses the tree).
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	DirAccess.make_dir_recursive_absolute(PACKS_DIR)
+	DirAccess.make_dir_recursive_absolute(MEDIA_DIR)
+	_run_pending_deletes()
 	_remove_partial_downloads()
 
 	# A cache written by an older APK is ignored: the newer bundled manifest
@@ -82,6 +118,12 @@ func _ready() -> void:
 	for id in _games_by_id:
 		if ResourceLoader.exists(_games_by_id[id].scene):
 			_bundled[id] = true
+	# Before anything is mounted: a media root that already exists is bundled.
+	for name in [MEDIA_COMMON] + media_packs.keys():
+		if DirAccess.dir_exists_absolute(media_root(name)):
+			_media_bundled[name] = true
+	_mount_local_media()
+	_check_media.call_deferred()
 
 	refresh_manifest()
 
@@ -110,8 +152,14 @@ func local_version(id: String) -> int:
 	return 0 if data == null else int(data.get(id, 0))
 
 ## True if tapping this game must download before it can launch: never
-## downloaded, or a newer version is published and it isn't mounted yet.
+## downloaded, a newer version is published and it isn't mounted yet, or
+## a media pack it needs is missing.
 func needs_download(id: String) -> bool:
+	if _bundled.has(id):
+		return false
+	return not missing_media(id).is_empty() or _pack_needed(id)
+
+func _pack_needed(id: String) -> bool:
 	if _bundled.has(id) or _mounted.has(id):
 		return false
 	if not is_downloaded(id):
@@ -119,7 +167,21 @@ func needs_download(id: String) -> bool:
 	return int(get_game(id).get("version", 0)) > local_version(id)
 
 func is_downloading(id: String) -> bool:
-	return _downloads.has(id)
+	return _downloads.has(id) or _chains.has(id)
+
+## 0..1 over every step of a download() (media first, then the game), or -1
+## while the size isn't known yet.
+func download_progress(id: String) -> float:
+	var chain = _chains.get(id)
+	var http: HTTPRequest = _downloads.get(id)
+	var part := -1.0
+	if http != null and is_instance_valid(http) and http.get_body_size() > 0:
+		part = float(http.get_downloaded_bytes()) / float(http.get_body_size())
+	if chain == null:
+		return part
+	var total: int = maxi(int(chain.total), 1)
+	var done: int = int(chain.total) - chain.steps.size()
+	return (done + maxf(part, 0.0)) / total
 
 func manifest_is_fresh(max_age_sec: int = Config.MANIFEST_MAX_AGE_SEC) -> bool:
 	return _last_fetch_ok_msec >= 0 and Time.get_ticks_msec() - _last_fetch_ok_msec < max_age_sec * 1000
@@ -154,6 +216,7 @@ func _on_manifest_fetched(parsed: Variant) -> void:
 			SaveUtil.write(CACHED_MANIFEST, to_cache)
 			if JSON.stringify(categories) != before:
 				catalog_changed.emit()
+			_check_media()
 	var waiters := _manifest_waiters
 	_manifest_waiters = []
 	for cb in waiters:
@@ -180,7 +243,24 @@ func _apply_manifest(data: Variant) -> bool:
 			"url": str(entry.get("url", Config.PACK_BASE_URL + str(id) + ".pck")),
 			"scene": str(entry.get("scene", "res://scenes/games/%s/%s.tscn" % [id, id])),
 			"min_build": int(entry.get("min_build", 0)),
+			"requires_media": _parse_requirements(entry.get("requires_media", [])),
 		}
+
+	var packs := {}
+	var raw_packs = data.get("media_packs", {})
+	if typeof(raw_packs) == TYPE_DICTIONARY:
+		for name in raw_packs:
+			var e = raw_packs[name]
+			if typeof(e) != TYPE_DICTIONARY or int(e.get("version", 0)) < 1:
+				continue
+			var version := int(e.version)
+			packs[str(name)] = {
+				"name": str(name),
+				"version": version,
+				"url": str(e.get("url", Config.PACK_BASE_URL + "%s.v%d.pck" % [name, version])),
+				"size": int(e.get("size", 0)),
+				"sha256": str(e.get("sha256", "")).to_lower(),
+			}
 
 	var archived := {}
 	for raw_cat in raw_categories:
@@ -231,7 +311,20 @@ func _apply_manifest(data: Variant) -> bool:
 	categories = new_categories
 	_games_by_id = games_by_id
 	archived_ids = archived
+	media_packs = packs
 	return true
+
+## ["media-common>=2", "media-cat-cards"] -> [{name, min}] (no ">=" = 1).
+static func _parse_requirements(raw: Variant) -> Array:
+	var out := []
+	if typeof(raw) != TYPE_ARRAY:
+		return out
+	for r in raw:
+		var parts := str(r).split(">=")
+		var name := parts[0].strip_edges()
+		if name != "":
+			out.append({"name": name, "min": maxi(1, int(parts[1]) if parts.size() > 1 else 1)})
+	return out
 
 ## Carries "<field>_<lang>" translations (e.g. "title_es") from the manifest
 ## into the entry; Lang.pick() chooses between them at display time.
@@ -242,17 +335,61 @@ func _copy_localized(from: Dictionary, to: Dictionary, field: String) -> void:
 
 # ---------- download + mount ----------
 
-## Downloads a game's pack to a temp file, checks it really is a .pck, then
-## swaps it in. on_done(error: String) -- "" on success. Returns the
-## HTTPRequest so the caller can poll progress; null if it couldn't start.
+## Gets everything a game needs onto the device: its missing media packs,
+## then its own pack (each to a temp file, checked, then swapped in).
+## on_done(error: String) -- "" on success. Returns the first step's
+## HTTPRequest (older callers poll it; download_progress() covers the whole
+## chain), or null if there was nothing to do / it couldn't start.
 func download(id: String, on_done: Callable) -> HTTPRequest:
 	var game := get_game(id)
 	if game.is_empty():
 		_safe_call.call_deferred(on_done, [tr("This game isn't in the catalog.")])
 		return null
-	if _downloads.has(id):
-		return _downloads[id]
+	if _chains.has(id):
+		return _downloads.get(id)
+	var steps: Array = []
+	for name in missing_media(id):
+		steps.append("media:" + name)
+	if _pack_needed(id):
+		steps.append("game")
+	if steps.is_empty():
+		_safe_call.call_deferred(on_done, [""])
+		return null
+	_chains[id] = {"steps": steps, "total": steps.size(), "on_done": on_done}
+	_next_step(id)
+	return _downloads.get(id)
 
+func _next_step(id: String) -> void:
+	var chain = _chains.get(id)
+	if chain == null:
+		return
+	if chain.steps.is_empty():
+		_chains.erase(id)
+		_safe_call(chain.on_done, [""])
+		return
+	var step: String = chain.steps[0]
+	if step == "game":
+		_download_game(id, _on_step_done.bind(id))
+	else:
+		var http := _download_media(step.trim_prefix("media:"), _on_step_done.bind(id))
+		if http != null:
+			_downloads[id] = http
+
+func _on_step_done(error: String, id: String) -> void:
+	var chain = _chains.get(id)
+	if chain == null:
+		return  # cancelled
+	if not chain.steps.is_empty() and str(chain.steps[0]).begins_with("media:"):
+		_downloads.erase(id)
+	if error != "":
+		_chains.erase(id)
+		_safe_call(chain.on_done, [error])
+		return
+	chain.steps.pop_front()
+	_next_step(id)
+
+func _download_game(id: String, on_done: Callable) -> void:
+	var game := get_game(id)
 	var part_path := _pack_path(id) + ".part"
 	var http := HTTPRequest.new()
 	http.download_file = part_path
@@ -261,16 +398,21 @@ func download(id: String, on_done: Callable) -> HTTPRequest:
 	_downloads[id] = http
 	http.request_completed.connect(_on_download_completed.bind(id, int(game.version), part_path, http, on_done))
 	if http.request(game.url) != OK:
-		_on_download_completed(HTTPRequest.RESULT_CANT_CONNECT, 0, PackedStringArray(), PackedByteArray(), id, int(game.version), part_path, http, on_done)
-		return null
-	return http
+		_on_download_completed.call_deferred(HTTPRequest.RESULT_CANT_CONNECT, 0, PackedStringArray(), PackedByteArray(), id, int(game.version), part_path, http, on_done)
 
+## Stops a download(). A shared media pack already on its way keeps
+## downloading in the background (another game may need it, and it's
+## mounted for next time); only the game's own pack is aborted.
 func cancel_download(id: String) -> void:
+	var chain = _chains.get(id)
+	_chains.erase(id)
 	var http: HTTPRequest = _downloads.get(id)
 	if http == null:
 		return
-	http.cancel_request()
 	_downloads.erase(id)
+	if chain != null and not chain.steps.is_empty() and str(chain.steps[0]).begins_with("media:"):
+		return
+	http.cancel_request()
 	http.queue_free()
 	DirAccess.remove_absolute(_pack_path(id) + ".part")
 
@@ -281,16 +423,7 @@ func _on_download_completed(result: int, code: int, _headers: PackedStringArray,
 	_downloads.erase(id)
 	http.queue_free()
 
-	var error := ""
-	if result == HTTPRequest.RESULT_TIMEOUT:
-		error = tr("The download timed out. Check your connection and try again.")
-	elif result == HTTPRequest.RESULT_DOWNLOAD_FILE_CANT_OPEN or result == HTTPRequest.RESULT_DOWNLOAD_FILE_WRITE_ERROR:
-		error = tr("Couldn't save the download. Check your free space.")
-	elif result != HTTPRequest.RESULT_SUCCESS or code != 200:
-		error = tr("Download failed. Check your connection and try again.")
-	elif not _looks_like_pack(part_path):
-		error = tr("The download was damaged. Please try again.")
-
+	var error := _download_error(result, code, part_path)
 	if error != "":
 		DirAccess.remove_absolute(part_path)
 		_safe_call(on_done, [error])
@@ -316,6 +449,7 @@ func mount(id: String) -> String:
 	var game := get_game(id)
 	if game.is_empty():
 		return tr("This game isn't in the catalog.")
+	_mount_media_for(id)
 	if _bundled.has(id) or _mounted.has(id):
 		return ""
 	if not is_downloaded(id):
@@ -329,6 +463,235 @@ func mount(id: String) -> String:
 	DirAccess.remove_absolute(_pack_path(id))
 	_set_local_version(id, 0)
 	return tr("This game's files were damaged and have been removed. Tap it again to re-download.")
+
+# ---------- media packs ----------
+
+const MEDIA_COMMON := "media-common"
+const MEDIA_CAT_PREFIX := "media-cat-"
+
+## Where a media pack's files appear in res:// once mounted.
+static func media_root(name: String) -> String:
+	if name.begins_with(MEDIA_CAT_PREFIX):
+		return "res://media/cat/%s/" % name.trim_prefix(MEDIA_CAT_PREFIX)
+	return "res://media/%s/" % name.trim_prefix("media-")
+
+## Names of the media packs this game needs that aren't on the device in a
+## version new enough.
+func missing_media(id: String) -> Array:
+	var out := []
+	for req in get_game(id).get("requires_media", []):
+		if not _media_bundled.has(req.name) and local_media_version(req.name) < int(req.min):
+			out.append(req.name)
+	return out
+
+## Highest version of a media pack on disk (0 = none).
+func local_media_version(name: String) -> int:
+	return int(_local_media().get(name, {}).get("version", 0))
+
+## Downloaded games that need this media pack -- its reference count.
+func media_users(name: String) -> Array:
+	var out := []
+	for id in _games_by_id:
+		if not (is_downloaded(id) or _mounted.has(id)):
+			continue
+		for req in _games_by_id[id].get("requires_media", []):
+			if req.name == name:
+				out.append(id)
+				break
+	return out
+
+## name -> {version, path, others: [older paths]} for files in MEDIA_DIR.
+func _local_media() -> Dictionary:
+	var found := {}
+	var pending := _pending_deletes()
+	for file in DirAccess.get_files_at(MEDIA_DIR):
+		if not file.ends_with(".pck"):
+			continue
+		var path := MEDIA_DIR.path_join(file)
+		if pending.has(path):
+			continue
+		var stem := file.trim_suffix(".pck")
+		var at := stem.rfind(".v")
+		if at <= 0 or not stem.substr(at + 2).is_valid_int():
+			continue
+		var name := stem.substr(0, at)
+		var version := stem.substr(at + 2).to_int()
+		var cur: Dictionary = found.get(name, {"version": 0, "path": "", "others": []})
+		if version > int(cur.version):
+			if cur.path != "":
+				cur.others.append(cur.path)
+			cur.version = version
+			cur.path = path
+		else:
+			cur.others.append(path)
+		found[name] = cur
+	return found
+
+func _media_path(name: String, version: int) -> String:
+	return "%s/%s.v%d.pck" % [MEDIA_DIR, name, version]
+
+## At launch, before anything uses them: drop superseded versions (nothing
+## is mounted yet, so deleting is safe), mount the newest of each.
+func _mount_local_media() -> void:
+	var local := _local_media()
+	for name in local:
+		for old in local[name].others:
+			DirAccess.remove_absolute(old)
+		_mount_media_file(name, int(local[name].version), local[name].path)
+
+func _mount_media_file(name: String, version: int, path: String) -> bool:
+	if _media_bundled.has(name) or int(_media_mounted.get(name, 0)) >= version:
+		return true
+	if not _looks_like_pack(path) or not ProjectSettings.load_resource_pack(path, false):
+		# Damaged (never the mounted file: that one has a lower version).
+		# The next check or tap re-fetches it.
+		DirAccess.remove_absolute(path)
+		return false
+	_media_mounted[name] = version
+	return true
+
+## Mounts whatever of this game's media arrived since launch.
+func _mount_media_for(id: String) -> void:
+	var local := _local_media()
+	for req in get_game(id).get("requires_media", []):
+		if local.has(req.name):
+			_mount_media_file(req.name, int(local[req.name].version), local[req.name].path)
+
+## Silent upkeep: every downloaded game's media present and current.
+func _check_media() -> void:
+	var wanted := {}
+	for id in _games_by_id:
+		if not is_downloaded(id) or _bundled.has(id):
+			continue
+		for req in _games_by_id[id].get("requires_media", []):
+			wanted[req.name] = true
+	for name in wanted:
+		if media_packs.has(name) and not _media_bundled.has(name) \
+				and local_media_version(name) < int(media_packs[name].version):
+			_download_media(name, Callable())
+
+## Downloads one media pack (shared: callers asking for one already on its
+## way just wait for it). on_done(error: String).
+func _download_media(name: String, on_done: Callable) -> HTTPRequest:
+	var info: Dictionary = media_packs.get(name, {})
+	if info.is_empty():
+		_safe_call.call_deferred(on_done, [tr("Download failed. Check your connection and try again.")])
+		return null
+	if not _media_waiters.has(name):
+		_media_waiters[name] = []
+	_media_waiters[name].append(on_done)
+	if _media_downloads.has(name):
+		return _media_downloads[name]
+	var part := _media_path(name, int(info.version)) + ".part"
+	var http := HTTPRequest.new()
+	http.download_file = part
+	http.timeout = Config.DOWNLOAD_TIMEOUT
+	add_child(http)
+	_media_downloads[name] = http
+	http.request_completed.connect(_on_media_completed.bind(name, int(info.version), str(info.sha256), part, http))
+	if http.request(str(info.url)) != OK:
+		_on_media_completed.call_deferred(HTTPRequest.RESULT_CANT_CONNECT, 0, PackedStringArray(), PackedByteArray(), name, int(info.version), str(info.sha256), part, http)
+	return http
+
+func _on_media_completed(result: int, code: int, _headers: PackedStringArray, _body: PackedByteArray,
+		name: String, version: int, sha256: String, part: String, http: HTTPRequest) -> void:
+	if _media_downloads.get(name) != http:
+		return
+	_media_downloads.erase(name)
+	http.queue_free()
+	var error := _download_error(result, code, part)
+	if error == "" and sha256 != "" and FileAccess.get_sha256(part) != sha256:
+		error = tr("The download was damaged. Please try again.")
+	if error == "":
+		var final_path := _media_path(name, version)
+		if FileAccess.file_exists(final_path):
+			DirAccess.remove_absolute(final_path)  # never mounted: an equal version would not be fetched
+		if DirAccess.rename_absolute(part, final_path) != OK:
+			error = tr("Couldn't save the download. Check your free space.")
+		elif not _mount_media_file(name, version, final_path):
+			error = tr("The download was damaged. Please try again.")
+	if error != "":
+		DirAccess.remove_absolute(part)
+	var waiters: Array = _media_waiters.get(name, [])
+	_media_waiters.erase(name)
+	for cb in waiters:
+		_safe_call(cb, [error])
+
+# ---------- storage ----------
+
+## Everything downloaded, biggest first: [{kind: "game"|"media", id, bytes,
+## users (media: games needing it), mounted (in use this session)}].
+## Games list archived and unknown ids too (their files still take space).
+func storage_items() -> Array:
+	var items := []
+	var pending := _pending_deletes()
+	for file in DirAccess.get_files_at(PACKS_DIR):
+		var path := PACKS_DIR.path_join(file)
+		if not file.ends_with(".pck") or pending.has(path):
+			continue
+		var id := file.trim_suffix(".pck")
+		items.append({"kind": "game", "id": id, "bytes": _file_size(path), "users": [], "mounted": _mounted.has(id)})
+	var local := _local_media()
+	for name in local:
+		var bytes := 0
+		for path in [local[name].path] + local[name].others:
+			bytes += _file_size(path)
+		items.append({"kind": "media", "id": name, "bytes": bytes, "users": media_users(name),
+				"mounted": _media_mounted.has(name)})
+	items.sort_custom(func(a, b): return a.bytes > b.bytes)
+	return items
+
+## Deletes a downloaded pack. Returns "" (deleted), "later" (in use this
+## session: deleted on the next launch) or a reason it can't be deleted.
+## Never touches saves or stats.
+func delete_pack(kind: String, id: String) -> String:
+	if kind == "media":
+		if not media_users(id).is_empty():
+			return tr("Games you have downloaded still use this.")
+		var local := _local_media()
+		if not local.has(id):
+			return ""
+		var paths: Array = [local[id].path] + local[id].others
+		if _media_mounted.has(id):
+			_defer_delete(paths)
+			return "later"
+		for path in paths:
+			DirAccess.remove_absolute(path)
+		return ""
+	if _downloads.has(id) or _chains.has(id):
+		return tr("This game is downloading.")
+	_set_local_version(id, 0)
+	if _mounted.has(id):
+		_defer_delete([_pack_path(id)])
+		return "later"
+	DirAccess.remove_absolute(_pack_path(id))
+	return ""
+
+func _file_size(path: String) -> int:
+	var f := FileAccess.open(path, FileAccess.READ)
+	return 0 if f == null else int(f.get_length())
+
+func _pending_deletes() -> Dictionary:
+	var data = SaveUtil.read(PENDING_DELETE_PATH)
+	var out := {}
+	if data != null and typeof(data.get("paths")) == TYPE_ARRAY:
+		for p in data.paths:
+			out[str(p)] = true
+	return out
+
+func _defer_delete(paths: Array) -> void:
+	var all := _pending_deletes()
+	for p in paths:
+		all[str(p)] = true
+	SaveUtil.write(PENDING_DELETE_PATH, {"paths": all.keys()})
+
+## At launch, before anything is mounted.
+func _run_pending_deletes() -> void:
+	for path in _pending_deletes():
+		if path.begins_with(PACKS_DIR):
+			DirAccess.remove_absolute(path)
+	if FileAccess.file_exists(PENDING_DELETE_PATH):
+		DirAccess.remove_absolute(PENDING_DELETE_PATH)
 
 # ---------- app update ----------
 
@@ -378,6 +741,18 @@ func _set_local_version(id: String, version: int) -> void:
 		data[id] = version
 	SaveUtil.write(PACK_VERSIONS_PATH, data)
 
+## "" if a finished download is a good .pck, else what to tell the player.
+func _download_error(result: int, code: int, part_path: String) -> String:
+	if result == HTTPRequest.RESULT_TIMEOUT:
+		return tr("The download timed out. Check your connection and try again.")
+	if result == HTTPRequest.RESULT_DOWNLOAD_FILE_CANT_OPEN or result == HTTPRequest.RESULT_DOWNLOAD_FILE_WRITE_ERROR:
+		return tr("Couldn't save the download. Check your free space.")
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		return tr("Download failed. Check your connection and try again.")
+	if not _looks_like_pack(part_path):
+		return tr("The download was damaged. Please try again.")
+	return ""
+
 func _looks_like_pack(path: String) -> bool:
 	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null or f.get_length() < 4:
@@ -388,9 +763,10 @@ func _looks_like_pack(path: String) -> bool:
 
 ## Leftovers from a download the app was killed in the middle of.
 func _remove_partial_downloads() -> void:
-	for file in DirAccess.get_files_at(PACKS_DIR):
-		if file.ends_with(".part"):
-			DirAccess.remove_absolute(PACKS_DIR.path_join(file))
+	for dir in [PACKS_DIR, MEDIA_DIR]:
+		for file in DirAccess.get_files_at(dir):
+			if file.ends_with(".part"):
+				DirAccess.remove_absolute(dir.path_join(file))
 
 func _read_json_file(path: String) -> Variant:
 	if not FileAccess.file_exists(path):

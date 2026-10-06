@@ -68,6 +68,9 @@ var drag: Node
 func _ready() -> void:
 	Orientation.lock_portrait()
 	pal = Settings.palette()
+	# A game's music doesn't follow the player out (the hub has no track
+	# of its own yet: Tier 0, res://media/hub/music/, STANDARDS §10).
+	Music.stop()
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 0)
@@ -626,8 +629,8 @@ func _start_download(game: Dictionary) -> void:
 	download_overlay = _build_download_overlay(
 			(tr("Updating %s...") if is_update else tr("Downloading %s...")) % Lang.pick(game, "title"), game.id)
 	add_child(download_overlay)
-	var http: HTTPRequest = Catalog.download(game.id, _on_download_done.bind(game.id))
-	download_overlay.set_meta("http", http)
+	download_overlay.set_meta("id", game.id)
+	Catalog.download(game.id, _on_download_done.bind(game.id))
 
 func _process(_delta: float) -> void:
 	# Checked every frame while a category is open: a scroll signal fires
@@ -641,13 +644,14 @@ func _process(_delta: float) -> void:
 			_scroll_back_index = -1
 	if download_overlay == null or not is_instance_valid(download_overlay):
 		return
-	var http = download_overlay.get_meta("http", null)
-	if http == null or not is_instance_valid(http):
+	# One bar for the whole download: the game's media packs, then its pack.
+	var id: String = download_overlay.get_meta("id", "")
+	if id == "" or not Catalog.is_downloading(id):
 		return
-	var total: int = http.get_body_size()
-	if total > 0:
+	var progress: float = Catalog.download_progress(id)
+	if progress >= 0.0:
 		var bar: ProgressBar = download_overlay.get_meta("progress_bar")
-		bar.value = 100.0 * float(http.get_downloaded_bytes()) / float(total)
+		bar.value = 100.0 * progress
 
 func _on_download_done(error: String, id: String) -> void:
 	var game: Dictionary = Catalog.get_game(id)
@@ -658,7 +662,7 @@ func _on_download_done(error: String, id: String) -> void:
 		_launch(game)
 		return
 	if download_overlay and is_instance_valid(download_overlay):
-		download_overlay.set_meta("http", null)
+		download_overlay.set_meta("id", "")
 		download_overlay.get_meta("status_label").text = error
 		download_overlay.get_meta("progress_bar").visible = false
 		download_overlay.get_meta("close_button").text = tr("Close")

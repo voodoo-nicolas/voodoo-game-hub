@@ -734,6 +734,10 @@ func _build_home() -> void:
 		"board_note": "Games won, all time.",
 		"more": [["📜 History", HomeKit.PURPLE, _show_history]],
 		"extra": _add_style_picker,
+		# Phase 3 pilot: the shared calm loop from media-common (v0.31+ apps).
+		"music": "menu",
+		"music_play": "menu",
+		"category": "cards",
 	})
 	add_child(home)
 

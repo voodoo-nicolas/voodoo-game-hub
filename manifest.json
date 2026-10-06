@@ -1,6 +1,9 @@
 {
   "_readme": "The game catalog. Edit this, then run: python tools/hub.py sync. See CLAUDE.md.",
   "format": 2,
+  "media_packs": {
+    "media-common": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/media-common.v1.pck", "size": 150368, "sha256": "c50131c05df2a3238e0c07aa7b2d1be0aa3cadb614bf879a480a382458e773bc"}
+  },
   "categories": [
     {"name": "Puzzle & Board", "icon": "🧩", "name_es": "Puzzles y tablero", "games": [
       {"id": "chess", "title": "Chess", "icon": "♟️", "title_es": "Ajedrez", "modes": "online,local,cpu", "board": "Wins"},
@@ -124,7 +127,7 @@
   ],
   "games": {
     "sudoku": {"version": 15, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
-    "solitaire": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
+    "solitaire": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck", "scene": "res://scenes/games/solitaire/solitaire.tscn", "requires_media": ["media-common>=1"]},
     "geometry_wars": {"version": 18, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
     "tictactoe": {"version": 13, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tictactoe.pck", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
     "connect4": {"version": 14, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/connect4.pck", "scene": "res://scenes/games/connect4/connect4.tscn"},

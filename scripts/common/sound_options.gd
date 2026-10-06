@@ -5,6 +5,8 @@ extends VBoxContainer
 ##
 ##   🔊 Sound           [On]   <- Off = mute all
 ##   Volume      ━━━━●━━  80%
+##   🎵 Music           [On]     (since v0.31: the Music bus)
+##               ━━━●━━━  60%
 ##   👆 Taps & keys     [On]     (one block per Settings.SOUND_GROUPS)
 ##               ━━━━━━●  100%
 ##
@@ -25,6 +27,9 @@ var drag: Node = null
 
 var _sliders: Array = []  # every slider, greyed out while sound is muted
 var _group_toggles: Dictionary = {}  # group id -> Button
+var _music_toggle: Button = null
+## The music slider's "group" meta: not a Sfx group, it has its own switch.
+const MUSIC := "music"
 
 ## `compact` makes everything smaller, for the in-game drawer.
 func _init(palette: Dictionary, p_compact: bool = false) -> void:
@@ -38,6 +43,12 @@ func _ready() -> void:
 		return
 	_toggle_row(tr("🔊 Sound"), tr("Off mutes everything.") if not compact else "", s.sound, _on_sound)
 	_slider_row(tr("Volume"), s.volume, _on_volume, "")
+	# Apps before v0.31 have no music setting (this file ships in the APK,
+	# but stay safe if Settings is ever older than it).
+	if "music" in s:
+		add_child(HSeparator.new())
+		_music_toggle = _toggle_row(tr("🎵 Music"), "" if compact else tr("Background music in menus and games."), s.music, _on_music)
+		_slider_row("", s.music_volume, _on_music_volume, MUSIC)
 	add_child(HSeparator.new())
 	for g in s.SOUND_GROUPS:
 		var id: String = g[0]
@@ -193,6 +204,13 @@ func _on_group(on: bool, id: String) -> void:
 	if on:
 		_sample(id)
 
+func _on_music(on: bool) -> void:
+	_settings().set_music(on)
+	_refresh_enabled()
+
+func _on_music_volume(v: int, save: bool) -> void:
+	_settings().set_music_volume(v, save)
+
 func _on_volume(v: int, save: bool) -> void:
 	_settings().set_volume(v, save)
 
@@ -206,6 +224,8 @@ func _on_slider_moved(value: float, slider: HSlider, pct: Label, on_change: Call
 func _on_slider_released(_changed: bool, slider: HSlider, on_change: Callable) -> void:
 	on_change.call(int(slider.value), true)
 	var g: String = slider.get_meta("group")
+	if g == MUSIC:
+		return  # the music itself is the preview, if any is playing
 	_sample(g if g != "" else "taps")
 
 ## Sliders that can't be heard grey out: all of them while muted, and a
@@ -214,6 +234,6 @@ func _refresh_enabled() -> void:
 	var s = _settings()
 	for slider in _sliders:
 		var g: String = slider.get_meta("group")
-		var live: bool = s.sound and (g == "" or s.group_on(g))
+		var live: bool = s.sound and (g == "" or (s.music if g == MUSIC else s.group_on(g)))
 		slider.editable = live
 		slider.modulate.a = 1.0 if live else 0.4

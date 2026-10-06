@@ -14,7 +14,9 @@ chore that used to be a hand-edit across several files.
     python tools/hub.py pc-zip                the same, zipped into builds/ to copy to other PCs
     python tools/hub.py i18n                  regenerate translation files from tools/i18n/es.json; list untranslated text
     python tools/hub.py verify                check live release assets match local builds
-    python tools/hub.py publish-packs ID...   upload packs to the GitHub pack release
+    python tools/hub.py export-media [NAME...|--all]  build media packs into builds/media/ (+ size/sha256 into manifest)
+    python tools/hub.py bump-media NAME...    a media pack changed: new version = new file name
+    python tools/hub.py publish-packs ID...   upload game / media packs to the GitHub pack release
     python tools/hub.py release               create the GitHub release for the current APK
 
 Sources of truth (edit these by hand):
@@ -24,8 +26,9 @@ Sources of truth (edit these by hand):
     scripts/common/brand.gd     the app's visible name (Brand.NAME)
 
 Derived (never edit by hand -- `sync` rewrites them):
-    export_presets.cfg          one "<Name>Pack" preset per game; Android version fields;
-                                the app name shown by Android / Windows (from Brand.NAME)
+    export_presets.cfg          one "<Name>Pack" preset per game, one "<Name>Media" preset per
+                                media pack; Android version fields + filters; the app name
+                                shown by Android / Windows (from Brand.NAME)
     manifest.json "games"       entries for new ids are filled in from the categories
 
 Godot is located via the GODOT environment variable, then the known portable
@@ -54,6 +57,8 @@ MEDIA = ROOT / "media"
 CREDITS = MEDIA / "CREDITS.json"
 TEMPLATES = ROOT / "tools/templates"
 PACKS_OUT = ROOT / "builds/packs"
+MEDIA_OUT = ROOT / "builds/media"
+MEDIA_NAME_RE = re.compile(r"^media-(common|cat-[a-z][a-z0-9_]*)$")
 KNOWN_GODOT = Path(os.path.expandvars(
     r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe"
     r"\Godot_v4.7.2-stable_win64_console.exe"))
@@ -112,6 +117,13 @@ def save_manifest(m: dict) -> None:
     for key in m:
         if key in ("categories", "games"):
             continue
+        if key == "media_packs" and isinstance(m[key], dict) and m[key]:
+            out.append('  "media_packs": {')
+            packs = list(m[key].items())
+            for i, (name, entry) in enumerate(packs):
+                out.append(f"    {dumps(name)}: {dumps(entry)}" + ("," if i < len(packs) - 1 else ""))
+            out.append("  },")
+            continue
         out.append(f"  {dumps(key)}: {dumps(m[key])},")
     out.append('  "categories": [')
     cats = m["categories"]
@@ -161,6 +173,30 @@ def camel(gid: str) -> str:
     return "".join(p.capitalize() for p in gid.split("_"))
 
 
+# ---------------------------------------------------------------- media packs (STANDARDS §10)
+
+def media_dir(name: str) -> str:
+    """media-common -> media/common, media-cat-cards -> media/cat/cards."""
+    if name.startswith("media-cat-"):
+        return "media/cat/" + name.removeprefix("media-cat-")
+    return "media/" + name.removeprefix("media-")
+
+
+def media_packs(m: dict) -> dict:
+    packs = m.get("media_packs", {})
+    return packs if isinstance(packs, dict) else {}
+
+
+def media_file_name(name: str, version: int) -> str:
+    # A new file per version: a mounted pack must never be overwritten.
+    return f"{name}.v{version}.pck"
+
+
+def parse_requirement(req: str) -> tuple[str, int]:
+    name, _, minimum = str(req).partition(">=")
+    return name.strip(), int(minimum) if minimum.strip().isdigit() else 1
+
+
 # ---------------------------------------------------------------- export_presets.cfg
 
 def split_presets(text: str) -> list[dict]:
@@ -189,10 +225,21 @@ def is_pack_preset(p: dict) -> bool:
     return p["export_path"].startswith("builds/packs/")
 
 
+def is_media_preset(p: dict) -> bool:
+    return p["export_path"].startswith("builds/media/")
+
+
 # Godot drags the project icon and autoload scripts into every pack. The icon
 # alone was ~1.1 MB of each ~1.1 MB pack; the scripts already ship in the APK.
 # media/ is the hub's own art (and later the shared media packs).
 PACK_EXCLUDE = "assets/*, media/*, scripts/common/*, scripts/hub/*, scripts/account/*"
+# Media packs carry only their own folder; everything shared stays in the APK.
+MEDIA_EXCLUDE = "assets/*, media/hub/*, media/licenses/*, scripts/*, scenes/*, games/*"
+# The APK leaves out every game (its pack) and every downloadable media tier.
+ANDROID_EXCLUDE = "scenes/games/*, scripts/games/*, games/*, media/common/*, media/cat/*"
+# Non-resource files the app reads at runtime: the offline catalog and the
+# credits list (📜 Credits screen).
+APP_INCLUDE = "manifest.json, media/CREDITS.json"
 
 
 def pack_preset_text(index: int, name: str, gid: str) -> str:
@@ -206,7 +253,7 @@ dedicated_server=false
 custom_features="game_pack"
 export_filter="resources"
 export_files=PackedStringArray()
-include_filter="scenes/games/{gid}/*, scripts/games/{gid}/*"
+include_filter="scenes/games/{gid}/*, scripts/games/{gid}/*, games/{gid}/*"
 exclude_filter="{PACK_EXCLUDE}"
 export_path="builds/packs/{gid}.pck"
 encryption_include_filters=""
@@ -223,6 +270,38 @@ binary_format/architecture="x86_64"
 '''
 
 
+def media_preset_text(index: int, name: str) -> str:
+    return f'''[preset.{index}]
+
+name="{media_preset_name(name)}"
+platform="Windows Desktop"
+runnable=false
+advanced_options=false
+dedicated_server=false
+custom_features="game_pack"
+export_filter="resources"
+export_files=PackedStringArray()
+include_filter="{media_dir(name)}/*"
+exclude_filter="{MEDIA_EXCLUDE}"
+export_path="builds/media/{name}.pck"
+encryption_include_filters=""
+encryption_exclude_filters=""
+encrypt_pck=false
+encrypt_directory=false
+script_export_mode=2
+
+[preset.{index}.options]
+
+custom_template/debug=""
+custom_template/release=""
+binary_format/architecture="x86_64"
+'''
+
+
+def media_preset_name(name: str) -> str:
+    return camel(name.removeprefix("media-").replace("-", "_")) + "Media"
+
+
 def pack_preset_names() -> dict[str, str]:
     """pack id -> preset name, from the current export_presets.cfg."""
     names = {}
@@ -232,14 +311,16 @@ def pack_preset_names() -> dict[str, str]:
     return names
 
 
-def render_presets(ids: list[str]) -> str:
+def render_presets(ids: list[str], media: list[str] | None = None) -> str:
     """export_presets.cfg with every pack preset regenerated from `ids`, the
     Android preset's version fields synced to version.gd, and the app name
     every platform shows synced to Brand.NAME (package ids never change)."""
     version, build = read_version()
     brand = read_brand()
+    if media is None:
+        media = list(media_packs(load_manifest()))
     presets = split_presets(PRESETS.read_text(encoding="utf-8"))
-    base = [p for p in presets if not is_pack_preset(p)]
+    base = [p for p in presets if not is_pack_preset(p) and not is_media_preset(p)]
     old_names = {Path(p["export_path"]).stem: p["name"] for p in presets if is_pack_preset(p)}
 
     chunks = []
@@ -250,7 +331,10 @@ def render_presets(ids: list[str]) -> str:
             body = re.sub(r"(?m)^version/code=.*$", f"version/code={build}", body)
             body = re.sub(r'(?m)^version/name=.*$', f'version/name="{version}"', body)
             # The bundled manifest.json is the offline fallback catalog.
-            body = re.sub(r'(?m)^include_filter=.*$', 'include_filter="manifest.json"', body)
+            body = re.sub(r'(?m)^include_filter=.*$', f'include_filter="{APP_INCLUDE}"', body)
+            body = re.sub(r'(?m)^exclude_filter=.*$', f'exclude_filter="{ANDROID_EXCLUDE}"', body)
+        if p["name"] == PC_PRESET and "media/CREDITS.json" not in body:
+            body = re.sub(r'(?m)^include_filter="(.*)"$', lambda mm: f'include_filter="{mm.group(1)}, media/CREDITS.json"', body)
         # The name players see: Android's app label, Windows' product name.
         suffix = " Dev" if p["name"].endswith("Dev") else ""
         body = re.sub(r'(?m)^package/name=.*$', f'package/name="{brand}{suffix}"', body)
@@ -260,6 +344,8 @@ def render_presets(ids: list[str]) -> str:
     ordered = [gid for gid in old_names if gid in ids] + [gid for gid in ids if gid not in old_names]
     for j, gid in enumerate(ordered):
         chunks.append(pack_preset_text(len(base) + j, old_names.get(gid, camel(gid) + "Pack"), gid))
+    for k, name in enumerate(media):
+        chunks.append(media_preset_text(len(base) + len(ordered) + k, name))
     return "\n".join(chunks)
 
 
@@ -347,6 +433,8 @@ def validate() -> tuple[list[str], list[str]]:
         if gid not in seen:
             warnings.append(f'{gid}: in "games" but not in any category, so the hub never shows it')
 
+    errors += lint_media(m)
+
     for kit in stale_home_kits(catalog_ids(m)):
         errors.append(f"{kit.relative_to(ROOT)} differs from tools/templates/home_kit.gd -- run sync")
 
@@ -356,6 +444,59 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_credits()
     errors += lint_hub_name()
     return errors, warnings
+
+
+AUDIO_EXTS = {".wav", ".mp3", ".flac", ".aiff", ".aif", ".m4a", ".ogg", ".opus"}
+
+
+def lint_media(m: dict) -> list[str]:
+    """STANDARDS §10: media_packs entries, each game's requires_media, OGG only,
+    looping music."""
+    errors = []
+    packs = media_packs(m)
+    for name, e in packs.items():
+        if not MEDIA_NAME_RE.match(name):
+            errors.append(f"media pack {name!r}: name must be media-common or media-cat-<category>")
+            continue
+        v = e.get("version") if isinstance(e, dict) else None
+        if not isinstance(v, int) or v < 1:
+            errors.append(f"media pack {name}: version must be an integer >= 1")
+            continue
+        if not str(e.get("url", "")).endswith("/" + media_file_name(name, v)):
+            errors.append(f"media pack {name}: url should end in /{media_file_name(name, v)} -- run sync")
+        if not (ROOT / media_dir(name)).is_dir():
+            errors.append(f"media pack {name}: folder {media_dir(name)}/ does not exist")
+        if not isinstance(e.get("size"), int) or not re.fullmatch(r"[0-9a-f]{64}", str(e.get("sha256", ""))):
+            errors.append(f"media pack {name}: no size/sha256 yet -- run export-media {name}")
+    for folder in [MEDIA / "common", *sorted((MEDIA / "cat").glob("*"))]:
+        if folder.is_dir() and any(f.is_file() and f.suffix not in (".import", ".uid") for f in folder.rglob("*")):
+            rel = folder.relative_to(ROOT).as_posix()
+            name = "media-common" if rel == "media/common" else "media-cat-" + folder.name
+            if name not in packs:
+                errors.append(f'{rel}/ has files but no "media_packs" entry {name!r} in manifest.json')
+    for gid, entry in m.get("games", {}).items():
+        reqs = entry.get("requires_media", [])
+        if not isinstance(reqs, list):
+            errors.append(f'{gid}: "requires_media" must be a list like ["media-common>=1"]')
+            continue
+        for req in reqs:
+            name, minimum = parse_requirement(req)
+            if name not in packs:
+                errors.append(f"{gid}: requires {name}, which isn't in media_packs")
+            elif isinstance(packs[name].get("version"), int) and minimum > packs[name]["version"]:
+                errors.append(f"{gid}: requires {name}>={minimum}, but it is at version {packs[name]['version']}")
+    if MEDIA.is_dir():
+        for f in sorted(MEDIA.rglob("*")):
+            if f.suffix.lower() in AUDIO_EXTS and f.suffix.lower() != ".ogg":
+                errors.append(f"{f.relative_to(ROOT).as_posix()}: audio must be OGG Vorbis (STANDARDS §10)")
+            if f.suffix == ".ogg" and "music" in f.relative_to(MEDIA).parts:
+                imp = f.with_name(f.name + ".import")
+                if imp.is_file() and not re.search(r"(?m)^loop=true", imp.read_text(encoding="utf-8")):
+                    errors.append(f"{f.relative_to(ROOT).as_posix()}: music must loop -- set loop=true in its .import")
+    return errors
+
+
+NOT_ALLOWED_LICENCE = re.compile(r"\bNC\b|\bND\b|non-?commercial|no-?deriv", re.I)
 
 
 def lint_credits() -> list[str]:
@@ -368,6 +509,9 @@ def lint_credits() -> list[str]:
         return [f"media/CREDITS.json is not valid JSON: {e}"]
     listed = {str(e.get("file", "")) for e in credits.get("assets", [])}
     errors = []
+    for e in credits.get("assets", []):
+        if NOT_ALLOWED_LICENCE.search(str(e.get("licence", ""))):
+            errors.append(f"{e.get('file')}: licence {e.get('licence')!r} is NC/ND -- not allowed (STANDARDS §10)")
     for f in sorted(MEDIA.rglob("*")):
         rel = f.relative_to(ROOT).as_posix()
         if (f.is_dir() or f.suffix in (".import", ".uid") or f.name in (".gdignore", "CREDITS.json")
@@ -426,6 +570,12 @@ def cmd_sync(_args=None) -> None:
             if entry.get("url") != wanted:
                 entry["url"] = wanted
                 print(f"  {gid}: url -> {wanted}")
+    for name, e in media_packs(m).items():
+        if isinstance(e, dict) and isinstance(e.get("version"), int):
+            wanted = base_url + media_file_name(name, e["version"])
+            if e.get("url") != wanted:
+                e["url"] = wanted
+                print(f"  {name}: url -> {wanted}")
     save_manifest(m)
     sync_home_kits(ids)
     new = render_presets(ids)
@@ -502,6 +652,20 @@ def cmd_bump_pack(args) -> None:
     save_manifest(m)
 
 
+def cmd_bump_media(args) -> None:
+    m = load_manifest()
+    packs = media_packs(m)
+    for name in args.names:
+        if name not in packs:
+            raise ToolError(f"unknown media pack {name}")
+        packs[name]["version"] += 1
+        packs[name].pop("size", None)
+        packs[name].pop("sha256", None)  # export-media fills them for the new file
+        print(f"  {name}: version {packs[name]['version']}")
+    save_manifest(m)
+    cmd_sync()
+
+
 def cmd_bump_app(args) -> None:
     version, build = read_version()
     major, minor, patch = (int(x) for x in version.split("."))
@@ -574,6 +738,30 @@ def cmd_export(args) -> None:
             print(log)
             raise ToolError(f"export of {gid} failed")
         print(f"  {gid}: {out_path.relative_to(ROOT)} ({out_path.stat().st_size:,} bytes)")
+
+
+def cmd_export_media(args) -> None:
+    import hashlib
+    m = load_manifest()
+    packs = media_packs(m)
+    names = list(packs) if args.all else args.names
+    if not names:
+        raise ToolError("name the media packs to export, or pass --all")
+    MEDIA_OUT.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        if name not in packs:
+            raise ToolError(f"unknown media pack {name} -- add it to manifest.json \"media_packs\"")
+        out_path = MEDIA_OUT / media_file_name(name, packs[name]["version"])
+        code, log = run_godot("--export-pack", media_preset_name(name), str(out_path))
+        if code != 0 or not out_path.is_file():
+            print(log)
+            raise ToolError(f"export of {name} failed")
+        data = out_path.read_bytes()
+        packs[name]["size"] = len(data)
+        packs[name]["sha256"] = hashlib.sha256(data).hexdigest()
+        print(f"  {name}: {out_path.relative_to(ROOT)} ({len(data):,} bytes)")
+    # The manifest now names exactly these bytes: upload THIS build.
+    save_manifest(m)
 
 
 # The release signing key lives OUTSIDE the repo, with its password in a
@@ -854,11 +1042,15 @@ def gh() -> str:
 
 def cmd_publish_packs(args) -> None:
     tag = read_config()["PACK_RELEASE_TAG"]
+    packs = media_packs(load_manifest())
     files = []
     for gid in args.ids:
-        f = PACKS_OUT / f"{gid}.pck"
+        if gid in packs:
+            f = MEDIA_OUT / media_file_name(gid, packs[gid]["version"])
+        else:
+            f = PACKS_OUT / f"{gid}.pck"
         if not f.is_file():
-            raise ToolError(f"{f.relative_to(ROOT)} not built -- run export first")
+            raise ToolError(f"{f.relative_to(ROOT)} not built -- run export / export-media first")
         files.append(str(f))
     subprocess.run([gh(), "release", "upload", tag, *files, "--clobber"], cwd=ROOT, check=True)
     print("  uploaded. Remember: commit + push manifest.json so apps see the new versions.")
@@ -887,11 +1079,21 @@ def cmd_verify(_args) -> None:
     try:
         req = urllib.request.Request(raw, headers={"User-Agent": "voodoo-hub-tool"})
         live = json.loads(urllib.request.urlopen(req, timeout=30).read())
-        if live.get("games") != m["games"]:
+        if live.get("games") != m["games"] or live.get("media_packs") != m.get("media_packs"):
             print("  WARN live manifest.json differs from local (not pushed yet? raw GitHub caches ~5 min)")
     except Exception as e:  # noqa: BLE001 -- report and carry on
         print(f"  FAIL live manifest: {e}")
         bad += 1
+    for name, e in media_packs(m).items():
+        try:
+            status, size = fetch_size(e["url"])
+        except Exception as ex:  # noqa: BLE001
+            print(f"  FAIL {name}: {ex}")
+            bad += 1
+            continue
+        ok = status == 200 and size == e.get("size")
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}: {status}, {size:,} bytes (manifest says {e.get('size')})")
+        bad += not ok
     for gid in live_ids(m):
         url = m["games"][gid]["url"]
         local = PACKS_OUT / f"{gid}.pck"
@@ -942,6 +1144,13 @@ def main() -> int:
     sub.add_parser("pc").set_defaults(fn=cmd_pc)
     sub.add_parser("pc-zip").set_defaults(fn=cmd_pc_zip)
     sub.add_parser("i18n").set_defaults(fn=cmd_i18n)
+    p = sub.add_parser("export-media")
+    p.add_argument("names", nargs="*")
+    p.add_argument("--all", action="store_true")
+    p.set_defaults(fn=cmd_export_media)
+    p = sub.add_parser("bump-media")
+    p.add_argument("names", nargs="+")
+    p.set_defaults(fn=cmd_bump_media)
     p = sub.add_parser("publish-packs")
     p.add_argument("ids", nargs="+")
     p.set_defaults(fn=cmd_publish_packs)

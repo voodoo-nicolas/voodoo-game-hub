@@ -28,12 +28,18 @@ extends Node
 ## A sound only one game uses lives in that game's own folder (its pack):
 ## load the stream there and call play_stream(stream).
 ##
-## Everything plays on the "SFX" bus, which feeds Master -- so the Options
-## screen's Mute all and Volume (Settings sets Master) cover it all. Each
+## Everything plays on the "SFX" bus -- taps and keys on the "UI" bus (since
+## v0.31) -- both feeding Master, so the Options screen's Mute all and Volume
+## (Settings sets Master) cover it all. Results and alerts briefly duck the
+## music (Music autoload). Each
 ## sound is also in a group (GROUP_OF: taps, game, results, alerts) with its
 ## own on/off and volume in Options and the in-game ⚙ drawer's 🔊 Sound.
 
 const BUS := "SFX"
+## The "taps" group plays here (STANDARDS §10: Master / Music / SFX / UI).
+const UI_BUS := "UI"
+## Groups whose sounds dip the music for a moment so they're heard.
+const DUCKS_MUSIC := ["results", "alerts"]
 const FILE_DIR := "res://assets/sfx/"
 const RATE := 22050
 const VOICES := 8
@@ -68,11 +74,7 @@ var _warm_task: int = -1
 func _ready() -> void:
 	# The GameInfo card pauses games; its sounds must still play.
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	if AudioServer.get_bus_index(BUS) == -1:
-		AudioServer.add_bus()
-		var i := AudioServer.bus_count - 1
-		AudioServer.set_bus_name(i, BUS)
-		AudioServer.set_bus_send(i, "Master")
+	preload("res://scripts/common/settings.gd").ensure_buses()
 	for i in VOICES:
 		var p := AudioStreamPlayer.new()
 		p.bus = BUS
@@ -131,7 +133,12 @@ func play_stream(stream: AudioStream, volume_db: float = 0.0, pitch: float = 1.0
 	p.stream = stream
 	p.volume_db = volume_db
 	p.pitch_scale = pitch
+	p.bus = UI_BUS if group == "taps" else BUS
 	p.play()
+	if group in DUCKS_MUSIC:
+		var music = get_node_or_null("/root/Music")
+		if music:
+			music.duck(stream.get_length())
 
 ## The stream for a library sound: a recording in assets/sfx/ if there is
 ## one, else the synthesized version. null for an unknown name.

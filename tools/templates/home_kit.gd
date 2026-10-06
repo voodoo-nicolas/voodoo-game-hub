@@ -55,6 +55,9 @@ extends Control
 ##         "online": online,                 # OnlineMatch node, if any
 ##         "extra": _add_options,            # func(box): the game's own pickers, on the setup screens
 ##         "more": [["📜 History", PURPLE, _show_history]],  # the game's own buttons under More
+##         "music": "menu",                  # optional: track on the Landing (Music autoload, v0.31+)
+##         "music_play": "",                 # optional: track while playing ("" = quiet)
+##         "category": "cards",              # optional: for the media-cat-<category> tier
 ##     })
 ##     add_child(home)
 ##     if info: add_child(info)
@@ -72,6 +75,12 @@ extends Control
 ## Resume -- no game has to unwind its own state.
 ##
 ## Strings given in cfg are English; the kit translates them.
+##
+## Music (STANDARDS §10): only games that set cfg "music" touch it. The track
+## is looked up in the media tiers by the app's Music autoload (game pack,
+## then category, common, hub), so the game's manifest entry lists the media
+## pack it comes from in "requires_media". Apps before v0.31 have no Music
+## autoload and stay quiet; so does a track whose pack isn't downloaded.
 
 const SOUND_OPTIONS_PATH := "res://scripts/common/sound_options.gd"
 const VOODOO_PATH := "res://scripts/common/voodoo.gd"
@@ -227,6 +236,7 @@ func show_home() -> void:
 	refresh()
 	_pause_tree()
 	_remove_drawer()
+	_music(str(cfg.get("music", "")))
 
 func hide_home() -> void:
 	home.visible = false
@@ -265,10 +275,24 @@ func start_mode(m: Dictionary) -> void:
 	_prefs["last"] = _mode_key(m)
 	_save_prefs()
 	hide_home()
+	_music(str(cfg.get("music_play", "")))
 	var action: Callable = m.get("action", Callable())
 	if action.is_valid():
 		action.call()
 	_refit()
+
+## Plays a track from the media tiers ("" = fade out), for games with cfg
+## "music". Guarded: the Music autoload ships in apps from v0.31.
+func _music(track: String) -> void:
+	if not cfg.has("music"):
+		return
+	var m = get_node_or_null("/root/Music")
+	if m == null:
+		return
+	if track == "":
+		m.stop()
+	else:
+		m.play_track(track, str(consts.get("ID", "")), str(cfg.get("category", "")))
 
 ## A ⏸ button for the game's top bar, already wired to pause().
 func pause_button(text: String = "⏸") -> Button:
