@@ -105,7 +105,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	_build_size_screen()
 	_build_game_screen()
@@ -343,12 +344,12 @@ func _build_game_screen() -> void:
 
 	score_p1_label = Label.new()
 	score_p1_label.add_theme_font_size_override("font_size", 30)
-	score_p1_label.add_theme_color_override("font_color", COLOR_P1)
+	score_p1_label.add_theme_color_override("font_color", _c1())
 	score_row.add_child(score_p1_label)
 
 	score_p2_label = Label.new()
 	score_p2_label.add_theme_font_size_override("font_size", 30)
-	score_p2_label.add_theme_color_override("font_color", COLOR_P2)
+	score_p2_label.add_theme_color_override("font_color", _c2())
 	score_row.add_child(score_p2_label)
 
 	status_label = Label.new()
@@ -912,7 +913,7 @@ func _render() -> void:
 			if box_owner_val == 0:
 				box_panels[r][c].color = COLOR_EDGE_HIDDEN
 			else:
-				var col: Color = COLOR_P1 if box_owner_val == 1 else COLOR_P2
+				var col: Color = _c1() if box_owner_val == 1 else _c2()
 				box_panels[r][c].color = Color(col.r, col.g, col.b, COLOR_BOX_FILL_ALPHA)
 
 	_place_glow()
@@ -931,10 +932,10 @@ func _render() -> void:
 	if not game_active:
 		return
 	if vs_computer and engine.current_player == AI_PLAYER and ai_thinking:
-		status_label.add_theme_color_override("font_color", COLOR_P2)
+		status_label.add_theme_color_override("font_color", _c2())
 		status_label.text = tr("Computer is thinking...")
 	else:
-		var turn_color: Color = COLOR_P1 if engine.current_player == 1 else COLOR_P2
+		var turn_color: Color = _c1() if engine.current_player == 1 else _c2()
 		status_label.add_theme_color_override("font_color", turn_color)
 		if _is_online():
 			status_label.text = online.status_text(engine.current_player == my_player, tr("Blue") if engine.current_player == 1 else tr("Red"))
@@ -967,10 +968,36 @@ func _place_glow() -> void:
 	var line: ColorRect = h_lines_view[e.r][e.c] if e.o == "h" else v_lines_view[e.r][e.c]
 	line.color = _owner_color(line_owner).lightened(0.3)
 
+## Look (STANDARDS §9): "classic" = blue and red pens (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if score_p1_label:
+		score_p1_label.add_theme_color_override("font_color", _c1())
+		score_p2_label.add_theme_color_override("font_color", _c2())
+	if not h_lines_view.is_empty():
+		_render()
+
+func _c1() -> Color:
+	return HomeKit.CLASSIC.blue.lightened(0.3) if skin == "classic" else COLOR_P1
+
+func _c2() -> Color:
+	return HomeKit.CLASSIC.red.lightened(0.15) if skin == "classic" else COLOR_P2
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _owner_color(line_owner: int) -> Color:
 	if line_owner == 0:
 		return COLOR_EDGE_HIDDEN
-	return COLOR_P1 if line_owner == 1 else COLOR_P2
+	return _c1() if line_owner == 1 else _c2()
 
 # ---------- save / load ----------
 
