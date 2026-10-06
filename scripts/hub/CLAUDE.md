@@ -47,6 +47,12 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   real soft blur, which is what reads as "glowing"). Used by headers, tiles and
   the hub's dialogs (`_show_dialog` / `_build_dialog_frame`), so the whole hub
   reads as one visual system; use it for any new hub element.
+- **Pinned category header (v0.29.1)**: while a category is open and its
+  header has scrolled above the list, a copy of that header is pinned at the
+  top (`sticky_layer`, `_update_sticky()` every frame in `_process` -- the
+  scroll signal fires before the list moves). It's the same toggle: tapping
+  it closes the category and scrolls its row back into view.
+  Test: `tools/test_sticky_header.gd`.
 - **Drag-to-scroll**: every row/tile is a full-size Button that swallows
   presses, so the list scrolls through a shared `DragScroll` child
   (`scripts/common/drag_scroll.gd`); `_toggle_category` / `_on_tile_pressed`

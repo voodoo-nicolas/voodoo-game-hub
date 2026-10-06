@@ -51,6 +51,17 @@ var account_status_btn: Button
 var busy: bool = false
 var download_overlay: Control
 var list_scroll: ScrollContainer
+## The open category's header, pinned to the top of the list while its games
+## scroll under it, so it can be closed (and another one opened) without
+## scrolling back up. Lives on its own layer over the list.
+var sticky_layer: Control
+var _sticky: Control
+var _open_header: Control
+var _open_section: Control
+## After closing a category, bring its header back into view once the
+## shorter list has been laid out (two frames).
+var _scroll_back_index := -1
+var _scroll_back_frames := 0
 ## Drag-anywhere scrolling; tap handlers ignore a press that became a drag.
 var drag: Node
 
@@ -89,6 +100,10 @@ func _ready() -> void:
 	content.add_theme_constant_override("separation", 0)
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(content)
+	sticky_layer = Control.new()
+	sticky_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	sticky_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(sticky_layer)
 
 	var banner_panel := PanelContainer.new()
 	banner_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
@@ -347,6 +362,9 @@ func _rebuild_list() -> void:
 	for child in list_container.get_children():
 		list_container.remove_child(child)
 		child.queue_free()
+	_open_header = null
+	_open_section = null
+	_clear_sticky()
 
 	# With nothing expanded there'd otherwise be dead space under the last row,
 	# so the headers grow to divide up whatever height this screen actually has.
@@ -362,7 +380,8 @@ func _rebuild_list() -> void:
 
 	for i in range(categories.size()):
 		var category: Dictionary = categories[i]
-		list_container.add_child(_make_section_header(category, i, row_height))
+		var header := _make_section_header(category, i, row_height)
+		list_container.add_child(header)
 		if expanded_index == i:
 			var section := VBoxContainer.new()
 			section.add_theme_constant_override("separation", 12)
@@ -372,12 +391,48 @@ func _rebuild_list() -> void:
 			list_container.add_child(section_margin)
 			for game in category.games:
 				section.add_child(_make_tile(game))
+			_open_header = header
+			_open_section = section_margin
+	_update_sticky.call_deferred()
 
 func _toggle_category(index: int) -> void:
 	if drag.moved:
 		return
-	expanded_index = -1 if expanded_index == index else index
+	var closing := expanded_index == index
+	expanded_index = -1 if closing else index
 	_rebuild_list()
+	if closing:
+		# Closed from the pinned header far down the list: the list is now
+		# short, so bring that category's row back into view.
+		_scroll_back_index = index
+		_scroll_back_frames = 2
+
+## Shows the open category's header pinned at the top of the list once the
+## real one has scrolled out of view, until its games have scrolled past.
+## Its button is the same toggle, so tapping it closes the category.
+func _update_sticky() -> void:
+	if expanded_index < 0 or not is_instance_valid(_open_header) or not is_instance_valid(_open_section) \
+			or not _open_header.is_inside_tree():
+		_clear_sticky()
+		return
+	var top: float = list_scroll.get_global_rect().position.y
+	var head: Rect2 = _open_header.get_global_rect()
+	var games_end: float = _open_section.get_global_rect().end.y
+	if head.position.y >= top or games_end <= top + head.size.y:
+		_clear_sticky()
+		return
+	if _sticky == null:
+		_sticky = _make_section_header(Catalog.categories[expanded_index], expanded_index, head.size.y)
+		sticky_layer.add_child(_sticky)
+	var origin: Vector2 = sticky_layer.get_global_rect().position
+	_sticky.position = Vector2(head.position.x - origin.x, top - origin.y)
+	_sticky.size = head.size
+
+## queue_free, not free: this can run from the pinned header's own `pressed`.
+func _clear_sticky() -> void:
+	if _sticky != null and is_instance_valid(_sticky):
+		_sticky.queue_free()
+	_sticky = null
 
 func _make_section_header(category: Dictionary, index: int, row_height: float) -> Control:
 	var is_open: bool = expanded_index == index
@@ -575,6 +630,15 @@ func _start_download(game: Dictionary) -> void:
 	download_overlay.set_meta("http", http)
 
 func _process(_delta: float) -> void:
+	# Checked every frame while a category is open: a scroll signal fires
+	# before the list has moved, and drags, flings and relayouts all count.
+	if expanded_index >= 0 or _sticky != null:
+		_update_sticky()
+	if _scroll_back_frames > 0:
+		_scroll_back_frames -= 1
+		if _scroll_back_frames == 0 and _scroll_back_index >= 0 and _scroll_back_index < list_container.get_child_count():
+			list_scroll.ensure_control_visible(list_container.get_child(_scroll_back_index))
+			_scroll_back_index = -1
 	if download_overlay == null or not is_instance_valid(download_overlay):
 		return
 	var http = download_overlay.get_meta("http", null)
