@@ -51,7 +51,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -232,7 +232,27 @@ func _process(_delta: float) -> void:
 	if board and not engine.goals.is_empty():
 		board.queue_redraw()
 
+## Look (STANDARDS §9): "classic" = a warehouse floor with wooden crates (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
+	if _is_classic():
+		_draw_board_classic()
+		return
 	var cs := _cell_size()
 	var o := _origin()
 	var t := Time.get_ticks_msec() / 1000.0
@@ -310,6 +330,51 @@ func _draw_board() -> void:
 		var e := pc + Vector2(cs * sx, -cs * 0.05)
 		board.draw_circle(e, cs * 0.075, Color(1, 1, 1, 0.95))
 		board.draw_circle(e + look, cs * 0.04, Color(0.03, 0.05, 0.12))
+
+func _draw_board_classic() -> void:
+	var cs := _cell_size()
+	var o := _origin()
+	for y in engine.h:
+		for x in engine.w:
+			var p := Vector2i(x, y)
+			var rect := Rect2(o + Vector2(x, y) * cs, Vector2(cs, cs))
+			if engine.is_floor(p):
+				board.draw_rect(rect, HomeKit.CLASSIC.wood_light)
+				board.draw_rect(rect, Color(0, 0, 0, 0.12), false, 1.0)
+			elif engine.walls.has(p):
+				var touches := false
+				for d in BoxEngine.DIRS:
+					if engine.is_floor(p + d):
+						touches = true
+				if touches:
+					board.draw_rect(rect, Color("8a4b2a"))
+					board.draw_rect(rect.grow(-cs * 0.05), Color("a85d37"), false, maxf(1.0, cs * 0.04))
+					board.draw_line(rect.position + Vector2(0, cs * 0.5), rect.position + Vector2(cs, cs * 0.5), Color("6b3820"), 1.5)
+	for g in engine.goals:
+		if engine.boxes.has(g):
+			continue
+		var gc := o + (Vector2(g) + Vector2(0.5, 0.5)) * cs
+		board.draw_circle(gc, cs * 0.16, HomeKit.CLASSIC.red)
+		board.draw_circle(gc, cs * 0.07, Color(1, 1, 1, 0.85))
+	for bx in engine.boxes:
+		var done: bool = engine.goals.has(bx)
+		var col: Color = Color("7fb86a") if done else HomeKit.CLASSIC.wood_dark
+		var r := Rect2(o + Vector2(bx) * cs, Vector2(cs, cs)).grow(-cs * 0.08)
+		board.draw_rect(Rect2(r.position + Vector2(1, 2), r.size), Color(0, 0, 0, 0.3))
+		board.draw_rect(r, col)
+		board.draw_rect(r, col.darkened(0.45), false, maxf(2.0, cs * 0.05))
+		var inner := r.grow(-cs * 0.1)
+		board.draw_line(inner.position, inner.end, col.darkened(0.35), maxf(2.0, cs * 0.05))
+		board.draw_line(inner.position + Vector2(inner.size.x, 0), inner.position + Vector2(0, inner.size.y), col.darkened(0.35), maxf(2.0, cs * 0.05))
+	var pc := o + (Vector2(engine.player) + Vector2(0.5, 0.5)) * cs
+	board.draw_circle(pc + Vector2(1, 2), cs * 0.32, Color(0, 0, 0, 0.3))
+	board.draw_circle(pc, cs * 0.32, HomeKit.CLASSIC.blue)
+	board.draw_arc(pc, cs * 0.32, 0, TAU, 24, HomeKit.CLASSIC.blue.darkened(0.4), 2.0, true)
+	var look := facing * cs * 0.07
+	for sx in [-0.11, 0.11]:
+		var e := pc + Vector2(cs * sx, -cs * 0.05)
+		board.draw_circle(e, cs * 0.075, Color.WHITE)
+		board.draw_circle(e + look, cs * 0.04, Color(0.05, 0.05, 0.1))
 
 func _on_board_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:

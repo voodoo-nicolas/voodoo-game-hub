@@ -56,7 +56,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -241,6 +242,23 @@ func _geom() -> Dictionary:
 	var span: float = cell * engine.size
 	return {"cell": cell, "origin": Vector2((board.size.x - span) / 2.0, (board.size.y - span) / 2.0)}
 
+## Look (STANDARDS §9): "classic" = a grey plate with copper pipes and blue water (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.mask.is_empty():
 		return
@@ -248,17 +266,26 @@ func _draw_board() -> void:
 	var cell: float = g.cell
 	var n: int = engine.size
 	var frame := Rect2(g.origin, Vector2(cell * n, cell * n))
-	board.draw_rect(frame.grow(8), Color(0.03, 0.04, 0.09))
-	HomeKit.glow_rect(board, frame.grow(8), Color(COLOR_DRY, 0.7), 2.0)
+	if _is_classic():
+		board.draw_rect(frame.grow(8), HomeKit.CLASSIC.wood_frame)
+	else:
+		board.draw_rect(frame.grow(8), Color(0.03, 0.04, 0.09))
+		HomeKit.glow_rect(board, frame.grow(8), Color(COLOR_DRY, 0.7), 2.0)
 	for i in n * n:
 		var center: Vector2 = g.origin + Vector2(i % n + 0.5, i / n + 0.5) * cell
-		board.draw_rect(Rect2(center - Vector2(cell, cell) * 0.46, Vector2(cell, cell) * 0.92), Color(1, 1, 1, 0.025))
+		if _is_classic():
+			board.draw_rect(Rect2(center - Vector2(cell, cell) * 0.5, Vector2(cell, cell)), Color("d8dde3"))
+			board.draw_rect(Rect2(center - Vector2(cell, cell) * 0.5, Vector2(cell, cell)), Color(0, 0, 0, 0.18), false, 1.0)
+		else:
+			board.draw_rect(Rect2(center - Vector2(cell, cell) * 0.46, Vector2(cell, cell) * 0.92), Color(1, 1, 1, 0.025))
 		_draw_piece(i, center, cell)
 
 func _draw_piece(i: int, center: Vector2, cell: float) -> void:
 	var m: int = engine.mask[i]
 	var wet := water.has(i)
 	var col := COLOR_WET if wet else COLOR_DRY
+	if _is_classic():
+		col = Color("1e7fd6") if wet else Color("b87333")
 	if wet and win_t >= 0.0:
 		# A ripple of light running out from the pump once it's solved.
 		var dist := (center - _cell_center(engine.source)).length() / cell
@@ -272,11 +299,18 @@ func _draw_piece(i: int, center: Vector2, cell: float) -> void:
 		if m & d[0] == 0:
 			continue
 		var dir := Vector2(d[1], d[2]).rotated(angle)
-		HomeKit.glow_line(board, center, center + dir * half, col, w * 0.45)
+		if _is_classic():
+			board.draw_line(center, center + dir * half, col, w * 1.1)
+		else:
+			HomeKit.glow_line(board, center, center + dir * half, col, w * 0.45)
 		if wet and not solved and engine.leaks(i) & d[0] and angle == 0.0:
 			board.draw_circle(center + dir * half * 0.86, w * 0.42, COLOR_LEAK)
 	board.draw_circle(center, w * 0.5, col)
-	if i == engine.source:
+	if _is_classic() and (i == engine.source or PipeEngine.is_end(m)):
+		var pc: Color = HomeKit.CLASSIC.red if i == engine.source else col.darkened(0.3)
+		board.draw_circle(center, cell * (0.26 if i == engine.source else 0.18), pc)
+		board.draw_arc(center, cell * (0.26 if i == engine.source else 0.18), 0, TAU, 20, pc.darkened(0.4), 2.0, true)
+	elif i == engine.source:
 		HomeKit.glow_circle(board, center, cell * 0.28, COLOR_PUMP, 3.0, 0.5)
 		board.draw_circle(center, cell * 0.12, COLOR_PUMP.lerp(Color.WHITE, 0.5))
 	elif PipeEngine.is_end(m):

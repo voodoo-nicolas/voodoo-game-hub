@@ -58,7 +58,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -321,6 +322,23 @@ func _tile_at(p: Vector2) -> int:
 			return ids[k]
 	return -1
 
+## Look (STANDARDS §9): "classic" = ivory tiles (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.tiles.is_empty():
 		return
@@ -339,15 +357,21 @@ func _draw_board() -> void:
 		board.draw_rect(Rect2(r.position + Vector2(depth, depth), r.size), Color(0.0, 0.0, 0.02))
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(0.07, 0.08, 0.16) if free else Color(0.035, 0.04, 0.08)
+		if _is_classic():
+			sb.bg_color = Color("f4efe4") if free else Color("b9b3a3")
 		sb.set_corner_radius_all(int(g.hu * 0.25))
 		sb.border_color = Color(rim, 0.95 if free else 0.35)
 		sb.set_border_width_all(2)
+		if _is_classic():
+			sb.border_color = Color("6b6354")
 		if i == selected or i in hinted:
 			sb.border_color = HomeKit.GOLD if i == selected else HomeKit.LIME
 			sb.set_border_width_all(4)
 			sb.shadow_color = Color(sb.border_color, 0.5)
 			sb.shadow_size = 10
 		board.draw_style_box(sb, r)
+		if _is_classic():
+			board.draw_circle(r.get_center(), g.hu * 0.62, Color("3b6b4a") if free else Color("6f7f74"))
 		var fs := int(g.hu * 1.05)
 		var sym: String = SYMBOLS[t.s % SYMBOLS.size()]
 		var w := font.get_string_size(sym, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x

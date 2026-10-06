@@ -57,7 +57,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -328,29 +328,54 @@ func _geom(b: Control) -> Dictionary:
 	var total := cell * SeaEngine.SIZE
 	return {"cell": cell, "origin": Vector2((b.size.x - total) / 2.0, (b.size.y - total) / 2.0)}
 
+## Look (STANDARDS §9): "classic" = navy water, grey ships, red and white pegs (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if enemy_board:
+		enemy_board.queue_redraw()
+	if own_board:
+		own_board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_grid(b: Control, side: int, reveal: bool) -> void:
 	var g := _geom(b)
 	var cell: float = g.cell
 	var o: Vector2 = g.origin
 	var n := SeaEngine.SIZE
-	b.draw_rect(Rect2(o, Vector2(cell * n, cell * n)), COLOR_WATER)
+	var cl := _is_classic()
+	b.draw_rect(Rect2(o, Vector2(cell * n, cell * n)), Color("1d4e89") if cl else COLOR_WATER)
 	for i in n * n:
 		var rect := Rect2(o + Vector2(i % n, i / n) * cell, Vector2(cell, cell))
 		var shot: int = engine.shots[side][i]
 		var ship: bool = engine.ship_at[side][i] != -1
 		if ship and (reveal or engine.winner != -1):
-			b.draw_rect(rect.grow(-cell * 0.08), COLOR_SHIP)
+			b.draw_rect(rect.grow(-cell * 0.08), Color("8a929b") if cl else COLOR_SHIP)
 		if shot == SeaEngine.HIT:
+			if cl:
+				b.draw_rect(rect.grow(-cell * 0.08), Color("4a4f5a") if engine.is_sunk_cell(side, i) else Color("8a929b"))
+				b.draw_circle(rect.get_center(), cell * 0.26, HomeKit.CLASSIC.red)
+				continue
 			b.draw_rect(rect.grow(-cell * 0.08), COLOR_SUNK if engine.is_sunk_cell(side, i) else COLOR_HIT)
 			var m := cell * 0.25
 			var ce := rect.get_center()
 			b.draw_line(ce - Vector2(m, m), ce + Vector2(m, m), Color(1, 1, 1), 3)
 			b.draw_line(ce + Vector2(-m, m), ce + Vector2(m, -m), Color(1, 1, 1), 3)
 		elif shot == SeaEngine.MISS:
-			b.draw_circle(rect.get_center(), cell * 0.12, COLOR_MISS)
+			b.draw_circle(rect.get_center(), cell * (0.16 if cl else 0.12), Color.WHITE if cl else COLOR_MISS)
 	for k in n + 1:
-		b.draw_line(o + Vector2(k * cell, 0), o + Vector2(k * cell, n * cell), COLOR_GRID, 1)
-		b.draw_line(o + Vector2(0, k * cell), o + Vector2(n * cell, k * cell), COLOR_GRID, 1)
+		var gc: Color = Color(1, 1, 1, 0.35) if cl else COLOR_GRID
+		b.draw_line(o + Vector2(k * cell, 0), o + Vector2(k * cell, n * cell), gc, 1)
+		b.draw_line(o + Vector2(0, k * cell), o + Vector2(n * cell, k * cell), gc, 1)
 
 func _draw_enemy() -> void:
 	if engine.ship_at[1].is_empty():
