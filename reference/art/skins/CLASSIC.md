@@ -24,6 +24,22 @@ no faint grid, plain drop shadows.
   product's exact trade dress (e.g. not the falling-block game's per-piece
   palette, not the Magic 8 Ball).
 - Pilots (2026-10-06): Four in a Row, Tic-Tac-Toe, Checkers, Solitaire.
-- Phase 5, batch 1 (Puzzle & Board, 2026-10-06): Chess (wood board), Reversi
-  (green felt, black/white discs), Mancala (carved wood), Backgammon (green
-  felt, cream/brown points).
+- Phase 5 (2026-10-06), category by category, each pack published as it was done:
+  - Puzzle & Board: Chess, Reversi, Mancala, Backgammon, Morris, Five in a Row,
+    Hex, Peg Solitaire, Mines, Light Flip, Sliding 15, Tower of Hanoi, 2048,
+    Color Flood, Block Collapse, Code Breaker, Sea Battle, Box Pusher, Pipe
+    Flow, Mahjong, Kakuro, Nonogram, Calcudoku, Dots and Boxes. (Sudoku keeps
+    its own look.)
+  - Cards: the ten `<id>_cards.gd` copies share a `classic` static (ivory face,
+    blue back, plain shadow; the game's `_set_skin` flips it) -- Crazy Eights,
+    FreeCell, Gin Rummy, Go Fish, Hearts, Pyramid, Speed, Spider, Tri-Peaks,
+    Video Poker; plus Blackjack, War, Memory. Green felt table.
+  - Dice & Party: ivory dice with black pips -- Yacht, Farkle, Liar's Dice,
+    Shut the Box (wood tiles), Dominoes.
+  - Word: paper / cream tiles -- Five Letters (blue / orange marks, on
+    purpose not the famous green / yellow), Word Search, Crossword, Word Hunt,
+    Anagrams, Hangman (wooden gallows).
+  - Not done: Arcade (27), Intelligence (7), Drinking Games (8), Other (7) --
+    neon-native, "traditional colours" is undefined for them.
+- Pattern: `var skin`, `_set_skin(name)` (bg colour + hide the faint grid +
+  redraw), `_is_classic()`, and a classic branch where each thing is drawn.

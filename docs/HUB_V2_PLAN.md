@@ -22,7 +22,7 @@ Read with `docs/STANDARDS.md`. Items move from here into STANDARDS once decided.
 | 2 | ✅ v0.30.0 2026-10-06: Hub v2: top bar, Continue, Favorites, Game Browser + filters, Profile, Friends, app Options (Storage, Credits) | needs Landing to exist (rule N3) |
 | 3 | Media tiers: `music.gd`, buses, `media_packs` in manifest, catalog deps + ref counting, Storage screen, `CREDITS.json` | before mass migration so games adopt shared media once |
 | 4 | ✅ 2026-10-06: skin system in the Landing kit (Options → Look, `HomeKit.CLASSIC`), Classic + Voodoo for Four in a Row, Tic-Tac-Toe, Checkers, Solitaire; `reference/art/skins/` | |
-| 5 | Roll out to all games **one category at a time** (category media pack + migrations together) | each batch ships one Tier-2 pack |
+| 5 | 🔶 2026-10-06: Classic skins live for Puzzle & Board, Cards, Dice & Party, Word (50 games); Arcade / Intelligence / Drinking / Other not yet. Media packs wait for Phase 3 | each batch ships one Tier-2 pack |
 | 6 | Join links (App Links + fallback page), QR, polish | needs a domain |
 
 ## 3. Owner requirements (organized, all decided)
