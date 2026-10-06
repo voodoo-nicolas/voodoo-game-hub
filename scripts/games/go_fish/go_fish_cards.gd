@@ -45,12 +45,24 @@ static func new_deck(decks: int = 1) -> Array:
 	d.shuffle()
 	return d
 
+## Look (STANDARDS §9): true = traditional cards (ivory face, red / black ink,
+## blue back, plain drop shadow; the default), false = the neon cards above.
+## The game's `_set_skin()` sets it, then redraws.
+static var classic: bool = true
+const CLASSIC_FACE := Color(0.98, 0.97, 0.93)
+const CLASSIC_RED := Color(0.78, 0.1, 0.14)
+const CLASSIC_BLACK := Color(0.07, 0.07, 0.1)
+const CLASSIC_BACK := Color(0.1, 0.24, 0.62)
+
 ## Draws a card into `rect` on `canvas`. face_up=false draws the back;
 ## card = -1 draws an empty slot outline.
 static func draw_card(canvas: CanvasItem, rect: Rect2, card: int, face_up: bool = true, hilite: bool = false, dim: bool = false) -> void:
 	var sb := StyleBoxFlat.new()
 	var radius := int(max(3.0, rect.size.x * 0.08))
 	sb.set_corner_radius_all(radius)
+	if classic:
+		_draw_classic(canvas, rect, card, face_up, hilite, dim, sb, radius)
+		return
 	if card < 0:
 		sb.bg_color = Color(1, 1, 1, 0.06)
 		sb.set_border_width_all(2)
@@ -76,6 +88,43 @@ static func draw_card(canvas: CanvasItem, rect: Rect2, card: int, face_up: bool 
 	var font: Font = ThemeDB.fallback_font
 	var col := COLOR_RED if is_red(card) else COLOR_INK
 	# rank and suit on one line, so overlapped cards stay readable
+	var fs := int(max(12.0, rect.size.x * 0.3))
+	canvas.draw_string(font, rect.position + Vector2(rect.size.x * 0.06, fs * 0.95), label(card), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	if rect.size.y > rect.size.x * 1.2:
+		var big := int(rect.size.x * 0.5)
+		canvas.draw_string(font, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.62 + big * 0.35), SUITS[suit(card)],
+			HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, big, col)
+	if dim:
+		var sb3 := StyleBoxFlat.new()
+		sb3.bg_color = Color(0, 0, 0, 0.45)
+		sb3.set_corner_radius_all(radius)
+		canvas.draw_style_box(sb3, rect)
+
+static func _draw_classic(canvas: CanvasItem, rect: Rect2, card: int, face_up: bool, hilite: bool, dim: bool, sb: StyleBoxFlat, radius: int) -> void:
+	if card < 0:
+		sb.bg_color = Color(0, 0, 0, 0.18)
+		sb.set_border_width_all(2)
+		sb.border_color = COLOR_HILITE if hilite else Color(1, 1, 1, 0.35)
+		canvas.draw_style_box(sb, rect)
+		return
+	sb.bg_color = CLASSIC_FACE if face_up else CLASSIC_BACK
+	sb.set_border_width_all(4 if hilite else 2)
+	sb.border_color = COLOR_HILITE if hilite else (Color(0.45, 0.45, 0.5) if face_up else Color.WHITE)
+	sb.shadow_color = Color(0, 0, 0, 0.3)
+	sb.shadow_size = 2
+	sb.shadow_offset = Vector2(1, 2)
+	canvas.draw_style_box(sb, rect)
+	if not face_up:
+		var inner := rect.grow(-rect.size.x * 0.12)
+		var sb2 := StyleBoxFlat.new()
+		sb2.bg_color = Color(0, 0, 0, 0)
+		sb2.set_border_width_all(2)
+		sb2.border_color = Color(0.55, 0.7, 1.0, 0.6)
+		sb2.set_corner_radius_all(max(2, radius - 2))
+		canvas.draw_style_box(sb2, inner)
+		return
+	var font: Font = ThemeDB.fallback_font
+	var col := CLASSIC_RED if is_red(card) else CLASSIC_BLACK
 	var fs := int(max(12.0, rect.size.x * 0.3))
 	canvas.draw_string(font, rect.position + Vector2(rect.size.x * 0.06, fs * 0.95), label(card), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 	if rect.size.y > rect.size.x * 1.2:
