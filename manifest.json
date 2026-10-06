@@ -102,20 +102,20 @@
       {"id": "shut_the_box", "title": "Shut the Box", "icon": "📦", "title_es": "Cierra la caja", "modes": "local,cpu", "board": "Boxes shut"},
       {"id": "dominoes", "title": "Dominoes", "icon": "🁫", "title_es": "Dominó", "modes": "cpu", "board": "Wins"}
     ]},
-    {"name": "Drinking Games", "icon": "🍹", "name_es": "Juegos para tomar", "games": [
-      {"id": "kings_cup", "title": "Kings Cup", "icon": "👑", "title_es": "Kings Cup", "modes": "party", "board": "Games played"},
-      {"id": "red_or_black", "title": "Red or Black", "icon": "🎴", "title_es": "Rojo o negro", "modes": "party", "board": "Right guesses"},
-      {"id": "three_man", "title": "Three Man", "icon": "3️⃣", "title_es": "Three Man", "modes": "party", "board": "Rolls"},
-      {"id": "never_have_i_ever", "title": "Never Have I Ever", "icon": "🙊", "title_es": "Yo nunca nunca", "modes": "party", "board": "Cards played"},
-      {"id": "most_likely_to", "title": "Most Likely To", "icon": "👉", "title_es": "Quién es más probable", "modes": "party", "board": "Cards played"},
-      {"id": "ride_the_bus", "title": "Ride the Bus", "icon": "🚌", "title_es": "Súbete al bus", "modes": "party", "board": "Games played"}
+    {"name": "Drinking Games", "icon": "🍹", "name_es": "Juegos para tomar", "archived": true, "games": [
+      {"id": "kings_cup", "title": "Kings Cup", "icon": "👑", "title_es": "Kings Cup", "modes": "party", "board": "Games played", "archived": true},
+      {"id": "red_or_black", "title": "Red or Black", "icon": "🎴", "title_es": "Rojo o negro", "modes": "party", "board": "Right guesses", "archived": true},
+      {"id": "three_man", "title": "Three Man", "icon": "3️⃣", "title_es": "Three Man", "modes": "party", "board": "Rolls", "archived": true},
+      {"id": "never_have_i_ever", "title": "Never Have I Ever", "icon": "🙊", "title_es": "Yo nunca nunca", "modes": "party", "board": "Cards played", "archived": true},
+      {"id": "most_likely_to", "title": "Most Likely To", "icon": "👉", "title_es": "Quién es más probable", "modes": "party", "board": "Cards played", "archived": true},
+      {"id": "ride_the_bus", "title": "Ride the Bus", "icon": "🚌", "title_es": "Súbete al bus", "modes": "party", "board": "Games played", "archived": true},
+      {"id": "spin_the_bottle", "title": "Spin the Bottle", "icon": "🍾", "title_es": "La botella", "modes": "party", "board": "Spins", "archived": true},
+      {"id": "would_you_rather", "title": "Would You Rather", "icon": "🤔", "title_es": "¿Qué prefieres?", "modes": "party", "board": "Cards played", "archived": true}
     ]},
     {"name": "Other", "icon": "🎯", "name_es": "Otros", "games": [
       {"id": "party_spinner", "title": "Party Spinner", "icon": "🌀", "title_es": "Ruleta de fiesta", "modes": "party", "board": "Spins"},
-      {"id": "spin_the_bottle", "title": "Spin the Bottle", "icon": "🍾", "title_es": "La botella", "modes": "party", "board": "Spins"},
       {"id": "charades", "title": "Charades", "icon": "🎭", "title_es": "Charadas", "modes": "party", "board": "Most words in a round"},
       {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed"},
-      {"id": "would_you_rather", "title": "Would You Rather", "icon": "🤔", "title_es": "¿Qué prefieres?", "modes": "party", "board": "Cards played"},
       {"id": "truth_or_dare", "title": "Truth or Dare", "icon": "🎲", "title_es": "Verdad o reto", "modes": "party", "board": "Cards played"},
       {"id": "fortune_ball", "title": "Fortune Ball", "icon": "🎱", "title_es": "Bola de la fortuna", "modes": "party", "board": "Questions asked"},
       {"id": "spirit_board", "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked"},
