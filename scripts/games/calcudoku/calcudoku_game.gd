@@ -46,7 +46,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -230,6 +230,23 @@ func _origin() -> Vector2:
 	var s := _cell_size() * engine.n
 	return Vector2((board.size.x - s) / 2.0, (board.size.y - s) / 2.0)
 
+## Look (STANDARDS §9): "classic" = pencil and paper (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.cages.is_empty():
 		return
@@ -246,33 +263,40 @@ func _draw_board() -> void:
 			col = COLOR_CAGE_DONE
 		if i == selected:
 			col = COLOR_SELECTED
+		if _is_classic():
+			col = HomeKit.CLASSIC.paper
+			if engine.cage_satisfied(engine.cage_of[i]):
+				col = Color("dcecd2")
+			if i == selected:
+				col = Color("ffe9a8")
 		board.draw_rect(rect, col)
-		board.draw_rect(rect, Color(HomeKit.BLUE, 0.3), false, 1.0)
+		board.draw_rect(rect, HomeKit.CLASSIC.pencil if _is_classic() else Color(HomeKit.BLUE, 0.3), false, 1.0)
 		var v: int = engine.values[i]
 		if v > 0:
 			var fs := int(cs * 0.5)
 			board.draw_string(font, Vector2(rect.position.x, rect.position.y + cs * 0.62 + fs * 0.3), str(v),
-				HORIZONTAL_ALIGNMENT_CENTER, cs, fs, COLOR_BAD if i in bad else COLOR_INK)
+				HORIZONTAL_ALIGNMENT_CENTER, cs, fs, COLOR_BAD if i in bad else (HomeKit.CLASSIC.ink if _is_classic() else COLOR_INK))
 	# cage borders: a thick line wherever neighbours belong to different cages
 	var thick := 4.0
+	var cage_col: Color = HomeKit.CLASSIC.ink if _is_classic() else COLOR_CAGE
 	for i in n * n:
 		var r := i / n
 		var c := i % n
 		var p := o + Vector2(c, r) * cs
 		if c == n - 1 or engine.cage_of[i] != engine.cage_of[i + 1]:
-			board.draw_line(p + Vector2(cs, 0), p + Vector2(cs, cs), COLOR_CAGE, thick)
+			board.draw_line(p + Vector2(cs, 0), p + Vector2(cs, cs), cage_col, thick)
 		if r == n - 1 or engine.cage_of[i] != engine.cage_of[i + n]:
-			board.draw_line(p + Vector2(0, cs), p + Vector2(cs, cs), COLOR_CAGE, thick)
+			board.draw_line(p + Vector2(0, cs), p + Vector2(cs, cs), cage_col, thick)
 		if c == 0:
-			board.draw_line(p, p + Vector2(0, cs), COLOR_CAGE, thick)
+			board.draw_line(p, p + Vector2(0, cs), cage_col, thick)
 		if r == 0:
-			board.draw_line(p, p + Vector2(cs, 0), COLOR_CAGE, thick)
+			board.draw_line(p, p + Vector2(cs, 0), cage_col, thick)
 	for cage in engine.cages:
 		var first: int = cage.cells.min()
 		var p := o + Vector2(first % n, first / n) * cs
 		var label: String = str(cage.target) + cage.op
 		var fs := int(cs * 0.22)
-		board.draw_string(font, p + Vector2(6, fs + 4), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HomeKit.GOLD)
+		board.draw_string(font, p + Vector2(6, fs + 4), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HomeKit.CLASSIC.red if _is_classic() else HomeKit.GOLD)
 
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):

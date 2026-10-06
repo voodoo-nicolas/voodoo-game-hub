@@ -45,7 +45,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -227,6 +227,23 @@ func _origin() -> Vector2:
 	var s := _cell_size() * engine.size
 	return Vector2((board.size.x - s) / 2.0, (board.size.y - s) / 2.0)
 
+## Look (STANDARDS §9): "classic" = pencil and paper (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.white.is_empty():
 		return
@@ -244,20 +261,29 @@ func _draw_board() -> void:
 	for i in n * n:
 		var rect := Rect2(o + Vector2(i % n, i / n) * cs, Vector2(cs, cs)).grow(-1)
 		if not engine.white[i]:
-			board.draw_rect(rect, COLOR_BLACK)
+			board.draw_rect(rect, Color("3a4150") if _is_classic() else COLOR_BLACK)
 			continue
 		var col := COLOR_CELL
+		if _is_classic():
+			col = HomeKit.CLASSIC.paper
 		if i == selected:
 			col = COLOR_SELECTED
 		elif i in run_cells:
 			col = COLOR_RUN
+		if _is_classic() and i == selected:
+			col = Color("ffe9a8")
+		elif _is_classic() and i in run_cells:
+			col = Color("e6e1cf")
 		board.draw_rect(rect, col)
-		board.draw_rect(rect, Color(HomeKit.CYAN, 0.45) if i != selected else HomeKit.GOLD, false, 1.5)
+		if _is_classic():
+			board.draw_rect(rect, HomeKit.CLASSIC.pencil if i != selected else HomeKit.CLASSIC.red, false, 1.5)
+		else:
+			board.draw_rect(rect, Color(HomeKit.CYAN, 0.45) if i != selected else HomeKit.GOLD, false, 1.5)
 		var v: int = engine.values[i]
 		if v > 0:
 			var fs := int(cs * 0.55)
 			board.draw_string(font, Vector2(rect.position.x, rect.position.y + cs * 0.5 + fs * 0.36), str(v),
-				HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, fs, COLOR_BAD if i in bad else COLOR_INK)
+				HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, fs, COLOR_BAD if i in bad else (HomeKit.CLASSIC.ink if _is_classic() else COLOR_INK))
 	var cfs := int(cs * 0.28)
 	for ri in engine.runs.size():
 		var run: Dictionary = engine.runs[ri]
@@ -266,6 +292,8 @@ func _draw_board() -> void:
 		board.draw_line(p + Vector2(2, 2), p + Vector2(cs - 2, cs - 2), Color(0.45, 0.45, 0.52), 1.5)
 		var done: bool = engine.run_complete_ok(ri)
 		var tc: Color = HomeKit.LIME if done else HomeKit.GOLD
+		if _is_classic():
+			tc = Color("2a7d3a") if done else Color("e6e1cf")
 		if run.across:
 			board.draw_string(font, p + Vector2(cs * 0.5, cs * 0.42), str(run.sum), HORIZONTAL_ALIGNMENT_CENTER, cs * 0.5, cfs, tc)
 		else:

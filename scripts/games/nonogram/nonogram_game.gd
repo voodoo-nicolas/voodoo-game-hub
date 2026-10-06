@@ -46,7 +46,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -168,6 +168,23 @@ func _layout() -> Dictionary:
 	var origin := Vector2((board.size.x - total.x) / 2.0 + clue_w, (board.size.y - total.y) / 2.0 + clue_h)
 	return {"cell": cell, "origin": origin, "clue_w": clue_w, "clue_h": clue_h}
 
+## Look (STANDARDS §9): "classic" = pencil and paper (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.solution.is_empty():
 		return
@@ -180,8 +197,12 @@ func _draw_board() -> void:
 		for c in n:
 			var rect := Rect2(o + Vector2(c, r) * cell, Vector2(cell, cell)).grow(-1)
 			var v: int = engine.get_cell(r, c)
-			board.draw_rect(rect, Color(COLOR_FILL, 0.75) if v == NonoEngine.FILLED else COLOR_CELL)
-			board.draw_rect(rect, Color(HomeKit.BLUE, 0.35), false, 1.0)
+			if _is_classic():
+				board.draw_rect(rect, HomeKit.CLASSIC.ink if v == NonoEngine.FILLED else HomeKit.CLASSIC.paper)
+				board.draw_rect(rect, HomeKit.CLASSIC.pencil, false, 1.0)
+			else:
+				board.draw_rect(rect, Color(COLOR_FILL, 0.75) if v == NonoEngine.FILLED else COLOR_CELL)
+				board.draw_rect(rect, Color(HomeKit.BLUE, 0.35), false, 1.0)
 			if v == NonoEngine.MARKED:
 				var m := cell * 0.28
 				var ce := rect.get_center()
@@ -189,12 +210,14 @@ func _draw_board() -> void:
 				board.draw_line(ce + Vector2(-m, m), ce + Vector2(m, -m), HomeKit.PINK, 3)
 	# thicker lines every 5 cells
 	for i in range(0, n + 1, 5):
-		board.draw_line(o + Vector2(i * cell, 0), o + Vector2(i * cell, n * cell), Color(HomeKit.PURPLE, 0.9), 2)
-		board.draw_line(o + Vector2(0, i * cell), o + Vector2(n * cell, i * cell), Color(HomeKit.PURPLE, 0.9), 2)
+		board.draw_line(o + Vector2(i * cell, 0), o + Vector2(i * cell, n * cell), HomeKit.CLASSIC.ink if _is_classic() else Color(HomeKit.PURPLE, 0.9), 2)
+		board.draw_line(o + Vector2(0, i * cell), o + Vector2(n * cell, i * cell), HomeKit.CLASSIC.ink if _is_classic() else Color(HomeKit.PURPLE, 0.9), 2)
 	var step := cell * 0.62
 	for r in n:
 		var clue: Array = engine.row_clues[r]
 		var col := COLOR_CLUE_DONE if engine.row_done(r) else COLOR_CLUE
+		if _is_classic():
+			col = HomeKit.CLASSIC.pencil if engine.row_done(r) else Color("e6e1cf")
 		var shown: Array = clue if not clue.is_empty() else [0]
 		for k in shown.size():
 			var x: float = o.x - (shown.size() - k) * step
@@ -202,6 +225,8 @@ func _draw_board() -> void:
 	for c in n:
 		var clue: Array = engine.col_clues[c]
 		var col := COLOR_CLUE_DONE if engine.col_done(c) else COLOR_CLUE
+		if _is_classic():
+			col = HomeKit.CLASSIC.pencil if engine.col_done(c) else Color("e6e1cf")
 		var shown: Array = clue if not clue.is_empty() else [0]
 		for k in shown.size():
 			var y: float = o.y - (shown.size() - k - 0.5) * step
