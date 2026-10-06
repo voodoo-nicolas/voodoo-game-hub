@@ -1,4 +1,11 @@
-# Voodoo Game Hub — Art / Graphics Standards
+# Voodoo skin — Art / Graphics Standards
+
+> **Since v2 (docs/STANDARDS.md §9-§10, owner 2026-10-06)** this is the guide
+> for the **Voodoo skin** (opt-in) and the hub's neon look. Every game's
+> default is the **Classic** skin in its traditional colours. The app is now
+> Viral Game Hub; its brand art lives in `brand/` (sources) and ships from
+> `media/hub/brand/`. Media packs may ship images and audio when each has a
+> `media/CREDITS.json` entry; drawing in code stays the preference, not a ban.
 
 The target look for the hub and for every minigame. The images in this folder
 are **mood references only**: never ship them or trace them (05 is a

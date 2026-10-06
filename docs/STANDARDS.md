@@ -44,7 +44,8 @@ Goal: fewer buttons, no scrolling on the hub home.
 - Sort: A–Z · Recently played · Rating · Newest.
 - Ratings: show stars only for well-rated games; **never surface which game is rated worst**.
 - Tile: landing art thumbnail, title, mode icons, downloaded/size badge, trial-days/owned badge (from `store.gd`).
-- Drinking Games category is **archived** (hidden everywhere; see `HUB_V2_PLAN.md` §6). No game may reference alcohol.
+- Drinking Games category is **archived** (hidden everywhere; see `HUB_V2_PLAN.md` §6; 8 games, incl. Spin the Bottle
+  and Would You Rather). No live game may reference alcohol.
 
 ### 2b. Profile [NEW]
 Nickname, avatar, hub-wide stats (games played, time, wins), achievements across all games, ownership /
@@ -72,6 +73,7 @@ Contents (show only what applies to the game):
 - Trial/purchase state from `store.gd` (badge + paywall entry) when the game is locked.
 - Exceptions: Sudoku and Voodoo IQ may keep custom visuals but must expose the same buttons and obey §1.
 - Back-compat: packs check `ResourceLoader.exists(LANDING_KIT_PATH)`; on older APKs fall back to the old Home kit.
+  If a pack truly needs a newer APK: `"min_build": <BUILD_NUMBER>` on its `games` entry in `manifest.json`.
 
 ### 3a. Leaderboards [CURRENT → extended]
 - Every game with a score/counter has 🏆 (Everyone / Friends). Lower-is-better games use a growing counter.
@@ -136,8 +138,9 @@ game's traditional colours (it does not follow the app's light/dark theme; only 
   (evolution of `voodoo.gd`: load, don't preload). Games declare `"skins": ["classic","voodoo"]` in the manifest.
 - Readability: text contrast ≥ 4.5:1; colour is never the only cue (shape/icon too) — neon palettes fail
   colour-blind players otherwise.
-- Art references library: `reference/art/` (`ART_STYLE.md`, `skins/CLASSIC.md`, `skins/VOODOO.md`,
-  palette tokens, motif sheet). All art must be original or licensed (see `IP_AUDIT.md`).
+- Art references library: `reference/art/` (`ART_STYLE.md` = the Voodoo skin's guide, `skins/CLASSIC.md`,
+  `skins/VOODOO.md`, palette tokens, motif sheet; brand sources in `reference/art/brand/`). All art must be
+  original or licensed (see `IP_AUDIT.md`).
 
 ## 10. Media libraries (3 tiers) [NEW]
 Goal: players with many games download shared media once.

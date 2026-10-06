@@ -52,10 +52,13 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   (`scripts/common/drag_scroll.gd`); `_toggle_category` / `_on_tile_pressed`
   ignore a release while `drag.moved`. Hub dialogs join the `modal_overlay`
   group so dragging over one doesn't scroll the list behind it.
-- **Look (since v0.21)**: the user's VOODOO title art (`assets/hub/banner.png`,
-  made from `art_inbox/1.png` with its black backdrop faded to transparent)
-  over a drifting shader mist (`scripts/common/mist.gd`) -- full screen in
-  the dark theme, just behind the banner in the light one. Style the user
+- **Look (since v0.29, Viral rebrand)**: the VIRAL wordmark
+  (`Brand.WORDMARK`, `media/hub/brand/hub_wordmark.png`, its backdrop faded
+  out at the edges) over the brand background (`Brand.backdrop()`, portrait
+  or landscape art, darkened for 4.5:1 text) in the dark theme; the light
+  theme keeps a plain background with the drifting shader mist
+  (`scripts/common/mist.gd`) just behind the wordmark. The old VOODOO title
+  art (`assets/hub/banner.png`, v0.21-v0.28) was removed. Style the user
   asked for: mystical, misty, smoky, magical, bright, vibrant. Panel fills
   go through `_tinted_fill()` (nearly opaque), because a see-through fill
   lets the glow behind it wash the panel out.

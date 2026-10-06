@@ -71,7 +71,10 @@ link to Landing · shared media in 3 tiers · shared art reference library · Cl
   - Source stays in place (no file moves = no broken paths); add `ARCHIVED.md` in each game folder with the reason.
   - Store listing / IARC questionnaire: no alcohol references anywhere else in the hub.
   - Revisit later with an 18+ gate + responsible-drinking notice.
-  - **Count impact:** the 6 drinking games no longer count toward the 100-game goal → ~87 live, ~13 to go (was 7).
+  - **Archived (8, owner 2026-10-06):** kings_cup, red_or_black, three_man, never_have_i_ever, most_likely_to,
+    ride_the_bus, plus spin_the_bottle and would_you_rather (moved into the category: their drinking references).
+  - **Count impact (checked 2026-10-06):** 103 games in the manifest − 8 archived = **95 live, 5 to go** for 100.
+  - Apps before v0.29 don't know the flag and still list the category until they update.
 - Media dependency packs add a failure mode (game downloaded, media pack missing). Catalog must verify deps
   at launch and re-fetch silently.
-- Old APKs + new packs: every new kit call guarded; `min_app` only when unavoidable.
+- Old APKs + new packs: every new kit call guarded; `min_build` (manifest field) only when unavoidable.

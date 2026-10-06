@@ -1,7 +1,84 @@
-# Voodoo Game Hub
+# Viral Game Hub — Claude Code project instructions
+
+Developer: **Viral**. Hub: **"Viral Game Hub"** (chosen; pending INPI/EUIPO check — see `docs/HUB_V2_PLAN.md` §1).
+"Voodoo" is now ONLY the name of the neon-skull skin, never the app/brand.
+Never hard-code the hub name, package display name or store text. Read it from `Brand.NAME`
+(`scripts/common/brand.gd`, create it if missing) so a rename is a one-line change.
+Formerly "Voodoo Game Hub": the repo, package id, signing key, Supabase names,
+save paths and game ids keep their `voodoo` names on purpose -- see **Rename
+safety** at the top of "Gotchas".
 
 Free, ad-free, ever-growing mini-game hub. Godot 4.7.2 / GDScript, no Gradle build.
 Public repo: https://github.com/voodoo-nicolas/voodoo-game-hub
+
+## What this project is
+- Godot 4 Android app ("hub" APK) + ~100 minigames shipped as downloadable `.pck` packs
+  on GitHub Releases (tag `packs-v1`). `manifest.json` is the single source of truth.
+- Supabase: auth, leaderboards, friends/invites, online rooms (Realtime), entitlements.
+- Bilingual EN/ES. **No ads, ever** (the whole reason this exists).
+- Monetization (already built, **not live**): `store.gd` autoload, `store_billing.gd`
+  (Google Play Billing), `paywall.gd` -- on branch `store` only (worktree
+  `../voodoo-game-hub-store`), switched off and not merged into `master`. Don't rebuild;
+  integrate when the owner says so (2026-10-06: hub and games first, monetization after).
+  Approved plan (`docs/monetization/PLAN.md`): 3-day trials for signed-in players, $0.99 per
+  game (Voodoo IQ $1.99), $4.99/month hub with a 7-day trial + $2.99 x 3 intro, 15 games
+  always free.
+- Goal: 100 games live before monetization launches. Model: "a million games behind one icon".
+
+## How to work with the owner
+- He writes tersely, often by voice. Prefer doing over discussing. Ask only when a decision is
+  marked **OPEN** in the plan, or when two standards conflict.
+- He checks precision. Double-check counts, maths, version numbers, paths.
+- **Never remove code or comments he marked with `//`, `/* ... */` or `#`.** Move them if you must, never delete.
+- Cost-conscious: free / CC0 / self-made assets first. Record every asset's licence (see STANDARDS §10).
+- Don't skip small steps in procedures. When you change a standard, update `docs/STANDARDS.md` in the same commit.
+- When a request contradicts a standard, say so and propose the fix — don't silently pick one.
+
+## Load-bearing standards (always loaded)
+@docs/STANDARDS.md
+
+Read on demand (not auto-loaded): `docs/HUB_V2_PLAN.md` (roadmap, decisions, open questions),
+`docs/IP_AUDIT.md` (copyright/trademark rules), `reference/art/ART_STYLE.md` (+ `reference/art/skins/`),
+`docs/KICKOFF_PROMPT.md` (the owner's v2 kickoff: phases, gates, standing rules, as given 2026-10-06).
+
+These docs are the source of truth. If a request conflicts with them, stop and
+say so; when a rule changes, update the doc in the same commit.
+
+## Work rhythm (owner, 2026-10-06)
+- After each step: `python tools/hub.py check` + `python tools/hub.py test <id>` on the
+  games touched, commit, summarize in ≤ 5 lines.
+- **Ask before**: `publish-packs`, `release`, `bump-app major`, deleting anything,
+  Supabase schema changes, store-listing text.
+- At the start of each v2 phase (`docs/HUB_V2_PLAN.md` §2), propose a task list and
+  wait for the owner's OK.
+
+## Standing rules (add a matching lint to `hub.py check` as each one becomes checkable)
+- Every new/modified game meets STANDARDS "Definition of done".
+- Only the Landing page links to the hub; every other screen has 🏠 Home → Landing.
+- Packs keep working on older APKs (guard every call; `min_build` only if unavoidable).
+- Never overwrite a mounted `.pck`. Never delete the owner's comments (`//`, `/* */`, `#`).
+- EN + ES for every string (`tools/i18n/es.json`, then `python tools/hub.py i18n`).
+- Learning hook where it fits naturally (STANDARDS §15). **No alcohol references anywhere.**
+- Every asset: `media/CREDITS.json` entry + licence proof; OGG pre-encoded (~96 kbps music).
+- `manifest.json` is committed last.
+
+## Architecture in one screen
+- **APK holds only shared code**: `scripts/common/`, `scripts/hub/`, `scripts/account/`.
+- **Games live in packs** and never reference hub internals. Every call into an APK system is
+  guarded (`get_node_or_null()` / `ResourceLoader.exists()`), because packs run on older APKs.
+  If a pack truly needs a newer APK, set `"min_build": <BUILD_NUMBER>` on its `games`
+  entry in `manifest.json` (the handoff called it `min_app`; the code's field is `min_build`).
+- Per game: `<id>_engine.gd` (pure logic, no Nodes, testable headless) + `<id>_game.gd`
+  (Control, builds UI in code, wires the Landing kit) + `<id>_help.gd` (how-to + custom achievements)
+  + `<id>_i18n.gd` (generated).
+- Media lives in tiered packs (hub-common → category → game). See STANDARDS §10.
+
+## Definition of done (any game you touch)
+Meets every STANDARDS section that applies: navigation rules, Landing page, setup screens, pause/save/resume,
+options, 🏆 + 🏅, both skins (or documented why not), safe area, text scale 1.0–1.4, EN+ES complete,
+media from shared tiers where possible, `CREDITS.json` updated, IP checklist passed, `hub.py check` green.
+Until Phase 1 builds the Landing kit, games still use the Home kit and the
+"Minigame standards" below describe what the code does today.
 
 ## Architecture: "Option B" — download-on-demand games
 
@@ -392,6 +469,8 @@ Every chore that used to be a hand-edit across several files is one command
 | `manifest.json` — catalog, titles, icons, pack versions | pack presets in `export_presets.cfg` (one per game) |
 | `scripts/common/version.gd` — `VERSION`, `BUILD_NUMBER` | Android preset's `version/name` + `version/code` |
 | `scripts/common/config.gd` — repo, release tag, Supabase, timeouts | `games` entries (url/scene) for new ids in `manifest.json` |
+| `scripts/common/brand.gd` — the app's visible name | app name in the export presets (Android label, Windows product name) |
+| `reference/art/brand/` — the owner's brand art | `media/hub/brand/` (by `tools/brand/make_brand.py`) |
 
 **PC test build**: `python tools/hub.py pc` exports every game bundled into
 `%LOCALAPPDATA%\VoodooGameHub\Voodoo.exe` and (re)creates the "Voodoo Game
@@ -403,6 +482,15 @@ presets and version in sync) and changes nothing — run it before committing.
 `tools/` has a `.gdignore`, so Godot never imports or exports it.
 
 ## Minigame standards (the user's rules, 2026-10-03)
+
+> **v2 (2026-10-06): `docs/STANDARDS.md` replaces these where they differ.**
+> Kept because they describe today's code until each game migrates:
+> rule 2 (Home screen) becomes the Landing page (STANDARDS §3); rule 4 (the
+> floating ⚙ tab) goes away -- its items move to the pause menu / Options and
+> `settings_drawer.gd` becomes a no-op stub (§6); rule 8's "a game gets a
+> light palette when it's touched" becomes Classic (traditional colours,
+> default) + Voodoo (neon, opt-in) skins (§9); rule 1's neon art standard is
+> the Voodoo skin's.
 
 Apply these to **every new game and every existing game you modify** (when
 touching an older game, bring it up to these standards as part of the change,
@@ -517,6 +605,35 @@ it, so each pack carries its own copy and runs on any app version, and
    Only a game with nothing worth keeping mid-round may skip saving; say so
    in its help text if a round can't be resumed. Online matches aren't saved
    locally (they rejoin instead, see OnlineMatch).
+6. **Leaderboards** (added 2026-10-05): every game with a score or a
+   counter worth ranking has a 🏆 Leaderboard on its Home screen (the kit's
+   button; `board` in the kit config and manifest), Everyone / Friends.
+   Games where lower is better (times, ms) need a growing counter to rank
+   instead, or say why they have none.
+7. **Achievements** (added 2026-10-05): every game shows 🏅 Achievements on
+   its Home screen (the kit's button; generic badges come free from its
+   GameInfo stats). Add game-specific `ACHIEVEMENTS` in `<id>_help.gd`
+   for the things worth bragging about in that game.
+8. **Options the player can change, where they apply** (added 2026-10-05),
+   reachable from the game's Home screen and its pause menu, not only the
+   hub's Options:
+   - visual theme (light / dark);
+   - landscape or portrait;
+   - sound on / off;
+   - volume;
+   - notifications (game invites: Always / Not during games / Off);
+   - vibration.
+   All of these are the app-wide settings (`Settings` autoload, reached with
+   `get_node_or_null("/root/Settings")`), not per-game copies; the game just
+   offers them and reacts. Status 2026-10-05: sound and volume are in the
+   kit (🔊 Sound), rotate is in the ⚙ drawer; theme, vibration and
+   notifications are only in the hub's Options, and **games have no light
+   theme at all** (Settings' theme covers hub + Options; game colors are
+   hard-coded dark) -- a game gets a light palette when it's touched.
+
+**Rolling out**: these rules are applied as each game gets touched (user,
+2026-10-05) -- no sweep across all games. When you change a game, bring it
+up to every rule above that it misses, or tell the user which ones remain.
 
 ## Adding a new game — the pattern
 
@@ -577,11 +694,13 @@ references.
 4. **Build**: `python tools/hub.py export <id>...` (or `--all`) for packs;
    `python tools/hub.py apk` for the release-signed APK (see "App signing") (fails if any of arm64-v8a,
    armeabi-v7a, x86_64 is missing; copies to `builds/voodoo-vX.Y.Z.apk`).
-5. **Upload packs**: `python tools/hub.py publish-packs <id>...`
+5. **Upload packs**: `python tools/hub.py publish-packs <id>...` (media packs
+   too, when changed). **Ask the owner first.**
 6. **Commit and push** source changes including `manifest.json` (not
-   `builds/` — gitignored). Pushing `manifest.json` is what tells installed
-   apps about new versions/games, so do it *after* the packs are uploaded.
-7. **APK release** (only if step 3 bumped the app):
+   `builds/` — gitignored), **`manifest.json` last**. Pushing `manifest.json`
+   is what tells installed apps about new versions/games, so do it *after*
+   the packs are uploaded.
+7. **APK release** (only if step 3 bumped the app; **ask the owner first**):
    `python tools/hub.py release --notes "..."`
 8. **Verify live**: `python tools/hub.py verify` fetches every pack URL and the
    live manifest and compares them with the local builds.
@@ -650,6 +769,44 @@ This PC's Desktop is redirected to OneDrive (`hub.py pc` asks Windows for the
 Desktop path). Windows was reinstalled 2026-10-03.
 
 ## Gotchas already found and fixed (don't reintroduce)
+
+- **Rename safety (Voodoo → Viral, owner 2026-10-06)**: the rebrand changes
+  **visible text only**. NEVER rename: the Android package name /
+  applicationId (`com.viral.voodoo`), the signing keystore
+  (`voodoo-release.*`) or the `VOODOO_RELEASE_KEY` variable, Supabase
+  project / table / column names, save-file paths and keys (`user://...`
+  names, stat keys), game ids in `manifest.json`, the GitHub repo
+  (`voodoo-game-hub`) or the `packs-v1` tag. Changing these breaks updates,
+  wipes saves, or orphans packs. Internal identifiers may keep "voodoo"
+  (class names, `VOODOO_SAFE_INSET`, the Realtime topic `voodoo-<game>-<code>`,
+  User-Agent strings, `builds/` file names). **`project.godot`'s
+  `config/name` stays "Voodoo"**: on PC it names the save folder
+  (`%APPDATA%\Godot\app_userdata\Voodoo`), so the visible name comes from
+  the export presets (`package/name`, `product_name`, synced from
+  `Brand.NAME` by `hub.py sync`) and the window title set at runtime
+  (owner, 2026-10-06).
+- **Disabled buttons / orientation / stretch / 32-bit ARM / `free()` /
+  lambdas / mounted packs / double taps / paused timers / rotation**: see the
+  entries below (the v2 handoff repeats them in short form).
+- **Never overwrite a mounted `.pck` on disk** (Godot reads lazily by offset).
+  Game packs keep one file each (`user://packs/<id>.pck`): `Catalog` downloads
+  to `.part`, checks `GDPC`, swaps it in, and only updates packs not mounted
+  this session (old apps depend on that; entry below). The new **media packs**
+  get a new filename per version (`<name>.v<N>.pck`) and mount on next launch
+  (owner, 2026-10-06).
+- **Don't delete `settings_drawer.gd`** — old packs reference the class; from
+  Phase 1 it's a no-op stub (STANDARDS §6). Until then it's still the live drawer.
+- **Archived games** (`"archived": true` on a category and on each of its
+  games -- the Drinking Games, since v0.29): `Catalog` drops them, so the hub
+  never lists, launches, resumes or accepts invites for them, and the
+  Achievements screen skips them; packs, ids and saves stay. Apps before
+  v0.29 ignore the flag and still list them. `hub.py` leaves them out of
+  `export --all`, `test`, `i18n`, `verify` and the game count.
+- **Two mounted packs with the same `res://` path: last mounted wins.** Keep
+  media namespaced (`res://media/common/`, `res://media/cat/<cat>/`,
+  `res://games/<id>/`) so this never happens.
+- **The kit pauses on `NOTIFICATION_APPLICATION_PAUSED`**; save happens
+  automatically on app suspend (entry below).
 
 - **`font_color` vs `font_disabled_color`**: `add_theme_color_override("font_color",
   ...)` on a `Button` does nothing once `disabled = true`. Use
@@ -1103,13 +1260,52 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
 - **Three Man's dice are drawn** (the Unicode die glyphs are missing from
   phone fonts). Never use those glyphs for dice in a game.
 
+## Brand: Viral Game Hub -- since v0.29.0 (2026-10-06)
+
+- **`scripts/common/brand.gd`** (APK-side): `NAME`, `DEVELOPER`, `TAGLINE`
+  (`tagline()` translates it), `STORE_TITLE`, the brand art paths and
+  `backdrop()` (the hub background, portrait/landscape by screen shape; the
+  mist if the art is missing). Hub code preloads it; packs `load()` it after
+  `ResourceLoader.exists(Brand.PATH)` (it ships from v0.29).
+- **`hub.py sync`** copies `Brand.NAME` into the export presets
+  (`package/name`, `application/product_name`); `check` fails if they drift.
+  `project.godot`'s `config/name` stays "Voodoo" (PC save folder); the PC
+  window title is set from `Brand.NAME` in `Settings._ready()`.
+- **Art**: `python tools/brand/make_brand.py [--preview]` (needs numpy,
+  scipy, Pillow) rebuilds everything in `media/hub/brand/` from
+  `reference/art/brand/`; never edit the outputs. Folders with a
+  `.gdignore` (`launcher/`, `store/`, `boot/`, `masters/`) aren't imported:
+  the Android exporter reads the launcher icons and the boot splash straight
+  from disk, so they cost nothing twice. `boot_splash/image.game_pack=""`
+  keeps the 1.9 MB splash out of every game pack (like the icon).
+- **Credits lint**: every file under `media/` needs a `media/CREDITS.json`
+  entry; licence proof in `media/licenses/`. **Name lint**: APK-side UI text
+  may say "Voodoo" only for the skin (`VOODOO_TEXT_OK` in hub.py); strings
+  es.json marks `null` (not UI) are skipped.
+- The hub palette (`Settings.DARK`: violet + orange) still follows the old
+  VOODOO banner; the new art is red + cyan. Restyling it is Phase 2 work.
+
 ## Reference material
+
+**v2 docs (2026-10-06)**: `docs/STANDARDS.md` (always loaded, above),
+`docs/HUB_V2_PLAN.md`, `docs/IP_AUDIT.md`, `docs/KICKOFF_PROMPT.md`.
+
+**Brand art: `reference/art/brand/`** -- the owner's final images
+(sources, never shipped): `background.jpg` (1266x832), `viral_logo_wordmark.png`
+(598x393, the V-skull + VIRAL lettering on its scene; hub header only, too
+small for splash/store art), `vskull_logo_src.jpg` (1264x843, the V-skull
+with a fake transparency checkerboard baked into the pixels). Shipped,
+processed copies live in `media/hub/brand/`; every file is in `media/CREDITS.json`.
 
 **Art / graphics standards: `reference/art/ART_STYLE.md`** -- the target
 look for the hub and every game (neon vector glow on near-black, voodoo
 motifs), with the user's mood-board images beside it. Read it before
 designing or restyling any visuals. The images are references only (never
-shipped; `reference/art/` has a `.gdignore`); art stays drawn in code.
+shipped; `reference/art/` has a `.gdignore`). Since v2 (STANDARDS §9/§10,
+owner 2026-10-06) it is the **Voodoo skin's** guide: Classic (traditional
+colours) is every game's default skin, media packs may ship images and
+audio (with `CREDITS.json`), and the hub ships brand PNGs. Drawing in code
+stays the preference, not a ban.
 
 `reference/juegoflix_friend_reference.html` — a friend's competing 20-game hub
 (single-file HTML), saved for layout/game-idea inspiration. Never copy from it
