@@ -136,6 +136,19 @@ def catalog_ids(m: dict) -> list[str]:
     return [g["id"] for c in m.get("categories", []) for g in c.get("games", []) if g.get("id")]
 
 
+def archived_ids(m: dict) -> set[str]:
+    """Games hidden from the hub (HUB_V2_PLAN §6): "archived": true on the
+    game or its category. They keep their presets, packs and saves."""
+    return {g["id"] for c in m.get("categories", []) for g in c.get("games", [])
+            if g.get("id") and (c.get("archived") is True or g.get("archived") is True)}
+
+
+def live_ids(m: dict) -> list[str]:
+    """Games the hub shows: the ones `export --all`, `test`, `i18n` and `verify` cover."""
+    hidden = archived_ids(m)
+    return [gid for gid in catalog_ids(m) if gid not in hidden]
+
+
 def scene_path(gid: str) -> str:
     return f"res://scenes/games/{gid}/{gid}.tscn"
 
@@ -431,7 +444,9 @@ def cmd_check(_args=None) -> None:
     if errors:
         raise ToolError(f"{len(errors)} problem(s) found")
     version, build = read_version()
-    print(f"OK -- v{version} (build {build}), {len(catalog_ids(load_manifest()))} games")
+    m = load_manifest()
+    print(f"OK -- v{version} (build {build}), {len(live_ids(m))} games live"
+          f" (+{len(archived_ids(m))} archived)")
 
 
 def cmd_new_game(args) -> None:
@@ -523,7 +538,7 @@ ERROR_RE = re.compile(r"SCRIPT ERROR|Parse Error|^ERROR:|Failed to load", re.M)
 
 def cmd_test(args) -> None:
     m = load_manifest()
-    ids = args.ids or catalog_ids(m)
+    ids = args.ids or live_ids(m)
     scenes = [] if args.ids else ["res://scenes/hub/hub.tscn", "res://scenes/hub/options.tscn", "res://scenes/account/account.tscn",
               "res://scenes/hub/leaderboards.tscn", "res://scenes/hub/achievements.tscn",
               "res://scenes/hub/friends.tscn", "res://scenes/hub/multiplayer.tscn"]
@@ -544,7 +559,7 @@ def cmd_test(args) -> None:
 
 def cmd_export(args) -> None:
     m = load_manifest()
-    ids = catalog_ids(m) if args.all else args.ids
+    ids = live_ids(m) if args.all else args.ids
     if not ids:
         raise ToolError("name the games to export, or pass --all")
     names = pack_preset_names()
@@ -797,7 +812,7 @@ def cmd_i18n(_args) -> None:
     games = 0
     # Only games in the catalog: a folder someone is still building (not in
     # manifest.json yet) is theirs to generate when they register the game.
-    for gid in catalog_ids(load_manifest()):
+    for gid in live_ids(load_manifest()):
         game_dir = ROOT / "scripts/games" / gid
         if not game_dir.is_dir():
             continue
@@ -877,7 +892,7 @@ def cmd_verify(_args) -> None:
     except Exception as e:  # noqa: BLE001 -- report and carry on
         print(f"  FAIL live manifest: {e}")
         bad += 1
-    for gid in catalog_ids(m):
+    for gid in live_ids(m):
         url = m["games"][gid]["url"]
         local = PACKS_OUT / f"{gid}.pck"
         try:

@@ -14,6 +14,11 @@ extends Node
 ##      still shows every game).
 ## Adding a game to manifest.json therefore shows it in already-installed apps
 ## without an APK update -- see "min_build" below for when that's unsafe.
+##
+## Archived games (since v0.29, HUB_V2_PLAN §6): a category or game with
+## "archived": true stays in manifest.json -- packs, ids and saves are kept --
+## but is dropped here, so the hub never lists, launches, resumes or accepts
+## invites for it. Apps before v0.29 ignore the flag and still list it.
 
 const Config = preload("res://scripts/common/config.gd")
 const Version = preload("res://scripts/common/version.gd")
@@ -38,6 +43,9 @@ signal catalog_changed
 ## placeholder, or {id, title, icon, scene, version, url, min_build}.
 var categories: Array = []
 var _games_by_id: Dictionary = {}
+## Ids of archived games (see the header), for screens that list games from
+## saved stats rather than from `categories`.
+var archived_ids: Dictionary = {}
 
 ## Games whose scene already existed before this process mounted anything --
 ## i.e. running from the editor or a full desktop build. Those launch straight
@@ -81,6 +89,9 @@ func _ready() -> void:
 
 func get_game(id: String) -> Dictionary:
 	return _games_by_id.get(id, {})
+
+func is_archived(id: String) -> bool:
+	return archived_ids.has(id)
 
 func state_of(game: Dictionary) -> String:
 	if not game.has("id"):
@@ -171,13 +182,28 @@ func _apply_manifest(data: Variant) -> bool:
 			"min_build": int(entry.get("min_build", 0)),
 		}
 
+	var archived := {}
+	for raw_cat in raw_categories:
+		if typeof(raw_cat) != TYPE_DICTIONARY or typeof(raw_cat.get("games")) != TYPE_ARRAY:
+			continue
+		for raw_game in raw_cat.games:
+			if typeof(raw_game) == TYPE_DICTIONARY and raw_game.get("id", "") != "" \
+					and (raw_cat.get("archived", false) == true or raw_game.get("archived", false) == true):
+				archived[str(raw_game.id)] = true
+	for id in archived:
+		games_by_id.erase(id)
+
 	var new_categories := []
 	for raw_cat in raw_categories:
 		if typeof(raw_cat) != TYPE_DICTIONARY or typeof(raw_cat.get("games")) != TYPE_ARRAY:
 			continue
+		if raw_cat.get("archived", false) == true:
+			continue
 		var cat_games := []
 		for raw_game in raw_cat.games:
 			if typeof(raw_game) != TYPE_DICTIONARY:
+				continue
+			if archived.has(str(raw_game.get("id", ""))):
 				continue
 			var title := str(raw_game.get("title", "?"))
 			var icon := str(raw_game.get("icon", "🎮"))
@@ -204,6 +230,7 @@ func _apply_manifest(data: Variant) -> bool:
 
 	categories = new_categories
 	_games_by_id = games_by_id
+	archived_ids = archived
 	return true
 
 ## Carries "<field>_<lang>" translations (e.g. "title_es") from the manifest

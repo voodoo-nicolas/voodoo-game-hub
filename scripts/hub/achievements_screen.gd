@@ -46,6 +46,8 @@ func _build() -> void:
 	# Games with badges, most first.
 	var ids: Array = []
 	for id in all:
+		if Catalog.is_archived(id):
+			continue
 		if typeof(all[id].get("_ach")) == TYPE_DICTIONARY and not all[id]._ach.is_empty():
 			ids.append(id)
 	ids.sort_custom(func(a, b): return all[a]._ach.size() > all[b]._ach.size())
