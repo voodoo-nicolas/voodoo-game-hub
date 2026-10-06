@@ -19,6 +19,7 @@ const SAVE_PATH := "user://minesweeper_save.json"
 const COLOR_BG := HomeKit.BG
 const COLOR_HIDDEN := Color(0.12, 0.2, 0.42)
 const COLOR_REVEALED := Color(0.04, 0.05, 0.1)
+const CLASSIC_NUMBERS := [Color.BLACK, Color("1e5bd8"), Color("2a7d3a"), Color("d62828"), Color("1b2f7a"), Color("8a2a1a"), Color("1f7f86"), Color("222222"), Color("5b6478")]
 const COLOR_EXPLODED := Color("ff2b6b")
 const NUMBER_COLORS := [
 	Color(1, 1, 1), Color("29e6ff"), Color("7dff3a"), Color("ff4f9a"),
@@ -67,7 +68,7 @@ func _format_time(s: float) -> String:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	_build_start_screen()
@@ -299,6 +300,23 @@ func _show_result() -> void:
 
 # ---------- rendering ----------
 
+## Look (STANDARDS §9): "classic" = soft grey tiles with classic number colours (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if not cells.is_empty():
+		_render()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _render() -> void:
 	mines_label.text = "💣 %d" % engine.flags_left()
 	mode_btn.text = tr("🚩 Flag mode") if flag_mode else tr("⛏ Dig mode")
@@ -307,13 +325,14 @@ func _render() -> void:
 			var btn: Button = cells[r][c]
 			var color := COLOR_HIDDEN
 			var text := ""
+			var classic := _is_classic()
 			var text_color := Color(1, 1, 1)
 			if engine.revealed[r][c]:
 				color = COLOR_REVEALED
 				var n: int = engine.adjacent[r][c]
 				if n > 0:
 					text = str(n)
-					text_color = NUMBER_COLORS[n]
+					text_color = CLASSIC_NUMBERS[n] if classic else NUMBER_COLORS[n]
 			elif engine.game_over and engine.mines[r][c] and not engine.flagged[r][c]:
 				color = COLOR_EXPLODED if Vector2i(r, c) == engine.exploded else COLOR_REVEALED
 				text = "💣"
@@ -324,11 +343,29 @@ func _render() -> void:
 			btn.text = text
 			btn.add_theme_color_override("font_color", text_color)
 			btn.add_theme_color_override("font_pressed_color", text_color)
+			btn.add_theme_color_override("font_disabled_color", text_color)
 			btn.add_theme_color_override("font_hover_color", text_color)
 			var sb := StyleBoxFlat.new()
 			sb.bg_color = color
 			sb.set_corner_radius_all(4)
-			if color == COLOR_HIDDEN:
+			if classic:
+				if color == COLOR_HIDDEN:
+					sb.bg_color = Color("b4bcc6")
+					sb.border_color = Color("e8edf2")
+					sb.border_width_left = 3
+					sb.border_width_top = 3
+					sb.border_width_right = 3
+					sb.border_width_bottom = 3
+					sb.shadow_color = Color(0, 0, 0, 0.3)
+					sb.shadow_size = 2
+					sb.shadow_offset = Vector2(1, 2)
+				elif color == COLOR_REVEALED:
+					sb.bg_color = Color("dde2e8")
+					sb.border_color = Color("9aa3ae")
+					sb.set_border_width_all(1)
+				else:
+					sb.bg_color = HomeKit.CLASSIC.red
+			elif color == COLOR_HIDDEN:
 				sb.border_color = Color(HomeKit.BLUE, 0.9)
 				sb.set_border_width_all(1)
 			elif color == COLOR_REVEALED:

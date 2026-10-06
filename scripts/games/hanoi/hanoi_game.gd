@@ -43,7 +43,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -155,17 +155,40 @@ func _refresh() -> void:
 func _peg_x(i: int) -> float:
 	return board.size.x * (i + 0.5) / 3.0
 
+## Look (STANDARDS §9): "classic" = a wooden base and pegs, bright solid discs (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	var w := board.size.x
 	var h := board.size.y
 	var base_y := h - 60.0
 	var disc_h: float = min(46.0, (h - 200.0) / (HanoiEngine.MAX_DISCS + 1))
 	var max_w := w / 3.0 - 16.0
-	HomeKit.glow_rect(board, Rect2(8, base_y, w - 16, 14), HomeKit.BLUE, 2.0, 0.2)
+	if _is_classic():
+		board.draw_rect(Rect2(8, base_y, w - 16, 14), HomeKit.CLASSIC.wood_dark)
+	else:
+		HomeKit.glow_rect(board, Rect2(8, base_y, w - 16, 14), HomeKit.BLUE, 2.0, 0.2)
 	for i in 3:
 		var x := _peg_x(i)
 		var peg_top: float = base_y - disc_h * (engine.discs + 1.5)
-		HomeKit.glow_line(board, Vector2(x, peg_top), Vector2(x, base_y), Color(HomeKit.BLUE, 0.8), 3.0)
+		if _is_classic():
+			board.draw_line(Vector2(x, peg_top), Vector2(x, base_y), HomeKit.CLASSIC.wood_dark, 8.0)
+		else:
+			HomeKit.glow_line(board, Vector2(x, peg_top), Vector2(x, base_y), Color(HomeKit.BLUE, 0.8), 3.0)
 		var stack: Array = engine.pegs[i]
 		for j in stack.size():
 			var s: int = stack[j]
@@ -181,6 +204,12 @@ func _draw_board() -> void:
 			sb.set_border_width_all(3)
 			sb.shadow_color = Color(col, 0.4)
 			sb.shadow_size = 7
+			if _is_classic():
+				sb.bg_color = col
+				sb.border_color = col.darkened(0.35)
+				sb.shadow_color = Color(0, 0, 0, 0.35)
+				sb.shadow_size = 3
+				sb.shadow_offset = Vector2(1, 2)
 			sb.set_corner_radius_all(int(disc_h / 2.0))
 			board.draw_style_box(sb, rect)
 

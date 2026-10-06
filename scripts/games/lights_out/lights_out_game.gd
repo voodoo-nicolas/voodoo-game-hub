@@ -36,7 +36,7 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -192,6 +192,23 @@ func _on_cell_pressed(r: int, c: int) -> void:
 				win_label.text += "\n" + tr("New best!")
 		win_dialog.visible = true
 
+## Look (STANDARDS §9): "classic" = warm yellow bulbs on grey (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if not cells.is_empty():
+		_render()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _render() -> void:
 	for r in range(LightsOutEngine.SIZE):
 		for c in range(LightsOutEngine.SIZE):
@@ -199,6 +216,15 @@ func _render() -> void:
 			var sb := HomeKit.neon_box(COLOR_ON if on else COLOR_OFF, "pressed" if on else "normal")
 			sb.bg_color = Color(COLOR_ON, 0.55) if on else Color(COLOR_OFF, 0.06)
 			sb.shadow_size = 14 if on else 4
+			if _is_classic():
+				sb = StyleBoxFlat.new()
+				sb.bg_color = Color("f6c90e") if on else Color("4a4f5a")
+				sb.border_color = Color("fff3a8") if on else Color("2b2f38")
+				sb.set_border_width_all(3)
+				sb.set_corner_radius_all(14)
+				sb.shadow_color = Color(0, 0, 0, 0.35)
+				sb.shadow_size = 3
+				sb.shadow_offset = Vector2(1, 2)
 			for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 				cells[r][c].add_theme_stylebox_override(state, sb)
 	moves_label.text = tr("Moves: %d") % engine.moves

@@ -61,7 +61,7 @@ func _format_time(s: float) -> String:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -192,6 +192,23 @@ func _win() -> void:
 	_render()
 	create_tween().tween_callback(func(): win_dialog.visible = not game_active).set_delay(0.5)
 
+## Look (STANDARDS §9): "classic" = wooden tiles (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if not buttons.is_empty():
+		_render()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _render() -> void:
 	for i in range(buttons.size()):
 		var btn: Button = buttons[i]
@@ -199,7 +216,19 @@ func _render() -> void:
 		btn.text = str(n) if n != 0 else ""
 		var sb := StyleBoxFlat.new()
 		sb.set_corner_radius_all(12)
-		if n == 0:
+		var text_col := Color(1, 1, 1)
+		if _is_classic():
+			text_col = HomeKit.CLASSIC.ink
+			if n == 0:
+				sb.bg_color = HomeKit.CLASSIC.wood_frame.darkened(0.35)
+			else:
+				sb.bg_color = HomeKit.CLASSIC.wood_light if n != i + 1 else Color("cfe3b4")
+				sb.border_color = HomeKit.CLASSIC.wood_dark
+				sb.set_border_width_all(3)
+				sb.shadow_color = Color(0, 0, 0, 0.35)
+				sb.shadow_size = 3
+				sb.shadow_offset = Vector2(1, 2)
+		elif n == 0:
 			sb.bg_color = COLOR_GAP
 		else:
 			# neon tile: dark glass, glowing rim (green once it's home)
@@ -210,6 +239,8 @@ func _render() -> void:
 			sb.set_corner_radius_all(12)
 		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 			btn.add_theme_stylebox_override(state, sb)
+		for cn in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
+			btn.add_theme_color_override(cn, text_col)
 	moves_label.text = tr("Moves: %d") % engine.moves
 	if best.has("moves"):
 		best_label.text = tr("Best: %d moves · %s") % [int(best.moves), _format_time(float(best.time))]
