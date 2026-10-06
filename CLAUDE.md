@@ -1051,6 +1051,45 @@ online heads-up, Video Poker as a mode, and 🎓 Training. **The id stays
 - The coach follows the Starting hands drill's Chen tiers before the flop
   in Hold'em, and win chance vs pot odds after it, so advice and drills agree.
 
+## Geometry Wars: modes, Adventure, bosses, drones, music -- 2026-10-05
+
+Pack only. Rules for every way to play are data in
+`geometry_wars_levels.gd` (`CLASSIC` modes + 40 campaign `LEVELS`, one
+format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
+`_drones.gd`, `_campaign.gd` (level map + progress in
+`user://geometry_wars_campaign.json`), `_sounds.gd`, `arena_canvas.gd`.
+
+- **Modes**: Evolved (the leaderboard), Deadline, Pacifism, King, Waves,
+  Claustrophobia, Boss Rush; each has its own "Best score (<mode>)" stat.
+  **Adventure**: 6 worlds (the 6th, Ultimate, opens after level 30), a
+  boss every sixth level; stars = finish / no life lost / the level's
+  `target` score. Stars unlock the 6 drones (`Drones.UNLOCK`); Hardcore =
+  the same levels, no drone, starred apart.
+- **Bigger maps + camera**: the view is 19 squares tall (`Core.U` is fixed
+  for a whole game, so positions stay in pixels); maps are `MAP_SCALE` x
+  bigger than written except the tiny ones. The grid only simulates and
+  draws the part near the view. Bombs send a shockwave ring through it
+  (`arena_canvas.shock()`).
+- **Black holes** (`well`): sleeping ones pull gently, awake ones eat and
+  grow (`Core.well_scale/well_range`) and burst into protons. The burst
+  plays a bubble pop, ducks all audio for ~1 s (`sounds.duck`), then the
+  "skitter" loop fades in while protons are loose.
+- **Sound + music** (`_sounds.gd`, its header is the how-to): its own voice
+  pool (the app's Sfx has too few voices for a shooter), every enemy has a
+  spawn call, the player's death is a layered explosion. Adaptive music:
+  calm / lively / techno tiers chosen by how crowded it is
+  (`set_intensity`), back to calm on death; 4 synthesized tracks per tier,
+  rendered on a worker thread once and cached in
+  `user://geometry_wars_music/` (**bump `MUSIC_VERSION` when `SONGS` or the
+  instruments change**). Real tracks: drop .ogg files into
+  `scripts/games/geometry_wars/music/<tier>/` -- they replace that tier.
+  A shared hub music library is a separate piece of work (2026-10-05).
+- **Saves** are `var_to_str()` blobs inside the JSON save (Vector2s and
+  nested dicts survive); a save from before this update is dropped.
+- Balance was set with a bot (aim at the nearest, dodge, chase geoms) in a
+  throwaway test: every level finishes, classic modes run 150 s clean.
+  `autopilot` (a Callable on the game) is the test hook.
+
 ## Hub look changes -- since v0.24.0 (2026-10-03)
 
 - **Sign Out is only in Options**; the home screen shows the name (signed in)
