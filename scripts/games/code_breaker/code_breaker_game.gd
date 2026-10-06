@@ -43,7 +43,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -229,14 +229,41 @@ func _slot_center(row: int, slot: int) -> Vector2:
 	var left := board.size.x / 2.0 - 250.0
 	return Vector2(left + 60.0 + slot * rh * 1.05, rh * 1.3 + rh * (row + 0.5))
 
+## Look (STANDARDS §9): "classic" = solid pegs on a wooden board (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _draw_peg(c: Vector2, r: float, v: int) -> void:
+	if _is_classic():
+		board.draw_circle(c + Vector2(1, 2), r, Color(0, 0, 0, 0.35))
+		board.draw_circle(c, r, PEG_COLORS[v])
+		board.draw_arc(c, r, 0, TAU, 24, PEG_COLORS[v].darkened(0.4), 2.0, true)
+	else:
+		HomeKit.glow_circle(board, c, r, PEG_COLORS[v], 2.0, 0.6)
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
+	if _is_classic():
+		board.draw_rect(Rect2(Vector2.ZERO, board.size), HomeKit.CLASSIC.wood_frame.darkened(0.15))
 	var rh := _row_h()
 	var r := rh * 0.36
 	# secret row
 	for s in CBEngine.SLOTS:
 		var c := _slot_center(-1, s) - Vector2(0, rh * 0.3)
 		if engine.is_over():
-			HomeKit.glow_circle(board, c, r, PEG_COLORS[engine.secret[s]], 2.0, 0.6)
+			_draw_peg(c, r, engine.secret[s])
 		else:
 			board.draw_circle(c, r, Color(0.25, 0.25, 0.3))
 			board.draw_string(ThemeDB.fallback_font, c + Vector2(-60, r * 0.45), "?", HORIZONTAL_ALIGNMENT_CENTER, 120, int(r * 1.3), Color(0.7, 0.7, 0.8))
@@ -244,7 +271,10 @@ func _draw_board() -> void:
 		var y := _slot_center(row, 0).y
 		var is_current: bool = row == engine.guesses.size() and not engine.is_over()
 		if is_current:
-			HomeKit.glow_rect(board, Rect2(board.size.x / 2.0 - 260.0, y - rh / 2.0 + 3, 520, rh - 6), HomeKit.CYAN, 1.5, 0.06)
+			if _is_classic():
+				board.draw_rect(Rect2(board.size.x / 2.0 - 260.0, y - rh / 2.0 + 3, 520, rh - 6), Color(1, 1, 1, 0.12))
+			else:
+				HomeKit.glow_rect(board, Rect2(board.size.x / 2.0 - 260.0, y - rh / 2.0 + 3, 520, rh - 6), HomeKit.CYAN, 1.5, 0.06)
 		var code: Array = []
 		if row < engine.guesses.size():
 			code = engine.guesses[row].code
@@ -254,9 +284,9 @@ func _draw_board() -> void:
 			var c := _slot_center(row, s)
 			var v: int = code[s] if s < code.size() else -1
 			if v >= 0:
-				HomeKit.glow_circle(board, c, r, PEG_COLORS[v], 2.0, 0.6)
+				_draw_peg(c, r, v)
 			else:
-				board.draw_circle(c, r * 0.4, Color(0.3, 0.3, 0.36))
+				board.draw_circle(c, r * 0.4, HomeKit.CLASSIC.wood_frame.darkened(0.3) if _is_classic() else Color(0.3, 0.3, 0.36))
 		if row < engine.guesses.size():
 			var g: Dictionary = engine.guesses[row]
 			var fx := _slot_center(row, CBEngine.SLOTS).x + 20.0

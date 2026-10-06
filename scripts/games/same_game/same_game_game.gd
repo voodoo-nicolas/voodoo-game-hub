@@ -50,7 +50,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -234,12 +235,33 @@ func _geom() -> Dictionary:
 	var o := Vector2((board.size.x - cs * engine.cols) / 2.0, board.size.y - cs * engine.rows - 5.0)
 	return {"cs": cs, "o": o}
 
+## Look (STANDARDS §9): "classic" = solid coloured blocks (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+const CLASSIC_PAL := [Color("d62828"), Color("2a9d4a"), Color("1e5bd8"), Color("f6c90e"), Color("7b3fb0")]
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.grid.is_empty():
 		return
 	var g := _geom()
 	var cs: float = g.cs
-	HomeKit.glow_rect(board, Rect2(g.o, Vector2(cs * engine.cols, cs * engine.rows)).grow(4), Color(HomeKit.PURPLE, 0.6), 1.5)
+	if _is_classic():
+		board.draw_rect(Rect2(g.o, Vector2(cs * engine.cols, cs * engine.rows)).grow(4), HomeKit.CLASSIC.wood_frame)
+	else:
+		HomeKit.glow_rect(board, Rect2(g.o, Vector2(cs * engine.cols, cs * engine.rows)).grow(4), Color(HomeKit.PURPLE, 0.6), 1.5)
 	for x in engine.cols:
 		for y in engine.rows:
 			var v: int = engine.grid[x][y]
@@ -255,6 +277,14 @@ func _draw_board() -> void:
 			sb.set_corner_radius_all(int(cs * 0.2))
 			sb.shadow_color = Color(col, 0.5 if hot else 0.15)
 			sb.shadow_size = 8 if hot else 2
+			if _is_classic():
+				col = CLASSIC_PAL[v % CLASSIC_PAL.size()]
+				sb.bg_color = col.lightened(0.25) if hot else col
+				sb.border_color = Color.WHITE if hot else col.darkened(0.35)
+				sb.set_border_width_all(3)
+				sb.shadow_color = Color(0, 0, 0, 0.3)
+				sb.shadow_size = 2
+				sb.shadow_offset = Vector2(1, 2)
 			board.draw_style_box(sb, r)
 
 func _draw_home_logo(c: Control) -> void:

@@ -104,7 +104,7 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -174,6 +174,7 @@ func _build_ui() -> void:
 
 	var board_panel := PanelContainer.new()
 	var board_sb := StyleBoxFlat.new()
+	board_style = board_sb
 	board_sb.bg_color = Color(0.1, 0.1, 0.13)
 	board_sb.corner_radius_top_left = 10
 	board_sb.corner_radius_top_right = 10
@@ -361,14 +362,46 @@ func _show_end(title: String, can_continue: bool) -> void:
 
 	end_dialog.visible = true
 
+## Look (STANDARDS §9): "classic" = a plain pastel-to-jewel tile ramp on wood (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+const CLASSIC_TILES := {2: Color("f0e6c8"), 4: Color("e8d49a"), 8: Color("f2b25c"), 16: Color("ee8a3f"),
+	32: Color("e0603a"), 64: Color("cf3f3f"), 128: Color("7fb86a"), 256: Color("4ea58a"), 512: Color("3a86a8"),
+	1024: Color("5560b8"), 2048: Color("8a4fb0")}
+var board_style: StyleBoxFlat
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if not tile_panels.is_empty():
+		_render()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _render() -> void:
+	if board_style:
+		board_style.bg_color = HomeKit.CLASSIC.wood_frame if _is_classic() else Color(0.1, 0.1, 0.13)
 	for r in range(G2048Engine.SIZE):
 		for c in range(G2048Engine.SIZE):
 			var v: int = engine.grid[r][c]
 			var color: Color = TILE_COLORS.get(v, Color(0.71, 0.95, 0.41))
 			var sb := StyleBoxFlat.new()
 			sb.set_corner_radius_all(10)
-			if v == 0:
+			var text_col: Color = color.lerp(Color.WHITE, 0.55)
+			if _is_classic():
+				var cc: Color = CLASSIC_TILES.get(v, Color("5b3a8c"))
+				sb.bg_color = HomeKit.CLASSIC.wood_frame.darkened(0.35) if v == 0 else cc
+				if v != 0:
+					sb.shadow_color = Color(0, 0, 0, 0.3)
+					sb.shadow_size = 2
+					sb.shadow_offset = Vector2(1, 2)
+				text_col = HomeKit.CLASSIC.ink if v <= 8 else Color.WHITE
+			elif v == 0:
 				sb.bg_color = color
 			else:
 				# neon tile: tinted glass with a glowing rim in the value's colour
@@ -380,7 +413,7 @@ func _render() -> void:
 			tile_panels[r][c].add_theme_stylebox_override("panel", sb)
 			var text: String = str(v) if v != 0 else ""
 			tile_labels[r][c].text = text
-			tile_labels[r][c].add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.55))
+			tile_labels[r][c].add_theme_color_override("font_color", text_col)
 			var scale: float = 0.4 if text.length() <= 2 else (0.32 if text.length() == 3 else 0.26)
 			tile_labels[r][c].add_theme_font_size_override("font_size", int(tile_size * scale))
 

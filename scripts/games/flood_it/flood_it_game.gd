@@ -51,7 +51,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -156,6 +157,17 @@ func _make_color_buttons() -> void:
 		sb.set_corner_radius_all(int(w / 2.0))
 		var sbp := sb.duplicate()
 		sbp.bg_color = Color(PALETTE[i], 0.9)
+		if _is_classic():
+			sb = StyleBoxFlat.new()
+			sb.bg_color = _pal(i)
+			sb.border_color = _pal(i).darkened(0.35)
+			sb.set_border_width_all(4)
+			sb.set_corner_radius_all(int(w / 2.0))
+			sb.shadow_color = Color(0, 0, 0, 0.35)
+			sb.shadow_size = 3
+			sb.shadow_offset = Vector2(1, 2)
+			sbp = sb.duplicate()
+			sbp.bg_color = _pal(i).darkened(0.15)
 		for st in ["normal", "hover", "focus", "disabled"]:
 			b.add_theme_stylebox_override(st, sb)
 		b.add_theme_stylebox_override("pressed", sbp)
@@ -254,6 +266,29 @@ func _geom() -> Dictionary:
 	var span: float = cs * engine.size
 	return {"cs": cs, "o": Vector2((board.size.x - span) / 2.0, (board.size.y - span) / 2.0)}
 
+## Look (STANDARDS §9): "classic" = solid bright squares (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+const CLASSIC_PAL := [Color("d62828"), Color("2a9d4a"), Color("1e5bd8"), Color("f6c90e"), Color("7b3fb0"), Color("f08a1c"), Color("1f9fa6")]
+
+func _pal(i: int) -> Color:
+	return CLASSIC_PAL[i % CLASSIC_PAL.size()] if skin == "classic" else PALETTE[i]
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+	if color_row and engine and color_row.get_child_count() > 0:
+		_make_color_buttons()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.grid.is_empty():
 		return
@@ -262,11 +297,14 @@ func _draw_board() -> void:
 	var n: int = engine.size
 	var span := cs * n
 	var flood: Dictionary = engine.flooded()
-	HomeKit.glow_rect(board, Rect2(g.o, Vector2(span, span)).grow(6), Color(PALETTE[engine.grid[0]], 0.8), 2.0)
+	if _is_classic():
+		board.draw_rect(Rect2(g.o, Vector2(span, span)).grow(6), HomeKit.CLASSIC.wood_frame)
+	else:
+		HomeKit.glow_rect(board, Rect2(g.o, Vector2(span, span)).grow(6), Color(PALETTE[engine.grid[0]], 0.8), 2.0)
 	for i in n * n:
 		var r := Rect2(g.o + Vector2(i % n, i / n) * cs, Vector2(cs, cs))
-		var col: Color = PALETTE[engine.grid[i]]
-		var a := 0.85 if flood.has(i) else 0.55
+		var col: Color = _pal(engine.grid[i])
+		var a := 1.0 if _is_classic() else (0.85 if flood.has(i) else 0.55)
 		if wave.has(i):
 			col = col.lerp(Color.WHITE, 0.6 * (1.0 - wave[i] / 0.5))
 		board.draw_rect(r.grow(-1), Color(col, a))
