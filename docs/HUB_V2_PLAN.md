@@ -19,7 +19,7 @@ Read with `docs/STANDARDS.md`. Items move from here into STANDARDS once decided.
 |---|---|---|
 | 0 | `brand.gd`; IP name audit of all ~93 games (rename only) | renaming before redesign avoids doing screens twice |
 | 1 | ✅ 2026-10-06: Landing kit (Landing, setup screens, pause menu, game Options, drawer removed) in every kit game at once (93 of 95 live; Sudoku + IQ Test custom) | proves the template on every game shape |
-| 2 | Hub v2: top bar, Continue, Favorites, Game Browser + filters, Profile, Friends, app Options | needs Landing to exist (rule N3) |
+| 2 | ✅ v0.30.0 2026-10-06: Hub v2: top bar, Continue, Favorites, Game Browser + filters, Profile, Friends, app Options (Storage, Credits) | needs Landing to exist (rule N3) |
 | 3 | Media tiers: `music.gd`, buses, `media_packs` in manifest, catalog deps + ref counting, Storage screen, `CREDITS.json` | before mass migration so games adopt shared media once |
 | 4 | Skin system (`skin.gd`, `SkinDef`), Classic + Voodoo for pilots, art reference library | |
 | 5 | Roll out to all games **one category at a time** (category media pack + migrations together) | each batch ships one Tier-2 pack |

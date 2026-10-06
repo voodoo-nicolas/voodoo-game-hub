@@ -28,6 +28,9 @@ var update_label: Label
 var update_btn: Button
 var update_url: String = ""
 
+var storage_box: VBoxContainer
+var credits_box: VBoxContainer
+
 func _ready() -> void:
 	Orientation.lock_portrait()
 	pal = Settings.palette()
@@ -153,6 +156,11 @@ func _build_ui() -> void:
 	account.add_child(account_btn)
 	_update_account()
 
+	# ---- Storage (STANDARDS §2d, since v0.30) ----
+	var storage := _section(list, tr("Storage"))
+	storage_box = storage
+	_fill_storage()
+
 	# ---- About ----
 	var about := _section(list, tr("About"))
 	about.add_child(_body_label(tr("%s v%s (build %d)") % [Brand.NAME, Version.VERSION, Version.BUILD_NUMBER]))
@@ -166,6 +174,84 @@ func _build_ui() -> void:
 	var feedback_btn := _pill_button(tr("Send feedback"), true)
 	feedback_btn.pressed.connect(_on_feedback_pressed)
 	about.add_child(feedback_btn)
+	var credits_btn := _pill_button(tr("Credits & licences"), false)
+	credits_btn.pressed.connect(_show_credits)
+	about.add_child(credits_btn)
+	credits_box = VBoxContainer.new()
+	credits_box.visible = false
+	about.add_child(credits_box)
+
+## Downloaded games and shared media packs (since v0.31) with their sizes.
+## A game can always be removed (its saves stay); one opened this session is
+## deleted on the next app start, because Godot is still reading that file.
+## A media pack can go only when no downloaded game needs it (Catalog's ref
+## count). The rules are Catalog.storage_items() / delete_pack().
+func _fill_storage() -> void:
+	for c in storage_box.get_children():
+		c.queue_free()
+	var items: Array = Catalog.storage_items()
+	var games := items.filter(func(it): return it.kind == "game")
+	var total := 0
+	for it in items:
+		total += int(it.bytes)
+	storage_box.add_child(_body_label(tr("%d games downloaded · %s") % [games.size(), _size_text(total)]))
+	storage_box.add_child(_body_label(tr("Removing a game frees its space; its saves and records stay, and it downloads again the next time you open it.")))
+	if _removed_later:
+		storage_box.add_child(_body_label(tr("Games opened since the app started are removed the next time it starts.")))
+	for it in items:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var name_label := _body_label("%s  ·  %s" % [_storage_name(it), _size_text(int(it.bytes))])
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_label)
+		var in_use: bool = it.kind == "media" and not it.users.is_empty()
+		var del := _pill_button(tr("In use") if in_use else tr("Remove"), false)
+		del.disabled = in_use
+		del.pressed.connect(_on_remove_pack.bind(str(it.kind), str(it.id)))
+		row.add_child(del)
+		storage_box.add_child(row)
+
+## Set once a removal had to wait for the next app start.
+var _removed_later := false
+
+func _storage_name(it: Dictionary) -> String:
+	var id := str(it.id)
+	if it.kind == "media":
+		var n: int = it.users.size()
+		var what := tr("🎵 Shared music & sounds") if id == Catalog.MEDIA_COMMON else "🎵 " + id
+		return "%s (%s)" % [what, tr("used by %d games") % n if n != 1 else tr("used by 1 game")]
+	var game: Dictionary = Catalog.get_game(id)
+	return Lang.pick(game, "title") if not game.is_empty() else id
+
+func _size_text(bytes: int) -> String:
+	if bytes >= 1024 * 1024:
+		return "%.1f MB" % (bytes / 1048576.0)
+	return "%d KB" % maxi(1, int(bytes / 1024))
+
+func _on_remove_pack(kind: String, id: String) -> void:
+	if drag.moved:
+		return
+	if Catalog.delete_pack(kind, id) == "later":
+		_removed_later = true
+	_fill_storage()
+
+## Every asset and its licence, from media/CREDITS.json (STANDARDS §10).
+func _show_credits() -> void:
+	if drag.moved:
+		return
+	credits_box.visible = not credits_box.visible
+	if not credits_box.visible or credits_box.get_child_count() > 0:
+		return
+	var data = JSON.parse_string(FileAccess.get_file_as_string("res://media/CREDITS.json"))
+	var assets: Array = data.get("assets", []) if data is Dictionary else []
+	credits_box.add_child(_body_label(tr("Code and games: Viral. Sounds and most art are made in code.")))
+	for a in assets:
+		credits_box.add_child(_body_label("• %s — %s (%s)" % [str(a.get("what", a.get("file", ""))), str(a.get("author", "")), str(a.get("licence", ""))]))
+	# The engine's MIT licence asks for its notice in the app (since v0.31).
+	credits_box.add_child(_body_label("• Godot Engine — " + tr("MIT licence:")))
+	var engine := _body_label(Engine.get_license_text())
+	engine.add_theme_font_size_override("font_size", 16)
+	credits_box.add_child(engine)
 
 # ---------- building blocks ----------
 

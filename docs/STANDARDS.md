@@ -34,14 +34,14 @@ Rules (apply to every game, no exceptions):
   fallback. The kit's screen handling and Android back cover the router's job.]
   Games register screens/modes; they don't hand-roll back buttons.
 
-## 2. Hub screen [CHANGED]
+## 2. Hub screen [CURRENT since v0.30.0, 2026-10-06]
 Goal: fewer buttons, no scrolling on the hub home.
 - Top bar: **Profile** (avatar) · **Friends** (badge = pending invites/requests) · **⚙ Options**.
 - Body: **Continue** card (last game, 1 tap → that game's Landing with Resume highlighted),
   **Favorites** row (horizontal, optional), one big **🎮 Games** button → Game Browser.
 - Hub home must fit one phone screen at text scale 1.4 without vertical scroll.
 
-### 2a. Game Browser [NEW]
+### 2a. Game Browser [CURRENT since v0.30.0 — except ratings, "Top rated", "New", Newest sort, size badge: no data yet]
 - Search box + filter chips: Single player · Same phone · Online · Party · Category ▾ · Top rated ·
   Never played · Downloaded · Favorites · New.
 - Sort: A–Z · Recently played · Rating · Newest.
@@ -50,7 +50,7 @@ Goal: fewer buttons, no scrolling on the hub home.
 - Drinking Games category is **archived** (hidden everywhere; see `HUB_V2_PLAN.md` §6; 8 games, incl. Spin the Bottle
   and Would You Rather). No live game may reference alcohol.
 
-### 2b. Profile [NEW]
+### 2b. Profile [CURRENT since v0.30.0 — ownership waits for the store; Delete account needs docs/delete_my_account.sql run once]
 Nickname, avatar, hub-wide stats (games played, time, wins), achievements across all games, ownership /
 subscription status, account (sign in/out, sync, delete account), language.
 
@@ -58,7 +58,7 @@ subscription status, account (sign in/out, sync, delete account), language.
 Friend list with online status, requests, add by username or friend code, invite to a game (pick game →
 goes through that game's multiplayer setup), recent opponents, pending invites (accept → game Landing → lobby).
 
-### 2d. Options (app-wide) [CHANGED]
+### 2d. Options (app-wide) [CURRENT since v0.30.0 — Storage + Credits added; Music waits for Phase 3]
 Sound on/off + SFX volume, **Music on/off + volume** (new), vibration, UI theme (light/dark), text size,
 language, notifications (invites), rotate screen, keep screen on, **Storage** (downloaded games + sizes,
 delete), account & privacy, About / Credits / Licences (renders `CREDITS.json`).

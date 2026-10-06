@@ -42,6 +42,7 @@ extends Node
 ## without it): `var s = get_node_or_null("/root/Settings")`, then `if s:`.
 
 const PATH := "user://settings.json"
+const HubData = preload("res://scripts/common/hub_data.gd")
 
 ## content_scale_factor per text size. 1.0 is the original look; players
 ## worldwide found it too small, so new installs start at Large.
@@ -123,6 +124,23 @@ func _on_root_resized() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_remember_scene()
+	# Play time (Profile, since v0.30): counted while a game screen is open
+	# and the app is in front.
+	if what == NOTIFICATION_APPLICATION_PAUSED:
+		_end_play_clock()
+	elif what == NOTIFICATION_APPLICATION_RESUMED:
+		_start_play_clock()
+
+var _play_started_msec := -1
+
+func _start_play_clock() -> void:
+	var scene := get_tree().current_scene if is_inside_tree() else null
+	_play_started_msec = Time.get_ticks_msec() if scene and _is_game_scene(scene.scene_file_path) else -1
+
+func _end_play_clock() -> void:
+	if _play_started_msec >= 0:
+		HubData.add_play_seconds((Time.get_ticks_msec() - _play_started_msec) / 1000.0)
+	_play_started_msec = -1
 
 func set_text_size(i: int) -> void:
 	text_size = clampi(i, 0, TEXT_SCALES.size() - 1)
@@ -413,6 +431,8 @@ func _forget_scene() -> void:
 ## Leaving a game normally (to the hub, Options...) means there's nothing
 ## to resume. Not before the hub has checked, or launch would erase it.
 func _on_scene_changed() -> void:
+	_end_play_clock()
+	_start_play_clock()
 	var scene := get_tree().current_scene
 	if resume_checked and scene and not _is_game_scene(scene.scene_file_path):
 		_forget_scene()
