@@ -59,7 +59,7 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -155,10 +155,33 @@ func _build_ui() -> void:
 		add_child(info)
 	add_child(SettingsDrawer.new())
 
+## Look (STANDARDS §9): "classic" = playing-card tiles (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.felt_dark if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if not cell_buttons.is_empty():
+		_render()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _style_cell(cell: Button, color: Color) -> void:
 	var sb := HomeKit.neon_box(color, "normal")
 	sb.bg_color = Color(color, 0.12 if color == COLOR_HIDDEN else 0.24)
 	sb.set_border_width_all(3)
+	if _is_classic():
+		sb.bg_color = Color(0.1, 0.24, 0.62) if color == COLOR_HIDDEN else (Color("dcecd2") if color == COLOR_MATCHED else Color(0.98, 0.97, 0.93))
+		sb.border_color = Color.WHITE if color == COLOR_HIDDEN else Color(0.45, 0.45, 0.5)
+		sb.shadow_color = Color(0, 0, 0, 0.3)
+		sb.shadow_size = 3
+		sb.shadow_offset = Vector2(1, 2)
 	sb.corner_radius_top_left = 10
 	sb.corner_radius_top_right = 10
 	sb.corner_radius_bottom_left = 10

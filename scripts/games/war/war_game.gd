@@ -44,7 +44,7 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -150,6 +150,22 @@ func _build_ui() -> void:
 	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
+
+## Look (STANDARDS §9): "classic" = green felt (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.felt_dark if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	pass
+
+func _is_classic() -> bool:
+	return skin == "classic"
 
 func _pile_label(text: String) -> Label:
 	var l := Label.new()

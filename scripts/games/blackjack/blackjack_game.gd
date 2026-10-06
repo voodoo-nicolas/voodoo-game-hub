@@ -77,7 +77,7 @@ func _save_game() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -219,11 +219,17 @@ func _make_card(card: Dictionary, face_up: bool) -> Control:
 	var sb := StyleBoxFlat.new()
 	var rim: Color = (HomeKit.PINK if BlackjackEngine.is_red(card) else HomeKit.CYAN) if face_up else HomeKit.PURPLE
 	sb.bg_color = COLOR_CARD if face_up else COLOR_CARD_BACK
+	var cl := _is_classic()
+	if cl:
+		sb.bg_color = Color(0.98, 0.97, 0.93) if face_up else Color(0.1, 0.24, 0.62)
+		rim = Color(0.45, 0.45, 0.5) if face_up else Color.WHITE
 	sb.set_corner_radius_all(12)
 	sb.border_color = rim
 	sb.set_border_width_all(3)
-	sb.shadow_color = Color(rim, 0.35)
-	sb.shadow_size = 8
+	sb.shadow_color = Color(0, 0, 0, 0.3) if cl else Color(rim, 0.35)
+	sb.shadow_size = 3 if cl else 8
+	if cl:
+		sb.shadow_offset = Vector2(1, 2)
 	panel.add_theme_stylebox_override("panel", sb)
 	var l := Label.new()
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -232,9 +238,11 @@ func _make_card(card: Dictionary, face_up: bool) -> Control:
 	if face_up:
 		l.text = BlackjackEngine.card_text(card)
 		l.add_theme_color_override("font_color", HomeKit.PINK.lerp(Color.WHITE, 0.2) if BlackjackEngine.is_red(card) else Color(0.9, 0.98, 1.0))
+		if cl:
+			l.add_theme_color_override("font_color", Color(0.78, 0.1, 0.14) if BlackjackEngine.is_red(card) else Color(0.07, 0.07, 0.1))
 	else:
 		l.text = "✦"
-		l.add_theme_color_override("font_color", HomeKit.PURPLE.lerp(Color.WHITE, 0.4))
+		l.add_theme_color_override("font_color", Color(0.55, 0.7, 1.0) if cl else HomeKit.PURPLE.lerp(Color.WHITE, 0.4))
 	panel.add_child(l)
 	return panel
 
@@ -314,6 +322,23 @@ func _after_action() -> void:
 	_render()
 
 # ---------- rendering ----------
+
+## Look (STANDARDS §9): "classic" = ivory cards on green felt (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.felt_dark if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if dealer_cards and engine:
+		_render()
+
+func _is_classic() -> bool:
+	return skin == "classic"
 
 func _render() -> void:
 	chips_label.text = "🪙 %d" % engine.chips
