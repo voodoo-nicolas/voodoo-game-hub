@@ -55,7 +55,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -275,6 +276,23 @@ func _geom() -> Dictionary:
 	var span := step * (n - 1)
 	return {"step": step, "origin": Vector2((board.size.x - span) / 2.0, (board.size.y - span) / 2.0)}
 
+## Look (STANDARDS §9): "classic" = a wooden board, black and white stones (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.board.is_empty():
 		return
@@ -283,25 +301,36 @@ func _draw_board() -> void:
 	var step: float = g.step
 	var o: Vector2 = g.origin
 	var span := step * (n - 1)
-	board.draw_rect(Rect2(o, Vector2(span, span)).grow(step * 0.6), Color(0.03, 0.04, 0.1))
-	HomeKit.glow_rect(board, Rect2(o, Vector2(span, span)).grow(step * 0.6), Color(HomeKit.PURPLE, 0.8), 2.0)
+	var grid_col: Color = COLOR_GRID
+	if _is_classic():
+		grid_col = HomeKit.CLASSIC.wood_frame
+		board.draw_rect(Rect2(o, Vector2(span, span)).grow(step * 0.6), HomeKit.CLASSIC.wood_light)
+	else:
+		board.draw_rect(Rect2(o, Vector2(span, span)).grow(step * 0.6), Color(0.03, 0.04, 0.1))
+		HomeKit.glow_rect(board, Rect2(o, Vector2(span, span)).grow(step * 0.6), Color(HomeKit.PURPLE, 0.8), 2.0)
 	for k in n:
 		var a := 0.55 if k == 0 or k == n - 1 else 0.3
-		board.draw_line(o + Vector2(k * step, 0), o + Vector2(k * step, span), Color(COLOR_GRID, a), 1.5)
-		board.draw_line(o + Vector2(0, k * step), o + Vector2(span, k * step), Color(COLOR_GRID, a), 1.5)
+		board.draw_line(o + Vector2(k * step, 0), o + Vector2(k * step, span), Color(grid_col, 1.0 if _is_classic() else a), 1.5)
+		board.draw_line(o + Vector2(0, k * step), o + Vector2(span, k * step), Color(grid_col, 1.0 if _is_classic() else a), 1.5)
 	for s in [[3, 3], [11, 3], [7, 7], [3, 11], [11, 11]]:
-		board.draw_circle(o + Vector2(s[0], s[1]) * step, step * 0.09, Color(COLOR_GRID, 0.8))
+		board.draw_circle(o + Vector2(s[0], s[1]) * step, step * 0.09, Color(grid_col, 0.8))
 	var r := step * 0.42
 	for i in engine.board.size():
 		var v: int = engine.board[i]
 		if v == 0:
 			continue
 		var c := o + Vector2(i % n, i / n) * step
-		board.draw_circle(c, r, FILL[v])
-		HomeKit.glow_circle(board, c, r, RIM[v], 2.0)
+		if _is_classic():
+			var cc: Color = HomeKit.CLASSIC.black_piece if v == 1 else HomeKit.CLASSIC.white_piece
+			board.draw_circle(c + Vector2(1, 2), r, Color(0, 0, 0, 0.35))
+			board.draw_circle(c, r, cc)
+			board.draw_arc(c, r, 0, TAU, 28, cc.darkened(0.4) if v == 1 else Color("b9b3a3"), 2.0, true)
+		else:
+			board.draw_circle(c, r, FILL[v])
+			HomeKit.glow_circle(board, c, r, RIM[v], 2.0)
 	if engine.last >= 0:
 		var lc := o + Vector2(engine.last % n, engine.last / n) * step
-		board.draw_circle(lc, r * 0.25, HomeKit.GOLD)
+		board.draw_circle(lc, r * 0.25, HomeKit.CLASSIC.red if _is_classic() else HomeKit.GOLD)
 	if engine.line.size() >= 5:
 		var pts: Array = engine.line.duplicate()
 		pts.sort()

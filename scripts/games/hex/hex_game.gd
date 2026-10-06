@@ -55,7 +55,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -294,6 +295,23 @@ func _cell_at(p: Vector2) -> int:
 			best = i
 	return best
 
+## Look (STANDARDS §9): "classic" = pale wood cells, red and blue sides (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.board.is_empty():
 		return
@@ -306,11 +324,20 @@ func _draw_board() -> void:
 	var bl := _center((n - 1) * n, g)
 	var br := _center(n * n - 1, g)
 	var up := Vector2(0, -r * 1.25)
-	HomeKit.glow_line(board, tl + up + Vector2(-r * 0.6, 0), tr_ + up + Vector2(r * 0.6, 0), COLORS[1], 4.0)
-	HomeKit.glow_line(board, bl - up + Vector2(-r * 0.6, 0), br - up + Vector2(r * 0.6, 0), COLORS[1], 4.0)
 	var side := Vector2(-r * 1.15, 0)
-	HomeKit.glow_line(board, tl + side + Vector2(0, -r * 0.5), bl + side + Vector2(0, r * 0.5), COLORS[2], 4.0)
-	HomeKit.glow_line(board, tr_ - side + Vector2(0, -r * 0.5), br - side + Vector2(0, r * 0.5), COLORS[2], 4.0)
+	var cols: Array = [COLORS[0], COLORS[1], COLORS[2]]
+	if _is_classic():
+		cols[1] = HomeKit.CLASSIC.red
+		cols[2] = HomeKit.CLASSIC.blue
+		board.draw_line(tl + up + Vector2(-r * 0.6, 0), tr_ + up + Vector2(r * 0.6, 0), cols[1], 6.0)
+		board.draw_line(bl - up + Vector2(-r * 0.6, 0), br - up + Vector2(r * 0.6, 0), cols[1], 6.0)
+		board.draw_line(tl + side + Vector2(0, -r * 0.5), bl + side + Vector2(0, r * 0.5), cols[2], 6.0)
+		board.draw_line(tr_ - side + Vector2(0, -r * 0.5), br - side + Vector2(0, r * 0.5), cols[2], 6.0)
+	else:
+		HomeKit.glow_line(board, tl + up + Vector2(-r * 0.6, 0), tr_ + up + Vector2(r * 0.6, 0), COLORS[1], 4.0)
+		HomeKit.glow_line(board, bl - up + Vector2(-r * 0.6, 0), br - up + Vector2(r * 0.6, 0), COLORS[1], 4.0)
+		HomeKit.glow_line(board, tl + side + Vector2(0, -r * 0.5), bl + side + Vector2(0, r * 0.5), COLORS[2], 4.0)
+		HomeKit.glow_line(board, tr_ - side + Vector2(0, -r * 0.5), br - side + Vector2(0, r * 0.5), COLORS[2], 4.0)
 	var on_path := {}
 	for i in engine.path:
 		on_path[i] = true
@@ -319,8 +346,12 @@ func _draw_board() -> void:
 		var pts := _hex_points(c, r * 0.97)
 		var v: int = engine.board[i]
 		if v == 0:
-			board.draw_colored_polygon(pts, Color(0.06, 0.07, 0.14))
-			board.draw_polyline(pts + PackedVector2Array([pts[0]]), Color(HomeKit.PURPLE, 0.55), 1.5, true)
+			board.draw_colored_polygon(pts, HomeKit.CLASSIC.wood_light if _is_classic() else Color(0.06, 0.07, 0.14))
+			board.draw_polyline(pts + PackedVector2Array([pts[0]]), HomeKit.CLASSIC.wood_frame if _is_classic() else Color(HomeKit.PURPLE, 0.55), 1.5, true)
+		elif _is_classic():
+			var cc: Color = HomeKit.CLASSIC.red if v == 1 else HomeKit.CLASSIC.blue
+			board.draw_colored_polygon(pts, cc.lightened(0.15) if on_path.has(i) else cc)
+			board.draw_polyline(pts + PackedVector2Array([pts[0]]), cc.darkened(0.4), 2.0, true)
 		else:
 			var col: Color = COLORS[v]
 			board.draw_colored_polygon(pts, Color(col, 0.75 if on_path.has(i) else 0.4))

@@ -60,7 +60,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -314,14 +314,39 @@ func _point_at(p: Vector2) -> int:
 			return i
 	return -1
 
+## Look (STANDARDS §9): "classic" = a wooden board with dark lines, white and black pieces (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.board.is_empty():
 		return
 	var g := _geom()
 	var step: float = g.step
-	board.draw_rect(Rect2(g.origin - Vector2(step, step) * 0.5, Vector2(step, step) * 7.0), COLOR_BOARD)
+	var line_col: Color = COLOR_LINE
+	if _is_classic():
+		line_col = HomeKit.CLASSIC.wood_frame
+		board.draw_rect(Rect2(g.origin - Vector2(step, step) * 0.5, Vector2(step, step) * 7.0), HomeKit.CLASSIC.wood_light)
+	else:
+		board.draw_rect(Rect2(g.origin - Vector2(step, step) * 0.5, Vector2(step, step) * 7.0), COLOR_BOARD)
 	for m in MorrisEngine.MILLS:
-		HomeKit.glow_line(board, _point_pos(m[0], g), _point_pos(m[2], g), COLOR_LINE, 2.5)
+		if _is_classic():
+			board.draw_line(_point_pos(m[0], g), _point_pos(m[2], g), line_col, 3.0)
+		else:
+			HomeKit.glow_line(board, _point_pos(m[0], g), _point_pos(m[2], g), COLOR_LINE, 2.5)
 	var removable: Array = engine.removable(CPU if engine.turn == HUMAN else HUMAN) if must_remove else []
 	var targets: Array = []
 	if selected >= 0:
@@ -332,13 +357,19 @@ func _draw_board() -> void:
 		var p := _point_pos(i, g)
 		var v: int = engine.board[i]
 		if v == MorrisEngine.EMPTY:
-			board.draw_circle(p, step * 0.1, COLOR_LINE)
+			board.draw_circle(p, step * 0.1, line_col)
 			if i in targets:
 				board.draw_circle(p, step * 0.2, Color(COLOR_HILITE, 0.5))
 			continue
 		var col := COLOR_WHITE if v == HUMAN else COLOR_BLACK
-		board.draw_circle(p, step * 0.32, col)
-		HomeKit.glow_circle(board, p, step * 0.32, RIM_WHITE if v == HUMAN else RIM_BLACK, 2.0)
+		if _is_classic():
+			var cc: Color = HomeKit.CLASSIC.white_piece if v == HUMAN else HomeKit.CLASSIC.black_piece
+			board.draw_circle(p + Vector2(1, 2), step * 0.32, Color(0, 0, 0, 0.35))
+			board.draw_circle(p, step * 0.32, cc)
+			board.draw_arc(p, step * 0.32, 0, TAU, 28, cc.darkened(0.4), 2.0, true)
+		else:
+			board.draw_circle(p, step * 0.32, col)
+			HomeKit.glow_circle(board, p, step * 0.32, RIM_WHITE if v == HUMAN else RIM_BLACK, 2.0)
 		if i == selected:
 			board.draw_arc(p, step * 0.38, 0, TAU, 32, COLOR_HILITE, 5)
 		elif i in removable:

@@ -40,7 +40,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -148,14 +148,33 @@ func _origin() -> Vector2:
 	var s := _cell_size() * PegEngine.SIZE
 	return Vector2((board.size.x - s) / 2.0, (board.size.y - s) / 2.0)
 
+## Look (STANDARDS §9): "classic" = a wooden board with red pegs (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	var cs := _cell_size()
 	var o := _origin()
 	var full := cs * PegEngine.SIZE
 	# the cross-shaped wooden board
-	board.draw_rect(Rect2(o + Vector2(cs * 2, 0), Vector2(cs * 3, full)), COLOR_BOARD)
-	board.draw_rect(Rect2(o + Vector2(0, cs * 2), Vector2(full, cs * 3)), COLOR_BOARD)
-	HomeKit.glow_polyline(board, PackedVector2Array([o + Vector2(cs * 2, 0), o + Vector2(cs * 5, 0), o + Vector2(cs * 5, cs * 2),
+	var board_col: Color = HomeKit.CLASSIC.wood_dark if _is_classic() else COLOR_BOARD
+	board.draw_rect(Rect2(o + Vector2(cs * 2, 0), Vector2(cs * 3, full)), board_col)
+	board.draw_rect(Rect2(o + Vector2(0, cs * 2), Vector2(full, cs * 3)), board_col)
+	if not _is_classic():
+		HomeKit.glow_polyline(board, PackedVector2Array([o + Vector2(cs * 2, 0), o + Vector2(cs * 5, 0), o + Vector2(cs * 5, cs * 2),
 		o + Vector2(full, cs * 2), o + Vector2(full, cs * 5), o + Vector2(cs * 5, cs * 5), o + Vector2(cs * 5, full),
 		o + Vector2(cs * 2, full), o + Vector2(cs * 2, cs * 5), o + Vector2(0, cs * 5), o + Vector2(0, cs * 2),
 		o + Vector2(cs * 2, cs * 2)]), HomeKit.PURPLE, 2.0, true)
@@ -165,10 +184,17 @@ func _draw_board() -> void:
 			if not PegEngine.is_hole(r, c):
 				continue
 			var center := o + Vector2(c + 0.5, r + 0.5) * cs
-			board.draw_circle(center, cs * 0.22, COLOR_HOLE)
+			board.draw_circle(center, cs * 0.22, HomeKit.CLASSIC.wood_frame.darkened(0.4) if _is_classic() else COLOR_HOLE)
 			if engine.at(r, c) == PegEngine.PEG:
-				var col := COLOR_SELECTED if Vector2i(c, r) == selected else COLOR_PEG
-				HomeKit.glow_circle(board, center, cs * 0.34, col, 2.5, 0.45)
+				var sel: bool = Vector2i(c, r) == selected
+				if _is_classic():
+					var pc: Color = HomeKit.CLASSIC.yellow if sel else HomeKit.CLASSIC.red_piece
+					board.draw_circle(center + Vector2(1, 2), cs * 0.3, Color(0, 0, 0, 0.35))
+					board.draw_circle(center, cs * 0.3, pc)
+					board.draw_arc(center, cs * 0.3, 0, TAU, 24, pc.darkened(0.4), 2.0, true)
+				else:
+					var col := COLOR_SELECTED if sel else COLOR_PEG
+					HomeKit.glow_circle(board, center, cs * 0.34, col, 2.5, 0.45)
 			elif Vector2i(c, r) in targets:
 				board.draw_circle(center, cs * 0.3, COLOR_TARGET)
 
