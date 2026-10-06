@@ -67,7 +67,7 @@
       {"id": "word_hunt", "title": "Word Hunt", "icon": "🎲", "title_es": "Cazapalabras"}
     ]},
     {"name": "Arcade", "icon": "🕹️", "name_es": "Arcade", "games": [
-      {"id": "geometry_wars", "title": "Geometry Wars", "icon": "🚀", "title_es": "Geometry Wars"},
+      {"id": "geometry_wars", "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast"},
       {"id": "snake", "title": "Snake", "icon": "🐍", "title_es": "Snake", "modes": "online,local,cpu"},
       {"id": "block_drop", "title": "Block Drop", "icon": "🧱", "title_es": "Bloques"},
       {"id": "paddle_ball", "title": "Paddle Ball", "icon": "🏓", "title_es": "Paletas", "modes": "cpu", "board": "Wins"},
@@ -125,7 +125,7 @@
   "games": {
     "sudoku": {"version": 14, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
     "solitaire": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
-    "geometry_wars": {"version": 16, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
+    "geometry_wars": {"version": 17, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
     "tictactoe": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tictactoe.pck", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
     "connect4": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/connect4.pck", "scene": "res://scenes/games/connect4/connect4.tscn"},
     "g2048": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/g2048.pck", "scene": "res://scenes/games/g2048/g2048.tscn"},
