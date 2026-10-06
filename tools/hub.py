@@ -541,7 +541,7 @@ def cmd_test(args) -> None:
     ids = args.ids or live_ids(m)
     scenes = [] if args.ids else ["res://scenes/hub/hub.tscn", "res://scenes/hub/options.tscn", "res://scenes/account/account.tscn",
               "res://scenes/hub/leaderboards.tscn", "res://scenes/hub/achievements.tscn",
-              "res://scenes/hub/friends.tscn", "res://scenes/hub/multiplayer.tscn"]
+              "res://scenes/hub/friends.tscn", "res://scenes/hub/multiplayer.tscn", "res://scenes/hub/profile.tscn"]
     scenes += [m["games"][gid]["scene"] for gid in ids]
     # First run imports any new files so the boots below see them.
     run_godot("--import", timeout=600)

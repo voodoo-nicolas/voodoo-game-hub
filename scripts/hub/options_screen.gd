@@ -28,6 +28,9 @@ var update_label: Label
 var update_btn: Button
 var update_url: String = ""
 
+var storage_box: VBoxContainer
+var credits_box: VBoxContainer
+
 func _ready() -> void:
 	Orientation.lock_portrait()
 	pal = Settings.palette()
@@ -153,6 +156,11 @@ func _build_ui() -> void:
 	account.add_child(account_btn)
 	_update_account()
 
+	# ---- Storage (STANDARDS §2d, since v0.30) ----
+	var storage := _section(list, tr("Storage"))
+	storage_box = storage
+	_fill_storage()
+
 	# ---- About ----
 	var about := _section(list, tr("About"))
 	about.add_child(_body_label(tr("%s v%s (build %d)") % [Brand.NAME, Version.VERSION, Version.BUILD_NUMBER]))
@@ -166,6 +174,60 @@ func _build_ui() -> void:
 	var feedback_btn := _pill_button(tr("Send feedback"), true)
 	feedback_btn.pressed.connect(_on_feedback_pressed)
 	about.add_child(feedback_btn)
+	var credits_btn := _pill_button(tr("Credits & licences"), false)
+	credits_btn.pressed.connect(_show_credits)
+	about.add_child(credits_btn)
+	credits_box = VBoxContainer.new()
+	credits_box.visible = false
+	about.add_child(credits_box)
+
+## Downloaded games and their sizes; each can be removed (its saves stay)
+## unless it was opened this session (Godot is still reading that file).
+func _fill_storage() -> void:
+	for c in storage_box.get_children():
+		c.queue_free()
+	var packs: Array = Catalog.downloaded_packs()
+	var total := 0
+	for pk in packs:
+		total += int(pk.bytes)
+	storage_box.add_child(_body_label(tr("%d games downloaded · %s") % [packs.size(), _size_text(total)]))
+	storage_box.add_child(_body_label(tr("Removing a game frees its space; its saves and records stay, and it downloads again the next time you open it.")))
+	for pk in packs:
+		var game: Dictionary = Catalog.get_game(str(pk.id))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var name_label := _body_label("%s  ·  %s" % [Lang.pick(game, "title") if not game.is_empty() else str(pk.id), _size_text(int(pk.bytes))])
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_label)
+		var del := _pill_button(tr("Remove") if Catalog.can_remove(str(pk.id)) else tr("In use"), false)
+		del.disabled = not Catalog.can_remove(str(pk.id))
+		del.pressed.connect(_on_remove_pack.bind(str(pk.id)))
+		row.add_child(del)
+		storage_box.add_child(row)
+
+func _size_text(bytes: int) -> String:
+	if bytes >= 1024 * 1024:
+		return "%.1f MB" % (bytes / 1048576.0)
+	return "%d KB" % maxi(1, int(bytes / 1024))
+
+func _on_remove_pack(id: String) -> void:
+	if drag.moved:
+		return
+	Catalog.remove_pack(id)
+	_fill_storage()
+
+## Every asset and its licence, from media/CREDITS.json (STANDARDS §10).
+func _show_credits() -> void:
+	if drag.moved:
+		return
+	credits_box.visible = not credits_box.visible
+	if not credits_box.visible or credits_box.get_child_count() > 0:
+		return
+	var data = JSON.parse_string(FileAccess.get_file_as_string("res://media/CREDITS.json"))
+	var assets: Array = data.get("assets", []) if data is Dictionary else []
+	credits_box.add_child(_body_label(tr("Code and games: Viral. Sounds and most art are made in code.")))
+	for a in assets:
+		credits_box.add_child(_body_label("• %s — %s (%s)" % [str(a.get("what", a.get("file", ""))), str(a.get("author", "")), str(a.get("licence", ""))]))
 
 # ---------- building blocks ----------
 

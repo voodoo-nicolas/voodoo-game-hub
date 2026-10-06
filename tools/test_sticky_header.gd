@@ -14,6 +14,9 @@ func _initialize() -> void:
 		await process_frame
 	var hub = current_scene
 	var fails := 0
+	hub._show_browser()
+	for i in 5:
+		await process_frame
 	hub._toggle_category(0)
 	for i in 10:
 		await process_frame

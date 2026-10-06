@@ -363,6 +363,33 @@ static func is_newer_version(remote: String, local: String) -> bool:
 			return rv > lv
 	return false
 
+# ---------- storage (Options → Storage, since v0.30) ----------
+
+## Downloaded packs: [{id, bytes}], biggest first.
+func downloaded_packs() -> Array:
+	var out: Array = []
+	for file in DirAccess.get_files_at(PACKS_DIR):
+		if file.ends_with(".pck"):
+			var id := file.trim_suffix(".pck")
+			var f := FileAccess.open(_pack_path(id), FileAccess.READ)
+			out.append({"id": id, "bytes": f.get_length() if f else 0})
+	out.sort_custom(func(a, b): return a.bytes > b.bytes)
+	return out
+
+## A pack mounted this session is being read by Godot (lazily, by offset):
+## it can only go after the next app start.
+func can_remove(id: String) -> bool:
+	return not _mounted.has(id) and is_downloaded(id)
+
+## Deletes a downloaded pack (the game's saves and stats stay); the next tap
+## downloads it again. Returns false if it's in use this session.
+func remove_pack(id: String) -> bool:
+	if not can_remove(id):
+		return false
+	DirAccess.remove_absolute(_pack_path(id))
+	_set_local_version(id, 0)
+	return true
+
 # ---------- helpers ----------
 
 func _pack_path(id: String) -> String:

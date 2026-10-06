@@ -1280,6 +1280,34 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
   throwaway test: every level finishes, classic modes run 150 s clean.
   `autopilot` (a Callable on the game) is the test hook.
 
+## Hub v2 -- since v0.30.0 (2026-10-06, STANDARDS §2)
+
+- **Home view** (`hub.gd`, no scrolling at any text size: the wordmark takes
+  the leftover height): top bar 👤 Profile · 👥 Friends (waiting requests) ·
+  ⚙ Options; ▶ Continue (the last game opened); ★ Favorites (up to 4, then
+  "+N more" opens the browser filtered); one big 🎮 Games button.
+- **Game Browser** (same scene, `browser_view`): search, filter chips
+  (Single player = no "modes" or "cpu", Same phone, Online, Party, ★, Downloaded,
+  Never played) that combine, sort By category (the old accordion, with its
+  pinned header) / A–Z / Recently played. Any filter shows one flat list.
+  Tiles carry mode icons and a ★ toggle (the row lets clicks through to the
+  tile's flat button underneath, except on the ★). Android back = home view.
+- **`scripts/common/hub_data.gd`**: favourites (`user://favorites.json`),
+  last-opened times (`user://recent_games.json`, written by `_launch`) and
+  play time (`user://play_time.json`, counted by Settings while a game scene
+  is in front).
+- **👤 Profile** (`profile_screen.gd`): name / Sign In, hub-wide numbers
+  (games tried, plays, wins, badges, time played, favourites), links to
+  🏆 Leaderboards, 🏅 Achievements, 👥 Friends, 🎮 Multiplayer (the old row of
+  four under the account line is gone), language, Sign Out, Delete my account
+  (RPC `delete_my_account`: `docs/delete_my_account.sql`, run once by the
+  owner -- until then the button says to use Send feedback).
+- **Options**: Storage (downloaded games + sizes, Remove; a pack opened this
+  session shows "In use" -- `Catalog.can_remove`), Credits & licences (from
+  `res://media/CREDITS.json`, which ships in the APK).
+- Not built (no data yet): ratings / Top rated, "New", size badges, trial /
+  owned badges (store), Music (Phase 3), N3's "Landing before download".
+
 ## Hub look changes -- since v0.24.0 (2026-10-03)
 
 - **Sign Out is only in Options**; the home screen shows the name (signed in)
