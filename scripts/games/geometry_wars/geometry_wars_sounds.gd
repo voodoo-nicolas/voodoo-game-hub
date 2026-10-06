@@ -1,6 +1,6 @@
 extends Node
 
-## Geometry Wars' own sound kit and adaptive music (in the pack, so it works
+## Neon Blast's own sound kit and adaptive music (in the pack, so it works
 ## on any app version; the app's shared Sfx library is too small and has too
 ## few voices for a shooter).
 ##
@@ -614,7 +614,7 @@ static func _recipe(key: String) -> Array:
 		"level_fail":
 			return [{"t": "saw", "f": 392, "f2": 98, "len": 1.3, "dec": 2, "vol": 0.12},
 				{"t": "tri", "f": 196, "f2": 49, "len": 1.4, "dec": 1.8, "vol": 0.3}]
-		# Spawn calls, one per enemy (Geometry Wars' signature: you hear what
+		# Spawn calls, one per enemy (you hear what
 		# just arrived).
 		"spawn_grunt":
 			return [{"t": "sine", "f": 330, "f2": 660, "len": 0.12, "dec": 14, "vol": 0.16}]

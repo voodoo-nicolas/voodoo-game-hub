@@ -1208,7 +1208,21 @@ online heads-up, Video Poker as a mode, and 🎓 Training. **The id stays
 - The coach follows the Starting hands drill's Chen tiers before the flop
   in Hold'em, and win chance vs pot odds after it, so advice and drills agree.
 
-## Geometry Wars: modes, Adventure, bosses, drones, music -- 2026-10-05
+## Neon Blast (id `geometry_wars`): modes, Campaign, bosses, familiars, music -- 2026-10-05
+
+**Shown to players as "Neon Blast"** since pack v17 (2026-10-06): the
+voodoo re-theme for trademark distance ("Geometry Wars" is Activision's;
+never in store text). Players see a horned voodoo skull firing pins at neon
+spirits, souls (were geoms), seals (gates), familiars (drones), and modes
+Endless / Time Attack / Unarmed / Sanctuary / Stampede / Coffin / Boss Rush
+(were Evolved / Deadline / Pacifism / King / Waves / Claustrophobia),
+Campaign + Cursed (were Adventure + Hardcore). **Code ids, file names, the
+pack id and enemy ids keep the old names** (`_core.gd` header maps them).
+Stat keys were renamed with a migration (`HELP.RENAMED_STATS`, run by
+`_move_renamed_stats()` on open: values kept, counters added, badges
+re-keyed so none counts twice) -- the one exception to "never rename save
+keys", made before that rule existed; don't repeat it (show a new label via
+a new key only for new stats).
 
 Pack only. Rules for every way to play are data in
 `geometry_wars_levels.gd` (`CLASSIC` modes + 40 campaign `LEVELS`, one
@@ -1216,12 +1230,12 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
 `_drones.gd`, `_campaign.gd` (level map + progress in
 `user://geometry_wars_campaign.json`), `_sounds.gd`, `arena_canvas.gd`.
 
-- **Modes**: Evolved (the leaderboard), Deadline, Pacifism, King, Waves,
-  Claustrophobia, Boss Rush; each has its own "Best score (<mode>)" stat.
-  **Adventure**: 6 worlds (the 6th, Ultimate, opens after level 30), a
+- **Modes**: Endless (the leaderboard), Time Attack, Unarmed, Sanctuary,
+  Stampede, Coffin, Boss Rush; each has its own "Best score (<mode>)" stat.
+  **Campaign**: 6 worlds (the 6th, Underworld, opens after level 30), a
   boss every sixth level; stars = finish / no life lost / the level's
-  `target` score. Stars unlock the 6 drones (`Drones.UNLOCK`); Hardcore =
-  the same levels, no drone, starred apart.
+  `target` score. Stars unlock the 6 familiars (`Drones.UNLOCK`); Cursed =
+  the same levels, no familiar, starred apart.
 - **Bigger maps + camera**: the view is 19 squares tall (`Core.U` is fixed
   for a whole game, so positions stay in pixels); maps are `MAP_SCALE` x
   bigger than written except the tiny ones. The grid only simulates and

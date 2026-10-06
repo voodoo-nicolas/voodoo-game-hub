@@ -1,6 +1,6 @@
 extends RefCounted
 
-## Pure movement/collision math for Geometry Wars, kept free of any Node/rendering
+## Pure movement/collision math for Neon Blast, kept free of any Node/rendering
 ## code so it can be exercised headlessly. Entities are plain Dictionaries:
 ## enemy = {id, type, pos, vel, hp, t, warm, ...}, bullet = {pos, vel, life},
 ## crystal ("geom") = {pos, age, v}, mine = {pos, age}, king zone = {pos, r, ...}.
@@ -10,7 +10,13 @@ extends RefCounted
 ## maps themselves are bigger and the camera follows the ship), and speeds are
 ## written in squares per second. The player's top speed is 9.5 squares/s.
 ##
-## Enemies (behaviour follows the community enemy guide):
+## Enemies (behaviour follows the community enemy guide). The ids are the
+## original ones; what players see since the voodoo re-theme (2026-10-05):
+## grunt = stalker eye, wanderer = drifting crossbones, duck = hopping doll
+## head, rocket = dart, neutron = rune orb, gear = glutton, mayfly = gnat,
+## weaver = mask, spinner/mini = splitter, snake = bone serpent, well = black
+## hole, proton = sprite, ufo = phantom, repulsor = charger, nufo = specter,
+## gate/golden = seal, layer = spider (mines = hex charms), geoms = souls.
 ##   wanderer purple pinwheel  drifts 3 sq/s, new heading each second (favours
 ##                             its current one), bounces off walls
 ##   duck     pink square      hops one square a second, slowly follows you
@@ -66,14 +72,15 @@ const RADIUS := {
 	"proton": 0.35, "ufo": 0.7, "repulsor": 0.7, "nufo": 0.45, "gate": 0.42, "golden": 0.42,
 	"layer": 0.55,
 }
+## One colour per spirit (re-theme 2026-10-05; the ids are the old ones).
 const COLORS := {
-	"grunt": Color(0.25, 0.65, 1.0), "wanderer": Color(0.8, 0.35, 1.0), "duck": Color(1.0, 0.4, 0.85),
-	"rocket": Color(1.0, 0.5, 0.15), "neutron": Color(0.2, 1.0, 0.8), "gear": Color(1.0, 0.85, 0.2),
-	"mayfly": Color(0.65, 0.55, 1.0), "weaver": Color(0.35, 1.0, 0.35), "spinner": Color(1.0, 0.35, 0.55),
-	"mini": Color(1.0, 0.45, 0.65), "snake": Color(0.3, 0.7, 1.0), "well": Color(1.0, 0.45, 0.2),
-	"proton": Color(0.4, 0.9, 1.0), "ufo": Color(1.0, 0.2, 0.35), "repulsor": Color(0.35, 0.55, 1.0),
-	"nufo": Color(0.55, 1.0, 0.3), "gate": Color(1.0, 0.55, 0.15), "golden": Color(1.0, 0.85, 0.25),
-	"layer": Color(0.9, 1.0, 0.45),
+	"grunt": Color("ff4f9a"), "wanderer": Color("f2e6b8"), "duck": Color("e8b46a"),
+	"rocket": Color("ff3b5c"), "neutron": Color("2be0c0"), "gear": Color("ffd12b"),
+	"mayfly": Color("c8ff3a"), "weaver": Color("3aff9a"), "spinner": Color("ff8c2b"),
+	"mini": Color("ffa64d"), "snake": Color("9dff6a"), "well": Color("9b4dff"),
+	"proton": Color("6ad8ff"), "ufo": Color("e6f4ff"), "repulsor": Color("8a6bff"),
+	"nufo": Color("b6ffd9"), "gate": Color("ff8a2b"), "golden": Color("ffd84a"),
+	"layer": Color("ff3b3b"),
 }
 
 const WARM_TIME := 0.9

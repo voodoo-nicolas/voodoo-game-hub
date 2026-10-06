@@ -1,7 +1,7 @@
 extends Control
 
-## The Adventure map: every campaign level by world with its stars, the drone
-## picker, and the Hardcore tab (the same levels with no drone, starred
+## The Campaign map: every level by world with its stars, the familiar
+## picker, and the Cursed tab (the same levels with no familiar, starred
 ## apart). Built in code like the rest of the game; the game listens to
 ## play_level and closed.
 ##
@@ -137,7 +137,7 @@ func _ready() -> void:
 	_stars_label = HomeKit.label("", 26, HomeKit.GOLD)
 	top.add_child(_stars_label)
 	for i in 2:
-		var tab := HomeKit.neon_button(tr("🗺 Adventure") if i == 0 else tr("💀 Hardcore"), HomeKit.GOLD if i == 0 else HomeKit.PINK, 20, 52)
+		var tab := HomeKit.neon_button(tr("🗺 Campaign") if i == 0 else tr("💀 Cursed"), HomeKit.GOLD if i == 0 else HomeKit.PINK, 20, 52)
 		tab.toggle_mode = true
 		tab.custom_minimum_size.x = 150
 		tab.pressed.connect(_set_hardcore.bind(i == 1))
@@ -175,7 +175,7 @@ func refresh() -> void:
 	if _list == null:
 		return
 	data = load_progress() if data.is_empty() else data
-	_title.text = tr("Hardcore") if hardcore else tr("Adventure")
+	_title.text = tr("Cursed") if hardcore else tr("Campaign")
 	_title.add_theme_color_override("font_color", HomeKit.PINK if hardcore else HomeKit.GOLD)
 	var max_stars := Levels.count() * 3
 	_stars_label.text = "★ %d / %d" % [total_stars(data, hardcore), max_stars]
@@ -204,14 +204,14 @@ func _build_drones() -> void:
 	for c in _drones_row.get_children():
 		c.queue_free()
 	if hardcore:
-		var note := HomeKit.label(tr("💀 Hardcore: no drone, stars counted apart."), 22, HomeKit.PINK)
+		var note := HomeKit.label(tr("💀 Cursed: no familiar, stars counted apart."), 22, HomeKit.PINK)
 		_drones_row.add_child(note)
 		return
-	var lbl := HomeKit.label(tr("Drone:"), 22, HomeKit.DIM)
+	var lbl := HomeKit.label(tr("Familiar:"), 22, HomeKit.DIM)
 	_drones_row.add_child(lbl)
 	for k in Drones.KINDS:
 		var open := drone_open(data, k)
-		var text := "%s %s" % [Drones.ICONS[k], tr(str(Drones.NAMES[k]))] if open else "🔒 %d★" % int(Drones.UNLOCK[k])
+		var text := tr(str(Drones.LABELS[k])) if open else "🔒 %d★" % int(Drones.UNLOCK[k])
 		var b := HomeKit.neon_button(text, Drones.color_of(k), 19, 48)
 		b.toggle_mode = true
 		b.disabled = not open
@@ -287,7 +287,7 @@ func _show_card(id: int) -> void:
 	_card_box.add_child(HomeKit.label("🎯 " + Levels.goal_text(r), 26, HomeKit.WHITE, true, true))
 	var notes := Levels.rule_notes(r)
 	if hardcore:
-		notes = tr("💀 Hardcore: no drone") + (" · " + notes if notes != "" else "")
+		notes = tr("💀 Cursed: no familiar") + (" · " + notes if notes != "" else "")
 	if notes != "":
 		_card_box.add_child(HomeKit.label(notes, 20, HomeKit.DIM, true, true))
 	_card_box.add_child(HomeKit.label("★ %s   ·   ★★ %s   ·   ★★★ %s" % [tr("Finish"), tr("No lives lost"), tr("%s points") % _num(int(r.target))], 22, HomeKit.GOLD, true, true))

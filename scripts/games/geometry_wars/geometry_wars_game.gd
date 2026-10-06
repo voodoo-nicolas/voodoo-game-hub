@@ -1,9 +1,11 @@
 extends Control
 
-## Geometry Wars: a dual-stick neon shooter. The classic modes (Evolved,
-## Deadline, Pacifism, King, Waves, Claustrophobia, Boss Rush) and the
-## Adventure campaign (40 levels in 6 worlds, bosses, drones, Hardcore) all
-## run on one rule set per game (geometry_wars_levels.gd).
+## Neon Blast (internal id geometry_wars; the name is a placeholder, set in
+## geometry_wars_help.gd TITLE + manifest.json): a dual-stick neon voodoo
+## shooter. Your ship is a horned skull firing a storm of pins. The classic
+## modes (Endless, Time Attack, Unarmed, Sanctuary, Stampede, Coffin, Boss
+## Rush) and the Campaign (40 levels in 6 worlds, bosses, familiars, Cursed
+## runs) all run on one rule set per game (geometry_wars_levels.gd).
 ##
 ## Files: _core (enemies, bullets, collisions), _bosses, _drones, _levels
 ## (modes + campaign data), _sounds (effects + adaptive music), _campaign
@@ -1089,7 +1091,7 @@ func _show_result() -> void:
 		if bosses_beaten > 0:
 			info.add("Bosses defeated", bosses_beaten)
 		if gates_passed > 0:
-			info.add("Gates exploded", gates_passed)
+			info.add("Seals broken", gates_passed)
 		info.high("Highest multiplier", peak_mult)
 		if mode == "evolved":
 			info.high("Longest time survived", elapsed_seconds)
@@ -1106,11 +1108,11 @@ func _show_result() -> void:
 			if score < int(rules.target):
 				lines.append(tr("★★★ needs %s points") % _num(int(rules.target)))
 			for k in fresh:
-				lines.append(tr("New drone: %s") % (Drones.ICONS[k] + " " + tr(str(Drones.NAMES[k]))))
+				lines.append(tr("New familiar: %s") % tr(str(Drones.LABELS[k])))
 			if info:
 				info.high("Campaign stars", Campaign.total_stars(data, false))
-				info.high("Hardcore stars", Campaign.total_stars(data, true))
-				info.high("Drones unlocked", Campaign.drones_open(data))
+				info.high("Cursed stars", Campaign.total_stars(data, true))
+				info.high("Familiars unlocked", Campaign.drones_open(data))
 				info.add("Levels cleared")
 				info.celebrate("Level complete!")
 			else:
@@ -1234,14 +1236,14 @@ func _update_hud() -> void:
 		"kills":
 			g = tr("Kills %d/%d") % [mini(kills, int(rules.n)), int(rules.n)]
 		"gates":
-			g = tr("Gates %d/%d") % [mini(gates_passed, int(rules.n)), int(rules.n)]
+			g = tr("Seals %d/%d") % [mini(gates_passed, int(rules.n)), int(rules.n)]
 		"geoms":
-			g = tr("Geoms %d/%d") % [mini(geoms_got, int(rules.n)), int(rules.n)]
+			g = tr("Souls %d/%d") % [mini(geoms_got, int(rules.n)), int(rules.n)]
 	if int(rules.time) > 0:
 		var clock := "⏱ " + _format_time(float(rules.time) - elapsed_seconds)
 		g = clock if g == "" else g + "  " + clock
 	if rules.king:
-		g = (tr("👑 Fire!") if king_zone >= 0 else tr("👑 Find a zone")) + ("  " + g if g != "" else "")
+		g = (tr("🕯 Fire!") if king_zone >= 0 else tr("🕯 Find a circle")) + ("  " + g if g != "" else "")
 	goal_label.text = g
 	goal_label.visible = g != ""
 
@@ -1290,10 +1292,45 @@ func _build_ui() -> void:
 	_build_rotate_hint()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
+		_move_renamed_stats()
 	_build_home()
 	if info:
 		add_child(info)
 	add_child(SettingsDrawer.new())
+
+## Stats saved under the names from before the re-theme move to the new ones
+## (the higher value wins; counters add up), so no record is lost.
+func _move_renamed_stats() -> void:
+	if not ("stats" in info) or not info.has_method("_save"):
+		return
+	var stats: Dictionary = info.stats
+	var moved := false
+	for old in HELP.RENAMED_STATS:
+		if not stats.has(old):
+			continue
+		var new_key: String = HELP.RENAMED_STATS[old]
+		var v: float = float(stats[old])
+		if old == "Gates exploded":
+			stats[new_key] = int(stats.get(new_key, 0)) + int(v)
+		else:
+			stats[new_key] = maxf(float(stats.get(new_key, v)), v)
+		stats.erase(old)
+		moved = true
+	# Badges earned under an old name ("<stat>_<tier>") move too, or the
+	# same badge would unlock again under the new name and count twice.
+	var ach = stats.get("_ach")
+	if typeof(ach) == TYPE_DICTIONARY:
+		for id in ach.keys():
+			for old in HELP.RENAMED_STATS:
+				var prefix: String = old + "_"
+				if str(id).begins_with(prefix) and str(id).substr(prefix.length()).is_valid_int():
+					var new_id: String = HELP.RENAMED_STATS[old] + "_" + str(id).substr(prefix.length())
+					if not ach.has(new_id):
+						ach[new_id] = ach[id]
+					ach.erase(id)
+					moved = true
+	if moved:
+		info._save()
 
 func _build_rotate_hint() -> void:
 	rotate_hint = ColorRect.new()
@@ -1736,23 +1773,23 @@ func _build_home() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,
-		"subtitle": "Dual-stick neon shooter. Survive the swarm.",
+		"subtitle": "A neon voodoo shooter. Break the swarm with a storm of pins.",
 		"logo": _draw_home_logo,
 		"modes": [
-			{"text": "🚀  Evolved", "sub": "3 lives, bombs, the full swarm", "action": _start_mode.bind("evolved")},
-			{"text": "🗺  Adventure", "sub": "40 levels · bosses · drones", "action": _open_campaign.bind(false), "color": HomeKit.GOLD},
-			{"text": "⏱ Deadline", "sub": "3 minutes", "row": 1, "action": _start_mode.bind("deadline"), "color": HomeKit.LIME},
-			{"text": "🕊 Pacifism", "sub": "No gun: use gates", "row": 1, "action": _start_mode.bind("pacifism"), "color": HomeKit.LIME},
-			{"text": "👑 King", "sub": "Shoot from zones", "row": 1, "action": _start_mode.bind("king"), "color": HomeKit.LIME},
-			{"text": "🌊 Waves", "sub": "Walls of rockets", "row": 2, "action": _start_mode.bind("waves"), "color": HomeKit.PINK},
-			{"text": "📦 Claustrophobia", "sub": "A tiny arena", "row": 2, "action": _start_mode.bind("claustro"), "color": HomeKit.PINK},
+			{"text": "💀  Endless", "sub": "3 lives, bombs, the full swarm", "action": _start_mode.bind("evolved")},
+			{"text": "🗺  Campaign", "sub": "40 levels · bosses · familiars", "action": _open_campaign.bind(false), "color": HomeKit.GOLD},
+			{"text": "⏱ Time Attack", "sub": "3 minutes", "row": 1, "action": _start_mode.bind("deadline"), "color": HomeKit.LIME},
+			{"text": "✋ Unarmed", "sub": "No pins: break seals", "row": 1, "action": _start_mode.bind("pacifism"), "color": HomeKit.LIME},
+			{"text": "🕯 Sanctuary", "sub": "Shoot from the circles", "row": 1, "action": _start_mode.bind("king"), "color": HomeKit.LIME},
+			{"text": "🐃 Stampede", "sub": "Walls of darts", "row": 2, "action": _start_mode.bind("waves"), "color": HomeKit.PINK},
+			{"text": "⚰ Coffin", "sub": "A tiny box", "row": 2, "action": _start_mode.bind("claustro"), "color": HomeKit.PINK},
 			{"text": "☠ Boss Rush", "sub": "Every boss", "row": 2, "action": _start_mode.bind("bossrush"), "color": HomeKit.PINK},
 		],
 		"save_path": SAVE_PATH,
 		"resume": _resume_saved,
 		"resume_text": _resume_text,
 		"restart": _restart_current,
-		"board_note": "Your best Evolved score.",
+		"board_note": "Your best Endless score.",
 		"extra": _add_options,
 	})
 	add_child(home)
@@ -1766,17 +1803,39 @@ func _on_music_pick(i: int) -> void:
 
 func _draw_home_logo(c: Control) -> void:
 	var h := minf(c.size.y, 170.0)
-	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
-	# the player's ship, a wanderer and a diamond chasing it
-	var ship := PackedVector2Array([ctr + Vector2(h * 0.2, 0), ctr + Vector2(-h * 0.14, -h * 0.13), ctr + Vector2(-h * 0.05, 0), ctr + Vector2(-h * 0.14, h * 0.13)])
-	HomeKit.glow_polyline(c, ship, Color.WHITE, 2.5, true)
-	var d := ctr + Vector2(h * 0.62, -h * 0.18)
-	HomeKit.glow_polyline(c, PackedVector2Array([d + Vector2(0, -h * 0.12), d + Vector2(h * 0.1, 0), d + Vector2(0, h * 0.12), d + Vector2(-h * 0.1, 0)]), HomeKit.CYAN, 2.5, true)
-	var p := ctr + Vector2(-h * 0.6, h * 0.18)
-	HomeKit.glow_rect(c, Rect2(p - Vector2(h * 0.09, h * 0.09), Vector2(h * 0.18, h * 0.18)), HomeKit.MAGENTA, 2.5)
-	for k in 3:
-		HomeKit.glow_line(c, ctr + Vector2(h * (0.28 + k * 0.1), 0), ctr + Vector2(h * (0.32 + k * 0.1), 0), HomeKit.GOLD, 2.0)
-	# a gravity well swirling at the back
-	var w := ctr + Vector2(-h * 0.95, -h * 0.25)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0) + Vector2(-h * 0.35, 0)
+	var k := h * 0.42  # the skull's size
+	var at := func(x: float, y: float) -> Vector2: return ctr + Vector2(x, y) * k
+	# The horned skull, facing right, firing pins.
+	var skull := PackedVector2Array()
+	for i in 11:
+		var a := -PI * 0.55 + PI * 1.1 * i / 10.0
+		skull.append(at.call(0.05 + cos(a) * 0.42, sin(a) * 0.42))
+	for v in [Vector2(-0.3, 0.3), Vector2(-0.55, 0.2), Vector2(-0.55, -0.2), Vector2(-0.3, -0.3)]:
+		skull.append(at.call(v.x, v.y))
+	HomeKit.glow_polyline(c, skull, Color(0.9, 0.96, 1.0), 2.5, true)
+	for side in [-1.0, 1.0]:
+		var horn := PackedVector2Array([at.call(0.18, side * 0.36), at.call(0.25, side * 0.62), at.call(0.52, side * 0.78),
+			at.call(0.85, side * 0.7), at.call(1.05, side * 0.5)])
+		HomeKit.glow_polyline(c, horn, Color(1.0, 0.95, 0.85), 2.2)
+		HomeKit.glow_circle(c, at.call(0.08, side * 0.17), k * 0.09, HomeKit.PURPLE, 2.0, 0.8)
+	# The pin storm.
 	for i in 3:
-		HomeKit.glow_circle(c, w, h * (0.05 + i * 0.04), Color(1.0, 0.45, 0.2), 1.6)
+		var y := (i - 1) * 0.22
+		var tail: Vector2 = at.call(1.25 + i * 0.12, y)
+		HomeKit.glow_line(c, tail, tail + Vector2(k * 0.45, 0), Color(0.95, 0.95, 1.0), 1.6)
+		HomeKit.glow_circle(c, tail, k * 0.06, HomeKit.GOLD, 1.6, 1.0)
+	# A stalker eye in their path, crossbones tumbling behind it.
+	var eye := ctr + Vector2(h * 1.15, -h * 0.05)
+	var lid := PackedVector2Array()
+	for i in 13:
+		var x := -1.0 + i / 6.0
+		lid.append(eye + Vector2(x * h * 0.16, -(1.0 - x * x) * h * 0.1))
+	for i in range(11, 0, -1):
+		var x := -1.0 + i / 6.0
+		lid.append(eye + Vector2(x * h * 0.16, (1.0 - x * x) * h * 0.1))
+	HomeKit.glow_polyline(c, lid, HomeKit.PINK, 2.2, true)
+	HomeKit.glow_circle(c, eye - Vector2(h * 0.04, 0), h * 0.05, HomeKit.PINK, 1.8)
+	var cb := ctr + Vector2(h * 1.55, h * 0.25)
+	for s in [-1.0, 1.0]:
+		HomeKit.glow_line(c, cb + Vector2(-h * 0.11, -h * 0.11 * s), cb + Vector2(h * 0.11, h * 0.11 * s), Color("f2e6b8"), 2.0)

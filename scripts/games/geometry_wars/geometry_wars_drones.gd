@@ -1,15 +1,15 @@
 extends RefCounted
 
-## Campaign drones: a small companion ship that follows the player and helps
-## (Geometry Wars 3's six). One per level, picked on the campaign screen;
-## more unlock as the player earns stars. Hardcore has none.
+## Campaign familiars: a small spirit companion that follows the player and
+## helps. One per level, picked on the campaign screen; more unlock as the
+## player earns stars. Cursed runs have none. (Internally still "drones".)
 ##
-##   attack   fires along with you, in your aiming direction
-##   collect  flies off and picks up geoms for you
-##   ram      rams the nearest enemy, smashing it
-##   snipe    zaps the nearest enemy with a long ray, once a second
-##   defend   guards your back: fires the opposite way you fire
-##   sweep    circles your ship, smashing anything it touches
+##   attack   Raven  fires pins along with you, in your aiming direction
+##   collect  Moth   flies off and gathers souls for you
+##   ram      Bull   charges the nearest enemy, smashing it
+##   snipe    Owl    zaps the nearest enemy with a long ray, once a second
+##   defend   Bat    guards your back: fires the opposite way you fire
+##   sweep    Wisp   circles your skull, burning anything it touches
 ##
 ## update() moves the drone and returns events:
 ##   {kind: "kills", list}     enemies it destroyed (removed already), like
@@ -25,15 +25,18 @@ const Bosses = preload("res://scripts/games/geometry_wars/geometry_wars_bosses.g
 const KINDS := ["attack", "collect", "ram", "snipe", "defend", "sweep"]
 ## Campaign stars needed to unlock each.
 const UNLOCK := {"attack": 0, "collect": 5, "ram": 12, "snipe": 24, "defend": 40, "sweep": 60}
-const ICONS := {"attack": "🔫", "collect": "🧲", "ram": "🐏", "snipe": "🎯", "defend": "🛡", "sweep": "🌀"}
-const NAMES := {"attack": "Attack", "collect": "Collect", "ram": "Ram", "snipe": "Snipe", "defend": "Defend", "sweep": "Sweep"}
+const ICONS := {"attack": "🐦", "collect": "🦋", "ram": "🐂", "snipe": "🦉", "defend": "🦇", "sweep": "🔥"}
+const NAMES := {"attack": "Raven", "collect": "Moth", "ram": "Bull", "snipe": "Owl", "defend": "Bat", "sweep": "Wisp"}
+## What the UI shows (icon + name in one string, so it translates on its own:
+## "Raven" / "Owl" / "Bat" alone are word-list data in other games' es.json).
+const LABELS := {"attack": "🐦 Raven", "collect": "🦋 Moth", "ram": "🐂 Bull", "snipe": "🦉 Owl", "defend": "🦇 Bat", "sweep": "🔥 Wisp"}
 const DESCS := {
-	"attack": "Fires with you, the way you aim.",
-	"collect": "Flies off and picks up geoms for you.",
-	"ram": "Smashes into the nearest enemy.",
+	"attack": "Fires pins with you, the way you aim.",
+	"collect": "Flies off and gathers souls for you.",
+	"ram": "Charges into the nearest enemy.",
 	"snipe": "Zaps the nearest enemy every second.",
 	"defend": "Guards your back: fires the other way.",
-	"sweep": "Circles your ship, smashing what it hits.",
+	"sweep": "Circles your skull, burning what it touches.",
 }
 const COLORS := {
 	"attack": Color(1.0, 0.6, 0.2), "collect": Color(1.0, 0.9, 0.3), "ram": Color(1.0, 0.3, 0.4),

@@ -31,30 +31,30 @@ const WORLDS := [
 	{"name": "Acid Fields", "grid": Color(0.3, 0.8, 0.25)},
 	{"name": "Solar Forge", "grid": Color(0.95, 0.5, 0.15)},
 	{"name": "Void Core", "grid": Color(0.5, 0.3, 1.0)},
-	{"name": "Ultimate", "grid": Color(1.0, 0.2, 0.3)},
+	{"name": "Underworld", "grid": Color(1.0, 0.2, 0.3)},
 ]
 const LEVELS_PER_WORLD := 6
 ## Every map but the deliberately tiny ones is this much bigger than written.
 const MAP_SCALE := 1.5
 const TINY_MAP := 22
-## Ultimate is world 6, opened by clearing level 30; it has 10 levels.
+## The Underworld is world 6, opened by clearing level 30; it has 10 levels.
 const ULTIMATE_FIRST := 31
 
 const CLASSIC := {
-	"evolved": {"title": "Evolved", "map": [48, 30], "lives": 3, "bombs": 3, "bomb_every": 2500, "life_every": 50000,
+	"evolved": {"title": "Endless", "map": [48, 30], "lives": 3, "bombs": 3, "bomb_every": 2500, "life_every": 50000,
 		"goal": "endless", "spawn": "ramp", "rate": [1.8, 0.55, 90.0], "stat": "Best score"},
-	"deadline": {"title": "Deadline", "map": [44, 28], "lives": 0, "bombs": 0, "time": 180, "goal": "endless",
-		"spawn": "ramp", "rate": [1.2, 0.4, 70.0], "ramp_speed": 1.6, "stat": "Best score (Deadline)"},
-	"pacifism": {"title": "Pacifism", "map": [40, 26], "lives": 1, "bombs": 0, "gun": false, "goal": "endless",
+	"deadline": {"title": "Time Attack", "map": [44, 28], "lives": 0, "bombs": 0, "time": 180, "goal": "endless",
+		"spawn": "ramp", "rate": [1.2, 0.4, 70.0], "ramp_speed": 1.6, "stat": "Best score (Time Attack)"},
+	"pacifism": {"title": "Unarmed", "map": [40, 26], "lives": 1, "bombs": 0, "gun": false, "goal": "endless",
 		"spawn": {}, "rate": [99.0, 99.0, 1.0], "gates": [1.5, 9],
-		"events": [[2.0, 2.4, "cluster", "grunt", 6], [40.0, 9.0, "horde", "grunt", 8]], "stat": "Best score (Pacifism)"},
-	"king": {"title": "King", "map": [44, 28], "lives": 3, "bombs": 0, "king": true, "goal": "endless",
-		"spawn": "ramp", "rate": [1.5, 0.5, 90.0], "stat": "Best score (King)"},
-	"waves": {"title": "Waves", "map": [48, 26], "lives": 1, "bombs": 3, "bomb_every": 5000, "goal": "endless",
+		"events": [[2.0, 2.4, "cluster", "grunt", 6], [40.0, 9.0, "horde", "grunt", 8]], "stat": "Best score (Unarmed)"},
+	"king": {"title": "Sanctuary", "map": [44, 28], "lives": 3, "bombs": 0, "king": true, "goal": "endless",
+		"spawn": "ramp", "rate": [1.5, 0.5, 90.0], "stat": "Best score (Sanctuary)"},
+	"waves": {"title": "Stampede", "map": [48, 26], "lives": 1, "bombs": 3, "bomb_every": 5000, "goal": "endless",
 		"spawn": {}, "rate": [99.0, 99.0, 1.0], "waves": [6.0, 2.2],
-		"events": [[3.0, 4.5, "line", "", 5]], "stat": "Best score (Waves)"},
-	"claustro": {"title": "Claustrophobia", "map": [22, 13], "lives": 3, "bombs": 3, "bomb_every": 4000, "goal": "endless",
-		"spawn": "ramp", "rate": [1.0, 0.35, 70.0], "stat": "Best score (Claustrophobia)"},
+		"events": [[3.0, 4.5, "line", "", 5]], "stat": "Best score (Stampede)"},
+	"claustro": {"title": "Coffin", "map": [22, 13], "lives": 3, "bombs": 3, "bomb_every": 4000, "goal": "endless",
+		"spawn": "ramp", "rate": [1.0, 0.35, 70.0], "stat": "Best score (Coffin)"},
 	"bossrush": {"title": "Boss Rush", "map": [44, 28], "lives": 3, "bombs": 3, "bomb_every": 20000, "goal": "boss",
 		"spawn": {"grunt": 3, "wanderer": 2, "weaver": 1}, "rate": [3.0, 2.0, 60.0],
 		"events": [[1.0, 0, "boss", "queen", 0]], "rush": [["serpent", 0], ["lord", 0], ["titan", 0], ["queen", 1], ["titan", 1]],
@@ -69,7 +69,7 @@ const LEVELS := [
 	{"name": "Wander Lust", "map": [34, 20], "goal": "kills", "n": 80,
 		"spawn": {"wanderer": 5, "grunt": 2, "weaver": 1}, "rate": [1.2, 0.7, 60.0],
 		"events": [[10.0, 15.0, "ring", "wanderer", 10]], "target": 9700},
-	{"name": "Gatekeeper", "map": [34, 22], "goal": "gates", "n": 12,
+	{"name": "Seal Keeper", "map": [34, 22], "goal": "gates", "n": 12,
 		"spawn": {"grunt": 4, "wanderer": 2}, "rate": [1.4, 0.8, 60.0], "gates": [3.0, 5], "target": 14000},
 	{"name": "Spin Cycle", "map": [36, 22], "time": 75, "goal": "survive",
 		"spawn": {"spinner": 3, "weaver": 2, "grunt": 2}, "rate": [1.5, 0.75, 70.0], "target": 180000},
@@ -88,9 +88,9 @@ const LEVELS := [
 		"events": [[3.0, 3.5, "line", "", 5], [20.0, 12.0, "wall", "4", 0]], "target": 490000},
 	{"name": "Snake Pit", "map": [40, 26], "goal": "kills", "n": 70,
 		"spawn": {"snake": 3, "grunt": 3, "duck": 1}, "rate": [1.4, 0.8, 70.0], "target": 22000},
-	{"name": "Geom Rush", "map": [40, 26], "goal": "geoms", "n": 200,
+	{"name": "Soul Rush", "map": [40, 26], "goal": "geoms", "n": 200,
 		"spawn": {"grunt": 3, "wanderer": 3, "gear": 1, "weaver": 1}, "rate": [1.1, 0.55, 60.0], "target": 67000},
-	{"name": "Crown Zones", "map": [40, 26], "time": 80, "goal": "survive", "king": true, "bombs": 0,
+	{"name": "Holy Ground", "map": [40, 26], "time": 80, "goal": "survive", "king": true, "bombs": 0,
 		"spawn": {"grunt": 4, "weaver": 2, "spinner": 1}, "rate": [1.3, 0.6, 70.0], "target": 20000},
 	{"name": "Serpent King", "map": [40, 26], "goal": "boss",
 		"spawn": {"grunt": 2, "duck": 2}, "rate": [3.0, 2.2, 60.0],
@@ -119,7 +119,7 @@ const LEVELS := [
 		"spawn": "ramp", "ramp_speed": 1.6, "rate": [1.2, 0.5, 80.0], "target": 3700000},
 	{"name": "Wall of Fire", "map": [48, 26], "time": 80, "goal": "survive",
 		"spawn": {"grunt": 2}, "rate": [2.5, 1.5, 60.0], "waves": [5.5, 2.5], "target": 1300000},
-	{"name": "Pacifist's Path", "map": [44, 28], "goal": "gates", "n": 30, "gun": false, "bombs": 0,
+	{"name": "Empty Hands", "map": [44, 28], "goal": "gates", "n": 30, "gun": false, "bombs": 0,
 		"spawn": {}, "rate": [99.0, 99.0, 1.0], "gates": [1.3, 9],
 		"events": [[2.0, 2.0, "cluster", "grunt", 6], [30.0, 10.0, "horde", "grunt", 8]], "target": 27000},
 	{"name": "Proton Storm", "map": [44, 28], "goal": "kills", "n": 150,
@@ -131,14 +131,14 @@ const LEVELS := [
 	# --- World 5: Void Core ---
 	{"name": "Chaos Theory", "map": [52, 32], "time": 100, "goal": "survive",
 		"spawn": "ramp", "ramp_speed": 2.2, "rate": [1.0, 0.4, 80.0], "target": 11000000},
-	{"name": "King's Gambit", "map": [44, 28], "time": 90, "goal": "survive", "king": true, "bombs": 0,
+	{"name": "Last Rites", "map": [44, 28], "time": 90, "goal": "survive", "king": true, "bombs": 0,
 		"spawn": {"grunt": 3, "repulsor": 1, "weaver": 2, "spinner": 1}, "rate": [1.2, 0.5, 80.0], "target": 160000},
 	{"name": "Hornet Nest", "map": [48, 30], "goal": "kills", "n": 200,
 		"spawn": {"snake": 2, "gear": 1, "grunt": 3}, "rate": [1.1, 0.5, 70.0],
 		"events": [[3.0, 7.0, "horde", "mayfly", 18]], "target": 69000},
 	{"name": "Shrinking Room", "map": [18, 11], "time": 80, "goal": "survive",
 		"spawn": {"spinner": 2, "weaver": 3, "grunt": 3, "neutron": 1}, "rate": [0.9, 0.4, 70.0], "target": 750000},
-	{"name": "Gate Storm", "map": [48, 30], "goal": "gates", "n": 35,
+	{"name": "Seal Storm", "map": [48, 30], "goal": "gates", "n": 35,
 		"spawn": "ramp", "ramp_speed": 1.5, "rate": [1.1, 0.5, 80.0], "gates": [2.0, 7],
 		"events": [[10.0, 12.0, "golden", "", 1]], "target": 16000000},
 	{"name": "Final Stand", "map": [48, 30], "goal": "boss",
@@ -237,9 +237,9 @@ static func goal_text(r: Dictionary) -> String:
 		"kills":
 			return tr_.call("Destroy %d enemies") % int(r.n)
 		"gates":
-			return tr_.call("Fly through %d gates") % int(r.n)
+			return tr_.call("Break %d seals") % int(r.n)
 		"geoms":
-			return tr_.call("Collect %d geoms") % int(r.n)
+			return tr_.call("Collect %d souls") % int(r.n)
 		"boss":
 			var names: PackedStringArray = []
 			for ev in r.events:
@@ -256,11 +256,11 @@ static func rule_notes(r: Dictionary) -> String:
 	var tr_ := func(s: String) -> String: return str(TranslationServer.translate(s))
 	var notes: PackedStringArray = []
 	if not r.gun:
-		notes.append(tr_.call("No gun: fly through gates to blow enemies up"))
+		notes.append(tr_.call("No pins: fly through seals to blow enemies up"))
 	if r.king:
-		notes.append(tr_.call("You can only shoot inside a zone"))
+		notes.append(tr_.call("You can only shoot inside a sacred circle"))
 	if not (r.waves as Array).is_empty():
-		notes.append(tr_.call("Walls of rockets"))
+		notes.append(tr_.call("Walls of darts"))
 	if int(r.lives) == 1:
 		notes.append(tr_.call("1 life"))
 	elif int(r.lives) > 1:
