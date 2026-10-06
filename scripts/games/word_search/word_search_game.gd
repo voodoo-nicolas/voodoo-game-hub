@@ -43,7 +43,8 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop()
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -163,6 +164,23 @@ func _geom() -> Dictionary:
 func _center_of(g: Dictionary, c: Vector2i) -> Vector2:
 	return g.origin + (Vector2(c) + Vector2(0.5, 0.5)) * g.cell
 
+## Look (STANDARDS §9): "classic" = a paper grid with ink letters (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.grid.is_empty():
 		return
@@ -172,8 +190,12 @@ func _draw_board() -> void:
 		return  # not laid out yet: text this small has a font size of 0
 	var n: int = engine.size
 	var grid_rect := Rect2(g.origin, Vector2(cell, cell) * n)
-	board.draw_rect(grid_rect, HomeKit.PANEL)
-	HomeKit.glow_rect(board, grid_rect.grow(4), HomeKit.CYAN, 2.0)
+	if _is_classic():
+		board.draw_rect(grid_rect, HomeKit.CLASSIC.paper)
+		board.draw_rect(grid_rect, HomeKit.CLASSIC.pencil, false, 2.0)
+	else:
+		board.draw_rect(grid_rect, HomeKit.PANEL)
+		HomeKit.glow_rect(board, grid_rect.grow(4), HomeKit.CYAN, 2.0)
 	for i in engine.words.size():
 		var w: Dictionary = engine.words[i]
 		if w.found:
@@ -187,7 +209,7 @@ func _draw_board() -> void:
 	for i in n * n:
 		var p := Vector2i(i % n, i / n)
 		var c := _center_of(g, p)
-		board.draw_string(font, Vector2(c.x - cell / 2.0, c.y + fs * 0.36), engine.grid[i], HORIZONTAL_ALIGNMENT_CENTER, cell, fs, HomeKit.WHITE)
+		board.draw_string(font, Vector2(c.x - cell / 2.0, c.y + fs * 0.36), engine.grid[i], HORIZONTAL_ALIGNMENT_CENTER, cell, fs, HomeKit.CLASSIC.ink if _is_classic() else HomeKit.WHITE)
 
 ## A pill with round ends that reach past the first and last letters' centres
 ## by `radius`, so both end letters sit fully inside it. One polygon, so the

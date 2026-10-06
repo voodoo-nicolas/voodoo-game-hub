@@ -64,7 +64,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -330,6 +330,23 @@ func _geom() -> Dictionary:
 	var cell := side / WHEngine.SIZE
 	return {"cell": cell, "origin": Vector2((board.size.x - side) / 2.0, (board.size.y - side) / 2.0)}
 
+## Look (STANDARDS §9): "classic" = cream letter tiles (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.grid.is_empty():
 		return
@@ -349,10 +366,19 @@ func _draw_board() -> void:
 		sb.shadow_color = Color(rim, 0.35)
 		sb.shadow_size = 7
 		sb.set_corner_radius_all(14)
+		var ink: Color = COLOR_INK
+		if _is_classic():
+			sb.bg_color = Color("ffe9a8") if i in path else (Color("cfe0f5") if i in shown_path else Color("f4efe4"))
+			sb.border_color = HomeKit.CLASSIC.yellow.darkened(0.2) if i in path else Color("8a8473")
+			sb.set_border_width_all(3)
+			sb.shadow_color = Color(0, 0, 0, 0.3)
+			sb.shadow_size = 3
+			sb.shadow_offset = Vector2(1, 2)
+			ink = HomeKit.CLASSIC.ink
 		board.draw_style_box(sb, rect)
 		var txt: String = engine.grid[i] if engine.grid[i] != "QU" else "Qu"
 		var fs := int(cell * (0.42 if txt.length() == 1 else 0.34))
-		board.draw_string(font, Vector2(rect.position.x, rect.get_center().y + fs * 0.36), txt, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, fs, COLOR_INK)
+		board.draw_string(font, Vector2(rect.position.x, rect.get_center().y + fs * 0.36), txt, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, fs, ink)
 	_draw_path(path, Color(0.9, 0.3, 0.1, 0.6), g)
 	_draw_path(shown_path, Color(0.1, 0.45, 0.85, 0.7), g)
 	# Number the shown word's tiles so the order is clear.

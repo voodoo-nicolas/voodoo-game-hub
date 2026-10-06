@@ -56,7 +56,7 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -336,6 +336,23 @@ func _render() -> void:
 
 ## The wooden gallows, then one body part per wrong guess: head, body, left
 ## arm, right arm, left leg, right leg (HangmanEngine.MAX_WRONG = 6).
+## Look (STANDARDS §9): "classic" = a plain wooden gallows (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if gallows:
+		gallows.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_gallows() -> void:
 	var s: Vector2 = gallows.size
 	var k: float = minf(s.x / 260.0, s.y / 250.0)
@@ -343,17 +360,22 @@ func _draw_gallows() -> void:
 	var p := func(x: float, y: float) -> Vector2: return o + Vector2(x, y) * k
 	var beam := 12.0 * k
 	# Base, post, top beam, brace -- planks with a darker edge.
+	var wood: Color = HomeKit.CLASSIC.wood_dark if _is_classic() else WOOD
+	var wood_dark: Color = HomeKit.CLASSIC.wood_frame if _is_classic() else WOOD_DARK
+	var rope: Color = Color("c8a165") if _is_classic() else ROPE
 	for seg in [[p.call(20, 240), p.call(180, 240)], [p.call(60, 240), p.call(60, 18)],
 			[p.call(54, 18), p.call(190, 18)], [p.call(60, 62), p.call(104, 18)]]:
-		gallows.draw_line(seg[0], seg[1], WOOD_DARK, beam + 4.0 * k, true)
-		gallows.draw_line(seg[0], seg[1], WOOD, beam, true)
-	gallows.draw_line(p.call(180, 18), p.call(180, 56), ROPE, 4.0 * k, true)
+		gallows.draw_line(seg[0], seg[1], wood_dark, beam + 4.0 * k, true)
+		gallows.draw_line(seg[0], seg[1], wood, beam, true)
+	gallows.draw_line(p.call(180, 18), p.call(180, 56), rope, 4.0 * k, true)
 
 	var n: int = engine.wrong_count if engine else 0
 	var lost: bool = engine != null and engine.is_lost()
 	var w := 5.0 * k
 	for i in n:
 		var c := FIGURE
+		if _is_classic():
+			c = Color("f4efe4")
 		if i == n - 1:
 			c.a = part_fade
 		match i:

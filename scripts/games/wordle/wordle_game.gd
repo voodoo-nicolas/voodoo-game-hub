@@ -60,7 +60,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -285,8 +285,38 @@ func _show_result() -> void:
 # ---------- rendering ----------
 
 ## Neon tile: tinted glass with a glowing rim in the mark's colour.
+## Look (STANDARDS §9): "classic" = paper tiles with blue and orange marks (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if not tiles.is_empty():
+		_render()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _tile_style(color: Color) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
+	if _is_classic():
+		var marked: bool = color in MARK_COLORS.values()
+		var fill := HomeKit.CLASSIC.paper
+		if marked:
+			fill = Color("6b7385") if color == MARK_COLORS[WordleEngine.Mark.ABSENT] else (HomeKit.CLASSIC.blue if color == MARK_COLORS[WordleEngine.Mark.CORRECT] else Color("f08a1c"))
+		sb.bg_color = fill
+		sb.border_color = HomeKit.CLASSIC.ink if color == COLOR_TYPED else HomeKit.CLASSIC.pencil
+		sb.set_border_width_all(3 if color == COLOR_TYPED else 2)
+		sb.shadow_color = Color(0, 0, 0, 0.25)
+		sb.shadow_size = 2
+		sb.shadow_offset = Vector2(1, 2)
+		sb.set_corner_radius_all(6)
+		return sb
 	sb.bg_color = Color(color, 0.25 if color in MARK_COLORS.values() else 0.07)
 	sb.border_color = color
 	sb.set_border_width_all(2)
@@ -309,6 +339,8 @@ func _render() -> void:
 				color = COLOR_TYPED
 			tile.label.text = letter
 			tile.panel.add_theme_stylebox_override("panel", _tile_style(color))
+			var marked: bool = r < engine.guesses.size()
+			tile.label.add_theme_color_override("font_color", (Color.WHITE if marked else HomeKit.CLASSIC.ink) if _is_classic() else Color.WHITE)
 
 	var states: Dictionary = engine.letter_states()
 	for letter in key_buttons:
@@ -316,6 +348,11 @@ func _render() -> void:
 		var sb := _tile_style(color)
 		for state in ["normal", "hover", "pressed", "focus"]:
 			key_buttons[letter].add_theme_stylebox_override(state, sb)
+		var kcol: Color = Color.WHITE
+		if _is_classic():
+			kcol = Color.WHITE if states.has(letter) else HomeKit.CLASSIC.ink
+		for cn in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+			key_buttons[letter].add_theme_color_override(cn, kcol)
 
 # ---------- Home screen (home_kit.gd) ----------
 

@@ -47,7 +47,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -184,6 +184,23 @@ func _new_word() -> void:
 		tiles.append(b)
 	_render()
 
+## Look (STANDARDS §9): "classic" = cream letter tiles (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if not tiles.is_empty() and engine:
+		_render()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _render() -> void:
 	progress_label.text = tr("Word %d of %d   Score: %d   Best: %d") % [min(engine.index + 1, AnEngine.ROUND), AnEngine.ROUND, engine.score, best]
 	var shown := ""
@@ -196,8 +213,19 @@ func _render() -> void:
 		tiles[i].disabled = used
 		var sb := HomeKit.neon_box(COLOR_USED if used else COLOR_TILE, "disabled" if used else "normal")
 		sb.bg_color = Color(COLOR_USED, 0.15) if used else Color(COLOR_TILE, 0.16)
+		if _is_classic():
+			sb = StyleBoxFlat.new()
+			sb.bg_color = Color("b9b3a3") if used else Color("f4efe4")
+			sb.border_color = Color("8a8473")
+			sb.set_border_width_all(3)
+			sb.set_corner_radius_all(10)
+			sb.shadow_color = Color(0, 0, 0, 0.3)
+			sb.shadow_size = 3
+			sb.shadow_offset = Vector2(1, 2)
 		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
 			tiles[i].add_theme_stylebox_override(st, sb)
+		for cn in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
+			tiles[i].add_theme_color_override(cn, (HomeKit.CLASSIC.ink if not used else HomeKit.CLASSIC.pencil) if _is_classic() else COLOR_INK)
 
 func _on_tile(i: int) -> void:
 	if picked.has(i) or engine.is_over():

@@ -48,7 +48,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -277,6 +277,23 @@ func _geom() -> Dictionary:
 	cell = min(cell, 72.0)
 	return {"cell": cell, "origin": Vector2((board.size.x - cell * engine.w) / 2.0, (board.size.y - cell * engine.h) / 2.0)}
 
+## Look (STANDARDS §9): "classic" = paper cells with ink letters (default); "voodoo" = the neon
+## board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _draw_board() -> void:
 	if engine.solution.is_empty():
 		return
@@ -296,15 +313,24 @@ func _draw_board() -> void:
 			col = COLOR_CURSOR
 		elif c in word_cells:
 			col = COLOR_WORD
+		if _is_classic():
+			col = HomeKit.CLASSIC.paper
+			if c == cursor:
+				col = Color("ffe9a8")
+			elif c in word_cells:
+				col = Color("cfe0f5")
 		board.draw_rect(rect, col)
-		board.draw_rect(rect, Color(HomeKit.CYAN, 0.55) if c != cursor else HomeKit.GOLD, false, 2.0)
+		if _is_classic():
+			board.draw_rect(rect, HomeKit.CLASSIC.ink, false, 1.5)
+		else:
+			board.draw_rect(rect, Color(HomeKit.CYAN, 0.55) if c != cursor else HomeKit.GOLD, false, 2.0)
 		if engine.numbers.has(c):
-			board.draw_string(font, rect.position + Vector2(3, cell * 0.28), str(engine.numbers[c]), HORIZONTAL_ALIGNMENT_LEFT, -1, int(cell * 0.24), HomeKit.GOLD)
+			board.draw_string(font, rect.position + Vector2(3, cell * 0.28), str(engine.numbers[c]), HORIZONTAL_ALIGNMENT_LEFT, -1, int(cell * 0.24), HomeKit.CLASSIC.pencil if _is_classic() else HomeKit.GOLD)
 		var ch: String = engine.letters.get(c, "")
 		if ch != "":
 			var fs := int(cell * 0.55)
 			board.draw_string(font, Vector2(rect.position.x, rect.position.y + cell * 0.6 + fs * 0.3), ch, HORIZONTAL_ALIGNMENT_CENTER, cell, fs,
-				COLOR_WRONG if c in wrong else COLOR_INK)
+				COLOR_WRONG if c in wrong else (HomeKit.CLASSIC.ink if _is_classic() else COLOR_INK))
 
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
