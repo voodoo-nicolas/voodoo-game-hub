@@ -14,6 +14,7 @@ const STRINGS := {
 		"Choose Easy, Medium or Hard for the computer.": "Elige Fácil, Medio o Difícil para la computadora.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Computer: %s": "Computadora: %s",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",

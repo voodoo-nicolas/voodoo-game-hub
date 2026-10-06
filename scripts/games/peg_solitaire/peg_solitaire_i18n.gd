@@ -13,6 +13,7 @@ const STRINGS := {
 		"Boards solved down to one peg.": "Tableros resueltos hasta una sola ficha.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear one arm of the cross at a time.": "Limpia un brazo de la cruz a la vez.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",

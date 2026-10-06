@@ -21,6 +21,7 @@ const STRINGS := {
 		"Big shapes": "Formas grandes",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Couldn't open that picture. Try a JPG or PNG.": "No se pudo abrir esa imagen. Prueba con un JPG o PNG.",
 		"Couldn't take the photo. Try again.": "No se pudo sacar la foto. Inténtalo de nuevo.",

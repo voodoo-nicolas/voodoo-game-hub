@@ -14,6 +14,7 @@ const STRINGS := {
 		"Chase the lights down: for each lit square, tap the square just below it, one row at a time. Then look at what's left in the bottom row.": "Persigue las luces hacia abajo: por cada casilla encendida, toca la de justo debajo, fila por fila. Luego fíjate qué queda en la última fila.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",
 		"Earned": "Logrados",

@@ -16,6 +16,7 @@ const STRINGS := {
 		"Blast the space rocks for points and survive as many waves as you can.": "Destruye las rocas espaciales para sumar puntos y sobrevive todas las oleadas que puedas.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear every rock for the next wave: more rocks, a little faster each time.": "Limpia todas las rocas para pasar a la siguiente oleada: más rocas y un poco más rápidas cada vez.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",

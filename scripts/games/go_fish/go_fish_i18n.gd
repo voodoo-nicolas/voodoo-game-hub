@@ -27,6 +27,7 @@ const STRINGS := {
 		"Books: you %d, computer %d.": "Libros: tú %d, computadora %d.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Collect the most books — sets of all four cards of one rank. Play the computer or a friend.": "Reúne la mayor cantidad de libros (las cuatro cartas de un mismo valor). Juega contra la computadora o con un amigo.",
 		"Computer": "Computadora",
 		"Computer asked for %s — go fish!": "La computadora pidió %s — ¡a pescar!",

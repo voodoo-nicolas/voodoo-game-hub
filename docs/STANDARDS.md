@@ -133,14 +133,17 @@ them too, but editing them changes the global value. Per-game items are stored p
 - Everything inside the safe area (camera cutout ≈ 24 units top). Nothing important clipped.
 - Fit viewport width, not a fixed 720. Landscape scales 1280/720. Test at text scale 1.0 and 1.4.
 
-## 9. Skins & art [CHANGED — "games hard-code dark only" is retired]
+## 9. Skins & art [CHANGED — "games hard-code dark only" is retired; CURRENT for 4 pilots since 2026-10-06]
 Every game ships two skins when feasible. **Classic is the default**; Voodoo is opt-in. Classic always uses the
 game's traditional colours (it does not follow the app's light/dark theme; only menus do).
 - **Classic**: the game's traditional look (e.g. Solitaire = red/blue card backs, white faces, green felt).
 - **Voodoo**: neon on near-black, per `reference/art/ART_STYLE.md`; pieces → skulls/bones, card backs →
   voodoo doll, accents → owner-provided **Lips** motif (`media/common/art/lips.*`, pending delivery).
-- Implemented through a `SkinDef` resource (colour tokens + texture overrides), APK-side `skin.gd`
-  (evolution of `voodoo.gd`: load, don't preload). Games declare `"skins": ["classic","voodoo"]` in the manifest.
+- [CHANGED 2026-10-06] Implemented in the Landing kit (copied into every pack, like N7) rather than an APK-side
+  `skin.gd`/`SkinDef`: `HomeKit.CLASSIC` colour tokens, ⚙ Options → Look (per game, saved in `user://landing_<ID>.json`),
+  the game's `_set_skin("classic"|"voodoo")` re-skins in place; `_current_skin()` for a game that kept its own choice;
+  older `_set_voodoo(on)` games still work. Games declare `"skins": ["classic","voodoo"]` in the manifest.
+  Guides: `reference/art/skins/CLASSIC.md`, `VOODOO.md`. (Was: Implemented through a `SkinDef` resource (colour tokens + texture overrides), APK-side `skin.gd`   (evolution of `voodoo.gd`: load, don't preload). Games declare `"skins": ["classic","voodoo"]` in the manifest.)
 - Readability: text contrast ≥ 4.5:1; colour is never the only cue (shape/icon too) — neon palettes fail
   colour-blind players otherwise.
 - Art references library: `reference/art/` (`ART_STYLE.md` = the Voodoo skin's guide, `skins/CLASSIC.md`,

@@ -66,7 +66,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg_rect = HomeKit.backdrop()
+	add_child(bg_rect)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -439,6 +440,29 @@ func _show_result() -> void:
 
 # ---------- rendering ----------
 
+## Look (STANDARDS §9): "classic" = wooden board, red and white pieces
+## (default); "voodoo" = the neon board. Set by the kit (Options → Look).
+var skin: String = "classic"
+var bg_rect: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg_rect and bg_rect.get_child_count() > 0:
+		bg_rect.get_child(0).visible = skin != "classic"
+	if bg_rect:
+		bg_rect.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+	_render()
+
+func _square_color(dark: bool) -> Color:
+	if skin == "classic":
+		return HomeKit.CLASSIC.wood_dark if dark else HomeKit.CLASSIC.wood_light
+	return COLOR_DARK_SQUARE if dark else COLOR_LIGHT_SQUARE
+
+func _piece_color(p1: bool) -> Color:
+	if skin == "classic":
+		return HomeKit.CLASSIC.red_piece if p1 else HomeKit.CLASSIC.white_piece
+	return COLOR_P1 if p1 else COLOR_P2
+
 func _render() -> void:
 	dest_map = {}
 	if selected.x >= 0:
@@ -457,7 +481,7 @@ func _render() -> void:
 			var is_dark: bool = (r + c) % 2 == 1
 			var pos := Vector2i(r, c)
 
-			var square_color: Color = COLOR_DARK_SQUARE if is_dark else COLOR_LIGHT_SQUARE
+			var square_color: Color = _square_color(is_dark)
 			var edge := Color(0, 0, 0, 0)
 			if pos == selected:
 				edge = COLOR_SELECTED
@@ -472,7 +496,7 @@ func _render() -> void:
 				piece.visible = false
 			else:
 				piece.visible = true
-				var owner_color: Color = COLOR_P1 if v > 0 else COLOR_P2
+				var owner_color: Color = _piece_color(v > 0)
 				_style_piece(piece, owner_color)
 				king_label.visible = absi(v) == 2
 
@@ -506,6 +530,18 @@ func _style_square(sq: Button, color: Color, edge: Color = Color(0, 0, 0, 0)) ->
 
 func _style_piece(piece: PanelContainer, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
+	if skin == "classic":
+		# A solid disc with a darker rim and a plain drop shadow.
+		sb.bg_color = color
+		sb.shadow_color = Color(0, 0, 0, 0.4)
+		sb.shadow_size = 3
+		sb.shadow_offset = Vector2(1, 2)
+		var radius_c: int = int(piece.custom_minimum_size.x / 2.0)
+		sb.set_corner_radius_all(radius_c)
+		sb.set_border_width_all(4)
+		sb.border_color = color.darkened(0.3)
+		piece.add_theme_stylebox_override("panel", sb)
+		return
 	sb.bg_color = Color(color, 0.28)
 	sb.shadow_color = Color(color, 0.45)
 	sb.shadow_size = 6

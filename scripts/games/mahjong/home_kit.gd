@@ -27,8 +27,15 @@ extends Control
 ##   📸 Screenshot, ⚙ Options, 🏠 Home -- no Hub (N1). It saves first.
 ## - Options (§7): the app-wide settings (text size, sound, vibration, keep
 ##   screen on, game invites -- changing one changes it everywhere) and, per
-##   game, 🔄 Rotate and Classic / 💀 Voodoo for games with a skin (default:
-##   the app-wide skull mode). Per-game choices are in user://landing_<ID>.json.
+##   game, 🔄 Rotate and the Look. Per-game choices: user://landing_<ID>.json.
+## - Skins (§9): Classic (the game's traditional colours) is the default,
+##   💀 Voodoo (neon on near-black, skulls) is opt-in -- the app-wide skull
+##   mode flips the default. A game with skins defines `_set_skin(name)`
+##   ("classic" / "voodoo"; re-skin in place, no reload) and may define
+##   `_current_skin()` if it already kept its own choice. The kit calls
+##   `_set_skin` once the game is built and whenever the player picks a look.
+##   Older games with only `_set_voodoo(on)` keep working. `CLASSIC` holds
+##   the shared traditional colours (felt, wood, paper...).
 ## - The old floating ⚙ SettingsDrawer is removed from every kit game: its
 ##   items are in the pause menu and Options now (§6). Games may still add it
 ##   (older copies of this kit used it); the kit frees it.
@@ -78,6 +85,16 @@ const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 const ORIENTATION_PATH := "res://scripts/common/orientation.gd"
 const HUB_SCENE := "res://scenes/hub/hub.tscn"
 const LEADERBOARD_SIZE := 10
+
+## Traditional colours for Classic skins (reference/art/skins/CLASSIC.md).
+const CLASSIC := {
+	"felt": Color("1f6b3a"), "felt_dark": Color("17532c"),
+	"wood_light": Color("f0d9b5"), "wood_dark": Color("b58863"), "wood_frame": Color("6b4423"),
+	"paper": Color("f7f3e8"), "ink": Color("1d2433"), "pencil": Color("5b6478"),
+	"red": Color("d62828"), "yellow": Color("f6c90e"), "blue": Color("1e5bd8"),
+	"black_piece": Color("232323"), "white_piece": Color("f4efe4"), "red_piece": Color("c1272d"),
+	"card_face": Color("fbf8ef"), "card_back": Color("1a3d9e"), "table": Color("12161f"),
+}
 
 ## ART_STYLE.md palette.
 const BG := Color("070a14")
@@ -883,10 +900,10 @@ func _on_leaderboard(rows: Variant) -> void:
 func _show_options() -> void:
 	var parts := _overlay(tr("⚙ Options"), CYAN, true)
 	var body: VBoxContainer = parts[1]
-	var g := get_parent()
-	if g and g.has_method("_set_voodoo") and ResourceLoader.exists(VOODOO_PATH):
+	if _has_skins():
 		body.add_child(_section(tr("Look")))
-		body.add_child(choice_row(["Classic", "💀 Voodoo"], 1 if _skin_on() else 0, _on_skin_pick, PURPLE))
+		body.add_child(choice_row(["Classic", "💀 Voodoo"], 1 if skin_name() == "voodoo" else 0, _on_skin_pick, PURPLE))
+		body.add_child(label(tr("Classic: the game's traditional colours. Voodoo: neon on black, with skulls."), 22, DIM, true))
 	if ResourceLoader.exists(ORIENTATION_PATH):
 		body.add_child(_section(tr("Screen")))
 		var rot := neon_button(tr("🔄 Rotate Screen"), BLUE, 26, 70)
@@ -918,27 +935,49 @@ func _show_options() -> void:
 			body.add_child(load(SOUND_OPTIONS_PATH).new(s.DARK if "DARK" in s else s.palette(), false))
 	_show_overlay(parts[0])
 
-func _skin_on() -> bool:
+## "classic" or "voodoo" for this game: the player's pick in Options, else
+## the game's own older choice, else the app-wide skull mode (off = Classic).
+func skin_name() -> String:
 	if _prefs.has("skin"):
-		return str(_prefs.skin) == "voodoo"
-	return ResourceLoader.exists(VOODOO_PATH) and load(VOODOO_PATH).is_on()
+		return str(_prefs.skin)
+	var g := get_parent()
+	if g and g.has_method("_current_skin"):
+		return str(g._current_skin())
+	return "voodoo" if ResourceLoader.exists(VOODOO_PATH) and load(VOODOO_PATH).is_on() else "classic"
+
+func _has_skins() -> bool:
+	var g := get_parent()
+	return g != null and (g.has_method("_set_skin") or (g.has_method("_set_voodoo") and ResourceLoader.exists(VOODOO_PATH)))
+
+func _skin_on() -> bool:
+	return skin_name() == "voodoo"
 
 func _on_skin_pick(i: int) -> void:
 	_prefs["skin"] = "voodoo" if i == 1 else "classic"
 	_save_prefs()
-	var g := get_parent()
-	if g and g.has_method("_set_voodoo"):
-		g._set_voodoo(i == 1)
+	_push_skin()
 
-## A game picks up the app-wide skull mode when it builds itself; this
-## game's own choice (Options) wins.
+func _push_skin() -> void:
+	var g := get_parent()
+	if g == null:
+		return
+	if g.has_method("_set_skin"):
+		g._set_skin(skin_name())
+	elif g.has_method("_set_voodoo"):
+		g._set_voodoo(skin_name() == "voodoo")
+
+## Once the game has built itself: games with skins get theirs; older
+## skull-mode games only when this game's pick differs from the app-wide one.
 func _apply_skin_pref() -> void:
 	var g := get_parent()
-	if not _prefs.has("skin") or g == null or not g.has_method("_set_voodoo") or not ResourceLoader.exists(VOODOO_PATH):
+	if g == null:
 		return
-	var want: bool = str(_prefs.skin) == "voodoo"
-	if want != bool(load(VOODOO_PATH).is_on()):
-		g._set_voodoo(want)
+	if g.has_method("_set_skin"):
+		g._set_skin(skin_name())
+	elif _prefs.has("skin") and g.has_method("_set_voodoo") and ResourceLoader.exists(VOODOO_PATH):
+		var want: bool = str(_prefs.skin) == "voodoo"
+		if want != bool(load(VOODOO_PATH).is_on()):
+			g._set_voodoo(want)
 
 ## Saves, then reloads the scene turned the other way (the scene's own
 ## orientation lock rotates once instead of undoing it).

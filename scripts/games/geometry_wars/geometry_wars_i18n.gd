@@ -58,6 +58,7 @@ const STRINGS := {
 		"Choose how to play": "Elige cómo jugar",
 		"Circles your skull, burning what it touches.": "Gira alrededor de tu calavera y quema lo que toca.",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear Boss Rush": "Supera el Desafío de jefes",
 		"Close": "Cerrar",
 		"Coffin": "Ataúd",

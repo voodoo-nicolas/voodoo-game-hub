@@ -16,6 +16,7 @@ const STRINGS := {
 		"Big sums in short runs force big digits, small sums force small digits.": "Las sumas grandes en filas cortas obligan a usar dígitos grandes, y las chicas, dígitos chicos.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",
 		"Each run adds up to its clue (top-right → across, bottom-left ↓ down). No repeats in a run.": "Cada tramo suma su pista (arriba a la derecha → horizontal, abajo a la izquierda ↓ vertical). Sin repetir en un tramo.",

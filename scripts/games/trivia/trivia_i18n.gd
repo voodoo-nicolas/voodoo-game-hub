@@ -19,6 +19,7 @@ const STRINGS := {
 		"Choose a topic": "Elige un tema",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Correct answers": "Respuestas correctas",
 		"Correct! +%d": "¡Correcto! +%d",
 		"Correct: %d of %d": "Correctas: %d de %d",

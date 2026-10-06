@@ -172,6 +172,18 @@ func _pick_card_style(i: int) -> void:
 	_apply_card_style()
 	_render()
 
+## The kit's Look (Options): Classic = these white cards on felt, Voodoo =
+## the neon cards with voodoo-doll backs. Same file as before, so a player's
+## earlier "neon" pick carries over (_current_skin).
+func _set_skin(name: String) -> void:
+	var classic := name != "voodoo"
+	if classic == CardView.classic:
+		return
+	_pick_card_style(0 if classic else 1)
+
+func _current_skin() -> String:
+	return "classic" if CardView.classic else "voodoo"
+
 func _add_style_picker(box: VBoxContainer) -> void:
 	box.add_child(home.section("Cards"))
 	box.add_child(home.choice_row(["Classic", "Neon"], 0 if CardView.classic else 1, _pick_card_style))
@@ -733,7 +745,8 @@ func _build_home() -> void:
 		"board": "Games won",
 		"board_note": "Games won, all time.",
 		"more": [["📜 History", HomeKit.PURPLE, _show_history]],
-		"extra": _add_style_picker,
+		# The card look moved to ⚙ Options → Look (STANDARDS §9); the old
+		# "Cards" picker (_add_style_picker) is kept for reference.
 	})
 	add_child(home)
 

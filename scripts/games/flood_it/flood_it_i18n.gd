@@ -14,6 +14,7 @@ const STRINGS := {
 		"Boards flooded, any size.": "Tableros inundados, de cualquier tamaño.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear away a colour completely when you can — then it never needs another move.": "Cuando puedas, elimina un color por completo: así no necesita otra jugada.",
 		"Color Flood": "Inunda",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",

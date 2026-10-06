@@ -21,6 +21,7 @@ const STRINGS := {
 		"Choose Normal or Hard for the computer.": "Elige normal o difícil para la computadora.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Computer is thinking...": "La computadora está pensando...",
 		"Computer: Hard": "Computadora: difícil",
 		"Computer: Normal": "Computadora: normal",

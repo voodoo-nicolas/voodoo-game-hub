@@ -16,6 +16,7 @@ const STRINGS := {
 		"Cards turn face up as soon as nothing covers them. Face-up cards that don't fit right now are dimmed.": "Las cartas se voltean en cuanto nada las cubre. Las que no sirven ahora se ven apagadas.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear all 28 cards from the three peaks.": "Quita las 28 cartas de los tres picos.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Don't rush to the stock — every card it gives you ends your streak.": "No corras al mazo: cada carta que te da corta tu racha.",

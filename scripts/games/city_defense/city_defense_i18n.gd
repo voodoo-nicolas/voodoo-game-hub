@@ -18,6 +18,7 @@ const STRINGS := {
 		"Choose how to play": "Elige cómo jugar",
 		"City Defense": "Defensa urbana",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",
 		"Each base has 10 shots per wave. A missile that lands on a base wipes out its remaining shots for that wave.": "Cada base tiene 10 disparos por oleada. Un misil que cae sobre una base acaba con sus disparos restantes de esa oleada.",

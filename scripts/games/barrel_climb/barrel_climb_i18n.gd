@@ -19,6 +19,7 @@ const STRINGS := {
 		"Bonus": "Bono",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Climb all six girders and reach the voodoo doll at the top, dodging the barrels the Bone King throws at you.": "Sube las seis vigas y llega al muñeco vudú de arriba, esquivando los barriles que te lanza el Rey de los Huesos.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",

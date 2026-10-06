@@ -18,6 +18,7 @@ const STRINGS := {
 		"Check shows any wrong letters. Reveal letter fills in the current square if you're stuck.": "Revisar muestra las letras incorrectas. Revelar letra completa la casilla actual si te trabas.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Crossword": "Crucigrama",
 		"Crosswords solved, all time.": "Crucigramas resueltos en total.",

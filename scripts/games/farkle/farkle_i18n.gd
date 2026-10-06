@@ -18,6 +18,7 @@ const STRINGS := {
 		"Best streak": "Mejor racha",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Computer banks %d.": "La computadora se planta con %d.",
 		"Computer farkled!": "¡La computadora hizo Farkle!",
 		"Computer keeps %d points.": "La computadora aparta %d puntos.",

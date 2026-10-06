@@ -269,6 +269,20 @@ itself the first time a game is played. Its header comment is the how-to.
 - Anything that must keep running while a game is paused sets
   `process_mode = PROCESS_MODE_ALWAYS` (Auth, Catalog, OnlineSession do).
 
+## Skins: Classic (default) + Voodoo -- since 2026-10-06 (STANDARDS §9)
+
+Lives in the Landing kit (`tools/templates/home_kit.gd`): ⚙ Options → Look
+(Classic / 💀 Voodoo, per game, `user://landing_<ID>.json`; default = the
+app-wide skull mode, off = Classic). A game opts in with `_set_skin(name)`
+(re-skin in place, no reload -- online matches go on) and `_current_skin()`
+if it already saved its own choice (Solitaire's `solitaire_style.json`).
+Classic colours: `HomeKit.CLASSIC` + `reference/art/skins/CLASSIC.md`; no
+glow, no grid. Pilots: Four in a Row (blue board), Tic-Tac-Toe (paper),
+Checkers (wood), Solitaire (felt; Voodoo backs = the doll). Older
+`_set_voodoo` games (Reversi, Alien Attack, Gem Match, Bop the Mole) show the
+same Look row, but their "Classic" is still their neon look. Every other
+game: one look until Phase 5 gives it a Classic skin.
+
 ## Voodoo Mode (skulls skin) -- since v0.21.0
 
 `scripts/common/voodoo.gd` (ships in the APK) is an optional skin that swaps

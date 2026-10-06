@@ -18,6 +18,7 @@ const STRINGS := {
 		"Cards that aren't needed any more go up to the foundations by themselves.": "Las cartas que ya no se necesitan suben solas a las pilas de base.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Deals won, all time.": "Manos ganadas en total.",
 		"Draws": "Empates",

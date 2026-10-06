@@ -15,6 +15,7 @@ const STRINGS := {
 		"Check": "Revisar",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Code Breaker": "Descifra el código",
 		"Code breaker: crack it in 10 tries.\n● right colour & spot   ○ right colour, wrong spot": "Descifrador: adivínalo en 10 intentos.\n● color y lugar correctos   ○ color correcto, lugar equivocado",
 		"Code master: pick the secret code, then lock it.\nCode breaker — look away!": "Creador: elige el código secreto y bloquéalo.\nDescifrador: ¡no mires!",

@@ -15,6 +15,7 @@ const STRINGS := {
 		"Calcudoku": "Calcudoku",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",
 		"Each outlined cage shows a target and an operation (+ − × ÷). Its numbers must combine to make the target.": "Cada jaula marcada muestra un objetivo y una operación (+ − × ÷). Sus números deben combinarse para dar el objetivo.",

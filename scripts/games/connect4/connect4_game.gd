@@ -30,6 +30,10 @@ var voodoo = null  # the Voodoo script, null on apps without it
 var voodoo_on: bool = false
 var marks: Array = []  # ROWS x COLS Voodoo pieces (empty without Voodoo)
 var bg: ColorRect
+## Look (STANDARDS §9): "classic" = the blue board with red and yellow discs
+## (default), "voodoo" = neon, red skulls vs yellow dolls. Set by the kit.
+var skin: String = "classic"
+var board_sb: StyleBoxFlat
 var engine
 var game_active: bool = false
 var cell_size: float = 46.0
@@ -126,7 +130,7 @@ func _build_ui() -> void:
 	cell_size = floor((available - BOARD_SEPARATION * (Connect4Engine.COLS - 1)) / Connect4Engine.COLS)
 
 	var board_panel := PanelContainer.new()
-	var board_sb := StyleBoxFlat.new()
+	board_sb = StyleBoxFlat.new()
 	board_sb.bg_color = Color(HomeKit.BLUE, 0.1)
 	board_sb.border_color = HomeKit.BLUE
 	board_sb.set_border_width_all(3)
@@ -158,7 +162,7 @@ func _build_ui() -> void:
 			slot.custom_minimum_size = Vector2(cell_size, cell_size)
 			slot.flat = false
 			slot.focus_mode = Control.FOCUS_NONE
-			_style_slot(slot, COLOR_EMPTY)
+			_style_slot(slot, _empty_color())
 			slot.pressed.connect(_on_column_pressed.bind(c))
 			grid.add_child(slot)
 			row.append(slot)
@@ -388,12 +392,45 @@ func _show_result() -> void:
 			win_label.text += "\n" + info.summary(["Red wins", "Yellow wins"])
 	win_dialog.visible = true
 
-## Called by the settings drawer's Voodoo toggle.
-func _set_voodoo(on: bool) -> void:
-	if voodoo == null:
-		return
-	voodoo_on = on
+## The kit's Look (Options): re-skins in place, so an online match goes on.
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	voodoo_on = skin == "voodoo" and voodoo != null
+	_apply_board_look()
 	_render()
+
+## Older apps' drawer toggle.
+func _set_voodoo(on: bool) -> void:
+	_set_skin("voodoo" if on else "classic")
+
+func _classic() -> bool:
+	return skin == "classic"
+
+func _empty_color() -> Color:
+	return Color("dfe6f0") if _classic() else COLOR_EMPTY
+
+func _red() -> Color:
+	return HomeKit.CLASSIC.red if _classic() else COLOR_RED
+
+func _yellow() -> Color:
+	return HomeKit.CLASSIC.yellow if _classic() else COLOR_YELLOW
+
+## Classic: a solid blue board, no glow. Voodoo: the neon outline.
+func _apply_board_look() -> void:
+	if board_sb == null:
+		return
+	if _classic():
+		board_sb.bg_color = HomeKit.CLASSIC.blue
+		board_sb.border_color = HomeKit.CLASSIC.blue.darkened(0.35)
+		board_sb.shadow_color = Color(0, 0, 0, 0.45)
+		board_sb.shadow_size = 8
+	else:
+		board_sb.bg_color = Color(HomeKit.BLUE, 0.1)
+		board_sb.border_color = HomeKit.BLUE
+		board_sb.shadow_color = Color(HomeKit.BLUE, 0.35)
+		board_sb.shadow_size = 14
+	if bg and bg.get_child_count() > 0:
+		bg.get_child(0).visible = not _classic()  # the faint neon grid
 
 func _color_name(player: int) -> String:
 	if voodoo_on:
@@ -401,15 +438,15 @@ func _color_name(player: int) -> String:
 	return tr("Red") if player == Connect4Engine.RED else tr("Yellow")
 
 func _render() -> void:
-	bg.color = voodoo.BG if voodoo_on else HomeKit.BG
+	bg.color = voodoo.BG if voodoo_on else (HomeKit.CLASSIC.table if _classic() else HomeKit.BG)
 	for r in range(Connect4Engine.ROWS):
 		for c in range(Connect4Engine.COLS):
 			var v: int = engine.board[r][c]
-			var color: Color = COLOR_EMPTY
+			var color: Color = _empty_color()
 			if v == Connect4Engine.RED:
-				color = COLOR_RED
+				color = _red()
 			elif v == Connect4Engine.YELLOW:
-				color = COLOR_YELLOW
+				color = _yellow()
 			if voodoo_on:
 				# the slot stays empty-dark; the piece itself carries the color
 				_style_slot(cell_views[r][c], COLOR_EMPTY)
@@ -428,7 +465,7 @@ func _render() -> void:
 			else tr("Computer is thinking...")
 	else:
 		status_label.text = tr("Turn: %s") % color_name
-	status_label.add_theme_color_override("font_color", (COLOR_RED if engine.turn == Connect4Engine.RED else COLOR_YELLOW).lerp(Color.WHITE, 0.3))
+	status_label.add_theme_color_override("font_color", (_red() if engine.turn == Connect4Engine.RED else _yellow()).lerp(Color.WHITE, 0.3))
 
 # ---------- save / load ----------
 

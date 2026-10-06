@@ -17,6 +17,7 @@ const STRINGS := {
 		"Bombs used": "Bombas usadas",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Darts swoop down in lines (100). Gunships stop and fire spreads (300). Turrets on the islands aim at you (250). Big bombers fire rings of bullets (900).": "Los dardos bajan en fila (100). Las cañoneras se detienen y disparan en abanico (300). Las torretas de las islas te apuntan (250). Los grandes bombarderos disparan anillos de balas (900).",
 		"Draws": "Empates",

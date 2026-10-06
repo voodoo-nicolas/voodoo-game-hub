@@ -20,6 +20,7 @@ const STRINGS := {
 		"Bottom player wins!": "¡Gana el jugador de abajo!",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Don't chase too far forward — a rebound can fly straight into your goal.": "No te adelantes demasiado: un rebote puede ir directo a tu portería.",
 		"Drag your mallet anywhere in your half of the table and hit the puck into the other goal.": "Arrastra tu mazo por tu mitad de la mesa y mete el disco en la otra portería.",

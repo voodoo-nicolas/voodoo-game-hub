@@ -16,6 +16,7 @@ const STRINGS := {
 		"Bricks are worth more points on higher levels.": "Los ladrillos valen más puntos en los niveles altos.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear the wall to move on to a new, tougher one. The ball speeds up as you go.": "Limpia el muro para pasar a uno nuevo y más difícil. La pelota se acelera a medida que avanzas.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Darker bricks take two hits.": "Los ladrillos más oscuros necesitan dos golpes.",

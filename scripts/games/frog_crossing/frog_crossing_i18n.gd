@@ -13,6 +13,7 @@ const STRINGS := {
 		"Best: %d": "Mejor: %d",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",
 		"Each life has 30 seconds. Getting hit, falling in or running out of time costs a life.": "Cada vida tiene 30 segundos. Si te atropellan, caes al agua o se acaba el tiempo, pierdes una vida.",

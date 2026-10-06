@@ -19,6 +19,7 @@ const STRINGS := {
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
 		"Classic Klondike: build up the foundations from Ace to King.": "Klondike clásico: arma las bases del as al rey.",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Don't rush cards to the foundations — low cards are often still needed to build on.": "No apures las cartas a las bases — muchas veces las bajas todavía sirven para construir.",
 		"Draw one": "Robar de a una",

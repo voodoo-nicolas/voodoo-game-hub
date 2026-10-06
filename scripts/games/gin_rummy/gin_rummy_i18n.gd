@@ -25,6 +25,7 @@ const STRINGS := {
 		"Cards that aren't in a meld are deadwood. Face cards count 10, Aces 1, others their number.": "Las cartas que no están en una combinación son sueltas. Las figuras valen 10, los Ases 1 y las demás su número.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Computer": "Computadora",
 		"Computer draws from the stock.": "La computadora roba del mazo.",
 		"Computer takes the %s.": "La computadora toma el %s.",

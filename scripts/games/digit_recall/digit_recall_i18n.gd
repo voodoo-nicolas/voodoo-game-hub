@@ -16,6 +16,7 @@ const STRINGS := {
 		"Choose how to play": "Elige cómo jugar",
 		"Chunk the digits into groups of two or three, like a phone number, instead of memorizing them one by one.": "Agrupa los dígitos de dos en dos o de tres en tres, como un número de teléfono, en lugar de memorizarlos uno por uno.",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Correct!": "¡Correcto!",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Digit Recall": "Recuerdo de dígitos",

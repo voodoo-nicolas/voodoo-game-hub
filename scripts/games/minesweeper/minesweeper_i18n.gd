@@ -23,6 +23,7 @@ const STRINGS := {
 		"Choose a board": "Elige un tablero",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Dig every safe square. Numbers count the mines next door.": "Destapa todas las casillas seguras. Los números cuentan las minas vecinas.",
 		"Dig up a mine and you lose. Pick Easy, Medium or Hard for bigger boards with more mines.": "Si destapas una mina, pierdes. Elige Fácil, Medio o Difícil para tableros más grandes con más minas.",

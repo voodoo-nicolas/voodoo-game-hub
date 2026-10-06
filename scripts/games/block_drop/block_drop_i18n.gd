@@ -22,6 +22,7 @@ const STRINGS := {
 		"Check the Next box to plan where the following piece will go.": "Mira el cuadro Siguiente para planear dónde irá la próxima pieza.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clearing 1, 2, 3 or 4 rows at once scores 100, 300, 500 or 800 points, times the level.": "Borrar 1, 2, 3 o 4 filas a la vez da 100, 300, 500 u 800 puntos, multiplicados por el nivel.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Difficulty": "Dificultad",

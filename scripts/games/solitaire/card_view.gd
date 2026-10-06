@@ -124,8 +124,18 @@ func _set_style(bg: Color, selected: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		add_theme_stylebox_override(state, sb)
 
+## Voodoo backs: the voodoo doll (the app's own drawing, apps v0.21+).
+const VOODOO_PATH := "res://scripts/common/voodoo.gd"
+static var _voodoo: Variant = null
+
 ## Classic backs get a lattice inside a white frame.
 func _draw() -> void:
+	if not classic and _face_down:
+		if _voodoo == null and ResourceLoader.exists(VOODOO_PATH):
+			_voodoo = load(VOODOO_PATH)
+		if _voodoo != null:
+			_voodoo.draw_doll(self, size / 2.0, minf(size.x, size.y) * 0.8, Color(0.85, 0.75, 0.55), Color(0.12, 0.05, 0.18), COLOR_BORDER)
+		return
 	if not (classic and _face_down):
 		return
 	var inner := Rect2(Vector2(7, 7), size - Vector2(14, 14))

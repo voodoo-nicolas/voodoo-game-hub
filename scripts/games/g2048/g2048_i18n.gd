@@ -19,6 +19,7 @@ const STRINGS := {
 		"Build a chain of shrinking numbers leading away from the corner, so merges cascade into it.": "Arma una cadena de números que van bajando desde la esquina, para que las uniones caigan en cascada hacia ella.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",
 		"Each merge adds the new tile's number to your score.": "Cada unión suma el número de la nueva ficha a tu puntaje.",

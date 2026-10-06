@@ -21,6 +21,7 @@ const STRINGS := {
 		"Best: %d": "Mejor: %d",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Don't chase exact digits: check the last digit first, it often rules out two choices.": "No calcules todo: mira primero la última cifra, a menudo descarta dos opciones.",
 		"Draws": "Empates",

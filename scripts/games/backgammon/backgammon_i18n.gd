@@ -22,6 +22,7 @@ const STRINGS := {
 		"Build points (two or more checkers) in a row to block the enemy's path.": "Arma puntos seguidos (dos o más fichas) para bloquear el camino del rival.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Computer rolled %d and %d.": "La computadora sacó %d y %d.",
 		"Computer rolled double %d!": "¡La computadora sacó doble %d!",
 		"Computer's turn...": "Turno de la computadora...",

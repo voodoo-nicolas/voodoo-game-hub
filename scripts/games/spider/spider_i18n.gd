@@ -23,6 +23,7 @@ const STRINGS := {
 		"Choose 1, 2 or 4 suits for a new game — more suits is much harder.": "Elige 1, 2 o 4 palos para una partida nueva — más palos es mucho más difícil.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Cleared in %d moves!": "¡Resuelto en %d movimientos!",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",

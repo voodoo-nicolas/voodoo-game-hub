@@ -23,6 +23,7 @@ const STRINGS := {
 		"Choose a board size for both of you": "Elige el tablero para los dos",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Close more boxes than your opponent.": "Cierra más cuadros que tu rival.",
 		"Computer": "Computadora",
 		"Computer is thinking...": "La computadora está pensando...",

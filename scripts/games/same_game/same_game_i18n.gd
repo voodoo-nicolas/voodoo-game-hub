@@ -20,6 +20,7 @@ const STRINGS := {
 		"Boards cleared": "Tableros limpiados",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear as many blocks as you can, in big groups, for the highest score.": "Quita todos los bloques que puedas, en grupos grandes, para el mayor puntaje.",
 		"Clear groups of matching blocks. Big groups score big.": "Quita grupos de bloques iguales. Los grupos grandes valen mucho.",
 		"Clearing from the bottom moves more blocks than clearing from the top.": "Quitar desde abajo mueve más bloques que quitar desde arriba.",

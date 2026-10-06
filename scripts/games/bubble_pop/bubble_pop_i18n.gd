@@ -20,6 +20,7 @@ const STRINGS := {
 		"Bubbles left hanging from nothing fall. Falling bubbles are worth much more, and more the more fall at once.": "Las burbujas que quedan colgando de nada caen. Las que caen valen mucho más, y más cuantas más caen a la vez.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draws": "Empates",
 		"Earned": "Logrados",

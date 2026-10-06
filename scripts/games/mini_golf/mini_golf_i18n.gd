@@ -29,6 +29,7 @@ const STRINGS := {
 		"Bumpers bounce the ball away hard. Windmill blades and sliding gates knock it around — time your putt.": "Los rebotadores lanzan la bola con fuerza. Las aspas del molino y las compuertas que se deslizan la empujan: calcula bien el momento del golpe.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Close": "Cerrar",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Course": "Recorrido",

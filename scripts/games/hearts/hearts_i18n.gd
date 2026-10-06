@@ -20,6 +20,7 @@ const STRINGS := {
 		"Choose 3 cards to pass.": "Elige 3 cartas para pasar.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clean hands": "Manos limpias",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Dodge the hearts and the Queen of Spades — or take them all.": "Esquiva los corazones y la reina de picas, o llévatelos todos.",

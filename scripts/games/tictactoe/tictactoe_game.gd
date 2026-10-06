@@ -42,6 +42,9 @@ var voodoo = null  # the Voodoo script, null on apps without it
 var voodoo_on: bool = false
 var marks: Array = []  # 9 Voodoo pieces, one per cell (empty without Voodoo)
 var bg: ColorRect
+## Look (STANDARDS §9): "classic" = dark ink X and red O on paper (default),
+## "voodoo" = neon, crossbones vs skulls. Set by the kit.
+var skin: String = "classic"
 
 func _ready() -> void:
 	preload("res://scripts/games/tictactoe/tictactoe_i18n.gd").install(self)
@@ -211,6 +214,16 @@ func _draw_home_logo(c: Control) -> void:
 	HomeKit.glow_line(c, o + Vector2(k * 0.2, k * 0.2), o + Vector2(s - k * 0.2, s - k * 0.2), HomeKit.LIME, 2.0)
 
 func _style_cell(cell: Button, color: Color, lit: bool) -> void:
+	if skin == "classic":
+		# Paper squares with pencil edges; the winning three turn pale green.
+		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Color("d9f2d0") if lit else HomeKit.CLASSIC.paper
+			sb.border_color = HomeKit.CLASSIC.pencil
+			sb.set_border_width_all(2)
+			sb.set_corner_radius_all(6)
+			cell.add_theme_stylebox_override(state, sb)
+		return
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := HomeKit.neon_box(color, "pressed" if lit else ("hover" if state == "hover" else "normal"))
 		sb.bg_color = Color(color, 0.22 if lit else 0.05)
@@ -342,12 +355,23 @@ func _show_result() -> void:
 			win_label.text += "\n" + info.summary(["X wins", "O wins"])
 	win_dialog.visible = true
 
-## Called by the settings drawer's Voodoo toggle.
-func _set_voodoo(on: bool) -> void:
-	if voodoo == null:
-		return
-	voodoo_on = on
+## The kit's Look (Options): re-skins in place, so an online match goes on.
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	voodoo_on = skin == "voodoo" and voodoo != null
+	if bg and bg.get_child_count() > 0:
+		bg.get_child(0).visible = skin != "classic"  # the faint neon grid
 	_render()
+
+## Older apps' drawer toggle.
+func _set_voodoo(on: bool) -> void:
+	_set_skin("voodoo" if on else "classic")
+
+func _x_color() -> Color:
+	return HomeKit.CLASSIC.ink if skin == "classic" else X_COLOR
+
+func _o_color() -> Color:
+	return HomeKit.CLASSIC.red if skin == "classic" else O_COLOR
 
 func _mark_name(mark: int) -> String:
 	if voodoo_on:
@@ -355,7 +379,7 @@ func _mark_name(mark: int) -> String:
 	return "X" if mark == TicTacToeEngine.X else "O"
 
 func _render() -> void:
-	bg.color = voodoo.BG if voodoo_on else HomeKit.BG
+	bg.color = voodoo.BG if voodoo_on else (HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG)
 	var line: Array = []
 	if engine.winner() != TicTacToeEngine.EMPTY:
 		for l in TicTacToeEngine.WIN_LINES:
@@ -363,7 +387,7 @@ func _render() -> void:
 				line = l
 	for i in range(9):
 		var v: int = engine.board[i]
-		var color := X_COLOR if v == TicTacToeEngine.X else O_COLOR
+		var color := _x_color() if v == TicTacToeEngine.X else _o_color()
 		if voodoo_on:
 			cells[i].text = ""
 			marks[i].kind = voodoo.BONES if v == TicTacToeEngine.X else (voodoo.SKULL if v == TicTacToeEngine.O else voodoo.NONE)
@@ -373,9 +397,9 @@ func _render() -> void:
 			if voodoo:
 				marks[i].kind = voodoo.NONE
 		for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-			cells[i].add_theme_color_override(key, color.lerp(Color.WHITE, 0.25))
-		cells[i].add_theme_color_override("font_outline_color", Color(color, 0.5))
-		cells[i].add_theme_constant_override("outline_size", 10)
+			cells[i].add_theme_color_override(key, color if skin == "classic" else color.lerp(Color.WHITE, 0.25))
+		cells[i].add_theme_color_override("font_outline_color", Color(color, 0.0 if skin == "classic" else 0.5))
+		cells[i].add_theme_constant_override("outline_size", 0 if skin == "classic" else 10)
 		_style_cell(cells[i], HomeKit.LIME if line.has(i) else HomeKit.BLUE, line.has(i))
 
 	var mark_name := _mark_name(engine.turn)
@@ -386,7 +410,7 @@ func _render() -> void:
 			else tr("Computer is thinking...")
 	else:
 		status_label.text = tr("Turn: %s") % mark_name
-	status_label.add_theme_color_override("font_color", (X_COLOR if engine.turn == TicTacToeEngine.X else O_COLOR).lerp(Color.WHITE, 0.4))
+	status_label.add_theme_color_override("font_color", (X_COLOR if engine.turn == TicTacToeEngine.X else O_COLOR).lerp(Color.WHITE, 0.4))  # on the dark table either way
 
 # ---------- save / load ----------
 

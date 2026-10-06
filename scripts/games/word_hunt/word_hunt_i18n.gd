@@ -18,6 +18,7 @@ const STRINGS := {
 		"Best score": "Mejor puntaje",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Drag across touching letters to make a word. Diagonals count.": "Arrastra sobre letras vecinas para formar una palabra. Las diagonales cuentan.",
 		"Drag across touching letters to make words of 3+ letters. You have 3 minutes.": "Arrastra por letras vecinas para formar palabras de 3 o más letras. Tienes 3 minutos.",

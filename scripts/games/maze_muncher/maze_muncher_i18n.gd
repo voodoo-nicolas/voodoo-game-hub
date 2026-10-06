@@ -14,6 +14,7 @@ const STRINGS := {
 		"Best score": "Mejor puntaje",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear all the dots for the next level: the spirits get faster and stay scared for less time.": "Come todos los puntos para pasar de nivel: los espíritus van más rápido y se asustan menos tiempo.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Dots are 10 points. The big flashing power dots are 50 — and scare the spirits for a few seconds.": "Cada punto vale 10. Los puntos grandes que parpadean valen 50 y asustan a los espíritus unos segundos.",

@@ -77,6 +77,7 @@ const STRINGS := {
 		"Chen points: %s → %s": "Puntos de Chen: %s → %s",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Coach says: %s.": "El entrenador dice: %s.",
 		"Coach-approved plays": "Jugadas aprobadas por el entrenador",
 		"Coach: that call needed %d%%; you had about %d%%.": "Entrenador: igualar necesitaba un %d%%; tenías cerca de un %d%%.",

@@ -18,6 +18,7 @@ const STRINGS := {
 		"Choose how many players on the Home screen (2 to 8), then Mild or Spicy cards. Pass the phone round the circle.": "Elige cuántos jugadores en la pantalla de inicio (de 2 a 8) y luego cartas suaves o picantes. Pasen el teléfono en ronda.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Dare": "Reto",
 		"Dares are meant to be fun, not mean — anyone can skip, it just costs a point.": "Los retos son para divertirse, no para molestar: cualquiera puede saltar, solo cuesta un punto.",

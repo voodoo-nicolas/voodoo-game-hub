@@ -13,6 +13,7 @@ const STRINGS := {
 		"Bounce up and up. Hold a side of the screen to steer.": "Rebota más y más alto. Mantén un lado de la pantalla para moverte.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Cyan platforms are solid. Purple ones slide back and forth. Pink ones crumble the moment you land on them. Green springs launch you extra high.": "Las plataformas celestes son firmes. Las moradas se deslizan de un lado a otro. Las rosas se rompen en cuanto caes en ellas. Los resortes verdes te lanzan más alto.",
 		"Draws": "Empates",

@@ -17,6 +17,7 @@ const STRINGS := {
 		"Bosses beaten": "Jefes vencidos",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Deep space": "Espacio profundo",
 		"Drag anywhere on the screen to steer the ship (arrow keys on a PC). It flies forward and fires on its own, straight ahead at the green sight.": "Arrastra en cualquier parte de la pantalla para dirigir la nave (flechas en una PC). Vuela hacia adelante y dispara sola, derecho a la mira verde.",

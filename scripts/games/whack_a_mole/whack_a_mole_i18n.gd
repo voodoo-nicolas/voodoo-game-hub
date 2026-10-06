@@ -15,6 +15,7 @@ const STRINGS := {
 		"Bop the Mole": "Golpea al topo",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Don't tap empty holes — watch for the mole, then strike.": "No toques hoyos vacíos — espera al topo y luego golpea.",
 		"Draws": "Empates",

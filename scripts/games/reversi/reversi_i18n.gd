@@ -21,6 +21,7 @@ const STRINGS := {
 		"Black wins": "Victorias de las negras",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Computer is thinking...": "La computadora está pensando...",
 		"Corners can never be flipped back — they're the best squares on the board.": "Las esquinas nunca se pueden voltear — son las mejores casillas del tablero.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",

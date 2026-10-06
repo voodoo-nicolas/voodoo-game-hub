@@ -19,6 +19,7 @@ const STRINGS := {
 		"Checkers": "Damas",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Computer is thinking...": "La computadora está pensando...",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Draw — 40 moves each with no captures": "Empate — 40 jugadas cada uno sin capturas",

@@ -15,6 +15,7 @@ const STRINGS := {
 		"Best: %d": "Mejor: %d",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Clear out a whole column at the edge: the wave takes longer to reach the side and step down.": "Elimina una columna entera del borde: la oleada tarda más en llegar al costado y bajar.",
 		"Clear the whole wave and a faster one arrives.": "Elimina toda la oleada y llega una más rápida.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",

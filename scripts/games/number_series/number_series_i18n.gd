@@ -19,6 +19,7 @@ const STRINGS := {
 		"Check the gaps between neighbors first: are they equal, growing, or alternating?": "Mira primero la diferencia entre números vecinos: ¿es igual, va creciendo o se alterna?",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Correct! +%d": "¡Correcto! +%d",
 		"Correct: %d of %d": "Correctas: %d de %d",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",

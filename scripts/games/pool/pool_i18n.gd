@@ -20,6 +20,7 @@ const STRINGS := {
 		"Best streak": "Mejor racha",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Computer": "Computadora",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Drag on the table to aim: the cue points from the white ball towards your finger. ⟲ ⟳ nudge the aim a tiny bit for fine shots.": "Arrastra sobre la mesa para apuntar: el taco apunta desde la bola blanca hacia tu dedo. ⟲ ⟳ ajustan la puntería un poquito para tiros finos.",

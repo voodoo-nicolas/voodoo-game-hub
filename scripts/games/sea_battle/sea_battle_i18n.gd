@@ -22,6 +22,7 @@ const STRINGS := {
 		"Both fleets have five ships: 5, 4, 3, 3 and 2 squares long. Ships never touch, not even at the corners.": "Cada flota tiene cinco barcos de 5, 4, 3, 3 y 2 casillas. Los barcos nunca se tocan, ni siquiera en las esquinas.",
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
+		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Defeat. Your fleet is sunk.": "Derrota. Hundieron tu flota.",
 		"Draws": "Empates",
