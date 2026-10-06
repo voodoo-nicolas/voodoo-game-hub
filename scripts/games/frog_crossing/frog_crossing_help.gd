@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "frog_crossing"
-const TITLE := "Frog Crossing"
+const TITLE := "Road Hopper"
 const GOAL := "Get your frog across the road and the river into all five homes at the top."
 const HOW := [
 	"Swipe (or use the arrow keys) to hop one square up, down, left or right.",

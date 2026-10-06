@@ -36,7 +36,7 @@ const ES := {
 	"Best score": "Mejor puntaje",
 	"Best score: —": "Mejor puntaje: —",
 	"Best streak": "Mejor racha",
-	"Blitz runs": "Partidas Blitz",
+	"Blitz runs": "Partidas Relámpago",
 	"Bus rides": "Viajes en bus",
 	"Button taps and keyboard clicks.": "Toques de botones y clics del teclado.",
 	"Cancel": "Cancelar",

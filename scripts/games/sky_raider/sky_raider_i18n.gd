@@ -48,7 +48,7 @@ const STRINGS := {
 		"Shot-down planes drop power-ups: P makes your guns wider (up to 4 levels), B gives a bomb, 1UP an extra life.": "Los aviones derribados sueltan mejoras: P amplía tus armas (hasta 4 niveles), B da una bomba, 1UP una vida extra.",
 		"Sign in (hub ⚙ Options) to put your best score on the board.": "Inicia sesión (⚙ Opciones en el menú) para poner tu mejor puntaje en la tabla.",
 		"Single player": "Un jugador",
-		"Sky Raider": "Asalto aéreo",
+		"Sky Strike": "Asalto aéreo",
 		"Slide a finger anywhere on the screen to move your fighter — it follows your finger's movement, so your finger never hides it (arrow keys on a PC). The guns fire on their own.": "Desliza un dedo en cualquier parte de la pantalla para mover tu caza: sigue el movimiento de tu dedo, así que tu dedo nunca lo tapa (flechas en una PC). Las armas disparan solas.",
 		"Slide to dodge, the guns fire themselves. Power up and sink the battleship.": "Desliza para esquivar, las armas disparan solas. Mejóralas y hunde el acorazado.",
 		"Small moves dodge best: bullets are aimed where you are now.": "Los movimientos cortos esquivan mejor: las balas apuntan a donde estás ahora.",

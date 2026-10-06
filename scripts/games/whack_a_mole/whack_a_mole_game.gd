@@ -96,7 +96,7 @@ func _build_ui() -> void:
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = tr("🔨 Whack-a-Mole")
+	title.text = tr("🔨 Bop the Mole")
 	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", HomeKit.GOLD.lerp(Color.WHITE, 0.7))
 	title.add_theme_color_override("font_outline_color", Color(HomeKit.GOLD, 0.5))

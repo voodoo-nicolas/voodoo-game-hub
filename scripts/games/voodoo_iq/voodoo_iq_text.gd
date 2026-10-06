@@ -30,12 +30,41 @@ const APP_NAME := {"en": "IQ Test", "es": "Test de IQ"}
 static func app_name() -> String:
 	return str(APP_NAME.get(lang(), APP_NAME.en))
 
+## The timed mode. The prototype's text, the server (mode "blitz") and the
+## stat keys say "Blitz"; players see this name since 2026-10-06 (Voodoo,
+## the publisher, runs an app called Blitz -- docs/ip-audit-2026-10-06.md).
+## Spanish "Relámpago" reads right in every sentence the data file has.
+const BLITZ_NAME := {"en": "Speed Round", "es": "Relámpago"}
+
+static func blitz_name() -> String:
+	return str(BLITZ_NAME.get(lang(), BLITZ_NAME.en))
+
+## Player-facing names in place of the old ones, in text from the data files.
+static func named(s: String) -> String:
+	return s.replace("Voodoo IQ", app_name()).replace("Blitz", blitz_name())
+
+## Stat keys can't change (they are save keys), so their English labels come
+## from this translation, installed for as long as `owner` lives. Spanish
+## labels are in tools/i18n/es.json as usual.
+const EN_LABELS := {"Blitz runs": "Speed Rounds played", "Best Blitz points": "Best Speed Round points"}
+
+static func install_en_labels(owner: Node) -> void:
+	var t := Translation.new()
+	t.locale = "en"
+	for key in EN_LABELS:
+		t.add_message(key, EN_LABELS[key])
+	TranslationServer.add_translation(t)
+	# A lambda: the i18n file already connects remove_translation.bind(...)
+	# here, and Godot treats a second bind of the same method as a duplicate.
+	# It's on the owner's own signal, so it goes away with the owner.
+	owner.tree_exiting.connect(func(): TranslationServer.remove_translation(t))
+
 ## The prototype's t(): text for `key` in the current language, English as the
 ## fallback, with {name} placeholders filled from `vars`.
 static func t(key: String, vars: Dictionary = {}) -> String:
 	var str_tables: Dictionary = data().get("STR", {})
 	var s: String = str(str_tables.get(lang(), {}).get(key, str_tables.get("en", {}).get(key, key)))
-	s = s.replace("Voodoo IQ", app_name())
+	s = named(s)
 	for k in vars:
 		s = s.replace("{" + str(k) + "}", str(vars[k]))
 	return s
@@ -91,4 +120,12 @@ static func info(key: String):
 			var parsed = JSON.parse_string(f.get_as_text())
 			if parsed is Dictionary:
 				_info = parsed
-	return _info.get(lang(), {}).get(key, _info.get("en", {}).get(key, ""))
+	return _named_deep(_info.get(lang(), {}).get(key, _info.get("en", {}).get(key, "")))
+
+## named() through Info text (strings, nested in arrays too).
+static func _named_deep(v):
+	if v is String:
+		return named(v)
+	if v is Array:
+		return v.map(_named_deep)
+	return v

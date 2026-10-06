@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "connect4"
-const TITLE := "Connect Four"
+const TITLE := "Four in a Row"
 const GOAL := "Get four of your discs in a row — across, down or diagonally."
 const HOW := [
 	"Play the computer (Easy, Medium or Hard) or a friend on one phone. Red goes first; against the computer you are Red.",

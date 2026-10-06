@@ -3,6 +3,9 @@ extends Control
 ## Fortune Ball -- ask a yes-or-no question, shake the phone (or flick / tap
 ## the ball), and an answer floats up in its window. Classic or spooky
 ## answers. Nothing to save: every question is fresh.
+## Our own look, not the famous toy's (black ball, white "8" disc, blue
+## triangle die): a violet crystal ball with an eye sigil that turns away to a
+## hexagon window (docs/ip-audit-2026-10-06.md).
 
 const FBEngine = preload("res://scripts/games/fortune_ball/fortune_ball_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -84,7 +87,7 @@ func _build_ui() -> void:
 	pause_btn.pressed.connect(_on_pause)
 	top_bar.add_child(pause_btn)
 	var title := Label.new()
-	title.text = tr("🎱 Fortune Ball")
+	title.text = tr("🧿 Fortune Ball")
 	title.add_theme_font_size_override("font_size", 34)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -123,7 +126,7 @@ func _build_ui() -> void:
 	bm.add_theme_constant_override("margin_right", 60)
 	root.add_child(bm)
 	shake_btn = Button.new()
-	shake_btn.text = tr("🎱 Shake")
+	shake_btn.text = tr("🧿 Shake")
 	shake_btn.custom_minimum_size = Vector2(0, 90)
 	shake_btn.add_theme_font_size_override("font_size", 32)
 	shake_btn.set_meta("sfx", "")  # the ball sloshes instead of a tap
@@ -140,7 +143,7 @@ func _build_ui() -> void:
 		"logo": _draw_home_logo,
 		"solo_heading": "Pick the ball's voice",
 		"modes": [
-			{"text": "🎱  Classic answers", "sub": "Yes, no, maybe — the fortune-teller way", "color": HomeKit.CYAN, "action": _start.bind("classic")},
+			{"text": "🧿  Classic answers", "sub": "Yes, no, maybe — the fortune-teller way", "color": HomeKit.CYAN, "action": _start.bind("classic")},
 			{"text": "💀  Spooky answers", "sub": "The spirits, the bones and the skull reply", "color": HomeKit.MAGENTA, "action": _start.bind("spooky")},
 		],
 		"restart": _restart,
@@ -308,29 +311,43 @@ func _draw_board() -> void:
 		_draw_window(board, r * 0.52, look["die"])
 	board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-## The black sphere: dark body, light coming from the top left, neon rim.
+## The crystal ball: deep violet glass, mist swirling inside, light coming
+## from the top left, neon rim.
 static func _draw_ball(c: CanvasItem, ctr: Vector2, r: float, rim: Color) -> void:
 	for i in 3:
 		c.draw_circle(ctr, r * (1.03 + 0.05 * i), Color(rim, 0.05))
-	c.draw_circle(ctr, r, Color(0.015, 0.015, 0.04))
+	c.draw_circle(ctr, r, Color(0.07, 0.03, 0.14))
 	for i in 12:
 		var t := float(i) / 12.0
-		c.draw_circle(ctr + Vector2(-r * 0.3, -r * 0.34) * t, r * (1.0 - 0.88 * t), Color(0.3, 0.26, 0.5, 0.06))
+		c.draw_circle(ctr + Vector2(-r * 0.3, -r * 0.34) * t, r * (1.0 - 0.88 * t), Color(0.45, 0.3, 0.75, 0.06))
+	for i in 5:
+		c.draw_arc(ctr + Vector2(0, r * 0.15), r * (0.35 + 0.1 * i), PI * (0.1 + 0.15 * i), PI * (0.75 + 0.1 * i), 24,
+				Color(rim, 0.06), r * 0.05, true)
 	HomeKit.glow_circle(c, ctr, r, rim, 2.5)
 	c.draw_set_transform(ctr + Vector2(-r * 0.4, -r * 0.52), -0.6, Vector2(1.0, 0.5))
 	c.draw_circle(Vector2.ZERO, r * 0.24, Color(1, 1, 1, 0.07))
 	c.draw_circle(Vector2.ZERO, r * 0.13, Color(1, 1, 1, 0.16))
 	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-## The white "8" disc, drawn around (0, 0) (the caller sets the transform).
+## The eye sigil, drawn around (0, 0) (the caller sets the transform): a
+## glowing all-seeing eye with rays, the ball's resting face.
 static func _draw_eight(c: CanvasItem, rd: float) -> void:
-	c.draw_circle(Vector2.ZERO, rd * 1.12, Color(1, 1, 1, 0.08))
-	c.draw_circle(Vector2.ZERO, rd, Color(0.95, 0.95, 1.0))
-	var font: Font = ThemeDB.fallback_font
-	var fs := int(rd * 1.25)
-	var w := font.get_string_size("8", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	var y := -font.get_height(fs) / 2.0 + font.get_ascent(fs)
-	c.draw_string(font, Vector2(-w / 2.0, y), "8", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.03, 0.03, 0.08))
+	c.draw_circle(Vector2.ZERO, rd * 1.12, Color(HomeKit.GOLD, 0.08))
+	var lid := PackedVector2Array()
+	for k in 17:
+		var a := PI * k / 16.0
+		lid.append(Vector2(-cos(a) * rd, -sin(a) * rd * 0.55))
+	for k in range(1, 16):
+		var a := PI * k / 16.0
+		lid.append(Vector2(cos(a) * rd, sin(a) * rd * 0.55))
+	c.draw_colored_polygon(lid, Color(0.95, 0.9, 1.0))
+	c.draw_polyline(lid + PackedVector2Array([lid[0]]), HomeKit.GOLD, 2.0, true)
+	c.draw_circle(Vector2.ZERO, rd * 0.36, Color(0.35, 0.12, 0.6))
+	c.draw_circle(Vector2.ZERO, rd * 0.16, Color(0.02, 0.01, 0.05))
+	c.draw_circle(Vector2(-rd * 0.1, -rd * 0.1), rd * 0.06, Color(1, 1, 1, 0.9))
+	for k in 7:
+		var a := PI * (1.15 + 0.7 * k / 6.0)
+		c.draw_line(Vector2.RIGHT.rotated(a) * rd * 0.72, Vector2.RIGHT.rotated(a) * rd * 1.02, Color(HomeKit.GOLD, 0.8), 2.0, true)
 
 ## The dark window with the answer die floating in it, around (0, 0).
 func _draw_window(c: CanvasItem, rw: float, die: Color) -> void:
@@ -349,20 +366,21 @@ func _draw_window(c: CanvasItem, rw: float, die: Color) -> void:
 		_draw_die(c, bob, rt, die, TONE_COLORS.get(engine.tone, HomeKit.GOLD), e, engine.answer)
 	HomeKit.glow_circle(c, Vector2.ZERO, rw, Color(0.5, 0.55, 0.9, 0.7), 2.0)
 
-## A down-pointing triangle (the face of the die) with the answer inside.
+## A hexagon tablet floating in the mist with the answer inside.
 static func _draw_die(c: CanvasItem, ctr: Vector2, rt: float, die: Color, tone: Color, alpha: float, text: String) -> void:
-	var s := sqrt(3.0) / 2.0
-	var pts := PackedVector2Array([ctr + Vector2(-rt * s, -rt * 0.5), ctr + Vector2(rt * s, -rt * 0.5), ctr + Vector2(0, rt)])
+	var pts := PackedVector2Array()
+	for k in 6:
+		pts.append(ctr + Vector2.RIGHT.rotated(TAU * k / 6.0) * rt * 0.9)
 	c.draw_colored_polygon(pts, Color(die, 0.92 * alpha))
-	HomeKit.glow_polyline(c, pts, Color(tone, alpha), 2.0, true)
+	HomeKit.glow_polyline(c, pts + PackedVector2Array([pts[0]]), Color(tone, alpha), 2.0, true)
 	var font: Font = ThemeDB.fallback_font
-	var width := rt * 1.05  # the triangle is this wide around the text's bottom line
-	var fs := int(rt * 0.28)
+	var width := rt * 1.3  # inside the hexagon around its middle
+	var fs := int(rt * 0.26)
 	var size := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, width, fs)
-	while fs > 10 and (size.y > rt * 0.56 or size.x > width + 1.0):
+	while fs > 10 and (size.y > rt * 0.9 or size.x > width + 1.0):
 		fs -= 1
 		size = font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, width, fs)
-	var top := ctr.y - rt * 0.17 - size.y / 2.0
+	var top := ctr.y - size.y / 2.0
 	var pos := Vector2(ctr.x - width / 2.0, top + font.get_ascent(fs))
 	c.draw_multiline_string_outline(font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, width, fs, -1, maxi(3, fs / 5), Color(tone, 0.35 * alpha))
 	c.draw_multiline_string(font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, width, fs, -1, Color(1, 1, 1, alpha))

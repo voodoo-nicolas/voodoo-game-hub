@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "minesweeper"
-const TITLE := "Minesweeper"
+const TITLE := "Mines"
 const GOAL := "Uncover every square that doesn't hide a mine."
 const HOW := [
 	"Tap a square to dig it. Your first tap is always safe and opens up an area.",

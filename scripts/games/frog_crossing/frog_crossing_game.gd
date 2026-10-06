@@ -64,7 +64,7 @@ func _build_ui() -> void:
 	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
-	title.text = tr("🐸 Frog Crossing")
+	title.text = tr("🐸 Road Hopper")
 	title.add_theme_font_size_override("font_size", 30)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -116,7 +116,7 @@ func _build_ui() -> void:
 			gap.custom_minimum_size = Vector2(120, 64 if i < 3 or i > 5 else 64)
 			pad.add_child(gap)
 
-	start_dialog = UI.build_dialog(tr("🐸 Frog Crossing"), [
+	start_dialog = UI.build_dialog(tr("🐸 Road Hopper"), [
 		{"text": tr("Start"), "action": _start},
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)

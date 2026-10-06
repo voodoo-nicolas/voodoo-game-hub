@@ -77,6 +77,7 @@ var info_back: Callable  # where the Info screen's Back goes
 
 func _ready() -> void:
 	preload("res://scripts/games/voodoo_iq/voodoo_iq_i18n.gd").install(self)
+	T.install_en_labels(self)
 	Orientation.lock_portrait()
 	var saved = SaveUtil.read(SETUP_PATH)
 	if saved is Dictionary:

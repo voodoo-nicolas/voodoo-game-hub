@@ -9,6 +9,7 @@ const STRINGS := {
 		"Back to Hub": "Volver al inicio",
 		"Best score": "Mejor puntaje",
 		"Best: %d": "Mejor: %d",
+		"Bop the Mole": "Golpea al topo",
 		"Close": "Cerrar",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Don't tap empty holes — watch for the mole, then strike.": "No toques hoyos vacíos — espera al topo y luego golpea.",
@@ -51,7 +52,6 @@ const STRINGS := {
 		"Whack Pro": "Pro del martillo",
 		"Whack as many moles as you can in 30 seconds!": "¡Golpea todos los topos que puedas en 30 segundos!",
 		"Whack as many moles as you can in 30 seconds.": "Golpea todos los topos que puedas en 30 segundos.",
-		"Whack-a-Mole": "Golpea al topo",
 		"Win rate": "Porcentaje de victorias",
 		"Wins": "Victorias",
 		"You lose!": "¡Perdiste!",
@@ -75,7 +75,7 @@ const STRINGS := {
 		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
 		"🔨  Play": "🔨  Jugar",
-		"🔨 Whack-a-Mole": "🔨 Golpea al topo",
+		"🔨 Bop the Mole": "🔨 Golpea al topo",
 	},
 }
 

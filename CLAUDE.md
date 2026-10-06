@@ -1028,9 +1028,15 @@ AudioStreamWAV), `_api.gd` (Edge Function calls), `_text.gd` + `_data.json`.
 - **Trademark-safe titles**: the app is heading for public distribution, so
   games use generic names, not brand names (Block Drop, not Tetris; Sea
   Battle, Box Pusher, Code Breaker, Calcudoku, Word Hunt, Yacht Dice, Paddle
-  Ball, Brick Breaker, Bird Hop, Alien Attack, Frog Crossing, Party Spinner).
-  "Wordle" predates this and is a NYT trademark -- rename it before a public
-  store listing.
+  Ball, Brick Breaker, Bird Hop, Alien Attack, Party Spinner). The
+  2026-10-06 IP audit (`docs/ip-audit-2026-10-06.md`) renamed Reversi /
+  Othello -> Reversi, Connect Four -> Four in a Row, Wordle -> Five Letters,
+  Simon -> Memory Lights, Whack-a-Mole -> Bop the Mole, Minesweeper -> Mines,
+  Lights Out -> Light Flip, Frog Crossing -> Road Hopper, Flood It -> Color
+  Flood, Sky Raider -> Sky Strike, Geometry Wars -> Neon Blast, and the IQ
+  Test's Blitz -> Speed Round; it also moved Block Drop, Maze Muncher and
+  Fortune Ball off the originals' looks. Display names only: ids, file
+  names and stat keys keep the old words.
 - **Card games** each carry their own copy of `<id>_cards.gd` (ints 0..51,
   `draw_card()`), so every pack stays self-contained; fix bugs in all copies.
 - **Word lists**: Word Hunt and Anagrams ship the public-domain ENABLE list as

@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "wordle"
-const TITLE := "Wordle"
+const TITLE := "Five Letters"
 const GOAL := "Guess the hidden five-letter word in six tries."
 const HOW := [
 	"Type a five-letter word on the keyboard and tap Enter.",

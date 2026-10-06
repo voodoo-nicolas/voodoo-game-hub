@@ -1,7 +1,10 @@
 extends Control
 
 ## Maze Muncher: swipe to steer through the maze, eat every dot, and turn
-## the tables on the ghosts with a power dot.
+## the tables on the spirits with a power dot. The look is our own, not the
+## famous maze game's (yellow chomper, skirted ghosts in red / pink / cyan /
+## orange that turn blue): a cyan muncher and four skull spirits that go pale
+## when scared (docs/ip-audit-2026-10-06.md). Code ids still say "ghost".
 
 const MmEngine = preload("res://scripts/games/maze_muncher/maze_muncher_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -18,9 +21,9 @@ const SAVE_PATH := "user://maze_muncher_save.json"
 
 const WALL := Color("3a8cff")
 const DOT := Color(1.0, 0.85, 0.7)
-const PLAYER := Color("ffe23a")
-const GHOSTS := [Color("ff3b3b"), Color("ff7ad9"), Color("29e6ff"), Color("ffae2b")]
-const SCARED := Color("3a5bff")
+const PLAYER := Color("29e6ff")
+const GHOSTS := [Color("7dff3a"), Color("9b4dff"), Color("3a8cff"), Color("f2e6b8")]
+const SCARED := Color("4a4658")
 const READY_TIME := 1.6
 const SWIPE := 22.0
 
@@ -120,7 +123,7 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": PLAYER,
-		"subtitle": "Eat every dot. Power dots turn the ghosts blue.",
+		"subtitle": "Eat every dot. Power dots scare the spirits.",
 		"logo": _draw_home_logo,
 		"modes": [{"text": "▶  " + tr("Play"), "sub": "3 lives · faster every level", "action": _new_game}],
 		"save_path": SAVE_PATH,
@@ -313,23 +316,30 @@ func _draw_ghost(c: CanvasItem, at: Vector2, ts: float, gh: Dictionary) -> void:
 	if scared:
 		col = Color.WHITE if engine.fright < 1.5 and int(anim * 6.0) % 2 == 0 else SCARED
 	if not gh.eaten:
-		var body := PackedVector2Array()
-		for k in 13:
-			body.append(at + Vector2.RIGHT.rotated(PI + PI * k / 12.0) * r)
-		for k in 5:
-			var x := r - k * r / 2.0
-			body.append(at + Vector2(x, r * (0.9 if k % 2 == 0 else 0.6)))
-		c.draw_colored_polygon(body, Color(col, 0.85))
-		c.draw_polyline(body + PackedVector2Array([body[0]]), col.lightened(0.3), 1.5, true)
+		# A skull spirit: round cranium, narrower jaw, two teeth gaps.
+		var head := at + Vector2(0, -r * 0.12)
+		c.draw_circle(head, r * 0.82, Color(col, 0.85))
+		var jaw := Rect2(at + Vector2(-r * 0.48, r * 0.3), Vector2(r * 0.96, r * 0.55))
+		c.draw_rect(jaw, Color(col, 0.85))
+		c.draw_arc(head, r * 0.82, 0, TAU, 24, col.lightened(0.3), 1.5, true)
+		for tx in [-0.16, 0.16]:
+			c.draw_line(at + Vector2(r * tx, r * 0.55), at + Vector2(r * tx, r * 0.85), Color(0, 0, 0, 0.6), 1.5)
+		c.draw_colored_polygon(PackedVector2Array([at + Vector2(0, r * 0.08), at + Vector2(-r * 0.1, r * 0.28),
+				at + Vector2(r * 0.1, r * 0.28)]), Color(0, 0, 0, 0.7))
 	if scared:
-		c.draw_circle(at + Vector2(-r * 0.35, -r * 0.15), r * 0.12, Color.WHITE)
-		c.draw_circle(at + Vector2(r * 0.35, -r * 0.15), r * 0.12, Color.WHITE)
+		# Pale and hollow-eyed: X eyes.
+		for sx in [-0.33, 0.33]:
+			var e := at + Vector2(r * sx, -r * 0.2)
+			c.draw_line(e - Vector2(r * 0.13, r * 0.13), e + Vector2(r * 0.13, r * 0.13), Color.WHITE, 2.0)
+			c.draw_line(e + Vector2(-r * 0.13, r * 0.13), e + Vector2(r * 0.13, -r * 0.13), Color.WHITE, 2.0)
 		return
-	var look := Vector2(gh.d) * r * 0.12
-	for sx in [-0.35, 0.35]:
+	# Dark sockets with a glowing pupil that looks where the spirit heads
+	# (an eaten one is only its eyes, flying home).
+	var look := Vector2(gh.d) * r * 0.1
+	for sx in [-0.33, 0.33]:
 		var e := at + Vector2(r * sx, -r * 0.2)
-		c.draw_circle(e, r * 0.24, Color.WHITE)
-		c.draw_circle(e + look, r * 0.12, Color(0.1, 0.2, 0.9))
+		c.draw_circle(e, r * 0.24, Color(0.02, 0.02, 0.05))
+		c.draw_circle(e + look, r * 0.11, col.lightened(0.5))
 
 func _draw_home_logo(c: Control) -> void:
 	var ts := minf(c.size.y / 2.2, 64.0)

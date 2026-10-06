@@ -69,9 +69,6 @@ const STRINGS := {
 		"❓ How to Play": "❓ Cómo jugar",
 		"🌍 Everyone": "🌍 Todos",
 		"🎯 Goal": "🎯 Objetivo",
-		"🎱  Classic answers": "🎱  Respuestas clásicas",
-		"🎱 Fortune Ball": "🎱 Bola de la fortuna",
-		"🎱 Shake": "🎱 Agitar",
 		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Inicio de %s",
@@ -82,6 +79,9 @@ const STRINGS := {
 		"📋 How to Play": "📋 Cómo jugar",
 		"📨 Invite a friend": "📨 Invitar a un amigo",
 		"🔊 Sound": "🔊 Sonido",
+		"🧿  Classic answers": "🧿  Respuestas clásicas",
+		"🧿 Fortune Ball": "🧿 Bola de la fortuna",
+		"🧿 Shake": "🧿 Agitar",
 	},
 }
 

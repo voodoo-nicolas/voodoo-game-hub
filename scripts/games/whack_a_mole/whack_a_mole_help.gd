@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "whack_a_mole"
-const TITLE := "Whack-a-Mole"
+const TITLE := "Bop the Mole"
 const GOAL := "Whack as many moles as you can in 30 seconds."
 const HOW := [
 	"Tap Start Round, then tap each mole as it pops up out of a hole.",

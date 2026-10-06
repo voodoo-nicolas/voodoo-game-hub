@@ -73,7 +73,7 @@ func _build_ui() -> void:
 	top_bar.add_child(hub_btn)
 
 	var title := Label.new()
-	title.text = tr("Simon")
+	title.text = tr("Memory Lights")
 	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", HomeKit.LIME.lerp(Color.WHITE, 0.7))
 	title.add_theme_color_override("font_outline_color", Color(HomeKit.LIME, 0.5))
@@ -178,7 +178,7 @@ func _build_start_dialog() -> void:
 	panel.add_child(box)
 
 	game_over_label = Label.new()
-	game_over_label.text = tr("Simon")
+	game_over_label.text = tr("Memory Lights")
 	game_over_label.add_theme_font_size_override("font_size", 31)
 	game_over_label.add_theme_color_override("font_color", Color(1, 0.84, 0.04))
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -199,7 +199,7 @@ func _build_start_dialog() -> void:
 # ---------- game flow ----------
 
 func _show_start_dialog() -> void:
-	game_over_label.text = tr("Simon")
+	game_over_label.text = tr("Memory Lights")
 	status_label.text = tr("Watch, then repeat the sequence")
 	start_dialog.visible = true
 

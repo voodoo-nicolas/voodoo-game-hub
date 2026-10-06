@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "flood_it"
-const TITLE := "Flood It"
+const TITLE := "Color Flood"
 const GOAL := "Turn the whole board into one colour before you run out of moves."
 const HOW := [
 	"The flood starts in the top-left corner: that cell and every cell of the same colour touching it.",

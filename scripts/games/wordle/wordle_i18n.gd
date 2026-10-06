@@ -16,6 +16,7 @@ const STRINGS := {
 		"Enter": "Enviar",
 		"Expert": "Experto",
 		"Fewest guesses": "Menos intentos",
+		"Five Letters": "Cinco letras",
 		"Genius!": "¡Genio!",
 		"Great!": "¡Bien!",
 		"Guess %d of 6": "Intento %d de 6",
@@ -64,7 +65,6 @@ const STRINGS := {
 		"Win rate": "Porcentaje de victorias",
 		"Wins": "Victorias",
 		"Word setter: type a 5-letter word, then Enter. Guesser — look away!": "Quien elige: escribe una palabra de 5 letras y presiona Enviar. Adivinador: ¡no mires!",
-		"Wordle": "Wordle",
 		"Words guessed (2 players)": "Palabras adivinadas (2 jugadores)",
 		"Words guessed on your own.": "Palabras adivinadas jugando solo.",
 		"Words kept (2 players)": "Palabras sin adivinar (2 jugadores)",
@@ -91,8 +91,8 @@ const STRINGS := {
 		"🔊 Sound": "🔊 Sonido",
 		"🔤  Guess a word": "🔤  Adivina una palabra",
 		"🟨 Yellow means the letter is in the word, but in a different spot.": "🟨 Amarillo significa que la letra está en la palabra, pero en otro lugar.",
+		"🟩 Five Letters": "🟩 Cinco letras",
 		"🟩 Green means the letter is in the word, in that spot.": "🟩 Verde significa que la letra está en la palabra, en ese lugar.",
-		"🟩 Wordle": "🟩 Wordle",
 	},
 }
 

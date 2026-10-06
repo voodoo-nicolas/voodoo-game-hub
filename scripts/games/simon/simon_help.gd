@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "simon"
-const TITLE := "Simon"
+const TITLE := "Memory Lights"
 const GOAL := "Repeat the sequence of colours for as long as you can."
 const HOW := [
 	"Watch the pads light up, then tap them in the same order.",

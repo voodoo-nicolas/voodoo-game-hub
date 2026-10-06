@@ -92,7 +92,7 @@ func _build_ui() -> void:
 	top_bar.add_child(pause_btn)
 
 	var title := Label.new()
-	title.text = tr("Connect Four")
+	title.text = tr("Four in a Row")
 	title.add_theme_font_size_override("font_size", 38)
 	title.add_theme_color_override("font_color", Color(1, 0.9, 0.93))
 	title.add_theme_color_override("font_outline_color", Color(COLOR_RED, 0.5))
@@ -177,7 +177,7 @@ func _build_ui() -> void:
 
 	_build_win_dialog()
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online = load(ONLINE_MATCH_PATH).new("connect4", tr("Connect Four"), _online_state)
+		online = load(ONLINE_MATCH_PATH).new("connect4", tr("Four in a Row"), _online_state)
 		online.started.connect(_on_online_started)
 		online.remote_move.connect(_on_remote_move)
 		online.remote_state.connect(_on_remote_state)
@@ -278,7 +278,7 @@ func _style_slot(slot: Button, color: Color) -> void:
 func _build_win_dialog() -> void:
 	win_dialog = Ui.build_dialog("", [
 		{"text": tr("Play Again"), "action": _start_new_game},
-		{"text": tr("🏠 Connect Four Home"), "action": _go_home},
+		{"text": tr("🏠 Four in a Row Home"), "action": _go_home},
 	], true)
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")

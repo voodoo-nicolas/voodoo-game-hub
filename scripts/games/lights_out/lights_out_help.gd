@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "lights_out"
-const TITLE := "Lights Out"
+const TITLE := "Light Flip"
 const GOAL := "Switch off every light on the board."
 const HOW := [
 	"Tapping a square toggles it and the squares directly above, below, left and right of it.",

@@ -7,9 +7,8 @@ const STRINGS := {
 		"%d min": "%d min",
 		"Back": "Volver",
 		"Back to the question": "Volver a la pregunta",
-		"Best Blitz points": "Mejor puntaje Blitz",
-		"Blitz runs": "Partidas Blitz",
-		"Blitz: quick questions against the clock. Harder types earn more points, wrong multiple-choice answers lose a fraction, Skip costs 2 seconds.": "Blitz: preguntas rápidas contra reloj. Los tipos más difíciles suman más puntos, las respuestas incorrectas de opción múltiple restan una fracción y Saltar cuesta 2 segundos.",
+		"Best Blitz points": "Mejor puntaje Relámpago",
+		"Blitz runs": "Partidas Relámpago",
 		"Can't play sound? The musical questions offer 🔇: skip them for the rest of the test (they count only for the Musical section) or end the test.": "¿No puedes usar sonido? Las preguntas musicales tienen 🔇: sáltalas por el resto del test (solo cuentan para la sección Musical) o termina el test.",
 		"Continue": "Continuar",
 		"Couldn't reach the server. Check your connection and try again.": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
@@ -58,6 +57,7 @@ const STRINGS := {
 		"Skip musical questions": "Saltar las preguntas musicales",
 		"Something went wrong (%s). Try again.": "Algo salió mal (%s). Inténtalo de nuevo.",
 		"Sound": "Sonido",
+		"Speed Round: quick questions against the clock. Harder types earn more points, wrong multiple-choice answers lose a fraction, Skip costs 2 seconds.": "Relámpago: preguntas rápidas contra reloj. Los tipos más difíciles suman más puntos, las respuestas incorrectas de opción múltiple restan una fracción y Saltar cuesta 2 segundos.",
 		"Tap a region of the brain (or a numbered chip) to pick a section, or keep All sections for a mixed test.": "Toca una región del cerebro (o una ficha numerada) para elegir una sección, o deja Todas las secciones para un test mezclado.",
 		"Tests taken": "Pruebas hechas",
 		"Text size": "Tamaño del texto",
@@ -80,7 +80,7 @@ const STRINGS := {
 		"∞ (the default time) has no clock and no per-question limit: keep answering as long as you like and tap Finish. Every answer counts, so long runs reach the boards faster. If you close the app instead, the test is scored the next time you play.": "∞ (el tiempo por defecto) no tiene reloj ni límite por pregunta: responde todo lo que quieras y toca Terminar. Cuenta cada respuesta, así que las partidas largas llegan antes al ranking. Si cierras la app, el test se puntúa la próxima vez que juegues.",
 		"∞ No time limit: answer as many questions as you like and tap Finish when you're done. Every answer counts, so long runs reach the boards faster.": "∞ Sin límite de tiempo: responde todas las preguntas que quieras y toca Terminar cuando quieras. Cuenta cada respuesta, así que las partidas largas llegan antes al ranking.",
 		"⏸ pauses a test: the clock stops and the question is hidden, and you can change the text size and sound there.": "⏸ pausa el test: el reloj se detiene y la pregunta se oculta, y ahí puedes cambiar el tamaño del texto y el sonido.",
-		"🏆 Leaderboards: the IQ board, the 9-Mind board, one board per section and the Blitz bests, filtered by age, country and language. Nothing is capped or hidden: everyone is ranked by their real estimate, and ✓ marks scores with enough evidence behind them.": "🏆 Rankings: el ranking de IQ, el de 9-Mentes, uno por sección y los mejores de Blitz, filtrados por edad, país e idioma. Nada tiene tope ni se oculta: todos se ordenan por su estimación real, y ✓ marca los puntajes con suficiente evidencia.",
+		"🏆 Leaderboards: the IQ board, the 9-Mind board, one board per section and the Speed Round bests, filtered by age, country and language. Nothing is capped or hidden: everyone is ranked by their real estimate, and ✓ marks scores with enough evidence behind them.": "🏆 Rankings: el ranking de IQ, el de 9-Mentes, uno por sección y los mejores de Relámpago, filtrados por edad, país e idioma. Nada tiene tope ni se oculta: todos se ordenan por su estimación real, y ✓ marca los puntajes con suficiente evidencia.",
 	},
 }
 

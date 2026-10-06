@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "sky_raider"
-const TITLE := "Sky Raider"
+const TITLE := "Sky Strike"
 const GOAL := "Fight your way through as many stages as you can and sink each stage's battleship."
 const HOW := [
 	"Slide a finger anywhere on the screen to move your fighter — it follows your finger's movement, so your finger never hides it (arrow keys on a PC). The guns fire on their own.",

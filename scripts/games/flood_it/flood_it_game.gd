@@ -72,7 +72,7 @@ func _build_ui() -> void:
 	pause_btn.pressed.connect(_on_pause)
 	bar.add_child(pause_btn)
 	var title := Label.new()
-	title.text = tr("Flood It")
+	title.text = tr("Color Flood")
 	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", HomeKit.CYAN.lerp(Color.WHITE, 0.7))
 	title.add_theme_color_override("font_outline_color", Color(HomeKit.CYAN, 0.5))

@@ -20,8 +20,12 @@ const SAVE_PATH := "user://block_drop_save.json"
 const DIFFICULTIES := [["Easy", 1, 1.4], ["Normal", 1, 1.0], ["Hard", 5, 1.0]]
 ## [name, columns, rows]
 const BOARDS := [["Classic", 10, 20], ["Big", 12, 24], ["Huge", 14, 28]]
-const COLORS := [Color(0.3, 0.85, 0.95), Color(0.98, 0.85, 0.25), Color(0.7, 0.4, 0.95), Color(0.4, 0.85, 0.4),
-	Color(0.95, 0.35, 0.35), Color(0.3, 0.5, 0.95), Color(0.98, 0.6, 0.2)]
+## Piece colours in PIECES order (I, O, T, S, Z, J, L), from the neon palette
+## (reference/art/ART_STYLE.md). Deliberately NOT the famous falling-block
+## game's colour per piece (cyan I, yellow O, purple T...): its look is
+## protected even though the mechanics aren't (docs/ip-audit-2026-10-06.md).
+const COLORS := [Color("ff2bd6"), Color("7dff3a"), Color("ffae2b"), Color("ff4f9a"),
+	Color("29e6ff"), Color("9b4dff"), Color("3a8cff")]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit: Home screen + pause menu
