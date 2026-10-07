@@ -501,6 +501,54 @@ re-run it after changing any game so their copy stays current.
 presets and version in sync) and changes nothing — run it before committing.
 `tools/` has a `.gdignore`, so Godot never imports or exports it.
 
+## Web version (iPhone / Safari) -- since 2026-10-06
+
+iPhones can't install the APK, so the hub also ships as a web page:
+**https://voodoo-nicolas.github.io/voodoo-game-hub/play/** (GitHub Pages
+serves `docs/` from master). `python tools/hub.py web` exports the `Web`
+preset into `builds/web/`; `--publish` also copies it into `docs/play/`,
+and it's live once that commit is pushed (Pages caches ~10 min). Like the PC
+build it **bundles every game**, so it always runs the source it was built
+from: re-publish after game changes the iPhone players should get. No APK
+or pack version bump is involved.
+
+- **One thread**: the export is Godot's no-threads web build (no
+  SharedArrayBuffer, which GitHub Pages can't enable). `Thread.start()`
+  silently never runs its function there, and `WorkerThreadPool` tasks run
+  on the spot, blocking. So `OS.has_feature("web")` branches: Sfx renders
+  its library one sound per frame, Sudoku generates after drawing
+  "Generating...", the Chess CPU thinks in place. **A new game must not
+  need a `Thread`** -- or give it the same web branch (`hub.py check` fails
+  on a `Thread.new()` in a script without `OS.has_feature("web")`). Neon
+  Blast renders its music synchronously the first time it opens (~6 s
+  freeze on a PC browser), cached in user:// afterwards; Pool / Poker AIs
+  and Trace It's photo-to-lines step block briefly.
+- **Name**: Godot titles the page with `config/name` ("Voodoo", kept for the
+  PC save folder), so `hub.py web` rewrites `<title>` and adds the iPhone
+  Home Screen name from `Brand.NAME`. The icon is the project icon.
+- **Fonts**: a browser page can't use the phone's fonts, so emoji and
+  symbols need bundled ones: `assets/web_fonts/emoji.ttf` (Noto Color Emoji)
+  and `symbols.ttf` (DejaVu Sans), cut down to the characters the code uses
+  by `hub.py web-fonts <NotoColorEmoji.ttf> <DejaVuSans.ttf>` and hung behind
+  the default font by `scripts/common/web.gd` (from Settings). `hub.py web`
+  warns when the code uses a character the fonts lack -- rerun `web-fonts`
+  then (sources: github.com/googlefonts/noto-emoji `2D/fonts/`, dejavu-fonts
+  releases; needs `pip install --user fonttools`). Only the Web preset
+  ships them (Android's `exclude_filter`; packs exclude `assets/*`).
+- **No downloads, no APK update**: GitHub's release downloads send no CORS
+  headers, so a game the page doesn't bundle (added to the live manifest
+  since it was built) shows "Update app", which reloads the page; the APK
+  update check is skipped. Supabase (auth, PostgREST, Realtime, Edge
+  Functions) and raw.githubusercontent.com all allow browsers. Media packs
+  (STANDARDS §10, none yet) will need the same answer: bundle them in the
+  Web export, or host them where CORS is allowed.
+- **Saves** live in the browser's IndexedDB (user://). Safari deletes a
+  site's storage after ~7 days without a visit; a Home Screen web app is
+  exempt, but that needs PWA mode, which is off (its service worker caches
+  the build, so updates would only show on the launch after next).
+- `docs/` has a `.gdignore`, or Godot would import `docs/play/*.png` into
+  every export.
+
 ## Minigame standards (the user's rules, 2026-10-03)
 
 > **v2 (2026-10-06): `docs/STANDARDS.md` replaces these where they differ.**

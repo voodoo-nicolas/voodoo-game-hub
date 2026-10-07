@@ -85,6 +85,9 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   anything is mounted count as bundled and launch from local source, so
   running the hub from the editor plays your working copy, not the published
   pack.
+- **Web build** (root `CLAUDE.md` "Web version"): every game is bundled and
+  packs can't be downloaded, so `state_of` turns an unbundled game amber
+  ("Update app" reloads the page) and `check_app_update` reports nothing.
 
 ## Things that look like bugs but aren't
 

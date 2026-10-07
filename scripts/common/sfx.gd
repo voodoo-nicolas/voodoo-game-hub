@@ -64,6 +64,7 @@ var _next: int = 0
 var _cache: Dictionary = {}  # name -> AudioStream
 var _last_ms: Dictionary = {}  # name -> Time.get_ticks_msec() of last play
 var _warm_task: int = -1
+var _warm_queue: Array = []  # web build: library sounds still to render
 
 func _ready() -> void:
 	# The GameInfo card pauses games; its sounds must still play.
@@ -81,7 +82,19 @@ func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 	# Synthesizing takes ~0.5 s for the whole library on a PC -- do it on a
 	# worker thread at launch, so no first play stutters on a phone.
-	_warm_task = WorkerThreadPool.add_task(_warm_up)
+	# The browser build has no threads (the task would run right here and
+	# hold up the first screen): there, one sound per frame instead.
+	if OS.has_feature("web"):
+		_warm_queue = LIBRARY.duplicate()
+	else:
+		_warm_task = WorkerThreadPool.add_task(_warm_up)
+		set_process(false)
+
+func _process(_delta: float) -> void:
+	if _warm_queue.is_empty():
+		set_process(false)
+		return
+	get_stream(_warm_queue.pop_front())
 
 func _exit_tree() -> void:
 	if _warm_task != -1:
