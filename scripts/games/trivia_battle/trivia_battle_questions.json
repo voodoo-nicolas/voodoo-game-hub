@@ -1,0 +1,2914 @@
+{
+ "topics": [
+  {
+   "id": "science",
+   "questions": [
+    {
+     "en": [
+      "What is the chemical symbol for gold?",
+      "Au",
+      "Ag",
+      "Gd",
+      "Go"
+     ],
+     "es": [
+      "¿Cuál es el símbolo químico del oro?",
+      "Au",
+      "Ag",
+      "Gd",
+      "Go"
+     ]
+    },
+    {
+     "en": [
+      "Which planet is closest to the Sun?",
+      "Mercury",
+      "Venus",
+      "Mars",
+      "Earth"
+     ],
+     "es": [
+      "¿Qué planeta está más cerca del Sol?",
+      "Mercurio",
+      "Venus",
+      "Marte",
+      "La Tierra"
+     ]
+    },
+    {
+     "en": [
+      "Which gas do plants take in from the air for photosynthesis?",
+      "Carbon dioxide",
+      "Oxygen",
+      "Nitrogen",
+      "Hydrogen"
+     ],
+     "es": [
+      "¿Qué gas toman las plantas del aire para la fotosíntesis?",
+      "Dióxido de carbono",
+      "Oxígeno",
+      "Nitrógeno",
+      "Hidrógeno"
+     ]
+    },
+    {
+     "en": [
+      "How many bones does an adult human body have?",
+      "206",
+      "187",
+      "250",
+      "312"
+     ],
+     "es": [
+      "¿Cuántos huesos tiene un cuerpo humano adulto?",
+      "206",
+      "187",
+      "250",
+      "312"
+     ]
+    },
+    {
+     "en": [
+      "What is the hardest natural substance?",
+      "Diamond",
+      "Quartz",
+      "Steel",
+      "Granite"
+     ],
+     "es": [
+      "¿Cuál es la sustancia natural más dura?",
+      "El diamante",
+      "El cuarzo",
+      "El acero",
+      "El granito"
+     ]
+    },
+    {
+     "en": [
+      "Which force keeps us on the ground?",
+      "Gravity",
+      "Magnetism",
+      "Friction",
+      "Inertia"
+     ],
+     "es": [
+      "¿Qué fuerza nos mantiene en el suelo?",
+      "La gravedad",
+      "El magnetismo",
+      "La fricción",
+      "La inercia"
+     ]
+    },
+    {
+     "en": [
+      "At sea level, at what temperature does water boil?",
+      "100 °C",
+      "90 °C",
+      "120 °C",
+      "80 °C"
+     ],
+     "es": [
+      "A nivel del mar, ¿a qué temperatura hierve el agua?",
+      "100 °C",
+      "90 °C",
+      "120 °C",
+      "80 °C"
+     ]
+    },
+    {
+     "en": [
+      "What is the largest organ of the human body?",
+      "Skin",
+      "Liver",
+      "Heart",
+      "Lungs"
+     ],
+     "es": [
+      "¿Cuál es el órgano más grande del cuerpo humano?",
+      "La piel",
+      "El hígado",
+      "El corazón",
+      "Los pulmones"
+     ]
+    },
+    {
+     "en": [
+      "Which blood cells carry oxygen around the body?",
+      "Red blood cells",
+      "White blood cells",
+      "Platelets",
+      "Plasma"
+     ],
+     "es": [
+      "¿Qué células de la sangre transportan el oxígeno por el cuerpo?",
+      "Los glóbulos rojos",
+      "Los glóbulos blancos",
+      "Las plaquetas",
+      "El plasma"
+     ]
+    },
+    {
+     "en": [
+      "About how fast does light travel?",
+      "300,000 km per second",
+      "30,000 km per second",
+      "3,000 km per second",
+      "3,000,000 km per second"
+     ],
+     "es": [
+      "¿A qué velocidad viaja aproximadamente la luz?",
+      "300.000 km por segundo",
+      "30.000 km por segundo",
+      "3.000 km por segundo",
+      "3.000.000 km por segundo"
+     ]
+    },
+    {
+     "en": [
+      "What is H2O better known as?",
+      "Water",
+      "Hydrogen peroxide",
+      "Salt",
+      "Ammonia"
+     ],
+     "es": [
+      "¿Cómo se conoce normalmente el H2O?",
+      "Agua",
+      "Agua oxigenada",
+      "Sal",
+      "Amoníaco"
+     ]
+    },
+    {
+     "en": [
+      "Which particle in an atom has a negative charge?",
+      "Electron",
+      "Proton",
+      "Neutron",
+      "Nucleus"
+     ],
+     "es": [
+      "¿Qué partícula del átomo tiene carga negativa?",
+      "El electrón",
+      "El protón",
+      "El neutrón",
+      "El núcleo"
+     ]
+    },
+    {
+     "en": [
+      "Which gas is the most common in Earth's atmosphere?",
+      "Nitrogen",
+      "Oxygen",
+      "Carbon dioxide",
+      "Argon"
+     ],
+     "es": [
+      "¿Qué gas es el más abundante en la atmósfera terrestre?",
+      "Nitrógeno",
+      "Oxígeno",
+      "Dióxido de carbono",
+      "Argón"
+     ]
+    },
+    {
+     "en": [
+      "Who developed the theory of general relativity?",
+      "Albert Einstein",
+      "Isaac Newton",
+      "Niels Bohr",
+      "Galileo Galilei"
+     ],
+     "es": [
+      "¿Quién desarrolló la teoría de la relatividad general?",
+      "Albert Einstein",
+      "Isaac Newton",
+      "Niels Bohr",
+      "Galileo Galilei"
+     ]
+    },
+    {
+     "en": [
+      "What do we call a scientist who studies rocks and the Earth's structure?",
+      "Geologist",
+      "Biologist",
+      "Meteorologist",
+      "Astronomer"
+     ],
+     "es": [
+      "¿Cómo se llama el científico que estudia las rocas y la estructura de la Tierra?",
+      "Geólogo",
+      "Biólogo",
+      "Meteorólogo",
+      "Astrónomo"
+     ]
+    },
+    {
+     "en": [
+      "What is the center of an atom called?",
+      "Nucleus",
+      "Orbit",
+      "Shell",
+      "Cell"
+     ],
+     "es": [
+      "¿Cómo se llama el centro de un átomo?",
+      "Núcleo",
+      "Órbita",
+      "Capa",
+      "Célula"
+     ]
+    },
+    {
+     "en": [
+      "Which planet is famous for its bright rings?",
+      "Saturn",
+      "Mars",
+      "Mercury",
+      "Earth"
+     ],
+     "es": [
+      "¿Qué planeta es famoso por sus anillos brillantes?",
+      "Saturno",
+      "Marte",
+      "Mercurio",
+      "La Tierra"
+     ]
+    },
+    {
+     "en": [
+      "Through which of these does sound travel fastest?",
+      "Steel",
+      "Water",
+      "Air",
+      "A vacuum"
+     ],
+     "es": [
+      "¿Por cuál de estos medios viaja más rápido el sonido?",
+      "El acero",
+      "El agua",
+      "El aire",
+      "El vacío"
+     ]
+    },
+    {
+     "en": [
+      "What is the pH of pure water?",
+      "7",
+      "0",
+      "14",
+      "1"
+     ],
+     "es": [
+      "¿Cuál es el pH del agua pura?",
+      "7",
+      "0",
+      "14",
+      "1"
+     ]
+    },
+    {
+     "en": [
+      "How many planets are in our solar system?",
+      "8",
+      "9",
+      "7",
+      "10"
+     ],
+     "es": [
+      "¿Cuántos planetas hay en nuestro sistema solar?",
+      "8",
+      "9",
+      "7",
+      "10"
+     ]
+    },
+    {
+     "en": [
+      "How many planets are in our solar system?",
+      "8",
+      "7",
+      "9",
+      "10"
+     ],
+     "es": [
+      "¿Cuántos planetas hay en nuestro sistema solar?",
+      "8",
+      "7",
+      "9",
+      "10"
+     ]
+    },
+    {
+     "en": [
+      "What gas do plants take in from the air?",
+      "Carbon dioxide",
+      "Oxygen",
+      "Nitrogen",
+      "Helium"
+     ],
+     "es": [
+      "¿Qué gas toman las plantas del aire?",
+      "Dióxido de carbono",
+      "Oxígeno",
+      "Nitrógeno",
+      "Helio"
+     ]
+    },
+    {
+     "en": [
+      "What is the hardest natural material?",
+      "Diamond",
+      "Gold",
+      "Iron",
+      "Quartz"
+     ],
+     "es": [
+      "¿Cuál es el material natural más duro?",
+      "Diamante",
+      "Oro",
+      "Hierro",
+      "Cuarzo"
+     ]
+    },
+    {
+     "en": [
+      "What force pulls objects toward the Earth?",
+      "Gravity",
+      "Magnetism",
+      "Friction",
+      "Inertia"
+     ],
+     "es": [
+      "¿Qué fuerza atrae los objetos hacia la Tierra?",
+      "La gravedad",
+      "El magnetismo",
+      "La fricción",
+      "La inercia"
+     ]
+    },
+    {
+     "en": [
+      "What is H2O more commonly called?",
+      "Water",
+      "Salt",
+      "Hydrogen",
+      "Oxygen"
+     ],
+     "es": [
+      "¿Cómo se llama comúnmente el H2O?",
+      "Agua",
+      "Sal",
+      "Hidrógeno",
+      "Oxígeno"
+     ]
+    },
+    {
+     "en": [
+      "Which planet is known as the Red Planet?",
+      "Mars",
+      "Venus",
+      "Jupiter",
+      "Mercury"
+     ],
+     "es": [
+      "¿Qué planeta se conoce como el Planeta Rojo?",
+      "Marte",
+      "Venus",
+      "Júpiter",
+      "Mercurio"
+     ]
+    },
+    {
+     "en": [
+      "What part of the body pumps blood?",
+      "The heart",
+      "The lungs",
+      "The liver",
+      "The stomach"
+     ],
+     "es": [
+      "¿Qué parte del cuerpo bombea la sangre?",
+      "El corazón",
+      "Los pulmones",
+      "El hígado",
+      "El estómago"
+     ]
+    },
+    {
+     "en": [
+      "How many bones does an adult human have?",
+      "206",
+      "106",
+      "306",
+      "412"
+     ],
+     "es": [
+      "¿Cuántos huesos tiene un adulto?",
+      "206",
+      "106",
+      "306",
+      "412"
+     ]
+    },
+    {
+     "en": [
+      "What is the center of an atom called?",
+      "The nucleus",
+      "The shell",
+      "The orbit",
+      "The cell"
+     ],
+     "es": [
+      "¿Cómo se llama el centro de un átomo?",
+      "El núcleo",
+      "La corteza",
+      "La órbita",
+      "La célula"
+     ]
+    },
+    {
+     "en": [
+      "Which of these makes its own light?",
+      "The Sun",
+      "The Moon",
+      "Mars",
+      "A mirror"
+     ],
+     "es": [
+      "¿Cuál de estos produce su propia luz?",
+      "El Sol",
+      "La Luna",
+      "Marte",
+      "Un espejo"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "nature",
+   "questions": [
+    {
+     "en": [
+      "What is the largest animal on Earth?",
+      "Blue whale",
+      "African elephant",
+      "Giraffe",
+      "Great white shark"
+     ],
+     "es": [
+      "¿Cuál es el animal más grande de la Tierra?",
+      "La ballena azul",
+      "El elefante africano",
+      "La jirafa",
+      "El gran tiburón blanco"
+     ]
+    },
+    {
+     "en": [
+      "How many legs does a spider have?",
+      "8",
+      "6",
+      "10",
+      "4"
+     ],
+     "es": [
+      "¿Cuántas patas tiene una araña?",
+      "8",
+      "6",
+      "10",
+      "4"
+     ]
+    },
+    {
+     "en": [
+      "Which flightless bird lives in Antarctica?",
+      "Penguin",
+      "Ostrich",
+      "Kiwi",
+      "Emu"
+     ],
+     "es": [
+      "¿Qué ave que no vuela vive en la Antártida?",
+      "El pingüino",
+      "El avestruz",
+      "El kiwi",
+      "El emú"
+     ]
+    },
+    {
+     "en": [
+      "What do giant pandas mainly eat?",
+      "Bamboo",
+      "Fish",
+      "Berries",
+      "Grass"
+     ],
+     "es": [
+      "¿Qué comen principalmente los pandas gigantes?",
+      "Bambú",
+      "Pescado",
+      "Bayas",
+      "Hierba"
+     ]
+    },
+    {
+     "en": [
+      "Which animal is the fastest on land?",
+      "Cheetah",
+      "Lion",
+      "Horse",
+      "Leopard"
+     ],
+     "es": [
+      "¿Qué animal es el más rápido en tierra?",
+      "El guepardo",
+      "El león",
+      "El caballo",
+      "El leopardo"
+     ]
+    },
+    {
+     "en": [
+      "What is a baby kangaroo called?",
+      "Joey",
+      "Cub",
+      "Pup",
+      "Calf"
+     ],
+     "es": [
+      "¿Cómo se llama la cría del canguro?",
+      "Joey",
+      "Cachorro",
+      "Potrillo",
+      "Ternero"
+     ]
+    },
+    {
+     "en": [
+      "Which mammal can truly fly?",
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+     ],
+     "es": [
+      "¿Qué mamífero puede volar de verdad?",
+      "El murciélago",
+      "La ardilla voladora",
+      "El petauro del azúcar",
+      "El colugo"
+     ]
+    },
+    {
+     "en": [
+      "Which is the tallest type of tree?",
+      "Coast redwood",
+      "Oak",
+      "Pine",
+      "Baobab"
+     ],
+     "es": [
+      "¿Cuál es el tipo de árbol más alto?",
+      "La secuoya roja",
+      "El roble",
+      "El pino",
+      "El baobab"
+     ]
+    },
+    {
+     "en": [
+      "Which insect makes honey?",
+      "Bee",
+      "Wasp",
+      "Ant",
+      "Butterfly"
+     ],
+     "es": [
+      "¿Qué insecto produce miel?",
+      "La abeja",
+      "La avispa",
+      "La hormiga",
+      "La mariposa"
+     ]
+    },
+    {
+     "en": [
+      "How many hearts does an octopus have?",
+      "3",
+      "1",
+      "2",
+      "8"
+     ],
+     "es": [
+      "¿Cuántos corazones tiene un pulpo?",
+      "3",
+      "1",
+      "2",
+      "8"
+     ]
+    },
+    {
+     "en": [
+      "Which is the largest ocean?",
+      "Pacific Ocean",
+      "Atlantic Ocean",
+      "Indian Ocean",
+      "Arctic Ocean"
+     ],
+     "es": [
+      "¿Cuál es el océano más grande?",
+      "El océano Pacífico",
+      "El océano Atlántico",
+      "El océano Índico",
+      "El océano Ártico"
+     ]
+    },
+    {
+     "en": [
+      "What is a group of lions called?",
+      "Pride",
+      "Pack",
+      "Herd",
+      "Flock"
+     ],
+     "es": [
+      "¿Cómo se llama un grupo de leones?",
+      "Manada",
+      "Jauría",
+      "Rebaño",
+      "Bandada"
+     ]
+    },
+    {
+     "en": [
+      "Which animal has the longest neck?",
+      "Giraffe",
+      "Camel",
+      "Ostrich",
+      "Llama"
+     ],
+     "es": [
+      "¿Qué animal tiene el cuello más largo?",
+      "La jirafa",
+      "El camello",
+      "El avestruz",
+      "La llama"
+     ]
+    },
+    {
+     "en": [
+      "What does a caterpillar turn into?",
+      "A butterfly or moth",
+      "A beetle",
+      "A dragonfly",
+      "A ladybug"
+     ],
+     "es": [
+      "¿En qué se convierte una oruga?",
+      "En mariposa o polilla",
+      "En escarabajo",
+      "En libélula",
+      "En mariquita"
+     ]
+    },
+    {
+     "en": [
+      "Which of these mammals lays eggs?",
+      "Platypus",
+      "Armadillo",
+      "Opossum",
+      "Hedgehog"
+     ],
+     "es": [
+      "¿Cuál de estos mamíferos pone huevos?",
+      "El ornitorrinco",
+      "El armadillo",
+      "La zarigüeya",
+      "El erizo"
+     ]
+    },
+    {
+     "en": [
+      "Which gas do trees release into the air during photosynthesis?",
+      "Oxygen",
+      "Carbon dioxide",
+      "Methane",
+      "Helium"
+     ],
+     "es": [
+      "¿Qué gas liberan los árboles al aire durante la fotosíntesis?",
+      "Oxígeno",
+      "Dióxido de carbono",
+      "Metano",
+      "Helio"
+     ]
+    },
+    {
+     "en": [
+      "What color is a polar bear's skin?",
+      "Black",
+      "White",
+      "Pink",
+      "Gray"
+     ],
+     "es": [
+      "¿De qué color es la piel de un oso polar?",
+      "Negra",
+      "Blanca",
+      "Rosa",
+      "Gris"
+     ]
+    },
+    {
+     "en": [
+      "Which sea creature has eight arms?",
+      "Octopus",
+      "Jellyfish",
+      "Starfish",
+      "Crab"
+     ],
+     "es": [
+      "¿Qué criatura marina tiene ocho brazos?",
+      "El pulpo",
+      "La medusa",
+      "La estrella de mar",
+      "El cangrejo"
+     ]
+    },
+    {
+     "en": [
+      "What is the smallest bird in the world?",
+      "Bee hummingbird",
+      "Sparrow",
+      "Wren",
+      "Finch"
+     ],
+     "es": [
+      "¿Cuál es el ave más pequeña del mundo?",
+      "El colibrí zunzuncito",
+      "El gorrión",
+      "El chochín",
+      "El pinzón"
+     ]
+    },
+    {
+     "en": [
+      "About how long is an elephant pregnant?",
+      "22 months",
+      "9 months",
+      "12 months",
+      "6 months"
+     ],
+     "es": [
+      "¿Cuánto dura aproximadamente el embarazo de una elefanta?",
+      "22 meses",
+      "9 meses",
+      "12 meses",
+      "6 meses"
+     ]
+    },
+    {
+     "en": [
+      "What do we call a baby frog?",
+      "A tadpole",
+      "A cub",
+      "A chick",
+      "A calf"
+     ],
+     "es": [
+      "¿Cómo se llama la cría de la rana?",
+      "Renacuajo",
+      "Cachorro",
+      "Pollito",
+      "Ternero"
+     ]
+    },
+    {
+     "en": [
+      "Which animal is the tallest in the world?",
+      "The giraffe",
+      "The elephant",
+      "The horse",
+      "The camel"
+     ],
+     "es": [
+      "¿Cuál es el animal más alto del mundo?",
+      "La jirafa",
+      "El elefante",
+      "El caballo",
+      "El camello"
+     ]
+    },
+    {
+     "en": [
+      "How many legs does a spider have?",
+      "8",
+      "6",
+      "10",
+      "4"
+     ],
+     "es": [
+      "¿Cuántas patas tiene una araña?",
+      "8",
+      "6",
+      "10",
+      "4"
+     ]
+    },
+    {
+     "en": [
+      "Which bird cannot fly and lives in Antarctica?",
+      "The penguin",
+      "The eagle",
+      "The owl",
+      "The parrot"
+     ],
+     "es": [
+      "¿Qué ave no vuela y vive en la Antártida?",
+      "El pingüino",
+      "El águila",
+      "El búho",
+      "El loro"
+     ]
+    },
+    {
+     "en": [
+      "What sweet food do bees make?",
+      "Honey",
+      "Jam",
+      "Sugar",
+      "Syrup"
+     ],
+     "es": [
+      "¿Qué alimento dulce hacen las abejas?",
+      "Miel",
+      "Mermelada",
+      "Azúcar",
+      "Almíbar"
+     ]
+    },
+    {
+     "en": [
+      "Which is the largest animal on Earth?",
+      "The blue whale",
+      "The elephant",
+      "The shark",
+      "The giraffe"
+     ],
+     "es": [
+      "¿Cuál es el animal más grande de la Tierra?",
+      "La ballena azul",
+      "El elefante",
+      "El tiburón",
+      "La jirafa"
+     ]
+    },
+    {
+     "en": [
+      "Which animal is called the 'king of the jungle'?",
+      "The lion",
+      "The tiger",
+      "The gorilla",
+      "The leopard"
+     ],
+     "es": [
+      "¿Qué animal se llama 'el rey de la selva'?",
+      "El león",
+      "El tigre",
+      "El gorila",
+      "El leopardo"
+     ]
+    },
+    {
+     "en": [
+      "Which animal can change color to blend in?",
+      "The chameleon",
+      "The zebra",
+      "The dolphin",
+      "The horse"
+     ],
+     "es": [
+      "¿Qué animal puede cambiar de color para camuflarse?",
+      "El camaleón",
+      "La cebra",
+      "El delfín",
+      "El caballo"
+     ]
+    },
+    {
+     "en": [
+      "What do pandas mostly eat?",
+      "Bamboo",
+      "Fish",
+      "Meat",
+      "Grass"
+     ],
+     "es": [
+      "¿Qué comen sobre todo los pandas?",
+      "Bambú",
+      "Pescado",
+      "Carne",
+      "Pasto"
+     ]
+    },
+    {
+     "en": [
+      "Which insect turns into a butterfly?",
+      "The caterpillar",
+      "The ant",
+      "The beetle",
+      "The grasshopper"
+     ],
+     "es": [
+      "¿Qué insecto se convierte en mariposa?",
+      "La oruga",
+      "La hormiga",
+      "El escarabajo",
+      "El saltamontes"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "history",
+   "questions": [
+    {
+     "en": [
+      "In which year did World War II end?",
+      "1945",
+      "1939",
+      "1918",
+      "1950"
+     ],
+     "es": [
+      "¿En qué año terminó la Segunda Guerra Mundial?",
+      "1945",
+      "1939",
+      "1918",
+      "1950"
+     ]
+    },
+    {
+     "en": [
+      "Who was the first President of the United States?",
+      "George Washington",
+      "Abraham Lincoln",
+      "Thomas Jefferson",
+      "John Adams"
+     ],
+     "es": [
+      "¿Quién fue el primer presidente de Estados Unidos?",
+      "George Washington",
+      "Abraham Lincoln",
+      "Thomas Jefferson",
+      "John Adams"
+     ]
+    },
+    {
+     "en": [
+      "Which ancient civilization built the pyramids of Giza?",
+      "The Egyptians",
+      "The Romans",
+      "The Greeks",
+      "The Aztecs"
+     ],
+     "es": [
+      "¿Qué antigua civilización construyó las pirámides de Guiza?",
+      "Los egipcios",
+      "Los romanos",
+      "Los griegos",
+      "Los aztecas"
+     ]
+    },
+    {
+     "en": [
+      "In which year did Christopher Columbus first reach the Americas?",
+      "1492",
+      "1453",
+      "1520",
+      "1607"
+     ],
+     "es": [
+      "¿En qué año llegó Cristóbal Colón por primera vez a América?",
+      "1492",
+      "1453",
+      "1520",
+      "1607"
+     ]
+    },
+    {
+     "en": [
+      "Who was the first person to walk on the Moon?",
+      "Neil Armstrong",
+      "Buzz Aldrin",
+      "Yuri Gagarin",
+      "John Glenn"
+     ],
+     "es": [
+      "¿Quién fue la primera persona en caminar sobre la Luna?",
+      "Neil Armstrong",
+      "Buzz Aldrin",
+      "Yuri Gagarin",
+      "John Glenn"
+     ]
+    },
+    {
+     "en": [
+      "In which year did the Berlin Wall fall?",
+      "1989",
+      "1961",
+      "1975",
+      "1991"
+     ],
+     "es": [
+      "¿En qué año cayó el Muro de Berlín?",
+      "1989",
+      "1961",
+      "1975",
+      "1991"
+     ]
+    },
+    {
+     "en": [
+      "Julius Caesar was a leader of which ancient power?",
+      "Rome",
+      "Athens",
+      "Sparta",
+      "Carthage"
+     ],
+     "es": [
+      "¿De qué antiguo poder fue líder Julio César?",
+      "Roma",
+      "Atenas",
+      "Esparta",
+      "Cartago"
+     ]
+    },
+    {
+     "en": [
+      "Who was the main author of the American Declaration of Independence?",
+      "Thomas Jefferson",
+      "George Washington",
+      "Benjamin Franklin",
+      "John Hancock"
+     ],
+     "es": [
+      "¿Quién fue el principal autor de la Declaración de Independencia de Estados Unidos?",
+      "Thomas Jefferson",
+      "George Washington",
+      "Benjamin Franklin",
+      "John Hancock"
+     ]
+    },
+    {
+     "en": [
+      "Which ship carried the Pilgrims to America in 1620?",
+      "The Mayflower",
+      "The Santa Maria",
+      "The Titanic",
+      "The Endeavour"
+     ],
+     "es": [
+      "¿Qué barco llevó a los peregrinos a América en 1620?",
+      "El Mayflower",
+      "La Santa María",
+      "El Titanic",
+      "El Endeavour"
+     ]
+    },
+    {
+     "en": [
+      "Which wall did the Romans build across northern Britain?",
+      "Hadrian's Wall",
+      "The Great Wall",
+      "The Berlin Wall",
+      "The Wall of Troy"
+     ],
+     "es": [
+      "¿Qué muro construyeron los romanos en el norte de Britania?",
+      "El Muro de Adriano",
+      "La Gran Muralla",
+      "El Muro de Berlín",
+      "La Muralla de Troya"
+     ]
+    },
+    {
+     "en": [
+      "Who became Emperor of the French in 1804?",
+      "Napoleon Bonaparte",
+      "Louis XIV",
+      "Charlemagne",
+      "Charles de Gaulle"
+     ],
+     "es": [
+      "¿Quién se convirtió en emperador de los franceses en 1804?",
+      "Napoleón Bonaparte",
+      "Luis XIV",
+      "Carlomagno",
+      "Charles de Gaulle"
+     ]
+    },
+    {
+     "en": [
+      "Which ship sank on its first voyage in 1912?",
+      "The Titanic",
+      "The Lusitania",
+      "The Bismarck",
+      "The Mayflower"
+     ],
+     "es": [
+      "¿Qué barco se hundió en su primer viaje en 1912?",
+      "El Titanic",
+      "El Lusitania",
+      "El Bismarck",
+      "El Mayflower"
+     ]
+    },
+    {
+     "en": [
+      "In which country did the Renaissance begin?",
+      "Italy",
+      "France",
+      "England",
+      "Spain"
+     ],
+     "es": [
+      "¿En qué país comenzó el Renacimiento?",
+      "Italia",
+      "Francia",
+      "Inglaterra",
+      "España"
+     ]
+    },
+    {
+     "en": [
+      "Who led India's movement for independence using nonviolent protest?",
+      "Mahatma Gandhi",
+      "Genghis Khan",
+      "Napoleon",
+      "Alexander the Great"
+     ],
+     "es": [
+      "¿Quién lideró el movimiento de independencia de la India con protestas pacíficas?",
+      "Mahatma Gandhi",
+      "Genghis Khan",
+      "Napoleón",
+      "Alejandro Magno"
+     ]
+    },
+    {
+     "en": [
+      "In which year did humans first land on the Moon?",
+      "1969",
+      "1959",
+      "1972",
+      "1965"
+     ],
+     "es": [
+      "¿En qué año llegó el ser humano a la Luna por primera vez?",
+      "1969",
+      "1959",
+      "1972",
+      "1965"
+     ]
+    },
+    {
+     "en": [
+      "Which of the Seven Wonders of the Ancient World stood in Alexandria?",
+      "The Lighthouse (Pharos)",
+      "The Hanging Gardens",
+      "The Colossus",
+      "The Temple of Artemis"
+     ],
+     "es": [
+      "¿Cuál de las Siete Maravillas del Mundo Antiguo estaba en Alejandría?",
+      "El Faro",
+      "Los Jardines Colgantes",
+      "El Coloso",
+      "El Templo de Artemisa"
+     ]
+    },
+    {
+     "en": [
+      "Who was the British Prime Minister for most of World War II?",
+      "Winston Churchill",
+      "Neville Chamberlain",
+      "Margaret Thatcher",
+      "Clement Attlee"
+     ],
+     "es": [
+      "¿Quién fue el primer ministro británico durante la mayor parte de la Segunda Guerra Mundial?",
+      "Winston Churchill",
+      "Neville Chamberlain",
+      "Margaret Thatcher",
+      "Clement Attlee"
+     ]
+    },
+    {
+     "en": [
+      "Which civilization built Machu Picchu?",
+      "The Inca",
+      "The Maya",
+      "The Aztecs",
+      "The Olmecs"
+     ],
+     "es": [
+      "¿Qué civilización construyó Machu Picchu?",
+      "Los incas",
+      "Los mayas",
+      "Los aztecas",
+      "Los olmecas"
+     ]
+    },
+    {
+     "en": [
+      "Which Egyptian queen is famous for her ties to Julius Caesar and Mark Antony?",
+      "Cleopatra",
+      "Nefertiti",
+      "Hatshepsut",
+      "Isis"
+     ],
+     "es": [
+      "¿Qué reina egipcia es famosa por su relación con Julio César y Marco Antonio?",
+      "Cleopatra",
+      "Nefertiti",
+      "Hatshepsut",
+      "Isis"
+     ]
+    },
+    {
+     "en": [
+      "In which century did Gutenberg introduce the printing press to Europe?",
+      "The 15th century",
+      "The 12th century",
+      "The 17th century",
+      "The 19th century"
+     ],
+     "es": [
+      "¿En qué siglo introdujo Gutenberg la imprenta en Europa?",
+      "El siglo XV",
+      "El siglo XII",
+      "El siglo XVII",
+      "El siglo XIX"
+     ]
+    },
+    {
+     "en": [
+      "Which ancient people built the pyramids of Giza?",
+      "The Egyptians",
+      "The Romans",
+      "The Greeks",
+      "The Vikings"
+     ],
+     "es": [
+      "¿Qué pueblo antiguo construyó las pirámides de Guiza?",
+      "Los egipcios",
+      "Los romanos",
+      "Los griegos",
+      "Los vikingos"
+     ]
+    },
+    {
+     "en": [
+      "Who was the first person to walk on the Moon?",
+      "Neil Armstrong",
+      "Buzz Aldrin",
+      "Yuri Gagarin",
+      "John Glenn"
+     ],
+     "es": [
+      "¿Quién fue la primera persona en caminar sobre la Luna?",
+      "Neil Armstrong",
+      "Buzz Aldrin",
+      "Yuri Gagarin",
+      "John Glenn"
+     ]
+    },
+    {
+     "en": [
+      "In which century did the first airplane flight take place?",
+      "The 20th",
+      "The 18th",
+      "The 19th",
+      "The 21st"
+     ],
+     "es": [
+      "¿En qué siglo voló el primer avión?",
+      "En el siglo XX",
+      "En el siglo XVIII",
+      "En el siglo XIX",
+      "En el siglo XXI"
+     ]
+    },
+    {
+     "en": [
+      "Which explorer sailed across the Atlantic to the Americas in 1492?",
+      "Christopher Columbus",
+      "Marco Polo",
+      "Ferdinand Magellan",
+      "Vasco da Gama"
+     ],
+     "es": [
+      "¿Qué explorador cruzó el Atlántico hasta América en 1492?",
+      "Cristóbal Colón",
+      "Marco Polo",
+      "Fernando de Magallanes",
+      "Vasco da Gama"
+     ]
+    },
+    {
+     "en": [
+      "What was the Titanic?",
+      "A ship",
+      "A train",
+      "A plane",
+      "A castle"
+     ],
+     "es": [
+      "¿Qué fue el Titanic?",
+      "Un barco",
+      "Un tren",
+      "Un avión",
+      "Un castillo"
+     ]
+    },
+    {
+     "en": [
+      "Which wall was built in ancient China to guard its borders?",
+      "The Great Wall",
+      "The Berlin Wall",
+      "Hadrian's Wall",
+      "The Western Wall"
+     ],
+     "es": [
+      "¿Qué muralla se construyó en la antigua China para proteger sus fronteras?",
+      "La Gran Muralla",
+      "El Muro de Berlín",
+      "El Muro de Adriano",
+      "El Muro de las Lamentaciones"
+     ]
+    },
+    {
+     "en": [
+      "What did the ancient Romans build to carry water into their cities?",
+      "Aqueducts",
+      "Skyscrapers",
+      "Pyramids",
+      "Windmills"
+     ],
+     "es": [
+      "¿Qué construyeron los antiguos romanos para llevar agua a sus ciudades?",
+      "Acueductos",
+      "Rascacielos",
+      "Pirámides",
+      "Molinos de viento"
+     ]
+    },
+    {
+     "en": [
+      "Which country gave the Statue of Liberty to the United States?",
+      "France",
+      "England",
+      "Spain",
+      "Italy"
+     ],
+     "es": [
+      "¿Qué país regaló la Estatua de la Libertad a Estados Unidos?",
+      "Francia",
+      "Inglaterra",
+      "España",
+      "Italia"
+     ]
+    },
+    {
+     "en": [
+      "Who painted the ceiling of the Sistine Chapel?",
+      "Michelangelo",
+      "Leonardo da Vinci",
+      "Raphael",
+      "Donatello"
+     ],
+     "es": [
+      "¿Quién pintó el techo de la Capilla Sixtina?",
+      "Miguel Ángel",
+      "Leonardo da Vinci",
+      "Rafael",
+      "Donatello"
+     ]
+    },
+    {
+     "en": [
+      "In which year did the Berlin Wall fall?",
+      "1989",
+      "1979",
+      "1991",
+      "1969"
+     ],
+     "es": [
+      "¿En qué año cayó el Muro de Berlín?",
+      "1989",
+      "1979",
+      "1991",
+      "1969"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "geography",
+   "questions": [
+    {
+     "en": [
+      "What is the capital of Australia?",
+      "Canberra",
+      "Sydney",
+      "Melbourne",
+      "Perth"
+     ],
+     "es": [
+      "¿Cuál es la capital de Australia?",
+      "Canberra",
+      "Sídney",
+      "Melbourne",
+      "Perth"
+     ]
+    },
+    {
+     "en": [
+      "Which river runs through Cairo?",
+      "The Nile",
+      "The Amazon",
+      "The Danube",
+      "The Ganges"
+     ],
+     "es": [
+      "¿Qué río atraviesa El Cairo?",
+      "El Nilo",
+      "El Amazonas",
+      "El Danubio",
+      "El Ganges"
+     ]
+    },
+    {
+     "en": [
+      "Which is the largest country in the world by area?",
+      "Russia",
+      "Canada",
+      "China",
+      "United States"
+     ],
+     "es": [
+      "¿Cuál es el país más grande del mundo por superficie?",
+      "Rusia",
+      "Canadá",
+      "China",
+      "Estados Unidos"
+     ]
+    },
+    {
+     "en": [
+      "Which is the highest mountain above sea level?",
+      "Mount Everest",
+      "K2",
+      "Kilimanjaro",
+      "Mont Blanc"
+     ],
+     "es": [
+      "¿Cuál es la montaña más alta sobre el nivel del mar?",
+      "El Everest",
+      "El K2",
+      "El Kilimanjaro",
+      "El Mont Blanc"
+     ]
+    },
+    {
+     "en": [
+      "On which continent is the Sahara Desert?",
+      "Africa",
+      "Asia",
+      "Australia",
+      "South America"
+     ],
+     "es": [
+      "¿En qué continente está el desierto del Sahara?",
+      "África",
+      "Asia",
+      "Oceanía",
+      "Sudamérica"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Japan?",
+      "Tokyo",
+      "Kyoto",
+      "Osaka",
+      "Seoul"
+     ],
+     "es": [
+      "¿Cuál es la capital de Japón?",
+      "Tokio",
+      "Kioto",
+      "Osaka",
+      "Seúl"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Canada?",
+      "Ottawa",
+      "Toronto",
+      "Vancouver",
+      "Montreal"
+     ],
+     "es": [
+      "¿Cuál es la capital de Canadá?",
+      "Ottawa",
+      "Toronto",
+      "Vancouver",
+      "Montreal"
+     ]
+    },
+    {
+     "en": [
+      "In which country is the city of Rio de Janeiro?",
+      "Brazil",
+      "Argentina",
+      "Portugal",
+      "Mexico"
+     ],
+     "es": [
+      "¿En qué país está la ciudad de Río de Janeiro?",
+      "Brasil",
+      "Argentina",
+      "Portugal",
+      "México"
+     ]
+    },
+    {
+     "en": [
+      "How many continents are there?",
+      "7",
+      "5",
+      "6",
+      "8"
+     ],
+     "es": [
+      "¿Cuántos continentes hay?",
+      "7",
+      "5",
+      "6",
+      "8"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Spain?",
+      "Madrid",
+      "Barcelona",
+      "Seville",
+      "Lisbon"
+     ],
+     "es": [
+      "¿Cuál es la capital de España?",
+      "Madrid",
+      "Barcelona",
+      "Sevilla",
+      "Lisboa"
+     ]
+    },
+    {
+     "en": [
+      "Which is the smallest country in the world?",
+      "Vatican City",
+      "Monaco",
+      "San Marino",
+      "Malta"
+     ],
+     "es": [
+      "¿Cuál es el país más pequeño del mundo?",
+      "Ciudad del Vaticano",
+      "Mónaco",
+      "San Marino",
+      "Malta"
+     ]
+    },
+    {
+     "en": [
+      "Which is the largest hot desert in the world?",
+      "The Sahara",
+      "The Gobi",
+      "The Kalahari",
+      "The Arabian Desert"
+     ],
+     "es": [
+      "¿Cuál es el desierto cálido más grande del mundo?",
+      "El Sahara",
+      "El Gobi",
+      "El Kalahari",
+      "El desierto de Arabia"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Argentina?",
+      "Buenos Aires",
+      "Santiago",
+      "Lima",
+      "Montevideo"
+     ],
+     "es": [
+      "¿Cuál es la capital de Argentina?",
+      "Buenos Aires",
+      "Santiago",
+      "Lima",
+      "Montevideo"
+     ]
+    },
+    {
+     "en": [
+      "Which country is the natural home of kangaroos?",
+      "Australia",
+      "New Zealand",
+      "South Africa",
+      "India"
+     ],
+     "es": [
+      "¿En qué país viven los canguros de forma natural?",
+      "Australia",
+      "Nueva Zelanda",
+      "Sudáfrica",
+      "India"
+     ]
+    },
+    {
+     "en": [
+      "Which ocean lies between Africa and Australia?",
+      "The Indian Ocean",
+      "The Atlantic Ocean",
+      "The Pacific Ocean",
+      "The Arctic Ocean"
+     ],
+     "es": [
+      "¿Qué océano se encuentra entre África y Australia?",
+      "El océano Índico",
+      "El océano Atlántico",
+      "El océano Pacífico",
+      "El océano Ártico"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Italy?",
+      "Rome",
+      "Milan",
+      "Venice",
+      "Naples"
+     ],
+     "es": [
+      "¿Cuál es la capital de Italia?",
+      "Roma",
+      "Milán",
+      "Venecia",
+      "Nápoles"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Egypt?",
+      "Cairo",
+      "Alexandria",
+      "Giza",
+      "Luxor"
+     ],
+     "es": [
+      "¿Cuál es la capital de Egipto?",
+      "El Cairo",
+      "Alejandría",
+      "Guiza",
+      "Luxor"
+     ]
+    },
+    {
+     "en": [
+      "Which country has the most natural lakes?",
+      "Canada",
+      "Russia",
+      "United States",
+      "Finland"
+     ],
+     "es": [
+      "¿Qué país tiene más lagos naturales?",
+      "Canadá",
+      "Rusia",
+      "Estados Unidos",
+      "Finlandia"
+     ]
+    },
+    {
+     "en": [
+      "In which country is Mount Kilimanjaro?",
+      "Tanzania",
+      "Kenya",
+      "Ethiopia",
+      "Uganda"
+     ],
+     "es": [
+      "¿En qué país está el monte Kilimanjaro?",
+      "Tanzania",
+      "Kenia",
+      "Etiopía",
+      "Uganda"
+     ]
+    },
+    {
+     "en": [
+      "In which country is the Great Barrier Reef?",
+      "Australia",
+      "Mexico",
+      "Philippines",
+      "Indonesia"
+     ],
+     "es": [
+      "¿En qué país está la Gran Barrera de Coral?",
+      "Australia",
+      "México",
+      "Filipinas",
+      "Indonesia"
+     ]
+    },
+    {
+     "en": [
+      "What is the largest ocean on Earth?",
+      "The Pacific",
+      "The Atlantic",
+      "The Indian",
+      "The Arctic"
+     ],
+     "es": [
+      "¿Cuál es el océano más grande de la Tierra?",
+      "El Pacífico",
+      "El Atlántico",
+      "El Índico",
+      "El Ártico"
+     ]
+    },
+    {
+     "en": [
+      "Which continent is Egypt in?",
+      "Africa",
+      "Asia",
+      "Europe",
+      "South America"
+     ],
+     "es": [
+      "¿En qué continente está Egipto?",
+      "África",
+      "Asia",
+      "Europa",
+      "América del Sur"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Japan?",
+      "Tokyo",
+      "Kyoto",
+      "Osaka",
+      "Seoul"
+     ],
+     "es": [
+      "¿Cuál es la capital de Japón?",
+      "Tokio",
+      "Kioto",
+      "Osaka",
+      "Seúl"
+     ]
+    },
+    {
+     "en": [
+      "Which is the longest river in South America?",
+      "The Amazon",
+      "The Orinoco",
+      "The Paraná",
+      "The Magdalena"
+     ],
+     "es": [
+      "¿Cuál es el río más largo de América del Sur?",
+      "El Amazonas",
+      "El Orinoco",
+      "El Paraná",
+      "El Magdalena"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Australia?",
+      "Canberra",
+      "Sydney",
+      "Melbourne",
+      "Perth"
+     ],
+     "es": [
+      "¿Cuál es la capital de Australia?",
+      "Canberra",
+      "Sídney",
+      "Melbourne",
+      "Perth"
+     ]
+    },
+    {
+     "en": [
+      "Which is the smallest country in the world?",
+      "Vatican City",
+      "Monaco",
+      "Malta",
+      "Liechtenstein"
+     ],
+     "es": [
+      "¿Cuál es el país más pequeño del mundo?",
+      "Ciudad del Vaticano",
+      "Mónaco",
+      "Malta",
+      "Liechtenstein"
+     ]
+    },
+    {
+     "en": [
+      "What is the tallest mountain above sea level?",
+      "Mount Everest",
+      "K2",
+      "Mont Blanc",
+      "Kilimanjaro"
+     ],
+     "es": [
+      "¿Cuál es la montaña más alta sobre el nivel del mar?",
+      "El Everest",
+      "K2",
+      "Mont Blanc",
+      "El Kilimanjaro"
+     ]
+    },
+    {
+     "en": [
+      "What is the capital of Canada?",
+      "Ottawa",
+      "Toronto",
+      "Montreal",
+      "Vancouver"
+     ],
+     "es": [
+      "¿Cuál es la capital de Canadá?",
+      "Ottawa",
+      "Toronto",
+      "Montreal",
+      "Vancouver"
+     ]
+    },
+    {
+     "en": [
+      "Which is the largest hot desert in the world?",
+      "The Sahara",
+      "The Gobi",
+      "The Kalahari",
+      "The Atacama"
+     ],
+     "es": [
+      "¿Cuál es el desierto cálido más grande del mundo?",
+      "El Sahara",
+      "El Gobi",
+      "El Kalahari",
+      "El Atacama"
+     ]
+    },
+    {
+     "en": [
+      "Which country is shaped like a boot?",
+      "Italy",
+      "Spain",
+      "Greece",
+      "Portugal"
+     ],
+     "es": [
+      "¿Qué país tiene forma de bota?",
+      "Italia",
+      "España",
+      "Grecia",
+      "Portugal"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "arts",
+   "questions": [
+    {
+     "en": [
+      "Who painted the Mona Lisa?",
+      "Leonardo da Vinci",
+      "Michelangelo",
+      "Raphael",
+      "Vincent van Gogh"
+     ],
+     "es": [
+      "¿Quién pintó la Mona Lisa?",
+      "Leonardo da Vinci",
+      "Miguel Ángel",
+      "Rafael",
+      "Vincent van Gogh"
+     ]
+    },
+    {
+     "en": [
+      "Who wrote the play Romeo and Juliet?",
+      "William Shakespeare",
+      "Charles Dickens",
+      "Mark Twain",
+      "Jane Austen"
+     ],
+     "es": [
+      "¿Quién escribió la obra Romeo y Julieta?",
+      "William Shakespeare",
+      "Charles Dickens",
+      "Mark Twain",
+      "Jane Austen"
+     ]
+    },
+    {
+     "en": [
+      "How many strings does a standard violin have?",
+      "4",
+      "6",
+      "5",
+      "3"
+     ],
+     "es": [
+      "¿Cuántas cuerdas tiene un violín estándar?",
+      "4",
+      "6",
+      "5",
+      "3"
+     ]
+    },
+    {
+     "en": [
+      "Who composed the Ninth Symphony that ends with the Ode to Joy?",
+      "Ludwig van Beethoven",
+      "Wolfgang Mozart",
+      "Johann Sebastian Bach",
+      "Frédéric Chopin"
+     ],
+     "es": [
+      "¿Quién compuso la Novena Sinfonía que termina con la Oda a la Alegría?",
+      "Ludwig van Beethoven",
+      "Wolfgang Mozart",
+      "Johann Sebastian Bach",
+      "Frédéric Chopin"
+     ]
+    },
+    {
+     "en": [
+      "Which painter is famous for cutting off part of his own ear?",
+      "Vincent van Gogh",
+      "Pablo Picasso",
+      "Claude Monet",
+      "Salvador Dalí"
+     ],
+     "es": [
+      "¿Qué pintor es famoso por cortarse parte de su propia oreja?",
+      "Vincent van Gogh",
+      "Pablo Picasso",
+      "Claude Monet",
+      "Salvador Dalí"
+     ]
+    },
+    {
+     "en": [
+      "In which city is the Louvre museum?",
+      "Paris",
+      "London",
+      "Rome",
+      "Madrid"
+     ],
+     "es": [
+      "¿En qué ciudad está el museo del Louvre?",
+      "París",
+      "Londres",
+      "Roma",
+      "Madrid"
+     ]
+    },
+    {
+     "en": [
+      "Who wrote Don Quixote?",
+      "Miguel de Cervantes",
+      "Gabriel García Márquez",
+      "Federico García Lorca",
+      "Pablo Neruda"
+     ],
+     "es": [
+      "¿Quién escribió Don Quijote de la Mancha?",
+      "Miguel de Cervantes",
+      "Gabriel García Márquez",
+      "Federico García Lorca",
+      "Pablo Neruda"
+     ]
+    },
+    {
+     "en": [
+      "Which instrument has 88 keys?",
+      "Piano",
+      "Organ",
+      "Accordion",
+      "Harp"
+     ],
+     "es": [
+      "¿Qué instrumento tiene 88 teclas?",
+      "El piano",
+      "El órgano",
+      "El acordeón",
+      "El arpa"
+     ]
+    },
+    {
+     "en": [
+      "Who painted Guernica?",
+      "Pablo Picasso",
+      "Salvador Dalí",
+      "Francisco Goya",
+      "Joan Miró"
+     ],
+     "es": [
+      "¿Quién pintó el Guernica?",
+      "Pablo Picasso",
+      "Salvador Dalí",
+      "Francisco de Goya",
+      "Joan Miró"
+     ]
+    },
+    {
+     "en": [
+      "Who wrote Pride and Prejudice?",
+      "Jane Austen",
+      "Emily Brontë",
+      "Charlotte Brontë",
+      "Mary Shelley"
+     ],
+     "es": [
+      "¿Quién escribió Orgullo y prejuicio?",
+      "Jane Austen",
+      "Emily Brontë",
+      "Charlotte Brontë",
+      "Mary Shelley"
+     ]
+    },
+    {
+     "en": [
+      "In music, which word means getting gradually louder?",
+      "Crescendo",
+      "Diminuendo",
+      "Staccato",
+      "Legato"
+     ],
+     "es": [
+      "En música, ¿qué palabra significa ir aumentando poco a poco el volumen?",
+      "Crescendo",
+      "Diminuendo",
+      "Staccato",
+      "Legato"
+     ]
+    },
+    {
+     "en": [
+      "In which art form do dancers perform a plié?",
+      "Ballet",
+      "Painting",
+      "Opera",
+      "Sculpture"
+     ],
+     "es": [
+      "¿En qué arte realizan los bailarines un plié?",
+      "El ballet",
+      "La pintura",
+      "La ópera",
+      "La escultura"
+     ]
+    },
+    {
+     "en": [
+      "Who sculpted the famous statue David (1501-1504)?",
+      "Michelangelo",
+      "Donatello",
+      "Bernini",
+      "Rodin"
+     ],
+     "es": [
+      "¿Quién esculpió la famosa estatua del David (1501-1504)?",
+      "Miguel Ángel",
+      "Donatello",
+      "Bernini",
+      "Rodin"
+     ]
+    },
+    {
+     "en": [
+      "Which author created the detective Sherlock Holmes?",
+      "Arthur Conan Doyle",
+      "Agatha Christie",
+      "Edgar Allan Poe",
+      "H. G. Wells"
+     ],
+     "es": [
+      "¿Qué autor creó al detective Sherlock Holmes?",
+      "Arthur Conan Doyle",
+      "Agatha Christie",
+      "Edgar Allan Poe",
+      "H. G. Wells"
+     ]
+    },
+    {
+     "en": [
+      "Which country is the tango most associated with?",
+      "Argentina",
+      "Spain",
+      "Brazil",
+      "Cuba"
+     ],
+     "es": [
+      "¿Con qué país se asocia más el tango?",
+      "Argentina",
+      "España",
+      "Brasil",
+      "Cuba"
+     ]
+    },
+    {
+     "en": [
+      "Who is the hero of Homer's Odyssey?",
+      "Odysseus",
+      "Achilles",
+      "Hector",
+      "Perseus"
+     ],
+     "es": [
+      "¿Quién es el héroe de la Odisea de Homero?",
+      "Odiseo",
+      "Aquiles",
+      "Héctor",
+      "Perseo"
+     ]
+    },
+    {
+     "en": [
+      "Who wrote One Hundred Years of Solitude?",
+      "Gabriel García Márquez",
+      "Mario Vargas Llosa",
+      "Jorge Luis Borges",
+      "Isabel Allende"
+     ],
+     "es": [
+      "¿Quién escribió Cien años de soledad?",
+      "Gabriel García Márquez",
+      "Mario Vargas Llosa",
+      "Jorge Luis Borges",
+      "Isabel Allende"
+     ]
+    },
+    {
+     "en": [
+      "What is the Japanese art of paper folding called?",
+      "Origami",
+      "Ikebana",
+      "Kabuki",
+      "Haiku"
+     ],
+     "es": [
+      "¿Cómo se llama el arte japonés de doblar papel?",
+      "Origami",
+      "Ikebana",
+      "Kabuki",
+      "Haiku"
+     ]
+    },
+    {
+     "en": [
+      "Which is the largest bowed string instrument in an orchestra?",
+      "Double bass",
+      "Cello",
+      "Viola",
+      "Violin"
+     ],
+     "es": [
+      "¿Cuál es el instrumento de cuerda frotada más grande de una orquesta?",
+      "El contrabajo",
+      "El violonchelo",
+      "La viola",
+      "El violín"
+     ]
+    },
+    {
+     "en": [
+      "What language does the word Hola come from?",
+      "Spanish",
+      "Italian",
+      "Portuguese",
+      "French"
+     ],
+     "es": [
+      "¿De qué idioma viene la palabra Hola?",
+      "Del español",
+      "Del italiano",
+      "Del portugués",
+      "Del francés"
+     ]
+    },
+    {
+     "en": [
+      "Who painted the Mona Lisa?",
+      "Leonardo da Vinci",
+      "Michelangelo",
+      "Pablo Picasso",
+      "Vincent van Gogh"
+     ],
+     "es": [
+      "¿Quién pintó la Mona Lisa?",
+      "Leonardo da Vinci",
+      "Miguel Ángel",
+      "Pablo Picasso",
+      "Vincent van Gogh"
+     ]
+    },
+    {
+     "en": [
+      "How many strings does a standard guitar have?",
+      "6",
+      "4",
+      "5",
+      "8"
+     ],
+     "es": [
+      "¿Cuántas cuerdas tiene una guitarra estándar?",
+      "6",
+      "4",
+      "5",
+      "8"
+     ]
+    },
+    {
+     "en": [
+      "Which instrument has black and white keys?",
+      "The piano",
+      "The violin",
+      "The flute",
+      "The drum"
+     ],
+     "es": [
+      "¿Qué instrumento tiene teclas blancas y negras?",
+      "El piano",
+      "El violín",
+      "La flauta",
+      "El tambor"
+     ]
+    },
+    {
+     "en": [
+      "On the traditional color wheel, which are the primary colors?",
+      "Red, yellow and blue",
+      "Red, green and yellow",
+      "Green, orange and purple",
+      "Black, white and gray"
+     ],
+     "es": [
+      "En el círculo cromático tradicional, ¿cuáles son los colores primarios?",
+      "Rojo, amarillo y azul",
+      "Rojo, verde y amarillo",
+      "Verde, naranja y morado",
+      "Negro, blanco y gris"
+     ]
+    },
+    {
+     "en": [
+      "Who wrote 'Romeo and Juliet'?",
+      "William Shakespeare",
+      "Charles Dickens",
+      "Mark Twain",
+      "Jane Austen"
+     ],
+     "es": [
+      "¿Quién escribió 'Romeo y Julieta'?",
+      "William Shakespeare",
+      "Charles Dickens",
+      "Mark Twain",
+      "Jane Austen"
+     ]
+    },
+    {
+     "en": [
+      "Which country is famous for the tango?",
+      "Argentina",
+      "Brazil",
+      "Mexico",
+      "Spain"
+     ],
+     "es": [
+      "¿Qué país es famoso por el tango?",
+      "Argentina",
+      "Brasil",
+      "México",
+      "España"
+     ]
+    },
+    {
+     "en": [
+      "What do you call a person who makes maps?",
+      "A cartographer",
+      "An architect",
+      "A geologist",
+      "A sculptor"
+     ],
+     "es": [
+      "¿Cómo se llama la persona que hace mapas?",
+      "Cartógrafo",
+      "Arquitecto",
+      "Geólogo",
+      "Escultor"
+     ]
+    },
+    {
+     "en": [
+      "Which famous painter cut off part of his own ear?",
+      "Vincent van Gogh",
+      "Pablo Picasso",
+      "Claude Monet",
+      "Salvador Dalí"
+     ],
+     "es": [
+      "¿Qué famoso pintor se cortó parte de su propia oreja?",
+      "Vincent van Gogh",
+      "Pablo Picasso",
+      "Claude Monet",
+      "Salvador Dalí"
+     ]
+    },
+    {
+     "en": [
+      "What is a haiku?",
+      "A short poem from Japan",
+      "A type of sushi",
+      "A martial art",
+      "A kimono"
+     ],
+     "es": [
+      "¿Qué es un haiku?",
+      "Un poema breve de Japón",
+      "Un tipo de sushi",
+      "Un arte marcial",
+      "Un kimono"
+     ]
+    },
+    {
+     "en": [
+      "In which country did the first Olympic Games take place?",
+      "Greece",
+      "Italy",
+      "Egypt",
+      "France"
+     ],
+     "es": [
+      "¿En qué país se celebraron los primeros Juegos Olímpicos?",
+      "Grecia",
+      "Italia",
+      "Egipto",
+      "Francia"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sports",
+   "questions": [
+    {
+     "en": [
+      "How many players does a soccer team have on the field?",
+      "11",
+      "9",
+      "10",
+      "12"
+     ],
+     "es": [
+      "¿Cuántos jugadores tiene un equipo de fútbol en el campo?",
+      "11",
+      "9",
+      "10",
+      "12"
+     ]
+    },
+    {
+     "en": [
+      "In which sport do you score a touchdown?",
+      "American football",
+      "Baseball",
+      "Tennis",
+      "Golf"
+     ],
+     "es": [
+      "¿En qué deporte se anota un touchdown?",
+      "Fútbol americano",
+      "Béisbol",
+      "Tenis",
+      "Golf"
+     ]
+    },
+    {
+     "en": [
+      "How many rings are in the Olympic symbol?",
+      "5",
+      "4",
+      "6",
+      "7"
+     ],
+     "es": [
+      "¿Cuántos aros tiene el símbolo olímpico?",
+      "5",
+      "4",
+      "6",
+      "7"
+     ]
+    },
+    {
+     "en": [
+      "Where were the first modern Olympic Games held in 1896?",
+      "Athens",
+      "Paris",
+      "London",
+      "Rome"
+     ],
+     "es": [
+      "¿Dónde se celebraron en 1896 los primeros Juegos Olímpicos modernos?",
+      "Atenas",
+      "París",
+      "Londres",
+      "Roma"
+     ]
+    },
+    {
+     "en": [
+      "How many points is a free throw worth in basketball?",
+      "1",
+      "2",
+      "3",
+      "4"
+     ],
+     "es": [
+      "¿Cuántos puntos vale un tiro libre en baloncesto?",
+      "1",
+      "2",
+      "3",
+      "4"
+     ]
+    },
+    {
+     "en": [
+      "Which sport is played with a shuttlecock?",
+      "Badminton",
+      "Tennis",
+      "Squash",
+      "Table tennis"
+     ],
+     "es": [
+      "¿Qué deporte se juega con un volante?",
+      "El bádminton",
+      "El tenis",
+      "El squash",
+      "El tenis de mesa"
+     ]
+    },
+    {
+     "en": [
+      "How many squares are on a chessboard?",
+      "64",
+      "32",
+      "100",
+      "81"
+     ],
+     "es": [
+      "¿Cuántas casillas tiene un tablero de ajedrez?",
+      "64",
+      "32",
+      "100",
+      "81"
+     ]
+    },
+    {
+     "en": [
+      "Which chess piece moves in an L-shape?",
+      "Knight",
+      "Bishop",
+      "Rook",
+      "Pawn"
+     ],
+     "es": [
+      "¿Qué pieza de ajedrez se mueve en forma de L?",
+      "El caballo",
+      "El alfil",
+      "La torre",
+      "El peón"
+     ]
+    },
+    {
+     "en": [
+      "About how long is a marathon?",
+      "42.2 km",
+      "21.1 km",
+      "10 km",
+      "50 km"
+     ],
+     "es": [
+      "¿Cuánto mide aproximadamente una maratón?",
+      "42,2 km",
+      "21,1 km",
+      "10 km",
+      "50 km"
+     ]
+    },
+    {
+     "en": [
+      "Which country won the first FIFA World Cup in 1930?",
+      "Uruguay",
+      "Brazil",
+      "Argentina",
+      "Italy"
+     ],
+     "es": [
+      "¿Qué país ganó el primer Mundial de fútbol en 1930?",
+      "Uruguay",
+      "Brasil",
+      "Argentina",
+      "Italia"
+     ]
+    },
+    {
+     "en": [
+      "In which country is the Wimbledon tennis tournament played?",
+      "United Kingdom",
+      "United States",
+      "France",
+      "Australia"
+     ],
+     "es": [
+      "¿En qué país se juega el torneo de tenis de Wimbledon?",
+      "Reino Unido",
+      "Estados Unidos",
+      "Francia",
+      "Australia"
+     ]
+    },
+    {
+     "en": [
+      "In tennis, what is a score of zero called?",
+      "Love",
+      "Duck",
+      "Nil",
+      "Null"
+     ],
+     "es": [
+      "En tenis, ¿cómo se dice cero puntos en inglés?",
+      "Love",
+      "Duck",
+      "Nil",
+      "Null"
+     ]
+    },
+    {
+     "en": [
+      "How many holes are played in a standard round of golf?",
+      "18",
+      "9",
+      "12",
+      "24"
+     ],
+     "es": [
+      "¿Cuántos hoyos se juegan en una ronda de golf estándar?",
+      "18",
+      "9",
+      "12",
+      "24"
+     ]
+    },
+    {
+     "en": [
+      "How many players does a volleyball team have on the court?",
+      "6",
+      "5",
+      "7",
+      "11"
+     ],
+     "es": [
+      "¿Cuántos jugadores tiene un equipo de voleibol en la cancha?",
+      "6",
+      "5",
+      "7",
+      "11"
+     ]
+    },
+    {
+     "en": [
+      "What is the highest score you can get with a single dart (including the bullseye)?",
+      "60",
+      "50",
+      "100",
+      "40"
+     ],
+     "es": [
+      "¿Cuál es la puntuación máxima que se puede lograr con un solo dardo (incluida la diana)?",
+      "60",
+      "50",
+      "100",
+      "40"
+     ]
+    },
+    {
+     "en": [
+      "How many pieces does each player start with in chess?",
+      "16",
+      "12",
+      "8",
+      "20"
+     ],
+     "es": [
+      "¿Con cuántas piezas empieza cada jugador en el ajedrez?",
+      "16",
+      "12",
+      "8",
+      "20"
+     ]
+    },
+    {
+     "en": [
+      "In bowling, what is it called when you knock down all ten pins with your first throw?",
+      "A strike",
+      "A spare",
+      "A split",
+      "A gutter"
+     ],
+     "es": [
+      "En los bolos, ¿cómo se llama tirar los diez bolos con el primer lanzamiento?",
+      "Pleno (strike)",
+      "Semipleno (spare)",
+      "Split",
+      "Canaleta"
+     ]
+    },
+    {
+     "en": [
+      "Which sport is nicknamed the beautiful game?",
+      "Soccer",
+      "Basketball",
+      "Cricket",
+      "Rugby"
+     ],
+     "es": [
+      "¿Qué deporte se conoce como el juego bonito?",
+      "El fútbol",
+      "El baloncesto",
+      "El críquet",
+      "El rugby"
+     ]
+    },
+    {
+     "en": [
+      "Which game uses the terms check and checkmate?",
+      "Chess",
+      "Checkers",
+      "Poker",
+      "Go"
+     ],
+     "es": [
+      "¿Qué juego usa los términos jaque y jaque mate?",
+      "El ajedrez",
+      "Las damas",
+      "El póker",
+      "El go"
+     ]
+    },
+    {
+     "en": [
+      "How many cards are in a standard deck, not counting jokers?",
+      "52",
+      "54",
+      "48",
+      "56"
+     ],
+     "es": [
+      "¿Cuántas cartas tiene una baraja francesa estándar, sin contar los comodines?",
+      "52",
+      "54",
+      "48",
+      "56"
+     ]
+    },
+    {
+     "en": [
+      "How many players does a soccer team have on the field?",
+      "11",
+      "9",
+      "10",
+      "12"
+     ],
+     "es": [
+      "¿Cuántos jugadores tiene un equipo de fútbol en la cancha?",
+      "11",
+      "9",
+      "10",
+      "12"
+     ]
+    },
+    {
+     "en": [
+      "In which sport can you score a 'touchdown'?",
+      "American football",
+      "Baseball",
+      "Basketball",
+      "Tennis"
+     ],
+     "es": [
+      "¿En qué deporte se anota un 'touchdown'?",
+      "Fútbol americano",
+      "Béisbol",
+      "Baloncesto",
+      "Tenis"
+     ]
+    },
+    {
+     "en": [
+      "How many rings are on the Olympic flag?",
+      "5",
+      "4",
+      "6",
+      "7"
+     ],
+     "es": [
+      "¿Cuántos aros tiene la bandera olímpica?",
+      "5",
+      "4",
+      "6",
+      "7"
+     ]
+    },
+    {
+     "en": [
+      "In chess, which piece moves in an L shape?",
+      "The knight",
+      "The bishop",
+      "The rook",
+      "The queen"
+     ],
+     "es": [
+      "En el ajedrez, ¿qué pieza se mueve en forma de L?",
+      "El caballo",
+      "El alfil",
+      "La torre",
+      "La reina"
+     ]
+    },
+    {
+     "en": [
+      "How many points is a free throw worth in basketball?",
+      "1",
+      "2",
+      "3",
+      "4"
+     ],
+     "es": [
+      "¿Cuántos puntos vale un tiro libre en el baloncesto?",
+      "1",
+      "2",
+      "3",
+      "4"
+     ]
+    },
+    {
+     "en": [
+      "Which sport is played with a shuttlecock?",
+      "Badminton",
+      "Tennis",
+      "Squash",
+      "Golf"
+     ],
+     "es": [
+      "¿Qué deporte se juega con un volante?",
+      "Bádminton",
+      "Tenis",
+      "Squash",
+      "Golf"
+     ]
+    },
+    {
+     "en": [
+      "What color card sends a player off in soccer?",
+      "Red",
+      "Yellow",
+      "Blue",
+      "Green"
+     ],
+     "es": [
+      "¿De qué color es la tarjeta que expulsa a un jugador de fútbol?",
+      "Roja",
+      "Amarilla",
+      "Azul",
+      "Verde"
+     ]
+    },
+    {
+     "en": [
+      "How many sides does a standard die have?",
+      "6",
+      "4",
+      "8",
+      "12"
+     ],
+     "es": [
+      "¿Cuántas caras tiene un dado normal?",
+      "6",
+      "4",
+      "8",
+      "12"
+     ]
+    },
+    {
+     "en": [
+      "In which sport do you hit a yellow ball over a net with a racket?",
+      "Tennis",
+      "Volleyball",
+      "Golf",
+      "Rugby"
+     ],
+     "es": [
+      "¿En qué deporte se golpea con raqueta una pelota amarilla por encima de una red?",
+      "Tenis",
+      "Voleibol",
+      "Golf",
+      "Rugby"
+     ]
+    },
+    {
+     "en": [
+      "Which game has the moves 'check' and 'checkmate'?",
+      "Chess",
+      "Checkers",
+      "Dominoes",
+      "Backgammon"
+     ],
+     "es": [
+      "¿Qué juego tiene las jugadas 'jaque' y 'jaque mate'?",
+      "Ajedrez",
+      "Damas",
+      "Dominó",
+      "Backgammon"
+     ]
+    }
+   ]
+  }
+ ]
+}
