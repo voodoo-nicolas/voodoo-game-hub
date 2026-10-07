@@ -198,7 +198,7 @@ func style_pill(b: Button, lit: bool, color: Variant = null) -> void:
 	var border: Color = color if color != null else (pal.accent if lit else pal.off_border)
 	var fill: Color = pal.accent_fill if lit else pal.off_fill
 	if color != null and lit:
-		fill = Color(Color(color).lerp(Color(0.03, 0.0, 0.06), 0.7), 0.93) if not Settings.is_light() else Color(color).lerp(Color.WHITE, 0.82)
+		fill = Color(Color(color).lerp(Color(0.0, 0.02, 0.06), 0.7), 0.93) if not Settings.is_light() else Color(color).lerp(Color.WHITE, 0.82)
 	var sb := card_style(fill, border)
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14

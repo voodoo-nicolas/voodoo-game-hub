@@ -41,11 +41,30 @@ const FRIENDS_SCENE := "res://scenes/hub/friends.tscn"
 ## Game Browser filter chips (STANDARDS §2a): [key, English label]. They
 ## combine (all must match). "Top rated" / "New" / rating sort wait for
 ## ratings and release dates in the manifest.
+## "Friends playing" waits for the server to say which game a friend is in
+## (presence carries no game yet).
 const CHIPS := [
-	["single", "🤖 Single player"], ["local", "👥 Same phone"], ["online", "🌐 Online"],
-	["party", "🎉 Party"], ["fav", "★ Favorites"], ["downloaded", "⬇ Downloaded"],
+	["single", "🧍 Solo"], ["two", "👫 2 Player"], ["party", "🎉 Group"],
+	["quick", "⚡ Quick (5 min)"], ["original", "⭐ Viral Original"],
+	["local", "👥 Same phone"], ["online", "🌐 Online"],
+	["fav", "★ Favorites"], ["downloaded", "⬇ Downloaded"],
 	["unplayed", "✨ Never played"], ["learn", "🧠 Learn"],
 ]
+## Background art behind the Game Browser while that category is open
+## (English category name -> picture; categories without art keep the brand
+## background). AI-made by the owner, see media/CREDITS.json.
+const CATEGORY_ART := {
+	"Word": "res://media/hub/categories/word.jpg",
+	"Arcade": "res://media/hub/categories/arcade.jpg",
+	"Cards": "res://media/hub/categories/cards.jpg",
+	"Intelligence": "res://media/hub/categories/intelligence.jpg",
+	"Puzzle & Board": "res://media/hub/categories/puzzle.jpg",
+}
+## Height of the ★ Favorites block on top of the category list (with games /
+## with only its hint), so the category rows still share what's left.
+const FAV_BLOCK_HEIGHT := 160.0
+const FAV_BLOCK_HINT_HEIGHT := 90.0
+const SLIDE_TIME := 0.32
 const SORTS := [["cat", "By category"], ["az", "A–Z"], ["recent", "Recently played"]]
 ## Mode icons on a tile, from the manifest's "modes".
 const MODE_ICONS := {"cpu": "🤖", "local": "👥", "online": "🌐", "party": "🎉"}
@@ -58,7 +77,10 @@ var browser_view: Control
 var profile_btn: Button
 var friends_btn: Button
 var continue_box: VBoxContainer
-var favorites_box: VBoxContainer
+## Category pictures fade in behind the browser; _slide moves the two views.
+var art_layer: Control
+var _art_path := ""
+var _slide: Tween
 var games_btn: Button
 var search_box: LineEdit
 var chips: Dictionary = {}       # key -> true while that chip is on
@@ -108,6 +130,11 @@ func _ready() -> void:
 		bg = Brand.backdrop()
 	add_child(bg)
 	move_child(bg, 0)
+	art_layer = Control.new()
+	art_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	art_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(art_layer)
+	move_child(art_layer, 1)
 
 	_build_browser_view()
 	_build_home_view()
@@ -130,7 +157,7 @@ func _ready() -> void:
 	Catalog.refresh_manifest(Config.MANIFEST_MAX_AGE_SEC)
 	_rebuild_list()
 	_refresh_home()
-	_show_home()
+	_show_home(false)
 	if not Catalog.app_update_checked:
 		Catalog.check_app_update(_show_update_dialog)
 	var requested: String = Social.take_launch_request()
@@ -210,9 +237,6 @@ func _build_home_view() -> void:
 
 	continue_box = VBoxContainer.new()
 	col.add_child(continue_box)
-	favorites_box = VBoxContainer.new()
-	favorites_box.add_theme_constant_override("separation", 8)
-	col.add_child(favorites_box)
 
 	games_btn = Button.new()
 	games_btn.custom_minimum_size = Vector2(0, 124)
@@ -232,40 +256,78 @@ func _build_home_view() -> void:
 	version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(version_label)
 
-## Continue (the last game opened) and the ★ Favorites row.
+## Continue (the last game opened): a small card above the Games button.
 func _refresh_home() -> void:
 	if continue_box == null:
 		return
-	for c in continue_box.get_children() + favorites_box.get_children():
+	for c in continue_box.get_children():
 		c.queue_free()
-	var count := 0
-	for cat in Catalog.categories:
-		for g in cat.games:
-			if g.has("id"):
-				count += 1
-	games_btn.text = "🎮  " + tr("Games") + "\n" + tr("%d games") % count
+	games_btn.text = "🎮  " + tr("Games")
 	var last := HubData.last_played()
 	var game: Dictionary = Catalog.get_game(last)
 	if last != "" and not game.is_empty():
-		continue_box.add_child(_make_tile(game, tr("▶ Continue")))
-	var favs: Array = HubData.favorites().filter(func(id): return not Catalog.get_game(id).is_empty())
+		continue_box.add_child(_continue_card(game))
+
+func _continue_card(game: Dictionary) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(0, 80)
+	b.focus_mode = Control.FOCUS_NONE
+	var color: Color = pal.ready if Catalog.state_of(game) == Catalog.STATE_READY else pal.download
+	var sb := _neon_style(_tinted_fill(color), color, 0.4)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		b.add_theme_stylebox_override(state, sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(row)
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 18
+	row.offset_right = -18
+	var icon := _game_icon(game, 46.0)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(icon)
+	var text_col := VBoxContainer.new()
+	text_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_col.add_theme_constant_override("separation", -2)
+	text_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(text_col)
+	var head := Label.new()
+	head.text = tr("▶ Continue")
+	head.add_theme_font_size_override("font_size", 17)
+	head.add_theme_color_override("font_color", color)
+	text_col.add_child(head)
+	var t := Label.new()
+	t.text = Lang.pick(game, "title")
+	t.add_theme_font_size_override("font_size", 28)
+	t.add_theme_color_override("font_color", pal.text)
+	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	t.custom_minimum_size.x = 40
+	text_col.add_child(t)
+	b.pressed.connect(_on_tile_pressed.bind(str(game.id)))
+	return b
+
+## ★ Favorites, the first thing in the Game Browser's list (up to 4 across;
+## the rest are a tap away behind "+N more").
+func _favorites_block(favs: Array) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
 	var head := Label.new()
 	head.text = tr("★ Favorites").to_upper()
 	head.add_theme_font_size_override("font_size", 20)
 	head.add_theme_color_override("font_color", pal.count)
-	favorites_box.add_child(head)
+	box.add_child(head)
 	if favs.is_empty():
 		var hint := Label.new()
-		hint.text = tr("Tap ☆ on any game in 🎮 Games to pin it here.")
+		hint.text = tr("Tap ☆ on any game below to pin it here.")
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		hint.add_theme_font_size_override("font_size", 20)
 		hint.add_theme_color_override("font_color", pal.text_dim)
-		favorites_box.add_child(hint)
-		return
-	# Four fit across a phone; the rest are a tap away in the browser.
+		box.add_child(hint)
+		return box
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	favorites_box.add_child(row)
+	box.add_child(row)
 	for id in favs.slice(0, 4 if favs.size() <= 4 else 3):
 		row.add_child(_fav_tile(Catalog.get_game(id)))
 	if favs.size() > 4:
@@ -274,6 +336,7 @@ func _refresh_home() -> void:
 		more.custom_minimum_size.y = 120
 		more.pressed.connect(_show_browser_with.bind("fav"))
 		row.add_child(more)
+	return box
 
 func _fav_tile(game: Dictionary) -> Button:
 	var b := Button.new()
@@ -281,7 +344,7 @@ func _fav_tile(game: Dictionary) -> Button:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.focus_mode = Control.FOCUS_NONE
 	var color: Color = pal.ready if Catalog.state_of(game) == Catalog.STATE_READY else pal.download
-	var sb := _neon_style(_tinted_fill(color), color, 0.5)
+	var sb := _neon_style(_tinted_fill(color, GLASS), color, 0.3)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		b.add_theme_stylebox_override(state, sb)
 	var col := VBoxContainer.new()
@@ -335,19 +398,89 @@ func _hub_pill(text: String, color: Color) -> Button:
 		b.add_theme_stylebox_override(state, sb)
 	return b
 
-func _show_home() -> void:
-	home_view.visible = true
-	browser_view.visible = false
-	sticky_layer.visible = false
+func _show_home(animate: bool = true) -> void:
+	_set_category_art("")
+	_slide_to(false, animate)
 	_refresh_home()
 
 func _show_browser() -> void:
 	if busy:
 		return
-	home_view.visible = false
-	browser_view.visible = true
-	sticky_layer.visible = true
 	_rebuild_list()
+	_apply_category_art()
+	_slide_to(true, true)
+
+## Home and the Game Browser slide sideways past each other (the browser
+## comes in from the right) instead of popping.
+func _slide_to(to_browser: bool, animate: bool) -> void:
+	if _slide != null and _slide.is_valid():
+		_slide.kill()
+	var w := size.x
+	sticky_layer.visible = false
+	if not animate or w <= 0.0 or not is_inside_tree():
+		_slide_done(to_browser)
+		return
+	home_view.visible = true
+	browser_view.visible = true
+	home_view.position.x = 0.0 if to_browser else -w
+	browser_view.position.x = w if to_browser else 0.0
+	_slide = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_slide.tween_property(home_view, "position:x", -w if to_browser else 0.0, SLIDE_TIME)
+	_slide.tween_property(browser_view, "position:x", 0.0 if to_browser else w, SLIDE_TIME)
+	_slide.chain().tween_callback(_slide_done.bind(to_browser))
+
+func _slide_done(to_browser: bool) -> void:
+	home_view.position.x = 0.0
+	browser_view.position.x = 0.0
+	home_view.visible = not to_browser
+	browser_view.visible = to_browser
+	sticky_layer.visible = to_browser
+
+## The open category's picture fades in behind the list (crossfading from the
+## previous one); closing it, or leaving the browser, fades back to the
+## brand background.
+func _apply_category_art() -> void:
+	var name := ""
+	if expanded_index >= 0 and expanded_index < Catalog.categories.size():
+		name = str(Catalog.categories[expanded_index].get("name", ""))
+	_set_category_art(name)
+
+func _set_category_art(category_name: String) -> void:
+	var path: String = CATEGORY_ART.get(category_name, "")
+	if path != "" and not ResourceLoader.exists(path):
+		path = ""
+	if path == _art_path:
+		return
+	_art_path = path
+	var old: Array = art_layer.get_children()
+	if path == "" and old.is_empty():
+		return
+	var fade := create_tween().set_parallel(true)
+	if path != "":
+		var pic := TextureRect.new()
+		pic.texture = load(path)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pic.modulate.a = 0.0
+		# Darkened a little so the translucent tiles stay readable on it.
+		var dim := ColorRect.new()
+		dim.color = Color(0, 0.01, 0.04, 0.4)
+		dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pic.add_child(dim)
+		art_layer.add_child(pic)
+		fade.tween_property(pic, "modulate:a", 1.0, 0.45)
+	for o in old:
+		fade.tween_property(o, "modulate:a", 0.0, 0.45)
+	# After the fade, drop the pictures that were there before.
+	fade.chain().tween_callback(_free_nodes.bind(old))
+
+func _free_nodes(nodes: Array) -> void:
+	for n in nodes:
+		if is_instance_valid(n):
+			n.queue_free()
 
 func _show_browser_with(chip: String) -> void:
 	chips = {chip: true}
@@ -533,8 +666,14 @@ func _matches(game: Dictionary, recent: Dictionary) -> bool:
 			"single":
 				if modes != "" and not modes.contains("cpu"):
 					return false
+			"two":
+				if not modes.contains("local") and not modes.contains("online"):
+					return false
 			"local", "online", "party":
 				if not modes.contains(key):
+					return false
+			"quick", "original":
+				if game.get(key, false) != true:
 					return false
 			"fav":
 				if not HubData.is_favorite(id):
@@ -635,10 +774,14 @@ func _neon_style(fill: Color, border: Color, glow_strength: float) -> StyleBoxFl
 ## A panel fill tinted with `color` but nearly opaque: a see-through fill
 ## lets the glow (drawn behind the panel) shine through and wash the panel
 ## out to a pale pastel that white text can't be read on.
-func _tinted_fill(color: Color) -> Color:
+func _tinted_fill(color: Color, alpha: float = 0.93) -> Color:
 	if Settings.is_light():
 		return color.lerp(Color(1, 1, 1), 0.85)
-	return Color(color.lerp(Color(0.03, 0.0, 0.06), 0.72), 0.93)
+	return Color(color.lerp(Color(0.0, 0.02, 0.06), 0.72), alpha)
+
+## The Game Browser's panels are slightly see-through, so the background
+## (and a category's picture) shows through them.
+const GLASS := 0.78
 
 ## Accordion: rebuilds the whole category list from scratch each time it's toggled.
 ## Only expanded_index's games are shown, so opening one category collapses any other.
@@ -671,9 +814,11 @@ func _rebuild_list() -> void:
 	var categories: Array = Catalog.categories
 	if expanded_index >= categories.size():
 		expanded_index = -1
+	var favs: Array = HubData.favorites().filter(func(id): return not Catalog.get_game(id).is_empty())
+	list_container.add_child(_favorites_block(favs))
 	var row_height := HEADER_HEIGHT_COMPACT
 	if expanded_index == -1 and not categories.is_empty():
-		var available: float = get_viewport_rect().size.y - HEADER_CHROME_HEIGHT
+		var available: float = get_viewport_rect().size.y - HEADER_CHROME_HEIGHT 				- (FAV_BLOCK_HEIGHT if not favs.is_empty() else FAV_BLOCK_HINT_HEIGHT) - LIST_SEPARATION
 		var gaps: float = LIST_SEPARATION * (categories.size() - 1)
 		row_height = max(HEADER_HEIGHT_COMPACT, (available - gaps) / categories.size())
 
@@ -700,6 +845,7 @@ func _toggle_category(index: int) -> void:
 	var closing := expanded_index == index
 	expanded_index = -1 if closing else index
 	_rebuild_list()
+	_apply_category_art()
 	if closing:
 		# Closed from the pinned header far down the list: the list is now
 		# short, so bring that category's row back into view.
@@ -744,9 +890,9 @@ func _make_section_header(category: Dictionary, index: int, row_height: float) -
 	panel.custom_minimum_size = Vector2(0, row_height)
 	var sb: StyleBoxFlat
 	if is_open:
-		sb = _neon_style(_tinted_fill(pal.link), pal.link, 1.0)
+		sb = _neon_style(_tinted_fill(pal.link, GLASS), pal.link, 0.6)
 	else:
-		sb = _neon_style(pal.header_fill, pal.link_dim, 0.5)
+		sb = _neon_style(pal.header_fill, pal.link_dim, 0.3)
 	sb.content_margin_left = 24
 	sb.content_margin_right = 24
 	panel.add_theme_stylebox_override("panel", sb)
@@ -828,7 +974,7 @@ func _make_tile(game: Dictionary, heading: String = "") -> Control:
 	panel.custom_minimum_size = Vector2(0, 128)
 	var sb: StyleBoxFlat
 	if available:
-		sb = _neon_style(_tinted_fill(state_color), state_color, 0.6)
+		sb = _neon_style(_tinted_fill(state_color, GLASS), state_color, 0.35)
 	else:
 		sb = _neon_style(pal.soon_fill, pal.soon_border, 0.0)
 	sb.content_margin_left = 24
@@ -927,7 +1073,7 @@ func _on_star(id: String, star: Button) -> void:
 	if drag and drag.moved:
 		return
 	star.text = "★" if HubData.toggle_favorite(id) else "☆"
-	if chips.has("fav"):
+	if chips.has("fav") or not _filtering():
 		_rebuild_list.call_deferred()
 
 
@@ -986,8 +1132,8 @@ func _process(_delta: float) -> void:
 		_update_sticky()
 	if _scroll_back_frames > 0:
 		_scroll_back_frames -= 1
-		if _scroll_back_frames == 0 and _scroll_back_index >= 0 and _scroll_back_index < list_container.get_child_count():
-			list_scroll.ensure_control_visible(list_container.get_child(_scroll_back_index))
+		if _scroll_back_frames == 0 and _scroll_back_index >= 0 and _scroll_back_index + 1 < list_container.get_child_count():
+			list_scroll.ensure_control_visible(list_container.get_child(_scroll_back_index + 1))
 			_scroll_back_index = -1
 	if download_overlay == null or not is_instance_valid(download_overlay):
 		return

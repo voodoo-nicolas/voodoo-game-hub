@@ -215,34 +215,34 @@ func is_light() -> bool:
 func palette() -> Dictionary:
 	return LIGHT if is_light() else DARK
 
-## The dark theme follows the VOODOO banner art: violet and electric-blue
-## smoke, fiery orange lettering, near-black. Fills are see-through so the
+## The dark theme: electric blue headers, green games, fiery orange titles,
+## near-black blue (no purple, owner 2026-10-07). Fills are see-through so the
 ## hub's drifting mist shows behind the panels.
 const DARK := {
-	"bg": Color(0.025, 0.008, 0.05),
+	"bg": Color(0.012, 0.02, 0.05),
 	"text": Color(1, 1, 1),
-	"text_dim": Color(0.78, 0.7, 0.88),
+	"text_dim": Color(0.72, 0.8, 0.9),
 	"accent": Color(1.0, 0.6, 0.22),         # fiery orange: titles, dialogs, "on"
 	"accent_fill": Color(0.5, 0.2, 0.06, 0.85),
-	"link": Color(0.8, 0.45, 1.0),           # violet neon: headers, links
-	"link_dim": Color(0.42, 0.2, 0.62),
+	"link": Color(0.3, 0.68, 1.0),           # electric blue: category headers, links
+	"link_dim": Color(0.16, 0.38, 0.65),
 	"ready": Color(0.25, 1.0, 0.6),
-	"download": Color(0.36, 0.55, 0.9),
-	"soon": Color(0.5, 0.46, 0.56),
+	"download": Color(0.3, 0.62, 0.5),         # muted green: a game that downloads first
+	"soon": Color(0.46, 0.5, 0.56),
 	"update": Color(1.0, 0.78, 0.25),
-	"header_fill": Color(0.07, 0.02, 0.13, 0.78),
+	"header_fill": Color(0.02, 0.05, 0.12, 0.78),
 	"header_open_text": Color(1, 1, 1),
-	"count": Color(0.75, 0.6, 0.95),
-	"count_open": Color(1.0, 0.92, 1.0),
-	"soon_fill": Color(0.06, 0.04, 0.08, 0.8),
-	"soon_border": Color(0.3, 0.26, 0.36),
-	"soon_text": Color(0.55, 0.5, 0.6),
-	"version": Color(0.7, 0.58, 0.85),
-	"account": Color(0.92, 0.8, 1.0),
-	"card_fill": Color(0.08, 0.03, 0.14, 0.92),
-	"card_message": Color(0.92, 0.88, 0.97),
-	"off_fill": Color(0.14, 0.1, 0.19, 0.9),
-	"off_border": Color(0.38, 0.3, 0.48),
+	"count": Color(0.6, 0.78, 0.95),
+	"count_open": Color(0.92, 0.97, 1.0),
+	"soon_fill": Color(0.04, 0.05, 0.08, 0.8),
+	"soon_border": Color(0.26, 0.3, 0.36),
+	"soon_text": Color(0.5, 0.55, 0.6),
+	"version": Color(0.58, 0.72, 0.88),
+	"account": Color(0.8, 0.9, 1.0),
+	"card_fill": Color(0.03, 0.06, 0.13, 0.92),
+	"card_message": Color(0.88, 0.93, 0.97),
+	"off_fill": Color(0.09, 0.12, 0.18, 0.9),
+	"off_border": Color(0.3, 0.38, 0.48),
 	"overlay": Color(0, 0, 0, 0.8),
 	"glow": 1.0,
 }

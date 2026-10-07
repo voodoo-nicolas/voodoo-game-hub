@@ -5228,5 +5228,11 @@
  "💣 Surrounded? Tap the red bar: a bomb clears the screen": "💣 ¿Rodeado? Toca la barra roja: una bomba limpia la pantalla",
  "🔒 Beat the %s (level %d) for your first familiar": "🔒 Vence a %s (nivel %d) para tu primer familiar",
  "🔓 New familiar: %s": "🔓 Nuevo familiar: %s",
- "🔓 New mode: %s": "🔓 Nuevo modo: %s"
+ "🔓 New mode: %s": "🔓 Nuevo modo: %s",
+ "🧍 Solo": "🧍 Solo",
+ "👫 2 Player": "👫 2 jugadores",
+ "🎉 Group": "🎉 Grupo",
+ "⚡ Quick (5 min)": "⚡ Rápidos (5 min)",
+ "⭐ Viral Original": "⭐ Originales de Viral",
+ "Tap ☆ on any game below to pin it here.": "Toca ☆ en cualquier juego de abajo para fijarlo aquí."
 }

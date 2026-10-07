@@ -37,8 +37,9 @@ Rules (apply to every game, no exceptions):
 ## 2. Hub screen [CURRENT since v0.30.0, 2026-10-06]
 Goal: fewer buttons, no scrolling on the hub home.
 - Top bar: **Profile** (avatar) · **Friends** (badge = pending invites/requests) · **⚙ Options**.
-- Body: **Continue** card (last game, 1 tap → that game's Landing with Resume highlighted),
-  **Favorites** row (horizontal, optional), one big **🎮 Games** button → Game Browser.
+- Body: a small **Continue** card (last game, 1 tap → that game's Landing with Resume highlighted),
+  one big **🎮 Games** button (no count) → Game Browser (slides in). [2026-10-07: Favorites moved into the browser,
+  above the categories.]
 - Hub home must fit one phone screen at text scale 1.4 without vertical scroll.
 
 ### 2a. Game Browser [CURRENT since v0.30.0 — except ratings, "Top rated", "New", Newest sort, size badge: no data yet]

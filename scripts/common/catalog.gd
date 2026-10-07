@@ -226,6 +226,10 @@ func _apply_manifest(data: Variant) -> bool:
 			# ["vocab", "math"]; empty = nothing in particular.
 			var learn = raw_game.get("learn", [])
 			game["learn"] = learn if learn is Array else []
+			# Since v0.34, Game Browser filters: "quick" = a round fits in ~5
+			# minutes, "original" = a Viral original (not a classic).
+			game["quick"] = raw_game.get("quick", false) == true
+			game["original"] = raw_game.get("original", false) == true
 			cat_games.append(game)
 		var category := {
 			"name": str(raw_cat.get("name", "")),

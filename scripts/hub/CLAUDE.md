@@ -27,8 +27,9 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   `_make_tile`): fully rebuilds the visible list from `Catalog.categories` +
   `expanded_index` on every change rather than showing/hiding pre-built
   nodes. Simpler than diffing, cheap at a few dozen tiles.
-- **Tile state** is `Catalog.state_of(game)`: green ready, dim blue download
-  (never red -- the user: red reads as "bad"), amber needs a newer app
+- **Tile state** is `Catalog.state_of(game)`: green ready, muted green download
+  (was dim blue until 2026-10-07: categories are blue, games green; never red
+  -- the user: red reads as "bad"), amber needs a newer app
   (`min_build` > this `BUILD_NUMBER`), gray coming soon.
 - **Tile icons**: `scripts/common/game_icons.gd` draws neon-vector 3D-ish
   icons in code for the ids in its `IDS` (chess, sudoku, tictactoe, connect4,

@@ -1565,8 +1565,16 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
 
 - **Home view** (`hub.gd`, no scrolling at any text size: the wordmark takes
   the leftover height): top bar 👤 Profile · 👥 Friends (waiting requests) ·
-  ⚙ Options; ▶ Continue (the last game opened); ★ Favorites (up to 4, then
-  "+N more" opens the browser filtered); one big 🎮 Games button.
+  ⚙ Options; a small ▶ Continue card (the last game opened); one big 🎮 Games
+  button (no count). **Slide + look (owner 2026-10-07)**: Home and the browser slide
+  past each other (`_slide_to`); no purple anywhere in the palette (categories
+  electric blue, games green, a not-yet-downloaded game a muted green); the
+  browser opens with ★ Favorites (up to 4, then "+N more" filters) above the
+  categories; its panels are slightly see-through (`GLASS`) and opening a
+  category fades in its picture (`CATEGORY_ART`, `media/hub/categories/`; Dice &
+  Party and Other have none yet). Filters added: 2 Player, Quick (5 min) and
+  Viral Original (manifest `"quick"` / `"original"` flags, carried by Catalog);
+  "Friends playing" waits for presence to carry the current game.
 - **Game Browser** (same scene, `browser_view`): search, filter chips
   (Single player = no "modes" or "cpu", Same phone, Online, Party, ★, Downloaded,
   Never played, 🧠 Learn) that combine, sort By category (the old accordion, with its
