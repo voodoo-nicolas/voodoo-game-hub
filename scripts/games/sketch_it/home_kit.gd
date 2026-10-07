@@ -54,6 +54,7 @@ extends Control
 ##         "accent": HomeKit.CYAN,
 ##         "subtitle": "One line that sells the game.",
 ##         "logo": _draw_home_logo,          # func(c: Control): draw inside c.size
+##         "art": "res://games/<id>/landing_bg.jpg",  # optional Landing background (STANDARDS §3/§10)
 ##         "modes": [
 ##             {"text": "🤖 vs Computer", "sub": "You play X", "action": _new_vs_cpu},
 ##             {"text": "👥 2 Players", "sub": "One phone", "action": _new_two_player, "multi": true},
@@ -360,11 +361,15 @@ func _build_home() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	home.add_child(bg)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var grid := Control.new()
-	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	grid.draw.connect(draw_grid.bind(grid))
-	home.add_child(grid)
-	grid.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var art_path: String = cfg.get("art", "")
+	if art_path != "" and ResourceLoader.exists(art_path):
+		_add_art(home, load(art_path))
+	else:
+		var grid := Control.new()
+		grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		grid.draw.connect(draw_grid.bind(grid))
+		home.add_child(grid)
+		grid.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -414,7 +419,12 @@ func _build_home() -> void:
 
 	var sub_text: String = cfg.get("subtitle", consts.get("GOAL", ""))
 	if sub_text != "":
-		box.add_child(label(tr(sub_text), 24, DIM, true, true))
+		var sub := label(tr(sub_text), 24, DIM, true, true)
+		if cfg.has("art"):  # readable over the picture
+			sub.add_theme_color_override("font_color", WHITE)
+			sub.add_theme_color_override("font_outline_color", Color(BG, 0.9))
+			sub.add_theme_constant_override("outline_size", 8)
+		box.add_child(sub)
 
 	box.add_child(gap(6))
 	resume_btn = neon_button("", GO, 30, 84)
@@ -519,6 +529,35 @@ func _group_button(modes: Array, multi: bool, both: bool) -> Button:
 
 ## Sideways phones: a shorter logo, tighter margins and three buttons per row
 ## under More, so the play buttons are on screen without scrolling far.
+## The game's Landing art (cfg "art", its own media in res://games/<id>/):
+## fills the screen, cropped not stretched, under a veil that darkens toward
+## the bottom so the buttons stay readable.
+func _add_art(parent: Control, tex: Texture2D) -> void:
+	var art := TextureRect.new()
+	art.texture = tex
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(art)
+	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var grad := Gradient.new()
+	grad.set_color(0, Color(BG, 0.15))
+	grad.set_color(1, Color(BG, 0.78))
+	grad.add_point(0.35, Color(BG, 0.4))
+	var fill := GradientTexture2D.new()
+	fill.gradient = grad
+	fill.fill_from = Vector2(0, 0)
+	fill.fill_to = Vector2(0, 1)
+	fill.width = 4
+	fill.height = 256
+	var veil := TextureRect.new()
+	veil.texture = fill
+	veil.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	veil.stretch_mode = TextureRect.STRETCH_SCALE
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(veil)
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
 func _fit_home_layout() -> void:
 	var view := get_viewport_rect().size
 	var wide: bool = view.x > view.y

@@ -21,6 +21,7 @@ const Ui = preload("res://scripts/common/ui.gd")
 const Core = preload("res://scripts/games/geometry_wars/geometry_wars_core.gd")
 const Bosses = preload("res://scripts/games/geometry_wars/geometry_wars_bosses.gd")
 const Drones = preload("res://scripts/games/geometry_wars/geometry_wars_drones.gd")
+const Ship = preload("res://scripts/games/geometry_wars/geometry_wars_ship.gd")
 const Levels = preload("res://scripts/games/geometry_wars/geometry_wars_levels.gd")
 const Sounds = preload("res://scripts/games/geometry_wars/geometry_wars_sounds.gd")
 const Campaign = preload("res://scripts/games/geometry_wars/geometry_wars_campaign.gd")
@@ -1830,6 +1831,7 @@ func _build_home() -> void:
 		"accent": HomeKit.CYAN,
 		"subtitle": "A neon voodoo shooter. Break the swarm with a storm of pins.",
 		"logo": _draw_home_logo,
+		"art": "res://games/geometry_wars/landing_bg.jpg",
 		"modes": [
 			{"text": "💀  Endless", "sub": "3 lives, bombs, the full swarm", "action": _start_mode.bind("evolved")},
 			{"text": "🗺  Campaign", "sub": "40 levels · bosses · familiars", "action": _open_campaign.bind(false), "color": HomeKit.GOLD},
@@ -1856,41 +1858,35 @@ func _add_options(box: Control) -> void:
 func _on_music_pick(i: int) -> void:
 	sounds.set_music_on(i == 0)
 
+## The Landing's logo: the ship, the owner's demon skull, drawn as in their
+## picture -- mouth down, horns up -- with its flame rising between the horns.
 func _draw_home_logo(c: Control) -> void:
-	var h := minf(c.size.y, 170.0)
-	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0) + Vector2(-h * 0.35, 0)
-	var k := h * 0.42  # the skull's size
-	var at := func(x: float, y: float) -> Vector2: return ctr + Vector2(x, y) * k
-	# The horned skull, facing right, firing pins.
-	var skull := PackedVector2Array()
-	for i in 11:
-		var a := -PI * 0.55 + PI * 1.1 * i / 10.0
-		skull.append(at.call(0.05 + cos(a) * 0.42, sin(a) * 0.42))
-	for v in [Vector2(-0.3, 0.3), Vector2(-0.55, 0.2), Vector2(-0.55, -0.2), Vector2(-0.3, -0.3)]:
-		skull.append(at.call(v.x, v.y))
-	HomeKit.glow_polyline(c, skull, Color(0.9, 0.96, 1.0), 2.5, true)
-	for side in [-1.0, 1.0]:
-		var horn := PackedVector2Array([at.call(0.18, side * 0.36), at.call(0.25, side * 0.62), at.call(0.52, side * 0.78),
-			at.call(0.85, side * 0.7), at.call(1.05, side * 0.5)])
-		HomeKit.glow_polyline(c, horn, Color(1.0, 0.95, 0.85), 2.2)
-		HomeKit.glow_circle(c, at.call(0.08, side * 0.17), k * 0.09, HomeKit.PURPLE, 2.0, 0.8)
-	# The pin storm.
-	for i in 3:
-		var y := (i - 1) * 0.22
-		var tail: Vector2 = at.call(1.25 + i * 0.12, y)
-		HomeKit.glow_line(c, tail, tail + Vector2(k * 0.45, 0), Color(0.95, 0.95, 1.0), 1.6)
-		HomeKit.glow_circle(c, tail, k * 0.06, HomeKit.GOLD, 1.6, 1.0)
-	# A stalker eye in their path, crossbones tumbling behind it.
-	var eye := ctr + Vector2(h * 1.15, -h * 0.05)
-	var lid := PackedVector2Array()
-	for i in 13:
-		var x := -1.0 + i / 6.0
-		lid.append(eye + Vector2(x * h * 0.16, -(1.0 - x * x) * h * 0.1))
-	for i in range(11, 0, -1):
-		var x := -1.0 + i / 6.0
-		lid.append(eye + Vector2(x * h * 0.16, (1.0 - x * x) * h * 0.1))
-	HomeKit.glow_polyline(c, lid, HomeKit.PINK, 2.2, true)
-	HomeKit.glow_circle(c, eye - Vector2(h * 0.04, 0), h * 0.05, HomeKit.PINK, 1.8)
-	var cb := ctr + Vector2(h * 1.55, h * 0.25)
-	for s in [-1.0, 1.0]:
-		HomeKit.glow_line(c, cb + Vector2(-h * 0.11, -h * 0.11 * s), cb + Vector2(h * 0.11, h * 0.11 * s), Color("f2e6b8"), 2.0)
+	var h := minf(c.size.y, 190.0)
+	var ctr := Vector2(c.size.x / 2.0, c.size.y * 0.58)
+	var k := h * 0.46
+	# Ship data: x = forward (the mouth), y = the ship's left; mouth down here.
+	var to_screen := func(v: Vector2) -> Vector2: return ctr + Vector2(-v.y, v.x) * k
+	var root: Vector2 = to_screen.call(Ship.FLAME_ROOT)
+	for layer in 3:
+		var f: float = [1.0, 0.72, 0.42][layer]
+		var col: Color = [Color(1.0, 0.12, 0.22, 0.3), Color(1.0, 0.3, 0.35, 0.75), Color(1.0, 0.92, 0.9, 0.95)][layer]
+		var pts := PackedVector2Array()
+		for i in 9:
+			var t := i / 8.0
+			pts.append(root + Vector2(k * 0.2 * f * sin(PI * (0.15 + 0.85 * t)), -k * 0.75 * f * t))
+		for i in range(7, 0, -1):
+			var t := i / 8.0
+			pts.append(root + Vector2(-k * 0.2 * f * sin(PI * (0.15 + 0.85 * t)), -k * 0.75 * f * t))
+		c.draw_colored_polygon(pts, col)
+	var body := PackedVector2Array()
+	for v in Ship.OUTLINE:
+		body.append(to_screen.call(v))
+	if Geometry2D.triangulate_polygon(body).size() > 0:
+		c.draw_colored_polygon(body, Color(0.03, 0.05, 0.09, 0.95))
+	for slit in Ship.SLITS:
+		var sp := PackedVector2Array()
+		for v in slit:
+			sp.append(to_screen.call(v))
+		if Geometry2D.triangulate_polygon(sp).size() > 0:
+			c.draw_colored_polygon(sp, Color(1.0, 0.2, 0.3, 0.95))
+	HomeKit.glow_polyline(c, body, Color(0.7, 0.95, 1.0), 2.0, true)

@@ -66,7 +66,9 @@ delete), account & privacy, About / Credits / Licences (renders `CREDITS.json`).
 ## 3. Game Landing page [NEW — replaces "Home screen per game"]
 Built with the **Landing kit** (`home_kit.gd`, copied into every pack; see N7) [CURRENT since 2026-10-06].
 Contents (show only what applies to the game):
-- Per-game hero artwork (one per skin), title, short tagline.
+- Per-game hero artwork (one per skin), title, short tagline. [CURRENT 2026-10-07] Kit config `"art":
+  "res://games/<id>/landing_bg.jpg"` fills the Landing behind everything (cropped, darker toward the bottom;
+  the subtitle gets an outline). First: Neon Blast and Sky Strike (one shared owner image, a copy in each pack).
 - **Resume** (only if a save exists) · **Quick Play** (last-used mode + difficulty).
 - **Single player** · **Multiplayer**.
 - **🏆 Leaderboards** · **🏅 Achievements**.
@@ -167,7 +169,7 @@ Goal: players with many games download shared media once.
 | 0 Hub | in APK | `res://media/hub/` | hub music loop, UI stingers (prefer synthesized `Sfx`) |
 | 1 Common | `media-common.v<N>.pck` | `res://media/common/` | menu music, win/lose stingers, skull/bone/doll/lips sprites |
 | 2 Category | `media-cat-<cat>.v<N>.pck` | `res://media/cat/<cat>/` | cards: deck art, shuffle/deal/flip; word: tiles; arcade: lasers/explosions; board: piece clacks; dice: rolls |
-| 3 Game | `<id>.pck` | `res://games/<id>/` | that game's hero art, unique sounds (music: shared library only, rule below) |
+| 3 Game | `<id>.pck` | `res://games/<id>/` | that game's hero art, unique sounds (music: shared library only, rule below). [CURRENT 2026-10-07] pack presets include `games/<id>/*`; the APK / HubOnly / TraceDev presets exclude `games/*`; `hub.py check` wants a CREDITS.json entry for every file there; images import Lossy (0.85) like the brand art |
 
 Rules:
 - Promote an asset to Tier 2 only when ≥ 3 games in the category use it; to Tier 1 when ≥ 2 categories do.

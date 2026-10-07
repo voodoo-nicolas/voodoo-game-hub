@@ -54,6 +54,8 @@ VERSION_GD = ROOT / "scripts/common/version.gd"
 CONFIG_GD = ROOT / "scripts/common/config.gd"
 BRAND_GD = ROOT / "scripts/common/brand.gd"
 MEDIA = ROOT / "media"
+# A game's own media (STANDARDS §10 tier 3): games/<id>/, shipped in its pack.
+GAME_MEDIA = ROOT / "games"
 CREDITS = MEDIA / "CREDITS.json"
 # The shared music library (STANDARDS §10): written by tools/music_drop, which
 # keeps each track's credit in it (the OGG files live on a GitHub release).
@@ -215,7 +217,7 @@ dedicated_server=false
 custom_features="game_pack"
 export_filter="resources"
 export_files=PackedStringArray()
-include_filter="scenes/games/{gid}/*, scripts/games/{gid}/*"
+include_filter="scenes/games/{gid}/*, scripts/games/{gid}/*, games/{gid}/*"
 exclude_filter="{PACK_EXCLUDE}"
 export_path="builds/packs/{gid}.pck"
 encryption_include_filters=""
@@ -370,7 +372,8 @@ def validate() -> tuple[list[str], list[str]]:
 
 
 def lint_credits() -> list[str]:
-    """STANDARDS §10: every file under media/ has a media/CREDITS.json entry."""
+    """STANDARDS §10: every file under media/ and games/ (a game's own media)
+    has a media/CREDITS.json entry."""
     if not MEDIA.is_dir():
         return []
     try:
@@ -379,7 +382,8 @@ def lint_credits() -> list[str]:
         return [f"media/CREDITS.json is not valid JSON: {e}"]
     listed = {str(e.get("file", "")) for e in credits.get("assets", [])}
     errors = []
-    for f in sorted(MEDIA.rglob("*")):
+    files = sorted(MEDIA.rglob("*")) + (sorted(GAME_MEDIA.rglob("*")) if GAME_MEDIA.is_dir() else [])
+    for f in files:
         rel = f.relative_to(ROOT).as_posix()
         if (f.is_dir() or f.suffix in (".import", ".uid") or f.name in (".gdignore", "CREDITS.json")
                 or rel.startswith("media/licenses/") or f == MUSIC_LIST):

@@ -1477,6 +1477,10 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
   A shared hub music library is a separate piece of work (2026-10-05).
   **Since v0.33.0 that library exists (the Music autoload) and every game
   must use it** -- Neon Blast still runs its own music until it migrates.
+- **Landing art** (2026-10-07): the owner's AI-made nebula,
+  `games/geometry_wars/landing_bg.jpg` (also Sky Strike's, its own copy),
+  via the kit's `"art"`; the Landing logo is the demon skull mouth down,
+  flame rising (`_draw_home_logo`). Sources in `reference/art/games/`.
 - **Saves** are `var_to_str()` blobs inside the JSON save (Vector2s and
   nested dicts survive); a save from before this update is dropped.
 - Balance was set with a bot (aim at the nearest, dodge, chase geoms) in a

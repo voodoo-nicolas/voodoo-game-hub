@@ -156,6 +156,7 @@ func _build_ui() -> void:
 		"solo_heading": "Take off",
 		"subtitle": "Slide to dodge, the guns fire themselves. Power up and sink the battleship.",
 		"logo": _draw_home_logo,
+		"art": "res://games/sky_raider/landing_bg.jpg",
 		"modes": modes,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
