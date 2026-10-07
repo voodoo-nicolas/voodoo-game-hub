@@ -1456,24 +1456,73 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
 
 - **Modes**: Endless (the leaderboard), Time Attack, Unarmed, Sanctuary,
   Stampede, Coffin, Boss Rush; each has its own "Best score (<mode>)" stat.
-  **Campaign**: 6 worlds (the 6th, Underworld, opens after level 30), a
-  boss every sixth level; stars = finish / no life lost / the level's
-  `target` score. Cursed = the same levels, no familiar, starred apart.
+  **Only Endless and the Campaign are open at first** (owner 2026-10-07):
+  each campaign boss level's victory opens one more (`Levels.MODE_UNLOCK`:
+  6 Time Attack, 12 Unarmed, 18 Stampede, 24 Sanctuary, 30 Coffin, 40 Boss
+  Rush; `_home_modes()` builds the Landing from it, and leaving the map
+  reloads the scene so a new mode shows at once).
+  **Campaign** (reworked 2026-10-07): 6 worlds (the 6th, Underworld, opens
+  after level 30). Levels 1-2 teach flying (basic enemies, no bombs) then
+  bombs (`kills` goals, a `hint` banner); from level 3 every level is
+  `survive`: when the clock runs out the level is cleared (banked at once)
+  and play goes on -- **overtime**, busier every second (`OVERTIME_RAMP`) --
+  until the last life or 🏁 Finish. **Stars are points**: ★ clearing, ★★ /
+  ★★★ the level's `stars` targets (set with the balance bot). Boss levels
+  are survival too; beating the boss (not outlasting it) is what records
+  `beaten` and opens the prizes. Cursed = the same levels, no familiar,
+  starred apart. Extra bombs / lives come 1.5x as often as in v22
+  (`EXTRA_EASE`, owner: "50% easier").
+- **Bosses** (`_bosses.gd` header): queen 6, serpent 12, scorpion 18,
+  watcher 24, warden 30, titan 33, lord 35, watcher + warden 40; Boss Rush
+  is queen, serpent, scorpion, titan, watcher, warden, lord at tiers 1-7
+  (`rush` entries are [kind, tier]). The boss event's `n` is its **tier** (1-8):
+  bigger (`size_k_of`), tougher (`hp_k_of`, gentle: +15%/tier), quicker
+  (`rate_k`), more minions, extra attacks at set tiers. Owner's Boss Rush
+  feedback (2026-10-07): Hive Queen great as the first boss (tier 1 kept
+  as it was, only bigger); the Serpent's whole body can be shot now and it
+  is slower and looser, hatching little bone serpents; the Gravity Lord was
+  too hard (less health, pull, bending, fewer shots; it moved to level 35);
+  the Titan is "tough, looks great". New: the **Bone Scorpion** (claws,
+  then the stinger -- only while its tail is out after a strike -- then
+  the head; before every strike it stops, rattles and marks the spot in red
+  for `WIND_UP` s: owner, "so you know to move"), the **Watcher** (an eye
+  whose beam and bolts stop at tombstones -- `game.blocks`, Rect2s the
+  player can't fly through and the pins pass; lid shut = armoured, dazed
+  after a beam = double damage) and the **Warden** (a shield fed by four
+  pylons in the map's corners; down for `SHIELD_DOWN` s, then they regrow
+  weaker). Saves from before the change are dropped (`SAVE_VERSION`).
+  The Watcher's sight line locks `BEAM_LOCK` s before it fires (blinking),
+  so you can hide or sidestep; bosses hold their minions back while
+  `BOSS_MINION_CAP` enemies are out. **Balance** (throwaway bot, 2026-10-07:
+  dodges, chases souls, hides behind tombstones, runs to pylons): every
+  level is cleared by the bot except the Sanctuary ones (it can't use
+  circles; their stars are set by hand); from level 30 it needs a familiar
+  (owner: "by the warden they should have a good drone") -- with an
+  upgraded Raven: Warden 3/3, Titan (tier 6) 2/3, Gravity Lord 3/3, Twin
+  Terror 1/4 (the hardest on purpose). Star targets: ★★ ~0.6x and ★★★ ~2.5x
+  the bot's score at the clock (★★★ needs overtime); levels 1, 2, 12, 30,
+  40 and the Sanctuary ones by hand.
+- **Achievements for moves** (owner 2026-10-07, `_help.gd`): per-run
+  records written by `_record_moves()` -- seals in one run, seal chains,
+  close calls (`GRAZE_MARGIN`), chain reactions (a blast and all it sets
+  off), the biggest black hole broken, overtime, beams dodged behind a
+  tombstone, Warden shields broken -- plus flawless levels / boss kills.
 - **Campaign map** (2026-10-07): two star maps from the owner's ChatGPT art
   (`games/geometry_wars/map_sun.jpg`, `map_blackhole.jpg`), every star a
   level: `Campaign.MAPS` holds each level's [x, y, r] in picture pixels
   (measured by bright-spot detection, not guessed). Levels 1-24 on the sun
   map (bosses on the big flaring stars, the sun = 24), 25-40 on the
   black-hole map (the hole = 40). Tap a star for its card; ◀ ▶ switch maps.
-- **Familiars are bought and upgraded** (owner 2026-10-07; `_drones.gd`
-  header): `Drones.SHOP` = [level that puts one up for sale, price]; every
-  campaign score (won or lost) fills the purse (`points`) and the flying
-  familiar's own pool (`fam.<kind>.xp`), which buys its upgrades: armor
-  (health 3 + 2/level; knocked out for a while at 0), speed, power, soul
-  pull (`UPGRADE_COST`, 5 levels each). Old saves keep the familiars their
-  stars had unlocked (`OLD_UNLOCK`). Familiars follow on a loose spring with
-  a wander and trail their own flame. Test: a throwaway familiar test
-  (shop, upgrades, points, follow spread, knockout, pull, power).
+- **Familiars are earned and upgraded** (owner 2026-10-07; `_drones.gd`
+  header; the shop of earlier that day is gone): you start with none; the
+  Raven joins when the first boss is beaten, the rest at campaign star
+  totals (`Drones.UNLOCK_STARS`, all stars added up). Every campaign score
+  (won or lost) fills the flying familiar's own pool (`fam.<kind>.xp`),
+  which buys its upgrades -- deliberately expensive: armor (health 3 +
+  2/level; knocked out for a while at 0), speed, power, soul pull
+  (`UPGRADE_COST`, 5 levels each). Old saves' `points` / `owned` are left
+  in the file, unread. Familiars follow on a loose spring with a wander and
+  trail their own flame.
 - **Bigger maps + camera**: the view is 19 squares tall (`Core.U` is fixed
   for a whole game, so positions stay in pixels); maps are `MAP_SCALE` x
   bigger than written except the tiny ones. The grid only simulates and

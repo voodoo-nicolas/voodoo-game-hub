@@ -4,10 +4,11 @@ extends RefCounted
 ## helps. One per level, picked on the campaign map. Cursed runs have none.
 ## (Internally still "drones".)
 ##
-## Owning and upgrading (owner, 2026-10-07): each familiar comes up for sale
-## once its campaign level (SHOP) is cleared and is bought with points -- the
-## total of every campaign score. Points scored while one flies with you also
-## go to its own pool, which buys its upgrades (STATS, MAX_LEVEL levels each):
+## Earning and upgrading (owner, 2026-10-07): you start with none. The
+## Raven joins once the first boss (level 6's Hive Queen) is beaten; the rest
+## come with campaign stars, all of them added up (UNLOCK_STARS). Points
+## scored while one flies with you go to its own pool, which buys its
+## upgrades -- deliberately expensive (STATS, MAX_LEVEL levels each):
 ##   armor  hits it takes before it is knocked out for a while
 ##   speed  how fast it follows and flies at things
 ##   power  how hard and how often it attacks
@@ -26,7 +27,7 @@ extends RefCounted
 ##   {kind: "kills", list}     enemies it destroyed (removed already), like
 ##                             Core.resolve_bullet_hits() returns
 ##   {kind: "geoms", v}        multiplier it picked up
-##   {kind: "boss", boss, n}   damage to a boss
+##   {kind: "boss", boss, n, at}   damage to a boss, struck at `at`
 ##   {kind: "ray", from, to}   a snipe shot to draw
 ##   {kind: "shot"}            it fired (for the sound)
 
@@ -34,12 +35,9 @@ const Core = preload("res://scripts/games/geometry_wars/geometry_wars_core.gd")
 const Bosses = preload("res://scripts/games/geometry_wars/geometry_wars_bosses.gd")
 
 const KINDS := ["attack", "collect", "ram", "snipe", "defend", "sweep"]
-## The stars that used to unlock each one (before the shop): saves from then
-## keep the familiars they had.
-const OLD_UNLOCK := {"attack": 0, "collect": 5, "ram": 12, "snipe": 24, "defend": 40, "sweep": 60}
-## [campaign level that must be cleared first, price in points].
-const SHOP := {"attack": [0, 0], "collect": [3, 25000], "ram": [8, 80000], "snipe": [14, 250000],
-	"defend": [20, 600000], "sweep": [28, 1500000]}
+## Campaign stars (all added up) that bring each one, once the first boss is
+## beaten; the Raven needs only that.
+const UNLOCK_STARS := {"attack": 0, "collect": 15, "ram": 30, "snipe": 50, "defend": 75, "sweep": 100}
 const STATS := ["armor", "speed", "power", "pull"]
 const STAT_LABELS := {"armor": "🛡 Armor", "speed": "💨 Speed", "power": "⚔ Power", "pull": "🧲 Soul pull"}
 const STAT_DESCS := {
@@ -49,8 +47,10 @@ const STAT_DESCS := {
 	"pull": "Draws souls in from farther and gathers them for you.",
 }
 const MAX_LEVEL := 5
-## Points (from that familiar's own pool) for each next level of a stat.
-const UPGRADE_COST := [10000, 25000, 60000, 140000, 300000]
+## Points (from that familiar's own pool) for each next level of a stat
+## (owner, 2026-10-07: "it needs to be expensive"; 21M to max one stat --
+## a good campaign run with overtime scores about 1-5M).
+const UPGRADE_COST := [500000, 1500000, 3000000, 6000000, 10000000]
 ## Seconds a knocked-out familiar is gone (less with armor).
 const DOWN_TIME := 8.0
 const HURT_TIME := 0.6
@@ -182,10 +182,10 @@ static func update(d: Dictionary, ctx: Dictionary, delta: float) -> Array:
 					ev.append({"kind": "kills", "list": [_smash(enemies, target)]})
 					d.cd = 0.2 / pk
 			elif not boss.is_empty() and d.cd <= 0.0:
-				var tp: Vector2 = Bosses.target_point(boss)
+				var tp: Vector2 = Bosses.target_point(boss, d.pos)
 				_fly(d, tp, 15.0 * u * speed_k(d), delta)
 				if (d.pos as Vector2).distance_to(tp) <= 1.2 * u:
-					ev.append({"kind": "boss", "boss": boss, "n": roundi(pk)})
+					ev.append({"kind": "boss", "boss": boss, "n": roundi(pk), "at": tp})
 					d.cd = 0.35 / pk
 					d.vel = ((d.pos as Vector2) - tp).normalized() * 12.0 * u
 			else:
@@ -209,8 +209,9 @@ static func update(d: Dictionary, ctx: Dictionary, delta: float) -> Array:
 				else:
 					var boss := _nearest_boss(ctx.bosses, d.pos, SNIPE_RANGE * u)
 					if not boss.is_empty():
-						ev.append({"kind": "ray", "from": d.pos, "to": Bosses.target_point(boss)})
-						ev.append({"kind": "boss", "boss": boss, "n": roundi(2.0 * pk)})
+						var tp: Vector2 = Bosses.target_point(boss, d.pos)
+						ev.append({"kind": "ray", "from": d.pos, "to": tp})
+						ev.append({"kind": "boss", "boss": boss, "n": roundi(2.0 * pk), "at": tp})
 						d.cd = SNIPE_EVERY / pk
 		"sweep":
 			d.angle = float(d.angle) + SWEEP_SPIN * speed_k(d) * float(d.spin) * delta
@@ -227,7 +228,7 @@ static func update(d: Dictionary, ctx: Dictionary, delta: float) -> Array:
 			if d.cd <= 0.0:
 				for b in ctx.bosses:
 					if Bosses.touches(b, d.pos, 0.3 * u):
-						ev.append({"kind": "boss", "boss": b, "n": roundi(pk)})
+						ev.append({"kind": "boss", "boss": b, "n": roundi(pk), "at": d.pos})
 						d.cd = 0.25
 						break
 	if d.kind == "sweep":  # placed, not flown: its speed is how far it moved
@@ -326,7 +327,7 @@ static func _nearest(enemies: Array, from: Vector2, max_d: float) -> int:
 
 static func _nearest_boss(bosses: Array, from: Vector2, max_d: float) -> Dictionary:
 	for b in bosses:
-		if float(b.warm) <= 0.0 and from.distance_to(Bosses.target_point(b)) <= max_d + Bosses.body_radius(b):
+		if float(b.warm) <= 0.0 and from.distance_to(Bosses.target_point(b, from)) <= max_d + Bosses.body_radius(b):
 			return b
 	return {}
 

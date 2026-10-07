@@ -263,7 +263,8 @@ static func _recipe_names() -> Array:
 		"tick", "level_start", "level_clear", "level_fail", "drone_shot", "enemy_shot",
 		"spawn_grunt", "spawn_wanderer", "spawn_weaver", "spawn_spinner", "spawn_snake", "spawn_well",
 		"spawn_rocket", "spawn_mayfly", "spawn_repulsor", "spawn_ufo", "spawn_nufo", "spawn_gate",
-		"spawn_layer", "spawn_neutron", "spawn_duck", "spawn_gear"]
+		"spawn_layer", "spawn_neutron", "spawn_duck", "spawn_gear",
+		"beam_charge", "beam_fire", "shield_up", "shield_down", "tail_rattle", "whip", "snap"]
 
 static func _render_all() -> void:
 	for key in _recipe_names() + LOOPS:
@@ -463,6 +464,47 @@ static func _recipe(key: String) -> Array:
 			for i in 6:
 				v.append({"t": "noise", "at": 0.3 + i * 0.25, "len": 0.5, "dec": 7, "lp": 0.7, "lp2": 0.03, "vol": 0.35})
 			return v
+		"beam_charge":
+			# The Watcher opening to aim: a rising whine under a hiss.
+			return [{"t": "saw", "f": 180, "f2": 1400, "len": 1.3, "dec": 0.4, "vol": 0.09},
+				{"t": "sine", "f": 360, "f2": 2800, "len": 1.3, "dec": 0.4, "vol": 0.08},
+				{"t": "noise", "len": 1.3, "swell": true, "lp": 0.05, "lp2": 0.5, "hp": true, "vol": 0.18}]
+		"beam_fire":
+			# The beam: a hard crack, then a buzzing roar.
+			var v: Array = [{"t": "noise", "len": 0.25, "dec": 10, "lp": 0.9, "lp2": 0.1, "vol": 0.55},
+				{"t": "saw", "f": 95, "len": 1.0, "dec": 1.8, "vol": 0.2},
+				{"t": "saw", "f": 99, "len": 1.0, "dec": 1.8, "vol": 0.2},
+				{"t": "square", "f": 190, "f2": 170, "len": 1.0, "dec": 2.2, "vol": 0.06},
+				{"t": "noise", "len": 1.0, "dec": 1.6, "lp": 0.35, "hp": true, "vol": 0.2}]
+			return v
+		"shield_up":
+			return [{"t": "sine", "f": 300, "f2": 900, "len": 0.6, "dec": 3, "vol": 0.25},
+				{"t": "tri", "f": 600, "f2": 1800, "len": 0.6, "dec": 3, "vol": 0.1},
+				{"t": "noise", "len": 0.6, "swell": true, "lp": 0.1, "lp2": 0.4, "hp": true, "vol": 0.15}]
+		"shield_down":
+			# Glass giving way, then a falling hum.
+			var v: Array = [{"t": "sine", "f": 1200, "f2": 120, "len": 1.0, "dec": 2.5, "vol": 0.3},
+				{"t": "noise", "len": 0.9, "dec": 4, "lp": 0.9, "lp2": 0.05, "vol": 0.45}]
+			for i in 7:
+				v.append({"t": "noise", "at": i * 0.04, "len": 0.08, "dec": 40, "lp": 0.2, "hp": true, "vol": 0.4 - i * 0.04})
+			return v
+		"tail_rattle":
+			# The scorpion's tell: a dry rattle that speeds up.
+			var v: Array = []
+			var at := 0.0
+			for i in 12:
+				v.append({"t": "noise", "at": at, "len": 0.03, "dec": 90, "lp": 0.5, "hp": true, "vol": 0.35})
+				v.append({"t": "square", "f": 900 + i * 40, "at": at, "len": 0.02, "dec": 120, "vol": 0.04})
+				at += 0.09 - i * 0.004
+			return v
+		"whip":
+			return [{"t": "noise", "len": 0.3, "dec": 9, "lp": 0.2, "lp2": 0.9, "hp": true, "vol": 0.5},
+				{"t": "sine", "f": 900, "f2": 140, "len": 0.25, "dec": 10, "vol": 0.2},
+				{"t": "noise", "at": 0.22, "len": 0.15, "dec": 25, "lp": 0.8, "lp2": 0.1, "vol": 0.45}]
+		"snap":
+			return [{"t": "square", "f": 700, "f2": 300, "len": 0.05, "dec": 60, "vol": 0.1},
+				{"t": "noise", "len": 0.06, "dec": 70, "lp": 0.6, "hp": true, "vol": 0.35},
+				{"t": "square", "f": 500, "f2": 250, "at": 0.08, "len": 0.04, "dec": 70, "vol": 0.08}]
 		"snipe":
 			return [{"t": "square", "f": 3200, "f2": 700, "len": 0.12, "dec": 18, "vol": 0.07},
 				{"t": "sine", "f": 1600, "f2": 400, "len": 0.12, "dec": 18, "vol": 0.12}]

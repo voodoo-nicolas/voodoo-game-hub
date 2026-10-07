@@ -48,13 +48,17 @@ const MID_BULLET_SPEED := 27.0
 const BULLET_LIFE := 0.6
 const MID_BULLET_LIFE := 1.0
 const MAX_ENEMIES := 90
+## Bosses stop sending minions while this many enemies are out.
+const BOSS_MINION_CAP := 40
 ## Most bombs / lives you can hold (owner 2026-10-06: 9 bombs and 17 lives
 ## came far too quickly).
 const MAX_BOMBS := 5
 const MAX_LIVES := 5
 ## Each extra bomb / life costs more points than the last: the gap after
-## the k-th one is bomb_every (life_every) x (1 + EXTRA_GROWTH x k).
+## the k-th one is bomb_every (life_every) x (1 + EXTRA_GROWTH x k) /
+## EXTRA_EASE (owner, 2026-10-07: earned too rarely now -- 50% easier).
 const EXTRA_GROWTH := 0.5
+const EXTRA_EASE := 1.5
 ## The shield after (re)spawning: a halo for 5 s, and 6 quick beeps in the
 ## last 1.2 s warn that it is about to drop.
 const INVULN_TIME := 5.0
@@ -79,6 +83,18 @@ const SPAWN_PACE := 0.8
 const KING_ZONE_R := 3.6
 const KING_ZONE_LIFE := 7.0
 const MULT_MILESTONES := [10, 25, 50, 100, 200, 500, 1000, 2000, 5000]
+## A close call: an enemy or shot passing this near (squares, beyond the
+## two hit circles) without touching you.
+const GRAZE_MARGIN := 0.45
+## Overtime gets busier: spawns come (1 + seconds past the clock / this)
+## times as often.
+const OVERTIME_RAMP := 75.0
+## The Watcher's tombstones: how many per 1000 square squares of map, and
+## their size in squares.
+const COVER_DENSITY := 3.2
+const COVER_SIZE := Vector2(1.7, 2.3)
+## The save's format: older saves are dropped (the bosses changed shape).
+const SAVE_VERSION := 3
 const SMALL_POP := ["grunt", "wanderer", "duck", "rocket", "neutron", "mini", "proton", "layer", "nufo"]
 const BIG_POP := ["well", "ufo", "repulsor", "golden"]
 
@@ -142,6 +158,12 @@ var boss_events_left: int = 0
 var ending: float = -1.0
 var won: bool = false
 var tick_shown: int = -1
+## A campaign "survive" level whose clock has run out: cleared, and still going.
+var cleared: bool = false
+## This run's moves worth an achievement (kept with the save).
+var run := {}
+var blast_depth: int = 0
+var blast_kills: int = 0
 
 var enemies: Array = []
 var bullets: Array = []
@@ -159,6 +181,11 @@ var rays: Array = []
 var popups: Array = []
 var shockwave_t: float = -1.0  # seconds since the last bomb, -1 = none
 var bomb_pos := Vector2.ZERO
+## Tombstones the Watcher's beam and shots can't pass (Rect2s in map pixels).
+var blocks: Array = []
+## The Watcher's beams this frame, cut short at the first tombstone:
+## [{from, to, on (firing), half (width)}], drawn by the arena.
+var beams: Array = []
 
 var game_active: bool = false
 var game_over: bool = false
@@ -185,18 +212,21 @@ var goal_label: Label
 var banner: Label
 var bomb_button: Button
 var pause_button: Button
+var finish_button: Button
 var result_dialog: Control
 var result_box: VBoxContainer
 var rotate_hint: Control
+var _banner_tw: Tween
 
 func _ready() -> void:
 	preload("res://scripts/games/geometry_wars/geometry_wars_i18n.gd").install(self)
 	randomize()
 	Orientation.lock_landscape()
-	# A save from before the Adventure update can't be resumed: drop it so
-	# Home doesn't offer a Resume that starts a new game.
+	# A save from before the Adventure update, or from before the bosses
+	# changed shape (2026-10-07), can't be resumed: drop it so Home doesn't
+	# offer a Resume that starts a new game.
 	var old = SaveUtil.read(SAVE_PATH)
-	if old is Dictionary and not old.has("blob"):
+	if old is Dictionary and (not old.has("blob") or int(old.get("v", 0)) < SAVE_VERSION):
 		SaveUtil.delete(SAVE_PATH)
 	_build_ui()
 	resized.connect(_layout)
@@ -270,7 +300,7 @@ func _input(event: InputEvent) -> void:
 		_on_bomb_pressed()
 
 func _on_hud_button(p: Vector2) -> bool:
-	for b in [bomb_button, pause_button]:
+	for b in [bomb_button, pause_button, finish_button]:
 		if b and b.is_visible_in_tree() and b.get_global_rect().grow(8).has_point(p):
 			return true
 	return false
@@ -363,6 +393,8 @@ func _process(delta: float) -> void:
 			pull += Bosses.pull(b, player_pos)
 		player_pos += move_dir * Core.PLAYER_TOP_SPEED * u * delta + pull * delta
 		player_pos = player_pos.clamp(Vector2.ZERO, arena_size)
+		if not blocks.is_empty():
+			player_pos = _out_of_blocks(player_pos, PLAYER_RADIUS * u)
 
 	if invuln_timer > 0.0:
 		invuln_timer = maxf(0.0, invuln_timer - delta)
@@ -406,6 +438,8 @@ func _process(delta: float) -> void:
 			benders.append(bd)
 	Core.update_bullets(bullets, arena_size, delta, enemies, benders)
 	Core.update_enemy_bullets(ebullets, arena_size, delta)
+	if not blocks.is_empty():
+		_ebullets_on_cover()
 	if rules.king:
 		Core.push_out_of_zones(enemies, zones)
 	for w in enemies:
@@ -421,6 +455,7 @@ func _process(delta: float) -> void:
 		for ev in Bosses.update(b, player_pos, arena_size, delta):
 			_on_boss_event(b, ev)
 	_bullets_on_bosses()
+	_update_beams()
 
 	# --- drones ---
 	if not drones.is_empty() and respawn_t <= 0.0:
@@ -460,8 +495,12 @@ func _process(delta: float) -> void:
 				if Bosses.touches(b, player_pos, PLAYER_RADIUS * u):
 					hit = true
 					break
+		if not hit:
+			hit = _beam_hits_player()
 		if hit:
 			_on_player_hit()
+		else:
+			_count_grazes()
 
 	_check_goal()
 	_update_audio()
@@ -548,14 +587,15 @@ func _spawn_step(delta: float) -> void:
 	if spawn_timer <= 0.0:
 		var rate: Array = rules.rate
 		var k: float = clampf(elapsed_seconds / float(rate[2]), 0.0, 1.0)
-		spawn_timer = lerpf(float(rate[0]), float(rate[1]), k) * SPAWN_PACE
+		var over := _overtime()
+		spawn_timer = lerpf(float(rate[0]), float(rate[1]), k) * SPAWN_PACE / (1.0 + over / OVERTIME_RAMP)
 		var table: Dictionary = {}
 		if rules.spawn is String:
 			table = Core.spawn_table(elapsed_seconds * float(rules.ramp_speed))
 		else:
 			table = rules.spawn
 		# The swarm thickens: more spawns per tick as the game goes on.
-		var groups := 1 + mini(3, int(elapsed_seconds * float(rules.ramp_speed) / 35.0))
+		var groups := 1 + mini(3, int(elapsed_seconds * float(rules.ramp_speed) / 35.0)) + mini(2, int(over / 45.0))
 		for i in groups:
 			if table.is_empty() or enemies.size() >= MAX_ENEMIES:
 				break
@@ -591,7 +631,7 @@ func _spawn_step(delta: float) -> void:
 		if rush_t < 0.0:
 			var next: Array = rules.rush[rush_index]
 			rush_index += 1
-			_spawn_boss(str(next[0]), int(next[1]) == 1)
+			_spawn_boss(str(next[0]), int(next[1]))
 
 func _fire_event(ev: Array) -> void:
 	var what: String = ev[2]
@@ -638,7 +678,7 @@ func _fire_event(ev: Array) -> void:
 				_add_enemies(Core.spawn_of("golden" if what == "golden" else "gate", arena_size, player_pos))
 		"boss":
 			boss_events_left -= 1
-			_spawn_boss(arg, n == 1)
+			_spawn_boss(arg, n)
 
 ## A spot on the map's edge within reach of the player.
 func _edge_spot() -> Vector2:
@@ -653,15 +693,18 @@ func _edge_spot() -> Vector2:
 			return Vector2(near.x, 1.5 * u)
 	return Vector2(near.x, arena_size.y - 1.5 * u)
 
-func _spawn_boss(kind: String, hard: bool) -> void:
+func _spawn_boss(kind: String, tier: int) -> void:
 	var u: float = Core.U
 	# Across the map from the player, but not in a corner.
 	var p := arena_size - player_pos
 	p = p.clamp(Vector2(7, 7) * u, arena_size - Vector2(7, 7) * u)
 	if p.distance_to(player_pos) < 9.0 * u:
 		p = (player_pos + Vector2(12, 0).rotated(randf() * TAU) * u).clamp(Vector2(7, 7) * u, arena_size - Vector2(7, 7) * u)
-	var b := Bosses.make(kind, p, hard)
+	var b := Bosses.make(kind, p, tier)
+	b.deaths_at = deaths  # a flawless kill: no life lost while it was out
 	bosses.append(b)
+	if kind == "watcher" and blocks.is_empty():
+		_place_cover(b)
 	_sfx("boss_warn", 0.0, 1.0, 400)
 	_show_banner("⚠ " + tr(Bosses.name_of(b)).to_upper() + " ⚠", Bosses.color_of(b))
 	shake = 0.6
@@ -707,6 +750,8 @@ func _on_boss_event(b: Dictionary, ev: Dictionary) -> void:
 	var u: float = Core.U
 	match ev.kind:
 		"spawn":
+			if enemies.size() >= BOSS_MINION_CAP and ev.type != "well":
+				return  # a crowded map: the boss holds its minions back
 			var e := Core.make_enemy(0, str(ev.type), (ev.pos as Vector2).clamp(Vector2.ZERO, arena_size), Core.WARM_TIME)
 			if ev.get("active", false):
 				e.active = true
@@ -728,6 +773,30 @@ func _on_boss_event(b: Dictionary, ev: Dictionary) -> void:
 			_popup(ev.pos, _num(pts), Color(1, 0.9, 0.5))
 			for i in 3:
 				_drop_geom(ev.pos, 1)
+		"line":
+			_add_enemies(Core.rocket_line(arena_size, player_pos, maxi(3, int(ev.n))))
+		"aim":
+			_sfx_at("beam_charge", b.pos, -2.0, 1.0, 300)
+		"beam":
+			if ev.on:
+				_sfx_at("beam_fire", b.pos, 0.0, 1.0, 300)
+				shake = maxf(shake, 0.45)
+		"shield":
+			if ev.on:
+				_sfx("shield_up", 0.0, 1.0, 500)
+				_show_banner(tr("THE SHIELD IS BACK!"), Bosses.color_of(b))
+			else:
+				run.shields = int(run.get("shields", 0)) + 1
+				_sfx("shield_down", 2.0, 1.0, 500)
+				_show_banner(tr("SHIELD DOWN!"), Color(1, 0.95, 0.5))
+				arena_canvas.shock(ev.pos, 1.0)
+				shake = maxf(shake, 0.9)
+		"tell":
+			_sfx_at("tail_rattle", b.pos, 0.0, 1.0, 400)
+		"whip":
+			_sfx_at("whip", ev.pos, 0.0, randf_range(0.95, 1.05), 300)
+		"snap":
+			_sfx_at("snap", ev.pos, -2.0, randf_range(0.9, 1.1), 150)
 
 func _bullets_on_bosses() -> void:
 	if bosses.is_empty():
@@ -761,6 +830,8 @@ func _check_bosses_dead() -> void:
 			continue
 		bosses.remove_at(i)
 		bosses_beaten += 1
+		if deaths == int(b.get("deaths_at", -1)):
+			run.flawless_bosses = int(run.get("flawless_bosses", 0)) + 1
 		var pos: Vector2 = b.pos
 		var col := Bosses.color_of(b)
 		_spark_burst(pos, col, 120, 2.0)
@@ -768,7 +839,7 @@ func _check_bosses_dead() -> void:
 		arena_canvas.shock(pos, 1.4)
 		shake = 1.4
 		_sfx("boss_die", 2.0, 1.0, 0)
-		var pts: int = int(Bosses.POINTS.get(b.kind, 20000)) * (2 if b.hard else 1) * multiplier
+		var pts: int = int(int(Bosses.POINTS.get(b.kind, 20000)) * (1.0 + 0.25 * (int(b.get("tier", 1)) - 1))) * multiplier
 		score += pts
 		_popup(pos, _num(pts), Color(1, 0.95, 0.5), 40)
 		for k in 6:
@@ -782,6 +853,10 @@ func _check_bosses_dead() -> void:
 		ebullets.clear()
 		if not (rules.get("rush", []) as Array).is_empty() and rush_index < (rules.rush as Array).size() and bosses.is_empty():
 			rush_t = 3.0
+		if b.kind == "watcher" and not bosses.any(func(o): return o.kind == "watcher"):
+			_crumble_cover()
+		if rules.campaign and bosses.is_empty() and boss_events_left <= 0:
+			_on_level_bosses_beaten()
 
 func _on_drone_event(ev: Dictionary) -> void:
 	match ev.kind:
@@ -793,7 +868,7 @@ func _on_drone_event(ev: Dictionary) -> void:
 		"geoms":
 			_add_geoms(int(ev.v))
 		"boss":
-			Bosses.damage(ev.boss, int(ev.n))
+			Bosses.damage(ev.boss, int(ev.n), ev.get("at", Vector2.INF), 2.5 * Core.U)
 			_check_bosses_dead()
 		"ray":
 			rays.append({"from": ev.from, "to": ev.to, "age": 0.0})
@@ -875,21 +950,26 @@ func _on_kill(k: Dictionary, bonus: float = 1.0) -> void:
 		_add_enemies(kids, false)
 	elif type == "well":
 		shake = maxf(shake, 0.4)
-		for kk in Core.blast(enemies, k.pos, 4.5 * u):
+		run.biggest_well = maxi(int(run.get("biggest_well", 0)), eaten)
+		_chain_begin()
+		var hit := Core.blast(enemies, k.pos, 4.5 * u)
+		blast_kills += hit.size()
+		for kk in hit:
 			_on_kill(kk)
+		_chain_end()
 	_check_extras()
 
 func _check_extras() -> void:
 	while int(rules.bomb_every) > 0 and score >= next_bomb_at:
 		bombs_given += 1
-		next_bomb_at += int(int(rules.bomb_every) * (1.0 + EXTRA_GROWTH * bombs_given))
+		next_bomb_at += int(int(rules.bomb_every) * (1.0 + EXTRA_GROWTH * bombs_given) / EXTRA_EASE)
 		if bombs < MAX_BOMBS:
 			bombs += 1
 			_sfx("extra_bomb", 0.0, 1.0, 300)
 			_popup(player_pos + Vector2(0, -2) * Core.U, tr("+1 Bomb"), Color(1, 0.6, 0.25), 24)
 	while int(rules.life_every) > 0 and score >= next_life_at:
 		lives_given += 1
-		next_life_at += int(int(rules.life_every) * (1.0 + EXTRA_GROWTH * lives_given))
+		next_life_at += int(int(rules.life_every) * (1.0 + EXTRA_GROWTH * lives_given) / EXTRA_EASE)
 		if int(rules.lives) > 0 and lives < MAX_LIVES:
 			lives += 1
 			_sfx("extra_life", 0.0, 1.0, 300)
@@ -908,6 +988,7 @@ func _check_gates() -> void:
 		gates_passed += 1
 		gate_combo = gate_combo + 1 if gate_combo_t > 0.0 else 1
 		gate_combo_t = GATE_COMBO_WINDOW
+		run.best_combo = maxi(int(run.get("best_combo", 0)), gate_combo)
 		var bonus := 1.0 + (gate_combo - 1) * 0.5
 		var golden: bool = g.type == "golden"
 		var pts := int(int(Core.POINTS[g.type]) * multiplier * bonus)
@@ -922,16 +1003,22 @@ func _check_gates() -> void:
 		_popup(g.pos, label, col.lightened(0.3), 26 if gate_combo <= 1 else 30)
 		for k in int(Core.GEOMS[g.type]):
 			_drop_geom(g.pos + Vector2(randf_range(-1.5, 1.5), randf_range(-1.5, 1.5)) * u, 1)
-		for kk in Core.blast(enemies, g.pos, Core.GATE_BLAST * (1.4 if golden else 1.0) * u):
+		_chain_begin()
+		var hit := Core.blast(enemies, g.pos, Core.GATE_BLAST * (1.4 if golden else 1.0) * u)
+		blast_kills += hit.size()
+		for kk in hit:
 			_on_kill(kk, bonus)
 		for b in bosses:
-			if (b.pos as Vector2).distance_to(g.pos) < Core.GATE_BLAST * u + Bosses.body_radius(b):
+			if b.kind == "warden":
+				Bosses.damage(b, 25, g.pos, Core.GATE_BLAST * 1.3 * u)
+			elif (b.pos as Vector2).distance_to(g.pos) < Core.GATE_BLAST * u + Bosses.body_radius(b):
 				Bosses.damage(b, 25)
 		_check_bosses_dead()
 		# Mines in the blast go up too.
 		for mi in range(mines.size() - 1, -1, -1):
 			if mi < mines.size() and (mines[mi].pos as Vector2).distance_to(g.pos) < Core.GATE_BLAST * u:
 				_detonate_mine(mi)
+		_chain_end()
 
 ## A mine blows up the enemies around it, and sets off its neighbours.
 func _detonate_mine(mi: int) -> void:
@@ -942,12 +1029,195 @@ func _detonate_mine(mi: int) -> void:
 	arena_canvas.pulse(pos, 450.0, Core.MINE_BLAST * 1.5 * u)
 	_sfx_at("mine_boom", pos, 0.0, randf_range(0.9, 1.1), 50)
 	shake = maxf(shake, 0.25)
-	for kk in Core.blast(enemies, pos, Core.MINE_BLAST * u):
+	_chain_begin()
+	var hit := Core.blast(enemies, pos, Core.MINE_BLAST * u)
+	blast_kills += hit.size()
+	for kk in hit:
 		_on_kill(kk)
 	for i in range(mines.size() - 1, -1, -1):
 		if i < mines.size() and (mines[i].pos as Vector2).distance_to(pos) < Core.MINE_BLAST * u:
 			_detonate_mine(i)
 			break  # the chain carries on from there
+	_chain_end()
+
+## A blast (a seal, a charm, a black hole) and everything it sets off count
+## as one chain reaction, for "Biggest chain reaction".
+func _chain_begin() -> void:
+	if blast_depth == 0:
+		blast_kills = 0
+	blast_depth += 1
+
+func _chain_end() -> void:
+	blast_depth -= 1
+	if blast_depth == 0:
+		run.best_chain = maxi(int(run.get("best_chain", 0)), blast_kills)
+
+# ---------- the Watcher's tombstones and beams ----------
+
+## Tombstones scattered round the map when a Watcher arrives: its beam and
+## shots stop at them, your pins fly through, and you can't (owner,
+## 2026-10-07: "the player needs to hide behind something").
+func _place_cover(b: Dictionary) -> void:
+	var u: float = Core.U
+	var area := arena_size.x * arena_size.y / (u * u)
+	var n := clampi(int(area / 1000.0 * COVER_DENSITY), 6, 16)
+	var sz := COVER_SIZE * u
+	var lo := Vector2(4, 4) * u
+	var hi := arena_size - lo
+	var tries := 0
+	while blocks.size() < n and tries < 600:
+		tries += 1
+		var c := Vector2(randf_range(lo.x, hi.x), randf_range(lo.y, hi.y))
+		if c.distance_to(player_pos) < 4.0 * u or c.distance_to(b.pos) < 8.0 * u:
+			continue
+		# Not in a corner: that's where a Warden's crystals stand.
+		var corner := Vector2(minf(c.x, arena_size.x - c.x), minf(c.y, arena_size.y - c.y))
+		if corner.length() < 8.0 * u:
+			continue
+		var ok := true
+		for r in blocks:
+			if (r as Rect2).get_center().distance_to(c) < 7.0 * u:
+				ok = false
+				break
+		if ok:
+			blocks.append(Rect2(c - sz / 2.0, sz))
+	for r in blocks:
+		_spark_burst((r as Rect2).get_center(), Color(0.75, 0.8, 0.95), 8, 0.6)
+	_sfx("zone_on", -2.0, 0.7, 0)
+
+## The Watcher is gone: its tombstones crumble.
+func _crumble_cover() -> void:
+	for r in blocks:
+		_spark_burst((r as Rect2).get_center(), Color(0.75, 0.8, 0.95), 14, 0.9)
+	if not blocks.is_empty():
+		_sfx("mine_boom", -6.0, 0.6, 0)
+	blocks.clear()
+	beams.clear()
+
+## Pushes a circle out of every tombstone it overlaps.
+func _out_of_blocks(p: Vector2, r: float) -> Vector2:
+	for b in blocks:
+		var rect: Rect2 = b
+		var q := p.clamp(rect.position, rect.end)
+		var off := p - q
+		var d := off.length()
+		if d >= r:
+			continue
+		if d > 0.001:
+			p = q + off / d * r
+		else:
+			# The centre got inside: out the nearest side.
+			var gaps := [p.x - rect.position.x, rect.end.x - p.x, p.y - rect.position.y, rect.end.y - p.y]
+			var side := gaps.find(gaps.min())
+			match side:
+				0: p.x = rect.position.x - r
+				1: p.x = rect.end.x + r
+				2: p.y = rect.position.y - r
+				_: p.y = rect.end.y + r
+	return p
+
+## Enemy shots stop at a tombstone.
+func _ebullets_on_cover() -> void:
+	for i in range(ebullets.size() - 1, -1, -1):
+		var p: Vector2 = ebullets[i].pos
+		for b in blocks:
+			if (b as Rect2).has_point(p):
+				if particles.size() < MAX_PARTICLES - 50:
+					_spark_burst(p, Color(1.0, 0.4, 0.6), 3, 0.4)
+				ebullets.remove_at(i)
+				break
+
+## How far a ray from `from` along `dir` goes before a tombstone (or `far`).
+func _ray_to_cover(from: Vector2, dir: Vector2, far: float) -> float:
+	var best := far
+	for b in blocks:
+		var rect: Rect2 = b
+		var t0 := 0.0
+		var t1 := far
+		var hit := true
+		for ax in 2:
+			var o: float = from[ax]
+			var d: float = dir[ax]
+			var lo: float = rect.position[ax]
+			var hi: float = rect.end[ax]
+			if absf(d) < 0.00001:
+				if o < lo or o > hi:
+					hit = false
+					break
+			else:
+				var a := (lo - o) / d
+				var c := (hi - o) / d
+				t0 = maxf(t0, minf(a, c))
+				t1 = minf(t1, maxf(a, c))
+				if t0 > t1:
+					hit = false
+					break
+		if hit and t0 < best:
+			best = t0
+	return best
+
+## The Watcher's beams for this frame, cut at the first tombstone. A beam
+## that would have reached you but for a tombstone counts as dodged.
+func _update_beams() -> void:
+	beams.clear()
+	var u: float = Core.U
+	for b in bosses:
+		if b.kind != "watcher":
+			continue
+		var dirs := Bosses.beam_dirs(b)
+		var on := Bosses.beam_on(b)
+		var half := Bosses.beam_half(b)
+		var bid := int(b.get("beam_id", 0))
+		for d in dirs:
+			var dir: Vector2 = d
+			var from: Vector2 = b.pos + dir * Bosses.WATCHER_EYE * float(b.get("scale", 1.0)) * u
+			var far := (arena_size.length() + 4.0 * u)
+			var length := _ray_to_cover(from, dir, far)
+			beams.append({"from": from, "to": from + dir * length, "on": on, "half": half, "boss": b, "locked": Bosses.beam_locked(b)})
+			if on and length < far:
+				# Shaded: you are in its path, but behind the tombstone.
+				var along := (player_pos - from).dot(dir)
+				var off := absf((player_pos - from).cross(dir))
+				if along > length and off <= half + PLAYER_RADIUS * u:
+					b.shade_id = bid
+		if not on and bid > 0 and int(b.get("shade_id", 0)) == bid and int(b.get("counted_id", 0)) != bid:
+			b.counted_id = bid
+			run.beams_blocked = int(run.get("beams_blocked", 0)) + 1
+			_popup(player_pos + Vector2(0, -1.6) * u, tr("Hidden!"), Color(0.7, 0.85, 1.0), 24)
+
+func _beam_hits_player() -> bool:
+	var pr := PLAYER_RADIUS * Core.U * 0.8
+	for bm in beams:
+		if not bm.on:
+			continue
+		var q := Geometry2D.get_closest_point_to_segment(player_pos, bm.from, bm.to)
+		if q.distance_to(player_pos) <= float(bm.half) + pr:
+			var b: Dictionary = bm.boss
+			b.counted_id = int(b.get("beam_id", 0))  # it got you: not a dodge
+			return true
+	return false
+
+## Close calls: an enemy or a shot passing within GRAZE_MARGIN of you,
+## counted once each.
+func _count_grazes() -> void:
+	var u: float = Core.U
+	var reach := (PLAYER_RADIUS + GRAZE_MARGIN) * u
+	var n := 0
+	for e in enemies:
+		if e.warm > 0.0 or e.type in Core.GATES or e.get("grazed", false):
+			continue
+		var d: float = (e.pos as Vector2).distance_to(player_pos)
+		if d <= Core.radius_e(e) + reach:
+			e.grazed = true
+			n += 1
+	for b in ebullets:
+		if b.get("grazed", false):
+			continue
+		if (b.pos as Vector2).distance_to(player_pos) <= float(b.get("r", 0.25)) * u + reach:
+			b.grazed = true
+			n += 1
+	if n > 0:
+		run.grazes = int(run.get("grazes", 0)) + n
 
 ## Smart bomb: a shockwave wipes out every enemy on screen. No points or
 ## geoms for those -- it's an escape, not a farm. Bosses only take a dent.
@@ -960,7 +1230,7 @@ func _on_bomb_pressed() -> void:
 	enemies.clear()
 	ebullets.clear()
 	for b in bosses:
-		Bosses.damage(b, 40)
+		Bosses.damage(b, 40, player_pos, 16.0 * Core.U)
 		_spark_burst(b.pos, Bosses.color_of(b), 20, 1.4)
 	_check_bosses_dead()
 	shockwave_t = 0.0
@@ -996,7 +1266,7 @@ func _on_player_hit() -> void:
 		sounds.reset_calm()  # the screen is empty again: back to calm music
 		sounds.silence_loops()
 	if int(rules.lives) > 0 and lives <= 0:
-		_end_game(false)
+		_end_game(cleared)
 		return
 	respawn_t = RESPAWN_TIME
 	spawn_timer = RESPAWN_TIME + 1.0
@@ -1055,29 +1325,59 @@ func _check_goal() -> void:
 	if ending >= 0.0 or not game_active:
 		return
 	var t: int = int(rules.time)
-	if t > 0:
+	if t > 0 and not cleared:
 		var left := float(t) - elapsed_seconds
 		if left <= 10.0 and int(ceil(left)) != tick_shown and left > 0.0:
 			tick_shown = int(ceil(left))
 			_sfx("tick", -2.0, 1.0 + (10.0 - left) * 0.03, 0)
 		if left <= 0.0:
-			# Deadline ends here; a "survive" level is won.
-			_end_game(rules.goal == "survive")
+			if rules.campaign and str(rules.goal) == "survive":
+				_on_clock_survived()
+			else:
+				_end_game(false)  # Time Attack is over
 			return
 	match str(rules.goal):
 		"kills":
 			if kills >= int(rules.n):
 				_end_game(true)
-		"gates":
-			if gates_passed >= int(rules.n):
-				_end_game(true)
-		"geoms":
-			if geoms_got >= int(rules.n):
-				_end_game(true)
 		"boss":
 			var rush_left: bool = not (rules.get("rush", []) as Array).is_empty() and (rush_index < (rules.rush as Array).size() or rush_t >= 0.0)
 			if bosses.is_empty() and boss_events_left <= 0 and not rush_left:
 				_end_game(true)
+
+## A campaign level's clock ran out with you still flying: it is cleared
+## (banked now, so closing the app keeps it), and the swarm keeps coming --
+## every point still counts toward the stars (owner, 2026-10-07).
+func _on_clock_survived() -> void:
+	cleared = true
+	run.clear_t = elapsed_seconds
+	_sfx("level_clear", 0.0, 1.0, 0)
+	_show_banner(tr("SURVIVED!") + "\n" + tr("Keep going: every point counts for the stars"), Color(1, 0.9, 0.4), 3.5)
+	finish_button.visible = true
+	var data := Campaign.load_progress()
+	Campaign.record(data, level_id, hardcore, Levels.stars_for(level_id, score), score)
+
+## Seconds past a cleared level's clock (0 before).
+func _overtime() -> float:
+	return maxf(0.0, elapsed_seconds - float(run.get("clear_t", 0.0))) if cleared else 0.0
+
+## Every boss of a campaign level is beaten: whatever that opens (a classic
+## mode, the first familiar) is announced at once.
+func _on_level_bosses_beaten() -> void:
+	var data := Campaign.load_progress()
+	var opened := Campaign.beat_boss_level(data, level_id)
+	var lines: PackedStringArray = []
+	for m in opened.modes:
+		lines.append(tr("🔓 New mode: %s") % (Levels.MODE_ICONS[m] + " " + tr(str(Levels.CLASSIC[m].title))))
+	for k in opened.familiars:
+		lines.append(tr("🔓 New familiar: %s") % tr(str(Drones.LABELS[k])))
+	if not lines.is_empty():
+		_sfx("extra_life", 0.0, 1.0, 0)
+		_show_banner("\n".join(lines), Color(0.5, 1.0, 0.6), 3.5)
+
+func _on_finish_pressed() -> void:
+	if cleared and game_active and ending < 0.0:
+		_end_game(true)
 
 ## The game is over: won (a level cleared, Boss Rush beaten, or simply the
 ## end of a classic game) or lost. A short pause, then the result card.
@@ -1086,6 +1386,7 @@ func _end_game(success: bool) -> void:
 		return
 	won = success
 	ending = 1.6
+	finish_button.visible = false
 	SaveUtil.delete(SAVE_PATH)
 	if sounds:
 		sounds.stop_music(2.0)
@@ -1119,39 +1420,50 @@ func _show_result() -> void:
 		info.high("Highest multiplier", peak_mult)
 		if mode == "evolved":
 			info.high("Longest time survived", elapsed_seconds)
+		_record_moves()
 	if rules.campaign:
 		var data := Campaign.load_progress()
-		# Every campaign score fills the purse, won or lost (and the pool of
-		# the familiar that flew it), for buying and upgrading familiars.
+		# Every campaign score goes to the familiar that flew it, won or lost.
 		Campaign.add_points(data, score, drone_kind)
+		var best := int((data["hbest" if hardcore else "best"] as Dictionary).get(str(level_id), 0))
 		if won:
-			var stars := Levels.stars_for(level_id, score, deaths)
-			var fresh: Array = Campaign.record(data, level_id, hardcore, stars, score)
+			var stars := Levels.stars_for(level_id, score)
+			Campaign.record(data, level_id, hardcore, stars, score)
 			title = tr("Level complete!")
 			color = HomeKit.GOLD
 			lines.append("★".repeat(stars) + "☆".repeat(3 - stars))
-			if deaths > 0:
-				lines.append(tr("★★ needs a run without losing a life"))
-			if score < int(rules.target):
-				lines.append(tr("★★★ needs %s points") % _num(int(rules.target)))
-			for k in fresh:
-				lines.append(tr("In the familiar shop: %s") % tr(str(Drones.LABELS[k])))
+			var nxt := Levels.next_star_at(level_id, score)
+			if nxt > 0:
+				lines.append(tr("%s needs %s points") % ["★".repeat(stars + 1), _num(nxt)])
+			if cleared:
+				lines.append(tr("Overtime: +%s") % _format_time(_overtime()))
 			if info:
 				info.high("Campaign stars", Campaign.total_stars(data, false))
 				info.high("Cursed stars", Campaign.total_stars(data, true))
 				info.high("Familiars unlocked", Campaign.drones_open(data))
 				info.add("Levels cleared")
+				if deaths == 0:
+					info.add("Flawless levels")
 				info.celebrate("Level complete!")
 			else:
 				_sfx("level_clear")
 		else:
 			title = tr("Out of lives")
 			color = HomeKit.PINK
-		lines.append(tr("+%s points") % _num(score) + (("  ·  " + tr(str(Drones.LABELS[drone_kind]))) if drone_kind != "" else ""))
-		var best := int((data["hbest" if hardcore else "best"] as Dictionary).get(str(level_id), 0))
+			if str(rules.goal) == "survive":
+				lines.append(tr("Survive the clock to clear the level"))
+		# What this run opened: modes (a boss beaten) and familiars (stars).
+		for m in Levels.MODE_ORDER:
+			if Campaign.mode_open(data, m) and not m in run.get("modes_before", []):
+				lines.append(tr("🔓 New mode: %s") % (Levels.MODE_ICONS[m] + " " + tr(str(Levels.CLASSIC[m].title))))
+		for k in Campaign.open_familiars(data):
+			if not k in run.get("fams_before", []):
+				lines.append(tr("🔓 New familiar: %s") % tr(str(Drones.LABELS[k])))
+		if drone_kind != "":
+			lines.append(tr("+%s points for %s") % [_num(score), tr(str(Drones.LABELS[drone_kind]))])
 		lines.push_front(tr("Level %d · %s") % [level_id, tr(str(rules.name))])
 		lines.append(tr("Score: %s") % _num(score))
-		if best > 0:
+		if best > 0 and best > score:
 			lines.append(tr("Best: %s") % _num(best))
 	else:
 		title = tr("BOSS RUSH CLEARED!") if (mode == "bossrush" and won) else tr("Game Over")
@@ -1181,13 +1493,30 @@ func _show_result() -> void:
 	if rules.campaign:
 		var data2 := Campaign.load_progress()
 		if won and level_id < Levels.count() and Campaign.is_open(data2, level_id + 1, hardcore):
-			row.add_child(_result_button("Next ▶", HomeKit.LIME, _start_level.bind(level_id + 1, hardcore, drone_kind)))
+			row.add_child(_result_button("Next ▶", HomeKit.LIME, _start_level.bind(level_id + 1, hardcore, "" if hardcore else Campaign.chosen_drone(data2))))
 		row.add_child(_result_button("Retry", HomeKit.CYAN, _restart_current))
 		row.add_child(_result_button("🗺 Levels", HomeKit.GOLD, _open_campaign.bind(hardcore)))
 	else:
 		row.add_child(_result_button("Play Again", HomeKit.LIME, _restart_current))
 	row.add_child(_result_button("🏠 Home", HomeKit.PURPLE, _go_home))
 	result_dialog.visible = true
+
+## This run's moves, for the achievements (owner, 2026-10-07: badges for
+## special manoeuvres -- seals flown through, near misses, chain blasts...).
+## Only what happened is written, so the stats card isn't full of zeros.
+func _record_moves() -> void:
+	var highs := {"Most seals in one run": gates_passed, "Longest seal chain": int(run.get("best_combo", 0)),
+		"Most close calls in one run": int(run.get("grazes", 0)), "Biggest chain reaction": int(run.get("best_chain", 0)),
+		"Biggest black hole broken": int(run.get("biggest_well", 0)),
+		"Most beams dodged behind cover": int(run.get("beams_blocked", 0)),
+		"Most shields broken in one run": int(run.get("shields", 0))}
+	for k in highs:
+		if int(highs[k]) > 0:
+			info.high(k, int(highs[k]))
+	if cleared and _overtime() >= 1.0:
+		info.high("Longest overtime", _overtime())
+	if int(run.get("flawless_bosses", 0)) > 0:
+		info.add("Flawless boss kills", int(run.flawless_bosses))
 
 func _result_button(text: String, color: Color, action: Callable) -> Button:
 	var b := HomeKit.neon_button(tr(text), color, 24, 62)
@@ -1260,16 +1589,17 @@ func _update_hud() -> void:
 	bomb_button.disabled = bombs <= 0
 	bomb_button.visible = int(rules.bombs) > 0 or int(rules.bomb_every) > 0 or bombs > 0
 	var g := ""
-	match str(rules.goal):
-		"kills":
-			g = tr("Kills %d/%d") % [mini(kills, int(rules.n)), int(rules.n)]
-		"gates":
-			g = tr("Seals %d/%d") % [mini(gates_passed, int(rules.n)), int(rules.n)]
-		"geoms":
-			g = tr("Souls %d/%d") % [mini(geoms_got, int(rules.n)), int(rules.n)]
+	if str(rules.goal) == "kills":
+		g = tr("Kills %d/%d") % [mini(kills, int(rules.n)), int(rules.n)]
 	if int(rules.time) > 0:
-		var clock := "⏱ " + _format_time(float(rules.time) - elapsed_seconds)
+		var clock := ("✔ +" + _format_time(_overtime())) if cleared else ("⏱ " + _format_time(float(rules.time) - elapsed_seconds))
 		g = clock if g == "" else g + "  " + clock
+	if rules.campaign:
+		# The next star's points (the stars are points, owner 2026-10-07).
+		var nxt := Levels.next_star_at(level_id, score)
+		var have := Levels.stars_for(level_id, score)
+		var star := ("★".repeat(have + 1) + " " + _num(nxt)) if nxt > 0 else "★★★ ✔"
+		g = star if g == "" else g + "  " + star
 	if rules.king:
 		g = (tr("🕯 Fire!") if king_zone >= 0 else tr("🕯 Find a circle")) + ("  " + g if g != "" else "")
 	goal_label.text = g
@@ -1283,15 +1613,17 @@ static func _num(n: int) -> String:
 		s = s.substr(0, s.length() - 3)
 	return s + out
 
-func _show_banner(text: String, color: Color) -> void:
+func _show_banner(text: String, color: Color, hold: float = 2.0) -> void:
 	banner.text = text
 	banner.add_theme_color_override("font_color", color)
 	banner.add_theme_color_override("font_outline_color", Color(color, 0.5))
 	banner.modulate.a = 1.0
 	banner.visible = true
-	var tw := banner.create_tween()
-	tw.tween_interval(2.0)
-	tw.tween_property(banner, "modulate:a", 0.0, 0.8)
+	if _banner_tw and _banner_tw.is_valid():
+		_banner_tw.kill()
+	_banner_tw = banner.create_tween()
+	_banner_tw.tween_interval(hold)
+	_banner_tw.tween_property(banner, "modulate:a", 0.0, 0.8)
 
 # ---------- UI construction ----------
 
@@ -1442,6 +1774,11 @@ func _build_game_screen() -> void:
 	pause_button = _neon_button("⏸ " + tr("Pause"), Color(0.3, 1.0, 1.0))
 	pause_button.pressed.connect(_on_pause_pressed)
 	top_bar.add_child(pause_button)
+	# Overtime only: end a cleared level now and bank its stars.
+	finish_button = _neon_button("🏁 " + tr("Finish"), Color(1.0, 0.85, 0.35))
+	finish_button.pressed.connect(_on_finish_pressed)
+	finish_button.visible = false
+	top_bar.add_child(finish_button)
 
 	score_label = _stat_label("0")
 	lives_label = _stat_label("♥ 3")
@@ -1573,8 +1910,14 @@ func _draw_minimap() -> void:
 		minimap.draw_rect(Rect2((e.pos as Vector2) * k - Vector2(1, 1), Vector2(2.5, 2.5)), Color(Core.color_of(e.type), 0.85))
 	for z in zones:
 		minimap.draw_arc((z.pos as Vector2) * k, float(z.r) * Core.U * k, 0, TAU, 12, Color(1, 0.85, 0.3, 0.8), 1.0)
+	for r in blocks:
+		minimap.draw_rect(Rect2((r as Rect2).position * k, (r as Rect2).size * k), Color(0.75, 0.8, 0.95, 0.75))
 	for b in bosses:
 		minimap.draw_circle((b.pos as Vector2) * k, 5.0, Color(Bosses.color_of(b), 0.9))
+		for py in b.get("pylons", []):
+			if int(py.hp) > 0:
+				var c: Vector2 = (py.pos as Vector2) * k
+				minimap.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -5), c + Vector2(4, 0), c + Vector2(0, 5), c + Vector2(-4, 0)]), Color(0.6, 0.95, 1.0))
 	minimap.draw_circle(player_pos * k, 3.0, Color.WHITE)
 
 func _draw_boss_bar() -> void:
@@ -1621,7 +1964,9 @@ func _start_level(id: int, hard: bool, drone: String) -> void:
 	drone_kind = "" if hard else drone
 	rules = Levels.level(id)
 	_begin()
-	_show_banner("%s %d · %s\n%s" % [tr("Level"), id, tr(str(rules.name)), Levels.goal_text(rules)], (rules.grid as Color).lightened(0.4))
+	var hint := str(rules.hint)
+	_show_banner("%s %d · %s\n%s" % [tr("Level"), id, tr(str(rules.name)), Levels.goal_text(rules)] + ("\n" + tr(hint) if hint != "" else ""),
+		(rules.grid as Color).lightened(0.4), 4.5 if hint != "" else 2.0)
 
 func _restart_current() -> void:
 	if mode == "campaign":
@@ -1647,8 +1992,8 @@ func _begin(fresh: bool = true) -> void:
 		multiplier = 1
 		peak_mult = 1
 		bombs = int(rules.bombs)
-		next_bomb_at = int(rules.bomb_every)
-		next_life_at = int(rules.life_every)
+		next_bomb_at = int(int(rules.bomb_every) / EXTRA_EASE)
+		next_life_at = int(int(rules.life_every) / EXTRA_EASE)
 		bombs_given = 0
 		lives_given = 0
 		elapsed_seconds = 0.0
@@ -1673,6 +2018,13 @@ func _begin(fresh: bool = true) -> void:
 				boss_events_left += 1
 		rush_index = 0
 		rush_t = -1.0
+		cleared = false
+		blocks = []
+		run = {}
+		if rules.campaign:
+			var cd := Campaign.load_progress()
+			run.fams_before = Campaign.open_familiars(cd)
+			run.modes_before = Levels.MODE_ORDER.filter(func(m): return Campaign.mode_open(cd, m))
 		gate_t = 1.5
 		wave_t = 3.0
 		zone_t = 0.0
@@ -1681,6 +2033,8 @@ func _begin(fresh: bool = true) -> void:
 	particles = []
 	popups = []
 	rays = []
+	beams = []
+	blast_depth = 0
 	drones = []
 	if drone_kind != "":
 		var up: Dictionary = Campaign.fam_of(Campaign.load_progress(), drone_kind).up
@@ -1702,6 +2056,7 @@ func _begin(fresh: bool = true) -> void:
 	_update_camera(1.0)
 	game_active = true
 	game_over = false
+	finish_button.visible = cleared
 	result_dialog.visible = false
 	campaign.visible = false
 	game_screen.visible = true
@@ -1735,7 +2090,7 @@ func _on_campaign_play(id: int, hard: bool, drone: String) -> void:
 	_start_level(id, hard, drone)
 
 func _on_campaign_closed() -> void:
-	home.show_home()
+	home.go_home()  # reloads, so modes a boss just opened show on the Landing
 
 # ---------- save / load ----------
 
@@ -1754,8 +2109,9 @@ func _save_game() -> void:
 		"ev_next": ev_next.map(func(x): return -1.0 if is_inf(float(x)) else x),
 		"boss_events_left": boss_events_left, "rush_index": rush_index, "rush_t": rush_t,
 		"gate_t": gate_t, "wave_t": wave_t, "next_id": next_entity_id,
+		"cleared": cleared, "run": run, "blocks": blocks, "deaths": deaths,
 	}
-	SaveUtil.write(SAVE_PATH, {"v": 2, "mode": mode, "level": level_id, "score": score, "blob": var_to_str(state)})
+	SaveUtil.write(SAVE_PATH, {"v": SAVE_VERSION, "mode": mode, "level": level_id, "score": score, "blob": var_to_str(state)})
 
 func _resume_text() -> String:
 	var d = SaveUtil.read(SAVE_PATH)
@@ -1774,8 +2130,8 @@ func _resume_saved() -> void:
 
 func _load_saved_game() -> bool:
 	var d = SaveUtil.read(SAVE_PATH)
-	if not (d is Dictionary) or not d.has("blob"):
-		return false  # nothing, or a save from before the campaign update
+	if not (d is Dictionary) or not d.has("blob") or int(d.get("v", 0)) < SAVE_VERSION:
+		return false  # nothing, or a save from before the bosses changed
 	var s = str_to_var(str(d.blob))
 	if not (s is Dictionary):
 		return false
@@ -1822,6 +2178,10 @@ func _load_saved_game() -> bool:
 	gate_t = float(s.gate_t)
 	wave_t = float(s.wave_t)
 	next_entity_id = int(s.next_id)
+	cleared = bool(s.get("cleared", false))
+	run = s.get("run", {}) if s.get("run") is Dictionary else {}
+	blocks = s.get("blocks", []) if s.get("blocks") is Array else []
+	deaths = int(s.get("deaths", 0))
 	bullets = []
 	ebullets = []
 	crystals = []
@@ -1848,16 +2208,7 @@ func _build_home() -> void:
 		"subtitle": "A neon voodoo shooter. Break the swarm with a storm of pins.",
 		"logo": _draw_home_logo,
 		"art": "res://games/geometry_wars/landing_bg.jpg",
-		"modes": [
-			{"text": "💀  Endless", "sub": "3 lives, bombs, the full swarm", "action": _start_mode.bind("evolved")},
-			{"text": "🗺  Campaign", "sub": "40 levels · bosses · familiars", "action": _open_campaign.bind(false), "color": HomeKit.GOLD},
-			{"text": "⏱ Time Attack", "sub": "3 minutes", "row": 1, "action": _start_mode.bind("deadline"), "color": HomeKit.LIME},
-			{"text": "✋ Unarmed", "sub": "No pins: break seals", "row": 1, "action": _start_mode.bind("pacifism"), "color": HomeKit.LIME},
-			{"text": "🕯 Sanctuary", "sub": "Shoot from the circles", "row": 1, "action": _start_mode.bind("king"), "color": HomeKit.LIME},
-			{"text": "🐃 Stampede", "sub": "Walls of darts", "row": 2, "action": _start_mode.bind("waves"), "color": HomeKit.PINK},
-			{"text": "⚰ Coffin", "sub": "A tiny box", "row": 2, "action": _start_mode.bind("claustro"), "color": HomeKit.PINK},
-			{"text": "☠ Boss Rush", "sub": "Every boss", "row": 2, "action": _start_mode.bind("bossrush"), "color": HomeKit.PINK},
-		],
+		"modes": _home_modes(),
 		"save_path": SAVE_PATH,
 		"resume": _resume_saved,
 		"resume_text": _resume_text,
@@ -1865,6 +2216,36 @@ func _build_home() -> void:
 		"board_note": "Your best Endless score.",
 	})
 	add_child(home)
+
+## Endless and the Campaign, then every classic mode a campaign boss has
+## opened (owner, 2026-10-07: only those two at first). The Landing is
+## rebuilt each time the scene loads, and leaving the campaign map reloads
+## it, so a mode shows up as soon as its boss is beaten.
+const MODE_BUTTONS := {
+	"deadline": {"text": "⏱ Time Attack", "sub": "3 minutes"},
+	"pacifism": {"text": "✋ Unarmed", "sub": "No pins: break seals"},
+	"waves": {"text": "🐃 Stampede", "sub": "Walls of darts"},
+	"king": {"text": "🕯 Sanctuary", "sub": "Shoot from the circles"},
+	"claustro": {"text": "⚰ Coffin", "sub": "A tiny box"},
+	"bossrush": {"text": "☠ Boss Rush", "sub": "Every boss"},
+}
+
+func _home_modes() -> Array:
+	var data := Campaign.load_progress()
+	var modes: Array = [
+		{"text": "💀  Endless", "sub": "3 lives, bombs, the full swarm", "action": _start_mode.bind("evolved")},
+		{"text": "🗺  Campaign", "sub": "40 levels · beat bosses to unlock modes", "action": _open_campaign.bind(false), "color": HomeKit.GOLD},
+	]
+	var n := 0
+	for m in Levels.MODE_ORDER:
+		if not Campaign.mode_open(data, m):
+			continue
+		var b: Dictionary = (MODE_BUTTONS[m] as Dictionary).duplicate()
+		b.row = 1 + n / 3
+		b.action = _start_mode.bind(m)
+		modes.append(b)
+		n += 1
+	return modes
 
 ## The Landing's logo: the ship, the owner's demon skull, drawn as in their
 ## picture -- mouth down, horns up -- with its flame rising between the horns.

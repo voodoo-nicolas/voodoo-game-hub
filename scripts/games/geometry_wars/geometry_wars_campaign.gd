@@ -8,13 +8,17 @@ extends Control
 ##
 ## Progress lives in user://geometry_wars_campaign.json:
 ##   {stars: {"<id>": 0..3}, hard: {...}, best: {"<id>": score}, hbest: {...},
-##    drone: "attack", points: the purse (every campaign score adds to it),
-##    owned: [familiars bought], fam: {"<kind>": {xp: points earned with it,
-##    up: {"armor": 0..5, ...}}}}
+##    beaten: {"<id>": true} (boss levels whose boss was beaten, not just
+##    outlasted), drone: "attack" or "" (none), fam: {"<kind>": {xp: points
+##    earned with it, up: {"armor": 0..5, ...}}}}
+## (Saves from the shop days also hold "points" and "owned"; nothing reads
+## them now.)
 ## A level opens once the one before it has a star (Ultimate: once level 30
-## has one); Hardcore opens a level once it's cleared in Adventure.
-## Familiars: Drones.SHOP says which cleared level puts one up for sale and
-## its price; its own xp buys its upgrades (Drones header).
+## has one); Cursed opens a level once it's cleared in the Campaign.
+## Familiars (owner, 2026-10-07): none at first; beating the first boss
+## brings the Raven, and the others come with campaign stars
+## (Drones.UNLOCK_STARS); each one's own xp buys its upgrades. Beating a boss
+## also opens a classic mode (Levels.MODE_UNLOCK).
 
 signal play_level(id: int, hardcore: bool, drone: String)
 signal closed
@@ -49,7 +53,6 @@ var data: Dictionary = {}
 var hardcore := false
 var _drones_row: HBoxContainer
 var _stars_label: Label
-var _points_label: Label
 var _title: Label
 var _map: Control
 var _map_i := 0
@@ -71,18 +74,15 @@ static func load_progress() -> Dictionary:
 	for k in ["stars", "hard", "best", "hbest"]:
 		if not (d.get(k) is Dictionary):
 			d[k] = {}
+	if not (d.get("beaten") is Dictionary):
+		# Before 2026-10-07 a boss level was only cleared by beating its boss.
+		var beaten := {}
+		for id in range(1, Levels.count() + 1):
+			if Levels.is_boss(id) and (stars_of(d, id, false) > 0 or stars_of(d, id, true) > 0):
+				beaten[str(id)] = true
+		d["beaten"] = beaten
 	if not d.has("drone"):
-		d["drone"] = "attack"
-	if not d.has("points"):
-		d["points"] = 0
-	if not (d.get("owned") is Array):
-		# Saves from before the shop keep what their stars had unlocked.
-		var owned := ["attack"]
-		var stars := total_stars(d, false)
-		for k in Drones.KINDS:
-			if k != "attack" and stars >= int(Drones.OLD_UNLOCK[k]):
-				owned.append(k)
-		d["owned"] = owned
+		d["drone"] = ""
 	if not (d.get("fam") is Dictionary):
 		d["fam"] = {}
 	return d
@@ -108,26 +108,35 @@ static func is_open(d: Dictionary, id: int, hard: bool) -> bool:
 		return stars_of(d, Levels.ULTIMATE_FIRST - 1, false) > 0
 	return stars_of(d, id - 1, false) > 0
 
-## Bought (the Raven is yours from the start).
+static func boss_beaten(d: Dictionary, id: int) -> bool:
+	return bool((d.beaten as Dictionary).get(str(id), false))
+
+## Earned: the first boss beaten, and enough campaign stars.
 static func drone_open(d: Dictionary, kind: String) -> bool:
-	return kind in (d.owned as Array)
+	return boss_beaten(d, Levels.first_boss()) and total_stars(d, false) >= int(Drones.UNLOCK_STARS[kind])
 
-## Up for sale: its campaign level has been cleared.
-static func in_shop(d: Dictionary, kind: String) -> bool:
-	var after := int(Drones.SHOP[kind][0])
-	return after == 0 or stars_of(d, after, false) > 0
+static func open_familiars(d: Dictionary) -> Array:
+	return Drones.KINDS.filter(func(k): return drone_open(d, k))
 
-static func price(kind: String) -> int:
-	return int(Drones.SHOP[kind][1])
+## The next familiar still to come, or "".
+static func next_familiar(d: Dictionary) -> String:
+	for k in Drones.KINDS:
+		if not drone_open(d, k):
+			return k
+	return ""
 
-static func buy(d: Dictionary, kind: String) -> bool:
-	if drone_open(d, kind) or not in_shop(d, kind) or int(d.points) < price(kind):
-		return false
-	d.points = int(d.points) - price(kind)
-	(d.owned as Array).append(kind)
-	d.drone = kind
-	save_progress(d)
-	return true
+## The familiar that flies with you ("" = none yet).
+static func chosen_drone(d: Dictionary) -> String:
+	var k := str(d.get("drone", ""))
+	if k != "" and drone_open(d, k):
+		return k
+	var open := open_familiars(d)
+	return str(open[0]) if not open.is_empty() else ""
+
+static func mode_open(d: Dictionary, mode: String) -> bool:
+	if not Levels.MODE_UNLOCK.has(mode):
+		return true
+	return boss_beaten(d, int(Levels.MODE_UNLOCK[mode]))
 
 ## A familiar's own record: {xp, up}.
 static func fam_of(d: Dictionary, kind: String) -> Dictionary:
@@ -154,40 +163,47 @@ static func upgrade(d: Dictionary, kind: String, stat: String) -> bool:
 	save_progress(d)
 	return true
 
-## A campaign level's score, won or lost: all of it to the purse, and to the
-## familiar that flew it.
+## A campaign level's score, won or lost, goes to the familiar that flew it.
 static func add_points(d: Dictionary, score: int, drone: String) -> void:
-	var pts := maxi(score, 0)
-	d.points = int(d.points) + pts
-	if drone != "":
-		var f := fam_of(d, drone)
-		f.xp = int(f.xp) + pts
+	if drone == "":
+		return
+	var f := fam_of(d, drone)
+	f.xp = int(f.xp) + maxi(score, 0)
 	save_progress(d)
 
 static func drones_open(d: Dictionary) -> int:
-	var n := 0
-	for k in Drones.KINDS:
-		if drone_open(d, k):
-			n += 1
-	return n
+	return open_familiars(d).size()
 
-## Records a cleared level; returns the familiars this put up for sale.
+## Picks the first familiar for you when one arrives and none was chosen.
+static func _settle_drone(d: Dictionary) -> void:
+	if str(d.get("drone", "")) == "" or not drone_open(d, str(d.drone)):
+		d.drone = chosen_drone(d)
+
+## Records a cleared level; returns the familiars its stars brought.
 static func record(d: Dictionary, id: int, hard: bool, stars: int, score: int) -> Array:
-	var before: Array = []
-	for k in Drones.KINDS:
-		if in_shop(d, k):
-			before.append(k)
+	var before := open_familiars(d)
 	var key := str(id)
 	var sk := "hard" if hard else "stars"
 	var bk := "hbest" if hard else "best"
 	d[sk][key] = maxi(int(d[sk].get(key, 0)), stars)
 	d[bk][key] = maxi(int(d[bk].get(key, 0)), score)
+	_settle_drone(d)
 	save_progress(d)
-	var fresh: Array = []
-	for k in Drones.KINDS:
-		if in_shop(d, k) and not k in before:
-			fresh.append(k)
-	return fresh
+	return open_familiars(d).filter(func(k): return not k in before)
+
+## A boss level's bosses are all beaten: returns what that opened,
+## {modes: [...], familiars: [...]} (empty lists if it was beaten before).
+static func beat_boss_level(d: Dictionary, id: int) -> Dictionary:
+	var out := {"modes": [], "familiars": []}
+	if boss_beaten(d, id):
+		return out
+	var before := open_familiars(d)
+	d.beaten[str(id)] = true
+	out.modes = Levels.modes_opened_by(id)
+	out.familiars = open_familiars(d).filter(func(k): return not k in before)
+	_settle_drone(d)
+	save_progress(d)
+	return out
 
 # ---------- screen ----------
 
@@ -228,8 +244,6 @@ func _ready() -> void:
 	_title.add_theme_constant_override("outline_size", 8)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_title)
-	_points_label = HomeKit.label("", 24, HomeKit.WHITE)
-	top.add_child(_points_label)
 	_stars_label = HomeKit.label("", 26, HomeKit.GOLD)
 	top.add_child(_stars_label)
 	for i in 2:
@@ -295,7 +309,6 @@ func refresh() -> void:
 	_title.add_theme_color_override("font_color", HomeKit.PINK if hardcore else HomeKit.GOLD)
 	var max_stars := Levels.count() * 3
 	_stars_label.text = "★ %d / %d" % [total_stars(data, hardcore), max_stars]
-	_points_label.text = "💰 " + _num(int(data.points))
 	for i in _tabs.size():
 		(_tabs[i] as Button).set_pressed_no_signal((i == 1) == hardcore)
 	_build_drones()
@@ -313,33 +326,32 @@ func _build_drones() -> void:
 		return
 	var lbl := HomeKit.label(tr("Familiar:"), 22, HomeKit.DIM)
 	_drones_row.add_child(lbl)
-	for k in Drones.KINDS:
-		var owned := drone_open(data, k)
-		var text := ""
-		if owned:
-			text = tr(str(Drones.LABELS[k]))
-		elif in_shop(data, k):
-			text = "🛒 %s %s" % [Drones.ICONS[k], _short(price(k))]
-		else:
-			text = "%s %s" % [Drones.ICONS[k], tr("Level %d") % int(Drones.SHOP[k][0])]  # dimmed = locked
-		var b := HomeKit.neon_button(text, HomeKit.BUTTON, 19, 48)
-		b.toggle_mode = owned
-		b.disabled = not owned and not in_shop(data, k)
+	var open := open_familiars(data)
+	var chosen := chosen_drone(data)
+	for k in open:
+		var b := HomeKit.neon_button(tr(str(Drones.LABELS[k])), HomeKit.BUTTON, 19, 48)
+		b.toggle_mode = true
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.set_pressed_no_signal(owned and str(data.drone) == k)
+		b.set_pressed_no_signal(chosen == k)
 		b.tooltip_text = tr(str(Drones.DESCS[k]))
-		b.pressed.connect(_on_familiar.bind(k))
+		b.pressed.connect(_pick_drone.bind(k))
 		_drones_row.add_child(b)
-	var up := HomeKit.neon_button(tr("⬆ Upgrade"), HomeKit.GO, 19, 48)
-	up.custom_minimum_size.x = 150
-	up.pressed.connect(_show_upgrades)
-	_drones_row.add_child(up)
-
-func _on_familiar(kind: String) -> void:
-	if drone_open(data, kind):
-		_pick_drone(kind)
-	else:
-		_show_buy(kind)
+	# What brings the next one: the first boss, then stars.
+	var nxt := next_familiar(data)
+	if nxt != "":
+		var text := ""
+		if not boss_beaten(data, Levels.first_boss()):
+			text = tr("🔒 Beat the %s (level %d) for your first familiar") % [tr(Levels.boss_name(Levels.bosses_of(Levels.first_boss())[0][0])), Levels.first_boss()]
+		else:
+			text = "🔒 %s  ★ %d / %d" % [tr(str(Drones.LABELS[nxt])), total_stars(data, false), int(Drones.UNLOCK_STARS[nxt])]
+		var hint := HomeKit.label(text, 20, HomeKit.GOLD)
+		hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_drones_row.add_child(hint)
+	if not open.is_empty():
+		var up := HomeKit.neon_button(tr("⬆ Upgrade"), HomeKit.GO, 19, 48)
+		up.custom_minimum_size.x = 150
+		up.pressed.connect(_show_upgrades)
+		_drones_row.add_child(up)
 
 func _pick_drone(kind: String) -> void:
 	data.drone = kind
@@ -496,7 +508,28 @@ func _show_card(id: int) -> void:
 		notes = tr("💀 Cursed: no familiar") + (" · " + notes if notes != "" else "")
 	if notes != "":
 		_card_box.add_child(HomeKit.label(notes, 20, HomeKit.DIM, true, true))
-	_card_box.add_child(HomeKit.label("★ %s   ·   ★★ %s   ·   ★★★ %s" % [tr("Finish"), tr("No lives lost"), tr("%s points") % _num(int(r.target))], 22, HomeKit.GOLD, true, true))
+	var first := tr("Survive") if str(r.goal) == "survive" else tr("Finish")
+	var st: Array = r.stars
+	_card_box.add_child(HomeKit.label("★ %s   ·   ★★ %s   ·   ★★★ %s" % [first, _num(int(st[0])), _num(int(st[1]))], 22, HomeKit.GOLD, true, true))
+	if str(r.goal) == "survive":
+		_card_box.add_child(HomeKit.label(tr("When the clock runs out, keep going: every point counts for the stars"), 18, HomeKit.DIM, true, true))
+	# A boss: what beating it opens.
+	if Levels.is_boss(id):
+		var names: PackedStringArray = []
+		for bk in Levels.bosses_of(id):
+			names.append(tr(Levels.boss_name(str(bk[0]))))
+		if boss_beaten(data, id):
+			_card_box.add_child(HomeKit.label(tr("☠ %s beaten ✔") % " + ".join(names), 22, HomeKit.LIME, true, true))
+		else:
+			var prizes: PackedStringArray = []
+			for m in Levels.modes_opened_by(id):
+				prizes.append(Levels.MODE_ICONS[m] + " " + tr(str(Levels.CLASSIC[m].title)))
+			if id == Levels.first_boss():
+				prizes.append(tr(str(Drones.LABELS["attack"])))
+			var line := tr("☠ Beat %s") % " + ".join(names)
+			if not prizes.is_empty():
+				line += ": " + tr("unlocks %s") % ", ".join(prizes)
+			_card_box.add_child(HomeKit.label(line, 22, Color(1, 0.45, 0.5), true, true))
 	var best := int((data["hbest" if hardcore else "best"] as Dictionary).get(str(id), 0))
 	if best > 0:
 		_card_box.add_child(HomeKit.label(tr("Best: %s") % _num(best), 22, HomeKit.LIME, false, true))
@@ -505,7 +538,7 @@ func _show_card(id: int) -> void:
 	_card_box.add_child(row)
 	var close := HomeKit.neon_button(tr("Close"), HomeKit.BUTTON, 24, 64)
 	close.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	close.pressed.connect(func(): _card.visible = false)
+	close.pressed.connect(_close_card)
 	row.add_child(close)
 	var play := HomeKit.neon_button("▶  " + tr("Play"), HomeKit.GO, 28, 64)
 	play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -538,28 +571,11 @@ func _card_buttons(main: Button) -> void:
 func _close_card() -> void:
 	_card.visible = false
 
-func _show_buy(kind: String) -> void:
-	_clear_card()
-	_card_title(tr(str(Drones.LABELS[kind])))
-	_card_box.add_child(HomeKit.label(tr(str(Drones.DESCS[kind])), 24, HomeKit.WHITE, true, true))
-	_card_box.add_child(HomeKit.label(tr("Price: %s points") % _num(price(kind)), 26, HomeKit.GOLD, false, true))
-	_card_box.add_child(HomeKit.label(tr("You have: %s") % _num(int(data.points)), 22, HomeKit.DIM, false, true))
-	var buy_btn := HomeKit.neon_button("🛒  " + tr("Buy"), HomeKit.GO, 26, 60)
-	buy_btn.disabled = int(data.points) < price(kind)
-	buy_btn.pressed.connect(_on_buy.bind(kind))
-	_card_buttons(buy_btn)
-	_card.visible = true
-
-func _on_buy(kind: String) -> void:
-	if buy(data, kind):
-		_card.visible = false
-		refresh()
-
 ## The chosen familiar's upgrades, paid from the points it earned itself.
 func _show_upgrades() -> void:
-	var kind := str(data.drone)
-	if not drone_open(data, kind):
-		kind = "attack"
+	var kind := chosen_drone(data)
+	if kind == "":
+		return
 	_clear_card()
 	_card_title(tr(str(Drones.LABELS[kind])))
 	var f := fam_of(data, kind)
@@ -590,18 +606,7 @@ func _on_upgrade(kind: String, stat: String) -> void:
 func _on_play(id: int) -> void:
 	_card.visible = false
 	visible = false
-	var drone := "" if hardcore else str(data.drone)
-	if drone != "" and not drone_open(data, drone):
-		drone = "attack"
-	play_level.emit(id, hardcore, drone)
-
-## 25000 -> "25k", 1500000 -> "1.5M".
-static func _short(n: int) -> String:
-	if n >= 1000000:
-		return ("%.1fM" % (n / 1000000.0)).replace(".0M", "M")
-	if n >= 1000:
-		return "%dk" % (n / 1000)
-	return str(n)
+	play_level.emit(id, hardcore, "" if hardcore else chosen_drone(data))
 
 static func _num(n: int) -> String:
 	var s := str(n)
