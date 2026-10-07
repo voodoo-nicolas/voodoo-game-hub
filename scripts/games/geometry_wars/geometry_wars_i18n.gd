@@ -275,7 +275,6 @@ const STRINGS := {
 		"🌍 Everyone": "🌍 Todos",
 		"🎮 Single player": "🎮 Un jugador",
 		"🎯 Goal": "🎯 Objetivo",
-		"🎵 Music": "🎵 Música",
 		"🏅 Achievements": "🏅 Logros",
 		"🏆 Leaderboard": "🏆 Clasificación",
 		"🏠 %s Home": "🏠 Menú de %s",

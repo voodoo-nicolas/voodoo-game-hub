@@ -205,12 +205,10 @@ def empty_list(cfg: dict[str, str]) -> dict:
         "tracks": [],
         # Games whose own sounds need the player's ears never get background
         # music: Memory Lights (the tones are the game), the IQ Test (musical
-        # questions); Neon Blast still plays its own in-pack music (when it
-        # moves to the Music library, take its "off" away -- "off" also
-        # silences a game's own Music calls). The owner can change these in
-        # "Where it plays".
-        "play": {"game:geometry_wars": {"style": "off", "genres": []},
-                 "game:simon": {"style": "off", "genres": []},
+        # questions). "off" also silences a game's own Music calls, so never
+        # set it on a game that plays the library itself (Neon Blast, Sky
+        # Strike). The owner can change these in "Where it plays".
+        "play": {"game:simon": {"style": "off", "genres": []},
                  "game:voodoo_iq": {"style": "off", "genres": []}},
     }
 

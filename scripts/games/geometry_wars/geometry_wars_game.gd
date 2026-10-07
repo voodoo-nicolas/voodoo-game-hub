@@ -8,8 +8,9 @@ extends Control
 ## runs) all run on one rule set per game (geometry_wars_levels.gd).
 ##
 ## Files: _core (enemies, bullets, collisions), _bosses, _drones, _levels
-## (modes + campaign data), _sounds (effects + adaptive music), _campaign
-## (the level map), arena_canvas (drawing + the springy grid).
+## (modes + campaign data), _sounds (effects + the adaptive music, played
+## by the hub's Music library), _campaign (the level map), arena_canvas
+## (drawing + the springy grid).
 ##
 ## The maps are bigger than the screen: the view shows 19 grid squares top
 ## to bottom and a camera follows the ship (a minimap shows the rest).
@@ -1862,16 +1863,8 @@ func _build_home() -> void:
 		"resume_text": _resume_text,
 		"restart": _restart_current,
 		"board_note": "Your best Endless score.",
-		"extra": _add_options,
 	})
 	add_child(home)
-
-func _add_options(box: Control) -> void:
-	box.add_child(home.section("🎵 Music"))
-	box.add_child(home.choice_row(["On", "Off"], 0 if sounds.music_on else 1, _on_music_pick, HomeKit.PURPLE))
-
-func _on_music_pick(i: int) -> void:
-	sounds.set_music_on(i == 0)
 
 ## The Landing's logo: the ship, the owner's demon skull, drawn as in their
 ## picture -- mouth down, horns up -- with its flame rising between the horns.

@@ -1,45 +1,37 @@
 extends Node
 
-## Neon Blast's own sound kit and adaptive music (in the pack, so it works
-## on any app version; the app's shared Sfx library is too small and has too
-## few voices for a shooter).
+## Neon Blast's own sound kit (in the pack, so it works on any app version;
+## the app's shared Sfx library is too small and has too few voices for a
+## shooter) and its adaptive music director.
 ##
-## Everything is synthesized in code on a worker thread the first time the
-## game opens, then kept on disk (user://geometry_wars_music/) and in static
-## vars, so later launches and going Home and back don't redo it.
+## The effects are synthesized in code on a worker thread the first time the
+## game opens, then kept on disk (CACHE_DIR) and in static vars, so later
+## launches and going Home and back don't redo it.
 ##
-## Music: three intensity tiers, each with four synthesized tracks (SONGS) --
+## Music comes from the hub's shared library (the Music autoload, apps from
+## v0.33; older apps play none) -- the game never makes or ships its own
+## (STANDARDS §10). The library's three styles are the intensity tiers:
 ##   calm    few enemies around
 ##   lively  the screen is filling up
 ##   techno  swarmed, or a boss is out
 ## The game calls set_intensity() every frame with how crowded it is; the
-## director crossfades to a track of the matching tier (quick to step up,
-## slow to calm down), swaps tracks now and then, and reset_calm() (the
-## player died: the screen is empty again) goes straight back to calm.
-##
-## Real music: drop .ogg (or .mp3 / .wav) files into
-##   scripts/games/geometry_wars/music/calm/
-##   scripts/games/geometry_wars/music/lively/
-##   scripts/games/geometry_wars/music/techno/
-## A tier with files uses them instead of its synthesized tracks; they ship
-## inside the pack automatically (the pack preset includes the whole folder).
-## Use music you have the rights to (CC0 / royalty-free), and keep files
-## small (OGG ~96 kbps): every player downloads the pack.
+## director asks Music for the matching style (quick to step up, slow to
+## calm down), moves on to the style's next track now and then, and
+## reset_calm() (the player died: the screen is empty again) goes straight
+## back to calm. The player's 🎵 Music switch and volume are the app-wide
+## ones (⚙ Options → Sound); the genres the owner set for Neon Blast in
+## Music Drop apply.
 ##
 ## Loops: "hum" (an awake gravity well nearby) and "skitter" (protons loose)
 ## play continuously at a volume the game sets with set_loop().
-## duck(): the "deafening silence" after a well bursts -- everything drops out,
-## then fades back in.
+## duck(): the "deafening silence" after a well bursts -- the effects and
+## loops drop out, then fade back in. The music plays on: the Music library
+## has no duck.
 
 const RATE := 22050
 const VOICES := 16
-const MUSIC_DIR := "res://scripts/games/geometry_wars/music/"
 const TIERS := ["calm", "lively", "techno"]
-const PREFS_PATH := "user://geometry_wars_prefs.json"
-const SaveUtil = preload("res://scripts/common/save_util.gd")
 
-## The music sits under the effects.
-const MUSIC_DB := -9.0
 const FADE_UP := 2.0
 const FADE_DOWN := 3.5
 ## Intensity (weighted enemies near the ship) where each tier starts.
@@ -48,13 +40,12 @@ const TECHNO_AT := 30.0
 ## A tier must be wanted this long before the music moves to it.
 const HOLD_UP := 1.2
 const HOLD_DOWN := 6.0
-## Swap to another track of the same tier after this long.
+## Move on to the tier's next track after this long.
 const SWAP_AFTER := 100.0
 
 const LOOPS := ["hum", "skitter"]
 
 static var _cache := {}  # key -> AudioStreamWAV (effects, loops)
-static var _tracks := {"calm": [], "lively": [], "techno": []}  # synthesized music
 static var _lock := Mutex.new()
 static var _task := -1
 static var _cancel := false
@@ -65,18 +56,13 @@ var _last_ms := {}
 var _loop_players := {}
 var _loop_target := {}
 
-var music_on := true
-var _music: Array[AudioStreamPlayer] = []  # [current, incoming]
-var _tier := ""
-var _track_path := ""
+var _playing := false      # a game is on and wants music
+var _tier := ""            # the style last asked of Music
 var _want_tier := "calm"
 var _want_t := 0.0
 var _tier_t := 0.0
-var _playing := false
-var _files := {}  # tier -> [stream]
 var _duck_t := 0.0
 var _duck_len := 0.0
-var _music_tween: Tween
 
 func _ready() -> void:
 	var bus := "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master"
@@ -85,12 +71,6 @@ func _ready() -> void:
 		p.bus = bus
 		add_child(p)
 		_players.append(p)
-	for i in 2:
-		var m := AudioStreamPlayer.new()
-		m.bus = bus
-		m.volume_db = -80.0
-		add_child(m)
-		_music.append(m)
 	for key in LOOPS:
 		var l := AudioStreamPlayer.new()
 		l.bus = bus
@@ -98,11 +78,6 @@ func _ready() -> void:
 		add_child(l)
 		_loop_players[key] = l
 		_loop_target[key] = 0.0
-	var prefs = SaveUtil.read(PREFS_PATH)
-	if prefs is Dictionary:
-		music_on = bool(prefs.get("music", true))
-	for tier in TIERS:
-		_files[tier] = _load_files(tier)
 	_start_render()
 
 func _exit_tree() -> void:
@@ -112,15 +87,6 @@ func _exit_tree() -> void:
 		WorkerThreadPool.wait_for_task_completion(_task)
 		_task = -1
 		_cancel = false
-
-func set_music_on(on: bool) -> void:
-	music_on = on
-	SaveUtil.write(PREFS_PATH, {"music": on})
-	if not on:
-		stop_music(0.6)
-	elif _playing:
-		_tier = ""
-		_switch(_want_tier, 1.0)
 
 # ---------- effects ----------
 
@@ -204,21 +170,27 @@ func _process(delta: float) -> void:
 		var want: float = linear_to_db(lvl) - 6.0 + float(game_db) + duck_db
 		# Loops fade in slowly ("faint skittering fading in").
 		p.volume_db = move_toward(p.volume_db, want, delta * (8.0 if want > p.volume_db else 40.0))
-	_update_music(delta, duck_db)
+	_update_music(delta)
 
-# ---------- music ----------
+# ---------- music (the hub's Music library) ----------
 
+## A game starts: calm music first.
 func start_music() -> void:
 	_playing = true
 	_want_tier = "calm"
 	_want_t = 0.0
-	_tier = ""
-	if music_on:
-		_switch("calm", 1.5)
+	_switch("calm", 1.5)
 
+## The game ended (or the campaign map opened): fade the music out. Does
+## nothing when no game music is on, so it never stops music it didn't start.
 func stop_music(fade: float = 1.5) -> void:
+	if not _playing:
+		return
 	_playing = false
-	_fade_out_all(fade)
+	_tier = ""
+	var m := _music_node()
+	if m:
+		m.stop(fade)
 
 ## How crowded it is right now (the game's weighted enemy count).
 func set_intensity(v: float) -> void:
@@ -240,113 +212,36 @@ func set_intensity(v: float) -> void:
 func reset_calm() -> void:
 	_want_tier = "calm"
 	_want_t = 0.0
-	if _playing and music_on and _tier != "calm":
+	if _playing and _tier != "calm":
 		_switch("calm", 1.2)
 
-func _update_music(delta: float, duck_db: float) -> void:
-	if not _playing or not music_on:
+func _update_music(delta: float) -> void:
+	if not _playing:
 		return
 	_want_t += delta
 	_tier_t += delta
-	if _tier == "":
-		_switch(_want_tier, 1.5)
-	elif _want_tier != _tier:
+	if _want_tier != _tier:
 		var up: bool = TIERS.find(_want_tier) > TIERS.find(_tier)
 		if _want_t >= (HOLD_UP if up else HOLD_DOWN):
 			_switch(_want_tier, FADE_UP if up else FADE_DOWN)
-	elif _tier_t >= SWAP_AFTER and _tier_count(_tier) > 1:
-		_switch(_tier, 4.0, true)
-	# Ducking and the player's volume, applied on top of the crossfade.
-	var cur: AudioStreamPlayer = _music[0]
-	var gdb = _group_db("game")
-	if gdb == null:
-		cur.volume_db = -80.0
-	elif _music_tween == null or not _music_tween.is_running():
-		cur.volume_db = MUSIC_DB + float(gdb) + duck_db
+	elif _tier_t >= SWAP_AFTER:
+		_switch(_tier, 4.0)
 
-func _tier_count(tier: String) -> int:
-	return (_files[tier] as Array).size() if not (_files[tier] as Array).is_empty() else (_tracks[tier] as Array).size()
-
-## A track for `tier`: one of the player's files if the tier has any, else a
-## synthesized one (null while those are still being made).
-func _pick(tier: String, avoid: AudioStream) -> AudioStream:
-	var list: Array = _files[tier]
-	if list.is_empty():
-		_lock.lock()
-		list = (_tracks[tier] as Array).duplicate()
-		_lock.unlock()
-	if list.is_empty() and tier != "calm":
-		return _pick("calm" if tier == "lively" else "lively", avoid)
-	if list.is_empty():
-		return null
-	var options: Array = list.filter(func(s): return s != avoid) if list.size() > 1 else list
-	return options[randi() % options.size()]
-
-func _switch(tier: String, fade: float, force: bool = false) -> void:
-	var cur: AudioStreamPlayer = _music[0]
-	var stream := _pick(tier, cur.stream if cur.playing else null)
-	if stream == null:
-		return  # still synthesizing; tried again next frame
-	if not force and cur.playing and cur.stream == stream:
-		_tier = tier
-		_tier_t = 0.0
-		return
+## Asks Music for `tier` (its style of the same name), crossfading over
+## `fade` s. Index -1 = that style's next track, so coming back to a tier
+## (or the SWAP_AFTER move) brings another one. Music fades out by itself
+## when the game's scene leaves (🏠 Home, the hub, a reload).
+func _switch(tier: String, fade: float) -> void:
 	_tier = tier
 	_tier_t = 0.0
-	var incoming: AudioStreamPlayer = _music[1]
-	var gdb = _group_db("game")
-	var target := MUSIC_DB + (float(gdb) if gdb != null else -80.0)
-	incoming.stream = stream
-	incoming.volume_db = -50.0
-	incoming.play()
-	if _music_tween:
-		_music_tween.kill()
-	_music_tween = create_tween().set_parallel(true)
-	_music_tween.tween_property(incoming, "volume_db", target, fade).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	if cur.playing:
-		_music_tween.tween_property(cur, "volume_db", -60.0, fade).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	_music_tween.chain().tween_callback(cur.stop)
-	_music.reverse()
+	var m := _music_node()
+	if m:
+		m.play(tier, get_parent(), -1, fade)
 
-func _fade_out_all(fade: float) -> void:
-	if _music_tween:
-		_music_tween.kill()
-	_music_tween = create_tween().set_parallel(true)
-	for m in _music:
-		if m.playing:
-			_music_tween.tween_property(m, "volume_db", -60.0, fade)
-	_music_tween.chain().tween_callback(_stop_all_music)
-	_tier = ""
-
-func _stop_all_music() -> void:
-	for m in _music:
-		m.stop()
-
-## The player's own tracks in music/<tier>/ (works in an exported pack too,
-## where the folder lists .import / .remap files instead of the audio).
-func _load_files(tier: String) -> Array:
-	var dir := MUSIC_DIR + tier + "/"
-	var names := PackedStringArray()
-	if ResourceLoader.has_method("list_directory"):
-		names = ResourceLoader.call("list_directory", dir)
-	elif DirAccess.dir_exists_absolute(dir):
-		for f in DirAccess.get_files_at(dir):
-			names.append(f.trim_suffix(".import").trim_suffix(".remap"))
-	var out: Array = []
-	var seen := {}
-	for f in names:
-		var ext := f.get_extension().to_lower()
-		if not ext in ["ogg", "mp3", "wav"] or seen.has(f):
-			continue
-		seen[f] = true
-		var s = load(dir + f)
-		if s is AudioStream:
-			if "loop" in s:
-				s.loop = true
-			elif s is AudioStreamWAV:
-				s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-			out.append(s)
-	return out
+## The hub's Music autoload (apps from v0.33), or null: older apps simply
+## play no music, so the pack needs no min_build.
+func _music_node() -> Node:
+	return get_node_or_null("/root/Music") if is_inside_tree() else null
 
 # ---------- synthesis (worker thread) ----------
 
@@ -356,8 +251,6 @@ func _start_render() -> void:
 	var need := false
 	_lock.lock()
 	need = _cache.size() < _recipe_names().size() + LOOPS.size()
-	for tier in TIERS:
-		need = need or (_tracks[tier] as Array).size() < (SONGS[tier] as Array).size()
 	_lock.unlock()
 	if need:
 		_task = WorkerThreadPool.add_task(_render_all)
@@ -373,7 +266,6 @@ static func _recipe_names() -> Array:
 		"spawn_layer", "spawn_neutron", "spawn_duck", "spawn_gear"]
 
 static func _render_all() -> void:
-	# Effects first (needed at once), then one track per tier, then the rest.
 	for key in _recipe_names() + LOOPS:
 		if _cancel:
 			return
@@ -382,47 +274,25 @@ static func _render_all() -> void:
 		_lock.unlock()
 		if have:
 			continue
-		var path := MUSIC_CACHE + "fx_%s_v%d.pcm" % [key, MUSIC_VERSION]
-		var s: AudioStreamWAV = _load_track(path, key in LOOPS)
+		var path := CACHE_DIR + "fx_%s_v%d.pcm" % [key, FX_VERSION]
+		var s: AudioStreamWAV = _load_pcm(path, key in LOOPS)
 		if s == null:
 			s = _render_loop(key) if key in LOOPS else _render_voices(_recipe(key))
 			if s == null:
 				continue
-			_save_track(path, s)
+			_save_pcm(path, s)
 		_lock.lock()
 		_cache[key] = s
 		_lock.unlock()
-	for variant in 4:
-		for tier in TIERS:
-			if _cancel:
-				return
-			_lock.lock()
-			var have: bool = (_tracks[tier] as Array).size() > variant
-			_lock.unlock()
-			if have:
-				continue
-			# Made once per install: later launches read it back from disk.
-			var path := _track_path_of(tier, variant)
-			var t := _load_track(path)
-			if t == null:
-				t = _render_track(tier, variant)
-				if t == null:
-					return  # cancelled mid-way
-				_save_track(path, t)
-			_lock.lock()
-			(_tracks[tier] as Array).append(t)
-			_lock.unlock()
 
-## Rendered sounds and tracks are kept in user:// (a track is ~0.6 MB, all
-## of it ~10 MB), so only the first launch synthesizes them. Bump
-## MUSIC_VERSION whenever SONGS or the instruments change.
-const MUSIC_CACHE := "user://geometry_wars_music/"
-const MUSIC_VERSION := 1
+## Rendered sounds are kept in user://, so only the first launch synthesizes
+## them. The folder's name is from when the game also made its own music:
+## those old tracks (<tier>_<n>_v1.pcm, up to 12 files, ~9 MB) stay there
+## -- it is the player's data. Bump FX_VERSION whenever a recipe changes.
+const CACHE_DIR := "user://geometry_wars_music/"
+const FX_VERSION := 1
 
-static func _track_path_of(tier: String, variant: int) -> String:
-	return MUSIC_CACHE + "%s_%d_v%d.pcm" % [tier, variant, MUSIC_VERSION]
-
-static func _load_track(path: String, loop: bool = true) -> AudioStreamWAV:
+static func _load_pcm(path: String, loop: bool) -> AudioStreamWAV:
 	if not FileAccess.file_exists(path):
 		return null
 	var data := FileAccess.get_file_as_bytes(path)
@@ -439,8 +309,8 @@ static func _load_track(path: String, loop: bool = true) -> AudioStreamWAV:
 		wav.loop_end = data.size() / 2
 	return wav
 
-static func _save_track(path: String, wav: AudioStreamWAV) -> void:
-	DirAccess.make_dir_recursive_absolute(MUSIC_CACHE)
+static func _save_pcm(path: String, wav: AudioStreamWAV) -> void:
+	DirAccess.make_dir_recursive_absolute(CACHE_DIR)
 	var f := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if f == null:
 		return
@@ -782,339 +652,3 @@ static func _render_loop(key: String) -> AudioStreamWAV:
 	if mix.is_empty():
 		return null
 	return _to_wav(mix, true, 0.8)
-
-# ---------- synthesized music ----------
-
-static func _mtof(m: float) -> float:
-	return 440.0 * pow(2.0, (m - 69.0) / 12.0)
-
-## The synthesized tracks, four per tier. prog: [root midi, minor?] per two
-## bars; arp: the order of chord tones (0 root, 1 third, 2 fifth, 3 octave);
-## the other keys pick the patterns.
-const SONGS := {
-	"calm": [
-		{"bpm": 86, "prog": [[57, true], [53, false], [48, false], [55, false]], "arp": [0, 1, 2, 3, 2, 1, 2, 0], "wave": "tri"},
-		{"bpm": 90, "prog": [[50, true], [58, false], [53, false], [48, false]], "arp": [0, 2, 1, 3, 0, 2, 3, 1], "wave": "tri", "hats": true},
-		{"bpm": 78, "prog": [[48, false], [57, true], [53, false], [55, false]], "arp": [3, 2, 1, 0, 1, 2, 3, 2], "wave": "sine", "bell": true},
-		{"bpm": 94, "prog": [[54, true], [50, false], [57, false], [52, false]], "arp": [0, 1, 2, 1, 3, 1, 2, 1], "wave": "tri", "kick": true},
-	],
-	"lively": [
-		{"bpm": 120, "prog": [[52, true], [48, false], [55, false], [50, false]], "arp": [0, 1, 2, 1], "bass": "octave"},
-		{"bpm": 124, "prog": [[54, true], [50, false], [57, false], [52, false]], "arp": [0, 2, 1, 3], "bass": "octave"},
-		{"bpm": 118, "prog": [[55, true], [51, false], [58, false], [53, false]], "arp": [0, 1, 3, 2], "bass": "synco"},
-		{"bpm": 126, "prog": [[47, true], [55, false], [50, false], [57, false]], "arp": [0, 1, 2, 3, 2, 1], "bass": "walk"},
-	],
-	"techno": [
-		{"bpm": 140, "prog": [[45, true], [45, true], [43, false], [48, false]], "stab": [0, 3, 6, 10, 14], "bass": "roll"},
-		{"bpm": 144, "prog": [[48, true], [48, true], [44, false], [46, false]], "stab": [2, 6, 7, 11, 15], "bass": "roll"},
-		{"bpm": 136, "prog": [[52, true], [52, true], [48, false], [50, false]], "stab": [0, 4, 8, 9, 12], "bass": "offbeat"},
-		{"bpm": 148, "prog": [[50, true], [50, true], [46, false], [48, false]], "stab": [1, 3, 6, 9, 11, 14], "bass": "every"},
-	],
-}
-
-## One looping track (8 bars): `variant` indexes SONGS[tier]. Returns null if
-## cancelled.
-static func _render_track(tier: String, variant: int) -> AudioStreamWAV:
-	var song: Dictionary = SONGS[tier][variant]
-	var bpm: float = song.bpm
-	var bars := 8
-	var step := 60.0 / bpm / 4.0  # a 16th
-	var spb := int(step * RATE)  # samples per 16th
-	var n := spb * 16 * bars
-	var mix := PackedFloat32Array()
-	mix.resize(n)
-	var prog: Array = song.prog
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 100 + variant * 7 + TIERS.find(tier) * 31
-	var memo := {}
-	var kick := _kick()
-	var clap := _clap(rng)
-	var hat := _hat(rng, false)
-	var ohat := _hat(rng, true)
-	for c in 4:
-		if _cancel:
-			return null
-		var root: int = prog[c][0]
-		var minor: bool = prog[c][1]
-		var third := root + (3 if minor else 4)
-		var fifth := root + 7
-		var tones := [root, third, fifth, root + 12]
-		var c0 := c * 32  # first 16th of this chord (2 bars)
-		match tier:
-			"calm":
-				# Warm pad, a lazy arpeggio, a sub bass; some add a bell
-				# melody, a soft tick or a soft kick.
-				_mix(mix, _pad([root + 12, third + 12, fifth + 12, root + 24], spb * 32), c0 * spb, 0.16 if not song.get("bell", false) else 0.11)
-				_mix(mix, _tone(_mtof(root - 12), spb * 32, "sine", 0.05, 0.4), c0 * spb, 0.3)
-				var arp: Array = song.arp
-				for s in 16:
-					var note: int = tones[arp[s % arp.size()]] + 24
-					_mix(mix, _note(memo, "pluck_sine" if str(song.wave) == "sine" else "pluck_tri", _mtof(note), spb * 3), (c0 + s * 2) * spb, 0.09)
-				if song.get("bell", false):
-					for s in 4:
-						var bn: int = tones[[2, 1, 3, 1][s]] + 36
-						_mix(mix, _note(memo, "bell", _mtof(bn), spb * 12), (c0 + s * 8) * spb, 0.07)
-				if song.get("hats", false):
-					for s in 8:
-						_mix(mix, hat, (c0 + s * 4 + 2) * spb, 0.05)
-				if song.get("kick", false):
-					for s in 4:
-						_mix(mix, kick, (c0 + s * 8) * spb, 0.22)
-			"lively":
-				_mix(mix, _pad([root + 12, third + 12, fifth + 12], spb * 32), c0 * spb, 0.08)
-				var arp: Array = song.arp
-				for s in 32:
-					var t0 := (c0 + s) * spb
-					if s % 4 == 0:
-						_mix(mix, kick, t0, 0.55)
-					if s % 8 == 4:
-						_mix(mix, clap, t0, 0.32)
-					if s % 4 == 2:
-						_mix(mix, hat, t0, 0.16)
-					match str(song.bass):
-						"octave":
-							if s % 2 == 0:
-								_mix(mix, _note(memo, "bass", _mtof(root - 12 + (12 if (s / 2) % 2 == 1 else 0)), spb * 2), t0, 0.22)
-						"synco":
-							if (s % 16) in [0, 3, 6, 8, 11, 14]:
-								_mix(mix, _note(memo, "bass", _mtof(root - 12 + (7 if s % 16 == 14 else 0)), spb * 2), t0, 0.24)
-						"walk":
-							if s % 4 == 0:
-								_mix(mix, _note(memo, "bass", _mtof(tones[(s / 4) % 4] - 12), spb * 4), t0, 0.24)
-					var note: int = tones[arp[s % arp.size()]] + 24
-					_mix(mix, _note(memo, "pluck_sq", _mtof(note), spb), t0, 0.04)
-			_:
-				# Driving techno: four on the floor, offbeat open hats, 16th
-				# hats, a rolling bass and acid stabs.
-				var stab: Array = song.stab
-				for s in 32:
-					var t0 := (c0 + s) * spb
-					if s % 4 == 0:
-						_mix(mix, kick, t0, 0.7)
-					if s % 8 == 4:
-						_mix(mix, clap, t0, 0.3)
-					if s % 4 == 2:
-						_mix(mix, ohat, t0, 0.16)
-					_mix(mix, hat, t0, 0.09 if s % 2 == 0 else 0.05)
-					match str(song.bass):
-						"roll":
-							if s % 4 != 0:
-								_mix(mix, _note(memo, "bass", _mtof(root - 12 + (7 if s % 8 == 7 else 0)), spb), t0, 0.26)
-						"offbeat":
-							if s % 4 == 2:
-								_mix(mix, _note(memo, "bass", _mtof(root - 12 + (12 if s % 16 == 14 else 0)), spb * 2), t0, 0.32)
-						"every":
-							_mix(mix, _note(memo, "bass", _mtof(root - 12 + (12 if s % 4 == 3 else 0)), spb), t0, 0.2 if s % 4 == 0 else 0.26)
-					if (s % 16) in stab:
-						var sn: int = tones[s % 3] + 24
-						_mix(mix, _note(memo, "acid", _mtof(sn), spb * 2, float(s % 16) / 16.0), t0, 0.07)
-				if c == 3:
-					# A noise riser into the loop point.
-					_mix(mix, _riser(rng, spb * 16), (c0 + 16) * spb, 0.12)
-	if _cancel:
-		return null
-	return _to_wav(mix, true, 0.85)
-
-## Adds `src` into `mix` at `at` (wrapping round, so the loop is seamless).
-static func _mix(mix: PackedFloat32Array, src: PackedFloat32Array, at: int, gain: float) -> void:
-	var n := mix.size()
-	var m := mini(src.size(), n)
-	var a := at % n
-	var first := mini(m, n - a)
-	for i in first:
-		mix[a + i] += src[i] * gain
-	for i in range(first, m):
-		mix[i - first] += src[i] * gain
-
-## A rendered note, made once per track and reused (`memo` is per track).
-static func _note(memo: Dictionary, kind: String, freq: float, length: int, extra: float = 0.0) -> PackedFloat32Array:
-	var key := "%s|%.2f|%d|%.3f" % [kind, freq, length, extra]
-	if memo.has(key):
-		return memo[key]
-	var out: PackedFloat32Array
-	match kind:
-		"bass":
-			out = _bass(freq, length)
-		"acid":
-			out = _acid(freq, length, extra)
-		"pluck_tri":
-			out = _pluck(freq, length, "tri", 6.0, 0.35)
-		"pluck_sine":
-			out = _pluck(freq, length, "sine", 6.0, 0.35)
-		"pluck_sq":
-			out = _pluck(freq, length, "square", 14.0, 0.25)
-		"bell":
-			out = _pluck(freq, length, "sine", 1.6, 0.8)
-	memo[key] = out
-	return out
-
-## A fade-in over `a` samples and a fade-out over the last `r`.
-static func _edges(out: PackedFloat32Array, a: int, r: int) -> void:
-	var n := out.size()
-	for i in mini(a, n):
-		out[i] *= float(i) / a
-	for i in mini(r, n):
-		out[n - 1 - i] *= float(i) / r
-
-## A plain held tone (the calm tracks' sub bass), soft at both ends.
-static func _tone(freq: float, length: int, _kind: String, atk: float, rel: float) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var w := TAU * freq / RATE
-	for i in length:
-		out[i] = sin(w * i)
-	_edges(out, int(atk * RATE) + 1, int(rel * RATE) + 1)
-	return out
-
-## A plucked note: quick decay through a low-pass.
-static func _pluck(freq: float, length: int, kind: String, dec: float, lp: float) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var inc := freq / RATE
-	var ph := 0.0
-	var low := 0.0
-	var env := 1.0
-	var k := exp(-dec / RATE)
-	match kind:
-		"square":
-			for i in length:
-				ph += inc
-				if ph >= 1.0:
-					ph -= 1.0
-				low += ((1.0 if ph < 0.5 else -1.0) - low) * lp
-				out[i] = low * env
-				env *= k
-		"sine":
-			var w := TAU * inc
-			for i in length:
-				low += (sin(w * i) - low) * lp
-				out[i] = low * env
-				env *= k
-		_:
-			for i in length:
-				ph += inc
-				if ph >= 1.0:
-					ph -= 1.0
-				low += (4.0 * absf(ph - 0.5) - 1.0 - low) * lp
-				out[i] = low * env
-				env *= k
-	_edges(out, 1, 200)
-	return out
-
-## A slow-swelling pad: two detuned saws per note through a low-pass.
-static func _pad(notes: Array, length: int) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var count := 0
-	for m in notes:
-		for detune in [0.997, 1.003]:
-			var inc: float = _mtof(m) * detune / RATE
-			var ph := 0.0
-			for i in length:
-				ph += inc
-				if ph >= 1.0:
-					ph -= 1.0
-				out[i] += ph
-			count += 1
-	var low := 0.0
-	var norm := 2.0 / count
-	for i in length:
-		low += ((out[i] - count * 0.5) * norm - low) * 0.12
-		out[i] = low
-	_edges(out, int(RATE * 0.9), int(RATE * 0.9))
-	return out
-
-## A bass note: a saw whose low-pass closes as it sounds.
-static func _bass(freq: float, length: int) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var inc := freq / RATE
-	var ph := 0.0
-	var low := 0.0
-	var cut := 0.4
-	var ck := exp(-18.0 / RATE)
-	var env := 1.0
-	var ek := exp(-3.0 / RATE)
-	for i in length:
-		ph += inc
-		if ph >= 1.0:
-			ph -= 1.0
-		low += (2.0 * ph - 1.0 - low) * (0.05 + cut)
-		out[i] = low * env
-		cut *= ck
-		env *= ek
-	_edges(out, 60, 120)
-	return out
-
-## An acid stab: a square with a resonant-ish filter sweep.
-static func _acid(freq: float, length: int, color: float) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var inc := freq / RATE
-	var ph := 0.0
-	var low := 0.0
-	var band := 0.0
-	var sweep := 0.25 + 0.2 * color
-	var sk := exp(-10.0 / RATE)
-	var env := 1.0
-	var ek := exp(-7.0 / RATE)
-	for i in length:
-		ph += inc
-		if ph >= 1.0:
-			ph -= 1.0
-		var cut := 0.04 + sweep
-		band += ((1.0 if ph < 0.5 else -1.0) - low - band * 0.4) * cut
-		low += band * cut
-		out[i] = (low + band * 0.5) * env
-		sweep *= sk
-		env *= ek
-	_edges(out, 1, 150)
-	return out
-
-static func _kick() -> PackedFloat32Array:
-	var length := int(0.3 * RATE)
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var ph := 0.0
-	for i in length:
-		var t := float(i) / RATE
-		var f := 45.0 + 110.0 * exp(-t * 28.0)
-		ph = fmod(ph + f / RATE, 1.0)
-		out[i] = sin(TAU * ph) * exp(-t * 9.0) + (1.0 - minf(1.0, i / 90.0)) * 0.4
-	return out
-
-static func _clap(rng: RandomNumberGenerator) -> PackedFloat32Array:
-	var length := int(0.22 * RATE)
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var low := 0.0
-	for i in length:
-		var t := float(i) / RATE
-		var raw := rng.randf_range(-1.0, 1.0)
-		low += (raw - low) * 0.5
-		var bursts := 1.0 if t > 0.03 else (1.0 if fmod(t, 0.01) < 0.004 else 0.2)
-		out[i] = (raw - low) * exp(-t * 22.0) * bursts
-	return out
-
-static func _hat(rng: RandomNumberGenerator, open: bool) -> PackedFloat32Array:
-	var length := int((0.16 if open else 0.045) * RATE)
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var low := 0.0
-	for i in length:
-		var t := float(i) / RATE
-		var raw := rng.randf_range(-1.0, 1.0)
-		low += (raw - low) * 0.75
-		out[i] = (raw - low) * exp(-t * (16.0 if open else 70.0))
-	return out
-
-static func _riser(rng: RandomNumberGenerator, length: int) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	out.resize(length)
-	var low := 0.0
-	for i in length:
-		var k := float(i) / length
-		var raw := rng.randf_range(-1.0, 1.0)
-		low += (raw - low) * (0.02 + 0.5 * k)
-		out[i] = (raw - low) * k * k
-	return out

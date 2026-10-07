@@ -2,7 +2,7 @@
  "_readme": "The hub's shared music library -- written by tools/music_drop (Viral Music Drop). Each track's OGG lives on the GitHub release named in base_url; phones download a track the first time a game wants its genre / pace (scripts/common/music_library.gd). pace: slow | moderate | fast = the Music styles calm | lively | techno. play: where music plays -- \"hub\", \"category:<English name>\", \"game:<id>\" -> {style: \"\" (the game decides) | calm | lively | techno (plays by itself) | off, genres: [] (any)}; field by field, a game's own entry wins over its category's.",
  "format": 1,
  "base_url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/music-v1/",
- "updated": "2026-10-07T09:13:35Z",
+ "updated": "2026-10-07T10:32:02Z",
  "genres": [
   {
    "id": "synthwave",
@@ -90,10 +90,6 @@
   }
  ],
  "play": {
-  "game:geometry_wars": {
-   "style": "off",
-   "genres": []
-  },
   "game:simon": {
    "style": "off",
    "genres": []

@@ -434,19 +434,21 @@ Word). Its header comment lists every name and is the how-to.
 
 `scripts/common/music.gd` (ships in the APK, autoload `Music`) is the hub's
 shared music library. **Every game takes its music from it** (owner,
-2026-10-07): no game synthesizes or ships its own music (Neon Blast's
-in-pack music predates the rule and still has to move over). Its header
-comment is the how-to.
+2026-10-07): no game synthesizes or ships its own music (Neon Blast, the
+one that predated the rule, moved over the same day). Its header comment is
+the how-to.
 
 - **Styles** `calm` / `lively` / `techno`, 4 tracks each:
-  `play(style, self, index, fade)` crossfades (asking for what's already on
-  does nothing), `prepare(style, index)` makes a track ahead of time (call
+  `play(style, self, index, fade)` crossfades (asking again for the index
+  that's on does nothing; index -1 = the style's next track),
+  `prepare(style, index)` makes a track ahead of time (call
   it from `_ready()`), `stop(fade)`. When the `owner` node leaves the tree
   (🏠 Home, hub, reload) the music fades out by itself; while the tree is
   paused it dips 10 dB.
 - **Games never reference `Music` directly**: a tiny `_music()` helper with
-  `get_node_or_null("/root/Music")` (see Sky Strike). Older apps simply
-  play no music -- no `min_build`.
+  `get_node_or_null("/root/Music")` (see Sky Strike; Neon Blast's
+  `_sounds.gd` has `_music_node()`). Older apps simply play no music -- no
+  `min_build`.
 - **Player controls**: the Settings sound group `"music"` (🎵 Music on/off +
   volume), so the shared Sound options show it in the hub's Options and in
   every game's ⚙ Options; it plays on the `Music` bus (feeds Master, so Mute
@@ -529,10 +531,11 @@ window and closes itself 2 min after the window does.
   don't call Music; hub music carries across hub screens), `off` = never any
   music there. Field by field, the game's entry wins over its category's.
   Preset off (the tool's starting list): `simon` (Memory Lights: the tones
-  are the game), `voodoo_iq` (musical questions) and `geometry_wars` (Neon
-  Blast still plays its own in-pack music). **When Neon Blast moves to the
-  Music library, remove its "off"** in Music Drop: "off" also silences a
-  game's own `Music.play()` calls.
+  are the game) and `voodoo_iq` (musical questions). **"off" also silences
+  a game's own `Music.play()` calls**, so never set it on a game that plays
+  the library itself (Neon Blast, Sky Strike). Neon Blast's preset "off"
+  (from when it had its own music) was taken out of `music.json` and the
+  starting list when it moved over (2026-10-07).
 - **Web build**: reads the list (raw.githubusercontent allows browsers), so
   the `play` map works with the synth, but downloads nothing (release
   downloads send no CORS headers).
@@ -630,8 +633,9 @@ or pack version bump is involved.
   "Generating...", the Chess CPU thinks in place. **A new game must not
   need a `Thread`** -- or give it the same web branch (`hub.py check` fails
   on a `Thread.new()` in a script without `OS.has_feature("web")`). Neon
-  Blast renders its music synchronously the first time it opens (~6 s
-  freeze on a PC browser), cached in user:// afterwards; Pool / Poker AIs
+  Blast renders its effects synchronously the first time it opens (a
+  shorter freeze than the ~6 s it took on a PC browser while it also made
+  its own music), cached in user:// afterwards; Pool / Poker AIs
   and Trace It's photo-to-lines step block briefly.
 - **Name**: Godot titles the page with `config/name` ("Voodoo", kept for the
   PC save folder), so `hub.py web` rewrites `<title>` and adds the iPhone
@@ -1477,20 +1481,27 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
   (`arena_canvas.shock()`).
 - **Black holes** (`well`): sleeping ones pull gently, awake ones eat and
   grow (`Core.well_scale/well_range`) and burst into protons. The burst
-  plays a bubble pop, ducks all audio for ~1 s (`sounds.duck`), then the
-  "skitter" loop fades in while protons are loose.
+  plays a bubble pop, ducks the effects and loops for ~1 s (`sounds.duck`;
+  the music plays on -- the Music library has no duck), then the "skitter"
+  loop fades in while protons are loose.
 - **Sound + music** (`_sounds.gd`, its header is the how-to): its own voice
-  pool (the app's Sfx has too few voices for a shooter), every enemy has a
-  spawn call, the player's death is a layered explosion. Adaptive music:
-  calm / lively / techno tiers chosen by how crowded it is
-  (`set_intensity`), back to calm on death; 4 synthesized tracks per tier,
-  rendered on a worker thread once and cached in
-  `user://geometry_wars_music/` (**bump `MUSIC_VERSION` when `SONGS` or the
-  instruments change**). Real tracks: drop .ogg files into
-  `scripts/games/geometry_wars/music/<tier>/` -- they replace that tier.
-  A shared hub music library is a separate piece of work (2026-10-05).
-  **Since v0.33.0 that library exists (the Music autoload) and every game
-  must use it** -- Neon Blast still runs its own music until it migrates.
+  pool for effects (the app's Sfx has too few voices for a shooter), every
+  enemy has a spawn call, the player's death is a layered explosion; the
+  effects are synthesized on a worker thread once and cached in
+  `user://geometry_wars_music/` (folder name kept; **bump `FX_VERSION` when
+  a recipe changes**). **Music comes from the hub's Music library** (since
+  2026-10-07; it used to synthesize its own): an adaptive director picks the
+  style by how crowded it is (`set_intensity`: calm / lively / techno, quick
+  to step up, slow to calm down), back to calm on death (`reset_calm`),
+  the style's next track every ~100 s, each switch a guarded
+  `Music.play(tier, game, -1, fade)`; game over / the campaign map =
+  `Music.stop()`. Apps before v0.33 play it without music (no
+  `min_build`). The per-game 🎵 Music On/Off picker is gone: the app-wide
+  🎵 Music switch + volume (⚙ Options → Sound) covers it. Real tracks come
+  through Music Drop like every game's. Players' phones still hold the old
+  synthesized tracks (`<tier>_<n>_v1.pcm`, up to ~9 MB) in that folder and
+  `user://geometry_wars_prefs.json` (the old picker's choice); nothing
+  reads them now and they are left alone (player data).
 - **Landing art** (2026-10-07): the owner's AI-made nebula,
   `games/geometry_wars/landing_bg.jpg` (also Sky Strike's, its own copy),
   via the kit's `"art"`; the Landing logo is the demon skull mouth down,
