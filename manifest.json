@@ -40,7 +40,9 @@
       {"id": "color_clash", "quick": true, "title": "Color Clash", "icon": "🎨", "title_es": "Choque de colores", "skins": "classic,voodoo", "learn": ["science"]},
       {"id": "number_series", "quick": true, "title": "Number Series", "icon": "🔢", "title_es": "Series numéricas", "skins": "classic,voodoo", "learn": ["math", "logic"]},
       {"id": "digit_recall", "quick": true, "title": "Digit Recall", "icon": "🔟", "title_es": "Recuerdo de dígitos", "skins": "classic,voodoo", "learn": ["memory"]},
-      {"id": "voodoo_iq", "original": true, "title": "IQ Test", "icon": "🧠", "title_es": "Test de IQ", "board": "none", "learn": ["logic", "math", "memory"]}
+      {"id": "voodoo_iq", "original": true, "title": "IQ Test", "icon": "🧠", "title_es": "Test de IQ", "board": "none", "learn": ["logic", "math", "memory"]},
+      {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed", "skins": "classic,voodoo", "learn": ["art"]},
+      {"id": "trace_it", "original": true, "title": "Trace It", "icon": "✏️", "title_es": "Calcá", "board": "none", "learn": ["art"]}
     ]},
     {"name": "Cards", "icon": "🃏", "name_es": "Cartas", "games": [
       {"id": "solitaire", "title": "Solitaire", "icon": "🂡", "title_es": "Solitario", "board": "Games won", "skins": "classic,voodoo", "learn": ["logic"]},
@@ -64,7 +66,8 @@
       {"id": "word_search", "title": "Word Search", "icon": "🔍", "title_es": "Sopa de letras", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["vocab"]},
       {"id": "crossword", "title": "Crossword", "icon": "📝", "title_es": "Crucigrama", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["vocab"]},
       {"id": "anagrams", "quick": true, "title": "Anagrams", "icon": "🔀", "title_es": "Anagramas", "skins": "classic,voodoo", "learn": ["vocab"]},
-      {"id": "word_hunt", "quick": true, "title": "Word Hunt", "icon": "🎲", "title_es": "Cazapalabras", "skins": "classic,voodoo", "learn": ["vocab"]}
+      {"id": "word_hunt", "quick": true, "title": "Word Hunt", "icon": "🎲", "title_es": "Cazapalabras", "skins": "classic,voodoo", "learn": ["vocab"]},
+      {"id": "word_ladder", "quick": true, "title": "Word Ladder", "icon": "🪜", "title_es": "Escalera de palabras", "skins": "classic,voodoo", "learn": ["vocab"]}
     ]},
     {"name": "Arcade", "icon": "🕹️", "name_es": "Arcade", "games": [
       {"id": "geometry_wars", "quick": true, "original": true, "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast", "skins": "classic,voodoo"},
@@ -95,7 +98,7 @@
       {"id": "mini_golf", "quick": true, "title": "Mini Golf", "icon": "⛳", "title_es": "Minigolf", "modes": "local", "board": "Birdies or better", "skins": "classic,voodoo", "learn": ["science"]},
       {"id": "pool", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"]}
     ]},
-    {"name": "Dice & Party", "icon": "🎲", "name_es": "Dados y fiesta", "games": [
+    {"name": "Dice", "icon": "🎲", "name_es": "Dados", "games": [
       {"id": "yacht", "quick": true, "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala", "modes": "local", "skins": "classic,voodoo", "learn": ["math"]},
       {"id": "farkle", "quick": true, "title": "Farkle", "icon": "🎯", "title_es": "Farkle", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]},
       {"id": "liars_dice", "title": "Liar's Dice", "icon": "🤥", "title_es": "Dudo", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]},
@@ -112,14 +115,12 @@
       {"id": "spin_the_bottle", "title": "Spin the Bottle", "icon": "🍾", "title_es": "La botella", "modes": "party", "board": "Spins", "archived": true},
       {"id": "would_you_rather", "title": "Would You Rather", "icon": "🤔", "title_es": "¿Qué prefieres?", "modes": "party", "board": "Cards played", "archived": true}
     ]},
-    {"name": "Other", "icon": "🎯", "name_es": "Otros", "games": [
+    {"name": "Party", "icon": "🎉", "name_es": "Fiesta", "games": [
       {"id": "party_spinner", "title": "Party Spinner", "icon": "🌀", "title_es": "Ruleta de fiesta", "modes": "party", "board": "Spins", "skins": "classic,voodoo"},
       {"id": "charades", "title": "Charades", "icon": "🎭", "title_es": "Charadas", "modes": "party", "board": "Most words in a round", "skins": "classic,voodoo"},
-      {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed", "skins": "classic,voodoo", "learn": ["art"]},
       {"id": "truth_or_dare", "title": "Truth or Dare", "icon": "🎲", "title_es": "Verdad o reto", "modes": "party", "board": "Cards played", "skins": "classic,voodoo"},
       {"id": "fortune_ball", "quick": true, "title": "Fortune Ball", "icon": "🧿", "title_es": "Bola de la fortuna", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"},
-      {"id": "spirit_board", "original": true, "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"},
-      {"id": "trace_it", "original": true, "title": "Trace It", "icon": "✏️", "title_es": "Calcá", "board": "none", "learn": ["art"]}
+      {"id": "spirit_board", "original": true, "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"}
     ]}
   ],
   "games": {
@@ -225,6 +226,7 @@
     "pool": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pool.pck", "scene": "res://scenes/games/pool/pool.tscn"},
     "fortune_ball": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fortune_ball.pck", "scene": "res://scenes/games/fortune_ball/fortune_ball.tscn"},
     "spirit_board": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/spirit_board.pck", "scene": "res://scenes/games/spirit_board/spirit_board.tscn"},
-    "trace_it": {"version": 3, "min_build": 34, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trace_it.pck", "scene": "res://scenes/games/trace_it/trace_it.tscn"}
+    "trace_it": {"version": 3, "min_build": 34, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trace_it.pck", "scene": "res://scenes/games/trace_it/trace_it.tscn"},
+    "word_ladder": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_ladder.pck", "scene": "res://scenes/games/word_ladder/word_ladder.tscn"}
   }
 }
