@@ -122,7 +122,8 @@
       {"id": "charades", "title": "Charades", "icon": "🎭", "title_es": "Charadas", "modes": "party", "board": "Most words in a round", "skins": "classic,voodoo"},
       {"id": "truth_or_dare", "title": "Truth or Dare", "icon": "🎲", "title_es": "Verdad o reto", "modes": "party", "board": "Cards played", "skins": "classic,voodoo"},
       {"id": "fortune_ball", "quick": true, "title": "Fortune Ball", "icon": "🧿", "title_es": "Bola de la fortuna", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"},
-      {"id": "spirit_board", "original": true, "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"}
+      {"id": "spirit_board", "original": true, "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"},
+      {"id": "fastest_finger", "quick": true, "title": "Fastest Finger", "icon": "👆", "title_es": "Dedo veloz", "modes": "local,party", "board": "none", "skins": "classic,voodoo", "learn": ["math"]}
     ]}
   ],
   "games": {
@@ -231,6 +232,7 @@
     "trace_it": {"version": 3, "min_build": 34, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trace_it.pck", "scene": "res://scenes/games/trace_it/trace_it.tscn"},
     "word_ladder": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_ladder.pck", "scene": "res://scenes/games/word_ladder/word_ladder.tscn"},
     "cryptogram": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/cryptogram.pck", "scene": "res://scenes/games/cryptogram/cryptogram.tscn"},
-    "word_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_chain.pck", "scene": "res://scenes/games/word_chain/word_chain.tscn"}
+    "word_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_chain.pck", "scene": "res://scenes/games/word_chain/word_chain.tscn"},
+    "fastest_finger": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fastest_finger.pck", "scene": "res://scenes/games/fastest_finger/fastest_finger.tscn"}
   }
 }
