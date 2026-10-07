@@ -430,6 +430,39 @@ Word). Its header comment lists every name and is the how-to.
   Calcudoku) rely on the free key taps. Arcade engines that don't report
   events get sounds from state deltas each frame (score up, lives down).
 
+## Music library (Music autoload) -- since v0.33.0 (2026-10-07)
+
+`scripts/common/music.gd` (ships in the APK, autoload `Music`) is the hub's
+shared music library. **Every game takes its music from it** (owner,
+2026-10-07): no game synthesizes or ships its own music (Neon Blast's
+in-pack music predates the rule and still has to move over). Its header
+comment is the how-to.
+
+- **Styles** `calm` / `lively` / `techno`, 4 tracks each:
+  `play(style, self, index, fade)` crossfades (asking for what's already on
+  does nothing), `prepare(style, index)` makes a track ahead of time (call
+  it from `_ready()`), `stop(fade)`. When the `owner` node leaves the tree
+  (🏠 Home, hub, reload) the music fades out by itself; while the tree is
+  paused it dips 10 dB.
+- **Games never reference `Music` directly**: a tiny `_music()` helper with
+  `get_node_or_null("/root/Music")` (see Sky Strike). Older apps simply
+  play no music -- no `min_build`.
+- **Player controls**: the Settings sound group `"music"` (🎵 Music on/off +
+  volume), so the shared Sound options show it in the hub's Options and in
+  every game's ⚙ Options; it plays on the `Music` bus (feeds Master, so Mute
+  all covers it).
+- **Synthesized** (Neon Blast's instruments, plus a lead melody in the
+  second half of each lively/techno loop): a track is scored as small
+  events, rendered on a worker thread the first time it's wanted (~0.5-1 s
+  on a PC) and cached in `user://music_synth/` (~1.3 MB a track; **bump
+  `SYNTH_VERSION` when `SONGS` or the instruments change**). The web build
+  works through 4 ms of it a frame. `godot --headless --path . --script
+  res://tools/music_preview.gd` writes every track to
+  `builds/music_preview/` to listen to.
+- **Real tracks**: `.ogg` files in `res://media/common/music/<style>/`
+  (Tier 1 media pack) or `res://media/hub/music/<style>/` (APK) replace that
+  style's synthesized tracks; each needs its `CREDITS.json` entry.
+
 ## Achievements, friends, invites, hub screens -- since v0.25.0 (2026-10-04)
 
 All APK-side (`scripts/common/`, `scripts/hub/`), so every game gets them
@@ -1189,6 +1222,16 @@ save/Resume. The arcade ones have Easy / Normal / Hard rows on Home and a
   rides above the ship, or on a tall phone the ship sits on the horizon.
 - **Sky Raider** (`sky_raider`): vertical shooter, relative-drag steering,
   tiny hitbox, P / B / 1UP drops, a battleship per stage.
+  **Pack v8 (2026-10-07, owner's feedback)**: the islands are solid (the
+  hitbox inside one = a crash, once per island; never two at the same
+  height and at most 360 wide, so one side is always open; the turrets
+  ride on them), a lost life resets the guns to level 1, battleships
+  escalate per level (`BOSS_PHASES`: 2-4 phases, fans / rings / aimed
+  streams / spirals / walls with one gap / escorts / a laser with a
+  blinking sight line; armour 400 + 130 lvl + 6 lvl²), Hard is harder all
+  round (`DIFFS`), and music comes from the Music library (stage n = lively
+  n-1, battleship = techno). Balanced with a dodging bot (old battleships:
+  0 hits taken at any stage).
 - **Mini Golf** (`mini_golf`): 18 holes as data in `HOLES` (outline,
   blocks, sand, water, slopes, bumpers, mills, sliders; rects are
   `[x0, y0, x1, y1]`); Front 9 / Back 9 / 18 picker; 1-4 players pass the
@@ -1355,6 +1398,8 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
   instruments change**). Real tracks: drop .ogg files into
   `scripts/games/geometry_wars/music/<tier>/` -- they replace that tier.
   A shared hub music library is a separate piece of work (2026-10-05).
+  **Since v0.33.0 that library exists (the Music autoload) and every game
+  must use it** -- Neon Blast still runs its own music until it migrates.
 - **Saves** are `var_to_str()` blobs inside the JSON save (Vector2s and
   nested dicts survive); a save from before this update is dropped.
 - Balance was set with a bot (aim at the nearest, dodge, chase geoms) in a

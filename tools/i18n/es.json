@@ -5104,5 +5104,18 @@
  "A double-six set has 28 tiles: every pair of numbers from 0 to 6 appears exactly once.": "Un juego doble seis tiene 28 fichas: cada par de números del 0 al 6 aparece exactamente una vez.",
  "Artists often start with simple shapes — circles, boxes, lines — and add the details last.": "Los artistas suelen empezar con formas simples (círculos, cajas, líneas) y dejan los detalles para el final.",
  "Filters": "Filtros",
- "Filters (%d)": "Filtros (%d)"
+ "Filters (%d)": "Filtros (%d)",
+ "%s_v%d.pcm": null,
+ "Ace Pilot": "As del aire",
+ "Wingman": "Copiloto",
+ "Sky Legend": "Leyenda del cielo",
+ "After about a minute the battleship arrives. Each one is tougher than the last: more armour, faster guns, and new attacks each time its armour passes a mark on its bar — streams, spirals, walls of bullets with one gap, escorts. When a red line blinks, get off it: the battleship slides over and fires a laser down it. Sink it to clear the stage.": "Al minuto más o menos llega el acorazado. Cada uno es más duro que el anterior: más blindaje, armas más rápidas y ataques nuevos cada vez que su blindaje pasa una marca de su barra: ráfagas, espirales, muros de balas con un solo hueco, escoltas. Cuando parpadea una línea roja, sal de ella: el acorazado se pone encima y dispara un láser por ella. Húndelo para superar la etapa.",
+ "Background music in games.": "Música de fondo en los juegos.",
+ "Hard: faster and thicker fire, more islands and turrets, fewer drops, one bomb, and tougher battleships.": "Difícil: disparos más rápidos y densos, más islas y torretas, menos premios, una sola bomba y acorazados más duros.",
+ "Look for the gap in a wall of bullets as soon as it appears.": "Busca el hueco de un muro de balas apenas aparece.",
+ "Only the white dot in the middle of your fighter can be hit. A bullet there, or crashing into a plane or an island, costs a life — you have 3 — and all your gun power: you're back to one level.": "Solo el punto blanco en el centro de tu caza puede recibir impactos. Una bala ahí, o chocar con un avión o una isla, te cuesta una vida —tienes 3— y toda la potencia de tus armas: vuelves al primer nivel.",
+ "The blue islands are solid ground: steer around them. One you crash into goes dark and can't hurt you again.": "Las islas azules son tierra firme: esquívalas. La que chocas se apaga y ya no puede hacerte daño.",
+ "Use a bomb before you get hit, not after: losing a life costs all your gun power.": "Usa una bomba antes de que te den, no después: perder una vida te cuesta toda la potencia de tus armas.",
+ "⏸ pauses; Resume on the Home screen keeps your score, lives, bombs and guns and restarts that stage. 🎵 Music: ⚙ Options → Sound.": "⏸ pausa; Continuar en la pantalla de inicio conserva tu puntaje, vidas, bombas y armas y reinicia esa etapa. 🎵 Música: ⚙ Opciones → Sonido.",
+ "💣 Bomb wipes every bullet off the screen and blasts every plane. You start with 2 (1 on Hard).": "💣 Bomba borra todas las balas de la pantalla y golpea a todos los aviones. Empiezas con 2 (1 en Difícil)."
 }

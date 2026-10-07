@@ -58,7 +58,7 @@ subscription status, account (sign in/out, sync, delete account), language.
 Friend list with online status, requests, add by username or friend code, invite to a game (pick game →
 goes through that game's multiplayer setup), recent opponents, pending invites (accept → game Landing → lobby).
 
-### 2d. Options (app-wide) [CURRENT since v0.30.0 — Storage + Credits added; Music waits for Phase 3]
+### 2d. Options (app-wide) [CURRENT since v0.30.0 — Storage + Credits added; 🎵 Music on/off + volume since v0.33.0]
 Sound on/off + SFX volume, **Music on/off + volume** (new), vibration, UI theme (light/dark), text size,
 language, notifications (invites), rotate screen, keep screen on, **Storage** (downloaded games + sizes,
 delete), account & privacy, About / Credits / Licences (renders `CREDITS.json`).
@@ -123,7 +123,7 @@ them too, but editing them changes the global value. Per-game items are stored p
 | Setting | Scope | Notes |
 |---|---|---|
 | Sound on/off, SFX volume | Global | `Settings` + `Sfx` groups |
-| Music on/off, music volume | Global | new `Music` bus |
+| Music on/off, music volume | Global | `Settings` sound group "music" + the `Music` bus [CURRENT since v0.33.0] |
 | Vibration | Global | |
 | UI theme light/dark | Global | applies to menus/chrome |
 | Text size (1.0–1.4) | Global | `Settings.content_scale_factor` |
@@ -167,7 +167,7 @@ Goal: players with many games download shared media once.
 | 0 Hub | in APK | `res://media/hub/` | hub music loop, UI stingers (prefer synthesized `Sfx`) |
 | 1 Common | `media-common.v<N>.pck` | `res://media/common/` | menu music, win/lose stingers, skull/bone/doll/lips sprites |
 | 2 Category | `media-cat-<cat>.v<N>.pck` | `res://media/cat/<cat>/` | cards: deck art, shuffle/deal/flip; word: tiles; arcade: lasers/explosions; board: piece clacks; dice: rolls |
-| 3 Game | `<id>.pck` | `res://games/<id>/` | that game's hero art, unique sounds/music |
+| 3 Game | `<id>.pck` | `res://games/<id>/` | that game's hero art, unique sounds (music: shared library only, rule below) |
 
 Rules:
 - Promote an asset to Tier 2 only when ≥ 3 games in the category use it; to Tier 1 when ≥ 2 categories do.
@@ -175,6 +175,10 @@ Rules:
   `catalog.gd` downloads dependencies before the game pack and reference-counts them for Storage deletion.
 - Never overwrite a mounted media pack (new filename per version; mount next launch).
 - Audio: OGG Vorbis; music ~64–96 kbps with loop points; SFX synthesized via `Sfx` where possible (0 bytes).
+- [NEW 2026-10-07, owner] **Every game's music comes from the hub's shared library** (APK autoload `Music`,
+  `scripts/common/music.gd`; CLAUDE.md "Music library"): a game picks a style (calm / lively / techno) and a track
+  number, it never synthesizes or ships its own music. Real tracks are added to the library
+  (`res://media/common/music/<style>/` or `res://media/hub/music/<style>/`), never to one game's pack.
 - Audio buses: Master / Music / SFX / UI. Music ducks under important SFX.
 - Every asset has an entry in `media/CREDITS.json` (file, source, author, licence, URL, date). Allowed: own work,
   CC0, CC-BY (with credit shown in About). **Not allowed: NC or ND licences** (the app is commercial).
@@ -228,7 +232,7 @@ if ResourceLoader.exists(ONLINE_LOBBY_PATH):
 | Catalog | `catalog.gd` | manifest, download/mount packs, versions; [NEW] media deps + ref counts |
 | GameInfo | `game_info.gd` | How to Play card, first-play pause, results/stats |
 | Sfx | `sfx.gd` | synthesized sounds, grouped volume |
-| Music | `music.gd` [NEW] | music bus, tiered tracks, ducking |
+| Music | `music.gd` [CURRENT since v0.33.0 — ducking under SFX not built] | the shared music library: styles, `Music` bus, owner fade-out, pause dip; every game's music |
 | Settings | `settings.gd` | global options, safe area, landscape boost |
 | Skin | `skin.gd` [NEW, from `voodoo.gd`] | Classic/Voodoo skins |
 | Online | `online_match.gd`, `online_lobby.gd` | Supabase Realtime rooms, rejoin |

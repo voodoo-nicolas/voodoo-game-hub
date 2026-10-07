@@ -54,6 +54,7 @@ const SOUND_GROUPS := [
 	["game", "🎲 Game sounds", "Cards, dice, pieces, arcade action."],
 	["results", "🏆 Wins & losses", "The fanfare at the end of a game."],
 	["alerts", "🔔 Notifications", "Your-turn chimes and warning buzzes."],
+	["music", "🎵 Music", "Background music in games."],
 ]
 
 ## Friend invite pop-ups (Minigame standard: "block notifications").

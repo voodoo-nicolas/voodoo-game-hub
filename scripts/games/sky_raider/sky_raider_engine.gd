@@ -5,6 +5,13 @@ extends RefCounted
 ## gunships, ground turrets and bombers come down the screen, and a boss
 ## closes every stage. Power-ups widen the guns. Pure logic in world units
 ## (W x H, y grows downwards), stepped by the game.
+##
+## Since pack v8 (2026-10-07): the islands are solid -- the hitbox inside
+## one is a crash (each island only once) -- and the turrets ride on them;
+## islands never overlap in height, so one side is always open. A lost life
+## resets the guns to level 1. Battleships get tougher every stage
+## (BOSS_PHASES: more armour, more phases, faster fire, new attacks), and
+## Hard is harder all round (DIFFS).
 
 const W := 720.0
 const H := 1100.0
@@ -16,11 +23,37 @@ const BULLET_SPEED := 980.0
 const STAGE_TIME := 55.0
 const MAX_POWER := 4
 ## Easy / Normal / Hard: enemy bullet speed and fire rate.
+## Also: hp / ramp = enemy armour and how much it grows per stage, waves =
+## how often waves come, dart_shot = chance a dart fires, fan / turret /
+## ring = bullets per gunship spread / turret burst / bomber ring, drop =
+## a gunship's drop chance, every = a drop every Nth kill, bombs at the
+## start, isl_gap = the open sea between islands, turrets = the chance an
+## island carries guns, boss_lvl = levels added to every battleship,
+## boss_hp = its armour.
 const DIFFS := [
-	{"bullet": 0.75, "fire": 0.65, "hp": 0.8},
-	{"bullet": 1.0, "fire": 1.0, "hp": 1.0},
-	{"bullet": 1.2, "fire": 1.4, "hp": 1.2},
+	{"bullet": 0.75, "fire": 0.65, "hp": 0.8, "ramp": 0.1, "waves": 0.85, "dart_shot": 0.25, "fan": 3, "turret": 1,
+		"ring": 10, "drop": 0.5, "every": 15, "bombs": 2, "isl_gap": [430.0, 680.0], "turrets": 0.3, "boss_lvl": 0,
+		"boss_hp": 0.7},
+	{"bullet": 1.0, "fire": 1.0, "hp": 1.0, "ramp": 0.12, "waves": 1.0, "dart_shot": 0.35, "fan": 3, "turret": 1,
+		"ring": 12, "drop": 0.45, "every": 15, "bombs": 2, "isl_gap": [330.0, 560.0], "turrets": 0.45, "boss_lvl": 0,
+		"boss_hp": 1.0},
+	{"bullet": 1.3, "fire": 1.7, "hp": 1.45, "ramp": 0.16, "waves": 1.4, "dart_shot": 0.8, "fan": 5, "turret": 2,
+		"ring": 16, "drop": 0.3, "every": 20, "bombs": 1, "isl_gap": [230.0, 430.0], "turrets": 0.65, "boss_lvl": 1,
+		"boss_hp": 1.2},
 ]
+## The battleship of level `lvl` (stage - 1 + DIFFS.boss_lvl) has
+## mini(2 + lvl / 2, 4) phases, one per equal slice of its armour. Each
+## phase cycles through its attacks; an attack joins once lvl reaches the
+## number beside it. Fire rate and bullet speed also climb with lvl.
+const BOSS_PHASES := [
+	[["fans", 0], ["stream", 2]],
+	[["ring", 0], ["fans", 0], ["escorts", 1], ["wall", 3]],
+	[["spiral", 0], ["stream", 0], ["wall", 2], ["laser", 3]],
+	[["laser", 0], ["spiral", 0], ["ring", 0], ["escorts", 0], ["wall", 0]],
+]
+const BOSS_Y := 210.0
+const LASER_HALF := 24.0      # the beam's half width
+const LASER_WARN := 1.0       # seconds of warning line before it fires
 ## kind -> hp, radius, score
 const KINDS := {
 	"dart": {"hp": 1, "r": 20.0, "score": 100},
@@ -42,14 +75,17 @@ var enemies: Array = []       # {"kind", "p", "v", "hp", "t", "path", "cool", "h
 var shots: Array = []         # player bullets: {"p", "v"}
 var bullets: Array = []       # enemy bullets: {"p", "v"}
 var items: Array = []         # {"p", "kind": "P" | "B" | "1"}
-var islands: Array = []       # scenery: {"p", "pts": PackedVector2Array}
+## Solid scenery: {"p", "pts": PackedVector2Array, "top", "bot" (y extents
+## of pts), "hit" (crashed into: harmless from then on)}.
+var islands: Array = []
 var boss: Dictionary = {}
 var stage_t: float = 0.0
 var scrolled: float = 0.0
 var kills: int = 0
+var crashes: int = 0
 var _fire_t: float = 0.0
 var _wave_t: float = 1.5
-var _island_t: float = 0.0
+var _island_due: float = 0.0  # scroll distance until the next island
 var rng := RandomNumberGenerator.new()
 
 func reset(p_diff: int = 1, seed_: int = -1) -> void:
@@ -61,9 +97,10 @@ func reset(p_diff: int = 1, seed_: int = -1) -> void:
 	stage = 1
 	score = 0
 	lives = 3
-	bombs = 2
+	bombs = DIFFS[diff].bombs
 	power = 1
 	kills = 0
+	crashes = 0
 	start_stage()
 
 func start_stage() -> void:
@@ -77,11 +114,16 @@ func start_stage() -> void:
 	pos = Vector2(W / 2.0, H - 160.0)
 	invuln = 2.0
 	state = "play"
+	# Islands from 40% of the way down upwards: open sea under the fighter
+	# to get going. Each one sits a gap above the last (`edge` = where the
+	# next one's bottom goes).
 	islands = []
-	var y := H
-	while y > -200.0:
-		_add_island(y)
-		y -= rng.randf_range(300.0, 520.0)
+	var edge := H * 0.4
+	while edge > -100.0:
+		var isl := _add_island()
+		isl.p.y = edge - isl.bot
+		edge = isl.p.y + isl.top - _island_gap()
+	_island_due = -30.0 - edge
 
 func move(d: Vector2) -> void:
 	pos = Vector2(clampf(pos.x + d.x, 24.0, W - 24.0), clampf(pos.y + d.y, 120.0, H - 40.0))
@@ -94,15 +136,19 @@ func bomb() -> bool:
 	for e in enemies.duplicate():
 		_damage(e, 18, [])
 	if not boss.is_empty():
-		boss.hp -= 30
+		boss.hp -= maxi(30, int(boss.max * 0.04))
 		boss.hit = 0.2
+		boss.laser = {}
+		boss.stream = 0
+		boss.spiral = 0.0
 	invuln = maxf(invuln, 1.0)
 	return true
 
 # ---------- one frame ----------
 
 ## Returns events: "kill", "big_kill", "hit", "hurt", "power", "bomb_item",
-## "life", "boss", "boss_down", "clear", "dead".
+## "life", "boss", "boss_down", "clear", "dead"; since v8 also "crash"
+## (into an island), "boss_phase", "laser" (a battleship's beam fires).
 func step(dt: float) -> Array:
 	var ev: Array = []
 	if state != "play":
@@ -112,6 +158,7 @@ func step(dt: float) -> Array:
 	scrolled += SCROLL * dt
 	invuln = maxf(0.0, invuln - dt)
 	_scenery(dt)
+	_check_islands(ev)
 	_fire(dt)
 	_waves(dt, ev)
 	_step_enemies(dt)
@@ -128,21 +175,77 @@ func step(dt: float) -> Array:
 func _scenery(dt: float) -> void:
 	for isl in islands:
 		isl.p.y += SCROLL * dt
-	islands = islands.filter(func(i): return i.p.y < H + 400.0)
-	_island_t -= dt
-	if _island_t <= 0.0:
-		_island_t = rng.randf_range(3.5, 6.0)
-		_add_island(-300.0)
+	islands = islands.filter(func(i): return i.p.y + i.top < H + 40.0)
+	_island_due -= SCROLL * dt
+	if _island_due <= 0.0:
+		# Its bottom just above the top edge; the next one a gap above it.
+		var isl := _add_island()
+		isl.p.y = -30.0 - isl.bot
+		_island_due += isl.bot - isl.top + _island_gap()
+		# Gun emplacements, more often in later stages -- never once the
+		# waves are over (the battleship waits for an empty sky).
+		var chance: float = minf(0.85, DIFFS[diff].turrets + 0.06 * (stage - 1))
+		if stage_t < STAGE_TIME and rng.randf() < chance:
+			_arm_island(isl, 2 if rng.randf() < 0.25 + 0.06 * stage else 1)
 
-func _add_island(y: float) -> void:
-	var c := Vector2(rng.randf_range(60.0, W - 60.0), y)
+func _island_gap() -> float:
+	var g: Array = DIFFS[diff].isl_gap
+	return rng.randf_range(g[0], g[1])
+
+## A new island (centre x random, y left to the caller). At most 360 wide,
+## so with no two islands at the same height one side is always open.
+func _add_island() -> Dictionary:
+	var c := Vector2(rng.randf_range(60.0, W - 60.0), 0.0)
 	var n := 11
-	var r := rng.randf_range(90.0, 180.0)
+	var r := rng.randf_range(80.0, 150.0)
 	var pts := PackedVector2Array()
+	var top := 0.0
+	var bot := 0.0
 	for i in n:
 		var a := TAU * i / n
-		pts.append(Vector2(cos(a) * r * rng.randf_range(0.65, 1.2), sin(a) * r * rng.randf_range(0.5, 0.9)))
-	islands.append({"p": c, "pts": pts})
+		var v := Vector2(cos(a) * r * rng.randf_range(0.65, 1.2), sin(a) * r * rng.randf_range(0.5, 0.9))
+		pts.append(v)
+		top = minf(top, v.y)
+		bot = maxf(bot, v.y)
+	var isl := {"p": c, "pts": pts, "top": top, "bot": bot, "hit": false}
+	islands.append(isl)
+	return isl
+
+## Turrets standing on the island (they scroll with it).
+func _arm_island(isl: Dictionary, n: int) -> void:
+	var placed: Array = []
+	for tries in 20:
+		if placed.size() >= n:
+			break
+		var off := Vector2(rng.randf_range(-70.0, 70.0), rng.randf_range(isl.top * 0.5, isl.bot * 0.5))
+		if not Geometry2D.is_point_in_polygon(off, isl.pts):
+			continue
+		if placed.any(func(q): return (q as Vector2).distance_to(off) < 60.0):
+			continue
+		placed.append(off)
+		_add_enemy("turret", isl.p + off, Vector2(0, SCROLL))
+
+func _in_island(p: Vector2) -> bool:
+	for isl in islands:
+		var rel: Vector2 = p - isl.p
+		if rel.y >= isl.top and rel.y <= isl.bot and Geometry2D.is_point_in_polygon(rel, isl.pts):
+			return true
+	return false
+
+## Flying into an island (only the hitbox counts, like bullets).
+func _check_islands(ev: Array) -> void:
+	if invuln > 0.0 or state != "play":
+		return
+	for isl in islands:
+		if isl.hit:
+			continue
+		var rel: Vector2 = pos - isl.p
+		if rel.y >= isl.top and rel.y <= isl.bot and Geometry2D.is_point_in_polygon(rel, isl.pts):
+			isl.hit = true
+			crashes += 1
+			ev.append("crash")
+			_player_hit()
+			return
 
 func _fire(dt: float) -> void:
 	_fire_t -= dt
@@ -169,31 +272,28 @@ func _waves(dt: float, ev: Array) -> void:
 	_wave_t -= dt
 	if _wave_t > 0.0:
 		return
-	_wave_t = rng.randf_range(2.0, 3.4) / (1.0 + 0.08 * (stage - 1))
+	var d: Dictionary = DIFFS[diff]
+	_wave_t = rng.randf_range(2.0, 3.4) / (d.waves * (1.0 + 0.08 * (stage - 1)))
+	# Turrets come on the islands now (_scenery), not as a wave of their own.
 	var r := rng.randf()
-	if r < 0.4:
+	if r < 0.45:
 		# A line of darts swooping down along a sine.
 		var n := rng.randi_range(4, 6)
 		var x0 := rng.randf_range(140.0, W - 140.0)
 		for k in n:
 			var dart := _add_enemy("dart", Vector2(x0, -40.0 - k * 60.0), Vector2(0, 260.0))
 			dart.path = rng.randf_range(0.6, 1.0) * (1 if rng.randf() < 0.5 else -1)
-	elif r < 0.62:
+	elif r < 0.78:
 		for k in rng.randi_range(1, 2):
 			var e := _add_enemy("gunship", Vector2(rng.randf_range(100.0, W - 100.0), -50.0), Vector2(0, 160.0))
 			e.path = rng.randf_range(180.0, 380.0)   # where it stops
-	elif r < 0.85:
-		var x := rng.randf_range(80.0, W - 80.0)
-		_add_enemy("turret", Vector2(x, -40.0), Vector2(0, SCROLL))
-		if rng.randf() < 0.5:
-			_add_enemy("turret", Vector2(clampf(W - x, 80.0, W - 80.0), -110.0), Vector2(0, SCROLL))
 	elif stage >= 2 or stage_t > 25.0:
 		_add_enemy("bomber", Vector2(rng.randf_range(160.0, W - 160.0), -80.0), Vector2(0, 55.0))
 	else:
 		_wave_t = 0.2
 
 func _add_enemy(kind: String, p: Vector2, v: Vector2) -> Dictionary:
-	var hp := int(ceilf(KINDS[kind].hp * DIFFS[diff].hp * (1.0 + 0.12 * (stage - 1))))
+	var hp := int(ceilf(KINDS[kind].hp * DIFFS[diff].hp * (1.0 + DIFFS[diff].ramp * (stage - 1))))
 	var e := {"kind": kind, "p": p, "v": v, "hp": hp, "t": 0.0, "path": 0.0, "cool": rng.randf_range(0.6, 1.6),
 		"hit": 0.0, "x0": p.x}
 	enemies.append(e)
@@ -222,17 +322,17 @@ func _step_enemies(dt: float) -> void:
 			match e.kind:
 				"dart":
 					e.cool = 99.0
-					if rng.randf() < 0.35:
+					if rng.randf() < d.dart_shot:
 						_aimed(e.p, 260.0)
 				"gunship":
 					e.cool = 1.4
-					_fan(e.p, 3, 0.25, 270.0)
+					_fan(e.p, d.fan, 0.25 if d.fan <= 3 else 0.18, 270.0)
 				"turret":
 					e.cool = 1.8
-					_aimed(e.p, 300.0)
+					_fan(e.p, d.turret, 0.14, 300.0)
 				"bomber":
 					e.cool = 2.2
-					_ring(e.p, 12, 200.0, e.t)
+					_ring(e.p, d.ring, 200.0, e.t)
 		# Ramming the player.
 		if invuln <= 0.0 and e.p.distance_to(pos) < KINDS[e.kind].r + PLAYER_HIT:
 			if e.kind != "turret":
@@ -296,9 +396,9 @@ func _damage(e: Dictionary, n: int, ev: Array) -> void:
 		drop = "P" if power < MAX_POWER else "B"
 		if rng.randf() < 0.25:
 			drop = "1"
-	elif e.kind == "gunship" and rng.randf() < 0.45:
+	elif e.kind == "gunship" and rng.randf() < DIFFS[diff].drop:
 		drop = "P" if power < MAX_POWER and rng.randf() < 0.7 else "B"
-	elif kills % 15 == 0:
+	elif kills % int(DIFFS[diff].every) == 0:
 		drop = "P" if power < MAX_POWER else "B"
 	if drop != "":
 		items.append({"p": e.p, "kind": drop, "t": 0.0})
@@ -345,7 +445,7 @@ func _player_hit() -> void:
 	if invuln > 0.0 or state != "play":
 		return
 	lives -= 1
-	power = maxi(1, power - 1)
+	power = 1  # a lost life costs all the gun power (owner, 2026-10-07)
 	bullets = []
 	invuln = 2.2
 	if lives <= 0:
@@ -354,8 +454,11 @@ func _player_hit() -> void:
 # ---------- the boss ----------
 
 func _spawn_boss() -> void:
-	var hp := int((220 + stage * 90) * DIFFS[diff].hp)
-	boss = {"p": Vector2(W / 2.0, -140.0), "hp": hp, "max": hp, "t": 0.0, "cool": 2.0, "hit": 0.0, "phase": 0}
+	var lvl: int = stage - 1 + int(DIFFS[diff].boss_lvl)
+	var hp := int((400.0 + 130.0 * lvl + 6.0 * lvl * lvl) * DIFFS[diff].boss_hp)
+	boss = {"p": Vector2(W / 2.0, -140.0), "hp": hp, "max": hp, "t": 0.0, "cool": 2.0, "hit": 0.0, "phase": 0,
+		"lvl": lvl, "phases": mini(2 + lvl / 2, BOSS_PHASES.size()), "entered": false, "t_in": 0.0, "ai": 0,
+		"stream": 0, "stream_t": 0.0, "spiral": 0.0, "spiral_t": 0.0, "spin": 0.0, "laser": {}}
 
 func _boss_hit(p: Vector2) -> bool:
 	var d: Vector2 = p - boss.p
@@ -366,24 +469,148 @@ func _step_boss(dt: float, ev: Array) -> void:
 		return
 	boss.t += dt
 	boss.hit = maxf(0.0, boss.hit - dt)
-	var target_y := 210.0
-	if boss.p.y < target_y:
+	if not boss.entered:
 		boss.p.y += 90.0 * dt
+		if boss.p.y >= BOSS_Y:
+			boss.entered = true
+			boss.t_in = boss.t
+		if boss.hp <= 0:
+			_boss_down(ev)
 		return
-	boss.p.x = W / 2.0 + sin(boss.t * 0.7) * (W / 2.0 - 160.0)
-	boss.phase = 0 if float(boss.hp) / boss.max > 0.5 else 1
-	boss.cool -= dt * DIFFS[diff].fire
+	var lvl: int = boss.lvl
+	var bt: float = boss.t - boss.t_in
+	# Sweeps side to side, faster at higher levels, and bobs from level 2;
+	# a laser shot first slides to its mark (the sight line), then holds.
+	var want_x := W / 2.0 + sin(bt * minf(0.7 + 0.06 * lvl, 1.2)) * (W / 2.0 - 160.0)
+	var lz: Dictionary = boss.laser
+	if not lz.is_empty():
+		want_x = lz.x
+	boss.p.x = move_toward(boss.p.x, want_x, (240.0 + 20.0 * lvl) * dt)
+	if lvl >= 2:
+		boss.p.y = BOSS_Y + sin(bt * 0.9) * minf(20.0 + 10.0 * lvl, 70.0)
+	if invuln <= 0.0 and _boss_hit(pos):
+		_player_hit()  # flying into the hull
+	var ph := clampi(int((1.0 - float(boss.hp) / boss.max) * boss.phases), 0, boss.phases - 1)
+	if ph != boss.phase:
+		boss.phase = ph
+		boss.ai = 0
+		boss.cool = 0.8
+		boss.laser = {}
+		ev.append("boss_phase")
+	# Part of the difficulty's fire rate (boss_lvl already adds the rest).
+	var rate: float = lerpf(1.0, DIFFS[diff].fire, 0.6) * minf(1.0 + 0.05 * lvl, 1.6)
+	_boss_ongoing(dt, rate, ev)
+	boss.cool -= dt * rate
 	if boss.cool <= 0.0:
-		if boss.phase == 0:
-			boss.cool = 1.3
-			_fan(boss.p + Vector2(-70, 30), 3, 0.22, 280.0)
-			_fan(boss.p + Vector2(70, 30), 3, 0.22, 280.0)
-		else:
-			boss.cool = 0.9
-			_ring(boss.p + Vector2(0, 30), 10 + mini(stage, 6), 220.0, boss.t * 1.7)
-			_aimed(boss.p + Vector2(0, 40), 360.0)
+		var list := _boss_attacks(ph, lvl)
+		var attack: String = list[boss.ai % list.size()]
+		boss.ai += 1
+		boss.cool = _boss_attack(attack, lvl)
 	if boss.hp <= 0:
 		_boss_down(ev)
+
+## This phase's attacks at this level.
+func _boss_attacks(ph: int, lvl: int) -> Array:
+	var out: Array = []
+	for a in BOSS_PHASES[ph]:
+		if lvl >= a[1]:
+			out.append(a[0])
+	return out
+
+## Bullet speed for the battleship's level.
+func _boss_speed(lvl: int) -> float:
+	return minf(1.0 + 0.04 * lvl, 1.4)
+
+## Starts one attack; returns the time until the next (before `rate`).
+func _boss_attack(attack: String, lvl: int) -> float:
+	var sp := _boss_speed(lvl)
+	match attack:
+		"fans":
+			var n := mini(3 + lvl / 2, 7)
+			_fan(boss.p + Vector2(-70, 30), n, 0.2, 280.0 * sp)
+			_fan(boss.p + Vector2(70, 30), n, 0.2, 280.0 * sp)
+			return 1.3
+		"ring":
+			_ring(boss.p + Vector2(0, 30), mini(10 + lvl, 20), 220.0 * sp, boss.t * 1.7)
+			_aimed(boss.p + Vector2(0, 40), 360.0 * sp)
+			return 1.1
+		"stream":
+			# A quick string of aimed shots: keep moving.
+			boss.stream = mini(5 + lvl, 10)
+			boss.stream_t = 0.0
+			return 1.5
+		"spiral":
+			boss.spiral = 2.4
+			boss.spiral_t = 0.0
+			return 2.9
+		"wall":
+			_wall(boss.p.y + 70.0, maxf(130.0, 220.0 - 12.0 * lvl), 170.0 * sp)
+			return 1.7
+		"escorts":
+			if enemies.size() >= 8:
+				return 0.3
+			var k := mini(2 + lvl / 3, 4)
+			for i in k:
+				var dart := _add_enemy("dart", Vector2(boss.p.x + (i - (k - 1) / 2.0) * 70.0, boss.p.y + 40.0), Vector2(0, 240.0))
+				dart.path = 0.5 * (1 if i % 2 == 0 else -1)
+			return 1.4
+		"laser":
+			boss.laser = {"x": clampf(pos.x, 160.0, W - 160.0), "warn": LASER_WARN, "on": 0.0}
+			return 2.6
+	return 1.0
+
+## Attacks that play out over time: the aimed stream, the spiral, the laser.
+func _boss_ongoing(dt: float, rate: float, ev: Array) -> void:
+	var lvl: int = boss.lvl
+	var sp := _boss_speed(lvl)
+	if boss.stream > 0:
+		boss.stream_t -= dt * rate
+		if boss.stream_t <= 0.0:
+			boss.stream_t = 0.08
+			boss.stream -= 1
+			_aimed(boss.p + Vector2(0, 40), 380.0 * sp)
+	if boss.spiral > 0.0:
+		boss.spiral -= dt
+		boss.spiral_t -= dt * rate
+		if boss.spiral_t <= 0.0:
+			boss.spiral_t = 0.11
+			boss.spin += 0.33
+			_ring(boss.p + Vector2(0, 30), mini(2 + lvl / 3, 5), 210.0 * sp, boss.spin)
+	var lz: Dictionary = boss.laser
+	if lz.is_empty():
+		return
+	if lz.on <= 0.0:
+		# Fires once the warning has run AND the ship is on its mark, so
+		# the beam always comes down exactly on the sight line.
+		lz.warn = maxf(0.0, lz.warn - dt)
+		if lz.warn <= 0.0 and absf(boss.p.x - lz.x) < 1.0:
+			lz.on = minf(0.8 + 0.04 * lvl, 1.2)
+			ev.append("laser")
+		return
+	lz.on -= dt
+	if lz.on <= 0.0:
+		boss.laser = {}
+	elif invuln <= 0.0 and pos.y > boss.p.y and absf(pos.x - boss.p.x) < LASER_HALF + PLAYER_HIT:
+		_player_hit()
+
+## True while the beam is firing (not during its warning).
+func laser_on() -> bool:
+	return not boss.is_empty() and not (boss.laser as Dictionary).is_empty() and boss.laser.on > 0.0
+
+## A curtain of bullets across the screen with one gap to slip through,
+## never over an island at the fighter's height.
+func _wall(y: float, gap: float, speed: float) -> void:
+	var lo := gap / 2.0 + 30.0
+	var gx := rng.randf_range(lo, W - lo)
+	for tries in 8:
+		if not _in_island(Vector2(gx, pos.y)):
+			break
+		gx = rng.randf_range(lo, W - lo)
+	var x := 18.0
+	while x < W:
+		if absf(x - gx) > gap / 2.0:
+			bullets.append({"p": Vector2(x, y), "v": Vector2(0, speed * DIFFS[diff].bullet)})
+		x += 36.0
 
 func _boss_down(ev: Array) -> void:
 	if boss.is_empty():

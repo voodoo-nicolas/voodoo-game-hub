@@ -26,6 +26,8 @@ const BOMBER := Color("ffae2b")
 const SHOT := Color("7dff3a")
 const BULLET := Color("ff4f9a")
 const LAND := Color("3a8cff")
+## Each stage's battleship has its own colour (it gets tougher every time).
+const BOSS_COLORS := [Color("ffae2b"), Color("ff2bd6"), Color("9b4dff"), Color("ff3b3b"), Color("29e6ff"), Color("7dff3a")]
 const STEER := 1.3
 const PAUSE_AFTER := 2.0
 
@@ -54,6 +56,9 @@ func _ready() -> void:
 	engine = SrEngine.new()
 	engine.reset(1)
 	_build_ui()
+	# Get the first stage's and the battleship's music ready while Home shows.
+	_music("prepare", "lively", 0)
+	_music("prepare", "techno", 0)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -209,6 +214,12 @@ func _begin() -> void:
 	end_dialog.visible = false
 	_show_banner(tr("Stage %d") % engine.stage)
 	_update_hud()
+	_stage_music()
+
+## Each stage has its own lively track, each battleship a techno one.
+func _stage_music() -> void:
+	_music("play", "lively", engine.stage - 1)
+	_music("prepare", "techno", engine.stage - 1)
 
 func _show_banner(text: String, t: float = 2.0) -> void:
 	banner = text
@@ -252,6 +263,7 @@ func _process(delta: float) -> void:
 				return
 			_show_banner(tr("Stage %d") % engine.stage)
 			_update_hud()
+			_stage_music()
 		field.queue_redraw()
 		return
 	var kx := (1.0 if keys.has(KEY_RIGHT) or keys.has(KEY_D) else 0.0) - (1.0 if keys.has(KEY_LEFT) or keys.has(KEY_A) else 0.0)
@@ -274,6 +286,9 @@ func _process(delta: float) -> void:
 				_buzz()
 				_burst(engine.pos, PLAYER, 40)
 				flash_t = 0.25
+			"crash":
+				_sfx("explode")
+				_burst(engine.pos, LAND, 30)
 			"power":
 				_sfx("powerup")
 			"bomb_item", "life":
@@ -281,9 +296,17 @@ func _process(delta: float) -> void:
 			"boss":
 				_sfx("buzzer")
 				_show_banner(tr("Warning: battleship!"))
+				_music("play", "techno", engine.stage - 1, 1.0)
+			"boss_phase":
+				_sfx("buzzer")
+				flash_t = 0.2
+				_burst(boss_p, _boss_color(), 50)
+			"laser":
+				_sfx("shoot")
 			"boss_down":
 				_sfx("win")
-				_burst(boss_p, BOMBER, 120)
+				_burst(boss_p, _boss_color(), 120)
+				_music("play", "lively", engine.stage, 2.0)  # the next stage's track
 				if info:
 					info.add("Battleships sunk")
 					info.high("Highest stage", engine.stage + 1)
@@ -293,6 +316,7 @@ func _process(delta: float) -> void:
 			"dead":
 				_show_banner(tr("Game over!"), PAUSE_AFTER)
 				after = PAUSE_AFTER
+				_music("stop", "", 0, 2.5)
 	if "kill" in ev or "big_kill" in ev:
 		for o in before:
 			if not engine.enemies.has(o):
@@ -347,17 +371,21 @@ func _draw_field() -> void:
 	while x < s.x:
 		c.draw_line(Vector2(x, 0), Vector2(x, s.y), Color(LAND, 0.07), 1.0)
 		x += step
+	# Islands are solid (since v8): a bright rim and contour lines, like a
+	# mountain seen from above. One you crashed into goes dark (harmless).
 	for isl in engine.islands:
+		var crashed: bool = isl.get("hit", false)
 		var pts := PackedVector2Array()
 		for p in isl.pts:
 			pts.append(o + (isl.p + p) * k)
-		c.draw_colored_polygon(pts, Color(0.03, 0.07, 0.12))
-		HomeKit.glow_polyline(c, pts, Color(LAND, 0.55), 1.4, true)
-		var inner := PackedVector2Array()
-		for p in isl.pts:
-			inner.append(o + (isl.p + p * 0.6) * k)
-		inner.append(inner[0])
-		c.draw_polyline(inner, Color(LAND, 0.2), 1.0, true)
+		c.draw_colored_polygon(pts, Color(0.02, 0.04, 0.07) if crashed else Color(0.04, 0.1, 0.18))
+		HomeKit.glow_polyline(c, pts, Color(LAND, 0.25 if crashed else 0.9), 2.0, true)
+		for ring in [0.66, 0.33]:
+			var inner := PackedVector2Array()
+			for p in isl.pts:
+				inner.append(o + (isl.p + p * ring) * k)
+			inner.append(inner[0])
+			c.draw_polyline(inner, Color(LAND, 0.1 if crashed else 0.3), 1.0, true)
 	for it in engine.items:
 		var p: Vector2 = o + it.p * k
 		var col: Color = SHOT if it.kind == "P" else (BOMBER if it.kind == "B" else PLAYER)
@@ -386,7 +414,12 @@ func _draw_field() -> void:
 	if not engine.boss.is_empty():
 		var bb := Rect2(Vector2(s.x * 0.15, 12), Vector2(s.x * 0.7, 12))
 		c.draw_rect(bb, Color(1, 1, 1, 0.1))
-		c.draw_rect(Rect2(bb.position, Vector2(bb.size.x * maxf(0.0, float(engine.boss.hp) / engine.boss.max), bb.size.y)), BOMBER)
+		c.draw_rect(Rect2(bb.position, Vector2(bb.size.x * maxf(0.0, float(engine.boss.hp) / engine.boss.max), bb.size.y)), _boss_color())
+		# A mark where each new phase starts.
+		var phases: int = engine.boss.get("phases", 2)
+		for i in range(1, phases):
+			var tx := bb.position.x + bb.size.x * (1.0 - float(i) / phases)
+			c.draw_line(Vector2(tx, bb.position.y - 3), Vector2(tx, bb.end.y + 3), HomeKit.WHITE, 2.0)
 	if banner_t > 0.0:
 		HomeKit.glow_text(c, Vector2(s.x / 2.0, s.y * 0.4), banner, int(clampf(s.x / 15.0, 24, 46)), HomeKit.WHITE)
 
@@ -432,8 +465,25 @@ func _draw_enemy(c: CanvasItem, p: Vector2, k: float, e: Dictionary) -> void:
 		for sd in [-1.0, 1.0]:
 			c.draw_circle(p + Vector2(sd * 40, 4) * k, 5 * k, Color(BULLET, 0.8))
 
+func _boss_color() -> Color:
+	return BOSS_COLORS[(engine.stage - 1) % BOSS_COLORS.size()]
+
 func _draw_boss(c: CanvasItem, p: Vector2, k: float, b: Dictionary) -> void:
-	var col: Color = BOMBER if b.hit <= 0.0 else HomeKit.WHITE
+	# The laser: a blinking sight line while it aims, then the beam.
+	var lz: Dictionary = b.get("laser", {})
+	var bottom := Vector2(p.x, field.size.y)
+	if not lz.is_empty():
+		if lz.on <= 0.0:
+			# Where the beam will come down (the ship slides there first).
+			if fmod(anim_t, 0.2) < 0.13:
+				var lx: float = p.x + (lz.x - b.p.x) * k
+				c.draw_line(Vector2(lx, p.y + 40 * k), Vector2(lx, field.size.y), Color(DART, 0.7), 2.0)
+		else:
+			var w := SrEngine.LASER_HALF * 2.0 * k
+			c.draw_line(p + Vector2(0, 40) * k, bottom, Color(DART, 0.35), w * 1.6)
+			c.draw_line(p + Vector2(0, 40) * k, bottom, DART, w)
+			c.draw_line(p + Vector2(0, 40) * k, bottom, HomeKit.WHITE, w * 0.35)
+	var col: Color = _boss_color() if b.hit <= 0.0 else HomeKit.WHITE
 	var hull := PackedVector2Array()
 	for v in [Vector2(0, 70), Vector2(-40, 50), Vector2(-130, 30), Vector2(-150, -10), Vector2(-120, -50), Vector2(-50, -60),
 			Vector2(0, -80), Vector2(50, -60), Vector2(120, -50), Vector2(150, -10), Vector2(130, 30), Vector2(40, 50)]:
@@ -444,12 +494,18 @@ func _draw_boss(c: CanvasItem, p: Vector2, k: float, b: Dictionary) -> void:
 	for v in [Vector2(-90, -20), Vector2(90, -20), Vector2(70, 20), Vector2(-70, 20)]:
 		deck.append(p + v * k)
 	HomeKit.glow_polyline(c, deck, Color(DART, 0.8), 1.5, true)
-	for tx in [-100.0, -60.0, 60.0, 100.0]:
-		var tp := p + Vector2(tx, 10) * k
+	# More guns on the deck as battleships gain phases.
+	var guns: Array = [-100.0, -60.0, 60.0, 100.0]
+	if int(b.get("phases", 2)) >= 3:
+		guns += [-130.0, 130.0]
+	if int(b.get("phases", 2)) >= 4:
+		guns += [-20.0, 20.0]
+	for tx in guns:
+		var tp := p + Vector2(tx, 10 if absf(tx) < 120.0 else -18) * k
 		HomeKit.glow_circle(c, tp, 12.0 * k, DART, 1.5, 0.3)
 		HomeKit.glow_line(c, tp, tp + (engine.pos - (b.p + Vector2(tx, 10))).normalized() * 22.0 * k, DART, 2.0)
 	var core := p + Vector2(0, 20) * k
-	var pulse := 20.0 + 4.0 * sin(anim_t * 9.0)
+	var pulse := 20.0 + 4.0 * sin(anim_t * (9.0 + 4.0 * int(b.get("phase", 0))))
 	c.draw_circle(core, pulse * k, Color(BULLET, 0.35))
 	HomeKit.glow_circle(c, core, pulse * k, BULLET, 2.0)
 
@@ -518,3 +574,17 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+## The hub's shared music library (Music autoload, apps from v0.33; older
+## ones play no music). `what`: "play", "prepare" or "stop".
+func _music(what: String, style: String, index: int = 0, fade: float = 1.5) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m == null:
+		return
+	match what:
+		"play":
+			m.play(style, self, index, fade)
+		"prepare":
+			m.prepare(style, index)
+		"stop":
+			m.stop(fade)

@@ -169,6 +169,12 @@ func _settings() -> Node:
 	return get_node_or_null("/root/Settings")
 
 func _sample(group: String) -> void:
+	if group == "music":
+		# A few seconds of the shared music library, unless some is playing.
+		var m = get_node_or_null("/root/Music")
+		if m and m.has_method("preview"):
+			m.preview()
+		return
 	var sfx = get_node_or_null("/root/Sfx")
 	if sfx:
 		sfx.play(SAMPLE.get(group, "tap"))
