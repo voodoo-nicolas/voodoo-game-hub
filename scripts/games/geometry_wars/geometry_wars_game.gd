@@ -1815,8 +1815,8 @@ func _load_saved_game() -> bool:
 # ---------- Home screen (home_kit.gd) ----------
 
 ## The Landing's ⚙ Options -> Look, re-skinned in place: Classic = the
-## original neon geometry (claw ship, darts, shapes, yellow geoms), Voodoo =
-## the demon-skull ship, pins, spirits and souls.
+## original neon geometry (darts, shapes, yellow geoms), Voodoo = pins,
+## spirits and souls; the demon-skull ship flies in both.
 func _set_skin(skin: String) -> void:
 	Core.classic = skin != "voodoo"
 	if arena_canvas:

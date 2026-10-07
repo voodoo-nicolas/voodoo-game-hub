@@ -1,10 +1,10 @@
 extends Node2D
 
 ## Draws the world in one of two skins (the Landing's ⚙ Options -> Look):
-## Classic is the original neon-geometry look (a claw ship, darts, shapes,
-## yellow geoms -- the `_classic` functions, kept exactly as before the
-## re-theme), Voodoo the demon-skull ship firing pins at spirits, souls to
-## collect. It sits inside the game's clipped view and is moved by
+## Classic is the original neon-geometry look (darts, shapes, yellow geoms
+## -- the `_classic` functions, kept exactly as before the re-theme), Voodoo
+## pins, spirits and souls. Both fly the owner's demon-skull ship (owner,
+## 2026-10-07: the old claw ship is gone). It sits inside the game's clipped view and is moved by
 ## -camera, so every draw call here uses world coordinates (the same as the
 ## entity positions in `game`). Only what's near the view is drawn.
 ## Everything is glowing vector lines: each outline is stroked three times
@@ -754,13 +754,11 @@ func _draw_familiar(d: Dictionary, t: float, u: float) -> void:
 
 # ---------- player ----------
 
-## Your ship (Voodoo): the owner's horned demon skull, flying mouth first,
-## its carved slits glowing red; a flame leaves its back between the horns,
-## leaping when you speed up and settling to your cruising speed.
+## Your ship, in both skins (owner, 2026-10-07): the owner's horned demon
+## skull, flying mouth first, its carved slits glowing red; a flame leaves
+## its back between the horns, leaping when you speed up and settling to
+## your cruising speed.
 func _draw_player(t: float, u: float) -> void:
-	if classic:
-		_draw_player_classic(t, u)
-		return
 	var pos: Vector2 = game.player_pos
 	var inv: float = game.invuln_timer
 	var d: Vector2 = game.ship_dir
@@ -775,8 +773,12 @@ func _draw_player(t: float, u: float) -> void:
 		var hr: float = (1.5 + 0.12 * pulse_k) * u
 		draw_arc(pos, hr, 0, TAU, 40, Color(0.4, 0.85, 1.0, 0.18), 0.5 * u, true)
 		draw_arc(pos, hr, 0, TAU, 40, Color(0.6, 0.92, 1.0, 0.55 + 0.3 * pulse_k), 2.0, true)
-	# Sanctuary: a little candle flame over your skull while you may shoot.
-	if game.rules.king and game.king_zone >= 0:
+	# Sanctuary: a small crown (Classic) or a candle flame (Voodoo) over
+	# your ship while you may shoot.
+	if game.rules.king and game.king_zone >= 0 and classic:
+		_neon(PackedVector2Array([pos + Vector2(-0.4, -1.0) * u, pos + Vector2(-0.4, -1.4) * u, pos + Vector2(-0.15, -1.2) * u,
+			pos + Vector2(0, -1.5) * u, pos + Vector2(0.15, -1.2) * u, pos + Vector2(0.4, -1.4) * u, pos + Vector2(0.4, -1.0) * u]), Color(1, 0.85, 0.3), true, 1.4)
+	elif game.rules.king and game.king_zone >= 0:
 		_draw_soul(pos + Vector2(0, -1.4 * u), 0.18 * u, t * 4.0, Color(1, 0.85, 0.3))
 
 ## The demon skull: a dark body with a neon rim, red-hot slits.
@@ -991,35 +993,3 @@ func _draw_drone(d: Dictionary, t: float, u: float) -> void:
 	var s := 0.4 * u
 	_neon(PackedVector2Array([pos + dir * s, pos - dir * s * 0.7 + p * s * 0.7, pos - dir * s * 0.3, pos - dir * s * 0.7 - p * s * 0.7]), col, true, 1.5)
 	draw_circle(pos, s * 0.2, Color(1, 1, 1, 0.6 + 0.4 * sin(t * 8.0)))
-
-func _draw_player_classic(t: float, u: float) -> void:
-	var pos: Vector2 = game.player_pos
-	var inv: float = game.invuln_timer
-	# Flicker in the last second, as the shield is about to drop.
-	if inv > 0.0 and inv < 1.0 and int(inv * 12.0) % 2 == 0:
-		pass
-	else:
-		var d: Vector2 = game.ship_dir
-		var p := Vector2(-d.y, d.x)
-		var speed_k: float = clampf(float(game.thrust), 0.0, 1.0)
-		if speed_k > 0.05:
-			var blue := Color(0.5, 0.75, 1.0)
-			for k in 3:
-				var off := p * (k - 1) * 0.18 * u
-				draw_line(pos - d * 0.5 * u + off, pos - d * (1.0 + 2.2 * speed_k) * u + off, Color(blue, 0.18 - k % 2 * 0.06), 0.3 * u)
-		var white := Color(0.85, 0.95, 1.0)
-		# Two nested chevrons: the C-shaped claw.
-		_neon(PackedVector2Array([pos + d * 0.75 * u + p * 0.0, pos - d * 0.55 * u + p * 0.7 * u, pos - d * 0.25 * u]), white, false, 1.8)
-		_neon(PackedVector2Array([pos + d * 0.75 * u, pos - d * 0.55 * u - p * 0.7 * u, pos - d * 0.25 * u]), white, false, 1.8)
-		_neon(PackedVector2Array([pos + d * 0.35 * u, pos - d * 0.35 * u + p * 0.4 * u, pos - d * 0.15 * u, pos - d * 0.35 * u - p * 0.4 * u]), Color(0.6, 0.8, 1.0), true, 1.2)
-	if inv > 0.0:
-		# The shield halo, pulsing faster as it runs out.
-		var rate: float = 5.0 if inv > 1.0 else 16.0
-		var pulse_k: float = 0.5 + 0.5 * sin(t * rate)
-		var hr: float = (1.15 + 0.12 * pulse_k) * u
-		draw_arc(pos, hr, 0, TAU, 40, Color(0.6, 0.9, 1.0, 0.18), 0.5 * u, true)
-		draw_arc(pos, hr, 0, TAU, 40, Color(0.7, 0.95, 1.0, 0.55 + 0.3 * pulse_k), 2.0, true)
-	# King: a small crown over the ship while it can shoot.
-	if game.rules.king and game.king_zone >= 0:
-		_neon(PackedVector2Array([pos + Vector2(-0.4, -1.0) * u, pos + Vector2(-0.4, -1.4) * u, pos + Vector2(-0.15, -1.2) * u,
-			pos + Vector2(0, -1.5) * u, pos + Vector2(0.15, -1.2) * u, pos + Vector2(0.4, -1.4) * u, pos + Vector2(0.4, -1.0) * u]), Color(1, 0.85, 0.3), true, 1.4)

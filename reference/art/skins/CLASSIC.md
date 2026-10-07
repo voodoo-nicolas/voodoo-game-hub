@@ -53,8 +53,9 @@ no faint grid, plain drop shadows.
     Binary Grid (paper, solid black / open white circles), Sketch It (markers on
     a whiteboard; strokes keep their neon ink and are shown as the matching
     marker), Neon Blast (owner 2026-10-06: Classic = its original neon-geometry
-    look from before the voodoo re-theme -- claw ship, darts, shapes, yellow
-    geoms -- in `arena_canvas.gd`'s `_classic` functions), and the retro filter
+    look from before the voodoo re-theme -- darts, shapes, yellow geoms -- in
+    `arena_canvas.gd`'s `_classic` functions; the ship is the demon skull in
+    both skins), and the retro filter
     for Fortune Ball, Spirit Board
     (a filter, not a wooden board, so it stays clear of the famous talking
     board's look), Gem Match and Bop the Mole (their `_set_skin` = retro filter
