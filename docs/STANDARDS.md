@@ -212,6 +212,9 @@ if ResourceLoader.exists(ONLINE_LOBBY_PATH):
     var online = OnlineMatch.new(...)
     online.send_move(state_json)
 ```
+- [NEW 2026-10-06] **The web build (iPhone / Safari) has no threads**: `Thread.start()` never runs its function
+  there and `WorkerThreadPool` tasks block. Prefer no `Thread`; a game that needs one adds an
+  `OS.has_feature("web")` branch that does the work in place (`hub.py check` enforces it). CLAUDE.md "Web version".
 
 ## 13. Shared systems (APK-side, reach every game with no game code) [CURRENT + NEW]
 | System | File | Purpose |

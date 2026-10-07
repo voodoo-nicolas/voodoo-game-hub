@@ -8,6 +8,7 @@ const Mist = preload("res://scripts/common/mist.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
 const Brand = preload("res://scripts/common/brand.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
+const WEB = preload("res://scripts/common/web.gd")
 ## The title art: the V-skull + VIRAL wordmark (Brand.WORDMARK), its own
 ## backdrop faded out at the edges so the hub background shows through. If
 ## it's ever missing, the hub falls back to the plain text title.
@@ -943,8 +944,11 @@ func _on_tile_pressed(id: String) -> void:
 	if game.is_empty():
 		return
 	if Catalog.state_of(game) == Catalog.STATE_NEEDS_APP_UPDATE:
+		var get_update := Callable(OS, "shell_open").bind(Config.RELEASES_PAGE_URL)
+		if WEB.active():
+			get_update = WEB.reload
 		_show_dialog(tr("Update Needed"), tr("%s needs a newer version of %s.") % [Lang.pick(game, "title"), Brand.NAME], [
-			{"text": tr("Get Update"), "action": Callable(OS, "shell_open").bind(Config.RELEASES_PAGE_URL)},
+			{"text": tr("Get Update"), "action": get_update},
 			{"text": tr("Later"), "action": Callable()},
 		])
 		return

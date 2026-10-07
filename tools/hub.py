@@ -12,6 +12,8 @@ chore that used to be a hand-edit across several files.
     python tools/hub.py apk                   build the release Android APK (signed with the private key) into builds/
     python tools/hub.py pc                    build the Windows version (every game built in) + desktop shortcut
     python tools/hub.py pc-zip                the same, zipped into builds/ to copy to other PCs
+    python tools/hub.py web [--publish]       build the browser version (iPhone / Safari) into builds/web/ [and docs/play/]
+    python tools/hub.py web-fonts EMOJI.ttf SYMBOLS.ttf   cut the web build's fonts down to the characters used
     python tools/hub.py i18n                  regenerate translation files from tools/i18n/es.json; list untranslated text
     python tools/hub.py verify                check live release assets match local builds
     python tools/hub.py publish-packs ID...   upload packs to the GitHub pack release
@@ -355,6 +357,7 @@ def validate() -> tuple[list[str], list[str]]:
         errors.append("export_presets.cfg is out of date (pack presets, Android version or app name) -- run sync")
     errors += lint_credits()
     errors += lint_hub_name()
+    errors += lint_web_threads()
     return errors, warnings
 
 
@@ -404,6 +407,18 @@ def lint_hub_name() -> list[str]:
                         and not (text in master and master[text] is None)):
                     errors.append(f"{f.relative_to(ROOT).as_posix()}: {text!r} names Voodoo -- use "
                                   "Brand.NAME (Voodoo is only the skin's name)")
+    return errors
+
+
+def lint_web_threads() -> list[str]:
+    """CLAUDE.md "Web version": the browser build has no threads (Thread.start()
+    never runs its function there), so a script that starts one needs a web branch."""
+    errors = []
+    for f in sorted((ROOT / "scripts").rglob("*.gd")):
+        text = f.read_text(encoding="utf-8")
+        if "Thread.new()" in text and 'OS.has_feature("web")' not in text:
+            errors.append(f"{f.relative_to(ROOT).as_posix()}: starts a Thread with no "
+                          'OS.has_feature("web") branch -- it would hang in the web build')
     return errors
 
 
@@ -725,6 +740,161 @@ def cmd_pc_zip(_args) -> None:
     print(f"  zip: {zip_path} ({zip_path.stat().st_size // (1024 * 1024)} MB)")
 
 
+# ---- web build (Safari on iPhone, any browser)
+
+WEB_PRESET = "Web"  # all_resources: every game bundled, like the PC build
+WEB_OUT = ROOT / "builds/web"
+WEB_SITE = ROOT / "docs/play"  # GitHub Pages serves docs/ from master
+WEB_URL = "https://voodoo-nicolas.github.io/voodoo-game-hub/play/"
+WEB_FONTS = ROOT / "assets/web_fonts"
+# The BMP characters whose default look is emoji (Unicode's
+# Emoji_Presentation=Yes); every other BMP symbol (▶ ♠ ★ ←) is plain text.
+# Nearly everything from U+1F000 up is emoji.
+_EMOJI_BMP = [(0x231A, 0x231B), (0x23E9, 0x23EC), (0x23F0, 0x23F0), (0x23F3, 0x23F3), (0x25FD, 0x25FE),
+              (0x2614, 0x2615), (0x2648, 0x2653), (0x267F, 0x267F), (0x2693, 0x2693), (0x26A1, 0x26A1),
+              (0x26AA, 0x26AB), (0x26BD, 0x26BE), (0x26C4, 0x26C5), (0x26CE, 0x26CE), (0x26D4, 0x26D4),
+              (0x26EA, 0x26EA), (0x26F2, 0x26F3), (0x26F5, 0x26F5), (0x26FA, 0x26FA), (0x26FD, 0x26FD),
+              (0x2705, 0x2705), (0x270A, 0x270B), (0x2728, 0x2728), (0x274C, 0x274C), (0x274E, 0x274E),
+              (0x2753, 0x2755), (0x2757, 0x2757), (0x2795, 0x2797), (0x27B0, 0x27B0), (0x27BF, 0x27BF),
+              (0x2B1B, 0x2B1C), (0x2B50, 0x2B50), (0x2B55, 0x2B55)]
+_EMOJI_JOINERS = [0x200D, 0xFE0F, 0x20E3]  # zero-width joiner, emoji variation selector, keycap
+# Characters neither font has, drawn with a look-alike from the symbols font
+# (Android finds them in the phone's own fonts): ⤒ -> ⬆, fullwidth ＋ － -> + −.
+_WEB_ALIASES = {0x2912: 0x2B06, 0xFF0B: 0x2B, 0xFF0D: 0x2212}
+
+
+def _web_used_chars() -> tuple[set[int], set[int]]:
+    """Every character past Latin Extended-B in the app's code, scenes and
+    data, plus the ones written with U+FE0F (emoji look) after them."""
+    used: set[int] = set()
+    as_emoji: set[int] = set()
+    files = [MANIFEST, *ROOT.glob("scenes/**/*.tscn")]
+    files += [p for p in ROOT.glob("scripts/**/*") if p.suffix in (".gd", ".json")]
+    for f in files:
+        text = f.read_text(encoding="utf-8", errors="ignore")
+        for i, ch in enumerate(text):
+            if ord(ch) >= 0x250:
+                used.add(ord(ch))
+                if ch == "\ufe0f" and i > 0:
+                    as_emoji.add(ord(text[i - 1]))
+    return used, as_emoji
+
+
+def _font_tools():
+    try:
+        from fontTools import subset
+        from fontTools.ttLib import TTFont
+    except ImportError:
+        raise ToolError("needs fontTools: python -m pip install --user fonttools") from None
+    return subset, TTFont
+
+
+def cmd_web_fonts(args) -> None:
+    """A browser page can't use the phone's fonts, so the web build carries
+    its own emoji and symbol fonts (scripts/common/web.gd), cut down to the
+    characters the app uses. Rerun when `web` reports new ones."""
+    subset, TTFont = _font_tools()
+    emoji_src, symbols_src = Path(args.emoji), Path(args.symbols)
+    emoji_has = set(TTFont(emoji_src).getBestCmap())
+    symbols_has = set(TTFont(symbols_src).getBestCmap())
+    used, as_emoji = _web_used_chars()
+    emoji, symbols, neither = set(_EMOJI_JOINERS), set(), []
+    aliases: dict[int, int] = {}
+    for cp in sorted(used | as_emoji):
+        if cp in _EMOJI_JOINERS:
+            continue
+        # Each character goes in one font only, so which font draws it never
+        # depends on the order Godot tries them in.
+        emoji_look = cp >= 0x1F000 or cp in as_emoji or any(a <= cp <= b for a, b in _EMOJI_BMP)
+        if cp in emoji_has and (emoji_look or cp not in symbols_has):
+            emoji.add(cp)
+        elif cp in symbols_has:
+            symbols.add(cp)
+        elif cp in _WEB_ALIASES and _WEB_ALIASES[cp] in symbols_has:
+            aliases[cp] = _WEB_ALIASES[cp]
+        elif cp >= 0x2000:
+            neither.append(cp)
+    WEB_FONTS.mkdir(parents=True, exist_ok=True)
+    for src, chars, out in ((emoji_src, emoji, "emoji.ttf"), (symbols_src, symbols, "symbols.ttf")):
+        font_aliases = aliases if out == "symbols.ttf" else {}
+        opts = subset.Options()
+        opts.layout_features = ["*"]  # keeps ZWJ sequences and keycaps
+        opts.name_IDs = ["*"]  # keeps the copyright and license entries
+        opts.name_languages = ["*"]
+        opts.notdef_outline = True
+        font = TTFont(src)
+        src_cmap = font.getBestCmap()
+        alias_glyphs = {cp: src_cmap[target] for cp, target in font_aliases.items()}
+        sub = subset.Subsetter(opts)
+        sub.populate(unicodes=chars, glyphs=list(alias_glyphs.values()))
+        sub.subset(font)
+        for table in font["cmap"].tables:
+            if table.isUnicode():
+                table.cmap.update(alias_glyphs)
+        font.save(WEB_FONTS / out)
+        print(f"  {out}: {len(chars) + len(alias_glyphs)} characters, {(WEB_FONTS / out).stat().st_size:,} bytes")
+    if neither:
+        print("  in neither font (fine if Godot's default font has them): "
+              + " ".join(f"{chr(cp)} U+{cp:04X}" for cp in neither))
+
+
+def _web_missing_chars() -> list[int]:
+    """Characters the app uses that neither bundled web font has (Godot's
+    default font covers Latin, Greek, Cyrillic and common punctuation)."""
+    try:
+        _, TTFont = _font_tools()
+    except ToolError as e:
+        print(f"  (skipping the font check: {e})")
+        return []
+    have: set[int] = set(_EMOJI_JOINERS)
+    for name in ("emoji.ttf", "symbols.ttf"):
+        if (WEB_FONTS / name).is_file():
+            have |= set(TTFont(WEB_FONTS / name).getBestCmap())
+    used, _ = _web_used_chars()
+    return sorted(cp for cp in used if cp >= 0x2000 and cp not in have)
+
+
+def cmd_web(args) -> None:
+    """The browser version: every game bundled into one page, for iPhones
+    (Safari) and anything else with a browser. --publish copies it into
+    docs/play/, which GitHub Pages serves once the commit is pushed."""
+    missing = _web_missing_chars()
+    if missing:
+        print("  warning: not in the web fonts, may show as boxes -- rerun web-fonts: "
+              + " ".join(f"{chr(cp)} U+{cp:04X}" for cp in missing))
+    if WEB_OUT.exists():
+        shutil.rmtree(WEB_OUT)
+    WEB_OUT.mkdir(parents=True)
+    (WEB_OUT / ".gdignore").touch()  # or Godot imports the exported icons into later builds
+    code, log = run_godot("--export-release", WEB_PRESET, str(WEB_OUT / "index.html"), timeout=900)
+    if code != 0 or not (WEB_OUT / "index.wasm").is_file():
+        print(log)
+        raise ToolError("web export failed")
+    # Godot titles the page with config/name, which stays "Voodoo" (the PC
+    # save folder): show Brand.NAME on the tab and under the Home Screen icon.
+    page = WEB_OUT / "index.html"
+    html = page.read_text(encoding="utf-8")
+    name = read_brand()
+    html, n = re.subn(r"<title>[^<]*</title>", f'<title>{name}</title>\n\t\t'
+                      f'<meta name="apple-mobile-web-app-title" content="{name}">', html, count=1)
+    if n != 1:
+        raise ToolError("couldn't find <title> in the exported index.html")
+    page.write_text(html, encoding="utf-8", newline="\n")
+    for f in sorted(WEB_OUT.glob("index.*")):
+        print(f"  {f.relative_to(ROOT)} ({f.stat().st_size:,} bytes)")
+    if not args.publish:
+        print("  try it: python -m http.server 8060 --directory builds/web  ->  http://localhost:8060")
+        return
+    WEB_SITE.mkdir(parents=True, exist_ok=True)
+    for old in WEB_SITE.glob("index.*"):
+        old.unlink()
+    for f in WEB_OUT.glob("index.*"):
+        shutil.copyfile(f, WEB_SITE / f.name)
+    for lic in WEB_FONTS.glob("*LICENSE*"):
+        shutil.copyfile(lic, WEB_SITE / lic.name)
+    print(f"  copied into {WEB_SITE.relative_to(ROOT)} -- commit and push, then it's live at {WEB_URL}")
+
+
 # ---- translations
 
 I18N_MASTER = ROOT / "tools/i18n/es.json"
@@ -941,6 +1111,13 @@ def main() -> int:
     sub.add_parser("verify").set_defaults(fn=cmd_verify)
     sub.add_parser("pc").set_defaults(fn=cmd_pc)
     sub.add_parser("pc-zip").set_defaults(fn=cmd_pc_zip)
+    p = sub.add_parser("web")
+    p.add_argument("--publish", action="store_true", help="also copy it into docs/play/ for GitHub Pages")
+    p.set_defaults(fn=cmd_web)
+    p = sub.add_parser("web-fonts")
+    p.add_argument("emoji", help="NotoColorEmoji.ttf (github.com/googlefonts/noto-emoji, 2D/fonts/)")
+    p.add_argument("symbols", help="DejaVuSans.ttf (github.com/dejavu-fonts/dejavu-fonts releases)")
+    p.set_defaults(fn=cmd_web_fonts)
     sub.add_parser("i18n").set_defaults(fn=cmd_i18n)
     p = sub.add_parser("publish-packs")
     p.add_argument("ids", nargs="+")

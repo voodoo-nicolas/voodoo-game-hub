@@ -737,6 +737,11 @@ func _start_new_game(d: String) -> void:
 	difficulty_screen.visible = false
 	game_screen.visible = false
 
+	# The browser build has no threads (Thread.start() never runs the
+	# function): generate here instead, once "Generating..." has been drawn.
+	if OS.has_feature("web"):
+		create_tween().tween_callback(_generate_worker.bind(d)).set_delay(0.05)
+		return
 	generation_thread = Thread.new()
 	generation_thread.start(_generate_worker.bind(d))
 
@@ -745,7 +750,8 @@ func _generate_worker(d: String) -> void:
 	call_deferred("_on_generation_complete", result)
 
 func _on_generation_complete(result: Dictionary) -> void:
-	generation_thread.wait_to_finish()
+	if generation_thread and generation_thread.is_started():
+		generation_thread.wait_to_finish()
 	puzzle = result.puzzle
 	solution = result.solution
 	mistakes = 0

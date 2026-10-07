@@ -38,6 +38,7 @@ extends Node
 
 const PATH := "user://settings.json"
 const HubData = preload("res://scripts/common/hub_data.gd")
+const WEB := preload("res://scripts/common/web.gd")
 
 ## content_scale_factor per text size. 1.0 is the original look; players
 ## worldwide found it too small, so new installs start at Large.
@@ -90,6 +91,11 @@ func _ready() -> void:
 	# The PC window title shows the brand. project.godot's config/name stays
 	# "Voodoo": on PC it names the save folder (CLAUDE.md "Rename safety").
 	DisplayServer.window_set_title(preload("res://scripts/common/brand.gd").NAME)
+	if WEB.active():
+		WEB.install_fonts()
+		# In a browser the engine names the tab after config/name once it's
+		# up, after this runs: name it again a frame later.
+		DisplayServer.window_set_title.call_deferred(preload("res://scripts/common/brand.gd").NAME)
 	_load()
 	_apply()
 	# Every button, in every scene (packs included), ticks when pressed.

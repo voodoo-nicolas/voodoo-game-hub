@@ -98,6 +98,11 @@ func state_of(game: Dictionary) -> String:
 		return STATE_SOON
 	if int(game.get("min_build", 0)) > Version.BUILD_NUMBER:
 		return STATE_NEEDS_APP_UPDATE
+	# The web build bundles every game it has and can't download packs
+	# (GitHub's release downloads send no CORS headers): a game added since
+	# it was built needs the newer page.
+	if OS.has_feature("web") and not _bundled.has(game.id):
+		return STATE_NEEDS_APP_UPDATE
 	if _bundled.has(game.id) or _mounted.has(game.id) or is_downloaded(game.id):
 		return STATE_READY
 	return STATE_DOWNLOAD
@@ -343,6 +348,9 @@ func mount(id: String) -> String:
 ## updates" uses it; the hub's silent launch check doesn't.
 func check_app_update(on_newer: Callable, on_none: Callable = Callable()) -> void:
 	app_update_checked = true
+	if OS.has_feature("web"):  # an APK is no use in a browser; the page is the update
+		_safe_call.call_deferred(on_none, [true])
+		return
 	_get_json(Config.LATEST_RELEASE_API, func(parsed):
 		if typeof(parsed) != TYPE_DICTIONARY or not parsed.has("tag_name"):
 			_safe_call(on_none, [false])

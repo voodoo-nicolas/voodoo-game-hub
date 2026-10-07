@@ -276,6 +276,11 @@ func _cpu_start() -> void:
 		return
 	if cpu_thread and cpu_thread.is_started():
 		cpu_thread.wait_to_finish()
+	# The browser build has no threads (Thread.start() never runs the
+	# function): think right here; the level's time budget bounds the pause.
+	if OS.has_feature("web"):
+		_cpu_think(engine.clone(), cpu_level, rng.randi(), cpu_token)
+		return
 	cpu_thread = Thread.new()
 	cpu_thread.start(_cpu_think.bind(engine.clone(), cpu_level, rng.randi(), cpu_token))
 
