@@ -4,7 +4,7 @@
   "categories": [
     {"name": "Puzzle & Board", "icon": "🧩", "name_es": "Puzzles y tablero", "games": [
       {"id": "chess", "title": "Chess", "icon": "♟️", "title_es": "Ajedrez", "modes": "online,local,cpu", "board": "Wins", "skins": "classic,voodoo"},
-      {"id": "sudoku", "title": "Sudoku", "icon": "🔢", "title_es": "Sudoku"},
+      {"id": "sudoku", "title": "Sudoku", "icon": "🔢", "title_es": "Sudoku", "skins": "classic,voodoo"},
       {"id": "minesweeper", "title": "Mines", "icon": "💣", "title_es": "Buscaminas", "board": "Wins", "skins": "classic,voodoo"},
       {"id": "tictactoe", "title": "Tic-Tac-Toe", "icon": "⭕", "title_es": "Tres en raya", "modes": "online,local,cpu", "board": "Wins", "skins": "classic,voodoo"},
       {"id": "connect4", "title": "Four in a Row", "icon": "🔴", "title_es": "Cuatro en línea", "modes": "online,local,cpu", "board": "Wins", "skins": "classic,voodoo"},
@@ -30,7 +30,7 @@
       {"id": "mahjong", "title": "Mahjong Solitaire", "icon": "🀄", "title_es": "Mahjong solitario", "board": "Games solved", "skins": "classic,voodoo"},
       {"id": "flood_it", "title": "Color Flood", "icon": "🌊", "title_es": "Inunda", "board": "Puzzles solved", "skins": "classic,voodoo"},
       {"id": "same_game", "title": "Block Collapse", "icon": "🟪", "title_es": "Derrumbe", "board": "Best score", "skins": "classic,voodoo"},
-      {"id": "binary_grid", "title": "Binary Grid", "icon": "⚪", "title_es": "Cuadrícula binaria", "board": "Puzzles solved"},
+      {"id": "binary_grid", "title": "Binary Grid", "icon": "⚪", "title_es": "Cuadrícula binaria", "board": "Puzzles solved", "skins": "classic,voodoo"},
       {"id": "hex", "title": "Hex", "icon": "⬡", "title_es": "Hex", "modes": "online,local,cpu", "board": "Wins", "skins": "classic,voodoo"}
     ]},
     {"name": "Intelligence", "icon": "🧠", "name_es": "Inteligencia", "games": [
@@ -67,7 +67,7 @@
       {"id": "word_hunt", "title": "Word Hunt", "icon": "🎲", "title_es": "Cazapalabras", "skins": "classic,voodoo"}
     ]},
     {"name": "Arcade", "icon": "🕹️", "name_es": "Arcade", "games": [
-      {"id": "geometry_wars", "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast"},
+      {"id": "geometry_wars", "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast", "skins": "classic,voodoo"},
       {"id": "snake", "title": "Snake", "icon": "🐍", "title_es": "Snake", "modes": "online,local,cpu", "skins": "classic,voodoo"},
       {"id": "block_drop", "title": "Block Drop", "icon": "🧱", "title_es": "Bloques", "skins": "classic,voodoo"},
       {"id": "paddle_ball", "title": "Paddle Ball", "icon": "🏓", "title_es": "Paletas", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo"},
@@ -75,9 +75,9 @@
       {"id": "bird_hop", "title": "Bird Hop", "icon": "🐦", "title_es": "Pájaro saltarín", "skins": "classic,voodoo"},
       {"id": "alien_attack", "title": "Alien Attack", "icon": "👾", "title_es": "Ataque alienígena", "skins": "classic,voodoo"},
       {"id": "frog_crossing", "title": "Road Hopper", "icon": "🐸", "title_es": "Saltacarreteras", "skins": "classic,voodoo"},
-      {"id": "gem_match", "title": "Gem Match", "icon": "💎", "title_es": "Joyas"},
+      {"id": "gem_match", "title": "Gem Match", "icon": "💎", "title_es": "Joyas", "skins": "classic,voodoo"},
       {"id": "simon", "title": "Memory Lights", "icon": "🎵", "title_es": "Luces de memoria", "board": "Best level", "skins": "classic,voodoo"},
-      {"id": "whack_a_mole", "title": "Bop the Mole", "icon": "🔨", "title_es": "Golpea al topo"},
+      {"id": "whack_a_mole", "title": "Bop the Mole", "icon": "🔨", "title_es": "Golpea al topo", "skins": "classic,voodoo"},
       {"id": "reaction_test", "title": "Reaction Test", "icon": "⏱️", "title_es": "Test de reacción", "board": "Tests taken", "skins": "classic,voodoo"},
       {"id": "bubble_pop", "title": "Bubble Pop", "icon": "🫧", "title_es": "Burbujas", "board": "Best score", "skins": "classic,voodoo"},
       {"id": "rock_blaster", "title": "Rock Blaster", "icon": "☄️", "title_es": "Rompe rocas", "board": "Best score", "skins": "classic,voodoo"},
@@ -115,17 +115,17 @@
     {"name": "Other", "icon": "🎯", "name_es": "Otros", "games": [
       {"id": "party_spinner", "title": "Party Spinner", "icon": "🌀", "title_es": "Ruleta de fiesta", "modes": "party", "board": "Spins", "skins": "classic,voodoo"},
       {"id": "charades", "title": "Charades", "icon": "🎭", "title_es": "Charadas", "modes": "party", "board": "Most words in a round", "skins": "classic,voodoo"},
-      {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed"},
+      {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed", "skins": "classic,voodoo"},
       {"id": "truth_or_dare", "title": "Truth or Dare", "icon": "🎲", "title_es": "Verdad o reto", "modes": "party", "board": "Cards played", "skins": "classic,voodoo"},
-      {"id": "fortune_ball", "title": "Fortune Ball", "icon": "🧿", "title_es": "Bola de la fortuna", "modes": "party", "board": "Questions asked"},
-      {"id": "spirit_board", "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked"},
+      {"id": "fortune_ball", "title": "Fortune Ball", "icon": "🧿", "title_es": "Bola de la fortuna", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"},
+      {"id": "spirit_board", "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"},
       {"id": "trace_it", "title": "Trace It", "icon": "✏️", "title_es": "Calcá", "board": "none"}
     ]}
   ],
   "games": {
-    "sudoku": {"version": 15, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
+    "sudoku": {"version": 16, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sudoku.pck", "scene": "res://scenes/games/sudoku/sudoku.tscn"},
     "solitaire": {"version": 13, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/solitaire.pck", "scene": "res://scenes/games/solitaire/solitaire.tscn"},
-    "geometry_wars": {"version": 18, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
+    "geometry_wars": {"version": 19, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/geometry_wars.pck", "scene": "res://scenes/games/geometry_wars/geometry_wars.tscn"},
     "tictactoe": {"version": 14, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tictactoe.pck", "scene": "res://scenes/games/tictactoe/tictactoe.tscn"},
     "connect4": {"version": 15, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/connect4.pck", "scene": "res://scenes/games/connect4/connect4.tscn"},
     "g2048": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/g2048.pck", "scene": "res://scenes/games/g2048/g2048.tscn"},
@@ -140,7 +140,7 @@
     "reaction_test": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/reaction_test.pck", "scene": "res://scenes/games/reaction_test/reaction_test.tscn"},
     "lights_out": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/lights_out.pck", "scene": "res://scenes/games/lights_out/lights_out.tscn"},
     "mancala": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mancala.pck", "scene": "res://scenes/games/mancala/mancala.tscn"},
-    "whack_a_mole": {"version": 15, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/whack_a_mole.pck", "scene": "res://scenes/games/whack_a_mole/whack_a_mole.tscn"},
+    "whack_a_mole": {"version": 16, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/whack_a_mole.pck", "scene": "res://scenes/games/whack_a_mole/whack_a_mole.tscn"},
     "war": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/war.pck", "scene": "res://scenes/games/war/war.tscn"},
     "snake": {"version": 16, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/snake.pck", "scene": "res://scenes/games/snake/snake.tscn"},
     "chess": {"version": 15, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck", "scene": "res://scenes/games/chess/chess.tscn"},
@@ -176,7 +176,7 @@
     "bird_hop": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bird_hop.pck", "scene": "res://scenes/games/bird_hop/bird_hop.tscn"},
     "alien_attack": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/alien_attack.pck", "scene": "res://scenes/games/alien_attack/alien_attack.tscn"},
     "frog_crossing": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/frog_crossing.pck", "scene": "res://scenes/games/frog_crossing/frog_crossing.tscn"},
-    "gem_match": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/gem_match.pck", "scene": "res://scenes/games/gem_match/gem_match.tscn"},
+    "gem_match": {"version": 13, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/gem_match.pck", "scene": "res://scenes/games/gem_match/gem_match.tscn"},
     "yacht": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/yacht.pck", "scene": "res://scenes/games/yacht/yacht.tscn"},
     "farkle": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/farkle.pck", "scene": "res://scenes/games/farkle/farkle.tscn"},
     "liars_dice": {"version": 9, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/liars_dice.pck", "scene": "res://scenes/games/liars_dice/liars_dice.tscn"},
@@ -196,7 +196,7 @@
     "voodoo_iq": {"version": 6, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"},
     "pipe_flow": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pipe_flow.pck", "scene": "res://scenes/games/pipe_flow/pipe_flow.tscn"},
     "bubble_pop": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bubble_pop.pck", "scene": "res://scenes/games/bubble_pop/bubble_pop.tscn"},
-    "sketch_it": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sketch_it.pck", "scene": "res://scenes/games/sketch_it/sketch_it.tscn"},
+    "sketch_it": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sketch_it.pck", "scene": "res://scenes/games/sketch_it/sketch_it.tscn"},
     "five_in_row": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/five_in_row.pck", "scene": "res://scenes/games/five_in_row/five_in_row.tscn"},
     "dominoes": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dominoes.pck", "scene": "res://scenes/games/dominoes/dominoes.tscn"},
     "mahjong": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mahjong.pck", "scene": "res://scenes/games/mahjong/mahjong.tscn"},
@@ -210,7 +210,7 @@
     "sky_hop": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sky_hop.pck", "scene": "res://scenes/games/sky_hop/sky_hop.tscn"},
     "flood_it": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/flood_it.pck", "scene": "res://scenes/games/flood_it/flood_it.tscn"},
     "same_game": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/same_game.pck", "scene": "res://scenes/games/same_game/same_game.tscn"},
-    "binary_grid": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/binary_grid.pck", "scene": "res://scenes/games/binary_grid/binary_grid.tscn"},
+    "binary_grid": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/binary_grid.pck", "scene": "res://scenes/games/binary_grid/binary_grid.tscn"},
     "hex": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hex.pck", "scene": "res://scenes/games/hex/hex.tscn"},
     "would_you_rather": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/would_you_rather.pck", "scene": "res://scenes/games/would_you_rather/would_you_rather.tscn"},
     "truth_or_dare": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/truth_or_dare.pck", "scene": "res://scenes/games/truth_or_dare/truth_or_dare.tscn"},
@@ -223,8 +223,8 @@
     "sky_raider": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sky_raider.pck", "scene": "res://scenes/games/sky_raider/sky_raider.tscn"},
     "mini_golf": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf.pck", "scene": "res://scenes/games/mini_golf/mini_golf.tscn"},
     "pool": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pool.pck", "scene": "res://scenes/games/pool/pool.tscn"},
-    "fortune_ball": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fortune_ball.pck", "scene": "res://scenes/games/fortune_ball/fortune_ball.tscn"},
-    "spirit_board": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/spirit_board.pck", "scene": "res://scenes/games/spirit_board/spirit_board.tscn"},
+    "fortune_ball": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fortune_ball.pck", "scene": "res://scenes/games/fortune_ball/fortune_ball.tscn"},
+    "spirit_board": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/spirit_board.pck", "scene": "res://scenes/games/spirit_board/spirit_board.tscn"},
     "trace_it": {"version": 2, "min_build": 34, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trace_it.pck", "scene": "res://scenes/games/trace_it/trace_it.tscn"}
   }
 }
