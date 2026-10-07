@@ -84,7 +84,7 @@ const STRINGS := {
 		"Event Horizon": "Horizonte de Eventos",
 		"Every boss": "Todos los jefes",
 		"Every kill scores its points times your multiplier. Dying clears the screen and resets the multiplier.": "Cada baja suma sus puntos por tu multiplicador. Al morir se limpia la pantalla y el multiplicador vuelve a empezar.",
-		"Every spirit you break leaves souls: little flames. Fly over one to raise your score multiplier by 1 — they fade after 3 seconds. Big pink souls are worth 10.": "Cada espíritu que rompes deja almas: pequeñas llamas. Pasa sobre una para subir tu multiplicador en 1; se apagan a los 3 segundos. Las almas rosas grandes valen 10.",
+		"Every spirit you break leaves souls: little flames. Fly over one to raise your score multiplier by 1 — they fade after 3 seconds. Small souls are yellow; big green ones are worth 10.": "Cada espíritu que rompes deja almas: pequeñas llamas. Pasa sobre una para subir tu multiplicador en 1; se apagan a los 3 segundos. Las almas pequeñas son amarillas; las grandes, verdes, valen 10.",
 		"Every star in the Campaign": "Todas las estrellas de la Campaña",
 		"Expert": "Experto",
 		"Familiar:": "Familiar:",

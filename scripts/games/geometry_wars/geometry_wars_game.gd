@@ -46,7 +46,13 @@ const MID_BULLET_SPEED := 27.0
 const BULLET_LIFE := 0.6
 const MID_BULLET_LIFE := 1.0
 const MAX_ENEMIES := 90
-const MAX_BOMBS := 9
+## Most bombs / lives you can hold (owner 2026-10-06: 9 bombs and 17 lives
+## came far too quickly).
+const MAX_BOMBS := 5
+const MAX_LIVES := 5
+## Each extra bomb / life costs more points than the last: the gap after
+## the k-th one is bomb_every (life_every) x (1 + EXTRA_GROWTH x k).
+const EXTRA_GROWTH := 0.5
 ## The shield after (re)spawning: a halo for 5 s, and 6 quick beeps in the
 ## last 1.2 s warn that it is about to drop.
 const INVULN_TIME := 5.0
@@ -61,6 +67,8 @@ const MAX_CRYSTALS := 300
 ## The view is this many grid squares tall.
 const VIEW_SQUARES := 19.0
 const HUD_H := 76.0
+## How thick the bomb bar is.
+const BOMB_BAR := 84.0
 ## Gates flown through within this long of each other build a combo.
 const GATE_COMBO_WINDOW := 2.5
 const KING_ZONES := 3
@@ -107,6 +115,8 @@ var peak_mult: int = 1
 var bombs: int = 3
 var next_bomb_at: int = 0
 var next_life_at: int = 0
+var bombs_given: int = 0
+var lives_given: int = 0
 var fire_cooldown_timer: float = 0.0
 var spawn_timer: float = 0.0
 var elapsed_seconds: float = 0.0
@@ -859,14 +869,16 @@ func _on_kill(k: Dictionary, bonus: float = 1.0) -> void:
 
 func _check_extras() -> void:
 	while int(rules.bomb_every) > 0 and score >= next_bomb_at:
-		next_bomb_at += int(rules.bomb_every)
+		bombs_given += 1
+		next_bomb_at += int(int(rules.bomb_every) * (1.0 + EXTRA_GROWTH * bombs_given))
 		if bombs < MAX_BOMBS:
 			bombs += 1
 			_sfx("extra_bomb", 0.0, 1.0, 300)
 			_popup(player_pos + Vector2(0, -2) * Core.U, tr("+1 Bomb"), Color(1, 0.6, 0.25), 24)
 	while int(rules.life_every) > 0 and score >= next_life_at:
-		next_life_at += int(rules.life_every)
-		if int(rules.lives) > 0:
+		lives_given += 1
+		next_life_at += int(int(rules.life_every) * (1.0 + EXTRA_GROWTH * lives_given))
+		if int(rules.lives) > 0 and lives < MAX_LIVES:
 			lives += 1
 			_sfx("extra_life", 0.0, 1.0, 300)
 			_popup(player_pos + Vector2(0, -2.5) * Core.U, tr("+1 Life"), Color(0.5, 1, 0.6), 26)
@@ -1228,7 +1240,7 @@ func _update_hud() -> void:
 	else:
 		lives_label.text = "♥ %d" % lives
 	combo_label.text = "×%d" % multiplier
-	bomb_button.text = "💣 ×%d" % bombs
+	bomb_button.text = ("💣\n×%d" if size.x >= size.y else "💣 ×%d") % bombs
 	bomb_button.disabled = bombs <= 0
 	bomb_button.visible = int(rules.bombs) > 0 or int(rules.bomb_every) > 0 or bombs > 0
 	var g := ""
@@ -1426,10 +1438,13 @@ func _build_game_screen() -> void:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		top_bar.add_child(l)
 
-	bomb_button = _neon_button("💣 ×3", Color(1.0, 0.55, 0.2))
+	# Bomb: a tall bar down the right edge (a wide one along the bottom on a
+	# portrait screen), where the right thumb already is (owner, 2026-10-06:
+	# top right was too far from the thumbs).
+	bomb_button = _bomb_bar()
 	bomb_button.pressed.connect(_on_bomb_pressed)
 	bomb_button.set_meta("sfx", "")
-	top_bar.add_child(bomb_button)
+	game_screen.add_child(bomb_button)
 	var drawer_gap := Control.new()  # keeps Bomb clear of the ⚙ tab
 	drawer_gap.custom_minimum_size = Vector2(40, 0)
 	top_bar.add_child(drawer_gap)
@@ -1451,6 +1466,32 @@ func _layout() -> void:
 	minimap.position = Vector2(12.0, HUD_H + 8.0)
 	boss_bar.position = Vector2(size.x * 0.25, HUD_H + 6)
 	boss_bar.size = Vector2(size.x * 0.5, 34)
+	if size.x >= size.y:
+		bomb_button.position = Vector2(size.x - BOMB_BAR - 6.0, HUD_H + 10.0)
+		bomb_button.size = Vector2(BOMB_BAR, size.y - HUD_H - 20.0)
+	else:
+		bomb_button.position = Vector2(10.0, size.y - BOMB_BAR - 6.0)
+		bomb_button.size = Vector2(size.x - 20.0, BOMB_BAR)
+
+## The bomb bar: see-through so the arena shows under it, a red neon rim.
+func _bomb_bar() -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_size_override("font_size", 28)
+	var red := Color(1.0, 0.22, 0.32)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(red, 0.32) if state == "pressed" else Color(0.08, 0.02, 0.04, 0.28)
+		sb.set_border_width_all(2)
+		sb.border_color = Color(red, 0.3) if state == "disabled" else Color(red, 0.85)
+		sb.set_corner_radius_all(14)
+		sb.shadow_color = Color(red, 0.0 if state == "disabled" else 0.3)
+		sb.shadow_size = 6
+		b.add_theme_stylebox_override(state, sb)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		b.add_theme_color_override(c, Color(1.0, 0.85, 0.87))
+	b.add_theme_color_override("font_disabled_color", Color(red, 0.4))
+	return b
 
 ## A dark button with a bright neon rim, readable over the arena.
 func _neon_button(text: String, color: Color) -> Button:
@@ -1592,6 +1633,8 @@ func _begin(fresh: bool = true) -> void:
 		bombs = int(rules.bombs)
 		next_bomb_at = int(rules.bomb_every)
 		next_life_at = int(rules.life_every)
+		bombs_given = 0
+		lives_given = 0
 		elapsed_seconds = 0.0
 		kills = 0
 		gates_passed = 0
@@ -1688,6 +1731,7 @@ func _save_game() -> void:
 		"mode": mode, "level": level_id, "hardcore": hardcore, "drone": drone_kind, "U": Core.U,
 		"player": player_pos, "lives": lives, "score": score, "multiplier": multiplier, "peak": peak_mult,
 		"bombs": bombs, "next_bomb_at": next_bomb_at, "next_life_at": next_life_at,
+		"bombs_given": bombs_given, "lives_given": lives_given,
 		"elapsed": elapsed_seconds, "kills": kills, "gates": gates_passed, "geoms": geoms_got,
 		"bosses_beaten": bosses_beaten, "enemies": enemies, "mines": mines, "zones": zones, "bosses": bosses,
 		"ev_next": ev_next.map(func(x): return -1.0 if is_inf(float(x)) else x),
@@ -1741,6 +1785,8 @@ func _load_saved_game() -> bool:
 	bombs = int(s.bombs)
 	next_bomb_at = int(s.next_bomb_at)
 	next_life_at = int(s.next_life_at)
+	bombs_given = int(s.get("bombs_given", 0))
+	lives_given = int(s.get("lives_given", 0))
 	elapsed_seconds = float(s.elapsed)
 	kills = int(s.kills)
 	gates_passed = int(s.gates)
@@ -1768,9 +1814,17 @@ func _load_saved_game() -> bool:
 
 # ---------- Home screen (home_kit.gd) ----------
 
+## The Landing's ⚙ Options -> Look, re-skinned in place: Classic = the
+## original neon geometry (claw ship, darts, shapes, yellow geoms), Voodoo =
+## the demon-skull ship, pins, spirits and souls.
+func _set_skin(skin: String) -> void:
+	Core.classic = skin != "voodoo"
+	if arena_canvas:
+		arena_canvas.classic = Core.classic
+		arena_canvas.queue_redraw()
+
 func _build_home() -> void:
 	home = HomeKit.new({
-		"retro": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

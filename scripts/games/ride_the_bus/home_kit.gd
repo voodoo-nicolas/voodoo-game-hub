@@ -110,6 +110,11 @@ const PINK := Color("ff4f9a")
 const LIME := Color("7dff3a")
 const GOLD := Color("ffae2b")
 const PURPLE := Color("9b4dff")
+## The kit's own buttons and cards (owner, 2026-10-06: "less rainbow" --
+## one neon blue for every button, green to start or resume).
+## The palette above stays for games' own drawing.
+const BUTTON := Color("2aa8ff")
+const GO := Color("2bff88")
 const WHITE := Color(0.95, 0.97, 1.0)
 const DIM := Color(0.62, 0.66, 0.78)
 
@@ -309,17 +314,18 @@ func section(text: String) -> Label:
 
 ## A row of toggle buttons for a game's own option (cfg "extra"): `names`
 ## are English, `current` the chosen index; `on_pick` gets the new index.
-func choice_row(names: Array, current: int, on_pick: Callable, color: Color = CYAN) -> HBoxContainer:
+## Every row is the kit's one button colour; `_color` is kept for older callers.
+func choice_row(names: Array, current: int, on_pick: Callable, _color: Color = CYAN) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	var group := ButtonGroup.new()
 	for i in names.size():
-		var b := neon_button(tr(str(names[i])), color, 24, 62)
+		var b := neon_button(tr(str(names[i])), BUTTON, 24, 62)
 		b.toggle_mode = true
 		b.button_group = group
 		b.button_pressed = i == current
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_style_toggle(b, color)
+		_style_toggle(b, BUTTON)
 		b.pressed.connect(on_pick.bind(i))
 		row.add_child(b)
 	return row
@@ -382,7 +388,7 @@ func _build_home() -> void:
 
 	# ← Hub: the only way from a game to the hub (N1).
 	var top := HBoxContainer.new()
-	var hub := neon_button(tr("← Hub"), DIM, 24, 60)
+	var hub := neon_button(tr("← Hub"), BUTTON, 24, 60)
 	hub.custom_minimum_size.x = 150
 	hub.pressed.connect(_on_hub_pressed)
 	top.add_child(hub)
@@ -411,10 +417,10 @@ func _build_home() -> void:
 		box.add_child(label(tr(sub_text), 24, DIM, true, true))
 
 	box.add_child(gap(6))
-	resume_btn = neon_button("", LIME, 30, 84)
+	resume_btn = neon_button("", GO, 30, 84)
 	resume_btn.pressed.connect(_on_resume)
 	box.add_child(resume_btn)
-	quick_btn = neon_button("", GOLD, 26, 92)
+	quick_btn = neon_button("", BUTTON, 26, 92)
 	quick_btn.pressed.connect(_on_quick)
 	box.add_child(quick_btn)
 
@@ -438,18 +444,18 @@ func _build_home() -> void:
 	more.add_theme_constant_override("h_separation", 16)
 	more.add_theme_constant_override("v_separation", 16)
 	box.add_child(more)
-	var items := [[tr("❓ How to Play"), BLUE, _show_overlay.bind(null, "info")]]
+	var items := [[tr("❓ How to Play"), BUTTON, _show_overlay.bind(null, "info")]]
 	if _board_key() != "none":
-		items.append([tr("🏆 Leaderboard"), GOLD, _show_leaderboard])
+		items.append([tr("🏆 Leaderboard"), BUTTON, _show_leaderboard])
 	if info and info.has_method("achievement_rows"):
-		items.append([tr("🏅 Achievements"), PINK, _show_achievements])
-	items.append([tr("📊 Statistics"), PURPLE, _show_stats])
-	items.append([tr("⚙ Options"), CYAN, _show_options])
+		items.append([tr("🏅 Achievements"), BUTTON, _show_achievements])
+	items.append([tr("📊 Statistics"), BUTTON, _show_stats])
+	items.append([tr("⚙ Options"), BUTTON, _show_options])
 	# A game's own screens (cfg "more": [[English text, colour, callable], ...]).
 	for it in cfg.get("more", []):
 		items.append([tr(str(it[0])), it[1], it[2]])
 	for it in items:
-		var b := neon_button(it[0], it[1], 26, 74)
+		var b := neon_button(it[0], BUTTON, 26, 74)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(_on_more.bind(it[2]))
 		more.add_child(b)
@@ -464,7 +470,7 @@ func _add_fact_card(box: Control) -> void:
 		return
 	box.add_child(gap(4))
 	var panel := PanelContainer.new()
-	var sb := neon_box(GOLD)
+	var sb := neon_box(BUTTON)
 	sb.content_margin_top = 12
 	sb.content_margin_bottom = 12
 	panel.add_theme_stylebox_override("panel", sb)
@@ -474,7 +480,7 @@ func _add_fact_card(box: Control) -> void:
 	var col := VBoxContainer.new()
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(col)
-	var head := label(tr("💡 Did you know?"), 22, GOLD)
+	var head := label(tr("💡 Did you know?"), 22, BUTTON)
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(head)
 	_fact_label = label("", 22, WHITE, true)
@@ -495,7 +501,7 @@ func _on_fact_input(event: InputEvent) -> void:
 ## The Landing's button for a group of modes: one way to play with no pickers
 ## starts straight away (N6); otherwise it opens that group's setup screen.
 func _group_button(modes: Array, multi: bool, both: bool) -> Button:
-	var color: Color = MAGENTA if multi else accent
+	var color: Color = BUTTON
 	if modes.size() == 1 and not cfg.has("extra"):
 		return _mode_button(modes[0], color)
 	var heading := str(cfg.get("multi_heading" if multi else "solo_heading", ""))
@@ -556,9 +562,9 @@ func _mode_text(m: Dictionary) -> String:
 		text += "\n" + tr(str(m.sub))
 	return text
 
-func _mode_button(m: Dictionary, default_color: Color) -> Button:
+func _mode_button(m: Dictionary, _default_color: Color) -> Button:
 	var small: bool = m.has("row")
-	var b := neon_button(_mode_text(m), m.get("color", default_color), 24 if small else 30, 100 if m.has("sub") else 84)
+	var b := neon_button(_mode_text(m), BUTTON, 24 if small else 30, 100 if m.has("sub") else 84)
 	b.pressed.connect(_on_mode.bind(m))
 	return b
 
@@ -637,7 +643,7 @@ func _invite_mode() -> Dictionary:
 	if social == null or not bool(social.get("available")):
 		return {}
 	return {"text": "📨 Invite a friend", "sub": "Host a game and invite a friend", "multi": true,
-		"color": PINK, "action": _invite_friend}
+		"color": BUTTON, "action": _invite_friend}
 
 func _invite_friend() -> void:
 	var online: Node = cfg.get("online")
@@ -651,7 +657,7 @@ func _invite_friend() -> void:
 ## current choice.
 func _open_setup(multi: bool) -> void:
 	var modes: Array = _multi if multi else _solo
-	var color: Color = MAGENTA if multi else accent
+	var color: Color = BUTTON
 	var heading := str(cfg.get("multi_heading" if multi else "solo_heading", ""))
 	var title_text: String = tr(heading) if heading != "" else (tr("👥 Multiplayer") if multi else tr("🎮 Single player"))
 	var parts := _overlay(title_text, color, true)
@@ -666,11 +672,11 @@ func _open_setup(multi: bool) -> void:
 	var row: HBoxContainer = null
 	var row_id = null
 	for m in modes:
-		var b := neon_button(_mode_text(m), m.get("color", color), 24 if m.has("row") else 28, 96 if m.has("sub") else 80)
+		var b := neon_button(_mode_text(m), BUTTON, 24 if m.has("row") else 28, 96 if m.has("sub") else 80)
 		b.toggle_mode = true
 		b.button_group = group
 		b.button_pressed = m == chosen.m
-		_style_toggle(b, m.get("color", color))
+		_style_toggle(b, BUTTON)
 		b.pressed.connect(_on_setup_pick.bind(m, chosen))
 		if m.has("row"):
 			if row == null or m.row != row_id:
@@ -684,7 +690,7 @@ func _open_setup(multi: bool) -> void:
 			row = null
 			row_id = null
 			body.add_child(b)
-	var start := neon_button("▶  " + tr("Start"), LIME, 32, 90)
+	var start := neon_button("▶  " + tr("Start"), GO, 32, 90)
 	start.pressed.connect(_on_setup_start.bind(chosen))
 	col.add_child(start)
 	_show_overlay(parts[0])
@@ -701,15 +707,15 @@ func _on_setup_start(chosen: Dictionary) -> void:
 # ---------- How to Play ----------
 
 func _build_info_overlay() -> void:
-	var parts := _overlay(tr("❓ How to Play"), BLUE)
+	var parts := _overlay(tr("❓ How to Play"), BUTTON)
 	info_overlay = parts[0]
 	var body: VBoxContainer = parts[1]
 	if consts.has("GOAL"):
-		_info_section(body, tr("🎯 Goal"), [consts.GOAL], LIME)
+		_info_section(body, tr("🎯 Goal"), [consts.GOAL], GO)
 	if consts.has("HOW"):
-		_info_section(body, tr("📋 How to Play"), consts.HOW, CYAN)
+		_info_section(body, tr("📋 How to Play"), consts.HOW, BUTTON)
 	if consts.has("TIPS"):
-		_info_section(body, tr("💡 Tips"), consts.TIPS, GOLD)
+		_info_section(body, tr("💡 Tips"), consts.TIPS, BUTTON)
 
 func _info_section(body: VBoxContainer, heading: String, lines: Array, color: Color) -> void:
 	body.add_child(label(heading, 30, color))
@@ -720,7 +726,7 @@ func _info_section(body: VBoxContainer, heading: String, lines: Array, color: Co
 # ---------- Statistics ----------
 
 func _build_stats_overlay() -> void:
-	var parts := _overlay(tr("📊 Statistics"), PURPLE)
+	var parts := _overlay(tr("📊 Statistics"), BUTTON)
 	stats_overlay = parts[0]
 	stats_box = parts[1]
 
@@ -737,12 +743,12 @@ func _show_stats() -> void:
 	for k in keys:
 		if not stats.has(k):
 			continue
-		stats_box.add_child(_row(_stat_label(k), _stat_value(k, stats[k]), WHITE, PURPLE))
+		stats_box.add_child(_row(_stat_label(k), _stat_value(k, stats[k]), WHITE, BUTTON))
 		rows += 1
 	var w := int(stats.get("Wins", 0))
 	var played := w + int(stats.get("Losses", 0)) + int(stats.get("Draws", 0))
 	if played > 0:
-		stats_box.add_child(_row(tr("Win rate"), "%d%%" % roundi(100.0 * w / played), WHITE, PURPLE))
+		stats_box.add_child(_row(tr("Win rate"), "%d%%" % roundi(100.0 * w / played), WHITE, BUTTON))
 		rows += 1
 	if rows == 0:
 		stats_box.add_child(label(tr("Play a game and your records will show up here.") if info
@@ -761,7 +767,7 @@ func _stat_value(key: String, v: Variant) -> String:
 # ---------- Achievements (GameInfo, app v0.25+) ----------
 
 func _build_achievements_overlay() -> void:
-	var parts := _overlay(tr("🏅 Achievements"), PINK)
+	var parts := _overlay(tr("🏅 Achievements"), BUTTON)
 	ach_overlay = parts[0]
 	ach_box = parts[1]
 
@@ -770,8 +776,8 @@ func _show_achievements() -> void:
 	_clear(ach_box)
 	var rows: Array = info.achievement_rows()
 	var have := rows.filter(func(r): return r.unlocked).size()
-	ach_box.add_child(label(tr("%d of %d unlocked") % [have, rows.size()], 30, PINK, true, true))
-	ach_box.add_child(choice_row(["All", "Earned", "Locked"], ach_filter, _on_ach_filter, PINK))
+	ach_box.add_child(label(tr("%d of %d unlocked") % [have, rows.size()], 30, BUTTON, true, true))
+	ach_box.add_child(choice_row(["All", "Earned", "Locked"], ach_filter, _on_ach_filter, BUTTON))
 	ach_box.add_child(gap(4))
 	var shown := 0
 	for r in rows:
@@ -791,8 +797,8 @@ func _badge(r: Dictionary) -> Control:
 	var secret: bool = bool(r.get("hidden", false)) and not r.unlocked
 	var panel := PanelContainer.new()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(PINK, 0.12) if r.unlocked else Color(1, 1, 1, 0.03)
-	sb.border_color = Color(PINK, 0.8) if r.unlocked else Color(1, 1, 1, 0.1)
+	sb.bg_color = Color(BUTTON, 0.12) if r.unlocked else Color(1, 1, 1, 0.03)
+	sb.border_color = Color(BUTTON, 0.8) if r.unlocked else Color(1, 1, 1, 0.1)
 	sb.set_border_width_all(2 if r.unlocked else 1)
 	sb.set_corner_radius_all(12)
 	for side in ["left", "right", "top", "bottom"]:
@@ -810,7 +816,7 @@ func _badge(r: Dictionary) -> Control:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 2)
 	row.add_child(col)
-	col.add_child(label("???" if secret else str(r.title), 27, GOLD if r.unlocked else WHITE, true))
+	col.add_child(label("???" if secret else str(r.title), 27, BUTTON if r.unlocked else WHITE, true))
 	col.add_child(label(tr("Keep playing to find out.") if secret else str(r.desc), 22, DIM, true))
 	if not r.unlocked and not secret and float(r.progress) > 0.0:
 		var bar := ProgressBar.new()
@@ -818,7 +824,7 @@ func _badge(r: Dictionary) -> Control:
 		bar.custom_minimum_size = Vector2(0, 10)
 		bar.value = 100.0 * float(r.progress)
 		var fill := StyleBoxFlat.new()
-		fill.bg_color = PINK
+		fill.bg_color = BUTTON
 		fill.set_corner_radius_all(5)
 		var back := StyleBoxFlat.new()
 		back.bg_color = Color(1, 1, 1, 0.08)
@@ -827,13 +833,13 @@ func _badge(r: Dictionary) -> Control:
 		bar.add_theme_stylebox_override("background", back)
 		col.add_child(bar)
 	if r.unlocked:
-		row.add_child(label("✓", 32, LIME))
+		row.add_child(label("✓", 32, GO))
 	return panel
 
 # ---------- Leaderboard ----------
 
 func _build_leaderboard_overlay() -> void:
-	var parts := _overlay(tr("🏆 Leaderboard"), GOLD)
+	var parts := _overlay(tr("🏆 Leaderboard"), BUTTON)
 	lb_overlay = parts[0]
 	lb_box = parts[1]
 
@@ -887,11 +893,11 @@ func _board_tabs() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	for i in 2:
-		var b := neon_button(tr(["🌍 Everyone", "👥 Friends"][i]), GOLD, 24, 60)
+		var b := neon_button(tr(["🌍 Everyone", "👥 Friends"][i]), BUTTON, 24, 60)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if (i == 1) == lb_friends:
-			var on := neon_box(GOLD, "pressed")
-			on.bg_color = Color(GOLD, 0.4)
+			var on := neon_box(BUTTON, "pressed")
+			on.bg_color = Color(BUTTON, 0.4)
 			on.set_border_width_all(3)
 			for st in ["normal", "hover", "focus"]:
 				b.add_theme_stylebox_override(st, on)
@@ -912,10 +918,10 @@ func _on_leaderboard(rows: Variant) -> void:
 	var tabs := _board_tabs()
 	if tabs:
 		lb_box.add_child(tabs)
-	lb_box.add_child(label(_stat_label(_board_key()), 30, GOLD))
+	lb_box.add_child(label(_stat_label(_board_key()), 30, BUTTON))
 	var mine = _my_board_value()
 	if mine != null:
-		lb_box.add_child(label(tr("You: %s") % _stat_value(_board_key(), mine), 27, LIME))
+		lb_box.add_child(label(tr("You: %s") % _stat_value(_board_key(), mine), 27, GO))
 	lb_box.add_child(gap(6))
 	if rows == null:
 		lb_box.add_child(label(tr("Couldn't load the leaderboard. Check your connection and try again."), 24, DIM, true))
@@ -928,7 +934,7 @@ func _on_leaderboard(rows: Variant) -> void:
 		var medal: String = ["🥇", "🥈", "🥉"][i] if i < 3 else "%d." % (i + 1)
 		var is_me: bool = me != "" and str(r.get("user_id", "")) == me
 		lb_box.add_child(_row("%s  %s" % [medal, str(r.get("display_name", "Player"))],
-			_stat_value(_board_key(), r.get("score", 0)), LIME if is_me else WHITE, GOLD, is_me))
+			_stat_value(_board_key(), r.get("score", 0)), GO if is_me else WHITE, BUTTON, is_me))
 	lb_box.add_child(gap(10))
 	if a and not a.is_logged_in():
 		lb_box.add_child(label(tr("Sign in (hub ⚙ Options) to put your best score on the board."), 23, DIM, true))
@@ -940,15 +946,15 @@ func _on_leaderboard(rows: Variant) -> void:
 ## This game's choices first, then the app-wide settings (the same values as
 ## the hub's Options: changing one here changes it everywhere).
 func _show_options() -> void:
-	var parts := _overlay(tr("⚙ Options"), CYAN, true)
+	var parts := _overlay(tr("⚙ Options"), BUTTON, true)
 	var body: VBoxContainer = parts[1]
 	if _has_skins():
 		body.add_child(_section(tr("Look")))
-		body.add_child(choice_row(["Classic", "💀 Voodoo"], 1 if skin_name() == "voodoo" else 0, _on_skin_pick, PURPLE))
+		body.add_child(choice_row(["Classic", "💀 Voodoo"], 1 if skin_name() == "voodoo" else 0, _on_skin_pick, BUTTON))
 		body.add_child(label(tr("Classic: the game's traditional colours. Voodoo: neon on black, with skulls."), 22, DIM, true))
 	if ResourceLoader.exists(ORIENTATION_PATH):
 		body.add_child(_section(tr("Screen")))
-		var rot := neon_button(tr("🔄 Rotate Screen"), BLUE, 26, 70)
+		var rot := neon_button(tr("🔄 Rotate Screen"), BUTTON, 26, 70)
 		rot.pressed.connect(_rotate)
 		body.add_child(rot)
 	var last := _last_mode()
@@ -962,16 +968,16 @@ func _show_options() -> void:
 		body.add_child(label(tr("These settings are app-wide: they change every game."), 22, DIM, true))
 		if s.has_method("set_text_size") and "TEXT_SIZE_NAMES" in s:
 			body.add_child(_section(tr("Text & button size")))
-			body.add_child(choice_row(s.TEXT_SIZE_NAMES, int(s.text_size), _on_text_size, GOLD))
+			body.add_child(choice_row(s.TEXT_SIZE_NAMES, int(s.text_size), _on_text_size, BUTTON))
 		if s.has_method("set_vibrate"):
 			body.add_child(_section(tr("Vibration")))
-			body.add_child(choice_row(["On", "Off"], 0 if s.vibrate else 1, _on_vibrate, LIME))
+			body.add_child(choice_row(["On", "Off"], 0 if s.vibrate else 1, _on_vibrate, GO))
 		if s.has_method("set_keep_awake"):
 			body.add_child(_section(tr("Keep screen on")))
-			body.add_child(choice_row(["On", "Off"], 0 if s.keep_awake else 1, _on_keep_awake, LIME))
+			body.add_child(choice_row(["On", "Off"], 0 if s.keep_awake else 1, _on_keep_awake, GO))
 		if s.has_method("set_invites") and "INVITE_MODES" in s:
 			body.add_child(_section(tr("🔔 Game invites")))
-			body.add_child(choice_row(s.INVITE_MODE_NAMES, maxi(0, s.INVITE_MODES.find(s.invites)), _on_invites, PINK))
+			body.add_child(choice_row(s.INVITE_MODE_NAMES, maxi(0, s.INVITE_MODES.find(s.invites)), _on_invites, BUTTON))
 		if ResourceLoader.exists(SOUND_OPTIONS_PATH):
 			body.add_child(_section(tr("🔊 Sound")))
 			body.add_child(load(SOUND_OPTIONS_PATH).new(s.DARK if "DARK" in s else s.palette(), false))
@@ -1064,29 +1070,31 @@ func _set_retro(on: bool) -> void:
 	var g := get_parent()
 	if g == null:
 		return
-	var layer := g.get_node_or_null("RetroFilter")
+	var filt := g.get_node_or_null("RetroFilter")
 	var bd: Node = g.get_child(0) if g.get_child_count() > 0 else null
 	if bd is ColorRect and bd.get_child_count() > 0 and bd.get_child(0) is Control:
 		bd.get_child(0).visible = not on  # the faint grid
 	if not on:
-		if layer:
-			layer.queue_free()
+		if filt:
+			filt.queue_free()
 		return
-	if layer:
+	if filt:
 		return
-	layer = CanvasLayer.new()
-	layer.name = "RetroFilter"
-	layer.layer = 100
+	# Drawn over the game but under the kit (moved to the top), so Home, the
+	# setup screens, the pause menu and Options keep their own look: over
+	# them the filter turned glowing buttons into flat blocks and wiped out
+	# a picked button's text (owner, 2026-10-06).
 	var rect := ColorRect.new()
+	rect.name = "RetroFilter"
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var sh := Shader.new()
 	sh.code = RETRO_SHADER
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	rect.material = mat
-	layer.add_child(rect)
-	g.add_child(layer)
+	g.add_child(rect)
+	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	g.move_child(self, -1)
 
 ## Saves, then reloads the scene turned the other way (the scene's own
 ## orientation lock rotates once instead of undoing it).
@@ -1122,7 +1130,7 @@ func _show_sound() -> void:
 	var settings = get_node_or_null("/root/Settings")
 	if settings == null or not ResourceLoader.exists(SOUND_OPTIONS_PATH):
 		return
-	var parts := _overlay(tr("🔊 Sound"), CYAN, true)
+	var parts := _overlay(tr("🔊 Sound"), BUTTON, true)
 	parts[1].add_child(load(SOUND_OPTIONS_PATH).new(settings.DARK if "DARK" in settings else settings.palette(), false))
 	_show_overlay(parts[0])
 
@@ -1167,21 +1175,21 @@ func _build_pause_overlay() -> void:
 	pause_grid.add_theme_constant_override("h_separation", 16)
 	pause_grid.add_theme_constant_override("v_separation", 14)
 	box.add_child(pause_grid)
-	var specs := [[tr("▶  Resume"), LIME, resume_play]]
+	var specs := [[tr("▶  Resume"), GO, resume_play]]
 	if cfg.has("restart"):
-		specs.append([tr("↺  Restart"), GOLD, _on_restart])
-	specs.append([tr("❓ How to Play"), BLUE, _show_overlay.bind(null, "info")])
+		specs.append([tr("↺  Restart"), BUTTON, _on_restart])
+	specs.append([tr("❓ How to Play"), BUTTON, _show_overlay.bind(null, "info")])
 	if _board_key() != "none":
-		specs.append([tr("🏆 Leaderboard"), GOLD, _show_leaderboard])
-	specs.append([tr("📊 Statistics"), PURPLE, _show_stats])
-	specs.append([tr("📸 Screenshot"), CYAN, _screenshot])
-	specs.append([tr("⚙ Options"), BLUE, _show_options])
-	specs.append([tr("🏠 %s Home") % tr(cfg.get("title", consts.get("TITLE", ""))), PURPLE, go_home])
+		specs.append([tr("🏆 Leaderboard"), BUTTON, _show_leaderboard])
+	specs.append([tr("📊 Statistics"), BUTTON, _show_stats])
+	specs.append([tr("📸 Screenshot"), BUTTON, _screenshot])
+	specs.append([tr("⚙ Options"), BUTTON, _show_options])
+	specs.append([tr("🏠 %s Home") % tr(cfg.get("title", consts.get("TITLE", ""))), BUTTON, go_home])
 	for s in specs:
 		var b := neon_button(s[0], s[1], 28, 74)
 		b.pressed.connect(s[2])
 		pause_grid.add_child(b)
-	_toast = label("", 24, LIME, true, true)
+	_toast = label("", 24, GO, true, true)
 	_toast.visible = false
 	box.add_child(_toast)
 
@@ -1326,7 +1334,7 @@ func _overlay(title_text: String, color: Color, temporary: bool = false) -> Arra
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 12)
 	col.add_child(bar)
-	var nav := neon_button(tr("🏠 Home"), DIM, 22, 58)
+	var nav := neon_button(tr("🏠 Home"), BUTTON, 22, 58)
 	nav.custom_minimum_size.x = 150
 	nav.pressed.connect(_close_overlay.bind(overlay))
 	bar.add_child(nav)
@@ -1427,7 +1435,8 @@ static func neon_button(text: String, color: Color, font_size: int = 28, height:
 static func style_button(b: Button, color: Color) -> void:
 	b.add_theme_color_override("font_color", WHITE)
 	b.add_theme_color_override("font_hover_color", Color.WHITE)
-	b.add_theme_color_override("font_pressed_color", color.lerp(Color.WHITE, 0.4))
+	b.add_theme_color_override("font_pressed_color", Color.WHITE)
+	b.add_theme_color_override("font_hover_pressed_color", Color.WHITE)
 	b.add_theme_color_override("font_focus_color", WHITE)
 	b.add_theme_color_override("font_disabled_color", Color(DIM, 0.6))
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
@@ -1458,16 +1467,17 @@ static func neon_theme(color: Color = CYAN) -> Theme:
 		t.set_stylebox(state, "Button", neon_box(color, state))
 	t.set_color("font_color", "Button", WHITE)
 	t.set_color("font_hover_color", "Button", Color.WHITE)
-	t.set_color("font_pressed_color", "Button", color.lerp(Color.WHITE, 0.4))
+	t.set_color("font_pressed_color", "Button", Color.WHITE)
+	t.set_color("font_hover_pressed_color", "Button", Color.WHITE)
 	t.set_color("font_focus_color", "Button", WHITE)
 	t.set_color("font_disabled_color", "Button", Color(DIM, 0.6))
 	t.set_color("font_color", "Label", WHITE)
 	var panel := StyleBoxFlat.new()
 	panel.bg_color = Color(PANEL, 0.97)
-	panel.border_color = Color(PURPLE, 0.7)
+	panel.border_color = Color(BUTTON, 0.7)
 	panel.set_border_width_all(2)
 	panel.set_corner_radius_all(18)
-	panel.shadow_color = Color(PURPLE, 0.25)
+	panel.shadow_color = Color(BUTTON, 0.25)
 	panel.shadow_size = 14
 	for side in ["left", "right"]:
 		panel.set("content_margin_" + side, 28)
@@ -1480,7 +1490,7 @@ static func neon_theme(color: Color = CYAN) -> Theme:
 ## Control's draw signal to it: `c.draw.connect(HomeKit.draw_grid.bind(c))`.
 static func draw_grid(c: Control) -> void:
 	var step := 48.0
-	var col := Color(BLUE, 0.07)
+	var col := Color(BUTTON, 0.07)
 	var x := fmod(c.size.x / 2.0, step)
 	while x < c.size.x:
 		c.draw_line(Vector2(x, 0), Vector2(x, c.size.y), col, 1.0)

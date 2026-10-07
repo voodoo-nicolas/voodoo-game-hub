@@ -148,6 +148,11 @@ game's traditional colours (it does not follow the app's light/dark theme; only 
   the game's `_set_skin("classic"|"voodoo")` re-skins in place; `_current_skin()` for a game that kept its own choice;
   older `_set_voodoo(on)` games still work. Games declare `"skins": ["classic","voodoo"]` in the manifest.
   Guides: `reference/art/skins/CLASSIC.md`, `VOODOO.md`. (Was: Implemented through a `SkinDef` resource (colour tokens + texture overrides), APK-side `skin.gd`   (evolution of `voodoo.gd`: load, don't preload). Games declare `"skins": ["classic","voodoo"]` in the manifest.)
+- [NEW 2026-10-06, owner: "less rainbow"] The kit's own screens (Landing, setup, Options, pause, cards) use **one
+  neon-blue button colour** (`HomeKit.BUTTON`), green (`HomeKit.GO`) only for ▶ Start / Resume; a game's per-mode
+  `"color"` and `choice_row` colours are ignored there. Picked / pressed buttons keep white text. The retro-arcade
+  Classic filter covers the game, never the kit's screens (it turned their buttons into flat blocks and wiped out
+  the picked button's text).
 - Readability: text contrast ≥ 4.5:1; colour is never the only cue (shape/icon too) — neon palettes fail
   colour-blind players otherwise.
 - Art references library: `reference/art/` (`ART_STYLE.md` = the Voodoo skin's guide, `skins/CLASSIC.md`,

@@ -1,8 +1,10 @@
 extends Node2D
 
-## Draws the world (Neon Blast's voodoo look: a horned-skull ship firing
-## pins, spirits for enemies, souls to collect). It sits inside the game's
-## clipped view and is moved by
+## Draws the world in one of two skins (the Landing's ⚙ Options -> Look):
+## Classic is the original neon-geometry look (a claw ship, darts, shapes,
+## yellow geoms -- the `_classic` functions, kept exactly as before the
+## re-theme), Voodoo the demon-skull ship firing pins at spirits, souls to
+## collect. It sits inside the game's clipped view and is moved by
 ## -camera, so every draw call here uses world coordinates (the same as the
 ## entity positions in `game`). Only what's near the view is drawn.
 ## Everything is glowing vector lines: each outline is stroked three times
@@ -12,6 +14,10 @@ var game: Control
 const Core = preload("res://scripts/games/geometry_wars/geometry_wars_core.gd")
 const Bosses = preload("res://scripts/games/geometry_wars/geometry_wars_bosses.gd")
 const Drones = preload("res://scripts/games/geometry_wars/geometry_wars_drones.gd")
+const Ship = preload("res://scripts/games/geometry_wars/geometry_wars_ship.gd")
+## The Voodoo ship is drawn this much bigger than its data (2.3 squares
+## nose to horns); the hitbox doesn't change.
+const SHIP_SCALE := 1.3
 
 const SPRING := 30.0
 const DAMPING := 2.6
@@ -34,6 +40,17 @@ var loose_t := 0.0  # seconds of low damping left (after a bomb)
 var flash := 0.0  # the grid lights up after a bomb
 ## Expanding shockwave rings: {pos, t, speed, strength}.
 var shocks: Array = []
+## The Classic skin (set by the game's _set_skin).
+var classic := false
+## The Voodoo ship's flame: `flame` follows your speed (slowly, so it grows
+## as you speed up), `flame_boost` is the extra burst while it catches up.
+var flame := 0.0
+var flame_boost := 0.0
+## The ship's outline and slits as packed arrays, and whether each one can
+## be filled (both worked out once, on first use).
+var _ship_body := PackedVector2Array()
+var _ship_slits: Array = []
+var _ship_fill: Array = []
 var _font: Font
 
 func reset_grid() -> void:
@@ -78,6 +95,9 @@ func shock(pos: Vector2, strength: float = 1.0) -> void:
 	grid_awake = 6.0
 
 func _process(delta: float) -> void:
+	var th: float = clampf(float(game.thrust), 0.0, 1.0) if game else 0.0
+	flame = move_toward(flame, th, minf(delta, 0.05) * 1.5)
+	flame_boost = maxf(flame_boost - minf(delta, 0.05) * 1.2, th - flame)
 	flash = maxf(0.0, flash - delta * 1.2)
 	loose_t = maxf(0.0, loose_t - delta)
 	if grid_awake <= 0.0 or grid_nx == 0:
@@ -178,22 +198,34 @@ func _draw() -> void:
 	if game.shockwave_t >= 0.0:
 		var k: float = game.shockwave_t / game.SHOCKWAVE_TIME
 		var r: float = lerpf(20.0, game.view_size.length() * 1.1, k)
-		draw_arc(game.bomb_pos, r, 0, TAU, 128, Color(0.75, 0.45, 1.0, 1.0 - k), 14.0 * (1.0 - k) + 2.0, true)
+		draw_arc(game.bomb_pos, r, 0, TAU, 128, Color(1, 0.7, 0.3, 1.0 - k) if classic else Color(1.0, 0.25, 0.35, 1.0 - k),
+			14.0 * (1.0 - k) + 2.0, true)
 		draw_arc(game.bomb_pos, r * 0.85, 0, TAU, 128, Color(1, 1, 1, (1.0 - k) * 0.6), 4.0, true)
 		draw_arc(game.bomb_pos, r * 0.6, 0, TAU, 96, Color(0.5, 0.8, 1.0, (1.0 - k) * 0.35), 3.0, true)
 
 	for m in game.mines:
 		if vis.has_point(m.pos):
-			_draw_charm(m, t, u)
+			if classic:
+				_draw_mine(m, t, u)
+			else:
+				_draw_charm(m, t, u)
 
-	# Souls: little flames that flicker out in their last second.
+	# Souls (Classic: geoms, tiny crystals) that flicker out in their last
+	# second. Voodoo souls are bright yellow / green with a halo, so they
+	# stand out on the grid (owner, 2026-10-06: the blue ones were hard to see).
 	for c in game.crystals:
 		if not vis.has_point(c.pos):
 			continue
 		var left: float = Core.CRYSTAL_LIFE - c.age
 		var a: float = 1.0 if left > 1.0 else (0.35 + 0.65 * absf(sin(left * 18.0)))
 		var big: bool = int(c.get("v", 1)) > 1
-		_draw_soul(c.pos, (0.42 if big else 0.2) * u, t * 3.0 + c.pos.x, Color(1.0, 0.42, 0.85, a) if big else Color(0.62, 0.7, 1.0, a))
+		if classic:
+			_draw_gem(c.pos, (0.5 if big else 0.2) * u, t * 3.0 + c.pos.x, Color(1.0, 0.65, 0.15, a) if big else Color(1.0, 0.92, 0.25, a), big)
+		else:
+			var sc := Color(0.35, 1.0, 0.45, a) if big else Color(1.0, 0.96, 0.3, a)
+			var sr: float = (0.46 if big else 0.27) * u
+			draw_circle(c.pos, sr * 1.7, Color(sc, 0.16 * a))
+			_draw_soul(c.pos, sr, t * 3.0 + c.pos.x, sc)
 
 	for e in game.enemies:
 		if vis.grow(3.0 * u).has_point(e.pos) or e.type == "snake":
@@ -220,6 +252,9 @@ func _draw() -> void:
 			continue
 		var d: Vector2 = b.vel.normalized()
 		var gold: bool = b.get("gold", false)
+		if classic:
+			_draw_dart(b, d, gold, u)
+			continue
 		var head := Color(1.0, 0.85, 0.2) if gold else (Color(0.6, 0.8, 1.0) if b.get("drone", false) else Color(1.0, 0.68, 0.17))
 		var tip: Vector2 = b.pos + d * 0.55 * u
 		var back: Vector2 = b.pos - d * 0.3 * u
@@ -240,11 +275,14 @@ func _draw() -> void:
 		draw_circle(b.pos, r * 0.45, Color(1, 0.95, 0.95))
 
 	for d in game.drones:
-		_draw_familiar(d, t, u)
+		if classic:
+			_draw_drone(d, t, u)
+		else:
+			_draw_familiar(d, t, u)
 	for ray in game.rays:
 		var k: float = float(ray.age) / 0.25
-		draw_line(ray.from, ray.to, Color(0.7, 0.5, 1.0, (1.0 - k) * 0.3), 8.0)
-		draw_line(ray.from, ray.to, Color(0.92, 0.85, 1.0, 1.0 - k), 2.0)
+		draw_line(ray.from, ray.to, Color(0.4, 1.0, 1.0, (1.0 - k) * 0.3), 8.0)
+		draw_line(ray.from, ray.to, Color(0.85, 1.0, 1.0, 1.0 - k), 2.0)
 
 	if game.lives > 0 or game.rules.lives == 0:
 		if game.respawn_t <= 0.0:
@@ -328,6 +366,8 @@ func _draw_zone(z: Dictionary, t: float, u: float) -> void:
 				var a0 := TAU * i / dash + t * 0.3
 				draw_arc(z.pos, r, a0, a0 + TAU / dash, 6, Color(gold, 0.55), 2.0, true)
 		draw_circle(z.pos, r, Color(gold, 0.03))
+	if classic:
+		return
 	# A five-point star traced inside: the sacred circle.
 	var star := PackedVector2Array()
 	for i in 5:
@@ -349,6 +389,9 @@ func _draw_charm(m: Dictionary, t: float, u: float) -> void:
 # ---------- enemies ----------
 
 func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
+	if classic:
+		_draw_enemy_classic(e, t, u)
+		return
 	var col: Color = Core.color_of(e.type)
 	var pos: Vector2 = e.pos
 	var r: float = Core.radius_of(e.type)
@@ -579,7 +622,7 @@ func _draw_well(e: Dictionary, t: float, u: float, col: Color, r: float) -> void
 	draw_circle(pos, r * grow * 0.95, Color(0.02, 0.0, 0.03, 0.85))
 	for i in 3:
 		_ring(pos, r * grow * (0.45 + 0.28 * i + (0.08 * pulse_k if active else 0.0)), wc, 1.6, 28)
-	for i in 6:
+	for i in (0 if classic else 6):
 		var a := t * (1.5 if active else 0.5) + i * TAU / 6.0
 		_x_mark(pos + Vector2(cos(a), sin(a)) * r * grow * 1.3, r * 0.1, Color(wc, 0.8), 1.0)
 	if active:
@@ -711,57 +754,272 @@ func _draw_familiar(d: Dictionary, t: float, u: float) -> void:
 
 # ---------- player ----------
 
-## Your ship: a horned skull, crown first, horns curving forward, eye sockets
-## burning purple-blue, a flame trailing from the jaw.
+## Your ship (Voodoo): the owner's horned demon skull, flying mouth first,
+## its carved slits glowing red; a flame leaves its back between the horns,
+## leaping when you speed up and settling to your cruising speed.
 func _draw_player(t: float, u: float) -> void:
+	if classic:
+		_draw_player_classic(t, u)
+		return
 	var pos: Vector2 = game.player_pos
 	var inv: float = game.invuln_timer
 	var d: Vector2 = game.ship_dir
-	var p := Vector2(-d.y, d.x)
 	# Flicker in the last second, as the shield is about to drop.
 	if not (inv > 0.0 and inv < 1.0 and int(inv * 12.0) % 2 == 0):
-		var speed_k: float = clampf(float(game.thrust), 0.0, 1.0)
-		if speed_k > 0.05:
-			# The voodoo flame trail: purple-blue fire.
-			for k in 3:
-				var w := (0.22 - k * 0.06) * u
-				var flick := sin(t * 40.0 + k) * 0.1 * u
-				draw_line(pos - d * 0.55 * u, pos - d * (1.0 + (2.3 - k * 0.5) * speed_k) * u + p * flick,
-					Color(0.45 + k * 0.15, 0.35 + k * 0.2, 1.0, 0.22 + k * 0.1), w * 2.0)
-		var white := Color(0.88, 0.96, 1.0)
-		var at := func(fwd: float, side: float) -> Vector2: return pos + d * fwd * u + p * side * u
-		# Cranium (rounded toward the front) and cheekbones narrowing to the jaw.
-		var skull := PackedVector2Array()
-		for i in 11:
-			var a := -PI * 0.55 + PI * 1.1 * i / 10.0
-			skull.append(at.call(0.05 + cos(a) * 0.42, sin(a) * 0.42))
-		skull.append(at.call(-0.3, 0.3))
-		skull.append(at.call(-0.55, 0.2))
-		skull.append(at.call(-0.55, -0.2))
-		skull.append(at.call(-0.3, -0.3))
-		_neon(skull, white, true, 1.7)
-		# Teeth along the jaw.
-		for k in 3:
-			var s := -0.12 + k * 0.12
-			_line(at.call(-0.42, s), at.call(-0.55, s), white, 0.9)
-		# Horns: from the temples, curving out and forward to sharp tips.
-		for side in [-1.0, 1.0]:
-			_neon(PackedVector2Array([at.call(0.18, side * 0.36), at.call(0.25, side * 0.62), at.call(0.52, side * 0.78),
-				at.call(0.85, side * 0.7), at.call(1.05, side * 0.5)]), Color(1.0, 0.95, 0.85), false, 1.6)
-		# Eyes: purple-blue flames in the sockets; a little nose.
-		for side in [-1.0, 1.0]:
-			var e: Vector2 = at.call(0.08, side * 0.17)
-			draw_circle(e, 0.14 * u, Color(0.45, 0.35, 1.0, 0.35))
-			draw_circle(e, 0.09 * u, Color(0.6, 0.5, 1.0))
-			draw_circle(e, 0.04 * u, Color(0.95, 0.95, 1.0))
-		_neon(PackedVector2Array([at.call(-0.12, 0.0), at.call(-0.25, 0.07), at.call(-0.25, -0.07)]), white, true, 1.0)
+		_draw_flame(pos, d, t, u)
+		_draw_ship(pos, d, u)
 	if inv > 0.0:
 		# The shield halo, pulsing faster as it runs out.
 		var rate: float = 5.0 if inv > 1.0 else 16.0
 		var pulse_k: float = 0.5 + 0.5 * sin(t * rate)
-		var hr: float = (1.25 + 0.12 * pulse_k) * u
-		draw_arc(pos, hr, 0, TAU, 40, Color(0.6, 0.55, 1.0, 0.18), 0.5 * u, true)
-		draw_arc(pos, hr, 0, TAU, 40, Color(0.75, 0.7, 1.0, 0.55 + 0.3 * pulse_k), 2.0, true)
+		var hr: float = (1.5 + 0.12 * pulse_k) * u
+		draw_arc(pos, hr, 0, TAU, 40, Color(0.4, 0.85, 1.0, 0.18), 0.5 * u, true)
+		draw_arc(pos, hr, 0, TAU, 40, Color(0.6, 0.92, 1.0, 0.55 + 0.3 * pulse_k), 2.0, true)
 	# Sanctuary: a little candle flame over your skull while you may shoot.
 	if game.rules.king and game.king_zone >= 0:
 		_draw_soul(pos + Vector2(0, -1.4 * u), 0.18 * u, t * 4.0, Color(1, 0.85, 0.3))
+
+## The demon skull: a dark body with a neon rim, red-hot slits.
+func _draw_ship(pos: Vector2, d: Vector2, u: float) -> void:
+	if _ship_body.is_empty():
+		_ship_body = PackedVector2Array(Ship.OUTLINE)
+		_ship_fill = [Geometry2D.triangulate_polygon(_ship_body).size() > 0]
+		for slit in Ship.SLITS:
+			var sp := PackedVector2Array(slit)
+			_ship_slits.append(sp)
+			_ship_fill.append(Geometry2D.triangulate_polygon(sp).size() > 0)
+	var k := u * SHIP_SCALE
+	var xf := Transform2D(d.angle(), Vector2(k, k), 0.0, pos)
+	var body: PackedVector2Array = xf * _ship_body
+	if _ship_fill[0]:
+		draw_colored_polygon(body, Color(0.03, 0.05, 0.09, 0.92))
+	for i in _ship_slits.size():
+		var sp: PackedVector2Array = xf * (_ship_slits[i] as PackedVector2Array)
+		if _ship_fill[i + 1]:
+			draw_colored_polygon(sp, Color(1.0, 0.2, 0.3, 0.95))
+		else:
+			_neon(sp, Color(1.0, 0.3, 0.38), true, 0.6)
+	_neon(body, Color(0.7, 0.95, 1.0), true, 1.0)
+
+## The flame from the skull's back: red fire around a white-hot core. Its
+## length is a small pilot flame at rest, your speed while cruising, and
+## a long burst while you speed up.
+func _draw_flame(pos: Vector2, d: Vector2, t: float, u: float) -> void:
+	var p := Vector2(-d.y, d.x)
+	var root: Vector2 = pos + d * Ship.FLAME_ROOT.x * SHIP_SCALE * u
+	var flick := 1.0 + 0.12 * sin(t * 37.0) + 0.08 * sin(t * 23.0 + 1.3)
+	var length := (0.4 + 0.8 * flame + 1.0 * flame_boost) * flick * u
+	var width := (0.2 + 0.08 * flame + 0.14 * flame_boost) * u
+	for layer in 3:
+		var k: float = [1.0, 0.75, 0.45][layer]
+		var col: Color = [Color(1.0, 0.12, 0.22, 0.3), Color(1.0, 0.3, 0.35, 0.75), Color(1.0, 0.92, 0.9, 0.95)][layer]
+		var pts := PackedVector2Array()
+		for i in 9:  # one side, root to tip
+			var f := i / 8.0
+			var w := width * k * sin(PI * (0.15 + 0.85 * f)) * (0.85 + 0.15 * sin(f * 9.0 + t * 18.0))
+			pts.append(root - d * length * k * f + p * (w + sin(t * 29.0 + f * 5.0) * 0.03 * u * f))
+		for i in range(7, 0, -1):  # and back down the other side
+			var f := i / 8.0
+			var w := width * k * sin(PI * (0.15 + 0.85 * f)) * (0.85 + 0.15 * sin(f * 9.0 + t * 18.0 + 1.0))
+			pts.append(root - d * length * k * f - p * (w - sin(t * 29.0 + f * 5.0) * 0.03 * u * f))
+		draw_colored_polygon(pts, col)
+
+# ---------- the Classic skin (exactly as before the 2026-10-05 re-theme) ----------
+
+## A tiny yellow crystal: a thin elongated gem (not a box, so it can't be
+## mistaken for an enemy) that shimmers rather than spins.
+func _draw_gem(pos: Vector2, r: float, phase: float, color: Color, big: bool = false) -> void:
+	var w := r * (0.55 if not big else 0.7)
+	var h := r * 1.5
+	var pts := PackedVector2Array([pos + Vector2(0, -h), pos + Vector2(w, -h * 0.2), pos + Vector2(0, h), pos + Vector2(-w, -h * 0.2)])
+	_neon(pts, color, true, 1.2)
+	var glint: float = 0.5 + 0.5 * sin(phase * 2.0)
+	draw_circle(pos + Vector2(0, -h * 0.25), maxf(1.0, r * 0.18), Color(1, 1, 0.85, color.a * (0.5 + 0.5 * glint)))
+
+func _draw_mine(m: Dictionary, t: float, u: float) -> void:
+	var armed: bool = float(m.age) >= Core.MINE_ARM
+	var col := Color(1.0, 0.3, 0.3) if armed else Color(1.0, 0.6, 0.4, 0.5)
+	var left: float = Core.MINE_LIFE - float(m.age)
+	if left < 2.0 and int(left * 8.0) % 2 == 0:
+		col.a *= 0.4
+	var r := Core.MINE_RADIUS * u
+	_neon(_poly(m.pos, r * 1.4, 4, t * 2.0), col, true, 1.3)
+	draw_circle(m.pos, r * (0.35 + 0.15 * sin(t * 9.0 + m.pos.x)), Color(1, 0.8, 0.7, col.a))
+
+## An orange dart that streaks behind it (gold after a gate bounce).
+func _draw_dart(b: Dictionary, d: Vector2, gold: bool, u: float) -> void:
+	var side := Vector2(-d.y, d.x)
+	var front: Vector2 = b.pos + d * 0.5 * u
+	var back: Vector2 = b.pos - d * 0.25 * u
+	var c1 := Color(1.0, 0.85, 0.2) if gold else (Color(0.6, 0.85, 1.0) if b.get("drone", false) else Color(1.0, 0.65, 0.2))
+	draw_line(back, back - d * 1.6 * u, Color(c1, 0.25), 0.28 * u)
+	draw_colored_polygon(PackedVector2Array([front, back + side * 0.1 * u, back - side * 0.1 * u]), c1)
+	draw_line(front, back, Color(1.0, 0.95, 0.7), 1.5)
+
+func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
+	var col: Color = Core.color_of(e.type)
+	var pos: Vector2 = e.pos
+	var r: float = Core.radius_of(e.type)
+	var warm: float = e.warm
+	if warm > 0.0:
+		# Spawning in: a ring that closes in on a dim, shrinking-out copy.
+		var k: float = clampf(warm / Core.WARM_TIME, 0.0, 1.0)
+		if e.type in Core.GATES:
+			var ends := Core.gate_ends(e)
+			_neon(PackedVector2Array([ends[0], ends[1]]), Color(col, 0.3 + 0.4 * (1.0 - k)), false, 1.2)
+			return
+		_ring(pos, r * (1.0 + 2.5 * k), Color(col, 0.7 * (1.0 - k) + 0.2), 1.5, 20)
+		if e.type != "ufo":
+			draw_circle(pos, r * 0.25 * (1.0 - k), Color(col, 0.6))
+		return
+	var spin: float = t * 3.0 + float(e.id)
+	match e.type:
+		"grunt":
+			var pts := PackedVector2Array([pos + Vector2(0, -r * 1.2), pos + Vector2(r * 1.2, 0), pos + Vector2(0, r * 1.2), pos + Vector2(-r * 1.2, 0)])
+			_neon(pts, col)
+			_neon(PackedVector2Array([pos + Vector2(0, -r * 0.5), pos + Vector2(r * 0.5, 0), pos + Vector2(0, r * 0.5), pos + Vector2(-r * 0.5, 0)]), col, true, 1.4)
+		"wanderer":
+			for i in 4:
+				var a := spin * 1.4 + i * PI / 2.0
+				var tri := PackedVector2Array([pos, pos + Vector2(r * 1.2, 0).rotated(a), pos + Vector2(r * 1.2, r * 0.9).rotated(a)])
+				_neon(tri, col, true, 1.6)
+		"duck":
+			_neon(_poly(pos, r * 1.35, 4, PI / 4.0), col)
+		"rocket":
+			var d: Vector2 = (e.dir as Vector2)
+			var p := Vector2(-d.y, d.x)
+			var pts := PackedVector2Array([pos + d * r * 1.4, pos - d * r * 0.9 + p * r * 0.95, pos - d * r * 0.3, pos - d * r * 0.9 - p * r * 0.95])
+			var speed_k: float = clampf(float(e.slow), 0.0, 1.0)
+			draw_line(pos - d * r * 0.8, pos - d * r * (1.0 + 4.0 * speed_k), Color(1.0, 0.6, 0.2, 0.45 * speed_k), r * 0.9)
+			_neon(pts, col)
+		"repulsor":
+			# A blue rhino: armoured orange front, soft blue back.
+			var d: Vector2 = e.dir
+			var p := Vector2(-d.y, d.x)
+			var charging: bool = e.state == "charge"
+			if charging:
+				draw_line(pos - d * r, pos - d * r * 5.0, Color(0.4, 0.6, 1.0, 0.3), r * 1.2)
+			var back := PackedVector2Array([pos + p * r * 1.0, pos - d * r * 1.2 + p * r * 0.6, pos - d * r * 1.2 - p * r * 0.6, pos - p * r * 1.0])
+			_neon(back, col, false, 2.0)
+			var front := PackedVector2Array([pos + p * r * 1.1, pos + d * r * 0.6 + p * r * 0.7, pos + d * r * 1.6, pos + d * r * 0.6 - p * r * 0.7, pos - p * r * 1.1])
+			var orange := Color(1.0, 0.55, 0.15)
+			_neon(front, orange, false, 2.4)
+			if e.state == "aim":
+				var k: float = 1.0 - clampf(float(e.st) / Core.REPULSOR_AIM, 0.0, 1.0)
+				draw_circle(pos + d * r * 0.4, r * 0.25, Color(1, 0.8, 0.4, 0.3 + 0.7 * k))
+		"neutron":
+			_ring(pos, r * 1.05, col, 1.8)
+			for i in 3:
+				var a := spin * 1.8 + i * TAU / 3.0
+				_ring(pos + Vector2(r * 0.55, 0).rotated(a), r * 0.32, col, 1.3, 10)
+		"gear":
+			var teeth := PackedVector2Array()
+			var fast: float = 1.0 + float(e.eaten) * 0.5
+			for i in 16:
+				var rr := r * (1.25 if i % 2 == 0 else 0.85)
+				teeth.append(pos + Vector2(rr, 0).rotated(t * 2.0 * fast + i * TAU / 16.0))
+			_neon(teeth, col, true, 1.6)
+			_neon(PackedVector2Array([pos + Vector2(-r * 0.6, 0), pos + Vector2(r * 0.6, 0)]), col, false, 1.4)
+		"mayfly":
+			var a := (e.vel as Vector2).angle() if (e.vel as Vector2).length() > 1.0 else 0.0
+			_neon(_poly(pos, r * 1.3, 3, a), col, true, 1.3)
+		"weaver":
+			_neon(_poly(pos, r * 1.35, 4, spin * 0.7 + PI / 4.0), col)
+			_neon(_poly(pos, r * 0.65, 4, -spin * 0.7 + PI / 4.0), col, true, 1.3)
+		"spinner", "mini":
+			var sq := _poly(pos, r * 1.35, 4, spin * 0.9 + PI / 4.0)
+			_neon(sq, col, true, 1.8 if e.type == "spinner" else 1.4)
+			_neon(PackedVector2Array([sq[0], sq[2]]), col, false, 1.2)
+			_neon(PackedVector2Array([sq[1], sq[3]]), col, false, 1.2)
+		"snake":
+			var segs: Array = e.segs
+			for k in range(segs.size() - 1, -1, -1):
+				var fade: float = 1.0 - float(k) / segs.size() * 0.6
+				_ring(segs[k], 0.3 * u, Color(1.0, 0.8, 0.3, fade), 1.4, 8)
+			var hd: Vector2 = (e.vel as Vector2).normalized() if (e.vel as Vector2).length() > 1.0 else Vector2.RIGHT
+			var hp := Vector2(-hd.y, hd.x)
+			_neon(PackedVector2Array([pos + hd * r * 1.5, pos + hp * r * 0.9, pos - hd * r * 0.7, pos - hp * r * 0.9]), col, true, 2.0)
+			draw_circle(pos, r * 0.3, Color(1, 1, 1, 0.9))
+		"well":
+			_draw_well(e, t, u, col, r)
+		"proton":
+			# Little skittering circles: they jitter as they run.
+			var jit := Vector2(sin(t * 31.0 + float(e.id)), cos(t * 27.0 + float(e.id) * 1.7)) * r * 0.15
+			_ring(pos + jit, r * 1.1, col, 1.8, 14)
+			draw_circle(pos + jit, r * 0.3, Color(0.8, 1.0, 1.0, 0.8))
+		"ufo":
+			var flat := PackedVector2Array()
+			for i in 20:
+				var a := i * TAU / 20.0
+				flat.append(pos + Vector2(cos(a) * r * 1.5, sin(a) * r * 0.8).rotated(spin * 0.4))
+			_neon(flat, col, true, 2.0)
+			_ring(pos, r * 0.4, col, 1.4, 12)
+		"nufo":
+			var flat := PackedVector2Array()
+			for i in 16:
+				var a := i * TAU / 16.0
+				flat.append(pos + Vector2(cos(a) * r * 1.45, sin(a) * r * 0.6))
+			_neon(flat, col, true, 1.6)
+			draw_arc(pos - Vector2(0, r * 0.25), r * 0.6, PI, TAU, 10, Color(col.lightened(0.4), 0.9), 1.6, true)
+			draw_circle(pos + Vector2(sin(t * 8.0 + float(e.id)) * r * 0.8, r * 0.2), r * 0.15, Color(1, 1, 1, 0.8))
+		"gate", "golden":
+			var ends := Core.gate_ends(e)
+			var golden: bool = e.type == "golden"
+			var bar := Color(1.0, 0.9, 0.4) if golden else Color(0.9, 0.95, 1.0)
+			if golden and float(e.life) < 2.0 and int(float(e.life) * 8.0) % 2 == 0:
+				bar.a = 0.4
+			_neon(PackedVector2Array([ends[0], ends[1]]), Color(bar, bar.a * 0.85), false, 2.0)
+			for end in ends:
+				_neon(_poly(end, r * 1.2, 6, t * 2.5), col, true, 2.0)
+				draw_circle(end, r * 0.45, Color(col.lightened(0.4), 0.9))
+		"layer":
+			var hop: float = absf(sin(float(e.t) * PI / 0.6)) * 0.2 * r
+			var body := _poly(pos - Vector2(0, hop), r * 1.1, 4, PI / 4.0)
+			_neon(body, col, true, 1.8)
+			for i in 4:
+				var a := i * PI / 2.0 + PI / 4.0
+				_neon(PackedVector2Array([pos + Vector2(r * 0.8, 0).rotated(a), pos + Vector2(r * 1.5, 0).rotated(a + 0.4)]), col, false, 1.2)
+			draw_circle(pos - Vector2(0, hop), r * 0.3, Color(1.0, 0.3, 0.3, 0.9))
+
+func _draw_drone(d: Dictionary, t: float, u: float) -> void:
+	var col: Color = Drones.color_of(d.kind)
+	var pos: Vector2 = d.pos
+	if d.kind == "sweep":
+		draw_arc(game.player_pos, Drones.SWEEP_RADIUS * u, 0, TAU, 48, Color(col, 0.12), 2.0, true)
+	var dir: Vector2 = (d.vel as Vector2).normalized() if (d.vel as Vector2).length() > 1.0 else game.ship_dir
+	var p := Vector2(-dir.y, dir.x)
+	var s := 0.4 * u
+	_neon(PackedVector2Array([pos + dir * s, pos - dir * s * 0.7 + p * s * 0.7, pos - dir * s * 0.3, pos - dir * s * 0.7 - p * s * 0.7]), col, true, 1.5)
+	draw_circle(pos, s * 0.2, Color(1, 1, 1, 0.6 + 0.4 * sin(t * 8.0)))
+
+func _draw_player_classic(t: float, u: float) -> void:
+	var pos: Vector2 = game.player_pos
+	var inv: float = game.invuln_timer
+	# Flicker in the last second, as the shield is about to drop.
+	if inv > 0.0 and inv < 1.0 and int(inv * 12.0) % 2 == 0:
+		pass
+	else:
+		var d: Vector2 = game.ship_dir
+		var p := Vector2(-d.y, d.x)
+		var speed_k: float = clampf(float(game.thrust), 0.0, 1.0)
+		if speed_k > 0.05:
+			var blue := Color(0.5, 0.75, 1.0)
+			for k in 3:
+				var off := p * (k - 1) * 0.18 * u
+				draw_line(pos - d * 0.5 * u + off, pos - d * (1.0 + 2.2 * speed_k) * u + off, Color(blue, 0.18 - k % 2 * 0.06), 0.3 * u)
+		var white := Color(0.85, 0.95, 1.0)
+		# Two nested chevrons: the C-shaped claw.
+		_neon(PackedVector2Array([pos + d * 0.75 * u + p * 0.0, pos - d * 0.55 * u + p * 0.7 * u, pos - d * 0.25 * u]), white, false, 1.8)
+		_neon(PackedVector2Array([pos + d * 0.75 * u, pos - d * 0.55 * u - p * 0.7 * u, pos - d * 0.25 * u]), white, false, 1.8)
+		_neon(PackedVector2Array([pos + d * 0.35 * u, pos - d * 0.35 * u + p * 0.4 * u, pos - d * 0.15 * u, pos - d * 0.35 * u - p * 0.4 * u]), Color(0.6, 0.8, 1.0), true, 1.2)
+	if inv > 0.0:
+		# The shield halo, pulsing faster as it runs out.
+		var rate: float = 5.0 if inv > 1.0 else 16.0
+		var pulse_k: float = 0.5 + 0.5 * sin(t * rate)
+		var hr: float = (1.15 + 0.12 * pulse_k) * u
+		draw_arc(pos, hr, 0, TAU, 40, Color(0.6, 0.9, 1.0, 0.18), 0.5 * u, true)
+		draw_arc(pos, hr, 0, TAU, 40, Color(0.7, 0.95, 1.0, 0.55 + 0.3 * pulse_k), 2.0, true)
+	# King: a small crown over the ship while it can shoot.
+	if game.rules.king and game.king_zone >= 0:
+		_neon(PackedVector2Array([pos + Vector2(-0.4, -1.0) * u, pos + Vector2(-0.4, -1.4) * u, pos + Vector2(-0.15, -1.2) * u,
+			pos + Vector2(0, -1.5) * u, pos + Vector2(0.15, -1.2) * u, pos + Vector2(0.4, -1.4) * u, pos + Vector2(0.4, -1.0) * u]), Color(1, 0.85, 0.3), true, 1.4)

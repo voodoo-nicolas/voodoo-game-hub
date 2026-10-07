@@ -7,7 +7,8 @@ extends RefCounted
 ##           squares top to bottom, so most maps are bigger than the screen
 ##           and the camera follows; the tiny ones stay tiny)
 ##   lives   0 = unlimited (Deadline)       bombs   at the start (0 = none)
-##   bomb_every / life_every   points per extra bomb / life (0 = never)
+##   bomb_every / life_every   points to the first extra bomb / life (0 = never);
+##                             each later one costs more (game EXTRA_GROWTH)
 ##   time    seconds on the clock (0 = none); "survive" levels end when it runs out
 ##   goal    "endless" (classic) | "survive" | "kills" n | "gates" n | "geoms" n | "boss"
 ##   gun     false = Pacifism (no shooting)
@@ -41,7 +42,7 @@ const TINY_MAP := 22
 const ULTIMATE_FIRST := 31
 
 const CLASSIC := {
-	"evolved": {"title": "Endless", "map": [48, 30], "lives": 3, "bombs": 3, "bomb_every": 2500, "life_every": 50000,
+	"evolved": {"title": "Endless", "map": [48, 30], "lives": 3, "bombs": 3, "bomb_every": 20000, "life_every": 100000,
 		"goal": "endless", "spawn": "ramp", "rate": [1.8, 0.55, 90.0], "stat": "Best score"},
 	"deadline": {"title": "Time Attack", "map": [44, 28], "lives": 0, "bombs": 0, "time": 180, "goal": "endless",
 		"spawn": "ramp", "rate": [1.2, 0.4, 70.0], "ramp_speed": 1.6, "stat": "Best score (Time Attack)"},
@@ -50,12 +51,12 @@ const CLASSIC := {
 		"events": [[2.0, 2.4, "cluster", "grunt", 6], [40.0, 9.0, "horde", "grunt", 8]], "stat": "Best score (Unarmed)"},
 	"king": {"title": "Sanctuary", "map": [44, 28], "lives": 3, "bombs": 0, "king": true, "goal": "endless",
 		"spawn": "ramp", "rate": [1.5, 0.5, 90.0], "stat": "Best score (Sanctuary)"},
-	"waves": {"title": "Stampede", "map": [48, 26], "lives": 1, "bombs": 3, "bomb_every": 5000, "goal": "endless",
+	"waves": {"title": "Stampede", "map": [48, 26], "lives": 1, "bombs": 3, "bomb_every": 15000, "goal": "endless",
 		"spawn": {}, "rate": [99.0, 99.0, 1.0], "waves": [6.0, 2.2],
 		"events": [[3.0, 4.5, "line", "", 5]], "stat": "Best score (Stampede)"},
-	"claustro": {"title": "Coffin", "map": [22, 13], "lives": 3, "bombs": 3, "bomb_every": 4000, "goal": "endless",
+	"claustro": {"title": "Coffin", "map": [22, 13], "lives": 3, "bombs": 3, "bomb_every": 15000, "goal": "endless",
 		"spawn": "ramp", "rate": [1.0, 0.35, 70.0], "stat": "Best score (Coffin)"},
-	"bossrush": {"title": "Boss Rush", "map": [44, 28], "lives": 3, "bombs": 3, "bomb_every": 20000, "goal": "boss",
+	"bossrush": {"title": "Boss Rush", "map": [44, 28], "lives": 3, "bombs": 3, "bomb_every": 40000, "goal": "boss",
 		"spawn": {"grunt": 3, "wanderer": 2, "weaver": 1}, "rate": [3.0, 2.0, 60.0],
 		"events": [[1.0, 0, "boss", "queen", 0]], "rush": [["serpent", 0], ["lord", 0], ["titan", 0], ["queen", 1], ["titan", 1]],
 		"stat": "Best score (Boss Rush)"},

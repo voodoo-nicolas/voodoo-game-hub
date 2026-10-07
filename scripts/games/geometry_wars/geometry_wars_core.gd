@@ -144,8 +144,22 @@ static func well_range(e: Dictionary) -> float:
 static func burst_count(eaten: int) -> int:
 	return 7 + int(eaten * 0.6)
 
+## The original colours, for the Classic skin.
+const CLASSIC_COLORS := {
+	"grunt": Color(0.25, 0.65, 1.0), "wanderer": Color(0.8, 0.35, 1.0), "duck": Color(1.0, 0.4, 0.85),
+	"rocket": Color(1.0, 0.5, 0.15), "neutron": Color(0.2, 1.0, 0.8), "gear": Color(1.0, 0.85, 0.2),
+	"mayfly": Color(0.65, 0.55, 1.0), "weaver": Color(0.35, 1.0, 0.35), "spinner": Color(1.0, 0.35, 0.55),
+	"mini": Color(1.0, 0.45, 0.65), "snake": Color(0.3, 0.7, 1.0), "well": Color(1.0, 0.45, 0.2),
+	"proton": Color(0.4, 0.9, 1.0), "ufo": Color(1.0, 0.2, 0.35), "repulsor": Color(0.35, 0.55, 1.0),
+	"nufo": Color(0.55, 1.0, 0.3), "gate": Color(1.0, 0.55, 0.15), "golden": Color(1.0, 0.85, 0.25),
+	"layer": Color(0.9, 1.0, 0.45),
+}
+## Set by the game's _set_skin: colour_of then answers in Classic colours
+## (sparks, the minimap and the shapes all agree).
+static var classic := false
+
 static func color_of(type: String) -> Color:
-	return COLORS.get(type, Color.WHITE)
+	return (CLASSIC_COLORS if classic else COLORS).get(type, Color.WHITE)
 
 # ---------- spawning ----------
 

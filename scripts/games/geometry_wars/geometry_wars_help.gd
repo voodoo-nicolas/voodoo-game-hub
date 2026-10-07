@@ -12,7 +12,7 @@ const HOW := [
 	"You fire bursts of three pins, ten bursts a second. The middle pin is faster and flies farther.",
 	"The maps are bigger than the screen: the view follows you, and the minimap in the corner shows the whole arena.",
 	"After you appear, a glowing halo keeps you safe for 5 seconds. Six quick beeps warn that it is about to fade.",
-	"Every spirit you break leaves souls: little flames. Fly over one to raise your score multiplier by 1 — they fade after 3 seconds. Big pink souls are worth 10.",
+	"Every spirit you break leaves souls: little flames. Fly over one to raise your score multiplier by 1 — they fade after 3 seconds. Small souls are yellow; big green ones are worth 10.",
 	"Every kill scores its points times your multiplier. Dying clears the screen and resets the multiplier.",
 	"💣 Bomb wipes out every enemy on screen and dents a boss. Some modes give you more as you score.",
 	"Drifting crossbones and orbs wander and bounce. Pink eyes stalk you and get faster the longer they live. Masks dodge your pins. Orange splitters break in three. Tiny gnats swarm in hordes, and one pin pierces many.",

@@ -44,11 +44,18 @@ no faint grid, plain drop shadows.
     in the game's HomeKit config makes the kit add a screen filter
     (`RETRO_SHADER` in home_kit.gd): glow halos and tinted glass fall to the
     background, saturated colours snap to flat primaries. Voodoo = plain neon.
+    The filter sits just under the kit (the kit moves itself to the top), so
+    the Landing, setup screens, pause menu and Options are never filtered
+    (owner, 2026-10-06: over the menus it made flat blocks and blanked the
+    picked button's text). Game children added after the kit are unfiltered.
   - Finished 2026-10-06: Sudoku (printed puzzle: paper cells, ink givens, blue
     pencil entries; Look on its own Options card, saved in landing_sudoku.json),
     Binary Grid (paper, solid black / open white circles), Sketch It (markers on
     a whiteboard; strokes keep their neon ink and are shown as the matching
-    marker), and the retro filter for Neon Blast, Fortune Ball, Spirit Board
+    marker), Neon Blast (owner 2026-10-06: Classic = its original neon-geometry
+    look from before the voodoo re-theme -- claw ship, darts, shapes, yellow
+    geoms -- in `arena_canvas.gd`'s `_classic` functions), and the retro filter
+    for Fortune Ball, Spirit Board
     (a filter, not a wooden board, so it stays clear of the famous talking
     board's look), Gem Match and Bop the Mole (their `_set_skin` = retro filter
     for Classic, skulls for Voodoo).

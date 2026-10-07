@@ -1249,6 +1249,18 @@ online heads-up, Video Poker as a mode, and 🎓 Training. **The id stays
 
 ## Neon Blast (id `geometry_wars`): modes, Campaign, bosses, familiars, music -- 2026-10-05
 
+**Skins (2026-10-06)**: Classic = the original neon-geometry look from before
+the re-theme (claw ship, darts, shapes, yellow geoms, old colours:
+`Core.CLASSIC_COLORS`, `arena_canvas.gd`'s `_classic` functions -- keep them
+as they were); Voodoo = the owner's horned demon skull
+(`geometry_wars_ship.gd`, traced from their drawing; flies mouth first, red
+slits, a flame from the back that leaps when you speed up: `flame` /
+`flame_boost`), bright yellow / green souls. `_set_skin` sets both
+`Core.classic` and the canvas. Bomb = a see-through red bar down the right
+edge (bottom in portrait), by the thumbs. Extra bombs / lives cost more each
+time (`EXTRA_GROWTH`), at most `MAX_BOMBS` / `MAX_LIVES` (5) -- 9 bombs and
+17 lives came far too fast.
+
 **Shown to players as "Neon Blast"** since pack v17 (2026-10-06): the
 voodoo re-theme for trademark distance ("Geometry Wars" is Activision's;
 never in store text). Players see a horned voodoo skull firing pins at neon
