@@ -121,6 +121,7 @@ code { background: var(--panel2); padding: 1px 6px; border-radius: 4px; font-fam
       <label class="drop" id="drop" for="picker">
         <b>Drop audio files here, or click to choose</b>
         <p class="sub small">MP3, WAV, FLAC, M4A, OGG... Each one is converted to OGG Vorbis (~96 kbps) and levelled to <span id="tlufs">-16</span> LUFS. Nothing is sent until you press Add.</p>
+        <p class="sub small">From Freesound? Attach its licence file (the <code>licenses.txt</code> it gives you) as the proof: each track's title, author and licence fill in from it.</p>
         <input id="picker" type="file" accept="audio/*,.mp3,.wav,.ogg,.oga,.flac,.m4a,.aac,.opus,.wma,.aiff,.aif" multiple>
       </label>
       <div id="bulk" class="row" hidden>
@@ -186,6 +187,7 @@ const CHECK_TEXT = {
   own: 'I made it, or own all rights to it.',
   cc0: 'It really is CC0 (I checked the source).',
   'cc-by': 'It really is CC BY, not BY-NC, BY-ND or BY-SA.',
+  'cc-by-3': 'It really is CC BY 3.0, not BY-NC, BY-ND or BY-SA.',
   'royalty-free': 'The licence allows use in a commercial app or game.',
   bought: 'The written licence allows use in a commercial app or game.',
   ai: 'The plan it was made on allows commercial use.',
@@ -195,6 +197,7 @@ let S = null;          // /api/state
 let genres = [];       // [{id, name}]
 let items = [];        // tracks being added
 let extraProofs = [];  // proofs attached this session [{work, path, name}]
+let fsCredits = {};    // Freesound sound id -> credit read from an attached licence file
 let play = {};         // working copy of list.play
 let busy = false;
 
@@ -295,7 +298,15 @@ async function prepare(it) {
     Object.assign(it, { work: rep.work, rep, state: 'ready' });
     if (!it.title) it.title = rep.title;
     if (!it.credit.author && rep.artist) it.credit.author = rep.artist;
-    renderCard(it);
+    if (rep.freesound) {
+      // A Freesound download: where it's from is in its name. The exact
+      // title, author and licence come from Freesound's licence file.
+      it.fsId = rep.freesound.id;
+      it.credit.source = it.credit.source || 'Freesound';
+      it.credit.url = it.credit.url || rep.freesound.url;
+      it.credit.author = it.credit.author || rep.freesound.user;
+    }
+    if (!applyFreesound(it)) renderCard(it);
   } catch (e) {
     it.state = 'error';
     setCardState(it, 'bad-t', 'Not usable: ' + e.message);
@@ -361,12 +372,14 @@ function renderCard(it) {
     proofOptions(proofSel, it);
     const proofPick = el('input', { type: 'file', accept: '.pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.html,.htm,.eml', hidden: true, onchange: e => attachProof(it, e.target.files[0]) });
     const fs = el('fieldset', {}, el('legend', {}, "Where it's from"),
+      it.fsNote ? el('p', { class: 'small ok' }, it.fsNote) : null,
+      it.fsWarn ? el('p', { class: 'small bad-t' }, it.fsWarn) : null,
       el('div', { class: 'row' },
         el('div', { class: 'field' }, el('label', { for: 'li' + it.id }, 'Licence'), lic),
         txt('author', c.licence === 'own' ? 'Author (blank = Viral)' : 'Author / artist', c.licence === 'ai' ? 'you, or the name you publish as' : '')),
       el('div', { class: 'row' },
         txt('source', 'Got it from', c.licence === 'ai' ? 'e.g. Suno, Udio' : 'site, store or person'),
-        txt('url', c.licence === 'cc-by' ? 'Link to the original (needed)' : 'Link (optional)', 'https://...')),
+        txt('url', c.licence.startsWith('cc-by') ? 'Link to the original (needed)' : 'Link (optional)', 'https://...')),
       c.licence === 'ai' ? el('div', { class: 'row' }, txt('ai_tool', 'AI tool', 'e.g. Suno v5'), txt('ai_plan', 'Plan / subscription', 'e.g. Pro (commercial use)')) : null,
       el('div', { class: 'row' },
         el('div', { class: 'field', style: 'flex-basis:300px' }, el('label', { for: 'pr' + it.id }, 'Licence proof (receipt, licence text, plan terms...)'), proofSel),
@@ -386,9 +399,35 @@ async function attachProof(it, file) {
     const p = await api('/api/proof', { body: file, headers: { 'X-File-Name': encodeURIComponent(file.name) } });
     extraProofs.push(p);
     it.proof = { work: p.work };
-    for (const x of items) if (x.state === 'ready') { const s = document.getElementById('pr' + x.id); if (s) proofOptions(s, x); }
+    for (const id in (p.freesound || {})) fsCredits[id] = Object.assign({ proof: p.work }, p.freesound[id]);
+    for (const x of items) if (x.state === 'ready') {
+      if (!applyFreesound(x)) { const s = document.getElementById('pr' + x.id); if (s) proofOptions(s, x); }
+    }
     refresh();
   } catch (e) { setStatus($('#addStatus'), 'Proof not attached: ' + e.message, 'bad-t'); }
+}
+
+/* Freesound's licence file names each sound's exact title, author and
+   licence: fill them in for the track downloaded from that sound. True if
+   the card was redrawn. The title is kept if it was typed by hand. */
+function applyFreesound(it) {
+  const f = it.fsId && fsCredits[it.fsId];
+  if (!f) return false;
+  const c = it.credit;
+  if (it.title === it.rep.title) it.title = f.title;
+  Object.assign(c, { author: f.author, url: f.url, source: f.source });
+  if (f.licence) {
+    Object.assign(c, { licence: f.licence, commercial_ok: true });
+    it.fsNote = `Filled in from Freesound's licence file (${f.licence_text}).`;
+    it.fsWarn = '';
+  } else {
+    Object.assign(c, { licence: '', commercial_ok: false });
+    it.fsNote = '';
+    it.fsWarn = `Freesound lists its licence as "${f.licence_text}": the hub can't use it (no NC, ND or Sampling+).`;
+  }
+  it.proof = { work: f.proof };
+  renderCard(it);
+  return true;
 }
 
 function removeItem(it) {
@@ -405,7 +444,7 @@ function missing(it) {
   if (!c.licence) m.push('licence');
   if (c.licence && c.licence !== 'own' && !c.author.trim()) m.push('author');
   if (c.licence === 'ai' && (!c.ai_tool.trim() || !c.ai_plan.trim())) m.push('AI tool and plan');
-  if (c.licence === 'cc-by' && !c.url.trim()) m.push('link');
+  if (c.licence.startsWith('cc-by') && !c.url.trim()) m.push('link');
   if (!it.proof) m.push('proof');
   if (c.licence && !c.commercial_ok) m.push('the tick box');
   return m;
@@ -496,15 +535,27 @@ function trackRow(t) {
   const title = el('input', { type: 'text', value: t.title, maxlength: 80 });
   const loop = el('input', { type: 'number', min: 0, step: 0.1, value: t.loop_start || 0 });
   const st = el('p', { class: 'status' });
-  editBox.append(el('div', { class: 'row' },
-    el('div', { class: 'field' }, el('span', { class: 'lab' }, 'Title'), title),
-    el('div', { class: 'field' }, el('span', { class: 'lab' }, 'Genre'), gSel),
-    el('div', { class: 'field' }, el('span', { class: 'lab' }, 'Pace'), pSel),
-    el('div', { class: 'field', style: 'flex:0 1 110px' }, el('span', { class: 'lab' }, 'Loop from (s)'), loop),
-    el('button', { class: 'btn', type: 'button', onclick: async () => {
+  // The credit can be corrected here too (checked like a new track).
+  const input = (v, ph) => el('input', { type: 'text', value: v || '', placeholder: ph || '', autocomplete: 'off' });
+  const author = input(c.author), source = input(c.source), url = input(c.url, 'https://...');
+  const aiTool = input(c.ai_tool), aiPlan = input(c.ai_plan);
+  const lic = el('select', {}, Object.entries(S.licences).map(([k, v]) => el('option', { value: k }, v)));
+  lic.value = c.licence || '';
+  const proof = el('select', {}, ((S && S.proofs) || []).map(p => el('option', { value: p }, p.replace('media/licenses/', ''))));
+  proof.value = c.proof || '';
+  const ok = el('input', { type: 'checkbox', checked: true });
+  const field = (label, node, style) => el('div', { class: 'field', style: style || null }, el('span', { class: 'lab' }, label), node);
+  editBox.append(
+    el('div', { class: 'row' }, field('Title', title), field('Genre', gSel), field('Pace', pSel), field('Loop from (s)', loop, 'flex:0 1 110px')),
+    el('div', { class: 'row', style: 'margin-top:8px' }, field('Licence', lic), field('Author / artist', author), field('Got it from', source), field('Link', url)),
+    el('div', { class: 'row', style: 'margin-top:8px' }, field('AI tool (AI tracks)', aiTool), field('AI plan (AI tracks)', aiPlan), field('Licence proof', proof, 'flex-basis:260px')),
+    el('label', { class: 'check', style: 'margin-top:8px' }, ok, el('span', {}, 'Its licence allows use in a commercial app (never NC or ND).')),
+    el('div', { class: 'row', style: 'margin-top:8px' }, el('button', { class: 'btn', type: 'button', onclick: async () => {
       if (busy) return;
+      const credit = { licence: lic.value, author: author.value, source: source.value, url: url.value,
+        ai_tool: aiTool.value, ai_plan: aiPlan.value, proof: proof.value, commercial_ok: ok.checked };
       try {
-        await runJob(post('/api/edit', { id: t.id, changes: { title: title.value, genre: gSel.value, pace: pSel.value, loop_start: loop.value }, genres }), st);
+        await runJob(post('/api/edit', { id: t.id, changes: { title: title.value, genre: gSel.value, pace: pSel.value, loop_start: loop.value, credit }, genres }), st);
         await loadState();
       } catch (e) { setStatus(st, 'Not saved: ' + e.message, 'bad-t'); }
     } }, 'Save')), st);
@@ -592,7 +643,10 @@ function init() {
   });
   $('#copyCredit').addEventListener('click', () => {
     const first = items.find(i => i.state === 'ready'); if (!first) return;
-    for (const i of items) if (i !== first && i.state === 'ready') { i.credit = JSON.parse(JSON.stringify(first.credit)); i.proof = first.proof ? Object.assign({}, first.proof) : null; renderCard(i); }
+    for (const i of items) if (i !== first && i.state === 'ready') {
+      i.credit = JSON.parse(JSON.stringify(first.credit)); i.proof = first.proof ? Object.assign({}, first.proof) : null;
+      if (!applyFreesound(i)) renderCard(i);  // a track Freesound's file names keeps its own credit
+    }
     refresh();
   });
   $('#publish').addEventListener('click', publish);

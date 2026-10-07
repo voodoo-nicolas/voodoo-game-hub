@@ -485,9 +485,20 @@ window and closes itself 2 min after the window does.
   in `media/licenses/music/` (files first, list last). GitHub access is
   `gh auth token`, never stored. Duplicates are spotted by the picked file's
   sha256 (`src_sha256`): Vorbis gives every encode a random serial, so the
-  OGG's own hash differs each time. The Library tab previews, edits and removes
-  tracks (removing takes it off the list; the asset stays). The "Where it plays"
-  tab edits the `play` map.
+  OGG's own hash differs each time. The Library tab previews, edits (title,
+  genre, pace, loop, and the credit, checked like a new track) and removes
+  tracks (removing takes it off the list; the asset stays). The "Where it
+  plays" tab edits the `play` map. Licences: own, CC0, CC BY 4.0, **CC BY
+  3.0** (`cc-by-3`, older Freesound sounds), royalty-free, bought, AI.
+- **Freesound auto-fill** (the owner's first uploads came from there,
+  2026-10-07): a file named `<id>__<user>__<name>.<ext>` gets its source + link,
+  and attaching Freesound's `licenses.txt` (one `<name> by <user> -- <url> --
+  License: <licence>` line per sound) as the proof fills each matching
+  track's exact title, author and licence. NC / Sampling+ sounds are refused.
+  "Same credit for all" never overwrites a credit that came from that file.
+  The first three uploads went in by hand. They need fixes in Library → Edit:
+  Zimmerman (154822) is CC BY 3.0, not 4.0; Robetroid (825878) is by
+  "Robhog"; the titles are file names.
   Test it without GitHub: `python tools/music_drop/music_drop.py --fake <dir>`.
   Log: `%LOCALAPPDATA%\ViralMusicDrop\music_drop.log`.
 - **The tool commits straight to GitHub**, so `git pull` before

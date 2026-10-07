@@ -87,10 +87,22 @@ LICENCES = {
     "own": "Own work (Viral)",
     "cc0": "CC0 1.0 (public domain)",
     "cc-by": "CC BY 4.0 (credit shown in the app)",
+    "cc-by-3": "CC BY 3.0 (credit shown in the app)",
     "royalty-free": "Royalty-free licence",
     "bought": "Bought / commissioned (written licence)",
     "ai": "AI-generated",
 }
+CC_BY = ("cc-by", "cc-by-3")
+# Freesound (freesound.org) names a download "<id>__<user>__<name>.<ext>", and
+# its licence file (the "attribution" text) has one line per sound:
+#   "<name> by <user> -- https://freesound.org/s/<id>/ -- License: <licence>"
+# Attaching that file as the proof fills in each matching track's credit.
+FREESOUND_FILE = re.compile(r"^(\d+)__(.+?)__(.+)$")
+FREESOUND_LINE = re.compile(r"^(?P<title>.+?) by (?P<author>.+?) -- (?P<url>https?://freesound\.org/s/(?P<id>\d+)/?)"
+                            r" -- License: (?P<lic>.+?)\s*$", re.M)
+FREESOUND_LICENCES = {"Attribution 4.0": "cc-by", "Attribution 3.0": "cc-by-3", "Creative Commons 0": "cc0"}
+AUDIO_EXT = re.compile(r"\.(ogg|oga|mp3|wav|flac|m4a|aac|opus|aiff?|wma)$", re.I)
+LONG_TRACK_SEC = 600
 # Music autoload styles <-> paces (scripts/common/music.gd).
 STYLES = {"calm": "slow", "lively": "moderate", "techno": "fast"}
 
@@ -125,6 +137,47 @@ def slugify(s: str, fallback: str = "track") -> str:
     s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode()
     s = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
     return s or fallback
+
+
+def build_credit(c: dict, title: str, label: str, proof_path: str) -> dict:
+    """A track's credit from the page's fields, checked like hub.py's
+    lint_music (STANDARDS §10). Raises DropError naming what's missing."""
+    lic = str(c.get("licence", ""))
+    if lic not in LICENCES:
+        raise DropError(f"{label}: pick its licence")
+    author = str(c.get("author", "")).strip() or ("Viral" if lic == "own" else "")
+    if not author:
+        raise DropError(f"{label}: who made it? (author / artist)")
+    if lic == "ai" and not (str(c.get("ai_tool", "")).strip() and str(c.get("ai_plan", "")).strip()):
+        raise DropError(f"{label}: AI tracks need the tool and the plan it was made on")
+    if lic in CC_BY and not str(c.get("url", "")).strip():
+        raise DropError(f"{label}: CC BY needs a link to the original")
+    if not c.get("commercial_ok"):
+        raise DropError(f"{label}: tick that its licence allows use in a commercial app")
+    if not str(proof_path).startswith("media/licenses/"):
+        raise DropError(f"{label}: attach the licence proof (or pick one already on file)")
+    lic_name = LICENCES[lic].split(" (")[0]
+    return {
+        "author": author[:120], "licence": lic, "licence_name": lic_name,
+        "source": str(c.get("source", "")).strip()[:200], "url": str(c.get("url", "")).strip()[:300],
+        "ai_tool": str(c.get("ai_tool", "")).strip()[:120] if lic == "ai" else "",
+        "ai_plan": str(c.get("ai_plan", "")).strip()[:120] if lic == "ai" else "",
+        "commercial_ok": True, "proof": proof_path,
+        "text": f"“{title}” by {author} — {lic_name}",
+    }
+
+
+def freesound_credits(text: str) -> dict[str, dict]:
+    """Freesound's licence file -> {sound id: {title, author, url, licence, licence_text}}.
+    licence is "" when Freesound's licence isn't one the hub may use (NC,
+    Sampling+...)."""
+    out = {}
+    for m in FREESOUND_LINE.finditer(text):
+        lic = m["lic"].strip()
+        out[m["id"]] = {"title": AUDIO_EXT.sub("", m["title"].strip()), "author": m["author"].strip(),
+                        "url": f"https://freesound.org/s/{m['id']}/", "source": "Freesound",
+                        "licence": FREESOUND_LICENCES.get(lic, ""), "licence_text": lic}
+    return out
 
 
 def sha256_of(path: Path) -> str:
@@ -280,10 +333,14 @@ def convert(src: Path, out: Path) -> dict:
         out_lufs, out_tp = (lufs + gain, tp + gain) if method == "gain" else measure(out)
     after = probe(out)
     size = out.stat().st_size
-    warn = ""
+    warns = []
     if abs(out_lufs - TARGET_LUFS) > 1.5:
-        warn = (f"ends up at {out_lufs:.1f} LUFS, not {TARGET_LUFS:.0f}: it has peaks far above its average, "
-                "so it will play quieter than the other tracks")
+        warns.append(f"ends up at {out_lufs:.1f} LUFS, not {TARGET_LUFS:.0f}: it has peaks far above its average, "
+                     "so it will play quieter than the other tracks")
+    if after["duration"] > LONG_TRACK_SEC:
+        warns.append(f"it's {int(after['duration'] // 60)}:{int(after['duration'] % 60):02d} long, so a phone "
+                     f"downloads {size / 1048576:.1f} MB the first time it plays")
+    warn = "; ".join(warns)
     if size > MAX_TRACK:
         raise DropError(f"the converted file is {size / 1048576:.0f} MB -- too long for a game track")
     return {
@@ -590,11 +647,21 @@ class Drop:
         finally:
             src.unlink(missing_ok=True)
         stem = Path(name).stem
-        guess = rep["title"] or re.sub(r"\s+", " ", re.sub(r"[_]+", " ", stem)).strip()
+        fs = FREESOUND_FILE.match(stem)
+        freesound = None
+        if fs:
+            # A Freesound download: its id says where it came from. The name
+            # and user in a file name are squashed (lowercase, no dots), so the
+            # licence file, once attached, gives the exact ones.
+            freesound = {"id": fs[1], "user": fs[2], "url": f"https://freesound.org/s/{fs[1]}/",
+                         "title": re.sub(r"[-_]+", " ", fs[3]).strip()}
+        guess = rep["title"] or (freesound["title"] if freesound else
+                                 re.sub(r"\s+", " ", re.sub(r"[_]+", " ", stem)).strip())
         self.work[wid] = {"kind": "track", "path": out, "name": name, "src_sha256": src_sha, **rep}
         log(f"prepared {name}: {rep['in']['codec']} {rep['in']['kbps']} kbps {rep['in']['lufs']} LUFS -> "
             f"{'kept' if rep['kept'] else 'ogg'} {rep['out']['kbps']} kbps {rep['out']['lufs']} LUFS")
-        return {"work": wid, "name": name, "title": guess[:80], **{k: v for k, v in rep.items() if k != "title"}}
+        return {"work": wid, "name": name, "title": guess[:80], "freesound": freesound,
+                **{k: v for k, v in rep.items() if k != "title"}}
 
     def add_proof(self, name: str, data: bytes) -> dict:
         ext = Path(name).suffix.lower()
@@ -609,7 +676,8 @@ class Drop:
         safe = slugify(Path(name).stem, "licence")[:50] + ext
         self.work[wid] = {"kind": "proof", "path": path, "name": name, "sha256": sha,
                           "repo_path": f"{PROOF_DIR}/{sha[:8]}-{safe}"}
-        return {"work": wid, "name": name, "path": self.work[wid]["repo_path"]}
+        fs = freesound_credits(data.decode("utf-8", "replace")) if ext in (".txt", ".md", ".html", ".htm") else {}
+        return {"work": wid, "name": name, "path": self.work[wid]["repo_path"], "freesound": fs}
 
     # -- jobs (publishing runs in the background; the page polls)
     def start_job(self, fn, *args) -> str:
@@ -680,44 +748,21 @@ class Drop:
                 raise DropError(f"{label}: pick a genre")
             if pace not in PACES:
                 raise DropError(f"{label}: pick a pace")
-            c = it.get("credit") or {}
-            lic = str(c.get("licence", ""))
-            if lic not in LICENCES:
-                raise DropError(f"{label}: pick its licence")
-            author = str(c.get("author", "")).strip() or ("Viral" if lic == "own" else "")
-            if not author:
-                raise DropError(f"{label}: who made it? (author / artist)")
-            if lic == "ai" and not (str(c.get("ai_tool", "")).strip() and str(c.get("ai_plan", "")).strip()):
-                raise DropError(f"{label}: AI tracks need the tool and the plan it was made on")
-            if lic == "cc-by" and not str(c.get("url", "")).strip():
-                raise DropError(f"{label}: CC BY needs a link to the original")
-            if not c.get("commercial_ok"):
-                raise DropError(f"{label}: tick that its licence allows use in a commercial app")
             pr = it.get("proof") or {}
+            proof_path = str(pr.get("path", ""))
             if pr.get("work"):
                 pw = self.work.get(str(pr["work"]))
                 if not pw or pw["kind"] != "proof":
                     raise DropError(f"{label}: the proof file is gone -- attach it again")
-                proofs[pw["repo_path"]] = Path(pw["path"]).read_bytes()
                 proof_path = pw["repo_path"]
-            elif str(pr.get("path", "")).startswith("media/licenses/"):
-                proof_path = str(pr["path"])
-            else:
-                raise DropError(f"{label}: attach the licence proof (or pick one already on file)")
+            credit = build_credit(it.get("credit") or {}, title, label, proof_path)
+            if pr.get("work"):
+                proofs[proof_path] = Path(self.work[str(pr["work"])]["path"]).read_bytes()
             try:
                 loop = max(0.0, min(float(it.get("loop_start") or 0), float(w["duration"]) - 1))
             except (TypeError, ValueError):
                 loop = 0.0
             tid = f"{genre}-{pace}-{slugify(title)[:40]}-{w['sha256'][:8]}"
-            lic_name = LICENCES[lic].split(" (")[0]
-            credit = {
-                "author": author[:120], "licence": lic, "licence_name": lic_name,
-                "source": str(c.get("source", "")).strip()[:200], "url": str(c.get("url", "")).strip()[:300],
-                "ai_tool": str(c.get("ai_tool", "")).strip()[:120] if lic == "ai" else "",
-                "ai_plan": str(c.get("ai_plan", "")).strip()[:120] if lic == "ai" else "",
-                "commercial_ok": True, "proof": proof_path,
-                "text": f"\u201c{title}\u201d by {author} \u2014 {lic_name}",
-            }
             tracks.append({"work": w, "entry": {
                 "id": tid, "title": title[:80], "genre": genre, "pace": pace, "file": tid + ".ogg",
                 "size": w["size"], "sha256": w["sha256"], "src_sha256": w["src_sha256"], "duration": w["duration"],
@@ -792,8 +837,11 @@ class Drop:
                 raise DropError("that track isn't in the library any more")
             if "title" in changes and str(changes["title"]).strip():
                 t["title"] = str(changes["title"]).strip()[:80]
-                c = t.get("credit", {})
-                c["text"] = f"\u201c{t['title']}\u201d by {c.get('author', '')} \u2014 {c.get('licence_name', '')}"
+            # The credit: the changed fields over the stored ones, checked
+            # like a new track (and its text rebuilt for a new title).
+            credit = dict(t.get("credit") or {})
+            credit.update(changes.get("credit") or {})
+            t["credit"] = build_credit(credit, t["title"], f"\"{t['title']}\"", str(credit.get("proof", "")))
             if changes.get("genre") in known:
                 t["genre"] = changes["genre"]
                 if not any(g.get("id") == t["genre"] for g in data["genres"]):

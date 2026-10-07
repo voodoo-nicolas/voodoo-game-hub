@@ -60,7 +60,7 @@ CREDITS = MEDIA / "CREDITS.json"
 MUSIC_LIST = MEDIA / "music" / "music.json"
 MUSIC_PACES = ("slow", "moderate", "fast")
 MUSIC_STYLES = ("", "off", "calm", "lively", "techno")
-MUSIC_LICENCES = ("own", "cc0", "cc-by", "royalty-free", "bought", "ai")
+MUSIC_LICENCES = ("own", "cc0", "cc-by", "cc-by-3", "royalty-free", "bought", "ai")
 TEMPLATES = ROOT / "tools/templates"
 PACKS_OUT = ROOT / "builds/packs"
 KNOWN_GODOT = Path(os.path.expandvars(
@@ -431,7 +431,7 @@ def lint_music(m: dict) -> list[str]:
             errors.append(f"{at}: commercial use not confirmed")
         if lic == "ai" and not (str(c.get("ai_tool", "")).strip() and str(c.get("ai_plan", "")).strip()):
             errors.append(f"{at}: AI track without its tool and plan (HUB_V2_PLAN §5.6)")
-        if lic == "cc-by" and not str(c.get("url", "")).strip():
+        if lic in ("cc-by", "cc-by-3") and not str(c.get("url", "")).strip():
             errors.append(f"{at}: CC BY needs the link to the original")
         proof = str(c.get("proof", ""))
         if not proof.startswith("media/licenses/") or not (ROOT / proof).is_file():
