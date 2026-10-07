@@ -186,6 +186,12 @@ key as-is. `online_lobby.gd` is the shared Host / Join-by-code screen.
   Backgammon, Memory, Five in a Row, Hex (2026-10-04), Poker (heads-up, 2026-10-05). Games with dice or a shuffle send the whole
   state as the move (Backgammon: every roll and checker move; Memory: the host
   deals, each flip is a move).
+- **Join links (v0.31)**: after Host, the lobby shows the code, a QR of the join
+  page (`Config.JOIN_PAGE_URL` = GitHub Pages `docs/j/index.html?g=<id>&c=<CODE>`),
+  📋 Copy invite (clipboard) and 💬 WhatsApp (`wa.me/?text=`). No deep link into
+  the app yet (no domain, no intent filters): the page tells the friend to type
+  the code. QR encoder: `scripts/common/qr.gd`; `tools/test_qr.gd` writes test
+  images (decode them with any reader).
 - **Testing online without the server**: `tools/test_online_pair.gd` plays
   whole games between two copies of a game joined by a fake session (JSON
   round trip) and checks they never disagree; add a driver there when wiring

@@ -12,6 +12,9 @@ extends ColorRect
 
 const OnlineSession = preload("res://scripts/common/online_session.gd")
 const UI = preload("res://scripts/common/ui.gd")
+const QR = preload("res://scripts/common/qr.gd")
+const Config = preload("res://scripts/common/config.gd")
+const Brand = preload("res://scripts/common/brand.gd")
 
 signal started(session: Node, my_player: int)
 signal cancelled()
@@ -34,6 +37,11 @@ var _rejoin_btn: Button
 var _code_edit: LineEdit
 var _status: Label
 var _code_label: Label
+## Join link (since v0.31): a QR of the link and Copy / WhatsApp buttons,
+## shown with the code once a room exists.
+var _qr_rect: TextureRect
+var _share_row: HBoxContainer
+var _share_text: String = ""
 var _host_btn: Button
 var _join_btn: Button
 ## Friends to invite into the room once it exists (since v0.25, needs Social).
@@ -115,6 +123,25 @@ func _ready() -> void:
 	_code_label = _label("", 64, Color(1, 0.84, 0.3))
 	_code_label.visible = false
 	box.add_child(_code_label)
+	_qr_rect = TextureRect.new()
+	_qr_rect.custom_minimum_size = Vector2(220, 220)
+	_qr_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_qr_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_qr_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_qr_rect.visible = false
+	box.add_child(_qr_rect)
+	_share_row = HBoxContainer.new()
+	_share_row.add_theme_constant_override("separation", 12)
+	_share_row.visible = false
+	box.add_child(_share_row)
+	var copy_btn := _button(tr("📋 Copy invite"))
+	copy_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy_btn.pressed.connect(_on_copy_invite)
+	_share_row.add_child(copy_btn)
+	var wa_btn := _button(tr("💬 WhatsApp"))
+	wa_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wa_btn.pressed.connect(_on_whatsapp)
+	_share_row.add_child(wa_btn)
 
 	_invite_btn = _button(tr("📨 Invite a friend"))
 	_invite_btn.visible = false
@@ -136,6 +163,8 @@ func open() -> void:
 	_reset_session()
 	_code_edit.text = ""
 	_code_label.visible = false
+	_qr_rect.visible = false
+	_share_row.visible = false
 	_invite_btn.visible = false
 	_friend_box.visible = false
 	_status.text = ""
@@ -232,7 +261,8 @@ func _on_host() -> void:
 func _on_room_created(code: String) -> void:
 	_code_label.text = code
 	_code_label.visible = true
-	_status.text = tr("Tell your friend this code.\nWaiting for them to join...")
+	_show_join_link(code)
+	_status.text = tr("Tell your friend this code, or let them scan the QR.\nWaiting for them to join...")
 	var social := _social()
 	_invite_btn.visible = social != null and social.available
 	if not _auto_invite.is_empty() and social:
@@ -241,6 +271,28 @@ func _on_room_created(code: String) -> void:
 	elif _auto_friends and _invite_btn.visible:
 		_show_friends()
 	_auto_friends = false
+
+# ---------- join link (STANDARDS §5, since v0.31) ----------
+
+func _join_url(code: String) -> String:
+	return "%s?g=%s&c=%s" % [Config.JOIN_PAGE_URL, game_id.uri_encode(), code.uri_encode()]
+
+func _show_join_link(code: String) -> void:
+	var url := _join_url(code)
+	_share_text = tr("Play %s with me in %s! Code: %s") % [game_title, Brand.NAME, code] + "\n" + url
+	var img: Image = QR.image(url, 6)
+	if img:
+		_qr_rect.texture = ImageTexture.create_from_image(img)
+		_qr_rect.visible = true
+	_share_row.visible = true
+
+func _on_copy_invite() -> void:
+	DisplayServer.clipboard_set(_share_text)
+	_status.text = tr("Invite copied — paste it in any chat.\nWaiting for them to join...")
+
+## WhatsApp's own share link: opens WhatsApp (or its web page) with the text.
+func _on_whatsapp() -> void:
+	OS.shell_open("https://wa.me/?text=" + _share_text.uri_encode())
 
 # ---------- invites (Social, since v0.25) ----------
 

@@ -5014,5 +5014,10 @@
  "👤 Profile": "👤 Perfil",
  "🔍 Search games": "🔍 Buscar juegos",
  "🤖 Single player": "🤖 Un jugador",
- "Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras."
+ "Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
+ "Invite copied — paste it in any chat.\nWaiting for them to join...": "Invitación copiada: pégala en cualquier chat.\nEsperando a que se una...",
+ "Play %s with me in %s! Code: %s": "¡Juega %s conmigo en %s! Código: %s",
+ "Tell your friend this code, or let them scan the QR.\nWaiting for them to join...": "Dile este código a tu amigo, o que escanee el QR.\nEsperando a que se una...",
+ "💬 WhatsApp": "💬 WhatsApp",
+ "📋 Copy invite": "📋 Copiar invitación"
 }

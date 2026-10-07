@@ -98,6 +98,10 @@ Vs CPU · Custom. Difficulty: Easy · Normal · Hard (+ Expert where meaningful)
 - Then mode / difficulty / rules: host chooses, guests see them read-only.
 - Online games **rejoin** instead of resuming locally [CURRENT].
 - Join links: `https://<domain>/j/<CODE>` → Android App Link into the app; fallback page sends to the Play Store.
+  [CURRENT since v0.31.0, no domain yet] The lobby shows the room code, a QR of
+  `https://voodoo-nicolas.github.io/voodoo-game-hub/j/?g=<id>&c=<CODE>` (GitHub Pages, `docs/j/index.html`: code +
+  how to join + get the app, EN/ES) and 📋 Copy invite / 💬 WhatsApp (wa.me share link). QR: `scripts/common/qr.gd`
+  (pure GDScript, level M, versions 1-6, checked with OpenCV via `tools/test_qr.gd`). App Links wait for a domain.
 
 ## 6. In-game: pause / exit / resume [CURRENT → extended]
 - Visible pause button inside the safe area.

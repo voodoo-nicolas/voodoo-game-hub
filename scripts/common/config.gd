@@ -19,6 +19,11 @@ const LATEST_RELEASE_API := "https://api.github.com/repos/" + GITHUB_OWNER + "/"
 const MANIFEST_URL := "https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/manifest.json"
 ## Fallback when a manifest entry has no "url" of its own.
 const PACK_BASE_URL := REPO_URL + "/releases/download/" + PACK_RELEASE_TAG + "/"
+## Join links (STANDARDS §5, since v0.31): the lobby shares
+## JOIN_PAGE_URL + "?g=<game id>&c=<CODE>" (docs/j/index.html on GitHub
+## Pages) as text and as a QR code. No domain yet, so no App Link: the page
+## shows the code and how to join.
+const JOIN_PAGE_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/j/"
 
 ## Publishable/anon key only -- safe to ship, it grants nothing beyond what the
 ## project's Row Level Security allows. Never put the service_role key here.
