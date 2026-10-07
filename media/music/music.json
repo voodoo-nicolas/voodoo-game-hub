@@ -2,7 +2,7 @@
  "_readme": "The hub's shared music library -- written by tools/music_drop (Viral Music Drop). Each track's OGG lives on the GitHub release named in base_url; phones download a track the first time a game wants its genre / pace (scripts/common/music_library.gd). pace: slow | moderate | fast = the Music styles calm | lively | techno. play: where music plays -- \"hub\", \"category:<English name>\", \"game:<id>\" -> {style: \"\" (the game decides) | calm | lively | techno (plays by itself) | off, genres: [] (any)}; field by field, a game's own entry wins over its category's.",
  "format": 1,
  "base_url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/music-v1/",
- "updated": "2026-10-07T08:51:18Z",
+ "updated": "2026-10-07T09:13:35Z",
  "genres": [
   {
    "id": "synthwave",
@@ -60,6 +60,32 @@
     "commercial_ok": true,
     "proof": "media/licenses/music/bb87ef94-licenses.txt",
     "text": "“786390 delcraftdigital loop - hppyh tempo51bpmfraction” by DelcraftDigital — CC BY 4.0"
+   }
+  },
+  {
+   "id": "synthwave-moderate-825878-robhog-robetroid-721449d1",
+   "title": "825878 robhog robetroid",
+   "genre": "synthwave",
+   "pace": "moderate",
+   "file": "synthwave-moderate-825878-robhog-robetroid-721449d1.ogg",
+   "size": 587636,
+   "sha256": "721449d10ce3e01e8701d6c5dd84d443762546209d43703f8026251ed5bf4220",
+   "src_sha256": "dc511c5b150f426783afc4ddf5a8a13e28a8d476eadc29b2f9d1d6af62e55a2a",
+   "duration": 48.1,
+   "lufs": -15.8,
+   "loop_start": 0.0,
+   "added": "2026-10-07",
+   "credit": {
+    "author": "robhob",
+    "licence": "cc-by",
+    "licence_name": "CC BY 4.0",
+    "source": "https://freesound.org/s/825878/",
+    "url": "https://freesound.org/s/825878/",
+    "ai_tool": "",
+    "ai_plan": "",
+    "commercial_ok": true,
+    "proof": "media/licenses/music/c77b3d1c-robetroid-by-robhog-httpsfreesou.txt",
+    "text": "“825878 robhog robetroid” by robhob — CC BY 4.0"
    }
   }
  ],
