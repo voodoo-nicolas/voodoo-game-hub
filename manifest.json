@@ -43,7 +43,8 @@
       {"id": "voodoo_iq", "original": true, "title": "IQ Test", "icon": "🧠", "title_es": "Test de IQ", "board": "none", "learn": ["logic", "math", "memory"]},
       {"id": "sketch_it", "title": "Sketch It", "icon": "🎨", "title_es": "Dibújalo", "modes": "party", "board": "Drawings guessed", "skins": "classic,voodoo", "learn": ["art"]},
       {"id": "trace_it", "original": true, "title": "Trace It", "icon": "✏️", "title_es": "Calcá", "board": "none", "learn": ["art"]},
-      {"id": "trivia_battle", "title": "Trivia Battle", "icon": "🥊", "title_es": "Batalla de trivia", "modes": "local,party", "board": "none", "skins": "classic,voodoo", "learn": ["geo", "science"]}
+      {"id": "trivia_battle", "title": "Trivia Battle", "icon": "🥊", "title_es": "Batalla de trivia", "modes": "local,party", "board": "none", "skins": "classic,voodoo", "learn": ["geo", "science"]},
+      {"id": "color_sort", "quick": true, "title": "Color Sort", "icon": "🧪", "title_es": "Ordena colores", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic"]}
     ]},
     {"name": "Cards", "icon": "🃏", "name_es": "Cartas", "games": [
       {"id": "solitaire", "title": "Solitaire", "icon": "🂡", "title_es": "Solitario", "board": "Games won", "skins": "classic,voodoo", "learn": ["logic"]},
@@ -245,6 +246,7 @@
     "pig": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pig.pck", "scene": "res://scenes/games/pig/pig.tscn"},
     "bunco": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bunco.pck", "scene": "res://scenes/games/bunco/bunco.tscn"},
     "ship_captain_crew": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ship_captain_crew.pck", "scene": "res://scenes/games/ship_captain_crew/ship_captain_crew.tscn"},
-    "trivia_battle": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trivia_battle.pck", "scene": "res://scenes/games/trivia_battle/trivia_battle.tscn"}
+    "trivia_battle": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trivia_battle.pck", "scene": "res://scenes/games/trivia_battle/trivia_battle.tscn"},
+    "color_sort": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_sort.pck", "scene": "res://scenes/games/color_sort/color_sort.tscn"}
   }
 }
