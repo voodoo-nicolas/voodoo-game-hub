@@ -22,7 +22,7 @@ const COLOR_TYPED := Color("29e6ff")
 const COLOR_KEY := Color(0.45, 0.55, 0.85)
 const MARK_COLORS := {
 	WordleEngine.Mark.ABSENT: Color(0.4, 0.42, 0.5),
-	WordleEngine.Mark.PRESENT: Color("ffae2b"),
+	WordleEngine.Mark.PRESENT: Color("ffe03a"),
 	WordleEngine.Mark.CORRECT: Color("7dff3a"),
 }
 const SAVE_PATH := "user://wordle_save.json"
@@ -56,6 +56,13 @@ func _ready() -> void:
 	_build_ui()
 	_new_game()
 	playing = false
+	_chill_music()
+
+## Chill background music from the hub's Music library (apps before v0.33 play none).
+func _chill_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("calm", self, 2, 2.0)
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -157,6 +164,7 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/wordle/wordle_help.gd"))
+		info.stats["_seen"] = 1  # How to Play is on the Landing; no card before it (owner 2026-10-07)
 	_build_home()
 	if info:
 		add_child(info)
@@ -285,7 +293,7 @@ func _show_result() -> void:
 # ---------- rendering ----------
 
 ## Neon tile: tinted glass with a glowing rim in the mark's colour.
-## Look (STANDARDS §9): "classic" = paper tiles with blue and orange marks (default); "voodoo" = the neon
+## Look (STANDARDS §9): "classic" = paper tiles with green and yellow marks (default); "voodoo" = the neon
 ## board. Set by the kit (Options → Look).
 var skin: String = "classic"
 var bg: ColorRect
@@ -308,7 +316,7 @@ func _tile_style(color: Color) -> StyleBoxFlat:
 		var marked: bool = color in MARK_COLORS.values()
 		var fill := HomeKit.CLASSIC.paper
 		if marked:
-			fill = Color("6b7385") if color == MARK_COLORS[WordleEngine.Mark.ABSENT] else (HomeKit.CLASSIC.blue if color == MARK_COLORS[WordleEngine.Mark.CORRECT] else Color("f08a1c"))
+			fill = Color("6b7385") if color == MARK_COLORS[WordleEngine.Mark.ABSENT] else (Color("4a9a3f") if color == MARK_COLORS[WordleEngine.Mark.CORRECT] else Color("c99a00"))
 		sb.bg_color = fill
 		sb.border_color = HomeKit.CLASSIC.ink if color == COLOR_TYPED else HomeKit.CLASSIC.pencil
 		sb.set_border_width_all(3 if color == COLOR_TYPED else 2)

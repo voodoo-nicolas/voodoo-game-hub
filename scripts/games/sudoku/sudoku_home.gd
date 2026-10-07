@@ -53,6 +53,9 @@ func _ready() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var leather: TextureRect = load("res://scripts/games/sudoku/sudoku_game.gd").leather_texture()
+	if leather:
+		add_child(leather)
 	var grid_bg := Control.new()
 	grid_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid_bg.draw.connect(_draw_backdrop.bind(grid_bg))

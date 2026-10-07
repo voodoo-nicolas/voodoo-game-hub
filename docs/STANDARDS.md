@@ -156,6 +156,10 @@ game's traditional colours (it does not follow the app's light/dark theme; only 
   `"color"` and `choice_row` colours are ignored there. Picked / pressed buttons keep white text. The retro-arcade
   Classic filter covers the game, never the kit's screens (it turned their buttons into flat blocks and wiped out
   the picked button's text).
+- [NEW 2026-10-07, owner] **Default backgrounds** (Landing + play) for a game with no art of its own: the **green felt**
+  photo for every card game (`HomeKit.FELT_GAMES`), the **dark leather** photo for every other game. Both in the APK
+  (`media/hub/backgrounds/felt.jpg`, `leather.jpg`; kit `bg_texture()`, used by the Landing and `backdrop()`); on an
+  app without them the kit keeps the flat colour + grid. A game with its own `"art"` keeps it.
 - Readability: text contrast ≥ 4.5:1; colour is never the only cue (shape/icon too) — neon palettes fail
   colour-blind players otherwise.
 - Art references library: `reference/art/` (`ART_STYLE.md` = the Voodoo skin's guide, `skins/CLASSIC.md`,

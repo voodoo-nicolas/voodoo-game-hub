@@ -20,7 +20,7 @@ extends Node
 ##
 ## The libraries (names for play()):
 ##   Basic   tap back toggle invalid win lose draw record tick notify
-##   Cards   card_deal card_flip card_place card_shuffle
+##   Cards   card_deal card_flip card_place card_shuffle chip   (Sudoku: digit_done)
 ##   Board   place capture slide merge
 ##   Dice    dice_roll dice_land  -- Party: spin_tick whoosh drumroll buzzer
 ##   Arcade  shoot explode powerup hit jump pickup
@@ -44,7 +44,7 @@ const VARY := ["tap", "key", "place", "card_deal", "card_place", "spin_tick", "h
 ## Every library sound (the list in the header, in code form).
 const LIBRARY := [
 	"tap", "back", "toggle", "invalid", "win", "lose", "draw", "record", "tick", "notify",
-	"card_deal", "card_flip", "card_place", "card_shuffle",
+	"card_deal", "card_flip", "card_place", "card_shuffle", "chip", "digit_done",
 	"place", "capture", "slide", "merge",
 	"dice_roll", "dice_land", "spin_tick", "whoosh", "drumroll", "buzzer",
 	"shoot", "explode", "powerup", "hit", "jump", "pickup",
@@ -204,7 +204,10 @@ func _recipe(sound: String) -> Array:
 				{"t": "square", "f": 160, "f2": 140, "at": 0.12, "len": 0.13, "dec": 12, "vol": 0.16}]
 		"win":
 			return _notes("tri", [523.3, 659.3, 784.0, 1046.5], 0.09, 0.45, 0.32) \
-				+ _notes("sine", [1046.5, 1318.5, 1568.0, 2093.0], 0.09, 0.45, 0.12)
+				+ _notes("sine", [1046.5, 1318.5, 1568.0, 2093.0], 0.09, 0.45, 0.12) \
+				+ [{"t": "tri", "f": 523.3, "at": 0.36, "len": 0.7, "dec": 4, "vol": 0.12},
+					{"t": "tri", "f": 659.3, "at": 0.36, "len": 0.7, "dec": 4, "vol": 0.1},
+					{"t": "sine", "f": 3136.0, "at": 0.4, "len": 0.5, "dec": 8, "vol": 0.05}]
 		"lose":
 			return [{"t": "tri", "f": 392.0, "len": 0.2, "dec": 6, "vol": 0.3},
 				{"t": "tri", "f": 329.6, "at": 0.2, "len": 0.2, "dec": 6, "vol": 0.3},
@@ -222,13 +225,30 @@ func _recipe(sound: String) -> Array:
 				{"t": "sine", "f": 1318.5, "at": 0.12, "len": 0.35, "dec": 9, "vol": 0.35}]
 		# --- Cards ---
 		"card_deal":
-			return [{"t": "noise", "len": 0.09, "swell": true, "lp": 0.5, "hp": true, "vol": 0.5}]
+			# a card slid off the deck: a soft swish ending in a snap
+			return [{"t": "noise", "len": 0.11, "swell": true, "lp": 0.18, "lp2": 0.55, "hp": true, "vol": 0.42},
+				{"t": "noise", "at": 0.085, "len": 0.03, "dec": 110, "lp": 0.4, "vol": 0.4}]
 		"card_flip":
-			return [{"t": "noise", "len": 0.05, "dec": 60, "lp": 0.35, "hp": true, "vol": 0.55},
-				{"t": "sine", "f": 900, "len": 0.02, "dec": 150, "vol": 0.12}]
+			# the card lifts (swish), turns over and lands (soft tick)
+			return [{"t": "noise", "len": 0.07, "swell": true, "lp": 0.2, "lp2": 0.5, "hp": true, "vol": 0.4},
+				{"t": "noise", "at": 0.055, "len": 0.035, "dec": 90, "lp": 0.35, "hp": true, "vol": 0.45},
+				{"t": "sine", "f": 520, "f2": 380, "at": 0.055, "len": 0.04, "dec": 100, "vol": 0.1}]
 		"card_place":
-			return [{"t": "noise", "len": 0.04, "dec": 80, "lp": 0.3, "vol": 0.6},
-				{"t": "sine", "f": 140, "f2": 100, "len": 0.06, "dec": 60, "vol": 0.3}]
+			# a card laid on felt: a paper slap with a muffled thump under it
+			return [{"t": "noise", "len": 0.05, "dec": 70, "lp": 0.22, "vol": 0.5},
+				{"t": "noise", "len": 0.012, "dec": 250, "lp": 0.7, "hp": true, "vol": 0.3},
+				{"t": "sine", "f": 180, "f2": 105, "len": 0.09, "dec": 45, "vol": 0.32}]
+		"chip":
+			# a ceramic chip set down: two quick clicks and a low tock
+			return [{"t": "sine", "f": 2400, "len": 0.03, "dec": 150, "vol": 0.2},
+				{"t": "sine", "f": 3100, "at": 0.028, "len": 0.03, "dec": 150, "vol": 0.16},
+				{"t": "noise", "len": 0.02, "dec": 200, "lp": 0.6, "hp": true, "vol": 0.3},
+				{"t": "sine", "f": 620, "f2": 480, "len": 0.06, "dec": 70, "vol": 0.16}]
+		"digit_done":
+			# a digit has all nine places: a small bell pair
+			return [{"t": "sine", "f": 784.0, "len": 0.16, "dec": 14, "vol": 0.26},
+				{"t": "sine", "f": 1175.0, "at": 0.09, "len": 0.3, "dec": 10, "vol": 0.26},
+				{"t": "sine", "f": 2350.0, "at": 0.09, "len": 0.2, "dec": 20, "vol": 0.06}]
 		"card_shuffle":
 			var v: Array = []
 			var rng := RandomNumberGenerator.new()
@@ -307,7 +327,8 @@ func _recipe(sound: String) -> Array:
 			return [{"t": "noise", "len": 0.018, "dec": 220, "lp": 0.5, "hp": true, "vol": 0.35},
 				{"t": "sine", "f": 1250, "len": 0.02, "dec": 180, "vol": 0.1}]
 		"letter_right":
-			return [{"t": "sine", "f": 1046.5, "len": 0.14, "dec": 18, "vol": 0.3},
+			return [{"t": "sine", "f": 1046.5, "len": 0.18, "dec": 14, "vol": 0.3},
+				{"t": "sine", "f": 1568.0, "at": 0.04, "len": 0.2, "dec": 16, "vol": 0.16},
 				{"t": "sine", "f": 2093.0, "len": 0.1, "dec": 25, "vol": 0.08}]
 		"letter_wrong":
 			return [{"t": "tri", "f": 247, "f2": 220, "len": 0.13, "dec": 20, "vol": 0.3}]

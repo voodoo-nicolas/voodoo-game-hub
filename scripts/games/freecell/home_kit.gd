@@ -364,6 +364,9 @@ func _build_home() -> void:
 	var art_path: String = cfg.get("art", "")
 	if art_path != "" and ResourceLoader.exists(art_path):
 		_add_art(home, load(art_path))
+	elif bg_texture(str(consts.get("ID", ""))) != null:
+		# No art of its own: the shared felt (card games) or leather (the rest).
+		_add_art(home, bg_texture(str(consts.get("ID", ""))))
 	else:
 		var grid := Control.new()
 		grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1539,7 +1542,33 @@ static func draw_grid(c: Control) -> void:
 		c.draw_line(Vector2(0, y), Vector2(c.size.x, y), col, 1.0)
 		y += step
 
-## A near-black backdrop with the faint grid, as a game's first child.
+## Card games (STANDARDS §9): the shared green felt behind Landing and play.
+## Every other game without its own art gets the shared dark leather.
+const FELT_GAMES := ["solitaire", "blackjack", "war", "crazy_eights", "go_fish", "gin_rummy",
+	"spider", "freecell", "pyramid", "speed", "memory", "tri_peaks", "hearts", "video_poker"]
+const BG_DIR := "res://media/hub/backgrounds/"  # in the APK (v0.34+); older apps: no texture
+
+## The scene's game id, from res://scenes/games/<id>/<id>.tscn ("" if unknown).
+static func _scene_game_id() -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.current_scene == null:
+		return ""
+	var parts: PackedStringArray = tree.current_scene.scene_file_path.split("/")
+	return parts[parts.size() - 2] if parts.size() >= 2 else ""
+
+## The shared texture for this game (`id` "" = the running scene's), or null
+## on an app that doesn't have it yet.
+static func bg_texture(id: String = "") -> Texture2D:
+	if id == "":
+		id = _scene_game_id()
+	var path: String = BG_DIR + ("felt.jpg" if id in FELT_GAMES else "leather.jpg")
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
+## The play-screen backdrop, as a game's first child. Child 0 is the faint
+## grid (games hide it for Classic); the shared texture, when the app has
+## it, covers it and stays in both skins.
 static func backdrop() -> Control:
 	var root := ColorRect.new()
 	root.color = BG
@@ -1550,6 +1579,15 @@ static func backdrop() -> Control:
 	grid.set_anchors_preset(Control.PRESET_FULL_RECT)
 	grid.draw.connect(draw_grid.bind(grid))
 	root.add_child(grid)
+	var tex := bg_texture()
+	if tex != null:
+		var pic := TextureRect.new()
+		pic.texture = tex
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+		root.add_child(pic)
 	return root
 
 # ---------- glow drawing helpers, for logos and boards ----------

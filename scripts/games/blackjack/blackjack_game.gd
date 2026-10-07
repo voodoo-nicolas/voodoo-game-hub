@@ -25,6 +25,7 @@ const OUTCOME_TEXT := {
 	"push": "Push — bet returned",
 	"lose": "Dealer wins",
 	"bust": "Bust!",
+	"split": "Split hands: net %+d",
 }
 
 var hand_recorded := false  # this hand's result is already in the stats
@@ -44,6 +45,7 @@ var bet_row: Control
 var bet_label: Label
 var action_row: Control
 var double_btn: Button
+var split_btn: Button
 var next_row: Control
 
 func _ready() -> void:
@@ -56,6 +58,13 @@ func _ready() -> void:
 		last_bet = int(data.get("last_bet", 0))
 	_build_ui()
 	_to_betting()  # behind the Home screen until Play
+	_chill_music()
+
+## Chill background music from the hub's Music library (apps before v0.33 play none).
+func _chill_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("calm", self, 1, 2.0)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -69,7 +78,7 @@ func _exit_tree() -> void:
 func _save_game() -> void:
 	var chips: int = engine.chips
 	if engine.phase == BlackjackEngine.Phase.PLAYER_TURN:
-		chips += engine.bet
+		chips += engine.total_bet()
 	SaveUtil.write(CHIPS_PATH, {"chips": chips, "last_bet": last_bet})
 
 # ---------- UI ----------
@@ -150,7 +159,9 @@ func _build_ui() -> void:
 	chip_row.add_theme_constant_override("separation", 12)
 	bet_box.add_child(chip_row)
 	for v in CHIP_VALUES:
-		chip_row.add_child(_button("+%d" % v, 140, _add_to_bet.bind(v)))
+		var chip := _button("+%d" % v, 140, _add_to_bet.bind(v))
+		chip.set_meta("sfx", "chip")
+		chip_row.add_child(chip)
 	var deal_row := HBoxContainer.new()
 	deal_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	deal_row.add_theme_constant_override("separation", 12)
@@ -165,10 +176,12 @@ func _build_ui() -> void:
 	act.add_theme_constant_override("separation", 12)
 	action_row = act
 	controls.add_child(act)
-	act.add_child(_button(tr("Hit"), 200, _hit))
-	act.add_child(_button(tr("Stand"), 200, _stand))
-	double_btn = _button(tr("Double"), 200, _double)
+	act.add_child(_button(tr("Hit"), 160, _hit))
+	act.add_child(_button(tr("Stand"), 160, _stand))
+	double_btn = _button(tr("Double"), 160, _double)
 	act.add_child(double_btn)
+	split_btn = _button(tr("Split"), 160, _split)
+	act.add_child(split_btn)
 
 	# After the hand
 	var nxt := CenterContainer.new()
@@ -178,6 +191,7 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/blackjack/blackjack_help.gd"))
+		info.stats["_seen"] = 1  # How to Play is on the Landing; no card before it (owner 2026-10-07)
 	_build_home()
 	if info:
 		add_child(info)
@@ -213,9 +227,9 @@ func _button(text: String, width: int, action: Callable) -> Button:
 	b.pressed.connect(action)
 	return b
 
-func _make_card(card: Dictionary, face_up: bool) -> Control:
+func _make_card(card: Dictionary, face_up: bool, small: bool = false) -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(120, 172)
+	panel.custom_minimum_size = Vector2(84, 120) if small else Vector2(120, 172)
 	var sb := StyleBoxFlat.new()
 	var rim: Color = (HomeKit.PINK if BlackjackEngine.is_red(card) else HomeKit.CYAN) if face_up else HomeKit.PURPLE
 	sb.bg_color = COLOR_CARD if face_up else COLOR_CARD_BACK
@@ -234,7 +248,7 @@ func _make_card(card: Dictionary, face_up: bool) -> Control:
 	var l := Label.new()
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size", 44)
+	l.add_theme_font_size_override("font_size", 30 if small else 44)
 	if face_up:
 		l.text = BlackjackEngine.card_text(card)
 		l.add_theme_color_override("font_color", HomeKit.PINK.lerp(Color.WHITE, 0.2) if BlackjackEngine.is_red(card) else Color(0.9, 0.98, 1.0))
@@ -255,7 +269,8 @@ func _to_betting() -> void:
 	else:
 		message_label.text = tr("Place your bet")
 	engine.phase = BlackjackEngine.Phase.BETTING
-	pending_bet = min(last_bet, engine.chips) if last_bet >= BlackjackEngine.MIN_BET else 0
+	# First hand: the minimum is already on the table, so Deal is one tap.
+	pending_bet = min(last_bet if last_bet >= BlackjackEngine.MIN_BET else BlackjackEngine.MIN_BET, engine.chips)
 	_render()
 
 func _add_to_bet(v: int) -> void:
@@ -289,6 +304,13 @@ func _stand() -> void:
 
 func _double() -> void:
 	engine.double_down()
+	_sfx("chip")
+	_sfx("card_deal")
+	_after_action()
+
+func _split() -> void:
+	engine.split()
+	_sfx("chip")
 	_sfx("card_deal")
 	_after_action()
 
@@ -301,22 +323,26 @@ func _sfx(sound: String) -> void:
 func _after_action() -> void:
 	if engine.phase == BlackjackEngine.Phase.ROUND_OVER:
 		var text: String = tr(OUTCOME_TEXT.get(engine.outcome, ""))
-		message_label.text = text % engine.payout if text.contains("%d") else text
+		message_label.text = text % engine.payout if (text.contains("%d") or text.contains("%+d")) else text
 		if info and not hand_recorded:
 			hand_recorded = true
-			match engine.outcome:
-				"blackjack", "win", "dealer_bust":
-					info.add("Hands won")
-					if engine.outcome != "blackjack":
-						_sfx("pickup")  # chips coming in; a blackjack celebrates
-					if engine.outcome == "blackjack":
-						info.add("Blackjacks")
-						info.celebrate(tr("Blackjack!"))
-				"push":
-					info.add("Pushes")
-				_:
-					info.add("Hands lost")
-					_sfx("letter_wrong")
+			var won_any := false
+			for h in engine.hands:
+				match h.outcome:
+					"blackjack", "win", "dealer_bust":
+						info.add("Hands won")
+						won_any = true
+						if h.outcome == "blackjack":
+							info.add("Blackjacks")
+							info.celebrate(tr("Blackjack!"))
+					"push":
+						info.add("Pushes")
+					_:
+						info.add("Hands lost")
+			if won_any and engine.outcome != "blackjack":
+				_sfx("chip")  # chips coming in; a blackjack celebrates
+			elif not won_any and engine.payout < 0:
+				_sfx("letter_wrong")
 			info.high("Most chips", engine.chips)
 		_save_game()
 	_render()
@@ -347,6 +373,7 @@ func _render() -> void:
 	action_row.visible = phase == BlackjackEngine.Phase.PLAYER_TURN
 	next_row.visible = phase == BlackjackEngine.Phase.ROUND_OVER
 	double_btn.disabled = not engine.can_double()
+	split_btn.disabled = not engine.can_split()
 	bet_label.text = tr("Bet: %d") % pending_bet
 
 	for row in [dealer_cards, player_cards]:
@@ -360,10 +387,30 @@ func _render() -> void:
 	var hide_hole: bool = phase == BlackjackEngine.Phase.PLAYER_TURN
 	for i in range(engine.dealer.size()):
 		dealer_cards.add_child(_make_card(engine.dealer[i], not (hide_hole and i == 1)))
-	for card in engine.player:
-		player_cards.add_child(_make_card(card, true))
+	if engine.hands.size() > 1:
+		# Split: each hand in its own column, the one being played marked.
+		for i in engine.hands.size():
+			var h: Dictionary = engine.hands[i]
+			var col := VBoxContainer.new()
+			col.add_theme_constant_override("separation", 6)
+			var cards := HBoxContainer.new()
+			cards.alignment = BoxContainer.ALIGNMENT_CENTER
+			cards.add_theme_constant_override("separation", -34)
+			for card in h.cards:
+				cards.add_child(_make_card(card, true, true))
+			col.add_child(cards)
+			var tag := _value_label()
+			var playing: bool = phase == BlackjackEngine.Phase.PLAYER_TURN and i == engine.cur
+			tag.text = ("▶ " if playing else "") + tr("%s   (bet %d)") % [_value_text(h.cards), h.bet]
+			col.add_child(tag)
+			col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			player_cards.add_child(col)
+		player_value.text = ""
+	else:
+		for card in engine.player:
+			player_cards.add_child(_make_card(card, true))
+		player_value.text = tr("%s   (bet %d)") % [_value_text(engine.player), engine.bet]
 	dealer_value.text = "?" if hide_hole else _value_text(engine.dealer)
-	player_value.text = tr("%s   (bet %d)") % [_value_text(engine.player), engine.bet]
 
 func _value_text(hand: Array) -> String:
 	var v: Dictionary = BlackjackEngine.hand_value(hand)

@@ -68,6 +68,13 @@ func _ready() -> void:
 	engine = SolitaireEngine.new()
 	_build_ui()
 	_start_new_game()  # a deal behind the Home screen; Resume / New deal there
+	_chill_music()
+
+## Chill background music from the hub's Music library (apps before v0.33 play none).
+func _chill_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("calm", self, 0, 2.0)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -156,6 +163,7 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/solitaire/solitaire_help.gd"))
+		info.stats["_seen"] = 1  # How to Play is on the Landing; no card before it (owner 2026-10-07)
 	_build_home()
 	if info:
 		add_child(info)
@@ -163,8 +171,11 @@ func _build_ui() -> void:
 
 ## Classic (white cards on green felt, the default) or Neon cards.
 func _apply_card_style() -> void:
-	felt_bg.visible = CardView.classic
-	neon_bg.visible = not CardView.classic
+	# The shared felt texture (kit backdrop) shows in both; the flat felt is only
+	# the fallback on apps that don't have the texture yet.
+	var textured: bool = HomeKit.bg_texture() != null
+	felt_bg.visible = CardView.classic and not textured
+	neon_bg.visible = textured or not CardView.classic
 
 func _pick_card_style(i: int) -> void:
 	CardView.classic = i == 0
@@ -331,6 +342,7 @@ func _render() -> void:
 	else:
 		stock_view.show_face_down()
 	stock_view.card_pressed.connect(_on_card_pressed)
+	stock_view.drag_started.connect(_on_drag_started)
 	board_area.add_child(stock_view)
 
 	# waste (column 1)
@@ -340,6 +352,7 @@ func _render() -> void:
 		empty_waste.position = Vector2(_col_x(1), 0)
 		empty_waste.show_empty_slot()
 		empty_waste.card_pressed.connect(_on_card_pressed)
+		empty_waste.drag_started.connect(_on_drag_started)
 		board_area.add_child(empty_waste)
 	else:
 		var top_index: int = engine.waste.size() - 1
@@ -349,6 +362,7 @@ func _render() -> void:
 		waste_view.show_face_up(engine.waste[top_index])
 		waste_view.set_selected(selected_pile == "waste")
 		waste_view.card_pressed.connect(_on_card_pressed)
+		waste_view.drag_started.connect(_on_drag_started)
 		board_area.add_child(waste_view)
 
 	# foundations (columns 3..6)
@@ -361,6 +375,7 @@ func _render() -> void:
 		else:
 			fview.show_face_up(engine.foundations[s].back())
 		fview.card_pressed.connect(_on_card_pressed)
+		fview.drag_started.connect(_on_drag_started)
 		board_area.add_child(fview)
 
 	# tableau
@@ -373,6 +388,7 @@ func _render() -> void:
 			empty_col.position = Vector2(_col_x(col), tableau_top)
 			empty_col.show_empty_slot()
 			empty_col.card_pressed.connect(_on_card_pressed)
+			empty_col.drag_started.connect(_on_drag_started)
 			board_area.add_child(empty_col)
 			continue
 		for i in range(pile.size()):
@@ -386,6 +402,7 @@ func _render() -> void:
 			else:
 				cview.show_face_down()
 			cview.card_pressed.connect(_on_card_pressed)
+			cview.drag_started.connect(_on_drag_started)
 			board_area.add_child(cview)
 
 	moves_label.text = tr("Moves: %d") % engine.move_count
@@ -521,6 +538,89 @@ func _stop_autoplay() -> void:
 	autoplaying = false
 	if autoplay_tween:
 		autoplay_tween.kill()
+
+# ---------- drag and drop ----------
+# Tapping still works (select, then tap the destination). Dragging a face-up
+# tableau card (with the cards on it) or the waste card lifts it; dropping on
+# a column or foundation plays the move if the rules allow it, otherwise it
+# snaps back. Mouse events only: a phone's touch is emulated as the mouse.
+
+var _drag: Dictionary = {}  # pile, pile_index, card_index, ghost, grab (board units)
+
+func _on_drag_started(pile: String, pile_index: int, card_index: int) -> void:
+	if autoplaying or not _drag.is_empty() or not game_active:
+		return
+	var cards: Array = []
+	if pile == "tableau" and card_index >= 0 and engine.tableau[pile_index][card_index].face_up:
+		cards = engine.tableau[pile_index].slice(card_index)
+	elif pile == "waste" and card_index >= 0:
+		cards = [engine.waste[card_index]]
+	else:
+		return
+	var scale_k: float = board_area.scale.x
+	var ghost := Control.new()
+	ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ghost.z_index = 100
+	ghost.scale = Vector2(scale_k, scale_k)
+	for i in cards.size():
+		var cv := CardView.new()
+		cv.setup("drag", -1, -1)
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.position = Vector2(0, i * FAN)
+		cv.show_face_up(cards[i])
+		ghost.add_child(cv)
+	add_child(ghost)
+	# Hide the lifted cards on the board.
+	for child in board_area.get_children():
+		if child.pile == pile and child.pile_index == pile_index and child.card_index >= card_index:
+			child.visible = false
+	var source_pos := Vector2.ZERO
+	if pile == "tableau":
+		source_pos = Vector2(_col_x(pile_index), CARD_H + ROW_GAP + card_index * FAN)
+	else:
+		source_pos = Vector2(_col_x(1), 0)
+	var grab: Vector2 = board_area.get_local_mouse_position() - source_pos
+	_drag = {"pile": pile, "pile_index": pile_index, "card_index": card_index, "ghost": ghost, "grab": grab}
+	_clear_selection()
+	_move_ghost()
+	_sfx("card_flip")
+
+func _move_ghost() -> void:
+	var ghost: Control = _drag.ghost
+	ghost.global_position = get_global_mouse_position() - _drag.grab * board_area.scale.x
+
+func _input(event: InputEvent) -> void:
+	if _drag.is_empty():
+		return
+	if event is InputEventMouseMotion:
+		_move_ghost()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		_drop()
+
+## Where the lifted card's centre is: a foundation (top row, columns 3-6) or a
+## tableau column (columns 0-6, below the top row).
+func _drop() -> void:
+	var d := _drag
+	_drag = {}
+	d.ghost.queue_free()
+	var centre: Vector2 = board_area.get_local_mouse_position() - d.grab + Vector2(CARD_W, CARD_H) / 2.0
+	var col: int = floori(centre.x / (CARD_W + COL_GAP))
+	var moved := false
+	if col >= 0 and col <= 6:
+		selected_pile = d.pile
+		selected_pile_index = d.pile_index
+		selected_card_index = d.card_index
+		if centre.y < CARD_H + ROW_GAP / 2.0:
+			if col >= 3:
+				moved = _try_move_to("foundation", col - 3)
+		else:
+			moved = _try_move_to("tableau", col)
+	_clear_selection()
+	if moved:
+		_after_move()
+	else:
+		_sfx("invalid")
+		_render()
 
 func _try_select(pile: String, pile_index: int, card_index: int) -> void:
 	if pile == "tableau" and card_index >= 0 and engine.tableau[pile_index][card_index].face_up:

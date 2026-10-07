@@ -1,6 +1,13 @@
 extends Button
 
 signal card_pressed(pile: String, pile_index: int, card_index: int)
+## The finger/mouse went down on this card and moved past DRAG_START: the game
+## takes over (drag and drop). Taps still go through card_pressed.
+signal drag_started(pile: String, pile_index: int, card_index: int)
+const DRAG_START := 14.0
+var _press_at := Vector2.ZERO
+var _pressing := false
+var _suppress_press := false
 
 const WIDTH := 84
 const HEIGHT := 118
@@ -58,7 +65,25 @@ func setup(p: String, p_index: int, c_index: int) -> void:
 	suit_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(suit_label)
 
-	pressed.connect(func(): card_pressed.emit(pile, pile_index, card_index))
+	pressed.connect(_on_pressed)
+
+func _on_pressed() -> void:
+	if _suppress_press:  # the release that ended a drag is not a tap
+		_suppress_press = false
+		return
+	card_pressed.emit(pile, pile_index, card_index)
+
+## Only the left button / a finger (a phone sends the mouse copy first).
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_pressing = event.pressed
+		_press_at = event.global_position
+		if event.pressed:
+			_suppress_press = false
+	elif event is InputEventMouseMotion and _pressing and event.global_position.distance_to(_press_at) > DRAG_START:
+		_pressing = false
+		_suppress_press = true
+		drag_started.emit(pile, pile_index, card_index)
 
 func show_face_up(card) -> void:
 	rank_label.visible = true

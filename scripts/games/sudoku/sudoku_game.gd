@@ -105,6 +105,18 @@ func _ready() -> void:
 	_build_ui()
 	_set_skin(_saved_skin(), false)
 	_show_difficulty_screen()
+	_chill_music()
+
+func _sfx(sound: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s:
+		s.play(sound)  # unknown names (older apps) are skipped
+
+## Chill background music from the hub's Music library (apps before v0.33 play none).
+func _chill_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("calm", self, 3, 2.0)
 
 ## Leaving mid-generation (settings drawer -> Hub) would destroy a Thread
 ## that's still running, which Godot treats as an error and can crash on.
@@ -172,6 +184,19 @@ func _format_time(s: float) -> String:
 
 # ---------- UI construction ----------
 
+## The shared dark leather (in apps from v0.34; older apps keep the flat colour).
+static func leather_texture() -> TextureRect:
+	var path := "res://media/hub/backgrounds/leather.jpg"
+	if not ResourceLoader.exists(path):
+		return null
+	var pic := TextureRect.new()
+	pic.texture = load(path)
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+	return pic
+
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
@@ -180,6 +205,9 @@ func _build_ui() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	_screen_bg = bg
+	var leather := leather_texture()
+	if leather:
+		add_child(leather)
 
 	_build_game_screen()
 	_build_loading_overlay()
@@ -187,6 +215,7 @@ func _build_ui() -> void:
 	_build_pause_dialog()
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/sudoku/sudoku_help.gd"))
+		info.stats["_seen"] = 1  # How to Play is on the Landing; no card before it (owner 2026-10-07)
 	# Home sits under the dialogs and GameInfo's own card (first-play How to Play).
 	_build_home()
 	if info:
@@ -822,6 +851,7 @@ func _place_number(r: int, c: int, n: int) -> void:
 	_clear_hint()
 
 	if n == solution[r][c]:
+		_sfx("digit_done" if _digit_complete(n) else "place")
 		snap["peers"] = _clear_peer_notes(r, c, n)
 		snap["peer_digit"] = n
 		if not scored_cells.has(r * 9 + c):
@@ -831,6 +861,7 @@ func _place_number(r: int, c: int, n: int) -> void:
 		_check_win()
 	else:
 		cell.mark_error()
+		_sfx("letter_wrong")
 		mistakes += 1
 		score = max(0, score - MISTAKE_PENALTY)
 
@@ -859,6 +890,7 @@ func _on_erase_pressed() -> void:
 	if cell.is_given:
 		return
 	_record_undo(selected.x, selected.y)
+	_sfx("back")
 	cell.clear_value()
 	_clear_hint()
 	_refresh_highlights()

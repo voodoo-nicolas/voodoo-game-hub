@@ -5234,5 +5234,10 @@
  "🎉 Group": "🎉 Grupo",
  "⚡ Quick (5 min)": "⚡ Rápidos (5 min)",
  "⭐ Viral Original": "⭐ Originales de Viral",
- "Tap ☆ on any game below to pin it here.": "Toca ☆ en cualquier juego de abajo para fijarlo aquí."
+ "Tap ☆ on any game below to pin it here.": "Toca ☆ en cualquier juego de abajo para fijarlo aquí.",
+ "Always split Aces and 8s; never split 10s or 5s.": "Divide siempre los Ases y los 8; nunca los 10 ni los 5.",
+ "Split": "Dividir",
+ "Split appears when your first two cards have the same value (a 10 and a King count): it puts a second bet next to the first and plays each card as its own hand. Split Aces get one card each. 21 after a split pays 1 to 1, not 3 to 2.": "Dividir aparece cuando tus dos primeras cartas valen lo mismo (un 10 y un Rey cuentan): pone una segunda apuesta junto a la primera y juega cada carta como su propia mano. Los Ases divididos reciben una sola carta cada uno. Un 21 tras dividir paga 1 a 1, no 3 a 2.",
+ "Split hands: net %+d": "Manos divididas: neto %+d",
+ "Your bet starts at the minimum, so Deal is one tap; tap the + buttons for more. You and the dealer each get two cards.": "Tu apuesta empieza en el mínimo, así que Repartir es un toque; usa los botones + para apostar más. Tú y la banca reciben dos cartas cada uno."
 }
