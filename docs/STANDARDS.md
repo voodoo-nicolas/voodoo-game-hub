@@ -42,7 +42,7 @@ Goal: fewer buttons, no scrolling on the hub home.
 - Hub home must fit one phone screen at text scale 1.4 without vertical scroll.
 
 ### 2a. Game Browser [CURRENT since v0.30.0 — except ratings, "Top rated", "New", Newest sort, size badge: no data yet]
-- Search box + filter chips: Single player · Same phone · Online · Party · Category ▾ · Top rated ·
+- Search box + **Filters** button (chips and sort fold away until tapped; shows "Filters (N)" while any are on) + filter chips: Single player · Same phone · Online · Party · Category ▾ · Top rated ·
   Never played · Downloaded · Favorites · New.
 - Sort: A–Z · Recently played · Rating · Newest.
 - Ratings: show stars only for well-rated games; **never surface which game is rated worst**.

@@ -63,6 +63,11 @@ var search_box: LineEdit
 var chips: Dictionary = {}       # key -> true while that chip is on
 var sort_mode: String = "cat"
 var _chip_buttons: Dictionary = {}
+## The filter chips and sort row stay folded away until the player taps
+## Filters (owner, 2026-10-06: "not all shown always"); the button counts
+## the active ones so a folded filter is never a surprise.
+var filter_panel: VBoxContainer
+var filters_btn: Button
 var _sort_buttons: Dictionary = {}
 var expanded_index: int = -1
 var account_status_label: Label
@@ -388,12 +393,24 @@ func _build_browser_view() -> void:
 	search_box.clear_button_enabled = true
 	search_box.custom_minimum_size = Vector2(0, 60)
 	search_box.add_theme_font_size_override("font_size", 26)
+	search_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	search_box.text_changed.connect(_on_search_changed)
-	head.add_child(search_box)
+	var search_row := HBoxContainer.new()
+	search_row.add_theme_constant_override("separation", 8)
+	head.add_child(search_row)
+	search_row.add_child(search_box)
+	filters_btn = _chip("")
+	filters_btn.custom_minimum_size.y = 60
+	filters_btn.pressed.connect(_on_filters_toggled)
+	search_row.add_child(filters_btn)
+	filter_panel = VBoxContainer.new()
+	filter_panel.add_theme_constant_override("separation", 8)
+	filter_panel.visible = false
+	head.add_child(filter_panel)
 	var chip_flow := HFlowContainer.new()
 	chip_flow.add_theme_constant_override("h_separation", 8)
 	chip_flow.add_theme_constant_override("v_separation", 8)
-	head.add_child(chip_flow)
+	filter_panel.add_child(chip_flow)
 	for c in CHIPS:
 		var b := _chip(tr(c[1]))
 		b.pressed.connect(_on_chip.bind(c[0]))
@@ -401,7 +418,7 @@ func _build_browser_view() -> void:
 		_chip_buttons[c[0]] = b
 	var sort_row := HFlowContainer.new()
 	sort_row.add_theme_constant_override("h_separation", 8)
-	head.add_child(sort_row)
+	filter_panel.add_child(sort_row)
 	var sort_label := Label.new()
 	sort_label.text = tr("Sort:")
 	sort_label.add_theme_font_size_override("font_size", 20)
@@ -472,6 +489,16 @@ func _sync_chip_buttons() -> void:
 		_chip_buttons[k].set_pressed_no_signal(chips.has(k))
 	for k in _sort_buttons:
 		_sort_buttons[k].set_pressed_no_signal(k == sort_mode)
+	if filters_btn:
+		var n: int = chips.size() + (0 if sort_mode == "cat" else 1)
+		var text := tr("Filters") if n == 0 else tr("Filters (%d)") % n
+		filters_btn.text = text + (" ▴" if filter_panel.visible else " ▾")
+		# Lit while open or while something is filtering.
+		filters_btn.set_pressed_no_signal(filter_panel.visible or n > 0)
+
+func _on_filters_toggled() -> void:
+	filter_panel.visible = not filter_panel.visible
+	_sync_chip_buttons()
 
 func _on_chip(key: String) -> void:
 	if chips.has(key):

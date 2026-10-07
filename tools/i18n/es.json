@@ -5101,5 +5101,7 @@
  "On average one die in six shows any given face: count the dice in play and divide by 6 to judge a bid.": "En promedio, uno de cada seis dados muestra una cara dada: cuenta los dados en juego y divide entre 6 para juzgar una apuesta.",
  "With two dice, 7 comes up one roll in six, but 2 and 12 just one roll in 36.": "Con dos dados, el 7 sale una tirada de cada seis, pero el 2 y el 12 solo una de cada 36.",
  "A double-six set has 28 tiles: every pair of numbers from 0 to 6 appears exactly once.": "Un juego doble seis tiene 28 fichas: cada par de números del 0 al 6 aparece exactamente una vez.",
- "Artists often start with simple shapes — circles, boxes, lines — and add the details last.": "Los artistas suelen empezar con formas simples (círculos, cajas, líneas) y dejan los detalles para el final."
+ "Artists often start with simple shapes — circles, boxes, lines — and add the details last.": "Los artistas suelen empezar con formas simples (círculos, cajas, líneas) y dejan los detalles para el final.",
+ "Filters": "Filtros",
+ "Filters (%d)": "Filtros (%d)"
 }

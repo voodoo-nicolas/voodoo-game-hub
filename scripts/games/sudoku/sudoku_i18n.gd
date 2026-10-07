@@ -111,6 +111,7 @@ const STRINGS := {
 		"🏠 Home": "🏠 Menú",
 		"🏠 Sudoku Home": "🏠 Inicio de Sudoku",
 		"💀 Voodoo": "💀 Vudú",
+		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Hint never fills in a square: it shows you where to look and which rule to use. Tap it again to see why. You get 3 per puzzle, and a square it reveals earns no points.": "💡 Pista nunca completa una casilla: te muestra dónde mirar y qué regla usar. Tócala otra vez para ver por qué. Tienes 3 por puzzle, y una casilla que revela no da puntos.",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",

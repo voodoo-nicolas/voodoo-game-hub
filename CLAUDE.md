@@ -1308,8 +1308,10 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
   "+N more" opens the browser filtered); one big 🎮 Games button.
 - **Game Browser** (same scene, `browser_view`): search, filter chips
   (Single player = no "modes" or "cpu", Same phone, Online, Party, ★, Downloaded,
-  Never played) that combine, sort By category (the old accordion, with its
+  Never played, 🧠 Learn) that combine, sort By category (the old accordion, with its
   pinned header) / A–Z / Recently played. Any filter shows one flat list.
+  Chips and sort are folded behind a **Filters** button next to search
+  (owner 2026-10-06); it shows "Filters (N)" while any are on.
   Tiles carry mode icons and a ★ toggle (the row lets clicks through to the
   tile's flat button underneath, except on the ★). Android back = home view.
 - **`scripts/common/hub_data.gd`**: favourites (`user://favorites.json`),

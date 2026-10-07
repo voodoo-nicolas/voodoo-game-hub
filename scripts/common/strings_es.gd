@@ -93,6 +93,8 @@ const ES := {
 	"Expert": "Experto",
 	"Explorer": "Explorador",
 	"Extra large": "Extra grande",
+	"Filters": "Filtros",
+	"Filters (%d)": "Filtros (%d)",
 	"First Steps": "Primeros pasos",
 	"First Win": "Primera victoria",
 	"Forgot password?": "¿Olvidaste tu contraseña?",
@@ -333,4 +335,5 @@ const ES := {
 	"🟢 Online now": "🟢 En línea ahora",
 	"🤖 Single player": "🤖 Un jugador",
 	"🤖 vs Computer": "🤖 vs Computadora",
+	"🧠 Learn": "🧠 Aprender",
 }
