@@ -1543,9 +1543,17 @@ static func draw_grid(c: Control) -> void:
 		y += step
 
 ## Card games (STANDARDS §9): the shared green felt behind Landing and play.
-## Every other game without its own art gets the shared dark leather.
+## Every other game without its own art gets the shared dark leather --
+## except the arcade games, which keep backgrounds of their own (owner,
+## 2026-10-07: "they all need their OWN backgrounds"). OWN_BG_GAMES is the
+## manifest's Arcade category; `hub.py check` keeps the two in step.
 const FELT_GAMES := ["solitaire", "blackjack", "war", "crazy_eights", "go_fish", "gin_rummy",
 	"spider", "freecell", "pyramid", "speed", "memory", "tri_peaks", "hearts", "video_poker"]
+const OWN_BG_GAMES := ["geometry_wars", "snake", "block_drop", "paddle_ball", "brick_breaker",
+	"bird_hop", "alien_attack", "frog_crossing", "gem_match", "simon", "whack_a_mole",
+	"reaction_test", "bubble_pop", "rock_blaster", "city_defense", "maze_muncher", "moon_lander",
+	"stack_tower", "sky_hop", "air_hockey", "barrel_climb", "cannon_duel", "crypt_crawler",
+	"star_runner", "sky_raider", "mini_golf", "pool"]
 const BG_DIR := "res://media/hub/backgrounds/"  # in the APK (v0.34+); older apps: no texture
 
 ## The scene's game id, from res://scenes/games/<id>/<id>.tscn ("" if unknown).
@@ -1557,10 +1565,12 @@ static func _scene_game_id() -> String:
 	return parts[parts.size() - 2] if parts.size() >= 2 else ""
 
 ## The shared texture for this game (`id` "" = the running scene's), or null
-## on an app that doesn't have it yet.
+## for an arcade game (its own background) or on an app that doesn't have it yet.
 static func bg_texture(id: String = "") -> Texture2D:
 	if id == "":
 		id = _scene_game_id()
+	if id in OWN_BG_GAMES:
+		return null
 	var path: String = BG_DIR + ("felt.jpg" if id in FELT_GAMES else "leather.jpg")
 	if ResourceLoader.exists(path):
 		return load(path) as Texture2D

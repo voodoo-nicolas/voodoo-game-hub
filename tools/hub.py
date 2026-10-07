@@ -368,7 +368,29 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_music(m)
     errors += lint_hub_name()
     errors += lint_web_threads()
+    errors += lint_own_backgrounds(m)
     return errors, warnings
+
+
+def lint_own_backgrounds(m: dict) -> list[str]:
+    """STANDARDS §9 (owner, 2026-10-07): arcade games keep their own
+    backgrounds, never the shared felt / leather -- the kit's OWN_BG_GAMES
+    must list exactly the manifest's Arcade category."""
+    found = re.search(r"const OWN_BG_GAMES := \[(.*?)\]", HOME_KIT.read_text(encoding="utf-8"), re.S)
+    if not found:
+        return ["tools/templates/home_kit.gd: OWN_BG_GAMES is missing"]
+    listed = set(re.findall(r'"([a-z0-9_]+)"', found.group(1)))
+    arcade = set()
+    for c in m.get("categories", []):
+        if c.get("name") == "Arcade":
+            arcade = {g["id"] for g in c.get("games", []) if "id" in g}
+    errors = []
+    for gid in sorted(arcade - listed):
+        errors.append(f"{gid}: an Arcade game missing from OWN_BG_GAMES in tools/templates/home_kit.gd "
+                      "(arcade games keep their own backgrounds) -- add it, then sync")
+    for gid in sorted(listed - arcade):
+        errors.append(f"{gid}: in OWN_BG_GAMES (tools/templates/home_kit.gd) but not in the Arcade category")
+    return errors
 
 
 def lint_credits() -> list[str]:

@@ -160,6 +160,8 @@ game's traditional colours (it does not follow the app's light/dark theme; only 
   photo for every card game (`HomeKit.FELT_GAMES`), the **dark leather** photo for every other game. Both in the APK
   (`media/hub/backgrounds/felt.jpg`, `leather.jpg`; kit `bg_texture()`, used by the Landing and `backdrop()`); on an
   app without them the kit keeps the flat colour + grid. A game with its own `"art"` keeps it.
+  [NEW 2026-10-07, owner] **Arcade games never take the shared felt / leather**: each keeps a background of its own
+  (`HomeKit.OWN_BG_GAMES` = the manifest's Arcade category; `hub.py check` fails if a new arcade game is missing).
 - Readability: text contrast ≥ 4.5:1; colour is never the only cue (shape/icon too) — neon palettes fail
   colour-blind players otherwise.
 - Art references library: `reference/art/` (`ART_STYLE.md` = the Voodoo skin's guide, `skins/CLASSIC.md`,
