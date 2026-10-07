@@ -17,3 +17,9 @@ const TIPS := [
 	"The sequence only ever grows at the end, so you just need to remember one new colour each round.",
 ]
 const STATS := ["Best level", "Games played"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Each colour has its own tone, so you can remember the sequence by ear as well as by sight.",
+]

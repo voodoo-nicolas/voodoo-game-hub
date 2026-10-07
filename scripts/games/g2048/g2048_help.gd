@@ -27,3 +27,9 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "💠", "title": "1024 Tile", "key": "Best tile", "at": 1024},
 	{"id": "goal3", "icon": "🏆", "title": "2048!", "key": "Best tile", "at": 2048},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Every tile is a power of two: 2048 is 2 multiplied by itself 11 times (2¹¹).",
+]

@@ -238,7 +238,10 @@ No game may use a trademarked game name, logo, character, card/board art, or cop
 Mechanics are fine; names and look are not. Full checklist: `docs/IP_AUDIT.md`. Every new or modified
 game passes it before publishing.
 
-## 15. Learning hook [NEW]
+## 15. Learning hook [CURRENT since v0.32.0, 2026-10-06 — except learning stats/achievements in Profile and bone labels]
+- Built: manifest `"learn"` tags (60 games), the Game Browser's **🧠 Learn** chip, and `FACTS` in 55 games'
+  `<id>_help.gd`: the Landing kit (and Sudoku's own Home) shows one as a "💡 Did you know?" card, a tap shows
+  the next. Facts go through es.json like other text; only well-established, checkable facts.
 "Learn by playing, never homework." If a game can teach something naturally, it should; if it can't, skip it.
 - Each game declares its hooks in the manifest: `"learn": ["vocab","math","logic","memory","art","music","geo","science"]`
   (empty is fine). The Game Browser gets a **Learn** filter chip.

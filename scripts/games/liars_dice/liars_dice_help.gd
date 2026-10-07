@@ -21,3 +21,9 @@ const TIPS := [
 	"With fewer dice on the table, bids should drop — keep count.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Pass-and-play games"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"On average one die in six shows any given face: count the dice in play and divide by 6 to judge a bid.",
+]

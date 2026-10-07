@@ -36,6 +36,10 @@ extends Control
 ##   `_set_skin` once the game is built and whenever the player picks a look.
 ##   Older games with only `_set_voodoo(on)` keep working. `CLASSIC` holds
 ##   the shared traditional colours (felt, wood, paper...).
+## - Learning hook (§15): if the help file has `FACTS` (English strings,
+##   through es.json like the rest), the Landing ends with a "💡 Did you
+##   know?" card showing one at random; a tap shows the next. Facts must be
+##   checked -- wrong "educational" content is worse than none.
 ## - The old floating ⚙ SettingsDrawer is removed from every kit game: its
 ##   items are in the pause menu and Options now (§6). Games may still add it
 ##   (older copies of this kit used it); the kit frees it.
@@ -133,6 +137,8 @@ var _toast: Label
 var _logo: Control
 var _paused_by_me: bool = false
 var _more: GridContainer
+var _fact_label: Label
+var _fact_i: int = 0
 var _home_margin: MarginContainer
 ## The ways to play, split the way the Landing shows them.
 var _solo: Array = []
@@ -447,8 +453,44 @@ func _build_home() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(_on_more.bind(it[2]))
 		more.add_child(b)
+	_add_fact_card(box)
 	get_viewport().size_changed.connect(_fit_home_layout)
 	_fit_home_layout()
+
+## §15: one optional "Did you know?" on the Landing, never in the way of play.
+func _add_fact_card(box: Control) -> void:
+	var facts: Array = consts.get("FACTS", [])
+	if facts.is_empty():
+		return
+	box.add_child(gap(4))
+	var panel := PanelContainer.new()
+	var sb := neon_box(GOLD)
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.gui_input.connect(_on_fact_input)
+	box.add_child(panel)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(col)
+	var head := label(tr("💡 Did you know?"), 22, GOLD)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(head)
+	_fact_label = label("", 22, WHITE, true)
+	_fact_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(_fact_label)
+	_fact_i = randi() % facts.size()
+	_show_fact()
+
+func _show_fact() -> void:
+	var facts: Array = consts.get("FACTS", [])
+	_fact_label.text = tr(str(facts[_fact_i % facts.size()]))
+
+func _on_fact_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and not _dragged():
+		_fact_i += 1
+		_show_fact()
 
 ## The Landing's button for a group of modes: one way to play with no pickers
 ## starts straight away (N6); otherwise it opens that group's setup screen.

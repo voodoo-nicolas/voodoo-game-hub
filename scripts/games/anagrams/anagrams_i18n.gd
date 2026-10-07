@@ -6,6 +6,7 @@ const STRINGS := {
 	"es": {
 		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%d ways to play": "%d formas de jugar",
+		"'Listen' and 'silent' use exactly the same letters.": "«Amor» y «Roma» usan exactamente las mismas letras.",
 		"10 words": "10 palabras",
 		"A right answer scores 10 points per letter.": "Una respuesta correcta vale 10 puntos por letra.",
 		"All": "Todos",
@@ -99,6 +100,7 @@ const STRINGS := {
 		"👥 Friends": "👥 Amigos",
 		"👥 Multiplayer": "👥 Multijugador",
 		"💀 Voodoo": "💀 Vudú",
+		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Hint": "💡 Pista",
 		"💡 Hint reveals the next letter but halves the points for that word. Skip moves on with no points.": "💡 Pista revela la siguiente letra pero reduce a la mitad los puntos de esa palabra. Saltar pasa a la siguiente sin puntos.",
 		"💡 Tips": "💡 Consejos",

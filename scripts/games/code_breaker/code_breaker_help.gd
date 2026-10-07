@@ -19,3 +19,9 @@ const TIPS := [
 	"Every guess should fit everything you've learned so far.",
 ]
 const STATS := ["Wins", "Losses", "Fewest tries", "Best streak", "Codes cracked (2 players)", "Codes kept (2 players)"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"With 4 pegs and 6 colours there are 1,296 possible codes, and every one can be found in 5 guesses or fewer (Donald Knuth, 1977).",
+]

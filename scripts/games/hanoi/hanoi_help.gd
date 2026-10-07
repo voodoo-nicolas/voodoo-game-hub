@@ -18,3 +18,10 @@ const TIPS := [
 	"Think big: to move a tower of 5, first move the top 4 out of the way.",
 ]
 const STATS := ["Puzzles solved", "Perfect solves", "Most discs solved"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"The fewest moves for n discs is 2ⁿ − 1: 7 moves for 3 discs, 1,023 for 10.",
+	"With 64 discs, at one move per second, the puzzle would take over 500 billion years.",
+]

@@ -19,3 +19,9 @@ const TIPS := [
 	"Once a ship is sunk, skip the squares around it — ships never touch.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "2-player games"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Firing on a checkerboard pattern hits every ship of length 2 or more in half the shots of a full sweep.",
+]

@@ -276,6 +276,7 @@ const STRINGS := {
 		"💀 Cursed: no familiar": "💀 Maldito: sin familiar",
 		"💀 Cursed: no familiar, stars counted apart.": "💀 Maldito: sin familiar, las estrellas cuentan aparte.",
 		"💀 Voodoo": "💀 Vudú",
+		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Tips": "💡 Consejos",
 		"💣 Bomb wipes out every enemy on screen and dents a boss. Some modes give you more as you score.": "💣 Bomba elimina a todos los enemigos de la pantalla y daña a un jefe. En algunos modos ganas más al sumar puntos.",
 		"📊 Statistics": "📊 Estadísticas",

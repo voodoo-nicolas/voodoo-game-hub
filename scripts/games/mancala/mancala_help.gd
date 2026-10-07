@@ -19,3 +19,9 @@ const TIPS := [
 	"Watch for captures — yours and your opponent's. Keep an eye on your empty pits.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "Most seeds", "Player 1 wins", "Player 2 wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Mancala is a family of sowing games played for centuries across Africa and Asia: Oware, Kalah and Bao are some of them.",
+]

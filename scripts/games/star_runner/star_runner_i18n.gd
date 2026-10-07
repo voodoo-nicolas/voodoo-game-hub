@@ -108,6 +108,7 @@ const STRINGS := {
 		"👥 Friends": "👥 Amigos",
 		"👥 Multiplayer": "👥 Multijugador",
 		"💀 Voodoo": "💀 Vudú",
+		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Tips": "💡 Consejos",
 		"💣 Bomb clears everything ahead and wounds the boss. You get 3, and one more after every stage (up to 5).": "💣 Bomba limpia todo lo que hay adelante y daña al jefe. Tienes 3, y una más después de cada etapa (hasta 5).",
 		"📊 Statistics": "📊 Estadísticas",

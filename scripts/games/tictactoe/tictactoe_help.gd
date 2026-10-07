@@ -19,3 +19,10 @@ const TIPS := [
 	"Win by making two threats at once — they can only block one.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "X wins", "O wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"With perfect play from both sides, Tic-Tac-Toe always ends in a draw.",
+	"There are 255,168 different possible games of Tic-Tac-Toe.",
+]

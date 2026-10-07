@@ -24,3 +24,11 @@ const TIPS := [
 	"When you're far ahead, just race home.",
 ]
 const STATS := ["Wins", "Losses", "Gammons won", "Best streak", "White wins", "Black wins", "Online wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"With two dice, 7 is the most likely total: 6 ways out of 36.",
+	"You roll a double one time in six.",
+	"A 5,000-year-old board found in the Burnt City in Iran is thought to be an ancestor of backgammon.",
+]

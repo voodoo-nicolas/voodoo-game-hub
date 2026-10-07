@@ -19,3 +19,9 @@ const TIPS := [
 	"When you're far behind near the end, take bigger risks.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Player 1 wins", "Player 2 wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Each die shows a 1 or a 5 one time in three — so with one die left, you score only one roll in three.",
+]

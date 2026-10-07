@@ -25,3 +25,9 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "🧠", "title": "Number Vault", "key": "Best score", "at": 8},
 	{"id": "goal3", "icon": "💾", "title": "Human Hard Drive", "key": "Best score", "at": 10},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Grouping digits into chunks — 415 209 73 instead of 41520973 — makes them much easier to remember. It's why phone numbers are split up.",
+]

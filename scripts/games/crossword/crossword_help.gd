@@ -19,3 +19,9 @@ const TIPS := [
 	"Every puzzle is new, built fresh from a big list of clues.",
 ]
 const STATS := ["Puzzles solved"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"The first modern crossword was published by Arthur Wynne in a New York newspaper in 1913.",
+]

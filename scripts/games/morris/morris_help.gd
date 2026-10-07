@@ -21,3 +21,9 @@ const TIPS := [
 	"Block the computer whenever it has two in a row with the third point empty.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "White wins", "Black wins", "Online wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Nine Men's Morris was solved by computer in the 1990s: perfect play is a draw.",
+]

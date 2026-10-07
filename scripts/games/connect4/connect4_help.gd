@@ -18,3 +18,10 @@ const TIPS := [
 	"Don't drop a disc that lets your opponent win in the spot right above it.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "Red wins", "Yellow wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"On the standard 7 × 6 board, the first player can always win by starting in the middle column — proven by computer in 1988.",
+	"The 7 × 6 board has about 4.5 trillion possible positions.",
+]

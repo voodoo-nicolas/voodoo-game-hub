@@ -26,3 +26,9 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "📖", "title": "Lexicon", "key": "Best score", "at": 50},
 	{"id": "goal3", "icon": "🏅", "title": "Word Hunter", "key": "Best score", "at": 100},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"The word list here is ENABLE, a free public-domain list used by many word games.",
+]

@@ -20,3 +20,9 @@ const TIPS := [
 	"Almost every deal can be won, so if you get stuck, Undo and try another way.",
 ]
 const STATS := ["Games won", "Best time", "Fewest moves"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Almost every FreeCell deal can be won: of the 32,000 classic numbered deals, only one (#11982) can't.",
+]

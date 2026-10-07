@@ -24,3 +24,10 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "📈", "title": "Sequence Solver", "key": "Best score", "at": 150},
 	{"id": "goal3", "icon": "♾️", "title": "Number Oracle", "key": "Best score", "at": 170},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"In the Fibonacci sequence 1, 1, 2, 3, 5, 8… each number is the sum of the two before it.",
+	"Square numbers 1, 4, 9, 16, 25 grow by the odd numbers: +3, +5, +7, +9.",
+]

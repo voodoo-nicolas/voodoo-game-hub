@@ -26,3 +26,9 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "📚", "title": "Letter Wizard", "key": "Best score", "at": 150},
 	{"id": "goal3", "icon": "🧙", "title": "Anagram Master", "key": "Best score", "at": 300},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"'Listen' and 'silent' use exactly the same letters.",
+]

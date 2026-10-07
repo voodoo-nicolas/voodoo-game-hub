@@ -23,3 +23,9 @@ const TIPS := [
 	"Work on the columns with the most face-down cards first.",
 ]
 const STATS := ["Games won", "Best time", "Fewest moves"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"A shuffled 52-card deck has about 8 × 10⁶⁷ possible orders: your deal has almost certainly never been dealt before.",
+]

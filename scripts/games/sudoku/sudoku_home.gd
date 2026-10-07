@@ -39,6 +39,8 @@ var info_overlay: Control
 var lb_overlay: Control
 var lb_box: VBoxContainer
 var _grid_logo: Control
+var _fact_btn: Button
+var _fact_i: int = 0
 
 func setup(p_difficulties: Array, p_info) -> void:
 	difficulties = p_difficulties
@@ -145,10 +147,31 @@ func _ready() -> void:
 		b.pressed.connect(it[2])
 		more.add_child(b)
 
+	# Learning hook (STANDARDS §15): one checked fact from the help file; a
+	# tap shows the next.
+	var facts: Array = HELP.FACTS
+	if not facts.is_empty():
+		_fact_i = randi() % facts.size()
+		_fact_btn = _neon_button("", GOLD, 20, 0)
+		_fact_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_fact_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_fact_btn.pressed.connect(_next_fact)
+		box.add_child(_gap(8))
+		box.add_child(_fact_btn)
+		_show_fact()
 
 	_build_info_overlay()
 	_build_leaderboard_overlay()
 	refresh(null)
+
+func _show_fact() -> void:
+	var facts: Array = HELP.FACTS
+	_fact_btn.text = tr("💡 Did you know?") + "
+" + tr(str(facts[_fact_i % facts.size()]))
+
+func _next_fact() -> void:
+	_fact_i += 1
+	_show_fact()
 
 ## Called whenever Home is shown: `save` is the saved game (or null), and
 ## every difficulty button shows that level's best time.

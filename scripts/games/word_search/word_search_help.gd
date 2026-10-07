@@ -19,3 +19,9 @@ const TIPS := [
 	"Don't forget the backwards and diagonal words!",
 ]
 const STATS := ["Puzzles solved", "Best time (%s)" % "Easy", "Best time (%s)" % "Medium", "Best time (%s)" % "Hard"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"When you scan for words your eyes don't glide: they jump several times a second, in movements called saccades.",
+]

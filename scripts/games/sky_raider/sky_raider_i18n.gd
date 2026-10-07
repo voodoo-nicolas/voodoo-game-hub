@@ -101,6 +101,7 @@ const STRINGS := {
 		"👥 Friends": "👥 Amigos",
 		"👥 Multiplayer": "👥 Multijugador",
 		"💀 Voodoo": "💀 Vudú",
+		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Tips": "💡 Consejos",
 		"💣 Bomb wipes every bullet off the screen and blasts every plane. You start with 2.": "💣 Bomba borra todas las balas de la pantalla y golpea a todos los aviones. Empiezas con 2.",
 		"📊 Statistics": "📊 Estadísticas",

@@ -21,3 +21,9 @@ const TIPS := [
 	"With ball in hand, put the white straight behind your easiest ball.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Balls potted", "Longest run", "2-player games"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"When a moving ball hits a still ball of the same weight off-centre, they roll away at about a right angle (90°) to each other.",
+]

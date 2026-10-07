@@ -217,6 +217,10 @@ func _apply_manifest(data: Variant) -> bool:
 			# leaderboard ranks; "none" = no board).
 			game["modes"] = str(raw_game.get("modes", ""))
 			game["board"] = str(raw_game.get("board", "Best score"))
+			# Since v0.32 (STANDARDS §15): what the game teaches, e.g.
+			# ["vocab", "math"]; empty = nothing in particular.
+			var learn = raw_game.get("learn", [])
+			game["learn"] = learn if learn is Array else []
 			cat_games.append(game)
 		var category := {
 			"name": str(raw_cat.get("name", "")),

@@ -20,3 +20,9 @@ const TIPS := [
 	"When a row already has half its cells in one colour, the rest are the other colour.",
 ]
 const STATS := ["Puzzles solved", "Best time (Easy)", "Best time (Medium)", "Best time (Hard)"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Binary puzzles are also known as Takuzu or Binairo.",
+]

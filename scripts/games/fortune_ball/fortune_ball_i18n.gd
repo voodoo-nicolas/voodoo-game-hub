@@ -99,6 +99,7 @@ const STRINGS := {
 		"👥 Multiplayer": "👥 Multijugador",
 		"💀  Spooky answers": "💀  Respuestas tenebrosas",
 		"💀 Voodoo": "💀 Vudú",
+		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",

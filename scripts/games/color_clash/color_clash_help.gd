@@ -24,3 +24,9 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "🌈", "title": "Color Sense", "key": "Best score", "at": 30},
 	{"id": "goal3", "icon": "🧠", "title": "Unfoolable", "key": "Best score", "at": 50},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Naming the ink colour of a word that spells a different colour is slow: it's the Stroop effect, described in 1935.",
+]

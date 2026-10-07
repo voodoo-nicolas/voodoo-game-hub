@@ -20,3 +20,9 @@ const TIPS := [
 	"Remember that letters can appear twice.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Fewest guesses", "Words guessed (2 players)", "Words kept (2 players)"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"A first guess with common letters (E, A, R, S, T in English) rules out the most words.",
+]

@@ -19,3 +19,9 @@ const TIPS := [
 	"If two pairs match the same picture, take the one that frees more tiles.",
 ]
 const STATS := ["Games solved", "Solved without help", "Best time (Easy)", "Best time (Normal)", "Best time (Hard)"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"This solitaire uses the tiles of mahjong, a four-player game from China — but it's a matching puzzle, not the original game.",
+]

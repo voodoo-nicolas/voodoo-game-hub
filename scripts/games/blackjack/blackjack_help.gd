@@ -21,3 +21,9 @@ const TIPS := [
 	"An Ace that can still count as 11 (a soft hand) can't bust on the next card, so hit soft 17 or less.",
 ]
 const STATS := ["Hands won", "Hands lost", "Pushes", "Blackjacks", "Most chips"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"16 of the 52 cards are worth 10 (10, J, Q, K), so a hidden card is a ten-value card about 4 times in 13.",
+]

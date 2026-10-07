@@ -23,3 +23,11 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "✖️", "title": "Mental Math", "key": "Best score", "at": 30},
 	{"id": "goal3", "icon": "🧮", "title": "Human Calculator", "key": "Best score", "at": 50},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"To multiply by 5, multiply by 10 and halve: 5 × 18 = 180 ÷ 2 = 90.",
+	"Adding 9 is the same as adding 10 and taking away 1.",
+	"A number can be divided by 9 exactly when its digits add up to a multiple of 9: 576 → 5 + 7 + 6 = 18.",
+]

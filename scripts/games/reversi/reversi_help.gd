@@ -18,3 +18,10 @@ const TIPS := [
 	"Having lots of discs early doesn't matter much. Keep your options open instead.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "Biggest win (discs)", "Black wins", "White wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"A corner disc can never be flipped back — that's why corners are so valuable.",
+	"A 2023 computer study found that perfect play on the 8 × 8 board ends in a draw.",
+]

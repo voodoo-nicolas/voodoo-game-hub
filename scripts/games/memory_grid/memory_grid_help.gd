@@ -25,3 +25,10 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "🧩", "title": "Grid Mind", "key": "Best score", "at": 10},
 	{"id": "goal3", "icon": "🧠", "title": "Photographic", "key": "Best score", "at": 15},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Seeing a pattern as a shape — a line, an L, a corner — is easier to remember than separate squares.",
+	"Most people can hold only a handful of things in short-term memory at once.",
+]

@@ -19,3 +19,9 @@ const TIPS := [
 	"Big sums in short runs force big digits, small sums force small digits.",
 ]
 const STATS := ["Puzzles solved"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Some sums can be made only one way: 3 in two squares is always 1 + 2, and 45 in nine squares uses every digit.",
+]

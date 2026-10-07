@@ -18,3 +18,9 @@ const TIPS := [
 	"Before each push, check that you'll still be able to get behind the box for the next one.",
 ]
 const STATS := ["Levels solved", "Highest level unlocked"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Box-pushing puzzles are PSPACE-complete: in general, they're among the hardest puzzles for computers to solve.",
+]

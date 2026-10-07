@@ -34,3 +34,10 @@ const ACHIEVEMENTS := [
 	{"id": "chips100k", "icon": "💎", "title": "Whale", "key": "Most chips", "at": 100000},
 	{"id": "perfect", "icon": "🎓", "title": "Star Student", "key": "Perfect drills", "at": 1},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"There are 2,598,960 different five-card poker hands.",
+	"A royal flush is dealt about once in 649,740 hands.",
+]

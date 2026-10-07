@@ -18,3 +18,9 @@ const TIPS := [
 	"Clear away a colour completely when you can — then it never needs another move.",
 ]
 const STATS := ["Puzzles solved", "Wins", "Losses", "Best streak", "Fewest moves (Easy)", "Fewest moves (Normal)", "Fewest moves (Hard)"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Finding the fewest moves to flood a board is NP-hard: no fast method is known for big boards.",
+]

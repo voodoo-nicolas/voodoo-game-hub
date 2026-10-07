@@ -18,3 +18,9 @@ const TIPS := [
 	"When you take a long chain, consider leaving the last two boxes for your opponent: then they have to open the next chain for you.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "Blue wins", "Red wins", "2-player ties"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Mathematician Elwyn Berlekamp wrote a whole book about this game; strong players win by counting long chains.",
+]

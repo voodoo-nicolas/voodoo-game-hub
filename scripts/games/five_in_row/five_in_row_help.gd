@@ -19,3 +19,9 @@ const TIPS := [
 	"Play near the middle early; stones at the edge have fewer lines through them.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "Wins (Hard)", "Black wins", "White wins", "Online wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"On a 15 × 15 board, computers proved in 1993 that the first player can always win five in a row.",
+]

@@ -20,3 +20,9 @@ const TIPS := [
 	"Use the size button to try a bigger grid.",
 ]
 const STATS := ["Puzzles solved"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"This kind of puzzle was invented in 2004 by Japanese maths teacher Tetsuya Miyamoto to help his students think.",
+]

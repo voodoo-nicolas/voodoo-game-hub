@@ -22,3 +22,9 @@ const TIPS := [
 	"With only small tiles left, roll one die: low totals are much easier to hit.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Boxes shut", "Lowest score", "2-player games"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"With two dice, 7 comes up one roll in six, but 2 and 12 just one roll in 36.",
+]

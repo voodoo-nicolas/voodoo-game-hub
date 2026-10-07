@@ -43,7 +43,7 @@ const FRIENDS_SCENE := "res://scenes/hub/friends.tscn"
 const CHIPS := [
 	["single", "🤖 Single player"], ["local", "👥 Same phone"], ["online", "🌐 Online"],
 	["party", "🎉 Party"], ["fav", "★ Favorites"], ["downloaded", "⬇ Downloaded"],
-	["unplayed", "✨ Never played"],
+	["unplayed", "✨ Never played"], ["learn", "🧠 Learn"],
 ]
 const SORTS := [["cat", "By category"], ["az", "A–Z"], ["recent", "Recently played"]]
 ## Mode icons on a tile, from the manifest's "modes".
@@ -516,6 +516,9 @@ func _matches(game: Dictionary, recent: Dictionary) -> bool:
 					return false
 			"unplayed":
 				if recent.has(id) or FileAccess.file_exists("user://stats_%s.json" % id):
+					return false
+			"learn":
+				if (game.get("learn", []) as Array).is_empty():
 					return false
 	return true
 

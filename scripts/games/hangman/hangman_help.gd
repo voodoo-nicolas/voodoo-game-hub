@@ -18,3 +18,9 @@ const TIPS := [
 	"Once a few letters are in, look at the pattern and think of whole words.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Words guessed (2 players)", "Words kept (2 players)"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"E is the most common letter in English, and in Spanish too, with A close behind.",
+]

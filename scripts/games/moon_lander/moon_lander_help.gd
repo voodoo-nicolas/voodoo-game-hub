@@ -20,3 +20,10 @@ const TIPS := [
 	"Straighten up just before touchdown: the tilt counts as much as the speed.",
 ]
 const STATS := ["Best score", "Highest level", "Landings", "Landings on ×5 pads", "Games played"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Gravity on the Moon is about one sixth of Earth's.",
+	"When Apollo 11 landed in 1969, it had less than a minute of landing fuel left.",
+]

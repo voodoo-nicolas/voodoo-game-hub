@@ -20,3 +20,12 @@ const TIPS := [
 	"Before every move, check what your opponent's last move threatens.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "White wins", "Black wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"After each player has made just one move, there are already 400 possible positions.",
+	"Castling is the only move in which two of your pieces move at once.",
+	"A pawn that reaches the far side can become any piece except a king — almost always a queen.",
+	"The 50-move rule: after 50 moves each with no capture and no pawn move, a player can claim a draw.",
+]

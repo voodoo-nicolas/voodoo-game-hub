@@ -20,3 +20,9 @@ const TIPS := [
 	"Go back and forth between rows and columns.",
 ]
 const STATS := ["Puzzles solved"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Nonograms were invented in Japan in the late 1980s.",
+]

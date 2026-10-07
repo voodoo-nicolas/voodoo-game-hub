@@ -18,3 +18,10 @@ const TIPS := [
 	"Relax your hand and keep your finger just above the screen.",
 ]
 const STATS := ["Fastest reaction (ms)", "Tests taken"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"A typical reaction to something you see takes about a quarter of a second.",
+	"People usually react a little faster to a sound than to a light.",
+]

@@ -18,3 +18,9 @@ const TIPS := [
 	"Save the centre for last.",
 ]
 const STATS := ["Games played", "Games solved", "Perfect games", "Fewest pegs left"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"On this 33-hole cross the puzzle can be solved so that the last peg ends in the centre hole.",
+]

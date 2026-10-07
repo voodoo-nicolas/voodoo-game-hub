@@ -21,3 +21,9 @@ const TIPS := [
 	"Acting out is not allowed — but nodding when they get close is fair.",
 ]
 const STATS := ["Drawings guessed", "Fastest guess time", "Games played"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Artists often start with simple shapes — circles, boxes, lines — and add the details last.",
+]

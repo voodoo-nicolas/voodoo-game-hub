@@ -20,3 +20,10 @@ const TIPS := [
 	"Guess only when nothing else is left, and prefer squares far from the numbers.",
 ]
 const STATS := ["Wins", "Losses", "Best streak"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Mathematician Richard Kaye proved in 2000 that checking a Mines board is NP-complete — one of the hardest kinds of problems.",
+	"Sometimes logic really can't decide: some positions are a true 50/50 guess.",
+]

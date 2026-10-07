@@ -27,3 +27,10 @@ const ACHIEVEMENTS := [
 	{"id": "goal2", "icon": "🎯", "title": "High Roller", "key": "Best score", "at": 200},
 	{"id": "goal3", "icon": "⛵", "title": "Yacht Captain", "key": "Best score", "at": 250},
 ]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"The chance of five of a kind in one roll of five dice is 1 in 1,296.",
+	"With three rolls, keeping the matching dice, you get five of a kind about 4.6% of the time.",
+]

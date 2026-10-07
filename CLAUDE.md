@@ -1328,6 +1328,18 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
 - Not built (no data yet): ratings / Top rated, "New", size badges, trial /
   owned badges (store), Music (Phase 3), N3's "Landing before download".
 
+## Learning hooks -- since v0.32.0 (2026-10-06)
+
+STANDARDS §15. Each game's manifest entry may carry `"learn": ["vocab",
+"math", "logic", "memory", "art", "music", "geo", "science"]` (Catalog copies
+it; the Game Browser's 🧠 Learn chip lists games with any tag). A game's
+`<id>_help.gd` may have `const FACTS := [...]`: the Landing kit shows one at
+random on a "💡 Did you know?" card at the bottom of Home (tap = next);
+Sudoku's own Home does the same. Facts are English strings translated in
+es.json -- write only checked facts, and keep them about the game's own
+subject (no pop quizzes in arcade games). Not built: learning stats /
+achievements in Profile.
+
 ## Hub look changes -- since v0.24.0 (2026-10-03)
 
 - **Sign Out is only in Options**; the home screen shows the name (signed in)

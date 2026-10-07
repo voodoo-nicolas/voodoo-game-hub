@@ -16,3 +16,9 @@ const TIPS := [
 	"Try to solve it in as few moves as you can.",
 ]
 const STATS := ["Puzzles solved", "Fewest moves"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"The order of your taps never matters, only which squares you tapped — and tapping one twice is the same as not tapping it.",
+]

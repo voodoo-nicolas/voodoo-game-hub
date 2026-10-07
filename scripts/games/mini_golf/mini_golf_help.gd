@@ -20,3 +20,9 @@ const TIPS := [
 	"Watch a windmill go round once before you putt through it.",
 ]
 const STATS := ["Best round (Front 9)", "Best round (Back 9)", "Best round (18 holes)", "Best vs par", "Holes in one", "Birdies or better", "Rounds played", "Multiplayer rounds"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"A ball leaves a wall at the same angle it hits it, so aim at the hole's mirror image behind the wall.",
+]

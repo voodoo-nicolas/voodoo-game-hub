@@ -20,3 +20,9 @@ const TIPS := [
 	"Play under the winning card whenever you can — let someone else take the points.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "Moons shot", "Clean hands"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Each hand has 26 penalty points: 13 hearts plus 13 for the queen of spades.",
+]

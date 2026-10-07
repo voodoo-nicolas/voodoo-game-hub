@@ -102,6 +102,7 @@ const STRINGS := {
 		"👥 Friends": "👥 Amigos",
 		"👥 Multiplayer": "👥 Multijugador",
 		"💀 Voodoo": "💀 Vudú",
+		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Tips": "💡 Consejos",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",

@@ -21,3 +21,9 @@ const TIPS := [
 	"Watch which numbers the computers can't match — they drew when that number was open.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Rounds won"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"A double-six set has 28 tiles: every pair of numbers from 0 to 6 appears exactly once.",
+]

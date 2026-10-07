@@ -19,3 +19,10 @@ const TIPS := [
 	"Blocking from a distance works better than blocking right next to the enemy's chain.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Wins (Hard)", "Red wins", "Blue wins", "Online wins"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"Hex can never end in a draw: someone always connects. This is linked to a famous result in maths, the Brouwer fixed-point theorem.",
+	"Hex was invented by Piet Hein in 1942 and again, on his own, by John Nash in 1948.",
+]

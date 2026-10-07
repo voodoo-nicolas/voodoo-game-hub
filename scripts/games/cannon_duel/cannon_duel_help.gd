@@ -22,3 +22,10 @@ const TIPS := [
 	"Save the Mega Bomb for when your aim is already landing close.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Direct hits", "Fewest shots to win", "2-player games"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"With no wind and no air, a shot fired at 45° flies the farthest.",
+	"Wind pushes a shell the whole time it flies, so long, high shots drift the most.",
+]

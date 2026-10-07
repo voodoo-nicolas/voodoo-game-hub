@@ -20,3 +20,12 @@ const TIPS := [
 	"Scan each number from 1 to 9 across the whole grid before you start guessing.",
 ]
 const STATS := ["Puzzles solved", "Perfect games", "Best score"]
+
+## Learning hook (STANDARDS §15): one shows on the Home screen's
+## "Did you know?" card. Checked facts only.
+const FACTS := [
+	"A proper Sudoku has exactly one solution, and it needs at least 17 given numbers to have only one (proven in 2012).",
+	"There are about 6.67 × 10²¹ different completed Sudoku grids.",
+	"The numbers are only symbols: Sudoku works exactly the same with nine letters or nine colours.",
+	"The hints name real techniques — hidden single, naked single, pointing, naked pair — the same ones experts use.",
+]

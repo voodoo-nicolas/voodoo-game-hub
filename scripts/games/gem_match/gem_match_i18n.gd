@@ -102,6 +102,7 @@ const STRINGS := {
 		"💀 Voodoo": "💀 Vudú",
 		"💎  Play": "💎  Jugar",
 		"💎 Gem Match": "💎 Joyas",
+		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Hint": "💡 Pista",
 		"💡 Hint shows you a swap that works.": "💡 Pista te muestra un intercambio que funciona.",
 		"💡 Tips": "💡 Consejos",
