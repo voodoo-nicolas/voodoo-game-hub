@@ -62,7 +62,8 @@
       {"id": "tri_peaks", "title": "Tri-Peaks", "icon": "🏔️", "title_es": "Tres picos", "board": "Best score", "skins": "classic,voodoo"},
       {"id": "hearts", "title": "Hearts", "icon": "♥️", "title_es": "Corazones", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]},
       {"id": "video_poker", "quick": true, "title": "Poker", "icon": "♠️", "title_es": "Póker", "modes": "online,local,cpu", "board": "Most chips", "skins": "classic,voodoo", "learn": ["math"]},
-      {"id": "sevens", "title": "Sevens", "icon": "7️⃣", "title_es": "Sietes", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["logic"]}
+      {"id": "sevens", "title": "Sevens", "icon": "7️⃣", "title_es": "Sietes", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["logic"]},
+      {"id": "rummy", "title": "Rummy", "icon": "🃏", "title_es": "Rummy", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["logic", "math"]}
     ]},
     {"name": "Word", "icon": "🔤", "name_es": "Palabras", "games": [
       {"id": "hangman", "quick": true, "title": "Hangman", "icon": "💀", "title_es": "Ahorcado", "modes": "local", "board": "Wins", "skins": "classic,voodoo", "learn": ["vocab"]},
@@ -251,6 +252,7 @@
     "trivia_battle": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trivia_battle.pck", "scene": "res://scenes/games/trivia_battle/trivia_battle.tscn"},
     "color_sort": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_sort.pck", "scene": "res://scenes/games/color_sort/color_sort.tscn"},
     "hidato": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hidato.pck", "scene": "res://scenes/games/hidato/hidato.tscn"},
-    "sevens": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sevens.pck", "scene": "res://scenes/games/sevens/sevens.tscn"}
+    "sevens": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sevens.pck", "scene": "res://scenes/games/sevens/sevens.tscn"},
+    "rummy": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rummy.pck", "scene": "res://scenes/games/rummy/rummy.tscn"}
   }
 }
