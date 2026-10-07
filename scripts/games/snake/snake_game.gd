@@ -757,6 +757,7 @@ func _resume_text() -> String:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/snake/snake_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,

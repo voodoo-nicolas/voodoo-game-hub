@@ -393,6 +393,7 @@ const TITLE_FOR_HOME := preload("res://scripts/games/block_drop/block_drop_help.
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/block_drop/block_drop_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

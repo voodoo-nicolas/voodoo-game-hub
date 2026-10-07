@@ -317,6 +317,7 @@ const TITLE_FOR_HOME := preload("res://scripts/games/simon/simon_help.gd").TITLE
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/simon/simon_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,

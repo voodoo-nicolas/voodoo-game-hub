@@ -260,6 +260,7 @@ const TITLE_FOR_HOME := preload("res://scripts/games/alien_attack/alien_attack_h
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/alien_attack/alien_attack_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,

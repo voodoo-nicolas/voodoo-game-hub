@@ -207,6 +207,7 @@ func _set_pad(color: Color, text: String) -> void:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/reaction_test/reaction_test_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,

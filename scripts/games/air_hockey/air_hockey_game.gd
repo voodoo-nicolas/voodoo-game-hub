@@ -100,6 +100,7 @@ func _build_ui() -> void:
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	modes.append({"text": "👥 2 Players", "sub": "One at each end of the phone", "multi": true, "action": _new_game.bind(-1)})
 	home = HomeKit.new({
+		"retro": true,
 		"help": HELP,
 		"info": info,
 		"accent": P_COLORS[0],

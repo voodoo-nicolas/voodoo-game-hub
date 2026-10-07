@@ -110,6 +110,7 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		"retro": true,
 		"help": HELP,
 		"info": info,
 		"accent": SHIP_COLOR,

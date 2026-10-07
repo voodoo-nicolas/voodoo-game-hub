@@ -261,6 +261,7 @@ func _on_wheel_input(event: InputEvent) -> void:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/party_spinner/party_spinner_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,

@@ -39,7 +39,13 @@ no faint grid, plain drop shadows.
   - Word: paper / cream tiles -- Five Letters (blue / orange marks, on
     purpose not the famous green / yellow), Word Search, Crossword, Word Hunt,
     Anagrams, Hangman (wooden gallows).
-  - Not done: Arcade (27), Intelligence (7), Drinking Games (8), Other (7) --
-    neon-native, "traditional colours" is undefined for them.
+  - Retro-arcade Classic for neon-native games (33: 25 Arcade, 6 Intelligence,
+    Party Spinner, Charades, Truth or Dare): no per-game code. `"retro": true`
+    in the game's HomeKit config makes the kit add a screen filter
+    (`RETRO_SHADER` in home_kit.gd): glow halos and tinted glass fall to the
+    background, saturated colours snap to flat primaries. Voodoo = plain neon.
+  - Left neon-only on purpose: Neon Blast, IQ Test, Trace It, Sketch It,
+    Fortune Ball, Spirit Board, Gem Match / Bop the Mole (own skins), and the
+    8 archived Drinking Games.
 - Pattern: `var skin`, `_set_skin(name)` (bg colour + hide the faint grid +
   redraw), `_is_classic()`, and a classic branch where each thing is drawn.

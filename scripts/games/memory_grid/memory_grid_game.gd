@@ -320,6 +320,7 @@ const TITLE_FOR_HOME := preload("res://scripts/games/memory_grid/memory_grid_hel
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/memory_grid/memory_grid_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

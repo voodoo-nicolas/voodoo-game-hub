@@ -316,6 +316,7 @@ const TITLE_FOR_HOME := preload("res://scripts/games/quick_math/quick_math_help.
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/quick_math/quick_math_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

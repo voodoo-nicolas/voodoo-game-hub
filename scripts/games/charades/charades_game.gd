@@ -321,6 +321,7 @@ func _end_round() -> void:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/charades/charades_help.gd"),
 		"info": info,
 		"accent": HomeKit.PINK,

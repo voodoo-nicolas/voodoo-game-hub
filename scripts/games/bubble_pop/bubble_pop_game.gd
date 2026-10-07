@@ -129,6 +129,7 @@ func _build_ui() -> void:
 		modes.append({"text": LEVELS[i], "sub": tr("%d colours") % LEVEL_COLORS[i], "row": "levels",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		"retro": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.MAGENTA,

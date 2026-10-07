@@ -373,6 +373,7 @@ const TITLE_FOR_HOME := preload("res://scripts/games/digit_recall/digit_recall_h
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/digit_recall/digit_recall_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

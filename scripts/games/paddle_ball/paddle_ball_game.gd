@@ -207,6 +207,7 @@ const TITLE_FOR_HOME := preload("res://scripts/games/paddle_ball/paddle_ball_hel
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/paddle_ball/paddle_ball_help.gd"),
 		"info": info,
 		"accent": HomeKit.PINK,

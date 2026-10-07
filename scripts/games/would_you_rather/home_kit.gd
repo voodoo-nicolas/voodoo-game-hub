@@ -947,7 +947,7 @@ func skin_name() -> String:
 
 func _has_skins() -> bool:
 	var g := get_parent()
-	return g != null and (g.has_method("_set_skin") or (g.has_method("_set_voodoo") and ResourceLoader.exists(VOODOO_PATH)))
+	return g != null and (bool(cfg.get("retro", false)) or g.has_method("_set_skin") or (g.has_method("_set_voodoo") and ResourceLoader.exists(VOODOO_PATH)))
 
 func _skin_on() -> bool:
 	return skin_name() == "voodoo"
@@ -963,6 +963,8 @@ func _push_skin() -> void:
 		return
 	if g.has_method("_set_skin"):
 		g._set_skin(skin_name())
+	elif cfg.get("retro", false):
+		_set_retro(skin_name() != "voodoo")
 	elif g.has_method("_set_voodoo"):
 		g._set_voodoo(skin_name() == "voodoo")
 
@@ -974,10 +976,75 @@ func _apply_skin_pref() -> void:
 		return
 	if g.has_method("_set_skin"):
 		g._set_skin(skin_name())
+	elif cfg.get("retro", false):
+		_set_retro(skin_name() != "voodoo")
 	elif _prefs.has("skin") and g.has_method("_set_voodoo") and ResourceLoader.exists(VOODOO_PATH):
 		var want: bool = str(_prefs.skin) == "voodoo"
 		if want != bool(load(VOODOO_PATH).is_on()):
 			g._set_voodoo(want)
+
+## Classic for neon-native games (arcade, party, quiz): a screen filter, no
+## game code. Faint glow halos and tinted glass fall to the dark background,
+## and every saturated colour snaps to a flat retro-arcade primary. Games
+## opt in with `"retro": true` in the config; Voodoo = the plain neon look.
+const RETRO_SHADER := """shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_nearest;
+vec3 snap(float h) {
+	if (h < 0.035 || h >= 0.96) return vec3(0.84, 0.16, 0.16);
+	if (h < 0.11) return vec3(0.94, 0.54, 0.11);
+	if (h < 0.19) return vec3(0.96, 0.79, 0.05);
+	if (h < 0.45) return vec3(0.16, 0.62, 0.29);
+	if (h < 0.58) return vec3(0.12, 0.66, 0.74);
+	if (h < 0.72) return vec3(0.12, 0.36, 0.85);
+	if (h < 0.86) return vec3(0.48, 0.25, 0.69);
+	return vec3(0.88, 0.27, 0.48);
+}
+void fragment() {
+	vec3 c = texture(screen_tex, SCREEN_UV).rgb;
+	float mx = max(c.r, max(c.g, c.b));
+	float mn = min(c.r, min(c.g, c.b));
+	float d = mx - mn;
+	float a = smoothstep(0.14, 0.34, mx);
+	vec3 base = vec3(0.04, 0.05, 0.09);
+	if (d < 0.2 * mx || d < 0.06) {
+		COLOR = vec4(mix(base, c, a), 1.0);
+	} else {
+		float h;
+		if (mx == c.r) h = mod((c.g - c.b) / d, 6.0) / 6.0;
+		else if (mx == c.g) h = ((c.b - c.r) / d + 2.0) / 6.0;
+		else h = ((c.r - c.g) / d + 4.0) / 6.0;
+		COLOR = vec4(mix(base, snap(fract(h)), a), 1.0);
+	}
+}
+"""
+
+func _set_retro(on: bool) -> void:
+	var g := get_parent()
+	if g == null:
+		return
+	var layer := g.get_node_or_null("RetroFilter")
+	var bd: Node = g.get_child(0) if g.get_child_count() > 0 else null
+	if bd is ColorRect and bd.get_child_count() > 0 and bd.get_child(0) is Control:
+		bd.get_child(0).visible = not on  # the faint grid
+	if not on:
+		if layer:
+			layer.queue_free()
+		return
+	if layer:
+		return
+	layer = CanvasLayer.new()
+	layer.name = "RetroFilter"
+	layer.layer = 100
+	var rect := ColorRect.new()
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var sh := Shader.new()
+	sh.code = RETRO_SHADER
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	rect.material = mat
+	layer.add_child(rect)
+	g.add_child(layer)
 
 ## Saves, then reloads the scene turned the other way (the scene's own
 ## orientation lock rotates once instead of undoing it).
