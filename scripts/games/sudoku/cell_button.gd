@@ -19,6 +19,16 @@ var is_error: bool = false
 var notes: Array = [false, false, false, false, false, false, false, false, false]
 
 var value_label: Label
+## Classic skin (a printed puzzle): ink givens, blue pencil entries, light
+## cell lines. Set by the game's _set_skin, then update_display().
+var classic: bool = false
+const CLASSIC_GIVEN := Color("1d2433")
+const CLASSIC_EDITABLE := Color("1e5bd8")
+const CLASSIC_ERROR := Color("d62828")
+const CLASSIC_NOTE := Color("5b6478")
+const CLASSIC_NOTE_MATCH := Color("1f6b3a")
+const CLASSIC_NOTE_MATCH_BG := Color("d5ebcf")
+const CLASSIC_THIN_LINE := Color("b8b2a2")
 var notes_layer: Control
 var note_font_size: int = 18
 ## The digit whose note stands out (the selected cell's number), 0 = none.
@@ -95,11 +105,11 @@ func update_display() -> void:
 		value_label.visible = true
 		notes_layer.visible = false
 		if is_given:
-			value_label.add_theme_color_override("font_color", COLOR_GIVEN)
+			value_label.add_theme_color_override("font_color", CLASSIC_GIVEN if classic else COLOR_GIVEN)
 		elif is_error:
-			value_label.add_theme_color_override("font_color", COLOR_ERROR)
+			value_label.add_theme_color_override("font_color", CLASSIC_ERROR if classic else COLOR_ERROR)
 		else:
-			value_label.add_theme_color_override("font_color", COLOR_EDITABLE)
+			value_label.add_theme_color_override("font_color", CLASSIC_EDITABLE if classic else COLOR_EDITABLE)
 	else:
 		value_label.visible = false
 		notes_layer.visible = true
@@ -121,11 +131,12 @@ func _draw_notes() -> void:
 		var pos := Vector2(centre.x - w / 2.0, centre.y - height / 2.0 + ascent)
 		if i + 1 == match_note:
 			var chip := Rect2(centre - third * 0.46, third * 0.92)
-			notes_layer.draw_rect(chip, COLOR_NOTE_MATCH_BG)
-			notes_layer.draw_rect(chip, COLOR_NOTE_MATCH, false, 1.5)
-			notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, COLOR_NOTE_MATCH)
+			var m: Color = CLASSIC_NOTE_MATCH if classic else COLOR_NOTE_MATCH
+			notes_layer.draw_rect(chip, CLASSIC_NOTE_MATCH_BG if classic else COLOR_NOTE_MATCH_BG)
+			notes_layer.draw_rect(chip, m, false, 1.5)
+			notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, m)
 		else:
-			notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, COLOR_NOTE)
+			notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, CLASSIC_NOTE if classic else COLOR_NOTE)
 
 const THIN_LINE := 1
 const COLOR_THIN_LINE := Color(0.42, 0.42, 0.5)
@@ -137,6 +148,6 @@ func set_background(color: Color) -> void:
 	sb.border_width_top = THIN_LINE
 	sb.border_width_right = THIN_LINE
 	sb.border_width_bottom = THIN_LINE
-	sb.border_color = COLOR_THIN_LINE
+	sb.border_color = CLASSIC_THIN_LINE if classic else COLOR_THIN_LINE
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		add_theme_stylebox_override(state, sb)

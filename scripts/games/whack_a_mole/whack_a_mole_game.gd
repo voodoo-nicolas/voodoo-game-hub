@@ -50,6 +50,14 @@ func _ready() -> void:
 
 ## Skull mode: skulls and voodoo dolls pop up instead of moles. Called by the
 ## ⚙ drawer's toggle too, so it re-skins in place.
+## The kit's Look (Options): "classic" = the retro-arcade screen filter
+## (flat primaries, no glow), "voodoo" = skulls and dolls on neon.
+func _set_skin(name: String) -> void:
+	var v: bool = name == "voodoo"
+	_set_voodoo(v)
+	if home:
+		home._set_retro(not v)
+
 func _set_voodoo(on: bool) -> void:
 	voodoo_on = on and Voodoo != null
 	for m in mole_labels:

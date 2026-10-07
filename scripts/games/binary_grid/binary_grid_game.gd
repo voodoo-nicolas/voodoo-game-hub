@@ -33,6 +33,10 @@ var hint_cell: int = -1
 var hints_used: int = 0
 
 var board: Control
+var bg: ColorRect
+## The kit's Look: "classic" = pencil and paper (black and white
+## circles), "voodoo" = the neon look.
+var skin: String = "classic"
 var status_label: Label
 var end_dialog: Control
 
@@ -52,7 +56,8 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop() as ColorRect
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -235,7 +240,9 @@ func _draw_board() -> void:
 	var cs: float = g.cs
 	var n: int = engine.n
 	var bad: Dictionary = engine.errors()
-	var font := ThemeDB.fallback_font
+	if skin == "classic":
+		_draw_board_classic(g, bad)
+		return
 	HomeKit.glow_rect(board, Rect2(g.o, Vector2(cs * n, cs * n)).grow(6), Color(HomeKit.PURPLE, 0.7), 2.0)
 	for i in n * n:
 		var r := Rect2(g.o + Vector2(i % n, i / n) * cs, Vector2(cs, cs))
@@ -265,6 +272,58 @@ func _draw_board() -> void:
 		var done_col: bool = cc[0] == n / 2 and cc[1] == n / 2
 		board.draw_circle(g.o + Vector2(n * cs + 14, (k + 0.5) * cs), 4.0, HomeKit.LIME if done_row else Color(1, 1, 1, 0.15))
 		board.draw_circle(g.o + Vector2((k + 0.5) * cs, n * cs + 14), 4.0, HomeKit.LIME if done_col else Color(1, 1, 1, 0.15))
+
+## Classic: a printed puzzle -- paper, pencil grid, solid black and open
+## white circles (given ones bolder), mistakes ringed red.
+func _draw_board_classic(g: Dictionary, bad: Dictionary) -> void:
+	var C: Dictionary = HomeKit.CLASSIC
+	var cs: float = g.cs
+	var n: int = engine.n
+	var span := Rect2(g.o, Vector2(cs * n, cs * n))
+	board.draw_rect(span.grow(10), C.paper)
+	for k in n + 1:
+		var w := 3.0 if k == 0 or k == n else 1.0
+		board.draw_line(g.o + Vector2(k * cs, 0), g.o + Vector2(k * cs, n * cs), C.pencil, w)
+		board.draw_line(g.o + Vector2(0, k * cs), g.o + Vector2(n * cs, k * cs), C.pencil, w)
+	for i in n * n:
+		var r := Rect2(g.o + Vector2(i % n, i / n) * cs, Vector2(cs, cs))
+		var c := r.get_center()
+		var v: int = engine.cells[i]
+		var line := maxf(2.0, cs * (0.08 if engine.given[i] else 0.05))
+		if v == 0:
+			board.draw_circle(c, cs * 0.34, C.ink)
+		elif v == 1:
+			board.draw_circle(c, cs * 0.34, Color.WHITE)
+			board.draw_arc(c, cs * 0.34, 0, TAU, 40, C.ink, line, true)
+		if v != BgEngine.EMPTY and engine.given[i]:
+			board.draw_circle(c, cs * 0.07, C.pencil if v == 0 else C.ink)
+		if bad.has(i):
+			board.draw_arc(c, cs * 0.43, 0, TAU, 40, C.red, 3.0, true)
+		if i == hint_cell:
+			board.draw_rect(r.grow(-3), C.blue, false, 3.0)
+	for k in n:
+		var rc := [0, 0]
+		var cc := [0, 0]
+		for j in n:
+			var a: int = engine.cells[k * n + j]
+			var b: int = engine.cells[j * n + k]
+			if a >= 0:
+				rc[a] += 1
+			if b >= 0:
+				cc[b] += 1
+		var done_row: bool = rc[0] == n / 2 and rc[1] == n / 2
+		var done_col: bool = cc[0] == n / 2 and cc[1] == n / 2
+		var off := Color(C.pencil, 0.35)
+		board.draw_circle(g.o + Vector2(n * cs + 18, (k + 0.5) * cs), 5.0, C.felt if done_row else off)
+		board.draw_circle(g.o + Vector2((k + 0.5) * cs, n * cs + 18), 5.0, C.felt if done_col else off)
+
+## The kit's Look (Options): re-skins in place.
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+	if bg.get_child_count() > 0:
+		bg.get_child(0).visible = skin != "classic"  # the faint neon grid
+	board.queue_redraw()
 
 func _draw_home_logo(c: Control) -> void:
 	var cs := minf(c.size.y / 4.5, 34.0)

@@ -168,6 +168,7 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/spirit_board/spirit_board_help.gd"))
 	home = HomeKit.new({
+		"retro": true,
 		"help": preload("res://scripts/games/spirit_board/spirit_board_help.gd"),
 		"info": info,
 		"accent": HomeKit.PURPLE,

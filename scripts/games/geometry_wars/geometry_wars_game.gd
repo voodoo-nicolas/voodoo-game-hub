@@ -1770,6 +1770,7 @@ func _load_saved_game() -> bool:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		"retro": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

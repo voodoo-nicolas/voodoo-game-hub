@@ -22,8 +22,12 @@ const TIMES := [45, 60, 90]
 const TARGET := 5
 const TEAM_COLORS := [Color("29e6ff"), Color("ff2bd6"), Color("7dff3a"), Color("ffae2b")]
 const INKS := [Color(0.95, 0.97, 1.0), Color("29e6ff"), Color("ff2bd6"), Color("7dff3a"), Color("ffae2b"), Color("ff3b3b")]
+## Classic skin: marker colours on a whiteboard, one per INKS entry.
+const CLASSIC_INKS := [Color("1d2433"), Color("1e5bd8"), Color("8e2fb0"), Color("1f8a3a"), Color("e8710a"), Color("d62828")]
 const WIDTHS := [6.0, 16.0]
 
+var bg: ColorRect
+var skin: String = "classic"
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
 var engine
@@ -73,7 +77,8 @@ func _lang() -> String:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg = HomeKit.backdrop() as ColorRect
+	add_child(bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -424,22 +429,46 @@ func _on_canvas_input(event: InputEvent) -> void:
 
 func _draw_canvas() -> void:
 	var r := Rect2(Vector2.ZERO, canvas.size)
-	canvas.draw_rect(r, Color(0.02, 0.03, 0.07))
-	HomeKit.glow_rect(canvas, r.grow(-2), Color(TEAM_COLORS[engine.turn % TEAM_COLORS.size()], 0.7), 2.0)
+	var classic := skin == "classic"
+	if classic:
+		canvas.draw_rect(r, Color.WHITE)
+		canvas.draw_rect(r.grow(-3), TEAM_COLORS[engine.turn % TEAM_COLORS.size()].darkened(0.35), false, 6.0)
+	else:
+		canvas.draw_rect(r, Color(0.02, 0.03, 0.07))
+		HomeKit.glow_rect(canvas, r.grow(-2), Color(TEAM_COLORS[engine.turn % TEAM_COLORS.size()], 0.7), 2.0)
 	for s in strokes:
 		var pts: PackedVector2Array = s.p
-		var col: Color = s.c
+		var col: Color = _ink_color(s.c)
 		var w: float = s.w
 		if pts.size() == 1:
 			canvas.draw_circle(pts[0], w / 2.0, col)
 			continue
-		canvas.draw_polyline(pts, Color(col, 0.18), w * 2.2, true)
+		if not classic:
+			canvas.draw_polyline(pts, Color(col, 0.18), w * 2.2, true)
 		canvas.draw_polyline(pts, col, w, true)
 		for p in pts:
 			canvas.draw_circle(p, w / 2.0, col)
 	if phase != "drawing" and strokes.is_empty():
 		var font := ThemeDB.fallback_font
-		canvas.draw_string(font, Vector2(0, canvas.size.y / 2.0), tr("The canvas"), HORIZONTAL_ALIGNMENT_CENTER, canvas.size.x, 28, Color(HomeKit.DIM, 0.4))
+		canvas.draw_string(font, Vector2(0, canvas.size.y / 2.0), tr("The canvas"), HORIZONTAL_ALIGNMENT_CENTER, canvas.size.x, 28, Color(HomeKit.CLASSIC.pencil, 0.6) if classic else Color(HomeKit.DIM, 0.4))
+
+## A stroke keeps its neon ink; the Classic skin shows the matching marker.
+func _ink_color(c: Color) -> Color:
+	if skin != "classic":
+		return c
+	var i: int = INKS.find(c)
+	return CLASSIC_INKS[i] if i >= 0 else c
+
+## The kit's Look (Options): "classic" = markers on a whiteboard,
+## "voodoo" = neon on black. Re-skins in place.
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
+	if bg.get_child_count() > 0:
+		bg.get_child(0).visible = skin != "classic"  # the faint neon grid
+	_refresh_tools()
+	if canvas:
+		canvas.queue_redraw()
 
 func _pick_ink(i: int) -> void:
 	ink = i
@@ -467,7 +496,11 @@ func _peek(show: bool) -> void:
 func _refresh_tools() -> void:
 	for i in ink_buttons.size():
 		var sb := HomeKit.neon_box(INKS[i], "pressed" if i == ink else "normal")
-		sb.bg_color = Color(INKS[i], 0.85 if i == ink else 0.45)
+		sb.bg_color = Color(_ink_color(INKS[i]), 0.85 if i == ink else 0.45)
+		if skin == "classic":
+			sb.bg_color = _ink_color(INKS[i])
+			sb.border_color = Color.WHITE if i == ink else Color(1, 1, 1, 0.3)
+			sb.shadow_size = 0
 		sb.set_corner_radius_all(28)
 		sb.set_border_width_all(4 if i == ink else 2)
 		for st in ["normal", "hover", "pressed", "focus", "disabled"]:

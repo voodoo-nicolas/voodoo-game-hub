@@ -44,8 +44,18 @@ no faint grid, plain drop shadows.
     in the game's HomeKit config makes the kit add a screen filter
     (`RETRO_SHADER` in home_kit.gd): glow halos and tinted glass fall to the
     background, saturated colours snap to flat primaries. Voodoo = plain neon.
-  - Left neon-only on purpose: Neon Blast, IQ Test, Trace It, Sketch It,
-    Fortune Ball, Spirit Board, Gem Match / Bop the Mole (own skins), and the
-    8 archived Drinking Games.
+  - Finished 2026-10-06: Sudoku (printed puzzle: paper cells, ink givens, blue
+    pencil entries; Look on its own Options card, saved in landing_sudoku.json),
+    Binary Grid (paper, solid black / open white circles), Sketch It (markers on
+    a whiteboard; strokes keep their neon ink and are shown as the matching
+    marker), and the retro filter for Neon Blast, Fortune Ball, Spirit Board
+    (a filter, not a wooden board, so it stays clear of the famous talking
+    board's look), Gem Match and Bop the Mole (their `_set_skin` = retro filter
+    for Classic, skulls for Voodoo).
+  - Left without Classic on purpose: IQ Test (its items are measurements --
+    colours and drawings are part of each question, so a filter would change
+    how hard they are) and Trace It (the camera picture sits under the drawing;
+    a filter would recolour the paper the player is tracing on, and the player
+    already picks the line colour). Plus the 8 archived Drinking Games.
 - Pattern: `var skin`, `_set_skin(name)` (bg colour + hide the faint grid +
   redraw), `_is_classic()`, and a classic branch where each thing is drawn.

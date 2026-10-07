@@ -6,6 +6,8 @@ extends Control
 const THICKNESS := 4.0
 const LINE_COLOR := Color(0.95, 0.95, 1.0)
 
+## The game's _set_skin sets this (ink on the Classic paper look).
+var line_color: Color = LINE_COLOR
 var boundary_positions: Array = [0.0, 222.0, 444.0, 664.0]
 var board_size: float = 664.0
 
@@ -16,5 +18,5 @@ func setup(cell_size: float, separation: float) -> void:
 
 func _draw() -> void:
 	for pos in boundary_positions:
-		draw_line(Vector2(pos, 0.0), Vector2(pos, board_size), LINE_COLOR, THICKNESS)
-		draw_line(Vector2(0.0, pos), Vector2(board_size, pos), LINE_COLOR, THICKNESS)
+		draw_line(Vector2(pos, 0.0), Vector2(pos, board_size), line_color, THICKNESS)
+		draw_line(Vector2(0.0, pos), Vector2(board_size, pos), line_color, THICKNESS)

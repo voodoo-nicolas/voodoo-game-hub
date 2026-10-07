@@ -29,11 +29,30 @@ const COLOR_SAME_VALUE := Color(0.32, 0.37, 0.22)
 const COLOR_ERROR_BG := Color(0.45, 0.15, 0.17)
 const COLOR_HINT_AREA := Color(0.36, 0.24, 0.44)
 const COLOR_HINT_TARGET := Color(0.62, 0.48, 0.12)
+## Classic skin (STANDARDS §9, the default): a printed puzzle -- paper cells,
+## pencil and ink. The colours above are the dark "Voodoo" look.
+const CLASSIC_COLORS := {
+	"base": Color("f7f3e8"), "selected": Color("bcd4f6"), "peer": Color("e4e8f0"),
+	"same": Color("d5ebcf"), "error": Color("f6d0cc"), "hint_area": Color("e6daf2"),
+	"hint_target": Color("f6e2a0"),
+}
+const DARK_COLORS := {
+	"base": COLOR_BASE, "selected": COLOR_SELECTED, "peer": COLOR_PEER,
+	"same": COLOR_SAME_VALUE, "error": COLOR_ERROR_BG, "hint_area": COLOR_HINT_AREA,
+	"hint_target": COLOR_HINT_TARGET,
+}
+## Per-game Look, the same file and key the Landing kit uses.
+const PREFS_PATH := "user://landing_sudoku.json"
+const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var puzzle: Array = []
 var solution: Array = []
 var cells: Array = []  # 9x9 of CellButton
+var skin: String = "classic"
+var _screen_bg: ColorRect
+var _board_back: ColorRect
+var _grid_lines  # GridLines
 var selected: Vector2i = Vector2i(-1, -1)
 var notes_mode: bool = false
 var mistakes: int = 0
@@ -84,6 +103,7 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	randomize()
 	_build_ui()
+	_set_skin(_saved_skin(), false)
 	_show_difficulty_screen()
 
 ## Leaving mid-generation (settings drawer -> Hub) would destroy a Thread
@@ -159,6 +179,7 @@ func _build_ui() -> void:
 	bg.color = Color(0.09, 0.09, 0.13)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	_screen_bg = bg
 
 	_build_game_screen()
 	_build_loading_overlay()
@@ -290,6 +311,12 @@ func _build_game_screen() -> void:
 	var board_wrap := Control.new()
 	board_wrap.custom_minimum_size = Vector2(board_size, board_size)
 	board_center.add_child(board_wrap)
+	# Shows through the gaps between cells: pencil lines on the Classic look.
+	_board_back = ColorRect.new()
+	_board_back.color = Color(0, 0, 0, 0)
+	_board_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_board_back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	board_wrap.add_child(_board_back)
 
 	grid_container = GridContainer.new()
 	grid_container.columns = 9
@@ -302,6 +329,7 @@ func _build_game_screen() -> void:
 	grid_lines.set_anchors_preset(Control.PRESET_FULL_RECT)
 	grid_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	board_wrap.add_child(grid_lines)
+	_grid_lines = grid_lines
 
 	for r in range(9):
 		var row: Array = []
@@ -1275,11 +1303,45 @@ func _to_int_grid(arr: Array) -> Array:
 
 # ---------- highlighting ----------
 
+# ---------- skins (STANDARDS §9) ----------
+
+## The saved Look, else the app-wide skull mode, else Classic.
+func _saved_skin() -> String:
+	var d = SaveUtil.read(PREFS_PATH)
+	if d is Dictionary and d.has("skin"):
+		return "voodoo" if str(d.skin) == "voodoo" else "classic"
+	if ResourceLoader.exists(VOODOO_PATH) and load(VOODOO_PATH).is_on():
+		return "voodoo"
+	return "classic"
+
+## Options → Look: re-skins the board in place (a puzzle in progress goes on).
+func _set_skin(name: String, save: bool = true) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if save:
+		var d = SaveUtil.read(PREFS_PATH)
+		if not d is Dictionary:
+			d = {}
+		d["skin"] = skin
+		SaveUtil.write(PREFS_PATH, d)
+	var classic := skin == "classic"
+	_screen_bg.color = Color("12161f") if classic else Color(0.09, 0.09, 0.13)
+	_board_back.color = Color("b8b2a2") if classic else Color(0, 0, 0, 0)
+	_grid_lines.line_color = Color("1d2433") if classic else _grid_lines.LINE_COLOR
+	_grid_lines.queue_redraw()
+	for row in cells:
+		for cell in row:
+			cell.classic = classic
+			cell.update_display()
+	_refresh_highlights()
+
+func _col(key: String) -> Color:
+	return CLASSIC_COLORS[key] if skin == "classic" else DARK_COLORS[key]
+
 func _refresh_highlights() -> void:
 	var match_digit: int = cells[selected.x][selected.y].value if selected.x >= 0 else 0
 	for r in range(9):
 		for c in range(9):
-			cells[r][c].set_background(COLOR_BASE)
+			cells[r][c].set_background(_col("base"))
 			cells[r][c].set_match_note(match_digit)
 
 	if selected.x >= 0:
@@ -1291,11 +1353,11 @@ func _refresh_highlights() -> void:
 			for c in range(9):
 				var is_peer: bool = r == selected.x or c == selected.y or (int(r / 3) * 3 == sbr and int(c / 3) * 3 == sbc)
 				if is_peer:
-					cells[r][c].set_background(COLOR_PEER)
+					cells[r][c].set_background(_col("peer"))
 				if sel_value != 0 and cells[r][c].value == sel_value:
-					cells[r][c].set_background(COLOR_SAME_VALUE)
+					cells[r][c].set_background(_col("same"))
 
-		cells[selected.x][selected.y].set_background(COLOR_SELECTED)
+		cells[selected.x][selected.y].set_background(_col("selected"))
 
 	if not current_hint.is_empty():
 		var shade := []
@@ -1304,7 +1366,7 @@ func _refresh_highlights() -> void:
 			shade.append_array(current_hint.get("line", []))
 		for i in shade:
 			if i != selected.x * 9 + selected.y:
-				cells[int(i / 9)][i % 9].set_background(COLOR_HINT_AREA)
+				cells[int(i / 9)][i % 9].set_background(_col("hint_area"))
 		var gold: Array = current_hint.cells.duplicate()
 		if _hint_cell_shown():
 			gold.append(current_hint.cell)
@@ -1313,12 +1375,12 @@ func _refresh_highlights() -> void:
 			for r in range(9):
 				for c in range(9):
 					if cells[r][c].value == current_hint.digit and not cells[r][c].is_error:
-						cells[r][c].set_background(COLOR_SAME_VALUE)
+						cells[r][c].set_background(_col("same"))
 		for i in gold:
-			cells[int(i / 9)][i % 9].set_background(COLOR_HINT_TARGET)
+			cells[int(i / 9)][i % 9].set_background(_col("hint_target"))
 
 	# errors always win, so a mistake stays visible even under peer/selection highlighting
 	for r in range(9):
 		for c in range(9):
 			if cells[r][c].is_error:
-				cells[r][c].set_background(COLOR_ERROR_BG)
+				cells[r][c].set_background(_col("error"))

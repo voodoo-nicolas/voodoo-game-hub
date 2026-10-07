@@ -300,6 +300,11 @@ func _show_options(parent: Node = null, from_pause: bool = false) -> void:
 		var rot := _neon_button(tr("🔄 Rotate Screen"), BLUE, 24, 64)
 		rot.pressed.connect(_rotate)
 		body.add_child(rot)
+	var g := get_parent()
+	if g and g.has_method("_set_skin"):
+		body.add_child(_section(tr("Look")))
+		body.add_child(_choice(["Classic", "💀 Voodoo"], 1 if str(g.skin) == "voodoo" else 0,
+			func(i): g._set_skin("voodoo" if i == 1 else "classic"), PURPLE))
 	var s := get_node_or_null("/root/Settings")
 	if s:
 		_note(body, tr("These settings are app-wide: they change every game."))

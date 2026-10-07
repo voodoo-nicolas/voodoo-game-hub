@@ -203,6 +203,14 @@ func _build_ui() -> void:
 
 ## Skull mode: skulls, bones, voodoo dolls, sugar skulls, fire and an evil
 ## eye instead of gems. Called by the ⚙ drawer's toggle too.
+## The kit's Look (Options): "classic" = the retro-arcade screen filter
+## (flat primaries, no glow), "voodoo" = skulls and dolls on neon.
+func _set_skin(name: String) -> void:
+	var v: bool = name == "voodoo"
+	_set_voodoo(v)
+	if home:
+		home._set_retro(not v)
+
 func _set_voodoo(on: bool) -> void:
 	voodoo_on = on and Voodoo != null
 	var bg: ColorRect = get_node_or_null("Bg")
