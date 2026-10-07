@@ -67,7 +67,8 @@
       {"id": "crossword", "title": "Crossword", "icon": "📝", "title_es": "Crucigrama", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["vocab"]},
       {"id": "anagrams", "quick": true, "title": "Anagrams", "icon": "🔀", "title_es": "Anagramas", "skins": "classic,voodoo", "learn": ["vocab"]},
       {"id": "word_hunt", "quick": true, "title": "Word Hunt", "icon": "🎲", "title_es": "Cazapalabras", "skins": "classic,voodoo", "learn": ["vocab"]},
-      {"id": "word_ladder", "quick": true, "title": "Word Ladder", "icon": "🪜", "title_es": "Escalera de palabras", "skins": "classic,voodoo", "learn": ["vocab"]}
+      {"id": "word_ladder", "quick": true, "title": "Word Ladder", "icon": "🪜", "title_es": "Escalera de palabras", "skins": "classic,voodoo", "learn": ["vocab"]},
+      {"id": "cryptogram", "title": "Cryptogram", "icon": "🔐", "title_es": "Criptograma", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["vocab", "logic"]}
     ]},
     {"name": "Arcade", "icon": "🕹️", "name_es": "Arcade", "games": [
       {"id": "geometry_wars", "quick": true, "original": true, "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast", "skins": "classic,voodoo"},
@@ -227,6 +228,7 @@
     "fortune_ball": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fortune_ball.pck", "scene": "res://scenes/games/fortune_ball/fortune_ball.tscn"},
     "spirit_board": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/spirit_board.pck", "scene": "res://scenes/games/spirit_board/spirit_board.tscn"},
     "trace_it": {"version": 3, "min_build": 34, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trace_it.pck", "scene": "res://scenes/games/trace_it/trace_it.tscn"},
-    "word_ladder": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_ladder.pck", "scene": "res://scenes/games/word_ladder/word_ladder.tscn"}
+    "word_ladder": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_ladder.pck", "scene": "res://scenes/games/word_ladder/word_ladder.tscn"},
+    "cryptogram": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/cryptogram.pck", "scene": "res://scenes/games/cryptogram/cryptogram.tscn"}
   }
 }
