@@ -1,0 +1,666 @@
+{
+ "en": [
+  {
+   "n": "Octopus",
+   "c": "animal",
+   "k": [
+    "I live in the ocean.",
+    "I have no bones.",
+    "I can squeeze through tiny gaps.",
+    "I squirt ink to escape.",
+    "I have eight arms."
+   ]
+  },
+  {
+   "n": "Elephant",
+   "c": "animal",
+   "k": [
+    "I live in Africa and Asia.",
+    "I am the largest land animal.",
+    "My skin is thick and gray.",
+    "I spray water with my nose.",
+    "I have a trunk and big ears."
+   ]
+  },
+  {
+   "n": "Penguin",
+   "c": "animal",
+   "k": [
+    "I am a bird.",
+    "I cannot fly.",
+    "I live where it is very cold.",
+    "I swim very well.",
+    "I look like I wear a black and white suit."
+   ]
+  },
+  {
+   "n": "Bat",
+   "c": "animal",
+   "k": [
+    "I am a mammal.",
+    "I sleep during the day.",
+    "I find food using echoes.",
+    "I hang upside down to rest.",
+    "I fly at night on leathery wings."
+   ]
+  },
+  {
+   "n": "Kangaroo",
+   "c": "animal",
+   "k": [
+    "I live in Australia.",
+    "I move by hopping.",
+    "I have a strong tail.",
+    "My baby grows up in a pouch.",
+    "I carry my young and I jump very far."
+   ]
+  },
+  {
+   "n": "Giraffe",
+   "c": "animal",
+   "k": [
+    "I live in Africa.",
+    "I eat leaves from tall trees.",
+    "My tongue is dark and very long.",
+    "I have spots.",
+    "I have the longest neck of all."
+   ]
+  },
+  {
+   "n": "Bee",
+   "c": "animal",
+   "k": [
+    "I am an insect.",
+    "I live in a big family.",
+    "I visit flowers.",
+    "I make something sweet.",
+    "I make honey and I can sting."
+   ]
+  },
+  {
+   "n": "Dolphin",
+   "c": "animal",
+   "k": [
+    "I live in the sea.",
+    "I am a mammal, not a fish.",
+    "I am very smart.",
+    "I talk with clicks and whistles.",
+    "I jump out of the water and play."
+   ]
+  },
+  {
+   "n": "Pizza",
+   "c": "food",
+   "k": [
+    "I come from Italy.",
+    "I am usually round.",
+    "I am baked in a hot oven.",
+    "I often have tomato sauce.",
+    "I am cut in slices and covered in cheese."
+   ]
+  },
+  {
+   "n": "Banana",
+   "c": "food",
+   "k": [
+    "I grow in bunches.",
+    "I am yellow when I am ripe.",
+    "Monkeys love me.",
+    "I come in my own wrapper.",
+    "You peel me before you eat me."
+   ]
+  },
+  {
+   "n": "Popcorn",
+   "c": "food",
+   "k": [
+    "I start as a hard seed.",
+    "I come from corn.",
+    "I make noise when I get hot.",
+    "I pop!",
+    "People eat me at the movies."
+   ]
+  },
+  {
+   "n": "Egg",
+   "c": "food",
+   "k": [
+    "I come from a bird.",
+    "I have a shell.",
+    "I can be boiled or fried.",
+    "I have a yolk.",
+    "A hen laid me."
+   ]
+  },
+  {
+   "n": "Chocolate",
+   "c": "food",
+   "k": [
+    "I come from beans.",
+    "I come from the cacao tree.",
+    "I am sweet and I melt.",
+    "I come in bars.",
+    "I am brown, and I am great in a bar or a cake."
+   ]
+  },
+  {
+   "n": "Watermelon",
+   "c": "food",
+   "k": [
+    "I am a fruit.",
+    "I am big and heavy.",
+    "I am mostly water.",
+    "I am green outside and red inside.",
+    "I have black seeds and I am great in summer."
+   ]
+  },
+  {
+   "n": "Moon",
+   "c": "thing",
+   "k": [
+    "I am far away.",
+    "I change shape in the sky.",
+    "I have craters.",
+    "People have walked on me.",
+    "I go around the Earth."
+   ]
+  },
+  {
+   "n": "Sun",
+   "c": "thing",
+   "k": [
+    "I am very hot.",
+    "I am a star.",
+    "Plants need me.",
+    "I give light and heat.",
+    "I rise in the morning and set at night."
+   ]
+  },
+  {
+   "n": "Rainbow",
+   "c": "thing",
+   "k": [
+    "I appear after rain.",
+    "I need sun and water drops.",
+    "I have the shape of an arch.",
+    "I have seven colors.",
+    "I am red, orange, yellow, green, blue and violet."
+   ]
+  },
+  {
+   "n": "Volcano",
+   "c": "thing",
+   "k": [
+    "I am a mountain.",
+    "I am very hot inside.",
+    "I can sleep for a very long time.",
+    "I can erupt.",
+    "I spit out lava."
+   ]
+  },
+  {
+   "n": "Clock",
+   "c": "thing",
+   "k": [
+    "I have a face but no eyes.",
+    "I have hands but I cannot clap.",
+    "I use numbers.",
+    "I tick.",
+    "I tell you the time."
+   ]
+  },
+  {
+   "n": "Bicycle",
+   "c": "thing",
+   "k": [
+    "I have two wheels.",
+    "I have no engine.",
+    "I need balance.",
+    "You pedal me.",
+    "I have handlebars and a chain."
+   ]
+  },
+  {
+   "n": "Doctor",
+   "c": "job",
+   "k": [
+    "I work in a hospital or a clinic.",
+    "I wear a white coat.",
+    "I help sick people.",
+    "I use a stethoscope.",
+    "I examine you and give you medicine."
+   ]
+  },
+  {
+   "n": "Firefighter",
+   "c": "job",
+   "k": [
+    "My job is dangerous.",
+    "I wear a helmet.",
+    "I drive a big red truck.",
+    "I climb tall ladders.",
+    "I put out fires."
+   ]
+  },
+  {
+   "n": "Astronaut",
+   "c": "job",
+   "k": [
+    "I work far from home.",
+    "I train for years.",
+    "I float instead of walking.",
+    "I wear a special suit.",
+    "I travel to space in a rocket."
+   ]
+  },
+  {
+   "n": "Chef",
+   "c": "job",
+   "k": [
+    "I work in a kitchen.",
+    "I wear a tall white hat.",
+    "I know many recipes.",
+    "I use pots and knives.",
+    "I cook meals in a restaurant."
+   ]
+  },
+  {
+   "n": "Teacher",
+   "c": "job",
+   "k": [
+    "I work in a school.",
+    "I know a lot.",
+    "I give homework.",
+    "I use a board and chalk.",
+    "I teach students in a classroom."
+   ]
+  },
+  {
+   "n": "Pilot",
+   "c": "job",
+   "k": [
+    "I wear a uniform with a cap.",
+    "I sit at the front.",
+    "I use many buttons and screens.",
+    "I speak to the passengers.",
+    "I fly airplanes."
+   ]
+  },
+  {
+   "n": "Magnet",
+   "c": "thing",
+   "k": [
+    "I am made of metal.",
+    "I have two ends with different names.",
+    "I can work through paper.",
+    "I stick to the fridge.",
+    "I attract iron and steel."
+   ]
+  },
+  {
+   "n": "Dinosaur",
+   "c": "animal",
+   "k": [
+    "I lived a very long time ago.",
+    "I am extinct.",
+    "People find my bones.",
+    "Some of me were huge.",
+    "T. rex was one of me."
+   ]
+  },
+  {
+   "n": "Piano",
+   "c": "thing",
+   "k": [
+    "I make music.",
+    "I have many keys.",
+    "My keys are black and white.",
+    "I have strings inside.",
+    "You play me with your fingers."
+   ]
+  },
+  {
+   "n": "Umbrella",
+   "c": "thing",
+   "k": [
+    "I open and close.",
+    "I keep you dry.",
+    "I am useful in bad weather.",
+    "I have a handle.",
+    "You open me when it rains."
+   ]
+  }
+ ],
+ "es": [
+  {
+   "n": "Pulpo",
+   "c": "animal",
+   "k": [
+    "Vivo en el océano.",
+    "No tengo huesos.",
+    "Puedo pasar por huecos muy pequeños.",
+    "Lanzo tinta para escapar.",
+    "Tengo ocho brazos."
+   ]
+  },
+  {
+   "n": "Elefante",
+   "c": "animal",
+   "k": [
+    "Vivo en África y Asia.",
+    "Soy el animal terrestre más grande.",
+    "Mi piel es gruesa y gris.",
+    "Lanzo agua con la nariz.",
+    "Tengo trompa y orejas enormes."
+   ]
+  },
+  {
+   "n": "Pingüino",
+   "c": "animal",
+   "k": [
+    "Soy un ave.",
+    "No puedo volar.",
+    "Vivo donde hace mucho frío.",
+    "Nado muy bien.",
+    "Parece que llevo un traje blanco y negro."
+   ]
+  },
+  {
+   "n": "Murciélago",
+   "c": "animal",
+   "k": [
+    "Soy un mamífero.",
+    "Duermo de día.",
+    "Encuentro comida con el eco.",
+    "Descanso colgado boca abajo.",
+    "Vuelo de noche con alas de piel."
+   ]
+  },
+  {
+   "n": "Canguro",
+   "c": "animal",
+   "k": [
+    "Vivo en Australia.",
+    "Me muevo a saltos.",
+    "Tengo una cola fuerte.",
+    "Mi cría crece en una bolsa.",
+    "Cargo a mi cría y salto muy lejos."
+   ]
+  },
+  {
+   "n": "Jirafa",
+   "c": "animal",
+   "k": [
+    "Vivo en África.",
+    "Como hojas de árboles altos.",
+    "Mi lengua es oscura y larguísima.",
+    "Tengo manchas.",
+    "Tengo el cuello más largo de todos."
+   ]
+  },
+  {
+   "n": "Abeja",
+   "c": "animal",
+   "k": [
+    "Soy un insecto.",
+    "Vivo en una familia grande.",
+    "Visito las flores.",
+    "Hago algo dulce.",
+    "Hago miel y puedo picar."
+   ]
+  },
+  {
+   "n": "Delfín",
+   "c": "animal",
+   "k": [
+    "Vivo en el mar.",
+    "Soy un mamífero, no un pez.",
+    "Soy muy inteligente.",
+    "Hablo con silbidos y chasquidos.",
+    "Salto fuera del agua y juego."
+   ]
+  },
+  {
+   "n": "Pizza",
+   "c": "food",
+   "k": [
+    "Vengo de Italia.",
+    "Casi siempre soy redonda.",
+    "Me hornean en un horno muy caliente.",
+    "Suelo llevar salsa de tomate.",
+    "Me cortan en porciones y llevo queso."
+   ]
+  },
+  {
+   "n": "Banana",
+   "c": "food",
+   "k": [
+    "Crezco en racimos.",
+    "Soy amarilla cuando estoy madura.",
+    "A los monos les encanto.",
+    "Vengo en mi propio envoltorio.",
+    "Me pelas antes de comerme."
+   ]
+  },
+  {
+   "n": "Palomitas",
+   "c": "food",
+   "k": [
+    "Empiezo como una semilla dura.",
+    "Vengo del maíz.",
+    "Hago ruido cuando me caliento.",
+    "¡Exploto!",
+    "La gente me come en el cine."
+   ]
+  },
+  {
+   "n": "Huevo",
+   "c": "food",
+   "k": [
+    "Vengo de un ave.",
+    "Tengo cascarón.",
+    "Me pueden hervir o freír.",
+    "Tengo yema.",
+    "Me puso una gallina."
+   ]
+  },
+  {
+   "n": "Chocolate",
+   "c": "food",
+   "k": [
+    "Vengo de unas semillas.",
+    "Vengo del árbol del cacao.",
+    "Soy dulce y me derrito.",
+    "Vengo en barras.",
+    "Soy marrón, y soy genial en barra o en pastel."
+   ]
+  },
+  {
+   "n": "Sandía",
+   "c": "food",
+   "k": [
+    "Soy una fruta.",
+    "Soy grande y pesada.",
+    "Soy casi toda agua.",
+    "Soy verde por fuera y roja por dentro.",
+    "Tengo semillas negras y soy ideal en verano."
+   ]
+  },
+  {
+   "n": "Luna",
+   "c": "thing",
+   "k": [
+    "Estoy muy lejos.",
+    "Cambio de forma en el cielo.",
+    "Tengo cráteres.",
+    "Hay personas que han caminado sobre mí.",
+    "Giro alrededor de la Tierra."
+   ]
+  },
+  {
+   "n": "Sol",
+   "c": "thing",
+   "k": [
+    "Soy muy caliente.",
+    "Soy una estrella.",
+    "Las plantas me necesitan.",
+    "Doy luz y calor.",
+    "Salgo por la mañana y me escondo de noche."
+   ]
+  },
+  {
+   "n": "Arcoíris",
+   "c": "thing",
+   "k": [
+    "Aparezco después de la lluvia.",
+    "Necesito sol y gotas de agua.",
+    "Tengo forma de arco.",
+    "Tengo siete colores.",
+    "Soy rojo, naranja, amarillo, verde, azul y violeta."
+   ]
+  },
+  {
+   "n": "Volcán",
+   "c": "thing",
+   "k": [
+    "Soy una montaña.",
+    "Estoy muy caliente por dentro.",
+    "Puedo dormir mucho tiempo.",
+    "Puedo hacer erupción.",
+    "Escupo lava."
+   ]
+  },
+  {
+   "n": "Reloj",
+   "c": "thing",
+   "k": [
+    "Tengo cara pero no tengo ojos.",
+    "Tengo manecillas pero no puedo aplaudir.",
+    "Uso números.",
+    "Hago tic tac.",
+    "Te digo la hora."
+   ]
+  },
+  {
+   "n": "Bicicleta",
+   "c": "thing",
+   "k": [
+    "Tengo dos ruedas.",
+    "No tengo motor.",
+    "Necesito equilibrio.",
+    "Me pedaleas.",
+    "Tengo manubrio y cadena."
+   ]
+  },
+  {
+   "n": "Doctor",
+   "c": "job",
+   "k": [
+    "Trabajo en un hospital o una clínica.",
+    "Uso bata blanca.",
+    "Ayudo a los enfermos.",
+    "Uso un estetoscopio.",
+    "Te examino y te receto medicinas."
+   ]
+  },
+  {
+   "n": "Bombero",
+   "c": "job",
+   "k": [
+    "Mi trabajo es peligroso.",
+    "Uso casco.",
+    "Manejo un camión rojo y grande.",
+    "Subo escaleras altas.",
+    "Apago incendios."
+   ]
+  },
+  {
+   "n": "Astronauta",
+   "c": "job",
+   "k": [
+    "Trabajo lejos de casa.",
+    "Me entreno durante años.",
+    "Floto en vez de caminar.",
+    "Uso un traje especial.",
+    "Viajo al espacio en un cohete."
+   ]
+  },
+  {
+   "n": "Cocinero",
+   "c": "job",
+   "k": [
+    "Trabajo en una cocina.",
+    "Uso un gorro blanco y alto.",
+    "Conozco muchas recetas.",
+    "Uso ollas y cuchillos.",
+    "Preparo comidas en un restaurante."
+   ]
+  },
+  {
+   "n": "Maestro",
+   "c": "job",
+   "k": [
+    "Trabajo en una escuela.",
+    "Sé mucho.",
+    "Dejo tarea.",
+    "Uso un pizarrón y tiza.",
+    "Enseño a los alumnos en un salón."
+   ]
+  },
+  {
+   "n": "Piloto",
+   "c": "job",
+   "k": [
+    "Uso uniforme y gorra.",
+    "Me siento adelante.",
+    "Uso muchos botones y pantallas.",
+    "Hablo con los pasajeros.",
+    "Manejo aviones."
+   ]
+  },
+  {
+   "n": "Imán",
+   "c": "thing",
+   "k": [
+    "Soy de metal.",
+    "Tengo dos extremos con nombres distintos.",
+    "Funciono a través de un papel.",
+    "Me pego al refrigerador.",
+    "Atraigo el hierro y el acero."
+   ]
+  },
+  {
+   "n": "Dinosaurio",
+   "c": "animal",
+   "k": [
+    "Viví hace muchísimo tiempo.",
+    "Estoy extinto.",
+    "La gente encuentra mis huesos.",
+    "Algunos de mi especie eran enormes.",
+    "El T. rex fue uno de nosotros."
+   ]
+  },
+  {
+   "n": "Piano",
+   "c": "thing",
+   "k": [
+    "Hago música.",
+    "Tengo muchas teclas.",
+    "Mis teclas son blancas y negras.",
+    "Tengo cuerdas por dentro.",
+    "Me tocas con los dedos."
+   ]
+  },
+  {
+   "n": "Paraguas",
+   "c": "thing",
+   "k": [
+    "Me abro y me cierro.",
+    "Te mantengo seco.",
+    "Soy útil con mal tiempo.",
+    "Tengo un mango.",
+    "Me abres cuando llueve."
+   ]
+  }
+ ]
+}

@@ -124,7 +124,8 @@
       {"id": "fortune_ball", "quick": true, "title": "Fortune Ball", "icon": "🧿", "title_es": "Bola de la fortuna", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"},
       {"id": "spirit_board", "original": true, "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo"},
       {"id": "fastest_finger", "quick": true, "title": "Fastest Finger", "icon": "👆", "title_es": "Dedo veloz", "modes": "local,party", "board": "none", "skins": "classic,voodoo", "learn": ["math"]},
-      {"id": "emoji_guess", "quick": true, "title": "Emoji Guess", "icon": "🤔", "title_es": "Adivina el emoji", "modes": "local,party", "skins": "classic,voodoo", "learn": ["vocab"]}
+      {"id": "emoji_guess", "quick": true, "title": "Emoji Guess", "icon": "🤔", "title_es": "Adivina el emoji", "modes": "local,party", "skins": "classic,voodoo", "learn": ["vocab"]},
+      {"id": "who_am_i", "quick": true, "title": "Who Am I?", "icon": "🕵️", "title_es": "¿Quién soy?", "modes": "local,party", "skins": "classic,voodoo", "learn": ["science"]}
     ]}
   ],
   "games": {
@@ -235,6 +236,7 @@
     "cryptogram": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/cryptogram.pck", "scene": "res://scenes/games/cryptogram/cryptogram.tscn"},
     "word_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/word_chain.pck", "scene": "res://scenes/games/word_chain/word_chain.tscn"},
     "fastest_finger": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fastest_finger.pck", "scene": "res://scenes/games/fastest_finger/fastest_finger.tscn"},
-    "emoji_guess": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/emoji_guess.pck", "scene": "res://scenes/games/emoji_guess/emoji_guess.tscn"}
+    "emoji_guess": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/emoji_guess.pck", "scene": "res://scenes/games/emoji_guess/emoji_guess.tscn"},
+    "who_am_i": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/who_am_i.pck", "scene": "res://scenes/games/who_am_i/who_am_i.tscn"}
   }
 }
