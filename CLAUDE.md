@@ -248,7 +248,7 @@ string exists.
 `scripts/common/game_info.gd` (ships in the APK) gives every game a How to
 Play card, opened from the ⚙ drawer (a "?" tab before v0.22). It pauses the game (`get_tree().paused`) and opens a
 card with 🎯 Goal, 📋 How to Play, 💡 Tips and 📊 Your Stats, and opens by
-itself the first time a game is played. Its header comment is the how-to.
+itself the first time a game is played (**not since 2026-10-07**: only from the Landing ❓ or the pause menu). Its header comment is the how-to.
 
 - **Text lives in `scripts/games/<id>/<id>_help.gd`** (in the pack): only
   constants -- `ID`, `TITLE`, `GOAL`, `HOW`, `TIPS`, `STATS` (stat keys always

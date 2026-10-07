@@ -395,8 +395,8 @@ func _go_home() -> void:
 func _draw_home_logo(c: Control) -> void:
 	var k := minf(c.size.y / 2.4, 62.0)
 	var o := Vector2(c.size.x / 2.0 - k * 2.5, c.size.y / 2.0 - k * 1.05)
-	var rows := [["N", 0], ["E", 1], ["O", 2], ["N", 0], ["S", 0]]
-	var rows2 := [["V", 2], ["O", 2], ["O", 2], ["D", 2], ["O", 2]]
+	var rows := [["W", 0], ["O", 1], ["R", 2], ["D", 0], ["S", 0]]
+	var rows2 := [["V", 2], ["I", 2], ["R", 2], ["A", 2], ["L", 2]]
 	for i in 5:
 		for spec in [[rows[i], 0], [rows2[i], 1]]:
 			var cell: Array = spec[0]

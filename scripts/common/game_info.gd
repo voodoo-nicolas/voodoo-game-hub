@@ -2,7 +2,7 @@ extends Control
 
 ## "How to Play" + "Your Stats" for one game: a card with the game's goal,
 ## rules, tips and the player's records, opened from the settings drawer's
-## "How to Play" button. Opens by itself the first time a game is played.
+## "How to Play" button. Opens only when the player asks (Landing ❓ / pause menu).
 ##
 ## Games never preload this (packs also run on apps from before v0.20):
 ##
@@ -87,11 +87,11 @@ func _ready() -> void:
 	# The card pauses the game underneath; it must keep working itself.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	call_deferred("_build_tab")
+	# No card on first play (owner 2026-10-07): How to Play opens only from the
+	# Landing's ❓ button or the pause menu.
 	if not stats.has("_seen"):
 		stats["_seen"] = 1
 		_save()
-		# After the game's own _ready() has finished building its screen.
-		call_deferred("open")
 
 func _exit_tree() -> void:
 	_unpause()
