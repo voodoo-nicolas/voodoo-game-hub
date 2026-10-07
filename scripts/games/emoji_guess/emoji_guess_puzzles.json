@@ -1,0 +1,595 @@
+{
+ "en": {
+  "easy": [
+   {
+    "e": "🌧🏹",
+    "a": [
+     "rainbow"
+    ],
+    "c": "Nature"
+   },
+   {
+    "e": "🧈🦋",
+    "a": [
+     "butterfly"
+    ],
+    "c": "Insect"
+   },
+   {
+    "e": "🌞🌻",
+    "a": [
+     "sunflower"
+    ],
+    "c": "Plant"
+   },
+   {
+    "e": "🚪🔔",
+    "a": [
+     "doorbell"
+    ],
+    "c": "Thing"
+   },
+   {
+    "e": "❄👨",
+    "a": [
+     "snowman"
+    ],
+    "c": "Winter"
+   },
+   {
+    "e": "🍯🐝",
+    "a": [
+     "honeybee"
+    ],
+    "c": "Animal"
+   },
+   {
+    "e": "🧀🍔",
+    "a": [
+     "cheeseburger"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🌙🚶",
+    "a": [
+     "moonwalk"
+    ],
+    "c": "Dance"
+   },
+   {
+    "e": "🐶🏠",
+    "a": [
+     "doghouse"
+    ],
+    "c": "Home"
+   },
+   {
+    "e": "🌽🍞",
+    "a": [
+     "cornbread"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🌟🐟",
+    "a": [
+     "starfish"
+    ],
+    "c": "Animal"
+   },
+   {
+    "e": "🔑🕳",
+    "a": [
+     "keyhole"
+    ],
+    "c": "Thing"
+   },
+   {
+    "e": "🍎🥧",
+    "a": [
+     "apple pie"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🍌🍞",
+    "a": [
+     "banana bread"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🥜🧈",
+    "a": [
+     "peanut butter"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🔥🐕",
+    "a": [
+     "hot dog"
+    ],
+    "c": "Food"
+   }
+  ],
+  "normal": [
+   {
+    "e": "🎃🥧",
+    "a": [
+     "pumpkin pie"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🧊🍦",
+    "a": [
+     "ice cream"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🐟🍟",
+    "a": [
+     "fish and chips"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "⏰💣",
+    "a": [
+     "time bomb"
+    ],
+    "c": "Thing"
+   },
+   {
+    "e": "🐱🐭",
+    "a": [
+     "cat and mouse"
+    ],
+    "c": "Animals"
+   },
+   {
+    "e": "🦷🧚",
+    "a": [
+     "tooth fairy"
+    ],
+    "c": "Story"
+   },
+   {
+    "e": "🌍🌡",
+    "a": [
+     "global warming"
+    ],
+    "c": "Science"
+   },
+   {
+    "e": "🧠⛈",
+    "a": [
+     "brainstorm"
+    ],
+    "c": "Word"
+   },
+   {
+    "e": "🏖🏐",
+    "a": [
+     "beach volleyball"
+    ],
+    "c": "Sport"
+   },
+   {
+    "e": "☕🍰",
+    "a": [
+     "coffee cake"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🦅👁",
+    "a": [
+     "eagle eye"
+    ],
+    "c": "Expression"
+   },
+   {
+    "e": "🌅🐦",
+    "a": [
+     "early bird"
+    ],
+    "c": "Expression"
+   },
+   {
+    "e": "🥶🦶",
+    "a": [
+     "cold feet"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "🍓🎂",
+    "a": [
+     "strawberry cake"
+    ],
+    "c": "Food"
+   },
+   {
+    "e": "🚌🏫",
+    "a": [
+     "school bus"
+    ],
+    "c": "Transport"
+   },
+   {
+    "e": "🌊🏄",
+    "a": [
+     "surfing"
+    ],
+    "c": "Sport"
+   }
+  ],
+  "hard": [
+   {
+    "e": "🌧🐱🐶",
+    "a": [
+     "raining cats and dogs",
+     "its raining cats and dogs"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "🧊🔨",
+    "a": [
+     "break the ice"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "🌙🔵",
+    "a": [
+     "once in a blue moon"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "🐦🐦🪨",
+    "a": [
+     "kill two birds with one stone"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "🤫🐭",
+    "a": [
+     "quiet as a mouse"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "🧩🍰",
+    "a": [
+     "piece of cake"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "⬇⛈",
+    "a": [
+     "under the weather"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "🐱🎒",
+    "a": [
+     "let the cat out of the bag"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "🎯🏹",
+    "a": [
+     "bullseye",
+     "hit the target",
+     "hit the bullseye"
+    ],
+    "c": "Target"
+   },
+   {
+    "e": "🦋🤢",
+    "a": [
+     "butterflies in my stomach",
+     "butterflies in the stomach"
+    ],
+    "c": "Feeling"
+   },
+   {
+    "e": "🐘🛋",
+    "a": [
+     "elephant in the room"
+    ],
+    "c": "Idiom"
+   },
+   {
+    "e": "💰🌳",
+    "a": [
+     "money tree",
+     "money grows on trees"
+    ],
+    "c": "Idiom"
+   }
+  ]
+ },
+ "es": {
+  "easy": [
+   {
+    "e": "🌻",
+    "a": [
+     "girasol"
+    ],
+    "c": "Planta"
+   },
+   {
+    "e": "🦋",
+    "a": [
+     "mariposa"
+    ],
+    "c": "Insecto"
+   },
+   {
+    "e": "🐢",
+    "a": [
+     "tortuga"
+    ],
+    "c": "Animal"
+   },
+   {
+    "e": "🚀",
+    "a": [
+     "cohete"
+    ],
+    "c": "Espacio"
+   },
+   {
+    "e": "🌋",
+    "a": [
+     "volcán"
+    ],
+    "c": "Naturaleza"
+   },
+   {
+    "e": "🍉",
+    "a": [
+     "sandía"
+    ],
+    "c": "Fruta"
+   },
+   {
+    "e": "🧀",
+    "a": [
+     "queso"
+    ],
+    "c": "Comida"
+   },
+   {
+    "e": "🐘",
+    "a": [
+     "elefante"
+    ],
+    "c": "Animal"
+   },
+   {
+    "e": "🏰",
+    "a": [
+     "castillo"
+    ],
+    "c": "Lugar"
+   },
+   {
+    "e": "🌵",
+    "a": [
+     "cactus"
+    ],
+    "c": "Planta"
+   },
+   {
+    "e": "🚲",
+    "a": [
+     "bicicleta",
+     "bici"
+    ],
+    "c": "Transporte"
+   },
+   {
+    "e": "🎸",
+    "a": [
+     "guitarra"
+    ],
+    "c": "Música"
+   },
+   {
+    "e": "🦁",
+    "a": [
+     "león"
+    ],
+    "c": "Animal"
+   },
+   {
+    "e": "🍄",
+    "a": [
+     "hongo",
+     "champiñón",
+     "seta"
+    ],
+    "c": "Naturaleza"
+   }
+  ],
+  "normal": [
+   {
+    "e": "❄👨",
+    "a": [
+     "muñeco de nieve",
+     "hombre de nieve"
+    ],
+    "c": "Invierno"
+   },
+   {
+    "e": "🍎🥧",
+    "a": [
+     "pastel de manzana",
+     "tarta de manzana"
+    ],
+    "c": "Comida"
+   },
+   {
+    "e": "🔥🐕",
+    "a": [
+     "perro caliente",
+     "pancho",
+     "hot dog"
+    ],
+    "c": "Comida"
+   },
+   {
+    "e": "☕🥛",
+    "a": [
+     "café con leche"
+    ],
+    "c": "Bebida"
+   },
+   {
+    "e": "🍫🥛",
+    "a": [
+     "chocolate con leche"
+    ],
+    "c": "Bebida"
+   },
+   {
+    "e": "🍞🧈",
+    "a": [
+     "pan con mantequilla"
+    ],
+    "c": "Comida"
+   },
+   {
+    "e": "🐱🐭",
+    "a": [
+     "gato y ratón",
+     "el gato y el ratón"
+    ],
+    "c": "Animales"
+   },
+   {
+    "e": "⏰💣",
+    "a": [
+     "bomba de tiempo"
+    ],
+    "c": "Cosa"
+   },
+   {
+    "e": "🌍🌡",
+    "a": [
+     "calentamiento global"
+    ],
+    "c": "Ciencia"
+   },
+   {
+    "e": "🎂🎈",
+    "a": [
+     "pastel de cumpleaños",
+     "torta de cumpleaños",
+     "tarta de cumpleaños"
+    ],
+    "c": "Fiesta"
+   },
+   {
+    "e": "🚌🏫",
+    "a": [
+     "autobús escolar",
+     "bus escolar",
+     "camión escolar"
+    ],
+    "c": "Transporte"
+   },
+   {
+    "e": "🍓🎂",
+    "a": [
+     "pastel de fresa",
+     "tarta de fresa",
+     "torta de fresa"
+    ],
+    "c": "Comida"
+   }
+  ],
+  "hard": [
+   {
+    "e": "🐦🐦🪨",
+    "a": [
+     "matar dos pájaros de un tiro",
+     "matar dos pájaros de un solo tiro"
+    ],
+    "c": "Expresión"
+   },
+   {
+    "e": "🍞🍽",
+    "a": [
+     "pan comido"
+    ],
+    "c": "Expresión"
+   },
+   {
+    "e": "🐟💧",
+    "a": [
+     "como pez en el agua",
+     "pez en el agua"
+    ],
+    "c": "Expresión"
+   },
+   {
+    "e": "🐱🔒",
+    "a": [
+     "gato encerrado",
+     "hay gato encerrado"
+    ],
+    "c": "Expresión"
+   },
+   {
+    "e": "🧊🔨",
+    "a": [
+     "romper el hielo"
+    ],
+    "c": "Expresión"
+   },
+   {
+    "e": "🐴🎁🦷",
+    "a": [
+     "a caballo regalado no se le mira el diente"
+    ],
+    "c": "Refrán"
+   },
+   {
+    "e": "👁🦅",
+    "a": [
+     "ojo de águila"
+    ],
+    "c": "Expresión"
+   },
+   {
+    "e": "🎯🏹",
+    "a": [
+     "dar en el blanco",
+     "dar en el clavo"
+    ],
+    "c": "Expresión"
+   },
+   {
+    "e": "🌅🐦",
+    "a": [
+     "al que madruga dios lo ayuda",
+     "el que madruga"
+    ],
+    "c": "Refrán"
+   }
+  ]
+ }
+}
