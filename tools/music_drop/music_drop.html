@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Viral Music Drop</title>
+<style>
+/* Served by music_drop.py on 127.0.0.1 only. One column: status bar, three tabs
+   (Add music / Library / Where it plays), a log panel for GitHub work. */
+:root {
+  color-scheme: dark;
+  --bg: #0a0a12; --panel: #13131f; --panel2: #1b1b2b; --line: #34344f;
+  --fg: #f4f4fb; --fg2: #b9b9d0; --red: #ff3b5c; --blue: #3da5ff; --ok: #3dff9a; --warn: #ffb547;
+  --body: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --disp: Impact, "Arial Narrow Bold", "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.5; padding: 20px 16px 64px; }
+main { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+h1 { font-family: var(--disp); font-weight: 400; letter-spacing: .04em; font-size: 2.1rem; line-height: 1; margin: 0; text-transform: uppercase; }
+h1 span { color: var(--red); } h1 em { font-style: normal; color: var(--blue); }
+h2 { font-size: 1.05rem; margin: 0; }
+h3 { font-size: .95rem; margin: 0; color: var(--fg2); text-transform: uppercase; letter-spacing: .08em; }
+p { margin: 0; }
+.sub { color: var(--fg2); }
+.small { font-size: .88rem; }
+.panel { background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.top { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; min-width: 0; }
+.field label, .lab { font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; color: var(--fg2); font-weight: 700; }
+input[type=text], input[type=number], select { min-height: 42px; border-radius: 8px; border: 2px solid var(--line); background: var(--bg); padding: 0 10px; width: 100%; min-width: 0; }
+input.bad, select.bad { border-color: var(--red); }
+.btn { min-height: 42px; padding: 0 14px; border-radius: 8px; border: 2px solid var(--fg2); background: var(--panel2); font-weight: 700; cursor: pointer; }
+.btn:hover:not(:disabled) { border-color: var(--fg); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.go { background: var(--red); border-color: var(--red); color: #fff; min-height: 54px; font-size: 1.1rem; width: 100%; }
+.btn.go:hover:not(:disabled) { background: #ff5f7b; border-color: #ff5f7b; }
+.btn.sm { min-height: 34px; padding: 0 10px; font-size: .88rem; }
+.btn.danger:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { min-height: 44px; padding: 0 16px; border-radius: 8px 8px 0 0; border: 2px solid var(--line); border-bottom: 0; background: var(--panel); color: var(--fg2); font-weight: 700; cursor: pointer; }
+.tab[aria-selected=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.status { font-size: .95rem; min-height: 1.4em; overflow-wrap: anywhere; }
+.ok { color: var(--ok); } .bad-t { color: var(--red); } .warn { color: var(--warn); } .busy { color: var(--blue); }
+.drop { border: 3px dashed var(--line); border-radius: 12px; padding: 26px 16px; text-align: center; cursor: pointer; background: var(--panel); display: block; }
+.drop.over { border-color: var(--blue); background: var(--panel2); }
+.drop b { font-size: 1.15rem; }
+.drop input { display: none; }
+.card { border-top: 1px solid var(--line); padding-block: 16px; display: flex; flex-direction: column; gap: 10px; }
+.card:first-child { border-top: 0; padding-top: 0; }
+.chead { display: flex; gap: 8px; align-items: center; justify-content: space-between; min-width: 0; }
+.fname { color: var(--fg2); font-size: .85rem; overflow-wrap: anywhere; min-width: 0; }
+.seg { display: flex; gap: 6px; }
+.seg label { flex: 1; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg span { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 42px; border: 2px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; font-weight: 700; text-align: center; padding: 2px 6px; line-height: 1.15; }
+.seg span small { font-weight: 400; color: var(--fg2); font-size: .72rem; }
+.seg input:checked + span { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.seg input:checked + span small { color: var(--bg); }
+.seg input:focus-visible + span { outline: 3px solid var(--blue); outline-offset: 2px; }
+.seg.bad span { border-color: var(--red); }
+fieldset { border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+legend { font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; color: var(--fg2); font-weight: 700; padding: 0 6px; }
+.check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.check input { width: 22px; height: 22px; margin: 2px 0 0; flex: none; accent-color: var(--red); }
+.check.bad { color: var(--red); }
+audio { width: 100%; height: 38px; }
+.stats { font-size: .88rem; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.matrix { overflow-x: auto; }
+table { border-collapse: collapse; font-size: .9rem; width: 100%; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+th { color: var(--fg2); font-size: .76rem; text-transform: uppercase; letter-spacing: .06em; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.trk { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding-block: 12px; border-top: 1px solid var(--line); }
+.trk:first-child { border-top: 0; }
+.trk .acts { display: flex; gap: 6px; align-items: start; }
+.trk .edit { grid-column: 1 / -1; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { min-height: 32px; padding: 0 10px; border-radius: 16px; border: 2px solid var(--line); background: var(--bg); font-size: .85rem; font-weight: 700; cursor: pointer; }
+.chip[aria-pressed=true] { background: var(--blue); border-color: var(--blue); color: #001; }
+.prow { display: grid; grid-template-columns: minmax(140px, 220px) 170px 1fr; gap: 10px; align-items: center; padding-block: 10px; border-top: 1px solid var(--line); }
+.prow.game { padding-left: 22px; }
+.prow .name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.prow.game .name { font-weight: 400; }
+.games { display: none; }
+.games.open { display: block; }
+#log { white-space: pre-wrap; font-family: ui-monospace, Consolas, monospace; font-size: .85rem; color: var(--fg2); max-height: 220px; overflow: auto; }
+a { color: var(--blue); }
+code { background: var(--panel2); padding: 1px 6px; border-radius: 4px; font-family: ui-monospace, Consolas, monospace; font-size: .9em; overflow-wrap: anywhere; }
+[hidden] { display: none !important; }
+@media (max-width: 640px) { .prow { grid-template-columns: 1fr; } .prow.game { padding-left: 10px; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div>
+      <h1>Viral <span>Music</span> <em>Drop</em></h1>
+      <p class="sub small">Add music to the hub's shared library. Converted on this PC, then sent to GitHub. Phones download a track when a game needs it.</p>
+    </div>
+    <button class="btn sm" id="quit" type="button">Quit</button>
+  </header>
+
+  <section class="panel">
+    <p id="conn" class="status busy" aria-live="polite">Connecting to GitHub...</p>
+  </section>
+
+  <div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="t-add" aria-selected="true" aria-controls="p-add">Add music</button>
+      <button class="tab" role="tab" id="t-lib" aria-selected="false" aria-controls="p-lib">Library</button>
+      <button class="tab" role="tab" id="t-play" aria-selected="false" aria-controls="p-play">Where it plays</button>
+    </div>
+
+    <!-- Add music -->
+    <section class="panel" id="p-add" role="tabpanel" aria-labelledby="t-add" style="border-top-left-radius:0; display:flex; flex-direction:column; gap:16px">
+      <label class="drop" id="drop" for="picker">
+        <b>Drop audio files here, or click to choose</b>
+        <p class="sub small">MP3, WAV, FLAC, M4A, OGG... Each one is converted to OGG Vorbis (~96 kbps) and levelled to <span id="tlufs">-16</span> LUFS. Nothing is sent until you press Add.</p>
+        <input id="picker" type="file" accept="audio/*,.mp3,.wav,.ogg,.oga,.flac,.m4a,.aac,.opus,.wma,.aiff,.aif" multiple>
+      </label>
+      <div id="bulk" class="row" hidden>
+        <div class="field"><label for="bulkGenre">Genre for all</label><select id="bulkGenre"></select></div>
+        <div class="field"><label for="bulkPace">Pace for all</label><select id="bulkPace"></select></div>
+        <div class="field"><label for="newGenre">New genre</label><input id="newGenre" type="text" placeholder="e.g. Reggaeton" autocomplete="off"></div>
+        <button class="btn" id="addGenre" type="button">Add genre</button>
+        <button class="btn" id="copyCredit" type="button" title="Copy the first track's licence, author, source and proof to every track">Same credit for all</button>
+      </div>
+      <div id="cards"></div>
+      <p class="sub small" id="paceHelp" hidden>Pace is how the game uses it: <b>Slow</b> (calm, under ~95 BPM) for menus and puzzles, <b>Moderate</b> (lively, ~95-130) for arcade levels, <b>Fast</b> (intense, over ~130) for bosses and finales.</p>
+      <div id="addBox" hidden style="display:flex; flex-direction:column; gap:8px">
+        <button class="btn go" id="publish" type="button" disabled>Add to hub</button>
+        <p id="addStatus" class="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- Library -->
+    <section class="panel" id="p-lib" role="tabpanel" aria-labelledby="t-lib" hidden style="display:flex; flex-direction:column; gap:16px">
+      <div class="matrix" id="matrix"></div>
+      <div id="tracks"></div>
+      <p class="sub small">Remove takes a track off the list, and phones stop playing it. Its file stays on the GitHub release.</p>
+    </section>
+
+    <!-- Where it plays -->
+    <section class="panel" id="p-play" role="tabpanel" aria-labelledby="t-play" hidden style="display:flex; flex-direction:column; gap:12px">
+      <p class="small">Games that play music ask for a <b>pace</b> (calm, lively or intense) and get a track of that pace. Here you choose <b>which genres</b> each category or game uses (none picked = any genre), and give a game <b>background music</b> by picking a style for it. <b>Off</b> = no music in that game. A game's own setting wins over its category's.</p>
+      <div id="playRows"></div>
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <button class="btn go" id="savePlay" type="button" disabled>Save</button>
+        <p id="playStatus" class="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" id="logPanel" hidden>
+    <h2 style="margin-bottom:8px">Log</h2>
+    <div id="log"></div>
+  </section>
+</main>
+
+<script>
+'use strict';
+const KEY = '__DROP_KEY__';
+const $ = q => document.querySelector(q);
+const el = (tag, attrs, ...kids) => {
+  const e = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null) e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  return e;
+};
+const fmtDur = s => s == null ? '' : Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0');
+const fmtMB = b => (b / 1048576).toFixed(1) + ' MB';
+const PACE_INFO = { slow: ['Slow', 'calm'], moderate: ['Moderate', 'lively'], fast: ['Fast', 'intense'] };
+const STYLE_NAMES = { '': '—', calm: 'Calm (slow)', lively: 'Lively (moderate)', techno: 'Intense (fast)', off: 'Off: no music' };
+const CHECK_TEXT = {
+  own: 'I made it, or own all rights to it.',
+  cc0: 'It really is CC0 (I checked the source).',
+  'cc-by': 'It really is CC BY, not BY-NC, BY-ND or BY-SA.',
+  'royalty-free': 'The licence allows use in a commercial app or game.',
+  bought: 'The written licence allows use in a commercial app or game.',
+  ai: 'The plan it was made on allows commercial use.',
+};
+
+let S = null;          // /api/state
+let genres = [];       // [{id, name}]
+let items = [];        // tracks being added
+let extraProofs = [];  // proofs attached this session [{work, path, name}]
+let play = {};         // working copy of list.play
+let busy = false;
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, Object.assign({ headers: Object.assign({ 'X-Drop-Key': KEY }, opts.headers || {}) }, opts.init || {}, opts.body !== undefined ? { method: 'POST', body: opts.body } : {}));
+  let data = null;
+  try { data = await r.json(); } catch (e) { }
+  if (!r.ok) throw new Error((data && data.error) || ('error ' + r.status));
+  return data;
+}
+const post = (path, obj) => api(path, { body: JSON.stringify(obj), headers: { 'Content-Type': 'application/json' } });
+
+function logLine(msg) {
+  $('#logPanel').hidden = false;
+  const box = $('#log');
+  box.textContent += (box.textContent ? '\n' : '') + new Date().toLocaleTimeString() + '  ' + msg;
+  box.scrollTop = box.scrollHeight;
+}
+function setStatus(node, msg, cls) { node.textContent = msg; node.className = 'status' + (cls ? ' ' + cls : ''); }
+
+async function runJob(start, statusNode) {
+  busy = true; refresh();
+  try {
+    const { job } = await start;
+    let seen = 0;
+    for (;;) {
+      await new Promise(r => setTimeout(r, 700));
+      const j = await api('/api/job?id=' + job);
+      for (; seen < j.log.length; seen++) { logLine(j.log[seen]); setStatus(statusNode, j.log[seen], 'busy'); }
+      if (j.state === 'done') return j.result;
+      if (j.state === 'error') throw new Error(j.error || 'failed');
+    }
+  } finally { busy = false; }
+}
+
+/* ---------- state ---------- */
+function rebuildGenres() {
+  const map = new Map();
+  for (const g of S.base_genres) map.set(g.id, g.name);
+  for (const g of (S.list ? S.list.genres : [])) map.set(g.id, g.name);
+  for (const g of genres) if (!map.has(g.id)) map.set(g.id, g.name);
+  genres = [...map].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+}
+const genreName = id => (genres.find(g => g.id === id) || {}).name || id;
+
+async function loadState() {
+  setStatus($('#conn'), 'Connecting to GitHub...', 'busy');
+  S = await api('/api/state');
+  $('#tlufs').textContent = S.target.lufs;
+  if (S.error) {
+    setStatus($('#conn'), 'Problem: ' + S.error, 'bad-t');
+  } else if (!S.ffmpeg) {
+    setStatus($('#conn'), 'ffmpeg not found: put it in %LOCALAPPDATA%\\Programs\\ffmpeg\\bin (or on PATH), then restart.', 'bad-t');
+  } else if (!S.can_push) {
+    setStatus($('#conn'), `Signed in to GitHub as ${S.user}, but that account can't write to ${S.repo}.`, 'bad-t');
+  } else {
+    const n = S.list.tracks.length;
+    setStatus($('#conn'), `${S.fake ? 'TEST MODE (fake GitHub folder). ' : ''}Connected to ${S.repo} (${S.branch}) as ${S.user}. ${n} track${n === 1 ? '' : 's'} in the library. Release: ${S.release}.`, S.fake ? 'warn' : 'ok');
+  }
+  rebuildGenres();
+  play = JSON.parse(JSON.stringify((S.list && S.list.play) || {}));
+  fillGenreSelects();
+  renderLibrary();
+  renderPlay();
+  refresh();
+}
+
+function fillGenreSelect(sel, keepValue) {
+  const cur = keepValue ? sel.value : '';
+  sel.textContent = '';
+  sel.append(el('option', { value: '' }, 'Choose...'));
+  for (const g of genres) sel.append(el('option', { value: g.id }, g.name));
+  sel.value = cur;
+}
+function fillGenreSelects() {
+  fillGenreSelect($('#bulkGenre'), true);
+  document.querySelectorAll('select.genreSel').forEach(s => fillGenreSelect(s, true));
+}
+
+/* ---------- Add music ---------- */
+let queue = Promise.resolve();
+function addFiles(files) {
+  for (const file of files) {
+    const it = { id: Math.random().toString(36).slice(2), file, work: null, state: 'converting', title: '', genre: '', pace: '', loop: '',
+      credit: { licence: '', author: '', source: '', url: '', ai_tool: '', ai_plan: '', commercial_ok: false }, proof: null };
+    items.push(it);
+    renderCard(it);
+    queue = queue.then(() => prepare(it));
+  }
+  refresh();
+}
+
+async function prepare(it) {
+  if (!items.includes(it)) return;
+  setCardState(it, 'busy', 'Converting on this PC...');
+  try {
+    const rep = await api('/api/prepare', { body: it.file, headers: { 'X-File-Name': encodeURIComponent(it.file.name) } });
+    Object.assign(it, { work: rep.work, rep, state: 'ready' });
+    if (!it.title) it.title = rep.title;
+    if (!it.credit.author && rep.artist) it.credit.author = rep.artist;
+    renderCard(it);
+  } catch (e) {
+    it.state = 'error';
+    setCardState(it, 'bad-t', 'Not usable: ' + e.message);
+  }
+  refresh();
+}
+
+function setCardState(it, cls, msg) {
+  const n = document.querySelector(`[data-state="${it.id}"]`);
+  if (n) { n.textContent = msg; n.className = 'small ' + cls; }
+}
+
+function statsText(rep) {
+  const i = rep.in, o = rep.out;
+  const was = `${i.codec.toUpperCase()} ${i.kbps} kbps, ${i.lufs} LUFS`;
+  if (rep.kept) return `Kept as it is: already OGG ${o.kbps} kbps at ${o.lufs} LUFS · ${fmtDur(rep.duration)} · ${fmtMB(rep.size)}`;
+  return `${was} → OGG ${o.kbps} kbps, ${o.lufs} LUFS (peak ${o.tp} dB) · ${fmtDur(rep.duration)} · ${fmtMB(rep.size)}`;
+}
+
+function proofOptions(sel, it) {
+  sel.textContent = '';
+  sel.append(el('option', { value: '' }, 'Choose a proof...'));
+  const og1 = el('optgroup', { label: 'Attached now' });
+  for (const p of extraProofs) og1.append(el('option', { value: 'w:' + p.work }, p.name));
+  if (extraProofs.length) sel.append(og1);
+  const og2 = el('optgroup', { label: 'Already on GitHub' });
+  for (const p of (S && S.proofs) || []) og2.append(el('option', { value: 'p:' + p }, p.replace('media/licenses/', '')));
+  if (og2.children.length) sel.append(og2);
+  sel.value = it.proof ? (it.proof.work ? 'w:' + it.proof.work : 'p:' + it.proof.path) : '';
+}
+
+function renderCard(it) {
+  const old = document.getElementById('card' + it.id);
+  const card = el('div', { class: 'card', id: 'card' + it.id });
+  card.append(el('div', { class: 'chead' },
+    el('div', { class: 'fname' }, it.file.name, ' ', el('span', { 'data-state': it.id, class: 'small busy' }, it.state === 'converting' ? 'Waiting...' : '')),
+    el('button', { class: 'btn sm', type: 'button', onclick: () => removeItem(it) }, 'Remove')));
+  if (it.state === 'ready') {
+    card.append(el('p', { class: 'stats' }, statsText(it.rep)));
+    if (it.rep.warn) card.append(el('p', { class: 'small warn' }, 'Note: ' + it.rep.warn + '.'));
+    card.append(el('audio', { controls: true, preload: 'none', src: `/work/${it.work}.ogg?k=${encodeURIComponent(KEY)}` }));
+    const genreSel = el('select', { class: 'genreSel', id: 'g' + it.id, onchange: e => { it.genre = e.target.value; refresh(); } });
+    fillGenreSelect(genreSel, false); genreSel.value = it.genre;
+    const seg = el('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Pace', id: 'pace' + it.id },
+      Object.entries(PACE_INFO).map(([p, [name, hint]]) => el('label', {},
+        el('input', { type: 'radio', name: 'pace' + it.id, value: p, checked: it.pace === p, onchange: () => { it.pace = p; refresh(); } }),
+        el('span', {}, name, el('small', {}, hint)))));
+    card.append(el('div', { class: 'row' },
+      el('div', { class: 'field', style: 'flex-basis:260px' }, el('label', { for: 'ti' + it.id }, 'Title'),
+        el('input', { id: 'ti' + it.id, type: 'text', value: it.title, maxlength: 80, oninput: e => { it.title = e.target.value; refresh(); } })),
+      el('div', { class: 'field' }, el('label', { for: 'g' + it.id }, 'Genre'), genreSel),
+      el('div', { class: 'field', style: 'flex:0 1 120px' }, el('label', { for: 'lp' + it.id }, 'Loop from (s)'),
+        el('input', { id: 'lp' + it.id, type: 'number', min: 0, step: 0.1, value: it.loop, placeholder: '0', oninput: e => { it.loop = e.target.value; } }))));
+    card.append(el('div', { class: 'field' }, el('span', { class: 'lab' }, 'Pace'), seg));
+
+    const c = it.credit;
+    const lic = el('select', { id: 'li' + it.id, onchange: e => { c.licence = e.target.value; c.commercial_ok = false; renderCard(it); refresh(); } },
+      el('option', { value: '' }, 'Choose...'), Object.entries(S.licences).map(([k, v]) => el('option', { value: k }, v)));
+    lic.value = c.licence;
+    const txt = (key, label, ph) => el('div', { class: 'field' }, el('label', { for: key + it.id }, label),
+      el('input', { id: key + it.id, type: 'text', value: c[key], placeholder: ph || '', autocomplete: 'off', oninput: e => { c[key] = e.target.value; refresh(); } }));
+    const proofSel = el('select', { id: 'pr' + it.id, onchange: e => { const v = e.target.value; it.proof = !v ? null : v.startsWith('w:') ? { work: v.slice(2) } : { path: v.slice(2) }; refresh(); } });
+    proofOptions(proofSel, it);
+    const proofPick = el('input', { type: 'file', accept: '.pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.html,.htm,.eml', hidden: true, onchange: e => attachProof(it, e.target.files[0]) });
+    const fs = el('fieldset', {}, el('legend', {}, "Where it's from"),
+      el('div', { class: 'row' },
+        el('div', { class: 'field' }, el('label', { for: 'li' + it.id }, 'Licence'), lic),
+        txt('author', c.licence === 'own' ? 'Author (blank = Viral)' : 'Author / artist', c.licence === 'ai' ? 'you, or the name you publish as' : '')),
+      el('div', { class: 'row' },
+        txt('source', 'Got it from', c.licence === 'ai' ? 'e.g. Suno, Udio' : 'site, store or person'),
+        txt('url', c.licence === 'cc-by' ? 'Link to the original (needed)' : 'Link (optional)', 'https://...')),
+      c.licence === 'ai' ? el('div', { class: 'row' }, txt('ai_tool', 'AI tool', 'e.g. Suno v5'), txt('ai_plan', 'Plan / subscription', 'e.g. Pro (commercial use)')) : null,
+      el('div', { class: 'row' },
+        el('div', { class: 'field', style: 'flex-basis:300px' }, el('label', { for: 'pr' + it.id }, 'Licence proof (receipt, licence text, plan terms...)'), proofSel),
+        el('button', { class: 'btn', type: 'button', onclick: () => proofPick.click() }, 'Attach file...'), proofPick),
+      el('label', { class: 'check', id: 'ck' + it.id },
+        el('input', { type: 'checkbox', checked: c.commercial_ok, onchange: e => { c.commercial_ok = e.target.checked; refresh(); } }),
+        el('span', {}, CHECK_TEXT[c.licence] || 'Its licence allows use in a commercial app (never NC or ND).')));
+    card.append(fs);
+  }
+  if (old) old.replaceWith(card); else $('#cards').append(card);
+  if (it.state === 'error') setCardState(it, 'bad-t', 'Not usable');
+}
+
+async function attachProof(it, file) {
+  if (!file) return;
+  try {
+    const p = await api('/api/proof', { body: file, headers: { 'X-File-Name': encodeURIComponent(file.name) } });
+    extraProofs.push(p);
+    it.proof = { work: p.work };
+    for (const x of items) if (x.state === 'ready') { const s = document.getElementById('pr' + x.id); if (s) proofOptions(s, x); }
+    refresh();
+  } catch (e) { setStatus($('#addStatus'), 'Proof not attached: ' + e.message, 'bad-t'); }
+}
+
+function removeItem(it) {
+  items = items.filter(x => x !== it);
+  const c = document.getElementById('card' + it.id); if (c) c.remove();
+  refresh();
+}
+
+function missing(it) {
+  const c = it.credit, m = [];
+  if (!it.title.trim()) m.push('title');
+  if (!it.genre) m.push('genre');
+  if (!it.pace) m.push('pace');
+  if (!c.licence) m.push('licence');
+  if (c.licence && c.licence !== 'own' && !c.author.trim()) m.push('author');
+  if (c.licence === 'ai' && (!c.ai_tool.trim() || !c.ai_plan.trim())) m.push('AI tool and plan');
+  if (c.licence === 'cc-by' && !c.url.trim()) m.push('link');
+  if (!it.proof) m.push('proof');
+  if (c.licence && !c.commercial_ok) m.push('the tick box');
+  return m;
+}
+
+function refresh() {
+  const ready = items.filter(i => i.state === 'ready');
+  const waiting = items.filter(i => i.state === 'converting').length;
+  $('#bulk').hidden = !items.length;
+  $('#paceHelp').hidden = !items.length;
+  $('#addBox').hidden = !items.length;
+  const incomplete = ready.filter(i => missing(i).length);
+  const okToGo = S && !S.error && S.ffmpeg && S.can_push && ready.length && !incomplete.length && !waiting && !busy;
+  $('#publish').disabled = !okToGo;
+  $('#publish').textContent = ready.length ? `Add ${ready.length} track${ready.length > 1 ? 's' : ''} to hub` : 'Add to hub';
+  if (!busy && items.length) {
+    if (waiting) setStatus($('#addStatus'), `Converting ${waiting} file${waiting > 1 ? 's' : ''}...`, 'busy');
+    else if (incomplete.length) setStatus($('#addStatus'), incomplete.map(i => `"${i.title || i.file.name}" needs: ${missing(i).join(', ')}`).join(' · '), 'warn');
+    else if (ready.length) setStatus($('#addStatus'), '', '');
+  }
+  $('#savePlay').disabled = busy || !S || !!S.error;
+  for (const it of ready) {
+    const m = missing(it);
+    const t = document.getElementById('ti' + it.id); if (t) t.classList.toggle('bad', m.includes('title'));
+    const g = document.getElementById('g' + it.id); if (g) g.classList.toggle('bad', m.includes('genre'));
+    const p = document.getElementById('pace' + it.id); if (p) p.classList.toggle('bad', m.includes('pace'));
+    const k = document.getElementById('ck' + it.id); if (k) k.classList.toggle('bad', m.includes('the tick box'));
+  }
+}
+
+async function publish() {
+  const ready = items.filter(i => i.state === 'ready');
+  const payload = ready.map(i => ({ work: i.work, title: i.title.trim(), genre: i.genre, pace: i.pace, loop_start: i.loop || 0, credit: i.credit, proof: i.proof }));
+  try {
+    const res = await runJob(post('/api/publish', { items: payload, genres }), $('#addStatus'));
+    for (const i of ready) removeItem(i);
+    const st = $('#addStatus');
+    if (!res.added.length) { setStatus(st, 'Nothing new: every track was already in the library.', 'warn'); }
+    else {
+      st.className = 'status ok'; st.textContent = '';
+      st.append(`Added ${res.added.length} track${res.added.length > 1 ? 's' : ''}. Phones get ${res.added.length > 1 ? 'them' : 'it'} on their next app launch. `,
+        el('a', { href: res.url, target: '_blank', rel: 'noopener' }, 'View commit'));
+    }
+    const keep = st.cloneNode(true);
+    await loadState();
+    $('#addStatus').replaceWith(keep); keep.id = 'addStatus'; $('#addBox').hidden = false;
+  } catch (e) {
+    setStatus($('#addStatus'), 'Not added: ' + e.message, 'bad-t');
+    refresh();
+  }
+}
+
+/* ---------- Library ---------- */
+function renderLibrary() {
+  const box = $('#matrix'), list = $('#tracks');
+  box.textContent = ''; list.textContent = '';
+  const tracks = (S.list && S.list.tracks) || [];
+  if (!tracks.length) { box.append(el('p', { class: 'sub' }, 'No tracks yet. Add some on the first tab.')); return; }
+  const gs = [...new Set(tracks.map(t => t.genre))].sort((a, b) => genreName(a).localeCompare(genreName(b)));
+  const paces = Object.keys(PACE_INFO);
+  box.append(el('table', {},
+    el('thead', {}, el('tr', {}, el('th', {}, 'Genre'), paces.map(p => el('th', { class: 'n' }, PACE_INFO[p][0])), el('th', { class: 'n' }, 'Total'))),
+    el('tbody', {}, gs.map(g => {
+      const rows = tracks.filter(t => t.genre === g);
+      return el('tr', {}, el('td', {}, genreName(g)), paces.map(p => el('td', { class: 'n' }, rows.filter(t => t.pace === p).length || '-')), el('td', { class: 'n' }, rows.length));
+    }),
+      el('tr', {}, el('td', {}, el('b', {}, 'All')), paces.map(p => el('td', { class: 'n' }, tracks.filter(t => t.pace === p).length || '-')),
+        el('td', { class: 'n' }, el('b', {}, tracks.length))))));
+  const total = tracks.reduce((a, t) => a + (t.size || 0), 0);
+  box.append(el('p', { class: 'sub small', style: 'margin-top:8px' }, `${tracks.length} tracks, ${fmtMB(total)} in all. A phone only downloads the ones its games play.`));
+  for (const t of tracks) list.append(trackRow(t));
+}
+
+function trackRow(t) {
+  const row = el('div', { class: 'trk' });
+  const c = t.credit || {};
+  const info = el('div', {},
+    el('div', {}, el('b', {}, t.title), ' ', el('span', { class: 'sub small' }, `${genreName(t.genre)} · ${(PACE_INFO[t.pace] || [t.pace])[0]} · ${fmtDur(t.duration)} · ${fmtMB(t.size || 0)}`)),
+    el('div', { class: 'sub small' }, `${c.licence_name || c.licence || '?'} · ${c.author || '?'}${c.source ? ' · ' + c.source : ''}${t.added ? ' · added ' + t.added : ''}`));
+  const audio = el('audio', { controls: true, preload: 'none', src: (S.list.base_url || '') + t.file, style: 'margin-top:6px' });
+  info.append(audio);
+  const editBox = el('div', { class: 'edit', hidden: true });
+  row.append(info, el('div', { class: 'acts' },
+    el('button', { class: 'btn sm', type: 'button', onclick: () => { editBox.hidden = !editBox.hidden; } }, 'Edit'),
+    el('button', { class: 'btn sm danger', type: 'button', onclick: () => removeTrack(t) }, 'Remove')), editBox);
+  const gSel = el('select', { class: 'genreSel' }); fillGenreSelect(gSel, false); gSel.value = t.genre;
+  const pSel = el('select', {}, Object.entries(PACE_INFO).map(([p, [n, h]]) => el('option', { value: p }, `${n} (${h})`))); pSel.value = t.pace;
+  const title = el('input', { type: 'text', value: t.title, maxlength: 80 });
+  const loop = el('input', { type: 'number', min: 0, step: 0.1, value: t.loop_start || 0 });
+  const st = el('p', { class: 'status' });
+  editBox.append(el('div', { class: 'row' },
+    el('div', { class: 'field' }, el('span', { class: 'lab' }, 'Title'), title),
+    el('div', { class: 'field' }, el('span', { class: 'lab' }, 'Genre'), gSel),
+    el('div', { class: 'field' }, el('span', { class: 'lab' }, 'Pace'), pSel),
+    el('div', { class: 'field', style: 'flex:0 1 110px' }, el('span', { class: 'lab' }, 'Loop from (s)'), loop),
+    el('button', { class: 'btn', type: 'button', onclick: async () => {
+      if (busy) return;
+      try {
+        await runJob(post('/api/edit', { id: t.id, changes: { title: title.value, genre: gSel.value, pace: pSel.value, loop_start: loop.value }, genres }), st);
+        await loadState();
+      } catch (e) { setStatus(st, 'Not saved: ' + e.message, 'bad-t'); }
+    } }, 'Save')), st);
+  return row;
+}
+
+async function removeTrack(t) {
+  if (busy || !confirm(`Remove "${t.title}" from the library? Phones stop playing it. The file stays on the GitHub release.`)) return;
+  const st = $('#playStatus');
+  try { await runJob(post('/api/remove', { id: t.id }), st); await loadState(); }
+  catch (e) { alert('Not removed: ' + e.message); }
+}
+
+/* ---------- Where it plays ---------- */
+function playRow(key, name, cls, follow) {
+  const v = play[key] || { style: '', genres: [] };
+  const set = () => {
+    const cur = play[key] || { style: '', genres: [] };
+    if (!cur.style && !cur.genres.length) delete play[key]; else play[key] = cur;
+    setStatus($('#playStatus'), 'Not saved yet.', 'warn');
+  };
+  const sel = el('select', { 'aria-label': 'Style for ' + name, onchange: e => { play[key] = Object.assign({ style: '', genres: [] }, play[key], { style: e.target.value }); set(); } },
+    Object.entries(STYLE_NAMES).map(([k, n]) => el('option', { value: k }, k === '' ? (follow ? 'Same as category' : n) : n)));
+  sel.value = v.style || '';
+  const chips = el('div', { class: 'chips' }, genres.map(g => el('button', { class: 'chip', type: 'button', 'aria-pressed': String((v.genres || []).includes(g.id)),
+    onclick: e => {
+      const cur = Object.assign({ style: '', genres: [] }, play[key]);
+      const on = cur.genres.includes(g.id);
+      cur.genres = on ? cur.genres.filter(x => x !== g.id) : cur.genres.concat(g.id);
+      play[key] = cur; e.currentTarget.setAttribute('aria-pressed', String(!on)); set();
+    } }, g.name)));
+  return el('div', { class: 'prow ' + (cls || '') }, el('div', { class: 'name' }, name), sel, chips);
+}
+
+function renderPlay() {
+  const box = $('#playRows');
+  box.textContent = '';
+  box.append(playRow('hub', 'Hub screens', '', false));
+  for (const c of (S.categories || [])) {
+    const games = el('div', { class: 'games' }, c.games.map(g => playRow('game:' + g.id, g.title, 'game', true)));
+    const n = c.games.filter(g => play['game:' + g.id]).length;
+    const row = playRow('category:' + c.name, c.name, '', false);
+    row.querySelector('.name').append(' ', el('button', { class: 'btn sm', type: 'button', style: 'margin-left:6px',
+      onclick: e => { games.classList.toggle('open'); e.currentTarget.textContent = (games.classList.contains('open') ? '▾ ' : '▸ ') + c.games.length + ' games'; } },
+      '▸ ' + c.games.length + ' games'), n ? el('span', { class: 'sub small' }, ` (${n} set)`) : null);
+    box.append(row, games);
+  }
+}
+
+async function savePlay() {
+  try {
+    await runJob(post('/api/play', { play }), $('#playStatus'));
+    await loadState();
+    setStatus($('#playStatus'), 'Saved. Phones use it on their next app launch.', 'ok');
+  } catch (e) { setStatus($('#playStatus'), 'Not saved: ' + e.message, 'bad-t'); }
+}
+
+/* ---------- wiring ---------- */
+function showTab(id) {
+  for (const t of ['add', 'lib', 'play']) {
+    $('#t-' + t).setAttribute('aria-selected', String(t === id));
+    $('#p-' + t).hidden = t !== id;
+  }
+}
+function init() {
+  for (const t of ['add', 'lib', 'play']) $('#t-' + t).addEventListener('click', () => showTab(t));
+  const picker = $('#picker'), drop = $('#drop');
+  picker.addEventListener('change', () => { addFiles([...picker.files]); picker.value = ''; });
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => addFiles([...e.dataTransfer.files]));
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => e.preventDefault());
+  const bp = $('#bulkPace');
+  bp.append(el('option', { value: '' }, 'Choose...'), ...Object.entries(PACE_INFO).map(([p, [n, h]]) => el('option', { value: p }, `${n} (${h})`)));
+  $('#bulkGenre').addEventListener('change', e => { const v = e.target.value; if (!v) return; for (const i of items) { i.genre = v; const s = document.getElementById('g' + i.id); if (s) s.value = v; } refresh(); });
+  bp.addEventListener('change', e => { const v = e.target.value; if (!v) return; for (const i of items) { i.pace = v; const r = document.querySelector(`input[name="pace${i.id}"][value="${v}"]`); if (r) r.checked = true; } refresh(); });
+  $('#addGenre').addEventListener('click', () => {
+    const name = $('#newGenre').value.trim(); if (!name) return;
+    const id = name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!id) return;
+    if (!genres.some(g => g.id === id)) genres.push({ id, name });
+    genres.sort((a, b) => a.name.localeCompare(b.name));
+    fillGenreSelects(); renderPlay(); $('#newGenre').value = '';
+  });
+  $('#copyCredit').addEventListener('click', () => {
+    const first = items.find(i => i.state === 'ready'); if (!first) return;
+    for (const i of items) if (i !== first && i.state === 'ready') { i.credit = JSON.parse(JSON.stringify(first.credit)); i.proof = first.proof ? Object.assign({}, first.proof) : null; renderCard(i); }
+    refresh();
+  });
+  $('#publish').addEventListener('click', publish);
+  $('#savePlay').addEventListener('click', savePlay);
+  $('#quit').addEventListener('click', async () => {
+    try { await post('/api/quit', {}); } catch (e) { }
+    document.body.textContent = '';
+    document.body.append(el('main', {}, el('p', { class: 'sub', style: 'padding:40px 0; text-align:center' }, 'Music Drop has closed. You can close this window.')));
+  });
+  window.addEventListener('beforeunload', e => { if (busy || items.some(i => i.state === 'ready')) { e.preventDefault(); e.returnValue = ''; } });
+  const ping = () => post('/api/ping', {}).catch(() => { });
+  ping(); setInterval(ping, 20000);
+  loadState().catch(e => setStatus($('#conn'), 'Problem: ' + e.message, 'bad-t'));
+}
+init();
+</script>
+</body>
+</html>

@@ -179,6 +179,16 @@ Rules:
   `scripts/common/music.gd`; CLAUDE.md "Music library"): a game picks a style (calm / lively / techno) and a track
   number, it never synthesizes or ships its own music. Real tracks are added to the library
   (`res://media/common/music/<style>/` or `res://media/hub/music/<style>/`), never to one game's pack.
+- [NEW 2026-10-07, owner] **Music is the exception to media packs: downloaded tracks.** The usual way to add a
+  real track is **Viral Music Drop** (`tools/music_drop/`, run by the owner on the PC, no Claude): it converts to the
+  rules below (OGG Vorbis ~96 kbps, −16 LUFS, true peak −1.5 dB), uploads the OGG to the GitHub pre-release
+  `music-v1` and lists it in `media/music/music.json` with its genre and pace (slow / moderate / fast = calm /
+  lively / techno). A phone downloads a track only when a game wants that pace / genre (`music_library.gd`), so no
+  APK, pack or code change is needed per track. **A track's credit** (author, licence, source, AI tool + plan,
+  "commercial use OK", proof in `media/licenses/music/`) **lives in `music.json` instead of `CREDITS.json`**;
+  `hub.py check` checks it and Options → Credits shows it. Where music plays (per category / game: a style that
+  plays by itself, genres, or off) is `music.json` `"play"`, set in the tool. Browser build: no downloads (GitHub
+  release CORS), synthesized music only.
 - Audio buses: Master / Music / SFX / UI. Music ducks under important SFX.
 - Every asset has an entry in `media/CREDITS.json` (file, source, author, licence, URL, date). Allowed: own work,
   CC0, CC-BY (with credit shown in About). **Not allowed: NC or ND licences** (the app is commercial).

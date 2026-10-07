@@ -18,6 +18,7 @@ chore that used to be a hand-edit across several files.
     python tools/hub.py verify                check live release assets match local builds
     python tools/hub.py publish-packs ID...   upload packs to the GitHub pack release
     python tools/hub.py release               create the GitHub release for the current APK
+    python tools/hub.py music-drop [--shortcut]   open Viral Music Drop (add music to the shared library) [make its desktop shortcut]
 
 Sources of truth (edit these by hand):
     manifest.json               the game catalog: categories, titles, icons, pack versions
@@ -54,6 +55,12 @@ CONFIG_GD = ROOT / "scripts/common/config.gd"
 BRAND_GD = ROOT / "scripts/common/brand.gd"
 MEDIA = ROOT / "media"
 CREDITS = MEDIA / "CREDITS.json"
+# The shared music library (STANDARDS §10): written by tools/music_drop, which
+# keeps each track's credit in it (the OGG files live on a GitHub release).
+MUSIC_LIST = MEDIA / "music" / "music.json"
+MUSIC_PACES = ("slow", "moderate", "fast")
+MUSIC_STYLES = ("", "off", "calm", "lively", "techno")
+MUSIC_LICENCES = ("own", "cc0", "cc-by", "royalty-free", "bought", "ai")
 TEMPLATES = ROOT / "tools/templates"
 PACKS_OUT = ROOT / "builds/packs"
 KNOWN_GODOT = Path(os.path.expandvars(
@@ -356,6 +363,7 @@ def validate() -> tuple[list[str], list[str]]:
     if render_presets(catalog_ids(m)) != current:
         errors.append("export_presets.cfg is out of date (pack presets, Android version or app name) -- run sync")
     errors += lint_credits()
+    errors += lint_music(m)
     errors += lint_hub_name()
     errors += lint_web_threads()
     return errors, warnings
@@ -374,13 +382,71 @@ def lint_credits() -> list[str]:
     for f in sorted(MEDIA.rglob("*")):
         rel = f.relative_to(ROOT).as_posix()
         if (f.is_dir() or f.suffix in (".import", ".uid") or f.name in (".gdignore", "CREDITS.json")
-                or rel.startswith("media/licenses/")):
+                or rel.startswith("media/licenses/") or f == MUSIC_LIST):
             continue
         if rel not in listed:
             errors.append(f"{rel}: no entry in media/CREDITS.json (STANDARDS §10)")
     for rel in sorted(listed - {""}):
         if not (ROOT / rel).is_file():
             errors.append(f"media/CREDITS.json lists {rel}, which doesn't exist")
+    return errors
+
+
+def lint_music(m: dict) -> list[str]:
+    """STANDARDS §10: every track in media/music/music.json has its credit and
+    licence proof (never NC / ND), and "play" names real games / categories.
+    Run after `git pull`: Music Drop commits straight to GitHub."""
+    if not MUSIC_LIST.is_file():
+        return []
+    where = "media/music/music.json"
+    try:
+        data = json.loads(MUSIC_LIST.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        return [f"{where} is not valid JSON: {e}"]
+    errors = []
+    genres = {g.get("id") for g in data.get("genres", []) if isinstance(g, dict)}
+    seen: set[str] = set()
+    for t in data.get("tracks", []):
+        tid = str(t.get("id", "?"))
+        at = f"{where}: track {tid}"
+        if tid in seen:
+            errors.append(f"{at}: id used twice")
+        seen.add(tid)
+        if t.get("pace") not in MUSIC_PACES:
+            errors.append(f"{at}: pace must be one of {', '.join(MUSIC_PACES)}")
+        if t.get("genre") not in genres:
+            errors.append(f"{at}: genre {t.get('genre')!r} isn't in the list's genres")
+        if not re.match(r"^[a-z0-9][a-z0-9-]*\.ogg$", str(t.get("file", ""))):
+            errors.append(f"{at}: file must be a plain lowercase .ogg name")
+        if not re.match(r"^[0-9a-f]{64}$", str(t.get("sha256", ""))) or int(t.get("size", 0)) <= 0:
+            errors.append(f"{at}: needs its sha256 and size (phones check downloads with them)")
+        c = t.get("credit") if isinstance(t.get("credit"), dict) else {}
+        lic = c.get("licence")
+        if lic not in MUSIC_LICENCES:
+            errors.append(f"{at}: licence {lic!r} not allowed (own work, CC0, CC BY, royalty-free or bought "
+                          "with a written licence, AI on a commercial plan; never NC / ND)")
+        if not str(c.get("author", "")).strip():
+            errors.append(f"{at}: no author")
+        if not c.get("commercial_ok"):
+            errors.append(f"{at}: commercial use not confirmed")
+        if lic == "ai" and not (str(c.get("ai_tool", "")).strip() and str(c.get("ai_plan", "")).strip()):
+            errors.append(f"{at}: AI track without its tool and plan (HUB_V2_PLAN §5.6)")
+        if lic == "cc-by" and not str(c.get("url", "")).strip():
+            errors.append(f"{at}: CC BY needs the link to the original")
+        proof = str(c.get("proof", ""))
+        if not proof.startswith("media/licenses/") or not (ROOT / proof).is_file():
+            errors.append(f"{at}: licence proof {proof or '(none)'} missing -- git pull, or attach it in Music Drop")
+    ids = set(m.get("games", {}))
+    cats = {str(c.get("name", "")) for c in m.get("categories", [])}
+    for key, v in (data.get("play") or {}).items():
+        if not isinstance(v, dict) or v.get("style", "") not in MUSIC_STYLES:
+            errors.append(f"{where}: play {key!r}: style must be one of {', '.join(repr(s) for s in MUSIC_STYLES)}")
+        elif key.startswith("game:") and key[5:] not in ids:
+            errors.append(f"{where}: play {key!r}: no game with that id in manifest.json")
+        elif key.startswith("category:") and key[9:] not in cats:
+            errors.append(f"{where}: play {key!r}: no category with that name in manifest.json")
+        elif not (key == "hub" or key.startswith(("game:", "category:"))):
+            errors.append(f"{where}: play {key!r}: keys are hub, category:<name> or game:<id>")
     return errors
 
 
@@ -1043,6 +1109,37 @@ def cmd_release(args) -> None:
                     "--notes", args.notes or f"{read_brand()} v{version}"], cwd=ROOT, check=True)
 
 
+def cmd_music_drop(args) -> None:
+    """Viral Music Drop (tools/music_drop/): add music to the shared library
+    from this PC. --shortcut puts it on the Desktop, so the owner can open it
+    like an app (no console window)."""
+    script = ROOT / "tools/music_drop/music_drop.py"
+    if not args.shortcut:
+        subprocess.run([sys.executable, str(script)], cwd=ROOT, check=False)
+        return
+    pythonw = Path(sys.executable).with_name("pythonw.exe")
+    if not pythonw.is_file():
+        raise ToolError(f"{pythonw} not found")
+    desktop = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", "[Environment]::GetFolderPath('Desktop')"],
+        capture_output=True, text=True).stdout.strip()
+    shortcut = Path(desktop or Path.home() / "Desktop") / "Viral Music Drop.lnk"
+    # A .ico holding the launcher PNG as is (Windows reads PNG icons since Vista).
+    png = (ROOT / "media/hub/brand/launcher/main_192.png").read_bytes()
+    icon = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "ViralMusicDrop" / "music_drop.ico"
+    icon.parent.mkdir(parents=True, exist_ok=True)
+    w, h = (int.from_bytes(png[16:20], "big"), int.from_bytes(png[20:24], "big"))
+    icon.write_bytes(b"\0\0\1\0\1\0" + bytes([w % 256, h % 256, 0, 0]) + (1).to_bytes(2, "little")
+                     + (32).to_bytes(2, "little") + len(png).to_bytes(4, "little") + (22).to_bytes(4, "little") + png)
+    ps = (
+        "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');"
+        "$s.TargetPath = '{exe}'; $s.Arguments = '\"{script}\"'; $s.WorkingDirectory = '{root}';"
+        "$s.Description = 'Add music to the hub library'; $s.IconLocation = '{icon}'; $s.Save()"
+    ).format(lnk=shortcut, exe=pythonw, script=script, root=ROOT, icon=icon)
+    subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True)
+    print(f"  shortcut: {shortcut}")
+
+
 def fetch_size(url: str) -> tuple[int, int]:
     req = urllib.request.Request(url, headers={"User-Agent": "voodoo-hub-tool"})
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -1125,6 +1222,9 @@ def main() -> int:
     p = sub.add_parser("release")
     p.add_argument("--notes", default="")
     p.set_defaults(fn=cmd_release)
+    p = sub.add_parser("music-drop")
+    p.add_argument("--shortcut", action="store_true", help="make the Desktop shortcut instead of opening it")
+    p.set_defaults(fn=cmd_music_drop)
 
     args = parser.parse_args()
     if hasattr(sys.stdout, "reconfigure"):

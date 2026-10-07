@@ -463,6 +463,72 @@ comment is the how-to.
   (Tier 1 media pack) or `res://media/hub/music/<style>/` (APK) replace that
   style's synthesized tracks; each needs its `CREDITS.json` entry.
 
+### Downloaded tracks + Viral Music Drop (since v0.33.0, 2026-10-07)
+
+The owner adds real music **without Claude**: **Viral Music Drop**
+(`tools/music_drop/`; Desktop shortcut "Viral Music Drop" from `python
+tools/hub.py music-drop --shortcut`). It runs on 127.0.0.1 in an Edge app
+window and closes itself 2 min after the window does.
+
+- **The tool**: files are converted on the PC by ffmpeg
+  (`%LOCALAPPDATA%\Programs\ffmpeg\bin`, gyan.dev 9.0.2 essentials,
+  installed 2026-10-07): OGG Vorbis `-q:a 2` (~96 kbps), loudness to -16 LUFS
+  with one exact gain (true peak <= -1.5 dB). Two-pass loudnorm runs only
+  when that gain would clip, and the tool warns if the track still ends up
+  quieter. An OGG already at <= 128 kbps and within 1 LU is kept as is. The
+  owner fills in title, genre, pace (slow / moderate / fast = calm / lively /
+  techno), loop start, licence, author, source, AI tool + plan, proof file and
+  "commercial use OK". "Add to hub" uploads each OGG to the GitHub
+  **pre-release `music-v1`** (`Config.MUSIC_RELEASE_TAG`; pre-release so
+  `/releases/latest`, which the app's update check reads, never points at
+  it). Then one commit on master writes `media/music/music.json` + the proof
+  in `media/licenses/music/` (files first, list last). GitHub access is
+  `gh auth token`, never stored. Duplicates are spotted by the picked file's
+  sha256 (`src_sha256`): Vorbis gives every encode a random serial, so the
+  OGG's own hash differs each time. The Library tab previews, edits and removes
+  tracks (removing takes it off the list; the asset stays). The "Where it plays"
+  tab edits the `play` map.
+  Test it without GitHub: `python tools/music_drop/music_drop.py --fake <dir>`.
+  Log: `%LOCALAPPDATA%\ViralMusicDrop\music_drop.log`.
+- **The tool commits straight to GitHub**, so `git pull` before
+  pushing; `hub.py check` (`lint_music`) reads the local copy. It checks every
+  track's pace, genre, file name, sha256 + size, licence (never NC / ND),
+  author, commercial OK, proof file, AI tool + plan and CC BY link, and that
+  `play` keys name real games / categories.
+- **On the phone**: `scripts/common/music_library.gd` (`Music.library`, its
+  header is the how-to) fetches the list once per launch
+  (`Config.MUSIC_LIST_URL`, cached in `user://music/music.json`; the synth
+  cache stays separate in `user://music_synth/`). It downloads a track when a
+  game wants its pace (+ genre) to `user://music/<file>` (.part, sha256
+  checked) and plays it with `AudioStreamOggVorbis.load_from_file`
+  (nothing imported). The folder is capped at 150 MB, least recently played
+  first. Up to 4 tracks per style + genres, plus one new one per style each
+  app start. Options → Storage shows / clears the folder; Credits lists every
+  track's credit line from the live list, so a CC BY track is credited the
+  moment it is live.
+- **`play(style, owner, index, fade, genre = "")`**: once one of a style's
+  downloaded tracks is on the phone, those replace that style's synth. Until
+  then the synth plays, a download starts, and the real track crossfades in
+  when it lands. With several on the phone each plays once, then the next
+  (3 s crossfade); one alone loops from `loop_start`. The music pauses with
+  the app (`NOTIFICATION_APPLICATION_PAUSED`).
+- **`play` map** in `music.json`: `"hub"`, `"category:<English name>"`,
+  `"game:<id>"` -> `{style, genres}`. style `""` = the game decides,
+  `calm|lively|techno` = that screen gets music by itself (for games that
+  don't call Music; hub music carries across hub screens), `off` = never any
+  music there. Field by field, the game's entry wins over its category's.
+  Preset off (the tool's starting list): `simon` (Memory Lights: the tones
+  are the game), `voodoo_iq` (musical questions) and `geometry_wars` (Neon
+  Blast still plays its own in-pack music). **When Neon Blast moves to the
+  Music library, remove its "off"** in Music Drop: "off" also silences a
+  game's own `Music.play()` calls.
+- **Web build**: reads the list (raw.githubusercontent allows browsers), so
+  the `play` map works with the synth, but downloads nothing (release
+  downloads send no CORS headers).
+- **Tests**: `tools/test_music_library.gd` and `tools/test_music_play.gd`
+  (headers: they need `python -m http.server 8899` serving a test list.json
+  and OGGs, standing in for the release).
+
 ## Achievements, friends, invites, hub screens -- since v0.25.0 (2026-10-04)
 
 All APK-side (`scripts/common/`, `scripts/hub/`), so every game gets them

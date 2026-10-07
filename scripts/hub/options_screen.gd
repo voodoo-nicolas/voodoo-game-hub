@@ -204,6 +204,36 @@ func _fill_storage() -> void:
 		del.pressed.connect(_on_remove_pack.bind(str(pk.id)))
 		row.add_child(del)
 		storage_box.add_child(row)
+	# The shared music library's downloads (since v0.33, music_library.gd).
+	var lib := _music_library()
+	if lib:
+		var st: Dictionary = lib.storage()
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var label := _body_label((tr("🎵 Music: %d track · %s") if int(st.count) == 1 else tr("🎵 Music: %d tracks · %s")) % [int(st.count), _size_text(int(st.bytes))])
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+		var del := _pill_button(tr("Remove"), false)
+		del.disabled = int(st.count) == 0
+		del.pressed.connect(_on_remove_music)
+		row.add_child(del)
+		storage_box.add_child(row)
+		storage_box.add_child(_body_label(tr("Each track downloads the first time a game plays it.")))
+
+## The Music autoload's downloaded library, or null (apps before v0.33, the
+## browser build).
+func _music_library() -> Node:
+	var m = get_node_or_null("/root/Music")
+	var lib = m.get("library") if m else null
+	return lib if lib is Node and lib.get("enabled") else null
+
+func _on_remove_music() -> void:
+	if drag.moved:
+		return
+	var lib := _music_library()
+	if lib:
+		lib.clear()
+	_fill_storage()
 
 func _size_text(bytes: int) -> String:
 	if bytes >= 1024 * 1024:
@@ -228,6 +258,17 @@ func _show_credits() -> void:
 	credits_box.add_child(_body_label(tr("Code and games: Viral. Sounds and most art are made in code.")))
 	for a in assets:
 		credits_box.add_child(_body_label("• %s — %s (%s)" % [str(a.get("what", a.get("file", ""))), str(a.get("author", "")), str(a.get("licence", ""))]))
+	# Music tracks carry their credit in the live music list (media/music/
+	# music.json), so a CC BY track is credited the moment it reaches phones.
+	var lib := _music_library()
+	var music: Array = lib.credits() if lib else []
+	if not music.is_empty():
+		credits_box.add_child(_body_label(tr("🎵 Music")))
+		for c in music:
+			var line := "• " + str(c.text)
+			if str(c.url) != "":
+				line += " · " + str(c.url)
+			credits_box.add_child(_body_label(line))
 
 # ---------- building blocks ----------
 

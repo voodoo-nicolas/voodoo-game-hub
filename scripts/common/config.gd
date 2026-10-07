@@ -19,6 +19,11 @@ const LATEST_RELEASE_API := "https://api.github.com/repos/" + GITHUB_OWNER + "/"
 const MANIFEST_URL := "https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/manifest.json"
 ## Fallback when a manifest entry has no "url" of its own.
 const PACK_BASE_URL := REPO_URL + "/releases/download/" + PACK_RELEASE_TAG + "/"
+## The shared music library (since v0.33, music_library.gd): the track list
+## the owner's Viral Music Drop tool (tools/music_drop/) commits, and the
+## GitHub pre-release its OGG files are uploaded to.
+const MUSIC_RELEASE_TAG := "music-v1"
+const MUSIC_LIST_URL := "https://raw.githubusercontent.com/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/media/music/music.json"
 ## Join links (STANDARDS §5, since v0.31): the lobby shares
 ## JOIN_PAGE_URL + "?g=<game id>&c=<CODE>" (docs/j/index.html on GitHub
 ## Pages) as text and as a QR code. No domain yet, so no App Link: the page

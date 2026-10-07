@@ -5117,5 +5117,11 @@
  "The blue islands are solid ground: steer around them. One you crash into goes dark and can't hurt you again.": "Las islas azules son tierra firme: esquívalas. La que chocas se apaga y ya no puede hacerte daño.",
  "Use a bomb before you get hit, not after: losing a life costs all your gun power.": "Usa una bomba antes de que te den, no después: perder una vida te cuesta toda la potencia de tus armas.",
  "⏸ pauses; Resume on the Home screen keeps your score, lives, bombs and guns and restarts that stage. 🎵 Music: ⚙ Options → Sound.": "⏸ pausa; Continuar en la pantalla de inicio conserva tu puntaje, vidas, bombas y armas y reinicia esa etapa. 🎵 Música: ⚙ Opciones → Sonido.",
- "💣 Bomb wipes every bullet off the screen and blasts every plane. You start with 2 (1 on Hard).": "💣 Bomba borra todas las balas de la pantalla y golpea a todos los aviones. Empiezas con 2 (1 en Difícil)."
+ "💣 Bomb wipes every bullet off the screen and blasts every plane. You start with 2 (1 on Hard).": "💣 Bomba borra todas las balas de la pantalla y golpea a todos los aviones. Empiezas con 2 (1 en Difícil).",
+ "🎵 Music: %d tracks · %s": "🎵 Música: %d pistas · %s",
+ "🎵 Music: %d track · %s": "🎵 Música: %d pista · %s",
+ "Each track downloads the first time a game plays it.": "Cada pista se descarga la primera vez que un juego la usa.",
+ "%s:dl:%s": null,
+ "Where it plays": null,
+ "^[a-z0-9][a-z0-9-]*\\.ogg$": null
 }

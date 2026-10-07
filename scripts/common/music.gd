@@ -18,11 +18,13 @@ extends Node
 ##   lively  moderate techno, 118-126 BPM: arcade levels
 ##   techno  driving techno, 136-148 BPM: bosses, swarms, finales
 ##
-## - play(style, owner, index = -1, fade = 1.5): crossfades to that style's
-##   track `index` (wrapped round; -1 = the next one after the last played).
-##   `owner` is the game's node: when it leaves the tree (🏠 Home, the hub, a
-##   scene reload) the music fades out by itself. Asking for what is already
-##   playing does nothing, so a game can call it every stage.
+## - play(style, owner, index = -1, fade = 1.5, genre = ""): crossfades to
+##   that style's track `index` (wrapped round; -1 = the next one after the
+##   last played). `owner` is the game's node: when it leaves the tree (🏠
+##   Home, the hub, a scene reload) the music fades out by itself. Asking for
+##   what is already playing does nothing, so a game can call it every stage.
+##   `genre` (e.g. "synthwave") narrows the downloaded tracks; "" = the
+##   genres the owner set for that game in Music Drop (any if none).
 ## - prepare(style, index = -1): get a track ready ahead of time (a
 ##   synthesized track takes a moment the first time) -- e.g. from _ready().
 ## - stop(fade = 1.5).
@@ -44,7 +46,21 @@ extends Node
 ## Every file needs its media/CREDITS.json entry + licence proof; OGG
 ## ~96 kbps, loop on. `tools/music_preview.gd` writes the synthesized tracks
 ## to builds/music_preview/ to listen to.
+##
+## Downloaded tracks (since v0.33, `library` = music_library.gd, its header
+## is the how-to): the owner adds real music from the PC with Viral Music
+## Drop (tools/music_drop/), tagged with a genre and a pace (slow / moderate
+## / fast = calm / lively / techno). Once one of a style's tracks is on the
+## phone, those replace that style's synth; until then the synth plays, the
+## first download starts, and the real track crossfades in when it lands.
+## With several on the phone each plays once and the next follows (a 3 s
+## crossfade); one alone loops from its loop_start.
+## The owner's "Where it plays" settings (music.json "play") also apply:
+## a game or category set to a style gets that music by itself when its
+## screen opens (unless the game plays its own), and "off" means none there.
+## The music pauses with the app (Android sends it to the background).
 
+const Library = preload("res://scripts/common/music_library.gd")
 const BUS := "Music"
 const RATE := 22050
 const STYLES := ["calm", "lively", "techno"]
@@ -56,6 +72,21 @@ const CACHE_DIR := "user://music_synth/"
 const SYNTH_VERSION := 1
 ## Browser build: synthesizing work allowed per frame.
 const WEB_BUDGET_USEC := 4000
+## Downloaded tracks: how many of a style a phone gets before it stops
+## fetching more (plus one new one per style each app start, for variety;
+## music_library.gd caps the folder), and the crossfade into the next one.
+const KEEP_READY := 4
+const NEXT_FADE := 3.0
+const GAMES_DIR := "res://scenes/games/"
+
+## The downloaded tracks (music_library.gd); Options → Storage / Credits use it.
+var library: Node = null
+var _style := ""           # the style asked for, while music plays
+var _genre := ""           # the genre play() was given ("" = the screen's)
+var _dl := ""              # id of the downloaded track playing, "" = synth / file
+var _auto := false         # started by the owner's "Where it plays", not a game
+var _fresh := {}           # style|genres -> true once a new track was fetched this run
+var _ending := ""          # the downloaded track already handed over to the next
 
 var _tracks := {}          # "style:index" -> AudioStreamWAV (synthesized)
 var _files := {}           # style -> Array of AudioStream (looked up once)
@@ -87,6 +118,18 @@ func _ready() -> void:
 		p.volume_db = -80.0
 		add_child(p)
 		_players.append(p)
+		p.finished.connect(_on_player_finished.bind(p))
+	library = Library.new()
+	add_child(library)
+	library.track_ready.connect(_on_track_ready)
+	library.list_changed.connect(_on_list_changed)
+	get_tree().scene_changed.connect(_on_scene_changed)
+	_on_scene_changed.call_deferred()  # the first screen isn't a scene change
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_RESUMED:
+		for p in _players:
+			p.stream_paused = what == NOTIFICATION_APPLICATION_PAUSED
 
 func _exit_tree() -> void:
 	if _task != -1:
@@ -95,11 +138,24 @@ func _exit_tree() -> void:
 
 # ---------- the API ----------
 
-func play(style: String, owner: Node = null, index: int = -1, fade: float = 1.5) -> void:
+func play(style: String, owner: Node = null, index: int = -1, fade: float = 1.5, genre: String = "") -> void:
+	_play(style, owner, index, fade, genre, false)
+
+func _play(style: String, owner: Node, index: int, fade: float, genre: String, auto: bool) -> void:
 	if not STYLES.has(style):
+		return
+	var setting := _setting_for(owner)
+	if owner and str(setting.style) == "off":
+		stop(fade)  # the owner turned music off for this game
 		return
 	_owner_ref = weakref(owner) if owner else null
 	_preview_t = 0.0
+	_auto = auto
+	_style = style
+	_genre = genre
+	if _play_downloaded(style, index, fade, [genre] if genre != "" else setting.genres):
+		return
+	_dl = ""
 	var count := _count(style)
 	if index < 0:
 		index = int(_last_index.get(style, -1)) + 1
@@ -121,6 +177,9 @@ func play(style: String, owner: Node = null, index: int = -1, fade: float = 1.5)
 func prepare(style: String, index: int = -1) -> void:
 	if not STYLES.has(style):
 		return
+	var all: Array = library.candidates(style, _setting_for(null).genres) if library else []
+	if not all.is_empty() and library.ready_tracks(style, _setting_for(null).genres).is_empty():
+		library.want(all[randi() % all.size()])
 	if index < 0:
 		index = int(_last_index.get(style, -1)) + 1
 	_request("%s:%d" % [style, posmod(index, _count(style))], false)
@@ -130,6 +189,9 @@ func stop(fade: float = 1.5) -> void:
 	_want = ""
 	_owner_ref = null
 	_preview_t = 0.0
+	_style = ""
+	_dl = ""
+	_auto = false
 	if _tween:
 		_tween.kill()
 	_tween = create_tween().set_parallel(true)
@@ -165,6 +227,13 @@ func _process(delta: float) -> void:
 		_preview_t -= delta
 		if _preview_t <= 0.0:
 			stop(1.0)
+	# A downloaded track that isn't looping: crossfade into the next one
+	# before it ends.
+	var cur: AudioStreamPlayer = _players[0]
+	if _dl != "" and _key != _ending and cur.playing and cur.stream and not cur.stream.get("loop") \
+			and cur.get_playback_position() > cur.stream.get_length() - NEXT_FADE:
+		_ending = _key
+		_next_track(NEXT_FADE)
 	_render_queue()
 	_apply_volume(delta)
 
@@ -200,6 +269,103 @@ func _crossfade(stream: AudioStream, fade: float) -> void:
 func _stop_players() -> void:
 	for p in _players:
 		p.stop()
+
+# ---------- downloaded tracks + "Where it plays" ----------
+
+## The owner's setting for the owner node's screen (else the current one).
+func _setting_for(owner: Node) -> Dictionary:
+	if library == null or not is_inside_tree():
+		return {"style": "", "genres": []}
+	var scene: Node = owner if owner and owner.scene_file_path != "" else get_tree().current_scene
+	return library.setting_for(scene)
+
+## Plays one of the style's downloaded tracks, if any is on the phone (true).
+## Otherwise starts a download for next time and returns false: the synth
+## stands in, and _on_track_ready swaps the real track in when it lands.
+func _play_downloaded(style: String, index: int, fade: float, genres: Array) -> bool:
+	if library == null:
+		return false
+	var all: Array = library.candidates(style, genres)
+	var ready: Array = library.ready_tracks(style, genres)
+	var missing: Array = all.filter(func(t): return not library.is_cached(t))
+	var fresh_key := style + "|" + ",".join(genres)
+	if not missing.is_empty() and (ready.size() < KEEP_READY or not _fresh.has(fresh_key)):
+		_fresh[fresh_key] = true
+		library.want(missing[randi() % missing.size()])
+	if ready.is_empty():
+		return false
+	var slot := style + ":dl"
+	var i := posmod(index if index >= 0 else int(_last_index.get(slot, -1)) + 1, ready.size())
+	_last_index[slot] = i
+	var t: Dictionary = ready[i]
+	var key := "%s:dl:%s" % [style, t.id]
+	if key == _key and _players[0].playing:
+		return true
+	var s: AudioStream = library.stream_of(t)
+	if s == null:
+		return false
+	s.set("loop", ready.size() < 2)  # alone, it loops; else the next one follows
+	_key = key
+	_want = ""
+	_dl = str(t.id)
+	_ending = ""
+	library.mark_played(_dl)
+	_crossfade(s, fade)
+	return true
+
+func _owner_now() -> Node:
+	var o = _owner_ref.get_ref() if _owner_ref else null
+	return o as Node if o is Node and (o as Node).is_inside_tree() else null
+
+## The style's next downloaded track (the current one is ending). With
+## nothing else on the phone, the same one starts again once it has ended.
+func _next_track(fade: float) -> void:
+	if _style == "" or (_owner_ref != null and _owner_now() == null):
+		return
+	_play(_style, _owner_now(), -1, fade, _genre, _auto)
+
+func _on_player_finished(p: AudioStreamPlayer) -> void:
+	if p == _players[0] and _dl != "":
+		_ending = ""
+		_next_track(0.5)
+
+## A download landed: if the synth is standing in for that style, the real
+## track takes over; if a lone track was looping, it now moves on at its end.
+func _on_track_ready(id: String) -> void:
+	if _style == "" or _preview_t > 0.0 or (_owner_ref != null and _owner_now() == null):
+		return
+	var genres: Array = [_genre] if _genre != "" else _setting_for(_owner_now()).genres
+	if not library.candidates(_style, genres).any(func(t): return str(t.id) == id):
+		return
+	if _dl == "":
+		_play(_style, _owner_now(), -1, 2.5, _genre, _auto)
+	elif _players[0].stream:
+		_players[0].stream.set("loop", false)
+
+## A new screen: the owner's "Where it plays" for it, unless the screen's
+## game already chose its own music in _ready().
+func _on_scene_changed() -> void:
+	if library == null or not is_inside_tree():
+		return
+	var scene := get_tree().current_scene
+	if _owner_now() != null and not _auto:
+		return
+	var setting: Dictionary = library.setting_for(scene)
+	var in_game := scene != null and scene.scene_file_path.begins_with(GAMES_DIR)
+	var style := str(setting.style)
+	if style == "off":
+		stop(0.8)
+	elif STYLES.has(style):
+		# Outside games the hub's music carries on from screen to screen.
+		if not (_auto and not in_game and _owner_ref == null and _style == style and _key != ""):
+			_play(style, scene if in_game else null, -1, 1.5, "", true)
+	elif _auto or _owner_ref != null:
+		stop(0.8)  # nothing set here, and whoever started the music has left
+
+## The list arrived (or changed): the screen may have music now.
+func _on_list_changed() -> void:
+	if _key == "" or _auto:
+		_on_scene_changed()
 
 func _count(style: String) -> int:
 	var files := _files_of(style)
