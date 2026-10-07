@@ -1,15 +1,20 @@
 extends Control
 
-## The Campaign map: every level by world with its stars, the familiar
-## picker, and the Cursed tab (the same levels with no familiar, starred
-## apart). Built in code like the rest of the game; the game listens to
-## play_level and closed.
+## The Campaign map: two star maps (the owner's pictures, 2026-10-07) where
+## every star is a level -- tap one for its card -- with the familiar picker
+## and the Cursed tab (the same levels with no familiar, starred apart).
+## Built in code like the rest of the game; the game listens to play_level
+## and closed.
 ##
 ## Progress lives in user://geometry_wars_campaign.json:
 ##   {stars: {"<id>": 0..3}, hard: {...}, best: {"<id>": score}, hbest: {...},
-##    drone: "attack"}
+##    drone: "attack", points: the purse (every campaign score adds to it),
+##    owned: [familiars bought], fam: {"<kind>": {xp: points earned with it,
+##    up: {"armor": 0..5, ...}}}}
 ## A level opens once the one before it has a star (Ultimate: once level 30
 ## has one); Hardcore opens a level once it's cleared in Adventure.
+## Familiars: Drones.SHOP says which cleared level puts one up for sale and
+## its price; its own xp buys its upgrades (Drones header).
 
 signal play_level(id: int, hardcore: bool, drone: String)
 signal closed
@@ -21,14 +26,38 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 
 const PATH := "user://geometry_wars_campaign.json"
 
+## The star maps. "nodes" are the levels in order, from "first": [x, y, r] in
+## the picture's pixels, r = the star's radius there. Bosses sit on the big
+## flaring stars and each map ends at its centre: the sun is level 24
+## (Titan), the black hole level 40 (Twin Terror). Positions were measured
+## from the pictures (bright-spot detection), not guessed.
+const MAPS := [
+	{"name": "☀ Solar Path", "image": "res://games/geometry_wars/map_sun.jpg", "size": Vector2(1547, 1017), "first": 1,
+		"nodes": [[294, 757, 22], [35, 478, 16], [831, 111, 22], [1121, 145, 30], [1340, 252, 30], [1444, 406, 38],
+			[638, 860, 28], [954, 708, 28], [517, 709, 26], [332, 640, 26], [278, 383, 26], [312, 213, 62],
+			[632, 221, 26], [871, 263, 30], [1303, 370, 22], [1230, 598, 30], [1083, 503, 22], [1204, 801, 66],
+			[1145, 382, 24], [579, 310, 26], [349, 489, 34], [486, 575, 16], [571, 417, 26], [770, 470, 125]]},
+	{"name": "🕳 Black Hole", "image": "res://games/geometry_wars/map_blackhole.jpg", "size": Vector2(1672, 941), "first": 25,
+		"nodes": [[67, 263, 28], [496, 55, 18], [792, 104, 20], [1202, 215, 26], [1491, 351, 18], [1598, 558, 56],
+			[1194, 790, 30], [798, 811, 30], [371, 686, 42], [401, 407, 18], [172, 363, 56], [439, 239, 14],
+			[734, 252, 14], [1134, 356, 14], [1025, 618, 18], [885, 447, 100]]},
+]
+## Smallest tap target around a star, in screen units.
+const TAP_MIN := 30.0
+
 var data: Dictionary = {}
 var hardcore := false
-var _list: VBoxContainer
 var _drones_row: HBoxContainer
 var _stars_label: Label
+var _points_label: Label
 var _title: Label
-var _scroll: ScrollContainer
-var _drag: Node
+var _map: Control
+var _map_i := 0
+var _map_name: Label
+var _map_tex: Array = []
+var _prev_btn: Button
+var _next_btn: Button
+var _pulse := 0.0
 var _card: Control
 var _card_box: VBoxContainer
 var _tabs: Array = []
@@ -44,6 +73,18 @@ static func load_progress() -> Dictionary:
 			d[k] = {}
 	if not d.has("drone"):
 		d["drone"] = "attack"
+	if not d.has("points"):
+		d["points"] = 0
+	if not (d.get("owned") is Array):
+		# Saves from before the shop keep what their stars had unlocked.
+		var owned := ["attack"]
+		var stars := total_stars(d, false)
+		for k in Drones.KINDS:
+			if k != "attack" and stars >= int(Drones.OLD_UNLOCK[k]):
+				owned.append(k)
+		d["owned"] = owned
+	if not (d.get("fam") is Dictionary):
+		d["fam"] = {}
 	return d
 
 static func save_progress(d: Dictionary) -> void:
@@ -67,8 +108,61 @@ static func is_open(d: Dictionary, id: int, hard: bool) -> bool:
 		return stars_of(d, Levels.ULTIMATE_FIRST - 1, false) > 0
 	return stars_of(d, id - 1, false) > 0
 
+## Bought (the Raven is yours from the start).
 static func drone_open(d: Dictionary, kind: String) -> bool:
-	return total_stars(d, false) >= int(Drones.UNLOCK.get(kind, 999))
+	return kind in (d.owned as Array)
+
+## Up for sale: its campaign level has been cleared.
+static func in_shop(d: Dictionary, kind: String) -> bool:
+	var after := int(Drones.SHOP[kind][0])
+	return after == 0 or stars_of(d, after, false) > 0
+
+static func price(kind: String) -> int:
+	return int(Drones.SHOP[kind][1])
+
+static func buy(d: Dictionary, kind: String) -> bool:
+	if drone_open(d, kind) or not in_shop(d, kind) or int(d.points) < price(kind):
+		return false
+	d.points = int(d.points) - price(kind)
+	(d.owned as Array).append(kind)
+	d.drone = kind
+	save_progress(d)
+	return true
+
+## A familiar's own record: {xp, up}.
+static func fam_of(d: Dictionary, kind: String) -> Dictionary:
+	var fam: Dictionary = d.fam
+	if not (fam.get(kind) is Dictionary):
+		fam[kind] = {"xp": 0, "up": {}}
+	var f: Dictionary = fam[kind]
+	if not (f.get("up") is Dictionary):
+		f["up"] = {}
+	return f
+
+## Points for the next level of a stat, or -1 when it is maxed.
+static func upgrade_cost(d: Dictionary, kind: String, stat: String) -> int:
+	var lv := int(fam_of(d, kind).up.get(stat, 0))
+	return -1 if lv >= Drones.MAX_LEVEL else int(Drones.UPGRADE_COST[lv])
+
+static func upgrade(d: Dictionary, kind: String, stat: String) -> bool:
+	var cost := upgrade_cost(d, kind, stat)
+	var f := fam_of(d, kind)
+	if cost < 0 or int(f.xp) < cost:
+		return false
+	f.xp = int(f.xp) - cost
+	f.up[stat] = int(f.up.get(stat, 0)) + 1
+	save_progress(d)
+	return true
+
+## A campaign level's score, won or lost: all of it to the purse, and to the
+## familiar that flew it.
+static func add_points(d: Dictionary, score: int, drone: String) -> void:
+	var pts := maxi(score, 0)
+	d.points = int(d.points) + pts
+	if drone != "":
+		var f := fam_of(d, drone)
+		f.xp = int(f.xp) + pts
+	save_progress(d)
 
 static func drones_open(d: Dictionary) -> int:
 	var n := 0
@@ -77,11 +171,11 @@ static func drones_open(d: Dictionary) -> int:
 			n += 1
 	return n
 
-## Records a cleared level; returns the drones this unlocked.
+## Records a cleared level; returns the familiars this put up for sale.
 static func record(d: Dictionary, id: int, hard: bool, stars: int, score: int) -> Array:
 	var before: Array = []
 	for k in Drones.KINDS:
-		if drone_open(d, k):
+		if in_shop(d, k):
 			before.append(k)
 	var key := str(id)
 	var sk := "hard" if hard else "stars"
@@ -91,7 +185,7 @@ static func record(d: Dictionary, id: int, hard: bool, stars: int, score: int) -
 	save_progress(d)
 	var fresh: Array = []
 	for k in Drones.KINDS:
-		if drone_open(d, k) and not k in before:
+		if in_shop(d, k) and not k in before:
 			fresh.append(k)
 	return fresh
 
@@ -125,7 +219,7 @@ func _ready() -> void:
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 12)
 	col.add_child(top)
-	var back := HomeKit.neon_button("◀ " + tr("Home"), HomeKit.CYAN, 22, 52)
+	var back := HomeKit.neon_button("◀ " + tr("Home"), HomeKit.BUTTON, 22, 52)
 	back.custom_minimum_size.x = 130
 	back.pressed.connect(_on_back)
 	top.add_child(back)
@@ -134,10 +228,12 @@ func _ready() -> void:
 	_title.add_theme_constant_override("outline_size", 8)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_title)
+	_points_label = HomeKit.label("", 24, HomeKit.WHITE)
+	top.add_child(_points_label)
 	_stars_label = HomeKit.label("", 26, HomeKit.GOLD)
 	top.add_child(_stars_label)
 	for i in 2:
-		var tab := HomeKit.neon_button(tr("🗺 Campaign") if i == 0 else tr("💀 Cursed"), HomeKit.GOLD if i == 0 else HomeKit.PINK, 20, 52)
+		var tab := HomeKit.neon_button(tr("🗺 Campaign") if i == 0 else tr("💀 Cursed"), HomeKit.BUTTON, 20, 52)
 		tab.toggle_mode = true
 		tab.custom_minimum_size.x = 150
 		tab.pressed.connect(_set_hardcore.bind(i == 1))
@@ -148,57 +244,65 @@ func _ready() -> void:
 	_drones_row.add_theme_constant_override("separation", 8)
 	col.add_child(_drones_row)
 
-	_scroll = ScrollContainer.new()
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	col.add_child(_scroll)
-	_drag = HomeKit._DragScroll.new()
-	_scroll.add_child(_drag)
-	_list = VBoxContainer.new()
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list.add_theme_constant_override("separation", 6)
-	_scroll.add_child(_list)
+	for m in MAPS:
+		_map_tex.append(load(m.image) if ResourceLoader.exists(m.image) else null)
+	_map = Control.new()
+	_map.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_map.clip_contents = true
+	_map.mouse_filter = Control.MOUSE_FILTER_STOP
+	_map.draw.connect(_draw_map)
+	_map.gui_input.connect(_on_map_input)
+	col.add_child(_map)
+	_map_name = HomeKit.label("", 24, HomeKit.WHITE, false, true)
+	_map_name.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_map_name.add_theme_constant_override("outline_size", 8)
+	_map_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map.add_child(_map_name)
+	_map_name.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_map_name.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_map_name.position.y = 6
+	_prev_btn = HomeKit.neon_button("◀", HomeKit.BUTTON, 30, 70)
+	_next_btn = HomeKit.neon_button("▶", HomeKit.BUTTON, 30, 70)
+	for b in [_prev_btn, _next_btn]:
+		b.custom_minimum_size.x = 64
+		_map.add_child(b)
+	_prev_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	_next_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	_next_btn.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_prev_btn.pressed.connect(_switch_map.bind(-1))
+	_next_btn.pressed.connect(_switch_map.bind(1))
 
 	_build_card()
 	refresh()
 
-func _dragged() -> bool:
-	return _drag != null and _drag.moved
+func _process(delta: float) -> void:
+	if visible and _map:
+		_pulse = fmod(_pulse + delta, 1.2)
+		_map.queue_redraw()
 
 func open(hard: bool = false) -> void:
 	data = load_progress()
 	hardcore = hard
 	visible = true
+	_map_i = _map_of(_next_level())
 	refresh()
 
 func refresh() -> void:
-	if _list == null:
+	if _map == null:
 		return
 	data = load_progress() if data.is_empty() else data
 	_title.text = tr("Cursed") if hardcore else tr("Campaign")
 	_title.add_theme_color_override("font_color", HomeKit.PINK if hardcore else HomeKit.GOLD)
 	var max_stars := Levels.count() * 3
 	_stars_label.text = "★ %d / %d" % [total_stars(data, hardcore), max_stars]
+	_points_label.text = "💰 " + _num(int(data.points))
 	for i in _tabs.size():
 		(_tabs[i] as Button).set_pressed_no_signal((i == 1) == hardcore)
 	_build_drones()
-	for c in _list.get_children():
-		c.queue_free()
-	for w in Levels.WORLDS.size():
-		var world: Dictionary = Levels.WORLDS[w]
-		var ids: Array = Levels.world_levels(w)
-		var wcol: Color = (world.grid as Color).lightened(0.35)
-		var head := HomeKit.label("%s  ·  %s" % [tr("World %d") % (w + 1), tr(str(world.name))], 24, wcol)
-		if w == 5:
-			head.text = "🔥 " + tr(str(world.name))
-		_list.add_child(head)
-		var flow := HFlowContainer.new()
-		flow.add_theme_constant_override("h_separation", 10)
-		flow.add_theme_constant_override("v_separation", 10)
-		_list.add_child(flow)
-		for id in ids:
-			flow.add_child(_level_button(id, wcol))
-	_list.add_child(HomeKit.gap(20))
+	_map_name.text = tr(str(MAPS[_map_i].name))
+	_prev_btn.visible = _map_i > 0
+	_next_btn.visible = _map_i < MAPS.size() - 1
+	_map.queue_redraw()
 
 func _build_drones() -> void:
 	for c in _drones_row.get_children():
@@ -210,42 +314,146 @@ func _build_drones() -> void:
 	var lbl := HomeKit.label(tr("Familiar:"), 22, HomeKit.DIM)
 	_drones_row.add_child(lbl)
 	for k in Drones.KINDS:
-		var open := drone_open(data, k)
-		var text := tr(str(Drones.LABELS[k])) if open else "🔒 %d★" % int(Drones.UNLOCK[k])
-		var b := HomeKit.neon_button(text, Drones.color_of(k), 19, 48)
-		b.toggle_mode = true
-		b.disabled = not open
+		var owned := drone_open(data, k)
+		var text := ""
+		if owned:
+			text = tr(str(Drones.LABELS[k]))
+		elif in_shop(data, k):
+			text = "🛒 %s %s" % [Drones.ICONS[k], _short(price(k))]
+		else:
+			text = "%s %s" % [Drones.ICONS[k], tr("Level %d") % int(Drones.SHOP[k][0])]  # dimmed = locked
+		var b := HomeKit.neon_button(text, HomeKit.BUTTON, 19, 48)
+		b.toggle_mode = owned
+		b.disabled = not owned and not in_shop(data, k)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.set_pressed_no_signal(open and str(data.drone) == k)
+		b.set_pressed_no_signal(owned and str(data.drone) == k)
 		b.tooltip_text = tr(str(Drones.DESCS[k]))
-		b.pressed.connect(_pick_drone.bind(k))
+		b.pressed.connect(_on_familiar.bind(k))
 		_drones_row.add_child(b)
+	var up := HomeKit.neon_button(tr("⬆ Upgrade"), HomeKit.GO, 19, 48)
+	up.custom_minimum_size.x = 150
+	up.pressed.connect(_show_upgrades)
+	_drones_row.add_child(up)
+
+func _on_familiar(kind: String) -> void:
+	if drone_open(data, kind):
+		_pick_drone(kind)
+	else:
+		_show_buy(kind)
 
 func _pick_drone(kind: String) -> void:
 	data.drone = kind
 	save_progress(data)
 	_build_drones()
 
-func _level_button(id: int, wcol: Color) -> Button:
-	var open := is_open(data, id, hardcore)
-	var stars := stars_of(data, id, hardcore)
-	var boss := Levels.is_boss(id)
-	var text := ""
-	if not open:
-		text = "🔒\n%d" % id
-	else:
-		text = ("☠ %d" if boss else "%d") % id + "\n" + "★".repeat(stars) + "☆".repeat(3 - stars)
-	var color: Color = HomeKit.PINK if boss else wcol
-	var b := HomeKit.neon_button(text, color, 22, 84)
-	b.custom_minimum_size.x = 104
-	b.disabled = not open
-	b.pressed.connect(_show_card.bind(id))
-	return b
+# ---------- the star map ----------
+
+## The next level to play: the first open one without a star (else the last).
+func _next_level() -> int:
+	for id in range(1, Levels.count() + 1):
+		if is_open(data, id, hardcore) and stars_of(data, id, hardcore) == 0:
+			return id
+	return Levels.count()
+
+func _map_of(id: int) -> int:
+	var i := 0
+	for m in MAPS.size():
+		if id >= int(MAPS[m].first):
+			i = m
+	return i
+
+func _switch_map(step: int) -> void:
+	_map_i = clampi(_map_i + step, 0, MAPS.size() - 1)
+	refresh()
+
+## Where the picture sits (all of it shows) and its scale.
+func _fit() -> Array:
+	var ms: Vector2 = MAPS[_map_i].size
+	var k := minf(_map.size.x / ms.x, _map.size.y / ms.y)
+	var sz := ms * k
+	return [Rect2((_map.size - sz) / 2.0, sz), k]
+
+func _draw_map() -> void:
+	var tex: Texture2D = _map_tex[_map_i]
+	var fit := _fit()
+	var r: Rect2 = fit[0]
+	var k: float = fit[1]
+	if tex:
+		# The same picture, cropped to fill and dimmed, behind the whole map.
+		var ms: Vector2 = MAPS[_map_i].size
+		var kc := maxf(_map.size.x / ms.x, _map.size.y / ms.y)
+		var cs := ms * kc
+		_map.draw_texture_rect(tex, Rect2((_map.size - cs) / 2.0, cs), false, Color(0.3, 0.3, 0.36))
+		_map.draw_texture_rect(tex, r, false)
+	var nodes: Array = MAPS[_map_i].nodes
+	var first: int = MAPS[_map_i].first
+	var font := get_theme_default_font()
+	var nxt := _next_level()
+	# The path so far: a faint line through the levels already open.
+	for i in range(1, nodes.size()):
+		if is_open(data, first + i, hardcore):
+			_map.draw_line(_node_pos(nodes[i - 1], r, k), _node_pos(nodes[i], r, k), Color(1, 0.95, 0.8, 0.35), 2.0, true)
+	for i in nodes.size():
+		var id := first + i
+		var p := _node_pos(nodes[i], r, k)
+		var rr := maxf(float(nodes[i][2]) * k, 10.0)
+		var open := is_open(data, id, hardcore)
+		var stars := stars_of(data, id, hardcore)
+		var boss := Levels.is_boss(id)
+		if not open:
+			_map.draw_circle(p, rr * 1.05, Color(0, 0, 0, 0.6))
+			_map.draw_arc(p, rr + 3.0, 0, TAU, 32, Color(0.6, 0.62, 0.7, 0.5), 1.5, true)
+		else:
+			var col := HomeKit.PINK if hardcore else (Color(1, 0.3, 0.38) if boss else HomeKit.BUTTON)
+			if stars > 0:
+				col = HomeKit.GO
+			_map.draw_arc(p, rr + 4.0, 0, TAU, 40, Color(col, 0.9), 2.5, true)
+			if id == nxt:
+				var t := _pulse / 1.2
+				_map.draw_arc(p, rr + 6.0 + t * 18.0, 0, TAU, 40, Color(1, 1, 1, 0.8 * (1.0 - t)), 2.5, true)
+		var tag := ("☠ %d" if boss else "%d") % id
+		var fs := 22 if boss else 20
+		var at := p + Vector2(rr * 0.75 + 4.0, -rr * 0.75 - 2.0)
+		if rr > 60.0:
+			at = p + Vector2(-font.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x / 2.0, -rr - 8.0)
+		var tcol := HomeKit.WHITE if open else Color(0.7, 0.72, 0.8, 0.8)
+		_map.draw_string_outline(font, at, tag, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, Color(0, 0, 0, 0.9))
+		_map.draw_string(font, at, tag, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tcol)
+		if open:
+			var st := "★".repeat(stars) + "☆".repeat(3 - stars)
+			var sw := font.get_string_size(st, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+			var sp := p + Vector2(-sw / 2.0, rr + 20.0)
+			_map.draw_string_outline(font, sp, st, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 5, Color(0, 0, 0, 0.9))
+			_map.draw_string(font, sp, st, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, HomeKit.GOLD)
+
+func _node_pos(n: Array, r: Rect2, k: float) -> Vector2:
+	return r.position + Vector2(float(n[0]), float(n[1])) * k
+
+## A tap on a star opens its card (mouse only: a phone's tap also arrives as a
+## mouse click, so taking touches too would open it twice).
+func _on_map_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed):
+		return
+	var fit := _fit()
+	var nodes: Array = MAPS[_map_i].nodes
+	var best := -1
+	var best_d := INF
+	for i in nodes.size():
+		var p := _node_pos(nodes[i], fit[0], fit[1])
+		var reach := maxf(float(nodes[i][2]) * float(fit[1]) + 6.0, TAP_MIN)
+		var d: float = p.distance_to(event.position)
+		if d <= reach and d < best_d:
+			best = i
+			best_d = d
+	if best < 0:
+		return
+	var id: int = int(MAPS[_map_i].first) + best
+	if is_open(data, id, hardcore):
+		_show_card(id)
 
 func _set_hardcore(on: bool) -> void:
-	if _dragged():
-		return
 	hardcore = on
+	_map_i = _map_of(_next_level())
 	refresh()
 
 func _on_back() -> void:
@@ -272,8 +480,6 @@ func _build_card() -> void:
 	panel.add_child(_card_box)
 
 func _show_card(id: int) -> void:
-	if _dragged():
-		return
 	for c in _card_box.get_children():
 		c.queue_free()
 	var r := Levels.level(id)
@@ -297,15 +503,89 @@ func _show_card(id: int) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	_card_box.add_child(row)
-	var close := HomeKit.neon_button(tr("Close"), HomeKit.DIM, 24, 64)
+	var close := HomeKit.neon_button(tr("Close"), HomeKit.BUTTON, 24, 64)
 	close.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	close.pressed.connect(func(): _card.visible = false)
 	row.add_child(close)
-	var play := HomeKit.neon_button("▶  " + tr("Play"), HomeKit.LIME, 28, 64)
+	var play := HomeKit.neon_button("▶  " + tr("Play"), HomeKit.GO, 28, 64)
 	play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	play.pressed.connect(_on_play.bind(id))
 	row.add_child(play)
 	_card.visible = true
+
+func _clear_card() -> void:
+	for c in _card_box.get_children():
+		c.queue_free()
+
+func _card_title(text: String) -> void:
+	var l := HomeKit.label(text, 36, HomeKit.WHITE, false, true)
+	l.add_theme_color_override("font_outline_color", Color(HomeKit.BUTTON, 0.5))
+	l.add_theme_constant_override("outline_size", 8)
+	_card_box.add_child(l)
+
+func _card_buttons(main: Button) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	_card_box.add_child(row)
+	var close := HomeKit.neon_button(tr("Close"), HomeKit.BUTTON, 24, 60)
+	close.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	close.pressed.connect(_close_card)
+	row.add_child(close)
+	if main:
+		main.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(main)
+
+func _close_card() -> void:
+	_card.visible = false
+
+func _show_buy(kind: String) -> void:
+	_clear_card()
+	_card_title(tr(str(Drones.LABELS[kind])))
+	_card_box.add_child(HomeKit.label(tr(str(Drones.DESCS[kind])), 24, HomeKit.WHITE, true, true))
+	_card_box.add_child(HomeKit.label(tr("Price: %s points") % _num(price(kind)), 26, HomeKit.GOLD, false, true))
+	_card_box.add_child(HomeKit.label(tr("You have: %s") % _num(int(data.points)), 22, HomeKit.DIM, false, true))
+	var buy_btn := HomeKit.neon_button("🛒  " + tr("Buy"), HomeKit.GO, 26, 60)
+	buy_btn.disabled = int(data.points) < price(kind)
+	buy_btn.pressed.connect(_on_buy.bind(kind))
+	_card_buttons(buy_btn)
+	_card.visible = true
+
+func _on_buy(kind: String) -> void:
+	if buy(data, kind):
+		_card.visible = false
+		refresh()
+
+## The chosen familiar's upgrades, paid from the points it earned itself.
+func _show_upgrades() -> void:
+	var kind := str(data.drone)
+	if not drone_open(data, kind):
+		kind = "attack"
+	_clear_card()
+	_card_title(tr(str(Drones.LABELS[kind])))
+	var f := fam_of(data, kind)
+	_card_box.add_child(HomeKit.label(tr("Points earned with it: %s") % _num(int(f.xp)), 24, HomeKit.GOLD, false, true))
+	for st in Drones.STATS:
+		var lv := int(f.up.get(st, 0))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		_card_box.add_child(row)
+		var col := VBoxContainer.new()
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(col)
+		col.add_child(HomeKit.label(tr(str(Drones.STAT_LABELS[st])) + "   " + "●".repeat(lv) + "○".repeat(Drones.MAX_LEVEL - lv), 24, HomeKit.WHITE))
+		col.add_child(HomeKit.label(tr(str(Drones.STAT_DESCS[st])), 18, HomeKit.DIM, true))
+		var cost := upgrade_cost(data, kind, st)
+		var b := HomeKit.neon_button(("⬆ " + _num(cost)) if cost >= 0 else tr("Max"), HomeKit.GO, 22, 56)
+		b.custom_minimum_size.x = 170
+		b.disabled = cost < 0 or int(f.xp) < cost
+		b.pressed.connect(_on_upgrade.bind(kind, st))
+		row.add_child(b)
+	_card_buttons(null)
+	_card.visible = true
+
+func _on_upgrade(kind: String, stat: String) -> void:
+	if upgrade(data, kind, stat):
+		_show_upgrades()
 
 func _on_play(id: int) -> void:
 	_card.visible = false
@@ -314,6 +594,14 @@ func _on_play(id: int) -> void:
 	if drone != "" and not drone_open(data, drone):
 		drone = "attack"
 	play_level.emit(id, hardcore, drone)
+
+## 25000 -> "25k", 1500000 -> "1.5M".
+static func _short(n: int) -> String:
+	if n >= 1000000:
+		return ("%.1fM" % (n / 1000000.0)).replace(".0M", "M")
+	if n >= 1000:
+		return "%dk" % (n / 1000)
+	return str(n)
 
 static func _num(n: int) -> String:
 	var s := str(n)

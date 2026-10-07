@@ -275,10 +275,17 @@ func _draw() -> void:
 		draw_circle(b.pos, r * 0.45, Color(1, 0.95, 0.95))
 
 	for d in game.drones:
+		if float(d.get("down", 0.0)) > 0.0:
+			continue  # knocked out: back by your side in a few seconds
+		_draw_familiar_flame(d, t, u)
+		var hurt: float = d.get("hurt", 0.0)
+		if hurt > 0.0 and int(hurt * 16.0) % 2 == 0:
+			continue
 		if classic:
 			_draw_drone(d, t, u)
 		else:
 			_draw_familiar(d, t, u)
+		_draw_familiar_health(d, u)
 	for ray in game.rays:
 		var k: float = float(ray.age) / 0.25
 		draw_line(ray.from, ray.to, Color(0.4, 1.0, 1.0, (1.0 - k) * 0.3), 8.0)
@@ -721,7 +728,7 @@ func _draw_boss(b: Dictionary, t: float, u: float) -> void:
 func _draw_familiar(d: Dictionary, t: float, u: float) -> void:
 	var col: Color = Drones.color_of(d.kind)
 	var c: Vector2 = d.pos
-	var s := 0.42 * u
+	var s := 0.55 * u
 	if d.kind == "sweep":
 		draw_arc(game.player_pos, Drones.SWEEP_RADIUS * u, 0, TAU, 48, Color(col, 0.12), 2.0, true)
 	var flap := sin(t * 14.0) * 0.35
@@ -990,6 +997,41 @@ func _draw_drone(d: Dictionary, t: float, u: float) -> void:
 		draw_arc(game.player_pos, Drones.SWEEP_RADIUS * u, 0, TAU, 48, Color(col, 0.12), 2.0, true)
 	var dir: Vector2 = (d.vel as Vector2).normalized() if (d.vel as Vector2).length() > 1.0 else game.ship_dir
 	var p := Vector2(-dir.y, dir.x)
-	var s := 0.4 * u
+	var s := 0.52 * u
 	_neon(PackedVector2Array([pos + dir * s, pos - dir * s * 0.7 + p * s * 0.7, pos - dir * s * 0.3, pos - dir * s * 0.7 - p * s * 0.7]), col, true, 1.5)
 	draw_circle(pos, s * 0.2, Color(1, 1, 1, 0.6 + 0.4 * sin(t * 8.0)))
+
+## A familiar's own flame, out of its back the way it flies, longer the faster
+## it goes, in its colour around a white core.
+func _draw_familiar_flame(d: Dictionary, t: float, u: float) -> void:
+	var v: Vector2 = d.vel
+	var sp := clampf(v.length() / (12.0 * u), 0.0, 1.2)
+	var dir: Vector2 = d.get("facing", Vector2.UP)
+	var col: Color = Drones.color_of(d.kind)
+	var root: Vector2 = (d.pos as Vector2) - dir * 0.3 * u
+	var p := Vector2(-dir.y, dir.x)
+	var flick := 1.0 + 0.15 * sin(t * 41.0 + float(d.get("seed", 0.0)) * 7.0)
+	var length := (0.18 + 0.75 * sp) * flick * u
+	var width := (0.09 + 0.05 * sp) * u
+	for layer in 3:
+		var k: float = [1.0, 0.72, 0.42][layer]
+		var c: Color = [Color(col, 0.3), Color(col.lightened(0.3), 0.75), Color(1, 1, 1, 0.9)][layer]
+		var pts := PackedVector2Array()
+		for i in 7:
+			var f := i / 6.0
+			pts.append(root - dir * length * k * f + p * width * k * sin(PI * (0.15 + 0.85 * f)))
+		for i in range(5, 0, -1):
+			var f := i / 6.0
+			pts.append(root - dir * length * k * f - p * width * k * sin(PI * (0.15 + 0.85 * f)))
+		draw_colored_polygon(pts, c)
+
+## A small bar under a familiar that has taken hits.
+func _draw_familiar_health(d: Dictionary, u: float) -> void:
+	var full := Drones.max_hp(d)
+	var hp := int(d.get("hp", full))
+	if hp >= full:
+		return
+	var w := 0.9 * u
+	var at: Vector2 = (d.pos as Vector2) + Vector2(-w / 2.0, 0.6 * u)
+	draw_rect(Rect2(at, Vector2(w, 0.12 * u)), Color(0, 0, 0, 0.6))
+	draw_rect(Rect2(at, Vector2(w * hp / full, 0.12 * u)), Color(0.3, 1.0, 0.5) if hp * 2 > full else Color(1.0, 0.35, 0.35))

@@ -424,7 +424,8 @@ func _process(delta: float) -> void:
 	# --- drones ---
 	if not drones.is_empty() and respawn_t <= 0.0:
 		var ctx := {"player_pos": player_pos, "ship_dir": ship_dir, "aim_dir": aim_dir, "firing": firing,
-			"enemies": enemies, "crystals": crystals, "bosses": bosses, "bullets": bullets, "arena": arena_size}
+			"enemies": enemies, "crystals": crystals, "bosses": bosses, "bullets": bullets, "ebullets": ebullets,
+			"arena": arena_size}
 		for d in drones:
 			for ev in Drones.update(d, ctx, delta):
 				_on_drone_event(ev)
@@ -798,6 +799,15 @@ func _on_drone_event(ev: Dictionary) -> void:
 			_sfx("snipe", -4.0, randf_range(0.95, 1.05), 100)
 		"shot":
 			_sfx("drone_shot", -10.0, 1.0, 120)
+		"hurt":
+			_spark_burst(ev.pos, Drones.color_of(drone_kind), 6, 0.6)
+			_sfx("boss_block", -10.0, 1.4, 120)
+		"down":
+			_spark_burst(ev.pos, Drones.color_of(drone_kind), 24, 1.0)
+			_popup(ev.pos, tr("Familiar down!"), Color(1, 0.4, 0.45), 24)
+			_sfx("boss_part", -4.0, 1.3, 200)
+		"back":
+			_sfx("zone_on", -8.0, 1.2, 200)
 
 func _add_geoms(v: int) -> void:
 	var before := multiplier
@@ -1110,6 +1120,9 @@ func _show_result() -> void:
 			info.high("Longest time survived", elapsed_seconds)
 	if rules.campaign:
 		var data := Campaign.load_progress()
+		# Every campaign score fills the purse, won or lost (and the pool of
+		# the familiar that flew it), for buying and upgrading familiars.
+		Campaign.add_points(data, score, drone_kind)
 		if won:
 			var stars := Levels.stars_for(level_id, score, deaths)
 			var fresh: Array = Campaign.record(data, level_id, hardcore, stars, score)
@@ -1121,7 +1134,7 @@ func _show_result() -> void:
 			if score < int(rules.target):
 				lines.append(tr("★★★ needs %s points") % _num(int(rules.target)))
 			for k in fresh:
-				lines.append(tr("New familiar: %s") % tr(str(Drones.LABELS[k])))
+				lines.append(tr("In the familiar shop: %s") % tr(str(Drones.LABELS[k])))
 			if info:
 				info.high("Campaign stars", Campaign.total_stars(data, false))
 				info.high("Cursed stars", Campaign.total_stars(data, true))
@@ -1133,6 +1146,7 @@ func _show_result() -> void:
 		else:
 			title = tr("Out of lives")
 			color = HomeKit.PINK
+		lines.append(tr("+%s points") % _num(score) + (("  ·  " + tr(str(Drones.LABELS[drone_kind]))) if drone_kind != "" else ""))
 		var best := int((data["hbest" if hardcore else "best"] as Dictionary).get(str(level_id), 0))
 		lines.push_front(tr("Level %d · %s") % [level_id, tr(str(rules.name))])
 		lines.append(tr("Score: %s") % _num(score))
@@ -1668,7 +1682,8 @@ func _begin(fresh: bool = true) -> void:
 	rays = []
 	drones = []
 	if drone_kind != "":
-		drones.append(Drones.make(drone_kind, player_pos))
+		var up: Dictionary = Campaign.fam_of(Campaign.load_progress(), drone_kind).up
+		drones.append(Drones.make(drone_kind, player_pos, up))
 	invuln_timer = INVULN_TIME
 	respawn_t = 0.0
 	beep_step = 99

@@ -1454,8 +1454,22 @@ format, read by `_game.gd`); `_core.gd` enemies/collisions, `_bosses.gd`,
   Stampede, Coffin, Boss Rush; each has its own "Best score (<mode>)" stat.
   **Campaign**: 6 worlds (the 6th, Underworld, opens after level 30), a
   boss every sixth level; stars = finish / no life lost / the level's
-  `target` score. Stars unlock the 6 familiars (`Drones.UNLOCK`); Cursed =
-  the same levels, no familiar, starred apart.
+  `target` score. Cursed = the same levels, no familiar, starred apart.
+- **Campaign map** (2026-10-07): two star maps from the owner's ChatGPT art
+  (`games/geometry_wars/map_sun.jpg`, `map_blackhole.jpg`), every star a
+  level: `Campaign.MAPS` holds each level's [x, y, r] in picture pixels
+  (measured by bright-spot detection, not guessed). Levels 1-24 on the sun
+  map (bosses on the big flaring stars, the sun = 24), 25-40 on the
+  black-hole map (the hole = 40). Tap a star for its card; ◀ ▶ switch maps.
+- **Familiars are bought and upgraded** (owner 2026-10-07; `_drones.gd`
+  header): `Drones.SHOP` = [level that puts one up for sale, price]; every
+  campaign score (won or lost) fills the purse (`points`) and the flying
+  familiar's own pool (`fam.<kind>.xp`), which buys its upgrades: armor
+  (health 3 + 2/level; knocked out for a while at 0), speed, power, soul
+  pull (`UPGRADE_COST`, 5 levels each). Old saves keep the familiars their
+  stars had unlocked (`OLD_UNLOCK`). Familiars follow on a loose spring with
+  a wander and trail their own flame. Test: a throwaway familiar test
+  (shop, upgrades, points, follow spread, knockout, pull, power).
 - **Bigger maps + camera**: the view is 19 squares tall (`Core.U` is fixed
   for a whole game, so positions stay in pixels); maps are `MAP_SCALE` x
   bigger than written except the tiny ones. The grid only simulates and

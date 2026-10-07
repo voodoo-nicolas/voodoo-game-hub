@@ -22,7 +22,8 @@ const HOW := [
 	"Spiders hop about laying hex charms. Touch or shoot a charm and it blows up the enemies around it.",
 	"Modes: Endless (3 lives, bombs, extra lives), Time Attack (3 minutes, endless lives), Unarmed (no pins, only seals), Sanctuary (you can only shoot inside a sacred circle, and enemies can't enter one), Stampede (walls of darts), Coffin (a tiny box) and Boss Rush.",
 	"Campaign: 40 levels in 6 worlds, each with a goal. Finishing earns a star, not losing a life another, beating the score target a third. Every sixth level is a boss.",
-	"Stars unlock familiars, spirit animals that fly with you: Raven, Moth, Bull, Owl, Bat and Wisp. Pick one on the level map. A Cursed run plays the same levels with no familiar.",
+	"Familiars are spirit animals that fly with you: Raven, Moth, Bull, Owl, Bat and Wisp. Each comes up for sale as you get through the Campaign; buy it with the points every campaign score adds to your purse. Pick one on the level map. A Cursed run plays the same levels with no familiar.",
+	"The points scored while a familiar flies with you go to that familiar: spend them on its upgrades -- armor, speed, power and soul pull. Enemies can knock a familiar out for a few seconds.",
 	"The pause button keeps the game; Resume on the Home screen picks it up.",
 ]
 const TIPS := [
