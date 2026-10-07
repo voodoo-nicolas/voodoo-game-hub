@@ -107,7 +107,8 @@
       {"id": "shut_the_box", "quick": true, "title": "Shut the Box", "icon": "📦", "title_es": "Cierra la caja", "modes": "local,cpu", "board": "Boxes shut", "skins": "classic,voodoo", "learn": ["math"]},
       {"id": "dominoes", "title": "Dominoes", "icon": "🁫", "title_es": "Dominó", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]},
       {"id": "pig", "quick": true, "title": "Pig", "icon": "🐷", "title_es": "Cerdito", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]},
-      {"id": "bunco", "title": "Bunco", "icon": "🎲", "title_es": "Bunco", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]}
+      {"id": "bunco", "title": "Bunco", "icon": "🎲", "title_es": "Bunco", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]},
+      {"id": "ship_captain_crew", "title": "Ship, Captain, Crew", "icon": "⛵", "title_es": "Barco, capitán y tripulación", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]}
     ]},
     {"name": "Drinking Games", "icon": "🍹", "name_es": "Juegos para tomar", "archived": true, "games": [
       {"id": "kings_cup", "title": "Kings Cup", "icon": "👑", "title_es": "Kings Cup", "modes": "party", "board": "Games played", "archived": true},
@@ -241,6 +242,7 @@
     "emoji_guess": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/emoji_guess.pck", "scene": "res://scenes/games/emoji_guess/emoji_guess.tscn"},
     "who_am_i": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/who_am_i.pck", "scene": "res://scenes/games/who_am_i/who_am_i.tscn"},
     "pig": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pig.pck", "scene": "res://scenes/games/pig/pig.tscn"},
-    "bunco": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bunco.pck", "scene": "res://scenes/games/bunco/bunco.tscn"}
+    "bunco": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bunco.pck", "scene": "res://scenes/games/bunco/bunco.tscn"},
+    "ship_captain_crew": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ship_captain_crew.pck", "scene": "res://scenes/games/ship_captain_crew/ship_captain_crew.tscn"}
   }
 }
