@@ -303,7 +303,7 @@ func _draw_table() -> void:
 			"captain":
 				label = tr("Captain")
 			"crew":
-				label = tr("Crew")
+				label = tr("Crew ").strip_edges()
 			_:
 				if engine.has_crew() and v > 0:
 					label = tr("Kept") if engine.hold[i] else tr("Cargo")

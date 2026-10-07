@@ -61,7 +61,8 @@
       {"id": "memory", "quick": true, "title": "Memory Match", "icon": "🧠", "title_es": "Memoria", "modes": "online,local", "board": "Games solved", "skins": "classic,voodoo", "learn": ["memory"]},
       {"id": "tri_peaks", "title": "Tri-Peaks", "icon": "🏔️", "title_es": "Tres picos", "board": "Best score", "skins": "classic,voodoo"},
       {"id": "hearts", "title": "Hearts", "icon": "♥️", "title_es": "Corazones", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["math"]},
-      {"id": "video_poker", "quick": true, "title": "Poker", "icon": "♠️", "title_es": "Póker", "modes": "online,local,cpu", "board": "Most chips", "skins": "classic,voodoo", "learn": ["math"]}
+      {"id": "video_poker", "quick": true, "title": "Poker", "icon": "♠️", "title_es": "Póker", "modes": "online,local,cpu", "board": "Most chips", "skins": "classic,voodoo", "learn": ["math"]},
+      {"id": "sevens", "title": "Sevens", "icon": "7️⃣", "title_es": "Sietes", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["logic"]}
     ]},
     {"name": "Word", "icon": "🔤", "name_es": "Palabras", "games": [
       {"id": "hangman", "quick": true, "title": "Hangman", "icon": "💀", "title_es": "Ahorcado", "modes": "local", "board": "Wins", "skins": "classic,voodoo", "learn": ["vocab"]},
@@ -249,6 +250,7 @@
     "ship_captain_crew": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ship_captain_crew.pck", "scene": "res://scenes/games/ship_captain_crew/ship_captain_crew.tscn"},
     "trivia_battle": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trivia_battle.pck", "scene": "res://scenes/games/trivia_battle/trivia_battle.tscn"},
     "color_sort": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_sort.pck", "scene": "res://scenes/games/color_sort/color_sort.tscn"},
-    "hidato": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hidato.pck", "scene": "res://scenes/games/hidato/hidato.tscn"}
+    "hidato": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hidato.pck", "scene": "res://scenes/games/hidato/hidato.tscn"},
+    "sevens": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sevens.pck", "scene": "res://scenes/games/sevens/sevens.tscn"}
   }
 }

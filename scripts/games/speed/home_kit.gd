@@ -1548,7 +1548,8 @@ static func draw_grid(c: Control) -> void:
 ## 2026-10-07: "they all need their OWN backgrounds"). OWN_BG_GAMES is the
 ## manifest's Arcade category; `hub.py check` keeps the two in step.
 const FELT_GAMES := ["solitaire", "blackjack", "war", "crazy_eights", "go_fish", "gin_rummy",
-	"spider", "freecell", "pyramid", "speed", "memory", "tri_peaks", "hearts", "video_poker"]
+	"spider", "freecell", "pyramid", "speed", "memory", "tri_peaks", "hearts", "video_poker",
+	"sevens", "rummy", "spades"]
 const OWN_BG_GAMES := ["geometry_wars", "snake", "block_drop", "paddle_ball", "brick_breaker",
 	"bird_hop", "alien_attack", "frog_crossing", "gem_match", "simon", "whack_a_mole",
 	"reaction_test", "bubble_pop", "rock_blaster", "city_defense", "maze_muncher", "moon_lander",
