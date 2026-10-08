@@ -16,7 +16,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
 - At the start of each v2 phase (`docs/HUB_V2_PLAN.md` §2) propose a task list and wait for OK.
 
 ## Docs (not auto-loaded; read before the work they cover)
-- **`docs/STANDARDS.md`: read before creating/modifying any game or hub screen** (navigation N1-N7, Landing, pause, Options, skins, media tiers, i18n, IP, learning). Digest below.
+- **Creating/modifying a game: use the `viral-minigame` skill** (checklist: `.claude/skills/viral-minigame/SKILL.md`). **`docs/STANDARDS.md`: full rules; read for hub screens or when the skill is unclear.** Digest below.
 - `docs/HUB_V2_PLAN.md` roadmap/decisions/open questions · `docs/IP_AUDIT.md` · `reference/art/ART_STYLE.md` (+ `skins/`) · `docs/KICKOFF_PROMPT.md` (owner's v2 kickoff 2026-10-06).
 - `docs/claude/` topic notes — read the one(s) for what you touch:
   - `landing-kit-skins.md`: Landing/Home kit, skins, Voodoo Mode, Options/Settings, text size, safe area, orientation, resume
