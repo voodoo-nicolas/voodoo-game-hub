@@ -46,3 +46,6 @@
 
 ## Rename safety (Voodoo → Viral, owner 2026-10-06): visible text only
 NEVER rename: Android package/applicationId (`com.viral.voodoo`), keystore (`voodoo-release.*`) or `VOODOO_RELEASE_KEY`, Supabase project/table/column names, save paths and keys (`user://...`, stat keys), game ids in `manifest.json`, repo `voodoo-game-hub`, tag `packs-v1`. Internal identifiers may keep "voodoo" (classes, `VOODOO_SAFE_INSET`, Realtime topic `voodoo-<game>-<code>`, User-Agent, `builds/` names). `project.godot` `config/name` stays "Voodoo" (PC save folder `%APPDATA%\Godot\app_userdata\Voodoo`); visible name comes from export presets (synced from `Brand.NAME`) and the runtime window title.
+
+## Legal text (compliance pack, 2026-10-12)
+- Sources `legal/*.md` + `legal/placeholders.json` (owner values; ES controls, EN courtesy). `python tools/legal_build.py [--draft]` renders `assets/legal/*.md` (bundled in-app) and `docs/legal/privacy.html`, `terms.html`, `docs/delete-account.html` (GitHub Pages). Empty placeholder or any `[[VERIFICAR|VERIFY|DECIDIR|DECIDE]]` marker = build fails; `hub.py check` warns, `apk` (non-debug) and `release` refuse. Never edit the rendered outputs. Open markers: see `python tools/legal_build.py`.

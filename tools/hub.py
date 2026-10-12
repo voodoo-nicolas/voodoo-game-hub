@@ -369,7 +369,30 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_hub_name()
     errors += lint_web_threads()
     errors += lint_own_backgrounds(m)
+    warnings += lint_legal()
     return errors, warnings
+
+
+def lint_legal() -> list[str]:
+    """legal/*.md must have every {{PLACEHOLDER}} filled and no [[VERIFICAR/DECIDIR]]
+    marker left. Only a warning while drafting; `apk` and `release` refuse to build
+    with any (require_legal_clean)."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    import legal_build
+    problems = legal_build.build(write=False)
+    for stem in legal_build.DOCS.values():
+        for lang in legal_build.LANGS:
+            out = legal_build.OUT_MD / f"{stem}.{lang}.md"
+            if not out.is_file():
+                problems.append(f"{out.relative_to(ROOT)} missing -- run python tools/legal_build.py")
+    return ["legal: " + p for p in problems]
+
+
+def require_legal_clean() -> None:
+    """Publish builds only: Terms/Privacy must be complete (owner's compliance brief)."""
+    problems = lint_legal()
+    if problems:
+        raise ToolError("legal text is not publishable:\n  " + "\n  ".join(problems))
 
 
 def lint_own_backgrounds(m: dict) -> list[str]:
@@ -707,6 +730,8 @@ def release_signing_env() -> dict:
 
 def cmd_apk(args) -> None:
     cmd_check()
+    if not args.debug:
+        require_legal_clean()
     version, _ = read_version()
     apk = ROOT / "builds/game-hub.apk"
     if args.debug:
@@ -1127,6 +1152,7 @@ def cmd_publish_packs(args) -> None:
 
 
 def cmd_release(args) -> None:
+    require_legal_clean()
     version, _ = read_version()
     apk = ROOT / f"builds/voodoo-v{version}.apk"
     if not apk.is_file():

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eliminar cuenta / Delete account - Viral Game Hub</title>
+<style>
+:root{--bg:#0b0f1a;--fg:#e8ecf5;--mut:#9aa6c0;--acc:#4da3ff;--line:#243049}
+@media (prefers-color-scheme:light){:root{--bg:#fff;--fg:#14202e;--mut:#4a5870;--acc:#0b5fc0;--line:#d6deea}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+a{color:var(--acc)} h1{font-size:1.6rem} h2{margin-top:1.8em;font-size:1.2rem}
+blockquote{margin:1em 0;padding:.2em 1em;border-left:3px solid var(--acc);color:var(--mut)}
+nav{display:flex;gap:12px;justify-content:flex-end}
+footer{margin-top:3em;padding-top:1em;border-top:1px solid var(--line);color:var(--mut);font-size:.9rem}
+.lang{display:none} .lang.on{display:block}
+</style></head><body><main>
+<nav><a href="#es" onclick="L('es')">Español</a><a href="#en" onclick="L('en')">English</a></nav>
+<section class="lang" id="es"><h1>Eliminar mi cuenta de Viral Game Hub</h1>
+<h2>Dentro de la app</h2>
+<ol><li>Abrí Viral Game Hub e iniciá sesión.</li><li>Tocá 👤 Perfil y bajá hasta "Zona de riesgo".</li><li>Tocá "Eliminar mi cuenta" y confirmá.</li></ol>
+<p>Se borran tu perfil, amigos, puntajes, logros, tiempo de juego y consentimientos, y tu usuario de acceso. La eliminación es inmediata y no se puede deshacer.</p>
+<h2>Por correo</h2>
+<p>Si no podés entrar a la app, escribinos a info.viralgaming@gmail.com desde el correo de tu cuenta con el asunto "Eliminar mi cuenta". Eliminamos tus datos personales dentro de los 30 días.</p>
+<h2>Qué conservamos</h2>
+<p>Solo los registros de compras que debamos guardar por obligaciones contables o fiscales, y copias de seguridad que se sobrescriben en su ciclo normal. Más detalle en la <a href="legal/privacy.html#es">Política de Privacidad</a>.</p><footer>Contacto: <a href="mailto:info.viralgaming@gmail.com">info.viralgaming@gmail.com</a> · <a href="https://www.argentina.gob.ar/economia/industria-y-comercio/defensadelconsumidor">Defensa del Consumidor</a> · <a href="https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html">Eliminar mi cuenta</a></footer></section><section class="lang" id="en"><h1>Delete my Viral Game Hub account</h1>
+<h2>In the app</h2>
+<ol><li>Open Viral Game Hub and sign in.</li><li>Tap 👤 Profile and scroll to "Danger zone".</li><li>Tap "Delete my account" and confirm.</li></ol>
+<p>Your profile, friends, scores, achievements, play time, consents and sign-in user are deleted. Deletion is immediate and cannot be undone.</p>
+<h2>By email</h2>
+<p>If you cannot open the app, write to info.viralgaming@gmail.com from your account's email address with the subject "Delete my account". We delete your personal data within 30 days.</p>
+<h2>What we keep</h2>
+<p>Only purchase records we must keep for accounting or tax obligations, and backups that are overwritten in their normal cycle. More detail in the <a href="legal/privacy.html#en">Privacy Policy</a>.</p><footer>Contact: <a href="mailto:info.viralgaming@gmail.com">info.viralgaming@gmail.com</a> · <a href="https://www.argentina.gob.ar/economia/industria-y-comercio/defensadelconsumidor">Consumer protection (Argentina)</a> · <a href="https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html">Delete my account</a></footer></section>
+<script>
+function L(l){document.querySelectorAll('.lang').forEach(function(e){e.classList.toggle('on',e.id===l)});document.documentElement.lang=l}
+var h=location.hash.slice(1);L(h==='en'?'en':(h==='es'?'es':((navigator.language||'es').slice(0,2)==='en'?'en':'es')));
+</script></main></body></html>
