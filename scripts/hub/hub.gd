@@ -59,6 +59,9 @@ const CATEGORY_ART := {
 	"Cards": "res://media/hub/categories/cards.jpg",
 	"Intelligence": "res://media/hub/categories/intelligence.jpg",
 	"Puzzle & Board": "res://media/hub/categories/puzzle.jpg",
+	"Adventure": "res://media/hub/categories/adventure.jpg",
+	"Dice": "res://media/hub/categories/dice.jpg",
+	"Party": "res://media/hub/categories/party.jpg",
 }
 ## Height of the ★ Favorites block on top of the category list (with games /
 ## with only its hint), so the category rows still share what's left.

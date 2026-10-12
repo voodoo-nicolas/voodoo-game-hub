@@ -77,7 +77,6 @@
       {"id": "word_chain", "title": "Word Chain", "icon": "🔗", "title_es": "Cadena de palabras", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["vocab"]}
     ]},
     {"name": "Arcade", "icon": "🕹️", "name_es": "Arcade", "games": [
-      {"id": "geometry_wars", "quick": true, "original": true, "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast", "skins": "classic,voodoo"},
       {"id": "snake", "quick": true, "title": "Snake", "icon": "🐍", "title_es": "Snake", "modes": "online,local,cpu", "skins": "classic,voodoo"},
       {"id": "block_drop", "quick": true, "title": "Block Drop", "icon": "🧱", "title_es": "Bloques", "skins": "classic,voodoo"},
       {"id": "paddle_ball", "quick": true, "title": "Paddle Ball", "icon": "🏓", "title_es": "Paletas", "modes": "cpu", "board": "Wins", "skins": "classic,voodoo"},
@@ -100,10 +99,13 @@
       {"id": "barrel_climb", "quick": true, "title": "Barrel Climb", "icon": "🛢️", "title_es": "Escala barriles", "board": "Best score", "skins": "classic,voodoo"},
       {"id": "cannon_duel", "title": "Cannon Duel", "icon": "💣", "title_es": "Duelo de cañones", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"]},
       {"id": "crypt_crawler", "title": "Crypt Crawler", "icon": "💀", "title_es": "La cripta", "board": "Best score", "skins": "classic,voodoo"},
-      {"id": "star_runner", "quick": true, "title": "Star Runner", "icon": "🌠", "title_es": "Carrera estelar", "board": "Best score", "skins": "classic,voodoo"},
-      {"id": "sky_raider", "quick": true, "original": true, "title": "Sky Strike", "icon": "✈️", "title_es": "Asalto aéreo", "board": "Best score", "skins": "classic,voodoo"},
       {"id": "mini_golf", "quick": true, "title": "Mini Golf", "icon": "⛳", "title_es": "Minigolf", "modes": "local", "board": "Birdies or better", "skins": "classic,voodoo", "learn": ["science"]},
       {"id": "pool", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"]}
+    ]},
+    {"name": "Adventure", "icon": "🗡️", "name_es": "Aventura", "games": [
+      {"id": "geometry_wars", "quick": true, "original": true, "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast", "skins": "classic,voodoo"},
+      {"id": "star_runner", "quick": true, "title": "Star Runner", "icon": "🌠", "title_es": "Carrera estelar", "board": "Best score", "skins": "classic,voodoo"},
+      {"id": "sky_raider", "quick": true, "original": true, "title": "Sky Strike", "icon": "✈️", "title_es": "Asalto aéreo", "board": "Best score", "skins": "classic,voodoo"}
     ]},
     {"name": "Dice", "icon": "🎲", "name_es": "Dados", "games": [
       {"id": "yacht", "quick": true, "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala", "modes": "local", "skins": "classic,voodoo", "learn": ["math"]},
