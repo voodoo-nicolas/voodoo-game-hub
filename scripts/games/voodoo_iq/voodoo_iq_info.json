@@ -1,118 +1,278 @@
 {
-  "en": {
-    "button": "🧠 What is intelligence?",
-    "title": "INTELLIGENCE",
-    "subtitle": "& what makes a genius",
-    "back": "Back",
-    "what_h": "What is intelligence?",
-    "what": [
-      "Intelligence is your ability to learn, understand, reason and adapt: to make sense of new things and use what you know to solve problems.",
-      "It is not one single thing. The psychologist Howard Gardner described several kinds of intelligence, and that idea is what the nine sections of Voodoo IQ are built on."
-    ],
-    "types_h": "The 9 intelligences",
-    "types_intro": "Everyone has all nine, in different amounts. Classic IQ tests mostly measure the first three.",
-    "types": {
-      "LOG": "Reasoning with numbers, logic and patterns: seeing rules, cause and effect, and what must follow.",
-      "SPA": "Thinking in pictures: imagining shapes, turning them in your mind, finding your way around.",
-      "LIN": "Words and language: meanings, reading, writing, explaining, and playing with words.",
-      "MUS": "Sound, pitch, rhythm and melody: hearing differences others miss and remembering tunes.",
-      "NAT": "Noticing patterns in nature: sorting living things, plants and animals into kinds and families.",
-      "KIN": "Body and movement: coordination, timing, reflexes and skill with your hands.",
-      "INT": "Understanding other people: reading faces, moods and intentions, and getting along.",
-      "SELF": "Understanding yourself: knowing your strengths, limits and feelings, and how sure you really are.",
-      "EXI": "Big questions: life, meaning and what is true, and reasoning about them clearly."
-    },
-    "core_tag": "Counts toward Voodoo IQ",
-    "types_note": "Gardner's model is popular but debated: many researchers find that these abilities tend to go together, rather than being fully separate.",
-    "one_h": "Smart in one is not a genius",
-    "one": [
-      "Being brilliant in one intelligence doesn't make you a genius. A great musician can struggle with numbers, and a math whiz can miss what the people around them are feeling.",
-      "And being smart in all nine doesn't make you a genius either. Knowing a lot, or being quick, is not the same thing."
-    ],
-    "genius_h": "What makes a genius?",
-    "genius_intro": "What we've always been taught: genius takes three things.",
-    "genius": [
-      ["Above-average intelligence", "A strong mind to start from, in at least some of the nine areas."],
-      ["Rejecting false information", "Noticing when something is wrong and refusing to believe it, even when many people do."],
-      ["Reasoning about the unknown", "When you face something you don't know, using the intelligences you do have to make a fairly accurate guess about it."]
-    ],
-    "genius_outro": "No test can measure all of that. Voodoo IQ shows you where you're strong. What you do with it is up to you.",
-    "quotes_h": "Famous words",
-    "quotes_note": "Some famous quotes are credited to the wrong person. Spotting that is a small test of rejecting false information, so we say so where it applies.",
-    "quotes": [
-      ["Genius is one percent inspiration and ninety-nine percent perspiration.", "Thomas Edison, American inventor"],
-      ["The difference between stupidity and genius is that genius has its limits.", "Often credited to Albert Einstein, with no known source"],
-      ["No great mind has ever existed without a touch of madness.", "Seneca, quoting Aristotle"],
-      ["Genius creates, and taste preserves. Taste is the good sense of genius; without taste, genius is only sublime folly.", "François-René de Chateaubriand (often credited to Alexander Pope)"],
-      ["Intelligence is the ability to adapt to change.", "Often credited to Stephen Hawking, with no known source"],
-      ["I know that I am intelligent, because I know that I know nothing.", "Attributed to Socrates (a loose version of Plato's Apology)"],
-      ["It takes something more than intelligence to act intelligently.", "Fyodor Dostoyevsky, Crime and Punishment"],
-      ["They think that intelligence is about noticing things that are relevant (detecting patterns); in a complex world, intelligence consists in ignoring things that are irrelevant (avoiding false patterns).", "Nassim Nicholas Taleb"],
-      ["Talent hits a target no one else can hit; genius hits a target no one else can see.", "Arthur Schopenhauer"],
-      ["If people knew how hard I had to work to gain my mastery, it would not seem so wonderful at all.", "Attributed to Michelangelo Buonarroti"],
-      ["Nothing in this world can take the place of persistence... Genius will not; unrewarded genius is almost a proverb.", "Attributed to Calvin Coolidge"],
-      ["Men give me credit for some genius. All the genius I have lies in this: when I have a subject in hand, I study it profoundly.", "Attributed to Alexander Hamilton"],
-      ["Neither a lofty degree of intelligence nor imagination nor both together go to the making of genius. Love, love, love, that is the soul of genius.", "Gottfried von Jacquin, written in Mozart's album (often credited to Mozart)"],
-      ["Genius is nothing more nor less than childhood recaptured at will.", "Charles Baudelaire, The Painter of Modern Life"]
-    ],
-    "about_h": "About this test"
+ "en": {
+  "button": "🧠 What is intelligence?",
+  "title": "INTELLIGENCE",
+  "subtitle": "& what makes a genius",
+  "back": "Back",
+  "what_h": "What is intelligence?",
+  "what": [
+   "Intelligence is your ability to learn, understand, reason and adapt: to make sense of new things and use what you know to solve problems.",
+   "It is not one single thing. The psychologist Howard Gardner described several kinds of intelligence, and that idea is what the nine sections of Voodoo IQ are built on."
+  ],
+  "types_h": "The 9 intelligences",
+  "types_intro": "Everyone has all nine, in different amounts. Classic IQ tests mostly measure the first three.",
+  "types": {
+   "LOG": "Reasoning with numbers, logic and patterns: seeing rules, cause and effect, and what must follow.",
+   "SPA": "Thinking in pictures: imagining shapes, turning them in your mind, finding your way around.",
+   "LIN": "Words and language: meanings, reading, writing, explaining, and playing with words.",
+   "MUS": "Sound, pitch, rhythm and melody: hearing differences others miss and remembering tunes.",
+   "NAT": "Noticing patterns in nature: sorting living things, plants and animals into kinds and families.",
+   "KIN": "Body and movement: coordination, timing, reflexes and skill with your hands.",
+   "INT": "Understanding other people: reading faces, moods and intentions, and getting along.",
+   "SELF": "Understanding yourself: knowing your strengths, limits and feelings, and how sure you really are.",
+   "EXI": "Big questions: life, meaning and what is true, and reasoning about them clearly."
   },
-  "es": {
-    "button": "🧠 ¿Qué es la inteligencia?",
-    "title": "INTELIGENCIA",
-    "subtitle": "y qué hace a un genio",
-    "back": "Volver",
-    "what_h": "¿Qué es la inteligencia?",
-    "what": [
-      "La inteligencia es tu capacidad de aprender, entender, razonar y adaptarte: darle sentido a lo nuevo y usar lo que sabes para resolver problemas.",
-      "No es una sola cosa. El psicólogo Howard Gardner describió varios tipos de inteligencia, y en esa idea se basan las nueve secciones de Voodoo IQ."
-    ],
-    "types_h": "Las 9 inteligencias",
-    "types_intro": "Todos tenemos las nueve, en distinta medida. Los tests de IQ clásicos miden sobre todo las tres primeras.",
-    "types": {
-      "LOG": "Razonar con números, lógica y patrones: ver reglas, causas y efectos, y qué se deduce de qué.",
-      "SPA": "Pensar en imágenes: imaginar formas, girarlas en tu mente, orientarte en el espacio.",
-      "LIN": "Palabras y lenguaje: significados, leer, escribir, explicar y jugar con las palabras.",
-      "MUS": "Sonido, tono, ritmo y melodía: oír diferencias que otros no notan y recordar canciones.",
-      "NAT": "Notar patrones en la naturaleza: clasificar seres vivos, plantas y animales en tipos y familias.",
-      "KIN": "El cuerpo y el movimiento: coordinación, ritmo, reflejos y habilidad con las manos.",
-      "INT": "Entender a los demás: leer caras, ánimos e intenciones, y llevarse bien.",
-      "SELF": "Entenderte a ti mismo: conocer tus fortalezas, límites y emociones, y qué tan seguro estás de verdad.",
-      "EXI": "Las grandes preguntas: la vida, el sentido y qué es verdad, y razonar sobre ellas con claridad."
-    },
-    "core_tag": "Cuenta para el Voodoo IQ",
-    "types_note": "El modelo de Gardner es popular pero debatido: muchos investigadores encuentran que estas habilidades suelen ir juntas, más que ser del todo separadas.",
-    "one_h": "Ser listo en una no te hace genio",
-    "one": [
-      "Ser brillante en una inteligencia no te hace un genio. Un gran músico puede tener problemas con los números, y un genio de las matemáticas puede no notar lo que sienten quienes lo rodean.",
-      "Y ser listo en las nueve tampoco te hace un genio. Saber mucho, o ser rápido, no es lo mismo."
-    ],
-    "genius_h": "¿Qué hace a un genio?",
-    "genius_intro": "Lo que siempre nos enseñaron: el genio necesita tres cosas.",
-    "genius": [
-      ["Inteligencia por encima del promedio", "Una mente fuerte de la cual partir, al menos en algunas de las nueve áreas."],
-      ["Rechazar la información falsa", "Darte cuenta cuando algo está mal y negarte a creerlo, aunque mucha gente lo crea."],
-      ["Razonar sobre lo desconocido", "Cuando te enfrentas a algo que no conoces, usar las inteligencias que sí tienes para adivinarlo con bastante acierto."]
-    ],
-    "genius_outro": "Ningún test puede medir todo eso. Voodoo IQ te muestra dónde eres fuerte. Lo que hagas con eso depende de ti.",
-    "quotes_h": "Frases célebres",
-    "quotes_note": "Algunas frases famosas se atribuyen a la persona equivocada. Detectarlo es una pequeña prueba de rechazar la información falsa, así que lo indicamos cuando corresponde.",
-    "quotes": [
-      ["El genio es un uno por ciento de inspiración y un noventa y nueve por ciento de transpiración.", "Thomas Edison, inventor estadounidense"],
-      ["La diferencia entre la estupidez y el genio es que el genio tiene sus límites.", "Suele atribuirse a Albert Einstein, sin fuente conocida"],
-      ["Nunca existió una gran mente sin un toque de locura.", "Séneca, citando a Aristóteles"],
-      ["El genio crea y el gusto conserva. El gusto es el buen sentido del genio; sin gusto, el genio no es más que una sublime locura.", "François-René de Chateaubriand (suele atribuirse a Alexander Pope)"],
-      ["La inteligencia es la capacidad de adaptarse al cambio.", "Suele atribuirse a Stephen Hawking, sin fuente conocida"],
-      ["Sé que soy inteligente, porque sé que no sé nada.", "Atribuida a Sócrates (versión libre de la Apología de Platón)"],
-      ["Hace falta algo más que inteligencia para actuar con inteligencia.", "Fiódor Dostoievski, Crimen y castigo"],
-      ["Creen que la inteligencia consiste en notar lo que es relevante (detectar patrones); en un mundo complejo, la inteligencia consiste en ignorar lo irrelevante (evitar patrones falsos).", "Nassim Nicholas Taleb"],
-      ["El talento da en un blanco que nadie más puede alcanzar; el genio da en un blanco que nadie más puede ver.", "Arthur Schopenhauer"],
-      ["Si la gente supiera cuánto tuve que trabajar para lograr mi maestría, no les parecería tan maravillosa.", "Atribuida a Miguel Ángel Buonarroti"],
-      ["Nada en este mundo puede reemplazar a la perseverancia... El genio no lo hará; el genio no recompensado es casi un proverbio.", "Atribuida a Calvin Coolidge"],
-      ["La gente me atribuye algo de genio. Todo el genio que tengo está en esto: cuando tengo un tema entre manos, lo estudio a fondo.", "Atribuida a Alexander Hamilton"],
-      ["Ni un alto grado de inteligencia, ni la imaginación, ni ambas juntas hacen al genio. Amor, amor, amor: esa es el alma del genio.", "Gottfried von Jacquin, escrita en el álbum de Mozart (suele atribuirse a Mozart)"],
-      ["El genio no es ni más ni menos que la infancia recuperada a voluntad.", "Charles Baudelaire, El pintor de la vida moderna"]
-    ],
-    "about_h": "Sobre este test"
-  }
+  "core_tag": "Counts toward Voodoo IQ",
+  "types_note": "Gardner's model is popular but debated: many researchers find that these abilities tend to go together, rather than being fully separate.",
+  "one_h": "Smart in one is not a genius",
+  "one": [
+   "Being brilliant in one intelligence doesn't make you a genius. A great musician can struggle with numbers, and a math whiz can miss what the people around them are feeling.",
+   "And being smart in all nine doesn't make you a genius either. Knowing a lot, or being quick, is not the same thing."
+  ],
+  "genius_h": "What makes a genius?",
+  "genius_intro": "What we've always been taught: genius takes three things.",
+  "genius": [
+   [
+    "Above-average intelligence",
+    "A strong mind to start from, in at least some of the nine areas."
+   ],
+   [
+    "Rejecting false information",
+    "Noticing when something is wrong and refusing to believe it, even when many people do."
+   ],
+   [
+    "Reasoning about the unknown",
+    "When you face something you don't know, using the intelligences you do have to make a fairly accurate guess about it."
+   ]
+  ],
+  "genius_outro": "No test can measure all of that. Voodoo IQ shows you where you're strong. What you do with it is up to you.",
+  "quotes_h": "Famous words",
+  "quotes_note": "Some famous quotes are credited to the wrong person. Spotting that is a small test of rejecting false information, so we say so where it applies.",
+  "quotes": [
+   [
+    "Genius is one percent inspiration and ninety-nine percent perspiration.",
+    "Thomas Edison, American inventor"
+   ],
+   [
+    "The difference between stupidity and genius is that genius has its limits.",
+    "Often credited to Albert Einstein, with no known source"
+   ],
+   [
+    "No great mind has ever existed without a touch of madness.",
+    "Seneca, quoting Aristotle"
+   ],
+   [
+    "Genius creates, and taste preserves. Taste is the good sense of genius; without taste, genius is only sublime folly.",
+    "François-René de Chateaubriand (often credited to Alexander Pope)"
+   ],
+   [
+    "Intelligence is the ability to adapt to change.",
+    "Often credited to Stephen Hawking, with no known source"
+   ],
+   [
+    "I know that I am intelligent, because I know that I know nothing.",
+    "Attributed to Socrates (a loose version of Plato's Apology)"
+   ],
+   [
+    "It takes something more than intelligence to act intelligently.",
+    "Fyodor Dostoyevsky, Crime and Punishment"
+   ],
+   [
+    "They think that intelligence is about noticing things that are relevant (detecting patterns); in a complex world, intelligence consists in ignoring things that are irrelevant (avoiding false patterns).",
+    "Nassim Nicholas Taleb"
+   ],
+   [
+    "Talent hits a target no one else can hit; genius hits a target no one else can see.",
+    "Arthur Schopenhauer"
+   ],
+   [
+    "If people knew how hard I had to work to gain my mastery, it would not seem so wonderful at all.",
+    "Attributed to Michelangelo Buonarroti"
+   ],
+   [
+    "Nothing in this world can take the place of persistence... Genius will not; unrewarded genius is almost a proverb.",
+    "Attributed to Calvin Coolidge"
+   ],
+   [
+    "Men give me credit for some genius. All the genius I have lies in this: when I have a subject in hand, I study it profoundly.",
+    "Attributed to Alexander Hamilton"
+   ],
+   [
+    "Neither a lofty degree of intelligence nor imagination nor both together go to the making of genius. Love, love, love, that is the soul of genius.",
+    "Gottfried von Jacquin, written in Mozart's album (often credited to Mozart)"
+   ],
+   [
+    "Genius is nothing more nor less than childhood recaptured at will.",
+    "Charles Baudelaire, The Painter of Modern Life"
+   ]
+  ],
+  "about_h": "About this test",
+  "what_more": [
+   "Psychologists have studied this for over a century. In 1904 Charles Spearman noticed that people who do well on one kind of mental task tend to do well on others, and called the shared part \"g\", general intelligence. Raymond Cattell later split it in two: fluid intelligence (solving new problems, spotting patterns, thinking on the spot) and crystallised intelligence (what you have learned: vocabulary, facts, skills).",
+   "Fluid intelligence is at its sharpest in early adulthood; crystallised intelligence keeps growing for decades. That is why a 60-year-old can beat a 20-year-old at a vocabulary question and lose to them at a speed puzzle.",
+   "Intelligence is not a fixed label. Sleep, stress, practice, curiosity, reading and the way you were taught all change how well you think, and what the test sees is a snapshot of you on the day, not a verdict."
+  ],
+  "types_ex_h": "Sample questions",
+  "types_ex": {
+   "LOG": "Number series, matrix puzzles, digit memory, quick maths.",
+   "SPA": "Top view of a cube stack, mental rotation, same or mirror, block memory.",
+   "LIN": "Odd word out, anagrams, analogies.",
+   "MUS": "Odd note out, higher or lower, the changed note, counting notes.",
+   "NAT": "Creature families, odd creature out.",
+   "KIN": "Reaction taps and timing.",
+   "INT": "Reading faces, spotting the odd emotion.",
+   "SELF": "Questions where you also say how sure you are; the test compares your confidence with how often you are right.",
+   "EXI": "What must follow from the statements, spotting the fallacy."
+  },
+  "iq_h": "What does an IQ number mean?",
+  "iq": [
+   "IQ scores are placed on a scale where the average adult is 100 and 15 points is one standard step. About two people in three score between 85 and 115, about 95% between 70 and 130, and roughly 2% above 130.",
+   "The number is an estimate, so it always comes with a ± range. The more questions you answer, the narrower the range gets. A ✓ on the boards means there is enough evidence behind the score: 15 or more questions and a tight ±.",
+   "This is an online game, not a clinical test. Sleep, noise, tiredness, the device you use, your language and plain luck on a few questions can all move the result by several points. Use it to compare yourself with yourself over time, and to see which of the nine areas is strongest for you."
+  ],
+  "how_h": "How the test works",
+  "how": [
+   "The test adapts to you. Every question has a difficulty. Get it right and the next one is harder; get it wrong and it is easier. The score comes from how hard the questions you handled were, not from the percentage you got right. Missing about half is normal: the test keeps going until it finds your level.",
+   "Questions are made and marked on our server, so the answers are never on your phone. Answers that come in impossibly fast are scored as wrong, and leaving the app during a question counts that question as wrong.",
+   "In ranked tests your last 3 tests in each section are combined, so one lucky or unlucky run cannot carry you. Practice tests are never saved."
+  ]
+ },
+ "es": {
+  "button": "🧠 ¿Qué es la inteligencia?",
+  "title": "INTELIGENCIA",
+  "subtitle": "y qué hace a un genio",
+  "back": "Volver",
+  "what_h": "¿Qué es la inteligencia?",
+  "what": [
+   "La inteligencia es tu capacidad de aprender, entender, razonar y adaptarte: darle sentido a lo nuevo y usar lo que sabes para resolver problemas.",
+   "No es una sola cosa. El psicólogo Howard Gardner describió varios tipos de inteligencia, y en esa idea se basan las nueve secciones de Voodoo IQ."
+  ],
+  "types_h": "Las 9 inteligencias",
+  "types_intro": "Todos tenemos las nueve, en distinta medida. Los tests de IQ clásicos miden sobre todo las tres primeras.",
+  "types": {
+   "LOG": "Razonar con números, lógica y patrones: ver reglas, causas y efectos, y qué se deduce de qué.",
+   "SPA": "Pensar en imágenes: imaginar formas, girarlas en tu mente, orientarte en el espacio.",
+   "LIN": "Palabras y lenguaje: significados, leer, escribir, explicar y jugar con las palabras.",
+   "MUS": "Sonido, tono, ritmo y melodía: oír diferencias que otros no notan y recordar canciones.",
+   "NAT": "Notar patrones en la naturaleza: clasificar seres vivos, plantas y animales en tipos y familias.",
+   "KIN": "El cuerpo y el movimiento: coordinación, ritmo, reflejos y habilidad con las manos.",
+   "INT": "Entender a los demás: leer caras, ánimos e intenciones, y llevarse bien.",
+   "SELF": "Entenderte a ti mismo: conocer tus fortalezas, límites y emociones, y qué tan seguro estás de verdad.",
+   "EXI": "Las grandes preguntas: la vida, el sentido y qué es verdad, y razonar sobre ellas con claridad."
+  },
+  "core_tag": "Cuenta para el Voodoo IQ",
+  "types_note": "El modelo de Gardner es popular pero debatido: muchos investigadores encuentran que estas habilidades suelen ir juntas, más que ser del todo separadas.",
+  "one_h": "Ser listo en una no te hace genio",
+  "one": [
+   "Ser brillante en una inteligencia no te hace un genio. Un gran músico puede tener problemas con los números, y un genio de las matemáticas puede no notar lo que sienten quienes lo rodean.",
+   "Y ser listo en las nueve tampoco te hace un genio. Saber mucho, o ser rápido, no es lo mismo."
+  ],
+  "genius_h": "¿Qué hace a un genio?",
+  "genius_intro": "Lo que siempre nos enseñaron: el genio necesita tres cosas.",
+  "genius": [
+   [
+    "Inteligencia por encima del promedio",
+    "Una mente fuerte de la cual partir, al menos en algunas de las nueve áreas."
+   ],
+   [
+    "Rechazar la información falsa",
+    "Darte cuenta cuando algo está mal y negarte a creerlo, aunque mucha gente lo crea."
+   ],
+   [
+    "Razonar sobre lo desconocido",
+    "Cuando te enfrentas a algo que no conoces, usar las inteligencias que sí tienes para adivinarlo con bastante acierto."
+   ]
+  ],
+  "genius_outro": "Ningún test puede medir todo eso. Voodoo IQ te muestra dónde eres fuerte. Lo que hagas con eso depende de ti.",
+  "quotes_h": "Frases célebres",
+  "quotes_note": "Algunas frases famosas se atribuyen a la persona equivocada. Detectarlo es una pequeña prueba de rechazar la información falsa, así que lo indicamos cuando corresponde.",
+  "quotes": [
+   [
+    "El genio es un uno por ciento de inspiración y un noventa y nueve por ciento de transpiración.",
+    "Thomas Edison, inventor estadounidense"
+   ],
+   [
+    "La diferencia entre la estupidez y el genio es que el genio tiene sus límites.",
+    "Suele atribuirse a Albert Einstein, sin fuente conocida"
+   ],
+   [
+    "Nunca existió una gran mente sin un toque de locura.",
+    "Séneca, citando a Aristóteles"
+   ],
+   [
+    "El genio crea y el gusto conserva. El gusto es el buen sentido del genio; sin gusto, el genio no es más que una sublime locura.",
+    "François-René de Chateaubriand (suele atribuirse a Alexander Pope)"
+   ],
+   [
+    "La inteligencia es la capacidad de adaptarse al cambio.",
+    "Suele atribuirse a Stephen Hawking, sin fuente conocida"
+   ],
+   [
+    "Sé que soy inteligente, porque sé que no sé nada.",
+    "Atribuida a Sócrates (versión libre de la Apología de Platón)"
+   ],
+   [
+    "Hace falta algo más que inteligencia para actuar con inteligencia.",
+    "Fiódor Dostoievski, Crimen y castigo"
+   ],
+   [
+    "Creen que la inteligencia consiste en notar lo que es relevante (detectar patrones); en un mundo complejo, la inteligencia consiste en ignorar lo irrelevante (evitar patrones falsos).",
+    "Nassim Nicholas Taleb"
+   ],
+   [
+    "El talento da en un blanco que nadie más puede alcanzar; el genio da en un blanco que nadie más puede ver.",
+    "Arthur Schopenhauer"
+   ],
+   [
+    "Si la gente supiera cuánto tuve que trabajar para lograr mi maestría, no les parecería tan maravillosa.",
+    "Atribuida a Miguel Ángel Buonarroti"
+   ],
+   [
+    "Nada en este mundo puede reemplazar a la perseverancia... El genio no lo hará; el genio no recompensado es casi un proverbio.",
+    "Atribuida a Calvin Coolidge"
+   ],
+   [
+    "La gente me atribuye algo de genio. Todo el genio que tengo está en esto: cuando tengo un tema entre manos, lo estudio a fondo.",
+    "Atribuida a Alexander Hamilton"
+   ],
+   [
+    "Ni un alto grado de inteligencia, ni la imaginación, ni ambas juntas hacen al genio. Amor, amor, amor: esa es el alma del genio.",
+    "Gottfried von Jacquin, escrita en el álbum de Mozart (suele atribuirse a Mozart)"
+   ],
+   [
+    "El genio no es ni más ni menos que la infancia recuperada a voluntad.",
+    "Charles Baudelaire, El pintor de la vida moderna"
+   ]
+  ],
+  "about_h": "Sobre este test",
+  "what_more": [
+   "Los psicólogos llevan más de un siglo estudiándola. En 1904 Charles Spearman notó que quienes rinden bien en un tipo de tarea mental suelen rendir bien en otras, y llamó \"g\" a esa parte común: la inteligencia general. Más tarde Raymond Cattell la dividió en dos: la inteligencia fluida (resolver problemas nuevos, ver patrones, pensar al momento) y la cristalizada (lo que aprendiste: vocabulario, datos, habilidades).",
+   "La inteligencia fluida está en su mejor momento en la juventud; la cristalizada sigue creciendo durante décadas. Por eso una persona de 60 años puede ganarle a una de 20 en una pregunta de vocabulario y perder en un acertijo de velocidad.",
+   "La inteligencia no es una etiqueta fija. El sueño, el estrés, la práctica, la curiosidad, la lectura y la forma en que te enseñaron cambian lo bien que piensas, y lo que ve el test es una foto de ti ese día, no un veredicto."
+  ],
+  "types_ex_h": "Preguntas de ejemplo",
+  "types_ex": {
+   "LOG": "Series numéricas, matrices, memoria de dígitos, cuentas rápidas.",
+   "SPA": "Vista superior de una pila de cubos, rotación mental, igual o espejo, memoria de bloques.",
+   "LIN": "La palabra intrusa, anagramas, analogías.",
+   "MUS": "La nota distinta, más aguda o más grave, la nota que cambió, contar notas.",
+   "NAT": "Familias de criaturas, la criatura intrusa.",
+   "KIN": "Toques de reacción y timing.",
+   "INT": "Leer caras, encontrar la emoción distinta.",
+   "SELF": "Preguntas donde también dices qué tan seguro estás; el test compara tu confianza con cuántas veces aciertas.",
+   "EXI": "Qué se deduce de las afirmaciones, encontrar la falacia."
+  },
+  "iq_h": "¿Qué significa un número de IQ?",
+  "iq": [
+   "Los puntajes de IQ se ubican en una escala donde el adulto promedio tiene 100 y 15 puntos es un paso estándar. Unas dos de cada tres personas puntúan entre 85 y 115, cerca del 95% entre 70 y 130, y alrededor del 2% por encima de 130.",
+   "El número es una estimación, por eso siempre viene con un rango ±. Cuantas más preguntas respondes, más se estrecha el rango. Un ✓ en las tablas significa que hay evidencia suficiente: 15 o más preguntas y un ± ajustado.",
+   "Esto es un juego en línea, no una prueba clínica. El sueño, el ruido, el cansancio, el dispositivo, el idioma y la simple suerte en unas pocas preguntas pueden mover el resultado varios puntos. Úsalo para compararte contigo a lo largo del tiempo y para ver cuál de las nueve áreas es tu punto fuerte."
+  ],
+  "how_h": "Cómo funciona el test",
+  "how": [
+   "El test se adapta a ti. Cada pregunta tiene una dificultad. Si aciertas, la siguiente es más difícil; si fallas, es más fácil. El puntaje sale de lo difíciles que fueron las preguntas que resolviste, no del porcentaje de aciertos. Fallar cerca de la mitad es normal: el test sigue hasta encontrar tu nivel.",
+   "Las preguntas se crean y se corrigen en nuestro servidor, así que las respuestas nunca están en tu teléfono. Las respuestas imposiblemente rápidas se puntúan como incorrectas, y salir de la app durante una pregunta cuenta esa pregunta como incorrecta.",
+   "En los tests puntuados se combinan tus últimos 3 tests de cada sección, así que una racha de suerte o de mala suerte no te decide. Los tests de práctica nunca se guardan."
+  ]
+ }
 }

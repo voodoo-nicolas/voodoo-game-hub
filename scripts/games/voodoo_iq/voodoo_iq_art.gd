@@ -321,10 +321,21 @@ static func _hatch(ci: CanvasItem, pts: PackedVector2Array, fg: Color) -> void:
 
 # ------------------------------------------------------------------ SPA: top view of a cube stack
 
+## Colour-blind friendly colours (Okabe-Ito set, picked to differ in lightness as well as
+## hue). Set from the game's option; the questions that tell things apart by colour
+## (cube tops, creature colour) use these instead of TV_COL / NAT_COL.
+static var colorblind := false
+const CB_TV := ["#E69F00", "#0072B2", "#F0E442", "#CC79A7"]
+const CB_NAT := ["#0B4F9E", "#E69F00", "#F7F3B0"]
+
 static func _tv_col(i: int) -> Color:
+	if colorblind:
+		return Color(CB_TV[i])
 	return Color(str(T.data().get("TV_COL", [])[i]))
 
 static func _tv_side(i: int, k: int) -> Color:
+	if colorblind:
+		return Color(CB_TV[i]).darkened([0.28, 0.14][k])
 	return Color(str(T.data().get("TV_SIDE", [])[i][k]))
 
 static func _tv_symbol(ci: CanvasItem, k: int, cx: float, cy: float, r: float, col: Color) -> void:
@@ -431,7 +442,7 @@ static func creature(ci: CanvasItem, x: Array, rect: Rect2) -> void:
 	begin(ci, Rect2(0, 0, 120, 120), rect)
 	fill(ci, round_rect_pts(0, 0, 120, 120, 10), Color("#E9E9F2"))  # prototype .creature card
 	var b := int(x[0])
-	var col := Color(str(T.data().get("NAT_COL", [])[int(x[1])]))
+	var col := Color(CB_NAT[int(x[1])]) if colorblind else Color(str(T.data().get("NAT_COL", [])[int(x[1])]))
 	var body := ellipse_pts(Vector2(60, 58), 34, 30) if b == 0 else (round_rect_pts(38, 22, 44, 66, 20) if b == 1 else round_rect_pts(26, 32, 68, 52, 6))
 	var bottom := 82.0 if b == 2 else 86.0
 	var nl: int = [2, 4, 6][int(x[3])]

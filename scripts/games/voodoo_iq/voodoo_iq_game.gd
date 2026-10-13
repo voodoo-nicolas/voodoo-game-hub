@@ -35,10 +35,12 @@ var info = null  # GameInfo; null on apps without it
 var api: Node
 var page: Control  # the current screen
 var overlay_layer: Control
+var overlay_footer: VBoxContainer
+var overlay_bar: Control
 var toast_label: Label
 
 ## dur 0 = endless (no clock; the player ends it with Finish)
-var setup := {"mode": "iq", "scope": "ALL", "dur": 0, "bdur": 120, "ranked": true}
+var setup := {"mode": "iq", "scope": "ALL", "dur": 0, "bdur": 120, "ranked": true, "colorblind": false}
 
 # ---- runner state
 var session: Dictionary = {}
@@ -86,6 +88,7 @@ func _ready() -> void:
 				setup[k] = saved[k]
 	setup.dur = int(setup.dur)
 	setup.bdur = int(setup.bdur)
+	Art.colorblind = bool(setup.colorblind)
 	_build_ui()
 	get_viewport().size_changed.connect(_on_screen_resized)
 	_show_home()
@@ -230,6 +233,8 @@ func _sfx(sound: String) -> void:
 		s.play(sound)
 
 ## A dialog card over everything; returns its content box. Close with _close_overlays().
+## The card scrolls; `overlay_footer` (shown only when something is added) stays pinned
+## below it, so Start / Back never need a scroll to reach.
 func _overlay() -> VBoxContainer:
 	_fit_width()
 	var dim := ColorRect.new()
@@ -238,19 +243,41 @@ func _overlay() -> VBoxContainer:
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	dim.add_to_group("modal_overlay")
 	overlay_layer.add_child(dim)
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.add_theme_constant_override("separation", 0)
+	dim.add_child(col)
 	var sc := ScrollContainer.new()
-	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	dim.add_child(sc)
+	col.add_child(sc)
 	var center := CenterContainer.new()
-	center.custom_minimum_size = Vector2(size.x, size.y)
+	center.custom_minimum_size = Vector2(size.x, maxf(0.0, size.y - 110.0))
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.add_child(center)
 	var box := _panel(ACCENT)
 	box.custom_minimum_size = Vector2(W - 40, 0)
 	center.add_child(_panel_of(box))
+	var bar := PanelContainer.new()
+	var sb := Items.box_style(BG, Color(ACCENT, 0.6), 2, 0)
+	sb.content_margin_left = 20
+	sb.content_margin_right = 20
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 12
+	bar.add_theme_stylebox_override("panel", sb)
+	overlay_footer = VBoxContainer.new()
+	overlay_footer.add_theme_constant_override("separation", 8)
+	bar.add_child(overlay_footer)
+	bar.visible = false
+	col.add_child(bar)
+	overlay_bar = bar
 	return box
+
+## Puts a button in the pinned footer of the newest overlay (see _overlay).
+func _pin_to_overlay(b: Control) -> void:
+	overlay_footer.add_child(b)
+	overlay_bar.visible = true
 
 func _close_overlays() -> void:
 	for c in overlay_layer.get_children():
@@ -383,12 +410,18 @@ func _show_home() -> void:
 	# not the prototype's ranked_iq_note: ranked IQ has no daily limit any more (user, 2026-10-03)
 	var note: String = (tr("Counts for the leaderboard. Your last 3 ranked tests in each section count, so one lucky run can't carry you.") if iq_mode else T.t("ranked_blitz_note")) if setup.ranked else T.t("practice_note")
 	sp.add_child(_label(note, 19, FG2, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+	# Colour-blind option: cube colours and creature colours change to a safe set.
+	var cbb := _button(("✓ " if setup.colorblind else "") + "🎨 " + tr("Colour-blind friendly colours"), _set_colorblind.bind(not bool(setup.colorblind)), GOOD if setup.colorblind else FG2, Vector2(0, 64), 22)
+	if setup.colorblind:
+		cbb.add_theme_stylebox_override("normal", Items.box_style(Color(GOOD, 0.22), GOOD, 3))
+	sp.add_child(cbb)
+	sp.add_child(_label(tr("Changes the colours in the cube and creature questions."), 18, FG2, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	var start_text := "▶ %s · %s\n%s" % [T.t("start"), T.t("iqtest") if iq_mode else T.t("blitz"), ("🏆 " + T.t("ranked")) if setup.ranked else ("🎯 " + T.t("practice"))]
 	sp.add_child(_button(start_text, _start_from_setup, GOOD, Vector2(0, 90), 32))
 	if scope in ["LIN", "EXI", "ALL"]:
 		sp.add_child(_label(T.t("lang_note", {"l": "Español" if T.lang() == "es" else "English"}), 18, FG2, W - 40))
 	box.add_child(_panel_of(sp))
-	box.add_child(_button("🏆 " + T.t("nav_boards"), _show_boards, WARN, Vector2(0, 76), 28))
+	box.add_child(_button("🏆 " + T.t("nav_boards"), _show_boards, FG2, Vector2(0, 76), 28))
 
 	# how scoring works
 	var hp := _panel()
@@ -426,17 +459,22 @@ func _show_info(back: Callable) -> void:
 	var wp := _info_panel(str(T.info("what_h")), ACCENT)
 	for p in T.info("what"):
 		wp.add_child(_info_text(str(p), FG))
+	for p in T.info("what_more"):
+		wp.add_child(_info_text(str(p), FG))
 	box.add_child(_panel_of(wp))
 
 	var tp := _info_panel(str(T.info("types_h")), ACCENT)
 	tp.add_child(_info_text(str(T.info("types_intro")), FG2))
 	var descs: Dictionary = T.info("types")
+	var examples: Dictionary = T.info("types_ex")
 	for sec in T.secs():
 		var head := HBoxContainer.new()
 		head.add_child(_icon(sec, 32))
 		head.add_child(_label(" " + T.t("sec_" + sec), 24, T.sec_color(sec)))
 		tp.add_child(head)
 		tp.add_child(_info_text(str(descs.get(sec, "")), FG))
+		if examples.has(sec):
+			tp.add_child(_info_text(str(T.info("types_ex_h")) + ": " + str(examples[sec]), FG2, 18))
 		if T.core().has(sec):
 			tp.add_child(_label("★ " + str(T.info("core_tag")), 18, GOOD, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	tp.add_child(_info_text(str(T.info("types_note")), FG2, 18))
@@ -446,6 +484,16 @@ func _show_info(back: Callable) -> void:
 	for p in T.info("one"):
 		op.add_child(_info_text(str(p), FG))
 	box.add_child(_panel_of(op))
+
+	var ip := _info_panel(str(T.info("iq_h")), Color("#4FB3FF"))
+	for p in T.info("iq"):
+		ip.add_child(_info_text(str(p), FG))
+	box.add_child(_panel_of(ip))
+
+	var hw := _info_panel(str(T.info("how_h")), Color("#2EE6A6"))
+	for p in T.info("how"):
+		hw.add_child(_info_text(str(p), FG))
+	box.add_child(_panel_of(hw))
 
 	var gp := _info_panel(str(T.info("genius_h")), GOOD)
 	gp.add_child(_info_text(str(T.info("genius_intro")), FG2))
@@ -506,7 +554,8 @@ func _neon_title(text: String, size: int) -> Label:
 func _chip(sec: String, text: String) -> Button:
 	var on: bool = setup.scope == sec
 	var col := Color.WHITE if sec == "ALL" else T.sec_color(sec)
-	var b := _button(text, _pick_scope.bind(sec), col, Vector2((W - 48) / 2.0, 64), 19)
+	# only the chosen chip is coloured: nine colours at once was too busy
+	var b := _button(text, _pick_scope.bind(sec), col if on else FG2, Vector2((W - 48) / 2.0, 64), 19)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	if on:
 		b.add_theme_stylebox_override("normal", Items.box_style(Color(col, 0.28), col, 3))
@@ -525,6 +574,12 @@ func _pick_scope(sec: String) -> void:
 		_toast(T.t("self_no_blitz"))
 		return
 	setup.scope = "ALL" if setup.scope == sec else sec
+	_save_setup()
+	_show_home()
+
+func _set_colorblind(on: bool) -> void:
+	setup.colorblind = on
+	Art.colorblind = on
 	_save_setup()
 	_show_home()
 
@@ -851,7 +906,7 @@ func _show_instructions(it: Dictionary) -> void:
 	if gid in EXAMPLE_GIDS:
 		_add_example(box, gid)
 	box.add_child(_label(T.t("clock_paused"), 18, FG2, W - 80))
-	box.add_child(_button(T.t("start_timer"), func():
+	_pin_to_overlay(_button(T.t("start_timer"), func():
 		_close_overlays()
 		paused = false
 		_mount_item(), GOOD, Vector2(0, 84), 30))
@@ -891,7 +946,7 @@ func _show_example(gid: String) -> void:
 	paused = true
 	var box := _overlay()
 	_add_example(box, gid)
-	box.add_child(_button(tr("Back to the question"), _close_example, GOOD, Vector2(0, 76), 26))
+	_pin_to_overlay(_button(tr("Back to the question"), _close_example, GOOD, Vector2(0, 76), 26))
 
 func _close_example() -> void:
 	_close_overlays()
@@ -1540,7 +1595,18 @@ func _board_table(rows: Array, prov: bool) -> Control:
 			nick += "  (" + T.t("you") + ")"
 		if r.get("genius", false):
 			nick += "  ★130+"
-		who.add_child(_label(nick, 22, col, name_w, HORIZONTAL_ALIGNMENT_LEFT))
+		var nick_btn := Button.new()
+		nick_btn.text = nick
+		nick_btn.flat = true
+		nick_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		nick_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		nick_btn.custom_minimum_size = Vector2(name_w, 0)
+		nick_btn.add_theme_font_size_override("font_size", 22)
+		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+			nick_btn.add_theme_color_override(c, col)
+		if not str(r.get("nick", "")) == "":
+			nick_btn.pressed.connect(_show_player.bind(str(r.get("nick", ""))))
+		who.add_child(nick_btn)
 		var loc: Array = []
 		for k in ["country", "province", "age_band"]:
 			var v = r.get(k, null)
@@ -1576,3 +1642,56 @@ func _board_table(rows: Array, prov: bool) -> Control:
 		grid.add_child(_label(est, 18, GOOD if r.get("verified", false) else FG, 0.0 if blitz else 130.0))
 	p.add_child(grid)
 	return _panel_of(p)
+
+# ------------------------------------------------------------------ player card
+
+## Tap a name on a board: that player's answers, accuracy and pace (leaderboard "player").
+func _show_player(nick: String) -> void:
+	var box := _overlay()
+	box.add_child(_label(nick, 34, Color.WHITE, W - 80))
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	body.add_child(_label("…", 24, FG2))
+	box.add_child(body)
+	_pin_to_overlay(_button(tr("Close"), _close_overlays, FG2, Vector2(0, 68), 26))
+	api.call_fn("leaderboard", {"board": "player", "nick": nick}, _on_player.bind(body))
+
+func _on_player(ok: bool, _code: int, data: Dictionary, body: VBoxContainer) -> void:
+	if not is_instance_valid(body):
+		return
+	for c in body.get_children():
+		c.queue_free()
+	if not ok:
+		var msg := tr("Player not found.") if str(data.get("error", "")) == "no_player" else _error_text(data)
+		body.add_child(_label(msg, 22, WARN, W - 80))
+		return
+	var loc: Array = []
+	for k in ["country", "province", "age_band"]:
+		var v = data.get(k, null)
+		if v != null and str(v) != "" and str(v) != "XX":
+			loc.append(str(v))
+	if not loc.is_empty():
+		body.add_child(_label(" · ".join(loc), 20, FG2, W - 80))
+	if data.get("iq", null) != null:
+		body.add_child(_label("IQ %d  ±%d" % [int(data.iq), int(round(15 * float(data.get("se", 0.0))))], 40, GOOD, W - 80))
+	var answered := int(data.get("answered", 0))
+	if answered == 0:
+		body.add_child(_label(tr("No ranked answers yet."), 22, FG2, W - 80))
+	else:
+		_stat(body, tr("Ranked tests"), str(int(data.get("tests", 0))))
+		_stat(body, tr("Questions answered"), str(answered))
+		_stat(body, tr("Correct"), "%d  (%d%%)" % [int(data.get("correct", 0)), int(round(100.0 * float(data.get("pct", 0.0))))])
+		_stat(body, tr("Correct answers per minute"), "%.1f" % float(data.get("per_min", 0.0)))
+		_stat(body, tr("Average seconds per question"), "%.1f" % float(data.get("avg_s", 0.0)))
+	var secs: Array = data.get("sections", [])
+	if not secs.is_empty():
+		body.add_child(_label(tr("By section"), 24, Color.WHITE, W - 80))
+		for r in secs:
+			var sec := str(r.get("sec", ""))
+			var row := HBoxContainer.new()
+			row.add_child(_icon(sec, 28))
+			var l := _label(" " + T.t("sec_" + sec), 20, T.sec_color(sec), 0, HORIZONTAL_ALIGNMENT_LEFT)
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(l)
+			row.add_child(_label("IQ %d  ±%d" % [int(r.get("iq", 0)), int(round(15 * float(r.get("se", 0.0))))], 20, FG))
+			body.add_child(row)

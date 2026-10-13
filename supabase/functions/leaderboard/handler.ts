@@ -4,6 +4,9 @@
 //        sec?: <section>                                                   (board "sec")
 //        scope?: "ALL"|<section>, dur_s?: 60|120|180|300, season?: "month"|"all"  (board "blitz")
 //        age?: "16-24"..., country?: "AR", province?, lang?: "en"|"es" (verbal language: viq / LIN) }
+// board "player" { nick } -> one player's detail card (tap a name on a board):
+//    { nick, country, province, age_band, tests, answered, correct, pct, per_min, avg_s, iq, se,
+//      sections: [{ sec, iq, se, n }] } over their ranked IQ tests; 404 for unknown nicks and minors.
 // -> { rows: [...], provisional: [...] }, each row:
 //    { nick, country, province, age_band, score, theta, se, genius, need_items, sections, correct, me }
 //
@@ -28,7 +31,8 @@ const MAX_ROWS = 100;
 
 export default async function handler({ body, uid, db }: Call): Promise<unknown> {
   const board = String(body.board ?? "");
-  if (!["viq", "nine", "sec", "blitz"].includes(board)) throw new HttpError(400, "bad_board");
+  if (!["viq", "nine", "sec", "blitz", "player"].includes(board)) throw new HttpError(400, "bad_board");
+  if (board === "player") return await playerCard(db, String(body.nick ?? ""));
   const lang = body.lang === "en" || body.lang === "es" ? body.lang : null;
   // an endless test the player walked away from (idle 30 min) shows up on the boards
   await closeStaleSessions(db, uid, 30 * 60_000);
@@ -93,4 +97,41 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   // the top 100, plus the caller if they're further down
   const keep = (list: any[]) => list.slice(0, MAX_ROWS).concat(list.slice(MAX_ROWS).filter((r) => r.me));
   return { rows: keep(rows), provisional: keep(provisional) };
+}
+
+/** The detail card for one player: answers, % correct and pace from their ranked IQ tests,
+ *  plus their standing per section. Minors never get a card (they aren't on the boards). */
+async function playerCard(db: Call["db"], nick: string) {
+  const found = must(await db.from("profiles").select("id, nick, age_band, country, province, minor").eq("nick", nick).limit(1)) as any[];
+  const p = found[0];
+  if (!p || p.minor) throw new HttpError(404, "no_player");
+  const sess = must(await db.from("sessions").select("id").eq("user_id", p.id).eq("mode", "iq").eq("ranked", true)
+    .in("status", ["done", "abandoned"]).order("started_at", { ascending: false }).limit(200)) as any[];
+  let answered = 0, correct = 0, ms = 0;
+  const ids = sess.map((r) => r.id);
+  for (let i = 0; i < ids.length; i += 50) {
+    const rs = must(await db.from("responses").select("u, ms").in("session_id", ids.slice(i, i + 50)).not("answered_at", "is", null)) as any[];
+    for (const r of rs) {
+      answered++;
+      if (Number(r.u) >= 1) correct++;
+      ms += Number(r.ms) || 0;
+    }
+  }
+  const scores = must(await db.from("section_scores").select("user_id, sec, day, theta, se, n, hard, lang, flagged, created_at")
+    .eq("user_id", p.id).gte("created_at", new Date(Date.now() - 90 * DAY).toISOString())) as any[];
+  const sections: any[] = [];
+  for (const sec of SECS) {
+    const v: any = secStanding(scores.filter((r) => r.sec === sec), sec, null);
+    if (v) sections.push({ sec, iq: Math.round(IQ(v.theta)), se: v.se, n: v.n ?? null });
+  }
+  const v: any = viqStanding(scores, null);
+  return {
+    nick: p.nick, country: p.country, province: p.province, age_band: p.age_band,
+    tests: sess.length, answered, correct,
+    pct: answered ? correct / answered : 0,
+    per_min: ms > 0 ? correct / (ms / 60000) : 0,
+    avg_s: answered ? ms / answered / 1000 : 0,
+    iq: v.theta == null ? null : Math.round(IQ(v.theta)), se: v.theta == null ? null : v.se,
+    sections,
+  };
 }

@@ -17,6 +17,9 @@
  "#C65BA0": [
   "scripts\\common\\avatar.gd"
  ],
+ "%s  %s: %s  +%d XP": [
+  "scripts\\common\\achievements.gd"
+ ],
  ") + tr(": [
   "scripts\\games\\rummy\\rummy_game.gd"
  ],
@@ -25,6 +28,12 @@
  ],
  "Arcade": [
   "scripts\\hub\\hub.gd"
+ ],
+ "Deco": [
+  "scripts\\games\\gem_match\\gem_match_game.gd"
+ ],
+ "IQ %d  ±%d": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
  "Intelligence": [
   "scripts\\hub\\hub.gd"
@@ -35,7 +44,11 @@
  "Puzzle & Board": [
   "scripts\\hub\\hub.gd"
  ],
+ "Settings": [
+  "scripts\\common\\hub_fx.gd"
+ ],
  "Social": [
+  "scripts\\common\\achievements.gd",
   "scripts\\common\\avatar.gd"
  ],
  "Word": [

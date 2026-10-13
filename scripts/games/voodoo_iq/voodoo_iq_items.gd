@@ -362,7 +362,8 @@ static func _oddword(v: ItemView, d: Dictionary) -> void:
 	_prompt(v, T.t("q_oddword"))
 	_mc(v, d.get("words", []), 1)
 
-## Letter tiles: tap in order; Undo takes the last one back. Submits when every tile is used.
+## Letter tiles: tap in order; Undo takes the last one back (also after every tile
+## is placed); the player confirms with Submit.
 static func _anagram(v: ItemView, d: Dictionary) -> void:
 	_prompt(v, T.t("q_anagram"))
 	var letters: Array = d.get("letters", [])
@@ -374,11 +375,13 @@ static func _anagram(v: ItemView, d: Dictionary) -> void:
 	tiles.add_theme_constant_override("h_separation", 8)
 	tiles.add_theme_constant_override("v_separation", 8)
 	var btns: Array = []
+	var submit_btn := Button.new()
 	var render := func() -> void:
 		var parts: Array = []
 		for i in letters.size():
 			parts.append(str(letters[picked[i]]).to_upper() if i < picked.size() else "_")
 		out.text = " ".join(parts)
+		submit_btn.disabled = picked.size() != letters.size()
 	for i in letters.size():
 		var b := Button.new()
 		b.text = str(letters[i]).to_upper()
@@ -391,19 +394,17 @@ static func _anagram(v: ItemView, d: Dictionary) -> void:
 				return
 			picked.append(i)
 			b.disabled = true
-			render.call()
-			if picked.size() == letters.size():
-				var s := ""
-				for k in picked:
-					s += str(letters[k])
-				v.submit(s))
+			render.call())
 		tiles.add_child(b)
 		btns.append(b)
 		v.option_buttons.append(b)
 	v.add_child(tiles)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
 	var undo := Button.new()
 	undo.text = "⌫ " + T.t("undo")
-	undo.custom_minimum_size = Vector2(240, 64)
+	undo.custom_minimum_size = Vector2(200, 64)
 	undo.add_theme_font_size_override("font_size", 26)
 	style_button(undo, FG2)
 	undo.pressed.connect(func():
@@ -411,7 +412,22 @@ static func _anagram(v: ItemView, d: Dictionary) -> void:
 			return
 		btns[picked.pop_back()].disabled = false
 		render.call())
-	v.add_child(_center(undo))
+	row.add_child(undo)
+	submit_btn.text = "✓ " + TranslationServer.translate("Submit")
+	submit_btn.custom_minimum_size = Vector2(200, 64)
+	submit_btn.add_theme_font_size_override("font_size", 26)
+	style_button(submit_btn, v.accent)
+	submit_btn.pressed.connect(func():
+		if v.done or picked.size() != letters.size():
+			return
+		var s := ""
+		for k in picked:
+			s += str(letters[k])
+		v.submit(s))
+	row.add_child(submit_btn)
+	v.add_child(row)
+	v.option_buttons.append(undo)
+	v.option_buttons.append(submit_btn)
 	render.call()
 
 static func _analogy(v: ItemView, d: Dictionary) -> void:

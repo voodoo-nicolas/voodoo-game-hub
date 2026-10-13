@@ -1,7 +1,7 @@
 extends RefCounted
 
 ## The musical items' tones, synthesized like the prototype's Web Audio `AU.tone`:
-## an oscillator (triangle, or sawtooth for chords) with a 15 ms attack, a hold,
+## an oscillator (triangle; chords were sawtooth until 2026-10-13) with a 15 ms attack, a hold,
 ## and a 50 ms release, at the prototype's volumes. A whole clip (all its notes at
 ## their start times) is rendered into one AudioStreamWAV and played once.
 
@@ -80,9 +80,13 @@ static func item_clip(gid: String, d: Dictionary) -> Array:
 				tones.append([midi_f(n2[i]), len1 + 0.9 + i * (nd + gap), nd, 0.22, "triangle"])
 			length = len1 * 2 + 0.9
 		"chord":
-			for m in d.get("notes", []):
-				tones.append([midi_f(m), 0.0, 1.1, 0.11, "sawtooth"])
-			length = 1.2
+			# Players found the stacked sawtooth notes impossible to tell apart
+			# (2026-10-13): a softer triangle tone, each note entering a moment after
+			# the last and all held for 2 s, so the pile can be heard building.
+			var notes: Array = d.get("notes", [])
+			for i in notes.size():
+				tones.append([midi_f(notes[i]), i * 0.22, 2.0 - i * 0.22, 0.16, "triangle"])
+			length = 2.1
 	return [render(tones), length]
 
 ## Headphone check: 440 Hz then 660 Hz.

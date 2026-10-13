@@ -34,7 +34,11 @@ defGen({
   make(d, r, ctx) {
     const lang = ctx.lang;
     const len = [4, 4, 5, 5, 6, 6, 7, 7, 8, 9][d - 1];
-    const word = r.pick(ANA_[lang][len]);
+    // never repeat a word within a session (ctx.used persists in sessions.state)
+    const used = ctx.used || new Set<string>();
+    const pool = ANA_[lang][len].filter((w) => !used.has("ag" + w));
+    const word = r.pick(pool.length ? pool : ANA_[lang][len]);
+    used.add("ag" + word);
     let sc: string[];
     do { sc = r.shuffle(word.split("")); } while (sc.join("") === word);
     const sig = (w: string) => w.split("").sort().join("");
