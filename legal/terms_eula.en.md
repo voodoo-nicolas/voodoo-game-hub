@@ -59,7 +59,7 @@ The Hub is provided as is. Nothing in these Terms limits the non-waivable rights
 
 ## 10. Termination
 
-You may close your account at any time (Settings → Account → Delete account). We may suspend or close it for serious breach of these Terms, or because the Hub shuts down under clause 7.
+You may close your account at any time (Profile → Danger zone → Delete my account). We may suspend or close it for serious breach of these Terms, or because the Hub shuts down under clause 7.
 
 ## 11. Changes to the Terms
 

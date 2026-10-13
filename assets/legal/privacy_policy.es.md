@@ -56,7 +56,7 @@ Mientras tu cuenta esté activa. Si la eliminás, borramos tus datos personales 
 
 Tenés derecho a acceder, rectificar, actualizar y suprimir tus datos (arts. 14, 16 y concordantes, Ley 25.326). El acceso es gratuito a intervalos no inferiores a seis meses, salvo interés legítimo acreditado (art. 14, inc. 3).
 
-- **Eliminar tu cuenta:** Ajustes → Cuenta → Eliminar cuenta, o en https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html.
+- **Eliminar tu cuenta:** Perfil → Zona de riesgo → Eliminar mi cuenta, o en https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html.
 - **Otros pedidos:** escribinos a Viralgamingservice@gmail.com. Respondemos en los plazos legales (10 días corridos para acceso; 5 días hábiles para rectificación o supresión, según el Decreto 1558/2001).
 
 La AGENCIA DE ACCESO A LA INFORMACIÓN PÚBLICA, en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.
@@ -71,7 +71,7 @@ Aplicamos medidas técnicas y organizativas razonables (conexiones cifradas, con
 
 ## 11. Bienestar
 
-Si estás pasando un momento difícil, en Ajustes → Ayuda encontrás líneas de apoyo gratuitas.
+Si estás pasando un momento difícil, en Opciones → Ayuda encontrás líneas de apoyo gratuitas.
 
 ## 12. Cambios
 

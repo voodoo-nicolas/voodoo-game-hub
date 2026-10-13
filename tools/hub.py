@@ -385,6 +385,8 @@ def lint_legal() -> list[str]:
             out = legal_build.OUT_MD / f"{stem}.{lang}.md"
             if not out.is_file():
                 problems.append(f"{out.relative_to(ROOT)} missing -- run python tools/legal_build.py")
+    if not legal_build.OUT_GD.is_file():
+        problems.append("scripts/common/legal_text.gd missing -- run python tools/legal_build.py")
     return ["legal: " + p for p in problems]
 
 
@@ -515,7 +517,7 @@ def lint_hub_name() -> list[str]:
     errors = []
     for d in ("scripts/common", "scripts/hub", "scripts/account"):
         for f in sorted((ROOT / d).glob("*.gd")):
-            if f.name == "strings_es.gd":
+            if f.name in ("strings_es.gd", "legal_text.gd"):  # legal_text: generated; holds the Pages URL (repo name)
                 continue
             for text in _display_literals(f):
                 if (re.search(r"voodoo", text, re.I) and text not in VOODOO_TEXT_OK

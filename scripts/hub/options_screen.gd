@@ -176,6 +176,12 @@ func _build_ui() -> void:
 	var feedback_btn := _pill_button(tr("Send feedback"), true)
 	feedback_btn.pressed.connect(_on_feedback_pressed)
 	about.add_child(feedback_btn)
+	var terms_btn := _pill_button(tr("Terms and EULA"), false)
+	terms_btn.pressed.connect(_open_legal.bind("terms"))
+	about.add_child(terms_btn)
+	var privacy_btn := _pill_button(tr("Privacy Policy"), false)
+	privacy_btn.pressed.connect(_open_legal.bind("privacy"))
+	about.add_child(privacy_btn)
 	var credits_btn := _pill_button(tr("Credits & licences"), false)
 	credits_btn.pressed.connect(_show_credits)
 	about.add_child(credits_btn)
@@ -282,6 +288,13 @@ func _show_credits() -> void:
 			if str(c.url) != "":
 				line += " · " + str(c.url)
 			credits_box.add_child(_body_label(line))
+
+func _open_legal(doc: String) -> void:
+	if drag.moved:
+		return
+	var consent = preload("res://scripts/common/consent.gd")
+	consent.reading_doc = doc
+	get_tree().change_scene_to_file(consent.LEGAL_SCENE)
 
 func _toggle_engine_text(label: Label) -> void:
 	if not drag.moved:

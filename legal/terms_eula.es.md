@@ -57,7 +57,7 @@ El Hub se ofrece en el estado en que se encuentra. Nada en estos Términos limit
 
 ## 10. Terminación
 
-Podés cerrar tu cuenta cuando quieras (Ajustes → Cuenta → Eliminar cuenta). Nosotros podemos suspenderla o cerrarla por incumplimiento grave de estos Términos, o por el cierre del Hub conforme a la cláusula 7.
+Podés cerrar tu cuenta cuando quieras (Perfil → Zona de riesgo → Eliminar mi cuenta). Nosotros podemos suspenderla o cerrarla por incumplimiento grave de estos Términos, o por el cierre del Hub conforme a la cláusula 7.
 
 ## 11. Cambios en los Términos
 

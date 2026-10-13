@@ -1,6 +1,7 @@
 extends Control
 
 const Orientation = preload("res://scripts/common/orientation.gd")
+const Consent = preload("res://scripts/common/consent.gd")
 
 var mode_sign_up: bool = false
 
@@ -19,6 +20,12 @@ func _ready() -> void:
 	_build_ui()
 	Auth.signed_in.connect(_on_signed_in)
 	Auth.auth_error.connect(_on_auth_error)
+	# Back from the consent screens with a sign-up half filled in.
+	if not Consent.draft.is_empty():
+		_set_mode(bool(Consent.draft.get("sign_up", false)))
+		email_field.text = str(Consent.draft.get("email", ""))
+		display_name_field.text = str(Consent.draft.get("name", ""))
+		Consent.draft = {}
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -188,6 +195,16 @@ func _on_submit() -> void:
 		_show_status(tr("Enter an email and password."), false)
 		return
 
+	if mode_sign_up:
+		# No account without the age gate and the two acceptances (compliance pack).
+		if Consent.is_blocked():
+			_show_status(tr("Accounts are for players %d and older. You can still play every game without an account.") % Consent.min_age(), false)
+			return
+		if not Consent.has_accepted():
+			Consent.draft = {"sign_up": true, "email": email, "name": display_name_field.text.strip_edges()}
+			Consent.return_scene = Consent.ACCOUNT_SCENE
+			get_tree().change_scene_to_file(Consent.CONSENT_SCENE)
+			return
 	submit_btn.disabled = true
 	if mode_sign_up:
 		var chosen_name: String = display_name_field.text.strip_edges()
@@ -213,9 +230,18 @@ func _on_signed_in(_user_id: String, name: String) -> void:
 	var t := Timer.new()
 	t.one_shot = true
 	t.wait_time = 0.6
-	t.timeout.connect(_go_to_hub)
+	# An account that hasn't accepted the current Terms/Privacy yet (made before
+	# this screen existed, or a newer version) is asked on the way in.
+	t.timeout.connect(_after_sign_in)
 	add_child(t)
 	t.start()
+
+func _after_sign_in() -> void:
+	if Consent.needs_prompt():
+		Consent.return_scene = Consent.HUB_SCENE
+		get_tree().change_scene_to_file(Consent.CONSENT_SCENE)
+	else:
+		_go_to_hub()
 
 func _go_to_hub() -> void:
 	get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")

@@ -57,7 +57,7 @@ While your account is active. If you delete it, we erase your personal data with
 
 You can access, rectify, update and delete your data (arts. 14, 16 and related, Law 25,326). Access is free at intervals of at least six months unless a legitimate interest is shown (art. 14, para. 3).
 
-- **Delete your account:** Settings → Account → Delete account, or at https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html.
+- **Delete your account:** Profile → Danger zone → Delete my account, or at https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html.
 - **Other requests:** write to Viralgamingservice@gmail.com. We answer within legal deadlines (10 calendar days for access; 5 business days for rectification or deletion, per Decree 1558/2001).
 
 The Argentine Agency for Access to Public Information (AAIP), as the supervisory authority of Law 25,326, handles complaints from people whose rights are affected by non-compliance with personal data protection rules.
@@ -72,7 +72,7 @@ We apply reasonable technical and organizational measures (encrypted connections
 
 ## 11. Wellbeing
 
-If you are going through a hard time, Settings → Help lists free support lines.
+If you are going through a hard time, Options → Help lists free support lines.
 
 ## 12. Changes
 

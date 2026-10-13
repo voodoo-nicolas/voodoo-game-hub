@@ -8,6 +8,7 @@ const Mist = preload("res://scripts/common/mist.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
 const Brand = preload("res://scripts/common/brand.gd")
 const HubFx = preload("res://scripts/common/hub_fx.gd")
+const Consent = preload("res://scripts/common/consent.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
 const WEB = preload("res://scripts/common/web.gd")
 ## The title art: the V-skull + VIRAL wordmark (Brand.WORDMARK), its own
@@ -155,6 +156,7 @@ func _ready() -> void:
 	Social.friends_changed.connect(_update_friend_badge)
 	Social.set_game("")  # back in the menus: friends see "in the menus"
 	Social.sync_awards()  # badges earned in the game just played become Viral XP
+	Consent.sync()  # my acceptance of the Terms/Privacy, once per account + version
 	_update_friend_badge()
 
 	# A newer live manifest can add games or change versions while the hub is
@@ -174,6 +176,16 @@ func _ready() -> void:
 		call_deferred("_on_tile_pressed", requested)
 	else:
 		_resume_last_game()
+	_maybe_ask_consent()
+
+## A signed-in player who hasn't accepted the current Terms/Privacy is sent to the
+## consent screens once per session (Back skips it until the next launch).
+func _maybe_ask_consent() -> void:
+	if busy or Consent.prompted or not Consent.needs_prompt():
+		return
+	Consent.prompted = true
+	Consent.return_scene = Consent.HUB_SCENE
+	get_tree().change_scene_to_file.call_deferred(Consent.CONSENT_SCENE)
 
 ## Opening animation of the home view: the rows rise in one by one, and the
 ## press "pop" is switched on for every button on this screen.
