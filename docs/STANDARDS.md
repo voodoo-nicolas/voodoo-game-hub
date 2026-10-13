@@ -51,6 +51,8 @@ Goal: fewer buttons, no scrolling on the hub home.
 - Drinking Games category is **archived** (hidden everywhere; see `HUB_V2_PLAN.md` §6; 8 games, incl. Spin the Bottle
   and Would You Rather). No live game may reference alcohol.
 
+**New look (Options > Games menu look: Classic / New; Classic stays the default until the owner flips it).** Full-screen art; a category bar (★ Favoritos always first, 🔍, Continuar jugando when not empty, then every manifest category with its count, Filtros pinned at the end) and ONE strip of 16:9 tiles (‹ › arrows in landscape, drag with momentum + snap, mouse wheel, edge fades, next tile peeks). Tap a tile = detail (background crossfades to the game's hero art; title + ★ toggle, description, mode badges, ✕ Back, ▶ Play); tap it again or ▶ Play opens the game; long-press = favourite; Android back closes Filtros, then the detail, then leaves. Search/Filtros results show under a "Results" tab. The hub screens now follow the sensor (`Orientation.lock_sensor()`): landscape = text left over a gradient, bars bottom ~30%; portrait = art top, detail under it, bars at the bottom. Art: `media/hub/game_art/<id>/tile.webp` + `hero.webp` (1920x1080, focal point right half) or manifest `tile_art`/`hero_art`; none = emoji on a category-colour gradient. Optional manifest `desc` / `desc_es`. Code: `scripts/hub/netflix_browser.gd` (+ category_bar, game_strip, game_tile, game_detail, touch_scroll, hub_art, hub_look).
+
 ### 2b. Profile [CURRENT since v0.30.0 — ownership waits for the store; Delete account needs docs/delete_my_account.sql run once]
 Nickname, avatar, hub-wide stats (games played, time, wins), achievements across all games, ownership /
 subscription status, account (sign in/out, sync, delete account), language.

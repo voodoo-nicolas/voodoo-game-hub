@@ -12,6 +12,7 @@ const Consent = preload("res://scripts/common/consent.gd")
 const CrisisHelp = preload("res://scripts/common/crisis_help.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
 const WEB = preload("res://scripts/common/web.gd")
+const NetflixBrowser = preload("res://scripts/hub/netflix_browser.gd")
 ## The title art: the V-skull + VIRAL wordmark (Brand.WORDMARK), its own
 ## backdrop faded out at the edges so the hub background shows through. If
 ## it's ever missing, the hub falls back to the plain text title.
@@ -77,6 +78,16 @@ const SORTS := [["cat", "By category"], ["az", "A–Z"], ["recent", "Recently pl
 const MODE_ICONS := {"cpu": "🤖", "local": "👥", "online": "🌐", "party": "🎉"}
 
 var list_container: VBoxContainer
+## The new Game Browser (Settings.hub_layout == "new"); null in the Classic list.
+var netflix: Control
+## Home pieces that move between the portrait column and the landscape row.
+var home_col: VBoxContainer
+var home_row: HBoxContainer
+var home_right: VBoxContainer
+var home_top: Control
+var banner_panel: PanelContainer
+var version_label: Label
+var _home_land := false
 ## Hub v2 (STANDARDS §2, since v0.30): the home view (no scrolling) and the
 ## Game Browser, two views of this one scene.
 var home_view: Control
@@ -122,7 +133,7 @@ var _scroll_back_frames := 0
 var drag: Node
 
 func _ready() -> void:
-	Orientation.lock_portrait()
+	Orientation.lock_sensor()
 	pal = Settings.palette()
 
 	# Dark theme: the brand background fills the screen. Light theme: a
@@ -145,6 +156,8 @@ func _ready() -> void:
 
 	_build_browser_view()
 	_build_home_view()
+	resized.connect(_apply_home_orientation)
+	_apply_home_orientation()
 
 	# .unbind(2) rather than a lambda on purpose: Godot only auto-disconnects a
 	# signal when the connected Callable points at the freed object. A lambda is
@@ -205,6 +218,8 @@ func _on_catalog_changed() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and browser_view and browser_view.visible \
 			and get_tree().get_nodes_in_group("modal_overlay").filter(func(n): return n.is_visible_in_tree()).is_empty():
+		if netflix != null and netflix.handle_back():
+			return  # closed Filtros or the open game; the next press leaves
 		_show_home()
 
 # ---------- home view (STANDARDS §2: fits one screen, no scrolling) ----------
@@ -221,11 +236,24 @@ func _build_home_view() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 14)
 	margin.add_child(col)
+	# Landscape: the same pieces, wordmark on the left and the buttons on the right
+	# (_apply_home_orientation moves them between `col` and `home_row`).
+	home_row = HBoxContainer.new()
+	home_row.add_theme_constant_override("separation", 24)
+	home_row.visible = false
+	margin.add_child(home_row)
+	home_col = col
+	home_right = VBoxContainer.new()
+	home_right.add_theme_constant_override("separation", 14)
+	home_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	home_right.alignment = BoxContainer.ALIGNMENT_CENTER
+	home_row.add_child(home_right)
 
 	# Top bar: Profile · Friends · Options.
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
 	col.add_child(top)
+	home_top = top
 	profile_btn = _hub_pill("👤", pal.account)
 	profile_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	profile_btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -241,7 +269,7 @@ func _build_home_view() -> void:
 	top.add_child(options_btn)
 
 	# The wordmark takes whatever height is left, so nothing else has to scroll.
-	var banner_panel := PanelContainer.new()
+	banner_panel = PanelContainer.new()
 	banner_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	banner_panel.custom_minimum_size = Vector2(0, 150)
 	banner_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -280,7 +308,7 @@ func _build_home_view() -> void:
 	HubFx.breathe(games_btn, 0.0, 0.1, 1.8)
 	col.add_child(games_btn)
 
-	var version_label := Label.new()
+	version_label = Label.new()
 	version_label.text = "%s · %s" % [Brand.tagline(), tr("v%s (build %d)") % [Version.VERSION, Version.BUILD_NUMBER]]
 	version_label.add_theme_font_size_override("font_size", 18)
 	version_label.add_theme_color_override("font_color", pal.version)
@@ -288,6 +316,34 @@ func _build_home_view() -> void:
 	col.add_child(version_label)
 
 ## Continue (the last game opened): a small card above the Games button.
+## Portrait: one column. Landscape (wider than tall): the wordmark on the left, the
+## top bar, Continue card, Games button and version on the right.
+func _apply_home_orientation() -> void:
+	var land := size.x > size.y * 1.05
+	if home_row == null or (land == _home_land and (home_row.visible == land)):
+		return
+	_home_land = land
+	var movers: Array = [home_top, banner_panel, continue_box, games_btn, version_label]
+	for n in movers:
+		if n.get_parent() != null:
+			n.get_parent().remove_child(n)
+	if land:
+		home_col.visible = false
+		home_row.visible = true
+		home_row.add_child(banner_panel)
+		home_row.move_child(banner_panel, 0)
+		banner_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for n in [home_top, continue_box, games_btn, version_label]:
+			home_right.add_child(n)
+		games_btn.custom_minimum_size.y = 96
+	else:
+		home_row.visible = false
+		home_col.visible = true
+		banner_panel.size_flags_horizontal = Control.SIZE_FILL
+		for n in movers:
+			home_col.add_child(n)
+		games_btn.custom_minimum_size.y = 124
+
 func _refresh_home() -> void:
 	if continue_box == null:
 		return
@@ -522,6 +578,9 @@ func _show_browser_with(chip: String) -> void:
 # ---------- Game Browser (STANDARDS §2a) ----------
 
 func _build_browser_view() -> void:
+	if Settings.hub_layout == "new":
+		_build_netflix_view()
+		return
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 0)
@@ -569,34 +628,7 @@ func _build_browser_view() -> void:
 	filters_btn.custom_minimum_size.y = 60
 	filters_btn.pressed.connect(_on_filters_toggled)
 	search_row.add_child(filters_btn)
-	filter_panel = VBoxContainer.new()
-	filter_panel.add_theme_constant_override("separation", 8)
-	filter_panel.visible = false
-	head.add_child(filter_panel)
-	var chip_flow := HFlowContainer.new()
-	chip_flow.add_theme_constant_override("h_separation", 8)
-	chip_flow.add_theme_constant_override("v_separation", 8)
-	filter_panel.add_child(chip_flow)
-	for c in CHIPS:
-		var b := _chip(tr(c[1]))
-		b.pressed.connect(_on_chip.bind(c[0]))
-		chip_flow.add_child(b)
-		_chip_buttons[c[0]] = b
-		if c[0] == "locked":
-			b.visible = Catalog.locked_count() > 0  # only when the player's age hides something
-	var sort_row := HFlowContainer.new()
-	sort_row.add_theme_constant_override("h_separation", 8)
-	filter_panel.add_child(sort_row)
-	var sort_label := Label.new()
-	sort_label.text = tr("Sort:")
-	sort_label.add_theme_font_size_override("font_size", 20)
-	sort_label.add_theme_color_override("font_color", pal.text_dim)
-	sort_row.add_child(sort_label)
-	for so in SORTS:
-		var b := _chip(tr(so[1]))
-		b.pressed.connect(_on_sort.bind(so[0]))
-		sort_row.add_child(b)
-		_sort_buttons[so[0]] = b
+	_build_filter_panel(head)
 	_sync_chip_buttons()
 
 	# The list scrolls under the browser's header.
@@ -629,6 +661,49 @@ func _build_browser_view() -> void:
 	margin.add_theme_constant_override("margin_bottom", 30)
 	margin.add_child(list_container)
 	content.add_child(margin)
+
+## The Filtros panel (chips + sort buttons), shared by the Classic header and the new browser.
+func _build_filter_panel(parent: Control) -> void:
+	filter_panel = VBoxContainer.new()
+	filter_panel.add_theme_constant_override("separation", 8)
+	filter_panel.visible = false
+	parent.add_child(filter_panel)
+	var chip_flow := HFlowContainer.new()
+	chip_flow.add_theme_constant_override("h_separation", 8)
+	chip_flow.add_theme_constant_override("v_separation", 8)
+	filter_panel.add_child(chip_flow)
+	for c in CHIPS:
+		var b := _chip(tr(c[1]))
+		b.pressed.connect(_on_chip.bind(c[0]))
+		chip_flow.add_child(b)
+		_chip_buttons[c[0]] = b
+		if c[0] == "locked":
+			b.visible = Catalog.locked_count() > 0  # only when the player's age hides something
+	var sort_row := HFlowContainer.new()
+	sort_row.add_theme_constant_override("h_separation", 8)
+	filter_panel.add_child(sort_row)
+	var sort_label := Label.new()
+	sort_label.text = tr("Sort:")
+	sort_label.add_theme_font_size_override("font_size", 20)
+	sort_label.add_theme_color_override("font_color", pal.text_dim)
+	sort_row.add_child(sort_label)
+	for so in SORTS:
+		var b := _chip(tr(so[1]))
+		b.pressed.connect(_on_sort.bind(so[0]))
+		sort_row.add_child(b)
+		_sort_buttons[so[0]] = b
+
+## The new Game Browser. It owns no state: chips, sort, search and favourites stay here.
+func _build_netflix_view() -> void:
+	netflix = NetflixBrowser.new()
+	add_child(netflix)
+	browser_view = netflix
+	sticky_layer = Control.new()   # unused here; _slide_to / _slide_done still toggle it
+	sticky_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	sticky_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(sticky_layer)
+	netflix.setup(self)
+	drag = netflix.scroller
 
 func _chip(text: String) -> Button:
 	var b := Button.new()
@@ -835,6 +910,9 @@ const GLASS := 0.78
 ## a header button's own `pressed` signal, and Godot refuses to free a node whose
 ## signal is still emitting, leaking it instead.
 func _rebuild_list() -> void:
+	if netflix != null:
+		netflix.rebuild()
+		return
 	for child in list_container.get_children():
 		list_container.remove_child(child)
 		child.queue_free()

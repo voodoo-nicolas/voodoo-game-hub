@@ -28,16 +28,27 @@ var update_label: Label
 var update_btn: Button
 var update_url: String = ""
 
+var _content_margin: MarginContainer
 var storage_box: VBoxContainer
 var credits_box: VBoxContainer
 
 func _ready() -> void:
-	Orientation.lock_portrait()
+	Orientation.lock_sensor()
 	pal = Settings.palette()
 	_build_ui()
 	# Plain method callables (see CLAUDE.md): freed with this scene.
 	Auth.signed_in.connect(_update_account.unbind(2))
 	Auth.signed_out.connect(_update_account)
+
+## Landscape: the scrolling content keeps a phone-width column in the middle.
+const CONTENT_MAX_WIDTH := 760.0
+
+func _cap_width() -> void:
+	if _content_margin == null:
+		return
+	var side := maxi(16, int((size.x - CONTENT_MAX_WIDTH) / 2.0))
+	_content_margin.add_theme_constant_override("margin_left", side)
+	_content_margin.add_theme_constant_override("margin_right", side)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
@@ -100,6 +111,9 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_right", 16)
 	margin.add_theme_constant_override("margin_bottom", 40)
 	scroll.add_child(margin)
+	_content_margin = margin
+	resized.connect(_cap_width)
+	_cap_width()
 
 	var list := VBoxContainer.new()
 	list.add_theme_constant_override("separation", 14)
@@ -126,6 +140,9 @@ func _build_ui() -> void:
 	_toggle_row(games, tr("💀 Skull mode"),
 			tr("Skulls, crossbones and voodoo dolls in Tic-Tac-Toe, Connect Four and Reversi."),
 			Voodoo.is_on(), _on_skull_mode)
+
+	_choice_row(games, tr("Games menu look"), tr("Classic list, or the new picture menu with a category bar and tiles."),
+			[tr("Classic"), tr("New")], 1 if Settings.hub_layout == "new" else 0, _on_hub_layout)
 
 	# ---- Sound ----
 	var sound := _section(list, tr("Sound"))
@@ -457,6 +474,9 @@ func _on_text_size(i: int) -> void:
 	if i != Settings.text_size:
 		Settings.set_text_size(i)
 		get_tree().reload_current_scene()
+
+func _on_hub_layout(i: int) -> void:
+	Settings.set_hub_layout("new" if i == 1 else "classic")
 
 func _on_theme(i: int) -> void:
 	var t := "light" if i == 1 else "dark"

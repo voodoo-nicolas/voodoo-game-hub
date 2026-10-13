@@ -90,6 +90,8 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   packs can't be downloaded, so `state_of` turns an unbundled game amber
   ("Update app" reloads the page) and `check_app_update` reports nothing.
 
+- **New Game Browser** (`netflix_browser.gd`, Settings.hub_layout "new"): see `docs/claude/hub-v2.md`. `hub.netflix` is non-null only then; `_rebuild_list()` forwards to `netflix.rebuild()`.
+
 ## Things that look like bugs but aren't
 
 - Tiles for undownloaded games show a "⬇ Download" tag but are still tappable —

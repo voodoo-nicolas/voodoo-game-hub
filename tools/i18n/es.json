@@ -5832,5 +5832,21 @@
  "Strong language": "Lenguaje fuerte",
  "Sexual content": "Contenido sexual",
  "Online interaction": "Interacción en línea",
- "User-generated content": "Contenido generado por usuarios"
+ "User-generated content": "Contenido generado por usuarios",
+ "Games menu look": "Aspecto del menú de juegos",
+ "Classic list, or the new picture menu with a category bar and tiles.": "Lista clásica, o el nuevo menú con imágenes, barra de categorías y fichas.",
+ "Continue playing": "Continuar jugando",
+ "Results (%d)": "Resultados (%d)",
+ "No favorites yet. Press and hold a game to add it.": "Aún no tienes favoritos. Mantén pulsado un juego para añadirlo.",
+ "A %s game.": "Un juego de %s.",
+ "Play: %s.": "Jugar: %s.",
+ "vs. computer": "contra la máquina",
+ "same phone": "mismo móvil",
+ "online": "en línea",
+ "group": "en grupo",
+ "☆ Favorite": "☆ Favorito",
+ "★ Favorite": "★ Favorito",
+ "✕ Back": "✕ Volver",
+ "cat:%d": null,
+ "edge%s%s": null
 }

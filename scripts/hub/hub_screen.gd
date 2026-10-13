@@ -21,9 +21,10 @@ var pal: Dictionary
 var drag: Node
 var list: VBoxContainer
 var _overlay: Control
+var _content_margin: MarginContainer
 
 func _ready() -> void:
-	Orientation.lock_portrait()
+	Orientation.lock_sensor()
 	pal = Settings.palette()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	if Settings.is_light():
@@ -76,12 +77,25 @@ func _ready() -> void:
 	margin.add_theme_constant_override("margin_right", 16)
 	margin.add_theme_constant_override("margin_bottom", 40)
 	scroll.add_child(margin)
+	_content_margin = margin
+	resized.connect(_cap_width)
+	_cap_width()
 	list = VBoxContainer.new()
 	list.add_theme_constant_override("separation", 14)
 	margin.add_child(list)
 	_build()
 	HubFx.attach(self)
 	HubFx.stagger_in(list.get_children(), 0.07, 8, 0.97)
+
+## Landscape: the scrolling content keeps a phone-width column in the middle.
+const CONTENT_MAX_WIDTH := 760.0
+
+func _cap_width() -> void:
+	if _content_margin == null:
+		return
+	var side := maxi(16, int((size.x - CONTENT_MAX_WIDTH) / 2.0))
+	_content_margin.add_theme_constant_override("margin_left", side)
+	_content_margin.add_theme_constant_override("margin_right", side)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:

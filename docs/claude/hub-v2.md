@@ -13,6 +13,13 @@ Hub shell internals (hub.gd, Catalog): `scripts/hub/CLAUDE.md`.
 - Tile icons drawn in code: `scripts/common/game_icons.gd` for chess, sudoku, tictactoe, connect4, checkers, reversi, three_man; others use manifest emoji. Add via `_icon_<id>` + id in `IDS`. Owner wants better icons for many more.
 - Three Man's dice are drawn: never use Unicode die glyphs (missing from phone fonts).
 
+## New Game Browser (2026-10-13, Options > Games menu look)
+- `Settings.hub_layout` "classic" (default) | "new". `hub.gd` builds `scripts/hub/netflix_browser.gd` instead of the accordion when "new"; chips, sort, search, favourites and `_on_tile_pressed` stay in hub.gd (the view calls them). Layout design, art pipeline and behaviour: STANDARDS §2a "New look".
+- Orientation: hub, hub_screen, Options use `Orientation.lock_sensor()` (account_screen still portrait). `project.godot` orientation stays "portrait" (games and old builds); the hub rotates at runtime. Home rearranges in landscape (`_apply_home_orientation`); hub screens cap their content width (`CONTENT_MAX_WIDTH`).
+- Art: `python tools/make_hub_art.py` makes self-made placeholders from `media/hub/categories` (hues avoid purple) and writes CREDITS; `--from DIR` converts real art (`<id>.png`, `<id>_tile.png`). ~7 MB for 109 games. Not built: remote hero art from Supabase Storage.
+- Tests: `tools/test_netflix_hub.gd` (headless), `tools/shot_netflix.gd` (screenshots, needs a window: `--resolution 1280x720` / `405x720`).
+- Gotchas: moving a Button to another parent re-fires `node_added` (Settings/Sfx connects now guard); use `set_anchors_and_offsets_preset` on nodes already in the tree; a StyleBoxFlat shadow on a transparent box tints what is inside it (the tile glow is a separate panel under the picture).
+
 ## Brand (`scripts/common/brand.gd`, APK-side)
 - `NAME`, `DEVELOPER`, `TAGLINE` (`tagline()` translates), `STORE_TITLE`, art paths, `backdrop()` (portrait/landscape by shape; mist if art missing). Hub code preloads it; packs `load()` after `ResourceLoader.exists(Brand.PATH)`.
 - `hub.py sync` copies `Brand.NAME` into export presets (`package/name`, `application/product_name`); `check` fails on drift. `config/name` stays "Voodoo"; PC window title set from `Brand.NAME` in `Settings._ready()`.

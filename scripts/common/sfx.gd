@@ -169,7 +169,10 @@ func get_stream(sound: String) -> AudioStream:
 func _on_node_added(node: Node) -> void:
 	if node is BaseButton:
 		# A method Callable, not a lambda: freed with the button automatically.
-		node.pressed.connect(_on_button_pressed.bind(node))
+		# (Not twice: a node moved to another parent is "added" again.)
+		var tap := _on_button_pressed.bind(node)
+		if not node.pressed.is_connected(tap):
+			node.pressed.connect(tap)
 
 ## A button plays "tap", or the sound in its "sfx" meta:
 ## `btn.set_meta("sfx", "key")`, or "" for none (the game plays its own).

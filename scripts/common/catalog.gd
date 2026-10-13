@@ -245,6 +245,12 @@ func _apply_manifest(data: Variant) -> bool:
 			# Since v0.35: similar games sit together ("Sudoku", "Solitaire"...);
 			# a category lists by family, then title (_family_less below).
 			game["family"] = str(raw_game.get("family", ""))
+			# Since v0.36, new Game Browser: optional one-line description
+			# ("desc" + "desc_<lang>") and art paths (res://...); see hub_art.gd.
+			game["desc"] = str(raw_game.get("desc", ""))
+			_copy_localized(raw_game, game, "desc")
+			game["tile_art"] = str(raw_game.get("tile_art", ""))
+			game["hero_art"] = str(raw_game.get("hero_art", ""))
 			var content = raw_game.get("content", null)
 			game["has_content"] = typeof(content) == TYPE_DICTIONARY
 			game["min_age"] = int(content.get("min_age", 18)) if typeof(content) == TYPE_DICTIONARY else 18

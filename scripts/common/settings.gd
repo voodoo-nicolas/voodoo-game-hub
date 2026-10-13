@@ -87,6 +87,8 @@ var vibrate: bool = true
 var keep_awake: bool = false
 ## Hub transitions (slides, fades) are skipped when on; Options > Vibration & screen.
 var reduce_motion: bool = false
+## Game Browser look: "classic" (category list) or "new" (hero + category bar + tile strip).
+var hub_layout: String = "classic"
 var invites: String = "all"
 
 func _ready() -> void:
@@ -184,6 +186,10 @@ func group_db(id: String) -> Variant:
 	if not group_on(id) or v <= 0:
 		return null
 	return linear_to_db(v / 100.0)
+
+func set_hub_layout(layout: String) -> void:
+	hub_layout = "new" if layout == "new" else "classic"
+	_commit()
 
 func set_reduce_motion(on: bool) -> void:
 	reduce_motion = on
@@ -441,7 +447,10 @@ func take_resume_scene() -> String:
 func _on_node_added(node: Node) -> void:
 	if node is BaseButton:
 		# A method Callable, not a lambda: freed with the button automatically.
-		node.pressed.connect(buzz.bind(TAP_BUZZ_MS))
+		# (Not twice: a node moved to another parent is "added" again.)
+		var tap := buzz.bind(TAP_BUZZ_MS)
+		if not node.pressed.is_connected(tap):
+			node.pressed.connect(tap)
 
 func _load() -> void:
 	for g in SOUND_GROUPS:
@@ -464,6 +473,7 @@ func _load() -> void:
 	vibrate = bool(data.get("vibrate", true))
 	keep_awake = bool(data.get("keep_awake", false))
 	reduce_motion = bool(data.get("reduce_motion", false))
+	hub_layout = "new" if str(data.get("hub_layout", "classic")) == "new" else "classic"
 	invites = str(data.get("invites", "all"))
 	if not INVITE_MODES.has(invites):
 		invites = "all"
@@ -474,5 +484,5 @@ func _save() -> void:
 		f.store_string(JSON.stringify({
 			"text_size": text_size, "theme": theme, "sound": sound,
 			"volume": volume, "sound_groups": sound_groups,
-			"vibrate": vibrate, "keep_awake": keep_awake, "reduce_motion": reduce_motion, "invites": invites,
+			"vibrate": vibrate, "keep_awake": keep_awake, "reduce_motion": reduce_motion, "hub_layout": hub_layout, "invites": invites,
 		}))

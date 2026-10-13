@@ -31,3 +31,8 @@ static func _lock(requested: int) -> void:
 	# Desktop builds (the PC test version) can't rotate; skip the warning.
 	if DisplayServer.has_feature(DisplayServer.FEATURE_ORIENTATION):
 		DisplayServer.screen_set_orientation(orientation)
+
+## The hub's own screens follow the sensor (portrait or landscape); a game still
+## locks the orientation it needs in its own _ready().
+static func lock_sensor() -> void:
+	_lock(DisplayServer.SCREEN_SENSOR)
