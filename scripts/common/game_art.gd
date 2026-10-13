@@ -11,11 +11,13 @@ extends RefCounted
 const GameIcons = preload("res://scripts/common/game_icons.gd")
 const GameLogos = preload("res://scripts/common/game_logos.gd")
 const GameLogosArcade = preload("res://scripts/common/game_logos_arcade.gd")
+const GameLogosPuzzle = preload("res://scripts/common/game_logos_puzzle.gd")
 const GameTeasers = preload("res://scripts/common/game_teasers.gd")
 const GameTeasersArcade = preload("res://scripts/common/game_teasers_arcade.gd")
+const GameTeasersPuzzle = preload("res://scripts/common/game_teasers_puzzle.gd")
 
-const LOGO_SETS := [GameLogos, GameLogosArcade]
-const TEASER_SETS := [GameTeasers, GameTeasersArcade]
+const LOGO_SETS := [GameLogos, GameLogosArcade, GameLogosPuzzle]
+const TEASER_SETS := [GameTeasers, GameTeasersArcade, GameTeasersPuzzle]
 
 static func has_logo(id: String) -> bool:
 	for s in LOGO_SETS:

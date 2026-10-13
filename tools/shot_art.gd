@@ -7,6 +7,8 @@ extends SceneTree
 const GameArt = preload("res://scripts/common/game_art.gd")
 const GameLogos = preload("res://scripts/common/game_logos.gd")
 const GameLogosArcade = preload("res://scripts/common/game_logos_arcade.gd")
+const GameLogosPuzzle = preload("res://scripts/common/game_logos_puzzle.gd")
+const GameTeasersPuzzle = preload("res://scripts/common/game_teasers_puzzle.gd")
 const CELL := Vector2(360, 160)
 const COLS := 3
 
@@ -16,7 +18,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0] if args.size() > 0 else "user://shots"
-	var ids: Array = Array(args[1].split(",", false)) if args.size() > 1 else (GameLogos.IDS + GameLogosArcade.IDS)
+	var ids: Array = Array(args[1].split(",", false)) if args.size() > 1 else (GameLogos.IDS + GameLogosArcade.IDS + GameTeasersPuzzle.IDS)
 	DirAccess.make_dir_recursive_absolute(out)
 	var rows := ceili(ids.size() / float(COLS))
 	var sheet := Vector2i(int(CELL.x) * COLS, int(CELL.y) * rows)
