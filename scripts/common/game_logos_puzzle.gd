@@ -329,15 +329,23 @@ static func _logo_calcudoku(c: CanvasItem) -> void:
 		GI._glow_poly(c, PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]), GOLD, 1.4)
 		L.txt(c, cg[1], r.position + Vector2(9, 7), 8, GOLD)
 
+## Wire Up (id pipe_flow): a battery wired to a glowing bulb.
 static func _logo_pipe_flow(c: CanvasItem) -> void:
-	var pts := PackedVector2Array([Vector2(10, 28), Vector2(42, 28), Vector2(42, 72), Vector2(74, 72), Vector2(74, 42), Vector2(90, 42)])
-	c.draw_polyline(pts, Color(CYAN, 0.2), 20.0, true)
-	c.draw_polyline(pts, BLUE.darkened(0.5), 13.0, true)
-	c.draw_polyline(pts, CYAN, 8.0, true)
-	c.draw_polyline(pts, Color(1, 1, 1, 0.55), 2.4, true)
-	GI._sphere(c, Vector2(10, 28), 9.0, LIME)
-	GI._slab(c, Rect2(86, 34, 10, 16), GOLD.darkened(0.4), GOLD, 3, 0.5)
-	GI._glow_line(c, Vector2(42, 72), Vector2(42, 90), Color(CYAN, 0.5), 3.0)
+	var wire := PackedVector2Array([Vector2(30, 40), Vector2(30, 20), Vector2(70, 20), Vector2(70, 34)])
+	var wire2 := PackedVector2Array([Vector2(30, 66), Vector2(30, 86), Vector2(70, 86), Vector2(70, 66)])
+	c.draw_polyline(wire, Color(CYAN, 0.2), 9.0, true)
+	c.draw_polyline(wire, CYAN, 3.4, true)
+	c.draw_polyline(wire2, Color(GOLD, 0.2), 9.0, true)
+	c.draw_polyline(wire2, GOLD, 3.4, true)
+	GI._slab(c, Rect2(18, 40, 24, 28), Color(0.03, 0.08, 0.05), LIME, 5, 0.6)
+	GI._slab(c, Rect2(24, 35, 12, 6), LIME.darkened(0.2), LIME, 2, 0.0)
+	L.txt(c, "+", Vector2(30, 52), 16, Color.WHITE)
+	c.draw_circle(Vector2(70, 50), 22.0, Color(GOLD, 0.15))
+	GI._sphere(c, Vector2(70, 50), 14.0, GOLD)
+	GI._glow_line(c, Vector2(62, 62), Vector2(78, 62), Color(1, 1, 1, 0.6), 1.4)
+	for i in range(5):
+		var a := deg_to_rad(-90.0 + (i - 2) * 38.0)
+		GI._glow_line(c, Vector2(70, 50) + Vector2(cos(a), sin(a)) * 21.0, Vector2(70, 50) + Vector2(cos(a), sin(a)) * 28.0, GOLD, 1.2)
 
 static func _logo_five_in_row(c: CanvasItem) -> void:
 	for i in range(6):

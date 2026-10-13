@@ -444,20 +444,24 @@ static func _teaser_calcudoku(c: CanvasItem, _base: Transform2D) -> void:
 		GI._glow_poly(c, PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]), GOLD, 1.0)
 		L.txt(c, cg[1], r.position + Vector2(8, 6), 7, GOLD)
 
-static func _teaser_pipe_flow(c: CanvasItem, _base: Transform2D) -> void:
-	T.backdrop(c, CYAN)
-	var a := PackedVector2Array([Vector2(14, 22), Vector2(54, 22), Vector2(54, 62), Vector2(96, 62), Vector2(96, 30), Vector2(140, 30)])
-	var b := PackedVector2Array([Vector2(54, 62), Vector2(54, 80), Vector2(120, 80)])
-	for pts in [a, b]:
-		c.draw_polyline(pts, Color(CYAN, 0.18), 18.0, true)
-		c.draw_polyline(pts, BLUE.darkened(0.5), 12.0, true)
-	c.draw_polyline(a.slice(0, 4), CYAN, 7.0, true)
-	c.draw_polyline(a.slice(0, 4), Color(1, 1, 1, 0.5), 2.2, true)
-	c.draw_polyline(b, Color(CYAN, 0.25), 7.0, true)
-	GI._sphere(c, Vector2(14, 22), 9.0, LIME)
-	GI._slab(c, Rect2(136, 20, 12, 20), GOLD.darkened(0.4), GOLD, 3, 0.5)
-	GI._glow_arc(c, Vector2(120, 80), 7.0, 0.0, TAU, GOLD, 1.4)
-	L.meter(c, Rect2(40, 84, 80, 4), CYAN, 0.55)
+static func _teaser_pipe_flow(c: CanvasItem, base: Transform2D) -> void:
+	T.backdrop(c, GOLD)
+	var blue := PackedVector2Array([Vector2(26, 22), Vector2(60, 22), Vector2(60, 46), Vector2(100, 46)])
+	var yellow := PackedVector2Array([Vector2(26, 68), Vector2(80, 68), Vector2(80, 46)])
+	var green := PackedVector2Array([Vector2(100, 46), Vector2(100, 20), Vector2(134, 20)])
+	for pair in [[blue, CYAN], [yellow, GOLD], [green, LIME]]:
+		c.draw_polyline(pair[0], Color(pair[1], 0.2), 11.0, true)
+		c.draw_polyline(pair[0], pair[1], 3.6, true)
+		c.draw_polyline(pair[0], Color(1, 1, 1, 0.5), 1.0, true)
+	for p in [Vector2(16, 22), Vector2(16, 68)]:
+		GI._slab(c, Rect2(p + Vector2(-9, -11), Vector2(18, 22)), Color(0.03, 0.08, 0.05), LIME, 4, 0.6)
+		L.txt(c, "+", p, 13, Color.WHITE)
+	for p in [Vector2(134, 20), Vector2(100, 46), Vector2(80, 46)]:
+		c.draw_circle(p, 12.0, Color(GOLD, 0.15))
+		GI._sphere(c, p, 6.0, GOLD)
+	GI._sphere(c, Vector2(148, 62), 6.0, Color(0.4, 0.43, 0.52))
+	L.meter(c, Rect2(40, 82, 80, 4), GOLD, 0.6)
+	L.txt(c, "120", Vector2(140, 80), 9, Color(GOLD, 0.8))
 
 static func _teaser_five_in_row(c: CanvasItem, _base: Transform2D) -> void:
 	T.backdrop(c, BLUE)
