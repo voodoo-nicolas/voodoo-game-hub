@@ -33,6 +33,8 @@ var elapsed: float = 0.0
 var started := false  # a real game is on (not just the board behind Home)
 var solved := false
 var water: Dictionary = {}  # cells the water reaches
+var depth: Dictionary = {}  # wet cell -> steps from the pump (sets the flow direction)
+var flow_t: float = 0.0  # drives the running-water animation
 var spin: Dictionary = {}  # cell -> angle still to turn (animation)
 var win_t: float = -1.0  # seconds since solved, for the flow ripple
 
@@ -170,8 +172,32 @@ func _new_board(lvl: int) -> void:
 
 func _update() -> void:
 	water = engine.filled()
+	_measure_depth()
 	_status()
 	board.queue_redraw()
+
+## Breadth-first steps from the pump through wet, joined pieces.
+func _measure_depth() -> void:
+	depth.clear()
+	if not water.has(engine.source):
+		return
+	depth[engine.source] = 0
+	var queue: Array = [engine.source]
+	var n: int = engine.size
+	while not queue.is_empty():
+		var c: int = queue.pop_front()
+		for d in PipeEngine.DIRS:
+			if engine.mask[c] & d[0] == 0:
+				continue
+			var x: int = c % n + d[1]
+			var y: int = c / n + d[2]
+			if x < 0 or y < 0 or x >= n or y >= n:
+				continue
+			var nb: int = y * n + x
+			if depth.has(nb) or not water.has(nb) or engine.mask[nb] & d[3] == 0:
+				continue
+			depth[nb] = depth[c] + 1
+			queue.append(nb)
 
 func _status() -> void:
 	status_label.text = tr("%s   ·   Moves: %d   ·   %s") % [tr(LEVELS[level]), engine.moves, _clock(elapsed)]
@@ -181,6 +207,9 @@ static func _clock(t: float) -> String:
 	return "%d:%02d" % [s / 60, s % 60]
 
 func _process(delta: float) -> void:
+	if started and not water.is_empty():
+		flow_t += delta
+		board.queue_redraw()
 	if started and not solved:
 		var before := int(elapsed)
 		elapsed += delta
@@ -303,6 +332,8 @@ func _draw_piece(i: int, center: Vector2, cell: float) -> void:
 			board.draw_line(center, center + dir * half, col, w * 1.1)
 		else:
 			HomeKit.glow_line(board, center, center + dir * half, col, w * 0.45)
+		if wet and angle == 0.0:
+			_draw_flow(i, center, dir, half, w, d)
 		if wet and not solved and engine.leaks(i) & d[0] and angle == 0.0:
 			board.draw_circle(center + dir * half * 0.86, w * 0.42, COLOR_LEAK)
 	board.draw_circle(center, w * 0.5, col)
@@ -315,6 +346,23 @@ func _draw_piece(i: int, center: Vector2, cell: float) -> void:
 		board.draw_circle(center, cell * 0.12, COLOR_PUMP.lerp(Color.WHITE, 0.5))
 	elif PipeEngine.is_end(m):
 		HomeKit.glow_circle(board, center, cell * 0.2, col, 2.5, 0.25 if wet else 0.08)
+
+## Bright droplets running along a wet arm: away from the pump on arms that lead on,
+## toward the pump on the arm it arrived by.
+func _draw_flow(i: int, center: Vector2, dir: Vector2, half: float, w: float, d: Array) -> void:
+	var n: int = engine.size
+	var x: int = i % n + d[1]
+	var y: int = i / n + d[2]
+	var inward := false
+	if x >= 0 and y >= 0 and x < n and y < n:
+		var nb: int = y * n + x
+		inward = depth.has(nb) and depth.has(i) and depth[nb] < depth[i]
+	var tint: Color = Color(0.85, 0.97, 1.0, 0.9) if _is_classic() else Color(1, 1, 1, 0.85)
+	for k in 2:
+		var t: float = fposmod(flow_t * 0.9 + k * 0.5 + (depth.get(i, 0) % 4) * 0.13, 1.0)
+		if inward:
+			t = 1.0 - t
+		board.draw_circle(center + dir * half * t, w * 0.34, Color(tint, tint.a * sin(t * PI)))
 
 func _cell_center(i: int) -> Vector2:
 	var g := _geom()

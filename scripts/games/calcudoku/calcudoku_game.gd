@@ -30,6 +30,7 @@ var pad: HBoxContainer
 var size_btn: Button
 var win_dialog: ColorRect
 var size_index: int = 0
+var easy: bool = false  # + and − cages only
 var selected: int = -1
 var font: Font
 var started := false  # a puzzle is on the board (not just the one behind Home)
@@ -147,6 +148,7 @@ func _cycle_size() -> void:
 
 func _start_new_game() -> void:
 	started = true
+	engine.easy = easy
 	engine.new_puzzle(SIZES[size_index])
 	if info:
 		info.start_clock()
@@ -169,7 +171,7 @@ func _on_number(v: int) -> void:
 			info.add("Puzzles solved")
 			info.celebrate("Solved!")
 			secs = info.stop_clock()
-			record = info.low("Best time (%s)" % ("%d×%d" % [SIZES[size_index], SIZES[size_index]]), secs)
+			record = info.low("Best time (%s)" % ("%d×%d%s" % [SIZES[size_index], SIZES[size_index], " +−" if easy else ""]), secs)
 		win_dialog.get_meta("message_label").text = tr("Every cage adds up.")
 		if info:
 			win_dialog.get_meta("message_label").text += "\n" + tr("Time: %d:%02d") % [int(secs) / 60, int(secs) % 60]
@@ -320,13 +322,16 @@ func _build_home() -> void:
 		"subtitle": "Every row and column once. Every cage hits its target.",
 		"logo": _draw_home_logo,
 		"modes": [
-			{"text": "4 × 4", "sub": "Easy", "row": "size", "color": HomeKit.LIME, "action": _new_size.bind(0)},
-			{"text": "5 × 5", "sub": "Medium", "row": "size", "color": HomeKit.CYAN, "action": _new_size.bind(1)},
-			{"text": "6 × 6", "sub": "Hard", "row": "size", "color": HomeKit.PINK, "action": _new_size.bind(2)},
+			{"text": "4 × 4", "sub": "Easy: + −", "row": "easy", "color": HomeKit.LIME, "action": _new_size.bind(0, true)},
+			{"text": "5 × 5", "sub": "Easy: + −", "row": "easy", "color": HomeKit.LIME, "action": _new_size.bind(1, true)},
+			{"text": "6 × 6", "sub": "Easy: + −", "row": "easy", "color": HomeKit.LIME, "action": _new_size.bind(2, true)},
+			{"text": "4 × 4", "sub": "Full: + − × ÷", "row": "full", "color": HomeKit.CYAN, "action": _new_size.bind(0, false)},
+			{"text": "5 × 5", "sub": "Full: + − × ÷", "row": "full", "color": HomeKit.CYAN, "action": _new_size.bind(1, false)},
+			{"text": "6 × 6", "sub": "Full: + − × ÷", "row": "full", "color": HomeKit.PINK, "action": _new_size.bind(2, false)},
 		],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
-		"resume_text": func(): return "%d × %d" % [int(SaveUtil.read(SAVE_PATH).get("n", 4)), int(SaveUtil.read(SAVE_PATH).get("n", 4))] if SaveUtil.read(SAVE_PATH) else "",
+		"resume_text": func(): return "%d × %d%s" % [int(SaveUtil.read(SAVE_PATH).get("n", 4)), int(SaveUtil.read(SAVE_PATH).get("n", 4)), " (+ −)" if SaveUtil.read(SAVE_PATH).get("easy", false) else ""] if SaveUtil.read(SAVE_PATH) else "",
 		"restart": _start_new_game,
 		"board": "Puzzles solved",
 		"board_note": "Puzzles solved, all sizes.",
@@ -353,8 +358,9 @@ func _draw_home_logo(c: Control) -> void:
 	for d in [[0, 0, "1"], [1, 0, "3"], [0, 1, "2"], [2, 1, "2"], [2, 2, "3"], [1, 2, "1"]]:
 		HomeKit.glow_text(c, o + Vector2(d[0] + 0.5, d[1] + 0.58) * k, d[2], int(k * 0.5), Color.WHITE)
 
-func _new_size(i: int) -> void:
+func _new_size(i: int, easy_ops: bool = false) -> void:
 	size_index = i
+	easy = easy_ops
 	SaveUtil.delete(SAVE_PATH)
 	_start_new_game()
 
@@ -366,7 +372,7 @@ func _save_game() -> void:
 	if engine.cages.is_empty() or engine.is_solved() or win_dialog.visible or not started:
 		return
 	SaveUtil.write(SAVE_PATH, {"n": engine.n, "size_index": size_index, "solution": engine.solution,
-		"cage_of": engine.cage_of, "cages": engine.cages, "values": engine.values})
+		"cage_of": engine.cage_of, "cages": engine.cages, "values": engine.values, "easy": easy})
 
 static func _ints(a: Variant) -> Array:
 	var out: Array = []
@@ -381,6 +387,8 @@ func _load_saved_game() -> void:
 		return
 	size_index = clampi(int(d.get("size_index", 0)), 0, SIZES.size() - 1)
 	engine.n = int(d.n)
+	easy = bool(d.get("easy", false))
+	engine.easy = easy
 	engine.solution = _ints(d.solution)
 	engine.cage_of = _ints(d.cage_of)
 	engine.values = _ints(d.values)

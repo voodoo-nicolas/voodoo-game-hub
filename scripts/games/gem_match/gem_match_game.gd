@@ -76,6 +76,13 @@ func _build_ui() -> void:
 	bg.color = HomeKit.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	var deco := Control.new()
+	deco.name = "Deco"
+	deco.set_anchors_preset(Control.PRESET_FULL_RECT)
+	deco.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	deco.draw.connect(_draw_backdrop.bind(deco))
+	deco.resized.connect(deco.queue_redraw)
+	bg.add_child(deco)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -209,13 +216,16 @@ func _set_skin(name: String) -> void:
 	var v: bool = name == "voodoo"
 	_set_voodoo(v)
 	if home:
-		home._set_retro(not v)
+		home._set_retro(false)  # the retro filter flattened the gems to blobs; Classic = the cut stones
 
 func _set_voodoo(on: bool) -> void:
 	voodoo_on = on and Voodoo != null
 	var bg: ColorRect = get_node_or_null("Bg")
 	if bg:
 		bg.color = Voodoo.BG if voodoo_on else Color(0.08, 0.07, 0.13)
+		var deco: Control = bg.get_node_or_null("Deco")
+		if deco:
+			deco.visible = not voodoo_on
 	if board:
 		board.queue_redraw()
 
@@ -407,7 +417,7 @@ func _draw_board() -> void:
 	var board_rect := Rect2(o, Vector2(cs, cs) * n)
 	# A dark glass panel with a neon frame and a faint cell grid.
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.02, 0.03, 0.08, 0.9)
+	sb.bg_color = Color(0.02, 0.03, 0.08, 0.78)
 	sb.set_corner_radius_all(int(cs * 0.2))
 	sb.border_color = Color(HomeKit.PURPLE, 0.85)
 	sb.set_border_width_all(2)
@@ -475,27 +485,89 @@ func _draw_piece(c: Vector2, r: float, kind: int, flash: bool, t: float) -> void
 	if voodoo_on:
 		_draw_voodoo_piece(c, r, kind, flash, t)
 		return
-	# Neon gems: a dark glassy body, a glowing rim, facet lines from the
-	# rim to an inner table, and a white-hot core (ART_STYLE rules 2-3).
-	var col: Color = Color(1, 1, 1) if flash else GEM_COLORS[kind]
-	var sides: int = [12, 4, 3, 6, 5, 8][kind]   # 12 = a round brilliant
-	var rot := -PI / 2.0 if sides != 4 else 0.0
+	_draw_jewel(c, r, kind, flash, t)
+
+## Classic gems: six cut stones, each its own colour and shape, shaded facet by facet
+## with the light from the top left (ruby, sapphire, emerald, topaz, amethyst, amber).
+const JEWELS := [Color("e0143c"), Color("2563eb"), Color("10b055"), Color("f5c518"), Color("9a46e0"), Color("ff7a1a")]
+
+## Outline of each cut around centre c, radius r.
+func _jewel_outline(kind: int, c: Vector2, r: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	for k in sides:
-		var a := rot + TAU * k / sides
-		pts.append(c + Vector2(cos(a), sin(a)) * r * (1.12 if sides == 3 else 1.0))
-	board.draw_colored_polygon(pts, Color(col.darkened(0.55), 0.85))
+	var n: int = [10, 8, 3, 4, 6, 5][kind]
+	var rot: float = [-PI / 2.0, PI / 8.0, -PI / 2.0, -PI / 2.0, 0.0, -PI / 2.0][kind]
+	var sx: float = [1.0, 0.9, 1.0, 0.82, 1.0, 1.0][kind]
+	var rr: float = r * [1.0, 1.04, 1.18, 1.1, 1.0, 1.04][kind]
+	var shift := Vector2(0, r * 0.12) if kind == 2 else Vector2.ZERO
+	for k in n:
+		var a := rot + TAU * k / n
+		pts.append(c + shift + Vector2(cos(a) * sx, sin(a)) * rr)
+	return pts
+
+func _draw_jewel(c: Vector2, r: float, kind: int, flash: bool, t: float) -> void:
+	var base: Color = Color(1, 1, 1) if flash else JEWELS[kind]
+	var outer := _jewel_outline(kind, c, r)
+	var n := outer.size()
+	var mid := Vector2.ZERO
+	for q in outer:
+		mid += q / n
+	board.draw_circle(mid + Vector2(r * 0.08, r * 0.16), r * 1.0, Color(0, 0, 0, 0.28))
 	var inner := PackedVector2Array()
-	for q in pts:
-		inner.append(c + (q - c) * 0.5)
-	board.draw_colored_polygon(inner, Color(col, 0.28))
-	for k in sides:
-		board.draw_line(pts[k], inner[k], Color(col, 0.45), maxf(1.0, r * 0.05), true)
-	board.draw_polyline(inner + PackedVector2Array([inner[0]]), Color(col.lightened(0.3), 0.8), maxf(1.0, r * 0.05), true)
-	var w := maxf(1.5, r * 0.09)
-	HomeKit.glow_polyline(board, pts, col, w, true)
-	board.draw_circle(c - Vector2(r * 0.18, r * 0.22), r * 0.13, Color(1, 1, 1, 0.85))
-	board.draw_circle(c - Vector2(r * 0.18, r * 0.22), r * 0.26, Color(1, 1, 1, 0.12))
+	for q in outer:
+		inner.append(mid + (q - mid) * 0.52)
+	var light := Vector2.from_angle(-3.0 * PI / 4.0)
+	for k in n:
+		var k2 := (k + 1) % n
+		var normal := ((outer[k] + outer[k2]) / 2.0 - mid).normalized()
+		var b: float = normal.dot(light)
+		var col: Color = base.lerp(Color.WHITE, 0.45 * maxf(b, 0.0)) if b > 0.0 else base.darkened(0.12 + 0.38 * -b)
+		board.draw_colored_polygon(PackedVector2Array([outer[k], outer[k2], inner[k2], inner[k]]), col)
+	board.draw_colored_polygon(inner, base.lightened(0.2))
+	# a bright slice across the table, the stone's main reflection
+	var slice := PackedVector2Array([inner[0], inner[1], mid])
+	if n > 2:
+		slice = PackedVector2Array([inner[n - 1], inner[0], mid])
+	board.draw_colored_polygon(slice, Color(1, 1, 1, 0.3))
+	var line_w := maxf(1.5, r * 0.07)
+	for k in n:
+		board.draw_line(outer[k], inner[k], base.darkened(0.45), maxf(1.0, r * 0.03), true)
+	board.draw_polyline(inner + PackedVector2Array([inner[0]]), Color(1, 1, 1, 0.45), maxf(1.0, r * 0.04), true)
+	board.draw_polyline(outer + PackedVector2Array([outer[0]]), base.darkened(0.6), line_w, true)
+	board.draw_circle(mid + Vector2(-r * 0.3, -r * 0.34), r * 0.11, Color(1, 1, 1, 0.9))
+	# a twinkle that comes round every few seconds, each stone out of step
+	var tw: float = pow(maxf(0.0, sin(t * 1.7 + kind * 1.9 + mid.x * 0.02)), 14.0)
+	if tw > 0.05:
+		var sp := mid + Vector2(r * 0.25, -r * 0.4)
+		var L := r * 0.5 * tw
+		board.draw_line(sp - Vector2(L, 0), sp + Vector2(L, 0), Color(1, 1, 1, tw), 2.0, true)
+		board.draw_line(sp - Vector2(0, L), sp + Vector2(0, L), Color(1, 1, 1, tw), 2.0, true)
+
+## Backdrop for the classic skin: a violet-to-teal gradient, a soft lattice, two glows
+## and a scatter of stars (the same every time, so nothing shimmers on redraw).
+func _draw_backdrop(d: Control) -> void:
+	var sz := d.size
+	var top := Color(0.13, 0.06, 0.26)
+	var bot := Color(0.02, 0.12, 0.2)
+	d.draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(sz.x, 0), sz, Vector2(0, sz.y)]), PackedColorArray([top, top, bot, bot]))
+	for k in 14:
+		var a := 0.045 * (1.0 - k / 14.0)
+		d.draw_circle(Vector2(sz.x * 0.5, sz.y * 0.58), sz.x * (0.18 + k * 0.05), Color(0.75, 0.2, 0.85, a))
+		d.draw_circle(Vector2(sz.x * 0.12, sz.y * 0.1), sz.x * (0.08 + k * 0.04), Color(0.1, 0.8, 1.0, a * 0.8))
+	var step := 96.0
+	var x := -sz.y
+	while x < sz.x:
+		d.draw_line(Vector2(x, 0), Vector2(x + sz.y, sz.y), Color(1, 1, 1, 0.035), 1.0)
+		d.draw_line(Vector2(x + sz.y, 0), Vector2(x, sz.y), Color(1, 1, 1, 0.035), 1.0)
+		x += step
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	for k in 70:
+		var p := Vector2(rng.randf() * sz.x, rng.randf() * sz.y)
+		var s := rng.randf_range(1.0, 2.6)
+		d.draw_circle(p, s, Color(1, 1, 1, rng.randf_range(0.2, 0.6)))
+		if k % 9 == 0:
+			d.draw_line(p - Vector2(s * 4, 0), p + Vector2(s * 4, 0), Color(1, 1, 1, 0.35), 1.0)
+			d.draw_line(p - Vector2(0, s * 4), p + Vector2(0, s * 4), Color(1, 1, 1, 0.35), 1.0)
 
 ## A round black bomb with a fizzing fuse: the wildcard.
 func _draw_bomb(c: Vector2, r: float, t: float) -> void:

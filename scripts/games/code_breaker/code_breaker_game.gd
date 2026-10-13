@@ -191,7 +191,8 @@ func _on_check() -> void:
 	if not engine.submit(current):
 		_sfx("invalid")
 		return
-	_sfx("place")
+	var last: Dictionary = engine.guesses[-1]
+	_sfx("letter_right" if last.exact > 0 else ("letter_wrong" if last.near == 0 else "place"))
 	current = [-1, -1, -1, -1]
 	_refresh()
 	if engine.is_over():
@@ -289,17 +290,22 @@ func _draw_board() -> void:
 				board.draw_circle(c, r * 0.4, HomeKit.CLASSIC.wood_frame.darkened(0.3) if _is_classic() else Color(0.3, 0.3, 0.36))
 		if row < engine.guesses.size():
 			var g: Dictionary = engine.guesses[row]
-			var fx := _slot_center(row, CBEngine.SLOTS).x + 20.0
-			var pr := rh * 0.12
+			# Feedback tray: a 2x2 block of key pegs on a plate so they read on any skin.
+			# Black = right colour and spot, white = right colour wrong spot, hole = no match.
+			var pr := rh * 0.15
+			var fx := _slot_center(row, CBEngine.SLOTS).x + 4.0
+			var plate := Rect2(fx - pr * 0.4, y - pr * 2.3, pr * 5.6, pr * 4.6)
+			board.draw_rect(plate, Color(0, 0, 0, 0.38) if _is_classic() else Color(0.05, 0.05, 0.1, 0.8))
 			for k in CBEngine.SLOTS:
-				var p := Vector2(fx + (k % 2) * pr * 3.0, y + (-0.75 + (k / 2) * 1.5) * pr * 1.4)
+				var p := Vector2(fx + pr * 1.3 + (k % 2) * pr * 2.8, y + (-1.0 + (k / 2) * 2.0) * pr * 1.15)
 				if k < g.exact:
-					board.draw_circle(p, pr, Color(0.05, 0.05, 0.05))
-					board.draw_arc(p, pr, 0, TAU, 16, Color(0.8, 0.8, 0.8), 1.5)
+					board.draw_circle(p, pr, Color(0.02, 0.02, 0.02))
+					board.draw_arc(p, pr, 0, TAU, 20, Color(1, 1, 1), 2.0, true)
 				elif k < g.exact + g.near:
-					board.draw_circle(p, pr, Color(0.95, 0.95, 0.95))
+					board.draw_circle(p, pr, Color(1, 1, 1))
+					board.draw_arc(p, pr, 0, TAU, 20, Color(0.5, 0.5, 0.5), 1.5, true)
 				else:
-					board.draw_arc(p, pr * 0.6, 0, TAU, 12, Color(0.35, 0.35, 0.4), 1.5)
+					board.draw_circle(p, pr * 0.35, Color(0.3, 0.3, 0.36))
 
 func _on_board_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):

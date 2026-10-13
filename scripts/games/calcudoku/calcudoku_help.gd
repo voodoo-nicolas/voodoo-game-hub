@@ -18,6 +18,7 @@ const TIPS := [
 	"Large × targets have few options: 12× in two squares on a 4×4 can only be 3 and 4.",
 	"Once a row has only one number missing, it's whatever is left over.",
 	"Use the size button to try a bigger grid.",
+	"Easy rows use only + and − cages; Full rows add × and ÷.",
 ]
 const STATS := ["Puzzles solved"]
 

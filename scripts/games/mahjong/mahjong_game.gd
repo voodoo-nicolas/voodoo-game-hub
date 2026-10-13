@@ -24,6 +24,7 @@ const SYMBOLS := ["🍎", "🍊", "🍋", "🍉", "🍇", "🍓", "🍒", "🥝"
 ## Rim colour per symbol group, so similar fruit still read apart.
 const RIMS := [Color("29e6ff"), Color("ff2bd6"), Color("7dff3a"), Color("ffae2b"), Color("9b4dff"), Color("ff4f9a")]
 const ASPECT := 1.28  # tile height / width
+const DEPTH := 0.34  # tile thickness and per-layer lift, in half-tile units
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
@@ -286,17 +287,22 @@ func _geom() -> Dictionary:
 		maxx = maxi(maxx, t.x + 2)
 		miny = mini(miny, t.y)
 		maxy = maxi(maxy, t.y + 2)
-	var span_x: float = maxx - minx + 0.6
-	var span_y: float = maxy - miny + 0.6
+	var zmax := 0
+	for t in engine.tiles:
+		zmax = maxi(zmax, t.z)
+	var extra: float = (zmax + 2.0) * DEPTH  # layer lift (up-left) plus tile thickness (down-right)
+	var span_x: float = maxx - minx + 0.6 + extra
+	var span_y: float = maxy - miny + 0.6 + extra / ASPECT
 	var hu: float = minf((board.size.x - 24.0) / span_x, (board.size.y - 16.0) / (span_y * ASPECT))
 	var hv: float = hu * ASPECT
-	var o := Vector2((board.size.x - span_x * hu) / 2.0 - minx * hu + 0.3 * hu,
-		(board.size.y - span_y * hv) / 2.0 - miny * hv + 0.3 * hv)
+	var lead: float = zmax * DEPTH  # room on the left/top for raised layers
+	var o := Vector2((board.size.x - span_x * hu) / 2.0 - minx * hu + 0.3 * hu + lead * hu,
+		(board.size.y - span_y * hv) / 2.0 - miny * hv + 0.3 * hv + lead * hu)
 	return {"hu": hu, "hv": hv, "o": o}
 
 func _rect_of(i: int, g: Dictionary) -> Rect2:
 	var t: Dictionary = engine.tiles[i]
-	var lift: float = t.z * g.hu * 0.24
+	var lift: float = t.z * g.hu * DEPTH
 	return Rect2(g.o + Vector2(t.x * g.hu - lift, t.y * g.hv - lift), Vector2(g.hu * 2.0, g.hv * 2.0))
 
 func _order() -> Array:
@@ -347,50 +353,153 @@ func _draw_board() -> void:
 	for i in engine.tiles.size():
 		if engine.tiles[i].on:
 			on[i] = true
-	var font := ThemeDB.fallback_font
 	for i in _order():
 		var t: Dictionary = engine.tiles[i]
 		var r := _rect_of(i, g).grow(-1.5)
 		var free: bool = engine._free_among(i, on)
-		var rim: Color = RIMS[t.s % RIMS.size()]
-		var depth: float = g.hu * 0.16
-		board.draw_rect(Rect2(r.position + Vector2(depth, depth), r.size), Color(0.0, 0.0, 0.02))
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(0.07, 0.08, 0.16) if free else Color(0.035, 0.04, 0.08)
-		if _is_classic():
-			sb.bg_color = Color("f4efe4") if free else Color("b9b3a3")
-		sb.set_corner_radius_all(int(g.hu * 0.25))
-		sb.border_color = Color(rim, 0.95 if free else 0.35)
-		sb.set_border_width_all(2)
-		if _is_classic():
-			sb.border_color = Color("6b6354")
-		if i == selected or i in hinted:
-			sb.border_color = HomeKit.GOLD if i == selected else HomeKit.LIME
-			sb.set_border_width_all(4)
-			sb.shadow_color = Color(sb.border_color, 0.5)
-			sb.shadow_size = 10
-		board.draw_style_box(sb, r)
-		if _is_classic():
-			board.draw_circle(r.get_center(), g.hu * 0.62, Color("3b6b4a") if free else Color("6f7f74"))
-		var fs := int(g.hu * 1.05)
-		var sym: String = SYMBOLS[t.s % SYMBOLS.size()]
-		var w := font.get_string_size(sym, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		var pos := Vector2(r.get_center().x - w / 2.0, r.get_center().y - font.get_height(fs) / 2.0 + font.get_ascent(fs))
-		board.draw_string(font, pos, sym, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 1.0 if free else 0.45))
+		var hot: bool = i == selected or i in hinted
+		_draw_tile(board, r, int(t.s), free, hot, i == selected, g.hu)
+
+## One thick tile: a jade back slab and an ivory side layer give the 3D depth, the face sits on top.
+func _draw_tile(cv: Control, r: Rect2, sym: int, free: bool, hot: bool, is_sel: bool, hu: float) -> void:
+	var depth: float = hu * DEPTH
+	var rad := int(hu * 0.28)
+	var classic := _is_classic()
+	var rim: Color = RIMS[sym % RIMS.size()]
+	var back: Color
+	var side: Color
+	if classic:
+		back = Color("2f7d5a") if free else Color("3d5a4c")
+		side = Color("e6dcc3") if free else Color("a9a28f")
+	else:
+		back = Color(rim, 0.55 if free else 0.18).darkened(0.35)
+		side = Color(0.1, 0.12, 0.24) if free else Color(0.05, 0.06, 0.12)
+	cv.draw_rect(Rect2(r.position + Vector2(depth * 1.05, depth * 1.2), r.size), Color(0, 0, 0, 0.35))  # cast shadow
+	cv.draw_style_box(_slab(back, rad), Rect2(r.position + Vector2(depth * 0.55, depth), r.size))
+	cv.draw_style_box(_slab(side, rad), Rect2(r.position + Vector2(depth * 0.3, depth * 0.55), r.size))
+	var face := StyleBoxFlat.new()
+	if classic:
+		face.bg_color = Color("fbf7ec") if free else Color("c9c3b2")
+		face.border_color = Color("8a8168")
+	else:
+		face.bg_color = Color(0.08, 0.09, 0.18) if free else Color(0.04, 0.045, 0.09)
+		face.border_color = Color(rim, 0.95 if free else 0.35)
+	face.set_corner_radius_all(rad)
+	face.set_border_width_all(2)
+	if hot:
+		face.border_color = HomeKit.GOLD if is_sel else HomeKit.LIME
+		face.set_border_width_all(4)
+		face.shadow_color = Color(face.border_color, 0.55)
+		face.shadow_size = 10
+		if classic:
+			face.bg_color = Color("fff3c4") if is_sel else Color("e9f7d6")
+	cv.draw_style_box(face, r)
+	if classic and free:
+		cv.draw_line(r.position + Vector2(rad, 3), r.position + Vector2(r.size.x - rad, 3), Color(1, 1, 1, 0.8), 2.0)
+	_draw_face(cv, r, sym, free)
+
+func _slab(c: Color, rad: int) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = c
+	sb.set_corner_radius_all(rad)
+	return sb
+
+## Ink colours: traditional blue / red / green on ivory; neon on the voodoo skin.
+func _ink(k: int, free: bool) -> Color:
+	var cols: Array = [Color("1f4fa8"), Color("c42222"), Color("1b7a3e")]
+	if not _is_classic():
+		cols = [Color("29e6ff"), Color("ff2bd6"), Color("7dff3a")]
+	var c: Color = cols[k % 3]
+	return c if free else c.lerp(Color(0.5, 0.5, 0.5), 0.55)
+
+const DOT_POS := {
+	1: [[0, 0]], 2: [[0, -0.55], [0, 0.55]], 3: [[-0.55, -0.7], [0, 0], [0.55, 0.7]],
+	4: [[-0.5, -0.55], [0.5, -0.55], [-0.5, 0.55], [0.5, 0.55]],
+	5: [[-0.5, -0.55], [0.5, -0.55], [0, 0], [-0.5, 0.55], [0.5, 0.55]],
+	6: [[-0.5, -0.8], [0.5, -0.8], [-0.5, 0], [0.5, 0], [-0.5, 0.8], [0.5, 0.8]],
+	7: [[-0.6, -0.9], [0, -0.65], [0.6, -0.4], [-0.5, 0.35], [0.5, 0.35], [-0.5, 0.9], [0.5, 0.9]],
+	8: [[-0.5, -0.9], [0.5, -0.9], [-0.5, -0.3], [0.5, -0.3], [-0.5, 0.3], [0.5, 0.3], [-0.5, 0.9], [0.5, 0.9]],
+	9: [[-0.6, -0.8], [0, -0.8], [0.6, -0.8], [-0.6, 0], [0, 0], [0.6, 0], [-0.6, 0.8], [0, 0.8], [0.6, 0.8]],
+}
+const BAMBOO_ROWS := {1: [1], 2: [1, 1], 3: [1, 2], 4: [2, 2], 5: [2, 1, 2], 6: [3, 3], 7: [1, 3, 3], 8: [3, 2, 3], 9: [3, 3, 3]}
+
+## Tile faces drawn in code (no fonts needed): 0-8 dots, 9-17 bamboo, 18-26 numbered
+## characters, 27-30 winds, 31-33 dragons, 34-35 flowers.
+func _draw_face(cv: Control, r: Rect2, s: int, free: bool) -> void:
+	var c := r.get_center()
+	var fw := r.size.x * 0.74
+	var fh := r.size.y * 0.78
+	var font := ThemeDB.fallback_font
+	if s < 9:
+		var n := s + 1
+		var pts: Array = DOT_POS[n]
+		var rr := fw * (0.3 if n == 1 else 0.14)
+		for k in pts.size():
+			var p: Vector2 = c + Vector2(pts[k][0] * fw * 0.5, pts[k][1] * fh * 0.5)
+			var ci := 1 if (n == 1 or (n == 5 and k == 2)) else ((k + s) % 3 if n > 3 else 0)
+			var col := _ink(ci, free)
+			cv.draw_circle(p, rr, col)
+			cv.draw_circle(p, rr * 0.62, Color(1, 1, 1, 0.9 if free else 0.5))
+			cv.draw_circle(p, rr * 0.3, col)
+	elif s < 18:
+		var n := s - 8
+		var rows: Array = BAMBOO_ROWS[n]
+		var rh := fh / rows.size()
+		for ri in rows.size():
+			var cnt: int = rows[ri]
+			var y: float = c.y - fh / 2.0 + rh * (ri + 0.5)
+			var sw := fw * (0.2 if n > 1 else 0.3)
+			for ci in cnt:
+				var x: float = c.x + (ci - (cnt - 1) / 2.0) * fw * 0.3
+				var col := _ink(1 if (n >= 5 and n % 2 == 1 and ri == 1) else 2, free)
+				var sh := rh * (0.86 if n > 1 else 0.95)
+				cv.draw_style_box(_slab(col, int(sw * 0.4)), Rect2(x - sw / 2.0, y - sh / 2.0, sw, sh))
+				cv.draw_line(Vector2(x - sw / 2.0, y), Vector2(x + sw / 2.0, y), Color(1, 1, 1, 0.8), 2.0)
+	elif s < 27:
+		var fs := int(fh * 0.62)
+		var txt := str(s - 17)
+		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		cv.draw_string(font, Vector2(c.x - w / 2.0, c.y - fh * 0.04), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _ink(0, free))
+		for k in 3:  # three-bar ornament under the number
+			var yy: float = c.y + fh * 0.2 + k * fh * 0.1
+			cv.draw_line(Vector2(c.x - fw * (0.32 - k * 0.04), yy), Vector2(c.x + fw * (0.32 - k * 0.04), yy), _ink(1, free), 3.0)
+	elif s < 31:
+		var letter: String = ["N", "E", "S", "W"][s - 27]
+		cv.draw_arc(c, fw * 0.46, 0, TAU, 28, _ink(0, free), 3.0, true)
+		var fs := int(fh * 0.55)
+		var w := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		cv.draw_string(font, Vector2(c.x - w / 2.0, c.y + fs * 0.34), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, _ink(2 if s % 2 == 0 else 1, free))
+	elif s == 31:  # red dragon: diamond
+		var d := fw * 0.48
+		cv.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -d * 1.2), c + Vector2(d, 0), c + Vector2(0, d * 1.2), c + Vector2(-d, 0)]), _ink(1, free))
+		cv.draw_circle(c, d * 0.35, Color(1, 1, 1, 0.9))
+	elif s == 32:  # green dragon: leaf
+		var d := fw * 0.42
+		cv.draw_circle(c + Vector2(-d * 0.45, -d * 0.2), d * 0.75, _ink(2, free))
+		cv.draw_circle(c + Vector2(d * 0.45, -d * 0.2), d * 0.75, _ink(2, free))
+		cv.draw_circle(c + Vector2(0, d * 0.5), d * 0.75, _ink(2, free))
+		cv.draw_line(c + Vector2(0, d * 0.2), c + Vector2(0, d * 1.3), Color(1, 1, 1, 0.9), 3.0)
+	elif s == 33:  # white dragon: frame
+		cv.draw_rect(Rect2(c - Vector2(fw * 0.42, fh * 0.4), Vector2(fw * 0.84, fh * 0.8)), _ink(0, free), false, 4.0)
+		cv.draw_rect(Rect2(c - Vector2(fw * 0.28, fh * 0.26), Vector2(fw * 0.56, fh * 0.52)), _ink(0, free), false, 2.0)
+	elif s == 34:  # flower
+		for k in 5:
+			cv.draw_circle(c + Vector2.from_angle(k * TAU / 5.0 - PI / 2.0) * fw * 0.27, fw * 0.2, _ink(1, free))
+		cv.draw_circle(c, fw * 0.14, Color("f2c230") if free else Color(0.6, 0.6, 0.5))
+	else:  # sun
+		cv.draw_circle(c, fw * 0.26, _ink(1, free).lerp(Color("f2a230"), 0.5))
+		for k in 8:
+			var a := k * TAU / 8.0
+			cv.draw_line(c + Vector2.from_angle(a) * fw * 0.34, c + Vector2.from_angle(a) * fw * 0.5, _ink(1, free), 3.0)
 
 func _draw_home_logo(c: Control) -> void:
 	var w := minf(c.size.y * 0.42, 60.0)
 	var h := w * ASPECT
 	var o := c.size / 2.0
-	var font := ThemeDB.fallback_font
-	var spots := [[-1.6, 0.25, 0, "🎋"], [-0.55, 0.25, 0, "🍀"], [0.5, 0.25, 0, "🔥"], [-1.07, -0.25, 1, "🀄"], [-0.02, -0.25, 1, "🍀"]]
+	var spots := [[-1.6, 0.25, 0, 3], [-0.55, 0.25, 0, 13], [0.5, 0.25, 0, 31], [-1.07, -0.25, 1, 8], [-0.02, -0.25, 1, 20]]
 	for s in spots:
 		var r := Rect2(o + Vector2(s[0] * w, s[1] * h - h / 2.0) - Vector2(s[2] * 6, s[2] * 6), Vector2(w, h))
-		c.draw_rect(Rect2(r.position + Vector2(5, 5), r.size), Color(0, 0, 0.02))
-		HomeKit.glow_rect(c, r, [HomeKit.LIME, HomeKit.CYAN][s[2]], 2.0, 0.15)
-		var fs := int(w * 0.55)
-		var tw := font.get_string_size(s[3], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		c.draw_string(font, r.get_center() + Vector2(-tw / 2.0, fs * 0.35), s[3], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+		_draw_tile(c, r, s[3], true, false, false, w * 0.5)
 
 # ---------- pause / save ----------
 

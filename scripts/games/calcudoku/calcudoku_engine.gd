@@ -11,6 +11,8 @@ var solution: Array = []   # n*n
 var cage_of: Array = []    # n*n -> cage index
 var cages: Array = []      # [{cells: Array[int], op: String, target: int}]
 var values: Array = []     # player's entries, 0 = blank
+## Easy mode: only + and − cages (no × or ÷).
+var easy: bool = false
 
 var _budget: int = 0
 
@@ -93,6 +95,13 @@ func _make_op(cells: Array, rng: RandomNumberGenerator) -> Dictionary:
 		nums.append(solution[cell])
 	if cells.size() == 1:
 		return {"cells": cells, "op": "", "target": nums[0]}
+	if easy:
+		if cells.size() == 2 and rng.randf() < 0.6:
+			return {"cells": cells, "op": "−", "target": absi(nums[0] - nums[1])}
+		var sum := 0
+		for v in nums:
+			sum += v
+		return {"cells": cells, "op": "+", "target": sum}
 	if cells.size() == 2:
 		var a: int = max(nums[0], nums[1])
 		var b: int = min(nums[0], nums[1])

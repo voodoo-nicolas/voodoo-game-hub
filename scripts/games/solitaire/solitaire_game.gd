@@ -143,6 +143,9 @@ func _build_ui() -> void:
 	board_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	# The board shrinks to the screen width instead of scrolling sideways.
 	board_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# A finger drag on a card must lift it, not scroll the board: scrolling only starts
+	# once the finger has moved well past the drag threshold.
+	board_scroll.scroll_deadzone = 48
 	root.add_child(board_scroll)
 
 	var center := CenterContainer.new()
@@ -422,8 +425,10 @@ func _on_card_pressed(pile: String, pile_index: int, card_index: int) -> void:
 		return
 
 	if pile == "stock":
+		var recycling: bool = engine.stock.is_empty()
 		engine.draw_from_stock()
-		_sfx("card_flip")
+		# A card sliding off the deck; the waste going back under it is a softer shuffle.
+		_sfx("card_shuffle" if recycling else "card_deal")
 		_clear_selection()
 		_render()
 		return
@@ -589,13 +594,50 @@ func _move_ghost() -> void:
 	var ghost: Control = _drag.ghost
 	ghost.global_position = get_global_mouse_position() - _drag.grab * board_area.scale.x
 
+## Drag detection lives here, not only in the cards' own _gui_input: on a phone the
+## touch is also seen by the ScrollContainer around the board, and the cards never
+## got the motion they need. _input sees the (emulated) mouse first, whatever is under it.
+var _press: Dictionary = {}  # a possible drag: pile, pile_index, card_index, at (viewport px)
+
 func _input(event: InputEvent) -> void:
-	if _drag.is_empty():
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_press = _source_under(get_global_mouse_position()) if _drag.is_empty() and not autoplaying and game_active else {}
+			if not _press.is_empty():
+				_press["at"] = get_global_mouse_position()
+		else:
+			_press = {}
+			if not _drag.is_empty():
+				_drop()
+				get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion:
-		_move_ghost()
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		_drop()
+		if not _drag.is_empty():
+			_move_ghost()
+		elif not _press.is_empty() and get_global_mouse_position().distance_to(_press.at) > CardView.DRAG_START:
+			var p: Dictionary = _press
+			_press = {}
+			_on_drag_started(p.pile, p.pile_index, p.card_index)
+		return
+	# While a card is lifted the board must not scroll under it.
+	if not _drag.is_empty() and (event is InputEventScreenDrag or event is InputEventScreenTouch):
+		get_viewport().set_input_as_handled()
+
+## The card under a screen point if it can be lifted (face-up tableau card or the waste top).
+func _source_under(p: Vector2) -> Dictionary:
+	var kids := board_area.get_children()
+	for i in range(kids.size() - 1, -1, -1):
+		var v = kids[i]
+		if not v.visible or v.card_index < 0:
+			continue
+		var local: Vector2 = v.get_global_transform().affine_inverse() * p
+		if Rect2(Vector2.ZERO, v.size).has_point(local):
+			if v.pile == "tableau" and engine.tableau[v.pile_index][v.card_index].face_up:
+				return {"pile": "tableau", "pile_index": v.pile_index, "card_index": v.card_index}
+			if v.pile == "waste":
+				return {"pile": "waste", "pile_index": 0, "card_index": v.card_index}
+			return {}
+	return {}
 
 ## Where the lifted card's centre is: a foundation (top row, columns 3-6) or a
 ## tableau column (columns 0-6, below the top row).

@@ -4,10 +4,12 @@ extends RefCounted
 ## marked CORRECT (right spot), PRESENT (in the word, elsewhere) or ABSENT.
 ## English guesses must be real words: every 5-letter word of the
 ## public-domain ENABLE list (plus all ANSWERS) ships gzipped in this folder.
-## Spanish has no dictionary yet, so any 5 letters are accepted there.
+## Spanish guesses are checked against the 5-letter forms of the LibreOffice
+## es_MX Hunspell dictionary (MPL 1.1 option), accents dropped, ñ kept.
 
 const WORD_LENGTH := 5
 const WORDS_PATH := "res://scripts/games/wordle/wordle_words.txt.gz"
+const WORDS_PATH_ES := "res://scripts/games/wordle/wordle_words_es.txt.gz"
 const MAX_GUESSES := 6
 
 enum Mark { ABSENT, PRESENT, CORRECT }
@@ -129,21 +131,30 @@ var spanish: bool = false
 ## Sorted lowercase English guesses; empty if the file couldn't be read, in
 ## which case any 5 letters are accepted rather than blocking play.
 var _valid: PackedStringArray = PackedStringArray()
+var _valid_es: PackedStringArray = PackedStringArray()
 
 func _init() -> void:
-	if not FileAccess.file_exists(WORDS_PATH):
-		return
-	var raw := FileAccess.get_file_as_bytes(WORDS_PATH)
+	_valid = _load_list(WORDS_PATH)
+	_valid_es = _load_list(WORDS_PATH_ES)
+
+## Sorted lowercase words; empty if the file couldn't be read, in which case any
+## 5 letters are accepted rather than blocking play.
+static func _load_list(path: String) -> PackedStringArray:
+	if not FileAccess.file_exists(path):
+		return PackedStringArray()
+	var raw := FileAccess.get_file_as_bytes(path)
 	if raw.is_empty():
-		return
-	_valid = raw.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP).get_string_from_utf8().split("\n", false)
+		return PackedStringArray()
+	return raw.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP).get_string_from_utf8().split("
+", false)
 
 func is_valid_guess(guess: String) -> bool:
-	if spanish or _valid.is_empty():
+	var list := _valid_es if spanish else _valid
+	if list.is_empty():
 		return true
 	var w := guess.to_lower()
-	var i := _valid.bsearch(w)
-	return i < _valid.size() and _valid[i] == w
+	var i := list.bsearch(w)
+	return i < list.size() and list[i] == w
 
 ## Deals the next answer from a shuffled bag (per language) so none repeats
 ## until every word has come up. Pass `word` to force one (tests).
