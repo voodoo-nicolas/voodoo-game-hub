@@ -47,11 +47,11 @@ We do not sell your data. The Hub does not show third-party ads or build adverti
 
 ## 6. International transfers
 
-Our providers may store data outside Argentina. We make these transfers with appropriate contractual safeguards and with your consent (art. 12, Law 25,326; DNPDP Disposition 60-E/2016). [[VERIFY: Supabase data processing agreement / contractual clauses]]
+Our providers may store data outside Argentina. We make these transfers with appropriate contractual safeguards and with your consent (art. 12, Law 25,326; DNPDP Disposition 60-E/2016). Our database provider (Supabase) includes in its terms a data processing agreement with standard contractual clauses.
 
 ## 7. Retention
 
-While your account is active. If you delete it, we erase your personal data within 30 days, except purchase records we must keep for accounting or tax obligations, and backups that are overwritten in the normal cycle ([[VERIFY: Supabase backup retention]]). Aggregated ratings may be kept anonymously.
+While your account is active. If you delete it, we erase your personal data within 30 days, except purchase records we must keep for accounting or tax obligations, and any backups the provider may make, which are overwritten in their normal cycle. Aggregated ratings may be kept anonymously.
 
 ## 8. Your rights
 

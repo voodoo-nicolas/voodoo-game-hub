@@ -46,11 +46,11 @@ No vendemos tus datos. El Hub no muestra publicidad de terceros ni crea perfiles
 
 ## 6. Transferencias internacionales
 
-Nuestros proveedores pueden almacenar datos fuera de Argentina. Hacemos estas transferencias con garantías contractuales adecuadas y con tu consentimiento (art. 12, Ley 25.326; Disposición DNPDP 60-E/2016). [[VERIFICAR: acuerdo de tratamiento de datos / cláusulas contractuales de Supabase]]
+Nuestros proveedores pueden almacenar datos fuera de Argentina. Hacemos estas transferencias con garantías contractuales adecuadas y con tu consentimiento (art. 12, Ley 25.326; Disposición DNPDP 60-E/2016). Nuestro proveedor de base de datos (Supabase) incorpora a sus términos un acuerdo de tratamiento de datos con cláusulas contractuales tipo.
 
 ## 7. Cuánto tiempo los conservamos
 
-Mientras tu cuenta esté activa. Si la eliminás, borramos tus datos personales dentro de los 30 días, salvo los registros de compras que debamos conservar por obligaciones contables o fiscales, y copias de seguridad que se sobrescriben en el ciclo normal ([[VERIFICAR: plazo de backups de Supabase]]). Las calificaciones agregadas pueden conservarse de forma anónima.
+Mientras tu cuenta esté activa. Si la eliminás, borramos tus datos personales dentro de los 30 días, salvo los registros de compras que debamos conservar por obligaciones contables o fiscales, y las copias de seguridad que el proveedor pudiera generar, que se sobrescriben en su ciclo normal. Las calificaciones agregadas pueden conservarse de forma anónima.
 
 ## 8. Tus derechos
 
