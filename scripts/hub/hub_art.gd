@@ -25,6 +25,12 @@ static func category_color(category_name: String) -> Color:
 static func tile_path(game: Dictionary) -> String:
 	return _path(game, "tile_art", "tile.webp")
 
+## True when the manifest game names its own tile picture (real art): that wins over the
+## drawn logo (game_art.gd) and over the generated placeholder file.
+static func has_custom_tile(game: Dictionary) -> bool:
+	var custom := str(game.get("tile_art", ""))
+	return custom != "" and ResourceLoader.exists(custom)
+
 static func hero_path(game: Dictionary) -> String:
 	return _path(game, "hero_art", "hero.webp")
 

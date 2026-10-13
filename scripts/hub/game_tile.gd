@@ -7,6 +7,7 @@ extends Control
 
 const HubLook = preload("res://scripts/hub/hub_look.gd")
 const HubArt = preload("res://scripts/hub/hub_art.gd")
+const GameArt = preload("res://scripts/common/game_art.gd")
 
 const MODE_ICONS := {"cpu": "🤖", "local": "👥", "online": "🌐", "party": "🎉"}
 const LONG_PRESS := 0.5
@@ -65,8 +66,19 @@ func setup(g: Dictionary, category_name: String, tile_size: Vector2, scroller_no
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip.add_child(back)
 
-	_has_art = HubArt.tile_path(g) != ""
-	if not _has_art:
+	# Picture order: the manifest's own tile_art (real art) > the game's drawn logo on the
+	# category gradient (game_art.gd) > the generated placeholder file > the emoji.
+	var drawn_logo := not HubArt.has_custom_tile(g) and GameArt.has_logo(id)
+	_has_art = not drawn_logo and HubArt.tile_path(g) != ""
+	if drawn_logo:
+		var logo := Control.new()
+		var ls := tile_size.y * 0.92
+		logo.size = Vector2(ls, ls)
+		logo.position = Vector2((tile_size.x - ls) / 2.0, (tile_size.y - ls) / 2.0)
+		logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		logo.draw.connect(GameArt.draw_logo.bind(logo, id))
+		clip.add_child(logo)
+	elif not _has_art:
 		var emoji := Label.new()
 		emoji.text = str(g.get("icon", "🎮"))
 		emoji.add_theme_font_size_override("font_size", int(tile_size.y * 0.5))
