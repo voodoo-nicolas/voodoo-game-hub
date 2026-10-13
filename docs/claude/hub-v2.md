@@ -19,6 +19,7 @@ Hub shell internals (hub.gd, Catalog): `scripts/hub/CLAUDE.md`.
 - Art: `python tools/make_hub_art.py` makes self-made placeholders from `media/hub/categories` (hues avoid purple) and writes CREDITS; `--from DIR` converts real art (`<id>.png`, `<id>_tile.png`). ~7 MB for 109 games. Not built: remote hero art from Supabase Storage.
 - Import: the game_art `.webp.import` files must say `compress/mode=1` (lossy); Godot defaults to lossless and the APK doubled (96 to 201 MB). Check after adding art.
 - Tests: `tools/test_netflix_hub.gd` (headless), `tools/shot_netflix.gd` (screenshots, needs a window: `--resolution 1280x720` / `405x720`).
+- Detail preview (2026-10-13): game logo (drawn `GameIcons` icon or manifest emoji) on a transparent box, no art, nothing clips it. Owner wants a custom logo + teaser image per game long-term: when they exist, change `_set_preview` in `netflix_browser.gd` (hook: `HubArt.tile`/`tile_art`, `hero_art`).
 - Gotchas: moving a Button to another parent re-fires `node_added` (Settings/Sfx connects now guard); use `set_anchors_and_offsets_preset` on nodes already in the tree; a StyleBoxFlat shadow on a transparent box tints what is inside it (the tile glow is a separate panel under the picture).
 
 ## Brand (`scripts/common/brand.gd`, APK-side)
