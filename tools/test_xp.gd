@@ -55,5 +55,41 @@ func _initialize() -> void:
 		f.close()
 	else:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(social.SYNCED_PATH))
+	_test_challenges(A)
 	print("PASS" if fails == 0 else "FAILED")
 	quit(1 if fails > 0 else 0)
+
+## The developer API on a throwaway game id ("zz_test"): idempotent report,
+## repeatable limit, event rules (min / max / equals), bad ids, XP clamp,
+## and that collect_awards sees them. user://challenges_zz_test.json is removed.
+func _test_challenges(A) -> void:
+	var path: String = A.challenges_path("zz_test")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	var c := {"id": "boss", "title": "Boss Slayer", "icon": "🐉", "xp": 40}
+	_check(A.report("zz_test", c), "first report pays out")
+	_check(not A.report("zz_test", c), "second report of the same challenge does nothing")
+	var rep := {"id": "lap", "title": "Lap", "xp": 5, "repeatable": true}
+	var paid := 0
+	for i in 15:
+		if A.report("zz_test", rep):
+			paid += 1
+	_check(paid == A.REPEAT_MAX, "repeatable pays %d times, got %d" % [A.REPEAT_MAX, paid])
+	_check(not A.report("", c) and not A.report("zz/test", c) and not A.report("zz_test", {"title": "no id"}), "bad arguments are refused")
+	A.report("zz_test", {"id": "huge", "title": "Huge", "xp": 99999})
+	var rules := [
+		{"id": "lvl5", "title": "Level 5", "xp": 20, "event": "levelComplete", "min": {"level": 5}},
+		{"id": "fast", "title": "Fast", "xp": 20, "event": "levelComplete", "max": {"seconds": 30}},
+		{"id": "hard", "title": "Hard", "xp": 20, "event": "levelComplete", "equals": {"mode": "hard"}},
+	]
+	_check(A.on_event("zz_test", "levelComplete", {"level": 3, "seconds": 45, "mode": "easy"}, rules).is_empty(), "no rule matches")
+	_check(A.on_event("zz_test", "somethingElse", {"level": 9}, rules).is_empty(), "other event ignored")
+	var got: Array = A.on_event("zz_test", "levelComplete", {"level": 5, "seconds": 20, "mode": "hard"}, rules)
+	_check(got.size() == 3, "three rules match, got %d" % got.size())
+	_check(A.on_event("zz_test", "levelComplete", {"level": 5, "seconds": 20, "mode": "hard"}, rules).is_empty(), "events are idempotent too")
+	var mine := []
+	for a in A.collect_awards():
+		if a.game == "zz_test":
+			mine.append(a)
+			_check(int(a.xp) <= A.XP_CHALLENGE_MAX, "xp clamped for " + str(a.id))
+	_check(mine.size() == 1 + A.REPEAT_MAX + 1 + 3, "collect_awards sees every reported award, got %d" % mine.size())
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

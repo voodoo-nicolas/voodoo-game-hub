@@ -82,6 +82,8 @@ static func defs_for(consts: Dictionary, stats: Dictionary) -> Array:
 			var d := {"id": "g_" + str(a.id), "icon": str(a.get("icon", "🏅")), "title": str(a.get("title", "")),
 				"desc": str(a.get("desc", "")), "key": str(a.key), "at": float(a.get("at", 1)),
 				"lower": bool(a.get("lower", false))}
+			if a.has("xp"):
+				d["xp"] = clampi(int(a.xp), 0, XP_CHALLENGE_MAX)
 			if d.desc == "":  # no description: "Best score: 500"
 				d.desc = "%s: %d"
 				d["desc_key"] = d.key
@@ -147,6 +149,8 @@ static func check(consts: Dictionary, stats: Dictionary) -> Array:
 	for def in defs_for(consts, stats):
 		if not stats._ach.has(def.id) and reached(stats, def):
 			stats._ach[def.id] = [int(Time.get_unix_time_from_system()), def.icon, def.title, describe(def, false)]
+			if def.has("xp"):
+				stats._ach[def.id].append(int(def.xp))  # 5th: the game's own XP value
 			got.append(def)
 	return got
 
@@ -279,6 +283,112 @@ static func xp_for(challenge_id: String) -> int:
 	var tail := challenge_id.get_slice("_", challenge_id.get_slice_count("_") - 1)
 	return int(XP_BY_AT.get(int(tail), XP_DEFAULT)) if tail.is_valid_int() else XP_DEFAULT
 
+# ---------- Developer API: challenges (since v0.35) ----------
+## A game declares its challenges in `<id>_help.gd`:
+##   const CHALLENGES := [
+##     {"id": "boss_1", "title": "Boss Slayer", "icon": "🐉", "desc": "Beat the first boss",
+##      "xp": 40, "hidden": false, "repeatable": false,
+##      "event": "bossDefeated", "min": {"boss": 1}},        # optional rule, see on_event
+##   ]
+## and reports them one of two ways:
+##   Achievements.report_challenge("my_game", "boss_1")           # explicit
+##   Achievements.on_event("my_game", "bossDefeated", {"boss": 2}) # the declared rules decide
+## Both are idempotent (a challenge pays out once; `repeatable` ones up to
+## REPEAT_MAX times, each a separate award). Guard calls in packs:
+##   var a = load("res://scripts/common/achievements.gd") if ResourceLoader.exists("res://scripts/common/achievements.gd") else null
+## Stored apart from the game's stats file (user://challenges_<game>.json) so a
+## game's own stats saves can never overwrite them. Log = source of truth: each
+## entry is [unix_time, icon, title, desc, xp].
+const REPEAT_MAX := 10
+const XP_CHALLENGE_MAX := 200
+
+static func challenges_path(game_id: String) -> String:
+	return "user://challenges_%s.json" % game_id
+
+## The game's declared CHALLENGES (from its help script), or [].
+static func challenges_of(game_id: String) -> Array:
+	var path := "res://scripts/games/%s/%s_help.gd" % [game_id, game_id]
+	if not ResourceLoader.exists(path):
+		return []
+	var script = load(path)
+	var consts: Dictionary = script.get_script_constant_map() if script != null else {}
+	var list = consts.get("CHALLENGES", [])
+	return list if list is Array else []
+
+## hub.reportChallenge(gameId, challengeId): looks the challenge up in the
+## game's CHALLENGES. Returns true if it newly paid out.
+static func report_challenge(game_id: String, challenge_id: String) -> bool:
+	for c in challenges_of(game_id):
+		if typeof(c) == TYPE_DICTIONARY and str(c.get("id", "")) == challenge_id:
+			return report(game_id, c)
+	return false
+
+## The adapter: a game says what happened ("levelComplete", {"level": 5}) and
+## the declared rules decide. A rule is a CHALLENGES entry with "event" plus
+## optional "min": {field: n} (payload[field] >= n), "max": {field: n}
+## (<= n) and "equals": {field: value}. Returns the ids newly earned. Pass
+## `rules` to use ones the game holds elsewhere.
+static func on_event(game_id: String, event: String, payload: Dictionary = {}, rules: Array = []) -> Array:
+	var got: Array = []
+	for r in (rules if not rules.is_empty() else challenges_of(game_id)):
+		if typeof(r) != TYPE_DICTIONARY or str(r.get("event", "")) != event or not _rule_passes(r, payload):
+			continue
+		if report(game_id, r):
+			got.append(str(r.get("id", "")))
+	return got
+
+static func _rule_passes(rule: Dictionary, payload: Dictionary) -> bool:
+	var mins = rule.get("min", {})
+	for f in mins:
+		if not payload.has(f) or float(payload[f]) < float(mins[f]):
+			return false
+	var maxs = rule.get("max", {})
+	for f in maxs:
+		if not payload.has(f) or float(payload[f]) > float(maxs[f]):
+			return false
+	var eq = rule.get("equals", {})
+	for f in eq:
+		if not payload.has(f) or payload[f] != eq[f]:
+			return false
+	return true
+
+## Records one challenge as earned. Idempotent; false when already earned (or
+## the repeat limit is reached, or the arguments are bad). Shows a toast and
+## starts a Viral XP sync when it pays out.
+static func report(game_id: String, c: Dictionary) -> bool:
+	var id := str(c.get("id", ""))
+	if id == "" or game_id == "" or "/" in game_id or "\\" in game_id or ".." in game_id:
+		return false
+	var path := challenges_path(game_id)
+	var data := {"done": {}, "rep": {}}
+	if FileAccess.file_exists(path):
+		var loaded = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if typeof(loaded) == TYPE_DICTIONARY and typeof(loaded.get("done")) == TYPE_DICTIONARY:
+			data = loaded
+			if typeof(data.get("rep")) != TYPE_DICTIONARY:
+				data["rep"] = {}
+	var key := "c_" + id
+	if bool(c.get("repeatable", false)):
+		var n := int(data.rep.get(id, 0))
+		if n >= REPEAT_MAX:
+			return false
+		data.rep[id] = n + 1
+		key = "c_%s#%d" % [id, n + 1]
+	elif data.done.has(key):
+		return false
+	var xp := clampi(int(c.get("xp", XP_GAME_OWN)), 0, XP_CHALLENGE_MAX)
+	data.done[key] = [int(Time.get_unix_time_from_system()), str(c.get("icon", "🏅")),
+			str(c.get("title", id)), str(c.get("desc", "")), xp]
+	if not SaveUtil.write(path, data):
+		return false
+	var loop := Engine.get_main_loop()
+	if loop is SceneTree:
+		var social = (loop as SceneTree).root.get_node_or_null("Social")
+		if social != null:
+			social.toast("%s  %s: %s  +%d XP" % [str(c.get("icon", "🏅")), _tr("Achievement unlocked!"), _tr(str(c.get("title", id))), xp])
+			social.sync_awards()
+	return true
+
 ## Everything earned so far as [{game, id, title, icon, xp, at}] (unix seconds):
 ## every game's badges plus the hub-wide ones (game "hub"). `skip_games` = ids to leave out.
 static func collect_awards(skip_games: Array = []) -> Array:
@@ -295,7 +405,23 @@ static func collect_awards(skip_games: Array = []) -> Array:
 			if typeof(v) != TYPE_ARRAY or v.size() < 3:
 				continue
 			out.append({"game": gid, "id": str(id), "title": str(v[2]), "icon": str(v[1]),
-					"xp": xp_for(str(id)), "at": int(v[0])})
+					"xp": clampi(int(v[4]), 0, XP_CHALLENGE_MAX) if v.size() > 4 else xp_for(str(id)), "at": int(v[0])})
+	var dir := DirAccess.open("user://")
+	if dir != null:
+		for f in dir.get_files():
+			if not (f.begins_with("challenges_") and f.ends_with(".json")):
+				continue
+			var gid2 := f.trim_prefix("challenges_").trim_suffix(".json")
+			if skip_games.has(gid2):
+				continue
+			var data = JSON.parse_string(FileAccess.get_file_as_string("user://" + f))
+			if typeof(data) != TYPE_DICTIONARY or typeof(data.get("done")) != TYPE_DICTIONARY:
+				continue
+			for key in data.done:
+				var v2 = data.done[key]
+				if typeof(v2) == TYPE_ARRAY and v2.size() >= 5:
+					out.append({"game": gid2, "id": str(key), "title": str(v2[2]), "icon": str(v2[1]),
+							"xp": clampi(int(v2[4]), 0, XP_CHALLENGE_MAX), "at": int(v2[0])})
 	var hub := load_hub()
 	for h in HUB:
 		if hub.unlocked.has(h[0]):

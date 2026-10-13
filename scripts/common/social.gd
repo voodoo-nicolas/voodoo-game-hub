@@ -385,6 +385,8 @@ func _on_join_invite(panel: Control, game_id: String, code: String) -> void:
 
 ## Short notes ("Achievement unlocked: Friendly") that fade by themselves.
 func toast(text: String) -> void:
+	if _invite_box == null:
+		return  # not ready yet (very early, or in a test)
 	var panel := _popup_panel()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.get_child(0).add_child(_label(text, 24, Color(1, 0.85, 0.35)))
