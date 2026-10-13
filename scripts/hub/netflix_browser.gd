@@ -30,7 +30,7 @@ const GameStrip = preload("res://scripts/hub/game_strip.gd")
 const GameDetail = preload("res://scripts/hub/game_detail.gd")
 const TouchScroll = preload("res://scripts/hub/touch_scroll.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
-const GameIcons = preload("res://scripts/common/game_icons.gd")
+const GameArt = preload("res://scripts/common/game_art.gd")
 
 const BAR_H := 64.0
 const TOP_H := 84.0
@@ -64,6 +64,7 @@ var _detail_holder: Control
 var _preview: Control
 var _preview_logo: Control
 var _preview_logo_id := ""
+var _preview_teaser := false
 var _preview_emoji: Label
 var _bottom: VBoxContainer
 var _topbar: Control
@@ -198,7 +199,8 @@ func _build_detail() -> void:
 
 	# Preview = the game's logo on a transparent box (no background art) until each game
 	# has its own teaser picture. Nothing clips it, so the logo can't be cropped.
-	_preview = Control.new()
+	_preview = Panel.new()   # frame: clipped + rounded for a teaser, empty for a bare logo
+	_preview.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_preview.visible = false
 	add_child(_preview)
@@ -216,8 +218,12 @@ func _build_detail() -> void:
 	_preview.add_child(_preview_emoji)
 
 func _draw_preview_logo() -> void:
-	if _preview_logo_id != "":
-		GameIcons.draw(_preview_logo, _preview_logo_id)
+	if _preview_logo_id == "":
+		return
+	if _preview_teaser:
+		GameArt.draw_teaser(_preview_logo, _preview_logo_id)
+	else:
+		GameArt.draw_logo(_preview_logo, _preview_logo_id)
 
 func _all_tiles() -> Array:
 	return _grid_tiles if grid_mode else (strip.tiles if strip else [])
@@ -676,10 +682,13 @@ func _close_detail() -> void:
 		scroller.vertical = _grid_scroll
 	_layout()
 
-## The game's logo (drawn icon, or its emoji), transparent background.
+## The game's teaser scene if it has one, else its logo (drawn icon or emoji) on a transparent box.
 func _set_preview(g: Dictionary, _category_en: String) -> void:
 	var id := str(g.get("id", ""))
-	_preview_logo_id = id if GameIcons.has(id) else ""
+	_preview_teaser = GameArt.has_teaser(id)
+	_preview_logo_id = id if (_preview_teaser or GameArt.has_logo(id)) else ""
+	_preview.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW if _preview_teaser else CanvasItem.CLIP_CHILDREN_DISABLED
+	_preview.add_theme_stylebox_override("panel", HubLook.clip_style() if _preview_teaser else StyleBoxEmpty.new())
 	_preview_logo.queue_redraw()
 	_preview_emoji.text = "" if _preview_logo_id != "" else str(g.get("icon", "🎮"))
 

@@ -6,6 +6,7 @@ const Config = preload("res://scripts/common/config.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
+const GameArt = preload("res://scripts/common/game_art.gd")
 const Brand = preload("res://scripts/common/brand.gd")
 const HubFx = preload("res://scripts/common/hub_fx.gd")
 const Consent = preload("res://scripts/common/consent.gd")
@@ -452,13 +453,13 @@ func _fav_tile(game: Dictionary) -> Button:
 	return b
 
 func _game_icon(game: Dictionary, size: float) -> Control:
-	if GameIcons.has(str(game.get("id", ""))):
+	if GameArt.has_logo(str(game.get("id", ""))):
 		var art := Control.new()
 		art.custom_minimum_size = Vector2(size, size)
 		art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.draw.connect(GameIcons.draw.bind(art, str(game.id)))
+		art.draw.connect(GameArt.draw_logo.bind(art, str(game.id)))
 		return art
 	var l := Label.new()
 	l.text = str(game.get("icon", "🎮"))
@@ -1132,12 +1133,12 @@ func _make_tile(game: Dictionary, heading: String = "") -> Control:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(row)
 
-	if GameIcons.has(str(game.get("id", ""))):
+	if GameArt.has_logo(str(game.get("id", ""))):
 		var icon_art := Control.new()
 		icon_art.custom_minimum_size = Vector2(76, 76)
 		icon_art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		icon_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_art.draw.connect(GameIcons.draw.bind(icon_art, str(game.id)))
+		icon_art.draw.connect(GameArt.draw_logo.bind(icon_art, str(game.id)))
 		row.add_child(icon_art)
 	else:
 		var icon_label := Label.new()

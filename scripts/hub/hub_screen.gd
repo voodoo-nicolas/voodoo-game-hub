@@ -15,6 +15,7 @@ const Mist = preload("res://scripts/common/mist.gd")
 const Brand = preload("res://scripts/common/brand.gd")
 const HubFx = preload("res://scripts/common/hub_fx.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
+const GameArt = preload("res://scripts/common/game_art.gd")
 const HUB_SCENE := "res://scenes/hub/hub.tscn"
 
 var pal: Dictionary
@@ -173,12 +174,12 @@ func dim(text: String, size: int = 21) -> Label:
 ## A game's icon: the drawn neon one when there is one, else its emoji.
 func game_icon(game: Dictionary, size: float = 56.0) -> Control:
 	var id := str(game.get("id", ""))
-	if GameIcons.has(id):
+	if GameArt.has_logo(id):
 		var art := Control.new()
 		art.custom_minimum_size = Vector2(size, size)
 		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.draw.connect(GameIcons.draw.bind(art, id))
+		art.draw.connect(GameArt.draw_logo.bind(art, id))
 		return art
 	var l := label(str(game.get("icon", "🎮")), int(size * 0.62), null, false)
 	l.custom_minimum_size = Vector2(size, 0)
