@@ -103,8 +103,6 @@ static func _teaser_memory_grid(c: CanvasItem, base: Transform2D) -> void:
 	for r in range(4):
 		for k in range(4):
 			L.cell(c, Rect2(40 + k * 21, 5 + r * 21, 17, 17), CYAN, (r * 4 + k) in lit, 4.0)
-	GI._glow_line(c, Vector2(14, 70), Vector2(14, 40), GOLD, 2.4)   # level bars either side
-	GI._glow_line(c, Vector2(146, 70), Vector2(146, 28), GOLD, 2.4)
 
 static func _teaser_color_clash(c: CanvasItem, base: Transform2D) -> void:
 	backdrop(c, PINK)

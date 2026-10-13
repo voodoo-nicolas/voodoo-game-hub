@@ -506,7 +506,7 @@ static func _teaser_same_game(c: CanvasItem, _base: Transform2D) -> void:
 	T.backdrop(c, MAGENTA)
 	var key := [CYAN, PINK, LIME, GOLD]
 	for k in range(10):
-		var h := 3 + (k * 5) % 5
+		var h := 3 + (k * 3) % 5
 		for j in range(h):
 			var r := 6 - j
 			var idx := (k * 7 + j * 3 + (k * j) % 4) % 4

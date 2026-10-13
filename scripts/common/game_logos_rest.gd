@@ -289,11 +289,11 @@ static func _logo_word_chain(c: CanvasItem) -> void:
 	var pairs := ["AT", "TE", "EN"]
 	var cols := [CYAN, PINK, LIME]
 	for i in range(3):
-		var rc := Rect2(4 + i * 29.0, 37 + (i % 2) * 8.0, 40, 26)
+		var rc := Rect2(2 + i * 28.0, 28 + i * 14.0, 38, 24)
 		GI._slab(c, rc, Color(0.03, 0.05, 0.1), cols[i], 13, 0.6)
 		L.txt(c, pairs[i], rc.get_center(), 15, Color.WHITE)
-	L.txt(c, "A", Vector2(14, 20), 12, Color(CYAN, 0.8))
-	L.txt(c, "N", Vector2(86, 82), 12, Color(LIME, 0.8))
+	L.txt(c, "A", Vector2(12, 18), 12, Color(CYAN, 0.8))
+	L.txt(c, "N", Vector2(88, 84), 12, Color(LIME, 0.8))
 
 ## ---------- Dice ----------
 

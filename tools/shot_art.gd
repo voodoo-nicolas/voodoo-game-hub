@@ -24,6 +24,7 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(out)
 	var rows := ceili(ids.size() / float(COLS))
 	var sheet := Vector2i(int(CELL.x) * COLS, int(CELL.y) * rows)
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	root.size = sheet
 	var bg := ColorRect.new()
 	bg.color = Color(0.07, 0.08, 0.12)
@@ -35,11 +36,13 @@ func _run() -> void:
 		var logo := Control.new()
 		logo.position = o + Vector2(8, 26)
 		logo.size = Vector2(100, 100)
+		logo.clip_contents = true
 		logo.draw.connect(GameArt.draw_logo.bind(logo, id))
 		root.add_child(logo)
 		var teaser := Control.new()
 		teaser.position = o + Vector2(116, 8)
 		teaser.size = Vector2(240, 135)
+		teaser.clip_contents = true
 		teaser.draw.connect(GameArt.draw_teaser.bind(teaser, id))
 		root.add_child(teaser)
 		var l := Label.new()
@@ -47,6 +50,7 @@ func _run() -> void:
 		l.position = o + Vector2(8, 130)
 		root.add_child(l)
 	for i in 6:
+		root.content_scale_factor = 1.0   # Settings scales the hub; the sheet wants 1:1
 		await process_frame
 	root.get_viewport().get_texture().get_image().save_png(out + "/art_sheet.png")
 	quit()
