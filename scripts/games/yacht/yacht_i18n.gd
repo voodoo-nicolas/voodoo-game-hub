@@ -38,6 +38,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
 		"Held": "Guardado",
+		"Help": "Ayuda",
 		"High Roller": "Gran apostador",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If a turn goes badly, put a 0 in a box you're unlikely to fill anyway, like Yacht or Ones.": "Si un turno sale mal, anota un 0 en una casilla que difícilmente completes, como Generala o Unos.",

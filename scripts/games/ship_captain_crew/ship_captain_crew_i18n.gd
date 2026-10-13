@@ -46,6 +46,7 @@ const STRINGS := {
 		"Game over": "Fin del juego",
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It's a tie!": "¡Empate!",
 		"Keep any cargo die that is a 5 or a 6, and roll the small ones again.": "Conserva los dados de carga que sean 5 o 6 y vuelve a tirar los pequeños.",

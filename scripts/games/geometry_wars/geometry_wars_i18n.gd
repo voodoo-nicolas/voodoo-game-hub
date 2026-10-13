@@ -142,6 +142,7 @@ const STRINGS := {
 		"Guards your back: fires the other way.": "Te cubre la espalda: dispara hacia el otro lado.",
 		"Hard": "Difícil",
 		"Hardcore stars": "Estrellas en extremo",
+		"Help": "Ayuda",
 		"Hidden!": "¡Escondido!",
 		"Hide and Seek": "Escondidas",
 		"Hide from 5 of the Watcher's beams in one run": "Escóndete de 5 rayos del Vigía en una partida",

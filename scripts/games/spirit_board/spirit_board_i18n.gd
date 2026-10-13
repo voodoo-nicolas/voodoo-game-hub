@@ -28,6 +28,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Goodbye": "Adiós",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hold a séance": "Haz una sesión espiritista",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It's a game: the replies are random. Don't take them seriously!": "Es un juego: las respuestas son al azar. ¡No te las tomes en serio!",

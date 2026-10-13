@@ -27,6 +27,7 @@ const STRINGS := {
 		"Easy": "Fácil",
 		"Expert": "Experto",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It was %s": "Era %s",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

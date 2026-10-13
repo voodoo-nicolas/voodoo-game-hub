@@ -31,6 +31,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Games won against the computer, at any level.": "Partidas ganadas a la computadora, en cualquier nivel.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Jump diagonally over an enemy piece into the empty square behind it to capture it. You can keep jumping in the same turn.": "Salta en diagonal sobre una ficha rival hasta la casilla vacía de detrás para capturarla. Puedes seguir saltando en el mismo turno.",
 		"Jump, capture, crown your kings. Beat the computer or a friend.": "Salta, captura y corona tus damas. Gánale a la computadora o a un amigo.",

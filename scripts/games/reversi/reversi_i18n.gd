@@ -35,6 +35,7 @@ const STRINGS := {
 		"Hard": "Difícil",
 		"Have more discs of your colour on the board when it's full.": "Ten más fichas de tu color en el tablero cuando se llene.",
 		"Having lots of discs early doesn't matter much. Keep your options open instead.": "Tener muchas fichas al principio no importa tanto. Mejor mantén abiertas tus opciones.",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If you can't make a legal move, your turn passes. The game ends when neither player can move.": "Si no puedes hacer un movimiento válido, pasas el turno. El juego termina cuando nadie puede mover.",
 		"It's a tie! %d - %d": "¡Empate! %d - %d",

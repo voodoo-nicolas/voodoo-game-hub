@@ -38,6 +38,7 @@ const STRINGS := {
 		"Game Over": "Fin del juego",
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Huge": "Enorme",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

@@ -32,6 +32,7 @@ const STRINGS := {
 		"Flooded in %d moves!": "¡Inundado en %d jugadas!",
 		"Grow towards the middle first: the flood's edge gets longer, and longer edges catch more cells.": "Crece primero hacia el centro: el borde de la inundación se alarga, y un borde largo atrapa más casillas.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

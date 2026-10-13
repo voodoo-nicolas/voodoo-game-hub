@@ -28,6 +28,7 @@ const STRINGS := {
 		"From wave 3, some missiles split into two on the way down.": "Desde la oleada 3, algunos misiles se dividen en dos al caer.",
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Highest wave": "Oleada más alta",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

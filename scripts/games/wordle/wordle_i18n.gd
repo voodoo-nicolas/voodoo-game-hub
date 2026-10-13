@@ -31,6 +31,7 @@ const STRINGS := {
 		"Guess the hidden five-letter word in six tries.": "Adivina la palabra oculta de cinco letras en seis intentos.",
 		"Guesser: your turn!": "Adivinador: ¡te toca!",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Impressive!": "¡Impresionante!",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

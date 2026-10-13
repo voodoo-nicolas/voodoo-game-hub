@@ -31,6 +31,7 @@ const STRINGS := {
 		"Gem Match": "Joyas",
 		"Gems fall into the gaps and new ones drop in; falls that make new matches are chains and score extra.": "Las gemas caen a los huecos y entran nuevas; las caídas que forman combinaciones nuevas son cadenas y dan puntos extra.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Jeweler": "Joyero",
 		"Keep moving — a fast ×5 is worth much more than one perfect move.": "No te detengas — un ×5 rápido vale mucho más que una jugada perfecta.",

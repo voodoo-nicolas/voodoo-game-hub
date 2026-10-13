@@ -26,6 +26,7 @@ const STRINGS := {
 		"Game over!": "¡Fin del juego!",
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Highest wave": "Oleada más alta",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

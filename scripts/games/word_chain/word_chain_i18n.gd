@@ -45,6 +45,7 @@ const STRINGS := {
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Give up": "Rendirse",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Japan has a word chain game called shiritori, where each word must start with the last sound of the one before.": "En Japón existe un juego de cadenas de palabras llamado shiritori, donde cada palabra empieza con el último sonido de la anterior.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

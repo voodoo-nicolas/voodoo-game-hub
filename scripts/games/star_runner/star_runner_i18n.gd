@@ -37,6 +37,7 @@ const STRINGS := {
 		"Getting hit drains your shield. When it's empty you lose a ship — you have 3.": "Cada impacto gasta tu escudo. Cuando se vacía pierdes una nave: tienes 3.",
 		"Glowing towers can't be shot: fly through the gap or over them. Green rings give 50 points and 15 shield.": "Las torres brillantes no se pueden destruir: pasa por el hueco o por encima. Los anillos verdes dan 50 puntos y 15 de escudo.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Highest stage": "Etapa más alta",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep moving: shots are aimed where you are, not where you'll be.": "No te quedes quieto: los disparos apuntan a donde estás, no a donde vas a estar.",

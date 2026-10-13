@@ -43,6 +43,7 @@ const STRINGS := {
 		"Gin Rummy": "Gin Rummy",
 		"Gin!": "¡Gin!",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"I'm ready": "Estoy listo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

@@ -31,6 +31,7 @@ const STRINGS := {
 		"Good Memory": "Buena memoria",
 		"Grouping digits into chunks — 415 209 73 instead of 41520973 — makes them much easier to remember. It's why phone numbers are split up.": "Agrupar los dígitos en bloques (415 209 73 en vez de 41520973) los hace mucho más fáciles de recordar. Por eso los teléfonos se escriben así.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Human Hard Drive": "Disco duro humano",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

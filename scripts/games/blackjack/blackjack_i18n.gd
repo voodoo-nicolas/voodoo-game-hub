@@ -42,6 +42,7 @@ const STRINGS := {
 		"Hands lost": "Manos perdidas",
 		"Hands won": "Manos ganadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hit": "Pedir",
 		"Hit on 12–16 when the dealer shows 7 or higher; stand when the dealer shows 2–6 — they're likely to bust.": "Pide con 12–16 cuando el crupier muestra 7 o más; plántate si muestra 2–6 — es probable que se pase.",
 		"Hit to take another card, Stand to keep your hand. Go over 21 and you bust.": "Pide para recibir otra carta y Plántate para quedarte con tu mano. Si pasas de 21, pierdes.",

@@ -33,6 +33,7 @@ const STRINGS := {
 		"Find the pattern and pick the number that comes next.": "Encuentra el patrón y elige el número que sigue.",
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If the numbers grow fast, try multiplying. If they seem to zigzag, look at every second number.": "Si los números crecen rápido, prueba multiplicando. Si parece que van en zigzag, mira un número sí y otro no.",
 		"In the Fibonacci sequence 1, 1, 2, 3, 5, 8… each number is the sum of the two before it.": "En la sucesión de Fibonacci 1, 1, 2, 3, 5, 8… cada número es la suma de los dos anteriores.",

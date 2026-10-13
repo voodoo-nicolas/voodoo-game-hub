@@ -28,6 +28,7 @@ const STRINGS := {
 		"Every piece starts turned the wrong way. Tap a piece to turn it a quarter turn clockwise.": "Cada pieza empieza mal girada. Toca una pieza para girarla un cuarto de vuelta en sentido horario.",
 		"Expert": "Experto",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

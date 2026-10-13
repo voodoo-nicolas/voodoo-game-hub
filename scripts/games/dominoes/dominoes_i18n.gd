@@ -30,6 +30,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Games (to 100 points) won.": "Partidas (a 100 puntos) ganadas.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If nobody can play, the round is blocked: the lightest hand wins the others' pips minus its own.": "Si nadie puede jugar, la ronda se cierra: gana la mano más ligera y suma los puntos de las demás menos los suyos.",
 		"Keep a variety of numbers in your hand so you can always match an end.": "Guarda números variados en tu mano para poder seguir siempre un extremo.",

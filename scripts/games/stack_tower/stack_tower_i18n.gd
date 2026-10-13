@@ -26,6 +26,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
 		"Height: %d": "Altura: %d",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"How high can you build?": "¿Qué tan alto puedes llegar?",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

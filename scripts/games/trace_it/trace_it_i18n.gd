@@ -41,6 +41,7 @@ const STRINGS := {
 		"Gray": "Gris",
 		"Hard": "Difícil",
 		"Hatching": "Rayado",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If the picture slowly zooms in and out by itself, the camera is refocusing: tap 📷 to try another camera -- the wide one often has fixed focus.": "Si la imagen se agranda y se achica sola, la cámara está enfocando de nuevo: toca 📷 para probar otra cámara; la gran angular suele tener foco fijo.",
 		"Invert": "Invertir",

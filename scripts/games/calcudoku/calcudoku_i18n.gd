@@ -31,6 +31,7 @@ const STRINGS := {
 		"For − and ÷, start with the bigger number: a \"2÷\" cage could be 4 and 2.": "Para − y ÷, empieza por el número más grande: una jaula \"2÷\" podría ser 4 y 2.",
 		"Full: + − × ÷": "Completo: + − × ÷",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"In a 4×4 grid use 1–4, in a 5×5 use 1–5, and so on. No number repeats in any row or column.": "En una cuadrícula de 4×4 usa 1–4, en una de 5×5 usa 1–5, y así. Ningún número se repite en una fila o columna.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

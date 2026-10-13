@@ -40,6 +40,7 @@ const STRINGS := {
 		"Green: %d": "Verde: %d",
 		"Hard": "Difícil",
 		"Head-on crash — a draw!": "¡Choque de frente — empate!",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Hungry": "Hambriento",
 		"In versus, cut across in front of your opponent so they have nowhere to go.": "En el modo contra, crúzate frente a tu rival para que no tenga a dónde ir.",

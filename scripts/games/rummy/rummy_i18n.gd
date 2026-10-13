@@ -31,6 +31,7 @@ const STRINGS := {
 		"Going Out": "Salir",
 		"Hands won": "Manos ganadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep cards that are close together (a 6 and an 8 of the same suit, or two of a kind): they are a draw away from a meld.": "Conserva cartas cercanas entre sí (un 6 y un 8 del mismo palo, o dos iguales): están a una carta de formar una combinación.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

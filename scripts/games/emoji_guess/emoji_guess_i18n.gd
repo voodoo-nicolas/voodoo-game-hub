@@ -34,6 +34,7 @@ const STRINGS := {
 		"Full Marks": "Puntaje perfecto",
 		"Guess the word or phrase hidden in the emoji.": "Adivina la palabra o frase escondida en los emoji.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hint: %s": "Pista: %s",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It was: %s": "Era: %s",

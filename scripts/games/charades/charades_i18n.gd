@@ -29,6 +29,7 @@ const STRINGS := {
 		"Guess as many words as you can in 60 seconds — with the phone on your forehead.": "Adivina todas las palabras que puedas en 60 segundos — con el teléfono en la frente.",
 		"Guessed it? Tilt the phone down. Want to pass? Tilt it up. The screen flashes green or orange.": "¿Adivinaste? Inclina el teléfono hacia abajo. ¿Quieres pasar? Inclínalo hacia arriba. La pantalla destella verde o naranja.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hold the phone to your forehead. Tilt down = got it ✓ · tilt up = pass ✗": "Pon el teléfono en tu frente. Inclinar abajo = adivinó ✓ · inclinar arriba = pasar ✗",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Jobs": "Oficios",

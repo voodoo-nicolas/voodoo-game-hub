@@ -31,6 +31,7 @@ const STRINGS := {
 		"Free cells are precious — try to keep at least one empty.": "Las celdas libres son valiosas — intenta dejar al menos una vacía.",
 		"Games won": "Partidas ganadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

@@ -24,6 +24,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Games won against the computer, at any level.": "Partidas ganadas a la computadora, en cualquier nivel.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If your last seed lands in an empty pit on your side, you capture it and every seed in the pit directly opposite.": "Si tu última semilla cae en un hoyo vacío de tu lado, la capturas junto con todas las semillas del hoyo de enfrente.",
 		"If your last seed lands in your store, you get another turn.": "Si tu última semilla cae en tu depósito, juegas otra vez.",

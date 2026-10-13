@@ -30,6 +30,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Games won against the computer, at any level.": "Partidas ganadas a la computadora, en cualquier nivel.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hex": "Hex",
 		"Hex can never end in a draw: someone always connects. This is linked to a famous result in maths, the Brouwer fixed-point theorem.": "El Hex nunca termina en empate: alguien siempre conecta. Esto se relaciona con un resultado famoso de matemáticas, el teorema del punto fijo de Brouwer.",
 		"Hex was invented by Piet Hein in 1942 and again, on his own, by John Nash in 1948.": "Piet Hein inventó el Hex en 1942, y John Nash lo volvió a inventar por su cuenta en 1948.",

@@ -65,6 +65,17 @@ var _manifest_waiters: Array[Callable] = []
 ## returning to the hub doesn't re-hit the rate-limited API or re-nag.
 var app_update_checked := false
 
+## Age ratings (since v0.35, compliance pack Task 4). Each manifest game has
+## "content": {"min_age", "descriptors", "notes"}. When the manifest carries any
+## content block at all, a game WITHOUT one counts as 18+ (fail closed) and is
+## hidden; an old manifest with none at all is left alone, so an outdated cache
+## can't blank the hub. `categories` holds only the games this player's age
+## bracket allows (see refilter); `show_locked` also lists the rest, marked
+## game.locked, which can't be opened or downloaded.
+var show_locked := false
+var _all_categories: Array = []
+var _ratings_active := false
+
 func _ready() -> void:
 	# Keep working while a game is paused (GameInfo pauses the tree).
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -199,6 +210,7 @@ func _apply_manifest(data: Variant) -> bool:
 		games_by_id.erase(id)
 
 	var new_categories := []
+	var ratings_seen := false
 	for raw_cat in raw_categories:
 		if typeof(raw_cat) != TYPE_DICTIONARY or typeof(raw_cat.get("games")) != TYPE_ARRAY:
 			continue
@@ -233,6 +245,13 @@ func _apply_manifest(data: Variant) -> bool:
 			# Since v0.35: similar games sit together ("Sudoku", "Solitaire"...);
 			# a category lists by family, then title (_family_less below).
 			game["family"] = str(raw_game.get("family", ""))
+			var content = raw_game.get("content", null)
+			game["has_content"] = typeof(content) == TYPE_DICTIONARY
+			game["min_age"] = int(content.get("min_age", 18)) if typeof(content) == TYPE_DICTIONARY else 18
+			game["descriptors"] = content.get("descriptors", []) if typeof(content) == TYPE_DICTIONARY and content.get("descriptors", []) is Array else []
+			game["content_notes"] = str(content.get("notes", "")) if typeof(content) == TYPE_DICTIONARY else ""
+			if typeof(content) == TYPE_DICTIONARY:
+				ratings_seen = true
 			cat_games.append(game)
 		cat_games.sort_custom(_family_less)
 		var category := {
@@ -245,7 +264,13 @@ func _apply_manifest(data: Variant) -> bool:
 	if new_categories.is_empty():
 		return false
 
-	categories = new_categories
+	# No content block while the manifest has any = unrated = hidden for everyone.
+	for cat in new_categories:
+		for g in cat.games:
+			g["unrated"] = ratings_seen and not bool(g.get("has_content", false))
+	_all_categories = new_categories
+	_ratings_active = ratings_seen
+	categories = refiltered()
 	_games_by_id = games_by_id
 	archived_ids = archived
 	return true
@@ -265,6 +290,78 @@ func _family_less(a: Dictionary, b: Dictionary) -> bool:
 		return c < 0
 	return str(a.get("title", "")).naturalnocasecmp_to(str(b.get("title", ""))) < 0
 
+## The oldest game rating this player's account allows (from the age bracket they
+## gave; guests and unknown ages get the youngest account's limit).
+func max_age() -> int:
+	return preload("res://scripts/common/consent.gd").max_game_age()
+
+## True if the game's rating is above what this player's account allows.
+func is_age_locked(game: Dictionary) -> bool:
+	if not _ratings_active or not game.has("id"):
+		return false
+	return bool(game.get("unrated", false)) or int(game.get("min_age", 18)) > max_age()
+
+## "Ages 7+ · Cartoon violence" for the Landing's rating line; "" when the game has
+## no content block (or the manifest has no ratings at all).
+func rating_text(game: Dictionary) -> String:
+	if game.is_empty() or not bool(game.get("has_content", false)):
+		return ""
+	var parts := PackedStringArray([tr("Ages %d+") % int(game.get("min_age", 3))])
+	for d in game.get("descriptors", []):
+		match str(d):
+			"violence_cartoon": parts.append(tr("Cartoon violence"))
+			"violence_realistic": parts.append(tr("Realistic violence"))
+			"blood": parts.append(tr("Blood"))
+			"horror": parts.append(tr("Horror themes"))
+			"simulated_gambling": parts.append(tr("Simulated gambling"))
+			"alcohol_reference": parts.append(tr("Alcohol references"))
+			"drug_reference": parts.append(tr("Drug references"))
+			"crude_humor": parts.append(tr("Crude humour"))
+			"strong_language": parts.append(tr("Strong language"))
+			"sexual_content": parts.append(tr("Sexual content"))
+			"online_interaction": parts.append(tr("Online interaction"))
+			"user_generated_content": parts.append(tr("User-generated content"))
+	return " · ".join(parts)
+
+## "Ages 16+" (translated) for a locked game.
+func age_reason(game: Dictionary) -> String:
+	if bool(game.get("unrated", false)):
+		return tr("Not rated")
+	return tr("Ages %d+") % int(game.get("min_age", 18))
+
+## `_all_categories` minus the games the player's age bracket doesn't allow
+## (kept, marked locked, when show_locked is on).
+func refiltered() -> Array:
+	var out: Array = []
+	for cat in _all_categories:
+		var kept: Array = []
+		for g in cat.games:
+			var locked := is_age_locked(g)
+			if locked and not show_locked:
+				continue
+			g["locked"] = locked
+			kept.append(g)
+		var copy: Dictionary = cat.duplicate()
+		copy["games"] = kept
+		out.append(copy)
+	return out
+
+## How many games the player's age bracket hides.
+func locked_count() -> int:
+	var n := 0
+	for cat in _all_categories:
+		for g in cat.games:
+			if is_age_locked(g):
+				n += 1
+	return n
+
+## Re-applies the age limit (after the player gave their age, or toggled show_locked).
+func refilter() -> void:
+	if _all_categories.is_empty():
+		return
+	categories = refiltered()
+	catalog_changed.emit()
+
 ## Carries "<field>_<lang>" translations (e.g. "title_es") from the manifest
 ## into the entry; Lang.pick() chooses between them at display time.
 func _copy_localized(from: Dictionary, to: Dictionary, field: String) -> void:
@@ -281,6 +378,9 @@ func download(id: String, on_done: Callable) -> HTTPRequest:
 	var game := get_game(id)
 	if game.is_empty():
 		_safe_call.call_deferred(on_done, [tr("This game isn't in the catalog.")])
+		return null
+	if is_age_locked(game):  # a game above the player's age bracket is never downloaded
+		_safe_call.call_deferred(on_done, [age_reason(game)])
 		return null
 	if _downloads.has(id):
 		return _downloads[id]

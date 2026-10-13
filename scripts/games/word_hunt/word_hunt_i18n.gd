@@ -31,6 +31,7 @@ const STRINGS := {
 		"Find as many words as you can in the letter grid before the 3 minutes run out.": "Encuentra todas las palabras que puedas en la cuadrícula antes de que pasen los 3 minutos.",
 		"Found:": "Encontradas:",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Hunt around the vowels — most words go through them.": "Busca alrededor de las vocales — la mayoría de las palabras pasan por ellas.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

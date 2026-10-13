@@ -5815,5 +5815,22 @@
  "Helplines in your country": "Líneas de ayuda en tu país",
  "Free call": "Llamada gratuita",
  "These numbers are for your country. We don't see or keep anything about who opens this screen.": "Estos números son de tu país. No vemos ni guardamos nada sobre quién abre esta pantalla.",
- "If you or someone is in danger, get help": "Si vos o alguien está en peligro, pedí ayuda"
+ "If you or someone is in danger, get help": "Si vos o alguien está en peligro, pedí ayuda",
+ "Ages %d+": "Desde %d años",
+ "Not rated": "Sin clasificación",
+ "Not for your age": "No es para tu edad",
+ "%s is rated %s. Age ratings come from the age you gave when you made your account; they aren't checked.": "%s está clasificado: %s. Las clasificaciones usan la edad que indicaste al crear tu cuenta; no se verifica.",
+ "🔒 Age-locked": "🔒 Bloqueados por edad",
+ "Cartoon violence": "Violencia caricaturesca",
+ "Realistic violence": "Violencia realista",
+ "Blood": "Sangre",
+ "Horror themes": "Temas de terror",
+ "Simulated gambling": "Apuestas simuladas",
+ "Alcohol references": "Referencias al alcohol",
+ "Drug references": "Referencias a drogas",
+ "Crude humour": "Humor grosero",
+ "Strong language": "Lenguaje fuerte",
+ "Sexual content": "Contenido sexual",
+ "Online interaction": "Interacción en línea",
+ "User-generated content": "Contenido generado por usuarios"
 }

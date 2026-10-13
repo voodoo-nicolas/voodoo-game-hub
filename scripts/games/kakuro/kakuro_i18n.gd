@@ -27,6 +27,7 @@ const STRINGS := {
 		"Fill the white squares with 1–9 so each run adds up to its clue.": "Llena las casillas blancas con 1–9 para que cada fila sume su pista.",
 		"Fill the white squares with 1–9 so every run adds up to its clue.": "Llena las casillas blancas con 1–9 para que cada tramo sume su pista.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Kakuro": "Kakuro",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

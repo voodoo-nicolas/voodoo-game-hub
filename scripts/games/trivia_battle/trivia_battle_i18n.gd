@@ -26,6 +26,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Geography": "Geografía",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"History": "Historia",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It's a tie!": "¡Empate!",

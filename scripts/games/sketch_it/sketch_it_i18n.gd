@@ -39,6 +39,7 @@ const STRINGS := {
 		"Guessed? Tap ✔ Guessed it! for a point. Tap ✖ Give up or run out of time and the turn passes.": "¿La adivinaron? Toca ✔ ¡Adivinada! para ganar un punto. Si tocas ✖ Me rindo o se acaba el tiempo, pasa el turno.",
 		"Hard": "Difícil",
 		"Hard words": "Palabras difíciles",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

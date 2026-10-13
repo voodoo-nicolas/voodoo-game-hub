@@ -28,6 +28,7 @@ const STRINGS := {
 		"Fewest moves": "Menos movimientos",
 		"Finish the bottom two rows column by column, from left to right.": "Termina las dos filas de abajo columna por columna, de izquierda a derecha.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"In 1880 a craze for this sliding puzzle swept the United States and Europe.": "En 1880 una fiebre por este puzzle deslizante recorrió Estados Unidos y Europa.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

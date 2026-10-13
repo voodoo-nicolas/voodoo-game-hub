@@ -38,6 +38,7 @@ const STRINGS := {
 		"Game over": "Fin del juego",
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If you score, you roll again. A roll with no points ends your turn and the dice pass to the next player.": "Si puntúas, tiras otra vez. Una tirada sin puntos termina tu turno y los dados pasan al siguiente jugador.",
 		"It's a tie!": "¡Empate!",

@@ -30,6 +30,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Fill every cell with cyan or pink so the grid follows both rules.": "Llena cada casilla de celeste o rosa para que la cuadrícula cumpla las dos reglas.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hint": "Pista",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

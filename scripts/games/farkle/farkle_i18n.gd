@@ -35,6 +35,7 @@ const STRINGS := {
 		"First to 10,000": "El primero a 10.000",
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep & roll %d": "Apartar y tirar %d",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

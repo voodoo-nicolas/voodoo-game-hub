@@ -52,6 +52,7 @@ const CHIPS := [
 	["local", "👥 Same phone"], ["online", "🌐 Online"],
 	["fav", "★ Favorites"], ["downloaded", "⬇ Downloaded"],
 	["unplayed", "✨ Never played"], ["learn", "🧠 Learn"],
+	["locked", "🔒 Age-locked"],
 ]
 ## Background art behind the Game Browser while that category is open
 ## (English category name -> picture; categories without art keep the brand
@@ -581,6 +582,8 @@ func _build_browser_view() -> void:
 		b.pressed.connect(_on_chip.bind(c[0]))
 		chip_flow.add_child(b)
 		_chip_buttons[c[0]] = b
+		if c[0] == "locked":
+			b.visible = Catalog.locked_count() > 0  # only when the player's age hides something
 	var sort_row := HFlowContainer.new()
 	sort_row.add_theme_constant_override("h_separation", 8)
 	filter_panel.add_child(sort_row)
@@ -670,8 +673,17 @@ func _on_chip(key: String) -> void:
 		chips.erase(key)
 	else:
 		chips[key] = true
+	_apply_locked_chip()
 	_sync_chip_buttons()
 	_rebuild_list()
+
+## The "Age-locked" chip is the way to see the games hidden by the player's age: they
+## then show with a lock and the reason, and can't be opened.
+func _apply_locked_chip() -> void:
+	var want: bool = chips.has("locked")
+	if Catalog.show_locked != want:
+		Catalog.show_locked = want
+		Catalog.categories = Catalog.refiltered()
 
 func _on_sort(key: String) -> void:
 	sort_mode = key
@@ -705,6 +717,9 @@ func _matches(game: Dictionary, recent: Dictionary) -> bool:
 					return false
 			"quick", "original":
 				if game.get(key, false) != true:
+					return false
+			"locked":
+				if game.get("locked", false) != true:
 					return false
 			"fav":
 				if not HubData.is_favorite(id):
@@ -1003,6 +1018,10 @@ func _make_tile(game: Dictionary, heading: String = "") -> Control:
 		_:
 			state_color = pal.soon
 			tag_text = tr("Coming soon")
+	var locked: bool = game.get("locked", false) == true
+	if locked:  # above the player's age bracket (only listed via the "Age-locked" chip)
+		state_color = pal.soon
+		tag_text = "🔒 " + Catalog.age_reason(game)
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 128)
@@ -1061,7 +1080,7 @@ func _make_tile(game: Dictionary, heading: String = "") -> Control:
 		head.add_theme_color_override("font_color", state_color)
 		text_col.add_child(head)
 	var label := Label.new()
-	label.text = Lang.pick(game, "title")
+	label.text = ("🔒 " if locked else "") + Lang.pick(game, "title")
 	label.add_theme_font_size_override("font_size", 34)
 	label.add_theme_color_override("font_color", pal.text if available else pal.soon_text)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1123,6 +1142,11 @@ func _on_tile_pressed(id: String) -> void:
 	var game: Dictionary = Catalog.get_game(id)
 	if game.is_empty():
 		return
+	if Catalog.is_age_locked(game):
+		_show_dialog(tr("Not for your age"), tr("%s is rated %s. Age ratings come from the age you gave when you made your account; they aren't checked.") % [Lang.pick(game, "title"), Catalog.age_reason(game)], [
+			{"text": "OK", "action": Callable()},
+		])
+		return
 	if Catalog.state_of(game) == Catalog.STATE_NEEDS_APP_UPDATE:
 		var get_update := Callable(OS, "shell_open").bind(Config.RELEASES_PAGE_URL)
 		if WEB.active():
@@ -1138,6 +1162,9 @@ func _on_tile_pressed(id: String) -> void:
 		_launch(game)
 
 func _launch(game: Dictionary) -> void:
+	if Catalog.is_age_locked(game):  # also guards "resume last game" and invites
+		busy = false
+		return
 	var error: String = Catalog.mount(game.id)
 	if error == "":
 		HubData.record_play(str(game.id))

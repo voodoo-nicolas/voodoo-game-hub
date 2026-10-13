@@ -370,6 +370,11 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_web_threads()
     errors += lint_own_backgrounds(m)
     warnings += lint_legal()
+    sys.path.insert(0, str(ROOT / "tools"))
+    import rating_report
+    rating_errors, _flags = rating_report.problems(m)
+    errors += ["ratings: " + e for e in rating_errors]
+    print(f"  hub rating {rating_report.hub_rating(m)}+ (max age of any game; the Play content-rating answers must match: python tools/rating_report.py)")
     return errors, warnings
 
 

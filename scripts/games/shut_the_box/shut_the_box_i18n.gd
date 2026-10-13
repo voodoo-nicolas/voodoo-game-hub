@@ -24,6 +24,7 @@ const STRINGS := {
 		"Flip down all nine tiles — or leave as few points standing as you can.": "Baja las nueve fichas — o deja en pie la menor cantidad de puntos posible.",
 		"Flip every tile and you've shut the box: an instant win!": "Si bajas todas las fichas, cerraste la caja: ¡ganas al instante!",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It's a draw!": "¡Empate!",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

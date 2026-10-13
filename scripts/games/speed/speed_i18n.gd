@@ -28,6 +28,7 @@ const STRINGS := {
 		"Get rid of all your cards before your opponent does. It's a race — no turns!": "Quédate sin cartas antes que tu rival. Es una carrera: ¡no hay turnos!",
 		"Go!": "¡Ya!",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

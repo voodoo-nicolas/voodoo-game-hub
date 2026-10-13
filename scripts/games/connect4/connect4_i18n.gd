@@ -31,6 +31,7 @@ const STRINGS := {
 		"Games won against the computer, at any level.": "Partidas ganadas a la computadora, en cualquier nivel.",
 		"Get four of your discs in a row — across, down or diagonally.": "Pon cuatro de tus fichas en línea — horizontal, vertical o diagonal.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It's a draw!": "¡Empate!",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

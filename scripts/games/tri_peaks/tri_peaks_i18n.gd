@@ -29,6 +29,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Games won": "Partidas ganadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"In Classic, Ace and King touch, so you can go K–A–2. Strict doesn't allow that.": "En Clásico, el As y el Rey se tocan, así que puedes ir K–A–2. En Estricto no.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

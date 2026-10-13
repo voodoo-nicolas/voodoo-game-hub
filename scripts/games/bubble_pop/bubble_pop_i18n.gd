@@ -31,6 +31,7 @@ const STRINGS := {
 		"Game over!": "¡Fin del juego!",
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Join three or more of the same colour to pop them: 10 points each.": "Junta tres o más del mismo color para reventarlas: 10 puntos cada una.",
 		"Keep an eye on the counter: when the ceiling is about to drop, make a pop count.": "Vigila el contador: cuando el techo esté por bajar, haz que el tiro cuente.",

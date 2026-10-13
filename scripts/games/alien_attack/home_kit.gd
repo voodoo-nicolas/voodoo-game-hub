@@ -429,6 +429,10 @@ func _build_home() -> void:
 			sub.add_theme_constant_override("outline_size", 8)
 		box.add_child(sub)
 
+	var rating := _rating_row()
+	if rating != null:
+		box.add_child(rating)
+
 	box.add_child(gap(6))
 	resume_btn = neon_button("", GO, 30, 84)
 	resume_btn.pressed.connect(_on_resume)
@@ -477,6 +481,41 @@ func _build_home() -> void:
 	_fit_home_layout()
 
 ## §15: one optional "Did you know?" on the Landing, never in the way of play.
+## "Ages 7+ · Cartoon violence" before play: the hub's age rating for this game
+## (manifest "content"). Older apps don't have Catalog.rating_text, so nothing shows
+## there. 16+ games also get a small Help link (crisis help screen).
+func _rating_row() -> Control:
+	var catalog := get_node_or_null("/root/Catalog")
+	if catalog == null or not catalog.has_method("rating_text"):
+		return null
+	var gid := str(consts.get("ID", ""))
+	if gid == "":
+		gid = _scene_game_id()
+	var game: Dictionary = catalog.get_game(gid)
+	var text: String = str(catalog.rating_text(game))
+	if text == "":
+		return null
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 2)
+	col.add_child(label(text, 20, DIM, true, true))
+	if int(game.get("min_age", 0)) >= 16 and ResourceLoader.exists("res://scenes/hub/help.tscn"):
+		var help := Button.new()
+		help.text = tr("Help")
+		help.flat = true
+		help.focus_mode = Control.FOCUS_NONE
+		help.add_theme_font_size_override("font_size", 20)
+		help.add_theme_color_override("font_color", DIM)
+		help.pressed.connect(_open_help)
+		col.add_child(help)
+	return col
+
+func _open_help() -> void:
+	var path := "res://scripts/common/consent.gd"
+	if not ResourceLoader.exists(path):
+		return
+	load(path).help_back_scene = "res://scenes/hub/hub.tscn"
+	get_tree().change_scene_to_file("res://scenes/hub/help.tscn")
+
 func _add_fact_card(box: Control) -> void:
 	var facts: Array = consts.get("FACTS", [])
 	if facts.is_empty():

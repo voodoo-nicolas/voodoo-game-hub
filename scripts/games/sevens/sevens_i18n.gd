@@ -32,6 +32,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Games won against the computers.": "Partidas ganadas contra las computadoras.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hold back the 6 or 8 that others are waiting for, as long as you can: blocking is the heart of the game.": "Guarda el 6 o el 8 que los demás esperan mientras puedas: bloquear es el corazón del juego.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

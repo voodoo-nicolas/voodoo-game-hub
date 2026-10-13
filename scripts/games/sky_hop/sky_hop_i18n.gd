@@ -23,6 +23,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
 		"Height: %d": "Altura: %d",
+		"Help": "Ayuda",
 		"Hold left or right to steer": "Mantén izquierda o derecha para moverte",
 		"Hold the left or right half of the screen to steer. Go off one side and you come back on the other.": "Mantén la mitad izquierda o derecha de la pantalla para moverte. Si sales por un lado, vuelves por el otro.",
 		"Hop from platform to platform and climb as high as you can.": "Salta de plataforma en plataforma y sube lo más alto que puedas.",

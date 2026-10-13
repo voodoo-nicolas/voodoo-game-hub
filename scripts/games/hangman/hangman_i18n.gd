@@ -39,6 +39,7 @@ const STRINGS := {
 		"Guesser — look away!": "Adivinador: ¡no mires!",
 		"Hangman": "Ahorcado",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Household item": "Objeto de la casa",
 		"Job": "Profesión",

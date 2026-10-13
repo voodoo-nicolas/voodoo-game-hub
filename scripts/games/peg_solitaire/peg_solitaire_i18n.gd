@@ -26,6 +26,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Games solved": "Partidas resueltas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Jump a peg over another into an empty hole. Leave just one!": "Salta una ficha sobre otra hasta un hueco vacío. ¡Deja solo una!",
 		"Jump pegs to remove them. End with one in the centre.": "Salta fichas para quitarlas. Termina con una en el centro.",

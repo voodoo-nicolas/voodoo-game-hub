@@ -25,6 +25,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Green": "Verde",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It picks a hand or foot and a colour. That player puts that hand or foot on a circle of that colour.": "Elige una mano o un pie y un color. Ese jugador pone esa mano o pie en un círculo de ese color.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

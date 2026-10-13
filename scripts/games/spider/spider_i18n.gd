@@ -36,6 +36,7 @@ const STRINGS := {
 		"Games won (%s)": "Partidas ganadas (%s)",
 		"Games won, any number of suits.": "Partidas ganadas, con cualquier número de palos.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

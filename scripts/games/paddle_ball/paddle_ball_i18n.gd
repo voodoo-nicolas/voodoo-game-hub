@@ -26,6 +26,7 @@ const STRINGS := {
 		"Get back to the middle after each hit.": "Vuelve al centro después de cada golpe.",
 		"Get the ball past the computer's paddle. First to 7 points wins.": "Pasa la pelota más allá de la paleta de la computadora. Gana el primero en llegar a 7 puntos.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hit the ball with the edge of your paddle to send it at an angle the computer can't reach.": "Golpea la pelota con el borde de tu paleta para mandarla en un ángulo que la computadora no alcance.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

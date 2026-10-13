@@ -33,6 +33,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Geography": "Geografía",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"History": "Historia",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

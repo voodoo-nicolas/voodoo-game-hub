@@ -31,6 +31,7 @@ const STRINGS := {
 		"Guns": "Armas",
 		"Hard": "Difícil",
 		"Hard: faster and thicker fire, more islands and turrets, fewer drops, one bomb, and tougher battleships.": "Difícil: disparos más rápidos y densos, más islas y torretas, menos premios, una sola bomba y acorazados más duros.",
+		"Help": "Ayuda",
 		"Highest stage": "Etapa más alta",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

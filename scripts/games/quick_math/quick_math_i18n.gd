@@ -33,6 +33,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"How many sums can you solve in 60 seconds?": "¿Cuántas operaciones puedes resolver en 60 segundos?",
 		"Human Calculator": "Calculadora humana",

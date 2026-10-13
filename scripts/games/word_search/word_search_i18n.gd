@@ -30,6 +30,7 @@ const STRINGS := {
 		"Find all the words to finish the puzzle.": "Encuentra todas las palabras para terminar el puzzle.",
 		"Find every hidden word in the grid.": "Encuentra todas las palabras escondidas en la cuadrícula.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

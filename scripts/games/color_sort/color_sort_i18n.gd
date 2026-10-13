@@ -34,6 +34,7 @@ const STRINGS := {
 		"First Sort": "Primer orden",
 		"Free up an empty tube first: it is your most useful tool.": "Libera primero un tubo vacío: es tu herramienta más útil.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

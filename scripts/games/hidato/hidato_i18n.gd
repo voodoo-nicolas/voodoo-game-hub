@@ -31,6 +31,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Fill the grid with every number from 1 to the last, each one touching the next.": "Llena la cuadrícula con todos los números del 1 al último, cada uno tocando al siguiente.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hidato": "Hidato",
 		"Hidato was invented by the Israeli mathematician Gyora Benedek, and its name comes from the Hebrew word for 'riddle'.": "El Hidato lo inventó el matemático israelí Gyora Benedek, y su nombre viene de la palabra hebrea para 'acertijo'.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",

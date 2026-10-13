@@ -38,6 +38,7 @@ const STRINGS := {
 		"Flip, compare, win the cards. Take all 52!": "Voltea, compara y gánate las cartas. ¡Llévate las 52!",
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

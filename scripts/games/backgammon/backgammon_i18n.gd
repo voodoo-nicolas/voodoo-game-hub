@@ -36,6 +36,7 @@ const STRINGS := {
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Gammons won": "Gammons ganados",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hitting a blot costs your opponent a lot of ground — take the chance when it's safe.": "Golpear una ficha sola le hace perder mucho terreno a tu rival — aprovecha cuando sea seguro.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

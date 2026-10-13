@@ -40,6 +40,7 @@ const STRINGS := {
 		"Game over": "Fin del juego",
 		"Games won against the computer.": "Partidas ganadas a la computadora.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hog Wild": "Cerdo desatado",
 		"Holding at about 20 is a strong rule of thumb: past 20, the one-in-six chance of losing it all outweighs the average gain of another roll.": "Plantar cerca de 20 es una buena regla: pasado 20, la probabilidad de uno entre seis de perderlo todo pesa más que la ganancia media de otra tirada.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",

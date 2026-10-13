@@ -27,6 +27,7 @@ const STRINGS := {
 		"Fortune Ball": "Bola de la fortuna",
 		"Green answers lean yes, gold ones are unsure, pink ones lean no.": "Las respuestas verdes tiran a sí, las doradas no están seguras y las rosas tiran a no.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

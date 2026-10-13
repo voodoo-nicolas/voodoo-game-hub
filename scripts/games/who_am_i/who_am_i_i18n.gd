@@ -43,6 +43,7 @@ const STRINGS := {
 		"Guess the secret animal, food, thing or job from five clues. The sooner you get it, the more it's worth.": "Adivina el animal, comida, cosa u oficio secreto con cinco pistas. Cuanto antes lo aciertes, más vale.",
 		"Guessed on the first clue": "Acertados con la primera pista",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"It was: %s": "Era: %s",
 		"It's a tie!": "¡Empate!",

@@ -33,6 +33,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Guess only when nothing else is left, and prefer squares far from the numbers.": "Adivina solo cuando no quede otra, y elige casillas lejos de los números.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If a number already has all its mines flagged, every other square around it is safe.": "Si un número ya tiene todas sus minas marcadas, las demás casillas a su alrededor son seguras.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

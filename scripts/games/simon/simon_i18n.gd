@@ -26,6 +26,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Group the sequence into chunks of three or four.": "Agrupa la secuencia en bloques de tres o cuatro.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

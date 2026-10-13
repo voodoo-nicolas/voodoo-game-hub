@@ -37,6 +37,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Games won.": "Partidas ganadas.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"I'm ready": "Estoy listo",
 		"In turn, each player raises the bid: \"at least N dice on the whole table show face F\".": "Por turnos, cada jugador sube la apuesta: \"en toda la mesa hay al menos N dados con la cara F\".",

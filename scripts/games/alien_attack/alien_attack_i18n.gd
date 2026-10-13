@@ -30,6 +30,7 @@ const STRINGS := {
 		"Game over when you run out of lives or the aliens reach the bottom.": "El juego termina cuando te quedas sin vidas o los alienígenas llegan abajo.",
 		"Games played": "Partidas jugadas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Highest wave": "Oleada más alta",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Invader Swatter": "Matainvasores",

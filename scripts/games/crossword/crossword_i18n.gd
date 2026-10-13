@@ -33,6 +33,7 @@ const STRINGS := {
 		"Fill in the words you're sure of first — every letter helps the words that cross it.": "Completa primero las palabras que tengas seguras — cada letra ayuda a las palabras que se cruzan.",
 		"Fill the grid from the clues.": "Completa la cuadrícula con las pistas.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

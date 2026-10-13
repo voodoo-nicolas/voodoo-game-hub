@@ -44,6 +44,7 @@ const STRINGS := {
 		"Front 9": "Primeros 9",
 		"Gentle wins: a ball that just reaches the cup drops in; one that races past may lip out.": "Lo suave gana: una bola que apenas llega al hoyo entra; una que pasa volando puede salirse.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hole": "Hoyo",
 		"Hole %d": "Hoyo %d",
 		"Hole in one!": "¡Hoyo en uno!",

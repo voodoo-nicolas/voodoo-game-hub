@@ -29,6 +29,7 @@ const STRINGS := {
 		"Gravity on the Moon is about one sixth of Earth's.": "La gravedad en la Luna es más o menos un sexto de la de la Tierra.",
 		"Hard": "Difícil",
 		"Height: %d": "Altura: %d",
+		"Help": "Ayuda",
 		"Highest level": "Nivel más alto",
 		"Hold ⟲ or ⟳ to tilt the lander. Hold 🔥 to fire the engine: it pushes the way the nose points and burns fuel.": "Mantén ⟲ o ⟳ para inclinar el módulo. Mantén 🔥 para encender el motor: empuja hacia donde apunta la nariz y gasta combustible.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",

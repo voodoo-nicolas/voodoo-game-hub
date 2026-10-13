@@ -28,6 +28,7 @@ const STRINGS := {
 		"Flip two cards at a time. Find every pair.": "Voltea dos cartas a la vez. Encuentra todos los pares.",
 		"Games solved": "Partidas resueltas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If they match, they stay face up. If not, they turn back over.": "Si son iguales, quedan boca arriba. Si no, se vuelven a dar vuelta.",
 		"In as few moves as you can": "En la menor cantidad de jugadas",

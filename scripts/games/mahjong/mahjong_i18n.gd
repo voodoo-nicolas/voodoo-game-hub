@@ -31,6 +31,7 @@ const STRINGS := {
 		"Free the tall stacks and the long rows first — tiles at the ends of rows unlock the most.": "Libera primero las pilas altas y las filas largas: las fichas de los extremos desbloquean más.",
 		"Games solved": "Partidas resueltas",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hint": "Pista",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"If two pairs match the same picture, take the one that frees more tiles.": "Si dos parejas tienen el mismo dibujo, quita la que libere más fichas.",

@@ -38,6 +38,7 @@ const STRINGS := {
 		"Have the lowest score when someone reaches 100 points. Points are bad!": "Ten el puntaje más bajo cuando alguien llegue a 100. ¡Los puntos son malos!",
 		"Hearts": "Corazones",
 		"Hearts are broken": "Ya salieron corazones",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",

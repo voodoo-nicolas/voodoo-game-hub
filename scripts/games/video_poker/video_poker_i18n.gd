@@ -145,6 +145,7 @@ const STRINGS := {
 		"Hard": "Difícil",
 		"Heads-up against a friend on another phone": "Mano a mano contra un amigo en otro teléfono",
 		"Held": "Guardado",
+		"Help": "Ayuda",
 		"Hidden": "Tapadas",
 		"High Card": "Carta alta",
 		"High Card, %s": "Carta alta, %s",

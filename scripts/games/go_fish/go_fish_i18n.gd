@@ -46,6 +46,7 @@ const STRINGS := {
 		"Go fish! The pond is empty.": "¡A pescar! El mazo está vacío.",
 		"Go fish! You drew %s.": "¡A pescar! Robaste %s.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"I'm ready": "Estoy listo",
 		"If it has any, it hands them all over and you ask again.": "Si tiene alguna, te las da todas y vuelves a pedir.",

@@ -29,6 +29,7 @@ const STRINGS := {
 		"First finger on the right answer wins the point.": "El primer dedo en la respuesta correcta se lleva el punto.",
 		"GO!": "¡YA!",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"In Math, the wrong options are always close to the right one, so check the last digit first.": "En Cuentas, las opciones equivocadas siempre están cerca de la correcta, así que mira primero la última cifra.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

@@ -39,6 +39,7 @@ const STRINGS := {
 		"Every letter is swapped. Crack the code.": "Cada letra está cambiada. Descifra el código.",
 		"Expert": "Experto",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hints %d": "Pistas %d",
 		"Hints used": "Pistas usadas",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",

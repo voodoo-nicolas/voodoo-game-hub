@@ -31,6 +31,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Grab the 🔨 hammer to smash barrels for 300 each for a few seconds. With the hammer you can't climb or jump.": "Agarra el 🔨 martillo para destrozar barriles durante unos segundos, 300 cada uno. Con el martillo no puedes subir ni saltar.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Help!": "¡Auxilio!",
 		"Highest level": "Nivel más alto",
 		"Hold ◀ ▶ to run. Stand at a ladder and hold ▲ to climb up or ▼ to climb down.": "Mantén ◀ ▶ para correr. Párate en una escalera y mantén ▲ para subir o ▼ para bajar.",

@@ -27,6 +27,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Get your frog across the road and the river into all five homes at the top.": "Lleva a tu rana a través de la calle y el río hasta las cinco casas de arriba.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Highest level": "Nivel más alto",
 		"Hop across the road and the river into all five homes.": "Cruza la carretera y el río hasta llenar las cinco casitas.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",

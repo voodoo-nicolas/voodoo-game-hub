@@ -33,6 +33,7 @@ const STRINGS := {
 		"Go down as many floors of the crypt as you can: find each floor's glowing green exit before the dead get you.": "Baja todos los pisos de la cripta que puedas: encuentra la salida verde brillante de cada piso antes de que los muertos te atrapen.",
 		"Green crosses heal 30 health; gold soul gems are worth 50 points. Each monster destroyed scores 100 to 400.": "Las cruces verdes curan 30 de salud; las gemas de alma doradas valen 50 puntos. Cada monstruo destruido suma de 100 a 400.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hold ✴ Fire to blast your wand at whatever is under the crosshair. Walls block the shot.": "Mantén ✴ Disparar para lanzar el rayo de tu varita a lo que esté bajo la mira. Las paredes bloquean el disparo.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

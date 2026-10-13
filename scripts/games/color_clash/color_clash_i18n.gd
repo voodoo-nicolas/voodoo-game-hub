@@ -32,6 +32,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Green": "Verde",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Ignore what the word says and look only at the ink, then compare in your head.": "Ignora lo que dice la palabra y fíjate solo en la tinta; luego compara mentalmente.",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

@@ -25,6 +25,7 @@ const STRINGS := {
 		"Easy": "Fácil",
 		"Expert": "Experto",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Highest level unlocked": "Nivel más alto desbloqueado",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",

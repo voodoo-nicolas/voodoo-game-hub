@@ -34,6 +34,7 @@ const STRINGS := {
 		"Fire in a checkerboard pattern — every ship covers at least two squares, so you can't miss one.": "Dispara en patrón de tablero de ajedrez — cada barco ocupa al menos dos casillas, así no se te escapa ninguno.",
 		"Firing on a checkerboard pattern hits every ship of length 2 or more in half the shots of a full sweep.": "Disparar en patrón de tablero de ajedrez encuentra todo barco de 2 casillas o más con la mitad de los disparos.",
 		"Hard": "Difícil",
+		"Help": "Ayuda",
 		"Hit! Fire again.": "¡Tocado! Dispara otra vez.",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"I'm ready": "Estoy listo",
