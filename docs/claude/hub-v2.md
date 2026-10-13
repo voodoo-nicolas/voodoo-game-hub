@@ -17,6 +17,7 @@ Hub shell internals (hub.gd, Catalog): `scripts/hub/CLAUDE.md`.
 - `Settings.hub_layout` "classic" (default) | "new". `hub.gd` builds `scripts/hub/netflix_browser.gd` instead of the accordion when "new"; chips, sort, search, favourites and `_on_tile_pressed` stay in hub.gd (the view calls them). Layout design, art pipeline and behaviour: STANDARDS §2a "New look".
 - Orientation: hub, hub_screen, Options use `Orientation.lock_sensor()` (account_screen still portrait). `project.godot` orientation stays "portrait" (games and old builds); the hub rotates at runtime. Home rearranges in landscape (`_apply_home_orientation`); hub screens cap their content width (`CONTENT_MAX_WIDTH`).
 - Art: `python tools/make_hub_art.py` makes self-made placeholders from `media/hub/categories` (hues avoid purple) and writes CREDITS; `--from DIR` converts real art (`<id>.png`, `<id>_tile.png`). ~7 MB for 109 games. Not built: remote hero art from Supabase Storage.
+- Import: the game_art `.webp.import` files must say `compress/mode=1` (lossy); Godot defaults to lossless and the APK doubled (96 to 201 MB). Check after adding art.
 - Tests: `tools/test_netflix_hub.gd` (headless), `tools/shot_netflix.gd` (screenshots, needs a window: `--resolution 1280x720` / `405x720`).
 - Gotchas: moving a Button to another parent re-fires `node_added` (Settings/Sfx connects now guard); use `set_anchors_and_offsets_preset` on nodes already in the tree; a StyleBoxFlat shadow on a transparent box tints what is inside it (the tile glow is a separate panel under the picture).
 

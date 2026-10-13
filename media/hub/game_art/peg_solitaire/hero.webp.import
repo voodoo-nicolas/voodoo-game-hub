@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/hero.webp-d78ddd20404c814e3b8340fa480e68a8.ct
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

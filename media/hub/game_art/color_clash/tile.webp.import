@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/tile.webp-59fde4f8f9c21f7f3abd419003216789.ct
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
