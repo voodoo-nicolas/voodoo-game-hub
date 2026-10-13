@@ -6,6 +6,9 @@ extends "res://scripts/hub/hub_screen.gd"
 ## invite as soon as the room exists). All of it is the Social autoload; the
 ## server side is supabase/migrations/20261004000000_friends.sql.
 
+const Avatar = preload("res://scripts/common/avatar.gd")
+const PLAYER_SCENE := "res://scenes/hub/player.tscn"
+
 var code_edit: LineEdit
 var add_status: Label
 var _status_text: String = ""
@@ -88,16 +91,7 @@ func _build() -> void:
 	if mates.is_empty():
 		fb.add_child(dim(tr("No friends yet. Share your code to get started!")))
 	for f in mates:
-		var online: bool = bool(f.get("online", false))
-		var r := _person_row(f, tr("🟢 Online now") if online else tr("Last seen %s") % _ago(str(f.get("last_seen", ""))))
-		var inv := pill(tr("🎮 Invite"), online, 22)
-		inv.pressed.connect(_on_invite.bind(f))
-		r.add_child(inv)
-		var x := pill("✕", false, 24)
-		x.custom_minimum_size = Vector2(60, 60)
-		x.pressed.connect(_confirm_remove.bind(f))
-		r.add_child(x)
-		fb.add_child(r)
+		fb.add_child(_friend_row(f))
 
 	if not outgoing.is_empty():
 		var out := section(tr("Waiting for them to accept"))
@@ -107,6 +101,79 @@ func _build() -> void:
 			x.pressed.connect(_remove.bind(str(f.user_id)))
 			r.add_child(x)
 			out.add_child(r)
+
+## One friend: avatar, GAMER TAG, Viral Power, what they're doing. The whole
+## row opens their page; Invite and the "..." menu are the only other taps.
+func _friend_row(f: Dictionary) -> Control:
+	var online: bool = bool(f.get("online", false))
+	var root := Control.new()
+	root.custom_minimum_size = Vector2(0, 108)
+	var hit := Button.new()
+	hit.flat = true
+	hit.focus_mode = Control.FOCUS_NONE
+	root.add_child(hit)
+	hit.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hit.pressed.connect(_open_player.bind(f))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(row)
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var face := Avatar.make(str(f.get("avatar", "")), 64.0)
+	face.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(face)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var name_l := label(str(f.get("display_name", "Player")).to_upper(), 26, null, false)
+	name_l.clip_text = true
+	name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(name_l)
+	if f.has("viral_power"):
+		var power := dim(tr("%s Viral Power") % Social.format_number(int(f.viral_power)), 20)
+		power.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.add_child(power)
+	var act := dim(Social.activity_text(f), 20)
+	act.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if online:
+		act.add_theme_color_override("font_color", pal.accent)
+	col.add_child(act)
+	row.add_child(col)
+	if online:
+		var inv := pill(tr("🎮 Invite"), true, 22)
+		inv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		inv.pressed.connect(_on_invite.bind(f))
+		row.add_child(inv)
+	var more := Button.new()
+	more.text = "⋯"
+	more.flat = true
+	more.focus_mode = Control.FOCUS_NONE
+	more.custom_minimum_size = Vector2(52, 52)
+	more.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	more.add_theme_font_size_override("font_size", 28)
+	for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		more.add_theme_color_override(key, pal.text_dim)
+	more.pressed.connect(_on_more.bind(f))
+	row.add_child(more)
+	return root
+
+func _open_player(f: Dictionary) -> void:
+	if tapped():
+		Social.viewing = f
+		get_tree().change_scene_to_file(PLAYER_SCENE)
+
+func _on_more(f: Dictionary) -> void:
+	if not tapped():
+		return
+	var box := dialog(str(f.get("display_name", "Player")))
+	var rm := pill(tr("Remove friend"), false)
+	rm.pressed.connect(_confirm_remove.bind(f))
+	box.add_child(rm)
+	var no := pill(tr("Cancel"), false)
+	no.pressed.connect(close_dialog)
+	box.add_child(no)
 
 func _person_row(f: Dictionary, sub: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
@@ -190,7 +257,7 @@ func _confirm_remove(f: Dictionary) -> void:
 		return
 	var box := dialog(tr("Remove %s?") % str(f.get("display_name", "Player")))
 	box.add_child(label(tr("You can add each other again later with your friend codes."), 24, pal.card_message, true, true))
-	var yes := pill(tr("Remove"), true, 26)
+	var yes := pill(tr("Remove %s") % str(f.get("display_name", "Player")), true, 26)
 	yes.pressed.connect(_remove.bind(str(f.user_id)))
 	box.add_child(yes)
 	var no := pill(tr("Cancel"), false, 26)

@@ -42,6 +42,13 @@ var friends: Array = []
 var pending: Dictionary = {}
 ## Set by launch_online for the hub to open (game id), or "".
 var launch_request: String = ""
+## The game this player is in right now ("" = the menus); friends see it.
+## Needs 20261012000000_presence_avatar.sql; without it the call fails once
+## and presence stays "online" only.
+var current_game: String = ""
+var _presence_ok: bool = true
+## The friend whose page is open (a social_list row), set by the Friends screen.
+var viewing: Dictionary = {}
 
 var _beat_left: float = 1.0
 var _inbox_left: float = 4.0
@@ -86,6 +93,7 @@ func _on_signed_in() -> void:
 	_inbox_left = 2.0
 
 func _on_signed_out() -> void:
+	current_game = ""
 	available = false
 	friend_code = ""
 	friends = []
@@ -112,6 +120,7 @@ func _on_me(ok: bool, result: Variant) -> void:
 		friend_code = str(result)
 		code_changed.emit(friend_code)
 	Auth.db_call("social_list", {}, _on_list)
+	_send_presence()
 
 func _on_list(ok: bool, result: Variant) -> void:
 	_busy_beat = false
@@ -121,6 +130,48 @@ func _on_list(ok: bool, result: Variant) -> void:
 	var n := friend_ids(false).size()
 	_announce_hub(Achievements.check_hub({"friends": n}))
 	friends_changed.emit()
+
+## Tell friends which game I'm in ("" = the menus). Called by the hub when it
+## opens a game and when it comes back.
+func set_game(game_id: String) -> void:
+	if game_id == current_game:
+		return
+	current_game = game_id
+	_send_presence()
+
+func _send_presence() -> void:
+	if _presence_ok and Auth.is_logged_in():
+		Auth.db_call("social_set_presence", {"p_game": current_game}, _on_presence)
+
+func _on_presence(ok: bool, _result: Variant) -> void:
+	if not ok:
+		_presence_ok = false  # SQL not run yet: stop asking this session
+
+## "12,450": thousands separated by commas.
+func format_number(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	for i in s.length():
+		if i > 0 and (s.length() - i) % 3 == 0:
+			out += ","
+		out += s[i]
+	return ("-" if n < 0 else "") + out
+
+## "• Playing Chess" / "• Currently in the menus" / "• Offline" for a social_list row.
+func activity_text(f: Dictionary) -> String:
+	if not bool(f.get("online", false)):
+		return tr("• Offline")
+	var id := str(f.get("current_game", ""))
+	if id != "":
+		var game: Dictionary = Catalog.get_game(id)
+		var title: String = Lang.pick(game, "title") if not game.is_empty() else id
+		return tr("• Playing %s") % title
+	return tr("• Currently in the menus")
+
+## Saves my avatar ('p<n>' or 'img:<base64>') so friends see it.
+func push_avatar(avatar: String) -> void:
+	if Auth.is_logged_in():
+		Auth.db_call("social_set_avatar", {"p_avatar": avatar}, _after_change.bind())
 
 ## Accepted friends' user ids (plus mine when include_me).
 func friend_ids(include_me: bool = true) -> Array:

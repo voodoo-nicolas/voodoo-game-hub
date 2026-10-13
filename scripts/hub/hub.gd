@@ -152,6 +152,7 @@ func _ready() -> void:
 	Auth.signed_out.connect(_update_account_status)
 	_update_account_status()
 	Social.friends_changed.connect(_update_friend_badge)
+	Social.set_game("")  # back in the menus: friends see "in the menus"
 	_update_friend_badge()
 
 	# A newer live manifest can add games or change versions while the hub is
@@ -1113,6 +1114,7 @@ func _launch(game: Dictionary) -> void:
 	var error: String = Catalog.mount(game.id)
 	if error == "":
 		HubData.record_play(str(game.id))
+		Social.set_game(str(game.id))
 	if error == "" and get_tree().change_scene_to_file(game.scene) != OK:
 		error = tr("Something went wrong opening this game.")
 	if error != "":
