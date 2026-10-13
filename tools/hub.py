@@ -730,7 +730,7 @@ def release_signing_env() -> dict:
 
 def cmd_apk(args) -> None:
     cmd_check()
-    if not args.debug:
+    if not args.debug and not args.draft_legal:
         require_legal_clean()
     version, _ = read_version()
     apk = ROOT / "builds/game-hub.apk"
@@ -1256,6 +1256,8 @@ def main() -> int:
     p.set_defaults(fn=cmd_export)
     p = sub.add_parser("apk")
     p.add_argument("--debug", action="store_true", help="test build signed with the shared debug key (never ship this)")
+    p.add_argument("--draft-legal", action="store_true",
+                   help="release-signed TEST build although the legal text still has open markers (installs over the real app; never publish it)")
     p.set_defaults(fn=cmd_apk)
     sub.add_parser("verify").set_defaults(fn=cmd_verify)
     sub.add_parser("pc").set_defaults(fn=cmd_pc)
