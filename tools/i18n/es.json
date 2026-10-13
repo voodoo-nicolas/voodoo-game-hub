@@ -5848,5 +5848,13 @@
  "★ Favorite": "★ Favorito",
  "✕ Back": "✕ Volver",
  "cat:%d": null,
- "edge%s%s": null
+ "edge%s%s": null,
+ "Sliding": "Deslizante",
+ "Grid": "Cuadrícula",
+ "Sliding tiles under a category bar, or every game in a grid divided by category.": "Fichas deslizantes bajo una barra de categorías, o todos los juegos en una cuadrícula dividida por categoría.",
+ "Open the documents (they open in your browser), read them, then tick the box. You can read them again any time in Options > Legal.": "Abre los documentos (se abren en tu navegador), léelos y marca la casilla. Puedes volver a leerlos cuando quieras en Opciones > Legal.",
+ "📄 Terms of Service and EULA": "📄 Términos de Servicio y EULA",
+ "📄 Privacy Policy": "📄 Política de Privacidad",
+ "I've read and accept the Terms of Service, the EULA and the Privacy Policy": "He leído y acepto los Términos de Servicio, el EULA y la Política de Privacidad",
+ "Spacer": null
 }

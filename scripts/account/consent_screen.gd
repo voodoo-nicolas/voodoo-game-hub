@@ -1,14 +1,17 @@
 extends "res://scripts/hub/hub_screen.gd"
 
 ## First-run / sign-up consent (compliance pack, Task 2): language, a neutral age
-## gate (month + year of birth), the Terms/EULA and the Privacy Policy as
-## separate screens, then two UNCHECKED boxes that must both be ticked. See
-## scripts/common/consent.gd for what is stored (only the age bracket) and when.
+## gate (month + year of birth), then ONE screen with links that open the Terms/EULA
+## and the Privacy Policy in the browser and a single UNCHECKED "I've read and accept"
+## box (2026-10-13: no more scrolling through the text in the app; the in-app reader
+## stays in Options > Legal). See scripts/common/consent.gd for what is stored (only
+## the age bracket) and when.
 ##
-## Steps: 0 age, 1 terms, 2 privacy, 3 accept. A player whose age is already
-## known (a version bump, or an account made before this screen) starts at 1.
+## Steps: 0 age, 1 accept. A player whose age is already known (a version bump, or an
+## account made before this screen) starts at 1.
 
 const Consent = preload("res://scripts/common/consent.gd")
+const Config = preload("res://scripts/common/config.gd")
 const MONTHS := {
 	"en": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
 	"es": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
@@ -17,8 +20,7 @@ const MONTHS := {
 var step: int = 0
 var month: int = 0   # 1..12, 0 = not chosen
 var year: int = 0    # 0 = not chosen
-var ticked_terms: bool = false
-var ticked_privacy: bool = false
+var accepted_box: bool = false
 var _too_young: bool = false
 var _age_known: bool = false  # started at step 1: the age was given earlier
 
@@ -49,8 +51,6 @@ func _build() -> void:
 		return
 	match step:
 		0: _build_age()
-		1: _build_doc("terms")
-		2: _build_doc("privacy")
 		_: _build_accept()
 
 func _lang() -> String:
@@ -164,15 +164,18 @@ func _on_next() -> void:
 
 func _build_accept() -> void:
 	var box := section(tr("Accept to continue"))
-	box.add_child(dim(tr("Tick both boxes to confirm you read and accept them. You can read them again any time in Options > Legal.")))
-	var terms := _check(tr("I accept the Terms of Service and EULA"), ticked_terms)
-	terms.pressed.connect(_toggle_terms)
+	box.add_child(dim(tr("Open the documents (they open in your browser), read them, then tick the box. You can read them again any time in Options > Legal.")))
+	var terms := pill(tr("📄 Terms of Service and EULA"), false, 24)
+	terms.pressed.connect(_open_terms)
 	box.add_child(terms)
-	var privacy := _check(tr("I accept the Privacy Policy"), ticked_privacy)
-	privacy.pressed.connect(_toggle_privacy)
+	var privacy := pill(tr("📄 Privacy Policy"), false, 24)
+	privacy.pressed.connect(_open_privacy)
 	box.add_child(privacy)
+	var check := _check(tr("I've read and accept the Terms of Service, the EULA and the Privacy Policy"), accepted_box)
+	check.pressed.connect(_toggle_accept)
+	box.add_child(check)
 	var go := pill(tr("Continue"), true, 28)
-	go.disabled = not (ticked_terms and ticked_privacy)
+	go.disabled = not accepted_box
 	go.modulate.a = 0.4 if go.disabled else 1.0
 	go.pressed.connect(_on_accept)
 	box.add_child(go)
@@ -181,23 +184,27 @@ func _build_accept() -> void:
 ## A tick box drawn as a wide toggle button (wraps long text; easy to hit).
 func _check(text: String, on: bool) -> Button:
 	var b := pill(("☑  " if on else "☐  ") + text, on, 24)
-	b.custom_minimum_size = Vector2(0, 76)
+	b.custom_minimum_size = Vector2(0, 96)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.clip_text = false
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return b
 
-func _toggle_terms() -> void:
+func _toggle_accept() -> void:
 	if tapped():
-		ticked_terms = not ticked_terms
+		accepted_box = not accepted_box
 		rebuild()
 
-func _toggle_privacy() -> void:
+func _open_terms() -> void:
 	if tapped():
-		ticked_privacy = not ticked_privacy
-		rebuild()
+		OS.shell_open(Config.TERMS_URL)
+
+func _open_privacy() -> void:
+	if tapped():
+		OS.shell_open(Config.PRIVACY_URL)
 
 func _on_accept() -> void:
-	if not tapped() or not (ticked_terms and ticked_privacy):
+	if not tapped() or not accepted_box:
 		return
 	Consent.accept(_lang())
 	_leave()

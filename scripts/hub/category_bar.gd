@@ -37,7 +37,16 @@ func build(scroller_node: Node) -> void:
 	_row.add_theme_constant_override("separation", 6)
 	pad.add_child(_row)
 
-	filters_button = Button.new()
+	filters_button = make_filters_button()
+	filters_button.pressed.connect(filters_pressed.emit)
+	var edge := MarginContainer.new()
+	edge.add_theme_constant_override("margin_right", HubLook.SIDE)
+	edge.add_child(filters_button)
+	add_child(edge)
+
+## The Filtros toggle (also used in the grid look's top bar).
+static func make_filters_button() -> Button:
+	var filters_button := Button.new()
 	filters_button.toggle_mode = true
 	filters_button.focus_mode = Control.FOCUS_NONE
 	filters_button.custom_minimum_size = Vector2(0, 56)
@@ -56,11 +65,7 @@ func build(scroller_node: Node) -> void:
 		filters_button.add_theme_stylebox_override(s, off)
 	for s in ["pressed", "hover_pressed"]:
 		filters_button.add_theme_stylebox_override(s, on)
-	filters_button.pressed.connect(filters_pressed.emit)
-	var edge := MarginContainer.new()
-	edge.add_theme_constant_override("margin_right", HubLook.SIDE)
-	edge.add_child(filters_button)
-	add_child(edge)
+	return filters_button
 
 ## items: [{key, title}]. The key "_search" is the 🔍 tab (opens the search field).
 func set_tabs(items: Array, active: String) -> void:
@@ -89,6 +94,9 @@ func set_active(key: String) -> void:
 ## Scrolls the bar so the open tab is in view (looked up late: tabs get rebuilt).
 func _reveal(key: String) -> void:
 	var b: Control = _buttons.get(key)
+	if key in ["results", "favs", "_search", "recent"]:
+		scroll.scroll_horizontal = 0   # the first tabs: start of the bar
+		return
 	if b != null and is_instance_valid(b) and scroll.is_ancestor_of(b):
 		if b.position.x + b.size.x + HubLook.SIDE + 24 <= scroll.size.x:
 			scroll.scroll_horizontal = 0   # fits: keep ★ Favoritos at the start

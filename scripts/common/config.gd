@@ -13,6 +13,10 @@ const GITHUB_BRANCH := "master"
 ## GitHub release that hosts every game's .pck.
 const PACK_RELEASE_TAG := "packs-v1"
 
+## The Terms/EULA and Privacy Policy as web pages (GitHub Pages, docs/legal/): the consent
+## screen links to them instead of making the player scroll through the text.
+const TERMS_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/legal/terms.html"
+const PRIVACY_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/legal/privacy.html"
 const REPO_URL := "https://github.com/" + GITHUB_OWNER + "/" + GITHUB_REPO
 const RELEASES_PAGE_URL := REPO_URL + "/releases/latest"
 const LATEST_RELEASE_API := "https://api.github.com/repos/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/releases/latest"

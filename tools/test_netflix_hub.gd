@@ -1,6 +1,6 @@
 extends SceneTree
 
-## New Game Browser (Settings.hub_layout == "new"): tabs, favourites tab, select /
+## Game Browser (strip look + grid look): tabs, favourites tab, select /
 ## detail / back, results tab, fallback art, both orientations.
 ##   godot --headless --path . --script res://tools/test_netflix_hub.gd
 ## Shares the PC build's user data (backs up and restores the layout setting).
@@ -17,7 +17,7 @@ func _initialize() -> void:
 	var catalog = root.get_node("Catalog")
 	await process_frame   # autoloads load their saved data in _ready
 	var was: String = settings.hub_layout
-	settings.hub_layout = "new"
+	settings.hub_layout = "strip"
 	var hub = load("res://scenes/hub/hub.tscn").instantiate()
 	root.add_child(hub)
 	for i in 5:
@@ -84,6 +84,26 @@ func _initialize() -> void:
 			if game.has("id") and not HubArt.has_art(game):
 				missing.append(game.id)
 	_check(missing.is_empty(), "games using fallback art: %s" % str(missing))
+
+	# ---- grid look ----
+	hub.queue_free()
+	await process_frame
+	settings.hub_layout = "grid"
+	hub = load("res://scenes/hub/hub.tscn").instantiate()
+	root.add_child(hub)
+	for i in 5:
+		await process_frame
+	nx = hub.netflix
+	_check(nx != null and nx.grid_mode, "grid look is built")
+	nx.size = Vector2(720, 1280)
+	await process_frame
+	await process_frame
+	_check(nx._grid_tiles.size() >= 100, "grid lists every game (%d)" % nx._grid_tiles.size())
+	var gid: String = nx._grid_tiles[0].id
+	nx.select(gid)
+	_check(nx.selected_id == gid and nx._card.visible, "grid: tap opens the detail card")
+	nx.handle_back()
+	_check(nx.selected_id == "" and not nx._card.visible, "grid: back closes the card")
 
 	settings.hub_layout = was
 	print("test_netflix_hub: %d failure(s)" % fails)

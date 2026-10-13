@@ -87,8 +87,9 @@ var vibrate: bool = true
 var keep_awake: bool = false
 ## Hub transitions (slides, fades) are skipped when on; Options > Vibration & screen.
 var reduce_motion: bool = false
-## Game Browser look: "classic" (category list) or "new" (hero + category bar + tile strip).
-var hub_layout: String = "classic"
+## Game Browser look: "strip" (category bar + sliding tiles, the default) or "grid"
+## (every game in a grid, divided by category). The old accordion list is retired.
+var hub_layout: String = "strip"
 var invites: String = "all"
 
 func _ready() -> void:
@@ -188,7 +189,7 @@ func group_db(id: String) -> Variant:
 	return linear_to_db(v / 100.0)
 
 func set_hub_layout(layout: String) -> void:
-	hub_layout = "new" if layout == "new" else "classic"
+	hub_layout = "grid" if layout == "grid" else "strip"
 	_commit()
 
 func set_reduce_motion(on: bool) -> void:
@@ -473,7 +474,7 @@ func _load() -> void:
 	vibrate = bool(data.get("vibrate", true))
 	keep_awake = bool(data.get("keep_awake", false))
 	reduce_motion = bool(data.get("reduce_motion", false))
-	hub_layout = "new" if str(data.get("hub_layout", "classic")) == "new" else "classic"
+	hub_layout = "grid" if str(data.get("hub_layout", "strip")) == "grid" else "strip"   # "classic" / "new" from v0.36 become "strip"
 	invites = str(data.get("invites", "all"))
 	if not INVITE_MODES.has(invites):
 		invites = "all"

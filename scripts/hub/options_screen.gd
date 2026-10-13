@@ -141,8 +141,8 @@ func _build_ui() -> void:
 			tr("Skulls, crossbones and voodoo dolls in Tic-Tac-Toe, Connect Four and Reversi."),
 			Voodoo.is_on(), _on_skull_mode)
 
-	_choice_row(games, tr("Games menu look"), tr("Classic list, or the new picture menu with a category bar and tiles."),
-			[tr("Classic"), tr("New")], 1 if Settings.hub_layout == "new" else 0, _on_hub_layout)
+	_choice_row(games, tr("Games menu look"), tr("Sliding tiles under a category bar, or every game in a grid divided by category."),
+			[tr("Sliding"), tr("Grid")], 1 if Settings.hub_layout == "grid" else 0, _on_hub_layout)
 
 	# ---- Sound ----
 	var sound := _section(list, tr("Sound"))
@@ -476,7 +476,10 @@ func _on_text_size(i: int) -> void:
 		get_tree().reload_current_scene()
 
 func _on_hub_layout(i: int) -> void:
-	Settings.set_hub_layout("new" if i == 1 else "classic")
+	var layout := "grid" if i == 1 else "strip"
+	if layout != Settings.hub_layout:
+		Settings.set_hub_layout(layout)
+		get_tree().reload_current_scene()   # lights the chosen pill
 
 func _on_theme(i: int) -> void:
 	var t := "light" if i == 1 else "dark"

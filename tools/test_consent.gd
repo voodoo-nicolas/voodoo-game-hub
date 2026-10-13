@@ -91,11 +91,7 @@ func _initialize() -> void:
 	screen.month = 2
 	screen.year = 1995
 	screen._on_age_continue()
-	_check(screen.step == 1 and not screen._too_young, "an adult goes on to the Terms")
-	screen._on_next()
-	_check(screen.step == 2, "then the Privacy Policy as its own step")
-	screen._on_next()
-	_check(screen.step == 3, "then the tick boxes")
+	_check(screen.step == 1 and not screen._too_young, "an adult goes on to the accept screen")
 	for i in 3:
 		await process_frame
 	var go: Button = null
@@ -104,18 +100,14 @@ func _initialize() -> void:
 	for btn in buttons:
 		if (btn as Button).text == "Continuar" or (btn as Button).text == "Continue":
 			go = btn
-	_check(go != null and go.disabled, "Continue is off with both boxes unticked")
-	screen._toggle_terms()
-	_check(not C.has_accepted(), "one box is not enough")
-	screen.ticked_terms = true
-	screen.ticked_privacy = false
+	_check(go != null and go.disabled, "Continue is off with the box unticked")
 	screen._on_accept()
-	_check(not C.has_accepted(), "accept refuses with only one box ticked")
-	screen.ticked_privacy = true
-	screen.ticked_terms = true
+	_check(not C.has_accepted(), "accept refuses with the box unticked")
+	screen._toggle_accept()
+	_check(screen.accepted_box, "one tick box ticks")
 	C.return_scene = "res://scenes/hub/legal.tscn"  # stays in the test: never leaves the window
 	screen._on_accept()
-	_check(C.has_accepted(), "both ticked accepts")
+	_check(C.has_accepted(), "ticked + Continue accepts")
 
 	# ---- restore ----
 	if had:

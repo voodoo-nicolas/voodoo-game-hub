@@ -1,19 +1,25 @@
 extends Control
 
-## The new Game Browser (Settings.hub_layout == "new"; the Classic list stays in
-## hub.gd). Full-screen artwork with two bars at the bottom: a category bar
-## (★ Favoritos, 🔍, Continue playing, every category, Filtros) and a strip of tiles.
+## The Game Browser (the only one since v0.37; the old accordion list is retired).
+## Two looks, Options > "Games menu look" (Settings.hub_layout):
 ##
-## Tapping a tile opens its detail: the background crossfades (0.3 s) from the hub art
-## to the game's hero art and the title, description, mode badges and ▶ Play /
-## ☆ Favorite / ✕ Back appear (left side in landscape, under the art in portrait). The
-## bars stay; tapping another tile swaps the detail; tapping the open tile again, or
-## ▶ Play, opens the game (Hub._on_tile_pressed, as in the Classic list). ✕ Back or the
-## Android back button closes it. Long-press on a tile = toggle favourite.
-## Search / Filtros / sorting show their results in the strip under a "Results" tab
-## (the hub owns that state: chips, sort_mode, search_box, _filtered_games()).
-## One scene set serves both orientations: _layout() reads the size on every resize.
-## This view only draws; `hub` is the Hub node.
+##  "strip" (default): full-screen artwork, and two bars at the bottom: a category bar
+##   (★ Favoritos, 🔍, Continue playing, every category, Filtros) and ONE strip of tiles
+##   (‹ › arrows in landscape, drag + momentum + snap, wheel, edge fades).
+##   - Opening Games shows the hub's landing art. Choosing a category crossfades the
+##     background to that category's art (media/hub/categories); a game never changes it.
+##   - Tapping a tile shows its detail just above the bars: title + ★ (favourite),
+##     category · age, description, mode badges, ✕ Back / ▶ Play, and the game's picture
+##     to the right. Tapping another tile swaps it; ✕ Back or Android back closes it.
+##
+##  "grid": every game in a grid, divided by category (Favoritos and Continue first),
+##   scrolling up/down. Tapping a tile opens the same detail as a card over the grid.
+##
+## Both: tap the open tile again or ▶ Play = open the game (Hub._on_tile_pressed);
+## long-press = toggle favourite; search / Filtros / sorting show their results under a
+## "Results" tab (strip) or heading (grid). The hub owns that state (chips, sort_mode,
+## search_box, _filtered_games()). One scene set serves both orientations: _layout()
+## reads the size on every resize. This view only draws; `hub` is the Hub node.
 
 const HubLook = preload("res://scripts/hub/hub_look.gd")
 const HubArt = preload("res://scripts/hub/hub_art.gd")
@@ -29,21 +35,24 @@ const BAR_H := 64.0
 const TOP_H := 84.0
 const RECENT_MAX := 12
 const ART_FADE := 0.3
+const GRID_GAP := 12
 const MODE_WORDS := {"cpu": "vs. computer", "local": "same phone", "online": "online", "party": "group"}
 
 var hub: Node
 var scroller: Node
+var grid_mode := false
 var bar: HBoxContainer
 var strip: Control
 var detail: VBoxContainer
 var selected_id := ""
-## "results" / "favs" / "recent" / "cat:<index>"
+## strip look: "results" / "favs" / "recent" / "cat:<index>"
 var tab := ""
 var landscape := false
 var tiles: Array:
-	get: return strip.tiles if strip else []
+	get: return _all_tiles()
 var _cat_of: Dictionary = {}     # id -> {"en", "loc", "index"}
 var _prev_tab := ""
+var _tab_picked := false         # the background follows the category only after the player picks one
 var _art_clip: Control
 var _art_layer: Control
 var _art_key := "-"
@@ -51,17 +60,29 @@ var _art_fade: Tween
 var _scrim_left: TextureRect
 var _scrim_bottom: TextureRect
 var _detail_holder: Control
+var _preview: Control
+var _preview_art: TextureRect
+var _preview_emoji: Label
+var _preview_back: TextureRect
 var _bottom: VBoxContainer
 var _topbar: Control
 var _back_btn: Button
 var _search_field: LineEdit
+var _search_btn: Button
 var _filter_wrap: Control
+var _dim: Button
+var _card: Panel
+var _grid_scroll: ScrollContainer
+var _grid_box: VBoxContainer
+var _grid_tiles: Array = []
 var _lazy_dirty := true
 var _search_open := false
 var _tile_size := Vector2.ZERO
+var _grid_cols := 0
 
 func setup(hub_node: Node) -> void:
 	hub = hub_node
+	grid_mode = Settings.hub_layout == "grid"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = HubLook.pal().bg
@@ -84,18 +105,27 @@ func setup(hub_node: Node) -> void:
 	scroller.bounds = self
 	add_child(scroller)
 
-	_detail_holder = Control.new()
-	_detail_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_detail_holder)
-	detail = GameDetail.new()
-	detail.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	detail.alignment = BoxContainer.ALIGNMENT_END
-	detail.play_pressed.connect(_on_play)
-	detail.favorite_pressed.connect(_toggle_favorite)
-	detail.close_pressed.connect(_close_detail)
-	_detail_holder.add_child(detail)
-	_detail_holder.visible = false
+	if grid_mode:
+		_build_grid_scroll()
+	else:
+		_build_bottom_bars()
+	_build_detail()
+	_build_topbar()
+	_set_art("hub", null)
+	resized.connect(_layout)
+	_layout()
+	rebuild()
 
+func _scrim(tex: Texture2D) -> TextureRect:
+	var r := TextureRect.new()
+	r.texture = tex
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_SCALE
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(r)
+	return r
+
+func _build_bottom_bars() -> void:
 	_bottom = VBoxContainer.new()
 	_bottom.add_theme_constant_override("separation", 4)
 	add_child(_bottom)
@@ -111,20 +141,88 @@ func setup(hub_node: Node) -> void:
 	strip.scrolled.connect(_mark_lazy)
 	_bottom.add_child(strip)
 
-	_build_topbar()
-	_set_art("hub", null, Color.TRANSPARENT, "")
-	resized.connect(_layout)
-	_layout()
-	rebuild()
+func _build_grid_scroll() -> void:
+	_grid_scroll = ScrollContainer.new()
+	_grid_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_grid_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	add_child(_grid_scroll)
+	scroller.vertical = _grid_scroll
+	scroller.vertical_scrolled.connect(_mark_lazy)
+	_grid_scroll.get_v_scroll_bar().value_changed.connect(_mark_lazy.unbind(1))
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", HubLook.SIDE)
+	margin.add_theme_constant_override("margin_right", HubLook.SIDE)
+	margin.add_theme_constant_override("margin_bottom", 48)
+	_grid_scroll.add_child(margin)
+	_grid_box = VBoxContainer.new()
+	_grid_box.add_theme_constant_override("separation", 10)
+	_grid_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_child(_grid_box)
 
-func _scrim(tex: Texture2D) -> TextureRect:
-	var r := TextureRect.new()
-	r.texture = tex
-	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(r)
-	return r
+## Text block of the selected game + its picture; in the grid look they sit on a card.
+func _build_detail() -> void:
+	_dim = Button.new()
+	_dim.flat = true
+	_dim.focus_mode = Control.FOCUS_NONE
+	var dsb := StyleBoxFlat.new()
+	dsb.bg_color = Color(0, 0, 0, 0.62)
+	for s in ["normal", "hover", "pressed", "focus"]:
+		_dim.add_theme_stylebox_override(s, dsb)
+	_dim.pressed.connect(_close_detail)
+	_dim.visible = false
+	add_child(_dim)
+	_card = Panel.new()
+	var csb := StyleBoxFlat.new()
+	csb.bg_color = Color(0.01, 0.03, 0.08, 0.96)
+	csb.border_color = HubLook.pal().link
+	csb.set_border_width_all(2)
+	csb.set_corner_radius_all(16)
+	_card.add_theme_stylebox_override("panel", csb)
+	_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	_card.visible = false
+	add_child(_card)
+
+	_detail_holder = Control.new()
+	_detail_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_detail_holder)
+	detail = GameDetail.new()
+	detail.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	detail.alignment = BoxContainer.ALIGNMENT_END
+	detail.play_pressed.connect(_on_play)
+	detail.favorite_pressed.connect(_toggle_favorite)
+	detail.close_pressed.connect(_close_detail)
+	_detail_holder.add_child(detail)
+	_detail_holder.visible = false
+
+	_preview = Panel.new()
+	_preview.add_theme_stylebox_override("panel", HubLook.clip_style())
+	_preview.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+	_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview.visible = false
+	add_child(_preview)
+	_preview_back = TextureRect.new()
+	_preview_back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_preview_back.stretch_mode = TextureRect.STRETCH_SCALE
+	_preview_back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_preview_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview.add_child(_preview_back)
+	_preview_emoji = Label.new()
+	_preview_emoji.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_preview_emoji.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_preview_emoji.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_preview_emoji.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_preview_emoji.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview.add_child(_preview_emoji)
+	_preview_art = TextureRect.new()
+	_preview_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_preview_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_preview_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_preview_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview.add_child(_preview_art)
+
+func _all_tiles() -> Array:
+	return _grid_tiles if grid_mode else (strip.tiles if strip else [])
 
 # ---------- top bar: ← Inicio, search field, Filtros panel ----------
 
@@ -162,6 +260,22 @@ func _build_topbar() -> void:
 	_search_field.visible = false
 	row.add_child(_search_field)
 	hub.search_box = _search_field
+	if grid_mode:
+		# No category bar here, so 🔍 and Filtros live in the top bar.
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spacer.name = "Spacer"
+		row.add_child(spacer)
+		_search_btn = HubLook.ghost_button("🔍", 28)
+		_search_btn.custom_minimum_size = Vector2(64, 56)
+		_search_btn.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		_search_btn.pressed.connect(_toggle_search)
+		row.add_child(_search_btn)
+		var filters := CategoryBar.make_filters_button()
+		filters.pressed.connect(hub._on_filters_toggled)
+		row.add_child(filters)
+		hub.filters_btn = filters
 
 	# The chips and sort buttons drop down under the top bar.
 	var wrap := PanelContainer.new()
@@ -193,7 +307,12 @@ func _sync_filter_wrap() -> void:
 func _toggle_search() -> void:
 	_search_open = not _search_open
 	_search_field.visible = _search_open
-	bar.set_search_open(_search_open)
+	if grid_mode:
+		_back_btn.visible = not _search_open
+		_topbar.get_child(0).get_node("Spacer").visible = not _search_open
+		_search_btn.text = "✕" if _search_open else "🔍"
+	else:
+		bar.set_search_open(_search_open)
 	if _search_open:
 		_search_field.grab_focus()
 	elif _search_field.text != "":
@@ -205,9 +324,57 @@ func _toggle_search() -> void:
 func _layout() -> void:
 	var W := size.x
 	var H := size.y
-	if W <= 0.0 or H <= 0.0 or strip == null:
+	if W <= 0.0 or H <= 0.0 or (strip == null and _grid_scroll == null):
 		return
 	landscape = W > H * 1.05
+	var side := float(HubLook.SIDE)
+	_art_clip.position = Vector2.ZERO
+	_art_clip.size = Vector2(W, H)
+	var open := selected_id != ""
+	var bottom_h := 0.0
+	if grid_mode:
+		_layout_grid(W, H)
+	else:
+		bottom_h = _layout_strip(W, H)
+
+	# the detail text sits just above the bars (strip) or on a card (grid)
+	var text_w := W * 0.46 if landscape else W * 0.6 - side
+	var pw := minf(W * 0.28, 440.0) if landscape else W * 0.34
+	var area := Rect2(side, TOP_H, W - side * 2.0, maxf(80.0, H - bottom_h - TOP_H - 12.0))
+	if grid_mode:
+		var cw := minf(W - side * 2.0, 1000.0 if landscape else W)
+		var ch := minf(H - TOP_H - 24.0, 380.0 if landscape else 420.0)
+		var card := Rect2((W - cw) / 2.0, (H - ch) / 2.0 + 20.0, cw, ch)
+		_card.position = card.position
+		_card.size = card.size
+		area = card.grow(-22.0)
+		text_w = area.size.x * (0.58 if landscape else 0.6)
+		pw = minf(area.size.x * 0.36, 380.0)
+	_detail_holder.position = area.position
+	_detail_holder.size = Vector2(text_w, area.size.y)
+	detail.alignment = BoxContainer.ALIGNMENT_CENTER if grid_mode else BoxContainer.ALIGNMENT_END
+	detail.set_compact(area.size.y < (270.0 if landscape else 330.0), 56 if landscape else 46)
+	var ph := roundf(pw * 9.0 / 16.0)
+	_preview.size = Vector2(roundf(pw), ph)
+	_preview.position = Vector2(area.end.x - pw, (area.get_center().y - ph / 2.0) if grid_mode else (area.end.y - ph))
+	_preview_emoji.add_theme_font_size_override("font_size", int(ph * 0.5))
+
+	_scrim_left.visible = open and landscape and not grid_mode
+	_scrim_left.position = Vector2.ZERO
+	_scrim_left.size = Vector2(W, H)
+	var g := bottom_h * 1.8
+	if open and not landscape and not grid_mode:
+		g = bottom_h + area.size.y + 120.0
+	g = minf(H, g)
+	_scrim_bottom.visible = not grid_mode
+	_scrim_bottom.position = Vector2(0, H - g)
+	_scrim_bottom.size = Vector2(W, g)
+	_dim.position = Vector2.ZERO
+	_dim.size = Vector2(W, H)
+	_lazy_dirty = true
+
+## Returns the height of the bar + strip block.
+func _layout_strip(W: float, H: float) -> float:
 	var side := float(HubLook.SIDE)
 	var tile := Vector2.ZERO
 	if landscape:
@@ -219,46 +386,34 @@ func _layout() -> void:
 	if tile != _tile_size:
 		_tile_size = tile
 		strip.set_tile_size(tile)
-		if not tiles.is_empty() or tab != "":
+		if tab != "":
 			_show_tab()
 	strip.set_arrows_enabled(landscape)
 	var bottom_h: float = BAR_H + 4.0 + strip.min_height() + 8.0
 	_bottom.position = Vector2(0, H - bottom_h)
 	_bottom.size = Vector2(W, bottom_h)
+	return bottom_h
 
-	var open := selected_id != ""
-	var art_h := H
-	if open and not landscape:
-		art_h = clampf(H - bottom_h - 360.0, H * 0.28, H * 0.6)
-	_art_clip.position = Vector2.ZERO
-	_art_clip.size = Vector2(W, art_h)
-	_scrim_left.visible = open and landscape
-	_scrim_left.position = Vector2.ZERO
-	_scrim_left.size = Vector2(W, art_h)
-	if open and not landscape:   # the art melts into the dark under it
-		_scrim_bottom.position = Vector2(0, art_h * 0.6)
-		_scrim_bottom.size = Vector2(W, art_h * 0.4)
-	else:                        # behind the bars only
-		var g := minf(H, bottom_h * 1.8)
-		_scrim_bottom.position = Vector2(0, H - g)
-		_scrim_bottom.size = Vector2(W, g)
+func _layout_grid(W: float, H: float) -> void:
+	_grid_scroll.position = Vector2(0, TOP_H)
+	_grid_scroll.size = Vector2(W, H - TOP_H)
+	var cols := 5 if landscape else 3
+	if cols != _grid_cols and not _cat_of.is_empty():
+		rebuild.call_deferred()   # a rotation: new column count
 
-	if landscape:
-		var top := TOP_H
-		_detail_holder.position = Vector2(side * 2.0, top)
-		_detail_holder.size = Vector2(W * 0.46, maxf(80.0, H - bottom_h - top - 12.0))
-		detail.alignment = BoxContainer.ALIGNMENT_END
-	else:
-		_detail_holder.position = Vector2(side, art_h + 4.0)
-		_detail_holder.size = Vector2(W - side * 2.0, maxf(80.0, H - bottom_h - art_h - 12.0))
-		detail.alignment = BoxContainer.ALIGNMENT_BEGIN
-	var avail := _detail_holder.size.y
-	detail.set_compact(avail < (270.0 if landscape else 330.0), 56 if landscape else 46)
-	_lazy_dirty = true
+# ---------- background art: the hub's landing art, or the open category's ----------
 
-# ---------- background art: crossfade between the hub art and a game's hero ----------
+func _update_background() -> void:
+	if not grid_mode and _tab_picked and tab.begins_with("cat:"):
+		var idx := int(tab.substr(4))
+		if idx >= 0 and idx < Catalog.categories.size():
+			var path: String = hub.CATEGORY_ART.get(str(Catalog.categories[idx].get("name", "")), "")
+			if path != "" and ResourceLoader.exists(path):
+				_set_art(path, load(path) as Texture2D)
+				return
+	_set_art("hub", null)
 
-func _set_art(key: String, tex: Texture2D, color: Color, emoji: String) -> void:
+func _set_art(key: String, tex: Texture2D) -> void:
 	if key == _art_key:
 		return
 	_art_key = key
@@ -266,30 +421,17 @@ func _set_art(key: String, tex: Texture2D, color: Color, emoji: String) -> void:
 	var pic := Control.new()
 	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if key == "hub":
+	if tex == null:
 		var bg := Brand.backdrop()
 		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		pic.add_child(bg)
-	elif tex != null:
-		pic.add_child(_cover(tex))
 	else:
-		var back := TextureRect.new()
-		back.texture = HubArt.fallback_gradient(color)
-		back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		back.stretch_mode = TextureRect.STRETCH_SCALE
-		back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pic.add_child(back)
-		var e := Label.new()
-		e.text = emoji
-		e.add_theme_font_size_override("font_size", 220)
-		e.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-		e.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		e.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		e.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		e.anchor_left = 0.5 if landscape else 0.0   # right half in landscape, like the hero art
-		e.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pic.add_child(e)
+		pic.add_child(_cover(tex))
+		var dim := ColorRect.new()   # a little darker, like the hub background
+		dim.color = Color(0, 0.01, 0.04, 0.35)
+		dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pic.add_child(dim)
 	_art_layer.add_child(pic)
 	if _art_fade != null and _art_fade.is_valid():
 		_art_fade.kill()
@@ -308,8 +450,8 @@ func _free_nodes(nodes: Array) -> void:
 		if is_instance_valid(n):
 			n.queue_free()
 
-## A picture that covers the art area; the focal point is the right half (landscape,
-## where the text sits on the left) or the centre (portrait).
+## Fills the screen, centred: the picture is scaled to cover and the overflow is cropped
+## (sides in portrait, top and bottom in a wider-than-picture window).
 func _cover(tex: Texture2D) -> Control:
 	var holder := Control.new()
 	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -330,10 +472,9 @@ func _fit_cover(holder: Control, r: TextureRect, tex: Texture2D) -> void:
 		return
 	var s := maxf(holder.size.x / tex.get_width(), holder.size.y / tex.get_height())
 	r.size = Vector2(tex.get_width(), tex.get_height()) * s
-	var x := holder.size.x - r.size.x if landscape else (holder.size.x - r.size.x) / 2.0
-	r.position = Vector2(x, (holder.size.y - r.size.y) * 0.4)
+	r.position = (holder.size - r.size) / 2.0
 
-# ---------- category bar + strip ----------
+# ---------- building the content ----------
 
 func rebuild() -> void:
 	_cat_of.clear()
@@ -342,6 +483,14 @@ func rebuild() -> void:
 		for g in cat.games:
 			if g.has("id"):
 				_cat_of[str(g.id)] = {"en": str(cat.get("name", "")), "loc": Lang.pick(cat, "name"), "index": i}
+	if selected_id != "" and not _cat_of.has(selected_id):
+		_close_detail()
+	if grid_mode:
+		_rebuild_grid()
+	else:
+		_rebuild_strip()
+
+func _rebuild_strip() -> void:
 	var filtering: bool = hub._filtering()
 	var items: Array = []
 	if filtering:
@@ -362,9 +511,8 @@ func rebuild() -> void:
 		tab = "recent" if not _games_for("recent").is_empty() else ("cat:0" if not Catalog.categories.is_empty() else "favs")
 	bar.set_tabs(items, tab)
 	bar.set_search_open(_search_open)
-	if selected_id != "" and not _cat_of.has(selected_id):
-		_close_detail()
 	_show_tab()
+	_update_background()
 
 func _valid_tab(key: String, items: Array) -> bool:
 	for it in items:
@@ -404,8 +552,10 @@ func _on_tab(key: String) -> void:
 	if key == tab:
 		return
 	tab = key
+	_tab_picked = true
 	bar.set_active(tab)
 	_show_tab()
+	_update_background()
 
 func _show_tab() -> void:
 	var games := _games_for(tab)
@@ -417,14 +567,73 @@ func _show_tab() -> void:
 	strip.set_games(games, _category_en, scroller, empty)
 	bar.set_active(tab)
 	for t in strip.tiles:
-		t.tapped.connect(_on_tile_tapped)
-		t.long_pressed.connect(_toggle_favorite)
-		t.set_favorite(HubData.is_favorite(t.id))
-		t.set_selected(t.id == selected_id, false)
+		_hook_tile(t)
 	_lazy_dirty = true
+
+func _hook_tile(t: Control) -> void:
+	t.tapped.connect(_on_tile_tapped)
+	t.long_pressed.connect(_toggle_favorite)
+	t.set_favorite(HubData.is_favorite(t.id))
+	t.set_selected(t.id == selected_id, false)
 
 func _category_en(id: String) -> String:
 	return str(_cat_of.get(id, {}).get("en", ""))
+
+# ---------- grid look ----------
+
+func _rebuild_grid() -> void:
+	var keep: int = _grid_scroll.scroll_vertical
+	for c in _grid_box.get_children():
+		_grid_box.remove_child(c)
+		c.queue_free()
+	_grid_tiles.clear()
+	var W := maxf(size.x, 300.0)
+	var cols := 5 if landscape else 3
+	_grid_cols = cols
+	var tw := floorf((W - HubLook.SIDE * 2.0 - GRID_GAP * (cols - 1)) / cols)
+	var tile_size := Vector2(tw, floorf(tw * 9.0 / 16.0))
+	if hub._filtering():
+		var found: Array = hub._filtered_games()
+		_add_section(tr("Results (%d)") % found.size(), found, tile_size, tr("No games match."))
+	else:
+		_add_section(tr("★ Favorites"), _games_for("favs"), tile_size, tr("No favorites yet. Press and hold a game to add it."))
+		var recent := _games_for("recent")
+		if not recent.is_empty():
+			_add_section(tr("Continue playing"), recent, tile_size, "")
+		for i in Catalog.categories.size():
+			_add_section(_tab_title("cat:%d" % i), _games_for("cat:%d" % i), tile_size, "")
+	_update_background()
+	_lazy_dirty = true
+	_restore_scroll.call_deferred(keep)
+
+func _restore_scroll(y: int) -> void:
+	if is_inside_tree() and _grid_scroll != null:
+		_grid_scroll.scroll_vertical = y
+
+func _add_section(title: String, games: Array, tile_size: Vector2, empty_text: String) -> void:
+	if games.is_empty() and empty_text == "":
+		return
+	var head := HubLook.label(title, 30)
+	head.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	head.custom_minimum_size.y = 52
+	head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_grid_box.add_child(head)
+	if games.is_empty():
+		var l := HubLook.label(empty_text, 22, HubLook.pal().text_dim)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_grid_box.add_child(l)
+		return
+	var grid := GridContainer.new()
+	grid.columns = _grid_cols
+	grid.add_theme_constant_override("h_separation", GRID_GAP)
+	grid.add_theme_constant_override("v_separation", GRID_GAP)
+	_grid_box.add_child(grid)
+	for g in games:
+		var t := GameTile.new()
+		t.setup(g, str(_cat_of.get(str(g.id), {}).get("en", "")), tile_size, scroller)
+		grid.add_child(t)
+		_grid_tiles.append(t)
+		_hook_tile(t)
 
 ## Android back: Filtros panel first, then the open detail. True = handled.
 func handle_back() -> bool:
@@ -443,26 +652,42 @@ func select(id: String) -> void:
 	if g.is_empty() or not _cat_of.has(id):
 		return
 	selected_id = id
-	for t in strip.tiles:
+	for t in _all_tiles():
 		t.set_selected(t.id == id)
 	var info: Dictionary = _cat_of[id]
 	var parts: PackedStringArray = [info.loc]
 	if bool(g.get("has_content", false)):
 		parts.append(tr("Ages %d+") % int(g.get("min_age", 3)))
 	detail.show_game(g, " · ".join(parts), _description(g, info.loc), HubData.is_favorite(id))
+	_set_preview(g, info.en)
 	_detail_holder.visible = true
+	_preview.visible = true
+	_dim.visible = grid_mode
+	_card.visible = grid_mode
+	if grid_mode:
+		scroller.vertical = null   # the grid behind the card stays put
 	_layout()
-	_set_art(id, HubArt.hero(g), HubArt.category_color(info.en), str(g.get("icon", "🎮")))
 
 func _close_detail() -> void:
 	if selected_id == "":
 		return
 	selected_id = ""
-	for t in strip.tiles:
+	for t in _all_tiles():
 		t.set_selected(false)
 	_detail_holder.visible = false
+	_preview.visible = false
+	_dim.visible = false
+	_card.visible = false
+	if grid_mode:
+		scroller.vertical = _grid_scroll
 	_layout()
-	_set_art("hub", null, Color.TRANSPARENT, "")
+
+## The game's own picture (tile art, or its emoji on the category gradient).
+func _set_preview(g: Dictionary, category_en: String) -> void:
+	var tex := HubArt.tile(g)
+	_preview_art.texture = tex
+	_preview_back.texture = HubArt.fallback_gradient(HubArt.category_color(category_en))
+	_preview_emoji.text = "" if tex != null else str(g.get("icon", "🎮"))
 
 ## The manifest's "desc" (ES/EN), or a line built from the category and modes.
 func _description(g: Dictionary, category_loc: String) -> String:
@@ -491,10 +716,12 @@ func _toggle_favorite(id: String) -> void:
 	var on: bool = HubData.toggle_favorite(id)
 	if id == selected_id:
 		detail.set_favorite(on)
-	for t in strip.tiles:
+	for t in _all_tiles():
 		if t.id == id:
 			t.set_favorite(on)
-	if tab == "favs":
+	if grid_mode:
+		rebuild.call_deferred()   # the Favorites section gains / loses a tile
+	elif tab == "favs":
 		_show_tab()   # the tile leaves / joins this strip
 
 # ---------- lazy picture loading ----------
@@ -502,15 +729,15 @@ func _toggle_favorite(id: String) -> void:
 func _mark_lazy() -> void:
 	_lazy_dirty = true
 
-## Tiles within a screen of the strip get their picture; far ones drop it.
+## Tiles within a screen of the view get their picture; far ones drop it.
 func _process(_delta: float) -> void:
 	if not _lazy_dirty or not visible:
 		return
 	_lazy_dirty = false
 	var view := get_global_rect()
-	var near := view.grow_individual(view.size.x, 0, view.size.x, 0)
-	var far := view.grow_individual(view.size.x * 2.0, 0, view.size.x * 2.0, 0)
-	for t in strip.tiles:
+	var near := view.grow_individual(view.size.x, view.size.y, view.size.x, view.size.y)
+	var far := view.grow_individual(view.size.x * 2.0, view.size.y * 2.0, view.size.x * 2.0, view.size.y * 2.0)
+	for t in _all_tiles():
 		if not is_instance_valid(t):
 			continue
 		var r: Rect2 = t.get_global_rect()

@@ -78,7 +78,7 @@ const SORTS := [["cat", "By category"], ["az", "A–Z"], ["recent", "Recently pl
 const MODE_ICONS := {"cpu": "🤖", "local": "👥", "online": "🌐", "party": "🎉"}
 
 var list_container: VBoxContainer
-## The new Game Browser (Settings.hub_layout == "new"); null in the Classic list.
+## The Game Browser view (netflix_browser.gd: sliding tiles or grid, Settings.hub_layout).
 var netflix: Control
 ## Home pieces that move between the portrait column and the landscape row.
 var home_col: VBoxContainer
@@ -578,9 +578,11 @@ func _show_browser_with(chip: String) -> void:
 # ---------- Game Browser (STANDARDS §2a) ----------
 
 func _build_browser_view() -> void:
-	if Settings.hub_layout == "new":
-		_build_netflix_view()
-		return
+	_build_netflix_view()
+
+## The retired accordion list (Classic look, until v0.36). Not used any more; kept here
+## because it is the owner's code. The Filtros panel it shares is _build_filter_panel().
+func _build_classic_browser_view() -> void:
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 0)
