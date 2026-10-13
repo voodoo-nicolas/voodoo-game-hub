@@ -100,7 +100,6 @@ const STRINGS := {
 		"You: %d    Computer: %d": "Tú: %d    Computadora: %d",
 		"You: %s": "Tú: %s",
 		"Your turn (%s)": "Tu turno (%s)",
-		"Your turn — draw from the stock or the discard pile.": "Tu turno — roba del mazo o del descarte.",
 		"discarded %s": "descartó %s",
 		"drew from the stock": "robó del mazo",
 		"laid off %d card(s)": "agregó %d carta(s)",

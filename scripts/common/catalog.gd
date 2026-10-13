@@ -230,7 +230,11 @@ func _apply_manifest(data: Variant) -> bool:
 			# minutes, "original" = a Viral original (not a classic).
 			game["quick"] = raw_game.get("quick", false) == true
 			game["original"] = raw_game.get("original", false) == true
+			# Since v0.35: similar games sit together ("Sudoku", "Solitaire"...);
+			# a category lists by family, then title (_family_less below).
+			game["family"] = str(raw_game.get("family", ""))
 			cat_games.append(game)
+		cat_games.sort_custom(_family_less)
 		var category := {
 			"name": str(raw_cat.get("name", "")),
 			"icon": str(raw_cat.get("icon", "")),
@@ -245,6 +249,21 @@ func _apply_manifest(data: Variant) -> bool:
 	_games_by_id = games_by_id
 	archived_ids = archived
 	return true
+
+## Category order: by family (a game without one counts as its own family),
+## then title; "coming soon" placeholders (no id) last. English titles, so the
+## order doesn't change with the language.
+func _family_less(a: Dictionary, b: Dictionary) -> bool:
+	var a_real: bool = a.has("id")
+	var b_real: bool = b.has("id")
+	if a_real != b_real:
+		return a_real
+	var ka: String = str(a.get("family", "")) if str(a.get("family", "")) != "" else str(a.get("title", ""))
+	var kb: String = str(b.get("family", "")) if str(b.get("family", "")) != "" else str(b.get("title", ""))
+	var c := ka.naturalnocasecmp_to(kb)
+	if c != 0:
+		return c < 0
+	return str(a.get("title", "")).naturalnocasecmp_to(str(b.get("title", ""))) < 0
 
 ## Carries "<field>_<lang>" translations (e.g. "title_es") from the manifest
 ## into the entry; Lang.pick() chooses between them at display time.

@@ -5718,5 +5718,7 @@
  "took the discard": "tomó el descarte",
  "🃏 Meld": "🃏 Bajar",
  "🃏 Rummy": "🃏 Rummy",
- "🗑 Discard": "🗑 Descartar"
+ "🗑 Discard": "🗑 Descartar",
+ "🎞 Reduce motion": "🎞 Menos movimiento",
+ "Menus switch instantly instead of sliding and fading.": "Los menús cambian al instante, sin deslizarse ni desvanecerse."
 }

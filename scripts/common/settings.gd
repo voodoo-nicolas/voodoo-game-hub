@@ -85,6 +85,8 @@ var volume: int = DEFAULT_VOLUME
 var sound_groups: Dictionary = {}
 var vibrate: bool = true
 var keep_awake: bool = false
+## Hub transitions (slides, fades) are skipped when on; Options > Vibration & screen.
+var reduce_motion: bool = false
 var invites: String = "all"
 
 func _ready() -> void:
@@ -182,6 +184,14 @@ func group_db(id: String) -> Variant:
 	if not group_on(id) or v <= 0:
 		return null
 	return linear_to_db(v / 100.0)
+
+func set_reduce_motion(on: bool) -> void:
+	reduce_motion = on
+	_commit()
+
+## A transition length: 0 when the player turned animations off.
+func anim_time(t: float) -> float:
+	return 0.0 if reduce_motion else t
 
 func set_vibrate(on: bool) -> void:
 	vibrate = on
@@ -453,6 +463,7 @@ func _load() -> void:
 	sound = bool(data.get("sound", true))
 	vibrate = bool(data.get("vibrate", true))
 	keep_awake = bool(data.get("keep_awake", false))
+	reduce_motion = bool(data.get("reduce_motion", false))
 	invites = str(data.get("invites", "all"))
 	if not INVITE_MODES.has(invites):
 		invites = "all"
@@ -463,5 +474,5 @@ func _save() -> void:
 		f.store_string(JSON.stringify({
 			"text_size": text_size, "theme": theme, "sound": sound,
 			"volume": volume, "sound_groups": sound_groups,
-			"vibrate": vibrate, "keep_awake": keep_awake, "invites": invites,
+			"vibrate": vibrate, "keep_awake": keep_awake, "reduce_motion": reduce_motion, "invites": invites,
 		}))

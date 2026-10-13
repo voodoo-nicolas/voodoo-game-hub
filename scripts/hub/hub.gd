@@ -420,7 +420,7 @@ func _slide_to(to_browser: bool, animate: bool) -> void:
 		_slide.kill()
 	var w := size.x
 	sticky_layer.visible = false
-	if not animate or w <= 0.0 or not is_inside_tree():
+	if not animate or Settings.reduce_motion or w <= 0.0 or not is_inside_tree():
 		_slide_done(to_browser)
 		return
 	home_view.visible = true
@@ -474,9 +474,9 @@ func _set_category_art(category_name: String) -> void:
 		dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 		pic.add_child(dim)
 		art_layer.add_child(pic)
-		fade.tween_property(pic, "modulate:a", 1.0, 0.45)
+		fade.tween_property(pic, "modulate:a", 1.0, Settings.anim_time(0.45))
 	for o in old:
-		fade.tween_property(o, "modulate:a", 0.0, 0.45)
+		fade.tween_property(o, "modulate:a", 0.0, Settings.anim_time(0.45))
 	# After the fade, drop the pictures that were there before.
 	fade.chain().tween_callback(_free_nodes.bind(old))
 
@@ -849,6 +849,9 @@ func _toggle_category(index: int) -> void:
 	expanded_index = -1 if closing else index
 	_rebuild_list()
 	_apply_category_art()
+	if not closing and not Settings.reduce_motion and is_instance_valid(_open_section):
+		_open_section.modulate.a = 0.0
+		create_tween().tween_property(_open_section, "modulate:a", 1.0, 0.2)
 	if closing:
 		# Closed from the pinned header far down the list: the list is now
 		# short, so bring that category's row back into view.
