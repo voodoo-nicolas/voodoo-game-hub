@@ -216,4 +216,5 @@ func _help_link() -> Control:
 	return holder
 
 func _open_help() -> void:
-	get_tree().change_scene_to_file("res://scenes/hub/help.tscn")
+	Consent.help_back_scene = Consent.CONSENT_SCENE
+	get_tree().change_scene_to_file(Consent.HELP_SCENE)
