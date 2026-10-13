@@ -26,6 +26,14 @@ Pipe Flow, Bubble Pop, Sketch It, Five in a Row (online), Dominoes, Mahjong Soli
 - Air Hockey: two perfect-defender bots never score; test with a bank-shot bot.
 - `--check-only` catches parse errors before a test hangs: `godot --headless --path . --check-only --script res://...` (an engine that fails to parse makes `load().new()` fail and the test never quits).
 
+## Wire Up (id `pipe_flow`, rebuilt 2026-10-13; was Pipe Flow)
+Electricity puzzle: batteries (blue/yellow), wire pieces, bulbs (blue/yellow/green). Tap = quarter turn. A network's current = the batteries it touches (blue, yellow, or green when both); a bulb lights only when its network's colour equals its own, so a green bulb needs both batteries and a blue bulb on a mixed wire is shorted. Loose ends are legal (decoys, loops).
+- `pipe_flow_engine.gd`: pure logic. Boards are routed first (Dijkstra with random costs from each terminal to its network's wire), then decoys/locks are added and the pieces scrambled, so every board is solvable; `generate(params, seed)` is deterministic. `params_for(level)` = 12 chapters x 10 levels (`CHAPTERS`), sizes up to 8x10. Test: `godot --headless --path . --script res://tools/test_wire_up.gd` (all 120 levels, ~25 s) and `tools/test_wire_up_game.gd` (scene flow; WRITES the real pipe_flow saves, back up first).
+- Modes: Campaign (stars: 3 = taps within ~1.3 x par and no hint), Level Select map, Daily (same board for everyone, level 45-94 by day, streak), Easy..Expert random boards (`ZEN_RANGE`), Time Attack (180 s, +5 s per board, ramps 2 levels per board). Progress in `user://pipe_flow_progress.json`; the Resume file is `pipe_flow_save.json` (old Pipe Flow saves have no `mode` and are dropped).
+- All art in code (classic = blue tiles, glowing current; voodoo = neon, skull bulbs). Sounds: `pipe_flow_sfx.gd` synthesizes them and plays through `Sfx.play_stream()` (guarded: older apps stay silent). Colour is never the only cue: ring = blue, dot = yellow, both = green.
+- Stats keys (GameInfo): Puzzles solved (the leaderboard), Campaign levels, Campaign stars, Perfect levels, Time attack best, Daily streak, Green bulbs lit.
+- Open: the old hub tile/hero art (`media/hub/game_art/pipe_flow/`) is the placeholder from the Pipe Flow days (APK side: changes need an app release).
+
 ## The last 7 (Arcade, 2026-10-04; Easy/Normal/Hard rows, "Best score (%s)")
 - Barrel Climb: six slanted girders (`y_at(floor, x)`, open at the downhill end), random ladders, Bone King throws barrels, hammer, BONUS countdown (0 = life lost).
 - Cannon Duel: heightmap ground with craters (`_explode`), wind, 3 weapons, fuel; vs CPU x3 or 2 players. **CPU aim uses `predict()`, a local-variable copy of shell physics** (Dictionary `_advance` was ~30x slower): keep in step with physics.
