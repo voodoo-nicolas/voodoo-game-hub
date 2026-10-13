@@ -28,6 +28,9 @@ const MUSIC_LIST_URL := "https://raw.githubusercontent.com/" + GITHUB_OWNER + "/
 ## JOIN_PAGE_URL + "?g=<game id>&c=<CODE>" (docs/j/index.html on GitHub
 ## Pages) as text and as a QR code. No domain yet, so no App Link: the page
 ## shows the code and how to join.
+## The crisis help numbers published on GitHub Pages (docs/crisis_resources.json), so they
+## can change without an app release. See scripts/common/crisis_help.gd.
+const CRISIS_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/crisis_resources.json"
 const JOIN_PAGE_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/j/"
 
 ## Publishable/anon key only -- safe to ship, it grants nothing beyond what the

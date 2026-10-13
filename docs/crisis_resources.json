@@ -1,0 +1,77 @@
+{
+ "schema_version": 1,
+ "updated": "2026-10-12",
+ "default_region": "AR",
+ "emergency_note": {
+  "es": "Si hay peligro inmediato, llamá al 911.",
+  "en": "If there is immediate danger, call 911."
+ },
+ "fallback": {
+  "label_es": "Líneas de ayuda en tu país",
+  "label_en": "Helplines in your country",
+  "url": "https://findahelpline.com"
+ },
+ "regions": {
+  "AR": {
+   "resources": [
+    {
+     "id": "ar_135",
+     "label_es": "Línea 135 — apoyo en crisis y prevención del suicidio",
+     "label_en": "Line 135 — crisis support and suicide prevention",
+     "dial": "135",
+     "free": true,
+     "note_es": "Funciona en Tucumán (línea provincial del Ministerio de Salud, todos los días) y en CABA/GBA (Centro de Asistencia al Suicida).",
+     "note_en": "Works in Tucumán (provincial Health Ministry line, every day) and in Buenos Aires city/area (Centro de Asistencia al Suicida).",
+     "provinces": [
+      "AR-T",
+      "AR-C",
+      "AR-B"
+     ],
+     "verified_on": "2026-10-12",
+     "sources": [
+      "https://www.lagaceta.com.ar/nota/1053494/sociedad/llamadas-linea-asistencia-al-riesgo-suicida-se-duplicaron.html",
+      "https://findahelpline.com/organizations/linea-de-prevencion-del-suicidio-buenos-aires"
+     ]
+    },
+    {
+     "id": "ar_cas_national",
+     "label_es": "Centro de Asistencia al Suicida — desde todo el país",
+     "label_en": "Centro de Asistencia al Suicida — from anywhere in Argentina",
+     "dial": "0800 345 1435",
+     "dial_alt": "(011) 5275-1135",
+     "free": null,
+     "note_es": "El 0800 es para todo el país; el (011) 5275-1135 puede tener costo según tu operador.",
+     "note_en": "The 0800 number is nationwide; (011) 5275-1135 may have a cost depending on your carrier.",
+     "verified_on": "2026-10-12",
+     "sources": [
+      "https://findahelpline.com/organizations/linea-de-prevencion-del-suicidio-buenos-aires",
+      "https://www.derechoenzapatillas.com/amp/2022/salud-mental-donde-buscar-ayuda/"
+     ]
+    },
+    {
+     "id": "ar_107_tuc",
+     "label_es": "107 — emergencias de salud (Tucumán)",
+     "label_en": "107 — health emergencies (Tucumán)",
+     "dial": "107",
+     "free": true,
+     "provinces": [
+      "AR-T"
+     ],
+     "verified_on": "2026-10-12",
+     "sources": [
+      "https://www.lagaceta.com.ar/nota/1053494/sociedad/llamadas-linea-asistencia-al-riesgo-suicida-se-duplicaron.html"
+     ]
+    },
+    {
+     "id": "ar_911",
+     "label_es": "911 — emergencias",
+     "label_en": "911 — emergency services",
+     "dial": "911",
+     "free": true,
+     "verified_on": null,
+     "sources": []
+    }
+   ]
+  }
+ }
+}

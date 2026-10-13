@@ -38,6 +38,9 @@ static var reading_doc: String = "terms"
 static var draft: Dictionary = {}
 ## The hub asks a signed-in player to accept at most once per app session.
 static var prompted: bool = false
+## Where the Help screen's Back goes (set by whoever opens it).
+static var help_back_scene: String = "res://scenes/hub/options.tscn"
+const HELP_SCENE := "res://scenes/hub/help.tscn"
 
 static func _state() -> Dictionary:
 	if FileAccess.file_exists(PATH):

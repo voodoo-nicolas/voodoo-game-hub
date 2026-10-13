@@ -102,6 +102,8 @@ func _build() -> void:
 			r.add_child(x)
 			out.add_child(r)
 
+	list.add_child(_help_footer())
+
 ## One friend: avatar, GAMER TAG, Viral Power, what they're doing. The whole
 ## row opens their page; Invite and the "..." menu are the only other taps.
 func _friend_row(f: Dictionary) -> Control:
@@ -174,6 +176,24 @@ func _on_more(f: Dictionary) -> void:
 	var no := pill(tr("Cancel"), false)
 	no.pressed.connect(close_dialog)
 	box.add_child(no)
+
+## A quiet safety line at the bottom (names and friends are visible to others).
+func _help_footer() -> Control:
+	var b := Button.new()
+	b.text = tr("If you or someone is in danger, get help")
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_size_override("font_size", 20)
+	for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(key, pal.text_dim)
+	b.pressed.connect(_open_help)
+	return b
+
+func _open_help() -> void:
+	if tapped():
+		var consent = preload("res://scripts/common/consent.gd")
+		consent.help_back_scene = "res://scenes/hub/friends.tscn"
+		get_tree().change_scene_to_file(consent.HELP_SCENE)
 
 func _person_row(f: Dictionary, sub: String) -> HBoxContainer:
 	var row := HBoxContainer.new()

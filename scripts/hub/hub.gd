@@ -9,6 +9,7 @@ const GameIcons = preload("res://scripts/common/game_icons.gd")
 const Brand = preload("res://scripts/common/brand.gd")
 const HubFx = preload("res://scripts/common/hub_fx.gd")
 const Consent = preload("res://scripts/common/consent.gd")
+const CrisisHelp = preload("res://scripts/common/crisis_help.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
 const WEB = preload("res://scripts/common/web.gd")
 ## The title art: the V-skull + VIRAL wordmark (Brand.WORDMARK), its own
@@ -157,6 +158,7 @@ func _ready() -> void:
 	Social.set_game("")  # back in the menus: friends see "in the menus"
 	Social.sync_awards()  # badges earned in the game just played become Viral XP
 	Consent.sync()  # my acceptance of the Terms/Privacy, once per account + version
+	CrisisHelp.refresh(self, Config.CRISIS_URL)  # newer helpline numbers, at most once a day
 	_update_friend_badge()
 
 	# A newer live manifest can add games or change versions while the hub is

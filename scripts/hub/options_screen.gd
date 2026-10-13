@@ -176,6 +176,9 @@ func _build_ui() -> void:
 	var feedback_btn := _pill_button(tr("Send feedback"), true)
 	feedback_btn.pressed.connect(_on_feedback_pressed)
 	about.add_child(feedback_btn)
+	var help_btn := _pill_button(tr("🆘 Help"), false)
+	help_btn.pressed.connect(_open_help)
+	about.add_child(help_btn)
 	var terms_btn := _pill_button(tr("Terms and EULA"), false)
 	terms_btn.pressed.connect(_open_legal.bind("terms"))
 	about.add_child(terms_btn)
@@ -288,6 +291,13 @@ func _show_credits() -> void:
 			if str(c.url) != "":
 				line += " · " + str(c.url)
 			credits_box.add_child(_body_label(line))
+
+func _open_help() -> void:
+	if drag.moved:
+		return
+	var consent = preload("res://scripts/common/consent.gd")
+	consent.help_back_scene = "res://scenes/hub/options.tscn"
+	get_tree().change_scene_to_file(consent.HELP_SCENE)
 
 func _open_legal(doc: String) -> void:
 	if drag.moved:
