@@ -9,7 +9,7 @@ import { assert, assertEquals } from "jsr:@std/assert@1";
 import { Rng } from "../_shared/rng.ts";
 import { checkAnswer, GENS, type Item, type Lang } from "../_shared/gens/index.ts";
 import { pKey, pMir, pRotN, type Poly, tvKey, tvTop } from "../_shared/gens/spa.ts";
-import { NAT_CANDS } from "../_shared/gens/nat.ts";
+import { loneCreatures, NAT_CANDS } from "../_shared/gens/nat.ts";
 import { NONE_FOLLOWS, syTrue } from "../_shared/gens/exi.ts";
 import { ANA, CATS, EMO_KEYS, FALLACY_NAMES } from "../_shared/gens/data.ts";
 
@@ -203,18 +203,9 @@ function oddWord(it: Item) {
 function natOdd(it: Item) {
   const cs = it.display.creatures as number[][];
   assertEquals(cs.length, 5);
-  // every candidate rule that splits the five 4-vs-1 must single out the same creature,
-  // and at least one rule must do so
-  const lone = new Set<number>();
-  for (const c of NAT_CANDS) {
-    const v = cs.map(c.f);
-    const cnt: Record<number, number> = {};
-    v.forEach((x) => cnt[x] = (cnt[x] || 0) + 1);
-    const keys = Object.keys(cnt);
-    if (keys.length !== 2) continue;
-    const l = keys.find((k) => cnt[Number(k)] === 1);
-    if (l != null) lone.add(v.indexOf(Number(l)));
-  }
+  // exactly one creature may be singled out by any candidate rule (a value held by one or by
+  // four creatures), and no trait may use all three of its values
+  const lone = loneCreatures(cs);
   assertEquals(lone.size, 1, `natodd: rules point at ${[...lone]}`);
   oneIndex(it, 5, [...lone][0]);
 }

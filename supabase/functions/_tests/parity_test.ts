@@ -15,6 +15,11 @@ import { blitzBatch, type Flags, MIXED_POOL, newIqState, nextIqItem, type Resp, 
 import { SY_POOL, syText } from "../_shared/gens/exi.ts";
 import { nineStanding, type ScoreRow, secStanding, viqStanding } from "../_shared/standings.ts";
 
+/** Generators that deliberately differ from the prototype since 2026-10-13 (natodd / natquick:
+ *  one clean 4-vs-1 trait, see nat.ts; anagram: no repeated word in a session). A deviation
+ *  moves the RNG, so a session or batch is compared only up to its first such item. */
+const DEVIATES = new Set(["natodd", "natquick", "anagram"]);
+
 const SEEDS = Number(Deno.env.get("PARITY_SEEDS") ?? 40);
 const P: Record<Lang, any> = { en: await loadPrototype("en"), es: await loadPrototype("es") };
 
@@ -46,6 +51,9 @@ function sameItem(where: string, ts: Item, pi: any) {
 Deno.test("generators match the prototype seed for seed (all 27, d = 1..10, en/es)", () => {
   for (const lang of ["en", "es"] as Lang[]) {
     for (const id of Object.keys(GENS)) {
+      // natodd / natquick deliberately differ from the prototype since 2026-10-13 (one clean
+      // 4-vs-1 trait; see natOddItem): gens_test checks them instead
+      if (id === "natodd" || id === "natquick") continue;
       for (let d = 1; d <= 10; d++) {
         for (let s = 0; s < SEEDS; s++) {
           const seed = hashStr(`${id}-${d}-${s}`);
@@ -106,6 +114,7 @@ function simulateIq(lang: Lang, scope: string, seed: number, trueTheta: number, 
     run.lastSec = sec;
     const pi = run.makeItem(sec);
     const ts = nextIqItem(scope, lang, resp, state);
+    if (DEVIATES.has(ts.gid)) break;
     sameItem(`${scope} ${lang} seed ${seed} step ${step}`, ts, pi);
     const u = player.chance(irt.p3(trueTheta, ts.a, ts.b, ts.c)) ? 1 : 0;
     const conf = player.pick([0.25, 0.5, 0.75, 1]);
@@ -113,7 +122,7 @@ function simulateIq(lang: Lang, scope: string, seed: number, trueTheta: number, 
     if (run.self) { run.selfRows.push({ r: rec, u, conf }); run.resp.push({ ...rec, conf }); resp.push({ ...rec, conf }); }
     else { run.resp.push(rec); resp.push(rec); }
   }
-  assertEquals([...run.used].sort(), state.used.slice().sort(), "used analogies / fallacies");
+  assertEquals([...run.used].sort(), state.used.filter((u) => !u.startsWith("ag")).sort(), "used analogies / fallacies");
   return { run, resp };
 }
 
@@ -146,6 +155,7 @@ Deno.test("IQ scoring matches the prototype's scoreIQ (incl. SELF)", () => {
     for (let s = 0; s < 8; s++) {
       const seed = hashStr(`score-${scope}-${s}`);
       const { run, resp } = simulateIq("en", scope, seed, s * 0.4 - 1.4, 50, 0.2);
+      if (resp.length < 10) continue;  // cut short at a deviating generator: too little to score
       const flags: Flags = { hidden: s % 4, rapid: s % 5 };
       const pred = scope === "SELF" ? 0.6 : null;
       const ts = scoreIQ(resp, flags, scope === "SELF" ? { rows: resp.map((x) => ({ u: x.u, conf: x.conf! })), pred } : null);
@@ -163,7 +173,11 @@ Deno.test("Blitz batches match the prototype's Runner (shuffled section bag, d =
       const seed = scope === "ALL" ? hashStr("voodoo-daily-2026-10-03") : hashStr(`blitz-${scope}-${lang}`);
       const run = new P[lang].Runner({ mode: "blitz", scope, seed, dur: 180 });
       const batch = blitzBatch(seed, scope, lang, 120);
-      batch.forEach((ts, i) => sameItem(`blitz ${scope} ${lang} #${i}`, ts, run.makeItem(run.pickSection())));
+      for (let i = 0; i < batch.length; i++) {
+        const pi = run.makeItem(run.pickSection());
+        if (DEVIATES.has(batch[i].gid)) break;
+        sameItem(`blitz ${scope} ${lang} #${i}`, batch[i], pi);
+      }
     }
   }
 });
