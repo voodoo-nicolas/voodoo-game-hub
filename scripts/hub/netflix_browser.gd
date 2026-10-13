@@ -30,6 +30,7 @@ const GameStrip = preload("res://scripts/hub/game_strip.gd")
 const GameDetail = preload("res://scripts/hub/game_detail.gd")
 const TouchScroll = preload("res://scripts/hub/touch_scroll.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
+const GameIcons = preload("res://scripts/common/game_icons.gd")
 
 const BAR_H := 64.0
 const TOP_H := 84.0
@@ -61,9 +62,9 @@ var _scrim_left: TextureRect
 var _scrim_bottom: TextureRect
 var _detail_holder: Control
 var _preview: Control
-var _preview_art: TextureRect
+var _preview_logo: Control
+var _preview_logo_id := ""
 var _preview_emoji: Label
-var _preview_back: TextureRect
 var _bottom: VBoxContainer
 var _topbar: Control
 var _back_btn: Button
@@ -195,31 +196,28 @@ func _build_detail() -> void:
 	_detail_holder.add_child(detail)
 	_detail_holder.visible = false
 
-	_preview = Panel.new()
-	_preview.add_theme_stylebox_override("panel", HubLook.clip_style())
-	_preview.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+	# Preview = the game's logo on a transparent box (no background art) until each game
+	# has its own teaser picture. Nothing clips it, so the logo can't be cropped.
+	_preview = Control.new()
 	_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_preview.visible = false
 	add_child(_preview)
-	_preview_back = TextureRect.new()
-	_preview_back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_preview_back.stretch_mode = TextureRect.STRETCH_SCALE
-	_preview_back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_preview_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_preview.add_child(_preview_back)
-	_preview_emoji = Label.new()
+	_preview_logo = Control.new()   # games with a drawn icon (GameIcons)
+	_preview_logo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_preview_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview_logo.draw.connect(_draw_preview_logo)
+	_preview.add_child(_preview_logo)
+	_preview_emoji = Label.new()    # every other game: its manifest emoji
 	_preview_emoji.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_preview_emoji.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_preview_emoji.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_preview_emoji.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_preview_emoji.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_preview.add_child(_preview_emoji)
-	_preview_art = TextureRect.new()
-	_preview_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_preview_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	_preview_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_preview_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_preview.add_child(_preview_art)
+
+func _draw_preview_logo() -> void:
+	if _preview_logo_id != "":
+		GameIcons.draw(_preview_logo, _preview_logo_id)
 
 func _all_tiles() -> Array:
 	return _grid_tiles if grid_mode else (strip.tiles if strip else [])
@@ -357,7 +355,7 @@ func _layout() -> void:
 	var ph := roundf(pw * 9.0 / 16.0)
 	_preview.size = Vector2(roundf(pw), ph)
 	_preview.position = Vector2(area.end.x - pw, (area.get_center().y - ph / 2.0) if grid_mode else (area.end.y - ph))
-	_preview_emoji.add_theme_font_size_override("font_size", int(ph * 0.5))
+	_preview_emoji.add_theme_font_size_override("font_size", int(ph * 0.55))
 
 	_scrim_left.visible = open and landscape and not grid_mode
 	_scrim_left.position = Vector2.ZERO
@@ -453,20 +451,16 @@ func _free_nodes(nodes: Array) -> void:
 ## Fills the screen, centred: the picture is scaled to cover and the overflow is cropped
 ## (sides in portrait, top and bottom in a wider-than-picture window).
 func _cover(tex: Texture2D) -> Control:
-	var holder := Control.new()
-	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.clip_contents = true
 	var r := TextureRect.new()
 	r.texture = tex
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.clip_contents = true
 	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	holder.add_child(r)
-	holder.resized.connect(_fit_cover.bind(holder, r, tex))
-	_fit_cover.call_deferred(holder, r, tex)
-	return holder
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED   # engine centres + crops, never stretches
+	return r
 
+## (old manual cover maths, no longer used by _cover)
 func _fit_cover(holder: Control, r: TextureRect, tex: Texture2D) -> void:
 	if not is_instance_valid(holder) or tex == null or holder.size.x <= 0.0:
 		return
@@ -682,12 +676,12 @@ func _close_detail() -> void:
 		scroller.vertical = _grid_scroll
 	_layout()
 
-## The game's own picture (tile art, or its emoji on the category gradient).
-func _set_preview(g: Dictionary, category_en: String) -> void:
-	var tex := HubArt.tile(g)
-	_preview_art.texture = tex
-	_preview_back.texture = HubArt.fallback_gradient(HubArt.category_color(category_en))
-	_preview_emoji.text = "" if tex != null else str(g.get("icon", "🎮"))
+## The game's logo (drawn icon, or its emoji), transparent background.
+func _set_preview(g: Dictionary, _category_en: String) -> void:
+	var id := str(g.get("id", ""))
+	_preview_logo_id = id if GameIcons.has(id) else ""
+	_preview_logo.queue_redraw()
+	_preview_emoji.text = "" if _preview_logo_id != "" else str(g.get("icon", "🎮"))
 
 ## The manifest's "desc" (ES/EN), or a line built from the category and modes.
 func _description(g: Dictionary, category_loc: String) -> String:
