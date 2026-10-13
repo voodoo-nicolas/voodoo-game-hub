@@ -32,7 +32,7 @@ You may not:
 
 ## 5. Moderation
 
-We may remove names or content, reset invalid scores, and suspend or close accounts for violations, notifying you where possible. You can appeal by writing to {{EMAIL_CONTACTO}}. The Hub includes an option to report players. [[VERIFY: implement the report button if friends/names are visible to others]]
+We may remove names or content, reset invalid scores, and suspend or close accounts for violations, notifying you where possible. You can appeal by writing to {{EMAIL_CONTACTO}}.
 
 ## 6. Trials, purchases and subscription
 
@@ -45,11 +45,11 @@ We may remove names or content, reset invalid scores, and suspend or close accou
 
 ## 7. Availability and service changes
 
-We work to keep the Hub running well but do not guarantee uninterrupted availability. We may add, change or remove games. If we remove a game you bought individually, or shut down the Hub, we will give you at least {{DIAS_AVISO_CIERRE}} days' notice and [[DECIDE: offer a prorated refund / keep offline access]].
+We work to keep the Hub running well but do not guarantee uninterrupted availability. We may add, change or remove games. If we remove a game you bought individually, or shut down the Hub, we will give you at least {{DIAS_AVISO_CIERRE}} days' notice and you will keep offline access to what you have already downloaded.
 
 ## 8. Intellectual property
 
-The Hub, games, art, music, logo and the name "Viral Game Hub" belong to Viral or its licensors and are protected by Law 11,723 and, where applicable, Law 22,362. The rules of traditional games (chess, card games, sudoku, etc.) are in common use; third-party names and trademarks belong to their owners and imply no affiliation. [[VERIFY: add "trademark pending/registered" only when true at INPI]]
+The Hub, games, art, music, logo and the name "Viral Game Hub" belong to Viral or its licensors and are protected by Law 11,723 and, where applicable, Law 22,362. The rules of traditional games (chess, card games, sudoku, etc.) are in common use; third-party names and trademarks belong to their owners and imply no affiliation. The "Viral Game Hub" trademark is pending registration at the INPI.
 
 Your username, avatar and ratings remain yours. You grant us a free, non-exclusive, worldwide license to display them within the Hub for their function (leaderboards, profile, friends) while your account exists.
 
@@ -97,7 +97,7 @@ You download the Hub and then each game separately. Some features (account, lead
 
 ## B4. Third-party software
 
-The Hub uses Godot Engine (MIT license) and other open-source components under their own licenses. Notices are in Settings → Licenses. [[VERIFY: full list of third-party components and assets]]
+The Hub uses Godot Engine (MIT license) and other open-source components under their own licenses. Notices are in Options → Credits & licences.
 
 ## B5. Age ratings
 

@@ -6,7 +6,7 @@ Version 1.0.0 · Effective October 12, 2026
 
 ## 1. Controller
 
-Nicolas Gargiulo (CUIT 20-30807137-6), located at Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina ("Viral", "we"), is the controller of personal data in Viral Game Hub (the "Hub"). Privacy contact: info.viralgaming@gmail.com.
+Nicolas Gargiulo (CUIT 20-30807137-6), located at Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina ("Viral", "we"), is the controller of personal data in Viral Game Hub (the "Hub"). Privacy contact: Viralgamingservice@gmail.com.
 
 ## 2. Data we collect
 
@@ -58,13 +58,13 @@ While your account is active. If you delete it, we erase your personal data with
 You can access, rectify, update and delete your data (arts. 14, 16 and related, Law 25,326). Access is free at intervals of at least six months unless a legitimate interest is shown (art. 14, para. 3).
 
 - **Delete your account:** Settings → Account → Delete account, or at https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html.
-- **Other requests:** write to info.viralgaming@gmail.com. We answer within legal deadlines (10 calendar days for access; 5 business days for rectification or deletion, per Decree 1558/2001).
+- **Other requests:** write to Viralgamingservice@gmail.com. We answer within legal deadlines (10 calendar days for access; 5 business days for rectification or deletion, per Decree 1558/2001).
 
 The Argentine Agency for Access to Public Information (AAIP), as the supervisory authority of Law 25,326, handles complaints from people whose rights are affected by non-compliance with personal data protection rules.
 
 ## 9. Minors
 
-The Hub is not directed at children under 13 and we do not create accounts for them. If we find an account of someone under that age, we delete it. Between 13 and 17, use requires the knowledge and authorization of a parent or guardian, and purchases require an adult responsible for the payment method. Parents and guardians can request account deletion at info.viralgaming@gmail.com.
+The Hub is not directed at children under 13 and we do not create accounts for them. If we find an account of someone under that age, we delete it. Between 13 and 17, use requires the knowledge and authorization of a parent or guardian, and purchases require an adult responsible for the payment method. Parents and guardians can request account deletion at Viralgamingservice@gmail.com.
 
 ## 10. Security
 
@@ -80,4 +80,4 @@ If we change this policy materially, we will notify you inside the Hub in advanc
 
 ## 13. Contact
 
-info.viralgaming@gmail.com · Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina
+Viralgamingservice@gmail.com · Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina

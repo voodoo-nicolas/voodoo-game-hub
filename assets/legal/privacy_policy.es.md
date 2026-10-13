@@ -5,7 +5,7 @@ Versión 1.0.0 · Vigente desde 12 de octubre de 2026
 
 ## 1. Responsable
 
-Nicolas Gargiulo (CUIT 20-30807137-6), con domicilio en Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina ("Viral", "nosotros"), es responsable del tratamiento de los datos personales en Viral Game Hub (el "Hub"). Contacto de privacidad: info.viralgaming@gmail.com.
+Nicolas Gargiulo (CUIT 20-30807137-6), con domicilio en Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina ("Viral", "nosotros"), es responsable del tratamiento de los datos personales en Viral Game Hub (el "Hub"). Contacto de privacidad: Viralgamingservice@gmail.com.
 
 ## 2. Qué datos recolectamos
 
@@ -57,13 +57,13 @@ Mientras tu cuenta esté activa. Si la eliminás, borramos tus datos personales 
 Tenés derecho a acceder, rectificar, actualizar y suprimir tus datos (arts. 14, 16 y concordantes, Ley 25.326). El acceso es gratuito a intervalos no inferiores a seis meses, salvo interés legítimo acreditado (art. 14, inc. 3).
 
 - **Eliminar tu cuenta:** Ajustes → Cuenta → Eliminar cuenta, o en https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html.
-- **Otros pedidos:** escribinos a info.viralgaming@gmail.com. Respondemos en los plazos legales (10 días corridos para acceso; 5 días hábiles para rectificación o supresión, según el Decreto 1558/2001).
+- **Otros pedidos:** escribinos a Viralgamingservice@gmail.com. Respondemos en los plazos legales (10 días corridos para acceso; 5 días hábiles para rectificación o supresión, según el Decreto 1558/2001).
 
 La AGENCIA DE ACCESO A LA INFORMACIÓN PÚBLICA, en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.
 
 ## 9. Menores de edad
 
-El Hub no está dirigido a menores de 13 años y no creamos cuentas para ellos. Si detectamos una cuenta de una persona menor de esa edad, la eliminamos. Entre 13 y 17 años, el uso requiere el conocimiento y la autorización de madre, padre o tutor, y las compras requieren un adulto responsable del medio de pago. Madres, padres y tutores pueden pedir la eliminación de la cuenta escribiendo a info.viralgaming@gmail.com.
+El Hub no está dirigido a menores de 13 años y no creamos cuentas para ellos. Si detectamos una cuenta de una persona menor de esa edad, la eliminamos. Entre 13 y 17 años, el uso requiere el conocimiento y la autorización de madre, padre o tutor, y las compras requieren un adulto responsable del medio de pago. Madres, padres y tutores pueden pedir la eliminación de la cuenta escribiendo a Viralgamingservice@gmail.com.
 
 ## 10. Seguridad
 
@@ -79,4 +79,4 @@ Si cambiamos esta política de forma sustancial, te avisaremos dentro del Hub co
 
 ## 13. Contacto
 
-info.viralgaming@gmail.com · Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina
+Viralgamingservice@gmail.com · Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina

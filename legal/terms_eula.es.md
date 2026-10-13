@@ -30,7 +30,7 @@ No podés:
 
 ## 5. Moderación
 
-Podemos quitar nombres o contenido, reiniciar puntajes inválidos y suspender o cerrar cuentas ante incumplimientos, avisándote cuando sea posible. Podés reclamar escribiendo a {{EMAIL_CONTACTO}}. El Hub incluye una opción para reportar jugadores. [[VERIFICAR: implementar el botón de reporte si hay amigos/nombres visibles para otros]]
+Podemos quitar nombres o contenido, reiniciar puntajes inválidos y suspender o cerrar cuentas ante incumplimientos, avisándote cuando sea posible. Podés reclamar escribiendo a {{EMAIL_CONTACTO}}.
 
 ## 6. Pruebas, compras y suscripción
 
@@ -43,11 +43,11 @@ Podemos quitar nombres o contenido, reiniciar puntajes inválidos y suspender o 
 
 ## 7. Disponibilidad y cambios del servicio
 
-Trabajamos para que el Hub funcione bien, pero no garantizamos disponibilidad ininterrumpida. Podemos agregar, modificar o retirar juegos. Si retiramos un juego que compraste individualmente, o cerramos el Hub, te avisaremos con al menos {{DIAS_AVISO_CIERRE}} días y [[DECIDIR: ofrecer reembolso proporcional / conservar el acceso sin conexión]].
+Trabajamos para que el Hub funcione bien, pero no garantizamos disponibilidad ininterrumpida. Podemos agregar, modificar o retirar juegos. Si retiramos un juego que compraste individualmente, o cerramos el Hub, te avisaremos con al menos {{DIAS_AVISO_CIERRE}} días y podrás conservar el acceso sin conexión a lo ya descargado.
 
 ## 8. Propiedad intelectual
 
-El Hub, los juegos, el arte, la música, el logo y el nombre "Viral Game Hub" son de Viral o de sus licenciantes y están protegidos por la Ley 11.723 y, en su caso, la Ley 22.362. Las reglas de juegos tradicionales (ajedrez, naipes, sudoku, etc.) son de uso común; los nombres y marcas de terceros pertenecen a sus titulares y no implican afiliación. [[VERIFICAR: agregar "marca en trámite/registrada" solo cuando corresponda ante el INPI]]
+El Hub, los juegos, el arte, la música, el logo y el nombre "Viral Game Hub" son de Viral o de sus licenciantes y están protegidos por la Ley 11.723 y, en su caso, la Ley 22.362. Las reglas de juegos tradicionales (ajedrez, naipes, sudoku, etc.) son de uso común; los nombres y marcas de terceros pertenecen a sus titulares y no implican afiliación. La marca "Viral Game Hub" está en trámite ante el INPI.
 
 Tu nombre de usuario, avatar y calificaciones siguen siendo tuyos. Nos otorgás una licencia gratuita, no exclusiva y mundial para mostrarlos dentro del Hub según su función (rankings, perfil, amigos) mientras tu cuenta exista.
 
@@ -95,7 +95,7 @@ Descargás el Hub y luego cada juego por separado. Algunas funciones (cuenta, ra
 
 ## B4. Software de terceros
 
-El Hub usa Godot Engine (licencia MIT) y otros componentes de código abierto bajo sus propias licencias. Los avisos están en Ajustes → Licencias. [[VERIFICAR: lista completa de componentes y assets de terceros]]
+El Hub usa Godot Engine (licencia MIT) y otros componentes de código abierto bajo sus propias licencias. Los avisos están en Opciones → Créditos y licencias.
 
 ## B5. Clasificación por edad
 

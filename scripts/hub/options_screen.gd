@@ -260,6 +260,17 @@ func _show_credits() -> void:
 	credits_box.add_child(_body_label(tr("Code and games: Viral. Sounds and most art are made in code.")))
 	for a in assets:
 		credits_box.add_child(_body_label("• %s — %s (%s)" % [str(a.get("what", a.get("file", ""))), str(a.get("author", "")), str(a.get("licence", ""))]))
+	# Third-party software and data (scripts/common/third_party.gd).
+	credits_box.add_child(_body_label(tr("Third-party software and data")))
+	for item in preload("res://scripts/common/third_party.gd").ITEMS:
+		credits_box.add_child(_body_label("• %s — %s (%s) · %s" % [item[0], tr(item[1]), item[2], item[3]]))
+	# Godot's own licence text and the notices of the libraries inside the engine.
+	var engine_btn := _pill_button(tr("Godot Engine licence and notices"), false)
+	var engine_text := _body_label(Engine.get_license_text() + "\n\n" + _engine_notices())
+	engine_text.visible = false
+	engine_btn.pressed.connect(_toggle_engine_text.bind(engine_text))
+	credits_box.add_child(engine_btn)
+	credits_box.add_child(engine_text)
 	# Music tracks carry their credit in the live music list (media/music/
 	# music.json), so a CC BY track is credited the moment it reaches phones.
 	var lib := _music_library()
@@ -271,6 +282,17 @@ func _show_credits() -> void:
 			if str(c.url) != "":
 				line += " · " + str(c.url)
 			credits_box.add_child(_body_label(line))
+
+func _toggle_engine_text(label: Label) -> void:
+	if not drag.moved:
+		label.visible = not label.visible
+
+## The engine's bundled third-party components and their copyright holders.
+func _engine_notices() -> String:
+	var out := PackedStringArray()
+	for part in Engine.get_copyright_info():
+		out.append("%s: %s" % [str(part.name), str(part.parts[0].license) if part.parts.size() > 0 else ""])
+	return "\n".join(out)
 
 # ---------- building blocks ----------
 
