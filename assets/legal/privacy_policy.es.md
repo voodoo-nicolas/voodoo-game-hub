@@ -67,7 +67,7 @@ El Hub no está dirigido a menores de 13 años y no creamos cuentas para ellos. 
 
 ## 10. Seguridad
 
-Aplicamos medidas técnicas y organizativas razonables (conexiones cifradas, controles de acceso por usuario en la base de datos). Ningún sistema es 100% seguro; si ocurre un incidente que te afecte, te lo informaremos cuando corresponda. [[VERIFICAR: Row Level Security activo en todas las tablas con datos personales]]
+Aplicamos medidas técnicas y organizativas razonables (conexiones cifradas, controles de acceso por usuario en la base de datos). Ningún sistema es 100% seguro; si ocurre un incidente que te afecte, te lo informaremos cuando corresponda.
 
 ## 11. Bienestar
 

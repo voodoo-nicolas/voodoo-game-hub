@@ -70,7 +70,7 @@ The Hub is not directed at children under {{EDAD_MINIMA}} and we do not create a
 
 ## 10. Security
 
-We apply reasonable technical and organizational measures (encrypted connections, per-user access controls in the database). No system is 100% secure; if an incident affects you, we will tell you where appropriate. [[VERIFY: Row Level Security enabled on every table with personal data]]
+We apply reasonable technical and organizational measures (encrypted connections, per-user access controls in the database). No system is 100% secure; if an incident affects you, we will tell you where appropriate.
 
 ## 11. Wellbeing
 
