@@ -48,6 +48,7 @@ static func backdrop() -> Control:
 class Backdrop extends TextureRect:
 	var _portrait: Texture2D
 	var _landscape: Texture2D
+	var _embers: CPUParticles2D
 
 	func _ready() -> void:
 		_portrait = load(BG_PORTRAIT)
@@ -57,10 +58,21 @@ class Backdrop extends TextureRect:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_pick()
+		# Alive: slow drift + rising embers (off with Options > Reduce motion).
+		# load(), not preload: APK-side script, but packs also reach Brand.
+		var fx = load("res://scripts/common/hub_fx.gd")
+		if fx != null:
+			fx.drift(self)
+			_embers = fx.embers(self)
+			add_child(_embers)
+			fx.place_embers(_embers, size)
 
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_RESIZED:
 			_pick()
+			if _embers != null and is_instance_valid(_embers):
+				_embers.position = Vector2(size.x / 2.0, size.y + 8.0)
+				_embers.emission_rect_extents = Vector2(size.x / 2.0, 4.0)
 
 	func _pick() -> void:
 		if _portrait == null:

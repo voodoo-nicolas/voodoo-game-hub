@@ -24,3 +24,8 @@ Hub shell internals (hub.gd, Catalog): `scripts/hub/CLAUDE.md`.
 
 ## Learning hooks (STANDARDS §15)
 - Manifest `"learn": ["vocab","math","logic","memory","art","music","geo","science"]` (Catalog copies; 🧠 Learn chip lists games with any tag). `<id>_help.gd` may have `const FACTS := [...]`: kit shows one on a "💡 Did you know?" card at the bottom of Home (tap = next); Sudoku's Home too. English strings translated in es.json; only checked facts about the game's own subject; no pop quizzes in arcade games. Not built: learning stats/achievements in Profile.
+
+## Motion + art refresh (2026-10-12)
+- `scripts/common/hub_fx.gd`: `drift` (slow zoom/pan on the Brand backdrop and category art), CPU-particle `embers` over the backdrop, `stagger_in` (home rows, hub-screen cards, a category's games cascade in), `breathe` (wordmark, Games button), `attach` (button press "pop" via `Watcher`, every Button under a hub screen). All skip when `Settings.reduce_motion`. New screens: call `HubFx.attach(self)` / get it free via hub_screen.
+- Category art = the owner's 8 images (`media/hub/categories/`; old five in `reference/art/categories_old/`). Hub backdrop now built from `reference/art/brand/hero.jpg` by `make_brand.py` (launcher/store icons still use `background.jpg`). The home view still shows the wordmark scene over it.
+- The app reads the live manifest from GitHub (cache `user://manifest_cache.json`): new categories/families only appear on devices after manifest.json is pushed.

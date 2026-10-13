@@ -451,9 +451,13 @@ def main() -> int:
     # Hub header wordmark: native size, its backdrop faded at the edges.
     feather_edges(wordmark, 0.14).save(OUT / "hub_wordmark.png")
 
-    # Hub backgrounds.
-    port, f1, c1 = darken_for_text(dark_crop(bg_src, (720, 1280), center=(0.5, 0.5), dim=1.0))
-    land, f2, c2 = darken_for_text(dark_crop(bg_src, (1280, 720), center=(0.5, 0.5), dim=1.0))
+    # Hub backgrounds. From hero.jpg (the owner's 2026-10-12 hub hero) when it
+    # exists, else background.jpg; the launcher/store icons above always use
+    # background.jpg.
+    hero_path = SRC / "hero.jpg"
+    hub_src = Image.open(hero_path).convert("RGB") if hero_path.is_file() else bg_src
+    port, f1, c1 = darken_for_text(dark_crop(hub_src, (720, 1280), center=(0.5, 0.5), dim=1.0))
+    land, f2, c2 = darken_for_text(dark_crop(hub_src, (1280, 720), center=(0.5, 0.5), dim=1.0))
     port.save(OUT / "hub_bg_portrait.jpg", quality=88)
     land.save(OUT / "hub_bg_landscape.jpg", quality=88)
     print(f"  hub backgrounds darkened x{f1:.2f} / x{f2:.2f}: dimmest text {c1:.2f}:1 / {c2:.2f}:1")

@@ -1,0 +1,47 @@
+{
+ " else ": [
+  "scripts\\games\\rummy\\rummy_game.gd"
+ ],
+ " if message != ": [
+  "scripts\\games\\rummy\\rummy_game.gd"
+ ],
+ "#2E7DD1": [
+  "scripts\\common\\avatar.gd"
+ ],
+ "#2FA38A": [
+  "scripts\\common\\avatar.gd"
+ ],
+ "#4B6BDB": [
+  "scripts\\common\\avatar.gd"
+ ],
+ "#C65BA0": [
+  "scripts\\common\\avatar.gd"
+ ],
+ ") + tr(": [
+  "scripts\\games\\rummy\\rummy_game.gd"
+ ],
+ "*.jpg, *.jpeg, *.png, *.webp ; Images": [
+  "scripts\\hub\\profile_screen.gd"
+ ],
+ "Arcade": [
+  "scripts\\hub\\hub.gd"
+ ],
+ "Intelligence": [
+  "scripts\\hub\\hub.gd"
+ ],
+ "Party": [
+  "scripts\\hub\\hub.gd"
+ ],
+ "Puzzle & Board": [
+  "scripts\\hub\\hub.gd"
+ ],
+ "Social": [
+  "scripts\\common\\avatar.gd"
+ ],
+ "Word": [
+  "scripts\\hub\\hub.gd"
+ ],
+ "in the menus": [
+  "scripts\\hub\\hub.gd"
+ ]
+}

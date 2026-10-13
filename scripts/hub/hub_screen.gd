@@ -13,6 +13,7 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
 const Brand = preload("res://scripts/common/brand.gd")
+const HubFx = preload("res://scripts/common/hub_fx.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
 const HUB_SCENE := "res://scenes/hub/hub.tscn"
 
@@ -79,6 +80,8 @@ func _ready() -> void:
 	list.add_theme_constant_override("separation", 14)
 	margin.add_child(list)
 	_build()
+	HubFx.attach(self)
+	HubFx.stagger_in(list.get_children(), 0.07, 8, 0.97)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:

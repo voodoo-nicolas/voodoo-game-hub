@@ -7,6 +7,7 @@ const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
 const Brand = preload("res://scripts/common/brand.gd")
+const HubFx = preload("res://scripts/common/hub_fx.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
 const WEB = preload("res://scripts/common/web.gd")
 ## The title art: the V-skull + VIRAL wordmark (Brand.WORDMARK), its own
@@ -162,6 +163,7 @@ func _ready() -> void:
 	_rebuild_list()
 	_refresh_home()
 	_show_home(false)
+	_animate_home()
 	if not Catalog.app_update_checked:
 		Catalog.check_app_update(_show_update_dialog)
 	var requested: String = Social.take_launch_request()
@@ -171,6 +173,13 @@ func _ready() -> void:
 		call_deferred("_on_tile_pressed", requested)
 	else:
 		_resume_last_game()
+
+## Opening animation of the home view: the rows rise in one by one, and the
+## press "pop" is switched on for every button on this screen.
+func _animate_home() -> void:
+	HubFx.attach(self)
+	if home_view != null and home_view.get_child_count() > 0:
+		HubFx.stagger_in(home_view.get_child(0).get_children(), 0.09, 6, 0.96)
 
 func _on_catalog_changed() -> void:
 	_rebuild_list()
@@ -230,6 +239,7 @@ func _build_home_view() -> void:
 		banner.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		banner_panel.add_child(banner)
+		HubFx.breathe(banner, 0.02, 0.06, 3.2)
 	else:
 		var title := Label.new()
 		title.text = Brand.NAME.to_upper()
@@ -251,6 +261,7 @@ func _build_home_view() -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		games_btn.add_theme_stylebox_override(state, gsb)
 	games_btn.pressed.connect(_show_browser)
+	HubFx.breathe(games_btn, 0.0, 0.1, 1.8)
 	col.add_child(games_btn)
 
 	var version_label := Label.new()
@@ -475,6 +486,7 @@ func _set_category_art(category_name: String) -> void:
 		dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 		pic.add_child(dim)
 		art_layer.add_child(pic)
+		HubFx.drift(pic, 0.06, 16.0)
 		fade.tween_property(pic, "modulate:a", 1.0, Settings.anim_time(0.45))
 	for o in old:
 		fade.tween_property(o, "modulate:a", 0.0, Settings.anim_time(0.45))
@@ -850,9 +862,9 @@ func _toggle_category(index: int) -> void:
 	expanded_index = -1 if closing else index
 	_rebuild_list()
 	_apply_category_art()
-	if not closing and not Settings.reduce_motion and is_instance_valid(_open_section):
-		_open_section.modulate.a = 0.0
-		create_tween().tween_property(_open_section, "modulate:a", 1.0, 0.2)
+	if not closing and is_instance_valid(_open_section):
+		# The games cascade in one after another.
+		HubFx.stagger_in(_open_section.get_child(0).get_children(), 0.05, 12, 0.95)
 	if closing:
 		# Closed from the pinned header far down the list: the list is now
 		# short, so bring that category's row back into view.
