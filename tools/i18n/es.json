@@ -5755,5 +5755,17 @@
  "• Offline": "• Desconectado",
  "• Playing %s": "• Jugando a %s",
  "⋯ More": "⋯ Más",
- "📷 Upload a photo": "📷 Subir una foto"
+ "📷 Upload a photo": "📷 Subir una foto",
+ "%d XP": "%d XP",
+ "%s XP": "%s XP",
+ "%s keeps their games and achievements private.": "%s mantiene privados sus juegos y logros.",
+ "Compare: %s": "Comparar: %s",
+ "Couldn't load their games right now. Try again later.": "No pudimos cargar sus juegos ahora. Probá más tarde.",
+ "No achievements to compare yet.": "Todavía no hay logros para comparar.",
+ "No achievements yet.": "Todavía no tiene logros.",
+ "Only me": "Solo yo",
+ "Privacy": "Privacidad",
+ "Tap a game to compare achievements.": "Tocá un juego para comparar logros.",
+ "Viral Power": "Poder Viral",
+ "Who can see your games, Viral XP and achievements?": "¿Quién puede ver tus juegos, XP Viral y logros?"
 }

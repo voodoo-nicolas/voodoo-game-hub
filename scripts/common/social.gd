@@ -26,8 +26,13 @@ extends Node
 
 const Achievements = preload("res://scripts/common/achievements.gd")
 const Ui = preload("res://scripts/common/ui.gd")
+const SaveUtil = preload("res://scripts/common/save_util.gd")
 
 const HEARTBEAT_SEC := 60.0
+## Awards already sent to the server (per account), so each goes once.
+const SYNCED_PATH := "user://awards_synced.json"
+const PREFS_PATH := "user://social_prefs.json"
+const AWARDS_PER_CALL := 100
 const INBOX_SEC := 12.0
 const HUB_SCENE := "res://scenes/hub/hub.tscn"
 
@@ -49,6 +54,13 @@ var current_game: String = ""
 var _presence_ok: bool = true
 ## The friend whose page is open (a social_list row), set by the Friends screen.
 var viewing: Dictionary = {}
+## My Viral Power as the server last said (-1 = not synced yet).
+var my_power: int = -1
+## Who may see my games, XP and achievements: "friends" or "private".
+var visibility: String = "friends"
+var _awards_busy: bool = false
+var _awards_ok: bool = true
+var _synced_once: bool = false
 
 var _beat_left: float = 1.0
 var _inbox_left: float = 4.0
@@ -60,6 +72,9 @@ var _seen_invites: Dictionary = {}  # "sender|code" -> true
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	var prefs = JSON.parse_string(FileAccess.get_file_as_string(PREFS_PATH)) if FileAccess.file_exists(PREFS_PATH) else null
+	if prefs is Dictionary and str(prefs.get("visibility", "")) == "private":
+		visibility = "private"
 	Auth.signed_in.connect(_on_signed_in.unbind(2))
 	Auth.signed_out.connect(_on_signed_out)
 	_layer = CanvasLayer.new()
@@ -121,6 +136,9 @@ func _on_me(ok: bool, result: Variant) -> void:
 		code_changed.emit(friend_code)
 	Auth.db_call("social_list", {}, _on_list)
 	_send_presence()
+	if not _synced_once:
+		_synced_once = true
+		sync_awards()
 
 func _on_list(ok: bool, result: Variant) -> void:
 	_busy_beat = false
@@ -146,6 +164,58 @@ func _send_presence() -> void:
 func _on_presence(ok: bool, _result: Variant) -> void:
 	if not ok:
 		_presence_ok = false  # SQL not run yet: stop asking this session
+
+## Sends badges earned since the last sync to the server as Viral XP awards
+## (new ones only; the server ignores repeats). Safe to call any time; does
+## nothing offline / signed out / before the SQL is run.
+func sync_awards() -> void:
+	if _awards_busy or not _awards_ok or not Auth.is_logged_in():
+		return
+	var done := _synced_keys()
+	var fresh: Array = []
+	for a in Achievements.collect_awards(Catalog.archived_ids.keys()):
+		if not done.has("%s|%s" % [a.game, a.id]):
+			fresh.append(a)
+			if fresh.size() >= AWARDS_PER_CALL:
+				break
+	if fresh.is_empty():
+		return
+	_awards_busy = true
+	Auth.db_call("xp_report", {"p_awards": fresh}, _on_awards.bind(fresh))
+
+func _on_awards(ok: bool, result: Variant, sent: Array) -> void:
+	_awards_busy = false
+	if not ok:
+		_awards_ok = false  # SQL not run yet (or offline): stop asking this session
+		return
+	var done := _synced_keys()
+	for a in sent:
+		done["%s|%s" % [a.game, a.id]] = true
+	SaveUtil.write(SYNCED_PATH, {"user": Auth.user_id, "keys": done})
+	if typeof(result) == TYPE_FLOAT or typeof(result) == TYPE_INT:
+		my_power = int(result)
+	sync_awards()  # more than one call's worth
+
+func _synced_keys() -> Dictionary:
+	if FileAccess.file_exists(SYNCED_PATH):
+		var data = JSON.parse_string(FileAccess.get_file_as_string(SYNCED_PATH))
+		if data is Dictionary and str(data.get("user", "")) == Auth.user_id and data.get("keys") is Dictionary:
+			return data["keys"]
+	return {}
+
+func set_visibility(vis: String) -> void:
+	visibility = "private" if vis == "private" else "friends"
+	SaveUtil.write(PREFS_PATH, {"visibility": visibility})
+	if Auth.is_logged_in():
+		Auth.db_call("social_set_visibility", {"p_vis": visibility}, _after_change)
+
+## on_done(ok, data): a friend's games and XP ({name, avatar, private, power, games}).
+func fetch_overview(user_id: String, on_done: Callable) -> void:
+	Auth.db_call("player_overview", {"p_other": user_id}, on_done)
+
+## on_done(ok, rows): [{challenge_id, title, icon, xp, mine, theirs}] for one game.
+func fetch_compare(user_id: String, game_id: String, on_done: Callable) -> void:
+	Auth.db_call("player_compare", {"p_other": user_id, "p_game": game_id}, on_done)
 
 ## "12,450": thousands separated by commas.
 func format_number(n: int) -> String:

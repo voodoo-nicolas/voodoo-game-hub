@@ -55,6 +55,7 @@ func _build() -> void:
 			elif Achievements.WIN_KEYS.has(key):
 				wins += int(all[id][k])
 	var stats := section(tr("Your numbers"))
+	stats.add_child(_stat(tr("Viral Power"), Social.format_number(Achievements.local_power(Catalog.archived_ids.keys()))))
 	stats.add_child(_stat(tr("Games tried"), str(Achievements.games_played(all))))
 	stats.add_child(_stat(tr("Games played"), str(plays)))
 	stats.add_child(_stat(tr("Wins"), str(wins)))
@@ -70,6 +71,11 @@ func _build() -> void:
 		var b := pill(tr(spec[0]), true)
 		b.pressed.connect(_to_scene.bind(spec[1]))
 		go.add_child(b)
+
+	if Auth.is_logged_in():
+		var privacy := section(tr("Privacy"))
+		privacy.add_child(dim(tr("Who can see your games, Viral XP and achievements?")))
+		privacy.add_child(tabs([tr("Friends"), tr("Only me")], 1 if Social.visibility == "private" else 0, _on_visibility))
 
 	var lang := section(tr("Language"))
 	lang.add_child(tabs(["English", "Español"], Lang.SUPPORTED.find(Lang.current), _on_language))
@@ -112,6 +118,10 @@ func _hours(s: int) -> String:
 func _to_scene(path: String) -> void:
 	if tapped():
 		get_tree().change_scene_to_file(path)
+
+func _on_visibility(i: int) -> void:
+	Social.set_visibility("private" if i == 1 else "friends")
+	rebuild()
 
 func _on_language(i: int) -> void:
 	var code: String = Lang.SUPPORTED[i]

@@ -257,6 +257,59 @@ static func backfill_all() -> int:
 			SaveUtil.write(path, stats)
 	return n
 
+# ---------- Viral XP (since v0.35) ----------
+## Each badge is also a "challenge" worth Viral XP: permanent, never spent,
+## never decreases. A player's Viral Power is the sum over all games. The
+## unlocked badges ARE the award log (id + unlock time); Social.sync_awards
+## sends the new ones to the server, which keeps one row per challenge
+## (idempotent) with caps per challenge and per game
+## (supabase/migrations/20261013000000_awards_player.sql). Client-reported, so
+## spoofable: don't use it for anything competitive that matters.
+## XP by tier (the badge's threshold): bigger counts are worth more.
+const XP_BY_AT := {1: 10, 3: 15, 5: 20, 10: 30, 50: 60, 100: 120, 150: 150}
+const XP_DEFAULT := 25
+const XP_GAME_OWN := 30  # a game's own ACHIEVEMENTS entry without its own value
+const XP_HUB := 20
+const HUB_GAME := "hub"
+
+## XP for a game badge id: generic ids end in their threshold ("Wins_10").
+static func xp_for(challenge_id: String) -> int:
+	if challenge_id.begins_with("g_"):
+		return XP_GAME_OWN
+	var tail := challenge_id.get_slice("_", challenge_id.get_slice_count("_") - 1)
+	return int(XP_BY_AT.get(int(tail), XP_DEFAULT)) if tail.is_valid_int() else XP_DEFAULT
+
+## Everything earned so far as [{game, id, title, icon, xp, at}] (unix seconds):
+## every game's badges plus the hub-wide ones (game "hub"). `skip_games` = ids to leave out.
+static func collect_awards(skip_games: Array = []) -> Array:
+	var out: Array = []
+	var all := all_stats()
+	for gid in all:
+		if skip_games.has(gid):
+			continue
+		var a = all[gid].get("_ach")
+		if typeof(a) != TYPE_DICTIONARY:
+			continue
+		for id in a:
+			var v = a[id]
+			if typeof(v) != TYPE_ARRAY or v.size() < 3:
+				continue
+			out.append({"game": gid, "id": str(id), "title": str(v[2]), "icon": str(v[1]),
+					"xp": xp_for(str(id)), "at": int(v[0])})
+	var hub := load_hub()
+	for h in HUB:
+		if hub.unlocked.has(h[0]):
+			out.append({"game": HUB_GAME, "id": str(h[0]), "title": str(h[2]), "icon": str(h[1]),
+					"xp": XP_HUB, "at": int(hub.unlocked[h[0]])})
+	return out
+
+## Viral Power from the local record (what the server will hold once synced).
+static func local_power(skip_games: Array = []) -> int:
+	var n := 0
+	for a in collect_awards(skip_games):
+		n += int(a.xp)
+	return n
+
 ## Every badge unlocked, games and hub together.
 static func total_unlocked() -> int:
 	return game_badges(all_stats()) + load_hub().unlocked.size()

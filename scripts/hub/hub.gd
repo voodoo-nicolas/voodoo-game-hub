@@ -154,6 +154,7 @@ func _ready() -> void:
 	_update_account_status()
 	Social.friends_changed.connect(_update_friend_badge)
 	Social.set_game("")  # back in the menus: friends see "in the menus"
+	Social.sync_awards()  # badges earned in the game just played become Viral XP
 	_update_friend_badge()
 
 	# A newer live manifest can add games or change versions while the hub is
