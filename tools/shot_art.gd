@@ -2,10 +2,11 @@ extends SceneTree
 
 ## Contact sheet of the code-drawn game art (logo + teaser per game). Needs a window, not --headless:
 ##   godot --path . --resolution 1080x720 --script res://tools/shot_art.gd -- <out_dir> [id,id,...]
-## No ids = every game in game_logos.gd. Writes <out_dir>/art_sheet.png.
+## No ids = every game with code-drawn art (keep sheets small: pass a category's ids). Writes <out_dir>/art_sheet.png.
 
 const GameArt = preload("res://scripts/common/game_art.gd")
 const GameLogos = preload("res://scripts/common/game_logos.gd")
+const GameLogosArcade = preload("res://scripts/common/game_logos_arcade.gd")
 const CELL := Vector2(360, 160)
 const COLS := 3
 
@@ -15,7 +16,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0] if args.size() > 0 else "user://shots"
-	var ids: Array = Array(args[1].split(",", false)) if args.size() > 1 else GameLogos.IDS
+	var ids: Array = Array(args[1].split(",", false)) if args.size() > 1 else (GameLogos.IDS + GameLogosArcade.IDS)
 	DirAccess.make_dir_recursive_absolute(out)
 	var rows := ceili(ids.size() / float(COLS))
 	var sheet := Vector2i(int(CELL.x) * COLS, int(CELL.y) * rows)

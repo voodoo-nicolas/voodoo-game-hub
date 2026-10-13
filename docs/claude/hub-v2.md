@@ -25,7 +25,7 @@ Hub shell internals (hub.gd, Catalog): `scripts/hub/CLAUDE.md`.
 ## Game art drawn in code (2026-10-13, owner OK'd: separate logo + teaser per game, mini-scene teasers)
 - `scripts/common/game_art.gd` facade: `has_logo/draw_logo` (game_icons.gd first seven, `game_logos.gd` rest), `has_teaser/draw_teaser` (`game_teasers.gd`, 160x90 mini scene per game). Used by hub.gd/hub_screen.gd tiles and the Game Browser detail (teaser in a rounded frame; no teaser = bare logo/emoji on transparent). Real art (`HubArt`) is separate.
 - Add a game: `_logo_<id>` + id in `IDS` + `match` line (logos); `_teaser_<id>(c, base)` + id + `match` line (teasers). Helpers: `GameLogos.txt/cell/panel/meter/logo_at`, `GameIcons._slab/_sphere/_glow_*`. No emoji/words in the art (translation + phone fonts); digits, ? and ! are fine.
-- Batches: 1 Intelligence (12) done; next Arcade (24), Puzzle & Board (22 left), Cards (16), Word 9 + Dice 7 + Party 8 + Adventure 3. The first seven games (chess..three_man) have logos but no teaser yet.
+- Batches: 1 Intelligence (12) + 2 Arcade (24, `game_logos_arcade.gd` / `game_teasers_arcade.gd`, which also hold shared object helpers: gem, bubble, rock, invader, pac, ghost, mole, tube) done; Puzzle & Board (22 left), Cards (16), Word 9 + Dice 7 + Party 8 + Adventure 3. The first seven games (chess..three_man) have logos but no teaser yet.
 - Review: `godot --path . --resolution 1080x720 --script res://tools/shot_art.gd -- <dir> [ids]` writes one contact sheet. Cloud sessions have no Godot: batch 1 was written blind, check it on a device/PC first.
 
 ## Brand (`scripts/common/brand.gd`, APK-side)
