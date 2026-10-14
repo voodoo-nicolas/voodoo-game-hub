@@ -22,3 +22,13 @@ Covers every `media/CREDITS.json` entry whose `proof` is this file.
     as an image: its outline was traced (OpenCV contours) into vector data in
     `scripts/games/geometry_wars/geometry_wars_ship.gd`, drawn in code.
 - Processing by Claude Code, 2026-10-06/07.
+
+## Last Shift (2026-10-14)
+- `last_shift_key_art_src.jpg` (1200x896): Nash Kovac with a coolant sprayer in
+  front of the burning Ascend office building (comic style). The key art of the
+  standalone prototype (`D:/Dev/claudius_prequel/assets/art/key_art.jpg`).
+  Shipped as the Landing background of Last Shift
+  (`games/last_shift/landing_bg.jpg`), re-saved as JPEG quality 84.
+  AI-generated for the owner; **the tool and plan were not recorded -- owner to
+  confirm** (if it is not ChatGPT, the terms quoted above may not apply).
+  Fictional character, no real person or company.

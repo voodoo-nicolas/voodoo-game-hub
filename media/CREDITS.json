@@ -2735,6 +2735,19 @@
    "url": "",
    "date": "2026-10-13",
    "processed_by": "placeholder: category art + code-drawn glow (Claude Code)"
+  },
+  {
+   "file": "games/last_shift/landing_bg.jpg",
+   "what": "Last Shift Landing background (Nash with a coolant sprayer in front of the burning office building, comic style)",
+   "source": "reference/art/games/last_shift_key_art_src.jpg (the prototype's key art, D:\\Dev\\claudius_prequel/assets/art/key_art.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-14",
+   "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
   }
  ]
 }
