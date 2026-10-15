@@ -49,3 +49,10 @@ NEVER rename: Android package/applicationId (`com.viral.voodoo`), keystore (`voo
 
 ## Legal text (compliance pack, 2026-10-12)
 - Sources `legal/*.md` + `legal/placeholders.json` (owner values; ES controls, EN courtesy). `python tools/legal_build.py [--draft]` renders `assets/legal/*.md` (bundled in-app) and `docs/legal/privacy.html`, `terms.html`, `docs/delete-account.html` (GitHub Pages). Empty placeholder or any `[[VERIFICAR|VERIFY|DECIDIR|DECIDE]]` marker = build fails; `hub.py check` warns, `apk` (non-debug) and `release` refuse. Never edit the rendered outputs. Open markers: see `python tools/legal_build.py`.
+
+## Google Play bundle (2026-10-15)
+- Separate app identity from the sideload APK: preset `AndroidPlay`, package **`com.viral.gamehub`** (Play Console entry; permanent once uploaded). `com.viral.voodoo` + `voodoo-release` stay for the GitHub APK.
+- `python tools/hub.py aab` -> `builds/viral-gamehub-v<ver>-b<build>.aab` (Gradle build, SDK 36 / min 24, version code = `BUILD_NUMBER`, must rise every upload). Needs the build template in `android/build` (gitignored; extract `export_templates/<ver>/android_source.zip` there, write `android/.build_version`).
+- Signed with the Play **upload** key `C:\Users\nick_\Android\Keystore\viral-play-upload.keystore` (alias `viralplay`, password in `viral-play-upload.json`). Never commit; owner keeps a backup. Keep Play App Signing on.
+- Custom feature `play`: the GitHub self-update check is skipped (Play policy). Packs still download from GitHub Releases.
+- Godot may leave `Godot*`/`java` processes hanging after the export finishes; the .aab is complete once written (verify with `jarsigner -verify`).
