@@ -33,6 +33,10 @@ Rules (apply to every game, no exceptions):
   [CHANGED 2026-10-06: was "APK-side game_router.gd + landing_kit.gd"; per-pack copies need no `min_build` and no
   fallback. The kit's screen handling and Android back cover the router's job.]
   Games register screens/modes; they don't hand-roll back buttons.
+- **N8** [NEW 2026-10-14] Opening a game from the hub plays the short Viral intro video (`intro_video.gd`, APK-side, ~3 s,
+  portrait or landscape clip by window shape) over the game while it loads; tap skips it, and it does not count as a
+  screen for N6. Off in Options (🎬 Intro video), under Reduce motion and in the web build; skipped when the app reopens
+  a game after Android killed it. Games carry no video.
 
 ## 2. Hub screen [CURRENT since v0.30.0, 2026-10-06]
 Goal: fewer buttons, no scrolling on the hub home.
@@ -251,6 +255,7 @@ if ResourceLoader.exists(ONLINE_LOBBY_PATH):
 |---|---|---|
 | Auth | `auth.gd` | sign up/in/out, reset, sync, leaderboards |
 | Catalog | `catalog.gd` | manifest, download/mount packs, versions; [NEW] media deps + ref counts |
+| IntroVideo | `intro_video.gd` | Viral brand video when a game opens (N8); clips in `media/hub/intro/` |
 | GameInfo | `game_info.gd` | How to Play card, first-play pause, results/stats |
 | Sfx | `sfx.gd` | synthesized sounds, grouped volume |
 | Music | `music.gd` [CURRENT since v0.33.0 — ducking under SFX not built] | the shared music library: styles, `Music` bus, owner fade-out, pause dip; every game's music |

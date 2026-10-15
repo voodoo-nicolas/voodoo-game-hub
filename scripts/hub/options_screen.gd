@@ -155,6 +155,8 @@ func _build_ui() -> void:
 	_toggle_row(feel, tr("📳 Vibration"), tr("A buzz when you tap, win or lose."), Settings.vibrate, Settings.set_vibrate)
 	_toggle_row(feel, tr("☀ Keep screen on"), tr("The screen won't turn off while you play."),
 			Settings.keep_awake, Settings.set_keep_awake)
+	_toggle_row(feel, tr("🎬 Intro video"), tr("A short Viral logo video when you open a game."),
+			Settings.intro_video, Settings.set_intro_video)
 	_toggle_row(feel, tr("🎞 Reduce motion"), tr("Menus switch instantly instead of sliding and fading."),
 			Settings.reduce_motion, Settings.set_reduce_motion)
 

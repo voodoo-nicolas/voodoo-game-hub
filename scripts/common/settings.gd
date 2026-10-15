@@ -20,6 +20,7 @@ extends Node
 ## - vibrate: `buzz()` -- every button press gives a short tick (hooked up
 ##   here, app-wide), and GameInfo buzzes on wins and losses.
 ## - keep_awake: stops the screen dimming/locking while the app is open.
+## - intro_video: the short Viral brand video when a game is opened (intro_video.gd); default on.
 ## - invites (since v0.25): when friends' game invites pop up -- INVITE_MODES
 ##   "all", "hub" (not while playing a game) or "off". Social asks
 ##   `invites_allowed()`.
@@ -85,6 +86,7 @@ var volume: int = DEFAULT_VOLUME
 var sound_groups: Dictionary = {}
 var vibrate: bool = true
 var keep_awake: bool = false
+var intro_video: bool = true
 ## Hub transitions (slides, fades) are skipped when on; Options > Vibration & screen.
 var reduce_motion: bool = false
 ## Game Browser look: "strip" (category bar + sliding tiles, the default) or "grid"
@@ -207,6 +209,10 @@ func set_vibrate(on: bool) -> void:
 
 func set_keep_awake(on: bool) -> void:
 	keep_awake = on
+	_commit()
+
+func set_intro_video(on: bool) -> void:
+	intro_video = on
 	_commit()
 
 func set_invites(mode: String) -> void:
@@ -473,6 +479,7 @@ func _load() -> void:
 	sound = bool(data.get("sound", true))
 	vibrate = bool(data.get("vibrate", true))
 	keep_awake = bool(data.get("keep_awake", false))
+	intro_video = bool(data.get("intro_video", true))
 	reduce_motion = bool(data.get("reduce_motion", false))
 	hub_layout = "grid" if str(data.get("hub_layout", "strip")) == "grid" else "strip"   # "classic" / "new" from v0.36 become "strip"
 	invites = str(data.get("invites", "all"))
@@ -485,5 +492,5 @@ func _save() -> void:
 		f.store_string(JSON.stringify({
 			"text_size": text_size, "theme": theme, "sound": sound,
 			"volume": volume, "sound_groups": sound_groups,
-			"vibrate": vibrate, "keep_awake": keep_awake, "reduce_motion": reduce_motion, "hub_layout": hub_layout, "invites": invites,
+			"vibrate": vibrate, "keep_awake": keep_awake, "intro_video": intro_video, "reduce_motion": reduce_motion, "hub_layout": hub_layout, "invites": invites,
 		}))

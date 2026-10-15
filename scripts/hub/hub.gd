@@ -843,7 +843,7 @@ func _resume_last_game() -> void:
 			var game: Dictionary = Catalog.get_game(entry.get("id", ""))
 			if game.get("scene", "") == scene and Catalog.state_of(game) == Catalog.STATE_READY:
 				busy = true
-				call_deferred("_launch", game)
+				call_deferred("_launch", game, false)
 				return
 
 func _open_options() -> void:
@@ -1244,7 +1244,7 @@ func _on_tile_pressed(id: String) -> void:
 	else:
 		_launch(game)
 
-func _launch(game: Dictionary) -> void:
+func _launch(game: Dictionary, show_intro: bool = true) -> void:
 	if Catalog.is_age_locked(game):  # also guards "resume last game" and invites
 		busy = false
 		return
@@ -1254,6 +1254,8 @@ func _launch(game: Dictionary) -> void:
 		Social.set_game(str(game.id))
 	if error == "" and get_tree().change_scene_to_file(game.scene) != OK:
 		error = tr("Something went wrong opening this game.")
+	if error == "" and show_intro:
+		IntroVideo.play(get_tree())  # plays over the game while it loads; skipped when off
 	if error != "":
 		busy = false
 		_rebuild_list()  # a damaged pack was removed; its tile is blue again

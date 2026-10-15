@@ -2735,6 +2735,28 @@
    "url": "",
    "date": "2026-10-13",
    "processed_by": "placeholder: category art + code-drawn glow (Claude Code)"
+  },
+  {
+   "file": "media/hub/intro/intro_portrait.ogv",
+   "what": "Viral intro video, portrait (9:16, 3 s, no audio); Theora from glitchboot2.mp4",
+   "source": "made by the owner and Claude Code from the Viral logo art; original D:/Dev/hub/videos/glitchboot2.mp4",
+   "author": "Viral (owner) + Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/HUB_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-14",
+   "processed_by": "ffmpeg libtheora q6, audio-less"
+  },
+  {
+   "file": "media/hub/intro/intro_landscape.ogv",
+   "what": "Viral intro video, landscape (16:9, 2.6 s, no audio); Theora from glitch boot.mp4",
+   "source": "made by the owner and Claude Code from the Viral logo art; original D:/Dev/hub/videos/glitch boot.mp4",
+   "author": "Viral (owner) + Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/HUB_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-14",
+   "processed_by": "ffmpeg libtheora q6, audio-less"
   }
  ]
 }
