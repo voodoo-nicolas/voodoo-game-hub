@@ -70,6 +70,7 @@ KNOWN_GODOT = Path(os.path.expandvars(
     r"\Godot_v4.7.2-stable_win64_console.exe"))
 KNOWN_GH = Path(r"C:\Program Files\GitHub CLI\gh.exe")
 ANDROID_PRESET = "Android"
+PLAY_PRESET = "AndroidPlay"  # Google Play bundle: package com.viral.gamehub, Gradle build, .aab
 APK_ARCHES = ["arm64-v8a", "armeabi-v7a", "x86_64"]
 ID_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -257,7 +258,7 @@ def render_presets(ids: list[str]) -> str:
     for i, p in enumerate(base):
         body = re.sub(r"(?m)^\[preset\.\d+\]", f"[preset.{i}]", p["body"])
         body = re.sub(r"(?m)^\[preset\.\d+\.options\]", f"[preset.{i}.options]", body)
-        if p["name"] == ANDROID_PRESET:
+        if p["name"] in (ANDROID_PRESET, PLAY_PRESET):
             body = re.sub(r"(?m)^version/code=.*$", f"version/code={build}", body)
             body = re.sub(r'(?m)^version/name=.*$', f'version/name="{version}"', body)
             # The bundled manifest.json is the offline fallback catalog.
@@ -765,6 +766,38 @@ def cmd_apk(args) -> None:
     print(f"  built {versioned.relative_to(ROOT)} ({versioned.stat().st_size:,} bytes), arches OK")
 
 
+PLAY_KEY_INFO = Path(os.environ.get(
+    "VIRAL_PLAY_KEY", str(Path.home() / "Android" / "keystore" / "viral-play-upload.json")))
+
+
+def cmd_aab(args) -> None:
+    """Android App Bundle for Google Play (package com.viral.gamehub), signed with the
+    Play *upload* key (viral-play-upload.*, outside the repo; back it up). Needs the
+    Gradle build template in android/build (gitignored; Project > Install Android Build Template)."""
+    cmd_check()
+    if not args.draft_legal:
+        require_legal_clean()
+    if not PLAY_KEY_INFO.is_file():
+        raise ToolError(f"Play upload key info not found at {PLAY_KEY_INFO}")
+    if not (ROOT / "android" / "build" / "build.gradle").is_file():
+        raise ToolError("Android build template missing: extract export_templates/<ver>/android_source.zip into android/build")
+    info = json.loads(PLAY_KEY_INFO.read_text(encoding="utf-8"))
+    env = {
+        "GODOT_ANDROID_KEYSTORE_RELEASE_PATH": info["keystore"],
+        "GODOT_ANDROID_KEYSTORE_RELEASE_USER": info["alias"],
+        "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD": info["password"],
+    }
+    version, build = read_version()
+    aab = ROOT / "builds/viral-gamehub.aab"
+    code, log = run_godot("--export-release", PLAY_PRESET, str(aab), timeout=1800, env=env)
+    if code != 0 or not aab.is_file():
+        print(log)
+        raise ToolError("AAB export failed")
+    versioned = ROOT / f"builds/viral-gamehub-v{version}-b{build}.aab"
+    shutil.copyfile(aab, versioned)
+    print(f"  built {versioned.relative_to(ROOT)} ({versioned.stat().st_size:,} bytes), version code {build}")
+
+
 PC_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "VoodooGameHub"
 PC_PRESET = "WindowsTest"  # all_resources: every game bundled, no downloads
 
@@ -1266,6 +1299,9 @@ def main() -> int:
     p.add_argument("--draft-legal", action="store_true",
                    help="release-signed TEST build although the legal text still has open markers (installs over the real app; never publish it)")
     p.set_defaults(fn=cmd_apk)
+    p = sub.add_parser("aab")
+    p.add_argument("--draft-legal", action="store_true", help="build although the legal text still has open markers (never upload)")
+    p.set_defaults(fn=cmd_aab)
     sub.add_parser("verify").set_defaults(fn=cmd_verify)
     sub.add_parser("pc").set_defaults(fn=cmd_pc)
     sub.add_parser("pc-zip").set_defaults(fn=cmd_pc_zip)

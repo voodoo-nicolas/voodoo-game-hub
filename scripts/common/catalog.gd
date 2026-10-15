@@ -477,7 +477,7 @@ func mount(id: String) -> String:
 ## updates" uses it; the hub's silent launch check doesn't.
 func check_app_update(on_newer: Callable, on_none: Callable = Callable()) -> void:
 	app_update_checked = true
-	if OS.has_feature("web"):  # an APK is no use in a browser; the page is the update
+	if OS.has_feature("web") or OS.has_feature("play"):  # web: the page is the update; Play build: Google Play updates the app (policy forbids self-update)
 		_safe_call.call_deferred(on_none, [true])
 		return
 	_get_json(Config.LATEST_RELEASE_API, func(parsed):

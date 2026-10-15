@@ -10,3 +10,8 @@ Thumbs.db
 
 # Raw artwork dropped in by the user; the processed copies live in assets/
 art_inbox/
+
+.claude/settings.local.json
+
+# Gradle build template for the Play AAB (extracted from the export templates)
+android/
