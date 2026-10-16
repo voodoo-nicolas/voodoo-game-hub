@@ -6,25 +6,36 @@ extends RefCounted
 ## because one pour removes at most one run. weight 1.0 = optimal; a bigger
 ## weight finds a good (not always shortest) answer much faster on big boards.
 ## Vials are interchangeable, so states are keyed with the vials sorted.
+## `center` ({} = none, else {"order": colours, "seg": balls per colour, "size": filled
+## now}) is the big central vial: only the colour it wants next may be poured in,
+## and it must be full at the end. Pours into it are move [from, -2].
 
 ## Returns {"ok": bool, "moves": [[from, to], ...], "optimal": bool, "nodes": int}
 ## `moves` index the vials of `tubes` as given. Stops after `node_limit` states.
-static func solve(tubes: Array, cap: int, node_limit: int = 40000, weight: float = 1.0) -> Dictionary:
+static func solve(tubes: Array, cap: int, node_limit: int = 40000, weight: float = 1.0, center: Dictionary = {}) -> Dictionary:
+	var order: Array = center.get("order", [])
+	var seg: int = int(center.get("seg", 0))
+	var total: int = order.size() * seg
+	var targets := {}
+	for c in order:
+		targets[c] = true
 	var states: Array = [_copy(tubes)]
+	var csize := PackedInt32Array([int(center.get("size", 0))])
 	var parent := PackedInt32Array([-1])
 	var move_from := PackedInt32Array([-1])
 	var move_to := PackedInt32Array([-1])
 	var gs := PackedInt32Array([0])
-	var best := {_key(tubes): 0}
+	var best := {_key(tubes, csize[0]): 0}
 	var heap_pri := PackedFloat64Array()
 	var heap_idx := PackedInt32Array()
-	_push(heap_pri, heap_idx, weight * _h(tubes), 0)
+	_push(heap_pri, heap_idx, weight * _h(tubes, targets), 0)
 	var nodes := 0
 	while heap_idx.size() > 0 and nodes < node_limit:
 		var cur: int = _pop(heap_pri, heap_idx)
 		var st: Array = states[cur]
+		var cs: int = csize[cur]
 		nodes += 1
-		if _is_solved(st, cap):
+		if cs == total and _is_solved(st, cap):
 			var path: Array = []
 			var n := cur
 			while parent[n] >= 0:
@@ -53,17 +64,32 @@ static func solve(tubes: Array, cap: int, node_limit: int = 40000, weight: float
 				var nxt: Array = _copy(st)
 				for i in amount:
 					nxt[b].append(nxt[a].pop_back())
-				var k := _key(nxt)
-				if best.has(k) and int(best[k]) <= g:
-					continue
-				best[k] = g
-				states.append(nxt)
-				parent.append(cur)
-				move_from.append(a)
-				move_to.append(b)
-				gs.append(g)
-				_push(heap_pri, heap_idx, g + weight * _h(nxt) - g * 0.001, states.size() - 1)
+				_add(nxt, cs, cur, a, b, g, weight, targets, best, states, parent, move_from, move_to, gs, csize, heap_pri, heap_idx)
+			if cs < total and ta[ta.size() - 1] == order[cs / seg]:
+				var seg_end: int = (cs / seg + 1) * seg
+				var amount2: int = mini(run, seg_end - cs)
+				var nxt2: Array = _copy(st)
+				for i in amount2:
+					nxt2[a].pop_back()
+				_add(nxt2, cs + amount2, cur, a, -2, g, weight, targets, best, states, parent, move_from, move_to, gs, csize, heap_pri, heap_idx)
 	return {"ok": false, "moves": [], "optimal": false, "nodes": nodes}
+
+## Adds a reached state to the search unless a path at least as short is known.
+static func _add(nxt: Array, ncs: int, cur: int, a: int, b: int, g: int, weight: float, targets: Dictionary,
+		best: Dictionary, states: Array, parent: PackedInt32Array, move_from: PackedInt32Array,
+		move_to: PackedInt32Array, gs: PackedInt32Array, csize: PackedInt32Array,
+		heap_pri: PackedFloat64Array, heap_idx: PackedInt32Array) -> void:
+	var k := _key(nxt, ncs)
+	if best.has(k) and int(best[k]) <= g:
+		return
+	best[k] = g
+	states.append(nxt)
+	parent.append(cur)
+	move_from.append(a)
+	move_to.append(b)
+	gs.append(g)
+	csize.append(ncs)
+	_push(heap_pri, heap_idx, g + weight * _h(nxt, targets) - g * 0.001, states.size() - 1)
 
 ## Length of the colour run on top of a vial.
 static func run_of(t: Array) -> int:
@@ -83,12 +109,15 @@ static func _is_solved(tubes: Array, cap: int) -> bool:
 				return false
 	return true
 
-static func _h(tubes: Array) -> float:
+## (colour runs on the board) - (colours that stay in small vials); every run of a
+## central-vial colour must still be poured in, so those count fully.
+static func _h(tubes: Array, targets: Dictionary) -> float:
 	var runs := 0
 	var seen := {}
 	for t in tubes:
 		for i in t.size():
-			seen[t[i]] = true
+			if not targets.has(t[i]):
+				seen[t[i]] = true
 			if i == 0 or t[i] != t[i - 1]:
 				runs += 1
 	return float(runs - seen.size())
@@ -99,7 +128,7 @@ static func _copy(tubes: Array) -> Array:
 		out.append(t.duplicate())
 	return out
 
-static func _key(tubes: Array) -> String:
+static func _key(tubes: Array, cs: int = 0) -> String:
 	var parts := PackedStringArray()
 	for t in tubes:
 		var s := ""
@@ -107,7 +136,7 @@ static func _key(tubes: Array) -> String:
 			s += char(97 + int(c))
 		parts.append(s)
 	parts.sort()
-	return "|".join(parts)
+	return "|".join(parts) + "#" + str(cs)
 
 # ---------- binary min-heap on parallel arrays ----------
 

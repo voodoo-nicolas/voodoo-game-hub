@@ -6,6 +6,10 @@ extends RefCounted
 ## Levels are made by playing the solved board backwards with random legal
 ## "un-pours" (seeded, so a level number always gives the same puzzle), so every
 ## level can be solved. color_sort_solver.gd finds a par for the star rating.
+##
+## Some levels have a big central vial. It takes only the colour(s) it asks for
+## (one colour, or two / three stacked in order), only by pouring into it, and
+## the level is won when it is full AND every small vial is sorted.
 
 const Solver = preload("res://scripts/games/color_sort/color_sort_solver.gd")
 ## Par for campaign levels 1..N, written by tools/gen_color_sort_par.gd (do not hand-edit).
@@ -23,6 +27,8 @@ const LEVELS := [
 const MAX_EXTRA := 1
 const MAX_COLORS := 14
 const MAX_VIALS := 18
+## `to` of a pour (and of its history entry) that goes into the central vial.
+const CENTER := -2
 ## First level number of each tier; Master has no end.
 const TIER_NAMES := ["Easy", "Medium", "Hard", "Expert", "Master"]
 const TIER_START := [1, 21, 51, 91, 141]
@@ -40,6 +46,10 @@ var extra_used: int = 0
 var initial: Array = []      # the puzzle as dealt, for Reset
 var par: int = 0             # moves a good player needs (0 = unknown)
 var gen_moves: int = 0       # length of the scrambling walk: always a valid (loose) par
+## Central vial. Empty center_order = this level has none.
+var center_order: Array = [] # colours it takes, bottom to top (one layer block each)
+var center_seg: int = 0      # balls of each colour it holds
+var center: Array = []       # what is in it now, bottom first
 
 ## ---------- level specs ----------
 
@@ -53,6 +63,8 @@ static func tier_of(n: int) -> int:
 ## colours, layers, empty vials for campaign level n (1-based). Empty vials go 3 -> 2
 ## and never lower: with a single empty vial the reverse scramble cannot mix the board. 14 colours only
 ## appear far into Master; most of the game stays at 10 or fewer.
+## "center" = number of colours the central vial takes (0 = no central vial): every
+## third level from 6, two colours from 40 and three from 100 on. They count inside "colors".
 static func spec_for(n: int) -> Dictionary:
 	n = maxi(1, n)
 	var t := tier_of(n)
@@ -77,7 +89,26 @@ static func spec_for(n: int) -> Dictionary:
 		_:
 			colors = mini(MAX_COLORS, 10 + (n - 141) / 30)
 			capacity = 5 + (n / 5) % 2
-	return {"level": n, "tier": t, "colors": colors, "cap": capacity, "empty": empty}
+	var center_colors := 0
+	if n >= 6 and n % 3 == 0:
+		center_colors = 1
+		if n >= 40 and n % 6 == 0:
+			center_colors = 2
+		if n >= 100 and n % 12 == 0:
+			center_colors = 3
+	# The central vial's colours start in small vials too: room for them is added.
+	var vials: int = colors + empty
+	if center_colors > 0:
+		vials = colors - center_colors + center_vials(capacity, center_colors) + empty
+	return {"level": n, "tier": t, "colors": colors, "cap": capacity, "empty": empty, "center": center_colors, "vials": vials}
+
+## Balls of each colour the central vial holds: one and a half small vials' worth.
+static func center_seg_for(capacity: int) -> int:
+	return capacity * 3 / 2
+
+## Small vials' worth of room the central vial's balls need at the start.
+static func center_vials(capacity: int, center_colors: int) -> int:
+	return int(ceil(center_colors * center_seg_for(capacity) / float(capacity)))
 
 ## ---------- creating a puzzle ----------
 
@@ -87,7 +118,7 @@ func load_level(n: int) -> void:
 	level_no = int(spec.level)
 	level = 0
 	cap = int(spec.cap)
-	_generate(int(spec.colors), int(spec.empty), cap, 7919 * level_no + 17)
+	_generate(int(spec.colors), int(spec.empty), cap, 7919 * level_no + 17, int(spec.center))
 	_finish_deal()
 	par = int(ParTable.PAR[level_no - 1]) if level_no <= ParTable.PAR.size() else 0
 	if par <= 0:
@@ -99,7 +130,7 @@ func new_game(lvl: int) -> void:
 	level_no = 0
 	cap = CAP
 	var spec: Dictionary = LEVELS[level]
-	_generate(int(spec.colors), int(spec.empty), CAP, randi())
+	_generate(int(spec.colors), int(spec.empty), CAP, randi(), 0)
 	_finish_deal()
 	par = gen_moves
 
@@ -111,61 +142,123 @@ func _finish_deal() -> void:
 
 func reset() -> void:
 	tubes = initial.duplicate(true)
+	center = []
 	moves = 0
 	history = []
 	extra_used = 0
 
 ## Plays the solved board backwards. An un-pour takes k balls off the top run of
-## vial b and puts them on vial a, so that the forward pour a -> b moves exactly
-## those k balls (see the two cases below). Solvable by construction.
-func _generate(n: int, empty: int, capacity: int, seed_value: int) -> void:
+## vial b (or of the central vial) and puts them on vial a, so that the forward
+## pour a -> b moves exactly those k balls (see the two cases below). Solvable
+## by construction. `center_colors` of the n colours go to the central vial.
+func _generate(n: int, empty: int, capacity: int, seed_value: int, center_colors: int) -> void:
 	var rng := RandomNumberGenerator.new()
+	var small: int = n - center_colors
+	var seg: int = center_seg_for(capacity)
 	for attempt in 150:
 		rng.seed = seed_value + attempt * 104729
 		tubes = []
-		for c in n:
+		for c in small:
 			var t: Array = []
 			for k in capacity:
 				t.append(c)
 			tubes.append(t)
-		for e in empty:
+		for e in empty + (center_vials(capacity, center_colors) if center_colors > 0 else 0):
 			tubes.append([])
+		center_order = []
+		center_seg = 0
+		center = []
+		if center_colors > 0:
+			center_seg = seg
+			for c in center_colors:
+				center_order.append(small + c)
+				for k in seg:
+					center.append(small + c)
 		var steps: int = n * capacity * 3
 		var done := 0
 		while done < steps:
-			# Every legal un-pour: [a, b, kmax]. Picking from the list wastes no tries
-			# and ends only at a real dead end.
-			var options: Array = []
-			for b in tubes.size():
-				var tb: Array = tubes[b]
-				if tb.is_empty():
-					continue
-				var c: int = tb[tb.size() - 1]
-				var r: int = Solver.run_of(tb)
-				## b must keep its top colour (or end empty), else the forward pour onto it is illegal.
-				var limit: int = r if r == tb.size() else r - 1
-				for a in tubes.size():
-					var ta: Array = tubes[a]
-					if a == b or ta.size() >= capacity:
-						continue
-					## Landing on a vial that already shows colour c only works if b was full:
-					## then the forward pour is cut short by b's room and moves exactly k.
-					if not ta.is_empty() and ta[ta.size() - 1] == c and tb.size() != capacity:
-						continue
-					var kmax: int = mini(limit, capacity - ta.size())
-					if kmax >= 1:
-						options.append([a, b, kmax])
+			var options := _unpour_options(capacity, false)
 			if options.is_empty():
 				break
 			var o: Array = options[rng.randi() % options.size()]
-			var k: int = 1 + rng.randi() % int(o[2])
-			for i in k:
-				tubes[o[0]].append(tubes[o[1]].pop_back())
+			_unpour(o, 1 + rng.randi() % int(o[2]))
+			done += 1
+		# The central vial starts empty: keep un-pouring from it alone.
+		while not center.is_empty():
+			var options := _unpour_options(capacity, true)
+			if options.is_empty():
+				break
+			var o: Array = options[rng.randi() % options.size()]
+			_unpour(o, 1 + rng.randi() % int(o[2]))
 			done += 1
 		gen_moves = done
 		cap = capacity
-		if done >= steps / 4 and _mixed_enough():
+		if center.is_empty() and done >= steps / 4 and _mixed_enough():
+			_shuffle_colors(n, rng)
 			return
+
+## Every legal un-pour as [a, b, kmax]: balls come off the top of b (b == CENTER:
+## the central vial) and go onto vial a.
+func _unpour_options(capacity: int, center_only: bool) -> Array:
+	var options: Array = []
+	var sources: Array = []
+	if not center_only:
+		for b in tubes.size():
+			sources.append(b)
+	if not center.is_empty():
+		sources.append(CENTER)
+	for b in sources:
+		var tb: Array
+		var limit: int
+		var full: bool
+		if b == CENTER:
+			tb = center
+			var s: int = (center.size() - 1) / center_seg
+			limit = center.size() - s * center_seg  # only the top block can come off
+			full = center.size() == (s + 1) * center_seg
+		else:
+			tb = tubes[b]
+			if tb.is_empty():
+				continue
+			var r: int = Solver.run_of(tb)
+			## b must keep its top colour (or end empty), else the forward pour onto it is illegal.
+			limit = r if r == tb.size() else r - 1
+			full = tb.size() == capacity
+		var c: int = tb[tb.size() - 1]
+		for a in tubes.size():
+			var ta: Array = tubes[a]
+			if a == b or ta.size() >= capacity:
+				continue
+			## Landing on a vial that already shows colour c only works if b was full:
+			## then the forward pour is cut short by b's room and moves exactly k.
+			if not ta.is_empty() and ta[ta.size() - 1] == c and not full:
+				continue
+			var kmax: int = mini(limit, capacity - ta.size())
+			if kmax >= 1:
+				options.append([a, b, kmax])
+	return options
+
+func _unpour(o: Array, k: int) -> void:
+	var src: Array = center if int(o[1]) == CENTER else tubes[o[1]]
+	for i in k:
+		tubes[o[0]].append(src.pop_back())
+
+## Hands the colours out in a seeded random order, so level 1 isn't always the
+## first palette colour, and the central vial's colour varies.
+func _shuffle_colors(n: int, rng: RandomNumberGenerator) -> void:
+	var perm: Array = range(n)
+	for i in range(n - 1, 0, -1):
+		var j: int = rng.randi() % (i + 1)
+		var tmp = perm[i]
+		perm[i] = perm[j]
+		perm[j] = tmp
+	for t in tubes:
+		for i in t.size():
+			t[i] = perm[t[i]]
+	for i in center_order.size():
+		center_order[i] = perm[center_order[i]]
+	for i in center.size():
+		center[i] = perm[center[i]]
 
 func _mixed_enough() -> bool:
 	var sorted_tubes := 0
@@ -185,10 +278,40 @@ func color_count() -> int:
 		return int(spec_for(level_no).colors)
 	return int(LEVELS[level].colors)
 
+## ---------- central vial ----------
+
+func has_center() -> bool:
+	return not center_order.is_empty()
+
+func center_total() -> int:
+	return center_order.size() * center_seg
+
+func center_full() -> bool:
+	return has_center() and center.size() >= center_total()
+
+## Colour the central vial wants next, or -1 (none / already full).
+func center_need() -> int:
+	if not has_center() or center.size() >= center_total():
+		return -1
+	return int(center_order[center.size() / center_seg])
+
+## Balls a pour from vial `from` into the central vial would move (0 if illegal).
+func center_amount(from: int) -> int:
+	var need := center_need()
+	if need < 0 or from < 0 or from >= tubes.size():
+		return 0
+	var a: Array = tubes[from]
+	if a.is_empty() or a[a.size() - 1] != need:
+		return 0
+	var seg_end: int = (center.size() / center_seg + 1) * center_seg
+	return mini(Solver.run_of(a), seg_end - center.size())
+
 ## ---------- rules ----------
 
-## Balls a pour from -> to would move (0 if illegal).
+## Balls a pour from -> to would move (0 if illegal). to == CENTER: the central vial.
 func pour_amount(from: int, to: int) -> int:
+	if to == CENTER:
+		return center_amount(from)
 	if from == to or from < 0 or to < 0 or from >= tubes.size() or to >= tubes.size():
 		return 0
 	var a: Array = tubes[from]
@@ -206,8 +329,9 @@ func do_move(from: int, to: int) -> bool:
 	var n := pour_amount(from, to)
 	if n <= 0:
 		return false
+	var dest: Array = center if to == CENTER else tubes[to]
 	for i in n:
-		tubes[to].append(tubes[from].pop_back())
+		dest.append(tubes[from].pop_back())
 	history.append([from, to, n])
 	moves += 1
 	return true
@@ -220,8 +344,9 @@ func undo() -> bool:
 		return false
 	var m: Array = history.pop_back()
 	var n: int = m[2] if m.size() > 2 else 1
+	var src: Array = center if int(m[1]) == CENTER else tubes[m[1]]
 	for i in n:
-		tubes[m[0]].append(tubes[m[1]].pop_back())
+		tubes[m[0]].append(src.pop_back())
 	moves = maxi(0, moves - 1)
 	return true
 
@@ -235,9 +360,12 @@ func add_tube() -> bool:
 	extra_used += 1
 	return true
 
-## Every vial is empty or holds a full set of one colour.
+## Every small vial is empty or holds a full set of one colour, and the central
+## vial (if any) is full.
 func solved() -> bool:
 	if tubes.is_empty():
+		return false
+	if has_center() and not center_full():
 		return false
 	for t in tubes:
 		if t.is_empty():
@@ -249,6 +377,8 @@ func solved() -> bool:
 ## Is there any legal move that isn't just shuffling a lone ball onto an empty tube?
 func has_useful_move() -> bool:
 	for a in tubes.size():
+		if center_amount(a) > 0:
+			return true
 		for b in tubes.size():
 			if can_move(a, b):
 				var ta: Array = tubes[a]
@@ -267,18 +397,26 @@ func stars_for(m: int) -> int:
 		return 2
 	return 1
 
-## Next pour for a hint, or [] if the solver finds none in time.
+## Next pour [from, to] for a hint (to == CENTER: the central vial), or [] if the
+## solver finds none in time.
 func hint(node_limit: int = 20000) -> Array:
-	var r: Dictionary = Solver.solve(tubes, cap, node_limit, 2.0)
+	var r: Dictionary = Solver.solve(tubes, cap, node_limit, 2.0, _center_info())
 	if r.ok and not r.moves.is_empty():
 		return r.moves[0]
 	return []
+
+## Solver's view of the central vial ({} = none).
+func _center_info() -> Dictionary:
+	if not has_center():
+		return {}
+	return {"order": center_order, "seg": center_seg, "size": center.size()}
 
 ## ---------- save ----------
 
 func to_dict() -> Dictionary:
 	return {"level": level, "level_no": level_no, "cap": cap, "par": par, "tubes": tubes, "moves": moves,
-		"history": history, "extra": extra_used, "initial": initial}
+		"history": history, "extra": extra_used, "initial": initial,
+		"center_order": center_order, "center_seg": center_seg, "center": center}
 
 func from_dict(d: Dictionary) -> bool:
 	var tb = d.get("tubes", [])
@@ -307,4 +445,13 @@ func from_dict(d: Dictionary) -> bool:
 		for c in t:
 			arr2.append(int(c))
 		initial.append(arr2)
+	center_order = []
+	for c in d.get("center_order", []):
+		center_order.append(int(c))
+	center_seg = int(d.get("center_seg", 0))
+	center = []
+	for c in d.get("center", []):
+		center.append(int(c))
+	if center_order.is_empty() != (center_seg == 0) or center.size() > center_total():
+		return false
 	return true

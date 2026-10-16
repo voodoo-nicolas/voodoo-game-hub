@@ -17,11 +17,11 @@ func _init() -> void:
 	for n in range(1, LEVELS + 1):
 		e.load_level(n)
 		var best: int = e.gen_moves
-		var r: Dictionary = S.solve(e.tubes, e.cap, 30000, 1.0)
+		var r: Dictionary = S.solve(e.tubes, e.cap, 12000, 1.0, e._center_info())
 		if r.ok:
 			exact += 1
 		else:
-			r = S.solve(e.tubes, e.cap, 120000, 2.5)
+			r = S.solve(e.tubes, e.cap, 40000, 3.0, e._center_info())
 		if r.ok:
 			best = mini(best, r.moves.size())
 		pars.append(str(best))

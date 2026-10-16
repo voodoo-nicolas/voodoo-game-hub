@@ -25,10 +25,11 @@ func _init() -> void:
 		fails += 1
 		print("FAIL: colour ramp")
 	# Generated levels: shape, counts, determinism, solvable.
-	for n in [1, 2, 8, 15, 21, 40, 51, 75, 91, 125, 141, 200, 300]:
+	for n in [1, 2, 6, 8, 12, 15, 21, 40, 42, 51, 75, 91, 120, 125, 132, 141, 200, 300]:
 		e.load_level(n)
 		var sp: Dictionary = E.spec_for(n)
-		if e.tubes.size() != sp.colors + sp.empty or e.cap != sp.cap:
+		var k: int = sp.center
+		if e.tubes.size() != sp.vials or sp.vials > E.MAX_VIALS or e.cap != sp.cap or e.center_order.size() != k or not e.center.is_empty():
 			fails += 1
 			print("FAIL: shape at ", n)
 		var counts := {}
@@ -42,18 +43,25 @@ func _init() -> void:
 			fails += 1
 			print("FAIL: colours at ", n)
 		for c in counts:
-			if counts[c] != e.cap:
+			if counts[c] != (e.center_seg if c in e.center_order else e.cap):
 				fails += 1
 				print("FAIL: layer count at ", n)
 		if e.solved():
 			fails += 1
 			print("FAIL: starts solved at ", n)
+		if k > 0 and (e.center_seg != e.cap * 3 / 2 or e.center_need() != e.center_order[0]):
+			fails += 1
+			print("FAIL: central vial setup at ", n)
+		for ci in e.center_order:
+			if not counts.has(ci):
+				fails += 1
+				print("FAIL: centre colour missing from the small vials at ", n)
 		var again = E.new()
 		again.load_level(n)
 		if again.tubes != e.tubes:
 			fails += 1
 			print("FAIL: not reproducible at ", n)
-		var r: Dictionary = S.solve(e.tubes, e.cap, 60000, 3.0)
+		var r: Dictionary = S.solve(e.tubes, e.cap, 60000, 3.0, e._center_info())
 		if not r.ok:
 			fails += 1
 			print("FAIL: solver found no solution at level ", n, " (", r.nodes, " nodes)")
@@ -82,6 +90,40 @@ func _init() -> void:
 	if not ro.ok or not ro.optimal or ro.moves.size() != 3:
 		fails += 1
 		print("FAIL: optimal solve, got ", ro)
+	# Central vial rules.
+	e.cap = 4
+	e.tubes = [[1, 0, 0], [1, 0], [], [2, 2]]
+	e.center_order = [0, 1]
+	e.center_seg = 3
+	e.center = []
+	if e.center_need() != 0 or e.pour_amount(0, E.CENTER) != 2 or e.pour_amount(1, E.CENTER) != 1 or e.pour_amount(3, E.CENTER) != 0 or e.pour_amount(2, E.CENTER) != 0:
+		fails += 1
+		print("FAIL: centre pour amounts")
+	e.moves = 0
+	e.history = []
+	e.do_move(0, E.CENTER)
+	if e.center != [0, 0] or e.tubes[0] != [1] or e.center_need() != 0:
+		fails += 1
+		print("FAIL: centre pour 1 ", e.center)
+	e.do_move(1, E.CENTER)
+	if e.center != [0, 0, 0] or e.center_need() != 1 or e.pour_amount(1, E.CENTER) != 1 or e.pour_amount(3, E.CENTER) != 0:
+		fails += 1
+		print("FAIL: centre second block ", e.center)
+	if not e.undo() or e.center != [0, 0] or e.tubes[1] != [1, 0] or e.moves != 1:
+		fails += 1
+		print("FAIL: centre undo")
+	e.center = [0, 0, 0, 1, 1, 1]
+	e.tubes = [[2, 2, 2, 2], [], [3, 3, 3, 3]]
+	if not e.solved() or not e.center_full():
+		fails += 1
+		print("FAIL: centre solved")
+	e.center = [0, 0, 0, 1, 1]
+	if e.solved():
+		fails += 1
+		print("FAIL: solved with centre not full")
+	e.center_order = []
+	e.center_seg = 0
+	e.center = []
 	# Rules: run pours, partial pours, undo.
 	e.cap = 4
 	e.tubes = [[0, 1, 1], [1], [], [0, 0, 0, 0]]
