@@ -47,6 +47,13 @@ const POTION_SOUNDS := {
 		{"t": "sine", "f": 1760, "f2": 1480, "at": 0.18, "len": 0.7, "dec": 4, "vol": 0.07},
 		{"t": "noise", "len": 0.7, "swell": true, "lp": 0.04, "lp2": 0.2, "vol": 0.25}],
 }
+## Names of the colours above, for the Color names learning option (tr() to translate;
+## the English + Spanish mode reads the Spanish from the i18n file).
+const CLASSIC_NAMES := ["Red", "Orange", "Yellow", "Teal", "Blue", "Purple", "Pink", "Green", "Gray", "Brown",
+	"Cyan", "Maroon", "Lime", "Indigo"]
+const SAFE_NAMES := ["Orange", "Sky blue", "Green", "Yellow", "Blue", "Vermilion", "Orchid", "Gray", "Navy", "Mint",
+	"Brown", "Lilac", "Pearl", "Olive"]
+const I18N = preload("res://scripts/games/color_sort/color_sort_i18n.gd")
 const PATTERNS := 14
 const POUR_TIME := 0.32
 ## Free economy (no ads, no purchases): hints and extra vials are earned by playing.
@@ -86,7 +93,7 @@ var toast_text: String = ""
 var toast_t: float = 0.0
 
 ## Player choices (OPTS_PATH): colour-blind palette, pattern overlay.
-var opts: Dictionary = {"safe": false, "patterns": true}
+var opts: Dictionary = {"safe": false, "patterns": true, "names": 0}  # names: 0 off, 1 my language, 2 English + Spanish
 ## Campaign progress (PROGRESS_PATH): next level, best result per level.
 var progress: Dictionary = {"level": 1, "best": {}, "hints": START_HINTS, "vials": START_VIALS, "day": 0}
 
@@ -126,6 +133,7 @@ func _ready() -> void:
 	_init_particles()
 	_build_ui()
 	_calm_music()
+	_sync_down()
 
 ## Calm background music from the hub's Music library (apps before v0.33 play none).
 func _calm_music() -> void:
@@ -237,8 +245,8 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
-		"board": "Puzzles solved",
-		"board_note": "Puzzles solved at any level.",
+		"board": "Total stars",
+		"board_note": "Stars earned on campaign levels.",
 	})
 	add_child(home)
 	if info:
@@ -259,9 +267,16 @@ func _add_options(box: VBoxContainer) -> void:
 	box.add_child(home.choice_row(["Standard", "Color-blind safe"], 1 if opts.safe else 0, _on_pick_palette))
 	box.add_child(home.section(tr("Patterns on the colors")))
 	box.add_child(home.choice_row(["On", "Off"], 0 if opts.patterns else 1, _on_pick_patterns))
+	box.add_child(home.section(tr("Color names")))
+	box.add_child(home.choice_row(["No names", "Names", "English + Español"], int(opts.names), _on_pick_names))
 
 func _on_pick_palette(i: int) -> void:
 	opts.safe = i == 1
+	_save_opts()
+	table.queue_redraw()
+
+func _on_pick_names(i: int) -> void:
+	opts.names = i
 	_save_opts()
 	table.queue_redraw()
 
@@ -275,6 +290,7 @@ func _load_opts() -> void:
 	if d is Dictionary:
 		opts.safe = bool(d.get("safe", false))
 		opts.patterns = bool(d.get("patterns", true))
+		opts.names = clampi(int(d.get("names", 0)), 0, 2)
 
 func _save_opts() -> void:
 	SaveUtil.write(OPTS_PATH, opts)
@@ -449,6 +465,27 @@ func _draw_table() -> void:
 				table.draw_arc(p_pos[i], p_rad[i], 0.0, TAU, 10, Color(1, 1, 1, 0.5 * f + 0.1), 1.5)
 			else:
 				table.draw_circle(p_pos[i], p_rad[i] * (0.4 + f * 0.6), Color(p_col[i], f))
+
+## The name of colour c for the learning option: in the player's language, or "Red · Rojo".
+func _name_text(c: int) -> String:
+	var names: Array = SAFE_NAMES if opts.safe else CLASSIC_NAMES
+	var key: String = names[c % names.size()]
+	if int(opts.names) == 2:
+		var es: String = str(I18N.STRINGS.es.get(key, key))
+		return key if es == key else "%s · %s" % [key, es]
+	return tr(key)
+
+## A small tag with a colour's name above a lifted vial.
+func _draw_name_tag(at: Vector2, c: int) -> void:
+	var font := ThemeDB.fallback_font
+	var txt := _name_text(c)
+	var sz := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20)
+	var box := Rect2(at.x - sz.x / 2.0 - 10.0, at.y - 22.0, sz.x + 20.0, 30.0)
+	var wall: float = table.size.x
+	box.position.x = clampf(box.position.x, 4.0, wall - box.size.x - 4.0)
+	table.draw_rect(box, Color(0.02, 0.03, 0.08, 0.9))
+	table.draw_rect(box, Color(1, 1, 1, 0.5), false, 1.5)
+	table.draw_string(font, Vector2(box.position.x + 10.0, box.position.y + 22.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
 
 ## Accent colour of a special level (banner and ground tint).
 func _kind_color(kind: String) -> Color:
@@ -674,6 +711,8 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 		table.draw_line(Vector2(r.position.x - 3.0, r.position.y + 6.0), Vector2(r.end.x + 3.0, r.position.y + 6.0), Color(1, 1, 1, 0.5), 3.0)
 	if engine.is_locked(i):
 		_draw_lock(i, r, cx)
+	if is_sel and int(opts.names) > 0 and not engine.tubes[i].is_empty() and not engine.is_hidden(i, engine.tubes[i].size() - 1):
+		_draw_name_tag(Vector2(cx, r.position.y - (r.size.x * 0.9 + 12.0 if shaped else 6.0)), int(engine.tubes[i][engine.tubes[i].size() - 1]))
 
 ## Voodoo skin: potion bottles of a few shapes. Half-width of a vial at height share
 ## t (0 = inner bottom, 1 = top) as a share of the full inner half-width.
@@ -1016,10 +1055,12 @@ func _draw_center_marker(r: Rect2) -> void:
 			_draw_symbol(ctr, 5.0, c, mark)
 	var font := ThemeDB.fallback_font
 	var txt := "%d/%d" % [engine.center.size(), engine.center_total()]
+	if int(opts.names) > 0 and need >= 0:
+		txt += "  " + _name_text(need)
 	var drain: int = int(engine.rules.get("drain", 0))
 	if drain > 0 and not engine.center_full():
 		txt += "   " + tr("leak in %d") % (drain - engine.moves % drain)
-	table.draw_string(font, Vector2(r.get_center().x - 80.0, r.end.y + 24.0), txt, HORIZONTAL_ALIGNMENT_CENTER, 160.0, 20, Color(1, 1, 1, 0.8))
+	table.draw_string(font, Vector2(r.get_center().x - 170.0, r.end.y + 24.0), txt, HORIZONTAL_ALIGNMENT_CENTER, 340.0, 20, Color(1, 1, 1, 0.8))
 
 ## The thin stream of liquid from the raised vial into the one it pours into.
 func _draw_stream(lay: Dictionary) -> void:
@@ -1394,7 +1435,22 @@ func _on_solved() -> void:
 			msg += "\n" + earned
 		if info:
 			info.add("Puzzles solved")
+			var total_stars := 0
+			for k in progress.best:
+				total_stars += int(progress.best[k].get("stars", 0))
+			info.high("Levels cleared", progress.best.size())
+			info.high("Total stars", total_stars)
+			info.high("Highest level", engine.level_no)
+			if stars == 3 and prev_stars < 3:
+				info.add("3-star levels")
+			if first and CSEngine.special_kind(engine.level_no) != "":
+				info.add("Special levels cleared")
+				if CSEngine.special_kind(engine.level_no) == "boss":
+					info.add("Bosses beaten")
+			if elapsed >= 3.0:
+				info.low("Fastest level (seconds)", int(elapsed))
 			info.celebrate(tr("Sorted!"))
+		_sync_up()
 		if buttons.size() > 0:
 			buttons[0].text = tr("Next level")
 	else:
@@ -1408,6 +1464,40 @@ func _on_solved() -> void:
 	SaveUtil.delete(SAVE_PATH)
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
+
+## Cloud copy of the campaign position, no extra tables: the hub's `scores` rows keep
+## the higher number, so the furthest level reached under "color_sort_level" restores
+## the Play button on a new phone. (Stars and stock stay on the device.)
+const CLOUD_LEVEL := "color_sort_level"
+
+func _auth() -> Node:
+	var a := get_node_or_null("/root/Auth")
+	return a if a and a.has_method("fetch_my_scores") and a.has_method("submit_score") and a.has_method("is_logged_in") else null
+
+func _sync_up() -> void:
+	var a := _auth()
+	if a and a.is_logged_in():
+		a.submit_score(CLOUD_LEVEL, int(progress.level))
+
+func _sync_down() -> void:
+	var a := _auth()
+	if a and a.is_logged_in():
+		a.fetch_my_scores(_on_cloud_scores)
+
+func _on_cloud_scores(rows: Variant) -> void:
+	if not (rows is Array):
+		return
+	for r in rows:
+		if r is Dictionary and str(r.get("game", "")) == CLOUD_LEVEL:
+			var cloud: int = int(r.get("score", 0))
+			if cloud > int(progress.level):
+				progress.level = cloud
+				_save_progress()
+			elif cloud < int(progress.level):
+				_sync_up()
+			return
+	if int(progress.level) > 1:
+		_sync_up()
 
 ## Rewards for a cleared level: a hint for a first 3 stars, two for a first clear of
 ## a special level, an extra vial for every fifth level, a daily hint. Returns the text.
