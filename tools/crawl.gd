@@ -94,7 +94,10 @@ func _crawl(id: String, scene: String) -> void:
 		_fail(id, "no ← Hub on the Landing")
 	if _find_script(inst, "settings_drawer.gd") != null:
 		_fail(id, "the floating drawer is still there")
-	# The More grid and its cards
+	# The More grid and its cards (a "compact" Landing folds them behind ☰ More: open it)
+	if kit.get("_more_toggle") != null and not kit._more.visible:
+		kit._set_more_open(true)
+		await _frames(2)
 	for label in ["❓", "🏆", "📊", "🏅", "⚙"]:
 		var b := _button_in(kit.home, label)
 		if b == null:

@@ -67,6 +67,10 @@ extends Control
 ##         "online": online,                 # OnlineMatch node, if any
 ##         "extra": _add_options,            # func(box): the game's own pickers, on the setup screens
 ##         "more": [["📜 History", PURPLE, _show_history]],  # the game's own buttons under More
+##         "compact": true,                  # optional: small buttons in a side column, More folded
+##                                           # behind one ☰ button -- for full-screen key art
+##         "quick_with_save": false,         # optional: no ⚡ Quick Play while ▶ Resume shows (for
+##                                           # games where a new game deletes the save)
 ##     })
 ##     add_child(home)
 ##     if info: add_child(info)
@@ -143,6 +147,7 @@ var _toast: Label
 var _logo: Control
 var _paused_by_me: bool = false
 var _more: GridContainer
+var _more_toggle: Button = null  # cfg "compact": the ☰ More button that folds the cards out
 var _fact_label: Label
 var _fact_i: int = 0
 var _home_margin: MarginContainer
@@ -345,6 +350,10 @@ func refresh() -> void:
 	# Quick Play only when there's a choice to skip (one way to play is
 	# already one tap on the Landing).
 	quick_btn.visible = not last.is_empty() and _solo.size() + _multi.size() > 1
+	# A game whose new game deletes the save keeps Quick Play off while Resume is there, so one
+	# wrong tap next to ▶ Resume can't throw the saved game away (cfg "quick_with_save": false).
+	if can_resume and not bool(cfg.get("quick_with_save", true)):
+		quick_btn.visible = false
 	if quick_btn.visible:
 		quick_btn.text = "⚡  " + tr("Quick Play") + "\n" + tr(str(last.get("text", ""))).strip_edges()
 	_submit_board()
@@ -454,13 +463,26 @@ func _build_home() -> void:
 	if not _multi.is_empty():
 		box.add_child(_group_button(_multi, true, both))
 
-	box.add_child(_section(tr("More")))
 	var more := GridContainer.new()
 	_more = more
 	more.columns = 2
 	more.add_theme_constant_override("h_separation", 16)
 	more.add_theme_constant_override("v_separation", 16)
-	box.add_child(more)
+	if _compact():
+		# Compact: one "☰ More" button; the cards fold out under it, like a tree.
+		_more_toggle = neon_button("", BUTTON, 20, 52)
+		_more_toggle.pressed.connect(_on_more_toggle)
+		box.add_child(_more_toggle)
+		var indent := MarginContainer.new()
+		indent.add_theme_constant_override("margin_left", 24)
+		indent.add_child(more)
+		box.add_child(indent)
+		more.columns = 1
+		more.add_theme_constant_override("v_separation", 8)
+		_set_more_open(false)
+	else:
+		box.add_child(_section(tr("More")))
+		box.add_child(more)
 	var items := [[tr("❓ How to Play"), BUTTON, _show_overlay.bind(null, "info")]]
 	if _board_key() != "none":
 		items.append([tr("🏆 Leaderboard"), BUTTON, _show_leaderboard])
@@ -472,14 +494,37 @@ func _build_home() -> void:
 	for it in cfg.get("more", []):
 		items.append([tr(str(it[0])), it[1], it[2]])
 	for it in items:
-		var b := neon_button(it[0], BUTTON, 26, 74)
+		var b := neon_button(it[0], BUTTON, 20 if _compact() else 26, 48 if _compact() else 74)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(_on_more.bind(it[2]))
 		more.add_child(b)
 	_add_fact_card(box)
+	if _compact():
+		_compact_sizes(box)
 	get_viewport().size_changed.connect(_fit_home_layout)
 	_fit_home_layout()
 
+## cfg "compact": the Landing as a small column at the side, so the game's key art shows.
+func _compact() -> bool:
+	return bool(cfg.get("compact", false))
+
+## Compact: smaller title and play buttons (the More cards are already small).
+func _compact_sizes(box: Control) -> void:
+	for c in box.get_children():
+		if c is Label and c.get_theme_font_size("font_size") > 40:
+			c.add_theme_font_size_override("font_size", 40)
+		elif c is Button and c != _more_toggle:
+			var two_lines: bool = "\n" in (c as Button).text or c == quick_btn or c == resume_btn
+			c.add_theme_font_size_override("font_size", 20)
+			c.custom_minimum_size.y = 64.0 if two_lines else 52.0
+
+func _on_more_toggle() -> void:
+	if not _dragged():
+		_set_more_open(not _more.visible)
+
+func _set_more_open(open: bool) -> void:
+	_more.visible = open
+	_more_toggle.text = ("▾  " if open else "☰  ") + tr("More")
 ## §15: one optional "Did you know?" on the Landing, never in the way of play.
 ## "Ages 7+ · Cartoon violence" before play: the hub's age rating for this game
 ## (manifest "content"). Older apps don't have Catalog.rating_text, so nothing shows
@@ -575,6 +620,9 @@ func _group_button(modes: Array, multi: bool, both: bool) -> Button:
 ## fills the screen, cropped not stretched, under a veil that darkens toward
 ## the bottom so the buttons stay readable.
 func _add_art(parent: Control, tex: Texture2D) -> void:
+	if _compact():
+		_add_side_art(parent, tex)
+		return
 	var art := TextureRect.new()
 	art.texture = tex
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -600,6 +648,36 @@ func _add_art(parent: Control, tex: Texture2D) -> void:
 	parent.add_child(veil)
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+## Compact: the art untouched on the right, a veil only behind the button column on the left.
+func _add_side_art(parent: Control, tex: Texture2D) -> void:
+	var art := TextureRect.new()
+	art.texture = tex
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(art)
+	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var grad := Gradient.new()
+	grad.set_color(0, Color(BG, 0.82))
+	grad.set_color(1, Color(BG, 0.0))
+	grad.add_point(0.3, Color(BG, 0.55))
+	var fill := GradientTexture2D.new()
+	fill.gradient = grad
+	fill.fill_from = Vector2(0, 0)
+	fill.fill_to = Vector2(1, 0)
+	fill.width = 256
+	fill.height = 4
+	var veil := TextureRect.new()
+	veil.texture = fill
+	veil.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	veil.stretch_mode = TextureRect.STRETCH_SCALE
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(veil)
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+## Compact column width (sideways phones): wide enough for "▶ Resume · Normal · 12:40".
+const COMPACT_WIDTH := 380.0
+
 func _fit_home_layout() -> void:
 	var view := get_viewport_rect().size
 	var wide: bool = view.x > view.y
@@ -611,6 +689,12 @@ func _fit_home_layout() -> void:
 	if _home_margin:
 		_home_margin.add_theme_constant_override("margin_top", 10 if wide else 24)
 		_home_margin.add_theme_constant_override("margin_bottom", 20 if wide else 40)
+		if _compact():
+			# The column on the left; the rest of the screen is the art.
+			var right := maxf(40.0, view.x - 40.0 - COMPACT_WIDTH) if wide else 40.0
+			_home_margin.add_theme_constant_override("margin_right", int(right))
+	if _more and _compact():
+		_more.columns = 1
 
 func _dragged() -> bool:
 	return _drag != null and _drag.moved
@@ -1593,7 +1677,7 @@ const OWN_BG_GAMES := ["geometry_wars", "snake", "block_drop", "paddle_ball", "b
 	"bird_hop", "alien_attack", "frog_crossing", "gem_match", "simon", "whack_a_mole",
 	"reaction_test", "bubble_pop", "rock_blaster", "city_defense", "maze_muncher", "moon_lander",
 	"stack_tower", "sky_hop", "air_hockey", "barrel_climb", "cannon_duel", "crypt_crawler",
-	"star_runner", "sky_raider", "mini_golf", "pool"]
+	"star_runner", "sky_raider", "mini_golf", "pool", "last_shift"]
 const BG_DIR := "res://media/hub/backgrounds/"  # in the APK (v0.34+); older apps: no texture
 
 ## The scene's game id, from res://scenes/games/<id>/<id>.tscn ("" if unknown).
