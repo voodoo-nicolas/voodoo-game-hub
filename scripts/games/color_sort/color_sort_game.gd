@@ -13,6 +13,8 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+## Skulls, bones, dolls for the Voodoo skin. Loaded, never preloaded: apps before v0.21 lack it.
+const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 
 const SAVE_PATH := "user://color_sort_save.json"
 const PROGRESS_PATH := "user://color_sort_progress.json"
@@ -30,6 +32,21 @@ const NEON_COLORS := [Color("ff2b4f"), Color("ff9a2b"), Color("fff23a"), Color("
 const SAFE_COLORS := [Color("e69f00"), Color("56b4e9"), Color("009e73"), Color("f0e442"), Color("0072b2"),
 	Color("d55e00"), Color("cc79a7"), Color("999999"), Color("1b2a5e"), Color("a8e6cf"),
 	Color("7b4a12"), Color("c3b1e1"), Color("f2f2f2"), Color("6b7a1a")]
+## Voodoo-skin sounds, synthesized from Sfx recipes (see scripts/common/sfx.gd): only this
+## game uses them, so they live here. Apps without Sfx._render fall back to library sounds.
+const POTION_SOUNDS := {
+	"cork_pop": [{"t": "sine", "f": 900, "f2": 240, "len": 0.09, "dec": 30, "vol": 0.5},
+		{"t": "noise", "len": 0.05, "dec": 70, "lp": 0.5, "hp": true, "vol": 0.35}],
+	"glug": [{"t": "sine", "f": 180, "f2": 420, "len": 0.08, "dec": 22, "vol": 0.4},
+		{"t": "sine", "f": 150, "f2": 380, "at": 0.1, "len": 0.08, "dec": 22, "vol": 0.36},
+		{"t": "sine", "f": 210, "f2": 460, "at": 0.2, "len": 0.09, "dec": 20, "vol": 0.3},
+		{"t": "noise", "len": 0.3, "swell": true, "lp": 0.1, "lp2": 0.2, "vol": 0.15}],
+	"stinger": [{"t": "tri", "f": 440, "f2": 415, "len": 0.9, "dec": 2.5, "vol": 0.2},
+		{"t": "tri", "f": 622, "f2": 588, "at": 0.04, "len": 0.9, "dec": 2.5, "vol": 0.15},
+		{"t": "sine", "f": 110, "f2": 98, "len": 1.1, "dec": 2.0, "vol": 0.3},
+		{"t": "sine", "f": 1760, "f2": 1480, "at": 0.18, "len": 0.7, "dec": 4, "vol": 0.07},
+		{"t": "noise", "len": 0.7, "swell": true, "lp": 0.04, "lp2": 0.2, "vol": 0.25}],
+}
 const PATTERNS := 14
 const POUR_TIME := 0.32
 ## Free economy (no ads, no purchases): hints and extra vials are earned by playing.
@@ -41,6 +58,8 @@ const MAX_P := 96
 const MOTES := 12
 
 var info = null  # GameInfo; null on apps without it, so guard every use
+var voodoo = null  # scripts/common/voodoo.gd (static drawing); null on old apps
+var _potion_cache := {}
 var home  # HomeKit: Landing + pause menu
 var engine: CSEngine
 var bg: ColorRect
@@ -100,6 +119,8 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = CSEngine.new()
 	engine.new_game(0)
+	if ResourceLoader.exists(VOODOO_PATH):
+		voodoo = load(VOODOO_PATH)
 	_load_opts()
 	_load_progress()
 	_init_particles()
@@ -395,6 +416,8 @@ func _draw_table() -> void:
 			var a: float = minf(1.0, p_life[i] / 2.0) * 0.18
 			table.draw_circle(p_pos[i], p_rad[i], Color(1, 1, 1, a))
 	var rects: Array = lay.rects
+	if not _is_classic():
+		_draw_decor(lay, w, h)
 	for p in engine.rules.get("blocked", []):
 		if int(p[0]) < rects.size() and int(p[1]) < rects.size():
 			var pa: Vector2 = rects[int(p[0])].get_center()
@@ -566,14 +589,26 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 	var is_sel: bool = i == selected
 	if lift < -1.0:
 		table.draw_circle(Vector2(r0.position.x + r0.size.x / 2.0, r0.end.y - 2.0), r0.size.x * 0.32, Color(0, 0, 0, 0.18))
-	table.draw_style_box(_sb_selected if is_sel else _sb_normal, r)
+	var cx: float = r.position.x + r.size.x / 2.0
+	var rad: float = r.size.x / 2.0 - 4.0
+	var yb: float = r.end.y - 4.0
+	var shape: int = _shape_of(i)
+	var hh: float = engine.cap * lh
+	var shaped: bool = not _is_classic()
+	if shaped:
+		var glass := _outline(cx, rad + 3.0, yb + 3.0, hh + 6.0, shape)
+		table.draw_colored_polygon(glass, Color(HomeKit.CYAN, 0.07))
+		var closed := glass.duplicate()
+		closed.append(glass[0])
+		var edge: Color = HomeKit.GOLD if is_sel else HomeKit.CYAN
+		table.draw_polyline(closed, Color(edge, 0.3), 8.0, true)
+		table.draw_polyline(closed, edge, 3.0, true)
+	else:
+		table.draw_style_box(_sb_selected if is_sel else _sb_normal, r)
 	if hint_t > 0.0 and (i == hint_from or i == hint_to):
 		var pulse: float = 0.5 + 0.5 * sin(clock * 8.0)
 		var hc: Color = Color("ffd84a") if i == hint_from else Color("4cff8a")
 		table.draw_rect(r.grow(5.0 + pulse * 3.0), Color(hc, 0.55 + 0.35 * pulse), false, 4.0)
-	var cx: float = r.position.x + r.size.x / 2.0
-	var rad: float = r.size.x / 2.0 - 4.0
-	var yb: float = r.end.y - 4.0
 	var blocks := _blocks(i)
 	var top_i := -1
 	var top_hi := 0.0
@@ -589,12 +624,17 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 		var amp := 0.0
 		if b == top_i:
 			amp = 0.8 + wobble * 3.0
-		var poly := _band(cx, rad, yb, y_top, y_bot, amp, clock * 5.0 + i)
+		var poly: PackedVector2Array
+		if shaped:
+			poly = _band_shaped(cx, rad, yb, hh, shape, y_top, y_bot, amp, clock * 5.0 + i)
+		else:
+			poly = _band(cx, rad, yb, y_top, y_bot, amp, clock * 5.0 + i)
 		if poly.size() >= 3:
 			table.draw_colored_polygon(poly, col)
 			if y_bot - y_top > 10.0:
-				table.draw_line(Vector2(cx - rad * 0.55, y_top + 5.0), Vector2(cx - rad * 0.55, y_bot - 5.0), Color(1, 1, 1, 0.22), 3.0)
-				table.draw_line(Vector2(cx + rad * 0.7, y_top + 5.0), Vector2(cx + rad * 0.7, y_bot - 5.0), Color(0, 0, 0, 0.14), 3.0)
+				var pf: float = _prof(shape, clampf((yb - (y_top + y_bot) / 2.0) / hh, 0.0, 1.0), 0.1) if shaped else 1.0
+				table.draw_line(Vector2(cx - rad * 0.55 * pf, y_top + 5.0), Vector2(cx - rad * 0.55 * pf, y_bot - 5.0), Color(1, 1, 1, 0.22), 3.0)
+				table.draw_line(Vector2(cx + rad * 0.7 * pf, y_top + 5.0), Vector2(cx + rad * 0.7 * pf, y_bot - 5.0), Color(0, 0, 0, 0.14), 3.0)
 			if b == top_i:
 				var surf := PackedVector2Array()
 				for j in 7:
@@ -619,23 +659,159 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 			var mark := Color(0, 0, 0, 0.55) if col2.get_luminance() > 0.55 else Color(1, 1, 1, 0.8)
 			_draw_symbol(Vector2(cx, yb - (k + 0.5) * lh), minf(lh, rad * 2.0) * 0.21, int(t[k]), mark)
 	# glass shine
-	table.draw_line(Vector2(cx - rad + 5.0, r.position.y + 12.0), Vector2(cx - rad + 5.0, yb - rad), Color(1, 1, 1, 0.3), 3.0, true)
-	table.draw_arc(Vector2(cx, yb - rad), rad * 0.72, PI * 0.6, PI * 0.9, 6, Color(1, 1, 1, 0.28), 2.5)
-	table.draw_line(Vector2(r.position.x - 3.0, r.position.y + 6.0), Vector2(r.end.x + 3.0, r.position.y + 6.0), Color(1, 1, 1, 0.5), 3.0)
+	if not shaped:
+		table.draw_line(Vector2(cx - rad + 5.0, r.position.y + 12.0), Vector2(cx - rad + 5.0, yb - rad), Color(1, 1, 1, 0.3), 3.0, true)
+		table.draw_arc(Vector2(cx, yb - rad), rad * 0.72, PI * 0.6, PI * 0.9, 6, Color(1, 1, 1, 0.28), 2.5)
+	else:
+		var sh: float = rad * _prof(shape, 0.4, 0.1) * 0.8
+		table.draw_line(Vector2(cx - sh, yb - hh * 0.75), Vector2(cx - sh, yb - hh * 0.18), Color(1, 1, 1, 0.3), 3.0, true)
+	if shaped:
+		var top_hw: float = (rad + 3.0) * _prof(shape, 1.0, 0.1)
+		table.draw_line(Vector2(cx - top_hw - 3.0, yb - hh - 3.0), Vector2(cx + top_hw + 3.0, yb - hh - 3.0), Color(1, 1, 1, 0.5), 3.0)
+		if not engine.is_locked(i):
+			_draw_skull_cork(cx, yb - hh - 4.0, r.size.x * 0.95, false)
+	else:
+		table.draw_line(Vector2(r.position.x - 3.0, r.position.y + 6.0), Vector2(r.end.x + 3.0, r.position.y + 6.0), Color(1, 1, 1, 0.5), 3.0)
 	if engine.is_locked(i):
 		_draw_lock(i, r, cx)
 
+## Voodoo skin: potion bottles of a few shapes. Half-width of a vial at height share
+## t (0 = inner bottom, 1 = top) as a share of the full inner half-width.
+func _prof(shape: int, t: float, rb: float) -> float:
+	var f := 1.0
+	match shape:
+		1:  # round flask: wide body, narrow neck
+			f = 1.0 - 0.55 * smoothstep(0.55, 0.82, t)
+		2:  # tall and slim
+			f = 0.74
+		3:  # teardrop: wide at the bottom, narrowing up
+			f = lerpf(1.0, 0.5, smoothstep(0.1, 1.0, t))
+	if t < rb:
+		var u: float = 1.0 - t / rb
+		f *= sqrt(maxf(0.0, 1.0 - u * u))
+	return f
+
+## Which bottle vial i is (Classic: all test tubes).
+func _shape_of(i: int) -> int:
+	if _is_classic():
+		return 0
+	return [1, 0, 3, 2][i % 4]
+
+## Closed outline of a vial: from the top-left rim down, round the bottom, up the right side.
+func _outline(cx: float, rad: float, yb: float, hh: float, shape: int) -> PackedVector2Array:
+	var rb: float = clampf(rad / hh, 0.05, 0.35)
+	var pts := PackedVector2Array()
+	for s in 25:
+		var t: float = 1.0 - s / 24.0
+		pts.append(Vector2(cx - rad * _prof(shape, t, rb), yb - t * hh))
+	for s in 1:
+		pts.append(Vector2(cx, yb))
+	for s in range(1, 25):
+		var t2: float = s / 24.0
+		pts.append(Vector2(cx + rad * _prof(shape, t2, rb), yb - t2 * hh))
+	return pts
+
+## Liquid band in a shaped bottle, y_top down to y_bot; amp > 0 gives the surface a wave.
+func _band_shaped(cx: float, rad: float, yb: float, hh: float, shape: int, y_top: float, y_bot: float, amp: float, phase: float) -> PackedVector2Array:
+	var rb: float = clampf(rad / hh, 0.05, 0.35)
+	var pts := PackedVector2Array()
+	var wt: float = rad * _prof(shape, clampf((yb - y_top) / hh, 0.0, 1.0), rb)
+	for j in 7:
+		var u: float = j / 6.0
+		var yy: float = y_top
+		if amp > 0.0:
+			yy += amp * sin(phase + u * 6.0)
+		_add_pt(pts, Vector2(cx - wt + u * 2.0 * wt, yy))
+	var n := 10
+	for s in n + 1:
+		var y: float = lerpf(y_top, y_bot, float(s) / n)
+		_add_pt(pts, Vector2(cx + rad * _prof(shape, clampf((yb - y) / hh, 0.0, 1.0), rb), y))
+	for s in range(n, -1, -1):
+		var y2: float = lerpf(y_top, y_bot, float(s) / n)
+		_add_pt(pts, Vector2(cx - rad * _prof(shape, clampf((yb - y2) / hh, 0.0, 1.0), rb), y2))
+	return pts
+
+## A skull stopper on a vial's mouth (Voodoo skin).
+func _draw_skull_cork(cx: float, rim_y: float, s: float, dark: bool) -> void:
+	if voodoo == null:
+		return
+	var fill_c: Color = Color(0.45, 0.43, 0.5) if dark else Color(0.93, 0.9, 0.8)
+	voodoo.draw_skull(table, Vector2(cx, rim_y - 0.3 * s), s, fill_c, Color(0.08, 0.05, 0.1), Color(0, 0, 0, 0.55))
+
+# ---------- Voodoo decorations ----------
+
+## Candles, bones, a doll and a spellbook on the dark ground, in whatever room the
+## vials leave; drawn first so the vials sit in front.
+func _draw_decor(lay: Dictionary, w: float, h: float) -> void:
+	var rects: Array = lay.rects
+	var top_free: float = h
+	var bot_free: float = h
+	for r in rects:
+		top_free = minf(top_free, r.position.y)
+		bot_free = minf(bot_free, h - r.end.y)
+	if engine.has_center():
+		top_free = 0.0
+		bot_free = 0.0
+	var flick: float = 0.75 + 0.25 * sin(clock * 11.0) * sin(clock * 7.3 + 1.0)
+	for k in 2:
+		var x: float = 34.0 if k == 0 else w - 34.0
+		_draw_candle(Vector2(x, h - 14.0), 58.0, flick + 0.1 * sin(clock * 13.0 + k * 2.0), k)
+	if bot_free > 80.0 and voodoo != null:
+		voodoo.draw_crossbones(table, Vector2(w * 0.5, h - 34.0), 70.0, Color(0.93, 0.9, 0.8, 0.6), Color(0, 0, 0, 0.4))
+	if top_free > 110.0:
+		_draw_book(Rect2(24.0, 30.0, 84.0, 60.0))
+		if voodoo != null:
+			voodoo.draw_doll(table, Vector2(w - 62.0, 62.0), 78.0, Color(0.78, 0.64, 0.42, 0.9), Color(0.08, 0.05, 0.1), Color(0, 0, 0, 0.4))
+
+func _draw_candle(base: Vector2, hgt: float, flick: float, k: int) -> void:
+	table.draw_circle(base + Vector2(0, -hgt - 8.0), 70.0 * flick, Color(1.0, 0.7, 0.25, 0.05))
+	table.draw_circle(base + Vector2(0, -hgt - 8.0), 38.0 * flick, Color(1.0, 0.75, 0.3, 0.08))
+	table.draw_rect(Rect2(base.x - 11.0, base.y - hgt, 22.0, hgt), Color("e8dcc0"))
+	table.draw_rect(Rect2(base.x - 11.0, base.y - hgt, 6.0, hgt), Color(1, 1, 1, 0.25))
+	table.draw_rect(Rect2(base.x + 5.0, base.y - hgt, 6.0, hgt), Color(0, 0, 0, 0.18))
+	table.draw_colored_polygon(PackedVector2Array([Vector2(base.x - 11.0, base.y - hgt), Vector2(base.x + 11.0, base.y - hgt),
+		Vector2(base.x + 11.0, base.y - hgt + 9.0), Vector2(base.x + 6.0, base.y - hgt + 17.0), Vector2(base.x + 2.0, base.y - hgt + 8.0),
+		Vector2(base.x - 5.0, base.y - hgt + 12.0), Vector2(base.x - 11.0, base.y - hgt + 6.0)]), Color("f3e9d0"))
+	var sway: float = sin(clock * 9.0 + k * 1.7) * 2.5
+	var tip := Vector2(base.x + sway, base.y - hgt - 26.0 * flick)
+	var fl := PackedVector2Array([Vector2(base.x - 6.0, base.y - hgt - 3.0), Vector2(base.x - 7.0, base.y - hgt - 12.0), tip,
+		Vector2(base.x + 7.0, base.y - hgt - 12.0), Vector2(base.x + 6.0, base.y - hgt - 3.0)])
+	table.draw_colored_polygon(fl, Color("ff9b2e"))
+	var inner := PackedVector2Array([Vector2(base.x - 3.0, base.y - hgt - 3.0), Vector2(base.x - 3.5, base.y - hgt - 9.0),
+		Vector2(base.x + sway * 0.6, base.y - hgt - 18.0 * flick), Vector2(base.x + 3.5, base.y - hgt - 9.0), Vector2(base.x + 3.0, base.y - hgt - 3.0)])
+	table.draw_colored_polygon(inner, Color("fff1a8"))
+
+func _draw_book(r: Rect2) -> void:
+	table.draw_rect(r, Color("5a1226"))
+	table.draw_rect(r, Color("c9a23a"), false, 2.0)
+	table.draw_rect(Rect2(r.position.x + 7.0, r.position.y, 4.0, r.size.y), Color(0, 0, 0, 0.35))
+	table.draw_rect(Rect2(r.end.x - 4.0, r.position.y + 3.0, 4.0, r.size.y - 6.0), Color("e8dcc0"))
+	var ctr: Vector2 = r.get_center() + Vector2(5.0, 0)
+	var pts := PackedVector2Array()
+	for i in 6:
+		var a: float = -PI / 2.0 + i * TAU / 5.0 * 2.0
+		pts.append(ctr + Vector2(cos(a), sin(a)) * 16.0)
+	table.draw_polyline(pts, Color("e0c36a"), 1.8, true)
+	table.draw_arc(ctr, 18.0, 0.0, TAU, 20, Color("e0c36a"), 1.5)
+
 ## A padlock (with the pours left) or a cork over a vial that can't be used yet.
 func _draw_lock(i: int, r: Rect2, cx: float) -> void:
-	var dim := _sb_normal.duplicate() as StyleBoxFlat
-	dim.bg_color = Color(0.02, 0.02, 0.06, 0.55)
-	dim.border_color = Color(0, 0, 0, 0)
-	dim.shadow_size = 0
-	table.draw_style_box(dim, r)
+	if _is_classic():
+		var dim := _sb_normal.duplicate() as StyleBoxFlat
+		dim.bg_color = Color(0.02, 0.02, 0.06, 0.55)
+		dim.border_color = Color(0, 0, 0, 0)
+		dim.shadow_size = 0
+		table.draw_style_box(dim, r)
+	else:
+		var lhh: float = engine.cap * float(_layout().lh)
+		table.draw_colored_polygon(_outline(cx, r.size.x / 2.0 - 1.0, r.end.y - 1.0, lhh + 6.0, _shape_of(i)), Color(0.02, 0.02, 0.06, 0.55))
 	var is_cork := false
 	for l in engine.rules.get("locks", []):
 		if int(l.v) == i and l.get("cork", false):
 			is_cork = true
+	if is_cork and not _is_classic() and voodoo != null:
+		_draw_skull_cork(cx, r.position.y + 10.0, r.size.x * 1.25, true)
+		return
 	if is_cork:
 		var w: float = r.size.x * 0.42
 		var top: float = r.position.y - 14.0
@@ -1044,7 +1220,7 @@ func _start_pour(from: int, to: int) -> void:
 	var leak: int = int(engine.history[engine.history.size() - 1][3])
 	anim = {"from": from, "to": to, "n": n, "col": col, "t": 0.0, "leak": leak}
 	selected = -1
-	_sfx("place")
+	_skin_sfx("glug", "place")
 	_save_game()
 	_render()
 
@@ -1124,7 +1300,7 @@ func _unlock_effect(i: int) -> void:
 	for k in 10:
 		var a: float = randf_range(-PI * 0.9, -PI * 0.1)
 		_spawn(Vector2(r.get_center().x, r.position.y), Vector2(cos(a), sin(a)) * randf_range(60.0, 150.0), randf_range(0.4, 0.8), randf_range(2.0, 3.5), Color("e0c36a"), 1)
-	_sfx("pickup")
+	_skin_sfx("cork_pop", "pickup")
 
 ## 💡 The solver's next pour, shown as two glowing vials. Costs a hint in the
 ## campaign (none left: say how to earn more); free in the quick puzzles.
@@ -1195,7 +1371,7 @@ func _on_solved() -> void:
 	if solved_shown:
 		return
 	solved_shown = true
-	_sfx("win")
+	_skin_sfx("stinger", "win")
 	var msg: String = tr("Moves: %d") % engine.moves
 	var buttons: Array = end_dialog.find_children("*", "Button", true, false)
 	if engine.level_no > 0:
@@ -1407,6 +1583,20 @@ func _load_saved_game() -> void:
 	_begin_play()
 	elapsed = float(d.get("elapsed", 0))
 	_render()
+
+## Skin sound: the Voodoo skin's own (cork pop, glug, stinger), else the library one.
+func _skin_sfx(potion: String, plain: String) -> void:
+	var s = get_node_or_null("/root/Sfx")
+	if s == null:
+		return
+	if not _is_classic() and POTION_SOUNDS.has(potion) and s.has_method("_render") and s.has_method("play_stream"):
+		if not _potion_cache.has(potion):
+			_potion_cache[potion] = s._render(POTION_SOUNDS[potion])
+		var st = _potion_cache[potion]
+		if st != null:
+			s.play_stream(st, 0.0, randf_range(0.96, 1.04), "game")
+			return
+	s.play(plain)
 
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")

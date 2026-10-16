@@ -44,6 +44,14 @@ Electricity puzzle: batteries (blue/yellow), wire pieces, bulbs (blue/yellow/gre
 - Balance with bots in throwaway tests: Star Runner/Sky Raider "random or dodging bot survives Easy, mostly dies on Hard"; Cannon Duel CPU vs CPU shots-to-win by level; Pool Hard beats Easy ~90%.
 - Sky Strike: see neon-blast.md.
 
+## Color Sort (id `color_sort`, upgraded 2026-10-16)
+- Liquid vials (cap 3-6), 3-14 colours (14 only far into Master), campaign levels 1..: tiers Easy 1, Medium 21, Hard 51, Expert 91, Master 141 (`color_sort_engine.gd` `spec_for`). A pour moves the whole top run that fits. Empty vials go 3 -> 2, never 1 (the reverse scramble cannot mix with one).
+- Levels are seeded (`load_level(n)`): solved board + reverse un-pours (two cases, see `_unpour_options`), so always solvable. `color_sort_solver.gd` (A*, weight, optional central vial + rules) gives par; stars: 3 up to par x1.15, 2 up to x1.6.
+- Central vial (levels n%3==0 from 6; 2 colours from 40, 3 from 100): takes only the colour it asks for, win = it is full AND the small vials sorted; its colours start in small vials, so extra vials are added (`center_vials`). Pressure (n%9==0 from 27): leaks a layer every 8 pours.
+- Special levels (every 10th, boss every 50th): mystery, locked (pours), limited moves, timer, corks (open when the next vial is full), blocked pours. Rules live in `engine.rules`, are proven solvable by the solver at load (`VERIFY_NODES`/`VERIFY_TRIES`); the try that worked is stored in `color_sort_par.gd` `ATT`.
+- `color_sort_par.gd` (PAR, ATT) is GENERATED: `godot --headless --path . --script res://tools/gen_color_sort_par.gd` (takes ~1 h; run it again whenever generation or rules change, else par/ATT go stale). Test: `tools/test_color_sort.gd`.
+- Economy (no ads): hints/extra vials earned (`_earn`), stock in `user://color_sort_progress.json`. Voodoo skin: bottle shapes, skull corks, candles/bones/doll/book (decor only where the vials leave room), own SFX recipes via `Sfx._render` with fallback to library sounds.
+
 ## Misc gotchas
 - Bash heredocs mangle `\\` (`"\\n"` becomes a real newline in the .gd): write patch scripts with the Write tool or `grep -n` after.
 - Tests and the PC build share `%APPDATA%\Godot\app_userdata\Voodoo`: `hub.py test` and headless tests read/write the user's real saves/stats. Back up that folder before tests that finish games; restore after. Every run refreshes the Supabase session (tokens rotate); a killed run can sign the user out of the PC build (old `auth_session.json` backups don't help).
