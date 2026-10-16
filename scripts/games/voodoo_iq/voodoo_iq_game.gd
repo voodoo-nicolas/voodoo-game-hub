@@ -330,7 +330,8 @@ func _show_home() -> void:
 
 	# brain map: tap a region to choose a section
 	var bp := _panel()
-	var brain := Art.canvas(func(ci, sz): Art.brain(ci, Rect2(Vector2.ZERO, sz), str(setup.scope)), Vector2(W - 40, (W - 40) * 440.0 / 560.0))
+	# baked: the map is ~200 polygons, sent to the GPU every frame as a live Canvas
+	var brain := Art.baked(func(ci, sz): Art.brain(ci, Rect2(Vector2.ZERO, sz), str(setup.scope)), Vector2(W - 40, (W - 40) * 440.0 / 560.0))
 	brain.mouse_filter = Control.MOUSE_FILTER_STOP
 	brain.gui_input.connect(_on_brain_input.bind(brain))
 	bp.add_child(brain)

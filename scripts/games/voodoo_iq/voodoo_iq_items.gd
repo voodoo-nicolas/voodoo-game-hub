@@ -682,8 +682,9 @@ static func _timing(v: ItemView, d: Dictionary) -> void:
 
 # ------------------------------------------------------------------ INT
 
+## Baked into a texture once: a live face Canvas is ~230 draw calls every frame.
 static func _face_canvas(p: Dictionary, id: Dictionary, eyes: bool, w: float) -> Control:
-	return _canvas(func(ci, sz): Art.face(ci, p, id, Rect2(Vector2.ZERO, sz), eyes), Vector2(w, w * (0.39 if eyes else 1.15)))
+	return Art.baked(func(ci, sz): Art.face(ci, p, id, Rect2(Vector2.ZERO, sz), eyes), Vector2(w, w * (0.39 if eyes else 1.15)))
 
 static func _emo_texts(opts: Array) -> Array:
 	var out: Array = []

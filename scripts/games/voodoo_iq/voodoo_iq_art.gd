@@ -27,6 +27,64 @@ static func canvas(paint: Callable, min_size: Vector2) -> Canvas:
 	c.clip_contents = true  # an SVG viewBox crops (the eyes-only face relies on it)
 	return c
 
+## A drawing painted once into a texture, then shown as one image. A shaded face
+## is ~230 polygons and lines, and a Canvas sends all of them to the GPU again
+## every frame: the four faces of "odd one out" were ~930 draw calls a frame
+## (a plain question ~30), which froze an iPhone's browser. Baked, a face costs
+## one. It is painted again only when its size changes.
+class Baked extends Control:
+	const MAX_SCALE := 4.0
+	var paint: Callable
+	var _vp: SubViewport
+	var _art: Canvas
+	var _baked_px := Vector2i.ZERO
+
+	func _ready() -> void:
+		_vp = SubViewport.new()
+		_vp.transparent_bg = true
+		_vp.disable_3d = true
+		_vp.gui_disable_input = true
+		_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		_art = Canvas.new()
+		_art.paint = paint
+		_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_vp.add_child(_art)
+		add_child(_vp)
+		# Drawing see-through strokes into a transparent texture leaves its colours
+		# already multiplied by alpha: blend it that way, or soft edges come out dark.
+		var mat := CanvasItemMaterial.new()
+		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
+		material = mat
+		resized.connect(_bake)
+		_bake()
+
+	func _bake() -> void:
+		if _vp == null or size.x < 1.0 or size.y < 1.0:
+			return
+		# as many pixels as the screen really shows here (text size, stretch), so it stays sharp
+		var s := clampf(get_screen_transform().get_scale().x, 1.0, MAX_SCALE)
+		var px := Vector2i(ceili(size.x * s), ceili(size.y * s))
+		if px == _baked_px:
+			return
+		_baked_px = px
+		_vp.size = px
+		_vp.canvas_transform = Transform2D.IDENTITY.scaled(Vector2(s, s))
+		_art.size = size  # the viewport's edges crop it, like Canvas.clip_contents
+		_art.queue_redraw()
+		_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+		queue_redraw()
+
+	func _draw() -> void:
+		if _vp:
+			draw_texture_rect(_vp.get_texture(), Rect2(Vector2.ZERO, size), false)
+
+static func baked(paint: Callable, min_size: Vector2) -> Baked:
+	var b := Baked.new()
+	b.paint = paint
+	b.custom_minimum_size = min_size
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return b
+
 # ------------------------------------------------------------------ viewBox
 
 ## Map the SVG viewBox `vb` into `rect`, centred, aspect kept. Returns the scale.
@@ -689,11 +747,22 @@ static func _tapered(spine: PackedVector2Array, w0: float, w1: float) -> PackedV
 
 ## Shading: a fan from a lit point to the darker rim (the polygon must be star-shaped
 ## around `center`).
+## One triangle array, not a draw_polygon per slice: each draw_polygon makes its own
+## GPU buffer (the 72-slice head took 14 ms that way, and was 72 draw calls).
 static func _fan(ci: CanvasItem, pts: PackedVector2Array, center: Vector2, c_center: Color, c_rim: Color) -> void:
-	for i in pts.size():
-		var a := pts[i]
-		var b := pts[(i + 1) % pts.size()]
-		ci.draw_polygon(PackedVector2Array([center, a, b]), PackedColorArray([c_center, c_rim, c_rim]))
+	var n := pts.size()
+	if n < 2:
+		return
+	var verts := PackedVector2Array([center])
+	verts.append_array(pts)
+	var colors := PackedColorArray([c_center])
+	colors.resize(n + 1)
+	colors.fill(c_rim)
+	colors[0] = c_center
+	var idx := PackedInt32Array()
+	for i in n:
+		idx.append_array([0, i + 1, (i + 1) % n + 1])
+	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), idx, verts, colors)
 
 static func _head_pts(fw: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
