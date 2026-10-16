@@ -7,6 +7,9 @@ extends RefCounted
 ## "un-pours" (seeded, so a level number always gives the same puzzle), so every
 ## level can be solved. color_sort_solver.gd finds a par for the star rating.
 ##
+## Every tenth level is special (mystery layers, locked vials, move cap, timer,
+## corked vials, blocked pours, boss): the rules sit in `rules` and are checked by
+## the solver (color_sort_solver.gd) when the level is made, so they stay solvable.
 ## Some levels have a big central vial. It takes only the colour(s) it asks for
 ## (one colour, or two / three stacked in order), only by pouring into it, and
 ## the level is won when it is full AND every small vial is sorted.
@@ -50,6 +53,16 @@ var gen_moves: int = 0       # length of the scrambling walk: always a valid (lo
 var center_order: Array = [] # colours it takes, bottom to top (one layer block each)
 var center_seg: int = 0      # balls of each colour it holds
 var center: Array = []       # what is in it now, bottom first
+## Special-level rules: {"kind", "locks", "blocked", "drain", "mystery", "cap_moves",
+## "time"}; see color_sort_solver.gd. Empty = a plain level.
+var rules: Dictionary = {}
+var hidden: Array = []       # mystery: per vial, bottom layers still hidden
+var initial_hidden: Array = []
+var attempt_used: int = 0    # which generator try gave this level (stored in the par table)
+## How hard the engine tries to prove a special level solvable before it changes the deal.
+const VERIFY_NODES := 1500
+const VERIFY_TRIES := 80
+const KINDS := ["mystery", "locked", "moves", "timer", "corks", "mixed"]
 
 ## ---------- level specs ----------
 
@@ -89,6 +102,9 @@ static func spec_for(n: int) -> Dictionary:
 		_:
 			colors = mini(MAX_COLORS, 10 + (n - 141) / 30)
 			capacity = 5 + (n / 5) % 2
+	var special := special_kind(n)
+	if special == "boss":
+		colors = mini(MAX_COLORS, colors + 3)
 	var center_colors := 0
 	if n >= 6 and n % 3 == 0:
 		center_colors = 1
@@ -96,11 +112,22 @@ static func spec_for(n: int) -> Dictionary:
 			center_colors = 2
 		if n >= 100 and n % 12 == 0:
 			center_colors = 3
+	# the central vial leaks every 8 pours on every ninth level from 27 (not on special ones)
+	var drain := 8 if (center_colors > 0 and n >= 27 and n % 9 == 0 and special == "") else 0
 	# The central vial's colours start in small vials too: room for them is added.
 	var vials: int = colors + empty
 	if center_colors > 0:
 		vials = colors - center_colors + center_vials(capacity, center_colors) + empty
-	return {"level": n, "tier": t, "colors": colors, "cap": capacity, "empty": empty, "center": center_colors, "vials": vials}
+	return {"level": n, "tier": t, "colors": colors, "cap": capacity, "empty": empty, "center": center_colors,
+		"vials": vials, "special": special, "drain": drain}
+
+## "" for a plain level; every tenth level is special, every fiftieth a boss.
+static func special_kind(n: int) -> String:
+	if n < 10 or n % 10 != 0:
+		return ""
+	if n % 50 == 0:
+		return "boss"
+	return KINDS[(n / 10 - 1) % KINDS.size()]
 
 ## Balls of each colour the central vial holds: one and a half small vials' worth.
 static func center_seg_for(capacity: int) -> int:
@@ -112,17 +139,122 @@ static func center_vials(capacity: int, center_colors: int) -> int:
 
 ## ---------- creating a puzzle ----------
 
-## Campaign level n (1-based).
+## Campaign level n (1-based). Special levels are generated until the solver
+## proves them solvable under their rules; the try that worked is kept in the par
+## table (ATT), so for levels in the table nothing is searched here.
 func load_level(n: int) -> void:
 	var spec := spec_for(n)
 	level_no = int(spec.level)
 	level = 0
 	cap = int(spec.cap)
-	_generate(int(spec.colors), int(spec.empty), cap, 7919 * level_no + 17, int(spec.center))
-	_finish_deal()
-	par = int(ParTable.PAR[level_no - 1]) if level_no <= ParTable.PAR.size() else 0
+	rules = {}
+	attempt_used = 0
+	var seed_value: int = 7919 * level_no + 17
+	var special: String = spec.special
+	var sol_len := 0
+	var in_table: bool = level_no <= ParTable.PAR.size()
+	if special != "" or int(spec.drain) > 0:
+		var att := -2  # -2 = not known yet, -1 = the plain fallback, else the try to use
+		if level_no <= ParTable.ATT.size():
+			att = int(ParTable.ATT[level_no - 1])
+		var tries: Array = range(VERIFY_TRIES) if att == -2 else ([att] if att >= 0 else [])
+		var found := false
+		for a in tries:
+			_generate(int(spec.colors), int(spec.empty), cap, seed_value + a * 31337, int(spec.center))
+			rules = _make_rules(spec, seed_value + a * 7)
+			_finish_deal()
+			if att >= 0:
+				found = true
+				attempt_used = a
+				break
+			var r: Dictionary = Solver.solve(tubes, cap, VERIFY_NODES, 3.0, _center_info(), _solver_rules())
+			if r.ok:
+				found = true
+				attempt_used = a
+				sol_len = r.moves.size()
+				break
+		if not found:
+			rules = {}
+			attempt_used = -1
+			_generate(int(spec.colors), int(spec.empty), cap, seed_value, int(spec.center))
+			_finish_deal()
+			sol_len = 0
+	else:
+		_generate(int(spec.colors), int(spec.empty), cap, seed_value, int(spec.center))
+		_finish_deal()
+	par = int(ParTable.PAR[level_no - 1]) if in_table else 0
 	if par <= 0:
-		par = gen_moves
+		par = sol_len if sol_len > 0 else gen_moves
+	_set_limits()
+
+## Rules for special level `spec` on the dealt vials (see color_sort_solver.gd).
+func _make_rules(spec: Dictionary, seed_value: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var kind: String = spec.special
+	var r := {"kind": kind if kind != "" else "pressure"}
+	var n: int = tubes.size()
+	var used := {}
+	var locks: Array = []
+	var blocked: Array = []
+	var pours_locks := 0
+	var corks := 0
+	var pipes := 0
+	match kind:
+		"mystery":
+			r["mystery"] = true
+		"locked":
+			pours_locks = mini(3, 1 + level_no / 60)
+		"corks":
+			corks = mini(4, 2 + level_no / 80)
+		"mixed":
+			pipes = mini(4, 2 + level_no / 80)
+		"moves", "timer":
+			pass
+		"boss":
+			pours_locks = 1
+			corks = 1
+			pipes = 2
+	for i in pours_locks:
+		var v := _pick_vial(rng, used, n)
+		locks.append({"v": v, "pours": 3 + rng.randi() % 4})
+	for i in corks:
+		var v2 := _pick_vial(rng, used, n)
+		locks.append({"v": v2, "after": v2 + 1 if v2 + 1 < n else v2 - 1, "cork": true})
+	for i in pipes:
+		var a: int = rng.randi() % n
+		var b: int = (a + 1 + rng.randi() % (n - 1)) % n
+		blocked.append([a, b])
+	if not locks.is_empty():
+		r["locks"] = locks
+	if not blocked.is_empty():
+		r["blocked"] = blocked
+	if int(spec.drain) > 0:
+		r["drain"] = int(spec.drain)
+	return r
+
+func _pick_vial(rng: RandomNumberGenerator, used: Dictionary, n: int) -> int:
+	var v: int = rng.randi() % n
+	for i in n:
+		if not used.has(v):
+			break
+		v = (v + 1) % n
+	used[v] = true
+	return v
+
+## Move cap and time limit come from par, so they follow the level's own difficulty.
+func _set_limits() -> void:
+	if rules.is_empty():
+		return
+	var kind: String = rules.get("kind", "")
+	if kind == "moves" or kind == "boss":
+		rules["cap_moves"] = int(ceil(par * PAR_2)) + 1
+	if kind == "timer":
+		rules["time"] = par * 5 + 25
+
+func _solver_rules() -> Dictionary:
+	return {"locks": rules.get("locks", []), "blocked": rules.get("blocked", []),
+		"drain": int(rules.get("drain", 0)), "moves0": moves}
 
 ## Old four-difficulty entry (random puzzle).
 func new_game(lvl: int) -> void:
@@ -139,9 +271,15 @@ func _finish_deal() -> void:
 	moves = 0
 	history = []
 	extra_used = 0
+	hidden = []
+	if rules.get("mystery", false):
+		for t in tubes:
+			hidden.append(0 if t.is_empty() else t.size() - Solver.run_of(t))
+	initial_hidden = hidden.duplicate(true)
 
 func reset() -> void:
 	tubes = initial.duplicate(true)
+	hidden = initial_hidden.duplicate(true)
 	center = []
 	moves = 0
 	history = []
@@ -298,7 +436,7 @@ func center_need() -> int:
 ## Balls a pour from vial `from` into the central vial would move (0 if illegal).
 func center_amount(from: int) -> int:
 	var need := center_need()
-	if need < 0 or from < 0 or from >= tubes.size():
+	if need < 0 or from < 0 or from >= tubes.size() or is_locked(from):
 		return 0
 	var a: Array = tubes[from]
 	if a.is_empty() or a[a.size() - 1] != need:
@@ -314,6 +452,8 @@ func pour_amount(from: int, to: int) -> int:
 		return center_amount(from)
 	if from == to or from < 0 or to < 0 or from >= tubes.size() or to >= tubes.size():
 		return 0
+	if is_locked(from) or is_locked(to) or is_blocked(from, to):
+		return 0
 	var a: Array = tubes[from]
 	var b: Array = tubes[to]
 	if a.is_empty() or b.size() >= cap:
@@ -325,6 +465,36 @@ func pour_amount(from: int, to: int) -> int:
 func can_move(from: int, to: int) -> bool:
 	return pour_amount(from, to) > 0
 
+## Is vial v locked (a padlock or a cork) right now?
+func is_locked(v: int) -> bool:
+	if rules.is_empty() or not rules.has("locks"):
+		return false
+	return Solver.locked(tubes, cap, v, moves, rules.locks)
+
+## Pours left until a "pours" lock on v opens (0 if it has none / opens another way).
+func lock_pours_left(v: int) -> int:
+	for l in rules.get("locks", []):
+		if int(l.v) == v and l.has("pours"):
+			return maxi(0, int(l.pours) - moves)
+	return 0
+
+func is_blocked(a: int, b: int) -> bool:
+	for p in rules.get("blocked", []):
+		if (int(p[0]) == a and int(p[1]) == b) or (int(p[0]) == b and int(p[1]) == a):
+			return true
+	return false
+
+## Mystery levels: is layer k of vial v still hidden ("?")?
+func is_hidden(v: int, k: int) -> bool:
+	return v < hidden.size() and k < int(hidden[v])
+
+## Out of moves on a move-capped level?
+func failed() -> bool:
+	return int(rules.get("cap_moves", 0)) > 0 and moves >= int(rules.cap_moves) and not solved()
+
+func moves_left() -> int:
+	return maxi(0, int(rules.get("cap_moves", 0)) - moves)
+
 func do_move(from: int, to: int) -> bool:
 	var n := pour_amount(from, to)
 	if n <= 0:
@@ -332,9 +502,25 @@ func do_move(from: int, to: int) -> bool:
 	var dest: Array = center if to == CENTER else tubes[to]
 	for i in n:
 		dest.append(tubes[from].pop_back())
-	history.append([from, to, n])
 	moves += 1
+	# Pressure: every D-th pour the central vial leaks its top layer back into the
+	# first vial with room (not once it is full).
+	var leak := -1
+	var drain: int = int(rules.get("drain", 0))
+	if drain > 0 and moves % drain == 0 and not center.is_empty() and not center_full():
+		leak = Solver.leak_target(tubes, cap)
+		if leak >= 0:
+			tubes[leak].append(center.pop_back())
+	history.append([from, to, n, leak])
+	_reveal()
 	return true
+
+## Mystery: a layer shows once it is in the top run of its vial.
+func _reveal() -> void:
+	for i in hidden.size():
+		if i < tubes.size():
+			var t: Array = tubes[i]
+			hidden[i] = mini(int(hidden[i]), 0 if t.is_empty() else t.size() - Solver.run_of(t))
 
 func can_undo() -> bool:
 	return not history.is_empty()
@@ -344,6 +530,8 @@ func undo() -> bool:
 		return false
 	var m: Array = history.pop_back()
 	var n: int = m[2] if m.size() > 2 else 1
+	if m.size() > 3 and int(m[3]) >= 0:
+		center.append(tubes[m[3]].pop_back())
 	var src: Array = center if int(m[1]) == CENTER else tubes[m[1]]
 	for i in n:
 		tubes[m[0]].append(src.pop_back())
@@ -357,6 +545,8 @@ func add_tube() -> bool:
 	if not can_add_tube():
 		return false
 	tubes.append([])
+	if not hidden.is_empty():
+		hidden.append(0)
 	extra_used += 1
 	return true
 
@@ -400,7 +590,7 @@ func stars_for(m: int) -> int:
 ## Next pour [from, to] for a hint (to == CENTER: the central vial), or [] if the
 ## solver finds none in time.
 func hint(node_limit: int = 20000) -> Array:
-	var r: Dictionary = Solver.solve(tubes, cap, node_limit, 2.0, _center_info())
+	var r: Dictionary = Solver.solve(tubes, cap, node_limit, 2.0, _center_info(), _solver_rules())
 	if r.ok and not r.moves.is_empty():
 		return r.moves[0]
 	return []
@@ -416,7 +606,8 @@ func _center_info() -> Dictionary:
 func to_dict() -> Dictionary:
 	return {"level": level, "level_no": level_no, "cap": cap, "par": par, "tubes": tubes, "moves": moves,
 		"history": history, "extra": extra_used, "initial": initial,
-		"center_order": center_order, "center_seg": center_seg, "center": center}
+		"center_order": center_order, "center_seg": center_seg, "center": center,
+		"rules": rules, "hidden": hidden, "initial_hidden": initial_hidden}
 
 func from_dict(d: Dictionary) -> bool:
 	var tb = d.get("tubes", [])
@@ -437,7 +628,7 @@ func from_dict(d: Dictionary) -> bool:
 	moves = int(d.get("moves", 0))
 	history = []
 	for m in d.get("history", []):
-		history.append([int(m[0]), int(m[1]), int(m[2]) if m.size() > 2 else 1])
+		history.append([int(m[0]), int(m[1]), int(m[2]) if m.size() > 2 else 1, int(m[3]) if m.size() > 3 else -1])
 	extra_used = int(d.get("extra", 0))
 	initial = []
 	for t in d.get("initial", tb):
@@ -454,4 +645,26 @@ func from_dict(d: Dictionary) -> bool:
 		center.append(int(c))
 	if center_order.is_empty() != (center_seg == 0) or center.size() > center_total():
 		return false
+	rules = {}
+	var rd = d.get("rules", {})
+	if rd is Dictionary:
+		rules = rd.duplicate(true)
+		if rules.has("locks"):
+			for l in rules.locks:
+				for key in l:
+					if key != "cork":
+						l[key] = int(l[key])
+		if rules.has("blocked"):
+			for p in rules.blocked:
+				p[0] = int(p[0])
+				p[1] = int(p[1])
+		for key in ["drain", "cap_moves", "time"]:
+			if rules.has(key):
+				rules[key] = int(rules[key])
+	hidden = []
+	for v in d.get("hidden", []):
+		hidden.append(int(v))
+	initial_hidden = []
+	for v in d.get("initial_hidden", d.get("hidden", [])):
+		initial_hidden.append(int(v))
 	return true

@@ -14,14 +14,14 @@ func _init() -> void:
 	var prev_colors := 0
 	for n in range(1, 400):
 		var sp: Dictionary = E.spec_for(n)
-		if sp.colors < prev_colors and E.tier_of(n) == E.tier_of(n - 1) and n > 1:
+		if sp.colors < prev_colors and E.tier_of(n) == E.tier_of(n - 1) and n > 1 and n % 50 != 0 and (n - 1) % 50 != 0:
 			fails += 1
 			print("FAIL: colours shrink inside a tier at ", n)
 		prev_colors = sp.colors
 		if sp.colors + sp.empty > E.MAX_VIALS or sp.cap < 3 or sp.cap > 6 or sp.colors > E.MAX_COLORS:
 			fails += 1
 			print("FAIL: spec out of range at ", n)
-	if E.spec_for(100).colors > 10 or E.spec_for(1000).colors != 14:
+	if E.spec_for(99).colors > 10 or E.spec_for(1000).colors != 14:
 		fails += 1
 		print("FAIL: colour ramp")
 	# Generated levels: shape, counts, determinism, solvable.
@@ -61,7 +61,7 @@ func _init() -> void:
 		if again.tubes != e.tubes:
 			fails += 1
 			print("FAIL: not reproducible at ", n)
-		var r: Dictionary = S.solve(e.tubes, e.cap, 60000, 3.0, e._center_info())
+		var r: Dictionary = S.solve(e.tubes, e.cap, 60000, 3.0, e._center_info(), e._solver_rules())
 		if not r.ok:
 			fails += 1
 			print("FAIL: solver found no solution at level ", n, " (", r.nodes, " nodes)")
@@ -82,6 +82,124 @@ func _init() -> void:
 		if e.par <= 0:
 			fails += 1
 			print("FAIL: no par at ", n)
+	# Special levels: the solver (which knows the rules) finds a way, and the engine
+	# accepts every one of its pours, the drain and the locks included.
+	var specials: Array = []
+	for n in range(10, 301, 10):
+		specials.append(n)
+	specials.append_array([27, 54, 81, 108])
+	for n in specials:
+		var sp2: Dictionary = E.spec_for(n)
+		var lv = E.new()
+		lv.load_level(n)
+		if sp2.special != "" and lv.rules.is_empty() and lv.attempt_used != -1:
+			fails += 1
+			print("FAIL: special level without rules at ", n)
+		var r2: Dictionary = S.solve(lv.tubes, lv.cap, 80000, 3.0, lv._center_info(), lv._solver_rules())
+		if not r2.ok:
+			fails += 1
+			print("FAIL: special level unsolved ", n, " ", lv.rules)
+			continue
+		var pl = E.new()
+		pl.load_level(n)
+		for m in r2.moves:
+			if not pl.do_move(m[0], m[1]):
+				fails += 1
+				print("FAIL: engine refused solver move at special level ", n)
+				break
+		if not pl.solved():
+			fails += 1
+			print("FAIL: special level not solved by replay ", n)
+		if int(lv.rules.get("cap_moves", 0)) > 0 and lv.rules.cap_moves < lv.par:
+			fails += 1
+			print("FAIL: move cap below par at ", n)
+	# Rule semantics by hand.
+	var rl = E.new()
+	rl.cap = 3
+	rl.tubes = [[0, 0], [0], [1, 1, 1], []]
+	rl.rules = {"locks": [{"v": 1, "pours": 2}, {"v": 3, "after": 2, "cork": true}], "blocked": [[0, 3]]}
+	if not rl.is_locked(1) or rl.can_move(0, 1) or rl.can_move(1, 0) or rl.lock_pours_left(1) != 2:
+		fails += 1
+		print("FAIL: pours lock")
+	if not rl.is_locked(3) and rl.tubes[2].size() == 3:
+		pass
+	rl.tubes = [[0, 0], [0], [1, 1], []]
+	if not rl.is_locked(3) or rl.can_move(2, 3):
+		fails += 1
+		print("FAIL: cork lock")
+	rl.tubes = [[0, 0], [0], [1, 1, 1], []]
+	if rl.is_locked(3) or not rl.can_move(2, 3) or rl.can_move(0, 3):
+		fails += 1
+		print("FAIL: cork pops / blocked pair")
+	rl.moves = 2
+	if rl.is_locked(1) or not rl.can_move(0, 1):
+		fails += 1
+		print("FAIL: pours lock opens")
+	# Drain: every 2nd pour the full-less central vial leaks a layer back.
+	var dr = E.new()
+	dr.cap = 3
+	dr.tubes = [[2], [0, 0], [1, 1, 1], []]
+	dr.center_order = [0]
+	dr.center_seg = 4
+	dr.center = [0, 0]
+	dr.rules = {"drain": 2}
+	dr.do_move(2, 3)
+	if dr.center.size() != 2 or dr.moves != 1:
+		fails += 1
+		print("FAIL: drain before its turn")
+	dr.do_move(1, E.CENTER)
+	# 2nd pour: centre got 2 more (4 = full) so no leak
+	if dr.center.size() != 4:
+		fails += 1
+		print("FAIL: drain when full ", dr.center)
+	dr.undo()
+	dr.center = [0, 0, 0]
+	dr.tubes = [[2], [0], [1, 1, 1], []]
+	dr.moves = 1
+	dr.history = []
+	dr.do_move(3, 3) if false else null
+	dr.tubes = [[2], [0], [], [1, 1, 1]]
+	dr.do_move(0, 2)   # 2nd pour -> leak: centre 3 -> 2, a 0 goes to the first vial with room
+	if dr.center.size() != 2 or dr.tubes[0] != [0]:
+		fails += 1
+		print("FAIL: drain leak ", dr.center, dr.tubes)
+	dr.undo()
+	if dr.center.size() != 3 or dr.tubes[0] != [2] or dr.moves != 1:
+		fails += 1
+		print("FAIL: drain undo ", dr.center, dr.tubes)
+	# Mystery: layers under the top run stay hidden until exposed.
+	var my = E.new()
+	my.cap = 3
+	my.tubes = [[0, 1, 1], [2, 2], [], [2, 0]]
+	my.rules = {"mystery": true}
+	my._finish_deal()
+	if my.hidden != [1, 0, 0, 1] or not my.is_hidden(0, 0) or my.is_hidden(0, 1) or my.is_hidden(3, 1):
+		fails += 1
+		print("FAIL: mystery hidden ", my.hidden)
+	my.do_move(0, 2)
+	if my.hidden[0] != 0:
+		fails += 1
+		print("FAIL: mystery reveal ", my.hidden)
+	my.reset()
+	if my.hidden != [1, 0, 0, 1]:
+		fails += 1
+		print("FAIL: mystery reset")
+	# Move cap.
+	var mc = E.new()
+	mc.cap = 3
+	mc.tubes = [[0, 1], [1, 0], []]
+	mc.rules = {"cap_moves": 1}
+	mc.do_move(0, 2)
+	if not mc.failed() or mc.moves_left() != 0:
+		fails += 1
+		print("FAIL: move cap")
+	# Rules survive a save.
+	var sv = E.new()
+	sv.load_level(50)
+	var sv2 = E.new()
+	if not sv2.from_dict(JSON.parse_string(JSON.stringify(sv.to_dict()))) or sv2.rules != sv.rules or sv2.hidden != sv.hidden:
+		fails += 1
+		print("FAIL: rules save round trip")
 	# Exact optimum on a tiny board.
 	var tiny = E.new()
 	tiny.cap = 2

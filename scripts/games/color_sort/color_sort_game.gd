@@ -32,6 +32,11 @@ const SAFE_COLORS := [Color("e69f00"), Color("56b4e9"), Color("009e73"), Color("
 	Color("7b4a12"), Color("c3b1e1"), Color("f2f2f2"), Color("6b7a1a")]
 const PATTERNS := 14
 const POUR_TIME := 0.32
+## Free economy (no ads, no purchases): hints and extra vials are earned by playing.
+const START_HINTS := 3
+const START_VIALS := 2
+const MAX_HINTS := 20
+const MAX_VIALS_STOCK := 10
 const MAX_P := 96
 const MOTES := 12
 
@@ -46,14 +51,25 @@ var undo_btn: Button
 var tube_btn: Button
 var reset_btn: Button
 var end_dialog: ColorRect
+var fail_dialog: ColorRect
+var banner_label: Label
 var selected: int = -1
 var playing: bool = false
 var solved_shown: bool = false
+var ended: bool = false           # failed (out of moves / time): the level is over
+var was_locked: Array = []        # to notice a padlock opening / a cork popping
+var last_sec: int = -1
+var hint_btn: Button
+var hint_from: int = -2           # a hint being shown: pour hint_from -> hint_to
+var hint_to: int = -2
+var hint_t: float = 0.0
+var toast_text: String = ""
+var toast_t: float = 0.0
 
 ## Player choices (OPTS_PATH): colour-blind palette, pattern overlay.
 var opts: Dictionary = {"safe": false, "patterns": true}
 ## Campaign progress (PROGRESS_PATH): next level, best result per level.
-var progress: Dictionary = {"level": 1, "best": {}}
+var progress: Dictionary = {"level": 1, "best": {}, "hints": START_HINTS, "vials": START_VIALS, "day": 0}
 
 var elapsed: float = 0.0
 var clock: float = 0.0
@@ -139,6 +155,13 @@ func _build_ui() -> void:
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(status_label)
 
+	banner_label = Label.new()
+	banner_label.add_theme_font_size_override("font_size", 22)
+	banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	banner_label.visible = false
+	root.add_child(banner_label)
+
 	table = Control.new()
 	table.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	table.draw.connect(_draw_table)
@@ -155,6 +178,8 @@ func _build_ui() -> void:
 	bm.add_child(row)
 	undo_btn = _button(tr("↩ Undo"), _on_undo)
 	row.add_child(undo_btn)
+	hint_btn = _button(tr("💡 Hint"), _on_hint)
+	row.add_child(hint_btn)
 	tube_btn = _button(tr("➕ Tube"), _on_add_tube)
 	row.add_child(tube_btn)
 	reset_btn = _button(tr("⟲ Reset"), _on_reset)
@@ -165,10 +190,15 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(HELP.TITLE), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	fail_dialog = UI.build_dialog(tr("Not this time"), [
+		{"text": tr("Try again"), "action": _restart},
+		{"text": tr("🏠 %s Home") % tr(HELP.TITLE), "action": _go_home},
+	], true)
+	add_child(fail_dialog)
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
-	var modes: Array = [{"text": "▶ Campaign", "sub": tr("Level %d") % int(progress.level), "key": "campaign",
+	var modes: Array = [{"text": "▶ Play", "sub": tr("Level %d") % int(progress.level), "key": "campaign",
 		"action": _start_campaign}]
 	for i in 4:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard", "🤯 Expert"][i], "sub": "%d colors" % CSEngine.LEVELS[i].colors, "row": "lvl",
@@ -181,6 +211,7 @@ func _build_ui() -> void:
 		"logo": _draw_home_logo,
 		"modes": modes,
 		"extra": _add_options,
+		"more": [["🗺 Levels", HomeKit.CYAN, _show_levels]],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
@@ -233,6 +264,9 @@ func _load_progress() -> void:
 		progress.level = maxi(1, int(d.get("level", 1)))
 		var b = d.get("best", {})
 		progress.best = b if b is Dictionary else {}
+		progress.hints = clampi(int(d.get("hints", START_HINTS)), 0, MAX_HINTS)
+		progress.vials = clampi(int(d.get("vials", START_VIALS)), 0, MAX_VIALS_STOCK)
+		progress.day = int(d.get("day", 0))
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
@@ -253,6 +287,8 @@ func _is_classic() -> bool:
 	return skin == "classic"
 
 func _color_of(c: int) -> Color:
+	if c < 0:
+		return Color("4a4466")  # a hidden (mystery) layer
 	var pal: Array = SAFE_COLORS if opts.safe else (CLASSIC_COLORS if _is_classic() else NEON_COLORS)
 	return pal[c % pal.size()]
 
@@ -277,7 +313,7 @@ func _layout() -> Dictionary:
 		groups = [range(0, split), range(split, n)]
 	else:
 		groups = [range(0, n)]
-	var cols_max: int = maxi(3, int((w - 16.0) / 64.0))
+	var cols_max: int = maxi(3, int((w - 16.0) / 84.0))
 	var rows_of: Array = []
 	var rows_total := 0
 	var max_cols := 1
@@ -292,9 +328,11 @@ func _layout() -> Dictionary:
 	var lh: float = maxf(14.0, minf((band_h - 30.0) / engine.cap, vw0 * 0.95))
 	var vw: float = minf(vw0, lh * 1.9)
 	var vh: float = engine.cap * lh + 14.0
+	# no more room per row than a vial needs: the whole set sits in the middle of the table
+	var band_use: float = minf(band_h, vh + 46.0)
 	var rects: Array = []
 	rects.resize(n)
-	var y: float = 0.0
+	var y: float = maxf(0.0, (h - c_h - rows_total * band_use) / 2.0)
 	var center_rect := Rect2()
 	for gi in groups.size():
 		var g: Array = groups[gi]
@@ -306,8 +344,8 @@ func _layout() -> Dictionary:
 				continue
 			var x0: float = (w - count * cell_w) / 2.0 + (cell_w - vw) / 2.0
 			for c in count:
-				rects[g[first + c]] = Rect2(x0 + c * cell_w, y + band_h - vh - 4.0, vw, vh)
-			y += band_h
+				rects[g[first + c]] = Rect2(x0 + c * cell_w, y + band_use - vh - 4.0, vw, vh)
+			y += band_use
 		if has_c and gi == 0:
 			var hc: float = c_h - 34.0
 			var wc: float = minf(w * 0.6, hc * (1.1 if _is_classic() else 0.95))
@@ -347,6 +385,9 @@ func _draw_table() -> void:
 	# dark gradient ground
 	var c1 := Color("1b2438") if _is_classic() else Color("150a26")
 	var c2 := Color("0c101c") if _is_classic() else Color("04050c")
+	var kind: String = engine.rules.get("kind", "")
+	if kind != "":
+		c1 = c1.lerp(_kind_color(kind), 0.22)  # each special level has its own tint
 	table.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, h), Vector2(0, h)]),
 		PackedColorArray([c1, c1, c2, c2]))
 	for i in MOTES:
@@ -354,11 +395,30 @@ func _draw_table() -> void:
 			var a: float = minf(1.0, p_life[i] / 2.0) * 0.18
 			table.draw_circle(p_pos[i], p_rad[i], Color(1, 1, 1, a))
 	var rects: Array = lay.rects
+	for p in engine.rules.get("blocked", []):
+		if int(p[0]) < rects.size() and int(p[1]) < rects.size():
+			var pa: Vector2 = rects[int(p[0])].get_center()
+			var pb: Vector2 = rects[int(p[1])].get_center()
+			table.draw_dashed_line(pa, pb, Color("ff5a5a", 0.55), 3.0, 8.0)
+			var mid: Vector2 = pa.lerp(pb, 0.5)
+			table.draw_circle(mid, 11.0, Color("ff5a5a", 0.9))
+			table.draw_line(mid + Vector2(-5, -5), mid + Vector2(5, 5), Color.WHITE, 2.5)
+			table.draw_line(mid + Vector2(-5, 5), mid + Vector2(5, -5), Color.WHITE, 2.5)
 	for i in rects.size():
 		_draw_vial(i, rects[i], lay)
 	if engine.has_center():
 		_draw_center(lay.center)
+		if hint_t > 0.0 and hint_to == CSEngine.CENTER:
+			var pulse2: float = 0.5 + 0.5 * sin(clock * 8.0)
+			var cr: Rect2 = lay.center
+			table.draw_rect(cr.grow(8.0 + pulse2 * 4.0), Color("4cff8a", 0.5 + 0.4 * pulse2), false, 4.0)
 	_draw_stream(lay)
+	if toast_t > 0.0:
+		var font := ThemeDB.fallback_font
+		var tw: float = minf(w - 24.0, 620.0)
+		var box := Rect2((w - tw) / 2.0, h - 70.0, tw, 52.0)
+		table.draw_rect(box, Color(0.02, 0.03, 0.08, minf(1.0, toast_t) * 0.9))
+		table.draw_string(font, box.position + Vector2(10.0, 33.0), toast_text, HORIZONTAL_ALIGNMENT_CENTER, tw - 20.0, 22, Color(1, 1, 1, minf(1.0, toast_t)))
 	for i in range(MOTES, MAX_P):
 		if p_life[i] > 0.0:
 			var f: float = p_life[i] / p_max[i]
@@ -367,32 +427,94 @@ func _draw_table() -> void:
 			else:
 				table.draw_circle(p_pos[i], p_rad[i] * (0.4 + f * 0.6), Color(p_col[i], f))
 
+## Accent colour of a special level (banner and ground tint).
+func _kind_color(kind: String) -> Color:
+	match kind:
+		"mystery":
+			return Color("8d5bd6")
+		"locked":
+			return Color("e0c36a")
+		"moves":
+			return Color("ff8a3d")
+		"timer":
+			return Color("29e6ff")
+		"corks":
+			return Color("b98a56")
+		"mixed":
+			return Color("ff5a5a")
+		"boss":
+			return Color("ff2b4f")
+		"pressure":
+			return Color("3a8cff")
+	return Color.WHITE
+
+func _kind_title(kind: String) -> String:
+	match kind:
+		"mystery":
+			return tr("Mystery vials")
+		"locked":
+			return tr("Locked vials")
+		"moves":
+			return tr("Limited moves")
+		"timer":
+			return tr("Timer")
+		"corks":
+			return tr("Sealed corks")
+		"mixed":
+			return tr("Blocked pours")
+		"boss":
+			return tr("Boss level")
+		"pressure":
+			return tr("Pressure")
+	return ""
+
+func _kind_hint(kind: String) -> String:
+	match kind:
+		"mystery":
+			return tr("Hidden layers show when they reach the top.")
+		"locked":
+			return tr("A padlocked vial opens after the number of pours on it.")
+		"moves":
+			return tr("Finish before the moves run out.")
+		"timer":
+			return tr("Finish before the time runs out.")
+		"corks":
+			return tr("A corked vial opens when the vial next to it is full.")
+		"mixed":
+			return tr("Vials joined by a red line can't pour into each other.")
+		"boss":
+			return tr("Several rules at once. Good luck!")
+		"pressure":
+			return tr("The big vial leaks a layer back every few pours.")
+	return ""
+
 ## The layers of vial i to show: [colour, lo, hi] in layer units (so a pour can be
 ## drawn half done), same colours merged into one block.
 func _blocks(i: int) -> Array:
 	var t: Array = engine.tubes[i]
 	var layers: Array = []
-	var shown_n: int = t.size()
+	# A leak from the central vial lands after the pour: keep it out of the picture until the pour is done.
+	var eff: int = t.size() - (1 if (anim != null and int(anim.leak) == i) else 0)
 	var grow_from: int = -1
 	var grow_n: int = 0
 	var prog: float = 1.0
 	if anim != null:
 		prog = clampf(float(anim.t), 0.0, 1.0)
 		if int(anim.to) == i:
-			grow_from = t.size() - int(anim.n)
+			grow_from = eff - int(anim.n)
 			grow_n = int(anim.n)
-	for k in shown_n:
+	for k in eff:
 		var hi: float = k + 1.0
 		var lo: float = float(k)
 		if grow_from >= 0 and k >= grow_from:
 			hi = minf(k + 1.0, grow_from + grow_n * prog)
 			if hi <= lo:
 				continue
-		layers.append([int(t[k]), lo, hi])
+		layers.append([-1 if engine.is_hidden(i, k) else int(t[k]), lo, hi])
 	if anim != null and int(anim.from) == i:
 		for j in int(anim.n):
-			var lo2: float = t.size() + j
-			var hi2: float = minf(lo2 + 1.0, t.size() + int(anim.n) * (1.0 - prog))
+			var lo2: float = eff + j
+			var hi2: float = minf(lo2 + 1.0, eff + int(anim.n) * (1.0 - prog))
 			if hi2 > lo2:
 				layers.append([int(anim.col), lo2, hi2])
 	var blocks: Array = []
@@ -445,6 +567,10 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 	if lift < -1.0:
 		table.draw_circle(Vector2(r0.position.x + r0.size.x / 2.0, r0.end.y - 2.0), r0.size.x * 0.32, Color(0, 0, 0, 0.18))
 	table.draw_style_box(_sb_selected if is_sel else _sb_normal, r)
+	if hint_t > 0.0 and (i == hint_from or i == hint_to):
+		var pulse: float = 0.5 + 0.5 * sin(clock * 8.0)
+		var hc: Color = Color("ffd84a") if i == hint_from else Color("4cff8a")
+		table.draw_rect(r.grow(5.0 + pulse * 3.0), Color(hc, 0.55 + 0.35 * pulse), false, 4.0)
 	var cx: float = r.position.x + r.size.x / 2.0
 	var rad: float = r.size.x / 2.0 - 4.0
 	var yb: float = r.end.y - 4.0
@@ -474,10 +600,19 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 				for j in 7:
 					surf.append(poly[j])
 				table.draw_polyline(surf, col.lightened(0.45), 2.0)
+	# mystery layers show a question mark
+	var font := ThemeDB.fallback_font
+	var tt: Array = engine.tubes[i]
+	for k in tt.size():
+		if engine.is_hidden(i, k):
+			var fs: int = int(lh * 0.62)
+			table.draw_string(font, Vector2(cx - fs * 0.3, yb - (k + 0.5) * lh + fs * 0.33), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.75))
 	# patterns, one per whole layer
 	if opts.patterns:
 		var t: Array = engine.tubes[i]
 		for k in t.size():
+			if engine.is_hidden(i, k):
+				continue
 			if anim != null and int(anim.to) == i and k >= t.size() - int(anim.n) and float(anim.t) < 1.0:
 				continue
 			var col2 := _color_of(int(t[k]))
@@ -487,6 +622,39 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 	table.draw_line(Vector2(cx - rad + 5.0, r.position.y + 12.0), Vector2(cx - rad + 5.0, yb - rad), Color(1, 1, 1, 0.3), 3.0, true)
 	table.draw_arc(Vector2(cx, yb - rad), rad * 0.72, PI * 0.6, PI * 0.9, 6, Color(1, 1, 1, 0.28), 2.5)
 	table.draw_line(Vector2(r.position.x - 3.0, r.position.y + 6.0), Vector2(r.end.x + 3.0, r.position.y + 6.0), Color(1, 1, 1, 0.5), 3.0)
+	if engine.is_locked(i):
+		_draw_lock(i, r, cx)
+
+## A padlock (with the pours left) or a cork over a vial that can't be used yet.
+func _draw_lock(i: int, r: Rect2, cx: float) -> void:
+	var dim := _sb_normal.duplicate() as StyleBoxFlat
+	dim.bg_color = Color(0.02, 0.02, 0.06, 0.55)
+	dim.border_color = Color(0, 0, 0, 0)
+	dim.shadow_size = 0
+	table.draw_style_box(dim, r)
+	var is_cork := false
+	for l in engine.rules.get("locks", []):
+		if int(l.v) == i and l.get("cork", false):
+			is_cork = true
+	if is_cork:
+		var w: float = r.size.x * 0.42
+		var top: float = r.position.y - 14.0
+		var cork := PackedVector2Array([Vector2(cx - w, top + 18.0), Vector2(cx + w, top + 18.0), Vector2(cx + w * 0.8, top), Vector2(cx - w * 0.8, top)])
+		table.draw_colored_polygon(cork, Color("b98a56"))
+		table.draw_line(Vector2(cx - w * 0.7, top + 6.0), Vector2(cx + w * 0.7, top + 6.0), Color("8a6338"), 2.0)
+		table.draw_line(Vector2(cx - w * 0.8, top + 12.0), Vector2(cx + w * 0.8, top + 12.0), Color("8a6338"), 2.0)
+		table.draw_line(Vector2(cx - w * 0.6, top + 2.0), Vector2(cx - w * 0.6, top + 16.0), Color(1, 1, 1, 0.3), 2.0)
+		return
+	var s: float = minf(r.size.x * 0.6, 38.0)
+	var cy: float = r.position.y + r.size.y * 0.42
+	table.draw_arc(Vector2(cx, cy), s * 0.3, PI, TAU, 10, Color("e0c36a"), 4.0)
+	table.draw_line(Vector2(cx - s * 0.3, cy), Vector2(cx - s * 0.3, cy + 6.0), Color("e0c36a"), 4.0)
+	table.draw_line(Vector2(cx + s * 0.3, cy), Vector2(cx + s * 0.3, cy + 6.0), Color("e0c36a"), 4.0)
+	table.draw_rect(Rect2(cx - s * 0.45, cy + 4.0, s * 0.9, s * 0.75), Color("c9a23a"))
+	var left: int = engine.lock_pours_left(i)
+	if left > 0:
+		var fs: int = int(s * 0.55)
+		table.draw_string(ThemeDB.fallback_font, Vector2(cx - fs * 0.3, cy + 4.0 + s * 0.6), str(left), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("3a2a05"))
 
 ## One small symbol per colour, so colour is never the only cue.
 func _draw_symbol(ctr: Vector2, s: float, c: int, col: Color) -> void:
@@ -580,8 +748,11 @@ func _center_poly(r: Rect2) -> PackedVector2Array:
 
 func _center_size() -> float:
 	var sz: float = engine.center.size()
-	if anim != null and int(anim.to) == CSEngine.CENTER:
-		sz = sz - int(anim.n) + int(anim.n) * clampf(float(anim.t), 0.0, 1.0)
+	if anim != null:
+		if int(anim.leak) >= 0:
+			sz += 1.0  # the leaked layer only goes once the pour is done
+		if int(anim.to) == CSEngine.CENTER:
+			sz = sz - int(anim.n) + int(anim.n) * clampf(float(anim.t), 0.0, 1.0)
 	return sz
 
 func _draw_center(r: Rect2) -> void:
@@ -669,7 +840,10 @@ func _draw_center_marker(r: Rect2) -> void:
 			_draw_symbol(ctr, 5.0, c, mark)
 	var font := ThemeDB.fallback_font
 	var txt := "%d/%d" % [engine.center.size(), engine.center_total()]
-	table.draw_string(font, Vector2(r.get_center().x - 40.0, r.end.y + 24.0), txt, HORIZONTAL_ALIGNMENT_CENTER, 80.0, 20, Color(1, 1, 1, 0.8))
+	var drain: int = int(engine.rules.get("drain", 0))
+	if drain > 0 and not engine.center_full():
+		txt += "   " + tr("leak in %d") % (drain - engine.moves % drain)
+	table.draw_string(font, Vector2(r.get_center().x - 80.0, r.end.y + 24.0), txt, HORIZONTAL_ALIGNMENT_CENTER, 160.0, 20, Color(1, 1, 1, 0.8))
 
 ## The thin stream of liquid from the raised vial into the one it pours into.
 func _draw_stream(lay: Dictionary) -> void:
@@ -766,8 +940,16 @@ func _process(delta: float) -> void:
 	if table == null or engine == null:
 		return
 	clock += delta
-	if playing and not solved_shown:
+	if playing and not solved_shown and not ended:
 		elapsed += delta
+		var limit: int = int(engine.rules.get("time", 0))
+		if limit > 0:
+			var sec: int = maxi(0, limit - int(elapsed))
+			if sec != last_sec:
+				last_sec = sec
+				_render()
+			if elapsed >= limit and anim == null:
+				_on_failed(tr("Time's up!"))
 	var dirty := false
 	if lifts.size() != engine.tubes.size():
 		lifts.resize(engine.tubes.size())
@@ -783,6 +965,12 @@ func _process(delta: float) -> void:
 		dirty = true
 		if float(anim.t) >= 1.0:
 			_finish_pour()
+	if hint_t > 0.0:
+		hint_t -= delta
+		dirty = true
+	if toast_t > 0.0:
+		toast_t -= delta
+		dirty = true
 	if wobble > 0.0:
 		wobble = maxf(0.0, wobble - delta * 1.6)
 		dirty = true
@@ -810,7 +998,7 @@ func _process(delta: float) -> void:
 func _on_table_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	if not playing or solved_shown or anim != null:
+	if not playing or solved_shown or ended or anim != null:
 		return
 	var lay := _layout()
 	var rects: Array = lay.rects
@@ -832,7 +1020,9 @@ func _tap_tube(i: int) -> void:
 			_sfx("invalid")
 		return
 	if selected < 0:
-		if not engine.tubes[i].is_empty():
+		if engine.is_locked(i):
+			_sfx("invalid")
+		elif not engine.tubes[i].is_empty():
 			selected = i
 			_sfx("tick")
 	elif selected == i:
@@ -842,15 +1032,17 @@ func _tap_tube(i: int) -> void:
 		_start_pour(selected, i)
 	else:
 		_sfx("invalid")
-		selected = i if not engine.tubes[i].is_empty() else -1
+		selected = i if not engine.tubes[i].is_empty() and not engine.is_locked(i) else -1
 	_render()
 
 ## The move is made at once; the picture catches up over POUR_TIME.
 func _start_pour(from: int, to: int) -> void:
 	var n: int = engine.pour_amount(from, to)
 	var col: int = int(engine.tubes[from][engine.tubes[from].size() - 1])
+	hint_t = 0.0
 	engine.do_move(from, to)
-	anim = {"from": from, "to": to, "n": n, "col": col, "t": 0.0}
+	var leak: int = int(engine.history[engine.history.size() - 1][3])
+	anim = {"from": from, "to": to, "n": n, "col": col, "t": 0.0, "leak": leak}
 	selected = -1
 	_sfx("place")
 	_save_game()
@@ -862,6 +1054,13 @@ func _finish_pour() -> void:
 	wobble = 1.0
 	var lay := _layout()
 	var col := _color_of(int(a.col))
+	if int(a.leak) >= 0:
+		# pressure: a layer of the big vial pops back into a small one
+		var lr: Rect2 = lay.rects[int(a.leak)]
+		var cr2: Rect2 = lay.center
+		_burst(cr2.get_center(), [int(engine.tubes[int(a.leak)][engine.tubes[int(a.leak)].size() - 1])])
+		_bubbles_in(lr, lr.size.y * 0.5, _color_of(int(engine.tubes[int(a.leak)][engine.tubes[int(a.leak)].size() - 1])))
+		_sfx("whoosh")
 	if int(a.to) == CSEngine.CENTER:
 		var cr: Rect2 = lay.center
 		_bubbles_in(cr, cr.size.y * 0.5, col)
@@ -877,16 +1076,82 @@ func _finish_pour() -> void:
 		var t := create_tween()
 		t.tween_interval(0.9 if engine.has_center() else 0.3)
 		t.tween_callback(_on_solved)
+	elif engine.failed():
+		_on_failed(tr("Out of moves!"))
 
 func _render() -> void:
+	var kind: String = engine.rules.get("kind", "")
 	if engine.level_no > 0:
-		status_label.text = tr("Level %d") % engine.level_no + "    " + tr("Moves: %d") % engine.moves + "    " + tr("Par %d") % engine.par
+		var mv: String = tr("Moves: %d") % engine.moves
+		if int(engine.rules.get("cap_moves", 0)) > 0:
+			mv = tr("Moves: %d / %d") % [engine.moves, int(engine.rules.cap_moves)]
+		status_label.text = tr("Level %d") % engine.level_no + "    " + mv + "    " + tr("Par %d") % engine.par
+		if int(engine.rules.get("time", 0)) > 0:
+			status_label.text += "    ⏱ " + _clock_text()
 	else:
 		status_label.text = tr("Moves: %d") % engine.moves + "    " + tr("%s — %d colors") % [tr(LEVEL_NAMES[engine.level]), engine.color_count()]
-	var locked: bool = solved_shown or anim != null
+	banner_label.visible = kind != ""
+	if kind != "":
+		banner_label.text = _kind_title(kind) + " — " + _kind_hint(kind)
+		banner_label.add_theme_color_override("font_color", _kind_color(kind).lightened(0.25))
+	var locked: bool = solved_shown or ended or anim != null
 	undo_btn.disabled = not engine.can_undo() or locked
-	tube_btn.disabled = not engine.can_add_tube() or locked
+	var campaign: bool = engine.level_no > 0
+	hint_btn.text = tr("💡 Hint (%d)") % int(progress.hints) if campaign else tr("💡 Hint")
+	hint_btn.disabled = locked
+	tube_btn.text = tr("➕ Tube (%d)") % int(progress.vials) if campaign else tr("➕ Tube")
+	tube_btn.disabled = not engine.can_add_tube() or locked or (campaign and int(progress.vials) <= 0)
 	reset_btn.disabled = (engine.moves == 0 and engine.extra_used == 0) or locked
+	# a padlock opened or a cork popped since the last look
+	for i in engine.tubes.size():
+		var now: bool = engine.is_locked(i)
+		if i < was_locked.size() and was_locked[i] and not now:
+			_unlock_effect(i)
+	was_locked.resize(engine.tubes.size())
+	for i in engine.tubes.size():
+		was_locked[i] = engine.is_locked(i)
+	table.queue_redraw()
+
+func _clock_text() -> String:
+	var left: int = maxi(0, int(engine.rules.get("time", 0)) - int(elapsed))
+	return "%d:%02d" % [left / 60, left % 60]
+
+func _unlock_effect(i: int) -> void:
+	var lay := _layout()
+	if i >= lay.rects.size():
+		return
+	var r: Rect2 = lay.rects[i]
+	for k in 10:
+		var a: float = randf_range(-PI * 0.9, -PI * 0.1)
+		_spawn(Vector2(r.get_center().x, r.position.y), Vector2(cos(a), sin(a)) * randf_range(60.0, 150.0), randf_range(0.4, 0.8), randf_range(2.0, 3.5), Color("e0c36a"), 1)
+	_sfx("pickup")
+
+## 💡 The solver's next pour, shown as two glowing vials. Costs a hint in the
+## campaign (none left: say how to earn more); free in the quick puzzles.
+func _on_hint() -> void:
+	if anim != null or solved_shown or ended or not playing:
+		return
+	if engine.level_no > 0 and int(progress.hints) <= 0:
+		_toast(tr("No hints left. Win levels with 3 stars to earn more."))
+		return
+	var h: Array = engine.hint()
+	if h.is_empty():
+		_toast(tr("No hint found. Try undoing a move."))
+		return
+	hint_from = int(h[0])
+	hint_to = int(h[1])
+	hint_t = 3.5
+	selected = -1
+	if engine.level_no > 0:
+		progress.hints = int(progress.hints) - 1
+		_save_progress()
+	_sfx("powerup")
+	_render()
+
+func _toast(text: String) -> void:
+	toast_text = text
+	toast_t = 2.6
+	_sfx("invalid")
 	table.queue_redraw()
 
 func _on_undo() -> void:
@@ -897,7 +1162,10 @@ func _on_undo() -> void:
 		_render()
 
 func _on_add_tube() -> void:
-	if anim == null and engine.add_tube():
+	if anim == null and engine.can_add_tube() and (engine.level_no == 0 or int(progress.vials) > 0) and engine.add_tube():
+		if engine.level_no > 0:
+			progress.vials = int(progress.vials) - 1
+			_save_progress()
 		_sfx("powerup")
 		_save_game()
 		_render()
@@ -911,6 +1179,18 @@ func _on_reset() -> void:
 	_save_game()
 	_render()
 
+## Out of moves or time: the level is over (nothing is kept, the save goes).
+func _on_failed(reason: String) -> void:
+	if ended or solved_shown:
+		return
+	ended = true
+	selected = -1
+	_sfx("lose")
+	SaveUtil.delete(SAVE_PATH)
+	fail_dialog.get_meta("message_label").text = reason
+	fail_dialog.visible = true
+	_render()
+
 func _on_solved() -> void:
 	if solved_shown:
 		return
@@ -922,13 +1202,20 @@ func _on_solved() -> void:
 		var stars: int = engine.stars_for(engine.moves)
 		var key := str(engine.level_no)
 		var prev: Dictionary = progress.best.get(key, {})
-		if prev.is_empty() or engine.moves < int(prev.get("moves", 99999)):
-			progress.best[key] = {"moves": engine.moves, "stars": maxi(stars, int(prev.get("stars", 0))), "time": int(elapsed)}
+		var first: bool = prev.is_empty()
+		var prev_stars: int = int(prev.get("stars", 0))
+		var best_time: int = int(prev.get("time", 999999))
+		if first or engine.moves < int(prev.get("moves", 99999)):
+			progress.best[key] = {"moves": engine.moves, "stars": maxi(stars, prev_stars), "time": mini(int(elapsed), best_time)}
 		else:
-			prev["stars"] = maxi(stars, int(prev.get("stars", 0)))
+			prev["stars"] = maxi(stars, prev_stars)
+			prev["time"] = mini(int(elapsed), best_time)
 		progress.level = maxi(int(progress.level), engine.level_no + 1)
+		var earned := _earn(first, stars, prev_stars)
 		_save_progress()
 		msg = "%s\n%s  (%s)" % ["★".repeat(stars) + "☆".repeat(3 - stars), msg, tr("Par %d") % engine.par]
+		if earned != "":
+			msg += "\n" + earned
 		if info:
 			info.add("Puzzles solved")
 			info.celebrate(tr("Sorted!"))
@@ -945,6 +1232,97 @@ func _on_solved() -> void:
 	SaveUtil.delete(SAVE_PATH)
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
+
+## Rewards for a cleared level: a hint for a first 3 stars, two for a first clear of
+## a special level, an extra vial for every fifth level, a daily hint. Returns the text.
+func _earn(first: bool, stars: int, prev_stars: int) -> String:
+	var hints := 0
+	var vials := 0
+	if stars == 3 and prev_stars < 3:
+		hints += 1
+	if first and CSEngine.special_kind(engine.level_no) != "":
+		hints += 2
+	if first and engine.level_no % 5 == 0:
+		vials += 1
+	var today: int = int(Time.get_unix_time_from_system() / 86400.0)
+	var daily := false
+	if int(progress.day) != today:
+		progress.day = today
+		hints += 1
+		daily = true
+	progress.hints = mini(MAX_HINTS, int(progress.hints) + hints)
+	progress.vials = mini(MAX_VIALS_STOCK, int(progress.vials) + vials)
+	var parts: Array = []
+	if hints > 0:
+		parts.append(tr("+%d 💡") % hints)
+	if vials > 0:
+		parts.append(tr("+%d ➕") % vials)
+	if parts.is_empty():
+		return ""
+	return "  ".join(parts) + ("   " + tr("(daily bonus included)") if daily else "")
+
+## 🗺 Every level in groups by tier: stars earned, the next one to play, the rest locked.
+func _show_levels() -> void:
+	var parts: Array = home._overlay(tr("🗺 Levels"), HomeKit.CYAN, true)
+	parts[0].visible = true
+	var body: VBoxContainer = parts[1]
+	var stars_total := 0
+	var cleared := 0
+	for k in progress.best:
+		stars_total += int(progress.best[k].get("stars", 0))
+		cleared += 1
+	body.add_child(home._row(tr("Levels cleared"), str(cleared), HomeKit.WHITE, HomeKit.LIME, true))
+	body.add_child(home._row(tr("Stars"), "%d ★" % stars_total, HomeKit.WHITE, HomeKit.GOLD))
+	body.add_child(home._row(tr("Hints"), "%d 💡" % int(progress.hints), HomeKit.WHITE, HomeKit.CYAN))
+	body.add_child(home._row(tr("Extra vials"), "%d ➕" % int(progress.vials), HomeKit.WHITE, HomeKit.PINK))
+	var last: int = int(progress.level) + 14
+	last += (5 - last % 5) % 5
+	var starts: Array = CSEngine.TIER_START
+	for t in starts.size():
+		var a: int = int(starts[t])
+		if a > last:
+			break
+		var b: int = int(starts[t + 1]) - 1 if t + 1 < starts.size() else last
+		b = mini(b, last)
+		body.add_child(home._section("%s  %d–%d" % [tr(CSEngine.TIER_NAMES[t]), a, b]))
+		var grid := GridContainer.new()
+		grid.columns = 5
+		grid.add_theme_constant_override("h_separation", 8)
+		grid.add_theme_constant_override("v_separation", 8)
+		body.add_child(grid)
+		for n in range(a, b + 1):
+			grid.add_child(_level_cell(n))
+
+func _level_cell(n: int) -> Button:
+	var key := str(n)
+	var done: bool = progress.best.has(key)
+	var open: bool = n <= int(progress.level)
+	var stars: int = int(progress.best[key].get("stars", 0)) if done else 0
+	var kind: String = CSEngine.special_kind(n)
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(0, 92)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var second := "🔒"
+	if done:
+		second = "★".repeat(stars) + "☆".repeat(3 - stars)
+	elif open:
+		second = "◆" if kind != "" else "▶"
+	b.text = "%d\n%s" % [n, second]
+	b.add_theme_font_size_override("font_size", 24)
+	var sb := StyleBoxFlat.new()
+	sb.set_corner_radius_all(10)
+	sb.set_border_width_all(3)
+	var edge: Color = _kind_color(kind) if kind != "" else HomeKit.CYAN
+	sb.border_color = edge if open else Color(1, 1, 1, 0.15)
+	sb.bg_color = Color(edge, 0.30) if n == int(progress.level) else (Color(0.1, 0.2, 0.35, 0.9) if done else Color(0.05, 0.08, 0.15, 0.9))
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		b.add_theme_stylebox_override(state, sb)
+	b.disabled = not open
+	b.pressed.connect(_play_level.bind(n))
+	return b
+
+func _play_level(n: int) -> void:
+	home.start_mode({"text": "Play", "key": "campaign", "action": _new_level.bind(n)})
 
 # ---------- Landing (home_kit.gd) ----------
 
@@ -977,8 +1355,12 @@ func _restart() -> void:
 func _begin_play() -> void:
 	playing = true
 	solved_shown = false
+	ended = false
 	selected = -1
 	anim = null
+	last_sec = -1
+	was_locked = []
+	fail_dialog.visible = false
 	elapsed = 0.0
 	wobble = 0.0
 	flash = 0.0
@@ -1003,7 +1385,7 @@ func _notification(what: int) -> void:
 		_save_game()
 
 func _save_game() -> void:
-	if engine == null or not playing or solved_shown or engine.tubes.is_empty():
+	if engine == null or not playing or solved_shown or ended or engine.tubes.is_empty():
 		return
 	var d: Dictionary = engine.to_dict()
 	d["elapsed"] = int(elapsed)
@@ -1024,6 +1406,7 @@ func _load_saved_game() -> void:
 		return
 	_begin_play()
 	elapsed = float(d.get("elapsed", 0))
+	_render()
 
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
