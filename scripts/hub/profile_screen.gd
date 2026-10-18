@@ -82,6 +82,9 @@ func _build() -> void:
 
 	if Auth.is_logged_in():
 		var acc := section(tr("Account"))
+		linked_box = section(tr("Connected accounts"), acc)
+		linked_box.add_child(dim(tr("Connect Google or Facebook to sign in without a password. Same account, same progress.")))
+		Auth.fetch_identities(_on_identities)
 		var out := pill(tr("Sign Out"), false)
 		out.pressed.connect(_on_sign_out)
 		acc.add_child(out)
@@ -101,6 +104,52 @@ func _build() -> void:
 			del.add_theme_color_override(key, pal.text_dim)
 		del.pressed.connect(_on_delete_pressed)
 		danger.add_child(del)
+
+var linked_box: VBoxContainer
+var linked_rows: Array = []
+## Providers the account has, once known (null = not loaded / offline).
+var identities: Variant = null
+
+## Coming back from the browser after connecting an account: look again.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_IN and linked_box and is_instance_valid(linked_box):
+		Auth.fetch_identities(_on_identities)
+
+func _on_identities(found: Variant) -> void:
+	if not linked_box or not is_instance_valid(linked_box):
+		return  # screen was rebuilt/left while the request was in flight
+	identities = found
+	for r in linked_rows:
+		if is_instance_valid(r):
+			r.queue_free()
+	linked_rows.clear()
+	if found == null:
+		return  # offline: leave just the explanation
+	for provider in Auth.PROVIDERS:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		var name_label := label(provider.capitalize(), 25, null, false)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_label)
+		if found.has(provider):
+			row.add_child(label(tr("Connected ✓"), 23, pal.accent, false))
+		else:
+			var b := pill(tr("Connect"), false, 22)
+			b.custom_minimum_size = Vector2(150, 52)
+			b.pressed.connect(_on_connect.bind(provider))
+			row.add_child(b)
+		linked_box.add_child(row)
+		linked_rows.append(row)
+
+func _on_connect(provider: String) -> void:
+	if tapped():
+		Auth.link_identity_url(provider, _on_link_url)
+
+func _on_link_url(url: String, error: String) -> void:
+	if url == "":
+		message(tr("Connected accounts"), tr(error))
+	else:
+		OS.shell_open(url)
 
 func _stat(name: String, value: String) -> HBoxContainer:
 	var row := HBoxContainer.new()

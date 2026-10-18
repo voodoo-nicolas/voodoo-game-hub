@@ -37,6 +37,12 @@ const MUSIC_LIST_URL := "https://raw.githubusercontent.com/" + GITHUB_OWNER + "/
 const CRISIS_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/crisis_resources.json"
 const JOIN_PAGE_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/j/"
 
+## Static pages on GitHub Pages that Supabase Auth redirects to (docs/). Both URLs must be
+## in the Supabase dashboard > Authentication > URL Configuration > Redirect URLs, or
+## Supabase falls back to the Site URL and the link lands on the wrong page.
+const RESET_PAGE_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/reset-password.html"
+const AUTH_CALLBACK_URL := "https://" + GITHUB_OWNER + ".github.io/" + GITHUB_REPO + "/auth-callback.html"
+
 ## Publishable/anon key only -- safe to ship, it grants nothing beyond what the
 ## project's Row Level Security allows. Never put the service_role key here.
 const SUPABASE_URL := "https://swyzfsyvmqxabhvvhhtn.supabase.co"

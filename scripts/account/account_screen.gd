@@ -14,18 +14,60 @@ var sign_in_tab: Button
 var sign_up_tab: Button
 var forgot_btn: Button
 var status_label: Label
+var social_box: VBoxContainer
+## True between opening Google/Facebook in the browser and getting the code back.
+var waiting_for_code: bool = false
 
 func _ready() -> void:
 	Orientation.lock_portrait()
 	_build_ui()
 	Auth.signed_in.connect(_on_signed_in)
 	Auth.auth_error.connect(_on_auth_error)
+	Auth.reset_requested.connect(_on_reset_requested)
 	# Back from the consent screens with a sign-up half filled in.
 	if not Consent.draft.is_empty():
+		var provider := str(Consent.draft.get("oauth", ""))
 		_set_mode(bool(Consent.draft.get("sign_up", false)))
 		email_field.text = str(Consent.draft.get("email", ""))
 		display_name_field.text = str(Consent.draft.get("name", ""))
 		Consent.draft = {}
+		if provider != "" and Consent.has_accepted():
+			_on_oauth(provider)
+
+## The sign-in code is copied by the callback page; when the player comes back
+## to the app, pick it up from the clipboard.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_IN and waiting_for_code:
+		_try_clipboard_code()
+
+func _try_clipboard_code() -> void:
+	var clip := DisplayServer.clipboard_get()
+	if Auth.looks_like_code(clip):
+		waiting_for_code = false
+		DisplayServer.clipboard_set("")
+		_show_status(tr("Signing in..."), true)
+		Auth.sign_in_with_code(clip)
+
+func _on_paste_code() -> void:
+	var clip := DisplayServer.clipboard_get()
+	if Auth.looks_like_code(clip):
+		_try_clipboard_code()
+	else:
+		_show_status(tr("Nothing to paste yet. Sign in with Google or Facebook in the browser, copy the code, then tap this."), false)
+
+func _on_oauth(provider: String) -> void:
+	# A brand-new account made this way still needs the age gate and the acceptances.
+	if Consent.is_blocked():
+		_show_status(tr("Accounts are for players %d and older. You can still play every game without an account.") % Consent.min_age(), false)
+		return
+	if not Consent.has_accepted():
+		Consent.draft = {"sign_up": true, "oauth": provider}
+		Consent.return_scene = Consent.ACCOUNT_SCENE
+		get_tree().change_scene_to_file(Consent.CONSENT_SCENE)
+		return
+	waiting_for_code = true
+	_show_status(tr("Finish signing in in your browser, then come back here."), true)
+	OS.shell_open(Auth.oauth_url(provider))
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -145,6 +187,28 @@ func _build_ui() -> void:
 	forgot_btn.pressed.connect(_on_forgot_password)
 	box.add_child(forgot_btn)
 
+	social_box = VBoxContainer.new()
+	social_box.add_theme_constant_override("separation", 8)
+	box.add_child(social_box)
+	var or_label := Label.new()
+	or_label.text = tr("or continue with")
+	or_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	or_label.add_theme_font_size_override("font_size", 18)
+	or_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.66))
+	social_box.add_child(or_label)
+	for spec in [["google", "Google"], ["facebook", "Facebook"]]:
+		var b := Button.new()
+		b.text = tr("Continue with %s") % spec[1]
+		b.custom_minimum_size = Vector2(0, 50)
+		b.add_theme_font_size_override("font_size", 22)
+		b.pressed.connect(_on_oauth.bind(spec[0]))
+		social_box.add_child(b)
+	var paste := Button.new()
+	paste.text = tr("Paste sign-in code")
+	paste.flat = true
+	paste.pressed.connect(_on_paste_code)
+	social_box.add_child(paste)
+
 	status_label = Label.new()
 	status_label.add_theme_font_size_override("font_size", 20)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -219,8 +283,16 @@ func _on_forgot_password() -> void:
 	if email == "":
 		_show_status(tr("Enter your email above first, then tap Forgot password."), false)
 		return
+	forgot_btn.disabled = true
+	_show_status(tr("Sending..."), true)
 	Auth.request_password_reset(email)
-	_show_status(tr("If that email has an account, a reset link is on its way."), true)
+
+func _on_reset_requested(ok: bool, message: String) -> void:
+	forgot_btn.disabled = false
+	if ok:
+		_show_status(tr("If that email has an account, a reset link is on its way. Check your spam folder too."), true)
+	else:
+		_show_status(tr(message), false)
 
 func _on_signed_in(_user_id: String, name: String) -> void:
 	submit_btn.disabled = false
@@ -248,7 +320,7 @@ func _go_to_hub() -> void:
 
 func _on_auth_error(_context: String, message: String) -> void:
 	submit_btn.disabled = false
-	_show_status(message, false)
+	_show_status(tr(message), false)
 
 func _show_status(text: String, positive: bool) -> void:
 	status_label.text = text

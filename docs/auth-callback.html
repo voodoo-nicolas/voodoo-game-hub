@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Viral Game Hub sign-in</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #0a0d14; color: #f2f4f8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px;
+  }
+  .card { width: 100%; max-width: 380px; background: #131826; border-radius: 16px; padding: 28px 24px; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+  h1 { font-size: 22px; margin: 0 0 8px; color: #15ff8c; }
+  p { color: #aab2c5; font-size: 15px; margin: 0 0 16px; line-height: 1.5; }
+  textarea {
+    width: 100%; height: 90px; padding: 10px; border-radius: 10px; border: 1px solid #2a3142;
+    background: #1b2233; color: #f2f4f8; font-size: 12px; word-break: break-all; margin-bottom: 14px;
+  }
+  button {
+    width: 100%; padding: 13px; border-radius: 10px; border: none;
+    background: #15ff8c; color: #0a0d14; font-weight: 700; font-size: 15px; cursor: pointer;
+  }
+  .err { color: #ff8f7d; }
+  .ok { color: #6ee7a0; }
+  .small { font-size: 13px; color: #8b93a7; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1 id="title">Signing you in...</h1>
+    <p id="msg"></p>
+    <textarea id="code" readonly style="display:none"></textarea>
+    <button id="copy" style="display:none">Copy sign-in code</button>
+    <p class="small" id="hint" style="display:none; margin-top:14px">
+      Then go back to Viral Game Hub. It signs you in by itself, or tap
+      <b>Paste sign-in code</b> on the Account screen. The code works once.
+    </p>
+  </div>
+<script>
+  // Supabase returns the session in the URL fragment (#access_token=...&refresh_token=...)
+  // or an error in the fragment / query string (error_description=...).
+  const frag = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const query = new URLSearchParams(window.location.search);
+  const get = (k) => frag.get(k) || query.get(k);
+  const $ = (id) => document.getElementById(id);
+
+  const error = get("error_description") || get("error");
+  const refresh = get("refresh_token");
+  const linking = query.get("mode") === "link";
+
+  if (error) {
+    $("title").textContent = "Sign-in didn't finish";
+    $("title").className = "err";
+    $("msg").textContent = error.replace(/\+/g, " ") + ". Go back to the app and try again.";
+  } else if (linking) {
+    $("title").textContent = "Account connected";
+    $("msg").textContent = "Your account is now linked. Go back to Viral Game Hub.";
+  } else if (refresh) {
+    $("title").textContent = "Almost done";
+    $("msg").textContent = "Copy your sign-in code, then return to Viral Game Hub.";
+    const code = "VGH1." + refresh;
+    $("code").style.display = "block";
+    $("code").value = code;
+    $("copy").style.display = "block";
+    $("hint").style.display = "block";
+    const copy = async () => {
+      try { await navigator.clipboard.writeText(code); return true; }
+      catch (e) { $("code").select(); try { return document.execCommand("copy"); } catch (e2) { return false; } }
+    };
+    $("copy").addEventListener("click", async () => {
+      $("copy").textContent = (await copy()) ? "Copied. Return to the app" : "Select the code and copy it";
+    });
+    copy().then((ok) => { if (ok) $("copy").textContent = "Copied. Return to the app"; });
+    history.replaceState(null, "", window.location.pathname);  // keep the token out of history
+  } else {
+    $("title").textContent = "Nothing to do here";
+    $("msg").textContent = "This page opens after you sign in with Google or Facebook from the app.";
+  }
+</script>
+</body>
+</html>

@@ -90,12 +90,100 @@ func sign_out() -> void:
 	_clear_session()
 	signed_out.emit()
 
-## Always fire-and-forget: the UI shows "check your email" regardless of the
-## outcome, matching Supabase's own behavior of not revealing which emails
-## have accounts.
+## Sends the reset email whose link opens Config.RESET_PAGE_URL (without
+## redirect_to the link lands on the project's Site URL and the reset never
+## works). Supabase answers 200 whether or not the email has an account, so the
+## UI can say "check your email" on success; real failures (offline, rate
+## limit) are reported through `reset_requested` instead of being swallowed.
+signal reset_requested(ok: bool, message: String)
+
 func request_password_reset(email: String) -> void:
 	var body := {"email": email}
-	_request(HTTPClient.METHOD_POST, "/auth/v1/recover", body, PackedStringArray(), func(_ok, _parsed, _code): pass)
+	var path := "/auth/v1/recover?redirect_to=" + Config.RESET_PAGE_URL.uri_encode()
+	_request(HTTPClient.METHOD_POST, path, body, PackedStringArray(), _on_reset_reply)
+
+func _on_reset_reply(ok: bool, parsed: Variant, code: int) -> void:
+	if ok:
+		reset_requested.emit(true, "")
+	elif code == 429:
+		reset_requested.emit(false, "Too many reset emails. Wait a few minutes and try again.")
+	elif code == 0:
+		reset_requested.emit(false, "No connection. Check your internet and try again.")
+	else:
+		reset_requested.emit(false, _extract_error(parsed, "Couldn't send the reset email. Try again later."))
+
+# ---------- Google / Facebook (OAuth through Supabase) ----------
+#
+# The app has no deep link, so the browser can't hand the session back
+# directly. Flow: open `oauth_url(provider)` in the browser; Supabase signs the
+# player in with the provider and redirects to docs/auth-callback.html, which
+# shows (and copies) a one-time sign-in code "VGH1.<refresh token>". Back in the
+# app, `sign_in_with_code()` swaps that for a session. The providers must be
+# enabled in the Supabase dashboard (Authentication > Sign In / Providers).
+
+const CODE_PREFIX := "VGH1."
+const PROVIDERS := ["google", "facebook"]
+
+func oauth_url(provider: String) -> String:
+	return "%s/auth/v1/authorize?provider=%s&redirect_to=%s" % [SUPABASE_URL, provider, Config.AUTH_CALLBACK_URL.uri_encode()]
+
+static func looks_like_code(text: String) -> bool:
+	return text.strip_edges().begins_with(CODE_PREFIX) and text.strip_edges().length() > CODE_PREFIX.length() + 8
+
+func sign_in_with_code(code: String) -> void:
+	var token := code.strip_edges().trim_prefix(CODE_PREFIX)
+	if token == "":
+		auth_error.emit("sign_in", "That sign-in code isn't valid.")
+		return
+	var body := {"refresh_token": token}
+	_request(HTTPClient.METHOD_POST, "/auth/v1/token?grant_type=refresh_token", body, PackedStringArray(), func(ok, parsed, _code):
+		if not ok or typeof(parsed) != TYPE_DICTIONARY or not parsed.has("access_token"):
+			auth_error.emit("sign_in", "That sign-in code expired or was already used. Start again.")
+			return
+		_apply_session(parsed, _extract_display_name(parsed))
+	)
+
+## Browser URL that connects `provider` to the account that's signed in now
+## (needs "Manual linking" on in the dashboard). on_done.call(url or "", message).
+func link_identity_url(provider: String, on_done: Callable) -> void:
+	_ensure_fresh_token(_link_with_token.bind(provider, on_done))
+
+func _link_with_token(ok: bool, provider: String, on_done: Callable) -> void:
+	if not ok:
+		_safe_call(on_done, ["", "Sign in first."])
+		return
+	var path := "/auth/v1/user/identities/authorize?provider=%s&skip_http_redirect=true&redirect_to=%s" \
+		% [provider, (Config.AUTH_CALLBACK_URL + "?mode=link").uri_encode()]
+	var headers: PackedStringArray = ["Authorization: Bearer " + access_token]
+	_request(HTTPClient.METHOD_GET, path, {}, headers, func(ok2, parsed, _code):
+		if ok2 and typeof(parsed) == TYPE_DICTIONARY and str(parsed.get("url", "")) != "":
+			_safe_call(on_done, [str(parsed["url"]), ""])
+		else:
+			_safe_call(on_done, ["", _extract_error(parsed, "Couldn't start linking. Try again later.")])
+	)
+
+## Providers already connected to this account ("email", "google", ...):
+## on_done.call(Array of String), or null offline / signed out.
+func fetch_identities(on_done: Callable) -> void:
+	_ensure_fresh_token(_identities_with_token.bind(on_done))
+
+func _identities_with_token(ok: bool, on_done: Callable) -> void:
+	if not ok:
+		_safe_call(on_done, [null])
+		return
+	var headers: PackedStringArray = ["Authorization: Bearer " + access_token]
+	_request(HTTPClient.METHOD_GET, "/auth/v1/user", {}, headers, func(ok2, parsed, _code):
+		if not ok2 or typeof(parsed) != TYPE_DICTIONARY:
+			_safe_call(on_done, [null])
+			return
+		var found: Array = []
+		var ids = parsed.get("identities", [])
+		if typeof(ids) == TYPE_ARRAY:
+			for i in ids:
+				if typeof(i) == TYPE_DICTIONARY:
+					found.append(str(i.get("provider", "")))
+		_safe_call(on_done, [found])
+	)
 
 ## Reads the caller's own `field_name` from player_stats, merges with
 ## `local_value` by taking the max (so pre-login local progress is never
@@ -216,7 +304,10 @@ func _extract_display_name(parsed: Dictionary) -> String:
 	if parsed.has("user") and typeof(parsed.user) == TYPE_DICTIONARY:
 		var meta = parsed.user.get("user_metadata", {})
 		if typeof(meta) == TYPE_DICTIONARY:
-			return str(meta.get("display_name", ""))
+			# Google/Facebook put the name in full_name / name instead.
+			for key in ["display_name", "full_name", "name"]:
+				if str(meta.get(key, "")) != "":
+					return str(meta[key])
 	return ""
 
 func _extract_error(parsed, fallback: String) -> String:
