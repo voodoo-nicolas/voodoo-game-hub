@@ -13,7 +13,6 @@ const Consent = preload("res://scripts/common/consent.gd")
 const CrisisHelp = preload("res://scripts/common/crisis_help.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
 const WEB = preload("res://scripts/common/web.gd")
-const OldApkNotice = preload("res://scripts/common/old_apk_notice.gd")
 const NetflixBrowser = preload("res://scripts/hub/netflix_browser.gd")
 ## The title art: the V-skull + VIRAL wordmark (Brand.WORDMARK), its own
 ## backdrop faded out at the edges so the hub background shows through. If
@@ -186,8 +185,8 @@ func _ready() -> void:
 	_show_home(false)
 	_animate_home()
 	if not Catalog.app_update_checked:
-		# No newer app (or offline): this is the moment to mention the old installers.
-		Catalog.check_app_update(_show_update_dialog, _on_no_app_update)
+		# The "old installers" help moved to Options > About (no popup on launch).
+		Catalog.check_app_update(_show_update_dialog)
 	var requested: String = Social.take_launch_request()
 	if requested != "":
 		# A game opened from Multiplayer / Friends / an invite: same path as a tile tap.
@@ -1345,21 +1344,6 @@ func _show_update_dialog(remote_version: String, apk_url: String) -> void:
 		{"text": tr("Update Now"), "action": Callable(OS, "shell_open").bind(apk_url)},
 		{"text": tr("Later"), "action": Callable()},
 	])
-
-## The browser keeps every installer an update downloaded (~100 MB each) and
-## Android won't let the app delete them, so after an update we say where they are.
-func _on_no_app_update(_reached: bool) -> void:
-	if busy or not OldApkNotice.should_show():
-		return
-	_show_dialog(tr("Free up space"),
-		tr("Each update you installed left an installer file in your Downloads (%s, about 100 MB each). The old ones are safe to delete.") % OldApkNotice.FILE_HINT, [
-		{"text": tr("Open Downloads"), "action": _open_downloads_and_mark},
-		{"text": tr("Not now"), "action": OldApkNotice.mark_seen},
-	])
-
-func _open_downloads_and_mark() -> void:
-	OldApkNotice.mark_seen()
-	OldApkNotice.open_downloads()
 
 ## `buttons` is [{"text": String, "action": Callable}]; every button closes
 ## the dialog, and an empty Callable() means it does nothing else.

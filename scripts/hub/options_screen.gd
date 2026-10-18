@@ -16,6 +16,7 @@ const Voodoo = preload("res://scripts/common/voodoo.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
 const Mist = preload("res://scripts/common/mist.gd")
 const Brand = preload("res://scripts/common/brand.gd")
+const OldApkNotice = preload("res://scripts/common/old_apk_notice.gd")
 const SoundOptions = preload("res://scripts/common/sound_options.gd")
 
 const FEEDBACK_URL := Config.REPO_URL + "/issues/new"
@@ -192,6 +193,13 @@ func _build_ui() -> void:
 	update_label = _body_label("")
 	update_label.visible = false
 	about.add_child(update_label)
+	# Old installers: the browser keeps every downloaded update (~100 MB each) and Android
+	# won't let the app delete them, so we point at the Downloads screen. Not on Google Play.
+	if OS.has_feature("android") and not OS.has_feature("play"):
+		about.add_child(_body_label(tr("Each update you installed left an installer file in your Downloads (%s, about 100 MB each). The old ones are safe to delete.") % OldApkNotice.FILE_HINT))
+		var downloads_btn := _pill_button(tr("Free up space: open Downloads"), false)
+		downloads_btn.pressed.connect(OldApkNotice.open_downloads)
+		about.add_child(downloads_btn)
 	var feedback_btn := _pill_button(tr("Send feedback"), true)
 	feedback_btn.pressed.connect(_on_feedback_pressed)
 	about.add_child(feedback_btn)
