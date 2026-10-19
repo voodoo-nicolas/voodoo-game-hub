@@ -45,7 +45,8 @@
       {"id": "trace_it", "original": true, "title": "Trace It", "icon": "✏️", "title_es": "Calcá", "board": "none", "learn": ["art"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "trivia_battle", "title": "Trivia Battle", "icon": "🥊", "title_es": "Batalla de trivia", "modes": "local,party", "board": "none", "skins": "classic,voodoo", "learn": ["geo", "science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "color_sort", "quick": true, "title": "Color Sort", "icon": "🧪", "title_es": "Ordena colores", "board": "Total stars", "skins": "classic,voodoo", "learn": ["logic", "art"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
-      {"id": "hidato", "family": "Sudoku", "title": "Hidato", "icon": "🔢", "title_es": "Hidato", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
+      {"id": "hidato", "family": "Sudoku", "title": "Hidato", "icon": "🔢", "title_es": "Hidato", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
+      {"id": "creation", "title": "Creation", "icon": "⚗️", "title_es": "Creación", "board": "Discoveries", "skins": "classic,voodoo", "learn": ["science", "logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
     ]},
     {"name": "Cards", "icon": "🃏", "name_es": "Cartas", "games": [
       {"id": "solitaire", "family": "Solitaire", "title": "Solitaire", "icon": "🂡", "title_es": "Solitario", "board": "Games won", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
@@ -239,6 +240,7 @@
     "hidato": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hidato.pck", "scene": "res://scenes/games/hidato/hidato.tscn"},
     "sevens": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sevens.pck", "scene": "res://scenes/games/sevens/sevens.tscn"},
     "rummy": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rummy.pck", "scene": "res://scenes/games/rummy/rummy.tscn"},
-    "last_shift": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/last_shift.pck", "scene": "res://scenes/games/last_shift/last_shift.tscn"}
+    "last_shift": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/last_shift.pck", "scene": "res://scenes/games/last_shift/last_shift.tscn"},
+    "creation": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/creation.pck", "scene": "res://scenes/games/creation/creation.tscn"}
   }
 }
