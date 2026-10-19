@@ -1,0 +1,5290 @@
+{
+ "version": 1,
+ "starters": [
+  "earth",
+  "fire",
+  "wind",
+  "water"
+ ],
+ "tiers": [
+  {
+   "id": 1,
+   "name": {
+    "en": "Nature",
+    "es": "Naturaleza"
+   },
+   "free": true
+  },
+  {
+   "id": 2,
+   "name": {
+    "en": "Life",
+    "es": "Vida"
+   },
+   "free": true
+  },
+  {
+   "id": 3,
+   "name": {
+    "en": "Early Civilization",
+    "es": "Primeras civilizaciones"
+   },
+   "free": true
+  },
+  {
+   "id": 4,
+   "name": {
+    "en": "Industry & Modern Life",
+    "es": "Industria y vida moderna"
+   },
+   "free": false
+  },
+  {
+   "id": 5,
+   "name": {
+    "en": "Space & Future",
+    "es": "Espacio y futuro"
+   },
+   "free": false
+  }
+ ],
+ "items": [
+  {
+   "id": "earth",
+   "name": {
+    "en": "Earth",
+    "es": "Tierra"
+   },
+   "emoji": "🌍",
+   "starter": true,
+   "depth": 0,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "fire",
+   "name": {
+    "en": "Fire",
+    "es": "Fuego"
+   },
+   "emoji": "🔥",
+   "starter": true,
+   "depth": 0,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "wind",
+   "name": {
+    "en": "Wind",
+    "es": "Viento"
+   },
+   "emoji": "💨",
+   "starter": true,
+   "depth": 0,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "water",
+   "name": {
+    "en": "Water",
+    "es": "Agua"
+   },
+   "emoji": "💧",
+   "starter": true,
+   "depth": 0,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "puddle",
+   "name": {
+    "en": "Puddle",
+    "es": "Charco"
+   },
+   "emoji": "💦",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "mountain",
+   "name": {
+    "en": "Mountain",
+    "es": "Montaña"
+   },
+   "emoji": "⛰️",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "blaze",
+   "name": {
+    "en": "Blaze",
+    "es": "Llamarada"
+   },
+   "emoji": "🔥",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "gale",
+   "name": {
+    "en": "Gale",
+    "es": "Vendaval"
+   },
+   "emoji": "🌬️",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "mud",
+   "name": {
+    "en": "Mud",
+    "es": "Barro"
+   },
+   "emoji": "🟫",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "lava",
+   "name": {
+    "en": "Lava",
+    "es": "Lava"
+   },
+   "emoji": "🌋",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "dust",
+   "name": {
+    "en": "Dust",
+    "es": "Polvo"
+   },
+   "emoji": "🌫️",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "steam",
+   "name": {
+    "en": "Steam",
+    "es": "Vapor"
+   },
+   "emoji": "♨️",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "smoke",
+   "name": {
+    "en": "Smoke",
+    "es": "Humo"
+   },
+   "emoji": "💭",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "wave",
+   "name": {
+    "en": "Wave",
+    "es": "Ola"
+   },
+   "emoji": "🌊",
+   "starter": false,
+   "depth": 1,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "stone",
+   "name": {
+    "en": "Stone",
+    "es": "Piedra"
+   },
+   "emoji": "🪨",
+   "starter": false,
+   "depth": 2,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "sand",
+   "name": {
+    "en": "Sand",
+    "es": "Arena"
+   },
+   "emoji": "🏖️",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "glass",
+   "name": {
+    "en": "Glass",
+    "es": "Vidrio"
+   },
+   "emoji": "🥃",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "beach",
+   "name": {
+    "en": "Beach",
+    "es": "Playa"
+   },
+   "emoji": "🏝️",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "desert",
+   "name": {
+    "en": "Desert",
+    "es": "Desierto"
+   },
+   "emoji": "🏜️",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "cloud",
+   "name": {
+    "en": "Cloud",
+    "es": "Nube"
+   },
+   "emoji": "☁️",
+   "starter": false,
+   "depth": 2,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "rain",
+   "name": {
+    "en": "Rain",
+    "es": "Lluvia"
+   },
+   "emoji": "🌧️",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "storm",
+   "name": {
+    "en": "Storm",
+    "es": "Tormenta"
+   },
+   "emoji": "⛈️",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "lightning",
+   "name": {
+    "en": "Lightning",
+    "es": "Rayo"
+   },
+   "emoji": "⚡",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "swamp",
+   "name": {
+    "en": "Swamp",
+    "es": "Pantano"
+   },
+   "emoji": "🐊",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "river",
+   "name": {
+    "en": "River",
+    "es": "Río"
+   },
+   "emoji": "🏞️",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "lake",
+   "name": {
+    "en": "Lake",
+    "es": "Lago"
+   },
+   "emoji": "🛶",
+   "starter": false,
+   "depth": 2,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "ocean",
+   "name": {
+    "en": "Ocean",
+    "es": "Océano"
+   },
+   "emoji": "🌐",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "snow",
+   "name": {
+    "en": "Snow",
+    "es": "Nieve"
+   },
+   "emoji": "❄️",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "ice",
+   "name": {
+    "en": "Ice",
+    "es": "Hielo"
+   },
+   "emoji": "🧊",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "glacier",
+   "name": {
+    "en": "Glacier",
+    "es": "Glaciar"
+   },
+   "emoji": "🏔️",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "iceberg",
+   "name": {
+    "en": "Iceberg",
+    "es": "Iceberg"
+   },
+   "emoji": "🧊",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "snowman",
+   "name": {
+    "en": "Snowman",
+    "es": "Muñeco de nieve"
+   },
+   "emoji": "⛄",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "sky",
+   "name": {
+    "en": "Sky",
+    "es": "Cielo"
+   },
+   "emoji": "🌤️",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "star",
+   "name": {
+    "en": "Star",
+    "es": "Estrella"
+   },
+   "emoji": "⭐",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "sun",
+   "name": {
+    "en": "Sun",
+    "es": "Sol"
+   },
+   "emoji": "☀️",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "moon",
+   "name": {
+    "en": "Moon",
+    "es": "Luna"
+   },
+   "emoji": "🌙",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "day",
+   "name": {
+    "en": "Day",
+    "es": "Día"
+   },
+   "emoji": "🌅",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "night",
+   "name": {
+    "en": "Night",
+    "es": "Noche"
+   },
+   "emoji": "🌃",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "rainbow",
+   "name": {
+    "en": "Rainbow",
+    "es": "Arcoíris"
+   },
+   "emoji": "🌈",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "eclipse",
+   "name": {
+    "en": "Eclipse",
+    "es": "Eclipse"
+   },
+   "emoji": "🌑",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "volcano",
+   "name": {
+    "en": "Volcano",
+    "es": "Volcán"
+   },
+   "emoji": "🌋",
+   "starter": false,
+   "depth": 2,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "hill",
+   "name": {
+    "en": "Hill",
+    "es": "Colina"
+   },
+   "emoji": "🏞️",
+   "starter": false,
+   "depth": 2,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "earthquake",
+   "name": {
+    "en": "Earthquake",
+    "es": "Terremoto"
+   },
+   "emoji": "📳",
+   "starter": false,
+   "depth": 2,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "tsunami",
+   "name": {
+    "en": "Tsunami",
+    "es": "Tsunami"
+   },
+   "emoji": "🌊",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "island",
+   "name": {
+    "en": "Island",
+    "es": "Isla"
+   },
+   "emoji": "🏝️",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "continent",
+   "name": {
+    "en": "Continent",
+    "es": "Continente"
+   },
+   "emoji": "🗺️",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "planet",
+   "name": {
+    "en": "Planet",
+    "es": "Planeta"
+   },
+   "emoji": "🪐",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "constellation",
+   "name": {
+    "en": "Constellation",
+    "es": "Constelación"
+   },
+   "emoji": "✨",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "galaxy",
+   "name": {
+    "en": "Galaxy",
+    "es": "Galaxia"
+   },
+   "emoji": "🌌",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "universe",
+   "name": {
+    "en": "Universe",
+    "es": "Universo"
+   },
+   "emoji": "🌠",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "comet",
+   "name": {
+    "en": "Comet",
+    "es": "Cometa"
+   },
+   "emoji": "☄️",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "meteor",
+   "name": {
+    "en": "Meteor",
+    "es": "Meteoro"
+   },
+   "emoji": "🌠",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "fog",
+   "name": {
+    "en": "Fog",
+    "es": "Niebla"
+   },
+   "emoji": "🌁",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "hurricane",
+   "name": {
+    "en": "Hurricane",
+    "es": "Huracán"
+   },
+   "emoji": "🌀",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "tornado",
+   "name": {
+    "en": "Tornado",
+    "es": "Tornado"
+   },
+   "emoji": "🌪️",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "gravel",
+   "name": {
+    "en": "Gravel",
+    "es": "Grava"
+   },
+   "emoji": "⚪",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "life",
+   "name": {
+    "en": "Life",
+    "es": "Vida"
+   },
+   "emoji": "🧬",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "algae",
+   "name": {
+    "en": "Algae",
+    "es": "Alga"
+   },
+   "emoji": "🌿",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "plant",
+   "name": {
+    "en": "Plant",
+    "es": "Planta"
+   },
+   "emoji": "🌱",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "grass",
+   "name": {
+    "en": "Grass",
+    "es": "Pasto"
+   },
+   "emoji": "🌾",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "tree",
+   "name": {
+    "en": "Tree",
+    "es": "Árbol"
+   },
+   "emoji": "🌳",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "forest",
+   "name": {
+    "en": "Forest",
+    "es": "Bosque"
+   },
+   "emoji": "🌲",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "flower",
+   "name": {
+    "en": "Flower",
+    "es": "Flor"
+   },
+   "emoji": "🌸",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "seed",
+   "name": {
+    "en": "Seed",
+    "es": "Semilla"
+   },
+   "emoji": "🫘",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "leaf",
+   "name": {
+    "en": "Leaf",
+    "es": "Hoja"
+   },
+   "emoji": "🍃",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "fruit",
+   "name": {
+    "en": "Fruit",
+    "es": "Fruta"
+   },
+   "emoji": "🍎",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "stick",
+   "name": {
+    "en": "Stick",
+    "es": "Palo"
+   },
+   "emoji": "🪵",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "insect",
+   "name": {
+    "en": "Insect",
+    "es": "Insecto"
+   },
+   "emoji": "🐛",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "bee",
+   "name": {
+    "en": "Bee",
+    "es": "Abeja"
+   },
+   "emoji": "🐝",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "honey",
+   "name": {
+    "en": "Honey",
+    "es": "Miel"
+   },
+   "emoji": "🍯",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "fish",
+   "name": {
+    "en": "Fish",
+    "es": "Pez"
+   },
+   "emoji": "🐟",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "frog",
+   "name": {
+    "en": "Frog",
+    "es": "Rana"
+   },
+   "emoji": "🐸",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "lizard",
+   "name": {
+    "en": "Lizard",
+    "es": "Lagarto"
+   },
+   "emoji": "🦎",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "bird",
+   "name": {
+    "en": "Bird",
+    "es": "Pájaro"
+   },
+   "emoji": "🐦",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "egg",
+   "name": {
+    "en": "Egg",
+    "es": "Huevo"
+   },
+   "emoji": "🥚",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "chicken",
+   "name": {
+    "en": "Chicken",
+    "es": "Gallina"
+   },
+   "emoji": "🐔",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "dinosaur",
+   "name": {
+    "en": "Dinosaur",
+    "es": "Dinosaurio"
+   },
+   "emoji": "🦖",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "fossil",
+   "name": {
+    "en": "Fossil",
+    "es": "Fósil"
+   },
+   "emoji": "🦴",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "oil",
+   "name": {
+    "en": "Oil",
+    "es": "Petróleo"
+   },
+   "emoji": "🛢️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "coal",
+   "name": {
+    "en": "Coal",
+    "es": "Carbón"
+   },
+   "emoji": "⚫",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "mammal",
+   "name": {
+    "en": "Mammal",
+    "es": "Mamífero"
+   },
+   "emoji": "🐾",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "bear",
+   "name": {
+    "en": "Bear",
+    "es": "Oso"
+   },
+   "emoji": "🐻",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "wolf",
+   "name": {
+    "en": "Wolf",
+    "es": "Lobo"
+   },
+   "emoji": "🐺",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "monkey",
+   "name": {
+    "en": "Monkey",
+    "es": "Mono"
+   },
+   "emoji": "🐒",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "human",
+   "name": {
+    "en": "Human",
+    "es": "Humano"
+   },
+   "emoji": "🧍",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "dog",
+   "name": {
+    "en": "Dog",
+    "es": "Perro"
+   },
+   "emoji": "🐕",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "cat",
+   "name": {
+    "en": "Cat",
+    "es": "Gato"
+   },
+   "emoji": "🐈",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "horse",
+   "name": {
+    "en": "Horse",
+    "es": "Caballo"
+   },
+   "emoji": "🐎",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "cow",
+   "name": {
+    "en": "Cow",
+    "es": "Vaca"
+   },
+   "emoji": "🐄",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "sheep",
+   "name": {
+    "en": "Sheep",
+    "es": "Oveja"
+   },
+   "emoji": "🐑",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "pig",
+   "name": {
+    "en": "Pig",
+    "es": "Cerdo"
+   },
+   "emoji": "🐖",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "whale",
+   "name": {
+    "en": "Whale",
+    "es": "Ballena"
+   },
+   "emoji": "🐋",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "bat",
+   "name": {
+    "en": "Bat",
+    "es": "Murciélago"
+   },
+   "emoji": "🦇",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "meadow",
+   "name": {
+    "en": "Meadow",
+    "es": "Pradera"
+   },
+   "emoji": "🌼",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "field",
+   "name": {
+    "en": "Field",
+    "es": "Campo"
+   },
+   "emoji": "🚜",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "wheat",
+   "name": {
+    "en": "Wheat",
+    "es": "Trigo"
+   },
+   "emoji": "🌾",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "butterfly",
+   "name": {
+    "en": "Butterfly",
+    "es": "Mariposa"
+   },
+   "emoji": "🦋",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "tool",
+   "name": {
+    "en": "Tool",
+    "es": "Herramienta"
+   },
+   "emoji": "🔨",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "wood",
+   "name": {
+    "en": "Wood",
+    "es": "Madera"
+   },
+   "emoji": "🪵",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "plank",
+   "name": {
+    "en": "Plank",
+    "es": "Tablón"
+   },
+   "emoji": "📏",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "campfire",
+   "name": {
+    "en": "Campfire",
+    "es": "Fogata"
+   },
+   "emoji": "🏕️",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "torch",
+   "name": {
+    "en": "Torch",
+    "es": "Antorcha"
+   },
+   "emoji": "🔦",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "ash",
+   "name": {
+    "en": "Ash",
+    "es": "Ceniza"
+   },
+   "emoji": "🌫️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "charcoal",
+   "name": {
+    "en": "Charcoal",
+    "es": "Leña quemada"
+   },
+   "emoji": "◼️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "ore",
+   "name": {
+    "en": "Ore",
+    "es": "Mineral"
+   },
+   "emoji": "⛏️",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "cave",
+   "name": {
+    "en": "Cave",
+    "es": "Cueva"
+   },
+   "emoji": "🕳️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "metal",
+   "name": {
+    "en": "Metal",
+    "es": "Metal"
+   },
+   "emoji": "🔩",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "blade",
+   "name": {
+    "en": "Blade",
+    "es": "Filo"
+   },
+   "emoji": "🔪",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "knife",
+   "name": {
+    "en": "Knife",
+    "es": "Cuchillo"
+   },
+   "emoji": "🔪",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "steel",
+   "name": {
+    "en": "Steel",
+    "es": "Acero"
+   },
+   "emoji": "⚙️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "gold",
+   "name": {
+    "en": "Gold",
+    "es": "Oro"
+   },
+   "emoji": "🥇",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "silver",
+   "name": {
+    "en": "Silver",
+    "es": "Plata"
+   },
+   "emoji": "🥈",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "gem",
+   "name": {
+    "en": "Gem",
+    "es": "Gema"
+   },
+   "emoji": "💎",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": false
+  },
+  {
+   "id": "diamond",
+   "name": {
+    "en": "Diamond",
+    "es": "Diamante"
+   },
+   "emoji": "💠",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "ring",
+   "name": {
+    "en": "Ring",
+    "es": "Anillo"
+   },
+   "emoji": "💍",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "necklace",
+   "name": {
+    "en": "Necklace",
+    "es": "Collar"
+   },
+   "emoji": "📿",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "mirror",
+   "name": {
+    "en": "Mirror",
+    "es": "Espejo"
+   },
+   "emoji": "🪞",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "coin",
+   "name": {
+    "en": "Coin",
+    "es": "Moneda"
+   },
+   "emoji": "🪙",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "salt",
+   "name": {
+    "en": "Salt",
+    "es": "Sal"
+   },
+   "emoji": "🧂",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "soap",
+   "name": {
+    "en": "Soap",
+    "es": "Jabón"
+   },
+   "emoji": "🧼",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "clay",
+   "name": {
+    "en": "Clay",
+    "es": "Arcilla"
+   },
+   "emoji": "🧱",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "pot",
+   "name": {
+    "en": "Pot",
+    "es": "Olla"
+   },
+   "emoji": "🍲",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "vase",
+   "name": {
+    "en": "Vase",
+    "es": "Jarrón"
+   },
+   "emoji": "🏺",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "brick",
+   "name": {
+    "en": "Brick",
+    "es": "Ladrillo"
+   },
+   "emoji": "🧱",
+   "starter": false,
+   "depth": 2,
+   "depth_band": 1,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "wall",
+   "name": {
+    "en": "Wall",
+    "es": "Muro"
+   },
+   "emoji": "🧱",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "house",
+   "name": {
+    "en": "House",
+    "es": "Casa"
+   },
+   "emoji": "🏠",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "door",
+   "name": {
+    "en": "Door",
+    "es": "Puerta"
+   },
+   "emoji": "🚪",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "window",
+   "name": {
+    "en": "Window",
+    "es": "Ventana"
+   },
+   "emoji": "🪟",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "table",
+   "name": {
+    "en": "Table",
+    "es": "Mesa"
+   },
+   "emoji": "🍽️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "chair",
+   "name": {
+    "en": "Chair",
+    "es": "Silla"
+   },
+   "emoji": "🪑",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "bench",
+   "name": {
+    "en": "Bench",
+    "es": "Banco"
+   },
+   "emoji": "🛋️",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "bed",
+   "name": {
+    "en": "Bed",
+    "es": "Cama"
+   },
+   "emoji": "🛏️",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "wool",
+   "name": {
+    "en": "Wool",
+    "es": "Lana"
+   },
+   "emoji": "🧶",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "meat",
+   "name": {
+    "en": "Meat",
+    "es": "Carne"
+   },
+   "emoji": "🥩",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "leather",
+   "name": {
+    "en": "Leather",
+    "es": "Cuero"
+   },
+   "emoji": "👜",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "steak",
+   "name": {
+    "en": "Steak",
+    "es": "Bife"
+   },
+   "emoji": "🥩",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "boots",
+   "name": {
+    "en": "Boots",
+    "es": "Botas"
+   },
+   "emoji": "🥾",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "thread",
+   "name": {
+    "en": "Thread",
+    "es": "Hilo"
+   },
+   "emoji": "🧵",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "cloth",
+   "name": {
+    "en": "Cloth",
+    "es": "Tela"
+   },
+   "emoji": "🧣",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "shirt",
+   "name": {
+    "en": "Shirt",
+    "es": "Camisa"
+   },
+   "emoji": "👕",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "hat",
+   "name": {
+    "en": "Hat",
+    "es": "Sombrero"
+   },
+   "emoji": "👒",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "sail",
+   "name": {
+    "en": "Sail",
+    "es": "Vela de barco"
+   },
+   "emoji": "⛵",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "wax",
+   "name": {
+    "en": "Wax",
+    "es": "Cera"
+   },
+   "emoji": "🟡",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "candle",
+   "name": {
+    "en": "Candle",
+    "es": "Vela"
+   },
+   "emoji": "🕯️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "paper",
+   "name": {
+    "en": "Paper",
+    "es": "Papel"
+   },
+   "emoji": "📄",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "book",
+   "name": {
+    "en": "Book",
+    "es": "Libro"
+   },
+   "emoji": "📖",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "ink",
+   "name": {
+    "en": "Ink",
+    "es": "Tinta"
+   },
+   "emoji": "🖋️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "pen",
+   "name": {
+    "en": "Pen",
+    "es": "Lapicera"
+   },
+   "emoji": "🖊️",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "library",
+   "name": {
+    "en": "Library",
+    "es": "Biblioteca"
+   },
+   "emoji": "📚",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "school",
+   "name": {
+    "en": "School",
+    "es": "Escuela"
+   },
+   "emoji": "🏫",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "paint",
+   "name": {
+    "en": "Paint",
+    "es": "Pintura"
+   },
+   "emoji": "🎨",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "painting",
+   "name": {
+    "en": "Painting",
+    "es": "Cuadro"
+   },
+   "emoji": "🖼️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "statue",
+   "name": {
+    "en": "Statue",
+    "es": "Estatua"
+   },
+   "emoji": "🗿",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "fountain",
+   "name": {
+    "en": "Fountain",
+    "es": "Fuente"
+   },
+   "emoji": "⛲",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "bank",
+   "name": {
+    "en": "Bank",
+    "es": "Banco (dinero)"
+   },
+   "emoji": "🏦",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "flour",
+   "name": {
+    "en": "Flour",
+    "es": "Harina"
+   },
+   "emoji": "🥣",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "dough",
+   "name": {
+    "en": "Dough",
+    "es": "Masa"
+   },
+   "emoji": "🫓",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "bread",
+   "name": {
+    "en": "Bread",
+    "es": "Pan"
+   },
+   "emoji": "🍞",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "cake",
+   "name": {
+    "en": "Cake",
+    "es": "Torta"
+   },
+   "emoji": "🎂",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "milk",
+   "name": {
+    "en": "Milk",
+    "es": "Leche"
+   },
+   "emoji": "🥛",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "cheese",
+   "name": {
+    "en": "Cheese",
+    "es": "Queso"
+   },
+   "emoji": "🧀",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "butter",
+   "name": {
+    "en": "Butter",
+    "es": "Manteca"
+   },
+   "emoji": "🧈",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "pizza",
+   "name": {
+    "en": "Pizza",
+    "es": "Pizza"
+   },
+   "emoji": "🍕",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "sandwich",
+   "name": {
+    "en": "Sandwich",
+    "es": "Sándwich"
+   },
+   "emoji": "🥪",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "soup",
+   "name": {
+    "en": "Soup",
+    "es": "Sopa"
+   },
+   "emoji": "🍜",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "omelet",
+   "name": {
+    "en": "Omelet",
+    "es": "Tortilla"
+   },
+   "emoji": "🍳",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "juice",
+   "name": {
+    "en": "Juice",
+    "es": "Jugo"
+   },
+   "emoji": "🧃",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "tea",
+   "name": {
+    "en": "Tea",
+    "es": "Té"
+   },
+   "emoji": "🍵",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "coffee",
+   "name": {
+    "en": "Coffee",
+    "es": "Café"
+   },
+   "emoji": "☕",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "icecream",
+   "name": {
+    "en": "Ice Cream",
+    "es": "Helado"
+   },
+   "emoji": "🍨",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "burger",
+   "name": {
+    "en": "Burger",
+    "es": "Hamburguesa"
+   },
+   "emoji": "🍔",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "wheel",
+   "name": {
+    "en": "Wheel",
+    "es": "Rueda"
+   },
+   "emoji": "🛞",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "cart",
+   "name": {
+    "en": "Cart",
+    "es": "Carro"
+   },
+   "emoji": "🛒",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "boat",
+   "name": {
+    "en": "Boat",
+    "es": "Bote"
+   },
+   "emoji": "🚣",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "ship",
+   "name": {
+    "en": "Ship",
+    "es": "Barco"
+   },
+   "emoji": "🚢",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "sailboat",
+   "name": {
+    "en": "Sailboat",
+    "es": "Velero"
+   },
+   "emoji": "⛵",
+   "starter": false,
+   "depth": 15,
+   "depth_band": 5,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "bike",
+   "name": {
+    "en": "Bike",
+    "es": "Bicicleta"
+   },
+   "emoji": "🚲",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "gear",
+   "name": {
+    "en": "Gear",
+    "es": "Engranaje"
+   },
+   "emoji": "⚙️",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "clock",
+   "name": {
+    "en": "Clock",
+    "es": "Reloj"
+   },
+   "emoji": "🕰️",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "watch",
+   "name": {
+    "en": "Watch",
+    "es": "Reloj de pulsera"
+   },
+   "emoji": "⌚",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "windmill",
+   "name": {
+    "en": "Windmill",
+    "es": "Molino de viento"
+   },
+   "emoji": "🌬️",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "watermill",
+   "name": {
+    "en": "Watermill",
+    "es": "Molino de agua"
+   },
+   "emoji": "💧",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "dam",
+   "name": {
+    "en": "Dam",
+    "es": "Represa"
+   },
+   "emoji": "🚧",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "bridge",
+   "name": {
+    "en": "Bridge",
+    "es": "Puente"
+   },
+   "emoji": "🌉",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "road",
+   "name": {
+    "en": "Road",
+    "es": "Camino"
+   },
+   "emoji": "🛣️",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "village",
+   "name": {
+    "en": "Village",
+    "es": "Aldea"
+   },
+   "emoji": "🏘️",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "town",
+   "name": {
+    "en": "Town",
+    "es": "Pueblo"
+   },
+   "emoji": "🏙️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "city",
+   "name": {
+    "en": "City",
+    "es": "Ciudad"
+   },
+   "emoji": "🌆",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "farm",
+   "name": {
+    "en": "Farm",
+    "es": "Granja"
+   },
+   "emoji": "🐓",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "garden",
+   "name": {
+    "en": "Garden",
+    "es": "Jardín"
+   },
+   "emoji": "🌷",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "park",
+   "name": {
+    "en": "Park",
+    "es": "Parque"
+   },
+   "emoji": "🏞️",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "tower",
+   "name": {
+    "en": "Tower",
+    "es": "Torre"
+   },
+   "emoji": "🗼",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "castle",
+   "name": {
+    "en": "Castle",
+    "es": "Castillo"
+   },
+   "emoji": "🏰",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "lighthouse",
+   "name": {
+    "en": "Lighthouse",
+    "es": "Faro"
+   },
+   "emoji": "🗼",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "pyramid",
+   "name": {
+    "en": "Pyramid",
+    "es": "Pirámide"
+   },
+   "emoji": "🔺",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "skyscraper",
+   "name": {
+    "en": "Skyscraper",
+    "es": "Rascacielos"
+   },
+   "emoji": "🏢",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "engine",
+   "name": {
+    "en": "Engine",
+    "es": "Motor"
+   },
+   "emoji": "🏭",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "car",
+   "name": {
+    "en": "Car",
+    "es": "Auto"
+   },
+   "emoji": "🚗",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "motorcycle",
+   "name": {
+    "en": "Motorcycle",
+    "es": "Moto"
+   },
+   "emoji": "🏍️",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "rail",
+   "name": {
+    "en": "Rail",
+    "es": "Riel"
+   },
+   "emoji": "🛤️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "train",
+   "name": {
+    "en": "Train",
+    "es": "Tren"
+   },
+   "emoji": "🚆",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "plane",
+   "name": {
+    "en": "Plane",
+    "es": "Avión"
+   },
+   "emoji": "✈️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "rocket",
+   "name": {
+    "en": "Rocket",
+    "es": "Cohete"
+   },
+   "emoji": "🚀",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "satellite",
+   "name": {
+    "en": "Satellite",
+    "es": "Satélite"
+   },
+   "emoji": "🛰️",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "astronaut",
+   "name": {
+    "en": "Astronaut",
+    "es": "Astronauta"
+   },
+   "emoji": "👨‍🚀",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "alien",
+   "name": {
+    "en": "Alien",
+    "es": "Alienígena"
+   },
+   "emoji": "👽",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "spaceship",
+   "name": {
+    "en": "Spaceship",
+    "es": "Nave espacial"
+   },
+   "emoji": "🛸",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "electricity",
+   "name": {
+    "en": "Electricity",
+    "es": "Electricidad"
+   },
+   "emoji": "🔌",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "wire",
+   "name": {
+    "en": "Wire",
+    "es": "Cable"
+   },
+   "emoji": "🪢",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "bulb",
+   "name": {
+    "en": "Light Bulb",
+    "es": "Lamparita"
+   },
+   "emoji": "💡",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "battery",
+   "name": {
+    "en": "Battery",
+    "es": "Batería"
+   },
+   "emoji": "🔋",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "generator",
+   "name": {
+    "en": "Generator",
+    "es": "Generador"
+   },
+   "emoji": "🔆",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "powerplant",
+   "name": {
+    "en": "Power Plant",
+    "es": "Central eléctrica"
+   },
+   "emoji": "🏭",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "chip",
+   "name": {
+    "en": "Chip",
+    "es": "Chip"
+   },
+   "emoji": "🔲",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "circuit",
+   "name": {
+    "en": "Circuit",
+    "es": "Circuito"
+   },
+   "emoji": "🧩",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "computer",
+   "name": {
+    "en": "Computer",
+    "es": "Computadora"
+   },
+   "emoji": "💻",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "internet",
+   "name": {
+    "en": "Internet",
+    "es": "Internet"
+   },
+   "emoji": "🌐",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "radio",
+   "name": {
+    "en": "Radio",
+    "es": "Radio"
+   },
+   "emoji": "📻",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "tv",
+   "name": {
+    "en": "TV",
+    "es": "Televisor"
+   },
+   "emoji": "📺",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "phone",
+   "name": {
+    "en": "Phone",
+    "es": "Celular"
+   },
+   "emoji": "📱",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "robot",
+   "name": {
+    "en": "Robot",
+    "es": "Robot"
+   },
+   "emoji": "🤖",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "lens",
+   "name": {
+    "en": "Lens",
+    "es": "Lente"
+   },
+   "emoji": "🔍",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "camera",
+   "name": {
+    "en": "Camera",
+    "es": "Cámara"
+   },
+   "emoji": "📷",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "telescope",
+   "name": {
+    "en": "Telescope",
+    "es": "Telescopio"
+   },
+   "emoji": "🔭",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "microscope",
+   "name": {
+    "en": "Microscope",
+    "es": "Microscopio"
+   },
+   "emoji": "🔬",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "glasses",
+   "name": {
+    "en": "Glasses",
+    "es": "Anteojos"
+   },
+   "emoji": "👓",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "drum",
+   "name": {
+    "en": "Drum",
+    "es": "Tambor"
+   },
+   "emoji": "🥁",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "flute",
+   "name": {
+    "en": "Flute",
+    "es": "Flauta"
+   },
+   "emoji": "🪈",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "guitar",
+   "name": {
+    "en": "Guitar",
+    "es": "Guitarra"
+   },
+   "emoji": "🎸",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "music",
+   "name": {
+    "en": "Music",
+    "es": "Música"
+   },
+   "emoji": "🎵",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "dance",
+   "name": {
+    "en": "Dance",
+    "es": "Baile"
+   },
+   "emoji": "💃",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "party",
+   "name": {
+    "en": "Party",
+    "es": "Fiesta"
+   },
+   "emoji": "🎉",
+   "starter": false,
+   "depth": 15,
+   "depth_band": 5,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "medicine",
+   "name": {
+    "en": "Medicine",
+    "es": "Medicina"
+   },
+   "emoji": "💊",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "hospital",
+   "name": {
+    "en": "Hospital",
+    "es": "Hospital"
+   },
+   "emoji": "🏥",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "fireworks",
+   "name": {
+    "en": "Fireworks",
+    "es": "Fuegos artificiales"
+   },
+   "emoji": "🎆",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "crown",
+   "name": {
+    "en": "Crown",
+    "es": "Corona"
+   },
+   "emoji": "👑",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "king",
+   "name": {
+    "en": "King",
+    "es": "Rey"
+   },
+   "emoji": "🤴",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "photo",
+   "name": {
+    "en": "Photo",
+    "es": "Foto"
+   },
+   "emoji": "🖼️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "letter",
+   "name": {
+    "en": "Letter",
+    "es": "Carta"
+   },
+   "emoji": "✉️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "app",
+   "name": {
+    "en": "App",
+    "es": "App"
+   },
+   "emoji": "📲",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "ai",
+   "name": {
+    "en": "AI",
+    "es": "Inteligencia artificial"
+   },
+   "emoji": "🧠",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "highway",
+   "name": {
+    "en": "Highway",
+    "es": "Autopista"
+   },
+   "emoji": "🛣️",
+   "starter": false,
+   "depth": 14,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "station",
+   "name": {
+    "en": "Station",
+    "es": "Estación"
+   },
+   "emoji": "🚉",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "airport",
+   "name": {
+    "en": "Airport",
+    "es": "Aeropuerto"
+   },
+   "emoji": "🛫",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "port",
+   "name": {
+    "en": "Port",
+    "es": "Puerto"
+   },
+   "emoji": "⚓",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "kitten",
+   "name": {
+    "en": "Kitten",
+    "es": "Gatito"
+   },
+   "emoji": "🐱",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "puppy",
+   "name": {
+    "en": "Puppy",
+    "es": "Cachorro"
+   },
+   "emoji": "🐶",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "carriage",
+   "name": {
+    "en": "Carriage",
+    "es": "Carruaje"
+   },
+   "emoji": "🐴",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "latte",
+   "name": {
+    "en": "Latte",
+    "es": "Café con leche"
+   },
+   "emoji": "🥛",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "birthdaycake",
+   "name": {
+    "en": "Birthday Cake",
+    "es": "Torta de cumpleaños"
+   },
+   "emoji": "🎂",
+   "starter": false,
+   "depth": 15,
+   "depth_band": 5,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "gps",
+   "name": {
+    "en": "GPS",
+    "es": "GPS"
+   },
+   "emoji": "📍",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "map",
+   "name": {
+    "en": "Map",
+    "es": "Mapa"
+   },
+   "emoji": "🗺️",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "treasure",
+   "name": {
+    "en": "Treasure",
+    "es": "Tesoro"
+   },
+   "emoji": "💰",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "museum",
+   "name": {
+    "en": "Museum",
+    "es": "Museo"
+   },
+   "emoji": "🏛️",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "solarsystem",
+   "name": {
+    "en": "Solar System",
+    "es": "Sistema solar"
+   },
+   "emoji": "☀️",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "crater",
+   "name": {
+    "en": "Crater",
+    "es": "Cráter"
+   },
+   "emoji": "🕳️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "shipwreck",
+   "name": {
+    "en": "Shipwreck",
+    "es": "Naufragio"
+   },
+   "emoji": "🏴",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "plastic",
+   "name": {
+    "en": "Plastic",
+    "es": "Plástico"
+   },
+   "emoji": "🧴",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "bottle",
+   "name": {
+    "en": "Bottle",
+    "es": "Botella"
+   },
+   "emoji": "🍼",
+   "starter": false,
+   "depth": 13,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "vacation",
+   "name": {
+    "en": "Vacation",
+    "es": "Vacaciones"
+   },
+   "emoji": "🏖️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "movie",
+   "name": {
+    "en": "Movie",
+    "es": "Película"
+   },
+   "emoji": "🎬",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "videogame",
+   "name": {
+    "en": "Video Game",
+    "es": "Videojuego"
+   },
+   "emoji": "🎮",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "bacon",
+   "name": {
+    "en": "Bacon",
+    "es": "Panceta"
+   },
+   "emoji": "🥓",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  }
+ ],
+ "recipes": [
+  {
+   "a": "ash",
+   "b": "water",
+   "results": [
+    "soap"
+   ]
+  },
+  {
+   "a": "beach",
+   "b": "sun",
+   "results": [
+    "vacation"
+   ]
+  },
+  {
+   "a": "bee",
+   "b": "tree",
+   "results": [
+    "honey"
+   ]
+  },
+  {
+   "a": "bench",
+   "b": "tree",
+   "results": [
+    "park"
+   ]
+  },
+  {
+   "a": "bike",
+   "b": "engine",
+   "results": [
+    "motorcycle"
+   ]
+  },
+  {
+   "a": "bird",
+   "b": "seed",
+   "results": [
+    "chicken"
+   ]
+  },
+  {
+   "a": "blade",
+   "b": "stick",
+   "results": [
+    "knife"
+   ]
+  },
+  {
+   "a": "blaze",
+   "b": "night",
+   "results": [
+    "fireworks"
+   ]
+  },
+  {
+   "a": "blaze",
+   "b": "oil",
+   "results": [
+    "plastic"
+   ]
+  },
+  {
+   "a": "boat",
+   "b": "ocean",
+   "results": [
+    "ship"
+   ]
+  },
+  {
+   "a": "boat",
+   "b": "sail",
+   "results": [
+    "sailboat"
+   ]
+  },
+  {
+   "a": "book",
+   "b": "house",
+   "results": [
+    "library"
+   ]
+  },
+  {
+   "a": "book",
+   "b": "human",
+   "results": [
+    "school"
+   ]
+  },
+  {
+   "a": "bread",
+   "b": "cheese",
+   "results": [
+    "pizza"
+   ]
+  },
+  {
+   "a": "bread",
+   "b": "honey",
+   "results": [
+    "cake"
+   ]
+  },
+  {
+   "a": "bread",
+   "b": "meat",
+   "results": [
+    "sandwich"
+   ]
+  },
+  {
+   "a": "bread",
+   "b": "steak",
+   "results": [
+    "burger"
+   ]
+  },
+  {
+   "a": "brick",
+   "b": "brick",
+   "results": [
+    "wall"
+   ]
+  },
+  {
+   "a": "brick",
+   "b": "desert",
+   "results": [
+    "pyramid"
+   ]
+  },
+  {
+   "a": "brick",
+   "b": "sky",
+   "results": [
+    "tower"
+   ]
+  },
+  {
+   "a": "cake",
+   "b": "candle",
+   "results": [
+    "birthdaycake"
+   ]
+  },
+  {
+   "a": "camera",
+   "b": "paper",
+   "results": [
+    "photo"
+   ]
+  },
+  {
+   "a": "camera",
+   "b": "tv",
+   "results": [
+    "movie"
+   ]
+  },
+  {
+   "a": "campfire",
+   "b": "wind",
+   "results": [
+    "ash"
+   ]
+  },
+  {
+   "a": "car",
+   "b": "road",
+   "results": [
+    "highway"
+   ]
+  },
+  {
+   "a": "cart",
+   "b": "engine",
+   "results": [
+    "car"
+   ]
+  },
+  {
+   "a": "cart",
+   "b": "horse",
+   "results": [
+    "carriage"
+   ]
+  },
+  {
+   "a": "cat",
+   "b": "cat",
+   "results": [
+    "kitten"
+   ]
+  },
+  {
+   "a": "cave",
+   "b": "milk",
+   "results": [
+    "cheese"
+   ]
+  },
+  {
+   "a": "chair",
+   "b": "chair",
+   "results": [
+    "bench"
+   ]
+  },
+  {
+   "a": "charcoal",
+   "b": "metal",
+   "results": [
+    "steel"
+   ]
+  },
+  {
+   "a": "charcoal",
+   "b": "water",
+   "results": [
+    "ink"
+   ]
+  },
+  {
+   "a": "chicken",
+   "b": "chicken",
+   "results": [
+    "egg"
+   ]
+  },
+  {
+   "a": "chip",
+   "b": "wire",
+   "results": [
+    "circuit"
+   ]
+  },
+  {
+   "a": "circuit",
+   "b": "glass",
+   "results": [
+    "computer"
+   ]
+  },
+  {
+   "a": "circuit",
+   "b": "lens",
+   "results": [
+    "camera"
+   ]
+  },
+  {
+   "a": "city",
+   "b": "ship",
+   "results": [
+    "port"
+   ]
+  },
+  {
+   "a": "clay",
+   "b": "fire",
+   "results": [
+    "pot"
+   ]
+  },
+  {
+   "a": "clock",
+   "b": "leather",
+   "results": [
+    "watch"
+   ]
+  },
+  {
+   "a": "cloth",
+   "b": "knife",
+   "results": [
+    "shirt"
+   ]
+  },
+  {
+   "a": "cloth",
+   "b": "stick",
+   "results": [
+    "sail"
+   ]
+  },
+  {
+   "a": "cloth",
+   "b": "sun",
+   "results": [
+    "hat"
+   ]
+  },
+  {
+   "a": "cloud",
+   "b": "cloud",
+   "results": [
+    "storm"
+   ]
+  },
+  {
+   "a": "cloud",
+   "b": "lake",
+   "results": [
+    "fog"
+   ]
+  },
+  {
+   "a": "cloud",
+   "b": "mountain",
+   "results": [
+    "snow"
+   ]
+  },
+  {
+   "a": "cloud",
+   "b": "water",
+   "results": [
+    "rain"
+   ]
+  },
+  {
+   "a": "cloud",
+   "b": "wind",
+   "results": [
+    "sky"
+   ]
+  },
+  {
+   "a": "coal",
+   "b": "volcano",
+   "results": [
+    "diamond"
+   ]
+  },
+  {
+   "a": "coffee",
+   "b": "milk",
+   "results": [
+    "latte"
+   ]
+  },
+  {
+   "a": "coin",
+   "b": "house",
+   "results": [
+    "bank"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "computer",
+   "results": [
+    "internet"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "radio",
+   "results": [
+    "phone"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "steel",
+   "results": [
+    "robot"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "tv",
+   "results": [
+    "videogame"
+   ]
+  },
+  {
+   "a": "constellation",
+   "b": "constellation",
+   "results": [
+    "galaxy"
+   ]
+  },
+  {
+   "a": "continent",
+   "b": "sky",
+   "results": [
+    "planet"
+   ]
+  },
+  {
+   "a": "cow",
+   "b": "grass",
+   "results": [
+    "milk"
+   ]
+  },
+  {
+   "a": "cow",
+   "b": "knife",
+   "results": [
+    "meat",
+    "leather"
+   ]
+  },
+  {
+   "a": "crown",
+   "b": "human",
+   "results": [
+    "king"
+   ]
+  },
+  {
+   "a": "dance",
+   "b": "dance",
+   "results": [
+    "party"
+   ]
+  },
+  {
+   "a": "desert",
+   "b": "frog",
+   "results": [
+    "lizard"
+   ]
+  },
+  {
+   "a": "dinosaur",
+   "b": "stone",
+   "results": [
+    "fossil"
+   ]
+  },
+  {
+   "a": "dog",
+   "b": "dog",
+   "results": [
+    "puppy"
+   ]
+  },
+  {
+   "a": "dough",
+   "b": "fire",
+   "results": [
+    "bread"
+   ]
+  },
+  {
+   "a": "drum",
+   "b": "flute",
+   "results": [
+    "music"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "earth",
+   "results": [
+    "mountain"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "fire",
+   "results": [
+    "lava"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "fossil",
+   "results": [
+    "oil"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "life",
+   "results": [
+    "plant"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "meteor",
+   "results": [
+    "crater"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "mountain",
+   "results": [
+    "hill"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "ocean",
+   "results": [
+    "island"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "plant",
+   "results": [
+    "grass"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "water",
+   "results": [
+    "mud"
+   ]
+  },
+  {
+   "a": "earth",
+   "b": "wind",
+   "results": [
+    "dust"
+   ]
+  },
+  {
+   "a": "earthquake",
+   "b": "mountain",
+   "results": [
+    "ore"
+   ]
+  },
+  {
+   "a": "earthquake",
+   "b": "ocean",
+   "results": [
+    "tsunami"
+   ]
+  },
+  {
+   "a": "egg",
+   "b": "fire",
+   "results": [
+    "omelet"
+   ]
+  },
+  {
+   "a": "electricity",
+   "b": "glass",
+   "results": [
+    "bulb"
+   ]
+  },
+  {
+   "a": "electricity",
+   "b": "sand",
+   "results": [
+    "chip"
+   ]
+  },
+  {
+   "a": "electricity",
+   "b": "wheel",
+   "results": [
+    "generator"
+   ]
+  },
+  {
+   "a": "electricity",
+   "b": "wire",
+   "results": [
+    "battery"
+   ]
+  },
+  {
+   "a": "engine",
+   "b": "rail",
+   "results": [
+    "train"
+   ]
+  },
+  {
+   "a": "engine",
+   "b": "sky",
+   "results": [
+    "plane"
+   ]
+  },
+  {
+   "a": "engine",
+   "b": "star",
+   "results": [
+    "rocket"
+   ]
+  },
+  {
+   "a": "field",
+   "b": "house",
+   "results": [
+    "farm"
+   ]
+  },
+  {
+   "a": "field",
+   "b": "mammal",
+   "results": [
+    "cow"
+   ]
+  },
+  {
+   "a": "field",
+   "b": "seed",
+   "results": [
+    "wheat"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "fire",
+   "results": [
+    "blaze"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "honey",
+   "results": [
+    "wax"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "meat",
+   "results": [
+    "steak"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "metal",
+   "results": [
+    "blade"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "mud",
+   "results": [
+    "brick"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "ore",
+   "results": [
+    "metal"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "pig",
+   "results": [
+    "bacon"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "sand",
+   "results": [
+    "glass"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "sky",
+   "results": [
+    "star"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "star",
+   "results": [
+    "sun"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "stick",
+   "results": [
+    "torch"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "storm",
+   "results": [
+    "lightning"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "tree",
+   "results": [
+    "charcoal"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "water",
+   "results": [
+    "steam"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "wind",
+   "results": [
+    "smoke"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "wood",
+   "results": [
+    "campfire"
+   ]
+  },
+  {
+   "a": "fish",
+   "b": "swamp",
+   "results": [
+    "frog"
+   ]
+  },
+  {
+   "a": "flour",
+   "b": "water",
+   "results": [
+    "dough"
+   ]
+  },
+  {
+   "a": "flower",
+   "b": "grass",
+   "results": [
+    "meadow"
+   ]
+  },
+  {
+   "a": "flower",
+   "b": "insect",
+   "results": [
+    "bee"
+   ]
+  },
+  {
+   "a": "flower",
+   "b": "pot",
+   "results": [
+    "vase"
+   ]
+  },
+  {
+   "a": "flower",
+   "b": "wall",
+   "results": [
+    "garden"
+   ]
+  },
+  {
+   "a": "flower",
+   "b": "water",
+   "results": [
+    "paint"
+   ]
+  },
+  {
+   "a": "flower",
+   "b": "wind",
+   "results": [
+    "seed"
+   ]
+  },
+  {
+   "a": "forest",
+   "b": "lizard",
+   "results": [
+    "mammal"
+   ]
+  },
+  {
+   "a": "forest",
+   "b": "mammal",
+   "results": [
+    "bear"
+   ]
+  },
+  {
+   "a": "forest",
+   "b": "stone",
+   "results": [
+    "coal"
+   ]
+  },
+  {
+   "a": "fruit",
+   "b": "water",
+   "results": [
+    "juice"
+   ]
+  },
+  {
+   "a": "galaxy",
+   "b": "galaxy",
+   "results": [
+    "universe"
+   ]
+  },
+  {
+   "a": "gale",
+   "b": "storm",
+   "results": [
+    "tornado"
+   ]
+  },
+  {
+   "a": "gear",
+   "b": "glass",
+   "results": [
+    "clock"
+   ]
+  },
+  {
+   "a": "gem",
+   "b": "gold",
+   "results": [
+    "ring"
+   ]
+  },
+  {
+   "a": "generator",
+   "b": "house",
+   "results": [
+    "powerplant"
+   ]
+  },
+  {
+   "a": "glass",
+   "b": "glass",
+   "results": [
+    "lens"
+   ]
+  },
+  {
+   "a": "glass",
+   "b": "radio",
+   "results": [
+    "tv"
+   ]
+  },
+  {
+   "a": "glass",
+   "b": "silver",
+   "results": [
+    "mirror"
+   ]
+  },
+  {
+   "a": "glass",
+   "b": "wall",
+   "results": [
+    "window"
+   ]
+  },
+  {
+   "a": "gold",
+   "b": "map",
+   "results": [
+    "treasure"
+   ]
+  },
+  {
+   "a": "gold",
+   "b": "ring",
+   "results": [
+    "crown"
+   ]
+  },
+  {
+   "a": "gold",
+   "b": "silver",
+   "results": [
+    "necklace"
+   ]
+  },
+  {
+   "a": "gold",
+   "b": "stone",
+   "results": [
+    "coin"
+   ]
+  },
+  {
+   "a": "grass",
+   "b": "tool",
+   "results": [
+    "field"
+   ]
+  },
+  {
+   "a": "gravel",
+   "b": "gravel",
+   "results": [
+    "road"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "house",
+   "results": [
+    "village"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "mammal",
+   "results": [
+    "cat"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "medicine",
+   "results": [
+    "hospital"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "painting",
+   "results": [
+    "museum"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "train",
+   "results": [
+    "station"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "music",
+   "results": [
+    "dance"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "plant",
+   "results": [
+    "medicine"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "rocket",
+   "results": [
+    "astronaut"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "wolf",
+   "results": [
+    "dog"
+   ]
+  },
+  {
+   "a": "ice",
+   "b": "milk",
+   "results": [
+    "icecream"
+   ]
+  },
+  {
+   "a": "ice",
+   "b": "mountain",
+   "results": [
+    "glacier"
+   ]
+  },
+  {
+   "a": "ice",
+   "b": "ocean",
+   "results": [
+    "iceberg"
+   ]
+  },
+  {
+   "a": "ice",
+   "b": "star",
+   "results": [
+    "comet"
+   ]
+  },
+  {
+   "a": "iceberg",
+   "b": "ship",
+   "results": [
+    "shipwreck"
+   ]
+  },
+  {
+   "a": "ink",
+   "b": "stick",
+   "results": [
+    "pen"
+   ]
+  },
+  {
+   "a": "insect",
+   "b": "rainbow",
+   "results": [
+    "butterfly"
+   ]
+  },
+  {
+   "a": "internet",
+   "b": "phone",
+   "results": [
+    "app"
+   ]
+  },
+  {
+   "a": "internet",
+   "b": "robot",
+   "results": [
+    "ai"
+   ]
+  },
+  {
+   "a": "island",
+   "b": "island",
+   "results": [
+    "continent"
+   ]
+  },
+  {
+   "a": "knife",
+   "b": "sheep",
+   "results": [
+    "wool",
+    "meat"
+   ]
+  },
+  {
+   "a": "knife",
+   "b": "stone",
+   "results": [
+    "statue"
+   ]
+  },
+  {
+   "a": "lake",
+   "b": "lake",
+   "results": [
+    "ocean"
+   ]
+  },
+  {
+   "a": "lava",
+   "b": "mountain",
+   "results": [
+    "volcano"
+   ]
+  },
+  {
+   "a": "lava",
+   "b": "water",
+   "results": [
+    "stone"
+   ]
+  },
+  {
+   "a": "leaf",
+   "b": "steam",
+   "results": [
+    "tea"
+   ]
+  },
+  {
+   "a": "leather",
+   "b": "leather",
+   "results": [
+    "boots"
+   ]
+  },
+  {
+   "a": "leather",
+   "b": "wood",
+   "results": [
+    "drum"
+   ]
+  },
+  {
+   "a": "lens",
+   "b": "life",
+   "results": [
+    "microscope"
+   ]
+  },
+  {
+   "a": "lens",
+   "b": "sky",
+   "results": [
+    "telescope"
+   ]
+  },
+  {
+   "a": "lens",
+   "b": "wire",
+   "results": [
+    "glasses"
+   ]
+  },
+  {
+   "a": "life",
+   "b": "ocean",
+   "results": [
+    "fish"
+   ]
+  },
+  {
+   "a": "life",
+   "b": "plant",
+   "results": [
+    "insect"
+   ]
+  },
+  {
+   "a": "life",
+   "b": "star",
+   "results": [
+    "alien"
+   ]
+  },
+  {
+   "a": "life",
+   "b": "water",
+   "results": [
+    "algae"
+   ]
+  },
+  {
+   "a": "lightning",
+   "b": "metal",
+   "results": [
+    "electricity"
+   ]
+  },
+  {
+   "a": "lightning",
+   "b": "swamp",
+   "results": [
+    "life"
+   ]
+  },
+  {
+   "a": "lizard",
+   "b": "lizard",
+   "results": [
+    "dinosaur"
+   ]
+  },
+  {
+   "a": "lizard",
+   "b": "sky",
+   "results": [
+    "bird"
+   ]
+  },
+  {
+   "a": "mammal",
+   "b": "meadow",
+   "results": [
+    "horse"
+   ]
+  },
+  {
+   "a": "mammal",
+   "b": "moon",
+   "results": [
+    "wolf"
+   ]
+  },
+  {
+   "a": "mammal",
+   "b": "mountain",
+   "results": [
+    "sheep"
+   ]
+  },
+  {
+   "a": "mammal",
+   "b": "mud",
+   "results": [
+    "pig"
+   ]
+  },
+  {
+   "a": "mammal",
+   "b": "night",
+   "results": [
+    "bat"
+   ]
+  },
+  {
+   "a": "mammal",
+   "b": "ocean",
+   "results": [
+    "whale"
+   ]
+  },
+  {
+   "a": "mammal",
+   "b": "tree",
+   "results": [
+    "monkey"
+   ]
+  },
+  {
+   "a": "meat",
+   "b": "water",
+   "results": [
+    "soup"
+   ]
+  },
+  {
+   "a": "metal",
+   "b": "metal",
+   "results": [
+    "wire"
+   ]
+  },
+  {
+   "a": "metal",
+   "b": "moon",
+   "results": [
+    "silver"
+   ]
+  },
+  {
+   "a": "metal",
+   "b": "plank",
+   "results": [
+    "rail"
+   ]
+  },
+  {
+   "a": "metal",
+   "b": "steam",
+   "results": [
+    "engine"
+   ]
+  },
+  {
+   "a": "metal",
+   "b": "sun",
+   "results": [
+    "gold"
+   ]
+  },
+  {
+   "a": "metal",
+   "b": "wheel",
+   "results": [
+    "gear"
+   ]
+  },
+  {
+   "a": "milk",
+   "b": "stick",
+   "results": [
+    "butter"
+   ]
+  },
+  {
+   "a": "monkey",
+   "b": "tool",
+   "results": [
+    "human"
+   ]
+  },
+  {
+   "a": "moon",
+   "b": "rocket",
+   "results": [
+    "spaceship"
+   ]
+  },
+  {
+   "a": "moon",
+   "b": "sky",
+   "results": [
+    "night"
+   ]
+  },
+  {
+   "a": "moon",
+   "b": "sun",
+   "results": [
+    "eclipse"
+   ]
+  },
+  {
+   "a": "mountain",
+   "b": "mountain",
+   "results": [
+    "earthquake"
+   ]
+  },
+  {
+   "a": "mountain",
+   "b": "rain",
+   "results": [
+    "river"
+   ]
+  },
+  {
+   "a": "mountain",
+   "b": "tool",
+   "results": [
+    "cave",
+    "ore"
+   ]
+  },
+  {
+   "a": "mud",
+   "b": "rain",
+   "results": [
+    "swamp"
+   ]
+  },
+  {
+   "a": "mud",
+   "b": "sand",
+   "results": [
+    "clay"
+   ]
+  },
+  {
+   "a": "ocean",
+   "b": "storm",
+   "results": [
+    "hurricane"
+   ]
+  },
+  {
+   "a": "ocean",
+   "b": "sun",
+   "results": [
+    "salt"
+   ]
+  },
+  {
+   "a": "ocean",
+   "b": "tower",
+   "results": [
+    "lighthouse"
+   ]
+  },
+  {
+   "a": "paint",
+   "b": "paper",
+   "results": [
+    "painting"
+   ]
+  },
+  {
+   "a": "paper",
+   "b": "paper",
+   "results": [
+    "book"
+   ]
+  },
+  {
+   "a": "paper",
+   "b": "pen",
+   "results": [
+    "letter"
+   ]
+  },
+  {
+   "a": "paper",
+   "b": "road",
+   "results": [
+    "map"
+   ]
+  },
+  {
+   "a": "phone",
+   "b": "satellite",
+   "results": [
+    "gps"
+   ]
+  },
+  {
+   "a": "plane",
+   "b": "road",
+   "results": [
+    "airport"
+   ]
+  },
+  {
+   "a": "planet",
+   "b": "star",
+   "results": [
+    "solarsystem"
+   ]
+  },
+  {
+   "a": "plank",
+   "b": "plank",
+   "results": [
+    "table"
+   ]
+  },
+  {
+   "a": "plank",
+   "b": "river",
+   "results": [
+    "bridge"
+   ]
+  },
+  {
+   "a": "plank",
+   "b": "stick",
+   "results": [
+    "chair"
+   ]
+  },
+  {
+   "a": "plank",
+   "b": "tool",
+   "results": [
+    "wheel"
+   ]
+  },
+  {
+   "a": "plank",
+   "b": "wall",
+   "results": [
+    "door"
+   ]
+  },
+  {
+   "a": "plank",
+   "b": "water",
+   "results": [
+    "boat"
+   ]
+  },
+  {
+   "a": "plank",
+   "b": "wheel",
+   "results": [
+    "cart"
+   ]
+  },
+  {
+   "a": "plank",
+   "b": "wool",
+   "results": [
+    "bed"
+   ]
+  },
+  {
+   "a": "plant",
+   "b": "plant",
+   "results": [
+    "tree"
+   ]
+  },
+  {
+   "a": "plant",
+   "b": "sun",
+   "results": [
+    "flower"
+   ]
+  },
+  {
+   "a": "plant",
+   "b": "wind",
+   "results": [
+    "leaf"
+   ]
+  },
+  {
+   "a": "plastic",
+   "b": "water",
+   "results": [
+    "bottle"
+   ]
+  },
+  {
+   "a": "puddle",
+   "b": "puddle",
+   "results": [
+    "lake"
+   ]
+  },
+  {
+   "a": "rain",
+   "b": "sun",
+   "results": [
+    "rainbow"
+   ]
+  },
+  {
+   "a": "rain",
+   "b": "tree",
+   "results": [
+    "fruit"
+   ]
+  },
+  {
+   "a": "river",
+   "b": "wall",
+   "results": [
+    "dam"
+   ]
+  },
+  {
+   "a": "river",
+   "b": "wheel",
+   "results": [
+    "watermill"
+   ]
+  },
+  {
+   "a": "rocket",
+   "b": "sky",
+   "results": [
+    "satellite"
+   ]
+  },
+  {
+   "a": "sand",
+   "b": "sand",
+   "results": [
+    "desert"
+   ]
+  },
+  {
+   "a": "sand",
+   "b": "wave",
+   "results": [
+    "beach"
+   ]
+  },
+  {
+   "a": "seed",
+   "b": "steam",
+   "results": [
+    "coffee"
+   ]
+  },
+  {
+   "a": "sky",
+   "b": "stone",
+   "results": [
+    "moon"
+   ]
+  },
+  {
+   "a": "sky",
+   "b": "sun",
+   "results": [
+    "day"
+   ]
+  },
+  {
+   "a": "sky",
+   "b": "wire",
+   "results": [
+    "radio"
+   ]
+  },
+  {
+   "a": "snow",
+   "b": "snow",
+   "results": [
+    "snowman"
+   ]
+  },
+  {
+   "a": "snow",
+   "b": "water",
+   "results": [
+    "ice"
+   ]
+  },
+  {
+   "a": "star",
+   "b": "star",
+   "results": [
+    "constellation"
+   ]
+  },
+  {
+   "a": "star",
+   "b": "stone",
+   "results": [
+    "meteor"
+   ]
+  },
+  {
+   "a": "statue",
+   "b": "water",
+   "results": [
+    "fountain"
+   ]
+  },
+  {
+   "a": "steam",
+   "b": "wind",
+   "results": [
+    "cloud"
+   ]
+  },
+  {
+   "a": "steel",
+   "b": "tower",
+   "results": [
+    "skyscraper"
+   ]
+  },
+  {
+   "a": "stick",
+   "b": "stone",
+   "results": [
+    "tool"
+   ]
+  },
+  {
+   "a": "stick",
+   "b": "wax",
+   "results": [
+    "candle"
+   ]
+  },
+  {
+   "a": "stick",
+   "b": "wool",
+   "results": [
+    "thread"
+   ]
+  },
+  {
+   "a": "stone",
+   "b": "stone",
+   "results": [
+    "gravel"
+   ]
+  },
+  {
+   "a": "stone",
+   "b": "tree",
+   "results": [
+    "tool"
+   ]
+  },
+  {
+   "a": "stone",
+   "b": "volcano",
+   "results": [
+    "gem"
+   ]
+  },
+  {
+   "a": "stone",
+   "b": "wave",
+   "results": [
+    "sand"
+   ]
+  },
+  {
+   "a": "stone",
+   "b": "wheat",
+   "results": [
+    "flour"
+   ]
+  },
+  {
+   "a": "thread",
+   "b": "thread",
+   "results": [
+    "cloth"
+   ]
+  },
+  {
+   "a": "thread",
+   "b": "wood",
+   "results": [
+    "guitar"
+   ]
+  },
+  {
+   "a": "tool",
+   "b": "tree",
+   "results": [
+    "wood"
+   ]
+  },
+  {
+   "a": "tool",
+   "b": "wood",
+   "results": [
+    "plank"
+   ]
+  },
+  {
+   "a": "tower",
+   "b": "wall",
+   "results": [
+    "castle"
+   ]
+  },
+  {
+   "a": "town",
+   "b": "town",
+   "results": [
+    "city"
+   ]
+  },
+  {
+   "a": "tree",
+   "b": "tree",
+   "results": [
+    "forest"
+   ]
+  },
+  {
+   "a": "tree",
+   "b": "wind",
+   "results": [
+    "stick"
+   ]
+  },
+  {
+   "a": "village",
+   "b": "village",
+   "results": [
+    "town"
+   ]
+  },
+  {
+   "a": "wall",
+   "b": "wall",
+   "results": [
+    "house"
+   ]
+  },
+  {
+   "a": "water",
+   "b": "water",
+   "results": [
+    "puddle"
+   ]
+  },
+  {
+   "a": "water",
+   "b": "wind",
+   "results": [
+    "wave"
+   ]
+  },
+  {
+   "a": "water",
+   "b": "wood",
+   "results": [
+    "paper"
+   ]
+  },
+  {
+   "a": "wheel",
+   "b": "wheel",
+   "results": [
+    "bike"
+   ]
+  },
+  {
+   "a": "wheel",
+   "b": "wind",
+   "results": [
+    "windmill"
+   ]
+  },
+  {
+   "a": "wind",
+   "b": "wind",
+   "results": [
+    "gale"
+   ]
+  },
+  {
+   "a": "wind",
+   "b": "wood",
+   "results": [
+    "flute"
+   ]
+  }
+ ]
+}

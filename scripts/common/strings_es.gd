@@ -288,6 +288,7 @@ const ES := {
 	"Screenshot saved!": "¡Captura guardada!",
 	"Send feedback": "Enviar comentarios",
 	"Sending...": "Enviando...",
+	"Settings": "Ajustes",
 	"Sexual content": "Contenido sexual",
 	"Sign In": "Iniciar sesión",
 	"Sign Out": "Cerrar sesión",
