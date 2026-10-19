@@ -101,7 +101,8 @@
       {"id": "cannon_duel", "title": "Cannon Duel", "icon": "💣", "title_es": "Duelo de cañones", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Artillery duel, no people shown"}},
       {"id": "crypt_crawler", "title": "Crypt Crawler", "icon": "💀", "title_es": "La cripta", "board": "Best score", "skins": "classic,voodoo", "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Dungeon crawler, fantasy combat"}},
       {"id": "mini_golf", "family": "Cue sports", "quick": true, "title": "Mini Golf", "icon": "⛳", "title_es": "Minigolf", "modes": "local", "board": "Birdies or better", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
-      {"id": "pool", "family": "Cue sports", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
+      {"id": "pool", "family": "Cue sports", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
+      {"id": "evolution", "quick": true, "original": true, "title": "Evolution", "icon": "🦠", "title_es": "Evolución", "board": "Best score", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Cartoon microbes eat each other"}}
     ]},
     {"name": "Adventure", "icon": "🗡️", "name_es": "Aventura", "games": [
       {"id": "geometry_wars", "family": "Space shooters", "quick": true, "original": true, "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast", "skins": "classic,voodoo", "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Abstract neon shooter with boss fights"}},
@@ -241,6 +242,7 @@
     "sevens": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sevens.pck", "scene": "res://scenes/games/sevens/sevens.tscn"},
     "rummy": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rummy.pck", "scene": "res://scenes/games/rummy/rummy.tscn"},
     "last_shift": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/last_shift.pck", "scene": "res://scenes/games/last_shift/last_shift.tscn"},
-    "creation": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/creation.pck", "scene": "res://scenes/games/creation/creation.tscn"}
+    "creation": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/creation.pck", "scene": "res://scenes/games/creation/creation.tscn"},
+    "evolution": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/evolution.pck", "scene": "res://scenes/games/evolution/evolution.tscn"}
   }
 }
