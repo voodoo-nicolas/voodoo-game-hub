@@ -1677,7 +1677,7 @@ const OWN_BG_GAMES := ["geometry_wars", "snake", "block_drop", "paddle_ball", "b
 	"bird_hop", "alien_attack", "frog_crossing", "gem_match", "simon", "whack_a_mole",
 	"reaction_test", "bubble_pop", "rock_blaster", "city_defense", "maze_muncher", "moon_lander",
 	"stack_tower", "sky_hop", "air_hockey", "barrel_climb", "cannon_duel", "crypt_crawler",
-	"star_runner", "sky_raider", "mini_golf", "pool", "last_shift"]
+	"star_runner", "sky_raider", "mini_golf", "pool", "last_shift", "evolution"]
 const BG_DIR := "res://media/hub/backgrounds/"  # in the APK (v0.34+); older apps: no texture
 
 ## The scene's game id, from res://scenes/games/<id>/<id>.tscn ("" if unknown).

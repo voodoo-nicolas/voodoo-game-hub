@@ -370,6 +370,7 @@ const STRINGS := {
 		"Server room": "Cuarto de servidores",
 		"Service corridor": "Pasillo de servicio",
 		"Service yard": "Patio de servicio",
+		"Settings": "Ajustes",
 		"Severed arm": "Brazo cortado",
 		"Shh! Go away, they'll hear you!": "¡Shh! Vete, te van a oír.",
 		"Side street": "Calle lateral",
