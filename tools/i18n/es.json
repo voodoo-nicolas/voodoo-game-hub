@@ -6581,5 +6581,11 @@
  "The bigger you get, the slower you swim, and the camera pulls back so you can see more of the pond.": "Cuanto más grande eres, más lento nadas, y la cámara se aleja para que veas más del estanque.",
  "Touch and drag anywhere to steer: a joystick appears under your finger. On a PC use the mouse, or the arrow keys / WASD.": "Toca y arrastra en cualquier parte para dirigirte: aparece un joystick bajo tu dedo. En PC usa el mouse o las flechas / WASD.",
  "You need to be clearly bigger than a cell to eat it: at least 15% more mass.": "Debes ser claramente más grande que una célula para comerla: al menos 15 % más de masa.",
- "You were eaten!": "¡Te comieron!"
+ "You were eaten!": "¡Te comieron!",
+ "Spore": "Espora",
+ "Microbe": "Microbio",
+ "Amoeba": "Ameba",
+ "Hunter": "Cazador",
+ "Predator": "Depredador",
+ "Leviathan": "Leviatán"
 }

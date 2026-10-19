@@ -25,6 +25,7 @@ func _init() -> void:
 	check(Ev.speed_for(1.0e9) >= Ev.TUNING.player_speed * Ev.TUNING.min_speed_frac - 0.001, "speed floor")
 	check(Ev.zoom_for(100.0) < Ev.zoom_for(10.0), "zoom out as you grow")
 	check(Ev.zoom_for(1.0e9) >= Ev.TUNING.cam_min, "zoom floor")
+	check(Ev.stage_index(0.0) == 0 and Ev.stage_index(Ev.STAGES[3][0]) == 3 and Ev.stage_index(1.0e9) == Ev.STAGES.size() - 1, "stage thresholds")
 	# Eating food in the engine
 	var e := Ev.new()
 	e.reset(1)

@@ -44,6 +44,18 @@ var peak_mass: float = 0.0
 var eaten_food: int = 0
 var eaten_cells: int = 0
 var time: float = 0.0
+var events: Array = []    # this step's {"type": "food"|"cell"|"death", "pos", "mass", "col"?}; the game draws effects from them
+var _next_id: int = 1
+
+## Growth stages: [from mass, name]. Names are translated by the game.
+const STAGES := [[0.0, "Spore"], [18.0, "Microbe"], [45.0, "Amoeba"], [110.0, "Hunter"], [260.0, "Predator"], [600.0, "Leviathan"]]
+
+static func stage_index(mass: float) -> int:
+	var idx := 0
+	for i in STAGES.size():
+		if mass >= STAGES[i][0]:
+			idx = i
+	return idx
 
 static func t(key: String):
 	return TUNING[key]
@@ -88,6 +100,8 @@ func reset(seed_: int = -1) -> void:
 	eaten_food = 0
 	eaten_cells = 0
 	time = 0.0
+	events.clear()
+	_next_id = 1
 	for i in int(t("food_count")):
 		food.append(_random_pos())
 	for i in int(t("microbe_count")):
@@ -113,13 +127,15 @@ func _new_npc() -> Dictionary:
 		rng_range = t("hunter_range")
 	var m: float = maxf(pm * rng.randf_range(rng_range[0], rng_range[1]), t("min_npc_mass"))
 	# Spawns off-screen, never on top of the player.
-	return {"pos": _random_pos(true), "vel": Vector2.ZERO, "mass": m, "wander": Vector2.RIGHT.rotated(rng.randf() * TAU), "t": rng.randf_range(0.5, 3.0)}
+	_next_id += 1
+	return {"id": _next_id, "pos": _random_pos(true), "vel": Vector2.ZERO, "mass": m, "wander": Vector2.RIGHT.rotated(rng.randf() * TAU), "t": rng.randf_range(0.5, 3.0)}
 
 ## dir: desired heading, length 0..1 (joystick deflection).
 func step(delta: float, dir: Vector2) -> void:
 	if not alive:
 		return
 	time += delta
+	events.clear()
 	var a: float = t("arena")
 	# Player
 	if dir.length() > 1.0:
@@ -172,6 +188,7 @@ func _resolve() -> void:
 		if f.distance_to(player.pos) < pr + fr * 0.5:
 			player.mass += t("food_mass")
 			eaten_food += 1
+			events.append({"type": "food", "pos": f})
 		else:
 			keep.append(f)
 	food = keep
@@ -183,10 +200,12 @@ func _resolve() -> void:
 		if can_eat(player.mass, n.mass) and d < pr - nr * 0.35:
 			player.mass = grown_mass(player.mass, n.mass)
 			eaten_cells += 1
+			events.append({"type": "cell", "pos": n.pos, "mass": n.mass})
 			pr = radius_of(player.mass)
 			continue
 		if can_eat(n.mass, player.mass) and d < nr - pr * 0.35:
 			alive = false
+			events.append({"type": "death", "pos": player.pos})
 		left.append(n)
 	npcs = left
 	peak_mass = maxf(peak_mass, player.mass)
