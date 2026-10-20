@@ -27,12 +27,19 @@ static func _closed(pts: PackedVector2Array) -> PackedVector2Array:
 	c.append(pts[0])
 	return c
 
-## Soft ring that says what the creature is to you: green prey, red hunter, white equal.
+## A soft glow, nothing more: red for something that can eat you, sickly green for poison, gold for a rare one.
+## Everything else gets no marking.
 static func draw_halo(ci: CanvasItem, c: Vector2, r: float, kind: String, t: float) -> void:
-	var col: Color = HALO.get(kind, Color.WHITE)
-	var pulse := 0.5 + 0.5 * sin(t * (6.0 if kind == "hunter" else 2.5))
-	ci.draw_circle(c, r * 1.7, Color(col, 0.05 + 0.05 * pulse))
-	ci.draw_arc(c, r * 1.35, 0.0, TAU, 32, Color(col, 0.28 + 0.2 * pulse), maxf(r * 0.05, 1.6), true)
+	var pulse := 0.5 + 0.5 * sin(t * 3.0)
+	match kind:
+		"hunter":
+			ci.draw_circle(c, r * 2.1, Color(1.0, 0.1, 0.18, 0.05 + 0.02 * pulse))
+			ci.draw_circle(c, r * 1.6, Color(1.0, 0.1, 0.18, 0.08 + 0.03 * pulse))
+			ci.draw_circle(c, r * 1.25, Color(1.0, 0.15, 0.2, 0.12 + 0.04 * pulse))
+		"toxic":
+			ci.draw_circle(c, r * 1.6, Color(0.8, 1.0, 0.1, 0.07 + 0.03 * pulse))
+		"rare":
+			ci.draw_circle(c, r * 1.8, Color(1.0, 0.85, 0.2, 0.08 + 0.05 * pulse))
 
 # ---------- other creatures ----------
 
@@ -46,7 +53,13 @@ static func draw_creature(ci: CanvasItem, c: Vector2, r: float, sp: Dictionary, 
 		_creature_voodoo(ci, r, col, sp.shape, t, sd)
 		_reset(ci)
 		return
+	var feats: Array = sp.get("feats", [])
+	_feats_back(ci, r, col, t, sd, feats)
 	match sp.shape:
+		"blob":
+			_amoeba(ci, r, col, t, sd)
+		"spiral":
+			_spiral(ci, r, col, t, sd)
 		"beads":
 			_beads(ci, r, col, t, sd)
 		"rod":
@@ -67,6 +80,7 @@ static func draw_creature(ci: CanvasItem, c: Vector2, r: float, sp: Dictionary, 
 			_eyed(ci, r, col, t, sd)
 		"phage":
 			_phage(ci, r, col, t, sd)
+	_feats_front(ci, r, col, t, sd, feats)
 	_reset(ci)
 
 static func _shade(ci: CanvasItem, pts: PackedVector2Array, col: Color) -> void:
@@ -196,6 +210,67 @@ static func _phage(ci: CanvasItem, r: float, col: Color, t: float, sd: float) ->
 		var base := Vector2(-r * 0.8, 0)
 		var foot := Vector2(-r * 1.35, f * r * 1.6 + sin(t * 4.0 + float(j) + sd) * r * 0.1)
 		ci.draw_polyline(PackedVector2Array([base, base + Vector2(-r * 0.2, f * r * 0.5), foot]), col.darkened(0.1), maxf(r * 0.05, 1.2), true)
+
+## A single-celled blob (amoeba): irregular, with a nucleus and a few vacuoles.
+static func _amoeba(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+	var pts := PackedVector2Array()
+	for i in 28:
+		var ang := TAU * float(i) / 28.0
+		var k := 1.0 + 0.10 * sin(ang * 3.0 + t * 1.6 + sd) + 0.07 * sin(ang * 2.0 - t * 1.1 + sd * 1.3)
+		pts.append(Vector2.RIGHT.rotated(ang) * r * 0.9 * k)
+	_shade(ci, pts, col)
+	ci.draw_circle(Vector2(-r * 0.1, r * 0.05), r * 0.26, col.darkened(0.5))
+	ci.draw_arc(Vector2(-r * 0.1, r * 0.05), r * 0.26, 0.0, TAU, 18, col.lightened(0.4), maxf(r * 0.04, 1.0), true)
+	for j in 3:
+		var a := sd + float(j) * 2.1
+		ci.draw_circle(Vector2.RIGHT.rotated(a) * r * 0.55, r * 0.09, Color(col.lightened(0.5), 0.6))
+
+## A coiled bacterium (spirillum).
+static func _spiral(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+	var pts := PackedVector2Array()
+	for j in 26:
+		var f := float(j) / 25.0
+		pts.append(Vector2(lerpf(r * 1.4, -r * 1.4, f), sin(f * TAU * 2.4 + t * 5.0 + sd) * r * 0.42))
+	ci.draw_polyline(pts, col.darkened(0.5), maxf(r * 0.5, 3.0), true)
+	ci.draw_polyline(pts, col, maxf(r * 0.34, 2.0), true)
+	ci.draw_polyline(pts, col.lightened(0.45), maxf(r * 0.1, 1.0), true)
+
+## Extra body parts drawn behind the body: tail, fins, arms.
+static func _feats_back(ci: CanvasItem, r: float, col: Color, t: float, sd: float, feats: Array) -> void:
+	if feats.has("tail"):
+		var line := PackedVector2Array()
+		for j in 14:
+			var f := float(j) / 13.0
+			line.append(Vector2(-r * 0.8 - r * 1.7 * f, sin(t * 8.0 - f * 5.0 + sd) * r * 0.3 * f))
+		_tapered(ci, line, r * 0.3, Color(col, 0.5))
+		_tapered(ci, line, r * 0.18, col.lightened(0.2))
+	if feats.has("fins"):
+		for sgn in [-1.0, 1.0]:
+			var w := sin(t * 5.0 + sd + sgn) * r * 0.1
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(r * 0.1, sgn * r * 0.7), Vector2(-r * 0.7, sgn * (r * 1.3 + w)), Vector2(-r * 0.9, sgn * r * 0.6)]), Color(col.lightened(0.15), 0.8))
+	if feats.has("arms"):
+		for k in 5:
+			var base_a: float = [1.9, 2.5, 3.14159, 3.78, 4.38][k]
+			var dir := Vector2.RIGHT.rotated(base_a)
+			var side := dir.orthogonal()
+			var line2 := PackedVector2Array()
+			for j in 10:
+				var f2 := float(j) / 9.0
+				line2.append(dir * r * (0.75 + 1.1 * f2) + side * sin(t * 4.0 + float(k) * 1.6 - f2 * 4.0 + sd) * r * 0.26 * f2)
+			_tapered(ci, line2, r * 0.2, Color(col, 0.6))
+			_tapered(ci, line2, r * 0.11, col.lightened(0.2))
+
+## Extra body parts drawn over the body: cilia, eye.
+static func _feats_front(ci: CanvasItem, r: float, col: Color, t: float, sd: float, feats: Array) -> void:
+	if feats.has("cilia"):
+		for j in 20:
+			var a := TAU * float(j) / 20.0
+			var d := Vector2.RIGHT.rotated(a)
+			ci.draw_line(d * r * 0.88, d.rotated(sin(t * 7.0 + float(j) * 1.9) * 0.35) * r * 1.12, Color(col, 0.8), maxf(r * 0.03, 1.0), true)
+	if feats.has("eye"):
+		var e := Vector2(r * 0.45, 0)
+		ci.draw_circle(e, r * 0.2, Color(1, 1, 1, 0.97))
+		ci.draw_circle(e + Vector2(r * 0.04, 0), r * 0.1, Color(0.03, 0.03, 0.08))
 
 ## A little cell with a long waving tail: eat it to grow your own.
 static func _tailed(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:

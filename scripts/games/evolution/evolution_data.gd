@@ -32,30 +32,46 @@ const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 480
 ## Speed multiplier by movement rank (0 = jolting, no tail).
 const MOVE_MULT := [0.0, 0.55, 0.72, 0.88, 1.02, 1.15]
 
-## Creatures. role: prey (smaller than you), equal (about your size), hunter
-## (bigger, bites), toxic (poisonous, uncommon), rare (grants a trait).
+## Creatures. Sizes are absolute (`mass`), so as you grow they shrink next to you. `tier` is the player
+## size level from which a species can appear: tier 1 = single cells (never swim away), tier 2 = chains and
+## other simple bacteria (some swim away), tier 3 = viruses and complex bacteria (many swim away) and the
+## first predators, tier 4 and 5 = bigger, more complex animals. `flee` = share of the species that swim away
+## from something that can eat them. role: prey (grazer), hunter (eats you if it is bigger), toxic
+## (poisonous), rare (gives a trait). `feats` are extra body parts the art draws: tail, fins, arms, cilia, eye.
 ## shape is drawn by evolution_art.gd.
 const SPECIES := [
-	{"id": "coccus", "name": "Coccus", "shape": "beads", "role": "prey", "col": Color("9bd34a")},
-	{"id": "bacillus", "name": "Bacillus", "shape": "rod", "role": "prey", "col": Color("4fb3e8")},
-	{"id": "strepto", "name": "Strep chain", "shape": "chain", "role": "prey", "col": Color("7a8cff")},
-	{"id": "papilloma", "name": "Papilloma", "shape": "bumpy", "role": "equal", "col": Color("a35dd8")},
-	{"id": "zika", "name": "Zika", "shape": "bumpy", "role": "equal", "col": Color("e8693a")},
-	{"id": "herpes", "name": "Herpes", "shape": "spiky", "role": "equal", "col": Color("e6b84a")},
-	{"id": "corona", "name": "Corona", "shape": "corona", "role": "hunter", "col": Color("e0405a")},
-	{"id": "ebola", "name": "Ebola", "shape": "worm", "role": "hunter", "col": Color("e0405a")},
-	{"id": "phage", "name": "Phage", "shape": "phage", "role": "hunter", "col": Color("e0603a")},
-	{"id": "rota", "name": "Rotavirus", "shape": "spiky", "role": "hunter", "col": Color("78c43a")},
-	{"id": "tailed", "name": "Flagellate", "shape": "tailed", "role": "prey", "col": Color("ffb35a"), "trait": "tail"},
-	{"id": "eyed", "name": "Eyed cell", "shape": "eyed", "role": "prey", "col": Color("e0a3ff"), "trait": "eye"},
-	{"id": "toxin", "name": "Toxic spore", "shape": "spiky", "role": "toxic", "col": Color("c8e03a")},
-	{"id": "gold", "name": "Golden spore", "shape": "spiky", "role": "rare", "col": Color("ffd23f")},
+	{"id": "coccus", "name": "Coccus", "shape": "beads", "role": "prey", "col": Color("9bd34a"), "mass": [2.0, 4.0], "tier": 1, "flee": 0.0, "feats": []},
+	{"id": "bacillus", "name": "Bacillus", "shape": "rod", "role": "prey", "col": Color("4fb3e8"), "mass": [3.0, 6.0], "tier": 1, "flee": 0.0, "feats": []},
+	{"id": "amoeba", "name": "Amoeba", "shape": "blob", "role": "prey", "col": Color("d9c27a"), "mass": [5.0, 9.0], "tier": 1, "flee": 0.0, "feats": []},
+	{"id": "strepto", "name": "Strep chain", "shape": "chain", "role": "prey", "col": Color("7a8cff"), "mass": [7.0, 13.0], "tier": 2, "flee": 0.4, "feats": []},
+	{"id": "spirillum", "name": "Spirillum", "shape": "spiral", "role": "prey", "col": Color("5fd0b0"), "mass": [8.0, 15.0], "tier": 2, "flee": 0.5, "feats": ["tail"]},
+	{"id": "ciliate", "name": "Ciliate", "shape": "blob", "role": "prey", "col": Color("f08fb0"), "mass": [10.0, 18.0], "tier": 2, "flee": 0.5, "feats": ["cilia"]},
+	{"id": "herpes", "name": "Herpes", "shape": "spiky", "role": "prey", "col": Color("e6b84a"), "mass": [16.0, 30.0], "tier": 3, "flee": 0.6, "feats": []},
+	{"id": "papilloma", "name": "Papilloma", "shape": "bumpy", "role": "prey", "col": Color("a35dd8"), "mass": [18.0, 34.0], "tier": 3, "flee": 0.4, "feats": []},
+	{"id": "zika", "name": "Zika", "shape": "bumpy", "role": "prey", "col": Color("e8693a"), "mass": [20.0, 36.0], "tier": 3, "flee": 0.5, "feats": []},
+	{"id": "swimmer", "name": "Swimmer", "shape": "rod", "role": "prey", "col": Color("6ad4ff"), "mass": [14.0, 26.0], "tier": 3, "flee": 0.8, "feats": ["tail", "fins"]},
+	{"id": "corona", "name": "Corona", "shape": "corona", "role": "hunter", "col": Color("e0405a"), "mass": [40.0, 75.0], "tier": 3, "flee": 1.0, "feats": []},
+	{"id": "ebola", "name": "Ebola", "shape": "worm", "role": "hunter", "col": Color("e0405a"), "mass": [45.0, 90.0], "tier": 3, "flee": 1.0, "feats": []},
+	{"id": "phage", "name": "Phage", "shape": "phage", "role": "hunter", "col": Color("e0603a"), "mass": [50.0, 100.0], "tier": 3, "flee": 1.0, "feats": []},
+	{"id": "rota", "name": "Rotavirus", "shape": "spiky", "role": "hunter", "col": Color("78c43a"), "mass": [40.0, 80.0], "tier": 3, "flee": 1.0, "feats": []},
+	{"id": "jelly", "name": "Jellyfish", "shape": "blob", "role": "prey", "col": Color("c9a8ff"), "mass": [60.0, 120.0], "tier": 4, "flee": 0.7, "feats": ["arms"]},
+	{"id": "plated", "name": "Plated cell", "shape": "bumpy", "role": "prey", "col": Color("8fb0a0"), "mass": [70.0, 130.0], "tier": 4, "flee": 0.6, "feats": ["fins"]},
+	{"id": "hydra", "name": "Hydra", "shape": "blob", "role": "hunter", "col": Color("e0527a"), "mass": [120.0, 220.0], "tier": 4, "flee": 1.0, "feats": ["arms", "eye"]},
+	{"id": "ray", "name": "Ray", "shape": "rod", "role": "hunter", "col": Color("e0705a"), "mass": [150.0, 260.0], "tier": 4, "flee": 1.0, "feats": ["fins", "tail", "eye"]},
+	{"id": "kraken", "name": "Kraken", "shape": "blob", "role": "hunter", "col": Color("c03a6a"), "mass": [300.0, 520.0], "tier": 5, "flee": 1.0, "feats": ["arms", "fins", "tail", "eye"]},
+	{"id": "tailed", "name": "Flagellate", "shape": "tailed", "role": "prey", "col": Color("ffb35a"), "mass": [3.0, 5.0], "tier": 1, "flee": 0.0, "feats": [], "trait": "tail"},
+	{"id": "eyed", "name": "Eyed cell", "shape": "eyed", "role": "prey", "col": Color("e0a3ff"), "mass": [3.0, 5.0], "tier": 1, "flee": 0.0, "feats": [], "trait": "eye"},
+	{"id": "toxin", "name": "Toxic spore", "shape": "spiky", "role": "toxic", "col": Color("c8e03a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": []},
+	{"id": "gold", "name": "Golden spore", "shape": "spiky", "role": "rare", "col": Color("ffd23f"), "mass": [0.0, 0.0], "tier": 1, "flee": 1.0, "feats": []},
 ]
 
-## Mass of a spawn relative to yours: [low, high] by role.
-const MASS_RANGE := {
-	"prey": [0.25, 0.8], "equal": [0.88, 1.1], "hunter": [1.3, 2.6], "toxic": [0.4, 0.8], "rare": [0.15, 0.3],
-}
+## Toxic and rare creatures are sized relative to you: [low, high] x your mass.
+const MASS_RANGE := {"toxic": [0.4, 0.8], "rare": [0.15, 0.3]}
+
+## How likely a species is to spawn by how many size levels its typical mass is above (+) or below (-) yours.
+const LEVEL_WEIGHT := {-2: 1.0, -1: 3.0, 0: 4.0, 1: 3.0, 2: 2.0}
+## At most this many creatures of one size level around you at once.
+const LEVEL_CAP := 10
 
 ## The evolution tree is a graph (like a skill tree): the creature sits at the far left and four
 ## branches grow to the right. Each node: `req` = every [node, minimum points] that must be owned first

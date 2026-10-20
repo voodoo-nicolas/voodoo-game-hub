@@ -9,6 +9,7 @@ const Data = preload("res://scripts/games/evolution/evolution_data.gd")
 const Art = preload("res://scripts/games/evolution/evolution_art.gd")
 const Controls = preload("res://scripts/games/evolution/evolution_controls.gd")
 const Screens = preload("res://scripts/games/evolution/evolution_screens.gd")
+const Sound = preload("res://scripts/games/evolution/evolution_sound.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const UI = preload("res://scripts/common/ui.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
@@ -18,6 +19,8 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/evolution/evolution_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const PREFS_PATH := "user://evolution_prefs.json"
+## The Landing picture (kit: used when the file exists, else the plain Landing).
+const LANDING_ART := "res://games/evolution/landing_bg.jpg"
 
 const BG := Color(0.012, 0.016, 0.03)
 const MINE := Color("29e6ff")     # accent of the menus; the cell uses the colour the player picked
@@ -37,8 +40,21 @@ void fragment() {
 	vec2 p = UV * rect_size;
 	float d = length(p - center);
 	float edge = smoothstep(radius * (1.0 - soft), radius, d);
-	float far = smoothstep(radius * 0.2, radius, d);
-	vec3 col = textureLod(screen_tex, SCREEN_UV, blur * far).rgb;
+	float far = smoothstep(radius * 0.15, radius, d);
+	float r = blur * far;
+	vec3 col = textureLod(screen_tex, SCREEN_UV, 0.0).rgb;
+	if (r > 0.5) {
+		vec2 px = SCREEN_PIXEL_SIZE * r;
+		vec3 acc = col;
+		float w = 1.0;
+		for (int i = 0; i < 12; i++) {
+			float a = 6.2831853 * float(i) / 12.0;
+			acc += textureLod(screen_tex, SCREEN_UV + vec2(cos(a), sin(a)) * px, 0.0).rgb;
+			acc += textureLod(screen_tex, SCREEN_UV + vec2(cos(a + 0.26), sin(a + 0.26)) * px * 0.5, 0.0).rgb;
+			w += 2.0;
+		}
+		col = acc / w;
+	}
 	COLOR = vec4(mix(col, vec3(0.0), darkness * edge), 1.0);
 }
 """
@@ -286,6 +302,7 @@ func _build_ui() -> void:
 		"accent": MINE,
 		"subtitle": "Eat to grow. Evolve. Don't get eaten.",
 		"logo": _draw_home_logo,
+		"art": LANDING_ART,
 		"extra": _add_options,
 		"modes": [
 			{"text": "Easy", "key": "easy", "row": "diff", "action": _start_run.bind("easy")},
@@ -384,7 +401,7 @@ func _on_ability(i: int) -> void:
 	if not started or screens.visible:
 		return
 	if engine.use_slot(i):
-		_sfx("powerup")
+		pass            # the ability's own event plays its sound
 	elif engine.slot_visible(i):
 		_sfx("tick")
 
@@ -416,7 +433,7 @@ func _new_game() -> void:
 	screens.close()
 	end_dialog.visible = false
 	_update_hud()
-	_banner(tr("Move around: you can't see much yet."))
+	_show_popup(tr("Survive"), tr("You must eat.\nYou must not be eaten.\nSome food will speed up your evolution greatly. Some may slow it down."))
 
 func _process(delta: float) -> void:
 	pulse += delta
@@ -424,10 +441,7 @@ func _process(delta: float) -> void:
 		return
 	delta = minf(delta, 0.05)
 	_apply_view(delta)
-	var food_before: int = engine.eaten_food
 	engine.step(delta, _direction())
-	if engine.eaten_food > food_before and engine.eaten_food % 3 == 0:
-		_sfx("tick")
 	_handle_events()
 	_update_particles(delta)
 	_check_danger()
@@ -658,25 +672,27 @@ func _handle_events() -> void:
 			"food":
 				_spawn_burst(ev.pos, FOOD[int(ev.pos.x) % FOOD.size()], 3, 70.0, 3.0, 0.0)
 				bump = maxf(bump, 0.03)
+				_snd("speck", randf_range(0.9, 1.25), -6.0)
 			"cell":
 				var sp := Data.species_of(ev.species)
 				_spawn_burst(ev.pos, sp.col, 14, 220.0, 5.0, EvEngine.radius_of(ev.mass) * 1.6)
 				bump = 0.1
-				_sfx("pickup")
+				var vl := EvEngine.size_level(ev.mass)
+				_snd("gulp" if vl >= 3 else "eat", 1.35 / (1.0 + 0.15 * float(vl - 1)) * randf_range(0.95, 1.05))
 			"jolt":
 				lurch = 1.0
 				_spawn_burst(engine.player.pos - ev.dir * EvEngine.radius_of(engine.player.mass), color, 4, 90.0, 3.0, 0.0)
 			"tail":
 				tail_grow = 0.0
-				_sfx("powerup")
-				_show_popup(tr("You unlocked a tail!"), tr("A small tail grows out of your body. It pushes you along, so you swim much faster than before."))
+				_snd("evolve")
+				_show_popup(tr("You unlocked a tail!"), tr("A small tail grows out of your body. You swim much faster."))
 			"eye":
 				eye_open = 0.0
-				_sfx("powerup")
-				_show_popup(tr("You unlocked an eye!"), tr("A lump forms on your body and a slit opens: an eye! You can see farther now, and your health and growth bars appear. Careful: bigger creatures are out there."))
+				_snd("evolve")
+				_show_popup(tr("You unlocked an eye!"), tr("A slit opens in a lump on your body: an eye! You see farther, and your health and growth bars appear."))
 			"tree":
-				_sfx("powerup")
-				_show_popup(tr("You can evolve!"), tr("You have hunted enough. Open the 🧬 screen, next to pause, to spend DNA on the evolution tree. New missions give you DNA and size."))
+				_snd("evolve")
+				_show_popup(tr("The evolution tree is open!"), tr("Spend your DNA on the 🧬 screen, next to pause."))
 			"close_call":
 				_banner(tr("Close call! You stayed alive near a hunter."))
 				if info:
@@ -685,43 +701,37 @@ func _handle_events() -> void:
 				_banner(tr("You can see the surface!") if ev.what == "surface" else tr("You are entering deeper waters."))
 			"mission":
 				_banner(tr("Mission complete!"))
-				_sfx("pickup")
+				_snd("chime")
 			"grow":
 				_banner(tr("You grew a size!"))
 				bump = 0.25
 			"dna":
-				_banner(tr("+1 DNA point: spend it on the 🧬 screen."))
+				_banner(tr("+1 DNA"))
 			"seen":
-				if ev.trait == "tail":
-					_banner(tr("That one has a tail! Eat it to grow your own."))
-				elif ev.trait == "eye":
-					_banner(tr("That one has an eye! Eat it to grow your own."))
-				elif ev.role == "hunter":
-					_banner(tr("A hunter! Keep away."))
-				elif ev.role == "toxic":
-					_banner(tr("Toxic creature: don't eat it."))
-				elif ev.role == "rare":
-					_banner(tr("Something rare!"))
+				pass                # no labels: you find out what things are by meeting them
 			"ailment":
 				_banner(tr("Poisoned: %s") % tr(Data.AILMENTS[ev.id].name))
-				_sfx("explode")
+				_snd("poison")
 			"rare":
 				_banner(tr("Rare trait: %s") % tr(str(ev.name)))
 				_spawn_burst(engine.player.pos, Color("ffd23f"), 24, 260.0, 5.0, EvEngine.radius_of(engine.player.mass) * 2.0)
-				_sfx("powerup")
+				_snd("evolve")
 			"hurt":
 				hurt = 1.0
-				_sfx("tick")
+				_snd("bite")
 			"dash":
 				_spawn_burst(ev.pos, color, 10, 300.0, 4.0, 0.0)
-			"spit", "ink", "lure", "camo":
-				_sfx("tick")
+				_snd("whoosh")
+			"spit":
+				_snd("spit")
+			"ink", "lure", "camo", "decoy", "suction", "grab", "sonar":
+				_snd("whoosh", 0.8)
 			"spit_hit":
 				_spawn_burst(ev.pos, Color("9bff5a"), 8, 140.0, 4.0, 0.0)
 			"shock":
 				var shock_col := Color("7be0ff") if ev.id == "shock" else Color("ffffff")
 				_spawn_burst(ev.pos, shock_col, 24, 420.0, 4.0, ev.radius)
-				_sfx("explode")
+				_snd("zap")
 			"death":
 				_spawn_burst(ev.pos, color, 46, 420.0, 7.0, EvEngine.radius_of(engine.player.mass) * 2.2)
 
@@ -796,13 +806,11 @@ func _draw_field() -> void:
 		if vis < 1.0:
 			field.draw_circle(sp2, maxf(r * 0.6, 2.0), Color(1, 1, 1, 0.28))   # worth nothing to you: a drifting particle
 			continue
-		var kind := "equal"
+		var kind := "none"
 		if n.role == "toxic" or n.role == "rare":
 			kind = n.role
-		elif EvEngine.can_eat(pm, n.mass, ratio):
-			kind = "prey"
-		elif EvEngine.can_eat(n.mass, pm):
-			kind = "hunter"
+		elif n.role == "hunter" and EvEngine.can_eat(n.mass, pm):
+			kind = "hunter"           # just a red glow, no label
 		var hd: float = n.vel.angle() if n.vel.length() > 4.0 else n.wander.angle()
 		Art.draw_halo(field, sp2, r, kind, pulse)
 		Art.draw_creature(field, sp2, r, Data.species_of(n.species), hd, pulse, float(int(n.id) % 97) * 1.37, voodoo)
@@ -873,7 +881,7 @@ func _update_overlay(s: Vector2) -> void:
 	var blur: float = Data.BLUR[engine.clarity()]
 	if engine.sight_rank <= 1:
 		blur += 0.9
-	mat.set_shader_parameter("blur", blur)
+	mat.set_shader_parameter("blur", blur * 5.0)      # a circle of this many pixels, wider toward the edge of your sight
 
 static func _by_mass(x, y) -> bool:
 	return x.mass < y.mass
@@ -1035,6 +1043,17 @@ func _set_skin(skin: String) -> void:
 
 func _current_skin() -> String:
 	return "voodoo" if voodoo else "classic"
+
+## Evolution's own synthesized sounds, through the app's Sfx (older apps without it stay silent).
+var _snd_ms := {}
+func _snd(sound: String, pitch: float = 1.0, db: float = 0.0) -> void:
+	var now := Time.get_ticks_msec()
+	if now - int(_snd_ms.get(sound, -1000)) < 40:
+		return
+	_snd_ms[sound] = now
+	var sfx = get_node_or_null("/root/Sfx")
+	if sfx and sfx.has_method("play_stream"):
+		sfx.play_stream(Sound.stream(sound), db, pitch, "game")
 
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")

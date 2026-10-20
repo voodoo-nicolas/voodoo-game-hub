@@ -101,9 +101,20 @@ func _init() -> void:
 	for id in Data.ABILITY_ORDER:
 		check(not Data.node_of(id).is_empty() and Data.node_of(id).ability, "ability has a node: " + id)
 		check(Data.ABILITIES[id].kind == "off" or Data.ABILITIES[id].kind == "def", "ability kind: " + id)
-	for role in ["prey", "equal", "hunter", "toxic", "rare"]:
+	for role in ["prey", "hunter"]:
 		check(Data.species_by_role(role).size() > 0, "a species for role " + role)
-		check(Data.MASS_RANGE.has(role), "a mass range for " + role)
+	check(Data.MASS_RANGE.has("toxic") and Data.MASS_RANGE.has("rare"), "toxic and rare are sized relative to you")
+	var tiers := {}
+	for sp in Data.SPECIES:
+		if sp.role == "prey" or sp.role == "hunter":
+			check(float(sp.mass[0]) > 0.0 and float(sp.mass[1]) >= float(sp.mass[0]), "a mass range: " + sp.id)
+		if not sp.has("trait") and sp.role != "toxic" and sp.role != "rare":
+			tiers[int(sp.tier)] = int(tiers.get(int(sp.tier), 0)) + 1
+		if int(sp.tier) == 1 and not sp.has("trait") and sp.role == "prey":
+			check(float(sp.flee) == 0.0, "single cells never swim away: " + sp.id)
+		if sp.role == "hunter":
+			check(int(sp.tier) >= 3, "predators only from stage 3: " + sp.id)
+	check(tiers.has(1) and tiers.has(2) and tiers.has(3) and tiers.has(4), "creatures at every stage")
 	var e := Ev.new()
 	# --- Start: blind, no tail, no bars, no hostiles, no buttons
 	e.reset(1)
@@ -246,6 +257,95 @@ func _init() -> void:
 				if h.npcs[i].pos.distance_to(h.npcs[j].pos) < 100.0:
 					near += 1
 	check(float(near) / float(maxi(pairs, 1)) < 0.03, "creatures are spread out (%d of %d pairs close)" % [near, pairs])
+	# --- Stages: what spawns when, and where
+	var sg := Ev.new()
+	for sd in 12:
+		sg.reset(300 + sd)
+		for n in sg.npcs:
+			var spd: Dictionary = Data.species_of(n.species)
+			check(int(spd.tier) == 1, "stage 1 holds only single cells (got %s)" % n.species)
+			check(not n.flees, "single cells do not swim away")
+	var stage2 := {}
+	for sd in 30:
+		sg.reset(400 + sd)
+		sg.sight_rank = 2
+		sg.player.mass = Data.LEVELS[1] + 1.0       # size 2
+		sg.npcs.clear()
+		for i in 30:
+			sg._top_up()
+		for n in sg.npcs:
+			stage2[n.species] = true
+			check(n.role != "hunter", "no predators before stage 3")
+			check(int(Data.species_of(n.species).tier) <= 2, "stage 2 has chains, not viruses (got %s)" % n.species)
+	check(stage2.has("strepto"), "stage 2 brings chain bacteria")
+	var seen3 := {}
+	var fleeing := 0
+	var total3 := 0
+	for sd in 30:
+		sg.reset(500 + sd)
+		sg.sight_rank = 2
+		sg.move_rank = 1
+		sg.player.mass = Data.LEVELS[2] + 1.0       # size 3
+		sg.npcs.clear()
+		for i in 60:
+			sg._top_up()
+		for n in sg.npcs:
+			seen3[n.species] = true
+			total3 += 1
+			if n.flees:
+				fleeing += 1
+			var spd2: Dictionary = Data.species_of(n.species)
+			if spd2.role != "toxic" and spd2.role != "rare":
+				check(n.mass >= float(spd2.mass[0]) - 0.001 and n.mass <= float(spd2.mass[1]) + 0.001, "creatures keep their own size, not yours (%s %f)" % [n.species, n.mass])
+	check(seen3.has("herpes") and seen3.has("corona"), "stage 3 brings viruses and predators")
+	check(fleeing > 0 and float(fleeing) / float(maxi(total3, 1)) > 0.3, "many stage-3 creatures swim away")
+	# Hunters never spawn close to you; at most LEVEL_CAP of one size around you
+	var safe_ok := true
+	var cap_ok := true
+	for sd in 20:
+		sg.reset(600 + sd)
+		sg.sight_rank = 2
+		sg.player.mass = Data.LEVELS[3] + 1.0       # size 4
+		sg.npcs.clear()
+		var known := {}
+		for i in 400:
+			sg._top_up()
+			var counts := {}
+			for n in sg.npcs:
+				var lvn := Ev.size_level(n.mass)
+				counts[lvn] = int(counts.get(lvn, 0)) + 1
+				if not known.has(n.id):
+					known[n.id] = true
+					if n.role == "hunter" and n.pos.distance_to(sg.player.pos) < Ev.TUNING.hunter_safe - 1.0:
+						safe_ok = false
+			for k in counts:
+				if counts[k] > Data.LEVEL_CAP + 1:
+					cap_ok = false
+			if i % 7 == 0 and sg.npcs.size() > 0:
+				sg.npcs.remove_at(0)
+	check(safe_ok, "no hunter spawns within the safe distance of you")
+	check(cap_ok, "no more than LEVEL_CAP creatures of one size around you")
+	# As you grow, the enemies shrink: the same species stays the same size
+	var mass_small := 0.0
+	var mass_big := 0.0
+	for k in 2:
+		sg.reset(700)
+		sg.sight_rank = 2
+		sg.player.mass = 10.0 if k == 0 else 600.0
+		sg.npcs.clear()
+		for i in 80:
+			sg._top_up()
+		var hs := 0.0
+		var hc := 0
+		for n in sg.npcs:
+			if n.species == "corona":
+				hs += n.mass
+				hc += 1
+		if k == 0:
+			mass_small = hs / maxf(float(hc), 1.0)
+		else:
+			mass_big = hs / maxf(float(hc), 1.0)
+	check(absf(mass_small - mass_big) < 40.0 or mass_small == 0.0 or mass_big == 0.0, "a given predator does not grow with you")
 	# --- Combat: a hunter bites, HP drops, death at 0
 	_veteran(e, 3)
 	e.npcs = [_npc(e.player.pos, 100.0, "corona", "hunter")]
@@ -596,7 +696,7 @@ func _init() -> void:
 		e.reset(500 + s)
 		e.view_r = 400.0
 		e.vision_r = 400.0
-		for i in 14400:
+		for i in 10800:
 			var best := Vector2.ZERO
 			var bd := 1.0e9
 			for f in e.food:

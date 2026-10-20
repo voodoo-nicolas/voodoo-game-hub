@@ -22,12 +22,12 @@ const TUNING := {
 	"food_min": 30,
 	"food_max": 220,
 	"npc_per_area": 8.0e-6,
-	"npc_min": 12,
+	"npc_min": 10,
 	"npc_max": 40,
-	"hunter_chance_cap": 0.45,
+	"hunter_safe": 650.0,       # no hunter ever spawns closer to you than this (world units)
+	"hunter_weight": 3.0,       # x the difficulty share: how often a predator species is picked
 	"toxic_chance": 0.05,
 	"rare_chance": 0.012,
-	"equal_chance": 0.20,
 	"min_npc_mass": 2.0,
 	"player_speed": 360.0,      # x MOVE_MULT[rank]
 	"size_speed_exp": 0.8,      # the camera zooms out as you grow, so speed grows with it: on screen you never feel slower
@@ -355,15 +355,16 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	_jolt_cd = 0.0
 	_next_id = 1
 	_mission_id = 1
-	_add_mission({"kind": "jolts", "target": 5, "text": "Learn to move: push the stick", "reward": "none"})
+	_add_mission({"kind": "jolts", "target": 5, "text": "Move around", "reward": "none"})
 	# First meals near you, so the first steps have a goal (spread out, not in a clump).
 	var spawn_max := _spawn_max()
 	for i in 6:
-		npcs.append(_new_npc(false, _ring_pos_sep(view_r * 0.3, view_r * 1.6)))
+		_spawn_npc(_ring_pos_sep(view_r * 0.3, view_r * 1.6))
 	for i in _food_target():
 		food.append(_ring_pos(view_r * 0.2, spawn_max))
 	while npcs.size() < _npc_target():
-		npcs.append(_new_npc(false, _ring_pos_sep(view_r * 0.9, spawn_max)))
+		if not _spawn_npc(_ring_pos_sep(view_r * 0.9, spawn_max)):
+			break
 
 # ---------- spawning ----------
 
@@ -390,57 +391,102 @@ func _ring_pos(r0: float, r1: float) -> Vector2:
 	return p
 
 ## Like _ring_pos but away from other creatures, so they are spread out and not in clumps.
-func _ring_pos_sep(r0: float, r1: float) -> Vector2:
+func _ring_pos_sep(r0: float, r1: float, min_d: float = 0.0) -> Vector2:
 	var sep := clampf(_spawn_min() * 0.55, 140.0, 420.0)
 	var p := _ring_pos(r0, r1)
-	for i in 14:
-		var ok := true
-		for n in npcs:
-			if n.pos.distance_squared_to(p) < sep * sep:
-				ok = false
-				break
+	for i in 24:
+		var ok := p.distance_to(player.pos) >= min_d
+		if ok:
+			for n in npcs:
+				if n.pos.distance_squared_to(p) < sep * sep:
+					ok = false
+					break
 		if ok:
 			return p
 		p = _ring_pos(r0, r1)
+	if p.distance_to(player.pos) < min_d:
+		p = player.pos + Vector2(0.0, min_d)      # straight below you, always far enough
 	return p
 
-func _pick_role() -> String:
-	var roll := rng.randf()
+## Which species spawns next. Early on only single cells; chains from size 2; viruses, complex bacteria and
+## the first predators from size 3; bigger animals later. Species a few sizes below you stop appearing, and
+## only so many of one size are around you at once.
+func _pick_species() -> Dictionary:
+	var lvl := level()
 	if sight_rank >= 2:
+		var roll := rng.randf()
 		if roll < t("rare_chance"):
-			return "rare"
-		roll -= t("rare_chance")
-		if roll < t("toxic_chance"):
-			return "toxic"
-		roll -= t("toxic_chance")
-	if hunters_on():
-		var share := minf(Data.DIFFICULTY[difficulty].hunters, t("hunter_chance_cap"))
-		if roll < share:
-			return "hunter"
-		roll -= share
-	if roll < t("equal_chance") and sight_rank >= 2:
-		return "equal"
-	return "prey"
+			return Data.species_of("gold")
+		if roll < t("rare_chance") + t("toxic_chance"):
+			return Data.species_of("toxin")
+	# The creatures that carry the first two traits.
+	if move_rank == 0 and rng.randf() < t("trait_tail_chance"):
+		return Data.species_of("tailed")
+	if move_rank >= 1 and sight_rank == 1 and rng.randf() < t("trait_eye_chance"):
+		return Data.species_of("eyed")
+	var counts := {}
+	for n in npcs:
+		var nl := size_level(n.mass)
+		counts[nl] = int(counts.get(nl, 0)) + 1
+	var cands: Array = []
+	var weights: Array = []
+	var total := 0.0
+	var tier_cap := clampi(lvl, 1, 5)
+	for sp in Data.SPECIES:
+		if sp.has("trait") or sp.role == "toxic" or sp.role == "rare" or int(sp.tier) > tier_cap:
+			continue
+		if sp.role == "hunter" and not hunters_on():
+			continue
+		var mid: float = (float(sp.mass[0]) + float(sp.mass[1])) * 0.5
+		var sl := size_level(mid)
+		var diff := sl - lvl
+		var w: float = 1.0 if diff >= 3 else float(Data.LEVEL_WEIGHT.get(diff, 0.0))
+		if w <= 0.0 or int(counts.get(sl, 0)) >= Data.LEVEL_CAP:
+			continue
+		if sp.role == "hunter":
+			w *= Data.DIFFICULTY[difficulty].hunters * t("hunter_weight")
+		cands.append(sp)
+		weights.append(w)
+		total += w
+	if cands.is_empty() or total <= 0.0:
+		return {}
+	var pick := rng.randf() * total
+	for i in cands.size():
+		pick -= weights[i]
+		if pick <= 0.0:
+			return cands[i]
+	return cands[cands.size() - 1]
 
-func _new_npc(away: bool = true, at: Vector2 = Vector2.INF) -> Dictionary:
-	var role := _pick_role()
-	var sp: Dictionary = {}
-	if role == "prey":
-		# The creatures that carry the first two traits: eat one to get the trait at once.
-		var troll := rng.randf()
-		if move_rank == 0 and troll < t("trait_tail_chance"):
-			sp = Data.species_of("tailed")
-		elif move_rank >= 1 and sight_rank == 1 and troll < t("trait_eye_chance"):
-			sp = Data.species_of("eyed")
+## One new creature, or {} when nothing fits right now. Hunters never spawn near you.
+func _new_npc(at: Vector2 = Vector2.INF) -> Dictionary:
+	var sp := _pick_species()
 	if sp.is_empty():
-		var list := Data.species_by_role(role)
-		sp = list[rng.randi() % list.size()]
-	var rr: Array = Data.MASS_RANGE[role]
-	var m: float = maxf(player.mass * rng.randf_range(rr[0], rr[1]), t("min_npc_mass"))
+		return {}
+	var m: float
+	if Data.MASS_RANGE.has(sp.role):
+		var rr: Array = Data.MASS_RANGE[sp.role]
+		m = player.mass * rng.randf_range(rr[0], rr[1])
+	else:
+		m = rng.randf_range(sp.mass[0], sp.mass[1])
+	m = maxf(m, t("min_npc_mass"))
+	var pos := at
+	if pos == Vector2.INF:
+		if sp.role == "hunter":
+			var near := maxf(_spawn_min(), t("hunter_safe"))
+			pos = _ring_pos_sep(near, maxf(_spawn_max(), near * 1.7), near)
+		else:
+			pos = _ring_pos_sep(_spawn_min(), _spawn_max())
 	_next_id += 1
-	var pos := at if at != Vector2.INF else _ring_pos_sep(_spawn_min(), _spawn_max())
-	return {"id": _next_id, "pos": pos, "vel": Vector2.ZERO, "mass": m, "species": sp.id, "role": role,
-		"wander": Vector2.RIGHT.rotated(rng.randf() * TAU), "t": rng.randf_range(0.5, 3.0)}
+	return {"id": _next_id, "pos": pos, "vel": Vector2.ZERO, "mass": m, "species": sp.id, "role": sp.role,
+		"flees": rng.randf() < float(sp.flee), "wander": Vector2.RIGHT.rotated(rng.randf() * TAU), "t": rng.randf_range(0.5, 3.0)}
+
+## Adds a creature if one fits; false when none did.
+func _spawn_npc(at: Vector2 = Vector2.INF) -> bool:
+	var n := _new_npc(at)
+	if n.is_empty():
+		return false
+	npcs.append(n)
+	return true
 
 # ---------- the step ----------
 
@@ -684,7 +730,7 @@ func _think(delta: float) -> void:
 		elif lure_t > 0.0 and (role == "prey" or role == "rare") and d < ability_radius("lure") and d > radius_of(player.mass):
 			steer = to_p / maxf(d, 0.001)                     # drawn by the lure
 			speed = t("lure_pull")
-		elif (role == "prey" or role == "hunter" or role == "rare") and d < sight * 0.7 and can_eat(player.mass, n.mass, ratio) and move_rank > 0:
+		elif n.get("flees", role == "rare") and d < sight * 0.7 and can_eat(player.mass, n.mass, ratio):
 			steer = -to_p / maxf(d, 0.001)                    # flee
 			speed = _npc_speed(n.mass, base_speed * (1.0 if role == "rare" else t("flee_frac")))
 		else:
@@ -850,7 +896,8 @@ func _top_up() -> void:
 		made += 1
 	made = 0
 	while npcs.size() < _npc_target() and made < 1:
-		npcs.append(_new_npc())
+		if not _spawn_npc():
+			break
 		made += 1
 
 ## Things far behind you are removed (and respawned ahead by _top_up).
@@ -1073,14 +1120,14 @@ func _discover_places() -> void:
 	if not seen_surface and player.pos.y < vision_r + radius_of(player.mass):
 		seen_surface = true
 		events.append({"type": "place", "what": "surface"})
-		if _open_count() < 6:
+		if _open_count() < 5:
 			_add_mission({"kind": "surface", "target": 1, "text": "Touch the surface", "reward": _next_reward()})
 	var marks := [1500.0, 3500.0, 6500.0, 10000.0, 15000.0]
 	if _depth_i < marks.size() and player.pos.y >= marks[_depth_i]:
 		var goal: float = marks[_depth_i + 1] if _depth_i + 1 < marks.size() else marks[_depth_i] * 1.5
 		_depth_i += 1
 		events.append({"type": "place", "what": "deep"})
-		if _open_count() < 6:
+		if _open_count() < 5:
 			_add_mission({"kind": "depth", "target": goal, "text": "Dive deeper", "reward": _next_reward()})
 
 func _tick_missions(delta: float) -> void:
@@ -1117,7 +1164,7 @@ func _grant_trait(which: String) -> void:
 				m.linger = t("mission_linger")
 		_set_tail()
 		_story = 2
-		_add_mission({"kind": "value", "target": t("eye_value"), "text": "Eat to grow an eye", "reward": "eye"})
+		_add_mission({"kind": "value", "target": t("eye_value"), "text": "Evolve further", "reward": "eye"})
 
 func _complete(m: Dictionary) -> void:
 	m.done = true
@@ -1142,13 +1189,13 @@ func _complete(m: Dictionary) -> void:
 	# The first missions are the tutorial, in order: move, tail, eye, then the kills that open the tree.
 	if _story == 0 and m.kind == "jolts":
 		_story = 1
-		_add_mission({"kind": "value", "target": t("tail_value"), "text": "Eat to grow a tail", "reward": "tail"})
+		_add_mission({"kind": "value", "target": t("tail_value"), "text": "Evolve", "reward": "tail"})
 	elif _story <= 1 and m.reward == "tail":
 		_story = 2
-		_add_mission({"kind": "value", "target": t("eye_value"), "text": "Eat to grow an eye", "reward": "eye"})
+		_add_mission({"kind": "value", "target": t("eye_value"), "text": "Evolve further", "reward": "eye"})
 	elif _story == 2 and m.reward == "eye":
 		_story = 3
-		_add_mission({"kind": "kills", "target": t("tree_kills"), "text": "Hunt to evolve", "reward": "tree"})
+		_add_mission({"kind": "kills", "target": t("tree_kills"), "text": "Hunt", "reward": "tree"})
 	elif _story == 3 and m.reward == "tree":
 		_story = 4
 		_grow_mission()
@@ -1193,7 +1240,7 @@ func _met(id: String) -> void:
 	seen[id] = true
 	var sp := Data.species_of(id)
 	events.append({"type": "seen", "species": id, "role": sp.role, "trait": sp.get("trait", "")})
-	if _story < 4 or _open_count() >= 6 or sp.has("trait"):
+	if _story < 4 or _open_count() >= 5 or sp.has("trait"):
 		return
 	match sp.role:
 		"prey":
