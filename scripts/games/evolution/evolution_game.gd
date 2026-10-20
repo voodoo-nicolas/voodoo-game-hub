@@ -1,9 +1,14 @@
 extends Control
 
-## Evolution (M1, eat and grow): drag anywhere to steer a glowing cell, eat
-## food and smaller cells, run from bigger ones. All rules live in the engine.
+## Evolution: start as a blind one-cell blob in an endless dark pond. Missions give you a
+## tail, an eye, size and DNA; spend DNA on the evolution tree. Landscape, with Last Shift's
+## button layout. All rules live in the engine; this file is the screen.
 
 const EvEngine = preload("res://scripts/games/evolution/evolution_engine.gd")
+const Data = preload("res://scripts/games/evolution/evolution_data.gd")
+const Art = preload("res://scripts/games/evolution/evolution_art.gd")
+const Controls = preload("res://scripts/games/evolution/evolution_controls.gd")
+const Screens = preload("res://scripts/games/evolution/evolution_screens.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const UI = preload("res://scripts/common/ui.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
@@ -12,15 +17,31 @@ const HomeKit = preload("res://scripts/games/evolution/home_kit.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/evolution/evolution_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
+const PREFS_PATH := "user://evolution_prefs.json"
 
 const BG := Color(0.012, 0.016, 0.03)
-const MINE := Color("29e6ff")
-const PREY := Color("7dff3a")
-const HUNTER := Color("ff4f9a")
-const EQUAL := Color("d8e4ff")
+const MINE := Color("29e6ff")     # accent of the menus; the cell uses the colour the player picked
 const FOOD := [Color("ffd23f"), Color("ff9f43"), Color("c77dff")]
-const JOY_RADIUS := 110.0
 const ZOOM_SMOOTH := 3.0
+const VISION_SMOOTH := 2.2
+const OVERLAY_SHADER := """
+shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+uniform vec2 center = vec2(0.0);
+uniform vec2 rect_size = vec2(1.0);
+uniform float radius = 200.0;
+uniform float soft = 0.4;
+uniform float darkness = 0.97;
+uniform float blur = 2.0;
+void fragment() {
+	vec2 p = UV * rect_size;
+	float d = length(p - center);
+	float edge = smoothstep(radius * (1.0 - soft), radius, d);
+	float far = smoothstep(radius * 0.2, radius, d);
+	vec3 col = textureLod(screen_tex, SCREEN_UV, blur * far).rgb;
+	COLOR = vec4(mix(col, vec3(0.0), darkness * edge), 1.0);
+}
+"""
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
@@ -28,30 +49,121 @@ var engine
 var started := false
 var result_sent := false
 var zoom: float = 1.0
-var joy_active := false
-var joy_origin := Vector2.ZERO
-var joy_pos := Vector2.ZERO
+var vis_r: float = 160.0            # screen pixels the cell can see
 var keys := Vector2.ZERO
 var voodoo := false
 var pulse: float = 0.0
 var particles: Array = []
-var bump: float = 0.0          # player body pop after eating
-var hurt: float = 0.0          # red screen-edge warning when a hunter is close
-var stage := 0
-var stage_banner := ""
-var stage_banner_t: float = 0.0
+var bump: float = 0.0               # body pop after eating
+var hurt: float = 0.0               # red screen-edge warning
+var lurch: float = 0.0              # body stretch after a jolt
+var heading: float = 0.0
+var eye_open: float = 1.0
+var tail_grow: float = 1.0
+var banners: Array = []             # [{"text","t"}], shown one after another
+var prefs := {"color": 0, "diff": "normal"}
+var diff := "normal"
+var color: Color = MINE
+var _mission_sig := ""
+var _swatches: Array = []
+var _preview: Control
 
 var field: Control
-var score_label: Label
-var size_label: Label
+var overlay: ColorRect
+var controls: Controls
+var fx: Control
+var screens: Screens
 var end_dialog: Control
+var hp_bar: ProgressBar
+var sp_bar: ProgressBar
+var xp_bar: ProgressBar
+var hp_row: Control
+var sp_row: Control
+var xp_row: Control
+var stage_label: Label
+var status_label: Label
+var info_btn: Button
+var mission_box: VBoxContainer
+var mission_panel: Control
+var bars_panel: Control
 
 func _ready() -> void:
 	preload("res://scripts/games/evolution/evolution_i18n.gd").install(self)
-	Orientation.lock_portrait()
+	Orientation.lock_landscape()
+	_load_prefs()
 	engine = EvEngine.new()
 	_build_ui()
-	engine.reset()
+	engine.reset(-1, diff)
+	_apply_view(1.0, true)
+
+# ---------- preferences ----------
+
+func _load_prefs() -> void:
+	if FileAccess.file_exists(PREFS_PATH):
+		var f := FileAccess.open(PREFS_PATH, FileAccess.READ)
+		if f:
+			var parsed = JSON.parse_string(f.get_as_text())
+			f.close()
+			if typeof(parsed) == TYPE_DICTIONARY:
+				prefs["color"] = clampi(int(parsed.get("color", 0)), 0, Data.COLORS.size() - 1)
+				var d := str(parsed.get("diff", "normal"))
+				prefs["diff"] = d if Data.DIFFICULTY.has(d) else "normal"
+	diff = prefs.diff
+	color = Data.COLORS[prefs.color][1]
+
+func _save_prefs() -> void:
+	var f := FileAccess.open(PREFS_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(prefs))
+		f.close()
+
+# ---------- UI ----------
+
+func _bar(fill: Color) -> ProgressBar:
+	var b := ProgressBar.new()
+	b.custom_minimum_size = Vector2(230, 20)
+	b.show_percentage = false
+	b.min_value = 0.0
+	b.max_value = 1.0
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var f := StyleBoxFlat.new()
+	f.bg_color = fill
+	f.set_corner_radius_all(6)
+	var bgs := StyleBoxFlat.new()
+	bgs.bg_color = Color(0, 0, 0, 0.55)
+	bgs.border_color = Color(1, 1, 1, 0.35)
+	bgs.set_border_width_all(2)
+	bgs.set_corner_radius_all(6)
+	b.add_theme_stylebox_override("fill", f)
+	b.add_theme_stylebox_override("background", bgs)
+	return b
+
+func _bar_row(tag: String, bar: ProgressBar) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l := Label.new()
+	l.text = tag
+	l.custom_minimum_size = Vector2(46, 0)
+	l.add_theme_font_size_override("font_size", 22)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	row.add_child(bar)
+	return row
+
+## A full-rect margin box that keeps its one child in a corner / edge of the safe area.
+func _corner(child: Control, h: int, v: int) -> MarginContainer:
+	var m := MarginContainer.new()
+	m.set_anchors_preset(Control.PRESET_FULL_RECT)
+	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_theme_constant_override("margin_left", 16)
+	m.add_theme_constant_override("margin_right", 16)
+	m.add_theme_constant_override("margin_top", 24)
+	m.add_theme_constant_override("margin_bottom", 18)
+	child.size_flags_horizontal = h
+	child.size_flags_vertical = v
+	m.add_child(child)
+	return m
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -61,47 +173,98 @@ func _build_ui() -> void:
 	field = Control.new()
 	field.set_anchors_preset(Control.PRESET_FULL_RECT)
 	field.clip_contents = true
-	field.mouse_filter = Control.MOUSE_FILTER_STOP
+	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	field.draw.connect(_draw_field)
-	field.gui_input.connect(_on_field_input)
 	add_child(field)
 
-	var root := VBoxContainer.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(root)
-	var top := MarginContainer.new()
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top.add_theme_constant_override("margin_top", 24)
-	top.add_theme_constant_override("margin_left", 16)
-	top.add_theme_constant_override("margin_right", 16)
-	root.add_child(top)
-	var bar := HBoxContainer.new()
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar.add_theme_constant_override("separation", 10)
-	top.add_child(bar)
+	# What the cell can see: darkness outside the vision ring, blur growing toward its edge.
+	overlay = ColorRect.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sh := Shader.new()
+	sh.code = OVERLAY_SHADER
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	overlay.material = mat
+	add_child(overlay)
+
+	fx = Control.new()
+	fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fx.draw.connect(_draw_fx)
+	add_child(fx)
+
+	controls = Controls.new()
+	controls.set_anchors_preset(Control.PRESET_FULL_RECT)
+	controls.accent = MINE
+	controls.ability_pressed.connect(_on_ability)
+	add_child(controls)
+
+	# top left: HP / special / XP bars (they appear with the first eye)
+	bars_panel = VBoxContainer.new()
+	bars_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bars_panel.add_theme_constant_override("separation", 6)
+	hp_bar = _bar(Color("e63946"))
+	sp_bar = _bar(Color("3ac7ff"))
+	xp_bar = _bar(Color("ffc233"))
+	hp_row = _bar_row("HP", hp_bar)
+	sp_row = _bar_row("⚡", sp_bar)
+	xp_row = _bar_row("XP", xp_bar)
+	bars_panel.add_child(hp_row)
+	bars_panel.add_child(sp_row)
+	bars_panel.add_child(xp_row)
+	stage_label = Label.new()
+	stage_label.add_theme_font_size_override("font_size", 20)
+	stage_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bars_panel.add_child(stage_label)
+	status_label = Label.new()
+	status_label.add_theme_font_size_override("font_size", 18)
+	status_label.add_theme_color_override("font_color", Color("d7ff2a"))
+	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bars_panel.add_child(status_label)
+	add_child(_corner(bars_panel, Control.SIZE_SHRINK_BEGIN, Control.SIZE_SHRINK_BEGIN))
+
+	# right side: the mission list
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.custom_minimum_size = Vector2(290, 0)
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color(0.03, 0.05, 0.1, 0.72)
+	ps.border_color = Color(1, 1, 1, 0.25)
+	ps.set_border_width_all(2)
+	ps.set_corner_radius_all(8)
+	ps.set_content_margin_all(10)
+	panel.add_theme_stylebox_override("panel", ps)
+	mission_box = VBoxContainer.new()
+	mission_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mission_box.add_theme_constant_override("separation", 6)
+	panel.add_child(mission_box)
+	mission_panel = panel
+	add_child(_corner(panel, Control.SIZE_SHRINK_END, Control.SIZE_SHRINK_BEGIN))
+
+	# bottom middle: pause and the creature screen
+	var mid := HBoxContainer.new()
+	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mid.add_theme_constant_override("separation", 18)
 	var pause_btn := Button.new()
 	pause_btn.text = "⏸"
-	pause_btn.custom_minimum_size = Vector2(76, 64)
+	pause_btn.custom_minimum_size = Vector2(96, 56)
 	pause_btn.focus_mode = Control.FOCUS_NONE
 	pause_btn.pressed.connect(_on_pause)
-	bar.add_child(pause_btn)
-	score_label = Label.new()
-	score_label.add_theme_font_size_override("font_size", 38)
-	score_label.add_theme_color_override("font_color", MINE.lerp(Color.WHITE, 0.7))
-	score_label.add_theme_color_override("font_outline_color", Color(MINE, 0.5))
-	score_label.add_theme_constant_override("outline_size", 8)
-	score_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar.add_child(score_label)
-	size_label = Label.new()
-	size_label.custom_minimum_size = Vector2(150, 64)
-	size_label.add_theme_font_size_override("font_size", 22)
-	size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	size_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	size_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar.add_child(size_label)
+	mid.add_child(pause_btn)
+	info_btn = Button.new()
+	info_btn.text = "🧬"
+	info_btn.custom_minimum_size = Vector2(96, 56)
+	info_btn.focus_mode = Control.FOCUS_NONE
+	info_btn.pressed.connect(_open_info)
+	mid.add_child(info_btn)
+	add_child(_corner(mid, Control.SIZE_SHRINK_CENTER, Control.SIZE_SHRINK_END))
+
+	screens = Screens.new()
+	screens.closed.connect(_on_screens_closed)
+	screens.home_pressed.connect(_go_home)
+	screens.sfx.connect(_sfx)
+	add_child(screens)
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _new_game},
@@ -116,29 +279,71 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": MINE,
-		"subtitle": "Eat to grow. Don't get eaten.",
+		"subtitle": "Eat to grow. Evolve. Don't get eaten.",
 		"logo": _draw_home_logo,
-		"modes": [{"text": "▶  " + tr("Play"), "sub": "Start as a tiny cell and eat your way up", "action": _new_game}],
+		"extra": _add_options,
+		"modes": [
+			{"text": "Easy", "key": "easy", "row": "diff", "action": _start_run.bind("easy")},
+			{"text": "Normal", "key": "normal", "row": "diff", "action": _start_run.bind("normal")},
+			{"text": "Hard", "key": "hard", "row": "diff", "action": _start_run.bind("hard")},
+		],
 		"restart": _new_game,
 		"board": "Best score",
 	})
 	add_child(home)
 	if info:
 		add_child(info)
+	_update_hud()
+
+## The setup screen's own picker: the cell's primary colour, with a live preview.
+func _add_options(body: VBoxContainer) -> void:
+	body.add_child(home.section("Your colour"))
+	_preview = Control.new()
+	_preview.custom_minimum_size = Vector2(0, 150)
+	_preview.draw.connect(_draw_preview)
+	body.add_child(_preview)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	body.add_child(row)
+	_swatches.clear()
+	for i in Data.COLORS.size():
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(64, 64)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.focus_mode = Control.FOCUS_NONE
+		b.tooltip_text = tr(Data.COLORS[i][0])
+		b.pressed.connect(_pick_color.bind(i))
+		row.add_child(b)
+		_swatches.append(b)
+	_style_swatches()
+
+func _style_swatches() -> void:
+	for i in _swatches.size():
+		var sel: bool = i == int(prefs.color)
+		for st in ["normal", "hover", "pressed", "focus"]:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Data.COLORS[i][1]
+			sb.set_corner_radius_all(10)
+			sb.set_border_width_all(6 if sel else 2)
+			sb.border_color = Color.WHITE if sel else Color(1, 1, 1, 0.3)
+			_swatches[i].add_theme_stylebox_override(st, sb)
+	if _preview:
+		_preview.queue_redraw()
+
+func _pick_color(i: int) -> void:
+	prefs.color = i
+	color = Data.COLORS[i][1]
+	_save_prefs()
+	_style_swatches()
+
+func _draw_preview() -> void:
+	if _preview == null:
+		return
+	var s := _preview.size
+	var r := minf(s.y * 0.36, 58.0)
+	Art.draw_player(_preview, s / 2.0 + Vector2(r * 0.7, 0), r, color, 0.0, 1.3, {"move_rank": 0, "sight_rank": 1, "owned": {}, "speed": 0.0, "voodoo": voodoo})
 
 # ---------- input ----------
-
-func _on_field_input(event: InputEvent) -> void:
-	# Phones send touch AND emulated mouse; the mouse copy is the one handled.
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		joy_active = event.pressed
-		joy_origin = event.position
-		joy_pos = event.position
-	elif event is InputEventMouseMotion and joy_active:
-		joy_pos = event.position
-		var off := joy_pos - joy_origin
-		if off.length() > JOY_RADIUS:
-			joy_origin = joy_pos - off.normalized() * JOY_RADIUS  # floating base follows
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and not event.echo:
@@ -151,33 +356,70 @@ func _unhandled_input(event: InputEvent) -> void:
 				keys.y = -1.0 if event.pressed else (0.0 if keys.y < 0.0 else keys.y)
 			KEY_DOWN, KEY_S:
 				keys.y = 1.0 if event.pressed else (0.0 if keys.y > 0.0 else keys.y)
+			KEY_SPACE, KEY_1:
+				if event.pressed:
+					_on_ability(0)
+			KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7:
+				if event.pressed:
+					_on_ability(int(event.keycode) - KEY_1)
+			KEY_TAB, KEY_I:
+				if event.pressed and started:
+					_open_info()
+			KEY_ESCAPE:
+				if screens.visible:
+					screens.close()
+					_on_screens_closed()
 
 func _direction() -> Vector2:
-	if joy_active:
-		return ((joy_pos - joy_origin) / JOY_RADIUS).limit_length(1.0)
+	if controls.dir.length() > 0.0:
+		return controls.dir
 	return keys.limit_length(1.0)
+
+func _on_ability(i: int) -> void:
+	var ids: Array = engine.active_list()
+	if not started or screens.visible or i < 0 or i >= ids.size():
+		return
+	if engine.use_ability(ids[i]):
+		_sfx("powerup")
+	else:
+		_sfx("tick")
 
 # ---------- game flow ----------
 
+func _start_run(d: String) -> void:
+	diff = d
+	prefs["diff"] = d
+	_save_prefs()
+	_new_game()
+
 func _new_game() -> void:
-	engine.reset()
+	vis_r = field.size.y * Data.SIGHT_FRAC[0]
+	zoom = 1.0
+	_apply_view(1.0, true)
+	engine.reset(-1, diff)
 	started = true
 	result_sent = false
-	zoom = EvEngine.zoom_for(engine.player.mass)
 	particles.clear()
+	banners.clear()
 	bump = 0.0
 	hurt = 0.0
-	stage = 0
-	stage_banner_t = 0.0
-	joy_active = false
+	lurch = 0.0
+	heading = 0.0
+	eye_open = 1.0
+	tail_grow = 1.0
+	_mission_sig = ""
+	controls.release()
+	screens.close()
 	end_dialog.visible = false
 	_update_hud()
+	_banner(tr("Move around: you can't see much yet."))
 
 func _process(delta: float) -> void:
-	if not started:
+	pulse += delta
+	if not started or screens.visible:
 		return
 	delta = minf(delta, 0.05)
-	pulse += delta
+	_apply_view(delta)
 	var food_before: int = engine.eaten_food
 	engine.step(delta, _direction())
 	if engine.eaten_food > food_before and engine.eaten_food % 3 == 0:
@@ -185,33 +427,53 @@ func _process(delta: float) -> void:
 	_handle_events()
 	_update_particles(delta)
 	_check_danger()
-	stage_banner_t = maxf(0.0, stage_banner_t - delta)
-	var si: int = EvEngine.stage_index(engine.player.mass)
-	if si > stage:
-		stage_banner = tr(EvEngine.STAGES[si][1])
-		stage_banner_t = 2.2
-		_sfx("powerup")
-	stage = si
-	zoom = lerpf(zoom, EvEngine.zoom_for(engine.player.mass), clampf(ZOOM_SMOOTH * delta, 0.0, 1.0))
+	_animate(delta)
 	_update_hud()
 	if not engine.alive:
 		_game_over()
 	field.queue_redraw()
+	fx.queue_redraw()
+
+## Vision radius (the rings of the target picture), camera zoom, and what the engine may spawn near.
+func _apply_view(delta: float, snap: bool = false) -> void:
+	var s := field.size
+	if s.x < 10.0:
+		s = size
+	var target: float = s.y * Data.SIGHT_FRAC[clampi(engine.sight_rank - 1, 0, Data.SIGHT_FRAC.size() - 1)]
+	var k := 1.0 if snap else clampf(VISION_SMOOTH * delta, 0.0, 1.0)
+	vis_r = lerpf(vis_r, target, k)
+	var tz := EvEngine.zoom_for(engine.player.mass)
+	zoom = tz if snap else lerpf(zoom, tz, clampf(ZOOM_SMOOTH * delta, 0.0, 1.0))
+	var half_diag := s.length() * 0.5
+	engine.vision_r = vis_r / maxf(zoom, 0.05)
+	engine.view_r = minf(vis_r, half_diag) / maxf(zoom, 0.05)
+
+func _animate(delta: float) -> void:
+	lurch = maxf(lurch - delta * 3.0, 0.0)
+	eye_open = minf(eye_open + delta * 0.6, 1.0)
+	tail_grow = minf(tail_grow + delta * 0.9, 1.0)
+	if engine.player.vel.length() > 8.0:
+		heading = lerp_angle(heading, engine.player.vel.angle(), clampf(10.0 * delta, 0.0, 1.0))
+	if banners.size() > 0:
+		banners[0].t -= delta
+		if banners[0].t <= 0.0:
+			banners.pop_front()
+
+func _banner(text: String) -> void:
+	banners.append({"text": text, "t": 2.6})
 
 ## Raises the red edge warning while a hunter is close.
 func _check_danger() -> void:
+	if not engine.has_bars():
+		return
 	for n in engine.npcs:
-		if EvEngine.can_eat(n.mass, engine.player.mass) and n.pos.distance_to(engine.player.pos) < 420.0 + EvEngine.radius_of(n.mass) * 2.0:
-			hurt = 1.0
+		if n.role == "hunter" and EvEngine.can_eat(n.mass, engine.player.mass) and n.pos.distance_to(engine.player.pos) < 420.0 + EvEngine.radius_of(n.mass) * 2.0:
+			hurt = maxf(hurt, 0.6)
 			return
-
-func _update_hud() -> void:
-	score_label.text = str(engine.score())
-	size_label.text = tr(EvEngine.STAGES[EvEngine.stage_index(engine.player.mass)][1]) + "\n" + tr("Size %d") % int(engine.player.mass)
 
 func _game_over() -> void:
 	started = false
-	joy_active = false
+	controls.release()
 	_sfx("explode")
 	var msg := tr("You were eaten!") + "\n" + tr("Score: %d") % engine.score() + "   ·   " + tr("Size %d") % int(engine.peak_mass)
 	if info and not result_sent:
@@ -219,6 +481,7 @@ func _game_over() -> void:
 		info.add("Games played")
 		info.add("Cells eaten", engine.eaten_cells)
 		info.add("Food eaten", engine.eaten_food)
+		info.add("Missions done", engine.missions_done)
 		info.high("Biggest size", int(engine.peak_mass))
 		if info.high("Best score", engine.score()):
 			msg += "\n" + tr("New best!")
@@ -226,13 +489,86 @@ func _game_over() -> void:
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
 
+# ---------- HUD ----------
+
+func _update_hud() -> void:
+	if engine == null:
+		return
+	var e = engine
+	bars_panel.visible = e.has_bars()
+	if e.has_bars():
+		hp_bar.value = e.player.hp / e.max_hp()
+		xp_bar.value = e.xp_frac()
+		sp_row.visible = e.has_actives()
+		sp_bar.value = e.power_frac()
+		stage_label.text = tr(EvEngine.STAGES[e.stage()][1]) + "  ·  " + tr("Size %d") % int(e.player.mass)
+		var lines: Array = []
+		for id in e.ailments.keys():
+			lines.append("☠ " + tr(Data.AILMENTS[id].name))
+		status_label.text = "\n".join(lines)
+	var ids: Array = e.active_list()
+	var fills: Array = []
+	for id in ids:
+		fills.append(clampf(e.power / e.ability_cost(id), 0.0, 1.0))
+	controls.set_slots(ids, fills)
+	info_btn.visible = e.has_bars()
+	info_btn.text = "🧬 %d" % e.dna if e.dna > 0 else "🧬"
+	_update_missions()
+
+func _update_missions() -> void:
+	var rows: Array = engine.mission_rows()
+	var sig := ""
+	for r in rows:
+		sig += "%s|%d|%d|%s;" % [r.text, r.prog, r.target, str(r.done)]
+	if sig == _mission_sig:
+		return
+	_mission_sig = sig
+	for ch in mission_box.get_children():
+		mission_box.remove_child(ch)
+		ch.queue_free()
+	mission_panel.visible = not rows.is_empty()
+	var head := Label.new()
+	head.text = tr("Missions")
+	head.add_theme_font_size_override("font_size", 20)
+	head.add_theme_color_override("font_color", Color("ffd479"))
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mission_box.add_child(head)
+	for r in rows:
+		var l := Label.new()
+		var text: String = tr(r.text)
+		if r.args.size() > 0:
+			var args: Array = []
+			for a in r.args:
+				args.append(tr(a) if typeof(a) == TYPE_STRING else a)
+			text = text % args
+		var tail := ""
+		if r.kind != "mass" and r.target > 1:
+			tail = "  (%d/%d)" % [r.prog, r.target]
+		var reward: String = {"tail": "  ➜ " + tr("tail"), "eye": "  ➜ " + tr("eye"), "size": "  ➜ " + tr("size"), "dna": "  ➜ 🧬", "none": ""}.get(r.reward, "")
+		l.text = ("✔ " if r.done else "▸ ") + text + tail + reward
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(260, 0)
+		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_color_override("font_color", Color(1, 1, 1, 0.5) if r.done else Color.WHITE)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mission_box.add_child(l)
+
+func _open_info() -> void:
+	if screens.visible or not started or not engine.has_bars():
+		return
+	controls.release()
+	screens.open_info(engine, color, voodoo)
+
+func _on_screens_closed() -> void:
+	controls.release()
+
 # ---------- effects ----------
 
-func _spawn_burst(p: Vector2, col: Color, n: int, speed: float, size: float, ring_r: float) -> void:
+func _spawn_burst(p: Vector2, col: Color, n: int, speed: float, size_: float, ring_r: float) -> void:
 	for i in n:
 		var a := randf() * TAU
 		particles.append({"pos": p, "vel": Vector2.RIGHT.rotated(a) * randf_range(0.3, 1.0) * speed,
-			"life": randf_range(0.4, 0.9), "max": 0.9, "col": col, "size": size * randf_range(0.6, 1.2), "ring": 0.0})
+			"life": randf_range(0.4, 0.9), "max": 0.9, "col": col, "size": size_ * randf_range(0.6, 1.2), "ring": 0.0})
 	if ring_r > 0.0:
 		particles.append({"pos": p, "vel": Vector2.ZERO, "life": 0.5, "max": 0.5, "col": col, "size": 0.0, "ring": ring_r})
 
@@ -241,14 +577,60 @@ func _handle_events() -> void:
 		match ev.type:
 			"food":
 				_spawn_burst(ev.pos, FOOD[int(ev.pos.x) % FOOD.size()], 3, 70.0, 3.0, 0.0)
-				bump = maxf(bump, 0.04)
+				bump = maxf(bump, 0.03)
 			"cell":
-				var r: float = EvEngine.radius_of(ev.mass)
-				_spawn_burst(ev.pos, PREY, 14, 220.0, 5.0, r * 1.6)
-				bump = 0.16
+				var sp := Data.species_of(ev.species)
+				_spawn_burst(ev.pos, sp.col, 14, 220.0, 5.0, EvEngine.radius_of(ev.mass) * 1.6)
+				bump = 0.1
 				_sfx("pickup")
+			"jolt":
+				lurch = 1.0
+				_spawn_burst(engine.player.pos - ev.dir * EvEngine.radius_of(engine.player.mass), color, 4, 90.0, 3.0, 0.0)
+			"tail":
+				tail_grow = 0.0
+				_banner(tr("A tail grows! You swim faster."))
+				_sfx("powerup")
+			"eye":
+				eye_open = 0.0
+				_banner(tr("An eye opens! You can see farther."))
+				_sfx("powerup")
+			"mission":
+				_banner(tr("Mission complete!"))
+				_sfx("pickup")
+			"grow":
+				_banner(tr("You grew a size!"))
+				bump = 0.25
+			"dna":
+				_banner(tr("+1 DNA point: spend it on the 🧬 screen."))
+			"seen":
+				if ev.role == "hunter":
+					_banner(tr("A hunter! Keep away."))
+				elif ev.role == "toxic":
+					_banner(tr("Toxic creature: don't eat it."))
+				elif ev.role == "rare":
+					_banner(tr("Something rare!"))
+			"ailment":
+				_banner(tr("Poisoned: %s") % tr(Data.AILMENTS[ev.id].name))
+				_sfx("explode")
+			"rare":
+				_banner(tr("Rare trait: %s") % tr(str(ev.name)))
+				_spawn_burst(engine.player.pos, Color("ffd23f"), 24, 260.0, 5.0, EvEngine.radius_of(engine.player.mass) * 2.0)
+				_sfx("powerup")
+			"hurt":
+				hurt = 1.0
+				_sfx("tick")
+			"dash":
+				_spawn_burst(ev.pos, color, 10, 300.0, 4.0, 0.0)
+			"spit", "ink", "lure", "camo":
+				_sfx("tick")
+			"spit_hit":
+				_spawn_burst(ev.pos, Color("9bff5a"), 8, 140.0, 4.0, 0.0)
+			"shock":
+				var shock_col := Color("7be0ff") if ev.id == "shock" else Color("ffffff")
+				_spawn_burst(ev.pos, shock_col, 24, 420.0, 4.0, ev.radius)
+				_sfx("explode")
 			"death":
-				_spawn_burst(ev.pos, MINE, 46, 420.0, 7.0, EvEngine.radius_of(engine.player.mass) * 2.2)
+				_spawn_burst(ev.pos, color, 46, 420.0, 7.0, EvEngine.radius_of(engine.player.mass) * 2.2)
 
 func _update_particles(delta: float) -> void:
 	for p in particles:
@@ -270,20 +652,30 @@ static func _h(x: int, y: int, k: int) -> float:
 	n = ((n ^ (n >> 13)) * 1274126177) & 0x7FFFFFFF
 	return float((n ^ (n >> 16)) & 0xFFFF) / 65535.0
 
+func _player_state() -> Dictionary:
+	return {
+		"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": eye_open, "tail_grow": tail_grow,
+		"owned": engine.owned, "specials": engine.specials, "ailments": engine.ailments,
+		"speed": clampf(engine.player.vel.length() / 300.0, 0.0, 1.0), "voodoo": voodoo,
+		"dash": engine.dash_t > 0.0, "lurch": lurch,
+	}
+
 func _draw_field() -> void:
 	var s := field.size
 	field.draw_rect(Rect2(Vector2.ZERO, s), BG)
 	if engine == null:
 		return
+	_update_overlay(s)
 	_draw_background(s)
-	var a: float = EvEngine.TUNING.arena
-	_draw_arena_edge(s, a)
+	_draw_surface(s)
+	var c := s / 2.0
+	var lim := vis_r * 1.3
 	var margin := 40.0
 	# Food: glowing spores that breathe.
 	var fr: float = maxf(EvEngine.radius_of(EvEngine.TUNING.food_mass) * zoom, 3.0)
 	for i in engine.food.size():
 		var sp := _w2s(engine.food[i])
-		if sp.x < -margin or sp.y < -margin or sp.x > s.x + margin or sp.y > s.y + margin:
+		if sp.x < -margin or sp.y < -margin or sp.x > s.x + margin or sp.y > s.y + margin or sp.distance_to(c) > lim:
 			continue
 		var col: Color = FOOD[i % FOOD.size()]
 		var br := 1.0 + 0.18 * sin(pulse * 3.0 + float(i) * 1.7)
@@ -291,21 +683,26 @@ func _draw_field() -> void:
 		field.draw_circle(sp, fr * 2.0 * br, Color(col, 0.16))
 		field.draw_circle(sp, fr * br, col)
 		field.draw_circle(sp - Vector2(fr, fr) * 0.25, fr * 0.35, Color(1, 1, 1, 0.8))
-	# Other cells, small first so big ones cover them.
+	# Other creatures, small first so big ones cover them.
 	var pm: float = engine.player.mass
+	var ratio: float = engine.eat_ratio()
 	var list: Array = engine.npcs.duplicate()
 	list.sort_custom(_by_mass)
 	for n in list:
 		var sp2 := _w2s(n.pos)
 		var r: float = EvEngine.radius_of(n.mass) * zoom
-		if sp2.x < -r * 2.0 - margin or sp2.y < -r * 2.0 - margin or sp2.x > s.x + r * 2.0 + margin or sp2.y > s.y + r * 2.0 + margin:
+		if sp2.x < -r * 2.0 - margin or sp2.y < -r * 2.0 - margin or sp2.x > s.x + r * 2.0 + margin or sp2.y > s.y + r * 2.0 + margin or sp2.distance_to(c) > lim + r:
 			continue
 		var kind := "equal"
-		if EvEngine.can_eat(pm, n.mass):
+		if n.role == "toxic" or n.role == "rare":
+			kind = n.role
+		elif EvEngine.can_eat(pm, n.mass, ratio):
 			kind = "prey"
 		elif EvEngine.can_eat(n.mass, pm):
 			kind = "hunter"
-		_draw_cell(field, sp2, r, kind, n.vel, int(n.get("id", 0)), pulse)
+		var hd: float = n.vel.angle() if n.vel.length() > 4.0 else n.wander.angle()
+		Art.draw_halo(field, sp2, r, kind, pulse)
+		Art.draw_creature(field, sp2, r, Data.species_of(n.species), hd, pulse, float(int(n.id) % 97) * 1.37, voodoo)
 	# Effects under the player's own cell
 	for p in particles:
 		var a2: float = clampf(p.life / p.max, 0.0, 1.0)
@@ -315,20 +712,42 @@ func _draw_field() -> void:
 			field.draw_arc(pp, rr, 0.0, TAU, 40, Color(p.col, a2 * 0.7), 3.0, true)
 		else:
 			field.draw_circle(pp, p.size * zoom + 1.0, Color(p.col, a2))
+	# Ability effects: the ink cloud, acid shots, the lure's glow.
+	if engine.ink_t > 0.0:
+		var ir: float = engine.ability_radius("ink") * zoom
+		var ic := _w2s(engine.ink_pos)
+		for q in 7:
+			var off := Vector2.RIGHT.rotated(float(q) * 0.9 + pulse * 0.2) * ir * 0.45
+			field.draw_circle(ic + off, ir * (0.55 + 0.05 * sin(pulse + float(q))), Color(0.25, 0.15, 0.4, 0.28 * minf(engine.ink_t, 1.0)))
+	for sh in engine.shots:
+		var sp3 := _w2s(sh.pos)
+		field.draw_circle(sp3, 10.0 * zoom + 3.0, Color("9bff5a", 0.25))
+		field.draw_circle(sp3, 5.0 * zoom + 2.0, Color("c8ff8a"))
 	if engine.alive:
 		var pr: float = EvEngine.radius_of(pm) * zoom * (1.0 + bump)
-		_draw_cell(field, s / 2.0, pr, "player", engine.player.vel, 0, pulse)
-	_draw_hunter_arrows(s, pm)
-	_draw_vignette(s)
-	if joy_active:
-		field.draw_arc(joy_origin, JOY_RADIUS, 0.0, TAU, 48, Color(1, 1, 1, 0.16), 3.0, true)
-		field.draw_arc(joy_origin, JOY_RADIUS * 0.55, 0.0, TAU, 40, Color(1, 1, 1, 0.07), 2.0, true)
-		var knob := joy_origin + (joy_pos - joy_origin).limit_length(JOY_RADIUS)
-		field.draw_circle(knob, 40.0, Color(MINE, 0.18))
-		field.draw_circle(knob, 28.0, Color(MINE, 0.5))
-	if stage_banner_t > 0.0:
-		var al := clampf(stage_banner_t, 0.0, 1.0)
-		HomeKit.glow_text(field, Vector2(s.x / 2.0, s.y * 0.22), stage_banner, 44, Color(MINE, al))
+		if engine.lure_t > 0.0:
+			var tip := c + Vector2.RIGHT.rotated(heading) * pr * 2.1
+			field.draw_line(c + Vector2.RIGHT.rotated(heading) * pr * 0.8, tip, Color(color, 0.8), maxf(pr * 0.08, 2.0), true)
+			var lg := 1.0 + 0.2 * sin(pulse * 6.0)
+			field.draw_circle(tip, pr * 0.5 * lg, Color(1, 0.95, 0.5, 0.9))
+			field.draw_circle(tip, pr * 1.2 * lg, Color(1, 0.95, 0.5, 0.18))
+			field.draw_arc(c, engine.ability_radius("lure") * zoom, 0.0, TAU, 64, Color(1, 0.95, 0.5, 0.12), 2.0, true)
+		Art.draw_player(field, c, pr, color, heading, pulse, _player_state())
+		if engine.camo_t > 0.0:
+			field.draw_circle(c, pr * 1.15, Color(BG, 0.55))
+			field.draw_arc(c, pr * 1.3, 0.0, TAU, 24, Color(1, 1, 1, 0.3), 2.0, true)
+
+func _update_overlay(s: Vector2) -> void:
+	var mat := overlay.material as ShaderMaterial
+	if mat == null:
+		return
+	mat.set_shader_parameter("center", s / 2.0)
+	mat.set_shader_parameter("rect_size", s)
+	mat.set_shader_parameter("radius", vis_r)
+	var blur: float = Data.BLUR[engine.clarity()]
+	if engine.sight_rank <= 1:
+		blur += 0.9
+	mat.set_shader_parameter("blur", blur)
 
 static func _by_mass(x, y) -> bool:
 	return x.mass < y.mass
@@ -369,196 +788,101 @@ func _draw_background(s: Vector2) -> void:
 				var tw := 0.6 + 0.4 * sin(pulse * 1.5 + _h(ix, iy, 8) * 9.0)
 				field.draw_circle(sp2, L[2] * (0.6 + _h(ix, iy, 9)) * maxf(zoom, 0.5), Color(0.55, 0.9, 1.0, L[3] * tw))
 
-func _draw_arena_edge(s: Vector2, a: float) -> void:
-	var tl := _w2s(Vector2.ZERO)
-	var br := _w2s(Vector2(a, a))
-	var dead := Color(0.0, 0.0, 0.0, 0.62)
-	# Darken everything outside the pond.
-	field.draw_rect(Rect2(Vector2(-10, -10), Vector2(maxf(tl.x + 10, 0.0), s.y + 20)), dead)
-	field.draw_rect(Rect2(Vector2(br.x, -10), Vector2(maxf(s.x - br.x + 10, 0.0), s.y + 20)), dead)
-	field.draw_rect(Rect2(Vector2(tl.x, -10), Vector2(br.x - tl.x, maxf(tl.y + 10, 0.0))), dead)
-	field.draw_rect(Rect2(Vector2(tl.x, br.y), Vector2(br.x - tl.x, maxf(s.y - br.y + 10, 0.0))), dead)
-	var edge := HUNTER if not voodoo else Color("9b4dff")
-	var glow := 0.5 + 0.2 * sin(pulse * 2.0)
-	field.draw_rect(Rect2(tl, br - tl), Color(edge, 0.12 * glow), false, 14.0 * zoom + 4.0)
-	field.draw_rect(Rect2(tl, br - tl), Color(edge, 0.9), false, 3.0)
-
-func _draw_vignette(s: Vector2) -> void:
-	var d := Color(0, 0, 0, 0.55)
-	var z := Color(0, 0, 0, 0)
-	var w := minf(s.x, s.y) * 0.28
-	field.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(s.x, 0), Vector2(s.x, w), Vector2(0, w)]), PackedColorArray([d, d, z, z]))
-	field.draw_polygon(PackedVector2Array([Vector2(0, s.y), Vector2(s.x, s.y), Vector2(s.x, s.y - w), Vector2(0, s.y - w)]), PackedColorArray([d, d, z, z]))
-	if hurt > 0.0:
-		var h := Color(HUNTER, 0.22 * hurt)
-		field.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, s.y), Vector2(0, s.y)]), PackedColorArray([h, z, z, h]))
-		field.draw_polygon(PackedVector2Array([Vector2(s.x, 0), Vector2(s.x - w, 0), Vector2(s.x - w, s.y), Vector2(s.x, s.y)]), PackedColorArray([h, z, z, h]))
-
-## Edge arrows toward hunters that are close but off screen; a close hunter
-## also raises the red screen-edge warning.
-func _draw_hunter_arrows(s: Vector2, pm: float) -> void:
-	var c := s / 2.0
-	for n in engine.npcs:
-		if not EvEngine.can_eat(n.mass, pm):
-			continue
-		var d: Vector2 = n.pos - engine.player.pos
-		var sp := _w2s(n.pos)
-		var r: float = EvEngine.radius_of(n.mass) * zoom
-		var on_screen := sp.x > -r and sp.y > -r and sp.x < s.x + r and sp.y < s.y + r
-		var dist := d.length()
-		if on_screen or dist > 1500.0 / maxf(zoom, 0.3):
-			continue
-		var dir := d.normalized()
-		var edge := c + dir * minf(s.x, s.y) * 0.44
-		edge = Vector2(clampf(edge.x, 44.0, s.x - 44.0), clampf(edge.y, 90.0, s.y - 44.0))
-		var al := clampf(1.2 - dist * zoom / 1500.0, 0.25, 1.0)
-		var perp := dir.orthogonal()
-		var pts := PackedVector2Array([edge + dir * 18.0, edge - dir * 10.0 + perp * 12.0, edge - dir * 10.0 - perp * 12.0])
-		field.draw_colored_polygon(pts, Color(HUNTER, 0.35 * al))
-		pts.append(pts[0])
-		field.draw_polyline(pts, Color(HUNTER, al), 2.5, true)
-
-## One cell: wobbling membrane, inner glow, nucleus, organelles, eyes.
-## kind: player / prey / hunter / equal. `ci` is any CanvasItem (the logo reuses it).
-func _draw_cell(ci: CanvasItem, c: Vector2, r: float, kind: String, vel: Vector2, seed_: int, t: float) -> void:
-	if r < 1.5:
+## The surface of the water: the only edge of the pond (sides and depth never end).
+func _draw_surface(s: Vector2) -> void:
+	var sy := _w2s(Vector2.ZERO).y
+	if sy < -30.0:
 		return
-	var col: Color = MINE
-	match kind:
-		"prey":
-			col = PREY
-		"hunter":
-			col = HUNTER
-		"equal":
-			col = EQUAL
-	var sd := float(seed_) * 1.37
-	var spd := clampf(vel.length() / 300.0, 0.0, 1.0)
-	var heading := vel.angle() if vel.length() > 5.0 else 0.0
-	if kind == "player" and vel.length() <= 5.0:
-		heading = -PI / 2.0
-	var sides := 36 if r > 24.0 else 20
+	var lit := Color("5fb4d8") if not voodoo else Color("b57dff")
+	var dark := Color("0b1522") if not voodoo else Color("14081f")
+	# the air above
+	field.draw_polygon(PackedVector2Array([Vector2(0, -10), Vector2(s.x, -10), Vector2(s.x, sy), Vector2(0, sy)]), PackedColorArray([dark, dark, lit, lit]))
+	# light rays under the surface
+	for i in 9:
+		var x := fposmod(float(i) * s.x / 8.0 + engine.player.pos.x * 0.05 * zoom + sin(pulse * 0.3 + float(i)) * 30.0, s.x + 200.0) - 100.0
+		var wdt := (50.0 + 30.0 * float(i % 3)) * zoom
+		field.draw_polygon(PackedVector2Array([Vector2(x - wdt * 0.2, sy), Vector2(x + wdt * 0.2, sy), Vector2(x + wdt * 1.6, sy + 520.0 * zoom), Vector2(x - wdt * 1.2, sy + 520.0 * zoom)]),
+			PackedColorArray([Color(lit, 0.10), Color(lit, 0.10), Color(lit, 0.0), Color(lit, 0.0)]))
+	# the wavy line
 	var pts := PackedVector2Array()
-	for i in sides:
-		var ang := TAU * float(i) / float(sides)
-		var k := 1.0 + 0.035 * sin(ang * 3.0 + t * 2.2 + sd) + 0.025 * sin(ang * 5.0 - t * 3.1 + sd * 1.7)
-		var along := cos(ang - heading)
-		k *= 1.0 + 0.10 * spd * along - 0.04 * spd * (1.0 - absf(along))
-		if kind == "hunter" and i % 3 == 0:
-			k *= 1.2  # spikes
-		pts.append(c + Vector2.RIGHT.rotated(ang) * r * k)
-	var closed := pts.duplicate()
-	closed.append(pts[0])
-	if voodoo:
-		_draw_cell_voodoo(ci, c, r, col, pts, closed, heading, kind, t, sd)
-		return
-	# Tail (flagellum) for the player and prey, trailing behind.
-	if kind == "player" or kind == "prey":
-		var tail := PackedVector2Array()
-		var back := Vector2.RIGHT.rotated(heading + PI)
-		var side := back.orthogonal()
-		var tail_len := r * (1.5 if kind == "player" else 1.0)
-		for j in 12:
-			var f := float(j) / 11.0
-			tail.append(c + back * (r * 0.9 + tail_len * f) + side * sin(t * 9.0 - f * 5.0 + sd) * r * 0.22 * f)
-		ci.draw_polyline(tail, Color(col, 0.55), maxf(r * 0.08, 1.5), true)
-	# Soft halo
-	ci.draw_circle(c, r * 1.9, Color(col, 0.05))
-	ci.draw_circle(c, r * 1.45, Color(col, 0.09))
-	# Body: dark base, tinted body, bright core
-	ci.draw_colored_polygon(pts, Color(col.darkened(0.7), 0.88))
-	var inner := PackedVector2Array()
-	for p in pts:
-		inner.append(c + (p - c) * 0.82)
-	ci.draw_colored_polygon(inner, Color(col, 0.30 if kind != "player" else 0.42))
-	var core := PackedVector2Array()
-	for p in pts:
-		core.append(c + (p - c) * 0.45 + Vector2(-r * 0.06, -r * 0.08))
-	ci.draw_colored_polygon(core, Color(col.lightened(0.35), 0.22))
-	# Organelles (slowly orbiting dots)
-	if r > 14.0:
-		for j in 6:
-			var oa := sd + float(j) * 1.05 + t * 0.25 * (1.0 if j % 2 == 0 else -1.0)
-			var orad := r * (0.35 + 0.35 * fmod(float(j) * 0.37 + sd * 0.11, 1.0))
-			ci.draw_circle(c + Vector2.RIGHT.rotated(oa) * orad, r * (0.045 + 0.02 * float(j % 3)), Color(col.lightened(0.4), 0.55))
-	# Membrane
-	ci.draw_polyline(closed, Color(col, 0.35), maxf(r * 0.12, 3.0), true)
-	ci.draw_polyline(closed, col.lightened(0.25), maxf(r * 0.05, 1.8), true)
-	# Cilia hairs on equal/prey cells
-	if kind != "hunter" and kind != "player" and r > 12.0:
-		for i in range(0, sides, 2):
-			var dir := (pts[i] - c).normalized()
-			var wav := sin(t * 6.0 + float(i) + sd) * 0.25
-			ci.draw_line(pts[i], pts[i] + dir.rotated(wav) * r * 0.16, Color(col, 0.7), maxf(r * 0.02, 1.0), true)
-	# Nucleus
-	var look := Vector2.RIGHT.rotated(heading) * r * 0.10 * (0.4 + spd)
-	var nuc := c - look * 0.3
-	ci.draw_circle(nuc, r * 0.30, Color(col.darkened(0.45), 0.85))
-	ci.draw_arc(nuc, r * 0.30, 0.0, TAU, 24, Color(col.lightened(0.3), 0.8), maxf(r * 0.03, 1.2), true)
-	ci.draw_circle(nuc - Vector2(r * 0.08, r * 0.08), r * 0.07, Color(1, 1, 1, 0.5))
-	_draw_eyes(ci, c, r, heading, kind, col)
+	var step := 20.0
+	var xs := -step
+	while xs <= s.x + step:
+		pts.append(Vector2(xs, sy + sin(xs * 0.03 + pulse * 1.6 + engine.player.pos.x * 0.02 * zoom) * 3.5 * zoom + sin(xs * 0.011 - pulse * 0.9) * 2.0))
+		xs += step
+	field.draw_polyline(pts, Color(lit, 0.25), 12.0, true)
+	field.draw_polyline(pts, Color(0.85, 0.97, 1.0, 0.95), 3.0, true)
 
-func _draw_eyes(ci: CanvasItem, c: Vector2, r: float, heading: float, kind: String, col: Color) -> void:
-	if r < 9.0:
-		return
-	var fwd := Vector2.RIGHT.rotated(heading)
-	var side := fwd.orthogonal()
-	var base := c + fwd * r * 0.38
-	var er := r * (0.17 if kind != "hunter" else 0.15)
-	for sgn in [-1.0, 1.0]:
-		var ep: Vector2 = base + side * sgn * r * 0.26
-		ci.draw_circle(ep, er, Color(1, 1, 1, 0.95))
-		var pup := ep + fwd * er * 0.35
-		ci.draw_circle(pup, er * (0.55 if kind != "prey" else 0.7), Color(0.03, 0.03, 0.08))
-		ci.draw_circle(pup - Vector2(er * 0.15, er * 0.15), er * 0.18, Color.WHITE)
-		if kind == "hunter":
-			# angry brow: low on the inside, high on the outside
-			var brow_in: Vector2 = ep - side * sgn * er * 1.0 + fwd * er * 0.9
-			var brow_out: Vector2 = ep + side * sgn * er * 1.1 + fwd * er * 1.5
-			ci.draw_line(brow_in, brow_out, col.lightened(0.4), maxf(r * 0.05, 1.5), true)
-	if kind == "hunter" and r > 18.0:
-		# jagged mouth
-		var m := c - fwd * r * 0.2
-		var zig := PackedVector2Array()
-		for j in 7:
-			zig.append(m - side * r * 0.3 + side * r * 0.1 * float(j) + fwd * r * (0.07 if j % 2 == 0 else -0.05))
-		ci.draw_polyline(zig, Color(1, 1, 1, 0.9), maxf(r * 0.04, 1.5), true)
-	elif kind == "prey" and r > 18.0:
-		ci.draw_arc(c + fwd * r * 0.02, r * 0.16, 0.2, PI - 0.2, 10, Color(0.03, 0.03, 0.08, 0.8), maxf(r * 0.03, 1.2), true)
+## Above the vision overlay: what the other senses pick up, the red damage edge and the banners.
+func _draw_senses() -> void:
+	var s := fx.size
+	var c := s / 2.0
+	var pm: float = engine.player.mass
+	if engine.has("chemical"):
+		var lim := vis_r * 1.9
+		for f in engine.food:
+			var sp: Vector2 = _w2s(f)
+			var dd := sp.distance_to(c)
+			if dd > vis_r and dd < lim and sp.x > 0.0 and sp.y > 0.0 and sp.x < s.x and sp.y < s.y:
+				fx.draw_circle(sp, 3.0, Color("ffd23f", 0.55))
+		for n in engine.npcs:
+			if n.role == "hunter":
+				continue
+			var sp2: Vector2 = _w2s(n.pos)
+			var d2 := sp2.distance_to(c)
+			if d2 > vis_r and d2 < lim and sp2.x > 0.0 and sp2.y > 0.0 and sp2.x < s.x and sp2.y < s.y:
+				fx.draw_circle(sp2, 6.0, Color("7dff3a", 0.6) if EvEngine.can_eat(pm, n.mass, engine.eat_ratio()) else Color(1, 1, 1, 0.4))
+	if engine.has("listening"):
+		var reach := vis_r * (3.5 if engine.has("radar") else 1.8)
+		for n in engine.npcs:
+			if n.role != "hunter" or not EvEngine.can_eat(n.mass, pm):
+				continue
+			var d: Vector2 = (n.pos - engine.player.pos) * zoom
+			var dist := d.length()
+			if dist < vis_r * 0.95 or dist > reach:
+				continue
+			var dir := d / dist
+			var at := c + dir * minf(minf(s.x, s.y) * 0.44, vis_r * 0.92)
+			var k := 1.0
+			if engine.has("radar"):
+				k = clampf(n.mass / maxf(pm, 1.0) / 1.5, 0.8, 2.4)
+			var al := clampf(1.3 - dist / reach, 0.35, 1.0)
+			var perp := dir.orthogonal()
+			var tri := PackedVector2Array([at + dir * 18.0 * k, at - dir * 10.0 * k + perp * 12.0 * k, at - dir * 10.0 * k - perp * 12.0 * k])
+			fx.draw_colored_polygon(tri, Color("ff4f9a", 0.4 * al))
+			tri.append(tri[0])
+			fx.draw_polyline(tri, Color("ff4f9a", al), 2.5, true)
 
-## Voodoo skin: neon wireframe skull cell.
-func _draw_cell_voodoo(ci: CanvasItem, c: Vector2, r: float, col: Color, pts: PackedVector2Array, closed: PackedVector2Array, heading: float, kind: String, t: float, sd: float) -> void:
-	ci.draw_circle(c, r * 1.6, Color(col, 0.06))
-	ci.draw_colored_polygon(pts, Color(col, 0.14))
-	ci.draw_polyline(closed, Color(col, 0.30), maxf(r * 0.14, 4.0), true)
-	ci.draw_polyline(closed, col, maxf(r * 0.045, 2.0), true)
-	if r < 10.0:
-		return
-	var fwd := Vector2.RIGHT.rotated(heading)
-	var side := fwd.orthogonal()
-	# eye sockets
-	for sgn in [-1.0, 1.0]:
-		var ep: Vector2 = c + fwd * r * 0.12 + side * sgn * r * 0.3
-		ci.draw_circle(ep, r * 0.2, Color(0.02, 0.0, 0.05, 0.95))
-		ci.draw_arc(ep, r * 0.2, 0.0, TAU, 20, col, maxf(r * 0.04, 1.4), true)
-		ci.draw_circle(ep + fwd * r * 0.03, r * 0.06, Color(col.lightened(0.5), 0.6 + 0.4 * sin(t * 4.0 + sd)))
-	# nose + teeth
-	ci.draw_colored_polygon(PackedVector2Array([c - fwd * r * 0.08, c - fwd * r * 0.22 + side * r * 0.06, c - fwd * r * 0.22 - side * r * 0.06]), col)
-	if r > 16.0:
-		ci.draw_line(c - fwd * r * 0.5 - side * r * 0.32, c - fwd * r * 0.5 + side * r * 0.32, col, maxf(r * 0.04, 1.4), true)
-		for j in range(-2, 3):
-			var tp := c - fwd * r * 0.5 + side * r * 0.14 * float(j)
-			ci.draw_line(tp, tp - fwd * r * 0.16, col, maxf(r * 0.03, 1.2), true)
+## Above the vision overlay: the red damage edge and the banners.
+func _draw_fx() -> void:
+	var s := fx.size
+	if engine != null and started:
+		_draw_senses()
+	if hurt > 0.0:
+		var h := Color("ff4f9a")
+		h.a = 0.28 * minf(hurt, 1.0)
+		var z := Color(h, 0.0)
+		var w := minf(s.x, s.y) * 0.28
+		fx.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, s.y), Vector2(0, s.y)]), PackedColorArray([h, z, z, h]))
+		fx.draw_polygon(PackedVector2Array([Vector2(s.x, 0), Vector2(s.x - w, 0), Vector2(s.x - w, s.y), Vector2(s.x, s.y)]), PackedColorArray([h, z, z, h]))
+	if banners.size() > 0:
+		var b: Dictionary = banners[0]
+		var al := clampf(b.t, 0.0, 1.0)
+		HomeKit.glow_text(fx, Vector2(s.x / 2.0, s.y * 0.2), str(b.text), 34, Color(color.lerp(Color.WHITE, 0.4), al))
 
 func _draw_home_logo(c: Control) -> void:
 	var o := c.size / 2.0
 	var k := minf(c.size.y / 3.0, 44.0)
-	for spec in [[Vector2(-2.7, 0.5), 0.6, "prey", 3], [Vector2(2.5, -0.3), 1.35, "hunter", 5], [Vector2(-0.3, 0.0), 1.05, "player", 0]]:
-		_draw_cell(c, o + spec[0] * k, spec[1] * k, spec[2], Vector2(60, 0) if spec[2] != "hunter" else Vector2(-60, 0), spec[3], pulse)
+	Art.draw_halo(c, o + Vector2(-2.7, 0.5) * k, 0.6 * k, "prey", pulse)
+	Art.draw_creature(c, o + Vector2(-2.7, 0.5) * k, 0.6 * k, Data.species_of("bacillus"), 0.4, pulse, 3.0, false)
+	Art.draw_halo(c, o + Vector2(2.5, -0.3) * k, 1.35 * k, "hunter", pulse)
+	Art.draw_creature(c, o + Vector2(2.5, -0.3) * k, 1.35 * k, Data.species_of("corona"), PI, pulse, 5.0, false)
+	Art.draw_player(c, o + Vector2(-0.3, 0.0) * k, 1.05 * k, color, 0.0, pulse, {"move_rank": 2, "sight_rank": 3, "owned": {}, "speed": 0.3, "voodoo": false})
 
 # ---------- pause / skin ----------
 
 func _on_pause() -> void:
-	joy_active = false
+	controls.release()
 	home.pause()
 
 func _go_home() -> void:
@@ -569,6 +893,8 @@ func _set_skin(skin: String) -> void:
 	voodoo = skin == "voodoo"
 	if field:
 		field.queue_redraw()
+	if _preview:
+		_preview.queue_redraw()
 
 func _current_skin() -> String:
 	return "voodoo" if voodoo else "classic"
