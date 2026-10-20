@@ -93,6 +93,26 @@ const TUNING := {
 	"respawn_per_step": 3,
 	"story_grow": 1.25,         # a size-reward mission grows you by this factor
 	"mission_linger": 3.0,
+	# Water: temperature falls with depth (warm at the surface, about 4 °C deep down) and in cold currents
+	# that come and go as you swim sideways. 10 world units = 1 m.
+	"temp_surface": 24.0,
+	"temp_deep": 4.0,
+	"thermo_m": 150.0,          # how fast it gets colder with depth (m)
+	"cold_band": 7.0,           # cold currents: up to this many °C colder
+	"cold_band_len": 6000.0,    # ... repeating every this many world units sideways
+	"min_temp": 8.0,            # coldest water a cell is fine in, without traits (°C)
+	"cold_step": 2.5,           # each point of Antifreeze / Fat layer: this much colder
+	"abyss_cold": 4.0,
+	"max_depth": 200.0,         # deepest a cell is fine at, without traits (m)
+	"pressure_step": 120.0,     # each point of Pressure cells: this much deeper
+	"deep_body_step": 250.0,
+	"abyss_depth": 600.0,
+	"cold_dmg": 0.25,           # hp per second per °C too cold
+	"cold_slow": 0.7,           # you swim this much slower when too cold
+	"deep_dmg": 0.4,            # hp per second when too deep ...
+	"deep_dmg_per100": 0.6,     # ... plus this much per 100 m past your limit
+	"env_dmg_cap": 2.5,
+	"resist_step": 0.2,         # each rank of a resistance cuts its ailment's time by this share (5 = immune)
 }
 
 ## Growth stages: [from mass, name]. Names are translated by the game.
@@ -116,6 +136,11 @@ var owned := {}           # tree node id -> points spent (only ids with 1 or mor
 var slot_ids: Array = ["", "", "", ""]   # the ability on each of the 4 buttons ("" = none)
 var specials := {}        # special trait id -> true
 var ailments := {}        # ailment id -> seconds left
+var ail_full := {}        # ailment id -> how long it lasted when it started (for the HUD's timer bar)
+var ail_count := {}       # ailment id -> times you got it this run (resistances grow from it)
+var too_cold: float = 0.0  # °C colder than you can stand (0 = fine)
+var too_deep: float = 0.0  # m deeper than you can stand (0 = fine)
+var death_cause := ""     # "eaten", "cold" or "deep"
 var move_rank: int = 0    # 0 = jolting, 1.. = tail ranks
 var sight_rank: int = 1   # 1 = blind blob, 2 = first eye, 3.. = wider
 var power: float = 100.0   # the blue bar
@@ -297,6 +322,45 @@ func speed_pct() -> int:
 func top_speed() -> float:
 	return t("player_speed") * move_mult() * size_boost(player.mass)
 
+## Depth below the surface in metres.
+func depth_m() -> float:
+	return maxf(player.pos.y, 0.0) / 10.0
+
+## Water temperature (°C) at a world position.
+static func temp_at(pos: Vector2) -> float:
+	var d := maxf(pos.y, 0.0) / 10.0
+	var base: float = TUNING.temp_deep + (TUNING.temp_surface - TUNING.temp_deep) * exp(-d / TUNING.thermo_m)
+	var band := pow(maxf(sin(pos.x / TUNING.cold_band_len * TAU + 0.7), 0.0), 2.0)
+	return maxf(base - TUNING.cold_band * band, -1.0)     # salt water freezes a little below 0 °C
+
+func temp() -> float:
+	return temp_at(player.pos)
+
+## The coldest water (°C) you are fine in.
+func min_temp() -> float:
+	return t("min_temp") - t("cold_step") * float(rank_of("cold_tol") + rank_of("blubber")) - t("abyss_cold") * float(rank_of("abyssal"))
+
+## The deepest (m) you are fine at.
+func max_depth_m() -> float:
+	return t("max_depth") + t("pressure_step") * rank_of("pressure_tol") + t("deep_body_step") * rank_of("deep_body") + t("abyss_depth") * rank_of("abyssal")
+
+## Resistance rank 0..5 to an ailment, earned by getting it again and again (Data.RESIST_AT).
+func resist_rank(id: String) -> int:
+	var n := int(ail_count.get(id, 0))
+	var r := 0
+	for at in Data.RESIST_AT:
+		if n >= int(at):
+			r += 1
+	return r
+
+## How many more times you must get this ailment for the next resistance rank (0 at 5/5).
+func resist_left(id: String) -> int:
+	var n := int(ail_count.get(id, 0))
+	for at in Data.RESIST_AT:
+		if n < int(at):
+			return int(at) - n
+	return 0
+
 func _recompute_ranks() -> void:
 	var tails: int = rank_of("tail") + (1 if has("flagella") else 0) + (1 if has("cilia") else 0)
 	if move_rank >= 1 or tails > 0:
@@ -332,6 +396,11 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	slot_ids = ["", "", "", ""]
 	specials = {}
 	ailments = {}
+	ail_full = {}
+	ail_count = {}
+	too_cold = 0.0
+	too_deep = 0.0
+	death_cause = ""
 	move_rank = 0
 	sight_rank = 1
 	power = Data.POWER_MAX
@@ -429,16 +498,20 @@ func _pick_species() -> Dictionary:
 		if roll < t("rare_chance"):
 			return Data.species_of("gold")
 		if roll < t("rare_chance") + t("toxic_chance"):
-			return Data.species_of("toxin")
+			var tox := Data.species_by_role("toxic")
+			return tox[rng.randi() % tox.size()]
 	# The creatures that carry the first two traits.
 	if move_rank == 0 and rng.randf() < t("trait_tail_chance"):
 		return Data.species_of("tailed")
 	if move_rank >= 1 and sight_rank == 1 and rng.randf() < t("trait_eye_chance"):
 		return Data.species_of("eyed")
 	var counts := {}
+	var threats := 0
 	for n in npcs:
 		var nl := size_level(n.mass)
 		counts[nl] = int(counts.get(nl, 0)) + 1
+		if n.role == "hunter" and can_eat(n.mass, player.mass):
+			threats += 1
 	var cands: Array = []
 	var weights: Array = []
 	var total := 0.0
@@ -446,7 +519,7 @@ func _pick_species() -> Dictionary:
 	for sp in Data.SPECIES:
 		if sp.has("trait") or sp.role == "toxic" or sp.role == "rare" or int(sp.tier) > tier_cap:
 			continue
-		if sp.role == "hunter" and not hunters_on():
+		if sp.role == "hunter" and (not hunters_on() or threats >= int(Data.DIFFICULTY[difficulty].get("hunter_max", 6))):
 			continue
 		var mid: float = (float(sp.mass[0]) + float(sp.mass[1])) * 0.5
 		var sl := size_level(mid)
@@ -519,6 +592,7 @@ func step(delta: float, dir: Vector2) -> void:
 	_update_decoy(delta)
 	_update_shots(delta)
 	_move_player(delta, dir)
+	_environment(delta)
 	_heal_and_passives(delta)
 	_think(delta)
 	_resolve(delta)
@@ -543,6 +617,13 @@ func _move_player(delta: float, dir: Vector2) -> void:
 		var want: Vector2 = dir * top_speed()
 		if dash_t > 0.0:
 			want = (dir.normalized() if dir.length() > 0.05 else player.vel.normalized()) * top_speed() * t("dash_mult")
+		if too_cold > 0.0:
+			want *= t("cold_slow")
+		# At the surface, pushing up slides you along it at full speed instead of catching on it.
+		var top0: float = radius_of(player.mass) * t("surface_margin")
+		if player.pos.y <= top0 + 2.0 and want.y < 0.0:
+			var spd := want.length()
+			want = Vector2(signf(want.x) * spd, 0.0) if absf(want.x) > spd * 0.2 else Vector2(want.x, 0.0)
 		player.vel = player.vel.lerp(want, clampf(t("accel") * delta * (2.5 if dash_t > 0.0 else 1.0), 0.0, 1.0))
 	player.pos += player.vel * delta
 	distance += player.vel.length() * delta
@@ -553,6 +634,41 @@ func _move_player(delta: float, dir: Vector2) -> void:
 		player.vel.y = maxf(player.vel.y, 0.0)
 	if player.vel.length() > 5.0:
 		facing = player.vel.normalized()
+
+## Water too cold or too deep for your body hurts (and cold slows you). Only once your eye is open
+## (when the health bar and the depth / temperature readout appear).
+func _environment(delta: float) -> void:
+	if not has_bars():
+		too_cold = 0.0
+		too_deep = 0.0
+		return
+	var was_cold := too_cold > 0.0
+	var was_deep := too_deep > 0.0
+	too_cold = maxf(min_temp() - temp(), 0.0)
+	too_deep = maxf(depth_m() - max_depth_m(), 0.0)
+	if too_cold > 0.0 and not was_cold:
+		events.append({"type": "env", "what": "cold"})
+	if too_deep > 0.0 and not was_deep:
+		events.append({"type": "env", "what": "deep"})
+	var dmg := 0.0
+	var cause := ""
+	if too_cold > 0.0:
+		dmg += t("cold_dmg") * too_cold
+		cause = "cold"
+	if too_deep > 0.0:
+		var deep_dmg: float = t("deep_dmg") + t("deep_dmg_per100") * too_deep / 100.0
+		if deep_dmg > dmg:
+			cause = "deep"
+		dmg += deep_dmg
+	if dmg <= 0.0:
+		return
+	var k: float = Data.DIFFICULTY[difficulty].get("env", 1.0)
+	player.hp -= minf(dmg, t("env_dmg_cap")) * k * delta
+	if player.hp <= 0.0 and alive:
+		player.hp = 0.0
+		alive = false
+		death_cause = cause
+		events.append({"type": "death", "pos": player.pos})
 
 ## Uses an active ability (button / key). Returns true when it fired.
 func use_ability(id: String) -> bool:
@@ -658,7 +774,7 @@ func _update_shots(delta: float) -> void:
 	shots = keep
 
 func _heal_and_passives(delta: float) -> void:
-	if hit_t > t("regen_delay") and player.hp < max_hp():
+	if hit_t > t("regen_delay") and player.hp < max_hp() and too_cold <= 0.0 and too_deep <= 0.0:
 		var rate: float = t("regen") + t("regen_rank") * rank_of("regen")
 		rate *= Data.DIFFICULTY[difficulty].regen
 		if ailments.has("slow_heal"):
@@ -685,6 +801,7 @@ func _tick_ailments(delta: float) -> void:
 		ailments[k] -= delta
 		if ailments[k] <= 0.0:
 			ailments.erase(k)
+			ail_full.erase(k)
 			events.append({"type": "ailment_end", "id": k})
 
 func _think(delta: float) -> void:
@@ -697,6 +814,20 @@ func _think(delta: float) -> void:
 	var hunter_speed: float = base_speed * Data.DIFFICULTY[difficulty].speed
 	var ratio := eat_ratio()
 	var ink_r := ability_radius("ink") if has("ink") else 0.0
+	# Only the nearest few hunters chase you at once (Data.DIFFICULTY chasers); the rest keep to themselves.
+	var near: Array = []
+	for n in npcs:
+		if n.role != "hunter" or float(n.get("stun", 0.0)) > 0.0 or not can_eat(n.mass, player.mass):
+			continue
+		if ink_t > 0.0 and n.pos.distance_to(ink_pos) < ink_r:
+			continue
+		var dh: float = n.pos.distance_to(player.pos)
+		if dh < maxf(sense_floor, radius_of(n.mass) * 6.0):
+			near.append([dh, n.id])
+	near.sort_custom(_by_first)
+	var allowed := {}
+	for i in mini(near.size(), int(Data.DIFFICULTY[difficulty].get("chasers", 3))):
+		allowed[near[i][1]] = true
 	for n in npcs:
 		n.t -= delta
 		var slow_mult := 1.0
@@ -735,7 +866,8 @@ func _think(delta: float) -> void:
 				if chase_d < radius_of(n.mass):
 					decoy.t = 0.0
 					n["pause"] = 1.5
-		var hunting: bool = role == "hunter" and chase_d < sight and can_eat(n.mass, player.mass)
+		var in_sight: bool = chase_d < sight
+		var hunting: bool = role == "hunter" and in_sight and can_eat(n.mass, player.mass) and (allowed.has(n.id) or chase != to_p)
 		if hunting and has("warning") and not n.get("hunting", false):
 			n["pause"] = t("warning_pause") * rank_of("warning")             # predators hesitate at the warning colours
 		if hunting:
@@ -743,7 +875,7 @@ func _think(delta: float) -> void:
 			if not n.has("chased_lvl"):
 				n["chased_lvl"] = level()
 		elif n.get("hunting", false):
-			if float(n.get("chase_t", 0.0)) >= 4.0:
+			if float(n.get("chase_t", 0.0)) >= 4.0 and not in_sight:
 				events.append({"type": "evaded"})      # a bigger creature chased you and lost you
 			n["chase_t"] = 0.0
 		n["hunting"] = hunting
@@ -788,6 +920,9 @@ func _think(delta: float) -> void:
 			n.wander.y = absf(n.wander.y)
 		if not seen.has(n.species) and d < vision_r * 0.92:
 			_met(n.species)
+
+static func _by_first(a: Array, b: Array) -> bool:
+	return a[0] < b[0]
 
 ## Hunt a smaller creature of another species, run from a bigger one, keep apart from the rest.
 func _social(n: Dictionary) -> Dictionary:
@@ -844,6 +979,8 @@ func _resolve(delta: float) -> void:
 		var d: float = n.pos.distance_to(player.pos)
 		var nr := radius_of(n.mass)
 		var worth := value_of(n.mass)
+		if n.role == "rare" or n.role == "toxic":
+			worth = maxi(worth, 1)              # always worth eating (and always shown)
 		if worth > 0 and can_eat(player.mass, n.mass, ratio) and d < pr - nr * 0.35:
 			player.mass = player.mass + n.mass * t("absorb") * gain_mult
 			eaten_cells += 1
@@ -859,7 +996,7 @@ func _resolve(delta: float) -> void:
 			if has("meal_heal") and not ailments.has("slow_heal"):
 				player.hp = minf(player.hp + float(rank_of("meal_heal")), max_hp())
 			if n.role == "toxic":
-				_poison()
+				_poison(n.species)
 			elif n.role == "rare":
 				_grant_rare()
 			pr = radius_of(player.mass)
@@ -883,9 +1020,10 @@ func _resolve(delta: float) -> void:
 				events.append({"type": "hurt", "pos": player.pos})
 			hit_t = 0.0
 			player.vel += (player.pos - n.pos).normalized() * 260.0 * delta * 6.0
-			if player.hp <= 0.0:
+			if player.hp <= 0.0 and alive:
 				player.hp = 0.0
 				alive = false
+				death_cause = "eaten"
 				events.append({"type": "death", "pos": player.pos})
 		if has("stinger") and (n.role == "hunter" or n.role == "equal") and d < nr + pr * 1.3:
 			n.mass = maxf(n.mass - n.mass * t("stinger_rate") * rank_of("stinger") * delta, t("min_npc_mass"))
@@ -950,9 +1088,24 @@ func _recycle() -> void:
 
 # ---------- poison, rare creatures ----------
 
-func _poison() -> void:
-	var id: String = Data.AILMENT_ORDER[rng.randi() % Data.AILMENT_ORDER.size()]
-	ailments[id] = Data.AILMENTS[id].time * pow(t("tox_res_mult"), rank_of("tox_res"))
+## A toxic creature was eaten: its own ailment (each kind always gives the same one). Every time counts
+## toward the matching resistance; at 5/5 you are immune.
+func _poison(species: String = "") -> void:
+	var id: String = str(Data.species_of(species).get("ailment", "")) if species != "" else ""
+	if not Data.AILMENTS.has(id):
+		id = Data.AILMENT_ORDER[rng.randi() % Data.AILMENT_ORDER.size()]
+	var before := resist_rank(id)
+	ail_count[id] = int(ail_count.get(id, 0)) + 1
+	var r := resist_rank(id)
+	if r > before:
+		events.append({"type": "resist", "id": id, "rank": r})
+	if r >= Data.RESIST_AT.size():
+		events.append({"type": "immune", "id": id})
+		return
+	var dur: float = Data.AILMENTS[id].time * pow(t("tox_res_mult"), rank_of("tox_res")) * (1.0 - t("resist_step") * float(r))
+	if dur > float(ailments.get(id, 0.0)):
+		ailments[id] = dur
+		ail_full[id] = dur
 	events.append({"type": "ailment", "id": id})
 
 ## Rare creature: a tree trait ahead of time, or a special trait, or (if you have everything) DNA.

@@ -223,10 +223,14 @@ func _draw_node(n: Dictionary) -> void:
 		"available":
 			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.55 + 0.4 * glow), 3.0, true)
 			draw_circle(c, NODE_R * 0.4, Color(col, 0.35))
+		"stage":
+			# Readable (the trait before it is owned), but you must grow first: dim, no pulse.
+			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(col, 0.45), 2.0, true)
+			draw_circle(c, NODE_R * 0.4, Color(col, 0.18))
 		_:
 			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.2), 2.0, true)
 			draw_string(ThemeDB.fallback_font, c + Vector2(-8.0, 9.0), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(1, 1, 1, 0.4))
-	var known: bool = state == "maxed" or state == "owned" or state == "available"
+	var known: bool = state != "locked"
 	if n.ability and known:
 		draw_colored_polygon(PackedVector2Array([c + Vector2(3, -12), c + Vector2(-6, 2), c + Vector2(-1, 2), c + Vector2(-4, 13), c + Vector2(7, -3), c + Vector2(2, -3)]), Color(1, 0.9, 0.4, 0.95))
 	# points: one pip per point

@@ -10,11 +10,13 @@ const COLORS := [
 ]
 
 ## hunters: share of spawns that hunt you; bite: damage per second of contact;
-## regen: multiplier on natural healing; speed: hunter speed vs your top speed.
+## regen: multiplier on natural healing; speed: hunter speed vs your top speed;
+## chasers: at most this many creatures chase you at once (the nearest ones); hunter_max: at most this many
+## creatures that can eat you are around you (no more spawn); env: damage from water too cold or too deep.
 const DIFFICULTY := {
-	"easy": {"hunters": 0.10, "bite": 1.2, "regen": 1.5, "speed": 0.78},
-	"normal": {"hunters": 0.20, "bite": 2.0, "regen": 1.0, "speed": 0.88},
-	"hard": {"hunters": 0.30, "bite": 3.0, "regen": 0.7, "speed": 0.98},
+	"easy": {"hunters": 0.10, "bite": 1.2, "regen": 1.5, "speed": 0.78, "chasers": 2, "hunter_max": 4, "env": 0.6},
+	"normal": {"hunters": 0.20, "bite": 2.0, "regen": 1.0, "speed": 0.88, "chasers": 3, "hunter_max": 6, "env": 1.0},
+	"hard": {"hunters": 0.30, "bite": 3.0, "regen": 0.7, "speed": 0.98, "chasers": 4, "hunter_max": 8, "env": 1.3},
 }
 const DIFFICULTY_ORDER := ["easy", "normal", "hard"]
 
@@ -61,12 +63,17 @@ const SPECIES := [
 	{"id": "kraken", "name": "Kraken", "shape": "blob", "role": "hunter", "col": Color("c03a6a"), "mass": [300.0, 520.0], "tier": 5, "flee": 1.0, "feats": ["arms", "fins", "tail", "eye"]},
 	{"id": "tailed", "name": "Flagellate", "shape": "tailed", "role": "prey", "col": Color("ffb35a"), "mass": [3.0, 5.0], "tier": 1, "flee": 0.0, "feats": [], "trait": "tail"},
 	{"id": "eyed", "name": "Eyed cell", "shape": "eyed", "role": "prey", "col": Color("e0a3ff"), "mass": [3.0, 5.0], "tier": 1, "flee": 0.0, "feats": [], "trait": "eye"},
-	{"id": "toxin", "name": "Toxic spore", "shape": "spiky", "role": "toxic", "col": Color("c8e03a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": []},
+	# Toxic creatures: each kind always gives the same ailment (`ailment`), so players learn which to avoid.
+	{"id": "toxin", "name": "Toxic spore", "shape": "spiky", "role": "toxic", "col": Color("c8e03a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "brittle"},
+	{"id": "glowspore", "name": "Glow spore", "shape": "bumpy", "role": "toxic", "col": Color("7affe0"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "glow"},
+	{"id": "gutworm", "name": "Gut worm", "shape": "worm", "role": "toxic", "col": Color("e8d84a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "appetite"},
+	{"id": "mold", "name": "Mold spore", "shape": "beads", "role": "toxic", "col": Color("9aa83a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "slow_heal"},
 	{"id": "gold", "name": "Golden spore", "shape": "spiky", "role": "rare", "col": Color("ffd23f"), "mass": [0.0, 0.0], "tier": 1, "flee": 1.0, "feats": []},
 ]
 
 ## Toxic and rare creatures are sized relative to you: [low, high] x your mass.
-const MASS_RANGE := {"toxic": [0.4, 0.8], "rare": [0.15, 0.3]}
+## (Rare ones used to be 0.15-0.3, which made them 3 size levels below you: invisible and worth nothing.)
+const MASS_RANGE := {"toxic": [0.4, 0.8], "rare": [0.3, 0.55]}
 
 ## How likely a species is to spawn by how many size levels its typical mass is above (+) or below (-) yours.
 const LEVEL_WEIGHT := {-2: 1.0, -1: 3.0, 0: 4.0, 1: 3.0, 2: 2.0}
@@ -80,12 +87,13 @@ const LEVEL_CAP := 10
 ## (engine STAGES index) needed, x / y = place on the tree screen in grid cells.
 ## `ability` nodes are actives (used on command, they spend the blue power bar; more points make them
 ## cheaper, longer, stronger). A node whose prerequisites are not owned shows "?".
-const BRANCH_ORDER := ["offense", "sense", "move", "defense"]
+const BRANCH_ORDER := ["offense", "sense", "move", "defense", "habitat"]
 const BRANCH := {
 	"offense": {"name": "Offense", "col": Color("ff6a4a")},
 	"sense": {"name": "Senses", "col": Color("29e6ff")},
 	"move": {"name": "Movement", "col": Color("7dff3a")},
 	"defense": {"name": "Defense", "col": Color("6aa8ff")},
+	"habitat": {"name": "Habitat", "col": Color("c48bff")},
 }
 const NODES := [
 	{"id": "burst", "branch": "offense", "x": 1, "y": 1.5, "max": 3, "cost": 1, "stage": 1, "req": [], "name": "Jump boost", "desc": "A short burst of speed to catch your next meal. Costs power.", "ability": true},
@@ -126,6 +134,12 @@ const NODES := [
 	{"id": "decoy", "branch": "defense", "x": 4, "y": 13.4, "max": 3, "cost": 3, "stage": 2, "req": [["ink", 1]], "name": "Decoy clone", "desc": "Leave a copy of yourself: hunters chase it while you swim away. Costs power.", "ability": true},
 	{"id": "spine", "branch": "defense", "x": 5, "y": 10.5, "max": 3, "cost": 3, "stage": 2, "req": [["spikes", 2]], "name": "Spine burst", "desc": "Fire your spines: nearby creatures are stunned. Costs power.", "ability": true},
 	{"id": "limb", "branch": "defense", "x": 5, "y": 13.0, "max": 1, "cost": 3, "stage": 3, "req": [["regen", 2], ["decoy", 1]], "name": "Drop a limb", "desc": "Sacrifice a limb: hunters grab it and you escape. Costs health and lots of power.", "ability": true},
+	# Habitat: where you can live. Cold and depth limits (engine `min_temp` / `max_depth_m`).
+	{"id": "cold_tol", "branch": "habitat", "x": 1, "y": 15.0, "max": 3, "cost": 1, "stage": 0, "req": [], "name": "Antifreeze", "desc": "Antifreeze proteins keep your cell from freezing: you can swim in colder water.", "ability": false},
+	{"id": "pressure_tol", "branch": "habitat", "x": 1, "y": 16.2, "max": 3, "cost": 1, "stage": 0, "req": [], "name": "Pressure cells", "desc": "Tougher cell walls: you can dive deeper without being crushed.", "ability": false},
+	{"id": "blubber", "branch": "habitat", "x": 2, "y": 15.0, "max": 2, "cost": 2, "stage": 2, "req": [["cold_tol", 2]], "name": "Fat layer", "desc": "A layer of fat keeps the cold out: even colder water.", "ability": false},
+	{"id": "deep_body", "branch": "habitat", "x": 2, "y": 16.2, "max": 2, "cost": 3, "stage": 2, "req": [["pressure_tol", 2]], "name": "Deep-sea body", "desc": "A body built for the deep: you can dive much deeper.", "ability": false},
+	{"id": "abyssal", "branch": "habitat", "x": 3, "y": 15.6, "max": 1, "cost": 4, "stage": 3, "req": [["blubber", 1], ["deep_body", 1]], "name": "Abyss dweller", "desc": "At home in the cold, dark deep: the coldest water and the deepest dives.", "ability": false},
 ]
 
 ## The actives, in the order they are offered. cost = power points (of POWER_MAX), time = seconds of
@@ -168,6 +182,16 @@ const AILMENTS := {
 	"slow_heal": {"name": "Slow healing", "desc": "You heal slowly.", "time": 25.0},
 }
 const AILMENT_ORDER := ["glow", "brittle", "appetite", "slow_heal"]
+
+## Getting the same ailment again and again teaches your body to resist it: the matching trait comes free,
+## one rank at each of these totals (10, then every 20 more), up to 5/5 = immune.
+const RESIST_AT := [10, 30, 50, 70, 90]
+const RESISTS := {
+	"glow": {"name": "Shadow skin", "desc": "The glow fades faster."},
+	"brittle": {"name": "Hard cells", "desc": "Brittleness fades faster."},
+	"appetite": {"name": "Strong gut", "desc": "The bottomless appetite fades faster."},
+	"slow_heal": {"name": "Fast recovery", "desc": "Slow healing fades faster."},
+}
 
 static func species_of(id: String) -> Dictionary:
 	for s in SPECIES:

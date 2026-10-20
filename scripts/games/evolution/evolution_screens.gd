@@ -145,6 +145,18 @@ func _build_info() -> void:
 	for s in Data.SPECIALS:
 		if e.specials.has(s.id):
 			col.add_child(_wrapped("★ " + tr(s.name) + ": " + tr(s.desc), 20, Color("ffd23f")))
+	# Resistances grow from getting the same ailment again and again.
+	for id in Data.AILMENT_ORDER:
+		if int(e.ail_count.get(id, 0)) <= 0:
+			continue
+		var rs: Dictionary = Data.RESISTS[id]
+		var line := "🛡 " + tr(rs.name) + " %d/%d" % [e.resist_rank(id), Data.RESIST_AT.size()]
+		if e.resist_rank(id) > 0:
+			line += ": " + tr(rs.desc)
+		if e.resist_left(id) > 0:
+			line += "  (" + tr("next rank after %d more") % e.resist_left(id) + ")"
+		col.add_child(_wrapped(line, 20, Color("9fe8c0")))
+	col.add_child(_wrapped(tr("Habitat: down to %d m, water as cold as %d °C") % [int(e.max_depth_m()), int(ceil(e.min_temp()))], 20, Color(0.8, 0.92, 1.0)))
 	_abilities(col)
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 12)
@@ -302,7 +314,7 @@ func _refresh_detail() -> void:
 	var n := Data.node_of(_sel)
 	var state: String = engine.node_state(_sel)
 	_buy_btn.visible = true
-	if state == "locked" or state == "stage":
+	if state == "locked":
 		_title.text = "?"
 		_detail.text = ""
 		_buy_btn.visible = false
@@ -316,6 +328,10 @@ func _refresh_detail() -> void:
 	_detail.text = txt
 	if state == "maxed":
 		_buy_btn.text = tr("Maxed")
+		_buy_btn.disabled = true
+	elif state == "stage":
+		_detail.text += "\n" + tr("Grow to %s to evolve it.") % tr(EvEngine.STAGES[int(n.stage)][1])
+		_buy_btn.text = tr("Buy for %d DNA") % engine.cost_of(_sel)
 		_buy_btn.disabled = true
 	else:
 		_buy_btn.text = tr("Buy for %d DNA") % engine.cost_of(_sel)

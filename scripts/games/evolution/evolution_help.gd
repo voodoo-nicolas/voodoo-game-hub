@@ -13,14 +13,18 @@ const HOW := [
 	"Missions are on the right, and they turn up as you discover things.",
 	"The smallest dots are worth the least; the bigger the creature, the more it is worth. Things far smaller than you are worth nothing.",
 	"The red bar is your health, the gold bar your growth. Bigger creatures bite when they touch you; they glow red. If your health runs out the run is over. Different kinds of creature also hunt each other.",
-	"Once the tree is open, use the 🧬 screen (middle, next to pause): the game stops while you look. It shows your creature's size, speed, strength and health, and lets you spend DNA on the evolution tree: movement, senses, defense and offense. Traits you haven't unlocked yet show a ?.",
-	"Creatures that can eat you glow red. Yellow-green spiky ones are toxic: they cause an ailment for a while. Rare golden ones give a free trait.",
+	"Once the tree is open, use the 🧬 screen (middle, next to pause): the game stops while you look. It shows your creature's size, speed, strength and health, and lets you spend DNA on the evolution tree: offense, senses, movement, defense and habitat. A trait shows a ? until you own the traits before it.",
+	"Creatures that can eat you glow red. Toxic ones glow yellow-green, and each kind always causes the same ailment: spiky spores make you brittle, glow spores make you glow, gut worms give a bottomless appetite, mold spores slow your healing. A bar under your health shows how long the ailment lasts.",
+	"Get the same ailment often enough and your body learns to resist it, for free: 10 times for 1/5, then every 20 more, up to 5/5 (immune). The 🧬 screen shows how far you are.",
+	"Rare golden creatures shimmer and send ripples through the water, even just past what you can see. Eat one for a free trait.",
+	"Under your health bar: your depth and the water temperature, with the limits your body can take. Water that is too cold slows you down and hurts; too deep, the pressure hurts. The Habitat branch (Antifreeze, Pressure cells and more) lets you swim colder and deeper.",
 	"Nothing is saved mid-run, so there is no Resume: every run starts as a tiny cell.",
 ]
 const TIPS := [
 	"Eat while the big creatures are far away; grow first, hunt later.",
 	"Hunters are a little slower than your top speed. Keep moving and they can't catch you. The jump boost gets you out of trouble.",
 	"Upgrade your senses early: seeing a hunter coming is half of surviving it.",
+	"Only the nearest few hunters chase you at once (2 on Easy, 3 on Normal, 4 on Hard), and only so many are around.",
 	"Toxic creatures are tempting: a glow makes hunters notice you, brittle makes bites hurt more. Wait out the ailment somewhere quiet.",
 ]
 const STATS := ["Best score", "Biggest size", "Cells eaten", "Rare eaten", "Food eaten", "Distance swum (m)", "Missions done", "Games played"]
@@ -57,4 +61,7 @@ const FACTS := [
 	"Natural selection means the traits that help a living thing survive get passed on more often.",
 	"Many bacteria swim by spinning long whip-like tails called flagella.",
 	"Viruses are not cells: they are much smaller than bacteria and need a living cell to copy themselves.",
+	"Most of the deep ocean is cold, around 0 to 4 °C, even under the tropics.",
+	"Every 10 m deeper in water adds about one more atmosphere of pressure.",
+	"Some polar fish make antifreeze proteins that stop ice crystals from growing in their blood.",
 ]

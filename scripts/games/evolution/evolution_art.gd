@@ -39,7 +39,23 @@ static func draw_halo(ci: CanvasItem, c: Vector2, r: float, kind: String, t: flo
 		"toxic":
 			ci.draw_circle(c, r * 1.6, Color(0.8, 1.0, 0.1, 0.07 + 0.03 * pulse))
 		"rare":
-			ci.draw_circle(c, r * 1.8, Color(1.0, 0.85, 0.2, 0.08 + 0.05 * pulse))
+			# Rare: a bright golden glow, ripples spreading through the water and sparkles circling it.
+			ci.draw_circle(c, r * 2.6, Color(1.0, 0.85, 0.2, 0.05 + 0.03 * pulse))
+			ci.draw_circle(c, r * 1.8, Color(1.0, 0.85, 0.2, 0.12 + 0.07 * pulse))
+			draw_ripples(ci, c, r, t, 1.0)
+			for i in 5:
+				var a := t * 1.6 + TAU * float(i) / 5.0
+				var p := c + Vector2.RIGHT.rotated(a) * r * (1.45 + 0.12 * sin(t * 5.0 + float(i)))
+				var tw := 0.5 + 0.5 * sin(t * 7.0 + float(i) * 2.3)
+				ci.draw_circle(p, maxf(r * 0.09, 1.5) * (0.6 + 0.6 * tw), Color(1.0, 0.97, 0.7, 0.55 + 0.45 * tw))
+
+## Rings spreading out from a rare creature, like ripples in the water. `alpha` fades them (the game also
+## draws faint ones a little beyond your sight, so you notice something special is near).
+static func draw_ripples(ci: CanvasItem, c: Vector2, r: float, t: float, alpha: float) -> void:
+	for q in 3:
+		var f := fposmod(t * 0.45 + float(q) / 3.0, 1.0)
+		var rr := r * (1.3 + 3.2 * f)
+		ci.draw_arc(c, rr, 0.0, TAU, 40, Color(1.0, 0.88, 0.4, 0.45 * (1.0 - f) * alpha), maxf(r * 0.06, 2.0), true)
 
 # ---------- other creatures ----------
 

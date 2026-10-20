@@ -103,7 +103,9 @@ var hp_row: Control
 var sp_row: Control
 var xp_row: Control
 var stage_label: Label
-var status_label: Label
+var env_label: Label
+var ail_box: VBoxContainer
+var _ail_sig := ""
 var info_btn: Button
 var mission_box: VBoxContainer
 var mission_panel: Control
@@ -239,11 +241,16 @@ func _build_ui() -> void:
 	stage_label.add_theme_font_size_override("font_size", 20)
 	stage_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bars_panel.add_child(stage_label)
-	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 18)
-	status_label.add_theme_color_override("font_color", Color("d7ff2a"))
-	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bars_panel.add_child(status_label)
+	# depth and water temperature, with the limits your body can take
+	env_label = Label.new()
+	env_label.add_theme_font_size_override("font_size", 18)
+	env_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bars_panel.add_child(env_label)
+	# ailments, each with a timer bar running down
+	ail_box = VBoxContainer.new()
+	ail_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ail_box.add_theme_constant_override("separation", 2)
+	bars_panel.add_child(ail_box)
 	add_child(_corner(bars_panel, Control.SIZE_SHRINK_BEGIN, Control.SIZE_SHRINK_BEGIN))
 
 	# right side: the mission list
@@ -523,7 +530,12 @@ func _game_over() -> void:
 	started = false
 	controls.release()
 	_sfx("explode")
-	var msg := tr("You were eaten!") + "\n" + tr("Score: %d") % engine.score() + "   ·   " + tr("Size %d") % EvEngine.size_level(engine.peak_mass)
+	var how := tr("You were eaten!")
+	if engine.death_cause == "cold":
+		how = tr("You froze in the cold water!")
+	elif engine.death_cause == "deep":
+		how = tr("The pressure crushed you!")
+	var msg := how + "\n" + tr("Score: %d") % engine.score() + "   ·   " + tr("Size %d") % EvEngine.size_level(engine.peak_mass)
 	if info and not result_sent:
 		result_sent = true
 		_flush_stats()
@@ -550,10 +562,8 @@ func _update_hud() -> void:
 		sp_row.visible = e.has_actives()
 		sp_bar.value = e.power_frac()
 		stage_label.text = tr(EvEngine.STAGES[e.stage()][1]) + "  ·  " + tr("Size %d") % e.level()
-		var lines: Array = []
-		for id in e.ailments.keys():
-			lines.append("☠ " + tr(Data.AILMENTS[id].name))
-		status_label.text = "\n".join(lines)
+		_update_env()
+		_update_ailments()
 	var ids: Array = []
 	var fills: Array = []
 	for i in 4:
@@ -564,6 +574,45 @@ func _update_hud() -> void:
 	info_btn.visible = e.has_bars()
 	info_btn.text = "🧬 %d" % e.dna if e.dna > 0 else "🧬"
 	_update_missions()
+
+func _update_env() -> void:
+	var e = engine
+	var depth_txt: String = tr("Depth: %d m (limit %d m)") % [int(e.depth_m()), int(e.max_depth_m())]
+	var temp_txt: String = tr("Water: %d °C (limit %d °C)") % [int(round(e.temp())), int(ceil(e.min_temp()))]
+	if e.too_deep > 0.0:
+		depth_txt = "⚠ " + depth_txt
+	if e.too_cold > 0.0:
+		temp_txt = "⚠ " + temp_txt
+	env_label.text = depth_txt + "\n" + temp_txt
+	var warn: bool = e.too_deep > 0.0 or e.too_cold > 0.0
+	env_label.add_theme_color_override("font_color", Color("ff8a8a") if warn else Color(0.8, 0.92, 1.0, 0.9))
+
+## One row per ailment: its name, the seconds left and a bar that empties as it wears off.
+func _update_ailments() -> void:
+	var e = engine
+	var ids: Array = e.ailments.keys()
+	ids.sort()
+	var sig := ",".join(ids)
+	if sig != _ail_sig:
+		_ail_sig = sig
+		for ch in ail_box.get_children():
+			ail_box.remove_child(ch)
+			ch.queue_free()
+		for id in ids:
+			var l := Label.new()
+			l.add_theme_font_size_override("font_size", 18)
+			l.add_theme_color_override("font_color", Color("d7ff2a"))
+			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			ail_box.add_child(l)
+			var bar := _bar(Color("b8e02a"))
+			bar.custom_minimum_size = Vector2(230, 8)
+			ail_box.add_child(bar)
+	for i in ids.size():
+		var id: String = ids[i]
+		var left: float = e.ailments[id]
+		var full: float = maxf(float(e.ail_full.get(id, left)), 0.01)
+		(ail_box.get_child(i * 2) as Label).text = "☠ " + tr(Data.AILMENTS[id].name) + "  " + tr("%ds") % int(ceil(left))
+		(ail_box.get_child(i * 2 + 1) as ProgressBar).value = clampf(left / full, 0.0, 1.0)
 
 func _update_missions() -> void:
 	var rows: Array = engine.mission_rows()
@@ -756,6 +805,20 @@ func _handle_events() -> void:
 			"ailment":
 				_banner(tr("Poisoned: %s") % tr(Data.AILMENTS[ev.id].name))
 				_snd("poison")
+			"resist":
+				var rs: Dictionary = Data.RESISTS[ev.id]
+				var rank_txt := "%d/%d" % [int(ev.rank), Data.RESIST_AT.size()]
+				_snd("evolve")
+				if int(ev.rank) == 1:
+					_show_popup(tr("Your body adapted!"), tr("You got %s so often that you resist it now: %s %s, free.") % [tr(Data.AILMENTS[ev.id].name), tr(rs.name), rank_txt] + "\n" + tr(rs.desc))
+				else:
+					_banner(tr(rs.name) + " " + rank_txt)
+			"immune":
+				_banner(tr("Immune to %s") % tr(Data.AILMENTS[ev.id].name))
+			"env":
+				_banner(tr("Too cold! Find warmer water, or evolve Antifreeze.") if ev.what == "cold" else tr("Too deep! The pressure hurts: swim up, or evolve Pressure cells."))
+				hurt = 1.0
+				_snd("bite", 0.6)
 			"rare":
 				_banner(tr("Rare trait: %s") % tr(str(ev.name)))
 				_spawn_burst(engine.player.pos, Color("ffd23f"), 24, 260.0, 5.0, EvEngine.radius_of(engine.player.mass) * 2.0)
@@ -845,6 +908,8 @@ func _draw_field() -> void:
 		if sp2.x < -r * 2.0 - margin or sp2.y < -r * 2.0 - margin or sp2.x > s.x + r * 2.0 + margin or sp2.y > s.y + r * 2.0 + margin or sp2.distance_to(c) > lim + r:
 			continue
 		var vis: float = engine.visibility_of(n.mass)
+		if n.role == "rare" or n.role == "toxic":
+			vis = 1.0             # special creatures are always shown
 		if vis <= 0.0:
 			continue
 		if vis < 1.0:
@@ -996,6 +1061,14 @@ func _draw_senses() -> void:
 	var s := fx.size
 	var c := s / 2.0
 	var pm: float = engine.player.mass
+	# Rare creatures send ripples through the water: faint rings show a little past the edge of your sight.
+	for n in engine.npcs:
+		if n.role != "rare":
+			continue
+		var spr: Vector2 = _w2s(n.pos)
+		var dr := spr.distance_to(c)
+		if dr > vis_r * 0.9 and dr < vis_r * 1.8:
+			Art.draw_ripples(fx, spr, maxf(EvEngine.radius_of(n.mass) * zoom, 8.0), pulse, 0.5)
 	if engine.has("chemical"):
 		var lim := vis_r * 1.9
 		for f in engine.food:
@@ -1057,7 +1130,17 @@ func _draw_fx() -> void:
 	if banners.size() > 0:
 		var b: Dictionary = banners[0]
 		var al := clampf(b.t, 0.0, 1.0)
-		HomeKit.glow_text(fx, Vector2(s.x / 2.0, s.y * 0.2), str(b.text), 34, Color(color.lerp(Color.WHITE, 0.4), al))
+		# Between the left HUD and the mission list when there is room (landscape), else under the HUD;
+		# long banners shrink to fit.
+		var side: float = (bars_panel.size.x + 40.0) if bars_panel.visible else 0.0
+		var avail := s.x - 2.0 * side
+		var by := s.y * 0.2
+		if avail < 360.0:
+			avail = s.x * 0.92
+			by = maxf(by, bars_panel.get_global_rect().end.y - fx.get_global_rect().position.y + 30.0) if bars_panel.visible else by
+		var bw := ThemeDB.fallback_font.get_string_size(str(b.text), HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
+		var fs := clampi(int(34.0 * minf(1.0, avail / maxf(bw, 1.0))), 16, 34)
+		HomeKit.glow_text(fx, Vector2(s.x / 2.0, by), str(b.text), fs, Color(color.lerp(Color.WHITE, 0.4), al))
 
 func _draw_home_logo(c: Control) -> void:
 	var o := c.size / 2.0

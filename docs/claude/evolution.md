@@ -11,9 +11,16 @@ Endless pond, landscape, missions + evolution tree. Files in `scripts/games/evol
 - Evolution tree = a graph (`Data.NODES`): creature at far left, 4 branches (Offense, Senses, Movement, Defense; Tentacles sit inside Offense behind the "Tentacles" node). Each node has `max` points, several `req` prerequisites, and can open several nodes. Locked nodes show "?". Screen: `evolution_tree_view.gd` (drag to pan, tap to select).
 - Ability buttons (right thumb, max 4, none at the start): 1 = offensive, 2 = defensive (auto-assigned, the player picks which on the creature screen), 3 and 4 arrive at growth stages Hunter / Predator and take either kind. Rules in the engine: `slot_visible`, `eligible`, `auto_assign`, `cycle_slot`, `use_slot`.
 - Vision rings = `Data.SIGHT_FRAC` of screen height; blur by lens points (`Data.BLUR`).
+- Toxic creatures: 4 kinds, each with a fixed `ailment` in `Data.SPECIES` (Toxic spore = brittle, Glow spore = glow, Gut worm = appetite, Mold spore = slow healing). HUD shows each ailment with a timer bar (`ail_full` = its starting length).
+- Resistances (`Data.RESISTS`, owner 2026-10-20): getting the same ailment `Data.RESIST_AT` = 10/30/50/70/90 times gives the opposite trait 1/5..5/5 for free; each rank cuts the ailment's time by 20%, 5/5 = immune. Counted per run (`ail_count`), shown on the creature screen.
+- Chasers: only the nearest `Data.DIFFICULTY.chasers` (2/3/4) hunters chase you; no new hunters spawn while `hunter_max` (4/6/8) that can eat you are around.
+- Rare (golden) creatures: gold glow, sparkles and ripples (`Art.draw_ripples`); faint ripples also show just past your sight. Rare and toxic creatures are always visible and worth eating (they used to be sized 3 levels below you = invisible).
+- Surface: pushing up into it slides you along at full speed (it used to catch).
+- Water (from the eye on): temperature `temp_at()` falls with depth (24 °C surface to 4 °C) and in cold currents sideways; limits `min_temp()` / `max_depth_m()` (8 °C / 200 m bare). Too cold = slower + hp loss, too deep = hp loss, no regen; death cause shown. HUD left: depth + temperature with your limits. Habitat branch: Antifreeze, Pressure cells, Fat layer, Deep-sea body, Abyss dweller.
+- Tree: "?" only for `locked` nodes; `stage` nodes (prerequisites owned, too small) are readable but not buyable.
 
 ## Built from the owner's 2026-10-20 trait list
 Movement: tail, fins, streamlined, flagella, cilia. Senses: second eye, wide eyes, lens, real eyes, night vision, chemical, listening, threat radar, sonar. Defense: nutrient store, tough membrane, shell, regeneration, spikes, warning colors, poison skin, slime, toxin resistance; actives ink cloud, camouflage, spine burst, decoy clone, drop a limb. Offense: jump boost, strong jaws, acid spit, harpoon, lure, electric shock; tentacles: stinger, suction feed, grab.
 
 ## NOT built yet (owner's list)
-Cold/heat/radiation/pressure tolerance (need depth zones); swim bladder (depth control), sucker, burrowing, wings/gliding; electroreception, heat sense, depth/pressure sense, magnetic sense, UV/polarized vision. (Sonar is built as a ping; "real eyes" as the sharpest lens.)
+Heat/radiation tolerance (cold and pressure are built: Habitat branch); swim bladder (depth control), sucker, burrowing, wings/gliding; electroreception, heat sense, depth/pressure sense, magnetic sense, UV/polarized vision. (Sonar is built as a ping; "real eyes" as the sharpest lens.)

@@ -411,7 +411,7 @@ func _init() -> void:
 	give(bdg, "flagella")
 	give(bdg, "cilia")
 	give(bdg, "streamlined")
-	check(bdg.speed_pct() == 100, "the best body reaches 100% speed (%d)" % bdg.speed_pct())
+	check(bdg.speed_pct() == 100, "the best body reaches 100%% speed (%d)" % bdg.speed_pct())
 	# --- Combat: a hunter bites, HP drops, death at 0
 	_veteran(e, 3)
 	e.npcs = [_npc(e.player.pos, 100.0, "corona", "hunter")]
@@ -595,7 +595,7 @@ func _init() -> void:
 	check(e.use_ability("camo") and e.camo_t > 0.0, "camouflage fires")
 	e.camo_t = 0.0
 	e.power = 100.0
-	e.npcs = [_npc(e.player.pos + Vector2(300, 0), 100.0, "corona", "hunter")]
+	e.npcs = [_npc(e.player.pos + Vector2(220, 0), 100.0, "corona", "hunter")]
 	check(e.use_ability("ink") and e.ink_t > 0.0, "ink fires")
 	for i in 30:
 		e.step(1.0 / 60.0, Vector2.ZERO)
@@ -737,6 +737,107 @@ func _init() -> void:
 		if f.distance_to(e.player.pos) < e._spawn_max() * 1.6:
 			near_food += 1
 	check(near_food == e.food.size() and e.food.size() >= int(Ev.TUNING.food_min), "food is always around you")
+	# --- Each toxic kind always gives the same ailment; repeats build a free resistance (10, 30, 50, 70, 90)
+	var tox_ail := {}
+	for sp in Data.SPECIES:
+		if sp.role == "toxic":
+			check(Data.AILMENTS.has(str(sp.get("ailment", ""))), "toxic %s has a fixed ailment" % sp.id)
+			tox_ail[sp.ailment] = true
+	check(tox_ail.size() == Data.AILMENT_ORDER.size(), "every ailment has its own toxic creature")
+	for sp in Data.SPECIES:
+		if sp.role != "toxic":
+			continue
+		for k in 3:
+			_veteran(e, 60 + k)
+			e.npcs = [_npc(e.player.pos, 4.0, sp.id, "toxic")]
+			e.step(1.0 / 60.0, Vector2.ZERO)
+			check(e.ailments.size() == 1 and e.ailments.has(sp.ailment), "%s always gives %s" % [sp.id, sp.ailment])
+			check(float(e.ail_full.get(sp.ailment, 0.0)) >= float(e.ailments.get(sp.ailment, 1.0)), "the timer knows its full length")
+	_veteran(e, 70)
+	var got_resist := []
+	var full0 := 0.0
+	for i in 95:
+		e.ailments = {}
+		e.npcs = [_npc(e.player.pos, 4.0, "toxin", "toxic")]
+		e.step(1.0 / 60.0, Vector2.ZERO)
+		e.player.hp = e.max_hp()
+		for ev in e.events:
+			if ev.type == "resist":
+				got_resist.append([i + 1, ev.rank])
+		if i == 0:
+			full0 = e.ail_full.get("brittle", 0.0)
+		if i == 9:
+			check(e.resist_rank("brittle") == 1 and e.ail_full.get("brittle", 99.0) < full0 * 0.85, "10 times brittle = Hard cells 1/5, shorter")
+	check(got_resist == [[10, 1], [30, 2], [50, 3], [70, 4], [90, 5]], "resistance ranks at 10/30/50/70/90 (%s)" % str(got_resist))
+	check(e.ailments.is_empty(), "5/5 = immune")
+	check(e.resist_rank("glow") == 0, "resistance is per ailment")
+	# --- Only a few hunters chase you at once, and only so many are around
+	_veteran(e, 71)
+	e.player.mass = 40.0
+	for i in 9:
+		var hn := _npc(e.player.pos + Vector2.RIGHT.rotated(float(i) * 0.7) * 260.0, 100.0, "corona", "hunter")
+		hn.id = 2000 + i
+		e.npcs.append(hn)
+	for i in 3:
+		e.step(1.0 / 60.0, Vector2.ZERO)
+	var chasing := 0
+	for n in e.npcs:
+		if n.get("hunting", false):
+			chasing += 1
+	check(chasing >= 1 and chasing <= int(Data.DIFFICULTY.normal.chasers), "at most %d chase you (%d did)" % [Data.DIFFICULTY.normal.chasers, chasing])
+	for i in 400:
+		e.player.hp = e.max_hp()
+		e.step(1.0 / 60.0, Vector2.ZERO)
+	var threats := 0
+	for n in e.npcs:
+		if n.role == "hunter" and Ev.can_eat(n.mass, e.player.mass) and int(n.id) < 2000:
+			threats += 1
+	check(threats == 0, "no new hunters spawn while too many are around")
+	# --- The surface: pushing up along it keeps your speed (no catching)
+	_veteran(e, 72)
+	e.player.pos = Vector2(0.0, 5.0)
+	for i in 120:
+		e.npcs.clear()
+		e.step(1.0 / 60.0, Vector2(1, -1).normalized())
+	check(e.player.vel.x > e.top_speed() * 0.9, "sliding along the surface at full speed (%d of %d)" % [int(e.player.vel.x), int(e.top_speed())])
+	# --- Water: colder with depth; too deep / too cold hurts; traits move the limits
+	check(Ev.temp_at(Vector2(3000.0, 10.0)) > Ev.temp_at(Vector2(3000.0, 3000.0)) and Ev.temp_at(Vector2(0, 1.0e6)) >= -1.0, "colder with depth, never ice")
+	_veteran(e, 73)
+	e.player.pos = Vector2(4500.0, 500.0)      # warm, shallow
+	e.player.hp = 5.0
+	e.hit_t = 99.0
+	e.step(1.0, Vector2.ZERO)
+	check(e.too_cold == 0.0 and e.too_deep == 0.0 and e.player.hp > 5.0, "shallow water is fine")
+	e.player.pos = Vector2(4500.0, (e.max_depth_m() + 150.0) * 10.0)
+	e.player.hp = e.max_hp()
+	e.step(1.0, Vector2.ZERO)
+	check(e.too_deep > 0.0 and e.player.hp < e.max_hp(), "too deep hurts")
+	var lim0: float = e.max_depth_m()
+	give(e, "pressure_tol", 3)
+	check(e.max_depth_m() > lim0 + 300.0, "pressure cells let you dive deeper")
+	var cold0: float = e.min_temp()
+	give(e, "cold_tol", 2)
+	check(e.min_temp() < cold0 - 4.0, "antifreeze: colder water")
+	_veteran(e, 74)
+	e.player.pos = Vector2(4500.0, 100000.0)
+	for i in 600:
+		e.npcs.clear()
+		e.player.pos = Vector2(4500.0, 100000.0)
+		e.step(0.1, Vector2.ZERO)
+		if not e.alive:
+			break
+	check(not e.alive and (e.death_cause == "deep" or e.death_cause == "cold"), "the deep can kill (%s)" % e.death_cause)
+	_veteran(e, 75)
+	e.sight_rank = 1
+	e.player.pos = Vector2(4500.0, 100000.0)
+	e.step(1.0, Vector2.ZERO)
+	check(e.too_deep == 0.0, "no depth limit before the eye opens")
+	# --- Rare creatures are always worth eating; tree nodes waiting on growth are readable
+	_veteran(e, 76)
+	e.player.mass = Data.LEVELS[5]
+	e.npcs = [_npc(e.player.pos, e.player.mass * 0.15, "gold", "rare")]
+	e.step(1.0 / 60.0, Vector2.ZERO)
+	check(e.npcs.is_empty() or e.npcs[0].species != "gold", "a tiny rare creature can still be eaten")
 	# --- Fuzz: invariants over many random runs
 	var seeds_alive := 0
 	for s in 40:
