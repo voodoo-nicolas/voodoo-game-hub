@@ -43,6 +43,13 @@ func _initialize() -> void:
 	nx._on_tab("cat:0")
 	_check(nx.strip.tiles.size() == nx._games_for("cat:0").size() and nx.strip.tiles.size() > 0, "category strip has its games")
 	_check(nx.strip.scroll.scroll_horizontal == 0, "strip starts at the left")
+	# Continue playing = only the last game, first tab (before ★ Favorites) when it exists
+	_check(nx._games_for("recent").size() <= 1, "Continue playing holds only the last game")
+	var keys: Array = nx.bar._buttons.keys()
+	if nx.bar.has_tab("recent"):
+		_check(keys[0] == "recent" and keys[1] == "favs", "Continue playing first, then Favorites")
+	else:
+		_check(keys[0] == "favs", "Favorites first when nothing was played")
 	# favourites tab always exists; long-press toggles
 	var HubData = load("res://scripts/common/hub_data.gd")
 	var favs_before: Array = HubData.favorites().duplicate()

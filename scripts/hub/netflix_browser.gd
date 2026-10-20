@@ -4,7 +4,7 @@ extends Control
 ## Two looks, Options > "Games menu look" (Settings.hub_layout):
 ##
 ##  "strip" (default): full-screen artwork, and two bars at the bottom: a category bar
-##   (★ Favoritos, 🔍, Continue playing, every category, Filtros) and ONE strip of tiles
+##   (Continue playing = the last game only, ★ Favoritos, 🔍, every category, Filtros) and ONE strip of tiles
 ##   (‹ › arrows in landscape, drag + momentum + snap, wheel, edge fades).
 ##   - Opening Games shows the hub's landing art. Choosing a category crossfades the
 ##     background to that category's art (media/hub/categories); a game never changes it.
@@ -12,7 +12,7 @@ extends Control
 ##     category · age, description, mode badges, ✕ Back / ▶ Play, and the game's picture
 ##     to the right. Tapping another tile swaps it; ✕ Back or Android back closes it.
 ##
-##  "grid": every game in a grid, divided by category (Favoritos and Continue first),
+##  "grid": every game in a grid, divided by category (Continue and Favoritos first),
 ##   scrolling up/down. Tapping a tile opens the same detail as a card over the grid.
 ##
 ## Both: tap the open tile again or ▶ Play = open the game (Hub._on_tile_pressed);
@@ -34,7 +34,7 @@ const GameArt = preload("res://scripts/common/game_art.gd")
 
 const BAR_H := 64.0
 const TOP_H := 84.0
-const RECENT_MAX := 12
+const RECENT_MAX := 1   # owner 2026-10-20: Continue playing = only the last game played
 const ART_FADE := 0.3
 const GRID_GAP := 12
 const MODE_WORDS := {"cpu": "vs. computer", "local": "same phone", "online": "online", "party": "group"}
@@ -495,10 +495,10 @@ func _rebuild_strip() -> void:
 	var items: Array = []
 	if filtering:
 		items.append({"key": "results", "title": _tab_title("results")})
-	items.append({"key": "favs", "title": tr("★ Favorites")})
-	items.append({"key": "_search", "title": "🔍"})
 	if not _games_for("recent").is_empty():
 		items.append({"key": "recent", "title": tr("Continue playing")})
+	items.append({"key": "favs", "title": tr("★ Favorites")})
+	items.append({"key": "_search", "title": "🔍"})
 	for i in Catalog.categories.size():
 		items.append({"key": "cat:%d" % i, "title": _tab_title("cat:%d" % i)})
 	if filtering:
@@ -596,10 +596,10 @@ func _rebuild_grid() -> void:
 		var found: Array = hub._filtered_games()
 		_add_section(tr("Results (%d)") % found.size(), found, tile_size, tr("No games match."))
 	else:
-		_add_section(tr("★ Favorites"), _games_for("favs"), tile_size, tr("No favorites yet. Press and hold a game to add it."))
 		var recent := _games_for("recent")
 		if not recent.is_empty():
 			_add_section(tr("Continue playing"), recent, tile_size, "")
+		_add_section(tr("★ Favorites"), _games_for("favs"), tile_size, tr("No favorites yet. Press and hold a game to add it."))
 		for i in Catalog.categories.size():
 			_add_section(_tab_title("cat:%d" % i), _games_for("cat:%d" % i), tile_size, "")
 	_update_background()

@@ -1,7 +1,7 @@
 extends HBoxContainer
 
-## The category bar of the new Game Browser: text tabs (★ Favoritos, 🔍, Continue
-## playing, then every category from the manifest) in a sideways-scrolling strip, and
+## The category bar of the new Game Browser: text tabs (Continue playing, ★ Favoritos,
+## 🔍, then every category from the manifest) in a sideways-scrolling strip, and
 ## the Filtros button pinned at the end. The open tab is bright with an underline;
 ## the others are dimmed. Dragging uses the browser's TouchScroll (group
 ## "nx_row_scroll"); a tap that ended a drag is ignored.
@@ -99,7 +99,7 @@ func _reveal(key: String) -> void:
 		return
 	if b != null and is_instance_valid(b) and scroll.is_ancestor_of(b):
 		if b.position.x + b.size.x + HubLook.SIDE + 24 <= scroll.size.x:
-			scroll.scroll_horizontal = 0   # fits: keep ★ Favoritos at the start
+			scroll.scroll_horizontal = 0   # fits: keep the first tabs at the start
 		else:
 			scroll.ensure_control_visible(b)
 
