@@ -2770,6 +2770,19 @@
    "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/creation/landing_bg.jpg",
+   "what": "Creation Landing background (Earth, Fire, Wind and Water elements around a glowing planet)",
+   "source": "reference/art/games/creation_key_art_src.jpg (title band cropped off: the kit prints the title)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-20",
+   "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cropped, re-saved as JPEG q84 (Claude Code)"
   }
  ]
 }

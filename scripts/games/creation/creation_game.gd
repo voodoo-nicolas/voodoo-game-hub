@@ -653,7 +653,8 @@ func _build_home() -> void:
 		"info": info,
 		"accent": HomeKit.LIME,
 		"subtitle": "Combine four elements into everything.",
-		"logo": _draw_home_logo,
+		# The key art already shows the four elements: no drawn logo (the old one stays below).
+		"art": "res://games/creation/landing_bg.jpg",
 		"modes": [{"text": "▶  Play", "sub": "Combine items to discover new ones", "action": _on_play}],
 		"save_path": SAVE_PATH,
 		"resume": _on_play,
