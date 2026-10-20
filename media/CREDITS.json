@@ -2783,6 +2783,19 @@
    "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "cropped, re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/evolution/landing_bg.jpg",
+   "what": "Evolution Landing background (glowing microbes evolving into a creature, title baked in)",
+   "source": "reference/art/games/evolution_key_art_src.png (D:/Dev/intelligence/evolution/Neon Evolution_ From Cell to Creature.png)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-20",
+   "ai_tool": "ChatGPT image generation (per the owner)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "re-saved as JPEG q86 (Claude Code)"
   }
  ]
 }
