@@ -321,6 +321,7 @@ func _build_ui() -> void:
 		"subtitle": "Eat to grow. Evolve. Don't get eaten.",
 		"logo": _draw_home_logo,
 		"art": LANDING_ART,
+		"art_title": [0.22, 0.36],  # "Evolution" is painted in the art
 		"extra": _add_options,
 		"modes": [
 			{"text": "Easy", "key": "easy", "row": "diff", "action": _start_run.bind("easy")},

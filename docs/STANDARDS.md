@@ -76,6 +76,9 @@ Contents (show only what applies to the game):
 - Per-game hero artwork (one per skin), title, short tagline. [CURRENT 2026-10-07] Kit config `"art":
   "res://games/<id>/landing_bg.jpg"` fills the Landing behind everything (cropped, darker toward the bottom;
   the subtitle gets an outline). First: Neon Blast and Sky Strike (one shared owner image, a copy in each pack).
+  [NEW 2026-10-20] Art with the title painted in sets `"art_title": [top, bottom]` (the title's band as fractions
+  of the art's height): the kit hides its own title while that band is on screen and puts the tagline just
+  under the painted title; when the crop cuts the band off (sideways), the kit's title shows. First: Evolution.
 - **Resume** (only if a save exists) · **Quick Play** (last-used mode + difficulty).
   [NEW 2026-10-14] A game where starting a new game deletes the save (story games: Last Shift) sets kit
   `"quick_with_save": false`: no Quick Play while Resume shows (Resume is the 1-tap then, N6), so one wrong tap

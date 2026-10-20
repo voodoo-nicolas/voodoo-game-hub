@@ -55,6 +55,8 @@ extends Control
 ##         "subtitle": "One line that sells the game.",
 ##         "logo": _draw_home_logo,          # func(c: Control): draw inside c.size
 ##         "art": "res://games/<id>/landing_bg.jpg",  # optional Landing background (STANDARDS §3/§10)
+##         "art_title": [0.22, 0.36],        # optional: the art has the title painted in (top, bottom
+##                                           # as fractions of its height): no second title, subtitle under it
 ##         "modes": [
 ##             {"text": "🤖 vs Computer", "sub": "You play X", "action": _new_vs_cpu},
 ##             {"text": "👥 2 Players", "sub": "One phone", "action": _new_two_player, "multi": true},
@@ -151,6 +153,10 @@ var _more_toggle: Button = null  # cfg "compact": the ☰ More button that folds
 var _fact_label: Label
 var _fact_i: int = 0
 var _home_margin: MarginContainer
+## cfg "art_title": the Landing's own title and the gap that puts the
+## subtitle under the title painted in the art.
+var _title_label: Label
+var _art_title_gap: Control
 ## The ways to play, split the way the Landing shows them.
 var _solo: Array = []
 var _multi: Array = []
@@ -428,6 +434,14 @@ func _build_home() -> void:
 	title.add_theme_color_override("font_outline_color", Color(accent, 0.6))
 	title.add_theme_constant_override("outline_size", 12)
 	box.add_child(title)
+	_title_label = title
+	if cfg.has("art") and ResourceLoader.exists(art_path) and cfg.has("art_title"):
+		# The art has the title painted in: no second title while it is on
+		# screen, and the subtitle sits just under the painted one.
+		box.alignment = BoxContainer.ALIGNMENT_BEGIN  # line up with the picture
+		_art_title_gap = gap(0)
+		box.add_child(_art_title_gap)
+		box.sort_children.connect(_fit_art_title.bind(home, load(art_path)))
 
 	var sub_text: String = cfg.get("subtitle", consts.get("GOAL", ""))
 	if sub_text != "":
@@ -647,6 +661,32 @@ func _add_art(parent: Control, tex: Texture2D) -> void:
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(veil)
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+## cfg "art_title" = [top, bottom] of the title painted in the Landing art, as
+## fractions of the picture's height. While that band is on screen the kit's
+## title hides and the gap under it puts the subtitle just below the painted
+## title; when the crop cuts it off (sideways, compact) the kit's title shows.
+## Runs after every layout of the Landing column; the gap's top does not
+## depend on its own height, so it settles in one pass.
+func _fit_art_title(home: Control, tex: Texture2D) -> void:
+	if _art_title_gap == null or tex == null:
+		return
+	var band: Array = cfg.get("art_title", [0.0, 0.0])
+	var tsize := Vector2(tex.get_size())
+	var scale: float = maxf(home.size.x / tsize.x, home.size.y / tsize.y)
+	var top_y: float = (home.size.y - tsize.y * scale) / 2.0 + float(band[0]) * tsize.y * scale
+	var bottom_y: float = (home.size.y - tsize.y * scale) / 2.0 + float(band[1]) * tsize.y * scale
+	var painted: bool = not _compact() and top_y >= 0.0 and bottom_y <= home.size.y
+	if _title_label.visible == painted:
+		_title_label.visible = not painted
+	var h := 0.0
+	if painted and _home_margin != null:
+		# Content coordinates (scroll at the top), where the art is drawn.
+		var gap_top: float = _art_title_gap.global_position.y - _home_margin.global_position.y
+		var sep: float = _art_title_gap.get_parent().get_theme_constant("separation")
+		h = maxf(0.0, bottom_y + 6.0 - sep - gap_top)
+	if absf(_art_title_gap.custom_minimum_size.y - h) > 0.5:
+		_art_title_gap.custom_minimum_size.y = h
 
 ## Compact: the art untouched on the right, a veil only behind the button column on the left.
 func _add_side_art(parent: Control, tex: Texture2D) -> void:
