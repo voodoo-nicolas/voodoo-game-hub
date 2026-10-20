@@ -64,6 +64,8 @@ var home  # HomeKit
 var engine
 var started := false
 var result_sent := false
+var _flushed := {"cells": 0, "food": 0, "dist": 0.0}
+var _flush_t := 0.0
 var zoom: float = 1.0
 var vis_r: float = 160.0            # screen pixels the cell can see
 var keys := Vector2.ZERO
@@ -413,7 +415,29 @@ func _start_run(d: String) -> void:
 	_save_prefs()
 	_new_game()
 
+## Sends this run's progress to the stats (lifetime totals behind the badges).
+func _flush_stats() -> void:
+	if info == null or engine == null:
+		return
+	var dc: int = engine.eaten_cells - int(_flushed.cells)
+	if dc > 0:
+		info.add("Cells eaten", dc)
+		_flushed.cells = engine.eaten_cells
+	var df: int = engine.eaten_food - int(_flushed.food)
+	if df > 0:
+		info.add("Food eaten", df)
+		_flushed.food = engine.eaten_food
+	var meters := int((engine.distance - float(_flushed.dist)) / 10.0)
+	if meters > 0:
+		info.add("Distance swum (m)", meters)
+		_flushed.dist = float(_flushed.dist) + float(meters) * 10.0
+	info.high("Biggest size", engine.level())
+	info.high("Top speed", engine.speed_pct())
+
 func _new_game() -> void:
+	_flush_stats()
+	_flushed = {"cells": 0, "food": 0, "dist": 0.0}
+	_flush_t = 0.0
 	vis_r = field.size.y * Data.SIGHT_FRAC[0]
 	zoom = 1.0
 	_apply_view(1.0, true)
@@ -442,6 +466,10 @@ func _process(delta: float) -> void:
 	delta = minf(delta, 0.05)
 	_apply_view(delta)
 	engine.step(delta, _direction())
+	_flush_t += delta
+	if _flush_t >= 20.0:
+		_flush_t = 0.0
+		_flush_stats()
 	_handle_events()
 	_update_particles(delta)
 	_check_danger()
@@ -498,9 +526,8 @@ func _game_over() -> void:
 	var msg := tr("You were eaten!") + "\n" + tr("Score: %d") % engine.score() + "   ·   " + tr("Size %d") % EvEngine.size_level(engine.peak_mass)
 	if info and not result_sent:
 		result_sent = true
+		_flush_stats()
 		info.add("Games played")
-		info.add("Cells eaten", engine.eaten_cells)
-		info.add("Food eaten", engine.eaten_food)
 		info.add("Missions done", engine.missions_done)
 		info.high("Biggest size", EvEngine.size_level(engine.peak_mass))
 		info.high("Close call", int(minf(engine.escape_time, 8.0)))
@@ -674,6 +701,8 @@ func _handle_events() -> void:
 				bump = maxf(bump, 0.03)
 				_snd("speck", randf_range(0.9, 1.25), -6.0)
 			"cell":
+				if ev.role == "rare" and info:
+					info.add("Rare eaten")
 				var sp := Data.species_of(ev.species)
 				_spawn_burst(ev.pos, sp.col, 14, 220.0, 5.0, EvEngine.radius_of(ev.mass) * 1.6)
 				bump = 0.1
@@ -693,6 +722,21 @@ func _handle_events() -> void:
 			"tree":
 				_snd("evolve")
 				_show_popup(tr("The evolution tree is open!"), tr("Spend your DNA on the 🧬 screen, next to pause."))
+			"ailment_end":
+				if info:
+					info.add("Recoveries")             # got sick and lived until it wore off
+			"evaded":
+				if info:
+					info.add("Creatures evaded")
+			"comeback":
+				if info:
+					info.add("Comebacks")
+			"revenge":
+				if info:
+					info.add("Revenge")
+			"stun_count":
+				if info:
+					info.high("Most stunned", ev.count)
 			"close_call":
 				_banner(tr("Close call! You stayed alive near a hunter."))
 				if info:
@@ -1027,10 +1071,12 @@ func _draw_home_logo(c: Control) -> void:
 # ---------- pause / skin ----------
 
 func _on_pause() -> void:
+	_flush_stats()
 	controls.release()
 	home.pause()
 
 func _go_home() -> void:
+	_flush_stats()
 	home.go_home()
 
 ## Called by the Landing kit's skin switch: re-skin in place.

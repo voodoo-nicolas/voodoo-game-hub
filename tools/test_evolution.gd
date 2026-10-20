@@ -346,6 +346,72 @@ func _init() -> void:
 		else:
 			mass_big = hs / maxf(float(hc), 1.0)
 	check(absf(mass_small - mass_big) < 40.0 or mass_small == 0.0 or mass_big == 0.0, "a given predator does not grow with you")
+	# --- Events behind the badges
+	var bdg := Ev.new()
+	_veteran(bdg, 80)
+	give(bdg, "tail", 2)
+	for i in 60:
+		bdg.step(1.0 / 60.0, Vector2.RIGHT)
+	check(bdg.distance > 100.0, "swimming adds up distance (%d)" % int(bdg.distance))
+	bdg.player.hp = 0.5
+	bdg.step(0.01, Vector2.ZERO)
+	bdg.player.hp = bdg.max_hp()
+	bdg.step(0.01, Vector2.ZERO)
+	var got_cb := false
+	for ev in bdg.events:
+		if ev.type == "comeback":
+			got_cb = true
+	check(got_cb, "below 10% health then back to full = a comeback")
+	_veteran(bdg, 81)
+	give(bdg, "shock")
+	bdg.npcs.clear()
+	for i in 6:
+		bdg.npcs.append(_npc(bdg.player.pos + Vector2(60 + 20 * i, 0), 30.0, "coccus", "prey"))
+	bdg.power = 100.0
+	check(bdg.use_ability("shock") and bdg.max_stunned >= 6, "one shock can stun many (%d)" % bdg.max_stunned)
+	var got_stun := false
+	for ev in bdg.events:
+		if ev.type == "stun_count" and ev.count >= 6:
+			got_stun = true
+	check(got_stun, "stun_count event")
+	_veteran(bdg, 82)
+	give(bdg, "ink")
+	bdg.player.mass = Ev.STAGES[3][0]
+	bdg.player.hp = 1000.0
+	bdg.npcs = [_npc(bdg.player.pos + Vector2(300, 0), 300.0, "corona", "hunter")]
+	for i in 300:
+		bdg.step(1.0 / 60.0, Vector2.ZERO)
+		bdg.npcs[0].pos = bdg.player.pos + Vector2(300, 0)
+		bdg.player.hp = 1000.0
+	check(bdg.npcs[0].get("chase_t", 0.0) > 4.0, "a hunter has been chasing you")
+	bdg.ink_t = 5.0
+	bdg.ink_pos = bdg.npcs[0].pos
+	var got_evade := false
+	for i in 5:
+		bdg.step(1.0 / 60.0, Vector2.ZERO)
+		for ev in bdg.events:
+			if ev.type == "evaded":
+				got_evade = true
+	check(got_evade, "losing a chasing hunter counts as evading it")
+	_veteran(bdg, 83)
+	bdg.player.mass = 40.0
+	var old_chaser := _npc(bdg.player.pos, 20.0, "corona", "hunter")
+	old_chaser["chased_lvl"] = 1
+	bdg.npcs = [old_chaser]
+	bdg.step(1.0 / 60.0, Vector2.ZERO)
+	var got_rev := false
+	for ev in bdg.events:
+		if ev.type == "revenge":
+			got_rev = true
+	check(got_rev, "eating what once chased you, after growing = revenge")
+	_veteran(bdg, 84)
+	check(bdg.speed_pct() < 100, "a fresh body is not at top speed")
+	give(bdg, "tail", 2)
+	give(bdg, "fins", 2)
+	give(bdg, "flagella")
+	give(bdg, "cilia")
+	give(bdg, "streamlined")
+	check(bdg.speed_pct() == 100, "the best body reaches 100% speed (%d)" % bdg.speed_pct())
 	# --- Combat: a hunter bites, HP drops, death at 0
 	_veteran(e, 3)
 	e.npcs = [_npc(e.player.pos, 100.0, "corona", "hunter")]

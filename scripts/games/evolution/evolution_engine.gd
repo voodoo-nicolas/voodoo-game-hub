@@ -138,6 +138,9 @@ var seen_surface := false
 var surface_hit := false
 var max_depth: float = 0.0
 var close_call_sent := false
+var distance: float = 0.0        # world units swum this run (10 units = 1 m)
+var max_stunned: int = 0         # most creatures stunned by one shock
+var _comeback_armed := false
 var _depth_i := 0
 var seen := {}            # species ids already met
 var view_r: float = 220.0   # world units the player can see (the game sets it from zoom)
@@ -285,6 +288,11 @@ func move_mult() -> float:
 		m += t("fins_bonus") * rank_of("fins") + (t("streamlined_bonus") if has("streamlined") else 0.0)
 	return m
 
+## How close your swimming speed is to the best a body can have (0..100): all tail ranks, 2 fins, streamlined.
+func speed_pct() -> int:
+	var best: float = Data.MOVE_MULT[Data.MOVE_MULT.size() - 1] + t("fins_bonus") * 2.0 + t("streamlined_bonus")
+	return int(round(100.0 * move_mult() / best))
+
 ## Top speed now (without a dash), world units per second.
 func top_speed() -> float:
 	return t("player_speed") * move_mult() * size_boost(player.mass)
@@ -345,6 +353,9 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	surface_hit = false
 	max_depth = 0.0
 	close_call_sent = false
+	distance = 0.0
+	max_stunned = 0
+	_comeback_armed = false
 	_depth_i = 0
 	seen = {}
 	missions = []
@@ -534,6 +545,7 @@ func _move_player(delta: float, dir: Vector2) -> void:
 			want = (dir.normalized() if dir.length() > 0.05 else player.vel.normalized()) * top_speed() * t("dash_mult")
 		player.vel = player.vel.lerp(want, clampf(t("accel") * delta * (2.5 if dash_t > 0.0 else 1.0), 0.0, 1.0))
 	player.pos += player.vel * delta
+	distance += player.vel.length() * delta
 	# The surface: the one wall. Sides and depth never end.
 	var top: float = radius_of(player.mass) * t("surface_margin")
 	if player.pos.y < top:
@@ -561,9 +573,14 @@ func use_ability(id: String) -> bool:
 			events.append({"type": "spit", "pos": player.pos})
 		"shock", "spine":
 			var rad := ability_radius(id)
+			var stunned := 0
 			for n in npcs:
 				if n.pos.distance_to(player.pos) < rad:
 					n["stun"] = dur
+				if float(n.get("stun", 0.0)) > 0.0:
+					stunned += 1
+			max_stunned = maxi(max_stunned, stunned)
+			events.append({"type": "stun_count", "count": stunned})
 			events.append({"type": "shock", "pos": player.pos, "radius": rad, "id": id})
 		"lure":
 			if lure_t > 0.0:
@@ -656,6 +673,12 @@ func _heal_and_passives(delta: float) -> void:
 			if d.length() < rng2:
 				food[i] += d.normalized() * 220.0 * delta
 	peak_mass = maxf(peak_mass, player.mass)
+	# Badge: fall below 10% health, then recover all the way.
+	if player.hp <= max_hp() * 0.1:
+		_comeback_armed = true
+	elif _comeback_armed and player.hp >= max_hp() - 0.001:
+		_comeback_armed = false
+		events.append({"type": "comeback"})
 
 func _tick_ailments(delta: float) -> void:
 	for k in ailments.keys():
@@ -715,6 +738,14 @@ func _think(delta: float) -> void:
 		var hunting: bool = role == "hunter" and chase_d < sight and can_eat(n.mass, player.mass)
 		if hunting and has("warning") and not n.get("hunting", false):
 			n["pause"] = t("warning_pause") * rank_of("warning")             # predators hesitate at the warning colours
+		if hunting:
+			n["chase_t"] = float(n.get("chase_t", 0.0)) + delta
+			if not n.has("chased_lvl"):
+				n["chased_lvl"] = level()
+		elif n.get("hunting", false):
+			if float(n.get("chase_t", 0.0)) >= 4.0:
+				events.append({"type": "evaded"})      # a bigger creature chased you and lost you
+			n["chase_t"] = 0.0
 		n["hunting"] = hunting
 		if n.get("pause", 0.0) > 0.0:
 			n["pause"] -= delta
@@ -818,6 +849,8 @@ func _resolve(delta: float) -> void:
 			eaten_cells += 1
 			kills += 1
 			eaten_value += worth
+			if int(n.get("chased_lvl", 0)) > 0 and level() > int(n.chased_lvl):
+				events.append({"type": "revenge"})     # it chased you once; you grew; now it is food
 			var sp := Data.species_of(n.species)
 			if sp.has("trait"):
 				_grant_trait(sp.trait)

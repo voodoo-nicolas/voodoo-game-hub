@@ -23,13 +23,31 @@ const TIPS := [
 	"Upgrade your senses early: seeing a hunter coming is half of surviving it.",
 	"Toxic creatures are tempting: a glow makes hunters notice you, brittle makes bites hurt more. Wait out the ailment somewhere quiet.",
 ]
-const STATS := ["Best score", "Biggest size", "Cells eaten", "Food eaten", "Missions done", "Games played"]
+const STATS := ["Best score", "Biggest size", "Cells eaten", "Rare eaten", "Food eaten", "Distance swum (m)", "Missions done", "Games played"]
 
-## Badges (achievements.gd). "Close call" is the longest time (up to 8 s) you stayed near a hunter and lived.
+## Badges (achievements.gd): they unlock when the stat reaches `at`. Stats are lifetime totals ("Distance swum (m)":
+## 10 world units = 1 m) or records ("Biggest size", "Top speed" = % of the best possible swimming speed).
 const ACHIEVEMENTS := [
-	{"id": "close_call", "icon": "😰", "title": "Close call", "desc": "Stay alive for 8 seconds close to a hunter", "key": "Close call", "at": 8},
+	{"id": "first_bite", "icon": "🦠", "title": "First bite", "desc": "Eat a creature", "key": "Cells eaten", "at": 1},
+	{"id": "eat100", "icon": "🍽️", "title": "Hungry", "desc": "Eat 100 creatures", "key": "Cells eaten", "at": 100},
+	{"id": "eat1000", "icon": "🦈", "title": "Glutton", "desc": "Eat 1,000 creatures", "key": "Cells eaten", "at": 1000},
+	{"id": "eat10000", "icon": "👹", "title": "Devourer", "desc": "Eat 10,000 creatures", "key": "Cells eaten", "at": 10000},
+	{"id": "rare1", "icon": "✨", "title": "Lucky find", "desc": "Eat a rare creature", "key": "Rare eaten", "at": 1},
+	{"id": "rare10", "icon": "🌟", "title": "Treasure hunter", "desc": "Eat 10 rare creatures", "key": "Rare eaten", "at": 10},
+	{"id": "rare100", "icon": "💎", "title": "Rare collector", "desc": "Eat 100 rare creatures", "key": "Rare eaten", "at": 100},
+	{"id": "got_better", "icon": "🤒", "title": "I got better", "desc": "Get sick and survive until it wears off", "key": "Recoveries", "at": 1},
 	{"id": "big_fish", "icon": "🐋", "title": "Big fish", "desc": "Reach size 6", "key": "Biggest size", "at": 6},
-	{"id": "score1", "icon": "🦠", "title": "Microbe master", "key": "Best score", "at": 1000},
+	{"id": "max_size", "icon": "🌊", "title": "Colossus", "desc": "Grow to the maximum size", "key": "Biggest size", "at": 10},
+	{"id": "max_speed", "icon": "💨", "title": "Speed demon", "desc": "Reach the maximum swimming speed", "key": "Top speed", "at": 100},
+	{"id": "evade", "icon": "🐟", "title": "Slippery", "desc": "Get away from a bigger creature that was chasing you", "key": "Creatures evaded", "at": 1},
+	{"id": "stun5", "icon": "⚡", "title": "Shock and awe", "desc": "Stun 5 creatures at the same time", "key": "Most stunned", "at": 5},
+	{"id": "swim1", "icon": "🏊", "title": "One kilometre", "desc": "Swim 1 km", "key": "Distance swum (m)", "at": 1000},
+	{"id": "swim10", "icon": "🚤", "title": "Long haul", "desc": "Swim 10 km", "key": "Distance swum (m)", "at": 10000},
+	{"id": "marathon", "icon": "🏅", "title": "Marathon", "desc": "Swim 28 km", "key": "Distance swum (m)", "at": 28000},
+	{"id": "want_to_live", "icon": "❤️‍🩹", "title": "I want to live", "desc": "Drop below 10% health, then get back to full health", "key": "Comebacks", "at": 1},
+	{"id": "be_back", "icon": "🔁", "title": "I'll be back", "desc": "Get chased by a bigger creature, grow, and then eat it", "key": "Revenge", "at": 1},
+	{"id": "close_call", "icon": "😰", "title": "Close call", "desc": "Stay alive for 8 seconds close to a hunter", "key": "Close call", "at": 8},
+	{"id": "score1", "icon": "🏆", "title": "Microbe master", "key": "Best score", "at": 1000},
 ]
 
 ## Learning hook (STANDARDS §15). Checked facts only.

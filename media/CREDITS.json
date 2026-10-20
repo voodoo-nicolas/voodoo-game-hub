@@ -2786,8 +2786,8 @@
   },
   {
    "file": "games/evolution/landing_bg.jpg",
-   "what": "Evolution Landing background (glowing microbes evolving into a creature, title baked in)",
-   "source": "reference/art/games/evolution_key_art_src.png (D:/Dev/intelligence/evolution/Neon Evolution_ From Cell to Creature.png)",
+   "what": "Evolution Landing background (glowing microbes evolving into a creature with a deep-sea monster behind, title baked in)",
+   "source": "reference/art/games/evolution_key_art_src.png (D:/Dev/intelligence/evolution/landing_bg.png)",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
    "proof": "media/licenses/OWNER_GAME_ART.md",
