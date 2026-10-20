@@ -530,6 +530,14 @@ func _on_update_pressed() -> void:
 	if drag.moved:
 		return
 	if update_url != "":
+		if PcUpdater.is_supported():  # Windows: download the new .pck, swap it in, restart
+			update_btn.disabled = true
+			update_label.text = tr("Updating %s...") % Brand.NAME
+			var updater := PcUpdater.new()
+			add_child(updater)
+			updater.failed.connect(_on_pc_update_failed)
+			updater.start(update_url)
+			return
 		OS.shell_open(update_url)
 		return
 	update_btn.disabled = true
@@ -542,6 +550,10 @@ func _on_update_found(remote_version: String, apk_url: String) -> void:
 	update_url = apk_url
 	update_label.text = tr("v%s is out (you have v%s)") % [remote_version, Version.VERSION]
 	update_btn.text = tr("Update Now")
+
+func _on_pc_update_failed(error: String) -> void:
+	update_btn.disabled = false
+	update_label.text = error
 
 func _on_no_update(reached: bool) -> void:
 	update_btn.disabled = false

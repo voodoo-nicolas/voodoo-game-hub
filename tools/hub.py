@@ -1197,7 +1197,14 @@ def cmd_release(args) -> None:
     apk = ROOT / f"builds/voodoo-v{version}.apk"
     if not apk.is_file():
         raise ToolError(f"{apk.relative_to(ROOT)} not built -- run apk first")
-    subprocess.run([gh(), "release", "create", f"v{version}", str(apk), "--title", f"v{version}",
+    # The PC build updates itself from this file (scripts/common/pc_updater.gd):
+    # the same pack `hub.py pc` makes, named voodoo-pc-v<version>.pck.
+    pc_pck = ROOT / f"builds/voodoo-pc-v{version}.pck"
+    code, log = run_godot("--export-pack", PC_PRESET, str(pc_pck), timeout=900)
+    if code != 0 or not pc_pck.is_file():
+        print(log)
+        raise ToolError("PC pack export failed")
+    subprocess.run([gh(), "release", "create", f"v{version}", str(apk), str(pc_pck), "--title", f"v{version}",
                     "--notes", args.notes or f"{read_brand()} v{version}"], cwd=ROOT, check=True)
 
 

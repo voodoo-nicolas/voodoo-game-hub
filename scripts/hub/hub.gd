@@ -118,6 +118,7 @@ var account_status_btn: Button
 ## second tap -- on the same tile or another -- can't start a parallel flow.
 var busy: bool = false
 var download_overlay: Control
+var _pc_updater: PcUpdater  # Windows self-update in progress
 var list_scroll: ScrollContainer
 ## The open category's header, pinned to the top of the list while its games
 ## scroll under it, so it can be closed (and another one opened) without
@@ -1309,6 +1310,9 @@ func _on_download_done(error: String, id: String) -> void:
 func _close_download_overlay(id: String = "") -> void:
 	if id != "":
 		Catalog.cancel_download(id)
+	if _pc_updater != null and is_instance_valid(_pc_updater):
+		_pc_updater.cancel()
+	_pc_updater = null
 	if download_overlay and is_instance_valid(download_overlay):
 		download_overlay.queue_free()
 	download_overlay = null
@@ -1340,10 +1344,31 @@ func _build_download_overlay(status_text: String, id: String) -> Control:
 ## ---------- dialogs ----------
 
 func _show_update_dialog(remote_version: String, apk_url: String) -> void:
+	# apk_url is the release's PC .pck on Windows: downloaded and swapped in by PcUpdater.
+	var update_action: Callable = _start_pc_update.bind(apk_url) if PcUpdater.is_supported() else Callable(OS, "shell_open").bind(apk_url)
 	_show_dialog(tr("Update Available"), tr("v%s is out (you have v%s)") % [remote_version, Version.VERSION], [
-		{"text": tr("Update Now"), "action": Callable(OS, "shell_open").bind(apk_url)},
+		{"text": tr("Update Now"), "action": update_action},
 		{"text": tr("Later"), "action": Callable()},
 	])
+
+## Windows: download the new .pck behind the usual progress overlay; on success
+## the app closes itself and comes back updated.
+func _start_pc_update(url: String) -> void:
+	busy = true
+	download_overlay = _build_download_overlay(tr("Updating %s...") % Brand.NAME, "")
+	add_child(download_overlay)
+	_pc_updater = PcUpdater.new()
+	add_child(_pc_updater)
+	_pc_updater.failed.connect(_on_pc_update_failed)
+	_pc_updater.start(url)
+	download_overlay.set_meta("http", _pc_updater.get_http())
+
+func _on_pc_update_failed(error: String) -> void:
+	if download_overlay and is_instance_valid(download_overlay):
+		download_overlay.set_meta("http", null)
+		download_overlay.get_meta("status_label").text = error
+		download_overlay.get_meta("progress_bar").visible = false
+		download_overlay.get_meta("close_button").text = tr("Close")
 
 ## `buttons` is [{"text": String, "action": Callable}]; every button closes
 ## the dialog, and an empty Callable() means it does nothing else.

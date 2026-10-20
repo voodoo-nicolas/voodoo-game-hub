@@ -486,8 +486,16 @@ func check_app_update(on_newer: Callable, on_none: Callable = Callable()) -> voi
 			return
 		var remote_version: String = str(parsed.tag_name).trim_prefix("v")
 		if is_newer_version(remote_version, Version.VERSION):
+			# The Windows build updates from the release's voodoo-pc-v*.pck (PcUpdater),
+			# every other build from the .apk. A release without the PC file reports
+			# nothing on PC rather than sending it to an APK.
+			var pc: bool = PcUpdater.is_supported()
 			for asset in parsed.get("assets", []):
-				if typeof(asset) == TYPE_DICTIONARY and str(asset.get("name", "")).ends_with(".apk"):
+				if typeof(asset) != TYPE_DICTIONARY:
+					continue
+				var asset_name: String = str(asset.get("name", ""))
+				if (pc and asset_name.begins_with("voodoo-pc-") and asset_name.ends_with(".pck")) \
+						or (not pc and asset_name.ends_with(".apk")):
 					_safe_call(on_newer, [remote_version, str(asset.get("browser_download_url", ""))])
 					return
 		_safe_call(on_none, [true])

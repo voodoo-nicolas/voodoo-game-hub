@@ -56,6 +56,15 @@
  "*.jpg, *.jpeg, *.png, *.webp ; Images": [
   "scripts\\hub\\profile_screen.gd"
  ],
+ "-Command": [
+  "scripts\\common\\pc_updater.gd"
+ ],
+ "-NoProfile": [
+  "scripts\\common\\pc_updater.gd"
+ ],
+ "-WindowStyle": [
+  "scripts\\common\\pc_updater.gd"
+ ],
  "....MM....": [
   "scripts\\common\\game_teasers_arcade.gd"
  ],
@@ -217,6 +226,9 @@
  "Mayo": [
   "scripts\\account\\consent_screen.gd"
  ],
+ "Move-Item -LiteralPath $n -Destination $p -Force -ErrorAction Stop;break}catch{Start-Sleep 1}};": [
+  "scripts\\common\\pc_updater.gd"
+ ],
  "Noto Color Emoji font": [
   "scripts\\common\\third_party.gd"
  ],
@@ -268,8 +280,14 @@
   "scripts\\common\\achievements.gd",
   "scripts\\common\\avatar.gd"
  ],
+ "Start-Process -FilePath $e -WorkingDirectory (Split-Path $e)": [
+  "scripts\\common\\pc_updater.gd"
+ ],
  "VGH1.": [
   "scripts\\common\\auth.gd"
+ ],
+ "Windows": [
+  "scripts\\common\\pc_updater.gd"
  ],
  "Word": [
   "scripts\\hub\\hub.gd",
@@ -298,6 +316,9 @@
  ],
  "duplicate recipe %s": [
   "scripts\\games\\creation\\creation_engine.gd"
+ ],
+ "for($i=0;$i -lt 60;$i++){try{Copy-Item -LiteralPath $p -Destination ($p+'.bak') -Force -ErrorAction Stop;": [
+  "scripts\\common\\pc_updater.gd"
  ],
  "free-tier item '%s' needs a paid-tier ingredient": [
   "scripts\\games\\creation\\creation_engine.gd"
