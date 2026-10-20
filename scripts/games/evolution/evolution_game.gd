@@ -73,6 +73,10 @@ var overlay: ColorRect
 var controls: Controls
 var fx: Control
 var screens: Screens
+var popup: Control
+var popup_title: Label
+var popup_text: Label
+var _popup_queue: Array = []
 var end_dialog: Control
 var hp_bar: ProgressBar
 var sp_bar: ProgressBar
@@ -265,6 +269,7 @@ func _build_ui() -> void:
 	screens.home_pressed.connect(_go_home)
 	screens.sfx.connect(_sfx)
 	add_child(screens)
+	_build_popup()
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _new_game},
@@ -476,14 +481,15 @@ func _game_over() -> void:
 	started = false
 	controls.release()
 	_sfx("explode")
-	var msg := tr("You were eaten!") + "\n" + tr("Score: %d") % engine.score() + "   ·   " + tr("Size %d") % int(engine.peak_mass)
+	var msg := tr("You were eaten!") + "\n" + tr("Score: %d") % engine.score() + "   ·   " + tr("Size %d") % EvEngine.size_level(engine.peak_mass)
 	if info and not result_sent:
 		result_sent = true
 		info.add("Games played")
 		info.add("Cells eaten", engine.eaten_cells)
 		info.add("Food eaten", engine.eaten_food)
 		info.add("Missions done", engine.missions_done)
-		info.high("Biggest size", int(engine.peak_mass))
+		info.high("Biggest size", EvEngine.size_level(engine.peak_mass))
+		info.high("Close call", int(minf(engine.escape_time, 8.0)))
 		if info.high("Best score", engine.score()):
 			msg += "\n" + tr("New best!")
 			info.celebrate(tr("New best!"))
@@ -502,7 +508,7 @@ func _update_hud() -> void:
 		xp_bar.value = e.xp_frac()
 		sp_row.visible = e.has_actives()
 		sp_bar.value = e.power_frac()
-		stage_label.text = tr(EvEngine.STAGES[e.stage()][1]) + "  ·  " + tr("Size %d") % int(e.player.mass)
+		stage_label.text = tr(EvEngine.STAGES[e.stage()][1]) + "  ·  " + tr("Size %d") % e.level()
 		var lines: Array = []
 		for id in e.ailments.keys():
 			lines.append("☠ " + tr(Data.AILMENTS[id].name))
@@ -522,7 +528,7 @@ func _update_missions() -> void:
 	var rows: Array = engine.mission_rows()
 	var sig := ""
 	for r in rows:
-		sig += "%s|%d|%d|%s;" % [r.text, r.prog, r.target, str(r.done)]
+		sig += "%s|%d|%s;" % [r.text, int(r.frac * 20.0), str(r.done)]
 	if sig == _mission_sig:
 		return
 	_mission_sig = sig
@@ -544,26 +550,97 @@ func _update_missions() -> void:
 			for a in r.args:
 				args.append(tr(a) if typeof(a) == TYPE_STRING else a)
 			text = text % args
-		var tail := ""
-		if r.kind != "mass" and r.target > 1:
-			tail = "  (%d/%d)" % [r.prog, r.target]
-		var reward: String = {"tail": "  ➜ " + tr("tail"), "eye": "  ➜ " + tr("eye"), "size": "  ➜ " + tr("size"), "dna": "  ➜ 🧬", "none": ""}.get(r.reward, "")
-		l.text = ("✔ " if r.done else "▸ ") + text + tail + reward
+		l.text = ("✔ " if r.done else "▸ ") + text
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size = Vector2(260, 0)
 		l.add_theme_font_size_override("font_size", 18)
 		l.add_theme_color_override("font_color", Color(1, 1, 1, 0.5) if r.done else Color.WHITE)
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		mission_box.add_child(l)
+		var bar := _bar(Color("ffc233") if not r.done else Color("6fbf5a"))
+		bar.custom_minimum_size = Vector2(0, 8)
+		bar.value = r.frac
+		mission_box.add_child(bar)
 
 func _open_info() -> void:
 	if screens.visible or not started or not engine.has_bars():
 		return
 	controls.release()
+	get_tree().paused = true                  # the world stands still while you look at your creature
 	screens.open_info(engine, color, voodoo)
 
 func _on_screens_closed() -> void:
 	controls.release()
+	get_tree().paused = false
+
+# ---------- "you unlocked ..." pop-ups: the game stops and tells you what happened ----------
+
+func _build_popup() -> void:
+	popup = Control.new()
+	popup.set_anchors_preset(Control.PRESET_FULL_RECT)
+	popup.process_mode = Node.PROCESS_MODE_ALWAYS
+	popup.mouse_filter = Control.MOUSE_FILTER_STOP
+	popup.visible = false
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.03, 0.07, 0.8)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup.add_child(dim)
+	var box := CenterContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup.add_child(box)
+	var panel := PanelContainer.new()
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color(0.05, 0.08, 0.16, 0.97)
+	ps.border_color = Color("29e6ff")
+	ps.set_border_width_all(3)
+	ps.set_corner_radius_all(14)
+	ps.set_content_margin_all(22)
+	panel.add_theme_stylebox_override("panel", ps)
+	box.add_child(panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 14)
+	panel.add_child(v)
+	popup_title = Label.new()
+	popup_title.add_theme_font_size_override("font_size", 34)
+	popup_title.add_theme_color_override("font_color", Color("ffd479"))
+	popup_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(popup_title)
+	popup_text = Label.new()
+	popup_text.add_theme_font_size_override("font_size", 24)
+	popup_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	popup_text.custom_minimum_size = Vector2(560, 0)
+	popup_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(popup_text)
+	var ok := Button.new()
+	ok.text = tr("Continue")
+	ok.custom_minimum_size = Vector2(0, 64)
+	ok.focus_mode = Control.FOCUS_NONE
+	ok.pressed.connect(_close_popup)
+	v.add_child(ok)
+	add_child(popup)
+
+func _show_popup(title: String, text: String) -> void:
+	_popup_queue.append([title, text])
+	if not popup.visible:
+		_next_popup()
+
+func _next_popup() -> void:
+	if _popup_queue.is_empty():
+		popup.visible = false
+		get_tree().paused = false
+		return
+	var item: Array = _popup_queue.pop_front()
+	popup_title.text = item[0]
+	popup_text.text = item[1]
+	popup.visible = true
+	controls.release()
+	get_tree().paused = true
+
+func _close_popup() -> void:
+	_sfx("tap")
+	_next_popup()
 
 # ---------- effects ----------
 
@@ -591,12 +668,21 @@ func _handle_events() -> void:
 				_spawn_burst(engine.player.pos - ev.dir * EvEngine.radius_of(engine.player.mass), color, 4, 90.0, 3.0, 0.0)
 			"tail":
 				tail_grow = 0.0
-				_banner(tr("A tail grows! You swim faster."))
 				_sfx("powerup")
+				_show_popup(tr("You unlocked a tail!"), tr("A small tail grows out of your body. It pushes you along, so you swim much faster than before."))
 			"eye":
 				eye_open = 0.0
-				_banner(tr("An eye opens! You can see farther."))
 				_sfx("powerup")
+				_show_popup(tr("You unlocked an eye!"), tr("A lump forms on your body and a slit opens: an eye! You can see farther now, and your health and growth bars appear. Careful: bigger creatures are out there."))
+			"tree":
+				_sfx("powerup")
+				_show_popup(tr("You can evolve!"), tr("You have hunted enough. Open the 🧬 screen, next to pause, to spend DNA on the evolution tree. New missions give you DNA and size."))
+			"close_call":
+				_banner(tr("Close call! You stayed alive near a hunter."))
+				if info:
+					info.high("Close call", 8)
+			"place":
+				_banner(tr("You can see the surface!") if ev.what == "surface" else tr("You are entering deeper waters."))
 			"mission":
 				_banner(tr("Mission complete!"))
 				_sfx("pickup")
@@ -606,7 +692,11 @@ func _handle_events() -> void:
 			"dna":
 				_banner(tr("+1 DNA point: spend it on the 🧬 screen."))
 			"seen":
-				if ev.role == "hunter":
+				if ev.trait == "tail":
+					_banner(tr("That one has a tail! Eat it to grow your own."))
+				elif ev.trait == "eye":
+					_banner(tr("That one has an eye! Eat it to grow your own."))
+				elif ev.role == "hunter":
 					_banner(tr("A hunter! Keep away."))
 				elif ev.role == "toxic":
 					_banner(tr("Toxic creature: don't eat it."))
@@ -676,11 +766,15 @@ func _draw_field() -> void:
 	var margin := 40.0
 	# Food: glowing spores that breathe.
 	var fr: float = maxf(EvEngine.radius_of(EvEngine.TUNING.food_mass) * zoom, 3.0)
-	for i in engine.food.size():
+	var food_vis: float = engine.visibility_of(EvEngine.TUNING.food_mass)
+	for i in (engine.food.size() if food_vis > 0.0 else 0):
 		var sp := _w2s(engine.food[i])
 		if sp.x < -margin or sp.y < -margin or sp.x > s.x + margin or sp.y > s.y + margin or sp.distance_to(c) > lim:
 			continue
 		var col: Color = FOOD[i % FOOD.size()]
+		if food_vis < 1.0:
+			field.draw_circle(sp, 2.0, Color(col, 0.35))      # too small to matter: just a speck in the water
+			continue
 		var br := 1.0 + 0.18 * sin(pulse * 3.0 + float(i) * 1.7)
 		field.draw_circle(sp, fr * 3.4 * br, Color(col, 0.07))
 		field.draw_circle(sp, fr * 2.0 * br, Color(col, 0.16))
@@ -695,6 +789,12 @@ func _draw_field() -> void:
 		var sp2 := _w2s(n.pos)
 		var r: float = EvEngine.radius_of(n.mass) * zoom
 		if sp2.x < -r * 2.0 - margin or sp2.y < -r * 2.0 - margin or sp2.x > s.x + r * 2.0 + margin or sp2.y > s.y + r * 2.0 + margin or sp2.distance_to(c) > lim + r:
+			continue
+		var vis: float = engine.visibility_of(n.mass)
+		if vis <= 0.0:
+			continue
+		if vis < 1.0:
+			field.draw_circle(sp2, maxf(r * 0.6, 2.0), Color(1, 1, 1, 0.28))   # worth nothing to you: a drifting particle
 			continue
 		var kind := "equal"
 		if n.role == "toxic" or n.role == "rare":

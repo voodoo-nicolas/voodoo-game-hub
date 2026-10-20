@@ -9,10 +9,11 @@ const HOW := [
 	"Pick your colour and difficulty on the setup screen. The game plays sideways on a phone.",
 	"Steer with the stick on the left. On a PC use the arrow keys or WASD, Space for the jump boost, Tab for the creature screen.",
 	"The pond has no edges. At first your cell can only jerk sideways, and you can only see a small, blurry circle around you.",
-	"Missions are on the right. Move around, eat a creature to grow a tail (you swim much faster), then eat 10 more to open an eye (you see farther).",
-	"After that, each mission gives either one size or one DNA point. There is always an eat-and-grow mission, and new creatures you meet bring new missions.",
-	"The red bar is your health, the gold bar your growth. Bigger creatures bite when they touch you. If your health runs out the run is over.",
-	"Open the 🧬 screen (middle, next to pause) to see your creature's size, speed, strength and health, and to spend DNA on the evolution tree: movement, senses, defense and offense. Traits you haven't unlocked yet show a ?.",
+	"Missions are on the right, and they turn up as you discover things. A bar shows how far along each one is. First: move around, then eat lots of small creatures to grow a tail (you swim much faster). The quick way: eat a little creature that already has a tail. The same goes for your first eye.",
+	"Everything has a size. The smallest dots are worth 1; a bigger creature is worth its size. Once you are 3 sizes bigger than something it is worth nothing and shows as a faint particle, and 4 sizes bigger it is invisible.",
+	"With a tail and an eye, hunt 10 creatures and the evolution tree opens. After that, missions give you size or DNA points.",
+	"The red bar is your health, the gold bar your growth. Bigger creatures bite when they touch you. If your health runs out the run is over. Different kinds of creature also hunt each other.",
+	"Once the tree is open, use the 🧬 screen (middle, next to pause): the game stops while you look. It shows your creature's size, speed, strength and health, and lets you spend DNA on the evolution tree: movement, senses, defense and offense. Traits you haven't unlocked yet show a ?.",
 	"Green rings mark creatures you can eat, red rings hunters, white rings creatures your size. Yellow-green spiky ones are toxic: they cause an ailment for a while. Rare golden ones give a free trait.",
 	"Nothing is saved mid-run, so there is no Resume: every run starts as a tiny cell.",
 ]
@@ -23,6 +24,13 @@ const TIPS := [
 	"Toxic creatures are tempting: a glow makes hunters notice you, brittle makes bites hurt more. Wait out the ailment somewhere quiet.",
 ]
 const STATS := ["Best score", "Biggest size", "Cells eaten", "Food eaten", "Missions done", "Games played"]
+
+## Badges (achievements.gd). "Close call" is the longest time (up to 8 s) you stayed near a hunter and lived.
+const ACHIEVEMENTS := [
+	{"id": "close_call", "icon": "😰", "title": "Close call", "desc": "Stay alive for 8 seconds close to a hunter", "key": "Close call", "at": 8},
+	{"id": "big_fish", "icon": "🐋", "title": "Big fish", "desc": "Reach size 6", "key": "Biggest size", "at": 6},
+	{"id": "score1", "icon": "🦠", "title": "Microbe master", "key": "Best score", "at": 1000},
+]
 
 ## Learning hook (STANDARDS §15). Checked facts only.
 const FACTS := [

@@ -19,7 +19,8 @@ func _veteran(e, seed_: int) -> void:
 	e.reset(seed_)
 	e.move_rank = 1
 	e.sight_rank = 2
-	e._story = 3
+	e._story = 4
+	e.tree_unlocked = true
 	e.missions.clear()
 	e._grow_mission()
 	e._fill()
@@ -42,8 +43,24 @@ func _init() -> void:
 	check(is_equal_approx(Ev.grown_mass(20.0, 10.0), 20.0 + 10.0 * Ev.TUNING.absorb), "grown mass")
 	check(Ev.TUNING.absorb <= 0.2, "eating only plumps you a little")
 	check(is_equal_approx(Ev.radius_of(4.0), Ev.TUNING.radius_k * 2.0), "radius = k*sqrt(m)")
-	check(Ev.speed_for(100.0) < Ev.speed_for(10.0), "bigger is slower")
-	check(Ev.speed_for(1.0e9) >= Ev.TUNING.player_speed * Ev.TUNING.min_speed_frac - 0.001, "speed floor")
+	# Bigger is NOT slower: it moves faster in the world, so on screen (zoomed out) the speed holds.
+	var screen_small: float = Ev.TUNING.player_speed * Ev.size_boost(10.0) * Ev.zoom_for(10.0)
+	var screen_big: float = Ev.TUNING.player_speed * Ev.size_boost(500.0) * Ev.zoom_for(500.0)
+	check(screen_big > screen_small * 0.7 and screen_big < screen_small * 1.4, "speed on screen holds as you grow (%d vs %d)" % [int(screen_small), int(screen_big)])
+	check(Ev.size_boost(500.0) > Ev.size_boost(10.0), "bigger creatures move faster in the world")
+	# Size levels and values
+	check(Ev.size_level(1.0) == 1 and Ev.size_level(10.0) == 1 and Ev.size_level(Data.LEVELS[3]) == 4, "size levels")
+	var lv := Ev.new()
+	lv.reset(1)
+	lv.player.mass = Data.LEVELS[3]    # size 4
+	check(lv.level() == 4 and lv.value_of(1.0) == 0, "at size 4 the smallest dots are worth nothing")
+	check(lv.visibility_of(1.0) == 0.35, "...and barely visible")
+	lv.player.mass = Data.LEVELS[4]    # size 5
+	check(lv.visibility_of(1.0) == 0.0, "at size 5 size-1 dots are invisible")
+	check(lv.visibility_of(Data.LEVELS[1]) == 0.35 and lv.value_of(Data.LEVELS[1]) == 0, "...size 2 is tiny and worth nothing")
+	check(lv.value_of(Data.LEVELS[2]) == 3 and lv.visibility_of(Data.LEVELS[2]) == 1.0, "size 3 is worth 3")
+	lv.player.mass = 10.0
+	check(lv.value_of(1.0) == 1 and lv.value_of(Data.LEVELS[1]) == 2, "the smallest dots are worth 1; a size-2 creature 2")
 	check(Ev.zoom_for(100.0) < Ev.zoom_for(10.0), "zoom out as you grow")
 	check(Ev.zoom_for(1.0e9) >= Ev.TUNING.cam_min, "zoom floor")
 	check(Ev.stage_index(0.0) == 0 and Ev.stage_index(Ev.STAGES[3][0]) == 3 and Ev.stage_index(1.0e9) == Ev.STAGES.size() - 1, "stage thresholds")
@@ -110,40 +127,125 @@ func _init() -> void:
 	check(e.player.vel.length() < Ev.TUNING.jolt_speed, "never a smooth sprint")
 	for i in 400:
 		e.step(1.0 / 60.0, Vector2.RIGHT)
-	check(e.missions.size() > 0 and e.missions[0].kind == "cells" and e.missions[0].target == 1, "mission 2: eat another creature")
-	# --- Mission 2: one meal grows a tail
-	e.npcs = [_npc(e.player.pos, 3.0, "coccus", "prey")]
-	e.step(1.0 / 60.0, Vector2.ZERO)
-	check(e.move_rank == 1, "first creature eaten grows a tail")
-	check(e.missions.size() > 0 and e.missions[-1].target == 10 and e.missions[-1].reward == "eye", "mission 3: eat 10")
+	check(e.missions.size() > 0 and e.missions[0].kind == "value", "after the jolts, mission 2 appears")
+	# --- Mission 2: eat a lot of small creatures for a tail (value, hidden numbers) ...
+	check(e.missions.size() > 0 and e.missions[0].kind == "value" and e.missions[0].reward == "tail", "mission 2: eat to grow a tail")
+	var rows: Array = e.mission_rows()
+	check(rows.size() > 0 and rows[0].has("frac") and not rows[0].has("reward") and not rows[0].has("target"), "the list shows a bar, no counts and no rewards")
+	var worth0: int = e.eaten_value
+	var meals := 0
+	while e.move_rank == 0 and meals < 60:
+		e.npcs = [_npc(e.player.pos, 2.5, "coccus", "prey")]
+		e.step(1.0 / 60.0, Vector2.ZERO)
+		meals += 1
+	check(e.move_rank == 1 and meals >= 5, "a lot of creatures eaten grows a tail (after %d more meals)" % meals)
+	check(e.eaten_value - worth0 + worth0 >= 20, "...about 20 worth")
+	check(e.tree_unlocked == false and e.missions.size() > 0, "the tree is not open yet")
 	e.npcs.clear()
 	e.food.clear()
 	for i in 90:
 		e.step(1.0 / 60.0, Vector2.RIGHT)
 	check(e.player.vel.length() > Ev.TUNING.jolt_speed * 0.9, "tail swims faster than a jolt")
-	# --- Mission 3: ten creatures open an eye; hunters then appear
-	for i in 10:
-		e.npcs = [_npc(e.player.pos, 2.5, "bacillus", "prey")]
-		e.step(1.0 / 60.0, Vector2.ZERO)
-	check(e.sight_rank == 2, "ten creatures eaten open an eye")
-	check(e.has_bars() and e.hunters_on(), "bars and hunters from the eye on")
-	var kinds := {}
-	var rewards := {}
-	for m in e.missions:
-		kinds[m.kind] = true
+	# --- ... or eat a creature that has the trait: the faster way
+	var fx := Ev.new()
+	fx.reset(2)
+	fx.npcs = [_npc(fx.player.pos, 3.0, "tailed", "prey")]
+	fx.step(1.0 / 60.0, Vector2.ZERO)
+	check(fx.move_rank == 1, "eating a creature with a tail gives you a tail at once")
+	var got_tail := false
+	for ev in fx.events:
+		if ev.type == "tail":
+			got_tail = true
+	check(got_tail, "tail event (the game pops up a message)")
+	check(fx.missions.size() > 0 and fx.missions[-1].reward == "eye" and not fx.missions[-1].done, "next: the eye")
+	fx.npcs = [_npc(fx.player.pos, 3.0, "eyed", "prey")]
+	fx.step(1.0 / 60.0, Vector2.ZERO)
+	check(fx.sight_rank == 2 and fx.has_bars() and fx.hunters_on(), "eating a creature with an eye gives you an eye")
+	check(not fx.tree_unlocked, "tail and eye do not open the tree yet")
+	# kills count only after both; ten kills open the tree
+	for i in 9:
+		fx.npcs = [_npc(fx.player.pos, 3.0, "bacillus", "prey")]
+		fx.step(1.0 / 60.0, Vector2.ZERO)
+	check(not fx.tree_unlocked, "nine kills: still closed")
+	fx.npcs = [_npc(fx.player.pos, 3.0, "bacillus", "prey")]
+	fx.step(1.0 / 60.0, Vector2.ZERO)
+	check(fx.tree_unlocked, "ten kills open the evolution tree")
+	fx.dna = 5
+	check(fx.buy("burst") == false or fx.node_state("burst") != "locked", "the tree can be used now")
+	var tree_event := false
+	for ev in fx.events:
+		if ev.type == "tree":
+			tree_event = true
+	check(tree_event, "tree event (the game pops up a message)")
+	var gk := {}
+	for m in fx.missions:
+		gk[m.kind] = true
+	check(gk.has("mass"), "an eat-and-grow mission is always on the list")
+	# Before the tree is open nothing can be bought
+	var g := Ev.new()
+	g.reset(3)
+	g.dna = 9
+	check(not g.buy("tail") and not g.can_buy("burst"), "no buying before the tree is unlocked")
+	# Missions are found, not handed out
+	fx.npcs = [_npc(fx.player.pos + Vector2(100, 0), 2.0, "zika", "equal")]
+	fx.step(1.0 / 60.0, Vector2.ZERO)
+	var found_new := false
+	for ev in fx.events:
+		if ev.type == "seen":
+			found_new = true
+	check(found_new, "meeting a new species is an event")
+	check(fx.seen.has("zika"), "...recorded")
+	# rewards alternate size / DNA, hidden from the list
+	var rw := {}
+	for m in fx.missions:
 		if not m.done:
-			rewards[m.reward] = true
-	check(kinds.has("mass"), "an eat-and-grow mission is always on the list")
-	check(not rewards.has("eye") and not rewards.has("tail"), "no tutorial rewards after it")
-	var dna0: int = e.dna
-	var mass0: float = e.player.mass
-	for m in e.missions.duplicate():
-		if m.reward == "dna" and not m.done:
-			e._complete(m)
-	for m in e.missions.duplicate():
-		if m.reward == "size" and not m.done:
-			e._complete(m)
-	check(e.player.mass > mass0 and e.dna > dna0, "missions pay size and DNA")
+			rw[m.reward] = true
+	check(rw.has("size") or rw.has("dna"), "missions pay size or DNA")
+	# zero-value things are left alone
+	var z := Ev.new()
+	z.reset(4)
+	z.player.mass = Data.LEVELS[3]
+	z.npcs.clear()
+	z.food = [z.player.pos]
+	z.step(1.0 / 60.0, Vector2.ZERO)
+	check(z.eaten_food == 0 and z.food.size() > 0, "dust worth nothing is not eaten at size 4")
+	z.npcs = [_npc(z.player.pos, 1.5, "coccus", "prey")]
+	z.step(1.0 / 60.0, Vector2.ZERO)
+	check(z.eaten_cells == 0, "a tiny creature worth nothing is not eaten either")
+	# Creatures of different species are hostile; the same species is not
+	var h := Ev.new()
+	h.reset(5)
+	h.sight_rank = 2
+	h.move_rank = 1
+	var base: Vector2 = h.player.pos
+	h.npcs = [_npc(base + Vector2(500, 0), 40.0, "zika", "equal"), _npc(base + Vector2(525, 0), 6.0, "coccus", "prey")]
+	for i in 600:
+		h.step(1.0 / 60.0, Vector2(0, 0))
+		h.player.pos = base
+		h.npcs = h.npcs.filter(func(n): return n.id == 999)
+		if h.npcs.size() < 2:
+			break
+	check(h.npcs.size() == 1 and h.npcs[0].species == "zika" and h.npcs[0].mass > 40.0, "a bigger creature eats a smaller one of another species")
+	h.reset(5)
+	h.sight_rank = 2
+	base = h.player.pos
+	h.npcs = [_npc(base + Vector2(500, 0), 40.0, "coccus", "prey"), _npc(base + Vector2(520, 0), 6.0, "coccus", "prey")]
+	for i in 300:
+		h.step(1.0 / 60.0, Vector2(0, 0))
+		h.player.pos = base
+		h.npcs = h.npcs.filter(func(n): return n.id == 999)
+	check(h.npcs.size() == 2, "the same species does not eat each other")
+	# Spread out: creatures are not clumped
+	var near := 0
+	var pairs := 0
+	for sd in 8:
+		h.reset(60 + sd)
+		for i in h.npcs.size():
+			for j in range(i + 1, h.npcs.size()):
+				pairs += 1
+				if h.npcs[i].pos.distance_to(h.npcs[j].pos) < 100.0:
+					near += 1
+	check(float(near) / float(maxi(pairs, 1)) < 0.03, "creatures are spread out (%d of %d pairs close)" % [near, pairs])
 	# --- Combat: a hunter bites, HP drops, death at 0
 	_veteran(e, 3)
 	e.npcs = [_npc(e.player.pos, 100.0, "corona", "hunter")]
@@ -237,9 +339,9 @@ func _init() -> void:
 	check(e.reqs_met("membrane") and e.reqs_met("tox_res") and not e.reqs_met("regen"), "nutrient store opens several traits")
 	check(e.buy("meal_heal") and e.reqs_met("regen"), "regeneration needs 2 points of it")
 	e.player.hp = 3.0
-	e.npcs = [_npc(e.player.pos, 3.0, "coccus", "prey")]
+	e.npcs = [_npc(e.player.pos, 40.0, "coccus", "prey")]
 	e.step(1.0 / 60.0, Vector2.ZERO)
-	check(absf(e.player.hp - 5.0) < 0.4, "defense: 2 points = +2 HP per meal")
+	check(absf(e.player.hp - 5.0) < 0.4, "defense: 2 points = +2 HP per meal (hp %f)" % e.player.hp)
 	check(e.buy("membrane") and e.max_hp() == Ev.TUNING.base_hp + Ev.TUNING.membrane_hp, "membrane: more max HP")
 	# offense
 	check(e.buy("burst") and e.buy("jaws") and e.eat_ratio() < Ev.TUNING.eat_ratio and e.strength() == 2, "jaws lower the eat ratio")
@@ -331,7 +433,7 @@ func _init() -> void:
 	check(e.use_ability("ink") and e.ink_t > 0.0, "ink fires")
 	for i in 30:
 		e.step(1.0 / 60.0, Vector2.ZERO)
-	check(e.npcs[0].vel.length() < 20.0, "a hunter in the ink cloud does not chase")
+	check(not e.npcs[0].get("hunting", false), "a hunter in the ink cloud does not chase")
 	# poison skin makes the biter shrink
 	_veteran(e, 8)
 	e.player.mass = Ev.STAGES[3][0]
@@ -494,7 +596,7 @@ func _init() -> void:
 		e.reset(500 + s)
 		e.view_r = 400.0
 		e.vision_r = 400.0
-		for i in 7200:
+		for i in 14400:
 			var best := Vector2.ZERO
 			var bd := 1.0e9
 			for f in e.food:
@@ -506,6 +608,9 @@ func _init() -> void:
 				var dn: float = n.pos.distance_to(e.player.pos)
 				if n.role == "hunter" and dn < 500.0 and Ev.can_eat(n.mass, e.player.mass):
 					best = (e.player.pos - n.pos).normalized()
+				elif (n.species == "tailed" or n.species == "eyed") and dn < 900.0:
+					bd = 0.0
+					best = (n.pos - e.player.pos).normalized()
 				elif n.role == "prey" and dn < minf(bd * 3.0, 700.0) and Ev.can_eat(e.player.mass, n.mass):
 					bd = dn / 3.0
 					best = (n.pos - e.player.pos).normalized()

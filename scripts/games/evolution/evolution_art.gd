@@ -61,6 +61,10 @@ static func draw_creature(ci: CanvasItem, c: Vector2, r: float, sp: Dictionary, 
 			_corona(ci, r, col, t, sd)
 		"worm":
 			_worm(ci, r, col, t, sd)
+		"tailed":
+			_tailed(ci, r, col, t, sd)
+		"eyed":
+			_eyed(ci, r, col, t, sd)
 		"phage":
 			_phage(ci, r, col, t, sd)
 	_reset(ci)
@@ -192,6 +196,29 @@ static func _phage(ci: CanvasItem, r: float, col: Color, t: float, sd: float) ->
 		var base := Vector2(-r * 0.8, 0)
 		var foot := Vector2(-r * 1.35, f * r * 1.6 + sin(t * 4.0 + float(j) + sd) * r * 0.1)
 		ci.draw_polyline(PackedVector2Array([base, base + Vector2(-r * 0.2, f * r * 0.5), foot]), col.darkened(0.1), maxf(r * 0.05, 1.2), true)
+
+## A little cell with a long waving tail: eat it to grow your own.
+static func _tailed(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+	var line := PackedVector2Array()
+	for j in 14:
+		var f := float(j) / 13.0
+		line.append(Vector2(-r * 0.7 - r * 2.0 * f, sin(t * 9.0 - f * 5.0 + sd) * r * 0.32 * f))
+	_tapered(ci, line, r * 0.34, Color(col, 0.45))
+	_tapered(ci, line, r * 0.2, col.lightened(0.2))
+	var pts := _blob(r * 0.8, 22, t, sd)
+	_shade(ci, pts, col)
+	ci.draw_circle(Vector2(-r * 0.1, 0), r * 0.22, col.darkened(0.5))
+	ci.draw_circle(Vector2(r * 0.2, -r * 0.3), r * 0.1, col.lightened(0.5))
+
+## A little cell with a big eye on the front: eat it to grow your own.
+static func _eyed(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+	var pts := _blob(r * 0.85, 22, t, sd)
+	_shade(ci, pts, col)
+	var e := Vector2(r * 0.4, 0)
+	ci.draw_circle(e, r * 0.38, Color(1, 1, 1, 0.97))
+	ci.draw_circle(e + Vector2(r * 0.07 + sin(t * 1.3 + sd) * r * 0.05, 0), r * 0.2, Color(0.03, 0.03, 0.08))
+	ci.draw_circle(e + Vector2(r * 0.02, -r * 0.1), r * 0.06, Color.WHITE)
+	ci.draw_circle(Vector2(-r * 0.35, r * 0.2), r * 0.16, col.darkened(0.5))
 
 static func _scaled(pts: PackedVector2Array, k: float) -> PackedVector2Array:
 	var out := PackedVector2Array()

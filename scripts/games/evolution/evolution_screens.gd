@@ -60,6 +60,12 @@ func open_info(eng, col: Color, vood: bool) -> void:
 func close() -> void:
 	visible = false
 
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		close()
+		closed.emit()
+		get_viewport().set_input_as_handled()
+
 func _process(delta: float) -> void:
 	if visible:
 		_t += delta
@@ -129,7 +135,7 @@ func _build_info() -> void:
 	scroll.add_child(col)
 	var e = engine
 	col.add_child(_label(tr(EvEngine.STAGES[e.stage()][1]) + "  ·  " + tr("DNA points: %d") % e.dna, 26, Color("ffd479")))
-	_stat(col, tr("Size"), str(int(e.player.mass)), minf(e.player.mass / 600.0, 1.0))
+	_stat(col, tr("Size"), str(e.level()), float(e.level()) / float(Data.LEVELS.size()))
 	_stat(col, tr("Speed"), str(int(e.top_speed() / 10.0)), clampf(e.top_speed() / (EvEngine.TUNING.player_speed * 1.15), 0.0, 1.0))
 	_stat(col, tr("Strength"), str(e.strength()), float(e.strength()) / 3.0)
 	_stat(col, tr("Health"), "%d / %d" % [int(ceil(e.player.hp)), int(e.max_hp())], e.player.hp / e.max_hp())
@@ -143,7 +149,9 @@ func _build_info() -> void:
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 12)
 	_page.add_child(btns)
-	btns.add_child(_button("🧬 " + tr("Evolution tree"), _show_tree, 260.0))
+	var tree_btn := _button("🧬 " + tr("Evolution tree") if engine.tree_unlocked else "🧬 ?", _show_tree, 260.0)
+	tree_btn.disabled = not engine.tree_unlocked
+	btns.add_child(tree_btn)
 	btns.add_child(_button("✕ " + tr("Close"), _close_pressed))
 
 ## The ability buttons: tap one to choose which ability it fires.
@@ -294,11 +302,10 @@ func _refresh_detail() -> void:
 	var n := Data.node_of(_sel)
 	var state: String = engine.node_state(_sel)
 	_buy_btn.visible = true
-	if state == "locked":
+	if state == "locked" or state == "stage":
 		_title.text = "?"
-		_detail.text = tr("Locked: get the traits leading here first.") + "\n" + tr("Needs: %s") % _needs_text(n)
-		_buy_btn.text = tr("Locked")
-		_buy_btn.disabled = true
+		_detail.text = ""
+		_buy_btn.visible = false
 		return
 	_title.text = tr(n.name) + "   " + tr("Points: %d/%d") % [engine.rank_of(_sel), int(n.max)]
 	var txt: String = tr(n.desc)
@@ -306,8 +313,6 @@ func _refresh_detail() -> void:
 		txt += "\n" + tr("Active ability: it uses the power bar. More points make it cheaper, longer and stronger.")
 	if not n.req.is_empty():
 		txt += "\n" + tr("Needs: %s") % _needs_text(n)
-	if state == "stage":
-		txt += "\n" + tr("Reach %s first.") % tr(EvEngine.STAGES[int(n.stage)][1])
 	_detail.text = txt
 	if state == "maxed":
 		_buy_btn.text = tr("Maxed")

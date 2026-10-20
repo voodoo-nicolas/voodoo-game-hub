@@ -24,6 +24,11 @@ const SIGHT_FRAC := [0.26, 0.5, 0.8, 1.7]
 ## Blur strength (mip level) by clarity level 0..2.
 const BLUR := [2.6, 1.5, 0.6, 0.0]
 
+## Size levels by mass: level L starts at LEVELS[L - 1]. The smallest dots are level 1 and worth 1;
+## a creature worth eating is worth its own level. Anything 3 or more levels below you is worth
+## nothing (it shows as a faint particle, and at 4 or more levels below it is invisible).
+const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 4800.0]
+
 ## Speed multiplier by movement rank (0 = jolting, no tail).
 const MOVE_MULT := [0.0, 0.55, 0.72, 0.88, 1.02, 1.15]
 
@@ -41,6 +46,8 @@ const SPECIES := [
 	{"id": "ebola", "name": "Ebola", "shape": "worm", "role": "hunter", "col": Color("e0405a")},
 	{"id": "phage", "name": "Phage", "shape": "phage", "role": "hunter", "col": Color("e0603a")},
 	{"id": "rota", "name": "Rotavirus", "shape": "spiky", "role": "hunter", "col": Color("78c43a")},
+	{"id": "tailed", "name": "Flagellate", "shape": "tailed", "role": "prey", "col": Color("ffb35a"), "trait": "tail"},
+	{"id": "eyed", "name": "Eyed cell", "shape": "eyed", "role": "prey", "col": Color("e0a3ff"), "trait": "eye"},
 	{"id": "toxin", "name": "Toxic spore", "shape": "spiky", "role": "toxic", "col": Color("c8e03a")},
 	{"id": "gold", "name": "Golden spore", "shape": "spiky", "role": "rare", "col": Color("ffd23f")},
 ]
@@ -152,10 +159,11 @@ static func species_of(id: String) -> Dictionary:
 			return s
 	return SPECIES[0]
 
+## The ordinary species of a role (the two creatures that carry a trait are spawned on their own).
 static func species_by_role(role: String) -> Array:
 	var out: Array = []
 	for s in SPECIES:
-		if s.role == role:
+		if s.role == role and not s.has("trait"):
 			out.append(s)
 	return out
 

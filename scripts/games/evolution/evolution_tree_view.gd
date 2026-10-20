@@ -28,6 +28,7 @@ var _t := 0.0
 var _press := Vector2.ZERO
 var _pressing := false
 var _dragged := false
+var _touch_seen := false
 
 func _ready() -> void:
 	clip_contents = true
@@ -65,7 +66,42 @@ func _clamp_pan() -> void:
 	pan.x = clampf(pan.x, minf(size.x - m.x, 0.0), 0.0)
 	pan.y = clampf(pan.y, minf(size.y - m.y, 0.0), 0.0)
 
+## Touch screens: drag with a finger (the emulated mouse is ignored once a real touch is seen).
+func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree():
+		return
+	if event is InputEventScreenTouch:
+		_touch_seen = true
+		var inside := get_global_rect().has_point(event.position)
+		if event.pressed and inside:
+			_pressing = true
+			_dragged = false
+			_press = event.position - global_position
+		elif not event.pressed and _pressing:
+			if not _dragged:
+				_tap(event.position - global_position)
+			_pressing = false
+	elif event is InputEventScreenDrag and _pressing:
+		if not _dragged and (event.position - global_position).distance_to(_press) > 10.0:
+			_dragged = true
+		if _dragged:
+			pan += event.relative
+			_clamp_pan()
+	elif event is InputEventKey and event.pressed:
+		match event.keycode:
+			KEY_LEFT:
+				pan.x += 80.0
+			KEY_RIGHT:
+				pan.x -= 80.0
+			KEY_UP:
+				pan.y += 80.0
+			KEY_DOWN:
+				pan.y -= 80.0
+		_clamp_pan()
+
 func _gui_input(event: InputEvent) -> void:
+	if _touch_seen and (event is InputEventMouseButton or event is InputEventMouseMotion):
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
@@ -81,6 +117,12 @@ func _gui_input(event: InputEvent) -> void:
 			_clamp_pan()
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			pan.y -= 60.0
+			_clamp_pan()
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_LEFT:
+			pan.x += 60.0
+			_clamp_pan()
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_RIGHT:
+			pan.x -= 60.0
 			_clamp_pan()
 	elif event is InputEventMouseMotion and _pressing:
 		if not _dragged and event.position.distance_to(_press) > 10.0:
@@ -153,6 +195,16 @@ func _draw() -> void:
 	for n in Data.NODES:
 		_draw_node(n)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# thin scroll bars, so it is clear the map goes on
+	var m := map_size()
+	if m.y > size.y:
+		var h := size.y * size.y / m.y
+		var y0 := -pan.y / m.y * size.y
+		draw_rect(Rect2(size.x - 6.0, y0, 4.0, h), Color(1, 1, 1, 0.35))
+	if m.x > size.x:
+		var w := size.x * size.x / m.x
+		var x0 := -pan.x / m.x * size.x
+		draw_rect(Rect2(x0, size.y - 6.0, w, 4.0), Color(1, 1, 1, 0.35))
 
 func _draw_node(n: Dictionary) -> void:
 	var c := node_pos(n)
@@ -171,16 +223,14 @@ func _draw_node(n: Dictionary) -> void:
 		"available":
 			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.55 + 0.4 * glow), 3.0, true)
 			draw_circle(c, NODE_R * 0.4, Color(col, 0.35))
-		"stage":
-			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.35), 2.0, true)
-			draw_circle(c, NODE_R * 0.35, Color(col, 0.2))
 		_:
 			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.2), 2.0, true)
 			draw_string(ThemeDB.fallback_font, c + Vector2(-8.0, 9.0), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(1, 1, 1, 0.4))
-	if n.ability and state != "locked":
+	var known: bool = state == "maxed" or state == "owned" or state == "available"
+	if n.ability and known:
 		draw_colored_polygon(PackedVector2Array([c + Vector2(3, -12), c + Vector2(-6, 2), c + Vector2(-1, 2), c + Vector2(-4, 13), c + Vector2(7, -3), c + Vector2(2, -3)]), Color(1, 0.9, 0.4, 0.95))
 	# points: one pip per point
-	if mx > 1 and state != "locked":
+	if mx > 1 and known:
 		var w := float(mx - 1) * 11.0
 		for i in mx:
 			var p := c + Vector2(-w * 0.5 + float(i) * 11.0, NODE_R + 10.0)
@@ -190,7 +240,7 @@ func _draw_node(n: Dictionary) -> void:
 				draw_arc(p, 4.0, 0.0, TAU, 10, Color(1, 1, 1, 0.5), 1.5, true)
 	if n.id == selected_id:
 		draw_arc(c, NODE_R + 9.0, 0.0, TAU, 40, Color("ffd479"), 3.0, true)
-	if (show_names or n.id == selected_id) and state != "locked":
+	if (show_names or n.id == selected_id) and known:
 		var label := tr(n.name)
 		var f := ThemeDB.fallback_font
 		var wd := f.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x

@@ -30,8 +30,15 @@ const TUNING := {
 	"equal_chance": 0.20,
 	"min_npc_mass": 2.0,
 	"player_speed": 360.0,      # x MOVE_MULT[rank]
-	"speed_decay": 0.17,        # bigger = slower: speed / mass^decay
-	"min_speed_frac": 0.35,
+	"size_speed_exp": 0.8,      # the camera zooms out as you grow, so speed grows with it: on screen you never feel slower
+	"tail_value": 20,           # creature value to eat for a tail (or eat one that has a tail)
+	"eye_value": 40,            # ... and for an eye
+	"tree_kills": 10,           # creatures eaten, after tail and eye, to unlock the evolution tree
+	"trait_tail_chance": 0.14,  # share of early prey that carries a tail
+	"trait_eye_chance": 0.12,   # ... an eye
+	"npc_sight": 380.0,         # how far creatures notice each other
+	"npc_flee": 300.0,
+	"npc_sep": 150.0,           # creatures push apart inside this distance
 	"drift_speed": 24.0,        # prey wander speed while you still can't swim
 	"flee_frac": 0.6,
 	"sense": 520.0,             # hunter sight, x radius floor
@@ -124,6 +131,14 @@ var sonar_t: float = 0.0
 var shots: Array = []     # acid spit: {"pos","vel","life"}
 var hit_t: float = 99.0   # seconds since the last bite
 var escape_time: float = 0.0
+var eaten_value: int = 0       # total worth of what you have eaten
+var kills: int = 0
+var tree_unlocked := false
+var seen_surface := false
+var surface_hit := false
+var max_depth: float = 0.0
+var close_call_sent := false
+var _depth_i := 0
 var seen := {}            # species ids already met
 var view_r: float = 220.0   # world units the player can see (the game sets it from zoom)
 var vision_r: float = 220.0
@@ -131,7 +146,7 @@ var missions: Array = []
 var missions_done: int = 0
 var _story := 0
 var _reward_n := 0
-var _grow_target := 14.0
+var _grow_target := 2.0
 var _jolt_cd := 0.0
 var _next_id := 1
 var _mission_id := 1
@@ -161,12 +176,18 @@ static func can_eat(a_mass: float, b_mass: float, ratio: float = -1.0) -> bool:
 static func grown_mass(eater: float, victim: float) -> float:
 	return eater + victim * TUNING.absorb
 
-## Top speed for a cell of this mass.
-static func speed_for(mass: float, base: float = -1.0) -> float:
-	if base < 0.0:
-		base = TUNING.player_speed
-	var m := maxf(mass / TUNING.start_mass, 1.0)
-	return base * maxf(pow(m, -TUNING.speed_decay), TUNING.min_speed_frac)
+## Speed multiplier for a cell of this mass: the camera zooms out as it grows, so it moves faster in world
+## units and feels the same on screen (it used to slow down, which felt like crawling).
+static func size_boost(mass: float) -> float:
+	return pow(1.0 / zoom_for(mass), TUNING.size_speed_exp)
+
+## Size level of a mass (1 = the smallest dots and the start; see Data.LEVELS).
+static func size_level(mass: float) -> int:
+	var lv := 1
+	for i in Data.LEVELS.size():
+		if mass >= Data.LEVELS[i]:
+			lv = i + 1
+	return lv
 
 ## Camera zoom (smaller = further out) for the player's mass.
 static func zoom_for(mass: float) -> float:
@@ -207,6 +228,29 @@ func strength() -> int:
 func max_hp() -> float:
 	return t("base_hp") + t("membrane_hp") * rank_of("membrane")
 
+## Your own size level.
+func level() -> int:
+	return size_level(player.mass)
+
+## What eating a creature of this mass is worth to you: its own level, or nothing once it is 3 or more
+## levels below you.
+func value_of(mass: float) -> int:
+	var lv := size_level(mass)
+	return 0 if level() - lv >= 3 else lv
+
+## 1 = shown normally, 0.35 = a faint particle (3 levels below you), 0 = invisible (4 or more below).
+func visibility_of(mass: float) -> float:
+	var diff := level() - size_level(mass)
+	if diff >= 4:
+		return 0.0
+	if diff == 3:
+		return 0.35
+	return 1.0
+
+## An NPC's speed given the player's reference speed: bigger than you = a little slower, smaller = a little faster.
+func _npc_speed(npc_mass: float, ref: float) -> float:
+	return ref * clampf(pow(maxf(npc_mass, 1.0) / maxf(player.mass, 1.0), -0.17), 0.7, 1.3)
+
 func has_bars() -> bool:
 	return sight_rank >= 2
 
@@ -243,7 +287,7 @@ func move_mult() -> float:
 
 ## Top speed now (without a dash), world units per second.
 func top_speed() -> float:
-	return speed_for(player.mass, t("player_speed") * move_mult())
+	return t("player_speed") * move_mult() * size_boost(player.mass)
 
 func _recompute_ranks() -> void:
 	var tails: int = rank_of("tail") + (1 if has("flagella") else 0) + (1 if has("cilia") else 0)
@@ -294,24 +338,32 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	facing = Vector2.RIGHT
 	hit_t = 99.0
 	escape_time = 0.0
+	eaten_value = 0
+	kills = 0
+	tree_unlocked = false
+	seen_surface = false
+	surface_hit = false
+	max_depth = 0.0
+	close_call_sent = false
+	_depth_i = 0
 	seen = {}
 	missions = []
 	missions_done = 0
 	_story = 0
 	_reward_n = 0
-	_grow_target = 14.0
+	_grow_target = 2.0
 	_jolt_cd = 0.0
 	_next_id = 1
 	_mission_id = 1
 	_add_mission({"kind": "jolts", "target": 5, "text": "Learn to move: push the stick", "reward": "none"})
-	# First meals right next to you, so the first steps have a goal.
+	# First meals near you, so the first steps have a goal (spread out, not in a clump).
 	var spawn_max := _spawn_max()
 	for i in 6:
-		npcs.append(_new_npc(false, _ring_pos(view_r * 0.3, view_r * 1.6)))
+		npcs.append(_new_npc(false, _ring_pos_sep(view_r * 0.3, view_r * 1.6)))
 	for i in _food_target():
 		food.append(_ring_pos(view_r * 0.2, spawn_max))
 	while npcs.size() < _npc_target():
-		npcs.append(_new_npc(false, _ring_pos(view_r * 0.9, spawn_max)))
+		npcs.append(_new_npc(false, _ring_pos_sep(view_r * 0.9, spawn_max)))
 
 # ---------- spawning ----------
 
@@ -337,6 +389,21 @@ func _ring_pos(r0: float, r1: float) -> Vector2:
 		p.y = 24.0 + (24.0 - p.y)       # spawns reflect off the surface, never above it
 	return p
 
+## Like _ring_pos but away from other creatures, so they are spread out and not in clumps.
+func _ring_pos_sep(r0: float, r1: float) -> Vector2:
+	var sep := clampf(_spawn_min() * 0.55, 140.0, 420.0)
+	var p := _ring_pos(r0, r1)
+	for i in 14:
+		var ok := true
+		for n in npcs:
+			if n.pos.distance_squared_to(p) < sep * sep:
+				ok = false
+				break
+		if ok:
+			return p
+		p = _ring_pos(r0, r1)
+	return p
+
 func _pick_role() -> String:
 	var roll := rng.randf()
 	if sight_rank >= 2:
@@ -357,12 +424,21 @@ func _pick_role() -> String:
 
 func _new_npc(away: bool = true, at: Vector2 = Vector2.INF) -> Dictionary:
 	var role := _pick_role()
-	var list := Data.species_by_role(role)
-	var sp: Dictionary = list[rng.randi() % list.size()]
+	var sp: Dictionary = {}
+	if role == "prey":
+		# The creatures that carry the first two traits: eat one to get the trait at once.
+		var troll := rng.randf()
+		if move_rank == 0 and troll < t("trait_tail_chance"):
+			sp = Data.species_of("tailed")
+		elif move_rank >= 1 and sight_rank == 1 and troll < t("trait_eye_chance"):
+			sp = Data.species_of("eyed")
+	if sp.is_empty():
+		var list := Data.species_by_role(role)
+		sp = list[rng.randi() % list.size()]
 	var rr: Array = Data.MASS_RANGE[role]
 	var m: float = maxf(player.mass * rng.randf_range(rr[0], rr[1]), t("min_npc_mass"))
 	_next_id += 1
-	var pos := at if at != Vector2.INF else _ring_pos(_spawn_min(), _spawn_max())
+	var pos := at if at != Vector2.INF else _ring_pos_sep(_spawn_min(), _spawn_max())
 	return {"id": _next_id, "pos": pos, "vel": Vector2.ZERO, "mass": m, "species": sp.id, "role": role,
 		"wander": Vector2.RIGHT.rotated(rng.randf() * TAU), "t": rng.randf_range(0.5, 3.0)}
 
@@ -571,7 +647,7 @@ func _think(delta: float) -> void:
 			n["slow"] -= delta
 			slow_mult = minf(slow_mult, t("slow_mult"))
 		var steer := Vector2.ZERO
-		var speed := speed_for(n.mass, base_speed * 0.6)
+		var speed := _npc_speed(n.mass, base_speed * 0.6)
 		var to_p: Vector2 = player.pos - n.pos
 		var d := to_p.length()
 		var sight := maxf(sense_floor, radius_of(n.mass) * 6.0)
@@ -601,7 +677,7 @@ func _think(delta: float) -> void:
 			continue
 		if hunting:
 			steer = chase / maxf(chase_d, 0.001)              # hunt
-			speed = speed_for(n.mass, hunter_speed)
+			speed = _npc_speed(n.mass, hunter_speed)
 		elif suction_t > 0.0 and (role == "prey" or role == "rare") and d < ability_radius("suction") and d > radius_of(player.mass) * 0.5 and can_eat(player.mass, n.mass, ratio):
 			steer = to_p / maxf(d, 0.001)                     # sucked in
 			speed = t("suction_pull")
@@ -610,7 +686,7 @@ func _think(delta: float) -> void:
 			speed = t("lure_pull")
 		elif (role == "prey" or role == "hunter" or role == "rare") and d < sight * 0.7 and can_eat(player.mass, n.mass, ratio) and move_rank > 0:
 			steer = -to_p / maxf(d, 0.001)                    # flee
-			speed = speed_for(n.mass, base_speed * (1.0 if role == "rare" else t("flee_frac")))
+			speed = _npc_speed(n.mass, base_speed * (1.0 if role == "rare" else t("flee_frac")))
 		else:
 			if n.t <= 0.0:
 				n.wander = Vector2.RIGHT.rotated(rng.randf() * TAU)
@@ -618,6 +694,13 @@ func _think(delta: float) -> void:
 			steer = n.wander * 0.4
 			if move_rank == 0:
 				speed = t("drift_speed")
+			# Creatures of different species are hostile to each other (once you can see); all keep apart.
+			var soc := _social(n)
+			if soc.has("steer"):
+				steer = soc.steer
+				speed = _npc_speed(n.mass, base_speed * soc.pace)
+			elif soc.sep.length() > 0.01:
+				steer = (steer + soc.sep * 1.5).limit_length(1.0)
 		n.vel = n.vel.lerp(steer * speed * slow_mult, clampf(t("accel") * delta, 0.0, 1.0))
 		n.pos += n.vel * delta
 		# Nothing swims above the surface.
@@ -629,6 +712,36 @@ func _think(delta: float) -> void:
 		if not seen.has(n.species) and d < vision_r * 0.92:
 			_met(n.species)
 
+## Hunt a smaller creature of another species, run from a bigger one, keep apart from the rest.
+func _social(n: Dictionary) -> Dictionary:
+	var sep := Vector2.ZERO
+	var prey_dir := Vector2.ZERO
+	var prey_d: float = t("npc_sight")
+	var flee := Vector2.ZERO
+	var hostile: bool = sight_rank >= 2 and (n.role == "prey" or n.role == "equal" or n.role == "hunter")
+	var near_sep: float = t("npc_sep")
+	for m in npcs:
+		if m == n:
+			continue
+		var dv: Vector2 = m.pos - n.pos
+		var dist := dv.length()
+		if dist < 0.01:
+			continue
+		if dist < near_sep:
+			sep -= dv / dist * (1.0 - dist / near_sep)
+		if not hostile or m.species == n.species or not (m.role == "prey" or m.role == "equal" or m.role == "hunter"):
+			continue
+		if can_eat(n.mass, m.mass) and dist < prey_d:
+			prey_d = dist
+			prey_dir = dv / dist
+		elif can_eat(m.mass, n.mass) and dist < t("npc_flee"):
+			flee -= dv / dist * (1.0 - dist / t("npc_flee"))
+	if flee.length() > 0.01:
+		return {"steer": flee.normalized(), "pace": 0.9, "sep": sep}
+	if prey_dir != Vector2.ZERO:
+		return {"steer": prey_dir, "pace": 0.7, "sep": sep}
+	return {"sep": sep}
+
 ## Eating on contact: the eater's centre must be inside the victim's rim
 ## (overlap by the victim's radius) so a graze doesn't swallow.
 func _resolve(delta: float) -> void:
@@ -637,8 +750,9 @@ func _resolve(delta: float) -> void:
 	# Food
 	var fr := radius_of(t("food_mass"))
 	var keep: Array = []
+	var food_worth := value_of(t("food_mass"))
 	for f in food:
-		if f.distance_to(player.pos) < pr + fr * 0.5:
+		if food_worth > 0 and f.distance_to(player.pos) < pr + fr * 0.5:
 			player.mass += t("food_mass") * gain_mult
 			eaten_food += 1
 			events.append({"type": "food", "pos": f})
@@ -652,9 +766,15 @@ func _resolve(delta: float) -> void:
 	for n in npcs:
 		var d: float = n.pos.distance_to(player.pos)
 		var nr := radius_of(n.mass)
-		if can_eat(player.mass, n.mass, ratio) and d < pr - nr * 0.35:
+		var worth := value_of(n.mass)
+		if worth > 0 and can_eat(player.mass, n.mass, ratio) and d < pr - nr * 0.35:
 			player.mass = player.mass + n.mass * t("absorb") * gain_mult
 			eaten_cells += 1
+			kills += 1
+			eaten_value += worth
+			var sp := Data.species_of(n.species)
+			if sp.has("trait"):
+				_grant_trait(sp.trait)
 			eaten_species[n.species] = int(eaten_species.get(n.species, 0)) + 1
 			events.append({"type": "cell", "pos": n.pos, "mass": n.mass, "species": n.species, "role": n.role})
 			if has("meal_heal") and not ailments.has("slow_heal"):
@@ -692,7 +812,36 @@ func _resolve(delta: float) -> void:
 			n.mass = maxf(n.mass - n.mass * t("stinger_rate") * rank_of("stinger") * delta, t("min_npc_mass"))
 		left.append(n)
 	npcs = left
+	_npcs_eat_each_other()
 	peak_mass = maxf(peak_mass, player.mass)
+
+## Different species eat each other when one is clearly bigger (once your eye is open).
+func _npcs_eat_each_other() -> void:
+	if sight_rank < 2 or npcs.size() < 2:
+		return
+	var dead := {}
+	for i in npcs.size():
+		if dead.has(i):
+			continue
+		var a: Dictionary = npcs[i]
+		if not (a.role == "prey" or a.role == "equal" or a.role == "hunter"):
+			continue
+		for j in npcs.size():
+			if i == j or dead.has(j) or dead.has(i):
+				continue
+			var b: Dictionary = npcs[j]
+			if a.species == b.species or not (b.role == "prey" or b.role == "equal" or b.role == "hunter"):
+				continue
+			if can_eat(a.mass, b.mass) and a.pos.distance_to(b.pos) < radius_of(a.mass) - radius_of(b.mass) * 0.35:
+				a.mass += b.mass * t("absorb")
+				dead[j] = true
+	if dead.is_empty():
+		return
+	var keep: Array = []
+	for k in npcs.size():
+		if not dead.has(k):
+			keep.append(npcs[k])
+	npcs = keep
 
 func _top_up() -> void:
 	var made := 0
@@ -730,7 +879,7 @@ func _poison() -> void:
 func _grant_rare() -> void:
 	var pool: Array = []
 	for n in Data.NODES:
-		if reqs_met(n.id) and rank_of(n.id) < int(n.max):
+		if tree_unlocked and reqs_met(n.id) and rank_of(n.id) < int(n.max):
 			pool.append({"kind": "node", "id": n.id, "name": n.name})
 	for s in Data.SPECIALS:
 		if not specials.has(s.id):
@@ -780,7 +929,7 @@ func node_state(id: String) -> String:
 
 func can_buy(id: String) -> bool:
 	var st := node_state(id)
-	return (st == "available" or st == "owned") and reqs_met(id) and dna >= cost_of(id)
+	return tree_unlocked and (st == "available" or st == "owned") and reqs_met(id) and dna >= cost_of(id)
 
 func _add_point(id: String) -> void:
 	owned[id] = rank_of(id) + 1
@@ -861,6 +1010,8 @@ func use_slot(i: int) -> bool:
 	return use_ability(slot_ids[i])
 
 # ---------- missions ----------
+# Missions are found, not handed out: the tutorial ones come one at a time, the rest appear when you meet
+# a new creature or place. Their goals are hidden (a progress bar only) and so are their rewards.
 
 func _add_mission(m: Dictionary) -> void:
 	m["id"] = _mission_id
@@ -874,28 +1025,27 @@ func _add_mission(m: Dictionary) -> void:
 
 func _counter(kind: String, species: String) -> float:
 	match kind:
-		"jolts":
-			return 0.0
-		"cells":
-			return float(eaten_cells)
-		"food":
-			return float(eaten_food)
+		"value":
+			return float(eaten_value)
+		"kills":
+			return float(kills)
 		"species":
 			return float(eaten_species.get(species, 0))
-		"escape":
-			return escape_time
 		"rare":
 			return float(eaten_species.get("gold", 0))
-		"mass":
-			return 0.0
 	return 0.0
 
 ## Current progress of a mission, in its own units.
 func progress_of(m: Dictionary) -> float:
-	if m.kind == "mass":
-		return player.mass
-	if m.kind == "jolts":
-		return float(jolts)
+	match m.kind:
+		"mass":
+			return float(level())
+		"jolts":
+			return float(jolts)
+		"surface":
+			return 1.0 if surface_hit else 0.0
+		"depth":
+			return max_depth
 	return _counter(m.kind, m.get("species", "")) - float(m.base)
 
 func _track_missions(delta: float) -> void:
@@ -903,11 +1053,35 @@ func _track_missions(delta: float) -> void:
 		if n.role == "hunter" and can_eat(n.mass, player.mass) and n.pos.distance_to(player.pos) < vision_r:
 			escape_time += delta
 			break
+	if escape_time >= 8.0 and not close_call_sent:
+		close_call_sent = true
+		events.append({"type": "close_call"})
+	max_depth = maxf(max_depth, player.pos.y)
+	if player.pos.y < 70.0:
+		surface_hit = true
+	_discover_places()
 	for m in missions:
 		if m.done:
 			continue
 		if progress_of(m) >= float(m.target):
 			_complete(m)
+
+## New places give new missions once the evolution tree is open.
+func _discover_places() -> void:
+	if _story < 4:
+		return
+	if not seen_surface and player.pos.y < vision_r + radius_of(player.mass):
+		seen_surface = true
+		events.append({"type": "place", "what": "surface"})
+		if _open_count() < 6:
+			_add_mission({"kind": "surface", "target": 1, "text": "Touch the surface", "reward": _next_reward()})
+	var marks := [1500.0, 3500.0, 6500.0, 10000.0, 15000.0]
+	if _depth_i < marks.size() and player.pos.y >= marks[_depth_i]:
+		var goal: float = marks[_depth_i + 1] if _depth_i + 1 < marks.size() else marks[_depth_i] * 1.5
+		_depth_i += 1
+		events.append({"type": "place", "what": "deep"})
+		if _open_count() < 6:
+			_add_mission({"kind": "depth", "target": goal, "text": "Dive deeper", "reward": _next_reward()})
 
 func _tick_missions(delta: float) -> void:
 	var keep: Array = []
@@ -919,6 +1093,32 @@ func _tick_missions(delta: float) -> void:
 		keep.append(m)
 	missions = keep
 
+func _set_tail() -> void:
+	if move_rank < 1:
+		move_rank = 1
+		events.append({"type": "tail"})
+
+func _set_eye() -> void:
+	if sight_rank < 2:
+		sight_rank = 2
+		events.append({"type": "eye"})
+
+## A creature that carried the trait was eaten: you get it at once (and the matching mission is done).
+func _grant_trait(which: String) -> void:
+	for m in missions:
+		if not m.done and m.reward == which:
+			_complete(m)
+			return
+	if which == "tail" and move_rank < 1:
+		# The tutorial hands out its missions one at a time: skip ahead.
+		for m in missions:
+			if not m.done and m.kind == "jolts":
+				m.done = true
+				m.linger = t("mission_linger")
+		_set_tail()
+		_story = 2
+		_add_mission({"kind": "value", "target": t("eye_value"), "text": "Eat to grow an eye", "reward": "eye"})
+
 func _complete(m: Dictionary) -> void:
 	m.done = true
 	m.linger = t("mission_linger")
@@ -926,11 +1126,12 @@ func _complete(m: Dictionary) -> void:
 	events.append({"type": "mission", "text": m.text})
 	match m.reward:
 		"tail":
-			move_rank = 1
-			events.append({"type": "tail"})
+			_set_tail()
 		"eye":
-			sight_rank = 2
-			events.append({"type": "eye"})
+			_set_eye()
+		"tree":
+			tree_unlocked = true
+			events.append({"type": "tree"})
 		"size":
 			player.mass *= t("story_grow")
 			peak_mass = maxf(peak_mass, player.mass)
@@ -938,20 +1139,23 @@ func _complete(m: Dictionary) -> void:
 		"dna":
 			dna += 1
 			events.append({"type": "dna"})
-	# The first three missions are the tutorial, in order.
+	# The first missions are the tutorial, in order: move, tail, eye, then the kills that open the tree.
 	if _story == 0 and m.kind == "jolts":
 		_story = 1
-		_add_mission({"kind": "cells", "target": 1, "text": "Eat another creature", "reward": "tail"})
-	elif _story == 1 and m.reward == "tail":
+		_add_mission({"kind": "value", "target": t("tail_value"), "text": "Eat to grow a tail", "reward": "tail"})
+	elif _story <= 1 and m.reward == "tail":
 		_story = 2
-		_add_mission({"kind": "cells", "target": 10, "text": "Eat 10 creatures", "reward": "eye"})
+		_add_mission({"kind": "value", "target": t("eye_value"), "text": "Eat to grow an eye", "reward": "eye"})
 	elif _story == 2 and m.reward == "eye":
 		_story = 3
+		_add_mission({"kind": "kills", "target": t("tree_kills"), "text": "Hunt to evolve", "reward": "tree"})
+	elif _story == 3 and m.reward == "tree":
+		_story = 4
 		_grow_mission()
 		_fill()
-	elif _story >= 3:
+	elif _story >= 4:
 		if m.kind == "mass":
-			_grow_target = maxf(_grow_target * 1.5, player.mass * 1.3)
+			_grow_target = float(level() + 1)
 			_grow_mission()
 		_fill()
 
@@ -960,23 +1164,21 @@ func _next_reward() -> String:
 	return "size" if _reward_n % 2 == 1 else "dna"
 
 func _grow_mission() -> void:
-	_add_mission({"kind": "mass", "target": int(ceil(_grow_target)), "text": "Eat and grow: reach size %d",
-		"args": [int(ceil(_grow_target))], "reward": _next_reward()})
+	_grow_target = maxf(_grow_target, float(level() + 1))
+	_add_mission({"kind": "mass", "target": int(_grow_target), "text": "Grow to size %d",
+		"args": [int(_grow_target)], "reward": _next_reward()})
 
-## Keeps two ordinary goals on the list besides the grow mission and encounters.
+const FEAST_TEXTS := ["Feast on creatures", "Keep hunting", "Fill your belly"]
+
+## Keeps two ordinary goals on the list besides the grow mission and what you discover.
 func _fill() -> void:
 	var ordinary := 0
 	for m in missions:
-		if not m.done and (m.kind == "cells" or m.kind == "food"):
+		if not m.done and m.kind == "value":
 			ordinary += 1
 	while ordinary < 2:
-		var k := missions_done
-		if rng.randf() < 0.6:
-			var n := 6 + 2 * k
-			_add_mission({"kind": "cells", "target": n, "text": "Eat %d creatures", "args": [n], "reward": _next_reward()})
-		else:
-			var n2 := mini(25 + 5 * k, 150)
-			_add_mission({"kind": "food", "target": n2, "text": "Eat %d food specks", "args": [n2], "reward": _next_reward()})
+		var target: int = (5 + missions_done) * maxi(level(), 1)
+		_add_mission({"kind": "value", "target": target, "text": FEAST_TEXTS[rng.randi() % FEAST_TEXTS.size()], "reward": _next_reward()})
 		ordinary += 1
 
 func _open_count() -> int:
@@ -990,21 +1192,19 @@ func _open_count() -> int:
 func _met(id: String) -> void:
 	seen[id] = true
 	var sp := Data.species_of(id)
-	events.append({"type": "seen", "species": id, "role": sp.role})
-	if _story < 3 or _open_count() >= 5:
+	events.append({"type": "seen", "species": id, "role": sp.role, "trait": sp.get("trait", "")})
+	if _story < 4 or _open_count() >= 6 or sp.has("trait"):
 		return
 	match sp.role:
 		"prey":
 			_add_mission({"kind": "species", "species": id, "target": 1, "text": "Eat a %s", "args": [sp.name], "reward": _next_reward()})
-		"hunter":
-			_add_mission({"kind": "escape", "target": 8, "text": "Stay alive 8 seconds near a hunter", "reward": _next_reward()})
 		"rare":
 			_add_mission({"kind": "rare", "target": 1, "text": "Catch a Golden spore", "reward": "dna"})
 
-## Fields for the HUD: each mission as {text, args, prog, target, done, reward}.
+## Fields for the HUD: each mission as {text, args, frac (0..1, shown as a bar), done, kind}.
 func mission_rows() -> Array:
 	var out: Array = []
 	for m in missions:
-		var p := minf(progress_of(m), float(m.target))
-		out.append({"text": m.text, "args": m.args, "prog": int(p), "target": int(m.target), "done": m.done, "reward": m.reward, "kind": m.kind})
+		var frac := clampf(progress_of(m) / maxf(float(m.target), 0.001), 0.0, 1.0)
+		out.append({"text": m.text, "args": m.args, "frac": frac, "done": m.done, "kind": m.kind})
 	return out
