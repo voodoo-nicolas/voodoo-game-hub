@@ -359,7 +359,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_SPACE, KEY_1:
 				if event.pressed:
 					_on_ability(0)
-			KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7:
+			KEY_2, KEY_3, KEY_4:
 				if event.pressed:
 					_on_ability(int(event.keycode) - KEY_1)
 			KEY_TAB, KEY_I:
@@ -376,12 +376,11 @@ func _direction() -> Vector2:
 	return keys.limit_length(1.0)
 
 func _on_ability(i: int) -> void:
-	var ids: Array = engine.active_list()
-	if not started or screens.visible or i < 0 or i >= ids.size():
+	if not started or screens.visible:
 		return
-	if engine.use_ability(ids[i]):
+	if engine.use_slot(i):
 		_sfx("powerup")
-	else:
+	elif engine.slot_visible(i):
 		_sfx("tick")
 
 # ---------- game flow ----------
@@ -440,6 +439,8 @@ func _apply_view(delta: float, snap: bool = false) -> void:
 	if s.x < 10.0:
 		s = size
 	var target: float = s.y * Data.SIGHT_FRAC[clampi(engine.sight_rank - 1, 0, Data.SIGHT_FRAC.size() - 1)]
+	if engine.has("night_vision"):
+		target *= 1.2
 	var k := 1.0 if snap else clampf(VISION_SMOOTH * delta, 0.0, 1.0)
 	vis_r = lerpf(vis_r, target, k)
 	var tz := EvEngine.zoom_for(engine.player.mass)
@@ -506,10 +507,12 @@ func _update_hud() -> void:
 		for id in e.ailments.keys():
 			lines.append("☠ " + tr(Data.AILMENTS[id].name))
 		status_label.text = "\n".join(lines)
-	var ids: Array = e.active_list()
+	var ids: Array = []
 	var fills: Array = []
-	for id in ids:
-		fills.append(clampf(e.power / e.ability_cost(id), 0.0, 1.0))
+	for i in 4:
+		var id: String = e.slot_ids[i] if e.slot_visible(i) else ""
+		ids.append(id)
+		fills.append(clampf(e.power / e.ability_cost(id), 0.0, 1.0) if id != "" else 0.0)
 	controls.set_slots(ids, fills)
 	info_btn.visible = e.has_bars()
 	info_btn.text = "🧬 %d" % e.dna if e.dna > 0 else "🧬"
@@ -721,8 +724,31 @@ func _draw_field() -> void:
 			field.draw_circle(ic + off, ir * (0.55 + 0.05 * sin(pulse + float(q))), Color(0.25, 0.15, 0.4, 0.28 * minf(engine.ink_t, 1.0)))
 	for sh in engine.shots:
 		var sp3 := _w2s(sh.pos)
-		field.draw_circle(sp3, 10.0 * zoom + 3.0, Color("9bff5a", 0.25))
-		field.draw_circle(sp3, 5.0 * zoom + 2.0, Color("c8ff8a"))
+		if sh.get("kind", "spit") == "harpoon":
+			var back: Vector2 = sh.vel.normalized() * 44.0 * zoom
+			field.draw_line(sp3 - back, sp3, Color("d58bff"), 4.0, true)
+			field.draw_circle(sp3, 6.0 * zoom + 2.0, Color("f0c8ff"))
+		else:
+			field.draw_circle(sp3, 10.0 * zoom + 3.0, Color("9bff5a", 0.25))
+			field.draw_circle(sp3, 5.0 * zoom + 2.0, Color("c8ff8a"))
+	# The decoy: a pale copy of you.
+	if engine.decoy.t > 0.0:
+		var dc := _w2s(engine.decoy.pos)
+		var dr: float = EvEngine.radius_of(pm) * zoom
+		Art.draw_player(field, dc, dr, color, engine.decoy.vel.angle() if engine.decoy.vel.length() > 5.0 else heading, pulse, _player_state())
+		field.draw_circle(dc, dr * 1.2, Color(BG, 0.4))
+		field.draw_arc(dc, dr * 1.3, 0.0, TAU, 24, Color(color, 0.5), 2.0, true)
+	# Tentacles holding a creature; suction pulling prey in.
+	for n in engine.npcs:
+		if n.get("held", 0.0) > 0.0:
+			var hp3 := _w2s(n.pos)
+			field.draw_line(c, hp3, Color(color, 0.8), maxf(EvEngine.radius_of(pm) * zoom * 0.12, 3.0), true)
+	if engine.suction_t > 0.0:
+		var sr: float = engine.ability_radius("suction") * zoom
+		for q in 10:
+			var f := fposmod(pulse * 1.3 + float(q) * 0.1, 1.0)
+			var dir := Vector2.RIGHT.rotated(TAU * float(q) / 10.0)
+			field.draw_line(c + dir * sr * (1.0 - f), c + dir * sr * (1.0 - f - 0.1), Color(color, 0.5 * f), 3.0, true)
 	if engine.alive:
 		var pr: float = EvEngine.radius_of(pm) * zoom * (1.0 + bump)
 		if engine.lure_t > 0.0:
@@ -832,6 +858,17 @@ func _draw_senses() -> void:
 			var d2 := sp2.distance_to(c)
 			if d2 > vis_r and d2 < lim and sp2.x > 0.0 and sp2.y > 0.0 and sp2.x < s.x and sp2.y < s.y:
 				fx.draw_circle(sp2, 6.0, Color("7dff3a", 0.6) if EvEngine.can_eat(pm, n.mass, engine.eat_ratio()) else Color(1, 1, 1, 0.4))
+	if engine.sonar_t > 0.0:
+		var rad: float = engine.ability_radius("sonar") * zoom
+		var wave := fposmod(pulse * 0.8, 1.0)
+		fx.draw_arc(c, rad * wave, 0.0, TAU, 64, Color("7be0ff", 0.5 * (1.0 - wave)), 4.0, true)
+		for n in engine.npcs:
+			var sp4: Vector2 = _w2s(n.pos)
+			if sp4.distance_to(c) > rad or sp4.x < 0.0 or sp4.y < 0.0 or sp4.x > s.x or sp4.y > s.y:
+				continue
+			var rr: float = maxf(EvEngine.radius_of(n.mass) * zoom, 6.0)
+			var col4 := Color("ff4f9a") if n.role == "hunter" and EvEngine.can_eat(n.mass, pm) else (Color("7dff3a") if EvEngine.can_eat(pm, n.mass, engine.eat_ratio()) else Color(1, 1, 1, 0.8))
+			fx.draw_arc(sp4, rr * 1.2, 0.0, TAU, 20, Color(col4, 0.9), 2.5, true)
 	if engine.has("listening"):
 		var reach := vis_r * (3.5 if engine.has("radar") else 1.8)
 		for n in engine.npcs:

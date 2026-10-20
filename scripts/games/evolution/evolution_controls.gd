@@ -2,8 +2,9 @@ extends Control
 
 ## Evolution's on-screen controls, laid out like Last Shift's (landscape phones):
 ##   left thumb  : a fixed joystick (analog: the cell swims where you push)
-##   right thumb : one round button per active ability the cell has learned (two rows; each fills
-##                 with power from the blue bar and lights up when it can be used)
+##   right thumb : at most 4 round buttons, none at the start. 1 = an offensive ability, 2 = a defensive
+##                 one (the player picks which on the creature screen), 3 and 4 arrive later. Each fills
+##                 with power from the blue bar and lights up when it can be used
 ##   bottom      : pause and the creature screen sit in the middle (real buttons, added by the game)
 ## Every finger is tracked by its own index so you can steer and boost together. A mouse works
 ## too (index -1); phones also send emulated mouse events for each touch, so once a real touch has
@@ -16,7 +17,7 @@ const DEADZONE := 0.12
 const BTN_R := 44.0
 
 var dir := Vector2.ZERO          # joystick deflection, length 0..1
-var slots: Array = []            # ability ids, in button order (set by the game)
+var slots: Array = ["", "", "", ""]   # ability id on each of the 4 buttons ("" = button not shown)
 var fill: Array = []             # per slot 0..1: power / cost, 1 = ready
 var accent := Color("29e6ff")
 var _pointers := {}              # pointer id -> "stick" / "dash"
@@ -30,11 +31,10 @@ func _ready() -> void:
 func stick_center() -> Vector2:
 	return Vector2(190.0, size.y - 190.0)
 
-## Buttons: the first row of four along the bottom right, the rest in a row above it.
+## The four buttons in an arc around the right thumb: 0 in the corner, 1 up-left, 2 left, 3 above.
 func slot_center(i: int) -> Vector2:
-	if i < 4:
-		return Vector2(size.x - 80.0 - 100.0 * i, size.y - 100.0)
-	return Vector2(size.x - 130.0 - 100.0 * (i - 4), size.y - 210.0)
+	var offs := [Vector2(110, 120), Vector2(230, 230), Vector2(250, 100), Vector2(120, 250)]
+	return Vector2(size.x, size.y) - offs[clampi(i, 0, 3)]
 
 func set_slots(ids: Array, fills: Array) -> void:
 	if ids != slots or fills != fill:
@@ -72,7 +72,7 @@ func _press(id: int, pos: Vector2, pressed: bool) -> void:
 			_move(id, pos)
 		else:
 			for i in slots.size():
-				if pos.distance_to(slot_center(i)) <= BTN_R * 1.35:
+				if str(slots[i]) != "" and pos.distance_to(slot_center(i)) <= BTN_R * 1.35:
 					_pointers[id] = "slot%d" % i
 					ability_pressed.emit(i)
 					break
@@ -100,6 +100,8 @@ func _draw() -> void:
 	draw_circle(c + _stick_pos, 50.0, Color(accent, 0.5 if held else 0.25))
 	draw_arc(c + _stick_pos, 50.0, 0.0, TAU, 32, Color(1, 1, 1, 0.7), 3.0, true)
 	for i in slots.size():
+		if str(slots[i]) == "":
+			continue
 		var d := slot_center(i)
 		var down := _pointers.values().has("slot%d" % i)
 		var f: float = float(fill[i]) if i < fill.size() else 1.0
@@ -135,6 +137,28 @@ func _icon(id: String, c: Vector2, a: float) -> void:
 		"ink":
 			for o in [Vector2(-9, 4), Vector2(0, -6), Vector2(10, 3), Vector2(2, 10)]:
 				draw_circle(c + o, 9.0, Color(0.55, 0.45, 0.9, a))
+		"harpoon":
+			draw_line(c + Vector2(-18, 14), c + Vector2(14, -14), Color("d58bff", a), 4.0, true)
+			draw_colored_polygon(PackedVector2Array([c + Vector2(20, -20), c + Vector2(6, -14), c + Vector2(14, -6)]), Color("f0c8ff", a))
+		"decoy":
+			draw_arc(c + Vector2(-8, 0), 11.0, 0.0, TAU, 20, white, 3.0, true)
+			draw_arc(c + Vector2(9, 0), 11.0, 0.0, TAU, 20, Color(1, 1, 1, a * 0.5), 3.0, true)
+		"limb":
+			draw_circle(c + Vector2(-8, 4), 10.0, white)
+			draw_line(c + Vector2(2, -2), c + Vector2(18, -14), Color(1, 0.4, 0.4, a), 4.0, true)
+			draw_line(c + Vector2(10, -16), c + Vector2(20, -6), Color(1, 0.4, 0.4, a), 3.0, true)
+		"suction":
+			for k in 6:
+				var d2 := Vector2.RIGHT.rotated(TAU * float(k) / 6.0)
+				draw_line(c + d2 * 20.0, c + d2 * 9.0, white, 3.0, true)
+			draw_circle(c, 5.0, white)
+		"grab":
+			draw_arc(c + Vector2(-6, 6), 14.0, PI, TAU * 0.9, 16, white, 4.0, true)
+			draw_arc(c + Vector2(8, -4), 11.0, 0.0, PI * 1.4, 16, white, 4.0, true)
+		"sonar":
+			for k in 3:
+				draw_arc(c + Vector2(-12, 0), 8.0 + 8.0 * float(k), -0.9, 0.9, 10, Color(0.48, 0.88, 1.0, a), 3.0, true)
+			draw_circle(c + Vector2(-12, 0), 4.0, Color(0.48, 0.88, 1.0, a))
 		"camo":
 			draw_arc(c, 16.0, PI, TAU, 16, white, 3.0, true)
 			draw_arc(c, 16.0, 0.0, PI, 16, white, 3.0, true)

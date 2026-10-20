@@ -8,6 +8,7 @@ extends Control
 const Art = preload("res://scripts/games/evolution/evolution_art.gd")
 const EvEngine = preload("res://scripts/games/evolution/evolution_engine.gd")
 const Data = preload("res://scripts/games/evolution/evolution_data.gd")
+const TreeView = preload("res://scripts/games/evolution/evolution_tree_view.gd")
 
 signal closed
 signal home_pressed
@@ -20,7 +21,13 @@ var _t := 0.0
 var _portrait: Control
 var _page: VBoxContainer
 var _tree_view := false
-var _msg: Label
+var _view: Control
+var _sel := ""
+var _title: Label
+var _detail: Label
+var _buy_btn: Button
+var _dna_label: Label
+var _names := false
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -64,7 +71,7 @@ func _clear() -> void:
 		_page.remove_child(ch)
 		ch.queue_free()
 	_portrait = null
-	_msg = null
+	_view = null
 
 func _build() -> void:
 	_clear()
@@ -132,11 +139,43 @@ func _build_info() -> void:
 	for s in Data.SPECIALS:
 		if e.specials.has(s.id):
 			col.add_child(_wrapped("★ " + tr(s.name) + ": " + tr(s.desc), 20, Color("ffd23f")))
+	_abilities(col)
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 12)
 	_page.add_child(btns)
 	btns.add_child(_button("🧬 " + tr("Evolution tree"), _show_tree, 260.0))
 	btns.add_child(_button("✕ " + tr("Close"), _close_pressed))
+
+## The ability buttons: tap one to choose which ability it fires.
+func _abilities(parent: Control) -> void:
+	parent.add_child(_label(tr("Abilities"), 26, Color("ffd479")))
+	var names := [tr("Offense button"), tr("Defense button"), tr("Extra button %d") % 3, tr("Extra button %d") % 4]
+	for i in 4:
+		var b := Button.new()
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(0, 56)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if engine.slot_visible(i):
+			var id: String = engine.slot_ids[i]
+			b.text = names[i] + ":  " + (tr(Data.ABILITIES[id].name) if id != "" else "-")
+			if engine.eligible(i).size() > 1:
+				b.text += "   ↻"
+			b.pressed.connect(_cycle.bind(i))
+		else:
+			b.disabled = true
+			if i == 0:
+				b.text = names[i] + ":  " + tr("learn an offensive ability first")
+			elif i == 1:
+				b.text = names[i] + ":  " + tr("learn a defensive ability first")
+			else:
+				b.text = names[i] + ":  " + tr("reach %s to unlock") % tr(EvEngine.STAGES[Data.SLOT_STAGE[i]][1])
+		b.add_theme_font_size_override("font_size", 20)
+		parent.add_child(b)
+
+func _cycle(i: int) -> void:
+	engine.cycle_slot(i)
+	sfx.emit("tap")
+	_build()
 
 func _stat(parent: Control, name: String, value: String, frac: float) -> void:
 	var box := VBoxContainer.new()
@@ -160,7 +199,7 @@ func _draw_portrait() -> void:
 	if engine == null or _portrait == null:
 		return
 	var s := _portrait.size
-	var r := minf(s.x, s.y) * 0.3
+	var r := minf(s.x, s.y) * 0.22
 	_portrait.draw_circle(s / 2.0, r * 2.1, Color(color, 0.05))
 	var st := {
 		"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0,
@@ -185,65 +224,108 @@ func _build_tree() -> void:
 	head.add_theme_constant_override("separation", 12)
 	_page.add_child(head)
 	head.add_child(_button("‹ " + tr("Back"), _back_to_info, 150.0))
-	var t := _label(tr("Evolution tree"), 36, color.lerp(Color.WHITE, 0.5))
+	var t := _label(tr("Evolution tree"), 34, color.lerp(Color.WHITE, 0.5))
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(t)
-	head.add_child(_label(tr("DNA points: %d") % engine.dna, 28, Color("ffd479")))
+	_dna_label = _label(tr("DNA points: %d") % engine.dna, 28, Color("ffd479"))
+	head.add_child(_dna_label)
 	head.add_child(_button("🏠 " + tr("Home"), _home_pressed, 150.0))
-	_msg = _label("", 22, Color("ff9f9f"))
-	_page.add_child(_msg)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_page.add_child(scroll)
-	var cols := HBoxContainer.new()
-	cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cols.add_theme_constant_override("separation", 12)
-	scroll.add_child(cols)
-	for b in Data.BRANCHES:
-		var col := VBoxContainer.new()
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.add_theme_constant_override("separation", 8)
-		cols.add_child(col)
-		col.add_child(_label(tr(Data.TREE[b].name), 28, Color("ffd479")))
-		for n in Data.TREE[b].nodes:
-			col.add_child(_node_button(n))
+	_view = TreeView.new()
+	_view.engine = engine
+	_view.color = color
+	_view.voodoo = voodoo
+	_view.show_names = _names
+	_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_view.selected.connect(_on_node_selected)
+	_page.add_child(_view)
+	_view.selected_id = _sel
+	var bottom := HBoxContainer.new()
+	bottom.add_theme_constant_override("separation", 14)
+	_page.add_child(bottom)
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom.add_child(info)
+	_title = _label("", 26, Color("ffd479"))
+	info.add_child(_title)
+	_detail = _label("", 18)
+	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail.custom_minimum_size = Vector2(300, 0)
+	info.add_child(_detail)
+	var side := VBoxContainer.new()
+	bottom.add_child(side)
+	_buy_btn = _button("", _buy_selected, 220.0)
+	side.add_child(_buy_btn)
+	var cb := CheckBox.new()
+	cb.text = tr("Show names")
+	cb.button_pressed = _names
+	cb.focus_mode = Control.FOCUS_NONE
+	cb.toggled.connect(_on_names)
+	side.add_child(cb)
+	_refresh_detail()
+	_view.call_deferred("reset_view")
 
-func _node_button(n: Dictionary) -> Button:
-	var state: String = engine.node_state(n.id)
-	var mark := "⚡ " if n.get("ability", false) else ""
-	var b := Button.new()
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(0, 96)
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.clip_text = false
-	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	match state:
-		"owned":
-			b.text = "✔ " + mark + tr(n.name) + "\n" + tr(n.desc)
-			b.modulate = Color(color.lerp(Color.WHITE, 0.5), 1.0)
-		"available":
-			b.text = mark + tr(n.name) + "  ·  " + tr("%d DNA") % int(n.cost) + "\n" + tr(n.desc)
-			b.pressed.connect(_buy.bind(n.id))
-		_:
-			b.text = "?"
-			b.disabled = true
-			b.add_theme_font_size_override("font_size", 40)
-			b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.45))
-	if state != "locked":
-		b.add_theme_font_size_override("font_size", 20)
-	return b
+func _on_names(on: bool) -> void:
+	_names = on
+	if _view:
+		_view.show_names = on
 
-func _buy(id: String) -> void:
-	if engine.buy(id):
-		sfx.emit("powerup")
-		_build()
+func _on_node_selected(id: String) -> void:
+	_sel = id
+	sfx.emit("tap")
+	_refresh_detail()
+
+func _needs_text(n: Dictionary) -> String:
+	var parts: Array = []
+	for r in n.req:
+		var rn: Dictionary = Data.node_of(r[0])
+		parts.append(tr(rn.name) + (" ×%d" % int(r[1]) if int(r[1]) > 1 else ""))
+	return ", ".join(parts)
+
+func _refresh_detail() -> void:
+	if _title == null:
+		return
+	_dna_label.text = tr("DNA points: %d") % engine.dna
+	if _sel == "":
+		_title.text = tr("Evolution tree")
+		_detail.text = tr("Drag to look around. Tap a trait to see what it does.")
+		_buy_btn.visible = false
+		return
+	var n := Data.node_of(_sel)
+	var state: String = engine.node_state(_sel)
+	_buy_btn.visible = true
+	if state == "locked":
+		_title.text = "?"
+		_detail.text = tr("Locked: get the traits leading here first.") + "\n" + tr("Needs: %s") % _needs_text(n)
+		_buy_btn.text = tr("Locked")
+		_buy_btn.disabled = true
+		return
+	_title.text = tr(n.name) + "   " + tr("Points: %d/%d") % [engine.rank_of(_sel), int(n.max)]
+	var txt: String = tr(n.desc)
+	if n.ability:
+		txt += "\n" + tr("Active ability: it uses the power bar. More points make it cheaper, longer and stronger.")
+	if not n.req.is_empty():
+		txt += "\n" + tr("Needs: %s") % _needs_text(n)
+	if state == "stage":
+		txt += "\n" + tr("Reach %s first.") % tr(EvEngine.STAGES[int(n.stage)][1])
+	_detail.text = txt
+	if state == "maxed":
+		_buy_btn.text = tr("Maxed")
+		_buy_btn.disabled = true
 	else:
-		var n := Data.node_of(id)
-		if _msg:
-			_msg.text = tr("Not enough DNA: %d needed.") % int(n.cost)
+		_buy_btn.text = tr("Buy for %d DNA") % engine.cost_of(_sel)
+		_buy_btn.disabled = not engine.can_buy(_sel)
+
+func _buy_selected() -> void:
+	if _sel == "":
+		return
+	if engine.buy(_sel):
+		sfx.emit("powerup")
+	else:
 		sfx.emit("tap")
+	_refresh_detail()
+	if _view:
+		_view.queue_redraw()
 
 func _back_to_info() -> void:
 	_tree_view = false

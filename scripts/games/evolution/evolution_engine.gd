@@ -15,7 +15,7 @@ const TUNING := {
 	"start_mass": 10.0,
 	"radius_k": 7.0,            # radius = radius_k * sqrt(mass)
 	"eat_ratio": 1.15,          # eater needs mass >= victim mass * eat_ratio
-	"jaws_step": 0.05,          # each jaws node lowers the ratio by this
+	"jaws_step": 0.05,          # each point of jaws lowers the ratio by this
 	"absorb": 0.10,             # share of the victim's mass the eater gains (small, so eating only plumps you a little)
 	"food_mass": 1.0,
 	"food_per_area": 4.2e-5,    # food per square world unit of the spawn disc
@@ -50,16 +50,28 @@ const TUNING := {
 	"spit_range": 0.9,          # seconds a spit flies
 	"slow_mult": 0.4,
 	"lure_pull": 140.0,
-	"tox_res_mult": 0.35,
+	"tox_res_mult": 0.6,        # ailment time x this per point
 	"warning_pause": 1.2,
 	"poison_skin_rate": 0.10,   # share of its mass a biting hunter loses per second
 	"camo_sense": 0.2,
+	"harpoon_speed": 1000.0,
+	"harpoon_range": 1.0,
+	"venom_rate": 0.12,         # share of its mass a venomed creature loses per second
+	"venom_slow": 0.6,
+	"decoy_speed": 150.0,
+	"limb_hp": 2.0,
+	"limb_stun": 1.5,
+	"suction_pull": 260.0,
+	"grab_pull": 220.0,
+	"shell_mult": 0.75,
+	"slime_slow": 3.0,
+	"stinger_rate": 0.07,
 	"fins_bonus": 0.10,
 	"streamlined_bonus": 0.12,
 	"base_hp": 10.0,
 	"membrane_hp": 5.0,
 	"regen": 0.25,              # hp per second when not hit lately
-	"regen_fast": 0.8,
+	"regen_rank": 0.35,         # extra hp per second per point of regeneration
 	"regen_delay": 3.0,
 	"spikes_mult": 0.7,
 	"armor_mult": 0.7,
@@ -93,7 +105,8 @@ var jolts: int = 0
 var time: float = 0.0
 var events: Array = []    # this step's events; the game draws effects / banners from them
 var dna: int = 0
-var owned := {}           # tree node id -> true
+var owned := {}           # tree node id -> points spent (only ids with 1 or more)
+var slot_ids: Array = ["", "", "", ""]   # the ability on each of the 4 buttons ("" = none)
 var specials := {}        # special trait id -> true
 var ailments := {}        # ailment id -> seconds left
 var move_rank: int = 0    # 0 = jolting, 1.. = tail ranks
@@ -105,6 +118,9 @@ var lure_t: float = 0.0
 var ink_t: float = 0.0
 var ink_pos := Vector2.ZERO
 var facing := Vector2.RIGHT
+var decoy := {"pos": Vector2.ZERO, "vel": Vector2.ZERO, "t": 0.0}
+var suction_t: float = 0.0
+var sonar_t: float = 0.0
 var shots: Array = []     # acid spit: {"pos","vel","life"}
 var hit_t: float = 99.0   # seconds since the last bite
 var escape_time: float = 0.0
@@ -175,35 +191,30 @@ func xp_frac() -> float:
 	return clampf((player.mass - lo) / (hi - lo), 0.0, 1.0)
 
 func has(id: String) -> bool:
-	return owned.has(id)
+	return int(owned.get(id, 0)) > 0
+
+## Points spent on a tree node.
+func rank_of(id: String) -> int:
+	return int(owned.get(id, 0))
 
 func eat_ratio() -> float:
-	var jaws := (1 if has("jaws") else 0) + (1 if has("jaws2") else 0)
-	return maxf(t("eat_ratio") - t("jaws_step") * jaws, 1.0)
+	return maxf(t("eat_ratio") - t("jaws_step") * rank_of("jaws"), 1.0)
 
 ## Strength shown on the info screen: 1 + jaws nodes.
 func strength() -> int:
-	return 1 + (1 if has("jaws") else 0) + (1 if has("jaws2") else 0)
+	return 1 + rank_of("jaws")
 
 func max_hp() -> float:
-	return t("base_hp") + (t("membrane_hp") if has("membrane") else 0.0)
+	return t("base_hp") + t("membrane_hp") * rank_of("membrane")
 
 func has_bars() -> bool:
 	return sight_rank >= 2
 
-## Owned actives in button order.
-func active_list() -> Array:
-	var out: Array = []
-	for id in Data.ABILITY_ORDER:
-		if has(id):
-			out.append(id)
-	return out
-
 func has_actives() -> bool:
-	return not active_list().is_empty()
+	return not owned_actives().is_empty()
 
 func ability_rank(id: String) -> int:
-	return 1 + (1 if has(id + "2") else 0)
+	return maxi(rank_of(id), 1)
 
 func ability_cost(id: String) -> float:
 	return Data.ABILITIES[id].cost * (1.0 - t("upgrade_cost_cut") * (ability_rank(id) - 1))
@@ -222,12 +233,12 @@ func hunters_on() -> bool:
 
 ## Clarity 0..2 from the lens nodes (the blur shown by the game).
 func clarity() -> int:
-	return (1 if has("sharp1") else 0) + (1 if has("sharp2") else 0)
+	return mini(rank_of("lens") + (1 if has("real_eyes") else 0), Data.BLUR.size() - 1)
 
 func move_mult() -> float:
 	var m: float = Data.MOVE_MULT[clampi(move_rank, 0, Data.MOVE_MULT.size() - 1)]
 	if move_rank >= 1:
-		m += (t("fins_bonus") if has("fins") else 0.0) + (t("streamlined_bonus") if has("streamlined") else 0.0)
+		m += t("fins_bonus") * rank_of("fins") + (t("streamlined_bonus") if has("streamlined") else 0.0)
 	return m
 
 ## Top speed now (without a dash), world units per second.
@@ -235,10 +246,7 @@ func top_speed() -> float:
 	return speed_for(player.mass, t("player_speed") * move_mult())
 
 func _recompute_ranks() -> void:
-	var tails := 0
-	for id in ["tail2", "tail3", "flagella", "cilia"]:
-		if has(id):
-			tails += 1
+	var tails: int = rank_of("tail") + (1 if has("flagella") else 0) + (1 if has("cilia") else 0)
 	if move_rank >= 1 or tails > 0:
 		move_rank = clampi(1 + tails, 1, Data.MOVE_MULT.size() - 1)
 	var eyes := 0
@@ -269,6 +277,7 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	events.clear()
 	dna = 0
 	owned = {}
+	slot_ids = ["", "", "", ""]
 	specials = {}
 	ailments = {}
 	move_rank = 0
@@ -278,6 +287,9 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	camo_t = 0.0
 	lure_t = 0.0
 	ink_t = 0.0
+	suction_t = 0.0
+	sonar_t = 0.0
+	decoy = {"pos": Vector2.ZERO, "vel": Vector2.ZERO, "t": 0.0}
 	shots = []
 	facing = Vector2.RIGHT
 	hit_t = 99.0
@@ -369,6 +381,9 @@ func step(delta: float, dir: Vector2) -> void:
 	camo_t = maxf(camo_t - delta, 0.0)
 	lure_t = maxf(lure_t - delta, 0.0)
 	ink_t = maxf(ink_t - delta, 0.0)
+	suction_t = maxf(suction_t - delta, 0.0)
+	sonar_t = maxf(sonar_t - delta, 0.0)
+	_update_decoy(delta)
 	_update_shots(delta)
 	_move_player(delta, dir)
 	_heal_and_passives(delta)
@@ -420,7 +435,7 @@ func use_ability(id: String) -> bool:
 			dash_t = dur
 			events.append({"type": "dash", "pos": player.pos})
 		"spit":
-			shots.append({"pos": player.pos + facing * radius_of(player.mass), "vel": facing * t("spit_speed"), "life": t("spit_range"), "slow": dur})
+			shots.append({"pos": player.pos + facing * radius_of(player.mass), "vel": facing * t("spit_speed"), "life": t("spit_range"), "slow": dur, "kind": "spit"})
 			events.append({"type": "spit", "pos": player.pos})
 		"shock", "spine":
 			var rad := ability_radius(id)
@@ -442,8 +457,47 @@ func use_ability(id: String) -> bool:
 				return false
 			camo_t = dur
 			events.append({"type": "camo"})
+		"harpoon":
+			shots.append({"pos": player.pos + facing * radius_of(player.mass), "vel": facing * t("harpoon_speed"), "life": t("harpoon_range"), "venom": dur, "kind": "harpoon"})
+			events.append({"type": "spit", "pos": player.pos})
+		"decoy":
+			decoy = {"pos": player.pos, "vel": facing * t("decoy_speed"), "t": dur}
+			events.append({"type": "decoy", "pos": player.pos})
+		"limb":
+			if player.hp <= t("limb_hp") + 0.5:
+				return false
+			player.hp -= t("limb_hp")
+			decoy = {"pos": player.pos, "vel": Vector2.ZERO, "t": dur}
+			for n in npcs:
+				if n.role == "hunter" and n.pos.distance_to(player.pos) < ability_radius(id):
+					n["stun"] = t("limb_stun")
+			events.append({"type": "decoy", "pos": player.pos})
+		"suction":
+			suction_t = dur
+			events.append({"type": "suction"})
+		"grab":
+			var picks := 0
+			for n in npcs:
+				if picks > ability_rank(id):
+					break
+				if n.pos.distance_to(player.pos) < ability_radius(id) and can_eat(player.mass, n.mass, eat_ratio()):
+					n["stun"] = dur
+					n["held"] = dur
+					picks += 1
+			events.append({"type": "grab", "count": picks})
+		"sonar":
+			sonar_t = dur
+			events.append({"type": "sonar", "pos": player.pos, "radius": ability_radius(id)})
 	power -= cost
 	return true
+
+func _update_decoy(delta: float) -> void:
+	if decoy.t <= 0.0:
+		return
+	decoy.t -= delta
+	decoy.pos += decoy.vel * delta
+	decoy.vel *= maxf(0.0, 1.0 - 0.8 * delta)
+	decoy.pos.y = maxf(decoy.pos.y, 0.0)
 
 func _update_shots(delta: float) -> void:
 	var keep: Array = []
@@ -453,7 +507,10 @@ func _update_shots(delta: float) -> void:
 		var hit := false
 		for n in npcs:
 			if n.pos.distance_to(sh.pos) < radius_of(n.mass) + 14.0:
-				n["slow"] = sh.slow
+				if sh.get("kind", "spit") == "harpoon":
+					n["venom"] = sh.venom
+				else:
+					n["slow"] = sh.slow
 				events.append({"type": "spit_hit", "pos": sh.pos})
 				hit = true
 				break
@@ -463,7 +520,7 @@ func _update_shots(delta: float) -> void:
 
 func _heal_and_passives(delta: float) -> void:
 	if hit_t > t("regen_delay") and player.hp < max_hp():
-		var rate: float = t("regen_fast") if has("regen") else t("regen")
+		var rate: float = t("regen") + t("regen_rank") * rank_of("regen")
 		rate *= Data.DIFFICULTY[difficulty].regen
 		if ailments.has("slow_heal"):
 			rate *= t("slow_heal_mult")
@@ -497,15 +554,22 @@ func _think(delta: float) -> void:
 	var ink_r := ability_radius("ink") if has("ink") else 0.0
 	for n in npcs:
 		n.t -= delta
+		var slow_mult := 1.0
+		if n.get("venom", 0.0) > 0.0:
+			n["venom"] -= delta
+			n.mass = maxf(n.mass - n.mass * t("venom_rate") * delta, t("min_npc_mass"))
+			slow_mult = t("venom_slow")
 		if n.get("stun", 0.0) > 0.0:
 			n["stun"] -= delta
+			if n.get("held", 0.0) > 0.0:
+				n["held"] -= delta
+				n.pos = n.pos.move_toward(player.pos, t("grab_pull") * delta)
 			n.vel = n.vel.lerp(Vector2.ZERO, clampf(10.0 * delta, 0.0, 1.0))
 			n.pos += n.vel * delta
 			continue
-		var slow_mult := 1.0
 		if n.get("slow", 0.0) > 0.0:
 			n["slow"] -= delta
-			slow_mult = t("slow_mult")
+			slow_mult = minf(slow_mult, t("slow_mult"))
 		var steer := Vector2.ZERO
 		var speed := speed_for(n.mass, base_speed * 0.6)
 		var to_p: Vector2 = player.pos - n.pos
@@ -515,9 +579,20 @@ func _think(delta: float) -> void:
 		# Ink: a hunter inside the cloud has lost you.
 		if ink_t > 0.0 and n.pos.distance_to(ink_pos) < ink_r:
 			sight = 0.0
-		var hunting: bool = role == "hunter" and d < sight and can_eat(n.mass, player.mass)
+		var chase := to_p
+		var chase_d := d
+		if role == "hunter" and decoy.t > 0.0:
+			var dv: Vector2 = decoy.pos - n.pos
+			if dv.length() < d * 1.5 + 100.0:
+				chase = dv                                     # the decoy looks like a better meal
+				chase_d = dv.length()
+				sight = maxf(t("sense"), radius_of(n.mass) * 6.0)
+				if chase_d < radius_of(n.mass):
+					decoy.t = 0.0
+					n["pause"] = 1.5
+		var hunting: bool = role == "hunter" and chase_d < sight and can_eat(n.mass, player.mass)
 		if hunting and has("warning") and not n.get("hunting", false):
-			n["pause"] = t("warning_pause")             # predators hesitate at the warning colours
+			n["pause"] = t("warning_pause") * rank_of("warning")             # predators hesitate at the warning colours
 		n["hunting"] = hunting
 		if n.get("pause", 0.0) > 0.0:
 			n["pause"] -= delta
@@ -525,8 +600,11 @@ func _think(delta: float) -> void:
 			n.pos += n.vel * delta
 			continue
 		if hunting:
-			steer = to_p / maxf(d, 0.001)                     # hunt
+			steer = chase / maxf(chase_d, 0.001)              # hunt
 			speed = speed_for(n.mass, hunter_speed)
+		elif suction_t > 0.0 and (role == "prey" or role == "rare") and d < ability_radius("suction") and d > radius_of(player.mass) * 0.5 and can_eat(player.mass, n.mass, ratio):
+			steer = to_p / maxf(d, 0.001)                     # sucked in
+			speed = t("suction_pull")
 		elif lure_t > 0.0 and (role == "prey" or role == "rare") and d < ability_radius("lure") and d > radius_of(player.mass):
 			steer = to_p / maxf(d, 0.001)                     # drawn by the lure
 			speed = t("lure_pull")
@@ -580,7 +658,7 @@ func _resolve(delta: float) -> void:
 			eaten_species[n.species] = int(eaten_species.get(n.species, 0)) + 1
 			events.append({"type": "cell", "pos": n.pos, "mass": n.mass, "species": n.species, "role": n.role})
 			if has("meal_heal") and not ailments.has("slow_heal"):
-				player.hp = minf(player.hp + 1.0, max_hp())
+				player.hp = minf(player.hp + float(rank_of("meal_heal")), max_hp())
 			if n.role == "toxic":
 				_poison()
 			elif n.role == "rare":
@@ -590,7 +668,11 @@ func _resolve(delta: float) -> void:
 		if n.role == "hunter" and can_eat(n.mass, player.mass) and d < nr + pr * 0.5 and n.get("stun", 0.0) <= 0.0 and n.get("pause", 0.0) <= 0.0:
 			var dmg := bite * delta
 			if has("spikes"):
-				dmg *= t("spikes_mult")
+				dmg *= pow(t("spikes_mult"), rank_of("spikes"))
+			if has("shell"):
+				dmg *= t("shell_mult")
+			if has("slime"):
+				n["slow"] = t("slime_slow")
 			if specials.has("armor"):
 				dmg *= t("armor_mult")
 			if ailments.has("brittle"):
@@ -606,6 +688,8 @@ func _resolve(delta: float) -> void:
 				player.hp = 0.0
 				alive = false
 				events.append({"type": "death", "pos": player.pos})
+		if has("stinger") and (n.role == "hunter" or n.role == "equal") and d < nr + pr * 1.3:
+			n.mass = maxf(n.mass - n.mass * t("stinger_rate") * rank_of("stinger") * delta, t("min_npc_mass"))
 		left.append(n)
 	npcs = left
 	peak_mass = maxf(peak_mass, player.mass)
@@ -639,16 +723,15 @@ func _recycle() -> void:
 
 func _poison() -> void:
 	var id: String = Data.AILMENT_ORDER[rng.randi() % Data.AILMENT_ORDER.size()]
-	ailments[id] = Data.AILMENTS[id].time * (t("tox_res_mult") if has("tox_res") else 1.0)
+	ailments[id] = Data.AILMENTS[id].time * pow(t("tox_res_mult"), rank_of("tox_res"))
 	events.append({"type": "ailment", "id": id})
 
 ## Rare creature: a tree trait ahead of time, or a special trait, or (if you have everything) DNA.
 func _grant_rare() -> void:
 	var pool: Array = []
-	for b in Data.BRANCHES:
-		for n in Data.TREE[b].nodes:
-			if not has(n.id) and (n.after == "" or has(n.after)):
-				pool.append({"kind": "node", "id": n.id, "name": n.name})
+	for n in Data.NODES:
+		if reqs_met(n.id) and rank_of(n.id) < int(n.max):
+			pool.append({"kind": "node", "id": n.id, "name": n.name})
 	for s in Data.SPECIALS:
 		if not specials.has(s.id):
 			pool.append({"kind": "special", "id": s.id, "name": s.name})
@@ -658,36 +741,124 @@ func _grant_rare() -> void:
 		return
 	var pick: Dictionary = pool[rng.randi() % pool.size()]
 	if pick.kind == "node":
-		owned[pick.id] = true
-		_recompute_ranks()
+		_add_point(pick.id)
 	else:
 		specials[pick.id] = true
 	events.append({"type": "rare", "name": pick.name, "kind": pick.kind})
 
 # ---------- the evolution tree ----------
 
-## "owned", "available" (can be bought now with enough DNA) or "locked" (shown as "?").
+## Every prerequisite owned with enough points?
+func reqs_met(id: String) -> bool:
+	var n := Data.node_of(id)
+	if n.is_empty():
+		return false
+	for r in n.req:
+		if rank_of(r[0]) < int(r[1]):
+			return false
+	return true
+
+## DNA for the next point of a node (the first costs `cost`, each further one 1 more).
+func cost_of(id: String) -> int:
+	var n := Data.node_of(id)
+	return int(n.cost) + rank_of(id) if not n.is_empty() else 0
+
+## "maxed" (all points spent), "owned" (some points, more can be bought), "available" (can be bought
+## now), "stage" (prerequisites owned, but you are not big enough yet) or "locked" (shown as "?").
 func node_state(id: String) -> String:
-	if has(id):
-		return "owned"
 	var n := Data.node_of(id)
 	if n.is_empty():
 		return "locked"
-	if (n.after == "" or has(n.after)) and stage() >= int(n.stage):
-		return "available"
-	return "locked"
+	var r := rank_of(id)
+	if r >= int(n.max):
+		return "maxed"
+	if not reqs_met(id):
+		return "locked" if r == 0 else "owned"
+	if stage() < int(n.stage):
+		return "stage"
+	return "owned" if r > 0 else "available"
 
-func buy(id: String) -> bool:
-	var n := Data.node_of(id)
-	if n.is_empty() or node_state(id) != "available" or dna < int(n.cost):
-		return false
-	dna -= int(n.cost)
-	owned[id] = true
-	_recompute_ranks()
+func can_buy(id: String) -> bool:
+	var st := node_state(id)
+	return (st == "available" or st == "owned") and reqs_met(id) and dna >= cost_of(id)
+
+func _add_point(id: String) -> void:
+	owned[id] = rank_of(id) + 1
 	if id == "membrane":
 		player.hp += t("membrane_hp")
+	_recompute_ranks()
+	auto_assign()
+
+func buy(id: String) -> bool:
+	if not can_buy(id):
+		return false
+	dna -= cost_of(id)
+	_add_point(id)
 	events.append({"type": "bought", "id": id})
 	return true
+
+# ---------- the ability buttons ----------
+
+## Owned actives in the order they are offered.
+func owned_actives() -> Array:
+	var out: Array = []
+	for id in Data.ABILITY_ORDER:
+		if has(id):
+			out.append(id)
+	return out
+
+func slot_type(i: int) -> String:
+	return Data.SLOT_TYPE[i]
+
+## 1 offensive and 1 defensive button once you own such an active; the 3rd and 4th arrive with growth
+## (and only when there is another active to put on them).
+func slot_visible(i: int) -> bool:
+	if i < 2:
+		for id in owned_actives():
+			if Data.ABILITIES[id].kind == Data.SLOT_TYPE[i]:
+				return true
+		return false
+	if stage() < int(Data.SLOT_STAGE[i]):
+		return false
+	return owned_actives().size() > i
+
+## Actives that may go on button `i` (not already on another button).
+func eligible(i: int) -> Array:
+	var out: Array = []
+	for id in owned_actives():
+		var kind: String = Data.ABILITIES[id].kind
+		if Data.SLOT_TYPE[i] != "any" and kind != Data.SLOT_TYPE[i]:
+			continue
+		var taken := false
+		for j in 4:
+			if j != i and slot_ids[j] == id:
+				taken = true
+		if not taken:
+			out.append(id)
+	return out
+
+## Fills empty or invalid visible buttons with the first fitting active.
+func auto_assign() -> void:
+	for i in 4:
+		if not slot_visible(i):
+			continue
+		var list := eligible(i)
+		if slot_ids[i] == "" or not list.has(slot_ids[i]):
+			slot_ids[i] = list[0] if not list.is_empty() else ""
+
+## The player picks: next fitting active for button `i`.
+func cycle_slot(i: int) -> void:
+	var list := eligible(i)
+	if list.is_empty():
+		return
+	var k := list.find(slot_ids[i])
+	slot_ids[i] = list[(k + 1) % list.size()]
+
+## Uses the ability on button `i`.
+func use_slot(i: int) -> bool:
+	if i < 0 or i > 3 or not slot_visible(i) or slot_ids[i] == "":
+		return false
+	return use_ability(slot_ids[i])
 
 # ---------- missions ----------
 

@@ -271,6 +271,8 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 			var a2 := TAU * (float(j) + 0.5) / 10.0
 			var d2 := Vector2.RIGHT.rotated(a2)
 			ci.draw_colored_polygon(PackedVector2Array([d2 * r * 0.96 + d2.orthogonal() * r * 0.07, d2 * r * 1.28, d2 * r * 0.96 - d2.orthogonal() * r * 0.07]), col.lightened(0.3))
+	if owned.has("tentacles"):
+		_tentacles(ci, r, col, t, owned.has("stinger"))
 	ci.draw_circle(Vector2.ZERO, r * 1.9, Color(col, 0.05))
 	ci.draw_circle(Vector2.ZERO, r * 1.45, Color(col, 0.09))
 	ci.draw_colored_polygon(pts, col.darkened(0.7))
@@ -300,6 +302,21 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 			ci.draw_arc(Vector2.ZERO, r * 1.07, aa - 0.2, aa + 0.2, 8, Color(0.85, 0.9, 1.0, 0.9), maxf(r * 0.09, 2.0), true)
 	_eyes(ci, r, col, sight_rank, eye_open, owned)
 	_reset(ci)
+
+## Four waving tentacles around the front of the body (stinging tips once the stinger is owned).
+static func _tentacles(ci: CanvasItem, r: float, col: Color, t: float, sting: bool) -> void:
+	for k in 4:
+		var base_a: float = [-1.25, -0.5, 0.5, 1.25][k]
+		var dir := Vector2.RIGHT.rotated(base_a)
+		var side := dir.orthogonal()
+		var line := PackedVector2Array()
+		for j in 12:
+			var f := float(j) / 11.0
+			line.append(dir * r * (0.85 + 1.4 * f) + side * sin(t * 4.0 + float(k) * 1.7 - f * 4.0) * r * 0.28 * f)
+		_tapered(ci, line, maxf(r * 0.16, 2.4), Color(col, 0.55))
+		_tapered(ci, line, maxf(r * 0.09, 1.6), col.lightened(0.2))
+		if sting:
+			ci.draw_circle(line[line.size() - 1], maxf(r * 0.07, 1.8), Color("ff6a4a"))
 
 static func _tail(ci: CanvasItem, r: float, col: Color, t: float, move_rank: int, owned: Dictionary, spd: float, grow: float = 1.0) -> void:
 	if move_rank <= 0:
