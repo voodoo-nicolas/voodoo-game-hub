@@ -348,7 +348,9 @@ static func _creature_voodoo(ci: CanvasItem, r: float, col: Color, shape: String
 const TAIL_LEN := [0.0, 0.7, 1.1, 1.5, 1.8, 2.1]
 
 ## The player's creature. `st`: move_rank, sight_rank, eye_open (0..1), owned {}, specials {},
-## ailments {}, speed (0..1 share of top speed), voodoo, dash (bool), lurch (0..1 after a jolt).
+## ailments {}, speed (0..1 share of top speed), voodoo, dash (bool), lurch (0..1 after a jolt),
+## col2 / col3: the two secondary colours (col2: tail, fins, spikes, tentacles, hairs; col3: spots,
+## stripes and small details). Without them both are shades of `col`.
 static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, heading: float, t: float, st: Dictionary) -> void:
 	if r < 1.5:
 		return
@@ -359,6 +361,8 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 	var spd: float = st.get("speed", 0.0)
 	var lurch: float = st.get("lurch", 0.0)
 	var voodoo: bool = st.get("voodoo", false)
+	var col2: Color = st.get("col2", col.lightened(0.15))
+	var col3: Color = st.get("col3", col.lightened(0.45))
 	ci.draw_set_transform(c, heading, Vector2.ONE)
 	var sides := 36 if r > 24.0 else 22
 	var pts := _blob(r, sides, t, 0.0)
@@ -371,7 +375,9 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 	if st.get("dash", false):
 		for j in 4:
 			ci.draw_circle(Vector2(-r * (1.2 + 0.5 * float(j)), 0), r * (0.7 - 0.12 * float(j)), Color(col, 0.2 - 0.04 * float(j)))
-	_tail(ci, r, col, t, move_rank, owned, spd, st.get("tail_grow", 1.0))
+	_tail(ci, r, col2, t, move_rank, owned, spd, st.get("tail_grow", 1.0))
+	if owned.has("fins"):
+		_fins(ci, r, col2, t, int(owned.get("fins", 1)))
 	if voodoo:
 		_player_voodoo(ci, r, col, pts, sight_rank, t)
 		_reset(ci)
@@ -383,19 +389,27 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 		var a := TAU * float(j) / float(hairs)
 		var d := Vector2.RIGHT.rotated(a)
 		var wav := sin(t * 6.0 + float(j) * 1.7) * 0.35
-		ci.draw_line(d * r * 0.98, d.rotated(wav) * r * (1.0 + hair_len), Color(col, 0.75), maxf(r * 0.03, 1.0), true)
+		ci.draw_line(d * r * 0.98, d.rotated(wav) * r * (1.0 + hair_len), Color(col2, 0.75), maxf(r * 0.03, 1.0), true)
 	if owned.has("spikes"):
 		for j in 10:
 			var a2 := TAU * (float(j) + 0.5) / 10.0
 			var d2 := Vector2.RIGHT.rotated(a2)
-			ci.draw_colored_polygon(PackedVector2Array([d2 * r * 0.96 + d2.orthogonal() * r * 0.07, d2 * r * 1.28, d2 * r * 0.96 - d2.orthogonal() * r * 0.07]), col.lightened(0.3))
+			ci.draw_colored_polygon(PackedVector2Array([d2 * r * 0.96 + d2.orthogonal() * r * 0.07, d2 * r * 1.28, d2 * r * 0.96 - d2.orthogonal() * r * 0.07]), col2.lightened(0.2))
 	if owned.has("tentacles"):
-		_tentacles(ci, r, col, t, owned.has("stinger"))
+		_tentacles(ci, r, col2, t, owned.has("stinger"))
 	ci.draw_circle(Vector2.ZERO, r * 1.9, Color(col, 0.05))
 	ci.draw_circle(Vector2.ZERO, r * 1.45, Color(col, 0.09))
 	ci.draw_colored_polygon(pts, col.darkened(0.7))
 	ci.draw_colored_polygon(_scaled(pts, 0.84), Color(col, 0.42))
 	ci.draw_colored_polygon(_scaled(pts, 0.5), Color(col.lightened(0.35), 0.22))
+	# markings in the second secondary colour: a stripe across the back and a few spots
+	var stripe := PackedVector2Array()
+	for k in 12:
+		var f := float(k) / 11.0
+		stripe.append(Vector2(lerpf(-r * 0.78, r * 0.25, f), -r * (0.62 - 0.1 * sin(f * PI)) + sin(f * 5.0 + t * 1.5) * r * 0.03))
+	ci.draw_polyline(stripe, Color(col3, 0.75), maxf(r * 0.07, 1.5), true)
+	for sp in [Vector2(-0.55, 0.42), Vector2(-0.2, 0.62), Vector2(0.2, 0.5), Vector2(-0.72, 0.05), Vector2(0.38, -0.36)]:
+		ci.draw_circle(sp * r, r * 0.075, Color(col3, 0.7))
 	# cell parts: nucleus, vacuoles, a bean-shaped mitochondrion
 	var nuc := Vector2(-r * 0.12, r * 0.04)
 	ci.draw_circle(nuc, r * 0.28, Color(col.darkened(0.45), 0.9))
@@ -403,13 +417,13 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 	ci.draw_circle(nuc + Vector2(r * 0.04, -r * 0.05), r * 0.08, Color(1, 1, 1, 0.45))
 	for j in 3:
 		var va := 1.1 + float(j) * 2.1 + t * 0.12
-		ci.draw_circle(Vector2.RIGHT.rotated(va) * r * 0.58, r * (0.07 + 0.015 * float(j)), Color(col.lightened(0.5), 0.5))
+		ci.draw_circle(Vector2.RIGHT.rotated(va) * r * 0.58, r * (0.07 + 0.015 * float(j)), Color(col3, 0.45))
 		ci.draw_arc(Vector2.RIGHT.rotated(va) * r * 0.58, r * (0.07 + 0.015 * float(j)), 0.0, TAU, 12, Color(col.lightened(0.6), 0.8), maxf(r * 0.02, 1.0), true)
 	var bean := PackedVector2Array()
 	for k in 10:
 		var ba := TAU * float(k) / 10.0
 		bean.append(Vector2(-r * 0.45, -r * 0.42) + Vector2(cos(ba) * r * 0.16, sin(ba) * r * 0.07).rotated(0.6))
-	ci.draw_colored_polygon(bean, Color(col.lightened(0.45), 0.6))
+	ci.draw_colored_polygon(bean, Color(col3, 0.6))
 	var cl := _closed(pts)
 	var rim := maxf(r * (0.16 if owned.has("membrane") else 0.1), 2.5)
 	ci.draw_polyline(cl, Color(col, 0.35), rim, true)
@@ -418,8 +432,17 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 		for j in 5:
 			var aa := PI * 0.5 + float(j) * 0.5 - 1.0
 			ci.draw_arc(Vector2.ZERO, r * 1.07, aa - 0.2, aa + 0.2, 8, Color(0.85, 0.9, 1.0, 0.9), maxf(r * 0.09, 2.0), true)
-	_eyes(ci, r, col, sight_rank, eye_open, owned)
+	_eyes(ci, r, col2, sight_rank, eye_open, owned)
 	_reset(ci)
+
+## Fins on both sides, a little behind the middle (bigger with the second point).
+static func _fins(ci: CanvasItem, r: float, col: Color, t: float, rank: int) -> void:
+	var k := 1.0 if rank <= 1 else 1.3
+	for sgn in [-1.0, 1.0]:
+		var w := sin(t * 5.0 + sgn) * r * 0.08
+		var fin := PackedVector2Array([Vector2(r * 0.15, sgn * r * 0.8), Vector2(-r * 0.55, sgn * (r * (1.0 + 0.35 * k) + w)), Vector2(-r * 0.75, sgn * r * 0.7)])
+		ci.draw_colored_polygon(fin, Color(col, 0.85))
+		ci.draw_polyline(_closed(fin), col.lightened(0.3), maxf(r * 0.03, 1.2), true)
 
 ## Four waving tentacles around the front of the body (stinging tips once the stinger is owned).
 static func _tentacles(ci: CanvasItem, r: float, col: Color, t: float, sting: bool) -> void:

@@ -6,7 +6,7 @@ const ID := "evolution"
 const TITLE := "Evolution"
 const GOAL := "Start as a blind one-cell blob and evolve: eat to grow, finish missions for new body parts and DNA, and survive the bigger creatures."
 const HOW := [
-	"Pick your colour and difficulty on the setup screen. The game plays sideways on a phone.",
+	"Pick your colours (one main colour and two secondary ones for the tail, fins, spikes, spots and stripes) and difficulty on the setup screen. The game plays sideways on a phone.",
 	"Steer with the stick on the left. On a PC use the arrow keys or WASD, Space for the jump boost, Tab for the creature screen.",
 	"The pond has no edges. At first your cell can only jerk sideways, and you can only see a small, blurry circle around you.",
 	"You must eat. You must not be eaten. Some food will speed up your evolution greatly; some may slow it down.",

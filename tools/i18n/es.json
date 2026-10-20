@@ -6926,5 +6926,9 @@
  "You froze in the cold water!": "¡Te congelaste en el agua fría!",
  "You got %s so often that you resist it now: %s %s, free.": "Sufriste %s tantas veces que ahora lo resistes: %s %s, gratis.",
  "Your body adapted!": "¡Tu cuerpo se adaptó!",
- "next rank after %d more": "siguiente rango tras %d más"
+ "next rank after %d more": "siguiente rango tras %d más",
+ "Secondary colour 1: tail, fins, spikes": "Color secundario 1: cola, aletas, púas",
+ "Secondary colour 2: spots, stripes, details": "Color secundario 2: manchas, rayas, detalles",
+ "Pick your colours (one main colour and two secondary ones for the tail, fins, spikes, spots and stripes) and difficulty on the setup screen. The game plays sideways on a phone.": "Elige tus colores (uno principal y dos secundarios para la cola, las aletas, las púas, las manchas y las rayas) y la dificultad en la pantalla de preparación. En el móvil se juega en horizontal.",
+ "Main colour": "Color principal"
 }

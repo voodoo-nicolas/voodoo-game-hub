@@ -79,11 +79,14 @@ var heading: float = 0.0
 var eye_open: float = 1.0
 var tail_grow: float = 1.0
 var banners: Array = []             # [{"text","t"}], shown one after another
-var prefs := {"color": 0, "diff": "normal"}
+## color = primary; color2 / color3 = the two secondary colours (indexes into Data.COLORS).
+var prefs := {"color": 0, "color2": 3, "color3": 2, "diff": "normal"}
 var diff := "normal"
 var color: Color = MINE
+var color2: Color = Data.COLORS[3][1]   # tail, fins, spikes, tentacles, hairs
+var color3: Color = Data.COLORS[2][1]   # spots, stripes, small details
 var _mission_sig := ""
-var _swatches: Array = []
+var _swatches := {}                     # pref key -> its row of swatch buttons
 var _preview: Control
 
 var field: Control
@@ -129,11 +132,17 @@ func _load_prefs() -> void:
 			var parsed = JSON.parse_string(f.get_as_text())
 			f.close()
 			if typeof(parsed) == TYPE_DICTIONARY:
-				prefs["color"] = clampi(int(parsed.get("color", 0)), 0, Data.COLORS.size() - 1)
+				for key in ["color", "color2", "color3"]:
+					prefs[key] = clampi(int(parsed.get(key, prefs[key])), 0, Data.COLORS.size() - 1)
 				var d := str(parsed.get("diff", "normal"))
 				prefs["diff"] = d if Data.DIFFICULTY.has(d) else "normal"
 	diff = prefs.diff
+	_apply_colors()
+
+func _apply_colors() -> void:
 	color = Data.COLORS[prefs.color][1]
+	color2 = Data.COLORS[prefs.color2][1]
+	color3 = Data.COLORS[prefs.color3][1]
 
 func _save_prefs() -> void:
 	var f := FileAccess.open(PREFS_PATH, FileAccess.WRITE)
@@ -326,44 +335,59 @@ func _build_ui() -> void:
 		add_child(info)
 	_update_hud()
 
-## The setup screen's own picker: the cell's primary colour, with a live preview.
+## The setup screen's own picker: the cell's primary colour and two secondary colours, with a live preview
+## (drawn with a tail, fins and spikes so the secondary colours show).
 func _add_options(body: VBoxContainer) -> void:
 	body.add_child(home.section("Your colour"))
 	_preview = Control.new()
 	_preview.custom_minimum_size = Vector2(0, 150)
 	_preview.draw.connect(_draw_preview)
 	body.add_child(_preview)
+	_swatches.clear()
+	_swatch_row(body, "color", "Main colour")
+	_swatch_row(body, "color2", "Secondary colour 1: tail, fins, spikes")
+	_swatch_row(body, "color3", "Secondary colour 2: spots, stripes, details")
+	_style_swatches()
+
+func _swatch_row(body: VBoxContainer, key: String, title: String) -> void:
+	if title != "":
+		var l := Label.new()
+		l.text = tr(title)
+		l.add_theme_font_size_override("font_size", 20)
+		body.add_child(l)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	body.add_child(row)
-	_swatches.clear()
+	var btns: Array = []
 	for i in Data.COLORS.size():
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(64, 64)
+		b.custom_minimum_size = Vector2(56, 56)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.focus_mode = Control.FOCUS_NONE
 		b.tooltip_text = tr(Data.COLORS[i][0])
-		b.pressed.connect(_pick_color.bind(i))
+		b.pressed.connect(_pick_color.bind(key, i))
 		row.add_child(b)
-		_swatches.append(b)
-	_style_swatches()
+		btns.append(b)
+	_swatches[key] = btns
 
 func _style_swatches() -> void:
-	for i in _swatches.size():
-		var sel: bool = i == int(prefs.color)
-		for st in ["normal", "hover", "pressed", "focus"]:
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = Data.COLORS[i][1]
-			sb.set_corner_radius_all(10)
-			sb.set_border_width_all(6 if sel else 2)
-			sb.border_color = Color.WHITE if sel else Color(1, 1, 1, 0.3)
-			_swatches[i].add_theme_stylebox_override(st, sb)
+	for key in _swatches:
+		var btns: Array = _swatches[key]
+		for i in btns.size():
+			var sel: bool = i == int(prefs[key])
+			for st in ["normal", "hover", "pressed", "focus"]:
+				var sb := StyleBoxFlat.new()
+				sb.bg_color = Data.COLORS[i][1]
+				sb.set_corner_radius_all(10)
+				sb.set_border_width_all(6 if sel else 2)
+				sb.border_color = Color.WHITE if sel else Color(1, 1, 1, 0.3)
+				btns[i].add_theme_stylebox_override(st, sb)
 	if _preview:
 		_preview.queue_redraw()
 
-func _pick_color(i: int) -> void:
-	prefs.color = i
-	color = Data.COLORS[i][1]
+func _pick_color(key: String, i: int) -> void:
+	prefs[key] = i
+	_apply_colors()
 	_save_prefs()
 	_style_swatches()
 
@@ -372,7 +396,7 @@ func _draw_preview() -> void:
 		return
 	var s := _preview.size
 	var r := minf(s.y * 0.36, 58.0)
-	Art.draw_player(_preview, s / 2.0 + Vector2(r * 0.7, 0), r, color, 0.0, 1.3, {"move_rank": 0, "sight_rank": 1, "owned": {}, "speed": 0.0, "voodoo": voodoo})
+	Art.draw_player(_preview, s / 2.0 + Vector2(r * 0.7, 0), r, color, 0.0, pulse, {"move_rank": 2, "sight_rank": 3, "owned": {"fins": 1, "spikes": 1}, "speed": 0.2, "voodoo": voodoo, "col2": color2, "col3": color3})
 
 # ---------- input ----------
 
@@ -657,6 +681,8 @@ func _open_info() -> void:
 		return
 	controls.release()
 	get_tree().paused = true                  # the world stands still while you look at your creature
+	screens.col2 = color2
+	screens.col3 = color3
 	screens.open_info(engine, color, voodoo)
 
 func _on_screens_closed() -> void:
@@ -867,7 +893,7 @@ func _player_state() -> Dictionary:
 		"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": eye_open, "tail_grow": tail_grow,
 		"owned": engine.owned, "specials": engine.specials, "ailments": engine.ailments,
 		"speed": clampf(engine.player.vel.length() / 300.0, 0.0, 1.0), "voodoo": voodoo,
-		"dash": engine.dash_t > 0.0, "lurch": lurch,
+		"dash": engine.dash_t > 0.0, "lurch": lurch, "col2": color2, "col3": color3,
 	}
 
 func _draw_field() -> void:
@@ -1149,7 +1175,7 @@ func _draw_home_logo(c: Control) -> void:
 	Art.draw_creature(c, o + Vector2(-2.7, 0.5) * k, 0.6 * k, Data.species_of("bacillus"), 0.4, pulse, 3.0, false)
 	Art.draw_halo(c, o + Vector2(2.5, -0.3) * k, 1.35 * k, "hunter", pulse)
 	Art.draw_creature(c, o + Vector2(2.5, -0.3) * k, 1.35 * k, Data.species_of("corona"), PI, pulse, 5.0, false)
-	Art.draw_player(c, o + Vector2(-0.3, 0.0) * k, 1.05 * k, color, 0.0, pulse, {"move_rank": 2, "sight_rank": 3, "owned": {}, "speed": 0.3, "voodoo": false})
+	Art.draw_player(c, o + Vector2(-0.3, 0.0) * k, 1.05 * k, color, 0.0, pulse, {"move_rank": 2, "sight_rank": 3, "owned": {}, "speed": 0.3, "voodoo": false, "col2": color2, "col3": color3})
 
 # ---------- pause / skin ----------
 

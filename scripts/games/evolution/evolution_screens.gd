@@ -16,6 +16,8 @@ signal sfx(sound: String)
 
 var engine
 var color := Color("29e6ff")
+var col2 := Color("ffd23f")     # the player's secondary colours (set by the game)
+var col3 := Color("ff4f9a")
 var voodoo := false
 var _t := 0.0
 var _portrait: Control
@@ -224,7 +226,7 @@ func _draw_portrait() -> void:
 	var st := {
 		"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0,
 		"owned": engine.owned, "specials": engine.specials, "ailments": engine.ailments,
-		"speed": 0.15, "voodoo": voodoo,
+		"speed": 0.15, "voodoo": voodoo, "col2": col2, "col3": col3,
 	}
 	Art.draw_player(_portrait, s / 2.0 + Vector2(r * 0.6, 0), r, color, 0.0, _t, st)
 
@@ -254,6 +256,8 @@ func _build_tree() -> void:
 	_view = TreeView.new()
 	_view.engine = engine
 	_view.color = color
+	_view.col2 = col2
+	_view.col3 = col3
 	_view.voodoo = voodoo
 	_view.show_names = _names
 	_view.size_flags_vertical = Control.SIZE_EXPAND_FILL

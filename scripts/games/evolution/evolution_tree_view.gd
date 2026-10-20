@@ -17,6 +17,8 @@ const NODE_R := 28.0
 
 var engine
 var color := Color("29e6ff")
+var col2 := Color("ffd23f")
+var col3 := Color("ff4f9a")
 var voodoo := false
 var show_names := false:
 	set(v):
@@ -188,7 +190,7 @@ func _draw() -> void:
 	# the creature
 	draw_circle(rp, 74.0, Color(color, 0.08))
 	draw_arc(rp, 64.0, 0.0, TAU, 40, Color(color, 0.6), 3.0, true)
-	var st := {"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0, "owned": engine.owned, "specials": engine.specials, "speed": 0.0, "voodoo": voodoo}
+	var st := {"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0, "owned": engine.owned, "specials": engine.specials, "speed": 0.0, "voodoo": voodoo, "col2": col2, "col3": col3}
 	Art.draw_player(self, rp + pan, 40.0, color, 0.0, _t, st)
 	draw_set_transform(pan, 0.0, Vector2.ONE)
 	# nodes
