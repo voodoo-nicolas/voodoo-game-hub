@@ -13,7 +13,7 @@ const Data = preload("res://scripts/games/evolution/evolution_data.gd")
 
 const TUNING := {
 	"start_mass": 10.0,
-	"radius_k": 7.0,            # radius = radius_k * sqrt(mass)
+	"radius_k": 6.0,            # radius = radius_k * sqrt(mass) (was 7: creatures drawn a bit smaller, 2026-10-22)
 	"eat_ratio": 1.15,          # eater needs mass >= victim mass * eat_ratio
 	"jaws_step": 0.05,          # each point of jaws lowers the ratio by this
 	"absorb": 0.10,             # share of the victim's mass the eater gains (small, so eating only plumps you a little)
@@ -25,6 +25,8 @@ const TUNING := {
 	"npc_min": 10,
 	"npc_max": 40,
 	"hunter_safe": 650.0,       # no hunter ever spawns closer to you than this (world units)
+	"hunter_gap": 10.0,         # seconds between one hunter spawning and the next (so they never pile up behind you)
+	"revive_grace": 5.0,        # endless mode: seconds nothing can hurt you after coming back
 	"hunter_weight": 3.0,       # x the difficulty share: how often a predator species is picked
 	"toxic_chance": 0.05,
 	"rare_chance": 0.012,
@@ -87,9 +89,9 @@ const TUNING := {
 	"appetite_mult": 0.5,
 	"photo_rate": 0.012,        # mass per second per unit of mass
 	"magnet_range": 190.0,
-	"cam_base": 1.0,
+	"cam_base": 0.88,           # was 1.0: the whole pond zoomed out a little (2026-10-22)
 	"cam_k": 0.045,
-	"cam_min": 0.25,
+	"cam_min": 0.22,
 	"respawn_per_step": 3,
 	"story_grow": 1.25,         # a size-reward mission grows you by this factor
 	"mission_linger": 3.0,
@@ -141,6 +143,9 @@ var ail_count := {}       # ailment id -> times you got it this run (resistances
 var too_cold: float = 0.0  # °C colder than you can stand (0 = fine)
 var too_deep: float = 0.0  # m deeper than you can stand (0 = fine)
 var death_cause := ""     # "eaten", "cold" or "deep"
+var deaths: int = 0       # endless mode: times you came back this run
+var grace: float = 0.0    # seconds left in which nothing can hurt you (after coming back)
+var _hunter_cd: float = 0.0
 var move_rank: int = 0    # 0 = jolting, 1.. = tail ranks
 var sight_rank: int = 1   # 1 = blind blob, 2 = first eye, 3.. = wider
 var power: float = 100.0   # the blue bar
@@ -300,6 +305,11 @@ func ability_radius(id: String) -> float:
 func power_frac() -> float:
 	return power / Data.POWER_MAX
 
+## How many creatures that can eat you may be around at once: one at the first predator size, one more per
+## size level after that, never above the difficulty's `hunter_max`. (Early on 5+ hunters was impossible to evade.)
+func threat_cap() -> int:
+	return clampi(level() - 2, 1, int(Data.DIFFICULTY[difficulty].get("hunter_max", 6)))
+
 func hunters_on() -> bool:
 	return sight_rank >= 2 and Data.DIFFICULTY[difficulty].hunters > 0.0
 
@@ -401,6 +411,9 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	too_cold = 0.0
 	too_deep = 0.0
 	death_cause = ""
+	deaths = 0
+	grace = 0.0
+	_hunter_cd = 0.0
 	move_rank = 0
 	sight_rank = 1
 	power = Data.POWER_MAX
@@ -519,7 +532,7 @@ func _pick_species() -> Dictionary:
 	for sp in Data.SPECIES:
 		if sp.has("trait") or sp.role == "toxic" or sp.role == "rare" or int(sp.tier) > tier_cap:
 			continue
-		if sp.role == "hunter" and (not hunters_on() or threats >= int(Data.DIFFICULTY[difficulty].get("hunter_max", 6))):
+		if sp.role == "hunter" and (not hunters_on() or threats >= threat_cap() or _hunter_cd > 0.0):
 			continue
 		var mid: float = (float(sp.mass[0]) + float(sp.mass[1])) * 0.5
 		var sl := size_level(mid)
@@ -570,6 +583,8 @@ func _spawn_npc(at: Vector2 = Vector2.INF) -> bool:
 	if n.is_empty():
 		return false
 	npcs.append(n)
+	if n.role == "hunter" and sight_rank >= 2:
+		_hunter_cd = t("hunter_gap")
 	return true
 
 # ---------- the step ----------
@@ -581,6 +596,8 @@ func step(delta: float, dir: Vector2) -> void:
 	time += delta
 	events.clear()
 	hit_t += delta
+	grace = maxf(grace - delta, 0.0)
+	_hunter_cd = maxf(_hunter_cd - delta, 0.0)
 	_tick_ailments(delta)
 	power = minf(power + t("power_regen") * delta, Data.POWER_MAX)
 	dash_t = maxf(dash_t - delta, 0.0)
@@ -660,7 +677,7 @@ func _environment(delta: float) -> void:
 		if deep_dmg > dmg:
 			cause = "deep"
 		dmg += deep_dmg
-	if dmg <= 0.0:
+	if dmg <= 0.0 or grace > 0.0:
 		return
 	var k: float = Data.DIFFICULTY[difficulty].get("env", 1.0)
 	player.hp -= minf(dmg, t("env_dmg_cap")) * k * delta
@@ -826,7 +843,7 @@ func _think(delta: float) -> void:
 			near.append([dh, n.id])
 	near.sort_custom(_by_first)
 	var allowed := {}
-	for i in mini(near.size(), int(Data.DIFFICULTY[difficulty].get("chasers", 3))):
+	for i in mini(near.size(), mini(int(Data.DIFFICULTY[difficulty].get("chasers", 3)), threat_cap())):
 		allowed[near[i][1]] = true
 	for n in npcs:
 		n.t -= delta
@@ -1002,7 +1019,7 @@ func _resolve(delta: float) -> void:
 			pr = radius_of(player.mass)
 			continue
 		if n.role == "hunter" and can_eat(n.mass, player.mass) and d < nr + pr * 0.5 and n.get("stun", 0.0) <= 0.0 and n.get("pause", 0.0) <= 0.0:
-			var dmg := bite * delta
+			var dmg := 0.0 if grace > 0.0 else bite * delta
 			if has("spikes"):
 				dmg *= pow(t("spikes_mult"), rank_of("spikes"))
 			if has("shell"):
@@ -1085,6 +1102,31 @@ func _recycle() -> void:
 		if n.pos.distance_squared_to(player.pos) < far2:
 			kn.append(n)
 	npcs = kn
+
+## Endless mode: after dying you come back at the start of your current size (never below your growth stage), full
+## health, out of the water that killed you, with everything you evolved: tail, eye, DNA, traits, missions.
+func revive() -> void:
+	var floor_mass: float = maxf(t("start_mass"), maxf(Data.LEVELS[level() - 1], STAGES[stage()][0]))
+	player.mass = minf(player.mass, floor_mass)
+	player.hp = max_hp()
+	player.vel = Vector2.ZERO
+	player.pos.y = minf(player.pos.y, t("start_depth"))
+	ailments = {}
+	ail_full = {}
+	shots = []
+	decoy.t = 0.0
+	too_cold = 0.0
+	too_deep = 0.0
+	hit_t = 99.0
+	deaths += 1
+	grace = t("revive_grace")
+	var keep: Array = []
+	for n in npcs:
+		if n.role != "hunter" or n.pos.distance_to(player.pos) > 1400.0:
+			keep.append(n)
+	npcs = keep
+	alive = true
+	death_cause = ""
 
 # ---------- poison, rare creatures ----------
 

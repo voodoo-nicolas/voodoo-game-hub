@@ -891,5 +891,43 @@ func _init() -> void:
 	print("greedy bot got its eye in %d/10 runs, grew in %d/10" % [eyes, grow])
 	check(eyes >= 6, "greedy bot finishes the tutorial")
 	check(grow >= 6, "greedy bot grows")
+	# Threats pile up slowly: never more creatures that can eat you than the cap for your size
+	var worst := 0
+	var cap_seen := 0
+	e.reset(901)
+	e.view_r = 400.0
+	e.vision_r = 400.0
+	e.sight_rank = 2
+	e.player.mass = 40.0
+	for i in 4000:
+		e.player.hp = e.max_hp()
+		e.step(1.0 / 60.0, Vector2.ZERO)
+		var thr_now := 0
+		for n in e.npcs:
+			if n.role == "hunter" and Ev.can_eat(n.mass, e.player.mass):
+				thr_now += 1
+		worst = maxi(worst, thr_now)
+		cap_seen = e.threat_cap()
+	print("most hunters at once at size %d: %d (cap %d)" % [e.level(), worst, cap_seen])
+	check(cap_seen == 1 and worst <= 1, "one hunter at the first predator size")
+	e.player.mass = 300.0
+	check(e.threat_cap() == mini(e.level() - 2, int(Data.DIFFICULTY.normal.hunter_max)), "the hunter cap grows one per size")
+	# Endless mode: dying brings you back at the start of your size, keeping what you evolved
+	e.reset(902)
+	e.sight_rank = 2
+	e.player.mass = 100.0
+	e.owned["jaws"] = 1
+	e.dna = 3
+	e.player.pos = Vector2(500.0, 4000.0)
+	e.player.hp = 0.0
+	e.alive = false
+	e.death_cause = "cold"
+	e.revive()
+	check(e.alive and e.death_cause == "", "revive: alive again")
+	check(is_equal_approx(e.player.mass, 62.0), "revive: back to the start of the size (level 4 starts at 62)")
+	check(is_equal_approx(e.player.hp, e.max_hp()), "revive: full health")
+	check(e.player.pos.y <= Ev.TUNING.start_depth, "revive: out of the deep water")
+	check(e.owned.get("jaws", 0) == 1 and e.dna == 3 and e.sight_rank == 2, "revive: keeps traits, DNA and the eye")
+	check(e.grace > 0.0 and e.deaths == 1, "revive: a moment of grace, counted")
 	print("FAILS: %d" % fails)
 	quit(1 if fails else 0)

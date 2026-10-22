@@ -12,7 +12,8 @@ extends Control
 
 signal ability_pressed(index: int)
 
-const STICK_R := 130.0
+const STICK_R := 97.5           # 25% smaller than the first version (130), 2026-10-22
+const KNOB_R := 37.5
 const DEADZONE := 0.12
 const BTN_R := 44.0
 
@@ -29,7 +30,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 func stick_center() -> Vector2:
-	return Vector2(190.0, size.y - 190.0)
+	return Vector2(145.0, size.y - 145.0)
 
 ## The four buttons in an arc around the right thumb: 0 in the corner, 1 up-left, 2 left, 3 above.
 func slot_center(i: int) -> Vector2:
@@ -97,8 +98,8 @@ func _draw() -> void:
 	draw_arc(c, STICK_R, 0.0, TAU, 48, Color(1, 1, 1, 0.45), 3.0, true)
 	draw_arc(c, STICK_R * 0.5, 0.0, TAU, 32, Color(1, 1, 1, 0.14), 2.0, true)
 	var held := _pointers.values().has("stick")
-	draw_circle(c + _stick_pos, 50.0, Color(accent, 0.5 if held else 0.25))
-	draw_arc(c + _stick_pos, 50.0, 0.0, TAU, 32, Color(1, 1, 1, 0.7), 3.0, true)
+	draw_circle(c + _stick_pos, KNOB_R, Color(accent, 0.5 if held else 0.25))
+	draw_arc(c + _stick_pos, KNOB_R, 0.0, TAU, 32, Color(1, 1, 1, 0.7), 3.0, true)
 	for i in slots.size():
 		if str(slots[i]) == "":
 			continue

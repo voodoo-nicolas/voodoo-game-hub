@@ -36,6 +36,7 @@ uniform float radius = 200.0;
 uniform float soft = 0.4;
 uniform float darkness = 0.97;
 uniform float blur = 2.0;
+uniform float radial = 0.0;   // radial (zoom) blur: streaks burst out from the centre, stronger toward the edge of sight
 void fragment() {
 	vec2 p = UV * rect_size;
 	float d = length(p - center);
@@ -43,6 +44,14 @@ void fragment() {
 	float far = smoothstep(radius * 0.15, radius, d);
 	float r = blur * far;
 	vec3 col = textureLod(screen_tex, SCREEN_UV, 0.0).rgb;
+	if (radial > 0.001 && far > 0.0) {
+		vec2 to_c = (center - p) / rect_size;
+		vec3 acc_r = col;
+		for (int i = 1; i <= 10; i++) {
+			acc_r += textureLod(screen_tex, SCREEN_UV + to_c * (float(i) / 10.0 * radial * far), 0.0).rgb;
+		}
+		col = acc_r / 11.0;
+	}
 	if (r > 0.5) {
 		vec2 px = SCREEN_PIXEL_SIZE * r;
 		vec3 acc = col;
@@ -80,14 +89,16 @@ var eye_open: float = 1.0
 var tail_grow: float = 1.0
 var banners: Array = []             # [{"text","t"}], shown one after another
 ## color = primary; color2 / color3 = the two secondary colours (indexes into Data.COLORS).
-var prefs := {"color": 0, "color2": 3, "color3": 2, "diff": "normal"}
+var prefs := {"color": 0, "color2": 3, "color3": 2, "diff": "normal", "endless": false, "picked": false}
 var diff := "normal"
+var endless := false                    # dying sends you back to the start of your size instead of ending the run
 var color: Color = MINE
 var color2: Color = Data.COLORS[3][1]   # tail, fins, spikes, tentacles, hairs
 var color3: Color = Data.COLORS[2][1]   # spots, stripes, small details
 var _mission_sig := ""
 var _swatches := {}                     # pref key -> its row of swatch buttons
 var _preview: Control
+var _creature_ui: Control               # the "Choose your creature" screen
 
 var field: Control
 var overlay: ColorRect
@@ -136,6 +147,8 @@ func _load_prefs() -> void:
 					prefs[key] = clampi(int(parsed.get(key, prefs[key])), 0, Data.COLORS.size() - 1)
 				var d := str(parsed.get("diff", "normal"))
 				prefs["diff"] = d if Data.DIFFICULTY.has(d) else "normal"
+				prefs["endless"] = bool(parsed.get("endless", false))
+				prefs["picked"] = bool(parsed.get("picked", false))
 	diff = prefs.diff
 	_apply_colors()
 
@@ -323,6 +336,7 @@ func _build_ui() -> void:
 		"art": LANDING_ART,
 		"art_title": [0.22, 0.36],  # "Evolution" is painted in the art
 		"extra": _add_options,
+		"more": [["🎨 Your creature", HomeKit.BUTTON, _open_creature.bind(false)]],
 		"modes": [
 			{"text": "Easy", "key": "easy", "row": "diff", "action": _start_run.bind("easy")},
 			{"text": "Normal", "key": "normal", "row": "diff", "action": _start_run.bind("normal")},
@@ -339,6 +353,27 @@ func _build_ui() -> void:
 ## The setup screen's own picker: the cell's primary colour and two secondary colours, with a live preview
 ## (drawn with a tail, fins and spikes so the secondary colours show).
 func _add_options(body: VBoxContainer) -> void:
+	_add_colour_pickers(body)
+	body.add_child(home.section("When you die"))
+	body.add_child(home.choice_row(["Game over", "Endless"], 1 if bool(prefs.endless) else 0, _pick_endless))
+	var note := Label.new()
+	note.text = tr("Game over: a new run starts from zero.") + "\n" + tr("Endless: you come back at the start of your size, keeping everything you evolved.")
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size = Vector2(80, 0)
+	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	note.add_theme_font_size_override("font_size", 20)
+	note.add_theme_color_override("font_color", HomeKit.DIM)
+	body.add_child(note)
+	if not bool(prefs.picked):        # the player has now seen the colour pickers
+		prefs["picked"] = true
+		_save_prefs()
+
+func _pick_endless(i: int) -> void:
+	prefs["endless"] = i == 1
+	_save_prefs()
+
+## The cell's colours with a live preview (the setup screen and "Choose your creature" both use it).
+func _add_colour_pickers(body: VBoxContainer) -> void:
 	body.add_child(home.section("Your colour"))
 	_preview = Control.new()
 	_preview.custom_minimum_size = Vector2(0, 150)
@@ -444,8 +479,69 @@ func _on_ability(i: int) -> void:
 func _start_run(d: String) -> void:
 	diff = d
 	prefs["diff"] = d
+	endless = bool(prefs.endless)
 	_save_prefs()
+	if not bool(prefs.picked):
+		_open_creature(true)      # Quick Play skips the setup screen: the first run still asks for the colours
+		return
 	_new_game()
+
+## "Choose your creature": the three colours with a live preview. Opens by itself before the first run
+## (go = true: ▶ Start begins the run) and from the Landing's "🎨 Your creature" (✓ Done).
+func _open_creature(go: bool) -> void:
+	if _creature_ui != null and is_instance_valid(_creature_ui):
+		return
+	var ui := Control.new()
+	ui.process_mode = Node.PROCESS_MODE_ALWAYS
+	ui.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(ui)
+	ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_creature_ui = ui
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.03, 0.07, 0.97)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(dim)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var margin := MarginContainer.new()
+	for side in ["left", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 24)
+	margin.add_theme_constant_override("margin_top", 32)
+	ui.add_child(margin)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 12)
+	margin.add_child(page)
+	var title := Label.new()
+	title.text = tr("Choose your creature")
+	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.5))
+	page.add_child(title)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	page.add_child(scroll)
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 10)
+	scroll.add_child(body)
+	_add_colour_pickers(body)
+	var ok := Button.new()
+	ok.text = ("▶  " + tr("Start")) if go else ("✓  " + tr("Done"))
+	ok.custom_minimum_size = Vector2(0, 72)
+	ok.focus_mode = Control.FOCUS_NONE
+	ok.pressed.connect(_close_creature.bind(go))
+	page.add_child(ok)
+
+func _close_creature(go: bool) -> void:
+	prefs["picked"] = true
+	_save_prefs()
+	_swatches.clear()
+	_preview = null
+	if _creature_ui != null and is_instance_valid(_creature_ui):
+		_creature_ui.queue_free()
+	_creature_ui = null
+	if go:
+		_new_game()
 
 ## Sends this run's progress to the stats (lifetime totals behind the badges).
 func _flush_stats() -> void:
@@ -508,7 +604,10 @@ func _process(delta: float) -> void:
 	_animate(delta)
 	_update_hud()
 	if not engine.alive:
-		_game_over()
+		if endless:
+			_revive()
+		else:
+			_game_over()
 	field.queue_redraw()
 	fx.queue_redraw()
 
@@ -551,15 +650,30 @@ func _check_danger() -> void:
 			hurt = maxf(hurt, 0.6)
 			return
 
+## Why you died, with the numbers (the depth and the water temperature are what killed you, not only "cold").
+func _death_text() -> String:
+	var how := tr("You were eaten!")
+	if engine.death_cause == "cold":
+		how = tr("You froze in the cold water!") + "\n" + tr("%d m deep, water at %d °C (your limit: %d °C)") % [int(engine.depth_m()), int(round(engine.temp())), int(ceil(engine.min_temp()))]
+	elif engine.death_cause == "deep":
+		how = tr("The pressure crushed you!") + "\n" + tr("%d m deep (your limit: %d m)") % [int(engine.depth_m()), int(engine.max_depth_m())]
+	return how
+
+## Endless mode: you died, you come back at the start of your size with everything you evolved.
+func _revive() -> void:
+	controls.release()
+	_sfx("explode")
+	var how := _death_text()
+	engine.revive()
+	hurt = 0.0
+	_flush_stats()
+	_show_popup(tr("You died"), how + "\n" + tr("Back to size %d. Everything you evolved is still yours.") % engine.level())
+
 func _game_over() -> void:
 	started = false
 	controls.release()
 	_sfx("explode")
-	var how := tr("You were eaten!")
-	if engine.death_cause == "cold":
-		how = tr("You froze in the cold water!")
-	elif engine.death_cause == "deep":
-		how = tr("The pressure crushed you!")
+	var how := _death_text()
 	var msg := how + "\n" + tr("Score: %d") % engine.score() + "   ·   " + tr("Size %d") % EvEngine.size_level(engine.peak_mass)
 	if info and not result_sent:
 		result_sent = true
@@ -610,7 +724,9 @@ func _update_env() -> void:
 		temp_txt = "⚠ " + temp_txt
 	env_label.text = depth_txt + "\n" + temp_txt
 	var warn: bool = e.too_deep > 0.0 or e.too_cold > 0.0
-	env_label.add_theme_color_override("font_color", Color("ff8a8a") if warn else Color(0.8, 0.92, 1.0, 0.9))
+	# Amber while you are close to a limit: the cold comes from depth AND from cold currents sideways.
+	var near: bool = e.temp() < e.min_temp() + 2.5 or e.depth_m() > e.max_depth_m() - 25.0
+	env_label.add_theme_color_override("font_color", Color("ff8a8a") if warn else (Color("ffd479") if near else Color(0.8, 0.92, 1.0, 0.9)))
 
 ## One row per ailment: its name, the seconds left and a bar that empties as it wears off.
 func _update_ailments() -> void:
@@ -843,7 +959,7 @@ func _handle_events() -> void:
 			"immune":
 				_banner(tr("Immune to %s") % tr(Data.AILMENTS[ev.id].name))
 			"env":
-				_banner(tr("Too cold! Find warmer water, or evolve Antifreeze.") if ev.what == "cold" else tr("Too deep! The pressure hurts: swim up, or evolve Pressure cells."))
+				_banner(tr("Too cold! Swim toward warmer water, or evolve Antifreeze.") if ev.what == "cold" else tr("Too deep! The pressure hurts: swim up, or evolve Pressure cells."))
 				hurt = 1.0
 				_snd("bite", 0.6)
 			"rare":
@@ -1017,7 +1133,8 @@ func _update_overlay(s: Vector2) -> void:
 	var blur: float = Data.BLUR[engine.clarity()]
 	if engine.sight_rank <= 1:
 		blur += 0.9
-	mat.set_shader_parameter("blur", blur * 5.0)      # a circle of this many pixels, wider toward the edge of your sight
+	mat.set_shader_parameter("blur", blur * 2.5)      # a circle of this many pixels, wider toward the edge of your sight
+	mat.set_shader_parameter("radial", blur * 0.035)  # ... and streaks bursting out from you (radial blur)
 
 static func _by_mass(x, y) -> bool:
 	return x.mass < y.mass
@@ -1147,6 +1264,10 @@ func _draw_fx() -> void:
 	var s := fx.size
 	if engine != null and started:
 		_draw_senses()
+	if engine != null and started and engine.has_bars():
+		var chill := clampf((engine.min_temp() + 3.0 - engine.temp()) / 6.0, 0.0, 1.0)   # icy tint as the water nears your cold limit
+		if chill > 0.0:
+			fx.draw_rect(Rect2(Vector2.ZERO, s), Color(0.55, 0.85, 1.0, 0.16 * chill))
 	if hurt > 0.0:
 		var h := Color("ff4f9a")
 		h.a = 0.28 * minf(hurt, 1.0)

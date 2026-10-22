@@ -99,7 +99,7 @@ func _label(text: String, size: int, col: Color = Color.WHITE) -> Label:
 func _wrapped(text: String, size: int, col: Color) -> Label:
 	var l := _label(text, size, col)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(300, 0)
+	l.custom_minimum_size = Vector2(80, 0)       # small: it takes the column's width, so a narrow window never cuts it off
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
 
@@ -116,18 +116,22 @@ func _button(text: String, action: Callable, min_w: float = 190.0) -> Button:
 func _build_info() -> void:
 	var title := _label(tr("Your creature"), 38, color.lerp(Color.WHITE, 0.5))
 	_page.add_child(title)
-	var row := HBoxContainer.new()
+	# Sideways: the creature beside its stats. A narrow window (portrait PC window, small phone): stacked.
+	var view := get_viewport_rect().size
+	var stacked: bool = view.x < view.y * 1.15
+	var row: BoxContainer = VBoxContainer.new() if stacked else HBoxContainer.new()
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 20)
+	row.add_theme_constant_override("separation", 12 if stacked else 20)
 	_page.add_child(row)
 	_portrait = Control.new()
-	_portrait.custom_minimum_size = Vector2(300, 260)
+	_portrait.custom_minimum_size = Vector2(120, 170 if stacked else 260)
 	_portrait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_portrait.size_flags_stretch_ratio = 1.0
 	_portrait.draw.connect(_draw_portrait)
 	row.add_child(_portrait)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_stretch_ratio = 1.1
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	row.add_child(scroll)
@@ -136,9 +140,9 @@ func _build_info() -> void:
 	col.add_theme_constant_override("separation", 8)
 	scroll.add_child(col)
 	var e = engine
-	col.add_child(_label(tr(EvEngine.STAGES[e.stage()][1]) + "  ·  " + tr("DNA points: %d") % e.dna, 26, Color("ffd479")))
+	col.add_child(_wrapped(tr(EvEngine.STAGES[e.stage()][1]) + "  ·  " + tr("DNA points: %d") % e.dna, 26, Color("ffd479")))
 	_stat(col, tr("Size"), str(e.level()), float(e.level()) / float(Data.LEVELS.size()))
-	_stat(col, tr("Speed"), str(int(e.top_speed() / 10.0)), clampf(e.top_speed() / (EvEngine.TUNING.player_speed * 1.15), 0.0, 1.0))
+	_stat(col, tr("Swim speed"), str(int(e.top_speed() / 10.0)), clampf(e.top_speed() / (EvEngine.TUNING.player_speed * 1.15), 0.0, 1.0))
 	_stat(col, tr("Strength"), str(e.strength()), float(e.strength()) / 3.0)
 	_stat(col, tr("Health"), "%d / %d" % [int(ceil(e.player.hp)), int(e.max_hp())], e.player.hp / e.max_hp())
 	for id in e.ailments.keys():
@@ -177,6 +181,7 @@ func _abilities(parent: Control) -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(0, 56)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART      # long Spanish lines wrap instead of running off the side
 		if engine.slot_visible(i):
 			var id: String = engine.slot_ids[i]
 			b.text = names[i] + ":  " + (tr(Data.ABILITIES[id].name) if id != "" else "-")

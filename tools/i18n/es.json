@@ -6930,5 +6930,16 @@
  "Secondary colour 1: tail, fins, spikes": "Color secundario 1: cola, aletas, púas",
  "Secondary colour 2: spots, stripes, details": "Color secundario 2: manchas, rayas, detalles",
  "Pick your colours (one main colour and two secondary ones for the tail, fins, spikes, spots and stripes) and difficulty on the setup screen. The game plays sideways on a phone.": "Elige tus colores (uno principal y dos secundarios para la cola, las aletas, las púas, las manchas y las rayas) y la dificultad en la pantalla de preparación. En el móvil se juega en horizontal.",
- "Main colour": "Color principal"
+ "Main colour": "Color principal",
+ "Swim speed": "Velocidad",
+ "When you die": "Cuando mueras",
+ "Game over: a new run starts from zero.": "Fin del juego: una nueva partida empieza de cero.",
+ "Endless: you come back at the start of your size, keeping everything you evolved.": "Sin fin: vuelves al inicio de tu tamaño, conservando todo lo que evolucionaste.",
+ "You died": "Moriste",
+ "Back to size %d. Everything you evolved is still yours.": "De vuelta al tamaño %d. Todo lo que evolucionaste sigue siendo tuyo.",
+ "%d m deep, water at %d °C (your limit: %d °C)": "A %d m de profundidad, agua a %d °C (tu límite: %d °C)",
+ "%d m deep (your limit: %d m)": "A %d m de profundidad (tu límite: %d m)",
+ "Too cold! Swim toward warmer water, or evolve Antifreeze.": "¡Demasiado frío! Nada hacia aguas más cálidas o evoluciona Anticongelante.",
+ "Choose your creature": "Elige tu criatura",
+ "🎨 Your creature": "🎨 Tu criatura"
 }
