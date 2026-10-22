@@ -665,7 +665,8 @@ func _add_art(parent: Control, tex: Texture2D) -> void:
 ## cfg "art_title" = [top, bottom] of the title painted in the Landing art, as
 ## fractions of the picture's height. While that band is on screen the kit's
 ## title hides and the gap under it puts the subtitle just below the painted
-## title; when the crop cuts it off (sideways, compact) the kit's title shows.
+## title (and the drawn logo, if any); when the crop cuts it off (sideways,
+## compact) the kit's title and logo show.
 ## Runs after every layout of the Landing column; the gap's top does not
 ## depend on its own height, so it settles in one pass.
 func _fit_art_title(home: Control, tex: Texture2D) -> void:
@@ -679,6 +680,8 @@ func _fit_art_title(home: Control, tex: Texture2D) -> void:
 	var painted: bool = not _compact() and top_y >= 0.0 and bottom_y <= home.size.y
 	if _title_label.visible == painted:
 		_title_label.visible = not painted
+	if _logo and _logo.visible == painted:  # a drawn logo would sit on top of the painted title
+		_logo.visible = not painted
 	var h := 0.0
 	if painted and _home_margin != null:
 		# Content coordinates (scroll at the top), where the art is drawn.
