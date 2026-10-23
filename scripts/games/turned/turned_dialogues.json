@@ -228,5 +228,29 @@
         ]
       }
     }
+  },
+  "follower_grab": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "you",
+        "text": "fol_why",
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "",
+        "text": "fol_stare",
+        "next": "n3"
+      },
+      "n3": {
+        "speaker": "witness",
+        "text": "fol_really",
+        "effects": [
+          "flag:witness_met",
+          "journal:witness",
+          "mission:find_out"
+        ]
+      }
+    }
   }
 }

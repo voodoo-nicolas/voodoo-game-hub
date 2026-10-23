@@ -43,6 +43,15 @@ func setup(d: Dictionary) -> void:
 			_path.append(Vector2(float(pt[0]), float(pt[1])))
 		_target = 1
 
+## The world moves this figure itself (the man who follows you): position, facing, walking or not.
+func drive(p: Vector2, f: Vector2, walking: bool, delta: float) -> void:
+	position = p
+	if f.length() > 0.01:
+		face = f.normalized()
+	_moving = walking
+	_phase += delta
+	queue_redraw()
+
 func is_walker() -> bool:
 	return _walker
 

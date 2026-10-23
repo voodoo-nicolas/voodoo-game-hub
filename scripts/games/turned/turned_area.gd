@@ -355,7 +355,9 @@ func _build_street() -> void:
 	indoor = false
 	bounds = Rect2(0, -300, 1920, 700)
 	solids = [
-		Rect2(0, -300, 1740, 450),            # the north row of buildings, west of the alley
+		Rect2(0, -300, 696, 450),             # the north row of buildings, west of the side lane
+		Rect2(744, -300, 996, 450),           # ... between the side lane and the alley
+		Rect2(696, -320, 48, 20),             # the side lane's dead end
 		Rect2(1830, -300, 90, 450),           # ... and east of it
 		Rect2(1740, -320, 90, 20),            # the alley's dead end
 		Rect2(0, 388, 1920, 10),              # iron fence along the south gardens
@@ -396,6 +398,7 @@ func _build_street() -> void:
 		{"circle": Vector2(60, 353), "r": 46.0, "style": "tree"},
 		{"circle": Vector2(1870, 351), "r": 44.0, "style": "tree"},
 		{"rect": Rect2(1740, -300, 90, 440), "style": "alley"},
+		{"rect": Rect2(696, -300, 48, 440), "style": "alley"},
 	]
 	deco = [
 		{"t": "floor", "rect": Rect2(0, 215, 1920, 115), "color": Color("4b4f5c"), "cobble": true},
@@ -403,10 +406,11 @@ func _build_street() -> void:
 		{"t": "floor", "rect": Rect2(0, 330, 1920, 60), "color": Color("535a68"), "slab": true},
 		{"t": "floor", "rect": Rect2(0, 388, 1920, 60), "color": Color("27332f"), "grass": true},
 		{"t": "floor", "rect": Rect2(1740, -300, 90, 450), "color": Color("3a3d49"), "cobble": true},
+		{"t": "floor", "rect": Rect2(696, -300, 48, 450), "color": Color("363944"), "cobble": true},   # the side lane
 		# the north row: each house has its own brick and slate; roof above, a wall band below
 		{"t": "building", "rect": Rect2(0, -300, 430, 450), "wall": Color("6a4a4c"), "roof": Color("303648")},
-		{"t": "building", "rect": Rect2(430, -300, 280, 450), "wall": Color("5d6068"), "roof": Color("3a3640")},
-		{"t": "building", "rect": Rect2(710, -300, 470, 450), "wall": Color("67524a"), "roof": Color("2c3444")},
+		{"t": "building", "rect": Rect2(430, -300, 266, 450), "wall": Color("5d6068"), "roof": Color("3a3640")},
+		{"t": "building", "rect": Rect2(744, -300, 436, 450), "wall": Color("67524a"), "roof": Color("2c3444")},
 		{"t": "building", "rect": Rect2(1180, -300, 180, 450), "wall": Color("4c6460"), "roof": Color("343a48")},
 		{"t": "building", "rect": Rect2(1360, -300, 380, 450), "wall": Color("6a5a52"), "roof": Color("2e3242")},
 		{"t": "building", "rect": Rect2(1830, -300, 90, 450), "wall": Color("5a4a52"), "roof": Color("2c3040")},
@@ -414,7 +418,7 @@ func _build_street() -> void:
 		{"t": "house_door", "rect": Rect2(214, 112, 36, 38)},
 		{"t": "window_row", "rect": Rect2(284, 86, 140, 34), "lit": false},
 		{"t": "shop_front", "rect": Rect2(450, 80, 240, 70), "name": "bakery"},
-		{"t": "window_row", "rect": Rect2(734, 86, 170, 34), "lit": false},
+		{"t": "window_row", "rect": Rect2(760, 86, 150, 34), "lit": false},
 		{"t": "shop_front", "rect": Rect2(930, 80, 200, 70), "name": "pub"},
 		{"t": "shop_front", "rect": Rect2(1180, 80, 160, 70), "name": "tailor"},
 		{"t": "window_row", "rect": Rect2(1384, 86, 330, 34), "lit": false},
@@ -430,6 +434,7 @@ func _build_street() -> void:
 	]
 	triggers = [
 		{"id": "alley", "rect": Rect2(1744, -300, 82, 420)},
+		{"id": "lane", "rect": Rect2(696, -300, 48, 430)},
 	]
 	spawns = {
 		"from_house": Vector2(232, 184),

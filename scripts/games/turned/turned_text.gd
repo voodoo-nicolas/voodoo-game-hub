@@ -35,6 +35,11 @@ const INNER := {
 	"cellar_locked": "The cellar door. An old iron lock, and no key anywhere I've looked.",
 	"door_note": "That coat is hiding something. I should look through it before I go out.",
 	"bar_locked": "The door is bolted from inside. Nobody is coming to open it.",
+	"fol_door": "The pub door opens a crack. A man steps out, sees me, and runs.",
+	"fol_steps": "Footsteps behind me. When I slow down, they slow down.",
+	"fol_stop": "I stop. They stop. Someone is following me.",
+	"fol_lane": "That side lane. If I wait round the corner, he will have to come to me.",
+	"door_followed": "Not with someone behind me. I need to know who it is first.",
 }
 
 ## What a piece of furniture says when you Examine it (id of the interact -> line). Placeholders written for
@@ -89,6 +94,7 @@ const JOURNAL := {
 	"alley": "The alley is cool and quiet. Something in me woke up there.",
 	"pockets": "My pockets are empty. No keys, no coins. My own coat is gone.",
 	"cellar": "A locked cellar door in the hall, with an old iron lock. I have no key.",
+	"witness": "A man from the bar followed me. I caught him round a corner. He stared at my neck and at the coat, and said: \"...It's really you.\" He knows something.",
 	"matches": "A box of matches from the coat's right pocket, with a cigar company's logo on the lid. They are not mine.",
 	"note": "A note sewn into the coat's inside pocket: \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
 	"bar": "The Crooked Lantern: the whole room was afraid of me, not angry. The keeper threw me out and bolted the door.",
@@ -99,6 +105,7 @@ const MISSIONS := {
 	"find_out": "Find out what happened",
 	"find_coat": "Find your coat",
 	"go_bar": "Go to The Crooked Lantern",
+	"follower": "Find out who is following you",
 }
 
 ## What the A button says (translated by the HUD when drawn).
@@ -115,6 +122,7 @@ const VERBS := {
 	"up": "Go up",
 	"down": "Go down",
 	"ok": "OK",
+	"grab": "Grab him",
 	"continue": "Continue",
 	"choose": "Choose",
 }
@@ -124,6 +132,7 @@ const VERBS := {
 const NPC_LINES := {
 	"watcher": {"all": "You should not be out in that sun."},
 	"patron": {"all": "Please. Just go."},
+	"witness": {"all": "...It's really you."},
 	"tavernkeep": {"all": "Go home."},
 	"vendor": {
 		"exposed": "Rough night? You look like death warmed over. Bread's fresh, if you've an appetite.",
@@ -151,6 +160,7 @@ const NPC_LINES := {
 const SPEAKERS := {
 	"watcher": "Man in the grey coat",
 	"tavernkeep": "Tavernkeep",
+	"witness": "Man from the bar",
 	"patron": "Patron",
 	"you": "You",
 	"vendor": "Baker",
@@ -234,4 +244,8 @@ const DIALOGUE := {
 	"bar_plead": "Please. Anything. I only need to know...",
 	"bar_out": "Out. Now.",
 	"bar_bolt": "The door slams. A lock turns, then a bolt slides across.",
+	# the follower (scene 3)
+	"fol_why": "Why are you following me?!",
+	"fol_stare": "He does not answer. He stares at my neck, then at the coat.",
+	"fol_really": "...It's really you.",
 }

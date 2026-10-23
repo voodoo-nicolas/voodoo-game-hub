@@ -49,6 +49,7 @@ func _run() -> void:
 	_test_dialogue_runner()
 	await _test_dialogue_world()
 	await _test_bar()
+	await _test_follower()
 	Save.clear()
 	if backup != "":
 		var f := FileAccess.open(Save.PATH, FileAccess.WRITE)
@@ -638,6 +639,112 @@ func _test_bar() -> void:
 	_new_world()
 	await process_frame
 	check(world.resume() and world.area.id == "bar" and world.mode == "dialogue", "Resume inside the bar starts the scene")
+
+# ---------------------------------------------------------------- the follower (scene 3)
+
+func _street_world_after_bar() -> void:
+	_new_world()
+	await process_frame
+	world.begin_new()
+	_step(1.0)
+	for f in ["control", "mirror", "pockets", "bar_scene", "bar_thrown"]:
+		world.engine.set_flag(f)
+	world.engine.dpad = true
+	world.engine.show_bars = true
+	world.engine.add_item("note")
+	world.mode = "play"
+	world._pro = "done"
+	world.hud.fade = 0.0
+	world._load_area("street")
+	world.clock.hour = 21.0
+	world.player.position = world.area.spawns["from_bar"]
+
+func _test_follower() -> void:
+	var st: Area = Area.make("street") as Area
+	check(st.in_shade(Vector2(720, 60)) and st.trigger_at(Vector2(720, 60)) == "lane" and st.trigger_at(Vector2(300, 260)) == "", "the side lane is shade and a trigger")
+	check(st.is_free(Vector2(720, 100), 9.0) and not st.is_free(Vector2(680, 100), 9.0) and not st.is_free(Vector2(760, 100), 9.0), "the lane is 48 px wide between two walls")
+	check(_reachable(st, st.spawns["from_house"], Vector2(720, 60)), "the lane is reachable from the porch")
+	check(Text.VERBS.has("grab") and Text.SPEAKERS.has("witness") and Text.MISSIONS.has("follower"), "verb, speaker and mission are written")
+	# the house door will not open with someone behind you
+	await _street_world_after_bar()
+	world.engine.set_flag("followed")
+	world.player.position = Vector2(232, 170)
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "house_door", "A offers the house door")
+	world.press_a()
+	_step(0.2)
+	check(world.mode == "play" and hud.caption_text() == Text.INNER["door_followed"], "no going home with someone behind you")
+	# the man steps out of the bar
+	await _street_world_after_bar()
+	world._on_area_ready()
+	_step(1.0)
+	check(world._follower == null and not world.engine.has_flag("followed"), "he does not come out at once")
+	_step(2.0)
+	check(world._follower != null and world.engine.has_flag("followed") and world._fol_state == "exit", "after a moment a man steps out of the pub")
+	check(hud.caption_text() == Text.INNER["fol_door"], "'... sees me, and runs'")
+	_step(3.0)
+	check(world._fol_state == "wait_far" and world._follower.position.distance_to(Vector2(1215, 172)) < 6.0, "he ran off along the pavement and watches you")
+	# he keeps away in the open
+	world.player.position = Vector2(1180, 190)
+	_step(0.3)
+	check(world._fol_state == "flee", "walk up to him and he runs")
+	_step(2.5)
+	check(world.player.position.distance_to(world._follower.position) > 110.0, "he keeps his distance in the open")
+	# walking home: he tails you along your own trail
+	world.player.position = Vector2(1069, 250)
+	_step(0.5)
+	check(_walk_to(Vector2(800, 250), 40.0), "walked west along the road")
+	_step(0.5)
+	check(world._fol_state == "tail", "he follows once you are far enough away")
+	check(_walk_to(Vector2(770, 250), 10.0), "walked on")
+	_step(3.0)
+	var behind: float = world.player.position.distance_to(world._follower.position)
+	check(behind > 180.0 and behind < 320.0, "he stays about 8 m behind (%.0f px; state %s, he at %s, you at %s)" % [behind, world._fol_state, str(world._follower.position), str(world.player.position)])
+	check(world._fol_steps >= 6, "his footsteps have played (%d)" % world._fol_steps)
+	# I stop, he stops
+	_step(1.5)
+	var held: Vector2 = world._follower.position
+	var steps_now: int = world._fol_steps
+	_step(3.0)
+	check(world._follower.position.distance_to(held) < 1.0 and world._fol_steps == steps_now, "when you stop, he stops and his footsteps stop")
+	check(world.engine.has_flag("fol_h1") and world.engine.has_flag("fol_h2") and world.engine.mission == "follower", "the thoughts came: 'when I slow down', 'I stop, they stop'; the mission is to find out who")
+	# the corner
+	check(_walk_to(Vector2(735, 250), 10.0) and _walk_to(Vector2(735, 175), 20.0), "walked to the lane mouth")
+	check(not world._fol_state == "mouth", "he is not at the corner yet")
+	check(_walk_to(Vector2(722, 118), 10.0), "stepped round the corner into the lane")
+	_step(12.0)
+	check(world._fol_state == "mouth" and world._follower.position.distance_to(Vector2(720, 172)) < 12.0, "he came to the corner to look for you")
+	_step(0.2)
+	check(str(world._cand.get("id", "")) == "grab_follower" and world.hud.a_label == "grab", "A offers to grab him")
+	world.press_a()
+	check(world.mode == "dialogue" and world.dlg.view()["speaker"] == "you" and world.dlg.view()["text"] == Text.DIALOGUE["fol_why"], "'Why are you following me?!'")
+	_dlg_lines()
+	check(world.mode == "play" and world.engine.has_flag("witness_met") and world.engine.journal.has("witness"), "'...It's really you.' and the scene is over")
+	check(world._fol_state == "witness" and world._follower == null, "he stays at the corner")
+	var wit: Node2D = null
+	for n in world._npcs:
+		if n.id == "witness":
+			wit = n
+	check(wit != null, "the man is now somebody you can talk to")
+	world.player.position = Vector2(720, 140)
+	_step(0.2)
+	check(str(world._cand.get("id", "")) == "npc:witness", "A offers to talk to him")
+	world.press_a()
+	check(hud.caption_text() == Text.NPC_LINES["witness"]["all"], "his one line, for now")
+	# the house door works again, and Resume brings him back
+	world.player.position = Vector2(232, 170)
+	_step(0.1)
+	world.press_a()
+	check(world.mode == "transition", "now the house door opens")
+	await _street_world_after_bar()
+	world.engine.set_flag("followed")
+	world._on_area_ready()
+	world.player.position = Vector2(600, 205)
+	world.save_game()
+	_new_world()
+	await process_frame
+	check(world.resume() and world.area.id == "street" and world._follower != null and world._fol_state == "tail", "Resume mid-chase puts him behind you again")
+	check(world._follower.position.distance_to(world.player.position) > 200.0, "and he is not on top of you")
 
 # ---------------------------------------------------------------- the playthrough
 

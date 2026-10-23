@@ -54,6 +54,20 @@
     "lamp_night_boost": 0.9,
     "window_lit_frac": 0.8
   },
+  "follower": {
+    "lag_px": 250.0,
+    "speed_mult": 1.12,
+    "start_distance_px": 330.0,
+    "flee_px": 110.0,
+    "grab_px": 70.0,
+    "exit_run_speed": 150.0,
+    "exit_to": [1215.0, 172.0],
+    "mouth": [720.0, 172.0],
+    "lane_inside_y": 128.0,
+    "first_hint_steps": 6,
+    "still_hint_s": 1.0,
+    "lane_hint_px": 300.0
+  },
   "art": {
     "use_shaders": true,
     "glow_layer": true,

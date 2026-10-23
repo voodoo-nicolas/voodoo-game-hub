@@ -80,6 +80,16 @@ var _tr_area := ""
 var _tr_spawn := ""
 var _tr_save := false
 var _tr_hour := -1.0           # a story hour to jump to while the screen is black (-1 = none)
+# the man who follows you (scene 3)
+var _follower: Node2D = null
+var _fol_state := "off"        # off, exit, wait_far, tail, lane, mouth, flee, witness
+var _fol_trail: Array = []     # where the player has walked (the man walks the same way, lagging behind)
+var _fol_t := 0.0
+var _fol_step_t := 0.0
+var _fol_steps := 0
+var _fol_still := 0.0
+var _fol_stuck := 0.0
+var _fol_last_pp := Vector2.ZERO
 # dying
 var _die_t := 0.0
 var _die_done := false
@@ -223,6 +233,8 @@ func _load_area(name: String) -> void:
 	engine.area = name
 	_npcs = []
 	_lamps = []
+	_follower = null
+	_fol_state = "off"
 	_area_root = Node2D.new()
 	add_child(_area_root)
 	_ground = AreaView.new()
@@ -577,6 +589,7 @@ func _tick_play(delta: float) -> void:
 	_footsteps(delta, player.position.distance_to(was))
 	for n in _npcs:
 		n.tick(delta, player, _npcs)
+	_tick_follower(delta)
 	# sun
 	var intensity := clock.intensity()
 	var in_sun := not area.in_shade(player.position)
@@ -634,6 +647,8 @@ func _nearest_interact() -> Dictionary:
 		if d2 <= reach + 14.0 and d2 < best_d:
 			best = {"id": "npc:" + n.id, "verb": "talk", "npc": n}
 			best_d = d2
+	if _fol_state == "mouth" and _follower != null and player.position.distance_to(_follower.position) <= T.f("follower.grab_px"):
+		best = {"id": "grab_follower", "verb": "grab"}
 	# nothing to examine here: after the mirror's thoughts, A checks your pockets (once)
 	if best.is_empty() and engine.has_flag("thought") and not engine.has_flag("pockets") and area.indoor:
 		best = {"id": "pockets", "verb": "pockets"}
@@ -698,8 +713,17 @@ func _interact(c: Dictionary) -> void:
 				TSfx.play(self, "door", -4.0)
 				_go_area("street", "from_house", true)
 		"house_door":
-			TSfx.play(self, "door", -4.0)
-			_go_area("house_down", "from_street", false)
+			if engine.has_flag("followed") and not engine.has_flag("witness_met"):
+				hud.say(Text.INNER["door_followed"])
+			else:
+				TSfx.play(self, "door", -4.0)
+				_go_area("house_down", "from_street", false)
+		"grab_follower":
+			_fol_state = "caught"
+			var to_him: Vector2 = _follower.position - player.position
+			player.face = to_him.normalized()
+			_follower.drive(_follower.position, -to_him, false, 0.0)
+			start_dialogue("follower_grab")
 		"bar_door":
 			if engine.has_flag("bar_thrown"):
 				TSfx.play(self, "door", -14.0, 0.7)
@@ -745,7 +769,7 @@ func _talk(n: Node2D) -> void:
 	var line: String = str(lines.get("all", lines.get("covered" if engine.has_flag("scarf") else "exposed", "")))
 	n.talk_to(player.position)
 	hud.say(line, "speech", Text.SPEAKERS.get(n.id, ""))
-	if n.knows_player >= 2:
+	if n.knows_player >= 2 and not (n.data.get("clue_ids", ["watcher"]) as Array).is_empty():
 		_add_journal(str((n.data.get("clue_ids", ["watcher"]) as Array)[0]))
 
 # ---------------------------------------------------------------- dialogue scenes
@@ -826,6 +850,8 @@ func _after_dialogue_step() -> void:
 	hud.hide_dialogue()
 	hud.a_label = ""
 	mode = "play"
+	if engine.has_flag("witness_met") and _fol_state != "witness":
+		_spawn_witness()
 	var hour_to := _dlg_hour
 	_dlg_hour = -1.0
 	if _dlg_area != "":
@@ -836,6 +862,194 @@ func _after_dialogue_step() -> void:
 			_tr_hour = hour_to              # the clock jumps while the screen is black
 	elif hour_to >= 0.0:
 		clock.skip_to(hour_to)
+
+# ---------------------------------------------------------------- the man who follows you (scene 3)
+# He steps out of the bar and runs, then keeps a fixed distance behind you along your own trail,
+# so his footsteps start, slow down and stop exactly when yours do. If you wait round the corner of
+# the side lane he comes to the corner and A grabs him. In the open he keeps away.
+
+func _follower_look() -> Dictionary:
+	return {"coat": "1d2029", "hat": "flat", "skin": "b9a89a", "accent": "3a3f4e"}
+
+func _make_follower(at: Vector2) -> void:
+	if _follower != null:
+		_follower.queue_free()
+	_follower = NpcScript.new()
+	_follower.setup({"id": "follower", "pos": [at.x, at.y], "face": [0, -1], "look": _follower_look(), "knows_player": 1})
+	_entities.add_child(_follower)
+
+func _follower_begin() -> void:
+	if area.id != "street" or engine.has_flag("followed") or mode != "play":
+		return
+	engine.set_flag("followed")
+	TSfx.play(self, "door", -8.0)
+	_make_follower(area.spawns["from_bar"] + Vector2(0, -22.0))
+	_fol_state = "exit"
+	_fol_steps = 0
+	hud.say(Text.INNER["fol_door"])
+
+func _fol_begin_tail() -> void:
+	_fol_trail = [_follower.position, player.position]
+	_fol_state = "tail"
+	_fol_last_pp = player.position
+
+func _fol_record() -> void:
+	if _fol_trail.is_empty() or player.position.distance_to(_fol_trail.back()) > 6.0:
+		_fol_trail.append(player.position)
+		if _fol_trail.size() > 300:
+			_fol_trail = _fol_trail.slice(100)
+
+## The point on your trail `lag` px behind you.
+func _fol_target(lag: float) -> Vector2:
+	var acc := 0.0
+	var prev: Vector2 = player.position
+	var i := _fol_trail.size() - 1
+	while i >= 0:
+		var pt: Vector2 = _fol_trail[i]
+		var seg := prev.distance_to(pt)
+		if acc + seg >= lag:
+			return prev.lerp(pt, (lag - acc) / maxf(seg, 0.001))
+		acc += seg
+		prev = pt
+		i -= 1
+	return _fol_trail[0] if not _fol_trail.is_empty() else player.position
+
+func _in_lane() -> bool:
+	return area.trigger_at(player.position) == "lane" and player.position.y < T.f("follower.lane_inside_y")
+
+func _fol_mouth() -> Vector2:
+	var a := T.arr("follower.mouth")
+	return Vector2(float(a[0]), float(a[1]))
+
+## Walks the man towards `p` (sliding along walls) and plays his footsteps, quieter the further he is.
+func _fol_move_to(p: Vector2, speed: float, delta: float) -> void:
+	var d := p - _follower.position
+	if d.length() <= 2.0:
+		_follower.drive(_follower.position, _follower.face, false, delta)
+		_fol_step_t = 0.0
+		return
+	# steer round corners: try the straight way, then turned aside, and keep the step that gets closest
+	var dir := d.normalized()
+	var want := minf(d.length(), speed * delta)
+	var np: Vector2 = _follower.position
+	var best := 0.0
+	for ang in [0.0, 0.7, -0.7, 1.4, -1.4]:
+		var cand: Vector2 = area.move_circle(_follower.position, dir.rotated(ang) * want, 9.0)
+		var gain := (cand - _follower.position).dot(dir)
+		if gain > best + 0.001:
+			best = gain
+			np = cand
+		if ang == 0.0 and gain > want * 0.9:
+			break
+	var moved := np.distance_to(_follower.position)
+	if moved <= 0.01:
+		# caught on a corner (a lamp post in the straight way): after a moment hop to the free spot
+		# round it that lies most towards the goal
+		_fol_stuck += delta
+		if _fol_stuck > 0.25:
+			_fol_stuck = 0.0
+			var best_hop := -2.0
+			for i in 16:
+				var hop: Vector2 = _follower.position + Vector2.from_angle(TAU * float(i) / 16.0) * 16.0
+				if area.is_free(hop, 9.0) and (hop - _follower.position).normalized().dot(dir) > best_hop:
+					best_hop = (hop - _follower.position).normalized().dot(dir)
+					np = hop
+			moved = np.distance_to(_follower.position)
+	else:
+		_fol_stuck = 0.0
+	_follower.drive(np, d, moved > 0.01, delta)
+	if moved <= 0.01:
+		_fol_step_t = 0.0
+		return
+	_fol_step_t -= delta
+	if _fol_step_t <= 0.0:
+		_fol_step_t = T.f("player.step_interval_s") * (1.6 if engine.sneaking else 1.0)
+		_fol_steps += 1
+		var far := clampf(player.position.distance_to(np) / 60.0, 0.0, 12.0)
+		TSfx.play(self, "step", T.f("player.step_volume_db") - far, 0.85)
+
+func _tick_follower(delta: float) -> void:
+	if _follower == null or _fol_state == "off" or _fol_state == "witness" or _fol_state == "caught":
+		return
+	var dist := player.position.distance_to(_follower.position)
+	if player.position.distance_to(_fol_last_pp) < 0.05:
+		_fol_still += delta
+	else:
+		_fol_still = 0.0
+	_fol_last_pp = player.position
+	match _fol_state:
+		"exit":
+			var to := Vector2(float(T.arr("follower.exit_to")[0]), float(T.arr("follower.exit_to")[1]))
+			_fol_move_to(to, T.f("follower.exit_run_speed"), delta)
+			if _follower.position.distance_to(to) < 4.0:
+				_fol_state = "wait_far"
+		"wait_far":
+			_follower.drive(_follower.position, player.position - _follower.position, false, delta)
+			if dist < T.f("follower.flee_px"):
+				_fol_state = "flee"
+				_fol_t = 0.0
+			elif dist > T.f("follower.start_distance_px") and not _in_lane():
+				_fol_begin_tail()
+		"tail":
+			_fol_record()
+			if _in_lane():
+				_fol_state = "lane"
+				if engine.mission != "follower":
+					engine.set_mission("follower")
+				return
+			if dist < T.f("follower.flee_px"):
+				_fol_state = "flee"
+				_fol_t = 0.0
+				return
+			_fol_move_to(_fol_target(T.f("follower.lag_px")), engine.speed() * T.f("follower.speed_mult"), delta)
+			_follower_hints()
+		"lane":
+			if not _in_lane():
+				_fol_state = "wait_far"
+				return
+			_fol_move_to(_fol_mouth(), T.f("player.walk_speed") * 0.9, delta)
+			if _follower.position.distance_to(_fol_mouth()) < 10.0:
+				_fol_state = "mouth"
+		"mouth":
+			_follower.drive(_follower.position, Vector2(0, -1), false, delta)
+			if not _in_lane():
+				_fol_state = "flee"
+				_fol_t = 0.0
+		"flee":
+			_fol_t += delta
+			var away := (_follower.position - player.position).normalized()
+			if away.length() < 0.1:
+				away = Vector2.RIGHT
+			_fol_move_to(_follower.position + away * 80.0, T.f("follower.exit_run_speed"), delta)
+			if _fol_t > 1.8:
+				_fol_state = "wait_far"
+
+## The three thoughts while he follows: footsteps, "I stop, they stop", and the side lane.
+func _follower_hints() -> void:
+	if not engine.has_flag("fol_h1") and _fol_steps >= int(T.f("follower.first_hint_steps")):
+		engine.set_flag("fol_h1")
+		hud.say(Text.INNER["fol_steps"])
+	elif engine.has_flag("fol_h1") and not engine.has_flag("fol_h2") and _fol_still >= T.f("follower.still_hint_s") and not hud.caption_busy():
+		engine.set_flag("fol_h2")
+		engine.set_mission("follower")
+		hud.say(Text.INNER["fol_stop"])
+	elif engine.has_flag("fol_h2") and not engine.has_flag("fol_h3") and player.position.distance_to(_fol_mouth()) < T.f("follower.lane_hint_px") and not hud.caption_busy():
+		engine.set_flag("fol_h3")
+		hud.say(Text.INNER["fol_lane"])
+
+## After the scene he stays at the corner as a person you can talk to (his one line, for now).
+func _spawn_witness() -> void:
+	if _follower != null:
+		_follower.queue_free()
+		_follower = null
+	var n := NpcScript.new()
+	var m := _fol_mouth()
+	n.setup({"id": "witness", "knows_player": 2, "role": "witness", "behavior": "stand", "stare": true,
+			"pos": [m.x, m.y], "face": [0, -1], "clue_ids": [],
+			"look": {"coat": "4a4a44", "hat": "flat", "skin": "d0bfae", "accent": "6a6a62"}})
+	_npcs.append(n)
+	_entities.add_child(n)
+	_fol_state = "witness"
 
 # ---------------------------------------------------------------- the mirror
 
@@ -919,6 +1133,14 @@ func _tick_transition(delta: float) -> void:
 func _on_area_ready() -> void:
 	if area.id == "bar" and not engine.has_flag("bar_scene"):
 		start_dialogue("bar_shout")
+	elif area.id == "street":
+		if engine.has_flag("witness_met"):
+			_spawn_witness()
+		elif engine.has_flag("followed"):
+			_make_follower(player.position + Vector2(T.f("follower.lag_px") + 40.0, 0.0))
+			_fol_begin_tail()
+		elif engine.has_flag("bar_thrown"):
+			_after(2.5, _follower_begin)
 
 # ---------------------------------------------------------------- the alley: B unlocks
 

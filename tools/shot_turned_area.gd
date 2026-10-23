@@ -17,6 +17,7 @@ const SPOTS := [
 	["street_carriage", "street", 1330.0, 320.0],
 	["street_alley", "street", 1785.0, 150.0],
 	["street_pub", "street", 1069.0, 188.0],
+	["street_lane", "street", 720.0, 180.0],
 	["bar_room", "bar", 320.0, 300.0],
 	["bar_counter", "bar", 320.0, 150.0],
 	["house_calendar", "house", 290.0, 120.0],
