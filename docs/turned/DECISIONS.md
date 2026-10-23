@@ -78,5 +78,16 @@ Every default chosen where the owner's prompt (2026-10-22), `BRIEF.md` (the Turn
 42. After the close-up, three thoughts a few seconds apart ("What happened last night?", "I can't remember.", "I need to figure this out."), then A (when nothing else is in reach, indoors) = **Check pockets**: empty, "Where is my coat?", Journal entry, mission "Find your coat". Examining the coat on the chair in the bedroom is the stranger's coat ("This isn't my coat..."): mission back to "Find out what happened" and "Whose coat is this? What did I do?". If the coat was examined before the pockets, the mission goes straight to "Find out what happened".
 43. The front door now also needs the coat found ("I'm not going out without my coat."), after the mirror gate. Easy to drop if you do not want it: one `elif` in `turned_world.gd` (`front_door`).
 
+## Owner's scenes 1-6 (2026-10-23, `story_scenes_1-6.md`)
+44. Saved as **story only**; no code was changed. The spec's engine plan (data-driven scenes, dialogue runner, tap-to-explore, `thirst`/`days_left` stats) is not used: the game is the real-time top-down one above.
+45. Where it overlaps what is built: Scene 1 = the built prologue (wake, neck, mirror, pockets, stranger's coat). The built clues are placeholders (decision 5); the spec's canon replaces them when scenes 2+ are built: right pocket matches (cigar company), inside pocket sewn shut with the note "Meet me at ... Wednesday. 10 PM. Come alone.", wall calendar showing Friday (two days lost).
+46. **Conflicts to settle before any of scenes 2-6 is built:**
+   - **Alcohol.** Scenes 2-3 and 4 are set in a bar ("The Crooked Lantern", a tavernkeep, the witness drinking Thursday/Friday). The hub allows no alcohol references anywhere. Needs a non-alcohol venue (tea house, inn, music hall, coffee house) or the owner's call.
+   - **Timeline.** Spec: lost Wed-Fri, "2 or 3 more days" to turn. Bible: Day 1-3 of Act 1, the sun worsens each day, vampirism level = day - 1. Spec has no sun/shade mechanic; the bible's Day 1 street (sun, shade, Health) is built.
+   - **Setting.** Bible starts in Vellmoor with a village street; spec is a harbour city with gas lamps, a forest and a chapel house. Same town or not?
+   - **Watcher vs witness.** The built Watcher (grey coat, "You should not be out in that sun.") is not the spec's witness or the cigar-shop owner.
+   - **Mystery option.** Spec: owner knows an ex-priest; the broken silver watch, silver burns and water burning are new rules the bible does not have. The Knowing (bible section 5) would cover the owner and the ex-priest.
+47. Spec [OPEN] flags (9 vs 10 PM, bar name, names for the witness and shop owner (never "Elias"), why the owner knows, who bit the player, who wrote the note, what the watch does) are the owner's to answer; nothing is hardcoded.
+
 ## Not built (as the prompt says)
 Combat, buttons X/Y, skill tree, XP gain, feeding, puzzles and locks, other towns, days 2-3, the AI Director, final audio, button layout editing, the Hunter/Friend/Devotee villagers, vision cones and enemies.

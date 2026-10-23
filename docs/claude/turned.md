@@ -1,6 +1,6 @@
 # Turned (id `turned`, gothic vampire story, Adventure, landscape)
 
-Owner's project 2026-10-22; first slice = Prologue + Day 1 in Vellmoor. Read first: `docs/turned/story_bible.md`, `docs/turned/BRIEF.md` (the owner's own Turned CLAUDE.md; the hub's CLAUDE.md wins on navigation/pause/save/i18n/packs), `docs/turned/DECISIONS.md` (every default chosen, and what is not built), `docs/turned/README.md` (run, test, ship).
+Owner's project 2026-10-22; first slice = Prologue + Day 1 in Vellmoor. Read first: `docs/turned/story_bible.md`, `docs/turned/BRIEF.md` (the owner's own Turned CLAUDE.md; the hub's CLAUDE.md wins on navigation/pause/save/i18n/packs), `docs/turned/DECISIONS.md` (every default chosen, and what is not built), `docs/turned/README.md` (run, test, ship), `docs/turned/story_scenes_1-6.md` (owner's later scene scripts: bar, witness, cigar shop, forest; story only, conflicts listed in DECISIONS 44-47).
 
 ## Layout (`scripts/games/turned/`, same shape as Last Shift)
 - `turned_game.gd`: Landing kit (one mode, "quick_with_save": false, `board: "none"`), builds the world in a SubViewport under the kit and the HUD over it; tells the world when the kit is up (`world.kit_up`); pause on focus loss; kit calls `_save_game()`.
