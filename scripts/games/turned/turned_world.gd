@@ -47,6 +47,8 @@ var _canvas_mod: CanvasModulate = null
 var _area_root: Node2D = null
 var _entities: Node2D = null
 var _ground: Node2D = null
+var _decor: Node2D = null
+var _sun_light: DirectionalLight2D = null
 var _overlay: Node2D = null
 var _npcs: Array = []
 var _lamps: Array = []         # {"light": PointLight2D, "base": float, "seed": float}
@@ -197,8 +199,11 @@ func _load_area(name: String) -> void:
 	add_child(_area_root)
 	_ground = AreaView.new()
 	_ground.setup(area, "ground")
-	_apply_item_state()
 	_area_root.add_child(_ground)
+	_decor = AreaView.new()
+	_decor.setup(area, "decor")
+	_area_root.add_child(_decor)
+	_apply_item_state()
 	_entities = Node2D.new()
 	_entities.y_sort_enabled = true
 	_area_root.add_child(_entities)
@@ -215,10 +220,21 @@ func _load_area(name: String) -> void:
 	_overlay = AreaView.new()
 	_overlay.setup(area, "overlay")
 	_area_root.add_child(_overlay)
+	var glow := AreaView.new()
+	glow.setup(area, "glow")
+	_area_root.add_child(glow)
 	for lp in area.lamps:
 		_add_light(lp, T.color("light.lamp_color"), T.f("light.lamp_energy"), T.f("light.lamp_radius_px"), true)
 	for ls in area.light_spots:
 		_add_light(ls["pos"], ls["color"], float(ls["energy"]), float(ls["radius"]), false)
+	if not area.indoor and T.f("light.sun_energy") > 0.0:
+		# the sun: a directional light, so the cobbles and walls show relief by day
+		_sun_light = DirectionalLight2D.new()
+		_sun_light.color = T.color("light.sun_color")
+		_sun_light.rotation = deg_to_rad(T.f("light.sun_angle_deg"))
+		_sun_light.height = T.f("light.sun_height")
+		_sun_light.energy = T.f("light.sun_energy") * clock.intensity()
+		_area_root.add_child(_sun_light)
 	_camera.limit_left = int(area.bounds.position.x)
 	_camera.limit_top = int(area.bounds.position.y)
 	_camera.limit_right = int(area.bounds.end.x)
@@ -231,6 +247,7 @@ func _add_light(pos: Vector2, color: Color, energy: float, radius: float, flicke
 	l.texture_scale = radius / 128.0
 	l.color = color
 	l.energy = energy
+	l.height = T.f("light.lamp_height_px")
 	l.position = pos
 	_area_root.add_child(l)
 	if flicker:
@@ -238,7 +255,7 @@ func _add_light(pos: Vector2, color: Color, energy: float, radius: float, flicke
 
 ## Which clue items are taken (not drawn) and which still glint, from the engine's state.
 func _apply_item_state() -> void:
-	if _ground == null:
+	if _decor == null:
 		return
 	var hidden := {}
 	var fresh := {}
@@ -250,9 +267,9 @@ func _apply_item_state() -> void:
 				fresh[k] = true
 		if not engine.has_flag("scarf") and engine.has_flag("mirror"):
 			fresh["scarf"] = true
-	_ground.taken = hidden
-	_ground.glint = fresh
-	_ground.refresh()
+	_decor.taken = hidden
+	_decor.glint = fresh
+	_decor.refresh()
 
 func _snap_camera() -> void:
 	if _camera == null or player == null:

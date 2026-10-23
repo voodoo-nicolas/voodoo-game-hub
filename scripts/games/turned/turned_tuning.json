@@ -36,14 +36,23 @@
     "feed_diminish": 0.75,
     "burn_sound_interval_s": 1.1
   },
+  "art": {
+    "use_shaders": true,
+    "glow_layer": true,
+    "decals": true
+  },
   "light": {
-    "sun_color": "e6ecff",
-    "shade_color": "7f90b8",
-    "indoor_color": "586285",
+    "sun_color": "d2dbf4",
+    "shade_color": "6a7ba4",
+    "indoor_color": "8a8aa8",
     "mix_speed": 4.0,
     "lamp_energy": 0.9,
     "lamp_color": "ffb45a",
-    "lamp_radius_px": 110.0
+    "lamp_radius_px": 150.0,
+    "lamp_height_px": 48.0,
+    "sun_angle_deg": 35.0,
+    "sun_height": 0.55,
+    "sun_energy": 0.3
   },
   "death": {
     "fade_s": 2.0,

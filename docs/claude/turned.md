@@ -7,8 +7,9 @@ Owner's project 2026-10-22; first slice = Prologue + Day 1 in Vellmoor. Read fir
 - `turned_world.gd`: Node2D. Modes `prologue` / `play` / `closeup` / `transition` / `dying`; owns the engine, the sun clock, the player, NPCs, camera, CanvasModulate + PointLights. Prologue = a timed state machine (`_pro`). Tests drive it with `press_a()`, `press_b()`, `test_dir`, `_process(dt)`.
 - `turned_engine.gd`: pure state/rules (Health, Blood, sun damage, death penalties, buttons, Journal, flags, sneak) + `to_dict/from_dict`. `turned_sun_clock.gd`, `turned_save.gd` (`user://turned_save.json`, v1).
 - `turned_area.gd`: the two maps as data + geometry (`solids`, `shades`, `interacts`, `triggers`, `is_free`, `move_circle`, `nearest_shade`). Edit the maps here; `turned_area_view.gd` draws them (mode "ground" below the people, "overlay" for awnings/canopies above); `turned_prop.gd` = y-sorted props; `turned_art.gd` = placeholder drawing + PNG override by name.
+- Art: `turned_ground.gdshader` (lit procedural cobbles/flags/planks/tiles/grass/brick/slate, kind 0-6, one surface evaluation per pixel, normal from screen-space height slope), `turned_area_view.gd` layers: `ground` (shader ColorRects) < `decor` < people < `overlay` < `glow` (additive). PNG override by name: see `docs/turned/ART_SPEC.md`; `art.*` tuning switches for weak devices. `tools/shot_turned_area.gd` = screenshots + ms/frame of both areas.
 - `turned_player.gd`, `turned_npc.gd`, `turned_npcs.json` (villagers), `turned_hud.gd` (all HUD drawing + touch + captions + close-up + Menu stub), `turned_text.gd` (all player-facing English), `turned_sfx.gd` (synthesized sounds), `turned_input.gd` (tn_* keyboard actions), `turned_tuning.gd` + `.json` (every number).
-- Tests: `tools/test_turned.gd` (193 checks, headless), `tools/shot_turned.gd` (screenshots in a window).
+- Tests: `tools/test_turned.gd` (200 checks, headless), `tools/shot_turned.gd` (screenshots in a window).
 
 ## Rules to keep
 - Progressive reveal: a control or system is shown only once the story introduces it (`hud.reveal(...)`). New mechanic = new reveal, in order: d-pad + A → sun/shade → B.

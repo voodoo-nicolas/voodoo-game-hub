@@ -26,7 +26,7 @@ The path of the slice: wake in bed → A (sit up) → A (wipe your face) → the
 
 ## Test it
 ```bash
-godot --headless --path . --script res://tools/test_turned.gd      # 193 checks: tuning, maps, rules, the whole slice, touch overlay
+godot --headless --path . --script res://tools/test_turned.gd      # 200 checks: tuning, maps, rules, the whole slice, touch overlay
 python tools/hub.py check
 python tools/hub.py test turned
 godot --path . --resolution 1280x720 --script res://tools/shot_turned.gd -- <out_dir> [text size 0|1|2]   # plays the slice and saves 25 screenshots (needs a window)
@@ -36,8 +36,8 @@ godot --path . --resolution 1280x720 --script res://tools/shot_turned.gd -- <out
 ## Tuning
 Everything numeric is in `scripts/games/turned/turned_tuning.json` (speeds, Health, sun damage, death penalties, sneak radii, prologue timings, HUD sizes, camera). Nothing to rebuild; run the game again.
 
-## Swapping in real art
-Put a PNG at `games/turned/art/<name>.png` (feet/base at the bottom-centre; names in DECISIONS.md) and add its `media/CREDITS.json` entry + licence proof. The code draws the PNG instead of the placeholder. Tiles, floors, walls and the HUD are still drawn in code.
+## Art
+The look is made in code (lit shader surfaces, outlined people). Painted art swaps in by file name: see [ART_SPEC.md](ART_SPEC.md) (names, 2x sizes, anchors, tiles, AI prompt). Screenshots of both areas: `godot --path . --resolution 1280x720 --script res://tools/shot_turned_area.gd -- <out_dir>` (also prints ms/frame). If a phone is slow set `art.use_shaders` to false in the tuning file.
 
 ## Android
 The hub ships games as packs on GitHub Releases, so there is no separate Turned APK:

@@ -59,5 +59,12 @@ Every default chosen where the owner's prompt (2026-10-22), `BRIEF.md` (the Turn
 ## Audio
 30. All sounds are synthesized placeholders (`turned_sfx.gd`) through the hub's Sfx volume groups: heartbeat, pulse, breath, pickup, unlock chime, burn crackle, footsteps, door, whoosh, death. No music (the shared Music autoload is for later; `audio_plan.md` is not in the repo).
 
+## Art pass (2026-10-22, after the owner's moodboard)
+31. Reference only: `reference/art/turned/` holds the moodboard and two top-down map images (not committed: their origin and licence are unknown). Nothing from them is used in the game; the look is made in code.
+32. The ground and walls are lit shader surfaces (`turned_ground.gdshader`): cobbles, flagstones, planks, bathroom tiles, grass, brick, slate, with height maps, so the lamps and a weak sun directional light show relief. No textures, no memory, no tiling seams. Houses have their own brick and slate, eaves, plinths, chimneys, windows (some lit), doors, shop fronts with glowing goods; the street has kerbs, puddles, manholes, leaves; lamps get an additive bloom and a slow mist drifts along the street; trees, carriage, horse, stall, crates and barrels are drawn with outlines, shading and contact shadows; people are outlined and shaded.
+33. Quality switches in `turned_tuning.json` `art`: `use_shaders` (false = flat colours), `glow_layer`, `decals`. On this PC's Intel UHD 600 the frame time went from about 20 ms to about 28 ms (noisy); not yet tried on a phone. If a phone is slow, set `use_shaders` false first.
+34. Painted art swaps in by file name (`docs/turned/ART_SPEC.md`: sizes at 2x, anchors, directions, tiles). Tested with temporary PNGs: crate, player_down and a cobble tile replaced the drawn ones.
+35. Still drawn in code, flat: awnings, the porch roof, window frames, rugs, furniture, the HUD and the neck close-up.
+
 ## Not built (as the prompt says)
 Combat, buttons X/Y, skill tree, XP gain, feeding, puzzles and locks, other towns, days 2-3, the AI Director, final audio, button layout editing, the Hunter/Friend/Devotee villagers, vision cones and enemies.
