@@ -32,3 +32,11 @@ Covers every `media/CREDITS.json` entry whose `proof` is this file.
   AI-generated for the owner; **the tool and plan were not recorded -- owner to
   confirm** (if it is not ChatGPT, the terms quoted above may not apply).
   Fictional character, no real person or company.
+
+## Turned (2026-10-23)
+- `turned_landing_src.webp` (1024x1536): close-up of a neck with two bite marks
+  in front of a gothic city at night (the mirror moment of the story). Shipped as
+  the Landing background of Turned (`games/turned/landing_bg.jpg`): cropped to a
+  1024x576 landscape band and mirrored (so the marks sit right of the Landing's
+  text column), JPEG quality 86. AI-generated for the owner; **the tool and plan
+  were not recorded -- owner to confirm**. Fictional, no real person.

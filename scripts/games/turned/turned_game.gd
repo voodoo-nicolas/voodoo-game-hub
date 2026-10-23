@@ -27,6 +27,9 @@ const PAD_LAYOUTS := ["dpad_4", "stick_4", "dpad_2", "stick_2", "stick_arc"]
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const ACCENT := Color("d9a441")
+## Landing background: the mirror moment (the neck), cropped to landscape and mirrored so the marks sit
+## right of the kit's text column. The portrait original is `reference/art/games/turned_landing_src.webp`.
+const ART := "res://games/turned/landing_bg.jpg"
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
@@ -57,6 +60,7 @@ func _build_ui() -> void:
 		"accent": ACCENT,
 		"subtitle": "A gothic story. 1900.",
 		"logo": _draw_home_logo,
+		"art": ART,
 		"solo_heading": "🦇 Story",
 		"modes": [{"text": "🦇 Begin the story", "sub": "Prologue and Day 1", "action": _new_game}],
 		"save_path": Save.PATH,

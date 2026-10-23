@@ -2772,6 +2772,19 @@
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
   },
   {
+   "file": "games/turned/landing_bg.jpg",
+   "what": "Turned Landing background (a neck with two bite marks in front of a gothic city at night: the mirror moment)",
+   "source": "reference/art/games/turned_landing_src.webp (portrait original, cropped to landscape and mirrored)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-23",
+   "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cropped 1024x576, mirrored, re-saved as JPEG q86 (Claude Code)"
+  },
+  {
    "file": "games/creation/landing_bg.jpg",
    "what": "Creation Landing background (Earth, Fire, Wind and Water elements around a glowing planet)",
    "source": "reference/art/games/creation_key_art_src.jpg (title band cropped off: the kit prints the title)",

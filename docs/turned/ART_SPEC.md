@@ -24,6 +24,8 @@ Each as `name_down.png` (faces the camera / walks down), `name_up.png` (back vie
 | `npc_coachman` | coachman, top hat | 128 x 128 | 0.5, 0.92 | |
 | `npc_lamplighter` | lamplighter with a pole | 128 x 128 | 0.5, 0.92 | |
 
+**People are resolution-independent (2026-10-23).** A person PNG is drawn into a canvas 64 world px tall (`PERSON_CANVAS_H`) whatever its pixel size, so paint them big: **1024 x 1024**, figure about 72% of the height (about 740 px), feet at 92% of the height, centred. In game the figure is about 46 px tall (1.45 m): midway between the first placeholder (35 px) and your reference (58 px). The 128 x 128 canvases above still work. The placeholder drawing is 1.3x its old size (`PERSON_SCALE`), all villagers too, so they stay in proportion.
+
 Walk animation frames are not supported yet (one picture per direction); say so when you have them and I will add `name_down_1.png ...`.
 
 ## Props

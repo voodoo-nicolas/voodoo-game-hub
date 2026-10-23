@@ -7,7 +7,7 @@ Use with any image AI. Keep the STYLE line identical in every prompt so everythi
 
 **Background**: most tools cannot make transparency. Ask for `plain flat bright green background` (characters, props) and drop the file in; a script removes the green. Tiles need no background.
 
-**Scale** (1 metre = 32 game px; PNGs are painted at 2x = 64 px per metre). Player: figure about 90 px tall in a 128 x 128 canvas (about 1.4 m in game; the old drawing was 35 px, your reference image is about 58 px, this is the middle). Everything else is sized against the player, so keep him/her the same in every picture.
+**Scale.** The player is about 46 game px tall (the first placeholder was 35, your reference image about 58). Generate people **big and detailed**: square 1024 x 1024, whole figure about 3/4 of the height, feet near the bottom, centred. The game shrinks any resolution into the same size, so the detail is kept. Everything else is sized against the player (1 metre = 32 game px, so the player is about 1.45 m), keep the people the same height in every picture.
 
 ## 1. Player (one sheet, three views, so they match)
 > Character sheet, the same person shown three times in a row: front view, back view, side view facing right. Top-down 3/4 angle, full body, feet visible, neutral standing pose. [young woman / young man], [dark hair], [long black wool coat with high collar, buttoned], [dark trousers, leather boots], no hat. Plain flat bright green background, no ground shadow. STYLE
@@ -46,4 +46,4 @@ Swap: `[wet cobblestones]`, `[worn stone flagstones]`, `[old wooden planks]`, `[
 Note: a painted tile replaces the game's lit shader and loses the lamp relief, so use it where the painting is clearly better than the shader.
 
 ## 6. Landing picture (done)
-The neck close-up with the two marks (the mirror moment) is the landing picture. It is portrait 1024 x 1536 and the game is landscape, so it needs a layout decision (crop, or portrait panel beside the title).
+The neck close-up with the two marks (the mirror moment) is the Landing: `games/turned/landing_bg.jpg`, cropped to landscape and mirrored so the marks sit right of the text. The portrait original is in `reference/art/games/turned_landing_src.webp`.

@@ -10,6 +10,12 @@ extends RefCounted
 const ART_DIR := "res://games/turned/art/"
 ## Sprites are painted at this many PNG pixels per world pixel (1 m = 32 world px).
 const SPRITE_RATIO := 2.0
+## People are drawn this much bigger than the first placeholder (35 px tall -> 46 px: the middle between
+## it and the 58 px of the owner's reference). Painted people (`person` sprites) are drawn into a canvas
+## PERSON_CANVAS_H world px tall whatever their resolution, so a 1024 x 1024 PNG works as well as 128 x 128
+## (the figure fills ~72% of the canvas, feet at 92%).
+const PERSON_SCALE := 1.3
+const PERSON_CANVAS_H := 64.0
 
 const AMBER := Color("ffb45a")
 const AMBER_DIM := Color("c98a3e")
@@ -35,11 +41,14 @@ static func tex(name: String) -> Texture2D:
 	return t
 
 ## Draws `name.png` with its anchor (fractions of its size) at the origin; false if there is none.
-static func sprite(ci: CanvasItem, name: String, anchor: Vector2, alpha: float = 1.0, flip: bool = false) -> bool:
+## `canvas_h` > 0 draws it that many world px tall (any PNG resolution), else at SPRITE_RATIO.
+static func sprite(ci: CanvasItem, name: String, anchor: Vector2, alpha: float = 1.0, flip: bool = false, canvas_h: float = 0.0) -> bool:
 	var t := tex(name)
 	if t == null:
 		return false
 	var size := t.get_size() / SPRITE_RATIO
+	if canvas_h > 0.0:
+		size = t.get_size() * (canvas_h / t.get_size().y)
 	if flip:
 		ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1.0, 1.0))
 	ci.draw_texture_rect(t, Rect2(-size * anchor, size), false, Color(1, 1, 1, alpha))
@@ -72,9 +81,9 @@ static func person(ci: CanvasItem, look: Dictionary, face: Vector2, walk: float 
 		# painted art: a sprite per direction (name_down / name_up / name_side, side faces right and
 		# is mirrored for left), else a single name.png
 		var dir := "down" if face.y > 0.35 else ("up" if face.y < -0.35 else "side")
-		if sprite(ci, sprite_name + "_" + dir, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0):
+		if sprite(ci, sprite_name + "_" + dir, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0, PERSON_CANVAS_H):
 			return
-		if sprite(ci, sprite_name, Vector2(0.5, 0.92), alpha):
+		if sprite(ci, sprite_name, Vector2(0.5, 0.92), alpha, false, PERSON_CANVAS_H):
 			return
 	var coat := Color(str(look.get("coat", "3f4f6e")))
 	var skin := Color(str(look.get("skin", "cfc3c6")))
@@ -84,7 +93,7 @@ static func person(ci: CanvasItem, look: Dictionary, face: Vector2, walk: float 
 	coat.a = alpha
 	skin.a = alpha
 	var squash := 0.88 if sneak else 1.0
-	ci.draw_set_transform(Vector2(0, 0), 0.0, Vector2(1.0, squash))
+	ci.draw_set_transform(Vector2(0, 0), 0.0, Vector2(PERSON_SCALE, squash * PERSON_SCALE))
 	shadow(ci, Vector2(1, 2), 12.0, 5.5, 0.34 * alpha)
 	var swing := sin(walk) * 3.2
 	var leg := Color(0.1, 0.1, 0.14, alpha)
