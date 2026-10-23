@@ -8,6 +8,11 @@ extends Control
 ##                 so far; a locked button is not shown at all and pops in when it unlocks.
 ##   bottom-centre: small Pause and Menu buttons.
 ## Progressive rule: a control or system is only shown after the story introduces it (`reveal`).
+## Since the shared Pad (scripts/common/pad/, docs/claude/pad.md): when the app has it, the game
+## gives the HUD a PadController (`use_pad`) that draws and reads the d-pad / A / B / Pause / Menu, so
+## the player's layout, look, size and opacity apply. The code below for those controls stays as the
+## fallback for apps without the Pad (older apps keep working). Bars, Missions, captions, close-up
+## and fades are always this HUD's.
 ## Touch: every finger is tracked by index; phones also send emulated mouse events for each touch,
 ## so once a real touch is seen mouse events are ignored (they would count every tap twice).
 ## The keyboard is read by the world (turned_world.gd); touch presses the same tn_* actions.
@@ -54,6 +59,10 @@ var _dpad_dirs := {}     # finger index -> Vector2 (that finger's direction)
 var _touch_seen := false
 var _down := {"a": false, "b": false, "pause": false, "menu": false}
 
+## The shared on-screen controller, or null (then this HUD draws and reads its own controls).
+var pad: Control = null
+const PAD_PARTS := {"dpad": "move", "a": "a", "b": "b", "menu": "info"}   # HUD name -> Pad part id
+
 var _hp_disp := 0.0
 var _blood_disp := 0.0
 var _xp_disp := 0.0
@@ -92,6 +101,33 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	release_inputs()
 
+# ---------------------------------------------------------------- the shared Pad
+
+## Hands the controls to the shared Pad (a PadController already in the tree, under this HUD).
+func use_pad(p: Control) -> void:
+	pad = p
+	pad.set_map({
+		"move": ["tn_left", "tn_right", "tn_up", "tn_down"],
+		"a": ["tn_a"], "b": ["tn_b"], "pause": ["tn_pause"], "info": ["tn_menu"],
+	})
+	pad.set_state("info", {"icon": "menu"})
+	for part in ["x", "y", "aim"]:
+		pad.set_hidden(part, true)           # Turned has no X, Y or aim stick (yet)
+	for name in PAD_PARTS:
+		pad.set_hidden(PAD_PARTS[name], not _rv_target.get(name, false))
+	pad.button_pressed.connect(_on_pad_button)
+
+func _on_pad_button(id: String) -> void:
+	match id:
+		"a":
+			a_pressed.emit()
+		"b":
+			b_pressed.emit()
+		"pause":
+			pause_pressed.emit()
+		"info":
+			open_menu("journal")
+
 # ---------------------------------------------------------------- reveal / captions API
 
 ## Shows a control for the first time (popping in); name: dpad, a, b, bars, mission, menu.
@@ -99,15 +135,19 @@ func reveal(name: String, animate: bool = true) -> void:
 	if _rv_target.get(name, false):
 		return
 	_rv_target[name] = true
+	if pad != null and PAD_PARTS.has(name):
+		pad.reveal(PAD_PARTS[name], animate)
 	if not animate:
 		_rv[name] = 1.0
-	else:
+	elif pad == null or not PAD_PARTS.has(name):
 		_pulse[name] = 1.0
 
 ## Instant state for Resume (no animation).
 func set_revealed(name: String, on: bool) -> void:
 	_rv_target[name] = on
 	_rv[name] = 1.0 if on else 0.0
+	if pad != null and PAD_PARTS.has(name):
+		pad.set_hidden(PAD_PARTS[name], not on)
 
 func is_revealed(name: String) -> bool:
 	return bool(_rv_target.get(name, false))
@@ -208,6 +248,10 @@ func _input(event: InputEvent) -> void:
 func _role_at(p: Vector2) -> String:
 	if closeup > 0.4:
 		return "a"                  # any tap dismisses the close-up
+	if pad != null:
+		if _rv["mission"] > 0.5 and _mission_rect().has_point(p):
+			return "mission"
+		return ""
 	if _rv["dpad"] > 0.5 and p.distance_to(_dpad_center()) <= _ui("dpad_radius") * 1.25:
 		return "dpad"
 	var br := _ui("button_radius") * 1.2
@@ -299,6 +343,8 @@ func _set_action(action: String, down: bool) -> void:
 		Input.action_release(action)
 
 func release_inputs() -> void:
+	if pad != null and is_instance_valid(pad):
+		pad.release_all()
 	_pointers.clear()
 	_dpad_dirs.clear()
 	for a in TOUCH_ACTIONS.values():
@@ -329,6 +375,11 @@ func _process(delta: float) -> void:
 		_cap_t -= delta
 	if _banner_t > 0.0:
 		_banner_t -= delta
+	if pad != null:
+		var sub := tr(Text.VERBS.get(a_label, a_label)) if a_label != "" else ""
+		pad.set_state("a", {"sub": sub, "enabled": a_active and a_label != ""})
+		pad.set_state("b", {"ring": engine != null and engine.sneaking})
+		pad.visible = closeup <= 0.4 and not menu_open
 	if engine != null:
 		_hp_disp = move_toward(_hp_disp, engine.hp, maxf(20.0 * delta, absf(engine.hp - _hp_disp) * 8.0 * delta))
 		_blood_disp = move_toward(_blood_disp, engine.blood, 40.0 * delta)
@@ -359,10 +410,11 @@ func _draw() -> void:
 		_draw_bars()
 	if _rv["mission"] > 0.01:
 		_draw_mission()
-	if _rv["dpad"] > 0.01:
-		_draw_dpad()
-	_draw_faces()
-	_draw_small_buttons()
+	if pad == null:
+		if _rv["dpad"] > 0.01:
+			_draw_dpad()
+		_draw_faces()
+		_draw_small_buttons()
 	if burn > 0.01:
 		draw_texture_rect(_vignette, Rect2(Vector2.ZERO, size), false, Color(1.0, 0.93, 0.78, minf(1.0, burn * 0.8)))
 	if throb > 0.01:

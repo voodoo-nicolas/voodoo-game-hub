@@ -41,14 +41,18 @@ func _init(palette: Dictionary, p_target: Control = null) -> void:
 func _ready() -> void:
 	add_theme_constant_override("separation", 14)
 	prefs = target.prefs.duplicate() if target != null and not target.prefs.is_empty() else Prefs.load_prefs()
+	if target != null and target.has_method("layout_id") and not target.allowed_layouts.is_empty() and not target.allowed_layouts.has(str(prefs["layout"])):
+		prefs["layout"] = target.layout_id()   # the layout actually shown, not a saved one this game can't use
 	add_child(_label(tr("Layout"), 28, pal.text))
 	var grid := GridContainer.new()
 	grid.columns = columns
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	add_child(grid)
+	var allowed: Array = target.allowed_layouts if target != null else []
 	for l in Layouts.LAYOUTS:
-		grid.add_child(_card(l))
+		if allowed.is_empty() or allowed.has(l["id"]):
+			grid.add_child(_card(l))
 	add_child(_label(tr("Look"), 28, pal.text))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)

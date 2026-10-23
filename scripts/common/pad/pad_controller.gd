@@ -12,6 +12,11 @@ extends Control
 ##
 ## Opacity 0 hides the controller completely; the buttons still work and a touched part lights up
 ## faintly. The Options panel (pad_options.gd) changes everything below at runtime.
+## A game reveals parts as its story or levels unlock them (`reveal("a")` pops the button in with a
+## pulse ring; `set_hidden` is the instant version), puts a word under a button (`set_state("a",
+## {"sub": "USE", "enabled": true, "ring": false, "icon": ""})`) and picks a layout the player has
+## not chosen yet (`default_layout`). The pad pauses with the game (the kit's pause menu is never
+## pressed through); `works_while_paused = true` opts out.
 ## Every finger is tracked by its own index (stick + buttons at once). Phones send emulated mouse
 ## events for each touch, so once a real touch is seen the mouse is ignored.
 ##
@@ -28,6 +33,8 @@ const Prefs = preload("res://scripts/common/pad/pad_prefs.gd")
 const FIRE_AT := 0.35         # an aim stick fires beyond this deflection
 const TOUCH_ALPHA := 0.6      # a touched part never draws fainter than this
 const MAP_COLOR := Color(1.0, 0.85, 0.2, 0.95)
+const REVEAL_S := 0.35
+const PULSE_S := 1.1
 
 const KEYS := {
 	"pad_move_left": [KEY_A], "pad_move_right": [KEY_D], "pad_move_up": [KEY_W], "pad_move_down": [KEY_S],
@@ -41,6 +48,13 @@ var prefs: Dictionary = {}
 var layout_override := ""
 ## Draw-only mode for the layout cards in the Options panel: no input, no saving.
 var preview := false
+## Used until the player has picked a layout of their own in Options.
+var default_layout := ""
+## The layouts this game can work with (a game that needs A, B and a menu button can't use the
+## one-button layout). Empty = all. Options only offers these, and a saved layout outside it is ignored.
+var allowed_layouts: Array = []
+## By default the pad stops with the game's pause (the kit's pause menu is drawn over the game).
+var works_while_paused := false
 
 var _placed: Array = []
 var _layout: Dictionary = {}
@@ -52,8 +66,12 @@ var _knob := {}                # stick id -> knob offset in pixels
 var _origin := {}              # stick id -> centre while held (floating sticks move it)
 var _dpad_cur := {}            # dpad id -> last 4-way direction (hysteresis)
 var _map := {}                 # part id -> Array of extra action names
-var _hidden := {}              # part id -> true
-var _labels := {}              # button id -> {"label": String, "enabled": bool}
+var _hidden := {}              # part id -> true (hidden or still popping in)
+var _props := {}               # part id -> {"label", "sub", "enabled", "ring", "icon"}
+var _rv := {}                  # part id -> 0..1 reveal progress (missing = fully shown)
+var _pulse := {}               # part id -> 1..0 pulse ring after a reveal
+var _clock := 0.0
+var _layout_chosen := false    # the player picked a layout (a game's default_layout then no longer applies)
 
 static func ensure_actions() -> void:
 	for action in KEYS:
@@ -70,9 +88,13 @@ func _ready() -> void:
 	ensure_actions()
 	if prefs.is_empty():
 		prefs = Prefs.load_prefs()
+		_layout_chosen = Prefs.has_saved("layout")
+		if default_layout != "" and not _layout_chosen:
+			prefs["layout"] = default_layout
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	process_mode = Node.PROCESS_MODE_ALWAYS
+	process_mode = Node.PROCESS_MODE_ALWAYS if works_while_paused else Node.PROCESS_MODE_PAUSABLE
 	set_process_input(not preview)
+	set_process(false)
 	if get_parent() is CanvasLayer:
 		_fit_to_viewport()
 		get_viewport().size_changed.connect(_fit_to_viewport)
@@ -82,6 +104,10 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	release_all()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED:
+		release_all()   # the game paused: no stick or button stays held under the pause menu
 
 func _fit_to_viewport() -> void:
 	position = Vector2.ZERO
@@ -94,6 +120,8 @@ func _on_visibility() -> void:
 ## Re-places every part for the current size, prefs and layout.
 func _replace() -> void:
 	var id: String = layout_override if layout_override != "" else str(prefs.get("layout", "stick_4"))
+	if not allowed_layouts.is_empty() and not allowed_layouts.has(id):
+		id = default_layout if allowed_layouts.has(default_layout) else str(allowed_layouts[0])
 	var old := str(_layout.get("id", ""))
 	_layout = Layouts.get_layout(id)
 	if old != "" and old != str(_layout["id"]):
@@ -105,9 +133,15 @@ func _replace() -> void:
 
 ## Applies a full prefs dictionary (the Options panel does this live).
 func apply_prefs(p: Dictionary, save: bool = true) -> void:
-	prefs = Prefs.clean(p)
+	var clean := Prefs.clean(p)
+	if str(clean["layout"]) != str(prefs.get("layout", "")):
+		_layout_chosen = true
+	prefs = clean
 	if save and not preview:
-		Prefs.save_prefs(prefs)
+		var out := prefs.duplicate()
+		if default_layout != "" and not _layout_chosen:
+			out.erase("layout")   # keep following the game's default until the player picks one
+		Prefs.save_prefs(out)
 	release_all()
 	_replace()
 
@@ -131,20 +165,75 @@ func set_map(map: Dictionary) -> void:
 	for k in map:
 		_map[k] = map[k] if map[k] is Array else [map[k]]
 
-## Hide or show one part (a game revealing a button when the story unlocks it).
+## Hide or show one part at once (a layout part the game never uses, like X / Y / the aim stick).
 func set_hidden(id: String, hide: bool) -> void:
+	_pulse.erase(id)
 	if hide:
 		_hidden[id] = true
+		_rv[id] = 0.0
 		if _down.get(id, false):
 			_set_button(id, false)
 	else:
 		_hidden.erase(id)
+		_rv.erase(id)
 	queue_redraw()
+
+## Shows a hidden part for the first time: it pops in and a ring pulses around it.
+func reveal(id: String, animate: bool = true) -> void:
+	if not _hidden.has(id) and not _rv.has(id):
+		return
+	if not animate:
+		set_hidden(id, false)
+		return
+	_hidden.erase(id)
+	if not _rv.has(id):
+		_rv[id] = 0.0
+	_pulse[id] = 1.0
+	set_process(true)
+	queue_redraw()
+
+## How visible a part is, 0..1 (1 once revealed or never hidden).
+func visibility_of(id: String) -> float:
+	if _hidden.has(id):
+		return 0.0
+	return float(_rv.get(id, 1.0))
+
+## Properties of a part: label (replaces the letter), sub (a word under it), enabled (dimmed when
+## false, still pressable), ring (an amber ring, e.g. "sneaking"), icon (pills: pause / info / menu).
+func set_state(id: String, props: Dictionary) -> void:
+	var cur: Dictionary = _props.get(id, {})
+	var next := cur.duplicate()
+	for k in props:
+		next[k] = props[k]
+	if next != cur:
+		_props[id] = next
+		queue_redraw()
 
 ## Change a button's letter and whether it is usable (dimmed when not).
 func set_button(id: String, label: String = "", enabled: bool = true) -> void:
-	_labels[id] = {"label": label, "enabled": enabled}
+	set_state(id, {"label": label, "enabled": enabled})
+
+func _process(delta: float) -> void:
+	_clock += delta
+	var busy := false
+	for id in _rv.keys():
+		if _hidden.has(id):
+			continue
+		var v: float = _rv[id]
+		if v < 1.0:
+			_rv[id] = minf(1.0, v + delta / REVEAL_S)
+			busy = true
+		else:
+			_rv.erase(id)
+	for id in _pulse.keys():
+		_pulse[id] = float(_pulse[id]) - delta / PULSE_S
+		if _pulse[id] <= 0.0:
+			_pulse.erase(id)
+		else:
+			busy = true
 	queue_redraw()
+	if not busy:
+		set_process(false)
 
 # ---------------------------------------------------------------- what the game reads
 func get_vector(id: String = "move") -> Vector2:
@@ -264,14 +353,14 @@ func _move(fid: int, pos: Vector2) -> bool:
 ## The part under `pos`: small buttons first, then the big stick / D-pad areas.
 func _hit(pos: Vector2) -> Dictionary:
 	for el in _placed:
-		if _hidden.has(el["id"]):
+		if visibility_of(el["id"]) < 0.5:
 			continue
 		if el["kind"] == "button" and pos.distance_to(el["pos"]) <= el["r"] * 1.18 and not _down.get(el["id"], false):
 			return el
 		if el["kind"] == "pill" and Rect2(el["rect"]).grow(10.0).has_point(pos) and not _down.get(el["id"], false):
 			return el
 	for el in _placed:
-		if _hidden.has(el["id"]) or _held(el["id"]):
+		if visibility_of(el["id"]) < 0.5 or _held(el["id"]):
 			continue
 		if el["kind"] == "dpad" and pos.distance_to(el["pos"]) <= el["r"] * 1.2:
 			return el
@@ -386,41 +475,100 @@ func release_all() -> void:
 	queue_redraw()
 
 # ---------------------------------------------------------------- drawing
+## A part pops in with a little overshoot (reveal).
+static func _pop(k: float) -> float:
+	var c1 := 1.70158
+	var c3 := c1 + 1.0
+	var t := clampf(k, 0.0, 1.0) - 1.0
+	return clampf(1.0 + c3 * pow(t, 3.0) + c1 * pow(t, 2.0), 0.0, 1.3)
+
+## Pressed from the screen or from its actions (a keyboard key lights it too).
+func _lit(id: String) -> bool:
+	if _down.get(id, false):
+		return true
+	for n in action_names(id):
+		if InputMap.has_action(str(n)) and Input.is_action_pressed(str(n)):
+			return true
+	return false
+
+## The direction the D-pad's actions are held in (touch or keyboard), for the lit arrows.
+func _dir_of(id: String) -> Vector2:
+	var names := action_names(id)
+	var v := Vector2.ZERO
+	for i in names.size():
+		var n := str(names[i])
+		if not InputMap.has_action(n) or not Input.is_action_pressed(n):
+			continue
+		match i % 4:
+			0: v.x = -1.0
+			1: v.x = 1.0
+			2: v.y = -1.0
+			3: v.y = 1.0
+	return v
+
 func _draw() -> void:
 	if prefs.is_empty() or _placed.is_empty():
 		return
 	var sk := Draw.skin(str(prefs["skin"]))
 	var base := float(prefs["opacity"])
 	for el in _placed:
-		if el["kind"] == "plate" and not _hidden.has(el["id"]):
-			Draw.plate(self, el["pos"], el["r"], sk, base)
+		if el["kind"] != "plate":
+			continue
+		# The plate shows once two of its buttons do (a lone A sits on its own, no empty plate).
+		var vis: Array = []
+		for bid in el["ids"]:
+			vis.append(visibility_of(str(bid)))
+		vis.sort()
+		var k: float = vis[vis.size() - 2]
+		if k > 0.01:
+			_with_pop(el["pos"], k)
+			Draw.plate(self, el["pos"], el["r"], sk, base * k)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	for el in _placed:
 		var id: String = el["id"]
-		if _hidden.has(id):
+		var k := visibility_of(id)
+		if k <= 0.01 or el["kind"] == "plate":
 			continue
-		var held: bool = _held(id) or bool(_down.get(id, false))
-		var a := maxf(base, TOUCH_ALPHA) if held else base
+		var held: bool = _held(id) or _lit(id)
+		var a := (maxf(base, TOUCH_ALPHA) if held else base) * k
+		var props: Dictionary = _props.get(id, {})
+		_with_pop(el["pos"], k)
 		match el["kind"]:
 			"stick":
 				var c: Vector2 = _origin.get(id, el["pos"])
-				var idle_a := a if (held or not el["floating"]) else a * 0.5
-				Draw.stick(self, c, el["r"], el["knob"], _knob.get(id, Vector2.ZERO), held, sk, idle_a)
+				var idle_a := a if (_held(id) or not el["floating"]) else a * 0.5
+				Draw.stick(self, c, el["r"], el["knob"], _knob.get(id, Vector2.ZERO), _held(id), sk, idle_a)
 			"dpad":
-				Draw.dpad(self, el["pos"], el["r"], _vec.get(id, Vector2.ZERO), sk, a)
+				var lit_dir: Vector2 = _vec.get(id, Vector2.ZERO)
+				if lit_dir == Vector2.ZERO:
+					lit_dir = _dir_of(id)
+				Draw.dpad(self, el["pos"], el["r"], lit_dir, sk, a)
 			"button":
-				var lab: Dictionary = _labels.get(id, {})
-				var text: String = str(lab.get("label", ""))
-				Draw.button(self, el["pos"], el["r"], id, text if text != "" else str(el["label"]), _down.get(id, false), bool(lab.get("enabled", true)), sk, a)
+				var text: String = str(props.get("label", ""))
+				Draw.button(self, el["pos"], el["r"], id, text if text != "" else str(el["label"]), _lit(id),
+					bool(props.get("enabled", true)), sk, a, str(props.get("sub", "")), bool(props.get("ring", false)))
 			"pill":
-				Draw.pill(self, el["rect"], el["icon"], _down.get(id, false), sk, a)
+				Draw.pill(self, el["rect"], str(props.get("icon", el["icon"])), _lit(id), sk, a)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		if _pulse.has(id):
+			var rr: float = el["r"] if el.has("r") else maxf(Rect2(el["rect"]).size.x, Rect2(el["rect"]).size.y) * 0.5
+			var p: float = _pulse[id]
+			draw_arc(el["pos"], rr * (1.0 + (1.0 - p) * 0.7), 0.0, TAU, 48, Color(1.0, 0.8, 0.35, p * 0.9), 4.0, true)
 	if bool(prefs.get("show_map", false)) and not preview:
 		_draw_map()
+
+func _with_pop(c: Vector2, k: float) -> void:
+	if k >= 0.999:
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
+	var sc := _pop(k)
+	draw_set_transform(c - c * sc, 0.0, Vector2(sc, sc))
 
 ## Map mode: dashed hit areas and the action names on every part, at full strength.
 func _draw_map() -> void:
 	for el in _placed:
 		var id: String = el["id"]
-		if el["kind"] == "plate" or _hidden.has(id):
+		if el["kind"] == "plate" or visibility_of(id) < 0.5:
 			continue
 		var names: Array = []
 		for n in action_names(id):

@@ -41,6 +41,115 @@ func _part(c: Control, id: String) -> Dictionary:
 			return el
 	return {}
 
+## What a game like Turned needs: reveal, pause, narrow screens, a default layout, button words.
+func _game_features() -> void:
+	var had_prefs := FileAccess.file_exists(Prefs.PATH)
+	var saved_prefs := FileAccess.get_file_as_string(Prefs.PATH) if had_prefs else ""
+	# reveal: a hidden part is invisible and untouchable until it pops in
+	var c := _make("dpad_4")
+	c.set_hidden("a", true)
+	check("hidden: not visible", c.visibility_of("a"), 0.0)
+	check("hidden: not touchable", c._press(1, _part(c, "a")["pos"], true), false)
+	c.reveal("a")
+	check("revealing starts at zero", c.visibility_of("a"), 0.0)
+	c._process(0.2)
+	ok("half way in is touchable", c.visibility_of("a") > 0.5 and c._press(2, _part(c, "a")["pos"], true))
+	c._press(2, Vector2.ZERO, false)
+	c._process(0.5)
+	check("fully in", c.visibility_of("a"), 1.0)
+	c.reveal("b")   # b was never hidden: nothing happens
+	check("reveal of a shown part is a no-op", c.visibility_of("b"), 1.0)
+	c.set_hidden("x", true)
+	c.set_hidden("y", true)
+	var plate_ok := true
+	for el in c.parts():
+		if el["kind"] == "plate":
+			plate_ok = el["ids"].has("a")
+	ok("plate follows its buttons", plate_ok)
+	c.set_hidden("b", true)
+	c.set_hidden("a", false)
+	var lone := true
+	for el in c.parts():
+		if el["kind"] == "plate":
+			var vis: Array = []
+			for bid in el["ids"]:
+				vis.append(c.visibility_of(str(bid)))
+			vis.sort()
+			lone = vis[vis.size() - 2] == 0.0
+	ok("a lone button has no plate", lone)
+	c.set_hidden("b", false)
+	# words under buttons, ring, icon
+	c.set_state("a", {"sub": "USE", "enabled": false})
+	c.set_state("b", {"ring": true})
+	c.set_state("info", {"icon": "menu"})
+	check("sub kept", c._props["a"]["sub"], "USE")
+	check("state merges", c._props["a"]["enabled"], false)
+	# lit from a mapped action (a keyboard key lights the button too)
+	if not InputMap.has_action("tn_a2"):
+		InputMap.add_action("tn_a2")
+	c.set_map({"a": ["tn_a2"]})
+	Input.action_press("tn_a2")
+	check("lit by its mapped action", c._lit("a"), true)
+	Input.action_release("tn_a2")
+	c.queue_free()
+	# pausing the game lets go of everything
+	c = _make("stick_4")
+	var st := _part(c, "move")
+	c._press(1, st["pos"], true)
+	c._move(1, st["pos"] + Vector2(st["r"], 0))
+	ok("held before the pause", c.get_vector("move").x > 0.9)
+	paused = true
+	await process_frame
+	check("pause releases the stick", c.get_vector("move"), Vector2.ZERO)
+	check("pause releases the finger", c.finger_count(), 0)
+	paused = false
+	c.queue_free()
+	# a narrow (portrait / tablet) screen shrinks the pad instead of blowing it up
+	for lid in Layouts.ids():
+		var c2: Control = Pad.new()
+		var p2: Dictionary = Prefs.DEFAULTS.duplicate()
+		p2["layout"] = lid
+		c2.prefs = p2
+		root.add_child(c2)
+		c2.size = Vector2(720, 1280)
+		c2._replace()
+		for el in c2.parts():
+			if el["kind"] == "plate":
+				continue
+			var r: float = el["r"] if el.has("r") else maxf(Rect2(el["rect"]).size.x, Rect2(el["rect"]).size.y) * 0.5
+			var p: Vector2 = el["pos"]
+			ok("%s %s inside a 720x1280 screen" % [lid, el["id"]], p.x - r >= 0.0 and p.y - r >= 0.0 and p.x + r <= 720.0 and p.y + r <= 1280.0)
+		c2.queue_free()
+	# a game's default layout holds until the player picks one
+	if FileAccess.file_exists(Prefs.PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(Prefs.PATH))
+	var g: Control = Pad.new()
+	g.default_layout = "dpad_2"
+	root.add_child(g)
+	g.size = SIZE
+	check("default layout used", g.layout_id(), "dpad_2")
+	g.set_pref("opacity", 0.5)
+	ok("changing opacity does not lock the layout", not Prefs.has_saved("layout"))
+	var g2: Control = Pad.new()
+	g2.default_layout = "dpad_2"
+	root.add_child(g2)
+	g2.size = SIZE
+	check("still the default after a reload", g2.layout_id(), "dpad_2")
+	check("opacity was saved", float(g2.prefs["opacity"]), 0.5)
+	g2.set_pref("layout", "stick_1")
+	var g3: Control = Pad.new()
+	g3.default_layout = "dpad_2"
+	root.add_child(g3)
+	g3.size = SIZE
+	check("the player's pick wins", g3.layout_id(), "stick_1")
+	for n in [g, g2, g3]:
+		n.queue_free()
+	if had_prefs:
+		var f := FileAccess.open(Prefs.PATH, FileAccess.WRITE)
+		f.store_string(saved_prefs)
+	elif FileAccess.file_exists(Prefs.PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(Prefs.PATH))
+
 ## The Landing kit's Options shows "Controls" only for a game that defines _pad().
 func _kit_hook() -> void:
 	var Kit = load("res://scripts/games/tictactoe/home_kit.gd")
@@ -267,6 +376,7 @@ func _run() -> void:
 	check("layout step wraps forward", Layouts.step(Layouts.ids()[Layouts.ids().size() - 1], 1), Layouts.ids()[0])
 	check("layout step wraps back", Layouts.step(Layouts.ids()[0], -1), Layouts.ids()[Layouts.ids().size() - 1])
 	check("unknown layout falls back", Layouts.get_layout("nope")["id"], Layouts.LAYOUTS[0]["id"])
+	await _game_features()
 	await _kit_hook()
 	print("test_pad: ", "OK" if fails == 0 else "%d FAILED" % fails)
 	quit(1 if fails > 0 else 0)

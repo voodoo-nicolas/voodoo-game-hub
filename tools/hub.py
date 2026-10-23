@@ -264,7 +264,7 @@ def render_presets(ids: list[str]) -> str:
             # The bundled manifest.json is the offline fallback catalog.
             body = re.sub(r'(?m)^include_filter=.*$', 'include_filter="manifest.json"', body)
         # The name players see: Android's app label, Windows' product name.
-        suffix = " Pad Lab" if p["name"] == "PadLabDev" else (" Dev" if p["name"].endswith("Dev") else "")
+        suffix = {"PadLabDev": " Pad Lab", "TurnedDev": " Turned Dev"}.get(p["name"], " Dev" if p["name"].endswith("Dev") else "")
         body = re.sub(r'(?m)^package/name=.*$', f'package/name="{brand}{suffix}"', body)
         body = re.sub(r'(?m)^application/product_name=.*$', f'application/product_name="{brand}"', body)
         chunks.append(body)

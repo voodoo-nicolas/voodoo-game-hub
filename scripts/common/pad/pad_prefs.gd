@@ -32,6 +32,16 @@ static func load_prefs() -> Dictionary:
 						out[key] = float(data[key])
 	return clean(out)
 
+## True when the player has saved a value for `key` (so a game's own default must not override it).
+static func has_saved(key: String) -> bool:
+	if not FileAccess.file_exists(PATH):
+		return false
+	var f := FileAccess.open(PATH, FileAccess.READ)
+	if f == null:
+		return false
+	var data = JSON.parse_string(f.get_as_text())
+	return data is Dictionary and data.has(key)
+
 static func save_prefs(prefs: Dictionary) -> void:
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
 	if f != null:

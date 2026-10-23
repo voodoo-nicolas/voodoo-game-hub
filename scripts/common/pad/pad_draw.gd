@@ -104,7 +104,8 @@ static func dpad(ci: CanvasItem, p: Vector2, r: float, lit: Vector2, sk: Diction
 		_tri(ci, c, d, r * 0.13, _c(sk["text"], a * (1.0 if on else 0.8)))
 
 ## A round button. `color` tints the ring and letter (neon face colours); `down` lights it.
-static func button(ci: CanvasItem, p: Vector2, r: float, id: String, label: String, down: bool, enabled: bool, sk: Dictionary, a: float) -> void:
+## `sub` = a word under the letter (shrunk to fit); `ring` = an amber ring around it (e.g. sneaking).
+static func button(ci: CanvasItem, p: Vector2, r: float, id: String, label: String, down: bool, enabled: bool, sk: Dictionary, a: float, sub: String = "", ring: bool = false) -> void:
 	var col: Color = sk["face"].get(id, sk["line"])
 	var al := a * (1.0 if enabled else 0.4)
 	ci.draw_circle(p, r, _c(sk["fill"], al))
@@ -114,7 +115,18 @@ static func button(ci: CanvasItem, p: Vector2, r: float, id: String, label: Stri
 		_glow(ci, p, r, col, al)
 	_ring(ci, p, r, _c(col, al), 3.0)
 	ci.draw_circle(p + Vector2(-r * 0.2, -r * 0.28), r * 0.5, Color(1, 1, 1, 0.07 * al))
-	_text(ci, p, label, int(r * 0.9), _c(col if sk["glow"] else sk["text"], al))
+	var tc: Color = col if sk["glow"] else sk["text"]
+	if sub == "":
+		_text(ci, p, label, int(r * 0.9), _c(tc, al))
+	else:
+		_text(ci, p + Vector2(0, -r * 0.2), label, int(r * 0.72), _c(tc, al))
+		var px := int(r * 0.34)
+		var font := ThemeDB.fallback_font
+		while px > 9 and font.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x > r * 1.65:
+			px -= 1
+		_text(ci, p + Vector2(0, r * 0.46), sub, px, _c(sk["text"], al * 0.95))
+	if ring:
+		_ring(ci, p, r + 6.0, Color(1.0, 0.78, 0.3, 0.9 * a), 3.0)
 
 ## A small rounded system button with an icon.
 static func pill(ci: CanvasItem, rect: Rect2, icon: String, down: bool, sk: Dictionary, a: float) -> void:

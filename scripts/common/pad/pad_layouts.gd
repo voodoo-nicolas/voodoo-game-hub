@@ -16,6 +16,7 @@ extends RefCounted
 ## bottom] ("top": true measures the second value from the top instead).
 
 const REF_H := 720.0
+const REF_W := 1280.0
 const MARGIN := 8.0
 
 const LAYOUTS := [
@@ -46,7 +47,8 @@ const LAYOUTS := [
 			{"type": "stick", "id": "move", "side": "left", "off": [200, 190], "r": 130, "knob": 60},
 			{"type": "button", "id": "a", "side": "right", "off": [270, 130], "r": 62},
 			{"type": "button", "id": "b", "side": "right", "off": [135, 250], "r": 62},
-			{"type": "pill", "id": "pause", "side": "center", "off": [0, 62], "w": 112, "h": 64, "icon": "pause"},
+			{"type": "pill", "id": "pause", "side": "center", "off": [-63, 62], "w": 112, "h": 64, "icon": "pause"},
+			{"type": "pill", "id": "info", "side": "center", "off": [63, 62], "w": 112, "h": 64, "icon": "info"},
 		],
 	},
 	{
@@ -56,7 +58,8 @@ const LAYOUTS := [
 			{"type": "dpad", "id": "move", "side": "left", "off": [200, 190], "r": 130},
 			{"type": "button", "id": "a", "side": "right", "off": [270, 130], "r": 62},
 			{"type": "button", "id": "b", "side": "right", "off": [135, 250], "r": 62},
-			{"type": "pill", "id": "pause", "side": "center", "off": [0, 62], "w": 112, "h": 64, "icon": "pause"},
+			{"type": "pill", "id": "pause", "side": "center", "off": [-63, 62], "w": 112, "h": 64, "icon": "pause"},
+			{"type": "pill", "id": "info", "side": "center", "off": [63, 62], "w": 112, "h": 64, "icon": "info"},
 		],
 	},
 	{
@@ -78,9 +81,10 @@ const LAYOUTS := [
 		"parts": [
 			{"type": "stick", "id": "move", "side": "left", "off": [200, 190], "r": 130, "knob": 60},
 			{"type": "stick", "id": "aim", "side": "right", "off": [200, 190], "r": 130, "knob": 60, "fires": true},
-			{"type": "button", "id": "a", "side": "right", "off": [410, 130], "r": 46},
-			{"type": "button", "id": "b", "side": "right", "off": [410, 245], "r": 46},
-			{"type": "pill", "id": "pause", "side": "center", "off": [0, 62], "w": 112, "h": 64, "icon": "pause"},
+			{"type": "button", "id": "a", "side": "right", "off": [410, 230], "r": 46},
+			{"type": "button", "id": "b", "side": "right", "off": [410, 350], "r": 46},
+			{"type": "pill", "id": "pause", "side": "center", "off": [-63, 62], "w": 112, "h": 64, "icon": "pause"},
+			{"type": "pill", "id": "info", "side": "center", "off": [63, 62], "w": 112, "h": 64, "icon": "info"},
 		],
 	},
 	{
@@ -89,7 +93,8 @@ const LAYOUTS := [
 		"parts": [
 			{"type": "stick", "id": "move", "side": "left", "off": [200, 190], "r": 130, "knob": 60},
 			{"type": "button", "id": "a", "side": "right", "off": [190, 190], "r": 80},
-			{"type": "pill", "id": "pause", "side": "center", "off": [0, 62], "w": 112, "h": 64, "icon": "pause"},
+			{"type": "pill", "id": "pause", "side": "center", "off": [-63, 62], "w": 112, "h": 64, "icon": "pause"},
+			{"type": "pill", "id": "info", "side": "center", "off": [63, 62], "w": 112, "h": 64, "icon": "info"},
 		],
 	},
 ]
@@ -116,7 +121,8 @@ static func step(id: String, dir: int) -> String:
 ## `right_handed` false mirrors left/right, `floating` gives each stick a touch zone instead of a
 ## fixed spot. Each entry: {kind, id, pos, r, ...}; pill has `rect`, stick has `knob` + `zone`.
 static func place(layout: Dictionary, size: Vector2, scale: float, right_handed: bool, floating: bool) -> Array:
-	var k := size.y / REF_H * scale
+	# Height decides on a phone; a narrower screen (a tablet, a portrait phone) shrinks the pad to fit.
+	var k := minf(size.y / REF_H, size.x / REF_W) * scale
 	var out: Array = []
 	for part in layout["parts"]:
 		var t: String = part["type"]
@@ -151,7 +157,7 @@ static func place(layout: Dictionary, size: Vector2, scale: float, right_handed:
 				var br: float = float(part["r"]) * k
 				var plate_r := g + br * 1.55
 				p = _clamp(p, plate_r, size)
-				out.append({"kind": "plate", "id": "plate_" + str(part["ids"][3]), "pos": p, "r": plate_r})
+				out.append({"kind": "plate", "id": "plate_" + str(part["ids"][3]), "pos": p, "r": plate_r, "ids": part["ids"]})
 				var spots := [Vector2(0, -g), Vector2(-g, 0), Vector2(g, 0), Vector2(0, g)]
 				for i in 4:
 					var bid: String = part["ids"][i]

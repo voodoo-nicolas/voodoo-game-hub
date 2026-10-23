@@ -20,6 +20,10 @@ const Save = preload("res://scripts/games/turned/turned_save.gd")
 const InputMapper = preload("res://scripts/games/turned/turned_input.gd")
 const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
 const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
+## The app's shared on-screen controller; older apps don't have it and Turned keeps its own controls.
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+## Layouts that have A, B, a Pause and a Menu button (Turned needs all four).
+const PAD_LAYOUTS := ["dpad_4", "stick_4", "dpad_2", "stick_2", "stick_arc"]
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const ACCENT := Color("d9a441")
@@ -28,6 +32,7 @@ var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
 var world: Node2D = null
 var hud: Control = null
+var pad: Control = null
 var _holder: Control = null
 var _view_box: SubViewportContainer = null
 var _view: SubViewport = null
@@ -120,7 +125,24 @@ func _spawn_world() -> void:
 	world.stat_event.connect(_on_stat)
 	_view.add_child(world)
 	world.attach_hud(hud)
+	_add_pad()
 	_fit_world()
+
+## The shared Pad under the HUD (so fades and the close-up draw over it), when the app has it.
+func _add_pad() -> void:
+	if not ResourceLoader.exists(PAD_PATH):
+		return
+	pad = load(PAD_PATH).new()
+	pad.default_layout = "dpad_4"          # D-pad left, A under B, as Turned always was
+	pad.allowed_layouts = PAD_LAYOUTS
+	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(pad)
+	move_child(pad, 1)                    # over the world, under the HUD and the kit
+	hud.use_pad(pad)
+
+## The kit's Options shows the "Controls" section for this.
+func _pad() -> Control:
+	return pad
 
 ## The world's viewport: as big as this Control (canvas units), rendered at the screen's pixel
 ## density (k pixels per canvas unit) and shown scaled back by 1/k.
@@ -150,6 +172,9 @@ func _discard_world() -> void:
 	if hud != null and is_instance_valid(hud):
 		hud.release_inputs()
 		hud.queue_free()
+	if pad != null and is_instance_valid(pad):
+		pad.queue_free()
+	pad = null
 	if _holder != null:
 		_holder.queue_free()
 	_holder = null

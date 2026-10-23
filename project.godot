@@ -10,6 +10,7 @@ config/name="Voodoo"
 run/main_scene="res://scenes/hub/hub.tscn"
 run/main_scene.trace_dev="res://scenes/games/trace_it/trace_it.tscn"
 run/main_scene.pad_lab="res://scenes/games/pad_lab/pad_lab.tscn"
+run/main_scene.turned_dev="res://scenes/games/turned/turned.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.png"
 config/icon.game_pack=""
