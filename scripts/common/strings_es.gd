@@ -312,6 +312,7 @@ const ES := {
 	"Settings": "Ajustes",
 	"Sexual content": "Contenido sexual",
 	"Show button map": "Mostrar mapa de botones",
+	"Show password": "Mostrar contraseña",
 	"Sign In": "Iniciar sesión",
 	"Sign Out": "Cerrar sesión",
 	"Sign Up": "Registrarse",

@@ -9,6 +9,7 @@ var display_name_row: VBoxContainer
 var display_name_field: LineEdit
 var email_field: LineEdit
 var password_field: LineEdit
+var show_password_check: CheckBox
 var submit_btn: Button
 var sign_in_tab: Button
 var sign_up_tab: Button
@@ -112,8 +113,8 @@ func _build_ui() -> void:
 	root.add_child(center)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	box.custom_minimum_size = Vector2(280, 0)
+	box.add_theme_constant_override("separation", 16)
+	box.custom_minimum_size = Vector2(minf(620.0, get_viewport_rect().size.x - 48.0), 0)
 	center.add_child(box)
 
 	var tab_row := HBoxContainer.new()
@@ -122,18 +123,18 @@ func _build_ui() -> void:
 
 	sign_in_tab = Button.new()
 	sign_in_tab.text = tr("Sign In")
-	sign_in_tab.custom_minimum_size = Vector2(0, 46)
+	sign_in_tab.custom_minimum_size = Vector2(0, 64)
 	sign_in_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sign_in_tab.add_theme_font_size_override("font_size", 23)
+	sign_in_tab.add_theme_font_size_override("font_size", 28)
 	sign_in_tab.focus_mode = Control.FOCUS_NONE
 	sign_in_tab.pressed.connect(func(): _set_mode(false))
 	tab_row.add_child(sign_in_tab)
 
 	sign_up_tab = Button.new()
 	sign_up_tab.text = tr("Sign Up")
-	sign_up_tab.custom_minimum_size = Vector2(0, 46)
+	sign_up_tab.custom_minimum_size = Vector2(0, 64)
 	sign_up_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sign_up_tab.add_theme_font_size_override("font_size", 23)
+	sign_up_tab.add_theme_font_size_override("font_size", 28)
 	sign_up_tab.focus_mode = Control.FOCUS_NONE
 	sign_up_tab.pressed.connect(func(): _set_mode(true))
 	tab_row.add_child(sign_up_tab)
@@ -146,44 +147,55 @@ func _build_ui() -> void:
 	box.add_child(display_name_row)
 	var dn_label := Label.new()
 	dn_label.text = tr("Display name")
-	dn_label.add_theme_font_size_override("font_size", 19)
+	dn_label.add_theme_font_size_override("font_size", 26)
 	dn_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	display_name_row.add_child(dn_label)
 	display_name_field = LineEdit.new()
 	display_name_field.placeholder_text = tr("What should we call you?")
-	display_name_field.custom_minimum_size = Vector2(0, 44)
+	display_name_field.custom_minimum_size = Vector2(0, 72)
+	display_name_field.add_theme_font_size_override("font_size", 28)
 	display_name_row.add_child(display_name_field)
 
 	var email_label := Label.new()
 	email_label.text = tr("Email")
-	email_label.add_theme_font_size_override("font_size", 19)
+	email_label.add_theme_font_size_override("font_size", 26)
 	email_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	box.add_child(email_label)
 	email_field = LineEdit.new()
 	email_field.placeholder_text = tr("you@example.com")
-	email_field.custom_minimum_size = Vector2(0, 44)
+	email_field.custom_minimum_size = Vector2(0, 72)
+	email_field.add_theme_font_size_override("font_size", 28)
 	box.add_child(email_field)
 
 	var password_label := Label.new()
 	password_label.text = tr("Password")
-	password_label.add_theme_font_size_override("font_size", 19)
+	password_label.add_theme_font_size_override("font_size", 26)
 	password_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	box.add_child(password_label)
 	password_field = LineEdit.new()
 	password_field.secret = true
 	password_field.placeholder_text = tr("At least 6 characters")
-	password_field.custom_minimum_size = Vector2(0, 44)
+	password_field.custom_minimum_size = Vector2(0, 72)
+	password_field.add_theme_font_size_override("font_size", 28)
 	box.add_child(password_field)
 
+	show_password_check = CheckBox.new()
+	show_password_check.text = tr("Show password")
+	show_password_check.add_theme_font_size_override("font_size", 26)
+	show_password_check.focus_mode = Control.FOCUS_NONE
+	show_password_check.toggled.connect(_on_show_password_toggled)
+	box.add_child(show_password_check)
+
 	submit_btn = Button.new()
-	submit_btn.custom_minimum_size = Vector2(0, 52)
-	submit_btn.add_theme_font_size_override("font_size", 24)
+	submit_btn.custom_minimum_size = Vector2(0, 76)
+	submit_btn.add_theme_font_size_override("font_size", 30)
 	submit_btn.pressed.connect(_on_submit)
 	box.add_child(submit_btn)
 
 	forgot_btn = Button.new()
 	forgot_btn.text = tr("Forgot password?")
 	forgot_btn.flat = true
+	forgot_btn.add_theme_font_size_override("font_size", 24)
 	forgot_btn.pressed.connect(_on_forgot_password)
 	box.add_child(forgot_btn)
 
@@ -193,29 +205,33 @@ func _build_ui() -> void:
 	var or_label := Label.new()
 	or_label.text = tr("or continue with")
 	or_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	or_label.add_theme_font_size_override("font_size", 18)
+	or_label.add_theme_font_size_override("font_size", 22)
 	or_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.66))
 	social_box.add_child(or_label)
 	for spec in [["google", "Google"], ["facebook", "Facebook"]]:
 		var b := Button.new()
 		b.text = tr("Continue with %s") % spec[1]
-		b.custom_minimum_size = Vector2(0, 50)
-		b.add_theme_font_size_override("font_size", 22)
+		b.custom_minimum_size = Vector2(0, 68)
+		b.add_theme_font_size_override("font_size", 26)
 		b.pressed.connect(_on_oauth.bind(spec[0]))
 		social_box.add_child(b)
 	var paste := Button.new()
 	paste.text = tr("Paste sign-in code")
 	paste.flat = true
+	paste.add_theme_font_size_override("font_size", 24)
 	paste.pressed.connect(_on_paste_code)
 	social_box.add_child(paste)
 
 	status_label = Label.new()
-	status_label.add_theme_font_size_override("font_size", 20)
+	status_label.add_theme_font_size_override("font_size", 24)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(status_label)
 
 	_update_mode_ui()
+
+func _on_show_password_toggled(on: bool) -> void:
+	password_field.secret = not on
 
 func _set_mode(is_sign_up: bool) -> void:
 	if mode_sign_up == is_sign_up:
