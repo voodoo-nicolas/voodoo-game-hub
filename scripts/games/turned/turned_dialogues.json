@@ -1,0 +1,55 @@
+{
+  "dev_demo": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "watcher",
+        "text": "dev_hello",
+        "next": "n2"
+      },
+      "n2": {
+        "type": "choice",
+        "speaker": "",
+        "text": "dev_ask",
+        "options": [
+          {
+            "text": "dev_opt_take",
+            "if": [
+              "!item:matches"
+            ],
+            "effects": [
+              "item:+matches",
+              "flag:dev_took"
+            ],
+            "next": "n3"
+          },
+          {
+            "text": "dev_opt_have",
+            "if": [
+              "item:matches"
+            ],
+            "next": "n4"
+          },
+          {
+            "text": "dev_opt_look",
+            "next": "n5"
+          }
+        ]
+      },
+      "n3": {
+        "speaker": "",
+        "text": "dev_took",
+        "next": "n4"
+      },
+      "n5": {
+        "speaker": "",
+        "text": "dev_quiet",
+        "next": "n4"
+      },
+      "n4": {
+        "speaker": "watcher",
+        "text": "dev_end"
+      }
+    }
+  }
+}

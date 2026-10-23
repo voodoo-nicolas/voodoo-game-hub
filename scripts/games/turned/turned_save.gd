@@ -17,13 +17,16 @@ static func clear() -> void:
 	if FileAccess.file_exists(PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 
-## `engine` is a turned_engine.gd, `clock` a turned_sun_clock.gd.
-static func write(engine: RefCounted, clock: RefCounted) -> void:
+## `engine` is a turned_engine.gd, `clock` a turned_sun_clock.gd, `dialogue` (optional) the runner
+## (a scene that is on screen is saved where it stands).
+static func write(engine: RefCounted, clock: RefCounted, dialogue: RefCounted = null) -> void:
 	var payload := {
 		"v": int(T.f("save.version")),
 		"state": engine.to_dict(),
 		"clock": clock.to_dict(),
 	}
+	if dialogue != null and dialogue.active:
+		payload["dialogue"] = dialogue.to_dict()
 	SaveUtil.write(PATH, payload)
 
 ## The saved dictionary, or {} if missing, broken or from another version.

@@ -15,6 +15,7 @@ const Save = preload("res://scripts/games/turned/turned_save.gd")
 const Text = preload("res://scripts/games/turned/turned_text.gd")
 const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
 const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
+const DialogueScript = preload("res://scripts/games/turned/turned_dialogue.gd")
 
 const DT := 1.0 / 60.0
 
@@ -45,6 +46,8 @@ func _run() -> void:
 	_test_engine()
 	await _test_flow()
 	await _test_night()
+	_test_dialogue_runner()
+	await _test_dialogue_world()
 	Save.clear()
 	if backup != "":
 		var f := FileAccess.open(Save.PATH, FileAccess.WRITE)
@@ -348,6 +351,183 @@ func _test_night() -> void:
 	world.clock.hour = 12.0
 	_step(0.5)
 	check(in_night.get_luminance() < world._ambient_color().get_luminance(), "indoors is dimmer at night than by day")
+
+# ---------------------------------------------------------------- dialogue runner and items
+
+const FIXTURE := {
+	"t": {
+		"start": "a",
+		"nodes": {
+			"a": {"speaker": "watcher", "text": "dev_hello", "next": "b"},
+			"b": {"type": "do", "effects": ["item:+matches", "flag:f1", "journal:neck", "mission:find_out", "hour:21.5", "sfx:door"], "next": "c"},
+			"c": {"type": "branch", "if": ["item:matches", "flag:f1", "!flag:nope"], "then": "d", "else": "z"},
+			"d": {"type": "choice", "text": "dev_ask", "options": [
+				{"text": "dev_opt_take", "if": ["!item:matches"], "next": "z"},
+				{"text": "dev_opt_have", "if": ["item:matches", "journal:neck", "mission:find_out"], "effects": ["flag:chose_have", "item:-matches"], "next": "e"},
+				{"text": "dev_opt_look", "effects": ["unflag:f1"], "next": "e"}]},
+			"e": {"speaker": "", "text": "dev_quiet", "if": ["flag:never"], "next": "f"},
+			"f": {"speaker": "", "text": "dev_end", "if": ["hour>=21", "day>=1", "hour<23"]},
+			"z": {"type": "end", "effects": ["flag:ended_bad"]},
+		},
+	},
+}
+
+func _test_dialogue_runner() -> void:
+	var e: EngineScript = EngineScript.new()
+	var clk: SunClock = SunClock.new()
+	clk.hour = 22.0
+	check(DialogueScript.validate(DialogueScript.shipped()).is_empty(), "the shipped dialogue scenes are valid: %s" % str(DialogueScript.validate(DialogueScript.shipped())))
+	check(DialogueScript.validate(FIXTURE).is_empty(), "the test scene is valid: %s" % str(DialogueScript.validate(FIXTURE)))
+	for text_id in Text.DIALOGUE:
+		check(str(Text.DIALOGUE[text_id]) != "", "dialogue text %s is not empty" % text_id)
+	# items and flags in the engine
+	check(not e.has_item("matches") and e.add_item("matches") and not e.add_item("matches") and e.has_item("matches"), "items: add once, no duplicates")
+	check(e.remove_item("matches") and not e.remove_item("matches"), "items: remove once")
+	e.add_item("watch")
+	e.set_flag("x")
+	e.clear_flag("x")
+	check(not e.has_flag("x"), "a flag can be cleared")
+	var back: EngineScript = EngineScript.new()
+	back.from_dict(JSON.parse_string(JSON.stringify(e.to_dict())))
+	check(back.items == ["watch"], "items survive a JSON round trip")
+	for id in Text.ITEMS:
+		check(Text.ITEMS[id].has("name") and Text.ITEMS[id].has("desc"), "item %s has a name and a description" % id)
+	var eb: EngineScript = EngineScript.new()
+	check(HudScript.item_desc("watch", eb).contains("ticks"), "the watch ticks until it breaks")
+	eb.set_flag("watch_broken")
+	check(HudScript.item_desc("watch", eb).contains("stopped"), "a broken watch has its own description")
+	e = EngineScript.new()
+	# a whole scene
+	var d: DialogueScript = DialogueScript.new(FIXTURE)
+	d.engine = e
+	d.clock = clk
+	check(not d.start("nope") and not d.active, "an unknown scene does not start")
+	check(d.start("t") and d.active and d.node_id == "a", "the scene starts on its first line")
+	var v := d.view()
+	check(v["kind"] == "line" and v["speaker"] == "watcher" and v["speaker_name"] == Text.SPEAKERS["watcher"] and v["text"] == Text.DIALOGUE["dev_hello"], "a line shows its speaker and text")
+	d.advance()
+	check(e.has_item("matches") and e.has_flag("f1") and e.journal.has("neck") and e.mission == "find_out", "the do node applied its effects")
+	check(d.take_events() == ["hour:21.5", "sfx:door"] and d.take_events().is_empty(), "effects for the world are handed over once, in order")
+	check(d.node_id == "d" and d.view()["kind"] == "choice", "the branch took its 'then' path to the choice")
+	check(d.view()["text"] == Text.DIALOGUE["dev_ask"] and d.view()["options"].size() == 2, "options whose condition fails are hidden (2 of 3 shown)")
+	check(d.view()["options"][0] == Text.DIALOGUE["dev_opt_have"], "the first shown option is the one whose conditions hold")
+	d.move(1)
+	check(d.selected == 1, "down moves the highlight")
+	d.move(1)
+	check(d.selected == 0, "the highlight wraps")
+	d.advance()
+	check(e.has_flag("chose_have") and not e.has_item("matches"), "A takes the highlighted option and applies its effects")
+	check(d.node_id == "f", "a line whose 'if' fails is skipped (e -> f)")
+	d.clock.hour = 22.0
+	check(d.holds(["hour>=21", "hour<23", "day>=1"]) and not d.holds(["hour<21"]), "clock conditions work")
+	var saved := d.to_dict()
+	var d2: DialogueScript = DialogueScript.new(FIXTURE)
+	d2.engine = e
+	d2.from_dict(JSON.parse_string(JSON.stringify(saved)))
+	check(d2.active and d2.node_id == "f", "a scene resumes where it was saved")
+	d.advance()
+	check(not d.active and d.view().is_empty() and d.to_dict().is_empty(), "a node with no next ends the scene")
+	d2.from_dict({"scene": "gone", "node": "x"})
+	check(not d2.active, "a saved scene that no longer exists is dropped")
+	# an end node applies its effects and stops the scene
+	var e3: EngineScript = EngineScript.new()
+	var d4: DialogueScript = DialogueScript.new({"u": {"start": "c", "nodes": {"c": {"type": "branch", "if": ["item:matches"], "then": "a", "else": "z"}, "a": {"text": "dev_end"}, "z": {"type": "end", "effects": ["flag:ended_bad"]}}}})
+	d4.engine = e3
+	d4.start("u")
+	check(not d4.active and e3.has_flag("ended_bad"), "an end node applies its effects and stops the scene")
+	# missing text is marked TODO, and the validator says so
+	var missing := {"m": {"start": "a", "nodes": {"a": {"speaker": "ghost", "text": "no_such_text", "if": ["bogus:1"], "effects": ["explode"], "next": "q"}}}}
+	var errs := DialogueScript.validate(missing)
+	check(errs.size() == 5, "the validator finds the unknown text, speaker, condition, effect and target (%d: %s)" % [errs.size(), str(errs)])
+	var d5: DialogueScript = DialogueScript.new({"m": {"start": "a", "nodes": {"a": {"text": "no_such_text"}}}})
+	d5.start("m")
+	check(d5.view()["text"] == "TODO no_such_text", "missing text shows as TODO <id>")
+	check(DialogueScript.validate({"m": {"start": "a", "nodes": {"a": {"type": "choice", "options": []}}}}).size() >= 1, "a choice with no options is an error")
+	var loop := {"l": {"start": "a", "nodes": {"a": {"type": "do", "next": "b"}, "b": {"type": "do", "next": "a"}}}}
+	var d6: DialogueScript = DialogueScript.new(loop)
+	d6.start("l")
+	check(not d6.active, "a loop of silent nodes ends instead of hanging")
+
+# ---------------------------------------------------------------- dialogue in the world
+
+func _test_dialogue_world() -> void:
+	_new_world()
+	await process_frame
+	world.begin_new()
+	_step(1.0)
+	world.engine.set_flag("control")
+	world.engine.set_flag("mirror")
+	world.engine.dpad = true
+	world.mode = "play"
+	world._pro = "done"
+	world.hud.fade = 0.0
+	world._load_area("street")
+	world.player.position = world.area.spawns.values()[0]
+	world.clock.hour = 12.0
+	hud.size = Vector2(1280, 720)
+	check(not world.start_dialogue("nope"), "an unknown scene does not start in the world")
+	check(world.start_dialogue("dev_demo") and world.mode == "dialogue" and hud.dialogue_active(), "a scene starts from free play and shows the box")
+	check(not world.start_dialogue("dev_demo"), "a scene cannot start inside a scene")
+	check(not hud.dialogue_typed(), "the first line is still typing out")
+	world.press_a()
+	check(hud.dialogue_typed() and world.dlg.node_id == "n1", "the first A shows the whole line, it does not go on")
+	_step(0.05)
+	check(world.hud.a_label == "continue", "A says Continue on a line")
+	var pos0: Vector2 = world.player.position
+	var hour0: float = world.clock.hour
+	world.test_dir = Vector2.RIGHT
+	_step(2.0)
+	world.test_dir = Vector2.ZERO
+	check(world.player.position.distance_to(pos0) < 0.5 and is_equal_approx(world.clock.hour, hour0), "the player and the clock stand still during a scene")
+	world.press_a()
+	check(world.dlg.node_id == "n2" and hud.dialogue_active() and not hud.dialogue_typed(), "the next A goes to the choice, which starts typing")
+	world.press_a()
+	_step(0.1)
+	check(world.dlg.node_id == "n2" and world.hud.a_label == "choose", "A says Choose on a choice once it has typed out")
+	var lay: Dictionary = hud._dlg_layout()
+	check((lay["opts"] as Array).size() == 2, "the box has a row for each option shown (2: the one that needs the matches is hidden)")
+	world.test_dir = Vector2.DOWN
+	_step(0.1)
+	world.test_dir = Vector2.ZERO
+	_step(0.1)
+	check(world.dlg.selected == 1, "down moves the highlight (one step per press)")
+	world.test_dir = Vector2.DOWN
+	_step(1.0)
+	world.test_dir = Vector2.ZERO
+	check(world.dlg.selected == 0, "a held arrow moves only one step (1 -> 0, wrapping, not round and round)")
+	world.test_dir = Vector2.UP
+	_step(0.1)
+	world.test_dir = Vector2.ZERO
+	_step(0.1)
+	check(world.dlg.selected == 1, "up moves the highlight back (0 -> 1, wrapping)")
+	# a mid-scene save and resume
+	world.save_game()
+	var d := Save.read()
+	check(d.has("dialogue") and str(d["dialogue"]["node"]) == "n2", "the autosave keeps a scene that is on screen")
+	_new_world()
+	await process_frame
+	check(world.resume() and world.mode == "dialogue" and world.dlg.node_id == "n2" and hud.dialogue_active(), "Resume puts the scene back on screen")
+	hud.size = Vector2(1280, 720)
+	_step(1.0)
+	hud.dialogue_skip()
+	# tap the first option: the box's row, not A
+	var tap: Rect2 = (hud._dlg_layout()["opts"] as Array)[0]
+	hud._on_press(-1, tap.get_center(), true)
+	hud._on_press(-1, tap.get_center(), false)
+	check(world.engine.has_item("matches") and world.engine.has_flag("dev_took"), "tapping an option takes it, with its effects")
+	check(hud.is_revealed("menu"), "the Menu button appears when the first item is picked up")
+	check(world.dlg.node_id == "n3", "and the scene goes on to its next line")
+	world.press_a()
+	world.press_a()
+	check(world.dlg.node_id == "n4", "the scene reaches its last line")
+	world.press_a()
+	world.press_a()
+	check(world.mode == "play" and not hud.dialogue_active() and not world.dlg.active, "when the scene ends the world is back in free play")
+	hud.open_menu("items")
+	check(hud._menu_tab == "items" and hud.menu_open, "the Items tab opens once there is an item")
+	hud.close_menu()
+	world.save_game()
+	check(not Save.read().has("dialogue"), "no scene in the autosave when none is running")
 
 # ---------------------------------------------------------------- the playthrough
 

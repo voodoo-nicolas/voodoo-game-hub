@@ -18,6 +18,7 @@ const ACTIONS := {
 	"tn_menu": [KEY_TAB],
 	"tn_debug_hurt": [KEY_F10],
 	"tn_debug_time": [KEY_F9],
+	"tn_debug_dialogue": [KEY_F8],
 }
 
 static func ensure_actions() -> void:

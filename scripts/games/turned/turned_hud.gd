@@ -29,6 +29,8 @@ signal a_pressed
 signal b_pressed
 signal pause_pressed
 signal menu_toggled(open: bool)
+## A choice in the dialogue box was tapped (index among the options shown).
+signal dialogue_option(index: int)
 
 const TOUCH_ACTIONS := {"left": "tn_left", "right": "tn_right", "up": "tn_up", "down": "tn_down"}
 const BAR_RED := Color("d24b4b")
@@ -69,6 +71,11 @@ const PAD_PARTS := {"dpad": "move", "a": "a", "b": "b", "menu": "info"}   # HUD 
 var _hp_disp := 0.0
 var _blood_disp := 0.0
 var _xp_disp := 0.0
+
+# the dialogue box (a scene from turned_dialogues.json; the world gives it the runner's view)
+var _dlg: Dictionary = {}        # kind, speaker_name, text, options, selected (all translated)
+var _dlg_key := ""
+var _dlg_chars := 0.0            # characters shown so far (the line types out)
 
 var _cap_text := ""
 var _cap_kind := "inner"
@@ -167,6 +174,46 @@ func say(text: String, kind: String = "inner", speaker: String = "", seconds: fl
 	queue_redraw()
 	return seconds
 
+## Shows (or updates) the dialogue box from the runner's view(): a line, or a line with choices.
+## The text is translated here; a new line starts typing out again, a new highlight does not.
+func show_dialogue(view: Dictionary) -> void:
+	if view.is_empty():
+		hide_dialogue()
+		return
+	var opts: Array = []
+	for o in (view.get("options", []) as Array):
+		opts.append(tr(str(o)))
+	var key := "%s|%s|%s" % [view.get("speaker", ""), view.get("text", ""), "|".join(PackedStringArray(view.get("options", [])))]
+	if key != _dlg_key:
+		_dlg_key = key
+		_dlg_chars = 0.0
+	_dlg = {
+		"kind": view.get("kind", "line"),
+		"speaker": view.get("speaker", ""),
+		"speaker_name": tr(str(view.get("speaker_name", ""))) if str(view.get("speaker_name", "")) != "" else "",
+		"text": tr(str(view.get("text", ""))) if str(view.get("text", "")) != "" else "",
+		"options": opts,
+		"selected": int(view.get("selected", 0)),
+	}
+	queue_redraw()
+
+func hide_dialogue() -> void:
+	_dlg = {}
+	_dlg_key = ""
+	_dlg_chars = 0.0
+	queue_redraw()
+
+func dialogue_active() -> bool:
+	return not _dlg.is_empty()
+
+## True once the line has typed out (then the options of a choice appear).
+func dialogue_typed() -> bool:
+	return _dlg.is_empty() or _dlg_chars >= float(str(_dlg.get("text", "")).length())
+
+func dialogue_skip() -> void:
+	_dlg_chars = float(str(_dlg.get("text", "")).length())
+	queue_redraw()
+
 func clear_caption() -> void:
 	_cap_t = 0.0
 	queue_redraw()
@@ -251,6 +298,15 @@ func _input(event: InputEvent) -> void:
 func _role_at(p: Vector2) -> String:
 	if closeup > 0.4:
 		return "a"                  # any tap dismisses the close-up
+	if not _dlg.is_empty():
+		var lay := _dlg_layout()
+		if dialogue_typed():
+			var rects: Array = lay["opts"]
+			for i in rects.size():
+				if (rects[i] as Rect2).has_point(p):
+					return "opt%d" % i
+		if (lay["box"] as Rect2).has_point(p):
+			return "dlg"            # a tap on the box goes on, like A
 	if pad != null:
 		if _rv["mission"] > 0.5 and _mission_rect().has_point(p):
 			return "mission"
@@ -295,6 +351,11 @@ func _on_press(id: int, p: Vector2, pressed: bool) -> void:
 				open_menu("journal")
 			"mission":
 				open_menu("quest")
+			"dlg":
+				a_pressed.emit()
+			_:
+				if role.begins_with("opt"):
+					dialogue_option.emit(int(role.substr(3)))
 	else:
 		if not _pointers.has(id):
 			return
@@ -376,6 +437,8 @@ func _process(delta: float) -> void:
 			_pulse.erase(k)
 	if _cap_t > 0.0:
 		_cap_t -= delta
+	if not _dlg.is_empty():
+		_dlg_chars += delta * T.f("text.dialogue_cps")
 	if _banner_t > 0.0:
 		_banner_t -= delta
 	if pad != null:
@@ -427,6 +490,7 @@ func _draw() -> void:
 	if fade > 0.001:
 		draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, clampf(fade, 0.0, 1.0)))
 	_draw_caption()
+	_draw_dialogue()
 	_draw_banner()
 
 func _bar(pos: Vector2, w: float, h: float, frac: float, col: Color, label: String, value: String) -> void:
@@ -615,6 +679,71 @@ func _draw_caption() -> void:
 		y += head
 	draw_multiline_string(_font(), Vector2(r.position.x + 20, y + fs), _cap_text, HORIZONTAL_ALIGNMENT_CENTER, w - 40.0, fs, -1, col)
 
+## Where the dialogue box and its option rows are (also used to hit-test taps). Sized for the whole
+## text, so the box does not jump while the line types out.
+func _dlg_layout() -> Dictionary:
+	var w := clampf(size.x - 640.0, 340.0, 820.0)
+	var fs := 22
+	var text := str(_dlg.get("text", ""))
+	var opts: Array = _dlg.get("options", [])
+	var sz := _font().get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w - 40.0, fs) if text != "" else Vector2.ZERO
+	var head := 24.0 if str(_dlg.get("speaker_name", "")) != "" else 0.0
+	var row_h := maxf(46.0, 54.0 * _k())
+	var h := 26.0 + head + sz.y
+	if not opts.is_empty():
+		h += 10.0 + float(opts.size()) * (row_h + 8.0)
+	else:
+		h += 22.0
+	var r := Rect2(Vector2((size.x - w) * 0.5, size.y - _small_size().y - 40.0 - h), Vector2(w, h))
+	var rows: Array = []
+	var y := r.position.y + 12.0 + head + sz.y + 10.0
+	for i in opts.size():
+		rows.append(Rect2(r.position.x + 14.0, y, w - 28.0, row_h))
+		y += row_h + 8.0
+	return {"box": r, "opts": rows, "head": head, "fs": fs}
+
+func _draw_dialogue() -> void:
+	if _dlg.is_empty():
+		return
+	var lay := _dlg_layout()
+	var r: Rect2 = lay["box"]
+	var fs: int = lay["fs"]
+	var head: float = lay["head"]
+	var inner := str(_dlg.get("speaker", "")) == ""
+	var edge: Color = Color("6f86c8") if inner else Art.AMBER
+	draw_rect(r, Color(0.03, 0.04, 0.08, 0.9))
+	draw_rect(r, Color(edge.r, edge.g, edge.b, 0.75), false, 1.5)
+	var y := r.position.y + 12.0
+	var name := str(_dlg.get("speaker_name", ""))
+	if name != "":
+		_text(Vector2(r.position.x + 20, y + 14), name, 15, Art.AMBER, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 40.0)
+		y += head
+	var text := str(_dlg.get("text", ""))
+	if text != "":
+		var shown := text.substr(0, clampi(int(_dlg_chars), 0, text.length()))
+		var col: Color = TEXT_INNER if inner else Color(1, 1, 1)
+		draw_multiline_string(_font(), Vector2(r.position.x + 20, y + fs), shown, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 40.0, fs, -1, col)
+	if not dialogue_typed():
+		return
+	var rows: Array = lay["opts"]
+	if rows.is_empty():
+		# a line: a small arrow says A goes on
+		var c := Vector2(r.end.x - 24.0, r.end.y - 12.0 + 2.0 * sin(_clock * 5.0))
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-7, -5), c + Vector2(7, -5), c + Vector2(0, 5)]), Color(edge.r, edge.g, edge.b, 0.9))
+		return
+	var opts: Array = _dlg["options"]
+	var sel: int = _dlg["selected"]
+	for i in rows.size():
+		var rr: Rect2 = rows[i]
+		var on := i == sel
+		draw_rect(rr, Color(0.12, 0.14, 0.24, 0.95) if on else Color(0.07, 0.08, 0.14, 0.9))
+		draw_rect(rr, Color(Art.AMBER.r, Art.AMBER.g, Art.AMBER.b, 0.95) if on else Color(1, 1, 1, 0.22), false, 2.5 if on else 1.2)
+		var label: String = ("> " if on else "   ") + str(opts[i])
+		var f := fs - 2
+		while f > 12 and _font().get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, f).x > rr.size.x - 24.0:
+			f -= 1
+		_text(Vector2(rr.position.x + 12.0, rr.position.y + rr.size.y * 0.5 + f * 0.35), label, f, TEXT_LIGHT if on else Color(0.78, 0.82, 0.92), HORIZONTAL_ALIGNMENT_LEFT, rr.size.x - 24.0)
+
 func _draw_banner() -> void:
 	if _banner_t <= 0.0:
 		return
@@ -723,7 +852,10 @@ func _fill_menu() -> void:
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 10)
 	_menu_body.add_child(tabs)
-	for t in [["journal", Text.UI["journal"]], ["quest", Text.UI["quest_log"]]]:
+	var tab_list: Array = [["journal", Text.UI["journal"]], ["quest", Text.UI["quest_log"]]]
+	if engine != null and not engine.items.is_empty():
+		tab_list.append(["items", Text.UI["items"]])           # listed only once there is something to list
+	for t in tab_list:
 		var b := Button.new()
 		b.text = tr(t[1])
 		b.toggle_mode = true
@@ -756,6 +888,12 @@ func _fill_menu() -> void:
 				lines.append(tr(_journal_text(str(id))))
 		if lines.is_empty():
 			lines.append(tr(Text.UI["journal_empty"]))
+	elif _menu_tab == "items":
+		if engine != null:
+			for id in engine.items:
+				lines.append("%s\n%s" % [tr(str(Text.ITEMS.get(str(id), {}).get("name", id))), tr(item_desc(str(id), engine))])
+		if lines.is_empty():
+			lines.append(tr(Text.UI["items_empty"]))
 	else:
 		if engine != null and engine.mission != "":
 			lines.append(tr(Text.MISSIONS.get(engine.mission, engine.mission)))
@@ -773,6 +911,14 @@ func _fill_menu() -> void:
 func _on_tab(tab: String) -> void:
 	_menu_tab = tab
 	_fill_menu()
+
+## An item's description (English): the first variant whose flag is set, else the plain one.
+static func item_desc(id: String, eng: EngineScript) -> String:
+	var it: Dictionary = Text.ITEMS.get(id, {})
+	for v in (it.get("variants", []) as Array):
+		if eng != null and eng.has_flag(str(v[0])):
+			return str(v[1])
+	return str(it.get("desc", id))
 
 ## Journal text for an id: a clue object or a story line.
 static func _journal_text(id: String) -> String:

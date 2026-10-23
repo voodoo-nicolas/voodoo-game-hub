@@ -6,7 +6,8 @@ extends Node2D
 ## the pause menu; the HUD (turned_hud.gd) is a sibling Control in the game, over the world.
 ##
 ## Modes: "prologue" (scripted waking, only A works), "play", "closeup" (the mirror), "transition"
-## (fade between house and street), "dying" (the 2 s fade and respawn).
+## (fade between house and street), "dying" (the 2 s fade and respawn), "dialogue" (a scene from
+## turned_dialogues.json is on screen: the clock and the player stand still; A, up/down and taps work).
 ## Progressive rule (Turned CLAUDE.md): d-pad + A (prologue) -> sun and shade (Day 1 street) ->
 ## B sneak (alley). Nothing is shown before its moment.
 ## Headless tests drive it through press_a(), press_b(), test_dir and by calling _process().
@@ -25,6 +26,7 @@ const SunClock = preload("res://scripts/games/turned/turned_sun_clock.gd")
 const TSfx = preload("res://scripts/games/turned/turned_sfx.gd")
 const Save = preload("res://scripts/games/turned/turned_save.gd")
 const InputMapper = preload("res://scripts/games/turned/turned_input.gd")
+const DialogueScript = preload("res://scripts/games/turned/turned_dialogue.gd")
 
 signal pause_requested
 ## A stat for GameInfo: "died", "clue".
@@ -35,6 +37,7 @@ var kit_up := false           # the kit's Landing / pause menu is showing: the w
 var discard := false          # this world is being replaced: do not save it
 var engine: Engine_ = Engine_.new()
 var clock: SunClock = SunClock.new()
+var dlg: DialogueScript = DialogueScript.new()
 var hud: HudScript = null
 var area: Area = null
 var player: PlayerScript = null
@@ -81,6 +84,11 @@ var _die_t := 0.0
 var _die_done := false
 # throb
 var _throb_t := -1.0
+# dialogue
+var _dlg_dir_prev := 0
+var _dlg_area := ""            # an "area:" effect waits until the scene is over
+var _dlg_journal := 0
+var _dlg_items := 0
 
 func _ready() -> void:
 	InputMapper.ensure_actions()
@@ -109,6 +117,7 @@ func attach_hud(h: HudScript) -> void:
 	hud.a_pressed.connect(press_a)
 	hud.b_pressed.connect(press_b)
 	hud.pause_pressed.connect(_request_pause)
+	hud.dialogue_option.connect(_on_dialogue_option)
 
 ## The SubViewport's size in canvas units: the camera zoom keeps ~360 world px visible vertically
 ## (landscape), or ~520 across when the screen is narrow (portrait).
@@ -128,6 +137,8 @@ func _apply_zoom(pulse: float) -> void:
 func begin_new() -> void:
 	engine.reset()
 	clock = SunClock.new()
+	dlg.stop()
+	hud.hide_dialogue()
 	hud.engine = engine
 	_pro = "black"
 	_pt = 0.0
@@ -163,6 +174,13 @@ func resume() -> bool:
 		return false
 	mode = "play"
 	_pro = "done"
+	dlg.engine = engine
+	dlg.clock = clock
+	dlg.from_dict(d.get("dialogue", {}))
+	if dlg.active:
+		mode = "dialogue"
+		_dlg_journal = engine.journal.size()
+		_dlg_items = engine.items.size()
 	if engine.has_flag("mirror"):
 		engine.set_flag("thought_started")
 		engine.set_flag("thought")
@@ -175,6 +193,8 @@ func resume() -> bool:
 	player.scarf = engine.has_flag("scarf")
 	player.sneak = engine.sneaking
 	_restore_hud()
+	if dlg.active:
+		hud.show_dialogue(dlg.view())
 	hud.fade = 0.0
 	_snap_camera()
 	return true
@@ -185,7 +205,7 @@ func _restore_hud() -> void:
 	hud.set_revealed("b", engine.has_button("b"))
 	hud.set_revealed("bars", engine.show_bars)
 	hud.set_revealed("mission", engine.has_flag("mirror"))
-	hud.set_revealed("menu", not engine.journal.is_empty())
+	hud.set_revealed("menu", not engine.journal.is_empty() or not engine.items.is_empty())
 	player.show_rings = engine.has_button("b")
 
 # ---------------------------------------------------------------- areas
@@ -342,6 +362,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		engine.hp = minf(engine.hp, 3.0)
 	elif event.is_action_pressed("tn_debug_time") and OS.is_debug_build():
 		clock.advance_hours(1.0)
+	elif event.is_action_pressed("tn_debug_dialogue") and OS.is_debug_build():
+		start_dialogue("dev_demo")
 
 func _request_pause() -> void:
 	if hosted:
@@ -367,6 +389,7 @@ func _process(delta: float) -> void:
 		"closeup": _tick_closeup(delta)
 		"transition": _tick_transition(delta)
 		"dying": _tick_dying(delta)
+		"dialogue": _tick_dialogue(delta)
 	_tick_visuals(delta)
 
 func _after(seconds: float, fn: Callable) -> void:
@@ -624,6 +647,8 @@ func press_a() -> void:
 		"play":
 			if not _cand.is_empty():
 				_interact(_cand)
+		"dialogue":
+			_dialogue_a()
 
 func press_b() -> void:
 	if _frozen() or mode != "play" or not engine.has_button("b"):
@@ -707,6 +732,89 @@ func _talk(n: Node2D) -> void:
 	hud.say(line, "speech", Text.SPEAKERS.get(n.id, ""))
 	if n.knows_player >= 2:
 		_add_journal(str((n.data.get("clue_ids", ["watcher"]) as Array)[0]))
+
+# ---------------------------------------------------------------- dialogue scenes
+
+## Starts a scene from turned_dialogues.json (only from free play). The player and the clock
+## stand still until it ends; false if it cannot start.
+func start_dialogue(id: String) -> bool:
+	if mode != "play":
+		return false
+	dlg.engine = engine
+	dlg.clock = clock
+	_dlg_journal = engine.journal.size()
+	_dlg_items = engine.items.size()
+	_dlg_area = ""
+	if not dlg.start(id):
+		return false
+	mode = "dialogue"
+	player.moving = false
+	_dlg_dir_prev = 0
+	hud.clear_caption()
+	_after_dialogue_step()
+	return true
+
+func _tick_dialogue(delta: float) -> void:
+	player.moving = false
+	for n in _npcs:
+		n.tick(delta, player, _npcs)
+	# up / down move the highlight on a choice (an edge, so a held arrow moves one step)
+	var dy := _input_dir().y
+	var sy := 0 if absf(dy) < 0.5 else int(signf(dy))
+	if sy != 0 and sy != _dlg_dir_prev:
+		dlg.move(sy)
+		hud.show_dialogue(dlg.view())
+	_dlg_dir_prev = sy
+	var v := dlg.view()
+	hud.a_label = "choose" if str(v.get("kind", "")) == "choice" and hud.dialogue_typed() else "continue"
+	hud.a_active = true
+
+func _dialogue_a() -> void:
+	if not dlg.active:
+		return
+	if not hud.dialogue_typed():
+		hud.dialogue_skip()           # the first A shows the whole line, the next one goes on
+		return
+	dlg.advance()
+	_after_dialogue_step()
+
+func _on_dialogue_option(i: int) -> void:
+	if mode != "dialogue" or not dlg.active:
+		return
+	if not hud.dialogue_typed():
+		hud.dialogue_skip()
+		return
+	dlg.choose(i)
+	_after_dialogue_step()
+
+## After a scene moved on: the effects meant for the world, new Journal lines and items, the end.
+func _after_dialogue_step() -> void:
+	for e in dlg.take_events():
+		var s := str(e)
+		if s.begins_with("hour:"):
+			clock.skip_to(s.substr(5).to_float())
+		elif s.begins_with("sfx:"):
+			TSfx.play(self, s.substr(4), -6.0)
+		elif s.begins_with("area:"):
+			_dlg_area = s.substr(5)
+	if engine.journal.size() > _dlg_journal:
+		hud.reveal("menu")
+		_apply_item_state()
+	if engine.items.size() > _dlg_items:
+		hud.reveal("menu")
+		TSfx.play(self, "pickup", -4.0)
+	_dlg_journal = engine.journal.size()
+	_dlg_items = engine.items.size()
+	if dlg.active:
+		hud.show_dialogue(dlg.view())
+		return
+	hud.hide_dialogue()
+	hud.a_label = ""
+	mode = "play"
+	if _dlg_area != "":
+		var parts := _dlg_area.split(":")
+		_dlg_area = ""
+		_go_area(parts[0], parts[1] if parts.size() > 1 else "", true)
 
 # ---------------------------------------------------------------- the mirror
 
@@ -845,4 +953,4 @@ func save_game() -> void:
 	if discard or mode == "transition" or mode == "dying" or not engine.has_flag("control"):
 		return
 	engine.pos = player.position
-	Save.write(engine, clock)
+	Save.write(engine, clock, dlg)

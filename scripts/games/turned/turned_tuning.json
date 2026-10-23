@@ -98,6 +98,7 @@
     "glance_range_m": 3.0
   },
   "text": {
+    "dialogue_cps": 42.0,
     "seconds_per_char": 0.045,
     "min_seconds": 1.9,
     "fade_s": 0.35

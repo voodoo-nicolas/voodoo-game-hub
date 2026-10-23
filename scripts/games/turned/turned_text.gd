@@ -114,6 +114,8 @@ const VERBS := {
 	"up": "Go up",
 	"down": "Go down",
 	"ok": "OK",
+	"continue": "Continue",
+	"choose": "Choose",
 }
 
 ## Neighbours. "exposed" = your neck is uncovered, "covered" = you wear the scarf.
@@ -169,4 +171,38 @@ const UI := {
 	"press_a": "Press A",
 	"tap_a": "Tap A to continue",
 	"sun_tip": "Sun tolerance",
+	"items": "Items",
+	"items_empty": "You are carrying nothing.",
+}
+
+## Things the player carries (Menu > Items). From the owner's scenes 1-6 (docs/turned/story_scenes_1-6.md);
+## `variants` = [flag, description] pairs, the first whose flag is set replaces the description.
+## The note's time (10 PM) and the bar's name are the owner's [OPEN] placeholders.
+const ITEMS := {
+	"matches": {
+		"name": "Box of matches",
+		"desc": "A box of matches. The lid has a cigar company's logo on it. They are not mine.",
+	},
+	"note": {
+		"name": "The note",
+		"desc": "A note, from the sewn-shut pocket of the coat: \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
+	},
+	"watch": {
+		"name": "Silver pocket watch",
+		"desc": "A silver pocket watch from a hidden pocket. It ticks, warm and humming. It feels wrong in my hand.",
+		"variants": [["watch_broken", "A silver pocket watch. The glass is cracked and it has stopped ticking. It burns to touch."]],
+	},
+}
+
+## Dialogue lines for the scenes in turned_dialogues.json, by id (the runner shows "TODO <id>" for a
+## missing one). The `dev_` lines are only for trying the dialogue box (F8 in debug builds).
+const DIALOGUE := {
+	"dev_hello": "This is a test of the dialogue box. Press A to go on.",
+	"dev_ask": "Which do you want to do?",
+	"dev_opt_take": "Take the matches",
+	"dev_opt_look": "Say nothing",
+	"dev_opt_have": "I already have them",
+	"dev_took": "You take the box of matches. It is in your Items now.",
+	"dev_quiet": "You say nothing. The test goes on.",
+	"dev_end": "That is the end of the test.",
 }

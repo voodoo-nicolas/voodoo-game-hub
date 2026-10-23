@@ -26,6 +26,7 @@ var show_bars := false              # Health/Blood/XP are shown (introduced when
 var mission := ""                   # id in turned_text MISSIONS, "" = none yet
 var journal: Array = []             # ids: clue ids and turned_text JOURNAL ids, in order found
 var flags: Dictionary = {}          # one-shot story flags
+var items: Array = []               # ids of the things carried (turned_text ITEMS), in the order picked up
 var sneaking := false
 var burned_this_visit := false      # for the "it burns" line once
 
@@ -53,6 +54,7 @@ func reset() -> void:
 	mission = ""
 	journal = []
 	flags = {}
+	items = []
 	sneaking = false
 	burned_this_visit = false
 	_since_damage = 99.0
@@ -136,6 +138,25 @@ func has_flag(f: String) -> bool:
 func set_flag(f: String) -> void:
 	flags[f] = true
 
+func clear_flag(f: String) -> void:
+	flags.erase(f)
+
+## Things the player carries. add_item / remove_item return false when nothing changed.
+func has_item(id: String) -> bool:
+	return id in items
+
+func add_item(id: String) -> bool:
+	if id in items:
+		return false
+	items.append(id)
+	return true
+
+func remove_item(id: String) -> bool:
+	if not id in items:
+		return false
+	items.erase(id)
+	return true
+
 ## Adds a Journal entry; false if it was already there.
 func add_journal(id: String) -> bool:
 	if id in journal:
@@ -154,7 +175,7 @@ func to_dict() -> Dictionary:
 		"xp": xp, "level": level, "day": day, "tolerance_bonus": tolerance_bonus,
 		"feeds_today": feeds_today, "deaths": deaths, "buttons": buttons.duplicate(),
 		"dpad": dpad, "show_bars": show_bars, "mission": mission, "journal": journal.duplicate(),
-		"flags": flags.duplicate(), "sneaking": sneaking,
+		"flags": flags.duplicate(), "items": items.duplicate(), "sneaking": sneaking,
 	}
 
 func from_dict(d: Dictionary) -> void:
@@ -177,4 +198,5 @@ func from_dict(d: Dictionary) -> void:
 	mission = str(d.get("mission", ""))
 	journal = (d.get("journal", []) as Array).duplicate()
 	flags = (d.get("flags", {}) as Dictionary).duplicate()
+	items = (d.get("items", []) as Array).duplicate()
 	sneaking = bool(d.get("sneaking", false)) and has_button("b")
