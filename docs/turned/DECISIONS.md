@@ -17,7 +17,7 @@ Every default chosen where the owner's prompt (2026-10-22), `BRIEF.md` (the Turn
 3. Rating: manifest `content` = 16+, blood, horror, realistic violence (neck bite wounds, blood, sunlight burns; no combat yet). The hub is already 16+ because of Last Shift. **Owner to confirm.**
 
 ## Story and text
-4. **No alcohol.** The bible's "Like a hangover. But I didn't drink." breaks the hub rule (no alcohol references anywhere). The game says *"Like a fever. But I'm not sick."* The bible's §1 and §10 still say hungover; please reword them.
+4. **No alcohol (superseded by 46: alcohol is allowed in Turned since 2026-10-23).** The bible's "Like a hangover. But I didn't drink." breaks the hub rule (no alcohol references anywhere). The game says *"Like a fever. But I'm not sick."* The bible's §1 and §10 still say hungover; please reword them.
 5. Invented placeholder text, to be replaced by canon: the three clues (a torn invitation "You are requested at midnight...", a stranger's coat that smells of cold stone, a note "Ask for Sera..." as the half name), the scarf by the door, the Journal lines, the Watcher's speaker name ("Man in the grey coat"), and the five neighbours' lines.
 6. Both genders playable is not built: one unisex figure, no name. Spanish lines are gender-neutral where they can be.
 7. Knowing/Mystery options ([DECIDE] in the bible) are not needed by the slice. The Watcher says only "You should not be out in that sun." and nothing else, and nothing about why.
@@ -81,12 +81,14 @@ Every default chosen where the owner's prompt (2026-10-22), `BRIEF.md` (the Turn
 ## Owner's scenes 1-6 (2026-10-23, `story_scenes_1-6.md`)
 44. Saved as **story only**; no code was changed. The spec's engine plan (data-driven scenes, dialogue runner, tap-to-explore, `thirst`/`days_left` stats) is not used: the game is the real-time top-down one above.
 45. Where it overlaps what is built: Scene 1 = the built prologue (wake, neck, mirror, pockets, stranger's coat). The built clues are placeholders (decision 5); the spec's canon replaces them when scenes 2+ are built: right pocket matches (cigar company), inside pocket sewn shut with the note "Meet me at ... Wednesday. 10 PM. Come alone.", wall calendar showing Friday (two days lost).
-46. **Conflicts to settle before any of scenes 2-6 is built:**
-   - **Alcohol.** Scenes 2-3 and 4 are set in a bar ("The Crooked Lantern", a tavernkeep, the witness drinking Thursday/Friday). The hub allows no alcohol references anywhere. Needs a non-alcohol venue (tea house, inn, music hall, coffee house) or the owner's call.
-   - **Timeline.** Spec: lost Wed-Fri, "2 or 3 more days" to turn. Bible: Day 1-3 of Act 1, the sun worsens each day, vampirism level = day - 1. Spec has no sun/shade mechanic; the bible's Day 1 street (sun, shade, Health) is built.
-   - **Setting.** Bible starts in Vellmoor with a village street; spec is a harbour city with gas lamps, a forest and a chapel house. Same town or not?
-   - **Watcher vs witness.** The built Watcher (grey coat, "You should not be out in that sun.") is not the spec's witness or the cigar-shop owner.
-   - **Mystery option.** Spec: owner knows an ex-priest; the broken silver watch, silver burns and water burning are new rules the bible does not have. The Knowing (bible section 5) would cover the owner and the ex-priest.
+46. **Owner's answers (2026-10-23), replacing the conflict list:**
+   - **Alcohol: allowed in Turned.** The bar stays; alcohol is only a story location and is never promoted. CLAUDE.md, STANDARDS.md (Game Browser section) and the viral-minigame skill now carry this one exception. Decision 4 (no hangover line) is no longer forced: the bible's hangover wording can return if the owner wants it. **Still to do when the bar is built:** add `alcohol_reference` to Turned's manifest `content.descriptors` (manifest is committed last, so not touched now), re-run `python tools/rating_report.py`, and change the Play/IARC answers (the hub is already 16+, so the age does not move).
+   - **Timeline.** They went to the bar on Wednesday. The player wakes on **Friday** (= Day 1, vampirism level 0) and meets these people all of Friday; Friday night they reach the old man's cabin in the woods. The shopkeeper's "2 or 3 more days" fits Days 2-3 of the bible table.
+   - **A real day/night clock is needed.** Sun and shade by day, **a moon light that comes and goes at night**, time that runs in game. The slice's `sun.freeze_clock` (true, 10:00 full sun) must become false for the Friday; the moon, night lighting and shade rules for night are not built.
+   - **Setting.** One place with three areas, all **Vellmoor**: Vellmoor City (the built street, the bar), Vellmoor Harbor (the cigar shop is across town by the harbor), Vellmoor Forest (the path to the cabin). The seaside city replaces "a village street" in the bible's wording.
+   - **Vampire rules** went into the bible, section 8b: sun, silver, garlic, a stake through the chest, no reflection ("supposedly"), hunger that makes them weak, thin, aggravated and low, fixed by feeding. Needs the owner's call: how the built mirror (it shows the neck) fits "no reflection" (proposed: dim and fading with the turning).
+   - **Watcher vs witness.** Still different people unless the owner says otherwise; the built Watcher (grey coat) stays a placeholder. The Knowing (bible section 5) would cover the shop owner and the ex-priest.
+   - **"Bulls"**: the owner said "there's definitely going to be bulls" (voice note). Unclear what it means (bars? bulls as animals or enemies? pubs?). Asked, not guessed.
 47. Spec [OPEN] flags (9 vs 10 PM, bar name, names for the witness and shop owner (never "Elias"), why the owner knows, who bit the player, who wrote the note, what the watch does) are the owner's to answer; nothing is hardcoded.
 
 ## Not built (as the prompt says)

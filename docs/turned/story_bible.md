@@ -1,7 +1,7 @@
 # TURNED — Story Bible (draft 0.2)
 
 > Copy of the owner's `story_bible.md` v0.2 (Google Drive: Viral Game Hub → `vampire` → `02_story`), kept here so the repo is self-contained. The owner's Drive copy is the master; update this file when it changes.
-> **Hub rule conflict:** §1 and §10 mention a hangover ("hungover without having drunk"). The hub allows no alcohol references anywhere (CLAUDE.md), so the game says "Like a fever. But I'm not sick." instead (docs/turned/DECISIONS.md). The bible text below is left as the owner wrote it.
+> **Hub rule (changed 2026-10-23):** the hub's "no alcohol references" rule had made the game say "Like a fever. But I'm not sick." instead of the bible's hangover line (docs/turned/DECISIONS.md). The owner has since allowed alcohol as story setting in Turned (a bar), so the hangover line may return: his call. The bible text below is left as the owner wrote it. Section 8b (vampire rules) was added 2026-10-23.
 
 Working title: **Turned** (subtitle TBD). Status: DRAFT. Items marked **[DECIDE]** need the owner's call.
 Changes from 0.1: added "The Knowing" (villagers who know what you are becoming), reworked mystery options around it.
@@ -65,6 +65,16 @@ Vertical slice = Prologue + Act 1.
 | 4+ | Direct sun near-lethal. | Night life. Rooftops, alleys, sewers. | Alliances and enemies form. |
 
 Feeding gives back a little "day-walking" and restarts timers, with diminishing returns.
+
+## 8b. Vampire rules (owner, 2026-10-23; the traditional ones)
+- **Sun burns.** Already built (Health, shade, sun clock).
+- **Silver** burns them: touching it hurts, a burn that stays red and swollen. Harmless to everyone else (the pocket watch, Scene 6).
+- **Garlic**: they cannot be around it (sickness / repelled).
+- **A wooden stake through the chest** kills them.
+- **Mirrors**: "supposedly" no reflection. **[DECIDE]** how it fits the built prologue, where the mirror shows the neck. Proposed: the reflection is dim, wrong and fading while the turning is unfinished (it still shows on Day 1, gone by Day 5: the bible's §10 question).
+- **Hunger.** Not feeding makes them weak, thin, aggravated and out of mood. Feeding restores health, strength, motivation, feeling alive. (Built so far: Blood does not drain yet; hunger as a mood and body state is new.)
+- **Water** hurts the player (Scene 5: it burns, coughing, blackout). Not in the traditional list: owner's rule.
+- **Night and day.** The game has a clock: the sun comes and goes and so does the moon, which lights the night (owner: "a light for the moon that comes and goes").
 
 ## 9. Feeding and morality
 - Criminals / predators: safe, small cost.
