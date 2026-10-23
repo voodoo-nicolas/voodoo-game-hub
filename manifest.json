@@ -245,6 +245,6 @@
     "last_shift": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/last_shift.pck", "scene": "res://scenes/games/last_shift/last_shift.tscn"},
     "creation": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/creation.pck", "scene": "res://scenes/games/creation/creation.tscn"},
     "evolution": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/evolution.pck", "scene": "res://scenes/games/evolution/evolution.tscn"},
-    "turned": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/turned.pck", "scene": "res://scenes/games/turned/turned.tscn"}
+    "turned": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/turned.pck", "scene": "res://scenes/games/turned/turned.tscn"}
   }
 }
