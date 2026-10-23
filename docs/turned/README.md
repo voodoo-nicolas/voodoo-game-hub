@@ -19,6 +19,7 @@ Or open the project in the editor and press F6 on `scenes/games/turned/turned.ts
 | Esc | Pause (the hub's pause menu) |
 | Tab | Menu: Journal, Quest log (after your first clue) |
 | F10 | (debug builds) drop to 3 Health, to see a death quickly |
+| F9 | (debug builds) move the clock on one hour, to see dusk, night and the moon |
 
 The mouse works on the on-screen buttons too (until the first real touch).
 
@@ -26,7 +27,7 @@ The path of the slice: wake in bed → A (sit up) → A (wipe your face) → the
 
 ## Test it
 ```bash
-godot --headless --path . --script res://tools/test_turned.gd      # 344 checks: tuning, maps, rules, the whole slice, touch overlay
+godot --headless --path . --script res://tools/test_turned.gd      # 387 checks: tuning, maps, rules, the whole slice, touch overlay, day/night
 python tools/hub.py check
 python tools/hub.py test turned
 godot --path . --resolution 1280x720 --script res://tools/shot_turned.gd -- <out_dir> [text size 0|1|2]   # plays the slice and saves 25 screenshots (needs a window)

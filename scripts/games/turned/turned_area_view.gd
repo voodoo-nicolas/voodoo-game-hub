@@ -24,6 +24,7 @@ var taken := {}
 var glint := {}
 
 var _t := 0.0
+var night := 0.0     # 0 day ... 1 dark (set by the world each frame; the glow layer lights the windows)
 var _halo: GradientTexture2D = null
 var _decals: Array = []
 
@@ -789,6 +790,20 @@ func _draw_glow() -> void:
 		if d["t"] == "shop_front":
 			var r: Rect2 = d["rect"]
 			draw_texture_rect(_halo, Rect2(r.position.x - 10.0, r.position.y + 6.0, r.size.x * 0.7 + 40.0, r.size.y + 70.0), false, Color(1.0, 0.7, 0.35, 0.16))
+	# at night the windows of the houses light up (the daytime ones that are already lit stay)
+	if night > 0.02:
+		var lit_frac := T.f("moon.window_lit_frac")
+		for d in area.deco:
+			if d["t"] != "window_row":
+				continue
+			var r: Rect2 = d["rect"]
+			var x := r.position.x
+			while x + 24.0 <= r.end.x:
+				if _h(int(x) + 91, int(r.position.y) + 17) < lit_frac:
+					var w := Rect2(x, r.position.y, 24.0, r.size.y)
+					draw_rect(w, Color(1.0, 0.62, 0.28, 0.5 * night))
+					draw_texture_rect(_halo, Rect2(w.position.x - 14.0, w.position.y + 2.0, w.size.x + 28.0, w.size.y + 40.0), false, Color(1.0, 0.66, 0.32, 0.18 * night))
+				x += 46.0
 	# a slow low mist drifting along the street
 	if area.id == "street":
 		for i in 7:

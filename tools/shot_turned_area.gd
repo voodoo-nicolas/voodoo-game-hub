@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Screenshots of Turned's two areas without playing the prologue (for art work):
-##   godot --path . --resolution 1280x720 --script res://tools/shot_turned_area.gd -- <out_dir> [text size 0|1|2]
+##   godot --path . --resolution 1280x720 --script res://tools/shot_turned_area.gd -- <out_dir> [game hour, e.g. 23] [spot name filter]
 ## Teleports the player to a list of spots (SPOTS below) and saves one PNG per spot.
 ## Writes nothing to the player's saves.
 
@@ -34,8 +34,11 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	for i in 3:
 		await process_frame
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED   # the hub's stretch would zoom the HUD
 	var hud := HudScript.new()
 	root.add_child(hud)
+	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hud.z_index = 100    # the world is added after it and would draw over it
 	var world := WorldScript.new()
 	root.add_child(world)
 	world.attach_hud(hud)
@@ -47,14 +50,22 @@ func _run() -> void:
 	world.engine.show_bars = true
 	world.mode = "play"
 	world._pro = "done"
+	if args.size() > 1:
+		world.clock.hour = float(args[1])
+		world.engine.set_flag("mirror")
+	var only: String = args[2] if args.size() > 2 else ""
 	world.player.pose = "stand"
 	hud.set_revealed("dpad", true)
 	hud.set_revealed("a", true)
 	hud.set_revealed("bars", true)
 	hud.fade = 0.0
 	for spot in SPOTS:
+		if only != "" and not String(spot[0]).begins_with(only):
+			continue
 		if world.area.id != spot[1]:
 			world._load_area(spot[1])
+		if args.size() > 1:
+			world.clock.hour = float(args[1])
 		world.player.position = Vector2(spot[2], spot[3])
 		world._snap_camera()
 		for i in 12:

@@ -46,6 +46,9 @@ var a_active := true
 ## Screen effects, set by the world every frame.
 var fade := 0.0          # 0 clear ... 1 black
 var throb := 0.0         # 0..1 dark-red heartbeat vignette
+var clock_text := ""   # the game time (the world sets it each frame)
+var clock_sun := 1.0    # sun strength 0..1
+var clock_moon := 0.0   # moon height 0..1
 var burn := 0.0          # 0..1 white-hot sun vignette
 var closeup := 0.0       # 0..1 neck close-up
 var menu_open := false
@@ -441,7 +444,7 @@ func _draw_bars() -> void:
 	var w := _ui("bar_width")
 	var p := Vector2(16, 14)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	draw_rect(Rect2(p - Vector2(8, 8), Vector2(w + 62, 94)), Color(PLATE.r, PLATE.g, PLATE.b, PLATE.a * k))
+	draw_rect(Rect2(p - Vector2(8, 8), Vector2(w + 62, 94 + 30)), Color(PLATE.r, PLATE.g, PLATE.b, PLATE.a * k))
 	var mh := 18.0
 	var hp_max := engine.max_hp if engine else 1.0
 	var bl_max := engine.max_blood if engine else 1.0
@@ -451,6 +454,19 @@ func _draw_bars() -> void:
 	_bar(p + Vector2(0, mh + 6), w, mh, _blood_disp / bl_max, Color(BAR_BLUE.r, BAR_BLUE.g, BAR_BLUE.b, k), tr(Text.UI["blood"]), "%d" % int(_blood_disp))
 	_bar(p + Vector2(0, 2 * (mh + 6)), w, mh - 4, _xp_disp / xp_max, Color(BAR_YELLOW.r, BAR_YELLOW.g, BAR_YELLOW.b, k), tr(Text.UI["xp"]), tr(Text.UI["level"]) % lvl)
 	_draw_sun_icon(Vector2(p.x + w + 28, p.y + 40), k)
+	_draw_time(Vector2(p.x + 6, p.y + 98), k)
+
+## The time of day: a sun or a crescent moon (never colour alone) and the game clock.
+func _draw_time(c: Vector2, k: float) -> void:
+	var col := Color(1.0, 0.82, 0.35, k) if clock_sun >= clock_moon else Color(0.78, 0.84, 1.0, k)
+	if clock_sun >= clock_moon:
+		draw_circle(c + Vector2(9, 0), 7.0, col)
+		for i in 8:
+			var a := TAU * float(i) / 8.0
+			draw_line(c + Vector2(9, 0) + Vector2(cos(a), sin(a)) * 10.0, c + Vector2(9, 0) + Vector2(cos(a), sin(a)) * 13.0, col, 2.0)
+	else:
+		draw_arc(c + Vector2(11, 0), 6.0, deg_to_rad(105.0), deg_to_rad(255.0), 16, col, 5.0)   # a crescent opening to the right
+	_text(c + Vector2(28, 8), clock_text, 20, Color(TEXT_LIGHT.r, TEXT_LIGHT.g, TEXT_LIGHT.b, k))
 
 ## The sun-tolerance icon: rays go out as the day's sun gets worse; never colour alone.
 func _draw_sun_icon(c: Vector2, k: float) -> void:

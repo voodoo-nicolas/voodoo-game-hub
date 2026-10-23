@@ -22,8 +22,9 @@
     "xp_per_level": 100.0
   },
   "sun": {
-    "freeze_clock": true,
-    "start_hour": 10.0,
+    "freeze_clock": false,
+    "run_indoors": false,
+    "start_hour": 7.0,
     "day_length_s": 720.0,
     "sunrise_hour": 6.0,
     "sunset_hour": 18.0,
@@ -35,6 +36,23 @@
     "feed_gain": 1.0,
     "feed_diminish": 0.75,
     "burn_sound_interval_s": 1.1
+  },
+  "moon": {
+    "rise_hour": 18.5,
+    "set_hour": 5.5,
+    "ramp_hours": 1.5,
+    "color": "9db4ff",
+    "energy": 0.2,
+    "height": 0.6,
+    "angle_from_deg": -50.0,
+    "angle_to_deg": 50.0,
+    "night_ambient_color": "0d1224",
+    "moon_ambient_color": "26345e",
+    "indoor_night_color": "3c3c52",
+    "dusk_color": "c8806a",
+    "dusk_mix": 0.3,
+    "lamp_night_boost": 0.9,
+    "window_lit_frac": 0.8
   },
   "art": {
     "use_shaders": true,

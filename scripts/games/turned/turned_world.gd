@@ -49,6 +49,8 @@ var _entities: Node2D = null
 var _ground: Node2D = null
 var _decor: Node2D = null
 var _sun_light: DirectionalLight2D = null
+var _moon_light: DirectionalLight2D = null
+var _glow: AreaView = null      # the additive glow layer (lit windows at night)
 var _overlay: Node2D = null
 var _npcs: Array = []
 var _lamps: Array = []         # {"light": PointLight2D, "base": float, "seed": float}
@@ -223,9 +225,9 @@ func _load_area(name: String) -> void:
 	_overlay = AreaView.new()
 	_overlay.setup(area, "overlay")
 	_area_root.add_child(_overlay)
-	var glow := AreaView.new()
-	glow.setup(area, "glow")
-	_area_root.add_child(glow)
+	_glow = AreaView.new()
+	_glow.setup(area, "glow")
+	_area_root.add_child(_glow)
 	for lp in area.lamps:
 		_add_light(lp, T.color("light.lamp_color"), T.f("light.lamp_energy"), T.f("light.lamp_radius_px"), true)
 	for ls in area.light_spots:
@@ -238,6 +240,15 @@ func _load_area(name: String) -> void:
 		_sun_light.height = T.f("light.sun_height")
 		_sun_light.energy = T.f("light.sun_energy") * clock.intensity()
 		_area_root.add_child(_sun_light)
+		# the moon: a cool directional light that crosses the sky between moonrise and moonset
+		_moon_light = DirectionalLight2D.new()
+		_moon_light.color = T.color("moon.color")
+		_moon_light.height = T.f("moon.height")
+		_area_root.add_child(_moon_light)
+		_update_sky()
+	else:
+		_sun_light = null
+		_moon_light = null
 	_camera.limit_left = int(area.bounds.position.x)
 	_camera.limit_top = int(area.bounds.position.y)
 	_camera.limit_right = int(area.bounds.end.x)
@@ -281,12 +292,30 @@ func _snap_camera() -> void:
 	_camera.reset_smoothing()
 	_apply_zoom(1.0)
 
+## The scene's overall colour (CanvasModulate): day = cool shade or bright sun, night = dark blue
+## that the moon lifts, with a warm tint at dusk and dawn. Interiors only dim a little at night.
 func _ambient_color() -> Color:
+	var day_i := clock.intensity()
 	if area.indoor:
-		return T.color("light.indoor_color")
+		return T.color("moon.indoor_night_color").lerp(T.color("light.indoor_color"), day_i)
 	var shade := T.color("light.shade_color")
 	var sun_c := T.color("light.sun_color")
-	return shade.lerp(sun_c, _sun_mix * clock.intensity())
+	var day_c := shade.lerp(sun_c, _sun_mix * day_i)
+	var night_c := T.color("moon.night_ambient_color").lerp(T.color("moon.moon_ambient_color"), clock.moon_level())
+	var c := night_c.lerp(day_c, day_i)
+	var dusk := 1.0 - absf(2.0 * day_i - 1.0)      # 0 in full day or dark, 1 halfway through sunrise/sunset
+	return c.lerp(T.color("moon.dusk_color"), dusk * T.f("moon.dusk_mix"))
+
+## Sun and moon lights follow the clock (the sun fades with day_i, the moon sweeps across).
+func _update_sky() -> void:
+	# a light with no energy is hidden: every light costs a pass on a weak phone
+	if _sun_light != null:
+		_sun_light.energy = T.f("light.sun_energy") * clock.intensity()
+		_sun_light.visible = _sun_light.energy > 0.001
+	if _moon_light != null:
+		_moon_light.energy = T.f("moon.energy") * clock.moon_level()
+		_moon_light.visible = _moon_light.energy > 0.001
+		_moon_light.rotation = deg_to_rad(lerpf(T.f("moon.angle_from_deg"), T.f("moon.angle_to_deg"), clock.moon_progress()))
 
 # ---------------------------------------------------------------- input
 
@@ -311,6 +340,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		press_b()
 	elif event.is_action_pressed("tn_debug_hurt") and OS.is_debug_build():
 		engine.hp = minf(engine.hp, 3.0)
+	elif event.is_action_pressed("tn_debug_time") and OS.is_debug_build():
+		clock.advance_hours(1.0)
 
 func _request_pause() -> void:
 	if hosted:
@@ -327,7 +358,8 @@ func _process(delta: float) -> void:
 		return
 	delta = minf(delta, 0.1)
 	_t += delta
-	clock.advance(delta)
+	if mode == "play" and (not area.indoor or T.b("sun.run_indoors")):
+		clock.advance(delta)
 	_run_pending(delta)
 	match mode:
 		"prologue": _tick_prologue(delta)
@@ -374,9 +406,16 @@ func _tick_visuals(delta: float) -> void:
 	var in_sun := mode != "prologue" and not area.indoor and not area.in_shade(player.position)
 	_sun_mix = move_toward(_sun_mix, 1.0 if in_sun else 0.0, T.f("light.mix_speed") * delta)
 	_canvas_mod.color = _ambient_color()
+	_update_sky()
+	var lamp_boost := 1.0 + T.f("moon.lamp_night_boost") * clock.night()
+	if _glow != null:
+		_glow.night = clock.night()
+	hud.clock_text = clock.hour_text()
+	hud.clock_sun = clock.intensity()
+	hud.clock_moon = clock.moon_level()
 	for l in _lamps:
 		var li: PointLight2D = l["light"]
-		li.energy = float(l["base"]) * (0.93 + 0.07 * sin(_t * 5.0 + float(l["seed"])) + 0.03 * sin(_t * 13.0 + float(l["seed"])))
+		li.energy = lamp_boost * float(l["base"]) * (0.93 + 0.07 * sin(_t * 5.0 + float(l["seed"])) + 0.03 * sin(_t * 13.0 + float(l["seed"])))
 	hud.burn = _burn_amt
 
 # ---------------------------------------------------------------- prologue (story bible section 10)

@@ -44,6 +44,7 @@ func _run() -> void:
 	_test_areas()
 	_test_engine()
 	await _test_flow()
+	await _test_night()
 	Save.clear()
 	if backup != "":
 		var f := FileAccess.open(Save.PATH, FileAccess.WRITE)
@@ -263,6 +264,90 @@ func _test_engine() -> void:
 	check(back.buttons == e.buttons and back.deaths == 1 and back.sneaking, "state survives a JSON round trip")
 	var c: SunClock = SunClock.new()
 	check(is_equal_approx(c.intensity(), 1.0), "the clock starts at full sun")
+	check(is_equal_approx(c.hour, 7.0) and c.day == 1 and c.hour_text() == "07:00", "Friday starts at dawn, 07:00, day 1")
+	check(not T.b("sun.freeze_clock"), "the clock runs")
+	c.hour = 12.0
+	check(is_equal_approx(c.intensity(), 1.0) and c.moon_level() == 0.0, "noon: full sun, no moon")
+	c.hour = 17.5
+	check(c.intensity() > 0.0 and c.intensity() < 1.0 and c.moon_level() == 0.0, "17:30: the sun is fading, the moon is not up")
+	c.hour = 18.5
+	check(c.intensity() == 0.0 and not c.is_day() and c.moon_level() == 0.0 and is_equal_approx(c.night(), 1.0), "18:30: sunset is over, moonrise starts at zero")
+	c.hour = 21.0
+	check(c.intensity() == 0.0 and is_equal_approx(c.moon_level(), 1.0), "21:00: dark, the moon is high")
+	c.hour = 2.0
+	check(is_equal_approx(c.moon_level(), 1.0) and c.moon_progress() > 0.5, "02:00: the moon is still up, past the middle of its way")
+	c.hour = 5.75
+	check(c.moon_level() == 0.0 and c.intensity() == 0.0, "05:45: the moon has set and it is still dark")
+	c.hour = 6.5
+	check(c.intensity() > 0.0 and c.intensity() < 1.0, "06:30: dawn")
+	c.hour = 23.5
+	c.advance_hours(1.0)
+	check(c.day == 2 and is_equal_approx(c.hour, 0.5), "past midnight it is the next day")
+	c.skip_to(7.0)
+	check(c.day == 2 and is_equal_approx(c.hour, 7.0), "skip_to a later time stays on the same day")
+	c.skip_to(6.0)
+	check(c.day == 3 and is_equal_approx(c.hour, 6.0), "skip_to an earlier time goes to tomorrow")
+	var c2: SunClock = SunClock.new()
+	c2.from_dict(JSON.parse_string(JSON.stringify(c.to_dict())))
+	check(c2.day == 3 and is_equal_approx(c2.hour, 6.0), "the clock survives a JSON round trip")
+
+# ---------------------------------------------------------------- day, dusk, night and the moon
+
+func _test_night() -> void:
+	_new_world()
+	await process_frame
+	world.begin_new()
+	_step(3.0)
+	check(is_equal_approx(world.clock.hour, 7.0), "the clock stands still during the prologue")
+	world.engine.set_flag("control")
+	world.engine.set_flag("mirror")
+	world.mode = "play"
+	world._pro = "done"
+	world.hud.fade = 0.0
+	world.hud.fade = 0.0
+	_step(5.0)
+	check(is_equal_approx(world.clock.hour, 7.0), "the clock stands still indoors (sun.run_indoors is false)")
+	world._load_area("street")
+	world.player.position = world.area.spawns.values()[0]
+	var h0: float = world.clock.hour
+	_step(10.0)
+	check(world.clock.hour > h0 + 0.3 and world.clock.hour < h0 + 0.5, "in free play 10 s = 1/3 of a game hour (720 s per day)")
+	check(world.hud.clock_text == world.clock.hour_text(), "the HUD shows the game time")
+	world.clock.hour = 12.0
+	_step(1.0)
+	var day_c: Color = world._ambient_color()
+	check(world._sun_light != null and world._moon_light != null, "the street has a sun and a moon light")
+	check(world._sun_light.energy > 0.0 and world._moon_light.energy == 0.0, "noon: sun light on, moon light off")
+	world.clock.hour = 23.0
+	_step(1.0)
+	var night_c: Color = world._ambient_color()
+	check(night_c.get_luminance() < day_c.get_luminance() * 0.6, "the street is much darker at night (%.2f vs %.2f)" % [night_c.get_luminance(), day_c.get_luminance()])
+	check(world._sun_light.energy == 0.0 and world._moon_light.energy > 0.0, "23:00: sun light off, moon light on")
+	check(world.hud.clock_moon > world.hud.clock_sun, "the HUD shows the moon at night")
+	world.clock.hour = 3.0
+	_step(1.0)
+	var a0: float = world._moon_light.rotation
+	world.clock.hour = 5.0
+	_step(1.0)
+	check(world._moon_light.rotation > a0, "the moon light sweeps across as the night goes on")
+	world.clock.hour = 23.0
+	check(world._glow != null and world._glow.night > 0.9, "the glow layer knows it is night (windows light up)")
+	world.clock.hour = 23.0
+	var hp0: float = world.engine.hp
+	world.player.position = Vector2(330, 262)
+	_step(2.0)
+	check(world.engine.hp >= hp0, "no sun damage at night, in the open street")
+	world.save_game()
+	var d := Save.read()
+	check(not d.is_empty() and is_equal_approx(float(d["clock"]["hour"]), world.clock.hour), "the autosave keeps the time")
+	world.discard = false
+	world.clock.hour = 1.0
+	world._load_area("house_down")
+	_step(0.5)
+	var in_night: Color = world._ambient_color()
+	world.clock.hour = 12.0
+	_step(0.5)
+	check(in_night.get_luminance() < world._ambient_color().get_luminance(), "indoors is dimmer at night than by day")
 
 # ---------------------------------------------------------------- the playthrough
 

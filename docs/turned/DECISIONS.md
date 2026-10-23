@@ -91,5 +91,12 @@ Every default chosen where the owner's prompt (2026-10-22), `BRIEF.md` (the Turn
    - **"Bulls"**: the owner said "there's definitely going to be bulls" (voice note). Unclear what it means (bars? bulls as animals or enemies? pubs?). Asked, not guessed.
 47. Spec [OPEN] flags (9 vs 10 PM, bar name, names for the witness and shop owner (never "Elias"), why the owner knows, who bit the player, who wrote the note, what the watch does) are the owner's to answer; nothing is hardcoded.
 
+## Phase A: day, night and the moon (2026-10-23)
+48. The clock runs. Friday starts at **07:00** (`sun.start_hour`, day 1 = Friday), `sun.freeze_clock` is false, 720 real seconds per 24 h (30 s per game hour). It runs only in free play and **only outdoors** (`sun.run_indoors` false), so the first walk outside still meets full sun and a player who explores the house is not robbed of the day. Say if the clock should also run indoors. Sunset 18:00, so the street goes dark about 5.5 real minutes after you step out; from scene 2 the story will set the hour with `clock.skip_to()`.
+49. The moon: up from 18:30 to 05:30 (1.5 h ramps), a cool directional light that sweeps across the sky (-50 to +50 degrees) and lifts the ambient colour from near black (`0d1224`) to dark blue (`26345e`). Between sunset (18:00) and moonrise (18:30) and again before dawn it is darkest. **No moon phases yet** (a fixed full moon each night): the owner only asked for a light that comes and goes.
+50. At night: lamps +90% brighter, the street's windows light up (80%, deterministic per window), interiors dim to `3c3c52`, a warm tint at dusk and dawn. The sun does no damage at night (the clock's intensity is 0). All numbers in `turned_tuning.json` `moon.*`.
+51. HUD: a time chip under the bars: a sun (rays) by day, a crescent at night, and HH:MM. It shows with the bars (first step outside), per the progressive-reveal rule. Debug: F9 = +1 hour.
+52. Not done: villagers do not go home or change at night (the six placeholders stand where they were), no night sounds, no moon phases, no weekday name in the HUD. Frame time went up in the shots (about 28 ms in the earlier art pass; 38-55 ms measured here, noisy; the moon light and lit windows are the new cost; a phone is not tested). If it is slow: `art.glow_layer` false first.
+
 ## Not built (as the prompt says)
 Combat, buttons X/Y, skill tree, XP gain, feeding, puzzles and locks, other towns, days 2-3, the AI Director, final audio, button layout editing, the Hunter/Friend/Devotee villagers, vision cones and enemies.
