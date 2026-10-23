@@ -23,7 +23,23 @@
 
 ## 3. The HUD and hotspot style (to build in code, no picture needed)
 
-| Piece | Spec (in units of a 941-wide picture; the game scales it) |
+### Landscape layout
+The painting (3:2) is shown **whole, fitted to the height** of the safe area, centred; nothing is cropped. Phones are wider than 3:2 (16:9 is 1.78, 19.5:9 is 2.17, 20:9 is 2.22), so the leftover width becomes two side margins (8% each at 16:9, 17% each at 2.17, 18% each at 2.22) filled with the painting's own edge, blurred, darkened and vignetted (no stretch, no black bars). The interface sits like this:
+
+| Where | What | When the margin is too thin (about 16:9) |
+|---|---|---|
+| Left margin, top | portrait ring, the two bars | overlaps the painting's top-left corner (kept calm by the prompts) |
+| Left margin, middle | objective panel | same, smaller |
+| Right margin, top | day chip | top-right corner |
+| Right margin, bottom to top | the nav bar as a **vertical** strip of five slots (Inventory, Map, Journal, Shelter, Contacts) | a strip over the painting's right edge (the prompts keep it calm) |
+| On the painting | hotspot chips, zoom cards, the dialogue box (bottom, over the lower 12%) | same |
+| A window narrower than 3:2 (tablet, 4:3) | the painting is fitted to the width and the HUD overlays the corners | |
+
+The built Walk-mode controls (pad, A/B, Pause, Menu: `docs/claude/pad.md`) stay as they are; Scene mode needs only taps, so it shows no pad.
+
+### Pieces
+
+| Piece | Spec (in units of a 941-wide picture, the mockup's scale; the game scales it to the screen) |
 |---|---|
 | Portrait ring | 145 across, a gold double ring, the player's bust inside (`CS-01` mood busts) |
 | Bars | two rounded bars about 165 x 16 inside a dark pill with a thin gold border; Health red, and the second bar (see decision 3) |
@@ -43,20 +59,20 @@ Icons (the five nav icons, the sun and the crescent, the magnifier, the diamond)
 | What | Real-time top-down walking with the sun clock, shade and death | A painted scene with hotspots, zoom cards, dialogue over it |
 | Good for | Streets, the sun trek, the forest path, stealth, the night crossing | Rooms: the bedroom, the shop, the foyer, the captain's quarters, the Old Man's house; investigations, the story |
 | Look | Drawn in code; painted props, people and tiles swap in by file name (`ART_SPEC.md`) | The mockups' look: the whole room is one painting |
-| Angle on the hub's rules | landscape, locked | portrait fits the mockups (see decision 1) |
+| Orientation | landscape, locked | landscape, locked (decision 1): a 3:2 painting, interface in the side margins |
 
 **Proposal**: keep both. Rooms and story beats are Scene mode (this is the look of the mockups, and it is the spec's own "hybrid: short tap-to-explore moments plus dialogue scenes"). Outdoor sun sections stay Walk mode and get the painted look over time through the PNG overrides (people, props, ground). The map screen is a painted picture with the districts as hotspots (`WORLD_MAP_AND_QUESTS.md`).
 
 ## 5. Conflicts and decisions (the owner's)
 
-1. **Portrait or landscape.** The mockups are portrait phone shots; Turned is locked landscape (`Orientation.lock_landscape()`; decision 28). Scene mode in portrait needs the game to be portrait-capable. Painting in portrait 2:3 and landscape 3:2 are both easy for ChatGPT; one set only should be made. **Recommended: portrait 1024 x 1536 for Scene mode** (rooms are tall in the mockups), Walk mode stays landscape.
+1. **DECIDED 2026-10-23: landscape.** The mockups are portrait phone shots; Turned stays locked landscape (`Orientation.lock_landscape()`, decision 28), and so does Scene mode. Every scene is painted **1536 x 1024 (3:2)**; the mockups' look, camera and interface are kept, only the format changes. The interface moves to the screen's sides (section 3, "Landscape layout"). The prompts in `ART_PROMPTS_V2.md` are already 1536 x 1024; the mockups' portrait framing is not to be copied.
 2. **The mockups' story is not Turned's.** Bellmere Lane, the City of Ardbrook, the caretaker, the missing poster, the address card, "Shop Keys" and a shop where the player works are the mockup's. Turned's bible has no job for the player yet (bible 3 DECIDE) and the shopkeeper is a different person (PE-06). Use the pictures for **look and interface only**.
 3. **Sanity vs Blood.** The mockup has Health + Sanity; the built engine has Health + Blood (hunger) + XP. A hunger bar fits the story. Sanity is not in the bible. Proposed: Health + Blood in the same style; no Sanity until the owner asks.
 4. **"Home" in the nav bar** collides with the hub's N2 (🏠 Home = back to the Landing). Proposed label: **Shelter** (your day hiding place, SQ-21); the pause menu keeps 🏠 Home.
 5. **No baked text.** The mockups have text in the picture (labels, "OPEN", "TICKETS", street names, a newspaper). The game is EN + ES, so every painting must have blank signs and unreadable scribbles; the game draws all labels.
 6. **The player's look.** The mockups show one young man (dark wavy hair, brown waistcoat, cream shirt). The bible says both genders are playable (DECIDE). The prompts use the mockup's man as the reference; a second sheet for a woman is a prompt swap.
 7. **Alcohol.** The bar scenes (`SC-10`, `SC-11`) are allowed (the owner's Turned exception, decision 46); keep bottles as background only, never a feature.
-8. **Pack size.** 34 scenes + 18 cards at about 300-450 KB each (webp or JPEG q84) is about 15-20 MB. Fine for a GitHub Releases pack; say if there is a cap.
+8. **Pack size.** 35 scenes (1536 x 1024) + 18 cards at about 300-450 KB each (webp or JPEG q84) is about 15-20 MB. Fine for a GitHub Releases pack; say if there is a cap.
 9. **Licence record.** Add the Turned scenes to `media/licenses/OWNER_GAME_ART.md` with the ChatGPT plan used and each prompt's source file (kept unshipped in `reference/art/turned/gen/`), and a `media/CREDITS.json` entry per shipped file. Never ship the mockups themselves.
 10. **The player is not painted into the scenes.** The mockups show him standing in every room. A painting with him in it cannot change with the story (coat on, hat, burns). The prompts paint the rooms empty; the player is the HUD portrait and, if wanted, a sprite the game places. Say if you want him painted in (a prompt swap, one variant per outfit).
 11. **Initials and the sigil are the owner's.** The watch's initials belong to B (canon); the sigil's design is unwritten. The prompts leave the initials as an ornate blank and ask for three sigil options to choose from.
@@ -64,8 +80,8 @@ Icons (the five nav icons, the sun and the crescent, the magnifier, the diamond)
 ## 6. Pipeline (what happens to a picture)
 
 1. The owner generates it with the prompt of the same id; saves the PNG as `reference/art/turned/gen/<id>.png` (source, never shipped).
-2. Claude converts it: `games/turned/art/scenes/<id>.webp` (quality 84, 1024 x 1536 or 1536 x 1024), a `CREDITS.json` entry, a hotspot file `scenes/<id>.json` (label ids and positions, found by looking at the picture), and the Spanish labels in `es.json`.
-3. Checks: `python tools/hub.py check`, the Turned test, a screenshot at text scale 1.0 and 1.4, a 9:16 and a 9:20 phone crop (the picture is cropped to fill the screen, so nothing important may sit in the outer 15% on each side; the prompts say so).
+2. Claude converts it: `games/turned/art/scenes/<id>.webp` (quality 84, 1536 x 1024), a `CREDITS.json` entry, a hotspot file `scenes/<id>.json` (label ids and positions, found by looking at the picture), and the Spanish labels in `es.json`.
+3. Checks: `python tools/hub.py check`, the Turned test, a screenshot at text scale 1.0 and 1.4 at 16:9, 19.5:9 and 4:3 (the painting is fitted whole, so nothing is cropped; the interface may cover the top corners and the bottom 12%, which the prompts keep calm).
 
 ## 7. Not built (said plainly)
 

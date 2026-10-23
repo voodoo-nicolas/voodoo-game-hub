@@ -4,7 +4,7 @@ For `ART_DIRECTION_V2.md`. Every picture is **assembled from blocks**: `MASTER S
 
 ## How to run it with ChatGPT
 1. One chat per batch (the style drifts in a long chat). **Attach the references first**: the four `mockup_*.webp` and `city_gate_night_*.webp` from `reference/art/turned/mockups/`, then say: *"Match the look, lighting, camera angle and painting style of the attached pictures. Ignore their interface, labels and any text: do not draw any."*
-2. Sizes: portrait **1024 x 1536**, landscape **1536 x 1024**, square **1024 x 1024** (ChatGPT's native sizes).
+2. Sizes (ChatGPT's native ones): every **scene is landscape 1536 x 1024** (3:2; Turned stays landscape, decided 2026-10-23); cards, busts, icons are square **1024 x 1024**.
 3. A night or day version of a scene: in the same chat say *"same room, same camera, same furniture, same colours, now at night, lit only by ..."* (it edits instead of redrawing).
 4. If any text appears: *"Remove every letter and number; signs and papers must be blank or unreadable scribble."*
 5. Save the PNG as `reference/art/turned/gen/<id>.png` and tell Claude the ids: it converts, credits and wires them. Say which ChatGPT plan you used (for the licence record).
@@ -15,13 +15,13 @@ For `ART_DIRECTION_V2.md`. Every picture is **assembled from blocks**: `MASTER S
 > Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846). Slightly blurred foreground objects in the lower corners for depth.
 
 **CAMERA ROOM** (indoors)
-> Camera: high three-quarter view looking down about 55 degrees into the room as if the front wall had been removed, the whole room visible like a cutaway diorama.
+> Camera: high three-quarter view looking down about 55 degrees into the room as if the front wall had been removed, the whole room visible like a cutaway diorama, wide landscape framing.
 
 **CAMERA OUTDOOR**
-> Camera: high three-quarter view looking down about 55 degrees onto the street, wide, depth running up the picture.
+> Camera: high three-quarter view looking down about 55 degrees onto the street, wide landscape framing, the street running left to right with depth up the picture.
 
-**LAYOUT** (portrait only)
-> Composition for a phone screen: keep every important object inside the central 70% of the width, and between 18% and 88% of the height (the top 18% and bottom 12% will be covered by an interface). Objects the player can examine must be clearly visible and separate from each other. No person in the picture unless the line says so.
+**LAYOUT** (landscape, every scene)
+> Composition for a wide landscape phone screen, 3:2: lay the room or street out horizontally so the eye travels left to right. Keep every important object inside the central 80% of the width and between 20% and 86% of the height (the top-left and top-right corners and the bottom 12% will be covered by an interface; keep them to dark, calm detail such as ceiling, sky or foreground blur). Objects the player can examine must be clearly visible and separate from each other. No person in the picture unless the line says so.
 
 **NEGATIVE**
 > No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
@@ -50,44 +50,44 @@ Crowds (PE-03 bar patrons, PE-09 harbor locals) are 4-6 sprites each, made later
 
 ## Batch 1: the scenes
 
-Formula: **MASTER STYLE + CAMERA + LAYOUT (portrait) + line below + NEGATIVE**. "Must show" = the hotspots (the game puts a labelled chip on each, in EN and ES).
+Formula: **MASTER STYLE + CAMERA + LAYOUT + line below + NEGATIVE** (all scenes 1536 x 1024). "Must show" = the hotspots (the game puts a labelled chip on each, in EN and ES).
 
 | Id | Size | Place and time | Must show | People |
 |---|---|---|---|---|
-| SC-01 | 1024x1536 | Small Victorian bedroom, grey Friday morning light through a tall window, a small coal stove glowing | iron bed with a rumpled blanket and a faint dark stain on the pillow; THE STRANGE COAT draped over a wooden chair; a wall calendar; a wardrobe; a desk with a candle and papers; a nightstand; the window; a door to the landing; a doorway to the bathroom | none |
-| SC-02 | 1024x1536 | The same bedroom at night, one candle and moonlight through the window (edit SC-01) | the coat on the chair with its inner lining slightly open and a faint warm glow from inside; the calendar; the door | none |
-| SC-03 | 1024x1536 | A narrow Victorian bathroom, black-and-white tile, cold light | a pedestal sink with a large mirror above it whose reflection is faint, dim and wrong; a clawfoot bath; a towel on the rail with a dark stain; a washstand with a jug and bowl; a toilet with a high tank; a shelf of bottles; a small rug; a small window | none |
-| SC-04 | 1024x1536 | A study and library at dusk | a heavy desk with a green-shaded lamp and papers; a globe; a tall bookshelf with one clear gap where a book is missing; an armchair; the window | none |
-| SC-05 | 1024x1536 | The ground-floor entrance hall, warm hall lamp | a heavy front door with an iron bolt; a coat stand with a scarf on it; a console table with a stopped clock; a low iron-banded cellar door; the stairs going up; a framed family portrait whose faces are dark and unclear; a long runner rug | none |
-| SC-06 | 1024x1536 | The parlour, curtains drawn, dust | sofa; two armchairs; a piano; a fireplace with cold grey ashes; a bookcase; a portrait over the fireplace (faces unclear); a side table | none |
-| SC-07 | 1024x1536 | The kitchen, early light | an iron stove; a long table with two cups; a pantry door; shelves of jars; a stone sink; hanging pans; a bread bin | none |
-| SC-08 | 1024x1536 | CAMERA OUTDOOR. Your street by day, harsh white-gold sun, cold blue shade | your house's porch; a baker's stall with an awning and bread; a gas lamp post; a big tree; a carriage with a horse; a bench; shade patches under the awning, tree and porch clearly separate from sunlit patches | none |
-| SC-09 | 1024x1536 | CAMERA OUTDOOR. The same street at night, a full moon, lit windows, lit lamps, mist, wet cobbles (edit SC-08) | the porch; the lamps; the baker's stall closed; a figure far down the street under a lamp, seen very small | a tiny distant figure |
-| SC-10 | 1024x1536 | CAMERA OUTDOOR. A corner tavern at night: stone and timber, a hanging iron lantern, a blank painted sign | the heavy door with an iron bolt and lock; steamed windows with silhouettes of people inside; steps; barrels; a lamp; wet cobbles | none |
-| SC-11 | 1024x1536 | Inside the tavern: low timbers, a hearth, round tables, a long counter; bottles only as background | the long counter; the hearth; the door; the stairs; the room is silent and every person is turned toward the door, afraid | the tavernkeep behind the counter (CS-02), six patrons as dark figures |
-| SC-12 | 1024x1536 | CAMERA OUTDOOR. A narrow brick alley at night with a sharp corner, one gas lamp, fog | the corner; puddles; crates and a barrel; a drainpipe; a lit window high up | none |
-| SC-13 | 1024x1536 | CAMERA OUTDOOR. A wide gas-lit street at night where every lamp is almost blinding: huge soft halos, harsh reflections in the wet stone, as if seen with painfully sensitive eyes | shuttered shops; a dog barking on a step; a cart; a steam vent | none |
-| SC-14 | 1024x1536 | CAMERA OUTDOOR. An iron bridge over a canal and a tram stop in wet night rain, a red tram far away | a tram stop shelter with blank signs; a ticket booth; a blank street-map board; a striped barrier; wet tram rails | none |
-| SC-15 | 1024x1536 | A narrow cigar shop on the harbor, lamp-lit, masts in the window | a counter with a brass scale; a wall of wooden cigar boxes; jars; a ledger; a glass of water on the counter; a stool; the door to the back room | none |
-| SC-16 | 1024x1536 | The cigar shop's back storeroom: tobacco leaves hung to dry in rows, smoke haze | the drying racks; stacked crates; a cot with a rough blanket; a hanging oil lamp; a small barred window; a barrel | none |
-| SC-17 | 1024x1536 | CAMERA OUTDOOR. The docks by day: harsh sun, deep shade under a customs shed | a tall moored ship with a gangway; crates; ropes; the customs shed; a fish stall; gulls | none |
-| SC-18 | 1024x1536 | The same docks at night, fog, lamp reflections on the water (edit SC-17) | the ship with lit windows; the gangway; lamps | none |
-| SC-19 | 1024x1536 | The ship's deck by day | rigging; a hatch down; the wheel; coiled rope; barrels; the door to the captain's quarters | none |
-| SC-20 | 1024x1536 | The captain's quarters: a low cabin with stern windows, a swinging brass lamp | a chart table with a harbor map; a ship's log; a cot; a sea chest; a tin cup of water; a locked drawer; a silver pocket watch on a chain lying on the desk | none |
+| SC-01 | 1536x1024 | Small Victorian bedroom, grey Friday morning light through a tall window, a small coal stove glowing | iron bed with a rumpled blanket and a faint dark stain on the pillow; THE STRANGE COAT draped over a wooden chair; a wall calendar; a wardrobe; a desk with a candle and papers; a nightstand; the window; a door to the landing; a doorway to the bathroom | none |
+| SC-02 | 1536x1024 | The same bedroom at night, one candle and moonlight through the window (edit SC-01) | the coat on the chair with its inner lining slightly open and a faint warm glow from inside; the calendar; the door | none |
+| SC-03 | 1536x1024 | A narrow Victorian bathroom, black-and-white tile, cold light | a pedestal sink with a large mirror above it whose reflection is faint, dim and wrong; a clawfoot bath; a towel on the rail with a dark stain; a washstand with a jug and bowl; a toilet with a high tank; a shelf of bottles; a small rug; a small window | none |
+| SC-04 | 1536x1024 | A study and library at dusk | a heavy desk with a green-shaded lamp and papers; a globe; a tall bookshelf with one clear gap where a book is missing; an armchair; the window | none |
+| SC-05 | 1536x1024 | The ground-floor entrance hall, warm hall lamp | a heavy front door with an iron bolt; a coat stand with a scarf on it; a console table with a stopped clock; a low iron-banded cellar door; the stairs going up; a framed family portrait whose faces are dark and unclear; a long runner rug | none |
+| SC-06 | 1536x1024 | The parlour, curtains drawn, dust | sofa; two armchairs; a piano; a fireplace with cold grey ashes; a bookcase; a portrait over the fireplace (faces unclear); a side table | none |
+| SC-07 | 1536x1024 | The kitchen, early light | an iron stove; a long table with two cups; a pantry door; shelves of jars; a stone sink; hanging pans; a bread bin | none |
+| SC-08 | 1536x1024 | CAMERA OUTDOOR. Your street by day, harsh white-gold sun, cold blue shade | your house's porch; a baker's stall with an awning and bread; a gas lamp post; a big tree; a carriage with a horse; a bench; shade patches under the awning, tree and porch clearly separate from sunlit patches | none |
+| SC-09 | 1536x1024 | CAMERA OUTDOOR. The same street at night, a full moon, lit windows, lit lamps, mist, wet cobbles (edit SC-08) | the porch; the lamps; the baker's stall closed; a figure far down the street under a lamp, seen very small | a tiny distant figure |
+| SC-10 | 1536x1024 | CAMERA OUTDOOR. A corner tavern at night: stone and timber, a hanging iron lantern, a blank painted sign | the heavy door with an iron bolt and lock; steamed windows with silhouettes of people inside; steps; barrels; a lamp; wet cobbles | none |
+| SC-11 | 1536x1024 | Inside the tavern: low timbers, a hearth, round tables, a long counter; bottles only as background | the long counter; the hearth; the door; the stairs; the room is silent and every person is turned toward the door, afraid | the tavernkeep behind the counter (CS-02), six patrons as dark figures |
+| SC-12 | 1536x1024 | CAMERA OUTDOOR. A narrow brick alley at night with a sharp corner, one gas lamp, fog | the corner; puddles; crates and a barrel; a drainpipe; a lit window high up | none |
+| SC-13 | 1536x1024 | CAMERA OUTDOOR. A wide gas-lit street at night where every lamp is almost blinding: huge soft halos, harsh reflections in the wet stone, as if seen with painfully sensitive eyes | shuttered shops; a dog barking on a step; a cart; a steam vent | none |
+| SC-14 | 1536x1024 | CAMERA OUTDOOR. An iron bridge over a canal and a tram stop in wet night rain, a red tram far away | a tram stop shelter with blank signs; a ticket booth; a blank street-map board; a striped barrier; wet tram rails | none |
+| SC-15 | 1536x1024 | A narrow cigar shop on the harbor, lamp-lit, masts in the window | a counter with a brass scale; a wall of wooden cigar boxes; jars; a ledger; a glass of water on the counter; a stool; the door to the back room | none |
+| SC-16 | 1536x1024 | The cigar shop's back storeroom: tobacco leaves hung to dry in rows, smoke haze | the drying racks; stacked crates; a cot with a rough blanket; a hanging oil lamp; a small barred window; a barrel | none |
+| SC-17 | 1536x1024 | CAMERA OUTDOOR. The docks by day: harsh sun, deep shade under a customs shed | a tall moored ship with a gangway; crates; ropes; the customs shed; a fish stall; gulls | none |
+| SC-18 | 1536x1024 | The same docks at night, fog, lamp reflections on the water (edit SC-17) | the ship with lit windows; the gangway; lamps | none |
+| SC-19 | 1536x1024 | The ship's deck by day | rigging; a hatch down; the wheel; coiled rope; barrels; the door to the captain's quarters | none |
+| SC-20 | 1536x1024 | The captain's quarters: a low cabin with stern windows, a swinging brass lamp | a chart table with a harbor map; a ship's log; a cot; a sea chest; a tin cup of water; a locked drawer; a silver pocket watch on a chain lying on the desk | none |
 | SC-21 | 1536x1024 | CAMERA OUTDOOR. The city's west gate at night. Attach `city_gate_night_2` and redraw it clean | the stone gate with two towers and plain dark-red banners (a plain pale vertical mark, no emblem); torch posts; wet cobbles; the road leaving into the forest | none |
-| SC-22 | 1024x1536 | A forest path at night: dense dark trees, roots, fog, moonlight through the canopy | a narrow path; a low hanging branch; a warm pool of lamp light on the path ahead | none |
-| SC-23 | 1024x1536 | CAMERA OUTDOOR. A small stone cottage swallowed by ivy and vines at night, a dim amber window, thin smoke | the door; the window; herb beds; a woodpile; an old well | none |
-| SC-24 | 1024x1536 | The Old Man's main room: a hearth with a low fire, drying herbs on the beams | shelves of old books and jars; a big table with an open book; two chairs; a cot; a kettle; a cracked window | none |
-| SC-25 | 1024x1536 | The Old Man's study: cluttered, one candle | a desk of papers and handwritten notes (unreadable); glass retorts and small scales; shelves of herb jars and bottles; a stack of books; a magnifier; a locked cabinet | none |
-| SC-26 | 1024x1536 | CAMERA OUTDOOR. The forest road at 7 am: a wide dirt road through tall trees, a low golden sun, long dramatic shadows, dust; the city walls and spires far ahead in haze | patches of tree shade clearly visible along the road; a milestone | none |
-| SC-27 | 1024x1536 | CAMERA OUTDOOR. A market edge in full midday sun, white-gold, high contrast | a hat stall with one hat hanging unattended on a hook; awnings; barrels; a lamp post | none |
-| SC-28 | 1024x1536 | CAMERA OUTDOOR. A stone colonnade with strong stripes of shade and sun | a clothes line with cloth and a scarf; a fountain; a narrow side street | none |
-| SC-29 | 1024x1536 | CAMERA OUTDOOR. A cathedral square at dusk: the gothic facade looming, gargoyles, a rose window | a wide stair; candles at the door; pigeons; long cold shadows | a priest as a small silhouette |
+| SC-22 | 1536x1024 | A forest path at night: dense dark trees, roots, fog, moonlight through the canopy | a narrow path; a low hanging branch; a warm pool of lamp light on the path ahead | none |
+| SC-23 | 1536x1024 | CAMERA OUTDOOR. A small stone cottage swallowed by ivy and vines at night, a dim amber window, thin smoke | the door; the window; herb beds; a woodpile; an old well | none |
+| SC-24 | 1536x1024 | The Old Man's main room: a hearth with a low fire, drying herbs on the beams | shelves of old books and jars; a big table with an open book; two chairs; a cot; a kettle; a cracked window | none |
+| SC-25 | 1536x1024 | The Old Man's study: cluttered, one candle | a desk of papers and handwritten notes (unreadable); glass retorts and small scales; shelves of herb jars and bottles; a stack of books; a magnifier; a locked cabinet | none |
+| SC-26 | 1536x1024 | CAMERA OUTDOOR. The forest road at 7 am: a wide dirt road through tall trees, a low golden sun, long dramatic shadows, dust; the city walls and spires far ahead in haze | patches of tree shade clearly visible along the road; a milestone | none |
+| SC-27 | 1536x1024 | CAMERA OUTDOOR. A market edge in full midday sun, white-gold, high contrast | a hat stall with one hat hanging unattended on a hook; awnings; barrels; a lamp post | none |
+| SC-28 | 1536x1024 | CAMERA OUTDOOR. A stone colonnade with strong stripes of shade and sun | a clothes line with cloth and a scarf; a fountain; a narrow side street | none |
+| SC-29 | 1536x1024 | CAMERA OUTDOOR. A cathedral square at dusk: the gothic facade looming, gargoyles, a rose window | a wide stair; candles at the door; pigeons; long cold shadows | a priest as a small silhouette |
 | SC-30 | 1536x1024 | The whole city from outside at night. Attach `city_gate_night_1` and redraw it clean | a walled gothic city with spires and lit windows on the left; masted ships in a harbor far back; a stone gate in the centre; a wet cobbled road to the foreground; a forest and a river on the right; a full moon; mist | none |
 | SC-31 | 1536x1024 | The gate and the forest road close up. Attach `city_gate_night_2` and redraw it clean | the gate; torches; the road; the dark forest; the river | none |
-| SC-32 | 1024x1024 | A memory fragment: a sound. Soft focus, desaturated, a heavy vignette | a bell swinging in the dark, motion blur, a blurred bright lantern | none |
-| SC-33 | 1024x1024 | A memory fragment: a smell | cigar smoke curling around a glowing ember in the dark | none |
-| SC-34 | 1024x1024 | A memory fragment: half a face | half a face lit from the side, one eye, a high collar, the other half in darkness, a hand with a ring at the edge (no one the viewer can identify) | half a face |
+| SC-32 | 1536x1024 | A memory fragment: a sound. Soft focus, desaturated, a heavy vignette | a bell swinging in the dark, motion blur, a blurred bright lantern | none |
+| SC-33 | 1536x1024 | A memory fragment: a smell | cigar smoke curling around a glowing ember in the dark | none |
+| SC-34 | 1536x1024 | A memory fragment: half a face | half a face lit from the side, one eye, a high collar, the other half in darkness, a hand with a ring at the edge (no one the viewer can identify) | half a face |
 | SC-35 | 1536x1024 | **Extra, not in the 34**: the map of Vellmoor, an illustrated aerial map, dark parchment, gold hairlines | eight districts (market quarter in the centre, lantern row east, residential west, old town hill north, railway and works south, harbor south-east, west gate and the forest beyond); a river entering from the west and a canal to the harbor; blank cartouches for labels | none |
 
 **Assembled example (SC-01), paste as one prompt:**
