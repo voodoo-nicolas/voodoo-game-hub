@@ -32,6 +32,8 @@ static func make(area_id: String) -> RefCounted:
 		a._build_street()
 	elif area_id == "house_down":
 		a._build_house_down()
+	elif area_id == "bar":
+		a._build_bar()
 	else:
 		a._build_house()
 	return a
@@ -187,15 +189,13 @@ func _build_house() -> void:
 	_furn("armchair", Rect2(440, 446, 44, 44))
 	_furn("floorlamp", Rect2(492, 440, 16, 16))
 	deco.append_array([
-		{"t": "item", "kind": "invitation", "pos": Vector2(111, 38)},
 		{"t": "item", "kind": "coat", "pos": Vector2(241, 44)},
-		{"t": "item", "kind": "note", "pos": Vector2(70, 188)},
+		{"t": "item", "kind": "calendar", "pos": Vector2(327, 120)},
 		{"t": "item", "kind": "towel", "pos": Vector2(533, 72)},
 	])
 	interacts = [
-		{"id": "invitation", "pos": Vector2(111, 62), "r": 34.0, "verb": "read"},
 		{"id": "coat", "pos": Vector2(241, 72), "r": 34.0, "verb": "look"},
-		{"id": "note", "pos": Vector2(70, 188), "r": 30.0, "verb": "read"},
+		{"id": "calendar", "pos": Vector2(312, 124), "r": 30.0, "verb": "look"},
 		{"id": "wardrobe", "pos": Vector2(304, 74), "r": 30.0, "verb": "look"},
 		{"id": "mirror", "pos": Vector2(444, 62), "r": 36.0, "verb": "look"},
 		{"id": "toilet", "pos": Vector2(404, 68), "r": 26.0, "verb": "look"},
@@ -298,6 +298,57 @@ func _build_house_down() -> void:
 		"from_up": Vector2(472, 360),
 	}
 
+# ---------------------------------------------------------------- The Crooked Lantern (the bar)
+# One room, 640 x 400: the counter along the north wall with the keeper behind it, three tables, a
+# fireplace, the street door in the south wall. Placeholder name and layout (docs/turned/DECISIONS.md).
+
+func _build_bar() -> void:
+	indoor = true
+	bounds = Rect2(0, 0, 640, 416)
+	solids = []
+	deco = [
+		{"t": "floor", "rect": Rect2(16, 16, 608, 384), "color": Color("2f2a2c"), "plank": true},
+		{"t": "rug", "rect": Rect2(250, 250, 140, 100), "color": Color("4a2f2f")},
+	]
+	for r in [Rect2(0, 0, 640, 16), Rect2(0, 0, 16, 416), Rect2(0, 400, 296, 16), Rect2(344, 400, 296, 16), Rect2(624, 0, 16, 416)]:
+		_wall(r)
+	deco.append({"t": "window", "rect": Rect2(520, 0, 64, 16)})
+	deco.append({"t": "window", "rect": Rect2(60, 0, 64, 16)})
+	deco.append({"t": "bar_door", "rect": Rect2(296, 400, 48, 16)})
+	deco.append({"t": "picture", "rect": Rect2(16, 220, 5, 50)})
+	# behind the counter: shelves; the counter; the fireplace
+	_furn("shelves", Rect2(190, 18, 260, 24))
+	_furn("counter", Rect2(180, 78, 280, 30))
+	_furn("fireplace", Rect2(520, 16, 80, 30))
+	# tables with chairs
+	_furn("table", Rect2(70, 180, 70, 46))
+	_furn("chair", Rect2(46, 190, 20, 24))
+	_furn("chair", Rect2(144, 190, 20, 24))
+	_furn("table", Rect2(460, 190, 70, 46))
+	_furn("chair", Rect2(436, 200, 20, 24))
+	_furn("chair", Rect2(534, 200, 20, 24))
+	_furn("table", Rect2(120, 290, 70, 46))
+	_furn("chair", Rect2(96, 300, 20, 24))
+	_furn("table", Rect2(450, 300, 70, 46))
+	_furn("chair", Rect2(426, 310, 20, 24))
+	_furn("chair", Rect2(524, 310, 20, 24))
+	interacts = [
+		{"id": "bar_exit", "pos": Vector2(320, 380), "r": 34.0, "verb": "door"},
+	]
+	lamps = []
+	light_spots = [
+		{"pos": Vector2(320, 150), "color": Color("ffb45a"), "energy": 1.1, "radius": 230.0},
+		{"pos": Vector2(320, 40), "color": Color("ffc880"), "energy": 0.8, "radius": 150.0},
+		{"pos": Vector2(560, 60), "color": Color("ff8a3a"), "energy": 1.0, "radius": 130.0},
+		{"pos": Vector2(120, 250), "color": Color("ffb45a"), "energy": 0.8, "radius": 140.0},
+		{"pos": Vector2(490, 290), "color": Color("ffb45a"), "energy": 0.8, "radius": 140.0},
+		{"pos": Vector2(320, 340), "color": Color("ffb45a"), "energy": 0.6, "radius": 120.0},
+	]
+	spawns = {"from_street": Vector2(320, 360)}
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(NPC_DATA))
+	if typeof(parsed) == TYPE_DICTIONARY:
+		npcs = (parsed.get("bar_npcs", []) as Array).duplicate(true)
+
 # ---------------------------------------------------------------- the street
 
 func _build_street() -> void:
@@ -338,6 +389,7 @@ func _build_street() -> void:
 		{"rect": Rect2(190, 150, 84, 46), "style": "porch"},
 		{"rect": Rect2(440, 150, 260, 48), "style": "awning", "c1": Color("7a2f3a"), "c2": Color("d9cdb4")},
 		{"rect": Rect2(1170, 150, 180, 44), "style": "awning", "c1": Color("2f5a52"), "c2": Color("d9cdb4")},
+		{"rect": Rect2(930, 150, 200, 44), "style": "awning", "c1": Color("2a3a2e"), "c2": Color("c9bd9c")},
 		{"rect": Rect2(766, 330, 140, 62), "style": "awning", "c1": Color("8a6a2a"), "c2": Color("e8dcb8")},
 		{"circle": Vector2(980, 345), "r": 58.0, "style": "tree"},
 		{"circle": Vector2(1600, 345), "r": 52.0, "style": "tree"},
@@ -362,7 +414,8 @@ func _build_street() -> void:
 		{"t": "house_door", "rect": Rect2(214, 112, 36, 38)},
 		{"t": "window_row", "rect": Rect2(284, 86, 140, 34), "lit": false},
 		{"t": "shop_front", "rect": Rect2(450, 80, 240, 70), "name": "bakery"},
-		{"t": "window_row", "rect": Rect2(734, 86, 420, 34), "lit": false},
+		{"t": "window_row", "rect": Rect2(734, 86, 170, 34), "lit": false},
+		{"t": "shop_front", "rect": Rect2(930, 80, 200, 70), "name": "pub"},
 		{"t": "shop_front", "rect": Rect2(1180, 80, 160, 70), "name": "tailor"},
 		{"t": "window_row", "rect": Rect2(1384, 86, 330, 34), "lit": false},
 		{"t": "fence", "rect": Rect2(30, 146, 120, 8)},
@@ -373,6 +426,7 @@ func _build_street() -> void:
 	interacts = [
 		{"id": "house_door", "pos": Vector2(232, 154), "r": 26.0, "verb": "enter"},
 		{"id": "alley_door", "pos": Vector2(1785, -270), "r": 30.0, "verb": "look"},
+		{"id": "bar_door", "pos": Vector2(1069, 156), "r": 28.0, "verb": "enter"},
 	]
 	triggers = [
 		{"id": "alley", "rect": Rect2(1744, -300, 82, 420)},
@@ -380,6 +434,7 @@ func _build_street() -> void:
 	spawns = {
 		"from_house": Vector2(232, 184),
 		"start": Vector2(232, 184),
+		"from_bar": Vector2(1069, 188),
 	}
 	light_spots = []
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(NPC_DATA))

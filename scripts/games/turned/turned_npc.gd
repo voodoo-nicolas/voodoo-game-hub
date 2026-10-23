@@ -23,6 +23,8 @@ var _moving := false
 var _talk := 0.0
 var _stare := false
 var _walker := false
+var _afraid := false        # turns its back on the player and trembles (the bar's patrons)
+var _shake := 0.0
 
 func setup(d: Dictionary) -> void:
 	data = d
@@ -34,6 +36,7 @@ func setup(d: Dictionary) -> void:
 	var f: Array = d.get("face", [0, 1])
 	face = Vector2(float(f[0]), float(f[1])).normalized()
 	_stare = bool(d.get("stare", false))
+	_afraid = bool(d.get("afraid", false))
 	_walker = str(d.get("behavior", "stand")) == "walk"
 	if _walker:
 		for pt in d["path"]:
@@ -62,6 +65,13 @@ func tick(delta: float, player: Node2D, others: Array) -> void:
 		_talk -= delta
 		_moving = false
 		_face_toward(player.position, 0.3)
+		queue_redraw()
+		return
+	if _afraid:
+		var away := position - player.position
+		_shake = clampf(1.0 - to_player / 220.0, 0.0, 1.0)
+		if away.length() > 1.0 and to_player < 220.0:
+			face = face.lerp(away.normalized(), minf(1.0, delta * 3.0)).normalized()
 		queue_redraw()
 		return
 	if _stare and to_player < T.m(T.f("npc.stare_range_m")):
@@ -98,4 +108,6 @@ func _blocked(dir: Vector2, player: Node2D, others: Array) -> bool:
 	return false
 
 func _draw() -> void:
+	if _shake > 0.05:
+		draw_set_transform(Vector2(sin(_phase * 38.0) * 0.9 * _shake, 0.0), 0.0, Vector2.ONE)
 	Art.person(self, look, face, _phase * 6.0 if _moving else 0.0, false, false, "npc_" + id)

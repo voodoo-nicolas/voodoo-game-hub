@@ -48,6 +48,7 @@ func _run() -> void:
 	await _test_night()
 	_test_dialogue_runner()
 	await _test_dialogue_world()
+	await _test_bar()
 	Save.clear()
 	if backup != "":
 		var f := FileAccess.open(Save.PATH, FileAccess.WRITE)
@@ -76,6 +77,26 @@ func _walk_to(target: Vector2, limit_s: float = 30.0) -> bool:
 		t += DT * 3.0
 	world.test_dir = Vector2.ZERO
 	return false
+
+## Presses A through the lines of the scene on screen until a choice appears or the scene ends.
+func _dlg_lines() -> void:
+	var guard := 0
+	while world.mode == "dialogue" and str(world.dlg.view().get("kind", "")) != "choice" and guard < 60:
+		hud.dialogue_skip()
+		world.press_a()
+		guard += 1
+	if world.mode == "dialogue":
+		hud.dialogue_skip()
+
+## Takes the option of the choice on screen whose text is the dialogue text `text_id`.
+func _pick(text_id: String) -> void:
+	hud.dialogue_skip()
+	var opts: Array = world.dlg.view().get("options", [])
+	var i := opts.find(Text.DIALOGUE[text_id])
+	check(i >= 0, "the option '%s' is offered" % text_id)
+	if i >= 0:
+		world.dlg.selected = i
+		world.press_a()
 
 func _new_world() -> void:
 	if world != null:
@@ -529,6 +550,95 @@ func _test_dialogue_world() -> void:
 	world.save_game()
 	check(not Save.read().has("dialogue"), "no scene in the autosave when none is running")
 
+# ---------------------------------------------------------------- the bar (scene 2)
+
+func _test_bar() -> void:
+	var bar: Area = Area.make("bar") as Area
+	check(bar.indoor and bar.in_shade(Vector2(100, 100)), "the bar is indoors, all shade")
+	for k in bar.spawns:
+		check(bar.is_free(bar.spawns[k], 9.0), "bar spawn %s is free" % k)
+	for it in bar.interacts:
+		check(bar.bounds.has_point(it["pos"]) and bar.is_free(it["pos"], 9.0) and Text.VERBS.has(it["verb"]), "bar interact %s is a free spot with a verb label" % it["id"])
+		check(_reachable(bar, bar.spawns["from_street"], it["pos"]), "bar interact %s reachable" % it["id"])
+	var afraid := 0
+	var keepers := 0
+	for n in bar.npcs:
+		var pp := Vector2(float(n["pos"][0]), float(n["pos"][1]))
+		check(bar.is_free(pp, 9.0), "bar person %s stands on free ground" % n["id"])
+		check(Text.SPEAKERS.has(n["id"]), "bar person %s has a speaker name" % n["id"])
+		if bool(n.get("afraid", false)):
+			afraid += 1
+		if n["id"] == "tavernkeep":
+			keepers += 1
+	check(afraid == 4 and keepers == 1, "a tavernkeep and four afraid patrons")
+	var st: Area = Area.make("street") as Area
+	var door: Dictionary = {}
+	for it in st.interacts:
+		if it["id"] == "bar_door":
+			door = it
+	check(not door.is_empty() and _reachable(st, st.spawns["from_house"], Vector2(door["pos"].x, door["pos"].y + 16.0)), "the pub door in the street is reachable from the porch")
+	check(st.is_free(st.spawns["from_bar"], 9.0) and st.in_shade(st.spawns["from_bar"]), "thrown out of the bar you land in the awning's shade")
+	# the whole of scene 2, from the street
+	_new_world()
+	await process_frame
+	world.begin_new()
+	_step(1.0)
+	for f in ["control", "mirror", "pockets"]:
+		world.engine.set_flag(f)
+	world.engine.dpad = true
+	world.engine.show_bars = true
+	world.engine.add_item("note")
+	world.engine.set_mission("go_bar")
+	world.mode = "play"
+	world._pro = "done"
+	world.hud.fade = 0.0
+	world._load_area("street")
+	world.clock.hour = 14.0
+	world.player.position = Vector2(1069, 170)
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "bar_door", "A offers the pub door")
+	world.press_a()
+	check(world.mode == "transition", "the door starts the fade")
+	_step(1.6)
+	check(world.area.id == "bar" and world.mode == "dialogue", "inside The Crooked Lantern the scene starts by itself")
+	check(world.dlg.view()["speaker"] == "tavernkeep" and world.dlg.view()["text"] == Text.DIALOGUE["bar_shout"], "the tavernkeep shouts")
+	var hour_in: float = world.clock.hour
+	# the patrons turn their backs on you
+	var patron: Node2D = null
+	var dist := INF
+	for n in world._npcs:
+		if n.id == "patron" and n.position.distance_to(world.player.position) < dist:
+			patron = n
+			dist = n.position.distance_to(world.player.position)
+	_step(1.5)
+	check(is_equal_approx(world.clock.hour, hour_in), "no game time passes in the scene")
+	check(patron != null and patron.face.dot((world.player.position - patron.position).normalized()) < 0.0, "a patron has turned away from you")
+	var guard := 0
+	while world.mode == "dialogue" and guard < 40:
+		hud.dialogue_skip()
+		world.press_a()
+		guard += 1
+	check(world.mode == "transition", "after the last line you are put out of the door")
+	check(world.engine.has_flag("bar_scene") and world.engine.has_flag("bar_thrown") and world.engine.journal.has("bar"), "the scene is remembered and the Journal has it")
+	_step(1.6)
+	check(world.area.id == "street" and world.mode == "play", "back in the street")
+	check(world.player.position.distance_to(world.area.spawns["from_bar"]) < 2.0, "just outside the pub door")
+	check(absf(world.clock.hour - 21.0) < 0.05 and world.clock.moon_level() > 0.9, "it is 21:00 and the moon is up")
+	check(world.engine.mission == "find_out", "the mission goes back to finding out what happened")
+	check(not world.dlg.active and not hud.dialogue_active(), "the scene is over")
+	world.player.position = Vector2(1069, 170)
+	_step(0.1)
+	world.press_a()
+	check(hud.caption_text() == Text.INNER["bar_locked"] and world.mode == "play", "the door is bolted now")
+	# a game saved inside the bar before the scene is over resumes into the scene
+	world.engine.clear_flag("bar_scene")
+	world._load_area("bar")
+	world.player.position = world.area.spawns["from_street"]
+	world.save_game()
+	_new_world()
+	await process_frame
+	check(world.resume() and world.area.id == "bar" and world.mode == "dialogue", "Resume inside the bar starts the scene")
+
 # ---------------------------------------------------------------- the playthrough
 
 func _test_flow() -> void:
@@ -597,23 +707,46 @@ func _test_flow() -> void:
 	world._load_area("house")
 	world.player.position = world.area.spawns["bedside"]
 
-	# walk to a clue with the d-pad: bedside -> invitation
+	# walk to a clue with the d-pad: bedside -> the wall calendar
 	world.player.position = world.area.spawns["bedside"]
-	check(_walk_to(Vector2(111, 66)), "walked to the nightstand")
+	check(_walk_to(Vector2(300, 120)), "walked to the wall calendar")
 	_step(0.1)
-	check(str(world._cand.get("id", "")) == "invitation", "A offers the invitation")
+	check(str(world._cand.get("id", "")) == "calendar", "A offers the calendar")
 	check(world.player.hobble, "before the mirror the player hobbles")
 	world.press_a()
-	check(world.engine.journal.has("invitation") and hud.is_revealed("menu"), "the clue is in the Journal and the Menu appears")
+	check(world.engine.journal.has("calendar") and hud.is_revealed("menu"), "the clue is in the Journal and the Menu appears")
+	check(hud.caption_text() == Text.CLUES["calendar"]["say"], "the calendar says it is Friday")
+	# the coat is a scene: the pockets, the matches, the note sewn into the lining
 	world.player.position = Vector2(241, 76)
 	_step(0.1)
+	check(str(world._cand.get("id", "")) == "coat", "A offers the coat")
 	world.press_a()
-	world.player.position = Vector2(70, 196)
+	check(world.mode == "dialogue" and world.engine.journal.has("coat"), "the coat starts its scene and goes in the Journal")
+	_dlg_lines()
+	check(world.dlg.view()["options"].size() == 5, "five things to do with the coat (tearing the stitches needs the inside pocket first)")
+	_pick("coat_opt_left")
+	_dlg_lines()
+	check(not world.engine.has_item("matches"), "the left pocket is empty")
+	_pick("coat_opt_right")
+	_dlg_lines()
+	check(world.engine.has_item("matches") and world.engine.journal.has("matches"), "the right pocket has the matches")
+	_pick("coat_opt_inner")
+	_dlg_lines()
+	check(world.dlg.view()["options"].has(Text.DIALOGUE["coat_opt_tear"]), "now the stitches can be torn")
+	check(not world.engine.has_item("note"), "the inside pocket is sewn shut")
+	_pick("coat_opt_tear")
+	_dlg_lines()
+	check(world.engine.has_item("note") and world.engine.journal.has("note") and world.engine.mission == "go_bar", "the note: the mission is to go to The Crooked Lantern")
+	_pick("coat_opt_wear")
+	_dlg_lines()
+	check(world.dlg.view()["options"].size() == 1, "only 'leave the coat' is left")
+	_pick("coat_opt_done")
+	check(world.mode == "play" and world.engine.journal.size() == 4, "back in free play, four clues so far (%s)" % str(world.engine.journal))
 	_step(0.1)
 	world.press_a()
-	check(world.engine.journal.size() == 3, "three clues found (%s)" % str(world.engine.journal))
-	world.press_a()
-	check(world.engine.journal.size() == 3, "a clue is only added once")
+	_dlg_lines()
+	_pick("coat_opt_done")
+	check(world.engine.journal.size() == 4 and world.engine.items == ["matches", "note"], "the coat gives its things only once")
 
 	# the mirror
 	check(_walk_to(Vector2(135, 250)) and _walk_to(Vector2(135, 340)) and _walk_to(Vector2(430, 345)) and _walk_to(Vector2(430, 280)) and _walk_to(Vector2(444, 64)), "walked bedroom -> hall -> bathroom mirror")
@@ -626,7 +759,7 @@ func _test_flow() -> void:
 	check(hud.caption_text() == "What is going on?", "'What is going on?'")
 	world.press_a()
 	_step(0.8)
-	check(world.mode == "play" and world.engine.mission == "find_out" and hud.is_revealed("mission"), "the Missions box shows 'Find out what happened'")
+	check(world.mode == "play" and world.engine.mission == "go_bar" and hud.is_revealed("mission"), "the Missions box shows the mission (the note already says: go to The Crooked Lantern)")
 
 	# after the mirror: no more limp, the thoughts play, then A checks the pockets, then the coat
 	check(not world.player.hobble, "after the mirror the limp is gone")
@@ -634,6 +767,7 @@ func _test_flow() -> void:
 	_step(10.0)
 	check(world.engine.has_flag("thought"), "the thoughts after the mirror have played")
 	world.engine.journal.erase("coat")        # pretend the coat has not been found yet
+	world.engine.set_mission("find_out")
 	world.player.position = Vector2(430, 280)
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "pockets" and world.hud.a_label == "pockets", "A offers 'Check pockets'")
@@ -645,9 +779,11 @@ func _test_flow() -> void:
 	world.player.position = Vector2(241, 76)
 	_step(0.1)
 	world.press_a()
-	check(world.engine.journal.has("coat") and world.engine.mission == "find_out", "the stranger's coat: back to finding out what happened")
-	_step(4.2)
-	check(hud.caption_text() == Text.INNER["coat_whose"], "'Whose coat is this?'")
+	check(world.engine.journal.has("coat"), "the stranger's coat is in the Journal")
+	_dlg_lines()
+	check(world.engine.mission == "find_out", "after the first line: back to finding out what happened")
+	check(world.dlg.view()["text"] == Text.DIALOGUE["coat_whose"], "'Whose coat is this?'")
+	_pick("coat_opt_done")
 
 	# upstairs extras: the bathroom's towel is a clue, a plain item just talks
 	world.player.position = Vector2(500, 110)
@@ -688,6 +824,11 @@ func _test_flow() -> void:
 	_step(0.3)
 	check(world.mode == "play" and world.area.id == "house_down" and hud.caption_text() == Text.INNER["door_coat"], "no leaving without a coat")
 	world.engine.journal.append("coat")
+	world.engine.remove_item("note")
+	world.press_a()
+	_step(0.3)
+	check(world.mode == "play" and world.area.id == "house_down" and hud.caption_text() == Text.INNER["door_note"], "no leaving before looking through the coat")
+	world.engine.add_item("note")
 	world.press_a()
 	_step(0.3)
 	check(world.mode == "transition", "the door starts the fade")

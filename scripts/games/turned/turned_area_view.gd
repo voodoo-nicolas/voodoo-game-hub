@@ -15,7 +15,7 @@ const GROUND_SHADER := "res://scripts/games/turned/turned_ground.gdshader"
 const WALL_H := 78.0
 
 ## Shop signs (English; translated when drawn).
-const SHOP_NAMES := {"bakery": "Bakery", "tailor": "Tailor"}
+const SHOP_NAMES := {"bakery": "Bakery", "tailor": "Tailor", "pub": "The Crooked Lantern"}
 
 var area: RefCounted = null
 var mode := "ground"
@@ -158,6 +158,7 @@ func _draw() -> void:
 			"building": _building(d["rect"])
 			"window_row": _window_row(d["rect"], bool(d["lit"]))
 			"house_door": _house_door(d["rect"])
+			"bar_door": _bar_door(d["rect"])
 			"shop_front": _shop_front(d["rect"], str(d["name"]))
 			"fence": _fence(d["rect"])
 			"alley_door": _alley_door(d["rect"])
@@ -309,6 +310,13 @@ func _furniture(kind: String, r: Rect2) -> void:
 			_grad_rect(r.grow(-7), Color("c8d2ec"), Color("8f9ec0"))
 			draw_circle(Vector2(r.get_center().x, r.position.y + 12), 3.0, Color("6a6f80"))
 			draw_rect(r, Color("8a90a4"), false, 1.2)
+		"counter":
+			draw_rect(r, Color("3a281c"))
+			_grad_rect(r.grow(-2), Color("6a4a32"), Color("4a3224"))
+			draw_rect(Rect2(r.position.x, r.position.y, r.size.x, 4), Color("8a6a48"))                 # the polished top
+			for i in 5:
+				var bx := r.position.x + 22.0 + i * (r.size.x - 44.0) / 4.0
+				draw_rect(Rect2(bx - 3, r.position.y - 9, 6, 11), Color("3a5a48") if i % 2 == 0 else Color("6a3a2a"))   # bottles
 		"stool":
 			draw_circle(r.get_center(), r.size.x * 0.5, Color("46362b"))
 			draw_circle(r.get_center(), r.size.x * 0.5 - 3.0, Color("6a5442"))
@@ -484,6 +492,13 @@ func _item(d: Dictionary) -> void:
 		"note":
 			draw_rect(Rect2(p.x - 7, p.y - 5, 14, 10), Color("d8cfb8"))
 			draw_line(Vector2(p.x - 4, p.y - 1), Vector2(p.x + 3, p.y - 1), Color("6a5a48"), 1.0)
+		"calendar":
+			# a wall calendar: red header, a grid of days
+			draw_rect(Rect2(p.x - 8, p.y - 10, 16, 22), Color("e2dccb"))
+			draw_rect(Rect2(p.x - 8, p.y - 10, 16, 6), Color("8a2e2a"))
+			for gy in 3:
+				for gx in 3:
+					draw_rect(Rect2(p.x - 6 + gx * 4.5, p.y - 2 + gy * 4.0, 3, 2.4), Color("6a6458"))
 		"towel":
 			draw_rect(Rect2(p.x - 7, p.y - 6, 14, 28), Color("d8d4c8"))
 			draw_rect(Rect2(p.x - 7, p.y + 10, 14, 12), Color("8a3a32"))
@@ -563,6 +578,15 @@ func _window(r: Rect2, lit: bool) -> void:
 	draw_rect(Rect2(r.position.x - 3.0, r.end.y + 1.0, r.size.x + 6.0, 1.0), Color(1, 1, 1, 0.16))
 	if lit:
 		_grad_rect(Rect2(r.position.x - 6.0, r.end.y + 4.0, r.size.x + 12.0, 12.0), Color(1.0, 0.7, 0.35, 0.16), Color(1.0, 0.7, 0.35, 0.0))
+
+## The pub's street door seen from inside (a south wall): a frame, planks, a small glass pane, a bolt.
+func _bar_door(r: Rect2) -> void:
+	draw_rect(Rect2(r.position.x - 6.0, r.position.y - 8.0, r.size.x + 12.0, r.size.y + 8.0), Color("1a1822"))
+	draw_rect(r, Color("4a3426"))
+	for i in 4:
+		draw_line(Vector2(r.position.x + 6.0 + i * 12.0, r.position.y), Vector2(r.position.x + 6.0 + i * 12.0, r.end.y), Color("2a1c14"), 1.5)
+	draw_rect(Rect2(r.position.x + 15.0, r.position.y + 2.0, 18.0, 7.0), Color("5a6c8c"))
+	draw_circle(Vector2(r.end.x - 6.0, r.get_center().y), 1.8, Color("d4a85a"))
 
 func _house_door(r: Rect2) -> void:
 	# stone steps and a threshold, the frame, a panelled door, a fanlight, a lantern

@@ -33,6 +33,8 @@ const INNER := {
 	"sneak_off": "Walking",
 	"locked_end": "A locked door. Not tonight.",
 	"cellar_locked": "The cellar door. An old iron lock, and no key anywhere I've looked.",
+	"door_note": "That coat is hiding something. I should look through it before I go out.",
+	"bar_locked": "The door is bolted from inside. Nobody is coming to open it.",
 }
 
 ## What a piece of furniture says when you Examine it (id of the interact -> line). Placeholders written for
@@ -62,20 +64,15 @@ const BANNER_NEW := "Something new is awake."
 
 ## Clue objects in the bedroom: text said on pickup, and the Journal line.
 const CLUES := {
-	"invitation": {
-		"verb": "Read",
-		"say": "A torn invitation. \"You are requested at midnight...\" The rest is gone. I don't remember going.",
-		"journal": "A torn invitation, cream card with black ink: \"You are requested at midnight...\" The rest is torn off.",
-	},
 	"coat": {
 		"verb": "Look",
-		"say": "This isn't my coat. Heavy wool, too long in the sleeves, and it smells of cold stone.",
-		"journal": "A stranger's coat on my chair. Heavy wool, too long for me. It smells of cold stone.",
+		"say": "This isn't my coat.",
+		"journal": "A stranger's coat on my chair. Heavy wool, and it smells of smoke and rain. It fits me too well.",
 	},
-	"note": {
-		"verb": "Read",
-		"say": "A scrap of paper. \"Ask for Sera...\" and the rest of the name is torn away. It's not my handwriting.",
-		"journal": "A scrap of paper, not my handwriting: \"Ask for Sera...\" The rest of the name is torn off.",
+	"calendar": {
+		"verb": "Look",
+		"say": "The wall calendar says Friday. Wednesday was two days ago. Two days, gone.",
+		"journal": "The wall calendar says it is Friday. I have lost two days.",
 	},
 	"towel": {
 		"verb": "Look",
@@ -92,12 +89,16 @@ const JOURNAL := {
 	"alley": "The alley is cool and quiet. Something in me woke up there.",
 	"pockets": "My pockets are empty. No keys, no coins. My own coat is gone.",
 	"cellar": "A locked cellar door in the hall, with an old iron lock. I have no key.",
+	"matches": "A box of matches from the coat's right pocket, with a cigar company's logo on the lid. They are not mine.",
+	"note": "A note sewn into the coat's inside pocket: \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
+	"bar": "The Crooked Lantern: the whole room was afraid of me, not angry. The keeper threw me out and bolted the door.",
 }
 
 ## Missions box (one line).
 const MISSIONS := {
 	"find_out": "Find out what happened",
 	"find_coat": "Find your coat",
+	"go_bar": "Go to The Crooked Lantern",
 }
 
 ## What the A button says (translated by the HUD when drawn).
@@ -122,6 +123,8 @@ const VERBS := {
 ## The watcher knows (knows_player 2): same line either way, nothing else (Turned CLAUDE.md section 10).
 const NPC_LINES := {
 	"watcher": {"all": "You should not be out in that sun."},
+	"patron": {"all": "Please. Just go."},
+	"tavernkeep": {"all": "Go home."},
 	"vendor": {
 		"exposed": "Rough night? You look like death warmed over. Bread's fresh, if you've an appetite.",
 		"covered": "Morning! Bread's fresh, if you've an appetite.",
@@ -147,6 +150,9 @@ const NPC_LINES := {
 ## Speaker names shown above spoken lines.
 const SPEAKERS := {
 	"watcher": "Man in the grey coat",
+	"tavernkeep": "Tavernkeep",
+	"patron": "Patron",
+	"you": "You",
 	"vendor": "Baker",
 	"parasol": "Woman with a parasol",
 	"newspaper": "Man with a newspaper",
@@ -205,4 +211,27 @@ const DIALOGUE := {
 	"dev_took": "You take the box of matches. It is in your Items now.",
 	"dev_quiet": "You say nothing. The test goes on.",
 	"dev_end": "That is the end of the test.",
+	# the coat (scene 2)
+	"coat_smell": "This isn't my coat. Heavy wool, and it smells of smoke and rain.",
+	"coat_whose": "Whose coat is this? What did I do?",
+	"coat_opt_left": "Check the left pocket",
+	"coat_opt_right": "Check the right pocket",
+	"coat_opt_inner": "Check the inside pocket",
+	"coat_opt_tear": "Tear open the stitches",
+	"coat_opt_wear": "Try it on",
+	"coat_opt_done": "Leave the coat",
+	"coat_left": "The left pocket is empty.",
+	"coat_right": "A box of matches. The lid has a logo on it. They are not mine.",
+	"coat_inner": "The inside pocket is sewn shut with crude stitches. Someone did not want it opened by accident.",
+	"coat_tear": "I tear the stitches open. A note, folded small. \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
+	"coat_tear_thought": "Wednesday. It is Friday. Whatever happened, it happened there.",
+	"coat_wear": "It fits. Too well, as if it was made for me.",
+	# the bar (scene 2, ends with the start of scene 3)
+	"bar_shout": "YOU! You've got nerve coming back after Wednesday night! We don't need more trouble.",
+	"bar_afraid": "The whole room has gone quiet. Nobody is angry. They are afraid.",
+	"bar_ask": "Wednesday night? I don't remember. Please, what happened here?",
+	"bar_home": "Go home.",
+	"bar_plead": "Please. Anything. I only need to know...",
+	"bar_out": "Out. Now.",
+	"bar_bolt": "The door slams. A lock turns, then a bolt slides across.",
 }

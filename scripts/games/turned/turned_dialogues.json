@@ -51,5 +51,182 @@
         "text": "dev_end"
       }
     }
+  },
+  "coat": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "",
+        "text": "coat_smell",
+        "effects": [
+          "journal:coat"
+        ],
+        "next": "n2"
+      },
+      "n2": {
+        "type": "branch",
+        "if": [
+          "flag:pockets",
+          "mission:find_coat"
+        ],
+        "then": "n3",
+        "else": "menu"
+      },
+      "n3": {
+        "type": "do",
+        "effects": [
+          "mission:find_out"
+        ],
+        "next": "menu"
+      },
+      "menu": {
+        "type": "choice",
+        "speaker": "",
+        "text": "coat_whose",
+        "options": [
+          {
+            "text": "coat_opt_left",
+            "if": [
+              "!flag:coat_left"
+            ],
+            "effects": [
+              "flag:coat_left"
+            ],
+            "next": "left"
+          },
+          {
+            "text": "coat_opt_right",
+            "if": [
+              "!flag:coat_right"
+            ],
+            "effects": [
+              "flag:coat_right",
+              "item:+matches",
+              "journal:matches"
+            ],
+            "next": "right"
+          },
+          {
+            "text": "coat_opt_inner",
+            "if": [
+              "!flag:coat_inner"
+            ],
+            "effects": [
+              "flag:coat_inner"
+            ],
+            "next": "inner"
+          },
+          {
+            "text": "coat_opt_tear",
+            "if": [
+              "flag:coat_inner",
+              "!flag:coat_torn"
+            ],
+            "effects": [
+              "flag:coat_torn",
+              "item:+note",
+              "journal:note",
+              "mission:go_bar"
+            ],
+            "next": "tear"
+          },
+          {
+            "text": "coat_opt_wear",
+            "if": [
+              "!flag:coat_worn"
+            ],
+            "effects": [
+              "flag:coat_worn"
+            ],
+            "next": "wear"
+          },
+          {
+            "text": "coat_opt_done",
+            "next": "bye"
+          }
+        ]
+      },
+      "left": {
+        "speaker": "",
+        "text": "coat_left",
+        "next": "menu"
+      },
+      "right": {
+        "speaker": "",
+        "text": "coat_right",
+        "next": "menu"
+      },
+      "inner": {
+        "speaker": "",
+        "text": "coat_inner",
+        "next": "menu"
+      },
+      "tear": {
+        "speaker": "",
+        "text": "coat_tear",
+        "next": "tear2"
+      },
+      "tear2": {
+        "speaker": "",
+        "text": "coat_tear_thought",
+        "next": "menu"
+      },
+      "wear": {
+        "speaker": "",
+        "text": "coat_wear",
+        "next": "menu"
+      },
+      "bye": {
+        "type": "end"
+      }
+    }
+  },
+  "bar_shout": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "tavernkeep",
+        "text": "bar_shout",
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "",
+        "text": "bar_afraid",
+        "next": "n3"
+      },
+      "n3": {
+        "speaker": "you",
+        "text": "bar_ask",
+        "next": "n4"
+      },
+      "n4": {
+        "speaker": "tavernkeep",
+        "text": "bar_home",
+        "next": "n5"
+      },
+      "n5": {
+        "speaker": "you",
+        "text": "bar_plead",
+        "next": "n6"
+      },
+      "n6": {
+        "speaker": "tavernkeep",
+        "text": "bar_out",
+        "next": "n7"
+      },
+      "n7": {
+        "speaker": "",
+        "text": "bar_bolt",
+        "effects": [
+          "flag:bar_scene",
+          "flag:bar_thrown",
+          "journal:bar",
+          "mission:find_out",
+          "sfx:door",
+          "hour:21.0",
+          "area:street:from_bar"
+        ]
+      }
+    }
   }
 }

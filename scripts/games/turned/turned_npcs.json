@@ -1,34 +1,265 @@
 {
   "npcs": [
     {
-      "id": "watcher", "knows_player": 2, "role": "watcher", "behavior": "stand", "stare": true,
-      "pos": [1262, 182], "face": [-1, 0], "clue_ids": ["watcher"],
-      "look": {"coat": "3a3f4e", "hat": "bowler", "skin": "c8b9ad", "accent": "8a8fa3"}
+      "id": "watcher",
+      "knows_player": 2,
+      "role": "watcher",
+      "behavior": "stand",
+      "stare": true,
+      "pos": [
+        1262,
+        182
+      ],
+      "face": [
+        -1,
+        0
+      ],
+      "clue_ids": [
+        "watcher"
+      ],
+      "look": {
+        "coat": "3a3f4e",
+        "hat": "bowler",
+        "skin": "c8b9ad",
+        "accent": "8a8fa3"
+      }
     },
     {
-      "id": "vendor", "knows_player": 0, "role": "none", "behavior": "stand",
-      "pos": [836, 372], "face": [0, -1], "clue_ids": [],
-      "look": {"coat": "6e5a44", "hat": "cap", "skin": "d9b99b", "accent": "d9d2b8"}
+      "id": "vendor",
+      "knows_player": 0,
+      "role": "none",
+      "behavior": "stand",
+      "pos": [
+        836,
+        372
+      ],
+      "face": [
+        0,
+        -1
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "6e5a44",
+        "hat": "cap",
+        "skin": "d9b99b",
+        "accent": "d9d2b8"
+      }
     },
     {
-      "id": "parasol", "knows_player": 0, "role": "none", "behavior": "walk",
-      "path": [[330, 184], [900, 184]], "pos": [330, 184], "face": [1, 0], "clue_ids": [],
-      "look": {"coat": "5b3a52", "hat": "parasol", "skin": "e0c3a8", "accent": "c9a15b"}
+      "id": "parasol",
+      "knows_player": 0,
+      "role": "none",
+      "behavior": "walk",
+      "path": [
+        [
+          330,
+          184
+        ],
+        [
+          900,
+          184
+        ]
+      ],
+      "pos": [
+        330,
+        184
+      ],
+      "face": [
+        1,
+        0
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "5b3a52",
+        "hat": "parasol",
+        "skin": "e0c3a8",
+        "accent": "c9a15b"
+      }
     },
     {
-      "id": "newspaper", "knows_player": 0, "role": "none", "behavior": "walk",
-      "path": [[1560, 364], [1060, 364]], "pos": [1560, 364], "face": [-1, 0], "clue_ids": [],
-      "look": {"coat": "4a4f43", "hat": "flat", "skin": "d2b08f", "accent": "e8e2cf"}
+      "id": "newspaper",
+      "knows_player": 0,
+      "role": "none",
+      "behavior": "walk",
+      "path": [
+        [
+          1560,
+          364
+        ],
+        [
+          1060,
+          364
+        ]
+      ],
+      "pos": [
+        1560,
+        364
+      ],
+      "face": [
+        -1,
+        0
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "4a4f43",
+        "hat": "flat",
+        "skin": "d2b08f",
+        "accent": "e8e2cf"
+      }
     },
     {
-      "id": "coachman", "knows_player": 0, "role": "none", "behavior": "stand",
-      "pos": [1236, 312], "face": [1, 0], "clue_ids": [],
-      "look": {"coat": "2f3b4a", "hat": "top", "skin": "caa488", "accent": "8c6a3a"}
+      "id": "coachman",
+      "knows_player": 0,
+      "role": "none",
+      "behavior": "stand",
+      "pos": [
+        1236,
+        312
+      ],
+      "face": [
+        1,
+        0
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "2f3b4a",
+        "hat": "top",
+        "skin": "caa488",
+        "accent": "8c6a3a"
+      }
     },
     {
-      "id": "lamplighter", "knows_player": 0, "role": "none", "behavior": "stand",
-      "pos": [716, 224], "face": [-1, 0], "clue_ids": [],
-      "look": {"coat": "4d4636", "hat": "cap", "skin": "d6b394", "accent": "c9a15b"}
+      "id": "lamplighter",
+      "knows_player": 0,
+      "role": "none",
+      "behavior": "stand",
+      "pos": [
+        716,
+        224
+      ],
+      "face": [
+        -1,
+        0
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "4d4636",
+        "hat": "cap",
+        "skin": "d6b394",
+        "accent": "c9a15b"
+      }
+    }
+  ],
+  "bar_npcs": [
+    {
+      "id": "tavernkeep",
+      "knows_player": 2,
+      "role": "keeper",
+      "behavior": "stand",
+      "stare": true,
+      "pos": [
+        320,
+        58
+      ],
+      "face": [
+        0,
+        1
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "4a3a30",
+        "hat": "cap",
+        "skin": "d0ad90",
+        "accent": "d9d2b8"
+      }
+    },
+    {
+      "id": "patron",
+      "knows_player": 1,
+      "role": "none",
+      "behavior": "stand",
+      "afraid": true,
+      "pos": [
+        105,
+        240
+      ],
+      "face": [
+        0,
+        1
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "3f4a4d",
+        "hat": "flat",
+        "skin": "d6b394",
+        "accent": "8c8f70"
+      }
+    },
+    {
+      "id": "patron",
+      "knows_player": 1,
+      "role": "none",
+      "behavior": "stand",
+      "afraid": true,
+      "pos": [
+        495,
+        252
+      ],
+      "face": [
+        0,
+        1
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "5a3a3a",
+        "hat": "bowler",
+        "skin": "caa488",
+        "accent": "b09a6a"
+      }
+    },
+    {
+      "id": "patron",
+      "knows_player": 1,
+      "role": "none",
+      "behavior": "stand",
+      "afraid": true,
+      "pos": [
+        155,
+        348
+      ],
+      "face": [
+        0,
+        -1
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "46504a",
+        "hat": "cap",
+        "skin": "e0c3a8",
+        "accent": "c9a15b"
+      }
+    },
+    {
+      "id": "patron",
+      "knows_player": 1,
+      "role": "none",
+      "behavior": "stand",
+      "afraid": true,
+      "pos": [
+        485,
+        362
+      ],
+      "face": [
+        0,
+        -1
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "3a3a50",
+        "hat": "top",
+        "skin": "d9b99b",
+        "accent": "8a8fa3"
+      }
     }
   ]
 }

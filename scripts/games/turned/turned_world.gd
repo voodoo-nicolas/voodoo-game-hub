@@ -79,6 +79,7 @@ var _tr_t := 0.0
 var _tr_area := ""
 var _tr_spawn := ""
 var _tr_save := false
+var _tr_hour := -1.0           # a story hour to jump to while the screen is black (-1 = none)
 # dying
 var _die_t := 0.0
 var _die_done := false
@@ -87,6 +88,7 @@ var _throb_t := -1.0
 # dialogue
 var _dlg_dir_prev := 0
 var _dlg_area := ""            # an "area:" effect waits until the scene is over
+var _dlg_hour := -1.0          # so does an "hour:" one (-1 = none)
 var _dlg_journal := 0
 var _dlg_items := 0
 
@@ -197,6 +199,7 @@ func resume() -> bool:
 		hud.show_dialogue(dlg.view())
 	hud.fade = 0.0
 	_snap_camera()
+	_on_area_ready()
 	return true
 
 func _restore_hud() -> void:
@@ -296,9 +299,11 @@ func _apply_item_state() -> void:
 	if engine.has_flag("scarf"):
 		hidden["scarf"] = true
 	if area.indoor and engine.has_flag("control"):
-		for k in ["invitation", "coat", "note", "towel"]:
+		for k in ["coat", "calendar", "towel"]:
 			if not (k in engine.journal):
 				fresh[k] = true
+		if engine.journal.has("coat") and not engine.has_item("note"):
+			fresh["coat"] = true                 # still something in the coat
 		if not engine.has_flag("scarf") and engine.has_flag("mirror"):
 			fresh["scarf"] = true
 	_decor.taken = hidden
@@ -663,19 +668,17 @@ func _interact(c: Dictionary) -> void:
 		_talk(c["npc"])
 		return
 	match iid:
-		"invitation", "note", "towel":
+		"towel", "calendar":
 			_clue(iid)
 		"coat":
-			_clue(iid)
-			if engine.has_flag("pockets") and engine.mission == "find_coat":
-				engine.set_mission("find_out")
-				_after(3.8, _say_thought.bind("coat_whose"))
+			start_dialogue("coat")
 		"pockets":
 			engine.set_flag("pockets")
 			TSfx.play(self, "breath", -6.0)
 			hud.say(Text.INNER["pockets_empty"])
 			_add_journal("pockets")
-			engine.set_mission("find_out" if engine.journal.has("coat") else "find_coat")
+			if engine.mission != "go_bar":          # the note already points further
+				engine.set_mission("find_out" if engine.journal.has("coat") else "find_coat")
 		"mirror":
 			_open_mirror()
 		"scarf":
@@ -689,12 +692,24 @@ func _interact(c: Dictionary) -> void:
 				hud.say(Text.INNER["door_first"])
 			elif not engine.journal.has("coat"):
 				hud.say(Text.INNER["door_coat"])
+			elif not engine.has_item("note"):
+				hud.say(Text.INNER["door_note"])
 			else:
 				TSfx.play(self, "door", -4.0)
 				_go_area("street", "from_house", true)
 		"house_door":
 			TSfx.play(self, "door", -4.0)
 			_go_area("house_down", "from_street", false)
+		"bar_door":
+			if engine.has_flag("bar_thrown"):
+				TSfx.play(self, "door", -14.0, 0.7)
+				hud.say(Text.INNER["bar_locked"])
+			else:
+				TSfx.play(self, "door", -4.0)
+				_go_area("bar", "from_street", true)
+		"bar_exit":
+			TSfx.play(self, "door", -4.0)
+			_go_area("street", "from_bar", true)
 		"stairs_down":
 			TSfx.play(self, "step", -8.0)
 			_go_area("house_down", "from_up", false)
@@ -792,7 +807,7 @@ func _after_dialogue_step() -> void:
 	for e in dlg.take_events():
 		var s := str(e)
 		if s.begins_with("hour:"):
-			clock.skip_to(s.substr(5).to_float())
+			_dlg_hour = s.substr(5).to_float()
 		elif s.begins_with("sfx:"):
 			TSfx.play(self, s.substr(4), -6.0)
 		elif s.begins_with("area:"):
@@ -811,10 +826,16 @@ func _after_dialogue_step() -> void:
 	hud.hide_dialogue()
 	hud.a_label = ""
 	mode = "play"
+	var hour_to := _dlg_hour
+	_dlg_hour = -1.0
 	if _dlg_area != "":
 		var parts := _dlg_area.split(":")
 		_dlg_area = ""
 		_go_area(parts[0], parts[1] if parts.size() > 1 else "", true)
+		if hour_to >= 0.0:
+			_tr_hour = hour_to              # the clock jumps while the screen is black
+	elif hour_to >= 0.0:
+		clock.skip_to(hour_to)
 
 # ---------------------------------------------------------------- the mirror
 
@@ -846,7 +867,8 @@ func _tick_closeup(delta: float) -> void:
 			if _cu_t >= 0.4:
 				hud.closeup = 0.0
 				mode = "play"
-				engine.set_mission("find_out")
+				if engine.mission != "go_bar":
+					engine.set_mission("find_out")
 				hud.reveal("mission")
 				_apply_item_state()
 				_think_after_mirror()
@@ -876,6 +898,9 @@ func _tick_transition(delta: float) -> void:
 				engine.show_bars = true
 				hud.reveal("bars")
 				engine.burned_this_visit = false
+			if _tr_hour >= 0.0:
+				clock.skip_to(_tr_hour)
+				_tr_hour = -1.0
 			_snap_camera()
 			_apply_item_state()
 			_sun_mix = 0.0
@@ -888,6 +913,12 @@ func _tick_transition(delta: float) -> void:
 			mode = "play"
 			if _tr_save:
 				save_game()
+			_on_area_ready()
+
+## What happens on arriving somewhere (after the fade in, and on Resume): the bar's scene.
+func _on_area_ready() -> void:
+	if area.id == "bar" and not engine.has_flag("bar_scene"):
+		start_dialogue("bar_shout")
 
 # ---------------------------------------------------------------- the alley: B unlocks
 
