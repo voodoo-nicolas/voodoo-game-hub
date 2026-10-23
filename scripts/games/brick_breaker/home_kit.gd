@@ -36,6 +36,11 @@ extends Control
 ##   `_set_skin` once the game is built and whenever the player picks a look.
 ##   Older games with only `_set_voodoo(on)` keep working. `CLASSIC` holds
 ##   the shared traditional colours (felt, wood, paper...).
+## - Controls: a game that uses the shared on-screen controller (scripts/common/pad/,
+##   docs/claude/pad.md) defines `_pad() -> Control` returning its PadController;
+##   Options then shows a "🎮 Controls" section (layout, look, size, opacity...).
+##   The player's choices are saved once for every game. Older apps without the
+##   controller simply don't show the section.
 ## - Learning hook (§15): if the help file has `FACTS` (English strings,
 ##   through es.json like the rest), the Landing ends with a "💡 Did you
 ##   know?" card showing one at random; a tap shows the next. Facts must be
@@ -92,6 +97,7 @@ extends Control
 ## Strings given in cfg are English; the kit translates them.
 
 const SOUND_OPTIONS_PATH := "res://scripts/common/sound_options.gd"
+const PAD_OPTIONS_PATH := "res://scripts/common/pad/pad_options.gd"
 const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 const ORIENTATION_PATH := "res://scripts/common/orientation.gd"
 const HUB_SCENE := "res://scenes/hub/hub.tscn"
@@ -1165,6 +1171,15 @@ func _show_options() -> void:
 		var rot := neon_button(tr("🔄 Rotate Screen"), BUTTON, 26, 70)
 		rot.pressed.connect(_rotate)
 		body.add_child(rot)
+	var pad := _game_pad()
+	if pad != null and ResourceLoader.exists(PAD_OPTIONS_PATH):
+		var ps := get_node_or_null("/root/Settings")
+		if ps != null:
+			body.add_child(_section(tr("🎮 Controls")))
+			body.add_child(label(tr("These controls are shared: they change every game that uses the shared controller."), 22, DIM, true))
+			var pad_opts: VBoxContainer = load(PAD_OPTIONS_PATH).new(ps.DARK if "DARK" in ps else ps.palette(), pad)
+			pad_opts.columns = 1
+			body.add_child(pad_opts)
 	var last := _last_mode()
 	if not last.is_empty():
 		body.add_child(_section(tr("Quick Play")))
@@ -1190,6 +1205,14 @@ func _show_options() -> void:
 			body.add_child(_section(tr("🔊 Sound")))
 			body.add_child(load(SOUND_OPTIONS_PATH).new(s.DARK if "DARK" in s else s.palette(), false))
 	_show_overlay(parts[0])
+
+## The game's shared on-screen controller (scripts/common/pad/pad_controller.gd), or null.
+## A game opts in by defining `_pad() -> Control`; Options then shows its Controls section.
+func _game_pad() -> Control:
+	var g := get_parent()
+	if g != null and g.has_method("_pad"):
+		return g._pad()
+	return null
 
 ## "classic" or "voodoo" for this game: the player's pick in Options, else
 ## the game's own older choice, else the app-wide skull mode (off = Classic).

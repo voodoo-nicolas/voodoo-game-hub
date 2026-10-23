@@ -264,7 +264,7 @@ def render_presets(ids: list[str]) -> str:
             # The bundled manifest.json is the offline fallback catalog.
             body = re.sub(r'(?m)^include_filter=.*$', 'include_filter="manifest.json"', body)
         # The name players see: Android's app label, Windows' product name.
-        suffix = " Dev" if p["name"].endswith("Dev") else ""
+        suffix = " Pad Lab" if p["name"] == "PadLabDev" else (" Dev" if p["name"].endswith("Dev") else "")
         body = re.sub(r'(?m)^package/name=.*$', f'package/name="{brand}{suffix}"', body)
         body = re.sub(r'(?m)^application/product_name=.*$', f'application/product_name="{brand}"', body)
         chunks.append(body)
@@ -521,7 +521,7 @@ def lint_hub_name() -> list[str]:
     # internal strings like the User-Agent are skipped.
     master = json.loads(I18N_MASTER.read_text(encoding="utf-8")) if I18N_MASTER.is_file() else {}
     errors = []
-    for d in ("scripts/common", "scripts/hub", "scripts/account"):
+    for d in ("scripts/common", "scripts/common/pad", "scripts/hub", "scripts/account"):
         for f in sorted((ROOT / d).glob("*.gd")):
             if f.name in ("strings_es.gd", "legal_text.gd"):  # legal_text: generated; holds the Pages URL (repo name)
                 continue
@@ -1129,7 +1129,7 @@ def cmd_i18n(_args) -> None:
                     found[text] = master[text]
         return found
 
-    shared_dirs = ["scripts/common", "scripts/hub", "scripts/account"]
+    shared_dirs = ["scripts/common", "scripts/common/pad", "scripts/hub", "scripts/account"]
     shared_files = [f for d in shared_dirs for f in sorted((ROOT / d).glob("*.gd")) if f.name != "strings_es.gd"]
     shared = collect(shared_files)
     _write_strings_gd(COMMON_STRINGS_GD,
