@@ -261,8 +261,8 @@ func _apply_item_state() -> void:
 	var fresh := {}
 	if engine.has_flag("scarf"):
 		hidden["scarf"] = true
-	if area.id == "house" and engine.has_flag("control"):
-		for k in ["invitation", "coat", "note"]:
+	if area.indoor and engine.has_flag("control"):
+		for k in ["invitation", "coat", "note", "towel"]:
 			if not (k in engine.journal):
 				fresh[k] = true
 		if not engine.has_flag("scarf") and engine.has_flag("mirror"):
@@ -570,7 +570,7 @@ func _interact(c: Dictionary) -> void:
 		_talk(c["npc"])
 		return
 	match iid:
-		"invitation", "coat", "note":
+		"invitation", "coat", "note", "towel":
 			_clue(iid)
 		"mirror":
 			_open_mirror()
@@ -588,9 +588,22 @@ func _interact(c: Dictionary) -> void:
 				_go_area("street", "from_house", true)
 		"house_door":
 			TSfx.play(self, "door", -4.0)
-			_go_area("house", "from_street", false)
+			_go_area("house_down", "from_street", false)
+		"stairs_down":
+			TSfx.play(self, "step", -8.0)
+			_go_area("house_down", "from_up", false)
+		"stairs_up":
+			TSfx.play(self, "step", -8.0)
+			_go_area("house", "from_down", false)
+		"cellar_door":
+			TSfx.play(self, "door", -14.0, 0.7)
+			hud.say(Text.INNER["cellar_locked"])
+			_add_journal("cellar")
 		"alley_door":
 			hud.say(Text.INNER["locked_end"])
+		_:
+			if Text.LOOKS.has(iid):
+				hud.say(Text.LOOKS[iid], "inner", "", maxf(3.0, float(Text.LOOKS[iid].length()) * 0.055))
 
 func _clue(id: String) -> void:
 	TSfx.play(self, "pickup", -4.0)

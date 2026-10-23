@@ -1,7 +1,7 @@
 extends RefCounted
 
-## One map of Turned as plain data plus geometry queries, no Nodes: the bedroom/bathroom/hall
-## house, and Vellmoor's Residential Quarter street with its alley (Day 1). The world draws it
+## One map of Turned as plain data plus geometry queries, no Nodes: the two-floor house
+## ("house" upstairs, "house_down" ground floor), and Vellmoor's Residential Quarter street with its alley (Day 1). The world draws it
 ## (turned_area_view.gd) and moves things through it; tools/test_turned.gd checks it headless.
 ## Units are pixels, 1 m = 32 px (tuning world.pixels_per_meter). y grows downward.
 ##
@@ -30,6 +30,8 @@ static func make(area_id: String) -> RefCounted:
 	a.id = area_id
 	if area_id == "street":
 		a._build_street()
+	elif area_id == "house_down":
+		a._build_house_down()
 	else:
 		a._build_house()
 	return a
@@ -114,73 +116,186 @@ func trigger_at(p: Vector2) -> String:
 	return ""
 
 # ---------------------------------------------------------------- the house
+# Two floors, both 560 px wide. "house" is upstairs (bedroom, bathroom, landing, study), "house_down" the
+# ground floor (parlour, kitchen, entrance hall with the front door and the locked cellar door). The
+# stairs are the same block (x 496..544, y 320..400) on both floors, so you arrive where you left.
+
+## A wall: solid and drawn.
+func _wall(r: Rect2) -> void:
+	solids.append(r)
+	deco.append({"t": "wall", "rect": r})
+
+## A piece of furniture: drawn (kind, see turned_area_view.gd _furniture) and solid.
+func _furn(kind: String, r: Rect2) -> void:
+	solids.append(r)
+	deco.append({"t": "furniture", "kind": kind, "rect": r})
 
 func _build_house() -> void:
 	indoor = true
-	bounds = Rect2(0, 0, 560, 416)
-	# walls: outer, the wall between bedroom and bathroom, the hall wall with two doorways
-	solids = [
-		Rect2(0, 0, 560, 16), Rect2(0, 0, 16, 416), Rect2(0, 400, 560, 16),
-		Rect2(544, 0, 16, 336), Rect2(544, 384, 16, 32), Rect2(544, 336, 16, 48),   # the last one is the front door
-		Rect2(336, 16, 16, 288),
-		Rect2(16, 304, 104, 16), Rect2(200, 304, 200, 16), Rect2(472, 304, 72, 16),
-		# bedroom furniture
-		Rect2(28, 28, 64, 128),      # bed
-		Rect2(96, 24, 30, 28),       # nightstand
-		Rect2(224, 28, 34, 30),      # chair with the coat
-		Rect2(150, 252, 110, 40),    # dresser
-		# bathroom
-		Rect2(412, 22, 64, 24),      # sink
-		Rect2(486, 160, 52, 134),    # bath
-		Rect2(364, 250, 30, 40),     # stool
-	]
+	bounds = Rect2(0, 0, 560, 576)
+	solids = []
 	deco = [
-		{"t": "floor", "rect": Rect2(16, 16, 528, 384), "color": Color("36333f"), "plank": true},   # under the doorways too
-		{"t": "floor", "rect": Rect2(16, 16, 320, 288), "color": Color("3b3a4a"), "plank": true},
-		{"t": "floor", "rect": Rect2(352, 16, 192, 288), "color": Color("4a5560"), "tile": true},
-		{"t": "floor", "rect": Rect2(16, 320, 528, 80), "color": Color("36333f"), "plank": true},
+		{"t": "floor", "rect": Rect2(16, 16, 528, 544), "color": Color("36333f"), "plank": true},   # under the doorways too
+		{"t": "floor", "rect": Rect2(16, 16, 320, 288), "color": Color("3b3a4a"), "plank": true},   # bedroom
+		{"t": "floor", "rect": Rect2(352, 16, 192, 288), "color": Color("4a5560"), "tile": true},   # bathroom
+		{"t": "floor", "rect": Rect2(16, 320, 528, 80), "color": Color("36333f"), "plank": true},   # landing
+		{"t": "floor", "rect": Rect2(16, 416, 528, 144), "color": Color("2f2c38"), "plank": true},  # study
 		{"t": "rug", "rect": Rect2(130, 120, 130, 90), "color": Color("5a2b3b")},
 		{"t": "rug", "rect": Rect2(220, 336, 160, 48), "color": Color("3b4a5e")},
-		{"t": "wall", "rect": Rect2(0, 0, 560, 16)}, {"t": "wall", "rect": Rect2(0, 0, 16, 416)},
-		{"t": "wall", "rect": Rect2(0, 400, 560, 16)}, {"t": "wall", "rect": Rect2(544, 0, 16, 336)},
-		{"t": "wall", "rect": Rect2(544, 384, 16, 32)}, {"t": "wall", "rect": Rect2(336, 16, 16, 288)},
-		{"t": "wall", "rect": Rect2(16, 304, 104, 16)}, {"t": "wall", "rect": Rect2(200, 304, 200, 16)},
-		{"t": "wall", "rect": Rect2(472, 304, 72, 16)},
-		{"t": "window", "rect": Rect2(196, 0, 64, 16)},
-		{"t": "front_door", "rect": Rect2(544, 336, 16, 48)},
-		{"t": "mirror", "rect": Rect2(420, 16, 48, 6)},
-		{"t": "bed", "rect": Rect2(28, 28, 64, 128)},
-		{"t": "furniture", "kind": "nightstand", "rect": Rect2(96, 24, 30, 28)},
-		{"t": "furniture", "kind": "chair", "rect": Rect2(224, 28, 34, 30)},
-		{"t": "furniture", "kind": "dresser", "rect": Rect2(150, 252, 110, 40)},
-		{"t": "furniture", "kind": "sink", "rect": Rect2(412, 22, 64, 24)},
-		{"t": "furniture", "kind": "bath", "rect": Rect2(486, 160, 52, 134)},
-		{"t": "furniture", "kind": "stool", "rect": Rect2(364, 250, 30, 40)},
+		{"t": "rug", "rect": Rect2(430, 206, 50, 44), "color": Color("3b5a5e")},                   # bath mat
+		{"t": "rug", "rect": Rect2(360, 436, 150, 96), "color": Color("3a4a3e")},                  # study
+	]
+	# outer walls, the bedroom/bathroom wall, the landing's walls with their doorways
+	for r in [Rect2(0, 0, 560, 16), Rect2(0, 0, 16, 576), Rect2(0, 560, 560, 16), Rect2(544, 0, 16, 576),
+			Rect2(336, 16, 16, 288),
+			Rect2(16, 304, 104, 16), Rect2(200, 304, 200, 16), Rect2(472, 304, 72, 16),
+			Rect2(16, 400, 184, 16), Rect2(280, 400, 264, 16)]:
+		_wall(r)
+	deco.append({"t": "window", "rect": Rect2(196, 0, 64, 16)})
+	deco.append({"t": "window", "rect": Rect2(486, 0, 48, 16)})
+	deco.append({"t": "mirror", "rect": Rect2(420, 16, 48, 6)})
+	deco.append({"t": "picture", "rect": Rect2(140, 16, 44, 6)})
+	deco.append({"t": "picture", "rect": Rect2(56, 320, 36, 5)})
+	deco.append({"t": "picture", "rect": Rect2(240, 320, 52, 5)})
+	solids.append(Rect2(496, 320, 48, 80))
+	deco.append({"t": "stairs", "rect": Rect2(496, 320, 48, 80), "dir": "down"})
+	# bedroom
+	solids.append(Rect2(28, 28, 64, 128))
+	deco.append({"t": "bed", "rect": Rect2(28, 28, 64, 128)})
+	_furn("nightstand", Rect2(96, 24, 30, 28))
+	_furn("chair", Rect2(224, 28, 34, 30))        # with the coat
+	_furn("dresser", Rect2(150, 252, 110, 40))
+	_furn("wardrobe", Rect2(276, 20, 56, 40))
+	_furn("candlestand", Rect2(296, 250, 20, 20))
+	# bathroom
+	_furn("toilet", Rect2(360, 22, 34, 42))
+	_furn("sink", Rect2(412, 22, 64, 24))
+	_furn("cabinet", Rect2(356, 70, 30, 40))
+	_furn("washstand", Rect2(356, 122, 30, 48))
+	_furn("bath", Rect2(486, 160, 52, 134))
+	_furn("towelrail", Rect2(526, 56, 14, 70))
+	_furn("stool", Rect2(364, 250, 30, 40))
+	# landing
+	_furn("plant", Rect2(26, 338, 30, 30))
+	_furn("clock", Rect2(396, 366, 28, 32))
+	# study
+	_furn("desk", Rect2(40, 430, 100, 42))
+	_furn("chair", Rect2(76, 476, 30, 26))
+	_furn("bookshelf", Rect2(30, 530, 180, 28))
+	_furn("bookshelf", Rect2(330, 530, 190, 28))
+	_furn("globe", Rect2(318, 440, 28, 28))
+	_furn("armchair", Rect2(440, 446, 44, 44))
+	_furn("floorlamp", Rect2(492, 440, 16, 16))
+	deco.append_array([
 		{"t": "item", "kind": "invitation", "pos": Vector2(111, 38)},
 		{"t": "item", "kind": "coat", "pos": Vector2(241, 44)},
 		{"t": "item", "kind": "note", "pos": Vector2(70, 188)},
-		{"t": "item", "kind": "scarf", "pos": Vector2(500, 322)},
-	]
+		{"t": "item", "kind": "towel", "pos": Vector2(533, 72)},
+	])
 	interacts = [
 		{"id": "invitation", "pos": Vector2(111, 62), "r": 34.0, "verb": "read"},
 		{"id": "coat", "pos": Vector2(241, 72), "r": 34.0, "verb": "look"},
 		{"id": "note", "pos": Vector2(70, 188), "r": 30.0, "verb": "read"},
+		{"id": "wardrobe", "pos": Vector2(304, 74), "r": 30.0, "verb": "look"},
 		{"id": "mirror", "pos": Vector2(444, 62), "r": 36.0, "verb": "look"},
-		{"id": "scarf", "pos": Vector2(500, 344), "r": 34.0, "verb": "take"},
-		{"id": "front_door", "pos": Vector2(536, 360), "r": 32.0, "verb": "door"},
+		{"id": "toilet", "pos": Vector2(404, 68), "r": 26.0, "verb": "look"},
+		{"id": "cabinet", "pos": Vector2(402, 96), "r": 24.0, "verb": "look"},
+		{"id": "washstand", "pos": Vector2(402, 148), "r": 26.0, "verb": "look"},
+		{"id": "bath", "pos": Vector2(466, 200), "r": 24.0, "verb": "look"},
+		{"id": "towel", "pos": Vector2(506, 92), "r": 32.0, "verb": "look"},
+		{"id": "portrait", "pos": Vector2(74, 346), "r": 30.0, "verb": "look"},
+		{"id": "clock", "pos": Vector2(410, 348), "r": 28.0, "verb": "look"},
+		{"id": "stairs_down", "pos": Vector2(476, 360), "r": 30.0, "verb": "down"},
+		{"id": "desk", "pos": Vector2(154, 452), "r": 32.0, "verb": "look"},
+		{"id": "bookshelf", "pos": Vector2(150, 514), "r": 30.0, "verb": "look"},
+		{"id": "globe", "pos": Vector2(332, 484), "r": 28.0, "verb": "look"},
 	]
 	lamps = []
-	# the window's cold morning light falling on the bedroom floor, a candle-warm hall lamp
+	# the windows' cold morning light, a candle-warm landing lamp, the study lamp
 	light_spots = [
 		{"pos": Vector2(228, 90), "color": Color("9db8ff"), "energy": 0.85, "radius": 120.0},
 		{"pos": Vector2(300, 360), "color": Color("ffb45a"), "energy": 0.7, "radius": 120.0},
 		{"pos": Vector2(444, 100), "color": Color("b8c8ff"), "energy": 0.55, "radius": 90.0},
 		{"pos": Vector2(120, 50), "color": Color("ffb45a"), "energy": 0.8, "radius": 80.0},
+		{"pos": Vector2(510, 70), "color": Color("9db8ff"), "energy": 0.5, "radius": 80.0},
+		{"pos": Vector2(300, 490), "color": Color("ffb45a"), "energy": 0.55, "radius": 130.0},
+		{"pos": Vector2(500, 470), "color": Color("ffb45a"), "energy": 0.7, "radius": 90.0},
 	]
 	spawns = {
 		"bed": Vector2(60, 92),
 		"bedside": Vector2(110, 100),
-		"from_street": Vector2(504, 360),
+		"from_down": Vector2(472, 360),
+	}
+
+func _build_house_down() -> void:
+	indoor = true
+	bounds = Rect2(0, 0, 560, 416)
+	solids = []
+	deco = [
+		{"t": "floor", "rect": Rect2(16, 16, 528, 384), "color": Color("3a3330"), "plank": true},
+		{"t": "floor", "rect": Rect2(16, 16, 320, 288), "color": Color("40342f"), "plank": true},   # parlour
+		{"t": "floor", "rect": Rect2(352, 16, 192, 288), "color": Color("4a4a52"), "slab": true},   # kitchen
+		{"t": "floor", "rect": Rect2(16, 320, 528, 80), "color": Color("36333f"), "plank": true},   # entrance hall
+		{"t": "rug", "rect": Rect2(80, 100, 190, 114), "color": Color("4a2f3f")},
+		{"t": "rug", "rect": Rect2(110, 336, 280, 48), "color": Color("3b4a5e")},
+	]
+	for r in [Rect2(0, 0, 560, 16), Rect2(0, 0, 16, 416), Rect2(0, 400, 560, 16), Rect2(544, 0, 16, 416),
+			Rect2(336, 16, 16, 288),
+			Rect2(16, 304, 104, 16), Rect2(200, 304, 200, 16), Rect2(472, 304, 72, 16)]:
+		_wall(r)
+	deco.append({"t": "window", "rect": Rect2(30, 0, 64, 16)})
+	deco.append({"t": "front_door", "rect": Rect2(0, 336, 16, 48), "flip": true})
+	deco.append({"t": "cellar_door", "rect": Rect2(250, 400, 36, 16)})
+	deco.append({"t": "picture", "rect": Rect2(330, 320, 54, 5)})
+	solids.append(Rect2(496, 320, 48, 80))
+	deco.append({"t": "stairs", "rect": Rect2(496, 320, 48, 80), "dir": "up"})
+	# parlour
+	_furn("fireplace", Rect2(120, 16, 80, 30))
+	_furn("sofa", Rect2(112, 138, 96, 40))
+	_furn("armchair", Rect2(40, 120, 40, 44))
+	_furn("armchair", Rect2(240, 120, 40, 44))
+	_furn("piano", Rect2(22, 196, 48, 84))
+	_furn("stool", Rect2(78, 224, 22, 22))
+	_furn("bookshelf", Rect2(232, 18, 90, 28))
+	_furn("table", Rect2(262, 226, 30, 30))
+	# kitchen
+	_furn("stove", Rect2(360, 22, 60, 40))
+	_furn("basin", Rect2(440, 22, 52, 26))
+	_furn("shelves", Rect2(524, 66, 16, 120))
+	_furn("table", Rect2(388, 126, 80, 52))
+	_furn("chair", Rect2(360, 138, 22, 24))
+	_furn("chair", Rect2(474, 138, 22, 24))
+	_furn("cupboard", Rect2(360, 250, 56, 44))
+	# entrance hall
+	_furn("coatstand", Rect2(70, 321, 20, 18))
+	_furn("console", Rect2(150, 370, 60, 24))
+	_furn("clock", Rect2(396, 366, 28, 32))
+	deco.append({"t": "item", "kind": "scarf", "pos": Vector2(80, 326)})
+	interacts = [
+		{"id": "fireplace", "pos": Vector2(160, 66), "r": 30.0, "verb": "look"},
+		{"id": "piano", "pos": Vector2(92, 190), "r": 30.0, "verb": "look"},
+		{"id": "parlour_books", "pos": Vector2(277, 62), "r": 30.0, "verb": "look"},
+		{"id": "stove", "pos": Vector2(390, 78), "r": 28.0, "verb": "look"},
+		{"id": "table", "pos": Vector2(428, 200), "r": 32.0, "verb": "look"},
+		{"id": "pantry", "pos": Vector2(446, 270), "r": 30.0, "verb": "look"},
+		{"id": "shelves", "pos": Vector2(500, 122), "r": 26.0, "verb": "look"},
+		{"id": "scarf", "pos": Vector2(80, 350), "r": 34.0, "verb": "take"},
+		{"id": "front_door", "pos": Vector2(26, 360), "r": 32.0, "verb": "door"},
+		{"id": "clock", "pos": Vector2(410, 348), "r": 28.0, "verb": "look"},
+		{"id": "cellar_door", "pos": Vector2(268, 384), "r": 32.0, "verb": "door"},
+		{"id": "stairs_up", "pos": Vector2(476, 360), "r": 30.0, "verb": "up"},
+	]
+	lamps = []
+	light_spots = [
+		{"pos": Vector2(62, 70), "color": Color("9db8ff"), "energy": 0.6, "radius": 100.0},
+		{"pos": Vector2(160, 74), "color": Color("ff9a4a"), "energy": 0.8, "radius": 110.0},
+		{"pos": Vector2(390, 62), "color": Color("ff9a4a"), "energy": 0.45, "radius": 80.0},
+		{"pos": Vector2(300, 360), "color": Color("ffb45a"), "energy": 0.7, "radius": 120.0},
+		{"pos": Vector2(446, 160), "color": Color("b8c8ff"), "energy": 0.4, "radius": 110.0},
+	]
+	spawns = {
+		"from_street": Vector2(44, 360),
+		"from_up": Vector2(472, 360),
 	}
 
 # ---------------------------------------------------------------- the street

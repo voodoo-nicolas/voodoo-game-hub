@@ -146,7 +146,10 @@ func _draw() -> void:
 			"rug": _rug(d)
 			"wall": _wall(d["rect"])
 			"window": _wall_window(d["rect"])
-			"front_door": _front_door(d["rect"])
+			"front_door": _front_door(d["rect"], bool(d.get("flip", false)))
+			"cellar_door": _cellar_door(d["rect"])
+			"stairs": _stairs(d["rect"], str(d["dir"]))
+			"picture": _picture(d["rect"])
 			"mirror": _mirror(d["rect"])
 			"bed": _bed(d["rect"])
 			"furniture": _furniture(d["kind"], d["rect"])
@@ -204,10 +207,44 @@ func _wall_window(r: Rect2) -> void:
 		PackedColorArray([Color(0.75, 0.82, 1.0, 0.2), Color(0.75, 0.82, 1.0, 0.2), Color(0.75, 0.82, 1.0, 0.0), Color(0.75, 0.82, 1.0, 0.0)]))
 	draw_line(Vector2(r.get_center().x + 4.0, r.end.y), Vector2(r.get_center().x + 66.0, r.end.y + 170.0), Color(0.1, 0.12, 0.2, 0.12), 3.0)
 
-func _front_door(r: Rect2) -> void:
+## `flip`: the door is in a west wall, so the handle is on its east (inner) side.
+func _front_door(r: Rect2, flip: bool = false) -> void:
 	draw_rect(r, Color("4a3426"))
 	draw_rect(r.grow(-3), Color("5a402e"), false, 2.0)
-	draw_circle(Vector2(r.position.x + 4, r.get_center().y), 2.0, Color("c9a15b"))
+	draw_circle(Vector2(r.end.x - 4 if flip else r.position.x + 4, r.get_center().y), 2.0, Color("c9a15b"))
+
+## The locked cellar door in a south wall: dark planks, iron bands, a big old lock.
+func _cellar_door(r: Rect2) -> void:
+	draw_rect(Rect2(r.position + Vector2(-3, -4), r.size + Vector2(6, 4)), Color("14120f"))
+	draw_rect(r, Color("2c2118"))
+	for i in 5:
+		draw_line(Vector2(r.position.x + 4.0 + i * 7.0, r.position.y), Vector2(r.position.x + 4.0 + i * 7.0, r.end.y), Color(0, 0, 0, 0.35), 1.0)
+	draw_rect(Rect2(r.position.x, r.position.y + 3.0, r.size.x, 2.5), Color("4a4d58"))
+	draw_rect(Rect2(r.position.x, r.end.y - 5.5, r.size.x, 2.5), Color("4a4d58"))
+	draw_rect(Rect2(r.get_center().x - 4.0, r.position.y + 5.0, 8.0, 6.0), Color("2a2c34"))
+	draw_circle(Vector2(r.get_center().x, r.position.y + 8.0), 1.6, Color("c9a15b"))
+
+## Stairs seen from above: treads across the block, darker the way down, lighter the way up, a banister.
+func _stairs(r: Rect2, dir: String) -> void:
+	draw_rect(Rect2(r.position + Vector2(3, 4), r.size), Color(0, 0, 0, 0.3))
+	draw_rect(r, Color("2a2018"))
+	var n := 6
+	var w := r.size.x / float(n)
+	for i in n:
+		var k := float(i) / float(n - 1)
+		var shade := (1.0 - k) * 0.55 + 0.45 if dir == "up" else 1.0 - k * 0.7
+		var c := Color("6a5442")
+		draw_rect(Rect2(r.position.x + i * w, r.position.y + 2.0, w - 1.0, r.size.y - 4.0), Color(c.r * shade, c.g * shade, c.b * shade))
+		draw_line(Vector2(r.position.x + i * w, r.position.y + 2.0), Vector2(r.position.x + i * w, r.end.y - 2.0), Color(1, 1, 1, 0.10), 1.0)
+	draw_rect(Rect2(r.position.x, r.position.y, r.size.x, 3.0), Color("3a2b22"))
+	draw_rect(Rect2(r.position.x, r.end.y - 3.0, r.size.x, 3.0), Color("3a2b22"))
+	draw_rect(r, Color("14100c"), false, 1.2)
+
+## A framed picture hung on a wall (a thin strip along the wall).
+func _picture(r: Rect2) -> void:
+	draw_rect(r.grow(1.0), Color("2a1f18"))
+	var k := _h(int(r.position.x), int(r.position.y))
+	_grad_rect(r, Color(0.28 + k * 0.2, 0.3, 0.38), Color(0.14, 0.15 + k * 0.1, 0.2))
 
 func _mirror(r: Rect2) -> void:
 	draw_rect(Rect2(r.position + Vector2(-2, -2), r.size + Vector2(4, 8)), Color("6a5a48"))
@@ -235,6 +272,11 @@ func _bed(r: Rect2) -> void:
 
 func _furniture(kind: String, r: Rect2) -> void:
 	draw_rect(Rect2(r.position + Vector2(4, 5), r.size), Color(0, 0, 0, 0.3))
+	# painted art: furn_<kind>.png fills the footprint (docs/turned/ART_SPEC.md)
+	var painted := Art.tex("furn_" + kind)
+	if painted != null:
+		draw_texture_rect(painted, r, false)
+		return
 	match kind:
 		"nightstand":
 			draw_rect(r, Color("4a382c"))
@@ -269,6 +311,162 @@ func _furniture(kind: String, r: Rect2) -> void:
 		"stool":
 			draw_circle(r.get_center(), r.size.x * 0.5, Color("46362b"))
 			draw_circle(r.get_center(), r.size.x * 0.5 - 3.0, Color("6a5442"))
+		"wardrobe":
+			draw_rect(r, Color("2e231c"))
+			_grad_rect(r.grow(-2), Color("5a4636"), Color("42332a"))
+			draw_line(Vector2(r.get_center().x, r.position.y + 3), Vector2(r.get_center().x, r.end.y - 3), Color(0, 0, 0, 0.45), 1.5)
+			draw_rect(Rect2(r.position.x + 3, r.position.y + 3, r.size.x - 6, 4), Color(1, 1, 1, 0.08))
+			draw_circle(Vector2(r.get_center().x - 5, r.get_center().y + 4), 2.0, Color("d4a85a"))
+			draw_circle(Vector2(r.get_center().x + 5, r.get_center().y + 4), 2.0, Color("d4a85a"))
+		"candlestand":
+			draw_circle(r.get_center(), r.size.x * 0.5, Color("2a2018"))
+			draw_circle(r.get_center(), r.size.x * 0.5 - 2.0, Color("8a6a3a"))
+			draw_circle(r.get_center(), 3.6, Color("d8cfa8"))
+			draw_circle(r.get_center(), 1.8, Color("ffcf7a"))
+		"toilet":
+			draw_rect(Rect2(r.position.x + 3, r.position.y, r.size.x - 6, 12), Color("c4c9d8"))           # the high tank
+			draw_rect(Rect2(r.position.x + 3, r.position.y, r.size.x - 6, 3), Color(1, 1, 1, 0.3))
+			draw_colored_polygon(Art.ellipse_points(Vector2(r.get_center().x, r.position.y + 28), 13.0, 13.0), Color("e2e5f0"))
+			draw_colored_polygon(Art.ellipse_points(Vector2(r.get_center().x, r.position.y + 29), 9.0, 9.0), Color("8f95a8"))
+			draw_line(Vector2(r.get_center().x, r.position.y + 12), Vector2(r.get_center().x, r.position.y + 18), Color("6a6f80"), 1.2)
+		"cabinet":
+			draw_rect(r, Color("3a2c22"))
+			_grad_rect(r.grow(-2), Color("55402f"), Color("42332a"))
+			for i in 4:
+				var bc: Color = [Color("4a7a5a"), Color("c98a3e"), Color("5a6aa8"), Color("a8a8b0")][i]
+				draw_circle(Vector2(r.position.x + 7.0 + (i % 2) * 15.0, r.position.y + 9.0 + (i / 2) * 15.0), 4.0, bc)
+				draw_circle(Vector2(r.position.x + 7.0 + (i % 2) * 15.0, r.position.y + 9.0 + (i / 2) * 15.0), 1.5, Color(1, 1, 1, 0.5))
+		"washstand":
+			draw_rect(r, Color("4a382c"))
+			_grad_rect(r.grow(-2), Color("c4c9d8"), Color("a4a9b8"))                                       # marble top
+			draw_circle(r.get_center() + Vector2(-3, 4), 11.0, Color("8f95a8"))                            # the bowl
+			draw_circle(r.get_center() + Vector2(-3, 4), 8.5, Color("5a7aa8"))
+			draw_circle(Vector2(r.end.x - 7, r.position.y + 9), 5.0, Color("5a7aa8"))                      # the jug
+			draw_circle(Vector2(r.end.x - 7, r.position.y + 9), 2.5, Color("a9c4e8"))
+		"towelrail":
+			draw_line(Vector2(r.get_center().x, r.position.y), Vector2(r.get_center().x, r.end.y), Color("8a6a3a"), 2.5)
+			draw_circle(Vector2(r.get_center().x, r.position.y), 3.0, Color("c9a15b"))
+			draw_circle(Vector2(r.get_center().x, r.end.y), 3.0, Color("c9a15b"))
+		"plant":
+			draw_circle(r.get_center(), r.size.x * 0.5, Color("3a2c22"))
+			for i in 7:
+				var a := TAU * float(i) / 7.0
+				draw_colored_polygon(Art.ellipse_points(r.get_center() + Vector2(cos(a), sin(a)) * 8.0, 7.0, 4.0), Color("2f5a3e"))
+			draw_circle(r.get_center(), 4.0, Color("3f7a52"))
+		"clock":
+			draw_rect(r, Color("2a1f18"))
+			_grad_rect(r.grow(-2), Color("55402f"), Color("3a2c22"))
+			draw_circle(Vector2(r.get_center().x, r.position.y + 9), 6.0, Color("d8cfa8"))                # the face
+			draw_line(Vector2(r.get_center().x, r.position.y + 9), Vector2(r.get_center().x + 3, r.position.y + 6), Color("14161f"), 1.2)
+			draw_line(Vector2(r.get_center().x, r.position.y + 9), Vector2(r.get_center().x - 1, r.position.y + 13), Color("14161f"), 1.2)
+			draw_line(Vector2(r.get_center().x, r.position.y + 17), Vector2(r.get_center().x, r.end.y - 4), Color("c9a15b"), 1.5)   # the pendulum
+		"desk":
+			draw_rect(r, Color("2e231c"))
+			_grad_rect(r.grow(-2), Color("5a4636"), Color("46362b"))
+			draw_rect(r.grow(-8), Color("2f4a3a"))                                                         # leather inlay
+			draw_rect(Rect2(r.position.x + 14, r.position.y + 9, 14, 10), Color("d8cfb8"))                 # papers
+			draw_rect(Rect2(r.position.x + 18, r.position.y + 12, 14, 10), Color("e6dcc4"))
+			draw_circle(Vector2(r.end.x - 14, r.position.y + 12), 3.0, Color("14161f"))                    # inkwell
+		"bookshelf":
+			draw_rect(r, Color("2a1f18"))
+			var x := r.position.x + 2.0
+			var i := 0
+			while x < r.end.x - 4.0:
+				var k := _h(int(r.position.x) + i * 7, 3)
+				var bw := 3.0 + k * 3.0
+				var bc := Color(0.25 + k * 0.4, 0.18 + k * 0.2, 0.16 + (1.0 - k) * 0.3)
+				draw_rect(Rect2(x, r.position.y + 2.0, bw, r.size.y - 4.0), bc)
+				draw_line(Vector2(x, r.position.y + 2.0), Vector2(x, r.end.y - 2.0), Color(0, 0, 0, 0.35), 1.0)
+				x += bw + 0.5
+				i += 1
+			draw_rect(Rect2(r.position.x, r.position.y, r.size.x, 2.0), Color(1, 1, 1, 0.1))
+		"globe":
+			draw_circle(r.get_center(), r.size.x * 0.5, Color("2a1f18"))
+			draw_circle(r.get_center(), r.size.x * 0.5 - 3.0, Color("3e5a7a"))
+			draw_colored_polygon(Art.ellipse_points(r.get_center() + Vector2(-2, -1), 5.0, 4.0), Color("5a7a52"))
+			draw_circle(r.get_center() + Vector2(-4, -5), 3.0, Color(1, 1, 1, 0.16))
+		"armchair":
+			draw_rect(r, Color("3a1f26"))
+			_grad_rect(r.grow(-3), Color("6a3040"), Color("4a2230"))
+			draw_rect(Rect2(r.position.x, r.position.y, r.size.x, 8), Color("2e1820"))                     # the back
+			draw_rect(Rect2(r.position.x, r.position.y + 8, 7, r.size.y - 8), Color("2e1820"))             # the arms
+			draw_rect(Rect2(r.end.x - 7, r.position.y + 8, 7, r.size.y - 8), Color("2e1820"))
+		"floorlamp":
+			draw_circle(r.get_center(), r.size.x * 0.5 + 6.0, Color(1.0, 0.7, 0.35, 0.18))
+			draw_circle(r.get_center(), r.size.x * 0.5, Color("8a6a3a"))
+			draw_circle(r.get_center(), r.size.x * 0.5 - 3.0, Color("ffcf7a"))
+		"fireplace":
+			draw_rect(r, Color("3a3d4a"))
+			draw_rect(r.grow(-6), Color("14120f"))
+			_grad_rect(Rect2(r.position.x + 12, r.position.y + 12, r.size.x - 24, r.size.y - 14), Color("5a2a14"), Color("b8541e"))
+			draw_circle(Vector2(r.get_center().x - 10, r.end.y - 6), 3.0, Color("ffcf7a"))
+			draw_circle(Vector2(r.get_center().x + 6, r.end.y - 5), 2.4, Color("ff9a4a"))
+			draw_rect(Rect2(r.position.x - 3, r.position.y + r.size.y - 4, r.size.x + 6, 4), Color("4a4d5a"))   # the hearth stone
+		"sofa":
+			draw_rect(r, Color("2e2a3a"))
+			_grad_rect(r.grow(-3), Color("4e5a7a"), Color("38425e"))
+			draw_rect(Rect2(r.position.x, r.position.y, r.size.x, 9), Color("262234"))
+			draw_rect(Rect2(r.position.x, r.position.y + 9, 8, r.size.y - 9), Color("262234"))
+			draw_rect(Rect2(r.end.x - 8, r.position.y + 9, 8, r.size.y - 9), Color("262234"))
+			draw_line(Vector2(r.get_center().x, r.position.y + 10), Vector2(r.get_center().x, r.end.y - 4), Color(0, 0, 0, 0.3), 1.0)
+		"piano":
+			draw_rect(r, Color("0e0e14"))
+			_grad_rect(r.grow(-2), Color("2a2a36"), Color("14141c"))
+			draw_rect(Rect2(r.end.x - 11, r.position.y + 4, 8, r.size.y - 8), Color("e6e2d4"))             # the keys face east
+			var ky := r.position.y + 4.0
+			while ky < r.end.y - 6.0:
+				draw_line(Vector2(r.end.x - 11, ky), Vector2(r.end.x - 3, ky), Color(0, 0, 0, 0.5), 1.0)
+				ky += 4.5
+			draw_rect(Rect2(r.position.x + 3, r.position.y + 3, 3, r.size.y - 6), Color(1, 1, 1, 0.1))
+		"stove":
+			draw_rect(r, Color("14141a"))
+			_grad_rect(r.grow(-2), Color("2e2e38"), Color("1c1c24"))
+			for i in 2:
+				draw_circle(Vector2(r.position.x + 15.0 + i * 28.0, r.position.y + 20.0), 9.0, Color("0c0c10"))
+				draw_circle(Vector2(r.position.x + 15.0 + i * 28.0, r.position.y + 20.0), 6.0, Color("2a1c18"))
+			draw_rect(Rect2(r.end.x - 12, r.position.y - 3, 8, 6), Color("3a3d4a"))                        # the flue
+		"basin":
+			draw_rect(r, Color("5a4a3a"))
+			_grad_rect(r.grow(-2), Color("8a8e9a"), Color("6a6e7a"))
+			draw_rect(Rect2(r.position.x + 8, r.position.y + 5, r.size.x - 16, r.size.y - 10), Color("4a5a6a"))
+			draw_circle(Vector2(r.get_center().x, r.position.y + 3), 2.5, Color("c9a15b"))
+		"shelves":
+			draw_rect(r, Color("2a1f18"))
+			var jy := r.position.y + 6.0
+			var j := 0
+			while jy < r.end.y - 6.0:
+				var jc: Color = [Color("8a3a3a"), Color("c98a3e"), Color("5a7a4a"), Color("6a4a7a")][j % 4]
+				draw_circle(Vector2(r.get_center().x, jy), 5.0, jc)
+				draw_circle(Vector2(r.get_center().x - 1.5, jy - 1.5), 1.6, Color(1, 1, 1, 0.35))
+				jy += 12.0
+				j += 1
+		"table":
+			draw_rect(r, Color("3a2c22"))
+			_grad_rect(r.grow(-2), Color("6a5442"), Color("55402f"))
+			if r.size.x > 60.0:                                                                            # two cups: one full, one clean
+				draw_circle(Vector2(r.position.x + 22, r.get_center().y), 5.0, Color("d8d4c8"))
+				draw_circle(Vector2(r.position.x + 22, r.get_center().y), 3.2, Color("4a2a1a"))
+				draw_circle(Vector2(r.end.x - 22, r.get_center().y), 5.0, Color("d8d4c8"))
+				draw_circle(Vector2(r.end.x - 22, r.get_center().y), 3.2, Color("e8e4d8"))
+			else:
+				draw_circle(r.get_center(), 3.4, Color("d8cfa8"))                                          # a candle
+				draw_circle(r.get_center(), 1.6, Color("ffcf7a"))
+		"cupboard":
+			draw_rect(r, Color("2e231c"))
+			_grad_rect(r.grow(-2), Color("5a4636"), Color("42332a"))
+			draw_line(Vector2(r.get_center().x, r.position.y + 3), Vector2(r.get_center().x, r.end.y - 3), Color(0, 0, 0, 0.45), 1.5)
+			draw_colored_polygon(Art.ellipse_points(Vector2(r.position.x + 14, r.position.y + 12), 8.0, 4.5), Color("a8783a"))   # a loaf
+		"console":
+			draw_rect(r, Color("2e231c"))
+			_grad_rect(r.grow(-2), Color("5a4636"), Color("46362b"))
+			draw_circle(Vector2(r.position.x + 16, r.get_center().y), 6.0, Color("a9afc2"))                # a silver tray
+			draw_circle(Vector2(r.end.x - 14, r.get_center().y), 4.0, Color("3a5a6a"))                     # a vase
+		"coatstand":
+			draw_circle(r.get_center(), r.size.x * 0.5, Color("2a1f18"))
+			draw_circle(r.get_center(), 3.5, Color("5a4636"))
+			for i in 4:
+				var a := TAU * float(i) / 4.0 + 0.4
+				draw_line(r.get_center(), r.get_center() + Vector2(cos(a), sin(a)) * 8.0, Color("c9a15b"), 1.4)
 
 func _item(d: Dictionary) -> void:
 	var kind: String = d["kind"]
@@ -285,6 +483,11 @@ func _item(d: Dictionary) -> void:
 		"note":
 			draw_rect(Rect2(p.x - 7, p.y - 5, 14, 10), Color("d8cfb8"))
 			draw_line(Vector2(p.x - 4, p.y - 1), Vector2(p.x + 3, p.y - 1), Color("6a5a48"), 1.0)
+		"towel":
+			draw_rect(Rect2(p.x - 7, p.y - 6, 14, 28), Color("d8d4c8"))
+			draw_rect(Rect2(p.x - 7, p.y + 10, 14, 12), Color("8a3a32"))
+			draw_circle(Vector2(p.x - 1, p.y + 14), 3.0, Color("5a1a1c"))
+			draw_rect(Rect2(p.x - 7, p.y - 6, 14, 28), Color("6a6a70"), false, 1.0)
 		"scarf":
 			draw_rect(Rect2(p.x - 3, p.y - 2, 6, 3), Color("3a3430"))
 			draw_colored_polygon(PackedVector2Array([Vector2(p.x - 7, p.y), Vector2(p.x + 7, p.y), Vector2(p.x + 5, p.y + 18), Vector2(p.x - 5, p.y + 18)]), Art.SCARF)

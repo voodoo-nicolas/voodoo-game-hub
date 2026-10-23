@@ -66,5 +66,12 @@ Every default chosen where the owner's prompt (2026-10-22), `BRIEF.md` (the Turn
 34. Painted art swaps in by file name (`docs/turned/ART_SPEC.md`: sizes at 2x, anchors, directions, tiles). Tested with temporary PNGs: crate, player_down and a cobble tile replaced the drawn ones.
 35. Still drawn in code, flat: awnings, the porch roof, window frames, rugs, furniture, the HUD and the neck close-up.
 
+## The two-floor house (2026-10-23, owner approved the plan)
+36. The house is two maps of 560 px width: `house` (upstairs: bedroom unchanged, bathroom with 9 things, landing, study and library) and `house_down` (ground floor: parlour, kitchen, entrance hall). The stairs are the same block (x 496..544, y 320..400) on both floors, so you arrive where you left. Old saves in `house` still load (a position that is now inside the stairs is moved to the nearest free spot).
+37. The front door moved to the ground floor (west end of the entrance hall) and stays shut until the mirror. The scarf hangs by the coat stand there. The street door now leads into `house_down`. Stairs do not autosave; leaving by the front door still does.
+38. The cellar door (hall, south wall) is locked: "no key", and the Journal notes it once. It is only a hook for a later key/puzzle.
+39. New clue: the bloodstained towel in the bathroom (a fourth Journal clue, `towel`). The other new objects only say a line (`Text.LOOKS`): wardrobe, portrait, toilet, cabinet, washstand, bath, desk, bookshelf, globe, clock, fireplace, piano, parlour books, stove, kitchen table (two cups), pantry, shelves. All are **placeholders** written for the slice: the hints (warm ashes, two cups, the stopped clock, the globe turned to Marrowgate, the missing book, the empty-handed hunger) are the owner's to keep, change or cut.
+40. Painted furniture: `furn_<kind>.png` fills the footprint of that piece (kinds: nightstand, chair, dresser, sink, bath, stool, wardrobe, candlestand, toilet, cabinet, washstand, towelrail, plant, clock, desk, bookshelf, globe, armchair, floorlamp, fireplace, sofa, piano, stove, basin, shelves, table, cupboard, console, coatstand; the bed is `bed.png`). Footprints are in `turned_area.gd`.
+
 ## Not built (as the prompt says)
 Combat, buttons X/Y, skill tree, XP gain, feeding, puzzles and locks, other towns, days 2-3, the AI Director, final audio, button layout editing, the Hunter/Friend/Devotee villagers, vision cones and enemies.

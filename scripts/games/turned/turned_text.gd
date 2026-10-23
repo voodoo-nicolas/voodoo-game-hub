@@ -25,6 +25,29 @@ const INNER := {
 	"sneak_on": "Sneaking",
 	"sneak_off": "Walking",
 	"locked_end": "A locked door. Not tonight.",
+	"cellar_locked": "The cellar door. An old iron lock, and no key anywhere I've looked.",
+}
+
+## What a piece of furniture says when you Examine it (id of the interact -> line). Placeholders written for
+## the house (docs/turned/DECISIONS.md); a few are hints the story can use later.
+const LOOKS := {
+	"wardrobe": "My clothes, in a row. Dark coats, nothing bright. I never noticed that before.",
+	"portrait": "A stern portrait in a black frame. Family, I think. I can't remember the name.",
+	"toilet": "Cold porcelain, a chain that sticks. Nothing here.",
+	"washstand": "A jug and a bowl, still half full. The water is cold as a cellar.",
+	"cabinet": "Tonics, powders, a bottle of laudanum. Nothing for this.",
+	"bath": "The bath is dry. I don't think I used it last night.",
+	"desk": "The desk has been cleared. Too tidy. Someone put everything away for me.",
+	"bookshelf": "Almanacs and poetry. One gap on the shelf, and the dust keeps the shape of the missing book.",
+	"globe": "A globe. Someone has turned it so Marrowgate faces me.",
+	"clock": "The hall clock has stopped at ten past four. It is not ten past four.",
+	"fireplace": "The fire is out. The ashes are still warm. Someone sat here late.",
+	"piano": "The keys are cold. I press one and it rings too loud, then settles.",
+	"parlour_books": "Sermons and sheet music. Nothing about last night.",
+	"stove": "The stove is cold. Nobody has cooked in days.",
+	"table": "Two cups on the table. One full and cold, the other clean. Someone sat across from me.",
+	"pantry": "Bread, a week old. I'm hungry, but not for this. That's the strange part.",
+	"shelves": "Jars of plums and pickles. Nothing here is what I want.",
 }
 
 ## The unlock banner (Turned's CLAUDE.md section 3).
@@ -47,6 +70,11 @@ const CLUES := {
 		"say": "A scrap of paper. \"Ask for Sera...\" and the rest of the name is torn away. It's not my handwriting.",
 		"journal": "A scrap of paper, not my handwriting: \"Ask for Sera...\" The rest of the name is torn off.",
 	},
+	"towel": {
+		"verb": "Look",
+		"say": "A towel on the rail, stiff and brown at one end. Dried blood. I don't remember being hurt.",
+		"journal": "A bloodstained towel in the bathroom, dried stiff. I don't remember being hurt.",
+	},
 }
 
 ## Journal lines that are not objects in the bedroom.
@@ -55,6 +83,7 @@ const JOURNAL := {
 	"watcher": "A man in a grey coat stared at my neck and said: \"You should not be out in that sun.\" He knew.",
 	"sun": "The sun burns me. Shade, awnings and the inside of a house keep me safe.",
 	"alley": "The alley is cool and quiet. Something in me woke up there.",
+	"cellar": "A locked cellar door in the hall, with an old iron lock. I have no key.",
 }
 
 ## Missions box (one line).
@@ -72,6 +101,8 @@ const VERBS := {
 	"enter": "Go in",
 	"talk": "Talk",
 	"door": "Open door",
+	"up": "Go up",
+	"down": "Go down",
 	"ok": "OK",
 }
 

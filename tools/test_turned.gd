@@ -12,6 +12,7 @@ const Area = preload("res://scripts/games/turned/turned_area.gd")
 const EngineScript = preload("res://scripts/games/turned/turned_engine.gd")
 const SunClock = preload("res://scripts/games/turned/turned_sun_clock.gd")
 const Save = preload("res://scripts/games/turned/turned_save.gd")
+const Text = preload("res://scripts/games/turned/turned_text.gd")
 const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
 const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
 
@@ -124,17 +125,36 @@ func _drag(idx: int, p: Vector2) -> InputEventScreenDrag:
 
 func _test_areas() -> void:
 	var house: Area = Area.make("house") as Area
+	var down: Area = Area.make("house_down") as Area
 	check(house.indoor and house.in_shade(Vector2(100, 100)), "the house is all shade")
-	for k in house.spawns:
-		check(house.is_free(house.spawns[k], 9.0) or k == "bed", "house spawn %s is free" % k)
-	for it in house.interacts:
-		check(house.bounds.has_point(it["pos"]), "house interact %s inside the house" % it["id"])
-	# bedroom -> hall -> bathroom must be connected by walking
+	check(down.indoor and down.in_shade(Vector2(100, 100)), "the ground floor is all shade")
+	for pair in [[house, "upstairs"], [down, "ground floor"]]:
+		var ar: Area = pair[0]
+		for k in ar.spawns:
+			check(ar.is_free(ar.spawns[k], 9.0) or k == "bed", "%s spawn %s is free" % [pair[1], k])
+		for it in ar.interacts:
+			check(ar.bounds.has_point(it["pos"]) and ar.is_free(it["pos"], 9.0), "%s interact %s is a free spot inside" % [pair[1], it["id"]])
+	# upstairs: bedroom -> landing -> bathroom, study and the stairs must be connected by walking
 	check(_reachable(house, house.spawns["bedside"], Vector2(444, 62)), "bedside -> mirror reachable")
-	check(_reachable(house, house.spawns["bedside"], Vector2(500, 344)), "bedside -> scarf reachable")
-	check(_reachable(house, house.spawns["bedside"], house.spawns["from_street"]), "bedside -> front door reachable")
+	check(_reachable(house, house.spawns["bedside"], house.spawns["from_down"]), "bedside -> stairs reachable")
 	for it in house.interacts:
-		check(_reachable(house, house.spawns["bedside"], it["pos"]), "house interact %s reachable" % it["id"])
+		check(_reachable(house, house.spawns["bedside"], it["pos"]), "upstairs interact %s reachable" % it["id"])
+	# ground floor: from the stairs to every room and to the front door
+	for it in down.interacts:
+		check(_reachable(down, down.spawns["from_up"], it["pos"]), "ground floor interact %s reachable" % it["id"])
+	check(_reachable(down, down.spawns["from_up"], down.spawns["from_street"]), "stairs -> front door reachable")
+	check(_reachable(down, down.spawns["from_street"], Vector2(80, 350)), "front door -> scarf reachable")
+	var ids := {}
+	for ar in [house, down]:
+		for it in ar.interacts:
+			if ar == house or it["id"] != "clock":
+				check(not ids.has(it["id"]) or it["id"] in ["clock", "table"], "interact id %s is unique" % it["id"])
+			ids[it["id"]] = true
+		for it in ar.interacts:
+			var vid: String = it["verb"]
+			check(Text.VERBS.has(vid), "verb %s has a label" % vid)
+	for iid in ["wardrobe", "portrait", "toilet", "cabinet", "washstand", "bath", "desk", "bookshelf", "globe", "clock", "fireplace", "piano", "parlour_books", "stove", "table", "pantry", "shelves"]:
+		check(Text.LOOKS.has(iid), "look line for %s" % iid)
 
 	var st: Area = Area.make("street") as Area
 	check(not st.indoor, "the street is outdoors")
@@ -302,12 +322,15 @@ func _test_flow() -> void:
 	var big: float = T.f("ui.button_radius") * 2.0
 	check(big >= 69.0 and T.f("ui.dpad_radius") >= 69.0 and hud._pause_rect().size.y >= 60.0, "touch targets are at least 48 dp (about 69 canvas units)")
 
-	# the front door says no before the mirror
-	world.player.position = Vector2(536, 360)
+	# the front door (on the ground floor) says no before the mirror
+	world._load_area("house_down")
+	world.player.position = Vector2(30, 360)
 	_step(0.1)
 	world.press_a()
 	_step(0.2)
-	check(world.mode == "play" and world.area.id == "house", "the door stays shut before the mirror")
+	check(world.mode == "play" and world.area.id == "house_down", "the door stays shut before the mirror")
+	world._load_area("house")
+	world.player.position = world.area.spawns["bedside"]
 
 	# walk to a clue with the d-pad: bedside -> invitation
 	world.player.position = world.area.spawns["bedside"]
@@ -339,13 +362,39 @@ func _test_flow() -> void:
 	_step(0.8)
 	check(world.mode == "play" and world.engine.mission == "find_out" and hud.is_revealed("mission"), "the Missions box shows 'Find out what happened'")
 
-	# the scarf, then the front door
-	check(_walk_to(Vector2(430, 340)) and _walk_to(Vector2(500, 346)), "walked to the scarf")
+	# upstairs extras: the bathroom's towel is a clue, a plain item just talks
+	world.player.position = Vector2(500, 110)
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "towel", "A offers the towel in the bathroom")
+	world.press_a()
+	check(world.engine.journal.has("towel"), "the bloodstained towel is a clue")
+	world.player.position = Vector2(402, 140)
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "washstand", "A offers the washstand")
+	world.press_a()
+	check(hud.caption_text() == Text.LOOKS["washstand"], "examining the washstand says its line")
+
+	# the stairs down (no autosave on a staircase), then the cellar door, the scarf, the front door
+	world.player.position = Vector2(472, 360)
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "stairs_down", "A offers the stairs down")
+	world.press_a()
+	_step(1.5)
+	check(world.mode == "play" and world.area.id == "house_down", "downstairs")
+	check(world.area.interacts.size() > 5 and world.player.position.distance_to(world.area.spawns["from_up"]) < 1.0, "you arrive at the foot of the stairs")
+	world.player.position = Vector2(268, 372)
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "cellar_door", "A offers the cellar door")
+	world.press_a()
+	check(hud.caption_text() == Text.INNER["cellar_locked"] and world.engine.journal.has("cellar"), "the cellar door is locked and noted")
+	world.press_a()
+	check(world.engine.journal.count("cellar") == 1, "the cellar is noted once")
+	check(_walk_to(Vector2(120, 352)) and _walk_to(Vector2(80, 352)), "walked to the scarf")
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "scarf", "A offers the scarf")
 	world.press_a()
 	check(world.engine.has_flag("scarf") and world.player.scarf, "the scarf is on")
-	check(_walk_to(Vector2(522, 360)), "walked to the front door")
+	check(_walk_to(Vector2(44, 360)), "walked to the front door")
 	_step(0.1)
 	world.press_a()
 	_step(0.3)

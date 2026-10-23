@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Screenshots of Turned's two areas without playing the prologue (for art work):
 ##   godot --path . --resolution 1280x720 --script res://tools/shot_turned_area.gd -- <out_dir> [text size 0|1|2]
-## Teleports the player to a list of spots (STREET / HOUSE below) and saves one PNG per spot.
+## Teleports the player to a list of spots (SPOTS below) and saves one PNG per spot.
 ## Writes nothing to the player's saves.
 
 const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
@@ -18,7 +18,11 @@ const SPOTS := [
 	["street_alley", "street", 1785.0, 150.0],
 	["house_bedroom", "house", 110.0, 100.0],
 	["house_bathroom", "house", 444.0, 70.0],
-	["house_hall", "house", 300.0, 350.0],
+	["house_landing", "house", 300.0, 350.0],
+	["house_study", "house", 280.0, 490.0],
+	["down_parlour", "house_down", 160.0, 120.0],
+	["down_kitchen", "house_down", 440.0, 220.0],
+	["down_hall", "house_down", 200.0, 350.0],
 ]
 
 func _initialize() -> void:

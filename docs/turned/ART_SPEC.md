@@ -40,6 +40,9 @@ Walk animation frames are not supported yet (one picture per direction); say so 
 | `barrel` | barrel | 48 x 48 | 0.5, 0.5 |
 | `bed` | bed seen from above, head at the top, blanket folded at the foot (the player is drawn on it in the prologue) | 128 x 256 | top-left corner |
 
+## House furniture (painted pieces fill the piece's footprint)
+`furn_<kind>.png`, transparent, seen from above like the bed; it is stretched to the footprint, so paint it at that aspect ratio, 2x (world px x 2). Footprints (world px, w x h): nightstand 30x28, chair 34x30, dresser 110x40, wardrobe 56x40, candlestand 20x20, toilet 34x42, sink 64x24, cabinet 30x40, washstand 30x48, bath 52x134, towelrail 14x70, stool 30x40, plant 30x30, clock 28x32, desk 100x42, bookshelf 180x28 (or 190x28 / 90x28), globe 28x28, armchair 44x44 (40x44 in the parlour), floorlamp 16x16, fireplace 80x30, sofa 96x40, piano 48x84 (keys face east), stove 60x40, basin 52x26, shelves 16x120, table 80x52 (kitchen) or 30x30 (side table), cupboard 56x44, console 60x24, coatstand 20x18. The drawn versions stay until a file exists.
+
 ## Tiles (seamless, tile in both directions)
 Replace the lit shader surfaces. A painted tile loses the lamp relief (flat), so only worth it when the painting beats the shader. Size 256 x 256, or 512 x 512.
 
