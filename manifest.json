@@ -108,7 +108,8 @@
       {"id": "geometry_wars", "family": "Space shooters", "quick": true, "original": true, "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast", "skins": "classic,voodoo", "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Abstract neon shooter with boss fights"}},
       {"id": "star_runner", "family": "Space shooters", "quick": true, "title": "Star Runner", "icon": "🌠", "title_es": "Carrera estelar", "board": "Best score", "skins": "classic,voodoo", "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "sky_raider", "family": "Space shooters", "quick": true, "original": true, "title": "Sky Strike", "icon": "✈️", "title_es": "Asalto aéreo", "board": "Best score", "skins": "classic,voodoo", "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Arcade aircraft shooter"}},
-      {"id": "last_shift", "original": true, "title": "Last Shift", "icon": "🧟", "title_es": "Último turno", "board": "Most infected in one night", "content": {"min_age": 16, "descriptors": ["violence_realistic", "blood", "horror", "crude_humor"], "notes": "Zombie survival horror: infected people taken down with a knife, wrench and pistol; blood sprays, pools and a severed arm; guards are knocked out, never killed; one mild insult. Owner to confirm: raises the hub rating from 12+ to 16+"}}
+      {"id": "last_shift", "original": true, "title": "Last Shift", "icon": "🧟", "title_es": "Último turno", "board": "Most infected in one night", "content": {"min_age": 16, "descriptors": ["violence_realistic", "blood", "horror", "crude_humor"], "notes": "Zombie survival horror: infected people taken down with a knife, wrench and pistol; blood sprays, pools and a severed arm; guards are knocked out, never killed; one mild insult. Owner to confirm: raises the hub rating from 12+ to 16+"}},
+      {"id": "turned", "original": true, "title": "Turned", "icon": "🦇", "title_es": "Convertido", "board": "none", "content": {"min_age": 16, "descriptors": ["blood", "horror", "violence_realistic"], "notes": "Gothic vampire story: neck bite wounds, blood, sunlight burns; no combat in the first slice. Owner to confirm the rating"}}
     ]},
     {"name": "Dice", "icon": "🎲", "name_es": "Dados", "games": [
       {"id": "yacht", "family": "Dice scoring", "quick": true, "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala", "modes": "local", "skins": "classic,voodoo", "learn": ["math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
@@ -243,6 +244,7 @@
     "rummy": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rummy.pck", "scene": "res://scenes/games/rummy/rummy.tscn"},
     "last_shift": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/last_shift.pck", "scene": "res://scenes/games/last_shift/last_shift.tscn"},
     "creation": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/creation.pck", "scene": "res://scenes/games/creation/creation.tscn"},
-    "evolution": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/evolution.pck", "scene": "res://scenes/games/evolution/evolution.tscn"}
+    "evolution": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/evolution.pck", "scene": "res://scenes/games/evolution/evolution.tscn"},
+    "turned": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/turned.pck", "scene": "res://scenes/games/turned/turned.tscn"}
   }
 }

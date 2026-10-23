@@ -28,6 +28,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
   - `web-build.md`: iPhone/Safari build (no threads!)
   - `games-notes.md`: adding a game, catalog conventions, per-game notes, arcade batch, test gotchas
   - `evolution.md`: Evolution (microbe pond: engine, endless mode, owner's trait list, what is not built)
+  - `turned.md`: Turned (gothic vampire story game; the owner's story bible, brief and decisions are in `docs/turned/`; first slice = Prologue + Day 1; progressive-reveal rule)
   - `neon-blast.md` (+ Sky Strike) · `poker.md` · `voodoo-iq.md` · `trace-it.md` · `creation.md` (alchemy game: data pipeline, tiers, monetization seam)
   - Hub shell internals (hub.gd, Catalog): `scripts/hub/CLAUDE.md`. Working on one game: you shouldn't need `hub.gd`; working on the hub: shouldn't need `scripts/games/`.
 

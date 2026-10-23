@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "world": {
+    "pixels_per_meter": 32.0,
+    "camera_view_height_px": 360.0,
+    "camera_view_width_px": 520.0,
+    "camera_follow": 7.0
+  },
+  "player": {
+    "walk_speed": 92.0,
+    "sneak_speed_mult": 0.5,
+    "radius": 9.0,
+    "step_interval_s": 0.4,
+    "step_volume_db": -14.0,
+    "sneak_step_volume_db": -30.0
+  },
+  "stats": {
+    "max_hp": 40.0,
+    "max_blood": 100.0,
+    "start_blood": 80.0,
+    "blood_drain_per_s": 0.0,
+    "xp_per_level": 100.0
+  },
+  "sun": {
+    "freeze_clock": true,
+    "start_hour": 10.0,
+    "day_length_s": 720.0,
+    "sunrise_hour": 6.0,
+    "sunset_hour": 18.0,
+    "ramp_hours": 1.0,
+    "dps_by_level": [1.0, 4.0, 10.0, 25.0],
+    "regen_per_s": 0.75,
+    "regen_delay_s": 1.5,
+    "tolerance_decay_per_day": 0.5,
+    "feed_gain": 1.0,
+    "feed_diminish": 0.75,
+    "burn_sound_interval_s": 1.1
+  },
+  "light": {
+    "sun_color": "e6ecff",
+    "shade_color": "7f90b8",
+    "indoor_color": "586285",
+    "mix_speed": 4.0,
+    "lamp_energy": 0.9,
+    "lamp_color": "ffb45a",
+    "lamp_radius_px": 110.0
+  },
+  "death": {
+    "fade_s": 2.0,
+    "respawn_hp_frac": 0.5,
+    "blood_loss_frac": 0.25,
+    "xp_loss_frac": 0.1,
+    "shade_radius_m": 3.0,
+    "fallback_shade_radius_m": 40.0,
+    "search_step_px": 8.0
+  },
+  "sneak": {
+    "detect_radius_m": 6.0,
+    "sneak_detect_radius_m": 2.5,
+    "noise_radius_m": 4.0,
+    "sneak_noise_radius_m": 1.2,
+    "ring_speed": 8.0
+  },
+  "interact": {
+    "radius_px": 34.0
+  },
+  "npc": {
+    "walk_speed": 32.0,
+    "stare_range_m": 9.0,
+    "blocked_range_px": 26.0,
+    "glance_range_m": 3.0
+  },
+  "text": {
+    "seconds_per_char": 0.045,
+    "min_seconds": 1.9,
+    "fade_s": 0.35
+  },
+  "prologue": {
+    "black_s": 2.6,
+    "fade_in_s": 2.2,
+    "thirsty_s": 2.4,
+    "sit_s": 1.4,
+    "sit_gap_s": 2.4,
+    "wipe_s": 3.0,
+    "wipe_neck_at": 0.55,
+    "felt_s": 2.6,
+    "unlock_gap_s": 0.8,
+    "heartbeat_interval_s": 1.0,
+    "closeup_min_s": 0.9
+  },
+  "ui": {
+    "dpad_radius": 108.0,
+    "dpad_deadzone": 22.0,
+    "button_radius": 46.0,
+    "button_offset": 88.0,
+    "small_button": [112.0, 66.0],
+    "bar_width": 230.0,
+    "reveal_s": 0.7,
+    "banner_s": 3.2,
+    "throb_s": 1.5
+  },
+  "save": {
+    "version": 1
+  }
+}
