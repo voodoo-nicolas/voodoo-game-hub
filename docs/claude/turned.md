@@ -10,7 +10,7 @@ Owner's project 2026-10-22; first slice = Prologue + Day 1 in Vellmoor. Read fir
 - Art: `turned_ground.gdshader` (lit procedural cobbles/flags/planks/tiles/grass/brick/slate, kind 0-6, one surface evaluation per pixel, normal from screen-space height slope), `turned_area_view.gd` layers: `ground` (shader ColorRects) < `decor` < people < `overlay` < `glow` (additive). PNG override by name: see `docs/turned/ART_SPEC.md`; `art.*` tuning switches for weak devices. `tools/shot_turned_area.gd` = screenshots + ms/frame of both areas.
 - `turned_player.gd`, `turned_npc.gd`, `turned_npcs.json` (villagers), `turned_hud.gd` (all HUD drawing + touch + captions + close-up + Menu stub), `turned_text.gd` (all player-facing English), `turned_sfx.gd` (synthesized sounds), `turned_input.gd` (tn_* keyboard actions), `turned_tuning.gd` + `.json` (every number).
 - **Controls (2026-10-23)**: when the app has the shared Pad (`scripts/common/pad/`, `docs/claude/pad.md`) the game gives the HUD a PadController (`turned_game.gd _add_pad`, `turned_hud.gd use_pad`) that draws/reads the d-pad, A, B, Pause and Menu (layout/look/size/opacity are the player's, ⚙ Options shows "🎮 Controls"); the HUD's own controls stay as the fallback for older apps. Progressive reveal still goes through `hud.reveal(...)`. Tests: `tools/test_turned_pad.gd`.
-- Tests: `tools/test_turned.gd` (330 checks, headless), `tools/shot_turned.gd` (screenshots in a window).
+- Tests: `tools/test_turned.gd` (344 checks, headless), `tools/shot_turned.gd` (screenshots in a window).
 
 ## Rules to keep
 - Progressive reveal: a control or system is shown only once the story introduces it (`hud.reveal(...)`). New mechanic = new reveal, in order: d-pad + A → sun/shade → B.

@@ -95,7 +95,10 @@
     "felt_s": 2.6,
     "unlock_gap_s": 0.8,
     "heartbeat_interval_s": 1.0,
-    "closeup_min_s": 0.9
+    "closeup_min_s": 0.9,
+    "hobble_speed_mult": 0.6,
+    "hobble_sway": 0.09,
+    "thought_gap_s": 2.8
   },
   "ui": {
     "dpad_radius": 108.0,

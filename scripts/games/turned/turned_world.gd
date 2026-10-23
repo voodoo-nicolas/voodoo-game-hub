@@ -161,6 +161,9 @@ func resume() -> bool:
 		return false
 	mode = "play"
 	_pro = "done"
+	if engine.has_flag("mirror"):
+		engine.set_flag("thought_started")
+		engine.set_flag("thought")
 	_load_area(engine.area)
 	player.position = engine.pos
 	if not area.is_free(player.position, player.radius):
@@ -417,7 +420,7 @@ func _tick_prologue(delta: float) -> void:
 			player.holding_head = _pt >= sit_s * 0.45
 			if _pt >= 0.3 and not _pro_flag.has("what"):
 				_pro_flag["what"] = true
-				hud.say(Text.INNER["what_happened"])
+				hud.say(Text.INNER["achy"])
 			if _pt >= sit_s + 0.5 and not _pro_flag.has("fever"):
 				_pro_flag["fever"] = true
 				hud.say(Text.INNER["fever"])
@@ -459,9 +462,29 @@ func _prologue_done() -> void:
 	engine.set_flag("control")
 	hud.reveal("dpad")
 	hud.say(Text.INNER["hint_move"])
+	_after(T.f("prologue.thought_gap_s") + 0.6, _say_thought.bind("need_mirror"))
 	_set_pro("done")
 	mode = "play"
 	_apply_item_state()
+
+## An inner line said a little later, only if the player is still just walking about.
+func _say_thought(key: String) -> void:
+	if mode == "play":
+		hud.say(Text.INNER[key])
+
+## The thoughts after the mirror: what happened, can't remember, figure it out; then the pockets can be checked.
+func _think_after_mirror() -> void:
+	if engine.has_flag("thought_started"):
+		return
+	engine.set_flag("thought_started")
+	var g := T.f("prologue.thought_gap_s")
+	_after(0.6, _say_thought.bind("what_happened"))
+	_after(0.6 + g, _say_thought.bind("cant_remember"))
+	_after(0.6 + g * 2.0, _say_thought.bind("figure_out"))
+	_after(0.6 + g * 2.0 + 2.2, _thoughts_done)
+
+func _thoughts_done() -> void:
+	engine.set_flag("thought")
 
 func _prologue_a() -> void:
 	match _pro:
@@ -479,7 +502,10 @@ func _prologue_a() -> void:
 func _tick_play(delta: float) -> void:
 	var dir := _input_dir()
 	var was := player.position
-	player.walk(dir, delta, area, engine.speed(), _npcs)
+	# until you have seen yourself in the mirror you ache: slower, with a limp
+	var hobbling := not engine.has_flag("mirror")
+	player.hobble = hobbling
+	player.walk(dir, delta, area, engine.speed() * (T.f("prologue.hobble_speed_mult") if hobbling else 1.0), _npcs)
 	engine.pos = player.position
 	_footsteps(delta, player.position.distance_to(was))
 	for n in _npcs:
@@ -541,6 +567,9 @@ func _nearest_interact() -> Dictionary:
 		if d2 <= reach + 14.0 and d2 < best_d:
 			best = {"id": "npc:" + n.id, "verb": "talk", "npc": n}
 			best_d = d2
+	# nothing to examine here: after the mirror's thoughts, A checks your pockets (once)
+	if best.is_empty() and engine.has_flag("thought") and not engine.has_flag("pockets") and area.indoor:
+		best = {"id": "pockets", "verb": "pockets"}
 	return best
 
 func press_a() -> void:
@@ -570,8 +599,19 @@ func _interact(c: Dictionary) -> void:
 		_talk(c["npc"])
 		return
 	match iid:
-		"invitation", "coat", "note", "towel":
+		"invitation", "note", "towel":
 			_clue(iid)
+		"coat":
+			_clue(iid)
+			if engine.has_flag("pockets") and engine.mission == "find_coat":
+				engine.set_mission("find_out")
+				_after(3.8, _say_thought.bind("coat_whose"))
+		"pockets":
+			engine.set_flag("pockets")
+			TSfx.play(self, "breath", -6.0)
+			hud.say(Text.INNER["pockets_empty"])
+			_add_journal("pockets")
+			engine.set_mission("find_out" if engine.journal.has("coat") else "find_coat")
 		"mirror":
 			_open_mirror()
 		"scarf":
@@ -583,6 +623,8 @@ func _interact(c: Dictionary) -> void:
 		"front_door":
 			if not engine.has_flag("mirror"):
 				hud.say(Text.INNER["door_first"])
+			elif not engine.journal.has("coat"):
+				hud.say(Text.INNER["door_coat"])
 			else:
 				TSfx.play(self, "door", -4.0)
 				_go_area("street", "from_house", true)
@@ -660,6 +702,7 @@ func _tick_closeup(delta: float) -> void:
 				engine.set_mission("find_out")
 				hud.reveal("mission")
 				_apply_item_state()
+				_think_after_mirror()
 
 # ---------------------------------------------------------------- house <-> street
 

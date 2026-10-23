@@ -15,6 +15,7 @@ var radius := 9.0
 var face := Vector2.DOWN
 var moving := false
 var scarf := false
+var hobble := false           # aching before the mirror: a limp (a sway around the feet)
 var sneak := false
 ## "lying", "sitting" (in bed) or "stand"
 var pose := "stand"
@@ -44,6 +45,8 @@ func hand_at(t: float) -> Vector2:
 
 func _process(delta: float) -> void:
 	hurt = maxf(0.0, hurt - delta * 2.5)
+	var sway := sin(_phase * 0.9) * T.f("prologue.hobble_sway") if hobble and moving and pose == "stand" else 0.0
+	rotation = lerpf(rotation, sway, 1.0 - exp(-14.0 * delta))
 	queue_redraw()
 
 ## One frame of walking: `dir` is the d-pad/keyboard direction (any length up to 1), `blockers`

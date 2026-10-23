@@ -10,10 +10,17 @@ extends RefCounted
 const INNER := {
 	"thirsty": "I'm thirsty.",
 	"what_happened": "What happened last night?",
+	"achy": "Ugh. Everything aches.",
 	"fever": "Like a fever. But I'm not sick.",
 	"what_is_this": "What is this?",
 	"mirror": "What is going on?",
 	"hint_move": "Use the arrows to walk.",
+	"need_mirror": "I need a mirror.",
+	"cant_remember": "I can't remember.",
+	"figure_out": "I need to figure this out.",
+	"pockets_empty": "Nothing. No keys, no coins. Where is my coat?",
+	"coat_whose": "Whose coat is this? What did I do?",
+	"door_coat": "I'm not going out without my coat.",
 	"door_first": "I can't go out like this. I need to see myself first.",
 	"scarf": "A grey wool scarf. I wind it round my neck. The marks are hidden.",
 	"scarf_have": "I'm already wearing it.",
@@ -62,7 +69,7 @@ const CLUES := {
 	},
 	"coat": {
 		"verb": "Look",
-		"say": "A coat. Not mine. Heavy wool, too long in the sleeves, and it smells of cold stone.",
+		"say": "This isn't my coat. Heavy wool, too long in the sleeves, and it smells of cold stone.",
 		"journal": "A stranger's coat on my chair. Heavy wool, too long for me. It smells of cold stone.",
 	},
 	"note": {
@@ -83,12 +90,14 @@ const JOURNAL := {
 	"watcher": "A man in a grey coat stared at my neck and said: \"You should not be out in that sun.\" He knew.",
 	"sun": "The sun burns me. Shade, awnings and the inside of a house keep me safe.",
 	"alley": "The alley is cool and quiet. Something in me woke up there.",
+	"pockets": "My pockets are empty. No keys, no coins. My own coat is gone.",
 	"cellar": "A locked cellar door in the hall, with an old iron lock. I have no key.",
 }
 
 ## Missions box (one line).
 const MISSIONS := {
 	"find_out": "Find out what happened",
+	"find_coat": "Find your coat",
 }
 
 ## What the A button says (translated by the HUD when drawn).
@@ -101,6 +110,7 @@ const VERBS := {
 	"enter": "Go in",
 	"talk": "Talk",
 	"door": "Open door",
+	"pockets": "Check pockets",
 	"up": "Go up",
 	"down": "Go down",
 	"ok": "OK",
