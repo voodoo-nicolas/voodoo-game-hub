@@ -2879,6 +2879,19 @@
    "proof": "media/licenses/sfx/OWNER_SFX.md",
    "url": "",
    "date": "2026-10-24"
+  },
+  {
+   "file": "games/chess/landing_bg.jpg",
+   "what": "Chess Landing background (chess pieces facing off on a stone board in a candle-lit gothic hall, castle in the moonlit window)",
+   "source": "reference/art/games/chess_landing_src.png (D:/dev/Minigame Art/chess.png)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-24",
+   "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "re-saved as JPEG q86 (Claude Code)"
   }
  ]
 }

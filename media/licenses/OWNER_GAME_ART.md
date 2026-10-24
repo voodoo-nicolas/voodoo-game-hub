@@ -40,3 +40,14 @@ Covers every `media/CREDITS.json` entry whose `proof` is this file.
   1024x576 landscape band and mirrored (so the marks sit right of the Landing's
   text column), JPEG quality 86. AI-generated for the owner; **the tool and plan
   were not recorded -- owner to confirm**. Fictional, no real person.
+
+## Chess (2026-10-24)
+- `chess_landing_src.png` (992x1586, owner's `D:/dev/Minigame Art/chess.png`,
+  also sent in chat): dark and ivory Staunton pieces facing off on a polished
+  stone board in a candle-lit gothic hall, a castle in the moonlit window.
+  Shipped as the Landing background of Chess (`games/chess/landing_bg.jpg`) and,
+  under a dark veil, its play background in the Classic look; JPEG quality 86.
+  AI-generated for the owner; **the tool and plan were not recorded -- owner to
+  confirm**. IP check (owner, 2026-10-24): the red banner with a gold lion is
+  ordinary heraldry (a lion rampant); no name, logo or crest of any franchise --
+  kept as is.

@@ -708,3 +708,261 @@ func _evaluate(side: int) -> int:
 		var bonus := edge * 10 + close * 4
 		s += bonus if strong == side else -bonus
 	return s
+
+# ---------- positions as text: FEN, square names, UCI, SAN ----------
+
+const FEN_PIECES := {"p": PAWN, "n": KNIGHT, "b": BISHOP, "r": ROOK, "q": QUEEN, "k": KING}
+const FILES := "abcdefgh"
+## Letters for Standard Algebraic Notation (a pawn has none).
+const SAN_LETTERS := ["", "", "N", "B", "R", "Q", "K"]
+## A full set, for counting what each side has lost.
+const FULL_SET := {PAWN: 8, KNIGHT: 2, BISHOP: 2, ROOK: 2, QUEEN: 1}
+## Material in pawns, the way players count it.
+const PIECE_POINTS := [0, 1, 3, 3, 5, 9, 0]
+
+## Sets up a position from FEN: pieces, side to move, castling rights, en
+## passant square, halfmove clock (the last three optional). Row 0 of
+## `board` is rank 8. Used by the lessons.
+func load_fen(fen: String) -> void:
+	var parts := fen.strip_edges().split(" ", false)
+	board = []
+	for r in range(8):
+		var row: Array = []
+		for c in range(8):
+			row.append(0)
+		board.append(row)
+	var ranks := parts[0].split("/") if parts.size() > 0 else PackedStringArray()
+	for r in range(mini(8, ranks.size())):
+		var c := 0
+		for ch in ranks[r]:
+			if ch.is_valid_int():
+				c += int(ch)
+			elif c < 8:
+				var t: int = FEN_PIECES.get(ch.to_lower(), 0)
+				board[r][c] = t if ch == ch.to_upper() else -t
+				c += 1
+	current_player = BLACK if parts.size() > 1 and parts[1] == "b" else WHITE
+	var cr: String = parts[2] if parts.size() > 2 else "-"
+	castling_rights = {"K": "K" in cr, "Q": "Q" in cr, "k": "k" in cr, "q": "q" in cr}
+	en_passant_target = square_from_name(parts[3]) if parts.size() > 3 else Vector2i(-1, -1)
+	halfmove_clock = int(parts[4]) if parts.size() > 4 else 0
+	move_history = []
+	game_over = false
+	winner = 0
+	result_reason = ""
+	position_counts = {}
+	record_position()
+
+## "e4" for a square (row 0 = rank 8, column 0 = the a-file).
+static func square_name(sq: Vector2i) -> String:
+	if sq.x < 0 or sq.x > 7 or sq.y < 0 or sq.y > 7:
+		return "-"
+	return FILES[sq.y] + str(8 - sq.x)
+
+## The square for "e4", or (-1, -1).
+static func square_from_name(n: String) -> Vector2i:
+	if n.length() != 2:
+		return Vector2i(-1, -1)
+	var c := FILES.find(n[0])
+	var rank := int(n[1]) if n[1].is_valid_int() else 0
+	if c < 0 or rank < 1 or rank > 8:
+		return Vector2i(-1, -1)
+	return Vector2i(8 - rank, c)
+
+## "e2e4", or "e7e8n" for a promotion to a knight.
+static func uci(from: Vector2i, to: Vector2i, promotion_piece: int = 0) -> String:
+	var s := square_name(from) + square_name(to)
+	if promotion_piece > 0:
+		s += str(SAN_LETTERS[promotion_piece]).to_lower()
+	return s
+
+## {from, to, promo} for "e2e4" / "e7e8n" (promo 0 = none given), {} if malformed.
+static func parse_uci(u: String) -> Dictionary:
+	if u.length() < 4:
+		return {}
+	var from := square_from_name(u.substr(0, 2))
+	var to := square_from_name(u.substr(2, 2))
+	if from.x < 0 or to.x < 0:
+		return {}
+	var promo := 0
+	if u.length() > 4:
+		promo = int(FEN_PIECES.get(u[4].to_lower(), 0))
+	return {"from": from, "to": to, "promo": promo}
+
+## Standard Algebraic Notation for a legal move of the side to move, worked
+## out BEFORE it is played: "Nbd7", "exd5", "O-O", "e8=Q". Add san_suffix()
+## (+ or #) right after playing it. "" if the move isn't legal.
+func san(from: Vector2i, to: Vector2i, promotion_piece: int = QUEEN) -> String:
+	var piece: int = board[from.x][from.y]
+	var chosen = null
+	for m in legal_moves_for(from.x, from.y):
+		if m.to == to:
+			chosen = m
+			break
+	if chosen == null:
+		return ""
+	if chosen.is_castle:
+		return "O-O" if to.y == 6 else "O-O-O"
+	var t := _piece_type(piece)
+	if t == PAWN:
+		var p: String = (FILES[from.y] + "x") if chosen.is_capture else ""
+		p += square_name(to)
+		if chosen.promotes:
+			p += "=" + str(SAN_LETTERS[promotion_piece])
+		return p
+	var s: String = SAN_LETTERS[t]
+	# Another piece of the same kind that could also go there: name the file,
+	# else the rank, else both.
+	var other := false
+	var same_file := false
+	var same_rank := false
+	for r in range(8):
+		for c in range(8):
+			if Vector2i(r, c) == from or board[r][c] != piece:
+				continue
+			for m in legal_moves_for(r, c):
+				if m.to == to:
+					other = true
+					same_file = same_file or c == from.y
+					same_rank = same_rank or r == from.x
+	if other:
+		if not same_file:
+			s += FILES[from.y]
+		elif not same_rank:
+			s += str(8 - from.x)
+		else:
+			s += square_name(from)
+	if chosen.is_capture:
+		s += "x"
+	return s + square_name(to)
+
+## "#" if the move just played was checkmate, "+" if check, else "".
+func san_suffix() -> String:
+	if game_over and result_reason == "checkmate":
+		return "#"
+	return "+" if is_in_check(current_player) else ""
+
+# ---------- material and captured pieces ----------
+
+## Material in pawns (queen 9, rook 5, bishop and knight 3, pawn 1).
+func material(player: int) -> int:
+	var n := 0
+	for r in range(8):
+		for c in range(8):
+			if _owner(board[r][c]) == player:
+				n += PIECE_POINTS[_piece_type(board[r][c])]
+	return n
+
+## The piece types `player` has lost, biggest first, counted from the board
+## against a full set (a promoted pawn counts as a pawn gone, not a capture).
+func lost_pieces(player: int) -> Array:
+	var have := {PAWN: 0, KNIGHT: 0, BISHOP: 0, ROOK: 0, QUEEN: 0}
+	for r in range(8):
+		for c in range(8):
+			var v: int = board[r][c]
+			if _owner(v) == player and have.has(_piece_type(v)):
+				have[_piece_type(v)] += 1
+	var promoted := 0
+	for t in [KNIGHT, BISHOP, ROOK, QUEEN]:
+		promoted += maxi(0, have[t] - FULL_SET[t])
+	var out: Array = []
+	for t in [QUEEN, ROOK, BISHOP, KNIGHT]:
+		for i in range(maxi(0, FULL_SET[t] - have[t])):
+			out.append(t)
+	for i in range(maxi(0, FULL_SET[PAWN] - have[PAWN] - promoted)):
+		out.append(PAWN)
+	return out
+
+# ---------- clocks ----------
+
+## `player`'s clock ran out: the other side wins, unless it has nothing left
+## that could ever checkmate -- then it is a draw (the usual rule).
+func flag_fall(player: int) -> void:
+	game_over = true
+	if _side_has_mating_material(-player):
+		result_reason = "timeout"
+		winner = -player
+	else:
+		result_reason = "draw_timeout"
+		winner = 0
+
+# ---------- evaluation bar and lesson checks ----------
+
+## Every move of the side to move that checkmates at once:
+## [{from, to, promo}] (promotions tried as queen and knight).
+func mates_in_one() -> Array:
+	var side := current_player
+	var out: Array = []
+	for m in _legal_all(side):
+		var promos: Array = [QUEEN, KNIGHT] if m.move.promotes else [QUEEN]
+		for p in promos:
+			var rec: Dictionary = _make_move_raw(m.from, m.move, p)
+			if is_in_check(-side) and _legal_all(-side).is_empty():
+				out.append({"from": m.from, "to": m.move.to, "promo": p if m.move.promotes else 0})
+			_unmake_move_raw(rec)
+	return out
+
+## The other side's replies after a move by the side to move, each with how
+## many mates in one the mover then has: [{from, to, mates}]. Empty when the
+## move itself ends the game. Leaves the position as it was.
+func replies_after(from: Vector2i, to: Vector2i, promotion_piece: int = QUEEN) -> Array:
+	var side := current_player
+	var chosen = null
+	for m in legal_moves_for(from.x, from.y):
+		if m.to == to:
+			chosen = m
+			break
+	if chosen == null:
+		return []
+	var rec: Dictionary = _make_move_raw(from, chosen, promotion_piece)
+	var out: Array = []
+	for reply in _legal_all(-side):
+		var rec2: Dictionary = _make_move_raw(reply.from, reply.move, QUEEN)
+		out.append({"from": reply.from, "to": reply.move.to, "mates": mates_in_one().size()})
+		_unmake_move_raw(rec2)
+	_unmake_move_raw(rec)
+	return out
+
+## Does this move force mate in two (or mate at once)? For the lessons: any
+## move that does counts, not only the one in the hint.
+func forces_mate_in_two(from: Vector2i, to: Vector2i, promotion_piece: int = QUEEN) -> bool:
+	for m in mates_in_one():
+		if m.from == from and m.to == to:
+			return true
+	var replies := replies_after(from, to, promotion_piece)
+	if replies.is_empty():
+		return false  # stalemate, or not a legal move
+	for r in replies:
+		if int(r.mates) == 0:
+			return false
+	return true
+
+## How the game stands for the evaluation bar, from White's side:
+## {"score": pawns (+1.5 = White is better), "mate": +1 White / -1 Black
+## has a mate in one, 0 = none seen}. A short capture search, so a piece
+## left hanging shows; it stops after `budget_ms`.
+func evaluation(budget_ms: int = 150) -> Dictionary:
+	if game_over:
+		return {"score": 0.0, "mate": 0, "over": winner}
+	var side := current_player
+	_deadline = Time.get_ticks_msec() + budget_ms
+	_aborted = false
+	if _checking_mate(side):
+		return {"score": 0.0, "mate": side}
+	_aborted = false
+	var s: int = _quiesce(side, -_MATE, _MATE, 3)
+	if _aborted:
+		s = _evaluate(side)
+	return {"score": float(s * side) / 100.0, "mate": 0}
+
+## A quick look for a mate in one (within the evaluation's time budget).
+func _checking_mate(side: int) -> bool:
+	for m in _legal_all(side):
+		if Time.get_ticks_msec() > _deadline:
+			return false
+		var rec: Dictionary = _make_move_raw(m.from, m.move, QUEEN)
+		var mate: bool = is_in_check(-side) and _legal_all(-side).is_empty()
+		_unmake_move_raw(rec)
+		if mate:
+			return true
+	return false

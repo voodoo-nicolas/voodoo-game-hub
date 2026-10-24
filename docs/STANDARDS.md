@@ -88,6 +88,12 @@ Contents (show only what applies to the game):
   "☰ More" button, the art veiled only behind the column. Same buttons and navigation as the full Landing.
   First: Last Shift.
 - **Single player** · **Multiplayer**.
+- [NEW 2026-10-24, owner] A game's **own ways to play** may sit beside them as big Landing buttons (kit
+  `"play"`): one either opens a card over the Landing (`"card": true`, e.g. a lesson list) or starts play;
+  it doesn't change Quick Play. First: Chess's 📚 Lessons and 📅 Daily Lesson (owner: on the Landing, not
+  inside Single player).
+- [NEW 2026-10-24] A game's own cards (shop, lesson list...) use the kit's `card()` / `show_card()`, so they get
+  🏠 Home / ‹ Back and Android back like the kit's own (N2, N4).
 - **🏆 Leaderboards** · **🏅 Achievements**.
 - **❓ How to Play** (Goal / How / Tips / Stats — from GameInfo).
 - **⚙ Options** (game).
@@ -110,6 +116,8 @@ One screen: pick **mode** → **difficulty** → mode options → **Start**. Rem
 Mode vocabulary (use these names/strings so i18n and leaderboards stay consistent; offer only what fits):
 Classic · Campaign / Levels · Time Trial · Survival / Endless · Zen / Practice (no score) · Daily Challenge ·
 Vs CPU · Custom. Difficulty: Easy · Normal · Hard (+ Expert where meaningful).
+[NEW 2026-10-24, owner] A game that teaches may call its daily puzzle **Daily Lesson** and its levels
+**Lessons** (Chess); same date seed for everyone, points once a day, a streak.
 
 ## 5. Multiplayer setup [NEW]
 - **Local**: pass-and-play / same screen; player count + names (party games).
@@ -151,7 +159,7 @@ them too, but editing them changes the global value. Per-game items are stored p
 | **On-screen controller** (layout, look, size, opacity, handedness) | Global (`user://pad.json`) | Only for games on the shared Pad (`scripts/common/pad/`, `docs/claude/pad.md`). The game defines `_pad()`; the kit's Options then shows "🎮 Controls". [NEW 2026-10-23] |
 | **Skin: Classic / Voodoo** | Per game; **default = Classic** (global "Voodoo mode" switch can flip all games) | §9 |
 | **Default difficulty / mode** | Per game | feeds Quick Play |
-| Game-specific toggles (hints, timer, auto-complete…) | Per game | declared by the game |
+| Game-specific toggles (hints, timer, auto-complete…) | Per game | declared by the game: kit `"options"` adds the game's own section to ⚙ Options (after Look) [NEW 2026-10-24; first: Chess's Show on/off per info panel, all on by default] |
 
 ## 8. Layout [CURRENT]
 - Everything inside the safe area (camera cutout ≈ 24 units top). Nothing important clipped.
@@ -179,6 +187,9 @@ game's traditional colours (it does not follow the app's light/dark theme; only 
   app without them the kit keeps the flat colour + grid. A game with its own `"art"` keeps it.
   [NEW 2026-10-07, owner] **Arcade games never take the shared felt / leather**: each keeps a background of its own
   (`HomeKit.OWN_BG_GAMES` = the manifest's Arcade + Adventure categories; `hub.py check` fails if a new arcade game is missing).
+- [NEW 2026-10-24, owner] Looks a game sells for points earned in play (Chess's 🛒 Shop: boards, piece sets) are
+  **variants of the Classic look**; Voodoo keeps its own neon look. Points are per game, earned by playing
+  (lessons, daily, wins), and the first item of each kind is free and owned.
 - Readability: text contrast ≥ 4.5:1; colour is never the only cue (shape/icon too) — neon palettes fail
   colour-blind players otherwise.
 - Art references library: `reference/art/` (`ART_STYLE.md` = the Voodoo skin's guide, `skins/CLASSIC.md`,

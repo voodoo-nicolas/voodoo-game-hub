@@ -27,7 +27,8 @@ extends Control
 ##   📸 Screenshot, ⚙ Options, 🏠 Home -- no Hub (N1). It saves first.
 ## - Options (§7): the app-wide settings (text size, sound, vibration, keep
 ##   screen on, game invites -- changing one changes it everywhere) and, per
-##   game, 🔄 Rotate and the Look. Per-game choices: user://landing_<ID>.json.
+##   game, 🔄 Rotate, the Look and the game's own section (cfg "options").
+##   Per-game choices: user://landing_<ID>.json.
 ## - Skins (§9): Classic (the game's traditional colours) is the default,
 ##   💀 Voodoo (neon on near-black, skulls) is opt-in -- the app-wide skull
 ##   mode flips the default. A game with skins defines `_set_skin(name)`
@@ -74,6 +75,11 @@ extends Control
 ##         "online": online,                 # OnlineMatch node, if any
 ##         "extra": _add_options,            # func(box): the game's own pickers, on the setup screens
 ##         "more": [["📜 History", PURPLE, _show_history]],  # the game's own buttons under More
+##         "play": [                         # optional: the game's own ways to play, as big Landing
+##             {"text": "📚 Lessons", "sub": "Learn step by step", "action": _open_lessons, "card": true},
+##             {"text": "📅 Daily Lesson", "sub": "A new one every day", "action": _start_daily},
+##         ],                                # buttons under Single player / Multiplayer (STANDARDS §3)
+##         "options": _add_game_options,     # optional: func(body) -- the game's own section in ⚙ Options
 ##         "compact": true,                  # optional: small buttons in a side column, More folded
 ##                                           # behind one ☰ button -- for full-screen key art
 ##         "quick_with_save": false,         # optional: no ⚡ Quick Play while ▶ Resume shows (for
@@ -81,6 +87,13 @@ extends Control
 ##     })
 ##     add_child(home)
 ##     if info: add_child(info)
+##
+## cfg "play" entries: "card": true calls the action with the Landing still up
+## (it opens one of the game's cards: `card()` + `show_card()`); otherwise the
+## Landing hides and the action starts play (`play_now()`), and Quick Play is
+## left as it was. A game's own card (shop, lesson list...): `var parts :=
+## home.card("🛒 Shop")` returns [card, body, column] -- fill body, then
+## `home.show_card(parts[0])`; it has 🏠 Home / ‹ Back and frees itself.
 ##
 ## Modes sharing a "row" value sit side by side (difficulty levels); "key"
 ## (optional, else "text") is what Quick Play remembers. "solo_heading" /
@@ -316,6 +329,28 @@ func start_mode(m: Dictionary) -> void:
 		action.call()
 	_refit()
 
+## Starts the game's own play (cfg "play", a lesson picked on a card...):
+## the Landing hides, the tree un-pauses, `action` starts it. Quick Play is
+## left as it was.
+func play_now(action: Callable) -> void:
+	hide_home()
+	if action.is_valid():
+		action.call()
+	_refit()
+
+## A full-screen card of the game's own (shop, lesson list...), in the kit's
+## style: returns [card, body, column]. Fill `body` (it scrolls; `column`
+## takes a fixed button under it), then show_card(card). 🏠 Home / ‹ Back
+## and Android back close it; it frees itself.
+func card(title_text: String) -> Array:
+	return _overlay(title_text, accent, true)
+
+func show_card(c: Control) -> void:
+	_show_overlay(c)
+
+func close_card(c: Control) -> void:
+	_close_overlay(c)
+
 ## A ⏸ button for the game's top bar, already wired to pause().
 func pause_button(text: String = "⏸") -> Button:
 	var b := Button.new()
@@ -482,6 +517,11 @@ func _build_home() -> void:
 		box.add_child(_group_button(_solo, false, both))
 	if not _multi.is_empty():
 		box.add_child(_group_button(_multi, true, both))
+	# The game's own ways to play (cfg "play"): lessons, a daily puzzle...
+	for p in cfg.get("play", []):
+		var pb := neon_button(_mode_text(p), BUTTON, 30, 100 if p.has("sub") else 84)
+		pb.pressed.connect(_on_play_item.bind(p))
+		box.add_child(pb)
 
 	var more := GridContainer.new()
 	_more = more
@@ -807,6 +847,16 @@ func _mode_button(m: Dictionary, _default_color: Color) -> Button:
 	var b := neon_button(_mode_text(m), BUTTON, 24 if small else 30, 100 if m.has("sub") else 84)
 	b.pressed.connect(_on_mode.bind(m))
 	return b
+
+func _on_play_item(p: Dictionary) -> void:
+	if _dragged():
+		return
+	var action: Callable = p.get("action", Callable())
+	if bool(p.get("card", false)):
+		if action.is_valid():
+			action.call()
+		return
+	play_now(action)
 
 func _on_mode(m: Dictionary) -> void:
 	if _dragged():
@@ -1192,6 +1242,9 @@ func _show_options() -> void:
 		body.add_child(_section(tr("Look")))
 		body.add_child(choice_row(["Classic", "💀 Voodoo"], 1 if skin_name() == "voodoo" else 0, _on_skin_pick, BUTTON))
 		body.add_child(label(tr("Classic: the game's traditional colours. Voodoo: neon on black, with skulls."), 22, DIM, true))
+	# The game's own choices (cfg "options": func(body)): toggles, panels...
+	if cfg.has("options"):
+		cfg.options.call(body)
 	if ResourceLoader.exists(ORIENTATION_PATH):
 		body.add_child(_section(tr("Screen")))
 		var rot := neon_button(tr("🔄 Rotate Screen"), BUTTON, 26, 70)
