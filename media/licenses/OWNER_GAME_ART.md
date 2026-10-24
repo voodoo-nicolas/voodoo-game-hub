@@ -41,6 +41,22 @@ Covers every `media/CREDITS.json` entry whose `proof` is this file.
   text column), JPEG quality 86. AI-generated for the owner; **the tool and plan
   were not recorded -- owner to confirm**. Fictional, no real person.
 
+## Turned paintings, cards, player bust (2026-10-24)
+- Made by the owner with **Google Gemini** (his own account; **plan not stated --
+  owner to confirm**) from the prompts in `docs/turned/ART_PROMPTS_V2_READY.md`;
+  originals in `D:/dev/RPG/turned`, copies as `reference/art/turned/gen/<id>.jpg`
+  (1264x848 scenes, 1024x1024 cards and busts). Google's terms for Gemini do not
+  claim ownership of generated images; they carry Google's invisible SynthID mark
+  (no visible watermark on these). Fictional places and people, no real person,
+  no brand, no readable text.
+- Shipped, re-saved as WebP: `games/turned/art/scenes/SC-01..SC-05.webp`,
+  `games/turned/art/cards/CD-01.webp`, `CD-02.webp`, `CD-05.webp`, and
+  `games/turned/art/ui/portrait_player.webp` (a 320x320 crop of the neutral bust
+  in `CS-01_busts.jpg`, 256x256).
+- Kept unshipped in `gen/`: the player's sheets (`CS-01a_v1`..`e_v1` in the first
+  look, outfits `CS-01f`..`j`), the bust sheet, and redo candidates
+  (`SC-06_v1`, `SC-07_v1`, `CD-03_v1`).
+
 ## Chess (2026-10-24)
 - `chess_landing_src.png` (992x1586, owner's `D:/dev/Minigame Art/chess.png`,
   also sent in chat): dark and ivory Staunton pieces facing off on a polished

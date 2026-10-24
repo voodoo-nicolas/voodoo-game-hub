@@ -193,3 +193,8 @@ C5-7. Rough edges: no seat animation when you sit down, no spoken denial animati
 
 ## Not built (as the prompt says)
 Combat, buttons X/Y, skill tree, XP gain, feeding, puzzles and locks, other towns, days 2-3, the AI Director, final audio, button layout editing, the Hunter/Friend/Devotee villagers, vision cones and enemies.
+
+## First painted art (2026-10-24; own numbering A-n)
+- **A-1** The owner made the first pictures with Google Gemini (not ChatGPT): 1264 x 848 scenes (3:2, as planned), 1024 x 1024 cards and busts. Originals in `D:/dev/RPG/turned`, copies named by id in `reference/art/turned/gen/` (only the sources of shipped files are committed).
+- **A-2** Shipped as WebP: `art/scenes/SC-01..SC-05`, `art/cards/CD-01`, `CD-02`, `CD-05`, and `art/ui/portrait_player` (her neutral bust, cut to the Scene HUD ring). The cards and the ring show at once; the scenes wait for S5 (no real scene points at them yet).
+- **A-3** Not shipped, to redo: `SC-06` and `SC-07` came out as a model box on a grey background instead of a full-frame room; `CD-03` has a full page of handwriting (partly readable, "Dear ...") where the game draws the note's words, so it needs a blank page. The player's sheets `CS-01a..e` are in her first look (dark hair pinned up) and need redoing in the auburn look; the outfits `CS-01f..j` are in the new look but not used by the story.
