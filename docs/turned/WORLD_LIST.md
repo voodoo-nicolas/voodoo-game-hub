@@ -10,7 +10,7 @@ Source tags: `S1`-`S6` = scene 1-6 of the scene script, `P2.1`-`P2.12` = Part 2 
 
 | Id | Label | Who / what they do | Where, when | Source | Open questions | Status | Art |
 |---|---|---|---|---|---|---|---|
-| PE-01 | **You** (player) | Unnamed ("you"). Wakes Friday with two bite marks. Weakens day by day; sun, thirst, senses | everywhere | S1-S6, C | gender and name (bible 3, DECIDE); the mockups show a young man | Ph | sheet: day, coat, hat+scarf, burned skin, pale/thirsty; bust with 4 moods; mirror variants (dim reflection) |
+| PE-01 | **You** (player) | Unnamed ("you"). Wakes Friday with two bite marks. Weakens day by day; sun, thirst, senses | everywhere | S1-S6, C | a young woman (owner 2026-10-24, no male version); name still open (bible 3, DECIDE) | Ph | sheet: day, coat, hat+scarf, burned skin, pale/thirsty; bust with 4 moods; mirror variants (dim reflection) |
 | PE-02 | **Tavernkeep** | Afraid, not angry: "You've got nerve coming back after Wednesday night." Throws you out, locks and bolts the door | bar, Fri evening | S2, S3 | S-7 why he closed the bar for you | New | sprite, bust (afraid, hard) |
 | PE-03 | **Bar patrons** | The whole room goes silent and afraid of you | bar interior | S2 | none | New | 4-6 sprites, one crowd painting |
 | PE-04 | **Witness** | Follows you from the bar; arrived late Wednesday, saw you outside with "a couple of people"; holds the same note; goes to your house, then to the shop; vanishes in scene 5 | Fri night | S3, S4, S5 | S-3 name (never Elias), S-8 why he disappears | New | sprite, bust (scared, pale, hard) |

@@ -186,5 +186,10 @@ C5-7. Rough edges: no seat animation when you sit down, no spoken denial animati
 - **S4-6** Checked: `tools/test_turned.gd` (981 checks: the effects, the mood, the box and bust at 5 screen shapes, a card then a painting from a dialogue, from walking and from a painting, the crossfade) and `tools/shot_turned_scene.gd` (16:9, 1560x720, 1170x540, 4:3: line, choice, crossfade). Not tried on a phone.
 - **S4-7** Not built: any story dialogue that uses `scene:` / `card:` or a mood (nothing is converted yet: the first real room is S5), a bust animation or talking mouth, the speaker's name in the bust, voice.
 
+## The player is a woman (owner, 2026-10-24; own numbering P-n)
+- **P-1** The owner: no male character. The player (PE-01) is a young woman, one version only; this replaces the bible's "both genders playable" (section 3) and decision 6's unisex figure. Her name and occupation are still open.
+- **P-2** Art: `ART_PROMPTS_V2.md` THE PLAYER now describes her (the mockup's hair, eyes, waistcoat and colours; a cream blouse and an ankle-length walking skirt; the sun-gear variant has a wide-brimmed hat instead of a flat cap). Sheets get a SHEET block (flat green, no vignette or blur), landscape 1536 x 1024.
+- **P-3** Not done: the Walk-mode figure (`turned_player.gd`) is still the unisex placeholder; Spanish lines are still written gender-neutral (decision 6) and can now use feminine forms ("cansada", "sola") where that reads better; story drafts that say "he" for the player, if any, are not swept.
+
 ## Not built (as the prompt says)
 Combat, buttons X/Y, skill tree, XP gain, feeding, puzzles and locks, other towns, days 2-3, the AI Director, final audio, button layout editing, the Hunter/Friend/Devotee villagers, vision cones and enemies.

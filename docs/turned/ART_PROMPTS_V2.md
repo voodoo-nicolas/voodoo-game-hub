@@ -26,19 +26,28 @@ For `ART_DIRECTION_V2.md`. Every picture is **assembled from blocks**: `MASTER S
 **NEGATIVE**
 > No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
 
-**THE PLAYER** (paste when a person is the player)
-> A young man in his early twenties, pale, messy dark-brown wavy hair falling over his forehead, tired grey-brown eyes, clean-shaven; brown wool waistcoat over a cream shirt with rolled sleeves, dark brown trousers, black leather boots.
+**THE PLAYER** (paste when a person is the player; the player is a young woman, owner 2026-10-24: no male version)
+> A young woman in her early twenties, pale, messy dark-brown wavy hair pinned up loosely with strands falling over her forehead, tired grey-brown eyes; a brown wool waistcoat over a cream high-collared blouse with rolled sleeves, a dark brown ankle-length walking skirt, black leather lace-up boots.
+
+**SHEET** (character turnarounds only: replaces the vignette and corner blur of MASTER STYLE, which would spoil the green cut-out; leave those two phrases out of MASTER STYLE for sheets)
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced. Landscape, 1536 x 1024.
 
 **THE STRANGE COAT** (paste when the coat is shown, so it is the same prop everywhere)
 > A heavy dark charcoal wool coat with a high collar and a subtle tone-on-tone floral brocade pattern, a worn dark red-grey lining, slightly too elegant for its owner.
 
 ## Batch 0: the player and the cast
 
-For each: **Sheet** = a character turnaround (front, back, side facing right, full body, neutral pose, plain flat bright green background, no ground shadow) = also the Walk-mode sprite source (`ART_PROMPTS.md` section 1 cuts it into `_down`, `_up`, `_side`); **Busts** = four head-and-shoulders portraits in a 2 x 2 sheet on a dark warm background (neutral, afraid, angry, tired/hungry), 1024 x 1024: the dialogue portraits and the HUD ring.
+For each: **Sheet** = MASTER STYLE (without the vignette and corner blur) + SHEET + the description line + NEGATIVE, landscape 1536 x 1024 (three full bodies are cramped in a square) = also the Walk-mode sprite source (`ART_PROMPTS.md` section 1 cuts it into `_down`, `_up`, `_side`); **Busts** = four head-and-shoulders portraits in a 2 x 2 sheet on a dark warm background (neutral, afraid, angry, tired/hungry), 1024 x 1024: the dialogue portraits and the HUD ring.
 
 | Id | Who | Description line (add after MASTER STYLE) | Variants |
 |---|---|---|---|
-| CS-01 | You (PE-01) | THE PLAYER | sheet a) waistcoat and shirt; b) wearing THE STRANGE COAT, collar up; c) with a flat cap and a scarf wrapped around the lower face (sun gear); d) skin red, blistered and swollen on the hands and face (sun burns); e) very pale, dark under the eyes, trembling (thirst). Busts: neutral, scared, angry, drained |
+| CS-01 | You (PE-01) | THE PLAYER | sheet a) waistcoat and blouse; b) wearing THE STRANGE COAT, collar up; c) with a wide-brimmed hat and a scarf wrapped around the lower face (sun gear); d) skin red, blistered and swollen on the hands and face (sun burns); e) very pale, dark under the eyes, trembling (thirst). Busts: neutral, scared, angry, drained |
+
+**Variants b-e of CS-01, said in the same chat after a)** (so ChatGPT edits instead of redrawing):
+- b) *"Same character, same three views, same background, now wearing a heavy dark charcoal wool coat with a high collar and a subtle tone-on-tone floral brocade pattern, a worn dark red-grey lining, slightly too elegant for its owner; collar up."*
+- c) *"Same character, same three views, same background, same clothes, now with a wide-brimmed hat pulled low and a scarf wrapped around the lower face, only the eyes showing."*
+- d) *"Same character, same three views, same background, same clothes. Her skin is sunburned: the face, neck, hands and forearms red and swollen, with blisters and peeling patches, the worst on the cheeks, the nose and the backs of the hands; the covered skin stays pale. She holds her hands slightly away from her body as if they hurt."*
+- e) *"Same character, same three views, same background, same clothes. She is starving with thirst: deathly pale, almost grey-white skin, dark hollows under the eyes, dry cracked lips, hair coming loose, shoulders hunched, arms wrapped around herself, visibly trembling."*
 | CS-02 | Tavernkeep (PE-02) | A broad man in his fifties, thick grey-brown moustache, rolled shirt sleeves, a stained leather apron, a damp cloth over one shoulder | busts: afraid, hard |
 | CS-03 | Witness (PE-04) | A thin nervous man in his thirties, unshaven, a worn flat cap and a threadbare grey jacket, wide eyes, pale | busts: scared, relieved, suspicious |
 | CS-04 | Shopkeeper (PE-06) | A stocky man of about fifty-five, grey whiskers, round wire spectacles, a waistcoat with a watch pocket, rolled sleeves, tobacco-stained fingers | sheet a) shop outfit; b) heavy travel coat and a brimmed hat holding an oil lamp; c) the left forearm wrapped in torn cloth smeared with dirt. Busts: guarded, kind, afraid |

@@ -2,6 +2,7 @@
 
 > Copy of the owner's `story_bible.md` v0.2 (Google Drive: Viral Game Hub → `vampire` → `02_story`), kept here so the repo is self-contained. The owner's Drive copy is the master; update this file when it changes.
 > **Hub rule (changed 2026-10-23):** the hub's "no alcohol references" rule had made the game say "Like a fever. But I'm not sick." instead of the bible's hangover line (docs/turned/DECISIONS.md). The owner has since allowed alcohol as story setting in Turned (a bar), so the hangover line may return: his call. The bible text below is left as the owner wrote it. Section 8b (vampire rules) was added 2026-10-23.
+> **Protagonist (owner, 2026-10-24):** no male character: the player is a young woman, one version only (`DECISIONS.md` P-1). Section 3 below is left as the owner wrote it; update the Drive master when convenient.
 
 Working title: **Turned** (subtitle TBD). Status: DRAFT. Items marked **[DECIDE]** need the owner's call.
 Changes from 0.1: added "The Knowing" (villagers who know what you are becoming), reworked mystery options around it.
