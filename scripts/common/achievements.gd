@@ -436,7 +436,7 @@ static func local_counts() -> Dictionary:
 		out[a.game] = int(out.get(a.game, 0)) + 1
 	return out
 
-# ---------- restore from the server (since v0.39) ----------
+# ---------- restore from the server (since v0.38.3) ----------
 ## Reinstalling the app (or a wiped phone/PC) empties user://, but every badge
 ## earned while signed in is on the server (player_awards). Social calls this
 ## with one game's rows from player_compare(me, game) ({challenge_id, title,
