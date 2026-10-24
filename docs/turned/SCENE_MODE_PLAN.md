@@ -2,6 +2,8 @@
 
 2026-10-23. Decided by the owner: Turned stays landscape, scenes are painted 1536 x 1024 (`ART_DIRECTION_V2.md`). **Nothing here is built.** Per the owner's rule, each phase starts with a task list and waits for the OK; phases S1-S7 below are the proposal, S1 is the first to approve.
 
+**Status (2026-10-23): S1 is built** (the foundation, with a drawn placeholder instead of paintings; decisions S1-1..S1-8 in `DECISIONS.md`). S2-S7 are not.
+
 ## 1. What Scene mode is
 
 A new world mode `"scene"` next to `play`, `dialogue`, `closeup`: the screen shows one painting with labelled hotspot chips. A tap (or A / Enter on the highlighted chip) examines: a line of text, a zoom card, a dialogue scene, an item, a flag, or a move to another scene or to a Walk-mode area. Rooms and story beats are Scene mode; streets, the sun, stealth and the forest stay Walk mode (`ART_DIRECTION_V2.md` section 4).

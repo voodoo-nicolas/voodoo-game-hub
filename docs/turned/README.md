@@ -32,6 +32,7 @@ godot --headless --path . --script res://tools/test_turned.gd      # 759 checks:
 python tools/hub.py check
 python tools/hub.py test turned
 godot --path . --resolution 1280x720 --script res://tools/shot_turned.gd -- <out_dir> [text size 0|1|2]   # plays the slice and saves 25 screenshots (needs a window)
+godot --path . --resolution 1280x720 --script res://tools/shot_turned_scene.gd -- <out_dir> [text size 0|1|2]   # Scene mode (the dev_ scenes, placeholder paintings): the fit, margins and chips; try 1560x720, 1024x768
 ```
 `shot_turned.gd` and `test_turned.gd` write `user://turned_save.json` and put a real one back afterwards. Try `--resolution 1170x540` (phone), `405x720` (portrait) and text size `2` (1.4x).
 
