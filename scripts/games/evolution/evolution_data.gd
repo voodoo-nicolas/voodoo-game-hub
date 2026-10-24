@@ -31,44 +31,107 @@ const BLUR := [2.6, 1.5, 0.6, 0.0]
 ## nothing (it shows as a faint particle, and at 4 or more levels below it is invisible).
 const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 4800.0]
 
+## DNA points you get for reaching each size (index = size - 1; size 1 gives none). The whole evolution tree
+## costs 262 DNA: 88 by size 4 (a third), 176 by size 7 (two thirds), 237 by size 10 (90%). Missions and rare
+## creatures give extra on top. Growing is slow (engine `xp_first` / `xp_ratio`) but the mutations come fast.
+const LEVEL_DNA := [0, 20, 32, 36, 32, 28, 28, 23, 20, 18]
+
 ## Speed multiplier by movement rank (0 = jolting, no tail).
 const MOVE_MULT := [0.0, 0.55, 0.72, 0.88, 1.02, 1.15]
 
 ## Creatures. Sizes are absolute (`mass`), so as you grow they shrink next to you. `tier` is the player
-## size level from which a species can appear: tier 1 = single cells (never swim away), tier 2 = chains and
-## other simple bacteria (some swim away), tier 3 = viruses and complex bacteria (many swim away) and the
-## first predators, tier 4 and 5 = bigger, more complex animals. `flee` = share of the species that swim away
-## from something that can eat them. role: prey (grazer), hunter (eats you if it is bigger), toxic
-## (poisonous), rare (gives a trait). `feats` are extra body parts the art draws: tail, fins, arms, cilia, eye.
-## shape is drawn by evolution_art.gd.
+## size level from which a species can appear (prey: its own size; hunters: one size earlier, so they are
+## ahead of you). `until` = the biggest player size that still meets it: single cells stop at size 3, viruses
+## at size 4, so from size 5 on only animals swim around you. Look by size: cells (sizes 1-2) have cell
+## parts, viruses and bacteria are plain, from size 3 on the creatures are fish, jellyfish, squid, rays and
+## snakes with fins, teeth, tentacles and spines; the bigger, the more of them. `flee` = share of the
+## species that swim away from something that can eat them. role: prey (grazer), hunter (eats you if it is
+## bigger), toxic (poisonous), rare (gives a trait). `feats` are extra body parts the art draws on cells: tail,
+## fins, arms, cilia, eye. `shape` is drawn by evolution_art.gd; the animals carry `fish` = their body plan
+## (see `Art._fish`, `_jelly`, `_squid`, `_ray`, `_snake`).
+## `adv` (toxic and rare ones, which are sized relative to you): the animal they turn into once they are
+## size 3 or bigger, so a size 8 player never meets a giant bacterium. It has its own name.
 const SPECIES := [
-	{"id": "coccus", "name": "Coccus", "shape": "beads", "role": "prey", "col": Color("9bd34a"), "mass": [2.0, 4.0], "tier": 1, "flee": 0.0, "feats": []},
-	{"id": "bacillus", "name": "Bacillus", "shape": "rod", "role": "prey", "col": Color("4fb3e8"), "mass": [3.0, 6.0], "tier": 1, "flee": 0.0, "feats": []},
-	{"id": "amoeba", "name": "Amoeba", "shape": "blob", "role": "prey", "col": Color("d9c27a"), "mass": [5.0, 9.0], "tier": 1, "flee": 0.0, "feats": []},
-	{"id": "strepto", "name": "Strep chain", "shape": "chain", "role": "prey", "col": Color("7a8cff"), "mass": [7.0, 13.0], "tier": 2, "flee": 0.4, "feats": []},
-	{"id": "spirillum", "name": "Spirillum", "shape": "spiral", "role": "prey", "col": Color("5fd0b0"), "mass": [8.0, 15.0], "tier": 2, "flee": 0.5, "feats": ["tail"]},
-	{"id": "ciliate", "name": "Ciliate", "shape": "blob", "role": "prey", "col": Color("f08fb0"), "mass": [10.0, 18.0], "tier": 2, "flee": 0.5, "feats": ["cilia"]},
-	{"id": "herpes", "name": "Herpes", "shape": "spiky", "role": "prey", "col": Color("e6b84a"), "mass": [16.0, 30.0], "tier": 3, "flee": 0.6, "feats": []},
-	{"id": "papilloma", "name": "Papilloma", "shape": "bumpy", "role": "prey", "col": Color("a35dd8"), "mass": [18.0, 34.0], "tier": 3, "flee": 0.4, "feats": []},
-	{"id": "zika", "name": "Zika", "shape": "bumpy", "role": "prey", "col": Color("e8693a"), "mass": [20.0, 36.0], "tier": 3, "flee": 0.5, "feats": []},
-	{"id": "swimmer", "name": "Swimmer", "shape": "rod", "role": "prey", "col": Color("6ad4ff"), "mass": [14.0, 26.0], "tier": 3, "flee": 0.8, "feats": ["tail", "fins"]},
-	{"id": "corona", "name": "Corona", "shape": "corona", "role": "hunter", "col": Color("e0405a"), "mass": [40.0, 75.0], "tier": 3, "flee": 1.0, "feats": []},
-	{"id": "ebola", "name": "Ebola", "shape": "worm", "role": "hunter", "col": Color("e0405a"), "mass": [45.0, 90.0], "tier": 3, "flee": 1.0, "feats": []},
-	{"id": "phage", "name": "Phage", "shape": "phage", "role": "hunter", "col": Color("e0603a"), "mass": [50.0, 100.0], "tier": 3, "flee": 1.0, "feats": []},
-	{"id": "rota", "name": "Rotavirus", "shape": "spiky", "role": "hunter", "col": Color("78c43a"), "mass": [40.0, 80.0], "tier": 3, "flee": 1.0, "feats": []},
-	{"id": "jelly", "name": "Jellyfish", "shape": "blob", "role": "prey", "col": Color("c9a8ff"), "mass": [60.0, 120.0], "tier": 4, "flee": 0.7, "feats": ["arms"]},
-	{"id": "plated", "name": "Plated cell", "shape": "bumpy", "role": "prey", "col": Color("8fb0a0"), "mass": [70.0, 130.0], "tier": 4, "flee": 0.6, "feats": ["fins"]},
-	{"id": "hydra", "name": "Hydra", "shape": "blob", "role": "hunter", "col": Color("e0527a"), "mass": [120.0, 220.0], "tier": 4, "flee": 1.0, "feats": ["arms", "eye"]},
-	{"id": "ray", "name": "Ray", "shape": "rod", "role": "hunter", "col": Color("e0705a"), "mass": [150.0, 260.0], "tier": 4, "flee": 1.0, "feats": ["fins", "tail", "eye"]},
-	{"id": "kraken", "name": "Kraken", "shape": "blob", "role": "hunter", "col": Color("c03a6a"), "mass": [300.0, 520.0], "tier": 5, "flee": 1.0, "feats": ["arms", "fins", "tail", "eye"]},
+	{"id": "coccus", "name": "Coccus", "shape": "beads", "role": "prey", "col": Color("9bd34a"), "mass": [2.0, 4.0], "tier": 1, "until": 3, "flee": 0.0, "feats": []},
+	{"id": "bacillus", "name": "Bacillus", "shape": "rod", "role": "prey", "col": Color("4fb3e8"), "mass": [3.0, 6.0], "tier": 1, "until": 3, "flee": 0.0, "feats": []},
+	{"id": "amoeba", "name": "Amoeba", "shape": "blob", "role": "prey", "col": Color("d9c27a"), "mass": [5.0, 9.0], "tier": 1, "until": 3, "flee": 0.0, "feats": []},
+	{"id": "strepto", "name": "Strep chain", "shape": "chain", "role": "prey", "col": Color("7a8cff"), "mass": [7.0, 13.0], "tier": 2, "until": 3, "flee": 0.4, "feats": []},
+	{"id": "spirillum", "name": "Spirillum", "shape": "spiral", "role": "prey", "col": Color("5fd0b0"), "mass": [8.0, 15.0], "tier": 2, "until": 3, "flee": 0.5, "feats": ["tail"]},
+	{"id": "ciliate", "name": "Ciliate", "shape": "blob", "role": "prey", "col": Color("f08fb0"), "mass": [10.0, 18.0], "tier": 2, "until": 3, "flee": 0.5, "feats": ["cilia"]},
+	{"id": "herpes", "name": "Herpes", "shape": "spiky", "role": "prey", "col": Color("e6b84a"), "mass": [16.0, 30.0], "tier": 3, "until": 4, "flee": 0.6, "feats": []},
+	{"id": "papilloma", "name": "Papilloma", "shape": "bumpy", "role": "prey", "col": Color("a35dd8"), "mass": [18.0, 34.0], "tier": 3, "until": 4, "flee": 0.4, "feats": []},
+	{"id": "zika", "name": "Zika", "shape": "bumpy", "role": "prey", "col": Color("e8693a"), "mass": [20.0, 36.0], "tier": 3, "until": 4, "flee": 0.5, "feats": []},
+	{"id": "swimmer", "name": "Swimmer", "shape": "rod", "role": "prey", "col": Color("6ad4ff"), "mass": [14.0, 26.0], "tier": 3, "until": 3, "flee": 0.8, "feats": ["tail", "fins"]},
+	{"id": "corona", "name": "Corona", "shape": "corona", "role": "hunter", "col": Color("e0405a"), "mass": [40.0, 75.0], "tier": 3, "until": 4, "flee": 1.0, "feats": []},
+	{"id": "ebola", "name": "Ebola", "shape": "worm", "role": "hunter", "col": Color("e0405a"), "mass": [45.0, 90.0], "tier": 3, "until": 4, "flee": 1.0, "feats": []},
+	{"id": "phage", "name": "Phage", "shape": "phage", "role": "hunter", "col": Color("e0603a"), "mass": [50.0, 100.0], "tier": 3, "until": 4, "flee": 1.0, "feats": []},
+	{"id": "rota", "name": "Rotavirus", "shape": "spiky", "role": "hunter", "col": Color("78c43a"), "mass": [40.0, 80.0], "tier": 3, "until": 4, "flee": 1.0, "feats": []},
+	# From here on: animals. Prey first (by size), then hunters.
+	{"id": "fry", "name": "Fry", "shape": "fish", "role": "prey", "col": Color("8fd8ff"), "mass": [28.0, 50.0], "tier": 3, "flee": 0.7, "feats": [],
+		"fish": {"len": 1.35, "hgt": 0.5, "tail": "fork"}},
+	{"id": "jelly", "name": "Jellyfish", "shape": "jelly", "role": "prey", "col": Color("c9a8ff"), "mass": [60.0, 115.0], "tier": 4, "flee": 0.7, "feats": [],
+		"fish": {"arms": 6}},
+	{"id": "darter", "name": "Darter", "shape": "fish", "role": "prey", "col": Color("ffd06a"), "mass": [65.0, 120.0], "tier": 4, "flee": 0.8, "feats": [],
+		"fish": {"len": 1.5, "hgt": 0.42, "tail": "fork", "stripes": true, "pect": true}},
+	{"id": "plated", "name": "Plated fish", "shape": "fish", "role": "prey", "col": Color("8fb0a0"), "mass": [80.0, 130.0], "tier": 4, "flee": 0.6, "feats": [],
+		"fish": {"len": 1.3, "hgt": 0.6, "tail": "fan", "plates": true, "pect": true}},
+	{"id": "silverfin", "name": "Silverfin", "shape": "fish", "role": "prey", "col": Color("c8d8e8"), "mass": [140.0, 240.0], "tier": 5, "flee": 0.8, "feats": [],
+		"fish": {"len": 1.55, "hgt": 0.5, "tail": "fork", "pect": true, "dorsal": 1, "barbels": 2}},
+	{"id": "puffer", "name": "Pufferfish", "shape": "fish", "role": "prey", "col": Color("e8c36a"), "mass": [150.0, 260.0], "tier": 5, "flee": 0.5, "feats": [],
+		"fish": {"len": 1.05, "hgt": 0.9, "tail": "fan", "round": true, "spines": 9, "pect": true}},
+	{"id": "bluefin", "name": "Bluefin", "shape": "fish", "role": "prey", "col": Color("4f8fe0"), "mass": [300.0, 520.0], "tier": 6, "flee": 0.8, "feats": [],
+		"fish": {"len": 1.7, "hgt": 0.55, "tail": "fork", "pect": true, "dorsal": 2, "stripes": true}},
+	{"id": "lionfish", "name": "Lionfish", "shape": "fish", "role": "prey", "col": Color("e0705a"), "mass": [330.0, 540.0], "tier": 6, "flee": 0.5, "feats": [],
+		"fish": {"len": 1.35, "hgt": 0.55, "tail": "fan", "stripes": true, "fans": true, "barbels": 2}},
+	{"id": "sunfish", "name": "Sunfish", "shape": "fish", "role": "prey", "col": Color("b8c8d8"), "mass": [600.0, 1000.0], "tier": 7, "flee": 0.6, "feats": [],
+		"fish": {"len": 1.15, "hgt": 1.0, "tail": "fan", "round": true, "pect": true, "dorsal": 2, "glow": true}},
+	{"id": "swordfish", "name": "Swordfish", "shape": "fish", "role": "prey", "col": Color("5aa0c8"), "mass": [620.0, 1050.0], "tier": 7, "flee": 0.8, "feats": [],
+		"fish": {"len": 1.8, "hgt": 0.45, "tail": "fork", "pect": true, "dorsal": 2, "sword": true}},
+	{"id": "manta", "name": "Manta", "shape": "ray", "role": "prey", "col": Color("6a8fc8"), "mass": [1250.0, 2200.0], "tier": 8, "flee": 0.6, "feats": [],
+		"fish": {"horns": true, "span": 1.9}},
+	{"id": "grouper", "name": "Giant grouper", "shape": "fish", "role": "prey", "col": Color("a88a5a"), "mass": [1300.0, 2200.0], "tier": 8, "flee": 0.5, "feats": [],
+		"fish": {"len": 1.45, "hgt": 0.75, "tail": "fan", "plates": true, "pect": true, "dorsal": 2, "barbels": 4, "glow": true}},
+	{"id": "whaleshark", "name": "Whale shark", "shape": "fish", "role": "prey", "col": Color("5a7a9a"), "mass": [2500.0, 4600.0], "tier": 9, "flee": 0.4, "feats": [],
+		"fish": {"len": 1.9, "hgt": 0.6, "tail": "fork", "pect": true, "dorsal": 2, "spots": true, "glow": true}},
+	{"id": "bluewhale", "name": "Blue whale", "shape": "fish", "role": "prey", "col": Color("3f6fb0"), "mass": [5000.0, 8500.0], "tier": 10, "flee": 0.3, "feats": [],
+		"fish": {"len": 2.0, "hgt": 0.6, "tail": "fluke", "pect": true, "dorsal": 1, "stripes": true}},
+	{"id": "hydra", "name": "Squid", "shape": "squid", "role": "hunter", "col": Color("e0527a"), "mass": [120.0, 220.0], "tier": 4, "flee": 1.0, "feats": [],
+		"fish": {"arms": 8, "long": 2}},
+	{"id": "ray", "name": "Stingray", "shape": "ray", "role": "hunter", "col": Color("e0705a"), "mass": [150.0, 260.0], "tier": 4, "flee": 1.0, "feats": [],
+		"fish": {"sting": true, "span": 1.5}},
+	{"id": "barracuda", "name": "Barracuda", "shape": "fish", "role": "hunter", "col": Color("9aa8b8"), "mass": [160.0, 270.0], "tier": 4, "flee": 1.0, "feats": [],
+		"fish": {"len": 1.8, "hgt": 0.38, "tail": "fork", "teeth": true, "pect": true, "dorsal": 1}},
+	{"id": "moray", "name": "Moray eel", "shape": "snake", "role": "hunter", "col": Color("7a9a4a"), "mass": [290.0, 520.0], "tier": 5, "flee": 1.0, "feats": [],
+		"fish": {"fangs": true, "len": 1.5, "spots": true}},
+	{"id": "angler", "name": "Anglerfish", "shape": "fish", "role": "hunter", "col": Color("7a5a9a"), "mass": [300.0, 540.0], "tier": 5, "flee": 1.0, "feats": [],
+		"fish": {"len": 1.15, "hgt": 0.85, "tail": "fan", "teeth": true, "lure": true, "pect": true, "spines": 5}},
+	{"id": "kraken", "name": "Kraken", "shape": "squid", "role": "hunter", "col": Color("c03a6a"), "mass": [580.0, 1050.0], "tier": 6, "flee": 1.0, "feats": [],
+		"fish": {"arms": 10, "long": 2, "big": true, "suckers": true}},
+	{"id": "shark", "name": "Shark", "shape": "fish", "role": "hunter", "col": Color("7d8ea0"), "mass": [600.0, 1100.0], "tier": 6, "flee": 1.0, "feats": [],
+		"fish": {"len": 1.85, "hgt": 0.5, "tail": "fork", "teeth": true, "pect": true, "dorsal": 1, "gills": true}},
+	{"id": "seasnake", "name": "Sea snake", "shape": "snake", "role": "hunter", "col": Color("d8c040"), "mass": [1200.0, 2200.0], "tier": 7, "flee": 1.0, "feats": [],
+		"fish": {"fangs": true, "len": 1.9, "bands": true, "crest": true}},
+	{"id": "greatwhite", "name": "Great white", "shape": "fish", "role": "hunter", "col": Color("90a0b0"), "mass": [1300.0, 2300.0], "tier": 7, "flee": 1.0, "feats": [],
+		"fish": {"len": 1.95, "hgt": 0.55, "tail": "fork", "teeth": true, "pect": true, "dorsal": 2, "gills": true, "scars": true}},
+	{"id": "giantsquid", "name": "Giant squid", "shape": "squid", "role": "hunter", "col": Color("a03a50"), "mass": [2500.0, 4600.0], "tier": 8, "flee": 1.0, "feats": [],
+		"fish": {"arms": 10, "long": 2, "big": true, "suckers": true, "glow": true}},
+	{"id": "megalodon", "name": "Megalodon", "shape": "fish", "role": "hunter", "col": Color("6a7a8a"), "mass": [2600.0, 4700.0], "tier": 8, "flee": 1.0, "feats": [],
+		"fish": {"len": 2.0, "hgt": 0.62, "tail": "fork", "teeth": true, "pect": true, "dorsal": 2, "gills": true, "scars": true, "glow": true}},
+	{"id": "leviathan", "name": "Leviathan", "shape": "snake", "role": "hunter", "col": Color("b03060"), "mass": [5000.0, 8000.0], "tier": 9, "flee": 1.0, "feats": [],
+		"fish": {"fangs": true, "len": 2.1, "crest": true, "fins": true, "big": true, "glow": true}},
 	{"id": "tailed", "name": "Flagellate", "shape": "tailed", "role": "prey", "col": Color("ffb35a"), "mass": [3.0, 5.0], "tier": 1, "flee": 0.0, "feats": [], "trait": "tail"},
 	{"id": "eyed", "name": "Eyed cell", "shape": "eyed", "role": "prey", "col": Color("e0a3ff"), "mass": [3.0, 5.0], "tier": 1, "flee": 0.0, "feats": [], "trait": "eye"},
 	# Toxic creatures: each kind always gives the same ailment (`ailment`), so players learn which to avoid.
-	{"id": "toxin", "name": "Toxic spore", "shape": "spiky", "role": "toxic", "col": Color("c8e03a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "brittle"},
-	{"id": "glowspore", "name": "Glow spore", "shape": "bumpy", "role": "toxic", "col": Color("7affe0"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "glow"},
-	{"id": "gutworm", "name": "Gut worm", "shape": "worm", "role": "toxic", "col": Color("e8d84a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "appetite"},
-	{"id": "mold", "name": "Mold spore", "shape": "beads", "role": "toxic", "col": Color("9aa83a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "slow_heal"},
-	{"id": "gold", "name": "Golden spore", "shape": "spiky", "role": "rare", "col": Color("ffd23f"), "mass": [0.0, 0.0], "tier": 1, "flee": 1.0, "feats": []},
+	{"id": "toxin", "name": "Toxic spore", "shape": "spiky", "role": "toxic", "col": Color("c8e03a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "brittle",
+		"adv": {"name": "Spiny pufferfish", "shape": "fish", "fish": {"len": 1.05, "hgt": 0.9, "tail": "fan", "round": true, "spines": 11, "pect": true}}},
+	{"id": "glowspore", "name": "Glow spore", "shape": "bumpy", "role": "toxic", "col": Color("7affe0"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "glow",
+		"adv": {"name": "Lantern fish", "shape": "fish", "fish": {"len": 1.3, "hgt": 0.7, "tail": "fan", "teeth": true, "lure": true, "pect": true, "glow": true}}},
+	{"id": "gutworm", "name": "Gut worm", "shape": "worm", "role": "toxic", "col": Color("e8d84a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "appetite",
+		"adv": {"name": "Venom snake", "shape": "snake", "fish": {"fangs": true, "len": 1.7, "bands": true}}},
+	{"id": "mold", "name": "Mold spore", "shape": "beads", "role": "toxic", "col": Color("9aa83a"), "mass": [0.0, 0.0], "tier": 1, "flee": 0.0, "feats": [], "ailment": "slow_heal",
+		"adv": {"name": "Venom jelly", "shape": "jelly", "fish": {"arms": 8, "glow": true}}},
+	{"id": "gold", "name": "Golden spore", "shape": "spiky", "role": "rare", "col": Color("ffd23f"), "mass": [0.0, 0.0], "tier": 1, "flee": 1.0, "feats": [],
+		"adv": {"name": "Golden fish", "shape": "fish", "fish": {"len": 1.5, "hgt": 0.55, "tail": "fork", "pect": true, "dorsal": 2, "plates": true, "glow": true}}},
 ]
 
 ## Toxic and rare creatures are sized relative to you: [low, high] x your mass.

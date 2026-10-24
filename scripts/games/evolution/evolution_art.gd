@@ -59,27 +59,38 @@ static func draw_ripples(ci: CanvasItem, c: Vector2, r: float, t: float, alpha: 
 
 # ---------- other creatures ----------
 
-## One creature of species `sp` (evolution_data.gd). `voodoo`: neon wireframe skin.
-static func draw_creature(ci: CanvasItem, c: Vector2, r: float, sp: Dictionary, heading: float, t: float, sd: float, voodoo: bool) -> void:
+## One creature of species `sp` (evolution_data.gd). `voodoo`: neon wireframe skin. `lvl`: its own size, which
+## decides what the toxic and rare ones (sized relative to you) look like: from size 3 on they are animals,
+## never giant bacteria. `detail`: draw cell parts (nucleus, vacuoles ...), only while you are size 1-2.
+static func draw_creature(ci: CanvasItem, c: Vector2, r: float, sp: Dictionary, heading: float, t: float, sd: float, voodoo: bool, lvl: int = 1, detail: bool = true) -> void:
 	if r < 1.5:
 		return
 	var col: Color = sp.col
+	var shape: String = sp.shape
+	var plan: Dictionary = sp.get("fish", {})
+	if sp.has("adv") and lvl >= 3:
+		shape = sp.adv.shape
+		plan = sp.adv.get("fish", {})
 	ci.draw_set_transform(c, heading, Vector2.ONE)
+	if shape == "fish" or shape == "jelly" or shape == "squid" or shape == "ray" or shape == "snake":
+		_animal(ci, r, col, shape, plan, t, sd, lvl, voodoo)
+		_reset(ci)
+		return
 	if voodoo:
-		_creature_voodoo(ci, r, col, sp.shape, t, sd)
+		_creature_voodoo(ci, r, col, shape, t, sd)
 		_reset(ci)
 		return
 	var feats: Array = sp.get("feats", [])
 	_feats_back(ci, r, col, t, sd, feats)
-	match sp.shape:
+	match shape:
 		"blob":
-			_amoeba(ci, r, col, t, sd)
+			_amoeba(ci, r, col, t, sd, detail)
 		"spiral":
 			_spiral(ci, r, col, t, sd)
 		"beads":
-			_beads(ci, r, col, t, sd)
+			_beads(ci, r, col, t, sd, detail)
 		"rod":
-			_rod(ci, r, col, t, sd)
+			_rod(ci, r, col, t, sd, detail)
 		"chain":
 			_chain(ci, r, col, t, sd)
 		"bumpy":
@@ -87,13 +98,13 @@ static func draw_creature(ci: CanvasItem, c: Vector2, r: float, sp: Dictionary, 
 		"spiky":
 			_spiky(ci, r, col, t, sd, sp.role)
 		"corona":
-			_corona(ci, r, col, t, sd)
+			_corona(ci, r, col, t, sd, detail)
 		"worm":
 			_worm(ci, r, col, t, sd)
 		"tailed":
-			_tailed(ci, r, col, t, sd)
+			_tailed(ci, r, col, t, sd, detail)
 		"eyed":
-			_eyed(ci, r, col, t, sd)
+			_eyed(ci, r, col, t, sd, detail)
 		"phage":
 			_phage(ci, r, col, t, sd)
 	_feats_front(ci, r, col, t, sd, feats)
@@ -112,17 +123,17 @@ static func _shade(ci: CanvasItem, pts: PackedVector2Array, col: Color) -> void:
 	var cl := _closed(pts)
 	ci.draw_polyline(cl, col.lightened(0.35), maxf(pts[0].length() * 0.06, 1.4), true)
 
-static func _beads(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+static func _beads(ci: CanvasItem, r: float, col: Color, t: float, sd: float, detail: bool = true) -> void:
 	var pts := _blob(r, 24, t, sd)
 	_shade(ci, pts, col)
-	for j in 5:
+	for j in (5 if detail else 0):
 		var a := sd + float(j) * 1.3
 		ci.draw_circle(Vector2.RIGHT.rotated(a) * r * (0.25 + 0.4 * fmod(float(j) * 0.37, 1.0)), r * 0.09, col.darkened(0.5))
 	for i in range(0, 24, 3):
 		var d := pts[i].normalized()
 		ci.draw_line(pts[i], pts[i] + d.rotated(sin(t * 7.0 + i) * 0.3) * r * 0.2, Color(col, 0.7), maxf(r * 0.03, 1.0), true)
 
-static func _rod(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+static func _rod(ci: CanvasItem, r: float, col: Color, t: float, sd: float, detail: bool = true) -> void:
 	var half := r * 1.35
 	var th := r * 0.55
 	var pts := PackedVector2Array()
@@ -133,7 +144,7 @@ static func _rod(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> v
 		var a2 := PI / 2.0 + PI * float(i) / 9.0
 		pts.append(Vector2(-half + th, 0) + Vector2(cos(a2), sin(a2)) * th)
 	_shade(ci, pts, col)
-	for j in 4:
+	for j in (4 if detail else 0):
 		ci.draw_circle(Vector2(lerpf(-half * 0.6, half * 0.6, float(j) / 3.0), sin(sd + float(j) * 2.0) * th * 0.3), th * 0.18, col.darkened(0.5))
 
 static func _chain(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
@@ -188,7 +199,7 @@ static func _spiky(ci: CanvasItem, r: float, col: Color, t: float, sd: float, ro
 	elif role == "rare":
 		ci.draw_circle(Vector2.ZERO, body * 0.5, Color(1, 1, 0.8, 0.35 + 0.25 * sin(t * 6.0)))
 
-static func _corona(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+static func _corona(ci: CanvasItem, r: float, col: Color, t: float, sd: float, detail: bool = true) -> void:
 	var body := r * 0.8
 	var pts := _blob(body, 28, t, sd, 0.02)
 	ci.draw_colored_polygon(pts, col.darkened(0.5))
@@ -198,7 +209,7 @@ static func _corona(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -
 		var d := Vector2.RIGHT.rotated(a)
 		ci.draw_line(d * body * 0.92, d * r * 0.98, Color("63c5ff"), maxf(r * 0.06, 1.4), true)
 		ci.draw_circle(d * r, maxf(r * 0.1, 1.6), Color("63c5ff"))
-	for j in 6:
+	for j in (6 if detail else 0):
 		var a2 := sd + float(j) * 1.05
 		ci.draw_circle(Vector2.RIGHT.rotated(a2) * body * (0.2 + 0.45 * fmod(float(j) * 0.41, 1.0)), body * 0.1, col.lightened(0.45))
 	ci.draw_polyline(_closed(pts), col.lightened(0.3), maxf(r * 0.05, 1.4), true)
@@ -228,13 +239,15 @@ static func _phage(ci: CanvasItem, r: float, col: Color, t: float, sd: float) ->
 		ci.draw_polyline(PackedVector2Array([base, base + Vector2(-r * 0.2, f * r * 0.5), foot]), col.darkened(0.1), maxf(r * 0.05, 1.2), true)
 
 ## A single-celled blob (amoeba): irregular, with a nucleus and a few vacuoles.
-static func _amoeba(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+static func _amoeba(ci: CanvasItem, r: float, col: Color, t: float, sd: float, detail: bool = true) -> void:
 	var pts := PackedVector2Array()
 	for i in 28:
 		var ang := TAU * float(i) / 28.0
 		var k := 1.0 + 0.10 * sin(ang * 3.0 + t * 1.6 + sd) + 0.07 * sin(ang * 2.0 - t * 1.1 + sd * 1.3)
 		pts.append(Vector2.RIGHT.rotated(ang) * r * 0.9 * k)
 	_shade(ci, pts, col)
+	if not detail:
+		return
 	ci.draw_circle(Vector2(-r * 0.1, r * 0.05), r * 0.26, col.darkened(0.5))
 	ci.draw_arc(Vector2(-r * 0.1, r * 0.05), r * 0.26, 0.0, TAU, 18, col.lightened(0.4), maxf(r * 0.04, 1.0), true)
 	for j in 3:
@@ -289,7 +302,7 @@ static func _feats_front(ci: CanvasItem, r: float, col: Color, t: float, sd: flo
 		ci.draw_circle(e + Vector2(r * 0.04, 0), r * 0.1, Color(0.03, 0.03, 0.08))
 
 ## A little cell with a long waving tail: eat it to grow your own.
-static func _tailed(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+static func _tailed(ci: CanvasItem, r: float, col: Color, t: float, sd: float, detail: bool = true) -> void:
 	var line := PackedVector2Array()
 	for j in 14:
 		var f := float(j) / 13.0
@@ -298,18 +311,20 @@ static func _tailed(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -
 	_tapered(ci, line, r * 0.2, col.lightened(0.2))
 	var pts := _blob(r * 0.8, 22, t, sd)
 	_shade(ci, pts, col)
-	ci.draw_circle(Vector2(-r * 0.1, 0), r * 0.22, col.darkened(0.5))
-	ci.draw_circle(Vector2(r * 0.2, -r * 0.3), r * 0.1, col.lightened(0.5))
+	if detail:
+		ci.draw_circle(Vector2(-r * 0.1, 0), r * 0.22, col.darkened(0.5))
+		ci.draw_circle(Vector2(r * 0.2, -r * 0.3), r * 0.1, col.lightened(0.5))
 
 ## A little cell with a big eye on the front: eat it to grow your own.
-static func _eyed(ci: CanvasItem, r: float, col: Color, t: float, sd: float) -> void:
+static func _eyed(ci: CanvasItem, r: float, col: Color, t: float, sd: float, detail: bool = true) -> void:
 	var pts := _blob(r * 0.85, 22, t, sd)
 	_shade(ci, pts, col)
 	var e := Vector2(r * 0.4, 0)
 	ci.draw_circle(e, r * 0.38, Color(1, 1, 1, 0.97))
 	ci.draw_circle(e + Vector2(r * 0.07 + sin(t * 1.3 + sd) * r * 0.05, 0), r * 0.2, Color(0.03, 0.03, 0.08))
 	ci.draw_circle(e + Vector2(r * 0.02, -r * 0.1), r * 0.06, Color.WHITE)
-	ci.draw_circle(Vector2(-r * 0.35, r * 0.2), r * 0.16, col.darkened(0.5))
+	if detail:
+		ci.draw_circle(Vector2(-r * 0.35, r * 0.2), r * 0.16, col.darkened(0.5))
 
 static func _scaled(pts: PackedVector2Array, k: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
@@ -342,6 +357,444 @@ static func _creature_voodoo(ci: CanvasItem, r: float, col: Color, shape: String
 			ci.draw_circle(ep, r * 0.18, Color(0.02, 0.0, 0.05, 0.95))
 			ci.draw_arc(ep, r * 0.18, 0.0, TAU, 16, col, maxf(r * 0.04, 1.2), true)
 
+# ---------- animals: fish, jellyfish, squid, rays, snakes ----------
+# Everything from size 3 on. Drawn from above, +x forward. `plan` = the species' `fish` body plan
+# (evolution_data.gd); `lvl` = its own size, which adds parts the bigger it is: pelvic fins (5+), glowing
+# dots (6+), barbels and tail streamers (7+).
+
+static func _animal(ci: CanvasItem, r: float, col: Color, shape: String, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	match shape:
+		"jelly":
+			_jelly(ci, r, col, plan, t, sd, lvl, voodoo)
+		"squid":
+			_squid(ci, r, col, plan, t, sd, lvl, voodoo)
+		"ray":
+			_ray(ci, r, col, plan, t, sd, lvl, voodoo)
+		"snake":
+			_snake(ci, r, col, plan, t, sd, lvl, voodoo)
+		_:
+			_fish(ci, r, col, plan, t, sd, lvl, voodoo)
+
+## A body part (fin, tail): shaded in the normal skin, a glowing outline in the Voodoo skin.
+static func _part(ci: CanvasItem, pts: PackedVector2Array, col: Color, voodoo: bool, w: float, a: float = 0.85) -> void:
+	if voodoo:
+		ci.draw_colored_polygon(pts, Color(col, 0.10))
+		ci.draw_polyline(_closed(pts), Color(col, 0.9), maxf(w, 1.4), true)
+	else:
+		ci.draw_colored_polygon(pts, Color(col.darkened(0.2), a))
+		ci.draw_polyline(_closed(pts), col.lightened(0.3), maxf(w * 0.8, 1.0), true)
+
+## The main body: shaded, or a neon outline in the Voodoo skin.
+static func _torso(ci: CanvasItem, pts: PackedVector2Array, col: Color, voodoo: bool, r: float) -> void:
+	if voodoo:
+		ci.draw_circle(Vector2.ZERO, r * 1.5, Color(col, 0.05))
+		ci.draw_colored_polygon(pts, Color(col, 0.14))
+		ci.draw_polyline(_closed(pts), Color(col, 0.3), maxf(r * 0.12, 4.0), true)
+		ci.draw_polyline(_closed(pts), col, maxf(r * 0.045, 1.8), true)
+	else:
+		_shade(ci, pts, col)
+
+static func _eye_pair(ci: CanvasItem, p: Vector2, er: float, col: Color, voodoo: bool, angry: bool) -> void:
+	if voodoo:
+		ci.draw_circle(p, er, Color(0.02, 0.0, 0.05, 0.95))
+		ci.draw_arc(p, er, 0.0, TAU, 14, col, maxf(er * 0.25, 1.2), true)
+		return
+	ci.draw_circle(p, er, Color(1.0, 0.93, 0.85, 0.97) if angry else Color(1, 1, 1, 0.97))
+	ci.draw_circle(p + Vector2(er * 0.2, 0), er * 0.55, Color(0.03, 0.03, 0.08))
+	ci.draw_circle(p + Vector2(er * 0.05, -er * 0.25), er * 0.18, Color.WHITE)
+
+static func _glow_dot(ci: CanvasItem, p: Vector2, rr: float, t: float, k: float) -> void:
+	var pulse := 0.55 + 0.45 * sin(t * 3.0 + k * 2.1)
+	ci.draw_circle(p, rr * 2.4, Color(0.5, 1.0, 0.9, 0.12 * pulse))
+	ci.draw_circle(p, rr, Color(0.7, 1.0, 0.95, 0.5 + 0.5 * pulse))
+
+## Half the height of a fish's body at `u` (0 = nose, 1 = tail root).
+static func _fish_h(u: float, hh: float, round_body: bool) -> float:
+	if round_body:
+		return hh * pow(sin(PI * clampf(u, 0.001, 0.999)), 0.6) * (1.0 - 0.25 * u)
+	return hh * sin(PI * pow(clampf(u, 0.0, 1.0), 0.62)) * (1.0 - 0.3 * u)
+
+static func _fish(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var ln: float = r * float(plan.get("len", 1.4)) * 0.85      # (kept near the creature's circle: that is what bites and gets eaten)
+	var hh: float = r * float(plan.get("hgt", 0.55))
+	var round_body: bool = plan.get("round", false)
+	var n := 16
+	var pts := PackedVector2Array()
+	var bot := PackedVector2Array()
+	for i in n + 1:
+		var u := float(i) / float(n)
+		var h := _fish_h(u, hh, round_body)
+		var bend := sin(t * 5.0 - u * 3.5 + sd) * hh * 0.22 * u * u
+		var x := ln - 2.0 * ln * u
+		pts.append(Vector2(x, -h + bend))
+		bot.append(Vector2(x, h + bend))
+	for i in range(n - 1, 0, -1):
+		pts.append(bot[i])
+	var root := Vector2(-ln, sin(t * 5.0 - 3.5 + sd) * hh * 0.22)
+	var wag := sin(t * 5.0 - 4.5 + sd) * hh * 0.35
+	# tail
+	var tail: String = plan.get("tail", "fork")
+	var tl: float = r * (0.95 if tail == "fork" else 0.8)
+	var ts: float = hh * (1.1 if tail == "fork" else 0.9)
+	var tpts := PackedVector2Array()
+	match tail:
+		"fan":
+			tpts = PackedVector2Array([root + Vector2(0, -hh * 0.12), root + Vector2(-tl * 0.8, -ts * 0.9 + wag), root + Vector2(-tl, wag), root + Vector2(-tl * 0.8, ts * 0.9 + wag), root + Vector2(0, hh * 0.12)])
+		"fluke":
+			ts *= 1.7
+			tpts = PackedVector2Array([root + Vector2(0, -hh * 0.15), root + Vector2(-tl * 0.5, -ts + wag), root + Vector2(-tl * 0.9, -ts * 0.7 + wag), root + Vector2(-tl * 0.55, wag * 0.3), root + Vector2(-tl * 0.9, ts * 0.7 + wag), root + Vector2(-tl * 0.5, ts + wag), root + Vector2(0, hh * 0.15)])
+		_:
+			tpts = PackedVector2Array([root + Vector2(0, -hh * 0.12), root + Vector2(-tl, -ts + wag), root + Vector2(-tl * 0.55, wag * 0.5), root + Vector2(-tl, ts + wag), root + Vector2(0, hh * 0.12)])
+	_part(ci, tpts, col, voodoo, r * 0.04, 0.8)
+	if lvl >= 7:
+		for s in [-1.0, 1.0]:
+			var streamer := PackedVector2Array()
+			for j in 8:
+				var f := float(j) / 7.0
+				streamer.append(root + Vector2(-tl * (0.6 + 0.9 * f), s * ts * (0.9 - 0.3 * f) + wag + sin(t * 4.0 + f * 4.0 + s) * r * 0.1 * f))
+			ci.draw_polyline(streamer, Color(col.lightened(0.2), 0.7), maxf(r * 0.025, 1.0), true)
+	# side fins (seen from above) and the long spiny fans of a lionfish
+	var u0 := 0.32
+	var h0 := _fish_h(u0, hh, round_body)
+	var x0 := ln - 2.0 * ln * u0
+	if plan.get("pect", false) or plan.get("fans", false):
+		var fl: float = r * (1.15 if plan.get("fans", false) else 0.8)
+		for s in [-1.0, 1.0]:
+			var wv := sin(t * 4.0 + sd + s) * r * 0.08
+			var fin := PackedVector2Array([Vector2(x0 + r * 0.1, s * h0 * 0.8), Vector2(x0 - fl * 0.9, s * (h0 + fl * 0.8) + wv), Vector2(x0 - fl * 0.7, s * h0 * 0.9)])
+			_part(ci, fin, col.lightened(0.1), voodoo, r * 0.03, 0.75)
+			if plan.get("fans", false) and not voodoo:
+				for q in 5:
+					var qf := float(q) / 4.0
+					var tip := Vector2(x0 - fl * (0.2 + 0.7 * qf), s * (h0 + fl * (0.9 - 0.3 * qf)) + wv)
+					ci.draw_line(Vector2(x0 - fl * 0.1 * qf, s * h0 * 0.9), tip, Color(col.lightened(0.45), 0.9), maxf(r * 0.03, 1.0), true)
+	if lvl >= 5 and not round_body:
+		var u1 := 0.62
+		var h1 := _fish_h(u1, hh, false)
+		var x1 := ln - 2.0 * ln * u1
+		for s in [-1.0, 1.0]:
+			_part(ci, PackedVector2Array([Vector2(x1 + r * 0.1, s * h1 * 0.8), Vector2(x1 - r * 0.45, s * (h1 + r * 0.38)), Vector2(x1 - r * 0.4, s * h1 * 0.85)]), col, voodoo, r * 0.025, 0.7)
+	# spines around the body (pufferfish, anglerfish)
+	var spines: int = int(plan.get("spines", 0))
+	for k in spines:
+		var su := 0.14 + 0.72 * float(k) / float(maxi(spines - 1, 1))
+		var sx := ln - 2.0 * ln * su
+		var sh := _fish_h(su, hh, round_body)
+		for s in [-1.0, 1.0]:
+			var tipk := Vector2(sx - r * 0.06, s * (sh + r * 0.3))
+			ci.draw_line(Vector2(sx, s * sh * 0.9), tipk, col.lightened(0.35) if not voodoo else col, maxf(r * 0.045, 1.2), true)
+			ci.draw_circle(tipk, maxf(r * 0.04, 1.2), Color(1, 1, 1, 0.8))
+	# the sword
+	if plan.get("sword", false):
+		var sw := PackedVector2Array()
+		for j in 6:
+			sw.append(Vector2(ln * 0.95 + r * 1.2 * float(j) / 5.0, 0.0))
+		_tapered(ci, sw, r * 0.13, col.lightened(0.35))
+	_torso(ci, pts, col, voodoo, r)
+	if voodoo:
+		for sgn in [-1.0, 1.0]:
+			_eye_pair(ci, Vector2(ln * 0.78, sgn * _fish_h(0.1, hh, round_body) * 0.7), maxf(r * 0.13, 1.6), col, true, false)
+		return
+	# markings
+	var dark := Color(col.darkened(0.6), 0.5)
+	if plan.get("stripes", false):
+		for k in 4:
+			var bu := 0.22 + 0.14 * float(k)
+			var bh := _fish_h(bu, hh, round_body) * 0.92
+			var bx := ln - 2.0 * ln * bu
+			ci.draw_line(Vector2(bx, -bh), Vector2(bx, bh), dark, maxf(r * 0.08, 1.4), true)
+	if plan.get("plates", false):
+		for a in 7:
+			var pu := 0.18 + 0.095 * float(a)
+			var ph := _fish_h(pu, hh, round_body)
+			var px := ln - 2.0 * ln * pu
+			for b in 4:
+				var py := ph * (-0.65 + 0.43 * float(b) + (0.2 if a % 2 == 0 else 0.0))
+				ci.draw_arc(Vector2(px, py), maxf(r * 0.1, 1.3), PI * 0.5, PI * 1.5, 6, Color(col.lightened(0.4), 0.7), maxf(r * 0.025, 1.0), true)
+	if plan.get("spots", false):
+		for k in 9:
+			var spu := 0.18 + 0.08 * float(k)
+			var sy := _fish_h(spu, hh, round_body) * sin(float(k) * 2.3 + sd) * 0.6
+			ci.draw_circle(Vector2(ln - 2.0 * ln * spu, sy), r * 0.06, Color(1, 1, 1, 0.75))
+	if plan.get("scars", false):
+		ci.draw_line(Vector2(ln * 0.1, -hh * 0.5), Vector2(-ln * 0.15, -hh * 0.1), Color(1, 1, 1, 0.45), maxf(r * 0.03, 1.0), true)
+		ci.draw_line(Vector2(ln * 0.0, hh * 0.1), Vector2(-ln * 0.3, hh * 0.55), Color(1, 1, 1, 0.45), maxf(r * 0.03, 1.0), true)
+	if plan.get("gills", false):
+		for k in 3:
+			var gx := ln - 2.0 * ln * (0.2 + 0.04 * float(k))
+			for s in [-1.0, 1.0]:
+				ci.draw_line(Vector2(gx, s * hh * 0.45), Vector2(gx - r * 0.1, s * hh * 0.85), dark, maxf(r * 0.035, 1.0), true)
+	# a ridge down the back
+	var dorsal: int = int(plan.get("dorsal", 0))
+	if dorsal > 0:
+		var ridge := PackedVector2Array()
+		for j in 8:
+			var rf := 0.2 + 0.6 * float(j) / 7.0
+			ridge.append(Vector2(ln - 2.0 * ln * rf, sin(t * 5.0 - rf * 3.5 + sd) * hh * 0.22 * rf * rf))
+		ci.draw_polyline(ridge, Color(col.lightened(0.35), 0.85), maxf(r * 0.07 * float(dorsal), 1.4), true)
+	# glowing dots (own flag, or from size 6)
+	if plan.get("glow", false) or lvl >= 6:
+		for k in 5:
+			var gu := 0.2 + 0.14 * float(k)
+			var gy := _fish_h(gu, hh, round_body) * 0.55
+			_glow_dot(ci, Vector2(ln - 2.0 * ln * gu, gy), maxf(r * 0.035, 1.0), t, float(k))
+			_glow_dot(ci, Vector2(ln - 2.0 * ln * gu, -gy), maxf(r * 0.035, 1.0), t, float(k) + 0.5)
+	# teeth
+	if plan.get("teeth", false):
+		for k in 4:
+			var tu := 0.01 + 0.03 * float(k)
+			for s in [-1.0, 1.0]:
+				var tp := Vector2(ln - 2.0 * ln * tu, s * _fish_h(tu, hh, round_body) * 0.9)
+				ci.draw_colored_polygon(PackedVector2Array([tp + Vector2(r * 0.02, 0), tp + Vector2(-r * 0.1, -s * r * 0.02), tp + Vector2(r * 0.05, -s * r * 0.13)]), Color(1, 1, 1, 0.95))
+	# whiskers
+	var barbels: int = int(plan.get("barbels", 0))
+	if lvl >= 7 and barbels < 2:
+		barbels = 2
+	for k in barbels:
+		var bs := -1.0 if k % 2 == 0 else 1.0
+		var line := PackedVector2Array()
+		for j in 8:
+			var f := float(j) / 7.0
+			line.append(Vector2(ln * 0.88 + r * 0.7 * f, bs * (hh * 0.35 + r * 0.22 * f) + sin(t * 4.0 + float(k) + sd) * r * 0.12 * f))
+		_tapered(ci, line, maxf(r * 0.07, 1.2), Color(col.lightened(0.35), 0.85))
+	# the lantern of an anglerfish
+	if plan.get("lure", false):
+		var stalk := PackedVector2Array()
+		for j in 9:
+			var f := float(j) / 8.0
+			stalk.append(Vector2(ln * 0.5 + (ln * 0.5 + r * 0.95) * f, -sin(f * PI) * r * 0.45 + sin(t * 3.0 + sd) * r * 0.1 * f))
+		_tapered(ci, stalk, maxf(r * 0.07, 1.4), col.lightened(0.3))
+		var bulb: Vector2 = stalk[stalk.size() - 1]
+		var lp := 0.6 + 0.4 * sin(t * 4.0 + sd)
+		ci.draw_circle(bulb, r * 0.45, Color(0.7, 1.0, 0.9, 0.14 * lp))
+		ci.draw_circle(bulb, r * 0.2, Color(0.8, 1.0, 0.95, 0.6 + 0.3 * lp))
+		ci.draw_circle(bulb, r * 0.1, Color.WHITE)
+	# eyes
+	var er := maxf(r * (0.2 if round_body else 0.13), 1.6)
+	for sgn in [-1.0, 1.0]:
+		_eye_pair(ci, Vector2(ln * 0.78, sgn * _fish_h(0.1, hh, round_body) * 0.72), er, col, false, plan.get("teeth", false))
+
+static func _jelly(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var pulse := 0.5 + 0.5 * sin(t * 3.0 + sd)
+	var arms: int = int(plan.get("arms", 6))
+	var br := r * (0.78 + 0.07 * pulse)
+	for k in arms:
+		var f0 := (float(k) + 0.5) / float(arms) - 0.5
+		var base := Vector2(-br * 0.5, f0 * br * 1.5)
+		var line := PackedVector2Array()
+		for j in 12:
+			var f := float(j) / 11.0
+			line.append(base + Vector2(-r * 1.9 * f, sin(t * 3.0 - f * 5.0 + float(k) * 1.3 + sd) * r * 0.26 * f + f0 * r * 0.35 * f))
+		if voodoo:
+			ci.draw_polyline(line, Color(col, 0.8), maxf(r * 0.04, 1.4), true)
+		else:
+			_tapered(ci, line, maxf(r * 0.1, 1.6), Color(col, 0.55))
+			_tapered(ci, line, maxf(r * 0.05, 1.0), col.lightened(0.4))
+	# the frilly arms in the middle
+	for k in 3:
+		var fl := PackedVector2Array()
+		for j in 9:
+			var f := float(j) / 8.0
+			fl.append(Vector2(-br * 0.2 - r * 1.0 * f, (float(k) - 1.0) * br * 0.22 + sin(t * 4.0 - f * 6.0 + float(k) * 2.0 + sd) * r * 0.2 * f))
+		_tapered(ci, fl, maxf(r * 0.22, 2.0), Color(col.lightened(0.15), 0.65) if not voodoo else Color(col, 0.35))
+	var pts := _blob(br, 28, t, sd, 0.03)
+	_torso(ci, pts, col, voodoo, r)
+	if not voodoo:
+		for k in 8:
+			var a := TAU * float(k) / 8.0 + sd * 0.1
+			ci.draw_line(Vector2.RIGHT.rotated(a) * br * 0.2, Vector2.RIGHT.rotated(a) * br * 0.9, Color(col.lightened(0.5), 0.45), maxf(r * 0.03, 1.0), true)
+	if plan.get("glow", false) or lvl >= 6:
+		for k in 8:
+			_glow_dot(ci, Vector2.RIGHT.rotated(TAU * float(k) / 8.0) * br * 0.92, maxf(r * 0.035, 1.0), t, float(k))
+
+static func _squid(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var big: bool = plan.get("big", false)
+	var arms: int = int(plan.get("arms", 8))
+	var longn: int = int(plan.get("long", 2))
+	var ml: float = r * (1.5 if big else 1.2)
+	var head := Vector2(r * 0.25, 0.0)
+	# arms and the two long feeding tentacles reach forward
+	for k in arms:
+		var f0 := (float(k) + 0.5) / float(arms) - 0.5
+		var line := PackedVector2Array()
+		for j in 10:
+			var f := float(j) / 9.0
+			line.append(head + Vector2(r * (0.15 + 1.25 * f), f0 * r * (0.6 + 0.5 * f) + sin(t * 4.0 - f * 5.0 + float(k) * 1.4 + sd) * r * 0.2 * f))
+		if voodoo:
+			ci.draw_polyline(line, Color(col, 0.85), maxf(r * 0.04, 1.4), true)
+		else:
+			_tapered(ci, line, maxf(r * 0.12, 2.0), Color(col, 0.7))
+			if plan.get("suckers", false):
+				for j in range(2, 9, 2):
+					ci.draw_circle(line[j], maxf(r * 0.035, 1.0), Color(col.lightened(0.55), 0.9))
+	for k in longn:
+		var sg := -1.0 if k % 2 == 0 else 1.0
+		var tl := PackedVector2Array()
+		for j in 12:
+			var f := float(j) / 11.0
+			tl.append(head + Vector2(r * (0.2 + 2.1 * f), sg * r * (0.25 + 0.3 * f) + sin(t * 3.0 - f * 6.0 + float(k) * 2.0 + sd) * r * 0.28 * f))
+		if voodoo:
+			ci.draw_polyline(tl, col, maxf(r * 0.05, 1.6), true)
+		else:
+			_tapered(ci, tl, maxf(r * 0.1, 1.8), Color(col.lightened(0.15), 0.9))
+		ci.draw_circle(tl[tl.size() - 1], maxf(r * 0.1, 1.8), col.lightened(0.3) if not voodoo else col)
+	# the mantle, with its fins at the back
+	var pts := PackedVector2Array()
+	var low := PackedVector2Array()
+	for i in 15:
+		var u := float(i) / 14.0
+		var h := r * (0.62 if big else 0.52) * sin(PI * pow(u, 0.55)) * (1.0 - 0.45 * u)
+		var x := head.x - (ml + head.x) * u
+		pts.append(Vector2(x, -h))
+		low.append(Vector2(x, h))
+	for i in range(13, 0, -1):
+		pts.append(low[i])
+	var flap := sin(t * 4.0 + sd) * r * 0.1
+	for s in [-1.0, 1.0]:
+		_part(ci, PackedVector2Array([Vector2(-ml * 0.45, s * r * 0.3), Vector2(-ml * 0.95, s * (r * 0.85 + flap)), Vector2(-ml * 1.02, s * r * 0.15)]), col, voodoo, r * 0.03, 0.8)
+	_torso(ci, pts, col, voodoo, r)
+	if not voodoo:
+		ci.draw_line(Vector2(head.x, 0.0), Vector2(-ml * 0.9, 0.0), Color(col.lightened(0.4), 0.5), maxf(r * 0.06, 1.2), true)
+	if plan.get("glow", false) or lvl >= 6:
+		for k in 5:
+			_glow_dot(ci, Vector2(-ml * (0.15 + 0.17 * float(k)), (r * 0.3) * (1.0 if k % 2 == 0 else -1.0)), maxf(r * 0.04, 1.0), t, float(k))
+	for sgn in [-1.0, 1.0]:
+		_eye_pair(ci, head + Vector2(-r * 0.05, sgn * r * 0.46), maxf(r * 0.2, 2.0), col, voodoo, true)
+
+static func _ray(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var span: float = float(plan.get("span", 1.5)) * r * 0.8
+	var flap := 1.0 + sin(t * 3.0 + sd) * 0.12
+	# the tail first: a long whip, with a stinger on a stingray
+	var tail := PackedVector2Array()
+	for j in 14:
+		var f := float(j) / 13.0
+		tail.append(Vector2(-r * 0.95 - r * 2.3 * f, sin(t * 4.0 - f * 5.0 + sd) * r * 0.22 * f))
+	if voodoo:
+		ci.draw_polyline(tail, col, maxf(r * 0.05, 1.6), true)
+	else:
+		_tapered(ci, tail, maxf(r * 0.14, 2.0), col.darkened(0.15))
+	if plan.get("sting", false):
+		var tp: Vector2 = tail[tail.size() - 4]
+		ci.draw_colored_polygon(PackedVector2Array([tp + Vector2(r * 0.05, -r * 0.07), tp + Vector2(-r * 0.4, 0), tp + Vector2(r * 0.05, r * 0.07)]), Color("ffd9d0"))
+	var pts := PackedVector2Array([Vector2(r * 1.05, 0.0)])
+	var lower := PackedVector2Array()
+	for s in [-1.0, 1.0]:
+		var side := PackedVector2Array([Vector2(r * 0.6, s * span * 0.55), Vector2(r * 0.1, s * span * flap), Vector2(-r * 0.5, s * span * 0.72 * flap), Vector2(-r * 0.95, s * span * 0.16)])
+		if s < 0.0:
+			for p in side:
+				pts.append(p)
+		else:
+			for i in range(side.size() - 1, -1, -1):
+				lower.append(side[i])
+	pts.append(Vector2(-r * 1.0, 0.0))
+	pts.append_array(lower)
+	_torso(ci, pts, col, voodoo, r)
+	if plan.get("horns", false):
+		for s in [-1.0, 1.0]:
+			_part(ci, PackedVector2Array([Vector2(r * 0.95, s * r * 0.12), Vector2(r * 1.5, s * r * 0.3), Vector2(r * 1.0, s * r * 0.34)]), col, voodoo, r * 0.03, 0.9)
+	if not voodoo:
+		ci.draw_line(Vector2(r * 0.8, 0.0), Vector2(-r * 0.9, 0.0), Color(col.lightened(0.4), 0.5), maxf(r * 0.07, 1.2), true)
+		for s in [-1.0, 1.0]:
+			ci.draw_line(Vector2(r * 0.4, s * span * 0.2), Vector2(r * 0.0, s * span * 0.6 * flap), Color(col.lightened(0.35), 0.4), maxf(r * 0.03, 1.0), true)
+	if plan.get("glow", false) or lvl >= 6:
+		for k in 6:
+			_glow_dot(ci, Vector2(-r * 0.3 * float(k % 3) + r * 0.3, (r * 0.35 + float(k) * r * 0.07) * (1.0 if k % 2 == 0 else -1.0)), maxf(r * 0.035, 1.0), t, float(k))
+	for sgn in [-1.0, 1.0]:
+		_eye_pair(ci, Vector2(r * 0.62, sgn * r * 0.2), maxf(r * 0.11, 1.5), col, voodoo, plan.get("sting", false))
+
+static func _snake(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var ln: float = r * float(plan.get("len", 1.7)) * 0.85
+	var big: bool = plan.get("big", false)
+	var w0: float = r * (0.5 if big else 0.4)
+	var n := 28
+	var line := PackedVector2Array()
+	var wid := PackedFloat32Array()
+	for j in n + 1:
+		var f := float(j) / float(n)
+		line.append(Vector2(ln - f * ln * 2.3, sin(f * 7.5 - t * 5.0 + sd) * r * 0.5 * (0.3 + 0.7 * f)))
+		wid.append(w0 * (1.0 - 0.9 * pow(f, 1.4)) + r * 0.02)
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	for j in n + 1:
+		var a: Vector2 = line[maxi(j - 1, 0)]
+		var b: Vector2 = line[mini(j + 1, n)]
+		var nrm := (b - a).normalized().orthogonal()
+		left.append(line[j] + nrm * wid[j])
+		right.append(line[j] - nrm * wid[j])
+	# fins on the sides (a sea serpent), then the body
+	if plan.get("fins", false):
+		for s in [-1.0, 1.0]:
+			var fj := 7
+			var fp: Vector2 = line[fj]
+			_part(ci, PackedVector2Array([fp + Vector2(r * 0.2, s * wid[fj]), fp + Vector2(-r * 0.5, s * (wid[fj] + r * 0.55)), fp + Vector2(-r * 0.55, s * wid[fj])]), col, voodoo, r * 0.03, 0.8)
+	var pts := PackedVector2Array()
+	for j in n + 1:
+		pts.append(left[j])
+	for j in range(n, -1, -1):
+		pts.append(right[j])
+	if voodoo:
+		ci.draw_colored_polygon(pts, Color(col, 0.14))
+		ci.draw_polyline(left, col, maxf(r * 0.045, 1.8), true)
+		ci.draw_polyline(right, col, maxf(r * 0.045, 1.8), true)
+	else:
+		ci.draw_colored_polygon(pts, col.darkened(0.5))
+		var mid := PackedVector2Array()
+		for j in n + 1:
+			mid.append(line[j])
+		ci.draw_polyline(mid, col, maxf(w0 * 1.15, 3.0), true)
+		ci.draw_polyline(mid, col.lightened(0.35), maxf(w0 * 0.3, 1.2), true)
+		ci.draw_polyline(left, col.lightened(0.25), maxf(r * 0.04, 1.2), true)
+		ci.draw_polyline(right, col.lightened(0.25), maxf(r * 0.04, 1.2), true)
+		if plan.get("bands", false):
+			for k in 9:
+				var bj := 3 + k * 3
+				if bj >= n:
+					break
+				ci.draw_line(left[bj], right[bj], Color(0.05, 0.05, 0.1, 0.75), maxf(r * 0.12, 1.6), true)
+		if plan.get("spots", false):
+			for k in 8:
+				var sj := 3 + k * 3
+				if sj >= n:
+					break
+				ci.draw_circle(line[sj] + Vector2(0, sin(float(k) * 3.1) * wid[sj] * 0.4), maxf(wid[sj] * 0.3, 1.2), Color(0.12, 0.1, 0.05, 0.7))
+		if plan.get("crest", false):
+			for k in 10:
+				var cj := 2 + k * 2
+				if cj >= n:
+					break
+				for s in [-1.0, 1.0]:
+					var cp: Vector2 = line[cj]
+					ci.draw_colored_polygon(PackedVector2Array([cp + Vector2(r * 0.07, s * wid[cj] * 0.8), cp + Vector2(-r * 0.2, s * (wid[cj] + r * 0.2)), cp + Vector2(-r * 0.12, s * wid[cj] * 0.8)]), Color(col.lightened(0.3), 0.9))
+	if plan.get("glow", false) or lvl >= 6:
+		for k in 7:
+			var gj := 3 + k * 3
+			if gj >= n:
+				break
+			_glow_dot(ci, line[gj], maxf(r * 0.04, 1.0), t, float(k))
+	# the head: wide jaws, eyes and fangs
+	var hp: Vector2 = line[0]
+	var head := PackedVector2Array()
+	for k in 16:
+		var a := TAU * float(k) / 16.0
+		head.append(hp + Vector2(cos(a) * r * 0.55, sin(a) * r * 0.4))
+	_torso(ci, head, col, voodoo, r)
+	if plan.get("fangs", false):
+		for s in [-1.0, 1.0]:
+			var fb := hp + Vector2(r * 0.5, s * r * 0.15)
+			ci.draw_colored_polygon(PackedVector2Array([fb + Vector2(-r * 0.05, -s * r * 0.05), fb + Vector2(r * 0.3, 0), fb + Vector2(-r * 0.05, s * r * 0.07)]), Color(1, 1, 1, 0.95))
+	if sin(t * 4.0 + sd) > 0.4 and not voodoo:
+		var tg := hp + Vector2(r * 0.52, 0)
+		ci.draw_line(tg, tg + Vector2(r * 0.4, 0), Color("ff5a6a"), maxf(r * 0.03, 1.0), true)
+		ci.draw_line(tg + Vector2(r * 0.4, 0), tg + Vector2(r * 0.55, -r * 0.08), Color("ff5a6a"), maxf(r * 0.03, 1.0), true)
+		ci.draw_line(tg + Vector2(r * 0.4, 0), tg + Vector2(r * 0.55, r * 0.08), Color("ff5a6a"), maxf(r * 0.03, 1.0), true)
+	for s in [-1.0, 1.0]:
+		var ep := hp + Vector2(r * 0.12, s * r * 0.27)
+		if voodoo:
+			_eye_pair(ci, ep, maxf(r * 0.12, 1.5), col, true, true)
+		else:
+			ci.draw_circle(ep, maxf(r * 0.13, 1.6), Color("ffd84a"))
+			ci.draw_line(ep + Vector2(0, -r * 0.1), ep + Vector2(0, r * 0.1), Color(0.03, 0.03, 0.06), maxf(r * 0.045, 1.2), true)
+
 # ---------- the player ----------
 
 ## Tail length by movement rank, in radii.
@@ -350,7 +803,9 @@ const TAIL_LEN := [0.0, 0.7, 1.1, 1.5, 1.8, 2.1]
 ## The player's creature. `st`: move_rank, sight_rank, eye_open (0..1), owned {}, specials {},
 ## ailments {}, speed (0..1 share of top speed), voodoo, dash (bool), lurch (0..1 after a jolt),
 ## col2 / col3: the two secondary colours (col2: tail, fins, spikes, tentacles, hairs; col3: spots,
-## stripes and small details). Without them both are shades of `col`.
+## stripes and small details). Without them both are shades of `col`. `cell` (0..1, default 1): how much of the
+## cell parts (nucleus, vacuoles, the bean-shaped mitochondrion, the fringe of tiny hairs) shows: the game fades
+## them out between size 2 and size 3 (owner 2026-10-23: from size 3 on you are no longer a cell).
 static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, heading: float, t: float, st: Dictionary) -> void:
 	if r < 1.5:
 		return
@@ -363,6 +818,7 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 	var voodoo: bool = st.get("voodoo", false)
 	var col2: Color = st.get("col2", col.lightened(0.15))
 	var col3: Color = st.get("col3", col.lightened(0.45))
+	var cell: float = st.get("cell", 1.0)
 	ci.draw_set_transform(c, heading, Vector2.ONE)
 	var sides := 36 if r > 24.0 else 22
 	var pts := _blob(r, sides, t, 0.0)
@@ -383,13 +839,14 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 		_reset(ci)
 		return
 	# cilia: tiny hairs all round (dense with the cilia coat)
-	var hairs := 30 if owned.has("cilia") else 14
+	var hair_a := 1.0 if owned.has("cilia") else cell
+	var hairs := (30 if owned.has("cilia") else 14) if hair_a > 0.03 else 0
 	var hair_len := 0.26 if owned.has("cilia") else 0.14
 	for j in hairs:
 		var a := TAU * float(j) / float(hairs)
 		var d := Vector2.RIGHT.rotated(a)
 		var wav := sin(t * 6.0 + float(j) * 1.7) * 0.35
-		ci.draw_line(d * r * 0.98, d.rotated(wav) * r * (1.0 + hair_len), Color(col2, 0.75), maxf(r * 0.03, 1.0), true)
+		ci.draw_line(d * r * 0.98, d.rotated(wav) * r * (1.0 + hair_len), Color(col2, 0.75 * hair_a), maxf(r * 0.03, 1.0), true)
 	if owned.has("spikes"):
 		for j in 10:
 			var a2 := TAU * (float(j) + 0.5) / 10.0
@@ -410,20 +867,21 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 	ci.draw_polyline(stripe, Color(col3, 0.75), maxf(r * 0.07, 1.5), true)
 	for sp in [Vector2(-0.55, 0.42), Vector2(-0.2, 0.62), Vector2(0.2, 0.5), Vector2(-0.72, 0.05), Vector2(0.38, -0.36)]:
 		ci.draw_circle(sp * r, r * 0.075, Color(col3, 0.7))
-	# cell parts: nucleus, vacuoles, a bean-shaped mitochondrion
-	var nuc := Vector2(-r * 0.12, r * 0.04)
-	ci.draw_circle(nuc, r * 0.28, Color(col.darkened(0.45), 0.9))
-	ci.draw_arc(nuc, r * 0.28, 0.0, TAU, 24, Color(col.lightened(0.3), 0.8), maxf(r * 0.03, 1.2), true)
-	ci.draw_circle(nuc + Vector2(r * 0.04, -r * 0.05), r * 0.08, Color(1, 1, 1, 0.45))
-	for j in 3:
-		var va := 1.1 + float(j) * 2.1 + t * 0.12
-		ci.draw_circle(Vector2.RIGHT.rotated(va) * r * 0.58, r * (0.07 + 0.015 * float(j)), Color(col3, 0.45))
-		ci.draw_arc(Vector2.RIGHT.rotated(va) * r * 0.58, r * (0.07 + 0.015 * float(j)), 0.0, TAU, 12, Color(col.lightened(0.6), 0.8), maxf(r * 0.02, 1.0), true)
-	var bean := PackedVector2Array()
-	for k in 10:
-		var ba := TAU * float(k) / 10.0
-		bean.append(Vector2(-r * 0.45, -r * 0.42) + Vector2(cos(ba) * r * 0.16, sin(ba) * r * 0.07).rotated(0.6))
-	ci.draw_colored_polygon(bean, Color(col3, 0.6))
+	# cell parts: nucleus, vacuoles, a bean-shaped mitochondrion (gone from size 3)
+	if cell > 0.03:
+		var nuc := Vector2(-r * 0.12, r * 0.04)
+		ci.draw_circle(nuc, r * 0.28, Color(col.darkened(0.45), 0.9 * cell))
+		ci.draw_arc(nuc, r * 0.28, 0.0, TAU, 24, Color(col.lightened(0.3), 0.8 * cell), maxf(r * 0.03, 1.2), true)
+		ci.draw_circle(nuc + Vector2(r * 0.04, -r * 0.05), r * 0.08, Color(1, 1, 1, 0.45 * cell))
+		for j in 3:
+			var va := 1.1 + float(j) * 2.1 + t * 0.12
+			ci.draw_circle(Vector2.RIGHT.rotated(va) * r * 0.58, r * (0.07 + 0.015 * float(j)), Color(col3, 0.45 * cell))
+			ci.draw_arc(Vector2.RIGHT.rotated(va) * r * 0.58, r * (0.07 + 0.015 * float(j)), 0.0, TAU, 12, Color(col.lightened(0.6), 0.8 * cell), maxf(r * 0.02, 1.0), true)
+		var bean := PackedVector2Array()
+		for k in 10:
+			var ba := TAU * float(k) / 10.0
+			bean.append(Vector2(-r * 0.45, -r * 0.42) + Vector2(cos(ba) * r * 0.16, sin(ba) * r * 0.07).rotated(0.6))
+		ci.draw_colored_polygon(bean, Color(col3, 0.6 * cell))
 	var cl := _closed(pts)
 	var rim := maxf(r * (0.16 if owned.has("membrane") else 0.1), 2.5)
 	ci.draw_polyline(cl, Color(col, 0.35), rim, true)

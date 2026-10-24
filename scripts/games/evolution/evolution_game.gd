@@ -939,8 +939,12 @@ func _handle_events() -> void:
 				_banner(tr("Mission complete!"))
 				_snd("chime")
 			"grow":
-				_banner(tr("You grew a size!"))
+				_banner(tr("You grew!"))
 				bump = 0.25
+			"level":
+				_banner(tr("Size %d!  +%d DNA") % [int(ev.level), int(ev.dna)])
+				_snd("evolve")
+				bump = 0.3
 			"dna":
 				_banner(tr("+1 DNA"))
 			"seen":
@@ -962,6 +966,8 @@ func _handle_events() -> void:
 				_banner(tr("Too cold! Swim toward warmer water, or evolve Antifreeze.") if ev.what == "cold" else tr("Too deep! The pressure hurts: swim up, or evolve Pressure cells."))
 				hurt = 1.0
 				_snd("bite", 0.6)
+			"env_warn":
+				_banner(tr("The water is getting colder. Turn back soon!") if ev.what == "cold" else tr("The water is getting deeper. Turn back soon!"))
 			"rare":
 				_banner(tr("Rare trait: %s") % tr(str(ev.name)))
 				_spawn_burst(engine.player.pos, Color("ffd23f"), 24, 260.0, 5.0, EvEngine.radius_of(engine.player.mass) * 2.0)
@@ -1005,8 +1011,14 @@ static func _h(x: int, y: int, k: int) -> float:
 	n = ((n ^ (n >> 13)) * 1274126177) & 0x7FFFFFFF
 	return float((n ^ (n >> 16)) & 0xFFFF) / 65535.0
 
+## The cell parts on your body (nucleus, vacuoles ...) fade out between size 2 and size 3.
+func _cell_fade() -> float:
+	var pm: float = engine.player.mass
+	return clampf((Data.LEVELS[2] - pm) / (Data.LEVELS[2] - Data.LEVELS[1]), 0.0, 1.0)
+
 func _player_state() -> Dictionary:
 	return {
+		"cell": _cell_fade(),
 		"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": eye_open, "tail_grow": tail_grow,
 		"owned": engine.owned, "specials": engine.specials, "ailments": engine.ailments,
 		"speed": clampf(engine.player.vel.length() / 300.0, 0.0, 1.0), "voodoo": voodoo,
@@ -1015,7 +1027,7 @@ func _player_state() -> Dictionary:
 
 func _draw_field() -> void:
 	var s := field.size
-	field.draw_rect(Rect2(Vector2.ZERO, s), BG)
+	field.draw_rect(Rect2(Vector2.ZERO, s), BG if engine == null else _water_col())
 	if engine == null:
 		return
 	_update_overlay(s)
@@ -1065,7 +1077,7 @@ func _draw_field() -> void:
 			kind = "hunter"           # just a red glow, no label
 		var hd: float = n.vel.angle() if n.vel.length() > 4.0 else n.wander.angle()
 		Art.draw_halo(field, sp2, r, kind, pulse)
-		Art.draw_creature(field, sp2, r, Data.species_of(n.species), hd, pulse, float(int(n.id) % 97) * 1.37, voodoo)
+		Art.draw_creature(field, sp2, r, Data.species_of(n.species), hd, pulse, float(int(n.id) % 97) * 1.37, voodoo, EvEngine.size_level(n.mass), engine.level() <= 2)
 	# Effects under the player's own cell
 	for p in particles:
 		var a2: float = clampf(p.life / p.max, 0.0, 1.0)
@@ -1135,6 +1147,13 @@ func _update_overlay(s: Vector2) -> void:
 		blur += 0.9
 	mat.set_shader_parameter("blur", blur * 2.5)      # a circle of this many pixels, wider toward the edge of your sight
 	mat.set_shader_parameter("radial", blur * 0.035)  # ... and streaks bursting out from you (radial blur)
+
+## The water darkens with depth: a pale blue near the surface, almost black below about 150 m. It is the
+## cue that tells you how far down you are (a number alone did not: owner 2026-10-23).
+func _water_col() -> Color:
+	var shallow := Color(0.03, 0.12, 0.19) if not voodoo else Color(0.12, 0.04, 0.2)
+	var f := clampf(engine.depth_m() / 150.0, 0.0, 1.0)
+	return shallow.lerp(BG, 1.0 - pow(1.0 - f, 2.0))
 
 static func _by_mass(x, y) -> bool:
 	return x.mass < y.mass

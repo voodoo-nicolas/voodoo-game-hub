@@ -33,6 +33,12 @@ func give(e, id: String, rank: int = 1) -> void:
 	e.auto_assign()
 
 func _init() -> void:
+	# Quick run of just the growth / species checks (the whole test takes ~10 minutes): ... --script res://tools/test_evolution.gd -- growth
+	if OS.get_cmdline_user_args().has("growth"):
+		_growth_and_species()
+		print("FAILS: %d" % fails)
+		quit(1 if fails else 0)
+		return
 	var r: float = Ev.TUNING.eat_ratio
 	# Eat-ratio rule
 	check(Ev.can_eat(r * 10.0, 10.0), "exactly the ratio can eat")
@@ -430,10 +436,10 @@ func _init() -> void:
 	e.step(1.0 / 60.0, Vector2.ZERO)
 	check(e.ailments.size() == 1, "a toxic creature gives one ailment")
 	e.ailments = {"appetite": 20.0}
-	var m1: float = e.player.mass
+	var m1: float = e.xp
 	e.food = [e.player.pos]
 	e.step(1.0 / 60.0, Vector2.ZERO)
-	check(absf((e.player.mass - m1) - Ev.TUNING.food_mass * 0.5) < 0.01, "bottomless appetite: half growth")
+	check(absf((e.xp - m1) - Ev.TUNING.food_xp * 0.5) < 0.01, "bottomless appetite: half growth")
 	e.ailments = {"brittle": 20.0}
 	e.npcs = [_npc(e.player.pos, 100.0, "corona", "hunter")]
 	var hpb: float = e.player.hp
@@ -808,7 +814,7 @@ func _init() -> void:
 	e.hit_t = 99.0
 	e.step(1.0, Vector2.ZERO)
 	check(e.too_cold == 0.0 and e.too_deep == 0.0 and e.player.hp > 5.0, "shallow water is fine")
-	e.player.pos = Vector2(4500.0, (e.max_depth_m() + 150.0) * 10.0)
+	e.player.pos = Vector2(4500.0, (e.max_depth_m() + 150.0) * Ev.TUNING.units_per_m)
 	e.player.hp = e.max_hp()
 	e.step(1.0, Vector2.ZERO)
 	check(e.too_deep > 0.0 and e.player.hp < e.max_hp(), "too deep hurts")
@@ -929,5 +935,115 @@ func _init() -> void:
 	check(e.player.pos.y <= Ev.TUNING.start_depth, "revive: out of the deep water")
 	check(e.owned.get("jaws", 0) == 1 and e.dna == 3 and e.sight_rank == 2, "revive: keeps traits, DNA and the eye")
 	check(e.grace > 0.0 and e.deaths == 1, "revive: a moment of grace, counted")
+	_growth_and_species()
 	print("FAILS: %d" % fails)
 	quit(1 if fails else 0)
+
+## Owner 2026-10-23: slow growing (each size costs twice the xp of the one before), fast mutations (DNA per size),
+## animals instead of cells from size 4-5, a depth scale you can feel.
+func _growth_and_species() -> void:
+	# xp: every size costs twice the one before; mass follows xp through the size starts
+	for lv in range(1, 10):
+		check(is_equal_approx(Ev.xp_span(lv + 1), Ev.xp_span(lv) * 2.0), "size %d to %d costs twice size %d to %d" % [lv + 1, lv + 2, lv, lv + 1])
+	check(is_equal_approx(Ev.mass_of_xp(0.0), Ev.TUNING.start_mass), "xp 0 = the start mass")
+	for lv in range(2, 11):
+		check(is_equal_approx(Ev.mass_of_xp(Ev.xp_at(lv)), Data.LEVELS[lv - 1]), "reaching size %d puts you at its start mass" % lv)
+		check(is_equal_approx(Ev.xp_of_mass(Data.LEVELS[lv - 1]), Ev.xp_at(lv)), "mass -> xp -> mass round trip at size %d" % lv)
+	check(Ev.size_level(Ev.mass_of_xp(Ev.xp_at(5) - 0.01)) == 4 and Ev.size_level(Ev.mass_of_xp(Ev.xp_at(5))) == 5, "the size changes exactly at its xp")
+	var g := Ev.new()
+	g.reset(1234)
+	g.sight_rank = 2
+	g.npcs.clear()
+	g.food.clear()
+	var x0: float = g.xp
+	g.npcs = [_npc(g.player.pos, 3.0, "coccus", "prey")]
+	g.step(1.0 / 60.0, Vector2.ZERO)
+	check(is_equal_approx(g.xp - x0, 1.0), "a size-1 creature is worth 1 xp")
+	check(is_equal_approx(g.player.mass, Ev.mass_of_xp(g.xp)), "mass follows xp")
+	# mutations: DNA per size reaches a third of the tree by size 4, two thirds by 7, 90% by 10
+	var tree := 0
+	for n in Data.NODES:
+		for k in int(n.max):
+			tree += int(n.cost) + k
+	var got := 0
+	var at := {}
+	for lv in range(1, 11):
+		got += int(Data.LEVEL_DNA[lv - 1])
+		at[lv] = got
+	check(at[4] * 3 >= tree, "a third of the tree's DNA by size 4 (%d of %d)" % [at[4], tree])
+	check(at[7] * 3 >= tree * 2, "two thirds by size 7 (%d of %d)" % [at[7], tree])
+	check(at[10] * 10 >= tree * 9, "90%% by size 10 (%d of %d)" % [at[10], tree])
+	check(at[3] * 3 < tree and at[6] * 3 < tree * 2, "...and not much earlier than that")
+	var d := Ev.new()
+	d.reset(77)
+	d.sight_rank = 2
+	d.npcs.clear()
+	d.food.clear()
+	d._gain_xp(Ev.xp_at(4) - d.xp)
+	d.step(1.0 / 60.0, Vector2.ZERO)
+	check(d.level() == 4 and d.dna == int(Data.LEVEL_DNA[1]) + int(Data.LEVEL_DNA[2]) + int(Data.LEVEL_DNA[3]), "growing to size 4 pays its DNA (%d)" % d.dna)
+	var lvl_events := 0
+	for ev in d.events:
+		if ev.type == "level":
+			lvl_events += 1
+	check(lvl_events == 3, "...one event per size (%d)" % lvl_events)
+	d.step(1.0 / 60.0, Vector2.ZERO)
+	check(d.dna == int(Data.LEVEL_DNA[1]) + int(Data.LEVEL_DNA[2]) + int(Data.LEVEL_DNA[3]), "...and only once")
+	# the creatures around you, by your size
+	var cells := ["beads", "rod", "blob", "chain", "spiral", "tailed", "eyed"]
+	var viruses := ["spiky", "bumpy", "corona", "worm", "phage"]
+	var animals := ["fish", "jelly", "squid", "ray", "snake"]
+	for lv in range(1, 11):
+		var p := Ev.new()
+		p.reset(500 + lv)
+		p.sight_rank = 2
+		p.move_rank = 1
+		p.player.mass = Data.LEVELS[lv - 1] + 1.0
+		p._mass_seen = -1.0
+		p._sync_mass()
+		var seen := {}
+		var picks := 0
+		var animal_picks := 0
+		for i in 600:
+			p.npcs.clear()
+			p._hunter_cd = 0.0
+			var sp: Dictionary = p._pick_species()
+			if sp.is_empty():
+				continue
+			seen[sp.id] = sp
+			picks += 1
+			# toxic and rare creatures are sized relative to you: from size 5 they are always size 3+, so animals
+			var shape: String = sp.shape
+			if sp.has("adv") and lv >= 5:
+				shape = sp.adv.shape
+			if animals.has(shape):
+				animal_picks += 1
+			if lv >= 4 and not sp.has("adv"):
+				check(not cells.has(shape), "size %d meets no single cells (%s)" % [lv, sp.id])
+			if lv >= 5:
+				check(not cells.has(shape) and not viruses.has(shape), "size %d meets no cells or viruses (%s)" % [lv, sp.id])
+		check(picks > 0, "size %d meets someone" % lv)
+		print("size %d: %d%% of what you meet are animals" % [lv, int(100.0 * animal_picks / maxf(picks, 1))])
+		if lv >= 7:
+			check(animal_picks == picks, "from size 7 everyone is an animal (%d of %d)" % [animal_picks, picks])
+		if lv >= 5:
+			check(animal_picks == picks, "from size 5 everyone is an animal (%d of %d)" % [animal_picks, picks])
+		if lv == 4:
+			check(animal_picks * 2 >= picks, "at size 4 most are animals (%d of %d)" % [animal_picks, picks])
+	for sp in Data.SPECIES:
+		if sp.role == "toxic" or sp.role == "rare":
+			check(sp.has("adv") and sp.adv.name != "" and animals.has(sp.adv.shape), "%s turns into an animal when big" % sp.id)
+	# depth is on a scale you can feel
+	var w := Ev.new()
+	w.reset(3)
+	w.player.pos = Vector2(0.0, 60.0 * Ev.TUNING.units_per_m)
+	check(is_equal_approx(w.depth_m(), 60.0), "60 m is 60 x units_per_m")
+	check(Ev.TUNING.units_per_m * w.max_depth_m() > 8000.0, "the bare depth limit is thousands of units away")
+	var warned := false
+	w.sight_rank = 2
+	w.player.pos = Vector2(100.0, w.max_depth_m() * 0.9 * Ev.TUNING.units_per_m)
+	w.step(1.0 / 60.0, Vector2.ZERO)
+	for ev in w.events:
+		if ev.type == "env_warn" and ev.what == "deep":
+			warned = true
+	check(warned and w.too_deep == 0.0, "a warning comes before the pressure does")

@@ -16,7 +16,10 @@ const TUNING := {
 	"radius_k": 6.0,            # radius = radius_k * sqrt(mass) (was 7: creatures drawn a bit smaller, 2026-10-22)
 	"eat_ratio": 1.15,          # eater needs mass >= victim mass * eat_ratio
 	"jaws_step": 0.05,          # each point of jaws lowers the ratio by this
-	"absorb": 0.10,             # share of the victim's mass the eater gains (small, so eating only plumps you a little)
+	"absorb": 0.10,             # share of the victim's mass a creature gains when it eats another one (you grow by xp, below)
+	"xp_first": 5.0,            # xp for size 2; every size costs `xp_ratio` times the one before (owner 2026-10-23: slow growing)
+	"xp_ratio": 2.0,
+	"food_xp": 0.5,             # xp per food speck (a creature is worth its size level in xp)
 	"food_mass": 1.0,
 	"food_per_area": 4.2e-5,    # food per square world unit of the spawn disc
 	"food_min": 30,
@@ -52,6 +55,8 @@ const TUNING := {
 	"dash_mult": 2.3,
 	"power_regen": 6.0,         # power-bar points per second (the bar slowly refills)
 	"start_depth": 700.0,       # y = 0 is the water surface; y grows downward, forever
+	"units_per_m": 50.0,        # depth: world units per metre (was 10, which made 320 m a few centimetres of screen; owner 2026-10-23)
+	"warn_margin": 0.15,        # the early warning comes this share of your depth limit (and 3 °C) before it
 	"surface_margin": 0.6,      # x radius: how close to the surface the cell's centre may get
 	"upgrade_cost_cut": 0.2,    # each ability upgrade makes it this much cheaper
 	"upgrade_time_gain": 0.5,   # ... and this much longer / stronger
@@ -87,16 +92,16 @@ const TUNING := {
 	"brittle_mult": 1.6,
 	"slow_heal_mult": 0.25,
 	"appetite_mult": 0.5,
-	"photo_rate": 0.012,        # mass per second per unit of mass
+	"photo_rate": 0.003,        # share of the current size's xp per second (Photosynthesis)
 	"magnet_range": 190.0,
 	"cam_base": 0.88,           # was 1.0: the whole pond zoomed out a little (2026-10-22)
 	"cam_k": 0.045,
 	"cam_min": 0.22,
 	"respawn_per_step": 3,
-	"story_grow": 1.25,         # a size-reward mission grows you by this factor
+	"story_xp": 0.4,            # a size-reward mission gives this share of the current size's xp
 	"mission_linger": 3.0,
 	# Water: temperature falls with depth (warm at the surface, about 4 °C deep down) and in cold currents
-	# that come and go as you swim sideways. 10 world units = 1 m.
+	# that come and go as you swim sideways. `units_per_m` world units = 1 m of depth.
 	"temp_surface": 24.0,
 	"temp_deep": 4.0,
 	"thermo_m": 150.0,          # how fast it gets colder with depth (m)
@@ -117,8 +122,9 @@ const TUNING := {
 	"resist_step": 0.2,         # each rank of a resistance cuts its ailment's time by this share (5 = immune)
 }
 
-## Growth stages: [from mass, name]. Names are translated by the game.
-const STAGES := [[0.0, "Spore"], [18.0, "Microbe"], [45.0, "Amoeba"], [110.0, "Hunter"], [260.0, "Predator"], [600.0, "Leviathan"]]
+## Growth stages: [from mass, name]. Names are translated by the game. Each starts where a size starts
+## (Data.LEVELS): sizes 1, 2, 3, 4, 6 and 8.
+const STAGES := [[0.0, "Spore"], [14.0, "Microbe"], [30.0, "Amoeba"], [62.0, "Hunter"], [270.0, "Predator"], [1150.0, "Leviathan"]]
 
 var rng := RandomNumberGenerator.new()
 var difficulty := "normal"
@@ -134,6 +140,11 @@ var jolts: int = 0
 var time: float = 0.0
 var events: Array = []    # this step's events; the game draws effects / banners from them
 var dna: int = 0
+var xp: float = 0.0       # growth: your mass follows it (`mass_of_xp`); every size needs twice the xp of the one before
+var _mass_seen: float = 0.0   # the mass `xp` was last matched to (code that sets player.mass directly gets re-synced)
+var _lvl_seen: int = 1    # the biggest size reached (each new one pays DNA)
+var _warn_cold := false
+var _warn_deep := false
 var owned := {}           # tree node id -> points spent (only ids with 1 or more)
 var slot_ids: Array = ["", "", "", ""]   # the ability on each of the 4 buttons ("" = none)
 var specials := {}        # special trait id -> true
@@ -222,6 +233,42 @@ static func size_level(mass: float) -> int:
 			lv = i + 1
 	return lv
 
+## xp needed to reach a size (size 1 = 0). Every size costs `xp_ratio` (2) times the one before: 5, 10, 20, 40 ...
+static func xp_at(lv: int) -> float:
+	if lv <= 1:
+		return 0.0
+	var r: float = TUNING.xp_ratio
+	return TUNING.xp_first * (pow(r, float(lv - 1)) - 1.0) / (r - 1.0)
+
+## xp it takes to grow from this size to the next.
+static func xp_span(lv: int) -> float:
+	return xp_at(lv + 1) - xp_at(lv)
+
+## Your mass where size index `i` (0 = size 1) starts. Past size 10 the mass keeps doubling.
+static func mass_anchor(i: int) -> float:
+	if i <= 0:
+		return TUNING.start_mass
+	if i < Data.LEVELS.size():
+		return Data.LEVELS[i]
+	return Data.LEVELS[Data.LEVELS.size() - 1] * pow(2.0, float(i - Data.LEVELS.size() + 1))
+
+## Your mass at this much xp: it climbs in a straight line from one size's start mass to the next.
+static func mass_of_xp(x: float) -> float:
+	var i := 0
+	while i < 40 and x >= xp_at(i + 2):
+		i += 1
+	var lo := xp_at(i + 1)
+	var f := clampf((x - lo) / (xp_at(i + 2) - lo), 0.0, 1.0)
+	return lerpf(mass_anchor(i), mass_anchor(i + 1), f)
+
+## The xp that matches a mass (the other way round).
+static func xp_of_mass(m: float) -> float:
+	var i := 0
+	while i < 40 and m >= mass_anchor(i + 1):
+		i += 1
+	var f := clampf((m - mass_anchor(i)) / (mass_anchor(i + 1) - mass_anchor(i)), 0.0, 1.0)
+	return lerpf(xp_at(i + 1), xp_at(i + 2), f)
+
 ## Camera zoom (smaller = further out) for the player's mass.
 static func zoom_for(mass: float) -> float:
 	var over := maxf(sqrt(mass) - sqrt(TUNING.start_mass), 0.0)
@@ -235,14 +282,36 @@ func score() -> int:
 func stage() -> int:
 	return stage_index(player.mass)
 
-## 0..1 progress to the next growth stage (the gold XP bar).
+## 0..1 progress to the next size (the gold XP bar).
 func xp_frac() -> float:
-	var i := stage()
-	if i >= STAGES.size() - 1:
+	_sync_mass()
+	var lv := level()
+	if lv >= Data.LEVELS.size():
 		return 1.0
-	var lo: float = STAGES[i][0]
-	var hi: float = STAGES[i + 1][0]
-	return clampf((player.mass - lo) / (hi - lo), 0.0, 1.0)
+	return clampf((xp - xp_at(lv)) / xp_span(lv), 0.0, 1.0)
+
+## If something set player.mass directly (a test, an old save path), match the xp to it.
+func _sync_mass() -> void:
+	if absf(player.mass - _mass_seen) > 0.0001:
+		xp = xp_of_mass(player.mass)
+		_mass_seen = player.mass
+
+## Growing: add xp, and the mass follows.
+func _gain_xp(amount: float) -> void:
+	_sync_mass()
+	xp += amount
+	player.mass = mass_of_xp(xp)
+	_mass_seen = player.mass
+	peak_mass = maxf(peak_mass, player.mass)
+
+## Each new size pays DNA (Data.LEVEL_DNA): the mutations come fast while the growing is slow.
+func _check_level_up() -> void:
+	var lv := level()
+	while _lvl_seen < lv:
+		_lvl_seen += 1
+		var gain: int = int(Data.LEVEL_DNA[clampi(_lvl_seen - 1, 0, Data.LEVEL_DNA.size() - 1)])
+		dna += gain
+		events.append({"type": "level", "level": _lvl_seen, "dna": gain})
 
 func has(id: String) -> bool:
 	return int(owned.get(id, 0)) > 0
@@ -334,11 +403,11 @@ func top_speed() -> float:
 
 ## Depth below the surface in metres.
 func depth_m() -> float:
-	return maxf(player.pos.y, 0.0) / 10.0
+	return maxf(player.pos.y, 0.0) / TUNING.units_per_m
 
 ## Water temperature (°C) at a world position.
 static func temp_at(pos: Vector2) -> float:
-	var d := maxf(pos.y, 0.0) / 10.0
+	var d: float = maxf(pos.y, 0.0) / TUNING.units_per_m
 	var base: float = TUNING.temp_deep + (TUNING.temp_surface - TUNING.temp_deep) * exp(-d / TUNING.thermo_m)
 	var band := pow(maxf(sin(pos.x / TUNING.cold_band_len * TAU + 0.7), 0.0), 2.0)
 	return maxf(base - TUNING.cold_band * band, -1.0)     # salt water freezes a little below 0 °C
@@ -402,6 +471,11 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	time = 0.0
 	events.clear()
 	dna = 0
+	xp = 0.0
+	_mass_seen = player.mass
+	_lvl_seen = 1
+	_warn_cold = false
+	_warn_deep = false
 	owned = {}
 	slot_ids = ["", "", "", ""]
 	specials = {}
@@ -528,9 +602,9 @@ func _pick_species() -> Dictionary:
 	var cands: Array = []
 	var weights: Array = []
 	var total := 0.0
-	var tier_cap := clampi(lvl, 1, 5)
+	var tier_cap := clampi(lvl, 1, 10)
 	for sp in Data.SPECIES:
-		if sp.has("trait") or sp.role == "toxic" or sp.role == "rare" or int(sp.tier) > tier_cap:
+		if sp.has("trait") or sp.role == "toxic" or sp.role == "rare" or int(sp.tier) > tier_cap or lvl > int(sp.get("until", 99)):
 			continue
 		if sp.role == "hunter" and (not hunters_on() or threats >= threat_cap() or _hunter_cd > 0.0):
 			continue
@@ -595,6 +669,7 @@ func step(delta: float, dir: Vector2) -> void:
 		return
 	time += delta
 	events.clear()
+	_sync_mass()
 	hit_t += delta
 	grace = maxf(grace - delta, 0.0)
 	_hunter_cd = maxf(_hunter_cd - delta, 0.0)
@@ -615,6 +690,7 @@ func step(delta: float, dir: Vector2) -> void:
 	_resolve(delta)
 	_top_up()
 	_recycle()
+	_check_level_up()
 	_track_missions(delta)
 	_tick_missions(delta)
 
@@ -667,6 +743,15 @@ func _environment(delta: float) -> void:
 		events.append({"type": "env", "what": "cold"})
 	if too_deep > 0.0 and not was_deep:
 		events.append({"type": "env", "what": "deep"})
+	# Early warning: a good way before the limit, so the cold or the pressure never comes as a surprise.
+	var near_cold: bool = too_cold <= 0.0 and temp() < min_temp() + 3.0
+	var near_deep: bool = too_deep <= 0.0 and depth_m() > max_depth_m() * (1.0 - t("warn_margin"))
+	if near_cold and not _warn_cold:
+		events.append({"type": "env_warn", "what": "cold"})
+	if near_deep and not _warn_deep:
+		events.append({"type": "env_warn", "what": "deep"})
+	_warn_cold = near_cold
+	_warn_deep = near_deep
 	var dmg := 0.0
 	var cause := ""
 	if too_cold > 0.0:
@@ -798,7 +883,7 @@ func _heal_and_passives(delta: float) -> void:
 			rate *= t("slow_heal_mult")
 		player.hp = minf(player.hp + rate * delta, max_hp())
 	if specials.has("photo"):
-		player.mass += player.mass * t("photo_rate") * delta
+		_gain_xp(xp_span(level()) * t("photo_rate") * delta)
 	if specials.has("magnet"):
 		var rng2: float = t("magnet_range") + radius_of(player.mass)
 		for i in food.size():
@@ -982,7 +1067,7 @@ func _resolve(delta: float) -> void:
 	var food_worth := value_of(t("food_mass"))
 	for f in food:
 		if food_worth > 0 and f.distance_to(player.pos) < pr + fr * 0.5:
-			player.mass += t("food_mass") * gain_mult
+			_gain_xp(t("food_xp") * gain_mult)
 			eaten_food += 1
 			events.append({"type": "food", "pos": f})
 		else:
@@ -999,7 +1084,7 @@ func _resolve(delta: float) -> void:
 		if n.role == "rare" or n.role == "toxic":
 			worth = maxi(worth, 1)              # always worth eating (and always shown)
 		if worth > 0 and can_eat(player.mass, n.mass, ratio) and d < pr - nr * 0.35:
-			player.mass = player.mass + n.mass * t("absorb") * gain_mult
+			_gain_xp(float(worth) * gain_mult)
 			eaten_cells += 1
 			kills += 1
 			eaten_value += worth
@@ -1106,8 +1191,10 @@ func _recycle() -> void:
 ## Endless mode: after dying you come back at the start of your current size (never below your growth stage), full
 ## health, out of the water that killed you, with everything you evolved: tail, eye, DNA, traits, missions.
 func revive() -> void:
-	var floor_mass: float = maxf(t("start_mass"), maxf(Data.LEVELS[level() - 1], STAGES[stage()][0]))
-	player.mass = minf(player.mass, floor_mass)
+	_sync_mass()
+	xp = xp_at(level())
+	player.mass = mass_of_xp(xp)
+	_mass_seen = player.mass
 	player.hp = max_hp()
 	player.vel = Vector2.ZERO
 	player.pos.y = minf(player.pos.y, t("start_depth"))
@@ -1332,7 +1419,7 @@ func _track_missions(delta: float) -> void:
 		close_call_sent = true
 		events.append({"type": "close_call"})
 	max_depth = maxf(max_depth, player.pos.y)
-	if player.pos.y < 70.0:
+	if player.pos.y < radius_of(player.mass) * t("surface_margin") + 70.0:
 		surface_hit = true
 	_discover_places()
 	for m in missions:
@@ -1350,7 +1437,8 @@ func _discover_places() -> void:
 		events.append({"type": "place", "what": "surface"})
 		if _open_count() < 5:
 			_add_mission({"kind": "surface", "target": 1, "text": "Touch the surface", "reward": _next_reward()})
-	var marks := [1500.0, 3500.0, 6500.0, 10000.0, 15000.0]
+	var mk: float = t("units_per_m")
+	var marks := [150.0 * mk, 350.0 * mk, 650.0 * mk, 1000.0 * mk, 1500.0 * mk]      # 150 m, 350 m, 650 m ...
 	if _depth_i < marks.size() and player.pos.y >= marks[_depth_i]:
 		var goal: float = marks[_depth_i + 1] if _depth_i + 1 < marks.size() else marks[_depth_i] * 1.5
 		_depth_i += 1
@@ -1408,8 +1496,7 @@ func _complete(m: Dictionary) -> void:
 			tree_unlocked = true
 			events.append({"type": "tree"})
 		"size":
-			player.mass *= t("story_grow")
-			peak_mass = maxf(peak_mass, player.mass)
+			_gain_xp(xp_span(level()) * t("story_xp"))
 			events.append({"type": "grow"})
 		"dna":
 			dna += 1
