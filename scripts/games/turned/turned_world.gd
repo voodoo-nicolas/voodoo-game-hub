@@ -29,6 +29,7 @@ const InputMapper = preload("res://scripts/games/turned/turned_input.gd")
 const DialogueScript = preload("res://scripts/games/turned/turned_dialogue.gd")
 const Scenes = preload("res://scripts/games/turned/turned_scenes.gd")
 const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
+const Cards = preload("res://scripts/games/turned/turned_cards.gd")
 
 signal pause_requested
 ## A stat for GameInfo: "died", "clue".
@@ -111,6 +112,7 @@ var in_scene := false          # a painting is on screen (mode "scene", or a dia
 var scene_id := ""
 var scene_view: Control = null
 var scene_hud: Control = null     # Scene mode's interface (turned_scene_hud.gd)
+var card_view: Control = null     # a zoom card (turned_card_view.gd): the world stands still while one is open
 var scene_data: Dictionary = {}   # tests put their own scenes here; empty = turned_scenes.json
 
 func _ready() -> void:
@@ -141,6 +143,7 @@ func attach_hud(h: HudScript) -> void:
 	hud.b_pressed.connect(press_b)
 	hud.pause_pressed.connect(_request_pause)
 	hud.dialogue_option.connect(_on_dialogue_option)
+	hud.card_requested.connect(show_card)
 
 ## Scene mode's screen (turned_scene_view.gd), shown over the world while a painting is up.
 func attach_scene_view(v: Control) -> void:
@@ -148,6 +151,28 @@ func attach_scene_view(v: Control) -> void:
 	v.holds = Callable(self, "_scene_holds")
 	v.seen = Callable(self, "_scene_seen")
 	v.hotspot_activated.connect(_on_hotspot)
+
+## The zoom card's screen (turned_card_view.gd).
+func attach_card_view(v: Control) -> void:
+	card_view = v
+	v.closed.connect(_on_card_closed)
+
+func _card_open() -> bool:
+	return card_view != null and card_view.is_open
+
+## Opens a zoom card (turned_cards.json) over everything; the world stands still until it is closed
+## (a tap, A or Esc). False if there is no such card.
+func show_card(id: String) -> bool:
+	if card_view == null or discard or not card_view.open(id):
+		return false
+	engine.set_flag(Cards.seen_flag(id))
+	if hud != null:
+		hud.release_inputs()
+	return true
+
+func _on_card_closed(_id: String) -> void:
+	if in_scene and scene_view != null:
+		scene_view.refresh()
 
 ## Scene mode's interface: portrait, bars, objectives, day chip, nav strip (turned_scene_hud.gd).
 func attach_scene_hud(h: Control) -> void:
@@ -415,7 +440,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if kit_up or discard:
 		return
 	if event.is_action_pressed("tn_pause"):
-		if hud != null and hud.menu_open:
+		if _card_open():
+			card_view.close()
+		elif hud != null and hud.menu_open:
 			hud.close_menu()
 		else:
 			_request_pause()
@@ -436,18 +463,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		enter_scene("dev_room")
 
 func _request_pause() -> void:
+	if _card_open():
+		card_view.close()                  # Back / Pause first closes the card
+		return
 	if hosted:
 		if not kit_up:
 			pause_requested.emit()
 
 func _frozen() -> bool:
-	return kit_up or discard or hud == null or area == null or hud.menu_open
+	return kit_up or discard or hud == null or area == null or hud.menu_open or _card_open()
 
 # ---------------------------------------------------------------- the frame
 
 func _process(delta: float) -> void:
 	if in_scene and scene_view != null:
-		scene_view.enabled = mode == "scene" and not (kit_up or discard or hud == null or hud.menu_open)
+		scene_view.enabled = mode == "scene" and not (kit_up or discard or hud == null or hud.menu_open or _card_open())
 		if scene_hud != null:
 			scene_hud.visible = true
 			scene_hud.enabled = scene_view.enabled
@@ -724,6 +754,9 @@ func _nearest_interact() -> Dictionary:
 	return best
 
 func press_a() -> void:
+	if _card_open():
+		card_view.close()
+		return
 	if _frozen():
 		return
 	match mode:
@@ -1269,6 +1302,8 @@ func _scene_action(s: String) -> void:
 		start_dialogue(s.substr(9))
 	elif s.begins_with("scene:"):
 		enter_scene(s.substr(6))
+	elif s.begins_with("card:"):
+		show_card(s.substr(5))
 	elif s == "leave":
 		leave_scene()
 	elif s.begins_with("area:"):

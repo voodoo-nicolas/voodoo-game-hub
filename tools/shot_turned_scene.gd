@@ -57,6 +57,8 @@ func _run() -> void:
 	world.engine.dpad = true
 	world.engine.show_bars = true
 	world.engine.set_mission("find_out")
+	world.engine.add_item("watch")
+	world.engine.add_item("note")
 	world.engine.add_item("matches")            # the nav strip: Inventory, Journal (with its red dot) and, by flags, Map and Shelter
 	world.engine.add_journal("coat")
 	world.engine.set_flag("nav_map")
@@ -90,7 +92,25 @@ func _run() -> void:
 	world.enter_scene("dev_hall")
 	await _wait(30)
 	await _shot("4_hall")
+	world.enter_scene("dev_room")
+	await _wait(10)
+	world.show_card("note")                    # a paper card: the game writes the words over the picture
+	await _wait(30)
+	await _shot("6_card_note")
+	world.card_view.close()
+	world.show_card("watch")
+	await _wait(30)
+	await _shot("7_card_watch")
+	world.card_view.close()
 	world.leave_scene()
+	hud.open_menu("items")                     # the Items tab: "Look closer" opens a card over the menu
+	await _wait(10)
+	await _shot("8_items_tab")
+	world.show_card("matches")
+	await _wait(30)
+	await _shot("9_card_over_menu")
+	world.card_view.close()
+	hud.close_menu()
 	await _wait(20)
 	await _shot("5_back_to_walking")
 	Save.clear()

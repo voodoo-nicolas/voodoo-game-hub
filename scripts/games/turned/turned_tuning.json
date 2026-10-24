@@ -170,6 +170,15 @@
     "margin_dark": 0.38,
     "vignette": 0.55
   },
+  "card": {
+    "frame_h": 0.9,
+    "title_h": 52.0,
+    "caption_h": 46.0,
+    "pad": 20.0,
+    "dim": 0.78,
+    "open_s": 0.25,
+    "min_picture": 200.0
+  },
   "save": {
     "version": 1
   }

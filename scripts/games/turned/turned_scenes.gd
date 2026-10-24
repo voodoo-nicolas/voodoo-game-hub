@@ -12,6 +12,7 @@ extends RefCounted
 ## dialogue runner's conditions (flag: item: journal: mission: hour>= hour< day>=), all must hold.
 ## `do` actions, in order:
 ##   look:<id>        a thought (Text LOOKS)          dialogue:<id>   a scene of turned_dialogues.json
+##   card:<id>        a zoom card (turned_cards.json)
 ##   scene:<id>       go to another scene             leave           back to walking
 ##   area:<a>:<spawn> leave Scene mode into a Walk map
 ##   flag: unflag: item:+ item:- journal: mission:    the dialogue runner's effects
@@ -20,13 +21,14 @@ extends RefCounted
 
 const T = preload("res://scripts/games/turned/turned_tuning.gd")
 const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
+const Cards = preload("res://scripts/games/turned/turned_cards.gd")
 const DialogueScript = preload("res://scripts/games/turned/turned_dialogue.gd")
 
 const PATH := "res://scripts/games/turned/turned_scenes.json"
 const ART_DIR := "res://games/turned/art/scenes/"
 const ART_EXT := ["webp", "jpg", "png"]
 const PAINTING_ASPECT := 1536.0 / 1024.0
-const _ACTIONS := ["look:", "dialogue:", "scene:", "leave", "area:", "flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "sfx:"]
+const _ACTIONS := ["look:", "dialogue:", "scene:", "card:", "leave", "area:", "flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "sfx:"]
 
 static var _shared: Dictionary = {}
 
@@ -121,6 +123,8 @@ static func validate(data: Dictionary) -> Array:
 					errs.append("%s: scene '%s' does not exist" % [where, s.substr(6)])
 				elif s.begins_with("dialogue:") and not dlgs.has(s.substr(9)):
 					errs.append("%s: dialogue '%s' does not exist" % [where, s.substr(9)])
+				elif s.begins_with("card:") and Cards.card(s.substr(5)).is_empty():
+					errs.append("%s: card '%s' does not exist" % [where, s.substr(5)])
 				elif s.begins_with("look:") and not SceneText.LOOKS.has(s.substr(5)):
 					errs.append("%s: look text '%s' is not in SceneText.LOOKS" % [where, s.substr(5)])
 		var min_d := T.f("scene.min_spacing")

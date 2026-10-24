@@ -20,6 +20,8 @@ const Scenes = preload("res://scripts/games/turned/turned_scenes.gd")
 const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
 const SceneViewScript = preload("res://scripts/games/turned/turned_scene_view.gd")
 const SceneHudScript = preload("res://scripts/games/turned/turned_scene_hud.gd")
+const CardsScript = preload("res://scripts/games/turned/turned_cards.gd")
+const CardViewScript = preload("res://scripts/games/turned/turned_card_view.gd")
 
 const DT := 1.0 / 60.0
 
@@ -54,6 +56,7 @@ func _run() -> void:
 	await _test_dialogue_world()
 	await _test_scenes()
 	await _test_scene_hud()
+	await _test_cards()
 	await _test_bar()
 	await _test_follower()
 	Save.clear()
@@ -568,6 +571,7 @@ const SCENE_FIXTURE := {
 
 var sview: Control = null
 var shud: Control = null
+var cview: Control = null
 
 func _new_scene_world() -> void:
 	if sview != null:
@@ -585,6 +589,13 @@ func _new_scene_world() -> void:
 	shud.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	shud.size = Vector2(1280, 720)
 	world.attach_scene_hud(shud)
+	if cview != null:
+		cview.queue_free()
+	cview = CardViewScript.new()
+	root.add_child(cview)
+	cview.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	cview.size = Vector2(1280, 720)
+	world.attach_card_view(cview)
 
 func _scene_ready_world() -> void:
 	_new_scene_world()
@@ -685,7 +696,7 @@ func _test_scenes() -> void:
 	check(world.enter_scene("dev_room") and world.mode == "scene" and world.in_scene and sview.visible and hud.scene_mode, "a scene opens from free play")
 	check(hud._role_at(hud._dpad_center()) == "", "the d-pad is gone while a painting is up")
 	_step(0.1)
-	check(sview.enabled and sview.spots.size() == 4 and sview.selected == 0, "the painting shows its 4 hotspots and is listening")
+	check(sview.enabled and sview.spots.size() == 5 and sview.selected == 0, "the painting shows its 5 hotspots and is listening")
 	world.test_dir = Vector2.RIGHT
 	_step(2.0)
 	world.test_dir = Vector2.ZERO
@@ -693,7 +704,7 @@ func _test_scenes() -> void:
 	_tap_chip("lamp")
 	check(world.engine.has_flag(Scenes.seen_flag("dev_room", "lamp")) and hud.caption_text() == SceneText.LOOKS["dev_lamp"], "tapping a chip examines it: a thought, and the hotspot is remembered")
 	_tap_chip("box")
-	check(world.engine.has_flag("dev_box") and sview.spots.size() == 4, "a hotspot's effects apply and it stays (it is not 'once')")
+	check(world.engine.has_flag("dev_box") and sview.spots.size() == 5, "a hotspot's effects apply and it stays (it is not 'once')")
 	# a dialogue from a painting returns to the painting
 	_tap_chip("talk")
 	check(world.mode == "dialogue" and world.in_scene and hud.dialogue_active(), "a hotspot can start a dialogue scene")
@@ -859,6 +870,104 @@ func _chip_center(id: String) -> Vector2:
 		if str(c["id"]) == id:
 			return (c["hit"] as Rect2).get_center()
 	return Vector2.ZERO
+
+# ---------------------------------------------------------------- zoom cards (phase S3)
+
+const CARD_FIXTURE := {
+	"cards": {"page": {"art": "x", "kind": "paper", "text_rect": [0.1, 0.1, 0.8, 0.5]}},
+	"items": {"thing": "page"},
+}
+
+func _test_cards() -> void:
+	# the data
+	check(CardsScript.validate(CardsScript.shipped()).is_empty(), "the shipped cards are valid: %s" % str(CardsScript.validate(CardsScript.shipped())))
+	var bad := {"cards": {"a": {"art": "", "ink": "red", "text_rect": [0.5, 0.5, 0.8, 0.8]}, "note": {"art": "q"}}, "items": {"x": "nope", "y": [{"when": ["wat:1"], "card": "a"}]}}
+	var problems: Array = CardsScript.validate(bad)
+	check(problems.size() >= 8, "bad cards are caught: %d problems" % problems.size())
+	check(CardsScript.card("note").has("text_rect") and CardsScript.card("nope").is_empty(), "a card is found by id")
+	check(CardsScript.art("CD-03") == null and CardsScript.art("") == null, "a card with no picture file has a placeholder (null art)")
+	for id in SceneText.CARDS:
+		check(not CardsScript.card(id).is_empty(), "the words for card '%s' have a card in turned_cards.json" % id)
+	# which card an item opens
+	var eng: EngineScript = EngineScript.new()
+	check(CardsScript.for_item("matches", eng) == "matches" and CardsScript.for_item("note", eng) == "note", "matches and the note open their cards")
+	check(CardsScript.for_item("watch", eng) == "watch" and CardsScript.for_item("nothing", eng) == "", "the watch opens its card; an unknown item has none")
+	eng.set_flag("watch_broken")
+	check(CardsScript.for_item("watch", eng) == "watch_broken", "a broken watch opens the broken watch's card")
+	check(CardsScript.for_item("thing", eng, CARD_FIXTURE) == "page", "a plain string maps an item to a card")
+	# the layout at every screen shape
+	for sz in [Vector2(1280, 720), Vector2(1560, 720), Vector2(1024, 768), Vector2(1170, 540), Vector2(914, 514), Vector2(720, 1280)]:
+		var k := clampf(minf(sz.x / 900.0, sz.y / 640.0), 0.6, 1.0)
+		var lay: Dictionary = CardViewScript.compute_layout(sz, k)
+		var frame: Rect2 = lay["frame"]
+		var pic: Rect2 = lay["picture"]
+		check(Rect2(Vector2.ZERO, sz).grow(0.01).encloses(frame), "%s: the card's frame is on screen" % str(sz))
+		check(frame.encloses(pic) and frame.encloses(lay["title"]) and frame.encloses(lay["caption"]), "%s: the picture, title and caption are inside the frame" % str(sz))
+		check(absf(pic.size.x - pic.size.y) < 0.01 and pic.size.x >= T.f("card.min_picture") * minf(k, 1.0) * 0.99, "%s: the picture is square and big enough (%d)" % [str(sz), int(pic.size.x)])
+		check(not (lay["title"] as Rect2).intersects(pic) and not (lay["caption"] as Rect2).intersects(pic), "%s: the title and the caption do not cover the picture" % str(sz))
+	# in the world
+	await _scene_ready_world()
+	world.engine.add_item("matches")
+	world.engine.add_item("watch")
+	check(not world.show_card("nope") and not cview.is_open, "an unknown card does not open")
+	world.enter_scene("dev_room")
+	_step(0.1)
+	var pauses := [0]
+	world.hosted = true
+	world.pause_requested.connect(func(): pauses[0] += 1)
+	_tap_chip("paper")
+	check(cview.is_open and cview.card_id == "note" and world.engine.has_flag(CardsScript.seen_flag("note")), "a hotspot opens a zoom card and remembers it was seen")
+	_step(0.1)
+	check(world._frozen() and not sview.enabled and not shud.enabled, "the painting and the HUD stand still while a card is open")
+	_tap_chip("lamp")
+	check(not world.engine.has_flag(Scenes.seen_flag("dev_room", "lamp")), "a tap under the card does not examine the lamp")
+	var hour0: float = world.clock.hour
+	_step(2.0)
+	check(is_equal_approx(world.clock.hour, hour0), "the clock stands still under a card")
+	world.press_a()
+	check(not cview.is_open and world.mode == "scene", "A closes the card and the painting is back")
+	_step(0.1)
+	check(sview.enabled, "and listens again")
+	world.show_card("note")
+	var esc := InputEventAction.new()
+	esc.action = "tn_pause"
+	esc.pressed = true
+	world._unhandled_input(esc)
+	check(not cview.is_open and pauses[0] == 0, "Esc closes the card first, it does not pause")
+	world.show_card("note")
+	world._request_pause()
+	check(not cview.is_open and pauses[0] == 0, "Back / the Pause button also close the card first")
+	world._request_pause()
+	check(pauses[0] == 1, "and the next one pauses")
+	world.show_card("matches")
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	tap.position = Vector2(10, 10)
+	cview._gui_input(tap)
+	check(not cview.is_open, "a tap anywhere closes the card")
+	check(not Save.read().has("card") and not str(world.engine.to_dict()).contains("card_open"), "an open card is not part of the save")
+	# from the Items tab
+	world.leave_scene()
+	hud.open_menu("items")
+	var looks: Array = []
+	for b in hud._menu_body.find_children("*", "Button", true, false):
+		if (b as Button).text == SceneText.UI["items_look"]:
+			looks.append(b)
+	check(looks.size() == 2, "the Items tab has a 'Look closer' button for each of the 2 items with a card (%d)" % looks.size())
+	(looks[0] as Button).pressed.emit()
+	check(cview.is_open and cview.card_id == "matches" and hud.menu_open, "it opens the card over the menu")
+	cview.close()
+	world.engine.set_flag("watch_broken")
+	hud._fill_menu()
+	looks = []
+	for b in hud._menu_body.find_children("*", "Button", true, false):
+		if (b as Button).text == SceneText.UI["items_look"]:
+			looks.append(b)
+	(looks[1] as Button).pressed.emit()
+	check(cview.card_id == "watch_broken", "a broken watch shows the broken watch's card")
+	cview.close()
+	hud.close_menu()
 
 # ---------------------------------------------------------------- the bar (scene 2)
 

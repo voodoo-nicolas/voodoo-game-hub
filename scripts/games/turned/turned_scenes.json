@@ -5,6 +5,7 @@
       {"id": "lamp", "label": "hs_dev_lamp", "pos": [0.30, 0.45], "do": ["look:dev_lamp"]},
       {"id": "box", "label": "hs_dev_box", "pos": [0.55, 0.62], "do": ["look:dev_box", "flag:dev_box"]},
       {"id": "talk", "label": "hs_dev_talk", "pos": [0.50, 0.32], "do": ["dialogue:dev_demo"]},
+      {"id": "paper", "label": "hs_dev_paper", "pos": [0.34, 0.68], "do": ["card:note"]},
       {"id": "door", "label": "hs_dev_door", "kind": "exit", "pos": [0.78, 0.50], "do": ["scene:dev_hall"]}
     ]
   },

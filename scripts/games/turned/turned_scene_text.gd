@@ -9,6 +9,7 @@ const HOTSPOTS := {
 	"hs_dev_lamp": "Lamp",
 	"hs_dev_box": "Wooden box",
 	"hs_dev_talk": "Talk",
+	"hs_dev_paper": "Paper",
 	"hs_dev_door": "Door",
 	"hs_dev_back": "Back",
 	"hs_dev_leave": "Leave",
@@ -20,8 +21,24 @@ const LOOKS := {
 	"dev_box": "A wooden box. It stays examined, but it can be looked at again.",
 }
 
+## Zoom cards (turned_cards.json): the title above the picture, the caption under it, and the text the
+## game writes over a paper picture. The note's time and the bar's name are the owner's [OPEN] placeholders.
+const CARDS := {
+	"coat_pocket": {"title": "Coat pocket", "caption": "Sewn shut with crude black stitches."},
+	"matches": {"title": "Box of matches", "caption": "A cigar company's logo on the lid."},
+	"note": {
+		"title": "The note",
+		"caption": "From the coat's inner pocket.",
+		"text": "Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.",
+	},
+	"watch": {"title": "Silver pocket watch", "caption": "It ticks, warm and humming."},
+	"watch_broken": {"title": "Broken watch", "caption": "The glass is cracked. It has stopped ticking."},
+}
+
 const UI := {
 	"no_painting": "No painting yet",
+	"no_picture": "No picture yet",
+	"items_look": "Look closer",
 	"day": "Day %d",
 	"morning": "Morning",
 	"afternoon": "Afternoon",

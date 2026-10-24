@@ -2,7 +2,7 @@
 
 2026-10-23. Decided by the owner: Turned stays landscape, scenes are painted 1536 x 1024 (`ART_DIRECTION_V2.md`). **Nothing here is built.** Per the owner's rule, each phase starts with a task list and waits for the OK; phases S1-S7 below are the proposal, S1 is the first to approve.
 
-**Status (2026-10-24): S1 and S2 are built** (the foundation with a drawn placeholder instead of paintings, and the Scene HUD; decisions S1-1..S1-8 and S2-1..S2-6 in `DECISIONS.md`). S3-S7 are not.
+**Status (2026-10-24): S1, S2 and S3 are built** (the foundation with a drawn placeholder instead of paintings, the Scene HUD, and the zoom cards; decisions S1-1..S1-8, S2-1..S2-6 and S3-1..S3-7 in `DECISIONS.md`). S4-S7 are not.
 
 ## 1. What Scene mode is
 

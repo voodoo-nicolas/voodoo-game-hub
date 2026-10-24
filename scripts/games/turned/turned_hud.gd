@@ -24,6 +24,8 @@ const T = preload("res://scripts/games/turned/turned_tuning.gd")
 const Art = preload("res://scripts/games/turned/turned_art.gd")
 const Text = preload("res://scripts/games/turned/turned_text.gd")
 const EngineScript = preload("res://scripts/games/turned/turned_engine.gd")
+const Cards = preload("res://scripts/games/turned/turned_cards.gd")
+const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
 
 signal a_pressed
 signal b_pressed
@@ -31,6 +33,8 @@ signal pause_pressed
 signal menu_toggled(open: bool)
 ## A choice in the dialogue box was tapped (index among the options shown).
 signal dialogue_option(index: int)
+## An item's "Look closer" button in the Items tab: open its zoom card (turned_cards.json).
+signal card_requested(id: String)
 
 const TOUCH_ACTIONS := {"left": "tn_left", "right": "tn_right", "up": "tn_up", "down": "tn_down"}
 const BAR_RED := Color("d24b4b")
@@ -897,8 +901,8 @@ func _fill_menu() -> void:
 	elif _menu_tab == "items":
 		if engine != null:
 			for id in engine.items:
-				lines.append("%s\n%s" % [tr(str(Text.ITEMS.get(str(id), {}).get("name", id))), tr(item_desc(str(id), engine))])
-		if lines.is_empty():
+				_add_item_row(list, str(id))
+		if engine == null or engine.items.is_empty():
 			lines.append(tr(Text.UI["items_empty"]))
 	else:
 		if engine != null and engine.mission != "":
@@ -913,6 +917,38 @@ func _fill_menu() -> void:
 		l.add_theme_font_size_override("font_size", 20)
 		l.add_theme_color_override("font_color", TEXT_LIGHT)
 		list.add_child(l)
+
+## One line of the Items tab: the name and description, and (when the item has a zoom card) a small
+## picture of it and a "Look closer" button.
+func _add_item_row(list: VBoxContainer, id: String) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_child(row)
+	var card_id := Cards.for_item(id, engine)
+	if card_id != "":
+		var tex := Cards.art(str(Cards.card(card_id).get("art", "")))
+		if tex != null:
+			var pic := TextureRect.new()
+			pic.texture = tex
+			pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			pic.custom_minimum_size = Vector2(72, 72)
+			row.add_child(pic)
+	var l := Label.new()
+	l.text = "%s\n%s" % [tr(str(Text.ITEMS.get(id, {}).get("name", id))), tr(item_desc(id, engine))]
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.add_theme_font_size_override("font_size", 20)
+	l.add_theme_color_override("font_color", TEXT_LIGHT)
+	row.add_child(l)
+	if card_id != "":
+		var b := Button.new()
+		b.text = tr(SceneText.UI["items_look"])
+		b.custom_minimum_size = Vector2(150, 56)
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(card_requested.emit.bind(card_id))
+		row.add_child(b)
 
 func _on_tab(tab: String) -> void:
 	_menu_tab = tab

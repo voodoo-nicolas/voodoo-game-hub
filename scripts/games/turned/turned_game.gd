@@ -22,6 +22,7 @@ const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
 const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
 const SceneViewScript = preload("res://scripts/games/turned/turned_scene_view.gd")
 const SceneHudScript = preload("res://scripts/games/turned/turned_scene_hud.gd")
+const CardViewScript = preload("res://scripts/games/turned/turned_card_view.gd")
 ## The app's shared on-screen controller; older apps don't have it and Turned keeps its own controls.
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
 ## Layouts that have A, B, a Pause and a Menu button (Turned needs all four).
@@ -40,6 +41,7 @@ var hud: Control = null
 var pad: Control = null
 var scene_view: Control = null     # Scene mode: a painting with hotspots (docs/turned/SCENE_MODE_PLAN.md)
 var scene_hud: Control = null      # Scene mode's interface (portrait, bars, objectives, day chip, nav strip)
+var card_view: Control = null      # a zoom card (turned_card_view.gd), over the HUD and its menu
 var _holder: Control = null
 var _view_box: SubViewportContainer = null
 var _view: SubViewport = null
@@ -139,9 +141,13 @@ func _spawn_world() -> void:
 	scene_hud = SceneHudScript.new()
 	add_child(scene_hud)
 	world.attach_scene_hud(scene_hud)
+	card_view = CardViewScript.new()
+	add_child(card_view)
+	world.attach_card_view(card_view)
 	_add_pad()
 	move_child(scene_view, 1)                     # over the world, under the pad, the HUD and the kit
 	move_child(scene_hud, 2)                      # over the painting
+	move_child(card_view, hud.get_index() + 1)    # a card is over everything of the game (the menu too), under the kit
 	_fit_world()
 
 ## The shared Pad under the HUD (so fades and the close-up draw over it), when the app has it.
@@ -195,6 +201,9 @@ func _discard_world() -> void:
 		_holder.queue_free()
 	if scene_view != null and is_instance_valid(scene_view):
 		scene_view.queue_free()
+	if card_view != null and is_instance_valid(card_view):
+		card_view.queue_free()
+	card_view = null
 	if scene_hud != null and is_instance_valid(scene_hud):
 		scene_hud.queue_free()
 	scene_hud = null
