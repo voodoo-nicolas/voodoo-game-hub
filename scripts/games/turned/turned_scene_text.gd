@@ -22,4 +22,14 @@ const LOOKS := {
 
 const UI := {
 	"no_painting": "No painting yet",
+	"day": "Day %d",
+	"morning": "Morning",
+	"afternoon": "Afternoon",
+	"evening": "Evening",
+	"night": "Night",
+	"nav_inventory": "Inventory",
+	"nav_map": "Map",
+	"nav_journal": "Journal",
+	"nav_shelter": "Shelter",
+	"nav_contacts": "Contacts",
 }

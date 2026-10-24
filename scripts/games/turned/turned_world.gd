@@ -110,6 +110,7 @@ var _dlg_back := "play"        # the mode a dialogue returns to ("scene" when it
 var in_scene := false          # a painting is on screen (mode "scene", or a dialogue started from it)
 var scene_id := ""
 var scene_view: Control = null
+var scene_hud: Control = null     # Scene mode's interface (turned_scene_hud.gd)
 var scene_data: Dictionary = {}   # tests put their own scenes here; empty = turned_scenes.json
 
 func _ready() -> void:
@@ -147,6 +148,22 @@ func attach_scene_view(v: Control) -> void:
 	v.holds = Callable(self, "_scene_holds")
 	v.seen = Callable(self, "_scene_seen")
 	v.hotspot_activated.connect(_on_hotspot)
+
+## Scene mode's interface: portrait, bars, objectives, day chip, nav strip (turned_scene_hud.gd).
+func attach_scene_hud(h: Control) -> void:
+	scene_hud = h
+	h.world = self
+	h.pause_pressed.connect(_request_pause)
+	h.nav_pressed.connect(_on_scene_nav)
+
+## A nav button of the Scene HUD. Inventory and Journal open the menu; Map, Shelter and Contacts
+## are for later phases (they only show once a flag `nav_<id>` is set, and do nothing yet).
+func _on_scene_nav(id: String) -> void:
+	match id:
+		"inventory":
+			hud.open_menu("items")
+		"journal":
+			hud.open_menu("journal")
 
 ## The SubViewport's size in canvas units: the camera zoom keeps ~360 world px visible vertically
 ## (landscape), or ~520 across when the screen is narrow (portrait).
@@ -431,6 +448,9 @@ func _frozen() -> bool:
 func _process(delta: float) -> void:
 	if in_scene and scene_view != null:
 		scene_view.enabled = mode == "scene" and not (kit_up or discard or hud == null or hud.menu_open)
+		if scene_hud != null:
+			scene_hud.visible = true
+			scene_hud.enabled = scene_view.enabled
 	if _frozen():
 		return
 	delta = minf(delta, 0.1)
@@ -1203,6 +1223,8 @@ func enter_scene(id: String) -> bool:
 	hud.scene_mode = true
 	hud.a_label = ""
 	scene_view.show_scene(id, sc)
+	if scene_hud != null:
+		scene_hud.visible = true
 	return true
 
 ## Back to walking (also called when a new game starts).
@@ -1213,6 +1235,9 @@ func leave_scene() -> void:
 	scene_id = ""
 	if scene_view != null:
 		scene_view.hide_scene()
+	if scene_hud != null:
+		scene_hud.visible = false
+		scene_hud.enabled = false
 	if hud != null:
 		hud.scene_mode = false
 	if mode == "scene":

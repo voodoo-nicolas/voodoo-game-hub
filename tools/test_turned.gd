@@ -19,6 +19,7 @@ const DialogueScript = preload("res://scripts/games/turned/turned_dialogue.gd")
 const Scenes = preload("res://scripts/games/turned/turned_scenes.gd")
 const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
 const SceneViewScript = preload("res://scripts/games/turned/turned_scene_view.gd")
+const SceneHudScript = preload("res://scripts/games/turned/turned_scene_hud.gd")
 
 const DT := 1.0 / 60.0
 
@@ -52,6 +53,7 @@ func _run() -> void:
 	_test_dialogue_runner()
 	await _test_dialogue_world()
 	await _test_scenes()
+	await _test_scene_hud()
 	await _test_bar()
 	await _test_follower()
 	Save.clear()
@@ -565,6 +567,7 @@ const SCENE_FIXTURE := {
 }
 
 var sview: Control = null
+var shud: Control = null
 
 func _new_scene_world() -> void:
 	if sview != null:
@@ -575,6 +578,13 @@ func _new_scene_world() -> void:
 	sview.set_anchors_preset(Control.PRESET_TOP_LEFT)   # a fixed size for the test (no resize warning)
 	sview.size = Vector2(1280, 720)
 	world.attach_scene_view(sview)
+	if shud != null:
+		shud.queue_free()
+	shud = SceneHudScript.new()
+	root.add_child(shud)
+	shud.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	shud.size = Vector2(1280, 720)
+	world.attach_scene_hud(shud)
 
 func _scene_ready_world() -> void:
 	_new_scene_world()
@@ -738,6 +748,117 @@ func _test_scenes() -> void:
 	world.enter_scene("dev_room")
 	world.begin_new()
 	check(not world.in_scene and not sview.visible and not hud.scene_mode and world.mode == "prologue", "a new game leaves the painting")
+
+# ---------------------------------------------------------------- the Scene HUD (phase S2)
+
+func _test_scene_hud() -> void:
+	# the day's periods
+	check(SceneHudScript.period_id(4.9) == "night" and SceneHudScript.period_id(5.0) == "morning" and SceneHudScript.period_id(11.99) == "morning", "night until 05:00, then morning")
+	check(SceneHudScript.period_id(12.0) == "afternoon" and SceneHudScript.period_id(16.99) == "afternoon" and SceneHudScript.period_id(17.0) == "evening", "afternoon from 12:00, evening from 17:00")
+	check(SceneHudScript.period_id(20.99) == "evening" and SceneHudScript.period_id(21.0) == "night" and SceneHudScript.period_id(23.5) == "night", "night from 21:00")
+	for id in ["day", "morning", "afternoon", "evening", "night"]:
+		check(SceneText.UI.has(id), "the HUD has words for '%s'" % id)
+	for id in SceneHudScript.NAV_IDS:
+		check(SceneText.UI.has("nav_" + id), "the nav button '%s' has a label" % id)
+	# the layout at every screen shape: on screen, nothing overlapping, the painting's safe zone left alone
+	for sz in [Vector2(1280, 720), Vector2(1560, 720), Vector2(1024, 768), Vector2(1170, 540), Vector2(914, 514)]:
+		var k: float = SceneHudScript.scale_for(sz)
+		for lines in [1]:
+			var lay: Dictionary = SceneHudScript.compute_layout(sz, k, SceneHudScript.NAV_IDS)
+			var parts: Array = [["ring", lay["ring"]], ["bar 1", lay["bars"][0]], ["bar 2", lay["bars"][1]], ["objective", lay["objective"]], ["chip", lay["chip"]], ["pause", lay["pause"]], ["nav", lay["nav_plate"]]]
+			var screen := Rect2(Vector2.ZERO, sz)
+			for a in parts:
+				check(screen.encloses(a[1]), "%s, %d line(s): %s is on screen" % [str(sz), lines, a[0]])
+			var overlap := false
+			for i in parts.size():
+				for j in range(i + 1, parts.size()):
+					if (parts[i][1] as Rect2).intersects(parts[j][1]):
+						overlap = true
+			check(not overlap, "%s, %d line(s): the HUD pieces do not overlap" % [str(sz), lines])
+			var pr: Rect2 = SceneViewScript.fit_rect(sz, Scenes.PAINTING_ASPECT)
+			var sx := T.arr("scene.safe_x")
+			var sy := T.arr("scene.safe_y")
+			var safe := Rect2(pr.position + pr.size * Vector2(float(sx[0]), float(sy[0])), pr.size * Vector2(float(sx[1]) - float(sx[0]), float(sy[1]) - float(sy[0]))).grow(-6.0 * k)
+			var hit_safe := false
+			for a in parts:
+				if (a[1] as Rect2).intersects(safe):
+					hit_safe = true
+					print("  covers the safe zone at %s: %s" % [str(sz), a[0]])
+			check(not hit_safe, "%s, %d line(s): the HUD leaves the painting's safe zone free" % [str(sz), lines])
+			for n in lay["nav"]:
+				check((n["rect"] as Rect2).size.x >= 72.0 * k - 0.01 and (n["rect"] as Rect2).size.y >= 56.0 * k, "%s: the nav button '%s' is big enough to hit" % [str(sz), n["id"]])
+	# what is shown follows the story
+	await _scene_ready_world()
+	check(shud.nav_visible().is_empty(), "no nav button at the start")
+	world.engine.add_item("matches")
+	check(shud.nav_visible() == ["inventory"], "Inventory appears with the first item")
+	world.engine.add_journal("coat")
+	world.engine.set_flag("nav_shelter")
+	world.engine.set_flag("nav_map")
+	check(shud.nav_visible() == ["inventory", "map", "journal", "shelter"], "Journal with its first line, Map and Shelter by their flags, in a fixed order")
+	check(shud.journal_unread(), "the Journal has a red dot until it is opened")
+	world.enter_scene("dev_room")
+	hud.set_revealed("bars", false)
+	hud.set_revealed("mission", false)
+	for i in 30:
+		shud._process(0.1)
+	check(shud.visible and shud._fade["cluster"] == 0.0 and shud._fade["objective"] == 0.0, "the portrait, bars and objectives wait for the story (progressive reveal)")
+	check(shud._fade["nav"] == 1.0, "while the nav strip is up")
+	hud.set_revealed("bars", true)
+	hud.set_revealed("mission", true)
+	for i in 30:
+		shud._process(0.1)
+	check(shud._fade["cluster"] == 1.0 and shud._fade["objective"] == 1.0, "and appear when revealed")
+	# taps
+	_step(0.1)
+	check(shud.enabled and sview.enabled, "the HUD listens while the painting does")
+	var pauses := [0]
+	world.hosted = true
+	world.pause_requested.connect(func(): pauses[0] += 1)
+	var lay2: Dictionary = shud.layout()
+	_hud_tap((lay2["pause"] as Rect2).get_center())
+	check(pauses[0] == 1, "the Pause button asks the world to pause")
+	for n in lay2["nav"]:
+		if n["id"] == "map":
+			_hud_tap((n["rect"] as Rect2).get_center())
+	check(not hud.menu_open, "Map does nothing yet (a later phase)")
+	for n in lay2["nav"]:
+		if n["id"] == "inventory":
+			_hud_tap((n["rect"] as Rect2).get_center())
+	check(hud.menu_open and hud._menu_tab == "items", "Inventory opens the Items tab")
+	hud.close_menu()
+	for n in lay2["nav"]:
+		if n["id"] == "journal":
+			_hud_tap((n["rect"] as Rect2).get_center())
+	check(hud.menu_open and hud._menu_tab == "journal", "Journal opens the Journal")
+	shud._process(0.1)
+	check(not shud.journal_unread(), "and the red dot is gone")
+	hud.close_menu()
+	world.engine.add_journal("towel")
+	check(shud.journal_unread(), "a new Journal line brings the dot back")
+	check(hud._role_at((lay2["pause"] as Rect2).get_center()) == "", "the walk HUD does not answer in Scene mode")
+	_step(0.05)
+	# a tap on the HUD is not also a tap on the painting
+	var under := _chip_center("lamp")
+	var before: bool = world.engine.has_flag(Scenes.seen_flag("dev_room", "lamp"))
+	check(not before, "the lamp has not been examined yet")
+	world.leave_scene()
+	check(not shud.visible and not shud.enabled, "the HUD goes away with the painting")
+	hud.set_revealed("bars", true)
+	check(under != Vector2.ZERO, "(the chip positions were known)")
+
+func _hud_tap(p: Vector2) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	ev.position = p
+	shud._input(ev)
+
+func _chip_center(id: String) -> Vector2:
+	for c in sview.layout():
+		if str(c["id"]) == id:
+			return (c["hit"] as Rect2).get_center()
+	return Vector2.ZERO
 
 # ---------------------------------------------------------------- the bar (scene 2)
 

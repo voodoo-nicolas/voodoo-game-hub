@@ -54,8 +54,8 @@ var clock_moon := 0.0   # moon height 0..1
 var burn := 0.0          # 0..1 white-hot sun vignette
 var closeup := 0.0       # 0..1 neck close-up
 var menu_open := false
-## Scene mode (a painting with hotspots) is on screen: no pad, d-pad or A/B, only the bars, the
-## Mission box, Pause and Menu (the Scene HUD of docs/turned/SCENE_MODE_PLAN.md replaces this in S2).
+## Scene mode (a painting with hotspots) is on screen: no pad, d-pad, A/B, bars, Mission box, Pause or
+## Menu here (turned_scene_hud.gd draws the interface); the captions, dialogue box and menu stay.
 var scene_mode := false
 
 var _rv :={"dpad": 0.0, "a": 0.0, "b": 0.0, "bars": 0.0, "mission": 0.0, "menu": 0.0, "pause": 1.0}
@@ -311,13 +311,7 @@ func _role_at(p: Vector2) -> String:
 		if (lay["box"] as Rect2).has_point(p):
 			return "dlg"            # a tap on the box goes on, like A
 	if scene_mode:
-		if _pause_rect().grow(8.0).has_point(p):
-			return "pause"
-		if _rv["menu"] > 0.5 and _menu_rect().grow(8.0).has_point(p):
-			return "menu"
-		if _rv["mission"] > 0.5 and _mission_rect().has_point(p):
-			return "mission"
-		return ""
+		return ""                   # Pause, the day, the nav buttons: turned_scene_hud.gd
 	if pad != null:
 		if _rv["mission"] > 0.5 and _mission_rect().has_point(p):
 			return "mission"
@@ -483,15 +477,15 @@ func _pop(k: float) -> float:
 func _draw() -> void:
 	if size.x < 10.0:
 		return
-	if _rv["bars"] > 0.01:
+	if _rv["bars"] > 0.01 and not scene_mode:
 		_draw_bars()
-	if _rv["mission"] > 0.01:
+	if _rv["mission"] > 0.01 and not scene_mode:
 		_draw_mission()
 	if pad == null and not scene_mode:
 		if _rv["dpad"] > 0.01:
 			_draw_dpad()
 		_draw_faces()
-	if pad == null or scene_mode:
+	if pad == null and not scene_mode:
 		_draw_small_buttons()
 	if burn > 0.01:
 		draw_texture_rect(_vignette, Rect2(Vector2.ZERO, size), false, Color(1.0, 0.93, 0.78, minf(1.0, burn * 0.8)))

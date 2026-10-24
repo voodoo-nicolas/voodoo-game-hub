@@ -21,6 +21,7 @@ const InputMapper = preload("res://scripts/games/turned/turned_input.gd")
 const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
 const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
 const SceneViewScript = preload("res://scripts/games/turned/turned_scene_view.gd")
+const SceneHudScript = preload("res://scripts/games/turned/turned_scene_hud.gd")
 ## The app's shared on-screen controller; older apps don't have it and Turned keeps its own controls.
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
 ## Layouts that have A, B, a Pause and a Menu button (Turned needs all four).
@@ -38,6 +39,7 @@ var world: Node2D = null
 var hud: Control = null
 var pad: Control = null
 var scene_view: Control = null     # Scene mode: a painting with hotspots (docs/turned/SCENE_MODE_PLAN.md)
+var scene_hud: Control = null      # Scene mode's interface (portrait, bars, objectives, day chip, nav strip)
 var _holder: Control = null
 var _view_box: SubViewportContainer = null
 var _view: SubViewport = null
@@ -134,8 +136,12 @@ func _spawn_world() -> void:
 	scene_view = SceneViewScript.new()
 	add_child(scene_view)
 	world.attach_scene_view(scene_view)
+	scene_hud = SceneHudScript.new()
+	add_child(scene_hud)
+	world.attach_scene_hud(scene_hud)
 	_add_pad()
 	move_child(scene_view, 1)                     # over the world, under the pad, the HUD and the kit
+	move_child(scene_hud, 2)                      # over the painting
 	_fit_world()
 
 ## The shared Pad under the HUD (so fades and the close-up draw over it), when the app has it.
@@ -189,6 +195,9 @@ func _discard_world() -> void:
 		_holder.queue_free()
 	if scene_view != null and is_instance_valid(scene_view):
 		scene_view.queue_free()
+	if scene_hud != null and is_instance_valid(scene_hud):
+		scene_hud.queue_free()
+	scene_hud = null
 	scene_view = null
 	_holder = null
 	_view_box = null

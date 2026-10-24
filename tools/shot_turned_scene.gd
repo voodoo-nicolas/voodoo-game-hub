@@ -57,6 +57,10 @@ func _run() -> void:
 	world.engine.dpad = true
 	world.engine.show_bars = true
 	world.engine.set_mission("find_out")
+	world.engine.add_item("matches")            # the nav strip: Inventory, Journal (with its red dot) and, by flags, Map and Shelter
+	world.engine.add_journal("coat")
+	world.engine.set_flag("nav_map")
+	world.engine.set_flag("nav_shelter")
 	world.mode = "play"
 	world._pro = "done"
 	world.player.pose = "stand"
