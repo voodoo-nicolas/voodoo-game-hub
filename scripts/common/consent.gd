@@ -123,6 +123,51 @@ static func accept(locale: String) -> void:
 	_save(state)
 	sync()
 
+## Reinstalling the app (or anything that wipes its data) loses consent.json,
+## but the account's acceptance is on the server. Before asking a signed-in
+## player again, read it back: if this account already accepted both documents
+## at the current version, that (and the age bracket it was given with) is
+## stored here again and no prompt is needed. Then calls on_done() -- also
+## offline / before the SQL is run, so the caller just checks needs_prompt().
+static func restore(on_done: Callable) -> void:
+	var auth = _auth()
+	if auth == null or not _auth_logged_in() or has_accepted() or is_blocked():
+		if on_done.is_valid():
+			on_done.call()
+		return
+	auth.fetch_my_consents(_on_restore.bind(_auth_user_id(), on_done))
+
+static func _on_restore(rows: Variant, uid: String, on_done: Callable) -> void:
+	if typeof(rows) == TYPE_ARRAY and uid == _auth_user_id():
+		var have := {}
+		var br := ""
+		for r in rows:
+			if typeof(r) != TYPE_DICTIONARY or str(r.get("doc_version", "")) != version():
+				continue
+			have[str(r.get("doc_type", ""))] = true
+			if br == "" and str(r.get("age_bracket", "")) != "":
+				br = str(r.age_bracket)
+		var all_there := true
+		for t in DOC_KEYS:
+			all_there = all_there and have.has(t)
+		if all_there:
+			var state := _state()
+			var acc := {}
+			for t in DOC_KEYS:
+				acc[t] = version()
+			state["accepted"] = acc
+			state["locale"] = "en" if TranslationServer.get_locale().begins_with("en") else "es"
+			if br != "" and str(state.get("bracket", "")) == "":
+				state["bracket"] = br
+			var synced = state.get("synced", {})
+			if typeof(synced) != TYPE_DICTIONARY:
+				synced = {}
+			synced[uid] = version()  # it came from the server: nothing to send
+			state["synced"] = synced
+			_save(state)
+	if on_done.is_valid():
+		on_done.call()
+
 ## Sends my acceptance to the server once per account and version. Quiet when
 ## offline / signed out / before the SQL is run (tries again next time).
 static func sync() -> void:

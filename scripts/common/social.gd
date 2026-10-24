@@ -61,6 +61,10 @@ var visibility: String = "friends"
 var _awards_busy: bool = false
 var _awards_ok: bool = true
 var _synced_once: bool = false
+## The account whose awards were checked against the server this session.
+var _restored_for: String = ""
+var _restore_left: int = 0
+var _restored_n: int = 0
 
 var _beat_left: float = 1.0
 var _inbox_left: float = 4.0
@@ -136,6 +140,9 @@ func _on_me(ok: bool, result: Variant) -> void:
 		code_changed.emit(friend_code)
 	Auth.db_call("social_list", {}, _on_list)
 	_send_presence()
+	if _restored_for != Auth.user_id:
+		_restored_for = Auth.user_id
+		restore_awards()
 	if not _synced_once:
 		_synced_once = true
 		sync_awards()
@@ -195,6 +202,43 @@ func _on_awards(ok: bool, result: Variant, sent: Array) -> void:
 	if typeof(result) == TYPE_FLOAT or typeof(result) == TYPE_INT:
 		my_power = int(result)
 	sync_awards()  # more than one call's worth
+
+## Brings back badges the server has but this device lost (a reinstall or an
+## update that wiped the app's data). Once per account per session: one
+## player_overview(me) call, then player_compare(me, game) only for games whose
+## count differs from the local one. Needs 20261013000000_awards_player.sql;
+## without it the first call fails and nothing happens.
+func restore_awards() -> void:
+	if not Auth.is_logged_in() or _restore_left > 0:
+		return
+	Auth.db_call("player_overview", {"p_other": Auth.user_id}, _on_restore_overview)
+
+func _on_restore_overview(ok: bool, result: Variant) -> void:
+	if not ok or typeof(result) != TYPE_DICTIONARY or typeof(result.get("games")) != TYPE_ARRAY:
+		return
+	var local := Achievements.local_counts()
+	var todo: Array = []
+	for g in result.games:
+		if typeof(g) == TYPE_DICTIONARY and int(g.get("count", 0)) > 0 \
+				and int(g.get("count", 0)) != int(local.get(str(g.get("game", "")), 0)):
+			todo.append(str(g.game))
+	_restore_left = todo.size()
+	_restored_n = 0
+	for gid in todo:
+		Auth.db_call("player_compare", {"p_other": Auth.user_id, "p_game": gid}, _on_restore_game.bind(gid))
+
+func _on_restore_game(ok: bool, result: Variant, game_id: String) -> void:
+	_restore_left -= 1
+	if ok and typeof(result) == TYPE_ARRAY:
+		var added: Array = Achievements.restore(game_id, result)
+		if not added.is_empty():
+			_restored_n += added.size()
+			var done := _synced_keys()  # they came from the server: no need to send them back
+			for k in added:
+				done[k] = true
+			SaveUtil.write(SYNCED_PATH, {"user": Auth.user_id, "keys": done})
+	if _restore_left == 0 and _restored_n > 0:
+		toast("🏅  " + tr("%d achievements restored from your account") % _restored_n)
 
 func _synced_keys() -> Dictionary:
 	if FileAccess.file_exists(SYNCED_PATH):

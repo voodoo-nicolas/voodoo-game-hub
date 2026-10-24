@@ -325,6 +325,10 @@ func _on_signed_in(_user_id: String, name: String) -> void:
 	t.start()
 
 func _after_sign_in() -> void:
+	# Accepted before on this account (then the app was reinstalled)? Not asked again.
+	Consent.restore(_after_consent_restore)
+
+func _after_consent_restore() -> void:
 	if Consent.needs_prompt():
 		Consent.return_scene = Consent.HUB_SCENE
 		get_tree().change_scene_to_file(Consent.CONSENT_SCENE)

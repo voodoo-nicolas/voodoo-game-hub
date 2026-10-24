@@ -577,6 +577,7 @@ func _count_record(key: String) -> void:
 		stats["_records"] = int(stats.get("_records", 0)) + 1
 
 func _save() -> void:
+	Achievements.merge_saved(save_path, stats)  # badges restored from the server meanwhile
 	var got: Array = Achievements.check(consts, stats)
 	SaveUtil.write(save_path, stats)
 	for def in got:

@@ -271,6 +271,26 @@ func fetch_my_scores(on_done: Callable) -> void:
 	var path := "/rest/v1/scores?select=game,score&user_id=eq.%s" % user_id
 	_request(HTTPClient.METHOD_GET, path, {}, PackedStringArray(), _on_leaderboard.bind(on_done))
 
+## My Terms/Privacy acceptances on the server, newest first (Consent.restore):
+## on_done.call(rows) with rows [{doc_type, doc_version, age_bracket}] (or null
+## offline / signed out / before 20261013020000_user_consents.sql is run).
+func fetch_my_consents(on_done: Callable) -> void:
+	if not is_logged_in():
+		_safe_call.call_deferred(on_done, [null])
+		return
+	_ensure_fresh_token(_fetch_consents_with_token.bind(on_done))
+
+func _fetch_consents_with_token(ok: bool, on_done: Callable) -> void:
+	if not ok:
+		_safe_call(on_done, [null])
+		return
+	var headers: PackedStringArray = ["Authorization: Bearer " + access_token]
+	var path := "/rest/v1/user_consents?select=doc_type,doc_version,age_bracket&user_id=eq.%s&order=accepted_at.desc" % user_id
+	_request(HTTPClient.METHOD_GET, path, {}, headers, _on_consents.bind(on_done))
+
+func _on_consents(ok: bool, parsed: Variant, _code: int, on_done: Callable) -> void:
+	_safe_call(on_done, [parsed if ok and typeof(parsed) == TYPE_ARRAY else null])
+
 ## Calls a Postgres function (`/rest/v1/rpc/<fn>`) as the signed-in player:
 ## on_done.call(ok, result). ok is false when signed out, offline, or the
 ## function doesn't exist yet (its SQL not run). Since v0.25.

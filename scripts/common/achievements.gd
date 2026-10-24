@@ -429,6 +429,102 @@ static func collect_awards(skip_games: Array = []) -> Array:
 					"xp": XP_HUB, "at": int(hub.unlocked[h[0]])})
 	return out
 
+## How many awards the local record holds per game: {game_id: n}.
+static func local_counts() -> Dictionary:
+	var out := {}
+	for a in collect_awards():
+		out[a.game] = int(out.get(a.game, 0)) + 1
+	return out
+
+# ---------- restore from the server (since v0.39) ----------
+## Reinstalling the app (or a wiped phone/PC) empties user://, but every badge
+## earned while signed in is on the server (player_awards). Social calls this
+## with one game's rows from player_compare(me, game) ({challenge_id, title,
+## icon, xp, mine}) and the missing ones go back where collect_awards reads
+## them: hub ones to achievements.json, "c_" ones to challenges_<game>.json,
+## the rest to the game's stats file as _ach. Never removes or changes a badge
+## already here. Returns the keys added ("game|id").
+static func restore(game_id: String, rows: Array) -> Array:
+	var added: Array = []
+	if game_id == "" or "/" in game_id or "\\" in game_id or ".." in game_id:
+		return added
+	if game_id == HUB_GAME:
+		var hub := load_hub()
+		for r in rows:
+			if _restorable(r) and not hub.unlocked.has(str(r.challenge_id)):
+				hub.unlocked[str(r.challenge_id)] = int(r.mine)
+				added.append("%s|%s" % [game_id, r.challenge_id])
+		if not added.is_empty():
+			save_hub(hub)
+		return added
+	var stats_path := "user://stats_%s.json" % game_id
+	var stats = SaveUtil.read(stats_path)
+	if stats == null:
+		stats = {}
+	if typeof(stats.get("_ach")) != TYPE_DICTIONARY:
+		stats["_ach"] = {}
+	var ch_path := challenges_path(game_id)
+	var ch = SaveUtil.read(ch_path)
+	if ch == null or typeof(ch.get("done")) != TYPE_DICTIONARY:
+		ch = {"done": {}, "rep": {}}
+	if typeof(ch.get("rep")) != TYPE_DICTIONARY:
+		ch["rep"] = {}
+	var stats_dirty := false
+	var ch_dirty := false
+	for r in rows:
+		if not _restorable(r):
+			continue
+		var id := str(r.challenge_id)
+		var entry := [int(r.mine), str(r.get("icon", "🏅")), str(r.get("title", id)), "",
+				clampi(int(r.get("xp", 0)), 0, XP_CHALLENGE_MAX)]
+		if id.begins_with("c_"):
+			if ch.done.has(id):
+				continue
+			ch.done[id] = entry
+			if "#" in id:  # repeatable: "c_<id>#<n>"
+				var base := id.trim_prefix("c_").get_slice("#", 0)
+				ch.rep[base] = maxi(int(ch.rep.get(base, 0)), int(id.get_slice("#", 1)))
+			ch_dirty = true
+		else:
+			if stats._ach.has(id):
+				continue
+			entry[3] = _restored_desc(id)
+			stats._ach[id] = entry
+			stats_dirty = true
+		added.append("%s|%s" % [game_id, id])
+	if stats_dirty:
+		SaveUtil.write(stats_path, stats)
+	if ch_dirty:
+		SaveUtil.write(ch_path, ch)
+	return added
+
+static func _restorable(r) -> bool:
+	return typeof(r) == TYPE_DICTIONARY and str(r.get("challenge_id", "")) != "" \
+			and (typeof(r.get("mine")) == TYPE_FLOAT or typeof(r.get("mine")) == TYPE_INT)
+
+## The server doesn't keep descriptions; the generic ones can be rebuilt from
+## the id ("Wins_10" -> "Wins: 10", "_records_10"), a game's own stay blank.
+static func _restored_desc(id: String) -> String:
+	for d in _records_defs():
+		if d.id == id:
+			return describe(d, false)
+	var cut := id.rfind("_")
+	if id.begins_with("g_") or cut <= 0 or not id.substr(cut + 1).is_valid_int():
+		return ""
+	return "%s: %d" % [id.substr(0, cut), int(id.substr(cut + 1))]
+
+## Badges a game's stats file gained on disk (restored from the server) while
+## a GameInfo held an older copy in memory: copied in so its next save keeps them.
+static func merge_saved(path: String, stats: Dictionary) -> void:
+	var disk = SaveUtil.read(path)
+	if disk == null or typeof(disk.get("_ach")) != TYPE_DICTIONARY:
+		return
+	if typeof(stats.get("_ach")) != TYPE_DICTIONARY:
+		stats["_ach"] = {}
+	for id in disk._ach:
+		if not stats._ach.has(id):
+			stats._ach[id] = disk._ach[id]
+
 ## Viral Power from the local record (what the server will hold once synced).
 static func local_power(skip_games: Array = []) -> int:
 	var n := 0

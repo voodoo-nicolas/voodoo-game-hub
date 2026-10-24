@@ -5,6 +5,7 @@ extends RefCounted
 
 const ES := {
 	"%d XP": "%d XP",
+	"%d achievements restored from your account": "%d logros recuperados de tu cuenta",
 	"%d achievements unlocked": "%d logros desbloqueados",
 	"%d days ago": "hace %d días",
 	"%d games downloaded · %s": "%d juegos descargados · %s",

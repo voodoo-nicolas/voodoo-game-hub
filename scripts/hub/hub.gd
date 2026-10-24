@@ -202,6 +202,11 @@ func _ready() -> void:
 func _maybe_ask_consent() -> void:
 	if busy or Consent.prompted or not Consent.needs_prompt():
 		return
+	Consent.restore(_ask_consent_if_needed)  # accepted before on this account: not asked again
+
+func _ask_consent_if_needed() -> void:
+	if busy or Consent.prompted or not Consent.needs_prompt():
+		return
 	Consent.prompted = true
 	Consent.return_scene = Consent.HUB_SCENE
 	get_tree().change_scene_to_file.call_deferred(Consent.CONSENT_SCENE)
