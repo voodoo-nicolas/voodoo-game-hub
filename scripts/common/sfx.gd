@@ -27,6 +27,9 @@ extends Node
 ##   Word    key letter_right letter_wrong
 ## A sound only one game uses lives in that game's own folder (its pack):
 ## load the stream there and call play_stream(stream).
+## Real recordings (cards, dice, impacts, lasers, voice...): the shared sound
+## library, media/common/sfx/, played by each game's sound_lib.gd copy
+## (tools/templates/sound_lib.gd) through play_stream().
 ##
 ## Everything plays on the "SFX" bus, which feeds Master -- so the Options
 ## screen's Mute all and Volume (Settings sets Master) cover it all. Each

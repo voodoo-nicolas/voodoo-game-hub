@@ -203,11 +203,16 @@ def is_pack_preset(p: dict) -> bool:
 
 # Godot drags the project icon and autoload scripts into every pack. The icon
 # alone was ~1.1 MB of each ~1.1 MB pack; the scripts already ship in the APK.
-# media/ is the hub's own art (and later the shared media packs).
-PACK_EXCLUDE = "assets/*, media/*, scripts/common/*, scripts/hub/*, scripts/account/*"
+# media/ is the hub's own art (and later the shared media packs), except the
+# shared sound library: a pack takes the library files its game names
+# (game_sounds), so media/common/sfx/ stays out of this list -- an exclude
+# would win over the include.
+PACK_EXCLUDE = ("assets/*, media/hub/*, media/music/*, media/licenses/*, media/CREDITS.json, "
+                "scripts/common/*, scripts/hub/*, scripts/account/*")
 
 
 def pack_preset_text(index: int, name: str, gid: str) -> str:
+    sounds = "".join(f", {f}" for f in game_sounds(gid)[0])
     return f'''[preset.{index}]
 
 name="{name}"
@@ -218,7 +223,7 @@ dedicated_server=false
 custom_features="game_pack"
 export_filter="resources"
 export_files=PackedStringArray()
-include_filter="scenes/games/{gid}/*, scripts/games/{gid}/*, games/{gid}/*"
+include_filter="scenes/games/{gid}/*, scripts/games/{gid}/*, games/{gid}/*{sounds}"
 exclude_filter="{PACK_EXCLUDE}"
 export_path="builds/packs/{gid}.pck"
 encryption_include_filters=""
@@ -281,33 +286,81 @@ def render_presets(ids: list[str]) -> str:
 # (scripts/games/<id>/home_kit.gd), so its pack runs on any app version.
 # The template is the only one ever edited; `sync` copies it out.
 HOME_KIT = TEMPLATES / "home_kit.gd"
+# The shared sound library's player works the same way (sound_lib.gd).
+SOUND_LIB = TEMPLATES / "sound_lib.gd"
+KITS = (HOME_KIT, SOUND_LIB)
 
 
-def home_kit_users(ids: list[str]) -> list[str]:
+def home_kit_users(ids: list[str], kit_file: Path = HOME_KIT) -> list[str]:
     users = []
     for gid in ids:
         game_dir = ROOT / "scripts/games" / gid
-        if any("home_kit.gd" in f.read_text(encoding="utf-8")
-               for f in game_dir.glob("*.gd") if f.name != "home_kit.gd"):
+        if any(kit_file.name in f.read_text(encoding="utf-8")
+               for f in game_dir.glob("*.gd") if f.name != kit_file.name):
             users.append(gid)
     return users
 
 
-def stale_home_kits(ids: list[str]) -> list[Path]:
-    want = HOME_KIT.read_text(encoding="utf-8")
+def stale_home_kits(ids: list[str], kit_file: Path = HOME_KIT) -> list[Path]:
+    want = kit_file.read_text(encoding="utf-8")
     stale = []
-    for gid in home_kit_users(ids):
-        kit = ROOT / "scripts/games" / gid / "home_kit.gd"
+    for gid in home_kit_users(ids, kit_file):
+        kit = ROOT / "scripts/games" / gid / kit_file.name
         if not kit.is_file() or kit.read_text(encoding="utf-8") != want:
             stale.append(kit)
     return stale
 
 
 def sync_home_kits(ids: list[str]) -> None:
-    text = HOME_KIT.read_text(encoding="utf-8")
-    for kit in stale_home_kits(ids):
-        kit.write_text(text, encoding="utf-8", newline="\n")
-        print(f"  {kit.relative_to(ROOT)} updated from the template")
+    for kit_file in KITS:
+        text = kit_file.read_text(encoding="utf-8")
+        for kit in stale_home_kits(ids, kit_file):
+            kit.write_text(text, encoding="utf-8", newline="\n")
+            print(f"  {kit.relative_to(ROOT)} updated from the template")
+
+
+# ---------------------------------------------------------------- sound library
+
+# The shared sound library (STANDARDS §10): media/common/sfx/<set>/<name>.ogg,
+# filled by tools/sfx_import.py. Not in the APK: each game's pack carries the
+# files of the sound ids its scripts name, so they play on every app version.
+SFX_LIB = MEDIA / "common" / "sfx"
+SOUND_ID_RE = re.compile(r'"([a-z0-9_]+)/([a-z0-9_]+)"')
+
+
+def sound_takes(sound_id: str) -> list[str]:
+    """The library files of one sound id, as repo-relative paths ([] = unknown)."""
+    set_name, name = sound_id.split("/")
+    folder = SFX_LIB / set_name
+    if (folder / f"{name}.ogg").is_file():
+        return [f"media/common/sfx/{set_name}/{name}.ogg"]
+    takes, n = [], 1
+    while (folder / f"{name}_{n}.ogg").is_file():
+        takes.append(f"media/common/sfx/{set_name}/{name}_{n}.ogg")
+        n += 1
+    return takes
+
+
+def game_sounds(gid: str) -> tuple[list[str], list[str]]:
+    """(library files a game's pack carries, ids it names that the library lacks).
+    Only games that use sound_lib.gd; ids are "<set>/<name>" string literals
+    whose <set> is a library folder."""
+    if not SFX_LIB.is_dir() or gid not in home_kit_users([gid], SOUND_LIB):
+        return [], []
+    sets = {p.name for p in SFX_LIB.iterdir() if p.is_dir()}
+    files: list[str] = []
+    missing: list[str] = []
+    for f in sorted((ROOT / "scripts/games" / gid).glob("*.gd")):
+        if f.name == SOUND_LIB.name:
+            continue
+        for set_name, name in SOUND_ID_RE.findall(f.read_text(encoding="utf-8")):
+            if set_name not in sets:
+                continue
+            takes = sound_takes(f"{set_name}/{name}")
+            if not takes and f"{set_name}/{name}" not in missing:
+                missing.append(f"{set_name}/{name}")
+            files += [t for t in takes if t not in files]
+    return files, missing
 
 
 # ---------------------------------------------------------------- validation
@@ -359,8 +412,12 @@ def validate() -> tuple[list[str], list[str]]:
         if gid not in seen:
             warnings.append(f'{gid}: in "games" but not in any category, so the hub never shows it')
 
-    for kit in stale_home_kits(catalog_ids(m)):
-        errors.append(f"{kit.relative_to(ROOT)} differs from tools/templates/home_kit.gd -- run sync")
+    for kit_file in KITS:
+        for kit in stale_home_kits(catalog_ids(m), kit_file):
+            errors.append(f"{kit.relative_to(ROOT)} differs from tools/templates/{kit_file.name} -- run sync")
+    for gid in catalog_ids(m):
+        for sound_id in game_sounds(gid)[1]:
+            errors.append(f'{gid}: sound "{sound_id}" is not in the library (docs/claude/sfx-library.md)')
 
     current = PRESETS.read_text(encoding="utf-8")
     if render_presets(catalog_ids(m)) != current:
@@ -426,7 +483,8 @@ def lint_own_backgrounds(m: dict) -> list[str]:
 
 def lint_credits() -> list[str]:
     """STANDARDS §10: every file under media/ and games/ (a game's own media)
-    has a media/CREDITS.json entry."""
+    has a media/CREDITS.json entry. An entry whose "file" ends in "/" covers
+    every file in that folder (one licence for a whole sound set)."""
     if not MEDIA.is_dir():
         return []
     try:
@@ -434,6 +492,7 @@ def lint_credits() -> list[str]:
     except json.JSONDecodeError as e:
         return [f"media/CREDITS.json is not valid JSON: {e}"]
     listed = {str(e.get("file", "")) for e in credits.get("assets", [])}
+    folders = tuple(f for f in listed if f.endswith("/"))
     errors = []
     files = sorted(MEDIA.rglob("*")) + (sorted(GAME_MEDIA.rglob("*")) if GAME_MEDIA.is_dir() else [])
     for f in files:
@@ -441,10 +500,10 @@ def lint_credits() -> list[str]:
         if (f.is_dir() or f.suffix in (".import", ".uid") or f.name in (".gdignore", "CREDITS.json")
                 or rel.startswith("media/licenses/") or f == MUSIC_LIST):
             continue
-        if rel not in listed:
+        if rel not in listed and not any(rel.startswith(d) for d in folders):
             errors.append(f"{rel}: no entry in media/CREDITS.json (STANDARDS §10)")
     for rel in sorted(listed - {""}):
-        if not (ROOT / rel).is_file():
+        if not ((ROOT / rel).is_dir() if rel.endswith("/") else (ROOT / rel).is_file()):
             errors.append(f"media/CREDITS.json lists {rel}, which doesn't exist")
     return errors
 

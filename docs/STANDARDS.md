@@ -201,6 +201,16 @@ Rules:
   `catalog.gd` downloads dependencies before the game pack and reference-counts them for Storage deletion.
 - Never overwrite a mounted media pack (new filename per version; mount next launch).
 - Audio: OGG Vorbis; music ~64–96 kbps with loop points; SFX synthesized via `Sfx` where possible (0 bytes).
+- [NEW 2026-10-24, owner] **Recorded sound effects come from the shared sound library** `res://media/common/sfx/<set>/`
+  (the Tier 1 root; catalog `docs/claude/sfx-library.md`, filled from the owner's `D:/dev/audio` by
+  `tools/sfx_import.py`). Until media packs exist, **each game's pack carries the library files it names**: the game
+  plays them with its `sound_lib.gd` copy (`SoundLib.play(self, "<set>/<name>")`, ids as full string literals) and
+  `hub.py sync` adds exactly those files to its pack preset; the APK excludes the library. UI sounds (taps, results,
+  alerts) stay synthesized `Sfx`. A game's own `games/<id>/` sound only when the library has nothing that fits.
+  Existing games switch their synth action sounds to library recordings with their next update
+  (`docs/claude/i18n-gameinfo-sfx.md` lists the swaps).
+- [NEW 2026-10-24] A `CREDITS.json` entry whose `"file"` ends in `/` covers every file in that folder (one licence
+  for a whole sound set); `hub.py check` accepts it.
 - [NEW 2026-10-07, owner] **Every game's music comes from the hub's shared library** (APK autoload `Music`,
   `scripts/common/music.gd`; CLAUDE.md "Music library"): a game picks a style (calm / lively / techno) and a track
   number, it never synthesizes or ships its own music. Real tracks are added to the library

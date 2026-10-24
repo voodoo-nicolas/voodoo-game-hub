@@ -2809,6 +2809,76 @@
    "ai_tool": "ChatGPT image generation (per the owner)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "re-saved as JPEG q86 (Claude Code)"
+  },
+  {
+   "file": "media/common/sfx/ambient/",
+   "what": "Shared sound library, set 'ambient' (every file in the folder)",
+   "source": "Supplied by the owner from D:/dev/audio/Ambient Sounds (original source not stated)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/sfx/OWNER_SFX.md",
+   "url": "",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sfx/casino/",
+   "what": "Shared sound library, set 'casino' (every file in the folder)",
+   "source": "Casino Audio 1.1, from the owner's library D:/dev/audio/Casino",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/kenney_casino_audio.txt",
+   "url": "https://kenney.nl/assets/casino-audio",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sfx/impact/",
+   "what": "Shared sound library, set 'impact' (every file in the folder)",
+   "source": "Impact Sounds 1.0, from the owner's library D:/dev/audio/impact-sounds",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/kenney_impact_sounds.txt",
+   "url": "https://kenney.nl/assets/impact-sounds",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sfx/rpg/",
+   "what": "Shared sound library, set 'rpg' (every file in the folder)",
+   "source": "RPG Audio, from the owner's library D:/dev/audio/RPG sounds",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/kenney_rpg_audio.txt",
+   "url": "https://kenney.nl/assets/rpg-audio",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sfx/scifi/",
+   "what": "Shared sound library, set 'scifi' (every file in the folder)",
+   "source": "Sci-Fi Sounds 1.0, from the owner's library D:/dev/audio/sci fi",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/kenney_sci_fi_sounds.txt",
+   "url": "https://kenney.nl/assets/sci-fi-sounds",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sfx/voice/",
+   "what": "Shared sound library, set 'voice' (every file in the folder)",
+   "source": "Voiceover Pack: Fighter, from the owner's library D:/dev/audio/voiceover-pack-fighter",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/kenney_voiceover_pack_fighter.txt",
+   "url": "https://kenney.nl/assets/voiceover-pack-fighter",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sfx/weather/",
+   "what": "Shared sound library, set 'weather' (every file in the folder)",
+   "source": "Supplied by the owner from D:/dev/audio/Weather (original source not stated)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/sfx/OWNER_SFX.md",
+   "url": "",
+   "date": "2026-10-24"
   }
  ]
 }

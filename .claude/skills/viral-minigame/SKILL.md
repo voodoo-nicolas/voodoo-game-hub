@@ -46,6 +46,7 @@ Read `docs/STANDARDS.md` for full text and `docs/claude/*.md` for system details
 Packs run on older apps: use `get_node_or_null()` / `ResourceLoader.exists()` + `load()`; never `preload` APK-side scripts (online, GameInfo, Voodoo). New APK need → `"min_build"`.
 - **GameInfo**: `var info = null`, load via `GAME_INFO_PATH`, guard with `if info:`. `info.result("win"|"loss"|"draw")` exactly once per game (flag reset on new game), `info.add/high/low`, `info.summary()`. Games with their own best file keep it and also feed `high()`.
 - **Sfx**: tiny `_sfx(name)` via `get_node_or_null("/root/Sfx")`; every button already taps; `set_meta("sfx", "")` silences. New tap/result/alert sounds → `Sfx.GROUP_OF`.
+- **Recorded sounds: shared library first** (`docs/claude/sfx-library.md` catalog): `const SoundLib = preload("res://scripts/games/<id>/sound_lib.gd")` + `SoundLib.play(self, "casino/card_slide")`, ids as full string literals, then `hub.py sync` (copies `sound_lib.gd`, puts the files in the pack). UI stays synth `Sfx`. **Touching an existing game: swap its synth action sounds for library ones** (swap list in `docs/claude/i18n-gameinfo-sfx.md`).
 - **Music**: only from the shared `Music` autoload via a guarded `_music()`; never synthesize or ship own music.
 - **Leaderboards**: game with a score/counter has 🏆 (Everyone/Friends). Lower-is-better → growing counter or none.
 - **Achievements**: 🏅 generic badges come free from stats; add `ACHIEVEMENTS` in `_help.gd` for bragging moments.

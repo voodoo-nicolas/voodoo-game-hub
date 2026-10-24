@@ -21,7 +21,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
 - `docs/claude/` topic notes — read the one(s) for what you touch:
   - `build-ship.md`: architecture, hub.py, shipping steps, signing, local tool paths, rename safety
   - `landing-kit-skins.md`: Landing/Home kit, skins, Voodoo Mode, Options/Settings, text size, safe area, orientation, resume
-  - `i18n-gameinfo-sfx.md`: es.json/i18n, GameInfo (How to Play, stats), Sfx
+  - `i18n-gameinfo-sfx.md`: es.json/i18n, GameInfo (How to Play, stats), Sfx, shared sound library (+ `sfx-library.md` catalog)
   - `music.md`: Music autoload, music library, Viral Music Drop
   - `accounts-online.md`: Auth, OnlineMatch/lobby, friends/invites, leaderboards, achievements
   - `hub-v2.md`: hub home/browser/profile, brand, learning hooks, hub look
@@ -42,6 +42,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
 - Learning hook where natural (STANDARDS §15). **No alcohol references anywhere, except Turned (owner, 2026-10-23: a bar is a story location there; never promote drinking; STANDARDS Game Browser section).**
 - Every asset: `media/CREDITS.json` entry + licence proof in `media/licenses/`; OGG pre-encoded (~96 kbps music). Never NC/ND licences.
 - Music: only from the shared `Music` autoload (docs/claude/music.md).
+- Recorded sound effects: from the shared sound library `media/common/sfx/` via the game's `sound_lib.gd` (catalog `docs/claude/sfx-library.md`, rules in `docs/claude/i18n-gameinfo-sfx.md`); existing games switch with their next update.
 - `manifest.json` is committed last.
 
 ## STANDARDS digest (full text: docs/STANDARDS.md)
