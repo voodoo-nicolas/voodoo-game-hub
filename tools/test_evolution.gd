@@ -155,8 +155,9 @@ func _init() -> void:
 		e.npcs = [_npc(e.player.pos, 2.5, "coccus", "prey")]
 		e.step(1.0 / 60.0, Vector2.ZERO)
 		meals += 1
-	check(e.move_rank == 1 and meals >= 5, "a lot of creatures eaten grows a tail (after %d more meals)" % meals)
-	check(e.eaten_value - worth0 + worth0 >= 20, "...about 20 worth")
+	check(e.move_rank == 1 and meals >= 3, "a lot of creatures eaten grows a tail (after %d more meals)" % meals)
+	check(e.eaten_value >= int(Ev.TUNING.tail_value), "...about %d worth" % int(Ev.TUNING.tail_value))
+	check(e.level() == 1, "...and you are still size 1")
 	check(e.tree_unlocked == false and e.missions.size() > 0, "the tree is not open yet")
 	e.npcs.clear()
 	e.food.clear()
@@ -179,14 +180,19 @@ func _init() -> void:
 	fx.step(1.0 / 60.0, Vector2.ZERO)
 	check(fx.sight_rank == 2 and fx.has_bars() and fx.hunters_on(), "eating a creature with an eye gives you an eye")
 	check(not fx.tree_unlocked, "tail and eye do not open the tree yet")
-	# kills count only after both; ten kills open the tree
-	for i in 9:
+	check(fx.level() == 1, "tail and eye come while you are still size 1")
+	check(fx.missions[-1].kind == "mass" and fx.missions[-1].reward == "tree", "next: grow to size 2 for the tree")
+	# owner 2026-10-24: eat eat eat to size 2, which opens the tree
+	var meals2 := 0
+	while fx.level() < 2 and meals2 < 200:
 		fx.npcs = [_npc(fx.player.pos, 3.0, "bacillus", "prey")]
 		fx.step(1.0 / 60.0, Vector2.ZERO)
-	check(not fx.tree_unlocked, "nine kills: still closed")
-	fx.npcs = [_npc(fx.player.pos, 3.0, "bacillus", "prey")]
-	fx.step(1.0 / 60.0, Vector2.ZERO)
-	check(fx.tree_unlocked, "ten kills open the evolution tree")
+		meals2 += 1
+		if fx.level() < 2:
+			check(not fx.tree_unlocked, "still size 1: the tree stays closed")
+	check(meals2 >= 15, "size 2 takes a good while of eating (%d meals)" % meals2)
+	check(fx.tree_unlocked, "size 2 opens the evolution tree")
+	check(fx.dna == int(Data.LEVEL_DNA[1]), "...with its DNA (%d)" % fx.dna)
 	fx.dna = 5
 	check(fx.buy("burst") == false or fx.node_state("burst") != "locked", "the tree can be used now")
 	var tree_event := false
@@ -225,7 +231,8 @@ func _init() -> void:
 	z.npcs.clear()
 	z.food = [z.player.pos]
 	z.step(1.0 / 60.0, Vector2.ZERO)
-	check(z.eaten_food == 0 and z.food.size() > 0, "dust worth nothing is not eaten at size 4")
+	check(z.eaten_food == 1, "food specks are still eaten at size 4 (owner 2026-10-24: small particles always)")
+	check(z.level() == 4, "...and never shrink you (no eye yet, but already big)")
 	z.npcs = [_npc(z.player.pos, 1.5, "coccus", "prey")]
 	z.step(1.0 / 60.0, Vector2.ZERO)
 	check(z.eaten_cells == 0, "a tiny creature worth nothing is not eaten either")
@@ -939,12 +946,20 @@ func _init() -> void:
 	print("FAILS: %d" % fails)
 	quit(1 if fails else 0)
 
-## Owner 2026-10-23: slow growing (each size costs twice the xp of the one before), fast mutations (DNA per size),
-## animals instead of cells from size 4-5, a depth scale you can feel.
+## Owner 2026-10-23: slow growing, fast mutations (DNA per size), animals instead of cells, a depth scale you
+## can feel. Owner 2026-10-24: size 2 -> 3 costs X, then every size 50% more than the last; size N of 10 =
+## N/10 of the tree's DNA; tail and eye at size 1, the tree at size 2; bacteria 1-3, fish 3-6, all sorts 5-10,
+## sea monsters 9-10; more rare creatures.
 func _growth_and_species() -> void:
-	# xp: every size costs twice the one before; mass follows xp through the size starts
-	for lv in range(1, 10):
-		check(is_equal_approx(Ev.xp_span(lv + 1), Ev.xp_span(lv) * 2.0), "size %d to %d costs twice size %d to %d" % [lv + 1, lv + 2, lv, lv + 1])
+	# xp: size 2 -> 3 = X, every later size 1.5 x the one before; mass follows xp through the size starts
+	check(is_equal_approx(Ev.xp_span(2), Ev.TUNING.xp_second), "size 2 to 3 costs X")
+	for lv in range(2, 10):
+		check(is_equal_approx(Ev.xp_span(lv + 1), Ev.xp_span(lv) * 1.5), "size %d to %d costs 1.5 x size %d to %d" % [lv + 1, lv + 2, lv, lv + 1])
+	check(Ev.xp_span(1) > float(Ev.TUNING.eye_value), "size 1 lasts past the eye")
+	var blind := Ev.new()
+	blind.reset(9)
+	blind._gain_xp(500.0)
+	check(blind.level() == 1, "no eye yet: you stay size 1")
 	check(is_equal_approx(Ev.mass_of_xp(0.0), Ev.TUNING.start_mass), "xp 0 = the start mass")
 	for lv in range(2, 11):
 		check(is_equal_approx(Ev.mass_of_xp(Ev.xp_at(lv)), Data.LEVELS[lv - 1]), "reaching size %d puts you at its start mass" % lv)
@@ -960,7 +975,7 @@ func _growth_and_species() -> void:
 	g.step(1.0 / 60.0, Vector2.ZERO)
 	check(is_equal_approx(g.xp - x0, 1.0), "a size-1 creature is worth 1 xp")
 	check(is_equal_approx(g.player.mass, Ev.mass_of_xp(g.xp)), "mass follows xp")
-	# mutations: DNA per size reaches a third of the tree by size 4, two thirds by 7, 90% by 10
+	# mutations: size N of 10 = N/10 of the tree's DNA (the tree opens at size 2 with the first two tenths)
 	var tree := 0
 	for n in Data.NODES:
 		for k in int(n.max):
@@ -970,10 +985,9 @@ func _growth_and_species() -> void:
 	for lv in range(1, 11):
 		got += int(Data.LEVEL_DNA[lv - 1])
 		at[lv] = got
-	check(at[4] * 3 >= tree, "a third of the tree's DNA by size 4 (%d of %d)" % [at[4], tree])
-	check(at[7] * 3 >= tree * 2, "two thirds by size 7 (%d of %d)" % [at[7], tree])
-	check(at[10] * 10 >= tree * 9, "90%% by size 10 (%d of %d)" % [at[10], tree])
-	check(at[3] * 3 < tree and at[6] * 3 < tree * 2, "...and not much earlier than that")
+	for lv in range(2, 11):
+		check(absf(float(at[lv]) - float(tree) * float(lv) / 10.0) <= 1.0, "size %d gives %d0%% of the tree (%d of %d)" % [lv, lv, at[lv], tree])
+	check(at[10] == tree, "the whole tree by size 10")
 	var d := Ev.new()
 	d.reset(77)
 	d.sight_rank = 2
@@ -992,7 +1006,8 @@ func _growth_and_species() -> void:
 	# the creatures around you, by your size
 	var cells := ["beads", "rod", "blob", "chain", "spiral", "tailed", "eyed"]
 	var viruses := ["spiky", "bumpy", "corona", "worm", "phage"]
-	var animals := ["fish", "jelly", "squid", "ray", "snake"]
+	var animals := ["fish", "jelly", "squid", "ray", "snake", "octopus", "turtle", "star", "seahorse", "mermaid", "poseidon"]
+	var monsters := ["leviathan", "kraken", "serpent", "maw", "wyrm", "titanturtle"]
 	for lv in range(1, 11):
 		var p := Ev.new()
 		p.reset(500 + lv)
@@ -1004,6 +1019,8 @@ func _growth_and_species() -> void:
 		var seen := {}
 		var picks := 0
 		var animal_picks := 0
+		var fish_picks := 0
+		var monster_picks := 0
 		for i in 600:
 			p.npcs.clear()
 			p._hunter_cd = 0.0
@@ -1018,8 +1035,13 @@ func _growth_and_species() -> void:
 				shape = sp.adv.shape
 			if animals.has(shape):
 				animal_picks += 1
+			if shape == "fish":
+				fish_picks += 1
+			if monsters.has(sp.id):
+				monster_picks += 1
+				check(lv >= 9, "sea monsters only at sizes 9-10 (%s at size %d)" % [sp.id, lv])
 			if lv >= 4 and not sp.has("adv"):
-				check(not cells.has(shape), "size %d meets no single cells (%s)" % [lv, sp.id])
+				check(not cells.has(shape) and not viruses.has(shape), "size %d meets no bacteria or viruses (%s)" % [lv, sp.id])
 			if lv >= 5:
 				check(not cells.has(shape) and not viruses.has(shape), "size %d meets no cells or viruses (%s)" % [lv, sp.id])
 		check(picks > 0, "size %d meets someone" % lv)
@@ -1030,9 +1052,51 @@ func _growth_and_species() -> void:
 			check(animal_picks == picks, "from size 5 everyone is an animal (%d of %d)" % [animal_picks, picks])
 		if lv == 4:
 			check(animal_picks * 2 >= picks, "at size 4 most are animals (%d of %d)" % [animal_picks, picks])
+		if lv >= 4 and lv <= 6:
+			check(fish_picks * 2 >= picks, "sizes 4-6 are mostly fish (%d of %d at size %d)" % [fish_picks, picks, lv])
+		if lv >= 9:
+			check(monster_picks * 5 >= picks, "sizes 9-10 bring sea monsters (%d of %d at size %d)" % [monster_picks, picks, lv])
 	for sp in Data.SPECIES:
-		if sp.role == "toxic" or sp.role == "rare":
+		if sp.role == "toxic" or (sp.role == "rare" and int(sp.tier) < 3):
 			check(sp.has("adv") and sp.adv.name != "" and animals.has(sp.adv.shape), "%s turns into an animal when big" % sp.id)
+		elif sp.role == "rare":
+			check(animals.has(sp.shape), "%s is an animal" % sp.id)
+	# rare creatures: a whole family, the bigger you are the more kinds, the rarest the rarest
+	var rare_seen := {}
+	var rr := Ev.new()
+	rr.reset(41)
+	rr.sight_rank = 2
+	for lv in [1, 3, 5, 7, 10]:
+		rr.player.mass = Data.LEVELS[lv - 1] + 1.0
+		rr._mass_seen = -1.0
+		rr._sync_mass()
+		for i in 4000:
+			var sp: Dictionary = rr._pick_rare(rr.level())
+			check(int(sp.tier) <= lv, "a %s only from size %d (at %d)" % [sp.id, int(sp.tier), lv])
+			rare_seen[sp.id] = int(rare_seen.get(sp.id, 0)) + 1
+	for id in ["gold", "starfish", "seahorse", "mermaid", "poseidon"]:
+		check(rare_seen.has(id), "rare %s turns up" % id)
+	check(int(rare_seen.get("poseidon", 0)) < int(rare_seen.get("mermaid", 0)) and int(rare_seen.get("mermaid", 0)) < int(rare_seen.get("starfish", 0)), "little Poseidon is the rarest")
+	var rd := Ev.new()
+	_veteran(rd, 43)
+	rd.player.mass = Data.LEVELS[6] + 1.0
+	rd._mass_seen = -1.0
+	rd._sync_mass()
+	var dna0: int = rd.dna
+	rd.npcs = [_npc(rd.player.pos, rd.player.mass * 0.4, "poseidon", "rare")]
+	rd.step(1.0 / 60.0, Vector2.ZERO)
+	check(rd.dna >= dna0 + 8,"little Poseidon pays 8 DNA on top of its trait (%d -> %d)" % [dna0, rd.dna])
+	check(rd._counter("rare", "") >= 1.0, "every rare kind counts as a rare catch")
+	# food specks stay at every size
+	var fd := Ev.new()
+	_veteran(fd, 44)
+	fd.player.mass = Data.LEVELS[7] + 1.0
+	fd._mass_seen = -1.0
+	fd._sync_mass()
+	fd.food = [fd.player.pos]
+	var ef: int = fd.eaten_food
+	fd.step(1.0 / 60.0, Vector2.ZERO)
+	check(fd.eaten_food == ef + 1, "a size 8 creature still eats the food specks")
 	# depth is on a scale you can feel
 	var w := Ev.new()
 	w.reset(3)

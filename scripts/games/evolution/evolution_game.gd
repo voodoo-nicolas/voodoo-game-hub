@@ -133,6 +133,7 @@ func _ready() -> void:
 	_build_ui()
 	engine.reset(-1, diff)
 	_apply_view(1.0, true)
+	_music_node_call("prepare", "calm", 0)
 
 # ---------- preferences ----------
 
@@ -572,6 +573,7 @@ func _new_game() -> void:
 	engine.reset(-1, diff)
 	started = true
 	result_sent = false
+	_play_music()
 	particles.clear()
 	banners.clear()
 	bump = 0.0
@@ -943,6 +945,7 @@ func _handle_events() -> void:
 				bump = 0.25
 			"level":
 				_banner(tr("Size %d!  +%d DNA") % [int(ev.level), int(ev.dna)])
+				_play_music()
 				_snd("evolve")
 				bump = 0.3
 			"dna":
@@ -968,6 +971,8 @@ func _handle_events() -> void:
 				_snd("bite", 0.6)
 			"env_warn":
 				_banner(tr("The water is getting colder. Turn back soon!") if ev.what == "cold" else tr("The water is getting deeper. Turn back soon!"))
+			"rare_dna":
+				_banner(tr("%s: +%d DNA") % [tr(str(Data.species_of(ev.species).name)), int(ev.dna)])
 			"rare":
 				_banner(tr("Rare trait: %s") % tr(str(ev.name)))
 				_spawn_burst(engine.player.pos, Color("ffd23f"), 24, 260.0, 5.0, EvEngine.radius_of(engine.player.mass) * 2.0)
@@ -1038,20 +1043,19 @@ func _draw_field() -> void:
 	var margin := 40.0
 	# Food: glowing spores that breathe.
 	var fr: float = maxf(EvEngine.radius_of(EvEngine.TUNING.food_mass) * zoom, 3.0)
-	var food_vis: float = engine.visibility_of(EvEngine.TUNING.food_mass)
-	for i in (engine.food.size() if food_vis > 0.0 else 0):
+	# Food specks are always there, at every size (owner 2026-10-24: they used to vanish at size 4); once they are
+	# far smaller than you they are drawn a little fainter, as specks in the water.
+	var food_a: float = 1.0 if engine.visibility_of(EvEngine.TUNING.food_mass) >= 1.0 else 0.7
+	for i in engine.food.size():
 		var sp := _w2s(engine.food[i])
 		if sp.x < -margin or sp.y < -margin or sp.x > s.x + margin or sp.y > s.y + margin or sp.distance_to(c) > lim:
 			continue
 		var col: Color = FOOD[i % FOOD.size()]
-		if food_vis < 1.0:
-			field.draw_circle(sp, 2.0, Color(col, 0.35))      # too small to matter: just a speck in the water
-			continue
 		var br := 1.0 + 0.18 * sin(pulse * 3.0 + float(i) * 1.7)
-		field.draw_circle(sp, fr * 3.4 * br, Color(col, 0.07))
-		field.draw_circle(sp, fr * 2.0 * br, Color(col, 0.16))
-		field.draw_circle(sp, fr * br, col)
-		field.draw_circle(sp - Vector2(fr, fr) * 0.25, fr * 0.35, Color(1, 1, 1, 0.8))
+		field.draw_circle(sp, fr * 3.4 * br, Color(col, 0.07 * food_a))
+		field.draw_circle(sp, fr * 2.0 * br, Color(col, 0.16 * food_a))
+		field.draw_circle(sp, fr * br, Color(col, food_a))
+		field.draw_circle(sp - Vector2(fr, fr) * 0.25, fr * 0.35, Color(1, 1, 1, 0.8 * food_a))
 	# Other creatures, small first so big ones cover them.
 	var pm: float = engine.player.mass
 	var ratio: float = engine.eat_ratio()
@@ -1350,6 +1354,24 @@ func _snd(sound: String, pitch: float = 1.0, db: float = 0.0) -> void:
 	var sfx = get_node_or_null("/root/Sfx")
 	if sfx and sfx.has_method("play_stream"):
 		sfx.play_stream(Sound.stream(sound), db, pitch, "game")
+
+## Music from the shared Music autoload (owner rule: every game; older apps without it stay silent).
+## Calm while you are small, lively from size 6 (Predator) on. Asking for what already plays does nothing.
+const MUSIC_LIVELY_AT := 6
+func _play_music() -> void:
+	if engine.level() >= MUSIC_LIVELY_AT:
+		_music_node_call("play", "lively", 1)
+	else:
+		_music_node_call("play", "calm", 0)
+
+func _music_node_call(what: String, style: String, index: int) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m == null:
+		return
+	if what == "prepare":
+		m.prepare(style, index)
+	else:
+		m.play(style, self, index)
 
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")

@@ -59,6 +59,9 @@ static func draw_ripples(ci: CanvasItem, c: Vector2, r: float, t: float, alpha: 
 
 # ---------- other creatures ----------
 
+## Shapes drawn by `_animal` (everything from size 3 on, and the rare creatures).
+const ANIMAL_SHAPES := ["fish", "jelly", "squid", "ray", "snake", "octopus", "turtle", "star", "seahorse", "mermaid", "poseidon"]
+
 ## One creature of species `sp` (evolution_data.gd). `voodoo`: neon wireframe skin. `lvl`: its own size, which
 ## decides what the toxic and rare ones (sized relative to you) look like: from size 3 on they are animals,
 ## never giant bacteria. `detail`: draw cell parts (nucleus, vacuoles ...), only while you are size 1-2.
@@ -72,7 +75,7 @@ static func draw_creature(ci: CanvasItem, c: Vector2, r: float, sp: Dictionary, 
 		shape = sp.adv.shape
 		plan = sp.adv.get("fish", {})
 	ci.draw_set_transform(c, heading, Vector2.ONE)
-	if shape == "fish" or shape == "jelly" or shape == "squid" or shape == "ray" or shape == "snake":
+	if ANIMAL_SHAPES.has(shape):
 		_animal(ci, r, col, shape, plan, t, sd, lvl, voodoo)
 		_reset(ci)
 		return
@@ -357,7 +360,7 @@ static func _creature_voodoo(ci: CanvasItem, r: float, col: Color, shape: String
 			ci.draw_circle(ep, r * 0.18, Color(0.02, 0.0, 0.05, 0.95))
 			ci.draw_arc(ep, r * 0.18, 0.0, TAU, 16, col, maxf(r * 0.04, 1.2), true)
 
-# ---------- animals: fish, jellyfish, squid, rays, snakes ----------
+# ---------- animals: fish, jellyfish, squid, rays, snakes, octopus, turtle; the rare starfish, seahorse, merfolk ----------
 # Everything from size 3 on. Drawn from above, +x forward. `plan` = the species' `fish` body plan
 # (evolution_data.gd); `lvl` = its own size, which adds parts the bigger it is: pelvic fins (5+), glowing
 # dots (6+), barbels and tail streamers (7+).
@@ -372,6 +375,18 @@ static func _animal(ci: CanvasItem, r: float, col: Color, shape: String, plan: D
 			_ray(ci, r, col, plan, t, sd, lvl, voodoo)
 		"snake":
 			_snake(ci, r, col, plan, t, sd, lvl, voodoo)
+		"octopus":
+			_octopus(ci, r, col, plan, t, sd, lvl, voodoo)
+		"turtle":
+			_turtle(ci, r, col, plan, t, sd, lvl, voodoo)
+		"star":
+			_star(ci, r, col, plan, t, sd, lvl, voodoo)
+		"seahorse":
+			_seahorse(ci, r, col, plan, t, sd, lvl, voodoo)
+		"mermaid":
+			_merfolk(ci, r, col, t, sd, voodoo, false)
+		"poseidon":
+			_merfolk(ci, r, col, t, sd, voodoo, true)
 		_:
 			_fish(ci, r, col, plan, t, sd, lvl, voodoo)
 
@@ -794,6 +809,185 @@ static func _snake(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: fl
 		else:
 			ci.draw_circle(ep, maxf(r * 0.13, 1.6), Color("ffd84a"))
 			ci.draw_line(ep + Vector2(0, -r * 0.1), ep + Vector2(0, r * 0.1), Color(0.03, 0.03, 0.06), maxf(r * 0.045, 1.2), true)
+
+## An octopus: a round head in front, eight arms curling behind it.
+static func _octopus(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	for k in 8:
+		var a0 := PI + (float(k) - 3.5) * 0.3
+		var curl := 0.9 if k % 2 == 0 else -0.9
+		var line := PackedVector2Array()
+		for j in 12:
+			var f := float(j) / 11.0
+			var a := a0 + curl * f * f * (0.8 + 0.4 * sin(t * 2.0 + float(k) + sd))
+			line.append(Vector2(-r * 0.15, 0.0) + Vector2.RIGHT.rotated(a) * r * (0.35 + 1.5 * f))
+		if voodoo:
+			ci.draw_polyline(line, Color(col, 0.85), maxf(r * 0.045, 1.4), true)
+		else:
+			_tapered(ci, line, maxf(r * 0.24, 2.0), col.darkened(0.12))
+			if plan.get("suckers", false):
+				for j in range(2, 10, 2):
+					ci.draw_circle(line[j], maxf(r * 0.035, 1.0), Color(col.lightened(0.55), 0.85))
+	var pts := PackedVector2Array()
+	for i in 20:
+		var a := TAU * float(i) / 20.0
+		var bulge := 1.0 + 0.18 * maxf(cos(a), 0.0)
+		pts.append(Vector2(r * 0.15, 0.0) + Vector2(cos(a) * r * 0.78 * bulge, sin(a) * r * 0.6))
+	_torso(ci, pts, col, voodoo, r)
+	if plan.get("spots", false) and not voodoo:
+		for k in 5:
+			ci.draw_circle(Vector2(r * (0.45 - 0.2 * float(k % 3)), r * 0.3 * float(k % 2 * 2 - 1) * (0.5 + 0.2 * float(k))), maxf(r * 0.06, 1.0), Color(col.lightened(0.4), 0.6))
+	if plan.get("glow", false) or lvl >= 6:
+		for k in 4:
+			_glow_dot(ci, Vector2(r * (0.6 - 0.3 * float(k)), r * 0.42 * (1.0 if k % 2 == 0 else -1.0)), maxf(r * 0.035, 1.0), t, float(k))
+	for sgn in [-1.0, 1.0]:
+		_eye_pair(ci, Vector2(r * 0.55, sgn * r * 0.3), maxf(r * 0.16, 2.0), col, voodoo, true)
+
+## A sea turtle from above: the shell, four paddling flippers and a head.
+static func _turtle(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var stroke := sin(t * 2.2 + sd)
+	for s in [-1.0, 1.0]:
+		var fa := 0.35 * stroke
+		_part(ci, PackedVector2Array([Vector2(r * 0.35, s * r * 0.55), Vector2(r * (0.55 + 0.25 * fa), s * r * 1.35), Vector2(r * 0.05, s * r * 0.95)]), col.lightened(0.15), voodoo, r * 0.03, 0.95)
+		_part(ci, PackedVector2Array([Vector2(-r * 0.55, s * r * 0.4), Vector2(-r * (0.95 - 0.15 * fa), s * r * 0.75), Vector2(-r * 0.75, s * r * 0.25)]), col.lightened(0.15), voodoo, r * 0.03, 0.95)
+	var head := PackedVector2Array()
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		head.append(Vector2(r * 0.95, 0.0) + Vector2(cos(a) * r * 0.3, sin(a) * r * 0.22))
+	_part(ci, head, col.lightened(0.15), voodoo, r * 0.03, 1.0)
+	var shell := PackedVector2Array()
+	for i in 22:
+		var a := TAU * float(i) / 22.0
+		shell.append(Vector2(cos(a) * r * 0.85, sin(a) * r * 0.68))
+	_torso(ci, shell, col.darkened(0.1), voodoo, r)
+	var line_col := Color(col.lightened(0.45), 0.55) if not voodoo else Color(col, 0.8)
+	var plates := [Vector2(r * 0.3, 0.0), Vector2(-r * 0.25, 0.0), Vector2(0.0, r * 0.38), Vector2(0.0, -r * 0.38)]
+	for p in plates:
+		ci.draw_arc(p, r * 0.22, 0.0, TAU, 6, line_col, maxf(r * 0.035, 1.0), true)
+	if plan.get("big", false) or lvl >= 6:
+		for k in 4:
+			_glow_dot(ci, plates[k], maxf(r * 0.04, 1.0), t, float(k))
+	for sgn in [-1.0, 1.0]:
+		_eye_pair(ci, Vector2(r * 1.08, sgn * r * 0.11), maxf(r * 0.06, 1.2), col, voodoo, false)
+
+## A starfish (rare): five arms, slowly turning, with little bumps along each arm.
+static func _star(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var spin := t * 0.35 + sd
+	var pts := PackedVector2Array()
+	for i in 10:
+		var a := spin + TAU * float(i) / 10.0
+		var rr := r * (1.15 if i % 2 == 0 else 0.45) * (1.0 + 0.05 * sin(t * 2.0 + float(i)))
+		pts.append(Vector2.RIGHT.rotated(a) * rr)
+	_torso(ci, pts, col, voodoo, r)
+	var dot := Color(col.lightened(0.6), 0.9) if not voodoo else col
+	for k in 5:
+		var a := spin + TAU * float(k) / 5.0
+		for j in 3:
+			ci.draw_circle(Vector2.RIGHT.rotated(a) * r * (0.3 + 0.25 * float(j)), maxf(r * (0.08 - 0.015 * float(j)), 1.0), dot)
+	ci.draw_circle(Vector2.ZERO, maxf(r * 0.12, 1.2), col.lightened(0.5) if not voodoo else col)
+
+## A seahorse (rare), seen from the side, nose forward: a curled tail, a crest and a fluttering back fin.
+static func _seahorse(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var bob := sin(t * 2.0 + sd) * r * 0.06
+	# the body: head at the top front, the belly, then the tail curling under
+	var line := PackedVector2Array()
+	for j in 16:
+		var f := float(j) / 15.0
+		var p: Vector2
+		if f < 0.55:
+			var u := f / 0.55
+			p = Vector2(r * (0.35 - 0.25 * sin(u * PI)), r * (-0.75 + 1.35 * u))
+		else:
+			var u := (f - 0.55) / 0.45
+			var a := PI * 0.5 + u * PI * 1.6
+			var k := r * 0.3 * (1.0 - 0.5 * u)
+			p = Vector2(r * 0.22 - cos(a) * k, r * 0.9 - sin(a) * k)
+		line.append(p + Vector2(0.0, bob))
+	var fin := PackedVector2Array([line[4] + Vector2(-r * 0.12, 0.0), line[5] + Vector2(-r * (0.45 + 0.08 * sin(t * 9.0 + sd)), 0.0), line[7] + Vector2(-r * 0.15, 0.0)])
+	_part(ci, fin, col.lightened(0.2), voodoo, r * 0.03, 0.8)
+	if voodoo:
+		ci.draw_polyline(line, col, maxf(r * 0.08, 1.8), true)
+	else:
+		_tapered(ci, line, maxf(r * 0.62, 3.0), col)
+		for j in range(1, 13, 2):
+			ci.draw_line(line[j] + Vector2(-r * 0.12, 0.0), line[j] + Vector2(r * 0.12, 0.0), Color(col.darkened(0.3), 0.6), maxf(r * 0.025, 1.0), true)
+	var head: Vector2 = line[0]
+	# the long snout and the crest (a little crown)
+	ci.draw_line(head, head + Vector2(r * 0.6, r * 0.12), col.darkened(0.05) if not voodoo else col, maxf(r * 0.14, 1.6), true)
+	for k in 3:
+		var b := head + Vector2(-r * 0.12 + r * 0.1 * float(k), -r * 0.12)
+		_part(ci, PackedVector2Array([b, b + Vector2(r * 0.03, -r * 0.18), b + Vector2(r * 0.08, 0.0)]), col.lightened(0.3), voodoo, r * 0.02, 1.0)
+	_eye_pair(ci, head + Vector2(r * 0.1, -r * 0.02), maxf(r * 0.1, 1.4), col, voodoo, false)
+
+## Skin and hair colours for the merfolk, picked by each one's seed.
+const SKIN := [Color("f2c7a5"), Color("d9a06e"), Color("a8704a"), Color("6e4630")]
+const HAIR := [Color("2a1a12"), Color("5a3220"), Color("d8b45a"), Color("101018")]
+
+## A mermaid, or (king = true) a little Poseidon with a crown, a white beard and a trident: both rare. Seen from
+## the side, swimming head first (+x): a fish tail with a fluke behind, the upper body in front.
+static func _merfolk(ci: CanvasItem, r: float, col: Color, t: float, sd: float, voodoo: bool, king: bool) -> void:
+	var skin: Color = SKIN[int(absf(sd) * 7.0) % SKIN.size()]
+	var hair: Color = Color("e8e8f0") if king else HAIR[int(absf(sd) * 3.0) % HAIR.size()]
+	# the tail: waves behind the hips and ends in a fluke
+	var tail := PackedVector2Array()
+	for j in 14:
+		var f := float(j) / 13.0
+		tail.append(Vector2(-r * 0.1 - r * 1.25 * f, sin(t * 4.0 - f * 4.5 + sd) * r * 0.28 * f))
+	var tip: Vector2 = tail[tail.size() - 1]
+	var dir := (tip - tail[tail.size() - 3]).normalized()
+	var nrm := dir.orthogonal()
+	_part(ci, PackedVector2Array([tip - dir * r * 0.05, tip + dir * r * 0.4 + nrm * r * 0.38, tip + dir * r * 0.15, tip + dir * r * 0.4 - nrm * r * 0.38]), col.lightened(0.15), voodoo, r * 0.03, 0.95)
+	if voodoo:
+		ci.draw_polyline(tail, col, maxf(r * 0.08, 1.8), true)
+	else:
+		_tapered(ci, tail, maxf(r * 0.5, 3.0), col)
+		for j in range(2, 11, 3):
+			ci.draw_arc(tail[j], r * 0.12 * (1.0 - float(j) / 14.0), -PI * 0.5, PI * 0.5, 6, Color(col.lightened(0.45), 0.55), maxf(r * 0.025, 1.0), true)
+	# hair streams back over the shoulders
+	var hp := Vector2(r * 0.72, 0.0)
+	var flow := PackedVector2Array()
+	for j in 8:
+		var f := float(j) / 7.0
+		flow.append(hp + Vector2(-r * (0.1 + (0.35 if king else 0.75) * f), -r * 0.12 + sin(t * 3.0 - f * 4.0 + sd) * r * 0.12 * f))
+	if voodoo:
+		ci.draw_polyline(flow, Color(hair, 0.9), maxf(r * 0.06, 1.4), true)
+	else:
+		_tapered(ci, flow, maxf(r * 0.42, 2.0), hair)
+	# the upper body: a torso with a simple top in the tail colour, the arms stroking forward
+	var torso := PackedVector2Array()
+	for i in 14:
+		var a := TAU * float(i) / 14.0
+		torso.append(Vector2(r * 0.22, 0.0) + Vector2(cos(a) * r * 0.36, sin(a) * r * 0.22))
+	_part(ci, torso, skin, voodoo, r * 0.03, 1.0)
+	if not king and not voodoo:
+		ci.draw_line(Vector2(r * 0.32, -r * 0.2), Vector2(r * 0.32, r * 0.2), col.lightened(0.25), maxf(r * 0.16, 1.6), true)
+	var stroke := sin(t * 3.0 + sd)
+	var arm_col: Color = skin if not voodoo else Color(skin, 0.9)
+	var sh := Vector2(r * 0.45, r * 0.12)
+	var hand := sh + Vector2(r * (0.3 + 0.12 * stroke), r * (0.25 - 0.1 * stroke))
+	ci.draw_line(sh, hand, arm_col, maxf(r * 0.09, 1.3), true)
+	ci.draw_line(Vector2(r * 0.45, -r * 0.12), Vector2(r * (0.7 - 0.12 * stroke), -r * (0.3 - 0.1 * stroke)), arm_col, maxf(r * 0.09, 1.3), true)
+	var gold := Color("ffd23f")
+	if king:
+		# the trident, held forward
+		var a2 := hand + Vector2(r * 0.85, -r * 0.05)
+		ci.draw_line(hand - Vector2(r * 0.4, 0.0), a2, gold, maxf(r * 0.06, 1.3), true)
+		ci.draw_line(a2 + Vector2(0.0, -r * 0.12), a2 + Vector2(0.0, r * 0.12), gold, maxf(r * 0.045, 1.1), true)
+		for k in 3:
+			var off := (float(k) - 1.0) * r * 0.12
+			ci.draw_line(a2 + Vector2(0.0, off), a2 + Vector2(r * 0.25, off * 1.2), gold, maxf(r * 0.045, 1.1), true)
+			ci.draw_colored_polygon(PackedVector2Array([a2 + Vector2(r * 0.25, off * 1.2 - r * 0.04), a2 + Vector2(r * 0.34, off * 1.2), a2 + Vector2(r * 0.25, off * 1.2 + r * 0.04)]), gold)
+	var head := PackedVector2Array()
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		head.append(hp + Vector2(cos(a) * r * 0.2, sin(a) * r * 0.2))
+	_part(ci, head, skin, voodoo, r * 0.03, 1.0)
+	if king:
+		# a white beard and the golden crown
+		_part(ci, PackedVector2Array([hp + Vector2(r * 0.05, r * 0.08), hp + Vector2(r * 0.22, r * 0.12), hp + Vector2(r * 0.12, r * 0.42), hp + Vector2(-r * 0.05, r * 0.2)]), hair, voodoo, r * 0.02, 1.0)
+		for k in 3:
+			var b := hp + Vector2(-r * 0.14 + r * 0.12 * float(k), -r * 0.18)
+			ci.draw_colored_polygon(PackedVector2Array([b, b + Vector2(r * 0.05, -r * 0.16), b + Vector2(r * 0.1, 0.0)]), gold)
+	ci.draw_circle(hp + Vector2(r * 0.09, -r * 0.05), maxf(r * 0.035, 1.0), Color(0.05, 0.05, 0.1) if not voodoo else col)
 
 # ---------- the player ----------
 

@@ -17,8 +17,9 @@ const TUNING := {
 	"eat_ratio": 1.15,          # eater needs mass >= victim mass * eat_ratio
 	"jaws_step": 0.05,          # each point of jaws lowers the ratio by this
 	"absorb": 0.10,             # share of the victim's mass a creature gains when it eats another one (you grow by xp, below)
-	"xp_first": 5.0,            # xp for size 2; every size costs `xp_ratio` times the one before (owner 2026-10-23: slow growing)
-	"xp_ratio": 2.0,
+	"xp_first": 30.0,           # xp from size 1 to 2: long enough to get the tail and the eye while still size 1 (owner 2026-10-24)
+	"xp_second": 50.0,          # xp from size 2 to 3 (the owner's "X"); every later size costs `xp_ratio` times the one before
+	"xp_ratio": 1.5,            # (owner 2026-10-24: from size 2 on, each size costs 50% more xp than the one before; it was 5 then x2)
 	"food_xp": 0.5,             # xp per food speck (a creature is worth its size level in xp)
 	"food_mass": 1.0,
 	"food_per_area": 4.2e-5,    # food per square world unit of the spawn disc
@@ -36,9 +37,9 @@ const TUNING := {
 	"min_npc_mass": 2.0,
 	"player_speed": 360.0,      # x MOVE_MULT[rank]
 	"size_speed_exp": 0.8,      # the camera zooms out as you grow, so speed grows with it: on screen you never feel slower
-	"tail_value": 20,           # creature value to eat for a tail (or eat one that has a tail)
-	"eye_value": 40,            # ... and for an eye
-	"tree_kills": 10,           # creatures eaten, after tail and eye, to unlock the evolution tree
+	"tail_value": 5,            # creature value to eat for a tail (or eat one that has a tail); was 20
+	"eye_value": 12,            # ... and for an eye (was 40): both come while you are still size 1 (owner 2026-10-24)
+	"tree_size": 2,             # growing to this size opens the evolution tree (it used to take 10 kills after the eye: size 5)
 	"trait_tail_chance": 0.14,  # share of early prey that carries a tail
 	"trait_eye_chance": 0.12,   # ... an eye
 	"npc_sight": 380.0,         # how far creatures notice each other
@@ -233,12 +234,13 @@ static func size_level(mass: float) -> int:
 			lv = i + 1
 	return lv
 
-## xp needed to reach a size (size 1 = 0). Every size costs `xp_ratio` (2) times the one before: 5, 10, 20, 40 ...
+## xp needed to reach a size (size 1 = 0). Size 1 -> 2 costs `xp_first` (30), 2 -> 3 `xp_second` (50), and every
+## later size `xp_ratio` (1.5) times the one before: 30, 50, 75, 112.5, 168.75 ...
 static func xp_at(lv: int) -> float:
 	if lv <= 1:
 		return 0.0
 	var r: float = TUNING.xp_ratio
-	return TUNING.xp_first * (pow(r, float(lv - 1)) - 1.0) / (r - 1.0)
+	return TUNING.xp_first + TUNING.xp_second * (pow(r, float(lv - 2)) - 1.0) / (r - 1.0)
 
 ## xp it takes to grow from this size to the next.
 static func xp_span(lv: int) -> float:
@@ -296,10 +298,15 @@ func _sync_mass() -> void:
 		xp = xp_of_mass(player.mass)
 		_mass_seen = player.mass
 
-## Growing: add xp, and the mass follows.
+## Growing: add xp, and the mass follows. Until the eye opens you stay size 1 (owner 2026-10-24: tail and eye
+## first, then "eat eat eat" to size 2, which opens the tree).
 func _gain_xp(amount: float) -> void:
 	_sync_mass()
-	xp += amount
+	var cap := xp_at(2) - 0.5
+	if sight_rank < 2 and xp < cap:
+		xp = minf(xp + amount, cap)
+	else:
+		xp += amount
 	player.mass = mass_of_xp(xp)
 	_mass_seen = player.mass
 	peak_mass = maxf(peak_mass, player.mass)
@@ -583,14 +590,14 @@ func _pick_species() -> Dictionary:
 	if sight_rank >= 2:
 		var roll := rng.randf()
 		if roll < t("rare_chance"):
-			return Data.species_of("gold")
+			return _pick_rare(lvl)
 		if roll < t("rare_chance") + t("toxic_chance"):
 			var tox := Data.species_by_role("toxic")
 			return tox[rng.randi() % tox.size()]
 	# The creatures that carry the first two traits.
-	if move_rank == 0 and rng.randf() < t("trait_tail_chance"):
+	if move_rank == 0 and lvl <= 1 and rng.randf() < t("trait_tail_chance"):
 		return Data.species_of("tailed")
-	if move_rank >= 1 and sight_rank == 1 and rng.randf() < t("trait_eye_chance"):
+	if move_rank >= 1 and sight_rank == 1 and lvl <= 1 and rng.randf() < t("trait_eye_chance"):
 		return Data.species_of("eyed")
 	var counts := {}
 	var threats := 0
@@ -627,6 +634,21 @@ func _pick_species() -> Dictionary:
 		if pick <= 0.0:
 			return cands[i]
 	return cands[cands.size() - 1]
+
+## Which rare creature: the ones your size can meet (`tier`), weighted by `weight` (the rarer, the lower).
+func _pick_rare(lvl: int) -> Dictionary:
+	var pool: Array = []
+	var total := 0.0
+	for sp in Data.SPECIES:
+		if sp.role == "rare" and int(sp.tier) <= lvl:
+			pool.append(sp)
+			total += float(sp.get("weight", 1.0))
+	var pick := rng.randf() * total
+	for sp in pool:
+		pick -= float(sp.get("weight", 1.0))
+		if pick <= 0.0:
+			return sp
+	return Data.species_of("gold")
 
 ## One new creature, or {} when nothing fits right now. Hunters never spawn near you.
 func _new_npc(at: Vector2 = Vector2.INF) -> Dictionary:
@@ -1064,9 +1086,10 @@ func _resolve(delta: float) -> void:
 	# Food
 	var fr := radius_of(t("food_mass"))
 	var keep: Array = []
-	var food_worth := value_of(t("food_mass"))
 	for f in food:
-		if food_worth > 0 and f.distance_to(player.pos) < pr + fr * 0.5:
+		# Food specks are always there and always edible, at any size (owner 2026-10-24: they used to vanish
+		# at size 4, being 3 sizes below you).
+		if f.distance_to(player.pos) < pr + fr * 0.5:
 			_gain_xp(t("food_xp") * gain_mult)
 			eaten_food += 1
 			events.append({"type": "food", "pos": f})
@@ -1100,7 +1123,7 @@ func _resolve(delta: float) -> void:
 			if n.role == "toxic":
 				_poison(n.species)
 			elif n.role == "rare":
-				_grant_rare()
+				_grant_rare(n.species)
 			pr = radius_of(player.mass)
 			continue
 		if n.role == "hunter" and can_eat(n.mass, player.mass) and d < nr + pr * 0.5 and n.get("stun", 0.0) <= 0.0 and n.get("pause", 0.0) <= 0.0:
@@ -1237,8 +1260,13 @@ func _poison(species: String = "") -> void:
 		ail_full[id] = dur
 	events.append({"type": "ailment", "id": id})
 
-## Rare creature: a tree trait ahead of time, or a special trait, or (if you have everything) DNA.
-func _grant_rare() -> void:
+## Rare creature: a tree trait ahead of time, or a special trait, or (if you have everything) DNA. The rarer
+## kinds (starfish, seahorse, mermaid, little Poseidon) also give their `dna` on top.
+func _grant_rare(species: String = "gold") -> void:
+	var bonus: int = int(Data.species_of(species).get("dna", 0)) if species != "" else 0
+	if bonus > 0:
+		dna += bonus
+		events.append({"type": "rare_dna", "species": species, "dna": bonus})
 	var pool: Array = []
 	for n in Data.NODES:
 		if tree_unlocked and reqs_met(n.id) and rank_of(n.id) < int(n.max):
@@ -1394,7 +1422,10 @@ func _counter(kind: String, species: String) -> float:
 		"species":
 			return float(eaten_species.get(species, 0))
 		"rare":
-			return float(eaten_species.get("gold", 0))
+			var c := 0
+			for sp in Data.species_by_role("rare"):
+				c += int(eaten_species.get(sp.id, 0))
+			return float(c)
 	return 0.0
 
 ## Current progress of a mission, in its own units.
@@ -1501,7 +1532,8 @@ func _complete(m: Dictionary) -> void:
 		"dna":
 			dna += 1
 			events.append({"type": "dna"})
-	# The first missions are the tutorial, in order: move, tail, eye, then the kills that open the tree.
+	# The first missions are the tutorial, in order: move, tail, eye, then growing to size 2 opens the tree
+	# (it used to be 10 kills after the eye, which came at size 4-5).
 	if _story == 0 and m.kind == "jolts":
 		_story = 1
 		_add_mission({"kind": "value", "target": t("tail_value"), "text": "Evolve", "reward": "tail"})
@@ -1510,7 +1542,7 @@ func _complete(m: Dictionary) -> void:
 		_add_mission({"kind": "value", "target": t("eye_value"), "text": "Evolve further", "reward": "eye"})
 	elif _story == 2 and m.reward == "eye":
 		_story = 3
-		_add_mission({"kind": "kills", "target": t("tree_kills"), "text": "Hunt", "reward": "tree"})
+		_add_mission({"kind": "mass", "target": int(t("tree_size")), "text": "Grow to size %d", "args": [int(t("tree_size"))], "reward": "tree"})
 	elif _story == 3 and m.reward == "tree":
 		_story = 4
 		_grow_mission()
@@ -1561,7 +1593,10 @@ func _met(id: String) -> void:
 		"prey":
 			_add_mission({"kind": "species", "species": id, "target": 1, "text": "Eat a %s", "args": [sp.name], "reward": _next_reward()})
 		"rare":
-			_add_mission({"kind": "rare", "target": 1, "text": "Catch a Golden spore", "reward": "dna"})
+			if id == "gold":
+				_add_mission({"kind": "rare", "target": 1, "text": "Catch a Golden spore", "reward": "dna"})
+			else:
+				_add_mission({"kind": "species", "species": id, "target": 1, "text": "Catch: %s", "args": [sp.name], "reward": "dna"})
 
 ## Fields for the HUD: each mission as {text, args, frac (0..1, shown as a bar), done, kind}.
 func mission_rows() -> Array:

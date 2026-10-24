@@ -16,7 +16,7 @@ const HOW := [
 	"Once the tree is open, use the 🧬 screen (middle, next to pause): the game stops while you look. It shows your creature's size, speed, strength and health, and lets you spend DNA on the evolution tree: offense, senses, movement, defense and habitat. A trait shows a ? until you own the traits before it.",
 	"Creatures that can eat you glow red. Toxic ones glow yellow-green, and each kind always causes the same ailment: spiky spores make you brittle, glow spores make you glow, gut worms give a bottomless appetite, mold spores slow your healing. A bar under your health shows how long the ailment lasts.",
 	"Get the same ailment often enough and your body learns to resist it, for free: 10 times for 1/5, then every 20 more, up to 5/5 (immune). The 🧬 screen shows how far you are.",
-	"Rare golden creatures shimmer and send ripples through the water, even just past what you can see. Eat one for a free trait.",
+	"Rare creatures glow gold, shimmer and send ripples through the water, even just past what you can see. Eat one for a free trait. The bigger you are, the more kinds turn up, and the rarest ones also give DNA.",
 	"Under your health bar: your depth and the water temperature, with the limits your body can take. Water that is too cold slows you down and hurts; too deep, the pressure hurts. The Habitat branch (Antifreeze, Pressure cells and more) lets you swim colder and deeper.",
 	"Nothing is saved mid-run, so there is no Resume: every run starts as a tiny cell.",
 ]
@@ -64,4 +64,7 @@ const FACTS := [
 	"Most of the deep ocean is cold, around 0 to 4 °C, even under the tropics.",
 	"Every 10 m deeper in water adds about one more atmosphere of pressure.",
 	"Some polar fish make antifreeze proteins that stop ice crystals from growing in their blood.",
+	"An octopus has three hearts and blue blood.",
+	"A starfish can grow back a lost arm.",
+	"In seahorses it is the father who carries the eggs until they hatch.",
 ]
