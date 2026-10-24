@@ -519,6 +519,9 @@ func _build_home() -> void:
 		b.pressed.connect(_on_more.bind(it[2]))
 		more.add_child(b)
 	_add_fact_card(box)
+	var ver := _version_row()
+	if ver != null:
+		box.add_child(ver)
 	if _compact():
 		_compact_sizes(box)
 	get_viewport().size_changed.connect(_fit_home_layout)
@@ -573,6 +576,29 @@ func _rating_row() -> Control:
 		help.pressed.connect(_open_help)
 		col.add_child(help)
 	return col
+
+## The bottom of the Landing: "App v0.38.2 · game v9", so you can tell which build you are playing. The game
+## number is the pack you downloaded (the published one when the pack comes with the app). Older apps lack
+## Version / Catalog.local_version, so each part shows only when it exists.
+func _version_row() -> Control:
+	var parts: Array = []
+	if ResourceLoader.exists("res://scripts/common/version.gd"):
+		parts.append(tr("App v%s") % str(load("res://scripts/common/version.gd").VERSION))
+	var catalog := get_node_or_null("/root/Catalog")
+	if catalog != null and catalog.has_method("local_version") and catalog.has_method("get_game"):
+		var gid := str(consts.get("ID", ""))
+		if gid == "":
+			gid = _scene_game_id()
+		var v := int(catalog.local_version(gid))
+		if v <= 0:
+			v = int(catalog.get_game(gid).get("version", 0))
+		if v > 0:
+			parts.append(tr("game v%d") % v)
+	if parts.is_empty():
+		return null
+	var row := label(" · ".join(parts), 18, DIM, false, true)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return row
 
 func _open_help() -> void:
 	var path := "res://scripts/common/consent.gd"
