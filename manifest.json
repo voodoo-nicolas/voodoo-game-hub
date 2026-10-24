@@ -150,7 +150,7 @@
     "whack_a_mole": {"version": 18, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/whack_a_mole.pck", "scene": "res://scenes/games/whack_a_mole/whack_a_mole.tscn"},
     "war": {"version": 14, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/war.pck", "scene": "res://scenes/games/war/war.tscn"},
     "snake": {"version": 18, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/snake.pck", "scene": "res://scenes/games/snake/snake.tscn"},
-    "chess": {"version": 18, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck", "scene": "res://scenes/games/chess/chess.tscn"},
+    "chess": {"version": 19, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck", "scene": "res://scenes/games/chess/chess.tscn"},
     "dots_boxes": {"version": 18, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dots_boxes.pck", "scene": "res://scenes/games/dots_boxes/dots_boxes.tscn"},
     "minesweeper": {"version": 13, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/minesweeper.pck", "scene": "res://scenes/games/minesweeper/minesweeper.tscn"},
     "wordle": {"version": 17, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wordle.pck", "scene": "res://scenes/games/wordle/wordle.tscn"},
