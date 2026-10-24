@@ -43,19 +43,26 @@ For each: **Sheet** = MASTER STYLE (without the vignette and corner blur) + SHEE
 
 | Id | Who | Description line (add after MASTER STYLE) | Variants |
 |---|---|---|---|
-| CS-01 | You (PE-01) | THE PLAYER | sheet a) waistcoat and blouse; b) wearing THE STRANGE COAT, collar up; c) with a wide-brimmed hat and a scarf wrapped around the lower face (sun gear); d) skin red, blistered and swollen on the hands and face (sun burns); e) very pale, dark under the eyes, trembling (thirst). Busts: neutral, scared, angry, drained |
-
-**Variants b-e of CS-01, said in the same chat after a)** (so ChatGPT edits instead of redrawing):
-- b) *"Same character, same three views, same background, now wearing a heavy dark charcoal wool coat with a high collar and a subtle tone-on-tone floral brocade pattern, a worn dark red-grey lining, slightly too elegant for its owner; collar up."*
-- c) *"Same character, same three views, same background, same clothes, now with a wide-brimmed hat pulled low and a scarf wrapped around the lower face, only the eyes showing."*
-- d) *"Same character, same three views, same background, same clothes. Her skin is sunburned: the face, neck, hands and forearms red and swollen, with blisters and peeling patches, the worst on the cheeks, the nose and the backs of the hands; the covered skin stays pale. She holds her hands slightly away from her body as if they hurt."*
-- e) *"Same character, same three views, same background, same clothes. She is starving with thirst: deathly pale, almost grey-white skin, dark hollows under the eyes, dry cracked lips, hair tangled and lank, shoulders hunched, arms wrapped around herself, visibly trembling."*
+| CS-01 | You (PE-01) | THE PLAYER | sheet a) waistcoat and blouse; b) wearing THE STRANGE COAT, collar up; c) with a wide-brimmed hat and a scarf wrapped around the lower face (sun gear); d) skin red, blistered and swollen on the hands and face (sun burns); e) very pale, dark under the eyes, trembling (thirst); outfits f) black corset; g) burgundy day dress; h) black evening gown; i) nightgown and shawl; j) hooded green cloak. Busts: neutral, scared, angry, drained |
 | CS-02 | Tavernkeep (PE-02) | A broad man in his fifties, thick grey-brown moustache, rolled shirt sleeves, a stained leather apron, a damp cloth over one shoulder | busts: afraid, hard |
 | CS-03 | Witness (PE-04) | A thin nervous man in his thirties, unshaven, a worn flat cap and a threadbare grey jacket, wide eyes, pale | busts: scared, relieved, suspicious |
 | CS-04 | Shopkeeper (PE-06) | A stocky man of about fifty-five, grey whiskers, round wire spectacles, a waistcoat with a watch pocket, rolled sleeves, tobacco-stained fingers | sheet a) shop outfit; b) heavy travel coat and a brimmed hat holding an oil lamp; c) the left forearm wrapped in torn cloth smeared with dirt. Busts: guarded, kind, afraid |
 | CS-05 | Old Man (PE-07) | A gaunt man of seventy, long white-grey hair, deep-set pale eyes, a worn black clerical coat with the collar removed and a shawl over it, ink-stained fingers, a walking stick | busts: weary, sharp, ashamed |
 | CS-06 | Harbor Man (PE-08) | A tall weathered ship's captain in his fifties, salt-and-pepper beard, a navy double-breasted coat with brass buttons, a peaked cap, a silver watch chain across the waistcoat | busts: calm, assessing, grave |
 | CS-07 | Priest (PE-13) | A lean man in his forties, black cassock with a white collar, a hawkish face, a thin cold smile | busts: courteous, cold |
+
+**Variants b-j of CS-01, said in the same chat after a)** (so ChatGPT edits instead of redrawing):
+- b) *"Same character, same three views, same background, now wearing a heavy dark charcoal wool coat with a high collar and a subtle tone-on-tone floral brocade pattern, a worn dark red-grey lining, slightly too elegant for its owner; collar up."*
+- c) *"Same character, same three views, same background, same clothes, now with a wide-brimmed hat pulled low and a scarf wrapped around the lower face, only the eyes showing."*
+- d) *"Same character, same three views, same background, same clothes. Her skin is sunburned: the face, neck, hands and forearms red and swollen, with blisters and peeling patches, the worst on the cheeks, the nose and the backs of the hands; the covered skin stays pale. She holds her hands slightly away from her body as if they hurt."*
+- e) *"Same character, same three views, same background, same clothes. She is starving with thirst: deathly pale, almost grey-white skin, dark hollows under the eyes, dry cracked lips, hair tangled and lank, shoulders hunched, arms wrapped around herself, visibly trembling."*
+- f) *"Same character, same face, same long dark auburn hair worn down, same three views, same background. New outfit: a black boned Victorian corset worn over a high-collared ivory blouse with full sleeves, a long dark charcoal skirt, black lace-up boots, a thin black velvet ribbon at the throat."*
+- g) *"Same character, same face, same long dark auburn hair worn down, same three views, same background. New outfit: a deep burgundy Victorian day dress with a high lace collar, long fitted sleeves, a fitted bodice with small black jet buttons, a full floor-length skirt, black boots."*
+- h) *"Same character, same face, same long dark auburn hair worn down, same three views, same background. New outfit: a black silk evening gown with a high neckline of black lace, long sheer lace sleeves, a fitted waist and a long skirt with a short train, a small silver brooch at the collar."*
+- i) *"Same character, same face, same long dark auburn hair worn down and tousled from sleep, same three views, same background. New outfit: a long white cotton nightgown with a lace collar and long sleeves, a grey knitted shawl around the shoulders, barefoot."*
+- j) *"Same character, same face, same long dark auburn hair worn down, same three views, same background. New outfit: a long dark bottle-green hooded wool cloak, hood down, over the waistcoat, blouse and walking skirt, black boots, leather gloves."*
+
+f-j (owner 2026-10-24: "more of her, a variety of clothes, a black corset, a dress") are not in the story yet: nothing in the game uses them until a scene or a wardrobe asks for an outfit. i) fits the Prologue (she wakes in bed), j) the forest road.
 
 Crowds (PE-03 bar patrons, PE-09 harbor locals) are 4-6 sprites each, made later from one prompt per type (`ART_PROMPTS.md` swaps); not needed for the first scenes.
 
