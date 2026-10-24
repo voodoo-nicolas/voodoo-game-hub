@@ -233,6 +233,8 @@ func _build_house() -> void:
 		"from_down": Vector2(472, 360),
 		"bedroom_door": Vector2(160, 352),   # on the landing, out of the painted bedroom (turned_scenes.json)
 		"bathroom_door": Vector2(436, 268),  # in the bathroom, by its door
+		"bathroom_out": Vector2(436, 352),   # on the landing, out of the painted bathroom
+		"study_out": Vector2(240, 370),      # on the landing, out of the painted study
 	}
 
 func _build_house_down() -> void:
@@ -304,6 +306,8 @@ func _build_house_down() -> void:
 	spawns = {
 		"from_street": Vector2(44, 360),
 		"from_up": Vector2(472, 360),
+		"parlour_door": Vector2(160, 280),   # out of the painted hall (turned_scenes.json)
+		"kitchen_door": Vector2(436, 280),
 	}
 
 # ---------------------------------------------------------------- The Crooked Lantern (the bar)

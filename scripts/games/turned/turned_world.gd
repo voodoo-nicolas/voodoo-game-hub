@@ -1270,14 +1270,15 @@ func _scenes() -> Dictionary:
 ## painting. The walk, the clock and the sun stand still: time passes in Scene mode only through
 ## the story and travel (the plan's decision 3).
 func enter_scene(id: String) -> bool:
-	if scene_view == null or (mode != "play" and mode != "scene"):
+	if scene_view == null or not mode in ["play", "scene", "transition"]:
 		return false
+	var fading := mode == "transition"          # arriving through a door: the fade goes on over the painting
 	var sc: Dictionary = _scenes().get(id, {})
 	if sc.is_empty():
 		return false
 	in_scene = true
 	scene_id = id
-	mode = "scene"
+	mode = "transition" if fading else "scene"
 	player.moving = false
 	hud.clear_caption()
 	hud.release_inputs()
@@ -1382,7 +1383,7 @@ func _tick_closeup(delta: float) -> void:
 			hud.closeup = clampf(1.0 - _cu_t / 0.4, 0.0, 1.0)
 			if _cu_t >= 0.4:
 				hud.closeup = 0.0
-				mode = "play"
+				mode = "scene" if in_scene else "play"   # the mirror can be opened from the bathroom painting
 				if engine.mission != "go_bar":
 					engine.set_mission("find_out")
 				hud.reveal("mission")
@@ -1421,6 +1422,10 @@ func _tick_transition(delta: float) -> void:
 			_snap_camera()
 			_apply_item_state()
 			_sun_mix = 0.0
+			# arriving in a room that has a painting: it is up before the screen lights again
+			var zone := Scenes.zone_at(_scenes(), area.id, player.position, _scene_holds)
+			if zone != "":
+				enter_scene(zone)
 			_tr_phase = 1
 			_tr_t = 0.0
 	else:
@@ -1432,7 +1437,7 @@ func _tick_transition(delta: float) -> void:
 		hud.fade = clampf(1.0 - _tr_t / half, 0.0, 1.0)
 		if _tr_t >= half:
 			hud.fade = 0.0
-			mode = "play"
+			mode = "scene" if in_scene else "play"
 			if _tr_save:
 				save_game()
 			_on_area_ready()

@@ -18,6 +18,44 @@
       {"id": "bathroom", "label": "hs_bathroom", "kind": "exit", "dir": "right", "pos": [0.90, 0.74], "do": ["area:house:bathroom_door"]}
     ]
   },
+  "bathroom": {
+    "art": "SC-03",
+    "walk_zone": {"area": "house", "rect": [352, 16, 192, 288], "when": ["flag:pockets"]},
+    "hotspots": [
+      {"id": "mirror", "label": "hs_mirror", "pos": [0.18, 0.36], "do": ["interact:mirror"]},
+      {"id": "towel", "label": "hs_towel", "pos": [0.31, 0.47], "do": ["interact:towel"]},
+      {"id": "bath", "label": "hs_bath", "pos": [0.43, 0.57], "do": ["interact:bath"]},
+      {"id": "shelf", "label": "hs_shelf", "pos": [0.50, 0.29], "do": ["interact:cabinet"]},
+      {"id": "washstand", "label": "hs_washstand", "pos": [0.61, 0.47], "do": ["interact:washstand"]},
+      {"id": "toilet", "label": "hs_toilet", "pos": [0.72, 0.64], "do": ["interact:toilet"]},
+      {"id": "landing", "label": "hs_landing", "kind": "exit", "dir": "right", "pos": [0.87, 0.76], "do": ["area:house:bathroom_out"]}
+    ]
+  },
+  "study": {
+    "art": "SC-04",
+    "walk_zone": {"area": "house", "rect": [16, 416, 528, 144], "when": ["flag:pockets"]},
+    "hotspots": [
+      {"id": "desk", "label": "hs_desk", "pos": [0.22, 0.60], "do": ["look:study_desk"]},
+      {"id": "globe", "label": "hs_globe", "pos": [0.47, 0.64], "do": ["interact:globe"]},
+      {"id": "bookshelf", "label": "hs_bookshelf", "pos": [0.64, 0.42], "do": ["interact:bookshelf"]},
+      {"id": "armchair", "label": "hs_armchair", "pos": [0.76, 0.64], "do": ["look:study_armchair"]},
+      {"id": "landing", "label": "hs_landing", "kind": "exit", "dir": "right", "pos": [0.89, 0.34], "do": ["area:house:study_out"]}
+    ]
+  },
+  "hall": {
+    "art": "SC-05",
+    "walk_zone": {"area": "house_down", "rect": [16, 320, 528, 80], "when": ["flag:pockets"], "not_while": ["flag:witness_home", "!flag:matches_shown"]},
+    "hotspots": [
+      {"id": "front_door", "label": "hs_front_door", "kind": "exit", "dir": "left", "pos": [0.14, 0.52], "do": ["interact:front_door"]},
+      {"id": "scarf", "label": "hs_scarf", "pos": [0.30, 0.42], "when": ["!flag:scarf"], "do": ["interact:scarf"]},
+      {"id": "clock", "label": "hs_clock", "pos": [0.43, 0.56], "do": ["interact:clock"]},
+      {"id": "cellar", "label": "hs_cellar", "pos": [0.61, 0.67], "do": ["interact:cellar_door"]},
+      {"id": "stairs", "label": "hs_upstairs", "kind": "exit", "dir": "up", "pos": [0.77, 0.52], "do": ["interact:stairs_up"]},
+      {"id": "portrait", "label": "hs_portrait", "pos": [0.88, 0.33], "do": ["interact:portrait"]},
+      {"id": "parlour", "label": "hs_parlour", "kind": "exit", "dir": "left", "pos": [0.12, 0.82], "do": ["area:house_down:parlour_door"]},
+      {"id": "kitchen", "label": "hs_kitchen", "kind": "exit", "dir": "right", "pos": [0.88, 0.82], "do": ["area:house_down:kitchen_door"]}
+    ]
+  },
   "dev_room": {
     "art": "dev_room",
     "hotspots": [

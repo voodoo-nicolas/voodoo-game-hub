@@ -59,6 +59,7 @@ func _run() -> void:
 	await _test_cards()
 	await _test_scene_dialogue()
 	await _test_bedroom()
+	await _test_house_rooms()
 	await _test_bar()
 	await _test_follower()
 	Save.clear()
@@ -1157,8 +1158,94 @@ func _test_bedroom() -> void:
 	check(world.mode == "scene" and world.scene_id == "bedroom" and world.player.position.y < 304.0, "walking back in through the door opens it again")
 	_tap_chip("bathroom")
 	_step(1.2)
-	check(world.mode == "play" and world.player.position.distance_to(world.area.spawns["bathroom_door"]) < 1.0, "the other door leads to the bathroom")
+	check(world.mode == "scene" and world.scene_id == "bathroom" and world.player.position.distance_to(world.area.spawns["bathroom_door"]) < 1.0, "the other door leads to the bathroom, a painting too")
 	check(not Rect2(16, 16, 320, 288).has_point(world.area.spawns["bathroom_door"]) and not Rect2(16, 16, 320, 288).has_point(world.area.spawns["bedroom_door"]), "both doors land outside the bedroom")
+
+## Steps until the world is in `want` (or `limit_s` passes) while walking `dir`.
+func _walk_until(dir: Vector2, want: String, limit_s: float = 4.0) -> void:
+	world.test_dir = dir
+	var t := 0.0
+	while world.mode != want and t < limit_s:
+		_step(DT * 3.0)
+		t += DT * 3.0
+	world.test_dir = Vector2.ZERO
+
+## The bathroom, the study and the hall as paintings (SC-03, SC-04, SC-05), and the doors between them.
+func _test_house_rooms() -> void:
+	await _scene_ready_world()
+	world._load_area("house")
+	world.engine.set_flag("pockets")
+	world.clock.hour = 9.0
+	world.player.position = world.area.spawns["bathroom_out"]
+	_step(0.1)
+	check(world.mode == "play" and not world.in_scene, "the landing stays a Walk room")
+	# arriving through a door: the painting is up before the screen lights again
+	world._go_area("house", "bathroom_door", false)
+	_step(0.6)
+	check(world.in_scene and world.scene_id == "bathroom" and world.mode == "transition" and hud.fade > 0.5, "arriving in the bathroom through a door: its painting is up while the screen is still dark")
+	_step(0.7)
+	check(world.mode == "scene" and sview._art_id == "SC-03" and sview._tex != null, "then the bathroom painting, SC-03")
+	# the mirror from the painting: the close-up, then back to the painting
+	_tap_chip("mirror")
+	check(world.mode == "closeup", "the looking glass opens the mirror close-up")
+	_step(0.7 + T.f("prologue.closeup_min_s"))
+	world.press_a()
+	_step(0.6)
+	check(world.mode == "scene" and world.in_scene and world.scene_id == "bathroom", "closing it goes back to the painting")
+	_tap_chip("towel")
+	check(world.engine.journal.has("towel") and hud.caption_text() == Text.CLUES["towel"]["say"], "the towel is the same clue as in Walk mode")
+	_tap_chip("landing")
+	_step(1.2)
+	check(world.mode == "play" and not world.in_scene and world.player.position.distance_to(world.area.spawns["bathroom_out"]) < 1.0, "the bathroom door leads to the landing")
+	# the study: walk in from the landing
+	world.player.position = world.area.spawns["study_out"]
+	_walk_until(Vector2.DOWN, "scene")
+	check(world.mode == "scene" and world.scene_id == "study" and sview._art_id == "SC-04", "walking into the study opens SC-04")
+	_tap_chip("globe")
+	check(hud.caption_text() == Text.LOOKS["globe"], "the globe says its Walk-mode line")
+	_tap_chip("desk")
+	check(hud.caption_text() == SceneText.LOOKS["study_desk"], "the desk has its own line (the painting has papers on it)")
+	_tap_chip("landing")
+	_step(1.2)
+	check(world.mode == "play" and world.player.position.distance_to(world.area.spawns["study_out"]) < 1.0, "the study door leads to the landing")
+	# downstairs into the hall painting
+	world._interact({"id": "stairs_down"})
+	_step(1.2)
+	check(world.area.id == "house_down" and world.mode == "scene" and world.scene_id == "hall" and sview._art_id == "SC-05", "going downstairs lands in the hall painting")
+	check(sview.spots.any(func(h): return h["id"] == "scarf"), "the scarf hangs on the coat stand")
+	_tap_chip("scarf")
+	check(world.engine.has_flag("scarf") and not sview.spots.any(func(h): return h["id"] == "scarf"), "taking the scarf: the chip goes")
+	_tap_chip("cellar")
+	check(world.engine.journal.has("cellar") and hud.caption_text() == Text.INNER["cellar_locked"], "the cellar door is locked, as in Walk mode")
+	_tap_chip("front_door")
+	check(world.mode == "scene" and hud.caption_text() == Text.INNER["door_coat"], "the front door says no until the coat (the Walk door's rules)")
+	world.engine.add_journal("coat")
+	world.engine.add_item("note")
+	_tap_chip("front_door")
+	_step(1.2)
+	check(world.area.id == "street" and world.mode == "play" and not world.in_scene, "with the note it opens onto the street")
+	world._interact({"id": "house_door"})
+	_step(1.2)
+	check(world.area.id == "house_down" and world.mode == "scene" and world.scene_id == "hall", "coming home through the front door: the hall painting")
+	_tap_chip("kitchen")
+	_step(1.2)
+	check(world.mode == "play" and world.player.position.distance_to(world.area.spawns["kitchen_door"]) < 1.0, "the kitchen door leads to the Walk kitchen")
+	# while the witness waits in the hall it stays a Walk room (he is not in the painting)
+	world.engine.set_flag("witness_home")
+	world.player.position = Vector2(300, 360)
+	_step(0.1)
+	check(world.mode == "play", "while the witness waits in the hall, the hall is the Walk room")
+	world.engine.set_flag("matches_shown")
+	_step(0.1)
+	check(world.mode == "scene" and world.scene_id == "hall", "once he has gone it is the painting again")
+	_tap_chip("stairs")
+	_step(1.2)
+	check(world.area.id == "house" and world.mode == "play" and world.player.position.distance_to(world.area.spawns["from_down"]) < 1.0, "the stairs lead up to the landing")
+	for sp in ["bathroom_out", "study_out", "from_down", "bedroom_door"]:
+		check(Scenes.zone_at(Scenes.shipped(), "house", world.area.spawns[sp], world._scene_holds) == "", "the landing spawn '%s' is outside every painted room" % sp)
+	world._load_area("house_down")
+	for sp in ["parlour_door", "kitchen_door"]:
+		check(Scenes.zone_at(Scenes.shipped(), "house_down", world.area.spawns[sp], world._scene_holds) == "", "the spawn '%s' is outside the hall" % sp)
 
 func _test_bar() -> void:
 	var bar: Area = Area.make("bar") as Area

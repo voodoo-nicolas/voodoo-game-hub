@@ -8,9 +8,11 @@ extends RefCounted
 ##           "hotspots": [{"id": "coat", "label": "hs_coat", "pos": [0.62, 0.55],
 ##                         "kind": "look" | "exit", "dir": "right" | "left" | "up" | "down" (an exit's arrow),
 ##                         "when": [...], "once": false, "do": [...]}],
-##           "walk_zone": {"area": "house", "rect": [x, y, w, h], "when": [...]}}
-## `walk_zone` (optional): walking into that rectangle of a Walk map opens the scene, once its painting
-## file exists and its `when` holds; until then the Walk room is used (SCENE_MODE_PLAN.md, "walk_area").
+##           "walk_zone": {"area": "house", "rect": [x, y, w, h], "when": [...], "not_while": [...]}}
+## `walk_zone` (optional): walking into that rectangle of a Walk map (or arriving in it through a door)
+## opens the scene, once its painting file exists and its `when` holds, unless every `not_while`
+## condition holds (a person stands in the Walk room); otherwise the Walk room is used
+## (SCENE_MODE_PLAN.md, "walk_area").
 ## `pos` is a fraction of the painting, so one file fits every screen. `when` is a list of the
 ## dialogue runner's conditions (flag: item: journal: mission: hour>= hour< day>=), all must hold.
 ## `do` actions, in order:
@@ -36,7 +38,7 @@ const PAINTING_ASPECT := 1536.0 / 1024.0
 const _ACTIONS := ["look:", "interact:", "dialogue:", "scene:", "card:", "leave", "area:", "flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "sfx:"]
 
 ## Walk-mode things with their own code in turned_world.gd `_interact` (the rest are Text.CLUES / Text.LOOKS).
-const WORLD_INTERACTS := ["coat", "matches", "mirror", "scarf", "cellar_door"]
+const WORLD_INTERACTS := ["coat", "matches", "mirror", "scarf", "cellar_door", "front_door", "stairs_up", "stairs_down"]
 
 static var _shared: Dictionary = {}
 
@@ -100,6 +102,9 @@ static func zone_at(data: Dictionary, area_id: String, pos: Vector2, holds: Call
 		var r: Array = z.get("rect", [])
 		if r.size() != 4 or not Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3])).has_point(pos):
 			continue
+		var nw: Array = z.get("not_while", [])
+		if not nw.is_empty() and holds.call(nw):
+			continue
 		if holds.call(z.get("when", [])) and has_painting(str((data[sid] as Dictionary).get("art", ""))):
 			return str(sid)
 	return ""
@@ -127,6 +132,7 @@ static func validate(data: Dictionary) -> Array:
 			if str(z.get("area", "")) == "" or zr.size() != 4 or float(zr[2]) <= 0.0 or float(zr[3]) <= 0.0:
 				errs.append("%s: walk_zone needs an area and a rect [x, y, w, h]" % sid)
 			_check_conds(z.get("when", []), "%s walk_zone" % sid, errs)
+			_check_conds(z.get("not_while", []), "%s walk_zone" % sid, errs)
 		var seen_ids := {}
 		var spots: Array = sc.get("hotspots", [])
 		if spots.is_empty():

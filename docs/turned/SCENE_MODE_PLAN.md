@@ -2,7 +2,7 @@
 
 2026-10-23. Decided by the owner: Turned stays landscape, scenes are painted 1536 x 1024 (`ART_DIRECTION_V2.md`). **Nothing here is built.** Per the owner's rule, each phase starts with a task list and waits for the OK; phases S1-S7 below are the proposal, S1 is the first to approve.
 
-**Status (2026-10-24): S1-S5 are built** (the foundation, the Scene HUD, the zoom cards, dialogue in scenes, and the first real room: the bedroom, `SC-01` / `SC-02`; decisions S1-1..S5-7 in `DECISIONS.md`). S6-S7 are not. Adding a room: the checklist in section 6.
+**Status (2026-10-24): S1-S5 are built** (the foundation, the Scene HUD, the zoom cards, dialogue in scenes, and the first real rooms: the bedroom (`SC-01` / `SC-02`), the bathroom, the study and the hall (`SC-03..05`); decisions S1-1..S5-7 in `DECISIONS.md`). S6-S7 are not. Adding a room: the checklist in section 6.
 
 ## 1. What Scene mode is
 
@@ -71,5 +71,5 @@ Everything above. The only things that exist for it today are the planning docum
 1. The painting: `reference/art/turned/gen/<SC-nn>.jpg` (the original) -> `games/turned/art/scenes/<SC-nn>.webp` (WebP q84), a `media/CREDITS.json` entry and a line in `media/licenses/OWNER_GAME_ART.md`. A night or other version is a `variants` entry (`when` holds all of its conditions; two entries for "after 18:00 or before 06:00").
 2. The scene in `turned_scenes.json`: place each hotspot by laying a 10% grid over the picture (`pos` = the thing's centre, inside x 0.10-0.90, y 0.20-0.86); exits are `kind: "exit"` with a `dir`.
 3. What a hotspot does: reuse the Walk room's own code with `interact:<id>` (the coat, the matches, Text.CLUES, Text.LOOKS) so both modes stay the same; new lines go in `turned_scene_text.gd` `LOOKS`, labels in `HOTSPOTS`, Spanish in `tools/i18n/es.json`, then `python tools/hub.py i18n`.
-4. How you get in: `walk_zone` = the room's rectangle on its Walk map and the condition from which the painting replaces it; exits `area:<map>:<spawn>` land on a spawn **outside** that rectangle (or walking on reopens it).
+4. How you get in: `walk_zone` = the room's rectangle on its Walk map, the condition from which the painting replaces it, and `not_while` when someone stands in the Walk room; exits `area:<map>:<spawn>` land on a spawn **outside** that rectangle (or walking on reopens it).
 5. Check: `tools/test_turned.gd` (validation, the chips at five screen shapes, clear of the nav strip; add the room's own flow like `_test_bedroom`), then `tools/shot_turned_scene.gd` at 1280x720, 1024x768 and 1170x540 with text size 2, and look at the chips on the picture.

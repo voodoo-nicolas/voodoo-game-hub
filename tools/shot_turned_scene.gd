@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Screenshots of Turned's Scene mode (the two dev scenes with placeholders, then the real bedroom) in the real game,
+## Screenshots of Turned's Scene mode (the two dev scenes with placeholders, then the painted house rooms) in the real game,
 ## in a real window (not --headless):
 ##   godot --path . --resolution 1280x720 --script res://tools/shot_turned_scene.gd -- <out_dir> [text size 0|1|2]
 ## Run it at 1280x720 (16:9), 1560x720 (19.5:9), 1024x768 (4:3) and 1170x540, and with text size 1 or 2
@@ -133,6 +133,26 @@ func _run() -> void:
 	game.scene_view.refresh()
 	await _wait(50)
 	await _shot("11_bedroom_night")
+	world.leave_scene()
+	world.clock.hour = 9.0
+	world.player.position = Vector2(436.0, 200.0)   # the bathroom
+	await _wait(50)
+	await _shot("12_bathroom")
+	world._interact({"id": "mirror"})               # the close-up over the painting
+	await _wait(60)
+	await _shot("13_bathroom_mirror")
+	world.mode = "scene"
+	world._cu = ""
+	hud.closeup = 0.0
+	world.leave_scene()
+	world.player.position = Vector2(300.0, 480.0)   # the study
+	await _wait(50)
+	await _shot("14_study")
+	world.leave_scene()
+	world._load_area("house_down")
+	world.player.position = Vector2(300.0, 360.0)   # the hall
+	await _wait(50)
+	await _shot("15_hall")
 	Save.clear()
 	if backup != "":
 		var f := FileAccess.open(Save.PATH, FileAccess.WRITE)
