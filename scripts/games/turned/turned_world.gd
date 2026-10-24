@@ -106,6 +106,7 @@ var _dlg_area := ""            # an "area:" effect waits until the scene is over
 var _dlg_hour := -1.0          # so does an "hour:" one (-1 = none)
 var _dlg_journal := 0
 var _dlg_items := 0
+var _dlg_scene := ""           # a "scene:" effect waits until the dialogue is over
 var _dlg_back := "play"        # the mode a dialogue returns to ("scene" when it started from a painting)
 # scene mode (docs/turned/SCENE_MODE_PLAN.md)
 var in_scene := false          # a painting is on screen (mode "scene", or a dialogue started from it)
@@ -549,6 +550,7 @@ func _tick_visuals(delta: float) -> void:
 	for l in _lamps:
 		var li: PointLight2D = l["light"]
 		li.energy = lamp_boost * float(l["base"]) * (0.93 + 0.07 * sin(_t * 5.0 + float(l["seed"])) + 0.03 * sin(_t * 13.0 + float(l["seed"])))
+	hud.scene_rect = scene_view.painting_rect() if in_scene and scene_view != null else Rect2()
 	hud.burn = 0.0 if in_scene else _burn_amt        # no white-hot glow over a painting
 
 # ---------------------------------------------------------------- prologue (story bible section 10)
@@ -913,6 +915,7 @@ func start_dialogue(id: String) -> bool:
 	_dlg_journal = engine.journal.size()
 	_dlg_items = engine.items.size()
 	_dlg_area = ""
+	_dlg_scene = ""
 	if not dlg.start(id):
 		return false
 	_dlg_back = mode                   # "play", or "scene" when it was started from a painting
@@ -966,6 +969,10 @@ func _after_dialogue_step() -> void:
 			TSfx.play(self, s.substr(4), -6.0)
 		elif s.begins_with("area:"):
 			_dlg_area = s.substr(5)
+		elif s.begins_with("scene:"):
+			_dlg_scene = s.substr(6)
+		elif s.begins_with("card:"):
+			show_card(s.substr(5))
 	if engine.journal.size() > _dlg_journal:
 		hud.reveal("menu")
 		_apply_item_state()
@@ -983,6 +990,10 @@ func _after_dialogue_step() -> void:
 	_dlg_back = "play"
 	if mode == "scene" and scene_view != null:
 		scene_view.refresh()
+	if _dlg_scene != "":
+		var go := _dlg_scene
+		_dlg_scene = ""
+		enter_scene(go)                     # a "scene:" effect: the painting opens when the dialogue is over
 	if engine.has_flag("witness_met") and _fol_state != "witness":
 		_spawn_witness()
 	var hour_to := _dlg_hour

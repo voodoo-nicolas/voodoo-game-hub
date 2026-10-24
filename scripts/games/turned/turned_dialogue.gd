@@ -15,7 +15,10 @@ extends RefCounted
 ##   flag:x  !flag:x  item:x  !item:x  journal:x  !journal:x  mission:x  hour>=19.5  hour<6  day>=2
 ## "effects" are applied when the node is shown (an option's when it is chosen):
 ##   flag:x  unflag:x  item:+x  item:-x  journal:x  mission:x
-## Anything else ("hour:21.5" = clock.skip_to, "area:street:spawn", "sfx:name") is left in `events` for the world.
+## Anything else ("hour:21.5" = clock.skip_to, "area:street:spawn", "sfx:name", "scene:<id>" = a painting of
+## turned_scenes.json once the scene is over, "card:<id>" = a zoom card of turned_cards.json now) is left in
+## `events` for the world. A line may have "mood": "neutral" | "afraid" | "angry" | "tired" (which of the speaker's
+## busts the box shows in Scene mode).
 ## Text ids missing from Text.DIALOGUE show as "TODO <id>" (the owner's rule: mark missing text).
 
 const Text = preload("res://scripts/games/turned/turned_text.gd")
@@ -117,6 +120,7 @@ func view() -> Dictionary:
 		"speaker": spk,
 		"speaker_name": str(Text.SPEAKERS.get(spk, spk.capitalize())) if spk != "" else "",
 		"text": line_text(str(n.get("text", ""))) if n.has("text") else "",
+		"mood": str(n.get("mood", "neutral")),
 		"options": opts,
 		"selected": selected,
 	}
@@ -244,7 +248,8 @@ func from_dict(d: Dictionary) -> void:
 # ---------------------------------------------------------------- checking the data (tests)
 
 const _COND_PREFIXES := ["flag:", "item:", "journal:", "mission:", "hour>=", "hour<", "day>="]
-const _EFFECT_PREFIXES := ["flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "area:", "sfx:"]
+const _EFFECT_PREFIXES := ["flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "area:", "sfx:", "scene:", "card:"]
+const MOODS := ["neutral", "afraid", "angry", "tired"]
 
 ## Problems in a set of scenes (empty = fine): unknown targets, text ids without text,
 ## unknown speakers, malformed conditions and effects, a choice with no options.
@@ -284,6 +289,8 @@ static func validate(data: Dictionary) -> Array:
 static func _check_node_bits(n: Dictionary, _nodes: Dictionary, where: String, errs: Array) -> void:
 	if n.has("text") and not Text.DIALOGUE.has(str(n["text"])):
 		errs.append("%s: text id '%s' is not in Text.DIALOGUE" % [where, n["text"]])
+	if n.has("mood") and not str(n["mood"]) in MOODS:
+		errs.append("%s: unknown mood '%s'" % [where, n["mood"]])
 	var spk := str(n.get("speaker", ""))
 	if spk != "" and not Text.SPEAKERS.has(spk):
 		errs.append("%s: speaker '%s' is not in Text.SPEAKERS" % [where, spk])

@@ -86,11 +86,18 @@ func _run() -> void:
 	await _wait(10)
 	hud.dialogue_skip()
 	await _shot("3_dialogue_over_scene")
+	world.press_a()                            # on to the choice: rows in the painting's bottom band
+	hud.dialogue_skip()
+	await _wait(10)
+	hud.dialogue_skip()
+	await _shot("3b_choice_over_scene")
 	while world.mode == "dialogue":
 		hud.dialogue_skip()
 		world.press_a()
 	world.enter_scene("dev_hall")
-	await _wait(30)
+	await _wait(8)
+	await _shot("4a_crossfade")                # the old painting still half there
+	await _wait(40)
 	await _shot("4_hall")
 	world.enter_scene("dev_room")
 	await _wait(10)

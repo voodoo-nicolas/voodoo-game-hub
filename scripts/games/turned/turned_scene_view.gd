@@ -32,6 +32,11 @@ var _art_id := ""
 var _tex: Texture2D = null
 var _blur: ImageTexture = null
 var _fade := 0.0
+var _xfade := 0.0                       # 1 right after a painting replaced another, down to 0: the old one fades out
+var _prev_tex: Texture2D = null
+var _prev_blur: ImageTexture = null
+var _prev_art := ""
+var _chip_a := 1.0
 var _t := 0.0
 var _layout: Array = []
 var _layout_key := ""
@@ -65,13 +70,19 @@ func _ready() -> void:
 
 ## Shows a scene (data from turned_scenes.json).
 func show_scene(id: String, data: Dictionary) -> void:
+	var had := visible and _art_id != "" and _art_id != "<reload>"
+	if had:
+		_prev_tex = _tex
+		_prev_blur = _blur
+		_prev_art = _art_id
 	scene_id = id
 	scene = data
 	_art_id = "<reload>"          # force a reload (no painting has this id)
 	selected = -1
 	refresh()
 	selected = 0 if not spots.is_empty() else -1
-	_fade = 1.0
+	_fade = 0.0 if had else 1.0            # from black the first time, a crossfade from painting to painting
+	_xfade = 1.0 if had else 0.0
 	visible = true
 	queue_redraw()
 
@@ -84,6 +95,10 @@ func hide_scene() -> void:
 	_tex = null
 	_blur = null
 	_art_id = ""
+	_prev_tex = null
+	_prev_blur = null
+	_prev_art = ""
+	_xfade = 0.0
 	_layout = []
 	_layout_key = ""
 
@@ -267,6 +282,7 @@ func _process(delta: float) -> void:
 		return
 	_t += delta
 	_fade = move_toward(_fade, 0.0, delta / maxf(T.f("scene.fade_in_s"), 0.05))
+	_xfade = move_toward(_xfade, 0.0, delta / maxf(T.f("scene.crossfade_s"), 0.05))
 	queue_redraw()
 
 func _draw() -> void:
@@ -281,20 +297,29 @@ func _draw() -> void:
 	if _tex != null:
 		draw_texture_rect(_tex, pr, false)
 	else:
-		_draw_placeholder(pr)
+		_draw_placeholder(pr, _art_id, 1.0)
+	if _xfade > 0.001:                       # the painting that is leaving, fading out over the new one
+		if _prev_blur != null:
+			var m2 := T.f("scene.margin_dark")
+			draw_texture_rect(_prev_blur, full, false, Color(m2, m2, m2, _xfade))
+		if _prev_tex != null:
+			draw_texture_rect(_prev_tex, pr, false, Color(1, 1, 1, _xfade))
+		else:
+			_draw_placeholder(pr, _prev_art, _xfade)
 	draw_texture_rect(_vig, full, false, Color(0, 0, 0, T.f("scene.vignette")))
+	_chip_a = 1.0 - _xfade
 	var lay := layout()
 	for i in lay.size():
 		_draw_chip(lay[i], i == selected and keyboard_nav)
 	if _fade > 0.001:
 		draw_rect(full, Color(0, 0, 0, clampf(_fade, 0.0, 1.0)))
 
-func _draw_placeholder(pr: Rect2) -> void:
-	var top := Color("17171d")
-	var bottom := Color("3a2a1f")
+func _draw_placeholder(pr: Rect2, art: String, alpha: float) -> void:
+	var top := Color("17171d", alpha)
+	var bottom := Color("3a2a1f", alpha)
 	draw_polygon(PackedVector2Array([pr.position, pr.position + Vector2(pr.size.x, 0), pr.end, pr.position + Vector2(0, pr.size.y)]),
 		PackedColorArray([top, top, bottom, bottom]))
-	var line := Color(0.8, 0.62, 0.35, 0.09)
+	var line := Color(0.8, 0.62, 0.35, 0.09 * alpha)
 	for i in range(1, 12):
 		var y := pr.position.y + pr.size.y * float(i) / 12.0
 		draw_line(Vector2(pr.position.x, y), Vector2(pr.end.x, y), line, 1.0)
@@ -304,9 +329,9 @@ func _draw_placeholder(pr: Rect2) -> void:
 	var fs := int(round(30.0 * _k()))
 	var font := ThemeDB.fallback_font
 	var msg := tr(SceneText.UI["no_painting"])
-	draw_string(font, Vector2(pr.position.x, pr.get_center().y - fs * 0.2), msg, HORIZONTAL_ALIGNMENT_CENTER, pr.size.x, fs, Color(0.8, 0.74, 0.66, 0.5))
-	draw_string(font, Vector2(pr.position.x, pr.get_center().y + fs * 1.1), _art_id, HORIZONTAL_ALIGNMENT_CENTER, pr.size.x, int(fs * 0.7), Color(0.8, 0.74, 0.66, 0.35))
-	draw_rect(pr, Color(0.8, 0.62, 0.35, 0.35), false, 1.5)
+	draw_string(font, Vector2(pr.position.x, pr.get_center().y - fs * 0.2), msg, HORIZONTAL_ALIGNMENT_CENTER, pr.size.x, fs, Color(0.8, 0.74, 0.66, 0.5 * alpha))
+	draw_string(font, Vector2(pr.position.x, pr.get_center().y + fs * 1.1), art, HORIZONTAL_ALIGNMENT_CENTER, pr.size.x, int(fs * 0.7), Color(0.8, 0.74, 0.66, 0.35 * alpha))
+	draw_rect(pr, Color(0.8, 0.62, 0.35, 0.35 * alpha), false, 1.5)
 
 func _draw_chip(c: Dictionary, lit: bool) -> void:
 	var k := _k()
@@ -318,7 +343,7 @@ func _draw_chip(c: Dictionary, lit: bool) -> void:
 			spot = s
 	var exit := str(spot.get("kind", "look")) == "exit"
 	var used: bool = seen.is_valid() and seen.call(Scenes.seen_flag(scene_id, str(c["id"])))
-	var a := 0.72 if used else 1.0
+	var a := (0.72 if used else 1.0) * _chip_a
 	var pulse := 0.5 + 0.5 * sin(_t * 4.0)
 	if lit:
 		draw_circle(ctr, r * (1.35 + 0.1 * pulse), Color(GOLD, 0.25 + 0.25 * pulse))

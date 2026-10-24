@@ -7504,5 +7504,6 @@
  "%s: text_rect %s is not inside the picture": null,
  "%s: unknown ink": null,
  "item %s: bad condition '%s'": null,
- "item %s: card '%s' does not exist": null
+ "item %s: card '%s' does not exist": null,
+ "%s: unknown mood '%s'": null
 }

@@ -167,6 +167,7 @@
     "chip_gap": 8.0,
     "chip_hit_min": 66.0,
     "fade_in_s": 0.35,
+    "crossfade_s": 0.45,
     "margin_dark": 0.38,
     "vignette": 0.55
   },

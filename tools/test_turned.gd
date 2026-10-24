@@ -57,6 +57,7 @@ func _run() -> void:
 	await _test_scenes()
 	await _test_scene_hud()
 	await _test_cards()
+	await _test_scene_dialogue()
 	await _test_bar()
 	await _test_follower()
 	Save.clear()
@@ -968,6 +969,111 @@ func _test_cards() -> void:
 	check(cview.card_id == "watch_broken", "a broken watch shows the broken watch's card")
 	cview.close()
 	hud.close_menu()
+
+# ---------------------------------------------------------------- dialogue in scenes (phase S4)
+
+func _dlg_fixture() -> Dictionary:
+	var tid: String = str(Text.DIALOGUE.keys()[0])
+	return {
+		"fx_card": {"start": "n1", "nodes": {
+			"n1": {"speaker": "tavernkeep", "mood": "afraid", "text": tid, "effects": ["card:matches"], "next": "n2"},
+			"n2": {"speaker": "", "text": tid, "effects": ["scene:dev_hall"]},
+		}},
+		"fx_bad": {"start": "n1", "nodes": {"n1": {"speaker": "tavernkeep", "mood": "furious", "text": tid}}},
+	}
+
+func _test_scene_dialogue() -> void:
+	var fx := _dlg_fixture()
+	var only_good := {"fx_card": fx["fx_card"]}
+	check(DialogueScript.validate(only_good).is_empty(), "scene: and card: effects and a mood are valid: %s" % str(DialogueScript.validate(only_good)))
+	check(not DialogueScript.validate({"fx_bad": fx["fx_bad"]}).is_empty(), "an unknown mood is caught")
+	# every scene: and card: effect in the shipped dialogues points at something that exists
+	var dangling := 0
+	var shipped := DialogueScript.shipped()
+	for sid in shipped:
+		for nid in shipped[sid]["nodes"]:
+			var n: Dictionary = shipped[sid]["nodes"][nid]
+			var effects: Array = (n.get("effects", []) as Array).duplicate()
+			for o in (n.get("options", []) as Array):
+				effects.append_array((o as Dictionary).get("effects", []))
+			for e in effects:
+				var s := str(e)
+				if s.begins_with("scene:") and not Scenes.shipped().has(s.substr(6)):
+					dangling += 1
+				if s.begins_with("card:") and CardsScript.card(s.substr(5)).is_empty():
+					dangling += 1
+	check(dangling == 0, "no shipped dialogue points at a missing scene or card")
+	var runner := DialogueScript.new(fx)
+	runner.start("fx_card")
+	check(str(runner.view().get("mood", "")) == "afraid", "the view carries the line's mood")
+	check(runner.take_events() == ["card:matches"], "a card: effect is left for the world")
+	runner.advance()
+	check(str(runner.view().get("mood", "")) == "neutral", "a line with no mood is neutral")
+	# the box in a painting: at every screen shape
+	await _scene_ready_world()
+	var long_text := "This is a rather long line of speech, long enough to wrap over two lines of the dialogue box at any size."
+	for sz in [Vector2(1280, 720), Vector2(1560, 720), Vector2(1024, 768), Vector2(1170, 540), Vector2(914, 514)]:
+		hud.size = sz
+		hud.scene_mode = true
+		hud.scene_rect = SceneViewScript.fit_rect(sz, Scenes.PAINTING_ASPECT)
+		hud.show_dialogue({"kind": "line", "speaker": "tavernkeep", "speaker_name": "Tavernkeep", "text": long_text, "options": [], "selected": 0, "mood": "afraid"})
+		var lay: Dictionary = hud._dlg_layout()
+		var box: Rect2 = lay["box"]
+		var bust: Rect2 = lay["bust"]
+		var screen := Rect2(Vector2.ZERO, sz)
+		check(screen.grow(0.01).encloses(box) and screen.grow(0.01).encloses(bust), "%s: the box and the bust are on screen" % str(sz))
+		check(box.position.x >= hud.scene_rect.position.x and box.end.x <= hud.scene_rect.end.x + 0.01, "%s: the box stays inside the painting's width" % str(sz))
+		check(bust.size.x > 0.0 and bust.end.x < box.position.x and not bust.intersects(box), "%s: the speaker's bust is on the left of the box" % str(sz))
+		check(box.end.y <= sz.y and box.size.x >= 300.0, "%s: the box sits at the bottom and is wide enough (%d)" % [str(sz), int(box.size.x)])
+		hud.show_dialogue({"kind": "choice", "speaker": "", "speaker_name": "", "text": "", "options": ["First choice", "Second choice"], "selected": 0})
+		var lay2: Dictionary = hud._dlg_layout()
+		check((lay2["bust"] as Rect2).size.x == 0.0, "%s: a thought has no bust" % str(sz))
+		for row in (lay2["opts"] as Array):
+			check((lay2["box"] as Rect2).encloses(row) and screen.grow(0.01).encloses(row), "%s: every choice row is in the box and on screen" % str(sz))
+	hud.scene_mode = false
+	hud.scene_rect = Rect2()
+	hud.size = Vector2(1280, 720)
+	hud.show_dialogue({"kind": "line", "speaker": "tavernkeep", "speaker_name": "Tavernkeep", "text": long_text, "options": [], "selected": 0})
+	check((hud._dlg_layout()["bust"] as Rect2).size.x == 0.0, "walking: the box has no bust and keeps its place")
+	hud.hide_dialogue()
+	# a dialogue that shows a card and ends in a painting
+	await _scene_ready_world()
+	world.dlg.scenes = _dlg_fixture()
+	world.hud.reveal("menu")
+	check(world.start_dialogue("fx_card"), "the test dialogue starts")
+	check(cview.is_open and cview.card_id == "matches", "its card: effect opens the card at once")
+	world.press_a()
+	check(not cview.is_open and world.dlg.node_id == "n1" and world.mode == "dialogue", "A closes the card first; the line has not gone on")
+	hud.dialogue_skip()
+	world.press_a()
+	check(world.dlg.node_id == "n2", "then A goes on")
+	hud.dialogue_skip()
+	world.press_a()
+	check(world.mode == "scene" and world.scene_id == "dev_hall" and sview.visible, "a scene: effect opens the painting when the dialogue is over")
+	_step(0.1)
+	check(hud.scene_rect == sview.painting_rect() and hud.scene_rect.size.x > 0.0, "the world tells the HUD where the painting is")
+	# from a painting: the same
+	world.leave_scene()
+	world.enter_scene("dev_room")
+	world.start_dialogue("fx_card")
+	cview.close()
+	for i in 2:
+		hud.dialogue_skip()
+		world.press_a()
+	check(world.mode == "scene" and world.scene_id == "dev_hall", "started from a painting, it also ends in the painting it names")
+	# the crossfade between paintings
+	world.leave_scene()
+	world.enter_scene("dev_room")
+	check(sview._xfade == 0.0 and sview._fade == 1.0, "the first painting fades in from black")
+	world.enter_scene("dev_hall")
+	check(sview._xfade == 1.0 and sview._fade == 0.0 and sview._prev_art == "dev_room", "the next one crossfades from the one before")
+	sview._process(0.2)
+	check(sview._xfade < 1.0 and sview._xfade > 0.0, "the old painting is fading out")
+	sview._process(1.0)
+	check(sview._xfade == 0.0, "and is gone after half a second")
+	world.leave_scene()
+	check(sview._prev_art == "" and sview._prev_tex == null, "leaving clears it")
+	world.dlg.scenes = DialogueScript.shipped()
 
 # ---------------------------------------------------------------- the bar (scene 2)
 

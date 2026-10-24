@@ -61,6 +61,8 @@ var menu_open := false
 ## Scene mode (a painting with hotspots) is on screen: no pad, d-pad, A/B, bars, Mission box, Pause or
 ## Menu here (turned_scene_hud.gd draws the interface); the captions, dialogue box and menu stay.
 var scene_mode := false
+## The painting's rectangle while one is up (the world sets it): the dialogue box sits in its bottom band.
+var scene_rect := Rect2()
 
 var _rv :={"dpad": 0.0, "a": 0.0, "b": 0.0, "bars": 0.0, "mission": 0.0, "menu": 0.0, "pause": 1.0}
 var _rv_target := {"dpad": false, "a": false, "b": false, "bars": false, "mission": false, "menu": false, "pause": true}
@@ -82,6 +84,7 @@ var _xp_disp := 0.0
 # the dialogue box (a scene from turned_dialogues.json; the world gives it the runner's view)
 var _dlg: Dictionary = {}        # kind, speaker_name, text, options, selected (all translated)
 var _dlg_key := ""
+var _busts := {}                 # speaker id -> Texture2D or false (looked up once)
 var _dlg_chars := 0.0            # characters shown so far (the line types out)
 
 var _cap_text := ""
@@ -201,6 +204,7 @@ func show_dialogue(view: Dictionary) -> void:
 		"text": tr(str(view.get("text", ""))) if str(view.get("text", "")) != "" else "",
 		"options": opts,
 		"selected": int(view.get("selected", 0)),
+		"mood": str(view.get("mood", "neutral")),
 	}
 	queue_redraw()
 
@@ -705,12 +709,33 @@ func _dlg_layout() -> Dictionary:
 	else:
 		h += 22.0
 	var r := Rect2(Vector2((size.x - w) * 0.5, size.y - _small_size().y - 40.0 - h), Vector2(w, h))
+	var bust := Rect2()
+	if scene_mode and scene_rect.size.x > 0.0:
+		# Scene mode: the box fills the painting's bottom band, a bust of the speaker on its left
+		var k := _k()
+		var gap := 14.0 * k
+		var bs := 104.0 * k
+		var left := scene_rect.position.x + gap
+		var has_bust := str(_dlg.get("speaker", "")) != ""
+		if has_bust:
+			left += bs + 10.0 * k
+		var right := minf(scene_rect.end.x - gap, size.x - 96.0 * k)
+		w = maxf(right - left, 300.0)
+		sz = _font().get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w - 40.0, fs) if text != "" else Vector2.ZERO
+		h = 26.0 + head + sz.y
+		if not opts.is_empty():
+			h += 10.0 + float(opts.size()) * (row_h + 8.0)
+		else:
+			h += 22.0
+		r = Rect2(Vector2(left, size.y - gap - h), Vector2(w, h))
+		if has_bust:
+			bust = Rect2(Vector2(scene_rect.position.x + gap, r.end.y - bs), Vector2(bs, bs))
 	var rows: Array = []
 	var y := r.position.y + 12.0 + head + sz.y + 10.0
 	for i in opts.size():
 		rows.append(Rect2(r.position.x + 14.0, y, w - 28.0, row_h))
 		y += row_h + 8.0
-	return {"box": r, "opts": rows, "head": head, "fs": fs}
+	return {"box": r, "opts": rows, "head": head, "fs": fs, "bust": bust}
 
 func _draw_dialogue() -> void:
 	if _dlg.is_empty():
@@ -723,6 +748,8 @@ func _draw_dialogue() -> void:
 	var edge: Color = Color("6f86c8") if inner else Art.AMBER
 	draw_rect(r, Color(0.03, 0.04, 0.08, 0.9))
 	draw_rect(r, Color(edge.r, edge.g, edge.b, 0.75), false, 1.5)
+	if (lay["bust"] as Rect2).size.x > 0.0:
+		_draw_bust(lay["bust"], str(_dlg.get("speaker", "")), str(_dlg.get("mood", "neutral")))
 	var y := r.position.y + 12.0
 	var name := str(_dlg.get("speaker_name", ""))
 	if name != "":
@@ -753,6 +780,49 @@ func _draw_dialogue() -> void:
 		while f > 12 and _font().get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, f).x > rr.size.x - 24.0:
 			f -= 1
 		_text(Vector2(rr.position.x + 12.0, rr.position.y + rr.size.y * 0.5 + f * 0.35), label, f, TEXT_LIGHT if on else Color(0.78, 0.82, 0.92), HORIZONTAL_ALIGNMENT_LEFT, rr.size.x - 24.0)
+
+## The speaker's bust in a gold ring (Scene mode). The picture is a 2 x 2 sheet of four moods
+## (neutral, afraid, angry, tired: ART_PROMPTS_V2.md batch 0) at res://games/turned/art/busts/<speaker>.webp|png;
+## until it exists a silhouette tinted by the speaker is drawn.
+func _draw_bust(r: Rect2, speaker: String, mood: String) -> void:
+	var c := r.get_center()
+	var rad := r.size.x * 0.5
+	var k := _k()
+	draw_circle(c, rad, Color(0.07, 0.055, 0.045, 0.95))
+	var tex := _bust_texture(speaker)
+	if tex != null:
+		var q := {"neutral": Vector2(0, 0), "afraid": Vector2(1, 0), "angry": Vector2(0, 1), "tired": Vector2(1, 1)}.get(mood, Vector2.ZERO) as Vector2
+		var pts := PackedVector2Array()
+		var uvs := PackedVector2Array()
+		for i in 40:
+			var ang := TAU * float(i) / 40.0
+			pts.append(c + Vector2(cos(ang), sin(ang)) * rad * 0.94)
+			uvs.append(Vector2(0.25 + q.x * 0.5 + cos(ang) * 0.235, 0.25 + q.y * 0.5 + sin(ang) * 0.235))
+		draw_polygon(pts, PackedColorArray([Color.WHITE]), uvs, tex)
+	else:
+		var hue := float(hash(speaker) % 360) / 360.0
+		var col := Color.from_hsv(hue, 0.28, 0.62, 0.7)
+		draw_circle(c + Vector2(0, -rad * 0.2), rad * 0.3, col)
+		var ring_poly := PackedVector2Array()
+		var sh_poly := PackedVector2Array()
+		for i in 36:
+			var ang := TAU * float(i) / 36.0
+			ring_poly.append(c + Vector2(cos(ang), sin(ang)) * rad * 0.94)
+			sh_poly.append(c + Vector2(0, rad) + Vector2(cos(ang), sin(ang)) * rad * 0.66)
+		for poly in Geometry2D.intersect_polygons(ring_poly, sh_poly):
+			draw_colored_polygon(poly, col)
+	draw_arc(c, rad, 0.0, TAU, 40, Art.AMBER, 3.0 * k + 0.5)
+
+func _bust_texture(speaker: String) -> Texture2D:
+	if not _busts.has(speaker):
+		var found: Variant = false
+		for ext in ["webp", "png"]:
+			var p := "res://games/turned/art/busts/%s.%s" % [speaker, ext]
+			if ResourceLoader.exists(p):
+				found = load(p)
+				break
+		_busts[speaker] = found
+	return _busts[speaker] if _busts[speaker] is Texture2D else null
 
 func _draw_banner() -> void:
 	if _banner_t <= 0.0:
