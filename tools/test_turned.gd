@@ -1096,6 +1096,17 @@ func _test_bar() -> void:
 		if n["id"] == "tavernkeep":
 			keepers += 1
 	check(afraid == 4 and keepers == 1, "a tavernkeep and four afraid patrons")
+	var shop: Area = Area.make("cigar_shop") as Area
+	check(shop.indoor and shop.in_shade(Vector2(100, 100)), "the cigar shop is indoors, all shade")
+	for k in shop.spawns:
+		check(shop.is_free(shop.spawns[k], 9.0), "shop spawn %s is free" % k)
+	for it in shop.interacts:
+		check(shop.is_free(it["pos"], 9.0) and Text.VERBS.has(it["verb"]) and _reachable(shop, shop.spawns["from_harbor"], it["pos"]), "shop interact %s is free, labelled and reachable" % it["id"])
+	check(_reachable(shop, shop.spawns["from_harbor"], shop.spawns["storeroom"]), "the street door -> the storeroom is reachable (through the doorway)")
+	check(shop.npcs.size() == 1 and shop.is_free(Vector2(float(shop.npcs[0]["pos"][0]), float(shop.npcs[0]["pos"][1])), 9.0), "the shopkeeper stands on free ground")
+	check(shop.is_free(Vector2(306, 134), 9.0) and shop.is_free(Vector2(340, 150), 9.0), "the spots by the cot are free")
+	var har: Area = Area.make("harbor") as Area
+	check(har.is_free(har.spawns["from_shop"], 9.0), "leaving the shop you stand on the pavement")
 	var st: Area = Area.make("street") as Area
 	var door: Dictionary = {}
 	for it in st.interacts:
@@ -1316,7 +1327,52 @@ func _test_follower() -> void:
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "cigar_door", "A offers the shop door")
 	world.press_a()
-	check(hud.caption_text() == Text.INNER["cigar_dark"], "the shop is dark (Scene 5 is not built yet)")
+	check(world.mode == "transition", "the shop door starts the fade")
+	_step(1.6)
+	check(world.area.id == "cigar_shop" and world.mode == "dialogue", "inside the cigar shop the scene starts by itself")
+	var keeper: Node2D = null
+	var friend: Node2D = null
+	for n in world._npcs:
+		if n.id == "shopkeeper":
+			keeper = n
+		if n.id == "witness":
+			friend = n
+	check(keeper != null and friend != null, "the shopkeeper behind the counter, the man from the bar beside you")
+	check(world.dlg.view()["text"] == Text.DIALOGUE["shop_bell"], "a bell over the door")
+	var hp_before: float = world.engine.hp
+	_dlg_lines()
+	check(world.mode == "transition" and world.engine.has_flag("blackout") and world.engine.hp < hp_before, "he gives you the water: it burns, you black out, and it hurts")
+	_step(1.0)
+	check(hud.fade >= 0.99 and world.area.id == "cigar_shop", "black")
+	_step(1.5)
+	check(hud.fade >= 0.99, "and staying black a while")
+	_step(2.5)
+	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["sto_wake"], "you wake in the storeroom")
+	check(absf(world.clock.hour - 23.75) < 0.05, "it is nearly midnight")
+	var friend_still := false
+	for n in world._npcs:
+		if n.id == "witness":
+			friend_still = true
+	check(not friend_still, "the man from the bar is gone")
+	check(world.player.position.distance_to(world.area.spawns["storeroom"]) < 2.0, "on the cot at the back")
+	_dlg_lines()
+	check(world.mode == "play" and world.engine.has_flag("storeroom_scene") and world.engine.mission == "priest" and world.engine.journal.has("shop"), "'two or three days': the priest is the mission")
+	keeper = null
+	for n in world._npcs:
+		if n.id == "shopkeeper":
+			keeper = n
+	check(keeper != null and keeper.position.distance_to(Vector2(306, 134)) < 2.0, "the shopkeeper sits by the cot")
+	world.player.position = Vector2(340, 150)
+	_step(0.2)
+	check(str(world._cand.get("id", "")) == "npc:shopkeeper", "A offers to talk to him")
+	world.press_a()
+	check(hud.caption_text() == Text.NPC_LINES["shopkeeper"]["all"], "'Rest a little. Then we go to the priest.' (Scene 6 is not built yet)")
+	world.player.position = Vector2(280, 382)
+	_step(0.2)
+	check(str(world._cand.get("id", "")) == "cigar_exit", "A offers the street door")
+	world.press_a()
+	_step(1.6)
+	check(world.area.id == "harbor" and world._follower == null, "back in the harbor, alone")
 	check(Text.ITEMS["watch"]["variants"].size() == 1 and Text.SPEAKERS.has("witness"), "texts for the watch and the witness exist")
 	await _street_world_after_bar()
 	world.engine.set_flag("followed")

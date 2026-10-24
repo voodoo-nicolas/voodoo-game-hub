@@ -83,6 +83,7 @@ var _tr_area := ""
 var _tr_spawn := ""
 var _tr_save := false
 var _tr_hour := -1.0           # a story hour to jump to while the screen is black (-1 = none)
+var _tr_hold := 0.0            # seconds to stay black after the new area is loaded (a blackout)
 # the man who follows you (scene 3)
 var _follower: Node2D = null
 var _fol_state := "off"        # off, exit, wait_far, tail, lane, mouth, flee, witness
@@ -104,6 +105,7 @@ var _throb_t := -1.0
 var _dlg_dir_prev := 0
 var _dlg_area := ""            # an "area:" effect waits until the scene is over
 var _dlg_hour := -1.0          # so does an "hour:" one (-1 = none)
+var _dlg_hold := 0.0           # ... and "hold:" (seconds the screen stays black on the way)
 var _dlg_journal := 0
 var _dlg_items := 0
 var _dlg_scene := ""           # a "scene:" effect waits until the dialogue is over
@@ -846,8 +848,11 @@ func _interact(c: Dictionary) -> void:
 			hud.say(Text.INNER["matches_take"])
 			_apply_item_state()
 		"cigar_door":
-			TSfx.play(self, "door", -14.0, 0.7)       # knocking; the shop is Scene 5 (not built yet)
-			hud.say(Text.INNER["cigar_dark"])
+			TSfx.play(self, "door", -4.0)
+			_go_area("cigar_shop", "from_harbor", true)
+		"cigar_exit":
+			TSfx.play(self, "door", -4.0)
+			_go_area("harbor", "from_shop", true)
 		"bar_exit":
 			TSfx.play(self, "door", -4.0)
 			_go_area("street", "from_bar", true)
@@ -969,6 +974,12 @@ func _after_dialogue_step() -> void:
 			TSfx.play(self, s.substr(4), -6.0)
 		elif s.begins_with("area:"):
 			_dlg_area = s.substr(5)
+		elif s.begins_with("hold:"):
+			_dlg_hold = s.substr(5).to_float()
+		elif s.begins_with("hurt:"):
+			engine.hp = maxf(1.0, engine.hp * (1.0 - s.substr(5).to_float()))
+		elif s == "throb":
+			_throb_t = 0.0
 		elif s.begins_with("scene:"):
 			_dlg_scene = s.substr(6)
 		elif s.begins_with("card:"):
@@ -1006,6 +1017,8 @@ func _after_dialogue_step() -> void:
 		_go_area(parts[0], parts[1] if parts.size() > 1 else "", true)
 		if hour_to >= 0.0:
 			_tr_hour = hour_to              # the clock jumps while the screen is black
+		_tr_hold = _dlg_hold
+		_dlg_hold = 0.0
 	elif hour_to >= 0.0:
 		clock.skip_to(hour_to)
 
@@ -1401,6 +1414,11 @@ func _tick_transition(delta: float) -> void:
 			_tr_phase = 1
 			_tr_t = 0.0
 	else:
+		if _tr_hold > 0.0:
+			_tr_hold -= delta                 # a blackout: stay in the dark a while
+			_tr_t = 0.0
+			hud.fade = 1.0
+			return
 		hud.fade = clampf(1.0 - _tr_t / half, 0.0, 1.0)
 		if _tr_t >= half:
 			hud.fade = 0.0
@@ -1416,9 +1434,20 @@ func _on_area_ready() -> void:
 	elif area.id == "house_down" and engine.has_flag("witness_home") and not engine.has_flag("matches_shown"):
 		var hall := T.arr("follower.hall")
 		_spawn_witness_at(Vector2(float(hall[0]), float(hall[1])), Vector2(-1, 0))
+	elif area.id == "cigar_shop":
+		if not engine.has_flag("shop_scene"):
+			_spawn_witness_at(area.spawns["from_harbor"] + Vector2(60, -14), Vector2(-1, 0))
+			start_dialogue("shop_visit")
+		elif engine.has_flag("blackout") and not engine.has_flag("storeroom_scene"):
+			start_dialogue("storeroom_wake")
+		if engine.has_flag("blackout"):
+			for n in _npcs:
+				if n.id == "shopkeeper":
+					n.position = Vector2(306, 134)          # on his stool by the cot
+					n.face = Vector2(1, 0)
 	elif area.id == "harbor":
 		engine.set_flag("senses")
-		if engine.has_flag("matches_shown"):
+		if engine.has_flag("matches_shown") and not engine.has_flag("witness_gone"):
 			_make_follower(player.position + Vector2(-T.f("follower.companion_lag_px"), 0.0), true)
 			_fol_begin_tail()
 			_fol_state = "companion"

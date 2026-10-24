@@ -261,5 +261,29 @@
         "accent": "8a8fa3"
       }
     }
+  ],
+  "shop_npcs": [
+    {
+      "id": "shopkeeper",
+      "knows_player": 2,
+      "role": "shopkeeper",
+      "behavior": "stand",
+      "stare": true,
+      "pos": [
+        155,
+        236
+      ],
+      "face": [
+        0,
+        1
+      ],
+      "clue_ids": [],
+      "look": {
+        "coat": "5a4a38",
+        "hat": "",
+        "skin": "caa488",
+        "accent": "c9a15b"
+      }
+    }
   ]
 }

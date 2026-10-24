@@ -412,5 +412,158 @@
         ]
       }
     }
+  },
+  "shop_visit": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "",
+        "text": "shop_bell",
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "witness",
+        "text": "shop_w1",
+        "next": "n3"
+      },
+      "n3": {
+        "speaker": "shopkeeper",
+        "text": "shop_o1",
+        "mood": "angry",
+        "next": "n4"
+      },
+      "n4": {
+        "speaker": "witness",
+        "text": "shop_w2",
+        "next": "n5"
+      },
+      "n5": {
+        "speaker": "shopkeeper",
+        "text": "shop_o2",
+        "next": "n6"
+      },
+      "n6": {
+        "speaker": "witness",
+        "text": "shop_w3",
+        "next": "n7"
+      },
+      "n7": {
+        "speaker": "shopkeeper",
+        "text": "shop_o3",
+        "next": "n8"
+      },
+      "n8": {
+        "speaker": "",
+        "text": "shop_dizzy",
+        "next": "n9"
+      },
+      "n9": {
+        "speaker": "you",
+        "text": "shop_y1",
+        "next": "n10"
+      },
+      "n10": {
+        "speaker": "witness",
+        "text": "shop_w4",
+        "next": "n11"
+      },
+      "n11": {
+        "speaker": "shopkeeper",
+        "text": "shop_o4",
+        "mood": "afraid",
+        "next": "n12"
+      },
+      "n12": {
+        "speaker": "",
+        "text": "shop_give",
+        "next": "n13"
+      },
+      "n13": {
+        "speaker": "",
+        "text": "shop_drink",
+        "effects": [
+          "sfx:cough",
+          "throb",
+          "hurt:0.35",
+          "flag:shop_scene",
+          "flag:blackout",
+          "flag:witness_gone",
+          "hold:2.5",
+          "hour:23.75",
+          "area:cigar_shop:storeroom"
+        ]
+      }
+    }
+  },
+  "storeroom_wake": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "",
+        "text": "sto_wake",
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "",
+        "text": "sto_alone",
+        "next": "n3"
+      },
+      "n3": {
+        "speaker": "shopkeeper",
+        "text": "sto_o1",
+        "next": "n4"
+      },
+      "n4": {
+        "speaker": "",
+        "text": "sto_neck",
+        "next": "n5"
+      },
+      "n5": {
+        "speaker": "",
+        "text": "sto_collar",
+        "next": "n6"
+      },
+      "n6": {
+        "speaker": "shopkeeper",
+        "text": "sto_o2",
+        "mood": "afraid",
+        "next": "n7"
+      },
+      "n7": {
+        "speaker": "you",
+        "text": "sto_y1",
+        "next": "n8"
+      },
+      "n8": {
+        "speaker": "shopkeeper",
+        "text": "sto_o3",
+        "next": "n9"
+      },
+      "n9": {
+        "speaker": "you",
+        "text": "sto_y2",
+        "next": "n10"
+      },
+      "n10": {
+        "speaker": "",
+        "text": "sto_realize",
+        "next": "n11"
+      },
+      "n11": {
+        "speaker": "shopkeeper",
+        "text": "sto_o4",
+        "next": "n12"
+      },
+      "n12": {
+        "speaker": "shopkeeper",
+        "text": "sto_o5",
+        "mood": "afraid",
+        "effects": [
+          "flag:storeroom_scene",
+          "journal:shop",
+          "mission:priest"
+        ]
+      }
+    }
   }
 }

@@ -46,7 +46,7 @@ const INNER := {
 	"sense_dog": "A dog is barking, far away. It sounds like it is inside my head.",
 	"sense_smell": "Tar, fish, wet rope, tobacco smoke. Every smell cuts like a knife.",
 	"sense_thirst": "I am so thirsty. And that ticking, never stopping. Can he not hear it?",
-	"cigar_dark": "The cigar shop. This is the logo on the matches. The shop is dark, and nobody answers my knock.",
+	"cigar_dark": "The cigar shop. This is the logo on the matches.",
 }
 
 ## What a piece of furniture says when you Examine it (id of the interact -> line). Placeholders written for
@@ -103,6 +103,7 @@ const JOURNAL := {
 	"cellar": "A locked cellar door in the hall, with an old iron lock. I have no key.",
 	"same_note": "He has the same note, from his own pocket: same day, same time. Wednesday, 10 PM.",
 	"watch": "A silver pocket watch from a hidden pocket in the coat's lining. It ticks, warm and humming, and it feels wrong. I did not tell him.",
+	"shop": "The shopkeeper denied everything. The water burned me and I passed out. When I woke the man from the bar was gone. The shopkeeper knows what is happening to me: he asked if I had bitten anyone. He says I have two or three days, and then he does not want to be near me. There is an old priest who left the church, with old books.",
 	"cigar": "The matches come from a cigar company. Their shop is across the city, by the harbor. He knows where.",
 	"witness": "A man from the bar followed me. I caught him round a corner. He stared at my neck and at the coat, and said: \"...It's really you.\" He knows something.",
 	"matches": "A box of matches from the coat's right pocket, with a cigar company's logo on the lid. They are not mine.",
@@ -118,6 +119,7 @@ const MISSIONS := {
 	"follower": "Find out who is following you",
 	"show_matches": "Go home with him and look at the coat again",
 	"cigar": "Go to the cigar shop by the harbor",
+	"priest": "Go with the shopkeeper to the old priest",
 }
 
 ## What the A button says (translated by the HUD when drawn).
@@ -145,6 +147,7 @@ const NPC_LINES := {
 	"watcher": {"all": "You should not be out in that sun."},
 	"patron": {"all": "Please. Just go."},
 	"witness": {"all": "...It's really you."},
+	"shopkeeper": {"all": "Rest a little. Then we go to the priest."},
 	"tavernkeep": {"all": "Go home."},
 	"vendor": {
 		"exposed": "Rough night? You look like death warmed over. Bread's fresh, if you've an appetite.",
@@ -173,6 +176,7 @@ const SPEAKERS := {
 	"watcher": "Man in the grey coat",
 	"tavernkeep": "Tavernkeep",
 	"witness": "Man from the bar",
+	"shopkeeper": "Shopkeeper",
 	"patron": "Patron",
 	"you": "You",
 	"vendor": "Baker",
@@ -285,4 +289,30 @@ const DIALOGUE := {
 	"w4m_logo": "I know this. A cigar company. Their shop is across the city, by the harbor.",
 	"w4m_hide": "The watch stays in my pocket, ticking. I do not say a word about it.",
 	"w4m_go": "Come on. Somebody there may know who gave you that coat.",
+	# the cigar shop (scene 5)
+	"shop_bell": "A bell rings over the door. The shopkeeper looks up from behind the counter.",
+	"shop_w1": "Good evening. Do you know this man?",
+	"shop_o1": "Never seen him in my life.",
+	"shop_w2": "These matches have your company's logo on them.",
+	"shop_o2": "Half the harbor has that box. Anything else?",
+	"shop_w3": "Anything strange lately? Anyone hurt? Anyone asking questions?",
+	"shop_o3": "Nothing. Nothing strange here. Anything else, or are you leaving?",
+	"shop_dizzy": "The room tilts. My mouth is dry. My hands are shaking.",
+	"shop_y1": "I'm very thirsty. I'm dizzy... weak.",
+	"shop_w4": "Sit down, sit. Shopkeeper, some water, please.",
+	"shop_o4": "Water? ...Are you sure?",
+	"shop_give": "He hesitates. Then he gives me a glass anyway, and watches me.",
+	"shop_drink": "I drink it greedily. Then it burns. My throat, my chest. I cough, the glass falls, and everything goes black.",
+	"sto_wake": "Dried tobacco hangs from the ceiling, thick and sweet. My throat is on fire. I am lying on a cot in the back of the shop.",
+	"sto_alone": "The man from the bar is gone. Only the shopkeeper is here, watching me from a stool.",
+	"sto_o1": "How long ago did they do it to you?",
+	"sto_neck": "I touch my neck. Two small holes.",
+	"sto_collar": "He leans over, opens my collar and looks.",
+	"sto_o2": "Four days? Five?",
+	"sto_y1": "Two, I think.",
+	"sto_o3": "Did you bite anyone yet?",
+	"sto_y2": "Bite...? What are you talking about?",
+	"sto_realize": "He stares at me. He understands that I have no idea what is happening to me.",
+	"sto_o4": "Nobody told you anything. ...There is an old man, a priest who left the church. He has old books. If anyone knows, he does.",
+	"sto_o5": "Maybe you have two or three days left. And when that happens, I do not want to be near you.",
 }

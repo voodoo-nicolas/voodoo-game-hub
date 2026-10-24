@@ -319,6 +319,14 @@ func _furniture(kind: String, r: Rect2) -> void:
 			for i in 5:
 				var bx := r.position.x + 22.0 + i * (r.size.x - 44.0) / 4.0
 				draw_rect(Rect2(bx - 3, r.position.y - 9, 6, 11), Color("3a5a48") if i % 2 == 0 else Color("6a3a2a"))   # bottles
+		"rack":
+			draw_rect(Rect2(r.position.x, r.position.y, r.size.x, 5), Color("4a3426"))               # the beam
+			draw_rect(r.grow(-2), Color(0.16, 0.12, 0.08, 0.55))
+			var lx := r.position.x + 6.0
+			while lx < r.end.x - 4.0:
+				var k := _h(int(lx), int(r.position.y))
+				draw_colored_polygon(PackedVector2Array([Vector2(lx, r.position.y + 4), Vector2(lx + 9, r.position.y + 4), Vector2(lx + 7, r.end.y - 2 - k * 6.0), Vector2(lx + 2, r.end.y - 2 - k * 4.0)]), Color(0.42 - 0.1 * k, 0.28, 0.12))
+				lx += 12.0
 		"stool":
 			draw_circle(r.get_center(), r.size.x * 0.5, Color("46362b"))
 			draw_circle(r.get_center(), r.size.x * 0.5 - 3.0, Color("6a5442"))

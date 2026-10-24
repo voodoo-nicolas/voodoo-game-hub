@@ -36,6 +36,8 @@ static func make(area_id: String) -> RefCounted:
 		a._build_bar()
 	elif area_id == "harbor":
 		a._build_harbor()
+	elif area_id == "cigar_shop":
+		a._build_cigar_shop()
 	else:
 		a._build_house()
 	return a
@@ -406,8 +408,55 @@ func _build_harbor() -> void:
 		{"id": "sense4", "rect": Rect2(1290, 150, 40, 230)},
 	]
 	light_spots = []
-	spawns = {"from_city": Vector2(60, 250)}
+	spawns = {"from_city": Vector2(60, 250), "from_shop": Vector2(1521, 188)}
 	npcs = []
+
+# ---------------------------------------------------------------- the cigar shop (scene 5)
+# 560 x 416: the storeroom at the back (north) with its drying racks and a cot, a wall with a doorway,
+# the shop in front with the counter, a display table and the street door in the south wall.
+
+func _build_cigar_shop() -> void:
+	indoor = true
+	bounds = Rect2(0, 0, 560, 416)
+	solids = []
+	deco = [
+		{"t": "floor", "rect": Rect2(16, 16, 528, 384), "color": Color("3a3028"), "plank": true},
+		{"t": "floor", "rect": Rect2(16, 16, 528, 150), "color": Color("2f2a26"), "slab": true},     # the storeroom
+		{"t": "rug", "rect": Rect2(200, 240, 160, 110), "color": Color("4a2f2a")},
+	]
+	for r in [Rect2(0, 0, 560, 16), Rect2(0, 0, 16, 416), Rect2(0, 400, 248, 16), Rect2(312, 400, 248, 16), Rect2(544, 0, 16, 416),
+			Rect2(16, 166, 224, 16), Rect2(320, 166, 224, 16)]:
+		_wall(r)
+	deco.append({"t": "bar_door", "rect": Rect2(248, 400, 64, 16)})
+	deco.append({"t": "window", "rect": Rect2(60, 400, 64, 16)})
+	deco.append({"t": "window", "rect": Rect2(440, 400, 64, 16)})
+	# storeroom: tobacco drying on racks, a cot
+	_furn("rack", Rect2(36, 30, 200, 36))
+	_furn("rack", Rect2(320, 30, 200, 36))
+	_furn("rack", Rect2(36, 86, 150, 36))
+	_furn("sofa", Rect2(396, 96, 100, 40))
+	_furn("chair", Rect2(330, 112, 24, 26))
+	# shop: shelves of cigar boxes, the counter, a display table, a chair
+	_furn("shelves", Rect2(30, 186, 190, 24))
+	_furn("shelves", Rect2(340, 186, 190, 24))
+	_furn("counter", Rect2(60, 262, 190, 30))
+	_furn("table", Rect2(410, 280, 90, 46))
+	_furn("chair", Rect2(380, 292, 22, 24))
+	_furn("cupboard", Rect2(40, 340, 56, 44))
+	interacts = [
+		{"id": "cigar_exit", "pos": Vector2(280, 382), "r": 34.0, "verb": "door"},
+	]
+	lamps = []
+	light_spots = [
+		{"pos": Vector2(155, 240), "color": Color("ffb45a"), "energy": 1.0, "radius": 190.0},
+		{"pos": Vector2(440, 300), "color": Color("ffb45a"), "energy": 0.8, "radius": 150.0},
+		{"pos": Vector2(280, 110), "color": Color("ff9a4a"), "energy": 0.8, "radius": 170.0},
+		{"pos": Vector2(280, 360), "color": Color("ffb45a"), "energy": 0.5, "radius": 110.0},
+	]
+	spawns = {"from_harbor": Vector2(280, 366), "storeroom": Vector2(400, 150)}
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(NPC_DATA))
+	if typeof(parsed) == TYPE_DICTIONARY:
+		npcs = (parsed.get("shop_npcs", []) as Array).duplicate(true)
 
 # ---------------------------------------------------------------- the street
 

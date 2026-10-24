@@ -71,6 +71,10 @@
     "companion_speed_mult": 1.25,
     "hall": [110.0, 372.0]
   },
+  "shop": {
+    "blackout_hold_s": 2.5,
+    "wake_hour": 23.75
+  },
   "senses": {
     "lamp_mult": 2.6,
     "glow_mult": 2.2,

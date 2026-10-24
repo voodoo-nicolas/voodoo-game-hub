@@ -125,6 +125,16 @@ static func _samples(name: String) -> PackedFloat32Array:
 				lp += (rng.randf_range(-1.0, 1.0) - lp) * 0.06
 				a[i] = lp * sin(PI * t / 0.3) * 0.5
 			return a
+		"cough":
+			# two rough coughs
+			var a := _buf(0.5)
+			var lp := 0.0
+			for i in a.size():
+				var t := float(i) / RATE
+				var u := fposmod(t, 0.22)
+				lp += (rng.randf_range(-1.0, 1.0) - lp) * 0.25
+				a[i] = lp * exp(-u * 20.0) * (1.0 if t < 0.44 else 0.0) * 0.7
+			return a
 		"tick":
 			# a watch: a dry click with a small ring
 			var a := _buf(0.09)
