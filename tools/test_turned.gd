@@ -16,6 +16,9 @@ const Text = preload("res://scripts/games/turned/turned_text.gd")
 const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
 const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
 const DialogueScript = preload("res://scripts/games/turned/turned_dialogue.gd")
+const Scenes = preload("res://scripts/games/turned/turned_scenes.gd")
+const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
+const SceneViewScript = preload("res://scripts/games/turned/turned_scene_view.gd")
 
 const DT := 1.0 / 60.0
 
@@ -48,6 +51,7 @@ func _run() -> void:
 	await _test_night()
 	_test_dialogue_runner()
 	await _test_dialogue_world()
+	await _test_scenes()
 	await _test_bar()
 	await _test_follower()
 	Save.clear()
@@ -551,6 +555,190 @@ func _test_dialogue_world() -> void:
 	world.save_game()
 	check(not Save.read().has("dialogue"), "no scene in the autosave when none is running")
 
+# ---------------------------------------------------------------- Scene mode (a painting with hotspots)
+
+const SCENE_FIXTURE := {
+	"a": {"art": "a", "variants": [{"when": ["hour>=18"], "art": "a_night"}], "hotspots": [
+		{"id": "x", "label": "hs_dev_lamp", "pos": [0.40, 0.50], "once": true, "do": ["look:dev_lamp", "flag:took"]},
+		{"id": "y", "label": "hs_dev_box", "pos": [0.60, 0.50], "when": ["flag:took"], "do": ["item:+matches", "journal:coat"]},
+	]},
+}
+
+var sview: Control = null
+
+func _new_scene_world() -> void:
+	if sview != null:
+		sview.queue_free()
+	_new_world()
+	sview = SceneViewScript.new()
+	root.add_child(sview)
+	sview.set_anchors_preset(Control.PRESET_TOP_LEFT)   # a fixed size for the test (no resize warning)
+	sview.size = Vector2(1280, 720)
+	world.attach_scene_view(sview)
+
+func _scene_ready_world() -> void:
+	_new_scene_world()
+	await process_frame
+	world.begin_new()
+	_step(1.0)
+	world.engine.set_flag("control")
+	world.engine.set_flag("mirror")
+	world.engine.dpad = true
+	world.mode = "play"
+	world._pro = "done"
+	world.hud.fade = 0.0
+	world._load_area("street")
+	world.player.position = world.area.spawns.values()[0]
+	world.clock.hour = 12.0
+	hud.size = Vector2(1280, 720)
+	sview.size = Vector2(1280, 720)
+
+## A tap on a chip, the way a phone sends it (a left MouseButton press).
+func _tap_chip(id: String) -> void:
+	var lay: Array = sview.layout()
+	for c in lay:
+		if str(c["id"]) == id:
+			var ev := InputEventMouseButton.new()
+			ev.button_index = MOUSE_BUTTON_LEFT
+			ev.pressed = true
+			ev.position = (c["hit"] as Rect2).get_center()
+			sview._gui_input(ev)
+			return
+	check(false, "there is a chip '%s' to tap" % id)
+
+## Presses A through the dialogue on screen until it ends.
+func _finish_dialogue() -> void:
+	var guard := 0
+	while world.mode == "dialogue" and guard < 60:
+		hud.dialogue_skip()
+		world.press_a()
+		guard += 1
+	_step(0.05)                       # the world tells the painting it may listen again
+
+## Rebuilds the world and resumes the autosave, expecting `expect_mode` and the scene `sid`.
+func _scene_resume_check(sid: String, expect_mode: String, what: String) -> void:
+	_new_scene_world()
+	await process_frame
+	var ok: bool = world.resume()
+	hud.size = Vector2(1280, 720)
+	sview.size = Vector2(1280, 720)
+	check(ok and world.mode == expect_mode and world.in_scene and world.scene_id == sid and sview.visible, what)
+
+func _test_scenes() -> void:
+	# the data
+	check(Scenes.validate(Scenes.shipped()).is_empty(), "the shipped scenes are valid: %s" % str(Scenes.validate(Scenes.shipped())))
+	check(Scenes.validate(SCENE_FIXTURE).is_empty(), "the test scenes are valid: %s" % str(Scenes.validate(SCENE_FIXTURE)))
+	var bad := {"x": {"art": "", "hotspots": [
+		{"id": "a", "label": "nope", "pos": [0.01, 0.5], "do": ["scene:zz", "bogus"]},
+		{"id": "a", "label": "hs_dev_lamp", "pos": [0.02, 0.5], "when": ["wat:1"], "do": []}]}}
+	var problems: Array = Scenes.validate(bad)
+	check(problems.size() >= 8, "bad scenes are caught: %d problems" % problems.size())
+	for id in Scenes.shipped():
+		check(Scenes.painting(str((Scenes.shipped()[id] as Dictionary).get("art", ""))) == null, "the dev scene '%s' has no painting file yet (a placeholder is drawn)" % id)
+	check(Scenes.painting("") == null and Scenes.painting("does_not_exist") == null, "a missing painting is null, not an error")
+	# the fit: the whole painting, never cropped
+	for sz in [Vector2(1280, 720), Vector2(1600, 738), Vector2(1024, 768), Vector2(914, 514), Vector2(720, 1280)]:
+		var pr: Rect2 = SceneViewScript.fit_rect(sz, Scenes.PAINTING_ASPECT)
+		check(Rect2(Vector2.ZERO, sz).grow(0.01).encloses(pr) and absf(pr.size.x / pr.size.y - 1.5) < 0.001, "the painting fits whole into %s" % str(sz))
+		check(absf(pr.position.x * 2.0 + pr.size.x - sz.x) < 0.01 and absf(pr.position.y * 2.0 + pr.size.y - sz.y) < 0.01, "and is centred in %s" % str(sz))
+		check(is_equal_approx(pr.size.x, sz.x) or is_equal_approx(pr.size.y, sz.y), "and touches the screen on one axis at %s" % str(sz))
+	# the chips: on screen, never over each other, big enough to hit, at every size
+	for sz in [Vector2(1280, 720), Vector2(1600, 738), Vector2(1024, 768), Vector2(914, 514)]:
+		var pr2: Rect2 = SceneViewScript.fit_rect(sz, Scenes.PAINTING_ASPECT)
+		var k := clampf(sz.x / 900.0, 0.6, 1.0)
+		for sid in Scenes.shipped():
+			var items: Array = []
+			for h in (Scenes.shipped()[sid]["hotspots"] as Array):
+				items.append({"id": h["id"], "text": SceneText.HOTSPOTS[h["label"]], "pos": h["pos"]})
+			var lay: Array = SceneViewScript.compute_layout(sz, pr2, items, k, ThemeDB.fallback_font)
+			check(lay.size() == items.size(), "%s at %s: a chip for every hotspot" % [sid, str(sz)])
+			var boxes: Array = []
+			for c in lay:
+				var circle := Rect2((c["center"] as Vector2) - Vector2(c["r"], c["r"]), Vector2(c["r"], c["r"]) * 2.0)
+				boxes.append([circle, str(c["id"])])
+				boxes.append([c["label_rect"], str(c["id"])])
+				check(Rect2(Vector2.ZERO, sz).encloses(c["label_rect"]), "%s at %s: the label of '%s' is on screen" % [sid, str(sz), c["id"]])
+				check((c["hit"] as Rect2).size.y >= T.f("scene.chip_hit_min") * k - 0.01, "%s at %s: '%s' is tall enough to hit" % [sid, str(sz), c["id"]])
+			var clash := false
+			for i in boxes.size():
+				for j in range(i + 1, boxes.size()):
+					if boxes[i][1] != boxes[j][1] and (boxes[i][0] as Rect2).intersects(boxes[j][0]):
+						clash = true
+			check(not clash, "%s at %s: no chip overlaps another" % [sid, str(sz)])
+	# in the world
+	await _scene_ready_world()
+	check(not world.enter_scene("nope"), "an unknown scene does not open")
+	hud.set_revealed("dpad", true)
+	check(hud._role_at(hud._dpad_center()) == "dpad", "the d-pad answers a tap while walking")
+	var hour0: float = world.clock.hour
+	var pos0: Vector2 = world.player.position
+	check(world.enter_scene("dev_room") and world.mode == "scene" and world.in_scene and sview.visible and hud.scene_mode, "a scene opens from free play")
+	check(hud._role_at(hud._dpad_center()) == "", "the d-pad is gone while a painting is up")
+	_step(0.1)
+	check(sview.enabled and sview.spots.size() == 4 and sview.selected == 0, "the painting shows its 4 hotspots and is listening")
+	world.test_dir = Vector2.RIGHT
+	_step(2.0)
+	world.test_dir = Vector2.ZERO
+	check(world.player.position.distance_to(pos0) < 0.5 and is_equal_approx(world.clock.hour, hour0), "the player and the clock stand still in Scene mode")
+	_tap_chip("lamp")
+	check(world.engine.has_flag(Scenes.seen_flag("dev_room", "lamp")) and hud.caption_text() == SceneText.LOOKS["dev_lamp"], "tapping a chip examines it: a thought, and the hotspot is remembered")
+	_tap_chip("box")
+	check(world.engine.has_flag("dev_box") and sview.spots.size() == 4, "a hotspot's effects apply and it stays (it is not 'once')")
+	# a dialogue from a painting returns to the painting
+	_tap_chip("talk")
+	check(world.mode == "dialogue" and world.in_scene and hud.dialogue_active(), "a hotspot can start a dialogue scene")
+	_step(0.05)
+	check(not sview.enabled, "the chips stop listening while the dialogue has the screen")
+	_finish_dialogue()
+	check(world.mode == "scene" and world.in_scene and sview.visible and not hud.dialogue_active(), "when the dialogue ends the painting is back")
+	# an exit, and the keyboard: arrows move the highlight, A examines
+	_tap_chip("door")
+	check(world.scene_id == "dev_hall" and sview.spots.size() == 2, "an exit chip goes to another scene")
+	_step(0.1)
+	check(sview.selected == 0, "the first chip is highlighted")
+	sview.move_selection(Vector2.RIGHT)
+	check(sview.selected == 1, "right moves the highlight to the chip on the right")
+	sview.move_selection(Vector2.RIGHT)
+	check(sview.selected == 1, "and stays when there is nothing further right")
+	sview.move_selection(Vector2.LEFT)
+	check(sview.selected == 0, "left moves it back")
+	sview.move_selection(Vector2.RIGHT)
+	world.press_a()
+	check(world.mode == "play" and not world.in_scene and not sview.visible and not hud.scene_mode, "A on 'Leave' goes back to walking")
+	check(hud._role_at(hud._dpad_center()) == "dpad", "and the d-pad is back")
+	# save and resume inside a painting
+	world.enter_scene("dev_hall")
+	world.save_game()
+	check(str(Save.read().get("scene", "")) == "dev_hall", "the autosave keeps the painting that was up")
+	await _scene_resume_check("dev_hall", "scene", "Resume puts the painting back")
+	# ... and a dialogue that began on it
+	check(world.enter_scene("dev_room") and world.start_dialogue("dev_demo"), "a dialogue starts from a painting")
+	world.save_game()
+	await _scene_resume_check("dev_room", "dialogue", "Resume puts the dialogue back over its painting")
+	_finish_dialogue()
+	check(world.mode == "scene" and world.scene_id == "dev_room", "and finishing it returns to the painting")
+	world.leave_scene()
+	world.save_game()
+	check(not Save.read().has("scene"), "no scene in the autosave when none is up")
+	# conditions, 'once', the night variant, and what an action can give
+	world.scene_data = SCENE_FIXTURE
+	check(world.enter_scene("a") and sview.spots.size() == 1 and str(sview.spots[0]["id"]) == "x", "a hotspot whose condition fails is not shown")
+	_step(0.05)
+	check(sview._art_id == "a", "by day the painting is the day one")
+	_tap_chip("x")
+	check(sview.spots.size() == 1 and str(sview.spots[0]["id"]) == "y", "a 'once' hotspot goes away after it is used, and the one it unlocked appears")
+	world.clock.hour = 20.0
+	sview.refresh()
+	check(sview._art_id == "a_night", "in the evening the night painting is chosen")
+	_tap_chip("y")
+	check(world.engine.has_item("matches") and world.engine.journal.has("coat") and hud.is_revealed("menu"), "an item and a Journal line from a hotspot reveal the Menu")
+	world.leave_scene()
+	world.scene_data = {}
+	# a new game leaves any painting
+	world.enter_scene("dev_room")
+	world.begin_new()
+	check(not world.in_scene and not sview.visible and not hud.scene_mode and world.mode == "prologue", "a new game leaves the painting")
+
 # ---------------------------------------------------------------- the bar (scene 2)
 
 func _test_bar() -> void:
@@ -719,23 +907,81 @@ func _test_follower() -> void:
 	world.press_a()
 	check(world.mode == "dialogue" and world.dlg.view()["speaker"] == "you" and world.dlg.view()["text"] == Text.DIALOGUE["fol_why"], "'Why are you following me?!'")
 	_dlg_lines()
-	check(world.mode == "play" and world.engine.has_flag("witness_met") and world.engine.journal.has("witness"), "'...It's really you.' and the scene is over")
-	check(world._fol_state == "witness" and world._follower == null, "he stays at the corner")
+	check(world.mode == "transition" and world.engine.has_flag("witness_met") and world.engine.has_flag("witness_home") and world.engine.journal.has("witness") and world.engine.journal.has("same_note"), "'...It's really you.', what he saw, the same note, 'take me to your house'")
+	check(world.engine.mission == "show_matches", "the mission is to go home with him")
+	_step(1.6)
+	check(world.area.id == "house_down" and world.mode == "play", "at the player's house")
 	var wit: Node2D = null
 	for n in world._npcs:
 		if n.id == "witness":
 			wit = n
-	check(wit != null, "the man is now somebody you can talk to")
-	world.player.position = Vector2(720, 140)
+	check(wit != null and wit.position.distance_to(Vector2(110, 372)) < 2.0, "the witness waits in the hall")
+	world.player.position = Vector2(135, 350)
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "npc:witness", "A offers to talk to him")
 	world.press_a()
-	check(hud.caption_text() == Text.NPC_LINES["witness"]["all"], "his one line, for now")
-	# the house door works again, and Resume brings him back
-	world.player.position = Vector2(232, 170)
+	check(hud.caption_text() == Text.INNER["wit_wait"] and world.mode == "play", "he waits until you have looked at the coat again and brought the matches")
+	# upstairs the coat ticks
+	world.player.position = Vector2(472, 360)
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "stairs_up", "A offers the stairs up")
+	world.press_a()
+	_step(1.5)
+	check(world.area.id == "house", "upstairs")
+	var upstairs_witness := false
+	for n in world._npcs:
+		if n.id == "witness":
+			upstairs_witness = true
+	check(not upstairs_witness and world._follower == null, "he waits downstairs")
+	world.player.position = Vector2(241, 76)
 	_step(0.1)
 	world.press_a()
-	check(world.mode == "transition", "now the house door opens")
+	_dlg_lines()
+	check(world.dlg.view()["options"].has(Text.DIALOGUE["coat_opt_tick"]), "the coat ticks: a new thing to do")
+	_pick("coat_opt_tick")
+	_dlg_lines()
+	check(world.engine.has_item("watch") and world.engine.has_flag("watch_found") and world.engine.journal.has("watch"), "the hidden pocket: a silver pocket watch")
+	check(not world.dlg.view()["options"].has(Text.DIALOGUE["coat_opt_tick"]), "it is found once")
+	_pick("coat_opt_done")
+	world.engine.set_flag("matches_home")
+	world._apply_item_state()
+	world.player.position = Vector2(111, 66)
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "matches", "A offers the matches on the nightstand")
+	world.press_a()
+	check(world.engine.has_item("matches"), "the matches are in your pocket")
+	_step(0.1)
+	check(str(world._cand.get("id", "")) != "matches", "taken once")
+	# back down: show him
+	world.player.position = Vector2(472, 360)
+	_step(0.1)
+	world.press_a()
+	_step(1.5)
+	check(world.area.id == "house_down", "downstairs again")
+	world.player.position = Vector2(135, 350)
+	_step(0.2)
+	world.press_a()
+	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["w4m_here"], "you show him the matches")
+	_dlg_lines()
+	check(world.mode == "transition" and world.engine.has_flag("matches_shown") and world.engine.journal.has("cigar") and world.engine.mission == "cigar", "he knows the logo: the cigar shop by the harbor")
+	check(world.engine.has_item("watch"), "and the watch stays hidden in your pocket")
+	_step(1.6)
+	check(world.area.id == "harbor" and world.mode == "play", "the harbor")
+	check(absf(world.clock.hour - 22.5) < 0.05, "22:30")
+	check(world.engine.has_flag("senses") and world._follower != null and world._fol_state == "companion", "he walks with you, and your senses are sharp")
+	_step(0.5)
+	var lamp: Dictionary = world._lamps[0]
+	check(float(lamp["light"].energy) > float(lamp["base"]) * 2.0, "the gas lamps glare (%.2f against %.2f)" % [float(lamp["light"].energy), float(lamp["base"])])
+	check(_walk_to(Vector2(400, 250), 30.0) and world.engine.has_flag("sense1"), "the first sense beat: the lamps")
+	check(world._follower.position.distance_to(world.player.position) < 140.0, "he keeps close, at your side")
+	check(_walk_to(Vector2(1100, 250), 40.0) and world.engine.has_flag("sense2") and world.engine.has_flag("sense3"), "the dog and the smells")
+	check(_walk_to(Vector2(1340, 250), 20.0) and world.engine.has_flag("sense4"), "the thirst")
+	check(_walk_to(Vector2(1521, 176), 20.0), "walked to the cigar shop")
+	_step(0.2)
+	check(str(world._cand.get("id", "")) == "cigar_door", "A offers the shop door")
+	world.press_a()
+	check(hud.caption_text() == Text.INNER["cigar_dark"], "the shop is dark (Scene 5 is not built yet)")
+	check(Text.ITEMS["watch"]["variants"].size() == 1 and Text.SPEAKERS.has("witness"), "texts for the watch and the witness exist")
 	await _street_world_after_bar()
 	world.engine.set_flag("followed")
 	world._on_area_ready()
@@ -836,7 +1082,7 @@ func _test_flow() -> void:
 	check(not world.engine.has_item("matches"), "the left pocket is empty")
 	_pick("coat_opt_right")
 	_dlg_lines()
-	check(world.engine.has_item("matches") and world.engine.journal.has("matches"), "the right pocket has the matches")
+	check(world.engine.has_flag("matches_home") and world.engine.journal.has("matches") and not world.engine.has_item("matches"), "the right pocket has the matches, and they stay on the nightstand")
 	_pick("coat_opt_inner")
 	_dlg_lines()
 	check(world.dlg.view()["options"].has(Text.DIALOGUE["coat_opt_tear"]), "now the stitches can be torn")
@@ -853,7 +1099,7 @@ func _test_flow() -> void:
 	world.press_a()
 	_dlg_lines()
 	_pick("coat_opt_done")
-	check(world.engine.journal.size() == 4 and world.engine.items == ["matches", "note"], "the coat gives its things only once")
+	check(world.engine.journal.size() == 4 and world.engine.items == ["note"], "the coat gives its things only once")
 
 	# the mirror
 	check(_walk_to(Vector2(135, 250)) and _walk_to(Vector2(135, 340)) and _walk_to(Vector2(430, 345)) and _walk_to(Vector2(430, 280)) and _walk_to(Vector2(444, 64)), "walked bedroom -> hall -> bathroom mirror")

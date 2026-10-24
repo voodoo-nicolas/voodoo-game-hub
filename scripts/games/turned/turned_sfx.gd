@@ -125,6 +125,24 @@ static func _samples(name: String) -> PackedFloat32Array:
 				lp += (rng.randf_range(-1.0, 1.0) - lp) * 0.06
 				a[i] = lp * sin(PI * t / 0.3) * 0.5
 			return a
+		"tick":
+			# a watch: a dry click with a small ring
+			var a := _buf(0.09)
+			for i in a.size():
+				var t := float(i) / RATE
+				a[i] = (sin(TAU * 2300.0 * t) * 0.35 + rng.randf_range(-1.0, 1.0) * 0.25) * exp(-t * 90.0)
+			return a
+		"bark":
+			# a dog far away: two short rough barks
+			var a := _buf(0.42)
+			var ph := 0.0
+			for i in a.size():
+				var t := float(i) / RATE
+				var u := fposmod(t, 0.2)
+				ph += TAU * (380.0 - 700.0 * u) / RATE
+				var env := exp(-u * 16.0) * (1.0 if t < 0.34 else 0.0)
+				a[i] = (sin(ph) * 0.5 + rng.randf_range(-1.0, 1.0) * 0.25) * env
+			return a
 		"death":
 			var a := _buf(1.2)
 			var ph := 0.0

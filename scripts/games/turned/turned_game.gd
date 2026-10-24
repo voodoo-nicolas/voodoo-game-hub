@@ -20,6 +20,7 @@ const Save = preload("res://scripts/games/turned/turned_save.gd")
 const InputMapper = preload("res://scripts/games/turned/turned_input.gd")
 const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
 const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
+const SceneViewScript = preload("res://scripts/games/turned/turned_scene_view.gd")
 ## The app's shared on-screen controller; older apps don't have it and Turned keeps its own controls.
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
 ## Layouts that have A, B, a Pause and a Menu button (Turned needs all four).
@@ -36,6 +37,7 @@ var home  # HomeKit
 var world: Node2D = null
 var hud: Control = null
 var pad: Control = null
+var scene_view: Control = null     # Scene mode: a painting with hotspots (docs/turned/SCENE_MODE_PLAN.md)
 var _holder: Control = null
 var _view_box: SubViewportContainer = null
 var _view: SubViewport = null
@@ -129,7 +131,11 @@ func _spawn_world() -> void:
 	world.stat_event.connect(_on_stat)
 	_view.add_child(world)
 	world.attach_hud(hud)
+	scene_view = SceneViewScript.new()
+	add_child(scene_view)
+	world.attach_scene_view(scene_view)
 	_add_pad()
+	move_child(scene_view, 1)                     # over the world, under the pad, the HUD and the kit
 	_fit_world()
 
 ## The shared Pad under the HUD (so fades and the close-up draw over it), when the app has it.
@@ -181,6 +187,9 @@ func _discard_world() -> void:
 	pad = null
 	if _holder != null:
 		_holder.queue_free()
+	if scene_view != null and is_instance_valid(scene_view):
+		scene_view.queue_free()
+	scene_view = null
 	_holder = null
 	_view_box = null
 	_view = null
@@ -196,6 +205,8 @@ func _process(_delta: float) -> void:
 	if info != null and "overlay" in info and info.overlay != null and info.overlay.visible:
 		kit_up = true
 	world.kit_up = kit_up
+	if _view != null:                                 # a painting covers the world: do not draw it
+		_view.render_target_update_mode = SubViewport.UPDATE_DISABLED if world.in_scene else SubViewport.UPDATE_ALWAYS
 	if kit_up and not _kit_was_up and hud != null:
 		hud.release_inputs()                      # no arrow stays pressed under the pause menu
 	_kit_was_up = kit_up

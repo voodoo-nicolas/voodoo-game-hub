@@ -34,6 +34,8 @@ static func make(area_id: String) -> RefCounted:
 		a._build_house_down()
 	elif area_id == "bar":
 		a._build_bar()
+	elif area_id == "harbor":
+		a._build_harbor()
 	else:
 		a._build_house()
 	return a
@@ -190,11 +192,13 @@ func _build_house() -> void:
 	_furn("floorlamp", Rect2(492, 440, 16, 16))
 	deco.append_array([
 		{"t": "item", "kind": "coat", "pos": Vector2(241, 44)},
+		{"t": "item", "kind": "matches", "pos": Vector2(111, 38)},
 		{"t": "item", "kind": "calendar", "pos": Vector2(327, 120)},
 		{"t": "item", "kind": "towel", "pos": Vector2(533, 72)},
 	])
 	interacts = [
 		{"id": "coat", "pos": Vector2(241, 72), "r": 34.0, "verb": "look"},
+		{"id": "matches", "pos": Vector2(111, 64), "r": 30.0, "verb": "take"},
 		{"id": "calendar", "pos": Vector2(312, 124), "r": 30.0, "verb": "look"},
 		{"id": "wardrobe", "pos": Vector2(304, 74), "r": 30.0, "verb": "look"},
 		{"id": "mirror", "pos": Vector2(444, 62), "r": 36.0, "verb": "look"},
@@ -348,6 +352,62 @@ func _build_bar() -> void:
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(NPC_DATA))
 	if typeof(parsed) == TYPE_DICTIONARY:
 		npcs = (parsed.get("bar_npcs", []) as Array).duplicate(true)
+
+# ---------------------------------------------------------------- Vellmoor Harbor (scene 4)
+# One long night street along the quay: warehouses on the north side, gas lamps every 240 px, the water
+# to the south, the cigar shop at the east end. Placeholder layout (docs/turned/DECISIONS.md).
+
+func _build_harbor() -> void:
+	indoor = false
+	bounds = Rect2(0, -200, 1700, 580)
+	solids = [
+		Rect2(0, -200, 1700, 350),            # the warehouses
+		Rect2(0, 368, 1700, 12),              # the quay's edge
+		Rect2(-20, -200, 20, 580), Rect2(1700, -200, 20, 580),
+	]
+	for x in [120, 360, 600, 840, 1080, 1320]:
+		solids.append(Rect2(x - 4, 202, 8, 8))
+		lamps.append(Vector2(x, 198))
+		props.append({"kind": "lamp", "pos": Vector2(x, 208)})
+	for c in [Vector2(520, 346), Vector2(1190, 344)]:
+		solids.append(Rect2(c.x - 13, c.y - 13, 26, 26))
+		props.append({"kind": "crate", "pos": c, "size": Vector2(26, 26)})
+	for b in [Vector2(930, 348), Vector2(280, 350), Vector2(1440, 349)]:
+		solids.append(Rect2(b.x - 9, b.y - 9, 18, 18))
+		props.append({"kind": "barrel", "pos": b, "r": 9.0})
+	shades = [
+		{"rect": Rect2(1370, 150, 220, 44), "style": "awning", "c1": Color("5a3a2a"), "c2": Color("d4c8a4")},
+	]
+	deco = [
+		{"t": "floor", "rect": Rect2(0, 215, 1700, 115), "color": Color("464a58"), "cobble": true},
+		{"t": "floor", "rect": Rect2(0, 150, 1700, 65), "color": Color("525867"), "slab": true},
+		{"t": "floor", "rect": Rect2(0, 330, 1700, 40), "color": Color("4a3d33"), "plank": true},
+		{"t": "water", "rect": Rect2(0, 370, 1700, 210)},
+		{"t": "building", "rect": Rect2(0, -200, 420, 350), "wall": Color("5a5560"), "roof": Color("2c3040")},
+		{"t": "building", "rect": Rect2(420, -200, 360, 350), "wall": Color("63564e"), "roof": Color("34303c")},
+		{"t": "building", "rect": Rect2(780, -200, 300, 350), "wall": Color("4f5a5e"), "roof": Color("2c3646")},
+		{"t": "building", "rect": Rect2(1080, -200, 280, 350), "wall": Color("5e4e50"), "roof": Color("303240")},
+		{"t": "building", "rect": Rect2(1360, -200, 260, 350), "wall": Color("6a5a4e"), "roof": Color("2e3040")},
+		{"t": "building", "rect": Rect2(1620, -200, 80, 350), "wall": Color("52505a"), "roof": Color("2a2e3c")},
+		{"t": "window_row", "rect": Rect2(24, 86, 360, 34), "lit": false},
+		{"t": "window_row", "rect": Rect2(444, 86, 300, 34), "lit": false},
+		{"t": "window_row", "rect": Rect2(800, 86, 240, 34), "lit": false},
+		{"t": "window_row", "rect": Rect2(1100, 86, 240, 34), "lit": false},
+		{"t": "shop_front", "rect": Rect2(1370, 80, 220, 70), "name": "cigars"},
+		{"t": "fence", "rect": Rect2(0, 362, 1700, 8)},
+	]
+	interacts = [
+		{"id": "cigar_door", "pos": Vector2(1521, 156), "r": 30.0, "verb": "enter"},
+	]
+	triggers = [
+		{"id": "sense1", "rect": Rect2(300, 150, 40, 230)},
+		{"id": "sense2", "rect": Rect2(680, 150, 40, 230)},
+		{"id": "sense3", "rect": Rect2(1020, 150, 40, 230)},
+		{"id": "sense4", "rect": Rect2(1290, 150, 40, 230)},
+	]
+	light_spots = []
+	spawns = {"from_city": Vector2(60, 250)}
+	npcs = []
 
 # ---------------------------------------------------------------- the street
 

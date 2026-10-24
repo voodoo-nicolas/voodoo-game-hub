@@ -1,0 +1,18 @@
+{
+  "dev_room": {
+    "art": "dev_room",
+    "hotspots": [
+      {"id": "lamp", "label": "hs_dev_lamp", "pos": [0.30, 0.45], "do": ["look:dev_lamp"]},
+      {"id": "box", "label": "hs_dev_box", "pos": [0.55, 0.62], "do": ["look:dev_box", "flag:dev_box"]},
+      {"id": "talk", "label": "hs_dev_talk", "pos": [0.50, 0.32], "do": ["dialogue:dev_demo"]},
+      {"id": "door", "label": "hs_dev_door", "kind": "exit", "pos": [0.78, 0.50], "do": ["scene:dev_hall"]}
+    ]
+  },
+  "dev_hall": {
+    "art": "dev_hall",
+    "hotspots": [
+      {"id": "back", "label": "hs_dev_back", "kind": "exit", "dir": "left", "pos": [0.25, 0.55], "do": ["scene:dev_room"]},
+      {"id": "leave", "label": "hs_dev_leave", "kind": "exit", "pos": [0.72, 0.55], "do": ["leave"]}
+    ]
+  }
+}

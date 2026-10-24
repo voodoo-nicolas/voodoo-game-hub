@@ -40,6 +40,13 @@ const INNER := {
 	"fol_stop": "I stop. They stop. Someone is following me.",
 	"fol_lane": "That side lane. If I wait round the corner, he will have to come to me.",
 	"door_followed": "Not with someone behind me. I need to know who it is first.",
+	"wit_wait": "Not yet. Something is wrong with that coat, and the matches are still on the nightstand.",
+	"matches_take": "I put the box of matches in my pocket.",
+	"sense_lamps": "The gas lamps are far too bright. They hurt my eyes.",
+	"sense_dog": "A dog is barking, far away. It sounds like it is inside my head.",
+	"sense_smell": "Tar, fish, wet rope, tobacco smoke. Every smell cuts like a knife.",
+	"sense_thirst": "I am so thirsty. And that ticking, never stopping. Can he not hear it?",
+	"cigar_dark": "The cigar shop. This is the logo on the matches. The shop is dark, and nobody answers my knock.",
 }
 
 ## What a piece of furniture says when you Examine it (id of the interact -> line). Placeholders written for
@@ -94,6 +101,9 @@ const JOURNAL := {
 	"alley": "The alley is cool and quiet. Something in me woke up there.",
 	"pockets": "My pockets are empty. No keys, no coins. My own coat is gone.",
 	"cellar": "A locked cellar door in the hall, with an old iron lock. I have no key.",
+	"same_note": "He has the same note, from his own pocket: same day, same time. Wednesday, 10 PM.",
+	"watch": "A silver pocket watch from a hidden pocket in the coat's lining. It ticks, warm and humming, and it feels wrong. I did not tell him.",
+	"cigar": "The matches come from a cigar company. Their shop is across the city, by the harbor. He knows where.",
 	"witness": "A man from the bar followed me. I caught him round a corner. He stared at my neck and at the coat, and said: \"...It's really you.\" He knows something.",
 	"matches": "A box of matches from the coat's right pocket, with a cigar company's logo on the lid. They are not mine.",
 	"note": "A note sewn into the coat's inside pocket: \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
@@ -106,6 +116,8 @@ const MISSIONS := {
 	"find_coat": "Find your coat",
 	"go_bar": "Go to The Crooked Lantern",
 	"follower": "Find out who is following you",
+	"show_matches": "Go home with him and look at the coat again",
+	"cigar": "Go to the cigar shop by the harbor",
 }
 
 ## What the A button says (translated by the HUD when drawn).
@@ -231,7 +243,7 @@ const DIALOGUE := {
 	"coat_opt_wear": "Try it on",
 	"coat_opt_done": "Leave the coat",
 	"coat_left": "The left pocket is empty.",
-	"coat_right": "A box of matches. The lid has a logo on it. They are not mine.",
+	"coat_right": "A box of matches. The lid has a logo on it. They are not mine. I leave them on the nightstand.",
 	"coat_inner": "The inside pocket is sewn shut with crude stitches. Someone did not want it opened by accident.",
 	"coat_tear": "I tear the stitches open. A note, folded small. \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
 	"coat_tear_thought": "Wednesday. It is Friday. Whatever happened, it happened there.",
@@ -248,4 +260,29 @@ const DIALOGUE := {
 	"fol_why": "Why are you following me?!",
 	"fol_stare": "He does not answer. He stares at my neck, then at the coat.",
 	"fol_really": "...It's really you.",
+	# the witness tells what he saw (scene 4)
+	"w4_wed": "Wednesday night. I came late. You were outside the bar, talking with a couple of people.",
+	"w4_closed": "I went to go in. The tavernkeep told me: \"We're closed. Anyone inside can finish and go. Tonight is over.\" And he slammed the door.",
+	"w4_wait": "Thursday, nothing. Today, nothing. I drank, and I waited. Then you walk in tonight.",
+	"w4_nothing": "I don't remember any of it. I woke up today in a stranger's coat, with a note.",
+	"w4_show": "A note? Show me.",
+	"w4_hand": "I give it to him. He reads it. His face loses its colour, and the paper slips from his fingers.",
+	"w4_pocket": "With a shaking hand he takes a note from his own pocket. The same paper. The same words.",
+	"w4_same": "Same day. Same time.",
+	"w4_you": "You got one too?",
+	"w4_more": "Was there anything else in that coat?",
+	"w4_matches_home": "A box of matches. I left it at home.",
+	"w4_matches_here": "A box of matches. I have it here.",
+	"w4_home": "Take me to your house. I want to see that coat.",
+	# at home (scene 4)
+	"coat_tick": "The coat is ticking. A small, steady tick, from somewhere in the lining.",
+	"coat_opt_tick": "Follow the ticking",
+	"coat_w1": "I follow the sound with my fingers. A second lining, sewn low on the inside. A hidden pocket.",
+	"coat_w2": "A silver pocket watch. It is warm, and it hums against my palm. It feels wrong.",
+	"coat_w3": "I close my hand round it. He does not need to know. Not yet.",
+	"w4m_here": "Here. These were in the coat.",
+	"w4m_look": "He turns the box over. His thumb stops on the logo.",
+	"w4m_logo": "I know this. A cigar company. Their shop is across the city, by the harbor.",
+	"w4m_hide": "The watch stays in my pocket, ticking. I do not say a word about it.",
+	"w4m_go": "Come on. Somebody there may know who gave you that coat.",
 }

@@ -18,6 +18,8 @@ const SPOTS := [
 	["street_alley", "street", 1785.0, 150.0],
 	["street_pub", "street", 1069.0, 188.0],
 	["street_lane", "street", 720.0, 180.0],
+	["harbor_start", "harbor", 160.0, 235.0],
+	["harbor_shop", "harbor", 1440.0, 215.0],
 	["bar_room", "bar", 320.0, 300.0],
 	["bar_counter", "bar", 320.0, 150.0],
 	["house_calendar", "house", 290.0, 120.0],
@@ -71,6 +73,8 @@ func _run() -> void:
 			world._load_area(spot[1])
 		if args.size() > 1:
 			world.clock.hour = float(args[1])
+		if spot[1] == "harbor":
+			world.engine.set_flag("senses")        # the glare of a turning vampire's eyes
 		world.player.position = Vector2(spot[2], spot[3])
 		world._snap_camera()
 		for i in 12:

@@ -15,7 +15,7 @@ const GROUND_SHADER := "res://scripts/games/turned/turned_ground.gdshader"
 const WALL_H := 78.0
 
 ## Shop signs (English; translated when drawn).
-const SHOP_NAMES := {"bakery": "Bakery", "tailor": "Tailor", "pub": "The Crooked Lantern"}
+const SHOP_NAMES := {"bakery": "Bakery", "tailor": "Tailor", "pub": "The Crooked Lantern", "cigars": "Cigar Shop"}
 
 var area: RefCounted = null
 var mode := "ground"
@@ -24,6 +24,7 @@ var taken := {}
 var glint := {}
 
 var _t := 0.0
+var overbright := 1.0  # 1 normally; above 1 the lamps glare (the senses of a turning vampire)
 var night := 0.0     # 0 day ... 1 dark (set by the world each frame; the glow layer lights the windows)
 var _halo: GradientTexture2D = null
 var _decals: Array = []
@@ -159,6 +160,7 @@ func _draw() -> void:
 			"window_row": _window_row(d["rect"], bool(d["lit"]))
 			"house_door": _house_door(d["rect"])
 			"bar_door": _bar_door(d["rect"])
+			"water": _water(d["rect"])
 			"shop_front": _shop_front(d["rect"], str(d["name"]))
 			"fence": _fence(d["rect"])
 			"alley_door": _alley_door(d["rect"])
@@ -492,6 +494,10 @@ func _item(d: Dictionary) -> void:
 		"note":
 			draw_rect(Rect2(p.x - 7, p.y - 5, 14, 10), Color("d8cfb8"))
 			draw_line(Vector2(p.x - 4, p.y - 1), Vector2(p.x + 3, p.y - 1), Color("6a5a48"), 1.0)
+		"matches":
+			draw_rect(Rect2(p.x - 7, p.y - 4, 14, 9), Color("c9b48a"))
+			draw_rect(Rect2(p.x - 7, p.y - 4, 14, 3), Color("8a2e2a"))
+			draw_rect(Rect2(p.x - 7, p.y - 4, 14, 9), Color("5a4a38"), false, 1.0)
 		"calendar":
 			# a wall calendar: red header, a grid of days
 			draw_rect(Rect2(p.x - 8, p.y - 10, 16, 22), Color("e2dccb"))
@@ -578,6 +584,16 @@ func _window(r: Rect2, lit: bool) -> void:
 	draw_rect(Rect2(r.position.x - 3.0, r.end.y + 1.0, r.size.x + 6.0, 1.0), Color(1, 1, 1, 0.16))
 	if lit:
 		_grad_rect(Rect2(r.position.x - 6.0, r.end.y + 4.0, r.size.x + 12.0, 12.0), Color(1.0, 0.7, 0.35, 0.16), Color(1.0, 0.7, 0.35, 0.0))
+
+## The harbor's water: dark, with a few lines of light that the lamps and the moon leave on it.
+func _water(r: Rect2) -> void:
+	_grad_rect(r, Color("162033"), Color("0a0f1a"))
+	var x := r.position.x
+	while x < r.end.x:
+		var k := _h(int(x), 7)
+		var y := r.position.y + 14.0 + k * 90.0
+		draw_line(Vector2(x, y), Vector2(x + 24.0 + k * 40.0, y), Color(0.55, 0.65, 0.85, 0.08 + 0.1 * k), 1.5)
+		x += 38.0 + k * 30.0
 
 ## The pub's street door seen from inside (a south wall): a frame, planks, a small glass pane, a bolt.
 func _bar_door(r: Rect2) -> void:
@@ -807,8 +823,9 @@ func _draw_glow() -> void:
 	for lp in area.lamps:
 		var head: Vector2 = lp + Vector2(0, -28)
 		var flick := 0.92 + 0.08 * sin(_t * 6.0 + lp.x * 0.3)
-		draw_texture_rect(_halo, Rect2(head - Vector2(46, 46), Vector2(92, 92)), false, Color(1.0, 0.66, 0.28, 0.34 * flick))
-		draw_texture_rect(_halo, Rect2(head - Vector2(14, 14), Vector2(28, 28)), false, Color(1.0, 0.86, 0.55, 0.7 * flick))
+		var big := 46.0 * overbright
+		draw_texture_rect(_halo, Rect2(head - Vector2(big, big), Vector2(big, big) * 2.0), false, Color(1.0, 0.66, 0.28, minf(1.0, 0.34 * overbright) * flick))
+		draw_texture_rect(_halo, Rect2(head - Vector2(14, 14) * overbright, Vector2(28, 28) * overbright), false, Color(1.0, 0.86, 0.55, minf(1.0, 0.7 * overbright) * flick))
 	# lit windows and shop glass spill a little warmth
 	for d in area.deco:
 		if d["t"] == "shop_front":

@@ -27,6 +27,8 @@ const TSfx = preload("res://scripts/games/turned/turned_sfx.gd")
 const Save = preload("res://scripts/games/turned/turned_save.gd")
 const InputMapper = preload("res://scripts/games/turned/turned_input.gd")
 const DialogueScript = preload("res://scripts/games/turned/turned_dialogue.gd")
+const Scenes = preload("res://scripts/games/turned/turned_scenes.gd")
+const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
 
 signal pause_requested
 ## A stat for GameInfo: "died", "clue".
@@ -89,6 +91,8 @@ var _fol_step_t := 0.0
 var _fol_steps := 0
 var _fol_still := 0.0
 var _fol_stuck := 0.0
+var _watch_t := 0.0            # the watch's tick
+var _bark_t := 6.0             # the next far-off dog
 var _fol_last_pp := Vector2.ZERO
 # dying
 var _die_t := 0.0
@@ -101,6 +105,12 @@ var _dlg_area := ""            # an "area:" effect waits until the scene is over
 var _dlg_hour := -1.0          # so does an "hour:" one (-1 = none)
 var _dlg_journal := 0
 var _dlg_items := 0
+var _dlg_back := "play"        # the mode a dialogue returns to ("scene" when it started from a painting)
+# scene mode (docs/turned/SCENE_MODE_PLAN.md)
+var in_scene := false          # a painting is on screen (mode "scene", or a dialogue started from it)
+var scene_id := ""
+var scene_view: Control = null
+var scene_data: Dictionary = {}   # tests put their own scenes here; empty = turned_scenes.json
 
 func _ready() -> void:
 	InputMapper.ensure_actions()
@@ -131,6 +141,13 @@ func attach_hud(h: HudScript) -> void:
 	hud.pause_pressed.connect(_request_pause)
 	hud.dialogue_option.connect(_on_dialogue_option)
 
+## Scene mode's screen (turned_scene_view.gd), shown over the world while a painting is up.
+func attach_scene_view(v: Control) -> void:
+	scene_view = v
+	v.holds = Callable(self, "_scene_holds")
+	v.seen = Callable(self, "_scene_seen")
+	v.hotspot_activated.connect(_on_hotspot)
+
 ## The SubViewport's size in canvas units: the camera zoom keeps ~360 world px visible vertically
 ## (landscape), or ~520 across when the screen is narrow (portrait).
 func set_view_size(v: Vector2) -> void:
@@ -150,6 +167,8 @@ func begin_new() -> void:
 	engine.reset()
 	clock = SunClock.new()
 	dlg.stop()
+	_dlg_back = "play"
+	leave_scene()
 	hud.hide_dialogue()
 	hud.engine = engine
 	_pro = "black"
@@ -210,6 +229,15 @@ func resume() -> bool:
 	hud.fade = 0.0
 	_snap_camera()
 	_on_area_ready()
+	var sid := str(d.get("scene", ""))
+	if sid != "" and scene_view != null and _scenes().has(sid):
+		var back := mode                    # "play", or "dialogue" when a scene was on the painting
+		mode = "play"
+		if enter_scene(sid) and back == "dialogue":
+			_dlg_back = "scene"
+			mode = "dialogue"
+		elif not in_scene:
+			mode = back
 	return true
 
 func _restore_hud() -> void:
@@ -310,12 +338,18 @@ func _apply_item_state() -> void:
 	var fresh := {}
 	if engine.has_flag("scarf"):
 		hidden["scarf"] = true
+	if not engine.has_flag("matches_home") or engine.has_item("matches"):
+		hidden["matches"] = true
 	if area.indoor and engine.has_flag("control"):
 		for k in ["coat", "calendar", "towel"]:
 			if not (k in engine.journal):
 				fresh[k] = true
 		if engine.journal.has("coat") and not engine.has_item("note"):
 			fresh["coat"] = true                 # still something in the coat
+		if engine.has_flag("witness_home") and not engine.has_flag("watch_found"):
+			fresh["coat"] = true                 # the coat is ticking
+		if engine.has_flag("matches_home") and not engine.has_item("matches") and engine.has_flag("witness_home"):
+			fresh["matches"] = true
 		if not engine.has_flag("scarf") and engine.has_flag("mirror"):
 			fresh["scarf"] = true
 	_decor.taken = hidden
@@ -381,6 +415,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		clock.advance_hours(1.0)
 	elif event.is_action_pressed("tn_debug_dialogue") and OS.is_debug_build():
 		start_dialogue("dev_demo")
+	elif event.is_action_pressed("tn_debug_scene") and OS.is_debug_build():
+		enter_scene("dev_room")
 
 func _request_pause() -> void:
 	if hosted:
@@ -393,6 +429,8 @@ func _frozen() -> bool:
 # ---------------------------------------------------------------- the frame
 
 func _process(delta: float) -> void:
+	if in_scene and scene_view != null:
+		scene_view.enabled = mode == "scene" and not (kit_up or discard or hud == null or hud.menu_open)
 	if _frozen():
 		return
 	delta = minf(delta, 0.1)
@@ -407,6 +445,7 @@ func _process(delta: float) -> void:
 		"transition": _tick_transition(delta)
 		"dying": _tick_dying(delta)
 		"dialogue": _tick_dialogue(delta)
+		"scene": player.moving = false
 	_tick_visuals(delta)
 
 func _after(seconds: float, fn: Callable) -> void:
@@ -448,15 +487,19 @@ func _tick_visuals(delta: float) -> void:
 	_canvas_mod.color = _ambient_color()
 	_update_sky()
 	var lamp_boost := 1.0 + T.f("moon.lamp_night_boost") * clock.night()
+	var glare := engine.has_flag("senses") and not area.indoor
+	if glare:
+		lamp_boost *= T.f("senses.lamp_mult")
 	if _glow != null:
 		_glow.night = clock.night()
+		_glow.overbright = T.f("senses.glow_mult") if glare else 1.0
 	hud.clock_text = clock.hour_text()
 	hud.clock_sun = clock.intensity()
 	hud.clock_moon = clock.moon_level()
 	for l in _lamps:
 		var li: PointLight2D = l["light"]
 		li.energy = lamp_boost * float(l["base"]) * (0.93 + 0.07 * sin(_t * 5.0 + float(l["seed"])) + 0.03 * sin(_t * 13.0 + float(l["seed"])))
-	hud.burn = _burn_amt
+	hud.burn = 0.0 if in_scene else _burn_amt        # no white-hot glow over a painting
 
 # ---------------------------------------------------------------- prologue (story bible section 10)
 
@@ -590,6 +633,7 @@ func _tick_play(delta: float) -> void:
 	for n in _npcs:
 		n.tick(delta, player, _npcs)
 	_tick_follower(delta)
+	_tick_senses(delta)
 	# sun
 	var intensity := clock.intensity()
 	var in_sun := not area.in_shade(player.position)
@@ -614,8 +658,11 @@ func _tick_play(delta: float) -> void:
 		_start_dying()
 		return
 	# triggers
-	if area.trigger_at(player.position) == "alley" and not engine.has_flag("alley"):
+	var trig := area.trigger_at(player.position)
+	if trig == "alley" and not engine.has_flag("alley"):
 		_enter_alley()
+	elif trig.begins_with("sense") and not engine.has_flag(trig):
+		_sense_beat(trig)
 	# what A would do
 	_cand = _nearest_interact()
 	hud.a_label = str(_cand.get("verb", ""))
@@ -637,6 +684,8 @@ func _nearest_interact() -> Dictionary:
 	for it in area.interacts:
 		var iid: String = it["id"]
 		if iid == "scarf" and engine.has_flag("scarf"):
+			continue
+		if iid == "matches" and (not engine.has_flag("matches_home") or engine.has_item("matches")):
 			continue
 		var d := player.position.distance_to(it["pos"])
 		if d <= float(it["r"]) and d < best_d:
@@ -669,6 +718,10 @@ func press_a() -> void:
 				_interact(_cand)
 		"dialogue":
 			_dialogue_a()
+		"scene":
+			if scene_view != null:
+				scene_view.keyboard_nav = true
+				scene_view.activate_selected()
 
 func press_b() -> void:
 	if _frozen() or mode != "play" or not engine.has_button("b"):
@@ -731,6 +784,15 @@ func _interact(c: Dictionary) -> void:
 			else:
 				TSfx.play(self, "door", -4.0)
 				_go_area("bar", "from_street", true)
+		"matches":
+			engine.add_item("matches")
+			TSfx.play(self, "pickup", -4.0)
+			hud.reveal("menu")
+			hud.say(Text.INNER["matches_take"])
+			_apply_item_state()
+		"cigar_door":
+			TSfx.play(self, "door", -14.0, 0.7)       # knocking; the shop is Scene 5 (not built yet)
+			hud.say(Text.INNER["cigar_dark"])
 		"bar_exit":
 			TSfx.play(self, "door", -4.0)
 			_go_area("street", "from_bar", true)
@@ -765,6 +827,9 @@ func _add_journal(id: String) -> bool:
 	return added
 
 func _talk(n: Node2D) -> void:
+	if n.id == "witness":
+		_talk_witness(n)
+		return
 	var lines: Dictionary = Text.NPC_LINES.get(n.id, {})
 	var line: String = str(lines.get("all", lines.get("covered" if engine.has_flag("scarf") else "exposed", "")))
 	n.talk_to(player.position)
@@ -772,12 +837,23 @@ func _talk(n: Node2D) -> void:
 	if n.knows_player >= 2 and not (n.data.get("clue_ids", ["watcher"]) as Array).is_empty():
 		_add_journal(str((n.data.get("clue_ids", ["watcher"]) as Array)[0]))
 
+## The witness at your house: he waits until you have seen the coat again and have the matches.
+func _talk_witness(n: Node2D) -> void:
+	n.talk_to(player.position)
+	if engine.has_flag("witness_home") and not engine.has_flag("matches_shown"):
+		if engine.has_item("matches") and engine.has_flag("watch_found"):
+			start_dialogue("witness_matches")
+		else:
+			hud.say(Text.INNER["wit_wait"])
+	else:
+		hud.say(Text.NPC_LINES["witness"]["all"], "speech", Text.SPEAKERS["witness"])
+
 # ---------------------------------------------------------------- dialogue scenes
 
 ## Starts a scene from turned_dialogues.json (only from free play). The player and the clock
 ## stand still until it ends; false if it cannot start.
 func start_dialogue(id: String) -> bool:
-	if mode != "play":
+	if mode != "play" and mode != "scene":
 		return false
 	dlg.engine = engine
 	dlg.clock = clock
@@ -786,6 +862,7 @@ func start_dialogue(id: String) -> bool:
 	_dlg_area = ""
 	if not dlg.start(id):
 		return false
+	_dlg_back = mode                   # "play", or "scene" when it was started from a painting
 	mode = "dialogue"
 	player.moving = false
 	_dlg_dir_prev = 0
@@ -849,12 +926,17 @@ func _after_dialogue_step() -> void:
 		return
 	hud.hide_dialogue()
 	hud.a_label = ""
-	mode = "play"
+	mode = _dlg_back
+	_dlg_back = "play"
+	if mode == "scene" and scene_view != null:
+		scene_view.refresh()
 	if engine.has_flag("witness_met") and _fol_state != "witness":
 		_spawn_witness()
 	var hour_to := _dlg_hour
 	_dlg_hour = -1.0
 	if _dlg_area != "":
+		leave_scene()                       # an "area:" effect from a scene that began on a painting
+		mode = "play"
 		var parts := _dlg_area.split(":")
 		_dlg_area = ""
 		_go_area(parts[0], parts[1] if parts.size() > 1 else "", true)
@@ -871,11 +953,12 @@ func _after_dialogue_step() -> void:
 func _follower_look() -> Dictionary:
 	return {"coat": "1d2029", "hat": "flat", "skin": "b9a89a", "accent": "3a3f4e"}
 
-func _make_follower(at: Vector2) -> void:
+func _make_follower(at: Vector2, companion: bool = false) -> void:
 	if _follower != null:
 		_follower.queue_free()
 	_follower = NpcScript.new()
-	_follower.setup({"id": "follower", "pos": [at.x, at.y], "face": [0, -1], "look": _follower_look(), "knows_player": 1})
+	var look := {"coat": "4a4a44", "hat": "flat", "skin": "d0bfae", "accent": "6a6a62"} if companion else _follower_look()
+	_follower.setup({"id": "follower", "pos": [at.x, at.y], "face": [0, -1], "look": look, "knows_player": 1})
 	_entities.add_child(_follower)
 
 func _follower_begin() -> void:
@@ -922,7 +1005,7 @@ func _fol_mouth() -> Vector2:
 	return Vector2(float(a[0]), float(a[1]))
 
 ## Walks the man towards `p` (sliding along walls) and plays his footsteps, quieter the further he is.
-func _fol_move_to(p: Vector2, speed: float, delta: float) -> void:
+func _fol_move_to(p: Vector2, speed: float, delta: float, quiet: bool = false) -> void:
 	var d := p - _follower.position
 	if d.length() <= 2.0:
 		_follower.drive(_follower.position, _follower.face, false, delta)
@@ -965,6 +1048,8 @@ func _fol_move_to(p: Vector2, speed: float, delta: float) -> void:
 	if _fol_step_t <= 0.0:
 		_fol_step_t = T.f("player.step_interval_s") * (1.6 if engine.sneaking else 1.0)
 		_fol_steps += 1
+		if quiet:
+			return
 		var far := clampf(player.position.distance_to(np) / 60.0, 0.0, 12.0)
 		TSfx.play(self, "step", T.f("player.step_volume_db") - far, 0.85)
 
@@ -1015,6 +1100,9 @@ func _tick_follower(delta: float) -> void:
 			if not _in_lane():
 				_fol_state = "flee"
 				_fol_t = 0.0
+		"companion":
+			_fol_record()
+			_fol_move_to(_fol_target(T.f("follower.companion_lag_px")), engine.speed() * T.f("follower.companion_speed_mult"), delta, true)
 		"flee":
 			_fol_t += delta
 			var away := (_follower.position - player.position).normalized()
@@ -1039,17 +1127,138 @@ func _follower_hints() -> void:
 
 ## After the scene he stays at the corner as a person you can talk to (his one line, for now).
 func _spawn_witness() -> void:
+	_spawn_witness_at(_fol_mouth(), Vector2(0, -1))
+
+func _spawn_witness_at(m: Vector2, face: Vector2) -> void:
 	if _follower != null:
 		_follower.queue_free()
 		_follower = null
 	var n := NpcScript.new()
-	var m := _fol_mouth()
 	n.setup({"id": "witness", "knows_player": 2, "role": "witness", "behavior": "stand", "stare": true,
-			"pos": [m.x, m.y], "face": [0, -1], "clue_ids": [],
+			"pos": [m.x, m.y], "face": [face.x, face.y], "clue_ids": [],
 			"look": {"coat": "4a4a44", "hat": "flat", "skin": "d0bfae", "accent": "6a6a62"}})
 	_npcs.append(n)
 	_entities.add_child(n)
 	_fol_state = "witness"
+
+# ---------------------------------------------------------------- the watch and the senses (scene 4)
+
+## The coat's tick before you find the watch (louder close to the coat, upstairs), the watch's own tick
+## once you carry it (only you seem to hear it), the far-off dog, in the harbor.
+func _tick_senses(delta: float) -> void:
+	var ticking_coat := engine.has_flag("witness_home") and not engine.has_flag("watch_found") and area.id == "house"
+	var ticking_watch := engine.has_item("watch") and not engine.has_flag("watch_broken")
+	if ticking_coat or ticking_watch:
+		_watch_t -= delta
+		if _watch_t <= 0.0:
+			_watch_t = T.f("senses.tick_interval_s")
+			if ticking_coat:
+				TSfx.play(self, "tick", T.f("senses.tick_coat_db") - clampf(player.position.distance_to(Vector2(241, 60)) / 40.0, 0.0, 14.0))
+			else:
+				TSfx.play(self, "tick", T.f("senses.tick_db"))
+	if engine.has_flag("senses") and area.id == "harbor":
+		_bark_t -= delta
+		if _bark_t <= 0.0:
+			_bark_t = randf_range(T.f("senses.bark_min_s"), T.f("senses.bark_max_s"))
+			TSfx.play(self, "bark", -12.0, randf_range(0.85, 1.1))
+
+## The four beats along the harbor street: lamps too bright, a dog, the smells, the thirst.
+func _sense_beat(id: String) -> void:
+	engine.set_flag(id)
+	var key: String = {"sense1": "sense_lamps", "sense2": "sense_dog", "sense3": "sense_smell", "sense4": "sense_thirst"}.get(id, "")
+	if key != "":
+		hud.say(Text.INNER[key])
+	if id == "sense2":
+		TSfx.play(self, "bark", -6.0)
+
+
+# ---------------------------------------------------------------- scene mode (a painting with hotspots)
+
+func _scene_holds(conds: Array) -> bool:
+	dlg.engine = engine
+	dlg.clock = clock
+	return dlg.holds(conds)
+
+func _scene_seen(flag: String) -> bool:
+	return engine.has_flag(flag)
+
+func _scenes() -> Dictionary:
+	return scene_data if not scene_data.is_empty() else Scenes.shipped()
+
+## Shows a scene from turned_scenes.json (or `scene_data`); only from free play or from another
+## painting. The walk, the clock and the sun stand still: time passes in Scene mode only through
+## the story and travel (the plan's decision 3).
+func enter_scene(id: String) -> bool:
+	if scene_view == null or (mode != "play" and mode != "scene"):
+		return false
+	var sc: Dictionary = _scenes().get(id, {})
+	if sc.is_empty():
+		return false
+	in_scene = true
+	scene_id = id
+	mode = "scene"
+	player.moving = false
+	hud.clear_caption()
+	hud.release_inputs()
+	hud.scene_mode = true
+	hud.a_label = ""
+	scene_view.show_scene(id, sc)
+	return true
+
+## Back to walking (also called when a new game starts).
+func leave_scene() -> void:
+	if not in_scene:
+		return
+	in_scene = false
+	scene_id = ""
+	if scene_view != null:
+		scene_view.hide_scene()
+	if hud != null:
+		hud.scene_mode = false
+	if mode == "scene":
+		mode = "play"
+
+func _on_hotspot(hs: Dictionary) -> void:
+	if mode != "scene":
+		return
+	engine.set_flag(Scenes.seen_flag(scene_id, str(hs.get("id", ""))))
+	var journal_n := engine.journal.size()
+	var items_n := engine.items.size()
+	for a in (hs.get("do", []) as Array):
+		_scene_action(str(a))
+		if not in_scene:
+			break                               # it left the painting (walk, area)
+	if engine.journal.size() > journal_n:
+		hud.reveal("menu")
+	if engine.items.size() > items_n:
+		hud.reveal("menu")
+		TSfx.play(self, "pickup", -4.0)
+		_apply_item_state()
+	if in_scene and scene_view != null:
+		scene_view.refresh()
+
+func _scene_action(s: String) -> void:
+	if s.begins_with("look:"):
+		hud.say(str(SceneText.LOOKS.get(s.substr(5), "TODO " + s.substr(5))))
+	elif s.begins_with("dialogue:"):
+		start_dialogue(s.substr(9))
+	elif s.begins_with("scene:"):
+		enter_scene(s.substr(6))
+	elif s == "leave":
+		leave_scene()
+	elif s.begins_with("area:"):
+		leave_scene()
+		var p := s.substr(5).split(":")
+		_go_area(p[0], p[1] if p.size() > 1 else "", true)
+	elif s.begins_with("hour:"):
+		clock.skip_to(s.substr(5).to_float())
+	elif s.begins_with("sfx:"):
+		TSfx.play(self, s.substr(4), -6.0)
+	else:
+		dlg.engine = engine
+		dlg.clock = clock
+		dlg.apply([s])
+		dlg.take_events()
 
 # ---------------------------------------------------------------- the mirror
 
@@ -1133,8 +1342,19 @@ func _tick_transition(delta: float) -> void:
 func _on_area_ready() -> void:
 	if area.id == "bar" and not engine.has_flag("bar_scene"):
 		start_dialogue("bar_shout")
+	elif area.id == "house_down" and engine.has_flag("witness_home") and not engine.has_flag("matches_shown"):
+		var hall := T.arr("follower.hall")
+		_spawn_witness_at(Vector2(float(hall[0]), float(hall[1])), Vector2(-1, 0))
+	elif area.id == "harbor":
+		engine.set_flag("senses")
+		if engine.has_flag("matches_shown"):
+			_make_follower(player.position + Vector2(-T.f("follower.companion_lag_px"), 0.0), true)
+			_fol_begin_tail()
+			_fol_state = "companion"
 	elif area.id == "street":
-		if engine.has_flag("witness_met"):
+		if engine.has_flag("witness_met") and engine.has_flag("witness_home"):
+			pass                                  # he is in the house
+		elif engine.has_flag("witness_met"):
 			_spawn_witness()
 		elif engine.has_flag("followed"):
 			_make_follower(player.position + Vector2(T.f("follower.lag_px") + 40.0, 0.0))
@@ -1206,4 +1426,4 @@ func save_game() -> void:
 	if discard or mode == "transition" or mode == "dying" or not engine.has_flag("control"):
 		return
 	engine.pos = player.position
-	Save.write(engine, clock, dlg)
+	Save.write(engine, clock, dlg, scene_id if in_scene else "")

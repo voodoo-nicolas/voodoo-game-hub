@@ -70,14 +70,14 @@
           "mission:find_coat"
         ],
         "then": "n3",
-        "else": "menu"
+        "else": "t1"
       },
       "n3": {
         "type": "do",
         "effects": [
           "mission:find_out"
         ],
-        "next": "menu"
+        "next": "t1"
       },
       "menu": {
         "type": "choice",
@@ -101,7 +101,7 @@
             ],
             "effects": [
               "flag:coat_right",
-              "item:+matches",
+              "flag:matches_home",
               "journal:matches"
             ],
             "next": "right"
@@ -129,6 +129,14 @@
               "mission:go_bar"
             ],
             "next": "tear"
+          },
+          {
+            "text": "coat_opt_tick",
+            "if": [
+              "flag:witness_home",
+              "!flag:watch_found"
+            ],
+            "next": "w1"
           },
           {
             "text": "coat_opt_wear",
@@ -178,6 +186,40 @@
       },
       "bye": {
         "type": "end"
+      },
+      "t1": {
+        "type": "branch",
+        "if": [
+          "flag:witness_home",
+          "!flag:watch_found"
+        ],
+        "then": "tick",
+        "else": "menu"
+      },
+      "tick": {
+        "speaker": "",
+        "text": "coat_tick",
+        "next": "menu"
+      },
+      "w1": {
+        "speaker": "",
+        "text": "coat_w1",
+        "next": "w2"
+      },
+      "w2": {
+        "speaker": "",
+        "text": "coat_w2",
+        "effects": [
+          "item:+watch",
+          "flag:watch_found",
+          "journal:watch"
+        ],
+        "next": "w3"
+      },
+      "w3": {
+        "speaker": "",
+        "text": "coat_w3",
+        "next": "menu"
       }
     }
   },
@@ -247,8 +289,126 @@
         "text": "fol_really",
         "effects": [
           "flag:witness_met",
-          "journal:witness",
-          "mission:find_out"
+          "journal:witness"
+        ],
+        "next": "s1"
+      },
+      "s1": {
+        "speaker": "witness",
+        "text": "w4_wed",
+        "next": "s2"
+      },
+      "s2": {
+        "speaker": "witness",
+        "text": "w4_closed",
+        "next": "s3"
+      },
+      "s3": {
+        "speaker": "witness",
+        "text": "w4_wait",
+        "next": "s4"
+      },
+      "s4": {
+        "speaker": "you",
+        "text": "w4_nothing",
+        "next": "s5"
+      },
+      "s5": {
+        "speaker": "witness",
+        "text": "w4_show",
+        "next": "s6"
+      },
+      "s6": {
+        "speaker": "",
+        "text": "w4_hand",
+        "next": "s7"
+      },
+      "s7": {
+        "speaker": "",
+        "text": "w4_pocket",
+        "next": "s8"
+      },
+      "s8": {
+        "speaker": "witness",
+        "text": "w4_same",
+        "effects": [
+          "journal:same_note"
+        ],
+        "next": "s9"
+      },
+      "s9": {
+        "speaker": "you",
+        "text": "w4_you",
+        "next": "s10"
+      },
+      "s10": {
+        "speaker": "witness",
+        "text": "w4_more",
+        "next": "s11"
+      },
+      "s11": {
+        "type": "branch",
+        "if": [
+          "item:matches"
+        ],
+        "then": "s12b",
+        "else": "s12a"
+      },
+      "s12a": {
+        "speaker": "you",
+        "text": "w4_matches_home",
+        "next": "s13"
+      },
+      "s12b": {
+        "speaker": "you",
+        "text": "w4_matches_here",
+        "next": "s13"
+      },
+      "s13": {
+        "speaker": "witness",
+        "text": "w4_home",
+        "effects": [
+          "flag:witness_home",
+          "mission:show_matches",
+          "area:house_down:from_street"
+        ]
+      }
+    }
+  },
+  "witness_matches": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "you",
+        "text": "w4m_here",
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "",
+        "text": "w4m_look",
+        "next": "n3"
+      },
+      "n3": {
+        "speaker": "witness",
+        "text": "w4m_logo",
+        "effects": [
+          "journal:cigar"
+        ],
+        "next": "n4"
+      },
+      "n4": {
+        "speaker": "",
+        "text": "w4m_hide",
+        "next": "n5"
+      },
+      "n5": {
+        "speaker": "witness",
+        "text": "w4m_go",
+        "effects": [
+          "flag:matches_shown",
+          "mission:cigar",
+          "hour:22.5",
+          "area:harbor:from_city"
         ]
       }
     }

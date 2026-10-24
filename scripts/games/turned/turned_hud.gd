@@ -54,8 +54,11 @@ var clock_moon := 0.0   # moon height 0..1
 var burn := 0.0          # 0..1 white-hot sun vignette
 var closeup := 0.0       # 0..1 neck close-up
 var menu_open := false
+## Scene mode (a painting with hotspots) is on screen: no pad, d-pad or A/B, only the bars, the
+## Mission box, Pause and Menu (the Scene HUD of docs/turned/SCENE_MODE_PLAN.md replaces this in S2).
+var scene_mode := false
 
-var _rv := {"dpad": 0.0, "a": 0.0, "b": 0.0, "bars": 0.0, "mission": 0.0, "menu": 0.0, "pause": 1.0}
+var _rv :={"dpad": 0.0, "a": 0.0, "b": 0.0, "bars": 0.0, "mission": 0.0, "menu": 0.0, "pause": 1.0}
 var _rv_target := {"dpad": false, "a": false, "b": false, "bars": false, "mission": false, "menu": false, "pause": true}
 var _pulse := {}         # name -> 0..1 glow ring after a reveal
 
@@ -307,6 +310,14 @@ func _role_at(p: Vector2) -> String:
 					return "opt%d" % i
 		if (lay["box"] as Rect2).has_point(p):
 			return "dlg"            # a tap on the box goes on, like A
+	if scene_mode:
+		if _pause_rect().grow(8.0).has_point(p):
+			return "pause"
+		if _rv["menu"] > 0.5 and _menu_rect().grow(8.0).has_point(p):
+			return "menu"
+		if _rv["mission"] > 0.5 and _mission_rect().has_point(p):
+			return "mission"
+		return ""
 	if pad != null:
 		if _rv["mission"] > 0.5 and _mission_rect().has_point(p):
 			return "mission"
@@ -445,7 +456,7 @@ func _process(delta: float) -> void:
 		var sub := tr(Text.VERBS.get(a_label, a_label)) if a_label != "" else ""
 		pad.set_state("a", {"sub": sub, "enabled": a_active and a_label != ""})
 		pad.set_state("b", {"ring": engine != null and engine.sneaking})
-		pad.visible = closeup <= 0.4 and not menu_open
+		pad.visible = closeup <= 0.4 and not menu_open and not scene_mode
 	if engine != null:
 		_hp_disp = move_toward(_hp_disp, engine.hp, maxf(20.0 * delta, absf(engine.hp - _hp_disp) * 8.0 * delta))
 		_blood_disp = move_toward(_blood_disp, engine.blood, 40.0 * delta)
@@ -476,10 +487,11 @@ func _draw() -> void:
 		_draw_bars()
 	if _rv["mission"] > 0.01:
 		_draw_mission()
-	if pad == null:
+	if pad == null and not scene_mode:
 		if _rv["dpad"] > 0.01:
 			_draw_dpad()
 		_draw_faces()
+	if pad == null or scene_mode:
 		_draw_small_buttons()
 	if burn > 0.01:
 		draw_texture_rect(_vignette, Rect2(Vector2.ZERO, size), false, Color(1.0, 0.93, 0.78, minf(1.0, burn * 0.8)))
