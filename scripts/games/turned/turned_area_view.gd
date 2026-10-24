@@ -161,6 +161,7 @@ func _draw() -> void:
 			"house_door": _house_door(d["rect"])
 			"bar_door": _bar_door(d["rect"])
 			"water": _water(d["rect"])
+			"vine_house": _vine_house(d["rect"])
 			"shop_front": _shop_front(d["rect"], str(d["name"]))
 			"fence": _fence(d["rect"])
 			"alley_door": _alley_door(d["rect"])
@@ -592,6 +593,29 @@ func _window(r: Rect2, lit: bool) -> void:
 	draw_rect(Rect2(r.position.x - 3.0, r.end.y + 1.0, r.size.x + 6.0, 1.0), Color(1, 1, 1, 0.16))
 	if lit:
 		_grad_rect(Rect2(r.position.x - 6.0, r.end.y + 4.0, r.size.x + 12.0, 12.0), Color(1.0, 0.7, 0.35, 0.16), Color(1.0, 0.7, 0.35, 0.0))
+
+## A small stone house buried in vines, one window with a dim light, a door under the eaves.
+func _vine_house(r: Rect2) -> void:
+	_grad_rect(r, Color("4a4a48"), Color("2e2e30"))
+	draw_colored_polygon(PackedVector2Array([Vector2(r.position.x - 10, r.position.y + 6), Vector2(r.position.x + r.size.x * 0.5, r.position.y - 32), Vector2(r.end.x + 10, r.position.y + 6)]), Color("2a2a32"))
+	var win := Rect2(r.position.x + 36, r.position.y + 46, 34, 40)
+	draw_rect(win.grow(3), Color("141418"))
+	_grad_rect(win, Color(1.0, 0.72, 0.36, 0.9), Color(0.8, 0.45, 0.2, 0.85))      # the dim light
+	draw_line(Vector2(win.get_center().x, win.position.y), Vector2(win.get_center().x, win.end.y), Color("141418"), 1.6)
+	var door := Rect2(r.position.x + r.size.x * 0.58, r.position.y + 60, 36, r.size.y - 60)
+	draw_rect(door.grow(3), Color("141418"))
+	draw_rect(door, Color("3a2c22"))
+	draw_circle(Vector2(door.end.x - 6, door.get_center().y), 1.8, Color("b89a58"))
+	# the vines: dark green tendrils and leaves climbing the walls and over the window
+	for i in 38:
+		var k := _h(i * 7, 3)
+		var x := r.position.x + 4.0 + k * (r.size.x - 8.0)
+		var top := r.position.y + 10.0 + _h(i, 9) * 40.0
+		var bot := r.end.y - _h(i, 5) * 20.0
+		draw_line(Vector2(x, bot), Vector2(x + (_h(i, 1) - 0.5) * 20.0, top), Color(0.1, 0.22, 0.12), 2.0)
+		for j in 5:
+			var ly := lerpf(bot, top, float(j) / 5.0)
+			draw_circle(Vector2(x + (_h(i, j) - 0.5) * 12.0, ly), 3.0 + _h(j, i) * 2.0, Color(0.12 + 0.06 * _h(i, j), 0.3, 0.14))
 
 ## The harbor's water: dark, with a few lines of light that the lamps and the moon leave on it.
 func _water(r: Rect2) -> void:

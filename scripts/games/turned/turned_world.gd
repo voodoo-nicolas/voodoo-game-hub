@@ -93,6 +93,9 @@ var _fol_step_t := 0.0
 var _fol_steps := 0
 var _fol_still := 0.0
 var _fol_stuck := 0.0
+var _owner_light: PointLight2D = null   # the shopkeeper's oil lamp on the night road
+var _hunger := 0.0             # 0..1, eased towards the flag "hungry" (the blood on the forest path)
+var _hun_t := 0.0
 var _watch_t := 0.0            # the watch's tick
 var _bark_t := 6.0             # the next far-off dog
 var _fol_last_pp := Vector2.ZERO
@@ -307,6 +310,7 @@ func _load_area(name: String) -> void:
 	_npcs = []
 	_lamps = []
 	_follower = null
+	_owner_light = null
 	_fol_state = "off"
 	_area_root = Node2D.new()
 	add_child(_area_root)
@@ -534,6 +538,13 @@ func _tick_visuals(delta: float) -> void:
 			_throb_t = -1.0
 			hud.throb = 0.0
 	_apply_zoom(pulse)
+	_hunger = move_toward(_hunger, 1.0 if engine.has_flag("hungry") else 0.0, delta * 1.5)
+	if _hunger > 0.01:
+		hud.throb = maxf(hud.throb, _hunger * (0.4 + 0.25 * sin(_t * 7.0)))
+		_hun_t -= delta
+		if _hun_t <= 0.0:
+			_hun_t = 0.8
+			TSfx.play(self, "pulse", -10.0)
 	# light colour: brighter standing in the sun, cooler in shade
 	var in_sun := mode != "prologue" and not area.indoor and not area.in_shade(player.position)
 	_sun_mix = move_toward(_sun_mix, 1.0 if in_sun else 0.0, T.f("light.mix_speed") * delta)
@@ -686,6 +697,7 @@ func _tick_play(delta: float) -> void:
 	_footsteps(delta, player.position.distance_to(was))
 	for n in _npcs:
 		n.tick(delta, player, _npcs)
+	engine.day = maxi(engine.day, int(clock.day))        # past midnight the sun is one level worse (bible section 8)
 	_tick_follower(delta)
 	_tick_senses(delta)
 	# sun
@@ -717,6 +729,8 @@ func _tick_play(delta: float) -> void:
 		_enter_alley()
 	elif trig.begins_with("sense") and not engine.has_flag(trig):
 		_sense_beat(trig)
+	elif trig in ["walk1", "walk2", "walk3", "gate", "branch", "house"] and not engine.has_flag(trig):
+		_road_beat(trig)
 	# a room with a painting opens in Scene mode as you walk in (turned_scenes.json "walk_zone")
 	var zone := Scenes.zone_at(_scenes(), area.id, player.position, _scene_holds)
 	if zone != "" and enter_scene(zone):
@@ -854,6 +868,11 @@ func _interact(c: Dictionary) -> void:
 		"cigar_door":
 			TSfx.play(self, "door", -4.0)
 			_go_area("cigar_shop", "from_harbor", true)
+		"priest_door":
+			if engine.has_flag("house_reached"):
+				hud.say(Text.INNER["house_tbc"])
+			else:
+				start_dialogue("house_arrive")
 		"cigar_exit":
 			TSfx.play(self, "door", -4.0)
 			_go_area("harbor", "from_shop", true)
@@ -893,6 +912,10 @@ func _add_journal(id: String) -> bool:
 func _talk(n: Node2D) -> void:
 	if n.id == "witness":
 		_talk_witness(n)
+		return
+	if n.id == "shopkeeper" and engine.has_flag("storeroom_scene") and not engine.has_flag("watch_shown"):
+		n.talk_to(player.position)
+		start_dialogue("watch_show")
 		return
 	var lines: Dictionary = Text.NPC_LINES.get(n.id, {})
 	var line: String = str(lines.get("all", lines.get("covered" if engine.has_flag("scarf") else "exposed", "")))
@@ -984,6 +1007,13 @@ func _after_dialogue_step() -> void:
 			engine.hp = maxf(1.0, engine.hp * (1.0 - s.substr(5).to_float()))
 		elif s == "throb":
 			_throb_t = 0.0
+		elif s.begins_with("hunger:"):
+			if s.substr(7).to_float() > 0.0:
+				engine.set_flag("hungry")
+			else:
+				engine.clear_flag("hungry")
+		elif s == "to_be_continued":
+			hud.banner(Text.BANNER_TBC)
 		elif s.begins_with("scene:"):
 			_dlg_scene = s.substr(6)
 		elif s.begins_with("card:"):
@@ -1009,8 +1039,8 @@ func _after_dialogue_step() -> void:
 		var go := _dlg_scene
 		_dlg_scene = ""
 		enter_scene(go)                     # a "scene:" effect: the painting opens when the dialogue is over
-	if engine.has_flag("witness_met") and _fol_state != "witness":
-		_spawn_witness()
+	if engine.has_flag("witness_met") and not engine.has_flag("witness_home") and area.id == "street" and _fol_state != "witness":
+		_spawn_witness()                          # (scene 3 only: after it he is at your house, then gone)
 	var hour_to := _dlg_hour
 	_dlg_hour = -1.0
 	if _dlg_area != "":
@@ -1081,6 +1111,73 @@ func _fol_target(lag: float) -> Vector2:
 func _in_lane() -> bool:
 	return area.trigger_at(player.position) == "lane" and player.position.y < T.f("follower.lane_inside_y")
 
+## The shopkeeper on the night road: the person you walk with, with his oil lamp.
+func _make_owner(at: Vector2) -> void:
+	if _follower != null:
+		_follower.queue_free()
+	_follower = NpcScript.new()
+	_follower.setup({"id": "owner", "pos": [at.x, at.y], "face": [1, 0], "knows_player": 2,
+			"look": {"coat": "5a4a38", "hat": "", "skin": "caa488", "accent": "c9a15b"}})
+	_entities.add_child(_follower)
+	_owner_light = PointLight2D.new()
+	_owner_light.texture = _light_tex
+	_owner_light.texture_scale = T.f("road.lamp_radius_px") / 128.0
+	_owner_light.color = Color("ffb45a")
+	_owner_light.energy = T.f("road.lamp_energy")
+	_owner_light.height = T.f("light.lamp_height_px")
+	_owner_light.position = Vector2(8, -14)
+	_follower.add_child(_owner_light)
+
+## Arc length along the road's waypoints (tuning road.path) of the point nearest to `p`.
+func _road_s(p: Vector2) -> float:
+	var pts := T.arr("road.path")
+	var best_s := 0.0
+	var best_d := INF
+	var acc := 0.0
+	for i in pts.size() - 1:
+		var a := Vector2(float(pts[i][0]), float(pts[i][1]))
+		var b := Vector2(float(pts[i + 1][0]), float(pts[i + 1][1]))
+		var seg := b - a
+		var t := clampf((p - a).dot(seg) / maxf(seg.length_squared(), 0.001), 0.0, 1.0)
+		var q := a + seg * t
+		if p.distance_to(q) < best_d:
+			best_d = p.distance_to(q)
+			best_s = acc + seg.length() * t
+		acc += seg.length()
+	return best_s
+
+func _road_point(s: float) -> Vector2:
+	var pts := T.arr("road.path")
+	var acc := 0.0
+	for i in pts.size() - 1:
+		var a := Vector2(float(pts[i][0]), float(pts[i][1]))
+		var b := Vector2(float(pts[i + 1][0]), float(pts[i + 1][1]))
+		var len := a.distance_to(b)
+		if s <= acc + len:
+			return a.lerp(b, (s - acc) / maxf(len, 0.001))
+		acc += len
+	var last: Array = pts[pts.size() - 1]
+	return Vector2(float(last[0]), float(last[1]))
+
+## The beats along the night road: the priest (told by the shopkeeper), the senses, the gate, the branch.
+func _road_beat(id: String) -> void:
+	engine.set_flag(id)
+	match id:
+		"walk1":
+			start_dialogue("road_priest")
+		"walk2":
+			hud.say(Text.INNER["road_sens2"])
+		"walk3":
+			hud.say(Text.INNER["road_sens3"])
+		"gate":
+			hud.say(Text.INNER["road_gate"])
+		"branch":
+			if _follower != null:
+				_follower.drive(player.position + Vector2(46, -4), Vector2(1, 0), false, 0.0)    # beside you, on the path
+			start_dialogue("branch_arm")
+		"house":
+			hud.say(Text.INNER["road_house"])
+
 func _fol_mouth() -> Vector2:
 	var a := T.arr("follower.mouth")
 	return Vector2(float(a[0]), float(a[1]))
@@ -1135,8 +1232,13 @@ func _fol_move_to(p: Vector2, speed: float, delta: float, quiet: bool = false) -
 		TSfx.play(self, "step", T.f("player.step_volume_db") - far, 0.85)
 
 func _tick_follower(delta: float) -> void:
-	if _follower == null or _fol_state == "off" or _fol_state == "witness" or _fol_state == "caught":
+	if _follower == null or _fol_state == "off" or _fol_state == "witness" or _fol_state == "caught" or _fol_state == "still":
 		return
+	if _owner_light != null:
+		_owner_light.energy = T.f("road.lamp_energy") * (0.92 + 0.08 * sin(_t * 6.0) + 0.03 * sin(_t * 15.0))
+	if _fol_state == "leader" and engine.has_flag("owner_behind"):
+		_fol_begin_tail()                       # after the branch he walks behind you
+		_fol_state = "behind"
 	var dist := player.position.distance_to(_follower.position)
 	if player.position.distance_to(_fol_last_pp) < 0.05:
 		_fol_still += delta
@@ -1181,6 +1283,15 @@ func _tick_follower(delta: float) -> void:
 			if not _in_lane():
 				_fol_state = "flee"
 				_fol_t = 0.0
+		"leader":
+			var lead_s := _road_s(player.position) + T.f("road.lead_px")
+			var lead_to := _road_point(lead_s)
+			if dist > T.f("road.lead_wait_px"):
+				lead_to = _follower.position            # too far ahead: wait for you
+			_fol_move_to(lead_to, engine.speed() * T.f("road.owner_speed_mult"), delta, true)
+		"behind":
+			_fol_record()
+			_fol_move_to(_fol_target(T.f("road.behind_lag_px")), engine.speed() * T.f("follower.companion_speed_mult"), delta, true)
 		"companion":
 			_fol_record()
 			_fol_move_to(_fol_target(T.f("follower.companion_lag_px")), engine.speed() * T.f("follower.companion_speed_mult"), delta, true)
@@ -1460,6 +1571,14 @@ func _on_area_ready() -> void:
 				if n.id == "shopkeeper":
 					n.position = Vector2(306, 134)          # on his stool by the cot
 					n.face = Vector2(1, 0)
+	elif area.id == "night_road":
+		engine.set_flag("senses")
+		_make_owner(player.position + Vector2(T.f("road.lead_px"), 0.0))
+		if engine.has_flag("owner_behind"):
+			_fol_begin_tail()
+			_fol_state = "behind"
+		else:
+			_fol_state = "leader"
 	elif area.id == "harbor":
 		engine.set_flag("senses")
 		if engine.has_flag("matches_shown") and not engine.has_flag("witness_gone"):

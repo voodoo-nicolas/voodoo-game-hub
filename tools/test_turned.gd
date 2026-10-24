@@ -62,6 +62,7 @@ func _run() -> void:
 	await _test_house_rooms()
 	await _test_bar()
 	await _test_follower()
+	await _test_scene6()
 	Save.clear()
 	if backup != "":
 		var f := FileAccess.open(Save.PATH, FileAccess.WRITE)
@@ -1535,8 +1536,9 @@ func _test_follower() -> void:
 	world.player.position = Vector2(340, 150)
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "npc:shopkeeper", "A offers to talk to him")
+	world.engine.set_flag("watch_shown")          # (scene 6 starts from this talk; here we only check his plain line)
 	world.press_a()
-	check(hud.caption_text() == Text.NPC_LINES["shopkeeper"]["all"], "'Rest a little. Then we go to the priest.' (Scene 6 is not built yet)")
+	check(hud.caption_text() == Text.NPC_LINES["shopkeeper"]["all"], "'Rest a little. Then we go to the priest.'")
 	world.player.position = Vector2(280, 382)
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "cigar_exit", "A offers the street door")
@@ -1553,6 +1555,116 @@ func _test_follower() -> void:
 	await process_frame
 	check(world.resume() and world.area.id == "street" and world._follower != null and world._fol_state == "tail", "Resume mid-chase puts him behind you again")
 	check(world._follower.position.distance_to(world.player.position) > 200.0, "and he is not on top of you")
+
+# ---------------------------------------------------------------- scene 6: the watch, the night walk, the forest, the arm, the house
+
+func _walk_into_scene(dir: Vector2, limit_s: float = 12.0) -> void:
+	world.test_dir = dir
+	var t := 0.0
+	while t < limit_s and world.mode == "play":
+		_step(0.1)
+		t += 0.1
+	world.test_dir = Vector2.ZERO
+
+func _test_scene6() -> void:
+	var road: Area = Area.make("night_road") as Area
+	check(not road.indoor and road.is_free(road.spawns["start"], 9.0), "the night road starts on free ground")
+	check(_reachable(road, road.spawns["start"], Vector2(2566, 176)) and road.is_free(Vector2(2566, 176), 9.0), "the road leads to the vine house door")
+	for it in road.interacts:
+		check(Text.VERBS.has(it["verb"]), "road interact %s has a label" % it["id"])
+	for tr in road.triggers:
+		check(road.bounds.encloses(tr["rect"]) and _reachable(road, road.spawns["start"], (tr["rect"] as Rect2).get_center() + Vector2(0, 40)), "road trigger %s is on the way" % tr["id"])
+	var poly: Array = T.arr("road.path")
+	check(poly.size() >= 3 and _reachable(road, road.spawns["start"], Vector2(float(poly[poly.size() - 1][0]), float(poly[poly.size() - 1][1]))), "the leader's path ends on the walkable road")
+	# the shop, after the storeroom: show him the watch
+	_new_world()
+	await process_frame
+	world.begin_new()
+	_step(1.0)
+	for f in ["control", "mirror", "pockets", "bar_scene", "bar_thrown", "followed", "witness_met", "witness_home", "matches_shown", "shop_scene", "blackout", "witness_gone", "storeroom_scene", "senses"]:
+		world.engine.set_flag(f)
+	for it in ["note", "matches", "watch"]:
+		world.engine.add_item(it)
+	world.engine.dpad = true
+	world.engine.show_bars = true
+	world.engine.set_mission("priest")
+	world.mode = "play"
+	world._pro = "done"
+	world.hud.fade = 0.0
+	world._load_area("cigar_shop")
+	world.clock.hour = 23.75
+	world._on_area_ready()
+	world.player.position = Vector2(340, 150)
+	_step(0.2)
+	check(str(world._cand.get("id", "")) == "npc:shopkeeper", "A offers to talk to the shopkeeper")
+	var hp_before: float = world.engine.hp
+	world.press_a()
+	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["w6_show"], "you show him the watch")
+	_dlg_lines()
+	check(world.mode == "transition" and world.engine.has_flag("watch_broken") and world.engine.has_flag("owner_has_watch") and not world.engine.has_item("watch"), "it burned you, broke, and he keeps it")
+	check(world.engine.hp < hp_before and world.engine.journal.has("watch_burn") and world.engine.mission == "to_priest", "your palm hurts; the mission is to follow him")
+	_step(3.5)
+	check(world.area.id == "night_road" and world.mode == "play", "out on the night road")
+	check(int(world.clock.day) == 2 and world.clock.hour < 0.6, "it is past midnight: Saturday")
+	_step(0.2)
+	check(world.engine.day == 2, "the sun is one level worse from now on (day 2)")
+	check(world._follower != null and world._fol_state == "leader" and world._owner_light != null, "the shopkeeper walks ahead with his oil lamp")
+	# the priest, told on the way
+	world.player.position = Vector2(110, 245)
+	_walk_into_scene(Vector2.RIGHT)
+	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["r1_o1"], "'He was a priest...'")
+	_dlg_lines()
+	check(world.mode == "play" and world.engine.journal.has("road"), "told, and in the Journal")
+	check(_walk_to(Vector2(400, 245), 20.0), "walked on")
+	_step(1.0)
+	var ahead: float = world._follower.position.x - world.player.position.x
+	check(ahead > 30.0 and ahead < 220.0, "he walks ahead of you (%.0f px)" % ahead)
+	# the senses and the last lamp
+	world.player.position = Vector2(480, 245)
+	_walk_into_scene(Vector2.RIGHT, 0.8)
+	check(world.engine.has_flag("walk2") and hud.caption_text() == Text.INNER["road_sens2"], "restless, a racing heart")
+	world.player.position = Vector2(800, 245)
+	_walk_into_scene(Vector2.RIGHT, 0.8)
+	check(world.engine.has_flag("walk3"), "every latch and shutter")
+	world.player.position = Vector2(990, 240)
+	_walk_into_scene(Vector2.RIGHT, 0.8)
+	check(world.engine.has_flag("gate") and hud.caption_text() == Text.INNER["road_gate"], "the last gas lamp, then the forest")
+	# the branch
+	world.player.position = Vector2(1650, 232)
+	_step(0.3)
+	_walk_into_scene(Vector2.RIGHT, 3.0)
+	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["br_scrape"], "a branch scrapes his arm")
+	_dlg_lines()
+	check(world.engine.has_flag("hungry") and world.dlg.view()["options"].size() == 2, "you smell the blood, and you are hungry: two ways to hold on")
+	_step(1.0)
+	check(world._hunger > 0.5 and hud.throb > 0.05, "the hunger shows (%.2f)" % world._hunger)
+	_pick("br_opt_see")
+	_dlg_lines()
+	check(world.mode == "play" and not world.engine.has_flag("hungry") and world.engine.has_flag("owner_behind") and world.engine.has_flag("arm_asked") and world.engine.journal.has("arm"), "he covers it with cloth and dirt; the hunger fades")
+	_step(2.5)
+	check(world._hunger < 0.05, "the hunger is gone (%.2f)" % world._hunger)
+	check(world._fol_state == "behind", "from now on he walks behind you")
+	check(_walk_to(Vector2(1900, 230), 20.0), "walked on through the forest")
+	_step(1.5)
+	check(world._follower.position.x < world.player.position.x - 80.0, "he stays behind, hiding his arm (%.0f px)" % (world.player.position.x - world._follower.position.x))
+	# the house
+	world.player.position = Vector2(2330, 230)
+	_walk_into_scene(Vector2.RIGHT, 0.8)
+	check(world.engine.has_flag("house") and hud.caption_text() == Text.INNER["road_house"], "a light between the trees")
+	check(_walk_to(Vector2(2566, 182), 20.0), "walked to the door")
+	_step(0.2)
+	check(str(world._cand.get("id", "")) == "priest_door", "A offers the door")
+	world.press_a()
+	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["hs_see"], "a small house covered in vines")
+	_dlg_lines()
+	check(world.mode == "play" and world.engine.has_flag("house_reached") and world.engine.mission == "priest_in" and hud.banner_active(), "'We go in.' ... to be continued")
+	world.press_a()
+	check(hud.caption_text() == Text.INNER["house_tbc"], "the door says the rest is not written yet")
+	# a game saved on the road comes back with him
+	world.save_game()
+	_new_world()
+	await process_frame
+	check(world.resume() and world.area.id == "night_road" and world._follower != null and world._fol_state == "behind", "Resume on the road puts the shopkeeper behind you again")
 
 # ---------------------------------------------------------------- the playthrough
 

@@ -47,6 +47,11 @@ const INNER := {
 	"sense_smell": "Tar, fish, wet rope, tobacco smoke. Every smell cuts like a knife.",
 	"sense_thirst": "I am so thirsty. And that ticking, never stopping. Can he not hear it?",
 	"cigar_dark": "The cigar shop. This is the logo on the matches.",
+	"road_sens2": "My heart is racing. I could run for miles, and I have no idea where to.",
+	"road_sens3": "I can hear every shutter, every latch, every sleeping dog. Nothing is quiet any more.",
+	"road_gate": "The last gas lamp. Beyond it the road becomes a path, and the forest begins.",
+	"road_house": "A light between the trees. A small house, buried in vines.",
+	"house_tbc": "The rest of the story is not written yet.",
 }
 
 ## What a piece of furniture says when you Examine it (id of the interact -> line). Placeholders written for
@@ -73,6 +78,7 @@ const LOOKS := {
 
 ## The unlock banner (Turned's CLAUDE.md section 3).
 const BANNER_NEW := "Something new is awake."
+const BANNER_TBC := "To be continued..."
 
 ## Clue objects in the bedroom: text said on pickup, and the Journal line.
 const CLUES := {
@@ -103,6 +109,10 @@ const JOURNAL := {
 	"cellar": "A locked cellar door in the hall, with an old iron lock. I have no key.",
 	"same_note": "He has the same note, from his own pocket: same day, same time. Wednesday, 10 PM.",
 	"watch": "A silver pocket watch from a hidden pocket in the coat's lining. It ticks, warm and humming, and it feels wrong. I did not tell him.",
+	"watch_burn": "I showed the shopkeeper the silver watch. It burned my palm. It broke when I dropped it and the ticking stopped. He picked it up with his bare hand and said it was not hot. He kept it. I cannot touch silver.",
+	"road": "The priest left the church after he disagreed with something it did. He lives alone outside the city, and he reads and researches. The shopkeeper is taking me to him, on foot, at night.",
+	"arm": "A branch cut the shopkeeper's arm. I smelled the blood and I was hungry, so hungry. He would not let me near it. He covered it with cloth and dirt, and the hunger passed. Now he walks behind me.",
+	"house": "At the end of the forest path, a small house covered in vines, with a dim light in the window.",
 	"shop": "The shopkeeper denied everything. The water burned me and I passed out. When I woke the man from the bar was gone. The shopkeeper knows what is happening to me: he asked if I had bitten anyone. He says I have two or three days, and then he does not want to be near me. There is an old priest who left the church, with old books.",
 	"cigar": "The matches come from a cigar company. Their shop is across the city, by the harbor. He knows where.",
 	"witness": "A man from the bar followed me. I caught him round a corner. He stared at my neck and at the coat, and said: \"...It's really you.\" He knows something.",
@@ -120,6 +130,8 @@ const MISSIONS := {
 	"show_matches": "Go home with him and look at the coat again",
 	"cigar": "Go to the cigar shop by the harbor",
 	"priest": "Go with the shopkeeper to the old priest",
+	"to_priest": "Follow the shopkeeper to the priest's house",
+	"priest_in": "Go into the priest's house",
 }
 
 ## What the A button says (translated by the HUD when drawn).
@@ -148,6 +160,7 @@ const NPC_LINES := {
 	"patron": {"all": "Please. Just go."},
 	"witness": {"all": "...It's really you."},
 	"shopkeeper": {"all": "Rest a little. Then we go to the priest."},
+	"owner": {"all": "Keep walking."},
 	"tavernkeep": {"all": "Go home."},
 	"vendor": {
 		"exposed": "Rough night? You look like death warmed over. Bread's fresh, if you've an appetite.",
@@ -315,4 +328,30 @@ const DIALOGUE := {
 	"sto_realize": "He stares at me. He understands that I have no idea what is happening to me.",
 	"sto_o4": "Nobody told you anything. ...There is an old man, a priest who left the church. He has old books. If anyone knows, he does.",
 	"sto_o5": "Maybe you have two or three days left. And when that happens, I do not want to be near you.",
+	# the watch, the walk, the forest, the arm, the house (scene 6)
+	"w6_show": "There is something else. I found this in the coat.",
+	"w6_take": "I take the silver watch from my pocket and hold it out.",
+	"w6_burn": "The silver burns my hand like a coal. I cry out and drop it. The glass cracks on the floor, and the ticking stops.",
+	"w6_palm": "My palm is red and swollen, as if I had grabbed a hot iron.",
+	"w6_pick": "He picks the watch up with his bare hand.",
+	"w6_o1": "It is not hot.",
+	"w6_o2": "You cannot touch it. ...Silver. I will keep it.",
+	"w6_o3": "The priest lives outside the city. We go now, while it is dark.",
+	"r1_o1": "He was a priest. He left the church after he disagreed with something it did.",
+	"r1_o2": "He lives alone, outside the city. He reads. He researches.",
+	"r1_sens": "I hardly listen. Every sound is too loud, every light too sharp. I feel anxious, restless, full of an energy I do not understand.",
+	"br_scrape": "A low branch scrapes the shopkeeper's arm. He hisses.",
+	"br_smell": "Blood. I smell it before I see it, warm and sweet and impossible to ignore. Suddenly I am hungry. Terribly hungry.",
+	"br_o1": "It is nothing.",
+	"br_hide": "He covers the arm with his other hand and turns it away from me.",
+	"br_opt_see": "Ask to see his arm",
+	"br_opt_still": "Hold my breath and stay where I am",
+	"br_y1": "Let me see it.",
+	"br_o2": "No. Stay where you are.",
+	"br_back": "He backs away, one step, two. His eyes do not leave me.",
+	"br_still": "I clench my fists and do not move. My mouth is full of a thirst I cannot name.",
+	"br_cloth": "He tears a strip from his shirt, ties it round the cut and rubs dirt over it. The smell dulls. The hunger fades.",
+	"br_o3": "Walk ahead of me. I will follow.",
+	"hs_see": "A small house, covered in vines. A dim light burns in one window.",
+	"hs_in": "We go in.",
 }

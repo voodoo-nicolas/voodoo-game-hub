@@ -248,7 +248,7 @@ func from_dict(d: Dictionary) -> void:
 # ---------------------------------------------------------------- checking the data (tests)
 
 const _COND_PREFIXES := ["flag:", "item:", "journal:", "mission:", "hour>=", "hour<", "day>="]
-const _EFFECT_PREFIXES := ["flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "area:", "sfx:", "scene:", "card:", "hold:", "hurt:", "throb"]
+const _EFFECT_PREFIXES := ["flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "area:", "sfx:", "scene:", "card:", "hold:", "hurt:", "throb", "hunger:", "to_be_continued"]
 const MOODS := ["neutral", "afraid", "angry", "tired"]
 
 ## Problems in a set of scenes (empty = fine): unknown targets, text ids without text,

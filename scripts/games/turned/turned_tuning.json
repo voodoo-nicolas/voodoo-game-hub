@@ -75,6 +75,15 @@
     "blackout_hold_s": 2.5,
     "wake_hour": 23.75
   },
+  "road": {
+    "lead_px": 90.0,
+    "lead_wait_px": 160.0,
+    "behind_lag_px": 150.0,
+    "owner_speed_mult": 1.08,
+    "lamp_energy": 1.25,
+    "lamp_radius_px": 200.0,
+    "path": [[40.0, 245.0], [990.0, 245.0], [1100.0, 224.0], [2540.0, 224.0]]
+  },
   "senses": {
     "lamp_mult": 2.6,
     "glow_mult": 2.2,

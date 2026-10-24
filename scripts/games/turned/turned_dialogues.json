@@ -569,5 +569,197 @@
         ]
       }
     }
+  },
+  "watch_show": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "you",
+        "text": "w6_show",
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "",
+        "text": "w6_take",
+        "next": "n3"
+      },
+      "n3": {
+        "speaker": "",
+        "text": "w6_burn",
+        "effects": [
+          "sfx:break",
+          "throb",
+          "hurt:0.15",
+          "flag:watch_broken"
+        ],
+        "next": "n4"
+      },
+      "n4": {
+        "speaker": "",
+        "text": "w6_palm",
+        "next": "n5"
+      },
+      "n5": {
+        "speaker": "",
+        "text": "w6_pick",
+        "next": "n6"
+      },
+      "n6": {
+        "speaker": "shopkeeper",
+        "text": "w6_o1",
+        "mood": "afraid",
+        "next": "n7"
+      },
+      "n7": {
+        "speaker": "shopkeeper",
+        "text": "w6_o2",
+        "effects": [
+          "item:-watch",
+          "flag:owner_has_watch",
+          "journal:watch_burn"
+        ],
+        "next": "n8"
+      },
+      "n8": {
+        "speaker": "shopkeeper",
+        "text": "w6_o3",
+        "effects": [
+          "flag:watch_shown",
+          "mission:to_priest",
+          "hold:1.5",
+          "hour:0.25",
+          "area:night_road:start"
+        ]
+      }
+    }
+  },
+  "road_priest": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "shopkeeper",
+        "text": "r1_o1",
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "shopkeeper",
+        "text": "r1_o2",
+        "effects": [
+          "journal:road"
+        ],
+        "next": "n3"
+      },
+      "n3": {
+        "speaker": "",
+        "text": "r1_sens"
+      }
+    }
+  },
+  "branch_arm": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "",
+        "text": "br_scrape",
+        "effects": [
+          "sfx:whoosh"
+        ],
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "",
+        "text": "br_smell",
+        "effects": [
+          "hunger:1",
+          "throb"
+        ],
+        "next": "n3"
+      },
+      "n3": {
+        "speaker": "shopkeeper",
+        "text": "br_o1",
+        "mood": "afraid",
+        "next": "n4"
+      },
+      "n4": {
+        "speaker": "",
+        "text": "br_hide",
+        "next": "ch"
+      },
+      "ch": {
+        "type": "choice",
+        "speaker": "",
+        "options": [
+          {
+            "text": "br_opt_see",
+            "effects": [
+              "flag:arm_asked"
+            ],
+            "next": "see1"
+          },
+          {
+            "text": "br_opt_still",
+            "next": "still"
+          }
+        ]
+      },
+      "see1": {
+        "speaker": "you",
+        "text": "br_y1",
+        "next": "see2"
+      },
+      "see2": {
+        "speaker": "shopkeeper",
+        "text": "br_o2",
+        "mood": "afraid",
+        "next": "see3"
+      },
+      "see3": {
+        "speaker": "",
+        "text": "br_back",
+        "next": "cloth"
+      },
+      "still": {
+        "speaker": "",
+        "text": "br_still",
+        "next": "cloth"
+      },
+      "cloth": {
+        "speaker": "",
+        "text": "br_cloth",
+        "effects": [
+          "hunger:0",
+          "journal:arm"
+        ],
+        "next": "end1"
+      },
+      "end1": {
+        "speaker": "shopkeeper",
+        "text": "br_o3",
+        "effects": [
+          "flag:owner_behind"
+        ]
+      }
+    }
+  },
+  "house_arrive": {
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "speaker": "",
+        "text": "hs_see",
+        "next": "n2"
+      },
+      "n2": {
+        "speaker": "",
+        "text": "hs_in",
+        "effects": [
+          "flag:house_reached",
+          "journal:house",
+          "mission:priest_in",
+          "to_be_continued"
+        ]
+      }
+    }
   }
 }

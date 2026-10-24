@@ -38,6 +38,8 @@ static func make(area_id: String) -> RefCounted:
 		a._build_harbor()
 	elif area_id == "cigar_shop":
 		a._build_cigar_shop()
+	elif area_id == "night_road":
+		a._build_night_road()
 	else:
 		a._build_house()
 	return a
@@ -463,6 +465,61 @@ func _build_cigar_shop() -> void:
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(NPC_DATA))
 	if typeof(parsed) == TYPE_DICTIONARY:
 		npcs = (parsed.get("shop_npcs", []) as Array).duplicate(true)
+
+# ---------------------------------------------------------------- the night walk and the forest (scene 6)
+# One long way, 2700 px: the last gas lamps of Vellmoor (x < 1000), then a dirt path through the forest
+# to a small house covered in vines (x about 2500). Placeholder layout (docs/turned/DECISIONS.md).
+
+func _build_night_road() -> void:
+	indoor = false
+	bounds = Rect2(0, -200, 2700, 600)
+	solids = [
+		Rect2(0, -200, 1000, 350),            # the houses
+		Rect2(1000, -200, 1700, 320),         # the forest on the north side
+		Rect2(0, 388, 2700, 12),              # the edge of the road, the edge of the wood
+		Rect2(-20, -200, 20, 600), Rect2(2700, -200, 20, 600),
+		Rect2(2470, 20, 190, 140),            # the vine house
+	]
+	for x in [120, 340, 600, 880]:
+		solids.append(Rect2(x - 4, 202, 8, 8))
+		lamps.append(Vector2(x, 198))
+		props.append({"kind": "lamp", "pos": Vector2(x, 208)})
+	for t in [Vector2(1080, 150), Vector2(1150, 330), Vector2(1230, 160), Vector2(1300, 335), Vector2(1390, 148), Vector2(1450, 325),
+			Vector2(1540, 165), Vector2(1610, 340), Vector2(1700, 152), Vector2(1760, 330), Vector2(1850, 160), Vector2(1930, 336),
+			Vector2(2010, 150), Vector2(2090, 326), Vector2(2180, 164), Vector2(2260, 338), Vector2(2340, 150), Vector2(2420, 330)]:
+		solids.append(Rect2(t.x - 6, t.y - 6, 12, 12))
+		props.append({"kind": "tree", "pos": t, "r": 52.0})
+		shades.append({"circle": Vector2(t.x, t.y - 7), "r": 50.0, "style": "tree"})
+	deco = [
+		{"t": "floor", "rect": Rect2(0, 215, 1000, 115), "color": Color("464a58"), "cobble": true},
+		{"t": "floor", "rect": Rect2(0, 150, 1000, 65), "color": Color("525867"), "slab": true},
+		{"t": "floor", "rect": Rect2(0, 330, 1000, 58), "color": Color("4c5260"), "slab": true},
+		{"t": "floor", "rect": Rect2(1000, 120, 1700, 268), "color": Color("1e2822"), "grass": true},
+		{"t": "floor", "rect": Rect2(1000, 196, 1700, 56), "color": Color("4a4234"), "slab": true},       # the path
+		{"t": "building", "rect": Rect2(0, -200, 320, 350), "wall": Color("5a5058"), "roof": Color("2c3040")},
+		{"t": "building", "rect": Rect2(320, -200, 380, 350), "wall": Color("5e5248"), "roof": Color("34303c")},
+		{"t": "building", "rect": Rect2(700, -200, 300, 350), "wall": Color("4f585e"), "roof": Color("2c3646")},
+		{"t": "window_row", "rect": Rect2(30, 86, 260, 34), "lit": false},
+		{"t": "window_row", "rect": Rect2(350, 86, 320, 34), "lit": false},
+		{"t": "window_row", "rect": Rect2(730, 86, 240, 34), "lit": false},
+		{"t": "vine_house", "rect": Rect2(2470, 20, 190, 140)},
+	]
+	interacts = [
+		{"id": "priest_door", "pos": Vector2(2566, 176), "r": 32.0, "verb": "enter"},
+	]
+	triggers = [
+		{"id": "walk1", "rect": Rect2(150, 150, 40, 238)},
+		{"id": "walk2", "rect": Rect2(520, 150, 40, 238)},
+		{"id": "walk3", "rect": Rect2(820, 150, 40, 238)},
+		{"id": "gate", "rect": Rect2(1010, 150, 40, 238)},
+		{"id": "branch", "rect": Rect2(1690, 150, 40, 238)},
+		{"id": "house", "rect": Rect2(2340, 150, 40, 238)},
+	]
+	light_spots = [
+		{"pos": Vector2(2520, 108), "color": Color("ffb45a"), "energy": 0.9, "radius": 120.0},
+	]
+	spawns = {"start": Vector2(60, 245)}
+	npcs = []
 
 # ---------------------------------------------------------------- the street
 
