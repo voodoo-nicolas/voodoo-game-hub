@@ -405,6 +405,8 @@ func _bottom_side() -> int:
 func _side_name(side: int) -> String:
 	var white: bool = side == ChessEngine.WHITE
 	if _is_online():
+		if not online.has_method("opponent_name"):  # apps before v0.22
+			return tr("You") if side == my_color else (tr("White") if white else tr("Black"))
 		return online.my_name() if side == my_color else online.opponent_name()
 	if mode == "cpu":
 		return tr("You") if white else tr("Computer (%s)") % tr(LEVELS[clampi(cpu_level, 0, 2)])
