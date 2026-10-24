@@ -2,6 +2,8 @@
 
 For `ART_DIRECTION_V2.md`. Every picture is **assembled from blocks**: `MASTER STYLE` + a camera block + `LAYOUT` + the picture's own line from the tables + `NEGATIVE`. Paste the blocks unchanged so all 34 scenes match. Ids are the file names (`SC-01` = `reference/art/turned/gen/SC-01.png`) and match `WORLD_LIST.md` (places `PL-`, objects `OB-`, people `PE-`).
 
+**Ready to paste:** `ART_PROMPTS_V2_READY.md` has the prompts of steps 1-2 of "Order to make them" fully assembled (CS-01 busts, SC-01..SC-07, CD-01, CD-02, CD-03, CD-05); regenerate them there when a block here changes.
+
 ## How to run it with ChatGPT
 1. One chat per batch (the style drifts in a long chat). **Attach the references first**: the four `mockup_*.webp` and `city_gate_night_*.webp` from `reference/art/turned/mockups/`, then say: *"Match the look, lighting, camera angle and painting style of the attached pictures. Ignore their interface, labels and any text: do not draw any."*
 2. Sizes (ChatGPT's native ones): every **scene is landscape 1536 x 1024** (3:2; Turned stays landscape, decided 2026-10-23); cards, busts, icons are square **1024 x 1024**.
@@ -63,7 +65,7 @@ Formula: **MASTER STYLE + CAMERA + LAYOUT + line below + NEGATIVE** (all scenes 
 
 | Id | Size | Place and time | Must show | People |
 |---|---|---|---|---|
-| SC-01 | 1536x1024 | Small Victorian bedroom, grey Friday morning light through a tall window, a small coal stove glowing | iron bed with a rumpled blanket and a faint dark stain on the pillow; THE STRANGE COAT draped over a wooden chair; a wall calendar; a wardrobe; a desk with a candle and papers; a nightstand; the window; a door to the landing; a doorway to the bathroom | none |
+| SC-01 | 1536x1024 | Small Victorian bedroom, grey Friday morning light through a tall window, a small coal stove glowing | iron bed with a rumpled blanket and a faint dark stain on the pillow; THE STRANGE COAT draped over a wooden chair; a wall calendar (a blank grid, no numbers); a wardrobe; a desk with a candle and papers; a nightstand; the window; a door to the landing; a doorway to the bathroom | none |
 | SC-02 | 1536x1024 | The same bedroom at night, one candle and moonlight through the window (edit SC-01) | the coat on the chair with its inner lining slightly open and a faint warm glow from inside; the calendar; the door | none |
 | SC-03 | 1536x1024 | A narrow Victorian bathroom, black-and-white tile, cold light | a pedestal sink with a large mirror above it whose reflection is faint, dim and wrong; a clawfoot bath; a towel on the rail with a dark stain; a washstand with a jug and bowl; a toilet with a high tank; a shelf of bottles; a small rug; a small window | none |
 | SC-04 | 1536x1024 | A study and library at dusk | a heavy desk with a green-shaded lamp and papers; a globe; a tall bookshelf with one clear gap where a book is missing; an armchair; the window | none |
@@ -104,7 +106,7 @@ Formula: **MASTER STYLE + CAMERA + LAYOUT + line below + NEGATIVE** (all scenes 
 
 ## Batch 2: the zoom cards (18, 1024 x 1024)
 
-Formula: **MASTER STYLE** + *"Macro close-up of [the line], shallow depth of field, a warm key light, a dark vignette, a pale hand at the edge of the frame for scale"* + **NEGATIVE** (all writing is unreadable scribble: the game overlays the real text in EN and ES).
+Formula: **MASTER STYLE** + *"Macro close-up of [the line], shallow depth of field, a warm key light, a dark vignette, a young woman's pale slender hand at the edge of the frame for scale"* + **NEGATIVE**, the CS-01 sheet attached so her hand and sleeve match (all writing is unreadable scribble: the game overlays the real text in EN and ES).
 
 | Id | Object | Line |
 |---|---|---|
