@@ -2,7 +2,7 @@
 
 For `ART_DIRECTION_V2.md`. Every picture is **assembled from blocks**: `MASTER STYLE` + a camera block + `LAYOUT` + the picture's own line from the tables + `NEGATIVE`. Paste the blocks unchanged so all 34 scenes match. Ids are the file names (`SC-01` = `reference/art/turned/gen/SC-01.png`) and match `WORLD_LIST.md` (places `PL-`, objects `OB-`, people `PE-`).
 
-**Ready to paste:** `ART_PROMPTS_V2_READY.md` has the prompts of steps 1-2 of "Order to make them" fully assembled (CS-01 busts, SC-01..SC-07, CD-01, CD-02, CD-03, CD-05); regenerate them there when a block here changes.
+**Ready to paste:** `ART_PROMPTS_V2_READY.md` has the prompts of steps 1-3 of "Order to make them" fully assembled (CS-01 busts, SC-01..SC-07, CD-01, CD-02, CD-03, CD-05, CS-02, CS-03, SC-10..SC-14); regenerate them there when a block here changes.
 
 ## How to run it with ChatGPT
 1. One chat per batch (the style drifts in a long chat). **Attach the references first**: the four `mockup_*.webp` and `city_gate_night_*.webp` from `reference/art/turned/mockups/`, then say: *"Match the look, lighting, camera angle and painting style of the attached pictures. Ignore their interface, labels and any text: do not draw any."*

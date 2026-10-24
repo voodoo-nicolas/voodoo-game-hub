@@ -1,4 +1,4 @@
-# Turned: ready-to-paste prompts (steps 1-2 of `ART_PROMPTS_V2.md` "Order to make them")
+# Turned: ready-to-paste prompts (steps 1-3 of `ART_PROMPTS_V2.md` "Order to make them")
 
 Every prompt below is already assembled from the blocks of `ART_PROMPTS_V2.md` (MASTER STYLE, camera, LAYOUT, the picture's line, NEGATIVE): copy one quote, paste it, done. If a block changes there, regenerate these. Three chats, each opened with the reference pictures attached (`reference/art/turned/mockups/`: the four `mockup_*.webp` and `city_gate_night_*.webp`) and this first message:
 
@@ -115,5 +115,96 @@ Also attach the CS-01 sheet a, so her hand and sleeve match.
 > Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
 >
 > Macro close-up of a silver pocket watch with a closed engraved case, a small ornate emblem at the centre, a short chain, a faint warm glow, resting in a young woman's pale slender palm. Shallow depth of field, a warm key light, a dark vignette. Square, 1024 x 1024.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+## Step 3: the bar and the crossing (CS-02, CS-03, SC-10..SC-14)
+
+### Chat 4: the tavernkeep and the witness
+Attach the mockups and the player's busts (`CS-01_busts.png`, for the painting style), send the first message, then:
+
+**CS-02 tavernkeep, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced. Landscape, 1536 x 1024. A broad man in his fifties, thick grey-brown moustache, a weathered ruddy face, rolled shirt sleeves, a stained leather apron, a damp cloth over one shoulder, dark wool trousers, worn black boots.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**CS-02 tavernkeep, busts** (the game's four slots: neutral, afraid / angry, tired; the doc's "hard" is the angry slot)
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A sheet of four head-and-shoulders portraits of the same broad man in his fifties with a thick grey-brown moustache, a weathered ruddy face, rolled shirt sleeves and a stained leather apron in a 2 x 2 grid, equal size, each centred in its square, on a plain dark warm brown background, lit by warm candle light from one side. Top left: neutral, gruff and watchful. Top right: afraid, eyes darting toward a door, sweat on the brow. Bottom left: hard, a cold stern glare, mouth set under the moustache. Bottom right: tired, heavy-lidded, shoulders sagging. Same face, hair and clothes in all four. Square, 1024 x 1024.
+>
+> No text, no letters, no numbers, no interface, no icons, no labels, no watermark, no border, no logo, no modern objects.
+
+**CS-03 witness, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced. Landscape, 1536 x 1024. A thin nervous man in his thirties, unshaven, a worn flat cap and a threadbare grey jacket, wide eyes, pale, patched brown trousers, scuffed boots.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**CS-03 witness, busts** (the doc's scared / relieved / suspicious fill the afraid, tired and angry slots)
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A sheet of four head-and-shoulders portraits of the same thin nervous man in his thirties, unshaven, pale, with wide eyes, a worn flat cap and a threadbare grey jacket in a 2 x 2 grid, equal size, each centred in its square, on a plain dark warm brown background, lit by warm candle light from one side. Top left: neutral, wary and on edge. Top right: scared, eyes wide, mouth open, shrinking back. Bottom left: suspicious, eyes narrowed, glancing sideways. Bottom right: relieved, an exhausted shaky half-smile, eyes wet. Same face, hair and clothes in all four. Square, 1024 x 1024.
+>
+> No text, no letters, no numbers, no interface, no icons, no labels, no watermark, no border, no logo, no modern objects.
+
+### Chat 5: the bar and the night streets (1536 x 1024)
+Attach the mockups and the CS-02 sheet (he is in SC-11), send the first message, then:
+
+**SC-10 the tavern, outside**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846). Slightly blurred foreground objects in the lower corners for depth.
+>
+> Camera: high three-quarter view looking down about 55 degrees onto the street, wide landscape framing, the street running left to right with depth up the picture.
+>
+> Composition for a wide landscape phone screen, 3:2: lay the street out horizontally so the eye travels left to right. Keep every important object inside the central 80% of the width and between 20% and 86% of the height (the top-left and top-right corners and the bottom 12% will be covered by an interface; keep them to dark, calm detail such as sky or foreground blur). Objects the player can examine must be clearly visible and separate from each other.
+>
+> A corner tavern at night in a Victorian city: stone and timber, a hanging iron lantern, a blank painted sign. Must show, each clearly visible and separate: the heavy door with an iron bolt and lock; steamed windows with dark silhouettes of people inside; the steps; barrels; a lamp; wet cobbles. Nobody outside. Landscape, 1536 x 1024.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**SC-11 inside the tavern** (people: the line says so)
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846). Slightly blurred foreground objects in the lower corners for depth.
+>
+> Camera: high three-quarter view looking down about 55 degrees into the room as if the front wall had been removed, the whole room visible like a cutaway diorama, wide landscape framing.
+>
+> Composition for a wide landscape phone screen, 3:2: lay the room out horizontally so the eye travels left to right. Keep every important object inside the central 80% of the width and between 20% and 86% of the height (the top-left and top-right corners and the bottom 12% will be covered by an interface; keep them to dark, calm detail such as ceiling or foreground blur). Objects the player can examine must be clearly visible and separate from each other.
+>
+> Inside a Victorian tavern at night: low timber beams, a hearth, round tables, a long counter; a few bottles only as dim background on a back shelf, never a feature. Must show, each clearly visible and separate: the long counter; the hearth; the door; the stairs. The room is silent: behind the counter stands the tavernkeep from the attached sheet (a broad man in his fifties, thick grey-brown moustache, stained leather apron), and six patrons sit at the tables as dark figures; every one of them is turned toward the door, afraid. Landscape, 1536 x 1024.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**SC-12 the alley**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846). Slightly blurred foreground objects in the lower corners for depth.
+>
+> Camera: high three-quarter view looking down about 55 degrees onto the street, wide landscape framing, the street running left to right with depth up the picture.
+>
+> Composition for a wide landscape phone screen, 3:2: lay the street out horizontally so the eye travels left to right. Keep every important object inside the central 80% of the width and between 20% and 86% of the height (the top-left and top-right corners and the bottom 12% will be covered by an interface; keep them to dark, calm detail such as sky or foreground blur). Objects the player can examine must be clearly visible and separate from each other.
+>
+> A narrow brick alley at night with a sharp corner, one gas lamp, fog. Must show, each clearly visible and separate: the corner; puddles; crates and a barrel; a drainpipe; a lit window high up. No person. Landscape, 1536 x 1024.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**SC-13 the blinding street**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846). Slightly blurred foreground objects in the lower corners for depth.
+>
+> Camera: high three-quarter view looking down about 55 degrees onto the street, wide landscape framing, the street running left to right with depth up the picture.
+>
+> Composition for a wide landscape phone screen, 3:2: lay the street out horizontally so the eye travels left to right. Keep every important object inside the central 80% of the width and between 20% and 86% of the height (the top-left and top-right corners and the bottom 12% will be covered by an interface; keep them to dark, calm detail such as sky or foreground blur). Objects the player can examine must be clearly visible and separate from each other.
+>
+> A wide gas-lit street at night where every lamp is almost blinding: huge soft halos, harsh reflections in the wet stone, as if seen with painfully sensitive eyes. Must show, each clearly visible and separate: shuttered shops; a dog barking on a step; a cart; a steam vent. No person. Landscape, 1536 x 1024.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**SC-14 the bridge and the tram stop**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846). Slightly blurred foreground objects in the lower corners for depth.
+>
+> Camera: high three-quarter view looking down about 55 degrees onto the street, wide landscape framing, the street running left to right with depth up the picture.
+>
+> Composition for a wide landscape phone screen, 3:2: lay the street out horizontally so the eye travels left to right. Keep every important object inside the central 80% of the width and between 20% and 86% of the height (the top-left and top-right corners and the bottom 12% will be covered by an interface; keep them to dark, calm detail such as sky or foreground blur). Objects the player can examine must be clearly visible and separate from each other.
+>
+> An iron bridge over a canal and a tram stop in wet night rain, a small red tram far away. Must show, each clearly visible and separate: a tram stop shelter with blank signs; a ticket booth; a blank street-map board; a striped barrier; wet tram rails. No person. Landscape, 1536 x 1024.
 >
 > No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
