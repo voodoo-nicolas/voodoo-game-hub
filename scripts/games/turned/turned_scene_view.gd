@@ -11,6 +11,7 @@ extends Control
 const T = preload("res://scripts/games/turned/turned_tuning.gd")
 const Scenes = preload("res://scripts/games/turned/turned_scenes.gd")
 const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
+const SceneHud = preload("res://scripts/games/turned/turned_scene_hud.gd")
 
 ## A chip was tapped or chosen with A: the hotspot's dictionary (id, do, ...).
 signal hotspot_activated(hotspot: Dictionary)
@@ -149,10 +150,10 @@ func painting_rect() -> Rect2:
 	return fit_rect(size, Scenes.PAINTING_ASPECT)
 
 ## Where every chip goes: the circle on the hotspot, the label beside it on the first side that
-## stays on screen and overlaps nothing (right, left, below, above). `items` = [{id, text, pos}].
-## Returns [{id, center, r, side, label_rect, hit}] (hit = what a tap counts for, at least
+## stays on screen and overlaps nothing (right, left, below, above). `items` = [{id, text, pos}];
+## `keep_out` = screen rectangles a label avoids like another chip (the Scene HUD's nav strip). Returns [{id, center, r, side, label_rect, hit}] (hit = what a tap counts for, at least
 ## `scene.chip_hit_min` tall).
-static func compute_layout(view: Vector2, prect: Rect2, items: Array, k: float, font: Font) -> Array:
+static func compute_layout(view: Vector2, prect: Rect2, items: Array, k: float, font: Font, keep_out: Array = []) -> Array:
 	var r := T.f("scene.chip_circle_r") * k
 	var h := T.f("scene.chip_h") * k
 	var fs := int(round(T.f("scene.chip_font") * k))
@@ -166,6 +167,7 @@ static func compute_layout(view: Vector2, prect: Rect2, items: Array, k: float, 
 		var c: Vector2 = prect.position + prect.size * Vector2(float(it["pos"][0]), float(it["pos"][1]))
 		placed.append(Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0))
 		out.append({"id": it["id"], "center": c, "r": r})
+	placed.append_array(keep_out)            # after the circles, so index i is still chip i's circle
 	for i in items.size():
 		var c: Vector2 = out[i]["center"]
 		var w: float = font.get_string_size(str(items[i]["text"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + pad * 2.0
@@ -205,6 +207,10 @@ static func compute_layout(view: Vector2, prect: Rect2, items: Array, k: float, 
 		out[i]["hit"] = hit
 	return out
 
+## Where the Scene HUD's nav strip can be, with all five buttons (chip labels keep out of it).
+static func nav_keep_out(view: Vector2) -> Rect2:
+	return SceneHud.compute_layout(view, SceneHud.scale_for(view), SceneHud.NAV_IDS)["nav_plate"]
+
 func layout() -> Array:
 	var key := "%s|%s" % [str(size), ",".join(PackedStringArray(spots.map(func(s): return str(s.get("id", "")))))]
 	if key != _layout_key:
@@ -212,7 +218,7 @@ func layout() -> Array:
 		var items: Array = []
 		for s in spots:
 			items.append({"id": s.get("id", ""), "text": tr(str(SceneText.HOTSPOTS.get(str(s.get("label", "")), "?"))), "pos": s.get("pos", [0.5, 0.5])})
-		_layout = compute_layout(size, painting_rect(), items, _k(), ThemeDB.fallback_font)
+		_layout = compute_layout(size, painting_rect(), items, _k(), ThemeDB.fallback_font, [nav_keep_out(size)])
 	return _layout
 
 # ---------------------------------------------------------------- input

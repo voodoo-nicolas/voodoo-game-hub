@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Screenshots of Turned's Scene mode (the two dev scenes, placeholder paintings) in the real game,
+## Screenshots of Turned's Scene mode (the two dev scenes with placeholders, then the real bedroom) in the real game,
 ## in a real window (not --headless):
 ##   godot --path . --resolution 1280x720 --script res://tools/shot_turned_scene.gd -- <out_dir> [text size 0|1|2]
 ## Run it at 1280x720 (16:9), 1560x720 (19.5:9), 1024x768 (4:3) and 1170x540, and with text size 1 or 2
@@ -120,6 +120,19 @@ func _run() -> void:
 	hud.close_menu()
 	await _wait(20)
 	await _shot("5_back_to_walking")
+	# S5: the real bedroom (SC-01 / SC-02): walking in after the pockets opens it
+	world._load_area("house")
+	world.engine.set_flag("pockets")
+	world.engine.set_flag("matches_home")
+	world.engine.remove_item("matches")
+	world.clock.hour = 9.0
+	world.player.position = Vector2(200.0, 150.0)
+	await _wait(50)
+	await _shot("10_bedroom_day")
+	world.clock.hour = 21.0
+	game.scene_view.refresh()
+	await _wait(50)
+	await _shot("11_bedroom_night")
 	Save.clear()
 	if backup != "":
 		var f := FileAccess.open(Save.PATH, FileAccess.WRITE)

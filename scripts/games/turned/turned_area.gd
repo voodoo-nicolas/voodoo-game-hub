@@ -231,6 +231,8 @@ func _build_house() -> void:
 		"bed": Vector2(60, 92),
 		"bedside": Vector2(110, 100),
 		"from_down": Vector2(472, 360),
+		"bedroom_door": Vector2(160, 352),   # on the landing, out of the painted bedroom (turned_scenes.json)
+		"bathroom_door": Vector2(436, 268),  # in the bathroom, by its door
 	}
 
 func _build_house_down() -> void:

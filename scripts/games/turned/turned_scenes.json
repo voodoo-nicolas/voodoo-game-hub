@@ -1,4 +1,23 @@
 {
+  "bedroom": {
+    "art": "SC-01",
+    "variants": [
+      {"when": ["hour>=18"], "art": "SC-02"},
+      {"when": ["hour<6"], "art": "SC-02"}
+    ],
+    "walk_zone": {"area": "house", "rect": [16, 16, 320, 288], "when": ["flag:pockets"]},
+    "hotspots": [
+      {"id": "landing", "label": "hs_landing", "kind": "exit", "dir": "left", "pos": [0.11, 0.56], "do": ["area:house:bedroom_door"]},
+      {"id": "window", "label": "hs_window", "pos": [0.20, 0.36], "do": ["look:bed_window"]},
+      {"id": "bed", "label": "hs_bed", "pos": [0.47, 0.52], "do": ["look:bed_pillow"]},
+      {"id": "matches", "label": "hs_matches", "pos": [0.57, 0.52], "when": ["flag:matches_home", "!item:matches"], "do": ["interact:matches"]},
+      {"id": "coat", "label": "hs_coat", "pos": [0.64, 0.62], "do": ["interact:coat"]},
+      {"id": "wardrobe", "label": "hs_wardrobe", "pos": [0.75, 0.33], "do": ["interact:wardrobe"]},
+      {"id": "desk", "label": "hs_desk", "pos": [0.78, 0.57], "do": ["look:bed_desk"]},
+      {"id": "calendar", "label": "hs_calendar", "pos": [0.87, 0.44], "do": ["interact:calendar"]},
+      {"id": "bathroom", "label": "hs_bathroom", "kind": "exit", "dir": "right", "pos": [0.90, 0.74], "do": ["area:house:bathroom_door"]}
+    ]
+  },
   "dev_room": {
     "art": "dev_room",
     "hotspots": [

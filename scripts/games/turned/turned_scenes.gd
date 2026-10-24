@@ -7,11 +7,15 @@ extends RefCounted
 ## A scene: {"art": "SC-01", "variants": [{"when": [...], "art": "SC-02"}],
 ##           "hotspots": [{"id": "coat", "label": "hs_coat", "pos": [0.62, 0.55],
 ##                         "kind": "look" | "exit", "dir": "right" | "left" | "up" | "down" (an exit's arrow),
-##                         "when": [...], "once": false, "do": [...]}]}
+##                         "when": [...], "once": false, "do": [...]}],
+##           "walk_zone": {"area": "house", "rect": [x, y, w, h], "when": [...]}}
+## `walk_zone` (optional): walking into that rectangle of a Walk map opens the scene, once its painting
+## file exists and its `when` holds; until then the Walk room is used (SCENE_MODE_PLAN.md, "walk_area").
 ## `pos` is a fraction of the painting, so one file fits every screen. `when` is a list of the
 ## dialogue runner's conditions (flag: item: journal: mission: hour>= hour< day>=), all must hold.
 ## `do` actions, in order:
 ##   look:<id>        a thought (Text LOOKS)          dialogue:<id>   a scene of turned_dialogues.json
+##   interact:<id>    what A does on that thing in Walk mode (the coat, the matches, a clue, a Text.LOOKS line)
 ##   card:<id>        a zoom card (turned_cards.json)
 ##   scene:<id>       go to another scene             leave           back to walking
 ##   area:<a>:<spawn> leave Scene mode into a Walk map
@@ -23,12 +27,16 @@ const T = preload("res://scripts/games/turned/turned_tuning.gd")
 const SceneText = preload("res://scripts/games/turned/turned_scene_text.gd")
 const Cards = preload("res://scripts/games/turned/turned_cards.gd")
 const DialogueScript = preload("res://scripts/games/turned/turned_dialogue.gd")
+const Text = preload("res://scripts/games/turned/turned_text.gd")
 
 const PATH := "res://scripts/games/turned/turned_scenes.json"
 const ART_DIR := "res://games/turned/art/scenes/"
 const ART_EXT := ["webp", "jpg", "png"]
 const PAINTING_ASPECT := 1536.0 / 1024.0
-const _ACTIONS := ["look:", "dialogue:", "scene:", "card:", "leave", "area:", "flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "sfx:"]
+const _ACTIONS := ["look:", "interact:", "dialogue:", "scene:", "card:", "leave", "area:", "flag:", "unflag:", "item:+", "item:-", "journal:", "mission:", "hour:", "sfx:"]
+
+## Walk-mode things with their own code in turned_world.gd `_interact` (the rest are Text.CLUES / Text.LOOKS).
+const WORLD_INTERACTS := ["coat", "matches", "mirror", "scarf", "cellar_door"]
 
 static var _shared: Dictionary = {}
 
@@ -75,6 +83,27 @@ static func painting(art_id: String) -> Texture2D:
 				return t
 	return null
 
+## True when the painting file exists (without loading it).
+static func has_painting(art_id: String) -> bool:
+	for ext in ART_EXT:
+		if art_id != "" and ResourceLoader.exists(ART_DIR + art_id + "." + ext):
+			return true
+	return false
+
+## The scene whose `walk_zone` holds the point `pos` of Walk map `area_id`, if its `when` holds and its
+## painting exists; "" for none. `holds` is a Callable(conditions: Array) -> bool.
+static func zone_at(data: Dictionary, area_id: String, pos: Vector2, holds: Callable) -> String:
+	for sid in data:
+		var z: Dictionary = (data[sid] as Dictionary).get("walk_zone", {})
+		if z.is_empty() or str(z.get("area", "")) != area_id:
+			continue
+		var r: Array = z.get("rect", [])
+		if r.size() != 4 or not Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3])).has_point(pos):
+			continue
+		if holds.call(z.get("when", [])) and has_painting(str((data[sid] as Dictionary).get("art", ""))):
+			return str(sid)
+	return ""
+
 # ---------------------------------------------------------------- checking the data (tests)
 
 ## Problems in a set of scenes (empty = fine): unknown targets and ids, label and look text,
@@ -92,6 +121,12 @@ static func validate(data: Dictionary) -> Array:
 			if str((v as Dictionary).get("art", "")) == "":
 				errs.append("%s: a variant with no art" % sid)
 			_check_conds((v as Dictionary).get("when", []), "%s variant" % sid, errs)
+		if sc.has("walk_zone"):
+			var z: Dictionary = sc["walk_zone"]
+			var zr: Array = z.get("rect", [])
+			if str(z.get("area", "")) == "" or zr.size() != 4 or float(zr[2]) <= 0.0 or float(zr[3]) <= 0.0:
+				errs.append("%s: walk_zone needs an area and a rect [x, y, w, h]" % sid)
+			_check_conds(z.get("when", []), "%s walk_zone" % sid, errs)
 		var seen_ids := {}
 		var spots: Array = sc.get("hotspots", [])
 		if spots.is_empty():
@@ -125,6 +160,8 @@ static func validate(data: Dictionary) -> Array:
 					errs.append("%s: dialogue '%s' does not exist" % [where, s.substr(9)])
 				elif s.begins_with("card:") and Cards.card(s.substr(5)).is_empty():
 					errs.append("%s: card '%s' does not exist" % [where, s.substr(5)])
+				elif s.begins_with("interact:") and not (s.substr(9) in WORLD_INTERACTS or Text.CLUES.has(s.substr(9)) or Text.LOOKS.has(s.substr(9))):
+					errs.append("%s: '%s' is not something Walk mode can do" % [where, s])
 				elif s.begins_with("look:") and not SceneText.LOOKS.has(s.substr(5)):
 					errs.append("%s: look text '%s' is not in SceneText.LOOKS" % [where, s.substr(5)])
 		var min_d := T.f("scene.min_spacing")

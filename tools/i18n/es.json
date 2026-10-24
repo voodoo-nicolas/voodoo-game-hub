@@ -7535,5 +7535,21 @@
  "The shopkeeper denied everything. The water burned me and I passed out. When I woke the man from the bar was gone. The shopkeeper knows what is happening to me: he asked if I had bitten anyone. He says I have two or three days, and then he does not want to be near me. There is an old priest who left the church, with old books.": "El tendero lo negó todo. El agua me quemó y me desmayé. Al despertar el hombre del bar se había ido. El tendero sabe lo que me pasa: me preguntó si ya había mordido a alguien. Dice que me quedan dos o tres días, y que después no quiere estar cerca de mí. Hay un viejo sacerdote que dejó la iglesia, con libros antiguos.",
  "These matches have your company's logo on them.": "Estos fósforos llevan el logo de su empresa.",
  "Two, I think.": "Dos, creo.",
- "Water? ...Are you sure?": "¿Agua? ...¿Seguro?"
+ "Water? ...Are you sure?": "¿Agua? ...¿Seguro?",
+ "Landing": "Rellano",
+ "Bathroom": "Baño",
+ "Window": "Ventana",
+ "Bed": "Cama",
+ "Matches": "Cerillas",
+ "Coat": "Abrigo",
+ "Wardrobe": "Armario",
+ "Desk": "Escritorio",
+ "Calendar": "Calendario",
+ "I keep away from the glass. Even this light stings.": "Me aparto del cristal. Hasta esta luz me escuece.",
+ "The pillow. A dark stain, dried now. Is it mine?": "La almohada. Una mancha oscura, ya seca. ¿Es mía?",
+ "Papers, and a candle burned down to a stub. Nothing here says where I was.": "Papeles y una vela consumida hasta el cabo. Nada aquí dice dónde estuve.",
+ "Crude black stitches, torn open. A note inside.": "Puntadas negras y toscas, arrancadas. Dentro, una nota.",
+ "%s walk_zone": null,
+ "%s: '%s' is not something Walk mode can do": null,
+ "%s: walk_zone needs an area and a rect [x, y, w, h]": null
 }

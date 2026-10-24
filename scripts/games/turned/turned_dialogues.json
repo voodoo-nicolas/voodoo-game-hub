@@ -172,6 +172,9 @@
       "tear": {
         "speaker": "",
         "text": "coat_tear",
+        "effects": [
+          "card:coat_pocket"
+        ],
         "next": "tear2"
       },
       "tear2": {
@@ -212,7 +215,8 @@
         "effects": [
           "item:+watch",
           "flag:watch_found",
-          "journal:watch"
+          "journal:watch",
+          "card:watch"
         ],
         "next": "w3"
       },

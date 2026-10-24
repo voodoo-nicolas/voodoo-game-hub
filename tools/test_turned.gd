@@ -58,6 +58,7 @@ func _run() -> void:
 	await _test_scene_hud()
 	await _test_cards()
 	await _test_scene_dialogue()
+	await _test_bedroom()
 	await _test_bar()
 	await _test_follower()
 	Save.clear()
@@ -656,7 +657,9 @@ func _test_scenes() -> void:
 	var problems: Array = Scenes.validate(bad)
 	check(problems.size() >= 8, "bad scenes are caught: %d problems" % problems.size())
 	for id in Scenes.shipped():
-		check(Scenes.painting(str((Scenes.shipped()[id] as Dictionary).get("art", ""))) == null, "the dev scene '%s' has no painting file yet (a placeholder is drawn)" % id)
+		if str(id).begins_with("dev_"):
+			check(Scenes.painting(str((Scenes.shipped()[id] as Dictionary).get("art", ""))) == null, "the dev scene '%s' has no painting file (a placeholder is drawn)" % id)
+	check(Scenes.painting("SC-01") != null and Scenes.painting("SC-02") != null and Scenes.has_painting("SC-01"), "the bedroom's two paintings load")
 	check(Scenes.painting("") == null and Scenes.painting("does_not_exist") == null, "a missing painting is null, not an error")
 	# the fit: the whole painting, never cropped
 	for sz in [Vector2(1280, 720), Vector2(1600, 738), Vector2(1024, 768), Vector2(914, 514), Vector2(720, 1280)]:
@@ -665,15 +668,18 @@ func _test_scenes() -> void:
 		check(absf(pr.position.x * 2.0 + pr.size.x - sz.x) < 0.01 and absf(pr.position.y * 2.0 + pr.size.y - sz.y) < 0.01, "and is centred in %s" % str(sz))
 		check(is_equal_approx(pr.size.x, sz.x) or is_equal_approx(pr.size.y, sz.y), "and touches the screen on one axis at %s" % str(sz))
 	# the chips: on screen, never over each other, big enough to hit, at every size
-	for sz in [Vector2(1280, 720), Vector2(1600, 738), Vector2(1024, 768), Vector2(914, 514)]:
+	for sz in [Vector2(1280, 720), Vector2(1600, 738), Vector2(1024, 768), Vector2(914, 514), Vector2(1370, 720) / 1.4]:
 		var pr2: Rect2 = SceneViewScript.fit_rect(sz, Scenes.PAINTING_ASPECT)
 		var k := clampf(sz.x / 900.0, 0.6, 1.0)
 		for sid in Scenes.shipped():
 			var items: Array = []
 			for h in (Scenes.shipped()[sid]["hotspots"] as Array):
 				items.append({"id": h["id"], "text": SceneText.HOTSPOTS[h["label"]], "pos": h["pos"]})
-			var lay: Array = SceneViewScript.compute_layout(sz, pr2, items, k, ThemeDB.fallback_font)
+			var strip: Rect2 = SceneViewScript.nav_keep_out(sz)
+			var lay: Array = SceneViewScript.compute_layout(sz, pr2, items, k, ThemeDB.fallback_font, [strip])
 			check(lay.size() == items.size(), "%s at %s: a chip for every hotspot" % [sid, str(sz)])
+			for c in lay:
+				check(not (c["label_rect"] as Rect2).intersects(strip), "%s at %s: the label of '%s' is clear of the nav strip" % [sid, str(sz), c["id"]])
 			var boxes: Array = []
 			for c in lay:
 				var circle := Rect2((c["center"] as Vector2) - Vector2(c["r"], c["r"]), Vector2(c["r"], c["r"]) * 2.0)
@@ -1076,6 +1082,83 @@ func _test_scene_dialogue() -> void:
 	world.dlg.scenes = DialogueScript.shipped()
 
 # ---------------------------------------------------------------- the bar (scene 2)
+
+## S5: the bedroom painting opens as you walk in (after checking your pockets) and does what the Walk room did.
+func _test_bedroom() -> void:
+	await _scene_ready_world()
+	world._load_area("house")
+	world.clock.hour = 9.0
+	world.player.position = Vector2(200, 150)
+	_step(0.1)
+	check(world.mode == "play" and not world.in_scene, "before the pockets are checked the Walk bedroom is used")
+	world.engine.set_flag("pockets")
+	_step(0.1)
+	check(world.mode == "scene" and world.scene_id == "bedroom" and sview.visible, "walking in the bedroom after the pockets opens its painting")
+	check(sview._art_id == "SC-01" and sview._tex != null, "by day it is SC-01, a real picture")
+	check(not sview.spots.any(func(h): return h["id"] == "matches"), "no matches on the nightstand before the coat says so")
+	# the coat: the Walk scene, from the painting, with the zoom card when the stitches tear
+	_tap_chip("coat")
+	check(world.mode == "dialogue" and world.dlg.scene_id == "coat" and world.engine.journal.has("coat"), "the coat chip starts the coat scene")
+	_dlg_lines()
+	_pick("coat_opt_right")
+	_dlg_lines()
+	_pick("coat_opt_inner")
+	_dlg_lines()
+	_pick("coat_opt_tear")
+	var guard := 0
+	while world.mode == "dialogue" and not world._card_open() and guard < 20:
+		hud.dialogue_skip()
+		world.press_a()
+		guard += 1
+	check(world._card_open() and cview.card_id == "coat_pocket", "tearing the stitches shows the coat-pocket card")
+	world.press_a()
+	check(not world._card_open(), "A closes the card")
+	_dlg_lines()
+	_pick("coat_opt_done")
+	_step(0.05)
+	check(world.mode == "scene" and world.in_scene and world.engine.has_item("note"), "back on the painting with the note")
+	# the matches now wait on the nightstand
+	check(sview.spots.any(func(h): return h["id"] == "matches"), "the matches appear on the nightstand")
+	_tap_chip("matches")
+	check(world.engine.has_item("matches") and not sview.spots.any(func(h): return h["id"] == "matches"), "tapping them takes them, and the chip goes")
+	_tap_chip("calendar")
+	check(world.engine.journal.has("calendar") and hud.caption_text() == Text.CLUES["calendar"]["say"], "the calendar is the same clue as in Walk mode")
+	_tap_chip("wardrobe")
+	check(hud.caption_text() == Text.LOOKS["wardrobe"], "the wardrobe says its Walk-mode line")
+	_tap_chip("bed")
+	check(hud.caption_text() == SceneText.LOOKS["bed_pillow"], "the bed has its own line")
+	# night: the other painting
+	world.clock.hour = 21.0
+	sview.refresh()
+	check(sview._art_id == "SC-02", "at night it is SC-02")
+	world.clock.hour = 3.0
+	sview.refresh()
+	check(sview._art_id == "SC-02", "and still SC-02 before dawn")
+	world.clock.hour = 9.0
+	sview.refresh()
+	# Resume returns to the painting
+	world.save_game()
+	await _scene_resume_check("bedroom", "scene", "Resume returns to the bedroom painting")
+	_step(0.05)                       # the world lets the painting listen
+	# leaving by the door: the painting stays up while the screen goes black, then the landing
+	_tap_chip("landing")
+	check(world.mode == "transition" and world.in_scene, "the door fades out over the painting")
+	_step(1.2)
+	check(world.mode == "play" and not world.in_scene and world.area.id == "house", "then you walk again in the house")
+	check(world.player.position.distance_to(world.area.spawns["bedroom_door"]) < 1.0, "on the landing outside the bedroom door")
+	_step(0.3)
+	check(world.mode == "play", "the landing does not reopen the painting")
+	world.test_dir = Vector2.UP                  # back through the bedroom door
+	var t_up := 0.0
+	while world.mode == "play" and t_up < 4.0:
+		_step(DT * 3.0)
+		t_up += DT * 3.0
+	world.test_dir = Vector2.ZERO
+	check(world.mode == "scene" and world.scene_id == "bedroom" and world.player.position.y < 304.0, "walking back in through the door opens it again")
+	_tap_chip("bathroom")
+	_step(1.2)
+	check(world.mode == "play" and world.player.position.distance_to(world.area.spawns["bathroom_door"]) < 1.0, "the other door leads to the bathroom")
+	check(not Rect2(16, 16, 320, 288).has_point(world.area.spawns["bathroom_door"]) and not Rect2(16, 16, 320, 288).has_point(world.area.spawns["bedroom_door"]), "both doors land outside the bedroom")
 
 func _test_bar() -> void:
 	var bar: Area = Area.make("bar") as Area

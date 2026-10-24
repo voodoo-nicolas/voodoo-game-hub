@@ -717,6 +717,10 @@ func _tick_play(delta: float) -> void:
 		_enter_alley()
 	elif trig.begins_with("sense") and not engine.has_flag(trig):
 		_sense_beat(trig)
+	# a room with a painting opens in Scene mode as you walk in (turned_scenes.json "walk_zone")
+	var zone := Scenes.zone_at(_scenes(), area.id, player.position, _scene_holds)
+	if zone != "" and enter_scene(zone):
+		return
 	# what A would do
 	_cand = _nearest_interact()
 	hud.a_label = str(_cand.get("verb", ""))
@@ -1306,15 +1310,18 @@ func _on_hotspot(hs: Dictionary) -> void:
 	engine.set_flag(Scenes.seen_flag(scene_id, str(hs.get("id", ""))))
 	var journal_n := engine.journal.size()
 	var items_n := engine.items.size()
+	var walk_code := false                      # an interact: plays its own sounds
 	for a in (hs.get("do", []) as Array):
+		walk_code = walk_code or str(a).begins_with("interact:")
 		_scene_action(str(a))
-		if not in_scene:
+		if not in_scene or mode == "transition":
 			break                               # it left the painting (walk, area)
 	if engine.journal.size() > journal_n:
 		hud.reveal("menu")
 	if engine.items.size() > items_n:
 		hud.reveal("menu")
-		TSfx.play(self, "pickup", -4.0)
+		if not walk_code:
+			TSfx.play(self, "pickup", -4.0)
 		_apply_item_state()
 	if in_scene and scene_view != null:
 		scene_view.refresh()
@@ -1322,6 +1329,8 @@ func _on_hotspot(hs: Dictionary) -> void:
 func _scene_action(s: String) -> void:
 	if s.begins_with("look:"):
 		hud.say(str(SceneText.LOOKS.get(s.substr(5), "TODO " + s.substr(5))))
+	elif s.begins_with("interact:"):
+		_interact({"id": s.substr(9)})
 	elif s.begins_with("dialogue:"):
 		start_dialogue(s.substr(9))
 	elif s.begins_with("scene:"):
@@ -1331,7 +1340,7 @@ func _scene_action(s: String) -> void:
 	elif s == "leave":
 		leave_scene()
 	elif s.begins_with("area:"):
-		leave_scene()
+		# the painting stays up until the screen is black (_tick_transition closes it)
 		var p := s.substr(5).split(":")
 		_go_area(p[0], p[1] if p.size() > 1 else "", true)
 	elif s.begins_with("hour:"):
@@ -1397,6 +1406,7 @@ func _tick_transition(delta: float) -> void:
 	if _tr_phase == 0:
 		hud.fade = clampf(_tr_t / half, 0.0, 1.0)
 		if _tr_t >= half:
+			leave_scene()                     # an area: exit from a painting
 			_load_area(_tr_area)
 			player.position = area.spawns[_tr_spawn]
 			engine.pos = player.position
