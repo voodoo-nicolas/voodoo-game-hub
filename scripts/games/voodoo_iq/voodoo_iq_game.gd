@@ -774,6 +774,10 @@ func _busy(on: bool) -> void:
 	waiting = on
 	var old := get_node_or_null("Busy")
 	if old:
+		# out of the tree first: a new "Busy" added this same frame (a skipped
+		# musical question re-sends at once) would otherwise get an auto-name,
+		# never be found again and leave "Loading" up for good
+		remove_child(old)
 		old.queue_free()
 	if on:
 		var dim := ColorRect.new()
