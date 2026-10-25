@@ -58,6 +58,9 @@ export function selfGens(gv = 0): [string, number][] {
   const added = SELF_ADDED_SECS.flatMap((s) => SEC_GENS_ADDED[s].flatMap(([, ids]) => ids));
   return [...base.map(([id, w]): [string, number] => [id, w / 2]), ...added.map((id): [string, number] => [id, 0.5 / added.length])];
 }
+/** Provisional norms for scoring the recall guesses (scoreIQ): mean and SD of the error
+ *  (|guess - got| / pairs, averaged over trials), and the se one trial is worth. */
+export const RECALL_NORM = { mean: 0.2, sd: 0.1, trialSe: 1.5 };
 /** `n` = items answered so far: the next one is a recall trial (4th, 11th, 18th...). */
 export const recallSlot = (gv: number, n: number) => gv >= SELF_GV && n % 7 === 3;
 export const BLITZ_GEN: Record<string, string> = { LOG: "arith", SPA: "rotquick", LIN: "oddquick", MUS: "pitchhl", NAT: "natquick", KIN: "tap", INT: "facequick", EXI: "syllquick" };
@@ -185,8 +188,9 @@ export function judge(item: Pick<Item, "key" | "minMs" | "maxMs">, value: unknow
 export interface SecResult {
   theta: number; se: number; n: number; hard: number; maxd: number; acc: number; lz?: number; misfit: boolean;
   auc?: number | null; bias?: number; pred?: number | null; predErr?: number | null; valid?: boolean;
-  /** SELF, "Will you remember?": trials, mean |guess - got| / pairs, mean (guess - got) / pairs */
-  recallN?: number; recallErr?: number | null; recallBias?: number | null;
+  /** SELF, "Will you remember?": trials, mean |guess - got| / pairs, mean (guess - got) / pairs,
+   *  the recall part's theta and the confidence part's theta (theta / se are then the blend) */
+  recallN?: number; recallErr?: number | null; recallBias?: number | null; recallTheta?: number; confTheta?: number;
 }
 export interface IqResult {
   blitz: false;
@@ -199,7 +203,7 @@ export interface IqResult {
 
 /** Score an adaptive session: per-section EAP, person-fit, hard items, flags.
  *  For SELF, `selfData.rows` are the answered items with the confidence the player gave, and
- *  `recall` the "Will you remember?" trials: reported beside the score, not part of it (like `pred`). */
+ *  `recall` the "Will you remember?" trials, which count toward the Self theta (RECALL_NORM). */
 export function scoreIQ(resp: Resp[], flags: Flags, selfData: { rows: { u: number; conf: number }[]; pred?: number | null; recall?: { g: number; s: number; n: number }[] } | null): IqResult {
   const out: IqResult = { blitz: false, secs: {}, n: resp.length, flags: Object.assign({}, flags), flagged: false };
   const secs = [...new Set(resp.map((x) => x.sec))];
@@ -221,9 +225,17 @@ export function scoreIQ(resp: Resp[], flags: Flags, selfData: { rows: { u: numbe
     out.secs = { SELF: { theta, se, n: rows.length, hard: 0, maxd: 0, acc, auc: a ? a.A : null, bias: meanConf - acc, pred: selfData.pred, predErr: selfData.pred != null ? selfData.pred - acc : null, misfit: false, valid } };
     const rc = selfData.recall || [];
     if (rc.length) {
+      const err = sum(rc.map((x) => Math.abs(x.g - x.s) / x.n)) / rc.length;
+      // the recall guesses count (owner, 2026-10-25): their own theta, then the two are
+      // averaged weighted by precision (1 / se^2). PROVISIONAL norms, to retune from real
+      // players: off by 20% of the pairs = average (0), every 10% better or worse = 1 SD;
+      // one trial is worth se 1.5, k trials 1.5 / sqrt(k) (at least 0.5).
+      const rt = clamp((RECALL_NORM.mean - err) / RECALL_NORM.sd, -3, 3);
+      const rse = clamp(RECALL_NORM.trialSe / Math.sqrt(rc.length), 0.5, 1.5);
+      const w1 = 1 / (se * se), w2 = 1 / (rse * rse);
       Object.assign(out.secs.SELF, {
-        recallN: rc.length,
-        recallErr: sum(rc.map((x) => Math.abs(x.g - x.s) / x.n)) / rc.length,
+        theta: (theta * w1 + rt * w2) / (w1 + w2), se: 1 / Math.sqrt(w1 + w2), confTheta: theta,
+        recallN: rc.length, recallErr: err, recallTheta: rt,
         recallBias: sum(rc.map((x) => (x.g - x.s) / x.n)) / rc.length,
       });
     }

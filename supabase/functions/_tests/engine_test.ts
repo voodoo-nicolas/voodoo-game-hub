@@ -219,13 +219,28 @@ Deno.test("generator version 8: the Self test draws the added types and a recall
   assertEquals(missed, [], `gv 8 never served ${missed}`);
 });
 
-Deno.test("SELF scoring: recall trials are reported beside the score and don't change it", () => {
+Deno.test("SELF scoring: recall guesses count toward the Self score; without them nothing changes", () => {
   const rows = Array.from({ length: 12 }, (_, i) => ({ u: i % 2, conf: i % 2 ? 1 : 0.25 }));
-  const a = scoreIQ([], { hidden: 0, rapid: 0 }, { rows, pred: 0.5 }).secs.SELF;
-  const b = scoreIQ([], { hidden: 0, rapid: 0 }, { rows, pred: 0.5, recall: [{ g: 4, s: 2, n: 4 }, { g: 3, s: 3, n: 5 }] }).secs.SELF;
-  assertEquals([a.theta, a.se, a.auc, a.valid], [b.theta, b.se, b.auc, b.valid]);
-  assertEquals(a.recallN, undefined);
-  assertEquals(b.recallN, 2);
+  const f = { hidden: 0, rapid: 0 };
+  const a = scoreIQ([], f, { rows, pred: 0.5 }).secs.SELF;
+  const none = scoreIQ([], f, { rows, pred: 0.5, recall: [] }).secs.SELF;
+  assertEquals([none.theta, none.se, none.recallN], [a.theta, a.se, undefined]);
+  // off by 50% and 0% -> err 0.25 -> recall theta (0.2 - 0.25) / 0.1 = -0.5, se 1.5 / sqrt(2)
+  const b = scoreIQ([], f, { rows, pred: 0.5, recall: [{ g: 4, s: 2, n: 4 }, { g: 3, s: 3, n: 5 }] }).secs.SELF;
+  assertEquals([b.recallN, b.auc, b.valid, b.confTheta], [2, a.auc, a.valid, a.theta]);
   assertAlmostEquals(b.recallErr!, 0.25);
   assertAlmostEquals(b.recallBias!, 0.25);
+  assertAlmostEquals(b.recallTheta!, -0.5);
+  const w1 = 1 / a.se ** 2, w2 = 2 / 1.5 ** 2;
+  assertAlmostEquals(b.theta, (a.theta * w1 - 0.5 * w2) / (w1 + w2));
+  assertAlmostEquals(b.se, 1 / Math.sqrt(w1 + w2));
+  assert(b.se < a.se);
+  // perfect guesses pull the score up, wild ones down (confidence that tells nothing: AUC 0.5)
+  const mid = Array.from({ length: 12 }, (_, i) => ({ u: i % 2, conf: i % 4 < 2 ? 0.75 : 0.5 }));
+  const m = scoreIQ([], f, { rows: mid }).secs.SELF;
+  const good = scoreIQ([], f, { rows: mid, recall: [{ g: 3, s: 3, n: 3 }, { g: 5, s: 5, n: 5 }, { g: 2, s: 2, n: 4 }] }).secs.SELF;
+  const bad = scoreIQ([], f, { rows: mid, recall: [{ g: 3, s: 0, n: 3 }, { g: 0, s: 5, n: 5 }, { g: 4, s: 0, n: 4 }] }).secs.SELF;
+  assertAlmostEquals(m.auc!, 0.5);
+  assert(good.theta > m.theta && bad.theta < m.theta, `${bad.theta} < ${m.theta} < ${good.theta}`);
+  assertEquals([good.recallTheta, bad.recallTheta], [2, -3]);
 });
