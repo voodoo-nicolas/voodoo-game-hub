@@ -22,11 +22,13 @@ export const SEC_GENS: Record<string, [string, number][]> = {
 };
 /** Generator version (`gv`): the game sends the highest it can draw with session-start;
  *  packs from before 2026-10-25 send none (0) and get exactly the prototype's lists.
- *  v1 adds the second LOG set (gens/log2.ts). Within a section the prototype's
+ *  v1 adds the second LOG set (gens/log2.ts), v2 the second SPA set (gens/spa2.ts).
+ *  Within a section the prototype's
  *  generators keep half the weight and the added ones share the other half. */
-export const GV = 1;
+export const GV = 2;
 const SEC_GENS_ADDED: Record<string, [number, string[]][]> = {
   LOG: [[1, ["symsum", "scales", "ordering", "letters", "funcmachine", "operators", "fraccmp", "wordprob", "dice", "sudoku"]]],
+  SPA: [[2, ["paperfold", "cubenet", "gears", "mirror", "countshapes", "cubecount", "direction", "pieces"]]],
 };
 export function secGens(sec: string, gv = 0): [string, number][] {
   const base = SEC_GENS[sec];

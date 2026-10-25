@@ -92,7 +92,7 @@ export const pKey = (c: Poly) => pNorm(c).map((p) => p.join(",")).join(";");
 export const pRot = (c: Poly): Poly => c.map(([x, y]) => [y, -x]);
 export const pMir = (c: Poly): Poly => c.map(([x, y]) => [-x, y]);
 export const pRotN = (c: Poly, k: number) => { let o = c; for (let i = 0; i < k; i++) o = pRot(o); return o; };
-function chiralPoly(m: number, r: import("../rng.ts").Rng): Poly {
+export function chiralPoly(m: number, r: import("../rng.ts").Rng): Poly {
   for (let t2 = 0; t2 < 200; t2++) {
     const p = polyo(m, r);
     const rots = new Set([0, 1, 2, 3].map((k) => pKey(pRotN(p, k))));

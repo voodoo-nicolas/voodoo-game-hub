@@ -126,3 +126,14 @@ Deno.test("generator version: packs that send no gv never get an added generator
   assert(![...seen0].some((g) => added.has(g)), `gv 0 got ${[...seen0]}`);
   assert([...added].every((g) => seen1.has(g)), `gv 1 missed some: ${[...seen1]}`);
 });
+
+Deno.test("generator version 2 adds the SPA set; gv 1 never gets it", () => {
+  const added = new Set(["paperfold", "cubenet", "gears", "mirror", "countshapes", "cubecount", "direction", "pieces"]);
+  const seen1 = new Set<string>(), seen2 = new Set<string>();
+  for (let seed = 1; seed <= 400; seed++) {
+    seen1.add(nextIqItem("SPA", "en", [], newIqState(seed, { gv: 1 })).gid);
+    seen2.add(nextIqItem("SPA", "es", [], newIqState(seed, { gv: 2 })).gid);
+  }
+  assert(![...seen1].some((g) => added.has(g)), `gv 1 got ${[...seen1]}`);
+  assert([...added].every((g) => seen2.has(g)), `gv 2 missed some: ${[...seen2]}`);
+});

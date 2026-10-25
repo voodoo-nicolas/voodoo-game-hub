@@ -3,6 +3,7 @@
 import "./log.ts";
 import "./log2.ts";
 import "./spa.ts";
+import "./spa2.ts";
 import "./lin.ts";
 import "./mus.ts";
 import "./nat.ts";

@@ -41,7 +41,51 @@
 
     "gt_sudoku": "Mini sudoku",
     "ins_sudoku": "Each row, column and box holds every number once. Work out the number in the highlighted cell.",
-    "q_sudoku": "What goes in the highlighted cell?"
+    "q_sudoku": "What goes in the highlighted cell?",
+
+    "gt_paperfold": "Fold and punch",
+    "ins_paperfold": "The paper is folded along the dashed lines in the order shown, then a hole is punched through every layer. Pick how the paper looks when it is opened out flat.",
+    "q_paperfold": "Fold, then punch",
+    "q_paperfold_sub": "What does it look like unfolded?",
+
+    "gt_cubenet": "Fold the net",
+    "ins_cubenet": "Imagine folding the flat shape into a cube. Faces that are opposite never touch; three faces that meet at a corner all touch each other.",
+    "q_cubenet_opp": "Fold it into a cube. Opposite",
+    "q_cubenet_corner": "Fold it into a cube. Which three faces meet at one corner?",
+
+    "gt_gears": "Gears and belts",
+    "ins_gears": "The orange arrow turns the first gear clockwise. Touching gears turn opposite ways; a belt keeps the direction and a crossed belt flips it. Some machines jam.",
+    "q_gears": "Which way does the gear with the ? turn?",
+    "gear_cw": "Clockwise ↻",
+    "gear_ccw": "Anticlockwise ↺",
+    "gear_jam": "It jams: nothing can turn",
+
+    "gt_mirror": "Mirror image",
+    "ins_mirror": "Pick the shape you would see in the mirror (the dashed line). Turning a shape doesn't make its mirror image.",
+    "q_mirror": "Which is its reflection?",
+    "mirror_v": "Mirror on the right",
+    "mirror_h": "Mirror below",
+    "mirror_d": "Mirror along the diagonal",
+
+    "gt_countshapes": "Count the shapes",
+    "ins_countshapes": "Count every shape in the drawing, big and small, including ones made of several pieces.",
+    "q_count_tri": "How many triangles are there?",
+    "q_count_rect": "How many rectangles are there? Squares count too.",
+
+    "gt_cubecount": "Count the cubes",
+    "ins_cubecount": "No cube floats: each one sits on the floor or on another cube, so some are hidden underneath.",
+    "q_cubecount": "How many cubes are there?",
+    "q_cubefill": "How many more cubes would make a full block as tall as the tallest column?",
+    "q_cubecount_sub": "No cube floats.",
+
+    "gt_direction": "Which way now?",
+    "ins_direction": "Follow the turns in your head. A turn is a quarter turn unless it says 45°.",
+
+    "gt_pieces": "Complete the square",
+    "ins_pieces": "One piece is already in the square. Pick the piece that fills the rest exactly.",
+    "q_pieces": "Which piece fills the gap?",
+    "q_pieces_slide": "Slide it in: no turning or flipping.",
+    "q_pieces_turn": "You may turn it, but not flip it."
   },
   "es": {
     "replay_any": "Escuchar de nuevo",
@@ -85,6 +129,50 @@
 
     "gt_sudoku": "Mini sudoku",
     "ins_sudoku": "Cada fila, columna y bloque tiene cada número una sola vez. Descubrí el número de la casilla marcada.",
-    "q_sudoku": "¿Qué número va en la casilla marcada?"
+    "q_sudoku": "¿Qué número va en la casilla marcada?",
+
+    "gt_paperfold": "Doblar y perforar",
+    "ins_paperfold": "El papel se dobla por las líneas punteadas en el orden que se muestra y después se perfora a través de todas las capas. Elegí cómo queda el papel al abrirlo.",
+    "q_paperfold": "Doblar y perforar",
+    "q_paperfold_sub": "¿Cómo queda al desdoblarlo?",
+
+    "gt_cubenet": "Armar el cubo",
+    "ins_cubenet": "Imaginá que doblás la figura plana hasta formar un cubo. Las caras opuestas nunca se tocan; tres caras que se juntan en una esquina se tocan entre sí.",
+    "q_cubenet_opp": "Armá el cubo. Opuesta a",
+    "q_cubenet_corner": "Armá el cubo. ¿Qué tres caras se juntan en una esquina?",
+
+    "gt_gears": "Engranajes y correas",
+    "ins_gears": "La flecha naranja hace girar el primer engranaje en sentido horario. Los engranajes que se tocan giran al revés; una correa mantiene el sentido y una correa cruzada lo invierte. Algunas máquinas se traban.",
+    "q_gears": "¿Hacia dónde gira el engranaje del signo de pregunta?",
+    "gear_cw": "Sentido horario ↻",
+    "gear_ccw": "Sentido antihorario ↺",
+    "gear_jam": "Se traba: nada puede girar",
+
+    "gt_mirror": "Imagen en el espejo",
+    "ins_mirror": "Elegí la figura que verías en el espejo (la línea punteada). Girar una figura no da su imagen en el espejo.",
+    "q_mirror": "¿Cuál es su reflejo?",
+    "mirror_v": "Espejo a la derecha",
+    "mirror_h": "Espejo abajo",
+    "mirror_d": "Espejo en diagonal",
+
+    "gt_countshapes": "Contar figuras",
+    "ins_countshapes": "Contá todas las figuras del dibujo, grandes y chicas, también las que se forman con varias partes.",
+    "q_count_tri": "¿Cuántos triángulos hay?",
+    "q_count_rect": "¿Cuántos rectángulos hay? Los cuadrados también cuentan.",
+
+    "gt_cubecount": "Contar cubos",
+    "ins_cubecount": "Ningún cubo flota: cada uno está en el piso o sobre otro cubo, así que algunos quedan escondidos abajo.",
+    "q_cubecount": "¿Cuántos cubos hay?",
+    "q_cubefill": "¿Cuántos cubos más hacen falta para un bloque completo tan alto como la columna más alta?",
+    "q_cubecount_sub": "Ningún cubo flota.",
+
+    "gt_direction": "¿Hacia dónde mirás?",
+    "ins_direction": "Seguí los giros mentalmente. Cada giro es un cuarto de vuelta, salvo que diga 45°.",
+
+    "gt_pieces": "Completar el cuadrado",
+    "ins_pieces": "Una pieza ya está en el cuadrado. Elegí la pieza que llena exactamente el resto.",
+    "q_pieces": "¿Qué pieza llena el hueco?",
+    "q_pieces_slide": "Deslizala: sin girarla ni darla vuelta.",
+    "q_pieces_turn": "Podés girarla, pero no darla vuelta."
   }
 }

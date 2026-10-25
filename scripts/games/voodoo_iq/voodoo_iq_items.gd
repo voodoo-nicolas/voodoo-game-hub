@@ -20,9 +20,9 @@ const FG2 := Color("#A8A8C0")
 ## leaves ~600 of the 720-wide design, so nothing may assume 680).
 static var W := 680.0
 ## The highest generator version this pack can draw, sent with session-start
-## (server engine.ts GV). 1 = the second LOG set (2026-10-25). Raise it only together
-## with the views for the generators that version adds.
-const GV := 1
+## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set (2026-10-25).
+## Raise it only together with the views for the generators that version adds.
+const GV := 2
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -81,6 +81,14 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"wordprob": _wordprob(v, d)
 		"dice": _dice(v, d)
 		"sudoku": _sudoku(v, d)
+		"paperfold": _paperfold(v, d)
+		"cubenet": _cubenet(v, d)
+		"gears": _gears(v, d)
+		"mirror": _mirror(v, d)
+		"countshapes": _countshapes(v, d)
+		"cubecount": _cubecount(v, d)
+		"direction": _direction(v, d)
+		"pieces": _pieces(v, d)
 		_:
 			v.add_child(_label("?", 30, FG))
 	return v
@@ -749,7 +757,7 @@ static func _fallacy(v: ItemView, d: Dictionary) -> void:
 # player's language; the rest is in voodoo_iq_more.json.
 
 ## The four drawn symbols (shape + colour, so colour is never the only cue).
-const SYM_COL := [Color("#FF5FA2"), Color("#4FB3FF"), Color("#FFE14D"), Color("#A6F04B")]
+const SYM_COL := [Color("#FF5FA2"), Color("#4FB3FF"), Color("#FFE14D"), Color("#A6F04B"), Color("#FF8A3D"), Color("#B69CFF")]
 
 static func _sym_pts(s: int, c: Vector2, r: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
@@ -762,6 +770,12 @@ static func _sym_pts(s: int, c: Vector2, r: float) -> PackedVector2Array:
 		2:
 			var hh := r * 0.85
 			pts = PackedVector2Array([c + Vector2(-hh, -hh), c + Vector2(hh, -hh), c + Vector2(hh, hh), c + Vector2(-hh, hh)])
+		4:
+			pts = PackedVector2Array([c + Vector2(0, -r), c + Vector2(r * 0.8, 0), c + Vector2(0, r), c + Vector2(-r * 0.8, 0)])
+		5:
+			var t := r * 0.36
+			for q in [[-t, -r], [t, -r], [t, -t], [r, -t], [r, t], [t, t], [t, r], [-t, r], [-t, t], [-r, t], [-r, -t], [-t, -t]]:
+				pts.append(c + Vector2(q[0], q[1]))
 		_:
 			for i in 10:
 				var rr := r if i % 2 == 0 else r * 0.45
@@ -771,7 +785,7 @@ static func _sym_pts(s: int, c: Vector2, r: float) -> PackedVector2Array:
 
 static func _sym_draw(ci: CanvasItem, s: int, c: Vector2, r: float) -> void:
 	var pts := _sym_pts(s, c, r)
-	ci.draw_colored_polygon(pts, SYM_COL[s % 4])
+	ci.draw_colored_polygon(pts, SYM_COL[s % 6])
 	var closed := pts.duplicate()
 	closed.append(pts[0])
 	ci.draw_polyline(closed, Color("#07070C"), 2.0, true)
@@ -943,3 +957,292 @@ static func _sudoku(v: ItemView, d: Dictionary) -> void:
 	for i in n:
 		opts.append(str(i + 1))
 	_mc(v, opts, n if n <= 4 else 3, true)
+
+# ------------------------------------------------------------------ SPA, second set (gv 2)
+# Not in the prototype (server gens/spa2.ts).
+
+const PAPER := Color("#F2F2F7")
+const SPA_FILL := Color("#2EE6A6")
+
+## A G x G sheet in `rect`: the cells of `reg` ([r0, r1, c0, c1]; a triangle when `tri`)
+## drawn solid, the rest faint, and `holes` ([row, col]) punched.
+static func _sheet(ci: CanvasItem, rect: Rect2, g: int, reg: Array, tri: bool, holes: Array) -> void:
+	var cs := rect.size.x / g
+	ci.draw_rect(rect, Color(PAPER, 0.12))
+	ci.draw_rect(rect, Color(PAPER, 0.35), false, 1.0)
+	if tri:
+		ci.draw_colored_polygon(PackedVector2Array([rect.position, rect.position + Vector2(rect.size.x, 0), rect.end]), PAPER)
+	else:
+		var r := Rect2(rect.position + Vector2(int(reg[2]), int(reg[0])) * cs, Vector2(int(reg[3]) - int(reg[2]) + 1, int(reg[1]) - int(reg[0]) + 1) * cs)
+		ci.draw_rect(r, PAPER)
+	for h in holes:
+		ci.draw_circle(rect.position + (Vector2(int(h[1]), int(h[0])) + Vector2(0.5, 0.5)) * cs, cs * 0.18, Color("#07070C"))
+
+static func _fold_step(reg: Array, f: String) -> Array:
+	var r0 := int(reg[0])
+	var r1 := int(reg[1])
+	var c0 := int(reg[2])
+	var c1 := int(reg[3])
+	match f:
+		"L": return [r0, r1, (c0 + c1 + 1) / 2, c1]
+		"R": return [r0, r1, c0, (c0 + c1 + 1) / 2 - 1]
+		"T": return [(r0 + r1 + 1) / 2, r1, c0, c1]
+		"B": return [r0, (r0 + r1 + 1) / 2 - 1, c0, c1]
+	return reg
+
+static func _paperfold(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_paperfold"))
+	var g := int(d.get("g", 4))
+	var folds: Array = d.get("folds", [])
+	var accent := v.accent
+	var size := minf(130.0, (W - 20.0) / (folds.size() + 1) - 14.0)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var reg: Array = [0, g - 1, 0, g - 1]
+	var tri := false
+	for f in folds:
+		var before := reg.duplicate()
+		var was_tri := tri
+		var fs: String = str(f)
+		var step_paint := func(ci: CanvasItem, sz: Vector2) -> void:
+			var rect := Rect2(Vector2(4, 4), Vector2(sz.x - 8, sz.x - 8))
+			_sheet(ci, rect, g, before, was_tri, [])
+			var cs := rect.size.x / g
+			var a := Vector2.ZERO
+			var b := Vector2.ZERO
+			var from := Vector2.ZERO
+			var to := Vector2.ZERO
+			var r0 := float(before[0])
+			var r1 := float(before[1]) + 1
+			var c0 := float(before[2])
+			var c1 := float(before[3]) + 1
+			match fs:
+				"L", "R":
+					var m := (c0 + c1) / 2.0
+					a = Vector2(m, r0)
+					b = Vector2(m, r1)
+					from = Vector2((c0 + m) / 2.0 if fs == "L" else (m + c1) / 2.0, (r0 + r1) / 2.0)
+					to = Vector2((m + c1) / 2.0 if fs == "L" else (c0 + m) / 2.0, (r0 + r1) / 2.0)
+				"T", "B":
+					var m := (r0 + r1) / 2.0
+					a = Vector2(c0, m)
+					b = Vector2(c1, m)
+					from = Vector2((c0 + c1) / 2.0, (r0 + m) / 2.0 if fs == "T" else (m + r1) / 2.0)
+					to = Vector2((c0 + c1) / 2.0, (m + r1) / 2.0 if fs == "T" else (r0 + m) / 2.0)
+				_:
+					a = Vector2(0, 0)
+					b = Vector2(g, g)
+					from = Vector2(g * 0.25, g * 0.75)
+					to = Vector2(g * 0.75, g * 0.25)
+			ci.draw_dashed_line(rect.position + a * cs, rect.position + b * cs, accent, 3.0, 8.0)
+			var p0: Vector2 = rect.position + from * cs
+			var p1: Vector2 = rect.position + to * cs
+			ci.draw_line(p0, p1, Color("#FF8A3D"), 4.0, true)
+			var dir := (p1 - p0).normalized()
+			ci.draw_colored_polygon(PackedVector2Array([p1 + dir * 6, p1 - dir * 8 + dir.orthogonal() * 7, p1 - dir * 8 - dir.orthogonal() * 7]), Color("#FF8A3D"))
+		row.add_child(_canvas(step_paint, Vector2(size, size)))
+		if fs == "D":
+			tri = true
+		else:
+			reg = _fold_step(reg, fs)
+	var after := reg.duplicate()
+	var holes: Array = d.get("holes", [])
+	var tri_end := tri
+	row.add_child(_canvas(func(ci, sz): _sheet(ci, Rect2(Vector2(4, 4), Vector2(sz.x - 8, sz.x - 8)), g, after, tri_end, holes), Vector2(size, size)))
+	v.add_child(_center(row))
+	v.add_child(_label(T.t("q_paperfold_sub"), 22, FG2))
+	var opts: Array = []
+	for o in d.get("options", []):
+		var hs: Array = o
+		var opt_paint := func(ci: CanvasItem, sz: Vector2) -> void:
+			var s := minf(sz.x, sz.y) - 8
+			_sheet(ci, Rect2((sz - Vector2(s, s)) / 2.0, Vector2(s, s)), g, [0, g - 1, 0, g - 1], false, hs)
+		opts.append(_canvas(opt_paint, Vector2(100, 100)))
+	_mc(v, opts, 4, false, 130)
+
+static func _cubenet(v: ItemView, d: Dictionary) -> void:
+	var net: Array = d.get("net", [])
+	var corner := str(d.get("ask", "")) == "corner"
+	if corner:
+		_prompt(v, T.t("q_cubenet_corner"))
+	else:
+		v.add_child(_sym_row([T.t("q_cubenet_opp"), int(d.get("mark", 0)), "?"], 30))
+	var rows := 0
+	var cols := 0
+	for c in net:
+		rows = maxi(rows, int(c[0]) + 1)
+		cols = maxi(cols, int(c[1]) + 1)
+	var cell := minf(70.0, (minf(W, 480.0) - 8.0) / maxi(rows, cols))
+	var accent := v.accent
+	var net_paint := func(ci: CanvasItem, _sz: Vector2) -> void:
+		for c in net:
+			var r := Rect2(Vector2(4 + int(c[1]) * cell, 4 + int(c[0]) * cell), Vector2(cell, cell))
+			ci.draw_rect(r, PANEL)
+			ci.draw_rect(r, accent, false, 2.0)
+			_sym_draw(ci, int(c[2]), r.get_center(), cell * 0.32)
+	v.add_child(_center(_canvas(net_paint, Vector2(cols * cell + 8, rows * cell + 8))))
+	var opts: Array = []
+	for o in d.get("options", []):
+		var syms: Array = o if o is Array else [o]
+		var sym_paint := func(ci: CanvasItem, sz: Vector2) -> void:
+			var n := syms.size()
+			var step := minf(sz.x / n, sz.y)
+			for i in n:
+				_sym_draw(ci, int(syms[i]), Vector2(sz.x / 2.0 + (i - (n - 1) / 2.0) * step, sz.y / 2.0), step * 0.36)
+		opts.append(_canvas(sym_paint, Vector2(120 if corner else 70, 60)))
+	_mc(v, opts, 2 if corner else 4, false, 96)
+
+static func _gears(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_gears"))
+	var gears: Array = d.get("gears", [])
+	var links: Array = d.get("links", [])
+	var target := int(d.get("target", 0))
+	var accent := v.accent
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for g in gears:
+		var c := Vector2(float(g.x), float(g.y))
+		lo = Vector2(minf(lo.x, c.x - float(g.r)), minf(lo.y, c.y - float(g.r)))
+		hi = Vector2(maxf(hi.x, c.x + float(g.r)), maxf(hi.y, c.y + float(g.r)))
+	var span := hi - lo
+	var box := Vector2(minf(W, 600.0), minf(360.0, minf(W, 600.0) * span.y / span.x + 40))
+	var gear_paint := func(ci: CanvasItem, sz: Vector2) -> void:
+		var k := minf((sz.x - 30) / span.x, (sz.y - 30) / span.y)
+		var o := (sz - span * k) / 2.0 - lo * k
+		var at := func(g) -> Vector2: return o + Vector2(float(g.x), float(g.y)) * k
+		for l in links:
+			if str(l.t) == "mesh":
+				continue
+			var a: Dictionary = gears[int(l.a)]
+			var b: Dictionary = gears[int(l.b)]
+			var pa: Vector2 = at.call(a)
+			var pb: Vector2 = at.call(b)
+			var ra := float(a.r) * k * 0.8
+			var rb := float(b.r) * k * 0.8
+			var nrm := (pb - pa).normalized().orthogonal()
+			var col := Color("#A9A9C4")
+			if str(l.t) == "belt":
+				ci.draw_line(pa + nrm * ra, pb + nrm * rb, col, 3.0, true)
+				ci.draw_line(pa - nrm * ra, pb - nrm * rb, col, 3.0, true)
+			else:
+				ci.draw_line(pa + nrm * ra, pb - nrm * rb, col, 3.0, true)
+				ci.draw_line(pa - nrm * ra, pb + nrm * rb, col, 3.0, true)
+		for i in gears.size():
+			var g: Dictionary = gears[i]
+			var c: Vector2 = at.call(g)
+			var r := float(g.r) * k
+			var teeth := maxi(8, int(round(float(g.r) * 12)))
+			var pts := PackedVector2Array()
+			for t in teeth * 4:
+				var ang := TAU * t / (teeth * 4.0)
+				var rr := r * (1.0 if (t % 4) < 2 else 0.84)
+				pts.append(c + Vector2(cos(ang), sin(ang)) * rr)
+			var body := Color("#3A3A52") if i != target else Color(accent, 0.45)
+			ci.draw_colored_polygon(pts, body)
+			var closed := pts.duplicate()
+			closed.append(pts[0])
+			ci.draw_polyline(closed, Color("#A9A9C4"), 2.0, true)
+			ci.draw_circle(c, r * 0.18, Color("#A9A9C4"))
+			if i == target:
+				ci.draw_string(ThemeDB.fallback_font, c + Vector2(-r, r * 0.35), "?", HORIZONTAL_ALIGNMENT_CENTER, r * 2, int(r * 0.9), Color.WHITE)
+		var g0: Dictionary = gears[0]
+		var c0: Vector2 = at.call(g0)
+		var ar := float(g0.r) * k * 0.6
+		ci.draw_arc(c0, ar, -PI * 0.9, -PI * 0.1, 16, Color("#FF8A3D"), 5.0, true)
+		var tip := c0 + Vector2(cos(-PI * 0.1), sin(-PI * 0.1)) * ar
+		ci.draw_colored_polygon(PackedVector2Array([tip + Vector2(8, 4), tip + Vector2(-6, -8), tip + Vector2(-8, 8)]), Color("#FF8A3D"))
+	v.add_child(_center(_canvas(gear_paint, box)))
+	var opts: Array = []
+	for o in d.get("options", []):
+		opts.append(T.t("gear_" + str(o)))
+	_mc(v, opts, 1 if opts.size() == 3 else 2)
+
+static func _mirror(v: ItemView, d: Dictionary) -> void:
+	var axis := str(d.get("axis", "v"))
+	_prompt(v, T.t("q_mirror"))
+	var shape: Array = d.get("shape", [])
+	var accent := v.accent
+	var mirror_paint := func(ci: CanvasItem, sz: Vector2) -> void:
+		var s := sz.y - 8
+		Art.poly(ci, shape, Rect2(Vector2(4, 4), Vector2(s, s)), SPA_FILL)
+		match axis:
+			"v": ci.draw_dashed_line(Vector2(s + 18, 0), Vector2(s + 18, sz.y), accent, 3.0, 8.0)
+			"h": ci.draw_dashed_line(Vector2(0, sz.y - 2), Vector2(s + 8, sz.y - 2), accent, 3.0, 8.0)
+			_: ci.draw_dashed_line(Vector2(0, 0), Vector2(s + 8, s + 8), accent, 3.0, 8.0)
+	v.add_child(_center(_canvas(mirror_paint, Vector2(220, 180))))
+	v.add_child(_label(T.t("mirror_" + axis), 22, FG2))
+	var opts: Array = []
+	for o in d.get("options", []):
+		var cells: Array = o
+		opts.append(_canvas(func(ci, sz): Art.poly(ci, cells, Rect2(Vector2.ZERO, sz), SPA_FILL), Vector2(100, 100)))
+	_mc(v, opts, 4, false, 130)
+
+static func _countshapes(v: ItemView, d: Dictionary) -> void:
+	var fan := str(d.get("kind", "")) == "fan"
+	_prompt(v, T.t("q_count_tri") if fan else T.t("q_count_rect"))
+	var accent := v.accent
+	var sz0 := Vector2(minf(W, 420.0), 300 if fan else 260)
+	var count_paint := func(ci: CanvasItem, sz: Vector2) -> void:
+		var col := accent
+		if fan:
+			var top := Vector2(sz.x / 2.0, 10)
+			var bl := Vector2(14, sz.y - 10)
+			var br := Vector2(sz.x - 14, sz.y - 10)
+			for p in [bl, br]:
+				ci.draw_line(top, p, col, 3.0, true)
+			for f in d.get("base", []):
+				ci.draw_line(top, bl.lerp(br, float(f)), col, 3.0, true)
+			for f in d.get("levels", []) + [1.0]:
+				ci.draw_line(top.lerp(bl, float(f)), top.lerp(br, float(f)), col, 3.0, true)
+		else:
+			var r := Rect2(Vector2(10, 10), sz - Vector2(20, 20))
+			ci.draw_rect(r, col, false, 3.0)
+			for f in d.get("cols", []):
+				ci.draw_line(r.position + Vector2(r.size.x * float(f), 0), r.position + Vector2(r.size.x * float(f), r.size.y), col, 3.0)
+			for f in d.get("rows", []):
+				ci.draw_line(r.position + Vector2(0, r.size.y * float(f)), r.position + Vector2(r.size.x, r.size.y * float(f)), col, 3.0)
+	v.add_child(_center(_canvas(count_paint, sz0)))
+	_numpad(v)
+
+static func _cubecount(v: ItemView, d: Dictionary) -> void:
+	var fill := str(d.get("ask", "")) == "fill"
+	_prompt(v, T.t("q_cubefill") if fill else T.t("q_cubecount"), T.t("q_cubecount_sub"))
+	var stack: Array = []
+	for row in d.get("heights", []):
+		var r: Array = []
+		for hgt in row:
+			var col: Array = []
+			for z in int(hgt):
+				col.append(1)
+			r.append(col)
+		stack.append(r)
+	v.add_child(_center(_canvas(func(ci, sz): Art.tv_iso(ci, stack, Rect2(Vector2.ZERO, sz), false), Vector2(minf(460, W), 320))))
+	_numpad(v)
+
+static func _direction(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("text", "")])
+	_mc(v, d.get("options", []), 2)
+
+static func _pieces(v: ItemView, d: Dictionary) -> void:
+	var turn := bool(d.get("turn", false))
+	_prompt(v, T.t("q_pieces"), T.t("q_pieces_turn") if turn else T.t("q_pieces_slide"))
+	var n := int(d.get("n", 3))
+	var piece: Array = d.get("piece", [])
+	var cell := minf(56.0, 220.0 / n)
+	var square_paint := func(ci: CanvasItem, _sz: Vector2) -> void:
+		for x in n:
+			for y in n:
+				var r := Rect2(Vector2(4 + x * cell, 4 + y * cell), Vector2(cell, cell))
+				var filled := false
+				for p in piece:
+					if int(p[0]) == x and int(p[1]) == y:
+						filled = true
+				ci.draw_rect(r, Color("#4FB3FF") if filled else Color("#1A1A28"))
+				ci.draw_rect(r, Color("#05050A") if filled else Color("#3B3B57"), false, 2.0 if filled else 1.0)
+		ci.draw_rect(Rect2(Vector2(4, 4), Vector2(n, n) * cell), Color("#A9A9C4"), false, 3.0)
+	v.add_child(_center(_canvas(square_paint, Vector2(n * cell + 8, n * cell + 8))))
+	var opts: Array = []
+	for o in d.get("options", []):
+		var cells: Array = o
+		opts.append(_canvas(func(ci, sz): Art.poly(ci, cells, Rect2(Vector2.ZERO, sz), SPA_FILL), Vector2(100, 100)))
+	_mc(v, opts, 4, false, 130)

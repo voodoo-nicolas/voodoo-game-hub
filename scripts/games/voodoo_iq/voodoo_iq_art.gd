@@ -416,7 +416,8 @@ static func _tv_proj(n: int, s: float) -> Callable:
 	return func(x: float, y: float, z: float) -> Vector2: return Vector2(ox + (x - y) * cw, oy + (x + y) * ch - z * s)
 
 ## Isometric view of the stack, with the thick white front edge (x = n).
-static func tv_iso(ci: CanvasItem, stack: Array, rect: Rect2) -> void:
+## `marks` = the topview question's front edge and top-face symbols (off for counting cubes).
+static func tv_iso(ci: CanvasItem, stack: Array, rect: Rect2, marks := true) -> void:
 	var n := stack.size()
 	var s := 34.0 if n <= 3 else (28.0 if n == 4 else 23.0)
 	var P := _tv_proj(n, s)
@@ -434,7 +435,8 @@ static func tv_iso(ci: CanvasItem, stack: Array, rect: Rect2) -> void:
 			var tile := PackedVector2Array([P.call(i, j, 0), P.call(i + 1, j, 0), P.call(i + 1, j + 1, 0), P.call(i, j + 1, 0)])
 			fill(ci, tile, Color("#2A2A3E"))
 			stroke(ci, tile, Color("#55557A"), 1.6)
-	line(ci, P.call(n, 0, 0), P.call(n, n, 0), Color.WHITE, 6.0)
+	if marks:
+		line(ci, P.call(n, 0, 0), P.call(n, n, 0), Color.WHITE, 6.0)
 	var cubes: Array = []
 	for i in n:
 		for j in n:
@@ -455,7 +457,7 @@ static func tv_iso(ci: CanvasItem, stack: Array, rect: Rect2) -> void:
 		for f in faces:
 			fill(ci, f[0], f[1])
 			stroke(ci, f[0], INK, 1.6)
-		if c[4]:
+		if c[4] and marks:
 			var ctr: Vector2 = P.call(i + .5, j + .5, z + 1)
 			_tv_symbol(ci, col, ctr.x, ctr.y, s * .2, INK)
 	finish(ci)
