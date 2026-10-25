@@ -22,9 +22,9 @@ static var W := 680.0
 ## The highest generator version this pack can draw, sent with session-start
 ## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set, 3 = the
 ## second LIN set, 4 = the second MUS set, 5 = the second NAT set, 6 = the second
-## KIN set (2026-10-25). Raise it only together with the views for the generators
-## that version adds.
-const GV := 6
+## KIN set, 7 = the second EXI set (2026-10-25). Raise it only together with the views
+## for the generators that version adds.
+const GV := 7
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -107,6 +107,11 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"trace": _trace(v, d)
 		"tapbeat": _tapbeat(v, d)
 		"dragfit": _dragfit(v, d)
+		"wason": _wason(v, d)
+		"necsuf": _necsuf(v, d)
+		"assume": _assume(v, d)
+		"contradict": _contradict(v, d)
+		"crt": _crt(v, d)
 		_:
 			v.add_child(_label("?", 30, FG))
 	return v
@@ -1899,3 +1904,80 @@ static func _dragfit(v: ItemView, d: Dictionary) -> void:
 	var a := DragArena.new()
 	a.d = d
 	_kin_arena(v, a, 380)
+
+# ------------------------------------------------------------------ EXI, second set (gv 7)
+# Not in the prototype (server gens/exi2.ts).
+
+## Turn the cards: tap the cards to turn (tap again to put one back), then Done.
+## Submits the chosen card numbers, sorted, joined by commas ("0,3").
+static func _wason(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("rule", "")], 28)
+	v.add_child(_label(str(d.get("note", "")), 22, FG2))
+	_prompt(v, T.t("q_wason"))
+	var cards: Array = d.get("cards", [])
+	var chosen := {}
+	var flow := HFlowContainer.new()
+	flow.alignment = FlowContainer.ALIGNMENT_CENTER
+	flow.add_theme_constant_override("h_separation", 12)
+	flow.add_theme_constant_override("v_separation", 12)
+	flow.custom_minimum_size = Vector2(W, 0)
+	var check := Button.new()
+	var words := cards.size() > 0 and str(cards[0]).length() > 2
+	for i in cards.size():
+		var b := Button.new()
+		b.text = str(cards[i])
+		b.toggle_mode = true
+		b.custom_minimum_size = Vector2(minf(180.0, (W - 40.0) / 2.0) if words else minf(96.0, (W - 12.0 * (cards.size() - 1)) / cards.size() - 2.0), 120 if words else 140)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_theme_font_size_override("font_size", 26 if words else 52)
+		b.add_theme_stylebox_override("normal", box_style(Color("#F2F2F7"), Color("#6A6A90"), 3, 12))
+		b.add_theme_stylebox_override("hover", box_style(Color("#FFFFFF"), v.accent, 3, 12))
+		b.add_theme_stylebox_override("pressed", box_style(Color("#FFE9A0"), v.accent, 6, 12))
+		b.add_theme_stylebox_override("disabled", box_style(Color("#C9C9D4"), Color("#6A6A90"), 3, 12))
+		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_disabled_color"]:
+			b.add_theme_color_override(c, Color("#07070C"))
+		b.toggled.connect(func(on: bool):
+			if on:
+				chosen[i] = true
+			else:
+				chosen.erase(i)
+			check.disabled = v.done or chosen.is_empty())
+		v.option_buttons.append(b)
+		flow.add_child(b)
+	v.add_child(flow)
+	check.text = T.t("us_check")
+	check.custom_minimum_size = Vector2(240, 76)
+	check.add_theme_font_size_override("font_size", 28)
+	style_button(check, Color("#7dff3a"))
+	check.disabled = true
+	check.pressed.connect(func():
+		var keys := chosen.keys()
+		keys.sort()
+		var parts: Array = []
+		for k in keys:
+			parts.append(str(k))
+		v.submit(",".join(parts)))
+	v.option_buttons.append(check)
+	v.add_child(_center(check))
+
+static func _necsuf(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("rule", "")], 30)
+	_prompt(v, str(d.get("q", "")))
+	var opts: Array = []
+	for o in d.get("options", []):
+		opts.append(T.t("ns_" + str(o)))
+	_mc(v, opts, 1)
+
+static func _assume(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, ["“" + str(d.get("argument", "")) + "”"], 28)
+	_prompt(v, T.t("q_assume"))
+	_mc(v, d.get("options", []), 1)
+
+static func _contradict(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_contradict"))
+	_mc(v, d.get("options", []), 1)
+
+static func _crt(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("text", "")], 28)
+	_prompt(v, T.t("q_crt"))
+	_numpad(v)

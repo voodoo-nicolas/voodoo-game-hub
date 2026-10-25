@@ -181,3 +181,14 @@ Deno.test("generator version 6 adds the KIN set; gv 5 never gets it", () => {
   assert(![...seen5].some((g) => added.has(g)), `gv 5 got ${[...seen5]}`);
   assert([...added].every((g) => seen6.has(g)), `gv 6 missed some: ${[...seen6]}`);
 });
+
+Deno.test("generator version 7 adds the EXI set; gv 6 never gets it", () => {
+  const added = new Set(["wason", "necsuf", "assume", "contradict", "crt"]);
+  const seen6 = new Set<string>(), seen7 = new Set<string>();
+  for (let seed = 1; seed <= 400; seed++) {
+    seen6.add(nextIqItem("EXI", "en", [], newIqState(seed, { gv: 6 })).gid);
+    seen7.add(nextIqItem("EXI", "es", [], newIqState(seed, { gv: 7 })).gid);
+  }
+  assert(![...seen6].some((g) => added.has(g)), `gv 6 got ${[...seen6]}`);
+  assert([...added].every((g) => seen7.has(g)), `gv 7 missed some: ${[...seen7]}`);
+});

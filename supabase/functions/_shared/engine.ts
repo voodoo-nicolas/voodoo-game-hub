@@ -24,10 +24,11 @@ export const SEC_GENS: Record<string, [string, number][]> = {
  *  packs from before 2026-10-25 send none (0) and get exactly the prototype's lists.
  *  v1 adds the second LOG set (gens/log2.ts), v2 the second SPA set (gens/spa2.ts),
  *  v3 the second LIN set (gens/lin2.ts), v4 the second MUS set (gens/mus2.ts),
- *  v5 the second NAT set (gens/nat2.ts), v6 the second KIN set (gens/kin2.ts).
+ *  v5 the second NAT set (gens/nat2.ts), v6 the second KIN set (gens/kin2.ts),
+ *  v7 the second EXI set (gens/exi2.ts).
  *  Within a section the prototype's
  *  generators keep half the weight and the added ones share the other half. */
-export const GV = 6;
+export const GV = 7;
 const SEC_GENS_ADDED: Record<string, [number, string[]][]> = {
   LOG: [[1, ["symsum", "scales", "ordering", "letters", "funcmachine", "operators", "fraccmp", "wordprob", "dice", "sudoku"]]],
   SPA: [[2, ["paperfold", "cubenet", "gears", "mirror", "countshapes", "cubecount", "direction", "pieces"]]],
@@ -35,6 +36,7 @@ const SEC_GENS_ADDED: Record<string, [number, string[]][]> = {
   MUS: [[4, ["rhythm", "transpose", "beat", "contour", "cadence", "consonance"]]],
   NAT: [[5, ["inherit", "foodweb", "idkey", "camo", "spotdiff"]]],
   KIN: [[6, ["gonogo", "pursuit", "trace", "tapbeat", "dragfit"]]],
+  EXI: [[7, ["wason", "necsuf", "assume", "contradict", "crt"]]],
 };
 export function secGens(sec: string, gv = 0): [string, number][] {
   const base = SEC_GENS[sec];

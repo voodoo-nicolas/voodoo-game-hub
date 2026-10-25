@@ -74,7 +74,8 @@ var skip_music := false
 var relayout_item := false
 const SOUND_OPTIONS_PATH := "res://scripts/common/sound_options.gd"
 ## Worked examples for the question types players found unclear (Existential).
-const EXAMPLE_GIDS := ["syll", "syllquick", "fallacy"]
+## The second EXI set (2026-10-25) brings its example lines in voodoo_iq_more.json (wx_<gid>).
+const EXAMPLE_GIDS := ["syll", "syllquick", "fallacy", "wason", "necsuf", "assume", "contradict", "crt"]
 var info_back: Callable  # where the Info screen's Back goes
 
 func _ready() -> void:
@@ -923,7 +924,9 @@ func _add_example(box: VBoxContainer, gid: String) -> void:
 	var ex := _panel(T.sec_color("EXI"))
 	ex.add_child(_label("💡 " + tr("Example"), 24, T.sec_color("EXI"), 0, HORIZONTAL_ALIGNMENT_LEFT))
 	var lines: Array
-	if gid == "fallacy":
+	if T.more().get("en", {}).has("wx_" + gid):
+		lines = Array(T.t("wx_" + gid).split("\n"))
+	elif gid == "fallacy":
 		lines = [
 			tr("Don't judge whether you agree with the conclusion. Pick the description of the mistake in HOW the argument reasons."),
 			tr("“Nobody has proven that ghosts don't exist, so they must exist.”  →  Not disproven, so it must be true."),
