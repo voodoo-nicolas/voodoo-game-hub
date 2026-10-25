@@ -222,6 +222,16 @@ Rules:
   (`docs/claude/i18n-gameinfo-sfx.md` lists the swaps).
 - [NEW 2026-10-24] A `CREDITS.json` entry whose `"file"` ends in `/` covers every file in that folder (one licence
   for a whole sound set); `hub.py check` accepts it.
+- [NEW 2026-10-24, owner] **Ready-made sprites come from the shared sprite library** `res://media/common/sprites/<set>/`
+  (catalog `docs/claude/sprite-library.md`, pictures `docs/claude/sprite-sheets/<set>.jpg`, filled from the owner's
+  `D:/dev/sprites` by `tools/sprite_import.py`): space shooter, smoke/explosions, isometric dungeon and library,
+  gothic / village / forest / dungeon / cyberpunk pixel art, anime and RPG characters, retro textures. Same rules as
+  the sound library: the game draws them with its `sprite_lib.gd` copy (`SpriteLib.texture("<set>/<name>")`, ids as
+  full string literals), `hub.py sync` puts exactly those files in its pack preset, the APK excludes the library, and
+  the all-games builds (Web, WindowsTest) leave out the sets no game uses. Pixel-art sets need
+  `texture_filter = TEXTURE_FILTER_NEAREST`. Arcade games keep their own look (§ skins); a library sprite is an
+  option, not a requirement. Nothing with an alcohol reference goes in the library (the importer renames or leaves
+  it out); sound and sprite set names never clash (`check`).
 - [NEW 2026-10-07, owner] **Every game's music comes from the hub's shared library** (APK autoload `Music`,
   `scripts/common/music.gd`; CLAUDE.md "Music library"): a game picks a style (calm / lively / techno) and a track
   number, it never synthesizes or ships its own music. Real tracks are added to the library

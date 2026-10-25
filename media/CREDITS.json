@@ -2881,6 +2881,156 @@
    "date": "2026-10-24"
   },
   {
+   "file": "media/common/sprites/space/",
+   "what": "Shared sprite library, set 'space' (every file in the folder): Space shooter: player ships, enemies, UFOs, lasers, meteors, power-ups, damage overlays, engine fire, HUD bits, 4 tiling 256x256 backgrounds",
+   "source": "Space Shooter Remastered, plus fonts and sounds by Kenney Vleugels www.kenney.nl, from the owner's library D:/dev/sprites/kenney_space-shooter-remastered",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/kenney_space_shooter_remastered.txt",
+   "url": "https://kenney.nl/assets/space-shooter-remastered",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/space_ext/",
+   "what": "Shared sprite library, set 'space_ext' (every file in the folder): Space shooter extension (2x size): astronauts, buildings, effects, meteors, missiles, ship parts, rocket parts, rockets, ships, station pieces",
+   "source": "Space Shooter Extension, from the owner's library D:/dev/sprites/kenney_space-shooter-extension",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/kenney_space_shooter_extension.txt",
+   "url": "https://kenney.nl/assets/space-shooter-extension",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/smoke/",
+   "what": "Shared sprite library, set 'smoke' (every file in the folder): Smoke particles, 9-25 frames each: black smoke, explosion, fart, flash, white puff",
+   "source": "Smoke particle pack by Kenney Vleugels www.kenney.nl, from the owner's library D:/dev/sprites/kenney_smoke-particles",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/kenney_smoke_particles.txt",
+   "url": "https://kenney.nl/assets/smoke-particles",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/iso_dungeon/",
+   "what": "Shared sprite library, set 'iso_dungeon' (every file in the folder): Isometric dungeon (256x512 canvases, 4 facings _e/_n/_s/_w): floors, walls, stairs, barrels, chests, columns, wooden structures; plus an animated man (male_<facing 0-7>_idle / _pickup / _run)",
+   "source": "Dungeon Pack 2.3, from the owner's library D:/dev/sprites/kenney_isometric-miniature-dungeon",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/kenney_isometric_miniature_dungeon.txt",
+   "url": "https://kenney.nl/assets/isometric-miniature-dungeon",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/iso_dungeon_angle/",
+   "what": "Shared sprite library, set 'iso_dungeon_angle' (every file in the folder): The same dungeon pieces seen from above at an angle (256x512 canvases, 4 facings)",
+   "source": "Dungeon Pack 2.3, from the owner's library D:/dev/sprites/kenney_isometric-miniature-dungeon",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/kenney_isometric_miniature_dungeon.txt",
+   "url": "https://kenney.nl/assets/isometric-miniature-dungeon",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/iso_library/",
+   "what": "Shared sprite library, set 'iso_library' (every file in the folder): Isometric library (256x512 canvases, 4 facings): bookcases, books, desks, chairs, candles, globes, floors, walls",
+   "source": "Library Pack 2.1, from the owner's library D:/dev/sprites/kenney_isometric-miniature-library",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/kenney_isometric_miniature_library.txt",
+   "url": "https://kenney.nl/assets/isometric-miniature-library",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/iso_library_angle/",
+   "what": "Shared sprite library, set 'iso_library_angle' (every file in the folder): The same library pieces seen from above at an angle (256x512 canvases, 4 facings)",
+   "source": "Library Pack 2.1, from the owner's library D:/dev/sprites/kenney_isometric-miniature-library",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/kenney_isometric_miniature_library.txt",
+   "url": "https://kenney.nl/assets/isometric-miniature-library",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/textures/",
+   "what": "Shared sprite library, set 'textures' (every file in the folder): Retro fantasy pixel textures (64x64 and 64x128): bricks, stone, wood, doors, windows, roofs, ground; draw with texture_filter = NEAREST",
+   "source": "Retro Textures Fantasy 1.0, from the owner's library D:/dev/sprites/kenney_retro-textures-fantasy",
+   "author": "Kenney Vleugels (Kenney.nl)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/kenney_retro_textures_fantasy.txt",
+   "url": "https://kenney.nl/assets/retro-textures-fantasy",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/anime_portraits/",
+   "what": "Shared sprite library, set 'anime_portraits' (every file in the folder): Free Anime Character Sprites: Full-Body Portraits (40 characters)",
+   "source": "Free Anime Character Sprites: Full-Body Portraits, from the owner's library D:/dev/sprites/anime-portraits (the pack's own notice: CC0 as declared by its catalog, not an independent provenance check)",
+   "author": "see licence (catalog declares CC0)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/anime_portraits.txt",
+   "url": "",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/cyberpunk/",
+   "what": "Shared sprite library, set 'cyberpunk' (every file in the folder): Free Cyberpunk Pixel Art: Alley Tiles, Props and Sprites (5 buildings, 2 characters, 2 enemies, 8 environment, 2 furniture, 6 items, 5 tilesets)",
+   "source": "Free Cyberpunk Pixel Art: Alley Tiles, Props and Sprites, from the owner's library D:/dev/sprites/cyberpunk (the pack's own notice: CC0 as declared by its catalog, not an independent provenance check)",
+   "author": "see licence (catalog declares CC0)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/cyberpunk.txt",
+   "url": "",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/dungeon/",
+   "what": "Shared sprite library, set 'dungeon' (every file in the folder): Free Dungeon Tileset and Props (6 buildings, 2 enemies, 4 environment, 13 items, 5 tilesets)",
+   "source": "Free Dungeon Tileset and Props, from the owner's library D:/dev/sprites/dungeon (the pack's own notice: CC0 as declared by its catalog, not an independent provenance check)",
+   "author": "see licence (catalog declares CC0)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/dungeon.txt",
+   "url": "",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/forest/",
+   "what": "Shared sprite library, set 'forest' (every file in the folder): Free Forest Tileset: Terrain, Trees and Campsite Props (4 buildings, 4 characters, 15 environment, 2 items, 5 tilesets)",
+   "source": "Free Forest Tileset: Terrain, Trees and Campsite Props, from the owner's library D:/dev/sprites/forest (the pack's own notice: CC0 as declared by its catalog, not an independent provenance check)",
+   "author": "see licence (catalog declares CC0)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/forest.txt",
+   "url": "",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/gothic/",
+   "what": "Shared sprite library, set 'gothic' (every file in the folder): Free Gothic Pixel Art: Cathedral Tiles, Props and Figures (5 buildings, 5 characters, 5 enemies, 5 environment, 5 items, 5 tilesets)",
+   "source": "Free Gothic Pixel Art: Cathedral Tiles, Props and Figures, from the owner's library D:/dev/sprites/gothic (the pack's own notice: CC0 as declared by its catalog, not an independent provenance check)",
+   "author": "see licence (catalog declares CC0)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/gothic.txt",
+   "url": "",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/rpg_characters/",
+   "what": "Shared sprite library, set 'rpg_characters' (every file in the folder): Free RPG Character Sprites: 40 Pixel Art Heroes (40 characters)",
+   "source": "Free RPG Character Sprites: 40 Pixel Art Heroes, from the owner's library D:/dev/sprites/rpg-characters (the pack's own notice: CC0 as declared by its catalog, not an independent provenance check)",
+   "author": "see licence (catalog declares CC0)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/rpg_characters.txt",
+   "url": "",
+   "date": "2026-10-24"
+  },
+  {
+   "file": "media/common/sprites/village/",
+   "what": "Shared sprite library, set 'village' (every file in the folder): Free Medieval Village Tileset and Buildings (10 buildings, 12 environment, 1 furniture, 6 items, 6 tilesets)",
+   "source": "Free Medieval Village Tileset and Buildings, from the owner's library D:/dev/sprites/village (the pack's own notice: CC0 as declared by its catalog, not an independent provenance check)",
+   "author": "see licence (catalog declares CC0)",
+   "licence": "CC0",
+   "proof": "media/licenses/sprites/village.txt",
+   "url": "",
+   "date": "2026-10-24"
+  },
+  {
    "file": "games/chess/landing_bg.jpg",
    "what": "Chess Landing background (chess pieces facing off on a stone board in a candle-lit gothic hall, castle in the moonlit window)",
    "source": "reference/art/games/chess_landing_src.png (D:/dev/Minigame Art/chess.png)",

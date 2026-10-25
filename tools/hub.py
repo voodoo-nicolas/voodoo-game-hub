@@ -212,7 +212,7 @@ PACK_EXCLUDE = ("assets/*, media/hub/*, media/music/*, media/licenses/*, media/C
 
 
 def pack_preset_text(index: int, name: str, gid: str) -> str:
-    sounds = "".join(f", {f}" for f in game_sounds(gid)[0])
+    sounds = "".join(f", {f}" for f in game_sounds(gid)[0] + game_sprites(gid)[0])
     return f'''[preset.{index}]
 
 name="{name}"
@@ -272,6 +272,7 @@ def render_presets(ids: list[str]) -> str:
         suffix = {"PadLabDev": " Pad Lab", "TurnedDev": " Turned Dev"}.get(p["name"], " Dev" if p["name"].endswith("Dev") else "")
         body = re.sub(r'(?m)^package/name=.*$', f'package/name="{brand}{suffix}"', body)
         body = re.sub(r'(?m)^application/product_name=.*$', f'application/product_name="{brand}"', body)
+        body = re.sub(r'(?m)^exclude_filter="(.*)"$', lambda m: sprite_exclude(m.group(1), body, ids), body, count=1)
         chunks.append(body)
     # Existing presets keep their order (stable diffs); new games go last.
     ordered = [gid for gid in old_names if gid in ids] + [gid for gid in ids if gid not in old_names]
@@ -286,9 +287,11 @@ def render_presets(ids: list[str]) -> str:
 # (scripts/games/<id>/home_kit.gd), so its pack runs on any app version.
 # The template is the only one ever edited; `sync` copies it out.
 HOME_KIT = TEMPLATES / "home_kit.gd"
-# The shared sound library's player works the same way (sound_lib.gd).
+# The shared sound library's player works the same way (sound_lib.gd), and so
+# does the shared sprite library's loader (sprite_lib.gd).
 SOUND_LIB = TEMPLATES / "sound_lib.gd"
-KITS = (HOME_KIT, SOUND_LIB)
+SPRITE_LIB = TEMPLATES / "sprite_lib.gd"
+KITS = (HOME_KIT, SOUND_LIB, SPRITE_LIB)
 
 
 def home_kit_users(ids: list[str], kit_file: Path = HOME_KIT) -> list[str]:
@@ -363,6 +366,69 @@ def game_sounds(gid: str) -> tuple[list[str], list[str]]:
     return files, missing
 
 
+# ---------------------------------------------------------------- sprite library
+
+# The shared sprite library (STANDARDS §10): media/common/sprites/<set>/<name>.png
+# or a numbered series <name>_0.png / _1.png..., filled by tools/sprite_import.py
+# (catalog docs/claude/sprite-library.md). Same deal as the sound library: not
+# in the APK; each game's pack carries the files of the sprite ids its scripts
+# name. The all-games builds (Web, WindowsTest) leave out the sets no game uses.
+SPRITE_DIR = MEDIA / "common" / "sprites"
+
+
+def sprite_files(sprite_id: str) -> list[str]:
+    """The library files of one sprite id, as repo-relative paths ([] = unknown)."""
+    set_name, name = sprite_id.split("/")
+    folder = SPRITE_DIR / set_name
+    if (folder / f"{name}.png").is_file():
+        return [f"media/common/sprites/{set_name}/{name}.png"]
+    for start in (0, 1):
+        files, n = [], start
+        while (folder / f"{name}_{n}.png").is_file():
+            files.append(f"media/common/sprites/{set_name}/{name}_{n}.png")
+            n += 1
+        if files:
+            return files
+    return []
+
+
+def game_sprites(gid: str) -> tuple[list[str], list[str]]:
+    """(library files a game's pack carries, ids it names that the library lacks).
+    Only games that use sprite_lib.gd; ids are "<set>/<name>" string literals
+    whose <set> is a library folder."""
+    if not SPRITE_DIR.is_dir() or gid not in home_kit_users([gid], SPRITE_LIB):
+        return [], []
+    sets = {p.name for p in SPRITE_DIR.iterdir() if p.is_dir()}
+    files: list[str] = []
+    missing: list[str] = []
+    for f in sorted((ROOT / "scripts/games" / gid).glob("*.gd")):
+        if f.name in (SPRITE_LIB.name, SOUND_LIB.name):
+            continue
+        for set_name, name in SOUND_ID_RE.findall(f.read_text(encoding="utf-8")):
+            if set_name not in sets:
+                continue
+            found = sprite_files(f"{set_name}/{name}")
+            if not found and f"{set_name}/{name}" not in missing:
+                missing.append(f"{set_name}/{name}")
+            files += [t for t in found if t not in files]
+    return files, missing
+
+
+def sprite_exclude(current: str, body: str, ids: list[str]) -> str:
+    """A non-pack preset's exclude_filter with its sprite-library part redone:
+    APK-style presets (exclude_selected_resources) leave the whole library out;
+    all-games presets (all_resources) leave out every set no game uses."""
+    parts = [p.strip() for p in current.split(",") if p.strip() and not p.strip().startswith("media/common/sprites/")]
+    if SPRITE_DIR.is_dir():
+        if 'export_filter="all_resources"' in body:
+            used = {f.split("/")[3] for gid in ids for f in game_sprites(gid)[0]}
+            parts += [f"media/common/sprites/{p.name}/*" for p in sorted(SPRITE_DIR.iterdir())
+                      if p.is_dir() and p.name not in used]
+        else:
+            parts.append("media/common/sprites/*")
+    return f'exclude_filter="{", ".join(parts)}"'
+
+
 # ---------------------------------------------------------------- validation
 
 def validate() -> tuple[list[str], list[str]]:
@@ -418,6 +484,12 @@ def validate() -> tuple[list[str], list[str]]:
     for gid in catalog_ids(m):
         for sound_id in game_sounds(gid)[1]:
             errors.append(f'{gid}: sound "{sound_id}" is not in the library (docs/claude/sfx-library.md)')
+        for sprite_id in game_sprites(gid)[1]:
+            errors.append(f'{gid}: sprite "{sprite_id}" is not in the library (docs/claude/sprite-library.md)')
+    if SFX_LIB.is_dir() and SPRITE_DIR.is_dir():
+        both = {p.name for p in SFX_LIB.iterdir() if p.is_dir()} & {p.name for p in SPRITE_DIR.iterdir() if p.is_dir()}
+        for name in sorted(both):
+            errors.append(f'"{name}" is both a sound set and a sprite set: ids "{name}/..." would be ambiguous -- rename one')
 
     current = PRESETS.read_text(encoding="utf-8")
     if render_presets(catalog_ids(m)) != current:

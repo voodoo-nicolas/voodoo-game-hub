@@ -1,0 +1,7 @@
+CC0 1.0 Universal
+
+All included asset records declare CC0.
+You may copy, modify, distribute and use the artwork, including commercially, without attribution.
+This notice summarizes the catalog declaration; it is not an independent provenance verification or warranty of third-party rights.
+Full legal instrument: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Summary: https://creativecommons.org/publicdomain/zero/1.0/

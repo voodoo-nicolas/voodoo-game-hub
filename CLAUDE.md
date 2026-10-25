@@ -43,6 +43,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
 - Every asset: `media/CREDITS.json` entry + licence proof in `media/licenses/`; OGG pre-encoded (~96 kbps music). Never NC/ND licences.
 - Music: only from the shared `Music` autoload (docs/claude/music.md).
 - Recorded sound effects: from the shared sound library `media/common/sfx/` via the game's `sound_lib.gd` (catalog `docs/claude/sfx-library.md`, rules in `docs/claude/i18n-gameinfo-sfx.md`); existing games switch with their next update.
+- Ready-made sprites (space, smoke, iso dungeon/library, gothic, village, forest, characters...): shared sprite library `media/common/sprites/` via the game's `sprite_lib.gd` (catalog `docs/claude/sprite-library.md`, pictures `docs/claude/sprite-sheets/`, usage in the header of `tools/templates/sprite_lib.gd`; add art with `python tools/sprite_import.py D:/dev/sprites`).
 - `manifest.json` is committed last.
 
 ## STANDARDS digest (full text: docs/STANDARDS.md)
