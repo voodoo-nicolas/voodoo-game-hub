@@ -9,6 +9,7 @@ import "./lin2.ts";
 import "./mus.ts";
 import "./mus2.ts";
 import "./nat.ts";
+import "./nat2.ts";
 import "./kin.ts";
 import "./int.ts";
 import "./exi.ts";

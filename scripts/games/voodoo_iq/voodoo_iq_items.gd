@@ -21,9 +21,9 @@ const FG2 := Color("#A8A8C0")
 static var W := 680.0
 ## The highest generator version this pack can draw, sent with session-start
 ## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set, 3 = the
-## second LIN set, 4 = the second MUS set (2026-10-25). Raise it only together with
-## the views for the generators that version adds.
-const GV := 4
+## second LIN set, 4 = the second MUS set, 5 = the second NAT set (2026-10-25).
+## Raise it only together with the views for the generators that version adds.
+const GV := 5
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -96,6 +96,11 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"unscramble": _unscramble(v, d)
 		"proverb": _proverb(v, d)
 		"inference": _inference(v, d)
+		"inherit": _inherit(v, d)
+		"foodweb": _foodweb(v, d)
+		"idkey": _idkey(v, d)
+		"camo": _camo(v, d)
+		"spotdiff": _spotdiff(v, d)
 		_:
 			v.add_child(_label("?", 30, FG))
 	return v
@@ -1386,3 +1391,144 @@ static func _unscramble(v: ItemView, d: Dictionary) -> void:
 	row.add_child(check)
 	v.add_child(_center(row))
 	refresh.call()
+
+# ------------------------------------------------------------------ NAT, second set (gv 5)
+# Not in the prototype (server gens/nat2.ts).
+
+static func _nat_row(parts: Array, size: float) -> CenterContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	for p in parts:
+		if p is String:
+			var l := _label(p, 34, FG2, 0)
+			l.autowrap_mode = TextServer.AUTOWRAP_OFF
+			l.custom_minimum_size = Vector2.ZERO
+			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			row.add_child(l)
+		else:
+			row.add_child(_creature(p, size))
+	return _center(row)
+
+static func _inherit(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_inherit"))
+	var size := minf(96.0, (W - 90.0) / 3.0)
+	for f in d.get("families", []):
+		v.add_child(_nat_row([f[0], "+", f[1], "→", f[2]], size))
+	var q: Array = d.get("parents", [])
+	v.add_child(_nat_row([q[0], "+", q[1], "→", "?"], size))
+	var opts: Array = []
+	for o in d.get("options", []):
+		opts.append(_creature(o, 80))
+	_mc(v, opts, 4, false, 110)
+
+static func _foodweb(v: ItemView, d: Dictionary) -> void:
+	var nodes: Array = d.get("nodes", [])
+	var edges: Array = d.get("edges", [])
+	var accent := Color("#A6F04B")
+	var box := Vector2(minf(W, 600.0), 340)
+	# boxes as wide as the busiest row allows; arrows run edge to edge, not under the boxes
+	var per_row := {}
+	for n in nodes:
+		per_row[n.y] = int(per_row.get(n.y, 0)) + 1
+	var most := 1
+	for k in per_row:
+		most = maxi(most, per_row[k])
+	var paint := func(ci: CanvasItem, sz: Vector2) -> void:
+		var w := minf(120.0, sz.x / (most + 1) - 14.0)
+		var hh := 16.0
+		var at := {}
+		for n in nodes:
+			at[str(n.id)] = Vector2(float(n.x) * sz.x, 24 + float(n.y) * (sz.y - 48))
+		var edge_gap := func(dir: Vector2) -> float:
+			return minf(w / 2.0 / maxf(absf(dir.x), 0.001), hh / maxf(absf(dir.y), 0.001)) + 3.0
+		for e in edges:
+			var a: Vector2 = at[str(e[0])]
+			var b: Vector2 = at[str(e[1])]
+			var dir := (b - a).normalized()
+			var p0: Vector2 = a + dir * edge_gap.call(dir)
+			var p1: Vector2 = b - dir * edge_gap.call(dir)
+			ci.draw_line(p0, p1, accent, 2.5, true)
+			ci.draw_colored_polygon(PackedVector2Array([p1, p1 - dir * 12 + dir.orthogonal() * 6, p1 - dir * 12 - dir.orthogonal() * 6]), accent)
+		var font := ThemeDB.fallback_font
+		for n in nodes:
+			var c: Vector2 = at[str(n.id)]
+			var r := Rect2(c - Vector2(w / 2, hh), Vector2(w, hh * 2))
+			ci.draw_rect(r, Color("#1A1A28"))
+			ci.draw_rect(r, Color("#6A6A90"), false, 1.5)
+			ci.draw_string(font, r.position + Vector2(0, 23), str(n.name), HORIZONTAL_ALIGNMENT_CENTER, w, 19, Color.WHITE)
+	v.add_child(_center(_canvas(paint, box)))
+	v.add_child(_label(T.t("fw_note"), 22, FG2))
+	_prompt(v, str(d.get("text", "")))
+	var opts: Array = []
+	for o in d.get("options", []):
+		opts.append(T.t("fw_" + str(o)))
+	_mc(v, opts, 1)
+
+static func _idkey(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_idkey"))
+	v.add_child(_center(_creature(d.get("creature", []), 150)))
+	var lines: Array = []
+	var couplets: Array = d.get("couplets", [])
+	var to := func(t) -> String: return T.t("k_goto", {"n": int(t)}) if (t is float or t is int) else str(t)
+	for i in couplets.size():
+		var c: Dictionary = couplets[i]
+		lines.append("%d. %s  %s → %s.  %s → %s." % [i + 1, T.t("k_" + str(c.t)), T.t("k_yes"), to.call(c.y), T.t("k_no"), to.call(c.n)])
+	_panel_text(v, lines, 24)
+	_mc(v, d.get("options", []), 4)
+
+static func _camo(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_camo"))
+	var x: Array = d.get("creature", [])
+	var q := int(d.get("q", 0))
+	var blend := float(d.get("blend", 0.5))
+	var seed := int(d.get("seed", 1))
+	var n := int(d.get("clutter", 60))
+	var leaf := Color("#4F7F3A")
+	var nat := Color(str(T.data().get("NAT_COL", [])[int(x[1])]))
+	var tint := nat.lerp(leaf, blend)
+	var box := Vector2(minf(W, 560.0), minf(W, 560.0) * 0.72)
+	var paint := func(ci: CanvasItem, sz: Vector2) -> void:
+		ci.draw_rect(Rect2(Vector2.ZERO, sz), Color("#2B4A2A"))
+		var s := [seed]
+		var rnd := func() -> float:
+			s[0] = (s[0] * 16807) % 2147483647
+			return float(s[0]) / 2147483647.0
+		var blob := func(under: bool) -> void:
+			var c := Vector2(rnd.call() * sz.x, rnd.call() * sz.y)
+			var rx: float = (0.03 + rnd.call() * 0.05) * sz.x
+			var ry: float = rx * (0.5 + rnd.call() * 0.5)
+			var col := leaf.darkened(0.25).lerp(tint, rnd.call())
+			var pts := PackedVector2Array()
+			var ang: float = rnd.call() * PI
+			for k in 20:
+				var t := TAU * k / 20.0
+				pts.append(c + Vector2(cos(t) * rx, sin(t) * ry).rotated(ang))
+			ci.draw_colored_polygon(pts, col)
+			if not under and rnd.call() < 0.5:
+				ci.draw_line(pts[0], pts[10], Color(0, 0, 0, 0.5), 2.0, true)
+		for i in n:
+			blob.call(true)
+		var size := float(d.get("size", 0.2)) * sz.x
+		var cx := (float(q % 2) * 0.5 + float(d.get("px", 0.25))) * sz.x
+		var cy := (float(int(q / 2.0)) * 0.5 + float(d.get("py", 0.25))) * sz.y
+		Art.creature(ci, x, Rect2(Vector2(cx, cy) - Vector2(size, size) / 2.0, Vector2(size, size)), false, tint)
+		for i in n / 4:
+			blob.call(false)
+		ci.draw_dashed_line(Vector2(sz.x / 2, 0), Vector2(sz.x / 2, sz.y), Color(1, 1, 1, 0.3), 2.0, 8.0)
+		ci.draw_dashed_line(Vector2(0, sz.y / 2), Vector2(sz.x, sz.y / 2), Color(1, 1, 1, 0.3), 2.0, 8.0)
+	v.add_child(_center(_canvas(paint, box)))
+	_mc(v, [T.t("q_tl"), T.t("q_tr"), T.t("q_bl"), T.t("q_br")], 2)
+
+static func _spotdiff(v: ItemView, d: Dictionary) -> void:
+	var opts_raw: Array = d.get("options", [])
+	var two: bool = opts_raw.size() > 0 and opts_raw[0].size() == 2
+	_prompt(v, T.t("q_spotdiff2") if two else T.t("q_spotdiff"))
+	var size := minf(170.0, (W - 30.0) / 2.0)
+	v.add_child(_nat_row([d.get("left", []), d.get("right", [])], size))
+	var opts: Array = []
+	for o in opts_raw:
+		var names: Array = []
+		for t in o:
+			names.append(T.t("tr_" + str(int(t))))
+		opts.append(" + ".join(names))
+	_mc(v, opts, 2)

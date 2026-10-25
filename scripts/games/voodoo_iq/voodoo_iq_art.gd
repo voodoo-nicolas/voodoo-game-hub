@@ -498,11 +498,16 @@ static func poly(ci: CanvasItem, cells: Array, rect: Rect2, color: Color) -> voi
 
 # ------------------------------------------------------------------ NAT: creatures (viewBox 0 0 120 120)
 
-static func creature(ci: CanvasItem, x: Array, rect: Rect2) -> void:
+## `card` = the prototype's light card behind it; `tint` (alpha > 0) replaces the body
+## colour (hide and seek blends the creature into the leaves).
+static func creature(ci: CanvasItem, x: Array, rect: Rect2, card := true, tint := Color(0, 0, 0, 0)) -> void:
 	begin(ci, Rect2(0, 0, 120, 120), rect)
-	fill(ci, round_rect_pts(0, 0, 120, 120, 10), Color("#E9E9F2"))  # prototype .creature card
+	if card:
+		fill(ci, round_rect_pts(0, 0, 120, 120, 10), Color("#E9E9F2"))  # prototype .creature card
 	var b := int(x[0])
 	var col := Color(CB_NAT[int(x[1])]) if colorblind else Color(str(T.data().get("NAT_COL", [])[int(x[1])]))
+	if tint.a > 0:
+		col = tint
 	var body := ellipse_pts(Vector2(60, 58), 34, 30) if b == 0 else (round_rect_pts(38, 22, 44, 66, 20) if b == 1 else round_rect_pts(26, 32, 68, 52, 6))
 	var bottom := 82.0 if b == 2 else 86.0
 	var nl: int = [2, 4, 6][int(x[3])]

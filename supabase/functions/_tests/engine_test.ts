@@ -159,3 +159,14 @@ Deno.test("generator version 4 adds the MUS set; gv 3 never gets it", () => {
   assert(![...seen3].some((g) => added.has(g)), `gv 3 got ${[...seen3]}`);
   assert([...added].every((g) => seen4.has(g)), `gv 4 missed some: ${[...seen4]}`);
 });
+
+Deno.test("generator version 5 adds the NAT set; gv 4 never gets it", () => {
+  const added = new Set(["inherit", "foodweb", "idkey", "camo", "spotdiff"]);
+  const seen4 = new Set<string>(), seen5 = new Set<string>();
+  for (let seed = 1; seed <= 400; seed++) {
+    seen4.add(nextIqItem("NAT", "en", [], newIqState(seed, { gv: 4 })).gid);
+    seen5.add(nextIqItem("NAT", "es", [], newIqState(seed, { gv: 5 })).gid);
+  }
+  assert(![...seen4].some((g) => added.has(g)), `gv 4 got ${[...seen4]}`);
+  assert([...added].every((g) => seen5.has(g)), `gv 5 missed some: ${[...seen5]}`);
+});
