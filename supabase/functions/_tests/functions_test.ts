@@ -11,6 +11,7 @@ import { monthKey, utcDay } from "../_shared/rng.ts";
 import profileSave from "../profile-save/handler.ts";
 import sessionStart from "../session-start/handler.ts";
 import itemAnswer from "../item-answer/handler.ts";
+import itemReport from "../item-report/handler.ts";
 import sessionFinish from "../session-finish/handler.ts";
 import blitzSubmit from "../blitz-submit/handler.ts";
 import leaderboard from "../leaderboard/handler.ts";
@@ -64,6 +65,7 @@ Deno.test("ranked IQ test: answer loop, finish, section_scores, retakes allowed"
     const value = i % 3 === 2 ? "__wrong__" : rightValue(row.answer_key.key);
     const res = await call(itemAnswer, db, ME, { session_id: sid, seq: item.seq, value, client_ms: 4000 });
     assert(!JSON.stringify(res).includes("answer_key"));
+    assert(!("fb" in res), "a ranked test never shows answers");
     item = res.next_item;
   }
   assertEquals((await code(call(itemAnswer, db, ME, { session_id: sid, seq: item.seq - 1, value: 0, client_ms: 4000 })))?.code, "out_of_order");
@@ -99,6 +101,67 @@ Deno.test("practice IQ writes no section_scores; minors can't rank", async () =>
   await call(itemAnswer, db, OTHER, { session_id: st.session_id, seq: 0, value: 1, client_ms: 5000 });
   await call(sessionFinish, db, OTHER, { session_id: st.session_id, reason: "quit" });
   assertEquals(db.tables.section_scores ?? [], []);
+});
+
+Deno.test("practice IQ: right / wrong and the key after each answer, 🚩 reports kept with the item", async () => {
+  const db = new FakeDb();
+  await newPlayer(db);
+  const st = await call(sessionStart, db, ME, { mode: "iq", scope: "LOG", dur: 0, ranked: false });
+  const sid = st.session_id;
+  let item = st.first_item;
+  for (let i = 0; i < 4; i++) {
+    const row = pending(db, sid, 20000);
+    const right = i % 2 === 0;
+    const res = await call(itemAnswer, db, ME, { session_id: sid, seq: item.seq, value: right ? rightValue(row.answer_key.key) : "__wrong__", client_ms: 20000 });
+    assertEquals([res.fb.seq, res.fb.u, res.fb.rapid, res.fb.timeout, res.fb.hidden], [item.seq, right ? 1 : 0, false, false, false]);
+    assertEquals(res.fb.key, row.answer_key.key);
+    item = res.next_item;
+  }
+  // too fast: right answer, scored wrong, and the feedback says why
+  const row = pending(db, sid, 20000);
+  const fast = await call(itemAnswer, db, ME, { session_id: sid, seq: item.seq, value: rightValue(row.answer_key.key), client_ms: 0 });
+  assertEquals([fast.fb.u, fast.fb.rapid], row.answer_key.minMs > 0 ? [0, true] : [1, false]);
+
+  // 🚩: only answered items of the player's own practice session, with a known reason
+  const display = { seq: [1, 2, 3] };
+  assertEquals(await call(itemReport, db, ME, { session_id: sid, seq: 1, why: "two", value: "__wrong__", display }), { ok: true });
+  const rep = db.tables.responses.find((r) => r.session_id === sid && r.seq === 1)!;
+  assertEquals([rep.answer_key.report.why, rep.answer_key.report.value, rep.answer_key.report.display], ["two", "__wrong__", display]);
+  assert(rep.answer_key.key, "the key stays next to the report");
+  assertEquals((await code(call(itemReport, db, ME, { session_id: sid, seq: 1, why: "nope" })))?.code, "bad_why");
+  assertEquals((await code(call(itemReport, db, ME, { session_id: sid, seq: fast.next_item.seq, why: "none" })))?.code, "no_answered_item");
+  await newPlayer(db, OTHER);
+  assertEquals((await code(call(itemReport, db, OTHER, { session_id: sid, seq: 1, why: "none" })))?.code, "session_not_found");
+  const big = { blob: "x".repeat(200_000) };
+  await call(itemReport, db, ME, { session_id: sid, seq: 2, why: "picture", display: big });
+  assert(!("display" in db.tables.responses.find((r) => r.session_id === sid && r.seq === 2)!.answer_key.report), "oversized display dropped");
+  // the review comes from the feedback the client kept, so finishing works as before
+  assertEquals((await call(sessionFinish, db, ME, { session_id: sid, reason: "time" })).result.n, 5);
+
+  // ranked tests: no reports
+  const rk = await call(sessionStart, db, ME, { mode: "iq", scope: "LOG", dur: 0, ranked: true });
+  pending(db, rk.session_id, 20000);
+  await call(itemAnswer, db, ME, { session_id: rk.session_id, seq: 0, value: 0, client_ms: 20000 });
+  assertEquals((await code(call(itemReport, db, ME, { session_id: rk.session_id, seq: 0, why: "none" })))?.code, "not_practice");
+});
+
+Deno.test("practice Blitz returns a review of every answered item; ranked doesn't", async () => {
+  const db = new FakeDb();
+  await newPlayer(db);
+  const st = await call(sessionStart, db, ME, { mode: "blitz", scope: "ALL", dur: 60, ranked: false });
+  db.tables.sessions[0].started_at = new Date(Date.now() - 70_000).toISOString();
+  const answers = blitzAnswers(db, st.session_id, 12, 1500, 2);
+  answers.push({ seq: 12, skip: true, ms: 500 } as any);
+  const res = await call(blitzSubmit, db, ME, { session_id: st.session_id, answers });
+  assertEquals(res.review.length, 12, "skips have no review row");
+  assertEquals(res.review.map((r: any) => r.u), answers.slice(0, 12).map((_, i) => i % 2 === 0 ? 1 : 0));
+  assert(res.review.every((r: any, i: number) => r.seq === i && r.key));
+  await call(itemReport, db, ME, { session_id: st.session_id, seq: 3, why: "none", value: "__wrong__" });
+  assertEquals(db.tables.responses.find((r) => r.session_id === st.session_id && r.seq === 3)!.answer_key.report.why, "none");
+
+  const rk = await call(sessionStart, db, ME, { mode: "blitz", scope: "ALL", dur: 60, ranked: true });
+  db.tables.sessions[1].started_at = new Date(Date.now() - 70_000).toISOString();
+  assert(!("review" in await call(blitzSubmit, db, ME, { session_id: rk.session_id, answers: blitzAnswers(db, rk.session_id, 5) })));
 });
 
 Deno.test("rapid correct answers and leaving the app are scored wrong and flag the session", async () => {

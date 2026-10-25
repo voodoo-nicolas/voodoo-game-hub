@@ -33,6 +33,14 @@ class ItemView extends VBoxContainer:
 	var done := false
 	var accent := Color.WHITE
 	var option_buttons: Array = []
+	## practice answers (reveal): the multiple-choice buttons by option index, whether
+	## they show letters, what was revealed, and a view's own way to mark its answer
+	var mc_buttons: Array = []
+	var mc_lettered := true
+	var revealed: Dictionary = {}
+	var reveal_hook := Callable()
+	## drawn again in the answer review: nothing submits, but sounds can be replayed
+	var review := false
 	## the runner's keyboard / hidden handling can ask for this
 	func submit(v) -> void:
 		if done:
@@ -207,8 +215,13 @@ static func _mc(v: ItemView, opts: Array, cols: int, no_letter := false, min_h :
 				b.add_child(k)
 		b.pressed.connect(v.submit.bind(i))
 		v.option_buttons.append(b)
+		v.mc_buttons.append(b)
 		grid.add_child(b)
+	v.mc_lettered = not no_letter
 	v.add_child(grid)
+	# options that appear later (after a flash or a study phase) get the answer marked too
+	if not v.revealed.is_empty():
+		_paint_reveal(v)
 	return grid
 
 static func _canvas(paint: Callable, size: Vector2) -> Control:
@@ -411,8 +424,21 @@ static func _corsi(v: ItemView, d: Dictionary) -> void:
 	tw.tween_callback(func():
 		status.text = T.t("your_turn")
 		for b in blocks:
-			b.disabled = false
+			b.disabled = v.done
 		v.ready_now())
+	# practice answer: each block shows when it lit up (1 = first)
+	v.reveal_hook = func(_key: Dictionary, _value) -> void:
+		var at := {}
+		for n in seq.size():
+			var i := int(seq[n])
+			at[i] = (str(at[i]) + "," if at.has(i) else "") + str(n + 1)
+		for i in at:
+			if i >= 0 and i < blocks.size():
+				var b: Button = blocks[i]
+				b.text = str(at[i])
+				b.add_theme_font_size_override("font_size", 34)
+				b.add_theme_color_override("font_disabled_color", Color("#7dff3a"))
+				b.add_theme_color_override("font_color", Color("#7dff3a"))
 
 # ------------------------------------------------------------------ LIN
 
@@ -564,7 +590,7 @@ static func _music(v: ItemView, gid: String, d: Dictionary, _blitz: bool) -> voi
 	for b in v.option_buttons:
 		b.disabled = true
 	var play := func() -> void:
-		if btn.disabled or v.done:
+		if btn.disabled or (v.done and not v.review):
 			return
 		state.plays += 1
 		btn.disabled = true
@@ -574,7 +600,7 @@ static func _music(v: ItemView, gid: String, d: Dictionary, _blitz: bool) -> voi
 		tw.tween_interval(float(clip[1]) + 0.15)
 		tw.tween_callback(func():
 			status.text = " "
-			btn.disabled = v.done
+			btn.disabled = v.done and not v.review
 			btn.text = "↻ " + T.t("replay_any")
 			if not state.ready:
 				state.ready = true
@@ -1972,6 +1998,16 @@ static func _wason(v: ItemView, d: Dictionary) -> void:
 		v.submit(",".join(parts)))
 	v.option_buttons.append(check)
 	v.add_child(_center(check))
+	# practice answer: ✓ (green) on the cards to turn, ✗ (red) on ones turned for nothing
+	v.reveal_hook = func(key: Dictionary, value) -> void:
+		var turn := Array(str(key.get("v", "")).split(",", false))
+		var picked := Array(str(value).split(",", false)) if value is String else []
+		for i in cards.size():
+			var b: Button = v.option_buttons[i]
+			var need := turn.has(str(i))
+			if need or picked.has(str(i)):
+				b.text = ("✓ " if need else "✗ ") + str(cards[i])
+				b.add_theme_stylebox_override("disabled", box_style(Color("#C8F7B0") if need else Color("#FFC2D6"), Color("#2E9B00") if need else Color("#D0005A"), 6, 12))
 
 static func _necsuf(v: ItemView, d: Dictionary) -> void:
 	_panel_text(v, [d.get("rule", "")], 30)
@@ -2197,6 +2233,18 @@ static func _intensity(v: ItemView, d: Dictionary) -> void:
 		for bd in badges:
 			bd.visible = false)
 	v.add_child(_center(reset))
+	# practice answer: each face's badge shows its right place (1 = weakest), in green
+	v.reveal_hook = func(key: Dictionary, _value) -> void:
+		var right := Array(str(key.get("v", "")).split(",", false))
+		reset.visible = false
+		for rank in right.size():
+			var i := int(right[rank])
+			if i < 0 or i >= badges.size():
+				continue
+			var bd: Label = badges[i]
+			bd.text = str(rank + 1)
+			bd.add_theme_stylebox_override("normal", box_style(Color("#7dff3a"), Color("#7dff3a"), 0, 22))
+			bd.visible = true
 
 ## Study the faces (a bar runs down), then pick the one you saw from the line-up.
 static func _facemem(v: ItemView, d: Dictionary) -> void:
@@ -2275,3 +2323,195 @@ static func _fauxpas(v: ItemView, d: Dictionary) -> void:
 	_quote(v, str(d.get("quote", "")))
 	_prompt(v, T.t("q_fauxpas"))
 	_mc(v, d.get("options", []), 1)
+
+# ------------------------------------------------------------------ practice answers
+# Practice tests only (owner, 2026-10-25; ranked tests never show answers): after each
+# answer, and in the review at the end, the right answer is shown so a player can tell
+# their own mistake from a bug in the test. The server sends `fb` =
+# { seq, u, key, minMs, rapid, timeout, hidden } (engine.ts practiceFeedback).
+
+const RIGHT := Color("#7dff3a")
+const WRONG := Color("#ff4f9a")
+## motor trials: the answer is a measurement, so the review never runs them again
+const KIN_GIDS := ["tap", "timing", "gonogo", "pursuit", "trace", "tapbeat", "dragfit"]
+
+static func _tr(s: String) -> String:
+	return str(TranslationServer.translate(s))
+
+## Marks the right answer on the view (and the player's wrong pick). Nothing can be
+## answered after this; musical clips can still be replayed.
+static func reveal(v: ItemView, fb: Dictionary, value) -> void:
+	v.done = true
+	v.review = true
+	v.revealed = {"key": fb.get("key", {}), "value": value}
+	_paint_reveal(v)
+
+static func _paint_reveal(v: ItemView) -> void:
+	for b in v.option_buttons:
+		if is_instance_valid(b):
+			b.disabled = true
+	var key: Dictionary = v.revealed.get("key", {})
+	var value = v.revealed.get("value")
+	if str(key.get("t", "")) == "idx":
+		var right := int(key.get("v", -1))
+		var picked := int(value) if (value is int or value is float) else -1
+		for i in v.mc_buttons.size():
+			var b: Button = v.mc_buttons[i]
+			if not is_instance_valid(b) or (i != right and i != picked) or b.has_meta("marked"):
+				continue
+			b.set_meta("marked", true)
+			var col := RIGHT if i == right else WRONG
+			var sb := box_style(Color(col, 0.22), col, 5)
+			for st in ["normal", "hover", "pressed", "disabled", "focus"]:
+				b.add_theme_stylebox_override(st, sb)
+			b.add_theme_color_override("font_disabled_color", FG)
+			var mark := "✓" if i == right else "✗"  # never colour alone
+			if b.text != "":
+				b.text = mark + "  " + b.text
+			else:
+				var m := Label.new()
+				m.text = mark
+				m.add_theme_font_size_override("font_size", 30)
+				m.add_theme_color_override("font_color", col)
+				b.add_child(m)
+				m.anchor_left = 1.0
+				m.anchor_right = 1.0
+				m.offset_left = -34.0
+				m.offset_right = -6.0
+				m.offset_top = 0.0
+				m.offset_bottom = 40.0
+	if v.reveal_hook.is_valid():
+		v.reveal_hook.call(key, value)
+
+## Text under a practice answer: why it scored wrong (when it did), the right answer and
+## what the player gave, for every kind of key. `v` is the view showing it (or null).
+static func answer_lines(v: ItemView, item: Dictionary, fb: Dictionary, value, skipped := false) -> Array:
+	var key: Dictionary = fb.get("key", {})
+	var d: Dictionary = item.get("display", {})
+	var gid := str(item.get("gid", ""))
+	var kv = key.get("v")
+	var out: Array = []
+	if skipped:
+		out.append(_tr("Skipped: no sound."))
+	elif bool(fb.get("hidden", false)):
+		out.append(_tr("You left the app during this question, so it counts as wrong."))
+	elif bool(fb.get("rapid", false)):
+		out.append(_tr("Right answer, but too fast: answers quicker than %s seconds count as wrong.") % ("%.1f" % (float(fb.get("minMs", 0)) / 1000.0)))
+	elif bool(fb.get("timeout", false)):
+		out.append(_tr("Time ran out."))
+	var answered: bool = not skipped and value != null and str(value) != "__hidden"
+	match str(key.get("t", "")):
+		"idx":
+			out.append(_tr("Right answer: %s") % _option_name(v, int(kv), true))
+			if answered and (value is int or value is float) and int(value) != int(kv):
+				out.append(_tr("You picked: %s") % _option_name(v, int(value), false))
+		"num":
+			out.append(_tr("Right answer: %s") % _num(kv))
+			if answered:
+				out.append(_tr("You answered: %s") % str(value))
+		"str":
+			match gid:
+				"digits":
+					out.append(_tr("Right answer: %s") % " ".join(Array(str(kv).split(""))))
+					if answered:
+						out.append(_tr("You answered: %s") % " ".join(Array(str(value).split(""))))
+				"corsi":
+					out.append(_tr("Right order: the green numbers show when each block lit up."))
+				"wason":
+					out.append(_tr("Cards to turn over: %s") % _cards(d, str(kv)))
+					if answered:
+						out.append(_tr("You turned over: %s") % _cards(d, str(value)))
+				"intensity":
+					out.append(_tr("Right order: the green numbers on the faces (1 = weakest)."))
+				_:
+					out.append(_tr("Right answer: %s") % str(kv))
+					if answered:
+						out.append(_tr("You answered: %s") % str(value))
+		"any":
+			var words: Array = kv if kv is Array else []
+			out.append(_tr("Right answer: %s") % (str(words[0]) if words.size() else "?"))
+			if words.size() > 1:
+				out.append(_tr("Also accepted: %s") % ", ".join(words.slice(1, 5)))
+			if answered:
+				out.append(_tr("You answered: %s") % str(value))
+		"hit":
+			out.append(_tr("To pass: hit the target in time."))
+			if answered:
+				out.append(_tr("You: %s") % _tap_result(str(value)))
+		"tol":
+			out.append(_tr("To pass: tap within %d ms of the moment the dot crosses the line.") % int(kv))
+			if value is int or value is float:
+				out.append(_tr("You: %d ms off.") % absi(int(value)))
+		"ge", "le":
+			_kin_lines(out, gid, int(kv), value, answered)
+		"recall":
+			var pairs: Array = d.get("pairs", [])
+			if value is Dictionary:
+				var picks: Array = value.get("picks", [])
+				var keys: Array = kv if kv is Array else []
+				var got := 0
+				for i in mini(picks.size(), keys.size()):
+					if int(picks[i]) == int(keys[i]):
+						got += 1
+				out.append(_tr("You guessed %d and remembered %d of %d. It counts as right when your guess matches.") % [int(value.get("g", -1)), got, pairs.size()])
+			out.append(_tr("The pairs were:"))
+			for p in pairs:
+				out.append("%s   —   %s" % [str(p[0]), str(p[1])])
+	return out
+
+static func _option_name(v: ItemView, i: int, right: bool) -> String:
+	if v != null and i >= 0 and i < v.mc_buttons.size() and is_instance_valid(v.mc_buttons[i]):
+		var t: String = v.mc_buttons[i].text.trim_prefix("✓  ").trim_prefix("✗  ")
+		if t.strip_edges() != "":
+			return t.replace("\n", " ").replace("   ", " ")
+		if not v.mc_lettered:
+			return _tr("the one marked ✓ in green") if right else _tr("the one marked ✗ in red")
+	var letters := str(T.data().get("LETTERS", "ABCDEFGH"))
+	return letters[i] if i >= 0 and i < letters.length() else "?"
+
+static func _num(x) -> String:
+	if (x is float) and is_equal_approx(x, round(x)):
+		return str(int(x))
+	return str(x)
+
+static func _cards(d: Dictionary, picks: String) -> String:
+	var cards: Array = d.get("cards", [])
+	var names: Array = []
+	for s in picks.split(",", false):
+		var i := int(s)
+		names.append(str(cards[i]) if i >= 0 and i < cards.size() else s)
+	return ", ".join(names) if names.size() else "—"
+
+static func _tap_result(r: String) -> String:
+	match r:
+		"hit": return _tr("hit")
+		"miss": return _tr("missed the target")
+		"slow": return _tr("too slow")
+		"early": return _tr("tapped too early")
+	return r
+
+static func _kin_lines(out: Array, gid: String, mark: int, value, answered: bool) -> void:
+	var got := int(value) if (value is int or value is float) else -1
+	match gid:
+		"gonogo":
+			out.append(_tr("To pass: at most %d mistakes (greens missed + reds tapped).") % mark)
+			if answered and got >= 0:
+				out.append(_tr("You: %d mistakes.") % got)
+		"tapbeat":
+			out.append(_tr("To pass: taps on average within %d ms of the clicks.") % mark)
+			if answered and got >= 9999:
+				out.append(_tr("You: fewer than 5 taps."))
+			elif answered and got >= 0:
+				out.append(_tr("You: %d ms off on average.") % got)
+		"pursuit":
+			out.append(_tr("To pass: on the dot at least %d%% of the time.") % mark)
+			if answered and got >= 0:
+				out.append(_tr("You: %d%%.") % got)
+		"trace":
+			out.append(_tr("To pass: at least %d%% of your line inside the track.") % mark)
+			if answered and got >= 0:
+				out.append(_tr("You: %d%%.") % got)
+		_:
+			out.append(_tr("To pass: %d") % mark)
+			if answered:
+				out.append(_tr("You: %s") % str(value))

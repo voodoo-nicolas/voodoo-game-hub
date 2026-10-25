@@ -6,15 +6,18 @@
 //   client_ms: answer time measured by the client (from when the item was ready)
 //   conf:      SELF only: 0.25 | 0.5 | 0.75 | 1 (not for a "Will you remember?" trial, whose
 //              value is { g: guess, picks: [...] }; its guess and score go to sessions.state.recall)
-// -> { next_item }   or   { done: true, result } once past the server deadline.
+// -> { next_item, fb? }   or   { done: true, result } once past the server deadline.
+//   fb:        practice tests only: { seq, u, key, minMs, rapid, timeout, hidden } (engine.ts
+//              practiceFeedback), so the player sees right / wrong and the right answer
 //
-// The answer must be for the item currently pending (409 out_of_order otherwise). The
-// player isn't told whether they were right (as in the prototype). Rapid correct answers
+// The answer must be for the item currently pending (409 out_of_order otherwise). In a
+// ranked test the player isn't told whether they were right (as in the prototype); a
+// practice test tells them after each answer (owner, 2026-10-25). Rapid correct answers
 // (faster than the generator's minMs by the client's clock or the server's) score wrong.
 // deno-lint-ignore-file no-explicit-any
 
 import { type Call, HttpError, must } from "../_shared/http.ts";
-import { CONF_LEVELS, judge, nextIqItem, publicItem, RECALL, storedKey } from "../_shared/engine.ts";
+import { CONF_LEVELS, judge, nextIqItem, practiceFeedback, publicItem, RECALL, storedKey } from "../_shared/engine.ts";
 import { recallScore } from "../_shared/gens/index.ts";
 import { clamp } from "../_shared/irt.ts";
 import { answeredResponses, finishIq, loadSession } from "../_shared/session.ts";
@@ -61,5 +64,7 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
     served_at: new Date().toISOString(), answer_key: storedKey(item),
   }));
   must(await db.from("sessions").update({ state: s.state, flags: s.flags }).eq("id", s.id));
-  return { next_item: publicItem(item, seq + 1) };
+  const next_item = publicItem(item, seq + 1);
+  if (s.ranked || s.kind !== "normal") return { next_item };
+  return { next_item, fb: practiceFeedback(seq, p.answer_key.key, p.answer_key.minMs, j) };
 }

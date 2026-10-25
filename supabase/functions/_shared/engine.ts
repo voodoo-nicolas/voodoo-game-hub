@@ -6,7 +6,7 @@
 
 import { auc2, clamp, composite, dOf, eap, GATE, lz, sum } from "./irt.ts";
 import { Rng } from "./rng.ts";
-import { checkAnswer, type Ctx, GENS, type Item, type Lang } from "./gens/index.ts";
+import { checkAnswer, type Ctx, GENS, type Item, type Key, type Lang } from "./gens/index.ts";
 import { NEW_STYLES } from "./gens/int2.ts";
 
 export const SECS = ["LOG", "SPA", "LIN", "MUS", "NAT", "KIN", "INT", "SELF", "EXI"];
@@ -274,7 +274,7 @@ export interface BlitzResult {
   flags: Flags; flagged: boolean;
 }
 
-export interface BlitzScored { result: BlitzResult; rows: (Resp & { seq: number; item: Item })[]; totalMs: number }
+export interface BlitzScored { result: BlitzResult; rows: (Resp & { seq: number; item: Item; j: Judged })[]; totalMs: number }
 
 /** Points = Σ weight(correct) − Σ weight/(k−1) for wrong multiple choice (spec §2). */
 export function scoreBlitz(items: Item[], answers: BlitzAnswer[]): BlitzScored {
@@ -297,7 +297,7 @@ export function scoreBlitz(items: Item[], answers: BlitzAnswer[]): BlitzScored {
     if (j.u) { correct++; pts += it.w; }
     else if (answered) { wrong++; if (k >= 2) pts -= it.w / (k - 1); }
     else skipped++;
-    rows.push({ seq: i, sec: it.sec, gid: it.gid, d: it.d, a: it.a, b: it.b, c: it.c, u: j.u, ms, item: it });
+    rows.push({ seq: i, sec: it.sec, gid: it.gid, d: it.d, a: it.a, b: it.b, c: it.c, u: j.u, ms, item: it, j });
   });
   const n = rows.length;
   const result: BlitzResult = {
@@ -318,4 +318,11 @@ export function publicItem(item: Item, seq: number) {
 /** What responses.answer_key holds: everything needed to judge the answer later. */
 export function storedKey(item: Item) {
   return { key: item.key, minMs: item.minMs, maxMs: item.maxMs, w: item.w, k: item.k };
+}
+
+/** Practice tests only (owner, 2026-10-25: ranked tests never show answers or a review):
+ *  what the player is told about one answer, so they can tell their mistake from a bug —
+ *  right or wrong, why it scored wrong (too fast / time ran out / left the app) and the key. */
+export function practiceFeedback(seq: number, key: Key, minMs: number, j: Judged) {
+  return { seq, u: j.u, key, minMs: minMs || 0, rapid: j.rapid, timeout: j.timeout, hidden: j.hidden };
 }

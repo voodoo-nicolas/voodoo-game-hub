@@ -77,6 +77,14 @@ const SOUND_OPTIONS_PATH := "res://scripts/common/sound_options.gd"
 ## The second EXI set (2026-10-25) brings its example lines in voodoo_iq_more.json (wx_<gid>).
 const EXAMPLE_GIDS := ["syll", "syllquick", "fallacy", "wason", "necsuf", "assume", "contradict", "crt"]
 var info_back: Callable  # where the Info screen's Back goes
+## Practice tests only (owner, 2026-10-25: ranked tests show no answers and no review):
+## every answered item with the server's feedback, for the right / wrong card after each
+## answer and the review at the end. Entries: {item, value, fb, skipped, reported}.
+var practice_log: Array = []
+var review_wrong_only := false
+var review_index := 0
+var review_scroll := 0
+const PINK := Color("#ff4f9a")
 
 func _ready() -> void:
 	preload("res://scripts/games/voodoo_iq/voodoo_iq_i18n.gd").install(self)
@@ -216,6 +224,10 @@ func _on_screen_resized() -> void:
 			_show_results(last_result)
 		"info":
 			_show_info(info_back)
+		"review":
+			_show_review()
+		"review_item":
+			_show_review_item(review_index)
 
 func _toast(msg: String) -> void:
 	toast_label.text = msg
@@ -799,6 +811,7 @@ func _begin_session(data: Dictionary) -> void:
 	blitz_items = data.get("items", [])
 	blitz_index = 0
 	blitz_answers = []
+	practice_log = []
 	remaining_ms = float(data.get("dur_s", 300)) * 1000.0
 	endless = not _is_blitz() and int(data.get("dur_s", 0)) == 0
 	running = true
@@ -808,6 +821,10 @@ func _begin_session(data: Dictionary) -> void:
 
 func _is_blitz() -> bool:
 	return str(session.get("mode", "")) == "blitz"
+
+## A practice test (not ranked, not a Daily Brain or Duel): the only kind that shows answers.
+func _is_practice() -> bool:
+	return not bool(session.get("ranked", false)) and str(session.get("kind", "normal")) == "normal"
 
 func _build_runner() -> void:
 	screen_name = "runner"
@@ -872,10 +889,10 @@ func _mount_item() -> void:
 	var gid := str(item.get("gid", ""))
 	if gid in EXAMPLE_GIDS and not _is_blitz():
 		chip.add_child(_spacer())
-		chip.add_child(_button("💡 " + tr("Example"), _show_example.bind(gid), FG2, Vector2(0, 48), 20))
+		chip.add_child(_button("💡 " + tr("Example"), _show_example.bind(gid), FG2, Vector2(170, 48), 20))  # a width, or the wrapping text squeezes it to a sliver
 	elif sec == "MUS":
 		chip.add_child(_spacer())
-		chip.add_child(_button("🔇 " + tr("No sound?"), _no_sound, FG2, Vector2(0, 48), 20))
+		chip.add_child(_button("🔇 " + tr("No sound?"), _no_sound, FG2, Vector2(200, 48), 20))
 	view = Items.build(item, _is_blitz())
 	view.submitted.connect(_on_item_submitted)
 	view.timer_ready.connect(_on_item_ready)
@@ -966,7 +983,7 @@ func _close_example() -> void:
 ## rest of the test (each counts as unanswered, for the Musical section only);
 ## a Musical-only test can just end here.
 func _no_sound() -> void:
-	if not running or waiting:
+	if not running or waiting or (view != null and view.done):
 		return
 	_close_overlays()
 	paused = true
@@ -1011,7 +1028,7 @@ func _pass_music_item() -> void:
 		tw.tween_interval(0.14)
 		tw.tween_callback(_next_blitz)
 		return
-	_send_answer({"seq": int(item.get("seq", 0)), "value": null, "ms": int(round(item_ms))})
+	_send_answer({"seq": int(item.get("seq", 0)), "value": null, "ms": int(round(item_ms)), "skipped": true})
 
 # ------------------------------------------------------------------ pause
 
@@ -1157,6 +1174,13 @@ func _on_answered(ok: bool, _code: int, data: Dictionary) -> void:
 		_show_results(data.get("result", {}))
 		return
 	if ok:
+		var fb = data.get("fb", null)
+		if fb is Dictionary and _is_practice():
+			var entry := {"item": item, "value": pending_answer.get("value"), "fb": fb, "skipped": bool(pending_answer.get("skipped", false)), "reported": ""}
+			practice_log.append(entry)
+			if not entry.skipped and int(fb.get("seq", -1)) == int(item.get("seq", -2)):
+				_show_feedback(entry, data.get("next_item", {}))
+				return
 		_present(data.get("next_item", {}))
 		return
 	if str(data.get("error", "")) == "session_over":
@@ -1231,6 +1255,8 @@ func _finish(reason: String) -> void:
 func _on_finished(ok: bool, _code: int, data: Dictionary) -> void:
 	_busy(false)
 	var result = data.get("result", null)
+	if ok and data.get("review", null) is Array and _is_practice():
+		_log_blitz_review(data.review)
 	if (ok or str(data.get("error", "")) == "session_over") and result is Dictionary:
 		_show_results(result)
 		return
@@ -1241,6 +1267,211 @@ func _on_finished(ok: bool, _code: int, data: Dictionary) -> void:
 		running = true
 		_finish(finish_reason), GOOD))
 	box.add_child(_button(T.t("home"), _show_home, FG2))
+
+# ================================================================== PRACTICE ANSWERS
+# Practice tests only (owner, 2026-10-25): right / wrong and the right answer after each
+# answer, a review of every answer at the end, and 🚩 to report a question that looks
+# wrong (item-report). Ranked tests show none of it; the server never sends them keys.
+
+## The right / wrong card above the answered question; the clock waits for Next.
+func _show_feedback(entry: Dictionary, next_item: Dictionary) -> void:
+	paused = true
+	if view == null or not is_instance_valid(view):
+		# the Self test's confidence question replaced the view: draw it again
+		for c in qarea.get_children():
+			c.queue_free()
+		view = _answer_view(entry)
+		if view != null:
+			qarea.add_child(view)
+	else:
+		Items.reveal(view, entry.fb, entry.value)
+	var card := _answer_card(entry, view)
+	var next := _button(tr("Next") + "  ▶", _after_feedback.bind(next_item), GOOD, Vector2(0, 76), 28)
+	card.add_child(next)
+	qarea.add_child(_panel_of(card))
+	qarea.move_child(_panel_of(card), 0)
+	var sc := _page_scroller()
+	if sc:
+		sc.scroll_vertical = 0
+
+func _after_feedback(next_item: Dictionary) -> void:
+	if not running or waiting:
+		return
+	paused = false
+	_present(next_item)
+
+## The question drawn again with its answer marked (null for motor trials and
+## "Will you remember?", whose answer is a measurement: text only).
+func _answer_view(entry: Dictionary):
+	var it: Dictionary = entry.item
+	var gid := str(it.get("gid", ""))
+	if gid in Items.KIN_GIDS or gid == "recall":
+		return null
+	var v = Items.build(it, str(session.get("mode", "")) == "blitz")
+	Items.reveal(v, entry.fb, entry.value)
+	return v
+
+func _right_count() -> int:
+	var n := 0
+	for e in practice_log:
+		if int(e.fb.get("u", 0)) == 1:
+			n += 1
+	return n
+
+func _entry_mark(entry: Dictionary) -> Array:
+	if entry.skipped:
+		return ["—", FG2, tr("Skipped")]
+	if int(entry.fb.get("u", 0)) == 1:
+		return ["✓", GOOD, tr("Correct!")]
+	return ["✗", PINK, tr("Wrong answer")]
+
+## Verdict, why it scored wrong, the right answer and what was given, and 🚩.
+func _answer_card(entry: Dictionary, v) -> VBoxContainer:
+	var m := _entry_mark(entry)
+	var card := _panel(m[1])
+	card.add_child(_label(m[0] + "  " + m[2], 34, m[1], 0, HORIZONTAL_ALIGNMENT_LEFT))
+	for line in Items.answer_lines(v, entry.item, entry.fb, entry.value, entry.skipped):
+		card.add_child(_label(str(line), 22, FG, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+	var flag := _button(_flag_text(entry), _report.bind(entry), FG2, Vector2(0, 60), 22)
+	flag.set_meta("seq", int(entry.fb.get("seq", -1)))
+	flag.add_to_group("iq_flag")
+	card.add_child(flag)
+	return card
+
+func _flag_text(entry: Dictionary) -> String:
+	return "🚩 " + (tr("Reported. Thanks!") if str(entry.reported) != "" else tr("This question looks wrong"))
+
+## 🚩: why it looks wrong, then item-report keeps this exact question for us to check.
+func _report(entry: Dictionary) -> void:
+	var box := _overlay()
+	box.add_child(_label("🚩 " + tr("What looks wrong?"), 32, Color.WHITE, W - 80))
+	box.add_child(_label(tr("We keep this exact question and your answer, and check it."), 21, FG2, W - 80))
+	for w in [["none", tr("No answer is right")], ["two", tr("More than one answer is right")], ["picture", tr("The picture or sound is wrong")], ["other", tr("Something else")]]:
+		box.add_child(_button(str(w[1]), _send_report.bind(entry, str(w[0])), WARN, Vector2(0, 68), 24))
+	_pin_to_overlay(_button(tr("Cancel"), _close_overlays, FG2, Vector2(0, 64), 24))
+
+func _send_report(entry: Dictionary, why: String) -> void:
+	_close_overlays()
+	var body := {"session_id": session.get("session_id", ""), "seq": int(entry.fb.get("seq", -1)), "why": why, "value": entry.value, "display": entry.item.get("display", {})}
+	api.call_fn("item-report", body, _on_reported.bind(entry, why))
+
+func _on_reported(ok: bool, _code: int, data: Dictionary, entry: Dictionary, why: String) -> void:
+	if not ok:
+		_toast(_error_text(data))
+		return
+	entry.reported = why
+	_toast("🚩 " + tr("Thanks! We'll check this question."))
+	for b in get_tree().get_nodes_in_group("iq_flag"):
+		if is_instance_valid(b) and int(b.get_meta("seq", -2)) == int(entry.fb.get("seq", -1)):
+			b.text = _flag_text(entry)
+
+## A practice Speed Round: the server's review rows, matched to the items and answers here.
+func _log_blitz_review(rows: Array) -> void:
+	practice_log = []
+	var by_seq := {}
+	for it in blitz_items:
+		by_seq[int(it.get("seq", -1))] = it
+	var given := {}
+	for a in blitz_answers:
+		given[int(a.get("seq", -1))] = a
+	for r in rows:
+		if not (r is Dictionary) or not by_seq.has(int(r.get("seq", -1))):
+			continue
+		var seq := int(r.seq)
+		var a: Dictionary = given.get(seq, {})
+		practice_log.append({"item": by_seq[seq], "value": a.get("value"), "fb": r, "skipped": false, "reported": ""})
+
+func _open_review() -> void:
+	review_scroll = 0
+	_show_review()
+
+## Every answer of the practice test, newest last; tap one to see it again.
+func _show_review() -> void:
+	screen_name = "review"
+	_close_overlays()
+	var box := _new_page(true)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.add_child(_button("← " + tr("Back"), _show_results.bind(last_result), FG2, Vector2(130, 60), 24))
+	top.add_child(_spacer())
+	top.add_child(_button("🏠 " + T.t("home"), _show_home, FG2, Vector2(150, 60), 24))
+	box.add_child(top)
+	box.add_child(_neon_title(tr("Review answers"), 40))
+	box.add_child(_label(tr("%d of %d right. Tap a question to see it again with the right answer.") % [_right_count(), practice_log.size()], 22, FG2, W))
+	var seg := HBoxContainer.new()
+	seg.add_theme_constant_override("separation", 10)
+	for opt in [[false, tr("All answers")], [true, tr("Wrong only")]]:
+		var on: bool = review_wrong_only == opt[0]
+		var b := _button(("✓ " if on else "") + str(opt[1]), _set_review_filter.bind(opt[0]), GOOD if on else FG2, Vector2(0, 60), 22)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		seg.add_child(b)
+	box.add_child(seg)
+	var shown := 0
+	for i in practice_log.size():
+		var e: Dictionary = practice_log[i]
+		if review_wrong_only and int(e.fb.get("u", 0)) == 1:
+			continue
+		shown += 1
+		var it: Dictionary = e.item
+		var m := _entry_mark(e)
+		var text := "%s   #%d   %s · %s" % [m[0], i + 1, T.t("sec_" + str(it.get("sec", ""))), T.t("gt_" + str(it.get("gid", "")))]
+		if str(e.reported) != "":
+			text += "   🚩"
+		var b := _button(text, _open_review_item.bind(i), m[1], Vector2(0, 64), 22)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		box.add_child(b)
+	if shown == 0:
+		box.add_child(_label(tr("No wrong answers. Well done!"), 24, GOOD, W))
+	_restore_scroll(review_scroll)
+
+func _set_review_filter(wrong_only: bool) -> void:
+	review_wrong_only = wrong_only
+	review_scroll = 0
+	_show_review()
+
+func _open_review_item(i: int) -> void:
+	var sc := _page_scroller()
+	review_scroll = sc.scroll_vertical if sc else 0
+	_show_review_item(i)
+
+## One answer of the review: the question drawn again with its answer marked.
+func _show_review_item(i: int) -> void:
+	if practice_log.is_empty():
+		_show_results(last_result)
+		return
+	i = clampi(i, 0, practice_log.size() - 1)
+	screen_name = "review_item"
+	review_index = i
+	_close_overlays()
+	var box := _new_page(true)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.add_child(_button("← " + tr("All answers"), _show_review, FG2, Vector2(240, 60), 22))
+	top.add_child(_spacer())
+	top.add_child(_button("🏠 " + T.t("home"), _show_home, FG2, Vector2(150, 60), 24))
+	box.add_child(top)
+	var nav := HBoxContainer.new()
+	nav.add_theme_constant_override("separation", 10)
+	var prev := _button("‹ " + tr("Previous"), _show_review_item.bind(i - 1), FG2, Vector2(0, 60), 22)
+	prev.disabled = i == 0
+	prev.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nav.add_child(prev)
+	nav.add_child(_label("%d / %d" % [i + 1, practice_log.size()], 24, FG))
+	var nxt := _button(tr("Next") + " ›", _show_review_item.bind(i + 1), FG2, Vector2(0, 60), 22)
+	nxt.disabled = i == practice_log.size() - 1
+	nxt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nav.add_child(nxt)
+	box.add_child(nav)
+	var e: Dictionary = practice_log[i]
+	var sec := str(e.item.get("sec", "LOG"))
+	var chip := HBoxContainer.new()
+	chip.add_child(_icon(sec, 28))
+	chip.add_child(_label(" " + T.t("sec_" + sec) + " · " + T.t("gt_" + str(e.item.get("gid", ""))), 22, T.sec_color(sec)))
+	box.add_child(chip)
+	var v = _answer_view(e)
+	box.add_child(_panel_of(_answer_card(e, v)))
+	if v != null:
+		box.add_child(v)
 
 # ================================================================== RESULTS
 
@@ -1268,6 +1499,9 @@ func _show_results(res: Dictionary) -> void:
 		_blitz_results(box, res)
 	else:
 		_iq_results(box, res)
+	if not practice_log.is_empty() and not bool(res.get("ranked", false)):
+		box.add_child(_button("📝 " + tr("Review answers") + "
+" + tr("%d of %d right · see the right answers") % [_right_count(), practice_log.size()], _open_review, ACCENT, Vector2(0, 92), 26))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	var again := _button(T.t("play_again"), _start_from_setup, GOOD, Vector2(0, 80), 28)

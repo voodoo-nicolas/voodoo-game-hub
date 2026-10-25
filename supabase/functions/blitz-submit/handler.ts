@@ -4,7 +4,9 @@
 //        answers: [{ seq, value, ms } | { seq, skip: true, ms? }, ...] }   in play order
 //   value: option index | typed text | tap outcome; null = the item timed out
 //   ms:    time the item was on screen and ready
-// -> { result: { pts, correct, wrong, skipped, n, acc, flags, flagged, best?, monthBest? } }
+// -> { result: { pts, correct, wrong, skipped, n, acc, flags, flagged, best?, monthBest? }, review? }
+//   review: practice runs only (owner, 2026-10-25): one engine.ts practiceFeedback per
+//           answered item (skips have none), for the client's answer review
 //
 // The server regenerates the batch from the session seed (the client never had keys)
 // and scores it: Σ weight(correct) − Σ weight/(k−1) for wrong multiple choice, skips
@@ -14,7 +16,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { type Call, HttpError } from "../_shared/http.ts";
-import { type BlitzAnswer, blitzBatch, blitzBatchSize, type BlitzScored, scoreBlitz } from "../_shared/engine.ts";
+import { type BlitzAnswer, blitzBatch, blitzBatchSize, type BlitzScored, practiceFeedback, scoreBlitz } from "../_shared/engine.ts";
 import { finishBlitz, loadSession } from "../_shared/session.ts";
 
 const SLACK_MS = 2000;
@@ -47,5 +49,7 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
     scored.result.flagged = true;
   }
   const reason = body.reason === "quit" ? "quit" : "time";
-  return { result: await finishBlitz(db, s, scored, reason) };
+  const result = await finishBlitz(db, s, scored, reason);
+  if (s.ranked || s.kind !== "normal") return { result }; // Daily Brain and Duels aren't practice
+  return { result, review: scored.rows.map((r) => practiceFeedback(r.seq, r.item.key, r.item.minMs, r.j)) };
 }
