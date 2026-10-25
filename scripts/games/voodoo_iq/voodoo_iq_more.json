@@ -85,7 +85,33 @@
     "ins_pieces": "One piece is already in the square. Pick the piece that fills the rest exactly.",
     "q_pieces": "Which piece fills the gap?",
     "q_pieces_slide": "Slide it in: no turning or flipping.",
-    "q_pieces_turn": "You may turn it, but not flip it."
+    "q_pieces_turn": "You may turn it, but not flip it.",
+
+    "gt_remote": "Missing link",
+    "ins_remote": "Find the one word that joins each of the three, before or after it. Example: works · place · fly → fire (fireworks, fireplace, firefly).",
+    "q_remote": "Which word goes with all three?",
+
+    "gt_synonym": "Same meaning",
+    "ins_synonym": "Pick the word that means the same, or the opposite when the question says so.",
+    "q_syn_same": "Which word means the same?",
+    "q_syn_opp": "Which word means the OPPOSITE?",
+
+    "gt_cloze": "Finish the sentence",
+    "ins_cloze": "Pick the word that makes the sentence make sense. Watch for words like although and but.",
+    "q_cloze": "Which word fits the gap?",
+
+    "gt_unscramble": "Unscramble",
+    "ins_unscramble": "Tap the words in order to make a sentence. The capital letter starts it and the full stop ends it. Undo takes back the last word.",
+    "q_unscramble": "Put the words in order.",
+    "us_undo": "Undo",
+    "us_check": "Done",
+
+    "gt_proverb": "Sayings",
+    "ins_proverb": "Pick what the saying really means, not what it says word for word.",
+    "q_proverb": "What does it mean?",
+
+    "gt_inference": "Read between the lines",
+    "ins_inference": "Pick the statement that MUST be true from what you read. The others might be true, but don't have to be."
   },
   "es": {
     "replay_any": "Escuchar de nuevo",
@@ -173,6 +199,32 @@
     "ins_pieces": "Una pieza ya está en el cuadrado. Elegí la pieza que llena exactamente el resto.",
     "q_pieces": "¿Qué pieza llena el hueco?",
     "q_pieces_slide": "Deslizala: sin girarla ni darla vuelta.",
-    "q_pieces_turn": "Podés girarla, pero no darla vuelta."
+    "q_pieces_turn": "Podés girarla, pero no darla vuelta.",
+
+    "gt_remote": "La palabra que une",
+    "ins_remote": "Encontrá la palabra que se une con las tres para formar otras palabras. Ejemplo: vidrios · parabrisas · botas → limpia (limpiavidrios, limpiaparabrisas, limpiabotas).",
+    "q_remote": "¿Qué palabra se une con las tres?",
+
+    "gt_synonym": "Mismo significado",
+    "ins_synonym": "Elegí la palabra que significa lo mismo, o lo contrario cuando la pregunta lo dice.",
+    "q_syn_same": "¿Qué palabra significa lo mismo?",
+    "q_syn_opp": "¿Qué palabra significa lo CONTRARIO?",
+
+    "gt_cloze": "Completá la oración",
+    "ins_cloze": "Elegí la palabra que le da sentido a la oración. Prestá atención a palabras como aunque y pero.",
+    "q_cloze": "¿Qué palabra va en el hueco?",
+
+    "gt_unscramble": "Ordená la oración",
+    "ins_unscramble": "Tocá las palabras en orden para armar una oración. La mayúscula va al principio y el punto al final. Deshacer saca la última palabra.",
+    "q_unscramble": "Ordená las palabras.",
+    "us_undo": "Deshacer",
+    "us_check": "Listo",
+
+    "gt_proverb": "Refranes",
+    "ins_proverb": "Elegí lo que el refrán quiere decir de verdad, no lo que dice palabra por palabra.",
+    "q_proverb": "¿Qué quiere decir?",
+
+    "gt_inference": "Leer entre líneas",
+    "ins_inference": "Elegí la afirmación que TIENE que ser cierta según lo que leíste. Las otras pueden ser ciertas, pero no necesariamente."
   }
 }

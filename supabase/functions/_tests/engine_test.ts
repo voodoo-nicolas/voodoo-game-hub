@@ -137,3 +137,14 @@ Deno.test("generator version 2 adds the SPA set; gv 1 never gets it", () => {
   assert(![...seen1].some((g) => added.has(g)), `gv 1 got ${[...seen1]}`);
   assert([...added].every((g) => seen2.has(g)), `gv 2 missed some: ${[...seen2]}`);
 });
+
+Deno.test("generator version 3 adds the LIN set; gv 2 never gets it", () => {
+  const added = new Set(["remote", "synonym", "cloze", "unscramble", "proverb", "inference"]);
+  const seen2 = new Set<string>(), seen3 = new Set<string>();
+  for (let seed = 1; seed <= 400; seed++) {
+    seen2.add(nextIqItem("LIN", "en", [], newIqState(seed, { gv: 2 })).gid);
+    seen3.add(nextIqItem("LIN", "es", [], newIqState(seed, { gv: 3 })).gid);
+  }
+  assert(![...seen2].some((g) => added.has(g)), `gv 2 got ${[...seen2]}`);
+  assert([...added].every((g) => seen3.has(g)), `gv 3 missed some: ${[...seen3]}`);
+});

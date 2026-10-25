@@ -20,9 +20,10 @@ const FG2 := Color("#A8A8C0")
 ## leaves ~600 of the 720-wide design, so nothing may assume 680).
 static var W := 680.0
 ## The highest generator version this pack can draw, sent with session-start
-## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set (2026-10-25).
-## Raise it only together with the views for the generators that version adds.
-const GV := 2
+## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set, 3 = the
+## second LIN set (2026-10-25). Raise it only together with the views for the
+## generators that version adds.
+const GV := 3
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -89,6 +90,12 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"cubecount": _cubecount(v, d)
 		"direction": _direction(v, d)
 		"pieces": _pieces(v, d)
+		"remote": _remote(v, d)
+		"synonym": _synonym(v, d)
+		"cloze": _cloze(v, d)
+		"unscramble": _unscramble(v, d)
+		"proverb": _proverb(v, d)
+		"inference": _inference(v, d)
 		_:
 			v.add_child(_label("?", 30, FG))
 	return v
@@ -1246,3 +1253,98 @@ static func _pieces(v: ItemView, d: Dictionary) -> void:
 		var cells: Array = o
 		opts.append(_canvas(func(ci, sz): Art.poly(ci, cells, Rect2(Vector2.ZERO, sz), SPA_FILL), Vector2(100, 100)))
 	_mc(v, opts, 4, false, 130)
+
+# ------------------------------------------------------------------ LIN, second set (gv 3)
+# Not in the prototype (server gens/lin2.ts; text comes from the server's banks).
+
+static func _remote(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_remote"))
+	v.add_child(_label("  ·  ".join(d.get("words", [])), 40, Color.WHITE))
+	_mc(v, d.get("options", []), 2)
+
+static func _synonym(v: ItemView, d: Dictionary) -> void:
+	var word := str(d.get("word", ""))
+	_prompt(v, T.t("q_syn_" + str(d.get("kind", "same"))))
+	v.add_child(_label(word.to_upper(), 44, v.accent))
+	_mc(v, d.get("options", []), 2)
+
+static func _cloze(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_cloze"))
+	_panel_text(v, [str(d.get("sentence", "")).replace("___", "_____")], 30)
+	_mc(v, d.get("options", []), 2)
+
+static func _proverb(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_proverb"))
+	_panel_text(v, ["“" + str(d.get("saying", "")) + "”"], 30)
+	_mc(v, d.get("options", []), 1)
+
+static func _inference(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("passage", "")])
+	_prompt(v, str(d.get("q", "")))
+	_mc(v, d.get("options", []), 1)
+
+## Tap the tiles in order; Undo takes the last one back. Check sends the sentence.
+static func _unscramble(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_unscramble"))
+	var tiles: Array = d.get("tiles", [])
+	var picked: Array = []
+	var built := _label(" ", 32, Color.WHITE, W - 30, HORIZONTAL_ALIGNMENT_LEFT)
+	var bp := PanelContainer.new()
+	bp.add_theme_stylebox_override("panel", box_style(PANEL, Color(v.accent, 0.5), 2, 10))
+	bp.custom_minimum_size = Vector2(W, 90)
+	bp.add_child(built)
+	v.add_child(bp)
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 10)
+	flow.add_theme_constant_override("v_separation", 10)
+	flow.custom_minimum_size = Vector2(W, 0)
+	var buttons: Array = []
+	var check := Button.new()
+	var refresh := func() -> void:
+		var words: Array = []
+		for i in picked:
+			words.append(str(tiles[i]))
+		built.text = " ".join(words) if words.size() else " "
+		for i in buttons.size():
+			buttons[i].disabled = v.done or picked.has(i)
+		check.disabled = v.done or picked.size() < tiles.size()
+	for i in tiles.size():
+		var b := Button.new()
+		b.text = str(tiles[i])
+		b.custom_minimum_size = Vector2(0, 64)
+		b.add_theme_font_size_override("font_size", 28)
+		style_button(b, v.accent)
+		b.pressed.connect(func():
+			if not picked.has(i):
+				picked.append(i)
+			refresh.call())
+		buttons.append(b)
+		v.option_buttons.append(b)
+		flow.add_child(b)
+	v.add_child(flow)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var undo := Button.new()
+	undo.text = T.t("us_undo")
+	undo.custom_minimum_size = Vector2(200, 70)
+	undo.add_theme_font_size_override("font_size", 26)
+	style_button(undo, v.accent)
+	undo.pressed.connect(func():
+		if picked.size():
+			picked.pop_back()
+		refresh.call())
+	check.text = T.t("us_check")
+	check.custom_minimum_size = Vector2(200, 70)
+	check.add_theme_font_size_override("font_size", 26)
+	style_button(check, Color("#7dff3a"))
+	check.pressed.connect(func():
+		var words: Array = []
+		for i in picked:
+			words.append(str(tiles[i]))
+		v.submit(" ".join(words)))
+	v.option_buttons.append(undo)
+	v.option_buttons.append(check)
+	row.add_child(undo)
+	row.add_child(check)
+	v.add_child(_center(row))
+	refresh.call()

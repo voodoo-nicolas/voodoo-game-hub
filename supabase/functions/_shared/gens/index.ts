@@ -5,6 +5,7 @@ import "./log2.ts";
 import "./spa.ts";
 import "./spa2.ts";
 import "./lin.ts";
+import "./lin2.ts";
 import "./mus.ts";
 import "./nat.ts";
 import "./kin.ts";
