@@ -196,7 +196,7 @@
     "color_clash": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_clash.pck", "scene": "res://scenes/games/color_clash/color_clash.tscn"},
     "number_series": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/number_series.pck", "scene": "res://scenes/games/number_series/number_series.tscn"},
     "digit_recall": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/digit_recall.pck", "scene": "res://scenes/games/digit_recall/digit_recall.tscn"},
-    "voodoo_iq": {"version": 11, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"},
+    "voodoo_iq": {"version": 12, "min_build": 30, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/voodoo_iq.pck", "scene": "res://scenes/games/voodoo_iq/voodoo_iq.tscn"},
     "pipe_flow": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pipe_flow.pck", "scene": "res://scenes/games/pipe_flow/pipe_flow.tscn"},
     "bubble_pop": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bubble_pop.pck", "scene": "res://scenes/games/bubble_pop/bubble_pop.tscn"},
     "sketch_it": {"version": 8, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sketch_it.pck", "scene": "res://scenes/games/sketch_it/sketch_it.tscn"},
