@@ -22,9 +22,9 @@ static var W := 680.0
 ## The highest generator version this pack can draw, sent with session-start
 ## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set, 3 = the
 ## second LIN set, 4 = the second MUS set, 5 = the second NAT set, 6 = the second
-## KIN set, 7 = the second EXI set (2026-10-25). Raise it only together with the views
-## for the generators that version adds.
-const GV := 7
+## KIN set, 7 = the second EXI set, 8 = the Self test's wider pool + "Will you remember?"
+## (2026-10-25). Raise it only together with the views for the generators that version adds.
+const GV := 8
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -112,6 +112,7 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"assume": _assume(v, d)
 		"contradict": _contradict(v, d)
 		"crt": _crt(v, d)
+		"recall": _recall(v, d)
 		_:
 			v.add_child(_label("?", 30, FG))
 	return v
@@ -1981,3 +1982,98 @@ static func _crt(v: ItemView, d: Dictionary) -> void:
 	_panel_text(v, [d.get("text", "")], 28)
 	_prompt(v, T.t("q_crt"))
 	_numpad(v)
+
+# ------------------------------------------------------------------ SELF (gv 8)
+
+## "Will you remember?": the pairs show for studyMs, then the player says how many they'll
+## get (the item timer starts here), then picks each first word's partner. Sends
+## {g: guess, picks: [option index per question]}; the server scores the guess.
+static func _recall(v: ItemView, d: Dictionary) -> void:
+	var pairs: Array = d.get("pairs", [])
+	var order: Array = d.get("order", [])
+	var options: Array = d.get("options", [])
+	var n := pairs.size()
+	var state := {"g": -1, "picks": []}
+	var stage := VBoxContainer.new()
+	stage.add_theme_constant_override("separation", 14)
+	v.add_child(stage)
+	_prompt_in(stage, T.t("q_recall_study"))
+	var lines: Array = []
+	for p in pairs:
+		lines.append("%s   —   %s" % [str(p[0]), str(p[1])])
+	var box := PanelContainer.new()
+	box.add_theme_stylebox_override("panel", box_style(PANEL, Color(v.accent, 0.5), 2, 10))
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	for s in lines:
+		col.add_child(_label(s, 34, Color.WHITE, W - 30))
+	box.add_child(col)
+	stage.add_child(box)
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(W, 10)
+	bar.value = 100.0
+	stage.add_child(bar)
+	var study := float(d.get("studyMs", 1000 + 1500 * n)) / 1000.0
+	# each step clears the stage (queue_free: we may be inside a button's pressed signal)
+	var clear := func() -> void:
+		for c in stage.get_children():
+			c.queue_free()
+	var steps := {}
+	steps.pick = func() -> void:
+		clear.call()
+		var i: int = state.picks.size()
+		if i >= n:
+			steps.clear()  # the step lambdas hold `steps`: break the cycle so nothing leaks
+			v.submit({"g": state.g, "picks": state.picks})
+			return
+		_prompt_in(stage, T.t("q_recall_pick", {"i": i + 1, "n": n}))
+		stage.add_child(_label("%s   —   ?" % str(pairs[int(order[i])][0]), 40, Color.WHITE))
+		var grid := GridContainer.new()
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 10)
+		grid.add_theme_constant_override("v_separation", 10)
+		for k in options.size():
+			var b := _plain_button(str(options[k]), v.accent, Vector2((W - 10) / 2.0, 76))
+			b.pressed.connect(func():
+				if v.done or state.picks.size() != i:
+					return
+				state.picks.append(k)
+				steps.pick.call())
+			grid.add_child(b)
+		stage.add_child(grid)
+	var guess := func() -> void:
+		clear.call()
+		_prompt_in(stage, T.t("q_recall_guess", {"n": n}))
+		var row := GridContainer.new()
+		row.columns = mini(n + 1, 4)
+		row.add_theme_constant_override("h_separation", 10)
+		row.add_theme_constant_override("v_separation", 10)
+		var cw := (W - 10.0 * (row.columns - 1)) / row.columns
+		for g in n + 1:
+			var b := _plain_button(str(g), v.accent, Vector2(cw, 84))
+			b.add_theme_font_size_override("font_size", 36)
+			b.pressed.connect(func():
+				if v.done or state.g >= 0:
+					return
+				state.g = g
+				steps.pick.call())
+			row.add_child(b)
+		stage.add_child(row)
+		v.ready_now()
+	v.tree_exiting.connect(func(): steps.clear())  # left mid-trial (Finish, quit)
+	var tw := v.create_tween()
+	tw.tween_property(bar, "value", 0.0, study)
+	tw.tween_callback(guess)
+
+static func _prompt_in(parent: Control, text: String) -> void:
+	parent.add_child(_label(text, 30, FG))
+
+static func _plain_button(text: String, accent: Color, size: Vector2) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = size
+	b.add_theme_font_size_override("font_size", 28)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	style_button(b, accent)
+	return b

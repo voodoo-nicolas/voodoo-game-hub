@@ -17,7 +17,8 @@ export type Key =
   | { t: "hit" } // tap trial: v === 'hit'
   | { t: "tol"; v: number } // timing: |v| <= tol ms
   | { t: "ge"; v: number } // measured trial (gens/kin2.ts): a number >= v (e.g. % on target)
-  | { t: "le"; v: number }; // measured trial: a number from 0 to v (e.g. errors, ms off the beat)
+  | { t: "le"; v: number } // measured trial: a number from 0 to v (e.g. errors, ms off the beat)
+  | { t: "recall"; v: number[] }; // "Will you remember?" (gens/self2.ts): right = the guess matched the recall
 
 export interface Item {
   gid: string;
@@ -84,5 +85,17 @@ export function checkAnswer(key: Key, v: unknown): boolean {
     case "tol": return typeof v === "number" && Math.abs(v) <= key.v;
     case "ge": return typeof v === "number" && Number.isFinite(v) && v >= key.v;
     case "le": return typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= key.v;
+    case "recall": { const rc = recallScore(key, v); return !!rc && rc.g === rc.s; }
   }
+}
+
+/** A "Will you remember?" answer { g: guess, picks: [option per question] } against its key:
+ *  g = how many the player said they'd get, s = how many they got, n = pairs. null if malformed. */
+export function recallScore(key: Key, v: unknown): { g: number; s: number; n: number } | null {
+  if (key.t !== "recall" || !v || typeof v !== "object") return null;
+  const { g, picks } = v as { g?: unknown; picks?: unknown };
+  const n = key.v.length;
+  if (!Number.isInteger(g) || (g as number) < 0 || (g as number) > n) return null;
+  if (!Array.isArray(picks) || picks.length !== n || !picks.every((x) => Number.isInteger(x))) return null;
+  return { g: g as number, s: picks.filter((x, i) => x === key.v[i]).length, n };
 }

@@ -15,6 +15,7 @@ import "./kin2.ts";
 import "./int.ts";
 import "./exi.ts";
 import "./exi2.ts";
+import "./self2.ts";
 
-export { checkAnswer, GENS } from "./registry.ts";
+export { checkAnswer, GENS, recallScore } from "./registry.ts";
 export type { Ctx, GenDef, Item, Key, Lang } from "./registry.ts";

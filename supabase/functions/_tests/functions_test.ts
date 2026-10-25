@@ -151,6 +151,34 @@ Deno.test("SELF: confidence required, prediction kept, scored by AUC", async () 
   assertEquals(db.tables.section_scores.map((r) => r.sec), ["SELF"]);
 });
 
+Deno.test("SELF gv 8: a recall trial needs no confidence, its guess goes to state, the result reports it", async () => {
+  const db = new FakeDb();
+  await newPlayer(db);
+  const st = await call(sessionStart, db, ME, { mode: "iq", scope: "SELF", dur: 0, ranked: false, gv: 8 });
+  let item = st.first_item;
+  for (let i = 0; i < 12; i++) {
+    const row = pending(db, st.session_id, 9000);
+    if (item.gid === "recall") {
+      const v = row.answer_key.key.v as number[], m = item.display.options.length;
+      // 1st trial (item 4): guessed all, missed one; 2nd (item 11): guessed 1, got only the first
+      const picks = i === 3 ? v.map((x, j) => (j === 0 ? (x + 1) % m : x)) : v.map((x, j) => (j === 0 ? x : (x + 1) % m));
+      const g = i === 3 ? v.length : 1;
+      item = (await call(itemAnswer, db, ME, { session_id: st.session_id, seq: item.seq, value: { g, picks }, client_ms: 9000 })).next_item;
+      continue;
+    }
+    const right = i % 2 === 0;
+    const value = right ? rightValue(row.answer_key.key) : "__wrong__";
+    item = (await call(itemAnswer, db, ME, { session_id: st.session_id, seq: item.seq, value, client_ms: 9000, conf: right ? 1 : 0.25 })).next_item;
+  }
+  const rc = db.tables.sessions[0].state.recall;
+  assertEquals(rc.map((x: any) => [x.g, x.s]), [[rc[0].n, rc[0].n - 1], [1, 1]]);
+  const fin = await call(sessionFinish, db, ME, { session_id: st.session_id, reason: "time" });
+  const self = fin.result.secs.SELF;
+  assertEquals(self.n, 10); // the 2 recall trials are not confidence rows
+  assertEquals(self.recallN, 2);
+  assertEquals(self.auc, 1);
+});
+
 /** Answers for the first `n` items of a Blitz session, using the regenerated keys. */
 function blitzAnswers(db: FakeDb, sid: string, n: number, ms = 1500, correctEvery = 1) {
   const s = db.tables.sessions.find((x) => x.id === sid)!;

@@ -1112,7 +1112,8 @@ func _on_item_submitted(value) -> void:
 		return
 	# `value` is usually an int (option index): compare as text, or Godot stops
 	# here with "Invalid operands" and the test froze after the first tap.
-	if str(session.get("scope", "")) == "SELF" and str(value) != "__hidden":
+	# a "Will you remember?" trial already is a guess about yourself: no confidence after it
+	if str(session.get("scope", "")) == "SELF" and str(value) != "__hidden" and str(item.get("gid", "")) != "recall":
 		_ask_confidence(answer)
 		return
 	_send_answer(answer)
@@ -1400,6 +1401,10 @@ func _score_card(sec: String, r: Dictionary, composite: bool) -> Control:
 			p.add_child(_label(T.t("self_pred", {"a": int(round(float(r.pred) * 100)), "b": int(round(float(r.acc) * 100))}), 20, FG, W - 40))
 		if not r.get("valid", false):
 			p.add_child(_label(T.t("self_invalid"), 20, WARN, W - 40))
+	if sec == "SELF" and int(r.get("recallN", 0)) > 0:  # "Will you remember?" trials (gv 8)
+		var rb := float(r.get("recallBias", 0.0))
+		p.add_child(_label(T.t("self_recall", {"n": int(r.recallN), "p": int(round(float(r.get("recallErr", 0.0)) * 100))}), 20, FG, W - 40))
+		p.add_child(_label(T.t("self_recall_ok") if absf(rb) < 0.05 else T.t("self_recall_over" if rb > 0 else "self_recall_under"), 20, FG, W - 40))
 	if r.get("misfit", false):
 		p.add_child(_label("⚠ " + T.t("misfit"), 20, WARN, W - 40))
 	var n := int(r.get("n", 0))

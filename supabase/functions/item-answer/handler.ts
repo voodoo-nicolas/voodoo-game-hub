@@ -4,7 +4,8 @@
 //   value:     option index | typed text | tap outcome ('hit' ...) | timing offset (ms)
 //              | null (item timer ran out) | "__hidden" (app left during the item)
 //   client_ms: answer time measured by the client (from when the item was ready)
-//   conf:      SELF only: 0.25 | 0.5 | 0.75 | 1
+//   conf:      SELF only: 0.25 | 0.5 | 0.75 | 1 (not for a "Will you remember?" trial, whose
+//              value is { g: guess, picks: [...] }; its guess and score go to sessions.state.recall)
 // -> { next_item }   or   { done: true, result } once past the server deadline.
 //
 // The answer must be for the item currently pending (409 out_of_order otherwise). The
@@ -13,7 +14,8 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { type Call, HttpError, must } from "../_shared/http.ts";
-import { CONF_LEVELS, judge, nextIqItem, publicItem, storedKey } from "../_shared/engine.ts";
+import { CONF_LEVELS, judge, nextIqItem, publicItem, RECALL, storedKey } from "../_shared/engine.ts";
+import { recallScore } from "../_shared/gens/index.ts";
 import { clamp } from "../_shared/irt.ts";
 import { answeredResponses, finishIq, loadSession } from "../_shared/session.ts";
 
@@ -24,7 +26,7 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   const now = Date.now();
   if (now > Date.parse(s.deadline)) return { done: true, result: await finishIq(db, s, "time") };
 
-  const pending = must(await db.from("responses").select("seq, served_at, answer_key")
+  const pending = must(await db.from("responses").select("seq, gid, served_at, answer_key")
     .eq("session_id", s.id).is("answered_at", null).order("seq", { ascending: false }).limit(1)) as any[];
   if (!pending.length) throw new HttpError(409, "no_pending_item");
   const p = pending[0];
@@ -32,7 +34,7 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   if (seq !== p.seq) throw new HttpError(409, "out_of_order", undefined, { expected: p.seq });
 
   let conf: number | null = null;
-  if (s.scope === "SELF") {
+  if (s.scope === "SELF" && p.gid !== RECALL) {
     conf = Number(body.conf);
     if (!CONF_LEVELS.includes(conf)) throw new HttpError(400, "bad_conf");
   }
@@ -43,6 +45,10 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   const j = judge(p.answer_key, body.value ?? null, clientMs, serverMs, s.dur_s === 0);
   if (j.hidden) s.flags.hidden++;
   if (j.rapid) s.flags.rapid++;
+  if (p.gid === RECALL && !j.hidden) {
+    const rc = recallScore(p.answer_key.key, body.value);
+    if (rc) (s.state.recall ||= []).push(rc);
+  }
 
   const done = must(await db.from("responses").update({ u: j.u, ms: clientMs, conf, answered_at: new Date(now).toISOString() })
     .eq("session_id", s.id).eq("seq", seq).is("answered_at", null).select("seq")) as any[];

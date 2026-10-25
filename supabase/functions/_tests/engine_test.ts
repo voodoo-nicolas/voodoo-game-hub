@@ -3,7 +3,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { assert, assertAlmostEquals, assertEquals, assertThrows } from "jsr:@std/assert@1";
-import { blitzBatch, type IqState, judge, newIqState, nextIqItem, publicItem, type Resp, scoreBlitz } from "../_shared/engine.ts";
+import { blitzBatch, type IqState, judge, newIqState, nextIqItem, publicItem, RECALL, type Resp, scoreBlitz, scoreIQ, SELF_POOL } from "../_shared/engine.ts";
 import { checkAnswer, type Item } from "../_shared/gens/index.ts";
 import { hashStr, Rng } from "../_shared/rng.ts";
 
@@ -191,4 +191,41 @@ Deno.test("generator version 7 adds the EXI set; gv 6 never gets it", () => {
   }
   assert(![...seen6].some((g) => added.has(g)), `gv 6 got ${[...seen6]}`);
   assert([...added].every((g) => seen7.has(g)), `gv 7 missed some: ${[...seen7]}`);
+});
+
+Deno.test("generator version 8: the Self test draws the added types and a recall trial every 7th item; gv 7 gets neither", () => {
+  const allowed = new Set([...SELF_POOL, "symsum", "scales", "ordering", "letters", "funcmachine", "operators", "fraccmp", "wordprob", "dice", "sudoku",
+    "paperfold", "cubenet", "gears", "mirror", "countshapes", "cubecount", "direction", "pieces",
+    "remote", "synonym", "cloze", "unscramble", "proverb", "inference", "inherit", "foodweb", "idkey", "camo", "spotdiff",
+    "wason", "necsuf", "assume", "contradict", "crt"]);
+  const seen8 = new Set<string>();
+  for (let seed = 1; seed <= 60; seed++) {
+    for (const gv of [7, 8]) {
+      const st = newIqState(seed, { gv, selfStart: 0 });
+      const resp: Resp[] = [];
+      for (let i = 0; i < 18; i++) {
+        const it = nextIqItem("SELF", seed % 2 ? "en" : "es", resp, st);
+        if (gv === 7) assert(SELF_POOL.includes(it.gid), `gv 7 got ${it.gid}`);
+        else {
+          seen8.add(it.gid);
+          assertEquals(it.gid === RECALL, i % 7 === 3, `seed ${seed} item ${i}: ${it.gid}`);
+          if (it.gid !== RECALL) assert(allowed.has(it.gid), `Self served ${it.gid}`);
+        }
+        resp.push({ sec: it.sec, gid: it.gid, d: it.d, a: it.a, b: it.b, c: it.c, u: i % 2, ms: 5000, conf: 0.5 });
+      }
+    }
+  }
+  const missed = [...allowed].filter((g) => !seen8.has(g));
+  assertEquals(missed, [], `gv 8 never served ${missed}`);
+});
+
+Deno.test("SELF scoring: recall trials are reported beside the score and don't change it", () => {
+  const rows = Array.from({ length: 12 }, (_, i) => ({ u: i % 2, conf: i % 2 ? 1 : 0.25 }));
+  const a = scoreIQ([], { hidden: 0, rapid: 0 }, { rows, pred: 0.5 }).secs.SELF;
+  const b = scoreIQ([], { hidden: 0, rapid: 0 }, { rows, pred: 0.5, recall: [{ g: 4, s: 2, n: 4 }, { g: 3, s: 3, n: 5 }] }).secs.SELF;
+  assertEquals([a.theta, a.se, a.auc, a.valid], [b.theta, b.se, b.auc, b.valid]);
+  assertEquals(a.recallN, undefined);
+  assertEquals(b.recallN, 2);
+  assertAlmostEquals(b.recallErr!, 0.25);
+  assertAlmostEquals(b.recallBias!, 0.25);
 });

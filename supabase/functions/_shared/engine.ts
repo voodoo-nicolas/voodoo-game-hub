@@ -25,10 +25,11 @@ export const SEC_GENS: Record<string, [string, number][]> = {
  *  v1 adds the second LOG set (gens/log2.ts), v2 the second SPA set (gens/spa2.ts),
  *  v3 the second LIN set (gens/lin2.ts), v4 the second MUS set (gens/mus2.ts),
  *  v5 the second NAT set (gens/nat2.ts), v6 the second KIN set (gens/kin2.ts),
- *  v7 the second EXI set (gens/exi2.ts).
+ *  v7 the second EXI set (gens/exi2.ts), v8 the Self test's wider pool + "Will you remember?"
+ *  (selfGens, gens/self2.ts).
  *  Within a section the prototype's
  *  generators keep half the weight and the added ones share the other half. */
-export const GV = 7;
+export const GV = 8;
 const SEC_GENS_ADDED: Record<string, [number, string[]][]> = {
   LOG: [[1, ["symsum", "scales", "ordering", "letters", "funcmachine", "operators", "fraccmp", "wordprob", "dice", "sudoku"]]],
   SPA: [[2, ["paperfold", "cubenet", "gears", "mirror", "countshapes", "cubecount", "direction", "pieces"]]],
@@ -45,6 +46,20 @@ export function secGens(sec: string, gv = 0): [string, number][] {
   return [...base.map(([id, w]): [string, number] => [id, w / 2]), ...added.map((id): [string, number] => [id, 0.5 / added.length])];
 }
 export const SELF_POOL = ["matrix", "rotation", "topview", "natodd", "face", "syll"];
+/** gv 8: the Self test also draws from the added LOG / SPA / LIN / NAT / EXI types (not the
+ *  musical ones: sound; not the body trials: speed, not knowledge). The prototype's six keep
+ *  half the weight. Every 7th item from the 4th on is a "Will you remember?" trial instead. */
+const SELF_GV = 8;
+const SELF_ADDED_SECS = ["LOG", "SPA", "LIN", "NAT", "EXI"];
+export const RECALL = "recall";
+export function selfGens(gv = 0): [string, number][] {
+  const base = SELF_POOL.map((id): [string, number] => [id, 1 / SELF_POOL.length]);
+  if (gv < SELF_GV) return base;
+  const added = SELF_ADDED_SECS.flatMap((s) => SEC_GENS_ADDED[s].flatMap(([, ids]) => ids));
+  return [...base.map(([id, w]): [string, number] => [id, w / 2]), ...added.map((id): [string, number] => [id, 0.5 / added.length])];
+}
+/** `n` = items answered so far: the next one is a recall trial (4th, 11th, 18th...). */
+export const recallSlot = (gv: number, n: number) => gv >= SELF_GV && n % 7 === 3;
 export const BLITZ_GEN: Record<string, string> = { LOG: "arith", SPA: "rotquick", LIN: "oddquick", MUS: "pitchhl", NAT: "natquick", KIN: "tap", INT: "facequick", EXI: "syllquick" };
 export const IQ_DURS = [5, 15, 30, 60]; // minutes
 export const BLITZ_DURS = [60, 120, 180, 300]; // seconds
@@ -72,6 +87,8 @@ export interface IqState {
   /** SELF only: starting theta (mean of the player's LOG / SPA standings) and their % prediction */
   selfStart?: number;
   pred?: number | null;
+  /** SELF only: each "Will you remember?" trial (guess, got, pairs), added by item-answer */
+  recall?: { g: number; s: number; n: number }[];
 }
 
 export function newIqState(seed: number, extra: Partial<IqState> = {}): IqState {
@@ -103,8 +120,10 @@ export function nextIqItem(scope: string, lang: Lang, resp: Resp[], state: IqSta
   const ctx: Ctx = { lang, used, blitz: false };
   let item: Item | null;
   if (self) {
-    const th = resp.length ? eap(resp).theta : (state.selfStart || 0);
-    const gid = r.pick(SELF_POOL);
+    const gv = state.gv ?? 0;
+    const rs = resp.filter((x) => x.gid !== RECALL); // recall trials aren't ability items
+    const th = rs.length ? eap(rs).theta : (state.selfStart || 0);
+    const gid = recallSlot(gv, resp.length) ? RECALL : gv >= SELF_GV ? wpick(r, selfGens(gv)) : r.pick(SELF_POOL);
     item = GENS[gid].make(dOf(th - 0.6 + r.gauss() * 0.25), ir, ctx);
   } else {
     const rs = resp.filter((x) => x.sec === sec);
@@ -166,6 +185,8 @@ export function judge(item: Pick<Item, "key" | "minMs" | "maxMs">, value: unknow
 export interface SecResult {
   theta: number; se: number; n: number; hard: number; maxd: number; acc: number; lz?: number; misfit: boolean;
   auc?: number | null; bias?: number; pred?: number | null; predErr?: number | null; valid?: boolean;
+  /** SELF, "Will you remember?": trials, mean |guess - got| / pairs, mean (guess - got) / pairs */
+  recallN?: number; recallErr?: number | null; recallBias?: number | null;
 }
 export interface IqResult {
   blitz: false;
@@ -177,8 +198,9 @@ export interface IqResult {
 }
 
 /** Score an adaptive session: per-section EAP, person-fit, hard items, flags.
- *  For SELF, `selfData.rows` are the answered items with the confidence the player gave. */
-export function scoreIQ(resp: Resp[], flags: Flags, selfData: { rows: { u: number; conf: number }[]; pred?: number | null } | null): IqResult {
+ *  For SELF, `selfData.rows` are the answered items with the confidence the player gave, and
+ *  `recall` the "Will you remember?" trials: reported beside the score, not part of it (like `pred`). */
+export function scoreIQ(resp: Resp[], flags: Flags, selfData: { rows: { u: number; conf: number }[]; pred?: number | null; recall?: { g: number; s: number; n: number }[] } | null): IqResult {
   const out: IqResult = { blitz: false, secs: {}, n: resp.length, flags: Object.assign({}, flags), flagged: false };
   const secs = [...new Set(resp.map((x) => x.sec))];
   for (const s of secs) {
@@ -197,6 +219,14 @@ export function scoreIQ(resp: Resp[], flags: Flags, selfData: { rows: { u: numbe
     const theta = a ? clamp((a.A - 0.68) / 0.08, -3, 3) : 0;
     const se = valid ? clamp(a!.se / 0.08, 0.2, 1.5) : 1.5;
     out.secs = { SELF: { theta, se, n: rows.length, hard: 0, maxd: 0, acc, auc: a ? a.A : null, bias: meanConf - acc, pred: selfData.pred, predErr: selfData.pred != null ? selfData.pred - acc : null, misfit: false, valid } };
+    const rc = selfData.recall || [];
+    if (rc.length) {
+      Object.assign(out.secs.SELF, {
+        recallN: rc.length,
+        recallErr: sum(rc.map((x) => Math.abs(x.g - x.s) / x.n)) / rc.length,
+        recallBias: sum(rc.map((x) => (x.g - x.s) / x.n)) / rc.length,
+      });
+    }
   }
   out.flagged = flags.hidden > 2 || flags.rapid > 3 || !!flags.implausible;
   const core = CORE.filter((s) => out.secs[s]).map((s) => out.secs[s]);

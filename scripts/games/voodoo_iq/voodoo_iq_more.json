@@ -239,7 +239,17 @@
     "gt_crt": "Think twice",
     "ins_crt": "Each question has a quick answer that feels right and is wrong. Check your answer before you type it.",
     "q_crt": "Type the answer.",
-    "wx_crt": "“A bat and a ball cost 110 cents. The bat costs 100 cents more than the ball.”\nThe quick answer, 10, is wrong: the bat would then cost 110 and the total 120.\nThe ball costs 5: then the bat costs 105, and 5 + 105 = 110."
+    "wx_crt": "“A bat and a ball cost 110 cents. The bat costs 100 cents more than the ball.”\nThe quick answer, 10, is wrong: the bat would then cost 110 and the total 120.\nThe ball costs 5: then the bat costs 105, and 5 + 105 = 110.",
+    "gt_recall": "Will you remember?",
+    "ins_recall": "Study the word pairs. Then say how many you think you'll remember, and find each word's partner. What counts is how close your guess is, not how many you remember.",
+    "q_recall_study": "Remember which words go together.",
+    "q_recall_guess": "How many of the {n} pairs will you get right?",
+    "q_recall_pick": "Which word went with this one? ({i} of {n})",
+    "self_ins": "You will answer puzzles and rate how sure you are after each one. Now and then you'll also guess how many word pairs you'll remember. Be honest: the score measures how well your confidence matches your accuracy.",
+    "self_recall": "Memory guesses ({n}): on average you were off by {p}% of the pairs.",
+    "self_recall_ok": "You knew well how much you'd remember.",
+    "self_recall_over": "You expected to remember more than you did.",
+    "self_recall_under": "You remembered more than you expected."
   },
   "es": {
     "replay_any": "Escuchar de nuevo",
@@ -481,6 +491,16 @@
     "gt_crt": "Pensalo dos veces",
     "ins_crt": "Cada pregunta tiene una respuesta rápida que parece correcta y está mal. Revisá tu respuesta antes de escribirla.",
     "q_crt": "Escribí la respuesta.",
-    "wx_crt": "“Un bate y una pelota cuestan 110 centavos. El bate cuesta 100 centavos más que la pelota.”\nLa respuesta rápida, 10, está mal: el bate costaría 110 y el total 120.\nLa pelota cuesta 5: el bate cuesta 105, y 5 + 105 = 110."
+    "wx_crt": "“Un bate y una pelota cuestan 110 centavos. El bate cuesta 100 centavos más que la pelota.”\nLa respuesta rápida, 10, está mal: el bate costaría 110 y el total 120.\nLa pelota cuesta 5: el bate cuesta 105, y 5 + 105 = 110.",
+    "gt_recall": "¿Te vas a acordar?",
+    "ins_recall": "Estudiá los pares de palabras. Después decí de cuántos creés que te vas a acordar, y buscá la pareja de cada palabra. Lo que cuenta es qué tan cerca estuvo tu respuesta, no de cuántos te acordaste.",
+    "q_recall_study": "Acordate de qué palabras van juntas.",
+    "q_recall_guess": "¿De cuántos de los {n} pares te vas a acordar?",
+    "q_recall_pick": "¿Qué palabra iba con esta? ({i} de {n})",
+    "self_ins": "Vas a resolver acertijos y decir qué tan seguro estás después de cada uno. De vez en cuando también vas a adivinar de cuántos pares de palabras te vas a acordar. Sé honesto: el puntaje mide qué tan bien tu confianza coincide con tus aciertos.",
+    "self_recall": "Pronósticos de memoria ({n}): en promedio le erraste por {p}% de los pares.",
+    "self_recall_ok": "Sabías bien de cuánto te ibas a acordar.",
+    "self_recall_over": "Esperabas acordarte de más de lo que te acordaste.",
+    "self_recall_under": "Te acordaste de más de lo que esperabas."
   }
 }

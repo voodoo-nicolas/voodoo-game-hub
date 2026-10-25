@@ -19,6 +19,7 @@ import { CHECKS_MUS2 } from "./gens_mus2_checks.ts";
 import { CHECKS_NAT2 } from "./gens_nat2_checks.ts";
 import { CHECKS_KIN2 } from "./gens_kin2_checks.ts";
 import { CHECKS_EXI2 } from "./gens_exi2_checks.ts";
+import { CHECKS_SELF2 } from "./gens_self2_checks.ts";
 
 const SEEDS = Number(Deno.env.get("GEN_SEEDS") ?? 150);
 const LANGS: Lang[] = ["en", "es"];
@@ -242,10 +243,10 @@ function syllogism(it: Item) {
 }
 
 /* ------------ the test ------------ */
-Object.assign(CHECKS, CHECKS2, CHECKS_SPA2, CHECKS_LIN2, CHECKS_MUS2, CHECKS_NAT2, CHECKS_KIN2, CHECKS_EXI2);
+Object.assign(CHECKS, CHECKS2, CHECKS_SPA2, CHECKS_LIN2, CHECKS_MUS2, CHECKS_NAT2, CHECKS_KIN2, CHECKS_EXI2, CHECKS_SELF2);
 
-Deno.test("there are 72 generators (the prototype's 27 + 10 LOG + 8 SPA + 6 LIN + 6 MUS + 5 NAT + 5 KIN + 5 EXI) and each has a uniqueness check", () => {
-  assertEquals(ALL_IDS.length, 72);
+Deno.test("there are 73 generators (the prototype's 27 + 10 LOG + 8 SPA + 6 LIN + 6 MUS + 5 NAT + 5 KIN + 5 EXI + 1 SELF) and each has a uniqueness check", () => {
+  assertEquals(ALL_IDS.length, 73);
   for (const id of ALL_IDS) assert(CHECKS[id], `no check for ${id}`);
 });
 

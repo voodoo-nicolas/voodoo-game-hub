@@ -3,7 +3,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { type Db, HttpError, must } from "./http.ts";
-import { type BlitzResult, type BlitzScored, CORE, type Flags, type IqState, type Resp, scoreIQ, storedKey } from "./engine.ts";
+import { type BlitzResult, type BlitzScored, CORE, type Flags, type IqState, RECALL, type Resp, scoreIQ, storedKey } from "./engine.ts";
 import { type ScoreRow, viqStanding } from "./standings.ts";
 import { monthKey, utcDay } from "./rng.ts";
 import { GENS, type Lang } from "./gens/index.ts";
@@ -58,9 +58,10 @@ async function storedResult(db: Db, s: SessionRow) {
 /** Score an IQ session from its stored answers (spec §3) and, if ranked, write one
  *  section_scores row per section played. */
 export async function finishIq(db: Db, s: SessionRow, reason: string) {
-  const resp = await answeredResponses(db, s.id);
   const self = s.scope === "SELF";
-  const res = scoreIQ(resp, s.flags, self ? { rows: resp.map((r) => ({ u: r.u, conf: r.conf ?? 0 })), pred: s.state.pred ?? null } : null);
+  // "Will you remember?" trials have no confidence: they're scored from state.recall instead
+  const resp = (await answeredResponses(db, s.id)).filter((r) => !self || r.gid !== RECALL);
+  const res = scoreIQ(resp, s.flags, self ? { rows: resp.map((r) => ({ u: r.u, conf: r.conf ?? 0 })), pred: s.state.pred ?? null, recall: s.state.recall ?? [] } : null);
   const result: Record<string, unknown> = { ...res, reason, lang: s.lang, ranked: s.ranked, mode: s.mode, scope: s.scope };
   if (!await claim(db, s, reason === "abandoned" ? "abandoned" : "done", result, s.flags)) return await storedResult(db, s);
   if (s.ranked) {
