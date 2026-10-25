@@ -28,6 +28,12 @@ var account_btn: Button
 var update_label: Label
 var update_btn: Button
 var update_url: String = ""
+var games_update_label: Label
+var games_update_btn: Button
+var _game_updates: Array = []   # ids waiting for "Update N games"
+var _game_updates_total := 0
+var _game_update_failed: Array = []
+var _game_updates_running := false
 
 var _content_margin: MarginContainer
 var storage_box: VBoxContainer
@@ -178,6 +184,17 @@ func _build_ui() -> void:
 	account.add_child(account_btn)
 	_update_account()
 
+	# ---- Game updates: the live manifest vs the packs on this device ----
+	# (tapping a game also updates it; this checks and updates them all at once).
+	# The web build can't download packs, so it has nothing to show here.
+	if not OS.has_feature("web"):
+		var games_updates := _section(list, tr("Game updates"))
+		games_update_label = _body_label(tr("Tapping a game installs its newest version. You can also check them all here."))
+		games_updates.add_child(games_update_label)
+		games_update_btn = _pill_button(tr("Check for game updates"), true)
+		games_update_btn.pressed.connect(_on_games_update_pressed)
+		games_updates.add_child(games_update_btn)
+
 	# ---- Storage (STANDARDS §2d, since v0.30) ----
 	var storage := _section(list, tr("Storage"))
 	storage_box = storage
@@ -234,7 +251,13 @@ func _fill_storage() -> void:
 		var game: Dictionary = Catalog.get_game(str(pk.id))
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
-		var name_label := _body_label("%s  ·  %s" % [Lang.pick(game, "title") if not game.is_empty() else str(pk.id), _size_text(int(pk.bytes))])
+		var name_text := Lang.pick(game, "title") if not game.is_empty() else str(pk.id)
+		var version := Catalog.local_version(str(pk.id))
+		if version > 0:
+			name_text += "  ·  v%d" % version
+		if Catalog.has_update(str(pk.id)):
+			name_text += " 🔄"
+		var name_label := _body_label("%s  ·  %s" % [name_text, _size_text(int(pk.bytes))])
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_label)
 		var del := _pill_button(tr("Remove") if Catalog.can_remove(str(pk.id)) else tr("In use"), false)
@@ -544,6 +567,9 @@ func _on_update_pressed() -> void:
 	update_label.visible = true
 	update_label.text = tr("Checking...")
 	Catalog.check_app_update(_on_update_found, _on_no_update)
+	# One "Check for updates" covers the games too.
+	if games_update_btn != null and _game_updates.is_empty() and not _game_updates_running:
+		_check_game_updates()
 
 func _on_update_found(remote_version: String, apk_url: String) -> void:
 	update_btn.disabled = false
@@ -558,6 +584,68 @@ func _on_pc_update_failed(error: String) -> void:
 func _on_no_update(reached: bool) -> void:
 	update_btn.disabled = false
 	update_label.text = tr("You're up to date!") if reached else tr("Couldn't check. Are you online?")
+
+## Game updates: first tap fetches the live manifest and lists the games with a
+## newer pack; the button then offers to update them and downloads them one by one.
+func _on_games_update_pressed() -> void:
+	if drag.moved or _game_updates_running:
+		return
+	if _game_updates.is_empty():
+		_check_game_updates()
+		return
+	_game_updates_running = true
+	games_update_btn.disabled = true
+	_game_updates_total = _game_updates.size()
+	_game_update_failed = []
+	_update_next_game()
+
+func _check_game_updates() -> void:
+	games_update_btn.disabled = true
+	games_update_label.text = tr("Checking...")
+	Catalog.refresh_manifest(0, _on_game_updates_checked)
+
+func _on_game_updates_checked(ok: bool) -> void:
+	games_update_btn.disabled = false
+	_game_updates = Catalog.updates_available()
+	var after_restart: int = Catalog.updates_available(true).size() - _game_updates.size()
+	var lines := PackedStringArray()
+	if not ok:
+		lines.append(tr("Couldn't check. Are you online?"))
+	elif _game_updates.is_empty():
+		lines.append(tr("All your games are up to date!"))
+	for id in _game_updates:
+		var g: Dictionary = Catalog.get_game(id)
+		lines.append("🔄 %s: v%d → v%d" % [Lang.pick(g, "title"), Catalog.local_version(id), int(g.get("version", 0))])
+	if after_restart > 0:
+		lines.append(tr("Games you opened since the app started update after you restart it: %d") % after_restart)
+	games_update_label.text = "\n".join(lines)
+	if _game_updates.is_empty():
+		games_update_btn.text = tr("Check for game updates")
+	else:
+		games_update_btn.text = (tr("Update %d game") if _game_updates.size() == 1 else tr("Update %d games")) % _game_updates.size()
+	_fill_storage()
+
+func _update_next_game() -> void:
+	if _game_updates.is_empty():
+		_game_updates_running = false
+		games_update_btn.disabled = false
+		games_update_btn.text = tr("Check for game updates")
+		var done := _game_updates_total - _game_update_failed.size()
+		var text := tr("Updated %d of %d games.") % [done, _game_updates_total]
+		if not _game_update_failed.is_empty():
+			text += "\n" + tr("Couldn't update: %s. Check your connection and try again.") % ", ".join(_game_update_failed)
+		games_update_label.text = text
+		_fill_storage()
+		return
+	var id: String = _game_updates.pop_front()
+	var n := _game_updates_total - _game_updates.size()
+	games_update_label.text = tr("Updating %s... (%d of %d)") % [Lang.pick(Catalog.get_game(id), "title"), n, _game_updates_total]
+	Catalog.download(id, _on_game_updated.bind(id))
+
+func _on_game_updated(error: String, id: String) -> void:
+	if error != "":
+		_game_update_failed.append(Lang.pick(Catalog.get_game(id), "title"))
+	_update_next_game.call_deferred()
 
 func _on_feedback_pressed() -> void:
 	if drag.moved:

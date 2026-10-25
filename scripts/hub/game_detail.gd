@@ -1,6 +1,7 @@
 extends VBoxContainer
 
-## The text block of a selected game: large title, 2-3 line description, mode badges,
+## The text block of a selected game: large title, its version line (Catalog.version_text:
+## installed pack version, or the update waiting for it), 2-3 line description, mode badges,
 ## with a ☆/★ favourite toggle beside the title, and the buttons ✕ Back and ▶ Play. The picture behind it is the
 ## browser's background; this only holds text, over the left-hand gradient.
 
@@ -15,6 +16,7 @@ signal close_pressed
 
 var game: Dictionary = {}
 var _title: Label
+var _version: Label
 var _meta: Label
 var _desc: Label
 var _badges: HFlowContainer
@@ -44,6 +46,10 @@ func _ready() -> void:
 	_fav.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_fav.pressed.connect(_on_fav)
 	title_row.add_child(_fav)
+	_version = HubLook.label("", 20, Settings.DARK.count)
+	_version.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_version.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(_version)
 	_meta = HubLook.label("", 24, Settings.DARK.count)
 	_meta.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_meta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -77,6 +83,8 @@ func show_game(g: Dictionary, meta: String, desc: String, favorite: bool) -> voi
 	game = g
 	_title.text = ("🔒 " if g.get("locked", false) == true else "") + Lang.pick(g, "title")
 	_fit_title()
+	_version.text = Catalog.version_text(g)
+	_version.visible = _version.text != ""
 	_meta.text = meta
 	_desc.text = desc
 	_desc.visible = desc != ""

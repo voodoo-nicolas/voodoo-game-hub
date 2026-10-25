@@ -126,6 +126,9 @@ func setup(g: Dictionary, category_name: String, tile_size: Vector2, scroller_no
 		match Catalog.state_of(g):
 			Catalog.STATE_NEEDS_APP_UPDATE: mark = "⬆"
 			Catalog.STATE_DOWNLOAD: mark = "⬇"
+			Catalog.STATE_READY:
+				if Catalog.has_update(str(g.id)):
+					mark = "🔄"   # a newer pack is out (▶ Play installs it)
 	if mark != "":
 		var m := HubLook.label(mark, int(14 * k))
 		m.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED

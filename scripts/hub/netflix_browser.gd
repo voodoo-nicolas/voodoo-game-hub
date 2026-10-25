@@ -489,6 +489,8 @@ func rebuild() -> void:
 		_rebuild_grid()
 	else:
 		_rebuild_strip()
+	if selected_id != "":
+		select(selected_id)   # a newer manifest can change its version line
 
 func _rebuild_strip() -> void:
 	var filtering: bool = hub._filtering()

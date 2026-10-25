@@ -80,6 +80,12 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
   the copy already on disk; the download overlay's Cancel aborts the request.
   `_launch` surfaces mount failures (a damaged pack is deleted by `Catalog`,
   so its tile turns blue again and the next tap re-downloads).
+- **Game (pack) updates** (2026-10-25): a tap on a game already updates it
+  (`needs_download`). On top of that: `Catalog.version_text(game)` is the
+  detail's line under the title, `has_update(id)` puts 🔄 on the tile, and
+  Options > Game updates (`updates_available()`, skips packs mounted this
+  session) checks the live manifest and downloads every newer pack.
+  Test: `tools/test_game_updates.gd`.
 - **App self-update**: `Catalog.check_app_update()` runs once per app session,
   not per hub visit — the GitHub API is rate-limited and "Later" should stick.
 - **Editor / full desktop builds**: games whose scene already exists before

@@ -134,6 +134,45 @@ func needs_download(id: String) -> bool:
 		return true
 	return int(get_game(id).get("version", 0)) > local_version(id)
 
+## Downloaded games with a newer published pack: [id]. A pack mounted this
+## session is left out unless `include_mounted` (it updates after the next app
+## start); games running from local source (editor) never count.
+func updates_available(include_mounted: bool = false) -> Array:
+	var data = SaveUtil.read(PACK_VERSIONS_PATH)
+	var out: Array = []
+	for id in _games_by_id:
+		if _bundled.has(id) or (_mounted.has(id) and not include_mounted) or not is_downloaded(id):
+			continue
+		var mine := 0 if data == null else int(data.get(id, 0))
+		if int(_games_by_id[id].get("version", 0)) > mine:
+			out.append(id)
+	return out
+
+## One game's check (tiles): its downloaded copy is older than the published pack.
+func has_update(id: String) -> bool:
+	if _bundled.has(id) or not is_downloaded(id):
+		return false
+	return int(get_game(id).get("version", 0)) > local_version(id)
+
+func is_mounted(id: String) -> bool:
+	return _mounted.has(id)
+
+## The hub's version line for a game: "Version 11", plus a note when a newer
+## pack is out for the copy on this device. "" for a "coming soon" placeholder.
+func version_text(game: Dictionary) -> String:
+	if not game.has("id"):
+		return ""
+	var id := str(game.id)
+	var published := int(game.get("version", 0))
+	if _bundled.has(id) or not is_downloaded(id):
+		return tr("Version %d") % published
+	var mine := local_version(id)
+	if published <= mine:
+		return tr("Version %d") % mine
+	if _mounted.has(id):
+		return tr("Version %d · version %d is out: restart the app to get it") % [mine, published]
+	return tr("Version %d · update to version %d: ▶ Play installs it") % [mine, published]
+
 func is_downloading(id: String) -> bool:
 	return _downloads.has(id)
 
