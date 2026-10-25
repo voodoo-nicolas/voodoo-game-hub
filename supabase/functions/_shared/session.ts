@@ -3,7 +3,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { type Db, HttpError, must } from "./http.ts";
-import { type BlitzResult, type BlitzScored, CORE, type Flags, type IqState, RECALL, type Resp, scoreIQ, storedKey } from "./engine.ts";
+import { type BlitzResult, type BlitzScored, CORE, type Flags, type IqResult, type IqState, RECALL, type Resp, scoreIQ, type SecResult, storedKey } from "./engine.ts";
 import { type ScoreRow, viqStanding } from "./standings.ts";
 import { monthKey, utcDay } from "./rng.ts";
 import { GENS, type Lang } from "./gens/index.ts";
@@ -31,13 +31,22 @@ export async function loadSession(db: Db, id: unknown, uid: string): Promise<Ses
   return s;
 }
 
+/** Generators whose early items were keyed wrong. An answer counts toward scores only if its
+ *  stored key carries at least this revision (Key `rev`, default 1); older ones are left out.
+ *  topview 2: before 2026-10-25 the "right" picture was the mirror image of the view from
+ *  above (the prototype's bug; spa.ts tvView). tools/iq_rescore.ts rescores finished tests. */
+export const KEY_REV: Record<string, number> = { topview: 2 };
+export const scorable = (gid: string, answerKey: any) => (answerKey?.key?.rev ?? 1) >= (KEY_REV[gid] ?? 1);
+
 /** Every answered item, in order (the unanswered pending one is left out).
  *  a / b / c are rebuilt from the generator and the stored key rather than read from the
- *  `real` (float4) columns, so estimates and item choice use the prototype's exact doubles. */
-export async function answeredResponses(db: Db, sessionId: string): Promise<Resp[]> {
+ *  `real` (float4) columns, so estimates and item choice use the prototype's exact doubles.
+ *  `scoring`: also leave out answers to wrongly keyed items (KEY_REV). Not for picking the next
+ *  item: the Self test's recall slots count every answered item. */
+export async function answeredResponses(db: Db, sessionId: string, scoring = false): Promise<Resp[]> {
   const rows = must(await db.from("responses").select("seq, sec, gid, d, u, ms, conf, answer_key")
     .eq("session_id", sessionId).not("answered_at", "is", null).order("seq")) as any[];
-  return rows.map((r) => {
+  return rows.filter((r) => !scoring || scorable(r.gid, r.answer_key)).map((r) => {
     const k = r.answer_key?.k ?? 0;
     return { sec: r.sec, gid: r.gid, d: r.d, a: GENS[r.gid].a, b: bOf(r.d), c: k ? 1 / k : 0, u: r.u, ms: r.ms, conf: r.conf };
   });
@@ -55,31 +64,71 @@ async function storedResult(db: Db, s: SessionRow) {
   return rows[0]?.result ?? null;
 }
 
+/** A session's IQ result from the answers that count (scorable). */
+async function scoreIqSession(db: Db, s: SessionRow): Promise<IqResult> {
+  const self = s.scope === "SELF";
+  // "Will you remember?" trials have no confidence: they're scored from state.recall instead
+  const resp = (await answeredResponses(db, s.id, true)).filter((r) => !self || r.gid !== RECALL);
+  return scoreIQ(resp, s.flags, self ? { rows: resp.map((r) => ({ u: r.u, conf: r.conf ?? 0 })), pred: s.state.pred ?? null, recall: s.state.recall ?? [] } : null);
+}
+
+/** One section_scores row's score columns. */
+const scoreCols = (res: IqResult, r: SecResult) => ({
+  theta: r.theta, se: r.se, n: r.n, hard: r.hard || 0, flagged: r.misfit || res.flagged, auc: r.auc ?? null, bias: r.bias ?? null,
+});
+
+/** The Voodoo IQ verification checklist the results screen shows (spec §3 gates), from the
+ *  player's section_scores (`upTo`: only rows written by then, for an old session's result). */
+async function viqChecklist(db: Db, userId: string, upTo?: string) {
+  let q = db.from("section_scores").select("sec, day, theta, se, n, hard, lang, flagged, created_at").eq("user_id", userId).in("sec", CORE);
+  if (upTo) q = q.lte("created_at", upTo);
+  const viq: Record<string, unknown> = viqStanding(must(await q) as ScoreRow[]);
+  viq.checks = { ...(viq.checks as any), secs: (viq.checks as any).secs.map((c: any) => ({ sec: c.sec, ok: c.ok, n: c.st?.n ?? 0, se: c.st?.se ?? null })) };
+  return viq;
+}
+
 /** Score an IQ session from its stored answers (spec §3) and, if ranked, write one
  *  section_scores row per section played. */
 export async function finishIq(db: Db, s: SessionRow, reason: string) {
-  const self = s.scope === "SELF";
-  // "Will you remember?" trials have no confidence: they're scored from state.recall instead
-  const resp = (await answeredResponses(db, s.id)).filter((r) => !self || r.gid !== RECALL);
-  const res = scoreIQ(resp, s.flags, self ? { rows: resp.map((r) => ({ u: r.u, conf: r.conf ?? 0 })), pred: s.state.pred ?? null, recall: s.state.recall ?? [] } : null);
+  const res = await scoreIqSession(db, s);
   const result: Record<string, unknown> = { ...res, reason, lang: s.lang, ranked: s.ranked, mode: s.mode, scope: s.scope };
   if (!await claim(db, s, reason === "abandoned" ? "abandoned" : "done", result, s.flags)) return await storedResult(db, s);
   if (s.ranked) {
     const day = utcDay();
     const rows = Object.entries(res.secs).filter(([, r]) => r.n).map(([sec, r]) => ({
-      session_id: s.id, user_id: s.user_id, sec, day, theta: r.theta, se: r.se, n: r.n, hard: r.hard || 0,
-      lang: s.lang, flagged: r.misfit || res.flagged, auc: r.auc ?? null, bias: r.bias ?? null,
+      session_id: s.id, user_id: s.user_id, sec, day, ...scoreCols(res, r), lang: s.lang,
     }));
     if (rows.length) must(await db.from("section_scores").insert(rows));
-    // the Voodoo IQ verification checklist the results screen shows (spec §3 gates)
-    const all = must(await db.from("section_scores").select("sec, day, theta, se, n, hard, lang, flagged, created_at")
-      .eq("user_id", s.user_id).in("sec", CORE)) as ScoreRow[];
-    const viq: Record<string, unknown> = viqStanding(all);
-    viq.checks = { ...(viq.checks as any), secs: (viq.checks as any).secs.map((c: any) => ({ sec: c.sec, ok: c.ok, n: c.st?.n ?? 0, se: c.st?.se ?? null })) };
-    Object.assign(result, { viq });
+    Object.assign(result, { viq: await viqChecklist(db, s.user_id) });
     must(await db.from("sessions").update({ result }).eq("id", s.id));
   }
   return result;
+}
+
+/** Score a finished IQ session again from the answers that count now (after KEY_REV changed;
+ *  tools/iq_rescore.ts). Ranked: its section_scores rows are updated in place (day and
+ *  created_at kept, so the standings' "last 3 tests" stay the same tests); a section left with
+ *  no answers loses its row. The stored result gets the new scores and `rescored` (the day).
+ *  Rescore a player's sessions oldest first: the result's checklist reads the earlier rows.
+ *  `apply` false: compute only. Returns the per-section results before and after. */
+export async function rescoreIq(db: Db, s: SessionRow, apply: boolean) {
+  const res = await scoreIqSession(db, s);
+  const old = (s.result ?? {}) as Record<string, any>;
+  const result: Record<string, unknown> = { ...old, ...res, composite: res.composite ?? null, rescored: utcDay() };
+  if (apply) {
+    if (s.ranked) {
+      const have = must(await db.from("section_scores").select("sec, created_at").eq("session_id", s.id)) as any[];
+      for (const h of have) {
+        const r = res.secs[h.sec];
+        if (r?.n) must(await db.from("section_scores").update(scoreCols(res, r)).eq("session_id", s.id).eq("sec", h.sec));
+        else must(await db.from("section_scores").delete().eq("session_id", s.id).eq("sec", h.sec));
+      }
+      const upTo = have.map((h) => String(h.created_at)).sort().pop();
+      if (upTo && old.viq) result.viq = await viqChecklist(db, s.user_id, upTo);
+    }
+    must(await db.from("sessions").update({ result }).eq("id", s.id));
+  }
+  return { before: (old.secs ?? {}) as Record<string, SecResult>, after: res.secs, result };
 }
 
 const better = (a: { pts: number; correct: number }, b?: { pts: number; correct: number } | null) =>

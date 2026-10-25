@@ -9,6 +9,14 @@ import { assert, assertEquals } from "jsr:@std/assert@1";
 import { Rng } from "../_shared/rng.ts";
 import { checkAnswer, GENS, type Item, type Lang } from "../_shared/gens/index.ts";
 import { pKey, pMir, pRotN, type Poly, tvKey, tvTop } from "../_shared/gens/spa.ts";
+
+/** The top view straight from the isometric drawing (client Art.tv_iso, x = ox + (i - j) * cw):
+ *  front row (i = n - 1) at the bottom, and in each row the cell drawn furthest left on
+ *  screen goes leftmost. Independent of spa.ts tvView. */
+function seenFromAbove(stack: number[][][]): number[][] {
+  const T = tvTop(stack);
+  return T.map((row, i) => row.map((_, j) => j).sort((a, b) => (i - a) - (i - b)).map((j) => row[j]));
+}
 import { loneCreatures, NAT_CANDS } from "../_shared/gens/nat.ts";
 import { NONE_FOLLOWS, syTrue } from "../_shared/gens/exi.ts";
 import { ANA, CATS, EMO_KEYS, FALLACY_NAMES } from "../_shared/gens/data.ts";
@@ -74,7 +82,7 @@ const CHECKS: Record<string, (it: Item) => void> = {
     const opts = it.display.options as number[][][];
     assertEquals(opts.length, 5);
     assert(distinct(opts.map(tvKey)), "topview options not distinct");
-    const truth = tvKey(tvTop(it.display.stack as number[][][]));
+    const truth = tvKey(seenFromAbove(it.display.stack as number[][][]));
     const right = opts.map((o, i) => tvKey(o) === truth ? i : -1).filter((i) => i >= 0);
     assertEquals(right.length, 1);
     oneIndex(it, 5, right[0]);

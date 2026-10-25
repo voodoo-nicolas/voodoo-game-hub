@@ -16,9 +16,10 @@ import { SY_POOL, syText } from "../_shared/gens/exi.ts";
 import { nineStanding, type ScoreRow, secStanding, viqStanding } from "../_shared/standings.ts";
 
 /** Generators that deliberately differ from the prototype since 2026-10-13 (natodd / natquick:
- *  one clean 4-vs-1 trait, see nat.ts; anagram: no repeated word in a session). A deviation
+ *  one clean 4-vs-1 trait, see nat.ts; anagram: no repeated word in a session; topview since
+ *  2026-10-25: the true view from above is right, not its mirror image, see spa.ts tvView). A deviation
  *  moves the RNG, so a session or batch is compared only up to its first such item. */
-const DEVIATES = new Set(["natodd", "natquick", "anagram"]);
+const DEVIATES = new Set(["natodd", "natquick", "anagram", "topview"]);
 
 const SEEDS = Number(Deno.env.get("PARITY_SEEDS") ?? 40);
 const P: Record<Lang, any> = { en: await loadPrototype("en"), es: await loadPrototype("es") };
@@ -56,8 +57,10 @@ Deno.test("generators match the prototype seed for seed (all 27, d = 1..10, en/e
       if (!P[lang].GENS[id]) continue;
       // natodd / natquick deliberately differ from the prototype since 2026-10-13 (one clean
       // 4-vs-1 trait; see natOddItem), and natclass accepts only the chosen rule as an
-      // explanation (it was failing here at seed 1916209878): gens_test checks them instead
-      if (id === "natodd" || id === "natquick" || id === "natclass") continue;
+      // explanation (it was failing here at seed 1916209878); topview keys the true view from
+      // above since 2026-10-25 (the prototype's right answer was its mirror image; spa.ts tvView):
+      // gens_test checks them instead
+      if (id === "natodd" || id === "natquick" || id === "natclass" || id === "topview") continue;
       for (let d = 1; d <= 10; d++) {
         for (let s = 0; s < SEEDS; s++) {
           const seed = hashStr(`${id}-${d}-${s}`);

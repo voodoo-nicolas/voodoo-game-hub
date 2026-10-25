@@ -10,7 +10,7 @@ export type Lang = "en" | "es";
 export interface Ctx { lang: Lang; used: Set<string>; blitz: boolean }
 
 export type Key =
-  | { t: "idx"; v: number } // option index:              v === ansIdx
+  | { t: "idx"; v: number; rev?: number } // option index:  v === ansIdx (rev: session.ts KEY_REV)
   | { t: "num"; v: number } // typed number:              Number(v) === ans
   | { t: "str"; v: string; strict?: boolean } // typed string: String(v) === target (strict: v === target)
   | { t: "any"; v: string[] } // anagram: any listed word

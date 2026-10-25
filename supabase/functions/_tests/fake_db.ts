@@ -24,12 +24,13 @@ function get(row: Row, col: string) {
 
 class Query implements PromiseLike<{ data: any; error: any }> {
   private filters: ((r: Row) => boolean)[] = [];
-  private op: "select" | "insert" | "update" | "upsert" = "select";
+  private op: "select" | "insert" | "update" | "upsert" | "delete" = "select";
   private payload: Row[] = [];
   private patch: Row = {};
   private returning = false;
   private one = false;
   private max = Infinity;
+  private skip = 0;
   private sort: [string, boolean] | null = null;
   private upsertOpts: { onConflict?: string; ignoreDuplicates?: boolean } = {};
 
@@ -39,13 +40,16 @@ class Query implements PromiseLike<{ data: any; error: any }> {
   insert(rows: Row | Row[]) { this.op = "insert"; this.payload = Array.isArray(rows) ? rows : [rows]; return this; }
   upsert(rows: Row | Row[], opts: { onConflict?: string; ignoreDuplicates?: boolean } = {}) { this.op = "upsert"; this.payload = Array.isArray(rows) ? rows : [rows]; this.upsertOpts = opts; return this; }
   update(patch: Row) { this.op = "update"; this.patch = patch; return this; }
+  delete() { this.op = "delete"; return this; }
   eq(c: string, v: any) { this.filters.push((r) => get(r, c) === v); return this; }
   is(c: string, v: null) { this.filters.push((r) => (r[c] ?? null) === v); return this; }
   not(c: string, op: string, v: null) { if (op !== "is") throw new Error("fake: not() only supports is"); this.filters.push((r) => (r[c] ?? null) !== v); return this; }
   in(c: string, vs: any[]) { this.filters.push((r) => vs.includes(r[c])); return this; }
   gte(c: string, v: any) { this.filters.push((r) => r[c] >= v); return this; }
+  lte(c: string, v: any) { this.filters.push((r) => r[c] <= v); return this; }
   order(c: string, o: { ascending?: boolean } = {}) { this.sort = [c, o.ascending !== false]; return this; }
   limit(n: number) { this.max = n; return this; }
+  range(from: number, to: number) { this.skip = from; this.max = to - from + 1; return this; }
   single() { this.one = true; return this; }
 
   private rows() { return (this.db.tables[this.table] ??= []); }
@@ -70,8 +74,9 @@ class Query implements PromiseLike<{ data: any; error: any }> {
     }
     let rows = t.filter((r) => this.filters.every((f) => f(r)));
     if (this.op === "update") { for (const r of rows) Object.assign(r, structuredClone(this.patch)); return rows; }
+    if (this.op === "delete") { this.db.tables[this.table] = t.filter((r) => !rows.includes(r)); return rows; }
     if (this.sort) { const [c, asc] = this.sort; rows = rows.slice().sort((a, b) => (a[c] < b[c] ? -1 : a[c] > b[c] ? 1 : 0) * (asc ? 1 : -1)); }
-    return rows.slice(0, this.max);
+    return rows.slice(this.skip, this.skip + this.max);
   }
 
   then<A, B>(ok?: (v: { data: any; error: any }) => A | PromiseLike<A>, bad?: (e: any) => B | PromiseLike<B>): PromiseLike<A | B> {

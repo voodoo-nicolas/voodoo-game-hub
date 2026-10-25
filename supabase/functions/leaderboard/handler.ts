@@ -24,7 +24,7 @@ import { IQ } from "../_shared/irt.ts";
 import { BLITZ_DURS, MIXED_POOL, SECS } from "../_shared/engine.ts";
 import { nineStanding, type ScoreRow, secStanding, viqStanding } from "../_shared/standings.ts";
 import { monthKey } from "../_shared/rng.ts";
-import { closeStaleSessions } from "../_shared/session.ts";
+import { closeStaleSessions, scorable } from "../_shared/session.ts";
 
 const DAY = 864e5;
 const MAX_ROWS = 100;
@@ -110,8 +110,9 @@ async function playerCard(db: Call["db"], nick: string) {
   let answered = 0, correct = 0, ms = 0;
   const ids = sess.map((r) => r.id);
   for (let i = 0; i < ids.length; i += 50) {
-    const rs = must(await db.from("responses").select("u, ms").in("session_id", ids.slice(i, i + 50)).not("answered_at", "is", null)) as any[];
+    const rs = must(await db.from("responses").select("u, ms, gid, answer_key").in("session_id", ids.slice(i, i + 50)).not("answered_at", "is", null)) as any[];
     for (const r of rs) {
+      if (!scorable(r.gid, r.answer_key)) continue;
       answered++;
       if (Number(r.u) >= 1) correct++;
       ms += Number(r.ms) || 0;

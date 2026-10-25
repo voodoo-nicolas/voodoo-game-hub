@@ -1,4 +1,5 @@
-// SPATIAL: topview, rotation, rotquick, corsi. Ported 1:1 from the prototype.
+// SPATIAL: topview, rotation, rotquick, corsi. Ported 1:1 from the prototype, except
+// topview's right answer (tvView, 2026-10-25: the prototype's was the mirror image).
 import { defGen, GENS, mkItem } from "./registry.ts";
 
 /* --- Top view of a cube stack (isometric) --- */
@@ -9,6 +10,11 @@ export function tvTop(stack: Stack): TopGrid { return stack.map((row) => row.map
 export const tvKey = (T: TopGrid) => T.map((r) => r.join(",")).join("|");
 export const tvRot = (T: TopGrid) => { const n = T.length; return T.map((row, i) => row.map((_, j) => T[n - 1 - j][i])); };
 export const tvMir = (T: TopGrid) => T.map((row) => row.slice().reverse());
+/** The stack seen from directly above, as an answer grid draws it (front edge x = n at the
+ *  bottom, column j = T[i][j] at x = j). In the isometric drawing, column index j runs
+ *  right to left along the front edge, so the true view is the mirror of tvTop.
+ *  (2026-10-25 fix: the prototype keyed tvTop itself, i.e. the mirror image, as right.) */
+export const tvView = (stack: Stack): TopGrid => tvMir(tvTop(stack));
 
 /* iso projection helpers */
 function tvProj(n: number, s: number) {
@@ -57,7 +63,7 @@ defGen({
       const n = d <= 2 ? 3 : d <= 6 ? 4 : 5, hmax = d <= 2 ? 2 : d <= 4 ? 3 : 4;
       const stack: Stack = [];
       for (let i = 0; i < n; i++) { stack.push([]); for (let j = 0; j < n; j++) { const hh = r.chance(d <= 3 ? .15 : .08) ? 0 : r.int(1, hmax); stack[i].push(Array.from({ length: hh }, () => r.int(0, 3))); } }
-      const T = tvTop(stack), vis = tvVisibility(stack);
+      const T = tvView(stack), vis = tvMir(tvVisibility(stack)); // both indexed as the grid draws them
       const visCells: [number, number][] = [];
       for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (vis[i][j] >= 0.5 && T[i][j] >= 0) visCells.push([i, j]);
       if (visCells.length < 4) continue;
@@ -69,7 +75,7 @@ defGen({
       if (keys.size !== 5) continue;
       const order = r.shuffle([0, 1, 2, 3, 4]);
       const ansIdx = order.indexOf(0);
-      return mkItem(this, d, { display: { stack, options: order.map((i) => all[i]) }, key: { t: "idx", v: ansIdx } });
+      return mkItem(this, d, { display: { stack, options: order.map((i) => all[i]) }, key: { t: "idx", v: ansIdx, rev: 2 } });
     }
     return GENS.rotation.make(d, r, ctx);
   },
