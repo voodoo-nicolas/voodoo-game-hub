@@ -59,11 +59,29 @@ static func install_en_labels(owner: Node) -> void:
 	# It's on the owner's own signal, so it goes away with the owner.
 	owner.tree_exiting.connect(func(): TranslationServer.remove_translation(t))
 
+## Text added after the prototype (question types since 2026-10-25, and the few
+## prototype lines that changed, e.g. unlimited replays), hand-written EN / ES.
+## voodoo_iq_data.json is generated, so changes live here and win over it.
+const MORE_PATH := "res://scripts/games/voodoo_iq/voodoo_iq_more.json"
+
+static var _more: Dictionary = {}
+
+static func more() -> Dictionary:
+	if _more.is_empty():
+		var f := FileAccess.open(MORE_PATH, FileAccess.READ)
+		if f:
+			var parsed = JSON.parse_string(f.get_as_text())
+			if parsed is Dictionary:
+				_more = parsed
+	return _more
+
 ## The prototype's t(): text for `key` in the current language, English as the
 ## fallback, with {name} placeholders filled from `vars`.
 static func t(key: String, vars: Dictionary = {}) -> String:
 	var str_tables: Dictionary = data().get("STR", {})
-	var s: String = str(str_tables.get(lang(), {}).get(key, str_tables.get("en", {}).get(key, key)))
+	var m: Dictionary = more()
+	var s: String = str(m.get(lang(), {}).get(key, str_tables.get(lang(), {}).get(key,
+		m.get("en", {}).get(key, str_tables.get("en", {}).get(key, key)))))
 	s = named(s)
 	for k in vars:
 		s = s.replace("{" + str(k) + "}", str(vars[k]))

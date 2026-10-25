@@ -1,0 +1,90 @@
+{
+  "en": {
+    "replay_any": "Play again",
+    "ins_pitch": "Three notes play. Two are identical, one is slightly higher or lower. The difference shrinks as you improve. Replay as often as you like.",
+
+    "gt_symsum": "Symbol sums",
+    "ins_symsum": "Each shape stands for a number, and the same shape is always the same number. Work out what the shape with the question mark is worth and type it.",
+    "q_symsum": "What is this shape worth?",
+
+    "gt_scales": "Balance scales",
+    "ins_scales": "Every scale is balanced: both pans weigh the same. Use the scales to work out how many of one shape balance the others.",
+    "q_scales": "How many of the shape on the right balance the left?",
+
+    "gt_ordering": "Who's older?",
+    "ins_ordering": "Read the facts and put the people in order of age, then answer the question. Careful with \"not older than\".",
+
+    "gt_letters": "Letter series",
+    "ins_letters": "Letters follow a rule, like the numbers in a series: count the steps between them in the alphabet (A to Z). Some series mix letters and numbers.",
+    "q_letters": "What comes next?",
+
+    "gt_funcmachine": "Number machine",
+    "ins_funcmachine": "The machine changes every number it gets with the same rule. Find the rule from the examples and type what comes out.",
+    "q_funcmachine": "What comes out?",
+    "fm_in": "in",
+    "fm_out": "out",
+
+    "gt_operators": "Missing signs",
+    "ins_operators": "Pick the signs that make the sum true. Multiply and divide before you add and subtract.",
+    "q_operators": "Which signs fill the gaps?",
+
+    "gt_fraccmp": "Which is bigger?",
+    "ins_fraccmp": "Two numbers: fractions, decimals or percentages. Pick the bigger one.",
+    "q_fraccmp": "Which is bigger?",
+
+    "gt_wordprob": "Word problems",
+    "ins_wordprob": "Read the problem and type the answer as a number.",
+    "q_wordprob": "Type the answer.",
+
+    "gt_dice": "Chances",
+    "ins_dice": "Count the ways something can happen out of all the ways the dice or coins can land.",
+
+    "gt_sudoku": "Mini sudoku",
+    "ins_sudoku": "Each row, column and box holds every number once. Work out the number in the highlighted cell.",
+    "q_sudoku": "What goes in the highlighted cell?"
+  },
+  "es": {
+    "replay_any": "Escuchar de nuevo",
+    "ins_pitch": "Suenan tres notas. Dos son iguales y una es apenas más aguda o más grave. La diferencia se achica a medida que mejorás. Podés repetir todas las veces que quieras.",
+
+    "gt_symsum": "Sumas de símbolos",
+    "ins_symsum": "Cada figura vale un número, y la misma figura siempre vale lo mismo. Descubrí cuánto vale la figura del signo de pregunta y escribilo.",
+    "q_symsum": "¿Cuánto vale esta figura?",
+
+    "gt_scales": "Balanzas",
+    "ins_scales": "Todas las balanzas están equilibradas: los dos platos pesan lo mismo. Usalas para calcular cuántas figuras de un tipo equilibran a las otras.",
+    "q_scales": "¿Cuántas figuras de la derecha equilibran la izquierda?",
+
+    "gt_ordering": "¿Quién es mayor?",
+    "ins_ordering": "Leé los datos y ordená a las personas por edad. Después respondé la pregunta. Cuidado con \"no es mayor que\".",
+
+    "gt_letters": "Series de letras",
+    "ins_letters": "Las letras siguen una regla, como los números de una serie: contá los pasos entre ellas en el alfabeto (de la A a la Z, sin Ñ). Algunas series mezclan letras y números.",
+    "q_letters": "¿Qué sigue?",
+
+    "gt_funcmachine": "Máquina de números",
+    "ins_funcmachine": "La máquina transforma cada número con la misma regla. Encontrá la regla con los ejemplos y escribí qué sale.",
+    "q_funcmachine": "¿Qué sale?",
+    "fm_in": "entra",
+    "fm_out": "sale",
+
+    "gt_operators": "Signos que faltan",
+    "ins_operators": "Elegí los signos que hacen correcta la cuenta. Primero se multiplica y se divide, después se suma y se resta.",
+    "q_operators": "¿Qué signos van en los huecos?",
+
+    "gt_fraccmp": "¿Cuál es mayor?",
+    "ins_fraccmp": "Dos números: fracciones, decimales o porcentajes. Elegí el mayor.",
+    "q_fraccmp": "¿Cuál es mayor?",
+
+    "gt_wordprob": "Problemas",
+    "ins_wordprob": "Leé el problema y escribí la respuesta con un número.",
+    "q_wordprob": "Escribí la respuesta.",
+
+    "gt_dice": "Probabilidades",
+    "ins_dice": "Contá de cuántas formas puede pasar algo, sobre todas las formas en que pueden caer los dados o las monedas.",
+
+    "gt_sudoku": "Mini sudoku",
+    "ins_sudoku": "Cada fila, columna y bloque tiene cada número una sola vez. Descubrí el número de la casilla marcada.",
+    "q_sudoku": "¿Qué número va en la casilla marcada?"
+  }
+}

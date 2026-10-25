@@ -20,6 +20,20 @@ export const SEC_GENS: Record<string, [string, number][]> = {
   INT: [["face", .6], ["faceodd", .4]],
   EXI: [["syll", .65], ["fallacy", .35]],
 };
+/** Generator version (`gv`): the game sends the highest it can draw with session-start;
+ *  packs from before 2026-10-25 send none (0) and get exactly the prototype's lists.
+ *  v1 adds the second LOG set (gens/log2.ts). Within a section the prototype's
+ *  generators keep half the weight and the added ones share the other half. */
+export const GV = 1;
+const SEC_GENS_ADDED: Record<string, [number, string[]][]> = {
+  LOG: [[1, ["symsum", "scales", "ordering", "letters", "funcmachine", "operators", "fraccmp", "wordprob", "dice", "sudoku"]]],
+};
+export function secGens(sec: string, gv = 0): [string, number][] {
+  const base = SEC_GENS[sec];
+  const added = (SEC_GENS_ADDED[sec] || []).filter(([v]) => v <= gv).flatMap(([, ids]) => ids);
+  if (!added.length) return base;
+  return [...base.map(([id, w]): [string, number] => [id, w / 2]), ...added.map((id): [string, number] => [id, 0.5 / added.length])];
+}
 export const SELF_POOL = ["matrix", "rotation", "topview", "natodd", "face", "syll"];
 export const BLITZ_GEN: Record<string, string> = { LOG: "arith", SPA: "rotquick", LIN: "oddquick", MUS: "pitchhl", NAT: "natquick", KIN: "tap", INT: "facequick", EXI: "syllquick" };
 export const IQ_DURS = [5, 15, 30, 60]; // minutes
@@ -43,6 +57,8 @@ export interface IqState {
   rng: number;
   used: string[];
   lastSec: string | null;
+  /** generator version the client can draw (absent = 0, the prototype's generators) */
+  gv?: number;
   /** SELF only: starting theta (mean of the player's LOG / SPA standings) and their % prediction */
   selfStart?: number;
   pred?: number | null;
@@ -83,7 +99,7 @@ export function nextIqItem(scope: string, lang: Lang, resp: Resp[], state: IqSta
   } else {
     const rs = resp.filter((x) => x.sec === sec);
     const recent = rs.slice(-2).map((x) => x.gid);
-    let list = SEC_GENS[sec];
+    let list = secGens(sec, state.gv ?? 0);
     if (recent.length === 2 && recent[0] === recent[1]) list = list.filter((x) => x[0] !== recent[0]);
     const gid = wpick(r, list);
     const d = rs.length ? dOf(eap(rs).theta + r.gauss() * 0.3) : 4;

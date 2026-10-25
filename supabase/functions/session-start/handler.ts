@@ -3,7 +3,8 @@
 // POST { mode: "iq"|"blitz", kind?: "normal"|"daily"|"duel", scope: "ALL"|<section>,
 //        dur: minutes (iq: 5/15/30/60, or 0 = endless: no clock, the player ends it)
 //             | seconds (blitz: 60/120/180/300),
-//        ranked: bool, duel?: "<6-char code>", lang?: "en"|"es", pred?: 0..1 (SELF only) }
+//        ranked: bool, duel?: "<6-char code>", lang?: "en"|"es", pred?: 0..1 (SELF only),
+//        gv?: generator version the game can draw (engine.ts GV; absent = 0) }
 // -> IQ:    { session_id, deadline, ..., first_item }
 // -> Blitz: { session_id, deadline, ..., first_item, items }   (whole batch, no keys)
 //
@@ -17,7 +18,7 @@
 
 import { type Call, HttpError, must } from "../_shared/http.ts";
 import { closeStaleSessions } from "../_shared/session.ts";
-import { blitzBatch, blitzBatchSize, BLITZ_DURS, IQ_DURS, type IqState, MIXED_POOL, newIqState, nextIqItem, publicItem, SECS, storedKey } from "../_shared/engine.ts";
+import { blitzBatch, blitzBatchSize, BLITZ_DURS, GV, IQ_DURS, type IqState, MIXED_POOL, newIqState, nextIqItem, publicItem, SECS, storedKey } from "../_shared/engine.ts";
 import { dailySeed, randomSeed, utcDay } from "../_shared/rng.ts";
 import { type ScoreRow, secStanding } from "../_shared/standings.ts";
 import type { Lang } from "../_shared/gens/index.ts";
@@ -62,6 +63,9 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
     if (scope !== "ALL" && !MIXED_POOL.includes(scope)) throw new HttpError(400, "bad_scope"); // no SELF Blitz
   }
   const durS = mode === "iq" ? dur * 60 : dur;
+  // IQ tests only: Blitz batches stay the prototype's (blitz-submit regenerates them from the seed)
+  const gv = Math.max(0, Math.min(GV, Math.floor(Number(body.gv) || 0)));
+  if (mode === "iq" && gv) state.gv = gv;
 
   if (ranked) {
     let why: string | null = null;

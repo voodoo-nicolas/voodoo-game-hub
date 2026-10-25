@@ -697,7 +697,7 @@ func _on_profile_saved(ok: bool, _code: int, data: Dictionary) -> void:
 
 func _start_from_setup() -> void:
 	var iq_mode: bool = setup.mode == "iq"
-	var cfg := {"mode": setup.mode, "kind": "normal", "scope": setup.scope, "dur": setup.dur if iq_mode else setup.bdur, "ranked": bool(setup.ranked), "lang": T.lang()}
+	var cfg := {"mode": setup.mode, "kind": "normal", "scope": setup.scope, "dur": setup.dur if iq_mode else setup.bdur, "ranked": bool(setup.ranked), "lang": T.lang(), "gv": Items.GV}
 	if not api.is_signed_in():
 		_toast(tr("Sign in to take the IQ test: hub → ⚙ Options → Account. Scores are saved to your account."))
 		return

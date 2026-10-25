@@ -19,6 +19,10 @@ const FG2 := Color("#A8A8C0")
 ## Content width, set by the game from the real screen before building (Large text
 ## leaves ~600 of the 720-wide design, so nothing may assume 680).
 static var W := 680.0
+## The highest generator version this pack can draw, sent with session-start
+## (server engine.ts GV). 1 = the second LOG set (2026-10-25). Raise it only together
+## with the views for the generators that version adds.
+const GV := 1
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -67,6 +71,16 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"faceodd": _faceodd(v, d)
 		"syll", "syllquick": _syll(v, d)
 		"fallacy": _fallacy(v, d)
+		"symsum": _symsum(v, d)
+		"scales": _scales(v, d)
+		"ordering": _ordering(v, d)
+		"letters": _letters(v, d)
+		"funcmachine": _funcmachine(v, d)
+		"operators": _operators(v, d)
+		"fraccmp": _fraccmp(v, d)
+		"wordprob": _wordprob(v, d)
+		"dice": _dice(v, d)
+		"sudoku": _sudoku(v, d)
 		_:
 			v.add_child(_label("?", 30, FG))
 	return v
@@ -439,7 +453,7 @@ static func _analogy(v: ItemView, d: Dictionary) -> void:
 
 ## Play button; the options unlock once the clip has played. Replays per the
 ## server (practice / IQ: one replay; Blitz: none, autoplay).
-static func _music(v: ItemView, gid: String, d: Dictionary, blitz: bool) -> void:
+static func _music(v: ItemView, gid: String, d: Dictionary, _blitz: bool) -> void:
 	match gid:
 		"pitch": _prompt(v, T.t("q_pitch"))
 		"pitchhl": _prompt(v, T.t("q_pitchhl"))
@@ -449,7 +463,8 @@ static func _music(v: ItemView, gid: String, d: Dictionary, blitz: bool) -> void
 	var player := AudioStreamPlayer.new()
 	player.stream = clip[0]
 	v.add_child(player)
-	var max_plays := int(d.get("replays", 0 if blitz else 1)) + 1
+	# Replay as often as you like (owner, 2026-10-25), in the test and the Speed Round
+	# (where it costs time). The server still sends the prototype's `replays` count.
 	var state := {"plays": 0, "ready": false}
 	var btn := Button.new()
 	btn.text = "▶ " + T.t("play")
@@ -483,7 +498,7 @@ static func _music(v: ItemView, gid: String, d: Dictionary, blitz: bool) -> void
 	for b in v.option_buttons:
 		b.disabled = true
 	var play := func() -> void:
-		if state.plays >= max_plays or btn.disabled or v.done:
+		if btn.disabled or v.done:
 			return
 		state.plays += 1
 		btn.disabled = true
@@ -493,11 +508,8 @@ static func _music(v: ItemView, gid: String, d: Dictionary, blitz: bool) -> void
 		tw.tween_interval(float(clip[1]) + 0.15)
 		tw.tween_callback(func():
 			status.text = " "
-			if state.plays < max_plays:
-				btn.disabled = false
-				btn.text = "↻ " + T.t("replay_once")
-			else:
-				btn.text = T.t("no_replays")
+			btn.disabled = v.done
+			btn.text = "↻ " + T.t("replay_any")
 			if not state.ready:
 				state.ready = true
 				for b in v.option_buttons:
@@ -731,3 +743,203 @@ static func _fallacy(v: ItemView, d: Dictionary) -> void:
 	for k in d.get("options", []):
 		opts.append(T.t("fal_" + str(k)))
 	_mc(v, opts, 1)
+
+# ------------------------------------------------------------------ LOG, second set (gv 1)
+# Not in the prototype (server gens/log2.ts). Text from the server is already in the
+# player's language; the rest is in voodoo_iq_more.json.
+
+## The four drawn symbols (shape + colour, so colour is never the only cue).
+const SYM_COL := [Color("#FF5FA2"), Color("#4FB3FF"), Color("#FFE14D"), Color("#A6F04B")]
+
+static func _sym_pts(s: int, c: Vector2, r: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	match s:
+		0:
+			pts = PackedVector2Array([c + Vector2(0, -r), c + Vector2(r, r * 0.8), c + Vector2(-r, r * 0.8)])
+		1:
+			for i in 32:
+				pts.append(c + Vector2(cos(TAU * i / 32.0), sin(TAU * i / 32.0)) * r)
+		2:
+			var hh := r * 0.85
+			pts = PackedVector2Array([c + Vector2(-hh, -hh), c + Vector2(hh, -hh), c + Vector2(hh, hh), c + Vector2(-hh, hh)])
+		_:
+			for i in 10:
+				var rr := r if i % 2 == 0 else r * 0.45
+				var a := -PI / 2.0 + PI * i / 5.0
+				pts.append(c + Vector2(cos(a), sin(a)) * rr)
+	return pts
+
+static func _sym_draw(ci: CanvasItem, s: int, c: Vector2, r: float) -> void:
+	var pts := _sym_pts(s, c, r)
+	ci.draw_colored_polygon(pts, SYM_COL[s % 4])
+	var closed := pts.duplicate()
+	closed.append(pts[0])
+	ci.draw_polyline(closed, Color("#07070C"), 2.0, true)
+
+static func _sym(s: int, size: float = 52.0) -> Control:
+	return _canvas(func(ci, sz): _sym_draw(ci, s, sz / 2.0, minf(sz.x, sz.y) * 0.42), Vector2(size, size))
+
+## A centred row of symbols and text pieces: ints are symbols, strings are text.
+static func _sym_row(parts: Array, font := 40) -> CenterContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	for p in parts:
+		if p is String:
+			var l := _label(p, font, Color.WHITE, 0)
+			l.autowrap_mode = TextServer.AUTOWRAP_OFF
+			l.custom_minimum_size = Vector2.ZERO
+			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			row.add_child(l)
+		else:
+			row.add_child(_sym(int(p)))
+	return _center(row)
+
+static func _panel_text(v: ItemView, lines: Array, size := 28) -> void:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", box_style(PANEL, Color(v.accent, 0.5), 2, 10))
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	for s in lines:
+		col.add_child(_label(str(s), size, Color.WHITE, W - 30, HORIZONTAL_ALIGNMENT_LEFT))
+	p.add_child(col)
+	v.add_child(p)
+
+static func _symsum(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_symsum"))
+	for e in d.get("eqs", []):
+		var parts: Array = []
+		var t: Array = e.get("t", [])
+		for i in t.size():
+			parts.append(str(t[i]) if i % 2 else int(t[i]))
+		parts.append_array(["=", str(int(e.get("r", 0)))])
+		v.add_child(_sym_row(parts))
+	v.add_child(_sym_row([int(d.get("ask", 0)), "=", "?"]))
+	_numpad(v)
+
+## One balance with shapes on each pan (drawn in a 280 x 110 box, as on the sample page).
+static func _scale_draw(ci: CanvasItem, sc: Dictionary, sz: Vector2) -> void:
+	var k := minf(sz.x / 280.0, sz.y / 110.0)
+	var o := (sz - Vector2(280, 110) * k) / 2.0
+	var at := func(x: float, y: float) -> Vector2: return o + Vector2(x, y) * k
+	ci.draw_colored_polygon(PackedVector2Array([at.call(140, 34), at.call(124, 100), at.call(156, 100)]), Color("#3B3B57"))
+	ci.draw_line(at.call(30, 34), at.call(250, 34), Color("#D2D2E2"), 4.0 * k, true)
+	for side in [[70.0, sc.get("l", [])], [210.0, sc.get("r", [])]]:
+		var cx: float = side[0]
+		var items: Array = side[1]
+		ci.draw_line(at.call(cx - 40, 34), at.call(cx - 46, 78), Color("#6A6A90"), 1.5, true)
+		ci.draw_line(at.call(cx + 40, 34), at.call(cx + 46, 78), Color("#6A6A90"), 1.5, true)
+		var pan := PackedVector2Array()
+		for i in 13:
+			var t := i / 12.0
+			pan.append(at.call(cx - 52 + 104 * t, 78 + 36 * t * (1 - t)))
+		ci.draw_colored_polygon(pan, Color("#1A1A28"))
+		ci.draw_polyline(pan, Color("#D2D2E2"), 2.5, true)
+		var n := items.size()
+		var w := minf(22.0, 92.0 / maxf(1, n))
+		for i in n:
+			_sym_draw(ci, int(items[i]), at.call(cx + (i - (n - 1) / 2.0) * w, 66), 9.0 * k)
+
+static func _scales(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_scales"))
+	for sc in d.get("scales", []):
+		var s: Dictionary = sc
+		v.add_child(_center(_canvas(func(ci, sz): _scale_draw(ci, s, sz), Vector2(minf(420.0, W), 150))))
+	v.add_child(_sym_row([str(int(d.get("n", 1))) + " ×", int(d.get("sym", 0)), "=", "? ×", int(d.get("unit", 0))]))
+	var opts: Array = []
+	for o in d.get("options", []):
+		opts.append(str(int(o)))
+	_mc(v, opts, 4)
+
+static func _ordering(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, d.get("facts", []))
+	v.add_child(_label(str(d.get("note", "")), 22, FG2))
+	_prompt(v, str(d.get("q", "")))
+	var opts: Array = d.get("options", [])
+	_mc(v, opts, 2 if opts.size() == 4 else 3)
+
+static func _letters(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_letters"))
+	var parts: Array = d.get("seq", []).duplicate()
+	parts.append("?")
+	v.add_child(_label("   ".join(parts), 44, Color.WHITE))
+	_mc(v, d.get("options", []), 4)
+
+static func _funcmachine(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_funcmachine"))
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 24)
+	grid.add_theme_constant_override("v_separation", 6)
+	for head in [T.t("fm_in"), "", T.t("fm_out")]:
+		grid.add_child(_label(head, 22, FG2, 120))
+	var rows: Array = d.get("ex", []).duplicate()
+	rows.append([d.get("x", 0), "?"])
+	for row in rows:
+		var last: bool = str(row[1]) == "?"
+		var col := v.accent if last else Color.WHITE
+		grid.add_child(_label(str(int(row[0])), 40, col, 120))
+		grid.add_child(_label("→", 40, FG2, 60))
+		grid.add_child(_label("?" if last else str(int(row[1])), 40, col, 120))
+	v.add_child(_center(grid))
+	_numpad(v)
+
+static func _operators(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_operators"))
+	var nums: Array = d.get("nums", [])
+	var parts: Array = []
+	for i in nums.size():
+		if i:
+			parts.append("_")
+		parts.append(str(int(nums[i])))
+	v.add_child(_label("  ".join(parts) + "  =  " + str(int(d.get("r", 0))), 44, Color.WHITE))
+	var opts: Array = []
+	for o in d.get("options", []):
+		opts.append("   ".join(o))
+	_mc(v, opts, 2)
+
+static func _fraccmp(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_fraccmp"))
+	var grid := _mc(v, d.get("options", []), 2, true, 140)
+	for b in grid.get_children():
+		b.add_theme_font_size_override("font_size", 46)
+
+static func _wordprob(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("text", "")])
+	_prompt(v, T.t("q_wordprob"))
+	_numpad(v)
+
+static func _dice(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("text", "")])
+	_mc(v, d.get("options", []), 4)
+
+static func _sudoku(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_sudoku"))
+	var n := int(d.get("n", 4))
+	var bh := int(d.get("bh", 2))
+	var bw := int(d.get("bw", 2))
+	var grid: Array = d.get("grid", [])
+	var tgt: Array = d.get("target", [0, 0])
+	var accent := v.accent
+	var cell := minf(70.0, (minf(W, 520.0) - 8.0) / n)
+	var paint := func(ci: CanvasItem, sz: Vector2) -> void:
+		var o := (sz - Vector2(cell, cell) * n) / 2.0
+		var font := ThemeDB.fallback_font
+		for r in n:
+			for c in n:
+				var rect := Rect2(o + Vector2(c, r) * cell, Vector2(cell, cell))
+				var is_t: bool = r == int(tgt[0]) and c == int(tgt[1])
+				ci.draw_rect(rect, Color(accent, 0.3) if is_t else PANEL)
+				ci.draw_rect(rect, Color("#3B3B57"), false, 1.0)
+				var val := int(grid[r][c])
+				var txt := "?" if is_t else (str(val) if val else "")
+				if txt != "":
+					ci.draw_string(font, rect.position + Vector2(0, cell * 0.7), txt, HORIZONTAL_ALIGNMENT_CENTER, cell, int(cell * 0.55), accent if is_t else Color.WHITE)
+		for r in range(0, n + 1, bh):
+			ci.draw_line(o + Vector2(0, r * cell), o + Vector2(n * cell, r * cell), Color("#A9A9C4"), 3.0)
+		for c in range(0, n + 1, bw):
+			ci.draw_line(o + Vector2(c * cell, 0), o + Vector2(c * cell, n * cell), Color("#A9A9C4"), 3.0)
+	v.add_child(_center(_canvas(paint, Vector2(cell * n + 8, cell * n + 8))))
+	var opts: Array = []
+	for i in n:
+		opts.append(str(i + 1))
+	_mc(v, opts, n if n <= 4 else 3, true)

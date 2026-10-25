@@ -12,6 +12,7 @@ import { pKey, pMir, pRotN, type Poly, tvKey, tvTop } from "../_shared/gens/spa.
 import { loneCreatures, NAT_CANDS } from "../_shared/gens/nat.ts";
 import { NONE_FOLLOWS, syTrue } from "../_shared/gens/exi.ts";
 import { ANA, CATS, EMO_KEYS, FALLACY_NAMES } from "../_shared/gens/data.ts";
+import { CHECKS2 } from "./gens2_checks.ts";
 
 const SEEDS = Number(Deno.env.get("GEN_SEEDS") ?? 150);
 const LANGS: Lang[] = ["en", "es"];
@@ -235,8 +236,10 @@ function syllogism(it: Item) {
 }
 
 /* ------------ the test ------------ */
-Deno.test("there are 27 generators and each has a uniqueness check", () => {
-  assertEquals(ALL_IDS.length, 27);
+Object.assign(CHECKS, CHECKS2);
+
+Deno.test("there are 37 generators (the prototype's 27 + 10 LOG) and each has a uniqueness check", () => {
+  assertEquals(ALL_IDS.length, 37);
   for (const id of ALL_IDS) assert(CHECKS[id], `no check for ${id}`);
 });
 

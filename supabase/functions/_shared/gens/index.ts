@@ -1,5 +1,7 @@
-// All 27 generators, registered in GENS by id. Import this (not the section files).
+// All generators, registered in GENS by id. Import this (not the section files).
+// The prototype's 27, then the sets added since (served by client version: engine.ts secGens).
 import "./log.ts";
+import "./log2.ts";
 import "./spa.ts";
 import "./lin.ts";
 import "./mus.ts";

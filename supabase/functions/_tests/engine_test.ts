@@ -115,3 +115,14 @@ Deno.test("Blitz batches are deterministic per seed, scope and language", () => 
   const secs = new Set(a.slice(0, 8).map((x) => x.sec));
   assertEquals(secs.size, 8); // the section bag deals all 8 before repeating
 });
+
+Deno.test("generator version: packs that send no gv never get an added generator; gv 1 gets the LOG set", () => {
+  const added = new Set(["symsum", "scales", "ordering", "letters", "funcmachine", "operators", "fraccmp", "wordprob", "dice", "sudoku"]);
+  const seen0 = new Set<string>(), seen1 = new Set<string>();
+  for (let seed = 1; seed <= 400; seed++) {
+    seen0.add(nextIqItem("LOG", "en", [], newIqState(seed)).gid);
+    seen1.add(nextIqItem("LOG", "es", [], newIqState(seed, { gv: 1 })).gid);
+  }
+  assert(![...seen0].some((g) => added.has(g)), `gv 0 got ${[...seen0]}`);
+  assert([...added].every((g) => seen1.has(g)), `gv 1 missed some: ${[...seen1]}`);
+});
