@@ -39,7 +39,8 @@ const INNER := {
 	"fol_steps": "Footsteps behind me. When I slow down, they slow down.",
 	"fol_stop": "I stop. They stop. Someone is following me.",
 	"fol_lane": "That side lane. If I wait round the corner, he will have to come to me.",
-	"door_followed": "Not with someone behind me. I need to know who it is first.",
+	"door_followed": "Not with someone behind me. I need to know who it is first. If I wait round the corner of that side lane by the bakery, he will have to come to me.",
+	"bar_late": "The pub has not opened yet. I walk the streets until it gets dark, and come back.",
 	"wit_wait": "Not yet. Something is wrong with that coat, and the matches are still on the nightstand.",
 	"matches_take": "I put the box of matches in my pocket.",
 	"sense_lamps": "The gas lamps are far too bright. They hurt my eyes.",
@@ -129,7 +130,7 @@ const MISSIONS := {
 	"follower": "Find out who is following you",
 	"show_matches": "Go home with him and look at the coat again",
 	"cigar": "Go to the cigar shop by the harbor",
-	"priest": "Go with the shopkeeper to the old priest",
+	"priest": "Talk to the shopkeeper in the cigar shop",
 	"to_priest": "Follow the shopkeeper to the priest's house",
 	"priest_in": "Go into the priest's house",
 }

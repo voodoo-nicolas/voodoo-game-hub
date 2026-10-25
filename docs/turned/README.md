@@ -28,7 +28,7 @@ The path of the slice: wake in bed → A (sit up) → A (wipe your face) → the
 
 ## Test it
 ```bash
-godot --headless --path . --script res://tools/test_turned.gd      # 1693 checks: tuning, maps, rules, the whole slice, touch overlay, day/night, Scene mode, the painted house rooms
+godot --headless --path . --script res://tools/test_turned.gd      # 1699 checks: tuning, maps, rules, the whole slice, touch overlay, day/night, Scene mode, the painted house rooms
 godot --headless --path . --script res://tools/playthrough_turned.gd   # a bot plays new game -> the vine house like a player and prints the screenplay; STUCK = a soft lock (about 3 min)
 python tools/hub.py check
 python tools/hub.py test turned

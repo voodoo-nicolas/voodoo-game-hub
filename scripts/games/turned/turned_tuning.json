@@ -71,6 +71,10 @@
     "companion_speed_mult": 1.25,
     "hall": [110.0, 372.0]
   },
+  "bar": {
+    "opens_hour": 19.5,
+    "arrive_hour": 20.5
+  },
   "shop": {
     "blackout_hold_s": 2.5,
     "wake_hour": 23.75

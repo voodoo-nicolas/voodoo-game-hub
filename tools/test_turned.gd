@@ -1310,6 +1310,7 @@ func _test_bar() -> void:
 	check(world.area.id == "bar" and world.mode == "dialogue", "inside The Crooked Lantern the scene starts by itself")
 	check(world.dlg.view()["speaker"] == "tavernkeep" and world.dlg.view()["text"] == Text.DIALOGUE["bar_shout"], "the tavernkeep shouts")
 	var hour_in: float = world.clock.hour
+	check(absf(hour_in - 20.5) < 0.05, "going in at 14:00 the day passes until the pub opens: it is 20:30 inside (%.2f)" % hour_in)
 	# the patrons turn their backs on you
 	var patron: Node2D = null
 	var dist := INF
@@ -1380,6 +1381,7 @@ func _test_follower() -> void:
 	world.press_a()
 	_step(0.2)
 	check(world.mode == "play" and hud.caption_text() == Text.INNER["door_followed"], "no going home with someone behind you")
+	check(world.engine.mission == "follower" and Text.INNER["door_followed"].contains("side lane"), "...and the refusal points at the side lane and sets the mission")
 	# the man steps out of the bar
 	await _street_world_after_bar()
 	world._on_area_ready()
@@ -1609,6 +1611,10 @@ func _test_scene6() -> void:
 	_step(0.2)
 	check(world.engine.day == 2, "the sun is one level worse from now on (day 2)")
 	check(world._follower != null and world._fol_state == "leader" and world._owner_light != null, "the shopkeeper walks ahead with his oil lamp")
+	var night_hour: float = world.clock.hour
+	_step(20.0)
+	check(is_equal_approx(world.clock.hour, night_hour), "on the night road time does not pass: dawn cannot come")
+	check(Text.MISSIONS["priest"] == "Talk to the shopkeeper in the cigar shop", "the mission after the storeroom says where he is")
 	# the priest, told on the way
 	world.player.position = Vector2(110, 245)
 	_walk_into_scene(Vector2.RIGHT)

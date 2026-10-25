@@ -492,7 +492,7 @@ func _process(delta: float) -> void:
 		return
 	delta = minf(delta, 0.1)
 	_t += delta
-	if mode == "play" and (not area.indoor or T.b("sun.run_indoors")):
+	if mode == "play" and (not area.indoor or T.b("sun.run_indoors")) and not _night_is_held():
 		clock.advance(delta)
 	_run_pending(delta)
 	match mode:
@@ -504,6 +504,11 @@ func _process(delta: float) -> void:
 		"dialogue": _tick_dialogue(delta)
 		"scene": player.moving = false
 	_tick_visuals(delta)
+
+## The story's night: on the night road, and from the house door on (until the priest's house is
+## written), time does not pass, so dawn cannot come and burn you while you read or wait.
+func _night_is_held() -> bool:
+	return area.id == "night_road" or engine.has_flag("house_reached")
 
 func _after(seconds: float, fn: Callable) -> void:
 	_pending.append([seconds, fn])
@@ -842,7 +847,10 @@ func _interact(c: Dictionary) -> void:
 				_go_area("street", "from_house", true)
 		"house_door":
 			if engine.has_flag("followed") and not engine.has_flag("witness_met"):
-				hud.say(Text.INNER["door_followed"])
+				hud.say(Text.INNER["door_followed"], "inner", "", 6.0)
+				if engine.mission != "follower":
+					engine.set_mission("follower")
+				engine.set_flag("fol_h3")                # the hint about the lane is in the line itself
 			else:
 				TSfx.play(self, "door", -4.0)
 				_go_area("house_down", "from_street", false)
@@ -858,7 +866,12 @@ func _interact(c: Dictionary) -> void:
 				hud.say(Text.INNER["bar_locked"])
 			else:
 				TSfx.play(self, "door", -4.0)
-				_go_area("bar", "from_street", true)
+				if clock.hour >= T.f("moon.set_hour") and clock.hour < T.f("bar.opens_hour"):
+					hud.say(Text.INNER["bar_late"])       # the note says night: the day passes until the pub opens
+					_go_area("bar", "from_street", true)
+					_tr_hour = T.f("bar.arrive_hour")
+				else:
+					_go_area("bar", "from_street", true)
 		"matches":
 			engine.add_item("matches")
 			TSfx.play(self, "pickup", -4.0)
