@@ -148,3 +148,14 @@ Deno.test("generator version 3 adds the LIN set; gv 2 never gets it", () => {
   assert(![...seen2].some((g) => added.has(g)), `gv 2 got ${[...seen2]}`);
   assert([...added].every((g) => seen3.has(g)), `gv 3 missed some: ${[...seen3]}`);
 });
+
+Deno.test("generator version 4 adds the MUS set; gv 3 never gets it", () => {
+  const added = new Set(["rhythm", "transpose", "beat", "contour", "cadence", "consonance"]);
+  const seen3 = new Set<string>(), seen4 = new Set<string>();
+  for (let seed = 1; seed <= 400; seed++) {
+    seen3.add(nextIqItem("MUS", "en", [], newIqState(seed, { gv: 3 })).gid);
+    seen4.add(nextIqItem("MUS", "es", [], newIqState(seed, { gv: 4 })).gid);
+  }
+  assert(![...seen3].some((g) => added.has(g)), `gv 3 got ${[...seen3]}`);
+  assert([...added].every((g) => seen4.has(g)), `gv 4 missed some: ${[...seen4]}`);
+});

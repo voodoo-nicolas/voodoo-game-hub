@@ -21,9 +21,9 @@ const FG2 := Color("#A8A8C0")
 static var W := 680.0
 ## The highest generator version this pack can draw, sent with session-start
 ## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set, 3 = the
-## second LIN set (2026-10-25). Raise it only together with the views for the
-## generators that version adds.
-const GV := 3
+## second LIN set, 4 = the second MUS set (2026-10-25). Raise it only together with
+## the views for the generators that version adds.
+const GV := 4
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -63,7 +63,7 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"oddword", "oddquick": _oddword(v, d)
 		"anagram": _anagram(v, d)
 		"analogy": _analogy(v, d)
-		"pitch", "pitchhl", "melody", "chord": _music(v, gid, d, blitz)
+		"pitch", "pitchhl", "melody", "chord", "rhythm", "transpose", "beat", "contour", "cadence", "consonance": _music(v, gid, d, blitz)
 		"natclass": _natclass(v, d)
 		"natodd", "natquick": _natodd(v, d)
 		"tap": _tap(v, d)
@@ -466,14 +466,15 @@ static func _analogy(v: ItemView, d: Dictionary) -> void:
 
 # ------------------------------------------------------------------ MUS
 
-## Play button; the options unlock once the clip has played. Replays per the
-## server (practice / IQ: one replay; Blitz: none, autoplay).
+## Play button; the options unlock once the clip has played. Replay as often as
+## you like. rhythm .. consonance are the second set (gv 4, server gens/mus2.ts).
 static func _music(v: ItemView, gid: String, d: Dictionary, _blitz: bool) -> void:
 	match gid:
 		"pitch": _prompt(v, T.t("q_pitch"))
 		"pitchhl": _prompt(v, T.t("q_pitchhl"))
 		"melody": _prompt(v, T.t("q_melody"), T.t("q_melody_sub"))
-		_: _prompt(v, T.t("q_chord"))
+		"chord": _prompt(v, T.t("q_chord"))
+		_: _prompt(v, T.t("q_" + gid))
 	var clip: Array = Audio.item_clip(gid, d)
 	var player := AudioStreamPlayer.new()
 	player.stream = clip[0]
@@ -506,6 +507,27 @@ static func _music(v: ItemView, gid: String, d: Dictionary, _blitz: bool) -> voi
 				opts.append(T.t("note") + " " + str(i + 1))
 			cols = mini(n, 5)
 			no_letter = true
+		"rhythm":
+			opts = [T.t("mu_same"), T.t("mu_diff")]
+			cols = 2
+		"transpose":
+			opts = [T.t("mu_sametune"), T.t("mu_difftune")]
+			cols = 2
+		"beat":
+			opts = [T.t("mu_on"), T.t("mu_off")]
+			cols = 2
+		"cadence":
+			opts = [T.t("mu_tune1"), T.t("mu_tune2")]
+			cols = 2
+		"consonance":
+			opts = [T.t("mu_chord1"), T.t("mu_chord2")]
+			cols = 2
+		"contour":
+			var accent := v.accent
+			for o in d.get("options", []):
+				var hs: Array = o
+				opts.append(_canvas(func(ci, sz): _contour_draw(ci, hs, sz, accent), Vector2(110, 70)))
+			cols = 2
 		_:
 			opts = ["1", "2", "3", "4"]
 			no_letter = true
@@ -535,6 +557,22 @@ static func _music(v: ItemView, gid: String, d: Dictionary, _blitz: bool) -> voi
 		var tw := v.create_tween()
 		tw.tween_interval(0.25)
 		tw.tween_callback(play)
+
+## A melody's shape: one dot per note, joined, highest at the top.
+static func _contour_draw(ci: CanvasItem, hs: Array, sz: Vector2, col: Color) -> void:
+	var lo := INF
+	var hi := -INF
+	for h in hs:
+		lo = minf(lo, float(h))
+		hi = maxf(hi, float(h))
+	var pts := PackedVector2Array()
+	for i in hs.size():
+		var x := 10.0 + (sz.x - 20.0) * i / maxf(1, hs.size() - 1)
+		var y := sz.y - 8.0 - (sz.y - 16.0) * (float(hs[i]) - lo) / maxf(1.0, hi - lo)
+		pts.append(Vector2(x, y))
+	ci.draw_polyline(pts, col, 4.0, true)
+	for p in pts:
+		ci.draw_circle(p, 5.0, Color.WHITE)
 
 # ------------------------------------------------------------------ NAT
 

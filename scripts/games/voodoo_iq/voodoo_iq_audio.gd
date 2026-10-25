@@ -87,6 +87,56 @@ static func item_clip(gid: String, d: Dictionary) -> Array:
 			for i in notes.size():
 				tones.append([midi_f(notes[i]), i * 0.22, 2.0 - i * 0.22, 0.16, "triangle"])
 			length = 2.1
+		# second set (gv 4, server gens/mus2.ts)
+		"rhythm":
+			var unit: float = d.get("unit", 0.15)
+			var bar: float = float(d.get("slots", 16)) * unit
+			for x in d.get("a", []):
+				tones.append([midi_f(88), float(x) * unit, 0.08, 0.25, "triangle"])
+			for x in d.get("b", []):
+				tones.append([midi_f(88), bar + 0.9 + float(x) * unit, 0.08, 0.25, "triangle"])
+			length = bar * 2 + 0.9
+		"transpose":
+			var step := 0.42
+			var n1: Array = d.get("notes1", [])
+			for i in n1.size():
+				tones.append([midi_f(n1[i]), i * step, 0.34, 0.22, "triangle"])
+			var t2 := n1.size() * step + 0.9
+			var n2: Array = d.get("notes2", [])
+			for i in n2.size():
+				tones.append([midi_f(n2[i]), t2 + i * step, 0.34, 0.22, "triangle"])
+			length = t2 + n2.size() * step
+		"beat":
+			var iv: float = d.get("interval", 0.55)
+			var off: float = d.get("offset", 0.0)
+			var beats := int(d.get("beats", 8))
+			for i in beats:
+				var t := 0.3 + i * iv
+				tones.append([midi_f(43), t, 0.18, 0.45, "triangle"])
+				tones.append([midi_f(96), t + off, 0.05, 0.12, "square"])
+			length = 0.3 + beats * iv
+		"contour":
+			var notes: Array = d.get("notes", [])
+			for i in notes.size():
+				tones.append([midi_f(notes[i]), i * 0.42, 0.36, 0.22, "triangle"])
+			length = notes.size() * 0.42
+		"cadence":
+			for m in d.get("chord", []):
+				tones.append([midi_f(m), 0.0, 1.1, 0.1, "triangle"])
+			var t := 1.6
+			for key in ["a", "b"]:
+				var ph: Array = d.get(key, [])
+				for i in ph.size():
+					var last := i == ph.size() - 1
+					tones.append([midi_f(ph[i]), t + i * 0.4, 0.8 if last else 0.34, 0.22, "triangle"])
+				t += ph.size() * 0.4 + 1.5
+			length = t - 1.0
+		"consonance":
+			for m in d.get("chord1", []):
+				tones.append([midi_f(m), 0.0, 1.4, 0.12, "triangle"])
+			for m in d.get("chord2", []):
+				tones.append([midi_f(m), 2.0, 1.4, 0.12, "triangle"])
+			length = 3.4
 	return [render(tones), length]
 
 ## Headphone check: 440 Hz then 660 Hz.

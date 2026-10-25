@@ -7,6 +7,7 @@ import "./spa2.ts";
 import "./lin.ts";
 import "./lin2.ts";
 import "./mus.ts";
+import "./mus2.ts";
 import "./nat.ts";
 import "./kin.ts";
 import "./int.ts";
