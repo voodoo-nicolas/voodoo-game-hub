@@ -7,7 +7,7 @@
 //   conf:      SELF only: 0.25 | 0.5 | 0.75 | 1 (not for a "Will you remember?" trial, whose
 //              value is { g: guess, picks: [...] }; its guess and score go to sessions.state.recall)
 // -> { next_item, fb? }   or   { done: true, result } once past the server deadline.
-//   fb:        practice tests only: { seq, u, key, minMs, rapid, timeout, hidden } (engine.ts
+//   fb:        practice tests only: { seq, u, key, minMs, rapid, timeout, hidden, why? } (engine.ts
 //              practiceFeedback), so the player sees right / wrong and the right answer
 //
 // The answer must be for the item currently pending (409 out_of_order otherwise). In a
@@ -66,5 +66,5 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   must(await db.from("sessions").update({ state: s.state, flags: s.flags }).eq("id", s.id));
   const next_item = publicItem(item, seq + 1);
   if (s.ranked || s.kind !== "normal") return { next_item };
-  return { next_item, fb: practiceFeedback(seq, p.answer_key.key, p.answer_key.minMs, j) };
+  return { next_item, fb: practiceFeedback(seq, p.answer_key.key, p.answer_key.minMs, j, p.answer_key.why) };
 }

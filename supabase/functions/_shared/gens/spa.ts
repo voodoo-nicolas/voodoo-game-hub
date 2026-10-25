@@ -1,6 +1,6 @@
 // SPATIAL: topview, rotation, rotquick, corsi. Ported 1:1 from the prototype, except
 // topview's right answer (tvView, 2026-10-25: the prototype's was the mirror image).
-import { defGen, GENS, mkItem } from "./registry.ts";
+import { defGen, GENS, mkItem, say } from "./registry.ts";
 
 /* --- Top view of a cube stack (isometric) --- */
 export type Stack = number[][][]; // [row][col] -> colors bottom..top
@@ -75,7 +75,11 @@ defGen({
       if (keys.size !== 5) continue;
       const order = r.shuffle([0, 1, 2, 3, 4]);
       const ansIdx = order.indexOf(0);
-      return mkItem(this, d, { display: { stack, options: order.map((i) => all[i]) }, key: { t: "idx", v: ansIdx, rev: 2 } });
+      const wrongs = d <= 4 ? ["turned", "mirrored", "turned upside down", "with one colour changed"] : d <= 7 ? ["mirrored", "turned upside down", "with one colour changed", "with two colours swapped"] : ["with two colours swapped", "with one colour changed", "with two other colours swapped", "turned and mirrored"];
+      const wrongsEs = d <= 4 ? ["girada", "espejada", "dada vuelta", "con un color cambiado"] : d <= 7 ? ["espejada", "dada vuelta", "con un color cambiado", "con dos colores intercambiados"] : ["con dos colores intercambiados", "con un color cambiado", "con otros dos colores intercambiados", "girada y espejada"];
+      const why = say(ctx.lang, `From straight above you see only the top cube of each column, in the same place as on the floor grid (the front edge at the bottom). The right picture matches every column. The others are the view ${wrongs.join(", ")}.`,
+        `Desde arriba se ve solo el cubo de más arriba de cada columna, en el mismo lugar que en la cuadrícula del piso (el borde de adelante abajo). La imagen correcta coincide en todas las columnas. Las otras son la vista ${wrongsEs.join(", ")}.`);
+      return mkItem(this, d, { display: { stack, options: order.map((i) => all[i]) }, key: { t: "idx", v: ansIdx, rev: 2 }, why });
     }
     return GENS.rotation.make(d, r, ctx);
   },
@@ -111,37 +115,45 @@ export function chiralPoly(m: number, r: import("../rng.ts").Rng): Poly {
 }
 defGen({
   id: "rotation", sec: "SPA", a: 1.4, k: 4, minMs: 1200, maxMs: 40000,
-  make(d, r) {
+  make(d, r, ctx) {
     const m = [4, 5, 5, 6, 6, 7, 8, 9, 10, 11][d - 1];
     const p = chiralPoly(m, r);
-    const correct = pRotN(p, r.int(1, 3));
+    const turns = r.int(1, 3);
+    const correct = pRotN(p, turns);
     const ks = r.shuffle([0, 1, 2, 3]).slice(0, 3);
     const dist = ks.map((k) => pRotN(pMir(p), k));
     const all = [correct, ...dist];
     const order = r.shuffle([0, 1, 2, 3]);
     const ansIdx = order.indexOf(0);
-    return mkItem(this, d, { display: { target: pNorm(p), options: order.map((i) => pNorm(all[i])) }, key: { t: "idx", v: ansIdx } });
+    const why = say(ctx.lang, `The right one is the same shape turned ${turns * 90}°. The other three are mirror images: they would have to be flipped over, not just turned, to match.`,
+      `La correcta es la misma figura girada ${turns * 90}°. Las otras tres son su imagen en el espejo: habría que darlas vuelta, no solo girarlas, para que coincidan.`);
+    return mkItem(this, d, { display: { target: pNorm(p), options: order.map((i) => pNorm(all[i])) }, key: { t: "idx", v: ansIdx }, why });
   },
 });
 /* Blitz quick version: same or mirror? */
 defGen({
   id: "rotquick", sec: "SPA", a: 1.2, k: 2, minMs: 400, maxMs: 15000, w: 2,
-  make(d, r) {
+  make(d, r, ctx) {
     const p = chiralPoly(r.int(5, 6), r);
     const same = r.chance(.5);
-    const q = pRotN(same ? p : pMir(p), r.int(1, 3));
+    const turns = r.int(1, 3);
+    const q = pRotN(same ? p : pMir(p), turns);
     const ans = same ? 0 : 1;
-    return mkItem(this, d, { display: { left: pNorm(p), right: pNorm(q) }, key: { t: "idx", v: ans } });
+    const why = same
+      ? say(ctx.lang, `The right shape is the left one turned ${turns * 90}°: the same shape.`, `La figura de la derecha es la de la izquierda girada ${turns * 90}°: la misma figura.`)
+      : say(ctx.lang, `The right shape is the left one flipped over (a mirror image), then turned ${turns * 90}°. Turning alone can't make them match.`, `La figura de la derecha es la de la izquierda dada vuelta (en espejo) y girada ${turns * 90}°. Solo girándola no coinciden.`);
+    return mkItem(this, d, { display: { left: pNorm(p), right: pNorm(q) }, key: { t: "idx", v: ans }, why });
   },
 });
 
 /* --- Corsi block tapping (visuospatial memory); block positions are fixed client-side (CORSI_POS) --- */
 defGen({
   id: "corsi", sec: "SPA", a: 1.3, k: 0, minMs: 0, maxMs: 25000,
-  make(d, r) {
+  make(d, r, ctx) {
     const len = [3, 3, 4, 4, 5, 5, 6, 7, 8, 9][d - 1];
     const seq: number[] = [];
     while (seq.length < len) { const x = r.int(0, 8); if (x !== seq[seq.length - 1]) seq.push(x); }
-    return mkItem(this, d, { deferTimer: true, display: { seq }, key: { t: "str", v: seq.join(""), strict: true } });
+    const why = say(ctx.lang, `${len} blocks lit up, one after another. The numbers on the blocks show the order they lit up in, which is the order to tap them.`, `Se iluminaron ${len} bloques, uno tras otro. Los números en los bloques muestran el orden en que se iluminaron, que es el orden para tocarlos.`);
+    return mkItem(this, d, { deferTimer: true, display: { seq }, key: { t: "str", v: seq.join(""), strict: true }, why });
   },
 });

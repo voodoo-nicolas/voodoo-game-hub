@@ -1,7 +1,7 @@
 // EXISTENTIAL, second set (2026-10-25; NOT in the prototype): wason (turn the cards),
 // necsuf (needed or enough), assume (what's assumed), contradict (says and unsays),
 // crt (think twice). Logic, not beliefs. Served only to clients that send gv >= 7.
-import { type Ctx, defGen, type GenDef, type Lang, mkItem } from "./registry.ts";
+import { type Ctx, defGen, type GenDef, type Lang, mkItem, say } from "./registry.ts";
 import type { Rng } from "../rng.ts";
 import { ASSUME, CONTRA, DEONTIC, NECSUF_DOMAINS } from "./exi2_data.ts";
 import { tierOf } from "./lin2.ts";
@@ -62,7 +62,10 @@ defGen({
       turn = cards.map((c) => { const isL = /[A-Z]/.test(c); return isL === pSideL ? isCat(pCat, c) : !isCat(must, c); });
     }
     const ans = turn.map((t, i) => (t ? i : -1)).filter((i) => i >= 0).join(",");
-    return mkItem(this, d, { display: { rule, note, cards }, key: { t: "str", v: ans, strict: true }, meta: { turn } });
+    const pick = cards.filter((_, i) => turn[i]).join(", ");
+    const why = say(ctx.lang, `Turn over only the cards that could break the rule: ${pick}. A card breaks it only if one side has the “if” part and the other side lacks the “then” part. Whatever is on the back of the other cards, they can't break it.`,
+      `Hay que dar vuelta solo las cartas que podrían romper la regla: ${pick}. Una carta la rompe solo si de un lado tiene la parte del “si” y del otro le falta la parte del “entonces”. Tengan lo que tengan atrás, las demás no pueden romperla.`);
+    return mkItem(this, d, { display: { rule, note, cards }, key: { t: "str", v: ans, strict: true }, meta: { turn }, why });
   },
 });
 
@@ -95,6 +98,12 @@ defGen({
     return mkItem(this, d, {
       display: { rule: F[form].replaceAll("{a}", a).replaceAll("{c}", c), q: F.q.replace("{c}", c), options },
       key: { t: "idx", v: options.indexOf(NS_ANSWER[form]) }, meta: { form },
+      why: {
+        need: say(ctx.lang, `Without ${c} you can't, so ${c} is needed. But the rule never says that ${c} on its own is enough.`, `Sin ${c} no se puede, así que ${c} es necesario. Pero la regla nunca dice que ${c} solo alcance.`),
+        enough: say(ctx.lang, `Having ${c} is enough. But the rule doesn't say it's the only way, so it isn't necessarily needed.`, `Tener ${c} alcanza. Pero la regla no dice que sea la única forma, así que no es necesariamente necesario.`),
+        both: say(ctx.lang, `Having ${c} is enough, and nobody without it can: it is needed and enough.`, `Tener ${c} alcanza, y nadie sin eso puede: es necesario y suficiente.`),
+        neither: say(ctx.lang, `Some people with ${c} can't and some without it can, so it is neither needed nor enough.`, `Algunos con ${c} no pueden y algunos sin eso sí, así que no es ni necesario ni suficiente.`),
+      }[NS_ANSWER[form]],
     });
   },
 });
@@ -105,7 +114,8 @@ defGen({
   make(d, r, ctx) {
     const [arg, ans, wrong] = pickFrom(this, ASSUME, d, r, ctx);
     const options = r.shuffle([ans, ...wrong]);
-    return mkItem(this, d, { display: { argument: arg, options }, key: { t: "idx", v: options.indexOf(ans) }, meta: { ans } });
+    const why = say(ctx.lang, `The argument only works if “${ans}” is true, and it never says so: that is the hidden step. The other options may be true, but the argument doesn't depend on them.`, `El argumento solo funciona si “${ans}” es verdad, y nunca lo dice: ese es el paso escondido. Las otras opciones pueden ser ciertas, pero el argumento no depende de ellas.`);
+    return mkItem(this, d, { display: { argument: arg, options }, key: { t: "idx", v: options.indexOf(ans) }, meta: { ans }, why });
   },
 });
 defGen({
@@ -113,7 +123,8 @@ defGen({
   make(d, r, ctx) {
     const [ans, wrong] = pickFrom(this, CONTRA, d, r, ctx);
     const options = r.shuffle([ans, ...wrong]);
-    return mkItem(this, d, { display: { options }, key: { t: "idx", v: options.indexOf(ans) }, meta: { ans } });
+    const why = say(ctx.lang, `“${ans}” undoes itself: one part of it rules out the other. Each of the other three can be true as it stands.`, `“${ans}” se contradice: una parte anula a la otra. Cada una de las otras tres puede ser cierta tal como está.`);
+    return mkItem(this, d, { display: { options }, key: { t: "idx", v: options.indexOf(ans) }, meta: { ans }, why });
   },
 });
 
@@ -152,6 +163,22 @@ export const CRT: { id: string; tier: number; make: (r: Rng) => { p: number[] } 
     text: { en: ([b, w]) => `A drawer has ${b} black socks and ${w} white socks, all mixed up. In the dark, how many socks must you take out to be sure of a matching pair?`, es: ([b, w]) => `En un cajón hay ${b} medias negras y ${w} blancas, todas mezcladas. A oscuras, ¿cuántas medias tenés que sacar para estar seguro de tener un par del mismo color?` },
     ans: () => 3 },
 ];
+/** Why the quick answer is wrong and the slow one is right, per CRT template. */
+function crtWhy(id: string, p: number[], ans: number, lang: Lang): string {
+  switch (id) {
+    case "sheep": return say(lang, `“All but ${p[1]} run away” means ${p[1]} stay behind.`, `“Se escapan todas menos ${p[1]}” quiere decir que quedan ${p[1]}.`);
+    case "race": return say(lang, `Passing the runner in ${ORD_EN(p[0])} place puts you in their place: ${ORD_EN(p[0])}, not ${ORD_EN(p[0] - 1)}.`, `Al pasar al que va en el puesto ${p[0]}, quedás en su lugar: el ${p[0]}, no el ${p[0] - 1}.`);
+    case "eggs": return say(lang, `The eggs boil at the same time, so it still takes ${p[0]} minutes.`, `Los huevos se hierven al mismo tiempo, así que sigue llevando ${p[0]} minutos.`);
+    case "widgets": return say(lang, `Each machine makes one toy in ${p[1]} minutes, so ${p[2]} machines make ${p[2]} toys in the same ${p[1]} minutes.`, `Cada máquina hace un juguete en ${p[1]} minutos, así que ${p[2]} máquinas hacen ${p[2]} juguetes en los mismos ${p[1]} minutos.`);
+    case "lilies": return say(lang, `It doubles every day, so one day before it covers the pond it covers half of it: ${p[0]} − 1 = ${ans}.`, `Se duplica cada día, así que un día antes de cubrir la laguna cubre la mitad: ${p[0]} − 1 = ${ans}.`);
+    case "cuts": return say(lang, `Each cut adds one piece, and you start with one: ${p[0]} pieces need ${ans} cuts.`, `Cada corte suma un pedazo, y empezás con uno: ${p[0]} pedazos necesitan ${ans} cortes.`);
+    case "batball": { const total = p[1] + 2 * p[2];
+      return say(lang, `If the cheaper one costs x, the other costs x + ${p[1]}. Together: 2x + ${p[1]} = ${total}, so x = ${ans} (not ${total - p[1]}: then the difference would only be ${total - 2 * (total - p[1])}).`, `Si el más barato cuesta x, el otro cuesta x + ${p[1]}. Juntos: 2x + ${p[1]} = ${total}, así que x = ${ans} (no ${total - p[1]}: así la diferencia sería solo ${total - 2 * (total - p[1])}).`); }
+    case "fence": return say(lang, `${p[0]} ÷ ${p[1]} = ${p[0] / p[1]} gaps between posts, and a straight fence has one more post than gaps: ${ans}.`, `${p[0]} ÷ ${p[1]} = ${p[0] / p[1]} espacios entre postes, y un alambrado recto tiene un poste más que espacios: ${ans}.`);
+    case "socks": return say(lang, "There are only two colours, so among any 3 socks two must be the same colour. The numbers of socks don't matter.", "Hay solo dos colores, así que entre 3 medias cualesquiera dos tienen que ser del mismo color. La cantidad de medias no importa.");
+  }
+  return "";
+}
 defGen({
   id: "crt", sec: "EXI", a: 1.3, k: 0, minMs: 2500, maxMs: 70000,
   make(d, r, ctx) {
@@ -160,6 +187,6 @@ defGen({
     const c = r.pick(fresh.length ? fresh : pool);
     ctx.used.add("crt:" + c.id);
     const { p } = c.make(r);
-    return mkItem(this, d, { display: { text: c.text[ctx.lang](p) }, key: { t: "num", v: c.ans(p) }, meta: { id: c.id, p } });
+    return mkItem(this, d, { display: { text: c.text[ctx.lang](p) }, key: { t: "num", v: c.ans(p) }, meta: { id: c.id, p }, why: crtWhy(c.id, p, c.ans(p), ctx.lang) });
   },
 });

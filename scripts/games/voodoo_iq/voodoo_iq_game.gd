@@ -1332,6 +1332,13 @@ func _answer_card(entry: Dictionary, v) -> VBoxContainer:
 	card.add_child(_label(m[0] + "  " + m[2], 34, m[1], 0, HORIZONTAL_ALIGNMENT_LEFT))
 	for line in Items.answer_lines(v, entry.item, entry.fb, entry.value, entry.skipped):
 		card.add_child(_label(str(line), 22, FG, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+	# why the right answer is right, written by the server's generator (practice only)
+	var why := str(entry.fb.get("why", ""))
+	if why != "":
+		var wb := _panel(Color(WARN, 0.6))
+		wb.add_child(_label("💡 " + tr("Why"), 22, WARN, 0, HORIZONTAL_ALIGNMENT_LEFT))
+		wb.add_child(_label(why, 22, FG, W - 80, HORIZONTAL_ALIGNMENT_LEFT))
+		card.add_child(_panel_of(wb))
 	var flag := _button(_flag_text(entry), _report.bind(entry), FG2, Vector2(0, 60), 22)
 	flag.set_meta("seq", int(entry.fb.get("seq", -1)))
 	flag.add_to_group("iq_flag")

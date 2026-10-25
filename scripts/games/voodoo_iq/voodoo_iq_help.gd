@@ -13,7 +13,7 @@ const HOW := [
 	"Speed Round: quick questions against the clock. Harder types earn more points, wrong multiple-choice answers lose a fraction, Skip costs 2 seconds.",
 	"Each new kind of question starts with untimed instructions; the clock is paused while you read.",
 	"Ranked counts for the leaderboards: your last 3 ranked tests in each section are combined, and a quit test still counts. Practice is never saved.",
-	"Practice shows the answers: after each question you see whether you were right and what the right answer was, and at the end 📝 Review answers lists every question. 🚩 reports a question that looks wrong so we can check it. Ranked tests never show answers.",
+	"Practice shows the answers: after each question you see whether you were right, what the right answer was and 💡 why, and at the end 📝 Review answers lists every question. 🚩 reports a question that looks wrong so we can check it. Ranked tests never show answers.",
 	"🏆 Leaderboards: the IQ board, the 9-Mind board, one board per section and the Speed Round bests, filtered by age, country and language. Nothing is capped or hidden: everyone is ranked by their real estimate, and ✓ marks scores with enough evidence behind them.",
 	"⏸ pauses a test: the clock stops and the question is hidden, and you can change the text size and sound there.",
 	"Can't play sound? The musical questions offer 🔇: skip them for the rest of the test (they count only for the Musical section) or end the test.",

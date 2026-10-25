@@ -1,6 +1,6 @@
 // EXISTENTIAL: reasoning about big questions (logic, not beliefs). Ported 1:1 from the prototype.
 // deno-lint-ignore-file no-explicit-any
-import { defGen, type GenDef, type Lang, mkItem } from "./registry.ts";
+import { defGen, type GenDef, type Lang, mkItem, say } from "./registry.ts";
 import type { Rng } from "../rng.ts";
 import { FALLACIES, FALLACY_NAMES, SY_TERMS } from "./data.ts";
 
@@ -67,12 +67,20 @@ function syllogismItem(g: GenDef, d: number, r: Rng, lang: Lang) {
   else { list = r.shuffle(inv.slice(0, 4)); ansIdx = -1; }
   const opts: string[] = list.map((c) => syText(lang, c, names));
   opts.push(NONE_FOLLOWS);
+  const none = ansIdx < 0;
   if (ansIdx < 0) ansIdx = opts.length - 1;
+  const pr = [syText(lang, it.p1, names), syText(lang, it.p2, names)];
+  const why = none
+    ? say(lang, `Draw each group as a circle. Both “${pr[0]}” and “${pr[1]}” can be drawn in more than one way, and each option is false in at least one of those drawings. So none of them has to be true.`,
+      `Dibujá cada grupo como un círculo. “${pr[0]}” y “${pr[1]}” se pueden dibujar de más de una manera, y cada opción es falsa en al menos uno de esos dibujos. Así que ninguna tiene que ser verdad.`)
+    : say(lang, `Draw each group as a circle. However you draw “${pr[0]}” and “${pr[1]}”, “${opts[ansIdx]}” is always true. Each other option is false in at least one drawing that fits both statements.`,
+      `Dibujá cada grupo como un círculo. Como sea que dibujes “${pr[0]}” y “${pr[1]}”, “${opts[ansIdx]}” siempre es verdad. Cada una de las otras es falsa en al menos un dibujo que cumple las dos frases.`);
   return mkItem(g, it.d, {
     lang, k: opts.length,
     display: { premises: [syText(lang, it.p1, names), syText(lang, it.p2, names)], options: opts },
     key: { t: "idx", v: ansIdx },
     meta: { p1: it.p1, p2: it.p2, props: [...list, null] },
+    why,
   });
 }
 defGen({ id: "syll", sec: "EXI", a: 1.4, k: 5, minMs: 2500, maxMs: 70000, make(d, r, ctx) { return syllogismItem(this, d, r, ctx.lang); } });
@@ -81,6 +89,26 @@ defGen({ id: "syllquick", sec: "EXI", a: 1.1, k: 5, minMs: 1200, maxMs: 30000, w
 /* Fallacies in arguments about life, meaning, belief, evidence. Options are fallacy keys
    (the client shows fal_<key> text). */
 const FALLACIES_: [number, string, string, string][] = FALLACIES as any;
+/** What each mistake in reasoning does, for `why`. */
+const FALLACY_WHY: Record<string, [string, string]> = {
+  adhom: ["It attacks the person instead of their argument: failing a class says nothing about whether her idea is right.", "Ataca a la persona en vez de a su argumento: haber reprobado una materia no dice nada sobre si su idea es correcta."],
+  dilemma: ["It offers only two choices when many others exist (for example, purposes people choose for themselves).", "Ofrece solo dos opciones cuando hay muchas más (por ejemplo, propósitos que cada uno elige)."],
+  slope: ["It claims one small step will lead to a disaster, without showing why each step must follow.", "Dice que un paso chico va a llevar a un desastre, sin mostrar por qué cada paso tiene que seguir al anterior."],
+  circular: ["It uses the thing it wants to prove as its own proof: the book is trusted because the book says so.", "Usa lo que quiere probar como su propia prueba: se le cree al libro porque el libro lo dice."],
+  posthoc: ["It assumes that because one thing came after another, the first caused it.", "Supone que, como una cosa vino después de otra, la primera la causó."],
+  hasty: ["It draws a general rule from far too few cases.", "Saca una regla general de muy pocos casos."],
+  bandwagon: ["It says something is true because many people believe it; popularity isn't evidence.", "Dice que algo es verdad porque mucha gente lo cree; que sea popular no es una prueba."],
+  nature: ["It assumes that whatever is natural must be good.", "Supone que todo lo natural tiene que ser bueno."],
+  straw: ["It twists the person's view into a more extreme one that is easier to attack.", "Deforma lo que piensa la persona en algo más extremo, más fácil de atacar."],
+  authority: ["It trusts someone famous on a topic they are not an expert in.", "Le cree a alguien famoso sobre un tema del que no es experto."],
+  tradition: ["It says something is true because people have always believed it.", "Dice que algo es verdad porque la gente siempre lo creyó."],
+  ignorance: ["It treats a lack of proof against something as proof for it.", "Toma la falta de pruebas en contra como si fuera una prueba a favor."],
+  composition: ["It assumes the whole must have the same property as each of its parts.", "Supone que el todo tiene que tener la misma propiedad que cada una de sus partes."],
+  tuquoque: ["It dismisses the claim because the person doesn't follow it themselves; that doesn't make the claim wrong.", "Descarta la idea porque la persona no la cumple; eso no la hace falsa."],
+  consequent: ["“If wise, then calm” doesn't mean “if calm, then wise”: people can be calm for other reasons.", "“Si es sabio, está tranquilo” no significa “si está tranquilo, es sabio”: se puede estar tranquilo por otras razones."],
+  quantifier: ["“Everyone has someone who loves them” doesn't mean one single person loves everyone: the order of “every” and “some” was swapped.", "“Todos tienen a alguien que los ama” no significa que una sola persona ame a todos: se invirtió el orden de “todos” y “alguien”."],
+  equivocation: ["It uses “end” in two senses: the goal of something and where it stops.", "Usa “fin” con dos sentidos: el objetivo de algo y el lugar donde termina."],
+};
 defGen({
   id: "fallacy", sec: "EXI", a: 1.3, k: 4, minMs: 2500, maxMs: 60000,
   make(d, r, ctx) {
@@ -96,6 +124,7 @@ defGen({
     const [dd, key, en, es] = best[1];
     const opts = r.shuffle([key, ...r.shuffle(FALLACY_NAMES.filter((n) => n !== key && !(key === "adhom" && n === "tuquoque") && !(key === "tuquoque" && n === "adhom"))).slice(0, 3)]);
     const ansIdx = opts.indexOf(key);
-    return mkItem(this, dd, { lang: ctx.lang, display: { argument: ctx.lang === "es" ? es : en, options: opts }, key: { t: "idx", v: ansIdx } });
+    const fw = FALLACY_WHY[key];
+    return mkItem(this, dd, { lang: ctx.lang, display: { argument: ctx.lang === "es" ? es : en, options: opts }, key: { t: "idx", v: ansIdx }, why: fw ? say(ctx.lang, fw[0], fw[1]) : undefined });
   },
 });

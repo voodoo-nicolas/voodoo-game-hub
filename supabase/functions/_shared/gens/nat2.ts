@@ -2,9 +2,12 @@
 // foodweb, idkey (use the key), camo (hide and seek), spotdiff (spot the difference).
 // Creatures are the prototype's 7 traits: 0 body, 1 colour, 2 pattern, 3 legs, 4 eyes,
 // 5 antennae, 6 tail. Served only to clients that send gv >= 5 (engine.ts secGens).
-import { defGen, type Lang, mkItem } from "./registry.ts";
+import { defGen, type Lang, mkItem, say } from "./registry.ts";
 import type { Rng } from "../rng.ts";
-import { type Creature, randCreature } from "./nat.ts";
+import { type Creature, randCreature, traitName, traitValue } from "./nat.ts";
+
+/** "spots" / "this colour" for trait t of creature x, for `why`. */
+const tv = (x: Creature, t: number, lang: Lang) => traitValue(t, x[t], lang);
 
 const TRAIT_N = [3, 3, 3, 3, 3, 2, 2];
 const same = (a: Creature, b: Creature) => a.every((v, i) => v === b[i]);
@@ -16,7 +19,7 @@ const other = (r: Rng, t: number, not: number[]) => r.pick(Array.from({ length: 
    examples fix where each trait comes from (and rule out "always this value"). */
 defGen({
   id: "inherit", sec: "NAT", a: 1.3, k: 4, minMs: 2500, maxMs: 80000,
-  make(d, r) {
+  make(d, r, ctx) {
     const nv = d <= 3 ? 2 : d <= 6 ? 3 : 4, nf = d >= 9 ? 3 : 2;
     for (let tries = 0; tries < 300; tries++) {
       const traits = r.shuffle([0, 1, 2, 3, 4, 5, 6]).slice(0, nv);
@@ -39,7 +42,10 @@ defGen({
       if (wrong.length < 3) { const w = ans.slice(); traits.forEach((t, i) => { w[t] = (from[i] ? q[0] : q[1])[t]; }); wrong.push(w); }
       if (wrong.length < 3 || wrong.some((w, i) => same(w, ans) || wrong.slice(0, i).some((o) => same(o, w)))) continue;
       const opts = r.shuffle([ans, ...wrong]);
-      return mkItem(this, d, { display: { families: fams, parents: q, options: opts }, key: { t: "idx", v: opts.findIndex((o) => same(o, ans)) }, meta: { traits, from } });
+      const L = ctx.lang, parts = traits.map((t, i) => `${traitName(t, L)} ← ${say(L, "parent", "padre o madre")} ${from[i] + 1}`);
+      const got = traits.map((t) => (t === 1 ? say(L, "the colour", "el color") : tv(ans, t, L))).join(", ");
+      const why = say(L, `The examples show where each trait comes from: ${parts.join("; ")}. So this baby gets ${got}.`, `Los ejemplos muestran de dónde viene cada rasgo: ${parts.join("; ")}. Entonces esta cría tiene ${got}.`);
+      return mkItem(this, d, { display: { families: fams, parents: q, options: opts }, key: { t: "idx", v: opts.findIndex((o) => same(o, ans)) }, meta: { traits, from }, why });
     }
     return null;
   },
@@ -93,6 +99,7 @@ export function webClear(nodes: WebNode[], edges: [string, string][]): boolean {
   }
   return true;
 }
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 export const NAMES_Q: Record<Lang, (x: string, y: string) => string> = {
   en: (x, y) => `All the ${x} ${x === "grass" ? "disappears" : "disappear"}. What happens to the ${y} first?`,
   // "todo el pasto" / "todos los zorros" / "todas las ranas"
@@ -122,12 +129,12 @@ defGen({
         if (!eaters(food).some((e) => e !== eater && foods(eater).includes(e))) qs.push({ x: eater, y: food, ans: "more" });
         if (foods(eater).length === 1) qs.push({ x: food, y: eater, ans: "fewer" }); // only food removed
       }
-      const two: { x: string; y: string; ans: string }[] = [];
+      const two: { x: string; y: string; ans: string; via?: string }[] = [];
       // two steps: `pred` is the prey's only predator and the prey is the only eater of `fd`
-      for (const [prey, pred] of edges) if (eaters(prey).length === 1) for (const fd of foods(prey)) if (eaters(fd).length === 1) two.push({ x: pred, y: fd, ans: "fewer" });
+      for (const [prey, pred] of edges) if (eaters(prey).length === 1) for (const fd of foods(prey)) if (eaters(fd).length === 1) two.push({ x: pred, y: fd, ans: "fewer", via: prey });
       const pool = d >= 7 && two.length ? two : d <= 3 ? qs.filter((q) => q.ans === "more") : qs;
       if (!pool.length) continue;
-      const q = r.pick(pool);
+      const q: { x: string; y: string; ans: string; via?: string } = r.pick(pool);
       const names = [...set];
       const L = (s: string) => SPECIES[s][ctx.lang];
       // layout: one row per food level, top predators at the top; rows shuffled and nudged
@@ -146,7 +153,14 @@ defGen({
       if (!nodes.length) continue;
       const text = NAMES_Q[ctx.lang](L(q.x), L(q.y));
       const options = ["more", "fewer", "same"];
-      return mkItem(this, d, { display: { nodes, edges, text, options }, key: { t: "idx", v: options.indexOf(q.ans) }, meta: { x: q.x, y: q.y, two: d >= 7 && two.length > 0 } });
+      const N = (s: string) => SPECIES[s].en, E = (s: string) => SPECIES[s].es;
+      const why = q.via
+        ? say(ctx.lang, `Two steps: the ${N(q.x)} were the only animals eating the ${N(q.via)}, so the ${N(q.via)} multiply. Nothing else here eats the ${N(q.y)} but the ${N(q.via)}, so with more of them there are fewer ${N(q.y)}.`,
+          `Dos pasos: ${E(q.x)} eran los únicos que comían ${E(q.via)}, así que ${E(q.via)} se multiplican. Acá nadie más que ${E(q.via)} come ${E(q.y)}, así que con más de ellos hay menos de ${E(q.y)}.`)
+        : q.ans === "more"
+          ? say(ctx.lang, `The ${N(q.x)} eat the ${N(q.y)}. With no ${N(q.x)}, fewer animals are eating the ${N(q.y)}, so at first there are more of them.`, `${cap(E(q.x))} comen ${E(q.y)}. Sin ${E(q.x)}, hay menos animales comiendo ${E(q.y)}, así que al principio hay más.`)
+          : say(ctx.lang, `The ${N(q.x)} ${q.x === "grass" ? "is" : "are"} the only food the ${N(q.y)} have here, so the ${N(q.y)} go hungry and there are fewer of them.`, `${cap(E(q.x))} ${E(q.x).startsWith("el ") ? "es" : "son"} la única comida de ${E(q.y)} acá, así que pasan hambre y hay menos.`);
+      return mkItem(this, d, { display: { nodes, edges, text, options }, key: { t: "idx", v: options.indexOf(q.ans) }, meta: { x: q.x, y: q.y, two: d >= 7 && two.length > 0 }, why });
     }
     return null;
   },
@@ -162,9 +176,16 @@ export const KEY_TESTS: Record<string, (x: Creature) => boolean> = {
 const KEY_NAMES = ["Zib", "Zab", "Zub", "Zeb", "Bix", "Box", "Bux", "Bex"];
 const TEST_TRAIT: Record<string, number> = { tail: 6, ant: 5, spots: 2, stripes: 2, plain: 2, six: 3, two: 3, oneeye: 4, threeeyes: 4, round: 0, tall: 0, box: 0, morelegs: 3, moreeyes: 4 };
 export interface Couplet { t: string; y: number | string; n: number | string }
+/** The key's questions in words, for `why` (the client shows its own text). */
+const TEST_Q: Record<string, [string, string]> = {
+  tail: ["a tail", "cola"], ant: ["antennae", "antenas"], spots: ["spots", "manchas"], stripes: ["stripes", "rayas"],
+  plain: ["no pattern", "sin dibujo"], six: ["6 legs", "6 patas"], two: ["2 legs", "2 patas"], oneeye: ["1 eye", "1 ojo"],
+  threeeyes: ["3 eyes", "3 ojos"], round: ["a round body", "cuerpo redondo"], tall: ["a tall body", "cuerpo alto"], box: ["a wide body", "cuerpo ancho"],
+  morelegs: ["more than 2 legs", "más de 2 patas"], moreeyes: ["more than 1 eye", "más de 1 ojo"],
+};
 defGen({
   id: "idkey", sec: "NAT", a: 1.2, k: 4, minMs: 2500, maxMs: 70000,
-  make(d, r) {
+  make(d, r, ctx) {
     const depth = d <= 3 ? 2 : 3;
     const pool = d >= 8 ? Object.keys(KEY_TESTS) : Object.keys(KEY_TESTS).filter((t) => t !== "morelegs" && t !== "moreeyes");
     for (let tries = 0; tries < 200; tries++) {
@@ -185,11 +206,17 @@ defGen({
       build(0, []);
       const x = randCreature(r);
       let at: number | string = 1;
-      while (typeof at === "number") { const c: Couplet = couplets[at - 1]; at = KEY_TESTS[c.t](x) ? c.y : c.n; }
+      const steps: string[] = [];
+      while (typeof at === "number") {
+        const c: Couplet = couplets[at - 1], yes = KEY_TESTS[c.t](x);
+        steps.push(`${at}. ${ctx.lang === "es" ? "¿" : ""}${TEST_Q[c.t][ctx.lang === "es" ? 1 : 0]}? ${yes ? say(ctx.lang, "yes", "sí") : "no"}`);
+        at = yes ? c.y : c.n;
+      }
       const ans = at;
       const wrong = r.shuffle(names.filter((n) => n !== ans)).slice(0, 3);
       const opts = r.shuffle([ans, ...wrong]);
-      return mkItem(this, d, { display: { creature: x, couplets, options: opts }, key: { t: "idx", v: opts.indexOf(ans) } });
+      const why = say(ctx.lang, `Follow the key one question at a time: ${steps.join(" → ")} → ${ans}.`, `Seguí la clave de a una pregunta: ${steps.join(" → ")} → ${ans}.`);
+      return mkItem(this, d, { display: { creature: x, couplets, options: opts }, key: { t: "idx", v: opts.indexOf(ans) }, why });
     }
     return null;
   },
@@ -200,7 +227,7 @@ defGen({
    (closer as d rises) and the creature, smaller, inside quarter `q`. */
 defGen({
   id: "camo", sec: "NAT", a: 1.1, k: 4, minMs: 800, maxMs: 40000,
-  make(d, r) {
+  make(d, r, ctx) {
     const q = r.int(0, 3);
     const size = [0.3, 0.28, 0.26, 0.24, 0.22, 0.2, 0.18, 0.17, 0.16, 0.15][d - 1];
     const m = size / 2 + 0.02;
@@ -210,6 +237,8 @@ defGen({
         clutter: 40 + d * 8, seed: r.int(1, 2147483646), blend: [0.35, 0.45, 0.55, 0.62, 0.68, 0.74, 0.8, 0.85, 0.88, 0.91][d - 1],
       },
       key: { t: "idx", v: q },
+      why: say(ctx.lang, `It was hiding in the ${["top left", "top right", "bottom left", "bottom right"][q]} quarter. Look for its outline, legs and eyes rather than its colour: the leaves are coloured like it.`,
+        `Estaba escondida en el cuarto de ${["arriba a la izquierda", "arriba a la derecha", "abajo a la izquierda", "abajo a la derecha"][q]}. Buscá su contorno, sus patas y sus ojos más que su color: las hojas son de colores parecidos.`),
     });
   },
 });
@@ -219,7 +248,7 @@ defGen({
    pairs of trait names; the wrong pairs share at most one trait with the right one). */
 defGen({
   id: "spotdiff", sec: "NAT", a: 1.1, k: 4, minMs: 1200, maxMs: 40000,
-  make(d, r) {
+  make(d, r, ctx) {
     const a = randCreature(r), b = a.slice();
     const n = d <= 5 ? 1 : 2;
     const diff = r.shuffle([0, 1, 2, 3, 4, 5, 6]).slice(0, n).sort((p, q) => p - q);
@@ -236,6 +265,10 @@ defGen({
     }
     const opts = r.shuffle([ans, ...wrong]);
     const flip = r.chance(.5);
-    return mkItem(this, d, { display: { left: flip ? b : a, right: flip ? a : b, options: opts }, key: { t: "idx", v: opts.indexOf(ans) } });
+    const lf = flip ? b : a, rt = flip ? a : b, L = ctx.lang;
+    const art = (t: number) => (L === "es" ? ["la ", "el ", "el ", "la ", "la ", "las ", "la "][t] : "");
+    const each = diff.map((t) => (t === 1 ? say(L, "the colour", "el color") : `${art(t)}${traitName(t, L)} (${tv(lf, t, L)} / ${tv(rt, t, L)})`)).join(say(L, " and ", " y "));
+    const why = say(L, `Only ${each} ${n === 1 ? "differs" : "differ"} between the left and right creature; everything else is the same.`, `Entre la criatura de la izquierda y la de la derecha solo cambia${n === 1 ? "" : "n"} ${each}; todo lo demás es igual.`);
+    return mkItem(this, d, { display: { left: lf, right: rt, options: opts }, key: { t: "idx", v: opts.indexOf(ans) }, why });
   },
 });

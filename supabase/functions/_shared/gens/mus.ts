@@ -3,7 +3,7 @@
 // waves; chords use sawtooth at volume 0.11). Audio items must reveal their pitches
 // to be playable, so their display necessarily encodes the answer.
 import { clamp } from "../irt.ts";
-import { defGen, mkItem } from "./registry.ts";
+import { defGen, mkItem, say } from "./registry.ts";
 
 defGen({
   id: "pitch", sec: "MUS", a: 1.3, k: 3, minMs: 300, maxMs: 20000,
@@ -16,17 +16,20 @@ defGen({
       // tones at t0 + i*0.75 s, 0.45 s each
       display: { freqs: [0, 1, 2].map((i) => i === odd ? fo : f), autoplay: ctx.blitz, replays: ctx.blitz ? 0 : 1 },
       key: { t: "idx", v: odd },
+      why: say(ctx.lang, `Tone ${odd + 1} was a little ${up ? "higher" : "lower"} than the other two: ${cents} cents (100 cents is one piano key).`,
+        `El sonido ${odd + 1} era un poco más ${up ? "agudo" : "grave"} que los otros dos: ${cents} cents (100 cents son una tecla del piano).`),
     });
   },
 });
 defGen({
   id: "pitchhl", sec: "MUS", a: 1.1, k: 2, minMs: 200, maxMs: 12000, w: 2,
-  make(d, r) {
+  make(d, r, ctx) {
     const cents = r.int(60, 160), f = r.int(300, 650), up = r.chance(.5);
     const f2 = f * Math.pow(2, (up ? 1 : -1) * cents / 1200);
     const ans = up ? 0 : 1;
     // tones at t0 and t0 + 0.6 s, 0.4 s each, autoplay, no replay
-    return mkItem(this, d, { deferTimer: true, display: { f1: f, f2, autoplay: true, replays: 0 }, key: { t: "idx", v: ans } });
+    const why = say(ctx.lang, `The second tone was ${up ? "higher" : "lower"} than the first, by ${cents} cents (100 cents is one piano key).`, `El segundo sonido era más ${up ? "agudo" : "grave"} que el primero, por ${cents} cents (100 cents son una tecla del piano).`);
+    return mkItem(this, d, { deferTimer: true, display: { f1: f, f2, autoplay: true, replays: 0 }, key: { t: "idx", v: ans }, why });
   },
 });
 defGen({
@@ -67,6 +70,8 @@ defGen({
       // MIDI notes; second play starts 0.9 s after the first ends
       display: { notes1: idx.map((x) => base + scale[x]), notes2: idx2.map((x) => base + scale[x]), noteDur: nd, gap, replays: ctx.blitz ? 0 : 1 },
       key: { t: "idx", v: q },
+      why: say(ctx.lang, `Note ${q + 1} of ${n} changed: in the second play it was ${idx2[q] > idx[q] ? "higher" : "lower"}. Every other note stayed the same.`,
+        `Cambió la nota ${q + 1} de ${n}: en la segunda vez sonó más ${idx2[q] > idx[q] ? "aguda" : "grave"}. Las demás notas fueron iguales.`),
     });
   },
 });
@@ -84,6 +89,8 @@ defGen({
     }
     const ans = kk - 1;
     // MIDI notes played together for 1.1 s; options are "1".."4"
-    return mkItem(this, d, { deferTimer: true, display: { notes, replays: ctx.blitz ? 0 : 1 }, key: { t: "idx", v: ans } });
+    const why = say(ctx.lang, `${kk} different note${kk === 1 ? " was" : "s were"} played at the same time.${consonant ? " Notes that blend well are the hardest to tell apart." : ""}`,
+      `Sonaron ${kk} nota${kk === 1 ? "" : "s"} distinta${kk === 1 ? "" : "s"} a la vez.${consonant ? " Las notas que combinan bien son las más difíciles de separar." : ""}`);
+    return mkItem(this, d, { deferTimer: true, display: { notes, replays: ctx.blitz ? 0 : 1 }, key: { t: "idx", v: ans }, why });
   },
 });

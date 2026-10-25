@@ -270,6 +270,8 @@ for (const id of ALL_IDS) {
           assert(it, `${id} d${d} seed ${seed}: no item`);
           assert(Number.isFinite(it.a) && Number.isFinite(it.b) && it.c >= 0 && it.c <= 1);
           assert(it.d >= 1 && it.d <= 10);
+          // practice tests explain every answer (owner, 2026-10-25): a filled-in sentence
+          assert(it.why && it.why.trim().length >= 6 && !/undefined|NaN|\$\{|\[object/.test(it.why), `${id} d${d} ${lang} seed ${seed}: bad why ${JSON.stringify(it.why)}`);
           try {
             (CHECKS[it.gid === "rotation" && id === "topview" ? "rotation" : id])(it);
           } catch (e) {

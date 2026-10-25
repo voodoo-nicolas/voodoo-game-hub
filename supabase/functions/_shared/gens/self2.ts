@@ -4,7 +4,7 @@
 // how many were remembered: session-finish turns the guesses into recallErr / recallBias
 // (engine.ts scoreIQ), and they stay out of the confidence rows the Self score is built from.
 // Served only in the Self test, to clients that send gv >= 8 (engine.ts nextIqItem).
-import { defGen, mkItem } from "./registry.ts";
+import { defGen, mkItem, say } from "./registry.ts";
 
 /** Concrete nouns, EN and ES at the same index (a pair is two indexes, so both languages
  *  draw the same way). No alcohol, nothing rude in rioplatense Spanish (no "concha"). */
@@ -65,6 +65,7 @@ defGen({
       lang: ctx.lang, deferTimer: true, noTimerBar: true,
       display: { pairs, order, options, studyMs: 1000 + 1500 * n },
       key: { t: "recall", v: order.map((p) => options.indexOf(pairs[p][1])) },
+      why: say(ctx.lang, "This trial tests how well you know your own memory, not only how much you remember: it counts as right when your guess equals the number of pairs you got.", "Esta prueba mide qué tan bien conocés tu propia memoria, no solo cuánto recordás: cuenta como correcta cuando tu predicción coincide con la cantidad de pares que acertaste."),
     });
   },
 });

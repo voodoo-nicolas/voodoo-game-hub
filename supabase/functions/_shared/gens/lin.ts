@@ -1,6 +1,6 @@
 // LINGUISTIC (ES / EN banks): oddword, oddquick, anagram, analogy. Ported 1:1 from the prototype.
 // deno-lint-ignore-file no-explicit-any
-import { defGen, type GenDef, type Lang, mkItem } from "./registry.ts";
+import { defGen, type GenDef, type Lang, mkItem, say } from "./registry.ts";
 import type { Rng } from "../rng.ts";
 import { ANA, ANALOGIES, CATS, CLOSE, TRICKS } from "./data.ts";
 
@@ -9,10 +9,33 @@ const TRICKS_: any[] = TRICKS;
 const ANA_: Record<string, Record<number, string[]>> = ANA;
 const ANALOGIES_: any[] = ANALOGIES;
 
+/** Category names (data.ts CATS keys) and why each odd-one-out trick is odd, for `why`. */
+const CAT_NAME: Record<string, [string, string]> = {
+  mammals: ["mammals", "mamíferos"], birds: ["birds", "aves"], fish: ["fish", "peces"], insects: ["insects", "insectos"],
+  reptiles: ["reptiles", "reptiles"], fruits: ["fruits", "frutas"], vegetables: ["vegetables", "verduras"], tools: ["tools", "herramientas"],
+  kitchen: ["kitchen utensils", "utensilios de cocina"], instruments: ["musical instruments", "instrumentos musicales"],
+  metals: ["metals", "metales"], gems: ["gems", "piedras preciosas"], emotions: ["emotions", "emociones"], virtues: ["virtues", "virtudes"],
+  time: ["units of time", "unidades de tiempo"], length: ["units of length", "unidades de longitud"], organs: ["organs", "órganos"],
+  bones: ["bones", "huesos"], weather: ["kinds of weather", "fenómenos del tiempo"], landforms: ["landforms", "formas del relieve"],
+};
+const TRICK_WHY: [string, string][] = [ // by TRICKS index
+  ["The others are fish; a whale is a mammal that lives in the sea.", "Los demás son peces; la ballena es un mamífero que vive en el mar."],
+  ["The others are birds; a bat is a mammal that flies.", "Los demás son aves; el murciélago es un mamífero que vuela."],
+  ["The others are insects (6 legs); a spider has 8 legs and is not an insect.", "Los demás son insectos (6 patas); la araña tiene 8 patas y no es un insecto."],
+  ["The others are pure metals; bronze is a mix of metals (copper and tin).", "Los demás son metales puros; el bronce es una mezcla de metales (cobre y estaño)."],
+  ["The others are reptiles; a salamander is an amphibian.", "Los demás son reptiles; la salamandra es un anfibio."],
+  ["The others have four sides; a triangle has three.", "Los demás tienen cuatro lados; el triángulo tiene tres."],
+  ["The others are mammals; a shark is a fish.", "Los demás son mamíferos; el tiburón es un pez."],
+  ["The others are planets; the Moon goes around the Earth, not the Sun.", "Los demás son planetas; la Luna gira alrededor de la Tierra, no del Sol."],
+  ["The others are trees; bamboo is a giant grass.", "Los demás son árboles; el bambú es una hierba gigante."],
+];
+
 function oddWordItem(g: GenDef, d: number, r: Rng, lang: Lang) {
-  let four: string[], odd: string;
-  if (d >= 9 || (d === 8 && r.chance(.5))) { const tr = r.pick(TRICKS_)[lang]; four = tr[0].slice(); odd = tr[1]; }
-  else {
+  let four: string[], odd: string, why: string;
+  if (d >= 9 || (d === 8 && r.chance(.5))) {
+    const t = r.pick(TRICKS_), tr = t[lang]; four = tr[0].slice(); odd = tr[1];
+    const w = TRICK_WHY[TRICKS_.indexOf(t)]; why = say(lang, w[0], w[1]);
+  } else {
     let A: string, B: string;
     const names = Object.keys(CATS_);
     if (d <= 2) { A = r.pick(names); B = r.pick(names.filter((n) => CATS_[n].g !== CATS_[A].g)); }
@@ -20,10 +43,11 @@ function oddWordItem(g: GenDef, d: number, r: Rng, lang: Lang) {
     else { const pr = r.shuffle(r.pick(CLOSE)); A = pr[0]; B = pr[1]; }
     four = r.shuffle(CATS_[A][lang]).slice(0, 4);
     odd = r.pick(CATS_[B][lang]);
+    why = say(lang, `${four.join(", ")} are all ${CAT_NAME[A][0]}; ${odd} is from another group: ${CAT_NAME[B][0]}.`, `${four.join(", ")} son ${CAT_NAME[A][1]}; ${odd} es de otro grupo: ${CAT_NAME[B][1]}.`);
   }
   const words = r.shuffle([...four, odd]);
   const ansIdx = words.indexOf(odd);
-  return mkItem(g, d, { lang, display: { words }, key: { t: "idx", v: ansIdx }, meta: { four, odd } });
+  return mkItem(g, d, { lang, display: { words }, key: { t: "idx", v: ansIdx }, meta: { four, odd }, why });
 }
 defGen({ id: "oddword", sec: "LIN", a: 1.3, k: 5, minMs: 1200, maxMs: 30000, make(d, r, ctx) { return oddWordItem(this, d, r, ctx.lang); } });
 defGen({ id: "oddquick", sec: "LIN", a: 1.1, k: 5, minMs: 500, maxMs: 15000, w: 2, make(_d, r, ctx) { return oddWordItem(this, r.int(1, 3), r, ctx.lang); } });
@@ -43,7 +67,8 @@ defGen({
     do { sc = r.shuffle(word.split("")); } while (sc.join("") === word);
     const sig = (w: string) => w.split("").sort().join("");
     const valid = [...new Set(Object.values(ANA_[lang]).flat().filter((w) => sig(w) === sig(word)))];
-    return mkItem(this, d, { lang, display: { letters: sc }, key: { t: "any", v: valid }, meta: { word } });
+    const why = say(lang, `The letters ${sc.join(" ").toUpperCase()} spell ${word.toUpperCase()}${valid.length > 1 ? ` (${valid.filter((w) => w !== word).join(", ").toUpperCase()} also counts)` : ""}.`, `Las letras ${sc.join(" ").toUpperCase()} forman ${word.toUpperCase()}${valid.length > 1 ? ` (${valid.filter((w) => w !== word).join(", ").toUpperCase()} también vale)` : ""}.`);
+    return mkItem(this, d, { lang, display: { letters: sc }, key: { t: "any", v: valid }, meta: { word }, why });
   },
 });
 
@@ -65,6 +90,8 @@ defGen({
     const it = lang === "es" ? es : en;
     const order = r.shuffle([0, 1, 2, 3]);
     const ansIdx = order.indexOf(0);
-    return mkItem(this, dd, { lang, display: { a: it[0], b: it[1], c: it[2], options: order.map((i) => it[3][i]) }, key: { t: "idx", v: ansIdx } });
+    const why = say(lang, `${it[0]} is to ${it[1]} as ${it[2]} is to ${it[3][0]}: the same link joins both pairs. The other options are linked to ${it[2]} in a different way, or not at all.`,
+      `${it[0]} es a ${it[1]} como ${it[2]} es a ${it[3][0]}: la misma relación une los dos pares. Las otras opciones se relacionan con ${it[2]} de otra manera, o no se relacionan.`);
+    return mkItem(this, dd, { lang, display: { a: it[0], b: it[1], c: it[2], options: order.map((i) => it[3][i]) }, key: { t: "idx", v: ansIdx }, why });
   },
 });

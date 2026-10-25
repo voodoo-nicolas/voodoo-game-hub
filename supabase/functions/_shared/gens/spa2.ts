@@ -1,11 +1,16 @@
 // SPATIAL, second set (2026-10-25; NOT in the prototype): paperfold, cubenet, gears,
 // mirror, countshapes, cubecount, direction, pieces. Served only to clients that send
 // gv >= 2 (engine.ts secGens).
-import { defGen, type Lang, mkItem } from "./registry.ts";
+import { defGen, type Lang, mkItem, say } from "./registry.ts";
 import type { Rng } from "../rng.ts";
 import { chiralPoly, pKey, pMir, pNorm, type Poly, pRotN } from "./spa.ts";
 
 const keyOf = (cells: number[][]) => cells.map((c) => c.join(",")).sort().join(";");
+/** The client's symbols (items.gd _sym_pts) by id, for `why`. */
+const SYM6: Record<Lang, string[]> = {
+  en: ["triangle", "circle", "square", "star", "diamond", "cross"],
+  es: ["triángulo", "círculo", "cuadrado", "estrella", "rombo", "cruz"],
+};
 
 /* ---------------- paperfold: fold, punch, unfold (4 options) ----------------
    A G x G sheet (cells [row, col]). Folds halve the current region:
@@ -45,7 +50,7 @@ const FOLD_PLAN: [string[], number][] = [ // per d: fold kinds (V = L|R, H = T|B
 ];
 defGen({
   id: "paperfold", sec: "SPA", a: 1.4, k: 4, minMs: 2500, maxMs: 80000,
-  make(d, r) {
+  make(d, r, ctx) {
     const G = 4;
     const [plan, nh] = FOLD_PLAN[d - 1];
     for (let tries = 0; tries < 200; tries++) {
@@ -67,7 +72,10 @@ defGen({
       if (wrong.length < 3) continue;
       const opts = r.shuffle([ans, ...wrong]);
       const ansIdx = opts.indexOf(ans);
-      return mkItem(this, d, { display: { g: G, folds, holes, options: opts }, key: { t: "idx", v: ansIdx } });
+      const nf = folds.length;
+      const why = say(ctx.lang, `Unfold it in your head, last fold first. Each fold you open copies every hole to its mirror place across that fold line. ${nh === 1 ? "One hole" : `${nh} holes`} through ${2 ** nf} layers of paper make ${ans.length} holes, in the places shown.`,
+        `Desdoblalo mentalmente, empezando por el último doblez. Cada doblez que abrís copia cada agujero a su lugar en espejo del otro lado de la línea del doblez. ${nh === 1 ? "Un agujero" : `${nh} agujeros`} a través de ${2 ** nf} capas de papel dan ${ans.length} agujeros, en los lugares que se ven.`);
+      return mkItem(this, d, { display: { g: G, folds, holes, options: opts }, key: { t: "idx", v: ansIdx }, why });
     }
     return null;
   },
@@ -107,7 +115,7 @@ export function foldNet(cells: number[][]): { face: number[]; up: number[] } | n
 }
 defGen({
   id: "cubenet", sec: "SPA", a: 1.4, k: 4, minMs: 2500, maxMs: 80000,
-  make(d, r) {
+  make(d, r, ctx) {
     let cells = netCells(d <= 3 ? r.int(0, 5) : r.int(0, NET_ROWS.length - 1));
     const rot = r.int(0, 3), mir = r.chance(.5);
     for (let k = 0; k < rot; k++) cells = cells.map(([a, b]) => [b, -a]);
@@ -122,7 +130,10 @@ defGen({
       const mark = r.int(0, 5), o = opp(mark);
       const adj = r.shuffle([0, 1, 2, 3, 4, 5].filter((i) => i !== mark && i !== o)).slice(0, 3);
       const opts = r.shuffle([o, ...adj]);
-      return mkItem(this, d, { display: { net, ask: "opp", mark: sym[mark], options: opts.map((i) => sym[i]) }, key: { t: "idx", v: opts.indexOf(o) } });
+      const nm = (i: number) => SYM6[ctx.lang][sym[i]];
+      const why = say(ctx.lang, `Folded up, the ${nm(o)} ends up opposite the ${nm(mark)}. A tip: in a straight line of three faces on the net, the two ends are opposite. The other options all share an edge with the ${nm(mark)}.`,
+        `Al armar el cubo, el ${nm(o)} queda opuesto al ${nm(mark)}. Un truco: en una fila recta de tres caras de la red, las dos de las puntas son opuestas. Las otras opciones comparten un borde con el ${nm(mark)}.`);
+      return mkItem(this, d, { display: { net, ask: "opp", mark: sym[mark], options: opts.map((i) => sym[i]) }, key: { t: "idx", v: opts.indexOf(o) }, why });
     }
     // three faces that meet at a corner: no two of them opposite
     const all: number[][] = [];
@@ -130,7 +141,11 @@ defGen({
     const ok = (t: number[]) => !t.some((x) => t.includes(opp(x)));
     const good = r.pick(all.filter(ok)), bad = r.shuffle(all.filter((t) => !ok(t))).slice(0, 3);
     const opts = r.shuffle([good, ...bad]);
-    return mkItem(this, d, { display: { net, ask: "corner", options: opts.map((t) => t.map((i) => sym[i])) }, key: { t: "idx", v: opts.indexOf(good) } });
+    const pairs: string[] = [];
+    for (let i = 0; i < 6; i++) if (i < opp(i)) pairs.push(`${SYM6[ctx.lang][sym[i]]} – ${SYM6[ctx.lang][sym[opp(i)]]}`);
+    const why = say(ctx.lang, `Three faces can meet at a corner only if no two of them are opposite each other. The opposite pairs are ${pairs.join(", ")}. Every wrong option has one of those pairs in it.`,
+      `Tres caras pueden juntarse en una esquina solo si ninguna es opuesta a otra. Los pares opuestos son ${pairs.join(", ")}. Cada opción incorrecta tiene uno de esos pares.`);
+    return mkItem(this, d, { display: { net, ask: "corner", options: opts.map((t) => t.map((i) => sym[i])) }, key: { t: "idx", v: opts.indexOf(good) }, why });
   },
 });
 
@@ -155,7 +170,7 @@ export function spin(n: number, links: Link[]): number[] | null { // +1 cw, -1 c
 }
 defGen({
   id: "gears", sec: "SPA", a: 1.3, k: 2, minMs: 1500, maxMs: 50000,
-  make(d, r) {
+  make(d, r, ctx) {
     const gears: Gear[] = [], links: Link[] = [];
     const row = (n: number, radii: () => number, x0 = 0) => {
       let x = x0;
@@ -201,7 +216,13 @@ defGen({
     const dir = spin(gears.length, links);
     const options = d >= 9 ? ["cw", "ccw", "jam"] : ["cw", "ccw"];
     const ans = dir ? (dir[target] > 0 ? "cw" : "ccw") : "jam";
-    return mkItem(this, d, { k: options.length, display: { gears, links, target, options }, key: { t: "idx", v: options.indexOf(ans) } });
+    const way = (a: string) => say(ctx.lang, a === "cw" ? "clockwise" : "counterclockwise", a === "cw" ? "en sentido horario" : "en sentido antihorario");
+    const rules = say(ctx.lang, "Gears that touch turn opposite ways.", "Los engranajes que se tocan giran en sentidos opuestos.")
+      + (links.some((l) => l.t !== "mesh") ? say(ctx.lang, " A straight belt keeps the same way; a crossed belt reverses it.", " Una correa recta mantiene el sentido; una correa cruzada lo invierte.") : "");
+    const why = ans === "jam"
+      ? say(ctx.lang, `${rules} Here three gears all touch each other: if one turns clockwise, the next must turn counterclockwise, and the third would have to turn both ways at once. So it jams.`, `${rules} Acá hay tres engranajes que se tocan entre sí: si uno gira en sentido horario, el siguiente gira al revés, y el tercero tendría que girar para los dos lados a la vez. Por eso se traba.`)
+      : say(ctx.lang, `${rules} The first gear turns clockwise; follow the chain one gear at a time and the marked gear turns ${way(ans)}.`, `${rules} El primer engranaje gira en sentido horario; seguí la cadena de a un engranaje y el marcado gira ${way(ans)}.`);
+    return mkItem(this, d, { k: options.length, display: { gears, links, target, options }, key: { t: "idx", v: options.indexOf(ans) }, why });
   },
 });
 
@@ -213,7 +234,7 @@ const REFL: Record<string, (p: Poly) => Poly> = {
 };
 defGen({
   id: "mirror", sec: "SPA", a: 1.3, k: 4, minMs: 1500, maxMs: 50000,
-  make(d, r) {
+  make(d, r, ctx) {
     const m = [4, 5, 5, 5, 6, 6, 7, 6, 7, 8][d - 1];
     const axis = d <= 4 ? "v" : d <= 7 ? "h" : "d";
     const p = chiralPoly(m, r);
@@ -226,7 +247,10 @@ defGen({
       if (!seen.has(k) && wrong.length < 3) { seen.add(k); wrong.push(pNorm(c)); }
     }
     const opts = r.shuffle([ans, ...wrong]);
-    return mkItem(this, d, { display: { shape: pNorm(p), axis, options: opts }, key: { t: "idx", v: opts.indexOf(ans) } });
+    const line = say(ctx.lang, { v: "upright", h: "flat", d: "slanted" }[axis]!, { v: "vertical", h: "horizontal", d: "diagonal" }[axis]!);
+    const why = say(ctx.lang, `Flip the shape across the ${line} mirror line: every square moves to the other side, the same distance from the line. The other options are the shape turned, or flipped across a different line.`,
+      `Reflejá la figura sobre la línea ${line}: cada cuadradito pasa al otro lado, a la misma distancia de la línea. Las otras opciones son la figura girada o reflejada sobre otra línea.`);
+    return mkItem(this, d, { display: { shape: pNorm(p), axis, options: opts }, key: { t: "idx", v: opts.indexOf(ans) }, why });
   },
 });
 
@@ -237,15 +261,19 @@ defGen({
 const C2 = (n: number) => n * (n - 1) / 2;
 defGen({
   id: "countshapes", sec: "SPA", a: 1.3, k: 0, minMs: 2500, maxMs: 80000,
-  make(d, r) {
+  make(d, r, ctx) {
     const pos = (k: number) => { const xs = Array.from({ length: k }, (_, i) => (i + 1) / (k + 1) + (r.n() - .5) * .3 / (k + 1)); return xs.map((x) => Math.round(x * 1000) / 1000); };
     if (d <= 7) {
       const n = [3, 4, 5, r.int(3, 4), 4, 4, 5][d - 1], m = [1, 1, 1, 2, 2, 3, 3][d - 1];
       // inner apex lines meet the base at `base`; inner level lines at heights `levels` (0 top .. 1 base)
-      return mkItem(this, d, { display: { kind: "fan", base: pos(n - 2), levels: pos(m - 1) }, key: { t: "num", v: C2(n) * m } });
+      const why = say(ctx.lang, `Every triangle uses 2 of the ${n} lines from the top corner and 1 of the ${m} line${m === 1 ? "" : "s"} across (the base counts). There are ${C2(n)} pairs of corner lines, so ${C2(n)} × ${m} = ${C2(n) * m}.`,
+        `Cada triángulo usa 2 de las ${n} líneas que salen de la punta y 1 de las ${m} línea${m === 1 ? "" : "s"} que cruzan (la base cuenta). Hay ${C2(n)} pares de líneas de la punta, así que ${C2(n)} × ${m} = ${C2(n) * m}.`);
+      return mkItem(this, d, { display: { kind: "fan", base: pos(n - 2), levels: pos(m - 1) }, key: { t: "num", v: C2(n) * m }, why });
     }
     const [a, b] = [[2, 2], [2, 3], [3, 3]][d - 8];
-    return mkItem(this, d, { display: { kind: "grid", cols: pos(b - 1), rows: pos(a - 1) }, key: { t: "num", v: C2(a + 1) * C2(b + 1) } });
+    const why = say(ctx.lang, `A rectangle is made by choosing 2 of the ${a + 1} lines across and 2 of the ${b + 1} lines up and down. That is ${C2(a + 1)} × ${C2(b + 1)} = ${C2(a + 1) * C2(b + 1)} (the small squares count too).`,
+      `Un rectángulo se arma eligiendo 2 de las ${a + 1} líneas horizontales y 2 de las ${b + 1} verticales. Eso da ${C2(a + 1)} × ${C2(b + 1)} = ${C2(a + 1) * C2(b + 1)} (los cuadraditos también cuentan).`);
+    return mkItem(this, d, { display: { kind: "grid", cols: pos(b - 1), rows: pos(a - 1) }, key: { t: "num", v: C2(a + 1) * C2(b + 1) }, why });
   },
 });
 
@@ -255,7 +283,7 @@ defGen({
    cubes make a full n x n block as tall as the tallest column. */
 defGen({
   id: "cubecount", sec: "SPA", a: 1.3, k: 0, minMs: 2000, maxMs: 70000,
-  make(d, r) {
+  make(d, r, ctx) {
     const n = d <= 3 ? 2 : d <= 6 ? 3 : 4, maxH = d <= 2 ? 2 : d <= 5 ? 3 : 4;
     const h: number[][] = [];
     for (let i = 0; i < n; i++) {
@@ -267,7 +295,12 @@ defGen({
     }
     const sum = h.flat().reduce((a, x) => a + x, 0);
     const fill = d >= 8;
-    return mkItem(this, d, { display: { heights: h, ask: fill ? "fill" : "count" }, key: { t: "num", v: fill ? n * n * h[0][0] - sum : sum } });
+    const cols = h.flat().filter((x) => x > 0).join(" + ");
+    const why = fill
+      ? say(ctx.lang, `Count each column of cubes: ${cols} = ${sum}. A full ${n} × ${n} block as tall as the tallest column (${h[0][0]}) has ${n * n * h[0][0]} cubes, so ${n * n * h[0][0]} − ${sum} = ${n * n * h[0][0] - sum} more.`,
+        `Contá cada columna de cubos: ${cols} = ${sum}. Un bloque lleno de ${n} × ${n} tan alto como la columna más alta (${h[0][0]}) tiene ${n * n * h[0][0]} cubos, así que faltan ${n * n * h[0][0]} − ${sum} = ${n * n * h[0][0] - sum}.`)
+      : say(ctx.lang, `Count each column of cubes (every column rests on the floor, none hide): ${cols} = ${sum}.`, `Contá cada columna de cubos (todas apoyan en el piso y ninguna se esconde): ${cols} = ${sum}.`);
+    return mkItem(this, d, { display: { heights: h, ask: fill ? "fill" : "count" }, key: { t: "num", v: fill ? n * n * h[0][0] - sum : sum }, why });
   },
 });
 
@@ -295,7 +328,10 @@ defGen({
     const list = moves.map((m) => M[m]).join(ctx.lang === "es" ? ", después " : ", then ");
     const text = ctx.lang === "es" ? `Estás mirando al ${D[start]}. ${cap(list)}. ¿Hacia dónde mirás ahora?` : `You are facing ${D[start]}. You ${list}. Which way are you facing now?`;
     const optIdx = end % 2 === 0 && d < 8 ? [0, 2, 4, 6] : [end, (end + 1) % 8, (end + 7) % 8, (end + 4) % 8].sort((a, b) => a - b);
-    return mkItem(this, d, { display: { text, options: optIdx.map((i) => cap(D[i])) }, key: { t: "idx", v: optIdx.indexOf(end) }, meta: { start, moves, end } });
+    const path: string[] = [D[start]];
+    moves.reduce((at, m) => { const nx = ((at + MOVE_STEP[m]) % 8 + 8) % 8; path.push(D[nx]); return nx; }, start);
+    const why = say(ctx.lang, `Follow one turn at a time: ${path.join(" → ")}.`, `Seguí un giro por vez: ${path.join(" → ")}.`);
+    return mkItem(this, d, { display: { text, options: optIdx.map((i) => cap(D[i])) }, key: { t: "idx", v: optIdx.indexOf(end) }, meta: { start, moves, end }, why });
   },
 });
 
@@ -313,7 +349,7 @@ function connected(cells: number[][]): boolean {
 export const fitsGap = (gap: Poly, opt: Poly, turn: boolean) => (turn ? [0, 1, 2, 3] : [0]).some((k) => pKey(pRotN(opt, k)) === pKey(gap));
 defGen({
   id: "pieces", sec: "SPA", a: 1.3, k: 4, minMs: 2000, maxMs: 70000,
-  make(d, r) {
+  make(d, r, ctx) {
     const n = d <= 3 ? 3 : 4, turn = d >= 8;
     const size = n === 3 ? r.int(3, 5) : r.int(6, 9);
     const all: Poly = [];
@@ -344,7 +380,9 @@ defGen({
       if (wrong.length < 3) continue;
       const shown = turn ? pNorm(pRotN(gap, r.int(1, 3))) : pNorm(gap);
       const opts = r.shuffle([shown, ...wrong]);
-      return mkItem(this, d, { display: { n, piece: piece.map((p) => [p[0], p[1]]), turn, options: opts }, key: { t: "idx", v: opts.indexOf(shown) } });
+      const why = say(ctx.lang, `The empty part of the square has exactly the shape of the right piece${turn ? " (shown turned: turn it back to fit)" : ""}. Each other option is mirrored, turned the wrong way or has one square in a different place.`,
+        `La parte vacía del cuadrado tiene exactamente la forma de la pieza correcta${turn ? " (se muestra girada: girala para que encaje)" : ""}. Cada una de las otras está espejada, girada al revés o tiene un cuadradito en otro lugar.`);
+      return mkItem(this, d, { display: { n, piece: piece.map((p) => [p[0], p[1]]), turn, options: opts }, key: { t: "idx", v: opts.indexOf(shown) }, why });
     }
     return null;
   },

@@ -51,5 +51,5 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   const reason = body.reason === "quit" ? "quit" : "time";
   const result = await finishBlitz(db, s, scored, reason);
   if (s.ranked || s.kind !== "normal") return { result }; // Daily Brain and Duels aren't practice
-  return { result, review: scored.rows.map((r) => practiceFeedback(r.seq, r.item.key, r.item.minMs, r.j)) };
+  return { result, review: scored.rows.map((r) => practiceFeedback(r.seq, r.item.key, r.item.minMs, r.j, r.item.why)) };
 }

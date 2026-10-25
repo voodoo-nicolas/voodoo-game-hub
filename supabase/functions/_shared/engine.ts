@@ -315,14 +315,16 @@ export function publicItem(item: Item, seq: number) {
   };
 }
 
-/** What responses.answer_key holds: everything needed to judge the answer later. */
+/** What responses.answer_key holds: everything needed to judge the answer later, and the
+ *  practice explanation (`why`, shown only by practiceFeedback). */
 export function storedKey(item: Item) {
-  return { key: item.key, minMs: item.minMs, maxMs: item.maxMs, w: item.w, k: item.k };
+  return { key: item.key, minMs: item.minMs, maxMs: item.maxMs, w: item.w, k: item.k, ...(item.why ? { why: item.why } : {}) };
 }
 
 /** Practice tests only (owner, 2026-10-25: ranked tests never show answers or a review):
  *  what the player is told about one answer, so they can tell their mistake from a bug —
- *  right or wrong, why it scored wrong (too fast / time ran out / left the app) and the key. */
-export function practiceFeedback(seq: number, key: Key, minMs: number, j: Judged) {
-  return { seq, u: j.u, key, minMs: minMs || 0, rapid: j.rapid, timeout: j.timeout, hidden: j.hidden };
+ *  right or wrong, why it scored wrong (too fast / time ran out / left the app), the key and
+ *  why the right answer is right (`why`, from the generator; absent on items stored before it). */
+export function practiceFeedback(seq: number, key: Key, minMs: number, j: Judged, why?: string) {
+  return { seq, u: j.u, key, minMs: minMs || 0, rapid: j.rapid, timeout: j.timeout, hidden: j.hidden, ...(why ? { why } : {}) };
 }

@@ -7675,5 +7675,6 @@
  "You: %d%%.": "Tú: %d%%.",
  "To pass: at least %d%% of your line inside the track.": "Para pasar: al menos el %d%% de tu línea dentro de la pista.",
  "To pass: %d": "Para pasar: %d",
- "Practice shows the answers: after each question you see whether you were right and what the right answer was, and at the end 📝 Review answers lists every question. 🚩 reports a question that looks wrong so we can check it. Ranked tests never show answers.": "La práctica muestra las respuestas: después de cada pregunta ves si acertaste y cuál era la respuesta correcta, y al final 📝 Revisar respuestas lista todas las preguntas. 🚩 reporta una pregunta que parece estar mal para que la revisemos. Los tests puntuados nunca muestran respuestas."
+ "Practice shows the answers: after each question you see whether you were right, what the right answer was and 💡 why, and at the end 📝 Review answers lists every question. 🚩 reports a question that looks wrong so we can check it. Ranked tests never show answers.": "La práctica muestra las respuestas: después de cada pregunta ves si acertaste, cuál era la respuesta correcta y 💡 por qué, y al final 📝 Revisar respuestas lista todas las preguntas. 🚩 reporta una pregunta que parece estar mal para que la revisemos. Los tests puntuados nunca muestran respuestas.",
+ "Why": "Por qué"
 }

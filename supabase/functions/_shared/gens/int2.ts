@@ -5,10 +5,10 @@
 // Stories: tom (where will she look?, generated and simulated); feel, change, sarcasm, fauxpas,
 // help (hand-written banks, gens/int2_data.ts). Body: posture (a drawn figure).
 // Face params are the prototype's action units (gens/int.ts); gaze adds gx / gy (pupils).
-import { type Ctx, defGen, type GenDef, type Lang, mkItem } from "./registry.ts";
+import { type Ctx, defGen, type GenDef, type Lang, mkItem, say } from "./registry.ts";
 import type { Rng } from "../rng.ts";
 import { EMO, EMO_KEYS } from "./data.ts";
-import { emoOptions } from "./int.ts";
+import { emoCue, emoName, emoOptions } from "./int.ts";
 import { tierOf } from "./lin2.ts";
 import { CHANGE, FAUXPAS, FEEL, HELP, SARCASM, TOM_TXT } from "./int2_data.ts";
 
@@ -29,6 +29,7 @@ export function auParams(base: Record<string, number>, k: number, r: Rng, noise 
   return p;
 }
 const idx = (v: number) => ({ t: "idx" as const, v });
+const capW = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function pickFrom<T>(g: GenDef, bank: { en: T[][]; es: T[][] }, d: number, r: Rng, ctx: Ctx): T {
   const t = tierOf(d), list = bank[ctx.lang][t];
@@ -43,7 +44,7 @@ function pickFrom<T>(g: GenDef, bank: { en: T[][]; es: T[][] }, d: number, r: Rn
 const FLASH_MS = [400, 320, 250, 200, 160, 120, 90, 70, 55, 40];
 defGen({
   id: "flash", sec: "INT", a: 1.3, k: 4, minMs: 300, maxMs: 30000,
-  make(d, r) {
+  make(d, r, ctx) {
     const emo = r.pick(EMO_KEYS);
     const k = [1, 1, .95, .9, .85, .8, .75, .7, .65, .6][d - 1];
     const options = emoOptions(emo, d, r);
@@ -51,6 +52,7 @@ defGen({
       deferTimer: true,
       display: { face: newId(r), params: auParams(EMO_[emo], k, r), flashMs: FLASH_MS[d - 1], options },
       key: idx(options.indexOf(emo)), meta: { emo },
+      why: say(ctx.lang, `For ${FLASH_MS[d - 1]} ms the face showed ${emoName(emo, "en")}: ${emoCue(emo, "en")}.`, `Durante ${FLASH_MS[d - 1]} ms la cara mostró ${emoName(emo, "es")}: ${emoCue(emo, "es")}.`),
     });
   },
 });
@@ -65,7 +67,7 @@ export const SMILE = (d: number) => {
 };
 defGen({
   id: "smile", sec: "INT", a: 1.2, k: 2, minMs: 600, maxMs: 30000,
-  make(d, r) {
+  make(d, r, ctx) {
     const s = SMILE(d), mouth = { lc: 1, mo: .35 };
     const a = newId(r);
     let b = a;
@@ -76,7 +78,8 @@ defGen({
     fake.cr = s.fakeCr;
     const pos = r.int(0, 1);
     const faces = pos === 0 ? [{ face: a, params: real }, { face: b, params: fake }] : [{ face: a, params: fake }, { face: b, params: real }];
-    return mkItem(this, d, { display: { faces }, key: idx(pos) });
+    const why = say(ctx.lang, `In a real smile the cheeks lift and the eyes narrow, with creases under them. Face ${pos + 1} does that; the other smile only moves the mouth.`, `En una sonrisa real las mejillas suben y los ojos se achican, con arruguitas debajo. La cara ${pos + 1} hace eso; la otra sonrisa solo mueve la boca.`);
+    return mkItem(this, d, { display: { faces }, key: idx(pos), why });
   },
 });
 
@@ -84,17 +87,19 @@ defGen({
    n objects evenly round the face (4 on the diagonals, 6, or 8); the pupils point at one.
    Harder: more objects, smaller eye movement. gx / gy = pupil direction (screen: y down). */
 export const GAZE_OBJ = ["ball", "book", "hat", "cup", "key", "apple", "star", "flower", "clock", "shoe"];
+const GAZE_ES: Record<string, string> = { ball: "la pelota", book: "el libro", hat: "el sombrero", cup: "la taza", key: "la llave", apple: "la manzana", star: "la estrella", flower: "la flor", clock: "el reloj", shoe: "el zapato" };
 export const gazeAngles = (n: number) => Array.from({ length: n }, (_, i) => (n === 4 ? 45 : 0) + i * 360 / n);
 defGen({
   id: "gaze", sec: "INT", a: 1.1, k: 0, minMs: 500, maxMs: 30000,
-  make(d, r) {
+  make(d, r, ctx) {
     const n = d <= 3 ? 4 : d <= 7 ? 6 : 8;
     const mag = d <= 6 ? 1 : d <= 8 ? .8 : .65;
     const angles = gazeAngles(n), target = r.int(0, n - 1);
     const objects = r.shuffle(GAZE_OBJ).slice(0, n);
     const a = angles[target] * Math.PI / 180;
     const params = { ...auParams({}, 1, r, .03), gx: Math.cos(a) * mag, gy: Math.sin(a) * mag };
-    return mkItem(this, d, { k: n, display: { face: newId(r), params, angles, objects }, key: idx(target), meta: { target } });
+    const why = say(ctx.lang, `Follow the pupils: both eyes point toward the ${objects[target]}. People look at what they want.`, `Seguí las pupilas: los dos ojos apuntan hacia ${GAZE_ES[objects[target]]}. Uno mira lo que quiere.`);
+    return mkItem(this, d, { k: n, display: { face: newId(r), params, angles, objects }, key: idx(target), meta: { target }, why });
   },
 });
 
@@ -104,7 +109,7 @@ defGen({
 const GAP = [.3, .28, .26, .22, .2, .18, .16, .14, .13, .12];
 defGen({
   id: "intensity", sec: "INT", a: 1.2, k: 0, minMs: 1500, maxMs: 45000,
-  make(d, r) {
+  make(d, r, ctx) {
     const n = d <= 3 ? 3 : d <= 7 ? 4 : 5, gap = GAP[d - 1];
     const emo = r.pick(EMO_KEYS);
     const base = .2 + r.n() * (1.05 - .2 - gap * (n - 1));
@@ -112,7 +117,8 @@ defGen({
     const one = newId(r);
     const faces = ks.map((k) => ({ face: d <= 6 ? one : newId(r), params: auParams(EMO_[emo], k, r, 0) }));
     const order = ks.map((k, i) => [k, i]).sort((x, y) => x[0] - y[0]).map((x) => x[1]).join(",");
-    return mkItem(this, d, { display: { emo, faces }, key: { t: "str", v: order }, meta: { ks } });
+    const why = say(ctx.lang, `Every face shows ${emoName(emo, "en")}. Look at how strong the cues are (${emoCue(emo, "en")}): the green numbers go from the weakest to the strongest.`, `Todas las caras muestran ${emoName(emo, "es")}. Mirá qué tan marcadas están las señales (${emoCue(emo, "es")}): los números verdes van de la más leve a la más fuerte.`);
+    return mkItem(this, d, { display: { emo, faces }, key: { t: "str", v: order }, meta: { ks }, why });
   },
 });
 
@@ -126,13 +132,14 @@ const LOOK_FEATS = ["skin", "hair", "style"] as const, LOOK_FEATS_HARD = ["skin"
 const FEAT_RANGE: Record<string, [number, number]> = { skin: [0, 5], hair: [0, 4], style: [3, 11], w: [-1, 1], sp: [-1, 1] };
 defGen({
   id: "facemem", sec: "INT", a: 1.2, k: 0, minMs: 600, maxMs: 40000,
-  make(d, r) {
+  make(d, r, ctx) {
     const m = d <= 3 ? 2 : d <= 6 ? 3 : 4, L = d <= 4 ? 4 : 6;
     const study: FaceId[] = [];
     while (study.length < m) { const c = newId(r); if (study.every((s) => idDiff(s, c) >= 2)) study.push(c); }
     const target = r.pick(study);
     const others: FaceId[] = [];
     const nLook = d < 4 ? 0 : d >= 8 ? 2 : 1;
+    const lookF: string[] = [];
     while (others.length < nLook) {
       const src = r.pick(study), feats = d >= 8 ? LOOK_FEATS_HARD : LOOK_FEATS;
       const f = r.pick(feats.filter((x) => !(x === "hair" && src.style === BALD_STYLE)));
@@ -140,7 +147,7 @@ defGen({
       let v = src[f];
       while (v === src[f]) v = r.int(lo, hi);
       const c = { ...src, [f]: v };
-      if (study.every((s) => idDiff(s, c) >= 1) && others.every((o) => idDiff(o, c) >= 1)) others.push(c);
+      if (study.every((s) => idDiff(s, c) >= 1) && others.every((o) => idDiff(o, c) >= 1)) { others.push(c); lookF.push(f); }
     }
     while (others.length < L - 1) { const c = newId(r); if (study.every((s) => idDiff(s, c) >= 2) && others.every((o) => idDiff(o, c) >= 1)) others.push(c); }
     const lineup = r.shuffle([target, ...others]);
@@ -149,6 +156,12 @@ defGen({
       k: L, deferTimer: true,
       display: { study: study.map((face) => ({ face })), lineup: lineup.map((face) => ({ face, params: expr() })), studyMs: 2000 * m },
       key: idx(lineup.indexOf(target)), meta: { study, lineup },
+      why: (() => {
+        const F: Record<string, [string, string]> = { skin: ["skin colour", "color de piel"], hair: ["hair colour", "color de pelo"], style: ["hairstyle", "peinado"], w: ["face width", "ancho de la cara"], sp: ["eye spacing", "distancia entre los ojos"] };
+        const looks = [...new Set(lookF)].map((f) => F[f][ctx.lang === "es" ? 1 : 0]).join(say(ctx.lang, " or ", " o "));
+        return say(ctx.lang, `Face ${lineup.indexOf(target) + 1} in the line-up is one of the people you studied.${lookF.length ? ` The look-alike${lookF.length > 1 ? "s differ" : " differs"} from someone you studied in just one thing: ${looks}.` : ""}${d >= 3 ? " Expressions don't matter: the same person can look happy or sad." : ""}`,
+          `La cara ${lineup.indexOf(target) + 1} de la fila es una de las personas que estudiaste.${lookF.length ? ` ${lookF.length > 1 ? "Las parecidas cambian" : "La parecida cambia"} en una sola cosa respecto de alguien que estudiaste: ${looks}.` : ""}${d >= 3 ? " Las expresiones no importan: la misma persona puede verse alegre o triste." : ""}`);
+      })(),
     });
   },
 });
@@ -171,15 +184,27 @@ export const EYE_PARTNERS: Record<string, string[]> = {
   amazed: ["terrified"], terrified: ["amazed", "worried"], cheerful: ["sleepy"], sleepy: ["downcast", "suspicious"],
 };
 const EYE_KEYS = Object.keys(EYE_STATES);
+const EYE_WHY: Record<string, { en: [string, string]; es: [string, string] }> = {
+  suspicious: { en: ["suspicious", "narrowed eyes under slightly lowered brows"], es: ["desconfiado", "ojos entrecerrados bajo las cejas un poco bajas"] },
+  furious: { en: ["furious", "brows pulled down hard over wide, staring eyes"], es: ["furioso", "cejas muy bajas sobre ojos muy abiertos y fijos"] },
+  worried: { en: ["worried", "the inner ends of the brows raised and pulled together"], es: ["preocupado", "las puntas internas de las cejas levantadas y juntas"] },
+  downcast: { en: ["downcast", "inner brows raised over heavy, drooping lids"], es: ["abatido", "puntas internas de las cejas arriba y párpados pesados, caídos"] },
+  amazed: { en: ["amazed", "brows high and eyes wide open"], es: ["asombrado", "cejas altas y ojos muy abiertos"] },
+  terrified: { en: ["terrified", "eyes wide open with the brows raised and pulled together"], es: ["aterrado", "ojos muy abiertos con las cejas levantadas y juntas"] },
+  cheerful: { en: ["cheerful", "raised cheeks narrowing the eyes from below, as in a smile"], es: ["alegre", "mejillas levantadas que achican los ojos desde abajo, como en una sonrisa"] },
+  sleepy: { en: ["sleepy", "drooping upper lids and relaxed brows"], es: ["somnoliento", "párpados superiores caídos y cejas relajadas"] },
+};
 defGen({
   id: "eyes", sec: "INT", a: 1.3, k: 4, minMs: 700, maxMs: 30000,
-  make(d, r) {
+  make(d, r, ctx) {
     const st = r.pick(EYE_KEYS), k = 1 - .05 * (d - 1);
     const partners = EYE_PARTNERS[st];
     const pool = EYE_KEYS.filter((x) => x !== st && (d >= 5 || !partners.includes(x)));
     const wrong = d >= 5 ? [...partners.slice(0, 2), ...r.shuffle(pool.filter((x) => !partners.includes(x)))].slice(0, 3) : r.shuffle(pool).slice(0, 3);
     const options = r.shuffle([st, ...wrong]);
-    return mkItem(this, d, { display: { face: newId(r), params: auParams(EYE_STATES[st], k, r, .02), options }, key: idx(options.indexOf(st)), meta: { st } });
+    const w = EYE_WHY[st][ctx.lang === "es" ? "es" : "en"];
+    const why = say(ctx.lang, `These eyes look ${w[0]}: ${w[1]}.`, `Es la mirada de alguien ${w[0]}: ${w[1]}.`);
+    return mkItem(this, d, { display: { face: newId(r), params: auParams(EYE_STATES[st], k, r, .02), options }, key: idx(options.indexOf(st)), meta: { st }, why });
   },
 });
 
@@ -270,10 +295,18 @@ defGen({
     const q = fill(T.ask[ask.t], { p: ask.p, q: ask.q });
     const ans = tomAnswer(n, evs, ask);
     const options = r.shuffle([0, 1, 2, 3]);
+    const run = tomRun(n, evs), P = names[ask.p], Q = names[ask.q ?? 0], es = ctx.lang === "es";
+    let why: string;
+    if (ask.t === "real") why = say(ctx.lang, `Follow the story: ${thing} ended up ${locs[run.real]}. What people think doesn't change where it really is.`, `Seguí la historia: ${thing} ${be === "están" ? "terminaron" : "terminó"} ${locs[run.real]}. Lo que crea la gente no cambia dónde está de verdad.`);
+    else if (ask.t === "look") why = run.b[ask.p] === run.real
+      ? say(ctx.lang, `${P} saw where ${thing} ended up: ${locs[ans]}. So ${P} will look there.`, `${P} vio dónde ${be === "están" ? "terminaron" : "terminó"} ${thing}: ${locs[ans]}. Así que ${P} va a buscar ahí.`)
+      : say(ctx.lang, `${P} last saw ${thing} ${locs[ans]}, and wasn't there when it was moved ${locs[run.real]}. People look where they last saw something, so ${P} will look ${locs[ans]} first.`, `${P} vio ${thing} por última vez ${locs[ans]}, y no estaba cuando ${es && be === "están" ? "las movieron" : "lo movieron"} ${locs[run.real]}. Uno busca donde vio algo por última vez, así que ${P} va a buscar primero ${locs[ans]}.`);
+    else why = say(ctx.lang, `Think like ${P}: from what ${P} saw, ${Q} last saw ${thing} ${locs[ans]}. ${P} doesn't know what ${Q} saw while ${P} wasn't looking, so ${P} thinks ${Q} will look ${locs[ans]} first.`, `Pensá como ${P}: por lo que ${P} vio, ${Q} vio ${thing} por última vez ${locs[ans]}. ${P} no sabe qué vio ${Q} mientras ${P} no miraba, así que cree que ${Q} va a buscar primero ${locs[ans]}.`);
     return mkItem(this, d, {
       lang: ctx.lang,
       display: { story, q, options: options.map((i) => T.cap(locs[i])) },
       key: idx(options.indexOf(ans)), meta: { n, nl, evs, ask, ans, opt: options },
+      why,
     });
   },
 });
@@ -294,9 +327,16 @@ export const POSES: Record<string, Record<string, number>> = {
 };
 export const POSE_PARTNER: Record<string, string> = { proud: "joyful", joyful: "proud", afraid: "sad", sad: "afraid", angry: "proud" };
 const POSE_KEYS = ["sad", "angry", "proud", "afraid", "joyful"];
+const POSE_WHY: Record<string, { en: [string, string]; es: [string, string] }> = {
+  sad: { en: ["sad", "slumped shoulders, the head sinking and arms hanging loose"], es: ["triste", "hombros caídos, la cabeza hundida y los brazos colgando"] },
+  angry: { en: ["angry", "a wide stance, arms held out from the body and clenched fists"], es: ["enojado", "piernas abiertas, brazos separados del cuerpo y puños cerrados"] },
+  proud: { en: ["proud", "the head up, chest out and hands on the hips"], es: ["orgulloso", "la cabeza en alto, el pecho afuera y las manos en la cintura"] },
+  afraid: { en: ["afraid", "shoulders hunched, knees bent and hands up in front for protection"], es: ["asustado", "hombros encogidos, rodillas flexionadas y las manos adelante para protegerse"] },
+  joyful: { en: ["joyful", "both arms thrown up high and the head up"], es: ["eufórico", "los dos brazos bien arriba y la cabeza en alto"] },
+};
 defGen({
   id: "posture", sec: "INT", a: 1.1, k: 4, minMs: 600, maxMs: 30000,
-  make(d, r) {
+  make(d, r, ctx) {
     const emo = r.pick(POSE_KEYS), k = [1, 1, .95, .9, .85, .8, .76, .72, .7, .68][d - 1];
     const N = POSES.neutral, E = POSES[emo];
     const pose: Record<string, number> = {};
@@ -306,7 +346,9 @@ defGen({
     const rest = r.shuffle(POSE_KEYS.filter((x) => x !== emo && x !== partner));
     const wrong = d >= 6 ? [partner, ...rest.slice(0, 2)] : rest.slice(0, 3);
     const options = r.shuffle([emo, ...wrong]);
-    return mkItem(this, d, { display: { pose, options }, key: idx(options.indexOf(emo)), meta: { emo } });
+    const pw = POSE_WHY[emo][ctx.lang === "es" ? "es" : "en"];
+    const why = say(ctx.lang, `The body looks ${pw[0]}: ${pw[1]}.`, `Es la postura de alguien ${pw[0]}: ${pw[1]}.`);
+    return mkItem(this, d, { display: { pose, options }, key: idx(options.indexOf(emo)), meta: { emo }, why });
   },
 });
 
@@ -315,7 +357,12 @@ defGen({
 function bankItem(g: GenDef, bank: any, d: number, r: Rng, ctx: Ctx) {
   const [story, q, ans, wrong] = pickFrom(g, bank, d, r, ctx) as [string, string, string, string[]];
   const options = r.shuffle([ans, ...wrong]);
-  return mkItem(g, d, { display: { story, q, options }, key: idx(options.indexOf(ans)), meta: { ans } });
+  const why = g.id === "feel"
+    ? say(ctx.lang, `Put yourself in their place: after what happened, “${ans}” is the most natural feeling. The other feelings would need a different story.`, `Ponete en su lugar: después de lo que pasó, “${ans}” es lo que más naturalmente se siente. Los otros sentimientos necesitarían otra historia.`)
+    : g.id === "help"
+      ? say(ctx.lang, `“${ans}” deals with what the person actually needs right now. The other options ignore the feeling, brush it off or make it worse.`, `“${ans}” atiende lo que la persona necesita en este momento. Las otras opciones ignoran lo que siente, le restan importancia o lo empeoran.`)
+      : say(ctx.lang, `“${ans}” is where that feeling most often leads. The others are feelings that usually come from somewhere else.`, `“${ans}” es adonde más a menudo lleva ese sentimiento. Los otros suelen venir de otro lado.`);
+  return mkItem(g, d, { display: { story, q, options }, key: idx(options.indexOf(ans)), meta: { ans }, why });
 }
 defGen({ id: "feel", sec: "INT", a: 1.2, k: 4, minMs: 2000, maxMs: 60000, make(d, r, ctx) { return bankItem(this, FEEL, d, r, ctx); } });
 defGen({ id: "change", sec: "INT", a: 1.1, k: 4, minMs: 1500, maxMs: 60000, make(d, r, ctx) { return bankItem(this, CHANGE, d, r, ctx); } });
@@ -326,7 +373,8 @@ defGen({
   make(d, r, ctx) {
     const [story, quote, ans, wrong] = pickFrom(this, SARCASM, d, r, ctx);
     const options = r.shuffle([ans, ...wrong]);
-    return mkItem(this, d, { display: { story, quote, options }, key: idx(options.indexOf(ans)), meta: { ans } });
+    const why = say(ctx.lang, `“${quote}” can't be meant literally in that situation: it's sarcasm, where what is said isn't what is meant. ${capW(ans)}.`, `“${quote}” no puede decirse en serio en esa situación: es sarcasmo, lo que se dice no es lo que se quiere decir. ${capW(ans)}.`);
+    return mkItem(this, d, { display: { story, quote, options }, key: idx(options.indexOf(ans)), meta: { ans }, why });
   },
 });
 /** fauxpas: [story, what is said, speaker, the other person, who slipped: 0 speaker / 1 other / 2 nobody].
@@ -338,6 +386,11 @@ defGen({
     const [story, quote, a, b, who] = pickFrom(this, FAUXPAS, d, r, ctx);
     const t = FP_TXT[ctx.lang];
     const options = [t.yes.replace("{p}", a), t.yes.replace("{p}", b), t.none];
-    return mkItem(this, d, { display: { story, quote, options }, key: idx(who), meta: { who } });
+    const why = who === 0
+      ? say(ctx.lang, `${a} said something hurtful to ${b} without meaning to: ${a} didn't know the whole story. That is a faux pas.`, `${a} le dijo a ${b} algo hiriente sin querer: ${a} no sabía toda la historia. Eso es una metida de pata.`)
+      : who === 1
+        ? say(ctx.lang, `${b} is the one who slipped: what ${b} said before was hurtful without ${b} realising it. ${a}'s answer only shows it.`, `${b} es quien metió la pata: lo que dijo antes era hiriente sin darse cuenta. La respuesta de ${a} solo lo deja ver.`)
+        : say(ctx.lang, `Nobody slipped: what ${a} said is kind and fits what ${a} knows.`, `Nadie metió la pata: lo que dijo ${a} es amable y coincide con lo que sabe.`);
+    return mkItem(this, d, { display: { story, quote, options }, key: idx(who), meta: { who }, why });
   },
 });

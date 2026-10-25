@@ -43,7 +43,14 @@ export interface Item {
   key: Key;
   /** server-only extra detail for tests (e.g. syllogism option forms) */
   meta?: Record<string, unknown>;
+  /** why the right answer is right, in the item's language (owner, 2026-10-25): stored with
+   *  the key and shown only in practice tests, after the answer (engine.ts practiceFeedback).
+   *  Built from the generator's own values: never draws from the RNG, so items don't change. */
+  why?: string;
 }
+
+/** EN or ES text by the player's language (for `why`). */
+export const say = (lang: Lang | undefined, en: string, es: string) => (lang === "es" ? es : en);
 
 export interface GenDef {
   id: string;

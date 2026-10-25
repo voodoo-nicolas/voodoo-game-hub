@@ -115,6 +115,7 @@ Deno.test("practice IQ: right / wrong and the key after each answer, 🚩 report
     const res = await call(itemAnswer, db, ME, { session_id: sid, seq: item.seq, value: right ? rightValue(row.answer_key.key) : "__wrong__", client_ms: 20000 });
     assertEquals([res.fb.seq, res.fb.u, res.fb.rapid, res.fb.timeout, res.fb.hidden], [item.seq, right ? 1 : 0, false, false, false]);
     assertEquals(res.fb.key, row.answer_key.key);
+    assert(typeof res.fb.why === "string" && res.fb.why.length > 10, "practice feedback explains the answer");
     item = res.next_item;
   }
   // too fast: right answer, scored wrong, and the feedback says why
@@ -145,7 +146,7 @@ Deno.test("practice IQ: right / wrong and the key after each answer, 🚩 report
   assertEquals((await code(call(itemReport, db, ME, { session_id: rk.session_id, seq: 0, why: "none" })))?.code, "not_practice");
 });
 
-Deno.test("practice Blitz returns a review of every answered item; ranked doesn't", async () => {
+Deno.test("practice Blitz returns a review (key and why) of every answered item; ranked doesn't", async () => {
   const db = new FakeDb();
   await newPlayer(db);
   const st = await call(sessionStart, db, ME, { mode: "blitz", scope: "ALL", dur: 60, ranked: false });
@@ -155,7 +156,7 @@ Deno.test("practice Blitz returns a review of every answered item; ranked doesn'
   const res = await call(blitzSubmit, db, ME, { session_id: st.session_id, answers });
   assertEquals(res.review.length, 12, "skips have no review row");
   assertEquals(res.review.map((r: any) => r.u), answers.slice(0, 12).map((_, i) => i % 2 === 0 ? 1 : 0));
-  assert(res.review.every((r: any, i: number) => r.seq === i && r.key));
+  assert(res.review.every((r: any, i: number) => r.seq === i && r.key && r.why));
   await call(itemReport, db, ME, { session_id: st.session_id, seq: 3, why: "none", value: "__wrong__" });
   assertEquals(db.tables.responses.find((r) => r.session_id === st.session_id && r.seq === 3)!.answer_key.report.why, "none");
 

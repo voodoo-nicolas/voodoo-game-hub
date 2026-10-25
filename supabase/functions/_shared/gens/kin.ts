@@ -2,27 +2,29 @@
 // The client runs the trial and reports the outcome:
 //   tap:    'hit' | 'slow' | 'early' | 'miss'
 //   timing: signed ms offset from the crossing (number) | 'early' | 'late'
-import { defGen, mkItem } from "./registry.ts";
+import { defGen, mkItem, say } from "./registry.ts";
 
 defGen({
   id: "tap", sec: "KIN", a: 1.2, k: 0, minMs: 0, maxMs: 4000, w: 1,
-  make(d, r) {
+  make(d, r, ctx) {
     const T = [1300, 1150, 1000, 900, 800, 700, 620, 560, 500, 450][d - 1];
     const sz = [84, 74, 66, 58, 52, 46, 42, 38, 34, 30][d - 1];
     const wait = r.int(450, 1100), px = r.n(), py = r.n();
     // target of `size` px appears after `wait` ms at (px, py) of the free arena; must be hit within `window` ms
-    return mkItem(this, d, { deferTimer: true, noTimerBar: true, display: { window: T, size: sz, wait, px, py }, key: { t: "hit" } });
+    const why = say(ctx.lang, `The target appeared after a short random wait; at this level you had ${T} ms to tap it. Tapping before it shows counts as a miss.`, `El blanco apareció tras una espera corta al azar; en este nivel tenías ${T} ms para tocarlo. Tocar antes de que aparezca cuenta como fallo.`);
+    return mkItem(this, d, { deferTimer: true, noTimerBar: true, display: { window: T, size: sz, wait, px, py }, key: { t: "hit" }, why });
   },
 });
 defGen({
   id: "timing", sec: "KIN", a: 1.2, k: 0, minMs: 0, maxMs: 6000,
-  make(d, r) {
+  make(d, r, ctx) {
     const tol = [120, 100, 85, 70, 60, 50, 42, 35, 30, 25][d - 1];
     const travel = [1800, 1700, 1600, 1500, 1400, 1300, 1200, 1100, 1000, 900][d - 1];
     const hideFrac = d <= 5 ? 1 : d <= 7 ? 0.7 : 0.5;
     const startDelay = r.int(500, 900);
     // dot travels from x=14 to the line at 78% width in `travel` ms, hidden after hideFrac of the way;
     // 'late' after travel + 300 + tol ms
-    return mkItem(this, d, { deferTimer: true, noTimerBar: true, display: { tol, travel, hideFrac, startDelay }, key: { t: "tol", v: tol } });
+    const why = say(ctx.lang, `The dot took ${travel} ms to reach the line${hideFrac < 1 ? ", hiding on the way, so you had to keep its speed in your head" : ""}. A tap within ${tol} ms of the crossing passes.`, `El punto tardó ${travel} ms en llegar a la línea${hideFrac < 1 ? " y se escondió en el camino, así que había que llevar su velocidad en la cabeza" : ""}. Un toque a menos de ${tol} ms del cruce aprueba.`);
+    return mkItem(this, d, { deferTimer: true, noTimerBar: true, display: { tol, travel, hideFrac, startDelay }, key: { t: "tol", v: tol }, why });
   },
 });
