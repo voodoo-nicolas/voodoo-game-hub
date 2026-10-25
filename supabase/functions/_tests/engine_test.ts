@@ -170,3 +170,14 @@ Deno.test("generator version 5 adds the NAT set; gv 4 never gets it", () => {
   assert(![...seen4].some((g) => added.has(g)), `gv 4 got ${[...seen4]}`);
   assert([...added].every((g) => seen5.has(g)), `gv 5 missed some: ${[...seen5]}`);
 });
+
+Deno.test("generator version 6 adds the KIN set; gv 5 never gets it", () => {
+  const added = new Set(["gonogo", "pursuit", "trace", "tapbeat", "dragfit"]);
+  const seen5 = new Set<string>(), seen6 = new Set<string>();
+  for (let seed = 1; seed <= 400; seed++) {
+    seen5.add(nextIqItem("KIN", "en", [], newIqState(seed, { gv: 5 })).gid);
+    seen6.add(nextIqItem("KIN", "es", [], newIqState(seed, { gv: 6 })).gid);
+  }
+  assert(![...seen5].some((g) => added.has(g)), `gv 5 got ${[...seen5]}`);
+  assert([...added].every((g) => seen6.has(g)), `gv 6 missed some: ${[...seen6]}`);
+});

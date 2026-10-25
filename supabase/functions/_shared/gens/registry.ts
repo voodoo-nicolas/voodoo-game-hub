@@ -15,7 +15,9 @@ export type Key =
   | { t: "str"; v: string; strict?: boolean } // typed string: String(v) === target (strict: v === target)
   | { t: "any"; v: string[] } // anagram: any listed word
   | { t: "hit" } // tap trial: v === 'hit'
-  | { t: "tol"; v: number }; // timing: |v| <= tol ms
+  | { t: "tol"; v: number } // timing: |v| <= tol ms
+  | { t: "ge"; v: number } // measured trial (gens/kin2.ts): a number >= v (e.g. % on target)
+  | { t: "le"; v: number }; // measured trial: a number from 0 to v (e.g. errors, ms off the beat)
 
 export interface Item {
   gid: string;
@@ -80,5 +82,7 @@ export function checkAnswer(key: Key, v: unknown): boolean {
     case "any": return key.v.includes(String(v));
     case "hit": return v === "hit";
     case "tol": return typeof v === "number" && Math.abs(v) <= key.v;
+    case "ge": return typeof v === "number" && Number.isFinite(v) && v >= key.v;
+    case "le": return typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= key.v;
   }
 }

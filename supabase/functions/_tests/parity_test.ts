@@ -32,6 +32,7 @@ function rightValue(key: Key): unknown {
     case "any": return key.v[0];
     case "hit": return "hit";
     case "tol": return 0;
+    case "ge": case "le": return key.v;
   }
 }
 

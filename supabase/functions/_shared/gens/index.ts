@@ -11,6 +11,7 @@ import "./mus2.ts";
 import "./nat.ts";
 import "./nat2.ts";
 import "./kin.ts";
+import "./kin2.ts";
 import "./int.ts";
 import "./exi.ts";
 

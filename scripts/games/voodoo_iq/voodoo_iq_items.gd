@@ -21,9 +21,10 @@ const FG2 := Color("#A8A8C0")
 static var W := 680.0
 ## The highest generator version this pack can draw, sent with session-start
 ## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set, 3 = the
-## second LIN set, 4 = the second MUS set, 5 = the second NAT set (2026-10-25).
-## Raise it only together with the views for the generators that version adds.
-const GV := 5
+## second LIN set, 4 = the second MUS set, 5 = the second NAT set, 6 = the second
+## KIN set (2026-10-25). Raise it only together with the views for the generators
+## that version adds.
+const GV := 6
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -101,6 +102,11 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"idkey": _idkey(v, d)
 		"camo": _camo(v, d)
 		"spotdiff": _spotdiff(v, d)
+		"gonogo": _gonogo(v, d)
+		"pursuit": _pursuit(v, d)
+		"trace": _trace(v, d)
+		"tapbeat": _tapbeat(v, d)
+		"dragfit": _dragfit(v, d)
 		_:
 			v.add_child(_label("?", 30, FG))
 	return v
@@ -1532,3 +1538,364 @@ static func _spotdiff(v: ItemView, d: Dictionary) -> void:
 			names.append(T.t("tr_" + str(int(t))))
 		opts.append(" + ".join(names))
 	_mc(v, opts, 2)
+
+# ------------------------------------------------------------------ KIN, second set (gv 6)
+# Not in the prototype (server gens/kin2.ts). Each arena runs its trial, shows what it
+# measured, then submits it once; the server holds the pass mark for the level.
+
+## Shared by the second-set arenas: background, a one-time result, the message.
+class KinArena extends Control:
+	var view
+	var done := false
+	var msg := ""
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+	func finish(value, text: String) -> void:
+		if done:
+			return
+		done = true
+		msg = text
+		queue_redraw()
+		var tw := create_tween()
+		tw.tween_interval(0.7)
+		tw.tween_callback(view.submit.bind(value))
+	func frame() -> void:
+		draw_rect(Rect2(Vector2.ZERO, size), Color("#0E0E18"))
+		draw_rect(Rect2(Vector2.ZERO, size), Color("#A9A9C4") if done else Color("#2A2A3E"), false, 3.0)
+	func text_at(s: String, y: float, fs := 28) -> void:
+		draw_string(ThemeDB.fallback_font, Vector2(0, y), s, HORIZONTAL_ALIGNMENT_CENTER, size.x, fs, Color.WHITE)
+	func pressed_event(e: InputEvent) -> bool:
+		return e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and e.pressed
+	func released_event(e: InputEvent) -> bool:
+		return e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and not e.pressed
+
+## Go / no-go: tap each green circle while it shows; never tap a red square.
+## Submits mistakes = greens missed + reds tapped.
+class GoNoGoArena extends KinArena:
+	var trials: Array = []
+	var window := 800
+	var idx := 0
+	var showing := false
+	var tapped := false
+	var phase_end := 0
+	var mistakes := 0
+	func _ready() -> void:
+		super()
+		phase_end = Time.get_ticks_msec() + 600 + int(trials[0].wait)
+		view.ready_now()
+	func _process(_dt: float) -> void:
+		if done:
+			return
+		var now := Time.get_ticks_msec()
+		if now >= phase_end:
+			if not showing:
+				showing = true
+				tapped = false
+				phase_end = now + window
+			else:
+				if str(trials[idx].c) == "g" and not tapped:
+					mistakes += 1
+				showing = false
+				idx += 1
+				if idx >= trials.size():
+					finish(float(mistakes), T.t("kn_errors", {"n": mistakes}))
+					return
+				phase_end = now + int(trials[idx].wait)
+		queue_redraw()
+	func _gui_input(e: InputEvent) -> void:
+		if done or not pressed_event(e):
+			return
+		accept_event()
+		if showing and not tapped:
+			tapped = true
+			if str(trials[idx].c) == "r":
+				mistakes += 1
+			phase_end = Time.get_ticks_msec()
+	func _draw() -> void:
+		frame()
+		if showing and not done:
+			var t: Dictionary = trials[idx]
+			var c := Vector2(float(t.x) * size.x, float(t.y) * size.y)
+			if str(t.c) == "g":
+				draw_circle(c, 46, Color("#3DFF9A"))
+			else:
+				draw_rect(Rect2(c - Vector2(42, 42), Vector2(84, 84)), Color("#FF4F5E"))
+				draw_line(c - Vector2(24, 24), c + Vector2(24, 24), Color.WHITE, 8.0)
+				draw_line(c + Vector2(-24, 24), c + Vector2(24, -24), Color.WHITE, 8.0)
+		if done:
+			text_at(msg, size.y / 2.0)
+
+## Pursuit: press and hold the dot, then keep the finger on it for `dur` ms.
+## Submits the % of frames the finger was on it.
+class PursuitArena extends KinArena:
+	var d: Dictionary = {}
+	var t0 := 0
+	var holding := false
+	var finger := Vector2(-999, -999)
+	var frames := 0
+	var on := 0
+	func target(t: float) -> Vector2:
+		return Vector2(size.x * (0.5 + float(d.ax) * sin(float(d.fx) * t + float(d.px))), size.y * (0.5 + float(d.ay) * sin(float(d.fy) * t + float(d.py))))
+	func radius() -> float:
+		return float(d.radius) * 1.4
+	func _process(_dt: float) -> void:
+		if done or t0 == 0:
+			queue_redraw()
+			return
+		var t := float(Time.get_ticks_msec() - t0) / 1000.0
+		frames += 1
+		if holding and finger.distance_to(target(t)) <= radius() * 1.3:
+			on += 1
+		if t * 1000.0 >= float(d.dur):
+			var pct := roundf(100.0 * on / maxi(1, frames))
+			finish(pct, T.t("kn_on", {"n": int(pct)}))
+		queue_redraw()
+	func _gui_input(e: InputEvent) -> void:
+		if done:
+			return
+		if e is InputEventMouseMotion:
+			finger = e.position
+		if pressed_event(e):
+			accept_event()
+			finger = e.position
+			holding = true
+			if t0 == 0 and finger.distance_to(target(0.0)) <= radius() * 1.6:
+				t0 = Time.get_ticks_msec()
+				view.ready_now()
+		elif released_event(e):
+			holding = false
+	func _draw() -> void:
+		frame()
+		var t := 0.0 if t0 == 0 else float(Time.get_ticks_msec() - t0) / 1000.0
+		var c := target(minf(t, float(d.dur) / 1000.0))
+		var hit := holding and finger.distance_to(c) <= radius() * 1.3
+		draw_circle(c, radius(), Color("#3DFF9A") if hit else Color("#FF8A3D"))
+		if t0 == 0:
+			text_at(T.t("kn_hold"), size.y - 24, 24)
+		elif not done:
+			draw_rect(Rect2(0, size.y - 8, size.x * (1.0 - t * 1000.0 / float(d.dur)), 8), Color("#A9A9C4"))
+		if done:
+			text_at(msg, size.y / 2.0)
+
+## Steady hand: drag along the track from the green dot to the orange one.
+## Submits the % of the drawn path inside the track (0 if let go before the end).
+class TraceArena extends KinArena:
+	var pts: Array = []
+	var half := 20.0
+	var path := PackedVector2Array()
+	var started := false
+	var last := Vector2.ZERO
+	var inside_n := 0
+	var total_n := 0
+	var trail: Array = []
+	func _ready() -> void:
+		super()
+		resized.connect(_build)
+		_build()
+		view.ready_now()
+	func _build() -> void:
+		var p := PackedVector2Array()
+		for q in pts:
+			p.append(Vector2(float(q[0]) * size.x, float(q[1]) * size.y))
+		path = PackedVector2Array()
+		for i in p.size() - 1:
+			var p0: Vector2 = p[maxi(i - 1, 0)]
+			var p1: Vector2 = p[i]
+			var p2: Vector2 = p[i + 1]
+			var p3: Vector2 = p[mini(i + 2, p.size() - 1)]
+			for k in 12:
+				var t := k / 12.0
+				path.append(0.5 * ((2.0 * p1) + (-p0 + p2) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t * t + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t * t * t))
+		path.append(p[p.size() - 1])
+	func dist(q: Vector2) -> float:
+		var best := INF
+		for i in path.size() - 1:
+			best = minf(best, q.distance_to(Geometry2D.get_closest_point_to_segment(q, path[i], path[i + 1])))
+		return best
+	func _gui_input(e: InputEvent) -> void:
+		if done or path.size() < 2:
+			return
+		if pressed_event(e):
+			accept_event()
+			if e.position.distance_to(path[0]) <= half + 18:
+				started = true
+				last = e.position
+		elif released_event(e) and started:
+			finish(0.0, T.t("kn_letgo"))
+		elif e is InputEventMouseMotion and started:
+			var q: Vector2 = e.position
+			var steps := maxi(1, int(last.distance_to(q) / 4.0))
+			for s in steps:
+				var p := last.lerp(q, float(s + 1) / steps)
+				var ins := dist(p) <= half
+				total_n += 1
+				if ins:
+					inside_n += 1
+				trail.append([p, ins])
+			last = q
+			if q.distance_to(path[path.size() - 1]) <= half + 8:
+				var pct := roundf(100.0 * inside_n / maxi(1, total_n))
+				finish(pct, T.t("kn_track", {"n": int(pct)}))
+			queue_redraw()
+	func _draw() -> void:
+		frame()
+		if path.size() < 2:
+			return
+		draw_polyline(path, Color("#2A2A40"), half * 2.0, true)
+		draw_polyline(path, Color("#6A6A90"), 2.0, true)
+		draw_circle(path[0], 14, Color("#3DFF9A"))
+		draw_circle(path[path.size() - 1], 14, Color("#FF8A3D"))
+		for i in range(1, trail.size()):
+			draw_line(trail[i - 1][0], trail[i][0], Color("#3DFF9A") if trail[i][1] else Color("#FF4F5E"), 3.0, true)
+		if done:
+			text_at(msg, size.y - 20)
+
+## Tap along: after a tap to start, 12 clicks (heard and flashed); taps from click
+## `from` on count. Submits the mean ms between each tap and its nearest click.
+class TapBeatArena extends KinArena:
+	var interval := 600
+	var clicks := 12
+	var from := 3
+	var t0 := 0
+	var sched: Array = []
+	var taps: Array = []
+	var player: AudioStreamPlayer
+	func _gui_input(e: InputEvent) -> void:
+		if done or not pressed_event(e):
+			return
+		accept_event()
+		var now := Time.get_ticks_msec()
+		if t0 == 0:
+			t0 = now
+			# the sound reaches the ear after the output latency; the flashes and the
+			# scoring use that moment, so tapping to the sound counts as on the beat
+			var lat := int((AudioServer.get_output_latency() + AudioServer.get_time_to_next_mix()) * 1000.0)
+			var tones: Array = []
+			for i in clicks:
+				tones.append([Audio.midi_f(84), 0.6 + i * interval / 1000.0, 0.06, 0.3, "triangle"])
+				sched.append(t0 + 600 + i * interval + lat)
+			player = AudioStreamPlayer.new()
+			player.stream = Audio.render(tones)
+			add_child(player)
+			player.play()
+			view.ready_now()
+		else:
+			taps.append(now)
+	func _process(_dt: float) -> void:
+		if done or t0 == 0:
+			queue_redraw()
+			return
+		if Time.get_ticks_msec() > int(sched[sched.size() - 1]) + interval:
+			var offs: Array = []
+			for tp in taps:
+				if tp < int(sched[from]) - interval / 2:
+					continue
+				var best := INF
+				for s in sched:
+					best = minf(best, absf(float(tp - int(s))))
+				offs.append(best)
+			if offs.size() < 5:
+				finish(9999.0, T.t("kn_fewtaps"))
+			else:
+				var m := 0.0
+				for o in offs:
+					m += o
+				m = roundf(m / offs.size())
+				finish(m, T.t("kn_beat", {"n": int(m)}))
+		queue_redraw()
+	func _draw() -> void:
+		frame()
+		var c := size / 2.0
+		var lit := false
+		var now := Time.get_ticks_msec()
+		for s in sched:
+			if now >= int(s) and now < int(s) + 120:
+				lit = true
+		draw_circle(c, 70 if lit else 54, Color("#FF8A3D") if lit else Color("#3A3A52"))
+		if t0 == 0:
+			text_at(T.t("kn_start"), size.y - 24, 24)
+		if done:
+			text_at(msg, size.y - 24)
+
+## Drop it in: drag the ball into the ring within `limit` ms of first touching it.
+## Submits "hit", "miss" (outside the ring) or "slow".
+class DragArena extends KinArena:
+	var d: Dictionary = {}
+	var ball := Vector2.ZERO
+	var dragging := false
+	var t0 := 0
+	func _ready() -> void:
+		super()
+		resized.connect(func(): if t0 == 0: ball = Vector2(float(d.bx) * size.x, float(d.by) * size.y))
+		ball = Vector2(float(d.bx) * size.x, float(d.by) * size.y)
+		view.ready_now()
+	func ring_c() -> Vector2:
+		return Vector2(float(d.rx) * size.x, float(d.ry) * size.y)
+	func _process(_dt: float) -> void:
+		if done:
+			return
+		if t0 and Time.get_ticks_msec() - t0 > int(d.limit):
+			finish("slow", T.t("kn_slow"))
+		queue_redraw()
+	func _gui_input(e: InputEvent) -> void:
+		if done:
+			return
+		if pressed_event(e) and e.position.distance_to(ball) <= float(d.ball) * 1.4 + 10:
+			accept_event()
+			dragging = true
+			if t0 == 0:
+				t0 = Time.get_ticks_msec()
+		elif e is InputEventMouseMotion and dragging:
+			ball = e.position
+		elif released_event(e) and dragging:
+			dragging = false
+			var inside := ball.distance_to(ring_c()) <= float(d.ring) - float(d.ball) * 0.5
+			finish("hit" if inside else "miss", T.t("kn_hit") if inside else T.t("kn_miss"))
+	func _draw() -> void:
+		frame()
+		draw_arc(ring_c(), float(d.ring), 0, TAU, 48, Color("#FFE14D"), 4.0, true)
+		draw_circle(ball, float(d.ball), Color("#FF8A3D"))
+		if t0 and not done:
+			var left := 1.0 - float(Time.get_ticks_msec() - t0) / float(d.limit)
+			draw_rect(Rect2(0, size.y - 8, size.x * maxf(0.0, left), 8), Color("#A9A9C4"))
+		if done:
+			text_at(msg, size.y - 24)
+
+static func _kin_arena(v: ItemView, a: KinArena, h: float) -> void:
+	a.view = v
+	a.custom_minimum_size = Vector2(W, h)
+	v.add_child(a)
+
+static func _gonogo(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_gonogo"))
+	var a := GoNoGoArena.new()
+	a.trials = d.get("trials", [])
+	a.window = int(d.get("window", 800))
+	_kin_arena(v, a, 480)
+
+static func _pursuit(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_pursuit"))
+	var a := PursuitArena.new()
+	a.d = d
+	_kin_arena(v, a, 480)
+
+static func _trace(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_trace"))
+	var a := TraceArena.new()
+	a.pts = d.get("pts", [])
+	a.half = float(d.get("half", 20))
+	_kin_arena(v, a, 380)
+
+static func _tapbeat(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_tapbeat"))
+	var a := TapBeatArena.new()
+	a.interval = int(d.get("interval", 600))
+	a.clicks = int(d.get("clicks", 12))
+	a.from = int(d.get("from", 3))
+	_kin_arena(v, a, 380)
+
+static func _dragfit(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_dragfit"))
+	var a := DragArena.new()
+	a.d = d
+	_kin_arena(v, a, 380)
