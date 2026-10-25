@@ -7,6 +7,7 @@
 import { auc2, clamp, composite, dOf, eap, GATE, lz, sum } from "./irt.ts";
 import { Rng } from "./rng.ts";
 import { checkAnswer, type Ctx, GENS, type Item, type Lang } from "./gens/index.ts";
+import { NEW_STYLES } from "./gens/int2.ts";
 
 export const SECS = ["LOG", "SPA", "LIN", "MUS", "NAT", "KIN", "INT", "SELF", "EXI"];
 export const CORE = ["LOG", "SPA", "LIN"];
@@ -26,10 +27,11 @@ export const SEC_GENS: Record<string, [string, number][]> = {
  *  v3 the second LIN set (gens/lin2.ts), v4 the second MUS set (gens/mus2.ts),
  *  v5 the second NAT set (gens/nat2.ts), v6 the second KIN set (gens/kin2.ts),
  *  v7 the second EXI set (gens/exi2.ts), v8 the Self test's wider pool + "Will you remember?"
- *  (selfGens, gens/self2.ts).
+ *  (selfGens, gens/self2.ts), v9 the second INT set (gens/int2.ts) and the new hairstyles
+ *  3..11 on every face (restyle).
  *  Within a section the prototype's
  *  generators keep half the weight and the added ones share the other half. */
-export const GV = 8;
+export const GV = 9;
 const SEC_GENS_ADDED: Record<string, [number, string[]][]> = {
   LOG: [[1, ["symsum", "scales", "ordering", "letters", "funcmachine", "operators", "fraccmp", "wordprob", "dice", "sudoku"]]],
   SPA: [[2, ["paperfold", "cubenet", "gears", "mirror", "countshapes", "cubecount", "direction", "pieces"]]],
@@ -38,7 +40,21 @@ const SEC_GENS_ADDED: Record<string, [number, string[]][]> = {
   NAT: [[5, ["inherit", "foodweb", "idkey", "camo", "spotdiff"]]],
   KIN: [[6, ["gonogo", "pursuit", "trace", "tapbeat", "dragfit"]]],
   EXI: [[7, ["wason", "necsuf", "assume", "contradict", "crt"]]],
+  INT: [[9, ["flash", "smile", "gaze", "intensity", "facemem", "eyes", "tom", "feel", "change", "sarcasm", "fauxpas", "help", "posture"]]],
 };
+/** gv 9: faces drawn by the prototype's generators get one of the new hairstyles 3..11
+ *  (cosmetic: the answer never depends on the hair). Walks display for face identities. */
+export const FACE_GV = 9;
+export function restyle(item: Item, r: Rng) {
+  const walk = (x: unknown) => {
+    if (Array.isArray(x)) return x.forEach(walk);
+    if (!x || typeof x !== "object") return;
+    const o = x as Record<string, unknown>;
+    if (typeof o.style === "number" && typeof o.skin === "number" && o.style <= 2) o.style = 3 + r.int(0, NEW_STYLES - 1);
+    else Object.values(o).forEach(walk);
+  };
+  walk(item.display);
+}
 export function secGens(sec: string, gv = 0): [string, number][] {
   const base = SEC_GENS[sec];
   const added = (SEC_GENS_ADDED[sec] || []).filter(([v]) => v <= gv).flatMap(([, ids]) => ids);
@@ -50,12 +66,12 @@ export const SELF_POOL = ["matrix", "rotation", "topview", "natodd", "face", "sy
  *  musical ones: sound; not the body trials: speed, not knowledge). The prototype's six keep
  *  half the weight. Every 7th item from the 4th on is a "Will you remember?" trial instead. */
 const SELF_GV = 8;
-const SELF_ADDED_SECS = ["LOG", "SPA", "LIN", "NAT", "EXI"];
+const SELF_ADDED_SECS = ["LOG", "SPA", "LIN", "NAT", "EXI", "INT"]; // INT from gv 9
 export const RECALL = "recall";
 export function selfGens(gv = 0): [string, number][] {
   const base = SELF_POOL.map((id): [string, number] => [id, 1 / SELF_POOL.length]);
   if (gv < SELF_GV) return base;
-  const added = SELF_ADDED_SECS.flatMap((s) => SEC_GENS_ADDED[s].flatMap(([, ids]) => ids));
+  const added = SELF_ADDED_SECS.flatMap((s) => SEC_GENS_ADDED[s].filter(([v]) => v <= gv).flatMap(([, ids]) => ids));
   return [...base.map(([id, w]): [string, number] => [id, w / 2]), ...added.map((id): [string, number] => [id, 0.5 / added.length])];
 }
 /** Provisional norms for scoring the recall guesses (scoreIQ): mean and SD of the error
@@ -138,6 +154,7 @@ export function nextIqItem(scope: string, lang: Lang, resp: Resp[], state: IqSta
     item = GENS[gid].make(d, ir, ctx);
   }
   if (!item) throw new Error("generator returned no item");
+  if ((state.gv ?? 0) >= FACE_GV) restyle(item, ir);
   state.rng = r.state;
   state.used = [...used];
   return item;

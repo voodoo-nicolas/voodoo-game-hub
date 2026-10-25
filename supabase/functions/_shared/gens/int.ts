@@ -15,7 +15,7 @@ function faceParams(emo: string, k: number, r: Rng) {
   return p;
 }
 const randId = (r: Rng) => ({ skin: r.int(0, 5), hair: r.int(0, 4), style: r.int(0, 2), w: r.int(-1, 1), sp: r.int(-1, 1) });
-function emoOptions(ans: string, d: number, r: Rng) {
+export function emoOptions(ans: string, d: number, r: Rng) {
   const dist = d >= 5 ? CONFUSE_[ans].slice() : r.shuffle(EMO_KEYS.filter((e) => e !== ans)).slice(0, 3);
   return r.shuffle([ans, ...dist.slice(0, 3)]);
 }

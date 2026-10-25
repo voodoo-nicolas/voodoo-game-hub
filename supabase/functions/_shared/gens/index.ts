@@ -13,6 +13,7 @@ import "./nat2.ts";
 import "./kin.ts";
 import "./kin2.ts";
 import "./int.ts";
+import "./int2.ts";
 import "./exi.ts";
 import "./exi2.ts";
 import "./self2.ts";

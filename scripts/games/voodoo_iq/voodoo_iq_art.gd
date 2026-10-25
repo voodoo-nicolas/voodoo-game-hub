@@ -553,6 +553,32 @@ static func creature(ci: CanvasItem, x: Array, rect: Rect2, card := true, tint :
 ##   lc lip corners (+ up) · lp lip press · mo mouth open
 const IRIS := ["#3B2414", "#5A3A1E", "#7A5A2E", "#4E6B3A", "#3E6E9A", "#6A7F8C"]
 const SHIRTS := ["#2E4A7A", "#6A2E4A", "#2E6A5A", "#5A4A2E", "#3A3A4A", "#7A3A2E"]
+## Headscarf colours: the hair-colour pick (0..4) chooses one.
+const SCARF := ["#2F6F73", "#7A3B69", "#3A4E8C", "#8C6A2B", "#5A5A6E"]
+## Hairstyles 3..11, added 2026-10-25 from the owner-approved "IQ Face Lab" page (its bun was
+## rejected, so it isn't here). The server sends them only to packs with gv >= 9; 0..2 stay the
+## prototype's three. Paths are in the 200 x 230 face box; {L} / {R} = the head's left / right
+## edge (+/- an offset). back = drawn behind the head, front = over it. Flags: curls (a cloud of
+## curls), buzz (see-through stubble), bald (sheen on the scalp), scarf (scarf colour, the front
+## frames the face), no_strands.
+const NEW_HAIR := [
+	{"name": "crop", "front": ["M{L-3} 108 C{L-8} 42 62 6 100 6 C138 6 {R+8} 42 {R+3} 108 L{R-3} 104 C{R-4} 66 150 46 100 48 C50 46 {L+4} 66 {L+3} 104 Z"]},
+	{"name": "swoop", "front": ["M{L-3} 108 C{L-8} 40 62 4 104 4 C140 4 {R+8} 44 {R+3} 108 L{R-3} 104 C{R-4} 64 {R-14} 44 136 40 C110 36 60 38 {L+10} 56 C{L+5} 70 {L+4} 88 {L+3} 104 Z"]},
+	{"name": "bob", "back": ["M{L-12} 162 C{L-18} 60 60 2 100 2 C140 2 {R+18} 60 {R+12} 162 Q100 176 {L-12} 162 Z"],
+		"front": ["M{L-10} 160 C{L-14} 44 60 4 100 4 C140 4 {R+14} 44 {R+10} 160 L{R-6} 160 C{R-8} 120 {R-10} 80 {R-20} 50 Q100 53 {L+20} 50 C{L+10} 80 {L+8} 120 {L+6} 160 Z"]},
+	{"name": "long", "back": ["M{L-14} 236 C{L-24} 60 60 2 100 2 C140 2 {R+24} 60 {R+14} 236 Z"],
+		"front": ["M{L-12} 236 C{L-16} 44 60 6 100 8 C140 6 {R+16} 44 {R+12} 236 L{R-2} 236 C{R} 150 {R-4} 80 {R-24} 46 C{R-42} 30 112 24 100 26 C88 24 {L+42} 30 {L+24} 46 C{L+4} 80 {L} 150 {L+2} 236 Z"]},
+	{"name": "curls", "curls": true, "no_strands": true,
+		"front": ["M{L-4} 110 C{L-10} 40 62 4 100 4 C138 4 {R+10} 40 {R+4} 110 L{R-2} 104 C{R-4} 62 148 40 100 42 C52 40 {L+4} 62 {L+2} 104 Z"]},
+	{"name": "ponytail", "back": ["M{R-12} 40 C{R+34} 30 {R+40} 120 {R+18} 184 C{R+10} 140 {R+18} 90 {R-8} 62 Z"],
+		"front": ["M{L-1} 104 C{L-4} 44 64 14 100 14 C136 14 {R+4} 44 {R+1} 104 L{R-3} 100 C{R-4} 64 148 42 100 42 C52 42 {L+4} 64 {L+3} 100 Z"]},
+	{"name": "buzz", "buzz": true, "no_strands": true,
+		"front": ["M{L+1} 102 C{L-3} 42 62 16 100 16 C138 16 {R+3} 42 {R-1} 102 L{R-4} 98 C{R-6} 62 148 44 100 46 C52 44 {L+6} 62 {L+4} 98 Z"]},
+	{"name": "bald", "bald": true, "buzz": true, "no_strands": true,
+		"front": ["M{L} 122 C{L-3} 98 {L} 76 {L+6} 64 C{L+7} 80 {L+5} 102 {L+5} 122 Z", "M{R} 122 C{R+3} 98 {R} 76 {R-6} 64 C{R-7} 80 {R-5} 102 {R-5} 122 Z"]},
+	{"name": "scarf", "scarf": true, "no_strands": true, "back": ["M{L-18} 236 C{L-28} 50 58 -4 100 -4 C142 -4 {R+28} 50 {R+18} 236 Z"],
+		"front": ["M{L-16} 236 C{L-24} 52 58 0 100 0 C142 0 {R+24} 52 {R+16} 236 Z"]},
+]
 
 static func face(ci: CanvasItem, p: Dictionary, id: Dictionary, rect: Rect2, eyes_only: bool) -> void:
 	# a soft studio backdrop
@@ -584,6 +610,17 @@ static func face(ci: CanvasItem, p: Dictionary, id: Dictionary, rect: Rect2, eye
 	var hair_dark := hair.darkened(0.3)
 	if style == 0:
 		fill(ci, _hair_pts("M%s 128 Q%s 18 100 16 Q%s 18 %s 128 Z" % [100 - fw - 8, 100 - fw - 12, 100 + fw + 12, 100 + fw + 8]), hair.darkened(0.12))
+	var nh: Dictionary = NEW_HAIR[style - 3] if style >= 3 and style - 3 < NEW_HAIR.size() else {}
+	var hc := Color(SCARF[int(id.hair) % SCARF.size()]) if nh.get("scarf", false) else hair
+	var hd := hc.darkened(0.3)
+	for d in nh.get("back", []):
+		_hair_new(ci, _subpaths(_tpl(d, 100 - fw, 100 + fw)), hc.darkened(0.12), hd, nh, 11)
+	if nh.get("curls", false):  # a cloud of curls around the head
+		var cloud: Array = []
+		for i in 13:
+			var th := deg_to_rad(-15.0 + i * 17.5)
+			cloud.append(ellipse_pts(Vector2(100 + (fw + 14) * cos(th), 104 - 90 * sin(th)), 24, 24, 24))
+		_hair_new(ci, _union(cloud), hc.darkened(0.12), hd, {"curls": true, "no_strands": true, "cloud": true}, 5)
 
 	# ears
 	for s in [-1, 1]:
@@ -602,17 +639,40 @@ static func face(ci: CanvasItem, p: Dictionary, id: Dictionary, rect: Rect2, eye
 		fill(ci, ellipse_pts(Vector2(100 + s * (fw * 0.55), 132 - g.call("cr") * 3), 15, 10, 24), blush)
 
 	# hair over the head
+	if nh.get("bald", false):
+		fill(ci, _rot_ellipse(Vector2(84, 36), 26, 10, -12), Color(1, 1, 1, 0.12))
+	for d in nh.get("front", []):
+		var subs := _subpaths(_tpl(d, 100 - fw, 100 + fw))
+		if nh.get("scarf", false):  # the scarf frames the face: cut the face oval out of it
+			var outline: PackedVector2Array = subs[0]
+			subs = _cut_oval(outline, Vector2(100, 124), fw - 4, 84)
+			_hair_new(ci, subs, hc, hd, nh, 7)
+			# edge the scarf and the face opening, not the cut between the two halves
+			stroke(ci, outline, Color(hd, 0.9), 1.4)
+			stroke(ci, ellipse_pts(Vector2(100, 124), fw - 4, 84, 48), Color(hd, 0.9), 1.4)
+			continue
+		_hair_new(ci, subs, hc, hd, nh, 7)
+	if nh.get("curls", false):
+		var ring: Array = []
+		var i := 0
+		for a in [48, 59, 70, 81, 92, 103, 114, 125, 136]:
+			var th := deg_to_rad(a)
+			ring.append(ellipse_pts(Vector2(100 + (fw - 2) * cos(th), 120 - 84 * sin(th) - (i % 2) * 5), 12, 12, 20))
+			i += 1
+		_hair_new(ci, _union(ring), hc, hd, {"curls": true, "no_strands": true, "cloud": true}, 13)
 	if style == 0:
 		_hair(ci, "M%s 104 Q%s 12 100 12 Q%s 12 %s 104 Q%s 44 100 38 Q%s 44 %s 104 Z" % [100 - fw - 3, 100 - fw, 100 + fw, 100 + fw + 3, 100 + fw - 8, 100 - fw + 8, 100 - fw - 3], hair, hair_dark)
 	elif style == 1:
 		_hair(ci, "M%s 96 Q100 -62 %s 96 Q%s 40 100 47 Q%s 40 %s 96 Z" % [100 - fw - 4, 100 + fw + 4, 100 + fw - 34, 100 - fw + 34, 100 - fw - 4], hair, hair_dark)
-	else:
+	elif style == 2:
 		_hair(ci, "M%s 74 Q100 8 %s 74 L%s 64 Q100 36 %s 64 Z" % [100 - fw, 100 + fw, 100 + fw - 8, 100 - fw + 8], hair, hair_dark)
 		_hair(ci, "M%s 70 Q100 30 %s 70 Q100 52 %s 70 Z" % [100 - fw + 4, 100 + fw - 4, 100 - fw + 4], hair, hair_dark)
 
 	# eyes and brows
 	var eye_y := 92.0
 	var ex := 30.0 + float(id.sp) * 3.0
+	# gaze (gv 9 "what do they want?"): gx / gy move the pupils, -1..1
+	var gaze := Vector2(g.call("gx") * 7.0, g.call("gy") * 5.5)
 	var brow_c := hair.darkened(0.25) if hair.get_luminance() < 0.5 else hair.darkened(0.45)
 	for s in [-1, 1]:
 		var cx: float = 100 + s * ex
@@ -626,15 +686,16 @@ static func face(ci: CanvasItem, p: Dictionary, id: Dictionary, rect: Rect2, eye
 		# socket shadow, then the white
 		fill(ci, ellipse_pts(Vector2(cx, eye_y - 2), 20, open + 8, 28), Color(skin_sh, 0.18))
 		fill(ci, eye, Color("#F3EFE8"))
-		var iris_pts := ellipse_pts(Vector2(cx, eye_y + 0.5), 7.6, 7.6, 28)
+		var ic := Vector2(cx, eye_y + 0.5) + gaze
+		var iris_pts := ellipse_pts(ic, 7.6, 7.6, 28)
 		for part in Geometry2D.intersect_polygons(iris_pts, eye):
 			fill(ci, part, iris_c.darkened(0.25))
-		for part in Geometry2D.intersect_polygons(ellipse_pts(Vector2(cx, eye_y + 0.5), 5.6, 5.6, 24), eye):
+		for part in Geometry2D.intersect_polygons(ellipse_pts(ic, 5.6, 5.6, 24), eye):
 			fill(ci, part, iris_c)
-		for part in Geometry2D.intersect_polygons(ellipse_pts(Vector2(cx, eye_y + 0.5), 3.0, 3.0, 20), eye):
+		for part in Geometry2D.intersect_polygons(ellipse_pts(ic, 3.0, 3.0, 20), eye):
 			fill(ci, part, Color("#0B0806"))
-		if open > 4.5:
-			ci.draw_circle(Vector2(cx - 2.6, eye_y - 2.2), 1.5, Color(1, 1, 1, 0.9))
+		if open > 4.5 and Geometry2D.is_point_in_polygon(ic + Vector2(-2.6, -2.7), eye):
+			ci.draw_circle(ic + Vector2(-2.6, -2.7), 1.5, Color(1, 1, 1, 0.9))
 		# the upper lid's shadow on the eyeball, lashes, lower lid
 		stroke(ci, _q(inner_c + Vector2(0, 1.5), Vector2(cx - s * 2, eye_y - open * 1.9 + 3), outer_c + Vector2(0, 1.5), 14), Color(0, 0, 0, 0.18), 2.5, false)
 		stroke(ci, top, Color("#1A120C"), 2.6, false)
@@ -779,6 +840,108 @@ static func _head_pts(fw: float) -> PackedVector2Array:
 		var narrow := 1.0 - 0.2 * pow(maxf(sn, 0.0), 2.0)  # jaw and chin
 		out.append(Vector2(100 + cos(a) * fw * narrow, 116 + sn * (98.0 if sn > 0 else 96.0)))
 	return out
+
+static var _tok_re: RegEx
+
+## A NEW_HAIR path with {L-3}, {R+8}, {L}, ... filled in from the head edges.
+static func _tpl(d: String, L: float, R: float) -> String:
+	if _tok_re == null:
+		_tok_re = RegEx.create_from_string("\\{([LR])([+-][0-9.]+)?\\}")
+	var out := ""
+	var last := 0
+	for m in _tok_re.search_all(d):
+		out += d.substr(last, m.get_start() - last)
+		var v: float = L if m.get_string(1) == "L" else R
+		if m.get_string(2) != "":
+			v += float(m.get_string(2))
+		out += str(snappedf(v, 0.01))
+		last = m.get_end()
+	return out + d.substr(last)
+
+static func _subpaths(d: String) -> Array:
+	var out: Array = []
+	for sub in parse_path(d):
+		var pts := _clean(sub.pts)
+		if pts.size() >= 3:
+			out.append(pts)
+	return out
+
+## Union of overlapping shapes (the curl clouds).
+static func _union(shapes: Array) -> Array:
+	var acc: Array = [shapes[0]]
+	for i in range(1, shapes.size()):
+		var merged: Array = []
+		var cur: PackedVector2Array = shapes[i]
+		for a in acc:
+			var m := Geometry2D.merge_polygons(a, cur)
+			if m.size() == 1:
+				cur = m[0]
+			else:
+				merged.append(a)
+		merged.append(cur)
+		acc = merged
+	return acc
+
+static func _rot_ellipse(c: Vector2, rx: float, ry: float, deg: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for q in ellipse_pts(Vector2.ZERO, rx, ry, 28):
+		out.append(c + q.rotated(deg_to_rad(deg)))
+	return out
+
+## `shape` minus an oval inside it, as two hole-free halves (a polygon can't have a hole).
+static func _cut_oval(shape: PackedVector2Array, c: Vector2, rx: float, ry: float) -> Array:
+	var oval := ellipse_pts(c, rx, ry, 48)
+	var out: Array = []
+	for half in [PackedVector2Array([Vector2(-60, -60), Vector2(c.x + 0.5, -60), Vector2(c.x + 0.5, 300), Vector2(-60, 300)]),
+			PackedVector2Array([Vector2(c.x - 0.5, -60), Vector2(260, -60), Vector2(260, 300), Vector2(c.x - 0.5, 300)])]:
+		for part in Geometry2D.intersect_polygons(shape, half):
+			for piece in Geometry2D.clip_polygons(part, oval):
+				if not Geometry2D.is_polygon_clockwise(piece):
+					out.append(piece)
+	return out
+
+## A NEW_HAIR shape: fill (stubble is see-through), a darker edge, then strands, curls or
+## stubble dots and a sheen, all kept inside the shape (the Face Lab's clip-path).
+static func _hair_new(ci: CanvasItem, subs: Array, color: Color, dark: Color, flags: Dictionary, seed: int) -> void:
+	var buzz: bool = flags.get("buzz", false)
+	for pts in subs:
+		fill(ci, pts, Color(color, 0.62) if buzz else color)
+		if not buzz and not flags.get("cloud", false) and not flags.get("scarf", false):
+			stroke(ci, pts, Color(dark, 0.9), 1.4)
+	var inside := func(q: Vector2) -> bool:
+		for pts in subs:
+			if Geometry2D.is_point_in_polygon(q, pts):
+				return true
+		return false
+	if not flags.get("no_strands", false):
+		for k in range(-5, 6):
+			var strand := _q(Vector2(100 + k * 3, 0), Vector2(100 + k * 16, 26), Vector2(100 + k * 22, 80), 10)
+			strand.append_array(_q(Vector2(100 + k * 22, 80), Vector2(100 + k * 28, 134), Vector2(100 + k * 26, 240), 16).slice(1))
+			for pts in subs:
+				for seg in Geometry2D.intersect_polyline_with_polygon(strand, pts):
+					stroke(ci, seg, Color(dark, 0.5), 1.2, false)
+	if flags.get("curls", false) or buzz:
+		var st := [seed]
+		for i in (90 if buzz else 60):
+			st[0] = (st[0] * 16807) % 2147483647
+			var x := 10.0 + float(st[0]) / 2147483647.0 * 180.0
+			st[0] = (st[0] * 16807) % 2147483647
+			var y := float(st[0]) / 2147483647.0 * 200.0
+			if not inside.call(Vector2(x, y)):
+				continue
+			if buzz:
+				ci.draw_circle(Vector2(x, y), 0.9, Color(dark, 0.5))
+			else:  # a small open loop
+				var arc := PackedVector2Array()
+				for j in 10:
+					var a := PI * 0.75 - j * PI * 1.5 / 9.0
+					arc.append(Vector2(x + 3.5, y - 1.5) + Vector2(cos(a), -sin(a)) * 4.0)
+				stroke(ci, arc, Color(dark, 0.55), 1.3, false)
+	if not buzz:
+		var sheen := _rot_ellipse(Vector2(82, 22), 30, 9, -14)
+		for pts in subs:
+			for part in Geometry2D.intersect_polygons(sheen, pts):
+				fill(ci, part, Color(1, 1, 1, 0.06))
 
 static func _hair_pts(d: String) -> PackedVector2Array:
 	var subs := parse_path(d)
@@ -952,3 +1115,109 @@ static func bell(ci: CanvasItem, rect: Rect2, theta: float, se: float, accent: C
 	ci.draw_circle(Vector2(px, py), 13, Color("#07070C"))
 	ci.draw_circle(Vector2(px, py), 10, accent)
 	finish(ci)
+
+# ------------------------------------------------------------------ INT, gv 9: body language and gaze
+
+const FIG := Color("#F2F2F7")
+
+## A front-view figure posed by the server's joint values (gens/int2.ts POSES): sh shoulder
+## drop, nk neck (+ head up), ua / fa upper arm and forearm angles from straight down
+## (+ outward, 180 = up), kn knee bend, st stance half-width, fist. viewBox 0 0 200 250.
+static func figure(ci: CanvasItem, pose: Dictionary, rect: Rect2) -> void:
+	begin(ci, Rect2(0, 0, 200, 250), rect)
+	var g := func(k: String) -> float: return float(pose.get(k, 0.0))
+	ci.draw_line(Vector2(30, 244), Vector2(170, 244), Color("#3B3B57"), 3.0, true)
+	var kn: float = g.call("kn")
+	var hip_y := 150.0 + kn * 0.5
+	var sh_y: float = 92.0 + g.call("sh") + kn * 0.5
+	var neck_top: float = sh_y - 8.0 + clampf(-g.call("nk"), 0.0, 30.0) * 0.6
+	var head_c := Vector2(100, neck_top - 17.0 - maxf(g.call("nk"), 0.0) * 0.6)
+	var w := 7.0
+	# legs: hips to feet, knees pushed out when they bend
+	for s in [-1, 1]:
+		var hip := Vector2(100 + s * 10, hip_y)
+		var foot := Vector2(100 + s * g.call("st"), 238)
+		var knee := hip.lerp(foot, 0.5) + Vector2(s * kn * 0.6, 0)
+		ci.draw_polyline(PackedVector2Array([hip, knee, foot]), FIG, w, true)
+		ci.draw_circle(foot, w / 2, FIG)
+	# body: a slight hunch when the shoulders drop
+	var hunch: float = maxf(g.call("sh"), 0.0) * 0.5
+	ci.draw_polyline(_q(Vector2(100, sh_y), Vector2(100 + hunch, (sh_y + hip_y) / 2), Vector2(100, hip_y), 8), FIG, w + 2, true)
+	ci.draw_line(Vector2(74, sh_y), Vector2(126, sh_y), FIG, w, true)
+	ci.draw_line(Vector2(100, sh_y), Vector2(100, neck_top), FIG, w, true)
+	ci.draw_circle(head_c, 17, FIG)
+	# arms
+	for s in [-1, 1]:
+		var shoulder := Vector2(100 + s * 26, sh_y)
+		var ua := deg_to_rad(g.call("ua"))
+		var fa := deg_to_rad(g.call("fa"))
+		var elbow := shoulder + Vector2(s * sin(ua), cos(ua)) * 34
+		var hand := elbow + Vector2(s * sin(fa), cos(fa)) * 30
+		ci.draw_polyline(PackedVector2Array([shoulder, elbow, hand]), FIG, w, true)
+		ci.draw_circle(shoulder, w / 2, FIG)
+		ci.draw_circle(hand, 7.5 if g.call("fist") > 0.5 else w / 2, FIG)
+	finish(ci)
+
+## The gaze question: a face in the middle, the objects round it at `angles` (degrees, y down).
+static func gaze_scene(ci: CanvasItem, sz: Vector2, p: Dictionary, id: Dictionary, angles: Array, objects: Array, names: Array) -> void:
+	var c := sz / 2.0
+	var fw := minf(sz.x * 0.30, sz.y * 0.32)  # small enough that no object touches the face
+	var fh := fw * 1.15
+	face(ci, p, id, Rect2(c - Vector2(fw, fh) / 2.0, Vector2(fw, fh)), false)
+	var rx := sz.x * 0.40
+	var ry := sz.y * 0.41
+	var s := minf(sz.x, sz.y) * 0.09
+	for i in angles.size():
+		var a := deg_to_rad(float(angles[i]))
+		var pos := c + Vector2(cos(a) * rx, sin(a) * ry)
+		pos.x = clampf(pos.x, s * 1.6, sz.x - s * 1.6)
+		pos.y = clampf(pos.y, s * 1.1, sz.y - s * 1.9)
+		thing(ci, str(objects[i]), pos, s)
+		text(ci, pos + Vector2(0, s * 1.05 + 14), str(names[i]), int(maxf(14.0, s * 0.45)), Color("#D2D2E2"))
+
+## A small drawn object (the gaze question's things), centred at c, about 2 s across.
+static func thing(ci: CanvasItem, key: String, c: Vector2, s: float) -> void:
+	var ink := Color("#07070C")
+	match key:
+		"ball":
+			ci.draw_circle(c, s * 0.8, Color("#FF8A3D"))
+			stroke(ci, ellipse_pts(c, s * 0.8, s * 0.8, 32), ink, 2.0)
+			stroke(ci, _q(c + Vector2(-s * 0.8, 0), c + Vector2(0, -s * 0.5), c + Vector2(s * 0.8, 0)), ink, 1.6, false)
+		"book":
+			fill(ci, round_rect_pts(c.x - s * 0.65, c.y - s * 0.8, s * 1.3, s * 1.6, 3), Color("#4FB3FF"))
+			ci.draw_line(c + Vector2(-s * 0.45, -s * 0.8), c + Vector2(-s * 0.45, s * 0.8), ink, 2.0)
+		"hat":
+			fill(ci, round_rect_pts(c.x - s * 0.5, c.y - s * 0.75, s * 1.0, s * 0.95, 3), Color("#B69CFF"))
+			fill(ci, round_rect_pts(c.x - s * 0.95, c.y + s * 0.15, s * 1.9, s * 0.3, 3), Color("#B69CFF"))
+			ci.draw_line(c + Vector2(-s * 0.5, s * 0.02), c + Vector2(s * 0.5, s * 0.02), ink, 3.0)
+		"cup":
+			fill(ci, PackedVector2Array([c + Vector2(-s * 0.6, -s * 0.6), c + Vector2(s * 0.6, -s * 0.6), c + Vector2(s * 0.45, s * 0.7), c + Vector2(-s * 0.45, s * 0.7)]), Color("#2EE6A6"))
+			stroke(ci, ellipse_pts(c + Vector2(s * 0.68, -s * 0.05), s * 0.28, s * 0.32, 20), Color("#2EE6A6"), 3.0)
+		"key":
+			stroke(ci, ellipse_pts(c + Vector2(-s * 0.45, 0), s * 0.32, s * 0.32, 20), Color("#FFE14D"), 4.0)
+			ci.draw_line(c + Vector2(-s * 0.13, 0), c + Vector2(s * 0.9, 0), Color("#FFE14D"), 4.0)
+			ci.draw_line(c + Vector2(s * 0.6, 0), c + Vector2(s * 0.6, s * 0.3), Color("#FFE14D"), 4.0)
+			ci.draw_line(c + Vector2(s * 0.85, 0), c + Vector2(s * 0.85, s * 0.3), Color("#FFE14D"), 4.0)
+		"apple":
+			ci.draw_circle(c + Vector2(0, s * 0.1), s * 0.72, Color("#FF4D5E"))
+			ci.draw_line(c + Vector2(0, -s * 0.55), c + Vector2(s * 0.1, -s * 0.9), Color("#7A4A2A"), 3.0)
+			fill(ci, ellipse_pts(c + Vector2(s * 0.32, -s * 0.78), s * 0.22, s * 0.1, 12), Color("#A6F04B"))
+		"star":
+			var pts := PackedVector2Array()
+			for i in 10:
+				var a := -PI / 2 + i * PI / 5
+				pts.append(c + Vector2(cos(a), sin(a)) * (s * 0.9 if i % 2 == 0 else s * 0.38))
+			fill(ci, pts, Color("#FFE14D"))
+		"flower":
+			for i in 5:
+				var a := -PI / 2 + i * TAU / 5
+				ci.draw_circle(c + Vector2(cos(a), sin(a)) * s * 0.42, s * 0.34, Color("#FF5FA2"))
+			ci.draw_circle(c, s * 0.26, Color("#FFE14D"))
+		"clock":
+			ci.draw_circle(c, s * 0.82, Color("#F2F2F7"))
+			stroke(ci, ellipse_pts(c, s * 0.82, s * 0.82, 32), ink, 2.0)
+			ci.draw_line(c, c + Vector2(0, -s * 0.55), ink, 2.5)
+			ci.draw_line(c, c + Vector2(s * 0.4, 0), ink, 2.5)
+		"shoe":
+			fill(ci, PackedVector2Array([c + Vector2(-s * 0.9, -s * 0.5), c + Vector2(-s * 0.4, -s * 0.5), c + Vector2(-s * 0.3, -s * 0.05), c + Vector2(s * 0.7, s * 0.05), c + Vector2(s * 0.95, s * 0.5), c + Vector2(-s * 0.9, s * 0.5)]), Color("#C98E62"))
+			ci.draw_line(c + Vector2(-s * 0.9, s * 0.5), c + Vector2(s * 0.95, s * 0.5), ink, 3.0)

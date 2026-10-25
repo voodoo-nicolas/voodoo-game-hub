@@ -18,8 +18,8 @@
 
 import { type Call, HttpError, must } from "../_shared/http.ts";
 import { closeStaleSessions } from "../_shared/session.ts";
-import { blitzBatch, blitzBatchSize, BLITZ_DURS, GV, IQ_DURS, type IqState, MIXED_POOL, newIqState, nextIqItem, publicItem, SECS, storedKey } from "../_shared/engine.ts";
-import { dailySeed, randomSeed, utcDay } from "../_shared/rng.ts";
+import { blitzBatch, blitzBatchSize, BLITZ_DURS, FACE_GV, GV, IQ_DURS, type IqState, MIXED_POOL, newIqState, nextIqItem, publicItem, restyle, SECS, storedKey } from "../_shared/engine.ts";
+import { dailySeed, randomSeed, Rng, utcDay } from "../_shared/rng.ts";
 import { type ScoreRow, secStanding } from "../_shared/standings.ts";
 import type { Lang } from "../_shared/gens/index.ts";
 
@@ -63,7 +63,8 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
     if (scope !== "ALL" && !MIXED_POOL.includes(scope)) throw new HttpError(400, "bad_scope"); // no SELF Blitz
   }
   const durS = mode === "iq" ? dur * 60 : dur;
-  // IQ tests only: Blitz batches stay the prototype's (blitz-submit regenerates them from the seed)
+  // IQ tests: added generators by gv. Blitz batches stay the prototype's (blitz-submit regenerates
+  // them from the seed); only their faces' hairstyles follow gv (FACE_GV)
   const gv = Math.max(0, Math.min(GV, Math.floor(Number(body.gv) || 0)));
   if (mode === "iq" && gv) state.gv = gv;
 
@@ -94,7 +95,10 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   const meta = { mode, kind, scope, dur_s: durS, ranked, lang };
 
   if (mode === "blitz") {
-    const items = blitzBatch(seed, scope, lang, blitzBatchSize(durS)).map((it, i) => publicItem(it, i));
+    const batch = blitzBatch(seed, scope, lang, blitzBatchSize(durS));
+    // gv 9 packs draw the new hairstyles (cosmetic, so blitz-submit's regenerated batch still scores the same)
+    if (gv >= FACE_GV) { const rr = new Rng(seed ^ 0x5eed); batch.forEach((it) => restyle(it, rr)); }
+    const items = batch.map((it, i) => publicItem(it, i));
     const row = must(await db.from("sessions").insert({ ...base, state }).select("id").single()) as any;
     return { session_id: row.id, deadline, ...meta, first_item: items[0], items };
   }

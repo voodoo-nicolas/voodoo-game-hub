@@ -3,7 +3,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { assert, assertAlmostEquals, assertEquals, assertThrows } from "jsr:@std/assert@1";
-import { blitzBatch, type IqState, judge, newIqState, nextIqItem, publicItem, RECALL, type Resp, scoreBlitz, scoreIQ, SELF_POOL } from "../_shared/engine.ts";
+import { blitzBatch, type IqState, judge, newIqState, nextIqItem, publicItem, RECALL, type Resp, restyle, scoreBlitz, scoreIQ, SELF_POOL } from "../_shared/engine.ts";
 import { checkAnswer, type Item } from "../_shared/gens/index.ts";
 import { hashStr, Rng } from "../_shared/rng.ts";
 
@@ -243,4 +243,29 @@ Deno.test("SELF scoring: recall guesses count toward the Self score; without the
   assertAlmostEquals(m.auc!, 0.5);
   assert(good.theta > m.theta && bad.theta < m.theta, `${bad.theta} < ${m.theta} < ${good.theta}`);
   assertEquals([good.recallTheta, bad.recallTheta], [2, -3]);
+});
+
+Deno.test("generator version 9 adds the INT set and new hairstyles on every face; gv 8 gets neither", () => {
+  const added = new Set(["flash", "smile", "gaze", "intensity", "facemem", "eyes", "tom", "feel", "change", "sarcasm", "fauxpas", "help", "posture"]);
+  const seen8 = new Set<string>(), seen9 = new Set<string>();
+  const styles = (x: unknown, out: number[] = []): number[] => {
+    if (Array.isArray(x)) x.forEach((y) => styles(y, out));
+    else if (x && typeof x === "object") { const o = x as any; if (typeof o.style === "number" && typeof o.skin === "number") out.push(o.style); else Object.values(o).forEach((y) => styles(y, out)); }
+    return out;
+  };
+  for (let seed = 1; seed <= 500; seed++) {
+    const a = nextIqItem("INT", "en", [], newIqState(seed, { gv: 8 }));
+    const b = nextIqItem("INT", "es", [], newIqState(seed, { gv: 9 }));
+    seen8.add(a.gid); seen9.add(b.gid);
+    assert(styles(a.display).every((s) => s <= 2), `gv 8 drew a new hairstyle (${a.gid})`);
+    assert(styles(b.display).every((s) => s >= 3 && s <= 11), `gv 9 drew an old hairstyle (${b.gid})`);
+  }
+  assert(![...seen8].some((g) => added.has(g)), `gv 8 got ${[...seen8]}`);
+  assert([...added].every((g) => seen9.has(g)), `gv 9 missed some: ${[...added].filter((g) => !seen9.has(g))}`);
+  // restyling a Blitz face never changes its answer key
+  const batch = blitzBatch(7, "INT", "en", 30);
+  const keys = JSON.stringify(batch.map((x) => x.key));
+  batch.forEach((x) => restyle(x, new Rng(3)));
+  assertEquals(JSON.stringify(batch.map((x) => x.key)), keys);
+  assert(batch.every((x) => styles(x.display).every((s) => s >= 3)));
 });

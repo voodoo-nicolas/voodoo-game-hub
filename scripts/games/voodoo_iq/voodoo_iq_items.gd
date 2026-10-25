@@ -22,9 +22,10 @@ static var W := 680.0
 ## The highest generator version this pack can draw, sent with session-start
 ## (server engine.ts GV). 1 = the second LOG set, 2 = the second SPA set, 3 = the
 ## second LIN set, 4 = the second MUS set, 5 = the second NAT set, 6 = the second
-## KIN set, 7 = the second EXI set, 8 = the Self test's wider pool + "Will you remember?"
-## (2026-10-25). Raise it only together with the views for the generators that version adds.
-const GV := 8
+## KIN set, 7 = the second EXI set, 8 = the Self test's wider pool + "Will you remember?",
+## 9 = the second INT set and the new hairstyles (2026-10-25). Raise it only together with
+## the views for the generators that version adds.
+const GV := 9
 
 class ItemView extends VBoxContainer:
 	signal submitted(value)
@@ -113,6 +114,17 @@ static func build(item: Dictionary, blitz: bool) -> ItemView:
 		"contradict": _contradict(v, d)
 		"crt": _crt(v, d)
 		"recall": _recall(v, d)
+		"flash": _flash(v, d)
+		"smile": _smile(v, d)
+		"gaze": _gaze(v, d)
+		"intensity": _intensity(v, d)
+		"facemem": _facemem(v, d)
+		"eyes": _eyes(v, d)
+		"tom": _tom(v, d)
+		"posture": _posture(v, d)
+		"feel", "change", "help": _story_q(v, d)
+		"sarcasm": _sarcasm(v, d)
+		"fauxpas": _fauxpas(v, d)
 		_:
 			v.add_child(_label("?", 30, FG))
 	return v
@@ -2077,3 +2089,189 @@ static func _plain_button(text: String, accent: Color, size: Vector2) -> Button:
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	style_button(b, accent)
 	return b
+
+# ------------------------------------------------------------------ INT (gv 9)
+
+## The face flashes its expression once for flashMs (both faces are baked first, so the
+## swap is instant), then the options appear and the item timer starts.
+static func _flash(v: ItemView, d: Dictionary) -> void:
+	var prompt := _label(T.t("q_flash_ready"), 30, FG)
+	v.add_child(prompt)
+	var stack := MarginContainer.new()
+	var neutral := _face_canvas({}, d.get("face", {}), false, 280.0)
+	var expr := _face_canvas(d.get("params", {}), d.get("face", {}), false, 280.0)
+	expr.modulate.a = 0.0
+	stack.add_child(neutral)
+	stack.add_child(expr)
+	v.add_child(_center(stack))
+	var go := _plain_button("⚡ " + T.t("flash_go"), Color("#7dff3a"), Vector2(320, 76))
+	var holder := _center(go)
+	v.add_child(holder)
+	var ms := float(d.get("flashMs", 250)) / 1000.0
+	go.pressed.connect(func():
+		if go.disabled:
+			return
+		go.disabled = true
+		var tw := v.create_tween()
+		tw.tween_interval(0.3)
+		tw.tween_callback(func(): expr.modulate.a = 1.0)
+		tw.tween_interval(ms)
+		tw.tween_callback(func(): expr.modulate.a = 0.0)
+		tw.tween_interval(0.15)
+		tw.tween_callback(func():
+			holder.queue_free()
+			prompt.text = T.t("q_flash")
+			_mc(v, _emo_texts(d.get("options", [])), 2)
+			v.ready_now()))
+
+static func _smile(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_smile"))
+	var opts: Array = []
+	var fw := minf(300.0, (W - 10) / 2.0 - 40)
+	for f in d.get("faces", []):
+		opts.append(_face_canvas(f.get("params", {}), f.get("face", {}), false, fw))
+	_mc(v, opts, 2, false, fw * 1.15 + 20)
+
+static func _gaze(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_gaze"))
+	var objects: Array = d.get("objects", [])
+	var names: Array = []
+	for o in objects:
+		names.append(T.t("obj_" + str(o)))
+	var p: Dictionary = d.get("params", {})
+	var id: Dictionary = d.get("face", {})
+	var angles: Array = d.get("angles", [])
+	v.add_child(_center(Art.baked(func(ci, sz): Art.gaze_scene(ci, sz, p, id, angles, objects, names), Vector2(W, W * 0.95))))
+	_mc(v, names, 4 if objects.size() != 6 else 3, true, 64)
+
+## Tap the faces from weakest to strongest; a number shows the order. Start again clears it.
+static func _intensity(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_intensity", {"emo": T.t("emo_n_" + str(d.get("emo", "")))}))
+	var faces: Array = d.get("faces", [])
+	var n := faces.size()
+	var cols := 2 if n == 4 else 3
+	var cw := (W - 10.0 * (cols - 1)) / cols
+	var grid := GridContainer.new()
+	grid.columns = cols
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	var order: Array = []
+	var badges: Array = []
+	for i in n:
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(cw, (cw - 24) * 1.15 + 16)
+		style_button(b, v.accent)
+		var f: Dictionary = faces[i]
+		var c := _face_canvas(f.get("params", {}), f.get("face", {}), false, cw - 24)
+		c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		c.offset_left = 12
+		c.offset_right = -12
+		c.offset_top = 8
+		c.offset_bottom = -8
+		b.add_child(c)
+		var badge := _label("", 30, Color("#07070C"), 44)
+		badge.add_theme_stylebox_override("normal", box_style(v.accent, v.accent, 0, 22))
+		badge.position = Vector2(6, 6)
+		badge.visible = false
+		b.add_child(badge)
+		badges.append(badge)
+		b.pressed.connect(func():
+			if v.done or i in order:
+				return
+			order.append(i)
+			badge.text = str(order.size())
+			badge.visible = true
+			if order.size() == n:
+				var parts: Array = []
+				for x in order:
+					parts.append(str(x))
+				v.submit(",".join(parts)))
+		v.option_buttons.append(b)
+		grid.add_child(b)
+	v.add_child(grid)
+	var reset := _plain_button(T.t("reset_order"), FG2, Vector2(260, 60))
+	reset.pressed.connect(func():
+		if v.done:
+			return
+		order.clear()
+		for bd in badges:
+			bd.visible = false)
+	v.add_child(_center(reset))
+
+## Study the faces (a bar runs down), then pick the one you saw from the line-up.
+static func _facemem(v: ItemView, d: Dictionary) -> void:
+	var stage := VBoxContainer.new()
+	stage.add_theme_constant_override("separation", 14)
+	v.add_child(stage)
+	_prompt_in(stage, T.t("q_facemem_study"))
+	var study: Array = d.get("study", [])
+	var row := GridContainer.new()
+	row.columns = mini(study.size(), 2 if W < 560 else 4)
+	row.add_theme_constant_override("h_separation", 10)
+	row.add_theme_constant_override("v_separation", 10)
+	var sw := minf(220.0, (W - 10.0 * (row.columns - 1)) / row.columns)
+	for f in study:
+		row.add_child(_face_canvas({}, f.get("face", {}), false, sw))
+	stage.add_child(_center(row))
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(W, 10)
+	bar.value = 100.0
+	stage.add_child(bar)
+	var tw := v.create_tween()
+	tw.tween_property(bar, "value", 0.0, float(d.get("studyMs", 4000)) / 1000.0)
+	tw.tween_callback(func():
+		stage.queue_free()
+		_prompt(v, T.t("q_facemem"))
+		var lineup: Array = d.get("lineup", [])
+		var cols := 2 if lineup.size() <= 4 else 3
+		var fw := (W - 10.0 * (cols - 1)) / cols - 40
+		var opts: Array = []
+		for f in lineup:
+			opts.append(_face_canvas(f.get("params", {}), f.get("face", {}), false, fw))
+		_mc(v, opts, cols, false, fw * 1.15 + 16)
+		v.ready_now())
+
+static func _eyes(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_eyes2"))
+	v.add_child(_center(_face_canvas(d.get("params", {}), d.get("face", {}), true, minf(560.0, W))))
+	var opts: Array = []
+	for o in d.get("options", []):
+		opts.append(T.t("st_" + str(o)))
+	_mc(v, opts, 2)
+
+static func _tom(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, d.get("story", []), 26)
+	_prompt(v, str(d.get("q", "")))
+	_mc(v, d.get("options", []), 2)
+
+static func _posture(v: ItemView, d: Dictionary) -> void:
+	_prompt(v, T.t("q_posture"))
+	var pose: Dictionary = d.get("pose", {})
+	v.add_child(_center(Art.baked(func(ci, sz): Art.figure(ci, pose, Rect2(Vector2.ZERO, sz)), Vector2(240, 300))))
+	var opts: Array = []
+	for o in d.get("options", []):
+		opts.append(T.t("pose_" + str(o)))
+	_mc(v, opts, 2)
+
+## feel / change / help: an optional story, the question, four answers.
+static func _story_q(v: ItemView, d: Dictionary) -> void:
+	if str(d.get("story", "")) != "":
+		_panel_text(v, [d.story], 28)
+	_prompt(v, str(d.get("q", "")))
+	_mc(v, d.get("options", []), 1)
+
+static func _quote(v: ItemView, text: String) -> void:
+	v.add_child(_label("“" + text + "”", 34, Color.WHITE))
+
+static func _sarcasm(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("story", "")], 26)
+	_quote(v, str(d.get("quote", "")))
+	_prompt(v, T.t("q_sarcasm"))
+	_mc(v, d.get("options", []), 1)
+
+static func _fauxpas(v: ItemView, d: Dictionary) -> void:
+	_panel_text(v, [d.get("story", "")], 26)
+	_quote(v, str(d.get("quote", "")))
+	_prompt(v, T.t("q_fauxpas"))
+	_mc(v, d.get("options", []), 1)
