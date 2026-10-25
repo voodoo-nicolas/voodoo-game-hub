@@ -32,6 +32,9 @@ func _initialize() -> void:
 		"texture(id, 3) is file _3")
 	check(SpriteLib.count("space/meteor_brown_med") == 2, "the gapped meteor_brown_med series was renumbered 1-2")
 	check(SpriteLib.random("space/meteor_grey_big") != null, "random() gives a variant")
+	# A caller that only draws it in _draw() keeps no reference: the library must, or it draws white.
+	var rid := SpriteLib.texture("forest/owl").get_rid()
+	check(SpriteLib.texture("forest/owl").get_rid() == rid, "a texture stays loaded between calls (same RID)")
 	check(SpriteLib.texture("iso_dungeon/barrel_e").get_size() == Vector2(256, 512), "iso pieces are 256x512")
 	check(SpriteLib.count("iso_dungeon/male_3_run") == 10 and SpriteLib.count("iso_dungeon/male_3_idle") == 1,
 		"the iso man: run 10 frames, idle one image")

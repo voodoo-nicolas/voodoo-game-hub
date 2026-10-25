@@ -490,6 +490,22 @@ func _build_night_road() -> void:
 		solids.append(Rect2(t.x - 6, t.y - 6, 12, 12))
 		props.append({"kind": "tree", "pos": t, "r": 52.0})
 		shades.append({"circle": Vector2(t.x, t.y - 7), "r": 50.0, "style": "tree"})
+	# The forest floor, from the hub's sprite library (decoration: low enough to walk through, so
+	# no solids): the path's south verge, the gaps between the south trees, the gaps in the north
+	# row (the canopies hide the rest), a dead tree with an owl, bats over the old man's house.
+	for f in [["forest/fern", 1060, 266], ["forest/mushroom_cluster", 1190, 262], ["forest/fern", 1340, 270],
+			["forest/small_bush", 1505, 268], ["forest/fern", 1660, 264], ["forest/mushroom_cluster", 1805, 266],
+			["forest/fern", 1975, 268], ["forest/boulder_sm", 2130, 270], ["forest/fern", 2290, 264],
+			["forest/large_bush", 1225, 360], ["forest/tree_stump", 1375, 345], ["forest/berry_bush", 1530, 370],
+			["forest/boulder_lg", 1685, 355], ["forest/fern", 1845, 300], ["forest/mushroom_cluster", 1845, 372],
+			["forest/small_bush", 2010, 350], ["forest/tree_stump", 2175, 365], ["forest/large_bush", 2340, 352],
+			["forest/fern", 1155, 190], ["forest/mushroom_cluster", 1310, 188], ["forest/small_bush", 1465, 192],
+			["forest/fern", 1775, 190], ["forest/boulder_sm", 1930, 192], ["forest/fern", 2095, 188],
+			["forest/mushroom_cluster", 2260, 190], ["forest/dead_tree", 1620, 192]]:
+		props.append({"kind": "lib", "sprite": f[0], "pos": Vector2(f[1], f[2])})
+	props.append({"kind": "lib", "sprite": "forest/owl", "pos": Vector2(1622, 193), "lift": 30.0})
+	for b in [[2560, 40, 80, 26, 0.18], [2540, 64, 60, 20, 0.23], [1070, 120, 50, 18, 0.2]]:
+		props.append({"kind": "lib", "sprite": "dungeon/bat", "pos": Vector2(b[0], b[1]), "fly": [b[2], b[3], b[4]]})
 	deco = [
 		{"t": "floor", "rect": Rect2(0, 215, 1000, 115), "color": Color("464a58"), "cobble": true},
 		{"t": "floor", "rect": Rect2(0, 150, 1000, 65), "color": Color("525867"), "slab": true},

@@ -103,6 +103,7 @@
     "decals": true
   },
   "light": {
+    "lib_sprite_tint": "a8b4c8",
     "sun_color": "d2dbf4",
     "shade_color": "6a7ba4",
     "indoor_color": "8a8aa8",

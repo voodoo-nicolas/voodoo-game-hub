@@ -327,6 +327,8 @@ func _load_area(name: String) -> void:
 	for p in area.props:
 		var node := PropScript.new()
 		node.setup(p)
+		if node.kind == "lib":
+			node.modulate = T.color("light.lib_sprite_tint")  # library pixel art into the cold palette
 		_entities.add_child(node)
 	for d in area.npcs:
 		var n := NpcScript.new()

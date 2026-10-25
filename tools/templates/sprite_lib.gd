@@ -35,6 +35,9 @@ const DIR := "res://media/common/sprites/"
 
 static var _paths: Dictionary = {}  # id -> Array of res:// paths, in frame order
 static var _first: Dictionary = {}  # id -> number of the first file (0 or 1; -1 = one image)
+## path -> Texture2D. Keeps every texture handed out alive: a texture only drawn in _draw() and
+## not kept by the caller would be freed after the call and draw as a white box.
+static var _loaded: Dictionary = {}
 
 ## True if the library has this id (no warning when it hasn't).
 static func has(id: String) -> bool:
@@ -52,7 +55,7 @@ static func texture(id: String, n: int = -1) -> Texture2D:
 		if i < 0 or i >= paths.size():
 			push_warning("SpriteLib: '%s' has no frame %d" % [id, n])
 			return null
-	return load(paths[i])
+	return _tex(paths[i])
 
 ## How many images an id has (1 for a single image, 0 if unknown).
 static func count(id: String) -> int:
@@ -62,7 +65,7 @@ static func count(id: String) -> int:
 static func frames(id: String) -> Array[Texture2D]:
 	var out: Array[Texture2D] = []
 	for path in _files(id):
-		out.append(load(path))
+		out.append(_tex(path))
 	return out
 
 ## One image of a series at random (variants such as meteors).
@@ -70,7 +73,7 @@ static func random(id: String) -> Texture2D:
 	var paths := _files(id)
 	if paths.is_empty():
 		return null
-	return load(paths[randi() % paths.size()])
+	return _tex(paths[randi() % paths.size()])
 
 ## A SpriteFrames for AnimatedSprite2D: the id's images as one animation.
 ## Pass `into` to add more animations to the same SpriteFrames, e.g. run and
@@ -86,6 +89,11 @@ static func sprite_frames(id: String, fps: float = 12.0, loop: bool = true, anim
 	for tex in frames(id):
 		sf.add_frame(anim, tex)
 	return sf
+
+static func _tex(path: String) -> Texture2D:
+	if not _loaded.has(path):
+		_loaded[path] = load(path)
+	return _loaded[path]
 
 ## Every image of an id, as res:// paths in frame order.
 static func _files(id: String, warn: bool = true) -> Array:
