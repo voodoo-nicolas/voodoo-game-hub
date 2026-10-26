@@ -1,0 +1,38 @@
+// Why each analogy's answer is right, for practice tests (owner, 2026-10-25). By index into
+// data.ts ANALOGIES, which is extracted verbatim from the prototype and never hand-edited, so
+// the explanations live here: [the English first word (checked against ANALOGIES by
+// gens_test), EN, ES].
+export const ANALOGY_WHY: [string, string, string][] = [
+  ["hot", "Hot is the opposite of cold, and up is the opposite of down.", "Caliente es lo contrario de frío, y arriba es lo contrario de abajo."],
+  ["bird", "A bird lives in a nest; a bee lives in a hive.", "El pájaro vive en un nido; la abeja vive en una colmena."],
+  ["day", "Night is the opposite half of day; winter is the opposite season of summer.", "La noche es la mitad opuesta del día; el invierno es la estación opuesta al verano."],
+  ["puppy", "A puppy is a young dog; a kitten is a young cat.", "Un cachorro es un perro chico; un gatito es un gato chico."],
+  ["pen", "A pen is used to write; a knife is used to cut.", "La lapicera sirve para escribir; el cuchillo sirve para cortar."],
+  ["fish", "A fish moves through water; a bird moves through air.", "El pez se mueve por el agua; el pájaro se mueve por el aire."],
+  ["doctor", "A doctor works in a hospital; a teacher works in a school.", "El médico trabaja en un hospital; el maestro trabaja en una escuela."],
+  ["seed", "A seed grows into a tree; an egg grows into a bird.", "De una semilla sale un árbol; de un huevo sale un pájaro."],
+  ["Monday", "Monday to Wednesday skips one day; March to May skips one month.", "De lunes a miércoles se saltea un día; de marzo a mayo se saltea un mes."],
+  ["author", "An author creates a book; a composer creates a symphony. The piano and the orchestra play it, but they are not what the composer makes.", "Un autor crea un libro; un compositor crea una sinfonía. El piano y la orquesta la tocan, pero no son lo que crea el compositor."],
+  ["drought", "A drought is a lack of water; a famine is a lack of food. Hunger is what a famine causes, not what it lacks.", "Una sequía es la falta de agua; una hambruna es la falta de comida. El hambre es lo que causa, no lo que falta."],
+  ["word", "Words are put together to build a sentence; bricks are put together to build a wall.", "Con palabras se arma una oración; con ladrillos se arma una pared."],
+  ["cub", "A cub is a young bear; a tadpole is a young frog.", "Un osezno es un oso chico; un renacuajo es una rana chica."],
+  ["pilot", "A pilot works in the cockpit; a surgeon works in the operating room. The scalpel is a tool, not the place.", "El piloto trabaja en la cabina; el cirujano trabaja en el quirófano. El bisturí es una herramienta, no el lugar."],
+  ["oasis", "An oasis is a patch of green surrounded by desert; an island is a patch of land surrounded by sea.", "Un oasis es un lugar verde rodeado de desierto; una isla es un pedazo de tierra rodeado de mar."],
+  ["symptom", "A symptom is a sign of a disease; smoke is a sign of a fire.", "Un síntoma es una señal de una enfermedad; el humo es una señal de fuego."],
+  ["map", "A map stands for a real territory; sheet music stands for real music. The paper and the notes are only how it is written.", "Un mapa representa un territorio real; una partitura representa música real. El papel y las notas son solo cómo se escribe."],
+  ["optimist", "What marks an optimist is hope; what marks a skeptic is doubt.", "Lo que distingue a un optimista es la esperanza; lo que distingue a un escéptico es la duda."],
+  ["sculptor", "A sculptor shapes marble; a potter shapes clay. The vase is what a potter makes, not the material.", "El escultor trabaja el mármol; el alfarero trabaja la arcilla. El jarrón es lo que hace, no el material."],
+  ["carnivore", "A carnivore eats meat; a frugivore eats fruit (frugi- means fruit).", "Un carnívoro come carne; un frugívoro come fruta (frugi- quiere decir fruta)."],
+  ["odometer", "An odometer measures distance; a barometer measures air pressure (and so helps predict the weather).", "Un odómetro mide distancia; un barómetro mide la presión del aire (y por eso ayuda a predecir el clima)."],
+  ["prologue", "A prologue opens a book and an epilogue closes it; an overture opens an opera and the finale closes it.", "El prólogo abre un libro y el epílogo lo cierra; la obertura abre una ópera y el final la cierra."],
+  ["vaccine", "A vaccine protects against disease; a firewall protects a computer against intrusion.", "Una vacuna protege contra una enfermedad; un cortafuegos protege una computadora contra una intrusión."],
+  ["insomnia", "Insomnia is losing your sleep; amnesia is losing your memory. Forgetting is what amnesia does, not what it takes away.", "El insomnio es perder el sueño; la amnesia es perder la memoria. El olvido es lo que provoca, no lo que se pierde."],
+  ["verbose", "Someone verbose uses too many words; a spendthrift does too much spending.", "Alguien verborrágico usa demasiadas palabras; un derrochador hace demasiados gastos."],
+  ["cartographer", "A cartographer makes maps; a lexicographer makes dictionaries.", "Un cartógrafo hace mapas; un lexicógrafo hace diccionarios."],
+  ["hypothesis", "A hypothesis is tested by an experiment; a claim is tested by evidence.", "Una hipótesis se pone a prueba con un experimento; una afirmación se pone a prueba con evidencia."],
+  ["xenophobe", "A xenophobe fears foreigners; a claustrophobe fears enclosed spaces (claustrum means a closed place).", "Un xenófobo les teme a los extranjeros; un claustrofóbico les teme a los lugares cerrados (claustrum quiere decir lugar cerrado)."],
+  ["numismatist", "A numismatist collects and studies coins; a philatelist collects and studies stamps.", "Un numismático colecciona y estudia monedas; un filatelista colecciona y estudia estampillas."],
+  ["loan", "A lender is the side a loan comes from; a landlord is the side the rent goes to. The tenant is the other side of the deal.", "El prestamista es quien da el préstamo; el propietario es quien recibe el alquiler. El inquilino es la otra parte del trato."],
+  ["sonnet", "A sonnet has 14 lines; a haiku has 3. 17 is its number of syllables, not lines.", "Un soneto tiene 14 versos; un haiku tiene 3. 17 es su cantidad de sílabas, no de versos."],
+  ["hydrogen", "Hydrogen's atomic number (its number of protons) is 1; carbon's is 6. 12 is carbon's mass, not its atomic number.", "El número atómico del hidrógeno (su cantidad de protones) es 1; el del carbono es 6. 12 es la masa del carbono, no su número atómico."],
+];

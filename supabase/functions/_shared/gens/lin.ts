@@ -3,6 +3,7 @@
 import { defGen, type GenDef, type Lang, mkItem, say } from "./registry.ts";
 import type { Rng } from "../rng.ts";
 import { ANA, ANALOGIES, CATS, CLOSE, TRICKS } from "./data.ts";
+import { ANALOGY_WHY } from "./analogy_why.ts";
 
 const CATS_: Record<string, { g: string; en: string[]; es: string[] }> = CATS;
 const TRICKS_: any[] = TRICKS;
@@ -90,8 +91,11 @@ defGen({
     const it = lang === "es" ? es : en;
     const order = r.shuffle([0, 1, 2, 3]);
     const ansIdx = order.indexOf(0);
-    const why = say(lang, `${it[0]} is to ${it[1]} as ${it[2]} is to ${it[3][0]}: the same link joins both pairs. The other options are linked to ${it[2]} in a different way, or not at all.`,
-      `${it[0]} es a ${it[1]} como ${it[2]} es a ${it[3][0]}: la misma relación une los dos pares. Las otras opciones se relacionan con ${it[2]} de otra manera, o no se relacionan.`);
+    // the link itself (analogy_why.ts, by bank index); the general sentence only if one is missing
+    const w = ANALOGY_WHY[best[0]];
+    const why = w && w[0] === en[0] ? say(lang, w[1], w[2])
+      : say(lang, `${it[0]} is to ${it[1]} as ${it[2]} is to ${it[3][0]}: the same link joins both pairs. The other options are linked to ${it[2]} in a different way, or not at all.`,
+        `${it[0]} es a ${it[1]} como ${it[2]} es a ${it[3][0]}: la misma relación une los dos pares. Las otras opciones se relacionan con ${it[2]} de otra manera, o no se relacionan.`);
     return mkItem(this, dd, { lang, display: { a: it[0], b: it[1], c: it[2], options: order.map((i) => it[3][i]) }, key: { t: "idx", v: ansIdx }, why });
   },
 });

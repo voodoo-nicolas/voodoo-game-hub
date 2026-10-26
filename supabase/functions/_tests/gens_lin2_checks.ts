@@ -76,6 +76,8 @@ Deno.test("LIN banks: 5+ items per tier, distinct items, the answer never among 
           assert(!wrong.includes(ans), `${name} ${lang}: answer among wrong options in ${key}`);
           assertEquals(new Set(wrong).size, 3, `${name} ${lang}: repeated wrong option in ${key}`);
           if (name === "RAT") assert(!item.slice(0, 3).includes(ans));
+          // each sentence-ending and read-between-the-lines item explains its answer (2026-10-25)
+          if (name === "CLOZE" || name === "INFER") assert(typeof item[item.length - 1] === "string" && item[item.length - 1].length > 20, `${name} ${lang}: no why in ${key}`);
         }
       });
     }

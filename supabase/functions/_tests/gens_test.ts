@@ -6,6 +6,8 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { assert, assertEquals } from "jsr:@std/assert@1";
+import { ANALOGY_WHY } from "../_shared/gens/analogy_why.ts";
+import { ANALOGIES } from "../_shared/gens/data.ts";
 import { Rng } from "../_shared/rng.ts";
 import { checkAnswer, GENS, type Item, type Lang } from "../_shared/gens/index.ts";
 import { pKey, pMir, pRotN, type Poly, tvKey, tvTop } from "../_shared/gens/spa.ts";
@@ -257,6 +259,14 @@ Object.assign(CHECKS, CHECKS2, CHECKS_SPA2, CHECKS_LIN2, CHECKS_MUS2, CHECKS_NAT
 Deno.test("there are 86 generators (the prototype's 27 + 10 LOG + 8 SPA + 6 LIN + 6 MUS + 5 NAT + 5 KIN + 5 EXI + 1 SELF + 13 INT) and each has a uniqueness check", () => {
   assertEquals(ALL_IDS.length, 86);
   for (const id of ALL_IDS) assert(CHECKS[id], `no check for ${id}`);
+});
+
+Deno.test("every analogy has its own explanation, lined up with data.ts ANALOGIES", () => {
+  assertEquals(ANALOGY_WHY.length, (ANALOGIES as any[]).length);
+  ANALOGY_WHY.forEach(([first, en, es], i) => {
+    assertEquals(first, (ANALOGIES as any[])[i][1][0], `analogy ${i}`);
+    assert(en.length > 20 && es.length > 20, `analogy ${i}: missing text`);
+  });
 });
 
 for (const id of ALL_IDS) {

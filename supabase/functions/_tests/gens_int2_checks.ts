@@ -198,8 +198,10 @@ Deno.test("INT banks: 5 per tier, EN and ES line up, the answer never among the 
       bank[lang].forEach((tier: any[], t: number) => {
         assertEquals(tier.length, 5, `${name} ${lang} tier ${t}`);
         assertEquals(tier.length, bank.en[t].length);
-        for (const [, , ans, wrong] of tier) {
+        for (const [, , ans, wrong, why] of tier) {
           assertEquals(wrong.length, 3);
+          // FEEL / CHANGE / HELP explain each answer (practice tests, 2026-10-25); SARCASM's 5th is unused
+          if (name !== "SARCASM") assert(typeof why === "string" && why.length > 20, `${name} ${lang}: no why for ${ans}`);
           assert(!wrong.includes(ans) && new Set(wrong).size === 3, `${name} ${lang}: ${ans}`);
         }
       });

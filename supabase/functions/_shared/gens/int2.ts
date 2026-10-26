@@ -353,15 +353,10 @@ defGen({
 });
 
 /* ---------------- the hand-written banks (int2_data.ts) ---------------- */
-/** feel / change / help: [story, question, right, wrong x3] */
+/** feel / change / help: [story, question, right, wrong x3, why] */
 function bankItem(g: GenDef, bank: any, d: number, r: Rng, ctx: Ctx) {
-  const [story, q, ans, wrong] = pickFrom(g, bank, d, r, ctx) as [string, string, string, string[]];
+  const [story, q, ans, wrong, why] = pickFrom(g, bank, d, r, ctx) as [string, string, string, string[], string];
   const options = r.shuffle([ans, ...wrong]);
-  const why = g.id === "feel"
-    ? say(ctx.lang, `Put yourself in their place: after what happened, “${ans}” is the most natural feeling. The other feelings would need a different story.`, `Ponete en su lugar: después de lo que pasó, “${ans}” es lo que más naturalmente se siente. Los otros sentimientos necesitarían otra historia.`)
-    : g.id === "help"
-      ? say(ctx.lang, `“${ans}” deals with what the person actually needs right now. The other options ignore the feeling, brush it off or make it worse.`, `“${ans}” atiende lo que la persona necesita en este momento. Las otras opciones ignoran lo que siente, le restan importancia o lo empeoran.`)
-      : say(ctx.lang, `“${ans}” is where that feeling most often leads. The others are feelings that usually come from somewhere else.`, `“${ans}” es adonde más a menudo lleva ese sentimiento. Los otros suelen venir de otro lado.`);
   return mkItem(g, d, { display: { story, q, options }, key: idx(options.indexOf(ans)), meta: { ans }, why });
 }
 defGen({ id: "feel", sec: "INT", a: 1.2, k: 4, minMs: 2000, maxMs: 60000, make(d, r, ctx) { return bankItem(this, FEEL, d, r, ctx); } });

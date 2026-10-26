@@ -42,9 +42,8 @@ defGen({
 defGen({
   id: "cloze", sec: "LIN", a: 1.3, k: 4, minMs: 1500, maxMs: 50000,
   make(d, r, ctx) {
-    const [s, ans, wrong] = pickFrom(this, CLOZE, d, r, ctx);
-    const why = say(ctx.lang, `“${s.replace("___", ans)}” Only “${ans}” fits both the meaning and the grammar; read the sentence again with each of the others.`, `“${s.replace("___", ans)}” Solo “${ans}” encaja con el sentido y con la gramática; leé la oración con cada una de las otras.`);
-    return mc(this, d, r, ans, wrong, { sentence: s }, why);
+    const [s, ans, wrong, why] = pickFrom(this, CLOZE, d, r, ctx);
+    return mc(this, d, r, ans, wrong, { sentence: s }, `“${s.replace("___", ans)}” ${why}`);
   },
 });
 defGen({
@@ -58,8 +57,7 @@ defGen({
 defGen({
   id: "inference", sec: "LIN", a: 1.4, k: 4, minMs: 2500, maxMs: 70000,
   make(d, r, ctx) {
-    const [p, q, ans, wrong] = pickFrom(this, INFER, d, r, ctx);
-    const why = say(ctx.lang, `“${ans}” follows from what the text says, with nothing added. The others might be true, but the text doesn't tell us, or it says otherwise.`, `“${ans}” se deduce de lo que dice el texto, sin agregar nada. Las otras podrían ser ciertas, pero el texto no lo dice, o dice lo contrario.`);
+    const [p, q, ans, wrong, why] = pickFrom(this, INFER, d, r, ctx);
     return mc(this, d, r, ans, wrong, { passage: p, q }, why);
   },
 });
