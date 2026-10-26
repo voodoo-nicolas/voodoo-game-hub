@@ -107,3 +107,17 @@ Deno.test("iq_rescore: a section with only old topview answers loses its row", a
   assertEquals(db.tables.section_scores, []);
   assertEquals(db.tables.sessions[0].result.secs, {});
 });
+
+Deno.test("natclass d 7+ and natodd d 8+: answers keyed by the old mod-3 pair rules don't count", () => {
+  const old = { key: { t: "idx", v: 1 } };
+  for (const [gid, from] of [["natclass", 7], ["natodd", 8]] as const) {
+    assert(scorable(gid, old, from - 1), `${gid} below d ${from} was fine`);
+    assert(!scorable(gid, old, from), `${gid} d ${from}`);
+    assert(!scorable(gid, old, 10), `${gid} d 10`);
+    assert(scorable(gid, { key: { t: "idx", v: 1, rev: 2 } }, 10), `${gid} new key`);
+  }
+  for (let d = 1; d <= 10; d++) for (const gid of ["natclass", "natodd"]) {
+    const it = GENS[gid].make(d, new Rng(d * 31 + 7), { lang: "en", used: new Set(), blitz: false })!;
+    assert(scorable(it.gid, { key: it.key }, it.d), `${gid} d${d} new item counts`);
+  }
+});

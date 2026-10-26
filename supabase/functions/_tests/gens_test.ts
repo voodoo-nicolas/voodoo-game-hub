@@ -10,7 +10,7 @@ import { ANALOGY_WHY } from "../_shared/gens/analogy_why.ts";
 import { ANALOGIES } from "../_shared/gens/data.ts";
 import { Rng } from "../_shared/rng.ts";
 import { checkAnswer, GENS, type Item, type Lang } from "../_shared/gens/index.ts";
-import { pKey, pMir, pRotN, type Poly, tvKey, tvTop } from "../_shared/gens/spa.ts";
+import { pKey, pMir, pRotN, type Poly, tvKey, tvMir, tvTop, tvVisibility } from "../_shared/gens/spa.ts";
 
 /** The top view straight from the isometric drawing (client Art.tv_iso, x = ox + (i - j) * cw):
  *  front row (i = n - 1) at the bottom, and in each row the cell drawn furthest left on
@@ -19,7 +19,7 @@ function seenFromAbove(stack: number[][][]): number[][] {
   const T = tvTop(stack);
   return T.map((row, i) => row.map((_, j) => j).sort((a, b) => (i - a) - (i - b)).map((j) => row[j]));
 }
-import { loneCreatures, NAT_CANDS } from "../_shared/gens/nat.ts";
+import { listRuleAnswers, loneCreatures, NAT_CANDS } from "../_shared/gens/nat.ts";
 import { NONE_FOLLOWS, syTrue } from "../_shared/gens/exi.ts";
 import { ANA, CATS, EMO_KEYS, FALLACY_NAMES } from "../_shared/gens/data.ts";
 import { CHECKS2 } from "./gens2_checks.ts";
@@ -88,6 +88,16 @@ const CHECKS: Record<string, (it: Item) => void> = {
     const right = opts.map((o, i) => tvKey(o) === truth ? i : -1).filter((i) => i >= 0);
     assertEquals(right.length, 1);
     oneIndex(it, 5, right[0]);
+    // every wrong picture differs from the right one in a column that can be seen, and few
+    // columns are hidden behind taller ones (2026-10-26)
+    const stack = it.display.stack as number[][][], n = stack.length, vis = tvMir(tvVisibility(stack));
+    assert(vis.flat().filter((v) => v < .5).length <= Math.ceil(n * n * .16), "topview: too many hidden columns");
+    opts.forEach((o, k) => {
+      if (k === right[0]) return;
+      let seen = 0;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (vis[i][j] >= .5 && o[i][j] !== opts[right[0]][i][j]) seen++;
+      assert(seen >= 1, "topview: a wrong picture differs only in hidden columns");
+    });
   },
   rotation(it) {
     const rots = rotations(it.display.target as Poly);
@@ -166,8 +176,14 @@ const CHECKS: Record<string, (it: Item) => void> = {
       if (new Set(v).size !== 3) continue;
       answers.add(v.indexOf(c.f(q)));
     }
+    // d 7+ items are two-clue rules (2026-10-26): every two-clue rule that explains the examples
+    // must agree, and no mod-3 pair rule is asked any more
+    const twoClue = /Two clues|Dos pistas/.test(it.why ?? "");
+    if (twoClue) for (const a of listRuleAnswers(fams, q)) answers.add(a);
     assertEquals(answers.size, 1, "natclass: rules disagree");
     oneIndex(it, 3, [...answers][0]);
+    assertEquals((it.key as any).rev, 2);
+    assert(!/mix of|mezcla/.test(it.why ?? ""), "natclass: mod-3 pair rule");
   },
   natodd(it) { natOdd(it); },
   natquick(it) { natOdd(it); },
@@ -226,6 +242,9 @@ function natOdd(it: Item) {
   // four creatures), and no trait may use all three of its values
   const lone = loneCreatures(cs);
   assertEquals(lone.size, 1, `natodd: rules point at ${[...lone]}`);
+  assertEquals((it.key as any).rev, 2);
+  // 2026-10-26: the odd one differs in one plain trait (the prototype's d 8+ used a mod-3 pair rule)
+  assert(!/mix of|mezcla/.test(it.why ?? ""), "natodd: pair rule");
   oneIndex(it, 5, [...lone][0]);
 }
 function faceOpts(it: Item) {

@@ -34,9 +34,15 @@ export async function loadSession(db: Db, id: unknown, uid: string): Promise<Ses
 /** Generators whose early items were keyed wrong. An answer counts toward scores only if its
  *  stored key carries at least this revision (Key `rev`, default 1); older ones are left out.
  *  topview 2: before 2026-10-25 the "right" picture was the mirror image of the view from
- *  above (the prototype's bug; spa.ts tvView). tools/iq_rescore.ts rescores finished tests. */
-export const KEY_REV: Record<string, number> = { topview: 2 };
-export const scorable = (gid: string, answerKey: any) => (answerKey?.key?.rev ?? 1) >= (KEY_REV[gid] ?? 1);
+ *  above (the prototype's bug; spa.ts tvView). tools/iq_rescore.ts rescores finished tests.
+ *  natclass / natodd 2 (2026-10-26): at d 7+ (natclass) and d 8+ (natodd) the prototype's answer
+ *  came from a mod-3 sum / difference of two traits' scores: no rule a player could find, and
+ *  often not even decidable from the examples (see KEY_REV_FROM_D, nat.ts). */
+export const KEY_REV: Record<string, number> = { topview: 2, natclass: 2, natodd: 2 };
+/** Where the wrong keys start: below this difficulty an unrevised key was fine. */
+const KEY_REV_FROM_D: Record<string, number> = { natclass: 7, natodd: 8 };
+export const scorable = (gid: string, answerKey: any, d?: number) =>
+  (answerKey?.key?.rev ?? 1) >= (KEY_REV[gid] ?? 1) || (d != null && d < (KEY_REV_FROM_D[gid] ?? 0));
 
 /** Every answered item, in order (the unanswered pending one is left out).
  *  a / b / c are rebuilt from the generator and the stored key rather than read from the
@@ -46,7 +52,7 @@ export const scorable = (gid: string, answerKey: any) => (answerKey?.key?.rev ??
 export async function answeredResponses(db: Db, sessionId: string, scoring = false): Promise<Resp[]> {
   const rows = must(await db.from("responses").select("seq, sec, gid, d, u, ms, conf, answer_key")
     .eq("session_id", sessionId).not("answered_at", "is", null).order("seq")) as any[];
-  return rows.filter((r) => !scoring || scorable(r.gid, r.answer_key)).map((r) => {
+  return rows.filter((r) => !scoring || scorable(r.gid, r.answer_key, r.d)).map((r) => {
     const k = r.answer_key?.k ?? 0;
     return { sec: r.sec, gid: r.gid, d: r.d, a: GENS[r.gid].a, b: bOf(r.d), c: k ? 1 / k : 0, u: r.u, ms: r.ms, conf: r.conf };
   });

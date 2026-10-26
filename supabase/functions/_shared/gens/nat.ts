@@ -45,10 +45,69 @@ function pairRule(k: string, lang: Lang): string {
       `una mezcla de ${TRAIT.es[f]} y ${TRAIT.es[g]}: puntuá cada uno ${scores}, restá el segundo puntaje del primero y contá de a tres (−1 es 2)`);
 }
 
+/* ---- two-clue families (d 7+; 2026-10-26). The prototype's d 7+ rule was a mod-3 sum or
+   difference of two traits' scores: nobody can find that from pictures (the scores are an
+   arbitrary order, and the new creature's trait combination was often not among the examples),
+   so those items had no answer a player could reason out. Now two plain clues: family P = every
+   creature with trait value `a`; of the rest, family Q = every creature with value `b`; family R =
+   everything else. A literal is [trait, value]; colour is not used as a clue (colour-blind
+   mode draws other colours, so it can't be named). ---- */
+export type Lit = [number, number];
+const NVALS = [3, 3, 3, 3, 3, 2, 2];
+const CLUE_TRAITS = [0, 2, 3, 4, 5, 6];
+const ALL_LITS: Lit[] = [];
+for (let t = 0; t < 7; t++) for (let v = 0; v < NVALS[t]; v++) ALL_LITS.push([t, v]);
+const PERMS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+/** The family each rule "first literal -> perm[0], else second -> perm[1], else perm[2]" gives. */
+const listFam = (x: Creature, a: Lit, b: Lit, perm: number[]) => x[a[0]] === a[1] ? perm[0] : x[b[0]] === b[1] ? perm[1] : perm[2];
+/** Every two-clue rule that explains the examples (family index of each creature) puts the new
+ *  creature in one of these families. A clean item has exactly one. */
+export function listRuleAnswers(ex: Creature[][], q: Creature): Set<number> {
+  const out = new Set<number>();
+  for (const a of ALL_LITS) for (const b of ALL_LITS) {
+    if (a[0] === b[0] && a[1] === b[1]) continue;
+    for (const perm of PERMS) {
+      if (ex.every((list, fi) => list.every((c) => listFam(c, a, b, perm) === fi))) out.add(listFam(q, a, b, perm));
+    }
+  }
+  return out;
+}
+function listClue(lit: Lit, lang: Lang) { return traitValue(lit[0], lit[1], lang); }
+
 defGen({
   id: "natclass", sec: "NAT", a: 1.3, k: 3, minMs: 2500, maxMs: 70000,
   make(d, r, ctx) {
-    const pair = d >= 7, per = d <= 2 ? 4 : d <= 6 ? 3 : d <= 8 ? 4 : 3;
+    const list = d >= 7, per = d <= 2 ? 4 : d <= 6 ? 3 : d <= 8 ? 4 : 3;
+    if (list) {
+      for (let tries = 0; tries < 400; tries++) {
+        const t1 = r.pick(CLUE_TRAITS), t2 = r.pick(CLUE_TRAITS.filter((t) => t !== t1));
+        const a: Lit = [t1, r.int(0, NVALS[t1] - 1)], b: Lit = [t2, r.int(0, NVALS[t2] - 1)];
+        const perm = r.shuffle([0, 1, 2]);
+        const ex: Creature[][] = [[], [], []];
+        let guard = 0;
+        while ((ex[0].length < per || ex[1].length < per || ex[2].length < per) && guard++ < 600) { const c = randCreature(r); const F = listFam(c, a, b, perm); if (ex[F].length < per) ex[F].push(c); }
+        if (guard >= 600) continue;
+        let q: Creature;
+        do { q = randCreature(r); } while (ex.flat().some((e) => e.join() === q.join()));
+        const ans = listFam(q, a, b, perm);
+        const answers = listRuleAnswers(ex, q);
+        if (answers.size !== 1 || !answers.has(ans)) continue;
+        // and no single trait or mod-3 pair rule that happens to fit the examples may disagree
+        let clash = false;
+        for (const c of NAT_CANDS) {
+          const vals = ex.map((l) => new Set(l.map(c.f)));
+          if (vals.some((x) => x.size !== 1)) continue;
+          const v = vals.map((x) => [...x][0]);
+          if (new Set(v).size === 3 && v.indexOf(c.f(q)) !== ans) { clash = true; break; }
+        }
+        if (clash) continue;
+        const L = "ABC"[ans], LA = "ABC"[perm[0]], LB = "ABC"[perm[1]], LC = "ABC"[perm[2]];
+        const en = `Two clues sort the families. Every creature in family ${LA} has ${listClue(a, "en")}. Of the rest, every creature in family ${LB} has ${listClue(b, "en")}. Family ${LC} is everything else. The new creature ${ans === perm[0] ? "has the first clue" : ans === perm[1] ? "misses the first clue but has the second" : "has neither clue"}, so it is in family ${L}.`;
+        const es = `Dos pistas separan a las familias. Todas las criaturas de la familia ${LA} tienen ${listClue(a, "es")}. De las que quedan, todas las de la familia ${LB} tienen ${listClue(b, "es")}. La familia ${LC} es todo lo demás. La criatura nueva ${ans === perm[0] ? "tiene la primera pista" : ans === perm[1] ? "no tiene la primera pista pero sí la segunda" : "no tiene ninguna de las dos pistas"}, así que es de la familia ${L}.`;
+        return mkItem(this, d, { display: { families: ex, query: q }, key: { t: "idx", v: ans, rev: 2 }, why: say(ctx.lang, en, es) });
+      }
+    }
+    const pair = false; // the mod-3 pair rules (below) are no longer asked, see the two-clue mode above
     for (let tries = 0; tries < 400; tries++) {
       let rule: (x: Creature) => number, ruleKey: string;
       if (!pair) { const f = r.int(0, 4); rule = (x) => x[f]; ruleKey = "s" + f; }
@@ -80,7 +139,7 @@ defGen({
           ? say(ctx.lang, `The families are sorted by colour: every creature in a family has the same colour, and the new creature has the colour of family ${L}. Nothing else sorts them.`, `Las familias se separan por color: todas las criaturas de una familia tienen el mismo color, y la nueva tiene el color de la familia ${L}. Ninguna otra cosa las separa.`)
           : say(ctx.lang, `The families are sorted by ${TRAIT.en[f]}: in family ${L} every creature has ${traitValue(f, q[f], "en")}, and so does the new creature. Nothing else sorts them.`, `Las familias se separan por ${TRAIT.es[f]}: en la familia ${L} todas las criaturas tienen ${traitValue(f, q[f], "es")}, y la nueva también. Ninguna otra cosa las separa.`))
         : say(ctx.lang, `No single trait sorts the families. The rule is ${pairRule(ruleKey, "en")}. Every creature in a family gets the same result, and the new creature gets family ${L}'s.`, `Ningún rasgo solo separa las familias. La regla es ${pairRule(ruleKey, "es")}. Todas las criaturas de una familia dan el mismo resultado, y la nueva da el de la familia ${L}.`);
-      return mkItem(this, d, { display: { families: ex, query: q }, key: { t: "idx", v: ans }, why });
+      return mkItem(this, d, { display: { families: ex, query: q }, key: { t: "idx", v: ans, rev: 2 }, why });
     }
     return GENS.natodd.make(d, r, ctx);
   },
@@ -107,9 +166,9 @@ export function loneCreatures(all: Creature[]): Set<number> {
 /** One trait's five values with no stray 4-vs-1 in it: all five the same, or a 3 / 2 split of
  *  two values. (A third value would be a lone creature, or a 2-2-1 with a lone one: players
  *  would read "everyone except the striped one" as a rule.) */
-function balancedColumn(r: Rng, nvals: number): number[] {
+function balancedColumn(r: Rng, nvals: number, mixed = false): number[] {
   const vals = r.shuffle(Array.from({ length: nvals }, (_, i) => i));
-  if (r.chance(.3)) return [0, 0, 0, 0, 0].map(() => vals[0]);
+  if (!mixed && r.chance(.3)) return [0, 0, 0, 0, 0].map(() => vals[0]);
   return r.shuffle([vals[0], vals[0], vals[0], vals[1], vals[1]]);
 }
 
@@ -133,12 +192,15 @@ function natOddWhy(all: Creature[], pos: number, lang: Lang): string {
 }
 
 export function natOddItem(g: GenDef, d: number, r: Rng, lang: Lang = "en") {
-  const pair = d >= 8;
+  // d 8+ (2026-10-26): every other trait splits 3 / 2 (none all-alike), so more traits to rule out.
+  // The prototype's d 8+ had NO plain odd trait: the odd one was only singled out by a mod-3 sum or
+  // difference of two traits' scores, which a player can't see (it still decided the answer).
+  const mixed = d >= 8;
   for (let tries = 0; tries < 800; tries++) {
     const pos = r.int(0, 4);
     const cols: number[][] = [];
-    for (let f = 0; f < 7; f++) cols.push(balancedColumn(r, f < 5 ? 3 : 2));
-    if (!pair) {
+    for (let f = 0; f < 7; f++) cols.push(balancedColumn(r, f < 5 ? 3 : 2, mixed));
+    {
       const f = r.int(0, d <= 3 ? 6 : 4);
       const nv = f < 5 ? 3 : 2;
       const vals = r.shuffle(Array.from({ length: nv }, (_, i) => i));
@@ -148,7 +210,7 @@ export function natOddItem(g: GenDef, d: number, r: Rng, lang: Lang = "en") {
     if (new Set(all.map((c) => c.join())).size < 5) continue;
     const lone = loneCreatures(all);
     if (lone.size !== 1 || !lone.has(pos)) continue;
-    return mkItem(g, d, { display: { creatures: all }, key: { t: "idx", v: pos }, why: natOddWhy(all, pos, lang) });
+    return mkItem(g, d, { display: { creatures: all }, key: { t: "idx", v: pos, rev: 2 }, why: natOddWhy(all, pos, lang) });
   }
   return null;
 }

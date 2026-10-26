@@ -110,9 +110,9 @@ async function playerCard(db: Call["db"], nick: string) {
   let answered = 0, correct = 0, ms = 0;
   const ids = sess.map((r) => r.id);
   for (let i = 0; i < ids.length; i += 50) {
-    const rs = must(await db.from("responses").select("u, ms, gid, answer_key").in("session_id", ids.slice(i, i + 50)).not("answered_at", "is", null)) as any[];
+    const rs = must(await db.from("responses").select("u, ms, gid, d, answer_key").in("session_id", ids.slice(i, i + 50)).not("answered_at", "is", null)) as any[];
     for (const r of rs) {
-      if (!scorable(r.gid, r.answer_key)) continue;
+      if (!scorable(r.gid, r.answer_key, r.d)) continue;
       answered++;
       if (Number(r.u) >= 1) correct++;
       ms += Number(r.ms) || 0;

@@ -31,39 +31,55 @@ function pointInPoly(px: number, py: number, poly: [number, number][]) {
   }
   return inside;
 }
-/* fraction of each column's top face that is visible to the viewer */
-export function tvVisibility(stack: Stack): number[][] {
-  const n = stack.length, P = tvProj(n, 10);
-  const cubes: [number, number, number][] = [];
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) for (let z = 0; z < stack[i][j].length; z++) cubes.push([i, j, z]);
+/* fraction of one column's top face that is visible to the viewer (cubes: every cube of the stack) */
+function tvCellVisible(P: ReturnType<typeof tvProj>, cubes: [number, number, number][], i: number, j: number, z: number): number {
   const hexOf = ([a, b, c]: [number, number, number]) => [P(a, b, c + 1), P(a + 1, b, c + 1), P(a + 1, b, c), P(a + 1, b + 1, c), P(a, b + 1, c), P(a, b + 1, c + 1)];
-  const vis: number[][] = [];
-  for (let i = 0; i < n; i++) {
-    vis.push([]);
-    for (let j = 0; j < n; j++) {
-      const z = stack[i][j].length;
-      let ok = 0, tot = 0;
-      for (let u = 1; u <= 4; u++) for (let w = 1; w <= 4; w++) {
-        const [px, py] = P(i + u / 5, j + w / 5, z);
-        tot++;
-        let hidden = false;
-        for (const q of cubes) { if (q[0] + q[1] <= i + j) continue; if (pointInPoly(px, py, hexOf(q))) { hidden = true; break; } }
-        if (!hidden) ok++;
-      }
-      vis[i].push(ok / tot);
-    }
+  const front = cubes.filter((q) => q[0] + q[1] > i + j).map(hexOf);
+  let ok = 0, tot = 0;
+  for (let u = 1; u <= 4; u++) for (let w = 1; w <= 4; w++) {
+    const [px, py] = P(i + u / 5, j + w / 5, z);
+    tot++;
+    if (!front.some((h) => pointInPoly(px, py, h))) ok++;
   }
-  return vis;
+  return ok / tot;
+}
+const tvCubes = (stack: Stack) => {
+  const cubes: [number, number, number][] = [];
+  for (let i = 0; i < stack.length; i++) for (let j = 0; j < stack.length; j++) for (let z = 0; z < stack[i][j].length; z++) cubes.push([i, j, z]);
+  return cubes;
+};
+export function tvVisibility(stack: Stack): number[][] {
+  const n = stack.length, P = tvProj(n, 10), cubes = tvCubes(stack);
+  return stack.map((row, i) => row.map((c, j) => tvCellVisible(P, cubes, i, j, c.length)));
 }
 
 defGen({
   id: "topview", sec: "SPA", a: 1.4, k: 5, minMs: 2500, maxMs: 75000,
   make(d, r, ctx) {
-    for (let tries = 0; tries < 60; tries++) {
+    for (let tries = 0; tries < 120; tries++) {
       const n = d <= 2 ? 3 : d <= 6 ? 4 : 5, hmax = d <= 2 ? 2 : d <= 4 ? 3 : 4;
-      const stack: Stack = [];
-      for (let i = 0; i < n; i++) { stack.push([]); for (let j = 0; j < n; j++) { const hh = r.chance(d <= 3 ? .15 : .08) ? 0 : r.int(1, hmax); stack[i].push(Array.from({ length: hh }, () => r.int(0, 3))); } }
+      // Columns are built front to back (the viewer's side first) and each gets a height that
+      // leaves its top face in view where one exists: a taller column in front hides what is
+      // behind it, and a colour the player can't see can't be checked against the options.
+      // (Players, 2026-10-26: "the boxes and colors don't line up" on the big grids: 30-37 % of
+      // the columns were hidden.) Hidden ones are rare now and never what tells the options apart.
+      const P = tvProj(n, 10);
+      const stack: Stack = Array.from({ length: n }, () => Array.from({ length: n }, () => [] as number[]));
+      const cells: [number, number][] = [];
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) cells.push([i, j]);
+      r.shuffle(cells).sort((a, b) => (b[0] + b[1]) - (a[0] + a[1]));
+      for (const [i, j] of cells) {
+        const hole = r.chance(d <= 3 ? .15 : .08);
+        const cap = i + j >= n - 1 ? Math.min(hmax, 2) : hmax; // low in front, tall behind: the stack climbs away from the viewer
+        const hs = r.shuffle(Array.from({ length: cap + 1 }, (_, h) => h)).filter((h) => (h === 0) === hole);
+        let pick = hs[0];
+        const cubes = tvCubes(stack); // only the columns in front count; the ones behind are still empty
+        for (const h of hs) if (tvCellVisible(P, cubes, i, j, h) >= .95) { pick = h; break; }
+        stack[i][j] = Array.from({ length: pick }, () => r.int(0, 3));
+      }
       const T = tvView(stack), vis = tvMir(tvVisibility(stack)); // both indexed as the grid draws them
+      const hiddenCells = vis.flat().filter((v) => v < .5).length;
+      if (hiddenCells > Math.ceil(n * n * .16)) continue;
       const visCells: [number, number][] = [];
       for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (vis[i][j] >= 0.5 && T[i][j] >= 0) visCells.push([i, j]);
       if (visCells.length < 4) continue;
@@ -73,12 +89,15 @@ defGen({
       const all = [T, ...dist];
       const keys = new Set(all.map(tvKey));
       if (keys.size !== 5) continue;
+      // every wrong picture must differ from the right one in a column the player can see
+      const seenDiff = (X: TopGrid) => { let c = 0; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (vis[i][j] >= .5 && X[i][j] !== T[i][j]) c++; return c; };
+      if (dist.some((X) => seenDiff(X) < 1)) continue;
       const order = r.shuffle([0, 1, 2, 3, 4]);
       const ansIdx = order.indexOf(0);
       const wrongs = d <= 4 ? ["turned", "mirrored", "turned upside down", "with one colour changed"] : d <= 7 ? ["mirrored", "turned upside down", "with one colour changed", "with two colours swapped"] : ["with two colours swapped", "with one colour changed", "with two other colours swapped", "turned and mirrored"];
       const wrongsEs = d <= 4 ? ["girada", "espejada", "dada vuelta", "con un color cambiado"] : d <= 7 ? ["espejada", "dada vuelta", "con un color cambiado", "con dos colores intercambiados"] : ["con dos colores intercambiados", "con un color cambiado", "con otros dos colores intercambiados", "girada y espejada"];
-      const why = say(ctx.lang, `From straight above you see only the top cube of each column, in the same place as on the floor grid (the front edge at the bottom). The right picture matches every column. The others are the view ${wrongs.join(", ")}.`,
-        `Desde arriba se ve solo el cubo de más arriba de cada columna, en el mismo lugar que en la cuadrícula del piso (el borde de adelante abajo). La imagen correcta coincide en todas las columnas. Las otras son la vista ${wrongsEs.join(", ")}.`);
+      const why = say(ctx.lang, `From straight above you see only the top cube of each column, in the same place as on the floor grid (the front edge at the bottom). The right picture matches every column you can see (ignore one hidden behind a taller column). The others are the view ${wrongs.join(", ")}.`,
+        `Desde arriba se ve solo el cubo de más arriba de cada columna, en el mismo lugar que en la cuadrícula del piso (el borde de adelante abajo). La imagen correcta coincide en todas las columnas que se ven (ignorá las que quedan tapadas por una más alta). Las otras son la vista ${wrongsEs.join(", ")}.`);
       return mkItem(this, d, { display: { stack, options: order.map((i) => all[i]) }, key: { t: "idx", v: ansIdx, rev: 2 }, why });
     }
     return GENS.rotation.make(d, r, ctx);

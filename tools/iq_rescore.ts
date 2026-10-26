@@ -1,6 +1,6 @@
 // IQ Test: rescore finished tests that hold answers to wrongly keyed questions (KEY_REV in
-// supabase/functions/_shared/session.ts; first use: topview, 2026-10-25, where the "right"
-// top view was the mirror image). Those answers are left out and each test is scored again
+// supabase/functions/_shared/session.ts; uses: topview, 2026-10-25, where the "right"
+// top view was the mirror image; natclass d 7+ / natodd d 8+, 2026-10-26, mod-3 pair rules). Those answers are left out and each test is scored again
 // with the same code as session-finish: section_scores rows updated in place (a section left
 // with no answers loses its row), the stored result replaced. Leaderboards read
 // section_scores, so they follow at once. Tests still open are scored right when they finish.
@@ -25,9 +25,9 @@ export async function sessionsToRescore(db: Db): Promise<SessionRow[]> {
   const ids = new Set<string>();
   for (const gid of Object.keys(KEY_REV)) {
     for (let from = 0; ; from += PAGE) {
-      const rows = must(await db.from("responses").select("session_id, gid, answer_key").eq("gid", gid)
+      const rows = must(await db.from("responses").select("session_id, gid, d, answer_key").eq("gid", gid)
         .not("answered_at", "is", null).order("session_id").range(from, from + PAGE - 1)) as any[];
-      for (const r of rows) if (!scorable(r.gid, r.answer_key)) ids.add(r.session_id);
+      for (const r of rows) if (!scorable(r.gid, r.answer_key, r.d)) ids.add(r.session_id);
       if (rows.length < PAGE) break;
     }
   }

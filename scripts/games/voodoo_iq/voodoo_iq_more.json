@@ -1,6 +1,7 @@
 {
   "en": {
     "replay_any": "Play again",
+    "q_topview_sub": "The thick white edge goes at the bottom. Holes show as empty. If a column is hidden behind a taller one, ignore it.",
     "ins_pitch": "Three notes play. Two are identical, one is slightly higher or lower. The difference shrinks as you improve. Replay as often as you like.",
 
     "gt_symsum": "Symbol sums",
@@ -321,6 +322,7 @@
   },
   "es": {
     "replay_any": "Escuchar de nuevo",
+    "q_topview_sub": "El borde blanco grueso va abajo. Los huecos aparecen vacíos. Si una columna queda tapada por una más alta, ignorala.",
     "ins_pitch": "Suenan tres notas. Dos son iguales y una es apenas más aguda o más grave. La diferencia se achica a medida que mejorás. Podés repetir todas las veces que quieras.",
 
     "gt_symsum": "Sumas de símbolos",
