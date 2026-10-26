@@ -98,7 +98,7 @@ defGen({
       const wrongsEs = d <= 4 ? ["girada", "espejada", "dada vuelta", "con un color cambiado"] : d <= 7 ? ["espejada", "dada vuelta", "con un color cambiado", "con dos colores intercambiados"] : ["con dos colores intercambiados", "con un color cambiado", "con otros dos colores intercambiados", "girada y espejada"];
       const why = say(ctx.lang, `From straight above you see only the top cube of each column, in the same place as on the floor grid (the front edge at the bottom). The right picture matches every column you can see (ignore one hidden behind a taller column). The others are the view ${wrongs.join(", ")}.`,
         `Desde arriba se ve solo el cubo de más arriba de cada columna, en el mismo lugar que en la cuadrícula del piso (el borde de adelante abajo). La imagen correcta coincide en todas las columnas que se ven (ignorá las que quedan tapadas por una más alta). Las otras son la vista ${wrongsEs.join(", ")}.`);
-      return mkItem(this, d, { display: { stack, options: order.map((i) => all[i]) }, key: { t: "idx", v: ansIdx, rev: 2 }, why });
+      return mkItem(this, d, { display: { stack, options: order.map((i) => all[i]) }, key: { t: "idx", v: ansIdx, rev: 3 }, why });
     }
     return GENS.rotation.make(d, r, ctx);
   },

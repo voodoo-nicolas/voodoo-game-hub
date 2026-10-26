@@ -35,10 +35,12 @@ export async function loadSession(db: Db, id: unknown, uid: string): Promise<Ses
  *  stored key carries at least this revision (Key `rev`, default 1); older ones are left out.
  *  topview 2: before 2026-10-25 the "right" picture was the mirror image of the view from
  *  above (the prototype's bug; spa.ts tvView). tools/iq_rescore.ts rescores finished tests.
+ *  topview 3 (2026-10-26): rev 2 items were right but 30-37 % of their columns were hidden behind
+ *  taller ones (unverifiable, so confident players got them "wrong"; it wrecked Self scores).
  *  natclass / natodd 2 (2026-10-26): at d 7+ (natclass) and d 8+ (natodd) the prototype's answer
  *  came from a mod-3 sum / difference of two traits' scores: no rule a player could find, and
  *  often not even decidable from the examples (see KEY_REV_FROM_D, nat.ts). */
-export const KEY_REV: Record<string, number> = { topview: 2, natclass: 2, natodd: 2 };
+export const KEY_REV: Record<string, number> = { topview: 3, natclass: 2, natodd: 2 };
 /** Where the wrong keys start: below this difficulty an unrevised key was fine. */
 const KEY_REV_FROM_D: Record<string, number> = { natclass: 7, natodd: 8 };
 export const scorable = (gid: string, answerKey: any, d?: number) =>

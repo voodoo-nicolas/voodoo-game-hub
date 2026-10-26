@@ -24,7 +24,7 @@ function seed(db: FakeDb, id: string, status: "live" | "done", ranked = true, fi
   const rows: [string, number, number, number?][] = [];
   for (let d = 2; d <= 9; d++) rows.push(["rotation", d, d <= 8 ? 1 : 0]);
   for (const d of [3, 4, 5, 6]) rows.push(["topview", d, 0]);
-  if (fixed) rows.push(["topview", 7, 1, 2]);
+  if (fixed) rows.push(["topview", 7, 1, 3]);
   rows.forEach(([gid, d, u, rev], seq) => db.tables.responses.push({
     session_id: id, seq, sec: "SPA", gid, d, a: GENS[gid].a, b: bOf(d), c: 0.25, u, ms: 9000, conf: null,
     served_at: at(seq), answered_at: at(seq),
@@ -120,4 +120,26 @@ Deno.test("natclass d 7+ and natodd d 8+: answers keyed by the old mod-3 pair ru
     const it = GENS[gid].make(d, new Rng(d * 31 + 7), { lang: "en", used: new Set(), blitz: false })!;
     assert(scorable(it.gid, { key: it.key }, it.d), `${gid} d${d} new item counts`);
   }
+});
+
+/** Intrapersonal (SELF): the Self score is how well confidence tells right from wrong, so
+ *  answers to wrongly keyed items must leave it too (players: first on the board -> last). */
+Deno.test("iq_rescore: a Self test drops wrongly keyed items from its confidence score", async () => {
+  const db = new FakeDb();
+  const id = "d0000000-0000-4000-8000-000000000001";
+  db.tables.sessions = [{ id, user_id: ME, mode: "iq", kind: "normal", scope: "SELF", dur_s: 0, ranked: true, seed: 1, lang: "en",
+    started_at: at(0), deadline: at(59), status: "done", flags: { hidden: 0, rapid: 0 }, result: { secs: {}, viq: {} }, state: { pred: 0.7 } }];
+  // good items: confidence tracks correctness; old wrongly keyed items: confident and marked wrong
+  const rows: [string, number, number, number, boolean][] = [];
+  for (let i = 0; i < 8; i++) rows.push(["matrix", 5, 1, 1, false], ["matrix", 5, 0, 0.25, false]);
+  for (let i = 0; i < 8; i++) rows.push(["topview", 6, 0, 1, true], ["natodd", 9, 0, 1, true]);
+  db.tables.responses = rows.map(([gid, d, u, conf, old], seq) => ({
+    session_id: id, seq, sec: "SELF", gid, d, a: GENS[gid].a, b: bOf(d), c: 0.2, u, ms: 9000, conf,
+    served_at: at(seq), answered_at: at(seq), answer_key: { key: { t: "idx", v: 0, ...(old ? {} : {}) }, k: 5, minMs: 0, maxMs: 60000, w: 1 },
+  }));
+  db.tables.section_scores = [{ session_id: id, user_id: ME, sec: "SELF", day: "2026-10-20", theta: -3, se: 0.5, n: 32, hard: 0, lang: "en", flagged: false, auc: 0.3, bias: 0.3, created_at: at(30) }];
+  await rescoreAll(db as any, true, () => {});
+  const row = db.tables.section_scores.find((r) => r.sec === "SELF")!;
+  assertEquals(row.n, 16); // only the matrix answers count
+  assert(row.theta > 0, `confidence now tells right from wrong: theta ${row.theta}`);
 });
