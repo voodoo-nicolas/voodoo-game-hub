@@ -66,7 +66,7 @@ Packs run on older apps: use `get_node_or_null()` / `ResourceLoader.exists()` + 
 
 ## 9. Learning hook and content rules
 - Manifest `learn` tags; optional `const FACTS` in `_help.gd` (checked facts about the game's own subject; no pop quizzes in arcade games; never block play). Don't market as kids' education.
-- **No alcohol references anywhere** (Drinking Games category is archived). Only exception: Turned's bar as a story location (owner, 2026-10-23).
+- **No alcohol promotion** (Drinking Games category is archived): never drinking as a mechanic, penalty, reward or goal, no brands or labels, nothing urging anyone to drink. An incidental glass as background scenery is fine (owner, 2026-10-26; STANDARDS Game Browser section has the why). Turned's bar as a story location is a separate exception (owner, 2026-10-23).
 
 ## 10. Code rules
 - Async callbacks must not touch a freed scene: connect methods, not lambdas; use node `create_tween()` or child `Timer`; never `await get_tree().create_timer()`; `create_timer(t, false)` if used.

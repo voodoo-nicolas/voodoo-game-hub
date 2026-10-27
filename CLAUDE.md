@@ -39,7 +39,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
 - Packs must work on older APKs: guard every call into APK systems (`get_node_or_null()`, `ResourceLoader.exists()`, `load()` never `preload()` for APK-side scripts); `"min_build": <BUILD_NUMBER>` on the `games` entry only if unavoidable (older apps then show "Update app").
 - Never overwrite a mounted `.pck`. Never delete owner comments.
 - EN + ES for every string (`tools/i18n/es.json`, then `python tools/hub.py i18n`).
-- Learning hook where natural (STANDARDS §15). **No alcohol references anywhere, except Turned (owner, 2026-10-23: a bar is a story location there; never promote drinking; STANDARDS Game Browser section).**
+- Learning hook where natural (STANDARDS §15). **No alcohol *promotion* anywhere (owner, 2026-10-26: the rule exists because the old Drinking Games made drinking the consequence of play; an incidental glass with an amber drink as background scenery is fine, never a feature, label or mechanic; be responsible, follow local laws). Alcohol as a story setting only in Turned (owner, 2026-10-23: a bar; STANDARDS Game Browser section).**
 - Every asset: `media/CREDITS.json` entry + licence proof in `media/licenses/`; OGG pre-encoded (~96 kbps music). Never NC/ND licences.
 - Music: only from the shared `Music` autoload (docs/claude/music.md).
 - Recorded sound effects: from the shared sound library `media/common/sfx/` via the game's `sound_lib.gd` (catalog `docs/claude/sfx-library.md`, rules in `docs/claude/i18n-gameinfo-sfx.md`); existing games switch with their next update.
