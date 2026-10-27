@@ -10,6 +10,7 @@ signal card_tapped(index: int)
 
 const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
+const Chips = preload("res://scripts/games/video_poker/video_poker_chips.gd")
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 const AI = preload("res://scripts/games/video_poker/video_poker_ai.gd")
 
@@ -268,7 +269,7 @@ func _draw_seat(i: int, r: Rect2) -> void:
 	var name_col := Look.c("text") if not bool(s.folded) else Look.c("dim")
 	draw_string(_font, r.position + Vector2(pad, pad + fs_name), str(s.name), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - pad * 2 - 26, fs_name, name_col)
 	if t.button == i and not bool(s.out) and t.variant != "stud":
-		_dealer_chip(Vector2(r.end.x - 16, r.position.y + 16), 12.0)
+		Chips.draw_dealer(self, Vector2(r.end.x - 19, r.position.y + 19), 15.0)
 	var fs := int(clampf(r.size.x * 0.09, 15, 22))
 	var y := r.position.y + pad + fs_name + 6 + fs
 	var stack_text := _chips(int(s.stack)) if not bool(s.out) else tr("Out")
@@ -324,7 +325,8 @@ func _draw_seat(i: int, r: Rect2) -> void:
 		draw_string(_font, Vector2(r.position.x + pad, r.end.y - 9), line, HORIZONTAL_ALIGNMENT_CENTER, room, lfs, col)
 		# Chips in front of a seat this round: a little stack by its action.
 		if int(s.bet) > 0 and t.phase != "done":
-			_chip_stack(Vector2(r.get_center().x - minf(lw, room) / 2.0 - 14, r.end.y - 15), 1)
+			var cd := 17.0
+			Chips.draw_stack(self, Vector2(r.get_center().x - minf(lw, room) / 2.0 - Chips.stack_width(int(s.bet), cd) / 2.0 - 4.0, r.end.y - 16), int(s.bet), cd)
 
 func _act_text(s: Dictionary) -> String:
 	var a := str(s.act)
@@ -345,11 +347,6 @@ func _act_color(a: String) -> Color:
 		"All in": return Look.c("gold")
 		"Call", "Check": return Look.c("accent_call").lerp(Look.c("text"), 0.3)
 	return Look.c("dim")
-
-func _dealer_chip(c: Vector2, rad: float) -> void:
-	draw_circle(c, rad + 3, Color(Look.c("dealer"), 0.2))
-	draw_circle(c, rad, Look.c("dealer"))
-	draw_string(_font, c + Vector2(-rad, rad * 0.45), "D", HORIZONTAL_ALIGNMENT_CENTER, rad * 2, int(rad * 1.3), Look.c("dealer_ink"))
 
 func _draw_board() -> void:
 	if t.variant != "holdem" and t.variant != "omaha":
@@ -382,7 +379,9 @@ func _draw_pot() -> void:
 		return
 	var p := _pot_pos()
 	var text := tr("Pot") + " " + _chips(t.pot_total())
-	_chip_stack(p + Vector2(-_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x / 2.0 - 22, -8), 3)
+	var pot_d := 28.0
+	var text_w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+	Chips.draw_stack(self, p + Vector2(-text_w / 2.0 - Chips.stack_width(t.pot_total(), pot_d) / 2.0 - 8.0, -2), t.pot_total(), pot_d)
 	draw_string(_font, Vector2(p.x - 200, p.y), text, HORIZONTAL_ALIGNMENT_CENTER, 400, 26, Look.c("gold").lerp(Look.c("text"), 0.25))
 	if t.variant == "draw" or t.variant == "stud":
 		var info := ""
@@ -400,15 +399,12 @@ func _draw_bets() -> void:
 	var b: int = t.seats[viewer].bet if viewer >= 0 and viewer < t.seats.size() else 0
 	if b > 0:
 		var at := Vector2(center.x, f.end.y - 30)
-		_chip_stack(at + Vector2(-12, -4), 2)
-		draw_string(_font, at + Vector2(6, 4), _chips(b), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Look.c("text"))
-
-func _chip_stack(p: Vector2, n: int) -> void:
-	for k in n:
-		var c := p + Vector2(0, -k * 4.0)
-		draw_circle(c, 10, Color(Look.c("chip_2") if k % 2 == 0 else Look.c("chip_3"), 0.95))
-		draw_arc(c, 10, 0, TAU, 20, Color(Look.c("chip_edge"), 0.8), 1.5, true)
-		draw_arc(c, 6, 0, TAU, 16, Color(Look.c("chip_edge"), 0.5), 1.0, true)
+		var bd := 24.0
+		var sw := Chips.stack_width(b, bd)
+		var tw := _font.get_string_size(_chips(b), HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
+		var x0 := at.x - (sw + 8.0 + tw) / 2.0
+		Chips.draw_stack(self, Vector2(x0 + sw / 2.0, at.y - 4), b, bd)
+		draw_string(_font, Vector2(x0 + sw + 8.0, at.y + 4), _chips(b), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Look.c("text"))
 
 func _draw_hero() -> void:
 	if viewer < 0 or viewer >= t.seats.size():
@@ -423,7 +419,7 @@ func _draw_hero() -> void:
 	var head_col := Look.c("active") if active else Look.c("text")
 	draw_string(_font, Vector2(20, top + 30), head, HORIZONTAL_ALIGNMENT_LEFT, size.x - 120, 26, head_col)
 	if t.button == viewer and not bool(s.out) and t.variant != "stud":
-		_dealer_chip(Vector2(size.x - 34, top + 22), 14.0)
+		Chips.draw_dealer(self, Vector2(size.x - 34, top + 22), 17.0)
 	if hide_viewer:
 		var rects := hero_card_rects()
 		for k in rects.size():

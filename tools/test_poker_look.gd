@@ -8,6 +8,7 @@ extends SceneTree
 
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
 const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
+const Chips = preload("res://scripts/games/video_poker/video_poker_chips.gd")
 
 var fails := 0
 
@@ -52,6 +53,7 @@ func _init() -> void:
 		ok(Look.tex(k) == null or Look.tex(k) is Texture2D, "art slot %s" % k)
 	ok(Look.tex("no_such_slot") == null and Look.tex("no_such_slot") == null, "a missing slot is null every time")
 	_cards()
+	_chips()
 	print("poker look: ", "OK" if fails == 0 else "%d FAILED" % fails, "  (", wanted.size(), " keys used)")
 	quit(1 if fails else 0)
 
@@ -88,3 +90,21 @@ func _cards() -> void:
 	for look in Look.LOOKS:
 		for k in ["suit_s", "suit_h", "suit_d", "suit_c", "suit4_s", "suit4_h", "suit4_d", "suit4_c", "plate", "plate_edge"]:
 			ok(Look.LOOKS[look].has(k), "%s has %s" % [look, k])
+
+
+## Amounts as piles of chips.
+func _chips() -> void:
+	ok(Chips.breakdown(0).is_empty(), "nothing is no chips")
+	ok(Chips.breakdown(5) == [[0, 1]], "under 10 is one white chip")
+	ok(Chips.breakdown(10) == [[0, 1]] and Chips.breakdown(50) == [[1, 1]], "10 and 50 are one chip")
+	ok(Chips.breakdown(1680) == [[4, 1], [3, 1], [2, 1]], "1,680 = 1000 + 500 + 100 (the 50 and 30 are under 4%% and drop): %s" % str(Chips.breakdown(1680)))
+	for amount in [10, 20, 60, 120, 250, 990, 1000, 1500, 4990, 5000, 24000, 99990]:
+		var b: Array = Chips.breakdown(amount)
+		var sum := 0
+		for e in b:
+			sum += int(e[1]) * int(Chips.DENOMS[e[0]])
+		ok(b.size() <= Chips.MAX_COLUMNS, "%d: at most %d kinds" % [amount, Chips.MAX_COLUMNS])
+		ok(absi(sum - amount) <= amount * 0.1 + 10, "%d: the pile (%d) is close to the amount" % [amount, sum])
+		for i in range(1, b.size()):
+			ok(b[i][0] < b[i - 1][0], "%d: biggest chips first" % amount)
+	ok(Chips.stack_width(0, 20.0) == 0.0 and Chips.stack_width(10, 20.0) == 20.0 and Chips.stack_width(1680, 20.0) > 40.0, "stack widths")

@@ -4,10 +4,11 @@ extends SceneTree
 ## and look at three sizes and saves pictures, to check cards without a phone.
 ## Needs a window (not --headless):
 ##   godot --path . --resolution 540x960 --script res://tools/shot_poker_cards.gd -- <out_dir> [classic|voodoo] [four]
-## Output: <look>_cards_small.png (every card), <look>_cards_big.png (hero and board sizes).
+## Output: <look>_cards_small.png (every card), <look>_cards_big.png (hero and board sizes), <look>_cards_chips.png (chip piles and the dealer button).
 
 const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
+const Chips = preload("res://scripts/games/video_poker/video_poker_chips.gd")
 
 var pane: Control
 var mode := "small"
@@ -34,7 +35,7 @@ func _run(out_dir: String, only: String) -> void:
 		if only != "" and only != look:
 			continue
 		Look.set_skin(look)
-		for m in ["small", "big"]:
+		for m in ["small", "big", "chips"]:
 			mode = m
 			pane.queue_redraw()
 			for i in 3:
@@ -45,7 +46,18 @@ func _run(out_dir: String, only: String) -> void:
 
 func _draw() -> void:
 	pane.draw_rect(Rect2(Vector2.ZERO, pane.size), Look.c("felt"))
-	if mode == "small":
+	if mode == "chips":
+		var amounts := [5, 10, 60, 120, 560, 1680, 4300, 24000]
+		for i in amounts.size():
+			var x := 70.0 + (i % 4) * 125.0
+			var y := 110.0 + (i / 4) * 130.0
+			Chips.draw_stack(pane, Vector2(x, y), amounts[i], 40.0)
+			pane.draw_string(ThemeDB.fallback_font, Vector2(x - 40, y + 30), str(amounts[i]), HORIZONTAL_ALIGNMENT_LEFT, 90, 20, Look.c("text"))
+		Chips.draw_dealer(pane, Vector2(80, 400), 34.0)
+		Chips.draw_dealer(pane, Vector2(170, 400), 17.0)
+		for i in 6:
+			Chips.draw_stack(pane, Vector2(60 + i * 80, 520), Chips.DENOMS[i] * 3, 52.0)
+	elif mode == "small":
 		var w := (pane.size.x - 14.0) / 13.0 - 4.0
 		var h := w * 1.42
 		for s in 4:
