@@ -111,6 +111,7 @@ func _ready() -> void:
 	table.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	table.mouse_filter = Control.MOUSE_FILTER_STOP
 	table.draw.connect(_draw_table)
+	table.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # card art is drawn smaller than it is
 	table.gui_input.connect(_on_table_input)
 	table.resized.connect(table.queue_redraw)
 	root.add_child(table)

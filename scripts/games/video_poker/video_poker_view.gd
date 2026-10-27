@@ -41,6 +41,7 @@ var _pulse := 0.0
 
 func _ready() -> void:
 	_font = ThemeDB.fallback_font
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # the card art is drawn smaller than it is
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	gui_input.connect(_on_input)
 	resized.connect(queue_redraw)

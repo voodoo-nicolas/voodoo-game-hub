@@ -15,9 +15,11 @@ extends RefCounted
 ## has supplied one, else null so the code drawing is used. Slots, all
 ## optional: table_portrait, table_landscape (a whole empty table, full
 ## screen), crest (the skull-in-V mark, transparent, drawn faintly on the
-## felt), card_back, chips (the six chips in a row, transparent), dealer, and
-## face_<J|Q|K|A>_<s|h|d|c> for the court cards and aces. The code falls back
-## per slot, so the art can arrive in any order.
+## felt), card_back, card_face (a blank face for the number cards, whose pips
+## the code draws), chip_1..chip_6 (white red blue green black gold,
+## transparent), dealer, and face_<A|J|Q|K>_<s|h|d|c> for the court cards and
+## aces. The code falls back per slot, so the art can arrive in any order.
+## tools/poker_art_import.py makes them from the owner's pictures.
 
 const ART_DIR := "res://games/video_poker/art/"
 
@@ -39,6 +41,9 @@ const LOOKS := {
 		"chip_4": Color("2e8f4e"), "chip_5": Color("1a1a1d"), "chip_6": Color("d4a62a"),
 		"chip_edge": Color("f3ecd8"),
 		"dealer": Color("f3ecd8"), "dealer_ink": Color("1a1410"),
+		"suit_s": Color("e6d3a3"), "suit_c": Color("e6d3a3"), "suit_h": Color("e8454a"), "suit_d": Color("e8454a"),
+		"suit4_s": Color("e9e4d2"), "suit4_c": Color("48d17a"), "suit4_h": Color("e8454a"), "suit4_d": Color("4aa3ff"),
+		"plate": Color(0.03, 0.06, 0.05, 0.9), "plate_edge": Color("9a8450"),
 		"glow": 0.0,
 	},
 	"voodoo": {
@@ -58,6 +63,9 @@ const LOOKS := {
 		"chip_4": Color("20d8d0"), "chip_5": Color("14122b"), "chip_6": Color("ffcf5a"),
 		"chip_edge": Color("9a4dff"),
 		"dealer": Color("dcd8ff"), "dealer_ink": Color("14122b"),
+		"suit_s": Color("86b6ff"), "suit_c": Color("86b6ff"), "suit_h": Color("ff5fc8"), "suit_d": Color("ff5fc8"),
+		"suit4_s": Color("c9d8ff"), "suit4_c": Color("4be0c8"), "suit4_h": Color("ff5fc8"), "suit4_d": Color("4aa3ff"),
+		"plate": Color(0.04, 0.03, 0.12, 0.9), "plate_edge": Color("6a4dff"),
 		"glow": 1.0,
 	},
 }

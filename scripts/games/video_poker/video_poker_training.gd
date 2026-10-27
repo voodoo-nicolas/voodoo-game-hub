@@ -164,6 +164,7 @@ func _build_drill() -> void:
 	cards_area.custom_minimum_size = Vector2(0, 240)
 	cards_area.mouse_filter = Control.MOUSE_FILTER_STOP
 	cards_area.draw.connect(_draw_cards)
+	cards_area.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	cards_area.gui_input.connect(_on_cards_input)
 	cards_area.resized.connect(cards_area.queue_redraw)
 	col.add_child(cards_area)

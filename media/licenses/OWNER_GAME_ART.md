@@ -67,3 +67,18 @@ Covers every `media/CREDITS.json` entry whose `proof` is this file.
   confirm**. IP check (owner, 2026-10-24): the red banner with a gold lion is
   ordinary heraldry (a lion rampant); no name, logo or crest of any franchise --
   kept as is.
+
+## Poker (2026-10-27)
+- Made by the owner with **Google Gemini** (his own account; **plan not stated --
+  owner to confirm**) from short prompts written in chat. Originals in
+  `D:/dev/minigame art/poker/<look>/game art/` and Google Drive > Viral Game Hub >
+  poker (never shipped, not in the repo: ~1 MB each). Google's terms for Gemini do not
+  claim ownership of generated images; they carry Google's invisible SynthID mark.
+  Fictional people and symbols, no real person, no brand.
+- Shipped (Classic look), cut out of the photos and re-saved as WebP by
+  `tools/poker_art_import.py`: `games/video_poker/art/classic/` -- `card_back`,
+  `card_face` (the card back with its crest painted out), 16 court-card and ace faces
+  `face_<A|J|Q|K>_<s|h|d|c>`, 6 chips `chip_1..6`, `dealer`, `table_portrait`.
+- Not used: `ERROR TREBLE CLEF QUEEN` (the owner's reject), `queen spades2` (an alternate
+  Queen of Spades; `queen spades` is used), the third row of the chip sheet (spares).
+- The text inside the art (banners, rings) is decoration made up by the AI, not meant to be read.
