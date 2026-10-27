@@ -12,6 +12,7 @@ signal hand_finished(win: int, hand_name: String)
 
 const VpEngine = preload("res://scripts/games/video_poker/video_poker_engine.gd")
 const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
+const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
 const HomeKit = preload("res://scripts/games/video_poker/home_kit.gd")
 const CARD_ASPECT := 1.42
 
@@ -297,7 +298,7 @@ func _draw_table() -> void:
 			r.position.y -= 12
 		Cards.draw_card(table, r, engine.hand[i], true, held)
 		if held:
-			table.draw_string(font, Vector2(r.position.x - 20, r.end.y + 30), tr("Held").to_upper(), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 40, 20, Cards.COLOR_HILITE)
+			table.draw_string(font, Vector2(r.position.x - 20, r.end.y + 30), tr("Held").to_upper(), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 40, 20, Look.c("hilite"))
 		if engine.phase == "hold" and hint_held.has(i):
 			table.draw_string(font, Vector2(r.position.x - 20, r.position.y - 10), "💡", HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 40, 26, HomeKit.LIME)
 			table.draw_rect(r.grow(5), Color(HomeKit.LIME, 0.8), false, 3.0)

@@ -2,24 +2,17 @@ extends Control
 
 ## Draws a poker table: the felt, the other seats around it (name, chips,
 ## cards, last action, bet), the board and pot in the middle, and the
-## viewer's own cards big at the bottom. Neon on near-black
-## (reference/art/ART_STYLE.md). The game sets the fields and calls
+## viewer's own cards big at the bottom. Colours come from video_poker_look.gd
+## (classic and voodoo looks). The game sets the fields and calls
 ## queue_redraw(); taps on the viewer's cards come out as `card_tapped`.
 
 signal card_tapped(index: int)
 
 const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
+const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 const AI = preload("res://scripts/games/video_poker/video_poker_ai.gd")
 
-const BG := Color("070a14")
-const CYAN := Color("29e6ff")
-const MAGENTA := Color("ff2bd6")
-const GOLD := Color("ffae2b")
-const LIME := Color("7dff3a")
-const PURPLE := Color("9b4dff")
-const WHITE := Color(0.95, 0.97, 1.0)
-const DIM := Color(0.62, 0.66, 0.78)
 const CARD_ASPECT := 1.42
 ## Poker's "Check" has its own key: plain "Check" is already the Spanish
 ## "Revisar" of Code Breaker and Crossword (es.json is one shared map).
@@ -186,21 +179,49 @@ func _draw() -> void:
 	_draw_bets()
 	_draw_hero()
 
+## The table: a rail round a felt, in the look's colours (classic: mahogany
+## and gold; voodoo: dark rail with neon rims and glow). The owner's "crest"
+## art, when there is one, sits faintly in the middle of the felt.
 func _draw_felt(f: Rect2) -> void:
+	var glow := Look.f("glow")
+	var rad := int(minf(f.size.x, f.size.y) * 0.22)
+	var rail_w := clampf(minf(f.size.x, f.size.y) * 0.05, 10.0, 24.0)
+	# the rail
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.03, 0.09, 0.12)
-	sb.set_corner_radius_all(int(minf(f.size.x, f.size.y) * 0.22))
-	sb.border_color = Color(CYAN, 0.75)
+	sb.bg_color = Look.c("rail")
+	sb.set_corner_radius_all(rad)
+	sb.border_color = Color(Look.c("glow_a"), 0.85) if glow > 0.0 else Look.c("rail_hi")
 	sb.set_border_width_all(3)
-	sb.shadow_color = Color(CYAN, 0.18)
-	sb.shadow_size = 14
+	sb.shadow_color = Color(Look.c("glow_a"), 0.3) if glow > 0.0 else Color(0, 0, 0, 0.55)
+	sb.shadow_size = 14 if glow > 0.0 else 12
+	sb.shadow_offset = Vector2(0, 0) if glow > 0.0 else Vector2(0, 5)
 	draw_style_box(sb, f)
-	var inner := StyleBoxFlat.new()
-	inner.bg_color = Color(0, 0, 0, 0)
-	inner.set_corner_radius_all(int(minf(f.size.x, f.size.y) * 0.18))
-	inner.border_color = Color(PURPLE, 0.35)
-	inner.set_border_width_all(2)
-	draw_style_box(inner, f.grow(-14))
+	# the felt, lighter in the middle
+	var felt := f.grow(-rail_w)
+	var fr := maxi(4, rad - int(rail_w * 0.7))
+	var base := StyleBoxFlat.new()
+	base.bg_color = Look.c("felt_deep")
+	base.set_corner_radius_all(fr)
+	base.border_color = Color(Look.c("glow_b"), 0.7) if glow > 0.0 else Color(Look.c("rail_lo"), 0.9)
+	base.set_border_width_all(2)
+	draw_style_box(base, felt)
+	var mid := StyleBoxFlat.new()
+	mid.bg_color = Color(Look.c("felt"), 0.85)
+	mid.set_corner_radius_all(int(fr * 0.8))
+	mid.shadow_color = Color(Look.c("felt"), 0.6)
+	mid.shadow_size = int(minf(felt.size.x, felt.size.y) * 0.08)
+	draw_style_box(mid, felt.grow(-minf(felt.size.x, felt.size.y) * 0.1))
+	# the inlay line
+	var inlay := StyleBoxFlat.new()
+	inlay.bg_color = Color(0, 0, 0, 0)
+	inlay.set_corner_radius_all(maxi(4, fr - 8))
+	inlay.border_color = Color(Look.c("felt_line"), 0.8 if glow == 0.0 else 0.5)
+	inlay.set_border_width_all(2)
+	draw_style_box(inlay, felt.grow(-9))
+	var crest := Look.tex("crest")
+	if crest != null:
+		var s := minf(felt.size.x, felt.size.y) * 0.4
+		draw_texture_rect(crest, Rect2(felt.get_center() - Vector2(s, s) / 2.0, Vector2(s, s)), false, Color(1, 1, 1, 0.3))
 
 func _won(i: int) -> Dictionary:
 	if t.phase != "done":
@@ -221,21 +242,21 @@ func _draw_seat(i: int, r: Rect2) -> void:
 	var active: bool = i == t.to_act and t.phase in ["bet", "draw"]
 	var res := _won(i)
 	var winner: bool = not res.is_empty() and int(res.won) > 0
-	var edge := DIM
+	var edge := Look.c("dim")
 	if bool(s.out):
-		edge = Color(DIM, 0.35)
+		edge = Color(Look.c("dim"), 0.35)
 	elif winner:
-		edge = GOLD
+		edge = Look.c("gold")
 	elif active:
-		edge = LIME
+		edge = Look.c("active")
 	elif not bool(s.folded):
-		edge = MAGENTA if int(s.kind) == 0 else CYAN
+		edge = Look.c("cpu") if int(s.kind) == 0 else Look.c("you")
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.04, 0.05, 0.11, 0.92)
+	sb.bg_color = Look.c("seat_bg")
 	sb.set_corner_radius_all(14)
 	sb.border_color = Color(edge, 0.9)
 	sb.set_border_width_all(3 if (active or winner) else 2)
-	var glow := 0.25
+	var glow := 0.25 * (0.35 + 0.65 * Look.f("glow"))
 	if active and thinking == i:
 		glow = 0.25 + 0.2 * sin(_pulse * 6.0)
 	sb.shadow_color = Color(edge, glow)
@@ -243,17 +264,17 @@ func _draw_seat(i: int, r: Rect2) -> void:
 	draw_style_box(sb, r)
 	var pad := 8.0
 	var fs_name := int(clampf(r.size.x * 0.095, 16, 24))
-	var name_col := WHITE if not bool(s.folded) else DIM
+	var name_col := Look.c("text") if not bool(s.folded) else Look.c("dim")
 	draw_string(_font, r.position + Vector2(pad, pad + fs_name), str(s.name), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - pad * 2 - 26, fs_name, name_col)
 	if t.button == i and not bool(s.out) and t.variant != "stud":
 		_dealer_chip(Vector2(r.end.x - 16, r.position.y + 16), 12.0)
 	var fs := int(clampf(r.size.x * 0.09, 15, 22))
 	var y := r.position.y + pad + fs_name + 6 + fs
 	var stack_text := _chips(int(s.stack)) if not bool(s.out) else tr("Out")
-	draw_string(_font, Vector2(r.position.x + pad, y), stack_text, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - pad * 2, fs, GOLD.lerp(WHITE, 0.3))
+	draw_string(_font, Vector2(r.position.x + pad, y), stack_text, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - pad * 2, fs, Look.c("gold").lerp(Look.c("text"), 0.3))
 	if show_styles and int(s.kind) == 0:
 		var style_name: String = AI.STYLES[clampi(int(s.style), 0, AI.STYLES.size() - 1)][0]
-		draw_string(_font, Vector2(r.position.x + pad, y), tr(style_name), HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - pad * 2, fs - 3, Color(PURPLE, 1.0).lerp(WHITE, 0.3))
+		draw_string(_font, Vector2(r.position.x + pad, y), tr(style_name), HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - pad * 2, fs - 3, Color(Look.c("line2"), 1.0).lerp(Look.c("text"), 0.3))
 	# cards
 	var n: int = s.hole.size()
 	var bottom_text_h := fs + 10.0
@@ -277,18 +298,18 @@ func _draw_seat(i: int, r: Rect2) -> void:
 			Cards.draw_card(self, cr, s.hole[k], face, hl, bool(s.folded))
 	# bottom line: last action / thinking / result
 	var line := ""
-	var col := DIM
+	var col := Look.c("dim")
 	if not res.is_empty():
 		if int(res.won) > 0:
 			line = "+" + _chips(int(res.won))
-			col = GOLD
+			col = Look.c("gold")
 		if str(res.desc) != "":
 			line = (line + " · " if line != "" else "") + str(res.desc)
 			if int(res.won) == 0:
-				col = DIM
+				col = Look.c("dim")
 	elif thinking == i:
 		line = tr("Thinking") + ".".repeat(1 + int(_pulse * 3.0) % 3)
-		col = LIME
+		col = Look.c("active")
 	elif str(s.act) != "":
 		line = _act_text(s)
 		col = _act_color(str(s.act))
@@ -318,16 +339,16 @@ func _act_text(s: Dictionary) -> String:
 
 func _act_color(a: String) -> Color:
 	match a:
-		"Fold": return DIM
-		"Raise", "Bet", "Complete": return MAGENTA.lerp(WHITE, 0.3)
-		"All in": return GOLD
-		"Call", "Check": return CYAN.lerp(WHITE, 0.3)
-	return DIM
+		"Fold": return Look.c("dim")
+		"Raise", "Bet", "Complete": return Look.c("accent_raise").lerp(Look.c("text"), 0.3)
+		"All in": return Look.c("gold")
+		"Call", "Check": return Look.c("accent_call").lerp(Look.c("text"), 0.3)
+	return Look.c("dim")
 
 func _dealer_chip(c: Vector2, rad: float) -> void:
-	draw_circle(c, rad + 3, Color(WHITE, 0.2))
-	draw_circle(c, rad, WHITE)
-	draw_string(_font, c + Vector2(-rad, rad * 0.45), "D", HORIZONTAL_ALIGNMENT_CENTER, rad * 2, int(rad * 1.3), Color(0.1, 0.1, 0.15))
+	draw_circle(c, rad + 3, Color(Look.c("dealer"), 0.2))
+	draw_circle(c, rad, Look.c("dealer"))
+	draw_string(_font, c + Vector2(-rad, rad * 0.45), "D", HORIZONTAL_ALIGNMENT_CENTER, rad * 2, int(rad * 1.3), Look.c("dealer_ink"))
 
 func _draw_board() -> void:
 	if t.variant != "holdem" and t.variant != "omaha":
@@ -361,14 +382,14 @@ func _draw_pot() -> void:
 	var p := _pot_pos()
 	var text := tr("Pot") + " " + _chips(t.pot_total())
 	_chip_stack(p + Vector2(-_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x / 2.0 - 22, -8), 3)
-	draw_string(_font, Vector2(p.x - 200, p.y), text, HORIZONTAL_ALIGNMENT_CENTER, 400, 26, GOLD.lerp(WHITE, 0.25))
+	draw_string(_font, Vector2(p.x - 200, p.y), text, HORIZONTAL_ALIGNMENT_CENTER, 400, 26, Look.c("gold").lerp(Look.c("text"), 0.25))
 	if t.variant == "draw" or t.variant == "stud":
 		var info := ""
 		if t.variant == "draw":
 			info = tr("Before the draw") if t.street == 0 and t.phase != "draw" else (tr("The draw") if t.phase == "draw" else tr("After the draw"))
 		else:
 			info = tr(["Third street", "Fourth street", "Fifth street", "Sixth street", "Seventh street"][clampi(t.street, 0, 4)])
-		draw_string(_font, Vector2(p.x - 200, p.y + 34), info, HORIZONTAL_ALIGNMENT_CENTER, 400, 22, DIM)
+		draw_string(_font, Vector2(p.x - 200, p.y + 34), info, HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Look.c("dim"))
 
 func _draw_bets() -> void:
 	var f := felt_rect()
@@ -379,14 +400,14 @@ func _draw_bets() -> void:
 	if b > 0:
 		var at := Vector2(center.x, f.end.y - 30)
 		_chip_stack(at + Vector2(-12, -4), 2)
-		draw_string(_font, at + Vector2(6, 4), _chips(b), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, WHITE)
+		draw_string(_font, at + Vector2(6, 4), _chips(b), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Look.c("text"))
 
 func _chip_stack(p: Vector2, n: int) -> void:
 	for k in n:
 		var c := p + Vector2(0, -k * 4.0)
-		draw_circle(c, 10, Color(MAGENTA, 0.9) if k % 2 == 0 else Color(CYAN, 0.9))
-		draw_arc(c, 10, 0, TAU, 20, Color(WHITE, 0.7), 1.5, true)
-		draw_arc(c, 6, 0, TAU, 16, Color(WHITE, 0.45), 1.0, true)
+		draw_circle(c, 10, Color(Look.c("chip_2") if k % 2 == 0 else Look.c("chip_3"), 0.95))
+		draw_arc(c, 10, 0, TAU, 20, Color(Look.c("chip_edge"), 0.8), 1.5, true)
+		draw_arc(c, 6, 0, TAU, 16, Color(Look.c("chip_edge"), 0.5), 1.0, true)
 
 func _draw_hero() -> void:
 	if viewer < 0 or viewer >= t.seats.size():
@@ -398,7 +419,7 @@ func _draw_hero() -> void:
 	var active: bool = viewer == t.to_act and t.phase in ["bet", "draw"]
 	var name_text := str(s.name) if str(s.name) != "" else tr(you_text)
 	var head := name_text + "  ·  " + (_chips(int(s.stack)) if not bool(s.out) else tr("Out"))
-	var head_col := LIME if active else WHITE
+	var head_col := Look.c("active") if active else Look.c("text")
 	draw_string(_font, Vector2(20, top + 30), head, HORIZONTAL_ALIGNMENT_LEFT, size.x - 120, 26, head_col)
 	if t.button == viewer and not bool(s.out) and t.variant != "stud":
 		_dealer_chip(Vector2(size.x - 34, top + 22), 14.0)
@@ -419,26 +440,26 @@ func _draw_hero() -> void:
 		var card: int = s.hole[idx]
 		Cards.draw_card(self, r, card, true, best.has(card) or picked, bool(s.folded) or picked)
 		if picked:
-			draw_string(_font, Vector2(r.position.x - 10, r.position.y - 6), tr("Swap").to_upper(), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 20, 20, GOLD)
+			draw_string(_font, Vector2(r.position.x - 10, r.position.y - 6), tr("Swap").to_upper(), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 20, 20, Look.c("gold"))
 	if t.variant == "stud" and rects.size() > 0:
 		var hidden := _stud_hidden_count()
 		if hidden > 0 and hidden < rects.size():
 			var hr: Rect2 = rects[hidden - 1]
-			draw_string(_font, Vector2(rects[0].position.x, top + 44 + rects[0].size.y + 26), tr("Hidden"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, DIM)
+			draw_string(_font, Vector2(rects[0].position.x, top + 44 + rects[0].size.y + 26), tr("Hidden"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Look.c("dim"))
 			var sr: Rect2 = rects[hidden]
-			draw_string(_font, Vector2(sr.position.x, top + 44 + sr.size.y + 26), tr("Showing"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, DIM)
-			draw_line(Vector2(hr.end.x + 9, hr.position.y), Vector2(hr.end.x + 9, hr.end.y), Color(DIM, 0.4), 2)
+			draw_string(_font, Vector2(sr.position.x, top + 44 + sr.size.y + 26), tr("Showing"), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Look.c("dim"))
+			draw_line(Vector2(hr.end.x + 9, hr.position.y), Vector2(hr.end.x + 9, hr.end.y), Color(Look.c("dim"), 0.4), 2)
 	# what you have right now
 	var line := ""
-	var col := CYAN.lerp(WHITE, 0.3)
+	var col := Look.c("you").lerp(Look.c("text"), 0.3)
 	if not res.is_empty():
 		line = str(res.desc)
 		if int(res.won) > 0:
 			line = "+" + _chips(int(res.won)) + ("  ·  " + line if line != "" else "")
-			col = GOLD
+			col = Look.c("gold")
 	elif bool(s.folded):
 		line = tr("Folded")
-		col = DIM
+		col = Look.c("dim")
 	elif s.hole.size() >= 2 and t.phase != "idle":
 		line = t.describe(t.hand_score(viewer))
 	if line != "" and rects.size() > 0:

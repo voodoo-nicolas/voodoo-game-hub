@@ -20,6 +20,7 @@ const View = preload("res://scripts/games/video_poker/video_poker_view.gd")
 const Machine = preload("res://scripts/games/video_poker/video_poker_machine.gd")
 const Training = preload("res://scripts/games/video_poker/video_poker_training.gd")
 const History = preload("res://scripts/games/video_poker/video_poker_history.gd")
+const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -222,11 +223,11 @@ var bg: ColorRect
 
 func _set_skin(name: String) -> void:
 	skin = "voodoo" if name == "voodoo" else "classic"
+	Look.set_skin(skin)  # the table, seats, chips and cards all read their colours from it
 	if bg:
-		bg.color = HomeKit.CLASSIC.felt_dark if skin == "classic" else HomeKit.BG
+		bg.color = Look.c("room")
 		if bg.get_child_count() > 0:
 			bg.get_child(0).visible = skin != "classic"
-	Cards.classic = skin == "classic"
 	_redraw_cards()
 
 func _redraw_cards() -> void:
