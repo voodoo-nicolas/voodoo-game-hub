@@ -19,6 +19,7 @@ const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
 const View = preload("res://scripts/games/video_poker/video_poker_view.gd")
 const Machine = preload("res://scripts/games/video_poker/video_poker_machine.gd")
 const Training = preload("res://scripts/games/video_poker/video_poker_training.gd")
+const History = preload("res://scripts/games/video_poker/video_poker_history.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -67,6 +68,7 @@ var rng := RandomNumberGenerator.new()
 var started := false
 
 var t = Table.new()
+var history = History.new()   # every hand played, to user://video_poker_history.jsonl
 ## "" (Home) | cash | tourney | local | online | practice | vp | training
 var mode := ""
 var chips := START_CHIPS
@@ -667,6 +669,7 @@ func _discard_save() -> void:
 	SaveUtil.delete(SAVE_PATH)
 
 func _new_table(seat_list: Array, sb: int, bb: int) -> void:
+	history.abandon()
 	t = Table.new()
 	t.variant = str(prefs.variant)
 	t.limit = _limit_for(t.variant)
@@ -825,6 +828,7 @@ func _decision_key() -> String:
 ## After anything changed the table: count a finished hand, start the
 ## computer thinking, hand the phone over, ask the coach, redraw.
 func _after_change() -> void:
+	history.observe(t, mode, _hero_seat(), coach_on)
 	if t.phase == "done":
 		if handled_hand != t.hand_no:
 			handled_hand = t.hand_no
@@ -1387,6 +1391,7 @@ func _on_online_started(p_my_player: int) -> void:
 	if online.is_host():
 		_new_online_match()
 	else:
+		history.abandon()
 		t = Table.new()
 		viewer = 1
 		_render()
@@ -1431,6 +1436,7 @@ func _on_remote_new_game() -> void:
 	if online.is_host():
 		_new_online_match()
 	else:
+		history.abandon()
 		t = Table.new()
 		handled_hand = -1
 		_render()
@@ -1450,6 +1456,7 @@ func _start_new_game() -> void:
 	if online.is_host():
 		_new_online_match()
 	else:
+		history.abandon()
 		t = Table.new()
 		handled_hand = -1
 		_render()
@@ -1537,7 +1544,7 @@ func _save_game() -> void:
 	if t.seats.is_empty() or t.phase == "idle":
 		return
 	SaveUtil.write(SAVE_PATH, {"v": 2, "mode": mode, "t": t.to_dict(), "meta": meta, "viewer": viewer,
-		"level": ai_level, "stakes": stakes, "buyin": buyin, "handled": handled_hand})
+		"level": ai_level, "stakes": stakes, "buyin": buyin, "handled": handled_hand, "hist": history.current()})
 
 func _resume_text() -> String:
 	var d = SaveUtil.read(SAVE_PATH)
@@ -1555,6 +1562,7 @@ func _load_saved_game() -> void:
 	mode = str(d.get("mode", "cash"))
 	t = Table.new()
 	t.from_dict(d.t)
+	history.restore(d.get("hist"))  # the hand in progress, so it carries on (absent in older saves)
 	var m: Dictionary = d.get("meta", {})
 	meta = {"hands": int(m.get("hands", 0)), "level": int(m.get("level", 0)), "out": [], "start": int(m.get("start", t.seats.size()))}
 	for v in m.get("out", []):
