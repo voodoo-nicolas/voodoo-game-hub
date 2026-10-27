@@ -228,6 +228,8 @@ func _on_screen_resized() -> void:
 	match screen_name:
 		"home":
 			_show_home()
+		"options":
+			_show_options()
 		"boards":
 			_show_boards()
 		"results":
@@ -339,13 +341,10 @@ func _show_home() -> void:
 	brand.add_child(_neon_title(T.app_name().to_upper(), 48))
 	brand.add_child(_label(T.t("tagline"), 22, FG2))
 	top.add_child(brand)
-	top.add_child(_button("🏆", _show_boards, WARN, Vector2(70, 60), 26))
-	top.add_child(_button("👤", _show_profile_form, FG2, Vector2(70, 60), 26))
 	box.add_child(top)
 
 	box.add_child(_label(T.t("hero"), 30, Color.WHITE, W))
 	box.add_child(_label(T.t("hero_sub"), 21, FG2, W))
-	box.add_child(_button(T.info("button"), _show_info.bind(_show_home), ACCENT, Vector2(0, 68), 24))
 	if not api.is_signed_in():
 		var warn := _panel(WARN)
 		warn.add_child(_label(tr("Sign in to take the IQ test: hub → ⚙ Options → Account. Scores are saved to your account."), 24, WARN, W - 40))
@@ -378,14 +377,68 @@ func _show_home() -> void:
 		head.add_child(_label(" " + T.t("sec_" + scope), 28, T.sec_color(scope)))
 		bp.add_child(head)
 		bp.add_child(_label(T.t("desc_" + scope), 22, FG, W - 40))
-		bp.add_child(_label(T.t("brain_area") + ": " + T.t("area_" + scope), 20, FG2, W - 40))
-		bp.add_child(_label(T.t("counts_iq") if T.core().has(scope) else T.t("counts_profile"), 20, FG2, W - 40))
-	bp.add_child(_label(T.t("brain_disclaimer"), 18, FG2, W - 40))
+		bp.add_child(_label(T.t("brain_area") + ": " + T.t("area_" + scope) + "
+" + (T.t("counts_iq") if T.core().has(scope) else T.t("counts_profile")), 20, FG2, W - 40))
 	box.add_child(_panel_of(bp))
 
-	# setup
+	# start: one big button; mode, time and the rest sit behind the summary line
 	var sp := _panel(ACCENT)
-	sp.add_child(_label(T.t("setup_title"), 32, Color.WHITE))
+	var start_text := "▶ %s · %s
+%s" % [T.t("start"), T.t("iqtest") if setup.mode == "iq" else T.t("blitz"), ("🏆 " + T.t("ranked")) if setup.ranked else ("🎯 " + T.t("practice"))]
+	sp.add_child(_button(start_text, _start_from_setup, GOOD, Vector2(0, 90), 32))
+	sp.add_child(_button("⚙ " + _options_summary() + "  ›", _show_options, FG2, Vector2(0, 64), 20))
+	box.add_child(_panel_of(sp))
+	var links := HBoxContainer.new()
+	links.add_theme_constant_override("separation", 10)
+	var boards_btn := _button("🏆 " + T.t("nav_boards"), _show_boards, WARN, Vector2(0, 64), 22)
+	boards_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	links.add_child(boards_btn)
+	var profile_btn := _button("👤 " + tr("Profile"), _show_profile_form, FG2, Vector2(0, 64), 22)
+	profile_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	links.add_child(profile_btn)
+	box.add_child(links)
+	box.add_child(_button(T.info("button"), _show_info.bind(_show_home), ACCENT, Vector2(0, 64), 22))
+
+## "IQ Test · ∞ · 🏆 Ranked" (+ 🎨): what Start will run, under the Start button.
+func _options_summary() -> String:
+	var iq_mode: bool = setup.mode == "iq"
+	var parts: Array = [T.t("iqtest") if iq_mode else T.t("blitz")]
+	var dur := int(setup.dur) if iq_mode else int(setup.bdur)
+	parts.append("∞" if (iq_mode and dur == 0) else ("%d min" % dur if iq_mode else "%d min" % (dur / 60)))
+	parts.append(("🏆 " + T.t("ranked")) if setup.ranked else ("🎯 " + T.t("practice")))
+	if setup.colorblind:
+		parts.append("🎨")
+	return " · ".join(parts)
+
+## A tap in the options rebuilds the screen it is on.
+func _refresh_setup() -> void:
+	if screen_name == "options":
+		_show_options()
+	else:
+		_show_home()
+
+# ================================================================== TEST OPTIONS (mode, time, ranked, colours)
+
+func _show_options() -> void:
+	var keep_scroll := 0
+	if screen_name == "options":
+		var old_sc := _page_scroller()
+		if old_sc:
+			keep_scroll = old_sc.scroll_vertical
+	screen_name = "options"
+	running = false
+	_close_overlays()
+	var box := _new_page(true)
+	_restore_scroll(keep_scroll)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.add_child(_button("◀", _show_home, FG2, Vector2(70, 60), 26))
+	var title := _neon_title("⚙ " + T.t("setup_title"), 34)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(title)
+	box.add_child(top)
+	var scope := str(setup.scope)
+	var sp := _panel(ACCENT)
 	sp.add_child(_label(T.t("mode"), 22, FG2, 0, HORIZONTAL_ALIGNMENT_LEFT))
 	var modes := HBoxContainer.new()
 	modes.add_theme_constant_override("separation", 10)
@@ -413,8 +466,6 @@ func _show_home() -> void:
 	sp.add_child(durs)
 	if iq_mode and int(setup.dur) == 0:
 		sp.add_child(_label(tr("∞ No time limit: answer as many questions as you like and tap Finish when you're done. Every answer counts, so long runs reach the boards faster."), 19, GOOD, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
-	sp.add_child(_label(T.t("questions_from") + ": " + _sec_name(scope), 24, Color.WHITE if scope == "ALL" else T.sec_color(scope), W - 40, HORIZONTAL_ALIGNMENT_LEFT))
-	sp.add_child(_label(T.t("pick_hint"), 18, FG2, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
 	# Ranked or practice: two big buttons, the chosen one lit (players missed
 	# the old small switch).
 	sp.add_child(_label(tr("Does this test count?"), 22, FG2, 0, HORIZONTAL_ALIGNMENT_LEFT))
@@ -440,24 +491,11 @@ func _show_home() -> void:
 		cbb.add_theme_stylebox_override("normal", Items.box_style(Color(GOOD, 0.22), GOOD, 3))
 	sp.add_child(cbb)
 	sp.add_child(_label(tr("Changes the colours in the cube and creature questions."), 18, FG2, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
-	var start_text := "▶ %s · %s\n%s" % [T.t("start"), T.t("iqtest") if iq_mode else T.t("blitz"), ("🏆 " + T.t("ranked")) if setup.ranked else ("🎯 " + T.t("practice"))]
-	sp.add_child(_button(start_text, _start_from_setup, GOOD, Vector2(0, 90), 32))
 	if scope in ["LIN", "EXI", "ALL"]:
 		sp.add_child(_label(T.t("lang_note", {"l": "Español" if T.lang() == "es" else "English"}), 18, FG2, W - 40))
 	box.add_child(_panel_of(sp))
-	box.add_child(_button("🏆 " + T.t("nav_boards"), _show_boards, FG2, Vector2(0, 76), 28))
-
-	# how scoring works
-	var hp := _panel()
-	var body := VBoxContainer.new()
-	body.visible = false
-	# the prototype's how_3 (cautious rank score) and how_5 (129 cap) no longer apply
-	for k in ["how_1", "how_2", "how_4", "how_6"]:
-		body.add_child(_label("• " + T.t(k), 20, FG, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
-	body.add_child(_label("• " + tr("Leaderboards show everyone's real estimate, high or low, with its ± range. ✓ marks a score with enough evidence behind it: 15+ questions and a tight ±."), 20, FG, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
-	hp.add_child(_button(T.t("how_title"), func(): body.visible = not body.visible, FG2, Vector2(0, 64), 22))
-	hp.add_child(body)
-	box.add_child(_panel_of(hp))
+	box.add_child(_button("▶ " + T.t("start") + " · " + _options_summary(), _start_from_setup, GOOD, Vector2(0, 80), 24))
+	box.add_child(_button("◀ " + tr("Back"), _show_home, FG2, Vector2(0, 64), 24))
 
 # ================================================================== INFO (intelligence, genius, quotes)
 
@@ -609,14 +647,14 @@ func _set_colorblind(on: bool) -> void:
 	setup.colorblind = on
 	Art.colorblind = on
 	_save_setup()
-	_show_home()
+	_refresh_setup()
 
 func _set_mode(m: String) -> void:
 	setup.mode = m
 	if m == "blitz" and setup.scope == "SELF":
 		setup.scope = "ALL"
 	_save_setup()
-	_show_home()
+	_refresh_setup()
 
 func _set_dur(dur: int) -> void:
 	if setup.mode == "iq":
@@ -624,12 +662,12 @@ func _set_dur(dur: int) -> void:
 	else:
 		setup.bdur = dur
 	_save_setup()
-	_show_home()
+	_refresh_setup()
 
 func _set_ranked(on: bool) -> void:
 	setup.ranked = on
 	_save_setup()
-	_show_home()
+	_refresh_setup()
 
 # ================================================================== PROFILE
 
@@ -1776,7 +1814,7 @@ const AGE_BANDS := ["16-24", "25-34", "35-44", "45-54", "55+"]
 const BOARD_TABS := [["viq", "b_viq"], ["nine", "b_nine"], ["sec", "b_sec"], ["blitz", "blitz"]]
 
 ## Board settings, like the prototype's S.boards (kept while the scene lives).
-var boards := {"tab": "viq", "sec": "LOG", "bscope": "ALL", "bdur": 120, "season": "month", "age": "", "country": "", "province": "", "lang": "", "show_prov": false, "show_help": false}
+var boards := {"tab": "viq", "sec": "LOG", "bscope": "ALL", "bdur": 120, "season": "month", "age": "", "country": "", "province": "", "lang": "", "show_prov": false, "show_help": false, "show_filters": false}
 var board_box: VBoxContainer
 
 func _show_boards() -> void:
@@ -1836,6 +1874,16 @@ func _show_boards() -> void:
 		_board_filter(filters, T.t("province"), "province", provs)
 	if boards.tab == "viq" or (boards.tab == "sec" and boards.sec == "LIN"):
 		_board_filter(filters, T.t("verbal_lang"), "lang", [["", T.t("any")], ["es", "Español"], ["en", "English"]])
+	# closed by default: the four dropdowns were most of the screen (the count says what is on)
+	var active := 0
+	for fk in ["age", "country", "province"]:
+		if str(boards[fk]) != "":
+			active += 1
+	if (boards.tab == "viq" or (boards.tab == "sec" and boards.sec == "LIN")) and str(boards.lang) != "":
+		active += 1
+	filters.visible = bool(boards.show_filters)
+	var ftext := "🔎 " + (tr("Filters (%d)") % active if active > 0 else tr("Filters"))
+	box.add_child(_button(ftext, _toggle_filters.bind(filters), WARN if active > 0 else FG2, Vector2(0, 56), 20))
 	box.add_child(filters)
 	var bnote: String = T.t("bnote_" + str(boards.tab))
 	if boards.tab == "viq":
@@ -1941,6 +1989,10 @@ func _board_help() -> Control:
 	body.add_child(_info_text(tr("Only about 2 people in 100 reach 130. The medal is given for a 130+ score with proof it is not luck: a very tight ± (4.5 or less) and at least 3 very hard questions answered right in that section (Voodoo IQ: at least 2 in each of Logic, Spatial and Verbal)."), FG))
 	body.add_child(_info_text(tr("A 130+ score with a wider ± still shows its number, just without the medal. Self needs 40+ questions instead of the hard ones; 9-Mind needs only the tight ±."), FG2, 18))
 	return _panel_of(hp)
+
+func _toggle_filters(filters: Control) -> void:
+	boards.show_filters = not filters.visible
+	filters.visible = boards.show_filters
 
 func _toggle_board_help(body: Control) -> void:
 	boards.show_help = not body.visible
