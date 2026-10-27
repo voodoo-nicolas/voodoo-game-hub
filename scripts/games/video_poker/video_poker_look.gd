@@ -14,7 +14,7 @@ extends RefCounted
 ## from games/video_poker/art/<look>/<key>.webp (or .png / .jpg) when the owner
 ## has supplied one, else null so the code drawing is used. Slots, all
 ## optional: table_portrait, table_landscape (a whole empty table, full
-## screen), crest (the skull-in-V mark, transparent, drawn faintly on the
+## screen, not used yet), crest (the skull-in-V mark, transparent, drawn on the
 ## felt), card_back, card_face (a blank face for the number cards, whose pips
 ## the code draws), chip_1..chip_6 (white red blue green black gold,
 ## transparent), dealer, and face_<A|J|Q|K>_<s|h|d|c> for the court cards and
@@ -29,6 +29,7 @@ const LOOKS := {
 		"felt": Color("14522f"), "felt_deep": Color("0e3d22"), "felt_line": Color("c9a24a"),
 		"rail": Color("4a2113"), "rail_hi": Color("8a4a26"), "rail_lo": Color("22100a"),
 		"glow_a": Color("c9a24a"), "glow_b": Color("c9a24a"), "line2": Color("c9a24a"),
+		"stud": Color("c9a24a"), "stud_hi": Color("fff1c2"),
 		"seat_bg": Color(0.05, 0.09, 0.07, 0.94),
 		"you": Color("e6dfc8"), "cpu": Color("b99a52"), "active": Color("7be07b"), "winner": Color("ffd24a"),
 		"text": Color("f3ecd8"), "dim": Color("a39b82"), "gold": Color("e3b94a"),
@@ -51,6 +52,7 @@ const LOOKS := {
 		"felt": Color("100c33"), "felt_deep": Color("0a0826"), "felt_line": Color("6a4dff"),
 		"rail": Color("14122b"), "rail_hi": Color("2a2760"), "rail_lo": Color("05041a"),
 		"glow_a": Color("9a4dff"), "glow_b": Color("2e6bff"), "line2": Color("9a4dff"),
+		"stud": Color("7a5cff"), "stud_hi": Color("d9d0ff"),
 		"seat_bg": Color(0.05, 0.04, 0.14, 0.94),
 		"you": Color("3aa0ff"), "cpu": Color("b04dff"), "active": Color("45e6ff"), "winner": Color("ffd45a"),
 		"text": Color("eef0ff"), "dim": Color("8f93c8"), "gold": Color("ffd36b"),

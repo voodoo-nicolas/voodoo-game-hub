@@ -12,7 +12,7 @@ checkerboard, not clean assets):
     (their pips are drawn in code);
   - chips: the 3x3 sheet is cut into chip_1..chip_6 (white red blue green black gold; the third row
     is a spare set and ignored) on a transparent background; dealer: the same;
-  - table_portrait: the empty table, as is.
+  - table_portrait: the empty table, as is; crest: the skull-in-V cut out of it as silver linework on transparent.
 Source names -> slots are in FACES below ("queen spades2" is an alternate; the owner picks).
 Writes the .import files too (lossy, so the pack stays small) and prints what it did.
 Needs numpy, scipy and Pillow. The sources stay outside the repo.
@@ -174,6 +174,34 @@ def cut_discs(img: Image.Image, cells: list[tuple[int, int]], rows: int, cols: i
     return out
 
 
+def cut_crest(table: Image.Image) -> Image.Image:
+    """The skull-in-V crest of the table art as silver linework on transparent: the felt's own colour is
+    taken away (alpha from how much brighter than the felt each pixel is)."""
+    a = np.asarray(table.convert("RGB"), dtype=float)
+    h, w, _ = a.shape
+    lum = a.max(axis=2)
+    cx0, cx1, cy0, cy1 = int(w * 0.2), int(w * 0.8), int(h * 0.3), int(h * 0.7)
+    felt = float(np.median(lum[cy0:cy1, cx0:cx1]))
+    mask = np.zeros_like(lum, dtype=bool)
+    mask[cy0:cy1, cx0:cx1] = lum[cy0:cy1, cx0:cx1] > felt + 38
+    mask = ndi.binary_dilation(ndi.binary_closing(mask, iterations=6), iterations=10)
+    lab, n = ndi.label(mask)
+    big = lab == (1 + int(np.argmax(ndi.sum(mask, lab, range(1, n + 1)))))
+    ys, xs = np.where(big)
+    pad = 12
+    box = (max(0, xs.min() - pad), max(0, ys.min() - pad), min(w, xs.max() + pad), min(h, ys.max() + pad))
+    side = max(box[2] - box[0], box[3] - box[1])
+    cx, cy = (box[0] + box[2]) // 2, (box[1] + box[3]) // 2
+    x0, y0 = max(0, cx - side // 2), max(0, cy - side // 2)
+    sub = lum[y0:y0 + side, x0:x0 + side]
+    alpha = np.clip((sub - (felt + 10)) / (225.0 - felt), 0, 1) ** 0.85
+    alpha = ndi.gaussian_filter(alpha, 0.6)
+    out = np.zeros((sub.shape[0], sub.shape[1], 4), dtype=np.uint8)
+    out[..., 0], out[..., 1], out[..., 2] = 214, 220, 206
+    out[..., 3] = np.clip(alpha * 255, 0, 255).astype(np.uint8)
+    return Image.fromarray(out, "RGBA").resize((256, 256), Image.LANCZOS)
+
+
 def save(img: Image.Image, path: Path, quality: int = 86) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     img.save(path, "WEBP", quality=quality, method=6)
@@ -300,6 +328,8 @@ def main() -> int:
     if want("table_portrait"):
         t = Image.open(find_source(folder, TABLE)).convert("RGB")
         save(t, out / "table_portrait.webp", quality=84)
+    if want("crest"):
+        save(cut_crest(Image.open(find_source(folder, TABLE))), out / "crest.webp")
     if args.credits:
         add_credits(out, args.look, folder)
     return 0

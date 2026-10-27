@@ -15,19 +15,11 @@ const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 const AI = preload("res://scripts/games/video_poker/video_poker_ai.gd")
 
 const CARD_ASPECT := 1.42
+## Room kept for the pot line (chips and amount) above the board.
+const POT_W := 210.0
 ## Poker's "Check" has its own key: plain "Check" is already the Spanish
 ## "Revisar" of Code Breaker and Crossword (es.json is one shared map).
 const CHECK := "Check "
-
-## Box centres (fractions of the felt) for 1..5 other seats, clockwise from
-## the viewer's left: left-low, left-high, top, right-high, right-low.
-const SPOTS := {
-	1: [Vector2(0.5, 0.17)],
-	2: [Vector2(0.24, 0.17), Vector2(0.76, 0.17)],
-	3: [Vector2(0.17, 0.36), Vector2(0.5, 0.14), Vector2(0.83, 0.36)],
-	4: [Vector2(0.17, 0.43), Vector2(0.17, 0.14), Vector2(0.83, 0.14), Vector2(0.83, 0.43)],
-	5: [Vector2(0.17, 0.43), Vector2(0.17, 0.14), Vector2(0.5, 0.14), Vector2(0.83, 0.14), Vector2(0.83, 0.43)],
-}
 
 var t  # the Table (video_poker_table.gd)
 var viewer: int = 0          # the seat drawn at the bottom
@@ -57,8 +49,17 @@ func _process(delta: float) -> void:
 func _hero_h() -> float:
 	return clampf(size.y * 0.32, 190.0, 360.0)
 
+## The whole table, rail included: a pill (oval) above the viewer's own cards.
 func felt_rect() -> Rect2:
 	return Rect2(10, 6, size.x - 20, size.y - _hero_h() - 12)
+
+func _rail_w() -> float:
+	var f := felt_rect()
+	return clampf(minf(f.size.x, f.size.y) * 0.05, 10.0, 24.0)
+
+## The felt inside the rail.
+func play_rect() -> Rect2:
+	return felt_rect().grow(-_rail_w())
 
 func _others() -> Array:
 	var out: Array = []
@@ -67,43 +68,91 @@ func _others() -> Array:
 		out.append((viewer + k) % n)
 	return out
 
-func _box_size(count: int) -> Vector2:
-	var f := felt_rect()
-	var w := minf(f.size.x * 0.31, 250.0)
-	var h := f.size.y * (0.25 if count >= 4 else 0.3)
-	return Vector2(w, clampf(h, 110.0, 190.0))
+## Size of a seat's plate: a share of the felt, so it fits any shape of screen.
+func plate_size() -> Vector2:
+	var p := play_rect()
+	var few := 1.0 + 0.16 * (5 - clampi(_others().size(), 1, 5))  # fewer seats: roomier plates
+	var w := clampf(minf(p.size.x * 0.22, p.size.y * 0.33) * few, 92.0, 190.0)
+	return Vector2(w, w * 0.78)
 
+## Where another seat's plate goes: round an ellipse inside the felt, the
+## viewer's place (straight down) left open and the others spread evenly round
+## the rest, the first to the viewer's left. Works for any number of seats and
+## any shape of screen.
 func seat_rect(seat: int) -> Rect2:
 	var others := _others()
 	var k := others.find(seat)
 	if k < 0:
 		return Rect2()
-	var f := felt_rect()
-	var bs := _box_size(others.size())
-	var spot: Vector2 = SPOTS[clampi(others.size(), 1, 5)][k]
-	var c := f.position + Vector2(f.size.x * spot.x, f.size.y * spot.y + bs.y * 0.5 - f.size.y * 0.02)
-	var r := Rect2(c - bs / 2.0, bs)
-	r.position.x = clampf(r.position.x, f.position.x + 4, f.end.x - bs.x - 4)
-	r.position.y = maxf(r.position.y, f.position.y + 4)
+	var p := play_rect()
+	var ps := plate_size()
+	var ang := PI / 2.0 + (k + 1) * TAU / (others.size() + 1)  # screen angles: 90 degrees is down
+	var rx := p.size.x / 2.0 - ps.x / 2.0 - 6.0
+	var ry := p.size.y / 2.0 - ps.y / 2.0 - 6.0
+	var at := p.get_center() + Vector2(cos(ang) * rx, sin(ang) * ry)
+	return Rect2(at - ps / 2.0, ps)
+
+## Everything on the felt the board must keep clear of: the seats' plates and
+## the room for the viewer's own bet.
+func _obstacles() -> Array:
+	var p := play_rect()
+	var out: Array = []
+	for i in _others():
+		out.append(seat_rect(i).grow(8))
+	out.append(Rect2(p.get_center().x - 100, p.end.y - 66, 200, 60))
+	return out
+
+## The community cards, in the middle of the felt, as big as fit between the
+## seats (with the pot line above them): the biggest size that fits anywhere
+## down the middle, nearest the centre first.
+func _board_rect() -> Rect2:
+	var p := play_rect()
+	var obstacles := _obstacles()
+	var cw := minf(96.0, (p.size.x - 40.0) / 5.6)
+	var r := Rect2()
+	while cw >= 28.0:
+		var w := cw * 5 + 8 * 4
+		var ch := cw * CARD_ASPECT
+		for off in [0.1, 0.16, 0.04, 0.22, -0.04, 0.28, -0.1]:
+			var cy: float = p.get_center().y + p.size.y * off
+			r = Rect2(p.get_center().x - w / 2.0, cy - ch / 2.0, w, ch)
+			# with the pot line (chips and amount, up to 250 wide) above it
+			var probe := Rect2(p.get_center().x - maxf(w, POT_W) / 2.0, r.position.y - 58, maxf(w, POT_W), r.size.y + 58)
+			var hit := not p.grow(-4).encloses(r)
+			for o in obstacles:
+				hit = hit or (o as Rect2).intersects(probe)
+			if not hit:
+				return r
+		cw -= 2.0
 	return r
 
-func _board_rect() -> Rect2:
-	var f := felt_rect()
-	var n: int = t.seats.size() - 1
-	var cw := minf((f.size.x - 60.0) / 5.6, 96.0)
-	if n >= 4:
-		cw = minf(cw, (f.size.x * 0.62) / 5.4)
-	var ch := cw * CARD_ASPECT
-	var y := f.position.y + f.size.y * (0.74 if n >= 4 else 0.66) - ch / 2.0
-	# Below the seats at the sides, with room for the pot line between.
-	for i in _others():
-		var r := seat_rect(i)
-		if r.position.x < f.position.x + f.size.x * 0.3 or r.end.x > f.end.x - f.size.x * 0.3:
-			if r.get_center().y > f.position.y + f.size.y * 0.3:
-				y = maxf(y, r.end.y + 12)
-	y = minf(y, f.end.y - ch - 8)
-	var w := cw * 5 + 8 * 4
-	return Rect2(f.position.x + (f.size.x - w) / 2.0, y, w, ch)
+## Where a seat's bet lies on the felt: a plate's length towards the middle,
+## above or below the plate or beside it, whichever is clear (the viewer's: low
+## in the middle).
+func bet_spot(seat: int) -> Vector2:
+	var p := play_rect()
+	var c := p.get_center()
+	if seat == viewer:
+		return Vector2(c.x, p.end.y - 34)
+	var r := seat_rect(seat)
+	var rc := r.get_center()
+	var vs := signf(c.y - rc.y) if absf(c.y - rc.y) > 1.0 else 1.0
+	var hs := signf(c.x - rc.x) if absf(c.x - rc.x) > 1.0 else 1.0
+	var candidates: Array = [
+		rc + Vector2(0, vs * (r.size.y / 2.0 + 24.0)),
+		rc + Vector2(hs * (r.size.x / 2.0 + 44.0), 0),
+		rc + Vector2(0, -vs * (r.size.y / 2.0 + 24.0)),
+		rc + Vector2(-hs * (r.size.x / 2.0 + 44.0), 0),
+	]
+	var board := _board_rect() if t.rules().board_size() > 0 else Rect2()
+	var inner := p.grow(-14)
+	for spot in candidates:
+		var clear := inner.has_point(spot) and not board.grow(10).has_point(spot)
+		for i in _others():
+			clear = clear and not seat_rect(i).grow(14).has_point(spot)
+		if clear:
+			return spot
+	return candidates[0]
 
 func hero_card_rects() -> Array:
 	var out: Array = []
@@ -176,18 +225,19 @@ func _draw() -> void:
 	var others := _others()
 	for i in others:
 		_draw_seat(i, seat_rect(i))
+	_draw_bets()
 	_draw_board()
 	_draw_pot()
-	_draw_bets()
 	_draw_hero()
 
-## The table: a rail round a felt, in the look's colours (classic: mahogany
-## and gold; voodoo: dark rail with neon rims and glow). The owner's "crest"
-## art, when there is one, sits faintly in the middle of the felt.
+## The table: a leather rail with studs round a felt, a pill (oval) in the
+## look's colours (classic: leather, brass and gold; voodoo: dark rail with neon
+## studs and glow). The owner's "crest" art, when there is one, sits faintly in
+## the middle of the felt.
 func _draw_felt(f: Rect2) -> void:
 	var glow := Look.f("glow")
-	var rad := int(minf(f.size.x, f.size.y) * 0.22)
-	var rail_w := clampf(minf(f.size.x, f.size.y) * 0.05, 10.0, 24.0)
+	var rad := int(minf(f.size.x, f.size.y) / 2.0)
+	var rail_w := _rail_w()
 	# the rail
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Look.c("rail")
@@ -198,9 +248,17 @@ func _draw_felt(f: Rect2) -> void:
 	sb.shadow_size = 14 if glow > 0.0 else 12
 	sb.shadow_offset = Vector2(0, 0) if glow > 0.0 else Vector2(0, 5)
 	draw_style_box(sb, f)
+	# a lighter ridge along the middle of the padding
+	var ridge := StyleBoxFlat.new()
+	ridge.bg_color = Color(0, 0, 0, 0)
+	ridge.set_corner_radius_all(maxi(4, rad - int(rail_w * 0.35)))
+	ridge.border_color = Color(Look.c("rail_hi"), 0.35)
+	ridge.set_border_width_all(2)
+	draw_style_box(ridge, f.grow(-rail_w * 0.35))
+	_draw_studs(f.grow(-rail_w * 0.5), rail_w)
 	# the felt, lighter in the middle
 	var felt := f.grow(-rail_w)
-	var fr := maxi(4, rad - int(rail_w * 0.7))
+	var fr := maxi(4, rad - int(rail_w))
 	var base := StyleBoxFlat.new()
 	base.bg_color = Look.c("felt_deep")
 	base.set_corner_radius_all(fr)
@@ -216,14 +274,50 @@ func _draw_felt(f: Rect2) -> void:
 	# the inlay line
 	var inlay := StyleBoxFlat.new()
 	inlay.bg_color = Color(0, 0, 0, 0)
-	inlay.set_corner_radius_all(maxi(4, fr - 8))
+	inlay.set_corner_radius_all(maxi(4, fr - 9))
 	inlay.border_color = Color(Look.c("felt_line"), 0.8 if glow == 0.0 else 0.5)
 	inlay.set_border_width_all(2)
 	draw_style_box(inlay, felt.grow(-9))
 	var crest := Look.tex("crest")
 	if crest != null:
-		var s := minf(felt.size.x, felt.size.y) * 0.4
-		draw_texture_rect(crest, Rect2(felt.get_center() - Vector2(s, s) / 2.0, Vector2(s, s)), false, Color(1, 1, 1, 0.3))
+		var cs := minf(felt.size.x, felt.size.y) * 0.42
+		draw_texture_rect(crest, Rect2(felt.get_center() - Vector2(cs, cs) / 2.0, Vector2(cs, cs)), false, Color(1, 1, 1, 0.5))
+
+## Studs along the middle of the rail, evenly spaced round the pill `track`.
+func _draw_studs(track: Rect2, rail_w: float) -> void:
+	var r := minf(track.size.x, track.size.y) / 2.0
+	var straight := absf(track.size.x - track.size.y)
+	var perimeter := 2.0 * straight + 2.0 * PI * r
+	var count := maxi(8, int(perimeter / 56.0))
+	var glow := Look.f("glow")
+	var rs := clampf(rail_w * 0.3, 3.5, 7.0)
+	for k in count:
+		var at := _pill_point(track, perimeter * k / count)
+		if glow > 0.0:
+			draw_circle(at, rs + 3.0, Color(Look.c("glow_a"), 0.18))
+		draw_circle(at, rs + 1.2, Look.c("rail_lo"))
+		draw_circle(at, rs, Look.c("stud"))
+		draw_circle(at + Vector2(-rs * 0.3, -rs * 0.3), rs * 0.38, Look.c("stud_hi"))
+
+## A point `u` along the outline of the pill `rect`, clockwise from the top of its left end.
+func _pill_point(rect: Rect2, u: float) -> Vector2:
+	var wide := rect.size.x >= rect.size.y
+	var r := minf(rect.size.x, rect.size.y) / 2.0
+	var l := absf(rect.size.x - rect.size.y)
+	var arc := PI * r
+	u = fposmod(u, 2.0 * l + 2.0 * arc)
+	var p: Vector2
+	if u < l:
+		p = Vector2(-l / 2.0 + u, -r)
+	elif u < l + arc:
+		var a := (u - l) / r - PI / 2.0
+		p = Vector2(l / 2.0 + r * cos(a), r * sin(a))
+	elif u < 2.0 * l + arc:
+		p = Vector2(l / 2.0 - (u - l - arc), r)
+	else:
+		var a2 := (u - 2.0 * l - arc) / r + PI / 2.0
+		p = Vector2(-l / 2.0 + r * cos(a2), r * sin(a2))
+	return rect.get_center() + (p if wide else Vector2(p.y, p.x))
 
 func _won(i: int) -> Dictionary:
 	if t.phase != "done":
@@ -274,6 +368,9 @@ func _draw_seat(i: int, r: Rect2) -> void:
 	var y := r.position.y + pad + fs_name + 6 + fs
 	var stack_text := _chips(int(s.stack)) if not bool(s.out) else tr("Out")
 	draw_string(_font, Vector2(r.position.x + pad, y), stack_text, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - pad * 2, fs, Look.c("gold").lerp(Look.c("text"), 0.3))
+	if r.size.x >= 120.0 and not bool(s.out) and int(s.stack) > 0:
+		var pd := 14.0
+		Chips.draw_stack(self, Vector2(r.end.x - 12.0 - Chips.stack_width(int(s.stack), pd) / 2.0, y - 3.0), int(s.stack), pd)
 	if show_styles and int(s.kind) == 0:
 		var style_name: String = AI.STYLES[clampi(int(s.style), 0, AI.STYLES.size() - 1)][0]
 		draw_string(_font, Vector2(r.position.x + pad, y), tr(style_name), HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - pad * 2, fs - 3, Color(Look.c("line2"), 1.0).lerp(Look.c("text"), 0.3))
@@ -323,10 +420,6 @@ func _draw_seat(i: int, r: Rect2) -> void:
 			lfs -= 1
 			lw = _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, lfs).x
 		draw_string(_font, Vector2(r.position.x + pad, r.end.y - 9), line, HORIZONTAL_ALIGNMENT_CENTER, room, lfs, col)
-		# Chips in front of a seat this round: a little stack by its action.
-		if int(s.bet) > 0 and t.phase != "done":
-			var cd := 17.0
-			Chips.draw_stack(self, Vector2(r.get_center().x - minf(lw, room) / 2.0 - Chips.stack_width(int(s.bet), cd) / 2.0 - 4.0, r.end.y - 16), int(s.bet), cd)
 
 func _act_text(s: Dictionary) -> String:
 	var a := str(s.act)
@@ -349,7 +442,7 @@ func _act_color(a: String) -> Color:
 	return Look.c("dim")
 
 func _draw_board() -> void:
-	if t.variant != "holdem" and t.variant != "omaha":
+	if t.rules().board_size() <= 0:
 		return
 	var br := _board_rect()
 	var cw := (br.size.x - 32) / 5.0
@@ -365,11 +458,11 @@ func _draw_board() -> void:
 			Cards.draw_card(self, cr, -1)
 
 func _pot_pos() -> Vector2:
-	var f := felt_rect()
-	if t.variant == "holdem" or t.variant == "omaha":
+	var p := play_rect()
+	if t.rules().board_size() > 0:
 		var br := _board_rect()
-		return Vector2(f.get_center().x, br.position.y - 26)
-	return f.position + Vector2(f.size.x / 2.0, f.size.y * 0.7)
+		return Vector2(p.get_center().x, br.position.y - 26)
+	return p.get_center() + Vector2(0, -p.size.y * 0.04)
 
 func _draw_pot() -> void:
 	var total: int = t.pot
@@ -379,10 +472,10 @@ func _draw_pot() -> void:
 		return
 	var p := _pot_pos()
 	var text := tr("Pot") + " " + _chips(t.pot_total())
-	var pot_d := 28.0
-	var text_w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+	var pot_d := 24.0
+	var text_w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
 	Chips.draw_stack(self, p + Vector2(-text_w / 2.0 - Chips.stack_width(t.pot_total(), pot_d) / 2.0 - 8.0, -2), t.pot_total(), pot_d)
-	draw_string(_font, Vector2(p.x - 200, p.y), text, HORIZONTAL_ALIGNMENT_CENTER, 400, 26, Look.c("gold").lerp(Look.c("text"), 0.25))
+	draw_string(_font, Vector2(p.x - 200, p.y), text, HORIZONTAL_ALIGNMENT_CENTER, 400, 24, Look.c("gold").lerp(Look.c("text"), 0.25))
 	if t.variant == "draw" or t.variant == "stud":
 		var info := ""
 		if t.variant == "draw":
@@ -391,20 +484,23 @@ func _draw_pot() -> void:
 			info = tr(["Third street", "Fourth street", "Fifth street", "Sixth street", "Seventh street"][clampi(t.street, 0, 4)])
 		draw_string(_font, Vector2(p.x - 200, p.y + 34), info, HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Look.c("dim"))
 
+## Every seat's bet this round lies on the felt as a pile and its amount.
 func _draw_bets() -> void:
-	var f := felt_rect()
-	var center := f.get_center()
-	# Only the viewer's bet sits on the felt; the others show theirs in
-	# their seat (there's no room between six seats on a phone).
-	var b: int = t.seats[viewer].bet if viewer >= 0 and viewer < t.seats.size() else 0
-	if b > 0:
-		var at := Vector2(center.x, f.end.y - 30)
-		var bd := 24.0
+	if t.phase == "done":
+		return
+	for i in t.seats.size():
+		var b: int = int(t.seats[i].bet)
+		if b <= 0 or (i != viewer and not _others().has(i)):
+			continue
+		var at := bet_spot(i)
+		var bd := 22.0
 		var sw := Chips.stack_width(b, bd)
-		var tw := _font.get_string_size(_chips(b), HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
-		var x0 := at.x - (sw + 8.0 + tw) / 2.0
-		Chips.draw_stack(self, Vector2(x0 + sw / 2.0, at.y - 4), b, bd)
-		draw_string(_font, Vector2(x0 + sw + 8.0, at.y + 4), _chips(b), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Look.c("text"))
+		var text := _chips(b)
+		var fs := 18
+		var tw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var x0 := at.x - (sw + 6.0 + tw) / 2.0
+		Chips.draw_stack(self, Vector2(x0 + sw / 2.0, at.y), b, bd)
+		draw_string(_font, Vector2(x0 + sw + 6.0, at.y + 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Look.c("text"))
 
 func _draw_hero() -> void:
 	if viewer < 0 or viewer >= t.seats.size():

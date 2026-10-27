@@ -3497,6 +3497,19 @@
    "ai_tool": "Google Gemini (owner)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "tools/poker_art_import.py (cut out of the photo, rounded corners / background removed, WebP) (Claude Code)"
+  },
+  {
+   "file": "games/video_poker/art/classic/crest.webp",
+   "what": "Poker (classic look): crest",
+   "source": "the owner's picture in D:\\dev\\minigame art\\poker\\classic\\game art (outside the repo; also Google Drive > Viral Game Hub > poker)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-27",
+   "ai_tool": "Google Gemini (owner)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "tools/poker_art_import.py (cut out of the photo, rounded corners / background removed, WebP) (Claude Code)"
   }
  ]
 }

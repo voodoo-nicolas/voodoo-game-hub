@@ -78,7 +78,7 @@ Covers every `media/CREDITS.json` entry whose `proof` is this file.
 - Shipped (Classic look), cut out of the photos and re-saved as WebP by
   `tools/poker_art_import.py`: `games/video_poker/art/classic/` -- `card_back`,
   `card_face` (the card back with its crest painted out), 16 court-card and ace faces
-  `face_<A|J|Q|K>_<s|h|d|c>`, 6 chips `chip_1..6`, `dealer`, `table_portrait`.
+  `face_<A|J|Q|K>_<s|h|d|c>`, 6 chips `chip_1..6`, `dealer`, `table_portrait`, `crest` (the skull-in-V cut out of the table picture as silver linework on transparent).
 - Not used: `ERROR TREBLE CLEF QUEEN` (the owner's reject), `queen spades2` (an alternate
   Queen of Spades; `queen spades` is used), the third row of the chip sheet (spares).
 - The text inside the art (banners, rings) is decoration made up by the AI, not meant to be read.
