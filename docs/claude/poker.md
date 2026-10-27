@@ -1,4 +1,6 @@
-# Poker (`video_poker`, pack v4)
+# Poker (`video_poker`, pack v9 live)
+
+**Revamp in progress (since 2026-10-27, unpublished on master): decisions, phases and status in `docs/claude/poker-revamp.md`. Read it first.**
 
 Texas Hold'em, Omaha, Five Card Draw, Seven Card Stud (No limit / Pot limit / Limit; Stud Limit only); vs computer (cash tables at 3 stakes, free tournaments), pass-and-play 2-6, online heads-up, Video Poker as a mode, 🎓 Training. **Id stays `video_poker`** (stats/board carry over; board "Most chips").
 
