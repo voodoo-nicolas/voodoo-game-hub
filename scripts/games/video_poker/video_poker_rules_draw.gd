@@ -6,6 +6,16 @@ extends "res://scripts/games/video_poker/video_poker_rules.gd"
 func hole_count() -> int:
 	return 5
 
+func board_size() -> int:
+	return 0
+
+func has_draw() -> bool:
+	return true
+
+## The computer also simulates everyone's draw.
+func work_cost() -> float:
+	return 2.5
+
 func last_street() -> int:
 	return 1
 

@@ -36,6 +36,7 @@ func _init() -> void:
 	_draw_rules()
 	_stud()
 	_short_deck()
+	_traits()
 	var a := _sim(20261027)
 	var b := _sim(20261027)
 	ok(a == b, "the seeded run repeats exactly (no global randomness in the engine)")
@@ -286,6 +287,20 @@ func _stud() -> void:
 	ok(t.bring_in == low and t.seats[low].bet == t.stud_bring_in(), "the lowest upcard brings it in")
 	ok(t.pot == 4 * t.stud_ante() and t.chips_total() == 4000, "antes are in the pot, no chip lost")
 	ok(t.to_act == (low + 1) % 4, "action starts after the bring-in")
+
+## What the computer players and the coach ask each variant's rules.
+func _traits() -> void:
+	var work := {"holdem": 1.0, "stud": 1.0, "draw": 2.5, "omaha": 10.0}
+	var board := {"holdem": 5, "omaha": 5, "draw": 0, "stud": 0}
+	for v in Table.VARIANTS:
+		var r = Table.rules_for(v)
+		ok(r.work_cost() == work[v], "%s: work cost" % v)
+		ok(r.board_size() == board[v], "%s: board size" % v)
+		ok(r.has_blinds() == (v != "stud"), "%s: blinds" % v)
+		ok(r.has_draw() == (v == "draw"), "%s: draw phase" % v)
+		ok(r.has_starting_hand_chart() == (v == "holdem"), "%s: starting-hand chart" % v)
+		ok(r.new_deck().size() == 52, "%s: 52-card deck" % v)
+	ok(Table.rules_for("nonsense") == Table.rules_for("holdem"), "an unknown variant plays as Hold'em")
 
 ## Hold'em with a 36-card deck: hands play out, chips are conserved and only
 ## cards of that deck are ever dealt.

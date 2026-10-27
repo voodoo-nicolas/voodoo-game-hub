@@ -5,6 +5,10 @@ extends "res://scripts/games/video_poker/video_poker_rules.gd"
 func hole_count() -> int:
 	return 4
 
+## Rating a hand tries 60 two-plus-three combinations.
+func work_cost() -> float:
+	return 10.0
+
 func hand_score(hole: Array, board: Array) -> int:
 	if board.size() < 3:
 		# Only two of the four can ever play: the best pair of them.

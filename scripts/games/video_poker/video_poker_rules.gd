@@ -22,6 +22,29 @@ func new_deck() -> Array:
 func describe(score: int) -> String:
 	return Eval.describe(score)
 
+## Community cards dealt in all (0 when there is no board).
+func board_size() -> int:
+	return 5
+
+## True when blinds start the hand (so there is a "before the flop" with a
+## big blind to raise over); false when antes and a bring-in do.
+func has_blinds() -> bool:
+	return true
+
+## True when there is a draw phase.
+func has_draw() -> bool:
+	return false
+
+## True when Chen's starting-hand points rate the two hole cards (the
+## computer's ranges and the coach's tiers; Hold'em only).
+func has_starting_hand_chart() -> bool:
+	return false
+
+## How costly it is for the computer to rate one hand here, relative to
+## Hold'em: the higher, the fewer deals it simulates per decision.
+func work_cost() -> float:
+	return 1.0
+
 ## Cards each seat is dealt to start.
 func hole_count() -> int:
 	return 2

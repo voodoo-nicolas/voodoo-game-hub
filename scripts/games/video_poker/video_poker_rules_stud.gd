@@ -6,6 +6,12 @@ extends "res://scripts/games/video_poker/video_poker_rules.gd"
 func hole_count() -> int:
 	return 7
 
+func board_size() -> int:
+	return 0
+
+func has_blinds() -> bool:
+	return false
+
 func last_street() -> int:
 	return 4
 

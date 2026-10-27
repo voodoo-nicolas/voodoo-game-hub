@@ -39,8 +39,9 @@ const LEVELS := [
 	{"trials": 170, "work": 450, "ms": 110, "noise": 0.05, "ranges": false, "bluff": 1.0},
 	{"trials": 320, "work": 800, "ms": 170, "noise": 0.02, "ranges": true, "bluff": 1.2},
 ]
-## Relative cost of rating one hand, per game.
-const WORK := {"holdem": 1.0, "stud": 1.0, "draw": 2.5, "omaha": 10.0}
+## Nothing here checks which variant is being played: the table's rules answer
+## (t.rules(), video_poker_rules.gd) how many cards, what counts as a hand,
+## how costly a hand is to rate, so a new variant needs no edits in this file.
 
 # ---------- win chance ----------
 
@@ -83,17 +84,18 @@ static func equity(t, me: int, trials: int, rng: RandomNumberGenerator, opponent
 		known[c] = true
 	var opp_known: Array = []
 	for i in opps:
-		var up: Array = t.upcards(i) if t.variant == "stud" else []
+		var up: Array = t.upcards(i)  # only Stud has cards face up
 		opp_known.append(up)
 		for c in up:
 			known[c] = true
 	var pool: Array = []
-	for c in 52:
+	for c in t.deck_cards():
 		if not known.has(c):
 			pool.append(c)
-	var board_need: int = (5 - t.board.size()) if (t.variant == "holdem" or t.variant == "omaha") else 0
-	var my_need: int = (7 - mine.size()) if t.variant == "stud" else 0
-	var my_draw: bool = t.variant == "draw" and int(t.seats[me].drew) < 0
+	var rules = t.rules()
+	var board_need: int = maxi(0, rules.board_size() - t.board.size())
+	var my_need: int = maxi(0, rules.hole_count() - mine.size())
+	var my_draw: bool = rules.has_draw() and int(t.seats[me].drew) < 0
 	var wins := 0.0
 	var done := 0
 	var deadline := Time.get_ticks_msec() + max_ms
@@ -111,7 +113,7 @@ static func equity(t, me: int, trials: int, rng: RandomNumberGenerator, opponent
 			pos += 1
 		if my_draw:
 			pos = _simulate_draw(hand, pool, pos, rng)
-		var my_score := _score(t.variant, hand, board)
+		var my_score: int = rules.hand_score(hand, board)
 		var best_opp := -1
 		var ties := 0
 		var ok := true
@@ -127,16 +129,16 @@ static func equity(t, me: int, trials: int, rng: RandomNumberGenerator, opponent
 				pos += 1
 			if not ok:
 				break
-			if ranges and t.variant == "holdem" and int(t.seats[oi].get("aggr", 0)) > 0:
+			if ranges and rules.has_starting_hand_chart() and int(t.seats[oi].get("aggr", 0)) > 0:
 				# A bettor rarely has a weak starting hand: re-deal those.
 				var retry := 0
 				while chen([oh[0], oh[1]]) < 6.0 + 2.0 * mini(int(t.seats[oi].aggr), 2) and retry < 4 and pos + 2 <= pool.size():
 					oh = [_take(pool, pos, rng), _take(pool, pos + 1, rng)]
 					pos += 2
 					retry += 1
-			if t.variant == "draw" and int(t.seats[oi].drew) < 0:
+			if rules.has_draw() and int(t.seats[oi].drew) < 0:
 				pos = _simulate_draw(oh, pool, pos, rng)
-			var s := _score(t.variant, oh, board)
+			var s: int = rules.hand_score(oh, board)
 			if s > best_opp:
 				best_opp = s
 				ties = 0
@@ -159,14 +161,6 @@ static func _take(pool: Array, pos: int, rng: RandomNumberGenerator) -> int:
 	pool[j] = pool[pos]
 	pool[pos] = c
 	return c
-
-static func _score(variant: String, hand: Array, board: Array) -> int:
-	match variant:
-		"holdem":
-			return Eval.score(hand + board)
-		"omaha":
-			return Eval.score_omaha(hand, board)
-	return Eval.score(hand)
 
 static func _simulate_draw(hand: Array, pool: Array, pos: int, rng: RandomNumberGenerator) -> int:
 	for k in choose_discards(hand):
@@ -254,7 +248,7 @@ static func decide(td: Dictionary, level: int, seed: int) -> Dictionary:
 			if i != me and t.seats[i].acted and int(t.seats[i].bet) > 0:
 				came_in += 1
 		n_eff = clampi(1 + came_in, 1, n_opp)
-	var cost: float = (1.0 + n_eff) * float(WORK.get(t.variant, 1.0))
+	var cost: float = (1.0 + n_eff) * t.rules().work_cost()
 	var trials: int = clampi(int(lv.work / cost), 30, lv.trials)
 	var eq := equity(t, me, trials, rng, n_eff, lv.ranges, lv.ms)
 	eq = clampf(eq + rng.randf_range(-lv.noise, lv.noise), 0.0, 1.0)
@@ -266,7 +260,7 @@ static func decide(td: Dictionary, level: int, seed: int) -> Dictionary:
 	var more_cards: bool = t.street < t.last_street()
 	var stack_bb: float = float(int(seat.stack) + int(seat.bet)) / maxf(1.0, t.bb)
 	# Short stacked before the flop: all in or fold.
-	if t.street == 0 and stack_bb <= 10.0 and t.variant != "stud" and l.can_raise:
+	if t.street == 0 and stack_bb <= 10.0 and t.rules().has_blinds() and l.can_raise:
 		if eq >= value_thr - 0.08 - 0.06 * aggr:
 			return {"action": "allin"}
 		return {"action": "check" if l.can_check else "fold"}
@@ -297,7 +291,7 @@ static func _raise(t, l: Dictionary, big: bool, rng: RandomNumberGenerator, aggr
 	var pot: int = t.pot_total() + l.to_call
 	var frac: float = (0.8 + 0.3 * aggr if big else 0.5 + 0.25 * aggr) * rng.randf_range(0.85, 1.15)
 	var to: int
-	if t.street == 0 and t.variant != "stud" and t.current_bet <= t.bb:
+	if t.street == 0 and t.rules().has_blinds() and t.current_bet <= t.bb:
 		to = t.bb * (3 + rng.randi_range(0, 1))  # an opening raise
 		for s in t.seats:
 			if s.acted and int(s.bet) == t.bb and s.act == "Call":
@@ -348,20 +342,22 @@ static func advise(td: Dictionary, seed: int) -> Dictionary:
 			if i != me and t.seats[i].acted and int(t.seats[i].bet) > 0:
 				came_in += 1
 		n_eff = clampi(1 + came_in, 1, n_opp)
-	var trials := clampi(int(2500.0 / ((1.0 + n_eff) * float(WORK.get(t.variant, 1.0)))), 60, 600)
+	var trials := clampi(int(2500.0 / ((1.0 + n_eff) * t.rules().work_cost())), 60, 600)
 	var eq := equity(t, me, trials, rng, n_eff, false, 300)
 	var l: Dictionary = t.legal()
 	var pot: int = t.pot_total()
 	var need: float = float(l.to_call) / float(pot + l.to_call) if l.to_call > 0 else 0.0
 	out.eq = eq
 	out.need = need
-	if t.variant == "holdem" and t.street == 0:
+	var charted: bool = t.rules().has_starting_hand_chart() and t.street == 0
+	if charted:
 		var c := chen(hole)
 		out.tier = "Premium" if c >= 10 else ("Strong" if c >= 8 else ("Playable" if c >= 6 else "Weak"))
-	if (t.variant == "holdem" or t.variant == "omaha") and t.board.size() >= 3 and t.board.size() < 5:
+	var board_end: int = t.rules().board_size()
+	if board_end > 0 and t.board.size() >= 3 and t.board.size() < board_end:
 		out.outs = outs(t, me)
 	var value_thr: float = clampf(0.64 - 0.1 * (n_eff - 1), 0.34, 0.64)
-	if t.variant == "holdem" and t.street == 0:
+	if charted:
 		_preflop_advice(out, chen(hole), l, t.bb)
 		return out
 	if l.can_check:
@@ -417,17 +413,18 @@ static func _preflop_advice(out: Dictionary, points: float, l: Dictionary, bb: i
 ## kind of hand than the board alone makes (the "outs").
 static func outs(t, me: int) -> int:
 	var hole: Array = t.seats[me].hole
-	var mine := _score(t.variant, hole, t.board)
+	var rules = t.rules()
+	var mine: int = rules.hand_score(hole, t.board)
 	var cat := Eval.category(mine)
 	var seen := {}
 	for c in hole + t.board:
 		seen[c] = true
 	var n := 0
-	for c in 52:
+	for c in t.deck_cards():
 		if seen.has(c):
 			continue
 		var b2: Array = t.board + [c]
-		var s := _score(t.variant, hole, b2)
+		var s: int = rules.hand_score(hole, b2)
 		var c2 := Eval.category(s)
 		if c2 > cat and c2 > Eval.category(Eval.score(b2)):
 			n += 1

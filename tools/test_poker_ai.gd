@@ -11,7 +11,21 @@ extends SceneTree
 const Table = preload("res://scripts/games/video_poker/video_poker_table.gd")
 const AI = preload("res://scripts/games/video_poker/video_poker_ai.gd")
 
+const RulesHoldem = preload("res://scripts/games/video_poker/video_poker_rules_holdem.gd")
+
 const GOLDEN := "31c7f1cd424fe044eff1b163e5819c7a"
+
+## A Hold'em with a 36-card deck (no 2-5) that counts every card it is asked to
+## rate that isn't in that deck: the AI must deal from the table's deck only.
+class Probe extends RulesHoldem:
+	static var stray := 0
+	func new_deck() -> Array:
+		return range(52).filter(func(c): return c % 13 == 0 or c % 13 >= 5)
+	func hand_score(hole: Array, board: Array) -> int:
+		for c in hole + board:
+			if c % 13 != 0 and c % 13 < 5:
+				stray += 1
+		return super(hole, board)
 
 const CONFIGS := [["holdem", "nl"], ["holdem", "fl"], ["omaha", "pl"], ["omaha", "nl"], ["draw", "nl"],
 	["draw", "fl"], ["stud", "fl"]]
@@ -24,6 +38,7 @@ func _init() -> void:
 	if a != b:
 		fails += 1
 		print("FAIL: the run is not repeatable")
+	_probe()
 	var fingerprint := a.md5_text()
 	print("golden fingerprint: ", fingerprint, "  (", a.count("\n") + 1, " lines)")
 	if GOLDEN != "" and fingerprint != GOLDEN:
@@ -31,6 +46,31 @@ func _init() -> void:
 		print("FAIL: the AI's results changed (fingerprint is not GOLDEN)")
 	print("poker ai: ", "OK" if fails == 0 else "%d FAILED" % fails)
 	quit(1 if fails else 0)
+
+## The AI works out win chances and outs on a table whose rules have another deck.
+func _probe() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var t = Table.new()
+	t._rules = Probe.new()
+	for i in 3:
+		t.seats.append(Table.new_seat("P%d" % i, 1000, 0, i))
+	t.start_hand(rng)
+	while t.board.size() < 3 and t.phase != "done":
+		t.act("call")
+	if t.board.size() < 3:
+		fails += 1
+		print("FAIL: the probe hand did not reach the flop")
+		return
+	var me: int = t.to_act
+	var eq := AI.equity(t, me, 300, rng, 0, false, 0)
+	var outs := AI.outs(t, me)
+	if eq < 0.0 or eq > 1.0 or outs < 0 or outs > 36 - 5:
+		fails += 1
+		print("FAIL: odd result on a 36-card deck: eq ", eq, " outs ", outs)
+	if Probe.stray > 0:
+		fails += 1
+		print("FAIL: the AI rated %d cards that are not in the table's deck" % Probe.stray)
 
 func _run(seed_value: int) -> String:
 	var rng := RandomNumberGenerator.new()

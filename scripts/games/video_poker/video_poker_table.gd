@@ -135,6 +135,11 @@ func clone() -> RefCounted:
 
 # ---------- questions ----------
 
+## The variant's rules (video_poker_rules.gd): what the computer players and
+## the coach ask instead of checking the variant's name.
+func rules():
+	return _rules
+
 ## A fresh unshuffled deck of this variant (52 cards, fewer in Short Deck).
 func deck_cards() -> Array:
 	return _rules.new_deck()
