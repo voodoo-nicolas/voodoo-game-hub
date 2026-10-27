@@ -7,6 +7,10 @@
 //   conf:      SELF only: 0.25 | 0.5 | 0.75 | 1 (not for a "Will you remember?" trial, whose
 //              value is { g: guess, picks: [...] }; its guess and score go to sessions.state.recall)
 // -> { next_item, fb? }   or   { done: true, result } once past the server deadline.
+//   A resend of the answer just given (the client's "Loading" watchdog sends one when a reply
+//   takes over 3 s, and a lost reply is retried the same way) is not an error: it returns the
+//   same next_item, without fb, and judges nothing twice. The pending item's render params are
+//   kept in its answer_key.pub until it is answered (then dropped), so it can be served again.
 //   fb:        practice tests only: { seq, u, key, minMs, rapid, timeout, hidden, why? } (engine.ts
 //              practiceFeedback), so the player sees right / wrong and the right answer
 //
@@ -34,7 +38,10 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   if (!pending.length) throw new HttpError(409, "no_pending_item");
   const p = pending[0];
   const seq = Number(body.seq);
-  if (seq !== p.seq) throw new HttpError(409, "out_of_order", undefined, { expected: p.seq });
+  if (seq !== p.seq) {
+    if (seq === p.seq - 1 && p.answer_key.pub) return { next_item: p.answer_key.pub };
+    throw new HttpError(409, "out_of_order", undefined, { expected: p.seq });
+  }
 
   let conf: number | null = null;
   if (s.scope === "SELF" && p.gid !== RECALL) {
@@ -53,18 +60,24 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
     if (rc) (s.state.recall ||= []).push(rc);
   }
 
-  const done = must(await db.from("responses").update({ u: j.u, ms: clientMs, conf, answered_at: new Date(now).toISOString() })
+  const { pub: _pub, ...keptKey } = p.answer_key;
+  const done = must(await db.from("responses").update({ u: j.u, ms: clientMs, conf, answered_at: new Date(now).toISOString(), answer_key: keptKey })
     .eq("session_id", s.id).eq("seq", seq).is("answered_at", null).select("seq")) as any[];
-  if (!done.length) throw new HttpError(409, "already_answered");
+  if (!done.length) {
+    // a duplicate that lost the race to the same answer: serve what the winner stored, if it already has
+    const again = must(await db.from("responses").select("seq, answer_key").eq("session_id", s.id).eq("seq", seq + 1).limit(1)) as any[];
+    if (again.length && again[0].answer_key?.pub) return { next_item: again[0].answer_key.pub };
+    throw new HttpError(409, "already_answered");
+  }
 
   const resp = await answeredResponses(db, s.id);
   const item = nextIqItem(s.scope, s.lang, resp, s.state);
+  const next_item = publicItem(item, seq + 1);
   must(await db.from("responses").insert({
     session_id: s.id, seq: seq + 1, sec: item.sec, gid: item.gid, d: item.d, a: item.a, b: item.b, c: item.c,
-    served_at: new Date().toISOString(), answer_key: storedKey(item),
+    served_at: new Date().toISOString(), answer_key: { ...storedKey(item), pub: next_item },
   }));
   must(await db.from("sessions").update({ state: s.state, flags: s.flags }).eq("id", s.id));
-  const next_item = publicItem(item, seq + 1);
   if (s.ranked || s.kind !== "normal") return { next_item };
   return { next_item, fb: practiceFeedback(seq, p.answer_key.key, p.answer_key.minMs, j, p.answer_key.why) };
 }

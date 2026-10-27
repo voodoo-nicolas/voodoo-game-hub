@@ -46,6 +46,15 @@ var setup := {"mode": "iq", "scope": "ALL", "dur": 0, "bdur": 120, "ranked": tru
 var session: Dictionary = {}
 var running := false
 var waiting := false  # a request is out: the clocks stop
+# "Loading" watchdog (owner, 2026-10-27: the test froze on Loading on the PC and web builds)
+const STALL_MS := 3000  # a reply later than this is reported, and an answer is sent again
+const REPORTS_PATH := "user://voodoo_iq_reports.json"  # reports that couldn't be sent yet
+var busy_fn := ""  # which request the "Loading" overlay is waiting for
+var busy_since := 0  # Time.get_ticks_msec() when it came up
+var busy_flagged := false  # the 3 s mark passed with no reply
+var answer_inflight := 0  # answer requests out (1, or 2 after the watchdog's resend)
+var pending_body: Dictionary = {}
+var reports_sent := 0
 var paused := false  # instructions / prediction on screen: the clocks stop
 var remaining_ms := 0.0
 var endless := false  # IQ test with no clock (dur 0)
@@ -101,6 +110,7 @@ func _ready() -> void:
 	_build_ui()
 	get_viewport().size_changed.connect(_on_screen_resized)
 	_show_home()
+	_flush_reports()
 
 func _build_ui() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -692,7 +702,7 @@ func _show_profile_form() -> void:
 		var body := {"nick": n, "birth_year": by.get_item_id(by.selected), "country": c, "lang": T.lang()}
 		if c == "AR" and prov.selected > 0:
 			body.province = prov.get_item_text(prov.selected)
-		_busy(true)
+		_busy(true, "profile-save")
 		api.call_fn("profile-save", body, _on_profile_saved), GOOD, Vector2(0, 70), 26)
 	save.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(save)
@@ -751,7 +761,7 @@ func _show_prediction(cfg: Dictionary) -> void:
 
 func _request_start(cfg: Dictionary) -> void:
 	pending_start = cfg
-	_busy(true)
+	_busy(true, "session-start")
 	api.call_fn("session-start", cfg, _on_started)
 
 func _on_started(ok: bool, code: int, data: Dictionary) -> void:
@@ -786,8 +796,17 @@ func _error_text(data: Dictionary) -> String:
 			return tr("Couldn't reach the server. Check your connection and try again.")
 	return tr("Something went wrong (%s). Try again.") % str(data.get("error", "?"))
 
-func _busy(on: bool) -> void:
+func _busy(on: bool, fn := "") -> void:
 	waiting = on
+	if on:
+		busy_fn = fn
+		busy_since = Time.get_ticks_msec()
+		busy_flagged = false
+	else:
+		if busy_flagged:
+			_client_report("stall_end", {"fn": busy_fn, "waited_ms": Time.get_ticks_msec() - busy_since})
+		busy_fn = ""
+		busy_flagged = false
 	var old := get_node_or_null("Busy")
 	if old:
 		# out of the tree first: a new "Busy" added this same frame (a skipped
@@ -802,6 +821,7 @@ func _busy(on: bool) -> void:
 		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		dim.mouse_filter = Control.MOUSE_FILTER_STOP
 		var l := _label(T.t("loading"), 32, Color.WHITE)
+		l.name = "Label"
 		l.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		dim.add_child(l)
 		add_child(dim)
@@ -1099,6 +1119,11 @@ func _quit_from_pause() -> void:
 	_confirm_quit()
 
 func _process(delta: float) -> void:
+	if waiting:
+		_watch_busy()
+	if running and delta > 2.0:
+		# the whole game stopped for over 2 s (a slow question to draw, a stuck browser tab)
+		_client_report("hitch", {"frame_ms": int(delta * 1000.0), "fps": Engine.get_frames_per_second()})
 	if not running or waiting or paused:
 		return
 	var ms := delta * 1000.0
@@ -1167,10 +1192,78 @@ func _send_answer(answer: Dictionary) -> void:
 	var body := {"session_id": session.get("session_id", ""), "seq": answer.seq, "value": answer.value, "client_ms": answer.ms}
 	if answer.has("conf"):
 		body.conf = answer.conf
-	_busy(true)
+	pending_body = body
+	answer_inflight = 1
+	_busy(true, "item-answer")
 	api.call_fn("item-answer", body, _on_answered)
 
+## The Loading overlay has waited STALL_MS: report it once, say we're still trying, and send an
+## answer again (item-answer treats a resend as "give me the same next question"; the first
+## request stays out, and whichever reply comes first is used).
+func _watch_busy() -> void:
+	if busy_flagged or Time.get_ticks_msec() - busy_since < STALL_MS:
+		return
+	busy_flagged = true
+	_client_report("stall", {"fn": busy_fn, "waited_ms": Time.get_ticks_msec() - busy_since, "inflight": answer_inflight})
+	var l := get_node_or_null("Busy/Label")
+	if l is Label:
+		l.text = tr("Still trying…")
+	if busy_fn == "item-answer" and answer_inflight == 1 and not pending_body.is_empty():
+		answer_inflight = 2
+		api.call_fn("item-answer", pending_body, _on_answered)
+
+## Sends a stall / hitch report to the server (client-report); one that can't go out is kept
+## in user:// and tried again the next time the test opens. No names or tokens in it.
+func _client_report(kind: String, extra := {}) -> void:
+	if reports_sent >= 6:
+		return
+	reports_sent += 1
+	var detail := {
+		"scope": str(session.get("scope", "")), "mode": str(session.get("mode", "")), "ranked": bool(session.get("ranked", false)),
+		"gid": str(item.get("gid", "")), "seq": int(item.get("seq", -1)), "d": int(item.get("d", 0)),
+		"lang": T.lang(), "screen": screen_name, "running": running, "waiting": waiting, "paused": paused,
+		"web": OS.has_feature("web"), "os": OS.get_name(), "gv": Items.GV, "fps": Engine.get_frames_per_second(),
+		"mem_mb": int(OS.get_static_memory_usage() / 1048576.0),
+	}
+	detail.merge(extra, true)
+	var consts: Dictionary = {}
+	if ResourceLoader.exists("res://scripts/common/version.gd"):
+		consts = load("res://scripts/common/version.gd").get_script_constant_map()
+	detail.app = str(consts.get("VERSION", ""))
+	var report := {"game": "voodoo_iq", "kind": kind, "build": int(consts.get("BUILD_NUMBER", 0)), "platform": OS.get_name() + (" web" if OS.has_feature("web") else ""), "detail": detail}
+	_post_client_report(report)
+
+func _post_client_report(report: Dictionary) -> void:
+	api.call_fn("client-report", report, _on_client_report_sent.bind(report))
+
+func _on_client_report_sent(ok: bool, _code: int, _data: Dictionary, report: Dictionary) -> void:
+	if ok:
+		return
+	var kept = SaveUtil.read(REPORTS_PATH)
+	var list: Array = kept.get("list", []) if kept is Dictionary else []
+	if list.size() < 10:
+		list.append(report)
+		SaveUtil.write(REPORTS_PATH, {"list": list})
+
+## Reports kept from an earlier stall (no connection then): send them now.
+func _flush_reports() -> void:
+	var kept = SaveUtil.read(REPORTS_PATH)
+	if not (kept is Dictionary) or not api.is_signed_in():
+		return
+	SaveUtil.write(REPORTS_PATH, {"list": []})
+	for r in kept.get("list", []):
+		if r is Dictionary:
+			_post_client_report(r)
+
 func _on_answered(ok: bool, _code: int, data: Dictionary) -> void:
+	# two answer requests can be out after the watchdog's resend: the first good reply wins,
+	# a late one is ignored, and an error counts only once nothing else is still coming
+	if answer_inflight <= 0:
+		return
+	answer_inflight -= 1
+	if not ok and str(data.get("error", "")) != "session_over" and answer_inflight > 0:
+		return
+	answer_inflight = 0
 	_busy(false)
 	if not running:
 		return
@@ -1250,7 +1343,7 @@ func _finish(reason: String) -> void:
 	running = false
 	finish_reason = reason
 	_close_overlays()
-	_busy(true)
+	_busy(true, "blitz-submit" if _is_blitz() else "session-finish")
 	if _is_blitz():
 		api.call_fn("blitz-submit", {"session_id": session.get("session_id", ""), "answers": blitz_answers, "reason": reason}, _on_finished)
 	else:
@@ -1852,7 +1945,6 @@ func _board_help() -> Control:
 func _toggle_board_help(body: Control) -> void:
 	boards.show_help = not body.visible
 	body.visible = boards.show_help
-
 
 ## The prototype's boardTable: # | player (+ you / 130+, place · age) | rank score,
 ## points or status | estimate ± or correct answers.

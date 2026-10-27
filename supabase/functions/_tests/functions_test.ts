@@ -12,6 +12,7 @@ import profileSave from "../profile-save/handler.ts";
 import sessionStart from "../session-start/handler.ts";
 import itemAnswer from "../item-answer/handler.ts";
 import itemReport from "../item-report/handler.ts";
+import clientReport from "../client-report/handler.ts";
 import sessionFinish from "../session-finish/handler.ts";
 import blitzSubmit from "../blitz-submit/handler.ts";
 import leaderboard from "../leaderboard/handler.ts";
@@ -68,7 +69,11 @@ Deno.test("ranked IQ test: answer loop, finish, section_scores, retakes allowed"
     assert(!("fb" in res), "a ranked test never shows answers");
     item = res.next_item;
   }
-  assertEquals((await code(call(itemAnswer, db, ME, { session_id: sid, seq: item.seq - 1, value: 0, client_ms: 4000 })))?.code, "out_of_order");
+  // replaying the last answer judges nothing again: it just serves the pending item once more
+  const nAnswered = db.tables.responses.filter((r) => r.session_id === sid && r.answered_at).length;
+  assertEquals(await call(itemAnswer, db, ME, { session_id: sid, seq: item.seq - 1, value: 0, client_ms: 4000 }), { next_item: item });
+  assertEquals(db.tables.responses.filter((r) => r.session_id === sid && r.answered_at).length, nAnswered);
+  assertEquals((await code(call(itemAnswer, db, ME, { session_id: sid, seq: item.seq - 2, value: 0, client_ms: 4000 })))?.code, "out_of_order");
   for (let i = 1; i < secsSeen.length; i++) assert(secsSeen[i] !== secsSeen[i - 1], "mixed scope repeated a section");
 
   const fin = await call(sessionFinish, db, ME, { session_id: sid, reason: "time" });
@@ -144,6 +149,29 @@ Deno.test("practice IQ: right / wrong and the key after each answer, 🚩 report
   pending(db, rk.session_id, 20000);
   await call(itemAnswer, db, ME, { session_id: rk.session_id, seq: 0, value: 0, client_ms: 20000 });
   assertEquals((await code(call(itemReport, db, ME, { session_id: rk.session_id, seq: 0, why: "none" })))?.code, "not_practice");
+});
+
+Deno.test("item-answer: a resent answer (watchdog / lost reply) returns the same next item and judges nothing twice", async () => {
+  const db = new FakeDb();
+  await newPlayer(db);
+  const st = await call(sessionStart, db, ME, { mode: "iq", scope: "LOG", dur: 0, ranked: true });
+  const sid = st.session_id;
+  const row = pending(db, sid, 20000);
+  const body = { session_id: sid, seq: 0, value: rightValue(row.answer_key.key), client_ms: 20000 };
+  const first = await call(itemAnswer, db, ME, body);
+  assertEquals(first.next_item.seq, 1);
+  const stored = db.tables.responses.find((r) => r.session_id === sid && r.seq === 1)!;
+  assert(stored.answer_key.pub, "the pending item keeps its render params");
+  const again = await call(itemAnswer, db, ME, body);
+  assertEquals(again, { next_item: first.next_item });
+  assertEquals(db.tables.responses.filter((r) => r.session_id === sid).length, 2, "no second item was made");
+  assertEquals(db.tables.responses.find((r) => r.session_id === sid && r.seq === 0)!.u, 1);
+  assert(!db.tables.responses.find((r) => r.session_id === sid && r.seq === 0)!.answer_key.pub, "an answered row drops pub");
+  // answering the next item drops its pub too; the old seq is then out of order again
+  pending(db, sid, 20000);
+  await call(itemAnswer, db, ME, { session_id: sid, seq: 1, value: 0, client_ms: 20000 });
+  assertEquals((await code(call(itemAnswer, db, ME, body)))?.code, "out_of_order");
+  assert(!db.tables.responses.find((r) => r.session_id === sid && r.seq === 1)!.answer_key.pub);
 });
 
 Deno.test("practice Blitz returns a review (key and why) of every answered item; ranked doesn't", async () => {
@@ -420,4 +448,18 @@ Deno.test("leaderboards: section gates, Voodoo IQ verification, Blitz bests, fil
   assertEquals((await call(leaderboard, db, ME, { board: "blitz", scope: "ALL", dur_s: 120 })).rows.map((r: any) => r.nick), ["Rival", "Nico"]);
   assertEquals((await call(leaderboard, db, ME, { board: "blitz", scope: "ALL", dur_s: 120, season: "all" })).rows.map((r: any) => r.score), [30]);
   assertEquals((await code(call(leaderboard, db, ME, { board: "nope" })))?.code, "bad_board");
+});
+
+Deno.test("client-report: stores a stall report, rejects bad tags, caps one player's reports per hour", async () => {
+  const db = new FakeDb();
+  await newPlayer(db);
+  assertEquals(await call(clientReport, db, ME, { game: "voodoo_iq", kind: "stall", build: 40, platform: "Windows", detail: { fn: "item-answer", waited_ms: 3000 } }), { ok: true });
+  const row = db.tables.client_reports[0];
+  assertEquals([row.user_id, row.game, row.kind, row.build, row.platform, row.detail.fn], [ME, "voodoo_iq", "stall", 40, "Windows", "item-answer"]);
+  assertEquals((await code(call(clientReport, db, ME, { game: "bad game!", kind: "stall" })))?.code, "bad_report");
+  await call(clientReport, db, ME, { game: "voodoo_iq", kind: "crash", detail: { blob: "x".repeat(20_000) } });
+  assertEquals(db.tables.client_reports[1].detail, { truncated: true });
+  for (let i = 0; i < 40; i++) await call(clientReport, db, ME, { game: "voodoo_iq", kind: "stall" });
+  assertEquals(db.tables.client_reports.length, 30, "past 30 an hour they are dropped");
+  assertEquals(await call(clientReport, db, ME, { game: "voodoo_iq", kind: "stall" }), { ok: true, dropped: true });
 });
