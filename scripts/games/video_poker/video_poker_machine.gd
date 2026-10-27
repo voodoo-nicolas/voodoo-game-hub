@@ -27,6 +27,8 @@ var bet_label: Label
 var deal_btn: Button
 var hint_btn: Button
 var coin_row: HBoxContainer
+var mid: BoxContainer     # portrait: coin and pay table above the cards; landscape: beside them
+var left_col: VBoxContainer
 var hint_held: Array = []
 
 func _ready() -> void:
@@ -62,10 +64,19 @@ func _ready() -> void:
 	spacer.custom_minimum_size = Vector2(76, 0)
 	bar.add_child(spacer)
 
+	mid = BoxContainer.new()
+	mid.vertical = true
+	mid.add_theme_constant_override("separation", 10)
+	mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(mid)
+	left_col = VBoxContainer.new()
+	left_col.add_theme_constant_override("separation", 10)
+	mid.add_child(left_col)
+
 	var cm := MarginContainer.new()
 	cm.add_theme_constant_override("margin_left", 30)
 	cm.add_theme_constant_override("margin_right", 30)
-	root.add_child(cm)
+	left_col.add_child(cm)
 	coin_row = HBoxContainer.new()
 	coin_row.add_theme_constant_override("separation", 10)
 	cm.add_child(coin_row)
@@ -89,7 +100,7 @@ func _ready() -> void:
 	var pm := MarginContainer.new()
 	pm.add_theme_constant_override("margin_left", 30)
 	pm.add_theme_constant_override("margin_right", 30)
-	root.add_child(pm)
+	left_col.add_child(pm)
 	var pay_box := GridContainer.new()
 	pay_box.columns = 2
 	pay_box.add_theme_constant_override("h_separation", 20)
@@ -114,7 +125,8 @@ func _ready() -> void:
 	table.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # card art is drawn smaller than it is
 	table.gui_input.connect(_on_table_input)
 	table.resized.connect(table.queue_redraw)
-	root.add_child(table)
+	resized.connect(_fit_layout)
+	mid.add_child(table)
 
 	result_label = Label.new()
 	result_label.add_theme_font_size_override("font_size", 30)
@@ -164,7 +176,16 @@ func _ready() -> void:
 	deal_btn.set_meta("sfx", "")
 	deal_btn.pressed.connect(_on_deal)
 	row2.add_child(deal_btn)
+	_fit_layout()
 	_render()
+
+## Turned sideways (wider than tall) the coin row and pay table stand at the
+## left and the cards take the rest.
+func _fit_layout() -> void:
+	var land := size.x > size.y * 1.1
+	left_col.custom_minimum_size.x = clampf(size.x * 0.4, 330.0, 480.0) if land else 0.0
+	mid.vertical = not land
+	table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 ## Starts at the machine with `chips`; `saved` (from state()) restores a
 ## hand in progress.

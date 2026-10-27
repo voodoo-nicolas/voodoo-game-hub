@@ -12,7 +12,8 @@ const View = preload("res://scripts/games/video_poker/video_poker_view.gd")
 
 ## The view's size on a few screens: phones in portrait (small, usual, tall), and the same
 ## kind of screens turned on their side, a tablet.
-const SIZES := [Vector2(540, 860), Vector2(720, 900), Vector2(720, 1100), Vector2(900, 600), Vector2(1280, 640), Vector2(1100, 800)]
+const SIZES := [Vector2(540, 860), Vector2(720, 900), Vector2(720, 1100), Vector2(900, 600), Vector2(1280, 640), Vector2(1100, 800),
+	Vector2(900, 700), Vector2(1000, 710), Vector2(570, 510), Vector2(572, 514)]  # the table beside the controls column, landscape at text size 1.0 / 1.4
 
 var fails := 0
 
@@ -69,4 +70,12 @@ func _check(variant: String, seats: int, sz: Vector2) -> void:
 			ok(not (r as Rect2).grow(-1).has_point(spot), tag + ": seat %d bet lies on a plate" % i)
 		if board.size.x > 0:
 			ok(not board.has_point(spot), tag + ": seat %d bet lies on the board" % i)
+	# bets lie apart from each other where the felt has room (a small shortfall is allowed)
+	var spots: Array = []
+	for i in range(seats):
+		spots.append(v.bet_spot(i))
+	for a in spots.size():
+		for b in range(a + 1, spots.size()):
+			var d: Vector2 = (spots[a] as Vector2) - (spots[b] as Vector2)
+			ok(absf(d.x) + absf(d.y) * 2.0 >= 70.0, tag + ": bets %d and %d lie on each other" % [a, b])
 	v.free()

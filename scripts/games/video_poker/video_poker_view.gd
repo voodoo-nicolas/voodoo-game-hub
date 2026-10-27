@@ -17,6 +17,8 @@ const AI = preload("res://scripts/games/video_poker/video_poker_ai.gd")
 const CARD_ASPECT := 1.42
 ## Room kept for the pot line (chips and amount) above the board.
 const POT_W := 210.0
+## Bets on the felt keep this far apart (across plus twice down), so a pile and its amount never sit on another.
+const BET_APART := 130.0
 ## Poker's "Check" has its own key: plain "Check" is already the Spanish
 ## "Revisar" of Code Breaker and Crossword (es.json is one shared map).
 const CHECK := "Check "
@@ -47,6 +49,8 @@ func _process(delta: float) -> void:
 # ---------- geometry ----------
 
 func _hero_h() -> float:
+	if size.x > size.y * 1.1:  # landscape: the table is wide, the hands a little smaller
+		return clampf(size.y * 0.3, 150.0, 300.0)
 	return clampf(size.y * 0.32, 190.0, 360.0)
 
 ## The whole table, rail included: a pill (oval) above the viewer's own cards.
@@ -72,7 +76,8 @@ func _others() -> Array:
 func plate_size() -> Vector2:
 	var p := play_rect()
 	var few := 1.0 + 0.16 * (5 - clampi(_others().size(), 1, 5))  # fewer seats: roomier plates
-	var w := clampf(minf(p.size.x * 0.22, p.size.y * 0.33) * few, 92.0, 190.0)
+	# (a short felt, landscape at a big text size, keeps room for the board between the plates)
+	var w := clampf(minf(minf(p.size.x * 0.22, p.size.y * 0.33) * few, p.size.y * 0.38), 92.0, 190.0)
 	return Vector2(w, w * 0.78)
 
 ## Where another seat's plate goes: round an ellipse inside the felt, the
@@ -127,13 +132,26 @@ func _board_rect() -> Rect2:
 	return r
 
 ## Where a seat's bet lies on the felt: a plate's length towards the middle,
-## above or below the plate or beside it, whichever is clear (the viewer's: low
-## in the middle).
+## above or below the plate or beside it, whichever is clear of the plates, the
+## board and the bets already placed (the viewer's: low in the middle).
 func bet_spot(seat: int) -> Vector2:
 	var p := play_rect()
 	var c := p.get_center()
+	var mine := Vector2(c.x, p.end.y - 34)
 	if seat == viewer:
-		return Vector2(c.x, p.end.y - 34)
+		return mine
+	var board := _board_rect() if t.rules().board_size() > 0 else Rect2()
+	var taken: Array = [mine]
+	for i in _others():
+		var spot := _pick_spot(i, board, taken)
+		if i == seat:
+			return spot
+		taken.append(spot)
+	return mine
+
+func _pick_spot(seat: int, board: Rect2, taken: Array) -> Vector2:
+	var p := play_rect()
+	var c := p.get_center()
 	var r := seat_rect(seat)
 	var rc := r.get_center()
 	var vs := signf(c.y - rc.y) if absf(c.y - rc.y) > 1.0 else 1.0
@@ -144,15 +162,23 @@ func bet_spot(seat: int) -> Vector2:
 		rc + Vector2(0, -vs * (r.size.y / 2.0 + 24.0)),
 		rc + Vector2(-hs * (r.size.x / 2.0 + 44.0), 0),
 	]
-	var board := _board_rect() if t.rules().board_size() > 0 else Rect2()
 	var inner := p.grow(-14)
-	for spot in candidates:
+	var first_clear := -1
+	for k in candidates.size():
+		var spot: Vector2 = candidates[k]
 		var clear := inner.has_point(spot) and not board.grow(10).has_point(spot)
 		for i in _others():
 			clear = clear and not seat_rect(i).grow(14).has_point(spot)
-		if clear:
+		if not clear:
+			continue
+		if first_clear < 0:
+			first_clear = k
+		var free := true
+		for o in taken:
+			free = free and absf(spot.x - (o as Vector2).x) + absf(spot.y - (o as Vector2).y) * 2.0 >= BET_APART
+		if free:
 			return spot
-	return candidates[0]
+	return candidates[maxi(first_clear, 0)]
 
 func hero_card_rects() -> Array:
 	var out: Array = []
@@ -221,6 +247,8 @@ func _draw() -> void:
 	if t == null or t.seats.is_empty():
 		return
 	var f := felt_rect()
+	if play_rect().size.x < 40.0 or play_rect().size.y < 40.0:  # before the first layout
+		return
 	_draw_felt(f)
 	var others := _others()
 	for i in others:

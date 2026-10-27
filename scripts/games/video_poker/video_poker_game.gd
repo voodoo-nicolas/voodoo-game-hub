@@ -100,7 +100,18 @@ var discards: Array = []
 var cover_seat := -1
 
 # ---------- nodes ----------
-var table_screen: VBoxContainer
+var table_screen: BoxContainer   # vertical in portrait; in landscape the table left, the controls in side_box
+var top_box: MarginContainer
+var top_bar: BoxContainer
+var bar_gap: Control
+var top_col: VBoxContainer
+var title_box: VBoxContainer
+var pm_box: MarginContainer
+var bottom_margin: MarginContainer
+var side_box: VBoxContainer
+var table_land := false
+var pause_btn: Button
+var table_compact := false   # landscape on a short screen (big text size): smaller type so the column fits
 var title_label: Label
 var info_label: Label
 var coach_btn: Button
@@ -109,7 +120,7 @@ var coach_panel: PanelContainer
 var coach_label: Label
 var status_label: Label
 var size_row: HBoxContainer
-var action_row: HBoxContainer
+var action_row: BoxContainer
 var fold_btn: Button
 var call_btn: Button
 var raise_btn: Button
@@ -318,28 +329,40 @@ func _build_ui() -> void:
 	add_child(drawer)
 
 func _build_table_screen() -> void:
-	table_screen = VBoxContainer.new()
+	table_screen = BoxContainer.new()
+	table_screen.vertical = true
 	table_screen.add_theme_constant_override("separation", 6)
 	add_child(table_screen)
 	table_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var top := MarginContainer.new()
+	top_box = top
+	top_col = VBoxContainer.new()
+	top_col.add_theme_constant_override("separation", 0)
+	top.add_child(top_col)
 	top.add_theme_constant_override("margin_top", 16)
 	top.add_theme_constant_override("margin_left", 14)
 	top.add_theme_constant_override("margin_right", 14)
 	table_screen.add_child(top)
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 10)
-	top.add_child(bar)
-	var pause_btn := Button.new()
+	top_col.add_child(bar)
+	top_bar = bar
+	pause_btn = Button.new()
 	pause_btn.text = "⏸"
 	pause_btn.custom_minimum_size = Vector2(72, 60)
 	pause_btn.pressed.connect(_on_pause)
 	bar.add_child(pause_btn)
 	var titles := VBoxContainer.new()
+	title_box = titles
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	titles.add_theme_constant_override("separation", 0)
 	bar.add_child(titles)
+	bar_gap = Control.new()  # landscape: pushes 🎓 to the end of the row
+	bar_gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_gap.visible = false
+	bar.add_child(bar_gap)
 	title_label = HomeKit.label("", 26, HomeKit.GOLD.lerp(Color.WHITE, 0.4), false, true)
 	title_label.clip_text = true
 	titles.add_child(title_label)
@@ -364,9 +387,18 @@ func _build_table_screen() -> void:
 	table_screen.add_child(view)
 
 	var pm := MarginContainer.new()
+	pm_box = pm
 	for side in ["left", "right"]:
 		pm.add_theme_constant_override("margin_" + side, 14)
 	table_screen.add_child(pm)
+	# Turned sideways the bar and the controls move into a column beside the table.
+	side_box = VBoxContainer.new()
+	side_box.visible = false
+	table_screen.add_child(side_box)
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	side_box.add_child(spacer)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	pm.add_child(col)
@@ -401,9 +433,10 @@ func _build_table_screen() -> void:
 		size_row.add_child(b)
 
 	var bm := MarginContainer.new()
+	bottom_margin = bm
 	bm.add_theme_constant_override("margin_bottom", 26)
 	col.add_child(bm)
-	action_row = HBoxContainer.new()
+	action_row = BoxContainer.new()
 	action_row.add_theme_constant_override("separation", 10)
 	bm.add_child(action_row)
 	fold_btn = _action_button("Fold", HomeKit.DIM, _on_fold)
@@ -415,6 +448,62 @@ func _build_table_screen() -> void:
 	leave_btn = _action_button("Leave table", HomeKit.DIM, _on_leave)
 	next_btn = _action_button("Next hand ▶", HomeKit.LIME, _on_next)
 	next_btn.set_meta("sfx", "")
+	get_viewport().size_changed.connect(_fit_table_layout)
+	_fit_table_layout()
+
+## Portrait: bar, table, controls stacked. Landscape (wider than tall): the
+## table fills the left and the bar and controls stack in a column at the right,
+## the action buttons one above the other.
+func _fit_table_layout() -> void:
+	if table_screen == null or not is_inside_tree():
+		return
+	var vp := get_viewport_rect().size
+	var land := vp.x > vp.y * 1.1
+	if land != table_land:
+		table_land = land
+		table_screen.vertical = not land
+		table_screen.add_theme_constant_override("separation", 12 if land else 6)
+		side_box.visible = land
+		# the title and blinds get a line of their own in the narrow column
+		bar_gap.visible = land
+		title_box.reparent(top_col if land else top_bar, false)
+		if not land:
+			top_bar.move_child(title_box, 1)
+		if land:
+			top_box.reparent(side_box, false)
+			side_box.move_child(top_box, 0)
+			pm_box.reparent(side_box, false)
+		else:
+			top_box.reparent(table_screen, false)
+			table_screen.move_child(top_box, 0)
+			pm_box.reparent(table_screen, false)
+			table_screen.move_child(pm_box, 2)
+		view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bottom_margin.add_theme_constant_override("margin_bottom", 6 if table_compact else (14 if land else 26))
+	if land:
+		side_box.custom_minimum_size.x = clampf(vp.x * 0.32, 330.0, 440.0)
+	var compact := land and vp.y < 600.0
+	if compact != table_compact:
+		table_compact = compact
+		for pair in [[title_label, 20, 26], [info_label, 15, 20], [coach_label, 15, 21], [status_label, 17, 24]]:
+			(pair[0] as Label).add_theme_font_size_override("font_size", pair[1] if compact else pair[2])
+		for b in action_row.get_children():
+			(b as Button).add_theme_font_size_override("font_size", 19 if compact else 25)
+		for b in size_row.get_children():
+			(b as Button).add_theme_font_size_override("font_size", 18 if compact else 22)
+			(b as Button).custom_minimum_size.y = 36.0 if compact else 56.0
+		for b in [pause_btn, coach_btn]:
+			(b as Button).custom_minimum_size.y = 44.0 if compact else 60.0
+		top_box.add_theme_constant_override("margin_top", 6 if compact else 16)
+		action_row.add_theme_constant_override("separation", 4 if compact else 10)
+		size_row.get_parent().add_theme_constant_override("separation", 4 if compact else 8)
+		bottom_margin.add_theme_constant_override("margin_bottom", 6 if compact else (14 if land else 26))
+	action_row.vertical = land
+	var h := 76.0
+	if land:
+		h = 38.0 if compact else clampf(vp.y * 0.085, 48.0, 64.0)
+	for b in [fold_btn, call_btn, raise_btn, leave_btn, next_btn]:
+		(b as Button).custom_minimum_size.y = h
 
 func _action_button(text: String, color: Color, action: Callable) -> Button:
 	var b := HomeKit.neon_button(tr(text), color, 25, 76)
