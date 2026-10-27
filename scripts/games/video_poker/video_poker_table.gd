@@ -135,6 +135,14 @@ func clone() -> RefCounted:
 
 # ---------- questions ----------
 
+## A fresh unshuffled deck of this variant (52 cards, fewer in Short Deck).
+func deck_cards() -> Array:
+	return _rules.new_deck()
+
+## A hand score in words, in this variant's terms.
+func describe(score: int) -> String:
+	return _rules.describe(score)
+
 func hole_count() -> int:
 	return _rules.hole_count()
 
@@ -260,8 +268,8 @@ func start_hand(rng: RandomNumberGenerator) -> bool:
 		return false
 	hand_no += 1
 	phase = "bet"
-	deck = range(52)
-	for i in range(51, 0, -1):
+	deck = deck_cards()
+	for i in range(deck.size() - 1, 0, -1):
 		var j := rng.randi_range(0, i)
 		var t = deck[i]
 		deck[i] = deck[j]
@@ -589,7 +597,7 @@ func _showdown() -> void:
 		var w: int = won.get(i, 0)
 		seats[i].stack += w
 		seats[i].won = w
-		results.append({"seat": i, "won": w, "score": scores[i], "desc": Eval.describe(scores[i]),
+		results.append({"seat": i, "won": w, "score": scores[i], "desc": describe(scores[i]),
 			"best": best_cards(i), "shown": true})
 	results.sort_custom(func(a, b): return a.won > b.won)
 	if not results.is_empty():

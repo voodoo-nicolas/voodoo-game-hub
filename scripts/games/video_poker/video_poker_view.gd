@@ -440,7 +440,7 @@ func _draw_hero() -> void:
 		line = tr("Folded")
 		col = DIM
 	elif s.hole.size() >= 2 and t.phase != "idle":
-		line = Eval.describe(t.hand_score(viewer))
+		line = t.describe(t.hand_score(viewer))
 	if line != "" and rects.size() > 0:
 		var y: float = rects[0].end.y + (52.0 if t.variant == "stud" else 30.0)
 		draw_string(_font, Vector2(0, minf(y, size.y - 6)), line, HORIZONTAL_ALIGNMENT_CENTER, size.x, 24, col)

@@ -13,6 +13,15 @@ extends RefCounted
 
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 
+## The cards in the deck, as ints (see video_poker_eval.gd). Short Deck would
+## leave out the 2s to 5s: the table never assumes 52.
+func new_deck() -> Array:
+	return range(52)
+
+## What a hand score says in words ("Two Pair, Kings and Sevens").
+func describe(score: int) -> String:
+	return Eval.describe(score)
+
 ## Cards each seat is dealt to start.
 func hole_count() -> int:
 	return 2

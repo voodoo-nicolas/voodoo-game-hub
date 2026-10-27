@@ -333,7 +333,7 @@ static func advise(td: Dictionary, seed: int) -> Dictionary:
 		return out
 	var hole: Array = t.seats[me].hole
 	var cur := t.hand_score(me) if hole.size() > 0 else 0
-	out.hand = Eval.describe(cur)
+	out.hand = t.describe(cur)
 	if t.phase == "draw":
 		var d := choose_discards(hole)
 		out.discards = d

@@ -12,7 +12,15 @@ extends SceneTree
 const Table = preload("res://scripts/games/video_poker/video_poker_table.gd")
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 
+const RulesHoldem = preload("res://scripts/games/video_poker/video_poker_rules_holdem.gd")
+
 const GOLDEN := "f4a8f5635166e88f6678cbc3d45dc598"
+
+## Stands in for Short Deck's deck (no 2s to 5s; scoring stays standard): proves
+## the engine never assumes 52 cards.
+class Deck36 extends RulesHoldem:
+	func new_deck() -> Array:
+		return range(52).filter(func(c): return c % 13 == 0 or c % 13 >= 5)
 
 const CONFIGS := [["holdem", "nl"], ["holdem", "pl"], ["holdem", "fl"], ["omaha", "pl"], ["omaha", "nl"],
 	["omaha", "fl"], ["draw", "nl"], ["draw", "pl"], ["draw", "fl"], ["stud", "fl"]]
@@ -27,6 +35,7 @@ func _init() -> void:
 	_side_pots()
 	_draw_rules()
 	_stud()
+	_short_deck()
 	var a := _sim(20261027)
 	var b := _sim(20261027)
 	ok(a == b, "the seeded run repeats exactly (no global randomness in the engine)")
@@ -278,6 +287,42 @@ func _stud() -> void:
 	ok(t.pot == 4 * t.stud_ante() and t.chips_total() == 4000, "antes are in the pot, no chip lost")
 	ok(t.to_act == (low + 1) % 4, "action starts after the bring-in")
 
+## Hold'em with a 36-card deck: hands play out, chips are conserved and only
+## cards of that deck are ever dealt.
+func _short_deck() -> void:
+	var rng := RandomNumberGenerator.new()
+	var arng := RandomNumberGenerator.new()
+	rng.seed = 9
+	arng.seed = 10
+	for n in [2, 3, 6]:
+		var t = mk("holdem", "nl", [])
+		t._rules = Deck36.new()
+		for i in n:
+			t.seats.append(Table.new_seat("P%d" % i, 0, 0))
+		ok(t.deck_cards().size() == 36, "a 36-card deck")
+		for hand in 60:
+			var tag := "short deck/%d/%d" % [n, hand]
+			if t.players_left() < 2:
+				for s in t.seats:
+					s.stack = 1000
+			var before: int = t.chips_total()
+			ok(t.start_hand(rng), tag + ": starts")
+			var active := 0
+			for s in t.seats:
+				active += 0 if s.out else 1
+			ok(t.deck.size() == 36 - active * 2, tag + ": the deal took %d cards from 36" % (active * 2))
+			var guard := 0
+			while t.phase != "done" and guard < 300:
+				guard += 1
+				_do(t, _step(t, arng, tag), tag)
+			ok(t.phase == "done" and t.chips_total() == before, tag + ": ends, chips conserved")
+			var dealt: Array = t.board.duplicate()
+			for s in t.seats:
+				dealt.append_array(s.hole)
+			for c in dealt:
+				ok(c % 13 == 0 or c % 13 >= 5, tag + ": card %d is not in a short deck" % c)
+			_check_end(t, tag)
+
 # ---------- seeded random hands ----------
 
 func _sim(seed_value: int) -> String:
@@ -388,6 +433,13 @@ func _check_end(t, tag: String) -> void:
 		if t.in_hand(i) and int(s.total) > 0 and not live_totals.has(int(s.total)):
 			live_totals.append(int(s.total))
 	ok(won == total_in, tag + ": every chip put in is paid out (%d in, %d out)" % [total_in, won])
+	var seen := {}
+	var all_cards: Array = t.board.duplicate()
+	for s in t.seats:
+		all_cards.append_array(s.hole)
+	for c in all_cards:
+		ok(not seen.has(c) and t.deck_cards().has(c), tag + ": card %d dealt twice or not from this deck" % c)
+		seen[c] = true
 	var shown := false
 	var best := -1
 	var best_seat := -1
