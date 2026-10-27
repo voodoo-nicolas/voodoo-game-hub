@@ -1085,7 +1085,10 @@ static func brain_hit(pos: Vector2, size: Vector2) -> String:
 
 # ------------------------------------------------------------------ bell curve (viewBox 0 0 640 230)
 
-static func bell(ci: CanvasItem, rect: Rect2, theta: float, se: float, accent: Color, fg: Color, fg2: Color) -> void:
+## With a player's `theta` it shades theta +- band_k * se and marks the player (`tag` = a
+## label over the marker). With theta = NAN it is the plain picture for the explainer
+## screens: the share of people in each band, and `gold` (when not transparent) tints 130+.
+static func bell(ci: CanvasItem, rect: Rect2, theta: float, se: float, accent: Color, fg: Color, fg2: Color, band_k := 1.96, tag := "", gold := Color(0, 0, 0, 0)) -> void:
 	begin(ci, Rect2(0, 0, 640, 230), rect)
 	var x0 := 30.0
 	var x1 := 610.0
@@ -1095,13 +1098,30 @@ static func bell(ci: CanvasItem, rect: Rect2, theta: float, se: float, accent: C
 	var curve := PackedVector2Array()
 	for v in range(55, 146):
 		curve.append(Vector2(X.call(v), base - pdf.call((v - 100) / 15.0) * 140))
-	var lo := clampf(T.iq(theta - 1.96 * se), 55, 145)
-	var hi := clampf(T.iq(theta + 1.96 * se), 55, 145)
-	ci.draw_rect(Rect2(X.call(lo), 18, maxf(2, X.call(hi) - X.call(lo)), base - 18), Color(accent, .18))
+	var generic := is_nan(theta)
+	if not generic:
+		var lo := clampf(T.iq(theta - band_k * se), 55, 145)
+		var hi := clampf(T.iq(theta + band_k * se), 55, 145)
+		ci.draw_rect(Rect2(X.call(lo), 18, maxf(2, X.call(hi) - X.call(lo)), base - 18), Color(accent, .18))
 	var area := curve.duplicate()
 	area.append(Vector2(X.call(145), base))
 	area.append(Vector2(X.call(55), base))
 	fill(ci, area, Color(fg, .06))
+	if generic:
+		if gold.a > 0.0:
+			var top := PackedVector2Array()
+			for v in range(130, 146):
+				top.append(Vector2(X.call(v), base - pdf.call((v - 100) / 15.0) * 140))
+			top.append(Vector2(X.call(145), base))
+			top.append(Vector2(X.call(130), base))
+			fill(ci, top, Color(gold, .55))
+		# the share of people in each band (the normal curve: 2.3 / 13.6 / 68.3 / 13.6 / 2.3 %)
+		for v in [70, 85, 115, 130]:
+			ci.draw_line(Vector2(X.call(v), base - 60), Vector2(X.call(v), base), Color(fg2, .35), 1.0)
+		for b in [[55, 70, "2%"], [70, 85, "14%"], [85, 115, "68%"], [115, 130, "14%"], [130, 145, "2%"]]:
+			text(ci, Vector2((X.call(b[0]) + X.call(b[1])) / 2, base - 14), str(b[2]), 20, gold if (b[0] == 130 and gold.a > 0.0) else fg)
+		if gold.a > 0.0 and tag != "":
+			text(ci, Vector2((X.call(130) + X.call(145)) / 2, 120), tag, 24, gold)
 	glow(ci, curve, fg, 3.0, false)
 	ci.draw_line(Vector2(x0, base), Vector2(x1, base), fg2, 2.0)
 	for v in [55, 70, 85, 100, 115, 130, 145]:
@@ -1109,11 +1129,14 @@ static func bell(ci: CanvasItem, rect: Rect2, theta: float, se: float, accent: C
 		text(ci, Vector2(X.call(v), base + 28), str(v), 18, fg)
 	for z in [[55, 70, "z_sigbelow"], [70, 85, "z_below"], [85, 115, "z_avg"], [115, 130, "z_above"], [130, 145, "z_sigabove"]]:
 		text(ci, Vector2((X.call(z[0]) + X.call(z[1])) / 2, base + 52), T.t(z[2]), 13, fg2)
-	var px: float = X.call(clampf(T.iq(theta), 55, 145))
-	var py: float = base - pdf.call(clampf(theta, -3, 3)) * 140
-	ci.draw_line(Vector2(px, py), Vector2(px, base), accent, 3.0)
-	ci.draw_circle(Vector2(px, py), 13, Color("#07070C"))
-	ci.draw_circle(Vector2(px, py), 10, accent)
+	if not generic:
+		var px: float = X.call(clampf(T.iq(theta), 55, 145))
+		var py: float = base - pdf.call(clampf(theta, -3, 3)) * 140
+		ci.draw_line(Vector2(px, py), Vector2(px, base), accent, 3.0)
+		ci.draw_circle(Vector2(px, py), 13, Color("#07070C"))
+		ci.draw_circle(Vector2(px, py), 10, accent)
+		if tag != "":
+			text(ci, Vector2(px, 16), tag, 18, accent)
 	finish(ci)
 
 # ------------------------------------------------------------------ INT, gv 9: body language and gaze

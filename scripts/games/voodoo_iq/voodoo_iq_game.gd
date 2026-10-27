@@ -500,8 +500,12 @@ func _show_info(back: Callable) -> void:
 	box.add_child(_panel_of(op))
 
 	var ip := _info_panel(str(T.info("iq_h")), Color("#4FB3FF"))
-	for p in T.info("iq"):
-		ip.add_child(_info_text(str(p), FG))
+	var iq_paras: Array = T.info("iq")
+	for i in iq_paras.size():
+		ip.add_child(_info_text(str(iq_paras[i]), FG))
+		if i == 0:
+			ip.add_child(Art.canvas(func(ci, sz): Art.bell(ci, Rect2(Vector2.ZERO, sz), NAN, 0.0, ACCENT, FG, FG2, 1.96, "★130+", WARN), Vector2(W - 40, (W - 40) * 230.0 / 640.0)))
+			ip.add_child(_info_text(tr("The curve shows how many people land in each band: most people are near 100, very few are far from it."), FG2, 18))
 	box.add_child(_panel_of(ip))
 
 	var hw := _info_panel(str(T.info("how_h")), Color("#2EE6A6"))
@@ -1679,7 +1683,7 @@ const AGE_BANDS := ["16-24", "25-34", "35-44", "45-54", "55+"]
 const BOARD_TABS := [["viq", "b_viq"], ["nine", "b_nine"], ["sec", "b_sec"], ["blitz", "blitz"]]
 
 ## Board settings, like the prototype's S.boards (kept while the scene lives).
-var boards := {"tab": "viq", "sec": "LOG", "bscope": "ALL", "bdur": 120, "season": "month", "age": "", "country": "", "province": "", "lang": "", "show_prov": false}
+var boards := {"tab": "viq", "sec": "LOG", "bscope": "ALL", "bdur": 120, "season": "month", "age": "", "country": "", "province": "", "lang": "", "show_prov": false, "show_help": false}
 var board_box: VBoxContainer
 
 func _show_boards() -> void:
@@ -1746,6 +1750,7 @@ func _show_boards() -> void:
 	elif boards.tab == "sec":
 		bnote = tr("Your last 3 ranked tests in this section (90 days), highest first. ✓ = enough questions for a tight ±.")
 	box.add_child(_label(bnote, 18, FG2, W, HORIZONTAL_ALIGNMENT_LEFT))
+	box.add_child(_board_help())
 	board_box = VBoxContainer.new()
 	board_box.add_theme_constant_override("separation", 10)
 	board_box.add_child(_label(T.t("loading"), 24, FG2, W))
@@ -1826,6 +1831,29 @@ func _toggle_prov(tp: Control) -> void:
 	boards.show_prov = not tp.visible
 	tp.visible = boards.show_prov
 
+## Closed by default (the screen is busy enough): what the ± and the ★130+ medal on the rows mean.
+func _board_help() -> Control:
+	var hp := _panel()
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	body.visible = bool(boards.show_help)
+	hp.add_child(_button("ℹ️ " + tr("What do ± and ★130+ mean?"), _toggle_board_help.bind(body), FG2, Vector2(0, 60), 20))
+	hp.add_child(body)
+	body.add_child(_label("± " + tr("The margin of error"), 24, ACCENT, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+	body.add_child(_info_text(tr("A score is an estimate, not an exact number. IQ 115 ±5 means we are about 2 in 3 sure your true level is within 5 points of 115 (110 to 120), and about 19 in 20 sure it is within 10."), FG))
+	body.add_child(Art.canvas(func(ci, sz): Art.bell(ci, Rect2(Vector2.ZERO, sz), 1.0, 5.0 / 15.0, ACCENT, FG, FG2, 1.0, "115 ±5"), Vector2(W - 40, (W - 40) * 230.0 / 640.0)))
+	body.add_child(_info_text(tr("Few questions give a wide ±, more questions a tighter one. A gap between two players smaller than the ± is not a real difference."), FG))
+	body.add_child(_info_text(tr("✓ = enough evidence: at least 15 questions and a ± of 6.75 or less in a section. For Voodoo IQ: a ± of 6 or less in each of Logic, Spatial and Verbal, on 2 different days that agree."), FG2, 18))
+	body.add_child(_label("★130+ " + tr("The genius medal"), 24, WARN, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
+	body.add_child(_info_text(tr("Only about 2 people in 100 reach 130. The medal is given for a 130+ score with proof it is not luck: a very tight ± (4.5 or less) and at least 3 very hard questions answered right in that section (Voodoo IQ: at least 2 in each of Logic, Spatial and Verbal)."), FG))
+	body.add_child(_info_text(tr("A 130+ score with a wider ± still shows its number, just without the medal. Self needs 40+ questions instead of the hard ones; 9-Mind needs only the tight ±."), FG2, 18))
+	return _panel_of(hp)
+
+func _toggle_board_help(body: Control) -> void:
+	boards.show_help = not body.visible
+	body.visible = boards.show_help
+
+
 ## The prototype's boardTable: # | player (+ you / 130+, place · age) | rank score,
 ## points or status | estimate ± or correct answers.
 func _board_table(rows: Array, prov: bool) -> Control:
@@ -1847,7 +1875,8 @@ func _board_table(rows: Array, prov: bool) -> Control:
 		var nick := str(r.get("nick", "—"))
 		if me:
 			nick += "  (" + T.t("you") + ")"
-		if r.get("genius", false):
+		# the medal is for 130+ (the server checks it too; Voodoo IQ and 9-Mind rows came without that check)
+		if r.get("genius", false) and float(r.get("score", 0.0)) >= 130.0:
 			nick += "  ★130+"
 		var nick_btn := Button.new()
 		nick_btn.text = nick

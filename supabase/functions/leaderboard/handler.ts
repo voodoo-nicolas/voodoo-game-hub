@@ -76,14 +76,14 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
       if (board === "viq") {
         const v: any = viqStanding(list, lang);
         if (v.theta == null) continue;
-        rows.push({ ...base(id), score: IQ(v.theta), theta: v.theta, se: v.se, verified: v.verified, genius: v.genius && v.verified });
+        rows.push({ ...base(id), score: IQ(v.theta), theta: v.theta, se: v.se, verified: v.verified, genius: v.genius && v.verified && IQ(v.theta) >= 130 });
       } else if (board === "nine") {
         const v: any = nineStanding(list);
         if (!v.ok) {
           if (v.ranked) provisional.push({ ...base(id), score: -1, sections: v.ranked });
           continue;
         }
-        rows.push({ ...base(id), score: IQ(v.theta), theta: v.theta, se: v.se, verified: true, genius: v.genius });
+        rows.push({ ...base(id), score: IQ(v.theta), theta: v.theta, se: v.se, verified: true, genius: v.genius && IQ(v.theta) >= 130 });
       } else {
         const v = secStanding(list, sec, sec === "LIN" ? lang : null);
         if (!v) continue;
