@@ -14,14 +14,33 @@ extends RefCounted
 
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 
+## What differs per variant lives in video_poker_rules_<variant>.gd; this file
+## is the shared engine. Add a variant there, then list it here and in VARIANTS.
+const RulesHoldem = preload("res://scripts/games/video_poker/video_poker_rules_holdem.gd")
+const RulesOmaha = preload("res://scripts/games/video_poker/video_poker_rules_omaha.gd")
+const RulesDraw = preload("res://scripts/games/video_poker/video_poker_rules_draw.gd")
+const RulesStud = preload("res://scripts/games/video_poker/video_poker_rules_stud.gd")
+
 const VARIANTS := ["holdem", "omaha", "draw", "stud"]
 const LIMITS := ["nl", "pl", "fl"]
+
+static var _rules_cache := {}
+
+## The (stateless, shared) rules of a variant; Hold'em for an unknown name.
+static func rules_for(name: String):
+	if _rules_cache.is_empty():
+		_rules_cache = {"holdem": RulesHoldem.new(), "omaha": RulesOmaha.new(), "draw": RulesDraw.new(), "stud": RulesStud.new()}
+	return _rules_cache.get(name, _rules_cache["holdem"])
 ## Limit games cap each betting round at a bet and three raises.
 const MAX_RAISES := 4
 ## Five Card Draw: swap up to 3 cards, or 4 when the card you keep is an Ace.
 const MAX_DRAW := 3
 
-var variant := "holdem"
+var variant := "holdem":
+	set(v):
+		variant = v
+		_rules = rules_for(v)
+var _rules = rules_for("holdem")
 var limit := "nl"
 var seats: Array = []
 var button := -1
@@ -117,17 +136,10 @@ func clone() -> RefCounted:
 # ---------- questions ----------
 
 func hole_count() -> int:
-	match variant:
-		"omaha": return 4
-		"draw": return 5
-		"stud": return 7
-	return 2
+	return _rules.hole_count()
 
 func last_street() -> int:
-	match variant:
-		"draw": return 1
-		"stud": return 4
-	return 3
+	return _rules.last_street()
 
 ## Seats that can still win this hand.
 func live() -> Array:
@@ -158,13 +170,8 @@ func pot_total() -> int:
 ## The size of a bet or raise in Limit games this round (and the minimum
 ## raise elsewhere).
 func bet_unit() -> int:
-	var big := false
-	match variant:
-		"holdem", "omaha": big = street >= 2
-		"draw": big = street >= 1
-		"stud": big = street >= 2
 	if limit == "fl":
-		return bb * 2 if big else bb
+		return bb * 2 if _rules.big_street(street) else bb
 	return bb
 
 ## Stud's forced bets, from the big blind: ante a quarter, bring-in a half.
@@ -260,54 +267,8 @@ func start_hand(rng: RandomNumberGenerator) -> bool:
 		deck[i] = deck[j]
 		deck[j] = t
 	button = _next_seat(button, true)
-	if variant == "stud":
-		_start_stud()
-	else:
-		_start_blinds()
+	_rules.start(self)
 	return true
-
-func _start_blinds() -> void:
-	var playing := live().size()
-	var sb_seat := button if playing == 2 else _next_seat(button, true)
-	var bb_seat := _next_seat(sb_seat, true)
-	_post(sb_seat, sb, "Small blind")
-	_post(bb_seat, bb, "Big blind")
-	current_bet = maxi(int(seats[sb_seat].bet), int(seats[bb_seat].bet))
-	last_raise = bb
-	raises = 1  # in Limit the big blind is the round's first bet
-	for k in hole_count():
-		var i := button
-		for n in playing:
-			i = _next_seat(i, true)
-			seats[i].hole.append(_deal())
-	_settle(bb_seat)
-
-func _start_stud() -> void:
-	for i in live():
-		_post(i, stud_ante(), "Ante")
-		seats[i].bet = 0  # antes go straight in the pot
-	pot = 0
-	for s in seats:
-		pot += int(s.total)
-	for i in live():
-		for k in 3:
-			seats[i].hole.append(_deal())
-			seats[i].up.append(k == 2)
-	# The lowest card showing opens ("brings it in"); suits break ties.
-	var low := -1
-	var low_key := 999
-	for i in live():
-		var c: int = seats[i].hole[2]
-		var key: int = Eval.value(c) * 4 + [3, 2, 1, 0][c / 13]  # clubs lowest, spades highest
-		if key < low_key:
-			low_key = key
-			low = i
-	bring_in = low
-	_post(low, stud_bring_in(), "Bring-in")
-	seats[low].acted = true
-	current_bet = int(seats[low].bet)
-	last_raise = bb
-	_settle(low)
 
 func _post(i: int, amount: int, label: String) -> void:
 	var s: Dictionary = seats[i]
@@ -466,7 +427,7 @@ func _end_round() -> void:
 	current_bet = 0
 	last_raise = bb
 	raises = 0
-	if variant == "draw" and street == 0:
+	if _rules.draw_phase_after(street):
 		phase = "draw"
 		to_act = _first_after_button(true)
 		return
@@ -494,44 +455,13 @@ func _open_round() -> void:
 	for s in seats:
 		s.act = "" if not s.folded and not s.allin else s.act
 	to_act = -1
-	if variant == "stud":
-		# Start the search just before the best hand showing.
-		_settle((_best_showing() - 1 + seats.size()) % seats.size())
-	else:
-		_settle(button)
+	_rules.open_round(self)
 
 func _first_after_button(any: bool) -> int:
 	return _next_seat(button, any)
 
 func _deal_street() -> void:
-	match variant:
-		"holdem", "omaha":
-			if street == 1:
-				deck.pop_back()  # burn
-				for k in 3:
-					board.append(_deal())
-			else:
-				deck.pop_back()
-				board.append(_deal())
-		"stud":
-			for i in live():
-				seats[i].hole.append(_deal())
-				seats[i].up.append(street < 4)
-
-## Stud: the best hand showing acts first from fourth street on.
-func _best_showing() -> int:
-	var best := -1
-	var best_s := -1
-	var i := bring_in if bring_in >= 0 else button
-	for k in seats.size():
-		i = (i + 1) % seats.size()
-		if not in_hand(i):
-			continue
-		var s := Eval.score(upcards(i))
-		if s > best_s:
-			best_s = s
-			best = i
-	return best
+	_rules.deal_street(self)
 
 func upcards(i: int) -> Array:
 	var out: Array = []
@@ -588,29 +518,10 @@ static func can_discard(hand: Array, indices: Array) -> bool:
 # ---------- the end of a hand ----------
 
 func hand_score(i: int) -> int:
-	var hole: Array = seats[i].hole
-	match variant:
-		"holdem":
-			return Eval.score(hole + board)
-		"omaha":
-			if board.size() < 3:
-				# Only two of the four can ever play: the best pair of them.
-				var best := -1
-				for a in hole.size():
-					for b in range(a + 1, hole.size()):
-						best = maxi(best, Eval.score([hole[a], hole[b]]))
-				return best
-			return Eval.score_omaha(hole, board)
-	return Eval.score(hole)
+	return _rules.hand_score(seats[i].hole, board)
 
 func best_cards(i: int) -> Array:
-	var hole: Array = seats[i].hole
-	match variant:
-		"holdem":
-			return Eval.best_five(hole + board)
-		"omaha":
-			return Eval.best_five(board, hole) if board.size() >= 3 else []
-	return Eval.best_five(hole)
+	return _rules.best_cards(seats[i].hole, board)
 
 func _finish_uncontested(winner: int) -> void:
 	for s in seats:
