@@ -12,6 +12,8 @@ checkerboard, not clean assets):
     (their pips are drawn in code);
   - chips: the 3x3 sheet is cut into chip_1..chip_6 (white red blue green black gold; the third row
     is a spare set and ignored) on a transparent background; dealer: the same;
+  - landing: the Landing background of each look (a scene of the table, 1280 wide), from LANDING below; for voodoo run
+    `python tools/poker_art_import.py "D:/dev/minigame art/poker" voodoo --only landing --credits`;
   - table_portrait: the empty table, as is; crest: the skull-in-V cut out of it as silver linework on transparent.
 Source names -> slots are in FACES below ("queen spades2" is an alternate; the owner picks).
 Writes the .import files too (lossy, so the pack stays small) and prints what it did.
@@ -38,6 +40,8 @@ BACK = "card"
 CHIP_SHEET = "chips"
 DEALER = "dealer"
 TABLE = "table"
+# look -> the scene used as its Landing background (path under the source folder)
+LANDING = {"classic": "classic/table.png", "voodoo": "table low.png"}
 # Row-major cells of the 3x3 chip sheet used for chip_1..chip_6 (white red blue / green black gold).
 CHIP_CELLS = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
 
@@ -265,7 +269,8 @@ def add_credits(out: Path, look: str, src: Path) -> None:
     have = {e.get("file") for e in data["assets"]}
     added = 0
     what = {"card_back": "card back", "card_face": "blank card face for the number cards (the card back with the crest painted out)",
-            "dealer": "dealer button", "table_portrait": "empty top-down table"}
+            "dealer": "dealer button", "table_portrait": "empty top-down table",
+            "landing": "Landing background (the table in a dark room)"}
     for f in sorted(out.glob("*.webp")):
         rel = f.relative_to(ROOT).as_posix()
         if rel in have:
@@ -295,6 +300,10 @@ def add_credits(out: Path, look: str, src: Path) -> None:
     print(f"CREDITS.json: {added} entries added")
 
 
+def want_landing(only: str) -> bool:
+    return not only or "landing" in only.split(",")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("src")
@@ -304,10 +313,17 @@ def main() -> int:
     ap.add_argument("--credits", action="store_true", help="add the media/CREDITS.json entries for the files written")
     args = ap.parse_args()
     folder = Path(args.src) / args.look / "game art"
+    if args.look in LANDING and want_landing(args.only):
+        im = Image.open(Path(args.src) / LANDING[args.look]).convert("RGB")
+        save(im.resize((1280, round(1280 * im.size[1] / im.size[0])), Image.LANCZOS), Path(args.out) / args.look / "landing.webp", quality=80)
     out = Path(args.out) / args.look
     only = {s for s in args.only.split(",") if s}
     want = lambda s: not only or s in only
     print(f"{folder} -> {out}")
+    if only == {"landing"}:
+        if args.credits:
+            add_credits(out, args.look, Path(args.src))
+        return 0
     back = None
     if want("card_back") or want("card_face"):
         back = cut_card(find_source(folder, BACK))

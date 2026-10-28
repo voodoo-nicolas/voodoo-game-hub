@@ -16,6 +16,7 @@ const Table = preload("res://scripts/games/video_poker/video_poker_table.gd")
 const AI = preload("res://scripts/games/video_poker/video_poker_ai.gd")
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
+const Chips = preload("res://scripts/games/video_poker/video_poker_chips.gd")
 const View = preload("res://scripts/games/video_poker/video_poker_view.gd")
 const Machine = preload("res://scripts/games/video_poker/video_poker_machine.gd")
 const Training = preload("res://scripts/games/video_poker/video_poker_training.gd")
@@ -27,6 +28,7 @@ const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
 const HomeKit = preload("res://scripts/games/video_poker/home_kit.gd")
+const LANDING_ART := "res://games/video_poker/art/classic/landing.webp"
 const HELP := preload("res://scripts/games/video_poker/video_poker_help.gd")
 ## Not preloaded: apps before v0.20 / v0.14 don't have them.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -246,7 +248,21 @@ func _set_skin(name: String) -> void:
 		bg.color = Look.c("room")
 		if bg.get_child_count() > 0:
 			bg.get_child(0).visible = skin != "classic"
+	_apply_landing_art()
 	_redraw_cards()
+
+## The Landing's background is the table scene of the current look.
+func _apply_landing_art() -> void:
+	var tex := Look.tex("landing")
+	if home == null or tex == null:
+		return
+	var layer = home.get("home")
+	if not (layer is Control):
+		return
+	for c in layer.get_children():
+		if c is TextureRect and (c as TextureRect).stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED:
+			(c as TextureRect).texture = tex
+			return
 
 func _redraw_cards() -> void:
 	for n in find_children("*", "CanvasItem", true, false):
@@ -316,6 +332,7 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.GOLD,
+		"art": LANDING_ART,  # the Classic picture; _set_skin swaps in the Voodoo one
 		"subtitle": "Hold'em, Omaha, Draw and Stud. Play chips only.",
 		"logo": _draw_home_logo,
 		"extra": _add_home_options,
@@ -630,15 +647,9 @@ func _draw_home_logo(c: Control) -> void:
 	var h := minf(c.size.y * 0.78, 150.0)
 	var w := h / 1.42
 	var o := c.size / 2.0
-	# chip stacks either side
+	# chip piles either side, in the look's chips
 	for side in [-1, 1]:
-		var base := o + Vector2(side * (w * 1.25 + 34), h * 0.32)
-		for k in 5:
-			var p: Vector2 = base + Vector2(0, -k * 9.0)
-			var col: Color = HomeKit.MAGENTA if (k + (1 if side > 0 else 0)) % 2 == 0 else HomeKit.CYAN
-			c.draw_circle(p, 24, Color(0.05, 0.05, 0.1))
-			HomeKit.glow_circle(c, p, 24, col, 2.0, 0.25)
-			c.draw_arc(p, 15, 0, TAU, 24, Color(Color.WHITE, 0.5), 1.5, true)
+		Chips.draw_stack(c, o + Vector2(side * (w * 1.25 + 40), h * 0.36), 760 if side < 0 else 1650, 42.0)
 	# two hole cards, fanned
 	var cards := [0, 13]
 	for k in 2:
