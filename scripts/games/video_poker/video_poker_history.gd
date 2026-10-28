@@ -48,20 +48,22 @@ func _init(file_path: String = PATH, keep_hands: int = KEEP) -> void:
 	keep = keep_hands
 
 ## Call after every change to table `t`. `hero` is the local player's seat
-## (-1 on a shared phone), `aids` whether the coach is on.
-func observe(t, mode: String, hero: int, aids: bool) -> void:
+## (-1 on a shared phone), `aids` whether the coach is on. Returns the record
+## of the hand this call finished and wrote ({} when none did), so the profile
+## and stats can count it.
+func observe(t, mode: String, hero: int, aids: bool) -> Dictionary:
 	if t.seats.is_empty() or t.phase == "idle":
-		return
+		return {}
 	var sig := _signature(t)
 	if not cur.is_empty():
 		if int(cur.n) != t.hand_no:
 			cur = {}  # a hand that never finished (left the table, a new match)
 		elif str(cur.get("_sig", "")) == sig:
-			return
+			return {}
 	var fresh := false
 	if cur.is_empty():
 		if t.phase == "done" and t.hand_no == _done_n:
-			return  # the hand just recorded, seen again
+			return {}  # the hand just recorded, seen again
 		_begin(t, mode, hero)
 		fresh = true
 	if aids:
@@ -73,7 +75,8 @@ func observe(t, mode: String, hero: int, aids: bool) -> void:
 	cur._pcb = t.current_bet
 	cur._pst = t.street
 	if t.phase == "done":
-		_finish(t)
+		return _finish(t)
+	return {}
 
 ## Forget the hand in progress (a new game or match started).
 func abandon() -> void:
@@ -147,7 +150,7 @@ func _event(t) -> void:
 	for i in mini(tot.size(), t.seats.size()):
 		tot[i] = int(t.seats[i].total)
 
-func _finish(t) -> void:
+func _finish(t) -> Dictionary:
 	cur.board = t.board.duplicate()
 	var ends: Array = []
 	var net: Array = []
@@ -172,6 +175,7 @@ func _finish(t) -> void:
 	_append(rec)
 	_done_n = t.hand_no
 	cur = {}
+	return rec
 
 # ---------- the file ----------
 
