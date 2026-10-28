@@ -32,6 +32,15 @@ import { CHECKS_EXI2 } from "./gens_exi2_checks.ts";
 import { CHECKS_SELF2 } from "./gens_self2_checks.ts";
 import { CHECKS_INT2 } from "./gens_int2_checks.ts";
 
+/** Spanish text that puts a masculine article on a feminine symbol (2026-10-27). */
+Deno.test("Spanish explanations use the right article for the star and the cross", () => {
+  const bad = /(el|un|al) (estrella|cruz)/i;
+  for (const gid of ["symsum", "scales", "cubenet"]) for (let d = 1; d <= 10; d++) for (let s = 1; s <= 120; s++) {
+    const it = GENS[gid].make(d, new Rng(s), { lang: "es", used: new Set(), blitz: false });
+    if (it) assert(!bad.test(it.why ?? ""), `${gid} d${d}: ${it.why}`);
+  }
+});
+
 const SEEDS = Number(Deno.env.get("GEN_SEEDS") ?? 150);
 const LANGS: Lang[] = ["en", "es"];
 const ALL_IDS = Object.keys(GENS);
@@ -105,6 +114,7 @@ const CHECKS: Record<string, (it: Item) => void> = {
     assertEquals(opts.length, 4);
     const right = opts.map((o, i) => rots.has(pKey(o)) ? i : -1).filter((i) => i >= 0);
     assertEquals(right.length, 1, "rotation: not exactly one rotated option");
+    assert(distinct(opts), "rotation: two options are the same drawing (2026-10-27)");
     // the rest are mirror images
     const mir = rotations(pMir(it.display.target as Poly));
     opts.forEach((o, i) => i !== right[0] && assert(mir.has(pKey(o))));
@@ -159,8 +169,8 @@ const CHECKS: Record<string, (it: Item) => void> = {
   },
   chord(it) {
     const notes = it.display.notes as number[];
-    const n = new Set(notes).size;
-    assertEquals(n, notes.length, `chord repeats a note: ${notes}`);
+    const n = new Set(notes.map((x) => x % 12)).size; // note names: an octave apart counts as the same note
+    assertEquals(n, notes.length, `chord repeats a note name: ${notes}`);
     oneIndex(it, 4, n - 1);
   },
   natclass(it) {
@@ -196,7 +206,13 @@ const CHECKS: Record<string, (it: Item) => void> = {
     assert(checkAnswer(it.key, 0) && checkAnswer(it.key, tol) && checkAnswer(it.key, -tol));
     assert(!checkAnswer(it.key, tol + 1) && !checkAnswer(it.key, "early") && !checkAnswer(it.key, "late"));
   },
-  face(it) { faceOpts(it); },
+  face(it) {
+    faceOpts(it);
+    if (it.display.eyesOnly) { // nose and mouth are cropped: disgust / anger and fear / surprise can't be told apart there
+      const o = it.display.options as string[], twin = ({ angry: "disgust", disgust: "angry", fear: "surprise", surprise: "fear" } as Record<string, string>)[(it.meta as any).emo];
+      assert(!o.includes(twin), `eyes-only face offers the answer's look-alike ${twin}: ${o}`);
+    }
+  },
   facequick(it) { faceOpts(it); },
   faceodd(it) {
     const { emo, other } = it.meta as any;

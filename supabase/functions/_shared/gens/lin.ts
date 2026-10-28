@@ -8,7 +8,14 @@ import { ANALOGY_WHY } from "./analogy_why.ts";
 const CATS_: Record<string, { g: string; en: string[]; es: string[] }> = CATS;
 const TRICKS_: any[] = TRICKS;
 const ANA_: Record<string, Record<number, string[]>> = ANA;
-const ANALOGIES_: any[] = ANALOGIES;
+// Two d10 analogies were ambiguous (players' audit, 2026-10-27): "sonnet : 14" never said lines (a haiku's
+// famous 17 is syllables) and "hydrogen : 1" fits atomic number AND mass (carbon: 6 or 12). data.ts is
+// extracted from the prototype and never hand-edited, so the clarified wording is applied here, by index.
+const ANALOGY_FIX: Record<number, [any, any]> = {
+  30: [["sonnet", "14 lines", "haiku", ["3 lines", "5 lines", "7 lines", "17 lines"]], ["soneto", "14 versos", "haiku", ["3 versos", "5 versos", "7 versos", "17 versos"]]],
+  31: [["hydrogen", "1 proton", "carbon", ["6 protons", "12 protons", "4 protons", "14 protons"]], ["hidrógeno", "1 protón", "carbono", ["6 protones", "12 protones", "4 protones", "14 protones"]]],
+};
+const ANALOGIES_: any[] = (ANALOGIES as any[]).map((x, i) => (ANALOGY_FIX[i] ? [x[0], ANALOGY_FIX[i][0], ANALOGY_FIX[i][1]] : x));
 
 /** Category names (data.ts CATS keys) and why each odd-one-out trick is odd, for `why`. */
 const CAT_NAME: Record<string, [string, string]> = {
@@ -96,6 +103,6 @@ defGen({
     const why = w && w[0] === en[0] ? say(lang, w[1], w[2])
       : say(lang, `${it[0]} is to ${it[1]} as ${it[2]} is to ${it[3][0]}: the same link joins both pairs. The other options are linked to ${it[2]} in a different way, or not at all.`,
         `${it[0]} es a ${it[1]} como ${it[2]} es a ${it[3][0]}: la misma relación une los dos pares. Las otras opciones se relacionan con ${it[2]} de otra manera, o no se relacionan.`);
-    return mkItem(this, dd, { lang, display: { a: it[0], b: it[1], c: it[2], options: order.map((i) => it[3][i]) }, key: { t: "idx", v: ansIdx }, why });
+    return mkItem(this, dd, { lang, display: { a: it[0], b: it[1], c: it[2], options: order.map((i) => it[3][i]) }, key: { t: "idx", v: ansIdx, rev: 2 }, why });
   },
 });

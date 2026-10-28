@@ -7,6 +7,8 @@ import { chiralPoly, pKey, pMir, pNorm, type Poly, pRotN } from "./spa.ts";
 
 const keyOf = (cells: number[][]) => cells.map((c) => c.join(",")).sort().join(";");
 /** The client's symbols (items.gd _sym_pts) by id, for `why`. */
+/** Spanish article for symbol s (the star and the cross are feminine). */
+const FEM6 = [false, false, false, true, false, true];
 const SYM6: Record<Lang, string[]> = {
   en: ["triangle", "circle", "square", "star", "diamond", "cross"],
   es: ["triángulo", "círculo", "cuadrado", "estrella", "rombo", "cruz"],
@@ -132,7 +134,7 @@ defGen({
       const opts = r.shuffle([o, ...adj]);
       const nm = (i: number) => SYM6[ctx.lang][sym[i]];
       const why = say(ctx.lang, `Folded up, the ${nm(o)} ends up opposite the ${nm(mark)}. A tip: in a straight line of three faces on the net, the two ends are opposite. The other options all share an edge with the ${nm(mark)}.`,
-        `Al armar el cubo, el ${nm(o)} queda opuesto al ${nm(mark)}. Un truco: en una fila recta de tres caras de la red, las dos de las puntas son opuestas. Las otras opciones comparten un borde con el ${nm(mark)}.`);
+        `Al armar el cubo, ${FEM6[sym[o]] ? "la" : "el"} ${nm(o)} queda ${FEM6[sym[o]] ? "opuesta" : "opuesto"} ${FEM6[sym[mark]] ? "a la" : "al"} ${nm(mark)}. Un truco: en una fila recta de tres caras de la red, las dos de las puntas son opuestas. Las otras opciones comparten un borde con ${FEM6[sym[mark]] ? "la" : "el"} ${nm(mark)}.`);
       return mkItem(this, d, { display: { net, ask: "opp", mark: sym[mark], options: opts.map((i) => sym[i]) }, key: { t: "idx", v: opts.indexOf(o) }, why });
     }
     // three faces that meet at a corner: no two of them opposite

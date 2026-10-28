@@ -19,7 +19,10 @@ import { nineStanding, type ScoreRow, secStanding, viqStanding } from "../_share
  *  one clean 4-vs-1 trait, see nat.ts; anagram: no repeated word in a session; topview since
  *  2026-10-25: the true view from above is right, not its mirror image, see spa.ts tvView). A deviation
  *  moves the RNG, so a session or batch is compared only up to its first such item. */
-const DEVIATES = new Set(["natodd", "natquick", "anagram", "topview"]);
+const DEVIATES = new Set(["natodd", "natquick", "anagram", "topview", "chord"]);
+/** Per-item deviations (2026-10-27 audit): the two reworded d 10 analogies, eyes-only faces (d 8+), and d 1 rotation
+ *  (redrawn when the S / Z piece would give two identical options). */
+const deviates = (it: { gid: string; d: number }) => DEVIATES.has(it.gid) || (it.gid === "analogy" && it.d === 10) || (it.gid === "face" && it.d >= 8) || (it.gid === "rotation" && it.d === 1);
 
 const SEEDS = Number(Deno.env.get("PARITY_SEEDS") ?? 40);
 const P: Record<Lang, any> = { en: await loadPrototype("en"), es: await loadPrototype("es") };
@@ -69,6 +72,7 @@ Deno.test("generators match the prototype seed for seed (all 27, d = 1..10, en/e
             const ts = GENS[id].make(d, tr, { lang, used: new Set(), blitz })!;
             const pi = P[lang].GENS[id].make(d, pr, { lang, used: new Set(), blitz });
             const where = `${id} d${d} ${lang} seed ${seed}${blitz ? " blitz" : ""}`;
+            if (deviates(ts)) continue;
             sameItem(where, ts, pi);
             assertEquals(tr.n(), pr.n(), `${where}: RNG consumption differs`);
           }
@@ -121,7 +125,7 @@ function simulateIq(lang: Lang, scope: string, seed: number, trueTheta: number, 
     run.lastSec = sec;
     const pi = run.makeItem(sec);
     const ts = nextIqItem(scope, lang, resp, state);
-    if (DEVIATES.has(ts.gid)) break;
+    if (deviates(ts)) break;
     sameItem(`${scope} ${lang} seed ${seed} step ${step}`, ts, pi);
     const u = player.chance(irt.p3(trueTheta, ts.a, ts.b, ts.c)) ? 1 : 0;
     const conf = player.pick([0.25, 0.5, 0.75, 1]);
@@ -182,7 +186,7 @@ Deno.test("Blitz batches match the prototype's Runner (shuffled section bag, d =
       const batch = blitzBatch(seed, scope, lang, 120);
       for (let i = 0; i < batch.length; i++) {
         const pi = run.makeItem(run.pickSection());
-        if (DEVIATES.has(batch[i].gid)) break;
+        if (deviates(batch[i])) break;
         sameItem(`blitz ${scope} ${lang} #${i}`, batch[i], pi);
       }
     }

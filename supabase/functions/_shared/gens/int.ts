@@ -31,6 +31,14 @@ function faceParams(emo: string, k: number, r: Rng) {
   return p;
 }
 const randId = (r: Rng) => ({ skin: r.int(0, 5), hair: r.int(0, 4), style: r.int(0, 2), w: r.int(-1, 1), sp: r.int(-1, 1) });
+/** Eyes-only crop (face d 8+): the nose and mouth are cut off, so disgust (nose wrinkle, raised lip) looks like a
+ *  milder anger and surprise like fear: each pair is never offered together (2026-10-27, players' audit). */
+const EYES_TWIN: Record<string, string> = { angry: "disgust", disgust: "angry", fear: "surprise", surprise: "fear" };
+export function emoOptionsEyes(ans: string, r: Rng) {
+  const twin = EYES_TWIN[ans];
+  const pool = [...CONFUSE_[ans], ...r.shuffle(EMO_KEYS.filter((e) => e !== ans && !CONFUSE_[ans].includes(e)))].filter((e) => e !== twin);
+  return r.shuffle([ans, ...pool.slice(0, 3)]);
+}
 export function emoOptions(ans: string, d: number, r: Rng) {
   const dist = d >= 5 ? CONFUSE_[ans].slice() : r.shuffle(EMO_KEYS.filter((e) => e !== ans)).slice(0, 3);
   return r.shuffle([ans, ...dist.slice(0, 3)]);
@@ -43,7 +51,7 @@ defGen({
     const emo = r.pick(EMO_KEYS);
     const p = faceParams(emo, k, r);
     const id = randId(r);
-    const opts = emoOptions(emo, d, r);
+    const opts = eyesOnly ? emoOptionsEyes(emo, r) : emoOptions(emo, d, r);
     const ansIdx = opts.indexOf(emo);
     return mkItem(this, d, { display: { params: p, face: id, eyesOnly, options: opts }, key: { t: "idx", v: ansIdx }, meta: { emo }, why: faceWhy(emo, eyesOnly, ctx.lang) });
   },

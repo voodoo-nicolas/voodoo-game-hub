@@ -83,9 +83,13 @@ defGen({
     let notes: number[] = [];
     for (let tr = 0; tr < 100; tr++) {
       const root = r.int(52, 64);
-      if (consonant) { const tri = r.pick([[0, 4, 7, 12], [0, 3, 7, 12], [0, 4, 7, 11], [0, 5, 9, 12]]); notes = r.shuffle(tri).slice(0, kk).map((x) => root + x); }
+      // Deviation from the prototype (2026-10-27, players' audit): two tones an octave apart have the same
+      // note name, so "how many different notes" was ambiguous (12 % of d 4-7 and 30 % of d 8-10 items).
+      // Every tone now has its own note name: the octave (12) became a seventh (10) or a sixth (9), and a gap sum that
+      // lands on a multiple of 12 is drawn again.
+      if (consonant) { const tri = r.pick([[0, 4, 7, 10], [0, 3, 7, 10], [0, 4, 7, 11], [0, 4, 7, 9]]); notes = r.shuffle(tri).slice(0, kk).map((x) => root + x); }
       else { notes = [root]; while (notes.length < kk) notes.push(notes[notes.length - 1] + r.int(minGap, minGap + 5)); }
-      break;
+      if (new Set(notes.map((x) => x % 12)).size === notes.length) break;
     }
     const ans = kk - 1;
     // MIDI notes played together for 1.1 s; options are "1".."4"

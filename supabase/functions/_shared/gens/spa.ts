@@ -136,7 +136,10 @@ defGen({
   id: "rotation", sec: "SPA", a: 1.4, k: 4, minMs: 1200, maxMs: 40000,
   make(d, r, ctx) {
     const m = [4, 5, 5, 6, 6, 7, 8, 9, 10, 11][d - 1];
-    const p = chiralPoly(m, r);
+    // The S / Z tetromino (d 1) turns into itself after half a turn, so two of the three mirror options were the same
+    // drawing (a third of d 1 items; players' audit 2026-10-27): draw again until the mirror has four different turns.
+    let p = chiralPoly(m, r);
+    for (let t = 0; t < 30 && new Set([0, 1, 2, 3].map((k) => pKey(pRotN(pMir(p), k)))).size < 4; t++) p = chiralPoly(m, r);
     const turns = r.int(1, 3);
     const correct = pRotN(p, turns);
     const ks = r.shuffle([0, 1, 2, 3]).slice(0, 3);

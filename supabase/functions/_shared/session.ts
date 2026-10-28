@@ -39,10 +39,12 @@ export async function loadSession(db: Db, id: unknown, uid: string): Promise<Ses
  *  taller ones (unverifiable, so confident players got them "wrong"; it wrecked Self scores).
  *  natclass / natodd 2 (2026-10-26): at d 7+ (natclass) and d 8+ (natodd) the prototype's answer
  *  came from a mod-3 sum / difference of two traits' scores: no rule a player could find, and
- *  often not even decidable from the examples (see KEY_REV_FROM_D, nat.ts). */
-export const KEY_REV: Record<string, number> = { topview: 3, natclass: 2, natodd: 2 };
+ *  often not even decidable from the examples (see KEY_REV_FROM_D, nat.ts).
+ *  analogy 2 (d 10) / letters 2 (d 9+) (2026-10-27): the two d 10 analogies (sonnet : 14, hydrogen : 1) and
+ *  the d 9 / d 10 letter series each had two defensible answers; reworded / reshaped, old answers dropped. */
+export const KEY_REV: Record<string, number> = { topview: 3, natclass: 2, natodd: 2, analogy: 2, letters: 2 };
 /** Where the wrong keys start: below this difficulty an unrevised key was fine. */
-const KEY_REV_FROM_D: Record<string, number> = { natclass: 7, natodd: 8 };
+const KEY_REV_FROM_D: Record<string, number> = { natclass: 7, natodd: 8, analogy: 10, letters: 9 };
 export const scorable = (gid: string, answerKey: any, d?: number) =>
   (answerKey?.key?.rev ?? 1) >= (KEY_REV[gid] ?? 1) || (d != null && d < (KEY_REV_FROM_D[gid] ?? 0));
 

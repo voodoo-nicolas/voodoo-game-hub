@@ -41,6 +41,8 @@ const SYM_NAME: Record<Lang, [string, string][]> = {
   es: [["triángulo", "triángulos"], ["círculo", "círculos"], ["cuadrado", "cuadrados"], ["estrella", "estrellas"]],
 };
 const symN = (lang: Lang, s: number, n: number) => `${n} ${SYM_NAME[lang][s][n === 1 ? 0 : 1]}`;
+/** Spanish "el" / "la" for symbol s (the star is feminine). */
+const elS = (s: number) => (s === 3 ? "la" : "el");
 const dot = (x: number, lang: Lang) => (lang === "es" ? String(x).replace(".", ",") : String(x));
 
 /* ---------------- symsum: hidden-value equations (typed) ----------------
@@ -79,7 +81,7 @@ defGen({
     for (const t of terms) t.forEach((x, i) => { if (!(i % 2) && !seen.includes(x as number)) seen.push(x as number); });
     const vals = (l: Lang) => seen.map((i) => `${SYM_NAME[l][shape[i]][0]} = ${v[i]}`).join(", ");
     const why = say(ctx.lang, `Solve one line at a time, starting with the line that has only one kind of symbol: ${vals("en")}. So the ${SYM_NAME.en[shape[ask]][0]} is ${v[ask]}.`,
-      `Resolvé una línea por vez, empezando por la que tiene un solo tipo de símbolo: ${vals("es")}. Entonces el ${SYM_NAME.es[shape[ask]][0]} vale ${v[ask]}.`);
+      `Resolvé una línea por vez, empezando por la que tiene un solo tipo de símbolo: ${vals("es")}. Entonces ${elS(shape[ask])} ${SYM_NAME.es[shape[ask]][0]} vale ${v[ask]}.`);
     return mkItem(this, d, { display: { eqs, ask: shape[ask] }, key: { t: "num", v: v[ask] }, meta: { v: byShape }, why });
   },
 });
@@ -127,7 +129,7 @@ defGen({
       scales = [{ l: [S[0]], r: [S[1], ...rep(S[2], j)] }, { l: [S[1]], r: rep(S[2], m) }];
       ans = n * (m + j); unit = S[2]; naive = n * m;
       why = say(L, `${N(S[0], 1)} = ${N(S[1], 1)} + ${N(S[2], j)}, and the ${one(S[1])} = ${N(S[2], m)}. So ${N(S[0], 1)} = ${m} + ${j} = ${N(S[2], m + j)}, and ${N(S[0], n)} = ${N(S[2], ans)}.`,
-        `${N(S[0], 1)} = ${N(S[1], 1)} + ${N(S[2], j)}, y el ${one(S[1])} = ${N(S[2], m)}. Entonces ${N(S[0], 1)} = ${m} + ${j} = ${N(S[2], m + j)}, y ${N(S[0], n)} = ${N(S[2], ans)}.`);
+        `${N(S[0], 1)} = ${N(S[1], 1)} + ${N(S[2], j)}, y ${elS(S[1])} ${one(S[1])} = ${N(S[2], m)}. Entonces ${N(S[0], 1)} = ${m} + ${j} = ${N(S[2], m + j)}, y ${N(S[0], n)} = ${N(S[2], ans)}.`);
     }
     if (d >= 5) scales = r.shuffle(scales.map((s) => (r.chance(.5) ? { l: s.r, r: s.l } : s)));
     const { options, ansIdx } = withAnswer(r, ans, wrongs(ans, [naive, ans + n, ans - n, ans * 2], 3));
@@ -197,10 +199,12 @@ defGen({
         seq = Array.from({ length: 5 }, (_, i) => s + i * a); pairs = Array.from({ length: 5 }, (_, i) => m + i * b);
         rule = [`The letter moves ${a} forward each time and the number adds ${b}.`, `La letra avanza ${a} cada vez y el número suma ${b}.`]; break; }
       case 8: seq = grow(r.int(16, 26), [-1, -2, -3, -4, -5]); rule = ["The jumps go back and grow by one: −1, −2, −3, −4, then −5.", "Los saltos retroceden y crecen de a uno: −1, −2, −3, −4 y después −5."]; break;
-      case 9: seq = grow(r.int(1, 11), [1, 2, 4, 8]); rule = ["The jumps double: +1, +2, +4, then +8.", "Los saltos se duplican: +1, +2, +4 y después +8."]; break;
+      // d 9 / d 10 (2026-10-27, players' audit): the old d 9 showed only the jumps +1, +2, +4 (then +7 fits as well as +8) and
+      // the old d 10 only +1, +2 in its first series (+3 and +4 both fit). Both now show enough jumps to leave one rule.
+      case 9: seq = grow(r.int(1, 10), [1, 3, 5, 7]); rule = ["The jumps are the odd numbers: +1, +3, +5, then +7.", "Los saltos son los números impares: +1, +3, +5 y después +7."]; break;
       default: { const s1 = r.int(1, 6), s2 = r.int(16, 26), b = r.int(1, 2);
-        seq = Array.from({ length: 7 }, (_, i) => (i % 2 ? s2 - ((i - 1) / 2) * b : s1 + [0, 1, 3, 6][i / 2]));
-        rule = [`Two series take turns: one starts at ${L(s1)} and jumps +1, +2, +3, the other moves ${b} back from ${L(s2)}. The missing letter is in the first one.`, `Dos series se turnan: una empieza en la ${L(s1)} y salta +1, +2, +3, la otra retrocede ${b} desde la ${L(s2)}. La que falta es de la primera.`]; }
+        seq = Array.from({ length: 9 }, (_, i) => (i % 2 ? s2 - ((i - 1) / 2) * b : s1 + [0, 1, 3, 6, 10][i / 2]));
+        rule = [`Two series take turns: one starts at ${L(s1)} and jumps +1, +2, +3, +4, the other moves ${b} back from ${L(s2)}. The missing letter is in the first one.`, `Dos series se turnan: una empieza en la ${L(s1)} y salta +1, +2, +3, +4, la otra retrocede ${b} desde la ${L(s2)}. La que falta es de la primera.`]; }
     }
     ans = seq.pop()!;
     let ansStr: string, wrong: string[];
@@ -216,7 +220,7 @@ defGen({
     const { options, ansIdx } = withAnswer(r, ansStr, wrong);
     const shown = seq.map((x, i) => L(x) + (pairs ? pairs[i] : ""));
     const why = say(ctx.lang, `${rule[0]} So the next one is ${ansStr} (count the letters: A = 1, B = 2…).`, `${rule[1]} Entonces sigue ${ansStr} (contá las letras: A = 1, B = 2…).`);
-    return mkItem(this, d, { display: { seq: shown, options }, key: { t: "idx", v: ansIdx }, meta: { ans: ansStr }, why });
+    return mkItem(this, d, { display: { seq: shown, options }, key: { t: "idx", v: ansIdx, rev: 2 }, meta: { ans: ansStr }, why });
   },
 });
 

@@ -166,7 +166,7 @@ export const CLOZE: { en: Tiers<Cloze>; es: Tiers<Cloze> } = {
       ["Se puso la campera porque afuera hacía ___.", "frío", ["calor", "sueño", "tarde"], "Uno se pone la campera cuando hace frío. Con calor no hace falta, y \"hacía sueño\" o \"hacía tarde afuera\" no tienen sentido."],
       ["Cerrá la puerta, que el gato se ___ a la calle.", "escapa", ["duerme", "ríe", "baña"], "Hay que cerrar la puerta porque el gato se escapa a la calle. \"Se duerme a la calle\" o \"se ríe a la calle\" no tienen sentido."],
       ["Estaba tan cansado que se quedó ___ en el sillón.", "dormido", ["despierto", "parado", "apurado"], "Estar muy cansado hace que te quedes dormido, no despierto, parado ni apurado."],
-      ["El museo es gratis, así que no hace falta ___ la entrada.", "pagar", ["cobrar", "perder", "romper"], "Si el museo es gratis, no hay que pagar la entrada. Cobrarla es lo que hace el museo, no el visitante."],
+      ["El museo es gratis, así que vos no tenés que ___ la entrada.", "pagar", ["cobrar", "perder", "romper"], "Si el museo es gratis, el visitante no tiene que pagar la entrada. Cobrarla es lo que haría el museo, no vos."],
     ],
     [
       ["Aunque el examen era difícil, la mayoría de los alumnos lo ___.", "aprobó", ["desaprobó", "odió", "olvidó"], "\"Aunque\" marca un contraste: el examen era difícil, pero igual la mayoría aprobó. Desaprobar sería lo esperable, no un contraste."],
@@ -202,7 +202,7 @@ export const SCRAMBLE: { en: Tiers<Scramble>; es: Tiers<Scramble> } = {
       ["It was too cold to go swimming in the lake.", []],
       ["My grandmother bakes a cake every Sunday morning.", []],
       ["He finished his homework before dinner.", []],
-      ["The baker sold bread to all the neighbours.", []],
+      ["The baker sold bread to all the neighbours.", ["The baker sold all the bread to neighbours.", "The baker sold the bread to all neighbours."]],
     ],
     [
       ["Although it was raining, we decided to walk home.", []],

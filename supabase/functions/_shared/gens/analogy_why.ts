@@ -34,5 +34,5 @@ export const ANALOGY_WHY: [string, string, string][] = [
   ["numismatist", "A numismatist collects and studies coins; a philatelist collects and studies stamps.", "Un numismático colecciona y estudia monedas; un filatelista colecciona y estudia estampillas."],
   ["loan", "A lender is the side a loan comes from; a landlord is the side the rent goes to. The tenant is the other side of the deal.", "El prestamista es quien da el préstamo; el propietario es quien recibe el alquiler. El inquilino es la otra parte del trato."],
   ["sonnet", "A sonnet has 14 lines; a haiku has 3. 17 is its number of syllables, not lines.", "Un soneto tiene 14 versos; un haiku tiene 3. 17 es su cantidad de sílabas, no de versos."],
-  ["hydrogen", "Hydrogen's atomic number (its number of protons) is 1; carbon's is 6. 12 is carbon's mass, not its atomic number.", "El número atómico del hidrógeno (su cantidad de protones) es 1; el del carbono es 6. 12 es la masa del carbono, no su número atómico."],
+  ["hydrogen", "Hydrogen has 1 proton; carbon has 6 (its atomic number). 12 is carbon's mass, not its number of protons.", "El hidrógeno tiene 1 protón; el carbono tiene 6 (su número atómico). 12 es la masa del carbono, no su cantidad de protones."],
 ];
