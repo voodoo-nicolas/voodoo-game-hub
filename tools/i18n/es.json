@@ -6495,6 +6495,7 @@
  "Paste sign-in code": "Pegar código de acceso",
  "Nothing to paste yet. Sign in with Google or Facebook in the browser, copy the code, then tap this.": "Aún no hay nada que pegar. Inicia sesión con Google o Facebook en el navegador, copia el código y toca aquí.",
  "Finish signing in in your browser, then come back here.": "Termina de iniciar sesión en el navegador y vuelve aquí.",
+ "%s sign-in isn't available yet. Use your email and password for now.": "El acceso con %s aún no está disponible. Por ahora usa tu correo y contraseña.",
  "Sending...": "Enviando...",
  "If that email has an account, a reset link is on its way. Check your spam folder too.": "Si ese correo tiene una cuenta, te llegará un enlace para restablecerla. Revisa también el spam.",
  "Too many reset emails. Wait a few minutes and try again.": "Demasiados correos de restablecimiento. Espera unos minutos e inténtalo de nuevo.",

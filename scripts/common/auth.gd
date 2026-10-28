@@ -127,6 +127,19 @@ const PROVIDERS := ["google", "facebook"]
 func oauth_url(provider: String) -> String:
 	return "%s/auth/v1/authorize?provider=%s&redirect_to=%s" % [SUPABASE_URL, provider, Config.AUTH_CALLBACK_URL.uri_encode()]
 
+## Asks the server whether `provider` is switched on (Authentication > Sign In /
+## Providers). Without this the browser opens on a bare "provider is not
+## enabled" error page. on_done.call(true/false), or null when the answer is
+## unknown (offline, odd reply): callers then just try the browser.
+func provider_enabled(provider: String, on_done: Callable) -> void:
+	_request(HTTPClient.METHOD_GET, "/auth/v1/settings", {}, PackedStringArray(), func(ok, parsed, _code):
+		var external = parsed.get("external", null) if typeof(parsed) == TYPE_DICTIONARY else null
+		if not ok or typeof(external) != TYPE_DICTIONARY or not external.has(provider):
+			_safe_call(on_done, [null])
+			return
+		_safe_call(on_done, [bool(external[provider])])
+	)
+
 static func looks_like_code(text: String) -> bool:
 	return text.strip_edges().begins_with(CODE_PREFIX) and text.strip_edges().length() > CODE_PREFIX.length() + 8
 

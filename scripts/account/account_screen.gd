@@ -66,6 +66,14 @@ func _on_oauth(provider: String) -> void:
 		Consent.return_scene = Consent.ACCOUNT_SCENE
 		get_tree().change_scene_to_file(Consent.CONSENT_SCENE)
 		return
+	_show_status(tr("Signing in..."), true)
+	Auth.provider_enabled(provider, _on_provider_checked.bind(provider))
+
+func _on_provider_checked(enabled, provider: String) -> void:
+	# enabled == null: couldn't tell (offline); the browser will show what's wrong.
+	if enabled == false:
+		_show_status(tr("%s sign-in isn't available yet. Use your email and password for now.") % provider.capitalize(), false)
+		return
 	waiting_for_code = true
 	_show_status(tr("Finish signing in in your browser, then come back here."), true)
 	OS.shell_open(Auth.oauth_url(provider))
