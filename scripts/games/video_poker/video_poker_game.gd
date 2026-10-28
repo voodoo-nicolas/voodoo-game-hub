@@ -21,6 +21,8 @@ const View = preload("res://scripts/games/video_poker/video_poker_view.gd")
 const Machine = preload("res://scripts/games/video_poker/video_poker_machine.gd")
 const Training = preload("res://scripts/games/video_poker/video_poker_training.gd")
 const History = preload("res://scripts/games/video_poker/video_poker_history.gd")
+const Profile = preload("res://scripts/games/video_poker/video_poker_profile.gd")
+const StatsScreen = preload("res://scripts/games/video_poker/video_poker_stats_screen.gd")
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -130,6 +132,8 @@ var next_btn: Button
 var leave_btn: Button
 var machine: Control
 var training: Control
+var stats_screen: Control
+var profile = Profile.new()   # XP, level and lifetime numbers (user://video_poker_profile.json)
 var cover: ColorRect
 var cover_label: Label
 var end_dialog: ColorRect
@@ -288,6 +292,10 @@ func _build_ui() -> void:
 	training.back_pressed.connect(_leave_training)
 	training.practice_pressed.connect(_start_practice)
 	add_child(training)
+	stats_screen = StatsScreen.new()
+	stats_screen.visible = false
+	stats_screen.back_pressed.connect(_leave_stats)
+	add_child(stats_screen)
 
 	_build_cover()
 	end_dialog = UI.build_dialog("", [
@@ -343,6 +351,7 @@ func _build_ui() -> void:
 		"board_note": "The most chips you've ever had. Play chips only.",
 		"online": online,
 		"options": _add_game_options,
+		"more": [["📈 My stats", HomeKit.PURPLE, _open_stats]],
 	})
 	add_child(home)
 	if info:
@@ -565,6 +574,7 @@ func _show_screen(which: String) -> void:
 	table_screen.visible = which == "table"
 	machine.visible = which == "vp"
 	training.visible = which == "training"
+	stats_screen.visible = which == "stats"
 	if which != "table":
 		cover.visible = false
 
@@ -616,6 +626,8 @@ func _toggle(text: String, color: Color, group: ButtonGroup) -> Button:
 func _update_chips_label() -> void:
 	if chips_label:
 		chips_label.text = "🪙 " + tr("Your chips: %s") % View._chips(chips)
+		chips_label.text += "
+" + tr("Level %d · %s") % [profile.level(), tr(Profile.title_for(profile.level()))]
 		if note != "":
 			chips_label.text += "\n" + note
 			note = ""
@@ -939,7 +951,9 @@ func _decision_key() -> String:
 ## After anything changed the table: count a finished hand, start the
 ## computer thinking, hand the phone over, ask the coach, redraw.
 func _after_change() -> void:
-	history.observe(t, mode, _hero_seat(), _has_aids())
+	var finished: Dictionary = history.observe(t, mode, _hero_seat(), _has_aids())
+	if not finished.is_empty():
+		_on_hand_recorded(finished)
 	if t.phase == "done":
 		if handled_hand != t.hand_no:
 			handled_hand = t.hand_no
@@ -1140,10 +1154,12 @@ func _check_match_over() -> void:
 			started = false
 			if left.size() == 1 and left[0] == me:
 				msg = tr("You won the tournament!")
+				msg += "  " + _finish_tourney(1)
 				_record("win")
 			else:
 				var place: int = left.size() + 1
 				msg = tr("You finished %s of %d.") % [_ordinal(place), int(meta.start)]
+				msg += "  " + _finish_tourney(place)
 				_record("loss")
 			if info:
 				msg += "\n" + info.summary(["Wins", "Hands won", "Biggest pot"])
@@ -1169,6 +1185,15 @@ func _check_match_over() -> void:
 				msg += "\n" + info.summary(["Online wins", "Online losses"])
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
+
+## The player's tournament is over: the profile keeps the finish.
+func _finish_tourney(place: int) -> String:
+	if result_recorded:
+		return ""
+	var xp: int = profile.record_tourney(place, int(meta.start), str(t.variant))
+	if info and place == 1:
+		info.add("Tournaments won")
+	return tr("+%d XP") % xp
 
 func _record(outcome: String) -> void:
 	if info and not result_recorded:
@@ -1240,6 +1265,30 @@ func _toggle_coach() -> void:
 	if coach_on and _hero_can_act():
 		_request_coach()
 	_render()
+
+## A hand just finished and was written to the history: the profile counts it
+## (XP, lifetime numbers) and Poker's own GameInfo counters feed the badges.
+func _on_hand_recorded(rec: Dictionary) -> void:
+	var out: Dictionary = profile.record_hand(rec)
+	if not bool(out.counted):
+		return
+	if bool(out.level_up):
+		note = tr("Level up! You are level %d now: %s.") % [profile.level(), tr(Profile.title_for(profile.level()))]
+	if info == null:
+		return
+	var cat := int(out.cat)
+	if cat >= 0 and (bool(out.showdown) or bool(out.won)):
+		match cat:
+			Eval.STRAIGHT_FLUSH: info.add("Straight flushes")
+			Eval.QUADS: info.add("Four of a kind made")
+			Eval.FULL_HOUSE: info.add("Full houses made")
+	if bool(out.uncontested):
+		info.add("Pots won uncontested")
+	if bool(out.showdown) and bool(out.won):
+		info.add("Showdowns won")
+	info.high("Best hand streak", int(profile.d.win_run_best))
+	info.high("Poker level", profile.level())
+	info.high("Days in a row", int(profile.d.day_run_best))
 
 ## The coach or the win chance is on: the hand is marked `aids` in the history.
 func _has_aids() -> bool:
@@ -1657,6 +1706,17 @@ func _open_training() -> void:
 	mode = "training"
 	_show_screen("training")
 	training.show_menu()
+
+func _open_stats() -> void:
+	mode = "stats"
+	home.hide_home()
+	_show_screen("stats")
+	stats_screen.open(profile)
+
+func _leave_stats() -> void:
+	mode = ""
+	_show_screen("")
+	home.show_home()
 
 func _leave_training() -> void:
 	mode = ""

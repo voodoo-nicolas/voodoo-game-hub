@@ -8,6 +8,7 @@ extends SceneTree
 ##
 ## Steps:  shot:<name>   save <out_dir>/<name>.png
 ##         wait:<frames> let the game run
+##         vscroll:<px>  scroll every visible ScrollContainer to that offset
 ##         press:<text>  press the topmost visible button whose text contains <text>
 ##         buttons       print every visible button's text
 ##         scale         print the content scale and canvas size
@@ -49,6 +50,10 @@ func _run(scene: String, steps: Array) -> void:
 		elif step.begins_with("wait:"):
 			for i in int(arg):
 				await process_frame
+		elif step.begins_with("vscroll:"):
+			for sc in _all_scrolls(root):
+				sc.scroll_vertical = int(arg)
+			await process_frame
 		elif step.begins_with("press:"):
 			var b := _find_button(arg)
 			if b == null:
@@ -100,6 +105,14 @@ func _buttons(n: Node) -> Array:
 	return out
 
 ## Topmost = last in tree order.
+func _all_scrolls(n: Node) -> Array:
+	var out: Array = []
+	if n is ScrollContainer and (n as ScrollContainer).is_visible_in_tree():
+		out.append(n)
+	for c in n.get_children():
+		out += _all_scrolls(c)
+	return out
+
 func _find_button(text: String) -> Button:
 	var found: Button = null
 	for b in _buttons(root):

@@ -223,7 +223,7 @@ func _habits() -> void:
 	ok(int(s.bet3_chance) == 0, "no 3-bet chance when opening")
 	ok(int(s.raises) == 1 and int(s.faced) == 2 and int(s.folds_faced) == 1, "one raise, faced the blind and the 3-bet, folded to the 3-bet")
 	ok(int(s.biggest_lost) == 160 and int(s.lose_run) == 1, "lost hand counts")
-	ok(Stats.POSITIONS[Stats.position_of(h, 0)] == "Button", "seat 0 on the button")
+	ok(Stats.POSITIONS[Stats.position_of(h, 0)] == "Dealer seat", "seat 0 on the button")
 	ok(Stats.POSITIONS[Stats.position_of(h, 1)] == "Blinds" and Stats.POSITIONS[Stats.position_of(h, 2)] == "Blinds", "blinds")
 	# the player (big blind) checks with no raise: not voluntary; then a flop c-bet by the preflop raiser
 	var h2 := h.duplicate(true)
@@ -253,7 +253,8 @@ func _habits() -> void:
 
 func _replays(recs: Array) -> void:
 	var total_frames := 0
-	for r in recs:
+	for r0 in recs:
+		var r: Dictionary = JSON.parse_string(JSON.stringify(r0))  # as read back from the history file: floats for ints
 		var frames := Replay.frames(r)
 		var tag := "hand %d (%s)" % [int(r.n), r.variant]
 		ok(frames.size() == (r.ev as Array).size() + 2, tag + ": a frame for the deal, every action and the end")
@@ -269,6 +270,9 @@ func _replays(recs: Array) -> void:
 			total_frames += 1
 		var last = frames[frames.size() - 1].t
 		ok(last.phase == "done", tag + ": the last frame is the end")
+		for fi in frames.size():
+			var ft = frames[fi].t
+			ok(ft.describe(ft.hand_score(0)) != "" or ft.seats[0].hole.size() < 2, tag + ": the player's hand reads at frame %d" % fi)
 		for i in r.seats.size():
 			ok(int(last.seats[i].stack) == int(r.seats[i].stack) + int(r.net[i]), tag + ": seat %d ends at stack + net" % i)
 		ok(last.results.size() == (r.res as Array).size(), tag + ": results shown")

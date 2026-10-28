@@ -13,3 +13,4 @@ Texas Hold'em, Omaha, Five Card Draw, Seven Card Stud (No limit / Pot limit / Li
 - i18n: poker's check uses key `"Check "` (trailing space, `View.CHECK`) -> "Pasar".
 - Web: AIs block briefly (no threads).
 - Options (since the revamp): four-colour deck, chip piles vs numbers, win chance; stored in `prefs` of `video_poker_chips.json`. Win chance and the coach both mark hands `aids` in the history.
+- Stats, replay, XP (phase 2): `_profile.gd`, `_stats.gd`, `_replay.gd`, `_replay_screen.gd`, `_stats_screen.gd`; details in `poker-revamp.md` (Phase 2). `History.observe()` returns the hand it finished; the game feeds the profile from it.

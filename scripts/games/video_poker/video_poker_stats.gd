@@ -14,7 +14,7 @@ const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 const Table = preload("res://scripts/games/video_poker/video_poker_table.gd")
 
 const SESSION_GAP := 1800
-const POSITIONS := ["Button", "Cutoff", "Blinds", "Early"]
+const POSITIONS := ["Dealer seat", "Cutoff", "Blinds", "Early"]
 
 ## The hands that are the player's own (a hero seat, not a shared phone) after the filters.
 static func mine(hands: Array, opts: Dictionary = {}) -> Array:

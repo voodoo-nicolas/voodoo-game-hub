@@ -16,6 +16,7 @@ const HOW := [
 	"Video Poker (Jacks or Better): bet 1-5 coins of 10, 50 or 250 chips, tap cards to hold, then draw. 💡 shows the textbook hold.",
 	"Pass and play: 2 to 6 people on one phone. The screen hides the cards whenever the phone changes hands. Online: heads-up against a friend; the first to take all the chips wins.",
 	"🎓 Training: the coach table, hand rankings and five drills. At any table the 🎓 button turns the coach on: your win chance, the pot odds and what it would do.",
+	"📈 My stats (under More on Home) keeps your level and XP, your numbers (VPIP, PFR, bb/100, results by game, stakes and seat), a graph of your chips and every hand you played: tap one to replay it, ⭐ to keep it.",
 	"Out of chips with nothing at a table? The house spots you 1,000. ⏸ pauses; tables and the machine are saved, and Resume on Home carries on.",
 ]
 const TIPS := [
@@ -25,7 +26,7 @@ const TIPS := [
 	"Play fewer, stronger starting hands, and bet them. Most hands in Hold'em should be folded before the flop.",
 	"Turn the coach on to see each computer player's style: don't bluff a Calling Station, and believe a Rock's bets.",
 ]
-const STATS := ["Most chips", "Hands played", "Hands won", "Biggest pot", "Wins", "Royal flushes", "Drills done"]
+const STATS := ["Most chips", "Hands played", "Hands won", "Biggest pot", "Wins", "Royal flushes", "Showdowns won", "Pots won uncontested", "Tournaments won", "Best hand streak", "Poker level", "Drills done"]
 const ACHIEVEMENTS := [
 	{"id": "royal", "icon": "👑", "title": "Royal Treatment", "key": "Royal flushes", "at": 1},
 	{"id": "pot5k", "icon": "💰", "title": "Big Pot", "key": "Biggest pot", "at": 5000},
@@ -33,6 +34,23 @@ const ACHIEVEMENTS := [
 	{"id": "chips10k", "icon": "🎩", "title": "High Roller", "key": "Most chips", "at": 10000},
 	{"id": "chips100k", "icon": "💎", "title": "Whale", "key": "Most chips", "at": 100000},
 	{"id": "perfect", "icon": "🎓", "title": "Star Student", "key": "Perfect drills", "at": 1},
+	{"id": "hands100", "icon": "🃏", "title": "Regular at the Table", "key": "Hands played", "at": 100},
+	{"id": "hands1000", "icon": "🎰", "title": "Grinder", "key": "Hands played", "at": 1000},
+	{"id": "hands5000", "icon": "🛣", "title": "Road Warrior", "key": "Hands played", "at": 5000},
+	{"id": "straightflush", "icon": "🌈", "title": "Straight to the Flush", "key": "Straight flushes", "at": 1},
+	{"id": "quads", "icon": "4️⃣", "title": "Four of a Kind", "key": "Four of a kind made", "at": 1},
+	{"id": "fullhouses", "icon": "🏠", "title": "House Rules", "key": "Full houses made", "at": 10},
+	{"id": "uncontested25", "icon": "🎭", "title": "Bluffer", "key": "Pots won uncontested", "at": 25},
+	{"id": "uncontested100", "icon": "🤫", "title": "Nobody Calls", "key": "Pots won uncontested", "at": 100},
+	{"id": "showdowns50", "icon": "⚔️", "title": "Showdown Winner", "key": "Showdowns won", "at": 50},
+	{"id": "streak5", "icon": "🔥", "title": "On Fire", "key": "Best hand streak", "at": 5},
+	{"id": "tourney1", "icon": "🏅", "title": "Tournament Winner", "key": "Tournaments won", "at": 1},
+	{"id": "tourney10", "icon": "🏆", "title": "Champion", "key": "Tournaments won", "at": 10},
+	{"id": "level5", "icon": "⭐", "title": "Level 5", "key": "Poker level", "at": 5},
+	{"id": "level10", "icon": "👑", "title": "Voodoo Master", "key": "Poker level", "at": 10},
+	{"id": "days3", "icon": "📅", "title": "Back Again", "key": "Days in a row", "at": 3},
+	{"id": "days7", "icon": "🗓", "title": "A Week at the Tables", "key": "Days in a row", "at": 7},
+	{"id": "days30", "icon": "🌙", "title": "Night Owl", "key": "Days in a row", "at": 30},
 ]
 
 ## Learning hook (STANDARDS §15): one shows on the Home screen's

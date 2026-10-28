@@ -10,10 +10,12 @@ extends RefCounted
 ## that seat's draw; the Stud ante and bring-in sit in the pot, not on the felt.
 
 const Table = preload("res://scripts/games/video_poker/video_poker_table.gd")
+const History = preload("res://scripts/games/video_poker/video_poker_history.gd")
 
 ## [{"t": Table, "caption": String, "street": int, "event": int}], event = the
 ## index of the action just shown (-1 for the deal).
-static func frames(rec: Dictionary) -> Array:
+static func frames(record: Dictionary) -> Array:
+	var rec: Dictionary = History._norm(record)  # a record read from the file has floats for ints
 	var out: Array = []
 	var seats_rec: Array = rec.get("seats", [])
 	var n := seats_rec.size()
