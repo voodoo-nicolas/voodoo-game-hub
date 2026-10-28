@@ -7,7 +7,7 @@ const STRINGS := {
 		"%d min": "%d min",
 		"%d of %d right. Tap a question to see it again with the right answer.": "%d de %d correctas. Toca una pregunta para verla de nuevo con la respuesta correcta.",
 		"A 130+ score with a wider ± still shows its number, just without the medal. Self needs 40+ questions instead of the hard ones; 9-Mind needs only the tight ±.": "Un puntaje de 130+ con un ± más amplio muestra igual su número, solo que sin la medalla. Self pide 40+ preguntas en vez de las difíciles; 9-Mind pide solo el ± ajustado.",
-		"A score is an estimate, not an exact number. IQ 115 ±5 means we are about 2 in 3 sure your true level is within 5 points of 115 (110 to 120), and about 19 in 20 sure it is within 10.": "Un puntaje es una estimación, no un número exacto. IQ 115 ±5 significa que estamos seguros en unas 2 de cada 3 veces de que tu nivel real está a menos de 5 puntos de 115 (de 110 a 120), y en unas 19 de cada 20 de que está a menos de 10.",
+		"A score is an estimate, not an exact number. Example: IQ 115 ±5.\n• We are 68% sure your real IQ is between 110 and 120 (115 ±5).\n• We are 95% sure it is between 105 and 125 (115 ±10).": "Un puntaje es una estimación, no un número exacto. Ejemplo: IQ 115 ±5.\n• Estamos 68% seguros de que tu IQ real está entre 110 y 120 (115 ±5).\n• Estamos 95% seguros de que está entre 105 y 125 (115 ±10).",
 		"All answers": "Todas las respuestas",
 		"Also accepted: %s": "También vale: %s",
 		"Average seconds per question": "Segundos medios por pregunta",

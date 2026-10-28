@@ -1981,7 +1981,7 @@ func _board_help() -> Control:
 	hp.add_child(_button("ℹ️ " + tr("What do ± and ★130+ mean?"), _toggle_board_help.bind(body), FG2, Vector2(0, 60), 20))
 	hp.add_child(body)
 	body.add_child(_label("± " + tr("The margin of error"), 24, ACCENT, W - 40, HORIZONTAL_ALIGNMENT_LEFT))
-	body.add_child(_info_text(tr("A score is an estimate, not an exact number. IQ 115 ±5 means we are about 2 in 3 sure your true level is within 5 points of 115 (110 to 120), and about 19 in 20 sure it is within 10."), FG))
+	body.add_child(_info_text(tr("A score is an estimate, not an exact number. Example: IQ 115 ±5.\n• We are 68% sure your real IQ is between 110 and 120 (115 ±5).\n• We are 95% sure it is between 105 and 125 (115 ±10)."), FG))
 	body.add_child(Art.canvas(func(ci, sz): Art.bell(ci, Rect2(Vector2.ZERO, sz), 1.0, 5.0 / 15.0, ACCENT, FG, FG2, 1.0, "115 ±5"), Vector2(W - 40, (W - 40) * 230.0 / 640.0)))
 	body.add_child(_info_text(tr("Few questions give a wide ±, more questions a tighter one. A gap between two players smaller than the ± is not a real difference."), FG))
 	body.add_child(_info_text(tr("✓ = enough evidence: at least 15 questions and a ± of 6.75 or less in a section. For Voodoo IQ: a ± of 6 or less in each of Logic, Spatial and Verbal, on 2 different days that agree."), FG2, 18))
