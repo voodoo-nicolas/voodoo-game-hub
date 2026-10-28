@@ -13,6 +13,13 @@ extends RefCounted
 
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 
+## The variant's name in full and short (English keys the screens translate).
+func title() -> String:
+	return "Texas Hold'em"
+
+func short_title() -> String:
+	return "Hold'em"
+
 ## The cards in the deck, as ints (see video_poker_eval.gd). Short Deck would
 ## leave out the 2s to 5s: the table never assumes 52.
 func new_deck() -> Array:
@@ -44,6 +51,25 @@ func has_starting_hand_chart() -> bool:
 ## Hold'em: the higher, the fewer deals it simulates per decision.
 func work_cost() -> float:
 	return 1.0
+
+## The only betting structure this variant is played with ("fl" = Limit), or
+## "" when the player picks No limit / Pot limit / Limit.
+func forced_limit() -> String:
+	return ""
+
+## True when a dealer button is drawn (games with a fixed first bet, like Stud, have none).
+func has_dealer_button() -> bool:
+	return true
+
+## True when some of a seat's cards are dealt face up (the table draws the
+## viewer's hidden and showing cards apart).
+func has_up_cards() -> bool:
+	return false
+
+## What to say about the round in progress next to the pot (an English key the
+## view translates), or "".
+func round_note(_t) -> String:
+	return ""
 
 ## Cards each seat is dealt to start.
 func hole_count() -> int:

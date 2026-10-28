@@ -59,8 +59,6 @@ const PRACTICE_STACK := 1000
 ## Online: the host deals the next hand after this many seconds.
 const NEXT_DELAY := 6.0
 
-const VARIANT_NAMES := {"holdem": "Texas Hold'em", "omaha": "Omaha", "draw": "Five Card Draw", "stud": "Seven Card Stud"}
-const VARIANT_SHORT := {"holdem": "Hold'em", "omaha": "Omaha", "draw": "5-Card Draw", "stud": "7-Card Stud"}
 const LIMIT_NAMES := {"nl": "No limit", "pl": "Pot limit", "fl": "Limit"}
 const LEVEL_NAMES := ["Easy", "Normal", "Hard"]
 
@@ -586,7 +584,7 @@ func _add_home_options(box: VBoxContainer) -> void:
 	var group := ButtonGroup.new()
 	variant_btns = []
 	for v in Table.VARIANTS:
-		var b := _toggle(tr(VARIANT_SHORT[v]), HomeKit.GOLD, group)
+		var b := _toggle(tr(Table.rules_for(v).short_title()), HomeKit.GOLD, group)
 		b.button_pressed = v == prefs.variant
 		b.pressed.connect(_pick_variant.bind(v))
 		grid.add_child(b)
@@ -624,23 +622,26 @@ func _update_chips_label() -> void:
 
 func _pick_variant(v: String) -> void:
 	prefs.variant = v
-	if v == "stud":
-		prefs.limit = "fl"
+	var forced: String = Table.rules_for(v).forced_limit()
+	if forced != "":
+		prefs.limit = forced
 	_update_limit_buttons()
 	_save_chips()
 
 func _pick_limit(l: String) -> void:
-	if prefs.variant == "stud" and l != "fl":
+	var forced: String = Table.rules_for(str(prefs.variant)).forced_limit()
+	if forced != "" and l != forced:
 		_update_limit_buttons()
 		return
 	prefs.limit = l
 	_save_chips()
 
-## Seven Card Stud is played Limit only (antes and a bring-in).
+## A variant played with one structure (Seven Card Stud: Limit) greys out the others.
 func _update_limit_buttons() -> void:
+	var forced: String = Table.rules_for(str(prefs.variant)).forced_limit()
 	for i in limit_btns.size():
 		var l: String = Table.LIMITS[i]
-		limit_btns[i].disabled = prefs.variant == "stud" and l != "fl"
+		limit_btns[i].disabled = forced != "" and l != forced
 		limit_btns[i].button_pressed = l == prefs.limit
 
 func _draw_home_logo(c: Control) -> void:
@@ -691,7 +692,7 @@ func _open_sheet(title: String, build: Callable, start_text: String, start: Call
 	tl.add_theme_color_override("font_outline_color", Color(HomeKit.GOLD, 0.5))
 	tl.add_theme_constant_override("outline_size", 10)
 	box.add_child(tl)
-	box.add_child(HomeKit.label("%s · %s" % [tr(VARIANT_NAMES[prefs.variant]), tr(LIMIT_NAMES[_limit_for(prefs.variant)])], 24, HomeKit.DIM, true, true))
+	box.add_child(HomeKit.label("%s · %s" % [tr(Table.rules_for(str(prefs.variant)).title()), tr(LIMIT_NAMES[_limit_for(prefs.variant)])], 24, HomeKit.DIM, true, true))
 	build.call(box)
 	box.add_child(HomeKit.gap(8))
 	var go := HomeKit.neon_button(tr(start_text), HomeKit.LIME, 32, 84)
@@ -711,7 +712,8 @@ func _cancel_sheet() -> void:
 	home.show_home()
 
 func _limit_for(variant: String) -> String:
-	return "fl" if variant == "stud" else str(prefs.limit)
+	var forced: String = Table.rules_for(variant).forced_limit()
+	return forced if forced != "" else str(prefs.limit)
 
 func _opponent_rows(box: VBoxContainer) -> void:
 	box.add_child(home.section("Computer opponents"))
@@ -1344,7 +1346,7 @@ func _render() -> void:
 		coach_panel.visible = false
 		view.queue_redraw()
 		return
-	title_label.text = "%s · %s" % [tr(VARIANT_SHORT[t.variant]), tr(LIMIT_NAMES[t.limit])]
+	title_label.text = "%s · %s" % [tr(t.rules().short_title()), tr(LIMIT_NAMES[t.limit])]
 	info_label.text = _info_text()
 	status_label.text = _status_text()
 	_render_buttons()
@@ -1353,7 +1355,7 @@ func _render() -> void:
 
 func _info_text() -> String:
 	var blinds := tr("Blinds %s/%s") % [View._chips(t.sb), View._chips(t.bb)]
-	if t.variant == "stud":
+	if not t.rules().has_blinds():
 		blinds = tr("Ante %s · bring-in %s · bets %s/%s") % [t.stud_ante(), t.stud_bring_in(), View._chips(t.bb), View._chips(t.bb * 2)]
 	var parts: Array = [blinds]
 	match mode:
@@ -1707,7 +1709,7 @@ func _resume_text() -> String:
 		return ""
 	var td: Dictionary = d.get("t", {})
 	var names := {"cash": "Cash game", "tourney": "Tournament", "local": "Pass and play"}
-	return "%s · %s" % [tr(names.get(str(d.get("mode", "")), "Poker")), tr(VARIANT_SHORT.get(str(td.get("variant", "holdem")), "Poker"))]
+	return "%s · %s" % [tr(names.get(str(d.get("mode", "")), "Poker")), tr(Table.rules_for(str(td.get("variant", "holdem"))).short_title())]
 
 func _load_saved_game() -> void:
 	var d = SaveUtil.read(SAVE_PATH)

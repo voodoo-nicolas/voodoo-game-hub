@@ -194,13 +194,13 @@ func hero_card_rects() -> Array:
 	var top := size.y - hh + 46.0
 	var avail_h := hh - 46.0 - 40.0
 	var gap := 10.0
-	var extra := 18.0 if t.variant == "stud" else 0.0  # a gap between hidden and showing
+	var extra := 18.0 if t.rules().has_up_cards() else 0.0  # a gap between hidden and showing
 	var w := minf((size.x - 40.0 - gap * (n - 1) - extra) / n, avail_h / CARD_ASPECT)
 	w = minf(w, 150.0)
 	var total := w * n + gap * (n - 1) + extra
 	var x := (size.x - total) / 2.0
 	for k in n:
-		if t.variant == "stud" and k == _stud_hidden_count():
+		if t.rules().has_up_cards() and k == _stud_hidden_count():
 			x += extra
 		out.append(Rect2(x, top, w, w * CARD_ASPECT))
 		x += w + gap
@@ -210,7 +210,7 @@ func hero_card_rects() -> Array:
 func hero_order() -> Array:
 	var s: Dictionary = t.seats[viewer]
 	var order: Array = []
-	if t.variant != "stud":
+	if not t.rules().has_up_cards():
 		return range(s.hole.size())
 	for k in s.hole.size():
 		if not (k < s.up.size() and s.up[k]):
@@ -392,7 +392,7 @@ func _draw_seat(i: int, r: Rect2) -> void:
 	var fs_name := int(clampf(r.size.x * 0.095, 16, 24))
 	var name_col := Look.c("text") if not bool(s.folded) else Look.c("dim")
 	draw_string(_font, r.position + Vector2(pad, pad + fs_name), str(s.name), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - pad * 2 - 26, fs_name, name_col)
-	if t.button == i and not bool(s.out) and t.variant != "stud":
+	if t.button == i and not bool(s.out) and t.rules().has_dealer_button():
 		Chips.draw_dealer(self, Vector2(r.end.x - 19, r.position.y + 19), 15.0)
 	var fs := int(clampf(r.size.x * 0.09, 15, 22))
 	var y := r.position.y + pad + fs_name + 6 + fs
@@ -508,13 +508,9 @@ func _draw_pot() -> void:
 	if piles:
 		Chips.draw_stack(self, p + Vector2(-text_w / 2.0 - Chips.stack_width(t.pot_total(), pot_d) / 2.0 - 8.0, -2), t.pot_total(), pot_d)
 	draw_string(_font, Vector2(p.x - 200, p.y), text, HORIZONTAL_ALIGNMENT_CENTER, 400, 24, Look.c("gold").lerp(Look.c("text"), 0.25))
-	if t.variant == "draw" or t.variant == "stud":
-		var info := ""
-		if t.variant == "draw":
-			info = tr("Before the draw") if t.street == 0 and t.phase != "draw" else (tr("The draw") if t.phase == "draw" else tr("After the draw"))
-		else:
-			info = tr(["Third street", "Fourth street", "Fifth street", "Sixth street", "Seventh street"][clampi(t.street, 0, 4)])
-		draw_string(_font, Vector2(p.x - 200, p.y + 34), info, HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Look.c("dim"))
+	var note: String = t.rules().round_note(t)
+	if note != "":
+		draw_string(_font, Vector2(p.x - 200, p.y + 34), tr(note), HORIZONTAL_ALIGNMENT_CENTER, 400, 22, Look.c("dim"))
 
 ## Every seat's bet this round lies on the felt as a pile and its amount.
 func _draw_bets() -> void:
@@ -548,7 +544,7 @@ func _draw_hero() -> void:
 	var head := name_text + "  ·  " + (_chips(int(s.stack)) if not bool(s.out) else tr("Out"))
 	var head_col := Look.c("active") if active else Look.c("text")
 	draw_string(_font, Vector2(20, top + 30), head, HORIZONTAL_ALIGNMENT_LEFT, size.x - 120, 26, head_col)
-	if t.button == viewer and not bool(s.out) and t.variant != "stud":
+	if t.button == viewer and not bool(s.out) and t.rules().has_dealer_button():
 		Chips.draw_dealer(self, Vector2(size.x - 34, top + 22), 17.0)
 	if hide_viewer:
 		var rects := hero_card_rects()
@@ -568,7 +564,7 @@ func _draw_hero() -> void:
 		Cards.draw_card(self, r, card, true, best.has(card) or picked, bool(s.folded) or picked)
 		if picked:
 			draw_string(_font, Vector2(r.position.x - 10, r.position.y - 6), tr("Swap").to_upper(), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 20, 20, Look.c("gold"))
-	if t.variant == "stud" and rects.size() > 0:
+	if t.rules().has_up_cards() and rects.size() > 0:
 		var hidden := _stud_hidden_count()
 		if hidden > 0 and hidden < rects.size():
 			var hr: Rect2 = rects[hidden - 1]
@@ -592,7 +588,7 @@ func _draw_hero() -> void:
 		if win_text != "":
 			line += "  ·  " + win_text
 	if line != "" and rects.size() > 0:
-		var y: float = rects[0].end.y + (52.0 if t.variant == "stud" else 30.0)
+		var y: float = rects[0].end.y + (52.0 if t.rules().has_up_cards() else 30.0)
 		draw_string(_font, Vector2(0, minf(y, size.y - 6)), line, HORIZONTAL_ALIGNMENT_CENTER, size.x, 24, col)
 
 static func _chips(v: int) -> String:

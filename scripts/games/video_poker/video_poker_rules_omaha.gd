@@ -2,6 +2,12 @@ extends "res://scripts/games/video_poker/video_poker_rules.gd"
 
 ## Omaha: four hole cards, exactly two of them plus three from the board.
 
+func title() -> String:
+	return "Omaha"
+
+func short_title() -> String:
+	return "Omaha"
+
 func hole_count() -> int:
 	return 4
 

@@ -3,8 +3,26 @@ extends "res://scripts/games/video_poker/video_poker_rules.gd"
 ## Seven Card Stud: antes and a bring-in instead of blinds, seven cards each
 ## (two down, four up, one down), the best five of them play.
 
+func title() -> String:
+	return "Seven Card Stud"
+
+func short_title() -> String:
+	return "7-Card Stud"
+
 func hole_count() -> int:
 	return 7
+
+func forced_limit() -> String:
+	return "fl"
+
+func has_dealer_button() -> bool:
+	return false
+
+func has_up_cards() -> bool:
+	return true
+
+func round_note(t) -> String:
+	return ["Third street", "Fourth street", "Fifth street", "Sixth street", "Seventh street"][clampi(t.street, 0, 4)]
 
 func board_size() -> int:
 	return 0

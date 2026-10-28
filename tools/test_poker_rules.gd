@@ -37,6 +37,7 @@ func _init() -> void:
 	_stud()
 	_short_deck()
 	_traits()
+	_screen_questions()
 	var a := _sim(20261027)
 	var b := _sim(20261027)
 	ok(a == b, "the seeded run repeats exactly (no global randomness in the engine)")
@@ -48,6 +49,16 @@ func _init() -> void:
 		ok(fingerprint == GOLDEN, "the seeded run matches GOLDEN (the engine's play changed)")
 	print("poker rules: ", "OK" if fails == 0 else "%d FAILED" % fails, "  ", stats)
 	quit(1 if fails else 0)
+
+## What the screens ask the rules instead of naming a variant.
+func _screen_questions() -> void:
+	for v in Table.VARIANTS:
+		var r = Table.rules_for(v)
+		ok(r.title() != "" and r.short_title() != "", v + ": has a title")
+	ok(Table.rules_for("stud").forced_limit() == "fl" and Table.rules_for("holdem").forced_limit() == "", "only Stud forces Limit")
+	ok(Table.rules_for("stud").has_up_cards() and not Table.rules_for("draw").has_up_cards(), "only Stud has face-up cards")
+	ok(not Table.rules_for("stud").has_dealer_button() and Table.rules_for("omaha").has_dealer_button(), "Stud has no dealer button")
+	ok(Table.rules_for("holdem").round_note(null) == "", "Hold'em has no round note")
 
 func ok(cond: bool, what: String) -> void:
 	if not cond:

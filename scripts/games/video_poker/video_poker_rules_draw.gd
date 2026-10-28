@@ -3,6 +3,12 @@ extends "res://scripts/games/video_poker/video_poker_rules.gd"
 ## Five Card Draw: five hole cards, one betting round, a draw, one more round.
 ## (The draw itself is Table.draw(); this says when it happens.)
 
+func title() -> String:
+	return "Five Card Draw"
+
+func short_title() -> String:
+	return "5-Card Draw"
+
 func hole_count() -> int:
 	return 5
 
@@ -11,6 +17,11 @@ func board_size() -> int:
 
 func has_draw() -> bool:
 	return true
+
+func round_note(t) -> String:
+	if t.phase == "draw":
+		return "The draw"
+	return "Before the draw" if t.street == 0 else "After the draw"
 
 ## The computer also simulates everyone's draw.
 func work_cost() -> float:
