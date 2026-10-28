@@ -16,6 +16,7 @@ const Profile = preload("res://scripts/games/video_poker/video_poker_profile.gd"
 const Stats = preload("res://scripts/games/video_poker/video_poker_stats.gd")
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
 const HomeKit = preload("res://scripts/games/video_poker/home_kit.gd")
+const Career = preload("res://scripts/games/video_poker/video_poker_career.gd")
 const ReplayScreen = preload("res://scripts/games/video_poker/video_poker_replay_screen.gd")
 
 ## Hands listed at most (newest or best first).
@@ -297,6 +298,11 @@ func _build_stats() -> void:
 		_row("Worst session", _signed(int(worst.net)), _net_color(int(worst.net)))
 		if secs >= 600:
 			_row("Hands per minute", "%.1f" % (float(hands_n) * 60.0 / float(secs)))
+	var career_done: int = Career.cleared(p.career)
+	if career_done > 0:
+		_section("Career")
+		_row("Stages cleared", "%d / %d" % [career_done, Career.STAGES.size()])
+		_row("Stars", "%d / %d" % [Career.total_stars(p.career), Career.STAGES.size() * 3])
 	var tn: Array = p.tourneys
 	if not tn.is_empty():
 		_section("Tournaments")

@@ -12,7 +12,8 @@ const HOW := [
 	"Five Card Draw: five cards each, a round of betting, then swap up to 3 cards (4 if you keep an Ace) and bet again. Seven Card Stud: three down, four up, one more down; antes and a bring-in instead of blinds.",
 	"On your turn: Fold, Check or Call, or Bet / Raise. In No limit and Pot limit, size your raise with Min, ½ Pot, Pot, All in, − and +.",
 	"Cash game: buy in from your chips at low, mid or high stakes, play as long as you like and Leave table to take your chips home. Busted computer players are replaced.",
-	"Tournament: free to enter. Everyone starts with 1,500, the blinds go up every 6 hands, and the last player with chips wins.",
+	"Tournaments: free to enter. Pick Tournament (1 to 5 opponents), Sit & Go (a full table, fast blinds) or Heads-up. Choose the starting chips and how fast the blinds go up; the last player with chips wins. A bigger field gives more XP.",
+	"🎯 Career: eight tables, each with a boss and other characters. Win a stage to open the next. Stars: ★ for winning, ★★ if you did not use the coach or win chance, ★★★ if you won fast. Every computer player has its own style: the 🎓 coach shows it, and the character screen on each Career card tells you how to beat the boss.",
 	"Video Poker (Jacks or Better): bet 1-5 coins of 10, 50 or 250 chips, tap cards to hold, then draw. 💡 shows the textbook hold.",
 	"Pass and play: 2 to 6 people on one phone. The screen hides the cards whenever the phone changes hands. Online: heads-up against a friend; the first to take all the chips wins.",
 	"🎓 Training: the coach table, hand rankings and five drills. At any table the 🎓 button turns the coach on: your win chance, the pot odds and what it would do.",
@@ -26,7 +27,7 @@ const TIPS := [
 	"Play fewer, stronger starting hands, and bet them. Most hands in Hold'em should be folded before the flop.",
 	"Turn the coach on to see each computer player's style: don't bluff a Calling Station, and believe a Rock's bets.",
 ]
-const STATS := ["Most chips", "Hands played", "Hands won", "Biggest pot", "Wins", "Royal flushes", "Showdowns won", "Pots won uncontested", "Tournaments won", "Best hand streak", "Poker level", "Drills done"]
+const STATS := ["Most chips", "Hands played", "Hands won", "Biggest pot", "Wins", "Royal flushes", "Showdowns won", "Pots won uncontested", "Tournaments won", "Best hand streak", "Poker level", "Career stages cleared", "Drills done"]
 const ACHIEVEMENTS := [
 	{"id": "royal", "icon": "👑", "title": "Royal Treatment", "key": "Royal flushes", "at": 1},
 	{"id": "pot5k", "icon": "💰", "title": "Big Pot", "key": "Biggest pot", "at": 5000},
@@ -51,6 +52,11 @@ const ACHIEVEMENTS := [
 	{"id": "days3", "icon": "📅", "title": "Back Again", "key": "Days in a row", "at": 3},
 	{"id": "days7", "icon": "🗓", "title": "A Week at the Tables", "key": "Days in a row", "at": 7},
 	{"id": "days30", "icon": "🌙", "title": "Night Owl", "key": "Days in a row", "at": 30},
+	{"id": "career1", "icon": "🎯", "title": "First Boss Down", "key": "Career stages cleared", "at": 1},
+	{"id": "career4", "icon": "🗝", "title": "Halfway Up the Ladder", "key": "Career stages cleared", "at": 4},
+	{"id": "career8", "icon": "👑", "title": "Long Live the Player", "key": "Career stages cleared", "at": 8},
+	{"id": "careerstars12", "icon": "🌟", "title": "Star Collector", "key": "Career stars", "at": 12},
+	{"id": "careerstars24", "icon": "✨", "title": "Perfect Career", "key": "Career stars", "at": 24},
 ]
 
 ## Learning hook (STANDARDS §15): one shows on the Home screen's

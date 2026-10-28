@@ -41,6 +41,7 @@ static func fresh() -> Dictionary:
 		"win_run": 0, "win_run_best": 0, "lose_run": 0, "lose_run_best": 0,
 		"day_last": 0, "day_run": 0, "day_run_best": 0,
 		"by_variant": {}, "tourneys": [], "bookmarks": [],
+		"career": {},                                  # stage id -> best stars (0-3)
 	}
 
 func load_file() -> void:
@@ -166,10 +167,29 @@ func record_tourney(place: int, of: int, variant: String, at: int = 0) -> int:
 	list.append({"at": at if at > 0 else int(Time.get_unix_time_from_system()), "place": place, "of": of, "variant": variant})
 	while list.size() > KEEP_TOURNEYS:
 		list.pop_front()
-	var xp: int = FINISH_XP[clampi(place - 1, 0, FINISH_XP.size() - 1)]
+	# a bigger field is worth more (a heads-up match half, a full table of six the base)
+	var xp: int = roundi(FINISH_XP[clampi(place - 1, 0, FINISH_XP.size() - 1)] * clampf(float(of) / 6.0, 0.5, 1.2))
 	d.xp = int(d.xp) + xp
 	save_file()
 	return xp
+
+## A Career stage was played: `stars` earned (0 = lost). Keeps the best, and
+## returns the XP: the stage's own XP the first time it is cleared, 30 for every
+## star added after that. {} -> {"xp", "first", "added"}.
+func record_career(id: String, stars: int, stage_xp: int) -> Dictionary:
+	var best := int(d.career.get(id, 0))
+	var out := {"xp": 0, "first": false, "added": 0}
+	if stars > best:
+		out.first = best == 0
+		out.added = stars - best
+		out.xp = stage_xp if best == 0 else 30 * (stars - best)
+		d.career[id] = stars
+		d.xp = int(d.xp) + int(out.xp)
+		save_file()
+	return out
+
+func career_stars(id: String) -> int:
+	return int(d.career.get(id, 0))
 
 func tourney_wins() -> int:
 	var n := 0

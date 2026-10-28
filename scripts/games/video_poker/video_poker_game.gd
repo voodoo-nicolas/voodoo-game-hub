@@ -22,6 +22,9 @@ const Machine = preload("res://scripts/games/video_poker/video_poker_machine.gd"
 const Training = preload("res://scripts/games/video_poker/video_poker_training.gd")
 const History = preload("res://scripts/games/video_poker/video_poker_history.gd")
 const Profile = preload("res://scripts/games/video_poker/video_poker_profile.gd")
+const Characters = preload("res://scripts/games/video_poker/video_poker_characters.gd")
+const Career = preload("res://scripts/games/video_poker/video_poker_career.gd")
+const CareerScreen = preload("res://scripts/games/video_poker/video_poker_career_screen.gd")
 const StatsScreen = preload("res://scripts/games/video_poker/video_poker_stats_screen.gd")
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -58,6 +61,16 @@ const BLIND_LEVELS := [[10, 20], [15, 30], [25, 50], [50, 100], [75, 150], [100,
 	[200, 400], [300, 600], [400, 800], [600, 1200], [1000, 2000], [1500, 3000], [2500, 5000], [4000, 8000]]
 const HANDS_PER_LEVEL := {"tourney": 6, "local": 8, "online": 8}
 const PRACTICE_STACK := 1000
+## Tournament formats: [title, what it is, opponents (0 = the player picks), stack index, speed index].
+const FORMATS := [
+	["🏆 Tournament", "You pick the table: 1 to 5 computer players.", 0, 1, 1],
+	["⚡ Sit & Go", "A full table of six, fast blinds. Over in a few minutes.", 5, 0, 0],
+	["🥊 Heads-up", "You against one computer player, fast blinds. Winner takes all.", 1, 1, 0],
+]
+const STACKS := [1000, 1500, 3000]
+## Hands per blind level: Fast, Normal, Slow.
+const SPEEDS := [4, 6, 10]
+const SPEED_NAMES := ["Fast", "Normal", "Slow"]
 ## Online: the host deals the next hand after this many seconds.
 const NEXT_DELAY := 6.0
 
@@ -76,7 +89,7 @@ var history = History.new()   # every hand played, to user://video_poker_history
 var mode := ""
 var chips := START_CHIPS
 var prefs := {"variant": "holdem", "limit": "nl", "opps": 3, "level": 1, "coach": false, "stakes": 0, "players": 2,
-	"four_color": false, "odds": false, "piles": true}
+	"four_color": false, "odds": false, "piles": true, "tfmt": 0, "tstack": 1, "tspeed": 1}
 var ai_level := 1
 var stakes := 0
 var buyin := 0
@@ -97,6 +110,7 @@ var coach_task := -1
 var coach_result: Dictionary = {}
 var coach_key := ""
 var coach_note := ""
+var speech := ""            # a character's line for the status (once)
 var note := ""              # one-off message for the status line
 
 var raise_to := 0
@@ -133,6 +147,7 @@ var leave_btn: Button
 var machine: Control
 var training: Control
 var stats_screen: Control
+var career_screen: Control
 var profile = Profile.new()   # XP, level and lifetime numbers (user://video_poker_profile.json)
 var cover: ColorRect
 var cover_label: Label
@@ -185,6 +200,9 @@ func _load_chips() -> void:
 	prefs.four_color = bool(prefs.four_color)
 	prefs.odds = bool(prefs.odds)
 	prefs.piles = bool(prefs.piles)
+	prefs.tfmt = clampi(int(prefs.tfmt), 0, FORMATS.size() - 1)
+	prefs.tstack = clampi(int(prefs.tstack), 0, STACKS.size() - 1)
+	prefs.tspeed = clampi(int(prefs.tspeed), 0, SPEEDS.size() - 1)
 	Cards.four_color = prefs.four_color
 	odds_on = prefs.odds
 	if not Table.VARIANTS.has(str(prefs.variant)):
@@ -296,6 +314,11 @@ func _build_ui() -> void:
 	stats_screen.visible = false
 	stats_screen.back_pressed.connect(_leave_stats)
 	add_child(stats_screen)
+	career_screen = CareerScreen.new()
+	career_screen.visible = false
+	career_screen.back_pressed.connect(_leave_career)
+	career_screen.start_pressed.connect(_start_career)
+	add_child(career_screen)
 
 	_build_cover()
 	end_dialog = UI.build_dialog("", [
@@ -326,7 +349,8 @@ func _build_ui() -> void:
 	training.info = info
 	var modes: Array = [
 		{"text": "💰 Cash game", "sub": "Sit down with the computer. Leave any time.", "action": _ask_cash},
-		{"text": "🏆 Tournament", "sub": "Everyone starts equal, the blinds rise, last one standing wins", "action": _ask_tourney},
+		{"text": "🎯 Career", "sub": "Eight tables, a boss at each one. Beat them to open the next", "action": _open_career},
+		{"text": "🏆 Tournaments", "sub": "Tournament, Sit & Go or Heads-up: everyone starts equal, last one standing wins", "action": _ask_tourney},
 		{"text": "🎰 Video Poker", "sub": "Jacks or Better, played with your chips", "action": _start_vp, "color": HomeKit.PINK},
 		{"text": "🎓 Training", "sub": "A coach at the table, hand rankings and drills", "action": _open_training, "color": HomeKit.LIME},
 		{"text": "👥 Pass and play", "sub": "2 to 6 players share one phone", "multi": true, "action": _ask_local},
@@ -398,8 +422,7 @@ func _build_table_screen() -> void:
 	title_label = HomeKit.label("", 26, HomeKit.GOLD.lerp(Color.WHITE, 0.4), false, true)
 	title_label.clip_text = true
 	titles.add_child(title_label)
-	info_label = HomeKit.label("", 20, HomeKit.DIM, false, true)
-	info_label.clip_text = true
+	info_label = HomeKit.label("", 20, HomeKit.DIM, true, true)  # wraps: a tournament's line is long
 	titles.add_child(info_label)
 	coach_btn = Button.new()
 	coach_btn.text = "🎓"
@@ -575,6 +598,7 @@ func _show_screen(which: String) -> void:
 	machine.visible = which == "vp"
 	training.visible = which == "training"
 	stats_screen.visible = which == "stats"
+	career_screen.visible = which == "career"
 	if which != "table":
 		cover.visible = false
 
@@ -626,8 +650,7 @@ func _toggle(text: String, color: Color, group: ButtonGroup) -> Button:
 func _update_chips_label() -> void:
 	if chips_label:
 		chips_label.text = "🪙 " + tr("Your chips: %s") % View._chips(chips)
-		chips_label.text += "
-" + tr("Level %d · %s") % [profile.level(), tr(Profile.title_for(profile.level()))]
+		chips_label.text += "\n" + tr("Level %d · %s") % [profile.level(), tr(Profile.title_for(profile.level()))]
 		if note != "":
 			chips_label.text += "\n" + note
 			note = ""
@@ -766,11 +789,48 @@ func _cash_rows(box: VBoxContainer) -> void:
 	_opponent_rows(box)
 
 func _ask_tourney() -> void:
-	_open_sheet(tr("🏆 Tournament"), _tourney_rows, "Start", _start_tourney)
+	_close_sheet()
+	_open_sheet(tr(FORMATS[int(prefs.tfmt)][0]), _tourney_rows, "Start", _start_tourney)
 
 func _tourney_rows(box: VBoxContainer) -> void:
-	box.add_child(HomeKit.label(tr("Free to enter. Everyone starts with %s chips and the blinds go up every %d hands.") % [View._chips(MATCH_STACK), HANDS_PER_LEVEL.tourney], 24, HomeKit.DIM, true, true))
-	_opponent_rows(box)
+	var fmt: Array = FORMATS[int(prefs.tfmt)]
+	box.add_child(home.section("Format"))
+	var names: Array = []
+	for f in FORMATS:
+		names.append(f[0])
+	box.add_child(home.choice_row(names, int(prefs.tfmt), _set_tfmt))
+	box.add_child(HomeKit.label(tr(str(fmt[1])), 22, HomeKit.DIM, true, true))
+	if int(fmt[2]) == 0:
+		box.add_child(home.section("Computer opponents"))
+		box.add_child(home.choice_row(["1", "2", "3", "4", "5"], int(prefs.opps) - 1, _set_pref.bind("opps", 1)))
+	box.add_child(home.section("Starting chips"))
+	box.add_child(home.choice_row(["1,000", "1,500", "3,000"], int(prefs.tstack), _set_pref.bind("tstack", 0), HomeKit.GOLD))
+	box.add_child(home.section("Blinds go up"))
+	var speed_names: Array = []
+	for k in SPEEDS.size():
+		speed_names.append(tr(SPEED_NAMES[k]) + "\n" + tr("every %d hands") % SPEEDS[k])
+	box.add_child(home.choice_row(speed_names, int(prefs.tspeed), _set_pref.bind("tspeed", 0), HomeKit.GOLD))
+	var levels: Array = []
+	for k in 5:
+		levels.append("%d/%d" % [BLIND_LEVELS[k][0], BLIND_LEVELS[k][1]])
+	box.add_child(HomeKit.label(tr("Blinds: %s ...") % ", ".join(levels), 21, HomeKit.DIM, true, true))
+	box.add_child(home.section("Computer level"))
+	box.add_child(home.choice_row(LEVEL_NAMES, int(prefs.level), _set_pref.bind("level", 0), HomeKit.MAGENTA))
+
+## A format picks its table size, starting chips and blind speed; the sheet is rebuilt.
+func _set_tfmt(i: int) -> void:
+	prefs.tfmt = i
+	var f: Array = FORMATS[i]
+	if int(f[2]) > 0:
+		prefs.opps = int(f[2])
+	prefs.tstack = int(f[3])
+	prefs.tspeed = int(f[4])
+	_save_chips()
+	_ask_tourney()
+
+## Hands per blind level at this match.
+func _hpl() -> int:
+	return maxi(1, int(meta.get("hpl", HANDS_PER_LEVEL.get(mode, 6))))
 
 func _ask_local() -> void:
 	_open_sheet(tr("👥 Pass and play"), _local_rows, "Start", _start_local)
@@ -791,11 +851,11 @@ func _discard_save() -> void:
 		_save_chips()
 	SaveUtil.delete(SAVE_PATH)
 
-func _new_table(seat_list: Array, sb: int, bb: int) -> void:
+func _new_table(seat_list: Array, sb: int, bb: int, variant: String = "", limit: String = "") -> void:
 	history.abandon()
 	t = Table.new()
-	t.variant = str(prefs.variant)
-	t.limit = _limit_for(t.variant)
+	t.variant = variant if variant != "" else str(prefs.variant)
+	t.limit = limit if limit != "" else _limit_for(t.variant)
 	t.sb = sb
 	t.bb = bb
 	t.seats = seat_list
@@ -818,8 +878,14 @@ func _cpu_seats(n: int, stack_of: Callable) -> Array:
 	names.shuffle()
 	var out: Array = []
 	for i in n:
-		out.append(Table.new_seat(names[i], int(stack_of.call()), 0, rng.randi_range(0, AI.STYLES.size() - 1)))
+		out.append(_cpu_seat(str(names[i]), int(stack_of.call())))
 	return out
+
+## A computer player: a named character plays its own way and shows its style.
+func _cpu_seat(name: String, stack: int) -> Dictionary:
+	var who: Dictionary = Characters.find(name)
+	var style: int = int(who.style) if not who.is_empty() else rng.randi_range(0, AI.STYLES.size() - 1)
+	return Table.new_seat(name, stack, 0, style)
 
 func _sit_cash() -> void:
 	_close_sheet()
@@ -849,9 +915,51 @@ func _start_tourney() -> void:
 	_discard_save()
 	mode = "tourney"
 	ai_level = int(prefs.level)
-	var seat_list: Array = [Table.new_seat("", MATCH_STACK, 1)]
-	seat_list += _cpu_seats(int(prefs.opps), func(): return MATCH_STACK)
+	var fmt: Array = FORMATS[int(prefs.tfmt)]
+	var n: int = int(fmt[2]) if int(fmt[2]) > 0 else int(prefs.opps)
+	var stack: int = STACKS[int(prefs.tstack)]
+	var seat_list: Array = [Table.new_seat("", stack, 1)]
+	seat_list += _cpu_seats(n, func(): return stack)
 	_new_table(seat_list, BLIND_LEVELS[0][0], BLIND_LEVELS[0][1])
+	meta.hpl = SPEEDS[int(prefs.tspeed)]
+	meta.format = int(prefs.tfmt)
+	_begin()
+
+# ---------- Career ----------
+
+func _open_career() -> void:
+	mode = "career"
+	home.hide_home()
+	_show_screen("career")
+	career_screen.open(profile)
+
+func _leave_career() -> void:
+	mode = ""
+	_show_screen("")
+	home.show_home()
+
+## One Career stage: the boss and the stage's characters at a normal tournament table.
+func _start_career(id: String) -> void:
+	var st: Dictionary = Career.stage(id)
+	if st.is_empty():
+		return
+	_close_sheet()
+	_discard_save()
+	mode = "tourney"
+	ai_level = int(st.level)
+	var seat_list: Array = [Table.new_seat("", Career.START_STACK, 1)]
+	var others: Array = []
+	for nm in st.others:
+		others.append(_cpu_seat(str(nm), Career.START_STACK))
+	others.append(_cpu_seat(str(st.boss), int(round(Career.START_STACK * float(st.boss_stack) / 10.0)) * 10))
+	others.shuffle()
+	seat_list += others
+	_new_table(seat_list, BLIND_LEVELS[0][0], BLIND_LEVELS[0][1], str(st.variant), str(st.limit))
+	meta.hpl = int(st.hpl)
+	meta.career = id
+	meta.aids = false
+	coach_on = false
+	odds_on = bool(prefs.odds)
 	_begin()
 
 func _start_local() -> void:
@@ -892,7 +1000,7 @@ func _deal() -> void:
 					s.stack = PRACTICE_STACK
 		"tourney", "local", "online":
 			meta.hands = int(meta.hands) + 1
-			var per: int = HANDS_PER_LEVEL[mode]
+			var per: int = _hpl()
 			meta.level = mini((int(meta.hands) - 1) / per, BLIND_LEVELS.size() - 1)
 			t.sb = BLIND_LEVELS[meta.level][0]
 			t.bb = BLIND_LEVELS[meta.level][1]
@@ -920,7 +1028,7 @@ func _refresh_cash_seats() -> void:
 		var names: Array = AI.NAMES.filter(func(n): return not taken.has(n))
 		var nm: String = names.pick_random() if not names.is_empty() else str(s.name)
 		taken[nm] = true
-		t.seats[i] = Table.new_seat(nm, _cpu_buyin(), 0, rng.randi_range(0, AI.STYLES.size() - 1))
+		t.seats[i] = _cpu_seat(nm, _cpu_buyin())
 
 # ---------- whose turn ----------
 
@@ -951,6 +1059,8 @@ func _decision_key() -> String:
 ## After anything changed the table: count a finished hand, start the
 ## computer thinking, hand the phone over, ask the coach, redraw.
 func _after_change() -> void:
+	if mode == "tourney" and _has_aids():
+		meta["aids"] = true
 	var finished: Dictionary = history.observe(t, mode, _hero_seat(), _has_aids())
 	if not finished.is_empty():
 		_on_hand_recorded(finished)
@@ -1010,6 +1120,7 @@ func _process(_delta: float) -> void:
 			_request_coach()
 
 func _apply_cpu(d: Dictionary) -> void:
+	var who: int = t.to_act
 	if str(d.get("action", "")) == "draw":
 		t.draw(d.get("discards", []))
 		_sfx("card_deal")
@@ -1018,6 +1129,8 @@ func _apply_cpu(d: Dictionary) -> void:
 			if not t.act("check"):
 				t.act("fold")
 		_action_sfx()
+		if who >= 0 and who < t.seats.size() and bool(t.seats[who].allin) and rng.randf() < 0.6:
+			_say(who, "allin")
 	_send({"cpu": 1})
 	_after_change()
 
@@ -1118,6 +1231,15 @@ func _hand_over() -> void:
 	var shown := false
 	for r in t.results:
 		shown = shown or bool(r.shown)
+	# the biggest winner among the computer characters sometimes gloats
+	var top := -1
+	var top_won := 0
+	for r in t.results:
+		if int(t.seats[int(r.seat)].kind) == 0 and int(r.won) > top_won:
+			top = int(r.seat)
+			top_won = int(r.won)
+	if top >= 0 and top_won >= 4 * t.bb and my_win <= 0 and rng.randf() < 0.45:
+		_say(top, "win")
 	if my_win > 0:
 		_sfx("pickup")
 	elif shown:
@@ -1138,6 +1260,16 @@ func _track_eliminations() -> void:
 	for i in t.seats.size():
 		if int(t.seats[i].stack) <= 0 and not meta.out.has(i):
 			meta.out.append(i)
+			_say(i, "bust")
+
+## A computer character says one of its lines (shown once in the status).
+func _say(seat: int, kind: String) -> void:
+	if seat < 0 or seat >= t.seats.size() or int(t.seats[seat].kind) != 0 or _is_online():
+		return
+	var name := str(t.seats[seat].name)
+	var line: String = Characters.line(name, kind)
+	if line != "":
+		speech = "%s: “%s”" % [name, tr(line)]
 
 func _check_match_over() -> void:
 	var left: Array = []
@@ -1186,14 +1318,30 @@ func _check_match_over() -> void:
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
 
-## The player's tournament is over: the profile keeps the finish.
+## The player's tournament is over: the profile keeps the finish (and a Career
+## stage's stars). Returns what to add to the end message.
 func _finish_tourney(place: int) -> String:
 	if result_recorded:
 		return ""
 	var xp: int = profile.record_tourney(place, int(meta.start), str(t.variant))
 	if info and place == 1:
 		info.add("Tournaments won")
-	return tr("+%d XP") % xp
+	var text := tr("+%d XP") % xp
+	var id := str(meta.get("career", ""))
+	if id != "":
+		var st: Dictionary = Career.stage(id)
+		var stars: int = Career.stars(id, place == 1, bool(meta.get("aids", false)), int(meta.hands))
+		var got: Dictionary = profile.record_career(id, stars, int(st.get("xp", 0)))
+		if place == 1:
+			text = tr("Stage cleared!") + "  " + "★".repeat(stars) + "☆".repeat(3 - stars)
+			if int(got.xp) > 0:
+				text += "  " + tr("+%d XP") % int(got.xp)
+		else:
+			text = tr("Not this time. Try the stage again.") + "  " + text
+		if info:
+			info.high("Career stages cleared", Career.cleared(profile.d.career))
+			info.high("Career stars", Career.total_stars(profile.d.career))
+	return text
 
 func _record(outcome: String) -> void:
 	if info and not result_recorded:
@@ -1411,9 +1559,16 @@ func _info_text() -> String:
 		"cash":
 			parts.append(tr("Your chips: %s") % View._chips(chips))
 		"tourney", "local", "online":
-			var per: int = HANDS_PER_LEVEL[mode]
+			var per: int = _hpl()
 			var into: int = (int(meta.hands) - 1) % per
 			parts.append(tr("Level %d · up in %d") % [int(meta.level) + 1, per - into])
+			var alive := 0
+			for s in t.seats:
+				if int(s.stack) > 0:
+					alive += 1
+			parts.append(tr("%d of %d left") % [alive, int(meta.start)])
+			if str(meta.get("career", "")) != "":
+				parts.push_front(tr(str(Career.stage(str(meta.career)).get("title", "Career"))))
 		"practice":
 			parts.append(tr("Practice chips"))
 	return "  ·  ".join(parts)
@@ -1442,6 +1597,9 @@ func _status_text() -> String:
 	if note != "":
 		lines.append(note)
 		note = ""
+	if speech != "":
+		lines.append(speech)
+		speech = ""
 	if t.phase == "done":
 		for r in t.results:
 			if int(r.won) <= 0:
@@ -1744,7 +1902,10 @@ func _restart() -> void:
 			SaveUtil.delete(SAVE_PATH)
 			_sit_cash()
 		"tourney":
-			_start_tourney()
+			if str(meta.get("career", "")) != "":
+				_start_career(str(meta.career))
+			else:
+				_start_tourney()
 		"local":
 			_start_local()
 		"practice":
@@ -1769,7 +1930,9 @@ func _resume_text() -> String:
 		return ""
 	var td: Dictionary = d.get("t", {})
 	var names := {"cash": "Cash game", "tourney": "Tournament", "local": "Pass and play"}
-	return "%s · %s" % [tr(names.get(str(d.get("mode", "")), "Poker")), tr(Table.rules_for(str(td.get("variant", "holdem"))).short_title())]
+	var career_stage: Dictionary = Career.stage(str(d.get("meta", {}).get("career", "")))
+	var what: String = tr(str(career_stage.title)) if not career_stage.is_empty() else tr(names.get(str(d.get("mode", "")), "Poker"))
+	return "%s · %s" % [what, tr(Table.rules_for(str(td.get("variant", "holdem"))).short_title())]
 
 func _load_saved_game() -> void:
 	var d = SaveUtil.read(SAVE_PATH)
@@ -1782,6 +1945,12 @@ func _load_saved_game() -> void:
 	history.restore(d.get("hist"))  # the hand in progress, so it carries on (absent in older saves)
 	var m: Dictionary = d.get("meta", {})
 	meta = {"hands": int(m.get("hands", 0)), "level": int(m.get("level", 0)), "out": [], "start": int(m.get("start", t.seats.size()))}
+	for k in ["hpl", "format"]:
+		if m.has(k):
+			meta[k] = int(m[k])
+	if str(m.get("career", "")) != "":
+		meta.career = str(m.career)
+		meta.aids = bool(m.get("aids", false))
 	for v in m.get("out", []):
 		meta.out.append(int(v))
 	viewer = int(d.get("viewer", 0))

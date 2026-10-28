@@ -10,6 +10,7 @@ extends RefCounted
 
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 const Table = preload("res://scripts/games/video_poker/video_poker_table.gd")
+const Characters = preload("res://scripts/games/video_poker/video_poker_characters.gd")
 
 ## Playing styles: [name, tight (0 loose .. 1 tight), aggressive, bluffs].
 const STYLES := [
@@ -233,11 +234,25 @@ static func decide(td: Dictionary, level: int, seed: int) -> Dictionary:
 	var seat: Dictionary = t.seats[me]
 	if t.phase == "draw":
 		return {"action": "draw", "discards": choose_discards(seat.hole)}
-	var lv: Dictionary = LEVELS[clampi(level, 0, 2)]
 	var style: Array = STYLES[clampi(int(seat.style), 0, STYLES.size() - 1)]
 	var tight: float = style[1]
 	var aggr: float = style[2]
-	var bluff: float = style[3] * lv.bluff
+	var bluff_base: float = style[3]
+	# A named character plays its own way (video_poker_characters.gd).
+	var who: Dictionary = Characters.find(str(seat.name))
+	var quirk := ""
+	var sharp := false
+	if not who.is_empty():
+		tight = float(who.tight)
+		aggr = float(who.aggr)
+		bluff_base = float(who.bluff)
+		quirk = str(who.quirk)
+		sharp = bool(who.sharp)
+		level += int(who.skill)
+	level = clampi(level, 0, 2)
+	var lv: Dictionary = LEVELS[level]
+	var noise: float = float(lv.noise) * (0.4 if sharp else 1.0)
+	var bluff: float = bluff_base * float(lv.bluff) * (1.25 if sharp else 1.0)
 	var l: Dictionary = t.legal()
 	var n_opp: int = t.live().size() - 1
 	var n_eff := n_opp
@@ -251,20 +266,40 @@ static func decide(td: Dictionary, level: int, seed: int) -> Dictionary:
 	var cost: float = (1.0 + n_eff) * t.rules().work_cost()
 	var trials: int = clampi(int(lv.work / cost), 30, lv.trials)
 	var eq := equity(t, me, trials, rng, n_eff, lv.ranges, lv.ms)
-	eq = clampf(eq + rng.randf_range(-lv.noise, lv.noise), 0.0, 1.0)
+	eq = clampf(eq + rng.randf_range(-noise, noise), 0.0, 1.0)
 	var pot: int = t.pot_total()
 	var to_call: int = l.to_call
 	var odds: float = float(to_call) / float(pot + to_call) if to_call > 0 else 0.0
+	var stack_bb: float = float(int(seat.stack) + int(seat.bet)) / maxf(1.0, t.bb)
+	# Quirks (characters only): a big stack bullies, a short one tilts.
+	var margin_adj := 0.0
+	match quirk:
+		"bully":
+			var total := 0
+			for i in t.live():
+				total += int(t.seats[i].stack) + int(t.seats[i].bet)
+			var avg: float = float(total) / maxf(1.0, t.live().size())
+			if float(int(seat.stack) + int(seat.bet)) > 1.4 * avg:
+				aggr = minf(1.0, aggr + 0.2)
+				tight = maxf(0.0, tight - 0.1)
+		"tilt":
+			if stack_bb < 25.0:
+				aggr = minf(1.0, aggr + 0.25)
+				tight = maxf(0.0, tight - 0.2)
+		"sticky":
+			margin_adj = -0.05
+	var slowplay: bool = quirk == "trapper" and rng.randf() < 0.35
 	var value_thr: float = clampf(0.64 - 0.1 * (n_eff - 1), 0.34, 0.64) + 0.07 * tight - 0.05 * aggr
 	var strong_thr: float = value_thr + 0.16
 	var more_cards: bool = t.street < t.last_street()
-	var stack_bb: float = float(int(seat.stack) + int(seat.bet)) / maxf(1.0, t.bb)
 	# Short stacked before the flop: all in or fold.
 	if t.street == 0 and stack_bb <= 10.0 and t.rules().has_blinds() and l.can_raise:
 		if eq >= value_thr - 0.08 - 0.06 * aggr:
 			return {"action": "allin"}
 		return {"action": "check" if l.can_check else "fold"}
 	if l.can_check:
+		if eq >= strong_thr and slowplay and t.street < t.last_street():
+			return {"action": "check"}  # a trap
 		if eq >= value_thr and l.can_raise and rng.randf() < 0.5 + 0.5 * aggr:
 			return _raise(t, l, eq >= strong_thr, rng, aggr)
 		if t.street > 0 and l.can_raise and eq < 0.3 and rng.randf() < bluff * (1.5 if n_opp == 1 else 0.4):
@@ -272,10 +307,10 @@ static func decide(td: Dictionary, level: int, seed: int) -> Dictionary:
 		if more_cards and l.can_raise and eq >= 0.32 and rng.randf() < aggr * 0.22:
 			return _raise(t, l, false, rng, aggr)  # semi-bluff a draw
 		return {"action": "check"}
-	var margin: float = 0.02 + 0.07 * tight
+	var margin: float = 0.02 + 0.07 * tight + margin_adj
 	if level == 0:
 		margin -= 0.09  # Easy players call too much
-	if eq >= strong_thr and l.can_raise and rng.randf() < 0.35 + 0.55 * aggr:
+	if eq >= strong_thr and l.can_raise and not slowplay and rng.randf() < 0.35 + 0.55 * aggr:
 		return _raise(t, l, true, rng, aggr)
 	if eq >= odds + margin:
 		if l.can_raise and eq >= value_thr and rng.randf() < aggr * 0.3:
