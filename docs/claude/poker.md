@@ -12,3 +12,4 @@ Texas Hold'em, Omaha, Five Card Draw, Seven Card Stud (No limit / Pot limit / Li
 - Coach follows the Starting hands drill's Chen tiers preflop in Hold'em, win chance vs pot odds after, so advice and drills agree.
 - i18n: poker's check uses key `"Check "` (trailing space, `View.CHECK`) -> "Pasar".
 - Web: AIs block briefly (no threads).
+- Options (since the revamp): four-colour deck, chip piles vs numbers, win chance; stored in `prefs` of `video_poker_chips.json`. Win chance and the coach both mark hands `aids` in the history.

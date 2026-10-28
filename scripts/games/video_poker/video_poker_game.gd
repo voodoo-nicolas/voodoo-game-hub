@@ -73,11 +73,13 @@ var history = History.new()   # every hand played, to user://video_poker_history
 ## "" (Home) | cash | tourney | local | online | practice | vp | training
 var mode := ""
 var chips := START_CHIPS
-var prefs := {"variant": "holdem", "limit": "nl", "opps": 3, "level": 1, "coach": false, "stakes": 0, "players": 2}
+var prefs := {"variant": "holdem", "limit": "nl", "opps": 3, "level": 1, "coach": false, "stakes": 0, "players": 2,
+	"four_color": false, "odds": false, "piles": true}
 var ai_level := 1
 var stakes := 0
 var buyin := 0
 var coach_on := false
+var odds_on := false        # Options: show my win chance (a help, like the coach)
 var viewer := 0
 ## Tournament / match bookkeeping: hands dealt, blind level, the order
 ## seats went out in, how many started.
@@ -176,6 +178,11 @@ func _load_chips() -> void:
 	prefs.players = clampi(int(prefs.players), 2, 6)
 	prefs.stakes = clampi(int(prefs.stakes), 0, STAKES.size() - 1)
 	prefs.coach = bool(prefs.coach)
+	prefs.four_color = bool(prefs.four_color)
+	prefs.odds = bool(prefs.odds)
+	prefs.piles = bool(prefs.piles)
+	Cards.four_color = prefs.four_color
+	odds_on = prefs.odds
 	if not Table.VARIANTS.has(str(prefs.variant)):
 		prefs.variant = "holdem"
 	if not Table.LIMITS.has(str(prefs.limit)):
@@ -320,6 +327,7 @@ func _build_ui() -> void:
 		"board": "Most chips",
 		"board_note": "The most chips you've ever had. Play chips only.",
 		"online": online,
+		"options": _add_game_options,
 	})
 	add_child(home)
 	if info:
@@ -918,7 +926,7 @@ func _decision_key() -> String:
 ## After anything changed the table: count a finished hand, start the
 ## computer thinking, hand the phone over, ask the coach, redraw.
 func _after_change() -> void:
-	history.observe(t, mode, _hero_seat(), coach_on)
+	history.observe(t, mode, _hero_seat(), _has_aids())
 	if t.phase == "done":
 		if handled_hand != t.hand_no:
 			handled_hand = t.hand_no
@@ -1220,8 +1228,12 @@ func _toggle_coach() -> void:
 		_request_coach()
 	_render()
 
+## The coach or the win chance is on: the hand is marked `aids` in the history.
+func _has_aids() -> bool:
+	return coach_on or odds_on
+
 func _request_coach() -> void:
-	if not coach_on or _is_online() or coach_task >= 0 or not _hero_can_act():
+	if not _has_aids() or _is_online() or coach_task >= 0 or not _hero_can_act():
 		return
 	var key := _decision_key()
 	if coach_result.get("key", "") == key:
@@ -1254,6 +1266,46 @@ func _coach_feedback(action: String) -> void:
 
 # ---------- drawing the screen ----------
 
+## "Win ≈ 36%" under your cards when the Options switch is on and it is your move.
+func _win_text() -> String:
+	if not odds_on or _is_online() or t.seats.is_empty() or t.phase != "bet" or not _hero_can_act():
+		return ""
+	if coach_result.get("key", "") != _decision_key():
+		return ""
+	return tr("Win ≈ %d%%") % roundi(float(coach_result.eq) * 100)
+
+# ---------- Options (the game's own section in ⚙ Options) ----------
+
+func _add_game_options(body: VBoxContainer) -> void:
+	body.add_child(home.section("Cards"))
+	body.add_child(home.choice_row(["Classic colours", "Four colours"], 1 if prefs.four_color else 0, _on_four_color))
+	body.add_child(HomeKit.label(tr("Four colours: clubs green and diamonds blue, so no suit looks like another."), 22, HomeKit.DIM, true))
+	body.add_child(home.section("Chips"))
+	body.add_child(home.choice_row(["Piles", "Numbers only"], 0 if prefs.piles else 1, _on_piles))
+	body.add_child(home.section("Win chance"))
+	body.add_child(home.choice_row(["Off", "On"], 1 if prefs.odds else 0, _on_odds))
+	body.add_child(HomeKit.label(tr("Shows your chance to win under your cards on your turn. It counts as help: those hands are marked in your history."), 22, HomeKit.DIM, true))
+
+func _on_four_color(i: int) -> void:
+	prefs.four_color = i == 1
+	Cards.four_color = prefs.four_color
+	_save_chips()
+	_redraw_cards()
+
+func _on_piles(i: int) -> void:
+	prefs.piles = i == 0
+	_save_chips()
+	if started:
+		_render()
+
+func _on_odds(i: int) -> void:
+	prefs.odds = i == 1
+	odds_on = prefs.odds
+	_save_chips()
+	if started and not t.seats.is_empty():
+		_request_coach()
+		_render()
+
 func _name(i: int) -> String:
 	var n: String = str(t.seats[i].name)
 	return n if n != "" else tr("You")
@@ -1265,6 +1317,8 @@ func _render() -> void:
 	view.viewer = viewer
 	view.discards = discards
 	view.show_styles = coach_on and not _is_online()
+	view.piles = bool(prefs.piles)
+	view.win_text = _win_text()
 	view.hide_viewer = cover.visible
 	view.you_text = "You"
 	coach_btn.button_pressed = coach_on

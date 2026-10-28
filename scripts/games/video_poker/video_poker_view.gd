@@ -30,6 +30,8 @@ var thinking: int = -1       # seat that's thinking (drawn pulsing)
 var discards: Array = []     # viewer's cards picked to throw away (draw phase)
 var show_styles: bool = false  # training: label each computer's style
 var you_text := "You"
+var win_text := ""           # "Win ≈ 36%": shown with your hand when the Options switch is on
+var piles := true             # chips drawn as piles (off: numbers only)
 
 var _font: Font
 var _pulse := 0.0
@@ -398,7 +400,8 @@ func _draw_seat(i: int, r: Rect2) -> void:
 	draw_string(_font, Vector2(r.position.x + pad, y), stack_text, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - pad * 2, fs, Look.c("gold").lerp(Look.c("text"), 0.3))
 	if r.size.x >= 120.0 and not bool(s.out) and int(s.stack) > 0:
 		var pd := 14.0
-		Chips.draw_stack(self, Vector2(r.end.x - 12.0 - Chips.stack_width(int(s.stack), pd) / 2.0, y - 3.0), int(s.stack), pd)
+		if piles:
+			Chips.draw_stack(self, Vector2(r.end.x - 12.0 - Chips.stack_width(int(s.stack), pd) / 2.0, y - 3.0), int(s.stack), pd)
 	if show_styles and int(s.kind) == 0:
 		var style_name: String = AI.STYLES[clampi(int(s.style), 0, AI.STYLES.size() - 1)][0]
 		draw_string(_font, Vector2(r.position.x + pad, y), tr(style_name), HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - pad * 2, fs - 3, Color(Look.c("line2"), 1.0).lerp(Look.c("text"), 0.3))
@@ -502,7 +505,8 @@ func _draw_pot() -> void:
 	var text := tr("Pot") + " " + _chips(t.pot_total())
 	var pot_d := 24.0
 	var text_w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
-	Chips.draw_stack(self, p + Vector2(-text_w / 2.0 - Chips.stack_width(t.pot_total(), pot_d) / 2.0 - 8.0, -2), t.pot_total(), pot_d)
+	if piles:
+		Chips.draw_stack(self, p + Vector2(-text_w / 2.0 - Chips.stack_width(t.pot_total(), pot_d) / 2.0 - 8.0, -2), t.pot_total(), pot_d)
 	draw_string(_font, Vector2(p.x - 200, p.y), text, HORIZONTAL_ALIGNMENT_CENTER, 400, 24, Look.c("gold").lerp(Look.c("text"), 0.25))
 	if t.variant == "draw" or t.variant == "stud":
 		var info := ""
@@ -522,13 +526,15 @@ func _draw_bets() -> void:
 			continue
 		var at := bet_spot(i)
 		var bd := 22.0
-		var sw := Chips.stack_width(b, bd)
+		var sw := Chips.stack_width(b, bd) if piles else 0.0
 		var text := _chips(b)
 		var fs := 18
 		var tw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		var x0 := at.x - (sw + 6.0 + tw) / 2.0
-		Chips.draw_stack(self, Vector2(x0 + sw / 2.0, at.y), b, bd)
-		draw_string(_font, Vector2(x0 + sw + 6.0, at.y + 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Look.c("text"))
+		var gap := 6.0 if piles else 0.0
+		var x0 := at.x - (sw + gap + tw) / 2.0
+		if piles:
+			Chips.draw_stack(self, Vector2(x0 + sw / 2.0, at.y), b, bd)
+		draw_string(_font, Vector2(x0 + sw + gap, at.y + 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Look.c("text"))
 
 func _draw_hero() -> void:
 	if viewer < 0 or viewer >= t.seats.size():
@@ -583,6 +589,8 @@ func _draw_hero() -> void:
 		col = Look.c("dim")
 	elif s.hole.size() >= 2 and t.phase != "idle":
 		line = t.describe(t.hand_score(viewer))
+		if win_text != "":
+			line += "  ·  " + win_text
 	if line != "" and rects.size() > 0:
 		var y: float = rects[0].end.y + (52.0 if t.variant == "stud" else 30.0)
 		draw_string(_font, Vector2(0, minf(y, size.y - 6)), line, HORIZONTAL_ALIGNMENT_CENTER, size.x, 24, col)

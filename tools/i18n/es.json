@@ -7686,5 +7686,13 @@
  "To pass: at least %d%% of your line inside the track.": "Para pasar: al menos el %d%% de tu línea dentro de la pista.",
  "To pass: %d": "Para pasar: %d",
  "Practice shows the answers: after each question you see whether you were right, what the right answer was and 💡 why, and at the end 📝 Review answers lists every question. 🚩 reports a question that looks wrong so we can check it. Ranked tests never show answers.": "La práctica muestra las respuestas: después de cada pregunta ves si acertaste, cuál era la respuesta correcta y 💡 por qué, y al final 📝 Revisar respuestas lista todas las preguntas. 🚩 reporta una pregunta que parece estar mal para que la revisemos. Los tests puntuados nunca muestran respuestas.",
- "Why": "Por qué"
+ "Why": "Por qué",
+ "Chips": "Fichas",
+ "Win chance": "Probabilidad de ganar",
+ "Piles": "Montones",
+ "Numbers only": "Solo números",
+ "Classic colours": "Colores clásicos",
+ "Four colours": "Cuatro colores",
+ "Four colours: clubs green and diamonds blue, so no suit looks like another.": "Cuatro colores: tréboles verdes y diamantes azules, para que ningún palo se parezca a otro.",
+ "Shows your chance to win under your cards on your turn. It counts as help: those hands are marked in your history.": "Muestra tu probabilidad de ganar bajo tus cartas en tu turno. Cuenta como ayuda: esas manos quedan marcadas en tu historial."
 }
