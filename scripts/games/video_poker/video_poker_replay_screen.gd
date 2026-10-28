@@ -163,8 +163,8 @@ func _result_text(t) -> String:
 		var name := str(t.seats[int(r.seat)].name)
 		var amount := View._chips(int(r.won))
 		var mine: bool = name == ""
-		if str(r.desc) != "":
-			lines.append(tr("You win %s with %s.") % [amount, str(r.desc)] if mine else tr("%s wins %s with %s.") % [name, amount, str(r.desc)])
+		if View.result_text(r) != "":
+			lines.append(tr("You win %s with %s.") % [amount, View.result_text(r)] if mine else tr("%s wins %s with %s.") % [name, amount, View.result_text(r)])
 		else:
 			lines.append(tr("You win %s.") % amount if mine else tr("%s wins %s.") % [name, amount])
 	return "\n".join(lines.slice(0, 3))

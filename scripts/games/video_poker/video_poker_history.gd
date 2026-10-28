@@ -22,7 +22,8 @@ extends RefCounted
 ##              street = betting round (0 first); added = chips it put in
 ##   board      community cards at the end
 ##   end        [[seat, hole]] for seats whose cards changed (Draw, Stud's later cards)
-##   res        [[seat, won, score, shown]] at the end (score is video_poker_eval's)
+##   res        [[seat, won, score, shown, low, low_won]] at the end (score is video_poker_eval's;
+##              low = the seat's low hand score, -1 none, and low_won the chips of the low half: Hi-Lo only)
 ##   net        chips won minus put in, per seat        pot  total chips in
 ##   aids       the coach was on at some point (leaderboards can skip such hands)
 ##   partial    the recorder joined mid-hand (a save from before this existed):
@@ -166,7 +167,7 @@ func _finish(t) -> Dictionary:
 	cur.pot = pot
 	var res: Array = []
 	for r in t.results:
-		res.append([int(r.seat), int(r.won), int(r.score), 1 if r.shown else 0])
+		res.append([int(r.seat), int(r.won), int(r.score), 1 if r.shown else 0, int(r.get("low", -1)), int(r.get("low_won", 0))])
 	cur.res = res
 	var rec := {}
 	for k in cur:

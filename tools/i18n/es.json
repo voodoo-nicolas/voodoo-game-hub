@@ -7948,5 +7948,19 @@
  "Sister Scarlet": null,
  "The Baroness": null,
  "The Skull King": null,
- "every %d hands": "cada %d manos"
+ "every %d hands": "cada %d manos",
+ "%s throws a card away.": "%s descarta una carta.",
+ "Crazy Pineapple": "Crazy Pineapple",
+ "Discards": "Descarta",
+ "Hold'em, Omaha, Draw, Stud and more. Play chips only.": "Hold'em, Omaha, Cerrado, Stud y más. Solo fichas de juego.",
+ "Low: %s": "Baja: %s",
+ "More games: Short Deck (Hold'em with no 2s to 5s: a flush beats a full house, three of a kind beats a straight), Pineapple (three hole cards, throw one away before the flop), Crazy Pineapple (throw one away after the flop) and Omaha Hi-Lo (the pot is split: half to the best high hand, half to the best low: five different cards 8 or lower, two from your hand and three from the board; no low, and the high takes it all).": "Más juegos: Short Deck (Hold'em sin los 2 al 5: el color gana al full, el trío gana a la escalera), Pineapple (tres cartas ocultas, descartas una antes del flop), Crazy Pineapple (descartas una después del flop) y Omaha Hi-Lo (el bote se divide: la mitad para la mejor mano alta, la mitad para la mejor baja: cinco cartas distintas de 8 o menos, dos de tu mano y tres de la mesa; sin baja, la alta se lo lleva todo).",
+ "No low": "Sin baja",
+ "Omaha Hi-Lo": "Omaha Hi-Lo",
+ "Pick a card to discard": "Elige una carta para descartar",
+ "Pick the card to throw away.": "Elige la carta que quieres descartar.",
+ "Short Deck": "Short Deck",
+ "Short Deck Hold'em": "Hold'em Short Deck",
+ "Tap the card to throw away, then discard it.": "Toca la carta que quieres descartar y luego descártala.",
+ "Throw away the card that helps your hand least.": "Descarta la carta que menos ayuda a tu mano."
 }

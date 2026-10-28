@@ -57,6 +57,14 @@ func _scenarios() -> Dictionary:
 	t.act("call")
 	t.act("check")
 	out["omaha2_flop"] = {"t": t}
+	t = _table("omahahilo", "pl", 3, 21)
+	while t.phase != "done":
+		t.act("call")
+	out["hilo3_showdown"] = {"t": t}
+	t = _table("short", "nl", 4, 6)
+	while t.board.size() < 4:
+		t.act("call")
+	out["short4_turn"] = {"t": t}
 	return out
 
 func _run(out_dir: String, only: String) -> void:

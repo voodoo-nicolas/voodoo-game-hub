@@ -20,8 +20,12 @@ const RulesHoldem = preload("res://scripts/games/video_poker/video_poker_rules_h
 const RulesOmaha = preload("res://scripts/games/video_poker/video_poker_rules_omaha.gd")
 const RulesDraw = preload("res://scripts/games/video_poker/video_poker_rules_draw.gd")
 const RulesStud = preload("res://scripts/games/video_poker/video_poker_rules_stud.gd")
+const RulesShort = preload("res://scripts/games/video_poker/video_poker_rules_short.gd")
+const RulesPineapple = preload("res://scripts/games/video_poker/video_poker_rules_pineapple.gd")
+const RulesCrazy = preload("res://scripts/games/video_poker/video_poker_rules_crazy.gd")
+const RulesOmahaHiLo = preload("res://scripts/games/video_poker/video_poker_rules_omahahilo.gd")
 
-const VARIANTS := ["holdem", "omaha", "draw", "stud"]
+const VARIANTS := ["holdem", "omaha", "draw", "stud", "short", "pineapple", "crazy", "omahahilo"]
 const LIMITS := ["nl", "pl", "fl"]
 
 static var _rules_cache := {}
@@ -29,12 +33,12 @@ static var _rules_cache := {}
 ## The (stateless, shared) rules of a variant; Hold'em for an unknown name.
 static func rules_for(name: String):
 	if _rules_cache.is_empty():
-		_rules_cache = {"holdem": RulesHoldem.new(), "omaha": RulesOmaha.new(), "draw": RulesDraw.new(), "stud": RulesStud.new()}
+		_rules_cache = {"holdem": RulesHoldem.new(), "omaha": RulesOmaha.new(), "draw": RulesDraw.new(), "stud": RulesStud.new(),
+			"short": RulesShort.new(), "pineapple": RulesPineapple.new(), "crazy": RulesCrazy.new(), "omahahilo": RulesOmahaHiLo.new()}
 	return _rules_cache.get(name, _rules_cache["holdem"])
 ## Limit games cap each betting round at a bet and three raises.
 const MAX_RAISES := 4
 ## Five Card Draw: swap up to 3 cards, or 4 when the card you keep is an Ace.
-const MAX_DRAW := 3
 
 var variant := "holdem":
 	set(v):
@@ -115,7 +119,8 @@ func from_dict(d: Dictionary) -> void:
 	results = []
 	for r in d.get("results", []):
 		results.append({"seat": int(r.get("seat", 0)), "won": int(r.get("won", 0)), "score": int(r.get("score", -1)),
-			"desc": str(r.get("desc", "")), "best": _ints(r.get("best", [])), "shown": bool(r.get("shown", false))})
+			"desc": str(r.get("desc", "")), "best": _ints(r.get("best", [])), "shown": bool(r.get("shown", false)),
+			"low": int(r.get("low", -1)), "low_won": int(r.get("low_won", 0)), "low_desc": str(r.get("low_desc", ""))})
 	var e: Dictionary = d.get("last_event", {})
 	last_event = {}
 	if not e.is_empty():
@@ -460,6 +465,8 @@ func _open_round() -> void:
 	if can_bet <= 1:
 		# Everyone's all in: deal the rest and show down.
 		while street < last_street():
+			if _rules.draw_phase_after(street):
+				_auto_discard()  # nobody is asked: each hand drops what it can spare
 			street += 1
 			_deal_street()
 		_showdown()
@@ -469,6 +476,16 @@ func _open_round() -> void:
 		s.act = "" if not s.folded and not s.allin else s.act
 	to_act = -1
 	_rules.open_round(self)
+
+## Seats that are in the hand throw away what the rules say they can spare.
+func _auto_discard() -> void:
+	for i in live():
+		var drop: Array = _rules.auto_discard(seats[i].hole, board)
+		drop.sort()
+		drop.reverse()
+		for k in drop:
+			muck.append(seats[i].hole[k])
+			seats[i].hole.remove_at(k)
 
 func _first_after_button(any: bool) -> int:
 	return _next_seat(button, any)
@@ -484,22 +501,27 @@ func upcards(i: int) -> Array:
 			out.append(s.hole[k])
 	return out
 
-## Five Card Draw: the seat to act throws away the cards at `indices` and
-## gets new ones. Returns false if that many isn't allowed.
+## The discard phase (Five Card Draw's draw, Pineapple's drop): the seat to act
+## throws away the cards at `indices`, and gets new ones when the rules replace
+## them. Returns false if that is not allowed.
 func draw(indices: Array) -> bool:
 	if phase != "draw" or to_act < 0:
 		return false
-	if not can_discard(seats[to_act].hole, indices):
+	if not _rules.can_discard(seats[to_act].hole, indices):
 		return false
 	var s: Dictionary = seats[to_act]
 	var keep: Array = indices.duplicate()
 	keep.sort()
 	for k in keep:
 		muck.append(s.hole[k])
-	for k in keep:
-		s.hole[k] = _deal()
+	if _rules.draw_replaces():
+		for k in keep:
+			s.hole[k] = _deal()
+	else:
+		for n in range(keep.size() - 1, -1, -1):
+			s.hole.remove_at(keep[n])
 	s.drew = keep.size()
-	s.act = "Stand pat" if keep.is_empty() else "Draw"
+	s.act = "Stand pat" if keep.is_empty() else ("Draw" if _rules.draw_replaces() else "Discard")
 	s.amt = keep.size()
 	s.acted = true
 	last_event = {"seat": to_act, "action": "draw", "amount": keep.size()}
@@ -515,18 +537,15 @@ func draw(indices: Array) -> bool:
 		return true
 	for t in seats:
 		t.acted = false
-	street = 1
+	street += 1
+	_deal_street()
 	_open_round()
 	return true
 
+## Draw's rule (up to 3 cards, 4 with an Ace kept); the rules of the variant
+## in play answer for themselves through t.rules().can_discard.
 static func can_discard(hand: Array, indices: Array) -> bool:
-	if indices.size() <= MAX_DRAW:
-		return true
-	if indices.size() == MAX_DRAW + 1:
-		for k in hand.size():
-			if not indices.has(k):
-				return Eval.value(hand[k]) == 14
-	return false
+	return rules_for("draw").can_discard(hand, indices)
 
 # ---------- the end of a hand ----------
 
@@ -551,21 +570,29 @@ func _finish_uncontested(winner: int) -> void:
 	to_act = -1
 
 ## Splits the chips into the main pot and side pots by what each seat put
-## in, and pays each pot to the best hand among the seats that covered it.
+## in, and pays each pot to the best hand among the seats that covered it. In
+## a Hi-Lo game each pot is cut in two: the best high takes one half, the best
+## qualifying low the other (the odd chip goes to the high); a pot nobody can
+## claim a low from goes to the high whole.
 func _showdown() -> void:
 	for s in seats:
 		pot += int(s.bet)
 		s.bet = 0
 	var alive := live()
+	var split: bool = _rules.is_split()
 	var scores := {}
+	var lows := {}
 	for i in alive:
 		scores[i] = hand_score(i)
+		if split:
+			lows[i] = _rules.low_score(seats[i].hole, board)
 	var levels: Array = []
 	for s in seats:
 		if int(s.total) > 0 and not levels.has(int(s.total)):
 			levels.append(int(s.total))
 	levels.sort()
 	var won := {}
+	var low_won := {}
 	var prev := 0
 	var carry := 0
 	for level in levels:
@@ -581,20 +608,19 @@ func _showdown() -> void:
 			carry = amount  # only folded chips at this level: it joins the next pot
 			continue
 		carry = 0
-		var best := -1
-		for i in eligible:
-			best = maxi(best, scores[i])
-		var winners: Array = []
-		# Odd chips go to the first winner after the button.
-		for k in range(1, seats.size() + 1):
-			var j := (button + k) % seats.size()
-			if eligible.has(j) and scores[j] == best:
-				winners.append(j)
-		var share := amount / winners.size()
-		var odd := amount - share * winners.size()
-		for w in winners:
-			won[w] = int(won.get(w, 0)) + share + (1 if odd > 0 else 0)
-			odd -= 1
+		var low_best := -1
+		if split:
+			for i in eligible:
+				low_best = maxi(low_best, int(lows[i]))
+		var low_amount := amount / 2 if low_best >= 0 else 0
+		var high_amount := amount - low_amount
+		_pay(high_amount, eligible, scores, scores_best(eligible, scores), won)
+		if low_best >= 0:
+			var low_pay := {}
+			_pay(low_amount, eligible, lows, low_best, low_pay)
+			for k in low_pay:
+				won[k] = int(won.get(k, 0)) + int(low_pay[k])
+				low_won[k] = int(low_won.get(k, 0)) + int(low_pay[k])
 	if carry > 0 and not alive.is_empty():
 		won[alive[0]] = int(won.get(alive[0], 0)) + carry
 	results = []
@@ -602,14 +628,42 @@ func _showdown() -> void:
 		var w: int = won.get(i, 0)
 		seats[i].stack += w
 		seats[i].won = w
-		results.append({"seat": i, "won": w, "score": scores[i], "desc": describe(scores[i]),
-			"best": best_cards(i), "shown": true})
+		var r := {"seat": i, "won": w, "score": scores[i], "desc": describe(scores[i]),
+			"best": best_cards(i), "shown": true, "low": int(lows.get(i, -1)), "low_won": int(low_won.get(i, 0)), "low_desc": ""}
+		if split and int(r.low) >= 0:
+			r.low_desc = _rules.describe_low(int(r.low))
+		results.append(r)
 	results.sort_custom(func(a, b): return a.won > b.won)
 	if not results.is_empty():
 		last_event = {"seat": results[0].seat, "action": "win", "amount": results[0].won}
 	pot = 0
 	phase = "done"
 	to_act = -1
+
+## The best score among `eligible`.
+func scores_best(eligible: Array, scores: Dictionary) -> int:
+	var best := -1
+	for i in eligible:
+		best = maxi(best, int(scores[i]))
+	return best
+
+## Pays `amount` to the seats of `eligible` whose score is `best`, the odd chips
+## going to the first winners after the button; adds into `into`.
+func _pay(amount: int, eligible: Array, scores: Dictionary, best: int, into: Dictionary) -> void:
+	if amount <= 0:
+		return
+	var winners: Array = []
+	for k in range(1, seats.size() + 1):
+		var j := (button + k) % seats.size()
+		if eligible.has(j) and int(scores[j]) == best:
+			winners.append(j)
+	if winners.is_empty():
+		return
+	var share := amount / winners.size()
+	var odd := amount - share * winners.size()
+	for w in winners:
+		into[w] = int(into.get(w, 0)) + share + (1 if odd > 0 else 0)
+		odd -= 1
 
 ## Every chip at the table (stacks + bets + pot): never changes in a hand.
 func chips_total() -> int:

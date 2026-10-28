@@ -301,8 +301,8 @@ func _stud() -> void:
 
 ## What the computer players and the coach ask each variant's rules.
 func _traits() -> void:
-	var work := {"holdem": 1.0, "stud": 1.0, "draw": 2.5, "omaha": 10.0}
-	var board := {"holdem": 5, "omaha": 5, "draw": 0, "stud": 0}
+	var work := {"holdem": 1.0, "stud": 1.0, "draw": 2.5, "omaha": 10.0, "short": 1.0, "pineapple": 2.0, "crazy": 2.0, "omahahilo": 14.0}
+	var board := {"holdem": 5, "omaha": 5, "draw": 0, "stud": 0, "short": 5, "pineapple": 5, "crazy": 5, "omahahilo": 5}
 	for v in Table.VARIANTS:
 		var r = Table.rules_for(v)
 		ok(r.work_cost() == work[v], "%s: work cost" % v)
@@ -310,7 +310,7 @@ func _traits() -> void:
 		ok(r.has_blinds() == (v != "stud"), "%s: blinds" % v)
 		ok(r.has_draw() == (v == "draw"), "%s: draw phase" % v)
 		ok(r.has_starting_hand_chart() == (v == "holdem"), "%s: starting-hand chart" % v)
-		ok(r.new_deck().size() == 52, "%s: 52-card deck" % v)
+		ok(r.new_deck().size() == (36 if v == "short" else 52), "%s: deck size" % v)
 	ok(Table.rules_for("nonsense") == Table.rules_for("holdem"), "an unknown variant plays as Hold'em")
 
 ## Hold'em with a 36-card deck: hands play out, chips are conserved and only

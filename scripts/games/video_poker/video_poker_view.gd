@@ -433,8 +433,8 @@ func _draw_seat(i: int, r: Rect2) -> void:
 		if int(res.won) > 0:
 			line = "+" + _chips(int(res.won))
 			col = Look.c("gold")
-		if str(res.desc) != "":
-			line = (line + " · " if line != "" else "") + str(res.desc)
+		if result_text(res) != "":
+			line = (line + " · " if line != "" else "") + result_text(res)
 			if int(res.won) == 0:
 				col = Look.c("dim")
 	elif thinking == i:
@@ -460,6 +460,8 @@ func _act_text(s: Dictionary) -> String:
 				return tr(a) + " " + _chips(int(s.amt))
 		"Draw":
 			return tr("Draws %d") % int(s.amt)
+		"Discard":
+			return tr("Discards")
 		"Check":
 			return tr(CHECK)
 	return tr(a)
@@ -563,7 +565,7 @@ func _draw_hero() -> void:
 		var card: int = s.hole[idx]
 		Cards.draw_card(self, r, card, true, best.has(card) or picked, bool(s.folded) or picked)
 		if picked:
-			draw_string(_font, Vector2(r.position.x - 10, r.position.y - 6), tr("Swap").to_upper(), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 20, 20, Look.c("gold"))
+			draw_string(_font, Vector2(r.position.x - 10, r.position.y - 6), tr(t.rules().discard_word()).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 20, 20, Look.c("gold"))
 	if t.rules().has_up_cards() and rects.size() > 0:
 		var hidden := _stud_hidden_count()
 		if hidden > 0 and hidden < rects.size():
@@ -576,7 +578,7 @@ func _draw_hero() -> void:
 	var line := ""
 	var col := Look.c("you").lerp(Look.c("text"), 0.3)
 	if not res.is_empty():
-		line = str(res.desc)
+		line = result_text(res)
 		if int(res.won) > 0:
 			line = "+" + _chips(int(res.won)) + ("  ·  " + line if line != "" else "")
 			col = Look.c("gold")
@@ -585,11 +587,23 @@ func _draw_hero() -> void:
 		col = Look.c("dim")
 	elif s.hole.size() >= 2 and t.phase != "idle":
 		line = t.describe(t.hand_score(viewer))
+		if t.rules().is_split():
+			var lo: int = t.rules().low_score(s.hole, t.board)
+			line += "  ·  " + (tr("Low: %s") % t.rules().describe_low(lo) if lo >= 0 else tr("No low"))
 		if win_text != "":
 			line += "  ·  " + win_text
 	if line != "" and rects.size() > 0:
 		var y: float = rects[0].end.y + (52.0 if t.rules().has_up_cards() else 30.0)
 		draw_string(_font, Vector2(0, minf(y, size.y - 6)), line, HORIZONTAL_ALIGNMENT_CENTER, size.x, 24, col)
+
+## A showdown result in words: the high hand, and in a Hi-Lo game the low too.
+static func result_text(r: Dictionary) -> String:
+	var parts: Array = []
+	if str(r.desc) != "":
+		parts.append(str(r.desc))
+	if str(r.get("low_desc", "")) != "":
+		parts.append(str(TranslationServer.translate("Low: %s")) % str(r.low_desc))
+	return " · ".join(parts)
 
 static func _chips(v: int) -> String:
 	var s := str(absi(v))

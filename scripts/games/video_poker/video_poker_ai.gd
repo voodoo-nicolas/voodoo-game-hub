@@ -95,7 +95,9 @@ static func equity(t, me: int, trials: int, rng: RandomNumberGenerator, opponent
 			pool.append(c)
 	var rules = t.rules()
 	var board_need: int = maxi(0, rules.board_size() - t.board.size())
-	var my_need: int = maxi(0, rules.hole_count() - mine.size())
+	var my_final: int = rules.hole_count() if int(t.seats[me].drew) < 0 else rules.hole_after_discard()
+	var my_need: int = maxi(0, my_final - mine.size())
+	var split: bool = rules.is_split()
 	var my_draw: bool = rules.has_draw() and int(t.seats[me].drew) < 0
 	var wins := 0.0
 	var done := 0
@@ -117,11 +119,14 @@ static func equity(t, me: int, trials: int, rng: RandomNumberGenerator, opponent
 		var my_score: int = rules.hand_score(hand, board)
 		var best_opp := -1
 		var ties := 0
+		var best_opp_low := -1
+		var low_ties := 0
 		var ok := true
 		for o in opps.size():
 			var oi: int = opps[o]
 			var oh: Array = opp_known[o].duplicate()
-			var need: int = t.hole_count() - oh.size()
+			var their_final: int = rules.hole_count() if int(t.seats[oi].drew) < 0 else rules.hole_after_discard()
+			var need: int = their_final - oh.size()
 			for k in need:
 				if pos >= pool.size():
 					ok = false
@@ -145,13 +150,35 @@ static func equity(t, me: int, trials: int, rng: RandomNumberGenerator, opponent
 				ties = 0
 			elif s == best_opp:
 				ties += 1
+			if split:
+				var ls: int = rules.low_score(oh, board)
+				if ls > best_opp_low:
+					best_opp_low = ls
+					low_ties = 0
+				elif ls == best_opp_low and ls >= 0:
+					low_ties += 1
 		if not ok:
 			continue
 		done += 1
+		var high_share := 0.0
 		if my_score > best_opp:
-			wins += 1.0
+			high_share = 1.0
 		elif my_score == best_opp:
-			wins += 1.0 / (ties + 2)
+			high_share = 1.0 / (ties + 2)
+		if not split:
+			wins += high_share
+		else:
+			var my_low: int = rules.low_score(hand, board)
+			if my_low < 0 and best_opp_low < 0:
+				wins += high_share  # nobody has a low: the high takes the whole pot
+			else:
+				var low_share := 0.0
+				if my_low >= 0:
+					if my_low > best_opp_low:
+						low_share = 1.0
+					elif my_low == best_opp_low:
+						low_share = 1.0 / (low_ties + 2)
+				wins += 0.5 * high_share + 0.5 * low_share
 	return wins / maxi(done, 1)
 
 ## A random card from pool[pos..], swapped to pool[pos] (a partial shuffle,
@@ -218,6 +245,13 @@ static func choose_discards(hand: Array) -> Array:
 		return order.slice(1)
 	return order.slice(2)
 
+## The cards to throw away in this table's discard phase: Draw's habits, or the
+## one a Pineapple hand can spare.
+static func choose_discards_for(t, hole: Array) -> Array:
+	if t.rules().discard_kind() == "drop":
+		return t.rules().auto_discard(hole, t.board)
+	return choose_discards(hole)
+
 # ---------- decisions ----------
 
 ## The computer's move for the seat to act in table dict `td`:
@@ -233,7 +267,7 @@ static func decide(td: Dictionary, level: int, seed: int) -> Dictionary:
 		return {"action": "check"}
 	var seat: Dictionary = t.seats[me]
 	if t.phase == "draw":
-		return {"action": "draw", "discards": choose_discards(seat.hole)}
+		return {"action": "draw", "discards": choose_discards_for(t, seat.hole)}
 	var style: Array = STYLES[clampi(int(seat.style), 0, STYLES.size() - 1)]
 	var tight: float = style[1]
 	var aggr: float = style[2]
@@ -364,10 +398,14 @@ static func advise(td: Dictionary, seed: int) -> Dictionary:
 	var cur := t.hand_score(me) if hole.size() > 0 else 0
 	out.hand = t.describe(cur)
 	if t.phase == "draw":
-		var d := choose_discards(hole)
+		var d := choose_discards_for(t, hole)
 		out.discards = d
 		out.advice = "Draw"
-		out.why = _t("Keep the cards that already work and draw %d.") % d.size() if d.size() > 0 else _t("Your hand is made: stand pat.")
+		if t.rules().discard_kind() == "drop":
+			out.advice = "Discard"
+			out.why = _t("Throw away the card that helps your hand least.")
+		else:
+			out.why = _t("Keep the cards that already work and draw %d.") % d.size() if d.size() > 0 else _t("Your hand is made: stand pat.")
 		return out
 	var n_opp: int = t.live().size() - 1
 	var n_eff := n_opp

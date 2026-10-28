@@ -42,6 +42,56 @@ func has_blinds() -> bool:
 func has_draw() -> bool:
 	return false
 
+## The usual category of a score (Eval.PAIR .. Eval.STRAIGHT_FLUSH): for the
+## names and statistics, even where the scores order the hands differently.
+func hand_type(score: int) -> int:
+	return Eval.category(score)
+
+# ---------- split pots (Hi-Lo) ----------
+
+## True when half of every pot goes to the best qualifying low hand.
+func is_split() -> bool:
+	return false
+
+## A seat's low hand: bigger is better, -1 when it has none.
+func low_score(_hole: Array, _board: Array) -> int:
+	return -1
+
+## The five cards of that low.
+func low_best(_hole: Array, _board: Array) -> Array:
+	return []
+
+## A low in words ("8-6-4-2-A").
+func describe_low(_score: int) -> String:
+	return ""
+
+# ---------- discards (the phase between betting rounds) ----------
+
+## "" no discard phase, "swap" cards are thrown away and replaced (Draw), "drop"
+## they are thrown away and not replaced (Pineapple).
+func discard_kind() -> String:
+	return ""
+
+## Are the discarded cards replaced (Draw), or just thrown away (Pineapple)?
+func draw_replaces() -> bool:
+	return discard_kind() != "drop"
+
+## The English word for the action ("Swap", "Discard"), for buttons and labels.
+func discard_word() -> String:
+	return "Swap"
+
+## What to tell the player in the discard phase.
+func discard_prompt() -> String:
+	return ""
+
+## Is throwing away the cards at `indices` of `hand` allowed?
+func can_discard(_hand: Array, _indices: Array) -> bool:
+	return false
+
+## The cards to throw away when nobody is asked (everyone is all in).
+func auto_discard(_hole: Array, _board: Array) -> Array:
+	return []
+
 ## True when Chen's starting-hand points rate the two hole cards (the
 ## computer's ranges and the coach's tiers; Hold'em only).
 func has_starting_hand_chart() -> bool:
@@ -70,6 +120,10 @@ func has_up_cards() -> bool:
 ## view translates), or "".
 func round_note(_t) -> String:
 	return ""
+
+## Cards a hand holds once it has made its discard (Pineapple: two).
+func hole_after_discard() -> int:
+	return hole_count()
 
 ## Cards each seat is dealt to start.
 func hole_count() -> int:

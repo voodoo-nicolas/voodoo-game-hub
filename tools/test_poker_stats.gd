@@ -15,7 +15,7 @@ const Profile = preload("res://scripts/games/video_poker/video_poker_profile.gd"
 const Stats = preload("res://scripts/games/video_poker/video_poker_stats.gd")
 const Replay = preload("res://scripts/games/video_poker/video_poker_replay.gd")
 
-const CONFIGS := [["holdem", "nl"], ["omaha", "pl"], ["draw", "nl"], ["stud", "fl"]]
+const CONFIGS := [["holdem", "nl"], ["omaha", "pl"], ["draw", "nl"], ["stud", "fl"], ["short", "nl"], ["pineapple", "nl"], ["crazy", "pl"], ["omahahilo", "pl"]]
 const HIST := "user://test_poker_stats_history.jsonl"
 const PROF := "user://test_poker_stats_profile.json"
 
@@ -72,7 +72,10 @@ func _play() -> Array:
 				while t.phase != "done" and guard < 200:
 					guard += 1
 					if t.phase == "draw":
-						t.draw([0, 1].slice(0, arng.randi_range(0, 2)))
+						if t.rules().discard_kind() == "drop":
+							t.draw(t.rules().auto_discard(t.seats[t.to_act].hole, t.board))
+						else:
+							t.draw([0, 1].slice(0, arng.randi_range(0, 2)))
 					else:
 						var l: Dictionary = t.legal()
 						var r := arng.randf()

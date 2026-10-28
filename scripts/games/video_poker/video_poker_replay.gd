@@ -78,10 +78,10 @@ static func frames(record: Dictionary) -> Array:
 				acts[seat] = "All in" if int(e[4]) == 1 else ("Raise" if someone_bet or street == 0 else "Bet")
 				amts[seat] = amount
 			"draw":
-				acts[seat] = "Draw" if amount > 0 else "Stand pat"
+				acts[seat] = ("Discard" if rules.discard_kind() == "drop" else "Draw") if amount > 0 else "Stand pat"
 				amts[seat] = amount
 				drew[seat] = true
-		var cap := _caption(str(seats_rec[seat].name), code, amount, int(e[4]) == 1)
+		var cap := _caption(str(seats_rec[seat].name), code, amount, int(e[4]) == 1, rules.discard_kind() == "drop")
 		var next_street := int(ev[k + 1][3]) if k + 1 < ev.size() else street
 		var swept: bool = next_street != street  # the round is over: its bets went into the pot
 		var shown_bets: Array = round_bet
@@ -100,7 +100,7 @@ static func frames(record: Dictionary) -> Array:
 	out.append(last)
 	return out
 
-static func _caption(name: String, code: String, amount: int, allin: bool) -> String:
+static func _caption(name: String, code: String, amount: int, allin: bool, dropped: bool = false) -> String:
 	var who := name if name != "" else "You"
 	var amt := _chips(amount)
 	var text := ""
@@ -109,13 +109,15 @@ static func _caption(name: String, code: String, amount: int, allin: bool) -> St
 		"check": text = "%s checks."
 		"call": text = "%s calls %s." if not allin else "%s is all in for %s!"
 		"raise": text = "%s raises to %s." if not allin else "%s is all in for %s!"
-		"draw": text = "%s draws %d." if amount > 0 else "%s stands pat."
+		"draw": text = ("%s throws a card away." if dropped else "%s draws %d.") if amount > 0 else "%s stands pat."
 	if text == "":
 		return ""
 	var translated := str(TranslationServer.translate(text))
 	var you := str(TranslationServer.translate("You")) if name == "" else name
 	if code == "draw":
-		return translated % [you, amount] if amount > 0 else translated % you
+		if dropped or amount <= 0:
+			return translated % you
+		return translated % [you, amount]
 	if code in ["fold", "check"]:
 		return translated % you
 	return translated % [you, amt]
@@ -173,10 +175,12 @@ static func _frame(rec: Dictionary, rules, stack0: Array, put: Array, round_bet:
 			var score := int(r[2])
 			var hole: Array = t.seats[seat].hole
 			var shown := int(r[3]) == 1
+			var low := int(r[4]) if r.size() > 4 else -1
 			results.append({"seat": seat, "won": int(r[1]), "score": score,
 				"desc": rules.describe(score) if score >= 0 and shown else "",
 				"best": rules.best_cards(hole, t.board) if shown and int(r[1]) > 0 and score >= 0 else [],
-				"shown": shown})
+				"shown": shown, "low": low, "low_won": int(r[5]) if r.size() > 5 else 0,
+				"low_desc": rules.describe_low(low) if low >= 0 and shown else ""})
 		t.results = results
 	return {"t": t, "caption": caption, "street": street, "event": -1}
 

@@ -2,7 +2,7 @@
 
 **Revamp in progress (since 2026-10-27, unpublished on master): decisions, phases and status in `docs/claude/poker-revamp.md`. Read it first.**
 
-Texas Hold'em, Omaha, Five Card Draw, Seven Card Stud (No limit / Pot limit / Limit; Stud Limit only); vs computer (cash tables at 3 stakes, free tournaments), pass-and-play 2-6, online heads-up, Video Poker as a mode, 🎓 Training. **Id stays `video_poker`** (stats/board carry over; board "Most chips").
+Texas Hold'em, Omaha, Five Card Draw, Seven Card Stud (Stud Limit only), and since the revamp Short Deck, Pineapple, Crazy Pineapple, Omaha Hi-Lo (No limit / Pot limit / Limit); vs computer (cash tables at 3 stakes, free tournaments), pass-and-play 2-6, online heads-up, Video Poker as a mode, 🎓 Training. **Id stays `video_poker`** (stats/board carry over; board "Most chips").
 
 - Files: `_eval.gd` (hand score = one int, bigger wins; `score5` fast path for Omaha), `_table.gd` (pure engine; JSON-safe `to_dict` = save AND online state; side pots from each seat's `total`), `_ai.gd` (Monte Carlo win chance + pot odds; computer players and coach on `WorkerThreadPool`, keyed by `_decision_key()` so stale answers drop), `_view.gd` (draws table; viewer's seat always at bottom), `_machine.gd` (Video Poker screen), `_training.gd` + `_drills.gd`, `_engine.gd` (Video Poker logic + Jacks or Better hint), `_game.gd` (modes, chips, saves, online).
 - Chips in `user://video_poker_chips.json` (with Home picks), shared by cash tables and Video Poker. A seated cash stack is in the table save, NOT in chips; `_discard_save()` pays it back before any New… deletes the save. Video Poker saves its hand in `user://video_poker_machine.json` (never clobbers a table save).
@@ -15,3 +15,4 @@ Texas Hold'em, Omaha, Five Card Draw, Seven Card Stud (No limit / Pot limit / Li
 - Options (since the revamp): four-colour deck, chip piles vs numbers, win chance; stored in `prefs` of `video_poker_chips.json`. Win chance and the coach both mark hands `aids` in the history.
 - Stats, replay, XP (phase 2): `_profile.gd`, `_stats.gd`, `_replay.gd`, `_replay_screen.gd`, `_stats_screen.gd`; details in `poker-revamp.md` (Phase 2). `History.observe()` returns the hand it finished; the game feeds the profile from it.
 - Characters, tournament formats and Career (phase 3): `_characters.gd`, `_career.gd`, `_career_screen.gd`; AI reads a character's traits by seat name; details in `poker-revamp.md` (Phase 3).
+- New variants (phase 4): rules files `_rules_short/pineapple/crazy/omahahilo.gd`, evals `_eval_short.gd` / `_eval_low.gd`; the table's discard phase and split pots are generic (rules answer `discard_kind`, `is_split`...). See `poker-revamp.md` (Phase 4).

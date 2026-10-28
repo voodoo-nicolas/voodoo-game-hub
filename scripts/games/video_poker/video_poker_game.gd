@@ -363,7 +363,7 @@ func _build_ui() -> void:
 		"info": info,
 		"accent": HomeKit.GOLD,
 		"art": LANDING_ART,  # the Classic picture; _set_skin swaps in the Voodoo one
-		"subtitle": "Hold'em, Omaha, Draw and Stud. Play chips only.",
+		"subtitle": "Hold'em, Omaha, Draw, Stud and more. Play chips only.",
 		"logo": _draw_home_logo,
 		"extra": _add_home_options,
 		"modes": modes,
@@ -1165,8 +1165,8 @@ func _on_raise() -> void:
 	_after_move()
 
 func _do_draw() -> void:
-	if not Table.can_discard(t.seats[t.to_act].hole, discards):
-		note = tr("Swap up to 3 cards (4 if you keep an Ace).")
+	if not t.rules().can_discard(t.seats[t.to_act].hole, discards):
+		note = tr("Pick the card to throw away.") if t.rules().discard_kind() == "drop" else tr("Swap up to 3 cards (4 if you keep an Ace).")
 		_sfx("invalid")
 		_render()
 		return
@@ -1184,6 +1184,8 @@ func _on_card_tapped(index: int) -> void:
 		return
 	if discards.has(index):
 		discards.erase(index)
+	elif t.rules().discard_kind() == "drop":
+		discards = [index]  # one card goes: picking another changes the pick
 	else:
 		discards.append(index)
 	_sfx("toggle")
@@ -1589,6 +1591,7 @@ func _event_text() -> String:
 		"Complete": return tr("%s completes to %s.") % [who, amt]
 		"All in": return tr("%s is all in for %s!") % [who, amt]
 		"Draw": return tr("%s draws %d.") % [who, int(e.amount)]
+		"Discard": return tr("%s throws a card away.") % who
 		"Stand pat": return tr("%s stands pat.") % who
 	return ""
 
@@ -1606,9 +1609,9 @@ func _status_text() -> String:
 				continue
 			var mine: bool = str(t.seats[int(r.seat)].name) == ""
 			var amount := View._chips(int(r.won))
-			if str(r.desc) != "":
-				lines.append(tr("You win %s with %s.") % [amount, str(r.desc)] if mine
-					else tr("%s wins %s with %s.") % [_name(int(r.seat)), amount, str(r.desc)])
+			if View.result_text(r) != "":
+				lines.append(tr("You win %s with %s.") % [amount, View.result_text(r)] if mine
+					else tr("%s wins %s with %s.") % [_name(int(r.seat)), amount, View.result_text(r)])
 			else:
 				lines.append(tr("You win %s.") % amount if mine else tr("%s wins %s.") % [_name(int(r.seat)), amount])
 		var me := _hero_seat()
@@ -1627,7 +1630,7 @@ func _status_text() -> String:
 	elif _hero_can_act():
 		var l: Dictionary = t.legal()
 		if t.phase == "draw":
-			lines.append(tr("Tap the cards to swap, then draw."))
+			lines.append(tr(t.rules().discard_prompt()))
 		elif int(l.to_call) > 0:
 			lines.append(tr("Your turn: %s to call.") % View._chips(int(l.to_call)))
 		elif t.current_bet > 0:
@@ -1639,6 +1642,7 @@ func _status_text() -> String:
 	return "\n".join(lines.slice(maxi(0, lines.size() - 2)))
 
 func _render_buttons() -> void:
+	call_btn.disabled = false
 	for b in [fold_btn, call_btn, raise_btn, leave_btn, next_btn]:
 		b.visible = false
 	size_row.visible = false
@@ -1663,7 +1667,12 @@ func _render_buttons() -> void:
 	var l: Dictionary = t.legal()
 	if t.phase == "draw":
 		call_btn.visible = true
-		call_btn.text = tr("Stand pat") if discards.is_empty() else tr("Swap %d") % discards.size()
+		if t.rules().discard_kind() == "drop":
+			call_btn.text = tr("Discard") if not discards.is_empty() else tr("Pick a card to discard")
+			call_btn.disabled = discards.is_empty()
+		else:
+			call_btn.text = tr("Stand pat") if discards.is_empty() else tr("Swap %d") % discards.size()
+			call_btn.disabled = false
 		return
 	fold_btn.visible = not l.can_check
 	call_btn.visible = true

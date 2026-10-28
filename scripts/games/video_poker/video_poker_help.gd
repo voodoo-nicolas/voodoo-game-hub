@@ -8,6 +8,7 @@ const TITLE := "Poker"
 const GOAL := "Win chips with the best hand, or by making everyone else fold. Play chips only: nothing to buy, nothing to win but bragging rights."
 const HOW := [
 	"Pick the game and the betting on Home: Texas Hold'em, Omaha, Five Card Draw or Seven Card Stud; No limit, Pot limit or Limit (Stud is always Limit).",
+	"More games: Short Deck (Hold'em with no 2s to 5s: a flush beats a full house, three of a kind beats a straight), Pineapple (three hole cards, throw one away before the flop), Crazy Pineapple (throw one away after the flop) and Omaha Hi-Lo (the pot is split: half to the best high hand, half to the best low: five different cards 8 or lower, two from your hand and three from the board; no low, and the high takes it all).",
 	"Hold'em: two cards each and five shared cards on the board; make your best five from all seven. Omaha: four cards each, and you must use exactly two of them with three from the board.",
 	"Five Card Draw: five cards each, a round of betting, then swap up to 3 cards (4 if you keep an Ace) and bet again. Seven Card Stud: three down, four up, one more down; antes and a bring-in instead of blinds.",
 	"On your turn: Fold, Check or Call, or Bet / Raise. In No limit and Pot limit, size your raise with Min, ½ Pot, Pot, All in, − and +.",

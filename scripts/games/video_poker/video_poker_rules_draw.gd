@@ -3,6 +3,8 @@ extends "res://scripts/games/video_poker/video_poker_rules.gd"
 ## Five Card Draw: five hole cards, one betting round, a draw, one more round.
 ## (The draw itself is Table.draw(); this says when it happens.)
 
+const MAX_DRAW := 3
+
 func title() -> String:
 	return "Five Card Draw"
 
@@ -17,6 +19,22 @@ func board_size() -> int:
 
 func has_draw() -> bool:
 	return true
+
+func discard_kind() -> String:
+	return "swap"
+
+func discard_prompt() -> String:
+	return "Tap the cards to swap, then draw."
+
+## Up to 3 cards, or 4 when the card kept is an Ace.
+func can_discard(hand: Array, indices: Array) -> bool:
+	if indices.size() <= MAX_DRAW:
+		return true
+	if indices.size() == MAX_DRAW + 1:
+		for k in hand.size():
+			if not indices.has(k):
+				return Eval.value(hand[k]) == 14
+	return false
 
 func round_note(t) -> String:
 	if t.phase == "draw":
