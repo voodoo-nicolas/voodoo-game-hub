@@ -152,9 +152,9 @@ func _draw() -> void:
 		if here:
 			var p := r.position + Vector2(r.size.x * clampf(nash_frac.x, 0.05, 0.95), r.size.y * clampf(nash_frac.y, 0.1, 0.95))
 			var pulse := 0.5 + 0.5 * sin(_t * 6.0)
-			draw_circle(p, 7.0 + pulse * 2.0, Color(0.9, 0.1, 0.1, 0.35))
-			draw_circle(p, 5.0, A.INK)
-			draw_circle(p, 3.6, Color("ff4a3a"))
+			A.disc(self, p, 7.0 + pulse * 2.0, Color(0.9, 0.1, 0.1, 0.35))
+			A.disc(self, p, 5.0, A.INK)
+			A.disc(self, p, 3.6, Color("ff4a3a"))
 	if current != "" and LAYOUT.has(current):
 		var r2 := _cell_rect(current)
 		var you := tr(LsText.UI.map_you)

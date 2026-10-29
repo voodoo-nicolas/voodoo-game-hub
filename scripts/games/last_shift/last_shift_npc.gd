@@ -228,7 +228,7 @@ func _draw() -> void:
 	var lk: Dictionary = LOOKS.get(look, LOOKS.coworker)
 	if down:
 		if hp <= 0:
-			draw_circle(Vector2(2, 6), 17.0, Color("6e0a0e"))     # v0.5: killed by the infected
+			A.disc(self, Vector2(2, 6), 17.0, Color("6e0a0e"))     # v0.5: killed by the infected
 		A.shadow(self, Vector2(0, 8), 16, 6)
 		A.ink_rect(self, Rect2(-14, -4, 28, 14), lk.body)
 		A.ink_rect(self, Rect2(12, -6, 9, 9), lk.skin)

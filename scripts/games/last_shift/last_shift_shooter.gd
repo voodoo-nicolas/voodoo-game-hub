@@ -187,7 +187,7 @@ func _line_to(who: Node2D) -> bool:
 func _draw() -> void:
 	if state == S.DOWN or state == S.DEAD:
 		if state == S.DEAD:
-			draw_circle(Vector2(2, 6), 17.0, Color("6e0a0e"))
+			A.disc(self, Vector2(2, 6), 17.0, Color("6e0a0e"))
 		A.shadow(self, Vector2(0, 8), 16, 6)
 		A.ink_rect(self, Rect2(-14, -4, 28, 14), JACKET)
 		A.ink_rect(self, Rect2(12, -6, 9, 9), SKIN)

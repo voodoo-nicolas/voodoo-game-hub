@@ -31,6 +31,7 @@ extends Node2D
 ## call center (screamers, sealed Hall C) -> lobby hall (guard) -> lobby (barricade, vent puzzle)
 ## -> parking lot at dawn.
 
+const A = preload("res://scripts/games/last_shift/last_shift_art.gd")
 const LsEngine = preload("res://scripts/games/last_shift/last_shift_engine.gd")
 const LsInput = preload("res://scripts/games/last_shift/last_shift_input.gd")
 const LsRooms = preload("res://scripts/games/last_shift/last_shift_rooms.gd")
@@ -1656,10 +1657,10 @@ class Splat extends Node2D:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = int(position.x * 13.0 + position.y * 7.0)
 		var col := Color("6e0a0e")
-		draw_circle(Vector2.ZERO, radius, col)
+		A.disc(self, Vector2.ZERO, radius, col)
 		for i in 6:
 			var d := Vector2.RIGHT.rotated(rng.randf() * TAU) * rng.randf_range(radius, radius * 2.6)
-			draw_circle(d, rng.randf_range(0.8, radius * 0.45), col)
+			A.disc(self, d, rng.randf_range(0.8, radius * 0.45), col)
 
 func guard_shout(text: String, _who: Node2D = null) -> void:
 	if _guard_shout_t > 0.0:
@@ -1872,13 +1873,13 @@ class FrostCloud extends Node2D:
 		var fade := clampf((life - _t) / 1.2, 0.0, 1.0) * clampf(_t / 0.2, 0.0, 1.0)
 		for i in 4:
 			var r := radius * (0.55 + 0.15 * i) + sin(_t * 1.7 + i) * 4.0
-			draw_circle(Vector2(sin(_t + i) * 6.0, cos(_t * 0.8 + i) * 4.0), r, Color(0.86, 0.92, 1.0, 0.09 * fade))
+			A.disc(self, Vector2(sin(_t + i) * 6.0, cos(_t * 0.8 + i) * 4.0), r, Color(0.86, 0.92, 1.0, 0.09 * fade))
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 99
 		for i in 26:
 			var a := rng.randf() * TAU + _t * rng.randf_range(-0.4, 0.4)
 			var d := rng.randf_range(0.0, radius)
-			draw_circle(Vector2(cos(a) * d, sin(a) * d * 0.7), rng.randf_range(1.0, 2.2), Color(1, 1, 1, 0.55 * fade))
+			A.disc(self, Vector2(cos(a) * d, sin(a) * d * 0.7), rng.randf_range(1.0, 2.2), Color(1, 1, 1, 0.55 * fade))
 
 # ---------------------------------------------------------------- pickups and the bag
 

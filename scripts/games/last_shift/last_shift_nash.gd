@@ -203,12 +203,12 @@ func _draw() -> void:
 			# a punch: the glove shoots out in front and comes back
 			var reach := 10.0 + 12.0 * sin(progress * PI)
 			var fist := f * reach + Vector2(0, -2)
-			draw_circle(fist, 5.5, LsArt.INK)
-			draw_circle(fist, 4.2, GLOVE)
-			draw_arc(Vector2(0, 2), 24.0, a - 0.5, a + 0.5, 8, Color(1, 1, 1, 0.55), 3.0)
+			LsArt.disc(self, fist, 5.5, LsArt.INK)
+			LsArt.disc(self, fist, 4.2, GLOVE)
+			LsArt.arc(self, Vector2(0, 2), 24.0, a - 0.5, a + 0.5, 8, Color(1, 1, 1, 0.55), 3.0)
 		else:
-			draw_arc(Vector2(0, 2), 30.0, a - 0.9, a + 0.9, 12, Color(1, 1, 1, 0.8), 4.0)
+			LsArt.arc(self, Vector2(0, 2), 30.0, a - 0.9, a + 0.9, 12, Color(1, 1, 1, 0.8), 4.0)
 	if _flash > 0.0:
 		var side := Vector2(-f.y, f.x)
-		draw_circle(side * 8.0 + f * 24.0 + Vector2(0, 4), 7.0, Color("fff0a0"))
-		draw_circle(side * 8.0 + f * 24.0 + Vector2(0, 4), 3.5, Color.WHITE)
+		LsArt.disc(self, side * 8.0 + f * 24.0 + Vector2(0, 4), 7.0, Color("fff0a0"))
+		LsArt.disc(self, side * 8.0 + f * 24.0 + Vector2(0, 4), 3.5, Color.WHITE)

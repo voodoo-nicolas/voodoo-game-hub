@@ -10,6 +10,7 @@ extends Control
 ## the newest main-route step still to do (a side quest only when no main-route step is open).
 
 const LsText = preload("res://scripts/games/last_shift/last_shift_text.gd")
+const A = preload("res://scripts/games/last_shift/last_shift_art.gd")
 
 const WIDTH := 470.0
 const PAD := 12.0
@@ -140,7 +141,7 @@ func _draw() -> void:
 			draw_colored_polygon(PackedVector2Array([Vector2(16, y + 6), Vector2(27, y + 12), Vector2(16, y + 18)]), col)
 		else:
 			# a tick, and the line struck through
-			draw_polyline(PackedVector2Array([Vector2(14, y + 12), Vector2(19, y + 17), Vector2(29, y + 6)]), Color("6fbf5a"), 3.0)
+			A.strip(self, PackedVector2Array([Vector2(14, y + 12), Vector2(19, y + 17), Vector2(29, y + 6)]), Color("6fbf5a"), 3.0)
 			var tw := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, lfs).x
 			draw_line(base + Vector2(0, -lfs * 0.32), base + Vector2(tw, -lfs * 0.32), Color(1, 1, 1, 0.4), 1.5)
 		draw_string(f, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1, lfs, col if not done else Color(1, 1, 1, 0.5))

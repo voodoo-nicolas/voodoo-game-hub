@@ -220,17 +220,17 @@ func _draw() -> void:
 	if search_progress >= 0.0:
 		# the search ring: fills up over the 2 seconds
 		var c := Vector2(size_px.x * 0.5, -26.0)
-		draw_circle(c, 12.0, A.INK)
-		draw_circle(c, 10.0, Color(0.1, 0.1, 0.12))
-		draw_arc(c, 7.5, -PI * 0.5, -PI * 0.5 + TAU * search_progress, 24, A.AMBER, 4.0)
+		A.disc(self, c, 12.0, A.INK)
+		A.disc(self, c, 10.0, Color(0.1, 0.1, 0.12))
+		A.arc(self, c, 7.5, -PI * 0.5, -PI * 0.5 + TAU * search_progress, 24, A.AMBER, 4.0)
 	elif hint:
 		var bob := sin(float(world._clock) * 6.0) * 2.0
 		var c := Vector2(size_px.x * 0.5, -22.0 + bob)
-		draw_circle(c, 9.5, A.INK)
-		draw_circle(c, 7.5, A.AMBER)
+		A.disc(self, c, 9.5, A.INK)
+		A.disc(self, c, 7.5, A.AMBER)
 		# three dots = "you can do something here" (the A button says what)
 		for i in 3:
-			draw_circle(c + Vector2(-3.5 + i * 3.5, 0.5), 1.2, A.INK)
+			A.disc(self, c + Vector2(-3.5 + i * 3.5, 0.5), 1.2, A.INK)
 
 # ---------------------------------------------------------------- machines
 
@@ -248,7 +248,7 @@ func _draw_valve() -> void:
 	var spoke := Vector2(0, -7) if open else Vector2(7, 0)
 	draw_line(hub - spoke, hub + spoke, A.INK, 4.0)
 	draw_line(hub - spoke, hub + spoke, A.shade(A.BLOOD, 0.45), 2.0)
-	draw_circle(hub, 2.5, A.INK)
+	A.disc(self, hub, 2.5, A.INK)
 	# amber number plate (how much flow this valve passes) and a status lamp
 	A.flat_rect(self, Rect2(9, 19, 14, 9), A.AMBER, 1.5)
 	A.text(self, Vector2(13, 27), str(LsEngine.puzzle_flow_of(puzzle, idx)), 11, A.INK)
@@ -326,17 +326,17 @@ func _draw_locker() -> void:
 	A.flat_rect(self, Rect2(9, 22, 8, 5), A.AMBER, 1.0)                      # number plate
 	if data.get("dent", false):
 		# Nash's locker: the one with the dent
-		draw_arc(Vector2(14, 10), 5.0, PI * 0.1, PI * 0.9, 8, A.shade(body, -0.35), 2.0)
-		draw_arc(Vector2(14, 9), 5.0, PI * 0.1, PI * 0.9, 8, A.shade(body, 0.25), 1.0)
+		A.arc(self, Vector2(14, 10), 5.0, PI * 0.1, PI * 0.9, 8, A.shade(body, -0.35), 2.0)
+		A.arc(self, Vector2(14, 9), 5.0, PI * 0.1, PI * 0.9, 8, A.shade(body, 0.25), 1.0)
 	if opened:
 		# searched: the door hangs a little open (a dark gap on the hinge side)
 		draw_rect(Rect2(4, -9, 3, 39), Color("15181c"))
 	if world.nash.in_locker and world.hide_prop == self:
 		# two eyes peeking through the slits
-		draw_circle(Vector2(12, -2), 2.2, Color.WHITE)
-		draw_circle(Vector2(20, -2), 2.2, Color.WHITE)
-		draw_circle(Vector2(12, -2), 1.0, A.INK)
-		draw_circle(Vector2(20, -2), 1.0, A.INK)
+		A.disc(self, Vector2(12, -2), 2.2, Color.WHITE)
+		A.disc(self, Vector2(20, -2), 2.2, Color.WHITE)
+		A.disc(self, Vector2(12, -2), 1.0, A.INK)
+		A.disc(self, Vector2(20, -2), 1.0, A.INK)
 
 func _draw_door() -> void:
 	if world.state.door_open and id == "door_east":
@@ -370,7 +370,7 @@ func _draw_door() -> void:
 	for i in 4:                                                               # hazard stripe low on the slab
 		draw_rect(Rect2(5 + i * 6, 24, 3, 6), A.YELLOW)
 	A.flat_rect(self, Rect2(13, -17, 7, 6), RED_LAMP if locked else GREEN, 1.4)  # status lamp above
-	draw_circle(Vector2(23, 14), 2.2, A.STEEL_HI)                             # handle
+	A.disc(self, Vector2(23, 14), 2.2, A.STEEL_HI)                             # handle
 
 func _draw_elevator() -> void:
 	var out: bool = world.state.alarm
@@ -409,7 +409,7 @@ func _draw_workbench() -> void:
 	if not world.nash.has_wrench:
 		draw_line(Vector2(w * 0.5 - 18, 6), Vector2(w * 0.5 + 16, 4), A.INK, 7.0)
 		draw_line(Vector2(w * 0.5 - 18, 6), Vector2(w * 0.5 + 16, 4), A.BLOOD, 4.5)
-		draw_circle(Vector2(w * 0.5 + 18, 4), 5.0, A.STEEL_HI)
+		A.disc(self, Vector2(w * 0.5 + 18, 4), 5.0, A.STEEL_HI)
 
 func _draw_body() -> void:
 	# The grabbed coworker, lying still in a pool of blood.
@@ -439,8 +439,8 @@ func _draw_desk() -> void:
 		A.ink_circle(self, Vector2(20, 6), 4.0, A.shade(GRASS, 0.15), 1.2)
 		A.flat_rect(self, Rect2(w - 30, 4, 7, 8), Color("6a5a44"), 1.0)
 	# office chair tucked in under the desk
-	draw_circle(Vector2(w * 0.5, 36), 8.0, A.INK)
-	draw_circle(Vector2(w * 0.5, 36), 6.5, Color("3a3d44"))
+	A.disc(self, Vector2(w * 0.5, 36), 8.0, A.INK)
+	A.disc(self, Vector2(w * 0.5, 36), 6.5, Color("3a3d44"))
 
 func _draw_gun_cabinet() -> void:
 	var w := size_px.x
@@ -459,7 +459,7 @@ func _draw_gun_cabinet() -> void:
 
 func _glow() -> void:
 	var p := _pulse()
-	draw_circle(Vector2(16, 18), 14.0 + p * 3.0, Color(A.AMBER.r, A.AMBER.g, A.AMBER.b, 0.20 + 0.12 * p))
+	A.disc(self, Vector2(16, 18), 14.0 + p * 3.0, Color(A.AMBER.r, A.AMBER.g, A.AMBER.b, 0.20 + 0.12 * p))
 	A.shadow(self, Vector2(16, 26), 10, 3, 0.3)
 
 func _draw_ammo() -> void:
@@ -670,8 +670,8 @@ func _draw_sealed_door() -> void:
 	A.ink_rect(self, Rect2(0, -14, w, 46), A.CONC_D)
 	A.ink_rect(self, Rect2(5, -9, w - 10, 38), A.STEEL, 1.5)
 	for i in 4:
-		draw_circle(Vector2(10 + i * (w - 20) / 3.0, -2), 2.5, A.INK)
-		draw_circle(Vector2(10 + i * (w - 20) / 3.0, 22), 2.5, A.INK)
+		A.disc(self, Vector2(10 + i * (w - 20) / 3.0, -2), 2.5, A.INK)
+		A.disc(self, Vector2(10 + i * (w - 20) / 3.0, 22), 2.5, A.INK)
 	for i in 5:
 		draw_rect(Rect2(8 + i * 11, 26, 6, 3), A.YELLOW)
 	A.flat_rect(self, Rect2(w * 0.5 - 22, 5, 44, 12), A.WHITE, 1.5)
@@ -739,9 +739,9 @@ func _draw_bush() -> void:
 	for p in [Vector2(-7, 2), Vector2(7, 2), Vector2(0, -6), Vector2(-4, -2), Vector2(5, -3)]:
 		A.ink_circle(self, c + p, 9.0, LEAF, 2.0)
 	for p in [Vector2(-7, 2), Vector2(7, 2), Vector2(0, -6), Vector2(-4, -2), Vector2(5, -3)]:
-		draw_circle(c + p + Vector2(-1, -1), 7.0, A.shade(LEAF, 0.12))
+		A.disc(self, c + p + Vector2(-1, -1), 7.0, A.shade(LEAF, 0.12))
 	for i in 6:
-		draw_circle(c + Vector2(-8 + i * 3.2, -6 + (i % 3) * 4), 1.6, A.shade(LEAF, 0.35))
+		A.disc(self, c + Vector2(-8 + i * 3.2, -6 + (i % 3) * 4), 1.6, A.shade(LEAF, 0.35))
 
 ## A tree: trunk on its tile, a big round canopy above (Nash walks behind it).
 func _draw_tree() -> void:
@@ -752,9 +752,9 @@ func _draw_tree() -> void:
 	for p in [Vector2(-14, 6), Vector2(14, 6), Vector2(0, -10), Vector2(-10, -6), Vector2(10, -6), Vector2(0, 8)]:
 		A.ink_circle(self, top + p, 15.0, LEAF, 2.2)
 	for p in [Vector2(-14, 6), Vector2(14, 6), Vector2(0, -10), Vector2(-10, -6), Vector2(10, -6)]:
-		draw_circle(top + p + Vector2(-2, -2), 11.0, A.shade(LEAF, 0.12))
+		A.disc(self, top + p + Vector2(-2, -2), 11.0, A.shade(LEAF, 0.12))
 	for i in 10:
-		draw_circle(top + Vector2(-16 + i * 3.5, -12 + (i % 4) * 6), 2.0, A.shade(LEAF, 0.35))
+		A.disc(self, top + Vector2(-16 + i * 3.5, -12 + (i % 4) * 6), 2.0, A.shade(LEAF, 0.35))
 
 func _draw_lamp_post() -> void:
 	var cx := size_px.x * 0.5
@@ -765,7 +765,7 @@ func _draw_lamp_post() -> void:
 	var lit: bool = _light != null and _light.energy > 0.0
 	A.ink_rect(self, Rect2(cx + 8, -64, 10, 5), Color("f4e8b0") if lit else A.CONC_L, 1.5)
 	if lit:
-		draw_circle(Vector2(cx + 13, -58), 8.0, Color(1.0, 0.8, 0.5, 0.25))
+		A.disc(self, Vector2(cx + 13, -58), 8.0, Color(1.0, 0.8, 0.5, 0.25))
 
 ## The company's monument sign by the entrance: stone base, purple panel, white logo + name.
 ## Branding is fine (spec v0.4): white on Ascend purple, never cyan, never highlighted.
@@ -784,7 +784,7 @@ func _draw_monument() -> void:
 	A.text(self, Vector2(36, 2), "ASCEND AI", 13, A.WHITE)
 	# flowers along the base
 	for i in int(w / 10):
-		draw_circle(Vector2(5 + i * 10, 15), 2.2, [A.YELLOW, A.WHITE, A.FIRE][i % 3])
+		A.disc(self, Vector2(5 + i * 10, 15), 2.2, [A.YELLOW, A.WHITE, A.FIRE][i % 3])
 
 ## A post with a sign plate. data "sign" (a key of LsText.SIGNS), "color" plate color name.
 func _draw_sign_post() -> void:
@@ -838,7 +838,7 @@ func _draw_planter() -> void:
 	draw_rect(Rect2(4, 8, w - 8, 6), Color("3a2e22"))
 	for i in int(w / 8):
 		A.ink_circle(self, Vector2(6 + i * 8, 6 - (i % 2) * 3), 5.0, LEAF, 1.2)
-		draw_circle(Vector2(6 + i * 8, 4 - (i % 2) * 3), 1.8, [A.YELLOW, A.FIRE, A.WHITE][i % 3])
+		A.disc(self, Vector2(6 + i * 8, 4 - (i % 2) * 3), 1.8, [A.YELLOW, A.FIRE, A.WHITE][i % 3])
 
 ## The parking lot's exit: a little booth and a striped barrier arm across the gap.
 func _draw_gate() -> void:
@@ -956,7 +956,7 @@ func _draw_whiteboard() -> void:
 	draw_rect(Rect2(2, 6, w - 4, 3), A.CONC_M)
 	for i in 3:
 		draw_line(Vector2(8, -12 + i * 6), Vector2(w * 0.5 + i * 6, -12 + i * 6), [Color("2f4f8a"), A.BLOOD, Color("2a2c32")][i], 1.4)
-	draw_arc(Vector2(w - 16, -6), 6.0, 0.0, TAU, 12, A.BLOOD, 1.4)
+	A.arc(self, Vector2(w - 16, -6), 6.0, 0.0, TAU, 12, A.BLOOD, 1.4)
 
 ## A wall screen showing the employer's logo (white on purple, background only).
 func _draw_tv() -> void:
@@ -1046,8 +1046,8 @@ func _draw_fire_door(locked: bool) -> void:
 	if locked:
 		for i in 6:
 			var a := Vector2(2 + i * 5, 4 + (i % 2) * 6)
-			draw_circle(a, 2.6, A.INK)
-			draw_circle(a, 1.6, A.STEEL_HI)
+			A.disc(self, a, 2.6, A.INK)
+			A.disc(self, a, 1.6, A.STEEL_HI)
 		A.ink_rect(self, Rect2(13, 12, 7, 7), Color("c9a227"), 1.2)          # padlock
 
 # ---------------------------------------------------------------- v0.4: bodies and blood
@@ -1075,19 +1075,19 @@ func _draw_corpse() -> void:
 	if data.has("shirt"):
 		shirt = Color(str(data.shirt))
 	A.ink_rect(self, Rect2(c.x - 13, c.y - 6, 24, 13), shirt)
-	draw_circle(Vector2(c.x - 4, c.y), 3.0, BLOOD)
+	A.disc(self, Vector2(c.x - 4, c.y), 3.0, BLOOD)
 	A.ink_rect(self, Rect2(c.x + 10, c.y - 8, 9, 9), skin)                 # head
 	A.ink_rect(self, Rect2(c.x - 21, c.y - 4, 9, 8), Color("2a2a32"))      # legs
 	A.ink_rect(self, Rect2(c.x - 6, c.y + 6, 4, 8), shirt, 1.2)            # an arm flung out
 	if data.get("gore", false):
 		# torn open: a dark wound across the middle and bits strewn around
 		draw_rect(Rect2(c.x - 9, c.y - 4, 14, 8), Color("4a0608"))
-		draw_circle(Vector2(c.x - 2, c.y), 3.5, A.BLOOD)
+		A.disc(self, Vector2(c.x - 2, c.y), 3.5, A.BLOOD)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(id) + 7
 		for i in 7:
 			var d := Vector2.RIGHT.rotated(rng.randf() * TAU) * rng.randf_range(16.0, 30.0)
-			draw_circle(c + Vector2(d.x, d.y * 0.6), rng.randf_range(1.5, 3.2), Color("6e0a0e"))
+			A.disc(self, c + Vector2(d.x, d.y * 0.6), rng.randf_range(1.5, 3.2), Color("6e0a0e"))
 	if searched():
 		draw_rect(Rect2(c.x - 13, c.y + 6, 6, 2), Color(1, 1, 1, 0.25))     # pockets turned out
 
@@ -1101,9 +1101,9 @@ func _pool(c: Vector2, r: float) -> void:
 		var rr := r * rng.randf_range(0.7, 1.15)
 		pts.append(c + Vector2(cos(a) * rr, sin(a) * rr * 0.6))
 	draw_colored_polygon(pts, BLOOD)
-	draw_circle(c + Vector2(-r * 0.3, -r * 0.15), r * 0.25, A.shade(BLOOD, 0.15))
+	A.disc(self, c + Vector2(-r * 0.3, -r * 0.15), r * 0.25, A.shade(BLOOD, 0.15))
 	for i in 5:
-		draw_circle(c + Vector2(rng.randf_range(-r * 1.6, r * 1.6), rng.randf_range(-r, r)), rng.randf_range(1.0, 2.6), BLOOD)
+		A.disc(self, c + Vector2(rng.randf_range(-r * 1.6, r * 1.6), rng.randf_range(-r, r)), rng.randf_range(1.0, 2.6), BLOOD)
 
 ## Blood on the floor (decoration). data "shape": "pool" | "splat" | "smear".
 func _draw_blood() -> void:
@@ -1120,14 +1120,14 @@ func _draw_blood() -> void:
 			for i in n:
 				var t := float(i) / maxf(1.0, n - 1)
 				var p := Vector2(size_px.x * t, c.y + sin(t * 6.0) * 3.0) if horiz else Vector2(c.x + sin(t * 6.0) * 3.0, size_px.y * t)
-				draw_circle(p, rng.randf_range(2.5, 4.5) * (1.0 - t * 0.5), BLOOD)
+				A.disc(self, p, rng.randf_range(2.5, 4.5) * (1.0 - t * 0.5), BLOOD)
 		_:
 			var rng := RandomNumberGenerator.new()
 			rng.seed = hash(id)
-			draw_circle(c, 7.0, BLOOD)
+			A.disc(self, c, 7.0, BLOOD)
 			for i in 9:
 				var d := Vector2.RIGHT.rotated(rng.randf() * TAU) * rng.randf_range(6.0, 15.0)
-				draw_circle(c + d, rng.randf_range(1.2, 3.2), BLOOD)
+				A.disc(self, c + d, rng.randf_range(1.2, 3.2), BLOOD)
 
 # ---------------------------------------------------------------- v0.4: security
 
@@ -1184,7 +1184,7 @@ func _draw_eotm_wall() -> void:
 		A.ink_rect(self, r, Color("c9a227"), 1.2)
 		draw_rect(r.grow(-2), Color("dde4ec"))
 		var face := r.get_center() + Vector2(0, -1)
-		draw_circle(face, 3.6, Color("f1c7a3"))
+		A.disc(self, face, 3.6, Color("f1c7a3"))
 		draw_rect(Rect2(face.x - 3.6, face.y - 4, 7.2, 2.4), Color("8a5a2a"))         # Gary's hair
 		draw_rect(Rect2(face.x - 4, face.y + 4, 8, 4), Color("d8dce4"))               # white shirt
 		draw_rect(Rect2(face.x - 0.5, face.y + 4, 1, 3), A.BLOOD)                     # tie
@@ -1257,9 +1257,9 @@ func _draw_cafe_table() -> void:
 	for i in int(w / 30):
 		var x := 6.0 + i * 30.0
 		A.flat_rect(self, Rect2(x, 7, 18, 12), [Color("b03030"), Color("2f4f8a"), Color("4f8f5a")][i % 3], 1.0)
-		draw_circle(Vector2(x + 6, 13), 3.0, A.WHITE)
+		A.disc(self, Vector2(x + 6, 13), 3.0, A.WHITE)
 		if world.state.alarm and i % 2 == 0:
-			draw_circle(Vector2(x + 14, 10), 2.5, BLOOD)
+			A.disc(self, Vector2(x + 14, 10), 2.5, BLOOD)
 
 ## The kitchen line: stove, fryer, steel counter (searchable when it has loot).
 func _draw_kitchen() -> void:
@@ -1283,7 +1283,7 @@ func _draw_corkboard() -> void:
 	A.flat_rect(self, Rect2(17, -14, 9, 8), A.YELLOW, 1.0)
 	A.flat_rect(self, Rect2(8, -5, 12, 6), Color("e8b0c0"), 1.0)
 	for p in [Vector2(10, -15), Vector2(21, -14), Vector2(14, -5)]:
-		draw_circle(p, 1.2, A.BLOOD)
+		A.disc(self, p, 1.2, A.BLOOD)
 
 # ---------------------------------------------------------------- v0.4: branding
 
@@ -1394,4 +1394,4 @@ func _draw_window() -> void:
 		draw_colored_polygon(PackedVector2Array([p + Vector2(-r, 0), p + Vector2(0, -r * 0.6), p + Vector2(r, 0.4)]),
 			Color(0.82, 0.9, 1.0, 0.75))
 	for i in 4:
-		draw_circle(Vector2(rng.randf_range(6.0, w - 6.0), rng.randf_range(8.0, 24.0)), rng.randf_range(2.0, 4.0), BLOOD)
+		A.disc(self, Vector2(rng.randf_range(6.0, w - 6.0), rng.randf_range(8.0, 24.0)), rng.randf_range(2.0, 4.0), BLOOD)

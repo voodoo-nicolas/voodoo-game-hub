@@ -51,7 +51,7 @@ static func _poly(ci: CanvasItem, pts: PackedVector2Array, fill: Color, alpha: f
 	ci.draw_colored_polygon(pts, _c(fill, alpha))
 	var o := pts.duplicate()
 	o.append(pts[0])
-	ci.draw_polyline(o, _c(A.INK, alpha), ink)
+	A.strip(ci, o, _c(A.INK, alpha), ink)
 
 static func _fist(ci: CanvasItem, a: float) -> void:
 	# a clenched glove seen from the front: wrist, palm, four knuckles, the thumb across
@@ -72,7 +72,7 @@ static func _knife(ci: CanvasItem, a: float) -> void:
 		A.STEEL, a, 1.6)                                                    # bolster
 	_poly(ci, PackedVector2Array([Vector2(-4, 4), Vector2(0, 8), Vector2(-11, 16), Vector2(-14, 13)]),
 		Color("3a2a1e"), a, 1.8)                                            # handle
-	ci.draw_circle(Vector2(-7, 10), 1.0, _c(A.STEEL_HI, a))                 # rivet
+	A.disc(ci, Vector2(-7, 10), 1.0, _c(A.STEEL_HI, a))                 # rivet
 
 static func _wrench(ci: CanvasItem, a: float) -> void:
 	# red pipe wrench, diagonal, steel jaw at the top
@@ -83,7 +83,7 @@ static func _wrench(ci: CanvasItem, a: float) -> void:
 	ci.draw_line(hand0 + Vector2(1, -2), hand1 + Vector2(1, -2), _c(A.shade(A.BLOOD, 0.35), a), 1.5)
 	_poly(ci, PackedVector2Array([Vector2(2, -10), Vector2(10, -16), Vector2(15, -11), Vector2(12, -8),
 		Vector2(14, -4), Vector2(9, -1), Vector2(5, -5)]), A.STEEL_HI, a, 1.8)
-	ci.draw_circle(Vector2(7, -7), 1.6, _c(A.INK, a))
+	A.disc(ci, Vector2(7, -7), 1.6, _c(A.INK, a))
 
 static func _pistol(ci: CanvasItem, a: float) -> void:
 	# side view, barrel to the right
@@ -91,7 +91,7 @@ static func _pistol(ci: CanvasItem, a: float) -> void:
 	ci.draw_rect(Rect2(-11, -8, 24, 1.5), _c(Color(1, 1, 1, 0.3), a))
 	_poly(ci, PackedVector2Array([Vector2(-10, -1), Vector2(-2, -1), Vector2(-4, 13), Vector2(-12, 12)]),
 		A.shade(GUNMETAL, 0.1), a)                                          # grip
-	ci.draw_arc(Vector2(1, 1), 4.0, 0.0, PI, 8, _c(A.INK, a), 1.8)          # trigger guard
+	A.arc(ci, Vector2(1, 1), 4.0, 0.0, PI, 8, _c(A.INK, a), 1.8)          # trigger guard
 	ci.draw_rect(Rect2(10, -11, 2, 2), _c(A.INK, a))                        # front sight
 
 static func _medkit(ci: CanvasItem, a: float) -> void:
@@ -122,7 +122,7 @@ static func _bullets(ci: CanvasItem, a: float) -> void:
 static func _money(ci: CanvasItem, a: float) -> void:
 	_box(ci, Rect2(-14, -6, 26, 14), A.shade(BILL, -0.15), a, 1.6)          # bill behind
 	_box(ci, Rect2(-12, -9, 26, 14), BILL, a)
-	ci.draw_arc(Vector2(1, -2), 4.5, 0.0, TAU, 12, _c(A.shade(BILL, -0.35), a), 1.5)
+	A.arc(ci, Vector2(1, -2), 4.5, 0.0, TAU, 12, _c(A.shade(BILL, -0.35), a), 1.5)
 	ci.draw_string(ThemeDB.fallback_font, Vector2(-2.5, 2), "$", HORIZONTAL_ALIGNMENT_LEFT, -1, 10,
 		_c(A.shade(BILL, -0.5), a))
 
@@ -132,17 +132,17 @@ static func _keycard(ci: CanvasItem, a: float) -> void:
 	ci.draw_rect(Rect2(-10, 2, 8, 4), _c(A.CONC_M, a))
 
 static func _key(ci: CanvasItem, a: float, col: Color) -> void:
-	ci.draw_circle(Vector2(-7, -5), 7.5, _c(A.INK, a))
-	ci.draw_circle(Vector2(-7, -5), 6.0, _c(col, a))
-	ci.draw_circle(Vector2(-7, -5), 2.2, _c(A.INK, a))
+	A.disc(ci, Vector2(-7, -5), 7.5, _c(A.INK, a))
+	A.disc(ci, Vector2(-7, -5), 6.0, _c(col, a))
+	A.disc(ci, Vector2(-7, -5), 2.2, _c(A.INK, a))
 	_box(ci, Rect2(-2, -6.5, 16, 4), col, a, 1.6)                           # shaft
 	_box(ci, Rect2(8, -3, 2.5, 5), col, a, 1.2)                             # teeth
 	_box(ci, Rect2(12, -3, 2.5, 4), col, a, 1.2)
 
 static func _bag(ci: CanvasItem, a: float) -> void:
 	# a canvas tool bag with a strap and a front pocket
-	ci.draw_arc(Vector2(0, -6), 8.0, PI, TAU, 12, _c(A.INK, a), 4.0)
-	ci.draw_arc(Vector2(0, -6), 8.0, PI, TAU, 12, _c(Color("8a6a3a"), a), 2.0)
+	A.arc(ci, Vector2(0, -6), 8.0, PI, TAU, 12, _c(A.INK, a), 4.0)
+	A.arc(ci, Vector2(0, -6), 8.0, PI, TAU, 12, _c(Color("8a6a3a"), a), 2.0)
 	_box(ci, Rect2(-13, -6, 26, 19), Color("8a6a3a"), a)
 	_box(ci, Rect2(-8, 2, 16, 8), Color("6b4a2a"), a, 1.6)
 	ci.draw_rect(Rect2(-2, 1, 4, 3), _c(BRASS, a))
@@ -151,9 +151,9 @@ static func _wheel(ci: CanvasItem, a: float) -> void:
 	# the weapon wheel button: a ring cut in four with a dot
 	for i in 4:
 		var a0 := -PI * 0.5 + i * PI * 0.5 + 0.15
-		ci.draw_arc(Vector2.ZERO, 11.0, a0, a0 + PI * 0.5 - 0.3, 8, _c(A.INK, a), 7.0)
-		ci.draw_arc(Vector2.ZERO, 11.0, a0, a0 + PI * 0.5 - 0.3, 8, _c(A.WHITE, a), 4.0)
-	ci.draw_circle(Vector2.ZERO, 3.0, _c(A.AMBER, a))
+		A.arc(ci, Vector2.ZERO, 11.0, a0, a0 + PI * 0.5 - 0.3, 8, _c(A.INK, a), 7.0)
+		A.arc(ci, Vector2.ZERO, 11.0, a0, a0 + PI * 0.5 - 0.3, 8, _c(A.WHITE, a), 4.0)
+	A.disc(ci, Vector2.ZERO, 3.0, _c(A.AMBER, a))
 
 static func _cutters(ci: CanvasItem, a: float) -> void:
 	# bolt cutters: two long red grips crossing at a steel jaw
@@ -168,8 +168,8 @@ static func _party_hat(ci: CanvasItem, a: float) -> void:
 	_poly(ci, PackedVector2Array([Vector2(-11, 12), Vector2(11, 12), Vector2(0, -12)]), Color("e84a8a"), a)
 	ci.draw_line(Vector2(-6, 2), Vector2(6, 2), _c(A.YELLOW, a), 2.0)
 	ci.draw_line(Vector2(-8.5, 7), Vector2(8.5, 7), _c(A.YELLOW, a), 2.0)
-	ci.draw_circle(Vector2(0, -13), 3.5, _c(A.INK, a))
-	ci.draw_circle(Vector2(0, -13), 2.5, _c(A.YELLOW, a))
+	A.disc(ci, Vector2(0, -13), 3.5, _c(A.INK, a))
+	A.disc(ci, Vector2(0, -13), 2.5, _c(A.YELLOW, a))
 
 static func _arm(ci: CanvasItem, a: float) -> void:
 	# a severed forearm, diagonal: a grey-green hand top-right, a bloody stump bottom-left
@@ -179,27 +179,27 @@ static func _arm(ci: CanvasItem, a: float) -> void:
 		Vector2(9, -2)]), A.ZOMBIE, a, 1.6)                                  # the hand
 	for i in 3:
 		ci.draw_line(Vector2(11 + i * 1.5, -14 + i * 2.5), Vector2(15 + i * 1.5, -17 + i * 2.5), _c(A.INK, a), 1.4)
-	ci.draw_circle(Vector2(-12, 12), 4.5, _c(A.INK, a))
-	ci.draw_circle(Vector2(-12, 12), 3.2, _c(A.BLOOD, a))                   # the stump
-	ci.draw_circle(Vector2(-12, 12), 1.2, _c(Color("e8dcc0"), a))           # bone
+	A.disc(ci, Vector2(-12, 12), 4.5, _c(A.INK, a))
+	A.disc(ci, Vector2(-12, 12), 3.2, _c(A.BLOOD, a))                   # the stump
+	A.disc(ci, Vector2(-12, 12), 1.2, _c(Color("e8dcc0"), a))           # bone
 
 static func _coolant(ci: CanvasItem, a: float) -> void:
 	# a white pressure can with a blue band, a nozzle and a frost puff
 	_box(ci, Rect2(-7, -9, 14, 22), Color("e8eef4"), a)
 	ci.draw_rect(Rect2(-7, -1, 14, 6), _c(Color("4a7ac0"), a))
 	_box(ci, Rect2(-3, -14, 6, 5), A.STEEL, a, 1.4)
-	ci.draw_circle(Vector2(9, -14), 3.0, _c(Color(0.9, 0.95, 1.0, 0.9), a))
-	ci.draw_circle(Vector2(13, -11), 2.2, _c(Color(0.9, 0.95, 1.0, 0.7), a))
+	A.disc(ci, Vector2(9, -14), 3.0, _c(Color(0.9, 0.95, 1.0, 0.9), a))
+	A.disc(ci, Vector2(13, -11), 2.2, _c(Color(0.9, 0.95, 1.0, 0.7), a))
 
 static func _chef_hat(ci: CanvasItem, a: float) -> void:
 	# a tall white cook's hat (toque): a band and a puffy top
 	_box(ci, Rect2(-9, 3, 18, 9), Color("f0ece4"), a)
-	ci.draw_circle(Vector2(-6, -4), 7.5, _c(A.INK, a))
-	ci.draw_circle(Vector2(6, -4), 7.5, _c(A.INK, a))
-	ci.draw_circle(Vector2(0, -9), 8.5, _c(A.INK, a))
-	ci.draw_circle(Vector2(-6, -4), 6.0, _c(Color("f0ece4"), a))
-	ci.draw_circle(Vector2(6, -4), 6.0, _c(Color("f0ece4"), a))
-	ci.draw_circle(Vector2(0, -9), 7.0, _c(Color("f0ece4"), a))
+	A.disc(ci, Vector2(-6, -4), 7.5, _c(A.INK, a))
+	A.disc(ci, Vector2(6, -4), 7.5, _c(A.INK, a))
+	A.disc(ci, Vector2(0, -9), 8.5, _c(A.INK, a))
+	A.disc(ci, Vector2(-6, -4), 6.0, _c(Color("f0ece4"), a))
+	A.disc(ci, Vector2(6, -4), 6.0, _c(Color("f0ece4"), a))
+	A.disc(ci, Vector2(0, -9), 7.0, _c(Color("f0ece4"), a))
 	ci.draw_rect(Rect2(-8, 4, 16, 2), _c(Color(0, 0, 0, 0.12), a))
 
 static func _map(ci: CanvasItem, a: float) -> void:
@@ -207,6 +207,6 @@ static func _map(ci: CanvasItem, a: float) -> void:
 	_poly(ci, PackedVector2Array([Vector2(-14, -10), Vector2(-5, -13), Vector2(-5, 11), Vector2(-14, 14)]), Color("d8d2c0"), a, 1.6)
 	_poly(ci, PackedVector2Array([Vector2(-5, -13), Vector2(5, -10), Vector2(5, 14), Vector2(-5, 11)]), Color("c4bea8"), a, 1.6)
 	_poly(ci, PackedVector2Array([Vector2(5, -10), Vector2(14, -13), Vector2(14, 11), Vector2(5, 14)]), Color("d8d2c0"), a, 1.6)
-	ci.draw_polyline(PackedVector2Array([Vector2(-11, 8), Vector2(-2, 2), Vector2(4, 5), Vector2(10, -5)]), _c(A.BLOOD, a), 2.0)
-	ci.draw_circle(Vector2(10, -6), 3.0, _c(A.INK, a))
-	ci.draw_circle(Vector2(10, -6), 2.0, _c(A.AMBER, a))
+	A.strip(ci, PackedVector2Array([Vector2(-11, 8), Vector2(-2, 2), Vector2(4, 5), Vector2(10, -5)]), _c(A.BLOOD, a), 2.0)
+	A.disc(ci, Vector2(10, -6), 3.0, _c(A.INK, a))
+	A.disc(ci, Vector2(10, -6), 2.0, _c(A.AMBER, a))

@@ -548,7 +548,7 @@ func _draw() -> void:
 		A.person(self, o)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		# fresh blood dripping from the mouth
-		draw_circle(f * 7.0 + Vector2(0, -2 + bob), 2.2, A.BLOOD)
+		A.disc(self, f * 7.0 + Vector2(0, -2 + bob), 2.2, A.BLOOD)
 		return
 	if is_crawler:
 		# on the floor, dragging itself along: drawn lying down, head toward where it's going
@@ -569,16 +569,16 @@ func _draw() -> void:
 	if state == S.WINDUP or state == S.SHRIEK:
 		# The warning: a flickering cyan glow (infected glow = the one allowed use of cyan).
 		if int(_timer * 16.0) % 2 == 0:
-			draw_arc(Vector2(0, -2), 21.0, 0.0, TAU, 28, A.CYAN_CORE, 3.0)
-			draw_arc(Vector2(0, -2), 25.0, 0.0, TAU, 28, Color(A.CYAN_GLOW.r, A.CYAN_GLOW.g, A.CYAN_GLOW.b, 0.4), 3.0)
+			A.arc(self, Vector2(0, -2), 21.0, 0.0, TAU, 28, A.CYAN_CORE, 3.0)
+			A.arc(self, Vector2(0, -2), 25.0, 0.0, TAU, 28, Color(A.CYAN_GLOW.r, A.CYAN_GLOW.g, A.CYAN_GLOW.b, 0.4), 3.0)
 			var side := Vector2(-f.y, f.x)
-			draw_circle(Vector2(0, -13) + side * 3.0 + f * 2.0, 2.0, A.CYAN_GLOW)
-			draw_circle(Vector2(0, -13) - side * 3.0 + f * 2.0, 2.0, A.CYAN_GLOW)
+			A.disc(self, Vector2(0, -13) + side * 3.0 + f * 2.0, 2.0, A.CYAN_GLOW)
+			A.disc(self, Vector2(0, -13) - side * 3.0 + f * 2.0, 2.0, A.CYAN_GLOW)
 	if _slow_t > 0.0:
 		# frost crystals around the feet while the coolant holds it
 		for i in 5:
 			var a := float(i) / 5.0 * TAU + _t * 0.6
-			draw_circle(Vector2(cos(a) * 13.0, 12.0 + sin(a) * 4.0), 1.6, Color(0.95, 0.98, 1.0, 0.85))
+			A.disc(self, Vector2(cos(a) * 13.0, 12.0 + sin(a) * 4.0), 1.6, Color(0.95, 0.98, 1.0, 0.85))
 	# awareness marker over the head: "!" just spotted Nash, "?" searching
 	if _spot > 0.0:
 		_marker("!", A.YELLOW)
