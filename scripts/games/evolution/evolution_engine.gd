@@ -99,7 +99,7 @@ const TUNING := {
 	"cam_k": 0.045,
 	"cam_min": 0.22,
 	"respawn_per_step": 3,
-	"story_xp": 0.4,            # a size-reward mission gives this share of the current size's xp
+	"story_xp": 0.03,           # a size-reward mission gives this share of the current size's xp (was 0.4: missions made size 5 in 90 s, owner 2026-10-29)
 	"mission_linger": 3.0,
 	# Water: temperature falls with depth (warm at the surface, about 4 °C deep down) and in cold currents
 	# that come and go as you swim sideways. `units_per_m` world units = 1 m of depth.
@@ -243,7 +243,7 @@ static func xp_at(lv: int) -> float:
 	return x
 
 ## xp it takes to grow from this size to the next: Data.XP_KILLS kills of prey one size below (worth size - 1,
-## at size 1 worth 1): 30, 40, 120, 240, 440, 750, 1200, 1820, 2720. Past size 10 (the mass keeps growing, the
+## at size 1 worth 1): 30, 80, 240, 510, 920, 1550, 2460, 3710, 5440. Past size 10 (the mass keeps growing, the
 ## size shown stays 10) each span is 1.3 x the one before.
 static func xp_span(lv: int) -> float:
 	var n: int = Data.XP_KILLS.size()
@@ -1158,7 +1158,7 @@ func _resolve(delta: float) -> void:
 		# Food specks are always there and always edible, at any size (owner 2026-10-24: they used to vanish
 		# at size 4, being 3 sizes below you).
 		if f.distance_to(player.pos) < pr + fr * 0.5:
-			_gain_xp(t("food_xp") * gain_mult)
+			_gain_xp(t("food_xp") / float(maxi(level(), 1)) * gain_mult)   # specks feed less the bigger you are (owner 2026-10-29: too fast)
 			eaten_food += 1
 			events.append({"type": "food", "pos": f})
 		else:

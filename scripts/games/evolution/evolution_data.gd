@@ -33,10 +33,10 @@ const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 480
 
 ## Growing (owner 2026-10-29, Evolution phase 2): kills it takes to grow from each size to the next (index =
 ## size - 1), counting prey one size below you (worth size - 1; at size 1 the smallest dots, worth 1). The xp is
-## kills x that worth (engine `xp_span`): 30, 40, 120, 240, 440, 750, 1200, 1820, 2720. 1,270 kills to size 10;
+## kills x that worth (engine `xp_span`): 30, 80, 240, 510, 920, 1550, 2460, 3710, 5440 (owner 2026-10-29 "too easy too fast": 2nd pass doubled sizes 2+). 2,560 kills to size 10;
 ## creatures your own size are worth more, so real runs are a little quicker. Size 1 -> 2 stays 30: tail at 5,
-## eye at 12, then eat to size 2 (owner 2026-10-24). (Before: 30 xp, 50 xp, then x1.5 each: ~500 kills.)
-const XP_KILLS := [30, 40, 60, 80, 110, 150, 200, 260, 340]
+## eye at 12, then eat to size 2 (owner 2026-10-24). (Before: 30 xp, 50 xp, then x1.5 each: ~500 kills; then [30,40,60,80,110,150,200,260,340] = 1,270.)
+const XP_KILLS := [30, 80, 120, 170, 230, 310, 410, 530, 680]
 
 ## DNA earned while growing from each size to the next, ONE point at a time: what you eat fills the 🧬 bar and
 ## each full bar is +1 (owner 2026-10-29: "you should never earn more than 1 or 2 dna points at a time, except

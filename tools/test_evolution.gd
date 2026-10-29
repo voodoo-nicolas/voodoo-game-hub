@@ -952,14 +952,14 @@ func _init() -> void:
 ## sea monsters 9-10; more rare creatures.
 func _growth_and_species() -> void:
 	# xp (owner 2026-10-29): each size costs Data.XP_KILLS kills of prey one size below (worth size - 1, at size 1
-	# worth 1); 1,270 kills to size 10; mass follows xp through the size starts
+	# worth 1); 2,560 kills to size 10; mass follows xp through the size starts
 	var kills := 0
 	for lv in range(1, 10):
 		kills += int(Data.XP_KILLS[lv - 1])
 		check(is_equal_approx(Ev.xp_span(lv), float(Data.XP_KILLS[lv - 1]) * float(maxi(lv - 1, 1))), "size %d to %d = %d kills of prey worth %d" % [lv, lv + 1, Data.XP_KILLS[lv - 1], maxi(lv - 1, 1)])
 		check(Ev.xp_span(lv + 1) > Ev.xp_span(lv), "size %d costs more than size %d" % [lv + 1, lv])
-	check(kills == 1270, "1,270 kills to size 10 (%d)" % kills)
-	check(is_equal_approx(Ev.xp_at(10), 7360.0), "7,360 xp to size 10 (%d)" % int(Ev.xp_at(10)))
+	check(kills == 2560, "2,560 kills to size 10 (%d)" % kills)
+	check(is_equal_approx(Ev.xp_at(10), 14940.0), "14,940 xp to size 10 (%d)" % int(Ev.xp_at(10)))
 	check(Ev.xp_span(1) > float(Ev.TUNING.eye_value), "size 1 lasts past the eye")
 	var blind := Ev.new()
 	blind.reset(9)
