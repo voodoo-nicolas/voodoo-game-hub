@@ -1,6 +1,16 @@
 {
+ " + tr(": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd",
+  "scripts\\games\\color_sort\\color_sort_game.gd"
+ ],
+ " else T.t(": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
  " if message != ": [
   "scripts\\games\\rummy\\rummy_game.gd"
+ ],
+ " web": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
  "# Política de Privacidad — Viral Game Hub\n\nVersión 1.0.0 · Vigente desde 12 de octubre de 2026\n\n\n## 1. Responsable\n\nNicolas Gargiulo (CUIT 20-30807137-6), con domicilio en Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina (\"Viral\", \"nosotros\"), es responsable del tratamiento de los datos personales en Viral Game Hub (el \"Hub\"). Contacto de privacidad: Viralgamingservice@gmail.com.\n\n## 2. Qué datos recolectamos\n\n- **Cuenta:** correo electrónico, nombre de usuario, avatar/perfil e idioma. La contraseña la gestiona el sistema de autenticación y no la vemos en texto plano.\n- **Edad:** solo un tramo (13–15, 16–17, 18 o más). No guardamos tu fecha de nacimiento exacta.\n- **Actividad de juego:** puntajes, rankings, logros, calificaciones de 1 a 5 estrellas, tiempo de juego y estadísticas por juego.\n- **Social:** lista de amigos y solicitudes de amistad.\n- **Accesos y compras:** estado de pruebas gratuitas, compras individuales y suscripción, e identificadores/tokens de compra de Google Play. No recibimos ni guardamos datos de tu tarjeta.\n- **Datos técnicos:** modelo de dispositivo, versión de Android, versión de la app e idioma.\n- **Consentimientos:** qué versión de estos documentos aceptaste y cuándo.\n- **Cámara:** el minijuego de dibujo usa la cámara solo en tu dispositivo para mostrar la imagen a calcar. Las imágenes no se envían ni se guardan en nuestros servidores.\n\nNo recolectamos ubicación precisa, contactos, micrófono ni datos de tarjetas.\n\n## 3. Para qué usamos los datos\n\n- Crear y mantener tu cuenta e iniciar sesión.\n- Mostrar rankings, logros, perfil y amigos.\n- Gestionar pruebas, compras y suscripción.\n- Mostrar solo los juegos adecuados a tu tramo de edad.\n- Mejorar los juegos con estadísticas agregadas (jugadores, tiempo de juego, calificaciones).\n- Mantener la seguridad, prevenir trampas y hacer cumplir los Términos.\n- Cumplir obligaciones legales.\n\n## 4. Consentimiento\n\nTratamos tus datos con tu consentimiento libre, expreso e informado (art. 5, Ley 25.326), que otorgás al crear la cuenta. Podés retirarlo eliminando tu cuenta.\n\n## 5. Con quién compartimos datos\n\nUsamos proveedores que tratan datos en nuestro nombre:\n\n- **Supabase** (base de datos y autenticación). Región de alojamiento: US East (Ohio, us-east-2).\n- **Google (Google Play y Google Play Billing)**: distribución de la app y procesamiento de pagos.\n- **GitHub** (distribución de contenido y actualizaciones de juegos).\n\nNo vendemos tus datos. El Hub no muestra publicidad de terceros ni crea perfiles publicitarios. Podemos divulgar datos si una autoridad judicial o administrativa competente lo exige.\n\n## 6. Transferencias internacionales\n\nNuestros proveedores pueden almacenar datos fuera de Argentina. Hacemos estas transferencias con garantías contractuales adecuadas y con tu consentimiento (art. 12, Ley 25.326; Disposición DNPDP 60-E/2016). Nuestro proveedor de base de datos (Supabase) incorpora a sus términos un acuerdo de tratamiento de datos con cláusulas contractuales tipo.\n\n## 7. Cuánto tiempo los conservamos\n\nMientras tu cuenta esté activa. Si la eliminás, borramos tus datos personales dentro de los 30 días, salvo los registros de compras que debamos conservar por obligaciones contables o fiscales, y las copias de seguridad que el proveedor pudiera generar, que se sobrescriben en su ciclo normal. Las calificaciones agregadas pueden conservarse de forma anónima.\n\n## 8. Tus derechos\n\nTenés derecho a acceder, rectificar, actualizar y suprimir tus datos (arts. 14, 16 y concordantes, Ley 25.326). El acceso es gratuito a intervalos no inferiores a seis meses, salvo interés legítimo acreditado (art. 14, inc. 3).\n\n- **Eliminar tu cuenta:** Perfil → Zona de riesgo → Eliminar mi cuenta, o en https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html.\n- **Otros pedidos:** escribinos a Viralgamingservice@gmail.com. Respondemos en los plazos legales (10 días corridos para acceso; 5 días hábiles para rectificación o supresión, según el Decreto 1558/2001).\n\nLa AGENCIA DE ACCESO A LA INFORMACIÓN PÚBLICA, en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.\n\n## 9. Menores de edad\n\nEl Hub no está dirigido a menores de 13 años y no creamos cuentas para ellos. Si detectamos una cuenta de una persona menor de esa edad, la eliminamos. Entre 13 y 17 años, el uso requiere el conocimiento y la autorización de madre, padre o tutor, y las compras requieren un adulto responsable del medio de pago. Madres, padres y tutores pueden pedir la eliminación de la cuenta escribiendo a Viralgamingservice@gmail.com.\n\n## 10. Seguridad\n\nAplicamos medidas técnicas y organizativas razonables (conexiones cifradas, controles de acceso por usuario en la base de datos). Ningún sistema es 100% seguro; si ocurre un incidente que te afecte, te lo informaremos cuando corresponda.\n\n## 11. Bienestar\n\nSi estás pasando un momento difícil, en Opciones → Ayuda encontrás líneas de apoyo gratuitas.\n\n## 12. Cambios\n\nSi cambiamos esta política de forma sustancial, te avisaremos dentro del Hub con anticipación y, cuando corresponda, pediremos que vuelvas a aceptarla.\n\n## 13. Contacto\n\nViralgamingservice@gmail.com · Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina\n": [
   "scripts\\common\\legal_text.gd"
@@ -23,17 +33,49 @@
  "#2FA38A": [
   "scripts\\common\\avatar.gd"
  ],
+ "#3DFF9A": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
  "#4B6BDB": [
   "scripts\\common\\avatar.gd"
  ],
  "#4FB3FF": [
-  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+  "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd",
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd",
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "#B69CFF": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd",
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
  ],
  "#C65BA0": [
   "scripts\\common\\avatar.gd"
  ],
  "#CC79A7": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd"
+ ],
+ "#FF4D5E": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd"
+ ],
+ "#FF4F5E": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "#FF5FA2": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd",
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "#FFC2D6": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "#FFE14D": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd",
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "#FFE9A0": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "#FFFFFF": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
  ],
  "#TAPE.S": [
   "scripts\\common\\game_teasers_rest.gd"
@@ -44,14 +86,29 @@
  "%s/auth/v1/authorize?provider=%s&redirect_to=%s": [
   "scripts\\common\\auth.gd"
  ],
+ "%s_%d.png": [
+  "scripts\\games\\turned\\sprite_lib.gd"
+ ],
  "'%s' has no source": [
   "scripts\\games\\creation\\creation_engine.gd"
  ],
  "'%s' is unreachable from the starters": [
   "scripts\\games\\creation\\creation_engine.gd"
  ],
+ ") % _clock_text() + ": [
+  "scripts\\games\\color_sort\\color_sort_game.gd"
+ ],
  ") + tr(": [
   "scripts\\games\\rummy\\rummy_game.gd"
+ ],
+ ") if T.core().has(scope) else T.t(": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
+ ") if setup.mode == ": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
+ ")) if setup.ranked else (": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
  "*.jpg, *.jpeg, *.png, *.webp ; Images": [
   "scripts\\hub\\profile_screen.gd"
@@ -108,8 +165,132 @@
  "BRIM#EA": [
   "scripts\\common\\game_teasers_rest.gd"
  ],
+ "BUILD_NUMBER": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
  "Bitstream Vera / Arev licence (free to use and redistribute)": [
   "scripts\\common\\third_party.gd"
+ ],
+ "Busy/Label": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
+ "Button": [
+  "scripts\\games\\chess\\home_kit.gd",
+  "scripts\\games\\minesweeper\\home_kit.gd",
+  "scripts\\games\\tictactoe\\home_kit.gd",
+  "scripts\\games\\connect4\\home_kit.gd",
+  "scripts\\games\\checkers\\home_kit.gd",
+  "scripts\\games\\reversi\\home_kit.gd",
+  "scripts\\games\\sea_battle\\home_kit.gd",
+  "scripts\\games\\dots_boxes\\home_kit.gd",
+  "scripts\\games\\mancala\\home_kit.gd",
+  "scripts\\games\\backgammon\\home_kit.gd",
+  "scripts\\games\\morris\\home_kit.gd",
+  "scripts\\games\\peg_solitaire\\home_kit.gd",
+  "scripts\\games\\lights_out\\home_kit.gd",
+  "scripts\\games\\box_pusher\\home_kit.gd",
+  "scripts\\games\\fifteen_puzzle\\home_kit.gd",
+  "scripts\\games\\g2048\\home_kit.gd",
+  "scripts\\games\\kakuro\\home_kit.gd",
+  "scripts\\games\\nonogram\\home_kit.gd",
+  "scripts\\games\\code_breaker\\home_kit.gd",
+  "scripts\\games\\hanoi\\home_kit.gd",
+  "scripts\\games\\calcudoku\\home_kit.gd",
+  "scripts\\games\\pipe_flow\\home_kit.gd",
+  "scripts\\games\\five_in_row\\home_kit.gd",
+  "scripts\\games\\mahjong\\home_kit.gd",
+  "scripts\\games\\flood_it\\home_kit.gd",
+  "scripts\\games\\same_game\\home_kit.gd",
+  "scripts\\games\\binary_grid\\home_kit.gd",
+  "scripts\\games\\hex\\home_kit.gd",
+  "scripts\\games\\trivia\\home_kit.gd",
+  "scripts\\games\\quick_math\\home_kit.gd",
+  "scripts\\games\\memory_grid\\home_kit.gd",
+  "scripts\\games\\color_clash\\home_kit.gd",
+  "scripts\\games\\number_series\\home_kit.gd",
+  "scripts\\games\\digit_recall\\home_kit.gd",
+  "scripts\\games\\sketch_it\\home_kit.gd",
+  "scripts\\games\\trace_it\\home_kit.gd",
+  "scripts\\games\\trivia_battle\\home_kit.gd",
+  "scripts\\games\\color_sort\\color_sort_game.gd",
+  "scripts\\games\\color_sort\\home_kit.gd",
+  "scripts\\games\\hidato\\home_kit.gd",
+  "scripts\\games\\creation\\creation_game.gd",
+  "scripts\\games\\creation\\home_kit.gd",
+  "scripts\\games\\evolution\\home_kit.gd",
+  "scripts\\games\\solitaire\\home_kit.gd",
+  "scripts\\games\\blackjack\\home_kit.gd",
+  "scripts\\games\\war\\home_kit.gd",
+  "scripts\\games\\crazy_eights\\home_kit.gd",
+  "scripts\\games\\go_fish\\home_kit.gd",
+  "scripts\\games\\gin_rummy\\home_kit.gd",
+  "scripts\\games\\spider\\home_kit.gd",
+  "scripts\\games\\freecell\\home_kit.gd",
+  "scripts\\games\\pyramid\\home_kit.gd",
+  "scripts\\games\\speed\\home_kit.gd",
+  "scripts\\games\\memory\\home_kit.gd",
+  "scripts\\games\\tri_peaks\\home_kit.gd",
+  "scripts\\games\\hearts\\hearts_game.gd",
+  "scripts\\games\\hearts\\home_kit.gd",
+  "scripts\\games\\video_poker\\home_kit.gd",
+  "scripts\\games\\sevens\\home_kit.gd",
+  "scripts\\games\\rummy\\home_kit.gd",
+  "scripts\\games\\rummy\\rummy_game.gd",
+  "scripts\\games\\hangman\\home_kit.gd",
+  "scripts\\games\\wordle\\home_kit.gd",
+  "scripts\\games\\word_search\\home_kit.gd",
+  "scripts\\games\\crossword\\home_kit.gd",
+  "scripts\\games\\anagrams\\home_kit.gd",
+  "scripts\\games\\word_hunt\\home_kit.gd",
+  "scripts\\games\\word_ladder\\home_kit.gd",
+  "scripts\\games\\cryptogram\\home_kit.gd",
+  "scripts\\games\\word_chain\\home_kit.gd",
+  "scripts\\games\\snake\\home_kit.gd",
+  "scripts\\games\\block_drop\\home_kit.gd",
+  "scripts\\games\\paddle_ball\\home_kit.gd",
+  "scripts\\games\\brick_breaker\\home_kit.gd",
+  "scripts\\games\\bird_hop\\home_kit.gd",
+  "scripts\\games\\alien_attack\\home_kit.gd",
+  "scripts\\games\\frog_crossing\\home_kit.gd",
+  "scripts\\games\\gem_match\\home_kit.gd",
+  "scripts\\games\\simon\\home_kit.gd",
+  "scripts\\games\\whack_a_mole\\home_kit.gd",
+  "scripts\\games\\reaction_test\\home_kit.gd",
+  "scripts\\games\\bubble_pop\\home_kit.gd",
+  "scripts\\games\\rock_blaster\\home_kit.gd",
+  "scripts\\games\\city_defense\\home_kit.gd",
+  "scripts\\games\\maze_muncher\\home_kit.gd",
+  "scripts\\games\\moon_lander\\home_kit.gd",
+  "scripts\\games\\stack_tower\\home_kit.gd",
+  "scripts\\games\\sky_hop\\home_kit.gd",
+  "scripts\\games\\air_hockey\\home_kit.gd",
+  "scripts\\games\\barrel_climb\\home_kit.gd",
+  "scripts\\games\\cannon_duel\\home_kit.gd",
+  "scripts\\games\\crypt_crawler\\home_kit.gd",
+  "scripts\\games\\mini_golf\\home_kit.gd",
+  "scripts\\games\\pool\\home_kit.gd",
+  "scripts\\games\\geometry_wars\\home_kit.gd",
+  "scripts\\games\\star_runner\\home_kit.gd",
+  "scripts\\games\\sky_raider\\home_kit.gd",
+  "scripts\\games\\last_shift\\home_kit.gd",
+  "scripts\\games\\turned\\home_kit.gd",
+  "scripts\\games\\yacht\\home_kit.gd",
+  "scripts\\games\\farkle\\home_kit.gd",
+  "scripts\\games\\liars_dice\\home_kit.gd",
+  "scripts\\games\\shut_the_box\\home_kit.gd",
+  "scripts\\games\\dominoes\\dominoes_game.gd",
+  "scripts\\games\\dominoes\\home_kit.gd",
+  "scripts\\games\\pig\\home_kit.gd",
+  "scripts\\games\\bunco\\home_kit.gd",
+  "scripts\\games\\ship_captain_crew\\home_kit.gd",
+  "scripts\\games\\party_spinner\\home_kit.gd",
+  "scripts\\games\\charades\\home_kit.gd",
+  "scripts\\games\\truth_or_dare\\home_kit.gd",
+  "scripts\\games\\fortune_ball\\home_kit.gd",
+  "scripts\\games\\spirit_board\\home_kit.gd",
+  "scripts\\games\\fastest_finger\\home_kit.gd",
+  "scripts\\games\\emoji_guess\\home_kit.gd",
+  "scripts\\games\\who_am_i\\home_kit.gd"
  ],
  "C.CCL.GG..": [
   "scripts\\common\\game_teasers_arcade.gd"
@@ -211,6 +392,9 @@
  "LibreOffice es_MX Hunspell dictionary": [
   "scripts\\common\\third_party.gd"
  ],
+ "Loading": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
  "MPL 1.1 (option of the MPL/GPL/LGPL tri-licence)": [
   "scripts\\common\\third_party.gd"
  ],
@@ -280,11 +464,26 @@
   "scripts\\common\\achievements.gd",
   "scripts\\common\\avatar.gd"
  ],
+ "SpriteLib: '%s' has no frame %d": [
+  "scripts\\games\\turned\\sprite_lib.gd"
+ ],
+ "SpriteLib: no sprite '%s'": [
+  "scripts\\games\\turned\\sprite_lib.gd"
+ ],
  "Start-Process -FilePath $e -WorkingDirectory (Split-Path $e)": [
   "scripts\\common\\pc_updater.gd"
  ],
+ "Update N games": [
+  "scripts\\hub\\options_screen.gd"
+ ],
  "VGH1.": [
   "scripts\\common\\auth.gd"
+ ],
+ "Will you remember?": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
+ "Win ≈ 36%": [
+  "scripts\\games\\video_poker\\video_poker_view.gd"
  ],
  "Windows": [
   "scripts\\common\\pc_updater.gd"
@@ -311,11 +510,29 @@
  "\\[lb\\]([^\\]]+)\\]\\((https?://[^)\\s]+|mailto:[^)\\s]+)\\)": [
   "scripts\\common\\consent.gd"
  ],
+ "\\{([LR])([+-][0-9.]+)?\\}": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd"
+ ],
+ "c_<id>#<n>": [
+  "scripts\\common\\achievements.gd"
+ ],
+ "chip_%d": [
+  "scripts\\games\\video_poker\\video_poker_chips.gd"
+ ],
  "duplicate item '%s'": [
   "scripts\\games\\creation\\creation_engine.gd"
  ],
  "duplicate recipe %s": [
   "scripts\\games\\creation\\creation_engine.gd"
+ ],
+ "face_%s_%s": [
+  "scripts\\games\\video_poker\\video_poker_cards.gd"
+ ],
+ "fast, agile": [
+  "scripts\\games\\evolution\\evolution_engine.gd"
+ ],
+ "flashMs": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
  ],
  "for($i=0;$i -lt 60;$i++){try{Copy-Item -LiteralPath $p -Destination ($p+'.bak') -Force -ErrorAction Stop;": [
   "scripts\\common\\pc_updater.gd"
@@ -341,8 +558,20 @@
  "item without id": [
   "scripts\\games\\creation\\creation_engine.gd"
  ],
+ "minMs": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
  "missing list '%s'": [
   "scripts\\games\\creation\\creation_engine.gd"
+ ],
+ "recallBias": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
+ "recallErr": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
+ "recallN": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
  "recipe %s+%s gives undefined '%s'": [
   "scripts\\games\\creation\\creation_engine.gd"
@@ -358,6 +587,9 @@
  ],
  "starter '%s' is not an item": [
   "scripts\\games\\creation\\creation_engine.gd"
+ ],
+ "studyMs": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
  ],
  "{\n \"schema_version\": 1,\n \"updated\": \"2026-10-12\",\n \"default_region\": \"AR\",\n \"emergency_note\": {\n  \"es\": \"Si hay peligro inmediato, llamá al 911.\",\n  \"en\": \"If there is immediate danger, call 911.\"\n },\n \"fallback\": {\n  \"label_es\": \"Líneas de ayuda en tu país\",\n  \"label_en\": \"Helplines in your country\",\n  \"url\": \"https://findahelpline.com\"\n },\n \"regions\": {\n  \"AR\": {\n   \"resources\": [\n    {\n     \"id\": \"ar_135\",\n     \"label_es\": \"Línea 135 — apoyo en crisis y prevención del suicidio\",\n     \"label_en\": \"Line 135 — crisis support and suicide prevention\",\n     \"dial\": \"135\",\n     \"free\": true,\n     \"note_es\": \"Funciona en Tucumán (línea provincial del Ministerio de Salud, todos los días) y en CABA/GBA (Centro de Asistencia al Suicida).\",\n     \"note_en\": \"Works in Tucumán (provincial Health Ministry line, every day) and in Buenos Aires city/area (Centro de Asistencia al Suicida).\",\n     \"provinces\": [\n      \"AR-T\",\n      \"AR-C\",\n      \"AR-B\"\n     ],\n     \"verified_on\": \"2026-10-12\",\n     \"sources\": [\n      \"https://www.lagaceta.com.ar/nota/1053494/sociedad/llamadas-linea-asistencia-al-riesgo-suicida-se-duplicaron.html\",\n      \"https://findahelpline.com/organizations/linea-de-prevencion-del-suicidio-buenos-aires\"\n     ]\n    },\n    {\n     \"id\": \"ar_cas_national\",\n     \"label_es\": \"Centro de Asistencia al Suicida — desde todo el país\",\n     \"label_en\": \"Centro de Asistencia al Suicida — from anywhere in Argentina\",\n     \"dial\": \"0800 345 1435\",\n     \"dial_alt\": \"(011) 5275-1135\",\n     \"free\": null,\n     \"note_es\": \"El 0800 es para todo el país; el (011) 5275-1135 puede tener costo según tu operador.\",\n     \"note_en\": \"The 0800 number is nationwide; (011) 5275-1135 may have a cost depending on your carrier.\",\n     \"verified_on\": \"2026-10-12\",\n     \"sources\": [\n      \"https://findahelpline.com/organizations/linea-de-prevencion-del-suicidio-buenos-aires\",\n      \"https://www.derechoenzapatillas.com/amp/2022/salud-mental-donde-buscar-ayuda/\"\n     ]\n    },\n    {\n     \"id\": \"ar_107_tuc\",\n     \"label_es\": \"107 — emergencias de salud (Tucumán)\",\n     \"label_en\": \"107 — health emergencies (Tucumán)\",\n     \"dial\": \"107\",\n     \"free\": true,\n     \"provinces\": [\n      \"AR-T\"\n     ],\n     \"verified_on\": \"2026-10-12\",\n     \"sources\": [\n      \"https://www.lagaceta.com.ar/nota/1053494/sociedad/llamadas-linea-asistencia-al-riesgo-suicida-se-duplicaron.html\"\n     ]\n    },\n    {\n     \"id\": \"ar_911\",\n     \"label_es\": \"911 — emergencias\",\n     \"label_en\": \"911 — emergency services\",\n     \"dial\": \"911\",\n     \"free\": true,\n     \"verified_on\": null,\n     \"sources\": []\n    }\n   ]\n  }\n }\n}": [
   "scripts\\common\\crisis_data.gd"
