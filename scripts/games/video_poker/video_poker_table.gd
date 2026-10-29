@@ -563,7 +563,9 @@ func _finish_uncontested(winner: int) -> void:
 	if winner >= 0:
 		seats[winner].stack += pot
 		seats[winner].won = pot
-		results.append({"seat": winner, "won": pot, "score": -1, "desc": "", "best": [], "shown": false})
+		# the same fields as a showdown's (and from_dict's), so online copies compare equal
+		results.append({"seat": winner, "won": pot, "score": -1, "desc": "", "best": [], "shown": false,
+			"low": -1, "low_won": 0, "low_desc": ""})
 		last_event = {"seat": winner, "action": "win", "amount": pot}
 	pot = 0
 	phase = "done"

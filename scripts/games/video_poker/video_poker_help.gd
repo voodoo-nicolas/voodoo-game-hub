@@ -17,6 +17,7 @@ const HOW := [
 	"🎯 Career: eight tables, each with a boss and other characters. Win a stage to open the next. Stars: ★ for winning, ★★ if you did not use the coach or win chance, ★★★ if you won fast. Every computer player has its own style: the 🎓 coach shows it, and the character screen on each Career card tells you how to beat the boss.",
 	"Video Poker (Jacks or Better): bet 1-5 coins of 10, 50 or 250 chips, tap cards to hold, then draw. 💡 shows the textbook hold.",
 	"Pass and play: 2 to 6 people on one phone. The screen hides the cards whenever the phone changes hands. Online: heads-up against a friend; the first to take all the chips wins.",
+	"🃏 Friends table: 2 to 6 friends, each on their own phone. The host picks the game, Tournament or Cash, the seats (computer players can fill the rest) and a turn timer, then shares the 5-letter code or invites friends. Out of time, or dropped out? You check if you can, or else fold; come back with the same code. 💬 sends a preset emote.",
 	"🎓 Training: the coach table, hand rankings and five drills. At any table the 🎓 button turns the coach on: your win chance, the pot odds and what it would do.",
 	"📈 My stats (under More on Home) keeps your level and XP, your numbers (VPIP, PFR, bb/100, results by game, stakes and seat), a graph of your chips and every hand you played: tap one to replay it, ⭐ to keep it.",
 	"Out of chips with nothing at a table? The house spots you 1,000. ⏸ pauses; tables and the machine are saved, and Resume on Home carries on.",
@@ -28,7 +29,7 @@ const TIPS := [
 	"Play fewer, stronger starting hands, and bet them. Most hands in Hold'em should be folded before the flop.",
 	"Turn the coach on to see each computer player's style: don't bluff a Calling Station, and believe a Rock's bets.",
 ]
-const STATS := ["Most chips", "Hands played", "Hands won", "Biggest pot", "Wins", "Royal flushes", "Showdowns won", "Pots won uncontested", "Tournaments won", "Best hand streak", "Poker level", "Career stages cleared", "Drills done"]
+const STATS := ["Most chips", "Hands played", "Hands won", "Biggest pot", "Wins", "Royal flushes", "Showdowns won", "Pots won uncontested", "Tournaments won", "Best hand streak", "Poker level", "Career stages cleared", "Friends tables won", "Drills done"]
 const ACHIEVEMENTS := [
 	{"id": "royal", "icon": "👑", "title": "Royal Treatment", "key": "Royal flushes", "at": 1},
 	{"id": "pot5k", "icon": "💰", "title": "Big Pot", "key": "Biggest pot", "at": 5000},
@@ -58,6 +59,9 @@ const ACHIEVEMENTS := [
 	{"id": "career8", "icon": "👑", "title": "Long Live the Player", "key": "Career stages cleared", "at": 8},
 	{"id": "careerstars12", "icon": "🌟", "title": "Star Collector", "key": "Career stars", "at": 12},
 	{"id": "careerstars24", "icon": "✨", "title": "Perfect Career", "key": "Career stars", "at": 24},
+	{"id": "friends1", "icon": "🃏", "title": "Friends Night", "key": "Friends tables played", "at": 1},
+	{"id": "friendswin1", "icon": "🤝", "title": "Top of the Table", "key": "Friends tables won", "at": 1},
+	{"id": "friendswin10", "icon": "🎩", "title": "The Regulars Fear You", "key": "Friends tables won", "at": 10},
 ]
 
 ## Learning hook (STANDARDS §15): one shows on the Home screen's

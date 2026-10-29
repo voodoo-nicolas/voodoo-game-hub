@@ -32,6 +32,9 @@ var show_styles: bool = false  # training: label each computer's style
 var you_text := "You"
 var win_text := ""           # "Win ≈ 36%": shown with your hand when the Options switch is on
 var piles := true             # chips drawn as piles (off: numbers only)
+var away: Array = []          # online tables: seats whose player dropped out ("Away" on the plate)
+## Online emotes: seat -> {"text", "until" (ticks msec)}; drawn as a bubble by the seat.
+var bubbles: Dictionary = {}
 
 var _font: Font
 var _pulse := 0.0
@@ -47,6 +50,17 @@ func _process(delta: float) -> void:
 	if thinking >= 0:
 		_pulse += delta
 		queue_redraw()
+	if not bubbles.is_empty():
+		var now := Time.get_ticks_msec()
+		for k in bubbles.keys():
+			if int(bubbles[k].until) <= now:
+				bubbles.erase(k)
+				queue_redraw()
+
+## An emote from `seat`, shown for a few seconds.
+func show_bubble(seat: int, text: String) -> void:
+	bubbles[seat] = {"text": text, "until": Time.get_ticks_msec() + 3200}
+	queue_redraw()
 
 # ---------- geometry ----------
 
@@ -259,6 +273,32 @@ func _draw() -> void:
 	_draw_board()
 	_draw_pot()
 	_draw_hero()
+	_draw_bubbles()
+
+## Emote bubbles: above a seat's plate, or above the viewer's own cards.
+func _draw_bubbles() -> void:
+	for seat in bubbles:
+		if int(seat) < 0 or int(seat) >= t.seats.size():
+			continue
+		var text: String = str(bubbles[seat].text)
+		var fs := 34 if text.length() <= 2 else 24
+		var tw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var anchor: Vector2
+		if int(seat) == viewer:
+			anchor = Vector2(size.x / 2.0, size.y - _hero_h() + 4.0)
+		else:
+			var r := seat_rect(int(seat))
+			anchor = Vector2(r.get_center().x, r.position.y + 6.0)
+		var box := Rect2(anchor - Vector2(tw / 2.0 + 16.0, fs + 20.0), Vector2(tw + 32.0, fs + 18.0))
+		box.position.x = clampf(box.position.x, 4.0, maxf(4.0, size.x - box.size.x - 4.0))
+		box.position.y = maxf(box.position.y, 4.0)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(1, 1, 1, 0.94)
+		sb.set_corner_radius_all(int(box.size.y / 2.0))
+		sb.shadow_color = Color(0, 0, 0, 0.35)
+		sb.shadow_size = 6
+		draw_style_box(sb, box)
+		draw_string(_font, Vector2(box.position.x, box.end.y - 12.0), text, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, fs, Color(0.1, 0.1, 0.14))
 
 ## The table: a leather rail with studs round a felt, a pill (oval) in the
 ## look's colours (classic: leather, brass and gold; voodoo: dark rail with neon
@@ -440,6 +480,9 @@ func _draw_seat(i: int, r: Rect2) -> void:
 	elif thinking == i:
 		line = tr("Thinking") + ".".repeat(1 + int(_pulse * 3.0) % 3)
 		col = Look.c("active")
+	elif away.has(i) and not bool(s.out):
+		line = tr("Away")
+		col = Look.c("dim")
 	elif str(s.act) != "":
 		line = _act_text(s)
 		col = _act_color(str(s.act))

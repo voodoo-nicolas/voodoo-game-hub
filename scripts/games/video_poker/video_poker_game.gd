@@ -2,7 +2,8 @@ extends Control
 
 ## Poker: Texas Hold'em, Omaha, Five Card Draw and Seven Card Stud against
 ## the computer (cash tables and tournaments), on one phone (pass and play)
-## or online heads-up, plus the Video Poker machine and 🎓 Training (a
+## or online (heads-up, or a friends table of up to six phones), plus the
+## Video Poker machine and 🎓 Training (a
 ## coach, hand rankings and drills). Play chips only, kept between visits.
 ##
 ## The pack id stays video_poker: Poker grew out of the Video Poker game,
@@ -38,6 +39,8 @@ const HELP := preload("res://scripts/games/video_poker/video_poker_help.gd")
 ## Not preloaded: apps before v0.20 / v0.14 don't have them.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
+## Tables of 2-6 friends (apps from v0.39): without it, online stays heads-up.
+const ONLINE_TABLE_PATH := "res://scripts/common/online_table.gd"
 const TITLE_FOR_HOME := HELP.TITLE
 
 ## The table in progress (cash, tournament, pass and play).
@@ -73,13 +76,24 @@ const SPEEDS := [4, 6, 10]
 const SPEED_NAMES := ["Fast", "Normal", "Slow"]
 ## Online: the host deals the next hand after this many seconds.
 const NEXT_DELAY := 6.0
+## Friends table: formats, turn timer choices (seconds, 0 = off), and how
+## long the host waits for a player who dropped out before checking or
+## folding for them.
+const TABLE_FORMATS := ["🏆 Tournament", "💰 Cash"]
+const TURN_TIMES := [0, 30, 60]
+const AWAY_SEC := 4.0
+## Preset emotes (no free text, by the owner's rule).
+const EMOTES := ["👍", "😂", "😮", "😎", "🤔", "😬", "🙏", "🍀", "Nice hand!", "Good luck!", "Well played!", "Your turn!"]
+const EMOTE_GAP_MS := 2000
 
 const LIMIT_NAMES := {"nl": "No limit", "pl": "Pot limit", "fl": "Limit"}
 const LEVEL_NAMES := ["Easy", "Normal", "Hard"]
 
 var info = null   # GameInfo; null on apps without it, so guard every use
 var home          # HomeKit
-var online: Control = null
+var online: Control = null      # OnlineMatch: heads-up, any app since v0.14
+var table_net: Control = null   # OnlineTable: 2-6 friends, apps since v0.39
+var net: Control = null         # whichever of the two the current online game uses
 var rng := RandomNumberGenerator.new()
 var started := false
 
@@ -89,7 +103,8 @@ var history = History.new()   # every hand played, to user://video_poker_history
 var mode := ""
 var chips := START_CHIPS
 var prefs := {"variant": "holdem", "limit": "nl", "opps": 3, "level": 1, "coach": false, "stakes": 0, "players": 2,
-	"four_color": false, "odds": false, "piles": true, "tfmt": 0, "tstack": 1, "tspeed": 1}
+	"four_color": false, "odds": false, "piles": true, "tfmt": 0, "tstack": 1, "tspeed": 1,
+	"ofmt": 0, "oseats": 4, "ofill": true, "ostack": 1, "ospeed": 1, "oturn": 1, "emotes": true}
 var ai_level := 1
 var stakes := 0
 var buyin := 0
@@ -101,7 +116,13 @@ var viewer := 0
 var meta := {"hands": 0, "level": 0, "out": [], "start": 0}
 var handled_hand := -1      # hand_no whose end was already counted
 var result_recorded := false
-var my_player := 0          # online: 1 host, 2 guest
+var my_player := 0          # online: 1 host, 2.. guests
+var away_sec := AWAY_SEC    # (a test shortens it)
+var turn_key := ""          # host: the decision the turn timer is set for
+var turn_seen_key := ""     # everyone: the decision the countdown counts for
+var turn_seen_ms := 0
+var last_emote_ms := -EMOTE_GAP_MS
+var friends := {}           # host: the friends table it opened (_friends_cfg)
 
 var think_task := -1
 var think_result: Dictionary = {}
@@ -158,6 +179,10 @@ var variant_btns: Array = []
 var limit_btns: Array = []
 var cpu_timer: Timer
 var next_timer: Timer
+var turn_timer: Timer       # friends table, host: the turn timer and away players
+var tick_timer: Timer       # friends table: the countdown in the top line
+var emote_btn: Button
+var emote_panel: Control
 var chip_stream: AudioStreamWAV
 
 func _ready() -> void:
@@ -203,6 +228,13 @@ func _load_chips() -> void:
 	prefs.tfmt = clampi(int(prefs.tfmt), 0, FORMATS.size() - 1)
 	prefs.tstack = clampi(int(prefs.tstack), 0, STACKS.size() - 1)
 	prefs.tspeed = clampi(int(prefs.tspeed), 0, SPEEDS.size() - 1)
+	prefs.ofmt = clampi(int(prefs.ofmt), 0, TABLE_FORMATS.size() - 1)
+	prefs.oseats = clampi(int(prefs.oseats), 2, 6)
+	prefs.ofill = bool(prefs.ofill)
+	prefs.ostack = clampi(int(prefs.ostack), 0, STACKS.size() - 1)
+	prefs.ospeed = clampi(int(prefs.ospeed), 0, SPEEDS.size() - 1)
+	prefs.oturn = clampi(int(prefs.oturn), 0, TURN_TIMES.size() - 1)
+	prefs.emotes = bool(prefs.emotes)
 	Cards.four_color = prefs.four_color
 	odds_on = prefs.odds
 	if not Table.VARIANTS.has(str(prefs.variant)):
@@ -335,6 +367,14 @@ func _build_ui() -> void:
 	next_timer.one_shot = true
 	next_timer.timeout.connect(_on_next_timer)
 	add_child(next_timer)
+	turn_timer = Timer.new()
+	turn_timer.one_shot = true
+	turn_timer.timeout.connect(_on_turn_timer)
+	add_child(turn_timer)
+	tick_timer = Timer.new()
+	tick_timer.wait_time = 1.0
+	tick_timer.timeout.connect(_on_tick)
+	add_child(tick_timer)
 
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
 		online = load(ONLINE_MATCH_PATH).new("video_poker", tr(TITLE_FOR_HOME), _online_state)
@@ -344,6 +384,18 @@ func _build_ui() -> void:
 		online.remote_new_game.connect(_on_remote_new_game)
 		online.status_changed.connect(_render)
 		add_child(online)
+	if ResourceLoader.exists(ONLINE_TABLE_PATH):
+		table_net = load(ONLINE_TABLE_PATH).new("video_poker", tr(TITLE_FOR_HOME), _online_state)
+		table_net.started.connect(_on_table_started)
+		table_net.remote_move.connect(_on_remote_move)
+		table_net.remote_state.connect(_on_remote_state)
+		table_net.remote_new_game.connect(_on_remote_new_game)
+		table_net.remote_event.connect(_on_remote_event)
+		table_net.status_changed.connect(_on_net_status)
+		add_child(table_net)
+		# The kit only knows the heads-up lobby: this one hides / shows Home itself.
+		table_net.lobby.cancelled.connect(_on_table_lobby_cancelled)
+		table_net.lobby.visibility_changed.connect(_on_table_lobby_shown)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	training.info = info
@@ -355,6 +407,9 @@ func _build_ui() -> void:
 		{"text": "🎓 Training", "sub": "A coach at the table, hand rankings and drills", "action": _open_training, "color": HomeKit.LIME},
 		{"text": "👥 Pass and play", "sub": "2 to 6 players share one phone", "multi": true, "action": _ask_local},
 	]
+	if table_net:
+		modes.append({"text": "🃏 Friends table", "sub": "2 to 6 friends at one table, each on their own phone", "multi": true,
+			"color": HomeKit.PURPLE, "action": _ask_friends})
 	if online:
 		modes.append({"text": "🌐 Online", "sub": "Heads-up against a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
@@ -430,6 +485,12 @@ func _build_table_screen() -> void:
 	coach_btn.toggle_mode = true
 	coach_btn.pressed.connect(_toggle_coach)
 	bar.add_child(coach_btn)
+	emote_btn = Button.new()
+	emote_btn.text = "💬"
+	emote_btn.custom_minimum_size = Vector2(72, 60)
+	emote_btn.visible = false
+	emote_btn.pressed.connect(_toggle_emotes)
+	bar.add_child(emote_btn)
 	# A free corner for the floating ⚙ tab (the whole table below is tappable).
 	var tab_space := Control.new()
 	tab_space.custom_minimum_size = Vector2(40, 0)
@@ -547,7 +608,7 @@ func _fit_table_layout() -> void:
 		for b in size_row.get_children():
 			(b as Button).add_theme_font_size_override("font_size", 18 if compact else 22)
 			(b as Button).custom_minimum_size.y = 36.0 if compact else 56.0
-		for b in [pause_btn, coach_btn]:
+		for b in [pause_btn, coach_btn, emote_btn]:
 			(b as Button).custom_minimum_size.y = 44.0 if compact else 60.0
 		top_box.add_theme_constant_override("margin_top", 6 if compact else 16)
 		action_row.add_theme_constant_override("separation", 4 if compact else 10)
@@ -806,16 +867,20 @@ func _tourney_rows(box: VBoxContainer) -> void:
 	box.add_child(home.section("Starting chips"))
 	box.add_child(home.choice_row(["1,000", "1,500", "3,000"], int(prefs.tstack), _set_pref.bind("tstack", 0), HomeKit.GOLD))
 	box.add_child(home.section("Blinds go up"))
-	var speed_names: Array = []
-	for k in SPEEDS.size():
-		speed_names.append(tr(SPEED_NAMES[k]) + "\n" + tr("every %d hands") % SPEEDS[k])
-	box.add_child(home.choice_row(speed_names, int(prefs.tspeed), _set_pref.bind("tspeed", 0), HomeKit.GOLD))
+	box.add_child(home.choice_row(_speed_names(), int(prefs.tspeed), _set_pref.bind("tspeed", 0), HomeKit.GOLD))
 	var levels: Array = []
 	for k in 5:
 		levels.append("%d/%d" % [BLIND_LEVELS[k][0], BLIND_LEVELS[k][1]])
 	box.add_child(HomeKit.label(tr("Blinds: %s ...") % ", ".join(levels), 21, HomeKit.DIM, true, true))
 	box.add_child(home.section("Computer level"))
 	box.add_child(home.choice_row(LEVEL_NAMES, int(prefs.level), _set_pref.bind("level", 0), HomeKit.MAGENTA))
+
+## "Fast\nevery 4 hands", ...
+func _speed_names() -> Array:
+	var out: Array = []
+	for k in SPEEDS.size():
+		out.append(tr(SPEED_NAMES[k]) + "\n" + tr("every %d hands") % SPEEDS[k])
+	return out
 
 ## A format picks its table size, starting chips and blind speed; the sheet is rebuilt.
 func _set_tfmt(i: int) -> void:
@@ -998,7 +1063,21 @@ func _deal() -> void:
 			for s in t.seats:
 				if int(s.stack) <= 0:
 					s.stack = PRACTICE_STACK
+		"online" when str(meta.get("fmt", "")) == "cash":
+			# Friends cash table: the blinds stay, a busted player buys back in.
+			meta.hands = int(meta.hands) + 1
+			for i in t.seats.size():
+				if int(t.seats[i].stack) <= 0:
+					t.seats[i].stack = int(meta.stack)
+					if i < meta.buys.size():
+						meta.buys[i] = int(meta.buys[i]) + 1
 		"tourney", "local", "online":
+			if mode == "online":
+				# Who went out, in order (here, not at the hand's end: only a
+				# deal may change what every phone shares).
+				for i in t.seats.size():
+					if int(t.seats[i].stack) <= 0 and not meta.out.has(i):
+						meta.out.append(i)
 			meta.hands = int(meta.hands) + 1
 			var per: int = _hpl()
 			meta.level = mini((int(meta.hands) - 1) / per, BLIND_LEVELS.size() - 1)
@@ -1033,7 +1112,11 @@ func _refresh_cash_seats() -> void:
 # ---------- whose turn ----------
 
 func _is_online() -> bool:
-	return online != null and online.is_online() and mode == "online"
+	return net != null and net.is_online() and mode == "online"
+
+## A friends table (OnlineTable), not the heads-up match.
+func _is_table() -> bool:
+	return _is_online() and net == table_net
 
 ## The local player's seat (for stats): single player's seat, my online seat.
 func _hero_seat() -> int:
@@ -1048,7 +1131,7 @@ func _hero_can_act() -> bool:
 		return false
 	var k: int = t.seats[t.to_act].kind
 	if _is_online():
-		return k == my_player and online.can_act(true)
+		return k == my_player and net.can_act(true)
 	if mode == "local":
 		return k > 0 and t.to_act == viewer
 	return k == 1
@@ -1064,6 +1147,8 @@ func _after_change() -> void:
 	var finished: Dictionary = history.observe(t, mode, _hero_seat(), _has_aids())
 	if not finished.is_empty():
 		_on_hand_recorded(finished)
+	_check_my_bust()
+	_arm_turn_timer()
 	if t.phase == "done":
 		if handled_hand != t.hand_no:
 			handled_hand = t.hand_no
@@ -1073,7 +1158,7 @@ func _after_change() -> void:
 	if t.phase in ["bet", "draw"] and t.to_act >= 0:
 		var k: int = t.seats[t.to_act].kind
 		if k == 0:
-			if not _is_online() or online.is_host():
+			if not _is_online() or net.is_host():
 				_schedule_cpu()
 		elif mode == "local" and t.to_act != viewer and not cover.visible:
 			_show_cover(t.to_act)
@@ -1254,7 +1339,7 @@ func _hand_over() -> void:
 			_check_match_over()
 		"online":
 			_check_match_over()  # changes nothing both phones share
-	if _is_online() and online.is_host() and not end_dialog.visible:
+	if _is_online() and net.is_host() and not end_dialog.visible:
 		next_timer.start(NEXT_DELAY)
 	_save_game()
 
@@ -1308,13 +1393,30 @@ func _check_match_over() -> void:
 				info.add("Pass and play games")
 				info.celebrate(msg)
 		"online":
-			if left.size() > 1:
+			if str(meta.get("fmt", "")) == "cash":
+				return  # a cash table goes on until people leave
+			var people_left := 0
+			for i in left:
+				if int(t.seats[i].kind) > 0:
+					people_left += 1
+			if left.size() > 1 and people_left > 0:
 				return
 			var i_won: bool = left.size() == 1 and left[0] == me
-			msg = online.result_text(i_won) if online else ""
-			if info and not result_recorded:
+			if _is_table():
+				if i_won:
+					msg = tr("You win the table!")
+				elif left.size() == 1:
+					msg = tr("%s wins the table!") % _name(left[0])
+				else:
+					msg = tr("The computer players outlasted everyone. Game over.")
+			else:
+				msg = online.result_text(i_won)
+			if not result_recorded:
 				result_recorded = true
-				info.result("win" if i_won else "loss", true)
+				if info:
+					info.result("win" if i_won else "loss", true)
+				if _is_table():
+					msg += "  " + _table_finish(1 if i_won else left.size() + 1)
 			if info:
 				msg += "\n" + info.summary(["Online wins", "Online losses"])
 	end_dialog.get_meta("message_label").text = msg
@@ -1361,7 +1463,7 @@ func _ordinal(n: int) -> String:
 func _on_next() -> void:
 	if t.phase != "done" and t.phase != "idle":
 		return
-	if _is_online() and not online.is_host():
+	if _is_online() and not net.is_host():
 		return
 	if mode == "cash" or mode == "practice":
 		var me := _hero_seat()
@@ -1373,7 +1475,7 @@ func _on_next() -> void:
 	_deal()
 
 func _on_next_timer() -> void:
-	if _is_online() and online.is_host() and t.phase == "done" and not end_dialog.visible:
+	if _is_online() and net.is_host() and t.phase == "done" and not end_dialog.visible:
 		_deal()
 
 ## Cash: out of chips at the table -- buy back in from your chips.
@@ -1497,12 +1599,23 @@ func _add_game_options(body: VBoxContainer) -> void:
 	body.add_child(home.section("Win chance"))
 	body.add_child(home.choice_row(["Off", "On"], 1 if prefs.odds else 0, _on_odds))
 	body.add_child(HomeKit.label(tr("Shows your chance to win under your cards on your turn. It counts as help: those hands are marked in your history."), 22, HomeKit.DIM, true))
+	body.add_child(home.section("Emotes"))
+	body.add_child(home.choice_row(["On", "Off"], 0 if prefs.emotes else 1, _on_emotes))
+	body.add_child(HomeKit.label(tr("Online: the 💬 button sends a preset emote to the table. Off hides them on this phone."), 22, HomeKit.DIM, true))
 
 func _on_four_color(i: int) -> void:
 	prefs.four_color = i == 1
 	Cards.four_color = prefs.four_color
 	_save_chips()
 	_redraw_cards()
+
+func _on_emotes(i: int) -> void:
+	prefs.emotes = i == 0
+	_save_chips()
+	if not prefs.emotes:
+		view.bubbles = {}
+	if started or _is_online():
+		_render()
 
 func _on_piles(i: int) -> void:
 	prefs.piles = i == 0
@@ -1535,6 +1648,12 @@ func _render() -> void:
 	view.you_text = "You"
 	coach_btn.button_pressed = coach_on
 	coach_btn.visible = not _is_online()
+	emote_btn.visible = _is_online() and bool(prefs.emotes)
+	view.away = []
+	if _is_table():
+		for i in t.seats.size():
+			if int(t.seats[i].kind) > 0 and not table_net.here(int(t.seats[i].kind)):
+				view.away.append(i)
 	if t.seats.is_empty():
 		title_label.text = tr(TITLE_FOR_HOME)
 		info_label.text = ""
@@ -1560,6 +1679,11 @@ func _info_text() -> String:
 	match mode:
 		"cash":
 			parts.append(tr("Your chips: %s") % View._chips(chips))
+		"online" when str(meta.get("fmt", "")) == "cash":
+			var me := _hero_seat()
+			parts.append(tr("Cash table"))
+			if me >= 0 and me < meta.buys.size() and int(meta.buys[me]) > 0:
+				parts.append(tr("Rebuys: %d") % int(meta.buys[me]))
 		"tourney", "local", "online":
 			var per: int = _hpl()
 			var into: int = (int(meta.hands) - 1) % per
@@ -1573,6 +1697,9 @@ func _info_text() -> String:
 				parts.push_front(tr(str(Career.stage(str(meta.career)).get("title", "Career"))))
 		"practice":
 			parts.append(tr("Practice chips"))
+	var left := _turn_left()
+	if left >= 0:
+		parts.append("⏱ %d" % left)
 	return "  ·  ".join(parts)
 
 func _event_text() -> String:
@@ -1607,7 +1734,7 @@ func _status_text() -> String:
 		for r in t.results:
 			if int(r.won) <= 0:
 				continue
-			var mine: bool = str(t.seats[int(r.seat)].name) == ""
+			var mine: bool = str(t.seats[int(r.seat)].name) == "" or (_is_online() and int(r.seat) == _hero_seat())
 			var amount := View._chips(int(r.won))
 			if View.result_text(r) != "":
 				lines.append(tr("You win %s with %s.") % [amount, View.result_text(r)] if mine
@@ -1617,7 +1744,7 @@ func _status_text() -> String:
 		var me := _hero_seat()
 		if (mode == "cash" or mode == "practice") and me >= 0 and int(t.seats[me].stack) <= 0:
 			lines.append(tr("You're out of chips at this table."))
-		elif _is_online() and not online.is_host() and not end_dialog.visible:
+		elif _is_online() and not net.is_host() and not end_dialog.visible:
 			lines.append(tr("Next hand in a moment..."))
 		return "\n".join(lines.slice(0, 3))
 	if t.phase == "idle":
@@ -1625,7 +1752,9 @@ func _status_text() -> String:
 	var ev := _event_text()
 	if ev != "":
 		lines.append(ev)
-	if _is_online() and not online.opponent_here:
+	if _is_table() and not table_net.host_here():
+		lines.append(tr("%s (the host) is away — waiting...") % table_net.name_of(1))
+	elif _is_online() and not _is_table() and not online.opponent_here:
 		lines.append(tr("%s disconnected — waiting...") % online.opponent_name())
 	elif _hero_can_act():
 		var l: Dictionary = t.legal()
@@ -1649,7 +1778,7 @@ func _render_buttons() -> void:
 	if t.phase == "done" or t.phase == "idle":
 		if end_dialog.visible:
 			return
-		var host_or_local: bool = not _is_online() or online.is_host()
+		var host_or_local: bool = not _is_online() or net.is_host()
 		next_btn.visible = host_or_local and t.phase == "done"
 		var me := _hero_seat()
 		var busted: bool = me >= 0 and int(t.seats[me].stack) <= 0
@@ -1745,12 +1874,28 @@ func _on_cover_ready() -> void:
 		_request_coach()
 	_render()
 
-# ---------- online (heads-up) ----------
+# ---------- online: heads-up (OnlineMatch) and friends tables (OnlineTable) ----------
 
 func _online_state() -> Dictionary:
 	return {"t": t.to_dict(), "meta": meta}
 
 func _on_online_started(p_my_player: int) -> void:
+	net = online
+	_enter_online(p_my_player)
+	if online.is_host():
+		_new_online_match()
+	else:
+		_wait_for_deal()
+
+func _on_table_started(p_my_player: int) -> void:
+	net = table_net
+	_enter_online(p_my_player)
+	if table_net.is_host() and not table_net.adopting:
+		_new_friends_table()
+	else:
+		_wait_for_deal()  # a guest, or a host back after a drop-out: the others send the game
+
+func _enter_online(p_my_player: int) -> void:
 	my_player = p_my_player
 	mode = "online"
 	started = false
@@ -1761,15 +1906,20 @@ func _on_online_started(p_my_player: int) -> void:
 	result_recorded = false
 	handled_hand = -1
 	coach_on = false
-	if online.is_host():
-		_new_online_match()
-	else:
-		history.abandon()
-		t = Table.new()
-		viewer = 1
-		_render()
+	turn_key = ""
+	view.bubbles = {}
+	tick_timer.stop()
+	if net == table_net:
+		tick_timer.start()
 
-## Host: a fresh match (the guest gets it with the first deal).
+## An empty table until the host's state arrives.
+func _wait_for_deal() -> void:
+	history.abandon()
+	t = Table.new()
+	viewer = 0
+	_render()
+
+## Host: a fresh heads-up match (the guest gets it with the first deal).
 func _new_online_match() -> void:
 	_new_table([Table.new_seat(online.my_name(), MATCH_STACK, 1), Table.new_seat(online.opponent_name(), MATCH_STACK, 2)],
 		BLIND_LEVELS[0][0], BLIND_LEVELS[0][1])
@@ -1777,46 +1927,129 @@ func _new_online_match() -> void:
 	_deal()
 	online.push_state()
 
+## Host: a fresh friends table: the people from the lobby (seat kind = their
+## player number), computer players in the empty seats when the host asked
+## for them, everyone in a random order.
+func _new_friends_table() -> void:
+	var cfg: Dictionary = friends if not friends.is_empty() else _friends_cfg()
+	var stack: int = STACKS[int(cfg.stack)]
+	var seat_list: Array = []
+	var taken := {}
+	var people: Array = table_net.players()
+	for p in people:
+		seat_list.append(Table.new_seat(str(p.name), stack, int(p.n)))
+		taken[str(p.name)] = true
+	if bool(cfg.fill):
+		var names: Array = AI.NAMES.filter(func(n): return not taken.has(n))
+		names.shuffle()
+		while seat_list.size() < int(cfg.seats) and not names.is_empty():
+			seat_list.append(_cpu_seat(str(names.pop_back()), stack))
+	seat_list.shuffle()
+	_new_table(seat_list, BLIND_LEVELS[0][0], BLIND_LEVELS[0][1], str(cfg.variant), str(cfg.limit))
+	coach_on = false
+	ai_level = int(cfg.level)
+	meta.fmt = str(cfg.fmt)
+	meta.stack = stack
+	meta.hpl = SPEEDS[int(cfg.speed)]
+	meta.turn = int(TURN_TIMES[int(cfg.turn)])
+	meta.people = people.size()
+	meta.buys = []
+	for s in seat_list:
+		meta.buys.append(0)
+	_find_viewer()
+	_deal()
+	table_net.push_state()
+
+## The host's choices on the Friends table sheet.
+func _friends_cfg() -> Dictionary:
+	return {"fmt": "cash" if int(prefs.ofmt) == 1 else "tourney", "seats": int(prefs.oseats), "fill": bool(prefs.ofill),
+		"stack": int(prefs.ostack), "speed": int(prefs.ospeed), "turn": int(prefs.oturn), "level": int(prefs.level),
+		"variant": str(prefs.variant), "limit": _limit_for(str(prefs.variant))}
+
+## One line for the lobby: what the host is opening.
+func _friends_note(cfg: Dictionary) -> String:
+	var parts: Array = [tr(Table.rules_for(str(cfg.variant)).short_title()), tr(LIMIT_NAMES[str(cfg.limit)]),
+		tr(TABLE_FORMATS[1 if str(cfg.fmt) == "cash" else 0]), tr("%d seats") % int(cfg.seats)]
+	if bool(cfg.fill):
+		parts.append(tr("computer players fill the rest"))
+	if int(TURN_TIMES[int(cfg.turn)]) > 0:
+		parts.append(tr("⏱ %d s a turn") % int(TURN_TIMES[int(cfg.turn)]))
+	return " · ".join(parts)
+
+func _find_viewer() -> void:
+	viewer = 0
+	for i in t.seats.size():
+		if int(t.seats[i].kind) == my_player:
+			viewer = i
+
 func _adopt(st: Dictionary) -> void:
 	if not st.has("t"):
 		return
 	var before_hand: int = t.hand_no
 	t.from_dict(st.t)
-	var m: Dictionary = st.get("meta", {})
-	meta = {"hands": int(m.get("hands", 0)), "level": int(m.get("level", 0)), "out": [], "start": int(m.get("start", 2))}
-	for v in m.get("out", []):
-		meta.out.append(int(v))
+	meta = _whole_numbers(st.get("meta", {}))
+	for k in ["hands", "level", "start"]:
+		meta[k] = int(meta.get(k, 0))
+	if typeof(meta.get("out")) != TYPE_ARRAY:
+		meta.out = []
 	if t.hand_no < before_hand:
 		handled_hand = -1  # a new match
-	viewer = 0
-	for i in t.seats.size():
-		if int(t.seats[i].kind) == my_player:
-			viewer = i
+	_find_viewer()
 	if t.phase != "done":
 		end_dialog.visible = false
 	_after_change()
 
+## A received state has floats where ours has ints (JSON): back to ints, so the
+## states compare equal and `out.has(seat)` works.
+static func _whole_numbers(v: Variant) -> Variant:
+	match typeof(v):
+		TYPE_FLOAT:
+			return int(v) if float(v) == floorf(v) else v
+		TYPE_ARRAY:
+			var a: Array = []
+			for x in v:
+				a.append(_whole_numbers(x))
+			return a
+		TYPE_DICTIONARY:
+			var d := {}
+			for k in v:
+				d[k] = _whole_numbers(v[k])
+			return d
+	return v
+
 func _on_remote_move(p: Dictionary) -> void:
+	if p.has("emote"):
+		_show_emote(int(p.get("seat", -1)), int(p.emote))
 	if typeof(p.get("state")) == TYPE_DICTIONARY:
 		_adopt(p.state)
 
 func _on_remote_state(st: Dictionary) -> void:
 	_adopt(st)
 
+func _on_remote_event(event: String, _from: int, p: Dictionary) -> void:
+	if event == "emote":
+		_show_emote(int(p.get("seat", -1)), int(p.get("i", -1)))
+
 func _on_remote_new_game() -> void:
 	end_dialog.visible = false
 	result_recorded = false
-	if online.is_host():
-		_new_online_match()
+	if net.is_host():
+		_new_net_game()
 	else:
 		history.abandon()
 		t = Table.new()
 		handled_hand = -1
 		_render()
 
+func _new_net_game() -> void:
+	if net == table_net:
+		_new_friends_table()
+	else:
+		_new_online_match()
+
 func _send(payload: Dictionary) -> void:
 	if _is_online():
-		online.send_move(payload)
+		net.send_move(payload)
 
 ## "Play again" for online: the host deals the new match.
 func _start_new_game() -> void:
@@ -1825,14 +2058,224 @@ func _start_new_game() -> void:
 		return
 	end_dialog.visible = false
 	result_recorded = false
-	online.new_game()
-	if online.is_host():
-		_new_online_match()
+	net.new_game()
+	if net.is_host():
+		_new_net_game()
 	else:
 		history.abandon()
 		t = Table.new()
 		handled_hand = -1
 		_render()
+
+# ---------- friends table: setup ----------
+
+func _ask_friends() -> void:
+	_close_sheet()
+	_open_sheet(tr("🃏 Friends table"), _friends_rows, "Host this table", _host_friends)
+
+func _friends_rows(box: VBoxContainer) -> void:
+	var join := HomeKit.neon_button(tr("🔑 Join a friend's table"), HomeKit.CYAN, 26, 70)
+	join.pressed.connect(_join_friends)
+	box.add_child(join)
+	box.add_child(HomeKit.label(tr("Or host one: pick the table, then share its code. Everyone plays on their own phone."), 22, HomeKit.DIM, true, true))
+	box.add_child(home.section("Format"))
+	box.add_child(home.choice_row(TABLE_FORMATS, int(prefs.ofmt), _set_ofmt))
+	var about := "Tournament: everyone starts equal, the blinds go up, the last one with chips wins."
+	if int(prefs.ofmt) == 1:
+		about = "Cash: the blinds stay put and a player who runs out buys back in. Table chips only: your own chips stay where they are."
+	box.add_child(HomeKit.label(tr(about), 22, HomeKit.DIM, true, true))
+	box.add_child(home.section("Seats"))
+	box.add_child(home.choice_row(["2", "3", "4", "5", "6"], int(prefs.oseats) - 2, _set_pref.bind("oseats", 2)))
+	box.add_child(home.section("Empty seats"))
+	box.add_child(home.choice_row(["Computer players", "Leave empty"], 0 if prefs.ofill else 1, _set_ofill))
+	box.add_child(home.section("Starting chips"))
+	box.add_child(home.choice_row(["1,000", "1,500", "3,000"], int(prefs.ostack), _set_pref.bind("ostack", 0), HomeKit.GOLD))
+	if int(prefs.ofmt) == 0:
+		box.add_child(home.section("Blinds go up"))
+		box.add_child(home.choice_row(_speed_names(), int(prefs.ospeed), _set_pref.bind("ospeed", 0), HomeKit.GOLD))
+	box.add_child(home.section("Turn timer"))
+	box.add_child(home.choice_row(["Off", "30 s", "60 s"], int(prefs.oturn), _set_pref.bind("oturn", 0)))
+	box.add_child(HomeKit.label(tr("When time runs out, or a player drops out, they check if they can, or else fold."), 22, HomeKit.DIM, true, true))
+	if prefs.ofill:
+		box.add_child(home.section("Computer level"))
+		box.add_child(home.choice_row(LEVEL_NAMES, int(prefs.level), _set_pref.bind("level", 0), HomeKit.MAGENTA))
+
+func _set_ofmt(i: int) -> void:
+	prefs.ofmt = i
+	_save_chips()
+	_ask_friends()
+
+func _set_ofill(i: int) -> void:
+	prefs.ofill = i == 0
+	_save_chips()
+	_ask_friends()
+
+func _host_friends() -> void:
+	friends = _friends_cfg()
+	_close_sheet()
+	table_net.host_table(int(friends.seats), _friends_note(friends))
+
+func _join_friends() -> void:
+	_close_sheet()
+	table_net.open_lobby()
+
+func _on_table_lobby_shown() -> void:
+	if table_net.lobby.visible:
+		home.hide_home()
+
+func _on_table_lobby_cancelled() -> void:
+	if not _is_online():
+		home.show_home()
+
+# ---------- friends table: turns, people coming and going ----------
+
+## Someone came, went or dropped out: re-check the turn timer, redraw.
+func _on_net_status() -> void:
+	turn_key = ""
+	_arm_turn_timer()
+	_render()
+
+## Host: a person's turn ends by itself when their time runs out, and soon
+## after they drop out (they check if they can, or else fold).
+func _arm_turn_timer() -> void:
+	if not _is_table() or not net.is_host() or t.phase not in ["bet", "draw"] or t.to_act < 0 or end_dialog.visible:
+		turn_timer.stop()
+		turn_key = ""
+		return
+	var k: int = int(t.seats[t.to_act].kind)
+	if k <= 0:
+		turn_timer.stop()
+		turn_key = ""
+		return
+	var away: bool = not table_net.here(k)
+	var key := _decision_key() + ("|away" if away else "")
+	if key == turn_key:
+		return
+	turn_key = key
+	var secs: float = away_sec if away else float(meta.get("turn", 0))
+	if secs <= 0.0:
+		turn_timer.stop()
+		return
+	turn_timer.start(secs if away else secs + 1.0)  # a second's grace for the network
+
+func _on_turn_timer() -> void:
+	if not _is_table() or not net.is_host() or t.phase not in ["bet", "draw"] or t.to_act < 0:
+		return
+	if turn_key.trim_suffix("|away") != _decision_key() or int(t.seats[t.to_act].kind) <= 0:
+		return
+	var s: Dictionary = t.seats[t.to_act]
+	if t.phase == "draw":
+		t.draw(t.rules().auto_discard(s.hole, t.board))
+	elif not t.act("check"):
+		t.act("fold")
+	_action_sfx()
+	turn_key = ""
+	_send({"auto": 1})
+	_after_change()
+
+## Seconds left for the person to act (the countdown in the top line), or -1.
+func _turn_left() -> int:
+	var secs: int = int(meta.get("turn", 0))
+	if not _is_table() or secs <= 0 or t.phase not in ["bet", "draw"] or t.to_act < 0 or int(t.seats[t.to_act].kind) <= 0:
+		return -1
+	var key := _decision_key()
+	if key != turn_seen_key:
+		turn_seen_key = key
+		turn_seen_ms = Time.get_ticks_msec()
+	return maxi(0, secs - (Time.get_ticks_msec() - turn_seen_ms) / 1000)
+
+func _on_tick() -> void:
+	if _is_table() and table_screen.visible and info_label:
+		info_label.text = _info_text()
+
+## Busted at a friends tournament while others play on: the finish counts now.
+func _check_my_bust() -> void:
+	if not _is_table() or result_recorded or str(meta.get("fmt", "")) == "cash":
+		return
+	var me := _hero_seat()
+	var out: Array = meta.get("out", [])
+	if me < 0 or not out.has(me):
+		return
+	var alive := 0
+	for s in t.seats:
+		if int(s.stack) > 0:
+			alive += 1
+	if alive <= 1:
+		return  # the end screen tells it
+	result_recorded = true
+	var place: int = int(meta.start) - out.find(me)
+	if info:
+		info.result("loss", true)
+	note = tr("You finished %s of %d. Watch the rest, or leave with 🏠 Home.") % [_ordinal(place), int(meta.start)] + "  " + _table_finish(place)
+
+## A friends tournament is over for this player: XP and the table counters.
+func _table_finish(place: int) -> String:
+	var xp: int = profile.record_tourney(place, int(meta.start), str(t.variant))
+	if info:
+		info.add("Friends tables played")
+		if place == 1:
+			info.add("Friends tables won")
+	return tr("+%d XP") % xp
+
+# ---------- emotes ----------
+
+func _toggle_emotes() -> void:
+	if emote_panel != null:
+		_close_emotes()
+		return
+	var layer := ColorRect.new()
+	layer.color = Color(0, 0, 0, 0.35)
+	layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(layer)
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.gui_input.connect(_on_emote_layer_input)
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UI.panel_style())
+	center.add_child(panel)
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	panel.add_child(grid)
+	for i in EMOTES.size():
+		var e: String = EMOTES[i]
+		var b := HomeKit.neon_button(tr(e), HomeKit.PURPLE, 36 if e.length() <= 2 else 20, 76)
+		b.custom_minimum_size.x = 128
+		b.pressed.connect(_send_emote.bind(i))
+		grid.add_child(b)
+	emote_panel = layer
+
+func _on_emote_layer_input(ev: InputEvent) -> void:
+	if ev is InputEventMouseButton and ev.pressed:
+		_close_emotes()
+
+func _close_emotes() -> void:
+	if emote_panel != null:
+		emote_panel.queue_free()
+		emote_panel = null
+
+func _send_emote(i: int) -> void:
+	_close_emotes()
+	var now := Time.get_ticks_msec()
+	if not _is_online() or now - last_emote_ms < EMOTE_GAP_MS:
+		return
+	last_emote_ms = now
+	_show_emote(viewer, i)
+	if _is_table():
+		table_net.send_event("emote", {"seat": viewer, "i": i})
+	else:
+		online.send_move({"emote": i, "seat": viewer})  # heads-up rides on a move: works on every app
+
+func _show_emote(seat: int, i: int) -> void:
+	if not bool(prefs.emotes) or i < 0 or i >= EMOTES.size() or seat < 0 or seat >= t.seats.size():
+		return
+	view.show_bubble(seat, tr(EMOTES[i]))
+	if seat != viewer:
+		_sfx("toggle")
 
 # ---------- Video Poker ----------
 
@@ -1893,6 +2336,7 @@ func _leave_training() -> void:
 # ---------- pause / save / resume ----------
 
 func _on_pause() -> void:
+	_close_emotes()
 	home.pause()
 
 func _go_home() -> void:

@@ -307,7 +307,7 @@ if ResourceLoader.exists(ONLINE_LOBBY_PATH):
 | Music | `music.gd` [CURRENT since v0.33.0 — ducking under SFX not built] | the shared music library: styles, `Music` bus, owner fade-out, pause dip; every game's music |
 | Settings | `settings.gd` | global options, safe area, landscape boost |
 | Skin | `skin.gd` [NEW, from `voodoo.gd`] | Classic/Voodoo skins |
-| Online | `online_match.gd`, `online_lobby.gd` | Supabase Realtime rooms, rejoin |
+| Online | `online_match.gd`, `online_lobby.gd`; tables of 2-6: `online_table.gd`, `online_room.gd`, `online_table_lobby.gd` [NEW v0.39] | Supabase Realtime rooms, rejoin |
 | Social | `social.gd` | friends, invites, online launch |
 | Achievements | `achievements.gd` | generic + per-game badges, toasts |
 | Lang | `lang.gd` | EN/ES picker |

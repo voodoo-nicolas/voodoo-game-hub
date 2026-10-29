@@ -65,6 +65,10 @@ func _scenarios() -> Dictionary:
 	while t.board.size() < 4:
 		t.act("call")
 	out["short4_turn"] = {"t": t}
+	# Friends table: an emote bubble at a seat and at the viewer, one player away.
+	t = _table("holdem", "nl", 5, 13)
+	t.act("call")
+	out["friends5_emotes"] = {"t": t, "bubbles": {0: "Nice hand!", 2: "😂"}, "away": [3]}
 	return out
 
 func _run(out_dir: String, only: String) -> void:
@@ -89,6 +93,10 @@ func _run(out_dir: String, only: String) -> void:
 			view.t = sc.t
 			view.viewer = 0
 			view.discards = sc.get("discards", [])
+			view.away = sc.get("away", [])
+			view.bubbles = {}
+			for seat in sc.get("bubbles", {}):
+				view.show_bubble(seat, sc.bubbles[seat])
 			view.queue_redraw()
 			for i in 3:
 				await process_frame

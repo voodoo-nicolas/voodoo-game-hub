@@ -357,8 +357,11 @@ func _on_inbox(ok: bool, result: Variant) -> void:
 
 func _in_that_room(inv: Dictionary) -> bool:
 	var scene := get_tree().current_scene
-	var m := scene.get_node_or_null("OnlineMatch") if scene else null
-	return m != null and m.session != null and str(m.session.code) == str(inv.get("room_code", ""))
+	for node_name in ["OnlineMatch", "OnlineTable"]:
+		var m := scene.get_node_or_null(node_name) if scene else null
+		if m != null and m.session != null and str(m.session.code) == str(inv.get("room_code", "")):
+			return true
+	return false
 
 # ---------- launching a game in online mode ----------
 

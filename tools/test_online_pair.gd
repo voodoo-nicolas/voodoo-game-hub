@@ -84,6 +84,10 @@ func _test_game(id: String) -> void:
 	paused = false
 	await _frames(3)
 	ok(_same(host, guest), "%s: same game after the start sync" % id)
+	if id == "video_poker":
+		host._send_emote(1)
+		await _frames(3)
+		ok(guest.view.bubbles.has(host.viewer), "video_poker: an emote reaches the other phone")
 	for n in GAMES_EACH:
 		var actions := await _play(id, host, guest)
 		await _frames(3)

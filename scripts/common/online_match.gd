@@ -84,7 +84,7 @@ func _ready() -> void:
 	add_child(lobby)
 	var room := _saved_room()
 	var social := get_node_or_null("/root/Social")
-	var invite: Dictionary = social.take_pending(game_id) if social and social.has_method("take_pending") else {}
+	var invite: Dictionary = social.take_pending(game_id) if social and social.has_method("take_pending") and not _for_a_table(social) else {}
 	if not invite.is_empty():
 		# Opened from a friend's invite or the hub's Multiplayer screen
 		# (Social.launch_online): host, join or show the lobby straight away.
@@ -92,6 +92,12 @@ func _ready() -> void:
 	elif not room.is_empty():
 		lobby.rejoin_room = room
 		lobby.call_deferred("open")  # straight back to "Rejoin game XXXX"
+
+## A 5-letter code is a table for up to six (OnlineTable, since v0.39): leave
+## that invite for the game's OnlineTable.
+func _for_a_table(social: Node) -> bool:
+	var p = social.get("pending")
+	return typeof(p) == TYPE_DICTIONARY and str(p.get("game", "")) == game_id and str(p.get("code", "")).length() == 5
 
 ## Leaving the game normally ends the match for us: forget the room.
 func _exit_tree() -> void:
