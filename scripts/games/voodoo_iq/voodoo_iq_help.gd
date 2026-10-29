@@ -19,6 +19,7 @@ const HOW := [
 	"Can't play sound? The musical questions offer 🔇: skip them for the rest of the test (they count only for the Musical section) or end the test.",
 	"Leaving the app during a question counts that question as wrong. A test can't be resumed after you leave it.",
 	"Ranked play needs an account, a player profile and age 16+.",
+	"🏅 Achievements: besides tests taken and Speed Rounds, earn the ★130+ genius medal in each section, practice for an hour in all, or 🚩 flag a question that turns out to be wrong and gets fixed.",
 ]
 const TIPS := [
 	"Missing about half is normal: the test keeps raising the difficulty until you do.",
@@ -27,3 +28,19 @@ const TIPS := [
 	"Existential questions are pure logic: 💡 Example shows how to read them.",
 ]
 const STATS := ["Tests taken", "Blitz runs", "Best Blitz points"]
+## IQ Test's own achievements (owner, 2026-10-28), paid by voodoo_iq_awards.gd. Points: the
+## generic badges above pay 480 (tests 220, Speed Rounds 220, records 40) + these 500 = 980,
+## under the 1000 a game may offer (STANDARDS §3b).
+const CHALLENGES := [
+	{"id": "genius_LOG", "icon": "🧮", "title": "Logic Genius", "desc": "Earn the ★130+ genius medal in Logical-Mathematical.", "xp": 40},
+	{"id": "genius_SPA", "icon": "🧊", "title": "Spatial Genius", "desc": "Earn the ★130+ genius medal in Spatial.", "xp": 40},
+	{"id": "genius_LIN", "icon": "📖", "title": "Linguistic Genius", "desc": "Earn the ★130+ genius medal in Linguistic.", "xp": 40},
+	{"id": "genius_MUS", "icon": "🎵", "title": "Musical Genius", "desc": "Earn the ★130+ genius medal in Musical.", "xp": 40},
+	{"id": "genius_NAT", "icon": "🌿", "title": "Naturalist Genius", "desc": "Earn the ★130+ genius medal in Naturalist.", "xp": 40},
+	{"id": "genius_KIN", "icon": "🤸", "title": "Kinesthetic Genius", "desc": "Earn the ★130+ genius medal in Bodily-Kinesthetic.", "xp": 40},
+	{"id": "genius_INT", "icon": "🤝", "title": "Interpersonal Genius", "desc": "Earn the ★130+ genius medal in Interpersonal.", "xp": 40},
+	{"id": "genius_SELF", "icon": "🪞", "title": "Intrapersonal Genius", "desc": "Earn the ★130+ genius medal in Intrapersonal.", "xp": 40},
+	{"id": "genius_EXI", "icon": "🌌", "title": "Existential Genius", "desc": "Earn the ★130+ genius medal in Existential.", "xp": 40},
+	{"id": "prepper", "icon": "📚", "title": "Prepper", "desc": "Practice for 1 hour in all (IQ tests and Speed Rounds).", "xp": 60},
+	{"id": "fixer", "icon": "🔧", "title": "Fixer", "desc": "Flag a practice question with 🚩 that turns out to be wrong and gets fixed.", "xp": 80},
+]

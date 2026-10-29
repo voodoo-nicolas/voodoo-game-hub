@@ -114,6 +114,9 @@ Contents (show only what applies to the game):
 ### 3b. Achievements [CHANGED]
 - Filter: **All / Earned / Locked**. Progress bars for counters. Hidden achievements show "???" until earned.
 - Generic badges come free from GameInfo stats; game-specific ones in `<id>_help.gd`.
+- [NEW 2026-10-28, owner] A game offers **at most 1000 achievement points** (Viral XP) in all: generic badges +
+  `ACHIEVEMENTS` + `CHALLENGES` (repeatable ones x 10). `hub.py check` adds them up (`game_xp`) and warns;
+  games already over it are trimmed as each is touched. The server's own cap stays 1500 as a safety net.
 
 ## 4. Single-player setup [NEW]
 One screen: pick **mode** → **difficulty** → mode options → **Start**. Remembers last choice (feeds Quick Play).

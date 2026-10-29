@@ -450,6 +450,40 @@ Deno.test("leaderboards: section gates, Voodoo IQ verification, Blitz bests, fil
   assertEquals((await code(call(leaderboard, db, ME, { board: "nope" })))?.code, "bad_board");
 });
 
+Deno.test("leaderboard awards: genius medals as the section boards show them, fixed 🚩 reports, own rows only", async () => {
+  const db = new FakeDb();
+  await newPlayer(db);
+  await newPlayer(db, OTHER);
+  const day = new Date().toISOString();
+  const row = (user: string, sec: string, theta: number, se: number, hard: number) => ({
+    session_id: crypto.randomUUID(), user_id: user, sec, day: day.slice(0, 10), theta, se, n: 30, hard,
+    lang: "es", flagged: false, auc: null, bias: null, created_at: day,
+  });
+  db.tables.section_scores = [
+    row(ME, "LOG", 2.4, 0.25, 4), // 136, tight, hard questions: the medal
+    row(ME, "SPA", 2.4, 0.40, 4), // 136 but a wide ±: no medal
+    row(ME, "LIN", 1.5, 0.25, 4), // tight but under 130
+    row(OTHER, "MUS", 2.6, 0.2, 5), // someone else's medal
+  ];
+  const a = await call(leaderboard, db, ME, { board: "awards", genius: ["LOG", "SPA", "LIN", "MUS", "XYZ"] });
+  assertEquals(a, { genius: ["LOG"], fixer: false });
+  const log = await call(leaderboard, db, ME, { board: "sec", sec: "LOG" });
+  assertEquals(log.rows.find((r: any) => r.me).genius, true, "same medal as the board row");
+  // Fixer: only a report marked fixed, only on the caller's own practice sessions
+  db.tables.sessions = [
+    { id: "s-me", user_id: ME, ranked: false, started_at: day },
+    { id: "s-other", user_id: OTHER, ranked: false, started_at: day },
+  ];
+  db.tables.responses = [
+    { session_id: "s-me", seq: 0, answer_key: { report: { why: "two" } } },
+    { session_id: "s-other", seq: 0, answer_key: { report: { why: "none", fixed: "2026-10-28" } } },
+  ];
+  assertEquals((await call(leaderboard, db, ME, { board: "awards", fixer: true })).fixer, false);
+  db.tables.responses[0].answer_key.report.fixed = "2026-10-28";
+  assertEquals(await call(leaderboard, db, ME, { board: "awards", fixer: true }), { genius: [], fixer: true });
+  assertEquals((await call(leaderboard, db, ME, { board: "awards" })).fixer, false, "not asked, not looked up");
+});
+
 Deno.test("client-report: stores a stall report, rejects bad tags, caps one player's reports per hour", async () => {
   const db = new FakeDb();
   await newPlayer(db);

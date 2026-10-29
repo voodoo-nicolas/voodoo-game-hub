@@ -18,8 +18,14 @@ const DEFAULTS: Record<string, () => Row> = {
 };
 
 function get(row: Row, col: string) {
-  const m = col.match(/^(\w+)->>(\w+)$/);
-  if (m) { const v = row[m[1]]?.[m[2]]; return v == null ? null : String(v); }
+  // "a->>b" and "a->b->>c": json paths, the last step as text (like PostgREST)
+  const m = col.match(/^(\w+)((?:->\w+)*)->>(\w+)$/);
+  if (m) {
+    let o = row[m[1]];
+    for (const k of m[2].split("->").filter(Boolean)) o = o?.[k];
+    const v = o?.[m[3]];
+    return v == null ? null : String(v);
+  }
   return row[col];
 }
 
@@ -43,8 +49,8 @@ class Query implements PromiseLike<{ data: any; error: any }> {
   update(patch: Row) { this.op = "update"; this.patch = patch; return this; }
   delete() { this.op = "delete"; return this; }
   eq(c: string, v: any) { this.filters.push((r) => get(r, c) === v); return this; }
-  is(c: string, v: null) { this.filters.push((r) => (r[c] ?? null) === v); return this; }
-  not(c: string, op: string, v: null) { if (op !== "is") throw new Error("fake: not() only supports is"); this.filters.push((r) => (r[c] ?? null) !== v); return this; }
+  is(c: string, v: null) { this.filters.push((r) => (get(r, c) ?? null) === v); return this; }
+  not(c: string, op: string, v: null) { if (op !== "is") throw new Error("fake: not() only supports is"); this.filters.push((r) => (get(r, c) ?? null) !== v); return this; }
   in(c: string, vs: any[]) { this.filters.push((r) => vs.includes(r[c])); return this; }
   gte(c: string, v: any) { this.filters.push((r) => r[c] >= v); return this; }
   lte(c: string, v: any) { this.filters.push((r) => r[c] <= v); return this; }

@@ -500,6 +500,7 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_web_threads()
     errors += lint_own_backgrounds(m)
     warnings += lint_legal()
+    warnings += lint_game_xp(m)  # older games over the cap get trimmed as each is touched
     sys.path.insert(0, str(ROOT / "tools"))
     import rating_report
     rating_errors, _flags = rating_report.problems(m)
@@ -662,6 +663,92 @@ def lint_hub_name() -> list[str]:
                     errors.append(f"{f.relative_to(ROOT).as_posix()}: {text!r} names Voodoo -- use "
                                   "Brand.NAME (Voodoo is only the skin's name)")
     return errors
+
+
+# Achievement points (Viral XP) a game can pay out in all (owner, 2026-10-28;
+# STANDARDS §3b). The server's own cap stays 1500 as a safety net.
+GAME_XP_MAX = 1000
+# Mirrors of scripts/common/achievements.gd: generic tiers per stat and XP per tier.
+XP_BY_AT = {1: 10, 3: 15, 5: 20, 10: 30, 50: 60, 100: 120, 150: 150}
+XP_GAME_OWN = 30
+XP_REPEAT_MAX = 10
+_TIERS = {"win": [1, 10, 50, 100], "play": [1, 10, 50, 100], "count": [1, 10, 50, 100],
+          "streak": [3, 5, 10], "online": [1, 10], "loss": [10]}
+_PLAY_KEYS = {"Games played", "Rounds played", "Bus rides", "Tests taken", "Blitz runs", "2-player games",
+              "Spins", "Rolls", "Cards played"}
+_SKIP_KEYS = {"Best streak", "Losses", "Draws", "Hands lost", "Wrong guesses", "Pushes", "2-player ties",
+              "Online losses", "Online draws"}
+_RECORD_WORDS = ("best", "fewest", "most", "lowest", "fastest", "highest", "longest", "biggest")
+
+
+def _stat_tiers(key: str) -> list[int]:
+    """achievements.gd _tiers_for: which thresholds a stat's generic badges use."""
+    if key == "Best streak":
+        return _TIERS["streak"]
+    if key == "Online wins":
+        return _TIERS["online"]
+    if key == "Losses":
+        return _TIERS["loss"]
+    k = key.lower()
+    if (key in _SKIP_KEYS or (key.endswith(" wins") and not key.startswith("Online"))
+            or k.startswith(_RECORD_WORDS) or "time" in k):
+        return []
+    return _TIERS["count"]  # win / play / count tiers share thresholds, so the XP is the same
+
+
+def _gd_const_block(text: str, name: str) -> str | None:
+    """The `[...]` of `const NAME := [...]`, brackets inside strings ignored."""
+    m = re.search(rf"^const {name}\s*:?=\s*\[", text, re.M)
+    if not m:
+        return None
+    depth, i, in_str = 0, m.end() - 1, ""
+    while i < len(text):
+        c = text[i]
+        if in_str:
+            if c == "\\":
+                i += 1
+            elif c == in_str:
+                in_str = ""
+        elif c in "\"'":
+            in_str = c
+        elif c == "#":
+            i = text.find("\n", i)
+            if i < 0:
+                return None
+            continue
+        elif c in "[{":
+            depth += 1
+        elif c in "]}":
+            depth -= 1
+            if depth == 0:
+                return text[m.end() - 1:i + 1]
+        i += 1
+    return None
+
+
+def game_xp(gid: str) -> int:
+    """Most Viral XP a game's badges can pay: generic ones from STATS (+ the two
+    record badges), its own ACHIEVEMENTS and CHALLENGES (repeatable x 10)."""
+    help_file = ROOT / "scripts/games" / gid / f"{gid}_help.gd"
+    if not help_file.is_file():
+        return 0
+    text = help_file.read_text(encoding="utf-8")
+    total = XP_BY_AT[1] + XP_BY_AT[10]  # "Record Breaker" + "Always Improving"
+    stats = _gd_const_block(text, "STATS")
+    for key in (re.findall(r'"((?:[^"\\]|\\.)*)"', stats) if stats else []):
+        total += sum(XP_BY_AT.get(at, 25) for at in _stat_tiers(key))
+    for name in ("ACHIEVEMENTS", "CHALLENGES"):
+        block = _gd_const_block(text, name)
+        for entry in (re.findall(r"\{[^{}]*\}", block[1:-1]) if block else []):
+            xp = re.search(r'"xp"\s*:\s*(\d+)', entry)
+            pay = min(int(xp.group(1)), 200) if xp else XP_GAME_OWN
+            total += pay * (XP_REPEAT_MAX if re.search(r'"repeatable"\s*:\s*true', entry) else 1)
+    return total
+
+
+def lint_game_xp(m: dict) -> list[str]:
+    return [f"{gid}: its achievements pay {xp} points in all; the most a game may offer is {GAME_XP_MAX}"
+            f" (STANDARDS §3b)" for gid in catalog_ids(m) if (xp := game_xp(gid)) > GAME_XP_MAX]
 
 
 def lint_web_threads() -> list[str]:

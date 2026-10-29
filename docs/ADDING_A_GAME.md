@@ -38,7 +38,7 @@ const CHALLENGES := [
 ]
 ```
 
-`xp` is capped at 200 per challenge (and 1,500 per game on the server). Titles/descs are English literals; add Spanish to `tools/i18n/es.json`. Games that only need counters can keep using `ACHIEVEMENTS` (same format as before, plus an optional `"xp"`); both work.
+`xp` is capped at 200 per challenge. A game offers at most **1,000 points in all** (generic badges included; STANDARDS §3b, `hub.py check` warns); the server's own cap is 1,500. Titles/descs are English literals; add Spanish to `tools/i18n/es.json`. Games that only need counters can keep using `ACHIEVEMENTS` (same format as before, plus an optional `"xp"`); both work.
 
 **Report a challenge** (idempotent: paying out once, or up to 10 times for `repeatable`):
 

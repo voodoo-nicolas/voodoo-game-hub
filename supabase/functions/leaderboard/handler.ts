@@ -9,6 +9,10 @@
 //      sections: [{ sec, iq, se, n }] } over their ranked IQ tests; 404 for unknown nicks and minors.
 // -> { rows: [...], provisional: [...] }, each row:
 //    { nick, country, province, age_band, score, theta, se, genius, need_items, sections, correct, me }
+// board "awards" { genius?: [<section>...], fixer?: bool } -> the caller's own achievement checks
+//    (IQ Test achievements, owner 2026-10-28): { genius: [sections whose board row has the ★130+
+//    medal, from those asked], fixer: one of their 🚩 practice reports was marked fixed
+//    (supabase/checks/iq_report_fixed.sql) }. The game asks only for what it hasn't earned yet.
 //
 // Nothing is hidden or capped (the user's decision 2026-10-03, replacing spec §3's
 // cautious rank score and 129 cap): every player with a standing is ranked by their
@@ -31,8 +35,9 @@ const MAX_ROWS = 100;
 
 export default async function handler({ body, uid, db }: Call): Promise<unknown> {
   const board = String(body.board ?? "");
-  if (!["viq", "nine", "sec", "blitz", "player"].includes(board)) throw new HttpError(400, "bad_board");
+  if (!["viq", "nine", "sec", "blitz", "player", "awards"].includes(board)) throw new HttpError(400, "bad_board");
   if (board === "player") return await playerCard(db, String(body.nick ?? ""));
+  if (board === "awards") return await myAwards(db, uid, body);
   const lang = body.lang === "en" || body.lang === "es" ? body.lang : null;
   // an endless test the player walked away from (idle 30 min) shows up on the boards
   await closeStaleSessions(db, uid, 30 * 60_000);
@@ -135,4 +140,33 @@ async function playerCard(db: Call["db"], nick: string) {
     iq: v.theta == null ? null : Math.round(IQ(v.theta)), se: v.theta == null ? null : v.se,
     sections,
   };
+}
+
+/** The caller's IQ Test achievement checks (board "awards"). Genius = the medal exactly as their row
+ *  on that section's board shows it; Fixer = a 🚩 report of theirs carries `fixed` (set by the owner
+ *  with supabase/checks/iq_report_fixed.sql when the question is fixed). Reads only their own rows. */
+async function myAwards(db: Call["db"], uid: string, body: Record<string, any>) {
+  const asked = Array.isArray(body.genius) ? body.genius.map(String).filter((s: string) => SECS.includes(s)) : [];
+  const genius: string[] = [];
+  if (asked.length) {
+    const rows = must(await db.from("section_scores").select("user_id, sec, day, theta, se, n, hard, lang, flagged, created_at")
+      .eq("user_id", uid).gte("created_at", new Date(Date.now() - 90 * DAY).toISOString())) as ScoreRow[];
+    for (const sec of asked) {
+      const v = secStanding(rows, sec, null);
+      if (v && v.genius && v.ranked && IQ(v.theta) >= 130) genius.push(sec);
+    }
+  }
+  let fixer = false;
+  if (body.fixer === true) {
+    // reports exist only on practice sessions (item-report); the newest 500 are plenty
+    const sess = must(await db.from("sessions").select("id").eq("user_id", uid).eq("ranked", false)
+      .order("started_at", { ascending: false }).limit(500)) as any[];
+    const ids = sess.map((r) => r.id);
+    for (let i = 0; i < ids.length && !fixer; i += 50) {
+      const hit = must(await db.from("responses").select("seq").in("session_id", ids.slice(i, i + 50))
+        .not("answer_key->report->>fixed", "is", null).limit(1)) as any[];
+      fixer = hit.length > 0;
+    }
+  }
+  return { genius, fixer };
 }

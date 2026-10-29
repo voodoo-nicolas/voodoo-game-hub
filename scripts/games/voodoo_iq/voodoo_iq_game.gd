@@ -12,6 +12,9 @@ const Art = preload("res://scripts/games/voodoo_iq/voodoo_iq_art.gd")
 const Items = preload("res://scripts/games/voodoo_iq/voodoo_iq_items.gd")
 const Audio = preload("res://scripts/games/voodoo_iq/voodoo_iq_audio.gd")
 const Api = preload("res://scripts/games/voodoo_iq/voodoo_iq_api.gd")
+## 🏅 the game's own achievements (genius medals, Prepper, Fixer; owner 2026-10-28).
+const Awards = preload("res://scripts/games/voodoo_iq/voodoo_iq_awards.gd")
+const Help = preload("res://scripts/games/voodoo_iq/voodoo_iq_help.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -94,6 +97,10 @@ var review_wrong_only := false
 var review_index := 0
 var review_scroll := 0
 const PINK := Color("#ff4f9a")
+## Practice seconds not yet added to Prepper's total (saved every 15 s and when a test ends).
+var practice_pending := 0.0
+var awards_checked := false  # the home screen asked the server once this visit
+var ach_filter := 0  # 🏅 screen: 0 All, 1 Earned, 2 Locked (STANDARDS §3b)
 
 func _ready() -> void:
 	preload("res://scripts/games/voodoo_iq/voodoo_iq_i18n.gd").install(self)
@@ -137,7 +144,7 @@ func _build_ui() -> void:
 	toast_label.visible = false
 	add_child(toast_label)
 	if ResourceLoader.exists(GAME_INFO_PATH):
-		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/voodoo_iq/voodoo_iq_help.gd"))
+		info = load(GAME_INFO_PATH).new(Help)
 		add_child(info)
 	# No floating SettingsDrawer (retired, STANDARDS §6): the test's own ⏸
 	# card has text size and sound, and Hub is only on the home page (N1).
@@ -232,6 +239,8 @@ func _on_screen_resized() -> void:
 			_show_options()
 		"boards":
 			_show_boards()
+		"achievements":
+			_show_achievements()
 		"results":
 			_show_results(last_result)
 		"info":
@@ -393,10 +402,17 @@ func _show_home() -> void:
 	var boards_btn := _button("🏆 " + T.t("nav_boards"), _show_boards, WARN, Vector2(0, 64), 22)
 	boards_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	links.add_child(boards_btn)
+	if info:
+		var ach_btn := _button("🏅 " + tr("Achievements"), _show_achievements, ACCENT, Vector2(0, 64), 22)
+		ach_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		links.add_child(ach_btn)
 	var profile_btn := _button("👤 " + tr("Profile"), _show_profile_form, FG2, Vector2(0, 64), 22)
 	profile_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	links.add_child(profile_btn)
 	box.add_child(links)
+	if not awards_checked:
+		awards_checked = true
+		_check_awards(T.secs(), true)  # medals and fixed 🚩 reports earned while away
 	box.add_child(_button(T.info("button"), _show_info.bind(_show_home), ACCENT, Vector2(0, 64), 22))
 
 ## "IQ Test · ∞ · 🏆 Ranked" (+ 🎨): what Start will run, under the Start button.
@@ -1159,6 +1175,11 @@ func _quit_from_pause() -> void:
 func _process(delta: float) -> void:
 	if waiting:
 		_watch_busy()
+	# Prepper: practice time, not while ⏸ hides the question (a stalled frame counts 1 s at most)
+	if running and _is_practice() and not (paused and is_instance_valid(qarea) and not qarea.visible):
+		practice_pending += minf(delta, 1.0)
+		if practice_pending >= 15.0:
+			_flush_practice()
 	if running and delta > 2.0:
 		# the whole game stopped for over 2 s (a slow question to draw, a stuck browser tab)
 		_client_report("hitch", {"frame_ms": int(delta * 1000.0), "fps": Engine.get_frames_per_second()})
@@ -1371,6 +1392,8 @@ func _confirm_quit() -> void:
 
 ## Leaving the app during an item voids it (scored wrong, counted as hidden).
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_EXIT_TREE:
+		_flush_practice()
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		if running and not paused and not waiting and view != null and not view.done:
 			view.submit("__hidden")
@@ -1630,6 +1653,9 @@ func _show_results(res: Dictionary) -> void:
 		info.add("Blitz runs" if blitz else "Tests taken")
 		if blitz:
 			info.high("Best Blitz points", float(res.get("pts", 0.0)))
+	_flush_practice()
+	if fresh_result and not blitz and bool(res.get("ranked", false)) and res.get("secs") is Dictionary:
+		_check_awards(res.secs.keys(), false)  # this test may have earned a genius medal
 	var box := _new_page(true)
 	box.add_child(_neon_title(T.t("your_result"), 44))
 	var sub := (T.t("blitz") if blitz else T.t("iqtest")) + " · " + _sec_name(str(res.get("scope", session.get("scope", "ALL"))))
@@ -1958,6 +1984,10 @@ func _on_board(ok: bool, _code: int, data: Dictionary) -> void:
 		return
 	var ranked: Array = data.get("rows", [])
 	var prov: Array = data.get("provisional", [])
+	if boards.tab == "sec":
+		for r in ranked:
+			if r is Dictionary and r.get("me", false) and r.get("genius", false) and float(r.get("score", 0.0)) >= 130.0:
+				Awards.pay("genius_" + str(boards.sec))
 	if ranked.is_empty():
 		board_box.add_child(_label(T.t("board_empty"), 24, FG, W))
 	else:
@@ -2122,3 +2152,104 @@ func _on_player(ok: bool, _code: int, data: Dictionary, body: VBoxContainer) -> 
 			row.add_child(l)
 			row.add_child(_label("IQ %d  ±%d" % [int(r.get("iq", 0)), int(round(15 * float(r.get("se", 0.0))))], 20, FG))
 			body.add_child(row)
+
+# ================================================================== ACHIEVEMENTS (🏅)
+
+## Asks the leaderboard function (board "awards") about the genius medals in `secs` and
+## fixed 🚩 reports not earned yet; nothing is sent once they all are.
+func _check_awards(secs: Array, fixer: bool) -> void:
+	var req := Awards.request(secs, fixer)
+	if not req.is_empty():
+		api.call_fn("leaderboard", req, _on_awards)
+
+func _on_awards(ok: bool, _code: int, data: Dictionary) -> void:
+	if ok:  # an older server says "bad_board": nothing to pay yet
+		Awards.apply(data)
+
+func _flush_practice() -> void:
+	if practice_pending > 0.0:
+		Awards.add_practice(practice_pending)
+		practice_pending = 0.0
+
+## Every IQ badge: tests and Speed Rounds (GameInfo), then the game's own; All / Earned /
+## Locked, progress bars on locked counters, each badge's points.
+func _show_achievements() -> void:
+	screen_name = "achievements"
+	running = false
+	_close_overlays()
+	var box := _new_page(true)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.add_child(_button("◀", _show_home, FG2, Vector2(70, 60), 26))
+	var title := _neon_title("🏅 " + tr("Achievements"), 36)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(title)
+	box.add_child(top)
+	var rows: Array = Awards.rows(info, Help.CHALLENGES)
+	var have := 0
+	var pts := 0
+	var pts_all := 0
+	for r in rows:
+		pts_all += int(r.get("xp", 0))
+		if r.unlocked:
+			have += 1
+			pts += int(r.get("xp", 0))
+	box.add_child(_label(tr("%d of %d unlocked") % [have, rows.size()], 28, Color.WHITE, W))
+	if pts_all > 0:
+		box.add_child(_label(tr("%d of %d points") % [pts, pts_all], 22, WARN, W))
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 6)
+	var names := ["All", "Earned", "Locked"]
+	for i in names.size():
+		var on := ach_filter == i
+		var b := _button(tr(names[i]), _set_ach_filter.bind(i), GOOD if on else FG2, Vector2(0, 56), 20)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if on:
+			b.add_theme_stylebox_override("normal", Items.box_style(Color(GOOD, 0.22), GOOD, 3))
+		tabs.add_child(b)
+	box.add_child(tabs)
+	var shown := 0
+	for r in rows:
+		if (ach_filter == 1 and not r.unlocked) or (ach_filter == 2 and r.unlocked):
+			continue
+		box.add_child(_badge(r))
+		shown += 1
+	if shown == 0:
+		box.add_child(_label(tr("None yet — keep playing!") if ach_filter == 1 else tr("All unlocked!"), 24, FG2, W))
+
+func _set_ach_filter(i: int) -> void:
+	ach_filter = i
+	_show_achievements()
+
+func _badge(r: Dictionary) -> Control:
+	var got := bool(r.unlocked)
+	var p := _panel(GOOD if got else Color("#2A2A3E"))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	p.add_child(row)
+	var icon := _label(str(r.icon) if got else "🔒", 40, Color.WHITE)
+	icon.custom_minimum_size = Vector2(58, 0)
+	icon.modulate.a = 1.0 if got else 0.55
+	row.add_child(icon)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 4)
+	row.add_child(col)
+	var text_w := maxf(120.0, W - 188.0)
+	col.add_child(_label(str(r.title), 24, GOOD if got else Color.WHITE, text_w, HORIZONTAL_ALIGNMENT_LEFT))
+	col.add_child(_label(str(r.desc), 19, FG2, text_w, HORIZONTAL_ALIGNMENT_LEFT))
+	var progress := float(r.get("progress", 0.0))
+	if not got and progress > 0.0:
+		var bar := ProgressBar.new()
+		bar.max_value = 1.0
+		bar.value = progress
+		bar.show_percentage = false
+		bar.custom_minimum_size = Vector2(text_w, 10)
+		bar.add_theme_stylebox_override("background", Items.box_style(Color(1, 1, 1, 0.08), Color(1, 1, 1, 0.08), 0, 5))
+		bar.add_theme_stylebox_override("fill", Items.box_style(ACCENT, ACCENT, 0, 5))
+		col.add_child(bar)
+	if int(r.get("xp", 0)) > 0:
+		var xp := _label("+%d" % int(r.xp), 20, WARN if got else FG2)
+		xp.custom_minimum_size = Vector2(70, 0)
+		row.add_child(xp)
+	return _panel_of(p)
