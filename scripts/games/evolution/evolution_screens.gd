@@ -227,7 +227,7 @@ func _draw_portrait() -> void:
 		return
 	var s := _portrait.size
 	var r := minf(s.x, s.y) * 0.22
-	_portrait.draw_circle(s / 2.0, r * 2.1, Color(color, 0.05))
+	Art.disc(_portrait, s / 2.0, r * 2.1, Color(color, 0.05))
 	var st := {
 		"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0,
 		"owned": engine.owned, "specials": engine.specials, "ailments": engine.ailments,

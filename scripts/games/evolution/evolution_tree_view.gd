@@ -185,11 +185,11 @@ func _draw() -> void:
 			var mid := Vector2((from.x + to.x) * 0.5, to.y)
 			var pts := PackedVector2Array([from, Vector2(mid.x, from.y), mid, to]) if absf(from.y - to.y) > 4.0 else PackedVector2Array([from, to])
 			if lit:
-				draw_polyline(pts, Color(col, 0.35), 8.0, true)
-			draw_polyline(pts, Color(col, 0.95) if lit else Color(1, 1, 1, 0.16), 3.0, true)
+				Art.strip(self, pts, Color(col, 0.35), 8.0, true)
+			Art.strip(self, pts, Color(col, 0.95) if lit else Color(1, 1, 1, 0.16), 3.0, true)
 	# the creature
-	draw_circle(rp, 74.0, Color(color, 0.08))
-	draw_arc(rp, 64.0, 0.0, TAU, 40, Color(color, 0.6), 3.0, true)
+	Art.disc(self, rp, 74.0, Color(color, 0.08))
+	Art.arc(self, rp, 64.0, 0.0, TAU, 40, Color(color, 0.6), 3.0, true)
 	var st := {"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0, "owned": engine.owned, "specials": engine.specials, "speed": 0.0, "voodoo": voodoo, "col2": col2, "col3": col3}
 	Art.draw_player(self, rp + pan, 40.0, color, 0.0, _t, st)
 	draw_set_transform(pan, 0.0, Vector2.ONE)
@@ -216,21 +216,21 @@ func _draw_node(n: Dictionary) -> void:
 	var mx := int(n.max)
 	var can: bool = engine.can_buy(n.id)
 	var glow := 0.5 + 0.5 * sin(_t * 4.0)
-	draw_circle(c, NODE_R, Color(0.03, 0.05, 0.1, 0.95))
+	Art.disc(self, c, NODE_R, Color(0.03, 0.05, 0.1, 0.95))
 	match state:
 		"maxed", "owned":
-			draw_circle(c, NODE_R + 6.0, Color(col, 0.18))
-			draw_arc(c, NODE_R, 0.0, TAU, 32, col, 4.0 if state == "maxed" else 3.0, true)
-			draw_circle(c, NODE_R * 0.55, Color(col, 0.75 if state == "maxed" else 0.45))
+			Art.disc(self, c, NODE_R + 6.0, Color(col, 0.18))
+			Art.arc(self, c, NODE_R, 0.0, TAU, 32, col, 4.0 if state == "maxed" else 3.0, true)
+			Art.disc(self, c, NODE_R * 0.55, Color(col, 0.75 if state == "maxed" else 0.45))
 		"available":
-			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.55 + 0.4 * glow), 3.0, true)
-			draw_circle(c, NODE_R * 0.4, Color(col, 0.35))
+			Art.arc(self, c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.55 + 0.4 * glow), 3.0, true)
+			Art.disc(self, c, NODE_R * 0.4, Color(col, 0.35))
 		"stage":
 			# Readable (the trait before it is owned), but you must grow first: dim, no pulse.
-			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(col, 0.45), 2.0, true)
-			draw_circle(c, NODE_R * 0.4, Color(col, 0.18))
+			Art.arc(self, c, NODE_R, 0.0, TAU, 32, Color(col, 0.45), 2.0, true)
+			Art.disc(self, c, NODE_R * 0.4, Color(col, 0.18))
 		_:
-			draw_arc(c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.2), 2.0, true)
+			Art.arc(self, c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.2), 2.0, true)
 			draw_string(ThemeDB.fallback_font, c + Vector2(-8.0, 9.0), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(1, 1, 1, 0.4))
 	var known: bool = state != "locked"
 	if n.ability and known:
@@ -241,11 +241,11 @@ func _draw_node(n: Dictionary) -> void:
 		for i in mx:
 			var p := c + Vector2(-w * 0.5 + float(i) * 11.0, NODE_R + 10.0)
 			if i < rank:
-				draw_circle(p, 4.0, col)
+				Art.disc(self, p, 4.0, col)
 			else:
-				draw_arc(p, 4.0, 0.0, TAU, 10, Color(1, 1, 1, 0.5), 1.5, true)
+				Art.arc(self, p, 4.0, 0.0, TAU, 10, Color(1, 1, 1, 0.5), 1.5, true)
 	if n.id == selected_id:
-		draw_arc(c, NODE_R + 9.0, 0.0, TAU, 40, Color("ffd479"), 3.0, true)
+		Art.arc(self, c, NODE_R + 9.0, 0.0, TAU, 40, Color("ffd479"), 3.0, true)
 	if (show_names or n.id == selected_id) and known:
 		var label := tr(n.name)
 		var f := ThemeDB.fallback_font

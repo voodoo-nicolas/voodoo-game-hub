@@ -79,4 +79,5 @@ Covers: architecture (Option B packs, manifest, autoloads), `tools/hub.py` comma
 - `set_anchors_preset()` on a node already in the tree keeps its size: use `set_anchors_and_offsets_preset()`.
 - `Auth.reconcile_stat` and `Catalog` skip callbacks whose object is freed via `Callable.is_valid()`: pass methods, not lambdas.
 - Never use Unicode die glyphs (missing on phones); draw dice.
+- Godot 4.7: each `draw_circle` / `draw_arc` / `draw_polyline` / `draw_colored_polygon` call costs 60-110 µs (own GPU buffer); `draw_texture_rect` / `draw_rect` / `draw_line` ~0.5 µs, `draw_multiline` ~12 µs. Hundreds per frame = lag: use a disc texture / multiline (Evolution's `Art.disc` / `arc` / `strip`, docs/claude/evolution.md).
 - Bash heredocs mangle `\\`; headless tests and `hub.py test` share and modify the user's real saves (docs/claude/games-notes.md).

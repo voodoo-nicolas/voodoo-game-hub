@@ -37,34 +37,130 @@ uniform float soft = 0.4;
 uniform float darkness = 0.97;
 uniform float blur = 2.0;
 uniform float radial = 0.0;   // radial (zoom) blur: streaks burst out from the centre, stronger toward the edge of sight
+uniform float lod_ok = 1.0;   // 0 on the web build: read only the full-size screen there
+// 2026-10-29 (slow on phones): 15 reads per pixel instead of 35, from the screen's pre-blurred smaller copies
+// (mip levels) so fewer reads still look smooth, and a single read outside your sight, which is dark anyway.
 void fragment() {
 	vec2 p = UV * rect_size;
 	float d = length(p - center);
 	float edge = smoothstep(radius * (1.0 - soft), radius, d);
-	float far = smoothstep(radius * 0.15, radius, d);
-	float r = blur * far;
-	vec3 col = textureLod(screen_tex, SCREEN_UV, 0.0).rgb;
-	if (radial > 0.001 && far > 0.0) {
-		vec2 to_c = (center - p) / rect_size;
-		vec3 acc_r = col;
-		for (int i = 1; i <= 10; i++) {
-			acc_r += textureLod(screen_tex, SCREEN_UV + to_c * (float(i) / 10.0 * radial * far), 0.0).rgb;
+	if (edge >= 1.0) {
+		COLOR = vec4(textureLod(screen_tex, SCREEN_UV, 0.0).rgb * (1.0 - darkness), 1.0);
+	} else {
+		float far = smoothstep(radius * 0.15, radius, d);
+		float r = blur * far;
+		vec3 col = textureLod(screen_tex, SCREEN_UV, 0.0).rgb;
+		if (radial > 0.001 && far > 0.0) {
+			vec2 to_c = (center - p) / rect_size;
+			float gap = length(to_c * rect_size) * radial * far / 5.0;
+			float lod_r = clamp(log2(max(gap, 1.0)), 0.0, 3.0) * lod_ok;
+			vec3 acc_r = col;
+			for (int i = 1; i <= 5; i++) {
+				acc_r += textureLod(screen_tex, SCREEN_UV + to_c * (float(i) / 5.0 * radial * far), lod_r).rgb;
+			}
+			col = acc_r / 6.0;
 		}
-		col = acc_r / 11.0;
-	}
-	if (r > 0.5) {
-		vec2 px = SCREEN_PIXEL_SIZE * r;
-		vec3 acc = col;
-		float w = 1.0;
-		for (int i = 0; i < 12; i++) {
-			float a = 6.2831853 * float(i) / 12.0;
-			acc += textureLod(screen_tex, SCREEN_UV + vec2(cos(a), sin(a)) * px, 0.0).rgb;
-			acc += textureLod(screen_tex, SCREEN_UV + vec2(cos(a + 0.26), sin(a + 0.26)) * px * 0.5, 0.0).rgb;
-			w += 2.0;
+		if (r > 0.5) {
+			vec2 px = SCREEN_PIXEL_SIZE * r;
+			float lod_d = clamp(log2(max(r * 0.6, 1.0)), 0.0, 3.0) * lod_ok;
+			vec3 acc = col;
+			for (int i = 0; i < 8; i++) {
+				float a = 6.2831853 * float(i) / 8.0 + 0.2;
+				acc += textureLod(screen_tex, SCREEN_UV + vec2(cos(a), sin(a)) * px * 0.75, lod_d).rgb;
+			}
+			col = acc / 9.0;
 		}
-		col = acc / w;
+		COLOR = vec4(mix(col, vec3(0.0), darkness * edge), 1.0);
 	}
-	COLOR = vec4(mix(col, vec3(0.0), darkness * edge), 1.0);
+}
+"""
+## Once your eyes are perfectly sharp there is nothing to blur: only the dark edge of your sight, drawn on top
+## without reading the screen back (no screen copy at all).
+const DARK_SHADER := """
+shader_type canvas_item;
+uniform vec2 center = vec2(0.0);
+uniform vec2 rect_size = vec2(1.0);
+uniform float radius = 200.0;
+uniform float soft = 0.4;
+uniform float darkness = 0.97;
+void fragment() {
+	float d = length(UV * rect_size - center);
+	COLOR = vec4(0.0, 0.0, 0.0, darkness * smoothstep(radius * (1.0 - soft), radius, d));
+}
+"""
+## The water behind everything: big faint light blobs and three parallax layers of drifting plankton, all in ONE
+## draw call: a MultiMesh of small quads that this shader places on the grid cells you can see (2026-10-29: it was
+## ~1,500 circles a frame from GDScript, 28-117 ms on a PC; a full-screen shader still cost the GPU 25-35 ms).
+## Layer 0 = blobs (cell 900, parallax 0.25, 6 soft rings each), layers 1-3 = plankton specks.
+const WATER_SHADER := """
+shader_type canvas_item;
+uniform vec2 cam = vec2(0.0);       // the player's world position
+uniform float zoom = 1.0;
+uniform vec2 rect_size = vec2(1.0);
+uniform float clock = 0.0;          // the game's pulse
+uniform vec4 tint : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform ivec4 lay_start = ivec4(0); // first instance of each layer
+uniform ivec4 lay_cols = ivec4(1);  // grid columns of each layer
+const float PAR[4] = float[4](0.25, 0.45, 0.75, 1.0);
+const float CS[4] = float[4](900.0, 240.0, 190.0, 160.0);
+const float SZ[4] = float[4](0.0, 1.6, 2.2, 2.6);
+const float ALPHA[4] = float[4](0.0, 0.16, 0.22, 0.30);
+const float KEY[4] = float[4](0.0, 17.0, 34.0, 51.0);
+varying float v_r;      // radius in pixels
+varying float v_a;
+varying float v_blob;
+
+// Four 0..1 values, fixed per grid cell
+vec4 hash42(vec2 p) {
+	vec4 p4 = fract(vec4(p.xyxy) * vec4(0.1031, 0.1030, 0.0973, 0.1099));
+	p4 += dot(p4, p4.wzxy + 33.33);
+	return fract((p4.xxyz + p4.yzzw) * p4.zywx);
+}
+
+void vertex() {
+	int id = INSTANCE_ID;
+	int L = 0;
+	if (id >= lay_start.w) {
+		L = 3;
+	} else if (id >= lay_start.z) {
+		L = 2;
+	} else if (id >= lay_start.y) {
+		L = 1;
+	}
+	int local = id - lay_start[L];
+	int cols = max(lay_cols[L], 1);
+	float cs = CS[L];
+	float par = PAR[L];
+	vec2 c = floor((cam * par - rect_size * 0.5 / zoom) / cs) - 1.0 + vec2(float(local % cols), float(local / cols));
+	vec2 ctr;
+	float r;
+	if (L == 0) {
+		vec4 h = hash42(c);
+		ctr = (c + 0.3 + 0.4 * h.xy) * cs;
+		r = (260.0 + 240.0 * h.z) * zoom;
+		v_a = 1.0;
+		v_blob = 1.0;
+	} else {
+		vec4 a = hash42(c + KEY[L]);
+		vec4 b = hash42(c + KEY[L] + 91.7);
+		ctr = (c + 0.2 + 0.6 * a.xy) * cs + vec2(sin(clock * 0.4 + a.z * 6.0), cos(clock * 0.35 + a.w * 6.0)) * 14.0;
+		r = SZ[L] * (0.6 + b.y) * max(zoom, 0.5);
+		v_a = ALPHA[L] * (0.6 + 0.4 * sin(clock * 1.5 + b.x * 9.0));
+		v_blob = 0.0;
+	}
+	v_r = r;
+	VERTEX = (ctr - cam * par) * zoom + rect_size * 0.5 + VERTEX * 2.0 * (r + 1.0);
+}
+
+void fragment() {
+	float d = length(UV - 0.5) * 2.0 * (v_r + 1.0);
+	if (v_blob > 0.5) {
+		float f = d / v_r;
+		float n = f < 1.0 ? min(floor((1.0 - f) / 0.15) + 1.0, 6.0) : 0.0;
+		COLOR = vec4(tint.rgb, 1.0 - pow(0.91, n));
+	} else {
+		COLOR = vec4(0.55, 0.9, 1.0, v_a * clamp(v_r - d + 0.5, 0.0, 1.0));
+	}
 }
 """
 
@@ -102,6 +198,12 @@ var _creature_ui: Control               # the "Choose your creature" screen
 
 var field: Control
 var overlay: ColorRect
+var water: ColorRect
+var _wake_t := 0.0                       # next wake bubble
+var _water_mm: MultiMesh                # the blobs and plankton specks (one quad each)
+var _water_specks: MultiMeshInstance2D
+var _blur_mat: ShaderMaterial    # the overlay while your sight is blurry (reads the screen back)
+var _dark_mat: ShaderMaterial    # ... once it is sharp: only the dark edge, much cheaper
 var controls: Controls
 var fx: Control
 var screens: Screens
@@ -217,6 +319,28 @@ func _build_ui() -> void:
 	theme = HomeKit.neon_theme()
 	add_child(HomeKit.backdrop())
 
+	# The water: a plain colour, with the blobs and plankton on top as one MultiMesh (WATER_SHADER places them).
+	water = ColorRect.new()
+	water.set_anchors_preset(Control.PRESET_FULL_RECT)
+	water.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	water.color = BG
+	add_child(water)
+	_water_mm = MultiMesh.new()
+	_water_mm.transform_format = MultiMesh.TRANSFORM_2D
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	_water_mm.mesh = quad
+	_water_mm.custom_aabb = AABB(Vector3(-1e5, -1e5, -1.0), Vector3(2e5, 2e5, 2.0))   # never culled
+	_grow_water(3000)
+	var wsh := Shader.new()
+	wsh.code = WATER_SHADER
+	var wmat := ShaderMaterial.new()
+	wmat.shader = wsh
+	_water_specks = MultiMeshInstance2D.new()
+	_water_specks.multimesh = _water_mm
+	_water_specks.material = wmat
+	water.add_child(_water_specks)
+
 	field = Control.new()
 	field.set_anchors_preset(Control.PRESET_FULL_RECT)
 	field.clip_contents = true
@@ -230,9 +354,14 @@ func _build_ui() -> void:
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sh := Shader.new()
 	sh.code = OVERLAY_SHADER
-	var mat := ShaderMaterial.new()
-	mat.shader = sh
-	overlay.material = mat
+	_blur_mat = ShaderMaterial.new()
+	_blur_mat.shader = sh
+	_blur_mat.set_shader_parameter("lod_ok", 0.0 if OS.has_feature("web") else 1.0)
+	var dsh := Shader.new()
+	dsh.code = DARK_SHADER
+	_dark_mat = ShaderMaterial.new()
+	_dark_mat.shader = dsh
+	overlay.material = _blur_mat
 	add_child(overlay)
 
 	fx = Control.new()
@@ -593,9 +722,19 @@ func _process(delta: float) -> void:
 	pulse += delta
 	if not started or screens.visible:
 		return
-	delta = minf(delta, 0.05)
+	# A slow frame runs up to 3 engine steps of at most 0.05 s, so the game keeps real time down to ~7 fps
+	# (2026-10-29: delta used to be capped at 0.05, so under 20 fps the whole game ran in slow motion).
+	delta = minf(delta, 0.15)
 	_apply_view(delta)
-	engine.step(delta, _direction())
+	var steps := int(ceilf(delta / 0.05))
+	if steps <= 1:
+		engine.step(delta, _direction())
+	else:
+		var evs: Array = []
+		for i in steps:
+			engine.step(delta / float(steps), _direction())
+			evs.append_array(engine.events)
+		engine.events = evs
 	_flush_t += delta
 	if _flush_t >= 20.0:
 		_flush_t = 0.0
@@ -634,11 +773,28 @@ func _animate(delta: float) -> void:
 	eye_open = minf(eye_open + delta * 0.6, 1.0)
 	tail_grow = minf(tail_grow + delta * 0.9, 1.0)
 	if engine.player.vel.length() > 8.0:
-		heading = lerp_angle(heading, engine.player.vel.angle(), clampf(10.0 * delta, 0.0, 1.0))
+		heading = lerp_angle(heading, engine.player.vel.angle(), clampf(16.0 * delta, 0.0, 1.0))
+	_wake(delta)
 	if banners.size() > 0:
 		banners[0].t -= delta
 		if banners[0].t <= 0.0:
 			banners.pop_front()
+
+## A trail of tiny bubbles behind you while you swim fast (owner 2026-10-29: the swimming should feel fast).
+func _wake(delta: float) -> void:
+	var v: Vector2 = engine.player.vel
+	var top: float = engine.top_speed()
+	if engine.move_rank <= 0 or top <= 0.0 or v.length() < top * 0.45:
+		return
+	_wake_t -= delta
+	if _wake_t > 0.0:
+		return
+	_wake_t = 0.06
+	var pr := EvEngine.radius_of(engine.player.mass)
+	var back := -v.normalized()
+	particles.append({"pos": engine.player.pos + back * pr * 1.1 + back.orthogonal() * randf_range(-0.4, 0.4) * pr,
+		"vel": back * v.length() * 0.12 + Vector2(0.0, -20.0).rotated(randf_range(-0.5, 0.5)),
+		"life": 0.45, "max": 0.9, "col": Color(0.75, 0.95, 1.0), "size": pr * randf_range(0.06, 0.12), "ring": 0.0})
 
 func _banner(text: String) -> void:
 	banners.append({"text": text, "t": 2.6})
@@ -1010,12 +1166,6 @@ func _update_particles(delta: float) -> void:
 func _w2s(p: Vector2) -> Vector2:
 	return (p - engine.player.pos) * zoom + field.size / 2.0
 
-## Deterministic 0..1 hash for background specks.
-static func _h(x: int, y: int, k: int) -> float:
-	var n: int = ((x * 73856093) ^ (y * 19349663) ^ (k * 83492791)) & 0x7FFFFFFF
-	n = ((n ^ (n >> 13)) * 1274126177) & 0x7FFFFFFF
-	return float((n ^ (n >> 16)) & 0xFFFF) / 65535.0
-
 ## The cell parts on your body (nucleus, vacuoles ...) fade out between size 2 and size 3.
 func _cell_fade() -> float:
 	var pm: float = engine.player.mass
@@ -1032,11 +1182,10 @@ func _player_state() -> Dictionary:
 
 func _draw_field() -> void:
 	var s := field.size
-	field.draw_rect(Rect2(Vector2.ZERO, s), BG if engine == null else _water_col())
+	_update_water(s)
 	if engine == null:
 		return
 	_update_overlay(s)
-	_draw_background(s)
 	_draw_surface(s)
 	var c := s / 2.0
 	var lim := vis_r * 1.3
@@ -1052,10 +1201,10 @@ func _draw_field() -> void:
 			continue
 		var col: Color = FOOD[i % FOOD.size()]
 		var br := 1.0 + 0.18 * sin(pulse * 3.0 + float(i) * 1.7)
-		field.draw_circle(sp, fr * 3.4 * br, Color(col, 0.07 * food_a))
-		field.draw_circle(sp, fr * 2.0 * br, Color(col, 0.16 * food_a))
-		field.draw_circle(sp, fr * br, Color(col, food_a))
-		field.draw_circle(sp - Vector2(fr, fr) * 0.25, fr * 0.35, Color(1, 1, 1, 0.8 * food_a))
+		Art.disc(field, sp, fr * 3.4 * br, Color(col, 0.07 * food_a))
+		Art.disc(field, sp, fr * 2.0 * br, Color(col, 0.16 * food_a))
+		Art.disc(field, sp, fr * br, Color(col, food_a))
+		Art.disc(field, sp - Vector2(fr, fr) * 0.25, fr * 0.35, Color(1, 1, 1, 0.8 * food_a))
 	# Other creatures, small first so big ones cover them.
 	var pm: float = engine.player.mass
 	var ratio: float = engine.eat_ratio()
@@ -1072,7 +1221,7 @@ func _draw_field() -> void:
 		if vis <= 0.0:
 			continue
 		if vis < 1.0:
-			field.draw_circle(sp2, maxf(r * 0.6, 2.0), Color(1, 1, 1, 0.28))   # worth nothing to you: a drifting particle
+			Art.disc(field, sp2, maxf(r * 0.6, 2.0), Color(1, 1, 1, 0.28))   # worth nothing to you: a drifting particle
 			continue
 		var kind := "none"
 		if n.role == "toxic" or n.role == "rare":
@@ -1088,32 +1237,32 @@ func _draw_field() -> void:
 		var pp: Vector2 = _w2s(p.pos)
 		if p.ring > 0.0:
 			var rr: float = p.ring * zoom * (1.2 - a2 * 0.6)
-			field.draw_arc(pp, rr, 0.0, TAU, 40, Color(p.col, a2 * 0.7), 3.0, true)
+			Art.arc(field, pp, rr, 0.0, TAU, 40, Color(p.col, a2 * 0.7), 3.0, true)
 		else:
-			field.draw_circle(pp, p.size * zoom + 1.0, Color(p.col, a2))
+			Art.disc(field, pp, p.size * zoom + 1.0, Color(p.col, a2))
 	# Ability effects: the ink cloud, acid shots, the lure's glow.
 	if engine.ink_t > 0.0:
 		var ir: float = engine.ability_radius("ink") * zoom
 		var ic := _w2s(engine.ink_pos)
 		for q in 7:
 			var off := Vector2.RIGHT.rotated(float(q) * 0.9 + pulse * 0.2) * ir * 0.45
-			field.draw_circle(ic + off, ir * (0.55 + 0.05 * sin(pulse + float(q))), Color(0.25, 0.15, 0.4, 0.28 * minf(engine.ink_t, 1.0)))
+			Art.disc(field, ic + off, ir * (0.55 + 0.05 * sin(pulse + float(q))), Color(0.25, 0.15, 0.4, 0.28 * minf(engine.ink_t, 1.0)))
 	for sh in engine.shots:
 		var sp3 := _w2s(sh.pos)
 		if sh.get("kind", "spit") == "harpoon":
 			var back: Vector2 = sh.vel.normalized() * 44.0 * zoom
 			field.draw_line(sp3 - back, sp3, Color("d58bff"), 4.0, true)
-			field.draw_circle(sp3, 6.0 * zoom + 2.0, Color("f0c8ff"))
+			Art.disc(field, sp3, 6.0 * zoom + 2.0, Color("f0c8ff"))
 		else:
-			field.draw_circle(sp3, 10.0 * zoom + 3.0, Color("9bff5a", 0.25))
-			field.draw_circle(sp3, 5.0 * zoom + 2.0, Color("c8ff8a"))
+			Art.disc(field, sp3, 10.0 * zoom + 3.0, Color("9bff5a", 0.25))
+			Art.disc(field, sp3, 5.0 * zoom + 2.0, Color("c8ff8a"))
 	# The decoy: a pale copy of you.
 	if engine.decoy.t > 0.0:
 		var dc := _w2s(engine.decoy.pos)
 		var dr: float = EvEngine.radius_of(pm) * zoom
 		Art.draw_player(field, dc, dr, color, engine.decoy.vel.angle() if engine.decoy.vel.length() > 5.0 else heading, pulse, _player_state())
-		field.draw_circle(dc, dr * 1.2, Color(BG, 0.4))
-		field.draw_arc(dc, dr * 1.3, 0.0, TAU, 24, Color(color, 0.5), 2.0, true)
+		Art.disc(field, dc, dr * 1.2, Color(BG, 0.4))
+		Art.arc(field, dc, dr * 1.3, 0.0, TAU, 24, Color(color, 0.5), 2.0, true)
 	# Tentacles holding a creature; suction pulling prey in.
 	for n in engine.npcs:
 		if n.get("held", 0.0) > 0.0:
@@ -1131,26 +1280,29 @@ func _draw_field() -> void:
 			var tip := c + Vector2.RIGHT.rotated(heading) * pr * 2.1
 			field.draw_line(c + Vector2.RIGHT.rotated(heading) * pr * 0.8, tip, Color(color, 0.8), maxf(pr * 0.08, 2.0), true)
 			var lg := 1.0 + 0.2 * sin(pulse * 6.0)
-			field.draw_circle(tip, pr * 0.5 * lg, Color(1, 0.95, 0.5, 0.9))
-			field.draw_circle(tip, pr * 1.2 * lg, Color(1, 0.95, 0.5, 0.18))
-			field.draw_arc(c, engine.ability_radius("lure") * zoom, 0.0, TAU, 64, Color(1, 0.95, 0.5, 0.12), 2.0, true)
+			Art.disc(field, tip, pr * 0.5 * lg, Color(1, 0.95, 0.5, 0.9))
+			Art.disc(field, tip, pr * 1.2 * lg, Color(1, 0.95, 0.5, 0.18))
+			Art.arc(field, c, engine.ability_radius("lure") * zoom, 0.0, TAU, 64, Color(1, 0.95, 0.5, 0.12), 2.0, true)
 		Art.draw_player(field, c, pr, color, heading, pulse, _player_state())
 		if engine.camo_t > 0.0:
-			field.draw_circle(c, pr * 1.15, Color(BG, 0.55))
-			field.draw_arc(c, pr * 1.3, 0.0, TAU, 24, Color(1, 1, 1, 0.3), 2.0, true)
+			Art.disc(field, c, pr * 1.15, Color(BG, 0.55))
+			Art.arc(field, c, pr * 1.3, 0.0, TAU, 24, Color(1, 1, 1, 0.3), 2.0, true)
 
 func _update_overlay(s: Vector2) -> void:
-	var mat := overlay.material as ShaderMaterial
-	if mat == null:
-		return
-	mat.set_shader_parameter("center", s / 2.0)
-	mat.set_shader_parameter("rect_size", s)
-	mat.set_shader_parameter("radius", vis_r)
 	var blur: float = Data.BLUR[engine.clarity()]
 	if engine.sight_rank <= 1:
 		blur += 0.9
-	mat.set_shader_parameter("blur", blur * 2.5)      # a circle of this many pixels, wider toward the edge of your sight
-	mat.set_shader_parameter("radial", blur * 0.035)  # ... and streaks bursting out from you (radial blur)
+	var mat: ShaderMaterial = _blur_mat if blur > 0.01 else _dark_mat
+	if mat == null:
+		return
+	if overlay.material != mat:
+		overlay.material = mat
+	mat.set_shader_parameter("center", s / 2.0)
+	mat.set_shader_parameter("rect_size", s)
+	mat.set_shader_parameter("radius", vis_r)
+	if mat == _blur_mat:
+		mat.set_shader_parameter("blur", blur * 2.5)      # a circle of this many pixels, wider toward the edge of your sight
+		mat.set_shader_parameter("radial", blur * 0.035)  # ... and streaks bursting out from you (radial blur)
 
 ## The water darkens with depth: a pale blue near the surface, almost black below about 150 m. It is the
 ## cue that tells you how far down you are (a number alone did not: owner 2026-10-23).
@@ -1162,41 +1314,41 @@ func _water_col() -> Color:
 static func _by_mass(x, y) -> bool:
 	return x.mass < y.mass
 
-## Soft light blobs + three parallax layers of drifting plankton.
-func _draw_background(s: Vector2) -> void:
-	var pp: Vector2 = engine.player.pos
-	var tcol := Color("0b2f4a") if not voodoo else Color("2a0b46")
-	# Big faint caustic blobs, slowest layer.
-	var cell := 900.0
-	var par := 0.25
-	var cam := pp * par
-	var x0 := int(floorf((cam.x - s.x / 2.0 / zoom) / cell)) - 1
-	var y0 := int(floorf((cam.y - s.y / 2.0 / zoom) / cell)) - 1
-	var nx := int(s.x / (cell * zoom)) + 3
-	var ny := int(s.y / (cell * zoom)) + 3
-	for ix in range(x0, x0 + nx):
-		for iy in range(y0, y0 + ny):
-			var c := Vector2(ix + _h(ix, iy, 1), iy + _h(ix, iy, 2)) * cell
-			var sp := (c - cam) * zoom + s / 2.0
-			var rr := (260.0 + 240.0 * _h(ix, iy, 3)) * zoom
-			for q in 6:
-				field.draw_circle(sp, rr * (1.0 - float(q) * 0.15), Color(tcol, 0.09))
-	# Plankton layers: (parallax, cell, size, alpha)
-	for L in [[0.45, 240.0, 1.6, 0.16], [0.75, 190.0, 2.2, 0.22], [1.0, 160.0, 2.6, 0.30]]:
-		var par2: float = L[0]
-		var cs: float = L[1]
-		var cam2 := pp * par2
-		var gx := int(floorf((cam2.x - s.x / 2.0 / zoom) / cs)) - 1
-		var gy := int(floorf((cam2.y - s.y / 2.0 / zoom) / cs)) - 1
-		var cx := int(s.x / (cs * zoom)) + 3
-		var cy := int(s.y / (cs * zoom)) + 3
-		for ix in range(gx, gx + cx):
-			for iy in range(gy, gy + cy):
-				var wp := Vector2(ix + _h(ix, iy, 4), iy + _h(ix, iy, 5)) * cs
-				wp += Vector2(sin(pulse * 0.4 + _h(ix, iy, 6) * 6.0), cos(pulse * 0.35 + _h(ix, iy, 7) * 6.0)) * 14.0
-				var sp2 := (wp - cam2) * zoom + s / 2.0
-				var tw := 0.6 + 0.4 * sin(pulse * 1.5 + _h(ix, iy, 8) * 9.0)
-				field.draw_circle(sp2, L[2] * (0.6 + _h(ix, iy, 9)) * maxf(zoom, 0.5), Color(0.55, 0.9, 1.0, L[3] * tw))
+## Grid cell size and parallax of the water's layers (the same numbers as CS / PAR in WATER_SHADER).
+const WATER_LAYERS := [[900.0, 0.25], [240.0, 0.45], [190.0, 0.75], [160.0, 1.0]]
+
+## The water behind the field: its colour, and how many blobs / specks each layer needs to fill the screen.
+func _update_water(s: Vector2) -> void:
+	water.color = BG if engine == null else _water_col()
+	var mat := _water_specks.material as ShaderMaterial
+	if engine == null or mat == null:
+		_water_mm.visible_instance_count = 0
+		return
+	var z := maxf(zoom, 0.05)
+	var starts := [0, 0, 0, 0]
+	var cols := [1, 1, 1, 1]
+	var total := 0
+	for i in WATER_LAYERS.size():
+		var cs: float = WATER_LAYERS[i][0]
+		starts[i] = total
+		cols[i] = int(ceilf(s.x / (cs * z))) + 3
+		total += cols[i] * (int(ceilf(s.y / (cs * z))) + 3)
+	if total > _water_mm.instance_count:
+		_grow_water(total + 500)
+	_water_mm.visible_instance_count = total
+	mat.set_shader_parameter("cam", engine.player.pos)
+	mat.set_shader_parameter("zoom", z)
+	mat.set_shader_parameter("rect_size", s)
+	mat.set_shader_parameter("clock", pulse)
+	mat.set_shader_parameter("tint", Color("0b2f4a") if not voodoo else Color("2a0b46"))
+	mat.set_shader_parameter("lay_start", Vector4i(starts[0], starts[1], starts[2], starts[3]))
+	mat.set_shader_parameter("lay_cols", Vector4i(cols[0], cols[1], cols[2], cols[3]))
+
+## Room for n quads (the shader moves them; each only needs an identity transform).
+func _grow_water(n: int) -> void:
+	_water_mm.instance_count = n
+	for i in n:
+		_water_mm.set_instance_transform_2d(i, Transform2D.IDENTITY)
 
 ## The surface of the water: the only edge of the pond (sides and depth never end).
 func _draw_surface(s: Vector2) -> void:
@@ -1220,8 +1372,8 @@ func _draw_surface(s: Vector2) -> void:
 	while xs <= s.x + step:
 		pts.append(Vector2(xs, sy + sin(xs * 0.03 + pulse * 1.6 + engine.player.pos.x * 0.02 * zoom) * 3.5 * zoom + sin(xs * 0.011 - pulse * 0.9) * 2.0))
 		xs += step
-	field.draw_polyline(pts, Color(lit, 0.25), 12.0, true)
-	field.draw_polyline(pts, Color(0.85, 0.97, 1.0, 0.95), 3.0, true)
+	Art.strip(field, pts, Color(lit, 0.25), 12.0, true)
+	Art.strip(field, pts, Color(0.85, 0.97, 1.0, 0.95), 3.0, true)
 
 ## Above the vision overlay: what the other senses pick up, the red damage edge and the banners.
 func _draw_senses() -> void:
@@ -1242,25 +1394,25 @@ func _draw_senses() -> void:
 			var sp: Vector2 = _w2s(f)
 			var dd := sp.distance_to(c)
 			if dd > vis_r and dd < lim and sp.x > 0.0 and sp.y > 0.0 and sp.x < s.x and sp.y < s.y:
-				fx.draw_circle(sp, 3.0, Color("ffd23f", 0.55))
+				Art.disc(fx, sp, 3.0, Color("ffd23f", 0.55))
 		for n in engine.npcs:
 			if n.role == "hunter":
 				continue
 			var sp2: Vector2 = _w2s(n.pos)
 			var d2 := sp2.distance_to(c)
 			if d2 > vis_r and d2 < lim and sp2.x > 0.0 and sp2.y > 0.0 and sp2.x < s.x and sp2.y < s.y:
-				fx.draw_circle(sp2, 6.0, Color("7dff3a", 0.6) if EvEngine.can_eat(pm, n.mass, engine.eat_ratio()) else Color(1, 1, 1, 0.4))
+				Art.disc(fx, sp2, 6.0, Color("7dff3a", 0.6) if EvEngine.can_eat(pm, n.mass, engine.eat_ratio()) else Color(1, 1, 1, 0.4))
 	if engine.sonar_t > 0.0:
 		var rad: float = engine.ability_radius("sonar") * zoom
 		var wave := fposmod(pulse * 0.8, 1.0)
-		fx.draw_arc(c, rad * wave, 0.0, TAU, 64, Color("7be0ff", 0.5 * (1.0 - wave)), 4.0, true)
+		Art.arc(fx, c, rad * wave, 0.0, TAU, 64, Color("7be0ff", 0.5 * (1.0 - wave)), 4.0, true)
 		for n in engine.npcs:
 			var sp4: Vector2 = _w2s(n.pos)
 			if sp4.distance_to(c) > rad or sp4.x < 0.0 or sp4.y < 0.0 or sp4.x > s.x or sp4.y > s.y:
 				continue
 			var rr: float = maxf(EvEngine.radius_of(n.mass) * zoom, 6.0)
 			var col4 := Color("ff4f9a") if n.role == "hunter" and EvEngine.can_eat(n.mass, pm) else (Color("7dff3a") if EvEngine.can_eat(pm, n.mass, engine.eat_ratio()) else Color(1, 1, 1, 0.8))
-			fx.draw_arc(sp4, rr * 1.2, 0.0, TAU, 20, Color(col4, 0.9), 2.5, true)
+			Art.arc(fx, sp4, rr * 1.2, 0.0, TAU, 20, Color(col4, 0.9), 2.5, true)
 	if engine.has("listening"):
 		var reach := vis_r * (3.5 if engine.has("radar") else 1.8)
 		for n in engine.npcs:
@@ -1280,7 +1432,7 @@ func _draw_senses() -> void:
 			var tri := PackedVector2Array([at + dir * 18.0 * k, at - dir * 10.0 * k + perp * 12.0 * k, at - dir * 10.0 * k - perp * 12.0 * k])
 			fx.draw_colored_polygon(tri, Color("ff4f9a", 0.4 * al))
 			tri.append(tri[0])
-			fx.draw_polyline(tri, Color("ff4f9a", al), 2.5, true)
+			Art.strip(fx, tri, Color("ff4f9a", al), 2.5, true)
 
 ## Above the vision overlay: the red damage edge and the banners.
 func _draw_fx() -> void:

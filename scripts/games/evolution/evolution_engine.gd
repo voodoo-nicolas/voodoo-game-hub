@@ -49,7 +49,8 @@ const TUNING := {
 	"flee_frac": 0.6,
 	"sense": 520.0,             # hunter sight, x radius floor
 	"glow_sense": 1.8,
-	"accel": 7.0,
+	"accel": 7.0,               # creatures' steering
+	"player_accel": 13.0,       # yours: quicker starts and turns (owner 2026-10-29 "fast, agile"; it shared the 7)
 	"jolt_speed": 170.0,        # rank 0: each push
 	"jolt_cooldown": 0.75,
 	"jolt_drag": 3.2,
@@ -739,7 +740,7 @@ func _move_player(delta: float, dir: Vector2) -> void:
 		if player.pos.y <= top0 + 2.0 and want.y < 0.0:
 			var spd := want.length()
 			want = Vector2(signf(want.x) * spd, 0.0) if absf(want.x) > spd * 0.2 else Vector2(want.x, 0.0)
-		player.vel = player.vel.lerp(want, clampf(t("accel") * delta * (2.5 if dash_t > 0.0 else 1.0), 0.0, 1.0))
+		player.vel = player.vel.lerp(want, clampf(t("player_accel") * delta * (2.5 if dash_t > 0.0 else 1.0), 0.0, 1.0))
 	player.pos += player.vel * delta
 	distance += player.vel.length() * delta
 	# The surface: the one wall. Sides and depth never end.
@@ -952,7 +953,12 @@ func _think(delta: float) -> void:
 	var allowed := {}
 	for i in mini(near.size(), mini(int(Data.DIFFICULTY[difficulty].get("chasers", 3)), threat_cap())):
 		allowed[near[i][1]] = true
-	for n in npcs:
+	_snapshot_npcs()
+	for i in npcs.size():
+		if i > 0:
+			_snap_pos[i - 1] = npcs[i - 1].pos      # the one before has moved: _social sees where it is now
+			_snap_mass[i - 1] = npcs[i - 1].mass
+		var n: Dictionary = npcs[i]
 		n.t -= delta
 		var slow_mult := 1.0
 		if n.get("venom", 0.0) > 0.0:
@@ -1028,7 +1034,7 @@ func _think(delta: float) -> void:
 			if move_rank == 0:
 				speed = t("drift_speed")
 			# Creatures of different species are hostile to each other (once you can see); all keep apart.
-			var soc := _social(n)
+			var soc := _social(n, i)
 			if soc.has("steer"):
 				steer = soc.steer
 				speed = _npc_speed(n.mass, base_speed * soc.pace)
@@ -1048,30 +1054,61 @@ func _think(delta: float) -> void:
 static func _by_first(a: Array, b: Array) -> bool:
 	return a[0] < b[0]
 
+## Every creature's position, mass, species and "can fight" flag in packed arrays, made once per step:
+## _social and _npcs_eat_each_other compare every pair, and reading these is much cheaper than the
+## dictionaries (2026-10-29: the two took 8 of the engine's 9 ms a step with 40 creatures).
+var _snap_pos := PackedVector2Array()
+var _snap_mass := PackedFloat64Array()
+var _snap_species: Array = []
+var _snap_fights := PackedByteArray()     # 1 = prey / equal / hunter (they hunt and flee each other)
+
+func _snapshot_npcs() -> void:
+	var c := npcs.size()
+	_snap_pos.resize(c)
+	_snap_mass.resize(c)
+	_snap_species.resize(c)
+	_snap_fights.resize(c)
+	for i in c:
+		var n: Dictionary = npcs[i]
+		_snap_pos[i] = n.pos
+		_snap_mass[i] = n.mass
+		_snap_species[i] = n.species
+		_snap_fights[i] = 1 if (n.role == "prey" or n.role == "equal" or n.role == "hunter") else 0
+
 ## Hunt a smaller creature of another species, run from a bigger one, keep apart from the rest.
-func _social(n: Dictionary) -> Dictionary:
+## `idx` = its place in npcs (and in the snapshot).
+func _social(n: Dictionary, idx: int) -> Dictionary:
 	var sep := Vector2.ZERO
 	var prey_dir := Vector2.ZERO
 	var prey_d: float = t("npc_sight")
 	var flee := Vector2.ZERO
 	var hostile: bool = sight_rank >= 2 and (n.role == "prey" or n.role == "equal" or n.role == "hunter")
 	var near_sep: float = t("npc_sep")
-	for m in npcs:
-		if m == n:
+	var flee_r: float = t("npc_flee")
+	var reach := maxf(maxf(prey_d, flee_r), near_sep)     # nothing farther away matters
+	var reach2 := reach * reach
+	var ratio: float = TUNING.eat_ratio
+	var p: Vector2 = n.pos
+	var nm: float = n.mass
+	var sp: String = n.species
+	for j in _snap_pos.size():
+		if j == idx:
 			continue
-		var dv: Vector2 = m.pos - n.pos
-		var dist := dv.length()
-		if dist < 0.01:
+		var dv: Vector2 = _snap_pos[j] - p
+		var d2 := dv.length_squared()
+		if d2 >= reach2 or d2 < 0.0001:
 			continue
+		var dist := sqrt(d2)
 		if dist < near_sep:
 			sep -= dv / dist * (1.0 - dist / near_sep)
-		if not hostile or m.species == n.species or not (m.role == "prey" or m.role == "equal" or m.role == "hunter"):
+		if not hostile or _snap_fights[j] == 0 or _snap_species[j] == sp:
 			continue
-		if can_eat(n.mass, m.mass) and dist < prey_d:
+		var mm: float = _snap_mass[j]
+		if nm >= mm * ratio and dist < prey_d:
 			prey_d = dist
 			prey_dir = dv / dist
-		elif can_eat(m.mass, n.mass) and dist < t("npc_flee"):
-			flee -= dv / dist * (1.0 - dist / t("npc_flee"))
+		elif mm >= nm * ratio and dist < flee_r:
+			flee -= dv / dist * (1.0 - dist / flee_r)
 	if flee.length() > 0.01:
 		return {"steer": flee.normalized(), "pace": 0.9, "sep": sep}
 	if prey_dir != Vector2.ZERO:
@@ -1161,27 +1198,38 @@ func _resolve(delta: float) -> void:
 func _npcs_eat_each_other() -> void:
 	if sight_rank < 2 or npcs.size() < 2:
 		return
-	var dead := {}
-	for i in npcs.size():
-		if dead.has(i):
+	_snapshot_npcs()
+	var c := npcs.size()
+	var rad := PackedFloat64Array()
+	rad.resize(c)
+	for i in c:
+		rad[i] = radius_of(_snap_mass[i])
+	var ratio: float = TUNING.eat_ratio
+	var dead := PackedByteArray()
+	dead.resize(c)
+	dead.fill(0)
+	var eaten := 0
+	for i in c:
+		if dead[i] == 1 or _snap_fights[i] == 0:
 			continue
-		var a: Dictionary = npcs[i]
-		if not (a.role == "prey" or a.role == "equal" or a.role == "hunter"):
-			continue
-		for j in npcs.size():
-			if i == j or dead.has(j) or dead.has(i):
+		var pa: Vector2 = _snap_pos[i]
+		for j in c:
+			# cheapest tests first: size, then the rest
+			if i == j or _snap_mass[i] < _snap_mass[j] * ratio or dead[j] == 1 or _snap_fights[j] == 0:
 				continue
-			var b: Dictionary = npcs[j]
-			if a.species == b.species or not (b.role == "prey" or b.role == "equal" or b.role == "hunter"):
-				continue
-			if can_eat(a.mass, b.mass) and a.pos.distance_to(b.pos) < radius_of(a.mass) - radius_of(b.mass) * 0.35:
-				a.mass += b.mass * t("absorb")
-				dead[j] = true
-	if dead.is_empty():
+			var lim: float = rad[i] - rad[j] * 0.35
+			if lim > 0.0 and pa.distance_squared_to(_snap_pos[j]) < lim * lim and _snap_species[i] != _snap_species[j]:
+				var a: Dictionary = npcs[i]
+				a.mass += _snap_mass[j] * t("absorb")
+				_snap_mass[i] = a.mass
+				rad[i] = radius_of(a.mass)
+				dead[j] = 1
+				eaten += 1
+	if eaten == 0:
 		return
 	var keep: Array = []
-	for k in npcs.size():
-		if not dead.has(k):
+	for k in c:
+		if dead[k] == 0:
 			keep.append(npcs[k])
 	npcs = keep
 

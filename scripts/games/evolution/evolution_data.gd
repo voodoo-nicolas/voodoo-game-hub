@@ -38,8 +38,10 @@ const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 480
 ## (Before: [0, 20, 32, 36, 32, 28, 28, 23, 20, 18], a third by size 4, 90% by size 10.)
 const LEVEL_DNA := [0, 52, 27, 26, 26, 26, 26, 27, 26, 26]
 
-## Speed multiplier by movement rank (0 = jolting, no tail).
-const MOVE_MULT := [0.0, 0.55, 0.72, 0.88, 1.02, 1.15]
+## Speed multiplier by movement rank (0 = jolting, no tail). Owner 2026-10-29 "the swimming needs to seem fast,
+## agile": the first tail starts at 0.8 (was 0.55), the top stays 1.15. Hunters and fleeing prey scale with your
+## top speed, so the chase balance holds. (Before: [0.0, 0.55, 0.72, 0.88, 1.02, 1.15].)
+const MOVE_MULT := [0.0, 0.8, 0.9, 1.0, 1.08, 1.15]
 
 ## Creatures. Sizes are absolute (`mass`), so as you grow they shrink next to you. `tier` is the player
 ## size level from which a species can appear (prey: its own size; hunters: one size earlier, so they are
