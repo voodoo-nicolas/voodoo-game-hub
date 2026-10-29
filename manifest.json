@@ -238,13 +238,13 @@
     "bunco": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bunco.pck", "scene": "res://scenes/games/bunco/bunco.tscn"},
     "ship_captain_crew": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ship_captain_crew.pck", "scene": "res://scenes/games/ship_captain_crew/ship_captain_crew.tscn"},
     "trivia_battle": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trivia_battle.pck", "scene": "res://scenes/games/trivia_battle/trivia_battle.tscn"},
-    "color_sort": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_sort.pck", "scene": "res://scenes/games/color_sort/color_sort.tscn"},
+    "color_sort": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_sort.pck", "scene": "res://scenes/games/color_sort/color_sort.tscn"},
     "hidato": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hidato.pck", "scene": "res://scenes/games/hidato/hidato.tscn"},
     "sevens": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sevens.pck", "scene": "res://scenes/games/sevens/sevens.tscn"},
     "rummy": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rummy.pck", "scene": "res://scenes/games/rummy/rummy.tscn"},
     "last_shift": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/last_shift.pck", "scene": "res://scenes/games/last_shift/last_shift.tscn"},
     "creation": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/creation.pck", "scene": "res://scenes/games/creation/creation.tscn"},
-    "evolution": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/evolution.pck", "scene": "res://scenes/games/evolution/evolution.tscn"},
+    "evolution": {"version": 13, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/evolution.pck", "scene": "res://scenes/games/evolution/evolution.tscn"},
     "turned": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/turned.pck", "scene": "res://scenes/games/turned/turned.tscn"}
   }
 }
