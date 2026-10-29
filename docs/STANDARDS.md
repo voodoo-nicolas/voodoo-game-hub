@@ -61,6 +61,8 @@ Goal: fewer buttons, no scrolling on the hub home.
 ### 2b. Profile [CURRENT since v0.30.0 — ownership waits for the store; Delete account needs docs/delete_my_account.sql run once]
 Nickname, avatar, hub-wide stats (games played, time, wins), achievements across all games, ownership /
 subscription status, account (sign in/out, sync, delete account), language.
+- [NEW 2026-10-29, owner] **The hub avatar carries into games.** A game with a player avatar (its own player,
+  seat, piece or character) uses the hub profile avatar, if applicable. A game without one ignores it.
 
 ### 2c. Friends [NEW]
 Friend list with online status, requests, add by username or friend code, invite to a game (pick game →
@@ -173,10 +175,12 @@ them too, but editing them changes the global value. Per-game items are stored p
 - Fit viewport width, not a fixed 720. Landscape scales 1280/720. Test at text scale 1.0 and 1.4.
 
 ## 9. Skins & art [CHANGED — "games hard-code dark only" is retired; CURRENT for 4 pilots since 2026-10-06]
-Every game ships two skins when feasible. **Classic is the default**; Voodoo is opt-in. Classic always uses the
+Every game ships two skins when feasible. **Classic mode is the default**; Skull mode is opt-in. Classic always uses the
 game's traditional colours (it does not follow the app's light/dark theme; only menus do).
-- **Classic**: the game's traditional look (e.g. Solitaire = red/blue card backs, white faces, green felt).
-- **Voodoo**: neon on near-black, per `reference/art/ART_STYLE.md`; pieces → skulls/bones, card backs →
+- [NEW 2026-10-29, owner] **Display names: "Classic mode" and "Skull mode".** Skull mode = the neon colours, skulls and
+  other effects added in. Code id stays `voodoo` (saves and manifests use it; renaming needs owner OK).
+- **Classic mode**: the normal classic visual theme, the game's traditional look (e.g. Solitaire = red/blue card backs, white faces, green felt).
+- **Skull mode**: neon on near-black, per `reference/art/ART_STYLE.md`; pieces → skulls/bones, card backs →
   voodoo doll, accents → owner-provided **Lips** motif (`media/common/art/lips.*`, pending delivery).
 - [CHANGED 2026-10-06] Implemented in the Landing kit (copied into every pack, like N7) rather than an APK-side
   `skin.gd`/`SkinDef`: `HomeKit.CLASSIC` colour tokens, ⚙ Options → Look (per game, saved in `user://landing_<ID>.json`),
@@ -340,3 +344,18 @@ game passes it before publishing.
 - Track it: generic achievements for learning stats (e.g. "100 new words"), shown in Profile.
 - **Do not market the hub as kids' education.** Google Play's Families policy then applies, and it conflicts with
   the Drinking Games category. Position it as "brain-boosting for everyone", rated for teens/adults.
+
+## 16. Shared libraries first [NEW 2026-10-29, owner]
+Share anything that more than one game can use. A game builds its own only when no shared piece fits, and
+says so in its notes.
+- **Art and design**: shared sprite library (§10, `media/common/sprites/`), shared backgrounds (§9), the
+  Classic and Skull mode tokens (`reference/art/skins/`). One look per mode across the hub.
+- **Sound effects and music**: shared sound library (§10, `media/common/sfx/`) and the shared `Music` autoload
+  (§10, `music.json`). Synthesized `Sfx` for UI sounds.
+- **Game engines and code**: the Landing kit (N7), the Pad controller (§7), `Auth`, `OnlineMatch` / `OnlineTable`,
+  `Social`, `Achievements`, `GameInfo`, `SaveUtil` (§13). A game copies a shared template only through `hub.py sync`,
+  never its own fork of a shared system.
+- **Full gaming controller option, if the game can use one**: the on-screen Pad (§7, `docs/claude/pad.md`) is the
+  shared controller. Physical gamepad support is [OPEN]: no shared input layer exists yet (`HUB_V2_PLAN.md`
+  decides). Until then a game offers controller options only where it has a mode for them.
+- A new shared piece goes in the shared folder the first time a second game needs it, not later.
