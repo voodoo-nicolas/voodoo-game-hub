@@ -202,6 +202,13 @@ func _test_shelf() -> void:
 	check(e.list_items("agua", "recent", 0, "en").has("water"), "search finds the other language too")
 	check(e.list_items("", "recent", 2, "en").is_empty(), "filter by tier (none found yet in tier 2)")
 	check(e.list_items("", "recent", 1, "en").size() == e.found_count(), "filter tier 1 = all so far")
+	var shown: Array = e.list_items("", "recent", 0, "en", true)
+	var spent_ok := true
+	for id in e.list_items("", "recent", 0, "en"):
+		if shown.has(id) != (e.unfound_uses(id) > 0):
+			spent_ok = false
+	check(spent_ok and shown.size() <= e.found_count(), "hide_spent keeps exactly the items with recipes left")
+	check(e.settings.has("hide_spent") and e.settings.hide_spent == false, "hide_spent setting defaults off")
 	check(E.fold("Árbol Ñandú") == "arbol nandu", "accent folding")
 	check(e.resolve_lang("es_AR") == "es" and e.resolve_lang("en_US") == "en" and e.resolve_lang("fr") == "en", "locale -> language")
 	e.settings.lang = "es"

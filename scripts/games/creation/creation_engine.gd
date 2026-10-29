@@ -17,7 +17,7 @@ const FREE_HINTS_PER_DAY := 3
 const SORT_RECENT := "recent"
 const SORT_AZ := "az"
 const SORT_TIER := "tier"
-const DEFAULT_SETTINGS := {"lang": "auto", "theme": "auto"}
+const DEFAULT_SETTINGS := {"lang": "auto", "theme": "auto", "hide_spent": false}
 
 # ---- data (immutable after load_data) ----
 var items: Dictionary = {}       # id -> {id, name{en,es}, emoji, starter, depth, tier, finale}
@@ -325,12 +325,15 @@ static func fold(s: String) -> String:
 	return t
 
 ## Ids for the shelf. `tier_filter` 0 = all. Search looks in both languages.
+## `hide_spent` drops items with no recipe left to find (unfound_uses == 0).
 ## Locked silhouettes (paid-tier results seen) come last and are not searchable.
-func list_items(query: String, sort: String, tier_filter: int, lang: String) -> Array:
+func list_items(query: String, sort: String, tier_filter: int, lang: String, hide_spent: bool = false) -> Array:
 	var q: String = fold(query.strip_edges())
 	var out: Array = []
 	for id in found:
 		if tier_filter != 0 and tier_of(id) != tier_filter:
+			continue
+		if hide_spent and unfound_uses(id) == 0:
 			continue
 		if q != "":
 			var nm: Dictionary = items[id].name

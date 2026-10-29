@@ -104,6 +104,7 @@ func _run() -> void:
 	game.engine.reset_progress()
 	game.engine.settings = game.engine.DEFAULT_SETTINGS.duplicate()
 	game.engine.settings.lang = "en"
+	game.hide_spent_box.set_pressed_no_signal(false)
 	game.lang = "en"
 	game._rename_everything()
 	for c in game.table.chips():
@@ -242,6 +243,13 @@ func _run() -> void:
 	game.tier_opt.select(0)
 	game.sort_opt.select(0)
 	game.search.text = ""
+	game.hide_spent_box.button_pressed = true
+	await frames(3)
+	var want: int = game.engine.list_items("", "recent", 0, "en", true).size()
+	check(game.engine.settings.hide_spent and game.shelf_flow.get_child_count() == maxi(want, 1), "hide used-up items filters the shelf and is saved")
+	game.hide_spent_box.button_pressed = false
+	await frames(3)
+	check(not game.engine.settings.hide_spent, "hide used-up items turns off")
 	game._rebuild_shelf()
 
 	# --- hints

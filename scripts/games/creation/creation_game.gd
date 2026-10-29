@@ -20,6 +20,7 @@ const Help = preload("res://scripts/games/creation/creation_help.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const DATA_PATH := "res://scripts/games/creation/creation_data.json"
 const SAVE_PATH := "user://creation_save.json"
+const BANNER_PATH := "res://games/creation/banner.webp"
 const MAX_CHIPS := 36
 const TABLE_CHIP := Vector2(116, 104)
 const SHELF_CHIP := Vector2(100, 90)
@@ -52,6 +53,8 @@ var scroll_timer: Timer
 var ghost: Label
 var shelf_drag
 var title_label: Label
+var banner: TextureRect
+var hide_spent_box: CheckBox
 var _modal: ColorRect = null
 var _sort_keys: Array = [CreationEngine.SORT_RECENT, CreationEngine.SORT_AZ, CreationEngine.SORT_TIER]
 
@@ -487,11 +490,20 @@ func _build_ui() -> void:
 	col.add_theme_constant_override("separation", 8)
 	margin.add_child(col)
 
-	# top bar: ⏸  title  💡  📖  ⚙
+	# top bar: ⏸  banner (or title)  💡  📖  ⚙
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 8)
 	col.add_child(top)
 	top.add_child(_icon_button("⏸", _on_pause))
+	if ResourceLoader.exists(BANNER_PATH):
+		banner = TextureRect.new()
+		banner.texture = load(BANNER_PATH)
+		banner.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		banner.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		banner.custom_minimum_size = Vector2(0, 128)
+		banner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(banner)
 	title_label = Label.new()
 	title_label.text = "⚗️ " + Help.TITLE
 	title_label.add_theme_font_size_override("font_size", 28)
@@ -499,6 +511,7 @@ func _build_ui() -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title_label.clip_text = true
+	title_label.visible = banner == null  # the banner image replaces the text title
 	top.add_child(title_label)
 	hint_btn = _icon_button("💡", _on_hint)
 	hint_btn.custom_minimum_size = Vector2(104, 62)
@@ -513,6 +526,13 @@ func _build_ui() -> void:
 	count_label.add_theme_font_size_override("font_size", 22)
 	count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	counts.add_child(count_label)
+	hide_spent_box = CheckBox.new()
+	hide_spent_box.text = tr("Hide used-up items")
+	hide_spent_box.tooltip_text = tr("Hide items that are not in any recipe you haven't found yet.")
+	hide_spent_box.button_pressed = bool(engine.settings.get("hide_spent", false))
+	hide_spent_box.add_theme_font_size_override("font_size", 20)
+	hide_spent_box.toggled.connect(_on_hide_spent_toggled)
+	counts.add_child(hide_spent_box)
 	count_bar = ProgressBar.new()
 	count_bar.show_percentage = false
 	count_bar.custom_minimum_size = Vector2(0, 10)
@@ -694,6 +714,10 @@ func _set_skin(name: String) -> void:
 	ui.theme = _make_theme()
 	title_label.add_theme_color_override("font_color", pal.text)
 	count_label.add_theme_color_override("font_color", pal.text)
+	for st in ["checked", "checked_disabled"]:
+		hide_spent_box.add_theme_icon_override(st, _check_icon(true))
+	for st in ["unchecked", "unchecked_disabled"]:
+		hide_spent_box.add_theme_icon_override(st, _check_icon(false))
 	info_label.add_theme_color_override("font_color", pal.dim)
 	count_bar.add_theme_stylebox_override("background", _flat(pal.panel, pal.border, 2, 6))
 	count_bar.add_theme_stylebox_override("fill", _flat(pal.accent, pal.accent, 0, 6))
@@ -748,6 +772,33 @@ func _flat(fill: Color, border: Color, width: int = 2, radius: int = 12, margin:
 		sb.set_content_margin_all(margin)
 	return sb
 
+## A drawn check box (the default icons are hard to see on the light theme).
+func _check_icon(on: bool) -> ImageTexture:
+	var n: int = 30
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var edge: Color = pal.accent if on else pal.text
+	for y in n:
+		for x in n:
+			var border: bool = x < 3 or y < 3 or x >= n - 3 or y >= n - 3
+			if border:
+				img.set_pixel(x, y, edge)
+			elif on:
+				img.set_pixel(x, y, pal.accent)
+			else:
+				img.set_pixel(x, y, pal.chip)
+	if on:
+		var tick := Color.WHITE
+		var pts: Array = [Vector2(0.24, 0.52), Vector2(0.43, 0.71), Vector2(0.77, 0.30)]
+		for i in 2:
+			for k in 41:
+				var p: Vector2 = pts[i].lerp(pts[i + 1], k / 40.0) * n
+				for dy in range(-2, 3):
+					for dx in range(-2, 3):
+						if dx * dx + dy * dy <= 5:
+							img.set_pixel(clampi(int(p.x) + dx, 0, n - 1), clampi(int(p.y) + dy, 0, n - 1), tick)
+	return ImageTexture.create_from_image(img)
+
 func _make_theme() -> Theme:
 	var t := Theme.new()
 	t.default_font_size = 22
@@ -771,6 +822,12 @@ func _make_theme() -> Theme:
 		t.set_color("font_focus_color", cls, pal.text)
 		t.set_color("font_hover_pressed_color", cls, pal.text)
 		t.set_color("font_disabled_color", cls, Color(pal.dim, 0.7))
+	var flat := StyleBoxEmpty.new()
+	flat.set_content_margin_all(4)
+	for st in ["normal", "hover", "pressed", "focus", "hover_pressed"]:
+		t.set_stylebox(st, "CheckBox", flat)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		t.set_color(c, "CheckBox", pal.text)
 	t.set_stylebox("normal", "LineEdit", _flat(pal.panel, pal.border, 2, 14, 8))
 	t.set_stylebox("focus", "LineEdit", _flat(pal.panel, pal.accent, 3, 14, 8))
 	t.set_color("font_color", "LineEdit", pal.text)
@@ -1056,13 +1113,18 @@ func _filter_tier() -> int:
 func _on_filter_changed() -> void:
 	_rebuild_shelf()
 
+func _on_hide_spent_toggled(on: bool) -> void:
+	engine.settings.hide_spent = on
+	_rebuild_shelf()
+	_save_game()
+
 func _rebuild_shelf() -> void:
 	if shelf_flow == null:
 		return
 	for c in shelf_flow.get_children():
 		shelf_flow.remove_child(c)
 		c.queue_free()
-	var ids: Array = engine.list_items(search.text, _filter_sort(), _filter_tier(), lang)
+	var ids: Array = engine.list_items(search.text, _filter_sort(), _filter_tier(), lang, hide_spent_box.button_pressed)
 	for id in ids:
 		var c: Chip
 		if engine.is_found(id):

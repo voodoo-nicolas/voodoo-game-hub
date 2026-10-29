@@ -48,6 +48,8 @@ const STRINGS := {
 		"Glass is made by melting sand at very high temperatures.": "El vidrio se hace fundiendo arena a temperaturas muy altas.",
 		"Hard": "Difícil",
 		"Help": "Ayuda",
+		"Hide items that are not in any recipe you haven't found yet.": "Oculta los elementos que no están en ninguna receta que aún no hayas descubierto.",
+		"Hide used-up items": "Ocultar agotados",
 		"Hint: something needs %s": "Pista: algo necesita %s",
 		"Hint: try %s with %s": "Pista: prueba %s con %s",
 		"Hints used": "Pistas usadas",
