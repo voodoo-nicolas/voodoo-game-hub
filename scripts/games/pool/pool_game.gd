@@ -509,7 +509,7 @@ func _draw_field() -> void:
 			HomeKit.glow_circle(c, pp, pr, RAIL_COL, 1.5)
 	var ky := o.y + PoolEngine.KITCHEN_Y * k
 	c.draw_line(Vector2(surf.position.x, ky), Vector2(surf.end.x, ky), Color(1, 1, 1, 0.12 if not engine.break_shot else 0.3), 1.0)
-	c.draw_circle(o + PoolEngine.FOOT * k, 2.5, Color(1, 1, 1, 0.3))
+	_disc(c, o + PoolEngine.FOOT * k, 2.5, Color(1, 1, 1, 0.3))
 	# Guide line.
 	if phase == "aim" or phase == "cpu":
 		_draw_guide(c, o, k)
@@ -574,30 +574,30 @@ func _draw_ball(c: CanvasItem, p: Vector2, r: float, n: int) -> void:
 		_draw_classic_ball(c, p, r, n)
 		return
 	if n == 0:
-		c.draw_circle(p, r, Color(0.92, 0.95, 1.0))
-		HomeKit.glow_circle(c, p, r, HomeKit.WHITE, 1.2)
+		_disc(c, p, r, Color(0.92, 0.95, 1.0))
+		_halo(c, p, r, HomeKit.WHITE, 1.2)
 		return
 	if n == 8:
-		c.draw_circle(p, r, Color(0.06, 0.06, 0.08))
-		HomeKit.glow_circle(c, p, r, Color(0.8, 0.8, 0.9), 1.2)
+		_disc(c, p, r, Color(0.06, 0.06, 0.08))
+		_halo(c, p, r, Color(0.8, 0.8, 0.9), 1.2)
 	else:
 		var col: Color = BALL_COLS[n if n < 8 else n - 8]
 		if n < 8:
-			c.draw_circle(p, r, col.darkened(0.15))
+			_disc(c, p, r, col.darkened(0.15))
 		else:
-			c.draw_circle(p, r, Color(0.9, 0.92, 0.96))
+			_disc(c, p, r, Color(0.9, 0.92, 0.96))
 			var band := PackedVector2Array()
 			for i in 25:
 				var a := TAU * i / 24.0
 				band.append(p + Vector2(cos(a), clampf(sin(a), -0.55, 0.55)) * r)
 			c.draw_colored_polygon(band, col.darkened(0.15))
-		HomeKit.glow_circle(c, p, r, col, 1.2)
+		_halo(c, p, r, col, 1.2)
 	if r >= 11.0:
-		c.draw_circle(p, r * 0.45, Color(1, 1, 1, 0.9))
+		_disc(c, p, r * 0.45, Color(1, 1, 1, 0.9))
 		var font := ThemeDB.fallback_font
 		var fs := int(r * 0.75)
 		c.draw_string(font, p + Vector2(-r, fs * 0.36), str(n), HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, Color(0.05, 0.05, 0.08))
-	c.draw_circle(p + Vector2(-r * 0.35, -r * 0.4), r * 0.18, Color(1, 1, 1, 0.5))
+	_disc(c, p + Vector2(-r * 0.35, -r * 0.4), r * 0.18, Color(1, 1, 1, 0.5))
 
 ## Classic: solid traditional colours, a soft shadow on the cloth, no glow.
 func _draw_classic_ball(c: CanvasItem, p: Vector2, r: float, n: int) -> void:
@@ -608,9 +608,9 @@ func _draw_classic_ball(c: CanvasItem, p: Vector2, r: float, n: int) -> void:
 	elif n != 0:
 		col = CLASSIC_BALLS[n if n < 8 else n - 8]
 	var face: Color = ivory if n > 8 else col
-	c.draw_circle(p + Vector2(r * 0.18, r * 0.24), r * 1.02, Color(0, 0, 0, 0.35))
-	c.draw_circle(p, r, face.darkened(0.3))
-	c.draw_circle(p - Vector2(r, r) * 0.1, r * 0.88, face)
+	_disc(c, p + Vector2(r * 0.18, r * 0.24), r * 1.02, Color(0, 0, 0, 0.35))
+	_disc(c, p, r, face.darkened(0.3))
+	_disc(c, p - Vector2(r, r) * 0.1, r * 0.88, face)
 	if n > 8:
 		var band := PackedVector2Array()
 		for i in 25:
@@ -618,10 +618,64 @@ func _draw_classic_ball(c: CanvasItem, p: Vector2, r: float, n: int) -> void:
 			band.append(p + Vector2(cos(a) * 0.97, clampf(sin(a), -0.55, 0.55)) * r)
 		c.draw_colored_polygon(band, col)
 	if n != 0 and r >= 9.0:
-		c.draw_circle(p, r * 0.45, ivory)
+		_disc(c, p, r * 0.45, ivory)
 		var fs := int(r * 0.75)
 		c.draw_string(ThemeDB.fallback_font, p + Vector2(-r, fs * 0.36), str(n), HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, Color(0.05, 0.05, 0.08))
-	c.draw_circle(p + Vector2(-r * 0.35, -r * 0.4), r * 0.2, Color(1, 1, 1, 0.55))
+	_disc(c, p + Vector2(-r * 0.35, -r * 0.4), r * 0.2, Color(1, 1, 1, 0.55))
+
+## Balls are drawn from two textures (one draw each): draw_circle and
+## draw_arc cost 60-110 µs a call in Godot 4.7, and 16 balls redraw every frame.
+static var _disc_tex: Array = []  # white discs, 16 / 64 / 256 px
+static var _halo_tex: Texture2D   # a soft ring: the neon glow round a ball
+
+func _disc_texture(px: float) -> Texture2D:
+	if _disc_tex.is_empty():
+		for s in [16, 64, 256]:
+			var g := Gradient.new()
+			g.set_offset(0, 0.0)
+			g.set_color(0, Color.WHITE)
+			g.set_offset(1, 1.0)
+			g.set_color(1, Color(1, 1, 1, 0))
+			g.add_point(1.0 - 2.0 / float(s), Color.WHITE)  # solid to one texel from the rim
+			var tex := GradientTexture2D.new()
+			tex.gradient = g
+			tex.fill = GradientTexture2D.FILL_RADIAL
+			tex.fill_from = Vector2(0.5, 0.5)
+			tex.fill_to = Vector2(1.0, 0.5)
+			tex.width = s
+			tex.height = s
+			_disc_tex.append(tex)
+	if px <= 16.0:
+		return _disc_tex[0]
+	return _disc_tex[1] if px <= 64.0 else _disc_tex[2]
+
+## A filled circle (like draw_circle).
+func _disc(c: CanvasItem, p: Vector2, r: float, col: Color) -> void:
+	if r > 0.0:
+		c.draw_texture_rect(_disc_texture(r * 2.0), Rect2(p.x - r, p.y - r, r * 2.0, r * 2.0), false, col)
+
+## The neon glow round a ball of radius r (was HomeKit.glow_circle: 3 arcs).
+## w is kept for the old call's shape.
+func _halo(c: CanvasItem, p: Vector2, r: float, col: Color, _w: float = 1.2) -> void:
+	if _halo_tex == null:
+		var g := Gradient.new()
+		g.set_offset(0, 0.0)
+		g.set_color(0, Color(1, 1, 1, 0))
+		g.set_offset(1, 1.0)
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.62, Color(1, 1, 1, 0))
+		g.add_point(0.70, Color(1, 1, 1, 1))  # the ball's edge at 1/1.4 of the halo
+		g.add_point(0.74, Color(1, 1, 1, 0.45))
+		var tex := GradientTexture2D.new()
+		tex.gradient = g
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(1.0, 0.5)
+		tex.width = 128
+		tex.height = 128
+		_halo_tex = tex
+	var hr := r * 1.4
+	c.draw_texture_rect(_halo_tex, Rect2(p.x - hr, p.y - hr, hr * 2.0, hr * 2.0), false, col)
 
 # ---------- spin ----------
 
