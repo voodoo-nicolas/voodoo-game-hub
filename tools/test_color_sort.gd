@@ -10,7 +10,7 @@ const S = preload("res://scripts/games/color_sort/color_sort_solver.gd")
 func _init() -> void:
 	var fails := 0
 	var e = E.new()
-	# Spec ramp: colours never shrink, 14 only very late, vials <= 18, cap 3..6.
+	# Spec ramp: colours never shrink, the top count only very late, vials <= MAX_VIALS, cap 3..6.
 	var prev_colors := 0
 	for n in range(1, 400):
 		var sp: Dictionary = E.spec_for(n)
@@ -21,7 +21,7 @@ func _init() -> void:
 		if sp.colors + sp.empty > E.MAX_VIALS or sp.cap < 3 or sp.cap > 6 or sp.colors > E.MAX_COLORS:
 			fails += 1
 			print("FAIL: spec out of range at ", n)
-	if E.spec_for(99).colors > 10 or E.spec_for(1000).colors != 14:
+	if E.spec_for(99).colors > 10 or E.spec_for(1000).colors != E.MAX_COLORS:
 		fails += 1
 		print("FAIL: colour ramp")
 	# Generated levels: shape, counts, determinism, solvable.

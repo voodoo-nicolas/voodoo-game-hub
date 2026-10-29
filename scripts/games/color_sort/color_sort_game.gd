@@ -20,18 +20,21 @@ const SAVE_PATH := "user://color_sort_save.json"
 const PROGRESS_PATH := "user://color_sort_progress.json"
 const OPTS_PATH := "user://color_sort_opts.json"
 const LEVEL_NAMES := ["Easy", "Normal", "Hard", "Expert"]
-## Fourteen colours; most levels use far fewer.
+## Eighteen colours; most levels use far fewer.
 const CLASSIC_COLORS := [Color("e63946"), Color("f4a261"), Color("f1d34a"), Color("2a9d8f"), Color("3a86ff"),
 	Color("8d5bd6"), Color("ff6fa8"), Color("4cc26a"), Color("9aa0aa"), Color("8d5524"),
-	Color("17c3e8"), Color("7a1f3d"), Color("c6f432"), Color("2b2d7a")]
+	Color("17c3e8"), Color("7a1f3d"), Color("c6f432"), Color("2b2d7a"),
+	Color("ffd6a5"), Color("3d5a2a"), Color("e0aaff"), Color("4a4e69")]
 const NEON_COLORS := [Color("ff2b4f"), Color("ff9a2b"), Color("fff23a"), Color("29e6a6"), Color("3a8cff"),
 	Color("b36bff"), Color("ff2bd6"), Color("7dff3a"), Color("c9d2e6"), Color("c98a4a"),
-	Color("17f0ff"), Color("a3004f"), Color("c6ff2b"), Color("5a4dff")]
-## Okabe-Ito based (safe for the common kinds of colour blindness), plus six more
-## that differ in lightness; the patterns do the rest.
+	Color("17f0ff"), Color("a3004f"), Color("c6ff2b"), Color("5a4dff"),
+	Color("ffb4a2"), Color("0b6e4f"), Color("e0b0ff"), Color("9bf6ff")]
+## Okabe-Ito based (safe for the common kinds of colour blindness), plus ten more
+## that differ in lightness; the shapes (colour-blind shapes option) do the rest.
 const SAFE_COLORS := [Color("e69f00"), Color("56b4e9"), Color("009e73"), Color("f0e442"), Color("0072b2"),
 	Color("d55e00"), Color("cc79a7"), Color("999999"), Color("1b2a5e"), Color("a8e6cf"),
-	Color("7b4a12"), Color("c3b1e1"), Color("f2f2f2"), Color("6b7a1a")]
+	Color("7b4a12"), Color("c3b1e1"), Color("f2f2f2"), Color("6b7a1a"),
+	Color("332288"), Color("88ccee"), Color("117733"), Color("aa4499")]
 ## Voodoo-skin sounds, synthesized from Sfx recipes (see scripts/common/sfx.gd): only this
 ## game uses them, so they live here. Apps without Sfx._render fall back to library sounds.
 const POTION_SOUNDS := {
@@ -50,11 +53,12 @@ const POTION_SOUNDS := {
 ## Names of the colours above, for the Color names learning option (tr() to translate;
 ## the English + Spanish mode reads the Spanish from the i18n file).
 const CLASSIC_NAMES := ["Red", "Orange", "Yellow", "Teal", "Blue", "Purple", "Pink", "Green", "Gray", "Brown",
-	"Cyan", "Maroon", "Lime", "Indigo"]
+	"Cyan", "Maroon", "Lime", "Navy", "Peach", "Olive", "Lavender", "Slate"]
 const SAFE_NAMES := ["Orange", "Sky blue", "Green", "Yellow", "Blue", "Vermilion", "Orchid", "Gray", "Navy", "Mint",
-	"Brown", "Lilac", "Pearl", "Olive"]
+	"Brown", "Lilac", "Pearl", "Olive", "Indigo", "Light blue", "Forest", "Plum"]
 const I18N = preload("res://scripts/games/color_sort/color_sort_i18n.gd")
-const PATTERNS := 14
+const PATTERNS := 18
+const CENTER_KINDS := 4
 const POUR_TIME := 0.32
 ## Free economy (no ads, no purchases): hints and extra vials are earned by playing.
 const START_HINTS := 3
@@ -81,6 +85,7 @@ var fail_dialog: ColorRect
 var banner_label: Label
 var selected: int = -1
 var playing: bool = false
+var timed: bool = false           # Timed challenge: the level must be beaten before its clock runs out
 var solved_shown: bool = false
 var ended: bool = false           # failed (out of moves / time): the level is over
 var was_locked: Array = []        # to notice a padlock opening / a cork popping
@@ -93,9 +98,9 @@ var toast_text: String = ""
 var toast_t: float = 0.0
 
 ## Player choices (OPTS_PATH): colour-blind palette, pattern overlay.
-var opts: Dictionary = {"safe": false, "patterns": true, "names": 0}  # names: 0 off, 1 my language, 2 English + Spanish
+var opts: Dictionary = {"safe": false, "patterns": false, "names": 0}  # patterns = colour-blind shapes; names: 0 off, 1 my language, 2 English + Spanish
 ## Campaign progress (PROGRESS_PATH): next level, best result per level.
-var progress: Dictionary = {"level": 1, "best": {}, "hints": START_HINTS, "vials": START_VIALS, "day": 0}
+var progress: Dictionary = {"level": 1, "best": {}, "hints": START_HINTS, "vials": START_VIALS, "day": 0, "timed_level": 1}
 
 var elapsed: float = 0.0
 var clock: float = 0.0
@@ -228,7 +233,8 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = [{"text": "▶ Play", "sub": tr("Level %d") % int(progress.level), "key": "campaign",
-		"action": _start_campaign}]
+		"action": _start_campaign}, {"text": "⏱ Timed", "sub": tr("Level %d") % int(progress.timed_level), "key": "timed",
+		"action": _start_timed}]
 	for i in 4:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard", "🤯 Expert"][i], "sub": "%d colors" % CSEngine.LEVELS[i].colors, "row": "lvl",
 			"action": _new_game.bind(i)})
@@ -265,7 +271,7 @@ func _button(text: String, action: Callable) -> Button:
 func _add_options(box: VBoxContainer) -> void:
 	box.add_child(home.section(tr("Colors")))
 	box.add_child(home.choice_row(["Standard", "Color-blind safe"], 1 if opts.safe else 0, _on_pick_palette))
-	box.add_child(home.section(tr("Patterns on the colors")))
+	box.add_child(home.section(tr("Color-blind shapes")))
 	box.add_child(home.choice_row(["On", "Off"], 0 if opts.patterns else 1, _on_pick_patterns))
 	box.add_child(home.section(tr("Color names")))
 	box.add_child(home.choice_row(["No names", "Names", "English + Español"], int(opts.names), _on_pick_names))
@@ -289,7 +295,7 @@ func _load_opts() -> void:
 	var d = SaveUtil.read(OPTS_PATH)
 	if d is Dictionary:
 		opts.safe = bool(d.get("safe", false))
-		opts.patterns = bool(d.get("patterns", true))
+		opts.patterns = bool(d.get("patterns", false))
 		opts.names = clampi(int(d.get("names", 0)), 0, 2)
 
 func _save_opts() -> void:
@@ -304,6 +310,7 @@ func _load_progress() -> void:
 		progress.hints = clampi(int(d.get("hints", START_HINTS)), 0, MAX_HINTS)
 		progress.vials = clampi(int(d.get("vials", START_VIALS)), 0, MAX_VIALS_STOCK)
 		progress.day = int(d.get("day", 0))
+		progress.timed_level = maxi(1, int(d.get("timed_level", 1)))
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
@@ -506,6 +513,8 @@ func _kind_color(kind: String) -> Color:
 			return Color("ff2b4f")
 		"pressure":
 			return Color("3a8cff")
+		"hidden":
+			return Color("7f8cff")
 	return Color.WHITE
 
 func _kind_title(kind: String) -> String:
@@ -526,6 +535,8 @@ func _kind_title(kind: String) -> String:
 			return tr("Boss level")
 		"pressure":
 			return tr("Pressure")
+		"hidden":
+			return tr("Hidden colors")
 	return ""
 
 func _kind_hint(kind: String) -> String:
@@ -546,6 +557,8 @@ func _kind_hint(kind: String) -> String:
 			return tr("Several rules at once. Good luck!")
 		"pressure":
 			return tr("The big vial leaks a layer back every few pours.")
+		"hidden":
+			return tr("Layers stay hidden until they reach the top of their vial.")
 	return ""
 
 ## The layers of vial i to show: [colour, lo, hi] in layer units (so a pour can be
@@ -911,6 +924,20 @@ func _draw_symbol(ctr: Vector2, s: float, c: int, col: Color) -> void:
 		12:
 			for d in [-0.6, 0.0, 0.6]:
 				table.draw_line(ctr + Vector2(-s * 0.8 + d * s, s * 0.8), ctr + Vector2(s * 0.2 + d * s, -s * 0.8), col, 2.5)
+		14:
+			table.draw_arc(ctr, s * 0.8, 0.0, TAU, 18, col, 3.0)
+			table.draw_circle(ctr, s * 0.3, col)
+		15:
+			table.draw_rect(Rect2(ctr + Vector2(-s * 0.3, -s), Vector2(s * 0.6, s * 2.0)), col)
+			table.draw_rect(Rect2(ctr + Vector2(-s, -s * 0.3), Vector2(s * 2.0, s * 0.6)), col)
+		16:
+			table.draw_polyline(PackedVector2Array([ctr + Vector2(-s, -s), ctr + Vector2(-s * 0.2, 0), ctr + Vector2(-s * 0.8, 0), ctr + Vector2(s, s)]), col, 3.0)
+		17:
+			var pent := PackedVector2Array()
+			for i in 5:
+				var a3 := -PI / 2.0 + i * TAU / 5.0
+				pent.append(ctr + Vector2(cos(a3), sin(a3)) * s)
+			table.draw_colored_polygon(pent, col)
 		_:
 			var half := PackedVector2Array()
 			for i in 9:
@@ -931,10 +958,25 @@ func _draw_home_logo(c: Control) -> void:
 
 # ---------- central vial ----------
 
-## Outline of the central vial in a 0..1 box: heart (Classic) or skull (Voodoo).
+## Which big vial this level has: 0 = heart (Classic) or skull (Voodoo), 1..3 = a round
+## flask, a tall slim tube or a teardrop. It changes every few central-vial levels.
+func _center_kind() -> int:
+	if engine.level_no <= 0:
+		return 0
+	return (engine.level_no / 3) % CENTER_KINDS
+
+## Outline of the central vial in a 0..1 box: heart (Classic) or skull (Voodoo), or one of the flasks.
 func _unit_shape() -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	if _is_classic():
+	var kind := _center_kind()
+	if kind > 0:
+		for s in 25:
+			var v: float = s / 24.0
+			pts.append(Vector2(0.5 - 0.5 * _prof(kind, 1.0 - v, 0.22), v))
+		for s in range(23, -1, -1):
+			var v2: float = s / 24.0
+			pts.append(Vector2(0.5 + 0.5 * _prof(kind, 1.0 - v2, 0.22), v2))
+	elif _is_classic():
 		for i in 56:
 			var t: float = i * TAU / 56.0
 			var x: float = 16.0 * pow(sin(t), 3.0)
@@ -953,7 +995,7 @@ func _unit_shape() -> PackedVector2Array:
 	return pts
 
 func _center_poly(r: Rect2) -> PackedVector2Array:
-	var key := "%s|%d|%d|%d|%d" % [skin, int(r.position.x), int(r.position.y), int(r.size.x), int(r.size.y)]
+	var key := "%s|%d|%d|%d|%d|%d" % [skin, _center_kind(), int(r.position.x), int(r.position.y), int(r.size.x), int(r.size.y)]
 	if key != _cpoly_key:
 		_cpoly_key = key
 		_cpoly = PackedVector2Array()
@@ -1027,7 +1069,7 @@ func _draw_center(r: Rect2) -> void:
 	table.draw_polyline(closed, Color(1, 1, 1, 0.75) if _is_classic() else rim, 4.0, true)
 	# shine
 	table.draw_arc(r.position + Vector2(r.size.x * 0.28, r.size.y * 0.3), r.size.x * 0.13, PI * 0.95, PI * 1.55, 8, Color(1, 1, 1, 0.5), 4.0)
-	if not _is_classic():
+	if not _is_classic() and _center_kind() == 0:
 		for e in [0.33, 0.67]:
 			table.draw_circle(r.position + Vector2(r.size.x * e, r.size.y * 0.48), r.size.x * 0.085, Color(0.02, 0.01, 0.05, 0.85))
 		table.draw_colored_polygon(PackedVector2Array([r.position + Vector2(r.size.x * 0.5, r.size.y * 0.6),
@@ -1415,7 +1457,19 @@ func _on_solved() -> void:
 	_skin_sfx("stinger", "win")
 	var msg: String = tr("Moves: %d") % engine.moves
 	var buttons: Array = end_dialog.find_children("*", "Button", true, false)
-	if engine.level_no > 0:
+	if engine.level_no > 0 and timed:
+		progress.timed_level = maxi(int(progress.timed_level), engine.level_no + 1)
+		_save_progress()
+		msg = tr("Beaten in time!") + "
+" + tr("Time left: %s") % _clock_text() + "
+" + msg
+		if info:
+			info.add("Timed levels beaten")
+			info.celebrate(tr("Sorted!"))
+		_sync_up()
+		if buttons.size() > 0:
+			buttons[0].text = tr("Next level")
+	elif engine.level_no > 0:
 		var stars: int = engine.stars_for(engine.moves)
 		var key := str(engine.level_no)
 		var prev: Dictionary = progress.best.get(key, {})
@@ -1588,21 +1642,35 @@ func _level_cell(n: int) -> Button:
 	return b
 
 func _play_level(n: int) -> void:
-	home.start_mode({"text": "Play", "key": "campaign", "action": _new_level.bind(n)})
+	home.start_mode({"text": "Play", "key": "campaign", "action": _play_from_grid.bind(n)})
+
+func _play_from_grid(n: int) -> void:
+	timed = false
+	_new_level(n)
 
 # ---------- Landing (home_kit.gd) ----------
 
 func _new_game(level: int) -> void:
 	SaveUtil.delete(SAVE_PATH)
+	timed = false
 	engine.new_game(level)
 	_begin_play()
 
 func _start_campaign() -> void:
+	timed = false
 	_new_level(int(progress.level))
+
+## Timed challenge: its own run of levels. Each level has a clock (par x 5 + 25 seconds);
+## beat it in time to move on, run out and you try the same level again.
+func _start_timed() -> void:
+	timed = true
+	_new_level(int(progress.timed_level))
 
 func _new_level(n: int) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	engine.load_level(n)
+	if timed and not engine.rules.has("time"):
+		engine.rules["time"] = engine.par * 5 + 25
 	_begin_play()
 
 ## The dialog's first button: the next campaign level, or a new random puzzle.
@@ -1655,6 +1723,7 @@ func _save_game() -> void:
 		return
 	var d: Dictionary = engine.to_dict()
 	d["elapsed"] = int(elapsed)
+	d["timed"] = timed
 	SaveUtil.write(SAVE_PATH, d)
 
 func _resume_text() -> String:
@@ -1663,6 +1732,8 @@ func _resume_text() -> String:
 		return ""
 	var lvl: int = int(d.get("level_no", 0))
 	var mv: String = tr("Moves: %d") % int(d.get("moves", 0))
+	if lvl > 0 and bool(d.get("timed", false)):
+		return tr("⏱ Level %d") % lvl + " · " + mv
 	return (tr("Level %d") % lvl + " · " + mv) if lvl > 0 else mv
 
 func _load_saved_game() -> void:
@@ -1670,6 +1741,7 @@ func _load_saved_game() -> void:
 	if d == null or not engine.from_dict(d) or engine.solved():
 		_new_game(0)
 		return
+	timed = bool(d.get("timed", false))
 	_begin_play()
 	elapsed = float(d.get("elapsed", 0))
 	_render()

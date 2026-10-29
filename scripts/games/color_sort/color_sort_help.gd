@@ -8,10 +8,13 @@ const GOAL := "Pour the liquid until every vial holds a single color."
 const HOW := [
 	"Tap a vial to lift it, then tap another vial to pour its top color there. Tap the same vial again to put it down.",
 	"You can pour onto the same color, or into an empty vial, if there is room. A pour moves the whole top run of one color, as much as fits.",
-	"You win when every vial is empty or full of one color. Every color has its own pattern too, so you never have to rely on color alone. You can turn the patterns off, or pick the color-blind palette, on the setup screen.",
-	"Some levels have a big central vial. It only takes the color shown above it, in that order. Fill it completely and sort every small vial to win.",
+	"You win when every vial is empty or full of one color. There are eighteen colors, and more vials than before.",
+	"For color-blind players: turn on Color-blind shapes on the setup screen, and every color gets its own shape. There is also a color-blind palette.",
+	"Some levels have a big central vial, in different shapes. It only takes the color shown above it, in that order. Fill it completely and sort every small vial to win.",
+	"Some plain levels hide layers too: a layer stays hidden until it reaches the top of its vial.",
 	"↩ Undo takes back a move. ⟲ Reset puts the puzzle back as dealt. ➕ Tube adds an empty vial. 💡 Hint shows the next pour. In the campaign, hints and extra vials are earned: win a level with 3 stars, clear a special level, or just play every day.",
 	"Every 10th level is special: mystery layers, padlocks, a move limit, a timer, sealed corks, blocked pours, and bosses with several rules at once. The banner above the vials tells you the rule.",
+	"⏱ Timed is its own run of levels with a clock on every level. Beat the level before the clock runs out to move on; if it runs out, try the same level again.",
 	"Stars: 3 for finishing within about 15% of the par (the fewest moves we know), 2 within 60%, otherwise 1.",
 	"Turn on Color names on the setup screen to see the name of a color when you pick it up, in your language or in English and Spanish.",
 	"A puzzle in progress is kept; Resume on the Landing carries on.",
@@ -24,7 +27,7 @@ const TIPS := [
 	"Use a hint when you are stuck, not when you are rushed: stars are worth more.",
 ]
 const STATS := ["Puzzles solved", "Levels cleared", "Total stars", "3-star levels", "Highest level", "Special levels cleared",
-	"Bosses beaten", "Fastest level (seconds)", "Fewest moves (Easy)", "Fewest moves (Normal)", "Fewest moves (Hard)", "Fewest moves (Expert)"]
+	"Bosses beaten", "Timed levels beaten", "Fastest level (seconds)", "Fewest moves (Easy)", "Fewest moves (Normal)", "Fewest moves (Hard)", "Fewest moves (Expert)"]
 
 const ACHIEVEMENTS := [
 	{"id": "solved1", "icon": "🧪", "title": "First Sort", "desc": "Solve 5 puzzles", "key": "Puzzles solved", "at": 5},

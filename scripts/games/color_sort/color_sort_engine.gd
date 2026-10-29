@@ -28,8 +28,8 @@ const LEVELS := [
 	{"colors": 10, "empty": 2},
 ]
 const MAX_EXTRA := 1
-const MAX_COLORS := 14
-const MAX_VIALS := 18
+const MAX_COLORS := 18
+const MAX_VIALS := 24
 ## `to` of a pour (and of its history entry) that goes into the central vial.
 const CENTER := -2
 ## First level number of each tier; Master has no end.
@@ -75,21 +75,22 @@ static func tier_of(n: int) -> int:
 
 ## colours, layers, empty vials for campaign level n (1-based). Empty vials go 3 -> 2
 ## and never lower: with a single empty vial the reverse scramble cannot mix the board. 14 colours only
-## appear far into Master; most of the game stays at 10 or fewer.
+## appear far into Master; most of the game stays at 10 or fewer. Every level has
+## three empty vials (more room, more pours).
 ## "center" = number of colours the central vial takes (0 = no central vial): every
 ## third level from 6, two colours from 40 and three from 100 on. They count inside "colors".
+## "hidden" = plain level with hidden layers: every fifth level from 16 (not on special
+## or central-vial levels).
 static func spec_for(n: int) -> Dictionary:
 	n = maxi(1, n)
 	var t := tier_of(n)
 	var colors := 3
 	var capacity := 4
-	var empty := 2
+	var empty := 3
 	match t:
 		0:
 			colors = 3 + (n - 1) / 7
 			capacity = 3 if n < 8 else 4
-			if n <= 10:
-				empty = 3
 		1:
 			colors = 5 + (n - 21) / 10
 			capacity = 4
@@ -100,7 +101,7 @@ static func spec_for(n: int) -> Dictionary:
 			colors = 8 + (n - 91) / 17
 			capacity = 5 if n < 125 else 6
 		_:
-			colors = mini(MAX_COLORS, 10 + (n - 141) / 30)
+			colors = mini(MAX_COLORS, 10 + (n - 141) / 20)
 			capacity = 5 + (n / 5) % 2
 	var special := special_kind(n)
 	if special == "boss":
@@ -114,12 +115,13 @@ static func spec_for(n: int) -> Dictionary:
 			center_colors = 3
 	# the central vial leaks every 8 pours on every ninth level from 27 (not on special ones)
 	var drain := 8 if (center_colors > 0 and n >= 27 and n % 9 == 0 and special == "") else 0
+	var hidden := n >= 16 and n % 5 == 0 and n % 3 != 0 and special == ""
 	# The central vial's colours start in small vials too: room for them is added.
 	var vials: int = colors + empty
 	if center_colors > 0:
 		vials = colors - center_colors + center_vials(capacity, center_colors) + empty
 	return {"level": n, "tier": t, "colors": colors, "cap": capacity, "empty": empty, "center": center_colors,
-		"vials": vials, "special": special, "drain": drain}
+		"vials": vials, "special": special, "drain": drain, "hidden": hidden}
 
 ## "" for a plain level; every tenth level is special, every fiftieth a boss.
 static func special_kind(n: int) -> String:
@@ -153,7 +155,7 @@ func load_level(n: int) -> void:
 	var special: String = spec.special
 	var sol_len := 0
 	var in_table: bool = level_no <= ParTable.PAR.size()
-	if special != "" or int(spec.drain) > 0:
+	if special != "" or int(spec.drain) > 0 or bool(spec.hidden):
 		var att := -2  # -2 = not known yet, -1 = the plain fallback, else the try to use
 		if level_no <= ParTable.ATT.size():
 			att = int(ParTable.ATT[level_no - 1])
@@ -192,7 +194,7 @@ func _make_rules(spec: Dictionary, seed_value: int) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var kind: String = spec.special
-	var r := {"kind": kind if kind != "" else "pressure"}
+	var r := {"kind": kind if kind != "" else ("hidden" if spec.hidden else "pressure")}
 	var n: int = tubes.size()
 	var used := {}
 	var locks: Array = []
@@ -201,7 +203,7 @@ func _make_rules(spec: Dictionary, seed_value: int) -> Dictionary:
 	var corks := 0
 	var pipes := 0
 	match kind:
-		"mystery":
+		"mystery", "hidden":
 			r["mystery"] = true
 		"locked":
 			pours_locks = mini(3, 1 + level_no / 60)

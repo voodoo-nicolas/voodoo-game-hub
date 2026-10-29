@@ -44,11 +44,14 @@ Electricity puzzle: batteries (blue/yellow), wire pieces, bulbs (blue/yellow/gre
 - Balance with bots in throwaway tests: Star Runner/Sky Raider "random or dodging bot survives Easy, mostly dies on Hard"; Cannon Duel CPU vs CPU shots-to-win by level; Pool Hard beats Easy ~90%.
 - Sky Strike: see neon-blast.md.
 
-## Color Sort (id `color_sort`, upgraded 2026-10-16)
-- Liquid vials (cap 3-6), 3-14 colours (14 only far into Master), campaign levels 1..: tiers Easy 1, Medium 21, Hard 51, Expert 91, Master 141 (`color_sort_engine.gd` `spec_for`). A pour moves the whole top run that fits. Empty vials go 3 -> 2, never 1 (the reverse scramble cannot mix with one).
+## Color Sort (id `color_sort`, upgraded 2026-10-16; redo 2026-10-29)
+- Liquid vials (cap 3-6), 3-18 colours (18 only far into Master; `MAX_COLORS`, `MAX_VIALS` 24), campaign levels 1..: tiers Easy 1, Medium 21, Hard 51, Expert 91, Master 141 (`color_sort_engine.gd` `spec_for`). A pour moves the whole top run that fits. Every level has 3 empty vials (was 2; never below 2: the reverse scramble cannot mix with one).
+- Colour-blind shapes: OFF by default; setup option "Color-blind shapes" (`opts.patterns`) draws one of 18 shapes (`_draw_symbol`) on each colour. Palettes: Classic, Voodoo (neon), Color-blind safe (18 colours each; names lists match index).
+- Hidden colours: plain levels n>=16 with n%5==0 and n%3!=0 hide layers (`spec.hidden`, rule kind `hidden`, same mechanic as mystery).
 - Levels are seeded (`load_level(n)`): solved board + reverse un-pours (two cases, see `_unpour_options`), so always solvable. `color_sort_solver.gd` (A*, weight, optional central vial + rules) gives par; stars: 3 up to par x1.15, 2 up to x1.6.
-- Central vial (levels n%3==0 from 6; 2 colours from 40, 3 from 100): takes only the colour it asks for, win = it is full AND the small vials sorted; its colours start in small vials, so extra vials are added (`center_vials`). Pressure (n%9==0 from 27): leaks a layer every 8 pours.
+- Central vial (levels n%3==0 from 6; 2 colours from 40, 3 from 100): takes only the colour it asks for, win = it is full AND the small vials sorted; its colours start in small vials, so extra vials are added (`center_vials`). Shape changes with `(level_no / 3) % 4` (`_center_kind`): heart/skull, round flask, tall tube, teardrop (`_prof`). Pressure (n%9==0 from 27): leaks a layer every 8 pours.
 - Special levels (every 10th, boss every 50th): mystery, locked (pours), limited moves, timer, corks (open when the next vial is full), blocked pours. Rules live in `engine.rules`, are proven solvable by the solver at load (`VERIFY_NODES`/`VERIFY_TRIES`); the try that worked is stored in `color_sort_par.gd` `ATT`.
+- Timed (⏱ on the Landing, own `progress.timed_level`, `timed` flag saved): each level gets `rules.time = par*5+25` (only if it has none); beat it to move on, time-out = try the same level again. No stars; stat "Timed levels beaten".
 - `color_sort_par.gd` (PAR, ATT) is GENERATED: `godot --headless --path . --script res://tools/gen_color_sort_par.gd` (takes ~1 h; run it again whenever generation or rules change, else par/ATT go stale). Test: `tools/test_color_sort.gd`.
 - Economy (no ads): hints/extra vials earned (`_earn`), stock in `user://color_sort_progress.json`. Voodoo skin: bottle shapes, skull corks, candles/bones/doll/book (decor only where the vials leave room), own SFX recipes via `Sfx._render` with fallback to library sounds.
 
