@@ -82,3 +82,19 @@ Covers every `media/CREDITS.json` entry whose `proof` is this file.
 - Not used: `ERROR TREBLE CLEF QUEEN` (the owner's reject), `queen spades2` (an alternate
   Queen of Spades; `queen spades` is used), the third row of the chip sheet (spares).
 - The text inside the art (banners, rings) is decoration made up by the AI, not meant to be read.
+
+## Pool (2026-10-29)
+Given by the owner in chat; AI-generated for the owner, **tool and plan not
+recorded -- owner to confirm** (if it is not ChatGPT, the terms quoted above may
+not apply). Generic pool hall and tables, no brand on them.
+- `pool_landing_src.jpg` (1408x768): pool table with a racked set of balls and
+  two cues in a dim pool hall. Shipped as the Landing background of Pool
+  (`games/pool/landing_bg.jpg`), re-saved as JPEG quality 86.
+- `pool_table_classic_src.jpg` (1024x1024) and `pool_table_voodoo_src.jpg`
+  (1195x896): top-down tables, green cloth with the owner's skull "V" logo in
+  grey-green / navy cloth with the neon skull "V" logo. Not at a pool table's
+  2:1 shape and with one side pocket each, so `tools/pool_table_art.py` cut them
+  into pieces (corner, clean rail, side pocket, diamond, cloth weave, logo) and
+  laid them out again at 2:1 with six pockets and regulation diamonds:
+  `games/pool/table_classic.jpg`, `games/pool/table_voodoo.jpg` (934x1734,
+  JPEG q86).

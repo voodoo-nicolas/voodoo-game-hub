@@ -1,12 +1,14 @@
 extends Control
 
-## Pool: 8-ball on a neon table. Drag on the table to aim (the guide shows
-## the first ball you'll hit and where it goes), set the power, shoot.
-## Vs the computer (3 levels) or two players on one phone.
+## Pool: 8-ball. Drag on the table to aim (the guide shows the first ball
+## you'll hit and where it goes), pick where the cue strikes the white ball
+## (spin), set the power, shoot. Vs the computer (3 levels) or two players on
+## one phone. Classic = wooden table, green cloth; Voodoo = navy cloth, neon
+## balls. The tables are the owner's art laid out at 2:1 by
+## tools/pool_table_art.py.
 
 const PoolEngine = preload("res://scripts/games/pool/pool_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
-const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
@@ -16,14 +18,22 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/pool/pool_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://pool_save.json"
+const SoundLib = preload("res://scripts/games/pool/sound_lib.gd")
+const ART := "res://games/pool/landing_bg.jpg"
+const TABLES := {"classic": "res://games/pool/table_classic.jpg", "voodoo": "res://games/pool/table_voodoo.jpg"}
 
 const LEVELS := ["Easy", "Normal", "Hard"]
-const RAIL := 26.0            # cushion width drawn round the playing surface
+const RAIL := 42.0            # wood + cushion round the playing surface (tools/pool_table_art.py)
 const FELT := Color(0.02, 0.06, 0.09)
 const RAIL_COL := Color("9b4dff")
 const P_COLORS := [Color("29e6ff"), Color("ff2bd6")]
 const BALL_COLS := {1: Color("ffd23b"), 2: Color("3a8cff"), 3: Color("ff3b4f"), 4: Color("9b4dff"), 5: Color("ff8a2b"),
 	6: Color("3bff7d"), 7: Color("c0306a")}
+## Classic: the traditional ball colours.
+const CLASSIC_BALLS := {1: Color("f2b705"), 2: Color("1f48b0"), 3: Color("d2232a"), 4: Color("5a2a86"), 5: Color("ee6a12"),
+	6: Color("15763b"), 7: Color("7a1b22")}
+const CLASSIC_P := [Color("f4efe4"), Color("f6c90e")]
+const CLASSIC_BG := Color("1b130d")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
@@ -44,12 +54,21 @@ var run: int = 0              # balls potted this visit
 var held_turn: int = 0
 var banner := ""
 var banner_t: float = 0.0
+var spin := Vector2.ZERO      # where the cue hits the white ball: x right, y up (top spin)
+var shot_spin := Vector2.ZERO # the spin of the shot in progress (stats)
+var skin := "classic"
+var tables := {}              # skin -> Texture2D
 
 var field: Control
 var p_labels: Array = []
 var power_bar: Control
 var shoot_btn: Button
+var spin_btn: Control         # the small white ball by the power bar
+var spin_panel: Control       # the big one, to pick the spot
+var spin_pad: Control
 var end_dialog: Control
+var bg_neon: Control
+var bg_classic: ColorRect
 
 func _ready() -> void:
 	preload("res://scripts/games/pool/pool_i18n.gd").install(self)
@@ -57,6 +76,7 @@ func _ready() -> void:
 	engine = PoolEngine.new()
 	engine.reset()
 	_build_ui()
+	_music("prepare", "calm", 2)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -65,7 +85,16 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	add_child(HomeKit.backdrop())
+	bg_neon = HomeKit.backdrop()
+	add_child(bg_neon)
+	bg_classic = ColorRect.new()
+	bg_classic.color = CLASSIC_BG
+	bg_classic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg_classic.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(bg_classic)
+	for k in TABLES:
+		if ResourceLoader.exists(TABLES[k]):
+			tables[k] = load(TABLES[k])
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -114,8 +143,14 @@ func _build_ui() -> void:
 	cm.add_theme_constant_override("margin_right", 14)
 	root.add_child(cm)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	row.add_theme_constant_override("separation", 8)
 	cm.add_child(row)
+	spin_btn = Control.new()
+	spin_btn.custom_minimum_size = Vector2(84, 84)
+	spin_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	spin_btn.draw.connect(_draw_spin_small)
+	spin_btn.gui_input.connect(_on_spin_btn_input)
+	row.add_child(spin_btn)
 	row.add_child(_fine_button("⟲", -1))
 	power_bar = Control.new()
 	power_bar.custom_minimum_size = Vector2(0, 84)
@@ -126,10 +161,12 @@ func _build_ui() -> void:
 	row.add_child(power_bar)
 	row.add_child(_fine_button("⟳", 1))
 	shoot_btn = HomeKit.neon_button("🎱 " + tr("Shoot"), HomeKit.LIME, 26, 84)
-	shoot_btn.custom_minimum_size.x = 150
+	shoot_btn.custom_minimum_size.x = 140
 	shoot_btn.set_meta("sfx", "")
 	shoot_btn.pressed.connect(_on_shoot)
 	row.add_child(shoot_btn)
+
+	_build_spin_panel()
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _restart},
@@ -145,13 +182,13 @@ func _build_ui() -> void:
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	modes.append({"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_game.bind(-1)})
 	home = HomeKit.new({
-		"retro": true,
+		"art": ART,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.LIME,
 		"solo_heading": "vs Computer",
 		"subtitle": "8-ball. Solids or stripes, then the black. Chalk up.",
-		"logo": _draw_home_logo,
+		# No "logo" over the art (the picture is already a table); _draw_home_logo stays for reference.
 		"modes": modes,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
@@ -163,13 +200,11 @@ func _build_ui() -> void:
 	add_child(home)
 	if info:
 		add_child(info)
-	var drawer := SettingsDrawer.new()
-	drawer.set("default_frac", 0.05)  # top right, off the table
-	add_child(drawer)
+	_set_skin(skin)
 
 func _fine_button(text: String, dir: int) -> Button:
 	var b := HomeKit.neon_button(text, HomeKit.CYAN, 34, 84)
-	b.custom_minimum_size.x = 84
+	b.custom_minimum_size.x = 70
 	b.focus_mode = Control.FOCUS_NONE
 	b.set_meta("sfx", "")
 	b.button_down.connect(_fine_down.bind(dir))
@@ -199,6 +234,7 @@ func _begin() -> void:
 	result_recorded = false
 	end_dialog.visible = false
 	run = 0
+	_music("play", "calm", 2)
 	_start_turn()
 
 func _human() -> bool:
@@ -213,15 +249,13 @@ func _start_turn() -> void:
 	snapshot = engine.to_dict()
 	if engine.ball_in_hand and not engine.break_shot:
 		_show_banner(tr("Ball in hand: %s") % _name(engine.turn))
+	spin = Vector2.ZERO
 	if _human():
 		phase = "aim"
-		# Point at something sensible to start with.
-		var t: Array = engine.targets(engine.turn)
-		if not t.is_empty() and not engine.break_shot:
-			var c: Array = engine.candidates(engine.turn)
-			var target: Vector2 = engine.balls[t[0]].p if c.is_empty() else engine.balls[0].p + c[0].dir
-			aim = (target - engine.balls[0].p).angle()
-		elif engine.break_shot:
+		# The cue stays where the last shot left it: finding the shot is the
+		# player's job (it used to point at the best pot, so Shoot could just
+		# be spammed). Only the break starts pointing up at the rack.
+		if engine.break_shot:
 			aim = -PI / 2.0
 	else:
 		phase = "cpu"
@@ -247,8 +281,12 @@ func _update_ui() -> void:
 	var mine := phase == "aim" and _human()
 	shoot_btn.disabled = not mine
 	power_bar.modulate.a = 1.0 if mine else 0.4
+	spin_btn.modulate.a = 1.0 if mine else 0.4
+	if not mine:
+		spin_panel.visible = false
 	field.queue_redraw()
 	power_bar.queue_redraw()
+	spin_btn.queue_redraw()
 
 func _turn_aim(d: float) -> void:
 	if phase == "aim" and _human():
@@ -258,12 +296,14 @@ func _turn_aim(d: float) -> void:
 func _on_shoot() -> void:
 	if phase != "aim" or not _human() or not started:
 		return
-	_shoot(Vector2.RIGHT.rotated(aim), power)
+	spin_panel.visible = false
+	_shoot(Vector2.RIGHT.rotated(aim), power, spin)
 
-func _shoot(dir: Vector2, p: float) -> void:
+func _shoot(dir: Vector2, p: float, s: Vector2 = Vector2.ZERO) -> void:
 	snapshot = engine.to_dict()
-	engine.shoot(dir, p)
-	_sfx("hit")
+	engine.shoot(dir, p, s)
+	shot_spin = s
+	SoundLib.play(self, "impact/wood_light", lerpf(-8.0, 0.0, p))
 	phase = "roll"
 	_update_ui()
 
@@ -279,11 +319,11 @@ func _process(delta: float) -> void:
 			for e in engine.step(delta):
 				match e:
 					"click":
-						_sfx("tick")
+						SoundLib.play(self, "casino/chips_collide")
 					"rail":
-						_sfx("tap")
+						SoundLib.play(self, "impact/soft_medium", -4.0)
 					"pot":
-						_sfx("pickup")
+						SoundLib.play(self, "impact/wood_heavy", -2.0)
 			if not engine.moving:
 				_after_shot()
 		"cpu":
@@ -305,6 +345,8 @@ func _after_shot() -> void:
 		if info and _is_me(shooter):
 			info.add("Balls potted", own)
 			info.high("Longest run", run)
+			if shot_spin.length() > 0.25:
+				info.add("Pots with spin", own)
 	if res.foul:
 		_sfx("invalid")
 		_show_banner(tr("Foul: %s") % tr(res.reason) + "\n" + tr("Ball in hand: %s") % _name(engine.turn), 2.4)
@@ -440,29 +482,34 @@ func _draw_field() -> void:
 	var c := field
 	var surf := Rect2(o, Vector2(PoolEngine.W, PoolEngine.H) * k)
 	var outer := surf.grow(RAIL * k)
-	c.draw_rect(outer, Color(0.05, 0.02, 0.09))
-	HomeKit.glow_rect(c, outer, RAIL_COL, 2.0)
-	c.draw_rect(surf, FELT)
-	HomeKit.glow_rect(c, surf, Color(HomeKit.CYAN, 0.6), 1.2)
-	# Diamonds on the rails, the head string and the foot spot.
-	for i in range(1, 4):
-		for sd in [-1.0, 1.0]:
-			var x := surf.position.x + surf.size.x * i / 4.0
-			c.draw_circle(Vector2(x, surf.get_center().y + sd * (surf.size.y / 2.0 + RAIL * k * 0.5)), 2.5, Color(1, 1, 1, 0.6))
-	for i in range(1, 8):
-		if i == 4:
-			continue
-		for sd in [-1.0, 1.0]:
-			var y := surf.position.y + surf.size.y * i / 8.0
-			c.draw_circle(Vector2(surf.get_center().x + sd * (surf.size.x / 2.0 + RAIL * k * 0.5), y), 2.5, Color(1, 1, 1, 0.6))
+	var table: Texture2D = tables.get(skin)
+	if table != null:
+		# The owner's table (rails, pockets, diamonds, cloth) in one picture.
+		c.draw_texture_rect(table, outer, false)
+	else:
+		c.draw_rect(outer, Color(0.05, 0.02, 0.09))
+		HomeKit.glow_rect(c, outer, RAIL_COL, 2.0)
+		c.draw_rect(surf, FELT)
+		HomeKit.glow_rect(c, surf, Color(HomeKit.CYAN, 0.6), 1.2)
+		# Diamonds on the rails, the head string and the foot spot.
+		for i in range(1, 4):
+			for sd in [-1.0, 1.0]:
+				var x := surf.position.x + surf.size.x * i / 4.0
+				c.draw_circle(Vector2(x, surf.get_center().y + sd * (surf.size.y / 2.0 + RAIL * k * 0.5)), 2.5, Color(1, 1, 1, 0.6))
+		for i in range(1, 8):
+			if i == 4:
+				continue
+			for sd in [-1.0, 1.0]:
+				var y := surf.position.y + surf.size.y * i / 8.0
+				c.draw_circle(Vector2(surf.get_center().x + sd * (surf.size.x / 2.0 + RAIL * k * 0.5), y), 2.5, Color(1, 1, 1, 0.6))
+		for i in PoolEngine.POCKETS.size():
+			var pr: float = (PoolEngine.CORNER_R if i != 2 and i != 3 else PoolEngine.SIDE_R) * k
+			var pp: Vector2 = o + PoolEngine.POCKETS[i] * k
+			c.draw_circle(pp, pr, Color.BLACK)
+			HomeKit.glow_circle(c, pp, pr, RAIL_COL, 1.5)
 	var ky := o.y + PoolEngine.KITCHEN_Y * k
 	c.draw_line(Vector2(surf.position.x, ky), Vector2(surf.end.x, ky), Color(1, 1, 1, 0.12 if not engine.break_shot else 0.3), 1.0)
 	c.draw_circle(o + PoolEngine.FOOT * k, 2.5, Color(1, 1, 1, 0.3))
-	for i in PoolEngine.POCKETS.size():
-		var pr: float = (PoolEngine.CORNER_R if i != 2 and i != 3 else PoolEngine.SIDE_R) * k
-		var pp: Vector2 = o + PoolEngine.POCKETS[i] * k
-		c.draw_circle(pp, pr, Color.BLACK)
-		HomeKit.glow_circle(c, pp, pr, RAIL_COL, 1.5)
 	# Guide line.
 	if phase == "aim" or phase == "cpu":
 		_draw_guide(c, o, k)
@@ -496,17 +543,36 @@ func _draw_guide(c: CanvasItem, o: Vector2, k: float) -> void:
 	c.draw_arc(o + ghost * k, PoolEngine.R * k, 0, TAU, 24, col, 1.5, true)
 	var od := (obj - ghost).normalized()
 	c.draw_line(o + obj * k, o + (obj + od * 140.0) * k, Color(col, 0.6), 2.0, true)
-	# Where the cue ball heads after the hit (90° to the object ball's path).
+	# Where the cue ball heads after the hit (90° to the object ball's path),
+	# bent forward by follow or back by draw: the spin it still has when it
+	# gets there (back spin wears off on a long, soft shot).
 	var tang := dir - od * dir.dot(od)
-	if tang.length() > 0.05:
-		c.draw_line(o + ghost * k, o + (ghost + tang.normalized() * 70.0 * tang.length()) * k, Color(1, 1, 1, 0.25), 1.5, true)
-	# The cue stick, pulled back by the power.
-	var back := cue - dir * (PoolEngine.R + 10.0 + power * 60.0)
+	var s: Vector2 = spin if _human() else Vector2.ZERO
+	var r_left: float = PoolEngine.roll_after(s.y, cue.distance_to(ghost), power)
+	var after := tang + dir * r_left * PoolEngine.FOLLOW * dir.dot(od)
+	if after.length() > 0.05:
+		c.draw_line(o + ghost * k, o + (ghost + after * 90.0) * k, Color(1, 1, 1, 0.3), 1.5, true)
+	# The cue stick, pulled back by the power, off centre by the side spin.
+	var off := dir.rotated(PI / 2.0) * s.x * PoolEngine.R * 0.6
+	var back := cue + off - dir * (PoolEngine.R + 10.0 + power * 60.0)
 	var butt := back - dir * 300.0
-	HomeKit.glow_line(c, o + back * k, o + butt * k, HomeKit.GOLD, 3.0)
-	c.draw_line(o + back * k, o + (back - dir * 8.0) * k, HomeKit.WHITE, 4.0)
+	if skin == "voodoo":
+		HomeKit.glow_line(c, o + back * k, o + butt * k, HomeKit.GOLD, 3.0)
+		c.draw_line(o + back * k, o + (back - dir * 8.0) * k, HomeKit.WHITE, 4.0)
+	else:
+		# Maple shaft, dark butt, white ferrule, blue chalked tip.
+		var mid := back - dir * 190.0
+		c.draw_line(o + (back + dir * 2.0) * k, o + butt * k, Color(0, 0, 0, 0.3), 7.0 * k)
+		c.draw_line(o + back * k, o + mid * k, Color("e3cb98"), 4.0 * k)
+		c.draw_line(o + mid * k, o + butt * k, Color("4a2a16"), 6.0 * k)
+		c.draw_line(o + (mid - dir * 8.0) * k, o + (mid - dir * 14.0) * k, Color("d8b25a"), 6.0 * k)
+		c.draw_line(o + (back - dir * 3.0) * k, o + (back - dir * 10.0) * k, Color("f4efe4"), 4.0 * k)
+		c.draw_line(o + back * k, o + (back - dir * 3.0) * k, Color("3a7bd5"), 4.0 * k)
 
 func _draw_ball(c: CanvasItem, p: Vector2, r: float, n: int) -> void:
+	if skin != "voodoo":
+		_draw_classic_ball(c, p, r, n)
+		return
 	if n == 0:
 		c.draw_circle(p, r, Color(0.92, 0.95, 1.0))
 		HomeKit.glow_circle(c, p, r, HomeKit.WHITE, 1.2)
@@ -532,6 +598,172 @@ func _draw_ball(c: CanvasItem, p: Vector2, r: float, n: int) -> void:
 		var fs := int(r * 0.75)
 		c.draw_string(font, p + Vector2(-r, fs * 0.36), str(n), HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, Color(0.05, 0.05, 0.08))
 	c.draw_circle(p + Vector2(-r * 0.35, -r * 0.4), r * 0.18, Color(1, 1, 1, 0.5))
+
+## Classic: solid traditional colours, a soft shadow on the cloth, no glow.
+func _draw_classic_ball(c: CanvasItem, p: Vector2, r: float, n: int) -> void:
+	var ivory := Color("f5f1e4")
+	var col: Color = ivory
+	if n == 8:
+		col = Color("161616")
+	elif n != 0:
+		col = CLASSIC_BALLS[n if n < 8 else n - 8]
+	var face: Color = ivory if n > 8 else col
+	c.draw_circle(p + Vector2(r * 0.18, r * 0.24), r * 1.02, Color(0, 0, 0, 0.35))
+	c.draw_circle(p, r, face.darkened(0.3))
+	c.draw_circle(p - Vector2(r, r) * 0.1, r * 0.88, face)
+	if n > 8:
+		var band := PackedVector2Array()
+		for i in 25:
+			var a := TAU * i / 24.0
+			band.append(p + Vector2(cos(a) * 0.97, clampf(sin(a), -0.55, 0.55)) * r)
+		c.draw_colored_polygon(band, col)
+	if n != 0 and r >= 9.0:
+		c.draw_circle(p, r * 0.45, ivory)
+		var fs := int(r * 0.75)
+		c.draw_string(ThemeDB.fallback_font, p + Vector2(-r, fs * 0.36), str(n), HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, Color(0.05, 0.05, 0.08))
+	c.draw_circle(p + Vector2(-r * 0.35, -r * 0.4), r * 0.2, Color(1, 1, 1, 0.55))
+
+# ---------- spin ----------
+
+func _build_spin_panel() -> void:
+	spin_panel = Control.new()
+	spin_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	spin_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	spin_panel.gui_input.connect(_on_spin_panel_input)
+	spin_panel.visible = false
+	add_child(spin_panel)
+	var veil := ColorRect.new()
+	veil.color = Color(0, 0, 0, 0.72)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	veil.set_anchors_preset(Control.PRESET_FULL_RECT)
+	spin_panel.add_child(veil)
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	spin_panel.add_child(center)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 14)
+	center.add_child(col)
+	col.add_child(HomeKit.label(tr("Where the cue hits the white ball"), 24, HomeKit.WHITE, true, true))
+	spin_pad = Control.new()
+	spin_pad.custom_minimum_size = Vector2(520, 360)
+	spin_pad.mouse_filter = Control.MOUSE_FILTER_STOP
+	spin_pad.draw.connect(_draw_spin_pad)
+	spin_pad.gui_input.connect(_on_spin_pad_input)
+	col.add_child(spin_pad)
+	var hint := HomeKit.label("", 20, HomeKit.DIM, true, true)
+	hint.custom_minimum_size = Vector2(420, 90)
+	hint.name = "Hint"
+	col.add_child(hint)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	col.add_child(row)
+	var reset := HomeKit.neon_button("⊙ " + tr("Centre"), HomeKit.CYAN, 24, 72)
+	reset.custom_minimum_size.x = 170
+	reset.pressed.connect(_set_spin.bind(Vector2.ZERO))
+	row.add_child(reset)
+	var done := HomeKit.neon_button("✓ " + tr("Done"), HomeKit.LIME, 24, 72)
+	done.custom_minimum_size.x = 170
+	done.pressed.connect(_close_spin)
+	row.add_child(done)
+
+func _on_spin_btn_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if phase == "aim" and _human() and started:
+			dragging = ""
+			_set_spin(spin)
+			spin_panel.visible = true
+
+func _close_spin() -> void:
+	spin_panel.visible = false
+
+## A tap on the dark space round the big ball closes it.
+func _on_spin_panel_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_close_spin()
+
+func _pad_radius() -> float:
+	return minf(spin_pad.size.x, spin_pad.size.y) / 2.0 - 40.0
+
+func _on_spin_pad_input(event: InputEvent) -> void:
+	var press: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed
+	var drag: bool = event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0
+	if not press and not drag:
+		return
+	var d: Vector2 = (event.position - spin_pad.size / 2.0) / (_pad_radius() * 0.75)
+	var s := Vector2(d.x, -d.y).limit_length(1.0)
+	if s.length() < 0.1:
+		s = Vector2.ZERO
+	_set_spin(s)
+
+func _set_spin(s: Vector2) -> void:
+	spin = s
+	spin_pad.queue_redraw()
+	spin_btn.queue_redraw()
+	field.queue_redraw()
+	var lines: Array = []
+	if s.y > 0.25:
+		lines.append(tr("Top spin: the white ball follows the ball it hits."))
+	elif s.y < -0.25:
+		lines.append(tr("Back spin: the white ball comes back after a full hit. It wears off on long, soft shots."))
+	if s.x > 0.25:
+		lines.append(tr("Right spin: the white ball kicks to the right off a cushion."))
+	elif s.x < -0.25:
+		lines.append(tr("Left spin: the white ball kicks to the left off a cushion."))
+	if lines.is_empty():
+		lines.append(tr("Centre: a plain hit. Drag on the ball to add spin."))
+	var hint := spin_panel.find_child("Hint", true, false) as Label
+	if hint:
+		hint.text = "\n".join(lines)
+
+## The white ball with the cue's mark on it; r = the ball, the mark stays
+## inside 3/4 of it (further out the cue would slip off).
+func _draw_cue_face(c: CanvasItem, ctr: Vector2, r: float) -> void:
+	c.draw_circle(ctr + Vector2(r * 0.06, r * 0.08), r, Color(0, 0, 0, 0.4))
+	c.draw_circle(ctr, r, Color("d9d4c6"))
+	c.draw_circle(ctr - Vector2(r, r) * 0.06, r * 0.93, Color("f5f1e4"))
+	if skin == "voodoo":
+		HomeKit.glow_circle(c, ctr, r, HomeKit.CYAN, 1.2)
+	var mark := ctr + Vector2(spin.x, -spin.y) * r * 0.75
+	c.draw_circle(mark, maxf(4.0, r * 0.13), Color("d2232a"))
+
+func _draw_spin_small() -> void:
+	var s := spin_btn.size
+	_draw_cue_face(spin_btn, s / 2.0, minf(s.x, s.y) / 2.0 - 6.0)
+
+func _draw_spin_pad() -> void:
+	var c := spin_pad
+	var ctr := c.size / 2.0
+	var r := _pad_radius()
+	_draw_cue_face(c, ctr, r)
+	var faint := Color(0.2, 0.2, 0.25, 0.35)
+	c.draw_line(ctr - Vector2(r * 0.75, 0), ctr + Vector2(r * 0.75, 0), faint, 1.5, true)
+	c.draw_line(ctr - Vector2(0, r * 0.75), ctr + Vector2(0, r * 0.75), faint, 1.5, true)
+	c.draw_arc(ctr, r * 0.75, 0, TAU, 48, faint, 1.5, true)
+	var font := ThemeDB.fallback_font
+	var fs := 20
+	var w := c.size.x
+	c.draw_string(font, Vector2(0, ctr.y - r - 12), tr("Top spin"), HORIZONTAL_ALIGNMENT_CENTER, w, fs, HomeKit.WHITE)
+	c.draw_string(font, Vector2(0, ctr.y + r + 28), tr("Back spin"), HORIZONTAL_ALIGNMENT_CENTER, w, fs, HomeKit.WHITE)
+	c.draw_string(font, Vector2(0, ctr.y + 7), tr("Left spin"), HORIZONTAL_ALIGNMENT_LEFT, ctr.x - r - 8, fs, HomeKit.WHITE)
+	c.draw_string(font, Vector2(ctr.x + r + 8, ctr.y + 7), tr("Right spin"), HORIZONTAL_ALIGNMENT_RIGHT, ctr.x - r - 8, fs, HomeKit.WHITE)
+
+# ---------- skins ----------
+
+## Classic (wooden table, green cloth, traditional balls) or Voodoo (navy
+## cloth with the neon skull, glowing balls). Called by the Landing kit.
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	var neon := skin == "voodoo"
+	bg_neon.visible = neon
+	bg_classic.visible = not neon
+	for i in p_labels.size():
+		p_labels[i].add_theme_color_override("font_color", P_COLORS[i] if neon else CLASSIC_P[i])
+	field.queue_redraw()
+	spin_btn.queue_redraw()
+	spin_pad.queue_redraw()
 
 func _draw_power() -> void:
 	var c := power_bar
@@ -567,6 +799,7 @@ func _draw_home_logo(c: Control) -> void:
 
 func _on_pause() -> void:
 	dragging = ""
+	spin_panel.visible = false
 	held_turn = 0
 	home.pause()
 
@@ -600,9 +833,21 @@ func _load_saved_game() -> void:
 	result_recorded = false
 	end_dialog.visible = false
 	run = 0
+	_music("play", "calm", 2)
 	_start_turn()
 
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+## Background music from the shared library (apps without it stay quiet).
+func _music(what: String, style: String, index: int = 0, fade: float = 1.5) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m == null:
+		return
+	match what:
+		"play":
+			m.play(style, self, index, fade)
+		"prepare":
+			m.prepare(style, index)

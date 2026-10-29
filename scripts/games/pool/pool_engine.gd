@@ -3,6 +3,8 @@ extends RefCounted
 ## Pool: 8-ball on a portrait table. Physics (rolling balls, elastic
 ## collisions, cushions, six pockets) plus the rules: break, open table,
 ## solids (1-7) vs stripes (9-15), fouls with ball in hand, and the 8 last.
+## Spin: where the cue strikes the white ball. Top spin (follow) and back
+## spin (draw) act after it hits a ball; side spin (english) off a cushion.
 ## Also the computer player. World units: the playing surface is W x H,
 ## y grows downwards, the rack sits at the top and the cue ball breaks from
 ## the bottom.
@@ -22,6 +24,12 @@ const CORNER_R := 25.0        # pocket capture radius
 const SIDE_R := 22.0
 const CORNER_MOUTH := 34.0    # no cushion this close to a corner
 const SIDE_MOUTH := 26.0      # ...or this close to a side pocket's middle
+# Spin. The white ball slides first, then the cloth makes it roll; a rolling
+# ball hitting another one full keeps about 2/7 of its speed (NATURAL_ROLL * FOLLOW).
+const FOLLOW := 0.62          # follow / draw at full spin, part of the impact speed
+const NATURAL_ROLL := 0.46    # the spin a rolling ball ends up with
+const SIDE_KICK := 0.38       # sideways speed off a cushion at full side spin, part of the speed into it
+const SPIN_GRAB := 9.0        # how fast the cloth turns leftover spin into motion (per second)
 const POCKETS := [Vector2(-3, -3), Vector2(W + 3, -3), Vector2(-9, H / 2.0), Vector2(W + 9, H / 2.0), Vector2(-3, H + 3), Vector2(W + 3, H + 3)]
 
 var balls: Array = []         # index = number (0 = cue): {"n", "p", "v", "in": still on the table}
@@ -37,6 +45,11 @@ var first_hit: int = -1
 var potted: Array = []
 var rail_after_hit := false
 var shot_targets: Array = []  # what the shooter had to hit, decided before the shot
+# The white ball's spin during a shot: roll = top (+) / back (-), side = right (+) / left (-).
+var roll := 0.0
+var side := 0.0
+var slide_len := 300.0        # how far it slides before rolling (harder = further)
+var spin_push := Vector2.ZERO # follow/draw still to be handed to the white ball
 var rng := RandomNumberGenerator.new()
 
 func reset(seed_: int = -1) -> void:
@@ -128,10 +141,17 @@ func place_cue(p: Vector2) -> bool:
 	balls[0].in = true
 	return true
 
-func shoot(dir: Vector2, power: float) -> void:
+## spin: where the cue hits the white ball, inside the unit circle; x right,
+## y up (top spin).
+func shoot(dir: Vector2, power: float, spin: Vector2 = Vector2.ZERO) -> void:
 	if moving or winner >= 0 or dir.length() < 0.0001:
 		return
 	balls[0].v = dir.normalized() * clampf(power, 0.02, 1.0) * MAX_SPEED
+	spin = spin.limit_length(1.0)
+	roll = spin.y
+	side = spin.x
+	slide_len = slide_length(power)
+	spin_push = Vector2.ZERO
 	moving = true
 	ball_in_hand = false
 	first_hit = -1
@@ -160,9 +180,30 @@ func step(dt: float) -> Array:
 	for b in balls:
 		if b.in and b.v.length() > 0.0:
 			moving = true
+	if balls[0].in and spin_push.length() > STOP:
+		moving = true
 	return ev
 
+static func slide_length(power: float) -> float:
+	return 120.0 + 480.0 * clampf(power, 0.0, 1.0)
+
+## The top/back spin left when the white ball has run dist from the cue.
+static func roll_after(spin_y: float, dist: float, power: float) -> float:
+	return NATURAL_ROLL + (spin_y - NATURAL_ROLL) * exp(-dist / slide_length(power))
+
 func _sub(h: float, ev: Array) -> void:
+	var cue: Dictionary = balls[0]
+	if cue.in:
+		# Spin: draw/follow taking hold after a hit, the slide turning into roll.
+		if spin_push != Vector2.ZERO:
+			var take := spin_push * minf(1.0, SPIN_GRAB * h)
+			cue.v += take
+			spin_push -= take
+			if spin_push.length() < 1.0:
+				spin_push = Vector2.ZERO
+		var run: float = (cue.v as Vector2).length() * h
+		roll = NATURAL_ROLL + (roll - NATURAL_ROLL) * exp(-run / slide_len)
+		side *= exp(-0.5 * h)
 	for b in balls:
 		if not b.in:
 			continue
@@ -195,6 +236,11 @@ func _sub(h: float, ev: Array) -> void:
 			b.p += nn * overlap / 2.0
 			var rel: float = (a.v - b.v).dot(nn)
 			if rel > 0.0:
+				if a.n == 0:
+					# Follow or draw, along the way the white ball was going.
+					var before: Vector2 = a.v
+					spin_push += before.normalized() * roll * FOLLOW * maxf(0.0, before.dot(nn))
+					roll = 0.0
 				var imp := rel * (1.0 + BALL_BOUNCE) / 2.0
 				a.v -= nn * imp
 				b.v += nn * imp
@@ -215,21 +261,17 @@ func _sub(h: float, ev: Array) -> void:
 		if not near_corner_y and not near_side:
 			if p.x < R and b.v.x < 0.0:
 				b.p.x = R
-				b.v.x = -b.v.x * RAIL_BOUNCE
-				_rail(b, ev)
+				_cushion(b, Vector2.RIGHT, ev)
 			elif p.x > W - R and b.v.x > 0.0:
 				b.p.x = W - R
-				b.v.x = -b.v.x * RAIL_BOUNCE
-				_rail(b, ev)
+				_cushion(b, Vector2.LEFT, ev)
 		if not near_corner_x:
 			if p.y < R and b.v.y < 0.0:
 				b.p.y = R
-				b.v.y = -b.v.y * RAIL_BOUNCE
-				_rail(b, ev)
+				_cushion(b, Vector2.DOWN, ev)
 			elif p.y > H - R and b.v.y > 0.0:
 				b.p.y = H - R
-				b.v.y = -b.v.y * RAIL_BOUNCE
-				_rail(b, ev)
+				_cushion(b, Vector2.UP, ev)
 		for k in POCKETS.size():
 			var pr := CORNER_R if k != 2 and k != 3 else SIDE_R
 			if (b.p as Vector2).distance_to(POCKETS[k]) < pr:
@@ -238,6 +280,19 @@ func _sub(h: float, ev: Array) -> void:
 		# Anything that got past the cushion line in a mouth drops in.
 		if b.in and (b.p.x < -R or b.p.x > W + R or b.p.y < -R or b.p.y > H + R):
 			_pot(b, ev)
+
+## Bounces b off a cushion whose face points along n (into the table). Side
+## spin on the white ball kicks it along the cushion: right spin sends a ball
+## driven straight in back out to the shooter's right.
+func _cushion(b: Dictionary, n: Vector2, ev: Array) -> void:
+	var v: Vector2 = b.v
+	var into := -v.dot(n)
+	v += n * into * (1.0 + RAIL_BOUNCE)
+	if b.n == 0 and side != 0.0:
+		v += (-n).rotated(PI / 2.0) * side * SIDE_KICK * into
+		side *= 0.6
+	b.v = v
+	_rail(b, ev)
 
 func _rail(b: Dictionary, ev: Array) -> void:
 	if first_hit >= 0:
@@ -248,6 +303,8 @@ func _rail(b: Dictionary, ev: Array) -> void:
 func _pot(b: Dictionary, ev: Array) -> void:
 	b.in = false
 	b.v = Vector2.ZERO
+	if b.n == 0:
+		spin_push = Vector2.ZERO
 	potted.append(b.n)
 	ev.append("pot")
 
@@ -408,6 +465,10 @@ func clone() -> RefCounted:
 	c.ball_in_hand = ball_in_hand
 	c.break_shot = break_shot
 	c.winner = winner
+	c.roll = roll
+	c.side = side
+	c.slide_len = slide_len
+	c.spin_push = spin_push
 	return c
 
 ## Plays a shot on a copy until the balls have nearly stopped (pots happen

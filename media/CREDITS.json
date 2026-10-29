@@ -3549,6 +3549,45 @@
    "ai_tool": "Google Gemini (owner)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "tools/poker_art_import.py (cut out of the photo, rounded corners / background removed, WebP) (Claude Code)"
+  },
+  {
+   "file": "games/pool/landing_bg.jpg",
+   "what": "Pool Landing background (a racked table and two cues in a dim pool hall)",
+   "source": "reference/art/games/pool_landing_src.jpg (given by the owner in chat)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-29",
+   "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "re-saved as JPEG q86 (Claude Code)"
+  },
+  {
+   "file": "games/pool/table_classic.jpg",
+   "what": "Pool Classic table, top-down (wood rails, green cloth, skull V logo)",
+   "source": "reference/art/games/pool_table_classic_src.jpg (given by the owner in chat)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-29",
+   "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cut and re-laid at 2:1 with six pockets by tools/pool_table_art.py, JPEG q86 (Claude Code)"
+  },
+  {
+   "file": "games/pool/table_voodoo.jpg",
+   "what": "Pool Voodoo table, top-down (wood rails, navy cloth, neon skull V logo)",
+   "source": "reference/art/games/pool_table_voodoo_src.jpg (given by the owner in chat)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-29",
+   "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cut and re-laid at 2:1 with six pockets by tools/pool_table_art.py, JPEG q86 (Claude Code)"
   }
  ]
 }
