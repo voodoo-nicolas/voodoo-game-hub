@@ -31,12 +31,23 @@ const BLUR := [2.6, 1.5, 0.6, 0.0]
 ## nothing (it shows as a faint particle, and at 4 or more levels below it is invisible).
 const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 4800.0]
 
-## DNA points you get for reaching each size (index = size - 1; size 1 gives none, the tree opens at size 2).
-## Owner 2026-10-24: size N of 10 = N/10 of the tree. The whole evolution tree costs 262 DNA: 52 at size 2 (20%),
-## 131 by size 5 (50%), 210 by size 8 (80%), all 262 by size 10. Missions and rare creatures give a little extra
-## on top. Growing is slow (engine `xp_first` / `xp_second` / `xp_ratio`) but the mutations come fast.
-## (Before: [0, 20, 32, 36, 32, 28, 28, 23, 20, 18], a third by size 4, 90% by size 10.)
-const LEVEL_DNA := [0, 52, 27, 26, 26, 26, 26, 27, 26, 26]
+## Growing (owner 2026-10-29, Evolution phase 2): kills it takes to grow from each size to the next (index =
+## size - 1), counting prey one size below you (worth size - 1; at size 1 the smallest dots, worth 1). The xp is
+## kills x that worth (engine `xp_span`): 30, 40, 120, 240, 440, 750, 1200, 1820, 2720. 1,270 kills to size 10;
+## creatures your own size are worth more, so real runs are a little quicker. Size 1 -> 2 stays 30: tail at 5,
+## eye at 12, then eat to size 2 (owner 2026-10-24). (Before: 30 xp, 50 xp, then x1.5 each: ~500 kills.)
+const XP_KILLS := [30, 40, 60, 80, 110, 150, 200, 260, 340]
+
+## DNA earned while growing from each size to the next, ONE point at a time: what you eat fills the 🧬 bar and
+## each full bar is +1 (owner 2026-10-29: "you should never earn more than 1 or 2 dna points at a time, except
+## when eating rare creatures"; "52 dna lands all at once... seems VERY wrong"). About 1 point every 3 kills at
+## size 2, every 10 kills at size 9. Growing to size 2 opens the tree with TREE_DNA. 196 by size 10, plus
+## missions (+1) and rare creatures (+2 to +8): about 230. Past size 10, 1 point every DNA_PAST_10_KILLS kills.
+## (Before, LEVEL_DNA paid each new size at once: [0, 52, 27, 26, 26, 26, 26, 27, 26, 26], the whole 262-DNA
+## tree by size 10. Owner 2026-10-29: the tree will hold 300+ and no run gets all of it: phase 4.)
+const DNA_PER_SIZE := [0, 12, 16, 20, 24, 28, 30, 32, 34]
+const TREE_DNA := 2
+const DNA_PAST_10_KILLS := 10.0
 
 ## Speed multiplier by movement rank (0 = jolting, no tail). Owner 2026-10-29 "the swimming needs to seem fast,
 ## agile": the first tail starts at 0.8 (was 0.55), the top stays 1.15. Hunters and fleeing prey scale with your

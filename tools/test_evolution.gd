@@ -192,7 +192,7 @@ func _init() -> void:
 			check(not fx.tree_unlocked, "still size 1: the tree stays closed")
 	check(meals2 >= 15, "size 2 takes a good while of eating (%d meals)" % meals2)
 	check(fx.tree_unlocked, "size 2 opens the evolution tree")
-	check(fx.dna == int(Data.LEVEL_DNA[1]), "...with its DNA (%d)" % fx.dna)
+	check(fx.dna == Data.TREE_DNA, "...with its 2 DNA, nothing more (%d)" % fx.dna)
 	fx.dna = 5
 	check(fx.buy("burst") == false or fx.node_state("burst") != "locked", "the tree can be used now")
 	var tree_event := false
@@ -951,10 +951,15 @@ func _init() -> void:
 ## N/10 of the tree's DNA; tail and eye at size 1, the tree at size 2; bacteria 1-3, fish 3-6, all sorts 5-10,
 ## sea monsters 9-10; more rare creatures.
 func _growth_and_species() -> void:
-	# xp: size 2 -> 3 = X, every later size 1.5 x the one before; mass follows xp through the size starts
-	check(is_equal_approx(Ev.xp_span(2), Ev.TUNING.xp_second), "size 2 to 3 costs X")
-	for lv in range(2, 10):
-		check(is_equal_approx(Ev.xp_span(lv + 1), Ev.xp_span(lv) * 1.5), "size %d to %d costs 1.5 x size %d to %d" % [lv + 1, lv + 2, lv, lv + 1])
+	# xp (owner 2026-10-29): each size costs Data.XP_KILLS kills of prey one size below (worth size - 1, at size 1
+	# worth 1); 1,270 kills to size 10; mass follows xp through the size starts
+	var kills := 0
+	for lv in range(1, 10):
+		kills += int(Data.XP_KILLS[lv - 1])
+		check(is_equal_approx(Ev.xp_span(lv), float(Data.XP_KILLS[lv - 1]) * float(maxi(lv - 1, 1))), "size %d to %d = %d kills of prey worth %d" % [lv, lv + 1, Data.XP_KILLS[lv - 1], maxi(lv - 1, 1)])
+		check(Ev.xp_span(lv + 1) > Ev.xp_span(lv), "size %d costs more than size %d" % [lv + 1, lv])
+	check(kills == 1270, "1,270 kills to size 10 (%d)" % kills)
+	check(is_equal_approx(Ev.xp_at(10), 7360.0), "7,360 xp to size 10 (%d)" % int(Ev.xp_at(10)))
 	check(Ev.xp_span(1) > float(Ev.TUNING.eye_value), "size 1 lasts past the eye")
 	var blind := Ev.new()
 	blind.reset(9)
@@ -975,19 +980,16 @@ func _growth_and_species() -> void:
 	g.step(1.0 / 60.0, Vector2.ZERO)
 	check(is_equal_approx(g.xp - x0, 1.0), "a size-1 creature is worth 1 xp")
 	check(is_equal_approx(g.player.mass, Ev.mass_of_xp(g.xp)), "mass follows xp")
-	# mutations: size N of 10 = N/10 of the tree's DNA (the tree opens at size 2 with the first two tenths)
+	# mutations (owner 2026-10-29): no DNA lump for a new size; the 🧬 bar pays 1 point at a time as you eat
 	var tree := 0
 	for n in Data.NODES:
 		for k in int(n.max):
 			tree += int(n.cost) + k
-	var got := 0
-	var at := {}
-	for lv in range(1, 11):
-		got += int(Data.LEVEL_DNA[lv - 1])
-		at[lv] = got
-	for lv in range(2, 11):
-		check(absf(float(at[lv]) - float(tree) * float(lv) / 10.0) <= 1.0, "size %d gives %d0%% of the tree (%d of %d)" % [lv, lv, at[lv], tree])
-	check(at[10] == tree, "the whole tree by size 10")
+	var by10 := 0
+	for v in Data.DNA_PER_SIZE:
+		by10 += int(v)
+	check(by10 == 196, "196 DNA from eating by size 10 (%d)" % by10)
+	check(Data.TREE_DNA + by10 < tree, "growing alone never buys the whole tree (%d of %d)" % [Data.TREE_DNA + by10, tree])
 	var d := Ev.new()
 	d.reset(77)
 	d.sight_rank = 2
@@ -995,14 +997,49 @@ func _growth_and_species() -> void:
 	d.food.clear()
 	d._gain_xp(Ev.xp_at(4) - d.xp)
 	d.step(1.0 / 60.0, Vector2.ZERO)
-	check(d.level() == 4 and d.dna == int(Data.LEVEL_DNA[1]) + int(Data.LEVEL_DNA[2]) + int(Data.LEVEL_DNA[3]), "growing to size 4 pays its DNA (%d)" % d.dna)
+	check(d.level() == 4 and d.dna == 0, "growing to size 4 pays no DNA lump (%d)" % d.dna)
 	var lvl_events := 0
 	for ev in d.events:
 		if ev.type == "level":
 			lvl_events += 1
-	check(lvl_events == 3, "...one event per size (%d)" % lvl_events)
-	d.step(1.0 / 60.0, Vector2.ZERO)
-	check(d.dna == int(Data.LEVEL_DNA[1]) + int(Data.LEVEL_DNA[2]) + int(Data.LEVEL_DNA[3]), "...and only once")
+	check(lvl_events == 3, "...one banner event per size (%d)" % lvl_events)
+	# each size's kills pay about its DNA_PER_SIZE, one point at a time, and never more than 1 per meal
+	for lv in range(2, 10):
+		var b := Ev.new()
+		b.reset(900 + lv)
+		b.sight_rank = 2
+		b.tree_unlocked = true
+		b.npcs.clear()
+		b.food.clear()
+		b._gain_xp(Ev.xp_at(lv) - b.xp, false)
+		check(b.level() == lv and b.dna == 0, "size %d reached without DNA" % lv)
+		var worth := float(maxi(lv - 1, 1))
+		var most := 0
+		for k in int(Data.XP_KILLS[lv - 1]):
+			var d0: int = b.dna
+			b._gain_xp(worth)
+			most = maxi(most, b.dna - d0)
+		check(absi(b.dna - int(Data.DNA_PER_SIZE[lv - 1])) <= 1, "size %d -> %d pays %d DNA from eating (%d)" % [lv, lv + 1, Data.DNA_PER_SIZE[lv - 1], b.dna])
+		check(most <= 1, "size %d: never more than 1 DNA per meal" % lv)
+	var big := Ev.new()
+	big.reset(31)
+	big.sight_rank = 2
+	big.tree_unlocked = true
+	big._gain_xp(Ev.xp_at(2) - big.xp, false)
+	big._gain_xp(5000.0)
+	check(big.dna == 1, "one huge meal still pays 1 DNA (%d)" % big.dna)
+	var gift := Ev.new()
+	gift.reset(32)
+	gift.sight_rank = 2
+	gift.tree_unlocked = true
+	gift._gain_xp(Ev.xp_at(3) - gift.xp, false)
+	gift._gain_xp(Ev.xp_span(3) * Ev.TUNING.story_xp, false)
+	check(gift.dna == 0, "a mission's xp gift pays no DNA")
+	var shut := Ev.new()
+	shut.reset(33)
+	shut.sight_rank = 2
+	shut._gain_xp(Ev.xp_at(3) - shut.xp)
+	check(shut.dna == 0 and shut.dna_frac() == 0.0, "no DNA bar before the tree is open")
 	# the creatures around you, by your size
 	var cells := ["beads", "rod", "blob", "chain", "spiral", "tailed", "eyed"]
 	var viruses := ["spiky", "bumpy", "corona", "worm", "phage"]

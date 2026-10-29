@@ -17,9 +17,8 @@ const TUNING := {
 	"eat_ratio": 1.15,          # eater needs mass >= victim mass * eat_ratio
 	"jaws_step": 0.05,          # each point of jaws lowers the ratio by this
 	"absorb": 0.10,             # share of the victim's mass a creature gains when it eats another one (you grow by xp, below)
-	"xp_first": 30.0,           # xp from size 1 to 2: long enough to get the tail and the eye while still size 1 (owner 2026-10-24)
-	"xp_second": 50.0,          # xp from size 2 to 3 (the owner's "X"); every later size costs `xp_ratio` times the one before
-	"xp_ratio": 1.5,            # (owner 2026-10-24: from size 2 on, each size costs 50% more xp than the one before; it was 5 then x2)
+	# xp per size: Data.XP_KILLS (owner 2026-10-29). Before: xp_first 30 (size 1 -> 2), xp_second 50 (the owner's
+	# "X", size 2 -> 3), then xp_ratio 1.5 x the one before (owner 2026-10-24; it was 5 then x2).
 	"food_xp": 0.5,             # xp per food speck (a creature is worth its size level in xp)
 	"food_mass": 1.0,
 	"food_per_area": 4.2e-5,    # food per square world unit of the spawn disc
@@ -144,7 +143,8 @@ var events: Array = []    # this step's events; the game draws effects / banners
 var dna: int = 0
 var xp: float = 0.0       # growth: your mass follows it (`mass_of_xp`); every size needs twice the xp of the one before
 var _mass_seen: float = 0.0   # the mass `xp` was last matched to (code that sets player.mass directly gets re-synced)
-var _lvl_seen: int = 1    # the biggest size reached (each new one pays DNA)
+var _lvl_seen: int = 1    # the biggest size reached (each new one gets a banner)
+var dna_bar := 0.0        # 0..1, the 🧬 bar: eating fills it, a full bar = +1 DNA
 var _warn_cold := false
 var _warn_deep := false
 var owned := {}           # tree node id -> points spent (only ids with 1 or more)
@@ -235,17 +235,23 @@ static func size_level(mass: float) -> int:
 			lv = i + 1
 	return lv
 
-## xp needed to reach a size (size 1 = 0). Size 1 -> 2 costs `xp_first` (30), 2 -> 3 `xp_second` (50), and every
-## later size `xp_ratio` (1.5) times the one before: 30, 50, 75, 112.5, 168.75 ...
+## xp needed to reach a size (size 1 = 0): the sum of the spans below it.
 static func xp_at(lv: int) -> float:
-	if lv <= 1:
-		return 0.0
-	var r: float = TUNING.xp_ratio
-	return TUNING.xp_first + TUNING.xp_second * (pow(r, float(lv - 2)) - 1.0) / (r - 1.0)
+	var x := 0.0
+	for k in range(1, lv):
+		x += xp_span(k)
+	return x
 
-## xp it takes to grow from this size to the next.
+## xp it takes to grow from this size to the next: Data.XP_KILLS kills of prey one size below (worth size - 1,
+## at size 1 worth 1): 30, 40, 120, 240, 440, 750, 1200, 1820, 2720. Past size 10 (the mass keeps growing, the
+## size shown stays 10) each span is 1.3 x the one before.
 static func xp_span(lv: int) -> float:
-	return xp_at(lv + 1) - xp_at(lv)
+	var n: int = Data.XP_KILLS.size()
+	if lv < 1:
+		return 0.0
+	if lv <= n:
+		return float(Data.XP_KILLS[lv - 1]) * float(maxi(lv - 1, 1))
+	return float(Data.XP_KILLS[n - 1]) * float(n - 1) * pow(1.3, float(lv - n))
 
 ## Your mass where size index `i` (0 = size 1) starts. Past size 10 the mass keeps doubling.
 static func mass_anchor(i: int) -> float:
@@ -300,26 +306,50 @@ func _sync_mass() -> void:
 		_mass_seen = player.mass
 
 ## Growing: add xp, and the mass follows. Until the eye opens you stay size 1 (owner 2026-10-24: tail and eye
-## first, then "eat eat eat" to size 2, which opens the tree).
-func _gain_xp(amount: float) -> void:
+## first, then "eat eat eat" to size 2, which opens the tree). `feeds_dna`: what you eat (and Photosynthesis)
+## also fills the 🧬 bar; a mission's xp gift does not (it would pay a lump of DNA).
+func _gain_xp(amount: float, feeds_dna: bool = true) -> void:
 	_sync_mass()
+	var before := xp
 	var cap := xp_at(2) - 0.5
 	if sight_rank < 2 and xp < cap:
 		xp = minf(xp + amount, cap)
 	else:
 		xp += amount
+	if feeds_dna and tree_unlocked:
+		_fill_dna(xp - before)
 	player.mass = mass_of_xp(xp)
 	_mass_seen = player.mass
 	peak_mass = maxf(peak_mass, player.mass)
 
-## Each new size pays DNA (Data.LEVEL_DNA): the mutations come fast while the growing is slow.
+## DNA per xp at your size: Data.DNA_PER_SIZE spread over the size's xp (past size 10: one point per
+## DNA_PAST_10_KILLS kills of prey worth 9).
+func dna_rate() -> float:
+	var lv := level()
+	if lv >= Data.LEVELS.size():
+		return 1.0 / (Data.DNA_PAST_10_KILLS * float(lv - 1))
+	return float(Data.DNA_PER_SIZE[clampi(lv - 1, 0, Data.DNA_PER_SIZE.size() - 1)]) / xp_span(lv)
+
+## The 🧬 bar: eating fills it, a full bar is +1 DNA. Never more than one point per meal (owner 2026-10-29).
+func _fill_dna(gained: float) -> void:
+	if gained <= 0.0:
+		return
+	dna_bar += minf(gained * dna_rate(), 1.0)
+	if dna_bar >= 1.0:
+		dna += 1
+		dna_bar = minf(dna_bar - 1.0, 0.999)
+		events.append({"type": "dna_tick"})
+
+## 0..1: how full the 🧬 bar is.
+func dna_frac() -> float:
+	return clampf(dna_bar, 0.0, 1.0)
+
+## A new size: a banner and the music; DNA comes from the 🧬 bar, never all at once (owner 2026-10-29).
 func _check_level_up() -> void:
 	var lv := level()
 	while _lvl_seen < lv:
 		_lvl_seen += 1
-		var gain: int = int(Data.LEVEL_DNA[clampi(_lvl_seen - 1, 0, Data.LEVEL_DNA.size() - 1)])
-		dna += gain
-		events.append({"type": "level", "level": _lvl_seen, "dna": gain})
+		events.append({"type": "level", "level": _lvl_seen, "dna": 0})
 
 func has(id: String) -> bool:
 	return int(owned.get(id, 0)) > 0
@@ -479,6 +509,7 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	time = 0.0
 	events.clear()
 	dna = 0
+	dna_bar = 0.0
 	xp = 0.0
 	_mass_seen = player.mass
 	_lvl_seen = 1
@@ -1573,9 +1604,10 @@ func _complete(m: Dictionary) -> void:
 			_set_eye()
 		"tree":
 			tree_unlocked = true
-			events.append({"type": "tree"})
+			dna += Data.TREE_DNA        # enough for a first trait right away
+			events.append({"type": "tree", "dna": Data.TREE_DNA})
 		"size":
-			_gain_xp(xp_span(level()) * t("story_xp"))
+			_gain_xp(xp_span(level()) * t("story_xp"), false)
 			events.append({"type": "grow"})
 		"dna":
 			dna += 1

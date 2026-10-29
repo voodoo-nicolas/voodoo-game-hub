@@ -13,6 +13,7 @@ const HOW := [
 	"Missions are on the right, and they turn up as you discover things.",
 	"The smallest dots are worth the least; the bigger the creature, the more it is worth. Things far smaller than you are worth nothing.",
 	"The red bar is your health, the gold bar your growth. Bigger creatures bite when they touch you; they glow red. If your health runs out the run is over. Different kinds of creature also hunt each other.",
+	"Growing to size 2 opens the evolution tree and gives 2 DNA. After that, everything you eat fills the green 🧬 bar under your growth bar: each time it is full you get 1 DNA. Bigger meals fill it faster. Rare creatures give extra DNA.",
 	"Once the tree is open, use the 🧬 screen (middle, next to pause): the game stops while you look. It shows your creature's size, speed, strength and health, and lets you spend DNA on the evolution tree: offense, senses, movement, defense and habitat. A trait shows a ? until you own the traits before it.",
 	"Creatures that can eat you glow red. Toxic ones glow yellow-green, and each kind always causes the same ailment: spiky spores make you brittle, glow spores make you glow, gut worms give a bottomless appetite, mold spores slow your healing. A bar under your health shows how long the ailment lasts.",
 	"Get the same ailment often enough and your body learns to resist it, for free: 10 times for 1/5, then every 20 more, up to 5/5 (immune). The 🧬 screen shows how far you are.",

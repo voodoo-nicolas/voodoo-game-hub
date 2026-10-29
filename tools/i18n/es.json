@@ -8092,5 +8092,9 @@
  "At first only A works. Follow what it says; the stick comes when you are ready to walk.": "Al principio solo funciona A. Haz lo que dice; el joystick aparece cuando ya puedes caminar.",
  "Steer with the stick": "Dirige con el joystick",
  "Jump": "Saltar",
- "Thrust": "Propulsión"
+ "Thrust": "Propulsión",
+ "Size %d!": "¡Tamaño %d!",
+ "+%d DNA": "+%d ADN",
+ "Eating fills the green 🧬 bar: each time it is full you get 1 DNA.": "Al comer se llena la barra verde 🧬: cada vez que se llena ganas 1 ADN.",
+ "Growing to size 2 opens the evolution tree and gives 2 DNA. After that, everything you eat fills the green 🧬 bar under your growth bar: each time it is full you get 1 DNA. Bigger meals fill it faster. Rare creatures give extra DNA.": "Al llegar al tamaño 2 se abre el árbol de evolución y ganas 2 ADN. Después, todo lo que comes llena la barra verde 🧬 debajo de la de crecimiento: cada vez que se llena ganas 1 ADN. Las comidas más grandes la llenan más rápido. Las criaturas raras dan ADN extra."
 }

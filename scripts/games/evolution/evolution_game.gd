@@ -218,6 +218,8 @@ var xp_bar: ProgressBar
 var hp_row: Control
 var sp_row: Control
 var xp_row: Control
+var dna_bar: ProgressBar    # the 🧬 bar: what you eat fills it, a full bar = +1 DNA (owner 2026-10-29)
+var dna_row: Control
 var stage_label: Label
 var env_label: Label
 var ail_box: VBoxContainer
@@ -386,9 +388,12 @@ func _build_ui() -> void:
 	hp_row = _bar_row("HP", hp_bar)
 	sp_row = _bar_row("⚡", sp_bar)
 	xp_row = _bar_row("XP", xp_bar)
+	dna_bar = _bar(Color("7dff3a"))
+	dna_row = _bar_row("🧬", dna_bar)
 	bars_panel.add_child(hp_row)
 	bars_panel.add_child(sp_row)
 	bars_panel.add_child(xp_row)
+	bars_panel.add_child(dna_row)
 	stage_label = Label.new()
 	stage_label.add_theme_font_size_override("font_size", 20)
 	stage_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -856,6 +861,8 @@ func _update_hud() -> void:
 	if e.has_bars():
 		hp_bar.value = e.player.hp / e.max_hp()
 		xp_bar.value = e.xp_frac()
+		dna_row.visible = e.tree_unlocked
+		dna_bar.value = e.dna_frac()
 		sp_row.visible = e.has_actives()
 		sp_bar.value = e.power_frac()
 		stage_label.text = tr(EvEngine.STAGES[e.stage()][1]) + "  ·  " + tr("Size %d") % e.level()
@@ -1071,7 +1078,8 @@ func _handle_events() -> void:
 				_show_popup(tr("You unlocked an eye!"), tr("A slit opens in a lump on your body: an eye! You see farther, and your health and growth bars appear."))
 			"tree":
 				_snd("evolve")
-				_show_popup(tr("The evolution tree is open!"), tr("Spend your DNA on the 🧬 screen, next to pause."))
+				_show_popup(tr("The evolution tree is open!"), tr("Spend your DNA on the 🧬 screen, next to pause.") + "\n" + tr("Eating fills the green 🧬 bar: each time it is full you get 1 DNA."))
+				_banner(tr("+%d DNA") % int(ev.get("dna", 0)))
 			"ailment_end":
 				if info:
 					info.add("Recoveries")             # got sick and lived until it wore off
@@ -1100,12 +1108,16 @@ func _handle_events() -> void:
 				_banner(tr("You grew!"))
 				bump = 0.25
 			"level":
-				_banner(tr("Size %d!  +%d DNA") % [int(ev.level), int(ev.dna)])
+				_banner(tr("Size %d!") % int(ev.level))     # DNA comes one point at a time from the 🧬 bar
 				_play_music()
 				_snd("evolve")
 				bump = 0.3
 			"dna":
 				_banner(tr("+1 DNA"))
+			"dna_tick":
+				# A full 🧬 bar: a green sparkle on you and a soft chime, no banner (it comes every few meals).
+				_spawn_burst(engine.player.pos, Color("7dff3a"), 8, 140.0, 3.0, EvEngine.radius_of(engine.player.mass) * 1.6)
+				_snd("chime", 1.5, -10.0)
 			"seen":
 				pass                # no labels: you find out what things are by meeting them
 			"ailment":
