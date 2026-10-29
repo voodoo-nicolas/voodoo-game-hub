@@ -165,57 +165,7 @@ func _draw() -> void:
 
 ## Little vector icons, one per ability.
 func _icon(id: String, c: Vector2, a: float) -> void:
-	var gold := Color(1, 0.9, 0.4, a)
-	var white := Color(1, 1, 1, a)
-	match id:
-		"burst":
-			draw_colored_polygon(PackedVector2Array([c + Vector2(6, -22), c + Vector2(-10, 3), c + Vector2(-1, 3), c + Vector2(-6, 22), c + Vector2(11, -5), c + Vector2(2, -5)]), gold)
-		"spit":
-			Art.disc(self, c + Vector2(-8, 0), 8.0, Color("9bff5a", a))
-			Art.disc(self, c + Vector2(6, -6), 4.0, Color("9bff5a", a))
-			Art.disc(self, c + Vector2(12, 4), 3.0, Color("9bff5a", a))
-			Art.disc(self, c + Vector2(18, -2), 2.0, Color("9bff5a", a))
-		"shock":
-			Art.strip(self, PackedVector2Array([c + Vector2(-16, -14), c + Vector2(-2, -2), c + Vector2(-8, 2), c + Vector2(8, 14), c + Vector2(2, 2), c + Vector2(10, -2), c + Vector2(16, -14)]), Color("7be0ff", a), 4.0, true)
-		"spine":
-			for k in 8:
-				var d := Vector2.RIGHT.rotated(TAU * float(k) / 8.0)
-				draw_line(c + d * 8.0, c + d * 20.0, white, 3.0, true)
-			Art.disc(self, c, 7.0, white)
-		"lure":
-			draw_line(c + Vector2(-14, 16), c + Vector2(4, -6), white, 3.0, true)
-			Art.disc(self, c + Vector2(8, -10), 8.0, Color(1, 0.95, 0.5, a))
-			Art.arc(self, c + Vector2(8, -10), 14.0, 0.0, TAU, 20, Color(1, 0.95, 0.5, a * 0.6), 2.0, true)
-		"ink":
-			for o in [Vector2(-9, 4), Vector2(0, -6), Vector2(10, 3), Vector2(2, 10)]:
-				Art.disc(self, c + o, 9.0, Color(0.55, 0.45, 0.9, a))
-		"harpoon":
-			draw_line(c + Vector2(-18, 14), c + Vector2(14, -14), Color("d58bff", a), 4.0, true)
-			draw_colored_polygon(PackedVector2Array([c + Vector2(20, -20), c + Vector2(6, -14), c + Vector2(14, -6)]), Color("f0c8ff", a))
-		"decoy":
-			Art.arc(self, c + Vector2(-8, 0), 11.0, 0.0, TAU, 20, white, 3.0, true)
-			Art.arc(self, c + Vector2(9, 0), 11.0, 0.0, TAU, 20, Color(1, 1, 1, a * 0.5), 3.0, true)
-		"limb":
-			Art.disc(self, c + Vector2(-8, 4), 10.0, white)
-			draw_line(c + Vector2(2, -2), c + Vector2(18, -14), Color(1, 0.4, 0.4, a), 4.0, true)
-			draw_line(c + Vector2(10, -16), c + Vector2(20, -6), Color(1, 0.4, 0.4, a), 3.0, true)
-		"suction":
-			for k in 6:
-				var d2 := Vector2.RIGHT.rotated(TAU * float(k) / 6.0)
-				draw_line(c + d2 * 20.0, c + d2 * 9.0, white, 3.0, true)
-			Art.disc(self, c, 5.0, white)
-		"grab":
-			Art.arc(self, c + Vector2(-6, 6), 14.0, PI, TAU * 0.9, 16, white, 4.0, true)
-			Art.arc(self, c + Vector2(8, -4), 11.0, 0.0, PI * 1.4, 16, white, 4.0, true)
-		"sonar":
-			for k in 3:
-				Art.arc(self, c + Vector2(-12, 0), 8.0 + 8.0 * float(k), -0.9, 0.9, 10, Color(0.48, 0.88, 1.0, a), 3.0, true)
-			Art.disc(self, c + Vector2(-12, 0), 4.0, Color(0.48, 0.88, 1.0, a))
-		"camo":
-			Art.arc(self, c, 16.0, PI, TAU, 16, white, 3.0, true)
-			Art.arc(self, c, 16.0, 0.0, PI, 16, white, 3.0, true)
-			Art.disc(self, c, 5.0, white)
-			draw_line(c + Vector2(-16, 14), c + Vector2(16, -14), Color(1, 0.4, 0.4, a), 3.0, true)
+	_icon_on(self, id, c, a)
 
 ## The same icons on any CanvasItem (the Pad draws them on its buttons).
 func _icon_on(ci: CanvasItem, id: String, c: Vector2, a: float) -> void:
@@ -225,48 +175,48 @@ func _icon_on(ci: CanvasItem, id: String, c: Vector2, a: float) -> void:
 		"burst":
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(6, -22), c + Vector2(-10, 3), c + Vector2(-1, 3), c + Vector2(-6, 22), c + Vector2(11, -5), c + Vector2(2, -5)]), gold)
 		"spit":
-			Art.disc(self, c + Vector2(-8, 0), 8.0, Color("9bff5a", a))
-			Art.disc(self, c + Vector2(6, -6), 4.0, Color("9bff5a", a))
-			Art.disc(self, c + Vector2(12, 4), 3.0, Color("9bff5a", a))
-			Art.disc(self, c + Vector2(18, -2), 2.0, Color("9bff5a", a))
+			Art.disc(ci, c + Vector2(-8, 0), 8.0, Color("9bff5a", a))
+			Art.disc(ci, c + Vector2(6, -6), 4.0, Color("9bff5a", a))
+			Art.disc(ci, c + Vector2(12, 4), 3.0, Color("9bff5a", a))
+			Art.disc(ci, c + Vector2(18, -2), 2.0, Color("9bff5a", a))
 		"shock":
-			Art.strip(self, PackedVector2Array([c + Vector2(-16, -14), c + Vector2(-2, -2), c + Vector2(-8, 2), c + Vector2(8, 14), c + Vector2(2, 2), c + Vector2(10, -2), c + Vector2(16, -14)]), Color("7be0ff", a), 4.0, true)
+			Art.strip(ci, PackedVector2Array([c + Vector2(-16, -14), c + Vector2(-2, -2), c + Vector2(-8, 2), c + Vector2(8, 14), c + Vector2(2, 2), c + Vector2(10, -2), c + Vector2(16, -14)]), Color("7be0ff", a), 4.0, true)
 		"spine":
 			for k in 8:
 				var d := Vector2.RIGHT.rotated(TAU * float(k) / 8.0)
 				ci.draw_line(c + d * 8.0, c + d * 20.0, white, 3.0, true)
-			Art.disc(self, c, 7.0, white)
+			Art.disc(ci, c, 7.0, white)
 		"lure":
 			ci.draw_line(c + Vector2(-14, 16), c + Vector2(4, -6), white, 3.0, true)
-			Art.disc(self, c + Vector2(8, -10), 8.0, Color(1, 0.95, 0.5, a))
-			Art.arc(self, c + Vector2(8, -10), 14.0, 0.0, TAU, 20, Color(1, 0.95, 0.5, a * 0.6), 2.0, true)
+			Art.disc(ci, c + Vector2(8, -10), 8.0, Color(1, 0.95, 0.5, a))
+			Art.arc(ci, c + Vector2(8, -10), 14.0, 0.0, TAU, 20, Color(1, 0.95, 0.5, a * 0.6), 2.0, true)
 		"ink":
 			for o in [Vector2(-9, 4), Vector2(0, -6), Vector2(10, 3), Vector2(2, 10)]:
-				Art.disc(self, c + o, 9.0, Color(0.55, 0.45, 0.9, a))
+				Art.disc(ci, c + o, 9.0, Color(0.55, 0.45, 0.9, a))
 		"harpoon":
 			ci.draw_line(c + Vector2(-18, 14), c + Vector2(14, -14), Color("d58bff", a), 4.0, true)
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(20, -20), c + Vector2(6, -14), c + Vector2(14, -6)]), Color("f0c8ff", a))
 		"decoy":
-			Art.arc(self, c + Vector2(-8, 0), 11.0, 0.0, TAU, 20, white, 3.0, true)
-			Art.arc(self, c + Vector2(9, 0), 11.0, 0.0, TAU, 20, Color(1, 1, 1, a * 0.5), 3.0, true)
+			Art.arc(ci, c + Vector2(-8, 0), 11.0, 0.0, TAU, 20, white, 3.0, true)
+			Art.arc(ci, c + Vector2(9, 0), 11.0, 0.0, TAU, 20, Color(1, 1, 1, a * 0.5), 3.0, true)
 		"limb":
-			Art.disc(self, c + Vector2(-8, 4), 10.0, white)
+			Art.disc(ci, c + Vector2(-8, 4), 10.0, white)
 			ci.draw_line(c + Vector2(2, -2), c + Vector2(18, -14), Color(1, 0.4, 0.4, a), 4.0, true)
 			ci.draw_line(c + Vector2(10, -16), c + Vector2(20, -6), Color(1, 0.4, 0.4, a), 3.0, true)
 		"suction":
 			for k in 6:
 				var d2 := Vector2.RIGHT.rotated(TAU * float(k) / 6.0)
 				ci.draw_line(c + d2 * 20.0, c + d2 * 9.0, white, 3.0, true)
-			Art.disc(self, c, 5.0, white)
+			Art.disc(ci, c, 5.0, white)
 		"grab":
-			Art.arc(self, c + Vector2(-6, 6), 14.0, PI, TAU * 0.9, 16, white, 4.0, true)
-			Art.arc(self, c + Vector2(8, -4), 11.0, 0.0, PI * 1.4, 16, white, 4.0, true)
+			Art.arc(ci, c + Vector2(-6, 6), 14.0, PI, TAU * 0.9, 16, white, 4.0, true)
+			Art.arc(ci, c + Vector2(8, -4), 11.0, 0.0, PI * 1.4, 16, white, 4.0, true)
 		"sonar":
 			for k in 3:
-				Art.arc(self, c + Vector2(-12, 0), 8.0 + 8.0 * float(k), -0.9, 0.9, 10, Color(0.48, 0.88, 1.0, a), 3.0, true)
-			Art.disc(self, c + Vector2(-12, 0), 4.0, Color(0.48, 0.88, 1.0, a))
+				Art.arc(ci, c + Vector2(-12, 0), 8.0 + 8.0 * float(k), -0.9, 0.9, 10, Color(0.48, 0.88, 1.0, a), 3.0, true)
+			Art.disc(ci, c + Vector2(-12, 0), 4.0, Color(0.48, 0.88, 1.0, a))
 		"camo":
-			Art.arc(self, c, 16.0, PI, TAU, 16, white, 3.0, true)
-			Art.arc(self, c, 16.0, 0.0, PI, 16, white, 3.0, true)
-			Art.disc(self, c, 5.0, white)
+			Art.arc(ci, c, 16.0, PI, TAU, 16, white, 3.0, true)
+			Art.arc(ci, c, 16.0, 0.0, PI, 16, white, 3.0, true)
+			Art.disc(ci, c, 5.0, white)
 			ci.draw_line(c + Vector2(-16, 14), c + Vector2(16, -14), Color(1, 0.4, 0.4, a), 3.0, true)
