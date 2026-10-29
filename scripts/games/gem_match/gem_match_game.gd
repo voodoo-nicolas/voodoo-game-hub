@@ -457,12 +457,13 @@ func _draw_board() -> void:
 		if flash:
 			r *= 1.0 + 0.25 * sin(clampf(state_t / FLASH_TIME, 0.0, 1.0) * PI)
 		_draw_piece(centre, r, k, flash, t)
+	_flush()
 	for e in effects:
 		var a: float = 1.0 - e.t / e.life
 		match e.kind:
 			"boom":
 				var c: Vector2 = o + e.pos * cs
-				board.draw_circle(c, cs * 1.5 * (e.t / e.life), Color(1, 0.6, 0.2, a * 0.5))
+				_disc(c, cs * 1.5 * (e.t / e.life), Color(1, 0.6, 0.2, a * 0.5))
 				board.draw_arc(c, cs * 1.6 * (e.t / e.life), 0, TAU, 32, Color(1, 0.9, 0.5, a), 4.0, true)
 			"flash":
 				board.draw_rect(board_rect, Color(e.color, a * 0.35))
@@ -511,7 +512,7 @@ func _draw_jewel(c: Vector2, r: float, kind: int, flash: bool, t: float) -> void
 	var mid := Vector2.ZERO
 	for q in outer:
 		mid += q / n
-	board.draw_circle(mid + Vector2(r * 0.08, r * 0.16), r * 1.0, Color(0, 0, 0, 0.28))
+	_disc(mid + Vector2(r * 0.08, r * 0.16), r * 1.0, Color(0, 0, 0, 0.28))
 	var inner := PackedVector2Array()
 	for q in outer:
 		inner.append(mid + (q - mid) * 0.52)
@@ -521,26 +522,167 @@ func _draw_jewel(c: Vector2, r: float, kind: int, flash: bool, t: float) -> void
 		var normal := ((outer[k] + outer[k2]) / 2.0 - mid).normalized()
 		var b: float = normal.dot(light)
 		var col: Color = base.lerp(Color.WHITE, 0.45 * maxf(b, 0.0)) if b > 0.0 else base.darkened(0.12 + 0.38 * -b)
-		board.draw_colored_polygon(PackedVector2Array([outer[k], outer[k2], inner[k2], inner[k]]), col)
-	board.draw_colored_polygon(inner, base.lightened(0.2))
+		_fan(PackedVector2Array([outer[k], outer[k2], inner[k2], inner[k]]), col)
+	_fan(inner, base.lightened(0.2))
 	# a bright slice across the table, the stone's main reflection
 	var slice := PackedVector2Array([inner[0], inner[1], mid])
 	if n > 2:
 		slice = PackedVector2Array([inner[n - 1], inner[0], mid])
-	board.draw_colored_polygon(slice, Color(1, 1, 1, 0.3))
+	_fan(slice, Color(1, 1, 1, 0.3))
 	var line_w := maxf(1.5, r * 0.07)
 	for k in n:
-		board.draw_line(outer[k], inner[k], base.darkened(0.45), maxf(1.0, r * 0.03), true)
-	board.draw_polyline(inner + PackedVector2Array([inner[0]]), Color(1, 1, 1, 0.45), maxf(1.0, r * 0.04), true)
-	board.draw_polyline(outer + PackedVector2Array([outer[0]]), base.darkened(0.6), line_w, true)
-	board.draw_circle(mid + Vector2(-r * 0.3, -r * 0.34), r * 0.11, Color(1, 1, 1, 0.9))
+		_seg(outer[k], inner[k], base.darkened(0.45), maxf(1.0, r * 0.03), true)
+	_strip(inner + PackedVector2Array([inner[0]]), Color(1, 1, 1, 0.45), maxf(1.0, r * 0.04), true)
+	_strip(outer + PackedVector2Array([outer[0]]), base.darkened(0.6), line_w, true)
+	_dots.append([mid + Vector2(-r * 0.3, -r * 0.34), r * 0.11, Color(1, 1, 1, 0.9)])
 	# a twinkle that comes round every few seconds, each stone out of step
 	var tw: float = pow(maxf(0.0, sin(t * 1.7 + kind * 1.9 + mid.x * 0.02)), 14.0)
 	if tw > 0.05:
 		var sp := mid + Vector2(r * 0.25, -r * 0.4)
 		var L := r * 0.5 * tw
-		board.draw_line(sp - Vector2(L, 0), sp + Vector2(L, 0), Color(1, 1, 1, tw), 2.0, true)
-		board.draw_line(sp - Vector2(0, L), sp + Vector2(0, L), Color(1, 1, 1, tw), 2.0, true)
+		_seg(sp - Vector2(L, 0), sp + Vector2(L, 0), Color(1, 1, 1, tw), 2.0, true)
+		_seg(sp - Vector2(0, L), sp + Vector2(0, L), Color(1, 1, 1, tw), 2.0, true)
+
+# ---------- cheap drawing (2026-10-29) ----------
+# In Godot 4.7 every draw_circle / draw_arc / draw_polyline / draw_colored_polygon call costs 60-110 µs (each one
+# makes its own GPU buffer), while a texture rect costs 0.5 µs and one draw_multiline ~12 µs however many segments
+# it holds. A full board of Classic gems made ~1,300 such calls a frame (11 fps on a weak GPU). So the gems'
+# facets go into one triangle array, their edges into one draw_multiline_colors per line width, circles are a
+# white disc texture, and the highlights are drawn last; `_flush` draws the lot after the board's gems.
+# Antialiased multiline segments overlap at their joints, which shows as bright dots on see-through colours, so
+# only solid colours are antialiased.
+
+var _tri_pts := PackedVector2Array()
+var _tri_cols := PackedColorArray()
+var _tri_idx := PackedInt32Array()
+var _seg_pts := {}  # Vector2(width, antialiased 0/1) -> PackedVector2Array of segment ends
+var _seg_cols := {}  # same key -> PackedColorArray, one per segment
+var _dots: Array = []  # [centre, radius, colour]: the gems' highlights, drawn over everything else
+static var _disc_tex: Array = []  # white discs, 16 / 64 / 256 px (the closest size keeps the edge sharp)
+
+func _disc_texture(px: float) -> Texture2D:
+	if _disc_tex.is_empty():
+		for sz in [16, 64, 256]:
+			var g := Gradient.new()
+			g.set_offset(0, 0.0)
+			g.set_color(0, Color.WHITE)
+			g.set_offset(1, 1.0)
+			g.set_color(1, Color(1, 1, 1, 0))
+			g.add_point(1.0 - 2.0 / float(sz), Color.WHITE)  # solid to one texel from the rim
+			var tex := GradientTexture2D.new()
+			tex.gradient = g
+			tex.fill = GradientTexture2D.FILL_RADIAL
+			tex.fill_from = Vector2(0.5, 0.5)
+			tex.fill_to = Vector2(1.0, 0.5)
+			tex.width = sz
+			tex.height = sz
+			_disc_tex.append(tex)
+	if px <= 16.0:
+		return _disc_tex[0]
+	return _disc_tex[1] if px <= 64.0 else _disc_tex[2]
+
+## A filled circle (like draw_circle), drawn at once on `ci` (the board if null).
+func _disc(c: Vector2, r: float, col: Color, ci: CanvasItem = null) -> void:
+	if r > 0.0:
+		var tex := _disc_texture(r * 2.0)
+		r /= 1.0 - 1.0 / float(tex.get_width())  # the texture's soft rim straddles the circle's edge
+		(ci if ci else board).draw_texture_rect(tex, Rect2(c.x - r, c.y - r, r * 2.0, r * 2.0), false, col)
+
+static var _glow_tex := {}  # alpha scale -> the 14 stacked discs of a backdrop glow, as one stepped texture
+
+## 14 discs of colour `col` round `c`, radius r0, r0 + step ... r0 + 13 step, each 0.045 alpha (fading out
+## with k, times `k_alpha`), drawn as one texture rect.
+func _glow(ci: CanvasItem, c: Vector2, r0: float, step: float, k_alpha: float, col: Color) -> void:
+	var rmax := r0 + 13.0 * step
+	var key := Vector3(r0 / rmax, step / rmax, k_alpha)
+	if not _glow_tex.has(key):
+		var g := Gradient.new()
+		g.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CONSTANT
+		var alphas := []
+		for k in 14:
+			alphas.append(0.045 * (1.0 - k / 14.0) * k_alpha)
+		# Between disc j-1's rim and disc j's, discs j..13 cover the spot.
+		var through := 1.0
+		var covered := []
+		for j in range(13, -1, -1):
+			through *= 1.0 - alphas[j]
+			covered.push_front(1.0 - through)
+		g.set_offset(0, 0.0)
+		g.set_color(0, Color(1, 1, 1, covered[0]))
+		g.set_offset(1, 1.0)
+		g.set_color(1, Color(1, 1, 1, 0))
+		for j in range(1, 14):
+			g.add_point(key.x + key.y * (j - 1), Color(1, 1, 1, covered[j]))
+		var tex := GradientTexture2D.new()
+		tex.gradient = g
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(1.0, 0.5)
+		tex.width = 1024
+		tex.height = 1024
+		_glow_tex[key] = tex
+	ci.draw_texture_rect(_glow_tex[key], Rect2(c - Vector2(rmax, rmax), Vector2(rmax, rmax) * 2.0), false, col)
+
+## A convex polygon (like draw_colored_polygon), batched.
+func _fan(pts: PackedVector2Array, col: Color) -> void:
+	var base := _tri_pts.size()
+	for p in pts:
+		_tri_pts.append(p)
+		_tri_cols.append(col)
+	for k in range(1, pts.size() - 1):
+		_tri_idx.append(base)
+		_tri_idx.append(base + k)
+		_tri_idx.append(base + k + 1)
+
+## Any simple polygon (like draw_colored_polygon), batched.
+func _poly(pts: PackedVector2Array, col: Color) -> void:
+	var tris := Geometry2D.triangulate_polygon(pts)
+	var base := _tri_pts.size()
+	for p in pts:
+		_tri_pts.append(p)
+		_tri_cols.append(col)
+	for i in tris:
+		_tri_idx.append(base + i)
+
+## A line through the points (like draw_polyline), batched.
+func _strip(pts: PackedVector2Array, col: Color, w: float = -1.0, aa: bool = false) -> void:
+	var n := pts.size()
+	if n < 2:
+		return
+	var key := Vector2(w, 1.0 if aa and col.a >= 0.99 else 0.0)
+	if not _seg_pts.has(key):
+		_seg_pts[key] = PackedVector2Array()
+		_seg_cols[key] = PackedColorArray()
+	var sp: PackedVector2Array = _seg_pts[key]
+	var sc: PackedColorArray = _seg_cols[key]
+	for i in range(1, n):
+		sp.append(pts[i - 1])
+		sp.append(pts[i])
+		sc.append(col)
+
+## One line (like draw_line), batched.
+func _seg(a: Vector2, b: Vector2, col: Color, w: float = -1.0, aa: bool = false) -> void:
+	_strip(PackedVector2Array([a, b]), col, w, aa)
+
+## Draws the batch: facets, then edges (widest first), then highlights.
+func _flush() -> void:
+	if not _tri_idx.is_empty():
+		RenderingServer.canvas_item_add_triangle_array(board.get_canvas_item(), _tri_idx, _tri_pts, _tri_cols)
+		_tri_idx.clear()
+		_tri_pts.clear()
+		_tri_cols.clear()
+	var keys: Array = _seg_pts.keys()
+	keys.sort_custom(_wider)
+	for k in keys:
+		board.draw_multiline_colors(_seg_pts[k], _seg_cols[k], k.x, k.y > 0.5)
+	_seg_pts.clear()
+	_seg_cols.clear()
+	for d in _dots:
+		_disc(d[0], d[1], d[2])
+	_dots.clear()
+
+static func _wider(a: Vector2, b: Vector2) -> bool:
+	return a.x > b.x
 
 ## Backdrop for the classic skin: a violet-to-teal gradient, a soft lattice, two glows
 ## and a scatter of stars (the same every time, so nothing shimmers on redraw).
@@ -549,10 +691,11 @@ func _draw_backdrop(d: Control) -> void:
 	var top := Color(0.13, 0.06, 0.26)
 	var bot := Color(0.02, 0.12, 0.2)
 	d.draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(sz.x, 0), sz, Vector2(0, sz.y)]), PackedColorArray([top, top, bot, bot]))
-	for k in 14:
-		var a := 0.045 * (1.0 - k / 14.0)
-		d.draw_circle(Vector2(sz.x * 0.5, sz.y * 0.58), sz.x * (0.18 + k * 0.05), Color(0.75, 0.2, 0.85, a))
-		d.draw_circle(Vector2(sz.x * 0.12, sz.y * 0.1), sz.x * (0.08 + k * 0.04), Color(0.1, 0.8, 1.0, a * 0.8))
+	# Two glows, each 14 faint discs (0.045 alpha, fading out) one inside the other. They were 28 draw_circles
+	# nearly the size of the screen: ~27 ms of GPU fill a frame on a weak GPU. Discs of one colour stacked up
+	# are one disc with stepped alpha, so each glow is now a single texture of those steps (2026-10-29).
+	_glow(d, Vector2(sz.x * 0.5, sz.y * 0.58), sz.x * 0.18, sz.x * 0.05, 1.0, Color(0.75, 0.2, 0.85))
+	_glow(d, Vector2(sz.x * 0.12, sz.y * 0.1), sz.x * 0.08, sz.x * 0.04, 0.8, Color(0.1, 0.8, 1.0))
 	var step := 96.0
 	var x := -sz.y
 	while x < sz.x:
@@ -564,22 +707,22 @@ func _draw_backdrop(d: Control) -> void:
 	for k in 70:
 		var p := Vector2(rng.randf() * sz.x, rng.randf() * sz.y)
 		var s := rng.randf_range(1.0, 2.6)
-		d.draw_circle(p, s, Color(1, 1, 1, rng.randf_range(0.2, 0.6)))
+		_disc(p, s, Color(1, 1, 1, rng.randf_range(0.2, 0.6)), d)
 		if k % 9 == 0:
 			d.draw_line(p - Vector2(s * 4, 0), p + Vector2(s * 4, 0), Color(1, 1, 1, 0.35), 1.0)
 			d.draw_line(p - Vector2(0, s * 4), p + Vector2(0, s * 4), Color(1, 1, 1, 0.35), 1.0)
 
 ## A round black bomb with a fizzing fuse: the wildcard.
 func _draw_bomb(c: Vector2, r: float, t: float) -> void:
-	board.draw_circle(c + Vector2(0, r * 0.1), r * 0.85, Color(0.04, 0.03, 0.08))
+	_disc(c + Vector2(0, r * 0.1), r * 0.85, Color(0.04, 0.03, 0.08))
 	HomeKit.glow_circle(board, c + Vector2(0, r * 0.1), r * 0.85, HomeKit.WHITE, maxf(1.5, r * 0.07))
-	board.draw_circle(c + Vector2(-r * 0.3, -r * 0.15), r * 0.16, Color(1, 1, 1, 0.6))
+	_disc(c + Vector2(-r * 0.3, -r * 0.15), r * 0.16, Color(1, 1, 1, 0.6))
 	HomeKit.glow_rect(board, Rect2(c + Vector2(-r * 0.2, -r * 0.85), Vector2(r * 0.4, r * 0.22)), HomeKit.PURPLE, maxf(1.0, r * 0.05), 0.4)
 	var fuse_end := c + Vector2(r * 0.35, -r * 1.05)
 	HomeKit.glow_line(board, c + Vector2(0, -r * 0.8), fuse_end, HomeKit.GOLD, maxf(1.5, r * 0.07))
 	var spark := 0.6 + 0.4 * sin(t * 25.0)
-	board.draw_circle(fuse_end, r * 0.2 * spark, Color(1, 0.8, 0.2))
-	board.draw_circle(fuse_end, r * 0.1 * spark, Color(1, 1, 0.8))
+	_disc(fuse_end, r * 0.2 * spark, Color(1, 0.8, 0.2))
+	_disc(fuse_end, r * 0.1 * spark, Color(1, 1, 0.8))
 	# rainbow ring: it matches anything
 	for k in 6:
 		board.draw_arc(c + Vector2(0, r * 0.1), r * 0.95, TAU * k / 6.0 + t, TAU * (k + 1) / 6.0 + t, 6, GEM_COLORS[k], maxf(2.0, r * 0.1), true)
@@ -600,16 +743,16 @@ func _draw_voodoo_piece(c: Vector2, r: float, kind: int, flash: bool, t: float) 
 			for x in [-0.13, 0.13]:
 				var e := c + Vector2(x, -0.04) * s
 				for p in 5:
-					board.draw_circle(e + Vector2(s * 0.05, 0).rotated(TAU * p / 5.0), s * 0.03, Color(1, 0.85, 0.25))
-			board.draw_circle(c + Vector2(0, -0.27) * s, s * 0.05, Color(0.3, 0.85, 0.5))
+					_disc(e + Vector2(s * 0.05, 0).rotated(TAU * p / 5.0), s * 0.03, Color(1, 0.85, 0.25))
+			_disc(c + Vector2(0, -0.27) * s, s * 0.05, Color(0.3, 0.85, 0.5))
 		4:  # fire
 			_draw_flame(c, s, t, flash)
 		_:  # evil eye
-			board.draw_circle(c, r * 0.95, Color(0.15, 0.25, 0.75) if not flash else tint)
-			board.draw_circle(c, r * 0.72, Color(1, 1, 1))
-			board.draw_circle(c, r * 0.45, Color(0.35, 0.6, 1))
-			board.draw_circle(c, r * 0.22, Color(0.05, 0.05, 0.1))
-			board.draw_circle(c + Vector2(-r * 0.15, -r * 0.15), r * 0.08, Color(1, 1, 1, 0.8))
+			_disc(c, r * 0.95, Color(0.15, 0.25, 0.75) if not flash else tint)
+			_disc(c, r * 0.72, Color(1, 1, 1))
+			_disc(c, r * 0.45, Color(0.35, 0.6, 1))
+			_disc(c, r * 0.22, Color(0.05, 0.05, 0.1))
+			_disc(c + Vector2(-r * 0.15, -r * 0.15), r * 0.08, Color(1, 1, 1, 0.8))
 
 func _draw_flame(c: Vector2, s: float, t: float, flash: bool) -> void:
 	var flick := sin(t * 12.0 + c.x) * 0.05
@@ -624,7 +767,7 @@ func _draw_flame(c: Vector2, s: float, t: float, flash: bool) -> void:
 		pts.append(c + Vector2(-s * 0.18 * k, -s * 0.1 * k))
 		pts.append(c + Vector2((flick - 0.02) * s, -s * 0.45 * k))
 		pts.append(c + Vector2(s * 0.12 * k, -s * 0.15 * k))
-		board.draw_colored_polygon(pts, col)
+		_poly(pts, col)
 
 # ---------- input ----------
 
