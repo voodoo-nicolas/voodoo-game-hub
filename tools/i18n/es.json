@@ -70,6 +70,8 @@
  "%d points.": "%d puntos.",
  "%d suits": "%d palos",
  "%d unlocked": "%d desbloqueados",
+ "%d / %d unlocked": "%d / %d desbloqueados",
+ "🎮 Go to %s": "🎮 Ir a %s",
  "%d × face %d": "%d × cara %d",
  "%d+ letters": "%d+ letras",
  "%s\n\nPlayed %d · Won %d%%\nStreak %d · Best %d": "%s\n\nJugadas %d · Ganadas %d%%\nRacha %d · Mejor %d",

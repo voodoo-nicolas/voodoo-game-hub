@@ -61,7 +61,7 @@ func _build() -> void:
 			game = {"id": id, "title": id.capitalize(), "icon": "🎮"}
 		if i > 0:
 			gb.add_child(HSeparator.new())
-		var row := game_row(game, tr("%d unlocked") % all[id]._ach.size())
+		var row := game_row(game, tr("%d / %d unlocked") % [all[id]._ach.size(), Achievements.game_total(all[id])])
 		var b := pill("▾" if open_id == id else "▸", open_id == id, 28)
 		b.custom_minimum_size = Vector2(70, 60)
 		b.pressed.connect(_on_game.bind(id))
@@ -74,6 +74,11 @@ func _build() -> void:
 				if typeof(e) == TYPE_ARRAY and e.size() >= 4:
 					var when := Time.get_date_string_from_unix_time(int(e[0]))
 					gb.add_child(_badge_row(str(e[1]), tr(str(e[2])), _translate_desc(str(e[3])), when, true))
+			# The locked ones and their progress are on the game's own 🏅 screen.
+			if not Catalog.get_game(id).is_empty():
+				var go := pill(tr("🎮 Go to %s") % Lang.pick(game, "title"), true, 24)
+				go.pressed.connect(_open_game.bind(id))
+				gb.add_child(go)
 
 ## Stored descriptions are English ("Puzzles solved: 10"); translate the
 ## "<label>: <n>" shape and plain sentences.
@@ -110,6 +115,10 @@ func _on_game(id: String) -> void:
 	if tapped():
 		open_id = "" if open_id == id else id
 		rebuild()
+
+func _open_game(id: String) -> void:
+	if tapped():
+		open_game(id)
 
 func _to_leaderboards() -> void:
 	if tapped():

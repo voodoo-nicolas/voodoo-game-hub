@@ -146,7 +146,12 @@ static func check(consts: Dictionary, stats: Dictionary) -> Array:
 	var got: Array = []
 	if typeof(stats.get("_ach")) != TYPE_DICTIONARY:
 		stats["_ach"] = {}
-	for def in defs_for(consts, stats):
+	var defs := defs_for(consts, stats)
+	# How many the game offers, for the hub's "3 / 12 unlocked" (its own
+	# ACHIEVEMENTS need the pack, so only GameInfo, which has them, sets it).
+	if consts.has("ID"):
+		stats["_ach_total"] = defs.size()
+	for def in defs:
 		if not stats._ach.has(def.id) and reached(stats, def):
 			stats._ach[def.id] = [int(Time.get_unix_time_from_system()), def.icon, def.title, describe(def, false)]
 			if def.has("xp"):
@@ -208,6 +213,14 @@ static func game_badges(all: Dictionary) -> int:
 		if typeof(a) == TYPE_DICTIONARY:
 			n += a.size()
 	return n
+
+## How many badges a game offers: the count GameInfo saved, else (the game
+## not opened since this app version) the generic ones its stats give; never
+## fewer than the ones already unlocked.
+static func game_total(stats: Dictionary) -> int:
+	var have: int = stats._ach.size() if typeof(stats.get("_ach")) == TYPE_DICTIONARY else 0
+	var total: int = int(stats["_ach_total"]) if stats.has("_ach_total") else defs_for({}, stats).size()
+	return maxi(total, have)
 
 static func load_hub() -> Dictionary:
 	if FileAccess.file_exists(HUB_PATH):

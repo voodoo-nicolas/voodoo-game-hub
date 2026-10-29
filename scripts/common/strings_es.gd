@@ -4,6 +4,7 @@ extends RefCounted
 ## Spanish for the hub and shared screens (ships in the APK; loaded by Lang).
 
 const ES := {
+	"%d / %d unlocked": "%d / %d desbloqueados",
 	"%d XP": "%d XP",
 	"%d achievements restored from your account": "%d logros recuperados de tu cuenta",
 	"%d achievements unlocked": "%d logros desbloqueados",
@@ -13,7 +14,6 @@ const ES := {
 	"%d h ago": "hace %d h",
 	"%d min": "%d min",
 	"%d min ago": "hace %d min",
-	"%d unlocked": "%d desbloqueados",
 	"%s Viral Power": "%s de Poder Viral",
 	"%s XP": "%s XP",
 	"%s disconnected — waiting...": "%s se desconectó — esperando...",
@@ -502,6 +502,7 @@ const ES := {
 	"🎬 Intro video": "🎬 Vídeo de intro",
 	"🎮 %s invites you to play %s": "🎮 %s te invita a jugar %s",
 	"🎮 Games": "🎮 Juegos",
+	"🎮 Go to %s": "🎮 Ir a %s",
 	"🎮 Invite": "🎮 Invitar",
 	"🎮 Multiplayer": "🎮 Multijugador",
 	"🎯 Goal": "🎯 Objetivo",

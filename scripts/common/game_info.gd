@@ -77,8 +77,10 @@ func _init(help_script: Script) -> void:
 		stats = data
 	# Badges already earned before achievements existed (or in an older
 	# version of this game) unlock quietly -- no toast flood on opening.
-	if not stats.is_empty() and not Achievements.check(consts, stats).is_empty():
-		SaveUtil.write(save_path, stats)
+	if not stats.is_empty():
+		var total_was = stats.get("_ach_total")
+		if not Achievements.check(consts, stats).is_empty() or stats.get("_ach_total") != total_was:
+			SaveUtil.write(save_path, stats)
 
 func _ready() -> void:
 	# In the tree already, so set_anchors_preset alone would keep our 0×0 size.
