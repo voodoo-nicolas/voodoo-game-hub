@@ -1235,8 +1235,13 @@ def cmd_web(args) -> None:
     docs/play/, which GitHub Pages serves once the commit is pushed."""
     missing = _web_missing_chars()
     if missing:
-        print("  warning: not in the web fonts, may show as boxes -- rerun web-fonts: "
-              + " ".join(f"{chr(cp)} U+{cp:04X}" for cp in missing))
+        listed = " ".join(f"{chr(cp)} U+{cp:04X}" for cp in missing)
+        # 2026-10-28: a rebuild went live with this as a warning and 157 of
+        # Creation's 263 items showed as boxes on iPhones.
+        if args.publish and not args.allow_missing:
+            raise ToolError("not in the web fonts, would show as boxes on iPhones -- rerun web-fonts "
+                            "(or --allow-missing if Godot's default font has them): " + listed)
+        print("  warning: not in the web fonts, may show as boxes -- rerun web-fonts: " + listed)
     if WEB_OUT.exists():
         shutil.rmtree(WEB_OUT)
     WEB_OUT.mkdir(parents=True)
@@ -1532,6 +1537,7 @@ def main() -> int:
     sub.add_parser("pc-zip").set_defaults(fn=cmd_pc_zip)
     p = sub.add_parser("web")
     p.add_argument("--publish", action="store_true", help="also copy it into docs/play/ for GitHub Pages")
+    p.add_argument("--allow-missing", action="store_true", help="publish even if the web fonts lack characters the app uses")
     p.set_defaults(fn=cmd_web)
     p = sub.add_parser("web-fonts")
     p.add_argument("emoji", help="NotoColorEmoji.ttf (github.com/googlefonts/noto-emoji, 2D/fonts/)")
