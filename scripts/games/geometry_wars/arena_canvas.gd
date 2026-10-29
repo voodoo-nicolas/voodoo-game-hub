@@ -202,10 +202,10 @@ func _draw() -> void:
 	if game.shockwave_t >= 0.0:
 		var k: float = game.shockwave_t / game.SHOCKWAVE_TIME
 		var r: float = lerpf(20.0, game.view_size.length() * 1.1, k)
-		draw_arc(game.bomb_pos, r, 0, TAU, 128, Color(1, 0.7, 0.3, 1.0 - k) if classic else Color(1.0, 0.25, 0.35, 1.0 - k),
+		_arc(game.bomb_pos, r, 0, TAU, 128, Color(1, 0.7, 0.3, 1.0 - k) if classic else Color(1.0, 0.25, 0.35, 1.0 - k),
 			14.0 * (1.0 - k) + 2.0, true)
-		draw_arc(game.bomb_pos, r * 0.85, 0, TAU, 128, Color(1, 1, 1, (1.0 - k) * 0.6), 4.0, true)
-		draw_arc(game.bomb_pos, r * 0.6, 0, TAU, 96, Color(0.5, 0.8, 1.0, (1.0 - k) * 0.35), 3.0, true)
+		_arc(game.bomb_pos, r * 0.85, 0, TAU, 128, Color(1, 1, 1, (1.0 - k) * 0.6), 4.0, true)
+		_arc(game.bomb_pos, r * 0.6, 0, TAU, 96, Color(0.5, 0.8, 1.0, (1.0 - k) * 0.35), 3.0, true)
 
 	for m in game.mines:
 		if vis.has_point(m.pos):
@@ -228,7 +228,7 @@ func _draw() -> void:
 		else:
 			var sc := Color(0.35, 1.0, 0.45, a) if big else Color(1.0, 0.96, 0.3, a)
 			var sr: float = (0.46 if big else 0.27) * u
-			draw_circle(c.pos, sr * 1.7, Color(sc, 0.16 * a))
+			_disc(c.pos, sr * 1.7, Color(sc, 0.16 * a))
 			_draw_soul(c.pos, sr, t * 3.0 + c.pos.x, sc)
 
 	for e in game.enemies:
@@ -247,8 +247,8 @@ func _draw() -> void:
 		var dir: Vector2 = p.vel.normalized()
 		var tail: Vector2 = p.pos - dir * (p.len * (1.0 - k) + 2.0)
 		var col: Color = p.color
-		draw_line(tail, p.pos, Color(col, (1.0 - k) * 0.25), 6.0)
-		draw_line(tail, p.pos, Color(col.lightened(0.5), 1.0 - k), 2.0)
+		_seg(tail, p.pos, Color(col, (1.0 - k) * 0.25), 6.0)
+		_seg(tail, p.pos, Color(col.lightened(0.5), 1.0 - k), 2.0)
 
 	# Pins: a silver needle with a glowing round head at the back (golden
 	# after bouncing off a seal, pale blue from a familiar).
@@ -263,21 +263,21 @@ func _draw() -> void:
 		var head := Color(1.0, 0.85, 0.2) if gold else (Color(0.6, 0.8, 1.0) if b.get("drone", false) else Color(1.0, 0.68, 0.17))
 		var tip: Vector2 = b.pos + d * 0.55 * u
 		var back: Vector2 = b.pos - d * 0.3 * u
-		draw_line(back, back - d * 1.3 * u, Color(head, 0.18), 0.22 * u)
-		draw_line(back, tip, Color(0.85, 0.9, 1.0, 0.35), 4.0)
-		draw_line(back, tip, Color(1, 1, 1), 1.4)
-		draw_circle(back, 0.15 * u, Color(head, 0.35))
-		draw_circle(back, 0.1 * u, head)
-		draw_circle(back, 0.045 * u, Color(1, 1, 0.9))
+		_seg(back, back - d * 1.3 * u, Color(head, 0.18), 0.22 * u)
+		_seg(back, tip, Color(0.85, 0.9, 1.0, 0.35), 4.0)
+		_seg(back, tip, Color(1, 1, 1), 1.4)
+		_disc(back, 0.15 * u, Color(head, 0.35))
+		_disc(back, 0.1 * u, head)
+		_disc(back, 0.045 * u, Color(1, 1, 0.9))
 
 	# Enemy shots: hot pink orbs.
 	for b in game.ebullets:
 		if not vis.has_point(b.pos):
 			continue
 		var r: float = float(b.get("r", 0.25)) * u
-		draw_circle(b.pos, r * 2.0, Color(1.0, 0.2, 0.5, 0.18))
-		draw_circle(b.pos, r, Color(1.0, 0.35, 0.6))
-		draw_circle(b.pos, r * 0.45, Color(1, 0.95, 0.95))
+		_disc(b.pos, r * 2.0, Color(1.0, 0.2, 0.5, 0.18))
+		_disc(b.pos, r, Color(1.0, 0.35, 0.6))
+		_disc(b.pos, r * 0.45, Color(1, 0.95, 0.95))
 
 	for d in game.drones:
 		if float(d.get("down", 0.0)) > 0.0:
@@ -293,13 +293,14 @@ func _draw() -> void:
 		_draw_familiar_health(d, u)
 	for ray in game.rays:
 		var k: float = float(ray.age) / 0.25
-		draw_line(ray.from, ray.to, Color(0.4, 1.0, 1.0, (1.0 - k) * 0.3), 8.0)
-		draw_line(ray.from, ray.to, Color(0.85, 1.0, 1.0, 1.0 - k), 2.0)
+		_seg(ray.from, ray.to, Color(0.4, 1.0, 1.0, (1.0 - k) * 0.3), 8.0)
+		_seg(ray.from, ray.to, Color(0.85, 1.0, 1.0, 1.0 - k), 2.0)
 
 	if game.lives > 0 or game.rules.lives == 0:
 		if game.respawn_t <= 0.0:
 			_draw_player(t, u)
 
+	_flush()
 	for p in game.popups:
 		var k: float = float(p.age) / 1.2
 		var col: Color = p.color
@@ -309,6 +310,121 @@ func _draw() -> void:
 		draw_string_outline(_font, pos - Vector2(w / 2.0, 0), p.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, (1.0 - k) * 0.8))
 		draw_string(_font, pos - Vector2(w / 2.0, 0), p.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(col, 1.0 - k))
 
+# ---------- cheap drawing (2026-10-29) ----------
+# In Godot 4.7 every draw_circle / draw_arc / draw_polyline / draw_colored_polygon call costs 60-110 µs (each one
+# makes its own GPU buffer), while a texture rect costs 0.5 µs and one draw_multiline ~12 µs however many segments
+# it holds. Each neon outline was three draw_polylines: the Voodoo skin made ~2,000 such calls a frame with 80
+# enemies (15 fps on a weak GPU). So circles are a white disc texture, and every line (outlines, arcs, draw_line)
+# goes into a batch: one draw_multiline_colors per line width, widest first (the glow under the bright core).
+# The batch is drawn before anything solid (disc, polygon, rect, text), so what covers what stays the same.
+# Lines keep their antialiasing (the soft edge is part of the neon glow), except the faintest ones, the wide outer
+# glow of each stroke: antialiased see-through segments are costly (all of them: 34 fps instead of 39, none: 44 but
+# visibly crisper), so those are drawn FEATHER px wider instead, as wide as their soft edge was. Very wide bent
+# lines (the shield halo, bomb rings, the arena edge: a few a frame) are still real polylines, because separate
+# segments show notches at their joints. Same signatures as the CanvasItem calls.
+
+const WIDE_STRIP := 8.0  # px
+## Godot's antialiased lines have a soft edge this wide (px); a faint line drawn without it is this much wider.
+const FEATHER := 1.25
+## Lines fainter than this (alpha; the outer glow of each neon stroke) skip antialiasing.
+const FAINT := 0.3
+var _seg_pts := {}  # Vector2(width, antialiased 0/1) -> PackedVector2Array of segment ends
+var _seg_cols := {}  # same key -> PackedColorArray, one per segment
+static var _disc_tex: Array = []  # white discs, 16 / 64 / 256 px (the closest size keeps the edge sharp)
+
+func _disc_texture(px: float) -> Texture2D:
+	if _disc_tex.is_empty():
+		for s in [16, 64, 256]:
+			var g := Gradient.new()
+			g.set_offset(0, 0.0)
+			g.set_color(0, Color.WHITE)
+			g.set_offset(1, 1.0)
+			g.set_color(1, Color(1, 1, 1, 0))
+			g.add_point(1.0 - 2.0 / float(s), Color.WHITE)  # solid to one texel from the rim
+			var tex := GradientTexture2D.new()
+			tex.gradient = g
+			tex.fill = GradientTexture2D.FILL_RADIAL
+			tex.fill_from = Vector2(0.5, 0.5)
+			tex.fill_to = Vector2(1.0, 0.5)
+			tex.width = s
+			tex.height = s
+			_disc_tex.append(tex)
+	if px <= 16.0:
+		return _disc_tex[0]
+	return _disc_tex[1] if px <= 64.0 else _disc_tex[2]
+
+## Draws the batched lines (widest first) and empties the batch.
+func _flush() -> void:
+	if _seg_pts.is_empty():
+		return
+	var keys: Array = _seg_pts.keys()
+	keys.sort_custom(_wider)
+	for k in keys:
+		draw_multiline_colors(_seg_pts[k], _seg_cols[k], k.x, k.y > 0.5)
+	_seg_pts.clear()
+	_seg_cols.clear()
+
+static func _wider(a: Vector2, b: Vector2) -> bool:
+	return a.x > b.x
+
+## A line through the points (like draw_polyline), batched (drawn at once if wider than WIDE_STRIP).
+func _strip(pts: PackedVector2Array, col: Color, w: float = -1.0, aa: bool = false) -> void:
+	var n := pts.size()
+	if n < 2:
+		return
+	if n > 2 and w > WIDE_STRIP:
+		_flush()
+		draw_polyline(pts, col, w, aa)
+		return
+	var key := Vector2(w, 1.0)
+	if aa and col.a < FAINT:
+		key = Vector2(w + FEATHER, 0.0) if w > 0.0 else Vector2(w, 0.0)
+	elif not aa:
+		key.y = 0.0
+	if not _seg_pts.has(key):
+		_seg_pts[key] = PackedVector2Array()
+		_seg_cols[key] = PackedColorArray()
+	var sp: PackedVector2Array = _seg_pts[key]
+	var sc: PackedColorArray = _seg_cols[key]
+	for i in range(1, n):
+		sp.append(pts[i - 1])
+		sp.append(pts[i])
+		sc.append(col)
+
+## One line (like draw_line), batched.
+func _seg(a: Vector2, b: Vector2, col: Color, w: float = -1.0, aa: bool = false) -> void:
+	_strip(PackedVector2Array([a, b]), col, w, aa)
+
+## An arc outline (like draw_arc: `n` points from angle a0 to a1), batched.
+func _arc(c: Vector2, r: float, a0: float, a1: float, n: int, col: Color, w: float = -1.0, aa: bool = false) -> void:
+	if n < 2:
+		return
+	var pts := PackedVector2Array()
+	pts.resize(n)
+	for i in n:
+		var a := lerpf(a0, a1, float(i) / float(n - 1))
+		pts[i] = c + Vector2(cos(a), sin(a)) * r
+	_strip(pts, col, w, aa)
+
+## A filled circle (like draw_circle).
+func _disc(c: Vector2, r: float, col: Color) -> void:
+	if r <= 0.0:
+		return
+	_flush()
+	var tex := _disc_texture(r * 2.0)
+	r /= 1.0 - 1.0 / float(tex.get_width())  # the texture's soft rim straddles the circle's edge
+	draw_texture_rect(tex, Rect2(c.x - r, c.y - r, r * 2.0, r * 2.0), false, col)
+
+## A filled polygon (like draw_colored_polygon).
+func _fill(pts: PackedVector2Array, col: Color) -> void:
+	_flush()
+	draw_colored_polygon(pts, col)
+
+## A filled rectangle (like draw_rect).
+func _box(r: Rect2, col: Color) -> void:
+	_flush()
+	draw_rect(r, col)
+
 # ---------- helpers ----------
 
 ## A glowing outline.
@@ -317,9 +433,9 @@ func _neon(pts: PackedVector2Array, color: Color, closed: bool = true, width: fl
 	if closed:
 		line = pts.duplicate()
 		line.append(pts[0])
-	draw_polyline(line, Color(color, color.a * 0.16), width * 3.6, true)
-	draw_polyline(line, Color(color, color.a * 0.45), width * 2.0, true)
-	draw_polyline(line, Color(color.lightened(0.35), color.a), width, true)
+	_strip(line, Color(color, color.a * 0.16), width * 3.6, true)
+	_strip(line, Color(color, color.a * 0.45), width * 2.0, true)
+	_strip(line, Color(color.lightened(0.35), color.a), width, true)
 
 func _ring(pos: Vector2, r: float, color: Color, width: float = 2.0, segs: int = 24) -> void:
 	var pts := PackedVector2Array()
@@ -359,7 +475,7 @@ func _draw_soul(pos: Vector2, r: float, phase: float, color: Color) -> void:
 		var a := PI * i / 8.0  # the round bottom, right to left
 		pts.append(pos + Vector2(cos(a) * r * 0.8, sin(a) * r * 0.8 + r * 0.2))
 	_neon(pts, color, true, 1.3)
-	draw_circle(pos + Vector2(sway * 0.3, r * 0.15), r * 0.33, Color(1, 1, 1, color.a * 0.85))
+	_disc(pos + Vector2(sway * 0.3, r * 0.15), r * 0.33, Color(1, 1, 1, color.a * 0.85))
 
 # ---------- Sanctuary circles, hex charms ----------
 
@@ -368,16 +484,16 @@ func _draw_zone(z: Dictionary, t: float, u: float) -> void:
 	var gold := Color(1.0, 0.85, 0.3)
 	if z.active:
 		var k: float = clampf(float(z.left) / float(z.life), 0.0, 1.0)
-		draw_circle(z.pos, r, Color(gold, 0.07 + 0.05 * sin(t * 6.0)))
+		_disc(z.pos, r, Color(gold, 0.07 + 0.05 * sin(t * 6.0)))
 		_ring(z.pos, r, gold, 2.4, 64)
-		draw_arc(z.pos, r + 0.35 * u, -PI / 2.0, -PI / 2.0 + TAU * k, 64, Color(1, 1, 1, 0.8), 3.0, true)
+		_arc(z.pos, r + 0.35 * u, -PI / 2.0, -PI / 2.0 + TAU * k, 64, Color(1, 1, 1, 0.8), 3.0, true)
 	else:
 		var dash := 24
 		for i in dash:
 			if i % 2 == 0:
 				var a0 := TAU * i / dash + t * 0.3
-				draw_arc(z.pos, r, a0, a0 + TAU / dash, 6, Color(gold, 0.55), 2.0, true)
-		draw_circle(z.pos, r, Color(gold, 0.03))
+				_arc(z.pos, r, a0, a0 + TAU / dash, 6, Color(gold, 0.55), 2.0, true)
+		_disc(z.pos, r, Color(gold, 0.03))
 	if classic:
 		return
 	# A five-point star traced inside: the sacred circle.
@@ -396,7 +512,7 @@ func _draw_charm(m: Dictionary, t: float, u: float) -> void:
 	var r := Core.MINE_RADIUS * u
 	_ring(m.pos, r * 1.3, col, 1.3, 12)
 	_x_mark(m.pos, r * 0.6, col, 1.1)
-	draw_circle(m.pos, r * (0.25 + 0.12 * sin(t * 9.0 + m.pos.x)), Color(1, 0.8, 0.7, col.a))
+	_disc(m.pos, r * (0.25 + 0.12 * sin(t * 9.0 + m.pos.x)), Color(1, 0.8, 0.7, col.a))
 
 # ---------- enemies ----------
 
@@ -417,7 +533,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 			return
 		_ring(pos, r * (1.0 + 2.5 * k), Color(col, 0.7 * (1.0 - k) + 0.2), 1.5, 20)
 		if e.type != "ufo":
-			draw_circle(pos, r * 0.25 * (1.0 - k), Color(col, 0.6))
+			_disc(pos, r * 0.25 * (1.0 - k), Color(col, 0.6))
 		return
 	var spin: float = t * 3.0 + float(e.id)
 	match e.type:
@@ -433,7 +549,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 			_neon(lid, col, true, 1.7)
 			var look: Vector2 = ((game.player_pos as Vector2) - pos).normalized() * r * 0.3
 			_ring(pos + look, r * 0.42, col, 1.4, 14)
-			draw_circle(pos + look, r * 0.18, Color(1, 0.9, 0.95))
+			_disc(pos + look, r * 0.18, Color(1, 0.9, 0.95))
 		"wanderer":
 			# Crossbones, tumbling.
 			for i in 2:
@@ -452,13 +568,13 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 				var x := -r * 0.33 + k * r * 0.22
 				_line(c + Vector2(x, r * 0.28), c + Vector2(x, r * 0.48), col, 0.9)
 			_line(c + Vector2(r * 0.2, -r * 0.95), c + Vector2(r * 0.55, -r * 1.65), Color(0.85, 0.9, 1.0), 1.1)
-			draw_circle(c + Vector2(r * 0.6, -r * 1.72), r * 0.16, Color(1.0, 0.3, 0.5))
+			_disc(c + Vector2(r * 0.6, -r * 1.72), r * 0.16, Color(1.0, 0.3, 0.5))
 		"rocket":
 			# A feathered dart.
 			var d: Vector2 = (e.dir as Vector2)
 			var p := Vector2(-d.y, d.x)
 			var speed_k: float = clampf(float(e.slow), 0.0, 1.0)
-			draw_line(pos - d * r * 1.0, pos - d * r * (1.2 + 3.5 * speed_k), Color(col, 0.35 * speed_k), r * 0.6)
+			_seg(pos - d * r * 1.0, pos - d * r * (1.2 + 3.5 * speed_k), Color(col, 0.35 * speed_k), r * 0.6)
 			_line(pos - d * r * 1.1, pos + d * r * 0.9, col, 1.6)
 			_neon(PackedVector2Array([pos + d * r * 1.5, pos + d * r * 0.8 + p * r * 0.35, pos + d * r * 0.8 - p * r * 0.35]), col, true, 1.6)
 			for s in [-1.0, 1.0]:
@@ -467,7 +583,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 			# A rune orb: a ring with a turning triangle sigil inside.
 			_ring(pos, r * 1.05, col, 1.8, 20)
 			_neon(_poly(pos, r * 0.62, 3, spin * 1.5), col, true, 1.3)
-			draw_circle(pos, r * 0.14, Color(col.lightened(0.5), 0.9))
+			_disc(pos, r * 0.14, Color(col.lightened(0.5), 0.9))
 		"gear":
 			# A glutton: a round mouth chomping, faster as it eats.
 			var fast: float = 1.0 + float(e.eaten) * 0.5
@@ -483,7 +599,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 		"mayfly":
 			# A gnat: a dot with flapping wings.
 			var flap: float = sin(t * 30.0 + float(e.phase)) * 0.6
-			draw_circle(pos, r * 0.35, Color(col, 0.9))
+			_disc(pos, r * 0.35, Color(col, 0.9))
 			for s in [-1.0, 1.0]:
 				_line(pos, pos + Vector2(s * r * 1.1, -r * (0.4 + flap)), col, 1.0)
 		"weaver":
@@ -507,7 +623,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 				for i in 3:
 					var a := spin * 1.3 + i * TAU / 3.0
 					_ring(pos + Vector2(cos(a), sin(a)) * r * 0.55, r * 0.55, col, 1.6, 14)
-				draw_circle(pos, r * 0.15, Color(col.lightened(0.5), 0.9))
+				_disc(pos, r * 0.15, Color(col.lightened(0.5), 0.9))
 			else:
 				_ring(pos, r * 0.95, col, 1.5, 14)
 				var a := spin * 2.0
@@ -531,7 +647,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 			_neon(PackedVector2Array([pos + hd * r * 1.3 + hp * r * 0.5, pos + hp * r * 0.95, pos - hd * r * 0.8 + hp * r * 0.6,
 				pos - hd * r * 0.8 - hp * r * 0.6, pos - hp * r * 0.95, pos + hd * r * 1.3 - hp * r * 0.5]), col, true, 2.0)
 			for s in [-1.0, 1.0]:
-				draw_circle(pos + hd * r * 0.2 + hp * s * r * 0.4, r * 0.2, Color(1, 1, 1, 0.9))
+				_disc(pos + hd * r * 0.2 + hp * s * r * 0.4, r * 0.2, Color(1, 1, 1, 0.9))
 				_line(pos + hd * r * 1.25 + hp * s * r * 0.3, pos + hd * r * 1.75 + hp * s * r * 0.15, col, 1.0)
 		"well":
 			_draw_well(e, t, u, col, r)
@@ -540,7 +656,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 			var jit := Vector2(sin(t * 31.0 + float(e.id)), cos(t * 27.0 + float(e.id) * 1.7)) * r * 0.15
 			_ring(pos + jit, r * 1.1, col, 1.8, 14)
 			for s in [-1.0, 1.0]:
-				draw_circle(pos + jit + Vector2(s * r * 0.38, -r * 0.1), r * 0.18, Color(1, 1, 1, 0.9))
+				_disc(pos + jit + Vector2(s * r * 0.38, -r * 0.1), r * 0.18, Color(1, 1, 1, 0.9))
 		"ufo", "nufo":
 			# A phantom (rare, worth a fortune) or a specter (they come in packs):
 			# a ghost sheet with a wavy hem.
@@ -555,14 +671,14 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 				g.append(pos + Vector2(x * r * size * 0.9, r * size * (0.75 + wave)))
 			_neon(g, col, true, 1.8 if e.type == "ufo" else 1.4)
 			for s in [-1.0, 1.0]:
-				draw_circle(pos + Vector2(s * r * size * 0.32, -r * size * 0.25), r * size * 0.17, Color(0.05, 0.05, 0.1, 0.9))
+				_disc(pos + Vector2(s * r * size * 0.32, -r * size * 0.25), r * size * 0.17, Color(0.05, 0.05, 0.1, 0.9))
 				_ring(pos + Vector2(s * r * size * 0.32, -r * size * 0.25), r * size * 0.17, col, 1.0, 8)
 		"repulsor":
 			# A charger: a beetle with a golden shell on its front -- hit it behind.
 			var d: Vector2 = e.dir
 			var p := Vector2(-d.y, d.x)
 			if e.state == "charge":
-				draw_line(pos - d * r, pos - d * r * 5.0, Color(col, 0.3), r * 1.2)
+				_seg(pos - d * r, pos - d * r * 5.0, Color(col, 0.3), r * 1.2)
 			var body := PackedVector2Array()
 			for i in 12:
 				var a := TAU * i / 12.0
@@ -577,7 +693,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 				_line(pos + d * r * 1.25 + p * s * r * 0.3, pos + d * r * 1.75 + p * s * r * 0.1, Color(1.0, 0.75, 0.2), 1.3)
 			if e.state == "aim":
 				var k: float = 1.0 - clampf(float(e.st) / Core.REPULSOR_AIM, 0.0, 1.0)
-				draw_circle(pos + d * r * 0.6, r * 0.22, Color(1, 0.8, 0.4, 0.3 + 0.7 * k))
+				_disc(pos + d * r * 0.6, r * 0.22, Color(1, 0.8, 0.4, 0.3 + 0.7 * k))
 		"gate", "golden":
 			# A seal: a bar of runes with spiked orbs on its deadly ends.
 			var ends := Core.gate_ends(e)
@@ -596,7 +712,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 				for i in 12:
 					star.append(end + Vector2(r * (1.3 if i % 2 == 0 else 0.7), 0).rotated(t * 2.5 + i * TAU / 12.0))
 				_neon(star, col, true, 1.6)
-				draw_circle(end, r * 0.4, Color(col.lightened(0.4), 0.9))
+				_disc(end, r * 0.4, Color(col.lightened(0.4), 0.9))
 		"layer":
 			# A spider, laying hex charms.
 			var hop: float = absf(sin(float(e.t) * PI / 0.6)) * 0.2 * r
@@ -609,7 +725,7 @@ func _draw_enemy(e: Dictionary, t: float, u: float) -> void:
 					var knee := c + Vector2(s * r * 1.05, r * a * 0.9 - r * 0.25)
 					var foot := c + Vector2(s * r * 1.5, r * a * 1.2 + sin(float(e.t) * 12.0 + k) * r * 0.12)
 					_neon(PackedVector2Array([c + Vector2(s * r * 0.55, r * a * 0.4), knee, foot]), col, false, 1.1)
-			draw_circle(c, r * 0.22, Color(1.0, 0.85, 0.85, 0.9))
+			_disc(c, r * 0.22, Color(1.0, 0.85, 0.85, 0.9))
 
 ## A black hole: its pull shows as a faint field (asleep) or a swirling
 ## vortex (awake), and it swells with everything it eats. Runes circle it.
@@ -627,18 +743,18 @@ func _draw_well(e: Dictionary, t: float, u: float, col: Color, r: float) -> void
 				var f: float = 1.0 - k / 13.0
 				var a: float = arm * TAU / 5.0 + f * 3.2 - t * 3.5
 				pts.append(pos + Vector2(cos(a), sin(a)) * (r * grow * 1.1 + f * field * 0.5))
-			draw_polyline(pts, Color(col, 0.18), 2.0, true)
+			_strip(pts, Color(col, 0.18), 2.0, true)
 		_ring(pos, field * (0.3 + 0.05 * pulse_k), Color(col, 0.22), 1.2, 40)
 	else:
 		_ring(pos, field * 0.45, Color(col, 0.08 + 0.05 * pulse_k), 1.0, 32)
-	draw_circle(pos, r * grow * 0.95, Color(0.02, 0.0, 0.03, 0.85))
+	_disc(pos, r * grow * 0.95, Color(0.02, 0.0, 0.03, 0.85))
 	for i in 3:
 		_ring(pos, r * grow * (0.45 + 0.28 * i + (0.08 * pulse_k if active else 0.0)), wc, 1.6, 28)
 	for i in (0 if classic else 6):
 		var a := t * (1.5 if active else 0.5) + i * TAU / 6.0
 		_x_mark(pos + Vector2(cos(a), sin(a)) * r * grow * 1.3, r * 0.1, Color(wc, 0.8), 1.0)
 	if active:
-		draw_circle(pos, r * 0.3, Color(0.9, 0.8, 1.0, 0.9))
+		_disc(pos, r * 0.3, Color(0.9, 0.8, 1.0, 0.9))
 		var full: float = float(e.eaten) / Core.WELL_BURST_AT
 		if full > 0.6:
 			_ring(pos, r * grow * (1.1 + 0.15 * sin(t * 25.0)), Color(1, 0.85, 1.0, full * 0.6), 2.0, 28)
@@ -701,10 +817,10 @@ func _draw_queen(b: Dictionary, t: float, su: float, col: Color) -> void:
 	for i in 6:
 		var a := t * 0.3 + i * TAU / 6.0
 		var d := Vector2(cos(a), sin(a))
-		draw_line(pos + d * Bosses.QUEEN_CORE * su, pos + d * outer * su, Color(col, 0.18), 2.0, true)
+		_seg(pos + d * Bosses.QUEEN_CORE * su, pos + d * outer * su, Color(col, 0.18), 2.0, true)
 	for ring in rings:
 		var rr: float = float(ring.r) * su
-		draw_arc(pos, rr, 0, TAU, 64, Color(col, 0.12), 1.5, true)
+		_arc(pos, rr, 0, TAU, 64, Color(col, 0.12), 1.5, true)
 		var plates: Array = ring.plates
 		var n := plates.size()
 		var seg := TAU / n
@@ -721,12 +837,12 @@ func _draw_queen(b: Dictionary, t: float, su: float, col: Color) -> void:
 			pc.a = 0.45 + 0.55 * clampf(hp / 4.0, 0.0, 1.0)
 			_neon(pts, pc, false, 4.0)
 			var mid: float = float(ring.rot) + i * seg
-			draw_circle(pos + Vector2(cos(mid), sin(mid)) * rr, 0.12 * su, Color(1, 0.9, 0.7, pc.a))
+			_disc(pos + Vector2(cos(mid), sin(mid)) * rr, 0.12 * su, Color(1, 0.9, 0.7, pc.a))
 	# The core: two hexagons turning against each other round a hexagram.
 	_neon(_poly(pos, Bosses.QUEEN_CORE * su, 6, t * 0.8), col, true, 3.0)
 	_neon(_poly(pos, Bosses.QUEEN_CORE * su * 0.62, 3, -t * 1.3), col, true, 1.8)
 	_neon(_poly(pos, Bosses.QUEEN_CORE * su * 0.62, 3, -t * 1.3 + PI), col, true, 1.8)
-	draw_circle(pos, Bosses.QUEEN_CORE * su * 0.25, Color(1, 0.85, 0.95, 0.7 + 0.3 * sin(t * 6.0)))
+	_disc(pos, Bosses.QUEEN_CORE * su * 0.25, Color(1, 0.85, 0.95, 0.7 + 0.3 * sin(t * 6.0)))
 
 func _draw_serpent(b: Dictionary, t: float, su: float, col: Color) -> void:
 	var pos: Vector2 = b.pos
@@ -742,7 +858,7 @@ func _draw_serpent(b: Dictionary, t: float, su: float, col: Color) -> void:
 		var n := Vector2(-d.y, d.x)
 		_line(sp + n * r * 1.35, sp - n * r * 1.35, Color(col, 0.55), 1.1)
 		var life := clampf(float(b.seg_hp[k]) / hp_max, 0.0, 1.0)
-		draw_circle(sp, r * 0.35, Color(1, 1, 0.75, 0.25 + 0.6 * life))
+		_disc(sp, r * 0.35, Color(1, 1, 0.75, 0.25 + 0.6 * life))
 		prev = sp
 	var hd: Vector2 = b.dir
 	var hp := Vector2(-hd.y, hd.x)
@@ -755,7 +871,7 @@ func _draw_serpent(b: Dictionary, t: float, su: float, col: Color) -> void:
 	for s in [-1.0, 1.0]:
 		# Horns sweeping back, and the eyes.
 		_neon(PackedVector2Array([pos + hp * s * hr * 0.9, pos + hp * s * hr * 1.7 - hd * hr * 0.6, pos + hp * s * hr * 1.5 - hd * hr * 1.3]), hcol, false, 2.0)
-		draw_circle(pos + hd * hr * 0.4 + hp * s * hr * 0.45, hr * 0.18, Color(1, 0.3, 0.3))
+		_disc(pos + hd * hr * 0.4 + hp * s * hr * 0.45, hr * 0.18, Color(1, 0.3, 0.3))
 
 func _draw_scorpion(b: Dictionary, t: float, su: float, col: Color) -> void:
 	var pos: Vector2 = b.pos
@@ -768,13 +884,13 @@ func _draw_scorpion(b: Dictionary, t: float, su: float, col: Color) -> void:
 	if warn > 0.0:
 		var sp := Bosses.strike_point(b)
 		var rr := Bosses.STINGER_OUT_R * su * (2.2 - 1.2 * warn)
-		draw_circle(sp, rr, Color(1, 0.1, 0.15, 0.12 + 0.18 * warn))
-		draw_arc(sp, rr, 0, TAU, 40, Color(1, 0.25, 0.3, 0.5 + 0.5 * warn), 3.0, true)
-		draw_arc(sp, rr * 0.45, 0, TAU, 24, Color(1, 0.5, 0.4, 0.6 * warn), 2.0, true)
+		_disc(sp, rr, Color(1, 0.1, 0.15, 0.12 + 0.18 * warn))
+		_arc(sp, rr, 0, TAU, 40, Color(1, 0.25, 0.3, 0.5 + 0.5 * warn), 3.0, true)
+		_arc(sp, rr * 0.45, 0, TAU, 24, Color(1, 0.5, 0.4, 0.6 * warn), 2.0, true)
 		for i in 4:
 			var a := i * PI / 2.0 + t * 2.0
 			var d := Vector2(cos(a), sin(a))
-			draw_line(sp + d * rr * 0.6, sp + d * rr * 1.25, Color(1, 0.3, 0.3, 0.8 * warn), 2.5, true)
+			_seg(sp + d * rr * 0.6, sp + d * rr * 1.25, Color(1, 0.3, 0.3, 0.8 * warn), 2.5, true)
 	# Legs: four a side, arched like a spider's (out and up to the knee, then
 	# down and back to the foot), stepping in turn.
 	for s in [-1.0, 1.0]:
@@ -785,7 +901,7 @@ func _draw_scorpion(b: Dictionary, t: float, su: float, col: Color) -> void:
 			var knee: Vector2 = base + sd * s * hr * 0.65 + f * hr * (splay + 0.35 + 0.12 * sin(ph))
 			var foot: Vector2 = knee + sd * s * hr * 0.4 + f * hr * (splay - 0.75 + 0.15 * cos(ph))
 			_neon(PackedVector2Array([base, knee, foot]), Color(col, 0.75), false, 1.5)
-			draw_circle(knee, hr * 0.06, Color(col, 0.8))
+			_disc(knee, hr * 0.06, Color(col, 0.8))
 	# The tail: a chain of plates shrinking to the stinger.
 	var tail := Bosses.tail_points(b)
 	if tail.size() > 1:
@@ -809,8 +925,8 @@ func _draw_scorpion(b: Dictionary, t: float, su: float, col: Color) -> void:
 		_neon(PackedVector2Array([tip - td * sr, tip + n * sr * 0.8, tip + td * sr * 1.6 + n * sr * 0.3, tip - n * sr * 0.8]), scol, true, 2.4)
 		if open:
 			var pr := Bosses.STINGER_OUT_R * su * (1.0 + 0.08 * sin(t * 12.0))
-			draw_arc(tip, pr, 0, TAU, 32, Color(1, 0.95, 0.5, 0.75), 2.0, true)
-			draw_circle(tip, sr * 0.45, Color(1, 1, 0.8, 0.9))
+			_arc(tip, pr, 0, TAU, 32, Color(1, 0.95, 0.5, 0.75), 2.0, true)
+			_disc(tip, sr * 0.45, Color(1, 1, 0.8, 0.9))
 	# Arms and pincers.
 	for i in 2:
 		var sh := Bosses.shoulder_pos(b, i)
@@ -845,9 +961,9 @@ func _draw_scorpion(b: Dictionary, t: float, su: float, col: Color) -> void:
 	_line(pos - f * hr * 0.2 + sd * hr * 0.8, pos - f * hr * 0.2 - sd * hr * 0.8, Color(hcol, 0.5), 1.2)
 	_line(pos - f * hr * 0.6 + sd * hr * 0.75, pos - f * hr * 0.6 - sd * hr * 0.75, Color(hcol, 0.5), 1.2)
 	for e in [Vector2(0.75, 0.22), Vector2(0.75, -0.22), Vector2(0.55, 0.45), Vector2(0.55, -0.45)]:
-		draw_circle(pos + f * hr * e.x + sd * hr * e.y, hr * 0.09, Color(1, 0.3, 0.25))
+		_disc(pos + f * hr * e.x + sd * hr * e.y, hr * 0.09, Color(1, 0.3, 0.25))
 	if bare:
-		draw_circle(pos, hr * 0.3, Color(1, 0.9, 0.6, 0.5 + 0.3 * sin(t * 7.0)))
+		_disc(pos, hr * 0.3, Color(1, 0.9, 0.6, 0.5 + 0.3 * sin(t * 7.0)))
 
 func _draw_lord(b: Dictionary, t: float, su: float, col: Color) -> void:
 	var pos: Vector2 = b.pos
@@ -859,14 +975,14 @@ func _draw_lord(b: Dictionary, t: float, su: float, col: Color) -> void:
 			var f: float = 1.0 - k / 17.0
 			var a: float = arm * TAU / 7.0 + f * 4.0 - t * (4.0 if angry else 2.5)
 			pts.append(pos + Vector2(cos(a), sin(a)) * (r * 1.05 + f * r * 3.5))
-		draw_polyline(pts, Color(col, 0.22), 2.5, true)
+		_strip(pts, Color(col, 0.22), 2.5, true)
 	# Orbiting polygons: a triangle, a square and a pentagon on their own tilts.
 	for i in 3:
 		_neon(_poly(pos, r * (1.35 + 0.35 * i), 3 + i, t * (0.6 - 0.25 * i) * (1.0 if i % 2 == 0 else -1.0)), Color(col, 0.28), true, 1.3)
-	draw_circle(pos, r, Color(0.02, 0.0, 0.0, 0.92))
+	_disc(pos, r, Color(0.02, 0.0, 0.0, 0.92))
 	for i in 4:
 		_ring(pos, r * (0.4 + 0.2 * i + 0.05 * sin(t * 5.0 + i)), col, 2.4 - i * 0.3, 40)
-	draw_circle(pos, r * 0.2, Color(1, 0.85, 0.6, 0.9))
+	_disc(pos, r * 0.2, Color(1, 0.85, 0.6, 0.9))
 
 func _draw_titan(b: Dictionary, t: float, su: float, col: Color) -> void:
 	var pos: Vector2 = b.pos
@@ -879,14 +995,14 @@ func _draw_titan(b: Dictionary, t: float, su: float, col: Color) -> void:
 	# An outer frame: struts out to every turret mount.
 	for i in turrets.size():
 		var tp := Bosses.turret_pos(b, i)
-		draw_line(pos, tp, Color(col, 0.22 if int(turrets[i]) > 0 else 0.08), 3.0, true)
+		_seg(pos, tp, Color(col, 0.22 if int(turrets[i]) > 0 else 0.08), 3.0, true)
 	_neon(_poly(pos, Bosses.TITAN_TURRET_OFF * su, turrets.size(), float(b.rot) + PI / turrets.size()), Color(col, 0.25), true, 1.4)
 	var body := _poly(pos, r, 8, float(b.rot))
 	_neon(body, col, true, 3.2)
 	_neon(_poly(pos, r * 0.62, 8, -float(b.rot) * 1.5), col, true, 2.0)
 	_neon(_poly(pos, r * 0.4, 4, float(b.rot) * 2.0), Color(col, 0.7), true, 1.6)
 	var core_col := Color(1, 0.4, 0.3) if guns == 0 else Color(col, 0.5)
-	draw_circle(pos, r * 0.28, Color(core_col, 0.85 if guns == 0 else 0.4))
+	_disc(pos, r * 0.28, Color(core_col, 0.85 if guns == 0 else 0.4))
 	for i in turrets.size():
 		if int(turrets[i]) <= 0:
 			continue
@@ -895,7 +1011,7 @@ func _draw_titan(b: Dictionary, t: float, su: float, col: Color) -> void:
 		_neon(_poly(tp, Bosses.TITAN_TURRET_R * su, 4, float(b.rot) + PI / 4.0), Color(0.9, 0.95, 1.0), true, 2.2)
 		_neon(PackedVector2Array([tp, tp + aim * 1.1 * su]), Color(1, 0.5, 0.4), false, 2.4)
 	if b.get("state", "") == "charge":
-		draw_line(pos, pos - (b.dir as Vector2) * r * 2.5, Color(col, 0.3), r * 0.8)
+		_seg(pos, pos - (b.dir as Vector2) * r * 2.5, Color(col, 0.3), r * 0.8)
 
 func _draw_watcher(b: Dictionary, t: float, su: float, col: Color) -> void:
 	var pos: Vector2 = b.pos
@@ -905,14 +1021,14 @@ func _draw_watcher(b: Dictionary, t: float, su: float, col: Color) -> void:
 	# The frame: a hexagram turning both ways, ticks round a ring, spokes in.
 	_neon(_poly(pos, fr, 3, rot), Color(col, 0.75), true, 2.2)
 	_neon(_poly(pos, fr, 3, -rot + PI), Color(col, 0.75), true, 2.2)
-	draw_arc(pos, fr * 1.12, 0, TAU, 72, Color(col, 0.3), 1.5, true)
+	_arc(pos, fr * 1.12, 0, TAU, 72, Color(col, 0.3), 1.5, true)
 	for i in 24:
 		var a := i * TAU / 24.0 + rot * 0.5
 		var d := Vector2(cos(a), sin(a))
-		draw_line(pos + d * fr * 1.08, pos + d * fr * (1.2 if i % 2 == 0 else 1.15), Color(col, 0.5), 1.5, true)
+		_seg(pos + d * fr * 1.08, pos + d * fr * (1.2 if i % 2 == 0 else 1.15), Color(col, 0.5), 1.5, true)
 	for i in 6:
 		var a := rot + i * TAU / 6.0
-		draw_line(pos + Vector2(cos(a), sin(a)) * er * 1.1, pos + Vector2(cos(a), sin(a)) * fr * 0.5, Color(col, 0.25), 1.5, true)
+		_seg(pos + Vector2(cos(a), sin(a)) * er * 1.1, pos + Vector2(cos(a), sin(a)) * fr * 0.5, Color(col, 0.25), 1.5, true)
 	# The eye looks where it aims.
 	var look: Vector2 = b.dir
 	var state := str(b.state)
@@ -925,7 +1041,7 @@ func _draw_watcher(b: Dictionary, t: float, su: float, col: Color) -> void:
 		var a := PI * i / 16.0
 		almond.append(pos + Vector2(cos(a) * er * 1.25, sin(a) * er * lid).rotated(look.angle()))
 	if Geometry2D.triangulate_polygon(almond).size() > 0:
-		draw_colored_polygon(almond, Color(0.05, 0.0, 0.02, 0.9))
+		_fill(almond, Color(0.05, 0.0, 0.02, 0.9))
 	_neon(almond, col, true, 3.0)
 	if state == "watch":
 		for i in 5:  # lashes on the shut lid
@@ -943,11 +1059,11 @@ func _draw_watcher(b: Dictionary, t: float, su: float, col: Color) -> void:
 		for k in 24:
 			var a := k * 0.5 - t * 3.0
 			sp.append(iris + Vector2(cos(a), sin(a)) * ir * k / 24.0)
-		draw_polyline(sp, Color(icol, 0.8), 1.6, true)
+		_strip(sp, Color(icol, 0.8), 1.6, true)
 	else:
 		var pulse := 0.6 + 0.4 * sin(t * (22.0 if state == "fire" else 10.0))
-		draw_circle(iris, ir * 0.45, Color(1, 0.15, 0.2, pulse))
-		draw_circle(iris, ir * 0.18, Color(1, 0.95, 0.9))
+		_disc(iris, ir * 0.45, Color(1, 0.15, 0.2, pulse))
+		_disc(iris, ir * 0.18, Color(1, 0.95, 0.9))
 
 func _draw_warden(b: Dictionary, t: float, u: float, su: float, col: Color) -> void:
 	var pos: Vector2 = b.pos
@@ -960,9 +1076,9 @@ func _draw_warden(b: Dictionary, t: float, u: float, su: float, col: Color) -> v
 		if int(p.hp) <= 0:
 			continue
 		var a: Vector2 = p.pos
-		draw_line(a, pos, Color(0.55, 0.9, 1.0, 0.18), 2.0, true)
+		_seg(a, pos, Color(0.55, 0.9, 1.0, 0.18), 2.0, true)
 		var k := fposmod(t * 0.6 + float(p.t) * 0.1, 1.0)
-		draw_circle(a.lerp(pos, k), 0.18 * u, Color(0.7, 0.95, 1.0, 0.7))
+		_disc(a.lerp(pos, k), 0.18 * u, Color(0.7, 0.95, 1.0, 0.7))
 	# The fortress: a hexagon with six bastions, a turning square, a core.
 	var hexa := _poly(pos, r, 6, rot)
 	_neon(hexa, col, true, 3.2)
@@ -971,10 +1087,10 @@ func _draw_warden(b: Dictionary, t: float, u: float, su: float, col: Color) -> v
 	_neon(_poly(pos, r * 0.6, 4, -rot * 1.7), col, true, 2.0)
 	_neon(_poly(pos, r * 0.6, 4, -rot * 1.7 + PI / 4.0), Color(col, 0.6), true, 1.4)
 	var core_col := Color(1, 0.5, 0.4) if not shield else Color(0.7, 0.9, 1.0)
-	draw_circle(pos, r * 0.25, Color(core_col, 0.6 + 0.3 * sin(t * 5.0)))
+	_disc(pos, r * 0.25, Color(core_col, 0.6 + 0.3 * sin(t * 5.0)))
 	if shield:
 		var sr := Bosses.shield_r(b)
-		draw_circle(pos, sr, Color(0.5, 0.8, 1.0, 0.07 + 0.03 * sin(t * 3.0)))
+		_disc(pos, sr, Color(0.5, 0.8, 1.0, 0.07 + 0.03 * sin(t * 3.0)))
 		_ring(pos, sr, Color(0.6, 0.9, 1.0, 0.75), 2.2, 64)
 		# A lattice of hexagons on the bubble.
 		for i in 12:
@@ -996,11 +1112,11 @@ func _draw_pylons(b: Dictionary, t: float, u: float, alpha: float) -> void:
 		var pc := Color(1, 1, 1, alpha) if float(p.get("flash", 0.0)) > 0.0 else Color(0.6, 0.95, 1.0, alpha)
 		var bob := sin(t * 2.0 + float(p.t)) * 0.12 * u
 		var crystal := PackedVector2Array([c + Vector2(0, -pr * 1.7 + bob), c + Vector2(pr * 0.8, bob), c + Vector2(0, pr * 1.2 + bob), c + Vector2(-pr * 0.8, bob)])
-		draw_circle(c, pr * 1.9, Color(0.4, 0.8, 1.0, 0.08 * alpha))
+		_disc(c, pr * 1.9, Color(0.4, 0.8, 1.0, 0.08 * alpha))
 		_neon(crystal, pc, true, 2.6)
 		_neon(PackedVector2Array([c + Vector2(0, -pr * 0.9 + bob), c + Vector2(pr * 0.35, bob), c + Vector2(0, pr * 0.6 + bob), c + Vector2(-pr * 0.35, bob)]), Color(pc, 0.6 * alpha), true, 1.4)
 		var k := clampf(float(p.hp) / maxf(1.0, float(p.max)), 0.0, 1.0)
-		draw_arc(c, pr * 2.2, -PI / 2.0, -PI / 2.0 + TAU * k, 32, Color(0.6, 0.95, 1.0, 0.8 * alpha), 2.5, true)
+		_arc(c, pr * 2.2, -PI / 2.0, -PI / 2.0 + TAU * k, 32, Color(0.6, 0.95, 1.0, 0.8 * alpha), 2.5, true)
 
 ## The Watcher's beams: a thin sight line while it aims, a blazing beam when
 ## it fires; both end at the first tombstone.
@@ -1010,21 +1126,21 @@ func _draw_beams(t: float, u: float) -> void:
 		var b: Vector2 = bm.to
 		var half: float = bm.half
 		if bm.on:
-			draw_line(a, b, Color(1.0, 0.15, 0.2, 0.25), half * 4.0)
-			draw_line(a, b, Color(1.0, 0.3, 0.35, 0.75), half * 2.0)
-			draw_line(a, b, Color(1.0, 0.95, 0.95), half * 0.7)
-			draw_circle(b, half * (1.6 + 0.3 * sin(t * 40.0)), Color(1, 0.6, 0.5, 0.8))
+			_seg(a, b, Color(1.0, 0.15, 0.2, 0.25), half * 4.0)
+			_seg(a, b, Color(1.0, 0.3, 0.35, 0.75), half * 2.0)
+			_seg(a, b, Color(1.0, 0.95, 0.95), half * 0.7)
+			_disc(b, half * (1.6 + 0.3 * sin(t * 40.0)), Color(1, 0.6, 0.5, 0.8))
 		elif bm.get("locked", false):
 			# Locked on: it fires down this line in a moment -- blinking, as
 			# wide as the beam will be.
 			var blink := 0.35 if int(t * 16.0) % 2 == 0 else 0.85
-			draw_line(a, b, Color(1.0, 0.2, 0.25, 0.18 * blink), half * 2.0)
-			draw_line(a, b, Color(1.0, 0.85, 0.85, blink), 2.5, true)
-			draw_circle(b, 0.25 * u, Color(1, 0.4, 0.4, blink))
+			_seg(a, b, Color(1.0, 0.2, 0.25, 0.18 * blink), half * 2.0)
+			_seg(a, b, Color(1.0, 0.85, 0.85, blink), 2.5, true)
+			_disc(b, 0.25 * u, Color(1, 0.4, 0.4, blink))
 		else:
 			var flick := 0.45 + 0.35 * sin(t * 25.0)
-			draw_line(a, b, Color(1.0, 0.25, 0.3, flick), 2.0, true)
-			draw_circle(b, 0.18 * u, Color(1, 0.3, 0.3, flick))
+			_seg(a, b, Color(1.0, 0.25, 0.3, flick), 2.0, true)
+			_disc(b, 0.18 * u, Color(1, 0.3, 0.3, flick))
 
 ## A tombstone: the Watcher's beam and shots stop at it.
 func _draw_tombstone(r: Rect2, u: float) -> void:
@@ -1038,7 +1154,7 @@ func _draw_tombstone(r: Rect2, u: float) -> void:
 		pts.append(Vector2(r.position.x + w * 0.5, top) + Vector2(cos(a), sin(a)) * w * 0.5)
 	pts.append(Vector2(r.end.x, r.end.y))
 	var stone := Color(0.72, 0.78, 0.92) if not classic else Color(0.6, 0.7, 0.85)
-	draw_colored_polygon(pts, Color(0.05, 0.06, 0.1, 0.92))
+	_fill(pts, Color(0.05, 0.06, 0.1, 0.92))
 	_neon(pts, stone, true, 2.2)
 	var c := Vector2(r.position.x + w * 0.5, top + r.size.y * 0.12)
 	if classic:
@@ -1056,7 +1172,7 @@ func _draw_familiar(d: Dictionary, t: float, u: float) -> void:
 	var c: Vector2 = d.pos
 	var s := 0.55 * u
 	if d.kind == "sweep":
-		draw_arc(game.player_pos, Drones.SWEEP_RADIUS * u, 0, TAU, 48, Color(col, 0.12), 2.0, true)
+		_arc(game.player_pos, Drones.SWEEP_RADIUS * u, 0, TAU, 48, Color(col, 0.12), 2.0, true)
 	var flap := sin(t * 14.0) * 0.35
 	match d.kind:
 		"attack":  # raven: wings in a flapping V, a beak
@@ -1075,7 +1191,7 @@ func _draw_familiar(d: Dictionary, t: float, u: float) -> void:
 			_ring(c, s * 0.75, col, 1.4, 14)
 			for side in [-1.0, 1.0]:
 				_ring(c + Vector2(side * s * 0.3, -s * 0.1), s * 0.25, col, 1.1, 10)
-				draw_circle(c + Vector2(side * s * 0.3, -s * 0.1), s * 0.09, Color(1, 1, 1, 0.9))
+				_disc(c + Vector2(side * s * 0.3, -s * 0.1), s * 0.09, Color(1, 1, 1, 0.9))
 				_line(c + Vector2(side * s * 0.45, -s * 0.6), c + Vector2(side * s * 0.65, -s * 1.0), col, 1.1)
 		"defend":  # bat: scalloped wings
 			for side in [-1.0, 1.0]:
@@ -1104,8 +1220,8 @@ func _draw_player(t: float, u: float) -> void:
 		var rate: float = 5.0 if inv > 1.0 else 16.0
 		var pulse_k: float = 0.5 + 0.5 * sin(t * rate)
 		var hr: float = (1.5 + 0.12 * pulse_k) * u
-		draw_arc(pos, hr, 0, TAU, 40, Color(0.4, 0.85, 1.0, 0.18), 0.5 * u, true)
-		draw_arc(pos, hr, 0, TAU, 40, Color(0.6, 0.92, 1.0, 0.55 + 0.3 * pulse_k), 2.0, true)
+		_arc(pos, hr, 0, TAU, 40, Color(0.4, 0.85, 1.0, 0.18), 0.5 * u, true)
+		_arc(pos, hr, 0, TAU, 40, Color(0.6, 0.92, 1.0, 0.55 + 0.3 * pulse_k), 2.0, true)
 	# Sanctuary: a small crown (Classic) or a candle flame (Voodoo) over
 	# your ship while you may shoot.
 	if game.rules.king and game.king_zone >= 0 and classic:
@@ -1127,11 +1243,11 @@ func _draw_ship(pos: Vector2, d: Vector2, u: float) -> void:
 	var xf := Transform2D(d.angle(), Vector2(k, k), 0.0, pos)
 	var body: PackedVector2Array = xf * _ship_body
 	if _ship_fill[0]:
-		draw_colored_polygon(body, Color(0.03, 0.05, 0.09, 0.92))
+		_fill(body, Color(0.03, 0.05, 0.09, 0.92))
 	for i in _ship_slits.size():
 		var sp: PackedVector2Array = xf * (_ship_slits[i] as PackedVector2Array)
 		if _ship_fill[i + 1]:
-			draw_colored_polygon(sp, Color(1.0, 0.2, 0.3, 0.95))
+			_fill(sp, Color(1.0, 0.2, 0.3, 0.95))
 		else:
 			_neon(sp, Color(1.0, 0.3, 0.38), true, 0.6)
 	_neon(body, Color(0.7, 0.95, 1.0), true, 1.0)
@@ -1157,7 +1273,7 @@ func _draw_flame(pos: Vector2, d: Vector2, t: float, u: float) -> void:
 			var f := i / 8.0
 			var w := width * k * sin(PI * (0.15 + 0.85 * f)) * (0.85 + 0.15 * sin(f * 9.0 + t * 18.0 + 1.0))
 			pts.append(root - d * length * k * f - p * (w - sin(t * 29.0 + f * 5.0) * 0.03 * u * f))
-		draw_colored_polygon(pts, col)
+		_fill(pts, col)
 
 # ---------- the Classic skin (exactly as before the 2026-10-05 re-theme) ----------
 
@@ -1169,7 +1285,7 @@ func _draw_gem(pos: Vector2, r: float, phase: float, color: Color, big: bool = f
 	var pts := PackedVector2Array([pos + Vector2(0, -h), pos + Vector2(w, -h * 0.2), pos + Vector2(0, h), pos + Vector2(-w, -h * 0.2)])
 	_neon(pts, color, true, 1.2)
 	var glint: float = 0.5 + 0.5 * sin(phase * 2.0)
-	draw_circle(pos + Vector2(0, -h * 0.25), maxf(1.0, r * 0.18), Color(1, 1, 0.85, color.a * (0.5 + 0.5 * glint)))
+	_disc(pos + Vector2(0, -h * 0.25), maxf(1.0, r * 0.18), Color(1, 1, 0.85, color.a * (0.5 + 0.5 * glint)))
 
 func _draw_mine(m: Dictionary, t: float, u: float) -> void:
 	var armed: bool = float(m.age) >= Core.MINE_ARM
@@ -1179,7 +1295,7 @@ func _draw_mine(m: Dictionary, t: float, u: float) -> void:
 		col.a *= 0.4
 	var r := Core.MINE_RADIUS * u
 	_neon(_poly(m.pos, r * 1.4, 4, t * 2.0), col, true, 1.3)
-	draw_circle(m.pos, r * (0.35 + 0.15 * sin(t * 9.0 + m.pos.x)), Color(1, 0.8, 0.7, col.a))
+	_disc(m.pos, r * (0.35 + 0.15 * sin(t * 9.0 + m.pos.x)), Color(1, 0.8, 0.7, col.a))
 
 ## An orange dart that streaks behind it (gold after a gate bounce).
 func _draw_dart(b: Dictionary, d: Vector2, gold: bool, u: float) -> void:
@@ -1187,9 +1303,9 @@ func _draw_dart(b: Dictionary, d: Vector2, gold: bool, u: float) -> void:
 	var front: Vector2 = b.pos + d * 0.5 * u
 	var back: Vector2 = b.pos - d * 0.25 * u
 	var c1 := Color(1.0, 0.85, 0.2) if gold else (Color(0.6, 0.85, 1.0) if b.get("drone", false) else Color(1.0, 0.65, 0.2))
-	draw_line(back, back - d * 1.6 * u, Color(c1, 0.25), 0.28 * u)
-	draw_colored_polygon(PackedVector2Array([front, back + side * 0.1 * u, back - side * 0.1 * u]), c1)
-	draw_line(front, back, Color(1.0, 0.95, 0.7), 1.5)
+	_seg(back, back - d * 1.6 * u, Color(c1, 0.25), 0.28 * u)
+	_fill(PackedVector2Array([front, back + side * 0.1 * u, back - side * 0.1 * u]), c1)
+	_seg(front, back, Color(1.0, 0.95, 0.7), 1.5)
 
 func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 	var col: Color = Core.color_of(e.type)
@@ -1205,7 +1321,7 @@ func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 			return
 		_ring(pos, r * (1.0 + 2.5 * k), Color(col, 0.7 * (1.0 - k) + 0.2), 1.5, 20)
 		if e.type != "ufo":
-			draw_circle(pos, r * 0.25 * (1.0 - k), Color(col, 0.6))
+			_disc(pos, r * 0.25 * (1.0 - k), Color(col, 0.6))
 		return
 	var spin: float = t * 3.0 + float(e.id)
 	match e.type:
@@ -1225,7 +1341,7 @@ func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 			var p := Vector2(-d.y, d.x)
 			var pts := PackedVector2Array([pos + d * r * 1.4, pos - d * r * 0.9 + p * r * 0.95, pos - d * r * 0.3, pos - d * r * 0.9 - p * r * 0.95])
 			var speed_k: float = clampf(float(e.slow), 0.0, 1.0)
-			draw_line(pos - d * r * 0.8, pos - d * r * (1.0 + 4.0 * speed_k), Color(1.0, 0.6, 0.2, 0.45 * speed_k), r * 0.9)
+			_seg(pos - d * r * 0.8, pos - d * r * (1.0 + 4.0 * speed_k), Color(1.0, 0.6, 0.2, 0.45 * speed_k), r * 0.9)
 			_neon(pts, col)
 		"repulsor":
 			# A blue rhino: armoured orange front, soft blue back.
@@ -1233,7 +1349,7 @@ func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 			var p := Vector2(-d.y, d.x)
 			var charging: bool = e.state == "charge"
 			if charging:
-				draw_line(pos - d * r, pos - d * r * 5.0, Color(0.4, 0.6, 1.0, 0.3), r * 1.2)
+				_seg(pos - d * r, pos - d * r * 5.0, Color(0.4, 0.6, 1.0, 0.3), r * 1.2)
 			var back := PackedVector2Array([pos + p * r * 1.0, pos - d * r * 1.2 + p * r * 0.6, pos - d * r * 1.2 - p * r * 0.6, pos - p * r * 1.0])
 			_neon(back, col, false, 2.0)
 			var front := PackedVector2Array([pos + p * r * 1.1, pos + d * r * 0.6 + p * r * 0.7, pos + d * r * 1.6, pos + d * r * 0.6 - p * r * 0.7, pos - p * r * 1.1])
@@ -1241,7 +1357,7 @@ func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 			_neon(front, orange, false, 2.4)
 			if e.state == "aim":
 				var k: float = 1.0 - clampf(float(e.st) / Core.REPULSOR_AIM, 0.0, 1.0)
-				draw_circle(pos + d * r * 0.4, r * 0.25, Color(1, 0.8, 0.4, 0.3 + 0.7 * k))
+				_disc(pos + d * r * 0.4, r * 0.25, Color(1, 0.8, 0.4, 0.3 + 0.7 * k))
 		"neutron":
 			_ring(pos, r * 1.05, col, 1.8)
 			for i in 3:
@@ -1274,14 +1390,14 @@ func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 			var hd: Vector2 = (e.vel as Vector2).normalized() if (e.vel as Vector2).length() > 1.0 else Vector2.RIGHT
 			var hp := Vector2(-hd.y, hd.x)
 			_neon(PackedVector2Array([pos + hd * r * 1.5, pos + hp * r * 0.9, pos - hd * r * 0.7, pos - hp * r * 0.9]), col, true, 2.0)
-			draw_circle(pos, r * 0.3, Color(1, 1, 1, 0.9))
+			_disc(pos, r * 0.3, Color(1, 1, 1, 0.9))
 		"well":
 			_draw_well(e, t, u, col, r)
 		"proton":
 			# Little skittering circles: they jitter as they run.
 			var jit := Vector2(sin(t * 31.0 + float(e.id)), cos(t * 27.0 + float(e.id) * 1.7)) * r * 0.15
 			_ring(pos + jit, r * 1.1, col, 1.8, 14)
-			draw_circle(pos + jit, r * 0.3, Color(0.8, 1.0, 1.0, 0.8))
+			_disc(pos + jit, r * 0.3, Color(0.8, 1.0, 1.0, 0.8))
 		"ufo":
 			var flat := PackedVector2Array()
 			for i in 20:
@@ -1295,8 +1411,8 @@ func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 				var a := i * TAU / 16.0
 				flat.append(pos + Vector2(cos(a) * r * 1.45, sin(a) * r * 0.6))
 			_neon(flat, col, true, 1.6)
-			draw_arc(pos - Vector2(0, r * 0.25), r * 0.6, PI, TAU, 10, Color(col.lightened(0.4), 0.9), 1.6, true)
-			draw_circle(pos + Vector2(sin(t * 8.0 + float(e.id)) * r * 0.8, r * 0.2), r * 0.15, Color(1, 1, 1, 0.8))
+			_arc(pos - Vector2(0, r * 0.25), r * 0.6, PI, TAU, 10, Color(col.lightened(0.4), 0.9), 1.6, true)
+			_disc(pos + Vector2(sin(t * 8.0 + float(e.id)) * r * 0.8, r * 0.2), r * 0.15, Color(1, 1, 1, 0.8))
 		"gate", "golden":
 			var ends := Core.gate_ends(e)
 			var golden: bool = e.type == "golden"
@@ -1306,7 +1422,7 @@ func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 			_neon(PackedVector2Array([ends[0], ends[1]]), Color(bar, bar.a * 0.85), false, 2.0)
 			for end in ends:
 				_neon(_poly(end, r * 1.2, 6, t * 2.5), col, true, 2.0)
-				draw_circle(end, r * 0.45, Color(col.lightened(0.4), 0.9))
+				_disc(end, r * 0.45, Color(col.lightened(0.4), 0.9))
 		"layer":
 			var hop: float = absf(sin(float(e.t) * PI / 0.6)) * 0.2 * r
 			var body := _poly(pos - Vector2(0, hop), r * 1.1, 4, PI / 4.0)
@@ -1314,18 +1430,18 @@ func _draw_enemy_classic(e: Dictionary, t: float, u: float) -> void:
 			for i in 4:
 				var a := i * PI / 2.0 + PI / 4.0
 				_neon(PackedVector2Array([pos + Vector2(r * 0.8, 0).rotated(a), pos + Vector2(r * 1.5, 0).rotated(a + 0.4)]), col, false, 1.2)
-			draw_circle(pos - Vector2(0, hop), r * 0.3, Color(1.0, 0.3, 0.3, 0.9))
+			_disc(pos - Vector2(0, hop), r * 0.3, Color(1.0, 0.3, 0.3, 0.9))
 
 func _draw_drone(d: Dictionary, t: float, u: float) -> void:
 	var col: Color = Drones.color_of(d.kind)
 	var pos: Vector2 = d.pos
 	if d.kind == "sweep":
-		draw_arc(game.player_pos, Drones.SWEEP_RADIUS * u, 0, TAU, 48, Color(col, 0.12), 2.0, true)
+		_arc(game.player_pos, Drones.SWEEP_RADIUS * u, 0, TAU, 48, Color(col, 0.12), 2.0, true)
 	var dir: Vector2 = (d.vel as Vector2).normalized() if (d.vel as Vector2).length() > 1.0 else game.ship_dir
 	var p := Vector2(-dir.y, dir.x)
 	var s := 0.52 * u
 	_neon(PackedVector2Array([pos + dir * s, pos - dir * s * 0.7 + p * s * 0.7, pos - dir * s * 0.3, pos - dir * s * 0.7 - p * s * 0.7]), col, true, 1.5)
-	draw_circle(pos, s * 0.2, Color(1, 1, 1, 0.6 + 0.4 * sin(t * 8.0)))
+	_disc(pos, s * 0.2, Color(1, 1, 1, 0.6 + 0.4 * sin(t * 8.0)))
 
 ## A familiar's own flame, out of its back the way it flies, longer the faster
 ## it goes, in its colour around a white core.
@@ -1349,7 +1465,7 @@ func _draw_familiar_flame(d: Dictionary, t: float, u: float) -> void:
 		for i in range(5, 0, -1):
 			var f := i / 6.0
 			pts.append(root - dir * length * k * f - p * width * k * sin(PI * (0.15 + 0.85 * f)))
-		draw_colored_polygon(pts, c)
+		_fill(pts, c)
 
 ## A small bar under a familiar that has taken hits.
 func _draw_familiar_health(d: Dictionary, u: float) -> void:
@@ -1359,5 +1475,5 @@ func _draw_familiar_health(d: Dictionary, u: float) -> void:
 		return
 	var w := 0.9 * u
 	var at: Vector2 = (d.pos as Vector2) + Vector2(-w / 2.0, 0.6 * u)
-	draw_rect(Rect2(at, Vector2(w, 0.12 * u)), Color(0, 0, 0, 0.6))
-	draw_rect(Rect2(at, Vector2(w * hp / full, 0.12 * u)), Color(0.3, 1.0, 0.5) if hp * 2 > full else Color(1.0, 0.35, 0.35))
+	_box(Rect2(at, Vector2(w, 0.12 * u)), Color(0, 0, 0, 0.6))
+	_box(Rect2(at, Vector2(w * hp / full, 0.12 * u)), Color(0.3, 1.0, 0.5) if hp * 2 > full else Color(1.0, 0.35, 0.35))
