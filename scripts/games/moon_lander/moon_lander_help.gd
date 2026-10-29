@@ -6,7 +6,7 @@ const ID := "moon_lander"
 const TITLE := "Moon Lander"
 const GOAL := "Land on the green pads, gently and upright, as many times as you can."
 const HOW := [
-	"Hold ⟲ or ⟳ to tilt the lander. Hold 🔥 to fire the engine: it pushes the way the nose points and burns fuel.",
+	"Push the stick left or right to tilt the lander. Hold the flame button (or push the stick up) to fire the engine: it pushes the way the nose points and burns fuel.",
 	"Gravity always pulls you down. Without fuel the engine stops.",
 	"To land safely: touch down on a green pad, slowly and nearly upright. The Down, Sideways and Tilt numbers turn green when they're safe.",
 	"The first levels are forgiving: wide pads, lots of fuel, gentle limits, and the lander straightens itself when you let go of ⟲ / ⟳. It gets stricter with every landing until level 6.",

@@ -8076,5 +8076,21 @@
  "Tap the white ball next to ⟲ to pick where the cue hits it. Above the middle = top spin: after hitting a ball, the white ball follows it. Below = back spin: it comes back towards you. Left or right = side spin: it kicks that way off a cushion. The guide's faint line shows where the white ball will go.": "Toca la bola blanca junto a ⟲ para elegir dónde le pega el taco. Arriba del centro = efecto arriba: tras golpear una bola, la blanca la sigue. Abajo = efecto atrás: vuelve hacia ti. Izquierda o derecha = efecto lateral: sale desviada hacia ese lado al rebotar en una banda. La línea tenue de la guía muestra adónde irá la blanca.",
  "Top spin": "Efecto arriba",
  "Top spin: the white ball follows the ball it hits.": "Efecto arriba: la blanca sigue a la bola que golpea.",
- "Where the cue hits the white ball": "Dónde le pega el taco a la blanca"
+ "Where the cue hits the white ball": "Dónde le pega el taco a la blanca",
+ "Put a thumb down low on the screen: a stick appears and flies your fighter (arrow keys on a PC). The guns fire on their own.": "Pon un pulgar abajo en la pantalla: aparece un joystick y mueve tu caza (flechas en el PC). Los cañones disparan solos.",
+ "Put a thumb down low on the screen: a stick appears and steers the ship (arrow keys on a PC). It flies forward and fires on its own, straight ahead at the green sight.": "Pon un pulgar abajo en la pantalla: aparece un joystick y dirige la nave (flechas en el PC). Vuela hacia delante y dispara sola, en línea recta hacia la mira verde.",
+ "The left stick flies: your ship turns that way and thrusts. Let go to drift.": "El joystick izquierdo vuela: tu nave gira hacia ese lado y acelera. Suéltalo para derivar.",
+ "The right stick aims and fires, so you can fly one way and shoot another.": "El joystick derecho apunta y dispara, así puedes volar hacia un lado y disparar hacia otro.",
+ "Staying still is safer than flying: stay near the middle and let the rocks come to you.": "Quedarte quieto es más seguro que volar: mantente cerca del centro y deja que las rocas vengan a ti.",
+ "Push the stick left or right to tilt the lander. Hold the flame button (or push the stick up) to fire the engine: it pushes the way the nose points and burns fuel.": "Mueve el joystick a izquierda o derecha para inclinar el módulo. Mantén el botón de llama (o empuja el joystick hacia arriba) para encender el motor: empuja hacia donde apunta la nariz y gasta combustible.",
+ "Push the stick left or right to run. Stand at a ladder and push it up to climb up or down to climb down.": "Mueve el joystick a izquierda o derecha para correr. Junto a una escalera, empújalo hacia arriba para subir o hacia abajo para bajar.",
+ "Tap the jump button (the up arrow) to jump. Jumping over a barrel scores 100.": "Toca el botón de salto (la flecha hacia arriba) para saltar. Saltar un barril da 100 puntos.",
+ "The stick walks: up and down go forward and back, left and right step sideways. Drag sideways on the view to turn.": "El joystick camina: arriba y abajo van hacia delante y atrás, izquierda y derecha dan pasos laterales. Arrastra de lado sobre la vista para girar.",
+ "Hold the bolt button to blast your wand at whatever is under the crosshair. Walls block the shot.": "Mantén el botón del rayo para lanzar tu varita contra lo que esté bajo la mira. Las paredes bloquean el disparo.",
+ "Hold the phone sideways. The stick on the left walks. A (lower right) says what it does: USE, SEARCH, HIDE, OPEN, READ, TALK, TAKE... B (to its right) attacks with the weapon it shows.": "Pon el teléfono de lado. El joystick de la izquierda sirve para caminar. A (abajo a la derecha) dice lo que hace: USAR, BUSCAR, ESCONDERSE, ABRIR, LEER, HABLAR, TOMAR... B (a su derecha) ataca con el arma que muestra.",
+ "Hold the phone sideways. The stick (lower left) walks: push it any way you like. A (lower right) says what it does: Examine, Read, Take, Talk, Go in.": "Sostén el teléfono de lado. El joystick (abajo a la izquierda) te hace caminar: empújalo hacia donde quieras. A (abajo a la derecha) dice lo que hace: Examinar, Leer, Tomar, Hablar, Entrar.",
+ "At first only A works. Follow what it says; the stick comes when you are ready to walk.": "Al principio solo funciona A. Haz lo que dice; el joystick aparece cuando ya puedes caminar.",
+ "Steer with the stick": "Dirige con el joystick",
+ "Jump": "Saltar",
+ "Thrust": "Propulsión"
 }

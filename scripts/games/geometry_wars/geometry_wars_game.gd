@@ -29,6 +29,11 @@ const Campaign = preload("res://scripts/games/geometry_wars/geometry_wars_campai
 const HomeKit = preload("res://scripts/games/geometry_wars/home_kit.gd")
 const ArenaCanvas = preload("res://scripts/games/geometry_wars/arena_canvas.gd")
 const JoystickCanvas = preload("res://scripts/games/geometry_wars/joystick_canvas.gd")
+## The app's shared on-screen controller (scripts/common/pad/, docs/claude/pad.md): two floating sticks
+## (left moves, right aims and fires) and a Bomb button between them. Older apps don't have it and keep
+## the floating sticks and the Bomb bar below, exactly as before.
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+const PAD_LAYOUTS_PATH := "res://scripts/common/pad/pad_layouts.gd"
 const HELP = preload("res://scripts/games/geometry_wars/geometry_wars_help.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
@@ -203,6 +208,8 @@ var game_screen: Control
 var view_clip: Control
 var arena_canvas: Node2D
 var joystick_canvas: Node2D
+var touch_pad: Control = null        # the shared Pad (null on apps without it)
+var _pad_bomb_shown := false
 var minimap: Control
 var boss_bar: Control
 var score_label: Label
@@ -260,6 +267,8 @@ func _sfx_at(key: String, pos: Vector2, db: float = 0.0, pitch: float = 1.0, gap
 ## Forget both thumbs. A release that arrives while paused is otherwise
 ## never seen, leaving a stick "held" forever after resuming.
 func _release_sticks() -> void:
+	if touch_pad != null and is_instance_valid(touch_pad):
+		touch_pad.release_all()
 	move_touch_index = -1
 	aim_touch_index = -1
 	move_value = Vector2.ZERO
@@ -271,6 +280,8 @@ func _input(event: InputEvent) -> void:
 	if not game_active or game_over:
 		_release_sticks()
 		return
+	if touch_pad != null and (event is InputEventScreenTouch or event is InputEventScreenDrag):
+		return  # the Pad reads the sticks and the Bomb button
 	if event is InputEventScreenTouch:
 		if event.pressed and _on_hud_button(event.position):
 			return  # a tap on Pause / Bomb isn't a thumbstick
@@ -314,10 +325,10 @@ func _clamp_stick(delta: Vector2) -> Vector2:
 func _get_move_dir() -> Vector2:
 	if autopilot.is_valid():
 		return (autopilot.call(self).get("move", Vector2.ZERO) as Vector2).limit_length(1.0)
-	var v: Vector2
+	var v: Vector2 = touch_pad.get_vector("move") if touch_pad != null else Vector2.ZERO
 	if move_touch_index != -1:
 		v = move_value
-	else:
+	elif v == Vector2.ZERO:
 		v = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 		if v == Vector2.ZERO:
 			v = Vector2(
@@ -334,6 +345,10 @@ func _get_aim() -> Dictionary:
 		var a: Dictionary = autopilot.call(self)
 		var d: Vector2 = a.get("aim", Vector2.ZERO)
 		return {"dir": d.normalized() if d != Vector2.ZERO else Vector2.ZERO, "firing": bool(a.get("fire", false))}
+	if touch_pad != null:
+		var pad_aim: Vector2 = touch_pad.get_vector("aim")
+		if pad_aim.length() > 0.0:
+			return {"dir": pad_aim.normalized(), "firing": true}
 	if aim_touch_index != -1:
 		if aim_value.length() > JOYSTICK_DEADZONE:
 			return {"dir": aim_value.normalized(), "firing": true}
@@ -358,6 +373,8 @@ func can_fire() -> bool:
 # ---------- main loop ----------
 
 func _process(delta: float) -> void:
+	if touch_pad != null:
+		touch_pad.visible = game_active and not game_over   # dialogs and the Landing get every tap
 	rotate_hint.visible = get_viewport_rect().size.x < get_viewport_rect().size.y
 	if not game_active:
 		if game_over and ending >= 0.0:
@@ -1587,7 +1604,13 @@ func _update_hud() -> void:
 	combo_label.text = "×%d" % multiplier
 	bomb_button.text = ("💣\n×%d" if size.x >= size.y else "💣 ×%d") % bombs
 	bomb_button.disabled = bombs <= 0
-	bomb_button.visible = int(rules.bombs) > 0 or int(rules.bomb_every) > 0 or bombs > 0
+	var bomb_available: bool = int(rules.bombs) > 0 or int(rules.bomb_every) > 0 or bombs > 0
+	bomb_button.visible = bomb_available and touch_pad == null
+	if touch_pad != null:
+		if bomb_available != _pad_bomb_shown:
+			_pad_bomb_shown = bomb_available
+			touch_pad.set_hidden("a", not bomb_available)
+		touch_pad.set_state("a", {"sub": "×%d" % bombs, "enabled": bombs > 0})
 	var g := ""
 	if str(rules.goal) == "kills":
 		g = tr("Kills %d/%d") % [mini(kills, int(rules.n)), int(rules.n)]
@@ -1640,6 +1663,7 @@ func _build_ui() -> void:
 	joystick_canvas = JoystickCanvas.new()
 	joystick_canvas.game = self
 	add_child(joystick_canvas)
+	_add_pad()
 
 	_build_result_dialog()
 
@@ -1801,6 +1825,34 @@ func _build_game_screen() -> void:
 	var drawer_gap := Control.new()  # keeps Bomb clear of the ⚙ tab
 	drawer_gap.custom_minimum_size = Vector2(40, 0)
 	top_bar.add_child(drawer_gap)
+
+## The shared Pad: twin floating sticks + a Bomb button in the middle of the bottom edge.
+func _add_pad() -> void:
+	if not ResourceLoader.exists(PAD_PATH) or not ResourceLoader.exists(PAD_LAYOUTS_PATH):
+		return
+	var Layouts = load(PAD_LAYOUTS_PATH)
+	touch_pad = load(PAD_PATH).new()
+	touch_pad.custom_layout = Layouts.variant("dual_stick", ["a", "b", "pause", "info"],
+		[{"type": "button", "id": "a", "side": "center", "off": [0, 120], "r": 52, "label": "💣"}], "neon_blast")
+	touch_pad.prefs_override = {"floating": true}
+	touch_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(touch_pad)
+	touch_pad.set_state("a", {"draw": _draw_bomb_icon, "tint": Color(1.0, 0.3, 0.38)})
+	touch_pad.button_pressed.connect(_on_pad_button)
+	bomb_button.visible = false
+
+func _on_pad_button(id: String) -> void:
+	if id == "a":
+		_on_bomb_pressed()
+
+## A round bomb with a fuse, drawn in code (the Bomb button's icon on the Pad).
+func _draw_bomb_icon(ci: CanvasItem, c: Vector2, r: float, a: float) -> void:
+	var k := r / 40.0
+	ci.draw_circle(c + Vector2(-2, 6) * k, 18.0 * k, Color(0.12, 0.12, 0.16, a))
+	ci.draw_arc(c + Vector2(-2, 6) * k, 18.0 * k, 0.0, TAU, 24, Color(1.0, 0.42, 0.5, a), 2.5, true)
+	ci.draw_circle(c + Vector2(-8, 0) * k, 5.0 * k, Color(1, 1, 1, 0.25 * a))
+	ci.draw_polyline(PackedVector2Array([c + Vector2(6, -8) * k, c + Vector2(12, -16) * k, c + Vector2(18, -14) * k]), Color(0.9, 0.8, 0.5, a), 3.0, true)
+	ci.draw_circle(c + Vector2(19, -15) * k, 4.0 * k, Color(1.0, 0.75, 0.2, a))
 
 ## The view, the minimap and the banner follow the screen's size.
 func _layout() -> void:

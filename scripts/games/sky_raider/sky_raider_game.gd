@@ -141,6 +141,7 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	_add_pad()
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
@@ -171,6 +172,36 @@ func _build_ui() -> void:
 	drawer.set("default_frac", 0.05)  # beside the score, above the field
 	add_child(drawer)
 
+## The shared Pad (scripts/common/pad/, docs/claude/pad.md): a floating stick anywhere in the lower part
+## of the screen steers the ship, Bomb is the A button. Older apps don't have it and keep the finger-drag.
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+var touch_pad: Control = null
+
+func _add_pad() -> void:
+	if not ResourceLoader.exists(PAD_PATH):
+		return
+	touch_pad = load(PAD_PATH).new()
+	touch_pad.layout_override = "stick_4"
+	touch_pad.prefs_override = {"floating": true, "wide_zone": true}
+	touch_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(touch_pad)
+	for part in ["b", "x", "y", "pause", "info"]:
+		touch_pad.set_hidden(part, true)   # this game only steers and bombs
+	touch_pad.set_state("a", {"glyph": "bomb", "tint": Color(1.0, 0.4, 0.3)})
+	touch_pad.button_pressed.connect(_on_pad_button)
+	bomb_btn.visible = false
+
+func _on_pad_button(id: String) -> void:
+	if id == "a":
+		_on_bomb()
+
+## Pad only while a round is being played (dialogs and the Landing get every tap).
+func _pad_tick() -> void:
+	if touch_pad == null:
+		return
+	touch_pad.visible = started and engine.state == "play"
+	touch_pad.set_state("a", {"sub": "×%d" % engine.bombs, "enabled": engine.bombs > 0})
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and not event.echo:
 		if event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_A, KEY_D, KEY_W, KEY_S]:
@@ -184,7 +215,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## The fighter follows the finger's movement (not its position), so the
 ## finger never hides it.
 func _on_field_input(event: InputEvent) -> void:
-	if not started or engine.state != "play":
+	if not started or engine.state != "play" or touch_pad != null:
 		return
 	var rel := Vector2.ZERO
 	if event is InputEventScreenDrag:
@@ -245,6 +276,7 @@ func _on_bomb() -> void:
 
 func _process(delta: float) -> void:
 	anim_t += delta
+	_pad_tick()
 	if not started:
 		return
 	delta = minf(delta, 0.05)
@@ -271,6 +303,8 @@ func _process(delta: float) -> void:
 	var ky := (1.0 if keys.has(KEY_DOWN) or keys.has(KEY_S) else 0.0) - (1.0 if keys.has(KEY_UP) or keys.has(KEY_W) else 0.0)
 	if kx != 0.0 or ky != 0.0:
 		engine.move(Vector2(kx, ky).normalized() * 480.0 * delta)
+	elif touch_pad != null:
+		engine.move(touch_pad.get_vector("move") * 480.0 * delta)   # the stick: analog speed
 	var before: Array = engine.enemies.duplicate()
 	var boss_p: Vector2 = engine.boss.get("p", Vector2.ZERO)
 	var ev: Array = engine.step(delta)

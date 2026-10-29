@@ -9,7 +9,7 @@ const ID := "last_shift"
 const TITLE := "Last Shift"
 const GOAL := "Nash Kovac fixes chillers on the night shift. Tonight something goes wrong in the building: find a way out before dawn."
 const HOW := [
-	"Hold the phone sideways. The arrows on the left walk. A (lower right) says what it does: USE, SEARCH, HIDE, OPEN, READ, TALK, TAKE... B (above it) attacks with the weapon it shows.",
+	"Hold the phone sideways. The stick on the left walks. A (lower right) says what it does: USE, SEARCH, HIDE, OPEN, READ, TALK, TAKE... B (to its right) attacks with the weapon it shows.",
 	"Walk into a door to open it. Locked doors need a key, a keycard or another way round.",
 	"Search lockers, desks, cabinets and bodies: it takes 2 seconds, and the noise can draw infected. A searched locker is a place to hide.",
 	"Infected that lose sight of you while you hide wander off searching. If one saw you climb in, it drags you out.",

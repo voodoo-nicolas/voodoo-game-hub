@@ -165,7 +165,7 @@ them too, but editing them changes the global value. Per-game items are stored p
 | Text size (1.0–1.4) | Global | `Settings.content_scale_factor` |
 | Rotate screen, keep screen on | Global | |
 | Notifications (invites) | Global | |
-| **On-screen controller** (layout, look, size, opacity, handedness) | Global (`user://pad.json`) | Only for games on the shared Pad (`scripts/common/pad/`, `docs/claude/pad.md`). The game defines `_pad()`; the kit's Options then shows "🎮 Controls". [NEW 2026-10-23] |
+| **On-screen controller** (layout, look, size, opacity, handedness) | Global (`user://pad.json`) | Only for games on the shared Pad (`scripts/common/pad/`, `docs/claude/pad.md`). The game defines `_pad()`; the kit's Options then shows "🎮 Controls" (no game does yet: owner 2026-10-29, options later). Default layout stick + 4 buttons, shooters twin sticks, no D-pad. [NEW 2026-10-23] |
 | **Skin: Classic / Voodoo** | Per game; **default = Classic** (global "Voodoo mode" switch can flip all games) | §9 |
 | **Default difficulty / mode** | Per game | feeds Quick Play |
 | Game-specific toggles (hints, timer, auto-complete…) | Per game | declared by the game: kit `"options"` adds the game's own section to ⚙ Options (after Look) [NEW 2026-10-24; first: Chess's Show on/off per info panel, all on by default] |

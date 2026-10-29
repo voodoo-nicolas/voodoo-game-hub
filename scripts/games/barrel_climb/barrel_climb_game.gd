@@ -130,11 +130,16 @@ func _build_ui() -> void:
 			HomeKit.style_button(b, BARREL)
 		controls.add_child(b)
 
+	if ResourceLoader.exists(PAD_PATH):
+		controls.visible = false                    # the shared Pad draws the stick and the button
+		cm.custom_minimum_size = Vector2(0, PAD_ROOM)
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _restart},
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(PAD_PATH):
+		_add_pad()
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
@@ -178,6 +183,45 @@ func _hold(what: String, on: bool) -> void:
 			if on:
 				jump_queued = true
 
+## The shared Pad (scripts/common/pad/, docs/claude/pad.md). Older apps do not have it and keep the
+## on-screen buttons below.
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+const PAD_ROOM := 285.0        # height kept free under the playfield for the Pad's stick + button
+var touch_pad: Control = null
+var _pad_dirs := {"l": false, "r": false, "u": false, "d": false}
+
+func _add_pad() -> void:
+	touch_pad = load(PAD_PATH).new()
+	touch_pad.layout_override = "stick_4"
+	touch_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(touch_pad)
+	for part in ["b", "x", "y", "pause", "info"]:
+		touch_pad.set_hidden(part, true)   # run, climb and jump
+	touch_pad.set_state("a", {"glyph": "jump", "sub": tr("Jump")})
+	touch_pad.button_pressed.connect(_on_pad_button)
+
+func _on_pad_button(id: String) -> void:
+	if id == "a":
+		jump_queued = true
+
+## The stick presses left / right / up / down like the keys do (written only when it changes, so the
+## keyboard still works); the Pad shows only while a round is on.
+func _pad_tick() -> void:
+	if touch_pad == null:
+		return
+	touch_pad.visible = started and not end_dialog.visible
+	var v: Vector2 = touch_pad.get_vector("move")
+	var now := {"l": v.x < -0.35, "r": v.x > 0.35, "u": v.y < -0.45, "d": v.y > 0.45}
+	if now.l != _pad_dirs.l:
+		move_l = now.l
+	if now.r != _pad_dirs.r:
+		move_r = now.r
+	if now.u != _pad_dirs.u:
+		up = now.u
+	if now.d != _pad_dirs.d:
+		down = now.d
+	_pad_dirs = now
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and not event.echo:
 		match event.keycode:
@@ -216,6 +260,7 @@ func _update_hud() -> void:
 	hud_label.text = tr("Level %d") % engine.level + "\n" + "♥".repeat(maxi(0, engine.lives))
 
 func _process(delta: float) -> void:
+	_pad_tick()
 	anim_t += delta
 	if not started:
 		return

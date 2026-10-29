@@ -6,11 +6,19 @@ extends Control
 ##                 one (the player picks which on the creature screen), 3 and 4 arrive later. Each fills
 ##                 with power from the blue bar and lights up when it can be used
 ##   bottom      : pause and the creature screen sit in the middle (real buttons, added by the game)
+## Since the shared Pad (scripts/common/pad/, docs/claude/pad.md): when the app has it, the stick and the four
+## ability buttons are the Pad's (stick + 4 buttons: slots 0..3 = A bottom, B right, X left, Y top; its own
+## Pause / Info buttons are hidden because the game has its own in the middle). This script keeps the same
+## API (`dir`, `set_slots`, `ability_pressed`, `release`) and draws the ability icons for it. Without the
+## Pad (older apps) everything below works as it always did.
 ## Every finger is tracked by its own index so you can steer and boost together. A mouse works
 ## too (index -1); phones also send emulated mouse events for each touch, so once a real touch has
 ## been seen the mouse is ignored (otherwise every tap would count twice).
 
 signal ability_pressed(index: int)
+
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+const SLOT_PARTS := ["a", "b", "x", "y"]   # slot i is this Pad button
 
 const Art = preload("res://scripts/games/evolution/evolution_art.gd")   # its cheap disc / arc / strip drawing
 const STICK_R := 97.5           # 25% smaller than the first version (130), 2026-10-22
@@ -25,10 +33,47 @@ var accent := Color("29e6ff")
 var _pointers := {}              # pointer id -> "stick" / "dash"
 var _touch_seen := false
 var _stick_pos := Vector2.ZERO   # finger position relative to the stick centre
+var _pad: Control = null         # the shared Pad (null on apps without it: the old controls run)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if ResourceLoader.exists(PAD_PATH):
+		_add_pad()
+
+func _add_pad() -> void:
+	_pad = load(PAD_PATH).new()
+	_pad.layout_override = "stick_4"
+	_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_pad)
+	for part in ["pause", "info"]:
+		_pad.set_hidden(part, true)
+	for i in 4:
+		_pad.set_hidden(SLOT_PARTS[i], true)
+		_pad.set_state(SLOT_PARTS[i], {"draw": _slot_icon.bind(i)})
+	_pad.button_pressed.connect(_on_pad_button)
+	set_process(true)
+
+func _on_pad_button(id: String) -> void:
+	var i := SLOT_PARTS.find(id)
+	if i >= 0:
+		ability_pressed.emit(i)
+
+func _slot_icon(ci: CanvasItem, c: Vector2, r: float, a: float, i: int) -> void:
+	if i < slots.size():
+		_icon_on(ci, str(slots[i]), c, a)
+
+## Pad mode: the stick's push is `dir`; each button shows its ability (hidden when the slot is empty)
+## and fills with power from the blue bar.
+func _process(_delta: float) -> void:
+	if _pad == null:
+		return
+	dir = _pad.get_vector("move")
+	for i in 4:
+		var id: String = str(slots[i]) if i < slots.size() else ""
+		_pad.set_hidden(SLOT_PARTS[i], id == "")
+		var f: float = float(fill[i]) if i < fill.size() else 1.0
+		_pad.set_state(SLOT_PARTS[i], {"fill": f if f < 1.0 else -1.0, "enabled": f >= 1.0})
 
 func stick_center() -> Vector2:
 	return Vector2(145.0, size.y - 145.0)
@@ -46,13 +91,16 @@ func set_slots(ids: Array, fills: Array) -> void:
 
 ## Lets go of everything (the game calls this when a menu opens).
 func release() -> void:
+	if _pad != null and is_instance_valid(_pad):
+		_pad.release_all()
+		dir = Vector2.ZERO
 	_pointers.clear()
 	dir = Vector2.ZERO
 	_stick_pos = Vector2.ZERO
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:
-	if not is_visible_in_tree():
+	if _pad != null or not is_visible_in_tree():
 		return
 	if event is InputEventScreenTouch:
 		_touch_seen = true
@@ -94,6 +142,8 @@ func _move(id: int, pos: Vector2) -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	if _pad != null:
+		return
 	var c := stick_center()
 	Art.disc(self, c, STICK_R, Color(1, 1, 1, 0.10))
 	Art.arc(self, c, STICK_R, 0.0, TAU, 48, Color(1, 1, 1, 0.45), 3.0, true)
@@ -166,3 +216,57 @@ func _icon(id: String, c: Vector2, a: float) -> void:
 			Art.arc(self, c, 16.0, 0.0, PI, 16, white, 3.0, true)
 			Art.disc(self, c, 5.0, white)
 			draw_line(c + Vector2(-16, 14), c + Vector2(16, -14), Color(1, 0.4, 0.4, a), 3.0, true)
+
+## The same icons on any CanvasItem (the Pad draws them on its buttons).
+func _icon_on(ci: CanvasItem, id: String, c: Vector2, a: float) -> void:
+	var gold := Color(1, 0.9, 0.4, a)
+	var white := Color(1, 1, 1, a)
+	match id:
+		"burst":
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(6, -22), c + Vector2(-10, 3), c + Vector2(-1, 3), c + Vector2(-6, 22), c + Vector2(11, -5), c + Vector2(2, -5)]), gold)
+		"spit":
+			Art.disc(self, c + Vector2(-8, 0), 8.0, Color("9bff5a", a))
+			Art.disc(self, c + Vector2(6, -6), 4.0, Color("9bff5a", a))
+			Art.disc(self, c + Vector2(12, 4), 3.0, Color("9bff5a", a))
+			Art.disc(self, c + Vector2(18, -2), 2.0, Color("9bff5a", a))
+		"shock":
+			Art.strip(self, PackedVector2Array([c + Vector2(-16, -14), c + Vector2(-2, -2), c + Vector2(-8, 2), c + Vector2(8, 14), c + Vector2(2, 2), c + Vector2(10, -2), c + Vector2(16, -14)]), Color("7be0ff", a), 4.0, true)
+		"spine":
+			for k in 8:
+				var d := Vector2.RIGHT.rotated(TAU * float(k) / 8.0)
+				ci.draw_line(c + d * 8.0, c + d * 20.0, white, 3.0, true)
+			Art.disc(self, c, 7.0, white)
+		"lure":
+			ci.draw_line(c + Vector2(-14, 16), c + Vector2(4, -6), white, 3.0, true)
+			Art.disc(self, c + Vector2(8, -10), 8.0, Color(1, 0.95, 0.5, a))
+			Art.arc(self, c + Vector2(8, -10), 14.0, 0.0, TAU, 20, Color(1, 0.95, 0.5, a * 0.6), 2.0, true)
+		"ink":
+			for o in [Vector2(-9, 4), Vector2(0, -6), Vector2(10, 3), Vector2(2, 10)]:
+				Art.disc(self, c + o, 9.0, Color(0.55, 0.45, 0.9, a))
+		"harpoon":
+			ci.draw_line(c + Vector2(-18, 14), c + Vector2(14, -14), Color("d58bff", a), 4.0, true)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(20, -20), c + Vector2(6, -14), c + Vector2(14, -6)]), Color("f0c8ff", a))
+		"decoy":
+			Art.arc(self, c + Vector2(-8, 0), 11.0, 0.0, TAU, 20, white, 3.0, true)
+			Art.arc(self, c + Vector2(9, 0), 11.0, 0.0, TAU, 20, Color(1, 1, 1, a * 0.5), 3.0, true)
+		"limb":
+			Art.disc(self, c + Vector2(-8, 4), 10.0, white)
+			ci.draw_line(c + Vector2(2, -2), c + Vector2(18, -14), Color(1, 0.4, 0.4, a), 4.0, true)
+			ci.draw_line(c + Vector2(10, -16), c + Vector2(20, -6), Color(1, 0.4, 0.4, a), 3.0, true)
+		"suction":
+			for k in 6:
+				var d2 := Vector2.RIGHT.rotated(TAU * float(k) / 6.0)
+				ci.draw_line(c + d2 * 20.0, c + d2 * 9.0, white, 3.0, true)
+			Art.disc(self, c, 5.0, white)
+		"grab":
+			Art.arc(self, c + Vector2(-6, 6), 14.0, PI, TAU * 0.9, 16, white, 4.0, true)
+			Art.arc(self, c + Vector2(8, -4), 11.0, 0.0, PI * 1.4, 16, white, 4.0, true)
+		"sonar":
+			for k in 3:
+				Art.arc(self, c + Vector2(-12, 0), 8.0 + 8.0 * float(k), -0.9, 0.9, 10, Color(0.48, 0.88, 1.0, a), 3.0, true)
+			Art.disc(self, c + Vector2(-12, 0), 4.0, Color(0.48, 0.88, 1.0, a))
+		"camo":
+			Art.arc(self, c, 16.0, PI, TAU, 16, white, 3.0, true)
+			Art.arc(self, c, 16.0, 0.0, PI, 16, white, 3.0, true)
+			Art.disc(self, c, 5.0, white)
+			ci.draw_line(c + Vector2(-16, 14), c + Vector2(16, -14), Color(1, 0.4, 0.4, a), 3.0, true)

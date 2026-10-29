@@ -124,11 +124,16 @@ func _build_ui() -> void:
 		b.button_up.connect(_hold.bind(spec[1], false))
 		controls.add_child(b)
 
+	if ResourceLoader.exists(PAD_PATH):
+		controls.visible = false                    # the shared Pad draws the stick and the button
+		cm.custom_minimum_size = Vector2(0, PAD_ROOM)
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _new_game},
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(PAD_PATH):
+		_add_pad()
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
@@ -165,6 +170,40 @@ func _hold(what: String, on: bool) -> void:
 		"thrust":
 			thrust = on
 
+## The shared Pad (scripts/common/pad/, docs/claude/pad.md). Older apps do not have it and keep the
+## on-screen buttons below.
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+const PAD_ROOM := 285.0        # height kept free under the playfield for the Pad's stick + button
+var touch_pad: Control = null
+var _pad_turn := 0
+var _pad_thrust := false
+
+func _add_pad() -> void:
+	touch_pad = load(PAD_PATH).new()
+	touch_pad.layout_override = "stick_4"
+	touch_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(touch_pad)
+	for part in ["b", "x", "y", "pause", "info"]:
+		touch_pad.set_hidden(part, true)   # tilt with the stick, fire the engine with A
+	touch_pad.set_state("a", {"glyph": "flame", "sub": tr("Thrust")})
+
+## Stick left / right tilts, A (or the stick pushed up) fires the engine. Written only when it changes,
+## so the keyboard still works.
+func _pad_tick() -> void:
+	if touch_pad == null:
+		return
+	touch_pad.visible = started and not end_dialog.visible
+	var v: Vector2 = touch_pad.get_vector("move")
+	var turn := -1 if v.x < -0.3 else (1 if v.x > 0.3 else 0)
+	if turn != _pad_turn:
+		turn_left = turn < 0
+		turn_right = turn > 0
+		_pad_turn = turn
+	var want: bool = touch_pad.is_down("a") or v.y < -0.5
+	if want != _pad_thrust:
+		thrust = want
+		_pad_thrust = want
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		match event.keycode:
@@ -192,6 +231,7 @@ func _update_hud() -> void:
 	hud_label.text = tr("Level %d") % engine.level + "\n" + "▲".repeat(maxi(0, engine.landers))
 
 func _process(delta: float) -> void:
+	_pad_tick()
 	if not started:
 		return
 	delta = minf(delta, 0.05)

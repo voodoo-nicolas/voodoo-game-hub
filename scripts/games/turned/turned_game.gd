@@ -25,8 +25,8 @@ const SceneHudScript = preload("res://scripts/games/turned/turned_scene_hud.gd")
 const CardViewScript = preload("res://scripts/games/turned/turned_card_view.gd")
 ## The app's shared on-screen controller; older apps don't have it and Turned keeps its own controls.
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
-## Layouts that have A, B, a Pause and a Menu button (Turned needs all four).
-const PAD_LAYOUTS := ["dpad_4", "stick_4", "dpad_2", "stick_2", "stick_arc"]
+## The stick + 4 buttons layout (X and Y stay hidden until Turned unlocks them). The player does
+## not choose a layout yet (owner, 2026-10-29), so the game does not define _pad() for the Options.
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const ACCENT := Color("d9a441")
@@ -155,16 +155,14 @@ func _add_pad() -> void:
 	if not ResourceLoader.exists(PAD_PATH):
 		return
 	pad = load(PAD_PATH).new()
-	pad.default_layout = "dpad_4"          # D-pad left, A under B, as Turned always was
-	pad.allowed_layouts = PAD_LAYOUTS
+	pad.layout_override = "stick_4"
 	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(pad)
 	move_child(pad, 1)                    # over the world, under the HUD and the kit
 	hud.use_pad(pad)
 
-## The kit's Options shows the "Controls" section for this.
-func _pad() -> Control:
-	return pad
+# To let the player pick a controller layout later, define here: func _pad() -> Control: return pad
+# (the kit's Options then shows "Controls"; the Pad code for it is built and tested).
 
 ## The world's viewport: as big as this Control (canvas units), rendered at the screen's pixel
 ## density (k pixels per canvas unit) and shown scaled back by 1/k.

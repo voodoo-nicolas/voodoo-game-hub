@@ -105,8 +105,8 @@ static func dpad(ci: CanvasItem, p: Vector2, r: float, lit: Vector2, sk: Diction
 
 ## A round button. `color` tints the ring and letter (neon face colours); `down` lights it.
 ## `sub` = a word under the letter (shrunk to fit); `ring` = an amber ring around it (e.g. sneaking).
-static func button(ci: CanvasItem, p: Vector2, r: float, id: String, label: String, down: bool, enabled: bool, sk: Dictionary, a: float, sub: String = "", ring: bool = false) -> void:
-	var col: Color = sk["face"].get(id, sk["line"])
+static func button(ci: CanvasItem, p: Vector2, r: float, id: String, label: String, down: bool, enabled: bool, sk: Dictionary, a: float, sub: String = "", ring: bool = false, fill: float = -1.0, custom: Callable = Callable(), tint: Color = Color(0, 0, 0, 0), glyph_name: String = "") -> void:
+	var col: Color = tint if tint.a > 0.0 else sk["face"].get(id, sk["line"])
 	var al := a * (1.0 if enabled else 0.4)
 	ci.draw_circle(p, r, _c(sk["fill"], al))
 	if down:
@@ -116,7 +116,16 @@ static func button(ci: CanvasItem, p: Vector2, r: float, id: String, label: Stri
 	_ring(ci, p, r, _c(col, al), 3.0)
 	ci.draw_circle(p + Vector2(-r * 0.2, -r * 0.28), r * 0.5, Color(1, 1, 1, 0.07 * al))
 	var tc: Color = col if sk["glow"] else sk["text"]
-	if sub == "":
+	if glyph_name != "":
+		glyph(ci, glyph_name, p + Vector2(0, -r * 0.1 if sub != "" else 0.0), r * 0.62, _c(tc, al))
+		if sub != "":
+			_text(ci, p + Vector2(0, r * 0.52), sub, int(r * 0.32), _c(sk["text"], al * 0.95))
+	elif custom.is_valid():
+		custom.call(ci, p, r, al)   # the game draws its own icon (a weapon, a bag...)
+		if sub != "":
+			var px2 := int(r * 0.3)
+			_text(ci, p + Vector2(0, r * 0.56), sub, px2, _c(sk["text"], al * 0.95))
+	elif sub == "":
 		_text(ci, p, label, int(r * 0.9), _c(tc, al))
 	else:
 		_text(ci, p + Vector2(0, -r * 0.2), label, int(r * 0.72), _c(tc, al))
@@ -127,9 +136,31 @@ static func button(ci: CanvasItem, p: Vector2, r: float, id: String, label: Stri
 		_text(ci, p + Vector2(0, r * 0.46), sub, px, _c(sk["text"], al * 0.95))
 	if ring:
 		_ring(ci, p, r + 6.0, Color(1.0, 0.78, 0.3, 0.9 * a), 3.0)
+	if fill >= 0.0 and fill < 1.0:
+		# power / cooldown: a ring fills clockwise from the top; full = ready (no ring)
+		ci.draw_arc(p, r - 5.0, -PI * 0.5, -PI * 0.5 + TAU * fill, maxi(16, int(r * 0.5)), Color(0.23, 0.78, 1.0, 0.95 * a), 5.0, true)
+
+## Small built-in icons for buttons (so games do not each draw a bomb): `r` = half the icon's size.
+static func glyph(ci: CanvasItem, kind: String, c: Vector2, r: float, col: Color) -> void:
+	var k := r / 20.0
+	match kind:
+		"bomb":
+			ci.draw_circle(c + Vector2(-2, 5) * k, 14.0 * k, Color(col.r * 0.25, col.g * 0.25, col.b * 0.25, col.a))
+			ci.draw_arc(c + Vector2(-2, 5) * k, 14.0 * k, 0.0, TAU, 24, col, 2.5, true)
+			ci.draw_circle(c + Vector2(-7, 0) * k, 4.0 * k, Color(1, 1, 1, 0.25 * col.a))
+			ci.draw_polyline(PackedVector2Array([c + Vector2(5, -6) * k, c + Vector2(10, -13) * k, c + Vector2(15, -11) * k]), col, 2.5, true)
+			ci.draw_circle(c + Vector2(16, -12) * k, 3.5 * k, Color(1.0, 0.8, 0.25, col.a))
+		"flame":
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -18) * k, c + Vector2(11, -2) * k, c + Vector2(7, 14) * k, c + Vector2(0, 18) * k, c + Vector2(-7, 14) * k, c + Vector2(-11, -2) * k, c + Vector2(-4, -6) * k]), col)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(0, 2) * k, c + Vector2(5, 12) * k, c + Vector2(0, 16) * k, c + Vector2(-5, 12) * k]), Color(1, 1, 1, 0.55 * col.a))
+		"jump":
+			ci.draw_line(c + Vector2(0, 14) * k, c + Vector2(0, -12) * k, col, 4.0 * k, true)
+			ci.draw_polyline(PackedVector2Array([c + Vector2(-12, -2) * k, c + Vector2(0, -15) * k, c + Vector2(12, -2) * k]), col, 4.0 * k, true)
+		"bolt":
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(4, -18) * k, c + Vector2(-10, 3) * k, c + Vector2(-1, 3) * k, c + Vector2(-5, 18) * k, c + Vector2(10, -4) * k, c + Vector2(1, -4) * k]), col)
 
 ## A small rounded system button with an icon.
-static func pill(ci: CanvasItem, rect: Rect2, icon: String, down: bool, sk: Dictionary, a: float) -> void:
+static func pill(ci: CanvasItem, rect: Rect2, icon: String, down: bool, sk: Dictionary, a: float, custom: Callable = Callable()) -> void:
 	var line: Color = sk["line"]
 	var sb := StyleBoxFlat.new()
 	sb.set_corner_radius_all(int(rect.size.y * 0.3))
@@ -143,6 +174,9 @@ static func pill(ci: CanvasItem, rect: Rect2, icon: String, down: bool, sk: Dict
 	var c := rect.get_center()
 	var col := _c(sk["text"], a)
 	var h := rect.size.y
+	if custom.is_valid():
+		custom.call(ci, c, h * 0.5, a)
+		return
 	match icon:
 		"pause":
 			ci.draw_rect(Rect2(c + Vector2(-h * 0.19, -h * 0.24), Vector2(h * 0.12, h * 0.48)), col)

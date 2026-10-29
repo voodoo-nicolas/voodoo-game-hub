@@ -5,8 +5,8 @@ extends Node2D
 var game: Control
 
 func _draw() -> void:
-	if game == null:
-		return
+	if game == null or game.touch_pad != null:
+		return  # the shared Pad draws the sticks
 	# Touches are in screen space, but the game's screen may be inset from the
 	# phone's edges (camera cutout), and we draw inside it -- undo that inset.
 	position = -game.global_position

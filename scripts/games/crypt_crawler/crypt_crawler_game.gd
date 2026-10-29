@@ -147,11 +147,16 @@ func _build_ui() -> void:
 	fire.button_up.connect(_hold.bind("fire", false))
 	controls.add_child(fire)
 
+	if ResourceLoader.exists(PAD_PATH):
+		controls.visible = false                    # the shared Pad draws the stick and the button
+		cm.custom_minimum_size = Vector2(0, PAD_ROOM)
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _restart},
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	if ResourceLoader.exists(PAD_PATH):
+		_add_pad()
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
@@ -186,6 +191,35 @@ func _hold(key: String, on: bool) -> void:
 		held[key] = true
 	else:
 		held.erase(key)
+
+## The shared Pad (scripts/common/pad/, docs/claude/pad.md). Older apps do not have it and keep the
+## on-screen buttons below.
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+const PAD_ROOM := 285.0        # height kept free under the playfield for the Pad's stick + button
+var touch_pad: Control = null
+var _pad_held := {"fw": false, "bk": false, "sl": false, "sr": false, "fire": false}
+
+func _add_pad() -> void:
+	touch_pad = load(PAD_PATH).new()
+	touch_pad.layout_override = "stick_4"
+	touch_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(touch_pad)
+	for part in ["b", "x", "y", "pause", "info"]:
+		touch_pad.set_hidden(part, true)   # walk with the stick, fire with A, drag the view to turn
+	touch_pad.set_state("a", {"glyph": "bolt", "sub": tr("Fire")})
+
+## The stick walks (forward / back / strafe) and A fires, like the keys do; written only when it
+## changes, so the keyboard still works. Turning is still a drag on the view (or Q / E).
+func _pad_tick() -> void:
+	if touch_pad == null:
+		return
+	touch_pad.visible = started and not end_dialog.visible
+	var v: Vector2 = touch_pad.get_vector("move")
+	var now := {"fw": v.y < -0.35, "bk": v.y > 0.35, "sl": v.x < -0.35, "sr": v.x > 0.35, "fire": touch_pad.is_down("a")}
+	for k in now:
+		if now[k] != _pad_held[k]:
+			_hold(k, now[k])
+	_pad_held = now
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and not event.echo:
@@ -229,6 +263,7 @@ func _update_hud() -> void:
 	hud_label.add_theme_color_override("font_color", HomeKit.WHITE if engine.hp > 30 else BRUTE)
 
 func _process(delta: float) -> void:
+	_pad_tick()
 	if not started:
 		return
 	delta = minf(delta, 0.05)

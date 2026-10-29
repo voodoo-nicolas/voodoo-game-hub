@@ -206,7 +206,7 @@ const STRINGS := {
 		"Hide! Search a locker, then climb in": "¡Escóndete! Revisa un casillero y métete",
 		"Hiding. (A to come out)": "Escondido. (A para salir)",
 		"Hitting him does nothing! Shoot!": "¡Golpearlo no sirve! ¡Dispárale!",
-		"Hold the phone sideways. The arrows on the left walk. A (lower right) says what it does: USE, SEARCH, HIDE, OPEN, READ, TALK, TAKE... B (above it) attacks with the weapon it shows.": "Pon el teléfono de lado. Las flechas de la izquierda sirven para caminar. A (abajo a la derecha) dice lo que hace: USAR, BUSCAR, ESCONDERSE, ABRIR, LEER, HABLAR, TOMAR... B (encima) ataca con el arma que muestra.",
+		"Hold the phone sideways. The stick on the left walks. A (lower right) says what it does: USE, SEARCH, HIDE, OPEN, READ, TALK, TAKE... B (to its right) attacks with the weapon it shows.": "Pon el teléfono de lado. El joystick de la izquierda sirve para caminar. A (abajo a la derecha) dice lo que hace: USAR, BUSCAR, ESCONDERSE, ABRIR, LEER, HABLAR, TOMAR... B (a su derecha) ataca con el arma que muestra.",
 		"Honorable Mention": "Mención honorífica",
 		"Host a game and invite a friend": "Crea una partida e invita a un amigo",
 		"Hot in here. Somebody's not doing their job. ...Oh. Me.": "Hace calor aquí. Alguien no está haciendo su trabajo. ...Ah. Yo.",

@@ -8,8 +8,8 @@ const ID := "turned"
 const TITLE := "Turned"
 const GOAL := "1900. You wake up thirsty, with two marks on your neck. Find out what happened, and stay out of the sun."
 const HOW := [
-	"Hold the phone sideways. The arrows (lower left) walk: press two arrows, or slide your thumb into a corner, to walk diagonally. A (lower right) says what it does: Examine, Read, Take, Talk, Go in.",
-	"At first only A works. Follow what it says; the arrows come when you are ready to walk.",
+	"Hold the phone sideways. The stick (lower left) walks: push it any way you like. A (lower right) says what it does: Examine, Read, Take, Talk, Go in.",
+	"At first only A works. Follow what it says; the stick comes when you are ready to walk.",
 	"Search the bedroom for clues. Each one goes in the Journal (the Menu button, bottom middle). Look at yourself in the bathroom mirror.",
 	"Outside, the sun burns you: your Health (red bar) drops. Stand in shade (awnings, trees, the alley, any building) and it slowly comes back.",
 	"If Health runs out you wake in the nearest shade with half your Health back and a quarter of your Blood gone.",

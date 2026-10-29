@@ -42,11 +42,29 @@ pad.set_map({"move": ["tn_left", "tn_right", "tn_up", "tn_down"], "a": ["tn_a"],
 `turned_game.gd` `_add_pad()` creates the pad under the HUD (so fades and the close-up draw over it) when `ResourceLoader.exists(PAD_PATH)`; `turned_hud.gd` `use_pad()` maps it to `tn_*`, reveals parts as the story unlocks them (`HUD name -> pad part`: dpad -> move, a, b, menu -> info), pushes the word under A and the sneak ring every frame, hides the pad during the close-up and the Journal, and forwards the pad's button signals to `a_pressed` / `b_pressed` / `pause_pressed` / `open_menu` (Input.action_press makes no input events, so the world's `_unhandled_input` never sees touch). Bars, Missions (its own tap), captions, close-up and fades stay the HUD's. **Without the pad (older apps) the HUD draws and reads its own controls exactly as before.** Allowed layouts: dpad_4 (default), stick_4, dpad_2, stick_2, stick_arc. A stick gives direction only (the player normalizes it: full speed). Tests: `tools/test_turned_pad.gd` (real Turned scene), `tools/test_turned.gd` unchanged (200 checks, fallback path). Pack not bumped or published; the new controls reach players with the next app release + pack.
 - Phone test without a release: preset **TurnedDev** (`com.viral.voodoo.turneddev`, "<Brand> Turned Dev", everything but Turned excluded, feature `turned_dev`): same export command as PadLabDev with `--export-release TurnedDev builds/turned_dev.apk`.
 
+## Adopters (2026-10-29, owner: stick + 4 buttons is the default; no D-pad; shooters get twin sticks; Options hidden for now)
+Every adopter keeps its own old controls as the fallback for apps without the Pad (`ResourceLoader.exists(PAD_PATH)`), pauses the Pad with the game, shows it only while a round is on, and does NOT define `_pad()` (so the kit's "Controls" section stays hidden; define `_pad()` later to turn it on). Nobody uses the D-pad layouts any more (kept in the code, unused).
+| Game | How |
+|---|---|
+| Turned | stick + A + B (X, Y hidden until unlocked); `turned_hud.use_pad`, reveal order kept |
+| Last Shift | stick + A (action word) + B (weapon icon) + X (wheel) + Y (bag) + Info (map) + Pause; `last_shift_touch_controls.gd` keeps the wheel overlay and the world's tap areas |
+| Evolution | stick + A B X Y = ability slots with power-fill rings; `evolution_controls.gd` keeps its API (`dir`, `set_slots`, `ability_pressed`) |
+| Neon Blast (`geometry_wars`) | two floating sticks (left moves, right aims + fires) + Bomb in the middle (`custom_layout`) |
+| Rock Blaster | two floating sticks (left flies, right aims + fires) |
+| Sky Raider, Star Runner | one floating stick anywhere in the lower part (`wide_zone`) + Bomb on A; the finger-drag steering is off when the Pad is there |
+| Barrel Climb | stick (run / climb) + Jump on A; the old arrow row is hidden, `PAD_ROOM` keeps space under the field |
+| Moon Lander | stick left/right tilts, A or stick up = engine |
+| Crypt Crawler | stick walks, A fires, dragging the view still turns |
+Left alone on purpose: Alien Attack (one finger slides the cannon: a stick would be worse), swipe / tap / aim-by-drag games (Snake, Maze Muncher, Frog Crossing, Bird Hop, Sky Hop, City Defense, Cannon Duel).
+Template additions: `custom_layout` + `Layouts.variant()`, `prefs_override` (`floating`, `wide_zone`), `set_state` keys `fill` / `tint` / `glyph` (bomb, flame, jump, bolt) / `draw`, portrait scale (`PORTRAIT_K`).
+Phone test without publishing: preset **PadGamesDev** (`com.viral.voodoo.padgames`, the hub plus the ten games above bundled; `--export-release PadGamesDev builds/pad_games_dev.apk`, debug key like the other dev presets).
+Not phone-tested. Portrait games: the Pad covers the bottom corners of Sky Raider / Star Runner / Rock Blaster's field and takes `PAD_ROOM` under Barrel Climb / Moon Lander / Crypt Crawler: check that first.
+
 ## In-game Options hook (done 2026-10-23, option A, owner OK)
 `tools/templates/home_kit.gd`: `_show_options()` adds a "🎮 Controls" section (a `PadOptions` panel, one layout card per row) when the game defines `_pad() -> Control` (returns its PadController; `_game_pad()` in the kit) and `res://scripts/common/pad/pad_options.gd` exists (older apps: no section). Games without `_pad()` look unchanged. `hub.py sync` copied the kit into every game folder (112 files) and `hub.py i18n` regenerated the game translation files; **no pack was republished and no app version was bumped**: a game gets the new kit at its next pack bump, and the section only appears on apps that carry `scripts/common/pad/` (next app release). `tools/test_pad.gd` covers the hook with a fake game.
 
 ## Not built yet (say so, don't assume)
-- Only Turned uses the Pad (code on master, pack not published); the Controls section shows there once a new app + pack are out. Turned is the planned first adopter (its HUD already has D-pad, A B X Y, pause, menu, missions); then Last Shift and Evolution.
+- Pad options for players (layout / look / size / opacity in-game): built, hidden (see Adopters); owner: later. Turned is the planned first adopter (its HUD already has D-pad, A B X Y, pause, menu, missions); then Last Shift and Evolution.
 - Per-game layout memory, HUD widgets (HP/MP/XP bars, Missions chip from the mock-ups), the fantasy "gem" skin with icon buttons, sliding a thumb between face buttons, dragging parts to custom positions.
 - Universal overlay (Heather's idea): an APK-side layer that sits over any game and presses its actions. Needs a per-game `controls` map in the manifest; raw-touch games (Geometry Wars, Pool, card games) would need adapters.
 - APK side: `scripts/common/pad/`, `project.godot` (`run/main_scene.pad_lab`) changed, **no `bump-app` yet**. Packs that use the Pad need `min_build` or the `ResourceLoader.exists` fallback. Add a STANDARDS section + a `hub.py check` lint when the first game adopts it.

@@ -106,6 +106,7 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	_add_pad()
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
@@ -149,7 +150,41 @@ func _update_hud() -> void:
 	score_label.text = str(engine.score)
 	hud_label.text = tr("Wave %d") % engine.wave + "\n" + "▲".repeat(maxi(0, engine.lives))
 
+## The shared Pad (scripts/common/pad/, docs/claude/pad.md): two floating sticks. Older apps do not have
+## it and keep tap-to-turn / hold-to-fly.
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+const PAD_LAYOUTS_PATH := "res://scripts/common/pad/pad_layouts.gd"
+var touch_pad: Control = null
+
+func _add_pad() -> void:
+	if not ResourceLoader.exists(PAD_PATH) or not ResourceLoader.exists(PAD_LAYOUTS_PATH):
+		return
+	touch_pad = load(PAD_PATH).new()
+	touch_pad.custom_layout = load(PAD_LAYOUTS_PATH).variant("dual_stick", ["a", "b", "pause", "info"], [], "rock_blaster")
+	touch_pad.prefs_override = {"floating": true}
+	touch_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(touch_pad)
+
+## Left stick flies (the ship turns that way and thrusts), right stick aims and fires, both together
+## fly one way and shoot another. Returns what engine.step() returns.
+func _pad_step(delta: float) -> Array:
+	var mv: Vector2 = touch_pad.get_vector("move")
+	var av: Vector2 = touch_pad.get_vector("aim")
+	var aim = null
+	var fire := false
+	var thrust := false
+	if av.length() > 0.0:
+		aim = engine.ship_pos + av.normalized() * 100.0
+		fire = true
+	if mv.length() > 0.0:
+		thrust = true
+		if aim == null:
+			aim = engine.ship_pos + mv.normalized() * 100.0
+	return engine.step(delta, aim, thrust, fire)
+
 func _on_field_input(event: InputEvent) -> void:
+	if touch_pad != null:
+		return   # the Pad's sticks fly and shoot; no tap-to-turn
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			touching = true
@@ -171,7 +206,12 @@ func _process(delta: float) -> void:
 	if touching:
 		touch_time += delta
 	var holding := touching and touch_time >= HOLD_TIME
-	var events: Array = engine.step(delta, touch_pos if holding else null, holding, holding or tap_fire)
+	var events: Array
+	if touch_pad != null:
+		touch_pad.visible = not engine.over
+		events = _pad_step(delta)
+	else:
+		events = engine.step(delta, touch_pos if holding else null, holding, holding or tap_fire)
 	tap_fire = false
 	for e in events:
 		match e[0]:

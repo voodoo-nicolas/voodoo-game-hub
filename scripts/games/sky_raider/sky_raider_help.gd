@@ -6,7 +6,7 @@ const ID := "sky_raider"
 const TITLE := "Sky Strike"
 const GOAL := "Fight your way through as many stages as you can and sink each stage's battleship."
 const HOW := [
-	"Slide a finger anywhere on the screen to move your fighter — it follows your finger's movement, so your finger never hides it (arrow keys on a PC). The guns fire on their own.",
+	"Put a thumb down low on the screen: a stick appears and flies your fighter (arrow keys on a PC). The guns fire on their own.",
 	"Only the white dot in the middle of your fighter can be hit. A bullet there, or crashing into a plane or an island, costs a life — you have 3 — and all your gun power: you're back to one level.",
 	"The blue islands are solid ground: steer around them. One you crash into goes dark and can't hurt you again.",
 	"Darts swoop down in lines (100). Gunships stop and fire spreads (300). Turrets on the islands aim at you (250). Big bombers fire rings of bullets (900).",

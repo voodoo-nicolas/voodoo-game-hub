@@ -61,8 +61,8 @@ func _run() -> void:
 
 	await _start()
 	ok("the app has the pad, so Turned uses it", game.pad != null and game.hud.pad == game.pad)
-	check("kit finds it for Options", game._pad() == game.pad, true)
-	check("default layout is the d-pad one", game.pad.layout_id(), "dpad_4")
+	check("no Controls section in Options yet", game.has_method("_pad"), false)
+	check("Turned is on the stick + 4 buttons layout", game.pad.layout_id(), "stick_4")
 	# progressive reveal: nothing but Pause at the very start
 	for id in ["move", "a", "b", "info", "x", "y", "aim"]:
 		check("%s hidden at the start" % id, game.pad.visibility_of(id), 0.0)
@@ -79,10 +79,10 @@ func _run() -> void:
 	hud.reveal("menu", false)
 	check("A shown", game.pad.visibility_of("a"), 1.0)
 	check("X never shown", game.pad.visibility_of("x"), 0.0)
-	# the d-pad walks the player (same actions the keyboard presses)
+	# the stick walks the player (same actions the keyboard presses)
 	var dp := _part("move")
 	game.pad._press(1, dp["pos"], true)
-	game.pad._move(1, dp["pos"] + Vector2(dp["r"] * 0.7, 0))
+	game.pad._move(1, dp["pos"] + Vector2(dp["r"], 0))
 	ok("walking right", game.world._input_dir().x > 0.9)
 	game.pad._press(1, Vector2.ZERO, false)
 	check("let go: still", game.world._input_dir(), Vector2.ZERO)
@@ -135,19 +135,13 @@ func _run() -> void:
 	await process_frame
 	check("kit pause lets go of the d-pad", game.world._input_dir(), Vector2.ZERO)
 	paused = false
-	# a saved layout this game can't use is ignored (no Pause + Menu + A + B in the twin-stick one)
+	# a saved layout (an old test with the Pad Lab) does not change Turned's: no layout choice yet
 	var f := FileAccess.open(Prefs.PATH, FileAccess.WRITE)
-	f.store_string(JSON.stringify({"layout": "dual_stick", "opacity": 0.5}))
+	f.store_string(JSON.stringify({"layout": "dpad_4", "opacity": 0.5}))
 	f.close()
 	await _start()
-	check("a layout Turned can't use falls back", game.pad.layout_id(), "dpad_4")
+	check("a saved layout does not change Turned's", game.pad.layout_id(), "stick_4")
 	check("other saved choices still apply", float(game.pad.prefs["opacity"]), 0.5)
-	# the player's own allowed pick wins over the default
-	f = FileAccess.open(Prefs.PATH, FileAccess.WRITE)
-	f.store_string(JSON.stringify({"layout": "stick_arc"}))
-	f.close()
-	await _start()
-	check("the player's layout", game.pad.layout_id(), "stick_arc")
 	for id in ["x", "y", "aim"]:
 		check("%s stays hidden in any layout" % id, game.pad.visibility_of(id), 0.0)
 	# nothing left held

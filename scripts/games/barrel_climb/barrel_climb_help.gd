@@ -6,8 +6,8 @@ const ID := "barrel_climb"
 const TITLE := "Barrel Climb"
 const GOAL := "Climb all six girders and reach the voodoo doll at the top, dodging the barrels the Bone King throws at you."
 const HOW := [
-	"Hold ◀ ▶ to run. Stand at a ladder and hold ▲ to climb up or ▼ to climb down.",
-	"Tap ⤒ to jump. Jumping over a barrel scores 100.",
+	"Push the stick left or right to run. Stand at a ladder and push it up to climb up or down to climb down.",
+	"Tap the jump button (the up arrow) to jump. Jumping over a barrel scores 100.",
 	"Barrels roll down each girder, drop off its open end onto the one below, and sometimes come down a ladder. One touch costs a life — you have 3.",
 	"Grab the 🔨 hammer to smash barrels for 300 each for a few seconds. With the hammer you can't climb or jump.",
 	"The BONUS counts down while you climb. Reaching the top adds what's left to your score; if it reaches 0 you lose a life.",

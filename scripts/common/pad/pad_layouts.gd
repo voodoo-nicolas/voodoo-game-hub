@@ -17,6 +17,7 @@ extends RefCounted
 
 const REF_H := 720.0
 const REF_W := 1280.0
+const PORTRAIT_K := 0.85
 const MARGIN := 8.0
 
 const LAYOUTS := [
@@ -99,6 +100,23 @@ const LAYOUTS := [
 	},
 ]
 
+## A copy of a catalogue layout for one game: parts whose id is in `remove` are dropped and `add`
+## (more part dictionaries, same format as LAYOUTS) is appended. Give it an `id` of the game's own:
+##   var layout := Layouts.variant("stick_4", ["x", "y"], [{"type": "button", "id": "bag", ...}], "last_shift")
+static func variant(base_id: String, remove: Array, add: Array, new_id: String) -> Dictionary:
+	var base := get_layout(base_id)
+	var out := {"id": new_id, "name": str(base["name"]), "desc": str(base.get("desc", "")), "parts": []}
+	for part in base["parts"]:
+		var pid := str(part.get("id", ""))
+		if part["type"] == "face4":
+			pid = str(part["ids"][3])
+		if remove.has(pid):
+			continue
+		out["parts"].append(part.duplicate(true))
+	for part in add:
+		out["parts"].append(part.duplicate(true))
+	return out
+
 static func ids() -> Array:
 	var out: Array = []
 	for l in LAYOUTS:
@@ -120,9 +138,10 @@ static func step(id: String, dir: int) -> String:
 ## Concrete shapes for `size` (pixels). `scale` is the player's size slider (1.0 = the mock-ups),
 ## `right_handed` false mirrors left/right, `floating` gives each stick a touch zone instead of a
 ## fixed spot. Each entry: {kind, id, pos, r, ...}; pill has `rect`, stick has `knob` + `zone`.
-static func place(layout: Dictionary, size: Vector2, scale: float, right_handed: bool, floating: bool) -> Array:
-	# Height decides on a phone; a narrower screen (a tablet, a portrait phone) shrinks the pad to fit.
-	var k := minf(size.y / REF_H, size.x / REF_W) * scale
+static func place(layout: Dictionary, size: Vector2, scale: float, right_handed: bool, floating: bool, wide_zone: bool = false) -> Array:
+	# Landscape: height decides on a phone; a narrower screen (a tablet) shrinks the pad to fit.
+	# Portrait: the pad is a little smaller than the mock-ups (the field above needs the room).
+	var k := (size.x / REF_H * PORTRAIT_K if size.y > size.x else minf(size.y / REF_H, size.x / REF_W)) * scale
 	var out: Array = []
 	for part in layout["parts"]:
 		var t: String = part["type"]
@@ -165,7 +184,7 @@ static func place(layout: Dictionary, size: Vector2, scale: float, right_handed:
 			"button":
 				var br2: float = float(part["r"]) * k
 				p = _clamp(p, br2, size)
-				out.append({"kind": "button", "id": part["id"], "pos": p, "r": br2, "label": str(part["id"]).to_upper(), "side": side})
+				out.append({"kind": "button", "id": part["id"], "pos": p, "r": br2, "label": str(part.get("label", str(part["id"]).to_upper())), "side": side})
 			"pill":
 				var sz := Vector2(float(part["w"]), float(part["h"])) * k
 				var c := _clamp(p, maxf(sz.x, sz.y) * 0.5, size)

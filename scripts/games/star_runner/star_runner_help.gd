@@ -6,7 +6,7 @@ const ID := "star_runner"
 const TITLE := "Star Runner"
 const GOAL := "Fly as far as you can through the stages and score as much as you can on the way."
 const HOW := [
-	"Drag anywhere on the screen to steer the ship (arrow keys on a PC). It flies forward and fires on its own, straight ahead at the green sight.",
+	"Put a thumb down low on the screen: a stick appears and steers the ship (arrow keys on a PC). It flies forward and fires on its own, straight ahead at the green sight.",
 	"Fighters come in squadrons and shoot back: 100 each. Aces chase you and take 4 hits: 250. Rocks take 3 hits: 60.",
 	"Glowing towers can't be shot: fly through the gap or over them. Green rings give 50 points and 15 shield.",
 	"Getting hit drains your shield. When it's empty you lose a ship — you have 3.",

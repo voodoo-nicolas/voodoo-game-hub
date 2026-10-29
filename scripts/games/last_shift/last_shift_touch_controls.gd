@@ -11,6 +11,12 @@ extends Control
 ## Extra tap areas from the world (`tap_regions`): the mission log and the health bar.
 ## They press the same ls_* actions as the keyboard.
 ##
+## Since the shared Pad (scripts/common/pad/, docs/claude/pad.md): when the app has it, the stick, A, B,
+## pause, bag, map and the weapon-wheel button are the Pad's (stick + 4 buttons: A bottom = action, B right
+## = weapon, X left = wheel button, Y top = bag; pause and map in the middle; the stick replaces the
+## D-pad). This script then only keeps the weapon wheel itself and the world's tap areas. Without the Pad
+## (older apps) everything below works as it always did.
+##
 ## Multi-touch: every finger is tracked by its own index, so you can hold the
 ## D-pad and tap A/B at the same time. A mouse works too (index -1) for editor tests.
 ## Phones also send emulated mouse events for each touch, so once a real touch
@@ -41,6 +47,8 @@ const WHEEL_INNER := 58.0
 ## Wheel segments, clockwise from the top (v0.5: + the severed arm and the coolant can).
 const WHEEL_ORDER := ["fist", "knife", "arm", "wrench", "pistol", "coolant"]
 
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+
 const MOVE_ACTIONS := {
 	"left": "ls_move_left", "right": "ls_move_right",
 	"up": "ls_move_up", "down": "ls_move_down",
@@ -55,6 +63,7 @@ var _bag_down := false
 var _map_down := false
 var _swap_down := false
 var _touch_seen := false       # true after the first real touch event
+var _pad: Control = null       # the shared Pad (null on apps without it: the old controls run)
 
 ## Set by the world once Nash owns two weapons; until then the wheel button is hidden and inactive.
 var show_swap := false:
@@ -105,9 +114,60 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit_to_viewport)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE   # we read raw input below
 	process_mode = Node.PROCESS_MODE_ALWAYS      # still works while the game is paused
+	_add_pad()
 
 func _exit_tree() -> void:
 	_release_all()
+
+# ---------------------------------------------------------------- the shared Pad
+func _add_pad() -> void:
+	if not ResourceLoader.exists(PAD_PATH):
+		return
+	_pad = load(PAD_PATH).new()
+	_pad.layout_override = "stick_4"
+	_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_pad)
+	_pad.set_map({
+		"move": [MOVE_ACTIONS.left, MOVE_ACTIONS.right, MOVE_ACTIONS.up, MOVE_ACTIONS.down],
+		"a": ["ls_action_a"], "b": ["ls_action_b"],
+	})
+	_pad.set_state("x", {"draw": _draw_wheel_icon})
+	_pad.set_state("y", {"draw": _draw_bag_icon})
+	_pad.set_state("info", {"draw": _draw_map_icon})
+	_pad.button_pressed.connect(_on_pad_button)
+	set_process(true)
+
+func _on_pad_button(id: String) -> void:
+	match id:
+		"pause":
+			pause_pressed.emit()
+		"x":
+			wheel_pressed.emit()
+		"y":
+			bag_pressed.emit()
+		"info":
+			map_pressed.emit()
+
+func _draw_wheel_icon(ci: CanvasItem, c: Vector2, r: float, a: float) -> void:
+	Icons.draw(ci, "wheel", c, r * 1.1, a)
+
+func _draw_bag_icon(ci: CanvasItem, c: Vector2, r: float, a: float) -> void:
+	Icons.draw(ci, "bag", c, r * 1.1, a)
+
+func _draw_map_icon(ci: CanvasItem, c: Vector2, r: float, a: float) -> void:
+	Icons.draw(ci, "map", c, r * 1.3, a)
+
+func _draw_weapon_icon(ci: CanvasItem, c: Vector2, r: float, a: float) -> void:
+	Icons.draw(ci, b_icon, c + Vector2(0, -r * 0.12 if b_count != "" else 0.0), r * 1.35, a)
+
+## Pad mode only: the words, the icons and what is usable, pushed to the Pad every frame.
+func _process(_delta: float) -> void:
+	if _pad == null:
+		return
+	_pad.set_state("a", {"sub": a_label, "enabled": a_active, "fill": a_progress if a_progress >= 0.0 else -1.0})
+	_pad.set_state("b", {"draw": _draw_weapon_icon, "sub": b_count})
+	_pad.set_hidden("x", not show_swap)
+	_pad.visible = not wheel_open   # the weapon wheel takes every tap while it is open
 
 func _fit_to_viewport() -> void:
 	position = Vector2.ZERO
@@ -221,6 +281,14 @@ func _on_move(id: int, pos: Vector2) -> void:
 		queue_redraw()
 
 func _role_at(pos: Vector2) -> String:
+	if _pad != null:
+		# The Pad owns the stick and buttons: here only the open wheel and the world's tap areas.
+		if wheel_open:
+			return "wheel:" + _wheel_segment(pos)
+		for n in tap_regions:
+			if Rect2(tap_regions[n]).has_point(pos):
+				return "region:" + n
+		return ""
 	if pos.distance_to(_dpad_center()) <= DPAD_RADIUS:
 		return "dpad"
 	if show_swap and pos.distance_to(_swap_center()) <= SWAP_RADIUS * 1.3:
@@ -285,6 +353,8 @@ func _set_action(action: String, down: bool) -> void:
 		Input.action_release(action)
 
 func _release_all() -> void:
+	if _pad != null and is_instance_valid(_pad):
+		_pad.release_all()
 	for a in MOVE_ACTIONS.values():
 		Input.action_release(a)
 	Input.action_release("ls_action_a")
@@ -292,6 +362,10 @@ func _release_all() -> void:
 
 # ---------------------------------------------------------------- drawing (placeholder look)
 func _draw() -> void:
+	if _pad != null:
+		if wheel_open:
+			_draw_wheel()
+		return
 	var c := _dpad_center()
 	# One arrow per direction; lit when pressed.
 	for dir in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:

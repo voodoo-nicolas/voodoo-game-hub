@@ -48,6 +48,11 @@ var prefs: Dictionary = {}
 var layout_override := ""
 ## Draw-only mode for the layout cards in the Options panel: no input, no saving.
 var preview := false
+## A layout of this game's own (see Layouts.variant), used instead of the catalogue. No Options.
+var custom_layout: Dictionary = {}
+## Prefs this game fixes whatever the player saved, e.g. {"floating": true} for a twin-stick shooter
+## ("wide_zone": true lets a single floating stick start anywhere in the lower part of the screen).
+var prefs_override: Dictionary = {}
 ## Used until the player has picked a layout of their own in Options.
 var default_layout := ""
 ## The layouts this game can work with (a game that needs A, B and a menu button can't use the
@@ -91,6 +96,8 @@ func _ready() -> void:
 		_layout_chosen = Prefs.has_saved("layout")
 		if default_layout != "" and not _layout_chosen:
 			prefs["layout"] = default_layout
+	for k in prefs_override:
+		prefs[k] = prefs_override[k]
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS if works_while_paused else Node.PROCESS_MODE_PAUSABLE
 	set_process_input(not preview)
@@ -123,10 +130,10 @@ func _replace() -> void:
 	if not allowed_layouts.is_empty() and not allowed_layouts.has(id):
 		id = default_layout if allowed_layouts.has(default_layout) else str(allowed_layouts[0])
 	var old := str(_layout.get("id", ""))
-	_layout = Layouts.get_layout(id)
+	_layout = custom_layout if not custom_layout.is_empty() else Layouts.get_layout(id)
 	if old != "" and old != str(_layout["id"]):
 		release_all()
-	_placed = Layouts.place(_layout, size, float(prefs["size"]), bool(prefs["right_handed"]), bool(prefs["floating"]))
+	_placed = Layouts.place(_layout, size, float(prefs["size"]), bool(prefs["right_handed"]), bool(prefs["floating"]), bool(prefs.get("wide_zone", false)))
 	_origin.clear()
 	queue_redraw()
 	layout_changed.emit()
@@ -137,6 +144,8 @@ func apply_prefs(p: Dictionary, save: bool = true) -> void:
 	if str(clean["layout"]) != str(prefs.get("layout", "")):
 		_layout_chosen = true
 	prefs = clean
+	for k in prefs_override:
+		prefs[k] = prefs_override[k]
 	if save and not preview:
 		var out := prefs.duplicate()
 		if default_layout != "" and not _layout_chosen:
@@ -199,7 +208,10 @@ func visibility_of(id: String) -> float:
 	return float(_rv.get(id, 1.0))
 
 ## Properties of a part: label (replaces the letter), sub (a word under it), enabled (dimmed when
-## false, still pressable), ring (an amber ring, e.g. "sneaking"), icon (pills: pause / info / menu).
+## false, still pressable), ring (an amber ring, e.g. "sneaking"), icon (pills: pause / info / menu),
+## fill (0..1: a ring filling clockwise, 1 or -1 = none; power / cooldown), tint (the button's
+## colour), glyph (a built-in icon instead of the letter: bomb, flame, jump, bolt), draw (a
+## Callable(canvas_item, centre, radius, alpha) that draws the icon yourself).
 func set_state(id: String, props: Dictionary) -> void:
 	var cur: Dictionary = _props.get(id, {})
 	var next := cur.duplicate()
@@ -546,9 +558,10 @@ func _draw() -> void:
 			"button":
 				var text: String = str(props.get("label", ""))
 				Draw.button(self, el["pos"], el["r"], id, text if text != "" else str(el["label"]), _lit(id),
-					bool(props.get("enabled", true)), sk, a, str(props.get("sub", "")), bool(props.get("ring", false)))
+					bool(props.get("enabled", true)), sk, a, str(props.get("sub", "")), bool(props.get("ring", false)),
+					float(props.get("fill", -1.0)), props.get("draw", Callable()), props.get("tint", Color(0, 0, 0, 0)), str(props.get("glyph", "")))
 			"pill":
-				Draw.pill(self, el["rect"], str(props.get("icon", el["icon"])), _lit(id), sk, a)
+				Draw.pill(self, el["rect"], str(props.get("icon", el["icon"])), _lit(id), sk, a, props.get("draw", Callable()))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		if _pulse.has(id):
 			var rr: float = el["r"] if el.has("r") else maxf(Rect2(el["rect"]).size.x, Rect2(el["rect"]).size.y) * 0.5
