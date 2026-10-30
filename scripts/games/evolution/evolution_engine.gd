@@ -33,6 +33,7 @@ const TUNING := {
 	"hunter_weight": 3.0,       # x the difficulty share: how often a predator species is picked
 	"toxic_chance": 0.05,
 	"rare_chance": 0.012,
+	"rare_max": 1,              # never more than this many rare creatures alive at once (owner 2026-10-29: schools of them)
 	"min_npc_mass": 2.0,
 	"player_speed": 360.0,      # x MOVE_MULT[rank]
 	"size_speed_exp": 0.8,      # the camera zooms out as you grow, so speed grows with it: on screen you never feel slower
@@ -99,7 +100,7 @@ const TUNING := {
 	"cam_k": 0.045,
 	"cam_min": 0.22,
 	"respawn_per_step": 3,
-	"story_xp": 0.03,           # a size-reward mission gives this share of the current size's xp (was 0.4: missions made size 5 in 90 s, owner 2026-10-29)
+	"story_xp": 0.005,          # a size-reward mission gives this share of the current size's xp (was 0.4: missions made size 5 in 90 s, owner 2026-10-29)
 	"mission_linger": 3.0,
 	# Water: temperature falls with depth (warm at the surface, about 4 °C deep down) and in cold currents
 	# that come and go as you swim sideways. `units_per_m` world units = 1 m of depth.
@@ -243,7 +244,7 @@ static func xp_at(lv: int) -> float:
 	return x
 
 ## xp it takes to grow from this size to the next: Data.XP_KILLS kills of prey one size below (worth size - 1,
-## at size 1 worth 1): 30, 80, 240, 510, 920, 1550, 2460, 3710, 5440. Past size 10 (the mass keeps growing, the
+## at size 1 worth 1): 520, 1150, 1760, 2790, 3280, 9500, 13800, 21000, 64000. Past size 10 (the mass keeps growing, the
 ## size shown stays 10) each span is 1.3 x the one before.
 static func xp_span(lv: int) -> float:
 	var n: int = Data.XP_KILLS.size()
@@ -311,6 +312,8 @@ func _sync_mass() -> void:
 func _gain_xp(amount: float, feeds_dna: bool = true) -> void:
 	_sync_mass()
 	var before := xp
+	if level() >= 2:
+		amount /= float(Data.DIFFICULTY[difficulty].get("slow", 1.0))     # hard: sizes 2+ take 4x as long (owner 2026-10-29)
 	var cap := xp_at(2) - 0.5
 	if sight_rank < 2 and xp < cap:
 		xp = minf(xp + amount, cap)
@@ -621,7 +624,11 @@ func _pick_species() -> Dictionary:
 	var lvl := level()
 	if sight_rank >= 2:
 		var roll := rng.randf()
-		if roll < t("rare_chance"):
+		var rares := 0
+		for n in npcs:
+			if n.role == "rare":
+				rares += 1
+		if roll < t("rare_chance") and rares < int(t("rare_max")):
 			return _pick_rare(lvl)
 		if roll < t("rare_chance") + t("toxic_chance"):
 			var tox := Data.species_by_role("toxic")
@@ -1635,13 +1642,14 @@ func _complete(m: Dictionary) -> void:
 
 func _next_reward() -> String:
 	_reward_n += 1
-	return "size" if _reward_n % 2 == 1 else "dna"
+	return "dna"     # a size gift was pointless at 0.5% of a size
 
 func _grow_mission() -> void:
 	_grow_target = maxf(_grow_target, float(level() + 1))
 	_add_mission({"kind": "mass", "target": int(_grow_target), "text": "Grow to size %d",
-		"args": [int(_grow_target)], "reward": _next_reward()})
+		"args": [int(_grow_target)], "reward": ""})     # no points for growing (owner 2026-10-29)
 
+const FEAST_COUNT := 0     # owner 2026-10-29: "Fill your belly" is the same thing as "Grow to size N": only one of them (the grow mission stays)
 const FEAST_TEXTS := ["Feast on creatures", "Keep hunting", "Fill your belly"]
 
 ## Keeps two ordinary goals on the list besides the grow mission and what you discover.
@@ -1650,8 +1658,8 @@ func _fill() -> void:
 	for m in missions:
 		if not m.done and m.kind == "value":
 			ordinary += 1
-	while ordinary < 2:
-		var target: int = (5 + missions_done) * maxi(level(), 1)
+	while ordinary < FEAST_COUNT:
+		var target: int = (5 + missions_done) * 40 * maxi(level(), 1)     # was x1: each mission paid a DNA point every ~15 s (owner 2026-10-29)
 		_add_mission({"kind": "value", "target": target, "text": FEAST_TEXTS[rng.randi() % FEAST_TEXTS.size()], "reward": _next_reward()})
 		ordinary += 1
 
@@ -1683,5 +1691,7 @@ func mission_rows() -> Array:
 	var out: Array = []
 	for m in missions:
 		var frac := clampf(progress_of(m) / maxf(float(m.target), 0.001), 0.0, 1.0)
+		if m.kind == "mass" and not m.done and int(m.target) == level() + 1:
+			frac = xp_frac()        # the real progress to the next size (it used to start at 2/3 full: size / target size)
 		out.append({"text": m.text, "args": m.args, "frac": frac, "done": m.done, "kind": m.kind})
 	return out

@@ -16,7 +16,7 @@ const COLORS := [
 const DIFFICULTY := {
 	"easy": {"hunters": 0.10, "bite": 1.2, "regen": 1.5, "speed": 0.78, "chasers": 2, "hunter_max": 4, "env": 0.6},
 	"normal": {"hunters": 0.20, "bite": 2.0, "regen": 1.0, "speed": 0.88, "chasers": 3, "hunter_max": 6, "env": 1.0},
-	"hard": {"hunters": 0.30, "bite": 3.0, "regen": 0.7, "speed": 0.98, "chasers": 4, "hunter_max": 8, "env": 1.3},
+	"hard": {"hunters": 0.30, "bite": 3.0, "regen": 0.7, "speed": 0.98, "chasers": 4, "hunter_max": 8, "env": 1.3, "slow": 4.0},
 }
 const DIFFICULTY_ORDER := ["easy", "normal", "hard"]
 
@@ -33,10 +33,10 @@ const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 480
 
 ## Growing (owner 2026-10-29, Evolution phase 2): kills it takes to grow from each size to the next (index =
 ## size - 1), counting prey one size below you (worth size - 1; at size 1 the smallest dots, worth 1). The xp is
-## kills x that worth (engine `xp_span`): 30, 80, 240, 510, 920, 1550, 2460, 3710, 5440 (owner 2026-10-29 "too easy too fast": 2nd pass doubled sizes 2+). 2,560 kills to size 10;
+## kills x that worth (engine `xp_span`): 520, 1150, 1760, 2790, 3280, 9500, 13800, 21000, 64000. 19,500 kills to size 10 (owner 2026-10-29 "size 2 should take 10 minutes, size 3 another 20, size 4 another 30": sized from a greedy bot earning ~1 xp/s at sizes 1-5, so about 10 / 20 / 30 / 40 / 50 min for sizes 1-5, then longer);
 ## creatures your own size are worth more, so real runs are a little quicker. Size 1 -> 2 stays 30: tail at 5,
 ## eye at 12, then eat to size 2 (owner 2026-10-24). (Before: 30 xp, 50 xp, then x1.5 each: ~500 kills; then [30,40,60,80,110,150,200,260,340] = 1,270.)
-const XP_KILLS := [30, 80, 120, 170, 230, 310, 410, 530, 680]
+const XP_KILLS := [520, 1150, 880, 930, 820, 1900, 2300, 3000, 8000]
 
 ## DNA earned while growing from each size to the next, ONE point at a time: what you eat fills the 🧬 bar and
 ## each full bar is +1 (owner 2026-10-29: "you should never earn more than 1 or 2 dna points at a time, except
