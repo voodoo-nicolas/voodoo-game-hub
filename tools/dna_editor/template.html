@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolution DNA tree editor</title>
+<style>
+:root { --bg:#10141c; --card:#1b2230; --line:#2c3548; --txt:#e8ecf4; --mut:#9aa4b8; --acc:#4da3ff; --bad:#ff6a6a; --warn:#ffc24a; --ok:#6be28a; }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; background: var(--bg); color: var(--txt); font: 13px "Segoe UI", Arial, sans-serif; }
+#app { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+#bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: #141a25; }
+#bar h1 { font-size: 15px; margin: 0 10px 0 0; }
+button, select, input, textarea { font: inherit; color: var(--txt); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--acc); }
+button.primary { background: #1f4f86; border-color: var(--acc); }
+button.danger { border-color: var(--bad); color: var(--bad); }
+#main { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
+#cv { min-width: 0; min-height: 0; position: relative; }
+svg { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#side { border-left: 1px solid var(--line); background: #141a25; overflow-y: auto; padding: 12px; }
+#side h2 { font-size: 13px; margin: 14px 0 6px; color: var(--mut); text-transform: uppercase; letter-spacing: .05em; }
+#side label { display: block; margin: 8px 0 3px; color: var(--mut); font-size: 12px; }
+#side input[type=text], #side input[type=number], #side select, #side textarea { width: 100%; }
+#side textarea { min-height: 64px; resize: vertical; }
+.row { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+.row > * { flex: 1; }
+.row > .x { flex: 0 0 30px; padding: 5px 0; }
+.row > .rk { flex: 0 0 56px; }
+.chk { display: flex !important; gap: 8px; align-items: center; color: var(--txt) !important; font-size: 13px !important; }
+.chk input { flex: 0 0 auto; width: auto; }
+.issue { padding: 6px 8px; margin: 4px 0; border-radius: 6px; background: var(--card); border-left: 3px solid var(--warn); cursor: pointer; }
+.issue.bad { border-left-color: var(--bad); }
+.hint { color: var(--mut); font-size: 12px; line-height: 1.45; }
+.pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; background: var(--card); }
+.node rect { fill: #1b2230; stroke-width: 2; }
+.node.sel rect { stroke-width: 4; filter: drop-shadow(0 0 6px #fff8); }
+.node.del { opacity: .35; }
+.node.del rect { stroke-dasharray: 5 4; }
+.node.dim { opacity: .18; }
+.node text { pointer-events: none; }
+.node { cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="app">
+	<div id="bar">
+		<h1>Evolution DNA tree editor</h1>
+		<button id="bAdd" class="primary">+ Add trait</button>
+		<button id="bUndo">Undo</button><button id="bRedo">Redo</button>
+		<label class="hint">View as body plan</label><select id="plan"></select>
+		<button id="bFit">Fit view</button>
+		<span style="flex:1"></span>
+		<span id="status" class="hint"></span>
+		<button id="bImport">Import JSON</button>
+		<button id="bReset" class="danger">Reset to game</button>
+		<button id="bCopy">Copy JSON</button>
+		<button id="bExport" class="primary">Download tree.json</button>
+		<input id="file" type="file" accept=".json" hidden>
+	</div>
+	<div id="main">
+		<div id="cv"><svg id="svg"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a94a8"/></marker><marker id="arrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff6a6a"/></marker></defs><g id="world"></g></svg></div>
+		<div id="side"></div>
+	</div>
+</div>
+<script>
+const GAME = /*__DATA__*/null;
+const PLANS = ["marlin", "lionfish", "puffer", "crab", "squid", "eel"];
+const STAGES = ["Spore", "Microbe", "Amoeba", "Hunter", "Predator", "Leviathan"];
+const BRANCHES = {offense:["Offense","#ff6a4a"], sense:["Senses","#29e6ff"], move:["Movement","#7dff3a"], defense:["Defense","#6aa8ff"], habitat:["Habitat","#c48bff"], growth:["Growth","#ffd23a"], plan:["Body plan","#ff8fd0"]};
+const SX = 200, SY = 64, W = 160, H = 40, OX = 60, OY = 70;
+const KEY = "evolution-dna-editor-v1";
+const $ = id => document.getElementById(id);
+const unesc = s => s.replace(/\\(.)/g, (m, c) => c === "n" ? "\n" : c);
+const esc = s => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+
+function fromGame(g) {
+	return {
+		nodes: g.nodes.map(n => ({...n, name: unesc(n.name), desc: unesc(n.desc), req: n.req.map(r => [r[0], r[1]]), deleted: false, isNew: false})),
+		plans: JSON.parse(JSON.stringify(g.plans)),
+	};
+}
+const ORIG = fromGame(GAME);
+let S = fromGame(GAME);
+try { const saved = JSON.parse(localStorage.getItem(KEY) || "null"); if (saved && saved.nodes) S = saved; } catch (e) {}
+let sel = null, undo = [], redo = [], view = {x: 20, y: 20, k: 0.8}, viewPlan = "";
+
+const byId = id => S.nodes.find(n => n.id === id);
+const live = () => S.nodes.filter(n => !n.deleted);
+const allowed = n => S.plans[n.id] && S.plans[n.id].length ? S.plans[n.id] : PLANS;
+const origOf = id => ORIG.nodes.find(n => n.id === id);
+function sig(n, plans) { return JSON.stringify([n.branch, n.x, n.y, n.max, n.cost, n.stage, n.req, n.name, n.desc, n.ability, n.excl, plans[n.id] || [], !!n.deleted]); }
+function isMod(n) { const o = origOf(n.id); return !o || sig(o, ORIG.plans) !== sig(n, S.plans); }
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function snap() { undo.push(JSON.stringify(S)); if (undo.length > 100) undo.shift(); redo = []; }
+function restore(from, to) { if (!from.length) return; to.push(JSON.stringify(S)); S = JSON.parse(from.pop()); if (sel && !byId(sel)) sel = null; all(); }
+
+// ---------- validation ----------
+function validate() {
+	const out = [], L = live(), ids = new Set(L.map(n => n.id));
+	const add = (lvl, id, msg) => out.push({lvl, id, msg});
+	for (const n of L) {
+		if (n.max < 1) add("bad", n.id, `${n.name}: max rank must be at least 1`);
+		if (n.cost < 1) add("bad", n.id, `${n.name}: cost must be at least 1`);
+		if (n.excl && n.req.length) add("warn", n.id, `${n.name}: pick-one trait with prerequisites`);
+		for (const [r, k] of n.req) {
+			const p = byId(r);
+			if (r === n.id) add("bad", n.id, `${n.name} needs itself`);
+			else if (!p || p.deleted) add("bad", n.id, `${n.name} needs "${r}", which is not in the tree`);
+			else {
+				if (k > p.max) add("bad", n.id, `${n.name} needs ${p.name} rank ${k}, but its max is ${p.max}`);
+				if (p.stage > n.stage) add("warn", n.id, `${n.name} (stage ${n.stage}) needs ${p.name} (stage ${p.stage})`);
+			}
+		}
+	}
+	// cycles
+	const state = {};
+	const visit = (id, path) => {
+		if (state[id] === 2) return;
+		if (state[id] === 1) { add("bad", id, "Loop in prerequisites: " + [...path.slice(path.indexOf(id)), id].join(" → ")); return; }
+		state[id] = 1;
+		const n = byId(id);
+		if (n) for (const [r] of n.req) if (ids.has(r)) visit(r, [...path, id]);
+		state[id] = 2;
+	};
+	for (const id of ids) visit(id, []);
+	// overlaps
+	for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++)
+		if (Math.abs(L[i].x - L[j].x) < 0.8 && Math.abs(L[i].y - L[j].y) < 0.65) add("warn", L[i].id, `${L[i].name} and ${L[j].name} overlap on screen`);
+	// duplicate ids can't happen (ids are unique by construction)
+	return out;
+}
+
+// ---------- canvas ----------
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; }
+const px = n => [OX + (n.x - 1) * SX, OY + n.y * SY];
+let issues = [];
+
+function drawCanvas() {
+	const world = $("world"); world.innerHTML = "";
+	world.setAttribute("transform", `translate(${view.x} ${view.y}) scale(${view.k})`);
+	const badIds = new Set(issues.filter(i => i.lvl === "bad").map(i => i.id));
+	// branch bands
+	for (const b in BRANCHES) {
+		const ns = live().filter(n => n.branch === b); if (!ns.length) continue;
+		const ys = ns.map(n => px(n)[1]), xs = ns.map(n => px(n)[0]);
+		const y0 = Math.min(...ys) - H / 2 - 20, y1 = Math.max(...ys) + H / 2 + 12, x0 = Math.min(...xs) - 24, x1 = Math.max(...xs) + W + 24;
+		el("rect", {x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 10, fill: BRANCHES[b][1], "fill-opacity": .06, stroke: BRANCHES[b][1], "stroke-opacity": .35}, world);
+		el("text", {x: x0 + 10, y: y0 + 15, fill: BRANCHES[b][1], "font-size": 13, "font-weight": 700}, world, BRANCHES[b][0]);
+	}
+	// edges
+	for (const n of live()) for (const [r, k] of n.req) {
+		const p = byId(r); if (!p || p.deleted) continue;
+		const [x1, y1] = px(p), [x2, y2] = px(n);
+		const bad = badIds.has(n.id);
+		const dim = viewPlan && (!allowed(n).includes(viewPlan) || !allowed(p).includes(viewPlan));
+		const g = el("g", {opacity: dim ? .12 : 1}, world);
+		el("path", {d: `M${x1 + W},${y1} C${x1 + W + 40},${y1} ${x2 - 40},${y2} ${x2},${y2}`, fill: "none", stroke: bad ? "#ff6a6a" : "#8a94a8", "stroke-width": n.id === sel || r === sel ? 3 : 1.5, "marker-end": bad ? "url(#arrBad)" : "url(#arr)"}, g);
+		if (k > 1) el("text", {x: x2 - 18, y: y2 - 6, fill: "#ffd23a", "font-size": 11, "font-weight": 700, "text-anchor": "middle"}, g, "≥" + k);
+	}
+	// nodes
+	for (const n of S.nodes) {
+		const [x, y] = px(n);
+		const dim = viewPlan && !n.deleted && !allowed(n).includes(viewPlan);
+		const g = el("g", {class: "node" + (n.id === sel ? " sel" : "") + (n.deleted ? " del" : "") + (dim ? " dim" : ""), "data-id": n.id}, world);
+		const c = BRANCHES[n.branch] ? BRANCHES[n.branch][1] : "#888";
+		el("rect", {x, y: y - H / 2, width: W, height: H, rx: 8, stroke: badIds.has(n.id) ? "#ff6a6a" : c}, g);
+		el("text", {x: x + W / 2, y: y - 3, fill: "#fff", "font-size": 13, "font-weight": 600, "text-anchor": "middle"}, g, n.name + (n.ability ? " ⚡" : ""));
+		el("text", {x: x + W / 2, y: y + 13, fill: "#9aa4b8", "font-size": 10.5, "text-anchor": "middle"}, g, `max ${n.max} · ${n.cost}+ DNA · ${STAGES[n.stage] || "stage " + n.stage}`);
+		if (n.isNew) el("circle", {cx: x + W - 6, cy: y - H / 2 + 6, r: 5, fill: "#6be28a"}, g);
+		else if (isMod(n)) el("circle", {cx: x + W - 6, cy: y - H / 2 + 6, r: 5, fill: "#ffc24a"}, g);
+	}
+}
+
+// pointer handling: drag node / pan / zoom
+let drag = null;
+const svg = $("svg");
+svg.addEventListener("pointerdown", e => {
+	const g = e.target.closest(".node");
+	svg.setPointerCapture(e.pointerId);
+	if (g) {
+		const id = g.dataset.id;
+		if ((e.ctrlKey || e.metaKey) && sel && sel !== id) { toggleReq(sel, id); return; }
+		sel = id; const n = byId(id);
+		drag = {mode: "node", id, sx: e.clientX, sy: e.clientY, x0: n.x, y0: n.y, moved: false};
+		panel(); drawCanvas();
+	} else {
+		drag = {mode: "pan", sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false};
+	}
+});
+svg.addEventListener("pointermove", e => {
+	if (!drag) return;
+	const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+	if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+	if (drag.mode === "pan") { view.x = drag.vx + dx; view.y = drag.vy + dy; drawCanvas(); }
+	else if (drag.moved) {
+		if (!drag.snapped) { snap(); drag.snapped = true; }
+		const n = byId(drag.id);
+		n.x = Math.round((drag.x0 + dx / view.k / SX) * 2) / 2;
+		n.y = Math.round((drag.y0 + dy / view.k / SY) * (e.shiftKey ? 2 : 10)) / (e.shiftKey ? 2 : 10);
+		tick(); drawCanvas(); posFields();
+	}
+});
+svg.addEventListener("pointerup", () => {
+	if (drag && drag.mode === "pan" && !drag.moved) { sel = null; panel(); drawCanvas(); }
+	drag = null;
+});
+svg.addEventListener("wheel", e => {
+	e.preventDefault();
+	const r = svg.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+	const k = Math.min(2.5, Math.max(0.2, view.k * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+	view.x = mx - (mx - view.x) * k / view.k; view.y = my - (my - view.y) * k / view.k; view.k = k;
+	drawCanvas();
+}, {passive: false});
+
+function fit() {
+	const L = live(); if (!L.length) return;
+	const xs = L.map(n => px(n)[0]), ys = L.map(n => px(n)[1]);
+	const x0 = Math.min(...xs) - 40, x1 = Math.max(...xs) + W + 40, y0 = Math.min(...ys) - 60, y1 = Math.max(...ys) + 60;
+	const r = svg.getBoundingClientRect();
+	view.k = Math.min(r.width / (x1 - x0), r.height / (y1 - y0), 1.2);
+	view.x = -x0 * view.k + (r.width - (x1 - x0) * view.k) / 2; view.y = -y0 * view.k;
+	drawCanvas();
+}
+
+// ---------- editing helpers ----------
+function toggleReq(target, need) {
+	snap();
+	const n = byId(target), i = n.req.findIndex(r => r[0] === need);
+	if (i >= 0) n.req.splice(i, 1); else n.req.push([need, 1]);
+	all();
+}
+function tick() { save(); issues = validate(); const bad = issues.filter(i => i.lvl === "bad").length, warn = issues.length - bad; const mod = S.nodes.filter(isMod).length;
+	$("status").innerHTML = `${live().length} traits · <span style="color:${mod ? "var(--warn)" : "var(--mut)"}">${mod} changed</span> · <span style="color:${bad ? "var(--bad)" : "var(--ok)"}">${bad} errors</span> · ${warn} warnings`; }
+function all() { tick(); panel(); drawCanvas(); }
+
+// ---------- side panel ----------
+function posFields() { const n = byId(sel); if (!n) return; if ($("fx")) { $("fx").value = n.x; $("fy").value = n.y; } }
+function opt(v, label, cur) { return `<option value="${v}"${v === cur ? " selected" : ""}>${label}</option>`; }
+function panel() {
+	const side = $("side"), n = sel && byId(sel);
+	if (!n) {
+		side.innerHTML = `<h2>How to use</h2><div class="hint">
+			<b>Drag</b> a trait to move it (snaps to the game's grid; hold Shift for coarse vertical steps).<br>
+			<b>Click</b> a trait to edit it here. <b>Ctrl+click</b> another trait while one is selected to add or remove it as a prerequisite.<br>
+			<b>Drag the background</b> to pan, <b>wheel</b> to zoom. Ctrl+Z / Ctrl+Y undo and redo. Everything autosaves in this browser.<br>
+			<span class="pill" style="background:#5a4a1a">●</span> changed from the game · <span class="pill" style="background:#1a5a2a">●</span> new trait.<br><br>
+			When you are happy: <b>Download tree.json</b>, then tell Claude to run <code>python tools/dna_editor.py apply tree.json</code>.</div>
+			<h2>Checks (${issues.length})</h2>` +
+			(issues.length ? issues.map((i, k) => `<div class="issue ${i.lvl}" data-k="${k}">${i.msg}</div>`).join("") : `<div class="hint" style="color:var(--ok)">No problems found.</div>`);
+		side.querySelectorAll(".issue").forEach(d => d.onclick = () => { sel = issues[+d.dataset.k].id; all(); });
+		return;
+	}
+	const reqRows = n.req.map((r, i) => `<div class="row"><select data-req="${i}">${live().filter(o => o.id !== n.id).map(o => opt(o.id, o.name, r[0])).join("")}</select><input class="rk" type="number" min="1" max="9" value="${r[1]}" data-rk="${i}"><button class="x" data-rm="${i}">✕</button></div>`).join("");
+	const pl = S.plans[n.id] || [];
+	const mine = issues.filter(i => i.id === n.id);
+	side.innerHTML = `
+		<div class="row"><b style="flex:3;font-size:15px">${n.name}</b><span class="pill">${n.id}</span></div>
+		${n.isNew ? `<div class="hint" style="color:var(--ok)">New trait. It shows in the tree but does nothing in play until the engine gives it an effect.</div>` : ""}
+		${mine.map(i => `<div class="issue ${i.lvl}">${i.msg}</div>`).join("")}
+		<label>Name (English; Spanish goes in es.json)</label><input type="text" id="fn" value="${n.name.replace(/"/g, "&quot;")}">
+		<label>Description</label><textarea id="fd">${n.desc}</textarea>
+		<div class="row"><div><label>Branch</label><select id="fb">${Object.keys(BRANCHES).map(b => opt(b, BRANCHES[b][0], n.branch)).join("")}</select></div>
+			<div><label>Stage needed</label><select id="fs">${STAGES.map((s, i) => opt(i, i + " · " + s, n.stage)).join("")}</select></div></div>
+		<div class="row"><div><label>Max rank</label><input type="number" id="fm" min="1" max="12" value="${n.max}"></div>
+			<div><label>DNA cost (rank 1; +1 per rank)</label><input type="number" id="fc" min="1" max="30" value="${n.cost}"></div></div>
+		<div class="row"><div><label>Grid x</label><input type="number" id="fx" step="0.5" value="${n.x}"></div>
+			<div><label>Grid y</label><input type="number" id="fy" step="0.1" value="${n.y}"></div></div>
+		<label class="chk"><input type="checkbox" id="fa"${n.ability ? " checked" : ""}> Active ability (spends the power bar)</label>
+		<label class="chk"><input type="checkbox" id="fe"${n.excl ? " checked" : ""}> Pick-one (buying it closes the others in its group)</label>
+		<h2>Needs (prerequisites)</h2>${reqRows || `<div class="hint">None: available from the start.</div>`}
+		<div class="hint">A prerequisite that the player's body plan can't have is skipped by the game, so plans can reach this trait without it.</div>
+		<button id="bReq">+ Add prerequisite</button>
+		<h2>Body plans that can have it</h2>
+		<div class="hint">None ticked = every plan.</div>
+		${PLANS.map(p => `<label class="chk"><input type="checkbox" data-pl="${p}"${pl.includes(p) ? " checked" : ""}> ${p[0].toUpperCase() + p.slice(1)}</label>`).join("")}
+		<h2>Danger</h2>
+		${n.deleted ? `<button id="bDel">Restore trait</button>` : `<button id="bDel" class="danger">Delete trait</button>`}
+		<div class="hint" style="margin-top:6px">Deleting comments the line out of the game file (never erased) and is refused while other scripts still use the id.</div>`;
+	const bind = (id, fn, ev = "input") => { const e = $(id); if (e) e.addEventListener(ev, () => { snap(); fn(e); tick(); drawCanvas(); }); };
+	bind("fn", e => n.name = e.value); bind("fd", e => n.desc = e.value);
+	bind("fb", e => n.branch = e.value, "change"); bind("fs", e => n.stage = +e.value, "change");
+	bind("fm", e => n.max = Math.max(1, +e.value || 1)); bind("fc", e => n.cost = Math.max(1, +e.value || 1));
+	bind("fx", e => n.x = +e.value || 0); bind("fy", e => n.y = +e.value || 0);
+	bind("fa", e => n.ability = e.checked, "change"); bind("fe", e => n.excl = e.checked ? "plan" : "", "change");
+	side.querySelectorAll("[data-req]").forEach(s => s.onchange = () => { snap(); n.req[+s.dataset.req][0] = s.value; all(); });
+	side.querySelectorAll("[data-rk]").forEach(s => s.oninput = () => { snap(); n.req[+s.dataset.rk][1] = Math.max(1, +s.value || 1); tick(); drawCanvas(); });
+	side.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { snap(); n.req.splice(+b.dataset.rm, 1); all(); });
+	$("bReq").onclick = () => { const o = live().find(o => o.id !== n.id && !n.req.some(r => r[0] === o.id)); if (o) { snap(); n.req.push([o.id, 1]); all(); } };
+	side.querySelectorAll("[data-pl]").forEach(c => c.onchange = () => {
+		snap(); const set = new Set(S.plans[n.id] || []); c.checked ? set.add(c.dataset.pl) : set.delete(c.dataset.pl);
+		if (set.size) S.plans[n.id] = PLANS.filter(p => set.has(p)); else delete S.plans[n.id]; all();
+	});
+	$("bDel").onclick = () => { snap(); if (n.isNew) { S.nodes = S.nodes.filter(o => o !== n); sel = null; } else n.deleted = !n.deleted; all(); };
+}
+
+// ---------- toolbar ----------
+$("plan").innerHTML = `<option value="">All plans</option>` + PLANS.map(p => `<option>${p}</option>`).join("");
+$("plan").onchange = e => { viewPlan = e.target.value; drawCanvas(); };
+$("bAdd").onclick = () => {
+	snap(); let i = 1; while (byId("new_trait_" + i)) i++;
+	const r = svg.getBoundingClientRect(), cx = (r.width / 2 - view.x) / view.k, cy = (r.height / 2 - view.y) / view.k;
+	const n = {id: "new_trait_" + i, branch: "offense", x: Math.round((cx - OX) / SX + 1), y: Math.round((cy - OY) / SY * 2) / 2, max: 1, cost: 1, stage: 0, req: [], name: "New trait " + i, desc: "What it does.", ability: false, excl: "", deleted: false, isNew: true};
+	S.nodes.push(n); sel = n.id; all();
+};
+$("bUndo").onclick = () => restore(undo, redo); $("bRedo").onclick = () => restore(redo, undo);
+$("bFit").onclick = fit;
+$("bReset").onclick = () => { if (confirm("Throw away every change and go back to the tree as it is in the game?")) { snap(); S = fromGame(GAME); sel = null; all(); } };
+function exportJson() {
+	return JSON.stringify({
+		nodes: S.nodes.map(n => ({id: n.id, branch: n.branch, x: n.x, y: n.y, max: n.max, cost: n.cost, stage: n.stage, req: n.req, name: esc(n.name), desc: esc(n.desc), ability: n.ability, excl: n.excl, deleted: !!n.deleted, isNew: !!n.isNew})),
+		plans: S.plans,
+	}, null, 1);
+}
+$("bExport").onclick = () => {
+	const bad = issues.filter(i => i.lvl === "bad").length;
+	if (bad && !confirm(bad + " error(s) in the tree. Download anyway?")) return;
+	const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([exportJson()], {type: "application/json"})); a.download = "tree.json"; a.click();
+};
+$("bCopy").onclick = () => navigator.clipboard.writeText(exportJson()).then(() => { $("status").textContent = "JSON copied"; });
+$("bImport").onclick = () => $("file").click();
+$("file").onchange = e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { const j = JSON.parse(t); snap(); S = fromGame({nodes: j.nodes.map(n => ({...n, name: n.name, desc: n.desc})), plans: j.plans}); S.nodes.forEach((n, i) => { n.deleted = !!j.nodes[i].deleted; n.isNew = !!j.nodes[i].isNew; }); sel = null; all(); }); };
+document.addEventListener("keydown", e => {
+	if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+	if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); restore(undo, redo); }
+	if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) { e.preventDefault(); restore(redo, undo); }
+});
+window.addEventListener("resize", drawCanvas);
+tick(); panel(); fit();
+</script>
+</body>
+</html>
