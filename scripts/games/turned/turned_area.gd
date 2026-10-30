@@ -13,6 +13,7 @@ const NPC_DATA := "res://scripts/games/turned/turned_npcs.json"
 
 var id := ""
 var indoor := false
+var painted := false                   # the floor map is one painting that is lit already (the ambient light stays near white)
 var bounds := Rect2()                  # what the camera and the player stay inside
 var solids: Array = []                 # Rect2, things you cannot walk through
 var shades: Array = []                 # see above
@@ -138,7 +139,79 @@ func _furn(kind: String, r: Rect2) -> void:
 	solids.append(r)
 	deco.append({"t": "furniture", "kind": kind, "rect": r})
 
+## The upstairs is one painting (games/turned/art/rooms/house_up.webp, 1264 x 848 px, the owner's Gemini art
+## 2026-10-29): bedroom | landing with the stairs | bathroom, seen from the front at a high angle. The map is
+## traced over it: coordinates in this function are PAINTING pixels, `_u` / `_up` turn them into world px
+## (UP_K world px per painting px). Painting and map are 3 rooms wide; the old square map (with the study) is
+## `_build_house_classic` below. The doors between the rooms are the gaps at y 600..700 in the two thick
+## partition walls; the stairs go down from the mouth in front of the dark well.
+const UP_K := 0.4
+const UP_ART := "rooms/house_up"
+
+static func _u(x: float, y: float, w: float, h: float) -> Rect2:
+	return Rect2(x * UP_K, y * UP_K, w * UP_K, h * UP_K)
+
+static func _up(x: float, y: float) -> Vector2:
+	return Vector2(x * UP_K, y * UP_K)
+
 func _build_house() -> void:
+	indoor = true
+	painted = true
+	var paint := Vector2(1264, 848) * UP_K
+	bounds = Rect2(-170, -50, paint.x + 340, paint.y + 100)   # wider than the painting: the camera centres on it
+	deco = [{"t": "painting", "art": UP_ART, "rect": Rect2(Vector2.ZERO, paint)}]
+	solids = []
+	# the shell: above each room's back wall base, below the front edge, the slanted side walls in steps
+	for r in [_u(-400, -400, 945, 750), _u(545, -400, 303, 760), _u(848, -400, 852, 798),
+			_u(-400, 790, 2100, 400),
+			_u(-400, 350, 570, 100), _u(-400, 450, 550, 110), _u(-400, 560, 520, 120), _u(-400, 680, 495, 110),
+			_u(1095, 398, 700, 102), _u(1120, 500, 700, 100), _u(1160, 600, 700, 100), _u(1185, 700, 700, 90),
+			# the partitions, with a doorway each at y 600..700
+			_u(518, 350, 44, 250), _u(518, 700, 44, 90), _u(836, 360, 44, 240), _u(836, 700, 44, 90)]:
+		solids.append(r)
+	# bedroom
+	for r in [_u(112, 400, 112, 125), _u(284, 350, 138, 52), _u(302, 360, 78, 70), _u(448, 352, 72, 58),
+			_u(82, 520, 305, 190), _u(72, 705, 80, 85), _u(455, 500, 60, 100), _u(445, 700, 70, 90)]:
+		solids.append(r)
+	# landing: the rail, the dark well and the newel posts (the steps in front of it are the way down)
+	solids.append(_u(695, 360, 145, 240))
+	solids.append(_u(695, 600, 50, 80))
+	# bathroom: the sink, the toilet, the curtain, the bath
+	for r in [_u(885, 395, 80, 40), _u(1018, 395, 60, 45), _u(1055, 455, 120, 185), _u(915, 665, 255, 125)]:
+		solids.append(r)
+	# the painting already shows the coat, the calendar and the bed; only the towel is drawn, on the rim of the bath
+	deco.append({"t": "item", "kind": "towel", "pos": _up(950, 655)})
+	interacts = [
+		{"id": "coat", "pos": _up(345, 460), "r": 70.0 * UP_K, "verb": "look"},
+		{"id": "matches", "pos": _up(185, 760), "r": 75.0 * UP_K, "verb": "take"},
+		{"id": "calendar", "pos": _up(415, 430), "r": 60.0 * UP_K, "verb": "look"},
+		{"id": "wardrobe", "pos": _up(262, 480), "r": 70.0 * UP_K, "verb": "look"},
+		{"id": "washstand", "pos": _up(410, 600), "r": 60.0 * UP_K, "verb": "look"},
+		{"id": "mirror", "pos": _up(935, 460), "r": 70.0 * UP_K, "verb": "look"},
+		{"id": "toilet", "pos": _up(1028, 485), "r": 60.0 * UP_K, "verb": "look"},
+		{"id": "towel", "pos": _up(930, 632), "r": 45.0 * UP_K, "verb": "look"},
+		{"id": "bath", "pos": _up(1010, 632), "r": 55.0 * UP_K, "verb": "look"},
+		{"id": "stairs_down", "pos": _up(790, 655), "r": 60.0 * UP_K, "verb": "down"},
+	]
+	lamps = []
+	# the painting is lit already: only a little extra light round the window and the lamps
+	light_spots = [
+		{"pos": _up(355, 400), "color": Color("9db8ff"), "energy": 0.35, "radius": 110.0},
+		{"pos": _up(110, 700), "color": Color("ffb45a"), "energy": 0.4, "radius": 80.0},
+		{"pos": _up(700, 420), "color": Color("ffb45a"), "energy": 0.4, "radius": 90.0},
+	]
+	spawns = {
+		"bed": _up(215, 610),
+		"bedside": _up(190, 750),
+		"from_down": _up(790, 660),
+		"bedroom_door": _up(610, 650),   # on the landing, out of the bedroom
+		"bathroom_door": _up(915, 630),  # in the bathroom, by its door
+		"bathroom_out": _up(800, 700),   # on the landing, out of the bathroom
+		"study_out": _up(640, 520),      # kept for the old painted-room scenes (the study is gone upstairs)
+	}
+
+## The previous upstairs (one square map with a study), kept for reference; not used since 2026-10-29.
+func _build_house_classic() -> void:
 	indoor = true
 	bounds = Rect2(0, 0, 560, 576)
 	solids = []

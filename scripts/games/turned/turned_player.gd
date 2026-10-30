@@ -19,6 +19,7 @@ var hobble := false           # aching before the mirror: a limp (a sway around 
 var sneak := false
 ## "lying", "sitting" (in bed) or "stand"
 var pose := "stand"
+var own_blanket := false      # the bed under her is painted with its blanket: draw none (the world sets it per area)
 var sit_t := 1.0              # 0 lying ... 1 sitting up (while in bed)
 var holding_head := false     # hands on the head ("What happened last night?")
 var wipe_t := -1.0            # 0..1 while the hand wipes the face and slides to the neck; -1 = off
@@ -102,9 +103,10 @@ func _draw_in_bed() -> void:
 		draw_circle(head + Vector2(2.5, 0.5), 0.9, Color(0.08, 0.08, 0.1))
 	# blanket over the legs
 	var by := lerpf(-4.0, 6.0, up)
-	draw_rect(Rect2(-27, by, 54, 52), BLANKET)
-	draw_rect(Rect2(-27, by, 54, 5), Color(0.36, 0.42, 0.6))
-	draw_rect(Rect2(-27, by, 54, 52), Color("1c2438"), false, 1.5)
+	if not own_blanket:     # a painted bedroom has its own blanket
+		draw_rect(Rect2(-27, by, 54, 52), BLANKET)
+		draw_rect(Rect2(-27, by, 54, 5), Color(0.36, 0.42, 0.6))
+		draw_rect(Rect2(-27, by, 54, 52), Color("1c2438"), false, 1.5)
 	# hands
 	if wipe_t >= 0.0:
 		var h := hand_at(wipe_t)

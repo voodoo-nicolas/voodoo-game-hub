@@ -3588,6 +3588,19 @@
    "ai_tool": "AI-generated for the owner (tool not recorded; owner to confirm)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "cut and re-laid at 2:1 with six pockets by tools/pool_table_art.py, JPEG q86 (Claude Code)"
+  },
+  {
+   "file": "games/turned/art/rooms/house_up.webp",
+   "what": "Turned painting: the house upstairs (bedroom, landing, bathroom) seen from the front at a high angle, the Walk-mode floor map",
+   "source": "reference/art/turned/gen/house_up.jpg (D:/dev/RPG/turned/top floor 4.jpg; prompt: the owner's front cutaway prompt, refined with Claude in chat 2026-10-29)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-29",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "re-saved as WebP q88 (Claude Code)"
   }
  ]
 }

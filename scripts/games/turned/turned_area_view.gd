@@ -59,6 +59,8 @@ func _build_floors() -> void:
 			var r: Rect2 = d["rect"]
 			_surface(shader, r, _floor_kind(d), d["color"], float(n) * 7.3, float(d.get("wet", 0.35)))
 			n += 1
+		elif d["t"] == "painting":
+			_painting(d)
 		elif d["t"] == "building":
 			# slate roof above, a brick wall band below (the street side)
 			var b: Rect2 = d["rect"]
@@ -67,6 +69,21 @@ func _build_floors() -> void:
 			_surface(shader, roof, 6, d["roof"], float(n) * 5.1, 0.0)
 			_surface(shader, wall, 5, d["wall"], float(n) * 3.7, 0.0)
 			n += 1
+
+## A whole room painted as one picture (games/turned/art/<art>.webp), drawn on the ground layer; the people
+## and the lights go over it. Nothing is drawn when the file is missing.
+func _painting(d: Dictionary) -> void:
+	var path := Art.ART_DIR + str(d["art"]) + ".webp"
+	if not ResourceLoader.exists(path):
+		return
+	var pic := TextureRect.new()
+	pic.texture = load(path) as Texture2D
+	pic.stretch_mode = TextureRect.STRETCH_SCALE
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pic.position = (d["rect"] as Rect2).position
+	pic.size = (d["rect"] as Rect2).size
+	add_child(pic)
 
 ## Names of painted tile textures that replace a shader surface (games/turned/art/<name>.png,
 ## tileable, painted at SPRITE_RATIO x), by shader kind.
@@ -140,7 +157,9 @@ func _draw() -> void:
 		return
 	if mode == "ground":
 		# beyond the map (the camera shows it when a room is narrower than the screen)
-		draw_rect(Rect2(-4000, -4000, 9000, 9000), Color("07080d"))
+		# the painted upstairs has a grey margin of its own: carry it on past the picture's edge
+		var margin := Color("4e4e4e") if area.id == "house" else Color("07080d")
+		draw_rect(Rect2(-4000, -4000, 9000, 9000), margin)
 		return
 	_draw_decals()
 	for d in area.deco:

@@ -226,6 +226,7 @@ func begin_new() -> void:
 	_load_area("house")
 	player.position = area.spawns["bed"]
 	player.pose = "lying"
+	player.own_blanket = area.painted
 	player.sit_t = 0.0
 	player.wipe_t = -1.0
 	player.holding_head = false
@@ -368,6 +369,8 @@ func _load_area(name: String) -> void:
 	_camera.limit_right = int(area.bounds.end.x)
 	_camera.limit_bottom = int(area.bounds.end.y)
 	_canvas_mod.color = _ambient_color()
+	if player != null:
+		player.own_blanket = area.painted
 
 func _add_light(pos: Vector2, color: Color, energy: float, radius: float, flicker: bool) -> void:
 	var l := PointLight2D.new()
@@ -418,6 +421,8 @@ func _snap_camera() -> void:
 ## that the moon lifts, with a warm tint at dusk and dawn. Interiors only dim a little at night.
 func _ambient_color() -> Color:
 	var day_i := clock.intensity()
+	if area.painted:
+		return T.color("moon.painting_night_color").lerp(T.color("light.painting_day_color"), day_i)
 	if area.indoor:
 		return T.color("moon.indoor_night_color").lerp(T.color("light.indoor_color"), day_i)
 	var shade := T.color("light.shade_color")

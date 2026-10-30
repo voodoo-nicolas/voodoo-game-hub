@@ -173,8 +173,8 @@ func _test_areas() -> void:
 			check(ar.is_free(ar.spawns[k], 9.0) or k == "bed", "%s spawn %s is free" % [pair[1], k])
 		for it in ar.interacts:
 			check(ar.bounds.has_point(it["pos"]) and ar.is_free(it["pos"], 9.0), "%s interact %s is a free spot inside" % [pair[1], it["id"]])
-	# upstairs: bedroom -> landing -> bathroom, study and the stairs must be connected by walking
-	check(_reachable(house, house.spawns["bedside"], Vector2(444, 62)), "bedside -> mirror reachable")
+	# upstairs: bedroom -> landing -> bathroom and the stairs must be connected by walking
+	check(_reachable(house, house.spawns["bedside"], Area._up(935, 460)), "bedside -> mirror reachable")
 	check(_reachable(house, house.spawns["bedside"], house.spawns["from_down"]), "bedside -> stairs reachable")
 	for it in house.interacts:
 		check(_reachable(house, house.spawns["bedside"], it["pos"]), "upstairs interact %s reachable" % it["id"])
@@ -1085,82 +1085,21 @@ func _test_scene_dialogue() -> void:
 
 # ---------------------------------------------------------------- the bar (scene 2)
 
-## S5: the bedroom painting opens as you walk in (after checking your pockets) and does what the Walk room did.
+## The upstairs is one painting under a Walk map (2026-10-29): no room of it opens in Scene mode any more.
+## (The old painted-room checks for the bedroom, bathroom and study are gone with those zones; the scenes stay in
+## turned_scenes.json as `walk_zone_classic`.)
 func _test_bedroom() -> void:
 	await _scene_ready_world()
 	world._load_area("house")
-	world.clock.hour = 9.0
-	world.player.position = Vector2(200, 150)
-	_step(0.1)
-	check(world.mode == "play" and not world.in_scene, "before the pockets are checked the Walk bedroom is used")
 	world.engine.set_flag("pockets")
-	_step(0.1)
-	check(world.mode == "scene" and world.scene_id == "bedroom" and sview.visible, "walking in the bedroom after the pockets opens its painting")
-	check(sview._art_id == "SC-01" and sview._tex != null, "by day it is SC-01, a real picture")
-	check(not sview.spots.any(func(h): return h["id"] == "matches"), "no matches on the nightstand before the coat says so")
-	# the coat: the Walk scene, from the painting, with the zoom card when the stitches tear
-	_tap_chip("coat")
-	check(world.mode == "dialogue" and world.dlg.scene_id == "coat" and world.engine.journal.has("coat"), "the coat chip starts the coat scene")
-	_dlg_lines()
-	_pick("coat_opt_right")
-	_dlg_lines()
-	_pick("coat_opt_inner")
-	_dlg_lines()
-	_pick("coat_opt_tear")
-	var guard := 0
-	while world.mode == "dialogue" and not world._card_open() and guard < 20:
-		hud.dialogue_skip()
-		world.press_a()
-		guard += 1
-	check(world._card_open() and cview.card_id == "coat_pocket", "tearing the stitches shows the coat-pocket card")
-	world.press_a()
-	check(not world._card_open(), "A closes the card")
-	_dlg_lines()
-	_pick("coat_opt_done")
-	_step(0.05)
-	check(world.mode == "scene" and world.in_scene and world.engine.has_item("note"), "back on the painting with the note")
-	# the matches now wait on the nightstand
-	check(sview.spots.any(func(h): return h["id"] == "matches"), "the matches appear on the nightstand")
-	_tap_chip("matches")
-	check(world.engine.has_item("matches") and not sview.spots.any(func(h): return h["id"] == "matches"), "tapping them takes them, and the chip goes")
-	_tap_chip("calendar")
-	check(world.engine.journal.has("calendar") and hud.caption_text() == Text.CLUES["calendar"]["say"], "the calendar is the same clue as in Walk mode")
-	_tap_chip("wardrobe")
-	check(hud.caption_text() == Text.LOOKS["wardrobe"], "the wardrobe says its Walk-mode line")
-	_tap_chip("bed")
-	check(hud.caption_text() == SceneText.LOOKS["bed_pillow"], "the bed has its own line")
-	# night: the other painting
-	world.clock.hour = 21.0
-	sview.refresh()
-	check(sview._art_id == "SC-02", "at night it is SC-02")
-	world.clock.hour = 3.0
-	sview.refresh()
-	check(sview._art_id == "SC-02", "and still SC-02 before dawn")
 	world.clock.hour = 9.0
-	sview.refresh()
-	# Resume returns to the painting
-	world.save_game()
-	await _scene_resume_check("bedroom", "scene", "Resume returns to the bedroom painting")
-	_step(0.05)                       # the world lets the painting listen
-	# leaving by the door: the painting stays up while the screen goes black, then the landing
-	_tap_chip("landing")
-	check(world.mode == "transition" and world.in_scene, "the door fades out over the painting")
-	_step(1.2)
-	check(world.mode == "play" and not world.in_scene and world.area.id == "house", "then you walk again in the house")
-	check(world.player.position.distance_to(world.area.spawns["bedroom_door"]) < 1.0, "on the landing outside the bedroom door")
-	_step(0.3)
-	check(world.mode == "play", "the landing does not reopen the painting")
-	world.test_dir = Vector2.UP                  # back through the bedroom door
-	var t_up := 0.0
-	while world.mode == "play" and t_up < 4.0:
-		_step(DT * 3.0)
-		t_up += DT * 3.0
-	world.test_dir = Vector2.ZERO
-	check(world.mode == "scene" and world.scene_id == "bedroom" and world.player.position.y < 304.0, "walking back in through the door opens it again")
-	_tap_chip("bathroom")
-	_step(1.2)
-	check(world.mode == "scene" and world.scene_id == "bathroom" and world.player.position.distance_to(world.area.spawns["bathroom_door"]) < 1.0, "the other door leads to the bathroom, a painting too")
-	check(not Rect2(16, 16, 320, 288).has_point(world.area.spawns["bathroom_door"]) and not Rect2(16, 16, 320, 288).has_point(world.area.spawns["bedroom_door"]), "both doors land outside the bedroom")
+	check(world.area.painted and world.area.indoor, "the upstairs is a painted, indoor Walk map")
+	check(ResourceLoader.exists("res://games/turned/art/rooms/house_up.webp"), "the upstairs painting is in the game")
+	for spot in ["bedside", "bathroom_door", "bedroom_door", "bathroom_out", "from_down"]:
+		world.player.position = world.area.spawns[spot]
+		_step(0.2)
+		check(world.mode == "play" and not world.in_scene, "standing at '%s' stays a Walk room" % spot)
+	check(Scenes.zone_at(Scenes.shipped(), "house", world.area.spawns["bedside"], world._scene_holds) == "", "no painted-room zone upstairs")
 
 ## Steps until the world is in `want` (or `limit_s` passes) while walking `dir`.
 func _walk_until(dir: Vector2, want: String, limit_s: float = 4.0) -> void:
@@ -1171,44 +1110,14 @@ func _walk_until(dir: Vector2, want: String, limit_s: float = 4.0) -> void:
 		t += DT * 3.0
 	world.test_dir = Vector2.ZERO
 
-## The bathroom, the study and the hall as paintings (SC-03, SC-04, SC-05), and the doors between them.
+## The hall as a painting (SC-05) and the doors out of it.
 func _test_house_rooms() -> void:
 	await _scene_ready_world()
 	world._load_area("house")
 	world.engine.set_flag("pockets")
 	world.clock.hour = 9.0
-	world.player.position = world.area.spawns["bathroom_out"]
+	world.player.position = world.area.spawns["from_down"]
 	_step(0.1)
-	check(world.mode == "play" and not world.in_scene, "the landing stays a Walk room")
-	# arriving through a door: the painting is up before the screen lights again
-	world._go_area("house", "bathroom_door", false)
-	_step(0.6)
-	check(world.in_scene and world.scene_id == "bathroom" and world.mode == "transition" and hud.fade > 0.5, "arriving in the bathroom through a door: its painting is up while the screen is still dark")
-	_step(0.7)
-	check(world.mode == "scene" and sview._art_id == "SC-03" and sview._tex != null, "then the bathroom painting, SC-03")
-	# the mirror from the painting: the close-up, then back to the painting
-	_tap_chip("mirror")
-	check(world.mode == "closeup", "the looking glass opens the mirror close-up")
-	_step(0.7 + T.f("prologue.closeup_min_s"))
-	world.press_a()
-	_step(0.6)
-	check(world.mode == "scene" and world.in_scene and world.scene_id == "bathroom", "closing it goes back to the painting")
-	_tap_chip("towel")
-	check(world.engine.journal.has("towel") and hud.caption_text() == Text.CLUES["towel"]["say"], "the towel is the same clue as in Walk mode")
-	_tap_chip("landing")
-	_step(1.2)
-	check(world.mode == "play" and not world.in_scene and world.player.position.distance_to(world.area.spawns["bathroom_out"]) < 1.0, "the bathroom door leads to the landing")
-	# the study: walk in from the landing
-	world.player.position = world.area.spawns["study_out"]
-	_walk_until(Vector2.DOWN, "scene")
-	check(world.mode == "scene" and world.scene_id == "study" and sview._art_id == "SC-04", "walking into the study opens SC-04")
-	_tap_chip("globe")
-	check(hud.caption_text() == Text.LOOKS["globe"], "the globe says its Walk-mode line")
-	_tap_chip("desk")
-	check(hud.caption_text() == SceneText.LOOKS["study_desk"], "the desk has its own line (the painting has papers on it)")
-	_tap_chip("landing")
-	_step(1.2)
-	check(world.mode == "play" and world.player.position.distance_to(world.area.spawns["study_out"]) < 1.0, "the study door leads to the landing")
 	# downstairs into the hall painting
 	world._interact({"id": "stairs_down"})
 	_step(1.2)
@@ -1242,7 +1151,7 @@ func _test_house_rooms() -> void:
 	_tap_chip("stairs")
 	_step(1.2)
 	check(world.area.id == "house" and world.mode == "play" and world.player.position.distance_to(world.area.spawns["from_down"]) < 1.0, "the stairs lead up to the landing")
-	for sp in ["bathroom_out", "study_out", "from_down", "bedroom_door"]:
+	for sp in ["bathroom_out", "from_down", "bedroom_door"]:
 		check(Scenes.zone_at(Scenes.shipped(), "house", world.area.spawns[sp], world._scene_holds) == "", "the landing spawn '%s' is outside every painted room" % sp)
 	world._load_area("house_down")
 	for sp in ["parlour_door", "kitchen_door"]:
@@ -1453,7 +1362,7 @@ func _test_follower() -> void:
 		if n.id == "witness":
 			upstairs_witness = true
 	check(not upstairs_witness and world._follower == null, "he waits downstairs")
-	world.player.position = Vector2(241, 76)
+	world.player.position = Area._up(345, 460)
 	_step(0.1)
 	world.press_a()
 	_dlg_lines()
@@ -1465,7 +1374,7 @@ func _test_follower() -> void:
 	_pick("coat_opt_done")
 	world.engine.set_flag("matches_home")
 	world._apply_item_state()
-	world.player.position = Vector2(111, 66)
+	world.player.position = Area._up(185, 760)
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "matches", "A offers the matches on the nightstand")
 	world.press_a()
@@ -1473,7 +1382,7 @@ func _test_follower() -> void:
 	_step(0.1)
 	check(str(world._cand.get("id", "")) != "matches", "taken once")
 	# back down: show him
-	world.player.position = Vector2(472, 360)
+	world.player.position = world.area.spawns["from_down"]
 	_step(0.1)
 	world.press_a()
 	_step(1.5)
@@ -1742,7 +1651,7 @@ func _test_flow() -> void:
 
 	# walk to a clue with the d-pad: bedside -> the wall calendar
 	world.player.position = world.area.spawns["bedside"]
-	check(_walk_to(Vector2(300, 120)), "walked to the wall calendar")
+	check(_walk_to(Area._up(415, 430)), "walked to the wall calendar")
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "calendar", "A offers the calendar")
 	check(world.player.hobble, "before the mirror the player hobbles")
@@ -1750,7 +1659,7 @@ func _test_flow() -> void:
 	check(world.engine.journal.has("calendar") and hud.is_revealed("menu"), "the clue is in the Journal and the Menu appears")
 	check(hud.caption_text() == Text.CLUES["calendar"]["say"], "the calendar says it is Friday")
 	# the coat is a scene: the pockets, the matches, the note sewn into the lining
-	world.player.position = Vector2(241, 76)
+	world.player.position = Area._up(345, 460)
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "coat", "A offers the coat")
 	world.press_a()
@@ -1782,7 +1691,7 @@ func _test_flow() -> void:
 	check(world.engine.journal.size() == 4 and world.engine.items == ["note"], "the coat gives its things only once")
 
 	# the mirror
-	check(_walk_to(Vector2(135, 250)) and _walk_to(Vector2(135, 340)) and _walk_to(Vector2(430, 345)) and _walk_to(Vector2(430, 280)) and _walk_to(Vector2(444, 64)), "walked bedroom -> hall -> bathroom mirror")
+	check(_walk_to(Area._up(430, 650)) and _walk_to(Area._up(560, 650)) and _walk_to(Area._up(620, 720)) and _walk_to(Area._up(800, 720)) and _walk_to(Area._up(858, 650)) and _walk_to(Area._up(915, 630)) and _walk_to(Area._up(935, 480)), "walked bedroom -> landing -> bathroom mirror")
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "mirror", "A offers the mirror")
 	world.press_a()
@@ -1809,7 +1718,7 @@ func _test_flow() -> void:
 	check(hud.caption_text() == Text.INNER["pockets_empty"], "'Where is my coat?'")
 	_step(0.1)
 	check(str(world._cand.get("id", "")) != "pockets", "the pockets are checked once")
-	world.player.position = Vector2(241, 76)
+	world.player.position = Area._up(345, 460)
 	_step(0.1)
 	world.press_a()
 	check(world.engine.journal.has("coat"), "the stranger's coat is in the Journal")
@@ -1819,19 +1728,19 @@ func _test_flow() -> void:
 	_pick("coat_opt_done")
 
 	# upstairs extras: the bathroom's towel is a clue, a plain item just talks
-	world.player.position = Vector2(500, 110)
+	world.player.position = Area._up(930, 632)
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "towel", "A offers the towel in the bathroom")
 	world.press_a()
 	check(world.engine.journal.has("towel"), "the bloodstained towel is a clue")
-	world.player.position = Vector2(402, 140)
+	world.player.position = Area._up(410, 600)
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "washstand", "A offers the washstand")
 	world.press_a()
 	check(hud.caption_text() == Text.LOOKS["washstand"], "examining the washstand says its line")
 
 	# the stairs down (no autosave on a staircase), then the cellar door, the scarf, the front door
-	world.player.position = Vector2(472, 360)
+	world.player.position = world.area.spawns["from_down"]
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "stairs_down", "A offers the stairs down")
 	world.press_a()
