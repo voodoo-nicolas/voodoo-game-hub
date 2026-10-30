@@ -15,6 +15,7 @@ signal home_pressed
 signal sfx(sound: String)
 
 var engine
+var _sel_slot := 0         # the ability button being filled on the creature screen
 var color := Color("29e6ff")
 var col2 := Color("ffd23f")     # the player's secondary colours (set by the game)
 var col3 := Color("ff4f9a")
@@ -172,35 +173,80 @@ func _build_info() -> void:
 	btns.add_child(tree_btn)
 	btns.add_child(_button("✕ " + tr("Close"), _close_pressed))
 
-## The ability buttons: tap one to choose which ability it fires.
+## The ability loadout (owner 2026-10-29: cycling with a tap per button was uncomfortable): the four buttons in a
+## row, tap one to select it, then tap an ability below to put it there. Every ability you own is listed.
 func _abilities(parent: Control) -> void:
 	parent.add_child(_label(tr("Abilities"), 26, Color("ffd479")))
 	var names := [tr("Offense button"), tr("Defense button"), tr("Extra button %d") % 3, tr("Extra button %d") % 4]
+	if _sel_slot < 0 or _sel_slot > 3 or not engine.slot_visible(_sel_slot):
+		_sel_slot = 0
+		for i in 4:
+			if engine.slot_visible(i):
+				_sel_slot = i
+				break
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
 	for i in 4:
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(0, 56)
+		b.custom_minimum_size = Vector2(0, 92)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART      # long Spanish lines wrap instead of running off the side
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_theme_font_size_override("font_size", 18)
 		if engine.slot_visible(i):
 			var id: String = engine.slot_ids[i]
-			b.text = names[i] + ":  " + (tr(Data.ABILITIES[id].name) if id != "" else "-")
-			if engine.eligible(i).size() > 1:
-				b.text += "   ↻"
-			b.pressed.connect(_cycle.bind(i))
+			b.text = "%d
+%s" % [i + 1, tr(Data.ABILITIES[id].name) if id != "" else "-"]
+			b.pressed.connect(_select_slot.bind(i))
+			if i == _sel_slot:
+				b.modulate = Color("ffd479")
 		else:
 			b.disabled = true
-			if i == 0:
-				b.text = names[i] + ":  " + tr("learn an offensive ability first")
-			elif i == 1:
-				b.text = names[i] + ":  " + tr("learn a defensive ability first")
+			if i < 2:
+				b.text = "%d
+%s" % [i + 1, tr("learn one first")]
 			else:
-				b.text = names[i] + ":  " + tr("reach %s to unlock") % tr(EvEngine.STAGES[Data.SLOT_STAGE[i]][1])
-		b.add_theme_font_size_override("font_size", 20)
-		parent.add_child(b)
+				b.text = "%d
+%s" % [i + 1, tr("reach %s to unlock") % tr(EvEngine.STAGES[Data.SLOT_STAGE[i]][1])]
+		row.add_child(b)
+	var owned: Array = engine.owned_actives()
+	if owned.is_empty():
+		parent.add_child(_wrapped(tr("Learn an ability in the evolution tree to put it on a button."), 20, Color(0.8, 0.85, 0.9)))
+		return
+	parent.add_child(_wrapped(tr("Tap a button, then tap the ability to put on it:"), 20, Color(0.8, 0.85, 0.9)))
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	parent.add_child(grid)
+	for id in owned:
+		var c := Button.new()
+		c.focus_mode = Control.FOCUS_NONE
+		c.custom_minimum_size = Vector2(0, 64)
+		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		c.add_theme_font_size_override("font_size", 19)
+		var on: int = engine.slot_ids.find(id)
+		c.text = tr(Data.ABILITIES[id].name) + (("   [%d]" % (on + 1)) if on >= 0 else "")
+		var fits: bool = engine.slot_visible(_sel_slot) and (Data.SLOT_TYPE[_sel_slot] == "any" or Data.ABILITIES[id].kind == Data.SLOT_TYPE[_sel_slot])
+		c.disabled = not fits
+		if on == _sel_slot:
+			c.modulate = Color("ffd479")
+		c.pressed.connect(_assign.bind(id))
+		grid.add_child(c)
+	var cur: String = engine.slot_ids[_sel_slot] if engine.slot_visible(_sel_slot) else ""
+	if cur != "":
+		var node := Data.node_of(cur)
+		parent.add_child(_wrapped(tr(Data.ABILITIES[cur].name) + ": " + tr(str(node.get("desc", ""))), 19, Color(0.85, 0.9, 0.8)))
 
-func _cycle(i: int) -> void:
-	engine.cycle_slot(i)
+func _select_slot(i: int) -> void:
+	_sel_slot = i
+	sfx.emit("tap")
+	_build()
+
+func _assign(id: String) -> void:
+	engine.assign_slot(_sel_slot, id)
 	sfx.emit("tap")
 	_build()
 

@@ -8114,5 +8114,11 @@
  "Size %d!": "¡Tamaño %d!",
  "+%d DNA": "+%d ADN",
  "Eating fills the green 🧬 bar: each time it is full you get 1 DNA.": "Al comer se llena la barra verde 🧬: cada vez que se llena ganas 1 ADN.",
- "Growing to size 2 opens the evolution tree and gives 2 DNA. After that, everything you eat fills the green 🧬 bar under your growth bar: each time it is full you get 1 DNA. Bigger meals fill it faster. Rare creatures give extra DNA.": "Al llegar al tamaño 2 se abre el árbol de evolución y ganas 2 ADN. Después, todo lo que comes llena la barra verde 🧬 debajo de la de crecimiento: cada vez que se llena ganas 1 ADN. Las comidas más grandes la llenan más rápido. Las criaturas raras dan ADN extra."
+ "Growing to size 2 opens the evolution tree and gives 2 DNA. After that, everything you eat fills the green 🧬 bar under your growth bar: each time it is full you get 1 DNA. Bigger meals fill it faster. Rare creatures give extra DNA.": "Al llegar al tamaño 2 se abre el árbol de evolución y ganas 2 ADN. Después, todo lo que comes llena la barra verde 🧬 debajo de la de crecimiento: cada vez que se llena ganas 1 ADN. Las comidas más grandes la llenan más rápido. Las criaturas raras dan ADN extra.",
+ "Growth": "Crecimiento",
+ "Your body can grow one size bigger. Without this you stop growing, however much you eat.": "Tu cuerpo puede crecer un tamaño más. Sin esto dejas de crecer, por mucho que comas.",
+ "Full! Buy Growth in the 🧬 tree to grow": "¡Lleno! Compra Crecimiento en el árbol 🧬 para crecer",
+ "learn one first": "aprende una antes",
+ "Learn an ability in the evolution tree to put it on a button.": "Aprende una habilidad en el árbol de evolución para ponerla en un botón.",
+ "Tap a button, then tap the ability to put on it:": "Toca un botón y luego la habilidad que quieres ponerle:"
 }

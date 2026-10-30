@@ -130,6 +130,7 @@ const STAGES := [[0.0, "Spore"], [14.0, "Microbe"], [30.0, "Amoeba"], [62.0, "Hu
 
 var rng := RandomNumberGenerator.new()
 var difficulty := "normal"
+var _cap_sent := false      # the "spend DNA on Growth" message was sent for this cap
 var player := {"pos": Vector2.ZERO, "vel": Vector2.ZERO, "mass": 0.0, "hp": 0.0}
 var food: Array = []      # Vector2
 var npcs: Array = []      # {"id","pos","vel","mass","species","role","wander","t"}
@@ -315,15 +316,25 @@ func _gain_xp(amount: float, feeds_dna: bool = true) -> void:
 	if level() >= 2:
 		amount /= float(Data.DIFFICULTY[difficulty].get("slow", 1.0))     # hard: sizes 2+ take 4x as long (owner 2026-10-29)
 	var cap := xp_at(2) - 0.5
+	var gcap := xp_at(size_cap() + 1) - 0.5
 	if sight_rank < 2 and xp < cap:
 		xp = minf(xp + amount, cap)
-	else:
+	elif tree_unlocked and size_cap() < Data.LEVELS.size() and xp < gcap:
+		xp = minf(xp + amount, gcap)           # held at the top of this size until you buy Growth
+		if xp >= gcap and not _cap_sent:
+			_cap_sent = true
+			events.append({"type": "growth_cap", "level": level()})
+	elif not (tree_unlocked and size_cap() < Data.LEVELS.size()):
 		xp += amount
 	if feeds_dna and tree_unlocked:
-		_fill_dna(xp - before)
+		_fill_dna(amount)     # still fills at the cap: that is how you earn the DNA for Growth
 	player.mass = mass_of_xp(xp)
 	_mass_seen = player.mass
 	peak_mass = maxf(peak_mass, player.mass)
+
+## The biggest size you can reach: 2 + points in Growth (owner 2026-10-29). 10 or more = no limit.
+func size_cap() -> int:
+	return 2 + rank_of("growth")
 
 ## DNA per xp at your size: Data.DNA_PER_SIZE spread over the size's xp (past size 10: one point per
 ## DNA_PAST_10_KILLS kills of prey worth 9).
@@ -1409,6 +1420,8 @@ func can_buy(id: String) -> bool:
 
 func _add_point(id: String) -> void:
 	owned[id] = rank_of(id) + 1
+	if id == "growth":
+		_cap_sent = false
 	if id == "membrane":
 		player.hp += t("membrane_hp")
 	_recompute_ranks()
@@ -1478,6 +1491,24 @@ func cycle_slot(i: int) -> void:
 		return
 	var k := list.find(slot_ids[i])
 	slot_ids[i] = list[(k + 1) % list.size()]
+
+## The player picks `id` for button `i` (owner 2026-10-29: the picker on the creature screen). An ability already
+## on another button swaps places with it when that button can take the old one, else that button is refilled.
+func assign_slot(i: int, id: String) -> void:
+	if i < 0 or i > 3 or not slot_visible(i) or not eligible(i).has(id) and not slot_ids.has(id):
+		return
+	if not owned_actives().has(id):
+		return
+	var kind: String = Data.ABILITIES[id].kind
+	if Data.SLOT_TYPE[i] != "any" and kind != Data.SLOT_TYPE[i]:
+		return
+	var old: String = slot_ids[i]
+	for j in 4:
+		if j != i and slot_ids[j] == id:
+			var ok: bool = old != "" and (Data.SLOT_TYPE[j] == "any" or Data.ABILITIES[old].kind == Data.SLOT_TYPE[j])
+			slot_ids[j] = old if ok else ""
+	slot_ids[i] = id
+	auto_assign()
 
 ## Uses the ability on button `i`.
 func use_slot(i: int) -> bool:

@@ -1112,6 +1112,8 @@ func _handle_events() -> void:
 				_play_music()
 				_snd("evolve")
 				bump = 0.3
+			"growth_cap":
+				_banner(tr("Full! Buy Growth in the 🧬 tree to grow"))
 			"dna":
 				_banner(tr("+1 DNA"))
 			"dna_tick":

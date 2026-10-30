@@ -965,6 +965,36 @@ func _growth_and_species() -> void:
 	blind.reset(9)
 	blind._gain_xp(500.0)
 	check(blind.level() == 1, "no eye yet: you stay size 1")
+	# Growth branch (owner 2026-10-29): size 3 and up must be bought
+	var cp := Ev.new()
+	cp.reset(10)
+	cp.sight_rank = 2
+	cp.tree_unlocked = true
+	cp._gain_xp(Ev.xp_at(2) + 0.1)
+	check(cp.level() == 2 and cp.size_cap() == 2, "size 2 is free, the cap is 2")
+	var dbar0: float = cp.dna_bar
+	cp._gain_xp(100000.0)
+	check(cp.level() == 2 and cp.xp < Ev.xp_at(3), "no Growth: eating cannot take you to size 3")
+	check(cp.dna_bar != dbar0 or cp.dna > 0, "...but the DNA bar still fills")
+	cp.dna = 6
+	check(cp.buy("growth") and cp.size_cap() == 3, "Growth rank 1 costs 6 and lifts the cap to 3")
+	cp._gain_xp(100000.0)
+	check(cp.level() == 3, "...now you reach size 3 and stop there (%d)" % cp.level())
+	check(cp.cost_of("growth") == 7, "the next Growth rank costs 7")
+	# ability loadout picker
+	var ld := Ev.new()
+	ld.reset(11)
+	ld.tree_unlocked = true
+	ld.owned["burst"] = 1
+	ld.owned["spit"] = 1
+	ld.owned["ink"] = 1
+	ld._recompute_ranks()
+	ld.auto_assign()
+	check(ld.slot_ids[0] in ["burst", "spit"] and ld.slot_ids[1] == "ink", "loadout: buttons filled")
+	ld.assign_slot(0, "spit")
+	check(ld.slot_ids[0] == "spit", "loadout: picked Acid spit for the offense button")
+	ld.assign_slot(0, "ink")
+	check(ld.slot_ids[0] == "spit", "loadout: a defensive ability cannot go on the offense button")
 	check(is_equal_approx(Ev.mass_of_xp(0.0), Ev.TUNING.start_mass), "xp 0 = the start mass")
 	for lv in range(2, 11):
 		check(is_equal_approx(Ev.mass_of_xp(Ev.xp_at(lv)), Data.LEVELS[lv - 1]), "reaching size %d puts you at its start mass" % lv)
@@ -1009,6 +1039,7 @@ func _growth_and_species() -> void:
 		b.reset(900 + lv)
 		b.sight_rank = 2
 		b.tree_unlocked = true
+		b.owned["growth"] = 8      # Growth lifts the size cap (owner 2026-10-29)
 		b.npcs.clear()
 		b.food.clear()
 		b._gain_xp(Ev.xp_at(lv) - b.xp, false)

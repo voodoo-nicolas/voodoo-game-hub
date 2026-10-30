@@ -1,4 +1,10 @@
 {
+ " % [i + 1, tr(": [
+  "scripts\\games\\evolution\\evolution_screens.gd"
+ ],
+ " % [i + 1, tr(Data.ABILITIES[id].name) if id != ": [
+  "scripts\\games\\evolution\\evolution_screens.gd"
+ ],
  " + tr(": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd",
   "scripts\\games\\color_sort\\color_sort_game.gd"
@@ -364,6 +370,9 @@
  "Google": [
   "scripts\\account\\account_screen.gd"
  ],
+ "Grow to size N": [
+  "scripts\\games\\evolution\\evolution_engine.gd"
+ ],
  "IQ %d  ±%d": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
@@ -584,6 +593,9 @@
  ],
  "resume last game": [
   "scripts\\hub\\hub.gd"
+ ],
+ "spend DNA on Growth": [
+  "scripts\\games\\evolution\\evolution_engine.gd"
  ],
  "starter '%s' is not an item": [
   "scripts\\games\\creation\\creation_engine.gd"

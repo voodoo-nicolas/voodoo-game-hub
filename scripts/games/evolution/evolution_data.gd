@@ -193,13 +193,14 @@ const LEVEL_CAP := 10
 ## (engine STAGES index) needed, x / y = place on the tree screen in grid cells.
 ## `ability` nodes are actives (used on command, they spend the blue power bar; more points make them
 ## cheaper, longer, stronger). A node whose prerequisites are not owned shows "?".
-const BRANCH_ORDER := ["offense", "sense", "move", "defense", "habitat"]
+const BRANCH_ORDER := ["offense", "sense", "move", "defense", "habitat", "growth"]
 const BRANCH := {
 	"offense": {"name": "Offense", "col": Color("ff6a4a")},
 	"sense": {"name": "Senses", "col": Color("29e6ff")},
 	"move": {"name": "Movement", "col": Color("7dff3a")},
 	"defense": {"name": "Defense", "col": Color("6aa8ff")},
 	"habitat": {"name": "Habitat", "col": Color("c48bff")},
+	"growth": {"name": "Growth", "col": Color("ffd23a")},
 }
 const NODES := [
 	{"id": "burst", "branch": "offense", "x": 1, "y": 1.5, "max": 3, "cost": 1, "stage": 1, "req": [], "name": "Jump boost", "desc": "A short burst of speed to catch your next meal. Costs power.", "ability": true},
@@ -246,6 +247,10 @@ const NODES := [
 	{"id": "blubber", "branch": "habitat", "x": 2, "y": 15.0, "max": 2, "cost": 2, "stage": 2, "req": [["cold_tol", 2]], "name": "Fat layer", "desc": "A layer of fat keeps the cold out: even colder water.", "ability": false},
 	{"id": "deep_body", "branch": "habitat", "x": 2, "y": 16.2, "max": 2, "cost": 3, "stage": 2, "req": [["pressure_tol", 2]], "name": "Deep-sea body", "desc": "A body built for the deep: you can dive much deeper.", "ability": false},
 	{"id": "abyssal", "branch": "habitat", "x": 3, "y": 15.6, "max": 1, "cost": 4, "stage": 3, "req": [["blubber", 1], ["deep_body", 1]], "name": "Abyss dweller", "desc": "At home in the cold, dark deep: the coldest water and the deepest dives.", "ability": false},
+	# Growth (owner 2026-10-29: "a DNA tree branch for the size, where you have to spend a good amount of points to grow"):
+	# eating fills the gold bar, but you only reach size 3 and up by buying this. Rank r lets you grow to size 2 + r
+	# (engine `size_cap`); 8 ranks = size 10. 6 + 7 + ... + 13 = 76 DNA in all.
+	{"id": "growth", "branch": "growth", "x": 1, "y": 18.0, "max": 8, "cost": 6, "stage": 0, "req": [], "name": "Growth", "desc": "Your body can grow one size bigger. Without this you stop growing, however much you eat.", "ability": false},
 ]
 
 ## The actives, in the order they are offered. cost = power points (of POWER_MAX), time = seconds of
