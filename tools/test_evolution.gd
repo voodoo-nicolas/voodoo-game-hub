@@ -184,13 +184,13 @@ func _init() -> void:
 	check(fx.missions[-1].kind == "mass" and fx.missions[-1].reward == "tree", "next: grow to size 2 for the tree")
 	# owner 2026-10-24: eat eat eat to size 2, which opens the tree
 	var meals2 := 0
-	while fx.level() < 2 and meals2 < 200:
+	while fx.level() < 2 and meals2 < 800:
 		fx.npcs = [_npc(fx.player.pos, 3.0, "bacillus", "prey")]
 		fx.step(1.0 / 60.0, Vector2.ZERO)
 		meals2 += 1
 		if fx.level() < 2:
 			check(not fx.tree_unlocked, "still size 1: the tree stays closed")
-	check(meals2 >= 15, "size 2 takes a good while of eating (%d meals)" % meals2)
+	check(meals2 >= 400, "size 2 takes a good while of eating (%d meals)" % meals2)
 	check(fx.tree_unlocked, "size 2 opens the evolution tree")
 	check(fx.dna == Data.TREE_DNA, "...with its 2 DNA, nothing more (%d)" % fx.dna)
 	fx.dna = 5
@@ -223,7 +223,7 @@ func _init() -> void:
 	for m in fx.missions:
 		if not m.done:
 			rw[m.reward] = true
-	check(rw.has("size") or rw.has("dna"), "missions pay size or DNA")
+	check(rw.has("") and not rw.has("size"), "growing pays nothing (owner 2026-10-29); discoveries pay DNA")
 	# zero-value things are left alone
 	var z := Ev.new()
 	z.reset(4)

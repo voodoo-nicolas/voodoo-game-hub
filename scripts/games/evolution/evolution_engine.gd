@@ -21,16 +21,16 @@ const TUNING := {
 	# "X", size 2 -> 3), then xp_ratio 1.5 x the one before (owner 2026-10-24; it was 5 then x2).
 	"food_xp": 0.5,             # xp per food speck (a creature is worth its size level in xp)
 	"food_mass": 1.0,
-	"food_per_area": 4.2e-5,    # food per square world unit of the spawn disc
-	"food_min": 30,
-	"food_max": 220,
+	"food_per_area": 1.5e-5,    # food per square world unit of the spawn disc
+	"food_min": 12,
+	"food_max": 80,    # was 30 / 220 and 4.2e-5: swamped in specks and laggy (owner 2026-10-29)
 	"npc_per_area": 8.0e-6,
 	"npc_min": 10,
 	"npc_max": 40,
 	"hunter_safe": 650.0,       # no hunter ever spawns closer to you than this (world units)
-	"hunter_gap": 10.0,         # seconds between one hunter spawning and the next (so they never pile up behind you)
+	"hunter_gap": 6.0,          # seconds between one hunter spawning and the next (so they never pile up behind you)
 	"revive_grace": 5.0,        # endless mode: seconds nothing can hurt you after coming back
-	"hunter_weight": 3.0,       # x the difficulty share: how often a predator species is picked
+	"hunter_weight": 5.0,       # x the difficulty share: how often a predator species is picked
 	"toxic_chance": 0.05,
 	"rare_chance": 0.012,
 	"rare_max": 1,              # never more than this many rare creatures alive at once (owner 2026-10-29: schools of them)
