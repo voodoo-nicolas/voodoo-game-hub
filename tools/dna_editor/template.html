@@ -88,9 +88,20 @@ let sel = null, undo = [], redo = [], view = {x: 20, y: 20, k: 0.8}, viewPlan = 
 
 const byId = id => S.nodes.find(n => n.id === id);
 const live = () => S.nodes.filter(n => !n.deleted);
-const allowed = n => S.plans[n.id] && S.plans[n.id].length ? S.plans[n.id] : PLANS;
+// A trait belongs to the body plan it needs (directly or further up the tree); the game hides it once you chose another plan.
+function planRoots(n, seen = new Set()) {
+	const out = new Set();
+	for (const [r] of n.req) {
+		const p = byId(r); if (!p || p.deleted || seen.has(r)) continue;
+		seen.add(r);
+		if (p.excl) out.add(p.id.replace(/^plan_/, ""));
+		for (const x of planRoots(p, seen)) out.add(x);
+	}
+	return out;
+}
+const allowed = n => { const r = planRoots(n); return r.size === 0 ? PLANS : r.size === 1 ? [...r] : []; };
 const origOf = id => ORIG.nodes.find(n => n.id === id);
-function sig(n, plans) { return JSON.stringify([n.branch, n.x, n.y, n.max, n.cost, n.stage, n.req, n.name, n.desc, n.ability, n.excl, plans[n.id] || [], !!n.deleted]); }
+function sig(n, plans) { return JSON.stringify([n.branch, n.x, n.y, n.max, n.cost, n.stage, n.size || 0, n.req, n.name, n.desc, n.ability, n.excl, plans[n.id] || [], !!n.deleted]); }
 function isMod(n) { const o = origOf(n.id); return !o || sig(o, ORIG.plans) !== sig(n, S.plans); }
 
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
@@ -104,7 +115,7 @@ function validate() {
 	for (const n of L) {
 		if (n.max < 1) add("bad", n.id, `${n.name}: max rank must be at least 1`);
 		if (n.cost < 1) add("bad", n.id, `${n.name}: cost must be at least 1`);
-		if (n.excl && n.req.length) add("warn", n.id, `${n.name}: pick-one trait with prerequisites`);
+		if (planRoots(n).size > 1) add("bad", n.id, `${n.name} needs more than one body plan: nobody can ever reach it`);
 		for (const [r, k] of n.req) {
 			const p = byId(r);
 			if (r === n.id) add("bad", n.id, `${n.name} needs itself`);
@@ -255,8 +266,7 @@ function panel() {
 		return;
 	}
 	const reqRows = n.req.map((r, i) => `<div class="row"><select data-req="${i}">${live().filter(o => o.id !== n.id).map(o => opt(o.id, o.name, r[0])).join("")}</select><input class="rk" type="number" min="1" max="9" value="${r[1]}" data-rk="${i}"><button class="x" data-rm="${i}">✕</button></div>`).join("");
-	const pl = S.plans[n.id] || [];
-	const mine = issues.filter(i => i.id === n.id);
+		const mine = issues.filter(i => i.id === n.id);
 	side.innerHTML = `
 		<div class="row"><b style="flex:3;font-size:15px">${n.name}</b><span class="pill">${n.id}</span></div>
 		${n.isNew ? `<div class="hint" style="color:var(--ok)">New trait. It shows in the tree but does nothing in play until the engine gives it an effect.</div>` : ""}
@@ -265,35 +275,31 @@ function panel() {
 		<label>Description</label><textarea id="fd">${n.desc}</textarea>
 		<div class="row"><div><label>Branch</label><select id="fb">${Object.keys(BRANCHES).map(b => opt(b, BRANCHES[b][0], n.branch)).join("")}</select></div>
 			<div><label>Stage needed</label><select id="fs">${STAGES.map((s, i) => opt(i, i + " · " + s, n.stage)).join("")}</select></div></div>
+		<div class="row"><div><label>Min size (0 = none; body plans: 5)</label><input type="number" id="fz" min="0" max="10" value="${n.size || 0}"></div><div></div></div>
 		<div class="row"><div><label>Max rank</label><input type="number" id="fm" min="1" max="12" value="${n.max}"></div>
 			<div><label>DNA cost (rank 1; +1 per rank)</label><input type="number" id="fc" min="1" max="30" value="${n.cost}"></div></div>
 		<div class="row"><div><label>Grid x</label><input type="number" id="fx" step="0.5" value="${n.x}"></div>
 			<div><label>Grid y</label><input type="number" id="fy" step="0.1" value="${n.y}"></div></div>
 		<label class="chk"><input type="checkbox" id="fa"${n.ability ? " checked" : ""}> Active ability (spends the power bar)</label>
-		<label class="chk"><input type="checkbox" id="fe"${n.excl ? " checked" : ""}> Pick-one (buying it closes the others in its group)</label>
+		<label class="chk"><input type="checkbox" id="fe"${n.excl ? " checked" : ""}> Body shape (pick one: closes the others and what follows them)</label>
 		<h2>Needs (prerequisites)</h2>${reqRows || `<div class="hint">None: available from the start.</div>`}
 		<div class="hint">A prerequisite that the player's body plan can't have is skipped by the game, so plans can reach this trait without it.</div>
 		<button id="bReq">+ Add prerequisite</button>
-		<h2>Body plans that can have it</h2>
-		<div class="hint">None ticked = every plan.</div>
-		${PLANS.map(p => `<label class="chk"><input type="checkbox" data-pl="${p}"${pl.includes(p) ? " checked" : ""}> ${p[0].toUpperCase() + p.slice(1)}</label>`).join("")}
+		<h2>Body plan</h2>
+		<div class="hint">${(() => { const r = [...planRoots(n)]; return n.excl ? "This is a body shape. Choosing it closes the other shapes and everything after them." : r.length ? "Only for: <b>" + r.join(", ") + "</b> (it needs a plan trait further up). Hidden once another plan is chosen." : "Open to every body plan."; })()}</div>
 		<h2>Danger</h2>
 		${n.deleted ? `<button id="bDel">Restore trait</button>` : `<button id="bDel" class="danger">Delete trait</button>`}
 		<div class="hint" style="margin-top:6px">Deleting comments the line out of the game file (never erased) and is refused while other scripts still use the id.</div>`;
 	const bind = (id, fn, ev = "input") => { const e = $(id); if (e) e.addEventListener(ev, () => { snap(); fn(e); tick(); drawCanvas(); }); };
 	bind("fn", e => n.name = e.value); bind("fd", e => n.desc = e.value);
 	bind("fb", e => n.branch = e.value, "change"); bind("fs", e => n.stage = +e.value, "change");
-	bind("fm", e => n.max = Math.max(1, +e.value || 1)); bind("fc", e => n.cost = Math.max(1, +e.value || 1));
+	bind("fz", e => n.size = Math.max(0, +e.value || 0)); bind("fm", e => n.max = Math.max(1, +e.value || 1)); bind("fc", e => n.cost = Math.max(1, +e.value || 1));
 	bind("fx", e => n.x = +e.value || 0); bind("fy", e => n.y = +e.value || 0);
 	bind("fa", e => n.ability = e.checked, "change"); bind("fe", e => n.excl = e.checked ? "plan" : "", "change");
 	side.querySelectorAll("[data-req]").forEach(s => s.onchange = () => { snap(); n.req[+s.dataset.req][0] = s.value; all(); });
 	side.querySelectorAll("[data-rk]").forEach(s => s.oninput = () => { snap(); n.req[+s.dataset.rk][1] = Math.max(1, +s.value || 1); tick(); drawCanvas(); });
 	side.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { snap(); n.req.splice(+b.dataset.rm, 1); all(); });
 	$("bReq").onclick = () => { const o = live().find(o => o.id !== n.id && !n.req.some(r => r[0] === o.id)); if (o) { snap(); n.req.push([o.id, 1]); all(); } };
-	side.querySelectorAll("[data-pl]").forEach(c => c.onchange = () => {
-		snap(); const set = new Set(S.plans[n.id] || []); c.checked ? set.add(c.dataset.pl) : set.delete(c.dataset.pl);
-		if (set.size) S.plans[n.id] = PLANS.filter(p => set.has(p)); else delete S.plans[n.id]; all();
-	});
 	$("bDel").onclick = () => { snap(); if (n.isNew) { S.nodes = S.nodes.filter(o => o !== n); sel = null; } else n.deleted = !n.deleted; all(); };
 }
 
@@ -303,7 +309,7 @@ $("plan").onchange = e => { viewPlan = e.target.value; drawCanvas(); };
 $("bAdd").onclick = () => {
 	snap(); let i = 1; while (byId("new_trait_" + i)) i++;
 	const r = svg.getBoundingClientRect(), cx = (r.width / 2 - view.x) / view.k, cy = (r.height / 2 - view.y) / view.k;
-	const n = {id: "new_trait_" + i, branch: "offense", x: Math.round((cx - OX) / SX + 1), y: Math.round((cy - OY) / SY * 2) / 2, max: 1, cost: 1, stage: 0, req: [], name: "New trait " + i, desc: "What it does.", ability: false, excl: "", deleted: false, isNew: true};
+	const n = {id: "new_trait_" + i, branch: "offense", x: Math.round((cx - OX) / SX + 1), y: Math.round((cy - OY) / SY * 2) / 2, max: 1, cost: 1, stage: 0, size: 0, req: [], name: "New trait " + i, desc: "What it does.", ability: false, excl: "", deleted: false, isNew: true};
 	S.nodes.push(n); sel = n.id; all();
 };
 $("bUndo").onclick = () => restore(undo, redo); $("bRedo").onclick = () => restore(redo, undo);
@@ -311,7 +317,7 @@ $("bFit").onclick = fit;
 $("bReset").onclick = () => { if (confirm("Throw away every change and go back to the tree as it is in the game?")) { snap(); S = fromGame(GAME); sel = null; all(); } };
 function exportJson() {
 	return JSON.stringify({
-		nodes: S.nodes.map(n => ({id: n.id, branch: n.branch, x: n.x, y: n.y, max: n.max, cost: n.cost, stage: n.stage, req: n.req, name: esc(n.name), desc: esc(n.desc), ability: n.ability, excl: n.excl, deleted: !!n.deleted, isNew: !!n.isNew})),
+		nodes: S.nodes.map(n => ({id: n.id, branch: n.branch, x: n.x, y: n.y, max: n.max, cost: n.cost, stage: n.stage, size: n.size || 0, req: n.req, name: esc(n.name), desc: esc(n.desc), ability: n.ability, excl: n.excl, deleted: !!n.deleted, isNew: !!n.isNew})),
 		plans: S.plans,
 	}, null, 1);
 }

@@ -36,7 +36,9 @@ const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 480
 ## kills x that worth (engine `xp_span`): 520, 1150, 1760, 2790, 3280, 9500, 13800, 21000, 64000. 19,500 kills to size 10 (owner 2026-10-29 "size 2 should take 10 minutes, size 3 another 20, size 4 another 30": sized from a greedy bot earning ~1 xp/s at sizes 1-5, so about 10 / 20 / 30 / 40 / 50 min for sizes 1-5, then longer);
 ## creatures your own size are worth more, so real runs are a little quicker. Size 1 -> 2 stays 30: tail at 5,
 ## eye at 12, then eat to size 2 (owner 2026-10-24). (Before: 30 xp, 50 xp, then x1.5 each: ~500 kills; then [30,40,60,80,110,150,200,260,340] = 1,270.)
-const XP_KILLS := [520, 1150, 880, 930, 820, 1900, 2300, 3000, 8000]
+## Owner 2026-10-30 "bring down xp requirements 25%, it's kinda slow now": every size x 0.75 (before: [520, 1150, 880, 930, 820, 1900, 2300, 3000, 8000]),
+## 14,625 kills to size 10, xp spans 390, 862.5, 1320, 2092.5, 2460, 7125, 10350, 15750, 48000 = 88,350 xp.
+const XP_KILLS := [390, 862.5, 660, 697.5, 615, 1425, 1725, 2250, 6000]
 
 ## DNA earned while growing from each size to the next, ONE point at a time: what you eat fills the 🧬 bar and
 ## each full bar is +1 (owner 2026-10-29: "you should never earn more than 1 or 2 dna points at a time, except
@@ -206,44 +208,44 @@ const BRANCH := {
 	"plan": {"name": "Body plan", "col": Color("ff8fd0")},
 }
 const NODES := [
-	{"id": "burst", "branch": "offense", "x": 1, "y": 1.5, "max": 3, "cost": 1, "stage": 1, "req": [], "name": "Jump boost", "desc": "A short burst of speed to catch your next meal. Costs power.", "ability": true},
-	{"id": "spit", "branch": "offense", "x": 2, "y": 0.5, "max": 3, "cost": 2, "stage": 1, "req": [["burst", 1]], "name": "Acid spit", "desc": "Spit acid at what is ahead: it slows down. Costs power.", "ability": true},
-	{"id": "jaws", "branch": "offense", "x": 2, "y": 2.5, "max": 2, "cost": 2, "stage": 1, "req": [["burst", 1]], "name": "Strong jaws", "desc": "Eat creatures a little bigger than before.", "ability": false},
-	{"id": "harpoon", "branch": "offense", "x": 3, "y": 0, "max": 3, "cost": 3, "stage": 2, "req": [["spit", 2]], "name": "Harpoon", "desc": "A venom harpoon: the target weakens and shrinks. Costs power.", "ability": true},
-	{"id": "lure", "branch": "offense", "x": 3, "y": 1.5, "max": 3, "cost": 2, "stage": 2, "req": [["spit", 1], ["jaws", 1]], "name": "Lure", "desc": "A glowing appendage unfolds and draws prey toward you. Costs power.", "ability": true},
-	{"id": "shock", "branch": "offense", "x": 4, "y": 0.8, "max": 3, "cost": 3, "stage": 2, "req": [["lure", 1], ["harpoon", 1]], "name": "Electric shock", "desc": "A shock stuns every creature nearby. Costs power.", "ability": true},
-	{"id": "tentacles", "branch": "offense", "x": 4, "y": 2.6, "max": 1, "cost": 3, "stage": 3, "req": [["jaws", 2], ["lure", 1]], "name": "Tentacles", "desc": "Grow tentacles. They open new options.", "ability": false},
-	{"id": "stinger", "branch": "offense", "x": 5, "y": 2.0, "max": 2, "cost": 2, "stage": 3, "req": [["tentacles", 1]], "name": "Stinger tentacle", "desc": "Stinging tips hurt anything that touches you.", "ability": false},
-	{"id": "suction", "branch": "offense", "x": 5, "y": 3.0, "max": 3, "cost": 3, "stage": 3, "req": [["tentacles", 1]], "name": "Suction feed", "desc": "Pull small prey in toward your mouth. Costs power.", "ability": true},
-	{"id": "grab", "branch": "offense", "x": 6, "y": 2.6, "max": 3, "cost": 3, "stage": 4, "req": [["tentacles", 1], ["stinger", 1]], "name": "Grab tentacles", "desc": "Hold a creature in place and reel it in. Costs power.", "ability": true},
+	{"id": "burst", "branch": "offense", "x": 1.5, "y": 1.6, "max": 3, "cost": 1, "stage": 1, "req": [], "name": "Jump boost", "desc": "A short burst of speed to catch your next meal. Costs power.", "ability": true},
+	{"id": "spit", "branch": "offense", "x": 2.5, "y": 0.6, "max": 3, "cost": 2, "stage": 1, "req": [["burst", 1]], "name": "Acid spit", "desc": "Spit acid at what is ahead: it slows down. Costs power.", "ability": true},
+	{"id": "jaws", "branch": "offense", "x": 2.5, "y": 2.7, "max": 2, "cost": 2, "stage": 1, "req": [["burst", 1]], "name": "Strong jaws", "desc": "Eat creatures a little bigger than before.", "ability": false},
+	{"id": "harpoon", "branch": "offense", "x": 4, "y": 0.4, "max": 3, "cost": 3, "stage": 2, "req": [["spit", 2]], "name": "Harpoon", "desc": "A venom harpoon: the target weakens and shrinks. Costs power.", "ability": true},
+	{"id": "lure", "branch": "offense", "x": 4, "y": 1.5, "max": 3, "cost": 2, "stage": 2, "req": [["spit", 1], ["jaws", 1]], "name": "Lure", "desc": "A glowing appendage unfolds and draws prey toward you. Costs power.", "ability": true},
+	{"id": "shock", "branch": "offense", "x": 5.5, "y": -1.2, "max": 3, "cost": 3, "stage": 3, "req": [["plan_eel", 1]], "name": "Electric shock", "desc": "A shock stuns every creature nearby. Costs power.", "ability": true},
+	{"id": "tentacles", "branch": "offense", "x": 5.5, "y": 2.8, "max": 1, "cost": 3, "stage": 3, "req": [["plan_squid", 1]], "name": "Tentacles", "desc": "Grow tentacles. They open new options.", "ability": false},
+	{"id": "stinger", "branch": "offense", "x": 6.5, "y": 1.9, "max": 2, "cost": 2, "stage": 3, "req": [["tentacles", 1]], "name": "Stinger tentacle", "desc": "Stinging tips hurt anything that touches you.", "ability": false},
+	{"id": "suction", "branch": "offense", "x": 6.5, "y": 3.8, "max": 3, "cost": 3, "stage": 3, "req": [["tentacles", 1]], "name": "Suction feed", "desc": "Pull small prey in toward your mouth. Costs power.", "ability": true},
+	{"id": "grab", "branch": "offense", "x": 7.5, "y": 2.7, "max": 3, "cost": 3, "stage": 4, "req": [["tentacles", 1], ["stinger", 1]], "name": "Grab tentacles", "desc": "Hold a creature in place and reel it in. Costs power.", "ability": true},
 	{"id": "second_eye", "branch": "sense", "x": 1, "y": 5.2, "max": 1, "cost": 1, "stage": 0, "req": [], "name": "Second eye", "desc": "A second eye widens what you can see.", "ability": false},
 	{"id": "lens", "branch": "sense", "x": 1, "y": 6.4, "max": 2, "cost": 1, "stage": 0, "req": [], "name": "Better lens", "desc": "Less blurry vision.", "ability": false},
-	{"id": "night_vision", "branch": "sense", "x": 2, "y": 4.8, "max": 1, "cost": 2, "stage": 1, "req": [["second_eye", 1]], "name": "Night vision", "desc": "You see farther in the dark.", "ability": false},
+	{"id": "night_vision", "branch": "sense", "x": 2.5, "y": 4.8, "max": 1, "cost": 2, "stage": 1, "req": [["second_eye", 1]], "name": "Night vision", "desc": "You see farther in the dark.", "ability": false},
 	{"id": "listening", "branch": "sense", "x": 2, "y": 5.8, "max": 1, "cost": 2, "stage": 1, "req": [["second_eye", 1]], "name": "Listening", "desc": "Hear hunters nearby: arrows point to them.", "ability": false},
 	{"id": "chemical", "branch": "sense", "x": 2, "y": 6.9, "max": 1, "cost": 2, "stage": 1, "req": [["lens", 1]], "name": "Chemical sense", "desc": "Smell food and prey just beyond your sight.", "ability": false},
-	{"id": "wide_eyes", "branch": "sense", "x": 3, "y": 4.8, "max": 1, "cost": 3, "stage": 2, "req": [["night_vision", 1]], "name": "Wide eyes", "desc": "You can see the whole screen.", "ability": false},
-	{"id": "radar", "branch": "sense", "x": 3, "y": 5.7, "max": 1, "cost": 3, "stage": 3, "req": [["listening", 1]], "name": "Threat radar", "desc": "Hunter arrows reach farther and show how big they are.", "ability": false},
-	{"id": "sonar", "branch": "sense", "x": 3, "y": 6.8, "max": 3, "cost": 3, "stage": 2, "req": [["listening", 1], ["chemical", 1]], "name": "Sonar", "desc": "Send a ping: every creature around lights up for a while. Costs power.", "ability": true},
-	{"id": "real_eyes", "branch": "sense", "x": 4, "y": 5.3, "max": 1, "cost": 4, "stage": 3, "req": [["lens", 2], ["night_vision", 1]], "name": "Real eyes", "desc": "Camera-like eyes: perfectly sharp vision.", "ability": false},
+	{"id": "wide_eyes", "branch": "sense", "x": 3.5, "y": 4.6, "max": 1, "cost": 3, "stage": 2, "req": [["night_vision", 1]], "name": "Wide eyes", "desc": "You can see the whole screen.", "ability": false},
+	{"id": "radar", "branch": "sense", "x": 3.5, "y": 5.9, "max": 1, "cost": 3, "stage": 3, "req": [["listening", 1]], "name": "Threat radar", "desc": "Hunter arrows reach farther and show how big they are.", "ability": false},
+	{"id": "sonar", "branch": "sense", "x": 3.5, "y": 6.9, "max": 3, "cost": 3, "stage": 2, "req": [["listening", 1], ["chemical", 1]], "name": "Sonar", "desc": "Send a ping: every creature around lights up for a while. Costs power.", "ability": true},
+	{"id": "real_eyes", "branch": "sense", "x": 4.5, "y": 5.2, "max": 1, "cost": 4, "stage": 3, "req": [["lens", 2], ["night_vision", 1]], "name": "Real eyes", "desc": "Camera-like eyes: perfectly sharp vision.", "ability": false},
 	{"id": "tail", "branch": "move", "x": 1, "y": 8.0, "max": 2, "cost": 1, "stage": 0, "req": [], "name": "Longer tail", "desc": "A longer tail pushes you faster.", "ability": false},
-	{"id": "fins", "branch": "move", "x": 2, "y": 7.6, "max": 2, "cost": 2, "stage": 1, "req": [["tail", 1]], "name": "Fins", "desc": "Fins make you faster.", "ability": false},
+	{"id": "fins", "branch": "move", "x": 3, "y": 8.1, "max": 2, "cost": 2, "stage": 2, "req": [["flagella", 1]], "name": "Fins", "desc": "Fins make you faster.", "ability": false},
 	{"id": "flagella", "branch": "move", "x": 2, "y": 8.8, "max": 1, "cost": 3, "stage": 2, "req": [["tail", 2]], "name": "Flagella", "desc": "A second whip drives you forward.", "ability": false},
-	{"id": "streamlined", "branch": "move", "x": 3, "y": 7.6, "max": 1, "cost": 3, "stage": 2, "req": [["fins", 1], ["flagella", 1]], "name": "Streamlined body", "desc": "Less drag: a higher top speed.", "ability": false},
-	{"id": "cilia", "branch": "move", "x": 3, "y": 8.8, "max": 1, "cost": 4, "stage": 3, "req": [["flagella", 1]], "name": "Cilia coat", "desc": "Tiny paddles all around. Top speed.", "ability": false},
+	{"id": "streamlined", "branch": "move", "x": 6, "y": 8.2, "max": 1, "cost": 3, "stage": 3, "req": [["cilia", 1]], "name": "Streamlined body", "desc": "Less drag: a higher top speed.", "ability": false},
+	{"id": "cilia", "branch": "move", "x": 5, "y": 9, "max": 1, "cost": 4, "stage": 3, "req": [["plan_marlin", 1]], "name": "Cilia coat", "desc": "Tiny paddles all around. Top speed.", "ability": false},
 	{"id": "meal_heal", "branch": "defense", "x": 1, "y": 11.0, "max": 3, "cost": 1, "stage": 0, "req": [], "name": "Nutrient store", "desc": "Heal 1 HP with each meal.", "ability": false},
 	{"id": "membrane", "branch": "defense", "x": 2, "y": 10.0, "max": 3, "cost": 2, "stage": 1, "req": [["meal_heal", 1]], "name": "Tough membrane", "desc": "More maximum health.", "ability": false},
 	{"id": "tox_res", "branch": "defense", "x": 2, "y": 11.4, "max": 2, "cost": 2, "stage": 1, "req": [["meal_heal", 1]], "name": "Toxin resistance", "desc": "Poison ailments wear off much faster.", "ability": false},
 	{"id": "regen", "branch": "defense", "x": 2, "y": 12.8, "max": 3, "cost": 3, "stage": 2, "req": [["meal_heal", 2]], "name": "Regeneration", "desc": "You heal faster on your own.", "ability": false},
-	{"id": "spikes", "branch": "defense", "x": 3, "y": 10.0, "max": 2, "cost": 2, "stage": 2, "req": [["membrane", 1]], "name": "Spikes", "desc": "Bites hurt you less.", "ability": false},
+	{"id": "spikes", "branch": "defense", "x": 7, "y": 10.7, "max": 2, "cost": 2, "stage": 4, "req": [["poison_skin", 1]], "name": "Spikes", "desc": "Bites hurt you less.", "ability": false},
 	{"id": "warning", "branch": "defense", "x": 3, "y": 11.0, "max": 2, "cost": 2, "stage": 1, "req": [["membrane", 1]], "name": "Warning colors", "desc": "Hunters hesitate before they attack.", "ability": false},
 	{"id": "slime", "branch": "defense", "x": 3, "y": 12.0, "max": 1, "cost": 3, "stage": 2, "req": [["tox_res", 1]], "name": "Slime", "desc": "Slime clogs the jaws: biters slow down.", "ability": false},
-	{"id": "ink", "branch": "defense", "x": 3, "y": 13.2, "max": 3, "cost": 2, "stage": 2, "req": [["regen", 1]], "name": "Ink cloud", "desc": "Release a cloud: hunters inside it lose you. Costs power.", "ability": true},
-	{"id": "shell", "branch": "defense", "x": 4, "y": 10.0, "max": 1, "cost": 3, "stage": 3, "req": [["membrane", 3], ["spikes", 1]], "name": "Shell", "desc": "A hard shell: bites hurt much less.", "ability": false},
-	{"id": "poison_skin", "branch": "defense", "x": 4, "y": 11.0, "max": 1, "cost": 3, "stage": 3, "req": [["spikes", 1], ["warning", 1]], "name": "Poison skin", "desc": "Whoever bites you gets sick and shrinks.", "ability": false},
-	{"id": "camo", "branch": "defense", "x": 4, "y": 12.2, "max": 3, "cost": 3, "stage": 2, "req": [["warning", 1], ["slime", 1]], "name": "Camouflage", "desc": "Blend in: hunters barely notice you for a while. Costs power.", "ability": true},
-	{"id": "decoy", "branch": "defense", "x": 4, "y": 13.4, "max": 3, "cost": 3, "stage": 2, "req": [["ink", 1]], "name": "Decoy clone", "desc": "Leave a copy of yourself: hunters chase it while you swim away. Costs power.", "ability": true},
-	{"id": "spine", "branch": "defense", "x": 5, "y": 10.5, "max": 3, "cost": 3, "stage": 2, "req": [["spikes", 2]], "name": "Spine burst", "desc": "Fire your spines: nearby creatures are stunned. Costs power.", "ability": true},
-	{"id": "limb", "branch": "defense", "x": 5, "y": 13.0, "max": 1, "cost": 3, "stage": 3, "req": [["regen", 2], ["decoy", 1]], "name": "Drop a limb", "desc": "Sacrifice a limb: hunters grab it and you escape. Costs health and lots of power.", "ability": true},
+	{"id": "ink", "branch": "defense", "x": 4, "y": 14.6, "max": 3, "cost": 2, "stage": 2, "req": [["regen", 1]], "name": "Ink cloud", "desc": "Release a cloud: hunters inside it lose you. Costs power.", "ability": true},
+	{"id": "shell", "branch": "defense", "x": 5, "y": 10.7, "max": 1, "cost": 3, "stage": 3, "req": [["plan_lionfish", 1]], "name": "Shell", "desc": "A hard shell: bites hurt much less.", "ability": false},
+	{"id": "poison_skin", "branch": "defense", "x": 6, "y": 9.9, "max": 1, "cost": 3, "stage": 3, "req": [["shell", 1]], "name": "Poison skin", "desc": "Whoever bites you gets sick and shrinks.", "ability": false},
+	{"id": "camo", "branch": "defense", "x": 4, "y": 11.7, "max": 3, "cost": 3, "stage": 2, "req": [["warning", 1], ["slime", 1]], "name": "Camouflage", "desc": "Blend in: hunters barely notice you for a while. Costs power.", "ability": true},
+	{"id": "decoy", "branch": "defense", "x": 6, "y": 14, "max": 3, "cost": 3, "stage": 3, "req": [["claw_left", 1], ["claw_right", 1]], "name": "Decoy clone", "desc": "Leave a copy of yourself: hunters chase it while you swim away. Costs power.", "ability": true},
+	{"id": "spine", "branch": "defense", "x": 8, "y": 10.2, "max": 3, "cost": 3, "stage": 4, "req": [["spikes", 2]], "name": "Spine burst", "desc": "Fire your spines: nearby creatures are stunned. Costs power.", "ability": true},
+	{"id": "limb", "branch": "defense", "x": 7.5, "y": 12.7, "max": 1, "cost": 3, "stage": 4, "req": [["decoy", 1]], "name": "Drop a limb", "desc": "Sacrifice a limb: hunters grab it and you escape. Costs health and lots of power.", "ability": true},
 	# Habitat: where you can live. Cold and depth limits (engine `min_temp` / `max_depth_m`).
 	{"id": "cold_tol", "branch": "habitat", "x": 1, "y": 15.0, "max": 3, "cost": 1, "stage": 0, "req": [], "name": "Antifreeze", "desc": "Antifreeze proteins keep your cell from freezing: you can swim in colder water.", "ability": false},
 	{"id": "pressure_tol", "branch": "habitat", "x": 1, "y": 16.2, "max": 3, "cost": 1, "stage": 0, "req": [], "name": "Pressure cells", "desc": "Tougher cell walls: you can dive deeper without being crushed.", "ability": false},
@@ -251,28 +253,33 @@ const NODES := [
 	{"id": "deep_body", "branch": "habitat", "x": 2, "y": 16.2, "max": 2, "cost": 3, "stage": 2, "req": [["pressure_tol", 2]], "name": "Deep-sea body", "desc": "A body built for the deep: you can dive much deeper.", "ability": false},
 	{"id": "abyssal", "branch": "habitat", "x": 3, "y": 15.6, "max": 1, "cost": 4, "stage": 3, "req": [["blubber", 1], ["deep_body", 1]], "name": "Abyss dweller", "desc": "At home in the cold, dark deep: the coldest water and the deepest dives.", "ability": false},
 	# Growth (owner 2026-10-29: "a DNA tree branch for the size, where you have to spend a good amount of points to grow"):
-	# eating fills the gold bar, but you only reach size 3 and up by buying this. Rank r lets you grow to size 2 + r
-	# (engine `size_cap`); 8 ranks = size 10. 6 + 7 + ... + 13 = 76 DNA in all.
-	# Body plan (owner 2026-10-29: "a body plan decides which abilities you can even see"): at size 3 pick ONE; the
-	# others close, and traits that do not belong to your plan are hidden (NODE_PLANS; no entry = every plan).
-	{"id": "plan_marlin", "branch": "plan", "x": 1, "y": 20.0, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Marlin", "desc": "Built for speed: a spear bill and a sickle tail. Faster than anything, but fragile.", "ability": false, "excl": "plan"},
-	{"id": "plan_lionfish", "branch": "plan", "x": 1, "y": 21.2, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Lionfish", "desc": "Spines all over and venom: biters get hurt. Slow.", "ability": false, "excl": "plan"},
-	{"id": "plan_puffer", "branch": "plan", "x": 1, "y": 22.4, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Pufferfish", "desc": "Looks harmless, until something bites: tough and poisonous. Weak at hunting.", "ability": false, "excl": "plan"},
-	{"id": "plan_crab", "branch": "plan", "x": 1, "y": 23.6, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Crab", "desc": "A heavy shell and claws that grab. Very tough, but slow.", "ability": false, "excl": "plan"},
-	{"id": "plan_squid", "branch": "plan", "x": 1, "y": 24.8, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Squid", "desc": "Tentacles, ink and tricks. Soft body, but hard to catch.", "ability": false, "excl": "plan"},
-	{"id": "plan_eel", "branch": "plan", "x": 1, "y": 26.0, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Eel", "desc": "A long snake-like body with electric shocks. Quick and slippery.", "ability": false, "excl": "plan"},
-	{"id": "growth", "branch": "growth", "x": 1, "y": 18.0, "max": 8, "cost": 6, "stage": 0, "req": [], "name": "Growth", "desc": "Your body can grow one size bigger. Without this you stop growing, however much you eat.", "ability": false},
+	# eating fills the gold bar, but you only reach size 3 and up by buying these (owner 2026-10-30: one trait per size,
+	# `growth` = size 3, `growth_4` ... `growth_10`; engine `size_cap` = 2 + how many you own). 5 + 6 + ... + 12 = 68 DNA in all.
+	# Body plan (owner 2026-10-29: "a body plan decides which abilities you can even see"): pick ONE (owner 2026-10-30: from
+	# size 5, `"size": 5`); the other plans close and so does everything that comes after them (a trait that needs a plan
+	# trait, directly or further up the tree, is hidden once you chose another plan: engine `node_hidden`).
+	{"id": "plan_marlin", "branch": "plan", "x": 4, "y": 8.2, "max": 1, "cost": 4, "stage": 3, "size": 5, "req": [["fins", 1]], "name": "Marlin", "desc": "Built for speed: a spear bill and a sickle tail. Faster than anything, but fragile.", "ability": false, "excl": "plan"},
+	{"id": "plan_lionfish", "branch": "plan", "x": 4, "y": 10.3, "max": 1, "cost": 4, "stage": 3, "size": 5, "req": [["membrane", 1], ["warning", 1]], "name": "Lionfish", "desc": "Spines all over and venom: biters get hurt. Slow.", "ability": false, "excl": "plan"},
+	# {"id": "plan_puffer", "branch": "plan", "x": 1, "y": 22.4, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Pufferfish", "desc": "Looks harmless, until something bites: tough and poisonous. Weak at hunting.", "ability": false, "excl": "plan"},
+	{"id": "plan_crab", "branch": "plan", "x": 4, "y": 13.1, "max": 1, "cost": 4, "stage": 3, "size": 5, "req": [["regen", 1]], "name": "Crab", "desc": "A heavy shell and claws that grab. Very tough, but slow.", "ability": false, "excl": "plan"},
+	{"id": "plan_squid", "branch": "plan", "x": 4, "y": 2.8, "max": 1, "cost": 4, "stage": 3, "size": 5, "req": [["jaws", 1]], "name": "Squid", "desc": "Tentacles, ink and tricks. Soft body, but hard to catch.", "ability": false, "excl": "plan"},
+	{"id": "plan_eel", "branch": "plan", "x": 4, "y": -0.9, "max": 1, "cost": 4, "stage": 3, "size": 5, "req": [["spit", 1]], "name": "Eel", "desc": "A long snake-like body with electric shocks. Quick and slippery.", "ability": false, "excl": "plan"},
+	{"id": "growth", "branch": "growth", "x": 1, "y": 18.0, "max": 1, "cost": 5, "stage": 0, "req": [], "name": "Growth size 3", "desc": "Your body can grow to size 3. Without this you stop growing, however much you eat.", "ability": false},
+	{"id": "growth_4", "branch": "growth", "x": 2, "y": 18.1, "max": 1, "cost": 6, "stage": 0, "req": [["growth", 1]], "name": "Growth size 4", "desc": "Your body can grow to size 4. Without this you stop growing, however much you eat.", "ability": false},
+	{"id": "growth_5", "branch": "growth", "x": 3, "y": 18, "max": 1, "cost": 7, "stage": 0, "req": [["growth_4", 1]], "name": "Growth size 5", "desc": "Your body can grow to size 5. Without this you stop growing, however much you eat.", "ability": false},
+	{"id": "rush", "branch": "move", "x": 7, "y": 8.5, "max": 1, "cost": 1, "stage": 4, "req": [["streamlined", 1]], "name": "Speed boost", "desc": "A long, very fast sprint. Costs power.", "ability": true},
+	{"id": "claw_left", "branch": "offense", "x": 5, "y": 14.8, "max": 1, "cost": 1, "stage": 3, "req": [["plan_crab", 1]], "name": "Left claw arm", "desc": "A strong pincer on your left side: you can eat creatures a little bigger.", "ability": false},
+	{"id": "claw_right", "branch": "offense", "x": 5, "y": 12.7, "max": 1, "cost": 1, "stage": 3, "req": [["plan_crab", 1]], "name": "Right claw arm", "desc": "A strong pincer on your right side: you can eat creatures a little bigger.", "ability": false},
+	{"id": "growth_6", "branch": "growth", "x": 4, "y": 18, "max": 1, "cost": 8, "stage": 0, "req": [["growth_5", 1]], "name": "Growth size 6", "desc": "Your body can grow to size 6. Without this you stop growing, however much you eat.", "ability": false},
+	{"id": "growth_7", "branch": "growth", "x": 5, "y": 18, "max": 1, "cost": 9, "stage": 0, "req": [["growth_6", 1]], "name": "Growth size 7", "desc": "Your body can grow to size 7. Without this you stop growing, however much you eat.", "ability": false},
+	{"id": "growth_8", "branch": "growth", "x": 6, "y": 18, "max": 1, "cost": 10, "stage": 0, "req": [["growth_7", 1]], "name": "Growth size 8", "desc": "Your body can grow to size 8. Without this you stop growing, however much you eat.", "ability": false},
+	{"id": "growth_9", "branch": "growth", "x": 7, "y": 18, "max": 1, "cost": 11, "stage": 0, "req": [["growth_8", 1]], "name": "Growth size 9", "desc": "Your body can grow to size 9. Without this you stop growing, however much you eat.", "ability": false},
+	{"id": "growth_10", "branch": "growth", "x": 8, "y": 18, "max": 1, "cost": 12, "stage": 0, "req": [["growth_9", 1]], "name": "Growth size 10", "desc": "Your body can grow to size 10. Without this you stop growing, however much you eat.", "ability": false},
 ]
 
-## Which body plans may have a trait; a trait that is not listed is open to every plan.
+## Extra per-trait plan limits (empty since owner 2026-10-30: the tree itself decides, a trait that needs a plan trait
+## belongs to that plan). A trait that is not listed is open to every plan.
 const NODE_PLANS := {
-	"spit": ["lionfish", "puffer", "squid"], "jaws": ["marlin", "crab", "eel"], "harpoon": ["marlin", "squid"],
-	"lure": ["lionfish", "eel"], "shock": ["eel"], "tentacles": ["squid"], "stinger": ["squid", "lionfish"],
-	"suction": ["squid"], "grab": ["squid", "crab"],
-	"flagella": ["marlin", "eel", "squid"], "streamlined": ["marlin", "eel"], "cilia": ["puffer", "squid"],
-	"spikes": ["lionfish", "puffer", "crab"], "warning": ["lionfish", "puffer"], "slime": ["eel", "puffer", "squid"],
-	"ink": ["squid"], "shell": ["crab"], "poison_skin": ["lionfish", "puffer"], "camo": ["squid", "eel"],
-	"decoy": ["squid", "eel"], "spine": ["lionfish", "puffer"], "limb": ["crab", "squid"],
 }
 ## Body plan passives: speed and health multipliers.
 const PLAN_SPEED := {"marlin": 1.12, "lionfish": 0.92, "puffer": 0.95, "crab": 0.85, "squid": 1.0, "eel": 1.05}
@@ -283,6 +290,7 @@ const PLAN_HP := {"marlin": 0.8, "lionfish": 0.95, "puffer": 1.25, "crab": 1.5, 
 ## one; the 3rd and 4th buttons (later in the game) take either.
 const ABILITIES := {
 	"burst": {"name": "Jump boost", "kind": "off", "cost": 35.0, "time": 0.6},
+	"rush": {"name": "Speed boost", "kind": "off", "cost": 50.0, "time": 4.0},
 	"spit": {"name": "Acid spit", "kind": "off", "cost": 25.0, "time": 4.0},
 	"harpoon": {"name": "Harpoon", "kind": "off", "cost": 35.0, "time": 6.0},
 	"shock": {"name": "Electric shock", "kind": "off", "cost": 45.0, "time": 3.0, "radius": 420.0},
@@ -296,7 +304,7 @@ const ABILITIES := {
 	"limb": {"name": "Drop a limb", "kind": "def", "cost": 70.0, "time": 3.0, "radius": 700.0},
 	"sonar": {"name": "Sonar", "kind": "def", "cost": 25.0, "time": 4.0, "radius": 1100.0},
 }
-const ABILITY_ORDER := ["burst", "spit", "harpoon", "shock", "lure", "suction", "grab", "spine", "ink", "camo", "decoy", "limb", "sonar"]
+const ABILITY_ORDER := ["burst", "rush", "spit", "harpoon", "shock", "lure", "suction", "grab", "spine", "ink", "camo", "decoy", "limb", "sonar"]
 const POWER_MAX := 100.0
 ## The ability buttons on the right: 1 offensive, 1 defensive, then two open ones that arrive later
 ## (growth stage needed).

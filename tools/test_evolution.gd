@@ -197,7 +197,7 @@ func _init() -> void:
 		meals2 += 1
 		if meals2 == 200:
 			check(fx.dna >= Data.TREE_DNA + 1, "size 1 already earns DNA from the 🧬 bar (%d after 200 meals)" % fx.dna)
-	check(meals2 >= 400, "size 2 takes a good while of eating (%d meals)" % meals2)
+	check(meals2 >= 300, "size 2 takes a good while of eating (%d meals)" % meals2)
 	check(fx.dna <= Data.TREE_DNA + int(Data.DNA_PER_SIZE[0]) + 1, "...and size 1 pays only about %d DNA (%d)" % [Data.DNA_PER_SIZE[0], fx.dna - Data.TREE_DNA])
 	fx.dna = 5
 	check(fx.buy("burst") == false or fx.node_state("burst") != "locked", "the tree can be used now")
@@ -534,15 +534,16 @@ func _init() -> void:
 	check(e.cost_of("tail") == 2, "each further point costs one more")
 	check(e.buy("tail") and e.move_rank == 3 and e.dna == 27, "tail point 2: rank 3")
 	check(e.node_state("tail") == "maxed" and not e.buy("tail"), "a maxed trait can't be bought again")
-	check(e.node_state("fins") == "stage", "fins: prerequisite owned, but you are not big enough")
-	e.player.mass = Ev.STAGES[1][0]
-	check(e.buy("fins") and e.buy("fins") and e.rank_of("fins") == 2, "fins take two points")
-	check(e.node_state("streamlined") == "locked", "streamlined needs fins AND flagella")
+	check(e.node_state("flagella") == "stage", "flagella: prerequisite owned, but you are not big enough")
 	e.player.mass = Ev.STAGES[2][0]
 	check(e.buy("flagella"), "flagella (needs tail 2)")
-	check(e.reqs_met("streamlined") and e.reqs_met("cilia"), "flagella opens two traits at once")
-	check(e.buy("streamlined"), "streamlined: both prerequisites owned")
-	check(e.top_speed() > 0.0 and e.move_rank == 4, "tail 2 + flagella = move rank 4")
+	check(e.buy("fins") and e.buy("fins") and e.rank_of("fins") == 2, "fins (need flagella) take two points")
+	check(e.node_state("streamlined") == "locked", "streamlined needs Cilia coat, which needs the Marlin")
+	e.player.mass = Ev.STAGES[4][0]
+	check(e.buy("plan_marlin") and e.buy("cilia"), "fins open the Marlin, the Marlin opens Cilia coat")
+	check(e.buy("streamlined"), "streamlined: Cilia coat owned")
+	check(e.top_speed() > 0.0 and e.move_rank == 5, "tail 2 + flagella + cilia = move rank 5")
+	e.dna += 40
 	# senses
 	check(e.buy("second_eye") and e.sight_rank == 3, "second eye widens vision")
 	check(e.buy("lens") and e.clarity() == 1, "lens point 1: less blur")
@@ -560,7 +561,7 @@ func _init() -> void:
 	e.npcs = [_npc(e.player.pos, 40.0, "coccus", "prey")]
 	e.step(1.0 / 60.0, Vector2.ZERO)
 	check(absf(e.player.hp - 5.0) < 0.4, "defense: 2 points = +2 HP per meal (hp %f)" % e.player.hp)
-	check(e.buy("membrane") and e.max_hp() == Ev.TUNING.base_hp + Ev.TUNING.membrane_hp, "membrane: more max HP")
+	check(e.buy("membrane") and is_equal_approx(e.max_hp(), (Ev.TUNING.base_hp + Ev.TUNING.membrane_hp) * float(Data.PLAN_HP.get(e.plan(), 1.0))), "membrane: more max HP")
 	# offense
 	check(e.buy("burst") and e.buy("jaws") and e.eat_ratio() < Ev.TUNING.eat_ratio and e.strength() == 2, "jaws lower the eat ratio")
 	check(not (Ev.can_eat(1.0, 1.0 * 1.2, e.eat_ratio()) and Ev.can_eat(1.2, 1.0)), "still never mutual with jaws")
@@ -723,10 +724,9 @@ func _init() -> void:
 	e.player.mass = Ev.STAGES[4][0]
 	check(not e.reqs_met("suction"), "tentacle traits are locked at first")
 	give(e, "burst")
-	give(e, "spit")
-	give(e, "jaws", 2)
-	give(e, "lure")
-	check(e.buy("tentacles"), "buy tentacles (needs jaws 2 and lure)")
+	give(e, "jaws")
+	check(e.buy("plan_squid"), "the Squid needs Strong jaws")
+	check(e.buy("tentacles"), "buy tentacles (needs the Squid)")
 	check(e.reqs_met("stinger") and e.reqs_met("suction") and not e.reqs_met("grab"), "tentacles open several options")
 	check(e.buy("stinger") and e.buy("suction") and e.reqs_met("grab") and e.buy("grab"), "buy tentacle traits")
 	e.npcs = [_npc(e.player.pos + Vector2(250, 0), 3.0, "coccus", "prey")]
@@ -992,13 +992,14 @@ func _init() -> void:
 func _growth_and_species() -> void:
 	# xp (owner 2026-10-29): each size costs Data.XP_KILLS kills of prey one size below (worth size - 1, at size 1
 	# worth 1); 19,500 kills to size 10; mass follows xp through the size starts
-	var kills := 0
+	# owner 2026-10-30: every size 25% cheaper (it was 19,500 kills / 117,800 xp)
+	var kills := 0.0
 	for lv in range(1, 10):
-		kills += int(Data.XP_KILLS[lv - 1])
-		check(is_equal_approx(Ev.xp_span(lv), float(Data.XP_KILLS[lv - 1]) * float(maxi(lv - 1, 1))), "size %d to %d = %d kills of prey worth %d" % [lv, lv + 1, Data.XP_KILLS[lv - 1], maxi(lv - 1, 1)])
+		kills += float(Data.XP_KILLS[lv - 1])
+		check(is_equal_approx(Ev.xp_span(lv), float(Data.XP_KILLS[lv - 1]) * float(maxi(lv - 1, 1))), "size %d to %d = %s kills of prey worth %d" % [lv, lv + 1, Data.XP_KILLS[lv - 1], maxi(lv - 1, 1)])
 		check(Ev.xp_span(lv + 1) > Ev.xp_span(lv), "size %d costs more than size %d" % [lv + 1, lv])
-	check(kills == 19500, "19,500 kills to size 10 (%d)" % kills)
-	check(is_equal_approx(Ev.xp_at(10), 117800.0), "117,800 xp to size 10 (%d)" % int(Ev.xp_at(10)))
+	check(is_equal_approx(kills, 14625.0), "14,625 kills to size 10 (%s)" % kills)
+	check(is_equal_approx(Ev.xp_at(10), 88350.0), "88,350 xp to size 10, 75%% of 117,800 (%d)" % int(Ev.xp_at(10)))
 	check(Ev.xp_span(1) > float(Ev.TUNING.eye_value), "size 1 lasts past the eye")
 	var blind := Ev.new()
 	blind.reset(9)
@@ -1015,11 +1016,17 @@ func _growth_and_species() -> void:
 	cp._gain_xp(100000.0)
 	check(cp.level() == 2 and cp.xp < Ev.xp_at(3), "no Growth: eating cannot take you to size 3")
 	check(cp.dna_bar != dbar0 or cp.dna > 0, "...but the DNA bar still fills")
-	cp.dna = 6
-	check(cp.buy("growth") and cp.size_cap() == 3, "Growth rank 1 costs 6 and lifts the cap to 3")
+	cp.dna = 5
+	check(cp.buy("growth") and cp.size_cap() == 3, "Growth size 3 costs 5 and lifts the cap to 3")
 	cp._gain_xp(100000.0)
 	check(cp.level() == 3, "...now you reach size 3 and stop there (%d)" % cp.level())
-	check(cp.cost_of("growth") == 7, "the next Growth rank costs 7")
+	check(cp.cost_of("growth_4") == 6 and not cp.can_buy("growth_5"), "Growth size 4 costs 6; size 5 waits for it")
+	cp.dna = 6
+	check(cp.buy("growth_4") and cp.size_cap() == 4, "Growth size 4 lifts the cap to 4")
+	var gsum := 0
+	for sz in range(3, 11):
+		gsum += int(Data.node_of("growth" if sz == 3 else "growth_%d" % sz).cost)
+	check(gsum == 68, "the ten sizes cost 68 DNA in all (%d)" % gsum)
 	# body plans: one only, and traits outside the plan are hidden
 	var bp := Ev.new()
 	bp.reset(12)
@@ -1027,19 +1034,73 @@ func _growth_and_species() -> void:
 	bp.tree_unlocked = true
 	bp.player.mass = Data.LEVELS[2]
 	bp.dna = 50
-	check(bp.node_state("harpoon") == "plan", "before a plan, plan traits wait for one")
-	check(bp.buy("plan_lionfish") and bp.plan() == "lionfish", "pick the lionfish")
+	for k in ["meal_heal", "membrane", "warning"]:
+		bp.owned[k] = 1
+	check(bp.node_state("plan_lionfish") == "stage" and not bp.can_buy("plan_lionfish"), "no body plan before size 5 (owner 2026-10-30)")
+	bp.player.mass = Data.LEVELS[3]
+	check(bp.level() == 4 and not bp.can_buy("plan_lionfish"), "...size 4 is still too small")
+	bp.player.mass = Data.LEVELS[4]
+	check(bp.level() == 5 and bp.buy("plan_lionfish") and bp.plan() == "lionfish", "pick the lionfish at size 5")
 	check(not bp.can_buy("plan_marlin") and bp.node_state("plan_marlin") == "closed", "the other plans close")
-	check(bp.node_hidden("harpoon") and bp.node_hidden("shell") and not bp.node_hidden("spine"), "a lionfish never sees Harpoon or Shell, but gets Spine burst")
+	var gone := true
+	for id in ["plan_squid", "tentacles", "stinger", "grab", "plan_eel", "shock", "plan_crab", "claw_left", "decoy", "limb", "plan_marlin", "cilia", "rush"]:
+		if id.begins_with("plan_"):
+			continue          # the closed shapes stay on the tree, greyed out
+		gone = gone and bp.node_hidden(id)
+	check(gone, "everything after the other plans disappears (Tentacles, Shock, Claws, Decoy, Cilia, Speed boost...)")
+	check(not bp.node_hidden("shell") and not bp.node_hidden("spine") and not bp.node_hidden("harpoon"), "a lionfish keeps its own branch (Shell ... Spine burst) and the shared traits")
 	check(bp.move_mult() < Data.MOVE_MULT[bp.move_rank] + 0.01 or bp.move_rank == 0, "lionfish are a little slower")
 	var mq := Ev.new()
 	mq.reset(13)
 	mq.sight_rank = 2
 	mq.tree_unlocked = true
-	mq.player.mass = Data.LEVELS[2]
+	mq.player.mass = Data.LEVELS[4]
 	mq.dna = 50
-	mq.buy("plan_marlin")
-	check(mq.node_hidden("spine") and not mq.node_hidden("harpoon"), "a marlin never sees Spine burst but gets Harpoon")
+	for k in ["tail", "flagella", "fins"]:
+		mq.owned[k] = 2 if k == "tail" else 1
+	check(mq.buy("plan_marlin"), "pick the marlin at size 5")
+	check(mq.node_hidden("spine") and mq.node_hidden("shell") and not mq.node_hidden("cilia") and not mq.node_hidden("harpoon"), "a marlin never sees the lionfish branch but gets Cilia coat")
+	var rp := Ev.new()
+	rp.reset(14)
+	rp.tree_unlocked = true
+	rp.player.mass = Data.LEVELS[4]
+	rp.owned["tail"] = 2
+	rp.owned["flagella"] = 1
+	rp.owned["fins"] = 1
+	rp._recompute_ranks()
+	var seen_plan := false
+	for k in 200:
+		rp.dna = 0
+		rp._grant_rare("gold")
+		seen_plan = seen_plan or rp.plan() != ""
+	check(not seen_plan, "a rare creature never picks your body plan for you")
+	# crab claws (owner 2026-10-30) bite bigger prey, like Strong jaws; the Speed boost out-runs a Jump boost
+	var cw := Ev.new()
+	cw.reset(15)
+	var ratio0: float = cw.eat_ratio()
+	cw.owned["claw_left"] = 1
+	cw.owned["claw_right"] = 1
+	check(cw.eat_ratio() < ratio0 - 0.05, "both claws let you eat bigger prey (%.2f -> %.2f)" % [ratio0, cw.eat_ratio()])
+	var rs := Ev.new()
+	rs.reset(16)
+	rs.move_rank = 3
+	give(rs, "rush")
+	rs.power = 100.0
+	check(rs.use_ability("rush") and rs.dash_t > 3.9 and rs.rush, "Speed boost: a 4 s sprint")
+	var fast := 0.0
+	for k in 120:
+		rs.step(1.0 / 60.0, Vector2.RIGHT)
+		fast = maxf(fast, rs.player.vel.length())
+	rs.power = 100.0
+	rs.dash_t = 0.0
+	give(rs, "burst")
+	rs.player.vel = Vector2.ZERO
+	check(rs.use_ability("burst") and not rs.rush, "Jump boost is a plain dash")
+	var plain := 0.0
+	for k in 20:
+		rs.step(1.0 / 60.0, Vector2.RIGHT)
+		plain = maxf(plain, rs.player.vel.length())
+	check(fast > plain * 1.2, "Speed boost is faster than Jump boost (%.0f vs %.0f)" % [fast, plain])
 	# ability loadout picker
 	var ld := Ev.new()
 	ld.reset(11)
@@ -1098,14 +1159,16 @@ func _growth_and_species() -> void:
 		b.reset(900 + lv)
 		b.sight_rank = 2
 		b.tree_unlocked = true
-		b.owned["growth"] = 8      # Growth lifts the size cap (owner 2026-10-29)
+		b.owned["growth"] = 1      # Growth lifts the size cap (owner 2026-10-29; one trait per size since 2026-10-30)
+		for sz in range(4, 11):
+			b.owned["growth_%d" % sz] = 1
 		b.npcs.clear()
 		b.food.clear()
 		b._gain_xp(Ev.xp_at(lv) - b.xp, false)
 		check(b.level() == lv and b.dna == 0, "size %d reached without DNA" % lv)
 		var worth := float(maxi(lv - 1, 1))
 		var most := 0
-		for k in int(Data.XP_KILLS[lv - 1]):
+		for k in roundi(Data.XP_KILLS[lv - 1]):
 			var d0: int = b.dna
 			b._gain_xp(worth)
 			most = maxi(most, b.dna - d0)

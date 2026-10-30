@@ -22,7 +22,7 @@ EOL = "\n"
 
 NODE_RE = re.compile(
 	r'^\t(?P<hash>#\s*)?\{"id": "(?P<id>\w+)", "branch": "(?P<branch>\w+)", "x": (?P<x>[-\d.]+), "y": (?P<y>[-\d.]+), '
-	r'"max": (?P<max>\d+), "cost": (?P<cost>\d+), "stage": (?P<stage>\d+), "req": (?P<req>\[.*?\]), '
+	r'"max": (?P<max>\d+), "cost": (?P<cost>\d+), "stage": (?P<stage>\d+), (?:"size": (?P<size>\d+), )?"req": (?P<req>\[.*?\]), '
 	r'"name": "(?P<name>(?:[^"\\]|\\.)*)", "desc": "(?P<desc>(?:[^"\\]|\\.)*)", "ability": (?P<ability>true|false)'
 	r'(?:, "excl": "(?P<excl>\w+)")?\},\s*$')
 
@@ -48,7 +48,7 @@ def parse_nodes(lines):
 		d = m.groupdict()
 		nodes.append({
 			"line": i, "id": d["id"], "branch": d["branch"], "x": float(d["x"]), "y": float(d["y"]),
-			"xr": d["x"], "yr": d["y"], "max": int(d["max"]), "cost": int(d["cost"]), "stage": int(d["stage"]),
+			"xr": d["x"], "yr": d["y"], "max": int(d["max"]), "cost": int(d["cost"]), "stage": int(d["stage"]), "size": int(d["size"] or 0),
 			"req": json.loads(d["req"]), "name": d["name"], "desc": d["desc"],
 			"ability": d["ability"] == "true", "excl": d["excl"] or "",
 		})
@@ -57,9 +57,9 @@ def parse_nodes(lines):
 
 def format_node(n):
 	req = "[" + ", ".join('["%s", %d]' % (r, k) for r, k in n["req"]) + "]"
-	s = '\t{"id": "%s", "branch": "%s", "x": %s, "y": %s, "max": %d, "cost": %d, "stage": %d, "req": %s, "name": "%s", "desc": "%s", "ability": %s' % (
+	s = '\t{"id": "%s", "branch": "%s", "x": %s, "y": %s, "max": %d, "cost": %d, "stage": %d, %s"req": %s, "name": "%s", "desc": "%s", "ability": %s' % (
 		n["id"], n["branch"], fmt_num(n["x"], n.get("xr")), fmt_num(n["y"], n.get("yr")), n["max"], n["cost"], n["stage"],
-		req, n["name"], n["desc"], "true" if n["ability"] else "false")
+		'"size": %d, ' % n["size"] if n.get("size") else "", req, n["name"], n["desc"], "true" if n["ability"] else "false")
 	if n.get("excl"):
 		s += ', "excl": "%s"' % n["excl"]
 	return s + "},"
@@ -155,8 +155,8 @@ def cmd_apply(path, dry, force):
 			changed += 1
 			continue
 		cand = dict(o)
-		for k in ("branch", "x", "y", "max", "cost", "stage", "req", "name", "desc", "ability", "excl"):
-			cand[k] = n[k]
+		for k in ("branch", "x", "y", "max", "cost", "stage", "size", "req", "name", "desc", "ability", "excl"):
+			cand[k] = n.get(k, 0 if k == "size" else o.get(k))
 		cand["req"] = [[r, int(k)] for r, k in n["req"]]
 		line = format_node(cand)
 		if line != lines[o["line"]].rstrip():

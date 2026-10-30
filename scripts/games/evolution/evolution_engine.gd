@@ -16,6 +16,7 @@ const TUNING := {
 	"radius_k": 6.0,            # radius = radius_k * sqrt(mass) (was 7: creatures drawn a bit smaller, 2026-10-22)
 	"eat_ratio": 1.15,          # eater needs mass >= victim mass * eat_ratio
 	"jaws_step": 0.05,          # each point of jaws lowers the ratio by this
+	"claw_step": 0.03,          # each claw arm (Crab) lowers it by this too (owner 2026-10-30)
 	"absorb": 0.10,             # share of the victim's mass a creature gains when it eats another one (you grow by xp, below)
 	# xp per size: Data.XP_KILLS (owner 2026-10-29). Before: xp_first 30 (size 1 -> 2), xp_second 50 (the owner's
 	# "X", size 2 -> 3), then xp_ratio 1.5 x the one before (owner 2026-10-24; it was 5 then x2).
@@ -57,6 +58,7 @@ const TUNING := {
 	"jolt_cooldown": 0.75,
 	"jolt_drag": 3.2,
 	"dash_mult": 2.3,
+	"rush_mult": 1.6,           # Speed boost: on top of the dash multiplier (the fastest speed in the game)
 	"power_regen": 6.0,         # power-bar points per second (the bar slowly refills)
 	"start_depth": 700.0,       # y = 0 is the water surface; y grows downward, forever
 	"units_per_m": 50.0,        # depth: world units per metre (was 10, which made 320 m a few centimetres of screen; owner 2026-10-23)
@@ -168,6 +170,7 @@ var move_rank: int = 0    # 0 = jolting, 1.. = tail ranks
 var sight_rank: int = 1   # 1 = blind blob, 2 = first eye, 3.. = wider
 var power: float = 100.0   # the blue bar
 var dash_t: float = 0.0
+var rush := false           # the current dash is a Speed boost (faster than a Jump boost)
 var camo_t: float = 0.0
 var lure_t: float = 0.0
 var ink_t: float = 0.0
@@ -339,7 +342,10 @@ func _gain_xp(amount: float, feeds_dna: bool = true) -> void:
 
 ## The biggest size you can reach: 2 + points in Growth (owner 2026-10-29). 10 or more = no limit.
 func size_cap() -> int:
-	return 2 + rank_of("growth")
+	var cap := 2 + rank_of("growth")
+	for sz in range(4, Data.LEVELS.size() + 1):
+		cap += rank_of("growth_%d" % sz)
+	return cap
 
 ## DNA per xp at your size: Data.DNA_PER_SIZE spread over the size's xp (past size 10: one point per
 ## DNA_PAST_10_KILLS kills of prey worth 9).
@@ -378,7 +384,7 @@ func rank_of(id: String) -> int:
 	return int(owned.get(id, 0))
 
 func eat_ratio() -> float:
-	return maxf(t("eat_ratio") - t("jaws_step") * rank_of("jaws"), 1.0)
+	return maxf(t("eat_ratio") - t("jaws_step") * rank_of("jaws") - t("claw_step") * float(rank_of("claw_left") + rank_of("claw_right")), 1.0)
 
 ## Strength shown on the info screen: 1 + jaws nodes.
 func strength() -> int:
@@ -550,6 +556,7 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	sight_rank = 1
 	power = Data.POWER_MAX
 	dash_t = 0.0
+	rush = false
 	camo_t = 0.0
 	lure_t = 0.0
 	ink_t = 0.0
@@ -754,6 +761,8 @@ func step(delta: float, dir: Vector2) -> void:
 	_tick_ailments(delta)
 	power = minf(power + t("power_regen") * delta, Data.POWER_MAX)
 	dash_t = maxf(dash_t - delta, 0.0)
+	if dash_t <= 0.0:
+		rush = false
 	camo_t = maxf(camo_t - delta, 0.0)
 	lure_t = maxf(lure_t - delta, 0.0)
 	ink_t = maxf(ink_t - delta, 0.0)
@@ -787,7 +796,7 @@ func _move_player(delta: float, dir: Vector2) -> void:
 	else:
 		var want: Vector2 = dir * top_speed()
 		if dash_t > 0.0:
-			want = (dir.normalized() if dir.length() > 0.05 else player.vel.normalized()) * top_speed() * t("dash_mult")
+			want = (dir.normalized() if dir.length() > 0.05 else player.vel.normalized()) * top_speed() * t("dash_mult") * (t("rush_mult") if rush else 1.0)
 		if too_cold > 0.0:
 			want *= t("cold_slow")
 		# At the surface, pushing up slides you along it at full speed instead of catching on it.
@@ -863,6 +872,13 @@ func use_ability(id: String) -> bool:
 			if move_rank < 1:
 				return false
 			dash_t = dur
+			rush = false
+			events.append({"type": "dash", "pos": player.pos})
+		"rush":
+			if move_rank < 1:
+				return false
+			dash_t = dur
+			rush = true
 			events.append({"type": "dash", "pos": player.pos})
 		"spit":
 			shots.append({"pos": player.pos + facing * radius_of(player.mass), "vel": facing * t("spit_speed"), "life": t("spit_range"), "slow": dur, "kind": "spit"})
@@ -1378,7 +1394,7 @@ func _grant_rare(species: String = "gold") -> void:
 		events.append({"type": "rare_dna", "species": species, "dna": bonus})
 	var pool: Array = []
 	for n in Data.NODES:
-		if tree_unlocked and reqs_met(n.id) and rank_of(n.id) < int(n.max):
+		if tree_unlocked and reqs_met(n.id) and rank_of(n.id) < int(n.max) and not n.has("excl") and not node_hidden(n.id) and level() >= int(n.get("size", 0)):
 			pool.append({"kind": "node", "id": n.id, "name": n.name})
 	for s in Data.SPECIALS:
 		if not specials.has(s.id):
@@ -1404,10 +1420,24 @@ func plan() -> String:
 			return k
 	return ""
 
-## A trait your body plan does not have: not shown and not buyable.
+## A trait your body plan does not have: not shown and not buyable. Once you chose a plan, every other plan
+## closes and so does whatever comes after it (owner 2026-10-30): a trait that needs a plan you did not choose,
+## directly or further up the tree, is hidden. `Data.NODE_PLANS` can still limit a trait by hand.
 func node_hidden(id: String) -> bool:
 	var p := plan()
-	return plan_rules and p != "" and Data.NODE_PLANS.has(id) and not Data.NODE_PLANS[id].has(p)
+	if not plan_rules or p == "":
+		return false
+	if Data.NODE_PLANS.has(id) and not Data.NODE_PLANS[id].has(p):
+		return true
+	return _behind_closed_plan(id)
+
+func _behind_closed_plan(id: String) -> bool:
+	for r in Data.node_of(id).get("req", []):
+		if Data.node_of(r[0]).has("excl") and rank_of(r[0]) == 0:
+			return true
+		if _behind_closed_plan(r[0]):
+			return true
+	return false
 
 func reqs_met(id: String) -> bool:
 	var n := Data.node_of(id)
@@ -1442,7 +1472,7 @@ func node_state(id: String) -> String:
 		return "plan"                   # pick a body plan first
 	if not reqs_met(id):
 		return "locked" if r == 0 else "owned"
-	if stage() < int(n.stage):
+	if stage() < int(n.stage) or level() < int(n.get("size", 0)):
 		return "stage"
 	return "owned" if r > 0 else "available"
 
@@ -1452,7 +1482,7 @@ func can_buy(id: String) -> bool:
 
 func _add_point(id: String) -> void:
 	owned[id] = rank_of(id) + 1
-	if id == "growth":
+	if id.begins_with("growth"):
 		_cap_sent = false
 	if id == "membrane":
 		player.hp += t("membrane_hp")

@@ -174,6 +174,9 @@ func _icon_on(ci: CanvasItem, id: String, c: Vector2, a: float) -> void:
 	match id:
 		"burst":
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(6, -22), c + Vector2(-10, 3), c + Vector2(-1, 3), c + Vector2(-6, 22), c + Vector2(11, -5), c + Vector2(2, -5)]), gold)
+		"rush":
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-2, -22), c + Vector2(-18, 3), c + Vector2(-9, 3), c + Vector2(-14, 22), c + Vector2(3, -5), c + Vector2(-6, -5)]), gold)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(10, -22), c + Vector2(-6, 3), c + Vector2(3, 3), c + Vector2(-2, 22), c + Vector2(15, -5), c + Vector2(6, -5)]), Color("ff9a3a", a))
 		"spit":
 			Art.disc(ci, c + Vector2(-8, 0), 8.0, Color("9bff5a", a))
 			Art.disc(ci, c + Vector2(6, -6), 4.0, Color("9bff5a", a))
