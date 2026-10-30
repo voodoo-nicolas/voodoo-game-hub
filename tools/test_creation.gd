@@ -39,7 +39,7 @@ func _init() -> void:
 
 func _test_validator(data: Dictionary) -> void:
 	check(E.validate(data).is_empty(), "real data validates")
-	check(data.items.size() == 263 and data.recipes.size() == 259, "263 items, 259 recipes (257 + 2 early-game routes): %d/%d" % [data.items.size(), data.recipes.size()])
+	check(data.items.size() == 795 and data.recipes.size() == 3435, "795 items, 3435 recipes (263 hand-made + lil alch import 2026-10-30): %d/%d" % [data.items.size(), data.recipes.size()])
 	# broken fixtures: each one must be caught
 	var d: Dictionary = data.duplicate(true)
 	d.recipes.append({"a": "earth", "b": "nothing", "results": ["lava"]})
@@ -70,13 +70,13 @@ func _test_combine() -> void:
 		check(e.combine(r.a, r.b) == r.results and e.combine(r.b, r.a) == r.results, "symmetry %s+%s" % [r.a, r.b])
 	check(E.key("water", "earth") == E.key("earth", "water"), "key is order-free")
 	# same + same
-	check(e.combine("water", "water") == ["puddle"], "water+water = puddle")
+	check(e.combine("water", "water").has("puddle"), "water+water = puddle")
 	# multi-result
 	check(e.combine("cow", "knife") == ["meat", "leather"], "cow+knife = meat + leather")
 	check(e.combine("mountain", "tool") == ["cave", "ore"], "mountain+tool = cave + ore")
 	check(e.combine("wool", "water").is_empty(), "unknown pair is empty")
 	# early-game routes added by build.py
-	check(e.combine("earthquake", "mountain") == ["ore"] and e.combine("stone", "tree") == ["tool"], "early-game extra routes")
+	check(e.combine("earthquake", "mountain").has("ore") and e.combine("stone", "tree").has("tool"), "early-game extra routes")
 	# try_combine statuses
 	check(e.try_combine("earth", "fire").status == "new", "first lava is new")
 	check(e.is_found("lava"), "lava found")
@@ -99,10 +99,10 @@ func _test_combine() -> void:
 	check(e.unfound_uses("fire") > 0 and e.unfound_uses("wool") >= 0, "unfound_uses counts")
 	var before: int = e.unfound_uses("water")
 	e.try_combine("water", "wind")
-	check(e.unfound_uses("water") == before - 1, "finding a recipe lowers unfound_uses")
+	check(e.unfound_uses("water") < before, "finding a recipe lowers unfound_uses")
 	# progress
 	var tp: Array = e.tier_progress(1)
-	check(tp[1] == 53 and tp[0] >= 4, "tier 1 progress %s" % str(tp))
+	check(tp[1] == 110 and tp[0] >= 4, "tier 1 progress %s" % str(tp))
 
 func _test_gating() -> void:
 	var e = _fresh()
@@ -120,14 +120,14 @@ func _test_gating() -> void:
 	for id in ["metal", "wheel"]:
 		e._add_found(id)
 	var r: Dictionary = e.try_combine("metal", "wheel")
-	check(r.status == "locked" and r.locked == ["gear"] and not e.is_found("gear") and e.seen_locked.has("gear"), "paid-tier result stays a silhouette")
+	check(r.locked.has("gear") and not e.is_found("gear") and e.seen_locked.has("gear"), "paid-tier result stays a silhouette")
 	check(e.list_items("", "recent", 0, "en").has("gear"), "silhouette listed on the shelf")
 	check(not e.list_items("gear", "recent", 0, "en").has("gear"), "silhouette is not searchable")
 	check(e.hint_candidates().find(E.key("metal", "wheel")) == -1, "no hints toward locked items")
 	# unlock: silhouettes become discoveries
 	e.owns_full = true
 	var got: Array = e.refresh_unlock()
-	check(got == ["gear"] and e.is_found("gear") and e.seen_locked.is_empty(), "unlocking collects the silhouette")
+	check(got.has("gear") and e.is_found("gear") and e.seen_locked.is_empty(), "unlocking collects the silhouette")
 	# a purchase survives save/load
 	var e2 = _fresh()
 	e2.paywall_on = true
@@ -235,10 +235,10 @@ func _test_save() -> void:
 	check(e2.workspace.size() == 1 and e2.workspace[0].id == "lava", "workspace restored")
 	check(e2.to_save() == e.to_save(), "save -> load -> save is stable")
 	# hostile / old / future saves
-	var junk: Dictionary = {"v": 1, "found": ["lava", "ghost", 7], "failed": ["x+y", "earth+fire", "bad"], "locked": ["ghost"], "settings": {"lang": "xx", "theme": 5}, "hints": {"left": 99}}
+	var junk: Dictionary = {"v": 1, "found": ["lava", "no_such_item", 7], "failed": ["x+y", "earth+fire", "bad"], "locked": ["no_such_item"], "settings": {"lang": "xx", "theme": 5}, "hints": {"left": 99}}
 	var e3 = _fresh()
 	check(e3.from_save(junk), "junk-ish save loads")
-	check(e3.is_found("lava") and not e3.items.has("ghost") and e3.is_found("earth") and e3.is_found("water"), "unknown ids dropped, starters present")
+	check(e3.is_found("lava") and not e3.items.has("no_such_item") and e3.is_found("earth") and e3.is_found("water"), "unknown ids dropped, starters present")
 	check(e3.failed.has("earth+fire") and e3.failed.size() == 1, "bad failed pairs dropped")
 	check(e3.settings.lang == "auto" and e3.settings.theme == "auto" and e3.hints_left == 3, "bad settings/hints clamped")
 	var future: Dictionary = e.to_save()

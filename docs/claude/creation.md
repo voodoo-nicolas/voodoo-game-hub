@@ -4,7 +4,7 @@ Working title **Creation** (display name only: `manifest.json` `title`/`title_es
 
 ## Data pipeline (never edit the JSON by hand)
 - `tools/creation/build.py` is the source of truth (`ITEMS`, `RECIPES`, `TIERS` blocks; `#` lines are ignored inside them). `python tools/creation/build.py` validates (undefined ids, duplicate pairs, reachability, sources, every item has a tier, **free tiers completable without a paid-tier ingredient**) and writes `tools/creation/game_data.json` + `scripts/games/creation/creation_data.json` (the copy the pack ships). Exit 1 on any error.
-- Now **263 items, 259 recipes** (257 + 2 early-game routes below), max depth 15 (was 18), 97 finales.
+- Now **795 items, 3435 recipe pairs** (2026-10-30: 532 items + ~3,200 pairs imported from the owner's `Documents/lil alch.txt` list; pairs may give several results). Dropped on purpose: alcohol items (docs/claude/creation.md + CLAUDE.md rule), trademarked characters (Batman, Darth Vader, Yoda, Jedi, lightsaber, Godzilla, Ninja Turtle, Roomba, Doge, Keyboard Cat, One Ring, Little Alchemy). Tiers of imported items are computed (lowest tier that can make them). `docs/creation_combinations.md` lists every pair.
 - **Tiers are themed, not by depth** (the old depth band is kept as `depth_band`): 1 Nature 53, 2 Life 43, 3 Early Civilization 85, 4 Industry & Modern Life 62, 5 Space & Future 20. Free = tiers 1-3 (181 items), Full Game = tiers 4-5 (82).
 - Item names EN/ES live in the data (not `es.json`); `lang` only changes names, never ids.
 
