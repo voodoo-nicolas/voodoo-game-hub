@@ -54,3 +54,5 @@ Size 2 ~10 min, size 3 +20, size 4 +30 (normal; table sized from a greedy bot at
 
 
 Eel branch (owner OK 2026-10-30): behind the Eel, besides Electric shock: Slippery skin (-20% bite damage per rank, max 2), Coiling swim (+0.08 speed per rank, max 2), Overcharge (needs Shock 2; shock stun +50% per rank, max 2). TUNING `slippery_mult`, `coil_bonus`, `overcharge_step`.
+
+Pacing (owner 2026-10-30, 'a little boring, a little slow'): XP -20% again (11,700 kills / 70,680 xp to size 10); food +50% at size 1, +25% from size 2 (`food_mult_1`, `food_mult_up`); the first hunters appear at size 2 (half weight, `early_hunter_mult`, cap 1) and the hunter cap is `level - 1` (full mix from size 3).

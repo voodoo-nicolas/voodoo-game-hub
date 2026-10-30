@@ -24,6 +24,9 @@ const TUNING := {
 	"food_mass": 1.0,
 	"food_per_area": 1.5e-5,    # food per square world unit of the spawn disc
 	"food_min": 12,
+	"food_mult_1": 1.5,         # owner 2026-10-30: 50% more food at size 1, 25% more from size 2 on (the game felt slow)
+	"food_mult_up": 1.25,
+	"early_hunter_mult": 0.5,   # size 2 already meets the first (rarer) hunters; from size 3 the full mix
 	"food_max": 80,    # was 30 / 220 and 4.2e-5: swamped in specks and laggy (owner 2026-10-29)
 	"npc_per_area": 8.0e-6,
 	"npc_min": 10,
@@ -443,7 +446,7 @@ func power_frac() -> float:
 ## How many creatures that can eat you may be around at once: one at the first predator size, one more per
 ## size level after that, never above the difficulty's `hunter_max`. (Early on 5+ hunters was impossible to evade.)
 func threat_cap() -> int:
-	return clampi(level() - 2, 1, int(Data.DIFFICULTY[difficulty].get("hunter_max", 6)))
+	return clampi(level() - 1, 1, int(Data.DIFFICULTY[difficulty].get("hunter_max", 6)))
 
 func hunters_on() -> bool:
 	return sight_rank >= 2 and Data.DIFFICULTY[difficulty].hunters > 0.0
@@ -612,7 +615,8 @@ func _spawn_max() -> float:
 
 func _food_target() -> int:
 	var a := PI * pow(_spawn_max(), 2.0)
-	return clampi(int(a * t("food_per_area")), int(t("food_min")), int(t("food_max")))
+	var base := clampi(int(a * t("food_per_area")), int(t("food_min")), int(t("food_max")))
+	return int(ceil(float(base) * (t("food_mult_1") if level() <= 1 else t("food_mult_up"))))
 
 func _npc_target() -> int:
 	var a := PI * pow(_spawn_max(), 2.0)
@@ -677,7 +681,7 @@ func _pick_species() -> Dictionary:
 	var total := 0.0
 	var tier_cap := clampi(lvl, 1, 10)
 	for sp in Data.SPECIES:
-		if sp.has("trait") or sp.role == "toxic" or sp.role == "rare" or int(sp.tier) > tier_cap or lvl > int(sp.get("until", 99)):
+		if sp.has("trait") or sp.role == "toxic" or sp.role == "rare" or int(sp.tier) > tier_cap + (1 if sp.role == "hunter" and lvl == 2 else 0) or lvl > int(sp.get("until", 99)):
 			continue
 		if sp.role == "hunter" and (not hunters_on() or threats >= threat_cap() or _hunter_cd > 0.0):
 			continue
@@ -688,7 +692,7 @@ func _pick_species() -> Dictionary:
 		if w <= 0.0 or int(counts.get(sl, 0)) >= Data.LEVEL_CAP:
 			continue
 		if sp.role == "hunter":
-			w *= Data.DIFFICULTY[difficulty].hunters * t("hunter_weight")
+			w *= Data.DIFFICULTY[difficulty].hunters * t("hunter_weight") * (t("early_hunter_mult") if lvl == 2 else 1.0)
 		cands.append(sp)
 		weights.append(w)
 		total += w

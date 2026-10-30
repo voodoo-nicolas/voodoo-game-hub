@@ -289,8 +289,8 @@ func _init() -> void:
 			sg._top_up()
 		for n in sg.npcs:
 			stage2[n.species] = true
-			check(n.role != "hunter", "no predators before stage 3")
-			check(int(Data.species_of(n.species).tier) <= 2, "stage 2 has chains, not viruses (got %s)" % n.species)
+			# owner 2026-10-30: size 2 meets the first (rarer) hunters; prey stays tier 2
+			check(n.role == "hunter" or int(Data.species_of(n.species).tier) <= 2, "stage 2 has chains, not viruses (got %s)" % n.species)
 	check(stage2.has("strepto"), "stage 2 brings chain bacteria")
 	var seen3 := {}
 	var fleeing := 0
@@ -950,7 +950,7 @@ func _init() -> void:
 	e.view_r = 400.0
 	e.vision_r = 400.0
 	e.sight_rank = 2
-	e.player.mass = 40.0
+	e.player.mass = 20.0
 	for i in 4000:
 		e.player.hp = e.max_hp()
 		e.step(1.0 / 60.0, Vector2.ZERO)
@@ -961,9 +961,9 @@ func _init() -> void:
 		worst = maxi(worst, thr_now)
 		cap_seen = e.threat_cap()
 	print("most hunters at once at size %d: %d (cap %d)" % [e.level(), worst, cap_seen])
-	check(cap_seen == 1 and worst <= 1, "one hunter at the first predator size")
+	check(cap_seen == 1 and worst <= 1, "one hunter at the first predator size (2, owner 2026-10-30)")
 	e.player.mass = 300.0
-	check(e.threat_cap() == mini(e.level() - 2, int(Data.DIFFICULTY.normal.hunter_max)), "the hunter cap grows one per size")
+	check(e.threat_cap() == maxi(mini(e.level() - 1, int(Data.DIFFICULTY.normal.hunter_max)), 1), "the hunter cap grows one per size")
 	# Endless mode: dying brings you back at the start of your size, keeping what you evolved
 	e.reset(902)
 	e.sight_rank = 2
@@ -998,8 +998,8 @@ func _growth_and_species() -> void:
 		kills += float(Data.XP_KILLS[lv - 1])
 		check(is_equal_approx(Ev.xp_span(lv), float(Data.XP_KILLS[lv - 1]) * float(maxi(lv - 1, 1))), "size %d to %d = %s kills of prey worth %d" % [lv, lv + 1, Data.XP_KILLS[lv - 1], maxi(lv - 1, 1)])
 		check(Ev.xp_span(lv + 1) > Ev.xp_span(lv), "size %d costs more than size %d" % [lv + 1, lv])
-	check(is_equal_approx(kills, 14625.0), "14,625 kills to size 10 (%s)" % kills)
-	check(is_equal_approx(Ev.xp_at(10), 88350.0), "88,350 xp to size 10, 75%% of 117,800 (%d)" % int(Ev.xp_at(10)))
+	check(is_equal_approx(kills, 11700.0), "11,700 kills to size 10 (%s)" % kills)
+	check(is_equal_approx(Ev.xp_at(10), 70680.0), "70,680 xp to size 10, 60%% of 117,800 (%d)" % int(Ev.xp_at(10)))
 	check(Ev.xp_span(1) > float(Ev.TUNING.eye_value), "size 1 lasts past the eye")
 	var blind := Ev.new()
 	blind.reset(9)
