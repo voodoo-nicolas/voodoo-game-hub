@@ -180,27 +180,27 @@ func _init() -> void:
 	fx.npcs = [_npc(fx.player.pos, 3.0, "eyed", "prey")]
 	fx.step(1.0 / 60.0, Vector2.ZERO)
 	check(fx.sight_rank == 2 and fx.has_bars() and fx.hunters_on(), "eating a creature with an eye gives you an eye")
-	check(not fx.tree_unlocked, "tail and eye do not open the tree yet")
-	check(fx.level() == 1, "tail and eye come while you are still size 1")
-	check(fx.missions[-1].kind == "mass" and fx.missions[-1].reward == "tree", "next: grow to size 2 for the tree")
-	# owner 2026-10-24: eat eat eat to size 2, which opens the tree
-	var meals2 := 0
-	while fx.level() < 2 and meals2 < 800:
-		fx.npcs = [_npc(fx.player.pos, 3.0, "bacillus", "prey")]
-		fx.step(1.0 / 60.0, Vector2.ZERO)
-		meals2 += 1
-		if fx.level() < 2:
-			check(not fx.tree_unlocked, "still size 1: the tree stays closed")
-	check(meals2 >= 400, "size 2 takes a good while of eating (%d meals)" % meals2)
-	check(fx.tree_unlocked, "size 2 opens the evolution tree")
+	# owner 2026-10-30: the eye opens the tree (it waited for size 2: ~10 min of size 1 with no DNA)
+	check(fx.tree_unlocked, "the eye opens the evolution tree")
 	check(fx.dna == Data.TREE_DNA, "...with its 2 DNA, nothing more (%d)" % fx.dna)
-	fx.dna = 5
-	check(fx.buy("burst") == false or fx.node_state("burst") != "locked", "the tree can be used now")
 	var tree_event := false
 	for ev in fx.events:
 		if ev.type == "tree":
 			tree_event = true
 	check(tree_event, "tree event (the game pops up a message)")
+	check(fx.level() == 1, "tail and eye come while you are still size 1")
+	check(fx.missions[-1].kind == "mass" and fx.missions[-1].reward == "", "next: grow to size 2, no reward")
+	var meals2 := 0
+	while fx.level() < 2 and meals2 < 800:
+		fx.npcs = [_npc(fx.player.pos, 3.0, "bacillus", "prey")]
+		fx.step(1.0 / 60.0, Vector2.ZERO)
+		meals2 += 1
+		if meals2 == 200:
+			check(fx.dna >= Data.TREE_DNA + 1, "size 1 already earns DNA from the 🧬 bar (%d after 200 meals)" % fx.dna)
+	check(meals2 >= 400, "size 2 takes a good while of eating (%d meals)" % meals2)
+	check(fx.dna <= Data.TREE_DNA + int(Data.DNA_PER_SIZE[0]) + 1, "...and size 1 pays only about %d DNA (%d)" % [Data.DNA_PER_SIZE[0], fx.dna - Data.TREE_DNA])
+	fx.dna = 5
+	check(fx.buy("burst") == false or fx.node_state("burst") != "locked", "the tree can be used now")
 	var gk := {}
 	for m in fx.missions:
 		gk[m.kind] = true
@@ -443,6 +443,44 @@ func _init() -> void:
 	e.npcs = [_npc(e.player.pos, 4.0, "toxin", "toxic")]
 	e.step(1.0 / 60.0, Vector2.ZERO)
 	check(e.ailments.size() == 1, "a toxic creature gives one ailment")
+	# owner 2026-10-30: a toxic meal also costs 5% of your health, never the last point
+	e.ailments.clear()
+	e.player.hp = e.max_hp()
+	e.npcs = [_npc(e.player.pos, 4.0, "toxin", "toxic")]
+	e.step(1.0 / 60.0, Vector2.ZERO)
+	check(absf((e.max_hp() - e.player.hp) - e.max_hp() * Ev.TUNING.toxic_bite) < 0.5, "a toxic meal costs %d%% health (%.1f of %.1f)" % [int(Ev.TUNING.toxic_bite * 100.0), e.max_hp() - e.player.hp, e.max_hp()])
+	e.player.hp = 1.0
+	e.npcs = [_npc(e.player.pos, 4.0, "toxin", "toxic")]
+	e.step(1.0 / 60.0, Vector2.ZERO)
+	check(e.alive and e.player.hp > 0.0, "...but a toxic meal never kills")
+	# owner 2026-10-30: the first rare creature half a screen away gets "Investigate that strange creature"
+	var inv := Ev.new()
+	_veteran(inv, 12)
+	inv.half_screen = 360.0
+	inv.vision_r = 900.0
+	inv.npcs = [_npc(inv.player.pos + Vector2(500, 0), 2.0, "gold", "rare")]
+	inv.step(1.0 / 60.0, Vector2.ZERO)
+	var inv_n := 0
+	for m in inv.missions:
+		if m.text == "Investigate that strange creature":
+			inv_n += 1
+	check(inv_n == 0, "a rare one more than half a screen away: no mission yet")
+	inv.npcs[0].pos = inv.player.pos + Vector2(250, 0)
+	inv.step(1.0 / 60.0, Vector2.ZERO)
+	inv.npcs[0].pos = inv.player.pos + Vector2(250, 0)
+	inv.step(1.0 / 60.0, Vector2.ZERO)
+	for m in inv.missions:
+		if m.text == "Investigate that strange creature":
+			inv_n += 1
+		check(not str(m.text).begins_with("Catch"), "...instead of a Catch mission for the first one (%s)" % m.text)
+	check(inv_n == 1, "...half a screen away: one Investigate mission (%d)" % inv_n)
+	inv.npcs[0].pos = inv.player.pos
+	inv.step(1.0 / 60.0, Vector2.ZERO)
+	var inv_done := false
+	for m in inv.missions:
+		if m.text == "Investigate that strange creature" and m.done:
+			inv_done = true
+	check(inv_done, "...eating it finishes the mission")
 	e.ailments = {"appetite": 20.0}
 	var m1: float = e.xp
 	e.food = [e.player.pos]
@@ -1039,7 +1077,7 @@ func _growth_and_species() -> void:
 	var by10 := 0
 	for v in Data.DNA_PER_SIZE:
 		by10 += int(v)
-	check(by10 == 196, "196 DNA from eating by size 10 (%d)" % by10)
+	check(by10 == 200, "200 DNA from eating by size 10 (%d)" % by10)
 	check(Data.TREE_DNA + by10 < tree, "growing alone never buys the whole tree (%d of %d)" % [Data.TREE_DNA + by10, tree])
 	var d := Ev.new()
 	d.reset(77)
@@ -1055,7 +1093,7 @@ func _growth_and_species() -> void:
 			lvl_events += 1
 	check(lvl_events == 3, "...one banner event per size (%d)" % lvl_events)
 	# each size's kills pay about its DNA_PER_SIZE, one point at a time, and never more than 1 per meal
-	for lv in range(2, 10):
+	for lv in range(1, 10):
 		var b := Ev.new()
 		b.reset(900 + lv)
 		b.sight_rank = 2
@@ -1126,6 +1164,8 @@ func _growth_and_species() -> void:
 				animal_picks += 1
 			if shape == "fish":
 				fish_picks += 1
+			if sp.role == "toxic":
+				check(lv >= int(Ev.TUNING.toxic_from), "toxic creatures only from size %d, with the hunters (%s at size %d)" % [int(Ev.TUNING.toxic_from), sp.id, lv])
 			if monsters.has(sp.id):
 				monster_picks += 1
 				check(lv >= 9, "sea monsters only at sizes 9-10 (%s at size %d)" % [sp.id, lv])

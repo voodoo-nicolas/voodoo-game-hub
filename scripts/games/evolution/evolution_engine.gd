@@ -39,7 +39,9 @@ const TUNING := {
 	"size_speed_exp": 0.8,      # the camera zooms out as you grow, so speed grows with it: on screen you never feel slower
 	"tail_value": 5,            # creature value to eat for a tail (or eat one that has a tail); was 20
 	"eye_value": 12,            # ... and for an eye (was 40): both come while you are still size 1 (owner 2026-10-24)
-	"tree_size": 2,             # growing to this size opens the evolution tree (it used to take 10 kills after the eye: size 5)
+	"tree_size": 2,             # growing to this size opens the evolution tree (it used to take 10 kills after the eye: size 5). Unused since 2026-10-30: the eye opens it
+	"toxic_bite": 0.05,         # eating a toxic creature costs this share of your max health (owner 2026-10-30), never the last point
+	"toxic_from": 3,            # toxic creatures appear from this size, with the first hunters (owner 2026-10-30: slow healing or glow meant nothing while nothing could hurt or chase you)
 	"trait_tail_chance": 0.14,  # share of early prey that carries a tail
 	"trait_eye_chance": 0.12,   # ... an eye
 	"npc_sight": 380.0,         # how far creatures notice each other
@@ -191,6 +193,8 @@ var _depth_i := 0
 var seen := {}            # species ids already met
 var view_r: float = 220.0   # world units the player can see (the game sets it from zoom)
 var vision_r: float = 220.0
+var half_screen: float = 360.0   # half the screen height in world units (the game sets it from zoom)
+var _rare_hint := false   # "Investigate that strange creature" was given
 var missions: Array = []
 var missions_done: int = 0
 var _story := 0
@@ -572,6 +576,7 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	missions_done = 0
 	_story = 0
 	_reward_n = 0
+	_rare_hint = false
 	_grow_target = 2.0
 	_jolt_cd = 0.0
 	_next_id = 1
@@ -642,7 +647,7 @@ func _pick_species() -> Dictionary:
 				rares += 1
 		if roll < t("rare_chance") and rares < int(t("rare_max")):
 			return _pick_rare(lvl)
-		if roll < t("rare_chance") + t("toxic_chance"):
+		if roll < t("rare_chance") + t("toxic_chance") and lvl >= int(t("toxic_from")):
 			var tox := Data.species_by_role("toxic")
 			return tox[rng.randi() % tox.size()]
 	# The creatures that carry the first two traits.
@@ -1100,6 +1105,10 @@ func _think(delta: float) -> void:
 			n.wander.y = absf(n.wander.y)
 		if not seen.has(n.species) and d < vision_r * 0.92:
 			_met(n.species)
+		if n.role == "rare" and not _rare_hint and _story >= 4 and d < half_screen:
+			# owner 2026-10-30: the first rare one half a screen away gets a mission, so a new player knows it is special
+			_rare_hint = true
+			_add_mission({"kind": "rare", "target": 1, "text": "Investigate that strange creature", "reward": "dna"})
 
 static func _by_first(a: Array, b: Array) -> bool:
 	return a[0] < b[0]
@@ -1208,6 +1217,8 @@ func _resolve(delta: float) -> void:
 			if has("meal_heal") and not ailments.has("slow_heal"):
 				player.hp = minf(player.hp + float(rank_of("meal_heal")), max_hp())
 			if n.role == "toxic":
+				player.hp = maxf(player.hp - max_hp() * t("toxic_bite"), 1.0)
+				events.append({"type": "hurt", "pos": player.pos})
 				_poison(n.species)
 			elif n.role == "rare":
 				_grant_rare(n.species)
@@ -1630,6 +1641,14 @@ func _set_tail() -> void:
 		move_rank = 1
 		events.append({"type": "tail"})
 
+## The evolution tree opens, with TREE_DNA: enough for a first trait right away.
+func _open_tree() -> void:
+	if tree_unlocked:
+		return
+	tree_unlocked = true
+	dna += Data.TREE_DNA
+	events.append({"type": "tree", "dna": Data.TREE_DNA})
+
 func _set_eye() -> void:
 	if sight_rank < 2:
 		sight_rank = 2
@@ -1661,18 +1680,17 @@ func _complete(m: Dictionary) -> void:
 			_set_tail()
 		"eye":
 			_set_eye()
+			_open_tree()      # owner 2026-10-30: the tree used to wait for size 2 (~10 min of size 1 with no DNA)
 		"tree":
-			tree_unlocked = true
-			dna += Data.TREE_DNA        # enough for a first trait right away
-			events.append({"type": "tree", "dna": Data.TREE_DNA})
+			_open_tree()      # only a run saved before 2026-10-30 still has the old grow-to-size-2 mission
 		"size":
 			_gain_xp(xp_span(level()) * t("story_xp"), false)
 			events.append({"type": "grow"})
 		"dna":
 			dna += 1
 			events.append({"type": "dna"})
-	# The first missions are the tutorial, in order: move, tail, eye, then growing to size 2 opens the tree
-	# (it used to be 10 kills after the eye, which came at size 4-5).
+	# The first missions are the tutorial, in order: move, tail, eye; the eye opens the tree (owner 2026-10-30;
+	# before, growing to size 2 opened it, and before that 10 kills after the eye, which came at size 4-5).
 	if _story == 0 and m.kind == "jolts":
 		_story = 1
 		_add_mission({"kind": "value", "target": t("tail_value"), "text": "Evolve", "reward": "tail"})
@@ -1680,8 +1698,10 @@ func _complete(m: Dictionary) -> void:
 		_story = 2
 		_add_mission({"kind": "value", "target": t("eye_value"), "text": "Evolve further", "reward": "eye"})
 	elif _story == 2 and m.reward == "eye":
-		_story = 3
-		_add_mission({"kind": "mass", "target": int(t("tree_size")), "text": "Grow to size %d", "args": [int(t("tree_size"))], "reward": "tree"})
+		# (was: _story = 3 and a "Grow to size tree_size" mission with reward "tree")
+		_story = 4
+		_grow_mission()
+		_fill()
 	elif _story == 3 and m.reward == "tree":
 		_story = 4
 		_grow_mission()
@@ -1733,6 +1753,8 @@ func _met(id: String) -> void:
 		"prey":
 			_add_mission({"kind": "species", "species": id, "target": 1, "text": "Eat a %s", "args": [sp.name], "reward": _next_reward()})
 		"rare":
+			if not _rare_hint:
+				return      # the first one gets "Investigate that strange creature" once it is half a screen away
 			if id == "gold":
 				_add_mission({"kind": "rare", "target": 1, "text": "Catch a Golden spore", "reward": "dna"})
 			else:

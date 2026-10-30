@@ -12,6 +12,11 @@ extends RefCounted
 ##   whoosh : a rush of water (boost, ink, camouflage)
 ##   spit   : a short wet squirt (acid, harpoon)
 ##   poison : a wobbling sour note
+##   chomp / slurp / munch : eating a creature, one picked at random (owner 2026-10-30: "a variation of 2 or 3
+##            sounds at least, not the current one"; eat / gulp are no longer used for meals)
+##   chomp  : a jaw snap: a click, a short crunch of noise and a low thump
+##   slurp  : a wet rising suck with a bubbly wobble
+##   munch  : two quick soft bites, the second lower
 
 const RATE := 22050
 static var _cache := {}
@@ -76,6 +81,26 @@ static func stream(name: String) -> AudioStreamWAV:
 				var nz4 := randf() * 2.0 - 1.0
 				lp += (nz4 - lp) * 0.3
 				v = lp * exp(-t * 14.0) * 0.8 + sin(TAU * (900.0 * t - 1800.0 * t * t)) * exp(-t * 18.0) * 0.3
+			"chomp":
+				var nz5 := randf() * 2.0 - 1.0
+				lp += (nz5 - lp) * 0.45
+				v = lp * exp(-t * 30.0) * 0.55 + sin(TAU * (180.0 * t - 160.0 * t * t)) * exp(-t * 20.0) * 0.55
+				if t < 0.006:
+					v += (randf() * 2.0 - 1.0) * 0.5
+			"slurp":
+				phase += TAU * (260.0 + 900.0 * t / dur + 60.0 * sin(TAU * 32.0 * t)) / float(RATE)
+				var envs := sin(PI * t / dur) * (0.85 + 0.15 * sin(TAU * 18.0 * t))
+				var nz6 := randf() * 2.0 - 1.0
+				lp += (nz6 - lp) * 0.08
+				v = (sin(phase) * 0.42 + lp * 0.5) * envs
+			"munch":
+				for k2 in 2:
+					var t0b: float = float(k2) * 0.12
+					if t >= t0b:
+						var tb := t - t0b
+						var f0: float = 420.0 if k2 == 0 else 300.0
+						var nz7 := randf() * 2.0 - 1.0
+						v += (sin(TAU * f0 * (1.0 - exp(-7.0 * tb)) / 7.0) * 0.45 + nz7 * 0.2 * exp(-tb * 60.0)) * (1.0 - exp(-tb * 400.0)) * exp(-tb * 22.0)
 			"poison":
 				phase += TAU * (220.0 + 45.0 * sin(TAU * 7.0 * t)) / float(RATE)
 				v = sin(phase) * exp(-t * 3.0) * 0.4 + sin(phase * 1.5) * exp(-t * 4.0) * 0.15
@@ -111,4 +136,10 @@ static func _duration(name: String) -> float:
 			return 0.26
 		"poison":
 			return 0.7
+		"chomp":
+			return 0.2
+		"slurp":
+			return 0.3
+		"munch":
+			return 0.3
 	return 0.2

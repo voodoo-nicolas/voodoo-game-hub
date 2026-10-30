@@ -41,11 +41,13 @@ const XP_KILLS := [520, 1150, 880, 930, 820, 1900, 2300, 3000, 8000]
 ## DNA earned while growing from each size to the next, ONE point at a time: what you eat fills the 🧬 bar and
 ## each full bar is +1 (owner 2026-10-29: "you should never earn more than 1 or 2 dna points at a time, except
 ## when eating rare creatures"; "52 dna lands all at once... seems VERY wrong"). About 1 point every 3 kills at
-## size 2, every 10 kills at size 9. Growing to size 2 opens the tree with TREE_DNA. 196 by size 10, plus
+## size 2, every 10 kills at size 9. The eye opens the tree with TREE_DNA (it was growing to size 2; owner
+## 2026-10-30 halfway to size 2 with no DNA and no tree: "at least 2 or 3 points I'd have already"), and size 1
+## pays 4 more (one about every 130 kills). 200 by size 10, plus
 ## missions (+1) and rare creatures (+2 to +8): about 230. Past size 10, 1 point every DNA_PAST_10_KILLS kills.
 ## (Before, LEVEL_DNA paid each new size at once: [0, 52, 27, 26, 26, 26, 26, 27, 26, 26], the whole 262-DNA
 ## tree by size 10. Owner 2026-10-29: the tree will hold 300+ and no run gets all of it: phase 4.)
-const DNA_PER_SIZE := [0, 12, 16, 20, 24, 28, 30, 32, 34]
+const DNA_PER_SIZE := [4, 12, 16, 20, 24, 28, 30, 32, 34]     # size 1 was 0 (the tree was shut until size 2)
 const TREE_DNA := 2
 const DNA_PAST_10_KILLS := 10.0
 

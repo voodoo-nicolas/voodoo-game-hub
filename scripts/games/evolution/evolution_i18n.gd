@@ -194,6 +194,7 @@ const STRINGS := {
 		"Immune to %s": "Inmune a %s",
 		"In seahorses it is the father who carries the eggs until they hatch.": "En los caballitos de mar es el padre quien lleva los huevos hasta que nacen las crías.",
 		"Ink cloud": "Nube de tinta",
+		"Investigate that strange creature": "Investiga esa criatura extraña",
 		"Jellyfish": "Medusa",
 		"Jump boost": "Impulso",
 		"Keep hunting": "Sigue cazando",

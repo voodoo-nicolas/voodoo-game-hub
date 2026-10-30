@@ -10,6 +10,8 @@ const Art = preload("res://scripts/games/evolution/evolution_art.gd")
 const Controls = preload("res://scripts/games/evolution/evolution_controls.gd")
 const Screens = preload("res://scripts/games/evolution/evolution_screens.gd")
 const Sound = preload("res://scripts/games/evolution/evolution_sound.gd")
+const EAT_SOUNDS := ["chomp", "slurp", "munch"]
+var _eat_snd := 0
 const Orientation = preload("res://scripts/common/orientation.gd")
 const UI = preload("res://scripts/common/ui.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
@@ -772,6 +774,7 @@ func _apply_view(delta: float, snap: bool = false) -> void:
 	var half_diag := s.length() * 0.5
 	engine.vision_r = vis_r / maxf(zoom, 0.05)
 	engine.view_r = minf(vis_r, half_diag) / maxf(zoom, 0.05)
+	engine.half_screen = s.y * 0.5 / maxf(zoom, 0.05)
 
 func _animate(delta: float) -> void:
 	lurch = maxf(lurch - delta * 3.0, 0.0)
@@ -1064,7 +1067,9 @@ func _handle_events() -> void:
 				_spawn_burst(ev.pos, sp.col, 14, 220.0, 5.0, EvEngine.radius_of(ev.mass) * 1.6)
 				bump = 0.1
 				var vl := EvEngine.size_level(ev.mass)
-				_snd("gulp" if vl >= 3 else "eat", 1.35 / (1.0 + 0.15 * float(vl - 1)) * randf_range(0.95, 1.05))
+				# one of three meal sounds, never the same twice running (owner 2026-10-30; it was always "eat", "gulp" from size 3)
+				_eat_snd = (_eat_snd + 1 + randi() % (EAT_SOUNDS.size() - 1)) % EAT_SOUNDS.size()
+				_snd(EAT_SOUNDS[_eat_snd], 1.25 / (1.0 + 0.12 * float(vl - 1)) * randf_range(0.93, 1.07))
 			"jolt":
 				lurch = 1.0
 				_spawn_burst(engine.player.pos - ev.dir * EvEngine.radius_of(engine.player.mass), color, 4, 90.0, 3.0, 0.0)
