@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4orb4842g50b"
-path="res://.godot/imported/face_J_d.webp-fb448314f20944d8f05c55fddaa3304b.ctex"
+uid="uid://bil54lbmj4co"
+path="res://.godot/imported/face_Q_c.webp-188eb6384cba77ed400e88c3e1f1a22b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://games/video_poker/art/classic/face_J_d.webp"
-dest_files=["res://.godot/imported/face_J_d.webp-fb448314f20944d8f05c55fddaa3304b.ctex"]
+source_file="res://games/video_poker/art/voodoo/face_Q_c.webp"
+dest_files=["res://.godot/imported/face_Q_c.webp-188eb6384cba77ed400e88c3e1f1a22b.ctex"]
 
 [params]
 

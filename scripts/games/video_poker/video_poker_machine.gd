@@ -10,6 +10,7 @@ signal chips_changed(chips: int)
 ## A hand was drawn: winnings in chips, the paying hand ("" for none).
 signal hand_finished(win: int, hand_name: String)
 
+const SoundLib = preload("res://scripts/games/video_poker/sound_lib.gd")
 const VpEngine = preload("res://scripts/games/video_poker/video_poker_engine.gd")
 const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
@@ -341,6 +342,10 @@ static func _chips(v: int) -> String:
 	return ("-" if v < 0 else "") + s + out
 
 func _sfx(sound: String) -> void:
-	var s = get_node_or_null("/root/Sfx")
-	if s:
-		s.play(sound)
+	match sound:
+		"card_deal": SoundLib.play(self, "casino/card_slide")
+		"card_place": SoundLib.play(self, "casino/card_place")
+		_:
+			var s = get_node_or_null("/root/Sfx")
+			if s:
+				s.play(sound)

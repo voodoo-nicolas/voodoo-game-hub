@@ -18,6 +18,7 @@ const AI = preload("res://scripts/games/video_poker/video_poker_ai.gd")
 const Eval = preload("res://scripts/games/video_poker/video_poker_eval.gd")
 const Cards = preload("res://scripts/games/video_poker/video_poker_cards.gd")
 const Chips = preload("res://scripts/games/video_poker/video_poker_chips.gd")
+const SoundLib = preload("res://scripts/games/video_poker/sound_lib.gd")
 const View = preload("res://scripts/games/video_poker/video_poker_view.gd")
 const Machine = preload("res://scripts/games/video_poker/video_poker_machine.gd")
 const Training = preload("res://scripts/games/video_poker/video_poker_training.gd")
@@ -2434,43 +2435,17 @@ func _action_sfx() -> void:
 	else:
 		_chips_sfx()
 
-## A short clack of chips, made in code (the app ships no sound files).
+## Chips on the felt: the shared library's recorded chip sounds.
 func _chips_sfx() -> void:
-	var s = get_node_or_null("/root/Sfx")
-	if s == null:
-		return
-	if not s.has_method("play_stream"):
-		s.play("place")
-		return
-	if chip_stream == null:
-		chip_stream = _make_chips()
-	s.play_stream(chip_stream, -3.0, rng.randf_range(0.9, 1.1), "game")
-
-static func _make_chips() -> AudioStreamWAV:
-	var rate := 22050
-	var total := int(rate * 0.22)
-	var data := PackedByteArray()
-	data.resize(total * 2)
-	var r := RandomNumberGenerator.new()
-	r.seed = 7
-	var clicks := [0.0, 0.045, 0.09, 0.12]
-	for i in total:
-		var tm := float(i) / rate
-		var v := 0.0
-		for k in clicks.size():
-			var lt: float = tm - clicks[k]
-			if lt >= 0.0 and lt < 0.05:
-				var env := exp(-lt * 140.0)
-				v += (sin(TAU * (3200.0 + k * 400.0) * lt) * 0.5 + r.randf_range(-0.5, 0.5)) * env * (0.55 - k * 0.08)
-		data.encode_s16(i * 2, int(clampf(v, -1.0, 1.0) * 30000.0))
-	var wav := AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_16_BITS
-	wav.mix_rate = rate
-	wav.stereo = false
-	wav.data = data
-	return wav
+	SoundLib.play(self, "casino/chips_stack" if rng.randf() < 0.5 else "casino/chip_lay", -2.0)
 
 func _sfx(sound: String) -> void:
-	var s = get_node_or_null("/root/Sfx")
-	if s:
-		s.play(sound)
+	match sound:
+		"card_deal": SoundLib.play(self, "casino/card_slide")
+		"card_place": SoundLib.play(self, "casino/card_place")
+		"card_shuffle": SoundLib.play(self, "casino/card_shuffle", -4.0)
+		"card_flip": SoundLib.play(self, "casino/card_shove", -2.0)
+		_:
+			var s = get_node_or_null("/root/Sfx")
+			if s:
+				s.play(sound)

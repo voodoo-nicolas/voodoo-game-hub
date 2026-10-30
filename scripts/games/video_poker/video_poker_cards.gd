@@ -103,15 +103,25 @@ static func draw_card(canvas: CanvasItem, rect: Rect2, card: int, face_up: bool 
 		sb2.set_corner_radius_all(max(2, radius - 2))
 		canvas.draw_style_box(sb2, inner)
 		return
-	var font: Font = ThemeDB.fallback_font
-	var col := Look.c("ink_red") if is_red(card) else Look.c("ink_black")
-	# rank and suit on one line, so overlapped cards stay readable
-	var fs := int(max(12.0, rect.size.x * 0.3))
-	canvas.draw_string(font, rect.position + Vector2(rect.size.x * 0.06, fs * 0.95), label(card), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
-	if rect.size.y > rect.size.x * 1.2:
-		var big := int(rect.size.x * 0.5)
-		canvas.draw_string(font, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.62 + big * 0.35), SUITS[suit(card)],
-			HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, big, col)
+	# the plain deck: big corner indices (rank over suit, readable when cards
+	# overlap), pips on the number cards, one huge suit on aces, a huge letter
+	# on the court cards
+	var col := suit_color(suit(card))
+	var r := rank(card)
+	var tall := rect.size.y > rect.size.x * 1.2
+	_draw_index(canvas, rect, card, col, false, false)
+	if tall:
+		var mid := rect.position + rect.size / 2.0
+		if r >= 2 and r <= 10:
+			_draw_pips(canvas, rect, r, suit(card), col)
+			_draw_index(canvas, rect, card, col, false, true)
+		elif r == 1:
+			_draw_suit(canvas, suit(card), mid, rect.size.x * 0.62, col)
+		else:
+			var font: Font = ThemeDB.fallback_font
+			var big := int(rect.size.x * 0.7)
+			canvas.draw_string(font, Vector2(rect.position.x, mid.y + big * 0.12), rank_str(r), HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, big, col)
+			_draw_suit(canvas, suit(card), Vector2(mid.x, rect.position.y + rect.size.y * 0.8), rect.size.x * 0.24, col)
 	if dim:
 		var sb3 := StyleBoxFlat.new()
 		sb3.bg_color = Color(0, 0, 0, 0.45)
