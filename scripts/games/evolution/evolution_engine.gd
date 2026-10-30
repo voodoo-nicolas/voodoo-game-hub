@@ -380,7 +380,7 @@ func strength() -> int:
 	return 1 + rank_of("jaws")
 
 func max_hp() -> float:
-	return t("base_hp") + t("membrane_hp") * rank_of("membrane")
+	return (t("base_hp") + t("membrane_hp") * rank_of("membrane")) * float(Data.PLAN_HP.get(plan(), 1.0))
 
 ## Your own size level.
 func level() -> int:
@@ -442,7 +442,7 @@ func move_mult() -> float:
 	var m: float = Data.MOVE_MULT[clampi(move_rank, 0, Data.MOVE_MULT.size() - 1)]
 	if move_rank >= 1:
 		m += t("fins_bonus") * rank_of("fins") + (t("streamlined_bonus") if has("streamlined") else 0.0)
-	return m
+	return m * float(Data.PLAN_SPEED.get(plan(), 1.0))
 
 ## How close your swimming speed is to the best a body can have (0..100): all tail ranks, 2 fins, streamlined.
 func speed_pct() -> int:
@@ -1385,11 +1385,25 @@ func _grant_rare(species: String = "gold") -> void:
 # ---------- the evolution tree ----------
 
 ## Every prerequisite owned with enough points?
+## The body plan you chose ("" = none yet).
+func plan() -> String:
+	for k in Data.PLAN_SPEED:
+		if rank_of("plan_" + k) > 0:
+			return k
+	return ""
+
+## A trait your body plan does not have: not shown and not buyable.
+func node_hidden(id: String) -> bool:
+	var p := plan()
+	return p != "" and Data.NODE_PLANS.has(id) and not Data.NODE_PLANS[id].has(p)
+
 func reqs_met(id: String) -> bool:
 	var n := Data.node_of(id)
 	if n.is_empty():
 		return false
 	for r in n.req:
+		if node_hidden(r[0]):
+			continue            # a prerequisite your plan never gets
 		if rank_of(r[0]) < int(r[1]):
 			return false
 	return true
@@ -1408,6 +1422,12 @@ func node_state(id: String) -> String:
 	var r := rank_of(id)
 	if r >= int(n.max):
 		return "maxed"
+	if node_hidden(id):
+		return "locked"
+	if n.has("excl") and plan() != "" and r == 0:
+		return "closed"                 # you chose another body plan
+	if Data.NODE_PLANS.has(id) and plan() == "" and r == 0:
+		return "plan"                   # pick a body plan first
 	if not reqs_met(id):
 		return "locked" if r == 0 else "owned"
 	if stage() < int(n.stage):

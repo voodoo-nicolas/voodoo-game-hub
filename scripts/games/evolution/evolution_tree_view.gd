@@ -137,6 +137,8 @@ func _tap(pos: Vector2) -> void:
 	var p := pos - pan
 	var hit := ""
 	for n in Data.NODES:
+		if engine.node_hidden(n.id):
+			continue
 		if node_pos(n).distance_to(p) <= NODE_R + 10.0:
 			hit = n.id
 			break
@@ -165,6 +167,8 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, Vector2(x0 - NODE_R, y0 - NODE_R - 14.0), tr(Data.BRANCH[b].name).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(Data.BRANCH[b].col, 0.85))
 	# lines first
 	for n in Data.NODES:
+		if engine.node_hidden(n.id):
+			continue
 		var to := node_pos(n)
 		var col := _branch_col(n)
 		var sources: Array = []
@@ -174,6 +178,8 @@ func _draw() -> void:
 			for r in n.req:
 				sources.append(r)
 		for r in sources:
+			if r[0] != "" and engine.node_hidden(r[0]):
+				continue
 			var from := rp
 			var lit: bool = engine.rank_of(n.id) > 0
 			if r[0] != "":
@@ -190,12 +196,13 @@ func _draw() -> void:
 	# the creature
 	Art.disc(self, rp, 74.0, Color(color, 0.08))
 	Art.arc(self, rp, 64.0, 0.0, TAU, 40, Color(color, 0.6), 3.0, true)
-	var st := {"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0, "owned": engine.owned, "specials": engine.specials, "speed": 0.0, "voodoo": voodoo, "col2": col2, "col3": col3}
+	var st := {"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0, "owned": engine.owned, "specials": engine.specials, "speed": 0.0, "voodoo": voodoo, "col2": col2, "col3": col3, "plan": engine.plan(), "lvl": engine.level()}
 	Art.draw_player(self, rp + pan, 40.0, color, 0.0, _t, st)
 	draw_set_transform(pan, 0.0, Vector2.ONE)
 	# nodes
 	for n in Data.NODES:
-		_draw_node(n)
+		if not engine.node_hidden(n.id):
+			_draw_node(n)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# thin scroll bars, so it is clear the map goes on
 	var m := map_size()
@@ -225,7 +232,7 @@ func _draw_node(n: Dictionary) -> void:
 		"available":
 			Art.arc(self, c, NODE_R, 0.0, TAU, 32, Color(1, 1, 1, 0.55 + 0.4 * glow), 3.0, true)
 			Art.disc(self, c, NODE_R * 0.4, Color(col, 0.35))
-		"stage":
+		"stage", "plan", "closed":
 			# Readable (the trait before it is owned), but you must grow first: dim, no pulse.
 			Art.arc(self, c, NODE_R, 0.0, TAU, 32, Color(col, 0.45), 2.0, true)
 			Art.disc(self, c, NODE_R * 0.4, Color(col, 0.18))

@@ -981,6 +981,26 @@ func _growth_and_species() -> void:
 	cp._gain_xp(100000.0)
 	check(cp.level() == 3, "...now you reach size 3 and stop there (%d)" % cp.level())
 	check(cp.cost_of("growth") == 7, "the next Growth rank costs 7")
+	# body plans: one only, and traits outside the plan are hidden
+	var bp := Ev.new()
+	bp.reset(12)
+	bp.sight_rank = 2
+	bp.tree_unlocked = true
+	bp.player.mass = Data.LEVELS[2]
+	bp.dna = 50
+	check(bp.node_state("harpoon") == "plan", "before a plan, plan traits wait for one")
+	check(bp.buy("plan_lionfish") and bp.plan() == "lionfish", "pick the lionfish")
+	check(not bp.can_buy("plan_marlin") and bp.node_state("plan_marlin") == "closed", "the other plans close")
+	check(bp.node_hidden("harpoon") and bp.node_hidden("shell") and not bp.node_hidden("spine"), "a lionfish never sees Harpoon or Shell, but gets Spine burst")
+	check(bp.move_mult() < Data.MOVE_MULT[bp.move_rank] + 0.01 or bp.move_rank == 0, "lionfish are a little slower")
+	var mq := Ev.new()
+	mq.reset(13)
+	mq.sight_rank = 2
+	mq.tree_unlocked = true
+	mq.player.mass = Data.LEVELS[2]
+	mq.dna = 50
+	mq.buy("plan_marlin")
+	check(mq.node_hidden("spine") and not mq.node_hidden("harpoon"), "a marlin never sees Spine burst but gets Harpoon")
 	# ability loadout picker
 	var ld := Ev.new()
 	ld.reset(11)

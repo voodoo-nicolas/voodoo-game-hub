@@ -1187,7 +1187,7 @@ func _cell_fade() -> float:
 
 func _player_state() -> Dictionary:
 	return {
-		"cell": _cell_fade(),
+		"cell": _cell_fade(), "plan": engine.plan(), "lvl": engine.level(),
 		"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": eye_open, "tail_grow": tail_grow,
 		"owned": engine.owned, "specials": engine.specials, "ailments": engine.ailments,
 		"speed": clampf(engine.player.vel.length() / 300.0, 0.0, 1.0), "voodoo": voodoo,

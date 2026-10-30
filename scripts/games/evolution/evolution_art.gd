@@ -443,6 +443,8 @@ static func _animal(ci: CanvasItem, r: float, col: Color, shape: String, plan: D
 			_octopus(ci, r, col, plan, t, sd, lvl, voodoo)
 		"turtle":
 			_turtle(ci, r, col, plan, t, sd, lvl, voodoo)
+		"crab":
+			_crab(ci, r, col, plan, t, sd, lvl, voodoo)
 		"star":
 			_star(ci, r, col, plan, t, sd, lvl, voodoo)
 		"seahorse":
@@ -648,10 +650,55 @@ static func _fish(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: flo
 		disc(ci, bulb, r * 0.45, Color(0.7, 1.0, 0.9, 0.14 * lp))
 		disc(ci, bulb, r * 0.2, Color(0.8, 1.0, 0.95, 0.6 + 0.3 * lp))
 		disc(ci, bulb, r * 0.1, Color.WHITE)
+	# the spear of a marlin
+	if plan.get("bill", false):
+		_part(ci, PackedVector2Array([Vector2(ln - r * 0.1, -hh * 0.16), Vector2(ln + r * 1.05, 0.0), Vector2(ln - r * 0.1, hh * 0.16)]), col.lightened(0.15), voodoo, r * 0.03, 0.95)
 	# eyes
 	var er := maxf(r * (0.2 if round_body else 0.13), 1.6)
 	for sgn in [-1.0, 1.0]:
 		_eye_pair(ci, Vector2(ln * 0.78, sgn * _fish_h(0.1, hh, round_body) * 0.72), er, col, false, plan.get("teeth", false))
+
+## A crab seen from above: wide shell, stalk eyes, two pincers that open and close, three legs a side.
+static func _crab(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
+	var leg := Color(col.lightened(0.1), 0.95)
+	for s in [-1.0, 1.0]:
+		for k in 3:
+			var x0 := -r * 0.35 + float(k) * r * 0.32
+			var sw := sin(t * 5.0 + float(k) * 1.3 + (0.0 if s < 0.0 else 1.6)) * r * 0.12
+			var knee := Vector2(x0 + r * 0.05, s * r * 1.0)
+			ci.draw_line(Vector2(x0, s * r * 0.55), knee, leg, maxf(r * 0.1, 1.5), true)
+			ci.draw_line(knee, Vector2(x0 - r * 0.25 + sw, s * r * 1.3), leg, maxf(r * 0.07, 1.2), true)
+	for s in [-1.0, 1.0]:
+		var open := 0.2 + 0.12 * sin(t * 2.5 + sd + s)
+		var elbow := Vector2(r * 0.75, s * r * 0.55)
+		var wrist := Vector2(r * 1.15, s * r * 0.75)
+		ci.draw_line(Vector2(r * 0.5, s * r * 0.4), elbow, leg, maxf(r * 0.13, 1.8), true)
+		ci.draw_line(elbow, wrist, leg, maxf(r * 0.13, 1.8), true)
+		for j in [-1.0, 1.0]:
+			var tip := wrist + Vector2(r * 0.55, s * r * 0.08 + j * open * r * 0.9)
+			_part(ci, PackedVector2Array([wrist + Vector2(0.0, -r * 0.14), tip, wrist + Vector2(0.0, r * 0.14)]), col.lightened(0.05), voodoo, r * 0.03, 0.95)
+	var pts := PackedVector2Array()
+	for i in 22:
+		var a := TAU * float(i) / 22.0
+		pts.append(Vector2(cos(a) * r * 0.95, sin(a) * r * 0.78) * (1.0 + 0.04 * sin(a * 7.0)))
+	_torso(ci, pts, col, voodoo, r)
+	if not voodoo:
+		for q in 3:
+			disc(ci, Vector2(-r * 0.3 + float(q) * r * 0.28, 0.0), r * 0.09, Color(col.lightened(0.3), 0.5))
+	for s in [-1.0, 1.0]:
+		ci.draw_line(Vector2(r * 0.6, s * r * 0.22), Vector2(r * 0.78, s * r * 0.34), leg, maxf(r * 0.05, 1.0), true)
+		_eye_pair(ci, Vector2(r * 0.8, s * r * 0.36), maxf(r * 0.13, 1.6), col, voodoo, false)
+
+## What the player looks like once a body plan is chosen: the real animal, no cell parts (owner 2026-10-29: "a green
+## lobster with the nucleus and mitochondria still showing is not ok").
+const PLAN_LOOK := {
+	"marlin": {"shape": "fish", "plan": {"len": 1.75, "hgt": 0.36, "tail": "fork", "pect": true, "dorsal": 2, "bill": true}},
+	"lionfish": {"shape": "fish", "plan": {"len": 1.25, "hgt": 0.62, "tail": "fan", "fans": true, "pect": true, "dorsal": 1}},
+	"puffer": {"shape": "fish", "plan": {"len": 1.05, "hgt": 0.9, "tail": "fan", "round": true, "pect": true}},
+	"crab": {"shape": "crab", "plan": {}},
+	"squid": {"shape": "squid", "plan": {}},
+	"eel": {"shape": "snake", "plan": {}},
+}
 
 static func _jelly(ci: CanvasItem, r: float, col: Color, plan: Dictionary, t: float, sd: float, lvl: int, voodoo: bool) -> void:
 	var pulse := 0.5 + 0.5 * sin(t * 3.0 + sd)
@@ -1078,6 +1125,14 @@ static func draw_player(ci: CanvasItem, c: Vector2, r: float, col: Color, headin
 	var col3: Color = st.get("col3", col.lightened(0.45))
 	var cell: float = st.get("cell", 1.0)
 	ci.draw_set_transform(c, heading, Vector2.ONE)
+	var plan_id: String = st.get("plan", "")
+	if plan_id != "" and PLAN_LOOK.has(plan_id):
+		if st.get("ailments", {}).has("glow"):
+			disc(ci, Vector2.ZERO, r * 2.6, Color(1, 1, 0.6, 0.10 + 0.05 * sin(t * 5.0)))
+		var look: Dictionary = PLAN_LOOK[plan_id]
+		_animal(ci, r, col, look.shape, look.plan, t, 0.0, int(st.get("lvl", 3)), voodoo)
+		_reset(ci)
+		return
 	var sides := 36 if r > 24.0 else 22
 	var pts := _blob(r, sides, t, 0.0)
 	for i in sides:

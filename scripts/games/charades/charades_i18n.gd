@@ -19,6 +19,7 @@ const STRINGS := {
 		"Classic": "Clásico",
 		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
+		"Crab": "Cangrejo",
 		"Don't waste time on a tough word — pass and come back to it next round.": "No pierdas tiempo con una palabra difícil — pasa y vuelve a ella en la próxima ronda.",
 		"Draws": "Empates",
 		"Earned": "Logrados",

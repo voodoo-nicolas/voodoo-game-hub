@@ -678,7 +678,7 @@
  "Counts for the leaderboard. Your last 3 ranked tests in each section count, so one lucky run can't carry you.": "Cuenta para el ranking. Cuentan tus últimos 3 tests ranked de cada sección, así que una partida con suerte no alcanza.",
  "Cow": null,
  "Cowboy": null,
- "Crab": null,
+ "Crab": "Cangrejo",
  "Crack the 4-colour code in 10 tries.\n● right colour & spot   ○ right colour, wrong spot": "Descifra el código de 4 colores en 10 intentos.\n● color y lugar correctos   ○ color correcto, lugar equivocado",
  "Crack the secret 4-colour code in 10 tries.": "Descifra el código secreto de 4 colores en 10 intentos.",
  "Cracked in %d tries!": "¡Descifrado en %d intentos!",
@@ -8120,5 +8120,16 @@
  "Full! Buy Growth in the 🧬 tree to grow": "¡Lleno! Compra Crecimiento en el árbol 🧬 para crecer",
  "learn one first": "aprende una antes",
  "Learn an ability in the evolution tree to put it on a button.": "Aprende una habilidad en el árbol de evolución para ponerla en un botón.",
- "Tap a button, then tap the ability to put on it:": "Toca un botón y luego la habilidad que quieres ponerle:"
+ "Tap a button, then tap the ability to put on it:": "Toca un botón y luego la habilidad que quieres ponerle:",
+ "Marlin": "Marlín",
+ "Eel": "Anguila",
+ "Body plan": "Cuerpo",
+ "Built for speed: a spear bill and a sickle tail. Faster than anything, but fragile.": "Hecho para la velocidad: pico de lanza y cola de hoz. Más rápido que nadie, pero frágil.",
+ "Spines all over and venom: biters get hurt. Slow.": "Espinas por todo el cuerpo y veneno: quien te muerde sale herido. Lento.",
+ "Looks harmless, until something bites: tough and poisonous. Weak at hunting.": "Parece inofensivo, hasta que algo lo muerde: resistente y venenoso. Flojo cazando.",
+ "A heavy shell and claws that grab. Very tough, but slow.": "Caparazón pesado y pinzas que agarran. Muy resistente, pero lento.",
+ "Tentacles, ink and tricks. Soft body, but hard to catch.": "Tentáculos, tinta y trucos. Cuerpo blando, pero difícil de atrapar.",
+ "A long snake-like body with electric shocks. Quick and slippery.": "Cuerpo largo como una serpiente con descargas eléctricas. Rápida y escurridiza.",
+ "Pick a body plan first (at size 3).": "Elige primero un cuerpo (en el tamaño 3).",
+ "You chose another body plan.": "Elegiste otro cuerpo."
 }

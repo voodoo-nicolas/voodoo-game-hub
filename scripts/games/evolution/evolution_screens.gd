@@ -277,7 +277,7 @@ func _draw_portrait() -> void:
 	var st := {
 		"move_rank": engine.move_rank, "sight_rank": engine.sight_rank, "eye_open": 1.0,
 		"owned": engine.owned, "specials": engine.specials, "ailments": engine.ailments,
-		"speed": 0.15, "voodoo": voodoo, "col2": col2, "col3": col3,
+		"speed": 0.15, "voodoo": voodoo, "col2": col2, "col3": col3, "plan": engine.plan(), "lvl": engine.level(),
 	}
 	Art.draw_player(_portrait, s / 2.0 + Vector2(r * 0.6, 0), r, color, 0.0, _t, st)
 
@@ -383,6 +383,10 @@ func _refresh_detail() -> void:
 	_detail.text = txt
 	if state == "maxed":
 		_buy_btn.text = tr("Maxed")
+		_buy_btn.disabled = true
+	elif state == "plan" or state == "closed":
+		_detail.text += "\n" + (tr("Pick a body plan first (at size 3).") if state == "plan" else tr("You chose another body plan."))
+		_buy_btn.text = tr("Buy for %d DNA") % engine.cost_of(_sel)
 		_buy_btn.disabled = true
 	elif state == "stage":
 		_detail.text += "\n" + tr("Grow to %s to evolve it.") % tr(EvEngine.STAGES[int(n.stage)][1])

@@ -193,7 +193,7 @@ const LEVEL_CAP := 10
 ## (engine STAGES index) needed, x / y = place on the tree screen in grid cells.
 ## `ability` nodes are actives (used on command, they spend the blue power bar; more points make them
 ## cheaper, longer, stronger). A node whose prerequisites are not owned shows "?".
-const BRANCH_ORDER := ["offense", "sense", "move", "defense", "habitat", "growth"]
+const BRANCH_ORDER := ["offense", "sense", "move", "defense", "habitat", "growth", "plan"]
 const BRANCH := {
 	"offense": {"name": "Offense", "col": Color("ff6a4a")},
 	"sense": {"name": "Senses", "col": Color("29e6ff")},
@@ -201,6 +201,7 @@ const BRANCH := {
 	"defense": {"name": "Defense", "col": Color("6aa8ff")},
 	"habitat": {"name": "Habitat", "col": Color("c48bff")},
 	"growth": {"name": "Growth", "col": Color("ffd23a")},
+	"plan": {"name": "Body plan", "col": Color("ff8fd0")},
 }
 const NODES := [
 	{"id": "burst", "branch": "offense", "x": 1, "y": 1.5, "max": 3, "cost": 1, "stage": 1, "req": [], "name": "Jump boost", "desc": "A short burst of speed to catch your next meal. Costs power.", "ability": true},
@@ -250,8 +251,30 @@ const NODES := [
 	# Growth (owner 2026-10-29: "a DNA tree branch for the size, where you have to spend a good amount of points to grow"):
 	# eating fills the gold bar, but you only reach size 3 and up by buying this. Rank r lets you grow to size 2 + r
 	# (engine `size_cap`); 8 ranks = size 10. 6 + 7 + ... + 13 = 76 DNA in all.
+	# Body plan (owner 2026-10-29: "a body plan decides which abilities you can even see"): at size 3 pick ONE; the
+	# others close, and traits that do not belong to your plan are hidden (NODE_PLANS; no entry = every plan).
+	{"id": "plan_marlin", "branch": "plan", "x": 1, "y": 20.0, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Marlin", "desc": "Built for speed: a spear bill and a sickle tail. Faster than anything, but fragile.", "ability": false, "excl": "plan"},
+	{"id": "plan_lionfish", "branch": "plan", "x": 1, "y": 21.2, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Lionfish", "desc": "Spines all over and venom: biters get hurt. Slow.", "ability": false, "excl": "plan"},
+	{"id": "plan_puffer", "branch": "plan", "x": 1, "y": 22.4, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Pufferfish", "desc": "Looks harmless, until something bites: tough and poisonous. Weak at hunting.", "ability": false, "excl": "plan"},
+	{"id": "plan_crab", "branch": "plan", "x": 1, "y": 23.6, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Crab", "desc": "A heavy shell and claws that grab. Very tough, but slow.", "ability": false, "excl": "plan"},
+	{"id": "plan_squid", "branch": "plan", "x": 1, "y": 24.8, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Squid", "desc": "Tentacles, ink and tricks. Soft body, but hard to catch.", "ability": false, "excl": "plan"},
+	{"id": "plan_eel", "branch": "plan", "x": 1, "y": 26.0, "max": 1, "cost": 4, "stage": 2, "req": [], "name": "Eel", "desc": "A long snake-like body with electric shocks. Quick and slippery.", "ability": false, "excl": "plan"},
 	{"id": "growth", "branch": "growth", "x": 1, "y": 18.0, "max": 8, "cost": 6, "stage": 0, "req": [], "name": "Growth", "desc": "Your body can grow one size bigger. Without this you stop growing, however much you eat.", "ability": false},
 ]
+
+## Which body plans may have a trait; a trait that is not listed is open to every plan.
+const NODE_PLANS := {
+	"spit": ["lionfish", "puffer", "squid"], "jaws": ["marlin", "crab", "eel"], "harpoon": ["marlin", "squid"],
+	"lure": ["lionfish", "eel"], "shock": ["eel"], "tentacles": ["squid"], "stinger": ["squid", "lionfish"],
+	"suction": ["squid"], "grab": ["squid", "crab"],
+	"flagella": ["marlin", "eel", "squid"], "streamlined": ["marlin", "eel"], "cilia": ["puffer", "squid"],
+	"spikes": ["lionfish", "puffer", "crab"], "warning": ["lionfish", "puffer"], "slime": ["eel", "puffer", "squid"],
+	"ink": ["squid"], "shell": ["crab"], "poison_skin": ["lionfish", "puffer"], "camo": ["squid", "eel"],
+	"decoy": ["squid", "eel"], "spine": ["lionfish", "puffer"], "limb": ["crab", "squid"],
+}
+## Body plan passives: speed and health multipliers.
+const PLAN_SPEED := {"marlin": 1.12, "lionfish": 0.92, "puffer": 0.95, "crab": 0.85, "squid": 1.0, "eel": 1.05}
+const PLAN_HP := {"marlin": 0.8, "lionfish": 0.95, "puffer": 1.25, "crab": 1.5, "squid": 0.9, "eel": 1.0}
 
 ## The actives, in the order they are offered. cost = power points (of POWER_MAX), time = seconds of
 ## effect (0 = instant), radius = world units. kind: "off" fits the offensive button, "def" the defensive
