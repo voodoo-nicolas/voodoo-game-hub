@@ -94,6 +94,9 @@ const TUNING := {
 	"regen_rank": 0.35,         # extra hp per second per point of regeneration
 	"regen_delay": 3.0,
 	"spikes_mult": 0.7,
+	"slippery_mult": 0.8,
+	"coil_bonus": 0.08,
+	"overcharge_step": 0.5,
 	"armor_mult": 0.7,
 	"brittle_mult": 1.6,
 	"slow_heal_mult": 0.25,
@@ -452,7 +455,7 @@ func clarity() -> int:
 func move_mult() -> float:
 	var m: float = Data.MOVE_MULT[clampi(move_rank, 0, Data.MOVE_MULT.size() - 1)]
 	if move_rank >= 1:
-		m += t("fins_bonus") * rank_of("fins") + (t("streamlined_bonus") if has("streamlined") else 0.0)
+		m += t("fins_bonus") * rank_of("fins") + (t("streamlined_bonus") if has("streamlined") else 0.0) + t("coil_bonus") * rank_of("coil")
 	return m * float(Data.PLAN_SPEED.get(plan(), 1.0))
 
 ## How close your swimming speed is to the best a body can have (0..100): all tail ranks, 2 fins, streamlined.
@@ -888,7 +891,7 @@ func use_ability(id: String) -> bool:
 			var stunned := 0
 			for n in npcs:
 				if n.pos.distance_to(player.pos) < rad:
-					n["stun"] = dur
+					n["stun"] = dur * (1.0 + t("overcharge_step") * float(rank_of("overcharge")) if id == "shock" else 1.0)
 				if float(n.get("stun", 0.0)) > 0.0:
 					stunned += 1
 			max_stunned = maxi(max_stunned, stunned)
@@ -1246,6 +1249,7 @@ func _resolve(delta: float) -> void:
 				dmg *= pow(t("spikes_mult"), rank_of("spikes"))
 			if has("shell"):
 				dmg *= t("shell_mult")
+				dmg *= pow(t("slippery_mult"), rank_of("slippery"))
 			if has("slime"):
 				n["slow"] = t("slime_slow")
 			if specials.has("armor"):

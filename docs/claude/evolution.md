@@ -52,3 +52,5 @@ Size 2 ~10 min, size 3 +20, size 4 +30 (normal; table sized from a greedy bot at
 - New traits with effects: Left / Right claw arm (`claw_step` 0.03 each lower the eat ratio, on top of Strong jaws; Decoy clone needs both), Speed boost (`rush`, active, 50 power, 4 s, `rush_mult` 1.6 on top of the dash). NOT built: Speed boost does not kill what it touches (the owner's first wording), the claws have no animation or grab of their own, Eel only has Electric shock behind it.
 - Pack/app: `size` is read with `n.get("size", 0)`, so an older pack is unaffected; this is a pack change only (tree + engine are in the pack).
 
+
+Eel branch (owner OK 2026-10-30): behind the Eel, besides Electric shock: Slippery skin (-20% bite damage per rank, max 2), Coiling swim (+0.08 speed per rank, max 2), Overcharge (needs Shock 2; shock stun +50% per rank, max 2). TUNING `slippery_mult`, `coil_bonus`, `overcharge_step`.

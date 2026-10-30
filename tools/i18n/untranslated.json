@@ -552,6 +552,9 @@
  "godotengine.org (full licence text and engine third-party notices: Options > Credits & licences)": [
   "scripts\\common\\third_party.gd"
  ],
+ "growth_%d": [
+  "scripts\\games\\evolution\\evolution_engine.gd"
+ ],
  "in the menus": [
   "scripts\\hub\\hub.gd"
  ],

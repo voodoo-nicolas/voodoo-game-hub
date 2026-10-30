@@ -1081,6 +1081,22 @@ func _growth_and_species() -> void:
 	cw.owned["claw_left"] = 1
 	cw.owned["claw_right"] = 1
 	check(cw.eat_ratio() < ratio0 - 0.05, "both claws let you eat bigger prey (%.2f -> %.2f)" % [ratio0, cw.eat_ratio()])
+	# Eel traits (owner 2026-10-30): hidden behind another plan, Coiling swim is faster, Slippery skin is a real cut, Overcharge lengthens the stun
+	var el := Ev.new()
+	el.reset(17)
+	check(el.node_state("slippery") != "available" and el.node_state("coil") != "available", "Eel traits locked without the Eel")
+	el.owned["plan_eel"] = 1
+	el._recompute_ranks()
+	check(el.node_hidden("slippery") == false and el.node_hidden("overcharge") == false, "Eel traits show for the Eel")
+	el.move_rank = 3
+	var mv0: float = el.move_mult()
+	el.owned["coil"] = 2
+	check(el.move_mult() > mv0 + 0.15, "Coiling swim adds speed")
+	var fi := Ev.new()
+	fi.reset(18)
+	fi.owned["plan_marlin"] = 1
+	fi._recompute_ranks()
+	check(fi.node_hidden("slippery") and fi.node_hidden("coil") and fi.node_hidden("overcharge"), "another plan hides the Eel traits")
 	var rs := Ev.new()
 	rs.reset(16)
 	rs.move_rank = 3
