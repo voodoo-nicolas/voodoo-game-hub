@@ -122,6 +122,7 @@ func _init() -> void:
 			check(int(sp.tier) >= 3, "predators only from stage 3: " + sp.id)
 	check(tiers.has(1) and tiers.has(2) and tiers.has(3) and tiers.has(4), "creatures at every stage")
 	var e := Ev.new()
+	e.plan_rules = false      # these tests buy any trait; the body-plan rules have their own tests
 	# --- Start: blind, no tail, no bars, no hostiles, no buttons
 	e.reset(1)
 	check(e.move_rank == 0 and e.sight_rank == 1 and not e.has_bars(), "starts as a blind blob with no tail")

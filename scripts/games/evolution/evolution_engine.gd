@@ -130,6 +130,7 @@ const STAGES := [[0.0, "Spore"], [14.0, "Microbe"], [30.0, "Amoeba"], [62.0, "Hu
 
 var rng := RandomNumberGenerator.new()
 var difficulty := "normal"
+var plan_rules := true     # false: every trait is open to every plan (the old trait tests)
 var _cap_sent := false      # the "spend DNA on Growth" message was sent for this cap
 var player := {"pos": Vector2.ZERO, "vel": Vector2.ZERO, "mass": 0.0, "hp": 0.0}
 var food: Array = []      # Vector2
@@ -1395,7 +1396,7 @@ func plan() -> String:
 ## A trait your body plan does not have: not shown and not buyable.
 func node_hidden(id: String) -> bool:
 	var p := plan()
-	return p != "" and Data.NODE_PLANS.has(id) and not Data.NODE_PLANS[id].has(p)
+	return plan_rules and p != "" and Data.NODE_PLANS.has(id) and not Data.NODE_PLANS[id].has(p)
 
 func reqs_met(id: String) -> bool:
 	var n := Data.node_of(id)
@@ -1426,7 +1427,7 @@ func node_state(id: String) -> String:
 		return "locked"
 	if n.has("excl") and plan() != "" and r == 0:
 		return "closed"                 # you chose another body plan
-	if Data.NODE_PLANS.has(id) and plan() == "" and r == 0:
+	if plan_rules and Data.NODE_PLANS.has(id) and plan() == "" and r == 0:
 		return "plan"                   # pick a body plan first
 	if not reqs_met(id):
 		return "locked" if r == 0 else "owned"
