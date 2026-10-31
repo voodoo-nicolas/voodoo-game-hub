@@ -170,7 +170,11 @@ func _build_ui() -> void:
 
 	var viewport_width: float = get_viewport_rect().size.x
 	var available: float = viewport_width - BOARD_OUTER_MARGIN * 2.0 - BOARD_PADDING * 2.0
+	# Height also limits the board (PC / landscape): top bar ~104 + score and hint ~100 + separations ~64 + margins.
+	var available_h: float = get_viewport_rect().size.y - 104.0 - 100.0 - 64.0 - BOARD_PADDING * 2.0 - 24.0
+	available = minf(available, available_h)
 	tile_size = floor((available - BOARD_SEPARATION * (G2048Engine.SIZE - 1)) / G2048Engine.SIZE)
+	tile_size = maxf(tile_size, 40.0)
 
 	var board_panel := PanelContainer.new()
 	var board_sb := StyleBoxFlat.new()
