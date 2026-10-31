@@ -13,6 +13,7 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const HomeKit = preload("res://scripts/games/sky_raider/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+const SoundLib = preload("res://scripts/games/sky_raider/sound_lib.gd")
 const HELP := preload("res://scripts/games/sky_raider/sky_raider_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://sky_raider_save.json"
@@ -23,9 +24,11 @@ const DART := Color("ff2bd6")
 const GUNSHIP := Color("ff4f9a")
 const TURRET := Color("9b4dff")
 const BOMBER := Color("ffae2b")
-const SHOT := Color("7dff3a")
+const SHOT := Color("5ad8ff")
 const BULLET := Color("ff4f9a")
-const LAND := Color("3a8cff")
+const LAND := Color("9b7aff")   # asteroids (was the island rim)
+const ENEMY_GREEN := Color("7dff3a")
+const ENEMY_RED := Color("ff3b3b")
 ## Each stage's battleship has its own colour (it gets tougher every time).
 const BOSS_COLORS := [Color("ffae2b"), Color("ff2bd6"), Color("9b4dff"), Color("ff3b3b"), Color("29e6ff"), Color("7dff3a")]
 const STEER := 1.3
@@ -42,6 +45,8 @@ var banner_t: float = 0.0
 var sparks: Array = []   # [world pos, vel, life, color]
 var flash_t: float = 0.0
 var anim_t: float = 0.0
+var nebula: ImageTexture
+var stars: Array = []   # [x 0..1, y 0..1, depth 0.2..1]
 
 var field: Control
 var score_label: Label
@@ -55,6 +60,7 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = SrEngine.new()
 	engine.reset(1)
+	_make_nebula()
 	_build_ui()
 	# Get the first stage's and the battleship's music ready while Home shows.
 	_music("prepare", "lively", 0)
@@ -266,7 +272,7 @@ func _update_hud() -> void:
 
 func _on_bomb() -> void:
 	if started and engine.bomb():
-		_sfx("explode")
+		SoundLib.play(self, "scifi/low_frequency_explosion")
 		flash_t = 0.4
 		for i in 70:
 			sparks.append([engine.pos, Vector2.RIGHT.rotated(randf() * TAU) * randf_range(200, 900), randf_range(0.4, 1.0), BOMBER if i % 2 else HomeKit.WHITE])
@@ -311,18 +317,22 @@ func _process(delta: float) -> void:
 	for e in ev:
 		match e:
 			"kill", "big_kill":
-				_sfx("explode")
+				if e == "big_kill":
+					SoundLib.play(self, "scifi/low_frequency_explosion", -4.0)
+				else:
+					SoundLib.play(self, "scifi/explosion_crunch", -4.0)
 				if info:
 					info.add("Planes shot down")
 			"hit":
-				_sfx("hit")
+				SoundLib.play(self, "scifi/impact_metal", -8.0)
 			"hurt":
+				SoundLib.play(self, "scifi/force_field", -2.0)
 				_sfx("lose")
 				_buzz()
 				_burst(engine.pos, PLAYER, 40)
 				flash_t = 0.25
 			"crash":
-				_sfx("explode")
+				SoundLib.play(self, "scifi/impact_metal")
 				_burst(engine.pos, LAND, 30)
 			"power":
 				_sfx("powerup")
@@ -337,8 +347,9 @@ func _process(delta: float) -> void:
 				flash_t = 0.2
 				_burst(boss_p, _boss_color(), 50)
 			"laser":
-				_sfx("shoot")
+				SoundLib.play(self, "scifi/laser_large")
 			"boss_down":
+				SoundLib.play(self, "scifi/low_frequency_explosion")
 				_sfx("win")
 				_burst(boss_p, _boss_color(), 120)
 				_music("play", "lively", engine.stage, 2.0)  # the next stage's track
@@ -356,6 +367,7 @@ func _process(delta: float) -> void:
 		for o in before:
 			if not engine.enemies.has(o):
 				_burst(o.p, _enemy_color(o.kind), 30 if o.kind == "bomber" else 16)
+				_burst(o.p, BOMBER, 14 if o.kind == "bomber" else 8)   # orange fireball
 	if not ev.is_empty():
 		_update_hud()
 	field.queue_redraw()
@@ -386,7 +398,7 @@ func _geom() -> Dictionary:
 	return {"k": k, "o": o}
 
 func _enemy_color(kind: String) -> Color:
-	return {"dart": DART, "gunship": GUNSHIP, "turret": TURRET, "bomber": BOMBER}.get(kind, DART)
+	return {"dart": ENEMY_GREEN, "gunship": Color("c8ff3a"), "turret": TURRET, "bomber": BOMBER}.get(kind, ENEMY_GREEN)
 
 func _draw_field() -> void:
 	var g := _geom()
@@ -395,17 +407,16 @@ func _draw_field() -> void:
 	var c := field
 	var s := field.size
 	c.draw_rect(Rect2(Vector2.ZERO, s), Color(0.01, 0.02, 0.05))
-	# Sea grid scrolling down, islands drifting with it.
-	var step := 80.0 * k
-	var off := fmod(engine.scrolled * k, step)
-	var y := off - step
-	while y < s.y:
-		c.draw_line(Vector2(0, y), Vector2(s.x, y), Color(LAND, 0.09), 1.0)
-		y += step
-	var x := fmod(o.x, step)
-	while x < s.x:
-		c.draw_line(Vector2(x, 0), Vector2(x, s.y), Color(LAND, 0.07), 1.0)
-		x += step
+	# Deep space: a nebula scrolling down slowly with two layers of stars (the Landing picture).
+	if nebula != null:
+		var nh := s.y * 1.6
+		var noff := fmod(engine.scrolled * k * 0.15, nh)
+		for j in 3:
+			c.draw_texture_rect(nebula, Rect2(Vector2(0, noff + (j - 1) * nh), Vector2(s.x, nh)), false, Color(1, 1, 1, 0.5))
+	for st in stars:
+		var sy := fmod(st[1] * s.y + engine.scrolled * k * st[2] * 0.6, s.y)
+		var sz: float = 1.0 + st[2] * 1.6
+		c.draw_rect(Rect2(Vector2(st[0] * s.x, sy), Vector2(sz, sz)), Color(1, 1, 1, 0.3 + st[2] * 0.5))
 	# Islands are solid (since v8): a bright rim and contour lines, like a
 	# mountain seen from above. One you crashed into goes dark (harmless).
 	for isl in engine.islands:
@@ -413,7 +424,7 @@ func _draw_field() -> void:
 		var pts := PackedVector2Array()
 		for p in isl.pts:
 			pts.append(o + (isl.p + p) * k)
-		c.draw_colored_polygon(pts, Color(0.02, 0.04, 0.07) if crashed else Color(0.04, 0.1, 0.18))
+		c.draw_colored_polygon(pts, Color(0.04, 0.03, 0.08) if crashed else Color(0.1, 0.07, 0.2))
 		HomeKit.glow_polyline(c, pts, Color(LAND, 0.25 if crashed else 0.9), 2.0, true)
 		for ring in [0.66, 0.33]:
 			var inner := PackedVector2Array()
@@ -463,13 +474,39 @@ func _draw_player(c: CanvasItem, p: Vector2, k: float) -> void:
 	for v in [Vector2(0, -30), Vector2(7, -10), Vector2(28, 8), Vector2(28, 14), Vector2(8, 10), Vector2(10, 24), Vector2(0, 20),
 			Vector2(-10, 24), Vector2(-8, 10), Vector2(-28, 14), Vector2(-28, 8), Vector2(-7, -10)]:
 		pts.append(p + v * k)
-	c.draw_colored_polygon(pts, Color(PLAYER.darkened(0.6), 0.7))
+	c.draw_colored_polygon(pts, Color("2a1260"))
 	HomeKit.glow_polyline(c, pts, PLAYER, 2.0, true)
+	# Orange wing trim and big glowing twin engines, like the Landing picture.
 	for sd in [-1.0, 1.0]:
-		HomeKit.glow_line(c, p + Vector2(sd * 5, 22) * k, p + Vector2(sd * 5, 22 + randf_range(8, 18)) * k, BOMBER, 2.0)
+		c.draw_line(p + Vector2(sd * 7, -10) * k, p + Vector2(sd * 28, 8) * k, BOMBER, 2.0)
+		var eng := p + Vector2(sd * 5, 22) * k
+		c.draw_circle(eng, 6.0 * k, Color(HomeKit.PINK, 0.5))
+		HomeKit.glow_line(c, eng, eng + Vector2(0, randf_range(14, 28)) * k, BOMBER, 3.0)
+		c.draw_circle(eng, 3.0 * k, HomeKit.WHITE)
 	# The hitbox: only this dot counts for bullets.
 	c.draw_circle(p, 4.0 * k, HomeKit.WHITE)
 	c.draw_arc(p, SrEngine.PLAYER_HIT * k, 0, TAU, 20, Color(1, 1, 1, 0.35), 1.0)
+
+func _make_nebula() -> void:
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.fractal_octaves = 4
+	noise.frequency = 0.014
+	noise.seed = 21
+	var img: Image = noise.get_seamless_image(144, 256)
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.4, 0.55, 0.7, 0.85, 1.0])
+	grad.colors = PackedColorArray([Color("03030f"), Color("120838"), Color("3c1a8a"), Color("1d56b4"), Color("a02a9a"), Color("e0602a")])
+	for y in img.get_height():
+		for x in img.get_width():
+			var v: float = img.get_pixel(x, y).r
+			var col: Color = grad.sample(v)
+			img.set_pixel(x, y, Color(col.r, col.g, col.b, clampf((v - 0.3) * 1.8, 0.0, 1.0)))
+	nebula = ImageTexture.create_from_image(img)
+	var r := RandomNumberGenerator.new()
+	r.seed = 5
+	for i in 70:
+		stars.append([r.randf(), r.randf(), r.randf_range(0.2, 1.0)])
 
 func _draw_enemy(c: CanvasItem, p: Vector2, k: float, e: Dictionary) -> void:
 	var col: Color = _enemy_color(e.kind) if e.hit <= 0.0 else HomeKit.WHITE
@@ -492,8 +529,16 @@ func _draw_enemy(c: CanvasItem, p: Vector2, k: float, e: Dictionary) -> void:
 			for v in [Vector2(0, 46), Vector2(-16, 26), Vector2(-70, 14), Vector2(-74, -4), Vector2(-18, -6), Vector2(-12, -40),
 					Vector2(12, -40), Vector2(18, -6), Vector2(74, -4), Vector2(70, 14), Vector2(16, 26)]:
 				pts.append(p + v * k)
-	c.draw_colored_polygon(pts, Color(col.darkened(0.7), 0.7))
+	c.draw_colored_polygon(pts, Color(col.darkened(0.7), 0.8))
 	HomeKit.glow_polyline(c, pts, col, 2.0, true)
+	if e.kind != "turret":
+		# Red inner trim and an orange exhaust streaming up behind it.
+		var inner := PackedVector2Array()
+		for q in pts:
+			inner.append(p + (q - p) * 0.55)
+		c.draw_polyline(PackedVector2Array(inner) + PackedVector2Array([inner[0]]), Color(ENEMY_RED, 0.8), 1.2)
+		var back: float = {"dart": 14.0, "gunship": 24.0, "bomber": 38.0}.get(e.kind, 14.0)
+		HomeKit.glow_line(c, p + Vector2(0, -back) * k, p + Vector2(0, -back - randf_range(14, 30)) * k, BOMBER, 3.0)
 	if e.kind == "turret":
 		HomeKit.glow_circle(c, p, 9.0 * k, col, 1.5)
 	elif e.kind == "bomber":
