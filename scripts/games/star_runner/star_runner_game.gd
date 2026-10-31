@@ -13,6 +13,7 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const HomeKit = preload("res://scripts/games/star_runner/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+const SoundLib = preload("res://scripts/games/star_runner/sound_lib.gd")
 const HELP := preload("res://scripts/games/star_runner/star_runner_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://star_runner_save.json"
@@ -42,6 +43,7 @@ var banner_t: float = 0.0
 var sparks: Array = []        # [screen pos, vel, life, color]
 var stars: Array = []         # [x, y, z]
 var anim_t: float = 0.0
+var nebula: ImageTexture
 
 var field: Control
 var score_label: Label
@@ -56,6 +58,7 @@ func _ready() -> void:
 	engine.reset(1)
 	for i in 90:
 		stars.append([randf_range(-8, 8), randf_range(-6, 6), randf_range(1, 60)])
+	_make_nebula()
 	_build_ui()
 	_music("techno")
 
@@ -306,14 +309,16 @@ func _process(delta: float) -> void:
 	var ev: Array = engine.step(delta)
 	for e in ev:
 		match e:
+			"fire":
+				SoundLib.play(self, "scifi/laser_retro", -16.0)
 			"kill":
-				_sfx("explode")
+				SoundLib.play(self, "scifi/explosion_crunch", -4.0)
 				if info:
 					info.add("Enemies shot down")
 			"hit", "boss_hit":
-				_sfx("hit")
+				SoundLib.play(self, "scifi/impact_metal", -6.0)
 			"hurt":
-				_sfx("hit")
+				SoundLib.play(self, "scifi/force_field", -2.0)
 				_buzz()
 			"ring":
 				_sfx("pickup")
@@ -323,6 +328,7 @@ func _process(delta: float) -> void:
 				_sfx("buzzer")
 				_show_banner(tr("Warning: boss!"))
 			"boss_down":
+				SoundLib.play(self, "scifi/low_frequency_explosion")
 				_sfx("win")
 				_burst(_proj(Vector3(boss_before.get("x", 0.0), boss_before.get("y", 0.0), boss_before.get("z", 22.0))), ENEMY, 80)
 				if info:
@@ -332,6 +338,7 @@ func _process(delta: float) -> void:
 				_show_banner(tr("Stage clear!"), PAUSE_AFTER)
 				after = PAUSE_AFTER
 			"dead":
+				SoundLib.play(self, "scifi/low_frequency_explosion")
 				_sfx("lose")
 				_burst(_proj(Vector3(engine.ship.x, engine.ship.y, 0.0)), SHIP, 50)
 				_show_banner(tr("Ship lost!") if engine.ships > 0 else tr("Game over!"), PAUSE_AFTER)
@@ -394,6 +401,15 @@ func _draw_field() -> void:
 	var lk: String = engine.look()
 	var gc: Color = LOOK_COLORS[lk]
 	c.draw_rect(Rect2(Vector2.ZERO, s), Color(0.01, 0.01, 0.035))
+	if nebula != null:
+		# Slowly drifting nebula (two copies side by side so it tiles), dimmer in the belt.
+		var nw := maxf(s.x, s.y * 1.78)
+		var off := fmod(anim_t * 5.0, nw)
+		var na := 0.45 if lk != "belt" else 0.3
+		for k in 2:
+			c.draw_texture_rect(nebula, Rect2(Vector2(k * nw - off, 0), Vector2(nw, s.y * 0.75)), false, Color(1, 1, 1, na))
+		if lk != "belt":
+			_draw_planet(c, Vector2(s.x * 0.8, s.y * 0.17), minf(s.x, s.y) * 0.1)
 	# Stars.
 	for st in stars:
 		var p := _proj(Vector3(st[0], st[1] - 3.0, st[2]))
@@ -469,6 +485,34 @@ func _draw_field() -> void:
 	if banner_t > 0.0:
 		HomeKit.glow_text(c, Vector2(s.x / 2.0, s.y * 0.22), banner, int(clampf(s.x / 16.0, 24, 44)), HomeKit.WHITE)
 
+func _make_nebula() -> void:
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.fractal_octaves = 4
+	noise.frequency = 0.012
+	noise.seed = 7
+	var img: Image = noise.get_seamless_image(256, 144)
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.35, 0.5, 0.65, 0.8, 1.0])
+	grad.colors = PackedColorArray([Color("050518"), Color("1a0a4a"), Color("5a1f9a"), Color("0f7a8a"), Color("c0308a"), Color("ff9a3a")])
+	for y in img.get_height():
+		for x in img.get_width():
+			var v: float = img.get_pixel(x, y).r
+			var col: Color = grad.sample(v)
+			img.set_pixel(x, y, Color(col.r, col.g, col.b, clampf(v * 1.6, 0.0, 1.0)))
+	nebula = ImageTexture.create_from_image(img)
+
+## A ringed planet, like the Landing picture.
+func _draw_planet(c: CanvasItem, p: Vector2, r: float) -> void:
+	c.draw_circle(p, r, Color(0.05, 0.08, 0.2, 0.95))
+	c.draw_circle(p + Vector2(-r * 0.25, -r * 0.25), r * 0.7, Color(0.1, 0.25, 0.4, 0.5))
+	HomeKit.glow_circle(c, p, r, HomeKit.CYAN, 1.5, 0.3)
+	var ring := PackedVector2Array()
+	for i in 41:
+		var a := TAU * i / 40.0
+		ring.append(p + Vector2(cos(a) * r * 1.9, sin(a) * r * 0.45).rotated(-0.35))
+	c.draw_polyline(ring, Color(HomeKit.CYAN, 0.6), 2.0, true)
+
 func _draw_object(c: CanvasItem, o: Dictionary) -> void:
 	var z: float = o.z
 	if z < -1.8:
@@ -486,8 +530,10 @@ func _draw_object(c: CanvasItem, o: Dictionary) -> void:
 			var pts := PackedVector2Array()
 			for v in [Vector2(0, -0.35), Vector2(1, 0.15), Vector2(0.25, 0.05), Vector2(0, 0.45), Vector2(-0.25, 0.05), Vector2(-1, 0.15)]:
 				pts.append(p + (v as Vector2).rotated(bank) * r)
-			c.draw_colored_polygon(pts, Color(col.darkened(0.7), 0.5 * fog))
+			c.draw_colored_polygon(pts, Color(col.darkened(0.55), 0.7 * fog))
 			HomeKit.glow_polyline(c, pts, col, w, true)
+			# Orange engine glow behind it, like the Landing picture.
+			c.draw_line(p + Vector2(0, -r * 0.2).rotated(bank), p + Vector2(0, -r * (0.7 + 0.2 * sin(anim_t * 20.0 + o.x0 * 9.0))).rotated(bank), Color(SHOT, fog), w * 1.6)
 			if o.kind == "ace":
 				HomeKit.glow_circle(c, p, r * 0.3, col, w)
 			c.draw_circle(p + Vector2(0, r * 0.05), r * 0.08, Color(1, 1, 1, fog))
