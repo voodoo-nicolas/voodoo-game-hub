@@ -50,6 +50,7 @@ func _ready() -> void:
 	engine = BcEngine.new()
 	_build_ui()
 	engine.reset(1)
+	_music("lively")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -152,6 +153,7 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": GIRDER,
+		"art": "res://games/barrel_climb/landing_bg.jpg",
 		"solo_heading": "Play",
 		"subtitle": "The Bone King has the doll. Dodge the barrels, climb to the top.",
 		"logo": _draw_home_logo,
@@ -553,3 +555,10 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+## The hub's shared music library (Music autoload, apps from v0.33; older
+## ones play no music).
+func _music(style: String) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play(style, self, 0, 1.5)

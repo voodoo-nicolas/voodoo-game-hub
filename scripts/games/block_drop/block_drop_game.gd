@@ -58,6 +58,7 @@ func _ready() -> void:
 		board_size = clampi(int(prefs.get("board", 0)), 0, BOARDS.size() - 1)
 	_build_ui()
 	engine.reset()
+	_music("lively")
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -397,6 +398,7 @@ func _build_home() -> void:
 		"help": preload("res://scripts/games/block_drop/block_drop_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,
+		"art": "res://games/block_drop/landing_bg.jpg",
 		"subtitle": "Fill whole rows to clear them. Tap to rotate, drag to move, flick down to drop.",
 		"logo": _draw_home_logo,
 		"extra": _add_board_picker,
@@ -496,3 +498,10 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+## The hub's shared music library (Music autoload, apps from v0.33; older
+## ones play no music).
+func _music(style: String) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play(style, self, 0, 1.5)

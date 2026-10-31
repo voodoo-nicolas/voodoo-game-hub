@@ -33,6 +33,7 @@ func _ready() -> void:
 		best = int(data.get("best", 0))
 	_build_ui()
 	_start()  # frozen behind the Home screen until Play
+	_music("lively")
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -213,6 +214,7 @@ func _build_home() -> void:
 		"help": preload("res://scripts/games/bird_hop/bird_hop_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,
+		"art": "res://games/bird_hop/landing_bg.jpg",
 		"subtitle": "Tap to flap. Slip through the gaps.",
 		"logo": _draw_home_logo,
 		"modes": [{"text": "▶  Play", "sub": "Tap anywhere to fly", "action": _start}],
@@ -248,3 +250,10 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+## The hub's shared music library (Music autoload, apps from v0.33; older
+## ones play no music).
+func _music(style: String) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play(style, self, 0, 1.5)

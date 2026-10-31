@@ -98,3 +98,5 @@ not apply). Generic pool hall and tables, no brand on them.
   laid them out again at 2:1 with six pockets and regulation diamonds:
   `games/pool/table_classic.jpg`, `games/pool/table_voodoo.jpg` (934x1734,
   JPEG q86).
+
+- **2026-10-31 Landing backgrounds** (owner, from `D:/dev/minigame art/`; AI tool not recorded, ask owner): Star Runner, Sky Strike (replaces the nebula), Bird Hop, Block Drop, Barrel Climb. Sources kept in `reference/art/games/<id>_landing_src.jpg`; shipped as `games/<id>/landing_bg.jpg` (JPEG q84; Barrel Climb = middle panel of the 3-panel picture, upscaled 2x).

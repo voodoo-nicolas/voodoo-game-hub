@@ -301,14 +301,14 @@
   },
   {
    "file": "games/sky_raider/landing_bg.jpg",
-   "what": "Sky Strike Landing background (cyan / red nebula, black hole)",
-   "source": "reference/art/games/neon_blast_bg_src.jpg",
+   "what": "Sky Strike Landing background (owner picture, 2026-10-31)",
+   "source": "reference/art/games/sky_raider_landing_src.jpg",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
    "proof": "media/licenses/OWNER_GAME_ART.md",
    "url": "",
-   "date": "2026-10-07",
-   "ai_tool": "ChatGPT (owner, 2026-10-07)",
+   "date": "2026-10-31",
+   "ai_tool": "owner AI tool (not recorded; ask owner)",
    "ai_plan": "ChatGPT Free (OpenAI terms: the user owns outputs, commercial use allowed)",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
   },
@@ -3601,6 +3601,58 @@
    "ai_tool": "Google Gemini (owner's account)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "re-saved as WebP q88 (Claude Code)"
+  },
+  {
+   "file": "games/star_runner/landing_bg.jpg",
+   "what": "Star Runner (neon fighter vs alien swarm) Landing background",
+   "source": "reference/art/games/star_runner_landing_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-31",
+   "ai_tool": "owner AI tool (not recorded; ask owner)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/bird_hop/landing_bg.jpg",
+   "what": "Bird Hop (neon bird and pipes) Landing background",
+   "source": "reference/art/games/bird_hop_landing_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-31",
+   "ai_tool": "owner AI tool (not recorded; ask owner)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/block_drop/landing_bg.jpg",
+   "what": "Block Drop Landing background",
+   "source": "reference/art/games/block_drop_landing_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-31",
+   "ai_tool": "owner AI tool (not recorded; ask owner)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/barrel_climb/landing_bg.jpg",
+   "what": "Barrel Climb (middle panel of the owner's 3-panel picture, upscaled 2x) Landing background",
+   "source": "reference/art/games/barrel_climb_landing_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-31",
+   "ai_tool": "owner AI tool (not recorded; ask owner)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
   }
  ]
 }

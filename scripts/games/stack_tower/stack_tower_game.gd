@@ -37,6 +37,7 @@ func _ready() -> void:
 	engine = StEngine.new()
 	_build_ui()
 	engine.reset()
+	_music("calm")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -291,3 +292,10 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+## The hub's shared music library (Music autoload, apps from v0.33; older
+## ones play no music).
+func _music(style: String) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play(style, self, 0, 1.5)

@@ -57,6 +57,7 @@ func _ready() -> void:
 	for i in 90:
 		stars.append([randf_range(-8, 8), randf_range(-6, 6), randf_range(1, 60)])
 	_build_ui()
+	_music("techno")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -151,6 +152,7 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": SHIP,
+		"art": "res://games/star_runner/landing_bg.jpg",
 		"solo_heading": "Launch",
 		"subtitle": "Full throttle through the neon. Steer, shoot, fly through the rings.",
 		"logo": _draw_home_logo,
@@ -611,3 +613,10 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+## The hub's shared music library (Music autoload, apps from v0.33; older
+## ones play no music).
+func _music(style: String) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play(style, self, 0, 1.5)
