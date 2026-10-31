@@ -24,8 +24,9 @@ const TUNING := {
 	"food_mass": 1.0,
 	"food_per_area": 1.5e-5,    # food per square world unit of the spawn disc
 	"food_min": 12,
-	"food_mult_1": 1.5,         # owner 2026-10-30: 50% more food at size 1, 25% more from size 2 on (the game felt slow)
-	"food_mult_up": 1.25,
+	"food_cap": 120,            # after the multipliers: the pond was laggy past ~200 specks (owner 2026-10-29)
+	"food_mult_1": 2.25,        # owner 2026-10-30: 50% more food at size 1, 25% more from size 2 on (the game felt slow)
+	"food_mult_up": 1.875,
 	"early_hunter_mult": 0.5,   # size 2 already meets the first (rarer) hunters; from size 3 the full mix
 	"food_max": 80,    # was 30 / 220 and 4.2e-5: swamped in specks and laggy (owner 2026-10-29)
 	"npc_per_area": 8.0e-6,
@@ -616,7 +617,7 @@ func _spawn_max() -> float:
 func _food_target() -> int:
 	var a := PI * pow(_spawn_max(), 2.0)
 	var base := clampi(int(a * t("food_per_area")), int(t("food_min")), int(t("food_max")))
-	return int(ceil(float(base) * (t("food_mult_1") if level() <= 1 else t("food_mult_up"))))
+	return mini(int(ceil(float(base) * (t("food_mult_1") if level() <= 1 else t("food_mult_up")))), int(t("food_cap")))
 
 func _npc_target() -> int:
 	var a := PI * pow(_spawn_max(), 2.0)

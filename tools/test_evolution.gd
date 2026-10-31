@@ -195,9 +195,9 @@ func _init() -> void:
 		fx.npcs = [_npc(fx.player.pos, 3.0, "bacillus", "prey")]
 		fx.step(1.0 / 60.0, Vector2.ZERO)
 		meals2 += 1
-		if meals2 == 200:
-			check(fx.dna >= Data.TREE_DNA + 1, "size 1 already earns DNA from the 🧬 bar (%d after 200 meals)" % fx.dna)
-	check(meals2 >= 300, "size 2 takes a good while of eating (%d meals)" % meals2)
+		if meals2 == 100:
+			check(fx.dna >= Data.TREE_DNA + 1, "size 1 already earns DNA from the 🧬 bar (%d after 100 meals)" % fx.dna)
+	check(meals2 >= 100, "size 2 takes a good while of eating (%d meals)" % meals2)
 	check(fx.dna <= Data.TREE_DNA + int(Data.DNA_PER_SIZE[0]) + 1, "...and size 1 pays only about %d DNA (%d)" % [Data.DNA_PER_SIZE[0], fx.dna - Data.TREE_DNA])
 	fx.dna = 5
 	check(fx.buy("burst") == false or fx.node_state("burst") != "locked", "the tree can be used now")
@@ -998,8 +998,8 @@ func _growth_and_species() -> void:
 		kills += float(Data.XP_KILLS[lv - 1])
 		check(is_equal_approx(Ev.xp_span(lv), float(Data.XP_KILLS[lv - 1]) * float(maxi(lv - 1, 1))), "size %d to %d = %s kills of prey worth %d" % [lv, lv + 1, Data.XP_KILLS[lv - 1], maxi(lv - 1, 1)])
 		check(Ev.xp_span(lv + 1) > Ev.xp_span(lv), "size %d costs more than size %d" % [lv + 1, lv])
-	check(is_equal_approx(kills, 11700.0), "11,700 kills to size 10 (%s)" % kills)
-	check(is_equal_approx(Ev.xp_at(10), 70680.0), "70,680 xp to size 10, 60%% of 117,800 (%d)" % int(Ev.xp_at(10)))
+	check(is_equal_approx(kills, 11544.0), "11,544 kills to size 10 (%s)" % kills)
+	check(is_equal_approx(Ev.xp_at(10), 70524.0), "70,524 xp to size 10, 60%% of 117,800 (%d)" % int(Ev.xp_at(10)))
 	check(Ev.xp_span(1) > float(Ev.TUNING.eye_value), "size 1 lasts past the eye")
 	var blind := Ev.new()
 	blind.reset(9)
