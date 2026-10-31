@@ -8,7 +8,7 @@ const GOAL := "Fight your way through as many stages as you can and sink each st
 const HOW := [
 	"Put a thumb down low on the screen: a stick appears and flies your fighter (arrow keys on a PC). The guns fire on their own.",
 	"Only the white dot in the middle of your fighter can be hit. A bullet there, or crashing into a plane or an island, costs a life — you have 3 — and all your gun power: you're back to one level.",
-	"The blue islands are solid ground: steer around them. One you crash into goes dark and can't hurt you again.",
+	"The purple asteroids are solid rock: steer around them. One you crash into goes dark and can't hurt you again.",
 	"Darts swoop down in lines (100). Gunships stop and fire spreads (300). Turrets on the islands aim at you (250). Big bombers fire rings of bullets (900).",
 	"Shot-down planes drop power-ups: P makes your guns wider (up to 4 levels), B gives a bomb, 1UP an extra life.",
 	"💣 Bomb wipes every bullet off the screen and blasts every plane. You start with 2 (1 on Hard).",

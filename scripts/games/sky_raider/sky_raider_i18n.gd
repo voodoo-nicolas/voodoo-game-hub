@@ -78,7 +78,7 @@ const STRINGS := {
 		"Stay low on the screen — you have more time to see bullets coming.": "Quédate abajo en la pantalla: tienes más tiempo para ver venir las balas.",
 		"Take off": "Despegar",
 		"Text & button size": "Tamaño del texto y botones",
-		"The blue islands are solid ground: steer around them. One you crash into goes dark and can't hurt you again.": "Las islas azules son tierra firme: esquívalas. La que chocas se apaga y ya no puede hacerte daño.",
+		"The purple asteroids are solid rock: steer around them. One you crash into goes dark and can't hurt you again.": "Los asteroides morados son roca sólida: esquívalos. El que chocas se apaga y ya no puede hacerte daño.",
 		"These controls are shared: they change every game that uses the shared controller.": "Estos controles son compartidos: cambian en todos los juegos que usan el mando compartido.",
 		"These settings are app-wide: they change every game.": "Estos ajustes son de toda la app: cambian en todos los juegos.",
 		"Update the app to keep statistics.": "Actualiza la app para guardar estadísticas.",
