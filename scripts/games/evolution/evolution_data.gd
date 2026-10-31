@@ -41,7 +41,8 @@ const LEVELS := [0.0, 14.0, 30.0, 62.0, 130.0, 270.0, 560.0, 1150.0, 2350.0, 480
 ## Owner 2026-10-30 "the game is a little boring, a little slow ... drop xp requirement 20% across the entire game": every size x 0.8 again,
 ## 11,700 kills to size 10, xp spans 312, 690, 1056, 1674, 1968, 5700, 8280, 12600, 38400 = 70,680 xp (more food and early hunters: see `food_mult_1` / `food_mult_up` / `early_hunter_mult`).
 ## Owner 2026-10-30 (later): size 1 -> 2 halved again (312 -> 156): 11,544 kills, 70,524 xp to size 10.
-const XP_KILLS := [156, 690, 528, 558, 492, 1140, 1380, 1800, 4800]
+## Owner 2026-10-31: "bring the xp down 15% for the entire game": every size x 0.85 again, 9,812.4 kills, xp spans 132.6, 586.5, 897.6, 1422.9, 1672.8, 4845, 7038, 10710, 32640 = 59,945.4 xp to size 10.
+const XP_KILLS := [132.6, 586.5, 448.8, 474.3, 418.2, 969, 1173, 1530, 4080]
 
 ## DNA earned while growing from each size to the next, ONE point at a time: what you eat fills the 🧬 bar and
 ## each full bar is +1 (owner 2026-10-29: "you should never earn more than 1 or 2 dna points at a time, except

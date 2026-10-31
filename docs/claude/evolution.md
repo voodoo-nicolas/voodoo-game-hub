@@ -58,3 +58,5 @@ Eel branch (owner OK 2026-10-30): behind the Eel, besides Electric shock: Slippe
 Pacing (owner 2026-10-30, 'a little boring, a little slow'): XP -20% again (11,700 kills / 70,680 xp to size 10); food +50% at size 1, +25% from size 2 (`food_mult_1`, `food_mult_up`); the first hunters appear at size 2 (half weight, `early_hunter_mult`, cap 1) and the hunter cap is `level - 1` (full mix from size 3).
 
 Later the same day: size 1 -> 2 needs 156 kills (half), food x1.5 again (`food_mult_1` 2.25, `food_mult_up` 1.875, capped at `food_cap` 120); 11,544 kills / 70,524 xp to size 10.
+
+2026-10-31: XP x0.85 again (9,812.4 kills / 59,945.4 xp to size 10); food x1.15 for sizes 1-5 (`food_early_mult`, `food_early_max`): size 1 = 2.5875x, sizes 2-5 = 2.15625x, 6+ = 1.875x, still capped at `food_cap` 120.
