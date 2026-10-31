@@ -452,7 +452,7 @@ func _draw_field() -> void:
 	c.draw_line(ret - Vector2(rr * 1.6, 0), ret - Vector2(rr * 0.6, 0), Color(RING, 0.6), 1.5)
 	c.draw_line(ret + Vector2(rr * 1.6, 0), ret + Vector2(rr * 0.6, 0), Color(RING, 0.6), 1.5)
 	if engine.state != "dead" and (engine.invuln <= 0.0 or fmod(anim_t, 0.16) < 0.1):
-		_draw_ship(c, _proj(Vector3(engine.ship.x, engine.ship.y, 0.0)), _scale(0.0) * 0.26, -engine.ship_vx * 0.12)
+		_draw_ship(c, -engine.ship_vx * 0.12)
 	for sp in sparks:
 		c.draw_line(sp[0], sp[0] - sp[1] * 0.03, Color(sp[3], clampf(sp[2] * 2.0, 0.0, 1.0)), 2.0)
 	# Shield, bottom left; boss armour, top.
@@ -536,7 +536,79 @@ func _draw_boss(c: CanvasItem, b: Dictionary) -> void:
 	HomeKit.glow_circle(c, p, pulse * k, SHOT, w)
 	c.draw_circle(p, 0.1 * k, HomeKit.WHITE)
 
-func _draw_ship(c: CanvasItem, p: Vector2, r: float, bank: float) -> void:
+## The player's ship is a small 3D model (like the Landing picture: swept wings,
+## three engines, wing cannons), projected with the same camera as the world, so
+## when it flies high you see its underside and when it dives you see the top.
+const SHIP_SCALE := 0.62
+const SHIP_VERTS := [
+	Vector3(0, 0, 0.75), Vector3(0, -0.13, 0.15), Vector3(0, 0.10, 0.15),   # 0 nose, 1 canopy, 2 belly
+	Vector3(0, -0.07, -0.35), Vector3(0, 0.06, -0.35),                      # 3 tail top, 4 tail bottom
+	Vector3(-0.55, 0.04, -0.30), Vector3(0.55, 0.04, -0.30),                # 5 left tip, 6 right tip
+	Vector3(-0.16, 0, 0.2), Vector3(0.16, 0, 0.2),                          # 7 left root, 8 right root
+]
+## Each face: [a, b, c, top?]; top faces get the lit hull, bottom ones the dark belly.
+const SHIP_FACES := [
+	[0, 1, 7, true], [0, 8, 1, true], [1, 7, 3, true], [1, 3, 8, true],
+	[7, 5, 3, true], [8, 3, 6, true],
+	[0, 7, 2, false], [0, 2, 8, false], [2, 7, 4, false], [2, 4, 8, false],
+	[7, 5, 4, false], [8, 4, 6, false],
+]
+const ENGINES := [Vector3(-0.15, 0.0, -0.35), Vector3(0, 0.0, -0.35), Vector3(0.15, 0.0, -0.35)]
+
+func _draw_ship(c: CanvasItem, roll: float) -> void:
+	var rel: Vector2 = engine.ship - _cam()
+	var base := rel * Vector2(1.0, V_STRETCH)
+	var cam_m := Vector3(-rel.x, -rel.y * V_STRETCH * 1.5, -Z0)   # camera in ship space
+	var f := field.size.x * 0.5625
+	var pts: Array = []
+	var mv: Array = []
+	for v in SHIP_VERTS:
+		var m: Vector3 = Vector3(v.x * SHIP_SCALE, v.y * SHIP_SCALE, v.z * SHIP_SCALE)
+		var xy := Vector2(m.x, m.y).rotated(roll)
+		m = Vector3(xy.x, xy.y, m.z)
+		mv.append(m)
+		pts.append(_center() + (base + xy) * f / (m.z + Z0))
+	var faces: Array = []
+	for fc in SHIP_FACES:
+		var a: Vector3 = mv[fc[0]]
+		var b: Vector3 = mv[fc[1]]
+		var d: Vector3 = mv[fc[2]]
+		var n := (b - a).cross(d - a)
+		if (n.y < 0.0) != fc[3]:
+			n = -n
+		var cen := (a + b + d) / 3.0
+		if n.dot(cam_m - cen) <= 0.0:
+			continue
+		faces.append([cen.z, fc])
+	faces.sort_custom(func(x, y): return x[0] > y[0])
+	var under := Color("5a2fa8")
+	for e in faces:
+		var fc: Array = e[1]
+		var tri := PackedVector2Array([pts[fc[0]], pts[fc[1]], pts[fc[2]]])
+		if fc[3]:
+			c.draw_colored_polygon(tri, SHIP.darkened(0.55))
+			c.draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), Color(SHIP, 0.9), 1.6)
+		else:
+			c.draw_colored_polygon(tri, under.darkened(0.45))
+			c.draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), Color(ENEMY, 0.8), 1.6)
+	# Orange trim along the wing leading edges and the wing cannons.
+	for sd in [5, 6]:
+		c.draw_line(pts[0], pts[sd], Color(SHOT, 0.85), 1.6)
+		var tip: Vector3 = mv[sd]
+		var fwd := _center() + (base + Vector2(tip.x, tip.y)) * f / (tip.z + 0.55 * SHIP_SCALE + Z0)
+		HomeKit.glow_line(c, pts[sd], fwd, SHIP, 2.2)
+	c.draw_circle(pts[1], maxf(2.0, f / Z0 * 0.02), HomeKit.WHITE)
+	# Three engine flames streaming back towards the camera.
+	for en in ENGINES:
+		var m := Vector3(en.x * SHIP_SCALE, en.y * SHIP_SCALE, en.z * SHIP_SCALE)
+		var xy := Vector2(m.x, m.y).rotated(roll)
+		var p0 := _center() + (base + xy) * f / (m.z + Z0)
+		var p1 := _center() + (base + xy) * f / (m.z - randf_range(0.3, 0.55) + Z0)
+		HomeKit.glow_line(c, p0, p1, SHOT, 2.5)
+		c.draw_circle(p0, maxf(2.0, f / Z0 * 0.022), Color(SHOT, 0.9))
+
+## Flat wireframe ship for the Landing logo.
+func _draw_logo_ship(c: CanvasItem, p: Vector2, r: float, bank: float) -> void:
 	var body := PackedVector2Array()
 	for v in [Vector2(0, -0.9), Vector2(0.3, 0.1), Vector2(1.0, 0.45), Vector2(0.3, 0.35), Vector2(0, 0.55), Vector2(-0.3, 0.35), Vector2(-1.0, 0.45), Vector2(-0.3, 0.1)]:
 		body.append(p + (v as Vector2).rotated(bank) * r)
@@ -567,7 +639,7 @@ func _draw_home_logo(c: Control) -> void:
 	for v in [Vector2(0, -0.35), Vector2(1, 0.15), Vector2(0.25, 0.05), Vector2(0, 0.45), Vector2(-0.25, 0.05), Vector2(-1, 0.15)]:
 		pts.append(fp + v * 30.0 * k)
 	HomeKit.glow_polyline(c, pts, ENEMY, 2.0, true)
-	_draw_ship(c, o + Vector2(0, -18) * k, 52.0 * k, 0.15)
+	_draw_logo_ship(c, o + Vector2(0, -18) * k, 52.0 * k, 0.15)
 	HomeKit.glow_line(c, o + Vector2(-12, -60) * k, o + Vector2(-30, -110) * k, RING, 2.0)
 
 # ---------- pause / save ----------

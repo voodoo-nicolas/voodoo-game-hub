@@ -308,8 +308,8 @@
    "proof": "media/licenses/OWNER_GAME_ART.md",
    "url": "",
    "date": "2026-10-31",
-   "ai_tool": "owner AI tool (not recorded; ask owner)",
-   "ai_plan": "ChatGPT Free (OpenAI terms: the user owns outputs, commercial use allowed)",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
   },
   {
@@ -3611,7 +3611,7 @@
    "proof": "media/licenses/OWNER_GAME_ART.md",
    "url": "",
    "date": "2026-10-31",
-   "ai_tool": "owner AI tool (not recorded; ask owner)",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
   },
@@ -3624,7 +3624,7 @@
    "proof": "media/licenses/OWNER_GAME_ART.md",
    "url": "",
    "date": "2026-10-31",
-   "ai_tool": "owner AI tool (not recorded; ask owner)",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
   },
@@ -3637,7 +3637,7 @@
    "proof": "media/licenses/OWNER_GAME_ART.md",
    "url": "",
    "date": "2026-10-31",
-   "ai_tool": "owner AI tool (not recorded; ask owner)",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
   },
@@ -3650,7 +3650,7 @@
    "proof": "media/licenses/OWNER_GAME_ART.md",
    "url": "",
    "date": "2026-10-31",
-   "ai_tool": "owner AI tool (not recorded; ask owner)",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
   }
