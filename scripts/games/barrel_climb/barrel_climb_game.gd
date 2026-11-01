@@ -14,6 +14,7 @@ const HomeKit = preload("res://scripts/games/barrel_climb/home_kit.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/barrel_climb/barrel_climb_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
+const SoundLib = preload("res://scripts/games/barrel_climb/sound_lib.gd")
 const SAVE_PATH := "user://barrel_climb_save.json"
 
 const DIFF_NAMES := ["Easy", "Normal", "Hard"]
@@ -24,6 +25,17 @@ const BARREL := Color("ffae2b")
 const KING := Color("9b4dff")
 const DOLL := Color("ff4f9a")
 const PAUSE_AFTER := 1.6
+## The Landing picture's night scaffold: wood, rope, torchlight, a purple ogre.
+const WOOD := Color("6b4426")
+const WOOD_LIGHT := Color("a8743a")
+const WOOD_DARK := Color("3a2414")
+const ROPE := Color("c9a46a")
+const FLAME := Color("ffb23a")
+const OGRE := Color("7a34b8")
+const HELMET := Color("3aa0ff")
+const SHIRT := Color("e03a3a")
+const PANTS := Color("2a56c8")
+const SKIN := Color("f0b890")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
@@ -36,6 +48,7 @@ var down := false
 var jump_queued := false
 var after: float = 0.0
 var banner := ""
+var stars: Array = []
 var anim_t: float = 0.0
 var sparks: Array = []  # [pos, vel, life, color]
 
@@ -295,14 +308,19 @@ func _process(delta: float) -> void:
 				_sfx("pickup")
 				if info:
 					info.add("Barrels jumped")
+			"throw":
+				SoundLib.play(self, "impact/wood_heavy", -8.0)
+			"land":
+				SoundLib.play(self, "impact/wood_light", -12.0)
 			"smash":
-				_sfx("explode")
+				SoundLib.play(self, "impact/wood_heavy")
 				_burst(Vector2(engine.px + engine.facing * 24.0, engine.py - 30.0), BARREL)
 				if info:
 					info.add("Barrels smashed")
 			"hammer":
 				_sfx("powerup")
 			"hit", "timeout":
+				SoundLib.play(self, "impact/punch_heavy")
 				_sfx("lose")
 				banner = tr("Ouch!") if e == "hit" else tr("Time's up!")
 				_burst(Vector2(engine.px, engine.py - 18.0), HERO)
@@ -348,12 +366,13 @@ func _draw_field() -> void:
 	var k: float = g.k
 	var o: Vector2 = g.o
 	var c := field
-	c.draw_rect(Rect2(o, Vector2(BcEngine.W, BcEngine.H) * k), Color(0.02, 0.02, 0.05, 0.85))
+	_draw_backdrop(c, o, k)
 	# Girders: a top and bottom rail with zig-zag bracing.
 	for i in BcEngine.FLOORS + 1:
 		_draw_girder(c, o, k, i)
 	for l in engine.ladders:
 		_draw_ladder(c, o, k, l)
+	_draw_torches(c, o, k)
 	# Oil drum, bottom left.
 	var drum := o + Vector2(26, BcEngine.y_at(0, 26) - 4) * k
 	HomeKit.glow_rect(c, Rect2(drum + Vector2(-20, -50) * k, Vector2(40, 50) * k), LADDER, 2.0, 0.15)
@@ -389,44 +408,93 @@ func _draw_field() -> void:
 	if banner != "":
 		HomeKit.glow_text(c, o + Vector2(BcEngine.W / 2.0, BcEngine.H * 0.45) * k, banner, int(44 * k), HomeKit.LIME if engine.state == "won" else HomeKit.PINK)
 
+func _draw_backdrop(c: CanvasItem, o: Vector2, k: float) -> void:
+	var sz := Vector2(BcEngine.W, BcEngine.H) * k
+	var bands := 14
+	for i in bands:
+		var t := float(i) / (bands - 1)
+		c.draw_rect(Rect2(o + Vector2(0, sz.y * i / bands), Vector2(sz.x, sz.y / bands + 1.0)), Color("0a1030").lerp(Color("1c2a5a"), t))
+	if stars.is_empty():
+		var r := RandomNumberGenerator.new()
+		r.seed = 9
+		for i in 40:
+			stars.append([r.randf(), r.randf() * 0.55, r.randf() * TAU])
+	for st in stars:
+		var tw := 0.4 + 0.6 * absf(sin(anim_t * 1.5 + st[2]))
+		c.draw_rect(Rect2(o + Vector2(st[0] * sz.x, st[1] * sz.y), Vector2(2, 2) * maxf(k, 1.0)), Color(0.85, 0.92, 1.0, 0.3 + 0.5 * tw))
+	# A crescent moon.
+	var mp := o + Vector2(sz.x * 0.82, sz.y * 0.1)
+	c.draw_circle(mp, 30.0 * k, Color("cfe8ff"))
+	c.draw_circle(mp + Vector2(12, -6) * k, 27.0 * k, Color("0e1640"))
+	# Mountains and a far town with lit windows.
+	var ridge := PackedVector2Array([o + Vector2(0, 800) * k, o + Vector2(120, 700) * k, o + Vector2(260, 770) * k, o + Vector2(400, 690) * k,
+			o + Vector2(560, 760) * k, o + Vector2(720, 710) * k, o + Vector2(720, 1040) * k, o + Vector2(0, 1040) * k])
+	c.draw_colored_polygon(ridge, Color("0b1233"))
+	for i in 26:
+		var tx := 30.0 + i * 26.0
+		var ty := 900.0 + sin(i * 12.9) * 40.0
+		c.draw_rect(Rect2(o + Vector2(tx, ty) * k, Vector2(3, 3) * k), Color(FLAME, 0.5 + 0.3 * sin(anim_t * 2.0 + i)))
+
+func _draw_torches(c: CanvasItem, o: Vector2, k: float) -> void:
+	for tp in [[24.0, 1], [696.0, 2], [24.0, 3], [696.0, 4]]:
+		var base: Vector2 = o + Vector2(tp[0], BcEngine.y_at(tp[1], tp[0]) - 6) * k
+		c.draw_line(base, base + Vector2(0, -44) * k, WOOD_LIGHT, 4.0 * k)
+		var fl := 1.0 + 0.25 * sin(anim_t * 14.0 + tp[0] + tp[1] * 3.0)
+		var tip := base + Vector2(0, -46) * k
+		c.draw_circle(tip, 46.0 * k * fl, Color(FLAME, 0.1))
+		c.draw_colored_polygon(PackedVector2Array([tip + Vector2(-8, 0) * k, tip + Vector2(0, -26 * fl) * k, tip + Vector2(8, 0) * k]), FLAME)
+		c.draw_colored_polygon(PackedVector2Array([tip + Vector2(-4, 0) * k, tip + Vector2(0, -14 * fl) * k, tip + Vector2(4, 0) * k]), Color("fff0a0"))
+
 func _draw_girder(c: CanvasItem, o: Vector2, k: float, i: int) -> void:
 	var x0 := BcEngine.floor_x0(i)
 	var x1 := BcEngine.floor_x1(i)
 	var a := o + Vector2(x0, BcEngine.y_at(i, x0)) * k
 	var b := o + Vector2(x1, BcEngine.y_at(i, x1)) * k
 	var t := Vector2(0, 14) * k
-	c.draw_colored_polygon(PackedVector2Array([a, b, b + t, a + t]), Color(GIRDER, 0.1))
-	HomeKit.glow_line(c, a, b, GIRDER, 2.0)
-	HomeKit.glow_line(c, a + t, b + t, GIRDER, 1.4)
-	var n := int((x1 - x0) / 28.0)
-	var zig := PackedVector2Array()
+	# Supports first (behind the planks): posts every ~140 units and a cross brace.
+	var n := maxi(1, int((x1 - x0) / 140.0))
 	for j in n + 1:
-		var p := a.lerp(b, float(j) / n)
-		zig.append(p + (t if j % 2 == 1 else Vector2.ZERO))
-	c.draw_polyline(zig, Color(GIRDER, 0.55), 1.5, true)
+		var f := float(j) / n
+		var top := a.lerp(b, f) + t
+		c.draw_line(top, top + Vector2(0, 90) * k, WOOD_DARK, 6.0 * k)
+		if j < n:
+			var nxt := a.lerp(b, float(j + 1) / n) + t
+			c.draw_line(top, nxt + Vector2(0, 70) * k, Color(WOOD_DARK, 0.8), 3.0 * k)
+	c.draw_colored_polygon(PackedVector2Array([a, b, b + t, a + t]), WOOD)
+	c.draw_line(a, b, WOOD_LIGHT, 3.0 * k)
+	c.draw_line(a + t, b + t, WOOD_DARK, 2.0 * k)
+	var np := int((x1 - x0) / 30.0)
+	for j in np + 1:
+		var p := a.lerp(b, float(j) / np)
+		c.draw_line(p, p + t, Color(WOOD_DARK, 0.7), 1.5 * k)
 
 func _draw_ladder(c: CanvasItem, o: Vector2, k: float, l: Dictionary) -> void:
 	var top := BcEngine.y_at(l.hi, l.x) + 14.0
 	var bottom := BcEngine.y_at(l.lo, l.x)
 	for side in [-11.0, 11.0]:
-		HomeKit.glow_line(c, o + Vector2(l.x + side, top) * k, o + Vector2(l.x + side, bottom) * k, LADDER, 1.6)
+		c.draw_line(o + Vector2(l.x + side, top) * k, o + Vector2(l.x + side, bottom) * k, ROPE, 3.0 * k)
 	var y := top + 10.0
 	while y < bottom - 4.0:
-		c.draw_line(o + Vector2(l.x - 11, y) * k, o + Vector2(l.x + 11, y) * k, Color(LADDER, 0.8), 2.0)
+		c.draw_line(o + Vector2(l.x - 11, y) * k, o + Vector2(l.x + 11, y) * k, WOOD_LIGHT, 3.0 * k)
 		y += 16.0
 
 func _draw_barrel(c: CanvasItem, p: Vector2, k: float, spin: float, side_on: bool) -> void:
 	var r := BcEngine.BARREL_R * k
 	if side_on:
-		# Coming down a ladder: seen from the side, a squat drum.
-		HomeKit.glow_rect(c, Rect2(p - Vector2(r * 1.2, r * 0.9), Vector2(r * 2.4, r * 1.8)), BARREL, 1.8, 0.25)
-		c.draw_line(p + Vector2(-r * 1.2, 0), p + Vector2(r * 1.2, 0), Color(BARREL, 0.8), 1.5)
+		# Coming down a ladder: seen from the side, a squat wooden drum.
+		var rc := Rect2(p - Vector2(r * 1.2, r * 0.9), Vector2(r * 2.4, r * 1.8))
+		c.draw_rect(rc, WOOD_LIGHT)
+		c.draw_rect(rc, WOOD_DARK, false, 1.5 * k)
+		c.draw_line(p + Vector2(-r * 1.2, -r * 0.45), p + Vector2(r * 1.2, -r * 0.45), Color("8a94a8"), 2.0 * k)
+		c.draw_line(p + Vector2(-r * 1.2, r * 0.45), p + Vector2(r * 1.2, r * 0.45), Color("8a94a8"), 2.0 * k)
 		return
-	c.draw_circle(p, r, Color(BARREL, 0.22))
-	HomeKit.glow_circle(c, p, r, BARREL, 1.8)
+	c.draw_circle(p, r + 1.5 * k, WOOD_DARK)
+	c.draw_circle(p, r, WOOD_LIGHT)
+	c.draw_circle(p, r * 0.62, Color("8a5a2b"))
 	for j in 2:
-		var d := Vector2.RIGHT.rotated(spin + j * PI / 2.0) * r * 0.8
-		c.draw_line(p - d, p + d, Color(BARREL, 0.85), 1.5)
+		var d := Vector2.RIGHT.rotated(spin + j * PI / 2.0) * r * 0.95
+		c.draw_line(p - d, p + d, Color(WOOD_DARK, 0.9), 1.6 * k)
+	c.draw_circle(p, r * 0.18, Color("8a94a8"))
 
 func _draw_hero(c: CanvasItem, feet: Vector2, k: float) -> void:
 	var f: int = engine.facing
@@ -434,30 +502,33 @@ func _draw_hero(c: CanvasItem, feet: Vector2, k: float) -> void:
 	var hip := feet + Vector2(0, -15) * k
 	var neck := feet + Vector2(0, -30) * k
 	var head := feet + Vector2(0, -38) * k
+	var lw := 4.0 * k
 	if engine.mode == "climb":
-		HomeKit.glow_line(c, hip, feet + Vector2(-7, legs * 0.3) * k, HERO, 2.0)
-		HomeKit.glow_line(c, hip, feet + Vector2(7, -legs * 0.3) * k, HERO, 2.0)
-		HomeKit.glow_line(c, neck, neck + Vector2(-10, -10 + legs) * k, HERO, 2.0)
-		HomeKit.glow_line(c, neck, neck + Vector2(10, -10 - legs) * k, HERO, 2.0)
+		c.draw_line(hip, feet + Vector2(-7, legs * 0.3) * k, PANTS, lw)
+		c.draw_line(hip, feet + Vector2(7, -legs * 0.3) * k, PANTS, lw)
+		c.draw_line(neck, neck + Vector2(-10, -10 + legs) * k, SKIN, 3.0 * k)
+		c.draw_line(neck, neck + Vector2(10, -10 - legs) * k, SKIN, 3.0 * k)
 	else:
 		var air: bool = engine.mode == "air"
-		HomeKit.glow_line(c, hip, feet + Vector2(legs if not air else 8, 0) * k, HERO, 2.0)
-		HomeKit.glow_line(c, hip, feet + Vector2(-legs if not air else -6.0, -6.0 if air else 0.0) * k, HERO, 2.0)
-		HomeKit.glow_line(c, neck, neck + Vector2(f * 10, 8 - (8 if air else 0)) * k, HERO, 2.0)
-		HomeKit.glow_line(c, neck, neck + Vector2(-f * 8, 10) * k, HERO, 2.0)
-	HomeKit.glow_line(c, hip, neck, HERO, 2.4)
-	c.draw_circle(head, 7.0 * k, Color(HERO, 0.3))
-	HomeKit.glow_circle(c, head, 7.0 * k, HERO, 1.8)
-	c.draw_circle(head + Vector2(f * 3, -1) * k, 1.6 * k, HomeKit.WHITE)
+		c.draw_line(hip, feet + Vector2(legs if not air else 8, 0) * k, PANTS, lw)
+		c.draw_line(hip, feet + Vector2(-legs if not air else -6.0, -6.0 if air else 0.0) * k, PANTS, lw)
+		c.draw_line(neck, neck + Vector2(f * 10, 8 - (8 if air else 0)) * k, SKIN, 3.0 * k)
+		c.draw_line(neck, neck + Vector2(-f * 8, 10) * k, SKIN, 3.0 * k)
+	c.draw_line(hip, neck, SHIRT, 8.0 * k)
+	c.draw_circle(head, 7.0 * k, SKIN)
+	c.draw_circle(head + Vector2(f * 3, -1) * k, 1.4 * k, Color(0.05, 0.05, 0.1))
+	# Blue helmet.
+	c.draw_colored_polygon(PackedVector2Array([head + Vector2(-8, -1) * k, head + Vector2(-6, -8) * k, head + Vector2(0, -10) * k, head + Vector2(6, -8) * k, head + Vector2(8, -1) * k]), HELMET)
+	c.draw_line(head + Vector2(-8, -1) * k, head + Vector2(8 + f * 3, -1) * k, Color("1a60b0"), 2.0 * k)
 	if engine.hammer_t > 0.0:
 		var swing := -1.4 + absf(sin(anim_t * 10.0)) * 1.6
 		_draw_hammer(c, neck + Vector2(f * 10, -4) * k + Vector2(f * 18, -16).rotated(swing * f) * k, k, swing * f)
 
 func _draw_hammer(c: CanvasItem, p: Vector2, k: float, a: float) -> void:
 	var d := Vector2(0, 16).rotated(a) * k
-	HomeKit.glow_line(c, p, p + d, HomeKit.WHITE, 2.0)
+	c.draw_line(p, p + d, WOOD_LIGHT, 3.0 * k)
 	var hd := Vector2(10, 0).rotated(a) * k
-	HomeKit.glow_line(c, p - hd, p + hd, BARREL, 5.0)
+	c.draw_line(p - hd, p + hd, Color("b8c0d0"), 7.0 * k)
 
 func _draw_king(c: CanvasItem, feet: Vector2, k: float) -> void:
 	var bob := sin(anim_t * 4.0) * 3.0 * k
@@ -465,21 +536,21 @@ func _draw_king(c: CanvasItem, feet: Vector2, k: float) -> void:
 	var pts := PackedVector2Array()
 	for j in 12:
 		var a := TAU * j / 12.0
-		pts.append(body + Vector2(cos(a) * 34, sin(a) * 30) * k)
-	c.draw_colored_polygon(pts, Color(KING, 0.15))
-	HomeKit.glow_polyline(c, pts, KING, 2.2, true)
+		pts.append(body + Vector2(cos(a) * 36, sin(a) * 32) * k)
+	c.draw_colored_polygon(pts, OGRE)
+	c.draw_polyline(pts + PackedVector2Array([pts[0]]), OGRE.lightened(0.35), 2.0 * k, true)
 	var head := body + Vector2(0, -44) * k
-	HomeKit.glow_circle(c, head, 22 * k, KING, 2.2, 0.15)
+	c.draw_circle(head, 22 * k, OGRE.lightened(0.1))
 	for s in [-1, 1]:
 		var e := head + Vector2(s * 8, -3) * k
-		HomeKit.glow_line(c, e - Vector2(5, 5) * k, e + Vector2(5, 5) * k, HomeKit.PINK, 1.6)
-		HomeKit.glow_line(c, e - Vector2(-5, 5) * k, e + Vector2(-5, 5) * k, HomeKit.PINK, 1.6)
-		# Horns and arms (raised when a barrel is about to fly).
-		HomeKit.glow_polyline(c, PackedVector2Array([head + Vector2(s * 14, -14) * k, head + Vector2(s * 26, -34) * k, head + Vector2(s * 20, -12) * k]), KING, 1.6)
+		c.draw_circle(e, 4.0 * k, Color("ffe23a"))
+		c.draw_circle(e + Vector2(0, 1) * k, 1.6 * k, Color(0.1, 0.0, 0.1))
+		# Horns, tusks and arms (raised when a barrel is about to fly).
+		c.draw_colored_polygon(PackedVector2Array([head + Vector2(s * 12, -14) * k, head + Vector2(s * 26, -36) * k, head + Vector2(s * 20, -10) * k]), Color("f0e6c8"))
+		c.draw_colored_polygon(PackedVector2Array([head + Vector2(s * 8, 8) * k, head + Vector2(s * 11, 18) * k, head + Vector2(s * 4, 10) * k]), Color("f4f0e0"))
 		var arm_up := fmod(anim_t, 1.0) < 0.3
-		HomeKit.glow_line(c, body + Vector2(s * 30, -12) * k, body + Vector2(s * 46, -40 if arm_up else 12) * k, KING, 2.2)
-	for j in 5:
-		c.draw_line(head + Vector2(-10 + j * 5, 10) * k, head + Vector2(-10 + j * 5, 15) * k, Color(KING, 0.9), 1.5)
+		c.draw_line(body + Vector2(s * 30, -12) * k, body + Vector2(s * 46, -40 if arm_up else 12) * k, OGRE.darkened(0.1), 11.0 * k)
+	c.draw_line(head + Vector2(-8, 11) * k, head + Vector2(8, 11) * k, Color(0.15, 0.0, 0.15), 3.0 * k)
 
 func _draw_doll(c: CanvasItem, feet: Vector2, k: float) -> void:
 	var head := feet + Vector2(0, -44) * k
