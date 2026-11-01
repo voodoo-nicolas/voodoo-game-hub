@@ -970,7 +970,10 @@ func _init() -> void:
 	print("most hunters at once at size %d: %d (cap %d)" % [e.level(), worst, cap_seen])
 	check(cap_seen == 1 and worst <= 1, "one hunter at the first predator size (2, owner 2026-10-30)")
 	e.player.mass = 300.0
-	check(e.threat_cap() == maxi(mini(e.level() - 1, int(Data.DIFFICULTY.normal.hunter_max)), 1), "the hunter cap grows one per size")
+	var cap_want := maxi(mini(e.level() - 1, int(Data.DIFFICULTY.normal.hunter_max)), 1)
+	if e.level() > int(Ev.TUNING.late_from):
+		cap_want = int(ceil(float(cap_want) * Ev.TUNING.late_enemy_mult))      # owner 2026-11-01: +20% after size 5
+	check(e.threat_cap() == cap_want, "the hunter cap grows one per size")
 	# Endless mode: dying brings you back at the start of your size, keeping what you evolved
 	e.reset(902)
 	e.sight_rank = 2
@@ -1025,15 +1028,15 @@ func _magnet_modes_variety() -> void:
 		var e := Ev.new()
 		_veteran(e, 70 + rk)
 		e.specials["magnet"] = rk
-		e.food = [e.player.pos + Vector2(120, 0)]
+		e.food = [e.player.pos + Vector2(60, 0)]
 		var f0: float = (e.food[0] - e.player.pos).length()
 		e._heal_and_passives(0.1)
 		var food_in: bool = (e.food[0] - e.player.pos).length() < f0 - 1.0
-		var small := _npc(e.player.pos + Vector2(0, 150), 1.0, "coccus", "prey")
+		var small := _npc(e.player.pos + Vector2(0, 100), 1.0, "coccus", "prey")
 		small["pause"] = 99.0      # holds still on its own: any movement toward you is the magnet
 		e.npcs = [small]
-		var n0: float = 150.0
-		for k in 10:
+		var n0: float = 100.0
+		for k in 20:
 			e.step(1.0 / 60.0, Vector2.ZERO)
 		var npc_in := false
 		for n in e.npcs:

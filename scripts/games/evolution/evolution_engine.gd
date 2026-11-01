@@ -110,8 +110,15 @@ const TUNING := {
 	"appetite_mult": 0.5,
 	"photo_rate": 0.003,        # share of the current size's xp per second (Photosynthesis)
 	"magnet_range": 190.0,      # rank 1 (it had one rank)
-	"magnet_ranges": [190.0, 290.0, 420.0],   # Food magnet ranks 1-3 (owner 2026-10-31: the range grows with each rank)
-	"magnet_pull": 150.0,       # how fast rank 2+ draws creatures in (food drifts at 220)
+	"magnet_ranges": [95.0, 145.0, 210.0],   # Food magnet ranks 1-3 (owner 2026-10-31: the range grows with each rank; 2026-11-01: range and strength -50%, was 190 / 290 / 420)
+	"magnet_pull": 75.0,        # how fast rank 2+ draws creatures in (was 150)
+	"magnet_food_pull": 110.0,  # how fast the Food magnet draws food specks (was 220)
+	"late_from": 5,             # owner 2026-11-01: after size 5 ...
+	"late_food_mult": 0.85,     # ... 15% less food ...
+	"late_enemy_mult": 1.2,     # ... 20% more hunters (their weight and how many may be around)
+	"enemy_dmg_mult": 1.2,      # hunters' bites hurt 20% more (owner 2026-11-01)
+	"boss_dmg_mult": 1.35,      # boss attacks hurt 35% more (owner 2026-11-01 "make the bosses harder")
+	"zoom_late_step": 0.925,    # owner 2026-11-01: from size 6 each size zooms the camera out another 7.5% (like the boss pull-back)
 	"cam_base": 0.88,           # was 1.0: the whole pond zoomed out a little (2026-10-22)
 	"cam_k": 0.045,
 	"cam_min": 0.22,
@@ -317,7 +324,9 @@ static func xp_of_mass(m: float) -> float:
 ## Camera zoom (smaller = further out) for the player's mass.
 static func zoom_for(mass: float) -> float:
 	var over := maxf(sqrt(mass) - sqrt(TUNING.start_mass), 0.0)
-	return maxf(TUNING.cam_base / (1.0 + over * TUNING.cam_k), TUNING.cam_min)
+	var z: float = TUNING.cam_base / (1.0 + over * TUNING.cam_k)
+	z *= pow(TUNING.zoom_late_step, float(maxi(size_level(mass) - int(TUNING.late_from), 0)))
+	return maxf(z, TUNING.cam_min)
 
 # ---------- derived player state ----------
 
@@ -466,7 +475,10 @@ func power_frac() -> float:
 ## How many creatures that can eat you may be around at once: one at the first predator size, one more per
 ## size level after that, never above the difficulty's `hunter_max`. (Early on 5+ hunters was impossible to evade.)
 func threat_cap() -> int:
-	return clampi(level() - 1, 1, int(Data.DIFFICULTY[difficulty].get("hunter_max", 6)))
+	var cap := clampi(level() - 1, 1, int(Data.DIFFICULTY[difficulty].get("hunter_max", 6)))
+	if level() > int(t("late_from")):
+		cap = int(ceil(float(cap) * t("late_enemy_mult")))
+	return cap
 
 func hunters_on() -> bool:
 	return sight_rank >= 2 and Data.DIFFICULTY[difficulty].hunters > 0.0
@@ -650,6 +662,8 @@ func _food_target() -> int:
 	var mult: float = t("food_mult_1") if level() <= 1 else t("food_mult_up")
 	if level() <= int(t("food_early_max")):
 		mult *= t("food_early_mult")
+	if level() > int(t("late_from")):
+		mult *= t("late_food_mult")
 	return mini(int(ceil(float(base) * mult)), int(t("food_cap")))
 
 func _npc_target() -> int:
@@ -726,7 +740,7 @@ func _pick_species() -> Dictionary:
 		if w <= 0.0 or int(counts.get(sl, 0)) >= Data.LEVEL_CAP:
 			continue
 		if sp.role == "hunter":
-			w *= Data.DIFFICULTY[difficulty].hunters * t("hunter_weight") * (t("early_hunter_mult") if lvl == 2 else 1.0)
+			w *= Data.DIFFICULTY[difficulty].hunters * t("hunter_weight") * (t("early_hunter_mult") if lvl == 2 else 1.0) * (t("late_enemy_mult") if lvl > int(t("late_from")) else 1.0)
 		cands.append(sp)
 		weights.append(w)
 		total += w
@@ -1020,13 +1034,13 @@ func _heal_and_passives(delta: float) -> void:
 			rate *= t("slow_heal_mult")
 		player.hp = minf(player.hp + rate * delta, max_hp())
 	if specials.has("photo"):
-		_gain_xp(xp_span(level()) * t("photo_rate") * delta)
+		_gain_xp(xp_span(level()) * t("photo_rate") * delta, false)     # a drip of xp only: past size 10 it filled the 🧬 bar in under a second (owner 2026-11-01)
 	if specials.has("magnet"):
 		var rng2: float = magnet_reach()
 		for i in food.size():
 			var d: Vector2 = player.pos - food[i]
 			if d.length() < rng2:
-				food[i] += d.normalized() * 220.0 * delta
+				food[i] += d.normalized() * t("magnet_food_pull") * delta
 	peak_mass = maxf(peak_mass, player.mass)
 	# Badge: fall below 10% health, then recover all the way.
 	if player.hp <= max_hp() * 0.1:
@@ -1293,7 +1307,7 @@ func _resolve(delta: float) -> void:
 			pr = radius_of(player.mass)
 			continue
 		if n.role == "hunter" and can_eat(n.mass, player.mass) and d < nr + pr * 0.5 and n.get("stun", 0.0) <= 0.0 and n.get("pause", 0.0) <= 0.0:
-			var dmg := 0.0 if grace > 0.0 or god else bite * delta * _defense()
+			var dmg: float = 0.0 if grace > 0.0 or god else bite * t("enemy_dmg_mult") * delta * _defense()
 			if has("slime"):
 				n["slow"] = t("slime_slow")
 			player.hp -= dmg
@@ -1333,7 +1347,7 @@ func _defense() -> float:
 func hurt(frac: float, who: String, show: bool = true) -> void:
 	if grace > 0.0 or god or not alive:
 		return
-	player.hp -= max_hp() * frac * float(Data.DIFFICULTY[difficulty].bite) / 2.0 * _defense()
+	player.hp -= max_hp() * frac * float(Data.DIFFICULTY[difficulty].bite) / 2.0 * t("boss_dmg_mult") * _defense()
 	if show and hit_t > 0.3:
 		events.append({"type": "hurt", "pos": player.pos})
 	hit_t = 0.0
@@ -1458,7 +1472,8 @@ func _poison(species: String = "") -> void:
 	if r > before:
 		events.append({"type": "resist", "id": id, "rank": r})
 	if r >= Data.RESIST_AT.size():
-		events.append({"type": "immune", "id": id})
+		if before < r:
+			events.append({"type": "immune", "id": id})     # once, when it is earned (owner 2026-11-01)
 		return
 	var dur: float = Data.AILMENTS[id].time * pow(t("tox_res_mult"), rank_of("tox_res")) * (1.0 - t("resist_step") * float(r))
 	if dur > float(ailments.get(id, 0.0)):

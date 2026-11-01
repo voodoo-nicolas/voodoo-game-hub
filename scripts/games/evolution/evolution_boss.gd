@@ -32,6 +32,7 @@ const T := {
 	"stun_t": 1.2,           # a shock stuns a boss this long, at most once every `stun_cd`
 	"stun_cd": 6.0,
 	"win_growth": 0.05,      # share of the size's xp for eating what is left of it
+	"hp_mult": 1.5,          # owner 2026-11-01 "make the bosses harder": +50% health (attacks hurt 35% more: TUNING.boss_dmg_mult)
 	"minion_max": 2,
 	"minion_gap": 6.0,
 	"minion_life": 14.0,
@@ -90,7 +91,7 @@ static func spawn(e, bd: Dictionary) -> void:
 		dir.y = -dir.y
 	var pos: Vector2 = e.player.pos + dir * (e.view_r * 1.1 + r)
 	pos.y = maxf(pos.y, r + 40.0)
-	e.boss = {"id": bd.id, "pos": pos, "vel": Vector2.ZERO, "r": r, "hp": float(bd.hp), "hp_max": float(bd.hp),
+	e.boss = {"id": bd.id, "pos": pos, "vel": Vector2.ZERO, "r": r, "hp": float(bd.hp) * T.hp_mult, "hp_max": float(bd.hp) * T.hp_mult,
 		"state": "come", "t": 0.0, "dur": 0.0, "face": (e.player.pos - pos).angle(), "aim": 0.0,
 		"bite_cd": 0.0, "stun": 0.0, "stun_cd": 0.0, "venom": 0.0, "hit": 0.0, "struck": false,
 		"grab": 0.0, "minions": [], "minion_t": 2.0, "ink_t": 0.0, "ink_pos": pos, "ink_cd": 7.0, "away": 0.0}
