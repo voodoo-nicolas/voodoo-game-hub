@@ -48,7 +48,7 @@ const TUNING := {
 	"eye_value": 12,            # ... and for an eye (was 40): both come while you are still size 1 (owner 2026-10-24)
 	"tree_size": 2,             # growing to this size opens the evolution tree (it used to take 10 kills after the eye: size 5). Unused since 2026-10-30: the eye opens it
 	"toxic_bite": 0.05,         # eating a toxic creature costs this share of your max health (owner 2026-10-30), never the last point
-	"toxic_from": 3,            # toxic creatures appear from this size, with the first hunters (owner 2026-10-30: slow healing or glow meant nothing while nothing could hurt or chase you)
+	"toxic_from": 2,            # toxic creatures appear from this size, with the first hunters (owner 2026-10-30: slow healing or glow meant nothing while nothing could hurt or chase you; 3 until the hunters moved to size 2)
 	"trait_tail_chance": 0.14,  # share of early prey that carries a tail
 	"trait_eye_chance": 0.12,   # ... an eye
 	"npc_sight": 380.0,         # how far creatures notice each other
