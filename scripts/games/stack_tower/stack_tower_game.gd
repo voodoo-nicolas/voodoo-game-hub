@@ -11,6 +11,7 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const HomeKit = preload("res://scripts/games/stack_tower/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
+const SoundLib = preload("res://scripts/games/stack_tower/sound_lib.gd")
 const HELP := preload("res://scripts/games/stack_tower/stack_tower_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://stack_tower_save.json"
@@ -157,12 +158,14 @@ func _drop() -> void:
 		falling.append([engine.last_cut[0], engine.last_cut[1], layer, 0.0, 0.0, _hue(layer)])
 	match res:
 		"perfect":
+			SoundLib.play(self, "impact/plate_light", -4.0)
 			_sfx("record" if engine.streak >= StEngine.GROW_AFTER else "pickup")
 			flash = 0.6
 			flash_text = tr("Perfect!") if engine.streak < 2 else tr("Perfect ×%d") % engine.streak
 		"cut":
-			_sfx("place")
+			SoundLib.play(self, "impact/plate_medium", -2.0)
 		"miss":
+			SoundLib.play(self, "impact/plate_heavy")
 			_sfx("lose")
 			_game_over()
 	_update()
