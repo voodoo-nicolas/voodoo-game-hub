@@ -10,6 +10,7 @@ extends RefCounted
 ## they fall far behind.
 
 const Data = preload("res://scripts/games/evolution/evolution_data.gd")
+const Boss = preload("res://scripts/games/evolution/evolution_boss.gd")
 
 const TUNING := {
 	"start_mass": 10.0,
@@ -217,6 +218,20 @@ var _grow_target := 2.0
 var _jolt_cd := 0.0
 var _next_id := 1
 var _mission_id := 1
+# Bosses (evolution_boss.gd; owner 2026-11-01)
+var boss := {}            # the boss you are fighting ({} = none)
+var bosses_beaten := {}   # boss id -> true, this run
+var bosses_run: int = 0   # bosses beaten this run
+var boss_cd: float = 0.0  # seconds before a boss may be announced again
+var boss_warn: float = 0.0   # seconds until the announced boss arrives (0 = none announced)
+var boss_lvl: int = 0     # the size the boss timer counts for ...
+var boss_lvl_t: float = 0.0   # ... and seconds spent at it
+var killer := ""          # death_cause "boss": which one
+# Testing (owner 2026-11-01: "a method for me, while testing, to give myself xp / size / DNA"): the game's hidden dev
+# panel. A run that used it records no stats, badges or scores.
+var cheated := false
+var god := false          # nothing hurts you
+var dev_cap: int = 0      # extra sizes the dev panel allows past the Growth cap
 
 # ---------- static rules ----------
 
@@ -353,7 +368,7 @@ func _gain_xp(amount: float, feeds_dna: bool = true) -> void:
 
 ## The biggest size you can reach: 2 + points in Growth (owner 2026-10-29). 10 or more = no limit.
 func size_cap() -> int:
-	var cap := 2 + rank_of("growth")
+	var cap := 2 + rank_of("growth") + dev_cap
 	for sz in range(4, Data.LEVELS.size() + 1):
 		cap += rank_of("growth_%d" % sz)
 	return cap
@@ -599,6 +614,17 @@ func reset(seed_: int = -1, diff: String = "normal") -> void:
 	_jolt_cd = 0.0
 	_next_id = 1
 	_mission_id = 1
+	boss = {}
+	bosses_beaten = {}
+	bosses_run = 0
+	boss_cd = 0.0
+	boss_warn = 0.0
+	boss_lvl = 0
+	boss_lvl_t = 0.0
+	killer = ""
+	cheated = false
+	god = false
+	dev_cap = 0
 	_add_mission({"kind": "jolts", "target": 5, "text": "Move around", "reward": "none"})
 	# First meals near you, so the first steps have a goal (spread out, not in a clump).
 	var spawn_max := _spawn_max()
@@ -691,7 +717,7 @@ func _pick_species() -> Dictionary:
 	for sp in Data.SPECIES:
 		if sp.has("trait") or sp.role == "toxic" or sp.role == "rare" or int(sp.tier) > tier_cap + (1 if sp.role == "hunter" and lvl == 2 else 0) or lvl > int(sp.get("until", 99)):
 			continue
-		if sp.role == "hunter" and (not hunters_on() or threats >= threat_cap() or _hunter_cd > 0.0):
+		if sp.role == "hunter" and (not hunters_on() or threats >= threat_cap() or _hunter_cd > 0.0 or boss_warn > 0.0 or not boss.is_empty()):
 			continue
 		var mid: float = (float(sp.mass[0]) + float(sp.mass[1])) * 0.5
 		var sl := size_level(mid)
@@ -790,6 +816,7 @@ func step(delta: float, dir: Vector2) -> void:
 	_heal_and_passives(delta)
 	_think(delta)
 	_resolve(delta)
+	Boss.step(self, delta)
 	_top_up()
 	_recycle()
 	_check_level_up()
@@ -864,7 +891,7 @@ func _environment(delta: float) -> void:
 		if deep_dmg > dmg:
 			cause = "deep"
 		dmg += deep_dmg
-	if dmg <= 0.0 or grace > 0.0:
+	if dmg <= 0.0 or grace > 0.0 or god:
 		return
 	var k: float = Data.DIFFICULTY[difficulty].get("env", 1.0)
 	player.hp -= minf(dmg, t("env_dmg_cap")) * k * delta
@@ -907,6 +934,7 @@ func use_ability(id: String) -> bool:
 				if float(n.get("stun", 0.0)) > 0.0:
 					stunned += 1
 			max_stunned = maxi(max_stunned, stunned)
+			Boss.shock(self, rad)
 			events.append({"type": "stun_count", "count": stunned})
 			events.append({"type": "shock", "pos": player.pos, "radius": rad, "id": id})
 		"lure":
@@ -970,8 +998,8 @@ func _update_shots(delta: float) -> void:
 	for sh in shots:
 		sh.pos += sh.vel * delta
 		sh.life -= delta
-		var hit := false
-		for n in npcs:
+		var hit: bool = not boss.is_empty() and Boss.shot_hit(self, sh)
+		for n in ([] if hit else npcs):
 			if n.pos.distance_to(sh.pos) < radius_of(n.mass) + 14.0:
 				if sh.get("kind", "spit") == "harpoon":
 					n["venom"] = sh.venom
@@ -1265,18 +1293,9 @@ func _resolve(delta: float) -> void:
 			pr = radius_of(player.mass)
 			continue
 		if n.role == "hunter" and can_eat(n.mass, player.mass) and d < nr + pr * 0.5 and n.get("stun", 0.0) <= 0.0 and n.get("pause", 0.0) <= 0.0:
-			var dmg := 0.0 if grace > 0.0 else bite * delta
-			if has("spikes"):
-				dmg *= pow(t("spikes_mult"), rank_of("spikes"))
-			if has("shell"):
-				dmg *= t("shell_mult")
-				dmg *= pow(t("slippery_mult"), rank_of("slippery"))
+			var dmg := 0.0 if grace > 0.0 or god else bite * delta * _defense()
 			if has("slime"):
 				n["slow"] = t("slime_slow")
-			if specials.has("armor"):
-				dmg *= t("armor_mult")
-			if ailments.has("brittle"):
-				dmg *= t("brittle_mult")
 			player.hp -= dmg
 			if has("poison_skin"):
 				n.mass = maxf(n.mass - n.mass * t("poison_skin_rate") * delta, t("min_npc_mass"))
@@ -1295,6 +1314,39 @@ func _resolve(delta: float) -> void:
 	npcs = left
 	_npcs_eat_each_other()
 	peak_mass = maxf(peak_mass, player.mass)
+
+## How much of a bite gets through your defences: spikes, shell (and slippery skin), armour; brittle makes it worse.
+func _defense() -> float:
+	var k := 1.0
+	if has("spikes"):
+		k *= pow(t("spikes_mult"), rank_of("spikes"))
+	if has("shell"):
+		k *= t("shell_mult")
+		k *= pow(t("slippery_mult"), rank_of("slippery"))
+	if specials.has("armor"):
+		k *= t("armor_mult")
+	if ailments.has("brittle"):
+		k *= t("brittle_mult")
+	return k
+
+## A boss's attack: `frac` of your max health on Normal (more on harder difficulties), through your defences.
+func hurt(frac: float, who: String, show: bool = true) -> void:
+	if grace > 0.0 or god or not alive:
+		return
+	player.hp -= max_hp() * frac * float(Data.DIFFICULTY[difficulty].bite) / 2.0 * _defense()
+	if show and hit_t > 0.3:
+		events.append({"type": "hurt", "pos": player.pos})
+	hit_t = 0.0
+	if player.hp <= 0.0:
+		player.hp = 0.0
+		alive = false
+		death_cause = "boss"
+		killer = who
+		events.append({"type": "death", "pos": player.pos})
+
+## What one of your bites does to a boss (1 = a plain bite): Jaws and claws add to it.
+func bite_power() -> float:
+	return 1.0 + 0.15 * float(rank_of("jaws")) + 0.1 * float(rank_of("claw_left") + rank_of("claw_right"))
 
 ## Different species eat each other when one is clearly bigger (once your eye is open).
 func _npcs_eat_each_other() -> void:
@@ -1380,6 +1432,10 @@ func revive() -> void:
 	hit_t = 99.0
 	deaths += 1
 	grace = t("revive_grace")
+	if not boss.is_empty():
+		Boss.leave(self, Boss.T.revive_cd)
+	boss_warn = 0.0
+	killer = ""
 	var keep: Array = []
 	for n in npcs:
 		if n.role != "hunter" or n.pos.distance_to(player.pos) > 1400.0:
@@ -1662,6 +1718,8 @@ func progress_of(m: Dictionary) -> float:
 			return 1.0 if surface_hit else 0.0
 		"depth":
 			return max_depth
+		"boss":
+			return 1.0 if bosses_beaten.has(m.get("species", "")) else 0.0
 	return _counter(m.kind, m.get("species", "")) - float(m.base)
 
 func _track_missions(delta: float) -> void:
@@ -1841,5 +1899,60 @@ func mission_rows() -> Array:
 		var frac := clampf(progress_of(m) / maxf(float(m.target), 0.001), 0.0, 1.0)
 		if m.kind == "mass" and not m.done and int(m.target) == level() + 1:
 			frac = xp_frac()        # the real progress to the next size (it used to start at 2/3 full: size / target size)
+		elif m.kind == "boss" and not m.done:
+			frac = 1.0 - boss.hp / boss.hp_max if not boss.is_empty() and boss.id == m.species else 0.0
 		out.append({"text": m.text, "args": m.args, "frac": frac, "done": m.done, "kind": m.kind})
 	return out
+
+# ---------- testing (the game's hidden dev panel) ----------
+
+## Tail, eye and the open tree at once, the tutorial missions ticked off.
+func dev_skip_tutorial() -> void:
+	cheated = true
+	for m in missions:
+		if not m.done and (m.kind == "jolts" or m.reward == "tail" or m.reward == "eye"):
+			m.done = true
+			m.linger = 1.0
+	_set_tail()
+	_set_eye()
+	_open_tree()
+	if _story < 4:
+		_story = 4
+		_grow_mission()
+
+## xp: a share of this size, or (1.0) straight to the next size; past the Growth cap if need be.
+func dev_xp(share: float) -> void:
+	dev_skip_tutorial()
+	_sync_mass()
+	if share >= 1.0:
+		xp = xp_at(level() + 1) + 0.01
+	else:
+		xp += xp_span(level()) * share
+	player.mass = mass_of_xp(xp)
+	_mass_seen = player.mass
+	peak_mass = maxf(peak_mass, player.mass)
+	dev_cap = maxi(dev_cap, level() + 1 - (size_cap() - dev_cap))
+
+func dev_dna(n: int) -> void:
+	dev_skip_tutorial()
+	dna += n
+
+func dev_heal() -> void:
+	cheated = true
+	player.hp = max_hp()
+	ailments = {}
+	ail_full = {}
+
+## The next boss right now, whatever your size (after the last one, from the first again).
+func dev_boss() -> void:
+	dev_skip_tutorial()
+	if not boss.is_empty():
+		return
+	if Boss.next_boss(self).is_empty():
+		bosses_beaten = {}
+	Boss.spawn(self, Boss.next_boss(self))
+
+func dev_hurt_boss() -> void:
+	cheated = true
+	if not boss.is_empty():
+		Boss.damage(self, boss.hp_max * 0.25)

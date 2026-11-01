@@ -10,6 +10,7 @@ const Art = preload("res://scripts/games/evolution/evolution_art.gd")
 const Controls = preload("res://scripts/games/evolution/evolution_controls.gd")
 const Screens = preload("res://scripts/games/evolution/evolution_screens.gd")
 const Sound = preload("res://scripts/games/evolution/evolution_sound.gd")
+const BossArt = preload("res://scripts/games/evolution/evolution_boss_art.gd")
 const EAT_SOUNDS := ["chomp", "slurp", "munch"]
 var _eat_snd := 0
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -235,6 +236,12 @@ var info_btn: Button
 var mission_box: VBoxContainer
 var mission_panel: Control
 var bars_panel: Control
+var boss_box: VBoxContainer       # top middle: the boss's name and health bar
+var boss_name: Label
+var boss_bar: ProgressBar
+var dev_panel: Control            # the hidden testing panel (F9, or tap the size line 5 times)
+var _dev_taps: Array = []
+var _god_btn: Button
 
 func _ready() -> void:
 	preload("res://scripts/games/evolution/evolution_i18n.gd").install(self)
@@ -404,7 +411,8 @@ func _build_ui() -> void:
 	bars_panel.add_child(dna_row)
 	stage_label = Label.new()
 	stage_label.add_theme_font_size_override("font_size", 20)
-	stage_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_label.mouse_filter = Control.MOUSE_FILTER_STOP     # 5 quick taps open the testing panel
+	stage_label.gui_input.connect(_on_stage_tap)
 	bars_panel.add_child(stage_label)
 	# depth and water temperature, with the limits your body can take
 	env_label = Label.new()
@@ -435,6 +443,23 @@ func _build_ui() -> void:
 	panel.add_child(mission_box)
 	mission_panel = panel
 	add_child(_corner(panel, Control.SIZE_SHRINK_END, Control.SIZE_SHRINK_BEGIN))
+
+	# top middle: a boss's name and health bar while you fight it
+	boss_box = VBoxContainer.new()
+	boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_box.add_theme_constant_override("separation", 4)
+	boss_box.visible = false
+	boss_name = Label.new()
+	boss_name.add_theme_font_size_override("font_size", 22)
+	boss_name.add_theme_color_override("font_color", Color("ff9a8a"))
+	boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boss_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_box.add_child(boss_name)
+	boss_bar = _bar(Color("ff3b30"))
+	boss_bar.custom_minimum_size = Vector2(360, 18)
+	boss_box.add_child(boss_bar)
+	add_child(_corner(boss_box, Control.SIZE_SHRINK_CENTER, Control.SIZE_SHRINK_BEGIN))
+	_build_dev_panel()
 
 	# bottom middle: pause and the creature screen
 	var mid := HBoxContainer.new()
@@ -600,6 +625,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_TAB, KEY_I:
 				if event.pressed and started:
 					_open_info()
+			KEY_F9:
+				if event.pressed and started:
+					_toggle_dev()
 			KEY_ESCAPE:
 				if screens.visible:
 					screens.close()
@@ -689,7 +717,7 @@ func _close_creature(go: bool) -> void:
 
 ## Sends this run's progress to the stats (lifetime totals behind the badges).
 func _flush_stats() -> void:
-	if info == null or engine == null:
+	if info == null or engine == null or engine.cheated:
 		return
 	var dc: int = engine.eaten_cells - int(_flushed.cells)
 	if dc > 0:
@@ -706,7 +734,7 @@ func _flush_stats() -> void:
 	info.high("Biggest size", engine.level())
 	info.high("Top speed", engine.speed_pct())
 	if engine.difficulty == "hardcore":
-		info.high("Hardcore size", engine.level())
+		info.high("Best Hardcore size", engine.level())     # Best ...: a record, so no generic count badges
 
 func _new_game() -> void:
 	_flush_stats()
@@ -732,6 +760,7 @@ func _new_game() -> void:
 	controls.release()
 	screens.close()
 	end_dialog.visible = false
+	dev_panel.visible = false
 	_update_hud()
 	_show_popup(tr("Survive"), tr("You must eat.\nYou must not be eaten.\nSome food will speed up your evolution greatly. Some may slow it down."))
 
@@ -777,14 +806,29 @@ func _apply_view(delta: float, snap: bool = false) -> void:
 	var target: float = s.y * Data.SIGHT_FRAC[clampi(engine.sight_rank - 1, 0, Data.SIGHT_FRAC.size() - 1)]
 	if engine.has("night_vision"):
 		target *= 1.2
+	target *= _boss_dark()
 	var k := 1.0 if snap else clampf(VISION_SMOOTH * delta, 0.0, 1.0)
 	vis_r = lerpf(vis_r, target, k)
 	var tz := EvEngine.zoom_for(engine.player.mass)
+	if not engine.boss.is_empty():
+		# A boss fight: the camera pulls back until the whole boss (and the reach of its attacks) fits in your sight.
+		tz = minf(tz, s.y * 0.42 / maxf(engine.boss.r * 2.4, 1.0))
 	zoom = tz if snap else lerpf(zoom, tz, clampf(ZOOM_SMOOTH * delta, 0.0, 1.0))
 	var half_diag := s.length() * 0.5
 	engine.vision_r = vis_r / maxf(zoom, 0.05)
 	engine.view_r = minf(vis_r, half_diag) / maxf(zoom, 0.05)
 	engine.half_screen = s.y * 0.5 / maxf(zoom, 0.05)
+
+## Bosses that darken the water: your sight shrinks near Lantern Mother, and inside the Grey Kraken's ink.
+func _boss_dark() -> float:
+	var b: Dictionary = engine.boss
+	if b.is_empty():
+		return 1.0
+	if b.id == "lantern":
+		return 0.62
+	if b.id == "kraken" and b.ink_t > 0.0 and engine.player.pos.distance_to(b.ink_pos) < b.r * 2.4:
+		return 0.5
+	return 1.0
 
 func _animate(delta: float) -> void:
 	lurch = maxf(lurch - delta * 3.0, 0.0)
@@ -829,7 +873,9 @@ func _check_danger() -> void:
 ## Why you died, with the numbers (the depth and the water temperature are what killed you, not only "cold").
 func _death_text() -> String:
 	var how := tr("You were eaten!")
-	if engine.death_cause == "cold":
+	if engine.death_cause == "boss":
+		how = tr("%s got you!") % tr(str(Data.boss_of(engine.killer).get("name", "")))
+	elif engine.death_cause == "cold":
 		how = tr("You froze in the cold water!") + "\n" + tr("%d m deep, water at %d °C (your limit: %d °C)") % [int(engine.depth_m()), int(round(engine.temp())), int(ceil(engine.min_temp()))]
 	elif engine.death_cause == "deep":
 		how = tr("The pressure crushed you!") + "\n" + tr("%d m deep (your limit: %d m)") % [int(engine.depth_m()), int(engine.max_depth_m())]
@@ -841,6 +887,7 @@ func _revive() -> void:
 	_sfx("explode")
 	var how := _death_text()
 	engine.revive()
+	_play_music()
 	hurt = 0.0
 	_flush_stats()
 	_show_popup(tr("You died"), how + "\n" + tr("Back to size %d. Everything you evolved is still yours.") % engine.level())
@@ -851,7 +898,7 @@ func _game_over() -> void:
 	_sfx("explode")
 	var how := _death_text()
 	var msg := how + "\n" + tr("Score: %d") % engine.score() + "   ·   " + tr("Size %d") % EvEngine.size_level(engine.peak_mass)
-	if info and not result_sent:
+	if info and not result_sent and not engine.cheated:
 		result_sent = true
 		_flush_stats()
 		info.add("Games played")
@@ -890,6 +937,16 @@ func _update_hud() -> void:
 	controls.set_slots(ids, fills)
 	info_btn.visible = e.has_bars()
 	info_btn.text = "🧬 %d" % e.dna if e.dna > 0 else "🧬"
+	boss_box.visible = not e.boss.is_empty()
+	if boss_box.visible:
+		var bd: Dictionary = Data.boss_of(e.boss.id)
+		var st := ""
+		if e.boss.stun > 0.0 or e.boss.state == "tired":
+			st = "   " + tr("Dizzy: bite now!")
+		boss_name.text = tr(str(bd.name)) + st
+		boss_bar.value = clampf(e.boss.hp / e.boss.hp_max, 0.0, 1.0)
+	if e.cheated:
+		stage_label.text += "   DEV"
 	_update_missions()
 
 func _update_env() -> void:
@@ -1064,15 +1121,65 @@ func _spawn_burst(p: Vector2, col: Color, n: int, speed: float, size_: float, ri
 		particles.append({"pos": p, "vel": Vector2.ZERO, "life": 0.5, "max": 0.5, "col": col, "size": 0.0, "ring": ring_r})
 
 func _handle_events() -> void:
+	var inf = info if not engine.cheated else null      # a run that used the testing panel records nothing
 	for ev in engine.events:
 		match ev.type:
+			"boss_warn":
+				_banner(tr("Something huge is stirring…"))
+				_snd("roar", 0.7, -4.0)
+				hurt = maxf(hurt, 0.4)
+			"boss":
+				var bd: Dictionary = Data.boss_of(ev.id)
+				_play_music()
+				_snd("roar")
+				_show_popup(tr(str(bd.name)), tr(str(bd.real)) + "\n\n" + tr("How to fight it: swim into it to bite it. Each bite pushes you back off it.") + "\n" + tr(str(bd.how)))
+			"boss_tell":
+				_snd("roar", 1.4 if ev.id == "snapjaw" else 0.9, -8.0)
+			"boss_attack":
+				_snd("whoosh", 0.6)
+			"boss_snap", "boss_grab":
+				_snd("snap")
+			"boss_tired":
+				pass
+			"boss_bitten":
+				_spawn_burst(ev.pos, Color("ffd479") if ev.dizzy else Color.WHITE, 10 if ev.dizzy else 6, 200.0, 4.0, 0.0)
+				bump = maxf(bump, 0.08)
+				_snd("chomp", 0.8 if ev.dizzy else 1.0)
+			"boss_block":
+				_spawn_burst(ev.pos, Color(0.85, 0.9, 1.0), 6, 160.0, 3.0, 0.0)
+				_snd("clang")
+			"boss_stun":
+				_banner(tr("Stunned! Bite now!"))
+				_snd("zap")
+			"boss_ink":
+				_snd("whoosh", 0.5)
+			"boss_young":
+				_spawn_burst(ev.pos, Color(0.5, 1.0, 1.0), 6, 120.0, 3.0, 0.0)
+			"boss_young_hit":
+				_spawn_burst(ev.pos, Color(0.5, 1.0, 1.0), 8, 160.0, 3.0, 0.0)
+			"boss_left":
+				_banner(tr("%s swam away. It will be back.") % tr(str(Data.boss_of(ev.id).name)))
+				_play_music()
+			"boss_beaten":
+				var bd2: Dictionary = Data.boss_of(ev.id)
+				_spawn_burst(ev.pos, Color("ffd23f"), 60, 520.0, 7.0, float(ev.r) * 1.5)
+				_spawn_burst(ev.pos, Color(bd2.col), 40, 380.0, 6.0, float(ev.r))
+				bump = 0.4
+				_snd("roar", 0.5)
+				_snd("evolve")
+				_banner(tr("%s defeated! +%d DNA") % [tr(str(bd2.name)), int(ev.dna)])
+				_play_music()
+				if inf:
+					inf.high("Best bosses in a run", int(ev.n))
+					if engine.difficulty == "hardcore":
+						inf.high("Best Hardcore bosses", int(ev.n))
 			"food":
 				_spawn_burst(ev.pos, FOOD[int(ev.pos.x) % FOOD.size()], 3, 70.0, 3.0, 0.0)
 				bump = maxf(bump, 0.03)
 				_snd("speck", randf_range(0.9, 1.25), -6.0)
 			"cell":
-				if ev.role == "rare" and info:
-					info.add("Rare eaten")
+				if ev.role == "rare" and inf:
+					inf.add("Rare eaten")
 				var sp := Data.species_of(ev.species)
 				_spawn_burst(ev.pos, sp.col, 14, 220.0, 5.0, EvEngine.radius_of(ev.mass) * 1.6)
 				bump = 0.1
@@ -1096,24 +1203,24 @@ func _handle_events() -> void:
 				_show_popup(tr("The evolution tree is open!"), tr("Spend your DNA on the 🧬 screen, next to pause.") + "\n" + tr("Eating fills the green 🧬 bar: each time it is full you get 1 DNA."))
 				_banner(tr("+%d DNA") % int(ev.get("dna", 0)))
 			"ailment_end":
-				if info:
-					info.add("Recoveries")             # got sick and lived until it wore off
+				if inf:
+					inf.add("Recoveries")             # got sick and lived until it wore off
 			"evaded":
-				if info:
-					info.add("Creatures evaded")
+				if inf:
+					inf.add("Creatures evaded")
 			"comeback":
-				if info:
-					info.add("Comebacks")
+				if inf:
+					inf.add("Comebacks")
 			"revenge":
-				if info:
-					info.add("Revenge")
+				if inf:
+					inf.add("Revenge")
 			"stun_count":
-				if info:
-					info.high("Most stunned", ev.count)
+				if inf:
+					inf.high("Most stunned", ev.count)
 			"close_call":
 				_banner(tr("Close call! You stayed alive near a hunter."))
-				if info:
-					info.high("Close call", 8)
+				if inf:
+					inf.high("Close call", 8)
 			"place":
 				_banner(tr("You can see the surface!") if ev.what == "surface" else tr("You are entering deeper waters."))
 			"mission":
@@ -1263,6 +1370,16 @@ func _draw_field() -> void:
 		var hd: float = n.vel.angle() if n.vel.length() > 4.0 else n.wander.angle()
 		Art.draw_halo(field, sp2, r, kind, pulse)
 		Art.draw_creature(field, sp2, r, Data.species_of(n.species), hd, pulse, float(int(n.id) % 97) * 1.37, voodoo, EvEngine.size_level(n.mass), engine.level() <= 2)
+	# The boss, over every other creature (it is far bigger than all of them), and the Grey Kraken's ink.
+	if not engine.boss.is_empty():
+		var b: Dictionary = engine.boss
+		if b.ink_t > 0.0:
+			var ic2 := _w2s(b.ink_pos)
+			var ir2: float = b.r * 2.4 * zoom
+			for q in 9:
+				var off := Vector2.RIGHT.rotated(float(q) * 0.7 + pulse * 0.15) * ir2 * 0.5
+				Art.disc(field, ic2 + off, ir2 * (0.6 + 0.05 * sin(pulse + float(q))), Color(0.05, 0.03, 0.08, 0.45 * minf(b.ink_t, 1.0)))
+		BossArt.draw(field, _w2s(b.pos), b.r * zoom, b, pulse, voodoo)
 	# Effects under the player's own cell
 	for p in particles:
 		var a2: float = clampf(p.life / p.max, 0.0, 1.0)
@@ -1471,6 +1588,8 @@ func _draw_fx() -> void:
 	var s := fx.size
 	if engine != null and started:
 		_draw_senses()
+		if not engine.boss.is_empty():
+			BossArt.draw_over(fx, _w2s(engine.boss.pos), engine.boss.r * zoom, engine.boss, pulse, _w2s, zoom, s / 2.0)
 	if engine != null and started and engine.has_bars():
 		var chill := clampf((engine.min_temp() + 3.0 - engine.temp()) / 6.0, 0.0, 1.0)   # icy tint as the water nears your cold limit
 		if chill > 0.0:
@@ -1505,6 +1624,77 @@ func _draw_home_logo(c: Control) -> void:
 	Art.draw_halo(c, o + Vector2(2.5, -0.3) * k, 1.35 * k, "hunter", pulse)
 	Art.draw_creature(c, o + Vector2(2.5, -0.3) * k, 1.35 * k, Data.species_of("corona"), PI, pulse, 5.0, false)
 	Art.draw_player(c, o + Vector2(-0.3, 0.0) * k, 1.05 * k, color, 0.0, pulse, {"move_rank": 2, "sight_rank": 3, "owned": {}, "speed": 0.3, "voodoo": false, "col2": color2, "col3": color3})
+
+# ---------- testing panel (owner 2026-11-01) ----------
+# Hidden: F9 on a PC, or 5 quick taps on the size line under the bars. Anything used here marks the run (DEV next to
+# the size): it records no stats, badges or scores.
+
+func _build_dev_panel() -> void:
+	var panel := PanelContainer.new()
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color(0.1, 0.02, 0.05, 0.92)
+	ps.border_color = Color("ff4f9a")
+	ps.set_border_width_all(2)
+	ps.set_corner_radius_all(8)
+	ps.set_content_margin_all(8)
+	panel.add_theme_stylebox_override("panel", ps)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	panel.add_child(grid)
+	var items := [
+		["+25% XP", func(): engine.dev_xp(0.25)],
+		["Size +1", func(): engine.dev_xp(1.0)],
+		["+10 DNA", func(): engine.dev_dna(10)],
+		["+100 DNA", func(): engine.dev_dna(100)],
+		["Heal", func(): engine.dev_heal()],
+		["God: off", _dev_god],
+		["Boss now", func(): engine.dev_boss()],
+		["Boss -25%", func(): engine.dev_hurt_boss()],
+		["Close", _toggle_dev],
+	]
+	for it in items:
+		var btn := Button.new()
+		btn.text = it[0]
+		btn.custom_minimum_size = Vector2(130, 48)
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.add_theme_font_size_override("font_size", 18)
+		btn.pressed.connect(_dev_do.bind(it[1]))
+		grid.add_child(btn)
+		if it[0] == "God: off":
+			_god_btn = btn
+	dev_panel = _corner(panel, Control.SIZE_SHRINK_BEGIN, Control.SIZE_SHRINK_CENTER)
+	dev_panel.visible = false
+	add_child(dev_panel)
+
+func _dev_do(what: Callable) -> void:
+	if not started:
+		return
+	what.call()
+	_sfx("tap")
+	_update_hud()
+
+func _dev_god() -> void:
+	engine.cheated = true
+	engine.god = not engine.god
+	_god_btn.text = "God: on" if engine.god else "God: off"
+
+func _toggle_dev() -> void:
+	dev_panel.visible = not dev_panel.visible
+	if _god_btn:
+		_god_btn.text = "God: on" if engine.god else "God: off"
+
+func _on_stage_tap(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	var now := Time.get_ticks_msec()
+	_dev_taps.append(now)
+	while _dev_taps.size() > 0 and now - int(_dev_taps[0]) > 2500:
+		_dev_taps.pop_front()
+	if _dev_taps.size() >= 5:
+		_dev_taps.clear()
+		_toggle_dev()
 
 # ---------- pause / skin ----------
 
@@ -1543,7 +1733,9 @@ func _snd(sound: String, pitch: float = 1.0, db: float = 0.0) -> void:
 ## Calm while you are small, lively from size 6 (Predator) on. Asking for what already plays does nothing.
 const MUSIC_LIVELY_AT := 6
 func _play_music() -> void:
-	if engine.level() >= MUSIC_LIVELY_AT:
+	if not engine.boss.is_empty():
+		_music_node_call("play", "techno", 2)       # a boss fight: the hardest beat in the library
+	elif engine.level() >= MUSIC_LIVELY_AT:
 		_music_node_call("play", "lively", 1)
 	else:
 		_music_node_call("play", "calm", 0)

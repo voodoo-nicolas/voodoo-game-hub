@@ -39,7 +39,13 @@ func _init() -> void:
 		print("FAILS: %d" % fails)
 		quit(1 if fails else 0)
 		return
+	if OS.get_cmdline_user_args().has("boss"):
+		_bosses()
+		print("FAILS: %d" % fails)
+		quit(1 if fails else 0)
+		return
 	_magnet_modes_variety()
+	_bosses()
 	var r: float = Ev.TUNING.eat_ratio
 	# Eat-ratio rule
 	check(Ev.can_eat(r * 10.0, 10.0), "exactly the ratio can eat")
@@ -1413,3 +1419,203 @@ func _growth_and_species() -> void:
 		if ev.type == "env_warn" and ev.what == "deep":
 			warned = true
 	check(warned and w.too_deep == 0.0, "a warning comes before the pressure does")
+
+## Bosses (owner 2026-11-01): when they come, how a fight goes, what a win pays, the testing panel.
+func _bosses() -> void:
+	const Boss = preload("res://scripts/games/evolution/evolution_boss.gd")
+	check(Data.BOSSES.size() == 5, "five bosses")
+	var last := 0
+	for bd in Data.BOSSES:
+		check(int(bd.size) > last, "bosses come in size order (%s)" % bd.id)
+		last = int(bd.size)
+		check(float(bd.big) >= 2.5, "%s is big (%.1f x your radius)" % [bd.id, float(bd.big)])
+	# It is announced at its size once you are far enough into it, then it arrives.
+	var e := Ev.new()
+	_veteran(e, 70)
+	e.dev_cap = 10
+	e.player.mass = Data.LEVELS[1] + 0.5
+	e._mass_seen = -1.0
+	e._sync_mass()
+	for i in 60 * 50:
+		e.step(1.0 / 60.0, Vector2.ZERO)
+		e.player.hp = e.max_hp()
+	check(e.boss.is_empty() and e.boss_warn == 0.0, "no boss at size 2")
+	e.xp = Ev.xp_at(3) + Ev.xp_span(3) * 0.7
+	e.player.mass = Ev.mass_of_xp(e.xp)
+	e._mass_seen = e.player.mass
+	check(e.level() == 3, "now size 3")
+	var warned := false
+	var came := false
+	for i in 60 * 60:
+		e.step(1.0 / 60.0, Vector2.ZERO)
+		e.player.hp = e.max_hp()
+		for ev in e.events:
+			if ev.type == "boss_warn":
+				warned = true
+			if ev.type == "boss":
+				came = true
+		if came:
+			break
+	check(warned and came and e.boss.get("id", "") == "snapjaw", "Old Snapjaw is announced, then arrives at size 3")
+	var has_m := false
+	for m in e.missions:
+		if m.kind == "boss" and m.species == "snapjaw":
+			has_m = true
+	check(has_m, "a Defeat mission comes with it")
+	check(e.boss.r > Ev.radius_of(e.player.mass) * 2.5, "the boss is big")
+	# No hunters spawn while it is here.
+	var picked_hunter := false
+	for i in 300:
+		var sp: Dictionary = e._pick_species()
+		if sp.get("role", "") == "hunter":
+			picked_hunter = true
+	check(not picked_hunter, "no new hunters during a boss fight")
+	# Biting: in front Old Snapjaw jabs you; from the side it takes a bite and pushes you off; dizzy = double.
+	var b: Dictionary = e.boss
+	var pr: float = Ev.radius_of(e.player.mass)
+	b.state = "idle"
+	b.dur = 99.0
+	b.vel = Vector2.ZERO
+	b.face = 0.0
+	b.bite_cd = 0.0
+	e.npcs.clear()
+	e.grace = 0.0
+	var hp0: float = b.hp
+	e.player.pos = b.pos + Vector2(b.r * 0.8, 0.0)
+	Boss._contact(e, b, pr)
+	check(b.hp == hp0, "a bite on Old Snapjaw's snout does nothing")
+	check(e.player.hp < e.max_hp(), "... and its snout jabs you")
+	b.bite_cd = 0.0
+	e.player.pos = b.pos + Vector2(0.0, b.r * 0.8)
+	Boss._contact(e, b, pr)
+	check(is_equal_approx(b.hp, hp0 - e.bite_power()), "a bite from the side chips it")
+	check(e.player.pos.distance_to(b.pos) > b.r * 0.9, "... and pushes you back off it")
+	b.bite_cd = 0.0
+	b.state = "tired"
+	var hp1: float = b.hp
+	e.player.pos = b.pos + Vector2(0.0, b.r * 0.8)
+	Boss._contact(e, b, pr)
+	check(is_equal_approx(b.hp, hp1 - 2.0 * e.bite_power()), "a bite while it is dizzy does double")
+	# Its lunge hurts: sit right in its path.
+	e.player.hp = e.max_hp()
+	b.state = "tell"
+	b.t = 0.0
+	b.dur = 0.01
+	b.face = 0.0
+	b.pos = Vector2(0.0, 3000.0)
+	e.player.pos = b.pos + Vector2(b.r * 2.5, 0.0)
+	e.player.vel = Vector2.ZERO
+	var hurt_by_lunge := false
+	for i in 90:
+		e.step(1.0 / 60.0, Vector2.ZERO)
+		if e.boss.is_empty():
+			break
+		if e.player.hp < e.max_hp():
+			hurt_by_lunge = true
+			break
+	check(hurt_by_lunge, "Old Snapjaw's lunge hurts")
+	# A win pays its DNA and the next boss is Lantern Mother.
+	e.player.hp = e.max_hp()
+	var dna0: int = e.dna
+	Boss.damage(e, 999.0)
+	check(e.boss.is_empty() and e.bosses_beaten.has("snapjaw"), "beaten")
+	check(e.dna == dna0 + int(Data.boss_of("snapjaw").dna), "the win pays %d DNA" % int(Data.boss_of("snapjaw").dna))
+	check(Boss.next_boss(e).get("id", "") == "lantern", "Lantern Mother is next")
+	var done := false
+	e.step(1.0 / 60.0, Vector2.ZERO)
+	for m in e.missions:
+		if m.kind == "boss" and m.species == "snapjaw" and m.done:
+			done = true
+	check(done, "the Defeat mission is done")
+	# Each boss: fight it through every state without errors, and a shot or a shock reaches it.
+	for bd in Data.BOSSES:
+		var f := Ev.new()
+		_veteran(f, 80)
+		f.dev_cap = 10
+		f.player.mass = Data.LEVELS[int(bd.size) - 1] + 1.0
+		f._mass_seen = -1.0
+		f._sync_mass()
+		f.god = true
+		Boss.spawn(f, bd)
+		var states := {}
+		for i in 60 * 40:
+			var dir := Vector2.ZERO
+			if not f.boss.is_empty():
+				dir = (f.boss.pos - f.player.pos).normalized()     # swim at it the whole time
+				states[f.boss.state] = true
+			f.step(1.0 / 60.0, dir)
+			if f.boss.is_empty():
+				break
+		check(states.has("tell") and states.has("attack") and states.has("tired"), "%s goes through its warning, attack and dizzy spell (%s)" % [bd.id, str(states.keys())])
+		if f.boss.is_empty():
+			Boss.spawn(f, bd)
+		var bb: Dictionary = f.boss
+		var h0: float = bb.hp
+		Boss.shot_hit(f, {"pos": bb.pos, "kind": "spit"})
+		check(bb.hp < h0, "%s: acid hurts it" % bd.id)
+		bb.stun_cd = 0.0
+		f.player.pos = bb.pos + Vector2(bb.r * 0.9 + 150.0, 0.0)
+		Boss.shock(f, 200.0)
+		check(bb.stun > 0.0, "%s: a shock stuns it" % bd.id)
+	# Ironclaw's shell blocks a bite from the front; from behind it works.
+	var g := Ev.new()
+	_veteran(g, 81)
+	Boss.spawn(g, Data.boss_of("ironclaw"))
+	var ib: Dictionary = g.boss
+	ib.state = "idle"
+	ib.face = 0.0
+	var ih: float = ib.hp
+	g.player.pos = ib.pos + Vector2(ib.r * 0.8, 0.0)
+	Boss._contact(g, ib, Ev.radius_of(g.player.mass))
+	check(ib.hp == ih, "Ironclaw's shell blocks a bite from the front")
+	ib.bite_cd = 0.0
+	g.player.pos = ib.pos + Vector2(-ib.r * 0.8, 0.0)
+	Boss._contact(g, ib, Ev.radius_of(g.player.mass))
+	check(ib.hp < ih, "a bite from behind gets through")
+	# It leaves when you get away, and in Normal when you die.
+	var l := Ev.new()
+	_veteran(l, 82)
+	Boss.spawn(l, Data.boss_of("snapjaw"))
+	l.boss.pos = l.player.pos + Vector2(50000.0, 0.0)
+	var left := false
+	for i in 60 * 20:
+		l.step(1.0 / 60.0, Vector2.ZERO)
+		for ev in l.events:
+			if ev.type == "boss_left":
+				left = true
+		if left:
+			break
+	check(left and l.boss.is_empty() and l.boss_cd > 0.0, "a boss you got away from leaves, and comes back later")
+	Boss.spawn(l, Data.boss_of("snapjaw"))
+	l.revive()
+	check(l.boss.is_empty(), "dying (Normal) sends the boss away")
+	# A boss kills: death cause "boss" and who.
+	var k := Ev.new()
+	_veteran(k, 83)
+	Boss.spawn(k, Data.boss_of("lantern"))
+	k.player.hp = 0.01
+	k.hurt(0.3, "lantern")
+	check(not k.alive and k.death_cause == "boss" and k.killer == "lantern", "a boss kill says which boss")
+	# Testing panel: size, DNA, god, boss now; the run is marked.
+	var d := Ev.new()
+	d.reset(84)
+	d.dev_xp(1.0)
+	check(d.level() == 2 and d.sight_rank >= 2 and d.tree_unlocked and d.cheated, "dev: size +1 also skips the tutorial")
+	for i in 7:
+		d.dev_xp(1.0)
+	check(d.level() == 9, "dev: size +1 goes past the Growth cap (%d)" % d.level())
+	var x0: float = d.xp
+	for i in 40:
+		d._gain_xp(10.0)
+	check(d.xp > x0, "dev: eating still grows you after the size jumps")
+	var dn: int = d.dna
+	d.dev_dna(10)
+	check(d.dna == dn + 10, "dev: +10 DNA")
+	d.dev_boss()
+	check(not d.boss.is_empty(), "dev: boss now")
+	d.dev_hurt_boss()
+	check(d.boss.hp < d.boss.hp_max, "dev: hurt the boss")
+	d.god = true
+	var hpg: float = d.player.hp
+	d.hurt(0.5, "snapjaw")
+	check(d.player.hp == hpg, "dev: god mode")

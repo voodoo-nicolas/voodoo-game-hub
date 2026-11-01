@@ -377,3 +377,37 @@ static func node_of(id: String) -> Dictionary:
 		if n.id == id:
 			return n
 	return {}
+
+## Bosses (phase 6, owner 2026-11-01: "make them big, make them good"), one at the end of each stage of the game, met
+## in this order in every run (evolution_boss.gd has the rules, evolution_boss_art.gd draws them). `size`: the size you
+## meet it at. `big`: its radius x yours when it arrives. `hp`: in bites (a plain bite does 1, more with Jaws and claws;
+## a bite while it is dizzy does 2). `dna`: the reward. `tell` / `attack` / `tired`: seconds of its warning, its attack
+## and the dizzy spell after it. `real`: the real animal behind it (the fact on its arrival card, a learning hook).
+const BOSSES := [
+	{"id": "snapjaw", "name": "Old Snapjaw", "size": 3, "big": 2.7, "hp": 30, "dna": 15, "col": Color("cfd8dc"),
+		"tell": 1.0, "attack": 0.75, "tired": 2.6,
+		"real": "Old Snapjaw is a giant Didinium. Real Didinium are single cells that shoot a sticky harpoon into a Paramecium and swallow it whole, a meal as big as themselves.",
+		"how": "It lunges in a straight line. When its snout glows, swim sideways! After a lunge it is dizzy: bite it then. Its snout jabs you if you bite it from the front."},
+	{"id": "lantern", "name": "Lantern Mother", "size": 5, "big": 3.1, "hp": 70, "dna": 20, "col": Color("3d4c5c"),
+		"tell": 1.1, "attack": 2.4, "tired": 3.0,
+		"real": "Lantern Mother is an anglerfish. Real anglerfish live in the dark deep sea and dangle a glowing lure made by bacteria to bring prey right up to their mouth.",
+		"how": "The water goes dark around her. When her lure flares she pulls you in, then snaps her jaws: swim away hard. Her young nip at you. Bite her when she is tired after a snap."},
+	{"id": "ironclaw", "name": "Ironclaw", "size": 7, "big": 3.1, "hp": 55, "dna": 25, "col": Color("d0643a"),
+		"tell": 0.75, "attack": 0.6, "tired": 2.4,
+		"real": "Ironclaw is a Japanese spider crab, the crab with the longest legs in the world: up to 3.7 m from claw tip to claw tip.",
+		"how": "Her shell blocks every bite from the front, and she turns slowly: swim around and bite her from behind. When her claw rises, get out of reach or she grabs you."},
+	{"id": "kraken", "name": "Grey Kraken", "size": 8, "big": 3.3, "hp": 60, "dna": 30, "col": Color("9a8f98"),
+		"tell": 1.0, "attack": 0.7, "tired": 2.8,
+		"real": "The Grey Kraken is a giant squid. Real giant squid grow longer than a bus, and their eyes are as big as a dinner plate, among the biggest eyes of any animal.",
+		"how": "When two tentacles rear back, a sweep is coming across the marked area: get out of it, or bite one of the glowing tentacle tips to stun her. She squirts ink that hides you both."},
+	{"id": "leviathan", "name": "Hollow Leviathan", "size": 10, "big": 4.3, "hp": 80, "dna": 40, "col": Color("4a5f74"),
+		"tell": 1.3, "attack": 2.6, "tired": 3.6,
+		"real": "The Hollow Leviathan is shaped like a sperm whale. Real sperm whales dive deeper than 2,000 m to hunt giant squid, and have the biggest brain of any animal that ever lived.",
+		"how": "Its hide is thick: bites barely hurt it. It breathes in and swallows everything in front of it: swim out of the current. After a gulp its glowing weak spots open: bite them then."},
+]
+
+static func boss_of(id: String) -> Dictionary:
+	for b in BOSSES:
+		if b.id == id:
+			return b
+	return {}

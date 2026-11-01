@@ -17,6 +17,9 @@ extends RefCounted
 ##   chomp  : a jaw snap: a click, a short crunch of noise and a low thump
 ##   slurp  : a wet rising suck with a bubbly wobble
 ##   munch  : two quick soft bites, the second lower
+##   roar   : a boss: a deep growl that swells and dies away (pitch it up for small bosses)
+##   snap   : a boss's jaws or claw slamming shut: a hard crack and a low thud
+##   clang  : a bite glancing off a boss's shell or snout: a short metallic ring
 
 const RATE := 22050
 static var _cache := {}
@@ -101,6 +104,18 @@ static func stream(name: String) -> AudioStreamWAV:
 						var f0: float = 420.0 if k2 == 0 else 300.0
 						var nz7 := randf() * 2.0 - 1.0
 						v += (sin(TAU * f0 * (1.0 - exp(-7.0 * tb)) / 7.0) * 0.45 + nz7 * 0.2 * exp(-tb * 60.0)) * (1.0 - exp(-tb * 400.0)) * exp(-tb * 22.0)
+			"roar":
+				phase += TAU * (70.0 + 25.0 * sin(TAU * 3.0 * t) + 30.0 * t) / float(RATE)
+				var nz8 := randf() * 2.0 - 1.0
+				lp += (nz8 - lp) * 0.06
+				var envr := sin(PI * minf(t / dur * 1.3, 1.0)) * exp(-t * 0.8)
+				v = (sin(phase) * 0.45 + sin(phase * 2.0) * 0.2 + lp * 1.1 * (0.6 + 0.4 * sin(TAU * 11.0 * t))) * envr
+			"snap":
+				var nz9 := randf() * 2.0 - 1.0
+				v = nz9 * exp(-t * 70.0) * 0.8 + sin(TAU * (120.0 * t - 100.0 * t * t)) * exp(-t * 14.0) * 0.6
+			"clang":
+				var envc := exp(-t * 9.0) * (1.0 - exp(-t * 900.0))
+				v = (sin(TAU * 880.0 * t) * 0.3 + sin(TAU * 1397.0 * t) * 0.22 + sin(TAU * 2310.0 * t) * 0.12) * envc
 			"poison":
 				phase += TAU * (220.0 + 45.0 * sin(TAU * 7.0 * t)) / float(RATE)
 				v = sin(phase) * exp(-t * 3.0) * 0.4 + sin(phase * 1.5) * exp(-t * 4.0) * 0.15
@@ -142,4 +157,10 @@ static func _duration(name: String) -> float:
 			return 0.3
 		"munch":
 			return 0.3
+		"roar":
+			return 1.3
+		"snap":
+			return 0.3
+		"clang":
+			return 0.5
 	return 0.2
