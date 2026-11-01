@@ -57,6 +57,7 @@ Every adopter keeps its own old controls as the fallback for apps without the Pa
 | Crypt Crawler | stick walks, A fires, dragging the view still turns |
 Left alone on purpose: Alien Attack (one finger slides the cannon: a stick would be worse), swipe / tap / aim-by-drag games (Snake, Maze Muncher, Frog Crossing, Bird Hop, Sky Hop, City Defense, Cannon Duel).
 Template additions: `custom_layout` + `Layouts.variant()`, `prefs_override` (`floating`, `wide_zone`), `set_state` keys `fill` / `tint` / `glyph` (bomb, flame, jump, bolt) / `draw`, portrait scale (`PORTRAIT_K`).
+`set_state` keys `alpha` (multiplies the player's opacity for one part) and `look` (draw scale; the touch area keeps its size), 2026-10-31 for Evolution's stick (50%, 0.75). Older apps ignore them.
 Phone test without publishing: preset **PadGamesDev** (`com.viral.voodoo.padgames`, the hub plus the ten games above bundled; `--export-release PadGamesDev builds/pad_games_dev.apk`, debug key like the other dev presets).
 Not phone-tested. Portrait games: the Pad covers the bottom corners of Sky Raider / Star Runner / Rock Blaster's field and takes `PAD_ROOM` under Barrel Climb / Moon Lander / Crypt Crawler: check that first.
 

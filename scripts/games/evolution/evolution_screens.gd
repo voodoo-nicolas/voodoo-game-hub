@@ -151,7 +151,11 @@ func _build_info() -> void:
 		col.add_child(_wrapped("☠ " + tr(a.name) + " (%ds): " % int(ceil(e.ailments[id])) + tr(a.desc), 20, Color("d7ff2a")))
 	for s in Data.SPECIALS:
 		if e.specials.has(s.id):
-			col.add_child(_wrapped("★ " + tr(s.name) + ": " + tr(s.desc), 20, Color("ffd23f")))
+			if s.has("ranks"):      # Food magnet: 3 ranks (owner 2026-10-31)
+				var mr: int = e.magnet_rank()
+				col.add_child(_wrapped("★ " + tr(s.name) + " %d/%d: " % [mr, s.ranks.size()] + tr(s.ranks[mr - 1]), 20, Color("ffd23f")))
+			else:
+				col.add_child(_wrapped("★ " + tr(s.name) + ": " + tr(s.desc), 20, Color("ffd23f")))
 	# Resistances grow from getting the same ailment again and again.
 	for id in Data.AILMENT_ORDER:
 		if int(e.ail_count.get(id, 0)) <= 0:

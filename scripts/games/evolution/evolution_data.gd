@@ -17,6 +17,8 @@ const DIFFICULTY := {
 	"easy": {"hunters": 0.10, "bite": 1.2, "regen": 1.5, "speed": 0.78, "chasers": 2, "hunter_max": 4, "env": 0.6},
 	"normal": {"hunters": 0.20, "bite": 2.0, "regen": 1.0, "speed": 0.88, "chasers": 3, "hunter_max": 6, "env": 1.0},
 	"hard": {"hunters": 0.30, "bite": 3.0, "regen": 0.7, "speed": 0.98, "chasers": 4, "hunter_max": 8, "env": 1.3, "slow": 4.0},
+	# Hardcore (owner 2026-10-31): one life (no revive) and harder than Hard; picked by the "When you die" row, not a button
+	"hardcore": {"hunters": 0.38, "bite": 3.8, "regen": 0.55, "speed": 1.02, "chasers": 5, "hunter_max": 10, "env": 1.5, "slow": 4.0},
 }
 const DIFFICULTY_ORDER := ["easy", "normal", "hard"]
 
@@ -84,6 +86,15 @@ const SPECIES := [
 	{"id": "strepto", "name": "Strep chain", "shape": "chain", "role": "prey", "col": Color("7a8cff"), "mass": [7.0, 13.0], "tier": 2, "until": 3, "flee": 0.4, "feats": []},
 	{"id": "spirillum", "name": "Spirillum", "shape": "spiral", "role": "prey", "col": Color("5fd0b0"), "mass": [8.0, 15.0], "tier": 2, "until": 3, "flee": 0.5, "feats": ["tail"]},
 	{"id": "ciliate", "name": "Ciliate", "shape": "blob", "role": "prey", "col": Color("f08fb0"), "mass": [10.0, 18.0], "tier": 2, "until": 3, "flee": 0.5, "feats": ["cilia"]},
+	# More life at sizes 1-2 (owner 2026-10-31: "at size 2, 90% are the glowing specks or the pink round creatures":
+	# the Ciliate was the only species big enough to count as size 2)
+	{"id": "yeast", "name": "Yeast", "shape": "beads", "role": "prey", "col": Color("f2e6c8"), "mass": [3.0, 7.0], "tier": 1, "until": 3, "flee": 0.0, "feats": []},
+	{"id": "vibrio", "name": "Vibrio", "shape": "rod", "role": "prey", "col": Color("c86ad8"), "mass": [4.0, 8.0], "tier": 1, "until": 3, "flee": 0.0, "feats": ["tail"]},
+	{"id": "chlorella", "name": "Chlorella", "shape": "blob", "role": "prey", "col": Color("7ad84a"), "mass": [2.0, 5.0], "tier": 1, "until": 3, "flee": 0.0, "feats": []},
+	{"id": "euglena", "name": "Euglena", "shape": "spiral", "role": "prey", "col": Color("6ad86a"), "mass": [14.0, 24.0], "tier": 2, "until": 3, "flee": 0.5, "feats": ["tail"]},
+	{"id": "paramecium", "name": "Paramecium", "shape": "rod", "role": "prey", "col": Color("e8d27a"), "mass": [16.0, 28.0], "tier": 2, "until": 3, "flee": 0.5, "feats": ["cilia"]},
+	{"id": "diatom", "name": "Diatom", "shape": "bumpy", "role": "prey", "col": Color("d8a84a"), "mass": [15.0, 26.0], "tier": 2, "until": 3, "flee": 0.2, "feats": []},
+	{"id": "volvox", "name": "Volvox", "shape": "beads", "role": "prey", "col": Color("4ad8a0"), "mass": [18.0, 29.0], "tier": 2, "until": 3, "flee": 0.3, "feats": []},
 	{"id": "herpes", "name": "Herpes", "shape": "spiky", "role": "prey", "col": Color("e6b84a"), "mass": [16.0, 30.0], "tier": 3, "until": 3, "flee": 0.6, "feats": []},
 	{"id": "papilloma", "name": "Papilloma", "shape": "bumpy", "role": "prey", "col": Color("a35dd8"), "mass": [18.0, 34.0], "tier": 3, "until": 3, "flee": 0.4, "feats": []},
 	{"id": "zika", "name": "Zika", "shape": "bumpy", "role": "prey", "col": Color("e8693a"), "mass": [20.0, 36.0], "tier": 3, "until": 3, "flee": 0.5, "feats": []},
@@ -320,7 +331,10 @@ const SLOT_STAGE := [0, 0, 3, 4]
 
 ## Special traits that only rare creatures give (not on the tree).
 const SPECIALS := [
-	{"id": "magnet", "name": "Food magnet", "desc": "Food drifts toward you."},
+	{"id": "magnet", "name": "Food magnet", "desc": "Food drifts toward you.", "ranks": [
+		"Food specks drift toward you; creatures your size slow down near you.",
+		"Food specks and creatures up to your size drift toward you, from farther away.",
+		"Everything near you slows down, and everything that can't eat you drifts toward you, from farther still."]},
 	{"id": "armor", "name": "Armor plating", "desc": "Take less damage."},
 	{"id": "photo", "name": "Photosynthesis", "desc": "You slowly grow in the light."},
 ]

@@ -39,6 +39,7 @@ func _init() -> void:
 		print("FAILS: %d" % fails)
 		quit(1 if fails else 0)
 		return
+	_magnet_modes_variety()
 	var r: float = Ev.TUNING.eat_ratio
 	# Eat-ratio rule
 	check(Ev.can_eat(r * 10.0, 10.0), "exactly the ratio can eat")
@@ -989,6 +990,99 @@ func _init() -> void:
 ## can feel. Owner 2026-10-24: size 2 -> 3 costs X, then every size 50% more than the last; size N of 10 =
 ## N/10 of the tree's DNA; tail and eye at size 1, the tree at size 2; bacteria 1-3, fish 3-6, all sorts 5-10,
 ## sea monsters 9-10; more rare creatures.
+## Owner 2026-10-31: Food magnet ranks, Hardcore, more creatures at sizes 1-2.
+func _magnet_modes_variety() -> void:
+	# Hardcore is its own difficulty, harder than Hard on every count
+	var hd: Dictionary = Data.DIFFICULTY.hard
+	var hc: Dictionary = Data.DIFFICULTY.get("hardcore", {})
+	check(not hc.is_empty(), "there is a Hardcore difficulty")
+	for k in ["hunters", "bite", "speed", "chasers", "hunter_max", "env"]:
+		check(float(hc.get(k, 0)) > float(hd[k]), "Hardcore %s is above Hard's (%s vs %s)" % [k, hc.get(k), hd[k]])
+	check(float(hc.get("regen", 9)) < float(hd.regen), "Hardcore heals slower than Hard")
+	var hce := Ev.new()
+	hce.reset(5, "hardcore")
+	check(hce.difficulty == "hardcore", "a run can start in Hardcore")
+	# Food magnet: 3 ranks, each reaching farther
+	var m := Ev.new()
+	_veteran(m, 61)
+	check(m.magnet_rank() == 0 and m.magnet_reach() == 0.0, "no magnet at the start")
+	m.specials["magnet"] = true      # a run from before ranks: rank 1
+	check(m.magnet_rank() == 1, "an old magnet is rank 1")
+	var reach := []
+	for rk in [1, 2, 3]:
+		m.specials["magnet"] = rk
+		reach.append(m.magnet_reach())
+	check(reach[0] < reach[1] and reach[1] < reach[2], "the magnet reaches farther each rank (%s)" % str(reach))
+	# what each rank pulls and slows
+	var moved := {}
+	for rk in [1, 2, 3]:
+		var e := Ev.new()
+		_veteran(e, 70 + rk)
+		e.specials["magnet"] = rk
+		e.food = [e.player.pos + Vector2(120, 0)]
+		var f0: float = (e.food[0] - e.player.pos).length()
+		e._heal_and_passives(0.1)
+		var food_in: bool = (e.food[0] - e.player.pos).length() < f0 - 1.0
+		var small := _npc(e.player.pos + Vector2(0, 150), 1.0, "coccus", "prey")
+		small["pause"] = 99.0      # holds still on its own: any movement toward you is the magnet
+		e.npcs = [small]
+		var n0: float = 150.0
+		for k in 10:
+			e.step(1.0 / 60.0, Vector2.ZERO)
+		var npc_in := false
+		for n in e.npcs:
+			if int(n.id) == 999:
+				npc_in = (n.pos - e.player.pos).length() < n0 - 10.0
+		if e.npcs.filter(func(n): return int(n.id) == 999).is_empty():
+			npc_in = true      # eaten: it was drawn all the way in
+		moved[rk] = [food_in, npc_in]
+	check(moved[1][0], "rank 1 draws in food specks")
+	check(not moved[1][1], "rank 1 does not draw in creatures")
+	check(moved[2][0] and moved[2][1], "rank 2 draws in food and small creatures")
+	check(moved[3][0] and moved[3][1], "rank 3 draws in food and creatures")
+	# rank 1 slows your-size creatures, rank 3 slows bigger ones too; nothing pulls in a hunter
+	var hunter_pull := Ev.new()
+	_veteran(hunter_pull, 81)
+	hunter_pull.specials["magnet"] = 3
+	hunter_pull.grace = 999.0
+	var big := _npc(hunter_pull.player.pos + Vector2(200, 0), hunter_pull.player.mass * 3.0, "corona", "hunter")
+	big["pause"] = 99.0      # holds still on its own: any movement toward you is the magnet
+	hunter_pull.npcs = [big]
+	var b0: float = (big.pos - hunter_pull.player.pos).length()
+	for k in 30:
+		hunter_pull.step(1.0 / 60.0, Vector2.ZERO)
+	check(absf((hunter_pull.npcs[0].pos - hunter_pull.player.pos).length() - b0) < 5.0, "the magnet never draws in a creature that can eat you")
+	# a rare creature raises the magnet, up to rank 3
+	var g := Ev.new()
+	_veteran(g, 90)
+	g.specials["magnet"] = 1
+	for k in 200:
+		g._grant_rare("gold")
+	check(g.magnet_rank() == 3, "rare creatures raise the magnet to rank 3 (%d)" % g.magnet_rank())
+	# sizes 1-2: many kinds of creature, none takes most of the spawns
+	for size in [1, 2]:
+		var p := Ev.new()
+		p.reset(300 + size)
+		p.sight_rank = 2
+		p.move_rank = 1
+		p.player.mass = Data.LEVELS[size - 1] + 1.0
+		p._mass_seen = -1.0
+		p._sync_mass()
+		var count := {}
+		var n := 0
+		for i in 1500:
+			p.npcs.clear()
+			var sp: Dictionary = p._pick_species()
+			if sp.is_empty() or sp.role != "prey":
+				continue
+			count[sp.id] = int(count.get(sp.id, 0)) + 1
+			n += 1
+		var top := 0
+		for id in count:
+			top = maxi(top, int(count[id]))
+		check(count.size() >= 6, "size %d meets at least 6 kinds of prey (%d: %s)" % [size, count.size(), str(count.keys())])
+		check(top * 100 < n * 35, "size %d: no kind is over 35%% of the prey (%d of %d)" % [size, top, n])
+
 func _growth_and_species() -> void:
 	# xp (owner 2026-10-29): each size costs Data.XP_KILLS kills of prey one size below (worth size - 1, at size 1
 	# worth 1); 19,500 kills to size 10; mass follows xp through the size starts

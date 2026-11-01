@@ -20,7 +20,7 @@ const TUNING := {
 	"absorb": 0.10,             # share of the victim's mass a creature gains when it eats another one (you grow by xp, below)
 	# xp per size: Data.XP_KILLS (owner 2026-10-29). Before: xp_first 30 (size 1 -> 2), xp_second 50 (the owner's
 	# "X", size 2 -> 3), then xp_ratio 1.5 x the one before (owner 2026-10-24; it was 5 then x2).
-	"food_xp": 0.5,             # xp per food speck (a creature is worth its size level in xp)
+	"food_xp": 0.8,             # xp per food speck at size 1, divided by your size (a creature is worth its size level in xp). Was 0.5 (owner 2026-10-31: they need to count a bit more); specks fill the 🧬 bar too
 	"food_mass": 1.0,
 	"food_per_area": 1.5e-5,    # food per square world unit of the spawn disc
 	"food_min": 12,
@@ -108,7 +108,9 @@ const TUNING := {
 	"slow_heal_mult": 0.25,
 	"appetite_mult": 0.5,
 	"photo_rate": 0.003,        # share of the current size's xp per second (Photosynthesis)
-	"magnet_range": 190.0,
+	"magnet_range": 190.0,      # rank 1 (it had one rank)
+	"magnet_ranges": [190.0, 290.0, 420.0],   # Food magnet ranks 1-3 (owner 2026-10-31: the range grows with each rank)
+	"magnet_pull": 150.0,       # how fast rank 2+ draws creatures in (food drifts at 220)
 	"cam_base": 0.88,           # was 1.0: the whole pond zoomed out a little (2026-10-22)
 	"cam_k": 0.045,
 	"cam_min": 0.22,
@@ -165,7 +167,7 @@ var _warn_cold := false
 var _warn_deep := false
 var owned := {}           # tree node id -> points spent (only ids with 1 or more)
 var slot_ids: Array = ["", "", "", ""]   # the ability on each of the 4 buttons ("" = none)
-var specials := {}        # special trait id -> true
+var specials := {}        # special trait id -> true (Food magnet: its rank 1-3)
 var ailments := {}        # ailment id -> seconds left
 var ail_full := {}        # ailment id -> how long it lasted when it started (for the HUD's timer bar)
 var ail_count := {}       # ailment id -> times you got it this run (resistances grow from it)
@@ -992,7 +994,7 @@ func _heal_and_passives(delta: float) -> void:
 	if specials.has("photo"):
 		_gain_xp(xp_span(level()) * t("photo_rate") * delta)
 	if specials.has("magnet"):
-		var rng2: float = t("magnet_range") + radius_of(player.mass)
+		var rng2: float = magnet_reach()
 		for i in food.size():
 			var d: Vector2 = player.pos - food[i]
 			if d.length() < rng2:
@@ -1038,6 +1040,8 @@ func _think(delta: float) -> void:
 	for i in mini(near.size(), mini(int(Data.DIFFICULTY[difficulty].get("chasers", 3)), threat_cap())):
 		allowed[near[i][1]] = true
 	_snapshot_npcs()
+	var mag := magnet_rank()
+	var mag_r := magnet_reach()
 	for i in npcs.size():
 		if i > 0:
 			_snap_pos[i - 1] = npcs[i - 1].pos      # the one before has moved: _social sees where it is now
@@ -1045,6 +1049,7 @@ func _think(delta: float) -> void:
 		var n: Dictionary = npcs[i]
 		n.t -= delta
 		var slow_mult := 1.0
+		var boss: bool = n.get("boss", false)      # no bosses yet (phase 6); the magnet leaves them alone
 		if n.get("venom", 0.0) > 0.0:
 			n["venom"] -= delta
 			n.mass = maxf(n.mass - n.mass * t("venom_rate") * delta, t("min_npc_mass"))
@@ -1064,6 +1069,12 @@ func _think(delta: float) -> void:
 		var speed := _npc_speed(n.mass, base_speed * 0.6)
 		var to_p: Vector2 = player.pos - n.pos
 		var d := to_p.length()
+		var in_magnet: bool = mag > 0 and not boss and d < mag_r
+		if in_magnet and (mag >= 3 or size_level(n.mass) == level()):
+			slow_mult = minf(slow_mult, t("slow_mult"))     # rank 1-2: creatures your size, rank 3: everything
+		# rank 2 draws in creatures up to your size, rank 3 everything that can't eat you
+		if in_magnet and mag >= 2 and d > radius_of(player.mass) * 0.5 and not can_eat(n.mass, player.mass) and (mag >= 3 or size_level(n.mass) <= level()):
+			n.pos += to_p / maxf(d, 0.001) * t("magnet_pull") * delta
 		var sight := maxf(sense_floor, radius_of(n.mass) * 6.0)
 		var role: String = n.role
 		# Ink: a hunter inside the cloud has lost you.
@@ -1407,6 +1418,8 @@ func _grant_rare(species: String = "gold") -> void:
 		dna += bonus
 		events.append({"type": "rare_dna", "species": species, "dna": bonus})
 	var pool: Array = []
+	if specials.has("magnet") and magnet_rank() < 3:
+		pool.append({"kind": "magnet", "id": "magnet", "name": "Food magnet"})    # rare creatures raise it to rank 3
 	for n in Data.NODES:
 		if tree_unlocked and reqs_met(n.id) and rank_of(n.id) < int(n.max) and not n.has("excl") and not node_hidden(n.id) and level() >= int(n.get("size", 0)):
 			pool.append({"kind": "node", "id": n.id, "name": n.name})
@@ -1420,13 +1433,30 @@ func _grant_rare(species: String = "gold") -> void:
 	var pick: Dictionary = pool[rng.randi() % pool.size()]
 	if pick.kind == "node":
 		_add_point(pick.id)
+	elif pick.kind == "magnet":
+		specials["magnet"] = magnet_rank() + 1
 	else:
-		specials[pick.id] = true
-	events.append({"type": "rare", "name": pick.name, "kind": pick.kind})
+		specials[pick.id] = 1 if pick.id == "magnet" else true
+	events.append({"type": "rare", "name": pick.name, "kind": pick.kind, "rank": magnet_rank() if pick.id == "magnet" else 0})
 
 # ---------- the evolution tree ----------
 
 ## Every prerequisite owned with enough points?
+## Food magnet rank 0-3 (owner 2026-10-31): 1 draws in food specks and slows creatures your size, 2 also draws in
+## creatures up to your size, 3 slows everything and draws in everything that can't eat you (never bosses).
+func magnet_rank() -> int:
+	if not specials.has("magnet"):
+		return 0
+	var v = specials.magnet
+	return clampi(int(v) if typeof(v) != TYPE_BOOL else 1, 1, 3)
+
+## How far the Food magnet reaches (world units, from your centre).
+func magnet_reach() -> float:
+	var r := magnet_rank()
+	if r <= 0:
+		return 0.0
+	return float(t("magnet_ranges")[r - 1]) + radius_of(player.mass)
+
 ## The body plan you chose ("" = none yet).
 func plan() -> String:
 	for k in Data.PLAN_SPEED:

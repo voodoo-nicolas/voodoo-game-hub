@@ -13,12 +13,13 @@ const HOW := [
 	"Missions are on the right, and they turn up as you discover things.",
 	"The smallest dots are worth the least; the bigger the creature, the more it is worth. Things far smaller than you are worth nothing.",
 	"The red bar is your health, the gold bar your growth. Bigger creatures bite when they touch you; they glow red. If your health runs out the run is over. Different kinds of creature also hunt each other.",
-	"Growing to size 2 opens the evolution tree and gives 2 DNA. After that, everything you eat fills the green 🧬 bar under your growth bar: each time it is full you get 1 DNA. Bigger meals fill it faster. Rare creatures give extra DNA.",
+	"Getting the eye opens the evolution tree and gives 2 DNA. After that, everything you eat fills the green 🧬 bar under your growth bar: each time it is full you get 1 DNA. Bigger meals fill it faster. Rare creatures give extra DNA.",
 	"Once the tree is open, use the 🧬 screen (middle, next to pause): the game stops while you look. It shows your creature's size, speed, strength and health, and lets you spend DNA on the evolution tree: offense, senses, movement, defense and habitat. A trait shows a ? until you own the traits before it.",
 	"Creatures that can eat you glow red. Toxic ones glow yellow-green, and each kind always causes the same ailment: spiky spores make you brittle, glow spores make you glow, gut worms give a bottomless appetite, mold spores slow your healing. A bar under your health shows how long the ailment lasts.",
 	"Get the same ailment often enough and your body learns to resist it, for free: 10 times for 1/5, then every 20 more, up to 5/5 (immune). The 🧬 screen shows how far you are.",
 	"Rare creatures glow gold, shimmer and send ripples through the water, even just past what you can see. Eat one for a free trait. The bigger you are, the more kinds turn up, and the rarest ones also give DNA.",
 	"Under your health bar: your depth and the water temperature, with the limits your body can take. Water that is too cold slows you down and hurts; too deep, the pressure hurts. The Habitat branch (Antifreeze, Pressure cells and more) lets you swim colder and deeper.",
+	"When you die (setup screen): Normal brings you back at the start of your size with everything you evolved. Hardcore gives you one life, is harder than Hard whichever difficulty you tap, and has its own badges for each size you reach.",
 	"Nothing is saved mid-run, so there is no Resume: every run starts as a tiny cell.",
 ]
 const TIPS := [
@@ -53,6 +54,18 @@ const ACHIEVEMENTS := [
 	{"id": "be_back", "icon": "🔁", "title": "I'll be back", "desc": "Get chased by a bigger creature, grow, and then eat it", "key": "Revenge", "at": 1},
 	{"id": "close_call", "icon": "😰", "title": "Close call", "desc": "Stay alive for 8 seconds close to a hunter", "key": "Close call", "at": 8},
 	{"id": "score1", "icon": "🏆", "title": "Microbe master", "key": "Best score", "at": 1000},
+	# Hardcore (owner 2026-10-31): sizes 1 to 10 reached in a Hardcore run (one life). 10 xp each: the game is already over
+	# the 1000-point cap (STANDARDS §3b)
+	{"id": "hc_size1", "icon": "💀", "title": "Hardcore: first breath", "desc": "Start a Hardcore run", "key": "Hardcore size", "at": 1, "xp": 10},
+	{"id": "hc_size2", "icon": "💀", "title": "Hardcore: size 2", "desc": "Reach size 2 in Hardcore", "key": "Hardcore size", "at": 2, "xp": 10},
+	{"id": "hc_size3", "icon": "💀", "title": "Hardcore: size 3", "desc": "Reach size 3 in Hardcore", "key": "Hardcore size", "at": 3, "xp": 10},
+	{"id": "hc_size4", "icon": "💀", "title": "Hardcore: size 4", "desc": "Reach size 4 in Hardcore", "key": "Hardcore size", "at": 4, "xp": 10},
+	{"id": "hc_size5", "icon": "💀", "title": "Hardcore: size 5", "desc": "Reach size 5 in Hardcore", "key": "Hardcore size", "at": 5, "xp": 10},
+	{"id": "hc_size6", "icon": "☠️", "title": "Hardcore: size 6", "desc": "Reach size 6 in Hardcore", "key": "Hardcore size", "at": 6, "xp": 10},
+	{"id": "hc_size7", "icon": "☠️", "title": "Hardcore: size 7", "desc": "Reach size 7 in Hardcore", "key": "Hardcore size", "at": 7, "xp": 10},
+	{"id": "hc_size8", "icon": "☠️", "title": "Hardcore: size 8", "desc": "Reach size 8 in Hardcore", "key": "Hardcore size", "at": 8, "xp": 10},
+	{"id": "hc_size9", "icon": "☠️", "title": "Hardcore: size 9", "desc": "Reach size 9 in Hardcore", "key": "Hardcore size", "at": 9, "xp": 10},
+	{"id": "hc_size10", "icon": "👑", "title": "Hardcore: size 10", "desc": "Reach size 10 in Hardcore", "key": "Hardcore size", "at": 10, "xp": 10},
 ]
 
 ## Learning hook (STANDARDS §15). Checked facts only.
@@ -65,6 +78,8 @@ const FACTS := [
 	"Most of the deep ocean is cold, around 0 to 4 °C, even under the tropics.",
 	"Every 10 m deeper in water adds about one more atmosphere of pressure.",
 	"Some polar fish make antifreeze proteins that stop ice crystals from growing in their blood.",
+	"Diatoms are single cells that build their walls out of glass (silica).",
+	"Euglena can make food from sunlight like a plant, and also swallow food like an animal.",
 	"An octopus has three hearts and blue blood.",
 	"A starfish can grow back a lost arm.",
 	"In seahorses it is the father who carries the eggs until they hatch.",

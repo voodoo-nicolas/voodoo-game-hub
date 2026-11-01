@@ -23,6 +23,8 @@ const SLOT_PARTS := ["a", "b", "x", "y"]   # slot i is this Pad button
 const Art = preload("res://scripts/games/evolution/evolution_art.gd")   # its cheap disc / arc / strip drawing
 const STICK_R := 97.5           # 25% smaller than the first version (130), 2026-10-22
 const KNOB_R := 37.5
+const STICK_ALPHA := 0.5         # drawn half see-through (owner 2026-10-31)
+const STICK_LOOK := 0.75         # drawn this much of its size; the touch area stays STICK_R
 const DEADZONE := 0.12
 const BTN_R := 44.0
 
@@ -52,6 +54,8 @@ func _add_pad() -> void:
 		_pad.set_hidden(SLOT_PARTS[i], true)
 		_pad.set_state(SLOT_PARTS[i], {"draw": _slot_icon.bind(i)})
 	_pad.button_pressed.connect(_on_pad_button)
+	# owner 2026-10-31: the stick 50% see-through and drawn smaller, same touch area (Pad keys alpha / look; older apps ignore them)
+	_pad.set_state("move", {"alpha": 0.5, "look": 0.75})
 	set_process(true)
 
 func _on_pad_button(id: String) -> void:
@@ -144,13 +148,16 @@ func _move(id: int, pos: Vector2) -> void:
 func _draw() -> void:
 	if _pad != null:
 		return
+	# owner 2026-10-31: the stick drawn 50% see-through and STICK_LOOK smaller; the touch area keeps STICK_R
 	var c := stick_center()
-	Art.disc(self, c, STICK_R, Color(1, 1, 1, 0.10))
-	Art.arc(self, c, STICK_R, 0.0, TAU, 48, Color(1, 1, 1, 0.45), 3.0, true)
-	Art.arc(self, c, STICK_R * 0.5, 0.0, TAU, 32, Color(1, 1, 1, 0.14), 2.0, true)
+	var sr := STICK_R * STICK_LOOK
+	var kn := _stick_pos * STICK_LOOK
+	Art.disc(self, c, sr, Color(1, 1, 1, 0.10 * STICK_ALPHA))
+	Art.arc(self, c, sr, 0.0, TAU, 48, Color(1, 1, 1, 0.45 * STICK_ALPHA), 3.0, true)
+	Art.arc(self, c, sr * 0.5, 0.0, TAU, 32, Color(1, 1, 1, 0.14 * STICK_ALPHA), 2.0, true)
 	var held := _pointers.values().has("stick")
-	Art.disc(self, c + _stick_pos, KNOB_R, Color(accent, 0.5 if held else 0.25))
-	Art.arc(self, c + _stick_pos, KNOB_R, 0.0, TAU, 32, Color(1, 1, 1, 0.7), 3.0, true)
+	Art.disc(self, c + kn, KNOB_R * STICK_LOOK, Color(accent, (0.5 if held else 0.25) * STICK_ALPHA))
+	Art.arc(self, c + kn, KNOB_R * STICK_LOOK, 0.0, TAU, 32, Color(1, 1, 1, 0.7 * STICK_ALPHA), 3.0, true)
 	for i in slots.size():
 		if str(slots[i]) == "":
 			continue

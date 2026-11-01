@@ -187,9 +187,14 @@ var eye_open: float = 1.0
 var tail_grow: float = 1.0
 var banners: Array = []             # [{"text","t"}], shown one after another
 ## color = primary; color2 / color3 = the two secondary colours (indexes into Data.COLORS).
-var prefs := {"color": 0, "color2": 3, "color3": 2, "diff": "normal", "endless": false, "picked": false}
+var prefs := {"color": 0, "color2": 3, "color3": 2, "diff": "normal", "endless": false, "hardcore": false, "picked": false}
 var diff := "normal"
 var endless := false                    # dying sends you back to the start of your size instead of ending the run
+## Owner 2026-10-31: "When you die" is Normal (left: endless, the default) or Hardcore (right: one life, its own
+## difficulty harder than Hard, its own size badges). Pref `hardcore`; the old `endless` pref is read but unused
+## (its default, false = Game over, would have put every old player into Hardcore).
+func _run_diff() -> String:
+	return "hardcore" if bool(prefs.hardcore) else diff
 var color: Color = MINE
 var color2: Color = Data.COLORS[3][1]   # tail, fins, spikes, tentacles, hairs
 var color3: Color = Data.COLORS[2][1]   # spots, stripes, small details
@@ -255,6 +260,7 @@ func _load_prefs() -> void:
 				var d := str(parsed.get("diff", "normal"))
 				prefs["diff"] = d if Data.DIFFICULTY.has(d) else "normal"
 				prefs["endless"] = bool(parsed.get("endless", false))
+				prefs["hardcore"] = bool(parsed.get("hardcore", false))
 				prefs["picked"] = bool(parsed.get("picked", false))
 	diff = prefs.diff
 	_apply_colors()
@@ -492,9 +498,10 @@ func _build_ui() -> void:
 func _add_options(body: VBoxContainer) -> void:
 	_add_colour_pickers(body)
 	body.add_child(home.section("When you die"))
-	body.add_child(home.choice_row(["Game over", "Endless"], 1 if bool(prefs.endless) else 0, _pick_endless))
+	# was ["Game over", "Endless"], Game over on the left (owner 2026-10-31: Normal left, Hardcore right)
+	body.add_child(home.choice_row(["Normal", "Hardcore"], 1 if bool(prefs.hardcore) else 0, _pick_hardcore))
 	var note := Label.new()
-	note.text = tr("Game over: a new run starts from zero.") + "\n" + tr("Endless: you come back at the start of your size, keeping everything you evolved.")
+	note.text = tr("Normal: you come back at the start of your size, keeping everything you evolved.") + "\n" + tr("Hardcore: one life, harder than Hard (whichever difficulty you tap), with its own badges.")
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size = Vector2(80, 0)
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -505,8 +512,8 @@ func _add_options(body: VBoxContainer) -> void:
 		prefs["picked"] = true
 		_save_prefs()
 
-func _pick_endless(i: int) -> void:
-	prefs["endless"] = i == 1
+func _pick_hardcore(i: int) -> void:
+	prefs["hardcore"] = i == 1
 	_save_prefs()
 
 ## The cell's colours with a live preview (the setup screen and "Choose your creature" both use it).
@@ -616,7 +623,7 @@ func _on_ability(i: int) -> void:
 func _start_run(d: String) -> void:
 	diff = d
 	prefs["diff"] = d
-	endless = bool(prefs.endless)
+	endless = not bool(prefs.hardcore)
 	_save_prefs()
 	if not bool(prefs.picked):
 		_open_creature(true)      # Quick Play skips the setup screen: the first run still asks for the colours
@@ -698,6 +705,8 @@ func _flush_stats() -> void:
 		_flushed.dist = float(_flushed.dist) + float(meters) * 10.0
 	info.high("Biggest size", engine.level())
 	info.high("Top speed", engine.speed_pct())
+	if engine.difficulty == "hardcore":
+		info.high("Hardcore size", engine.level())
 
 func _new_game() -> void:
 	_flush_stats()
@@ -706,7 +715,8 @@ func _new_game() -> void:
 	vis_r = field.size.y * Data.SIGHT_FRAC[0]
 	zoom = 1.0
 	_apply_view(1.0, true)
-	engine.reset(-1, diff)
+	endless = not bool(prefs.hardcore)
+	engine.reset(-1, _run_diff())
 	started = true
 	result_sent = false
 	_play_music()
@@ -1149,7 +1159,10 @@ func _handle_events() -> void:
 			"rare_dna":
 				_banner(tr("%s: +%d DNA") % [tr(str(Data.species_of(ev.species).name)), int(ev.dna)])
 			"rare":
-				_banner(tr("Rare trait: %s") % tr(str(ev.name)))
+				if int(ev.get("rank", 0)) > 1:
+					_banner(tr("Rare trait: %s") % (tr(str(ev.name)) + " %d/3" % int(ev.rank)))
+				else:
+					_banner(tr("Rare trait: %s") % tr(str(ev.name)))
 				_spawn_burst(engine.player.pos, Color("ffd23f"), 24, 260.0, 5.0, EvEngine.radius_of(engine.player.mass) * 2.0)
 				_snd("evolve")
 			"hurt":
