@@ -1226,7 +1226,7 @@ func _refresh_all() -> void:
 		info_label.text = tr("Drag items together, or tap two, to make something new.")
 	var found: int = engine.found_count()
 	var total: int = engine.total()
-	count_label.text = tr("Discovered %d / %d") % [found, total]
+	count_label.text = tr("Discovered %d / %d · %d remaining") % [found, total, total - found]
 	count_bar.max_value = total
 	count_bar.value = found
 	_refresh_hint_button()
@@ -1338,7 +1338,7 @@ func _body_label(text: String, color: Color = Color(), size_px: int = 20) -> Lab
 
 func _show_collection() -> void:
 	var box := _open_modal(tr("Collection"))
-	box.add_child(_body_label(tr("Discovered %d / %d") % [engine.found_count(), engine.total()], pal.text, 22))
+	box.add_child(_body_label(tr("Discovered %d / %d · %d remaining") % [engine.found_count(), engine.total(), engine.total() - engine.found_count()], pal.text, 22))
 	for t in engine.tiers:
 		var id: int = int(t.id)
 		var p: Array = engine.tier_progress(id)

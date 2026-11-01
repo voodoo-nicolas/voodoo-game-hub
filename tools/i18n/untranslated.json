@@ -570,6 +570,10 @@
  "item without id": [
   "scripts\\games\\creation\\creation_engine.gd"
  ],
+ "make the bosses harder": [
+  "scripts\\games\\evolution\\evolution_boss.gd",
+  "scripts\\games\\evolution\\evolution_engine.gd"
+ ],
  "minMs": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
  ],
