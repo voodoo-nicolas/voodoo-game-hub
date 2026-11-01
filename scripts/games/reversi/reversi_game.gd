@@ -62,6 +62,7 @@ func _ready() -> void:
 	rng.randomize()
 	engine = ReversiEngine.new()
 	_build_ui()
+	_play_music()
 	_reset_board()
 
 func _notification(what: int) -> void:
@@ -550,3 +551,11 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- music ----------
+
+## Music from the hub's shared library (apps before v0.33 play none).
+func _play_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("calm", self, 1, 2.0)

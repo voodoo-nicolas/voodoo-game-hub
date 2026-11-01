@@ -5077,7 +5077,8 @@
  "Sometimes logic really can't decide: some positions are a true 50/50 guess.": "A veces la lógica de verdad no alcanza: hay posiciones que son un 50/50.",
  "With perfect play from both sides, Tic-Tac-Toe always ends in a draw.": "Si los dos juegan perfecto, el Tres en raya siempre termina en empate.",
  "There are 255,168 different possible games of Tic-Tac-Toe.": "Hay 255.168 partidas distintas posibles de Tres en raya.",
- "On the standard 7 × 6 board, the first player can always win by starting in the middle column — proven by computer in 1988.": "En el tablero clásico de 7 × 6, el primer jugador siempre puede ganar si empieza en la columna del medio: se demostró por computadora en 1988.",
+ "A full 7 × 6 board holds 42 discs, so a game can never last longer than 42 moves.": "Un tablero de 7 × 6 lleno tiene 42 fichas, así que una partida nunca puede durar más de 42 jugadas.",
+ "The middle column belongs to more possible winning lines than any other, which is why strong players like to start there.": "La columna del medio forma parte de más líneas ganadoras posibles que cualquier otra, por eso los buenos jugadores suelen empezar ahí.",
  "The 7 × 6 board has about 4.5 trillion possible positions.": "El tablero de 7 × 6 tiene unos 4,5 billones de posiciones posibles.",
  "Checkers was solved in 2007: with perfect play from both sides, the game is a draw.": "Las damas se resolvieron en 2007: si los dos juegan perfecto, la partida es empate.",
  "Checkers grew out of alquerque, a much older board game.": "Las damas vienen del alquerque, un juego de tablero mucho más antiguo.",
@@ -8202,5 +8203,11 @@
  "Hardcore: size 9": "Extremo: tamaño 9",
  "Reach size 9 in Hardcore": "Alcanza el tamaño 9 en Extremo",
  "Hardcore: size 10": "Extremo: tamaño 10",
- "Reach size 10 in Hardcore": "Alcanza el tamaño 10 en Extremo"
+ "Reach size 10 in Hardcore": "Alcanza el tamaño 10 en Extremo",
+ "Numbers": "Números",
+ "Bold": "Negrita",
+ "Controls": "Controles",
+ "Portrait (swipe)": "Vertical (deslizar)",
+ "Landscape (D-pad)": "Horizontal (cruceta)",
+ "Landscape turns the phone sideways and adds arrow buttons beside the maze.": "Horizontal gira el teléfono de lado y añade botones de flechas junto al laberinto."
 }

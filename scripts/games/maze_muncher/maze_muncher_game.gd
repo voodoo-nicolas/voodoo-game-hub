@@ -18,6 +18,8 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/maze_muncher/maze_muncher_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://maze_muncher_save.json"
+## Per-game setting: "landscape" = play sideways with an on-screen D-pad beside the maze.
+const PREFS_PATH := "user://maze_muncher_prefs.json"
 
 const WALL := Color("3a8cff")
 const DOT := Color(1.0, 0.85, 0.7)
@@ -42,12 +44,21 @@ var field: Control
 var score_label: Label
 var hud_label: Label
 var end_dialog: Control
+var dpad_panel: Control
+var hint_box: Control
+var landscape_pref := false
 
 func _ready() -> void:
 	preload("res://scripts/games/maze_muncher/maze_muncher_i18n.gd").install(self)
-	Orientation.lock_portrait()
+	var prefs = SaveUtil.read(PREFS_PATH)
+	landscape_pref = prefs is Dictionary and bool(prefs.get("landscape", false))
+	if landscape_pref:
+		Orientation.lock_landscape()
+	else:
+		Orientation.lock_portrait()
 	engine = MmEngine.new()
 	_build_ui()
+	_play_music()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -99,7 +110,14 @@ func _build_ui() -> void:
 	field.draw.connect(_draw_field)
 	field.gui_input.connect(_on_field_input)
 	field.resized.connect(field.queue_redraw)
-	root.add_child(field)
+	var mid := HBoxContainer.new()
+	mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	mid.add_theme_constant_override("separation", 0)
+	root.add_child(mid)
+	mid.add_child(field)
+	dpad_panel = _build_dpad()
+	mid.add_child(dpad_panel)
+	resized.connect(_update_layout)
 
 	var hint := Label.new()
 	hint.text = tr("Swipe anywhere to steer.")
@@ -110,6 +128,7 @@ func _build_ui() -> void:
 	hm.add_theme_constant_override("margin_bottom", 26)
 	hm.add_child(hint)
 	root.add_child(hm)
+	hint_box = hm
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _new_game},
@@ -132,6 +151,7 @@ func _build_ui() -> void:
 		"resume_text": _resume_text,
 		"restart": _new_game,
 		"board": "Best score",
+		"options": _add_game_options,
 	})
 	add_child(home)
 	if info:
@@ -139,6 +159,62 @@ func _build_ui() -> void:
 	var drawer := SettingsDrawer.new()
 	drawer.set("default_frac", 0.975)  # by the hint line, under the maze
 	add_child(drawer)
+	_update_layout()
+
+# ---------- landscape + D-pad ----------
+
+## Four arrow buttons (optional controls: shown whenever the screen is wider than tall).
+func _build_dpad() -> Control:
+	var wrap := CenterContainer.new()
+	wrap.custom_minimum_size = Vector2(360, 0)
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	wrap.add_child(grid)
+	var arrows := {1: ["▲", Vector2i(0, -1)], 3: ["◀", Vector2i(-1, 0)], 5: ["▶", Vector2i(1, 0)], 7: ["▼", Vector2i(0, 1)]}
+	for i in 9:
+		if arrows.has(i):
+			var b := Button.new()
+			b.text = arrows[i][0]
+			b.custom_minimum_size = Vector2(100, 100)
+			b.add_theme_font_size_override("font_size", 38)
+			b.focus_mode = Control.FOCUS_NONE
+			b.set_meta("sfx", "")
+			b.button_down.connect(_steer.bind(arrows[i][1]))
+			grid.add_child(b)
+		else:
+			var gap := Control.new()
+			gap.custom_minimum_size = Vector2(100, 100)
+			grid.add_child(gap)
+	wrap.visible = false
+	return wrap
+
+func _update_layout() -> void:
+	var wide := size.x > size.y
+	if dpad_panel:
+		dpad_panel.visible = wide
+	if hint_box:
+		hint_box.visible = not wide
+
+## ⚙ Options → Controls: portrait with swipes, or landscape with the D-pad.
+func _add_game_options(body: VBoxContainer) -> void:
+	body.add_child(home.section("Controls"))
+	body.add_child(home.choice_row(["Portrait (swipe)", "Landscape (D-pad)"], 1 if landscape_pref else 0, _pick_controls))
+	body.add_child(HomeKit.label(tr("Landscape turns the phone sideways and adds arrow buttons beside the maze."), 22, HomeKit.DIM, true))
+
+func _pick_controls(i: int) -> void:
+	var want := i == 1
+	if want == landscape_pref:
+		return
+	var prefs = SaveUtil.read(PREFS_PATH)
+	if not prefs is Dictionary:
+		prefs = {}
+	prefs["landscape"] = want
+	SaveUtil.write(PREFS_PATH, prefs)
+	_save_game()
+	get_tree().paused = false
+	get_tree().reload_current_scene()
 
 # ---------- game flow ----------
 
@@ -343,20 +419,36 @@ func _draw_ghost(c: CanvasItem, at: Vector2, ts: float, gh: Dictionary) -> void:
 		c.draw_circle(e + look, r * 0.11, col.lightened(0.5))
 
 func _draw_home_logo(c: Control) -> void:
-	var ts := minf(c.size.y / 2.2, 64.0)
+	var ts := minf(c.size.y / 2.0, 72.0)
 	var y := c.size.y / 2.0
-	var x0 := c.size.x / 2.0 - ts * 2.2
+	var x0 := c.size.x / 2.0 - ts * 2.6
 	var pts := PackedVector2Array([Vector2(x0, y)])
 	for k in 25:
 		var a := 0.6 + (TAU - 1.2) * k / 24.0
-		pts.append(Vector2(x0, y) + Vector2.RIGHT.rotated(a) * ts * 0.45)
+		pts.append(Vector2(x0, y) + Vector2.RIGHT.rotated(a) * ts * 0.5)
 	c.draw_colored_polygon(pts, PLAYER)
 	for k in 3:
-		c.draw_circle(Vector2(x0 + ts * (0.9 + k * 0.5), y), ts * 0.08, DOT)
-	var fake := {"id": 0, "d": Vector2i(-1, 0), "eaten": false, "home": false}
-	_draw_ghost(c, Vector2(x0 + ts * 3.0, y), ts, fake)
-	fake.id = 2
-	_draw_ghost(c, Vector2(x0 + ts * 4.1, y), ts, fake)
+		c.draw_circle(Vector2(x0 + ts * (0.9 + k * 0.45), y), ts * 0.07, DOT)
+	_draw_logo_skull(c, Vector2(x0 + ts * 2.7, y), ts, GHOSTS[0])
+	_draw_logo_skull(c, Vector2(x0 + ts * 3.9, y), ts, GHOSTS[1])
+
+## A bone-white skull with a tinted glow, big sockets and teeth (the Landing only; in play the
+## spirits use the cheaper _draw_ghost).
+func _draw_logo_skull(c: CanvasItem, at: Vector2, ts: float, tint: Color) -> void:
+	var r := ts * 0.5
+	var bone := Color("f2ecd8")
+	c.draw_circle(at, r * 1.25, Color(tint, 0.12))
+	c.draw_circle(at + Vector2(0, -r * 0.1), r * 0.92, bone)
+	c.draw_rect(Rect2(at + Vector2(-r * 0.5, r * 0.45), Vector2(r, r * 0.55)), bone)
+	c.draw_arc(at + Vector2(0, -r * 0.1), r * 0.92, 0, TAU, 28, tint, maxf(2.0, ts * 0.05), true)
+	for sx in [-0.4, 0.4]:
+		c.draw_circle(at + Vector2(r * sx, -r * 0.18), r * 0.3, Color(0.04, 0.02, 0.08))
+		c.draw_circle(at + Vector2(r * sx, -r * 0.18), r * 0.1, tint.lightened(0.4))
+	c.draw_colored_polygon(PackedVector2Array([at + Vector2(0, r * 0.12), at + Vector2(-r * 0.12, r * 0.35),
+			at + Vector2(r * 0.12, r * 0.35)]), Color(0.1, 0.05, 0.15))
+	for tx in [-0.33, -0.11, 0.11, 0.33]:
+		c.draw_line(at + Vector2(r * tx, r * 0.58), at + Vector2(r * tx, r * 0.98), Color(0.1, 0.05, 0.15), maxf(1.5, ts * 0.035))
+	c.draw_line(at + Vector2(-r * 0.5, r * 0.65), at + Vector2(r * 0.5, r * 0.65), Color(0.1, 0.05, 0.15), maxf(1.5, ts * 0.035))
 
 # ---------- pause / save ----------
 
@@ -399,3 +491,11 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- music ----------
+
+## Music from the hub's shared library (apps before v0.33 play none).
+func _play_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("lively", self, 1, 2.0)

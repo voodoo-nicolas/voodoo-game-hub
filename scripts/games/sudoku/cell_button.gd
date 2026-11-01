@@ -2,8 +2,8 @@ extends Button
 
 signal cell_pressed(row: int, col: int)
 
-const COLOR_GIVEN := Color(0.92, 0.92, 0.92)
-const COLOR_EDITABLE := Color(0.55, 0.8, 1.0)
+const COLOR_GIVEN := Color(1.0, 0.85, 1.0)
+const COLOR_EDITABLE := Color(0.3, 1.0, 0.9)
 const COLOR_ERROR := Color(1.0, 0.4, 0.4)
 const COLOR_NOTE := Color(0.85, 0.88, 0.97)
 ## A note matching the selected cell's number: a green chip behind it, like
@@ -22,6 +22,8 @@ var value_label: Label
 ## Classic skin (a printed puzzle): ink givens, blue pencil entries, light
 ## cell lines. Set by the game's _set_skin, then update_display().
 var classic: bool = false
+## Bold numbers (Options): an outline in the digit's own colour thickens the strokes.
+var bold: bool = false
 const CLASSIC_GIVEN := Color("1d2433")
 const CLASSIC_EDITABLE := Color("1e5bd8")
 const CLASSIC_ERROR := Color("d62828")
@@ -103,6 +105,7 @@ func update_display() -> void:
 	if value != 0:
 		value_label.text = str(value)
 		value_label.visible = true
+		value_label.add_theme_constant_override("outline_size", maxi(3, int(size.x * 0.05)) if bold else 0)
 		notes_layer.visible = false
 		if is_given:
 			value_label.add_theme_color_override("font_color", CLASSIC_GIVEN if classic else COLOR_GIVEN)
@@ -110,6 +113,7 @@ func update_display() -> void:
 			value_label.add_theme_color_override("font_color", CLASSIC_ERROR if classic else COLOR_ERROR)
 		else:
 			value_label.add_theme_color_override("font_color", CLASSIC_EDITABLE if classic else COLOR_EDITABLE)
+		value_label.add_theme_color_override("font_outline_color", value_label.get_theme_color("font_color"))
 	else:
 		value_label.visible = false
 		notes_layer.visible = true
@@ -139,7 +143,7 @@ func _draw_notes() -> void:
 			notes_layer.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, note_font_size, CLASSIC_NOTE if classic else COLOR_NOTE)
 
 const THIN_LINE := 1
-const COLOR_THIN_LINE := Color(0.42, 0.42, 0.5)
+const COLOR_THIN_LINE := Color(0.5, 0.25, 0.7)
 
 func set_background(color: Color) -> void:
 	var sb := StyleBoxFlat.new()

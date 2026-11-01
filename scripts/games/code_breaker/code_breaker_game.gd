@@ -37,6 +37,7 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = CBEngine.new()
 	_build_ui()
+	_play_music()
 	_start_new_game()
 	started = false
 
@@ -291,7 +292,8 @@ func _draw_board() -> void:
 		if row < engine.guesses.size():
 			var g: Dictionary = engine.guesses[row]
 			# Feedback tray: a 2x2 block of key pegs on a plate so they read on any skin.
-			# Black = right colour and spot, white = right colour wrong spot, hole = no match.
+			# Solid white = right colour and spot (the ● in the legend), white ring = right colour wrong spot
+			# (the ○), small dot = no match. Solid white reads on every plate; the old black peg did not.
 			var pr := rh * 0.15
 			var fx := _slot_center(row, CBEngine.SLOTS).x + 4.0
 			var plate := Rect2(fx - pr * 0.4, y - pr * 2.3, pr * 5.6, pr * 4.6)
@@ -299,11 +301,11 @@ func _draw_board() -> void:
 			for k in CBEngine.SLOTS:
 				var p := Vector2(fx + pr * 1.3 + (k % 2) * pr * 2.8, y + (-1.0 + (k / 2) * 2.0) * pr * 1.15)
 				if k < g.exact:
-					board.draw_circle(p, pr, Color(0.02, 0.02, 0.02))
-					board.draw_arc(p, pr, 0, TAU, 20, Color(1, 1, 1), 2.0, true)
-				elif k < g.exact + g.near:
 					board.draw_circle(p, pr, Color(1, 1, 1))
-					board.draw_arc(p, pr, 0, TAU, 20, Color(0.5, 0.5, 0.5), 1.5, true)
+					board.draw_arc(p, pr, 0, TAU, 20, Color(0.1, 0.1, 0.1), 1.5, true)
+				elif k < g.exact + g.near:
+					board.draw_circle(p, pr, Color(0.08, 0.08, 0.1))
+					board.draw_arc(p, pr * 0.85, 0, TAU, 20, Color(1, 1, 1), 2.5, true)
 				else:
 					board.draw_circle(p, pr * 0.35, Color(0.3, 0.3, 0.36))
 
@@ -415,3 +417,11 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- music ----------
+
+## Music from the hub's shared library (apps before v0.33 play none).
+func _play_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("calm", self, 3, 2.0)

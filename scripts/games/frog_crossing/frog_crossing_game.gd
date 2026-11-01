@@ -27,6 +27,26 @@ var running := false
 var best: int = 0
 var swipe_start := Vector2.ZERO
 
+## Look (STANDARDS §9): "classic" = a daytime road and river (grey road, blue water, brown logs, green
+## grass, normal cars); "voodoo" = the neon skull view with lava in place of road and water.
+var skin: String = "classic"
+var bg: ColorRect
+
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	if bg:
+		bg.color = Color("5fb4e8") if skin == "classic" else HomeKit.BG
+		if bg.get_child_count() > 0:
+			bg.get_child(0).visible = skin != "classic"
+	if board:
+		board.queue_redraw()
+
+func _current_skin() -> String:
+	return skin
+
+func _is_classic() -> bool:
+	return skin == "classic"
+
 func _ready() -> void:
 	preload("res://scripts/games/frog_crossing/frog_crossing_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -35,13 +55,14 @@ func _ready() -> void:
 	if data != null:
 		best = int(data.get("best", 0))
 	_build_ui()
+	_play_music()
 	engine.reset()
 	_update_info()
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	var bg := HomeKit.backdrop()
+	bg = HomeKit.backdrop()
 	add_child(bg)
 
 	var root := VBoxContainer.new()
@@ -223,11 +244,15 @@ func _draw_board() -> void:
 		elif lane.kind == "river":
 			_draw_water(row_rect, c, t, lane.speed)
 		elif lane.kind == "road":
-			board.draw_rect(row_rect, Color(0.04, 0.04, 0.08))
+			if _is_classic():
+				board.draw_rect(row_rect, Color(0.29, 0.30, 0.33))
+			else:
+				_draw_lava(row_rect, c, t, lane.speed)
 			if r < 11:  # dashed line between this road lane and the next
 				var x := 0.0
+				var dash := Color(1, 1, 1, 0.8) if _is_classic() else Color(HomeKit.MAGENTA, 0.6)
 				while x < width:
-					board.draw_rect(Rect2(o.x + x + c * 0.3, y + c - 2, c * 0.45, 4), Color(HomeKit.MAGENTA, 0.6))
+					board.draw_rect(Rect2(o.x + x + c * 0.3, y + c - 2, c * 0.45, 4), dash)
 					x += c
 		else:
 			_draw_grass(row_rect, c, r)
@@ -243,8 +268,9 @@ func _draw_board() -> void:
 				else:
 					_draw_car(full, c, CAR_COLORS[(r + i) % CAR_COLORS.size()], lane.speed > 0)
 	# Cars and logs wrap around; cover what's drawn past the sides.
-	board.draw_rect(Rect2(0, field.position.y, field.position.x, field.size.y), HomeKit.BG)
-	board.draw_rect(Rect2(field.end.x, field.position.y, board.size.x - field.end.x, field.size.y), HomeKit.BG)
+	var cover: Color = Color("5fb4e8") if _is_classic() else HomeKit.BG
+	board.draw_rect(Rect2(0, field.position.y, field.position.x, field.size.y), cover)
+	board.draw_rect(Rect2(field.end.x, field.position.y, board.size.x - field.end.x, field.size.y), cover)
 	# homes: lily pads in gaps of the hedge, pulsing gold while still empty
 	for k in FCEngine.HOMES.size():
 		var hc := Vector2(o.x + (FCEngine.HOMES[k] + 0.5) * c, o.y + c * 0.5)
@@ -259,6 +285,11 @@ func _draw_board() -> void:
 
 ## The goal row: a dark band edged in purple, with a nook at each home.
 func _draw_hedge(row: Rect2, c: float) -> void:
+	if _is_classic():
+		board.draw_rect(row, Color(0.13, 0.42, 0.18))
+		for hx in FCEngine.HOMES:
+			board.draw_rect(Rect2(row.position.x + hx * c + c * 0.06, row.position.y + c * 0.1, c * 0.88, c * 0.9), Color(0.16, 0.45, 0.78))
+		return
 	board.draw_rect(row, Color(0.06, 0.03, 0.12))
 	HomeKit.glow_line(board, Vector2(row.position.x, row.end.y - 1), Vector2(row.end.x, row.end.y - 1), HomeKit.PURPLE, 2.0)
 	for hx in FCEngine.HOMES:
@@ -269,6 +300,12 @@ func _draw_hedge(row: Rect2, c: float) -> void:
 ## A neon lily pad; `glow` (0..1) rings it in gold to say "jump in here".
 func _draw_lily_pad(center: Vector2, c: float, glow: float) -> void:
 	var r := c * 0.36
+	if _is_classic():
+		if glow > 0.0:
+			board.draw_arc(center, r + c * 0.07, 0, TAU, 32, Color(1, 0.9, 0.3, 0.3 + 0.6 * glow), c * 0.06, true)
+		board.draw_circle(center, r, Color(0.2, 0.6, 0.25))
+		board.draw_circle(center + Vector2(-r * 0.35, -r * 0.35), c * 0.07, Color(1, 0.6, 0.75))
+		return
 	if glow > 0.0:
 		board.draw_arc(center, r + c * 0.07, 0, TAU, 32, Color(HomeKit.GOLD, 0.3 + 0.6 * glow), c * 0.06, true)
 	var pad := PackedVector2Array()
@@ -282,25 +319,55 @@ func _draw_lily_pad(center: Vector2, c: float, glow: float) -> void:
 
 ## Deep water with cyan ripples drifting the way the current flows.
 func _draw_water(row: Rect2, c: float, t: float, speed: float) -> void:
-	board.draw_rect(row, Color(0.02, 0.07, 0.18))
-	var drift := fmod(t * speed * 0.6, 1.0)
+	if not _is_classic():
+		_draw_lava(row, c, t, speed)
+		return
+	board.draw_rect(row, Color(0.16, 0.45, 0.78))
+	var wave := fmod(t * speed * 0.6, 1.0)
+	for j in 2:
+		var wy := row.position.y + c * (0.3 + 0.4 * j)
+		var wx := row.position.x + (wave + 0.5 * j) * c - c
+		while wx < row.end.x:
+			board.draw_line(Vector2(wx, wy), Vector2(wx + c * 0.35, wy), Color(1, 1, 1, 0.35), maxf(1.0, c * 0.04))
+			wx += c * 1.3
+
+## Lava for the skull look: dark crust, a bright glowing seam drifting the way the lane moves, ember dots.
+func _draw_lava(row: Rect2, c: float, t: float, speed: float) -> void:
+	board.draw_rect(row, Color(0.28, 0.04, 0.02))
+	var drift := fmod(t * speed * 0.5, 1.0)
 	for j in 2:
 		var y := row.position.y + c * (0.3 + 0.4 * j)
 		var x := row.position.x + (drift + 0.5 * j) * c - c
 		while x < row.end.x:
-			board.draw_line(Vector2(x, y), Vector2(x + c * 0.35, y), Color(HomeKit.CYAN, 0.35), maxf(1.0, c * 0.04))
+			board.draw_line(Vector2(x, y), Vector2(x + c * 0.5, y), Color(1.0, 0.45, 0.05, 0.85), maxf(1.5, c * 0.07))
+			board.draw_line(Vector2(x + c * 0.1, y), Vector2(x + c * 0.35, y), Color(1.0, 0.85, 0.3, 0.9), maxf(1.0, c * 0.03))
 			x += c * 1.3
+
 
 ## The safe banks: dark ground with faint lime tufts.
 func _draw_grass(row: Rect2, c: float, r: int) -> void:
-	board.draw_rect(row, Color(0.03, 0.09, 0.06))
+	var day := _is_classic()
+	board.draw_rect(row, Color(0.27, 0.62, 0.25) if day else Color(0.03, 0.09, 0.06))
 	for i in int(row.size.x / c):
 		var k := (i * 7 + r * 13) % 5
 		var p := Vector2(row.position.x + (i + 0.2 + k * 0.12) * c, row.position.y + c * (0.3 + 0.1 * (k % 3)))
 		for dx in [-1.0, 0.0, 1.0]:
-			board.draw_line(p + Vector2(dx * c * 0.05, c * 0.12), p + Vector2(dx * c * 0.09, -c * 0.02), Color(HomeKit.LIME, 0.3), maxf(1.0, c * 0.035))
+			board.draw_line(p + Vector2(dx * c * 0.05, c * 0.12), p + Vector2(dx * c * 0.09, -c * 0.02), Color(0.15, 0.45, 0.15) if day else Color(HomeKit.LIME, 0.3), maxf(1.0, c * 0.035))
 
 func _draw_log(rect: Rect2, c: float) -> void:
+	if _is_classic():
+		var lb := StyleBoxFlat.new()
+		lb.bg_color = Color(0.55, 0.36, 0.18)
+		lb.set_corner_radius_all(int(c * 0.3))
+		lb.border_color = Color(0.33, 0.2, 0.09)
+		lb.set_border_width_all(maxi(2, int(c * 0.05)))
+		board.draw_style_box(lb, rect)
+		var ly := rect.position.y + rect.size.y * 0.5
+		var lx := rect.position.x + c * 0.4
+		while lx < rect.end.x - c * 0.5:
+			board.draw_line(Vector2(lx, ly), Vector2(lx + c * 0.4, ly), Color(0.33, 0.2, 0.09, 0.8), maxf(1.0, c * 0.03))
+			lx += c * 0.9
+		return
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(HomeKit.GOLD, 0.18)
 	sb.set_corner_radius_all(int(c * 0.3))
@@ -320,6 +387,20 @@ func _draw_log(rect: Rect2, c: float) -> void:
 func _draw_car(full: Rect2, c: float, color: Color, right: bool) -> void:
 	var body := full.grow(-c * 0.06)
 	var sb := StyleBoxFlat.new()
+	if _is_classic():
+		sb.bg_color = color
+		sb.set_corner_radius_all(int(c * 0.18))
+		sb.border_color = color.darkened(0.45)
+		sb.set_border_width_all(maxi(2, int(c * 0.04)))
+		board.draw_style_box(sb, body)
+		var cdir := 1.0 if right else -1.0
+		var cfront: float = body.end.x if right else body.position.x
+		var cglass: float = cfront - cdir * c * 0.42 - (c * 0.18 if right else 0.0)
+		board.draw_rect(Rect2(cglass, body.position.y + body.size.y * 0.2, c * 0.16, body.size.y * 0.6), Color(0.75, 0.9, 1.0))
+		var chl: float = cfront - (c * 0.08 if right else 0.0)
+		for chy in [body.position.y + body.size.y * 0.15, body.end.y - body.size.y * 0.15 - c * 0.08]:
+			board.draw_rect(Rect2(chl, chy, c * 0.08, c * 0.08), Color(1, 1, 0.7))
+		return
 	sb.bg_color = Color(color, 0.22)
 	sb.set_corner_radius_all(int(c * 0.18))
 	sb.border_color = color
@@ -336,6 +417,16 @@ func _draw_car(full: Rect2, c: float, color: Color, right: bool) -> void:
 		board.draw_rect(Rect2(hl_x, hy, c * 0.08, c * 0.08), Color.WHITE)
 
 func _draw_frog(center: Vector2, size: float, alpha: float = 1.0) -> void:
+	if _is_classic():
+		var fg := Color(0.2, 0.75, 0.2, alpha)
+		for fx in [-1, 1]:
+			board.draw_circle(center + Vector2(fx * size * 0.36, size * 0.3), size * 0.12, fg.darkened(0.2))
+			board.draw_circle(center + Vector2(fx * size * 0.36, -size * 0.2), size * 0.11, fg.darkened(0.2))
+		board.draw_circle(center, size * 0.36, fg)
+		for fx in [-1, 1]:
+			board.draw_circle(center + Vector2(fx * size * 0.16, -size * 0.32), size * 0.12, Color(1, 1, 1, alpha))
+			board.draw_circle(center + Vector2(fx * size * 0.16, -size * 0.34), size * 0.06, Color(0, 0, 0, alpha))
+		return
 	var green := Color(HomeKit.LIME, alpha)
 	for sx in [-1, 1]:
 		board.draw_circle(center + Vector2(sx * size * 0.36, size * 0.3), size * 0.12, Color(green, alpha * 0.6))
@@ -366,7 +457,7 @@ const TITLE_FOR_HOME := preload("res://scripts/games/frog_crossing/frog_crossing
 
 func _build_home() -> void:
 	home = HomeKit.new({
-		"retro": true,
+		"retro": false,
 		"help": preload("res://scripts/games/frog_crossing/frog_crossing_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,
@@ -403,3 +494,11 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- music ----------
+
+## Music from the hub's shared library (apps before v0.33 play none).
+func _play_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("lively", self, 0, 2.0)

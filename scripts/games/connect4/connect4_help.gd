@@ -22,6 +22,7 @@ const STATS := ["Wins", "Losses", "Draws", "Best streak", "Red wins", "Yellow wi
 ## Learning hook (STANDARDS §15): one shows on the Home screen's
 ## "Did you know?" card. Checked facts only.
 const FACTS := [
-	"On the standard 7 × 6 board, the first player can always win by starting in the middle column — proven by computer in 1988.",
+	"A full 7 × 6 board holds 42 discs, so a game can never last longer than 42 moves.",
+	"The middle column belongs to more possible winning lines than any other, which is why strong players like to start there.",
 	"The 7 × 6 board has about 4.5 trillion possible positions.",
 ]

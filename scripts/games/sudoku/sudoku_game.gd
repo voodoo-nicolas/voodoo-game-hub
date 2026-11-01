@@ -22,9 +22,9 @@ const TIME_BONUS_CAP_SECONDS := 600
 const STARTING_HINTS := 3
 const MAX_UNDO_HISTORY := 200
 
-const COLOR_BASE := Color(0.15, 0.15, 0.19)
-const COLOR_SELECTED := Color(0.25, 0.5, 0.7)
-const COLOR_PEER := Color(0.24, 0.3, 0.36)
+const COLOR_BASE := Color(0.1, 0.06, 0.16)
+const COLOR_SELECTED := Color(0.45, 0.2, 0.7)
+const COLOR_PEER := Color(0.2, 0.11, 0.3)
 const COLOR_SAME_VALUE := Color(0.32, 0.37, 0.22)
 const COLOR_ERROR_BG := Color(0.45, 0.15, 0.17)
 const COLOR_HINT_AREA := Color(0.36, 0.24, 0.44)
@@ -50,6 +50,8 @@ var puzzle: Array = []
 var solution: Array = []
 var cells: Array = []  # 9x9 of CellButton
 var skin: String = "classic"
+## Options → Bold numbers (saved with the Look in PREFS_PATH).
+var bold_digits: bool = false
 var _screen_bg: ColorRect
 var _board_back: ColorRect
 var _grid_lines  # GridLines
@@ -104,6 +106,8 @@ func _ready() -> void:
 	randomize()
 	_build_ui()
 	_set_skin(_saved_skin(), false)
+	var bd = SaveUtil.read(PREFS_PATH)
+	_set_bold(bd is Dictionary and bool(bd.get("bold", false)), false)
 	_show_difficulty_screen()
 	_chill_music()
 
@@ -833,7 +837,7 @@ func _on_number_pressed(n: int) -> void:
 	if selected.x < 0:
 		return
 	var cell: CellButton = cells[selected.x][selected.y]
-	if cell.is_given:
+	if cell.is_given or _is_locked(cell, selected.x, selected.y):
 		return
 	if notes_mode:
 		_record_undo(selected.x, selected.y)
@@ -883,11 +887,15 @@ func _clear_peer_notes(r: int, c: int, n: int) -> Array:
 				cell.update_display()
 	return cleared
 
+## A correct number stays: it can't be erased or replaced (a wrong one can).
+func _is_locked(cell: CellButton, r: int, c: int) -> bool:
+	return cell.value != 0 and not cell.is_error and cell.value == solution[r][c]
+
 func _on_erase_pressed() -> void:
 	if selected.x < 0:
 		return
 	var cell: CellButton = cells[selected.x][selected.y]
-	if cell.is_given:
+	if cell.is_given or _is_locked(cell, selected.x, selected.y):
 		return
 	_record_undo(selected.x, selected.y)
 	_sfx("back")
@@ -1362,15 +1370,29 @@ func _set_skin(name: String, save: bool = true) -> void:
 		d["skin"] = skin
 		SaveUtil.write(PREFS_PATH, d)
 	var classic := skin == "classic"
-	_screen_bg.color = Color("12161f") if classic else Color(0.09, 0.09, 0.13)
-	_board_back.color = Color("b8b2a2") if classic else Color(0, 0, 0, 0)
-	_grid_lines.line_color = Color("1d2433") if classic else _grid_lines.LINE_COLOR
+	_screen_bg.color = Color("12161f") if classic else Color(0.05, 0.02, 0.09)
+	_board_back.color = Color("b8b2a2") if classic else Color(0.7, 0.2, 0.9, 0.5)
+	_grid_lines.line_color = Color("1d2433") if classic else Color(0.9, 0.35, 1.0)
 	_grid_lines.queue_redraw()
 	for row in cells:
 		for cell in row:
 			cell.classic = classic
 			cell.update_display()
 	_refresh_highlights()
+
+## Options → Bold numbers: heavier digits in the cells.
+func _set_bold(on: bool, save: bool = true) -> void:
+	bold_digits = on
+	if save:
+		var d = SaveUtil.read(PREFS_PATH)
+		if not d is Dictionary:
+			d = {}
+		d["bold"] = on
+		SaveUtil.write(PREFS_PATH, d)
+	for row in cells:
+		for cell in row:
+			cell.bold = on
+			cell.update_display()
 
 func _col(key: String) -> Color:
 	return CLASSIC_COLORS[key] if skin == "classic" else DARK_COLORS[key]

@@ -331,6 +331,10 @@ func _show_options(parent: Node = null, from_pause: bool = false) -> void:
 		body.add_child(_section(tr("Look")))
 		body.add_child(_choice(["Classic", "💀 Voodoo"], 1 if str(g.skin) == "voodoo" else 0,
 			func(i): g._set_skin("voodoo" if i == 1 else "classic"), PURPLE))
+	if g and g.has_method("_set_bold"):
+		body.add_child(_section(tr("Numbers")))
+		body.add_child(_choice(["Normal", "Bold"], 1 if bool(g.bold_digits) else 0,
+			func(i): g._set_bold(i == 1), GOLD))
 	var s := get_node_or_null("/root/Settings")
 	if s:
 		_note(body, tr("These settings are app-wide: they change every game."))

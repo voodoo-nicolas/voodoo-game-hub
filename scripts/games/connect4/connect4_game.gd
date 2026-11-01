@@ -22,6 +22,8 @@ const BOARD_OUTER_MARGIN := 8.0
 const COLOR_EMPTY := Color(0.05, 0.08, 0.16)
 const COLOR_RED := Color("ff3b6b")
 const COLOR_YELLOW := Color("ffd23b")
+## The voodoo doll's light-brown cloth (owner 2026-11-01: not yellow).
+const COLOR_DOLL := Color("c89a62")
 const LEVELS := ["Easy", "Medium", "Hard"]
 const CPU_DELAY := 0.5
 
@@ -61,6 +63,7 @@ func _ready() -> void:
 	rng.randomize()
 	engine = Connect4Engine.new()
 	_build_ui()
+	_play_music()
 	_reset_board()
 
 func _notification(what: int) -> void:
@@ -276,6 +279,16 @@ func _style_slot(slot: Button, color: Color) -> void:
 	sb.corner_radius_top_right = radius
 	sb.corner_radius_bottom_left = radius
 	sb.corner_radius_bottom_right = radius
+	if _classic():
+		# Like the Landing picture: a bright ring and a soft glow round every disc.
+		var filled: bool = color != _empty_color()
+		sb.border_color = color.darkened(0.35) if filled else HomeKit.CLASSIC.blue.darkened(0.45)
+		sb.set_border_width_all(maxi(3, int(cell_size * 0.06)))
+		if filled:
+			sb.shadow_color = Color(color, 0.55)
+			sb.shadow_size = maxi(6, int(cell_size * 0.16))
+		else:
+			sb.bg_color = color.darkened(0.04)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		slot.add_theme_stylebox_override(state, sb)
 
@@ -451,7 +464,7 @@ func _render() -> void:
 				# the slot stays empty-dark; the piece itself carries the color
 				_style_slot(cell_views[r][c], COLOR_EMPTY)
 				marks[r][c].kind = voodoo.SKULL if v == Connect4Engine.RED else (voodoo.DOLL if v == Connect4Engine.YELLOW else voodoo.NONE)
-				marks[r][c].fill = color
+				marks[r][c].fill = COLOR_DOLL if v == Connect4Engine.YELLOW else color
 			else:
 				_style_slot(cell_views[r][c], color)
 				if voodoo:
@@ -499,3 +512,11 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- music ----------
+
+## Music from the hub's shared library (apps before v0.33 play none).
+func _play_music() -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play("calm", self, 1, 2.0)
