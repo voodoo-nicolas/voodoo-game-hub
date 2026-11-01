@@ -90,7 +90,7 @@ static func spec_for(n: int) -> Dictionary:
 	match t:
 		0:
 			colors = 3 + (n - 1) / 7
-			capacity = 3 if n < 8 else 4
+			capacity = 4   # four layers minimum (owner, 2026-10-31; levels 1-7 used to have 3)
 		1:
 			colors = 5 + (n - 21) / 10
 			capacity = 4
