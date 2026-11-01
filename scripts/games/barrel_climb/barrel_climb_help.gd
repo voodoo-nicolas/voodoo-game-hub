@@ -9,12 +9,15 @@ const HOW := [
 	"Push the stick left or right to run. Stand at a ladder and push it up to climb up or down to climb down.",
 	"Tap the jump button (the up arrow) to jump. Jumping over a barrel scores 100.",
 	"Barrels roll down each girder, drop off its open end onto the one below, and sometimes come down a ladder. One touch costs a life — you have 3.",
+	"Jump over two or three barrels in one jump for a combo: 100, then 200, then 300 points each.",
+	"From level 2 some barrels are red and roll much faster, and a 🔥 fireball wanders up from the oil drum, even climbing ladders. Touching it costs a life; the hammer smashes it for 500.",
 	"Grab the 🔨 hammer to smash barrels for 300 each for a few seconds. With the hammer you can't climb or jump.",
 	"The BONUS counts down while you climb. Reaching the top adds what's left to your score; if it reaches 0 you lose a life.",
 	"Each level the barrels get faster, come more often and take the ladders more. Easy, Normal and Hard set how fast it starts.",
 	"⏸ pauses; Resume on the Home screen keeps your score, level and lives and restarts the level from the bottom.",
 ]
 const TIPS := [
+	"Watch the Bone King: he raises his arms just before a barrel flies.",
 	"Wait under a ladder for a gap, then climb — a barrel can't hit you once you're above its girder.",
 	"Barrels on a ladder come straight down: never wait at the foot of one that's in use.",
 	"Jump early rather than late: you clear a barrel on the way up, not on the way down.",

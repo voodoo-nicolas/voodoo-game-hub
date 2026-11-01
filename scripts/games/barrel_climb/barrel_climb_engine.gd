@@ -47,6 +47,9 @@ var ladders: Array = []       # {"x", "lo", "hi"}
 var barrels: Array = []       # see _spawn_barrel()
 var hammer: Dictionary = {}   # {"x", "floor"} while not picked up
 var hammer_t: float = 0.0
+## Fireballs wander up from the oil drum from level 2: {"x", "y", "floor", "dir", "mode", "ladder", "seen", "turn"}.
+var fireballs: Array = []
+var air_overs: int = 0        # barrels cleared in the current jump (a combo)
 
 # player
 var px: float = START_X
@@ -60,6 +63,7 @@ var climb_ladder: Dictionary = {}
 var walk_t: float = 0.0       # for the leg animation
 
 var _throw_t: float = 1.5
+var _fire_t: float = 12.0
 var _bonus_t: float = 0.0
 var _next_id: int = 0
 var rng := RandomNumberGenerator.new()
@@ -141,6 +145,9 @@ func _respawn() -> void:
 	hammer_t = 0.0
 	climb_ladder = {}
 	_throw_t = 1.2
+	_fire_t = 12.0
+	fireballs = []
+	air_overs = 0
 	_bonus_t = 0.0
 	state = "play"
 
@@ -150,6 +157,17 @@ func barrel_speed() -> float:
 func throw_every() -> float:
 	return maxf(1.0, DIFFS[diff].every - 0.22 * (level - 1))
 
+## True in the half second before the King throws (the game raises his arms).
+func throw_warn() -> bool:
+	return _throw_t < 0.55
+
+## Chance a thrown barrel is a fast red one (from level 2).
+func fast_chance() -> float:
+	return 0.0 if level < 2 else minf(0.4, 0.15 + 0.05 * (level - 2))
+
+func fireball_cap() -> int:
+	return 0 if level < 2 else (1 if level < 5 else 2)
+
 func ladder_chance() -> float:
 	return minf(0.65, DIFFS[diff].ladder + 0.05 * (level - 1))
 
@@ -157,7 +175,7 @@ func ladder_chance() -> float:
 
 ## move: -1 / 0 / 1, vert: -1 up / 0 / 1 down, jump: pressed this frame.
 ## Returns the frame's events: "jump", "over" (jumped a barrel), "smash",
-## "hammer", "hit", "timeout", "win", "throw", "land".
+## "hammer", "hit", "timeout", "win", "throw", "land", "combo" (2+ barrels in one jump).
 func step(dt: float, move: int, vert: int, jump: bool) -> Array:
 	var ev: Array = []
 	if state != "play":
@@ -180,6 +198,9 @@ func step(dt: float, move: int, vert: int, jump: bool) -> Array:
 		_spawn_barrel()
 		ev.append("throw")
 	_step_barrels(dt, ev)
+	if state != "play":
+		return ev
+	_step_fireballs(dt, ev)
 	return ev
 
 func _step_player(dt: float, move: int, vert: int, jump: bool, ev: Array) -> void:
@@ -198,6 +219,7 @@ func _step_player(dt: float, move: int, vert: int, jump: bool, ev: Array) -> voi
 				mode = "air"
 				vy = -JUMP_V
 				vx = move * SPEED
+				air_overs = 0
 				ev.append("jump")
 				return
 			px = clampf(px + move * SPEED * dt, floor_x0(pfloor) + 12.0, floor_x1(pfloor) - 12.0)
@@ -253,12 +275,14 @@ func _spawn_barrel() -> void:
 	var f := FLOORS - 1
 	_next_id += 1
 	barrels.append({"id": _next_id, "x": KING_X + 70.0, "y": y_at(f, KING_X + 70.0), "floor": f, "mode": "roll",
-		"vx": 0.0, "vy": 0.0, "ladder": {}, "seen": {}, "jumped": false, "spin": 0.0})
+		"vx": 0.0, "vy": 0.0, "ladder": {}, "seen": {}, "jumped": false, "spin": 0.0,
+		"fast": level >= 2 and rng.randf() < fast_chance()})
 
 func _step_barrels(dt: float, ev: Array) -> void:
-	var speed := barrel_speed()
+	var base_speed := barrel_speed()
 	var keep: Array = []
 	for b in barrels:
+		var speed: float = base_speed * (1.45 if b.get("fast", false) else 1.0)
 		match b.mode:
 			"roll":
 				var d := floor_dir(b.floor)
@@ -314,10 +338,62 @@ func _step_barrels(dt: float, ev: Array) -> void:
 			return
 		if mode == "air" and not b.jumped and absf(b.x - px) < 18.0 and b.y - BARREL_R * 2.0 > py - 4.0 and b.y - py < 80.0:
 			b.jumped = true
-			score += 100
+			air_overs += 1
+			score += 100 * air_overs   # clearing several barrels in one jump pays 100, 200, 300...
 			ev.append("over")
+			if air_overs >= 2:
+				ev.append("combo")
 		keep.append(b)
 	barrels = keep
+
+func _step_fireballs(dt: float, ev: Array) -> void:
+	_fire_t -= dt
+	if _fire_t <= 0.0:
+		_fire_t = 16.0
+		if fireballs.size() < fireball_cap():
+			fireballs.append({"x": 46.0, "y": y_at(0, 46.0), "floor": 0, "dir": 1, "mode": "walk", "ladder": {}, "seen": {}, "turn": 1.5})
+	var speed := minf(95.0, 55.0 + 6.0 * level)
+	var keep: Array = []
+	for f in fireballs:
+		if f.mode == "walk":
+			f.turn -= dt
+			if f.turn <= 0.0:
+				f.turn = rng.randf_range(1.2, 2.8)
+				# Mostly drift towards the player, sometimes wander the other way.
+				f.dir = (1 if px > f.x else -1) if rng.randf() < 0.65 else -f.dir
+			var old_x: float = f.x
+			f.x += f.dir * speed * dt
+			if f.x < floor_x0(f.floor) + 8.0 or f.x > floor_x1(f.floor) - 8.0:
+				f.x = clampf(f.x, floor_x0(f.floor) + 8.0, floor_x1(f.floor) - 8.0)
+				f.dir = -f.dir
+			f.y = y_at(f.floor, f.x)
+			# Passing a ladder up: maybe climb it, more likely when the player is above.
+			for l in ladders:
+				if l.lo == f.floor and l.hi != GOAL and not f.seen.has(l.x) and (old_x - l.x) * (f.x - l.x) <= 0.0:
+					f.seen[l.x] = true
+					if rng.randf() < (0.6 if pfloor > f.floor else 0.25):
+						f.mode = "climb"
+						f.ladder = l
+						f.x = l.x
+						break
+		else:
+			f.y -= speed * 0.7 * dt
+			var top := y_at(f.ladder.hi, f.x)
+			if f.y <= top:
+				f.y = top
+				f.floor = f.ladder.hi
+				f.mode = "walk"
+				f.seen = {}
+		var fc := Vector2(f.x, f.y - 12.0)
+		if hammer_t > 0.0 and absf(fc.x - (px + facing * 22.0)) < 34.0 and absf(fc.y - (py - 30.0)) < 40.0:
+			score += 500
+			ev.append("smash")
+			continue
+		if fc.distance_to(Vector2(px, py - PLAYER_H / 2.0)) < 24.0:
+			_die(ev, "hit")
+			return
+		keep.append(f)
+	fireballs = keep
 
 func _die(ev: Array, why: String) -> void:
 	state = "dead"

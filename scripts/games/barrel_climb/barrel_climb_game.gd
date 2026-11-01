@@ -304,6 +304,8 @@ func _process(delta: float) -> void:
 		match e:
 			"jump":
 				_sfx("jump")
+			"combo":
+				_sfx("powerup")
 			"over":
 				_sfx("pickup")
 				if info:
@@ -391,7 +393,9 @@ func _draw_field() -> void:
 		var hp: Vector2 = o + Vector2(engine.hammer.x, BcEngine.y_at(engine.hammer.floor, engine.hammer.x) - 22) * k
 		_draw_hammer(c, hp, k, -0.6 + sin(anim_t * 3.0) * 0.2)
 	for b in engine.barrels:
-		_draw_barrel(c, o + Vector2(b.x, b.y - BcEngine.BARREL_R) * k, k, b.spin, b.mode == "ladder")
+		_draw_barrel(c, o + Vector2(b.x, b.y - BcEngine.BARREL_R) * k, k, b.spin, b.mode == "ladder", b.get("fast", false))
+	for fb in engine.fireballs:
+		_draw_fireball(c, o + Vector2(fb.x, fb.y) * k, k)
 	if engine.state != "dead" or fmod(anim_t, 0.2) < 0.1:
 		_draw_hero(c, o + Vector2(engine.px, engine.py) * k, k)
 	for s in sparks:
@@ -478,7 +482,7 @@ func _draw_ladder(c: CanvasItem, o: Vector2, k: float, l: Dictionary) -> void:
 		c.draw_line(o + Vector2(l.x - 11, y) * k, o + Vector2(l.x + 11, y) * k, WOOD_LIGHT, 3.0 * k)
 		y += 16.0
 
-func _draw_barrel(c: CanvasItem, p: Vector2, k: float, spin: float, side_on: bool) -> void:
+func _draw_barrel(c: CanvasItem, p: Vector2, k: float, spin: float, side_on: bool, fast: bool = false) -> void:
 	var r := BcEngine.BARREL_R * k
 	if side_on:
 		# Coming down a ladder: seen from the side, a squat wooden drum.
@@ -489,8 +493,10 @@ func _draw_barrel(c: CanvasItem, p: Vector2, k: float, spin: float, side_on: boo
 		c.draw_line(p + Vector2(-r * 1.2, r * 0.45), p + Vector2(r * 1.2, r * 0.45), Color("8a94a8"), 2.0 * k)
 		return
 	c.draw_circle(p, r + 1.5 * k, WOOD_DARK)
-	c.draw_circle(p, r, WOOD_LIGHT)
-	c.draw_circle(p, r * 0.62, Color("8a5a2b"))
+	c.draw_circle(p, r, Color("c8402a") if fast else WOOD_LIGHT)   # fast barrels are red
+	c.draw_circle(p, r * 0.62, Color("902a1a") if fast else Color("8a5a2b"))
+	if fast:
+		c.draw_line(p + Vector2(-r * 2.2, 0), p + Vector2(-r * 1.2, 0), Color(FLAME, 0.6), 2.0 * k)
 	for j in 2:
 		var d := Vector2.RIGHT.rotated(spin + j * PI / 2.0) * r * 0.95
 		c.draw_line(p - d, p + d, Color(WOOD_DARK, 0.9), 1.6 * k)
@@ -548,9 +554,20 @@ func _draw_king(c: CanvasItem, feet: Vector2, k: float) -> void:
 		# Horns, tusks and arms (raised when a barrel is about to fly).
 		c.draw_colored_polygon(PackedVector2Array([head + Vector2(s * 12, -14) * k, head + Vector2(s * 26, -36) * k, head + Vector2(s * 20, -10) * k]), Color("f0e6c8"))
 		c.draw_colored_polygon(PackedVector2Array([head + Vector2(s * 8, 8) * k, head + Vector2(s * 11, 18) * k, head + Vector2(s * 4, 10) * k]), Color("f4f0e0"))
-		var arm_up := fmod(anim_t, 1.0) < 0.3
+		var arm_up: bool = engine.throw_warn() or fmod(anim_t, 1.0) < 0.15   # arms go up just before a throw
 		c.draw_line(body + Vector2(s * 30, -12) * k, body + Vector2(s * 46, -40 if arm_up else 12) * k, OGRE.darkened(0.1), 11.0 * k)
 	c.draw_line(head + Vector2(-8, 11) * k, head + Vector2(8, 11) * k, Color(0.15, 0.0, 0.15), 3.0 * k)
+
+## A wandering fireball: a flickering flame with a hot white core.
+func _draw_fireball(c: CanvasItem, feet: Vector2, k: float) -> void:
+	var fl := 1.0 + 0.2 * sin(anim_t * 18.0 + feet.x)
+	var ctr := feet + Vector2(0, -12) * k
+	c.draw_circle(ctr, 22.0 * k, Color(FLAME, 0.15))
+	c.draw_colored_polygon(PackedVector2Array([ctr + Vector2(-11, 4) * k, ctr + Vector2(-6, -8) * k, ctr + Vector2(0, -26 * fl) * k, ctr + Vector2(7, -8) * k, ctr + Vector2(11, 4) * k, ctr + Vector2(0, 12) * k]), Color("ff5a1a"))
+	c.draw_colored_polygon(PackedVector2Array([ctr + Vector2(-6, 4) * k, ctr + Vector2(0, -14 * fl) * k, ctr + Vector2(6, 4) * k, ctr + Vector2(0, 9) * k]), FLAME)
+	c.draw_circle(ctr + Vector2(0, 2) * k, 3.5 * k, Color("fff0a0"))
+	for sd in [-1, 1]:
+		c.draw_circle(ctr + Vector2(sd * 4, -1) * k, 1.3 * k, Color(0.15, 0.0, 0.0))
 
 func _draw_doll(c: CanvasItem, feet: Vector2, k: float) -> void:
 	var head := feet + Vector2(0, -44) * k
