@@ -1,7 +1,8 @@
 extends Control
 
-## The evolution tree as a map (like a skill tree): your creature at the far left, four branches growing
-## to the right. Drag to move around, tap a trait to select it. Owned traits glow in their branch colour,
+## The evolution tree as a map (like a skill tree): your creature at the top, the branches growing
+## downward (owner 2026-11-01; it grew to the right before). The data keeps the DNA tree editor's layout: a node's
+## `x` is its depth (drawn as rows going down), `y` its lane (drawn as columns side by side). Drag to move around, tap a trait to select it. Owned traits glow in their branch colour,
 ## ones you can buy pulse white, ones not unlocked yet show a "?". Lines join each trait to the ones it
 ## needs (some need several) and to the ones it opens (some open several).
 
@@ -10,9 +11,9 @@ const Data = preload("res://scripts/games/evolution/evolution_data.gd")
 
 signal selected(id: String)
 
-const CELL := Vector2(150.0, 92.0)
+const CELL := Vector2(112.0, 128.0)   # x: between lanes (side by side), y: between depths (going down)
 const PAD := 40.0
-const ROOT_X := 120.0
+const ROOT_Y := 90.0
 const NODE_R := 28.0
 
 var engine
@@ -49,17 +50,17 @@ func map_size() -> Vector2:
 	for n in Data.NODES:
 		max_x = maxf(max_x, float(n.x))
 		max_y = maxf(max_y, float(n.y))
-	return Vector2(ROOT_X + (max_x + 1.0) * CELL.x + PAD, (max_y + 1.0) * CELL.y + PAD * 2.0)
+	return Vector2((max_y + 1.0) * CELL.x + PAD * 2.0, ROOT_Y + (max_x + 1.0) * CELL.y + PAD)
 
 func root_pos() -> Vector2:
-	return Vector2(ROOT_X, map_size().y * 0.5)
+	return Vector2(map_size().x * 0.5, ROOT_Y)
 
 func node_pos(n: Dictionary) -> Vector2:
-	return Vector2(ROOT_X + float(n.x) * CELL.x, PAD + float(n.y) * CELL.y + CELL.y * 0.5)
+	return Vector2(PAD + float(n.y) * CELL.x + CELL.x * 0.5, ROOT_Y + float(n.x) * CELL.y + CELL.y * 0.75)
 
-## Starts with the creature in view, vertically centred.
+## Starts with the creature in view, horizontally centred.
 func reset_view() -> void:
-	pan = Vector2(0.0, size.y * 0.5 - root_pos().y)
+	pan = Vector2(size.x * 0.5 - root_pos().x, 0.0)
 	_clamp_pan()
 	queue_redraw()
 
@@ -157,14 +158,19 @@ func _draw() -> void:
 	draw_set_transform(pan, 0.0, Vector2.ONE)
 	var rp := root_pos()
 	# branch titles
+	# branch titles: over the branch's first trait (the highest one, then the left-most): branches share lanes
 	for b in Data.BRANCH_ORDER:
-		var y0 := 1.0e9
-		var x0 := 1.0e9
+		var top := Vector2(1.0e9, 1.0e9)
 		for n in Data.NODES:
-			if n.branch == b:
-				y0 = minf(y0, node_pos(n).y)
-				x0 = minf(x0, node_pos(n).x)
-		draw_string(ThemeDB.fallback_font, Vector2(x0 - NODE_R, y0 - NODE_R - 14.0), tr(Data.BRANCH[b].name).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(Data.BRANCH[b].col, 0.85))
+			var np := node_pos(n)
+			if n.branch == b and not engine.node_hidden(n.id) and (np.y < top.y - 1.0 or (absf(np.y - top.y) <= 1.0 and np.x < top.x)):
+				top = np
+		if top.x >= 1.0e8:
+			continue
+		var title := tr(Data.BRANCH[b].name).to_upper()
+		var at := top + Vector2(10.0, -NODE_R - 12.0)     # just right of the line coming down into it (owner 2026-11-01)
+		draw_string_outline(ThemeDB.fallback_font, at, title, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 5, Color(0, 0, 0, 0.85))
+		draw_string(ThemeDB.fallback_font, at, title, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(Data.BRANCH[b].col, 0.95))
 	# lines first
 	for n in Data.NODES:
 		if engine.node_hidden(n.id):
@@ -188,8 +194,8 @@ func _draw() -> void:
 				lit = engine.rank_of(r[0]) >= int(r[1]) and engine.rank_of(n.id) > 0
 			else:
 				lit = engine.rank_of(n.id) > 0
-			var mid := Vector2((from.x + to.x) * 0.5, to.y)
-			var pts := PackedVector2Array([from, Vector2(mid.x, from.y), mid, to]) if absf(from.y - to.y) > 4.0 else PackedVector2Array([from, to])
+			var mid := Vector2(to.x, (from.y + to.y) * 0.5)
+			var pts := PackedVector2Array([from, Vector2(from.x, mid.y), mid, to]) if absf(from.x - to.x) > 4.0 else PackedVector2Array([from, to])
 			if lit:
 				Art.strip(self, pts, Color(col, 0.35), 8.0, true)
 			Art.strip(self, pts, Color(col, 0.95) if lit else Color(1, 1, 1, 0.16), 3.0, true)
