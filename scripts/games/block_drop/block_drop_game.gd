@@ -13,6 +13,7 @@ const UI = preload("res://scripts/common/ui.gd")
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
+const SoundLib = preload("res://scripts/games/block_drop/sound_lib.gd")
 const BEST_PATH := "user://block_drop_best.json"
 const PREFS_PATH := "user://block_drop_prefs.json"
 const SAVE_PATH := "user://block_drop_save.json"
@@ -44,6 +45,8 @@ var dragging := false
 var drag_time: int = 0
 var difficulty: int = 1
 var board_size: int = 0
+var stars: Array = []       # [x 0..1, y 0..0.7, size, phase]
+var city: Array = []        # [x 0..1, width 0..1, height 0..1, hue]
 
 func _ready() -> void:
 	preload("res://scripts/games/block_drop/block_drop_i18n.gd").install(self)
@@ -56,6 +59,7 @@ func _ready() -> void:
 	if prefs != null:
 		difficulty = clampi(int(prefs.get("difficulty", 1)), 0, DIFFICULTIES.size() - 1)
 		board_size = clampi(int(prefs.get("board", 0)), 0, BOARDS.size() - 1)
+	_make_city()
 	_build_ui()
 	engine.reset()
 	_music("lively")
@@ -241,7 +245,15 @@ func _redraw() -> void:
 	side.queue_redraw()
 
 func _after_lock(_cleared: int) -> void:
-	_sfx("explode" if engine.over else ("merge" if _cleared > 0 else "place"))
+	if engine.over:
+		SoundLib.play(self, "scifi/low_frequency_explosion", -4.0)
+	elif _cleared >= 4:
+		SoundLib.play(self, "impact/glass_heavy", -2.0)
+		_sfx("merge")
+	elif _cleared > 0:
+		SoundLib.play(self, "impact/glass_medium", -4.0)
+	else:
+		SoundLib.play(self, "impact/plate_light", -6.0)
 	gravity.wait_time = engine.step_seconds()
 	if engine.over:
 		running = false
@@ -322,18 +334,58 @@ func _origin() -> Vector2:
 
 ## A neon block: dark translucent fill, bright outline, a faint halo.
 func _block(canvas: CanvasItem, rect: Rect2, col: Color) -> void:
+	# Hollow glowing cell like the Landing picture: faint fill, bright rim, inner highlight.
 	var r := rect.grow(-2)
-	canvas.draw_rect(r, Color(col, 0.32))
-	canvas.draw_rect(r, col, false, 2.0)
-	canvas.draw_rect(r.grow(2), Color(col, 0.22), false, 3.0)
+	canvas.draw_rect(r, Color(col, 0.2))
+	canvas.draw_rect(r, col, false, 2.5)
+	canvas.draw_rect(r.grow(2.5), Color(col, 0.2), false, 3.0)
+	canvas.draw_rect(r.grow(-r.size.x * 0.22), Color(col, 0.35), false, 1.2)
+
+func _make_city() -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = 3
+	var x := 0.0
+	while x < 1.0:
+		var bw := r.randf_range(0.04, 0.09)
+		city.append([x, bw, r.randf_range(0.06, 0.22), r.randi() % 3])
+		x += bw + r.randf_range(0.0, 0.015)
+	for i in 50:
+		stars.append([r.randf(), r.randf() * 0.7, r.randf_range(1.0, 2.4), r.randf() * TAU])
+
+## Neon night behind the well: indigo-to-magenta sky, stars, a moon and a skyline.
+func _draw_backdrop() -> void:
+	var w := board.size.x
+	var h := board.size.y
+	var bands := 12
+	for i in bands:
+		var t := float(i) / (bands - 1)
+		board.draw_rect(Rect2(0, h * i / bands, w, h / bands + 1.0), Color(0.03, 0.02, 0.12).lerp(Color(0.26, 0.05, 0.36), pow(t, 2.4)))
+	for st in stars:
+		var tw := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.003 + st[3])
+		board.draw_rect(Rect2(st[0] * w, st[1] * h, st[2], st[2]), Color(0.8, 0.95, 1.0, 0.25 + 0.5 * tw))
+	HomeKit.glow_circle(board, Vector2(w * 0.14, h * 0.09), minf(w, h) * 0.04, HomeKit.CYAN, 3.0, 0.25)
+	var cols := [HomeKit.CYAN, HomeKit.MAGENTA, HomeKit.PURPLE]
+	for bd in city:
+		var col: Color = cols[bd[3]]
+		var bh: float = bd[2] * h
+		var rc := Rect2(bd[0] * w, h - bh, bd[1] * w, bh)
+		board.draw_rect(rc, Color(0.04, 0.02, 0.12, 0.9))
+		board.draw_rect(rc, Color(col, 0.45), false, 1.5)
+		var wy := rc.position.y + 10.0
+		while wy < h - 6.0:
+			board.draw_line(Vector2(rc.position.x + 4, wy), Vector2(rc.end.x - 4, wy), Color(col, 0.15), 1.0)
+			wy += 16.0
 
 func _draw_board() -> void:
 	var c := _cell()
 	var o := _origin()
-	board.draw_rect(Rect2(o, Vector2(c * engine.w, c * engine.h)), Color(0.03, 0.04, 0.1))
-	HomeKit.glow_rect(board, Rect2(o, Vector2(c * engine.w, c * engine.h)), HomeKit.BLUE, 2.0)
+	_draw_backdrop()
+	board.draw_rect(Rect2(o, Vector2(c * engine.w, c * engine.h)), Color(0.03, 0.02, 0.1, 0.78))
+	HomeKit.glow_rect(board, Rect2(o, Vector2(c * engine.w, c * engine.h)), HomeKit.CYAN, 2.0)
 	for x in range(1, engine.w):
-		board.draw_line(o + Vector2(x * c, 0), o + Vector2(x * c, c * engine.h), Color(HomeKit.BLUE, 0.08))
+		board.draw_line(o + Vector2(x * c, 0), o + Vector2(x * c, c * engine.h), Color(HomeKit.PURPLE, 0.14))
+	for y in range(1, engine.h):
+		board.draw_line(o + Vector2(0, y * c), o + Vector2(c * engine.w, y * c), Color(HomeKit.PURPLE, 0.14))
 	for i in engine.w * engine.h:
 		var v: int = engine.well[i]
 		if v != 0:
