@@ -1832,6 +1832,12 @@ func _add_pad() -> void:
 		return
 	var Layouts = load(PAD_LAYOUTS_PATH)
 	touch_pad = load(PAD_PATH).new()
+	# Apps built before the twin-stick Pad (v0.39.0 and older) have a Pad without custom_layout: it would
+	# show stick + 4 buttons and no aim stick, so you couldn't shoot. Keep the game's own sticks there.
+	if not ("custom_layout" in touch_pad and "prefs_override" in touch_pad):
+		touch_pad.free()
+		touch_pad = null
+		return
 	touch_pad.custom_layout = Layouts.variant("dual_stick", ["a", "b", "pause", "info"],
 		[{"type": "button", "id": "a", "side": "center", "off": [0, 120], "r": 52, "label": "💣"}], "neon_blast")
 	touch_pad.prefs_override = {"floating": true}
