@@ -211,7 +211,9 @@ func visibility_of(id: String) -> float:
 ## false, still pressable), ring (an amber ring, e.g. "sneaking"), icon (pills: pause / info / menu),
 ## fill (0..1: a ring filling clockwise, 1 or -1 = none; power / cooldown), tint (the button's
 ## colour), glyph (a built-in icon instead of the letter: bomb, flame, jump, bolt), draw (a
-## Callable(canvas_item, centre, radius, alpha) that draws the icon yourself).
+## Callable(canvas_item, centre, radius, alpha) that draws the icon yourself), alpha (0..1, multiplies the
+## player's opacity for this part), look (draw scale, e.g. 0.8 = drawn 20% smaller; the touch area keeps
+## its size). Older apps ignore alpha / look.
 func set_state(id: String, props: Dictionary) -> void:
 	var cur: Dictionary = _props.get(id, {})
 	var next := cur.duplicate()
@@ -544,20 +546,22 @@ func _draw() -> void:
 		var held: bool = _held(id) or _lit(id)
 		var a := (maxf(base, TOUCH_ALPHA) if held else base) * k
 		var props: Dictionary = _props.get(id, {})
+		a *= clampf(float(props.get("alpha", 1.0)), 0.0, 1.0)
+		var look := clampf(float(props.get("look", 1.0)), 0.3, 1.5)     # drawn size only; _hit uses el["r"]
 		_with_pop(el["pos"], k)
 		match el["kind"]:
 			"stick":
 				var c: Vector2 = _origin.get(id, el["pos"])
 				var idle_a := a if (_held(id) or not el["floating"]) else a * 0.5
-				Draw.stick(self, c, el["r"], el["knob"], _knob.get(id, Vector2.ZERO), _held(id), sk, idle_a)
+				Draw.stick(self, c, float(el["r"]) * look, float(el["knob"]) * look, Vector2(_knob.get(id, Vector2.ZERO)) * look, _held(id), sk, idle_a)
 			"dpad":
 				var lit_dir: Vector2 = _vec.get(id, Vector2.ZERO)
 				if lit_dir == Vector2.ZERO:
 					lit_dir = _dir_of(id)
-				Draw.dpad(self, el["pos"], el["r"], lit_dir, sk, a)
+				Draw.dpad(self, el["pos"], float(el["r"]) * look, lit_dir, sk, a)
 			"button":
 				var text: String = str(props.get("label", ""))
-				Draw.button(self, el["pos"], el["r"], id, text if text != "" else str(el["label"]), _lit(id),
+				Draw.button(self, el["pos"], float(el["r"]) * look, id, text if text != "" else str(el["label"]), _lit(id),
 					bool(props.get("enabled", true)), sk, a, str(props.get("sub", "")), bool(props.get("ring", false)),
 					float(props.get("fill", -1.0)), props.get("draw", Callable()), props.get("tint", Color(0, 0, 0, 0)), str(props.get("glyph", "")))
 			"pill":
