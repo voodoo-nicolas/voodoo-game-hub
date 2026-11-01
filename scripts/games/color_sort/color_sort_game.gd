@@ -242,6 +242,7 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,
+		"art": "res://games/color_sort/landing_bg.jpg",
 		"subtitle": "Pour the colors until every vial is one color.",
 		"logo": _draw_home_logo,
 		"modes": modes,
@@ -420,6 +421,38 @@ func _vial_style(rad: int, sel: bool) -> StyleBoxFlat:
 
 # ---------- drawing ----------
 
+var lab_tex: Texture2D
+var lab_tried := false
+
+func _ellipse(c: Vector2, rx: float, ry: float, n: int = 14) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for j in n:
+		var a: float = TAU * j / n
+		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
+	return pts
+
+## Classic skin: the lab from the Landing picture, dimmed, with a wooden shelf under each row of vials.
+func _draw_lab(w: float, h: float, rects: Array) -> void:
+	if not lab_tried:
+		lab_tried = true
+		if ResourceLoader.exists("res://games/color_sort/landing_bg.jpg"):
+			lab_tex = load("res://games/color_sort/landing_bg.jpg")
+	if lab_tex != null:
+		var ts: Vector2 = lab_tex.get_size()
+		var sc: float = maxf(w / ts.x, h / ts.y)
+		var sz: Vector2 = ts * sc
+		table.draw_texture_rect(lab_tex, Rect2((Vector2(w, h) - sz) / 2.0, sz), false, Color(0.5, 0.5, 0.58))
+		table.draw_rect(Rect2(0, 0, w, h), Color(0.03, 0.04, 0.1, 0.35))
+	var rows := {}
+	for r in rects:
+		rows[int(round(r.end.y))] = true
+	var x0 := 6.0
+	for yr in rows:
+		var y: float = float(yr) + 2.0
+		table.draw_rect(Rect2(x0, y, w - 12.0, 16.0), Color("6b4426"))
+		table.draw_rect(Rect2(x0, y, w - 12.0, 4.0), Color("a8743a"))
+		table.draw_rect(Rect2(x0, y + 16.0, w - 12.0, 5.0), Color(0, 0, 0, 0.35))
+
 func _draw_table() -> void:
 	if engine == null or engine.tubes.is_empty():
 		return
@@ -441,6 +474,8 @@ func _draw_table() -> void:
 	var rects: Array = lay.rects
 	if not _is_classic():
 		_draw_decor(lay, w, h)
+	else:
+		_draw_lab(w, h, rects)
 	for p in engine.rules.get("blocked", []):
 		if int(p[0]) < rects.size() and int(p[1]) < rects.size():
 			var pa: Vector2 = rects[int(p[0])].get_center()
@@ -632,6 +667,13 @@ func _band(cx: float, rad: float, yb: float, y_top: float, y_bot: float, amp: fl
 		_add_pt(pts, Vector2(cx - rad, y_bot))
 	return pts
 
+## A soft glow of the bottom liquid's colour on the shelf under a vial (as in the Landing picture).
+func _draw_glass_base(i: int, r: Rect2, cx: float, rad: float, yb: float) -> void:
+	var t: Array = engine.tubes[i]
+	if t.is_empty() or engine.is_hidden(i, 0):
+		return
+	table.draw_colored_polygon(_ellipse(Vector2(cx, yb + 5.0), rad * 1.25, rad * 0.28, 14), Color(_color_of(int(t[0])), 0.32))
+
 func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 	var lift: float = lifts[i] if i < lifts.size() else 0.0
 	var r := Rect2(r0.position + Vector2(0, lift), r0.size)
@@ -655,6 +697,7 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 		table.draw_polyline(closed, edge, 3.0, true)
 	else:
 		table.draw_style_box(_sb_selected if is_sel else _sb_normal, r)
+		_draw_glass_base(i, r, cx, rad, yb)
 	if hint_t > 0.0 and (i == hint_from or i == hint_to):
 		var pulse: float = 0.5 + 0.5 * sin(clock * 8.0)
 		var hc: Color = Color("ffd84a") if i == hint_from else Color("4cff8a")
@@ -690,6 +733,9 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 				for j in 7:
 					surf.append(poly[j])
 				table.draw_polyline(surf, col.lightened(0.45), 2.0)
+				if not shaped:
+					# a lit, elliptical surface makes the liquid look round
+					table.draw_colored_polygon(_ellipse(Vector2(cx, y_top), rad * 0.96, maxf(2.5, rad * 0.22), 14), Color(col.lightened(0.3), 0.55))
 	# mystery layers show a question mark
 	var font := ThemeDB.fallback_font
 	var tt: Array = engine.tubes[i]
@@ -710,8 +756,13 @@ func _draw_vial(i: int, r0: Rect2, lay: Dictionary) -> void:
 			_draw_symbol(Vector2(cx, yb - (k + 0.5) * lh), minf(lh, rad * 2.0) * 0.21, int(t[k]), mark)
 	# glass shine
 	if not shaped:
-		table.draw_line(Vector2(cx - rad + 5.0, r.position.y + 12.0), Vector2(cx - rad + 5.0, yb - rad), Color(1, 1, 1, 0.3), 3.0, true)
+		# cylinder shading: a broad soft highlight on the left, a thin one on the right, a rim ellipse on top
+		table.draw_line(Vector2(cx - rad + 6.0, r.position.y + 14.0), Vector2(cx - rad + 6.0, yb - rad), Color(1, 1, 1, 0.34), 5.0, true)
+		table.draw_line(Vector2(cx - rad + 11.0, r.position.y + 20.0), Vector2(cx - rad + 11.0, yb - rad - 8.0), Color(1, 1, 1, 0.14), 3.0, true)
+		table.draw_line(Vector2(cx + rad - 6.0, r.position.y + 24.0), Vector2(cx + rad - 6.0, yb - rad - 4.0), Color(1, 1, 1, 0.16), 2.0, true)
 		table.draw_arc(Vector2(cx, yb - rad), rad * 0.72, PI * 0.6, PI * 0.9, 6, Color(1, 1, 1, 0.28), 2.5)
+		var rim := _ellipse(Vector2(cx, r.position.y + 6.0), r.size.x * 0.5 + 1.0, maxf(3.0, r.size.x * 0.13), 16)
+		table.draw_polyline(rim + PackedVector2Array([rim[0]]), Color(1, 1, 1, 0.55), 2.0, true)
 	else:
 		var sh: float = rad * _prof(shape, 0.4, 0.1) * 0.8
 		table.draw_line(Vector2(cx - sh, yb - hh * 0.75), Vector2(cx - sh, yb - hh * 0.18), Color(1, 1, 1, 0.3), 3.0, true)

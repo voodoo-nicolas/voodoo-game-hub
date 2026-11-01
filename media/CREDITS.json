@@ -3653,6 +3653,19 @@
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/color_sort/landing_bg.jpg",
+   "what": "Color Sort Landing background and Classic table backdrop (alchemy lab with test tubes)",
+   "source": "reference/art/games/color_sort_landing_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-10-31",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
   }
  ]
 }
