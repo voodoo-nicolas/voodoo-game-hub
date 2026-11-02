@@ -28,7 +28,7 @@ pad.set_map({"move": ["tn_left", "tn_right", "tn_up", "tn_down"], "a": ["tn_a"],
 - `set_state(id, {"sub": "USE", "enabled": bool, "ring": bool, "icon": "menu"})`: a word under a button (shrunk to fit), dimmed when not usable (still pressable), an amber ring (sneaking), a pill's icon (pause / info / menu). `set_button(id, label, enabled)` is the older form.
 - The pad **pauses with the game** (process mode pausable + lets go on `NOTIFICATION_PAUSED`), so the kit's pause menu is never pressed through; `works_while_paused = true` opts out. Parts light up from their mapped actions too (a keyboard key lights A).
 - Sizing: `k = min(height/720, width/1280) * the player's size`: a tablet or portrait screen shrinks the pad instead of blowing it up.
-- Opacity 0 = invisible but fully working (a touched part lights faintly). **Show button map** draws the hit areas and action names over the controller at full strength.
+- **Opacity default 25%** (owner 2026-11-02: over a game the controller is almost transparent, always; a touched part lights up to 45%). `Prefs.VERSION` 2 drops an opacity saved before that, so phones that tried the Pad Lab get the new default. Opacity 0 = invisible but fully working (a touched part lights faintly). **Show button map** draws the hit areas and action names over the controller at full strength.
 - Guard for old apps: `ResourceLoader.exists("res://scripts/common/pad/pad_controller.gd")`, else keep the game's own controls.
 
 ## Pad Lab (dev only, not in the catalog or manifest)

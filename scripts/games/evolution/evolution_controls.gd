@@ -55,7 +55,8 @@ func _add_pad() -> void:
 		_pad.set_state(SLOT_PARTS[i], {"draw": _slot_icon.bind(i)})
 	_pad.button_pressed.connect(_on_pad_button)
 	# owner 2026-10-31: the stick 50% see-through and drawn smaller, same touch area (Pad keys alpha / look; older apps ignore them)
-	_pad.set_state("move", {"alpha": 0.5, "look": 0.75})
+	# owner 2026-11-02: every Pad is drawn at 25% (the Pad's default opacity), so the stick no longer needs its own 50%
+	_pad.set_state("move", {"look": 0.75})
 	set_process(true)
 
 func _on_pad_button(id: String) -> void:

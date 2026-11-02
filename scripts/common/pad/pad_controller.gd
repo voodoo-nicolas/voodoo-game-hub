@@ -31,7 +31,7 @@ const Draw = preload("res://scripts/common/pad/pad_draw.gd")
 const Prefs = preload("res://scripts/common/pad/pad_prefs.gd")
 
 const FIRE_AT := 0.35         # an aim stick fires beyond this deflection
-const TOUCH_ALPHA := 0.6      # a touched part never draws fainter than this
+const TOUCH_ALPHA := 0.45     # a touched part never draws fainter than this (a little feedback)
 const MAP_COLOR := Color(1.0, 0.85, 0.2, 0.95)
 const REVEAL_S := 0.35
 const PULSE_S := 1.1
@@ -552,7 +552,7 @@ func _draw() -> void:
 		match el["kind"]:
 			"stick":
 				var c: Vector2 = _origin.get(id, el["pos"])
-				var idle_a := a if (_held(id) or not el["floating"]) else a * 0.5
+				var idle_a := a   # a floating stick waiting for a thumb shows at the same faint level
 				Draw.stick(self, c, float(el["r"]) * look, float(el["knob"]) * look, Vector2(_knob.get(id, Vector2.ZERO)) * look, _held(id), sk, idle_a)
 			"dpad":
 				var lit_dir: Vector2 = _vec.get(id, Vector2.ZERO)

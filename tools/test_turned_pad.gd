@@ -137,7 +137,7 @@ func _run() -> void:
 	paused = false
 	# a saved layout (an old test with the Pad Lab) does not change Turned's: no layout choice yet
 	var f := FileAccess.open(Prefs.PATH, FileAccess.WRITE)
-	f.store_string(JSON.stringify({"layout": "dpad_4", "opacity": 0.5}))
+	f.store_string(JSON.stringify({"layout": "dpad_4", "opacity": 0.5, "version": 2}))
 	f.close()
 	await _start()
 	check("a saved layout does not change Turned's", game.pad.layout_id(), "stick_4")

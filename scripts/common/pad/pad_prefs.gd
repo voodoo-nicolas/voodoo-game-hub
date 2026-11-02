@@ -5,12 +5,15 @@ extends RefCounted
 ## the skin stay the player's.
 
 const PATH := "user://pad.json"
+## Bump when a default changes so that it reaches phones that saved an older one. Version 2 (2026-11-02):
+## the pad is drawn almost transparent over a game (25%), so an opacity saved before then is dropped.
+const VERSION := 2
 
 const DEFAULTS := {
 	"layout": "stick_4",
 	"skin": "neon",
 	"size": 1.0,          # 0.6 .. 1.4, 1.0 = the mock-ups
-	"opacity": 0.85,      # 0 .. 1. 0 = invisible, the buttons still work
+	"opacity": 0.25,      # 0 .. 1. Over a game it is almost transparent (owner, 2026-11-02); 0 = invisible, still works
 	"right_handed": true,
 	"floating": false,    # sticks appear under the thumb instead of at a fixed spot
 	"deadzone": 0.15,
@@ -25,6 +28,8 @@ static func load_prefs() -> Dictionary:
 		if f != null:
 			var data = JSON.parse_string(f.get_as_text())
 			if data is Dictionary:
+				if int(data.get("version", 1)) < VERSION:
+					data.erase("opacity")
 				for key in DEFAULTS:
 					if data.has(key) and typeof(data[key]) == typeof(DEFAULTS[key]):
 						out[key] = data[key]
@@ -45,7 +50,9 @@ static func has_saved(key: String) -> bool:
 static func save_prefs(prefs: Dictionary) -> void:
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
 	if f != null:
-		f.store_string(JSON.stringify(prefs))
+		var out := prefs.duplicate()
+		out["version"] = VERSION
+		f.store_string(JSON.stringify(out))
 
 ## Clamps every value into its range.
 static func clean(p: Dictionary) -> Dictionary:
