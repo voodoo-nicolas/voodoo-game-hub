@@ -1,6 +1,10 @@
 {
   "en": {
     "replay_any": "Play again",
+    "birth_month": "Birth month",
+    "month_names": "January, February, March, April, May, June, July, August, September, October, November, December",
+    "err_bm": "Pick your birth month.",
+    "why_age": "Ranked play is for ages 13 and up (13 to 15 play on the Junior board).",
     "q_topview_sub": "The thick white edge goes at the bottom. Holes show as empty. If a column is hidden behind a taller one, ignore it.",
     "ins_pitch": "Three notes play. Two are identical, one is slightly higher or lower. The difference shrinks as you improve. Replay as often as you like.",
 
@@ -322,6 +326,10 @@
   },
   "es": {
     "replay_any": "Escuchar de nuevo",
+    "birth_month": "Mes de nacimiento",
+    "month_names": "enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre",
+    "err_bm": "Elegí tu mes de nacimiento.",
+    "why_age": "El modo ranked es para mayores de 13 años (de 13 a 15, en el ranking Junior).",
     "q_topview_sub": "El borde blanco grueso va abajo. Los huecos aparecen vacíos. Si una columna queda tapada por una más alta, ignorala.",
     "ins_pitch": "Suenan tres notas. Dos son iguales y una es apenas más aguda o más grave. La diferencia se achica a medida que mejorás. Podés repetir todas las veces que quieras.",
 

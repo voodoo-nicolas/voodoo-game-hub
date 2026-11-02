@@ -3,10 +3,12 @@
 // POST { board: "viq" | "nine" | "sec" | "blitz",
 //        sec?: <section>                                                   (board "sec")
 //        scope?: "ALL"|<section>, dur_s?: 60|120|180|300, season?: "month"|"all"  (board "blitz")
-//        age?: "16-24"..., country?: "AR", province?, lang?: "en"|"es" (verbal language: viq / LIN) }
+//        age?: "16-24"..., country?: "AR", province?, lang?: "en"|"es" (verbal language: viq / LIN),
+//        junior?: true (the Junior board: ages 13-15 only; age / country / province filters ignored) }
 // board "player" { nick } -> one player's detail card (tap a name on a board):
 //    { nick, country, province, age_band, tests, answered, correct, pct, per_min, avg_s, iq, se,
-//      sections: [{ sec, iq, se, n }] } over their ranked IQ tests; 404 for unknown nicks and minors.
+//      sections: [{ sec, iq, se, n }] } over their ranked IQ tests; 404 for unknown nicks and under-13s.
+//    A junior's card (and row) carries no country, province or age band: nickname and scores only.
 // -> { rows: [...], provisional: [...] }, each row:
 //    { nick, country, province, age_band, score, theta, se, genius, need_items, sections, correct, me }
 // board "awards" { genius?: [<section>...], fixer?: bool } -> the caller's own achievement checks
@@ -20,13 +22,16 @@
 // verification / a section's board: 15+ items, SE <= 0.45); `genius` = 130+ proven.
 // Only 9-Mind needs all nine sections to compute, so it still lists the rest as
 // `provisional` (k/9). Blitz: best points, then correct answers.
+// Junior board (owner, 2026-11-02): 13-15 year olds (age_band "13-15", still `minor`) rank only
+// there, adults only on the others; everyone can open it; the score is the same IQ (the game
+// labels it "adult scale"). A junior whose adult_on has come counts as 16-24 (profileNow).
 // Reads with the service role; no user ids leave the server (`me` marks the caller).
 // deno-lint-ignore-file no-explicit-any
 
 import { type Call, HttpError, must } from "../_shared/http.ts";
 import { IQ } from "../_shared/irt.ts";
 import { BLITZ_DURS, MIXED_POOL, SECS } from "../_shared/engine.ts";
-import { nineStanding, type ScoreRow, secStanding, viqStanding } from "../_shared/standings.ts";
+import { isJunior, nineStanding, profileNow, type ScoreRow, secStanding, viqStanding } from "../_shared/standings.ts";
 import { monthKey } from "../_shared/rng.ts";
 import { closeStaleSessions, scorable } from "../_shared/session.ts";
 
@@ -42,16 +47,21 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
   // an endless test the player walked away from (idle 30 min) shows up on the boards
   await closeStaleSessions(db, uid, 30 * 60_000);
 
-  // players, filtered by age band / country / province
-  let pq = db.from("profiles").select("id, nick, age_band, country, province, minor");
-  if (body.age) pq = pq.eq("age_band", String(body.age));
-  if (body.country) pq = pq.eq("country", String(body.country));
-  if (body.province) pq = pq.eq("province", String(body.province));
+  // players, filtered by age band / country / province (the Junior board takes no filters)
+  const junior = body.junior === true;
+  let pq = db.from("profiles").select("id, nick, age_band, country, province, minor, adult_on");
+  if (!junior && body.country) pq = pq.eq("country", String(body.country));
+  if (!junior && body.province) pq = pq.eq("province", String(body.province));
   const players = new Map<string, any>();
-  for (const p of must(await pq) as any[]) if (!p.minor) players.set(p.id, p);
+  for (const stored of must(await pq) as any[]) {
+    const p = profileNow(stored);
+    if (junior ? !isJunior(p) : p.minor || (body.age && p.age_band !== String(body.age))) continue;
+    players.set(p.id, p);
+  }
 
   const base = (id: string) => {
     const p = players.get(id);
+    if (junior) return { nick: p.nick, country: null, province: null, age_band: null, junior: true, me: id === uid };
     return { nick: p.nick, country: p.country, province: p.province, age_band: p.age_band, me: id === uid };
   };
   const rows: any[] = [];
@@ -107,9 +117,10 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
 /** The detail card for one player: answers, % correct and pace from their ranked IQ tests,
  *  plus their standing per section. Minors never get a card (they aren't on the boards). */
 async function playerCard(db: Call["db"], nick: string) {
-  const found = must(await db.from("profiles").select("id, nick, age_band, country, province, minor").eq("nick", nick).limit(1)) as any[];
-  const p = found[0];
-  if (!p || p.minor) throw new HttpError(404, "no_player");
+  const found = must(await db.from("profiles").select("id, nick, age_band, country, province, minor, adult_on").eq("nick", nick).limit(1)) as any[];
+  const p = found[0] ? profileNow(found[0]) : null;
+  if (!p || (p.minor && !isJunior(p))) throw new HttpError(404, "no_player");
+  const junior = isJunior(p);
   const sess = must(await db.from("sessions").select("id").eq("user_id", p.id).eq("mode", "iq").eq("ranked", true)
     .in("status", ["done", "abandoned"]).order("started_at", { ascending: false }).limit(200)) as any[];
   let answered = 0, correct = 0, ms = 0;
@@ -132,8 +143,8 @@ async function playerCard(db: Call["db"], nick: string) {
   }
   const v: any = viqStanding(scores, null);
   return {
-    nick: p.nick, country: p.country, province: p.province, age_band: p.age_band,
-    tests: sess.length, answered, correct,
+    nick: p.nick, country: junior ? null : p.country, province: junior ? null : p.province, age_band: junior ? null : p.age_band,
+    junior, tests: sess.length, answered, correct,
     pct: answered ? correct / answered : 0,
     per_min: ms > 0 ? correct / (ms / 60000) : 0,
     avg_s: answered ? ms / answered / 1000 : 0,

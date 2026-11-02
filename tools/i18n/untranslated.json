@@ -255,6 +255,9 @@
  "IQ %d  ±%d": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
+ "IQ*": [
+  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
+ ],
  "Intelligence": [
   "scripts\\hub\\hub.gd",
   "scripts\\hub\\hub_art.gd"

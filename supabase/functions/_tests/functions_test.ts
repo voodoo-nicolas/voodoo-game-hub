@@ -40,7 +40,26 @@ Deno.test("profile-save: validates and keeps only the age band", async () => {
   assertEquals([p.nick, p.age_band, p.minor, p.country, p.province, p.lang], ["Nico", "35-44", false, "AR", "Córdoba", "es"]);
   assert(!("birth_year" in db.tables.profiles[0]));
   const kid = await newPlayer(db, OTHER, new Date().getUTCFullYear() - 12);
-  assertEquals([kid.age_band, kid.minor], [null, true]);
+  assertEquals([kid.age_band, kid.minor, kid.adult_on], [null, true, null]);
+});
+
+Deno.test("profile-save: 13-15 = Junior band, with the day they count as 16", async () => {
+  const db = new FakeDb();
+  const y = new Date().getUTCFullYear();
+  const teen = await newPlayer(db, OTHER, y - 14);
+  assertEquals([teen.age_band, teen.minor, teen.adult_on], ["13-15", true, `${y + 2}-01-01`]);
+  // with a month, the birthday month counts as not reached yet
+  const m = new Date().getUTCMonth() + 1;
+  const p = (await call(profileSave, db, OTHER, { nick: "Teen", birth_year: y - 16, birth_month: m })).profile;
+  assertEquals([p.age_band, p.minor], ["13-15", true]);
+  assertEquals(p.adult_on, new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10));
+  const prev = m === 1 ? 0 : m - 1;
+  if (prev) {
+    const q = (await call(profileSave, db, OTHER, { nick: "Teen", birth_year: y - 16, birth_month: prev })).profile;
+    assertEquals([q.age_band, q.minor, q.adult_on], ["16-24", false, null]);
+  }
+  const adult = await newPlayer(db, ME);
+  assertEquals(adult.adult_on, null);
 });
 
 Deno.test("ranked IQ test: answer loop, finish, section_scores, retakes allowed", async () => {
@@ -97,9 +116,9 @@ Deno.test("ranked IQ test: answer loop, finish, section_scores, retakes allowed"
   assert((await call(sessionStart, db, ME, { mode: "iq", scope: "LOG", dur: 5, ranked: true })).session_id, "another scope is its own attempt");
 });
 
-Deno.test("practice IQ writes no section_scores; minors can't rank", async () => {
+Deno.test("practice IQ writes no section_scores; under-13s can't rank", async () => {
   const db = new FakeDb();
-  await newPlayer(db, OTHER, new Date().getUTCFullYear() - 14);
+  await newPlayer(db, OTHER, new Date().getUTCFullYear() - 12);
   assertEquals(await code(call(sessionStart, db, OTHER, { mode: "iq", scope: "LOG", dur: 15, ranked: true })), { code: "not_eligible", why: "age" });
   const st = await call(sessionStart, db, OTHER, { mode: "iq", scope: "LOG", dur: 15, ranked: false });
   pending(db, st.session_id, 5000);
@@ -448,6 +467,44 @@ Deno.test("leaderboards: section gates, Voodoo IQ verification, Blitz bests, fil
   assertEquals((await call(leaderboard, db, ME, { board: "blitz", scope: "ALL", dur_s: 120 })).rows.map((r: any) => r.nick), ["Rival", "Nico"]);
   assertEquals((await call(leaderboard, db, ME, { board: "blitz", scope: "ALL", dur_s: 120, season: "all" })).rows.map((r: any) => r.score), [30]);
   assertEquals((await code(call(leaderboard, db, ME, { board: "nope" })))?.code, "bad_board");
+});
+
+Deno.test("Junior board: 13-15 rank there only, nickname and scores only, adults at 16", async () => {
+  const db = new FakeDb();
+  const y = new Date().getUTCFullYear();
+  const TEEN = "33333333-3333-4333-8333-333333333333", KID = "44444444-4444-4444-8444-444444444444";
+  await newPlayer(db);
+  await call(profileSave, db, TEEN, { nick: "Teen", birth_year: y - 14, country: "AR", province: "Córdoba" });
+  await call(profileSave, db, KID, { nick: "Kid", birth_year: y - 12, country: "AR" });
+  // a junior can start a ranked test; an under-13 still can't
+  assert((await call(sessionStart, db, TEEN, { mode: "iq", scope: "LOG", dur: 5, ranked: true })).ranked);
+  assertEquals(await code(call(sessionStart, db, KID, { mode: "iq", scope: "LOG", dur: 5, ranked: true })), { code: "not_eligible", why: "age" });
+
+  const now = new Date().toISOString();
+  const row = (user: string, theta: number) => ({
+    session_id: crypto.randomUUID(), user_id: user, sec: "LOG", day: now.slice(0, 10), theta, se: 0.35, n: 20,
+    hard: 1, lang: "es", flagged: false, auc: null, bias: null, created_at: now,
+  });
+  db.tables.section_scores = [row(ME, 1.0), row(TEEN, 1.5), row(KID, 2.0)];
+  const adults = await call(leaderboard, db, ME, { board: "sec", sec: "LOG" });
+  assertEquals(adults.rows.map((r: any) => r.nick), ["Nico"]);
+  assertEquals((await call(leaderboard, db, ME, { board: "sec", sec: "LOG", age: "13-15" })).rows, [], "no juniors through the age filter");
+  // everyone can open it (here an adult); filters are ignored; no country / province / age band
+  const jr = await call(leaderboard, db, ME, { board: "sec", sec: "LOG", junior: true, country: "MX" });
+  assertEquals(jr.rows.map((r: any) => [r.nick, r.country, r.province, r.age_band, r.junior, r.score]), [["Teen", null, null, null, true, 100 + 15 * 1.5]]);
+  assertEquals((await call(leaderboard, db, TEEN, { board: "sec", sec: "LOG", junior: true })).rows.map((r: any) => [r.nick, r.me]), [["Teen", true]]);
+  const card = await call(leaderboard, db, ME, { board: "player", nick: "Teen" });
+  assertEquals([card.country, card.province, card.age_band, card.junior], [null, null, null, true]);
+  assertEquals((await code(call(leaderboard, db, ME, { board: "player", nick: "Kid" })))?.code, "no_player");
+
+  // their 16th: the adult boards, scores kept; the row is updated at their next test
+  db.tables.profiles.find((p) => p.id === TEEN)!.adult_on = now.slice(0, 10);
+  assertEquals((await call(leaderboard, db, ME, { board: "sec", sec: "LOG" })).rows.map((r: any) => r.nick), ["Teen", "Nico"]);
+  assertEquals((await call(leaderboard, db, ME, { board: "sec", sec: "LOG", junior: true })).rows, []);
+  assertEquals((await call(leaderboard, db, ME, { board: "player", nick: "Teen" })).country, "AR");
+  await call(sessionStart, db, TEEN, { mode: "iq", scope: "LOG", dur: 5, ranked: true });
+  const grown = db.tables.profiles.find((p) => p.id === TEEN)!;
+  assertEquals([grown.age_band, grown.minor, grown.adult_on], ["16-24", false, null]);
 });
 
 Deno.test("leaderboard awards: genius medals as the section boards show them, fixed 🚩 reports, own rows only", async () => {

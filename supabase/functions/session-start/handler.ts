@@ -8,8 +8,8 @@
 // -> IQ:    { session_id, deadline, ..., first_item }
 // -> Blitz: { session_id, deadline, ..., first_item, items }   (whole batch, no keys)
 //
-// Ranked eligibility (409 { error: "not_eligible", why }): needs a profile with age 16+
-// ("age"); Daily Brain: one ranked attempt per UTC day ("daily_done"). Ranked IQ tests
+// Ranked eligibility (409 { error: "not_eligible", why }): needs a profile with age 13+
+// ("age"; 13-15 rank on the Junior board, owner 2026-11-02); Daily Brain: one ranked attempt per UTC day ("daily_done"). Ranked IQ tests
 // are unlimited (the user's decision 2026-10-03, replacing spec §2's one per scope per
 // day): standings combine the last 3 unflagged sessions and rank by estimate - 2 SE,
 // so retakes can't luck a score up much. Daily and Duel force their own
@@ -18,6 +18,7 @@
 
 import { type Call, HttpError, must } from "../_shared/http.ts";
 import { closeStaleSessions } from "../_shared/session.ts";
+import { profileNow } from "../_shared/standings.ts";
 import { blitzBatch, blitzBatchSize, BLITZ_DURS, FACE_GV, GV, IQ_DURS, type IqState, MIXED_POOL, newIqState, nextIqItem, publicItem, restyle, SECS, storedKey } from "../_shared/engine.ts";
 import { dailySeed, randomSeed, Rng, utcDay } from "../_shared/rng.ts";
 import { type ScoreRow, secStanding } from "../_shared/standings.ts";
@@ -30,8 +31,11 @@ const DEADLINE_GRACE_MS = 600_000;
 const ENDLESS_MS = 12 * 3600_000;
 
 export default async function handler({ body, uid, db }: Call): Promise<unknown> {
-  const profile = (must(await db.from("profiles").select("*").eq("id", uid).limit(1)) as any[])[0];
-  if (!profile) throw new HttpError(412, "no_profile", "Create a profile first (profile-save).");
+  const stored = (must(await db.from("profiles").select("*").eq("id", uid).limit(1)) as any[])[0];
+  if (!stored) throw new HttpError(412, "no_profile", "Create a profile first (profile-save).");
+  // a junior whose 16th birthday month has passed becomes a 16-24 adult (row updated once)
+  const profile = profileNow(stored);
+  if (profile !== stored) must(await db.from("profiles").update({ age_band: profile.age_band, minor: false, adult_on: null }).eq("id", uid));
 
   const lang: Lang = body.lang === "en" || body.lang === "es" ? body.lang : profile.lang === "en" ? "en" : "es";
   const kind: "normal" | "daily" | "duel" = body.kind === "daily" || body.kind === "duel" ? body.kind : "normal";
@@ -70,7 +74,7 @@ export default async function handler({ body, uid, db }: Call): Promise<unknown>
 
   if (ranked) {
     let why: string | null = null;
-    if (profile.minor || !profile.age_band) why = "age";
+    if (!profile.age_band) why = "age";
     else if (kind === "daily") {
       const used = must(await db.from("sessions").select("id").eq("user_id", uid).eq("kind", "daily").eq("ranked", true).gte("started_at", todayStart).limit(1)) as any[];
       if (used.length) why = "daily_done";

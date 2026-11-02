@@ -18,7 +18,7 @@ const HOW := [
 	"⏸ pauses a test: the clock stops and the question is hidden, and you can change the text size and sound there.",
 	"Can't play sound? The musical questions offer 🔇: skip them for the rest of the test (they count only for the Musical section) or end the test.",
 	"Leaving the app during a question counts that question as wrong. A test can't be resumed after you leave it.",
-	"Ranked play needs an account, a player profile and age 16+.",
+	"Ranked play needs an account, a player profile and age 13+. Ages 13 to 15 play on the Junior board; at 16 they move to the adult boards, scores kept.",
 	"🏅 Achievements: besides tests taken and Speed Rounds, earn the ★130+ genius medal in each section, practice for an hour in all, or 🚩 flag a question that turns out to be wrong and gets fixed.",
 ]
 const TIPS := [

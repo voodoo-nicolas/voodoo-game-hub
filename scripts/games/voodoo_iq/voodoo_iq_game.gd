@@ -712,6 +712,16 @@ func _show_profile_form() -> void:
 	for i in 90:
 		by.add_item(str(yr - 10 - i), yr - 10 - i)
 	box.add_child(by)
+	# the month too (Junior board, 2026-11-02): 13-15 rank there and move to the adult boards the
+	# month after they turn 16; the server keeps only the age band and that date
+	box.add_child(_label(T.t("birth_month"), 22, FG, 0, HORIZONTAL_ALIGNMENT_LEFT))
+	var bm := OptionButton.new()
+	bm.add_theme_font_size_override("font_size", 26)
+	bm.add_item("—", 0)
+	var months: PackedStringArray = T.t("month_names").split(",")
+	for i in 12:
+		bm.add_item(months[i].strip_edges() if i < months.size() else str(i + 1), i + 1)
+	box.add_child(bm)
 	box.add_child(_label(T.t("birth_note"), 18, FG2, W - 80))
 	box.add_child(_label(T.t("country"), 22, FG, 0, HORIZONTAL_ALIGNMENT_LEFT))
 	var ctry := OptionButton.new()
@@ -752,8 +762,11 @@ func _show_profile_form() -> void:
 		if by.selected <= 0:
 			err.text = T.t("err_by")
 			return
+		if bm.selected <= 0:
+			err.text = T.t("err_bm")
+			return
 		var c = ctry.get_item_metadata(ctry.selected) if ctry.selected > 0 else "XX"
-		var body := {"nick": n, "birth_year": by.get_item_id(by.selected), "country": c, "lang": T.lang()}
+		var body := {"nick": n, "birth_year": by.get_item_id(by.selected), "birth_month": bm.get_item_id(bm.selected), "country": c, "lang": T.lang()}
 		if c == "AR" and prov.selected > 0:
 			body.province = prov.get_item_text(prov.selected)
 		_busy(true, "profile-save")
@@ -837,6 +850,12 @@ func _on_started(ok: bool, code: int, data: Dictionary) -> void:
 				_close_overlays()
 				cfg.ranked = false
 				_request_start(cfg), GOOD, Vector2(0, 72)))
+			# profiles saved before the Junior board kept no age for under-16s: a new birth date
+			# may make them eligible now (13-15), and the ranked start is retried after saving
+			if str(data.get("why", "")) == "age":
+				box.add_child(_button(tr("Update my birth date"), func():
+					pending_start = cfg
+					_show_profile_form(), ACCENT, Vector2(0, 64), 22))
 			box.add_child(_button(T.t("home"), _close_overlays, FG2, Vector2(0, 64), 24))
 			return
 	pending_start = {}
@@ -1840,7 +1859,7 @@ const AGE_BANDS := ["16-24", "25-34", "35-44", "45-54", "55+"]
 const BOARD_TABS := [["viq", "b_viq"], ["nine", "b_nine"], ["sec", "b_sec"], ["blitz", "blitz"]]
 
 ## Board settings, like the prototype's S.boards (kept while the scene lives).
-var boards := {"tab": "viq", "sec": "LOG", "bscope": "ALL", "bdur": 120, "season": "month", "age": "", "country": "", "province": "", "lang": "", "show_prov": false, "show_help": false, "show_filters": false}
+var boards := {"tab": "viq", "junior": false, "sec": "LOG", "bscope": "ALL", "bdur": 120, "season": "month", "age": "", "country": "", "province": "", "lang": "", "show_prov": false, "show_help": false, "show_filters": false}
 var board_box: VBoxContainer
 
 func _show_boards() -> void:
@@ -1861,6 +1880,12 @@ func _show_boards() -> void:
 	for tb in BOARD_TABS:
 		tabs.add_child(_seg_button(T.t(tb[1]), "tab", tb[0]))
 	box.add_child(tabs)
+	# Junior board (owner, 2026-11-02): ages 13-15 rank only there; anyone can open it
+	var who_row := HBoxContainer.new()
+	who_row.add_theme_constant_override("separation", 6)
+	who_row.add_child(_seg_button(tr("Adults (16+)"), "junior", false))
+	who_row.add_child(_seg_button(tr("Juniors (13-15)"), "junior", true))
+	box.add_child(who_row)
 	if boards.tab == "sec":
 		box.add_child(_board_chips("sec", T.secs()))
 	elif boards.tab == "blitz":
@@ -1885,15 +1910,17 @@ func _show_boards() -> void:
 	filters.columns = 2
 	filters.add_theme_constant_override("h_separation", 10)
 	filters.add_theme_constant_override("v_separation", 6)
-	var ages: Array = [["", T.t("any")]]
-	for a in AGE_BANDS:
-		ages.append([a, a])
-	_board_filter(filters, T.t("age"), "age", ages)
-	var countries: Array = [["", T.t("world")]]
-	for c in T.data().get("COUNTRIES", []):
-		countries.append([c, TranslationServer.get_country_name(c)])
-	_board_filter(filters, T.t("country"), "country", countries)
-	if boards.country == "AR":
+	# the Junior board shows no age, country or province, so it has no such filters
+	if not boards.junior:
+		var ages: Array = [["", T.t("any")]]
+		for a in AGE_BANDS:
+			ages.append([a, a])
+		_board_filter(filters, T.t("age"), "age", ages)
+		var countries: Array = [["", T.t("world")]]
+		for c in T.data().get("COUNTRIES", []):
+			countries.append([c, TranslationServer.get_country_name(c)])
+		_board_filter(filters, T.t("country"), "country", countries)
+	if boards.country == "AR" and not boards.junior:
 		var provs: Array = [["", T.t("all_provinces")]]
 		for pv in T.data().get("AR_PROV", []):
 			provs.append([pv, pv])
@@ -1903,7 +1930,7 @@ func _show_boards() -> void:
 	# closed by default: the four dropdowns were most of the screen (the count says what is on)
 	var active := 0
 	for fk in ["age", "country", "province"]:
-		if str(boards[fk]) != "":
+		if str(boards[fk]) != "" and not boards.junior:
 			active += 1
 	if (boards.tab == "viq" or (boards.tab == "sec" and boards.sec == "LIN")) and str(boards.lang) != "":
 		active += 1
@@ -1917,12 +1944,16 @@ func _show_boards() -> void:
 	elif boards.tab == "sec":
 		bnote = tr("Your last 3 ranked tests in this section (90 days), highest first. ✓ = enough questions for a tight ±.")
 	box.add_child(_label(bnote, 18, FG2, W, HORIZONTAL_ALIGNMENT_LEFT))
+	if boards.junior:
+		box.add_child(_label("* " + tr("Juniors: ages 13 to 15, nicknames only. IQ is on the adult scale, so it may read a little low until 16."), 18, WARN, W, HORIZONTAL_ALIGNMENT_LEFT))
 	box.add_child(_board_help())
 	board_box = VBoxContainer.new()
 	board_box.add_theme_constant_override("separation", 10)
 	board_box.add_child(_label(T.t("loading"), 24, FG2, W))
 	box.add_child(board_box)
 	var req := {"board": boards.tab, "age": boards.age, "country": boards.country, "province": boards.province, "lang": boards.lang}
+	if boards.junior:
+		req = {"board": boards.tab, "junior": true, "lang": boards.lang}
 	if boards.tab == "sec":
 		req.sec = boards.sec
 	if boards.tab == "blitz":
@@ -2038,7 +2069,8 @@ func _board_table(rows: Array, prov: bool) -> Control:
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 8)
 	var name_w := maxf(140.0, W - 300.0)
-	for h in ["#", T.t("player"), T.t("points") if blitz else (T.t("status") if prov else "IQ"), T.t("correct") if blitz else T.t("status")]:
+	var iq_head := "IQ*" if boards.junior else "IQ"
+	for h in ["#", T.t("player"), T.t("points") if blitz else (T.t("status") if prov else iq_head), T.t("correct") if blitz else T.t("status")]:
 		grid.add_child(_label(h, 17, FG2))
 	for i in rows.size():
 		var r: Dictionary = rows[i]
@@ -2129,6 +2161,8 @@ func _on_player(ok: bool, _code: int, data: Dictionary, body: VBoxContainer) -> 
 			loc.append(str(v))
 	if not loc.is_empty():
 		body.add_child(_label(" · ".join(loc), 20, FG2, W - 80))
+	if data.get("junior", false):
+		body.add_child(_label(tr("Junior (13-15) · IQ on the adult scale"), 20, WARN, W - 80))
 	if data.get("iq", null) != null:
 		body.add_child(_label("IQ %d  ±%d" % [int(data.iq), int(round(15 * float(data.get("se", 0.0))))], 40, GOOD, W - 80))
 	var answered := int(data.get("answered", 0))

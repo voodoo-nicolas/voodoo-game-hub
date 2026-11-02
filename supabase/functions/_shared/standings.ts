@@ -69,7 +69,27 @@ export function nineStanding(rows: ScoreRow[], now = Date.now()) {
 }
 
 export const AGE_BANDS = ["16-24", "25-34", "35-44", "45-54", "55+"];
-export function ageBand(birthYear: number, now = new Date()) {
-  const a = now.getUTCFullYear() - birthYear;
-  return a < 16 ? null : a < 25 ? "16-24" : a < 35 ? "25-34" : a < 45 ? "35-44" : a < 55 ? "45-54" : "55+";
+/** Junior board (owner, 2026-11-02): 13-15 play ranked there, never on the adult boards. */
+export const JUNIOR_BAND = "13-15";
+/** With a birth month (1-12) the birthday month counts as not reached yet (as Consent does);
+ *  without one (older packs) the year alone decides, as before. Under 13 = null (practice only). */
+export function ageBand(birthYear: number, now = new Date(), birthMonth = 0) {
+  let a = now.getUTCFullYear() - birthYear;
+  if (birthMonth >= 1 && birthMonth <= 12 && now.getUTCMonth() + 1 <= birthMonth) a--;
+  return a < 13 ? null : a < 16 ? JUNIOR_BAND : a < 25 ? "16-24" : a < 35 ? "25-34" : a < 45 ? "35-44" : a < 55 ? "45-54" : "55+";
 }
+/** The first day a junior counts as 16 ("YYYY-MM-DD"): the 1st of the month after their 16th
+ *  birthday month, or 1 January of that year when only the year is known (the old rule). */
+export function adultOn(birthYear: number, birthMonth = 0) {
+  if (!(birthMonth >= 1 && birthMonth <= 12)) return `${birthYear + 16}-01-01`;
+  const d = new Date(Date.UTC(birthYear + 16, birthMonth, 1));
+  return d.toISOString().slice(0, 10);
+}
+/** A profile as it stands today: a junior whose adult_on has come is a 16-24 adult. */
+export function profileNow<T extends { age_band?: string | null; minor?: boolean; adult_on?: string | null }>(p: T, now = new Date()): T {
+  if (p.age_band === JUNIOR_BAND && p.adult_on && p.adult_on <= now.toISOString().slice(0, 10)) {
+    return { ...p, age_band: "16-24", minor: false, adult_on: null };
+  }
+  return p;
+}
+export const isJunior = (p: { age_band?: string | null; minor?: boolean }) => !!p.minor && p.age_band === JUNIOR_BAND;

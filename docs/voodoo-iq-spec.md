@@ -99,7 +99,7 @@ create table certificates (token text primary key, user_id uuid, score int, thet
 
 | Function | In | Out / effect |
 |---|---|---|
-| `session-start` | mode, kind, scope, dur, ranked, duel? | checks ranked eligibility (1/day per scope, daily once, 16+), creates the session, returns `{session_id, deadline, first_item}` |
+| `session-start` | mode, kind, scope, dur, ranked, duel? | checks ranked eligibility (1/day per scope, daily once, 16+; 13+ since 2026-11-02, 13-15 on the Junior board), creates the session, returns `{session_id, deadline, first_item}` |
 | `item-answer` | session_id, seq, value, client_ms | validates order and the server deadline, scores, applies the rapid rule, picks the next item, returns `{next_item}` or `{done}` |
 | `blitz-submit` | session_id, answers[] with timestamps | server regenerates items from the seed, scores them, checks plausibility (min ms per item, total ≤ dur + 2 s) |
 | `session-finish` | session_id, reason | computes results (§3), writes `section_scores` / `blitz_best` / `daily` / `duel_results` |
@@ -146,4 +146,4 @@ create table certificates (token text primary key, user_id uuid, score int, thet
 ## 9. Open decisions
 
 - Monetization: cosmetic only. Never sell retries or hints.
-- Under-16 players: practice only (Play Families policy).
+- Under-16 players: practice only (Play Families policy). **Changed 2026-11-02 (owner):** under-13s stay practice only (they can't make an account anyway: Consent locks them out); 13-15 play ranked on the Junior board (nickname and scores only, IQ on the adult scale, visible to everyone) and move to the adult boards the month after they turn 16, scores kept. Teens aren't "children" under the Families policy, so the app's audience is unchanged. Details: `docs/claude/voodoo-iq.md`.
