@@ -12,7 +12,11 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const BEST_PATH := "user://simon_best.json"
 
 const PAD_COLORS := [Color(0.9, 0.3, 0.3), Color(0.3, 0.6, 0.95), Color(0.95, 0.75, 0.2), Color(0.4, 0.85, 0.4)]
-const PAD_DIM := 0.45
+## Dark enough to survive Classic's retro filter (home_kit.gd RETRO_SHADER):
+## it snaps any colour brighter than 0.34 to one flat primary, so at the old
+## 0.45 a dim pad and a lit pad came out identical (lights never seemed to
+## light up). Under 0.34 the filter fades the pad toward the background.
+const PAD_DIM := 0.25
 ## Each pad's tone (Hz), the classic four: red, blue, yellow, green.
 const PAD_TONES := [310.0, 209.0, 252.0, 415.0]
 const FLASH_DURATION := 0.4
@@ -141,6 +145,9 @@ func _set_pad_color(pad: PanelContainer, i: int, lit: bool) -> void:
 	var sb := StyleBoxFlat.new()
 	var c: Color = PAD_COLORS[i]
 	sb.bg_color = c if lit else Color(c.r * PAD_DIM, c.g * PAD_DIM, c.b * PAD_DIM)
+	if lit:  # a white rim: grey passes the retro filter untouched
+		sb.set_border_width_all(6)
+		sb.border_color = Color.WHITE
 	sb.corner_radius_top_left = 16
 	sb.corner_radius_top_right = 16
 	sb.corner_radius_bottom_left = 16
