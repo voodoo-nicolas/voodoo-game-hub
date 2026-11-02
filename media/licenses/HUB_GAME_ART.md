@@ -11,3 +11,6 @@ Covers every `media/CREDITS.json` entry under `media/hub/game_art/`.
   `python tools/make_hub_art.py --from <folder>`.
 - **Real art** (any entry whose source is a file name): supplied by the owner;
   converted to WebP only.
+
+## creation/tile.webp (2026-11-01)
+Crop of Michelangelo's *The Creation of Adam* (Sistine Chapel ceiling, c. 1512): the artist died in 1564, so the painting is public domain. The crop was supplied by the owner. Note: `tools/make_hub_art.py` rewrites this entry's licence as owner-proprietary on a rerun; keep it `public-domain`.
