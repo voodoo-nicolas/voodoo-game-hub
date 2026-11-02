@@ -2,6 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
+uid="uid://q4m5lrj7h5lp"
+path="res://.godot/imported/hero.webp-cde5d4b645bf2452fe9d4a01e0e1d614.ctex"
 metadata={
 "vram_texture": false
 }
@@ -9,6 +11,7 @@ metadata={
 [deps]
 
 source_file="res://media/hub/game_art/creation/hero.webp"
+dest_files=["res://.godot/imported/hero.webp-cde5d4b645bf2452fe9d4a01e0e1d614.ctex"]
 
 [params]
 

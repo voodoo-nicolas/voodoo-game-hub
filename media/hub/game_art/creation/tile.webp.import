@@ -2,6 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
+uid="uid://b7a0mklum6cst"
+path="res://.godot/imported/tile.webp-f127125c4747b17bab405bc6ec7a8a01.ctex"
 metadata={
 "vram_texture": false
 }
@@ -9,6 +11,7 @@ metadata={
 [deps]
 
 source_file="res://media/hub/game_art/creation/tile.webp"
+dest_files=["res://.godot/imported/tile.webp-f127125c4747b17bab405bc6ec7a8a01.ctex"]
 
 [params]
 
