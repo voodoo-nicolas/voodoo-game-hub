@@ -62,6 +62,23 @@ A sound id is `<set>/<name>`. "Takes" = how many recordings it has (`SoundLib.pl
 | `impact/wood_light` | 5 | 0.3 s |
 | `impact/wood_medium` | 5 | 0.3 s |
 
+## jingles (3 sounds, 163 KB; Freesound.org, CC0)
+
+| id | takes | length |
+|---|---|---|
+| `jingles/lose_failed` | 1 | 3.0 s |
+| `jingles/win_succeeded` | 1 | 4.2 s |
+| `jingles/win_victory` | 1 | 4.0 s |
+
+## reward (4 sounds, 32 KB; Freesound.org, CC0)
+
+| id | takes | length |
+|---|---|---|
+| `reward/accomplished` | 1 | 0.3 s |
+| `reward/coin_plingy` | 1 | 0.9 s |
+| `reward/coin_short` | 1 | 0.2 s |
+| `reward/powerup` | 1 | 1.1 s |
+
 ## rpg (20 sounds, 546 KB; RPG Audio, CC0)
 
 | id | takes | length |
@@ -108,6 +125,15 @@ A sound id is `<set>/<name>`. "Takes" = how many recordings it has (`SoundLib.pl
 | `scifi/space_engine_low` | 5 | 5.0 s |
 | `scifi/space_engine_small` | 5 | 5.0 s |
 | `scifi/thruster_fire` | 5 | 5.0 s |
+
+## ui (4 sounds, 71 KB; Freesound.org, CC0)
+
+| id | takes | length |
+|---|---|---|
+| `ui/click` | 2 | 0.2-0.3 s |
+| `ui/error_buzzer` | 1 | 2.8 s |
+| `ui/select` | 1 | 0.2 s |
+| `ui/wrong` | 1 | 1.2 s |
 
 ## voice (32 sounds, 897 KB; Voiceover Pack: Fighter, CC0)
 

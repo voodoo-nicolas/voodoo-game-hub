@@ -1,0 +1,7 @@
+Freesound CC0 sounds (jingles)
+
+Every sound below is released under CC0 1.0 Universal (public domain, https://creativecommons.org/publicdomain/zero/1.0/). Source pages on freesound.org. Collected 2026-11-01.
+
+- win_succeeded.ogg: You've succeeded (game jingle) by Rolly-SFX - https://freesound.org/people/Rolly-SFX/sounds/626259/ - CC0 1.0
+- win_victory.ogg: Victory Jingle by JoanStar - https://freesound.org/people/JoanStar/sounds/844831/ - CC0 1.0
+- lose_failed.ogg: You failed (game jingle) by Rolly-SFX - https://freesound.org/people/Rolly-SFX/sounds/626260/ - CC0 1.0

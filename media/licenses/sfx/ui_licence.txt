@@ -1,0 +1,9 @@
+Freesound CC0 sounds (ui)
+
+Every sound below is released under CC0 1.0 Universal (public domain, https://creativecommons.org/publicdomain/zero/1.0/). Source pages on freesound.org. Collected 2026-11-01.
+
+- ui_click_1.ogg: SFX UI Button Click by suntemple - https://freesound.org/people/suntemple/sounds/253168/ - CC0 1.0
+- ui_click_2.ogg: UI Button Click Snap by el_boss - https://freesound.org/people/el_boss/sounds/677860/ - CC0 1.0
+- ui_select.ogg: Button Click / Selection.wav by aphom000 - https://freesound.org/people/aphom000/sounds/623175/ - CC0 1.0
+- ui_wrong.ogg: UI_Wrong_button13.wav by ZenithInfinitiveStudios - https://freesound.org/people/ZenithInfinitiveStudios/sounds/343017/ - CC0 1.0
+- ui_error_buzzer.ogg: Buzzer sounds (Wrong answer / Error) by Breviceps - https://freesound.org/people/Breviceps/sounds/493163/ - CC0 1.0

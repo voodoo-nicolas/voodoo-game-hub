@@ -3712,6 +3712,36 @@
    "proof": "media/licenses/HUB_GAME_ART.md",
    "url": "",
    "date": "2026-11-02"
+  },
+  {
+   "file": "media/common/sfx/ui/",
+   "what": "Shared sound library, set 'ui' (every file in the folder)",
+   "source": "Freesound.org sounds under CC0 (pages listed in the proof), from the owner's library D:/dev/audio/game-audio, set 'ui'",
+   "author": "see licence",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/ui_licence.txt",
+   "url": "",
+   "date": "2026-11-02"
+  },
+  {
+   "file": "media/common/sfx/reward/",
+   "what": "Shared sound library, set 'reward' (every file in the folder)",
+   "source": "Freesound.org sounds under CC0 (pages listed in the proof), from the owner's library D:/dev/audio/game-audio, set 'reward'",
+   "author": "see licence",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/reward_licence.txt",
+   "url": "",
+   "date": "2026-11-02"
+  },
+  {
+   "file": "media/common/sfx/jingles/",
+   "what": "Shared sound library, set 'jingles' (every file in the folder)",
+   "source": "Freesound.org sounds under CC0 (pages listed in the proof), from the owner's library D:/dev/audio/game-audio, set 'jingles'",
+   "author": "see licence",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/jingles_licence.txt",
+   "url": "",
+   "date": "2026-11-02"
   }
- ]
+]
 }

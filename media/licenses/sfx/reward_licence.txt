@@ -1,0 +1,8 @@
+Freesound CC0 sounds (reward)
+
+Every sound below is released under CC0 1.0 Universal (public domain, https://creativecommons.org/publicdomain/zero/1.0/). Source pages on freesound.org. Collected 2026-11-01.
+
+- coin_plingy.ogg: Plingy Coin by Fupicat - https://freesound.org/people/Fupicat/sounds/538146/ - CC0 1.0
+- coin_short.ogg: Coin_C_09 by cabled_mess - https://freesound.org/people/cabled_mess/sounds/350876/ - CC0 1.0
+- powerup.ogg: Game Powerup by Jofae - https://freesound.org/people/Jofae/sounds/368651/ - CC0 1.0
+- accomplished.ogg: Retro "Accomplished" SFX by suntemple - https://freesound.org/people/suntemple/sounds/253177/ - CC0 1.0
