@@ -18,7 +18,7 @@
 | `scripts/common/brand.gd` | app name in presets (Android label, Windows product name) |
 | `reference/art/brand/` (owner's art) | `media/hub/brand/` (`tools/brand/make_brand.py`) |
 - `check` validates everything, changes nothing: run before committing. `tools/` has a `.gdignore`.
-- **PC test build**: `python tools/hub.py pc` exports all games to `%LOCALAPPDATA%\VoodooGameHub\Voodoo.exe` + desktop shortcut; re-run after game changes.
+- **PC test build**: `python tools/hub.py pc` exports all games to `%LOCALAPPDATA%\VoodooGameHub\Voodoo.exe` + desktop shortcut; re-run after game changes. The shortcut icon is the owner's skull-V `assets/pc_icon.png` (Gemini, 2026-11-02; `icon.ico` is made from it). The exe itself and the running window still carry the project icon (no rcedit).
 - Web (iPhone): `python tools/hub.py web [--publish]` (docs/claude/web-build.md).
 - Kit copies: `sync` copies `tools/templates/home_kit.gd` into each pack; edit only the template.
 

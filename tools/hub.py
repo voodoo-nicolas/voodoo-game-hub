@@ -1036,9 +1036,10 @@ def cmd_pc(_args) -> None:
     brand = read_brand()
     shortcut = Path(desktop or Path.home() / "Desktop") / f"{brand}.lnk"
     icon = PC_DIR / "icon.ico"
-    try:  # the exported .exe carries Godot's icon; give the shortcut ours
+    try:  # the exported .exe carries Godot's icon; give the shortcut ours (the owner's skull-V, assets/pc_icon.png)
         from PIL import Image
-        Image.open(ROOT / "assets" / "icon.png").save(icon, sizes=[(256, 256), (64, 64), (32, 32), (16, 16)])
+        pc_png = ROOT / "assets" / "pc_icon.png"
+        Image.open(pc_png if pc_png.is_file() else ROOT / "assets" / "icon.png").save(icon, sizes=[(256, 256), (64, 64), (32, 32), (16, 16)])
     except Exception:  # noqa: BLE001 -- Pillow missing: fall back to the exe icon
         pass
     ps = (
