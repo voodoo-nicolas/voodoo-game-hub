@@ -61,6 +61,8 @@ var _modal: ColorRect = null
 var _sort_keys: Array = [CreationEngine.SORT_RECENT, CreationEngine.SORT_OLD, CreationEngine.SORT_AZ, CreationEngine.SORT_TIER, CreationEngine.SORT_LEFT]
 const VIEWS := ["thumbs", "list", "detail"]
 var view_opt: OptionButton
+var sync_timer: Timer
+var _unsynced: bool = false  # changes the cloud has not confirmed yet
 var _shelf_w: float = 0.0
 
 # ---------------------------------------------------------------- chips
@@ -489,6 +491,7 @@ func _ready() -> void:
 	_restore_workspace()
 	_refresh_all()
 	loaded = true
+	_connect_account()
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -952,6 +955,9 @@ func _buzz(ms: int = 30) -> void:
 	if s and s.has_method("buzz"):
 		s.buzz(ms)
 
+func _now() -> int:
+	return int(Time.get_unix_time_from_system())
+
 func _today() -> String:
 	return Time.get_date_string_from_system()
 
@@ -971,9 +977,15 @@ func _save_game() -> void:
 	for c in table.chips():
 		engine.workspace.append({"id": c.item_id, "x": c.frac.x, "y": c.frac.y})
 	SaveUtil.write(SAVE_PATH, engine.to_save())
+	if sync_timer != null and _auth_id() != "":
+		_unsynced = true
+		if sync_timer.is_inside_tree():
+			sync_timer.start()
 
 func _exit_tree() -> void:
 	_save_game()
+	_disconnect_account()
+	_push_cloud()
 
 # ---------------------------------------------------------------- toasts
 
@@ -1355,8 +1367,16 @@ func _refresh_all() -> void:
 	_refresh_table_hints()
 
 func _refresh_hint_button() -> void:
-	var n: int = engine.hints_available(_today())
+	var n: int = engine.hints_available(_now())
 	hint_btn.text = "💡 ∞" if n >= 999 else "💡 %d" % n
+	hint_btn.tooltip_text = _next_hint_text()
+
+## "Next hint in 5h 12m", or "" when the hints are full.
+func _next_hint_text() -> String:
+	var secs: int = engine.seconds_to_next_hint(_now())
+	if secs <= 0:
+		return ""
+	return tr("Next hint in %dh %dm") % [secs / 3600, (secs % 3600) / 60]
 
 func _refresh_table_hints() -> void:
 	for c in table.chips():
@@ -1365,10 +1385,14 @@ func _refresh_table_hints() -> void:
 # ---------------------------------------------------------------- hints
 
 func _on_hint() -> void:
-	var r: Dictionary = engine.use_hint(_today())
+	var r: Dictionary = engine.use_hint(_now())
 	if not r.ok:
 		_sfx("invalid")
-		_toast(tr("No hints left today.") if r.reason == "none_left" else tr("Nothing to hint right now."), 2.0)
+		var wait: String = _next_hint_text()
+		if r.reason == "none_left":
+			_toast(tr("No hints left.") + ((" " + wait) if wait != "" else ""), 3.0)
+		else:
+			_toast(tr("Nothing to hint right now."), 2.0)
 		return
 	_sfx("pickup")
 	if info:
@@ -1563,6 +1587,102 @@ func _do_reset() -> void:
 	_refresh_all()
 	_save_game()
 	_toast(tr("Progress reset."), 2.0)
+
+# ---------------------------------------------------------------- account / cloud save
+# Progress follows the account: the save is pushed to Supabase (`save_game_progress`)
+# a few seconds after each change and merged back in on sign-in (`load_game_progress`),
+# so PC and phone share it. A local save that belongs to another account is cleared
+# first. Needs the SQL in supabase/migrations/20261101000000_game_progress.sql; until
+# it is run the calls just fail quietly and the game stays local.
+
+const CLOUD_GAME := "creation"
+
+func _auth_node() -> Node:
+	var a := get_node_or_null("/root/Auth")
+	return a if a != null and a.has_method("db_call") else null
+
+func _auth_id() -> String:
+	var a := _auth_node()
+	return str(a.user_id) if a != null else ""
+
+func _connect_account() -> void:
+	var a := _auth_node()
+	if a == null:
+		return
+	sync_timer = Timer.new()
+	sync_timer.one_shot = true
+	sync_timer.wait_time = 4.0
+	sync_timer.timeout.connect(_push_cloud)
+	add_child(sync_timer)
+	if not a.signed_in.is_connected(_on_signed_in):
+		a.signed_in.connect(_on_signed_in)
+	if not a.signed_out.is_connected(_on_signed_out):
+		a.signed_out.connect(_on_signed_out)
+	if _auth_id() != "":
+		_pull_cloud()
+
+func _disconnect_account() -> void:
+	var a := _auth_node()
+	if a == null:
+		return
+	if a.signed_in.is_connected(_on_signed_in):
+		a.signed_in.disconnect(_on_signed_in)
+	if a.signed_out.is_connected(_on_signed_out):
+		a.signed_out.disconnect(_on_signed_out)
+
+func _on_signed_in(_uid: String, _name: String) -> void:
+	_pull_cloud()
+
+func _on_signed_out() -> void:
+	# Leave the next player a clean game; the cloud still has this one's progress.
+	# Unsent changes stay (a session can also lapse): the account-id check on the
+	# next sign-in clears them if a different player signs in.
+	if engine.account_id != "" and not _unsynced:
+		_wipe_local()
+
+func _wipe_local() -> void:
+	table.select(null)
+	for c in table.chips():
+		_remove_chip(c, false)
+	engine.reset_progress()
+	engine.account_id = ""
+	_refresh_all()
+	_save_game()
+
+func _pull_cloud() -> void:
+	var a := _auth_node()
+	if a == null or _auth_id() == "":
+		return
+	if engine.account_id != "" and engine.account_id != _auth_id():
+		_wipe_local()  # a save left behind by someone else
+	a.db_call("load_game_progress", {"p_game": CLOUD_GAME}, _on_cloud_pulled)
+
+func _on_cloud_pulled(ok: bool, result: Variant) -> void:
+	if not ok or not loaded:
+		return
+	if _auth_id() == "":
+		return
+	if typeof(result) == TYPE_DICTIONARY and not result.is_empty():
+		var before: int = engine.found_count()
+		engine.merge_cloud(result)
+		if engine.found_count() > before:
+			_toast(tr("Progress loaded from your account."), 2.4)
+	engine.account_id = _auth_id()
+	_refresh_all()
+	_save_game()
+	_push_cloud()
+
+func _push_cloud() -> void:
+	var a := _auth_node()
+	if a == null or _auth_id() == "" or not loaded or engine.account_id != _auth_id():
+		return
+	var data: Dictionary = engine.to_save()
+	data.erase("workspace")  # where chips sit is per device
+	a.db_call("save_game_progress", {"p_game": CLOUD_GAME, "p_data": data}, _on_cloud_pushed)
+
+func _on_cloud_pushed(ok: bool, _result: Variant) -> void:
+	if ok:
+		_unsynced = false
 
 # ---------------------------------------------------------------- unlock (Full Game)
 

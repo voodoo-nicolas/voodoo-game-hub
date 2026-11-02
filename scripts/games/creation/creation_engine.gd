@@ -13,7 +13,9 @@ extends RefCounted
 const Gate = preload("res://scripts/games/creation/creation_gate.gd")
 
 const SAVE_VERSION := 1
-const FREE_HINTS_PER_DAY := 3
+const MAX_HINTS := 3
+const HINT_REFILL_SECS := 86400  # +1 hint every 24 h, up to MAX_HINTS (per game)
+const FREE_HINTS_PER_DAY := MAX_HINTS
 const SORT_RECENT := "recent"
 const SORT_AZ := "az"
 const SORT_TIER := "tier"
@@ -34,8 +36,9 @@ var found: Array = []            # ids, in discovery order (last = newest)
 var failed: Dictionary = {}      # "a+b" -> true: pairs that gave nothing
 var seen_locked: Dictionary = {} # id -> true: paid-tier results seen but not collected
 var workspace: Array = []        # [{id, x, y}] chips on the table (x, y = 0..1 fractions)
-var hints_left: int = FREE_HINTS_PER_DAY
-var hint_day: String = ""
+var hints_left: int = MAX_HINTS
+var hint_stamp: int = 0   # unix time the hint clock last ticked (0 = not started)
+var account_id: String = ""    # account id this save belongs to ("" = nobody signed in yet)
 var hints_used: int = 0
 var hinted: Dictionary = {}      # recipe key -> how many of its ingredients were revealed
 var hint_view: Array = []        # ingredient ids currently highlighted on the shelf
@@ -181,8 +184,8 @@ func reset_progress() -> void:
 	hint_view = []
 	hint_key = ""
 	hints_used = 0
-	hints_left = FREE_HINTS_PER_DAY
-	hint_day = ""
+	hints_left = MAX_HINTS
+	hint_stamp = 0
 	for s in starters:
 		_add_found(s)
 
@@ -369,16 +372,35 @@ func list_items(query: String, sort: String, tier_filter: int, lang: String, hid
 
 # ------------------------------------------------------------------ hints
 
-func _roll_day(today: String) -> void:
-	if hint_day != today:
-		hint_day = today
-		hints_left = FREE_HINTS_PER_DAY
+## Hints come back one per 24 h up to MAX_HINTS. `hint_stamp` is when the
+## clock last ticked; it sits at "now" while the hints are full.
+func _refill(now: int) -> void:
+	if hints_left >= MAX_HINTS:
+		hints_left = MAX_HINTS
+		hint_stamp = now
+		return
+	if hint_stamp <= 0 or hint_stamp > now:
+		hint_stamp = now
+		return
+	var gained: int = (now - hint_stamp) / HINT_REFILL_SECS
+	if gained > 0:
+		hints_left = mini(MAX_HINTS, hints_left + gained)
+		hint_stamp = now if hints_left >= MAX_HINTS else hint_stamp + gained * HINT_REFILL_SECS
+
+## Seconds until the next hint arrives (0 when full or unlimited).
+func seconds_to_next_hint(now: int) -> int:
+	if Gate.unlimited_hints(owns_full_game()):
+		return 0
+	_refill(now)
+	if hints_left >= MAX_HINTS:
+		return 0
+	return maxi(1, hint_stamp + HINT_REFILL_SECS - now)
 
 ## How many hints the player can use now (a big number when unlimited).
-func hints_available(today: String) -> int:
+func hints_available(now: int) -> int:
 	if Gate.unlimited_hints(owns_full_game()):
 		return 999
-	_roll_day(today)
+	_refill(now)
 	return hints_left
 
 ## Recipes you could make right now that would discover something new,
@@ -406,8 +428,8 @@ func hint_candidates() -> Array:
 ## Reveals ONE ingredient of something you haven't found. Asking again about
 ## the same recipe reveals its other ingredient; then it moves on.
 ## Returns {ok, ingredients, second, reason}; costs a free hint only if ok.
-func use_hint(today: String) -> Dictionary:
-	if hints_available(today) <= 0:
+func use_hint(now: int) -> Dictionary:
+	if hints_available(now) <= 0:
 		return {"ok": false, "reason": "none_left", "ingredients": []}
 	var cands: Array = hint_candidates()
 	if cands.is_empty():
@@ -437,6 +459,8 @@ func use_hint(today: String) -> Dictionary:
 	if second and other != first:
 		hint_view.append(other)
 	if not Gate.unlimited_hints(owns_full_game()):
+		if hints_left >= MAX_HINTS:
+			hint_stamp = now  # the 24 h clock starts with the first hint used
 		hints_left = maxi(0, hints_left - 1)
 	hints_used += 1
 	return {"ok": true, "ingredients": hint_view.duplicate(), "second": second, "reason": ""}
@@ -459,8 +483,9 @@ func to_save() -> Dictionary:
 		"failed": failed.keys(),
 		"locked": seen_locked.keys(),
 		"workspace": workspace.duplicate(true),
-		"hints": {"left": hints_left, "day": hint_day, "used": hints_used,
+		"hints": {"left": hints_left, "stamp": hint_stamp, "used": hints_used,
 			"hinted": hinted.duplicate(), "view": hint_view.duplicate(), "key": hint_key},
+		"account_id": account_id,
 		"settings": settings.duplicate(),
 		"purchase": purchase.duplicate(),
 	}
@@ -496,8 +521,8 @@ func from_save(raw: Dictionary) -> bool:
 		if typeof(w) == TYPE_DICTIONARY and items.has(str(w.get("id", ""))):
 			workspace.append({"id": str(w.id), "x": clampf(float(w.get("x", 0.5)), 0.0, 1.0), "y": clampf(float(w.get("y", 0.5)), 0.0, 1.0)})
 	var h: Dictionary = d.get("hints", {})
-	hints_left = clampi(int(h.get("left", FREE_HINTS_PER_DAY)), 0, FREE_HINTS_PER_DAY)
-	hint_day = str(h.get("day", ""))
+	hints_left = clampi(int(h.get("left", MAX_HINTS)), 0, MAX_HINTS)
+	hint_stamp = maxi(0, int(h.get("stamp", 0)))  # old day-based saves: the clock restarts
 	hints_used = maxi(0, int(h.get("used", 0)))
 	hinted = {}
 	for k in h.get("hinted", {}):
@@ -519,5 +544,39 @@ func from_save(raw: Dictionary) -> bool:
 		s.theme = "auto"
 	settings = s
 	purchase = {"full": bool(d.get("purchase", {}).get("full", false))}
+	account_id = str(d.get("account_id", ""))
 	_clear_hint_if_done()
 	return true
+
+## Folds a cloud save into this one: nothing either side found is lost.
+## Settings and the table stay as they are on this device; the hint state
+## comes from whichever side has used more hints (so switching device never
+## refunds one).
+func merge_cloud(raw: Dictionary) -> void:
+	var d: Dictionary = migrate(raw)
+	for id in d.get("found", []):
+		if items.has(str(id)):
+			_add_found(str(id))
+	for k in d.get("failed", []):
+		var p: PackedStringArray = str(k).split("+")
+		if p.size() == 2 and items.has(p[0]) and items.has(p[1]):
+			failed[key(p[0], p[1])] = true
+	for id in d.get("locked", []):
+		if items.has(str(id)) and not _found_set.has(str(id)):
+			seen_locked[str(id)] = true
+	var h: Dictionary = d.get("hints", {})
+	var their_used: int = maxi(0, int(h.get("used", 0)))
+	if their_used > hints_used:
+		hints_used = their_used
+		hints_left = clampi(int(h.get("left", MAX_HINTS)), 0, MAX_HINTS)
+		hint_stamp = maxi(0, int(h.get("stamp", 0)))
+	elif their_used == hints_used:
+		var their_left: int = clampi(int(h.get("left", MAX_HINTS)), 0, MAX_HINTS)
+		if their_left < hints_left:
+			hints_left = their_left
+			hint_stamp = maxi(0, int(h.get("stamp", 0)))
+	if bool(d.get("purchase", {}).get("full", false)):
+		purchase["full"] = true
+	for id in seen_locked.keys():
+		if _found_set.has(id):
+			seen_locked.erase(id)
