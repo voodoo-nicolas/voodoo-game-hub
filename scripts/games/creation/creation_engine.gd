@@ -17,7 +17,9 @@ const FREE_HINTS_PER_DAY := 3
 const SORT_RECENT := "recent"
 const SORT_AZ := "az"
 const SORT_TIER := "tier"
-const DEFAULT_SETTINGS := {"lang": "auto", "theme": "auto", "hide_spent": false}
+const SORT_OLD := "old"      # oldest discovery first
+const SORT_LEFT := "left"    # most recipes still to find first
+const DEFAULT_SETTINGS := {"lang": "auto", "theme": "auto", "hide_spent": false, "view": "thumbs"}
 
 # ---- data (immutable after load_data) ----
 var items: Dictionary = {}       # id -> {id, name{en,es}, emoji, starter, depth, tier, finale}

@@ -21,6 +21,8 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const DATA_PATH := "res://scripts/games/creation/creation_data.json"
 const SAVE_PATH := "user://creation_save.json"
 const BANNER_PATH := "res://games/creation/banner.webp"
+const BANNER_EDGE_L := Color(0.02, 0.04, 0.08)  # sampled from banner.webp
+const BANNER_EDGE_R := Color(0.008, 0.12, 0.23)
 const MAX_CHIPS := 36
 const TABLE_CHIP := Vector2(116, 104)
 const SHELF_CHIP := Vector2(100, 90)
@@ -56,7 +58,10 @@ var title_label: Label
 var banner: TextureRect
 var hide_spent_box: CheckBox
 var _modal: ColorRect = null
-var _sort_keys: Array = [CreationEngine.SORT_RECENT, CreationEngine.SORT_AZ, CreationEngine.SORT_TIER]
+var _sort_keys: Array = [CreationEngine.SORT_RECENT, CreationEngine.SORT_OLD, CreationEngine.SORT_AZ, CreationEngine.SORT_TIER, CreationEngine.SORT_LEFT]
+const VIEWS := ["thumbs", "list", "detail"]
+var view_opt: OptionButton
+var _shelf_w: float = 0.0
 
 # ---------------------------------------------------------------- chips
 
@@ -113,6 +118,29 @@ class Chip extends Control:
 		mark.visible = false
 		add_child(mark)
 		restyle(p)
+
+	## Lay the chip out as a full-width row: emoji, name, optional detail line.
+	func to_row(detail: String) -> void:
+		var h: float = size.y
+		emoji_label.add_theme_font_size_override("font_size", int(h * 0.5))
+		emoji_label.position = Vector2(4, 0)
+		emoji_label.size = Vector2(h, h)
+		name_label.add_theme_font_size_override("font_size", 20)
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER if detail == "" else VERTICAL_ALIGNMENT_TOP
+		name_label.max_lines_visible = 1
+		name_label.position = Vector2(h + 8, 0 if detail == "" else 6)
+		name_label.size = Vector2(size.x - h - 16, h if detail == "" else h * 0.5)
+		if detail != "":
+			var d := Label.new()
+			d.text = detail
+			d.add_theme_font_size_override("font_size", 15)
+			d.add_theme_color_override("font_color", pal.dim)
+			d.clip_text = true
+			d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			d.position = Vector2(h + 8, h * 0.52)
+			d.size = Vector2(size.x - h - 16, h * 0.4)
+			add_child(d)
 
 	func restyle(p: Dictionary) -> void:
 		pal = p
@@ -479,31 +507,75 @@ func _build_ui() -> void:
 	root.add_theme_constant_override("separation", 8)
 	ui.add_child(root)
 
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(margin)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
-	margin.add_child(col)
-
-	# top bar: ⏸  banner (or title)  💡  📖  ⚙
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 8)
-	col.add_child(top)
-	top.add_child(_icon_button("⏸", _on_pause))
+	# header: the banner's sea colour runs edge to edge across the whole top
+	# (above both panes), buttons sit on it: ⏸  banner (or title)  💡  📖  ⚙
+	var header := Control.new()
+	header.custom_minimum_size = Vector2(0, 144)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(header)
+	var band_grad := Gradient.new()
+	band_grad.colors = PackedColorArray([BANNER_EDGE_L, BANNER_EDGE_R])
+	var band_tex := GradientTexture2D.new()
+	band_tex.gradient = band_grad
+	band_tex.fill_from = Vector2(0, 0.5)
+	band_tex.fill_to = Vector2(1, 0.5)
+	var band := TextureRect.new()
+	band.texture = band_tex
+	band.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	band.stretch_mode = TextureRect.STRETCH_SCALE
+	band.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(band)
 	if ResourceLoader.exists(BANNER_PATH):
+		var fit := AspectRatioContainer.new()
+		fit.ratio = 640.0 / 332.0
+		fit.stretch_mode = AspectRatioContainer.STRETCH_FIT
+		fit.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		fit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		header.add_child(fit)
+		var logo := Control.new()
+		logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fit.add_child(logo)
 		banner = TextureRect.new()
 		banner.texture = load(BANNER_PATH)
 		banner.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		banner.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		banner.custom_minimum_size = Vector2(0, 128)
-		banner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		banner.stretch_mode = TextureRect.STRETCH_SCALE
+		banner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		top.add_child(banner)
+		logo.add_child(banner)
+		# fade the picture's left and right edges into the band
+		for side in [0, 1]:
+			var g := Gradient.new()
+			var edge: Color = BANNER_EDGE_L if side == 0 else BANNER_EDGE_R
+			g.colors = PackedColorArray([edge, Color(edge, 0.0)] if side == 0 else [Color(edge, 0.0), edge])
+			var gt := GradientTexture2D.new()
+			gt.gradient = g
+			gt.fill_from = Vector2(0, 0.5)
+			gt.fill_to = Vector2(1, 0.5)
+			var fade := TextureRect.new()
+			fade.texture = gt
+			fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			fade.stretch_mode = TextureRect.STRETCH_SCALE
+			fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			fade.anchor_left = 0.0 if side == 0 else 0.85
+			fade.anchor_right = 0.15 if side == 0 else 1.0
+			fade.offset_left = 0
+			fade.offset_right = 0
+			logo.add_child(fade)
+	var head_margin := MarginContainer.new()
+	head_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	head_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head_margin.add_theme_constant_override("margin_top", 10)
+	head_margin.add_theme_constant_override("margin_left", 12)
+	head_margin.add_theme_constant_override("margin_right", 12)
+	head_margin.add_theme_constant_override("margin_bottom", 10)
+	header.add_child(head_margin)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 8)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head_margin.add_child(top)
+	top.add_child(_icon_button("⏸", _on_pause))
 	title_label = Label.new()
 	title_label.text = "⚗️ " + Help.TITLE
 	title_label.add_theme_font_size_override("font_size", 28)
@@ -513,11 +585,27 @@ func _build_ui() -> void:
 	title_label.clip_text = true
 	title_label.visible = banner == null  # the banner image replaces the text title
 	top.add_child(title_label)
+	if banner != null:
+		var gap := Control.new()
+		gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(gap)
 	hint_btn = _icon_button("💡", _on_hint)
 	hint_btn.custom_minimum_size = Vector2(104, 62)
 	top.add_child(hint_btn)
 	top.add_child(_icon_button("📖", _show_collection))
 	top.add_child(_icon_button("⚙", _show_settings))
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(margin)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	margin.add_child(col)
 
 	# discovered counter
 	var counts := HBoxContainer.new()
@@ -595,11 +683,21 @@ func _build_ui() -> void:
 	tools.add_child(search)
 	sort_opt = OptionButton.new()
 	sort_opt.custom_minimum_size = Vector2(0, 52)
-	sort_opt.add_item(tr("Recent"), 0)
-	sort_opt.add_item(tr("A–Z"), 1)
-	sort_opt.add_item(tr("Tier"), 2)
+	sort_opt.add_item(tr("Newest first"), 0)
+	sort_opt.add_item(tr("Oldest first"), 1)
+	sort_opt.add_item(tr("A–Z"), 2)
+	sort_opt.add_item(tr("Category"), 3)
+	sort_opt.add_item(tr("Most left to find"), 4)
 	sort_opt.item_selected.connect(_on_filter_changed.unbind(1))
 	tools.add_child(sort_opt)
+	view_opt = OptionButton.new()
+	view_opt.custom_minimum_size = Vector2(0, 52)
+	view_opt.add_item(tr("Tiles"), 0)
+	view_opt.add_item(tr("List"), 1)
+	view_opt.add_item(tr("Detailed list"), 2)
+	view_opt.select(maxi(0, VIEWS.find(str(engine.settings.get("view", "thumbs")))))
+	view_opt.item_selected.connect(_on_view_changed.unbind(1))
+	tools.add_child(view_opt)
 	tier_opt = OptionButton.new()
 	tier_opt.custom_minimum_size = Vector2(0, 52)
 	tier_opt.item_selected.connect(_on_filter_changed.unbind(1))
@@ -616,6 +714,7 @@ func _build_ui() -> void:
 	shelf_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	shelf_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	shelf_scroll.custom_minimum_size = Vector2(0, 160)
+	shelf_scroll.resized.connect(_on_shelf_resized)
 	shelf_scroll.scroll_deadzone = 100000  # ShelfDrag scrolls; the built-in touch drag would fight it
 	shelf_box.add_child(shelf_scroll)
 	shelf_flow = HFlowContainer.new()
@@ -1105,13 +1204,25 @@ func _pulse_counter() -> void:
 # ---------------------------------------------------------------- shelf
 
 func _filter_sort() -> String:
-	return str(_sort_keys[clampi(sort_opt.selected, 0, 2)])
+	return str(_sort_keys[clampi(sort_opt.selected, 0, _sort_keys.size() - 1)])
 
 func _filter_tier() -> int:
 	return tier_opt.get_item_id(tier_opt.selected) if tier_opt.item_count > 0 else 0
 
 func _on_filter_changed() -> void:
 	_rebuild_shelf()
+
+func _on_view_changed() -> void:
+	engine.settings["view"] = VIEWS[clampi(view_opt.selected, 0, VIEWS.size() - 1)]
+	_rebuild_shelf()
+	_save_game()
+
+func _view() -> String:
+	return VIEWS[clampi(view_opt.selected, 0, VIEWS.size() - 1)] if view_opt != null else "thumbs"
+
+func _on_shelf_resized() -> void:
+	if _view() != "thumbs" and absf(shelf_scroll.size.x - _shelf_w) > 8.0:
+		_rebuild_shelf()
 
 func _on_hide_spent_toggled(on: bool) -> void:
 	engine.settings.hide_spent = on
@@ -1125,15 +1236,25 @@ func _rebuild_shelf() -> void:
 		shelf_flow.remove_child(c)
 		c.queue_free()
 	var ids: Array = engine.list_items(search.text, _filter_sort(), _filter_tier(), lang, hide_spent_box.button_pressed)
+	var view: String = _view()
+	_shelf_w = shelf_scroll.size.x
+	var row_size := Vector2(maxf(_shelf_w - 14.0, 220.0), 44.0 if view == "list" else 64.0)
+	var chip_size: Vector2 = SHELF_CHIP if view == "thumbs" else row_size
 	for id in ids:
 		var c: Chip
 		if engine.is_found(id):
-			c = _make_chip(id, SHELF_CHIP)
+			c = _make_chip(id, chip_size)
 			c.set_hinted(engine.hint_view.has(id))
+			if view != "thumbs":
+				var left: int = engine.unfound_uses(id)
+				var more: String = "%s · %s" % [engine.tier_name(engine.tier_of(id), lang), tr("%d recipes left") % left]
+				c.to_row(more if view == "detail" else "")
 		else:
 			c = Chip.new()
-			c.setup(id, "🔒", "???", pal, SHELF_CHIP)
+			c.setup(id, "🔒", "???", pal, chip_size)
 			c.set_state("locked")
+			if view != "thumbs":
+				c.to_row("")
 		shelf_flow.add_child(c)
 	if ids.is_empty():
 		var l := Label.new()
