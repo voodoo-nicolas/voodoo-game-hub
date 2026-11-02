@@ -4,6 +4,7 @@ const Version = preload("res://scripts/common/version.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const Config = preload("res://scripts/common/config.gd")
 const DragScroll = preload("res://scripts/common/drag_scroll.gd")
+const BootCover = preload("res://scripts/hub/boot_cover.gd")
 const Mist = preload("res://scripts/common/mist.gd")
 const GameIcons = preload("res://scripts/common/game_icons.gd")
 const GameArt = preload("res://scripts/common/game_art.gd")
@@ -196,6 +197,7 @@ func _ready() -> void:
 	else:
 		_resume_last_game()
 	_maybe_ask_consent()
+	BootCover.show_once(self)  # hides the first, wrongly-shaped frames on some phones
 
 ## A signed-in player who hasn't accepted the current Terms/Privacy is sent to the
 ## consent screens once per session (Back skips it until the next launch).

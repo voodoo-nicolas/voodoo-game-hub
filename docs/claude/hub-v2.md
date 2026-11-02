@@ -47,3 +47,4 @@ Hub shell internals (hub.gd, Catalog): `scripts/hub/CLAUDE.md`.
 - The app reads the live manifest from GitHub (cache `user://manifest_cache.json`): new categories/families only appear on devices after manifest.json is pushed.
 
 - Consent (2026-10-13): after the age gate, ONE screen: links that open `Config.TERMS_URL` / `PRIVACY_URL` (GitHub Pages `docs/legal/`) in the browser + a single "I've read and accept" box. The in-app reader is only in Options > Legal.
+- **Boot cover (0.39.2, 2026-11-02)**: `scripts/hub/boot_cover.gd`, added at the end of `hub.gd` `_ready()` (once per app start, Engine meta `viral_hub_booted`). Dark cover + wordmark over the hub until its size has been steady for 0.3 s (max 2.5 s), then a 0.25 s fade. Reason: on many phones the first frames had the wrong window shape and the landscape home layout showed squashed in a portrait screen (owner screenshot, build 49). Test: `tools/test_boot_cover.gd` (headless). Not seen on a real phone yet.
