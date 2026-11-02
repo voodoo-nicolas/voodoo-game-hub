@@ -64,8 +64,8 @@ Prep: convert to WebP (~150-250 KB each) into `games/the_runner/art/`, one `medi
 - **Pack v1 (first playable):** prologue, Moon port + 4 worlds of `system1`, 10 goods (4 contraband), legal + black market, fuel and travel along orbits, scan check with bribe / flee / dump, heat for one faction (Concord), dirty vs clean credits + one laundering front, Menu with all six tabs (Skill Tree with the Smuggler branch live, the others shown locked), save / resume, M01-M02, economy simulation test (10,000 runs, no infinite money).
 - Then: encounters + combat (M4) → missions M03-M04 + 5 side jobs (M5) → factions / infamy / cred (M6) → network (M7) → piracy (M8) → crew (M9) → galaxies 2-4 + endings (M10).
 
-## 7. OPEN (ask the owner before building)
-1. **Id and title.** Hub already has **Star Runner** (`star_runner`, space shooter). Proposed id `the_runner`, title "The Runner" (ES: keep "The Runner" as a name, or "El Fugitivo"?). Ids are never renamed, so decide first.
-2. **Spanish title** (above).
-3. **Hero.** The landing art shows a man. Fixed hero or pick a look at New game?
-4. **Category** in the Game Browser: Adventure (with Turned) or a new Strategy / Trading family?
+## 7. Answered (owner, 2026-11-02)
+1. Id `the_runner`, title "The Runner" (same in Spanish).
+2. Hero: fixed, the man in the landing art.
+3. Category: Adventure.
+Pack v1 as built: `docs/runner/DECISIONS.md` (defaults + what is not built), code map `docs/claude/the-runner.md`.

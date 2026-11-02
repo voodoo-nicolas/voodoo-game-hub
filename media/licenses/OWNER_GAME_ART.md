@@ -100,3 +100,9 @@ not apply). Generic pool hall and tables, no brand on them.
   JPEG q86).
 
 - **2026-10-31 Landing backgrounds** (owner, from `D:/dev/minigame art/`; AI tool: Gemini or ChatGPT, owner does not record which per picture): Star Runner, Sky Strike (replaces the nebula), Bird Hop, Block Drop, Barrel Climb. Sources kept in `reference/art/games/<id>_landing_src.jpg`; shipped as `games/<id>/landing_bg.jpg` (JPEG q84; Barrel Climb = middle panel of the 3-panel picture, upscaled 2x).
+
+## The Runner (2026-11-02)
+- 26 pictures in `games/the_runner/art/` (landing, prologue, docks, worlds, system maps, galaxy views,
+  hazards, ship layout), from the owner's folder `D:/dev/minigame art/runner/` (originals stay there,
+  not in the repo). Made by the owner with ChatGPT / Google Gemini (see each `ai_tool`); same terms as
+  above. `system_star` and `system_blackhole` are the same pictures as Neon Blast's campaign maps.
