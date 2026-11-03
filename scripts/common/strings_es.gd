@@ -316,6 +316,7 @@ const ES := {
 	"Reset controls": "Restablecer controles",
 	"Results (%d)": "Resultados (%d)",
 	"Right-handed": "Diestro",
+	"Ring": "Anillo",
 	"Rolls": "Tiradas",
 	"Rotate": "Rotar",
 	"Rounds played": "Rondas jugadas",
