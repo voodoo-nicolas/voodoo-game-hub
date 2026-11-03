@@ -3497,8 +3497,8 @@
   {
    "id": "alchemist",
    "name": {
-    "en": "Alchemist",
-    "es": "Alquimista"
+    "en": "Chemist",
+    "es": "Químico"
    },
    "emoji": "⚗️",
    "starter": false,

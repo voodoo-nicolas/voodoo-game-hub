@@ -5,7 +5,7 @@ extends RefCounted
 
 const ID := "creation"
 const TITLE := "Creation"
-const GOAL := "Start with Earth, Fire, Wind and Water. Combine items to discover everything: 263 in all."
+const GOAL := "Start with Earth, Fire, Wind and Water. Combine items to discover everything; the counter shows how many are still to find."
 const HOW := [
 	"Drag an item from the shelf onto the table, or just tap it. On a touch screen, hold an item and then drag it.",
 	"Drag one item onto another to combine them, or tap one item on the table and then another. Order doesn't matter, and the same item twice is a valid pair (Water + Water).",
@@ -25,13 +25,17 @@ const TIPS := [
 ]
 const STATS := ["Discoveries", "Hints used", "Pairs tried"]
 
-## Collection goals (the 🏅 achievements).
+## Collection goals (the 🏅 achievements). Fixed counts, all well under the
+## item total, so adding items never moves a goal (owner 2026-11-02: no
+## "find them all" badge, the game keeps growing; no "alchemy" wording).
 const ACHIEVEMENTS := [
 	{"id": "goal1", "icon": "⚗️", "title": "Apprentice", "key": "Discoveries", "at": 25},
-	{"id": "goal2", "icon": "🔥", "title": "Alchemist", "key": "Discoveries", "at": 75},
+	{"id": "goal2", "icon": "🔥", "title": "Inventor", "key": "Discoveries", "at": 75},
 	{"id": "goal3", "icon": "🌍", "title": "World Builder", "key": "Discoveries", "at": 150},
 	{"id": "goal4", "icon": "🚀", "title": "Creator", "key": "Discoveries", "at": 220},
-	{"id": "goal5", "icon": "🌌", "title": "Everything", "key": "Discoveries", "at": 263},
+	# goal5 "Everything" (at 263) retired 2026-11-02: the total keeps growing. Id not reused.
+	{"id": "goal6", "icon": "🔭", "title": "Visionary", "key": "Discoveries", "at": 400},
+	{"id": "goal7", "icon": "🧠", "title": "Mastermind", "key": "Discoveries", "at": 600},
 ]
 
 ## Learning hook (STANDARDS §15): one shows on the Landing's "Did you know?"

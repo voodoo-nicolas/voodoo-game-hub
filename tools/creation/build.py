@@ -268,7 +268,7 @@ bacon|Bacon|Panceta|🥓
 # lil alch import 2026-10-30
 acid_rain|Acid Rain|Lluvia ácida|🌧️
 alarm_clock|Alarm Clock|Despertador|⏰
-alchemist|Alchemist|Alquimista|⚗️
+alchemist|Chemist|Químico|⚗️
 allergy|Allergy|Alergia|🤧
 alligator|Alligator|Caimán|🐊
 alpaca|Alpaca|Alpaca|🦙

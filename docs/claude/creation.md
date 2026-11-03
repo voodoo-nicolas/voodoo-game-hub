@@ -18,6 +18,10 @@ Working title **Creation** (display name only: `manifest.json` `title`/`title_es
 - Top bar shows the banner `games/creation/banner.webp` (owner's art, 2026-10-28) instead of the text title (`title_label` stays as a hidden fallback if the file is missing). Shelf checkbox **Hide used-up items** (`settings.hide_spent`, saved) hides found items with `unfound_uses == 0`; silhouettes stay.
 - Skins: Classic (light/dark theme per setting or the app's) and Voodoo (neon, always dark). Modals are children of the kit (`home`) so Android back closes them.
 
+## Achievements and wording (owner 2026-11-02)
+- 🏅 goals in `creation_help.gd` are fixed Discoveries counts (25 / 75 / 150 / 220 / 400 / 600), all under the item total. No "find them all" badge: the item list keeps growing (goal5 "Everything" at 263 retired; its id is not reused). The How to Play goal names no total.
+- Never use the words alchemy / alchemist in player-facing text (the `alchemist` item shows as Chemist / Químico; the id stays). Internal docs may still say "alchemy game".
+
 ## Monetization (NOT LIVE; owner decision needed)
 - SPEC §7: one-time **Full Game** (free = tiers 1-3 + 3 hints/day; paid = tiers 4-5 + unlimited hints). Daily challenge is v1.1 and is not listed as a benefit until it exists. No ads.
 - `creation_gate.gd` `LIVE = false`: every tier open today; `VOODOO_CREATION_PAYWALL=1` turns the gate on for desktop tests (the Unlock button then fakes the purchase). With it on, paid-tier results are locked silhouettes (`seen_locked`) that become discoveries on unlock.
@@ -25,7 +29,7 @@ Working title **Creation** (display name only: `manifest.json` `title`/`title_es
 - SPEC §6 says no accounts/server; the hub does have accounts (leaderboard 🏆 "Discoveries", achievements). Local play needs none.
 
 ## Open / not built
-- Daily challenge ("Make: Bread"), share card, achievements beyond the 5 discovery goals (v1.1).
+- Daily challenge ("Make: Bread"), share card, achievements beyond the discovery goals (v1.1).
 - Emoji icons are placeholders; newer emoji (🪨🪵🪙🛞🪈…) may show as boxes on old Android versions. Replace with drawn art later (`media/CREDITS.json` has nothing for this game yet because it ships no assets).
 - Check the recipe list against other combine games before launch (mechanic is free; ours is its own, but have the IP lawyer glance at the final store text).
 - Not published: no `bump-pack`/`publish-packs`/manifest push done; `manifest.json` has the entry at version 1.
