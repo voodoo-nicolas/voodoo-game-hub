@@ -76,7 +76,7 @@ static func tinted(c: Color, k: float) -> Color:
 ## `face` is the way they look; `walk` advances the leg swing; `sneak` crouches them.
 ## Dark outlines, a lit upper-left and a shaded underside give the flat shapes some weight.
 static func person(ci: CanvasItem, look: Dictionary, face: Vector2, walk: float = 0.0, sneak: bool = false,
-		scarf: bool = false, sprite_name: String = "", alpha: float = 1.0) -> void:
+		scarf: bool = false, sprite_name: String = "", alpha: float = 1.0, expr: String = "") -> void:
 	if sprite_name != "":
 		# painted art: a sprite per direction (name_down / name_up / name_side, side faces right and
 		# is mirrored for left), else a single name.png
@@ -128,12 +128,23 @@ static func person(ci: CanvasItem, look: Dictionary, face: Vector2, walk: float 
 	ci.draw_circle(Vector2(-1.8, -29.2), 3.6, Color(1, 1, 1, 0.16 * alpha))
 	var eye := Color(0.08, 0.08, 0.1, alpha)
 	var hair := Color(0.16, 0.12, 0.1, alpha)
+	var shock := expr == "shock"      # wide eyes, raised brows, an open mouth (the bar's patrons, owner 2026-11-03)
+	var white := Color(0.95, 0.94, 0.9, alpha)
 	if face.y > 0.35:
-		ci.draw_circle(Vector2(-2.4, -27.0), 0.95, eye)
-		ci.draw_circle(Vector2(2.4, -27.0), 0.95, eye)
-		ci.draw_line(Vector2(-1.2, -24.6), Vector2(1.2, -24.6), Color(0.35, 0.18, 0.18, 0.7 * alpha), 0.8)
+		for ex in [-2.4, 2.4]:
+			if shock:
+				ci.draw_circle(Vector2(ex, -27.0), 1.6, white)
+				ci.draw_line(Vector2(ex - 1.4, -30.0), Vector2(ex + 1.4, -30.4), eye, 0.8)
+			ci.draw_circle(Vector2(ex, -27.0), 0.95 if not shock else 0.7, eye)
+		if shock:
+			ci.draw_colored_polygon(ellipse_points(Vector2(0, -24.0), 1.3, 1.6), Color(0.2, 0.06, 0.08, alpha))
+		else:
+			ci.draw_line(Vector2(-1.2, -24.6), Vector2(1.2, -24.6), Color(0.35, 0.18, 0.18, 0.7 * alpha), 0.8)
 	elif absf(face.x) > 0.35 and face.y > -0.35:
-		ci.draw_circle(Vector2(signf(face.x) * 3.4, -27.0), 0.95, eye)
+		if shock:
+			ci.draw_circle(Vector2(signf(face.x) * 3.4, -27.0), 1.5, white)
+			ci.draw_colored_polygon(ellipse_points(Vector2(signf(face.x) * 4.4, -24.0), 0.9, 1.3), Color(0.2, 0.06, 0.08, alpha))
+		ci.draw_circle(Vector2(signf(face.x) * 3.4, -27.0), 0.95 if not shock else 0.7, eye)
 		ci.draw_circle(Vector2(signf(face.x) * 6.0, -26.0), 0.9, skin)                           # a nose in profile
 	else:
 		ci.draw_colored_polygon(ellipse_points(Vector2(0, -28.5), 6.0, 5.0), hair)               # facing away: the back of the head

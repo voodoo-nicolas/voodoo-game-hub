@@ -23,7 +23,7 @@ var _moving := false
 var _talk := 0.0
 var _stare := false
 var _walker := false
-var _afraid := false        # turns its back on the player and trembles (the bar's patrons)
+var _afraid := false        # turns to stare at the player in shock and trembles (the bar's patrons)
 var _shake := 0.0
 
 func setup(d: Dictionary) -> void:
@@ -77,10 +77,11 @@ func tick(delta: float, player: Node2D, others: Array) -> void:
 		queue_redraw()
 		return
 	if _afraid:
-		var away := position - player.position
-		_shake = clampf(1.0 - to_player / 220.0, 0.0, 1.0)
-		if away.length() > 1.0 and to_player < 220.0:
-			face = face.lerp(away.normalized(), minf(1.0, delta * 3.0)).normalized()
+		# (until 2026-11-03 they turned their backs; the owner wants every face on her, in shock and fear)
+		var toward := player.position - position
+		_shake = clampf(1.0 - to_player / 260.0, 0.25, 1.0)
+		if toward.length() > 1.0:
+			face = face.lerp(toward.normalized(), minf(1.0, delta * 5.0)).normalized()
 		queue_redraw()
 		return
 	if _stare and to_player < T.m(T.f("npc.stare_range_m")):
@@ -119,4 +120,4 @@ func _blocked(dir: Vector2, player: Node2D, others: Array) -> bool:
 func _draw() -> void:
 	if _shake > 0.05:
 		draw_set_transform(Vector2(sin(_phase * 38.0) * 0.9 * _shake, 0.0), 0.0, Vector2.ONE)
-	Art.person(self, look, face, _phase * 6.0 if _moving else 0.0, false, false, "npc_" + id)
+	Art.person(self, look, face, _phase * 6.0 if _moving else 0.0, false, false, "npc_" + id, 1.0, "shock" if _afraid else "")

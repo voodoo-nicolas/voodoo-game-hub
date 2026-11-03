@@ -33,6 +33,9 @@ const ACCENT := Color("d9a441")
 ## Landing background: the mirror moment (the neck), cropped to landscape and mirrored so the marks sit
 ## right of the kit's text column. The portrait original is `reference/art/games/turned_landing_src.webp`.
 const ART := "res://games/turned/landing_bg.jpg"
+## The game's own choices (⚙ Options): {"hide_controls": bool}. Not part of the story save.
+const PREFS_PATH := "user://turned_prefs.json"
+const SaveUtil = preload("res://scripts/common/save_util.gd")
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
@@ -75,12 +78,34 @@ func _build_ui() -> void:
 		"board": "none",
 		# Beginning again deletes the autosave: no ⚡ Quick Play next to ▶ Resume.
 		"quick_with_save": false,
+		"options": _add_game_options,
 	})
 	add_child(home)
 	if info:
 		add_child(info)
 	# Must stay the last child so its tab sits above any dialog (the kit frees it).
 	add_child(SettingsDrawer.new())
+
+## ⚙ Options: hide the on-screen stick and buttons (a PC plays with the keyboard; on by default there).
+func _add_game_options(body: VBoxContainer) -> void:
+	body.add_child(home.section("On-screen controls"))
+	body.add_child(home.choice_row(["Show", "Hide"], 1 if _controls_hidden() else 0, _pick_controls))
+	body.add_child(HomeKit.label(tr("Hide: the stick and buttons are not drawn but still work. The keyboard always works."), 22, HomeKit.DIM, true))
+
+func _controls_hidden() -> bool:
+	var prefs = SaveUtil.read(PREFS_PATH)
+	if prefs is Dictionary and prefs.has("hide_controls"):
+		return bool(prefs["hide_controls"])
+	return not DisplayServer.is_touchscreen_available()
+
+func _pick_controls(i: int) -> void:
+	var prefs = SaveUtil.read(PREFS_PATH)
+	if not prefs is Dictionary:
+		prefs = {}
+	prefs["hide_controls"] = i == 1
+	SaveUtil.write(PREFS_PATH, prefs)
+	if hud != null:
+		hud.controls_hidden = i == 1
 
 ## A moon and a bat in the kit's glow style.
 func _draw_home_logo(c: Control) -> void:
@@ -127,6 +152,7 @@ func _spawn_world() -> void:
 	_view.audio_listener_enable_2d = true
 	_view_box.add_child(_view)
 	hud = HudScript.new()
+	hud.controls_hidden = _controls_hidden()
 	add_child(hud)
 	move_child(hud, 1)                            # over the world, under the kit
 	world = WorldScript.new()
@@ -156,6 +182,7 @@ func _add_pad() -> void:
 		return
 	pad = load(PAD_PATH).new()
 	pad.layout_override = "stick_4"
+	pad.prefs_override = {"skin": "ring"}   # owner 2026-11-03: a soft grey ring (older Pads fall back to their default look)
 	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(pad)
 	move_child(pad, 1)                    # over the world, under the HUD and the kit

@@ -7,7 +7,7 @@ One controller for many games: a layout (stick / D-pad + buttons), a look (skin)
 |---|---|
 | `pad_controller.gd` | the `Control` a game adds. Touch -> Godot actions, drawing, hit tests, `get_vector()`, `is_down()`, `set_map()`, `set_hidden()`, `set_button()`, `release_all()`, `apply_prefs()`, `step_layout()`, `step_skin()` |
 | `pad_layouts.gd` | layout catalogue as DATA (`LAYOUTS`) + `place()` -> pixel shapes. Add a layout = add a dictionary |
-| `pad_draw.gd` | looks (`SKINS`: neon, mono, outline) + draw functions. Add a skin = add a dictionary |
+| `pad_draw.gd` | looks (`SKINS`: neon, mono, outline; `ring` is game-only: `"hidden": true` keeps it out of `skin_ids()` / Options, a game sets it with `prefs_override = {"skin": "ring"}`, Turned does) + draw functions. Add a skin = add a dictionary |
 | `pad_prefs.gd` | `user://pad.json` (layout, skin, size, opacity, right_handed, floating, deadzone, dpad8, show_map) |
 | `pad_options.gd` | settings panel (layout cards with live previews, look, sliders, toggles). Same pattern as `sound_options.gd`; `hub.py i18n`/lint cover this folder |
 

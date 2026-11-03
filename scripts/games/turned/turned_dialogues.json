@@ -61,23 +61,7 @@
         "effects": [
           "journal:coat"
         ],
-        "next": "n2"
-      },
-      "n2": {
-        "type": "branch",
-        "if": [
-          "flag:pockets",
-          "mission:find_coat"
-        ],
-        "then": "n3",
-        "else": "t1"
-      },
-      "n3": {
-        "type": "do",
-        "effects": [
-          "mission:find_out"
-        ],
-        "next": "t1"
+        "next": "menu"
       },
       "menu": {
         "type": "choice",
@@ -85,58 +69,17 @@
         "text": "coat_whose",
         "options": [
           {
-            "text": "coat_opt_left",
-            "if": [
-              "!flag:coat_left"
-            ],
-            "effects": [
-              "flag:coat_left"
-            ],
-            "next": "left"
-          },
-          {
             "text": "coat_opt_right",
             "if": [
               "!flag:coat_right"
             ],
             "effects": [
               "flag:coat_right",
-              "flag:matches_home",
-              "journal:matches"
-            ],
-            "next": "right"
-          },
-          {
-            "text": "coat_opt_inner",
-            "if": [
-              "!flag:coat_inner"
-            ],
-            "effects": [
-              "flag:coat_inner"
-            ],
-            "next": "inner"
-          },
-          {
-            "text": "coat_opt_tear",
-            "if": [
-              "flag:coat_inner",
-              "!flag:coat_torn"
-            ],
-            "effects": [
-              "flag:coat_torn",
               "item:+note",
               "journal:note",
               "mission:go_bar"
             ],
-            "next": "tear"
-          },
-          {
-            "text": "coat_opt_tick",
-            "if": [
-              "flag:witness_home",
-              "!flag:watch_found"
-            ],
-            "next": "w1"
+            "next": "right"
           },
           {
             "text": "coat_opt_wear",
@@ -154,33 +97,13 @@
           }
         ]
       },
-      "left": {
-        "speaker": "",
-        "text": "coat_left",
-        "next": "menu"
-      },
       "right": {
         "speaker": "",
         "text": "coat_right",
-        "next": "menu"
-      },
-      "inner": {
-        "speaker": "",
-        "text": "coat_inner",
-        "next": "menu"
-      },
-      "tear": {
-        "speaker": "",
-        "text": "coat_tear",
         "effects": [
           "card:coat_pocket"
         ],
-        "next": "tear2"
-      },
-      "tear2": {
-        "speaker": "",
-        "text": "coat_tear_thought",
-        "next": "menu"
+        "next": "right2"
       },
       "wear": {
         "speaker": "",
@@ -190,39 +113,9 @@
       "bye": {
         "type": "end"
       },
-      "t1": {
-        "type": "branch",
-        "if": [
-          "flag:witness_home",
-          "!flag:watch_found"
-        ],
-        "then": "tick",
-        "else": "menu"
-      },
-      "tick": {
+      "right2": {
         "speaker": "",
-        "text": "coat_tick",
-        "next": "menu"
-      },
-      "w1": {
-        "speaker": "",
-        "text": "coat_w1",
-        "next": "w2"
-      },
-      "w2": {
-        "speaker": "",
-        "text": "coat_w2",
-        "effects": [
-          "item:+watch",
-          "flag:watch_found",
-          "journal:watch",
-          "card:watch"
-        ],
-        "next": "w3"
-      },
-      "w3": {
-        "speaker": "",
-        "text": "coat_w3",
+        "text": "coat_tear_thought",
         "next": "menu"
       }
     }
@@ -269,7 +162,6 @@
           "journal:bar",
           "mission:find_out",
           "sfx:door",
-          "hour:21.0",
           "area:street:from_bar"
         ]
       }
@@ -348,34 +240,19 @@
       "s10": {
         "speaker": "witness",
         "text": "w4_more",
-        "next": "s11"
-      },
-      "s11": {
-        "type": "branch",
-        "if": [
-          "item:matches"
-        ],
-        "then": "s12b",
-        "else": "s12a"
-      },
-      "s12a": {
-        "speaker": "you",
-        "text": "w4_matches_home",
-        "next": "s13"
-      },
-      "s12b": {
-        "speaker": "you",
-        "text": "w4_matches_here",
-        "next": "s13"
+        "next": "s12"
       },
       "s13": {
         "speaker": "witness",
         "text": "w4_home",
         "effects": [
-          "flag:witness_home",
-          "mission:show_matches",
-          "area:house_down:from_street"
+          "mission:go_home"
         ]
+      },
+      "s12": {
+        "speaker": "you",
+        "text": "w4_only_note",
+        "next": "s13"
       }
     }
   },
@@ -759,6 +636,32 @@
           "mission:priest_in",
           "to_be_continued"
         ]
+      }
+    }
+  },
+  "coat_grab": {
+    "start": "g1",
+    "nodes": {
+      "g1": {
+        "speaker": "",
+        "text": "coat_grab",
+        "next": "g2"
+      },
+      "g2": {
+        "speaker": "",
+        "text": "coat_w2",
+        "effects": [
+          "flag:coat_left",
+          "item:+watch",
+          "flag:watch_found",
+          "journal:watch",
+          "card:watch"
+        ],
+        "next": "g3"
+      },
+      "g3": {
+        "speaker": "",
+        "text": "coat_w3"
       }
     }
   }

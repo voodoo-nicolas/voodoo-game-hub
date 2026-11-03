@@ -208,3 +208,13 @@ Attach the mockups and the CS-02 sheet (he is in SC-11), send the first message,
 > An iron bridge over a canal and a tram stop in wet night rain, a small red tram far away. Must show, each clearly visible and separate: a tram stop shelter with blank signs; a ticket booth; a blank street-map board; a striped barrier; wet tram rails. No person. Landscape, 1536 x 1024.
 >
 > No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+## Step 4: the ground floor to match the painted upstairs (HD-01, owner 2026-11-03: "bottom floor is crap")
+The upstairs is the owner's front cutaway (`games/turned/art/rooms/house_up.webp`, source `reference/art/turned/gen/house_up.jpg`); the ground floor is still the old drawn map. Make the same house one floor down, in the same chat or with `house_up.jpg` attached as the first picture, then save it as `reference/art/turned/gen/house_down.png`. The map is traced over it afterwards, like the upstairs (DECISIONS H-1).
+
+**HD-01 the ground floor** (1264 x 848, the size of the upstairs picture)
+> Match the attached picture exactly: the same house, the same painting style, the same high front cutaway camera, the same lighting and the same grey margin around the building. This time show the ground floor of that house, directly below the rooms in the picture, with the same outer walls and the same three-room width.
+>
+> Three rooms side by side, left to right, separated by thick partition walls with an open doorway near the bottom of each: on the left a Victorian parlour (a fireplace with cold ashes, a worn sofa and two armchairs on a dark red rug, an upright piano, a small bookshelf of sermons and sheet music, a stern family portrait in a black frame); in the middle the entrance hall (the heavy front door in the left wall of the hall or the back wall, a coat stand beside it with a grey wool scarf hanging on it, a tall hall clock, a narrow staircase going up at the back right, directly under the stairs of the floor above, and beside it a small low cellar door with an old iron lock); on the right a kitchen (a cold iron range stove, a scrubbed wooden table with two cups, one full, a pantry cupboard with a stale loaf, shelves of jars of plums and pickles, a stone-flagged floor). Oil lamps on the walls, warm amber light against cold blue-teal shadow. Every object clearly visible and separate. No person. Landscape, 1264 x 848.
+>
+> No text, no letters, no numbers, no readable signs, no interface, no icons, no labels, no watermark, no border, no logo, no modern objects.

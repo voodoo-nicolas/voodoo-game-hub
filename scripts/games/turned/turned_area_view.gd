@@ -22,6 +22,9 @@ var mode := "ground"
 ## Item ids the player has taken (not drawn) and ids that still glint ("look here").
 var taken := {}
 var glint := {}
+## Golden "look here" markers at these world points (the current mission's objects; the world sets them
+## from the interacts, so a thing the painting shows, like the mirror or the coat, gets one too).
+var marks: Array = []
 
 var _t := 0.0
 var overbright := 1.0  # 1 normally; above 1 the lamps glare (the senses of a turning vampire)
@@ -137,7 +140,7 @@ func refresh() -> void:
 	queue_redraw()
 
 func _process(delta: float) -> void:
-	if (mode == "decor" and not glint.is_empty()) or mode == "glow":
+	if (mode == "decor" and (not glint.is_empty() or not marks.is_empty())) or mode == "glow":
 		_t += delta
 		queue_redraw()
 
@@ -186,6 +189,8 @@ func _draw() -> void:
 			"alley_door": _alley_door(d["rect"])
 	for s in area.shades:
 		_shade_ground(s)
+	for m in marks:
+		_mark(m)
 
 # ---------------------------------------------------------------- floors and rooms
 
@@ -544,6 +549,13 @@ func _item(d: Dictionary) -> void:
 	if glint.has(kind):
 		var pulse := 0.5 + 0.5 * sin(_t * 3.2)
 		draw_arc(p, 11.0 + pulse * 3.0, 0.0, TAU, 20, Color(Art.AMBER.r, Art.AMBER.g, Art.AMBER.b, 0.35 + pulse * 0.35), 1.5)
+
+## A golden marker: a soft disc and a pulsing ring.
+func _mark(p: Vector2) -> void:
+	var pulse := 0.5 + 0.5 * sin(_t * 3.2)
+	var gold := Color("e8b64c")
+	draw_circle(p, 13.0, Color(gold.r, gold.g, gold.b, 0.08 + pulse * 0.06))
+	draw_arc(p, 13.0 + pulse * 3.0, 0.0, TAU, 28, Color(gold.r, gold.g, gold.b, 0.45 + pulse * 0.4), 2.0)
 
 # ---------------------------------------------------------------- the street
 

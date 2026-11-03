@@ -10,6 +10,7 @@ const Art = preload("res://scripts/games/turned/turned_art.gd")
 const LOOK := {"coat": "3f4f6e", "skin": "cfc3c6", "accent": "8d8f98", "hat": ""}
 const NIGHTSHIRT := Color("b9bccb")
 const BLANKET := Color("3d4a68")
+const HAIR := Color("7a3418")       # auburn (DECISIONS P-1)
 
 var radius := 9.0
 var face := Vector2.DOWN
@@ -83,11 +84,156 @@ func _draw() -> void:
 		var a := 1.0
 		var col := Color(1, 1, 1, 1).lerp(Color(1.0, 0.62, 0.55, 1), hurt)
 		modulate = col
-		Art.person(self, LOOK, face, _phase if moving else 0.0, sneak, scarf, "player", 0.82 if sneak else a)
+		_draw_standing(0.82 if sneak else a)
 		return
 	modulate = Color.WHITE
-	_draw_in_bed()
+	if own_blanket:
+		_draw_in_painted_bed()
+	else:
+		_draw_in_bed()
 
+## Standing: a slim young woman in a long dark dress, auburn hair to the shoulders (owner 2026-11-03: the
+## old round figure read as "a fat blob"). Painted sprites (player_down / _up / _side) replace it by name.
+func _draw_standing(alpha: float) -> void:
+	var dir := "down" if face.y > 0.35 else ("up" if face.y < -0.35 else "side")
+	if Art.sprite(self, "player_" + dir, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0, Art.PERSON_CANVAS_H):
+		return
+	var walk := _phase if moving else 0.0
+	var dress := Color(str(LOOK["coat"]))
+	var skin := Color(str(LOOK["skin"]))
+	var line := Color(0.04, 0.04, 0.07, 0.85 * alpha)
+	dress.a = alpha
+	skin.a = alpha
+	var hair := Color(HAIR.r, HAIR.g, HAIR.b, alpha)
+	var side := 0.0 if dir != "side" else signf(face.x)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(Art.PERSON_SCALE, (0.88 if sneak else 1.0) * Art.PERSON_SCALE))
+	Art.shadow(self, Vector2(0.5, 1.5), 8.0, 3.6, 0.34 * alpha)
+	var swing := sin(walk) * 2.4
+	# shoes peeking under the hem as she walks
+	var shoe := Color(0.06, 0.05, 0.07, alpha)
+	draw_rect(Rect2(-4.0 + side * 1.5, -1.0 + swing * 0.5, 3.4, 2.4), shoe)
+	draw_rect(Rect2(0.6 + side * 1.5, -1.0 - swing * 0.5, 3.4, 2.4), shoe)
+	# seen from behind, the hair covers the back of the head and falls to the shoulders
+	if dir == "up":
+		draw_colored_polygon(Art.ellipse_points(Vector2(0, -23.5), 5.2, 4.6), hair)
+	# the skirt: narrow at the waist, flaring to the hem, swaying a little as she walks
+	var hem := 6.8
+	var sw := swing * 0.35
+	var skirt := PackedVector2Array([Vector2(-3.6, -14.5), Vector2(3.6, -14.5), Vector2(hem + sw, 0.0), Vector2(-hem + sw, 0.0)])
+	draw_colored_polygon(skirt, dress)
+	draw_colored_polygon(PackedVector2Array([Vector2(-hem * 0.8 + sw, -3.2), Vector2(hem * 0.8 + sw, -3.2), Vector2(hem + sw, 0.0), Vector2(-hem + sw, 0.0)]), Art.tinted(dress, 0.7))
+	var ol := skirt.duplicate()
+	ol.append(skirt[0])
+	draw_polyline(ol, line, 1.1)
+	# arms: thin sleeves to small hands (from the side, one arm swinging in front of her)
+	var hands: Array = [Vector2(-5.6, -11.5 + swing * 0.5), Vector2(5.6, -11.5 - swing * 0.5)]
+	if side != 0.0:
+		hands = [Vector2(side * 1.0 + swing * 0.9, -11.0)]
+	for hand in hands:
+		var sh := Vector2(signf(hand.x) * 3.6 if side == 0.0 else 0.0, -21.0)
+		draw_line(sh, hand, line, 3.4)
+		draw_line(sh, hand, Art.tinted(dress, 0.85), 2.0)
+		draw_circle(hand, 1.4, Art.tinted(skin, 0.85))
+	# the bodice: narrow shoulders down to the waist
+	var w := 4.2 if side == 0.0 else 3.2
+	var body := PackedVector2Array([Vector2(-w, -21.8), Vector2(w, -21.8), Vector2(w - 0.8, -14.2), Vector2(-w + 0.8, -14.2)])
+	draw_colored_polygon(body, dress)
+	draw_colored_polygon(Art.ellipse_points(Vector2(-1.2, -19.5), 2.2, 1.6), Color(1, 1, 1, 0.12 * alpha))
+	var bol := body.duplicate()
+	bol.append(body[0])
+	draw_polyline(bol, line, 1.1)
+	draw_line(Vector2(-w + 0.8, -14.4), Vector2(w - 0.8, -14.4), Color(0, 0, 0, 0.35 * alpha), 1.0)   # the waist
+	# the neck, then the scarf over it
+	draw_rect(Rect2(-1.2, -23.6, 2.4, 2.2), skin)
+	if scarf:
+		draw_colored_polygon(Art.ellipse_points(Vector2(0, -22.4), 4.6, 2.2), Color(Art.SCARF.r, Art.SCARF.g, Art.SCARF.b, alpha))
+		draw_colored_polygon(Art.ellipse_points(Vector2(-1.0, -23.0), 2.6, 0.9), Color(1, 1, 1, 0.2 * alpha))
+	# the head: hair behind, the face, the hair on top
+	var hc := Vector2(0, -27.8)
+	if dir == "down":
+		draw_colored_polygon(Art.ellipse_points(hc + Vector2(0, 1.2), 5.9, 6.4), hair)    # hair down to the shoulders
+	elif dir == "side":
+		draw_colored_polygon(Art.ellipse_points(hc + Vector2(-side * 2.6, 2.6), 3.4, 5.0), hair)
+	draw_circle(hc, 5.4, line)
+	draw_circle(hc, 4.7, skin)
+	var eye := Color(0.08, 0.08, 0.1, alpha)
+	match dir:
+		"down":
+			draw_circle(hc + Vector2(-1.8, 0.6), 0.75, eye)
+			draw_circle(hc + Vector2(1.8, 0.6), 0.75, eye)
+			draw_line(hc + Vector2(-0.8, 2.7), hc + Vector2(0.8, 2.7), Color(0.45, 0.2, 0.2, 0.7 * alpha), 0.7)
+			draw_colored_polygon(Art.ellipse_points(hc + Vector2(0, -2.8), 5.3, 2.6), hair)        # the parting and fringe
+		"side":
+			draw_circle(hc + Vector2(side * 2.4, 0.4), 0.75, eye)
+			draw_circle(hc + Vector2(side * 4.7, 1.2), 0.7, skin)                                  # a nose in profile
+			draw_colored_polygon(Art.ellipse_points(hc + Vector2(-side * 1.3, -2.2), 4.8, 3.2), hair)
+		_:
+			draw_colored_polygon(Art.ellipse_points(hc + Vector2(0, -0.5), 5.2, 5.0), hair)        # the back of the head
+	draw_colored_polygon(Art.ellipse_points(hc + Vector2(-1.6, -3.2), 1.8, 0.8), Color(1, 0.75, 0.55, 0.22 * alpha))   # light on the hair
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+## In the painted bed (house_up): the bed runs left to right with the pillows on the left, so she lies
+## with her head on the pillow and sits up facing the foot of the bed, the viewer's right (owner
+## 2026-11-03). The painting has the blanket; this draws her and a fold of it over her legs. The origin
+## is the middle of the bed.
+func _draw_in_painted_bed() -> void:
+	var skin := Art.SKIN_PALE
+	var up := sit_t
+	var sheet := Color(0.80, 0.80, 0.84)
+	var sheet_dark := Color(0.58, 0.58, 0.64)
+	var head := Vector2(-14.5, -13.0).lerp(Vector2(-12.0, -26.0), up)
+	# lying: the painted blanket covers her, only a fold over the shoulder; sitting: the nightgown upright
+	# at the pillow end, down to where the blanket starts
+	if up < 0.5:
+		draw_colored_polygon(Art.ellipse_points(head + Vector2(9.0, 1.5), 5.0, 3.6), sheet_dark)
+		draw_colored_polygon(Art.ellipse_points(head + Vector2(9.0, 0.8), 4.4, 2.8), sheet)
+	var torso_top := head + Vector2(-0.5, 5.5)
+	var torso_bot := head + Vector2(0.5, 15.0)
+	if up >= 0.15:
+		var a := clampf((up - 0.15) / 0.35, 0.0, 1.0)
+		var gown := Color(NIGHTSHIRT.r, NIGHTSHIRT.g, NIGHTSHIRT.b, a)
+		draw_colored_polygon(PackedVector2Array([torso_top + Vector2(-3.4, 0), torso_top + Vector2(3.4, 0), torso_bot + Vector2(4.6, 0), torso_bot + Vector2(-4.6, 0)]), gown)
+		draw_polyline(PackedVector2Array([torso_bot + Vector2(-4.6, 0), torso_top + Vector2(-3.4, 0), torso_top + Vector2(3.4, 0), torso_bot + Vector2(4.6, 0)]), Color(0.04, 0.04, 0.07, 0.6 * a), 1.0)
+	# hair: spread on the pillow while lying, down her back once she sits up
+	if up < 0.5:
+		draw_colored_polygon(Art.ellipse_points(head + Vector2(-3.0, 0.5), 7.5, 6.0), HAIR)
+	else:
+		draw_colored_polygon(Art.ellipse_points(head + Vector2(-2.6, 2.5), 4.6, 7.0), HAIR)
+	draw_circle(head, 5.4, Color(0.04, 0.04, 0.07, 0.85))
+	draw_circle(head, 4.7, skin)
+	if up < 0.5:
+		# on her back: closed eyes, hair round the face
+		draw_line(head + Vector2(-0.6, -1.9), head + Vector2(0.6, -1.9), Color(0.1, 0.08, 0.1, 0.8), 0.8)
+		draw_line(head + Vector2(-0.6, 1.9), head + Vector2(0.6, 1.9), Color(0.1, 0.08, 0.1, 0.8), 0.8)
+		draw_colored_polygon(Art.ellipse_points(head + Vector2(-3.2, 0.0), 2.6, 4.8), HAIR)
+	else:
+		# sitting: in profile, looking towards the foot of the bed
+		draw_colored_polygon(Art.ellipse_points(head + Vector2(-1.6, -2.0), 4.9, 3.4), HAIR)
+		draw_circle(head + Vector2(2.4, 0.4), 0.8, Color(0.08, 0.08, 0.1))
+		draw_circle(head + Vector2(4.7, 1.2), 0.7, skin)
+	# hands
+	if wipe_t >= 0.0:
+		draw_circle(head + _bed_hand_at(wipe_t), 1.9, skin)
+		draw_circle(torso_bot + Vector2(4.0, -1.0), 1.8, skin)
+	elif holding_head:
+		draw_circle(head + Vector2(-2.0, -4.5), 1.9, skin)
+		draw_circle(head + Vector2(3.5, -3.5), 1.9, skin)
+	elif up >= 0.5:
+		draw_circle(torso_bot + Vector2(4.0, -1.0), 1.8, skin)
+		draw_circle(torso_bot + Vector2(6.0, 0.5), 1.8, skin)
+
+## The wiping hand in the painted bed, relative to the head: lap -> face -> a wipe across it -> neck.
+func _bed_hand_at(t: float) -> Vector2:
+	var neck_at := T.f("prologue.wipe_neck_at")
+	if t < 0.2:
+		return Vector2(4.5, 14.0).lerp(Vector2(4.0, 0.5), t / 0.2)
+	if t < neck_at:
+		var k := (t - 0.2) / (neck_at - 0.2)
+		return Vector2(4.0 + sin(k * TAU * 1.5) * 1.5, 0.5 - sin(k * TAU * 1.5) * 1.5)
+	var j := clampf((t - neck_at) / (1.0 - neck_at), 0.0, 1.0)
+	return Vector2(4.0, 0.5).lerp(Vector2(2.0, 6.5), j)
+
+## The old drawn bed (an area without a painted bed): a figure facing the viewer under a drawn blanket.
 func _draw_in_bed() -> void:
 	var skin := Art.SKIN_PALE
 	var up := sit_t

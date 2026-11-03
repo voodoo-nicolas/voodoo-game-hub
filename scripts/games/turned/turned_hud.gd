@@ -76,6 +76,9 @@ var _down := {"a": false, "b": false, "pause": false, "menu": false}
 ## The shared on-screen controller, or null (then this HUD draws and reads its own controls).
 var pad: Control = null
 const PAD_PARTS := {"dpad": "move", "a": "a", "b": "b", "menu": "info"}   # HUD name -> Pad part id
+## The player's "hide the on-screen controls" option (⚙ Options; on by default on a PC): the stick and
+## the buttons are not drawn but still work (taps, keys); the bars, Missions and captions stay.
+var controls_hidden := false
 
 var _hp_disp := 0.0
 var _blood_disp := 0.0
@@ -459,6 +462,7 @@ func _process(delta: float) -> void:
 		pad.set_state("a", {"sub": sub, "enabled": a_active and a_label != ""})
 		pad.set_state("b", {"ring": engine != null and engine.sneaking})
 		pad.visible = closeup <= 0.4 and not menu_open and not scene_mode
+		pad.modulate.a = 0.0 if controls_hidden else 1.0
 	if engine != null:
 		_hp_disp = move_toward(_hp_disp, engine.hp, maxf(20.0 * delta, absf(engine.hp - _hp_disp) * 8.0 * delta))
 		_blood_disp = move_toward(_blood_disp, engine.blood, 40.0 * delta)
@@ -489,11 +493,10 @@ func _draw() -> void:
 		_draw_bars()
 	if _rv["mission"] > 0.01 and not scene_mode:
 		_draw_mission()
-	if pad == null and not scene_mode:
+	if pad == null and not scene_mode and not controls_hidden:
 		if _rv["dpad"] > 0.01:
 			_draw_dpad()
 		_draw_faces()
-	if pad == null and not scene_mode:
 		_draw_small_buttons()
 	if burn > 0.01:
 		draw_texture_rect(_vignette, Rect2(Vector2.ZERO, size), false, Color(1.0, 0.93, 0.78, minf(1.0, burn * 0.8)))

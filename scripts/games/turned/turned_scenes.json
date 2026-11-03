@@ -47,7 +47,7 @@
     "walk_zone": {"area": "house_down", "rect": [16, 320, 528, 80], "when": ["flag:pockets"], "not_while": ["flag:witness_home", "!flag:matches_shown"]},
     "hotspots": [
       {"id": "front_door", "label": "hs_front_door", "kind": "exit", "dir": "left", "pos": [0.14, 0.52], "do": ["interact:front_door"]},
-      {"id": "scarf", "label": "hs_scarf", "pos": [0.30, 0.42], "when": ["!flag:scarf"], "do": ["interact:scarf"]},
+      {"id": "scarf", "label": "hs_scarf", "pos": [0.30, 0.42], "when": ["!flag:scarf", "flag:witness_home"], "do": ["interact:scarf"]},
       {"id": "clock", "label": "hs_clock", "pos": [0.43, 0.56], "do": ["interact:clock"]},
       {"id": "cellar", "label": "hs_cellar", "pos": [0.61, 0.67], "do": ["interact:cellar_door"]},
       {"id": "stairs", "label": "hs_upstairs", "kind": "exit", "dir": "up", "pos": [0.77, 0.52], "do": ["interact:stairs_up"]},

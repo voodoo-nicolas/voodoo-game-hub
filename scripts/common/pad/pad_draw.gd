@@ -2,7 +2,8 @@ extends RefCounted
 
 ## How the controller looks. Everything is drawn in code (0 bytes of art), in skins taken from the
 ## owner's mock-ups: "mono" (flat greys), "neon" (blue glass, A green / B red / X blue / Y gold),
-## "outline" (thin white lines, the Last Shift look). Every function takes the CanvasItem to draw
+## "outline" (thin white lines, the Last Shift look), "ring" (one soft grey ring and a grey dot, no
+## fill: Turned, owner 2026-11-03; a game sets it with `prefs_override`, it is not offered in Options). Every function takes the CanvasItem to draw
 ## on and `a`, the overall alpha (the player's opacity, raised while a part is touched).
 
 const SKINS := {
@@ -30,10 +31,23 @@ const SKINS := {
 		"text": Color(1, 1, 1, 0.95), "lit": Color(1, 1, 1, 0.45),
 		"face": {},
 	},
+	"ring": {
+		"name": "Ring", "plate": false, "glow": false, "arrows": false, "inner": false, "hidden": true,
+		"fill": Color(0.6, 0.6, 0.62, 0.0), "line": Color(0.72, 0.72, 0.75, 0.75),
+		"plate_fill": Color(1, 1, 1, 0.0), "plate_line": Color(1, 1, 1, 0.0),
+		"knob": Color(0.66, 0.66, 0.69, 0.55), "knob_line": Color(0.80, 0.80, 0.83, 0.0),
+		"text": Color(0.94, 0.94, 0.96, 0.95), "lit": Color(1, 1, 1, 0.30),
+		"face": {},
+	},
 }
 
+## The looks a player can pick (a game-only look such as "ring" is left out).
 static func skin_ids() -> Array:
-	return SKINS.keys()
+	var ids: Array = []
+	for k in SKINS:
+		if not SKINS[k].get("hidden", false):
+			ids.append(k)
+	return ids
 
 static func skin(id: String) -> Dictionary:
 	return SKINS.get(id, SKINS["neon"])
@@ -75,7 +89,8 @@ static func stick(ci: CanvasItem, p: Vector2, r: float, knob_r: float, off: Vect
 	if sk["glow"]:
 		_glow(ci, p, r, line, a)
 	_ring(ci, p, r, _c(line, a), 3.0)
-	_ring(ci, p, r * 0.74, _c(line, a * 0.35), 2.0)
+	if sk.get("inner", true):
+		_ring(ci, p, r * 0.74, _c(line, a * 0.35), 2.0)
 	if sk["arrows"]:
 		for d in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 			_tri(ci, p + d * r * 0.86, d, r * 0.07, _c(sk["knob_line"], a * 0.8))

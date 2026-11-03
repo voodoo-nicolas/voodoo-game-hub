@@ -181,15 +181,16 @@ func _build_house() -> void:
 		solids.append(r)
 	# the painting already shows the coat, the calendar and the bed; only the towel is drawn, on the rim of the bath
 	deco.append({"t": "item", "kind": "towel", "pos": _up(950, 655)})
+	# "mark": where the gold mission marker sits (on the painted object; "pos" is where you stand to use it)
 	interacts = [
-		{"id": "coat", "pos": _up(345, 460), "r": 70.0 * UP_K, "verb": "look"},
-		{"id": "matches", "pos": _up(185, 760), "r": 75.0 * UP_K, "verb": "take"},
+		{"id": "coat", "pos": _up(345, 460), "r": 70.0 * UP_K, "verb": "look", "mark": _up(331, 370)},
+		{"id": "matches", "pos": _up(185, 760), "r": 75.0 * UP_K, "verb": "take", "mark": _up(112, 690)},
 		{"id": "calendar", "pos": _up(415, 430), "r": 60.0 * UP_K, "verb": "look"},
 		{"id": "wardrobe", "pos": _up(262, 480), "r": 70.0 * UP_K, "verb": "look"},
 		{"id": "washstand", "pos": _up(410, 600), "r": 60.0 * UP_K, "verb": "look"},
-		{"id": "mirror", "pos": _up(935, 460), "r": 70.0 * UP_K, "verb": "look"},
+		{"id": "mirror", "pos": _up(935, 460), "r": 70.0 * UP_K, "verb": "look", "mark": _up(919, 218)},
 		{"id": "toilet", "pos": _up(1028, 485), "r": 60.0 * UP_K, "verb": "look"},
-		{"id": "towel", "pos": _up(930, 632), "r": 45.0 * UP_K, "verb": "look"},
+		{"id": "towel", "pos": _up(930, 632), "r": 45.0 * UP_K, "verb": "look", "mark": _up(950, 650)},
 		{"id": "bath", "pos": _up(1010, 632), "r": 55.0 * UP_K, "verb": "look"},
 		{"id": "stairs_down", "pos": _up(790, 655), "r": 60.0 * UP_K, "verb": "down"},
 	]
