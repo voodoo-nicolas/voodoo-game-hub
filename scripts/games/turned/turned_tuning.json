@@ -70,8 +70,7 @@
     "still_hint_s": 1.0,
     "lane_hint_px": 300.0,
     "companion_lag_px": 56.0,
-    "companion_speed_mult": 1.25,
-    "hall": [110.0, 372.0]
+    "companion_speed_mult": 1.25
   },
   "bar": {
     "opens_hour": 19.5,

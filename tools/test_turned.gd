@@ -182,7 +182,12 @@ func _test_areas() -> void:
 	for it in down.interacts:
 		check(_reachable(down, down.spawns["from_up"], it["pos"]), "ground floor interact %s reachable" % it["id"])
 	check(_reachable(down, down.spawns["from_up"], down.spawns["from_street"]), "stairs -> front door reachable")
-	check(_reachable(down, down.spawns["from_street"], Vector2(80, 350)), "front door -> scarf reachable")
+	var down_scarf: Vector2 = Vector2.ZERO
+	for it in down.interacts:
+		if it["id"] == "scarf":
+			down_scarf = it["pos"]
+	check(_reachable(down, down.spawns["from_street"], down_scarf), "front door -> scarf reachable")
+	check(down.painted and ResourceLoader.exists("res://games/turned/art/rooms/house_down.webp"), "the ground floor is the owner's painting")
 	var ids := {}
 	for ar in [house, down]:
 		for it in ar.interacts:
@@ -1101,6 +1106,13 @@ func _test_bedroom() -> void:
 		check(world.mode == "play" and not world.in_scene, "standing at '%s' stays a Walk room" % spot)
 	check(Scenes.zone_at(Scenes.shipped(), "house", world.area.spawns["bedside"], world._scene_holds) == "", "no painted-room zone upstairs")
 
+## Where the interact `id` of the world's current area is (its standing spot).
+func _ipos(id: String) -> Vector2:
+	for it in world.area.interacts:
+		if it["id"] == id:
+			return it["pos"]
+	return Vector2(-999, -999)
+
 ## Steps until the world is in `want` (or `limit_s` passes) while walking `dir`.
 func _walk_until(dir: Vector2, want: String, limit_s: float = 4.0) -> void:
 	world.test_dir = dir
@@ -1110,7 +1122,8 @@ func _walk_until(dir: Vector2, want: String, limit_s: float = 4.0) -> void:
 		t += DT * 3.0
 	world.test_dir = Vector2.ZERO
 
-## The hall as a painting (SC-05) and the doors out of it.
+## The ground floor is a painting under a Walk map (2026-11-03): the hall no longer opens in Scene mode (SC-05
+## stays in turned_scenes.json as `walk_zone_classic`). Doors: the stairs, the cellar, the front door.
 func _test_house_rooms() -> void:
 	await _scene_ready_world()
 	world._load_area("house")
@@ -1118,42 +1131,39 @@ func _test_house_rooms() -> void:
 	world.clock.hour = 9.0
 	world.player.position = world.area.spawns["from_down"]
 	_step(0.1)
-	# downstairs into the hall painting
 	world._interact({"id": "stairs_down"})
 	_step(1.2)
-	check(world.area.id == "house_down" and world.mode == "scene" and world.scene_id == "hall" and sview._art_id == "SC-05", "going downstairs lands in the hall painting")
-	check(not sview.spots.any(func(h): return h["id"] == "scarf"), "no scarf chip before the walk home with the witness (then the hall is a Walk room)")
-	_tap_chip("cellar")
-	check(world.engine.journal.has("cellar") and hud.caption_text() == Text.INNER["cellar_locked"], "the cellar door is locked, as in Walk mode")
-	_tap_chip("front_door")
-	check(world.mode == "scene" and hud.caption_text() == Text.INNER["door_coat"], "the front door says no until the coat (the Walk door's rules)")
+	check(world.area.id == "house_down" and world.mode == "play" and not world.in_scene, "going downstairs lands in the painted hall, a Walk room")
+	check(world.player.position.distance_to(world.area.spawns["from_up"]) < 1.0, "at the foot of the stairs")
+	world.player.position = _ipos("cellar_door")
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "cellar_door", "A offers the cellar door")
+	world.press_a()
+	check(world.engine.journal.has("cellar") and hud.caption_text() == Text.INNER["cellar_locked"], "the cellar door is locked")
+	world.player.position = _ipos("front_door")
+	_step(0.1)
+	check(str(world._cand.get("id", "")) == "front_door", "A offers the front door")
+	world.press_a()
+	_step(0.2)
+	check(world.mode == "play" and hud.caption_text() == Text.INNER["door_coat"], "the front door says no until the coat")
 	world.engine.add_journal("coat")
 	world.engine.add_item("note")
-	_tap_chip("front_door")
+	world.press_a()
 	_step(1.2)
-	check(world.area.id == "street" and world.mode == "play" and not world.in_scene, "with the note it opens onto the street")
+	check(world.area.id == "street" and world.mode == "play", "with the note it opens onto the street")
 	world._interact({"id": "house_door"})
 	_step(1.2)
-	check(world.area.id == "house_down" and world.mode == "scene" and world.scene_id == "hall", "coming home through the front door: the hall painting")
-	_tap_chip("kitchen")
-	_step(1.2)
-	check(world.mode == "play" and world.player.position.distance_to(world.area.spawns["kitchen_door"]) < 1.0, "the kitchen door leads to the Walk kitchen")
-	# while the witness waits in the hall it stays a Walk room (he is not in the painting)
-	world.engine.set_flag("witness_home")
-	world.player.position = Vector2(300, 360)
+	check(world.area.id == "house_down" and world.mode == "play" and not world.in_scene, "coming home through the front door: the hall, walking")
+	for spot in ["from_street", "from_up", "witness", "parlour_door", "kitchen_door"]:
+		world.player.position = world.area.spawns[spot]
+		_step(0.2)
+		check(world.mode == "play" and not world.in_scene, "standing at '%s' stays a Walk room" % spot)
+	world.player.position = _ipos("stairs_up")
 	_step(0.1)
-	check(world.mode == "play", "while the witness waits in the hall, the hall is the Walk room")
-	world.engine.set_flag("matches_shown")
-	_step(0.1)
-	check(world.mode == "scene" and world.scene_id == "hall", "once he has gone it is the painting again")
-	_tap_chip("stairs")
+	check(str(world._cand.get("id", "")) == "stairs_up", "A offers the stairs up")
+	world.press_a()
 	_step(1.2)
 	check(world.area.id == "house" and world.mode == "play" and world.player.position.distance_to(world.area.spawns["from_down"]) < 1.0, "the stairs lead up to the landing")
-	for sp in ["bathroom_out", "from_down", "bedroom_door"]:
-		check(Scenes.zone_at(Scenes.shipped(), "house", world.area.spawns[sp], world._scene_holds) == "", "the landing spawn '%s' is outside every painted room" % sp)
-	world._load_area("house_down")
-	for sp in ["parlour_door", "kitchen_door"]:
-		check(Scenes.zone_at(Scenes.shipped(), "house_down", world.area.spawns[sp], world._scene_holds) == "", "the spawn '%s' is outside the hall" % sp)
 
 func _test_bar() -> void:
 	var bar: Area = Area.make("bar") as Area
@@ -1357,14 +1367,14 @@ func _test_follower() -> void:
 	for n in world._npcs:
 		if n.id == "witness":
 			wit = n
-	check(wit != null and wit.position.distance_to(Vector2(110, 372)) < 2.0, "the witness waits in the hall")
-	world.player.position = Vector2(135, 350)
+	check(wit != null and wit.position.distance_to(world.area.spawns["witness"]) < 2.0, "the witness waits in the hall")
+	world.player.position = world.area.spawns["witness"] + Vector2(0, -22)
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "npc:witness", "A offers to talk to him")
 	world.press_a()
 	check(hud.caption_text() == Text.INNER["wit_wait"] and world.mode == "play", "he waits until you have looked at the coat again and brought the matches")
 	# upstairs the coat ticks
-	world.player.position = Vector2(472, 360)
+	world.player.position = _ipos("stairs_up")
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "stairs_up", "A offers the stairs up")
 	world.press_a()
@@ -1403,16 +1413,16 @@ func _test_follower() -> void:
 	world.press_a()
 	_step(1.5)
 	check(world.area.id == "house_down", "downstairs again")
-	world.player.position = Vector2(135, 350)
+	world.player.position = world.area.spawns["witness"] + Vector2(0, -22)
 	_step(0.2)
 	world.press_a()
 	check(hud.caption_text() == Text.INNER["wit_wait"], "not before the marks are covered")
-	check(_walk_to(Vector2(120, 352)) and _walk_to(Vector2(80, 352)), "walked to the scarf")
+	check(_walk_to(_ipos("scarf")), "walked to the scarf")
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "scarf", "A offers the scarf")
 	world.press_a()
 	check(world.engine.has_flag("scarf") and world.player.scarf and world.engine.mission == "show_matches", "the scarf is on: now show him the matches")
-	world.player.position = Vector2(135, 350)
+	world.player.position = world.area.spawns["witness"] + Vector2(0, -22)
 	_step(0.2)
 	world.press_a()
 	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["w4m_here"], "you show him the matches")
@@ -1669,7 +1679,7 @@ func _test_flow() -> void:
 
 	# the front door (on the ground floor) says no before the mirror
 	world._load_area("house_down")
-	world.player.position = Vector2(30, 360)
+	world.player.position = _ipos("front_door")
 	_step(0.1)
 	world.press_a()
 	_step(0.2)
@@ -1769,17 +1779,17 @@ func _test_flow() -> void:
 	_step(1.5)
 	check(world.mode == "play" and world.area.id == "house_down", "downstairs")
 	check(world.area.interacts.size() > 5 and world.player.position.distance_to(world.area.spawns["from_up"]) < 1.0, "you arrive at the foot of the stairs")
-	world.player.position = Vector2(268, 372)
+	check(_walk_to(_ipos("cellar_door")), "walked to the cellar steps")
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "cellar_door", "A offers the cellar door")
 	world.press_a()
 	check(hud.caption_text() == Text.INNER["cellar_locked"] and world.engine.journal.has("cellar"), "the cellar door is locked and noted")
 	world.press_a()
 	check(world.engine.journal.count("cellar") == 1, "the cellar is noted once")
-	check(_walk_to(Vector2(120, 352)) and _walk_to(Vector2(80, 352)), "walked to the scarf")
+	check(_walk_to(_ipos("scarf")), "walked to the scarf")
 	_step(0.1)
 	check(str(world._cand.get("id", "")) != "scarf", "the scarf is not offered yet (it comes with the walk home)")
-	check(_walk_to(Vector2(44, 360)), "walked to the front door")
+	check(_walk_to(_ipos("front_door")), "walked to the front door")
 	_step(0.1)
 	world.engine.journal.erase("coat")
 	world.press_a()

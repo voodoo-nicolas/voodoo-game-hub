@@ -160,8 +160,8 @@ func _draw() -> void:
 		return
 	if mode == "ground":
 		# beyond the map (the camera shows it when a room is narrower than the screen)
-		# the painted upstairs has a grey margin of its own: carry it on past the picture's edge
-		var margin := Color("4e4e4e") if area.id == "house" else Color("07080d")
+		# the painted floors have a grey margin of their own: carry it on past the picture's edge
+		var margin := Color("4d4d4d") if area.painted else Color("07080d")
 		draw_rect(Rect2(-4000, -4000, 9000, 9000), margin)
 		return
 	_draw_decals()

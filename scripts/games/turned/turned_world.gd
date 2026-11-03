@@ -1679,8 +1679,7 @@ func _on_area_ready() -> void:
 	if area.id == "bar" and not engine.has_flag("bar_scene"):
 		start_dialogue("bar_shout")
 	elif area.id == "house_down" and engine.has_flag("witness_home") and not engine.has_flag("matches_shown"):
-		var hall := T.arr("follower.hall")
-		_spawn_witness_at(Vector2(float(hall[0]), float(hall[1])), Vector2(-1, 0))
+		_spawn_witness_at(area.spawns["witness"], Vector2(0, 1))    # on the hall runner (painted ground floor)
 		if _coat_ticking() and not engine.has_flag("tick_said1"):
 			engine.set_flag("tick_said1")
 			hud.say(Text.INNER["tick_faint"])

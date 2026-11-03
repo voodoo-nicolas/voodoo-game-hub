@@ -3627,6 +3627,19 @@
    "processed_by": "re-saved as WebP q88 (Claude Code)"
   },
   {
+   "file": "games/turned/art/rooms/house_down.webp",
+   "what": "Turned painting: the house ground floor (parlour, entrance hall with the stairs and the cellar steps, kitchen) seen from the front at a high angle, the Walk-mode floor map",
+   "source": "reference/art/turned/gen/house_down.webp (sent by the owner in chat 2026-11-03, the version with the stairs up; prompt: ART_PROMPTS_V2_READY.md HD-01 plus the owner's stairs edit)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-03",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "used as sent (WebP 1024 x 687) (Claude Code)"
+  },
+  {
    "file": "games/star_runner/landing_bg.jpg",
    "what": "Star Runner (neon fighter vs alien swarm) Landing background",
    "source": "reference/art/games/star_runner_landing_src.jpg",

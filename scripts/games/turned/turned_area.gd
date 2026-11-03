@@ -313,7 +313,79 @@ func _build_house_classic() -> void:
 		"study_out": Vector2(240, 370),      # on the landing, out of the painted study
 	}
 
+## The ground floor is one painting too (games/turned/art/rooms/house_down.webp, 1024 x 687 px, the owner's
+## Gemini art 2026-11-03, made to match the upstairs): parlour | entrance hall | kitchen, the same front view.
+## Coordinates below are PAINTING pixels; DN_K makes the building as wide in the world as the upstairs
+## (1264 x 0.4 = 1024 x DN_K). The painting shows no doors between the rooms: the passages are gaps at the
+## front (y 575..640) of the two partition walls, like the cutaway's open front. In the hall the front door
+## is in the back wall, the stairs up rise behind the railing at the back right (you take them from the
+## corner beside the newel post), and the cellar steps go down in the well in front of them to the locked
+## cellar door. The coat stand with the grey scarf hangs by the stairs.
+const DN_K := 0.49375
+const DN_ART := "rooms/house_down"
+
+static func _d(x: float, y: float, w: float, h: float) -> Rect2:
+	return Rect2(x * DN_K, y * DN_K, w * DN_K, h * DN_K)
+
+static func _dn(x: float, y: float) -> Vector2:
+	return Vector2(x * DN_K, y * DN_K)
+
 func _build_house_down() -> void:
+	indoor = true
+	painted = true
+	var paint := Vector2(1024, 687) * DN_K
+	bounds = Rect2(-170, -50, paint.x + 340, paint.y + 100)   # wider than the painting: the camera centres on it
+	deco = [{"t": "painting", "art": DN_ART, "rect": Rect2(Vector2.ZERO, paint)}]
+	solids = []
+	# the shell: above the back walls, below the front edge, the slanted side walls in steps
+	for r in [_d(-400, -400, 1900, 690), _d(-400, 640, 1900, 400),
+			_d(-400, 290, 530, 90), _d(-400, 380, 505, 90), _d(-400, 470, 480, 90), _d(-400, 560, 462, 80),
+			_d(915, 290, 600, 95), _d(935, 385, 600, 85), _d(950, 470, 600, 85), _d(965, 555, 600, 85),
+			# the partitions, open at the front
+			_d(415, 290, 32, 285), _d(686, 290, 26, 285)]:
+		solids.append(r)
+	# parlour: the fireplace, the piano and its stool, the bookcase, the two armchairs, the sofa
+	for r in [_d(85, 300, 80, 200), _d(198, 290, 140, 30), _d(240, 290, 56, 38), _d(338, 290, 77, 16),
+			_d(185, 335, 85, 75), _d(332, 375, 63, 155), _d(112, 525, 100, 85)]:
+		solids.append(r)
+	# hall: the tall hall stand on the left wall, the railing round the stairwell (the stairs up behind it,
+	# the cellar steps inside it)
+	solids.append(_d(447, 290, 40, 82))
+	solids.append(_d(565, 290, 121, 260))
+	# kitchen: the jar shelves, the range along the right wall, the table (the low bench is walkable), the stool
+	for r in [_d(780, 290, 120, 20), _d(870, 300, 70, 200), _d(772, 380, 78, 140), _d(905, 515, 70, 125)]:
+		solids.append(r)
+	# "mark": where the gold mission marker sits (on the painted object; "pos" is where you stand to use it)
+	interacts = [
+		{"id": "fireplace", "pos": _dn(195, 450), "r": 45.0 * DN_K, "verb": "look"},
+		{"id": "piano", "pos": _dn(318, 345), "r": 40.0 * DN_K, "verb": "look"},
+		{"id": "parlour_books", "pos": _dn(385, 330), "r": 40.0 * DN_K, "verb": "look"},
+		{"id": "front_door", "pos": _dn(512, 312), "r": 34.0 * DN_K, "verb": "door"},
+		{"id": "scarf", "pos": _dn(546, 372), "r": 24.0 * DN_K, "verb": "take", "mark": _dn(630, 215)},
+		{"id": "stairs_up", "pos": _dn(546, 322), "r": 24.0 * DN_K, "verb": "up"},
+		{"id": "cellar_door", "pos": _dn(635, 580), "r": 40.0 * DN_K, "verb": "door"},
+		{"id": "pantry", "pos": _dn(735, 330), "r": 40.0 * DN_K, "verb": "look"},
+		{"id": "shelves", "pos": _dn(840, 330), "r": 45.0 * DN_K, "verb": "look"},
+		{"id": "stove", "pos": _dn(880, 525), "r": 40.0 * DN_K, "verb": "look"},
+		{"id": "table", "pos": _dn(800, 565), "r": 45.0 * DN_K, "verb": "look"},
+	]
+	lamps = []
+	# the painting is lit already: only a little extra light by the wall lamps
+	light_spots = [
+		{"pos": _dn(130, 250), "color": Color("ffb45a"), "energy": 0.35, "radius": 80.0},
+		{"pos": _dn(470, 290), "color": Color("ffb45a"), "energy": 0.35, "radius": 80.0},
+		{"pos": _dn(660, 380), "color": Color("ffb45a"), "energy": 0.35, "radius": 80.0},
+	]
+	spawns = {
+		"from_street": _dn(520, 345),
+		"from_up": _dn(530, 340),
+		"witness": _dn(500, 470),        # where the man from the bar waits, on the runner
+		"parlour_door": _dn(380, 605),   # kept for the hall painting's exits (the hall scene is not opened any more)
+		"kitchen_door": _dn(740, 605),
+	}
+
+## The previous ground floor (a drawn square map), kept for reference; not used since 2026-11-03.
+func _build_house_down_classic() -> void:
 	indoor = true
 	bounds = Rect2(0, 0, 560, 416)
 	solids = []

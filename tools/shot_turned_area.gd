@@ -32,9 +32,9 @@ const SPOTS := [
 	["house_bathroom", "house", 370.0, 250.0],
 	["house_landing", "house", 244.0, 260.0],
 	["house_stairs", "house", 316.0, 262.0],
-	["down_parlour", "house_down", 160.0, 120.0],
-	["down_kitchen", "house_down", 440.0, 220.0],
-	["down_hall", "house_down", 200.0, 350.0],
+	["down_parlour", "house_down", 123.0, 232.0],
+	["down_kitchen", "house_down", 365.0, 277.0],
+	["down_hall", "house_down", 247.0, 222.0],
 ]
 
 func _initialize() -> void:

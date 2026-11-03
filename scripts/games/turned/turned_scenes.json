@@ -44,7 +44,7 @@
   },
   "hall": {
     "art": "SC-05",
-    "walk_zone": {"area": "house_down", "rect": [16, 320, 528, 80], "when": ["flag:pockets"], "not_while": ["flag:witness_home", "!flag:matches_shown"]},
+    "walk_zone_classic": {"area": "house_down", "rect": [16, 320, 528, 80], "when": ["flag:pockets"], "not_while": ["flag:witness_home", "!flag:matches_shown"]},
     "hotspots": [
       {"id": "front_door", "label": "hs_front_door", "kind": "exit", "dir": "left", "pos": [0.14, 0.52], "do": ["interact:front_door"]},
       {"id": "scarf", "label": "hs_scarf", "pos": [0.30, 0.42], "when": ["!flag:scarf", "flag:witness_home"], "do": ["interact:scarf"]},
