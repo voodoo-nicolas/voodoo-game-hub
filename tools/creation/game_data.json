@@ -13726,10 +13726,10 @@
    "finale": false
   },
   {
-   "id": "viral_gaming",
+   "id": "hub_brand",
    "name": {
-    "en": "Viral Gaming",
-    "es": "Viral Gaming"
+    "en": "Viral Game Hub",
+    "es": "Viral Game Hub"
    },
    "emoji": "🎮",
    "starter": false,
@@ -25937,7 +25937,7 @@
    "a": "developer",
    "b": "fun",
    "results": [
-    "viral_gaming"
+    "hub_brand"
    ]
   },
   {

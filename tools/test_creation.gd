@@ -103,6 +103,9 @@ func _test_combine() -> void:
 	# progress
 	var tp: Array = e.tier_progress(1)
 	check(tp[1] == 115 and tp[0] >= 4, "tier 1 progress %s" % str(tp))
+	# easter egg: Developer + Fun shows the hub's name from Brand.NAME
+	var brand_name: String = str(load("res://scripts/common/brand.gd").get_script_constant_map().NAME)
+	check(e.recipes.get(e.key("developer", "fun"), []) == ["hub_brand"] and e.items.hub_brand.name.en == brand_name and e.items.hub_brand.name.es == brand_name, "Developer + Fun = %s" % brand_name)
 
 func _test_gating() -> void:
 	var e = _fresh()
@@ -143,25 +146,27 @@ func _test_gating() -> void:
 	check(not G.store_owns(null) and not G.store_buy(null), "no store: not owned, can't buy")
 
 func _test_hints() -> void:
+	const T := 1_800_000_000  # any unix time: hints are 3 max, +1 per 24 h
 	var e = _fresh()
-	check(e.hints_available("2026-10-19") == 3, "3 free hints on a new day")
+	check(e.hints_available(T) == 3, "3 free hints on a new day")
 	# same+same recipes show one ingredient only and move straight on
-	var s1: Dictionary = e.use_hint("2026-10-19")
+	var s1: Dictionary = e.use_hint(T)
 	var sk: PackedStringArray = e.hint_key.split("+")
 	check(s1.ok and sk[0] == sk[1] and s1.ingredients.size() == 1, "same+same hint shows its single ingredient")
 	e = _fresh()
 	for st in ["earth", "fire", "wind", "water"]:
 		e.try_combine(st, st)
-	var h: Dictionary = e.use_hint("2026-10-19")
-	check(h.ok and h.ingredients.size() == 1 and e.hints_available("2026-10-19") == 2, "a hint reveals ONE ingredient and costs one")
+	var h: Dictionary = e.use_hint(T)
+	check(h.ok and h.ingredients.size() == 1 and e.hints_available(T) == 2, "a hint reveals ONE ingredient and costs one")
 	var first: String = h.ingredients[0]
-	var h2: Dictionary = e.use_hint("2026-10-19")
+	var h2: Dictionary = e.use_hint(T)
 	check(h2.ok and h2.second and h2.ingredients.size() == 2 and h2.ingredients.has(first), "asking again about it reveals the other ingredient")
-	var h3: Dictionary = e.use_hint("2026-10-19")
-	check(h3.ok and e.hints_available("2026-10-19") == 0, "third hint used")
-	var h4: Dictionary = e.use_hint("2026-10-19")
+	var h3: Dictionary = e.use_hint(T)
+	check(h3.ok and e.hints_available(T) == 0, "third hint used")
+	var h4: Dictionary = e.use_hint(T)
 	check(not h4.ok and h4.reason == "none_left", "no hint when none left")
-	check(e.hints_available("2026-10-20") == 3, "hints refill the next day")
+	check(e.hints_available(T + 86400) == 1, "one hint back after 24 h")
+	check(e.hints_available(T + 3 * 86400) == 3, "back to 3 after three days, never more")
 	# a hint is about something makeable and unfound
 	var e2 = _fresh()
 	for k in e2.hint_candidates():
@@ -171,14 +176,14 @@ func _test_hints() -> void:
 	e2.paywall_on = true
 	e2.owns_full = true
 	for i in 10:
-		check(e2.use_hint("2026-10-19").ok, "unlimited hint %d" % i)
-	check(e2.hints_available("2026-10-19") == 999, "unlimited")
+		check(e2.use_hint(T).ok, "unlimited hint %d" % i)
+	check(e2.hints_available(T) == 999, "unlimited")
 	# paywall off (today): still 3 a day -- unlimited hints are what the Full Game sells
 	var e4 = _fresh()
-	check(not e4.paywall_on and e4.hints_available("x") == 3, "paywall off: hints still 3 a day")
+	check(not e4.paywall_on and e4.hints_available(T) == 3, "paywall off: hints still 3 a day")
 	# the highlight clears once found
 	var e3 = _fresh()
-	var hh: Dictionary = e3.use_hint("d")
+	var hh: Dictionary = e3.use_hint(T)
 	var k: String = e3.hint_key
 	var p2: PackedStringArray = k.split("+")
 	e3.try_combine(p2[0], p2[1])
@@ -219,7 +224,7 @@ func _test_save() -> void:
 	var e = _fresh()
 	e.try_combine("earth", "fire")
 	e.try_combine("lava", "earth")  # a miss
-	e.use_hint("2026-10-19")
+	e.use_hint(1_800_000_000)
 	e.settings.lang = "es"
 	e.settings.theme = "light"
 	e.workspace = [{"id": "lava", "x": 0.25, "y": 0.5}]
@@ -229,7 +234,7 @@ func _test_save() -> void:
 	var e2 = _fresh()
 	check(e2.from_save(back), "save loads")
 	check(e2.found == e.found and e2.failed == e.failed, "found + failed pairs restored")
-	check(e2.hints_left == e.hints_left and e2.hint_day == "2026-10-19" and e2.hints_used == 1, "hint counter restored")
+	check(e2.hints_left == e.hints_left and e2.hint_stamp == e.hint_stamp and e2.hint_stamp > 0 and e2.hints_used == 1, "hint counter restored")
 	check(e2.hint_view == e.hint_view and e2.hint_key == e.hint_key, "hint highlight restored")
 	check(e2.settings.lang == "es" and e2.settings.theme == "light", "settings restored")
 	check(e2.workspace.size() == 1 and e2.workspace[0].id == "lava", "workspace restored")

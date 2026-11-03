@@ -140,6 +140,19 @@ static func _closure(starters: Array, rec: Dictionary, ids: Dictionary, tier_ok:
 						changed = true
 	return known
 
+## Easter egg (owner 2026-11-02): Developer + Fun = the hub itself. Its name
+## comes from Brand.NAME (APK side, so guarded); the data's name is the fallback.
+const BRAND_ITEM := "hub_brand"
+const BRAND_PATH := "res://scripts/common/brand.gd"
+
+func _brand_item() -> void:
+	if not items.has(BRAND_ITEM) or not ResourceLoader.exists(BRAND_PATH):
+		return
+	var brand: Script = load(BRAND_PATH)
+	var n: String = str(brand.get_script_constant_map().get("NAME", "")) if brand != null else ""
+	if n != "":
+		items[BRAND_ITEM].name = {"en": n, "es": n}
+
 ## Loads the generated data. Returns the validator's problems (empty = ok).
 func load_data(data: Dictionary) -> Array:
 	var errs: Array = validate(data)
@@ -156,6 +169,7 @@ func load_data(data: Dictionary) -> Array:
 		items[d.id] = d
 		item_order.append(d.id)
 		uses[d.id] = []
+	_brand_item()
 	tiers = data.tiers.duplicate(true)
 	for t in tiers:
 		t.id = int(t.id)

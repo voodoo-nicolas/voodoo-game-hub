@@ -1558,7 +1558,7 @@ Generated from `tools/creation/game_data.json` (source: `tools/creation/build.py
 - 🏜️ Desert + 💨 Wind = 🏜️ Dune, 🌪️ Sandstorm
 - 🕵️ Detective + 🥃 Glass = 👆 Fingerprint
 - 🕵️ Detective + 🖋️ Ink = 👆 Fingerprint
-- ⌨️ Developer + 🥳 Fun = 🎮 Viral Gaming
+- ⌨️ Developer + 🥳 Fun = 🎮 Viral Game Hub
 - 💠 Diamond + 🥇 Gold = 💍 Ring
 - 💠 Diamond + ❤️ Love = 💍 Ring
 - 💠 Diamond + 🔩 Metal = 💍 Ring

@@ -874,7 +874,7 @@ orchestra|Orchestra|Orquesta|🎻
 opera|Opera|Ópera|🎼
 # batch 2 (owner 2026-11-02, toward 1000): sports, science & tech, body, earth & seasons,
 # animals, fruit & veg, dishes, transport, buildings, jobs & arts, fantasy, space, play,
-# human progress, the unreal, courts & jails; Developer + Fun = Viral Gaming (owner's easter egg)
+# human progress, the unreal, courts & jails; Developer + Fun = the hub's own name (owner's easter egg)
 # sports & games
 rubber|Rubber|Goma|🟤
 ball|Ball|Pelota|🏐
@@ -1070,7 +1070,8 @@ merchant|Merchant|Comerciante|💰
 banker|Banker|Banquero|💳
 developer|Developer|Desarrollador|⌨️
 fun|Fun|Diversión|🥳
-viral_gaming|Viral Gaming|Viral Gaming|🎮
+# hub_brand: the game shows Brand.NAME instead of this fallback (creation_engine.gd)
+hub_brand|Viral Game Hub|Viral Game Hub|🎮
 poem|Poem|Poema|📝
 poet|Poet|Poeta|✒️
 novel|Novel|Novela|📕
@@ -4747,7 +4748,7 @@ seed+sun=corn
 bird+music=song
 # batch 2 (owner 2026-11-02, toward 1000): sports, science & tech, body, earth & seasons,
 # animals, fruit & veg, dishes, transport, buildings, jobs & arts, fantasy, space, play,
-# human progress, the unreal, courts & jails; Developer + Fun = Viral Gaming (owner's easter egg)
+# human progress, the unreal, courts & jails; Developer + Fun = the hub's own name (owner's easter egg)
 sap+tree=rubber
 fire+sap=rubber
 leather+wind=ball
@@ -5241,7 +5242,7 @@ app+human=developer
 computer+writer=developer
 party+toy=fun
 party+videogame=fun
-developer+fun=viral_gaming
+developer+fun=hub_brand
 """
 
 def key(a, b): return "+".join(sorted([a, b]))
@@ -5325,7 +5326,7 @@ TIERS = """
 2|evolution heart brain muscle tooth drought valley cliff savanna tundra season spring summer autumn winter elephant giraffe zebra kangaroo koala bamboo panda gorilla tiger cheetah rhino crab lobster snail mosquito ladybug dolphin flamingo otter mushroom apple lemon orange strawberry watermelon pineapple cherry rice chili garlic onion lettuce elf giant ogre fairy griffin child numbers vampire_bat chupacabra goblin
 3|rubber ball sport football basketball tennis baseball golf glove boxing karate trophy medal olympics stadium referee marathon athlete chess playing_cards puzzle magnet compass printing_press abacus key toothbrush dentist sleep dream nightmare north_pole equator stalactite octopus worm raccoon grape salad avocado guacamole nachos noodles ramen dumpling curry paella tortilla_espanola gazpacho ketchup waffle croissant baguette pretzel cupcake candy lollipop chewing_gum flan fried_egg kebab empanada balloon hot_air_balloon canoe palace fort temple shop theater market chef blacksmith miner carpenter actor shepherd merchant fun poem poet novel comic ballet dwarf troll genie carpet magic_carpet kraken hydra spell curse toy teddy_bear doll puppet pinata halloween carnival clown magician climber arithmetic math geometry writing alphabet language agriculture stone_age bronze cement concrete aqueduct calendar silver_bullet dracula haunted_house poltergeist crypt necromancer leprechaun vampire_hunter court lawyer jury trial verdict prisoner handcuffs escape police_station
 4|bowling atom molecule dna cell laboratory scientist nuclear_power telegraph calculator selfie emoji video_call password solar_farm wind_farm nurse pill firefly truck taxi subway tram scooter submarine yacht jet traffic_light gas_station tire hotel mall supermarket cinema office cafe pharmacy apartment metropolis capital university student teacher architect mechanic plumber journalist photographer banker developer cartoon cyclops potion playground backpack computer_virus antivirus ghost_ship zombie_apocalypse fingerprint
-5|virtual_reality smartwatch social_network meme podcast three_d_printer viral_gaming nebula asteroid space_probe mars_rover space_colony terraforming wormhole time_machine neptune uranus pluto moon_base
+5|virtual_reality smartwatch social_network meme podcast three_d_printer hub_brand nebula asteroid space_probe mars_rover space_colony terraforming wormhole time_machine neptune uranus pluto moon_base
 """
 theme = {}
 for line in TIERS.strip().splitlines():
