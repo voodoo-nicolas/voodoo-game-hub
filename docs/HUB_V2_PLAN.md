@@ -12,7 +12,7 @@ Read with `docs/STANDARDS.md`. Items move from here into STANDARDS once decided.
   called Blitz) — new names OPEN.
 - TODO owner: file "VIRAL GAME HUB" (word + logo) at INPI Argentina, classes 9 and 41. Argentina is first-to-file:
   the registration, not first use, gives the right.
-- Code: `Brand.NAME = "Viral Game Hub"`, `Brand.DEVELOPER = "Viral"`; never hard-code either.
+- Code: `Brand.NAME = "Viral Game Hub"`, `Brand.DEVELOPER = "Viral"`. Use the brand freely, but always read these constants instead of typing the name (one-line rename if the trademark check fails).
 
 ## 2. Phases (suggested order)
 | Phase | Work | Why this order |

@@ -1,7 +1,7 @@
 # Viral Game Hub — Claude Code instructions
 
 Developer **Viral**; hub **"Viral Game Hub"** (pending INPI/EUIPO check, `docs/HUB_V2_PLAN.md` §1). "Voodoo" is ONLY the neon-skull skin name.
-Never hard-code the hub name, package display name or store text: read `Brand.NAME` (`scripts/common/brand.gd`; create if missing).
+Show the brand as much as you like, but always read it from `scripts/common/brand.gd` (`Brand.NAME` = hub, `Brand.DEVELOPER` = developer), never type it out: the name is still pending its trademark check, so a rename must stay a one-line change.
 Free, ad-free (**no ads, ever**), ever-growing mini-game hub: Godot 4.7.2 / GDScript, no Gradle. Public repo https://github.com/voodoo-nicolas/voodoo-game-hub. ~100 games as downloadable `.pck` packs on GitHub Releases (tag `packs-v1`); goal: 100 games live before monetization ("a million games behind one icon"). Supabase: auth, leaderboards, friends/invites, Realtime rooms, entitlements. Bilingual EN/ES.
 Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall.gd` on branch `store` (worktree `../voodoo-game-hub-store`), not merged. Don't rebuild; integrate only when the owner says (2026-10-06: hub and games first). Plan `docs/monetization/PLAN.md`: 3-day trials for signed-in players, $0.99/game (Voodoo IQ $1.99), $4.99/month hub (7-day trial + $2.99 x 3 intro), 15 games always free.
 
