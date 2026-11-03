@@ -55,11 +55,11 @@ const LOOKS := {
 ## Zoom cards (turned_cards.json): the title above the picture, the caption under it, and the text the
 ## game writes over a paper picture. The note's time and the bar's name are the owner's [OPEN] placeholders.
 const CARDS := {
-	"coat_pocket": {"title": "Coat pocket", "caption": "Crude black stitches, torn open. A note inside."},
+	"coat_pocket": {"title": "Coat pocket", "caption": "The right pocket. A note inside."},
 	"matches": {"title": "Box of matches", "caption": "A cigar company's logo on the lid."},
 	"note": {
 		"title": "The note",
-		"caption": "From the coat's inner pocket.",
+		"caption": "From the coat's right pocket.",
 		"text": "Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.",
 	},
 	"watch": {"title": "Silver pocket watch", "caption": "It ticks, warm and humming."},

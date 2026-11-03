@@ -899,7 +899,8 @@ func _test_cards() -> void:
 	var problems: Array = CardsScript.validate(bad)
 	check(problems.size() >= 8, "bad cards are caught: %d problems" % problems.size())
 	check(CardsScript.card("note").has("text_rect") and CardsScript.card("nope").is_empty(), "a card is found by id")
-	check(CardsScript.art("CD-03") == null and CardsScript.art("") == null, "a card with no picture file has a placeholder (null art)")
+	check(CardsScript.art("CD-07") == null and CardsScript.art("") == null, "a card with no picture file has a placeholder (null art)")
+	check(CardsScript.art("CD-03") != null and CardsScript.card("note").has("text_angle"), "the blank note card is in, its words tilted with the paper")
 	for id in SceneText.CARDS:
 		check(not CardsScript.card(id).is_empty(), "the words for card '%s' have a card in turned_cards.json" % id)
 	# which card an item opens
@@ -1050,7 +1051,7 @@ func _test_scene_dialogue() -> void:
 	var wlay: Dictionary = hud._dlg_layout()
 	var wbust: Rect2 = wlay["bust"]
 	check(wbust.size.x > 0.0 and wbust.end.x < (wlay["box"] as Rect2).position.x and wbust.position.x >= 0.0, "walking: the tavernkeep's painted bust sits left of the box, on screen")
-	hud.show_dialogue({"kind": "line", "speaker": "shopkeeper", "speaker_name": "Shopkeeper", "text": long_text, "options": [], "selected": 0})
+	hud.show_dialogue({"kind": "line", "speaker": "owner", "speaker_name": "Owner", "text": long_text, "options": [], "selected": 0})
 	check((hud._dlg_layout()["bust"] as Rect2).size.x == 0.0, "walking: no bust for a speaker without a painted sheet")
 	hud.hide_dialogue()
 	# a dialogue that shows a card and ends in a painting
@@ -1196,7 +1197,7 @@ func _test_bar() -> void:
 		check(shop.is_free(it["pos"], 9.0) and Text.VERBS.has(it["verb"]) and _reachable(shop, shop.spawns["from_harbor"], it["pos"]), "shop interact %s is free, labelled and reachable" % it["id"])
 	check(_reachable(shop, shop.spawns["from_harbor"], shop.spawns["storeroom"]), "the street door -> the storeroom is reachable (through the doorway)")
 	check(shop.npcs.size() == 1 and shop.is_free(Vector2(float(shop.npcs[0]["pos"][0]), float(shop.npcs[0]["pos"][1])), 9.0), "the shopkeeper stands on free ground")
-	check(shop.is_free(Vector2(306, 134), 9.0) and shop.is_free(Vector2(340, 150), 9.0), "the spots by the cot are free")
+	check(shop.is_free(shop.spawns["keeper_stool"], 9.0) and shop.is_free(shop.spawns["keeper_stool"] + Vector2(0, 22), 9.0) and shop.is_free(shop.spawns["storeroom"], 9.0), "the spots by the cot are free")
 	var har: Area = Area.make("harbor") as Area
 	check(har.is_free(har.spawns["from_shop"], 9.0), "leaving the shop you stand on the pavement")
 	var st: Area = Area.make("street") as Area
@@ -1482,14 +1483,14 @@ func _test_follower() -> void:
 	for n in world._npcs:
 		if n.id == "shopkeeper":
 			keeper = n
-	check(keeper != null and keeper.position.distance_to(Vector2(306, 134)) < 2.0, "the shopkeeper sits by the cot")
-	world.player.position = Vector2(340, 150)
+	check(keeper != null and keeper.position.distance_to(world.area.spawns["keeper_stool"]) < 2.0, "the shopkeeper sits by the cot")
+	world.player.position = world.area.spawns["keeper_stool"] + Vector2(0, 22)
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "npc:shopkeeper", "A offers to talk to him")
 	world.engine.set_flag("watch_shown")          # (scene 6 starts from this talk; here we only check his plain line)
 	world.press_a()
 	check(hud.caption_text() == Text.NPC_LINES["shopkeeper"]["all"], "'Rest a little. Then we go to the priest.'")
-	world.player.position = Vector2(280, 382)
+	world.player.position = _ipos("cigar_exit")
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "cigar_exit", "A offers the street door")
 	world.press_a()
@@ -1544,7 +1545,7 @@ func _test_scene6() -> void:
 	world._load_area("cigar_shop")
 	world.clock.hour = 23.75
 	world._on_area_ready()
-	world.player.position = Vector2(340, 150)
+	world.player.position = world.area.spawns["keeper_stool"] + Vector2(0, 22)
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "npc:shopkeeper", "A offers to talk to the shopkeeper")
 	var hp_before: float = world.engine.hp

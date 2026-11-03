@@ -158,8 +158,8 @@
       "behavior": "stand",
       "stare": true,
       "pos": [
-        320,
-        58
+        858,
+        365
       ],
       "face": [
         0,
@@ -180,8 +180,8 @@
       "behavior": "stand",
       "afraid": true,
       "pos": [
-        105,
-        240
+        440,
+        470
       ],
       "face": [
         0,
@@ -193,7 +193,8 @@
         "hat": "flat",
         "skin": "d6b394",
         "accent": "8c8f70"
-      }
+      },
+      "sprite": "patron1"
     },
     {
       "id": "patron",
@@ -202,8 +203,8 @@
       "behavior": "stand",
       "afraid": true,
       "pos": [
-        495,
-        252
+        840,
+        470
       ],
       "face": [
         0,
@@ -215,7 +216,8 @@
         "hat": "bowler",
         "skin": "caa488",
         "accent": "b09a6a"
-      }
+      },
+      "sprite": "patron2"
     },
     {
       "id": "patron",
@@ -224,8 +226,8 @@
       "behavior": "stand",
       "afraid": true,
       "pos": [
-        155,
-        348
+        420,
+        680
       ],
       "face": [
         0,
@@ -237,7 +239,8 @@
         "hat": "cap",
         "skin": "e0c3a8",
         "accent": "c9a15b"
-      }
+      },
+      "sprite": "patron3"
     },
     {
       "id": "patron",
@@ -246,8 +249,8 @@
       "behavior": "stand",
       "afraid": true,
       "pos": [
-        485,
-        362
+        850,
+        680
       ],
       "face": [
         0,
@@ -259,7 +262,8 @@
         "hat": "top",
         "skin": "d9b99b",
         "accent": "8a8fa3"
-      }
+      },
+      "sprite": "patron4"
     }
   ],
   "shop_npcs": [
@@ -270,8 +274,8 @@
       "behavior": "stand",
       "stare": true,
       "pos": [
-        155,
-        236
+        625,
+        590
       ],
       "face": [
         0,

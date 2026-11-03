@@ -24,6 +24,7 @@ var interacts: Array = []              # {"id", "pos", "r", "verb"}
 var triggers: Array = []               # {"id", "rect"}
 var npcs: Array = []                   # dictionaries from turned_npcs.json
 var spawns := {}                       # name -> Vector2
+var margin := Color("4d4d4d")          # a painted area: the grey round the picture, carried on past its edge
 var light_spots: Array = []            # extra {"pos", "color", "energy", "radius"} (windows)
 
 static func make(area_id: String) -> RefCounted:
@@ -458,11 +459,90 @@ func _build_house_down_classic() -> void:
 		"kitchen_door": Vector2(436, 280),
 	}
 
+## The pub and the cigar shop are the owner's cutaway paintings too (2026-11-03, `rooms/bar.webp` and
+## `rooms/cigar_shop.webp`, 1264 x 848, made to match the house). Coordinates below are PAINTING pixels;
+## RM_K = 0.5 world px per painting px (a table is about 60 world px, a stool 22, people 46 tall).
+const RM_K := 0.5
+
+static func _r(x: float, y: float, w: float, h: float) -> Rect2:
+	return Rect2(x * RM_K, y * RM_K, w * RM_K, h * RM_K)
+
+static func _rp(x: float, y: float) -> Vector2:
+	return Vector2(x * RM_K, y * RM_K)
+
+## A painted room's frame: the picture, the camera bounds round it, and its people from turned_npcs.json
+## (their "pos" there are painting pixels too, turned into world px here).
+func _painted_room(art: String, npc_key: String) -> void:
+	indoor = true
+	painted = true
+	var paint := Vector2(1264, 848) * RM_K
+	bounds = Rect2(-170, -50, paint.x + 340, paint.y + 100)
+	deco = [{"t": "painting", "art": art, "rect": Rect2(Vector2.ZERO, paint)}]
+	solids = []
+	lamps = []
+	light_spots = []
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(NPC_DATA))
+	if typeof(parsed) == TYPE_DICTIONARY:
+		npcs = (parsed.get(npc_key, []) as Array).duplicate(true)
+		for n in npcs:
+			n["pos"] = [float(n["pos"][0]) * RM_K, float(n["pos"][1]) * RM_K]
+
+## The Crooked Lantern (`rooms/bar.webp`): the long counter and the bottle shelves across the back, the
+## fireplace in the back right corner, four tables with stools, the red rug, and the street door standing
+## at the front edge in the middle. The tavernkeep waits at the end of his counter, by the fire.
+func _build_bar() -> void:
+	_painted_room("rooms/bar", "bar_npcs")
+	for r in [_r(-400, -400, 2100, 730), _r(-400, 795, 2100, 400),
+			_r(-400, 330, 585, 100), _r(-400, 430, 560, 100), _r(-400, 530, 530, 100), _r(-400, 630, 505, 100), _r(-400, 730, 485, 70),
+			_r(1090, 330, 600, 165), _r(1115, 495, 600, 100), _r(1140, 595, 600, 100), _r(1165, 695, 600, 105),
+			_r(150, 300, 670, 100),                                  # the counter
+			_r(900, 300, 400, 95),                                   # the fireplace and its hearth
+			_r(380, 365, 45, 70), _r(688, 365, 47, 70),              # the counter stools
+			_r(205, 430, 200, 150), _r(150, 610, 230, 130),          # the left tables and their stools
+			_r(860, 425, 205, 165), _r(885, 610, 230, 135),          # the right tables and their stools
+			_r(525, 595, 215, 205)]:                                 # the street door
+		solids.append(r)
+	interacts = [
+		{"id": "bar_exit", "pos": _rp(632, 562), "r": 40.0 * RM_K, "verb": "door"},
+	]
+	light_spots = [{"pos": _rp(990, 340), "color": Color("ff8a3a"), "energy": 0.45, "radius": 110.0}]
+	spawns = {"from_street": _rp(632, 556)}
+
+## The cigar shop (`rooms/cigar_shop.webp`): the shop on the left (the glass street door in the left wall,
+## the counter, the shelves of boxes and tins, a display table), the thick wall, and the storeroom on the
+## right (tobacco drying from the beams, crates and barrels, the cot). The painting shows no door between
+## them: the way through is in front of the wall (y 630..680), like the house.
+func _build_cigar_shop() -> void:
+	_painted_room("rooms/cigar_shop", "shop_npcs")
+	margin = Color("666666")                # this picture's border is a lighter grey
+	for r in [_r(-400, -400, 2100, 800), _r(-400, 790, 2100, 400),
+			# the shop's back wall and the left wall in steps (the door is in it)
+			_r(-400, 400, 600, 100), _r(-400, 500, 570, 100), _r(-400, 600, 545, 100), _r(-400, 700, 520, 90),
+			_r(200, 300, 500, 105),                                  # shelves along the back
+			_r(290, 395, 300, 175), _r(585, 400, 115, 150),          # the counter and the cabinet beside it
+			_r(325, 630, 190, 160),                                  # the display table
+			_r(700, 300, 170, 330),                                  # the thick wall (walk past its front face)
+			# the storeroom: crates, barrels, the lamp stool, the cot, the right wall
+			_r(865, 290, 330, 200), _r(885, 490, 50, 110), _r(1010, 450, 400, 50), _r(1010, 500, 400, 260),
+			_r(880, 680, 165, 115), _r(1190, 290, 400, 600)]:
+		solids.append(r)
+	interacts = [
+		{"id": "cigar_exit", "pos": _rp(190, 560), "r": 45.0 * RM_K, "verb": "door"},
+	]
+	light_spots = [{"pos": _rp(1080, 440), "color": Color("ffb45a"), "energy": 0.4, "radius": 80.0}]
+	spawns = {
+		"from_harbor": _rp(215, 600),
+		"storeroom": _rp(990, 625),        # beside the cot, where you wake
+		"keeper_stool": _rp(965, 530),     # the shopkeeper watching you from the stool by the cot
+		"witness_shop": _rp(270, 650),     # the man from the bar, beside you in the shop
+	}
+
 # ---------------------------------------------------------------- The Crooked Lantern (the bar)
 # One room, 640 x 400: the counter along the north wall with the keeper behind it, three tables, a
 # fireplace, the street door in the south wall. Placeholder name and layout (docs/turned/DECISIONS.md).
 
-func _build_bar() -> void:
+## The previous drawn pub (one room, 640 x 400), kept for reference; not used since 2026-11-03.
+func _build_bar_classic() -> void:
 	indoor = true
 	bounds = Rect2(0, 0, 640, 416)
 	solids = []
@@ -569,7 +649,8 @@ func _build_harbor() -> void:
 # 560 x 416: the storeroom at the back (north) with its drying racks and a cot, a wall with a doorway,
 # the shop in front with the counter, a display table and the street door in the south wall.
 
-func _build_cigar_shop() -> void:
+## The previous drawn cigar shop, kept for reference; not used since 2026-11-03.
+func _build_cigar_shop_classic() -> void:
 	indoor = true
 	bounds = Rect2(0, 0, 560, 416)
 	solids = []

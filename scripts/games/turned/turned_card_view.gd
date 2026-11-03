@@ -28,6 +28,8 @@ var _tex: Texture2D = null
 var _t := 0.0
 var _box: StyleBoxFlat = null
 
+var _base_xf := Transform2D()      # the card's grow-in transform, so tilted words can be drawn inside it
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -129,6 +131,7 @@ func _draw() -> void:
 	var centre: Vector2 = (lay["frame"] as Rect2).get_center()
 	var s := lerpf(0.94, 1.0, a)
 	draw_set_transform(centre - centre * s, 0.0, Vector2(s, s))
+	_base_xf = Transform2D(0.0, Vector2(s, s), 0.0, centre - centre * s)
 	var frame: Rect2 = lay["frame"]
 	_frame_box(frame, Color(PLATE, 0.97 * a), Color(GOLD, a), 14.0 * k, 3.0 * k)
 	draw_rect(frame.grow(-7.0 * k), Color(GOLD_DIM, 0.55 * a), false, 1.2)
@@ -187,6 +190,12 @@ func _draw_card_text(lay: Dictionary, txt: String, k: float, a: float) -> void:
 	var r := text_rect(lay)
 	if r.size.x <= 0.0:
 		return
+	# "text_angle" (degrees): the words lie at the paper's tilt, turned round the middle of text_rect
+	var ang := deg_to_rad(float(_card.get("text_angle", 0.0)))
+	if ang != 0.0:
+		var c := r.get_center()
+		draw_set_transform_matrix(_base_xf * Transform2D(ang, c))
+		r = Rect2(r.position - c, r.size)
 	var ink := INK_DARK if str(_card.get("ink", "dark")) == "dark" else Color("efe6d2")
 	if _tex == null:
 		draw_rect(r.grow(10.0 * k), Color(PAPER, 0.95 * a))
@@ -197,6 +206,8 @@ func _draw_card_text(lay: Dictionary, txt: String, k: float, a: float) -> void:
 	var lines_h := _wrapped_height(font, txt, r.size.x, fs)
 	var y := r.position.y + (r.size.y - lines_h) * 0.5 + fs
 	font.draw_multiline_string(get_canvas_item(), Vector2(r.position.x, y), txt, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, -1, Color(ink, a))
+	if ang != 0.0:
+		draw_set_transform_matrix(_base_xf)
 
 static func _wrapped_height(font: Font, txt: String, width: float, fs: int) -> float:
 	return font.get_multiline_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, width, fs).y

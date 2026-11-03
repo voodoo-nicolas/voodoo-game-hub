@@ -2,7 +2,7 @@
   "cards": {
     "coat_pocket": {"art": "CD-01", "kind": "object"},
     "matches": {"art": "CD-02", "kind": "object"},
-    "note": {"art": "CD-03", "kind": "paper", "ink": "dark", "text_rect": [0.16, 0.2, 0.68, 0.56]},
+    "note": {"art": "CD-03", "kind": "paper", "ink": "dark", "text_rect": [0.345, 0.33, 0.28, 0.36], "text_angle": -20.0},
     "watch": {"art": "CD-05", "kind": "object"},
     "watch_broken": {"art": "CD-07", "kind": "object"}
   },

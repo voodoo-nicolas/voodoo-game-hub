@@ -1217,7 +1217,7 @@ func _make_owner(at: Vector2) -> void:
 	if _follower != null:
 		_follower.queue_free()
 	_follower = NpcScript.new()
-	_follower.setup({"id": "owner", "pos": [at.x, at.y], "face": [1, 0], "knows_player": 2,
+	_follower.setup({"id": "owner", "sprite": "shopkeeper_road", "pos": [at.x, at.y], "face": [1, 0], "knows_player": 2,
 			"look": {"coat": "5a4a38", "hat": "", "skin": "caa488", "accent": "c9a15b"}})
 	_entities.add_child(_follower)
 	_owner_light = PointLight2D.new()
@@ -1688,14 +1688,14 @@ func _on_area_ready() -> void:
 		hud.say(Text.INNER["tick_louder"])
 	elif area.id == "cigar_shop":
 		if not engine.has_flag("shop_scene"):
-			_spawn_witness_at(area.spawns["from_harbor"] + Vector2(60, -14), Vector2(-1, 0))
+			_spawn_witness_at(area.spawns["witness_shop"], Vector2(-1, 0))
 			start_dialogue("shop_visit")
 		elif engine.has_flag("blackout") and not engine.has_flag("storeroom_scene"):
 			start_dialogue("storeroom_wake")
 		if engine.has_flag("blackout"):
 			for n in _npcs:
 				if n.id == "shopkeeper":
-					n.position = Vector2(306, 134)          # on his stool by the cot
+					n.position = area.spawns["keeper_stool"]    # on his stool by the cot
 					n.face = Vector2(1, 0)
 	elif area.id == "night_road":
 		engine.set_flag("senses")
