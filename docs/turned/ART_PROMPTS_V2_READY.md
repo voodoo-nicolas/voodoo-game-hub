@@ -218,3 +218,129 @@ The upstairs is the owner's front cutaway (`games/turned/art/rooms/house_up.webp
 > Three rooms side by side, left to right, separated by thick partition walls with an open doorway near the bottom of each: on the left a Victorian parlour (a fireplace with cold ashes, a worn sofa and two armchairs on a dark red rug, an upright piano, a small bookshelf of sermons and sheet music, a stern family portrait in a black frame); in the middle the entrance hall (the heavy front door in the left wall of the hall or the back wall, a coat stand beside it with a grey wool scarf hanging on it, a tall hall clock, a narrow staircase going up at the back right, directly under the stairs of the floor above, and beside it a small low cellar door with an old iron lock); on the right a kitchen (a cold iron range stove, a scrubbed wooden table with two cups, one full, a pantry cupboard with a stale loaf, shelves of jars of plums and pickles, a stone-flagged floor). Oil lamps on the walls, warm amber light against cold blue-teal shadow. Every object clearly visible and separate. No person. Landscape, 1264 x 848.
 >
 > No text, no letters, no numbers, no readable signs, no interface, no icons, no labels, no watermark, no border, no logo, no modern objects.
+
+## Step 5: what the game still needs (2026-11-03, after the owner's new art went in as pack v6)
+In the game now: the house (both floors), SC-01..05, the mirror moment SC-03m, cards CD-01/02/05, her walk sprites (CS-01f) and busts, the tavernkeep and the witness (sheets + busts). Everything below is still drawn in code. Same rules as before: Gemini, one chat per group, attach `CS-01_busts.jpg` and the house pictures for the style. **Sheets: keep the three figures apart** (a strip of green between them) and draw the side view facing right.
+
+Order: 1) the shopkeeper, 2) the bar and the cigar shop as cutaways, 3) the four bar patrons, 4) the letter card, 5) the six street people.
+
+### 1. The shopkeeper (cigar shop, the night road)
+**CS-04a shopkeeper, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A stocky man of about fifty-five, grey whiskers, round wire spectacles, a dark brown waistcoat with a watch pocket over a collarless cream shirt, rolled sleeves, tobacco-stained fingers, dark trousers, worn brown boots.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**CS-04b shopkeeper on the night road, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A stocky man of about fifty-five, grey whiskers, round wire spectacles, a dark brown waistcoat with a watch pocket over a collarless cream shirt, rolled sleeves, tobacco-stained fingers, a heavy brown travel coat over it, a brimmed hat, a small oil lamp held in his right hand, dark trousers, worn brown boots.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**CS-04 shopkeeper, busts**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A sheet of four head-and-shoulders portraits of the same stocky man of about fifty-five with grey whiskers, round wire spectacles and a dark brown waistcoat over a cream shirt in a 2 x 2 grid, equal size, each centred in its square, on a plain dark warm brown background, lit by warm candle light from one side. Top left: neutral, guarded, lips pressed, watching over his spectacles. Top right: afraid, eyes wide behind the spectacles, leaning back. Bottom left: hard, a cold stern stare, jaw set. Bottom right: kind and tired, a weary gentle look. Same face, hair and clothes in all four. Square, 1024 x 1024.
+>
+> No text, no letters, no numbers, no interface, no icons, no labels, no watermark, no border, no logo, no modern objects.
+
+### 2. Two rooms as cutaways, like the house (the game traces a walkable map over them)
+Attach `house_up.jpg` (top floor 4) as the first picture.
+
+**HB-01 The Crooked Lantern, inside**
+> Match the attached picture exactly: the same painting style, the same camera, the same lighting and the same grey margin. Camera: the same as the attached picture of the house: a high front cutaway, the front wall removed, looking down into the rooms, a dark wall outline around the building, a flat grey margin around it. Wide landscape, 1264 x 848.
+>
+> One wide low-beamed tavern room, the full width of the picture. Along the back wall a long wooden counter with bottles on shelves behind it and a strip of floor behind the counter for the keeper; a stone fireplace with a low fire in the back right corner; four square wooden tables with two stools each, two on the left half and two on the right half, with clear floor between them; a worn red rug in the middle; a heavy street door in the middle of the front edge, seen from inside; oil lamps on the walls. Warm amber light, cold blue shadow in the corners. Every object clearly visible and separate. No person.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**HC-01 the cigar shop and its storeroom**
+> Match the attached picture exactly: the same painting style, the same camera, the same lighting and the same grey margin. Camera: the same as the attached picture of the house: a high front cutaway, the front wall removed, looking down into the rooms, a dark wall outline around the building, a flat grey margin around it. Wide landscape, 1264 x 848.
+>
+> Two rooms side by side divided by a thick wall with an open doorway near the front. On the left a small cigar and tobacco shop: a glass-fronted wooden counter, wall shelves of cigar boxes and tobacco tins, a small display table in the middle, a glass shop door in the left wall. On the right the storeroom: bundles of dried tobacco leaves hanging from the beams, wooden crates and barrels, a narrow cot with a grey blanket against the back wall, a low stool beside the cot, one small oil lamp. Warm amber light in the shop, dimmer and dustier in the storeroom. Every object clearly visible and separate. No person.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+### 3. The four bar patrons (they stare at her in fear; one sheet each)
+**PE-03.1 patron 1, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A burly dock labourer in his forties, a flat cap, a rough grey-green wool jacket, a neckerchief, heavy boots. An uneasy, frightened expression.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**PE-03.2 patron 2, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A thin clerk in his thirties, a black bowler hat, a dark brown suit coat worn shiny at the elbows, a high collar. An uneasy, frightened expression.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**PE-03.3 patron 3, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A young apprentice of about twenty, a soft cloth cap, shirt sleeves and braces, a worn waistcoat, patched trousers. An uneasy, frightened expression.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**PE-03.4 patron 4, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. An older gentleman in his sixties, a tall black top hat, a long dark blue overcoat, a grey scarf, a walking cane, a neat white beard. An uneasy, frightened expression.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+### 4. The letter card
+**CD-03 the note, blank page** (the game writes the words on the paper itself, so the page must be empty)
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain, a deep vignette. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A close-up of a small folded note lying open on a dark wooden table by candle light: cream laid paper, creased from being folded small, slightly torn at one corner, a faint smudge of soot, completely blank: no writing, no letters, no marks on the paper at all. A woman's pale hand rests near the edge. Square, 1024 x 1024.
+>
+> No text, no handwriting, no letters, no numbers, no scribble on the paper, no interface, no labels, no watermark, no border, no logo, no modern objects.
+
+### 5. The street people of the Residential Quarter (one sheet each; small on screen, so clear silhouettes matter most)
+**PE-10 the watcher, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A still, watchful man in his fifties in a long grey coat and a grey bowler hat, gloves, a thin moustache, hands clasped behind his back.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**PE-11 the baker (vendor), sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A plump baker in his forties, a white apron over a striped shirt, sleeves rolled, a flat white cap, flour on his forearms.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**PE-12 the lady with a parasol, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A woman in her thirties in a plum walking dress with a bustle, a small hat, gloves, holding a closed black lace parasol.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**PE-13 the newspaper reader, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A man in his forties, a brown flat cap, a tweed jacket, holding an open newspaper with blank pages in both hands.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**PE-14 the coachman, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A coachman in his fifties, a tall battered top hat, a long caped dark green driving coat, a whip held upright.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**PE-15 the lamplighter, sheet**
+> Hyper-detailed painted game concept art for a dark gothic narrative adventure, year 1900, Victorian. Painted-realistic with rich texture: wood grain, brick, wet cobblestone, heavy wool and brocade, tarnished brass, dust and haze in the light, fine film grain. Warm amber lamp, candle or fire light (like #c29d84 and #ce9e58) against cold desaturated blue-teal shadow (like #091318 and #1b1e20); near-black browns (#0e0c0a, #1a120d) and warm mid-browns (#553a2a, #755846).
+>
+> A character turnaround sheet: front, back, and side facing right, full body, neutral pose, plain flat bright green background, no ground shadow, no vignette, no foreground objects, no blur; the green must be flat and even edge to edge. The three views side by side, same scale, evenly spaced, with a clear gap of green between them (they must not touch). Landscape, 1536 x 1024. A lean lamplighter in his sixties, a peaked cap, a dark work coat, holding a long brass-tipped lighting pole upright beside him.
+>
+> No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+Not needed: her in bed (the prologue stays drawn: it has to sit exactly on the painted bed), outfit variants with no story beat yet, busts for people who only say one line.
