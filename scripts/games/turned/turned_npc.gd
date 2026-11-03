@@ -120,4 +120,5 @@ func _blocked(dir: Vector2, player: Node2D, others: Array) -> bool:
 func _draw() -> void:
 	if _shake > 0.05:
 		draw_set_transform(Vector2(sin(_phase * 38.0) * 0.9 * _shake, 0.0), 0.0, Vector2.ONE)
-	Art.person(self, look, face, _phase * 6.0 if _moving else 0.0, false, false, "npc_" + id, 1.0, "shock" if _afraid else "")
+	# painted sprites by name: npc_<id>_down / _up / _side, or the data's "sprite" (the follower is the witness)
+	Art.person(self, look, face, _phase * 6.0 if _moving else 0.0, false, false, "npc_" + str(data.get("sprite", id)), 1.0, "shock" if _afraid else "")

@@ -1170,7 +1170,7 @@ func _make_follower(at: Vector2, companion: bool = false) -> void:
 		_follower.queue_free()
 	_follower = NpcScript.new()
 	var look := {"coat": "4a4a44", "hat": "flat", "skin": "d0bfae", "accent": "6a6a62"} if companion else _follower_look()
-	_follower.setup({"id": "follower", "pos": [at.x, at.y], "face": [0, -1], "look": look, "knows_player": 1})
+	_follower.setup({"id": "follower", "sprite": "witness", "pos": [at.x, at.y], "face": [0, -1], "look": look, "knows_player": 1})
 	_entities.add_child(_follower)
 
 func _follower_begin() -> void:

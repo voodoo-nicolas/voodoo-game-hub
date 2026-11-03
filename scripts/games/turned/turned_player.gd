@@ -96,7 +96,14 @@ func _draw() -> void:
 ## old round figure read as "a fat blob"). Painted sprites (player_down / _up / _side) replace it by name.
 func _draw_standing(alpha: float) -> void:
 	var dir := "down" if face.y > 0.35 else ("up" if face.y < -0.35 else "side")
+	if Art.tex("player_" + dir) != null:
+		Art.shadow(self, Vector2(0.5, 0.5), 9.0, 3.4, 0.36 * alpha)
 	if Art.sprite(self, "player_" + dir, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0, Art.PERSON_CANVAS_H):
+		if scarf:
+			# the painted sprite has no scarf: wind one round the neck (feet at 0, the head's top about 46 px up)
+			var nx := 0.0 if dir != "side" else signf(face.x) * 0.6
+			draw_colored_polygon(Art.ellipse_points(Vector2(nx, -38.5), 4.6, 2.2), Color(Art.SCARF.r, Art.SCARF.g, Art.SCARF.b, alpha))
+			draw_colored_polygon(Art.ellipse_points(Vector2(nx - 1.0, -39.1), 2.6, 0.9), Color(1, 1, 1, 0.2 * alpha))
 		return
 	var walk := _phase if moving else 0.0
 	var dress := Color(str(LOOK["coat"]))

@@ -1047,7 +1047,11 @@ func _test_scene_dialogue() -> void:
 	hud.scene_rect = Rect2()
 	hud.size = Vector2(1280, 720)
 	hud.show_dialogue({"kind": "line", "speaker": "tavernkeep", "speaker_name": "Tavernkeep", "text": long_text, "options": [], "selected": 0})
-	check((hud._dlg_layout()["bust"] as Rect2).size.x == 0.0, "walking: the box has no bust and keeps its place")
+	var wlay: Dictionary = hud._dlg_layout()
+	var wbust: Rect2 = wlay["bust"]
+	check(wbust.size.x > 0.0 and wbust.end.x < (wlay["box"] as Rect2).position.x and wbust.position.x >= 0.0, "walking: the tavernkeep's painted bust sits left of the box, on screen")
+	hud.show_dialogue({"kind": "line", "speaker": "shopkeeper", "speaker_name": "Shopkeeper", "text": long_text, "options": [], "selected": 0})
+	check((hud._dlg_layout()["bust"] as Rect2).size.x == 0.0, "walking: no bust for a speaker without a painted sheet")
 	hud.hide_dialogue()
 	# a dialogue that shows a card and ends in a painting
 	await _scene_ready_world()

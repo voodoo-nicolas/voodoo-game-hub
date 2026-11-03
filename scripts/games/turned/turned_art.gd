@@ -81,6 +81,8 @@ static func person(ci: CanvasItem, look: Dictionary, face: Vector2, walk: float 
 		# painted art: a sprite per direction (name_down / name_up / name_side, side faces right and
 		# is mirrored for left), else a single name.png
 		var dir := "down" if face.y > 0.35 else ("up" if face.y < -0.35 else "side")
+		if tex(sprite_name + "_" + dir) != null:
+			shadow(ci, Vector2(0.5, 0.5), 10.0, 3.6, 0.36 * alpha)          # painted people stand on the floor
 		if sprite(ci, sprite_name + "_" + dir, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0, PERSON_CANVAS_H):
 			return
 		if sprite(ci, sprite_name, Vector2(0.5, 0.92), alpha, false, PERSON_CANVAS_H):

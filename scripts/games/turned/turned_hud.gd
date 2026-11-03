@@ -88,6 +88,8 @@ var _xp_disp := 0.0
 var _dlg: Dictionary = {}        # kind, speaker_name, text, options, selected (all translated)
 var _dlg_key := ""
 var _busts := {}                 # speaker id -> Texture2D or false (looked up once)
+const CLOSEUP_ART := "res://games/turned/art/scenes/SC-03m.webp"
+var _closeup_tex: Texture2D = null
 var _dlg_chars := 0.0            # characters shown so far (the line types out)
 
 var _cap_text := ""
@@ -733,6 +735,10 @@ func _dlg_layout() -> Dictionary:
 		r = Rect2(Vector2(left, size.y - gap - h), Vector2(w, h))
 		if has_bust:
 			bust = Rect2(Vector2(scene_rect.position.x + gap, r.end.y - bs), Vector2(bs, bs))
+	elif str(_dlg.get("speaker", "")) != "" and _bust_texture(str(_dlg.get("speaker", ""))) != null:
+		# Walk mode: the speaker's painted bust beside the box, when there is one (2026-11-03)
+		var bs2 := 112.0 * _k()
+		bust = Rect2(Vector2(r.position.x - bs2 - 12.0 * _k(), r.end.y - bs2), Vector2(bs2, bs2))
 	var rows: Array = []
 	var y := r.position.y + 12.0 + head + sz.y + 10.0
 	for i in opts.size():
@@ -784,7 +790,7 @@ func _draw_dialogue() -> void:
 			f -= 1
 		_text(Vector2(rr.position.x + 12.0, rr.position.y + rr.size.y * 0.5 + f * 0.35), label, f, TEXT_LIGHT if on else Color(0.78, 0.82, 0.92), HORIZONTAL_ALIGNMENT_LEFT, rr.size.x - 24.0)
 
-## The speaker's bust in a gold ring (Scene mode). The picture is a 2 x 2 sheet of four moods
+## The speaker's bust in a gold ring (Scene mode; in Walk mode too when the speaker has a painted sheet). The picture is a 2 x 2 sheet of four moods
 ## (neutral, afraid, angry, tired: ART_PROMPTS_V2.md batch 0) at res://games/turned/art/busts/<speaker>.webp|png;
 ## until it exists a silhouette tinted by the speaker is drawn.
 func _draw_bust(r: Rect2, speaker: String, mood: String) -> void:
@@ -845,9 +851,25 @@ func _draw_banner() -> void:
 
 # ---------------------------------------------------------------- the neck close-up
 
+## The owner's painting of the mirror moment (SC-03m), or null on a pack without it.
+func _closeup_texture() -> Texture2D:
+	if _closeup_tex == null and ResourceLoader.exists(CLOSEUP_ART):
+		_closeup_tex = load(CLOSEUP_ART)
+	return _closeup_tex
+
 func _draw_closeup() -> void:
 	var k := closeup
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.025, 0.05, 0.93 * k))
+	var pic := _closeup_texture()
+	if pic != null:
+		# the painting fills the screen (cropped to fit), slowly coming closer; the drawn neck is the fallback
+		var ts := pic.get_size()
+		var sc := maxf(size.x / ts.x, size.y / ts.y) * (1.0 + 0.04 * k)
+		var ds := ts * sc
+		draw_texture_rect(pic, Rect2((size - ds) * 0.5, ds), false, Color(1, 1, 1, k))
+		if k > 0.9 and _cap_t <= 0.0:
+			_text(Vector2(0, size.y - 36.0), tr(Text.UI["tap_a"]), 20, Color(1, 1, 1, 0.55 + 0.35 * sin(_clock * 3.0)), HORIZONTAL_ALIGNMENT_CENTER, size.x)
+		return
 	var u := minf(size.x, size.y * 1.4) / 1000.0
 	var c := Vector2(size.x * 0.5, size.y * 0.5 - 10.0 * u)
 	# a cold wash behind the neck
