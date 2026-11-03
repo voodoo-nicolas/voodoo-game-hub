@@ -1113,7 +1113,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 2,
-   "finale": true
+   "finale": false
   },
   {
    "id": "wolf",
@@ -1243,7 +1243,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 2,
-   "finale": true
+   "finale": false
   },
   {
    "id": "bat",
@@ -1373,7 +1373,7 @@
    "depth": 5,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "ash",
@@ -1698,7 +1698,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "window",
@@ -1724,7 +1724,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "chair",
@@ -1763,7 +1763,7 @@
    "depth": 9,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "wool",
@@ -1828,7 +1828,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "thread",
@@ -1997,7 +1997,7 @@
    "depth": 8,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "paint",
@@ -2049,7 +2049,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "bank",
@@ -2192,7 +2192,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "omelet",
@@ -2205,7 +2205,7 @@
    "depth": 5,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "juice",
@@ -2439,7 +2439,7 @@
    "depth": 4,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "road",
@@ -2816,7 +2816,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "chip",
@@ -3141,7 +3141,7 @@
    "depth": 8,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "letter",
@@ -3167,7 +3167,7 @@
    "depth": 9,
    "depth_band": 3,
    "tier": 5,
-   "finale": true
+   "finale": false
   },
   {
    "id": "ai",
@@ -3388,7 +3388,7 @@
    "depth": 8,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "plastic",
@@ -3427,7 +3427,7 @@
    "depth": 5,
    "depth_band": 2,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "movie",
@@ -3453,7 +3453,7 @@
    "depth": 8,
    "depth_band": 3,
    "tier": 5,
-   "finale": true
+   "finale": false
   },
   {
    "id": "bacon",
@@ -3934,7 +3934,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "barn",
@@ -4103,7 +4103,7 @@
    "depth": 5,
    "depth_band": 2,
    "tier": 1,
-   "finale": true
+   "finale": false
   },
   {
    "id": "blender",
@@ -4168,7 +4168,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "boiler",
@@ -4454,7 +4454,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 2,
-   "finale": true
+   "finale": false
   },
   {
    "id": "carbon_dioxide",
@@ -4636,7 +4636,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 2,
-   "finale": true
+   "finale": false
   },
   {
    "id": "chicken_wing",
@@ -6001,7 +6001,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "goat",
@@ -6391,7 +6391,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 2,
-   "finale": true
+   "finale": false
   },
   {
    "id": "horizon",
@@ -6781,7 +6781,7 @@
    "depth": 5,
    "depth_band": 2,
    "tier": 2,
-   "finale": true
+   "finale": false
   },
   {
    "id": "librarian",
@@ -7483,7 +7483,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 2,
-   "finale": true
+   "finale": false
   },
   {
    "id": "optical_fiber",
@@ -7951,7 +7951,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "pilot",
@@ -8211,7 +8211,7 @@
    "depth": 8,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "prism",
@@ -8367,7 +8367,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "rivulet",
@@ -8939,7 +8939,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "skeleton",
@@ -9043,7 +9043,7 @@
    "depth": 10,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "smog",
@@ -9875,7 +9875,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "turtle",
@@ -10031,7 +10031,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "vulture",
@@ -10083,7 +10083,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "warmth",
@@ -10304,7 +10304,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "x_ray",
@@ -10590,7 +10590,7 @@
    "depth": 9,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "soldier",
@@ -10733,7 +10733,7 @@
    "depth": 7,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "mask",
@@ -10928,7 +10928,7 @@
    "depth": 8,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "detective",
@@ -10941,7 +10941,7 @@
    "depth": 10,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "police_car",
@@ -10954,7 +10954,7 @@
    "depth": 10,
    "depth_band": 3,
    "tier": 4,
-   "finale": true
+   "finale": false
   },
   {
    "id": "datacenter",
@@ -11084,7 +11084,7 @@
    "depth": 6,
    "depth_band": 2,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "espresso",
@@ -11175,7 +11175,7 @@
    "depth": 9,
    "depth_band": 3,
    "tier": 3,
-   "finale": true
+   "finale": false
   },
   {
    "id": "song",
@@ -11319,9 +11319,3592 @@
    "depth_band": 3,
    "tier": 3,
    "finale": true
+  },
+  {
+   "id": "rubber",
+   "name": {
+    "en": "Rubber",
+    "es": "Goma"
+   },
+   "emoji": "🟤",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "ball",
+   "name": {
+    "en": "Ball",
+    "es": "Pelota"
+   },
+   "emoji": "🏐",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "sport",
+   "name": {
+    "en": "Sport",
+    "es": "Deporte"
+   },
+   "emoji": "🤾",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "football",
+   "name": {
+    "en": "Football",
+    "es": "Fútbol"
+   },
+   "emoji": "⚽",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "basketball",
+   "name": {
+    "en": "Basketball",
+    "es": "Baloncesto"
+   },
+   "emoji": "🏀",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "tennis",
+   "name": {
+    "en": "Tennis",
+    "es": "Tenis"
+   },
+   "emoji": "🎾",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "baseball",
+   "name": {
+    "en": "Baseball",
+    "es": "Béisbol"
+   },
+   "emoji": "⚾",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "golf",
+   "name": {
+    "en": "Golf",
+    "es": "Golf"
+   },
+   "emoji": "⛳",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "bowling",
+   "name": {
+    "en": "Bowling",
+    "es": "Bolos"
+   },
+   "emoji": "🎳",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "glove",
+   "name": {
+    "en": "Glove",
+    "es": "Guante"
+   },
+   "emoji": "🧤",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "boxing",
+   "name": {
+    "en": "Boxing",
+    "es": "Boxeo"
+   },
+   "emoji": "🥊",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "karate",
+   "name": {
+    "en": "Karate",
+    "es": "Kárate"
+   },
+   "emoji": "🥋",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "trophy",
+   "name": {
+    "en": "Trophy",
+    "es": "Trofeo"
+   },
+   "emoji": "🏆",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "medal",
+   "name": {
+    "en": "Medal",
+    "es": "Medalla"
+   },
+   "emoji": "🏅",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "olympics",
+   "name": {
+    "en": "Olympics",
+    "es": "Juegos Olímpicos"
+   },
+   "emoji": "🤸",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "stadium",
+   "name": {
+    "en": "Stadium",
+    "es": "Estadio"
+   },
+   "emoji": "🏟️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "referee",
+   "name": {
+    "en": "Referee",
+    "es": "Árbitro"
+   },
+   "emoji": "🟨",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "marathon",
+   "name": {
+    "en": "Marathon",
+    "es": "Maratón"
+   },
+   "emoji": "🏃",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "athlete",
+   "name": {
+    "en": "Athlete",
+    "es": "Atleta"
+   },
+   "emoji": "🏋️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "chess",
+   "name": {
+    "en": "Chess",
+    "es": "Ajedrez"
+   },
+   "emoji": "♟️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "playing_cards",
+   "name": {
+    "en": "Playing Cards",
+    "es": "Naipes"
+   },
+   "emoji": "🃏",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "puzzle",
+   "name": {
+    "en": "Puzzle",
+    "es": "Rompecabezas"
+   },
+   "emoji": "🧩",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "atom",
+   "name": {
+    "en": "Atom",
+    "es": "Átomo"
+   },
+   "emoji": "⚛️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "molecule",
+   "name": {
+    "en": "Molecule",
+    "es": "Molécula"
+   },
+   "emoji": "🔵",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "dna",
+   "name": {
+    "en": "DNA",
+    "es": "ADN"
+   },
+   "emoji": "🧬",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "cell",
+   "name": {
+    "en": "Cell",
+    "es": "Célula"
+   },
+   "emoji": "🟢",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "magnet",
+   "name": {
+    "en": "Magnet",
+    "es": "Imán"
+   },
+   "emoji": "🧲",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "compass",
+   "name": {
+    "en": "Compass",
+    "es": "Brújula"
+   },
+   "emoji": "🧭",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "laboratory",
+   "name": {
+    "en": "Laboratory",
+    "es": "Laboratorio"
+   },
+   "emoji": "🥼",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "scientist",
+   "name": {
+    "en": "Scientist",
+    "es": "Científico"
+   },
+   "emoji": "🔬",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "nuclear_power",
+   "name": {
+    "en": "Nuclear Power",
+    "es": "Energía nuclear"
+   },
+   "emoji": "☢️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "printing_press",
+   "name": {
+    "en": "Printing Press",
+    "es": "Imprenta"
+   },
+   "emoji": "📃",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "telegraph",
+   "name": {
+    "en": "Telegraph",
+    "es": "Telégrafo"
+   },
+   "emoji": "📟",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "abacus",
+   "name": {
+    "en": "Abacus",
+    "es": "Ábaco"
+   },
+   "emoji": "🧮",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "calculator",
+   "name": {
+    "en": "Calculator",
+    "es": "Calculadora"
+   },
+   "emoji": "🔢",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "evolution",
+   "name": {
+    "en": "Evolution",
+    "es": "Evolución"
+   },
+   "emoji": "🐒",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "virtual_reality",
+   "name": {
+    "en": "Virtual Reality",
+    "es": "Realidad virtual"
+   },
+   "emoji": "🥽",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "smartwatch",
+   "name": {
+    "en": "Smartwatch",
+    "es": "Reloj inteligente"
+   },
+   "emoji": "⌚",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "selfie",
+   "name": {
+    "en": "Selfie",
+    "es": "Selfi"
+   },
+   "emoji": "🤳",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "social_network",
+   "name": {
+    "en": "Social Network",
+    "es": "Red social"
+   },
+   "emoji": "👍",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "emoji",
+   "name": {
+    "en": "Emoji",
+    "es": "Emoji"
+   },
+   "emoji": "😀",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "meme",
+   "name": {
+    "en": "Meme",
+    "es": "Meme"
+   },
+   "emoji": "🐸",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "podcast",
+   "name": {
+    "en": "Podcast",
+    "es": "Pódcast"
+   },
+   "emoji": "🎙️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "video_call",
+   "name": {
+    "en": "Video Call",
+    "es": "Videollamada"
+   },
+   "emoji": "📹",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "key",
+   "name": {
+    "en": "Key",
+    "es": "Llave"
+   },
+   "emoji": "🔑",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "password",
+   "name": {
+    "en": "Password",
+    "es": "Contraseña"
+   },
+   "emoji": "🔐",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "three_d_printer",
+   "name": {
+    "en": "3D Printer",
+    "es": "Impresora 3D"
+   },
+   "emoji": "🖨️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "solar_farm",
+   "name": {
+    "en": "Solar Farm",
+    "es": "Planta solar"
+   },
+   "emoji": "🔆",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "wind_farm",
+   "name": {
+    "en": "Wind Farm",
+    "es": "Parque eólico"
+   },
+   "emoji": "🌀",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "heart",
+   "name": {
+    "en": "Heart",
+    "es": "Corazón"
+   },
+   "emoji": "❤️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "brain",
+   "name": {
+    "en": "Brain",
+    "es": "Cerebro"
+   },
+   "emoji": "🧠",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "muscle",
+   "name": {
+    "en": "Muscle",
+    "es": "Músculo"
+   },
+   "emoji": "💪",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "tooth",
+   "name": {
+    "en": "Tooth",
+    "es": "Diente"
+   },
+   "emoji": "🦷",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "toothbrush",
+   "name": {
+    "en": "Toothbrush",
+    "es": "Cepillo de dientes"
+   },
+   "emoji": "🪥",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "dentist",
+   "name": {
+    "en": "Dentist",
+    "es": "Dentista"
+   },
+   "emoji": "😁",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "nurse",
+   "name": {
+    "en": "Nurse",
+    "es": "Enfermero"
+   },
+   "emoji": "🩹",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "pill",
+   "name": {
+    "en": "Pill",
+    "es": "Pastilla"
+   },
+   "emoji": "💊",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "sleep",
+   "name": {
+    "en": "Sleep",
+    "es": "Dormir"
+   },
+   "emoji": "😴",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "dream",
+   "name": {
+    "en": "Dream",
+    "es": "Sueño"
+   },
+   "emoji": "💭",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "nightmare",
+   "name": {
+    "en": "Nightmare",
+    "es": "Pesadilla"
+   },
+   "emoji": "😱",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "drought",
+   "name": {
+    "en": "Drought",
+    "es": "Sequía"
+   },
+   "emoji": "🥵",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "monsoon",
+   "name": {
+    "en": "Monsoon",
+    "es": "Monzón"
+   },
+   "emoji": "🌧️",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "canyon",
+   "name": {
+    "en": "Canyon",
+    "es": "Desfiladero"
+   },
+   "emoji": "🏜️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "valley",
+   "name": {
+    "en": "Valley",
+    "es": "Valle"
+   },
+   "emoji": "🏞️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "cliff",
+   "name": {
+    "en": "Cliff",
+    "es": "Acantilado"
+   },
+   "emoji": "🧗",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "delta",
+   "name": {
+    "en": "Delta",
+    "es": "Delta"
+   },
+   "emoji": "🔺",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "savanna",
+   "name": {
+    "en": "Savanna",
+    "es": "Sabana"
+   },
+   "emoji": "🌾",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "tundra",
+   "name": {
+    "en": "Tundra",
+    "es": "Tundra"
+   },
+   "emoji": "🌨️",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "north_pole",
+   "name": {
+    "en": "North Pole",
+    "es": "Polo Norte"
+   },
+   "emoji": "🧊",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "equator",
+   "name": {
+    "en": "Equator",
+    "es": "Ecuador"
+   },
+   "emoji": "🌐",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "stalactite",
+   "name": {
+    "en": "Stalactite",
+    "es": "Estalactita"
+   },
+   "emoji": "🔻",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "season",
+   "name": {
+    "en": "Season",
+    "es": "Estación del año"
+   },
+   "emoji": "📅",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "spring",
+   "name": {
+    "en": "Spring",
+    "es": "Primavera"
+   },
+   "emoji": "🌸",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "summer",
+   "name": {
+    "en": "Summer",
+    "es": "Verano"
+   },
+   "emoji": "🌞",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "autumn",
+   "name": {
+    "en": "Autumn",
+    "es": "Otoño"
+   },
+   "emoji": "🍁",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "winter",
+   "name": {
+    "en": "Winter",
+    "es": "Invierno"
+   },
+   "emoji": "❄️",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "elephant",
+   "name": {
+    "en": "Elephant",
+    "es": "Elefante"
+   },
+   "emoji": "🐘",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "giraffe",
+   "name": {
+    "en": "Giraffe",
+    "es": "Jirafa"
+   },
+   "emoji": "🦒",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "zebra",
+   "name": {
+    "en": "Zebra",
+    "es": "Cebra"
+   },
+   "emoji": "🦓",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "kangaroo",
+   "name": {
+    "en": "Kangaroo",
+    "es": "Canguro"
+   },
+   "emoji": "🦘",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "koala",
+   "name": {
+    "en": "Koala",
+    "es": "Koala"
+   },
+   "emoji": "🐨",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "bamboo",
+   "name": {
+    "en": "Bamboo",
+    "es": "Bambú"
+   },
+   "emoji": "🎋",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "panda",
+   "name": {
+    "en": "Panda",
+    "es": "Panda"
+   },
+   "emoji": "🐼",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "gorilla",
+   "name": {
+    "en": "Gorilla",
+    "es": "Gorila"
+   },
+   "emoji": "🦍",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "tiger",
+   "name": {
+    "en": "Tiger",
+    "es": "Tigre"
+   },
+   "emoji": "🐅",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "cheetah",
+   "name": {
+    "en": "Cheetah",
+    "es": "Guepardo"
+   },
+   "emoji": "🐆",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "rhino",
+   "name": {
+    "en": "Rhinoceros",
+    "es": "Rinoceronte"
+   },
+   "emoji": "🦏",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "octopus",
+   "name": {
+    "en": "Octopus",
+    "es": "Pulpo"
+   },
+   "emoji": "🐙",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "crab",
+   "name": {
+    "en": "Crab",
+    "es": "Cangrejo"
+   },
+   "emoji": "🦀",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "lobster",
+   "name": {
+    "en": "Lobster",
+    "es": "Langosta"
+   },
+   "emoji": "🦞",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "worm",
+   "name": {
+    "en": "Worm",
+    "es": "Gusano"
+   },
+   "emoji": "🐛",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "snail",
+   "name": {
+    "en": "Snail",
+    "es": "Caracol"
+   },
+   "emoji": "🐌",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "mosquito",
+   "name": {
+    "en": "Mosquito",
+    "es": "Mosquito"
+   },
+   "emoji": "🦟",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "ladybug",
+   "name": {
+    "en": "Ladybug",
+    "es": "Mariquita"
+   },
+   "emoji": "🐞",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "firefly",
+   "name": {
+    "en": "Firefly",
+    "es": "Luciérnaga"
+   },
+   "emoji": "✨",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "dolphin",
+   "name": {
+    "en": "Dolphin",
+    "es": "Delfín"
+   },
+   "emoji": "🐬",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "flamingo",
+   "name": {
+    "en": "Flamingo",
+    "es": "Flamenco"
+   },
+   "emoji": "🦩",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "otter",
+   "name": {
+    "en": "Otter",
+    "es": "Nutria"
+   },
+   "emoji": "🦦",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "raccoon",
+   "name": {
+    "en": "Raccoon",
+    "es": "Mapache"
+   },
+   "emoji": "🦝",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "mushroom",
+   "name": {
+    "en": "Mushroom",
+    "es": "Seta"
+   },
+   "emoji": "🍄",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "apple",
+   "name": {
+    "en": "Apple",
+    "es": "Manzana"
+   },
+   "emoji": "🍎",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "lemon",
+   "name": {
+    "en": "Lemon",
+    "es": "Limón"
+   },
+   "emoji": "🍋",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "orange",
+   "name": {
+    "en": "Orange",
+    "es": "Naranja"
+   },
+   "emoji": "🍊",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "strawberry",
+   "name": {
+    "en": "Strawberry",
+    "es": "Fresa"
+   },
+   "emoji": "🍓",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "watermelon",
+   "name": {
+    "en": "Watermelon",
+    "es": "Sandía"
+   },
+   "emoji": "🍉",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "pineapple",
+   "name": {
+    "en": "Pineapple",
+    "es": "Piña"
+   },
+   "emoji": "🍍",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "grape",
+   "name": {
+    "en": "Grape",
+    "es": "Uva"
+   },
+   "emoji": "🍇",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "cherry",
+   "name": {
+    "en": "Cherry",
+    "es": "Cereza"
+   },
+   "emoji": "🍒",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "rice",
+   "name": {
+    "en": "Rice",
+    "es": "Arroz"
+   },
+   "emoji": "🍚",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "chili",
+   "name": {
+    "en": "Chili Pepper",
+    "es": "Guindilla"
+   },
+   "emoji": "🌶️",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "garlic",
+   "name": {
+    "en": "Garlic",
+    "es": "Ajo"
+   },
+   "emoji": "🧄",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "onion",
+   "name": {
+    "en": "Onion",
+    "es": "Cebolla"
+   },
+   "emoji": "🧅",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "lettuce",
+   "name": {
+    "en": "Lettuce",
+    "es": "Lechuga"
+   },
+   "emoji": "🥬",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "salad",
+   "name": {
+    "en": "Salad",
+    "es": "Ensalada"
+   },
+   "emoji": "🥗",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "avocado",
+   "name": {
+    "en": "Avocado",
+    "es": "Aguacate"
+   },
+   "emoji": "🥑",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "guacamole",
+   "name": {
+    "en": "Guacamole",
+    "es": "Guacamole"
+   },
+   "emoji": "🥣",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "nachos",
+   "name": {
+    "en": "Nachos",
+    "es": "Nachos"
+   },
+   "emoji": "🧀",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "noodles",
+   "name": {
+    "en": "Noodles",
+    "es": "Fideos"
+   },
+   "emoji": "🍜",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "ramen",
+   "name": {
+    "en": "Ramen",
+    "es": "Ramen"
+   },
+   "emoji": "🍥",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "dumpling",
+   "name": {
+    "en": "Dumpling",
+    "es": "Dumpling"
+   },
+   "emoji": "🥟",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "curry",
+   "name": {
+    "en": "Curry",
+    "es": "Curri"
+   },
+   "emoji": "🍛",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "paella",
+   "name": {
+    "en": "Paella",
+    "es": "Paella"
+   },
+   "emoji": "🥘",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "tortilla_espanola",
+   "name": {
+    "en": "Spanish Omelette",
+    "es": "Tortilla española"
+   },
+   "emoji": "🍳",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "gazpacho",
+   "name": {
+    "en": "Gazpacho",
+    "es": "Gazpacho"
+   },
+   "emoji": "🥤",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "ketchup",
+   "name": {
+    "en": "Ketchup",
+    "es": "Kétchup"
+   },
+   "emoji": "🥫",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "waffle",
+   "name": {
+    "en": "Waffle",
+    "es": "Gofre"
+   },
+   "emoji": "🧇",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "croissant",
+   "name": {
+    "en": "Croissant",
+    "es": "Cruasán"
+   },
+   "emoji": "🥐",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "baguette",
+   "name": {
+    "en": "Baguette",
+    "es": "Barra de pan"
+   },
+   "emoji": "🥖",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "pretzel",
+   "name": {
+    "en": "Pretzel",
+    "es": "Pretzel"
+   },
+   "emoji": "🥨",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "cupcake",
+   "name": {
+    "en": "Cupcake",
+    "es": "Magdalena"
+   },
+   "emoji": "🧁",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "candy",
+   "name": {
+    "en": "Candy",
+    "es": "Golosina"
+   },
+   "emoji": "🍬",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "lollipop",
+   "name": {
+    "en": "Lollipop",
+    "es": "Piruleta"
+   },
+   "emoji": "🍭",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "chewing_gum",
+   "name": {
+    "en": "Chewing Gum",
+    "es": "Chicle"
+   },
+   "emoji": "🫧",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "flan",
+   "name": {
+    "en": "Flan",
+    "es": "Flan"
+   },
+   "emoji": "🍮",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "fried_egg",
+   "name": {
+    "en": "Fried Egg",
+    "es": "Huevo frito"
+   },
+   "emoji": "🍳",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "kebab",
+   "name": {
+    "en": "Kebab",
+    "es": "Kebab"
+   },
+   "emoji": "🥙",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "empanada",
+   "name": {
+    "en": "Empanada",
+    "es": "Empanada"
+   },
+   "emoji": "🥠",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "truck",
+   "name": {
+    "en": "Truck",
+    "es": "Camión"
+   },
+   "emoji": "🚚",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "taxi",
+   "name": {
+    "en": "Taxi",
+    "es": "Taxi"
+   },
+   "emoji": "🚕",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "subway",
+   "name": {
+    "en": "Subway",
+    "es": "Metro"
+   },
+   "emoji": "🚇",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "tram",
+   "name": {
+    "en": "Tram",
+    "es": "Tranvía"
+   },
+   "emoji": "🚋",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "scooter",
+   "name": {
+    "en": "Scooter",
+    "es": "Patinete"
+   },
+   "emoji": "🛴",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "balloon",
+   "name": {
+    "en": "Balloon",
+    "es": "Globo"
+   },
+   "emoji": "🎈",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "hot_air_balloon",
+   "name": {
+    "en": "Hot Air Balloon",
+    "es": "Globo aerostático"
+   },
+   "emoji": "🪂",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "submarine",
+   "name": {
+    "en": "Submarine",
+    "es": "Submarino"
+   },
+   "emoji": "🐋",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "yacht",
+   "name": {
+    "en": "Yacht",
+    "es": "Yate"
+   },
+   "emoji": "🛥️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "canoe",
+   "name": {
+    "en": "Canoe",
+    "es": "Canoa"
+   },
+   "emoji": "🛶",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "jet",
+   "name": {
+    "en": "Jet",
+    "es": "Avión a reacción"
+   },
+   "emoji": "🛩️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "traffic_light",
+   "name": {
+    "en": "Traffic Light",
+    "es": "Semáforo"
+   },
+   "emoji": "🚦",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "gas_station",
+   "name": {
+    "en": "Gas Station",
+    "es": "Gasolinera"
+   },
+   "emoji": "⛽",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "tire",
+   "name": {
+    "en": "Tire",
+    "es": "Neumático"
+   },
+   "emoji": "⭕",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "palace",
+   "name": {
+    "en": "Palace",
+    "es": "Palacio"
+   },
+   "emoji": "🏯",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "fort",
+   "name": {
+    "en": "Fort",
+    "es": "Fuerte"
+   },
+   "emoji": "🧱",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "temple",
+   "name": {
+    "en": "Temple",
+    "es": "Templo"
+   },
+   "emoji": "⛩️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "hotel",
+   "name": {
+    "en": "Hotel",
+    "es": "Hotel"
+   },
+   "emoji": "🏨",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "shop",
+   "name": {
+    "en": "Shop",
+    "es": "Tienda"
+   },
+   "emoji": "🏪",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "mall",
+   "name": {
+    "en": "Shopping Mall",
+    "es": "Centro comercial"
+   },
+   "emoji": "🛍️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "supermarket",
+   "name": {
+    "en": "Supermarket",
+    "es": "Supermercado"
+   },
+   "emoji": "🛒",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "cinema",
+   "name": {
+    "en": "Cinema",
+    "es": "Cine"
+   },
+   "emoji": "🎬",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "theater",
+   "name": {
+    "en": "Theater",
+    "es": "Teatro"
+   },
+   "emoji": "🎪",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "office",
+   "name": {
+    "en": "Office",
+    "es": "Oficina"
+   },
+   "emoji": "🖇️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "cafe",
+   "name": {
+    "en": "Café",
+    "es": "Cafetería"
+   },
+   "emoji": "🫖",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "pharmacy",
+   "name": {
+    "en": "Pharmacy",
+    "es": "Farmacia"
+   },
+   "emoji": "⚕️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "market",
+   "name": {
+    "en": "Market",
+    "es": "Mercado"
+   },
+   "emoji": "🧺",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "apartment",
+   "name": {
+    "en": "Apartment",
+    "es": "Apartamento"
+   },
+   "emoji": "🏬",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "metropolis",
+   "name": {
+    "en": "Metropolis",
+    "es": "Metrópolis"
+   },
+   "emoji": "🌆",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "capital",
+   "name": {
+    "en": "Capital City",
+    "es": "Capital"
+   },
+   "emoji": "🏙️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "university",
+   "name": {
+    "en": "University",
+    "es": "Universidad"
+   },
+   "emoji": "🎓",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "student",
+   "name": {
+    "en": "Student",
+    "es": "Estudiante"
+   },
+   "emoji": "📚",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "teacher",
+   "name": {
+    "en": "Teacher",
+    "es": "Profesor"
+   },
+   "emoji": "🧑‍🏫",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "chef",
+   "name": {
+    "en": "Chef",
+    "es": "Chef"
+   },
+   "emoji": "🔪",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "blacksmith",
+   "name": {
+    "en": "Blacksmith",
+    "es": "Herrero"
+   },
+   "emoji": "⚒️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "miner",
+   "name": {
+    "en": "Miner",
+    "es": "Minero"
+   },
+   "emoji": "⛏️",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "carpenter",
+   "name": {
+    "en": "Carpenter",
+    "es": "Carpintero"
+   },
+   "emoji": "🪚",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "architect",
+   "name": {
+    "en": "Architect",
+    "es": "Arquitecto"
+   },
+   "emoji": "📐",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "mechanic",
+   "name": {
+    "en": "Mechanic",
+    "es": "Mecánico"
+   },
+   "emoji": "🔧",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "plumber",
+   "name": {
+    "en": "Plumber",
+    "es": "Fontanero"
+   },
+   "emoji": "🚰",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "journalist",
+   "name": {
+    "en": "Journalist",
+    "es": "Periodista"
+   },
+   "emoji": "🗞️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "photographer",
+   "name": {
+    "en": "Photographer",
+    "es": "Fotógrafo"
+   },
+   "emoji": "📸",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "actor",
+   "name": {
+    "en": "Actor",
+    "es": "Actor"
+   },
+   "emoji": "🎞️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "shepherd",
+   "name": {
+    "en": "Shepherd",
+    "es": "Pastor"
+   },
+   "emoji": "🐑",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "merchant",
+   "name": {
+    "en": "Merchant",
+    "es": "Comerciante"
+   },
+   "emoji": "💰",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "banker",
+   "name": {
+    "en": "Banker",
+    "es": "Banquero"
+   },
+   "emoji": "💳",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "developer",
+   "name": {
+    "en": "Developer",
+    "es": "Desarrollador"
+   },
+   "emoji": "⌨️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "fun",
+   "name": {
+    "en": "Fun",
+    "es": "Diversión"
+   },
+   "emoji": "🥳",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "viral_gaming",
+   "name": {
+    "en": "Viral Gaming",
+    "es": "Viral Gaming"
+   },
+   "emoji": "🎮",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "poem",
+   "name": {
+    "en": "Poem",
+    "es": "Poema"
+   },
+   "emoji": "📝",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "poet",
+   "name": {
+    "en": "Poet",
+    "es": "Poeta"
+   },
+   "emoji": "✒️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "novel",
+   "name": {
+    "en": "Novel",
+    "es": "Novela"
+   },
+   "emoji": "📕",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "comic",
+   "name": {
+    "en": "Comic",
+    "es": "Cómic"
+   },
+   "emoji": "💥",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "cartoon",
+   "name": {
+    "en": "Cartoon",
+    "es": "Dibujos animados"
+   },
+   "emoji": "📺",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "ballet",
+   "name": {
+    "en": "Ballet",
+    "es": "Ballet"
+   },
+   "emoji": "🩰",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "elf",
+   "name": {
+    "en": "Elf",
+    "es": "Elfo"
+   },
+   "emoji": "🧝",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "dwarf",
+   "name": {
+    "en": "Dwarf",
+    "es": "Enano"
+   },
+   "emoji": "🪓",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "giant",
+   "name": {
+    "en": "Giant",
+    "es": "Gigante"
+   },
+   "emoji": "🗿",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "troll",
+   "name": {
+    "en": "Troll",
+    "es": "Trol"
+   },
+   "emoji": "👹",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "ogre",
+   "name": {
+    "en": "Ogre",
+    "es": "Ogro"
+   },
+   "emoji": "👺",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "fairy",
+   "name": {
+    "en": "Fairy",
+    "es": "Hada"
+   },
+   "emoji": "🧚",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "genie",
+   "name": {
+    "en": "Genie",
+    "es": "Genio"
+   },
+   "emoji": "🧞",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "carpet",
+   "name": {
+    "en": "Carpet",
+    "es": "Alfombra"
+   },
+   "emoji": "🧶",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "magic_carpet",
+   "name": {
+    "en": "Magic Carpet",
+    "es": "Alfombra mágica"
+   },
+   "emoji": "🌠",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "kraken",
+   "name": {
+    "en": "Kraken",
+    "es": "Kraken"
+   },
+   "emoji": "🦑",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "cyclops",
+   "name": {
+    "en": "Cyclops",
+    "es": "Cíclope"
+   },
+   "emoji": "👁️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "griffin",
+   "name": {
+    "en": "Griffin",
+    "es": "Grifo"
+   },
+   "emoji": "🦅",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "hydra",
+   "name": {
+    "en": "Hydra",
+    "es": "Hidra"
+   },
+   "emoji": "🐲",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "potion",
+   "name": {
+    "en": "Potion",
+    "es": "Poción"
+   },
+   "emoji": "⚗️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "spell",
+   "name": {
+    "en": "Spell",
+    "es": "Hechizo"
+   },
+   "emoji": "🔮",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "curse",
+   "name": {
+    "en": "Curse",
+    "es": "Maldición"
+   },
+   "emoji": "🧿",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "crystal",
+   "name": {
+    "en": "Crystal",
+    "es": "Cristal"
+   },
+   "emoji": "💠",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "nebula",
+   "name": {
+    "en": "Nebula",
+    "es": "Nebulosa"
+   },
+   "emoji": "🌌",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "asteroid",
+   "name": {
+    "en": "Asteroid",
+    "es": "Asteroide"
+   },
+   "emoji": "🪨",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "space_probe",
+   "name": {
+    "en": "Space Probe",
+    "es": "Sonda espacial"
+   },
+   "emoji": "🛰️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "mars_rover",
+   "name": {
+    "en": "Mars Rover",
+    "es": "Rover marciano"
+   },
+   "emoji": "🚙",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "space_colony",
+   "name": {
+    "en": "Space Colony",
+    "es": "Colonia espacial"
+   },
+   "emoji": "🏘️",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "terraforming",
+   "name": {
+    "en": "Terraforming",
+    "es": "Terraformación"
+   },
+   "emoji": "🌱",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "wormhole",
+   "name": {
+    "en": "Wormhole",
+    "es": "Agujero de gusano"
+   },
+   "emoji": "🌀",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": false
+  },
+  {
+   "id": "time_machine",
+   "name": {
+    "en": "Time Machine",
+    "es": "Máquina del tiempo"
+   },
+   "emoji": "⏳",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "neptune",
+   "name": {
+    "en": "Neptune",
+    "es": "Neptuno"
+   },
+   "emoji": "🔵",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "uranus",
+   "name": {
+    "en": "Uranus",
+    "es": "Urano"
+   },
+   "emoji": "🧊",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "pluto",
+   "name": {
+    "en": "Pluto",
+    "es": "Plutón"
+   },
+   "emoji": "⚪",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "moon_base",
+   "name": {
+    "en": "Moon Base",
+    "es": "Base lunar"
+   },
+   "emoji": "🌙",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 5,
+   "finale": true
+  },
+  {
+   "id": "child",
+   "name": {
+    "en": "Child",
+    "es": "Niño"
+   },
+   "emoji": "🧒",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "toy",
+   "name": {
+    "en": "Toy",
+    "es": "Juguete"
+   },
+   "emoji": "🪀",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "teddy_bear",
+   "name": {
+    "en": "Teddy Bear",
+    "es": "Osito de peluche"
+   },
+   "emoji": "🧸",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "doll",
+   "name": {
+    "en": "Doll",
+    "es": "Muñeca"
+   },
+   "emoji": "🪆",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "puppet",
+   "name": {
+    "en": "Puppet",
+    "es": "Marioneta"
+   },
+   "emoji": "🎎",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "pinata",
+   "name": {
+    "en": "Piñata",
+    "es": "Piñata"
+   },
+   "emoji": "🎉",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "halloween",
+   "name": {
+    "en": "Halloween",
+    "es": "Halloween"
+   },
+   "emoji": "🎃",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "carnival",
+   "name": {
+    "en": "Carnival",
+    "es": "Carnaval"
+   },
+   "emoji": "🎭",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "playground",
+   "name": {
+    "en": "Playground",
+    "es": "Parque infantil"
+   },
+   "emoji": "🎠",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "clown",
+   "name": {
+    "en": "Clown",
+    "es": "Payaso"
+   },
+   "emoji": "🤡",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "magician",
+   "name": {
+    "en": "Magician",
+    "es": "Ilusionista"
+   },
+   "emoji": "🎩",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "climber",
+   "name": {
+    "en": "Climber",
+    "es": "Escalador"
+   },
+   "emoji": "🧗",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "backpack",
+   "name": {
+    "en": "Backpack",
+    "es": "Mochila"
+   },
+   "emoji": "🎒",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "numbers",
+   "name": {
+    "en": "Numbers",
+    "es": "Números"
+   },
+   "emoji": "🔢",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": false
+  },
+  {
+   "id": "arithmetic",
+   "name": {
+    "en": "Arithmetic",
+    "es": "Aritmética"
+   },
+   "emoji": "➕",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "math",
+   "name": {
+    "en": "Mathematics",
+    "es": "Matemáticas"
+   },
+   "emoji": "✖️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "geometry",
+   "name": {
+    "en": "Geometry",
+    "es": "Geometría"
+   },
+   "emoji": "📐",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "writing",
+   "name": {
+    "en": "Writing",
+    "es": "Escritura"
+   },
+   "emoji": "✍️",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "alphabet",
+   "name": {
+    "en": "Alphabet",
+    "es": "Alfabeto"
+   },
+   "emoji": "🔤",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "language",
+   "name": {
+    "en": "Language",
+    "es": "Idioma"
+   },
+   "emoji": "💬",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "agriculture",
+   "name": {
+    "en": "Agriculture",
+    "es": "Agricultura"
+   },
+   "emoji": "🚜",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "stone_age",
+   "name": {
+    "en": "Stone Age",
+    "es": "Edad de Piedra"
+   },
+   "emoji": "🦴",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "bronze",
+   "name": {
+    "en": "Bronze",
+    "es": "Bronce"
+   },
+   "emoji": "🥉",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "cement",
+   "name": {
+    "en": "Cement",
+    "es": "Cemento"
+   },
+   "emoji": "🪣",
+   "starter": false,
+   "depth": 3,
+   "depth_band": 1,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "concrete",
+   "name": {
+    "en": "Concrete",
+    "es": "Hormigón"
+   },
+   "emoji": "🏗️",
+   "starter": false,
+   "depth": 4,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "aqueduct",
+   "name": {
+    "en": "Aqueduct",
+    "es": "Acueducto"
+   },
+   "emoji": "🌉",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "calendar",
+   "name": {
+    "en": "Calendar",
+    "es": "Calendario"
+   },
+   "emoji": "📆",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "computer_virus",
+   "name": {
+    "en": "Computer Virus",
+    "es": "Virus informático"
+   },
+   "emoji": "⚠️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": false
+  },
+  {
+   "id": "antivirus",
+   "name": {
+    "en": "Antivirus",
+    "es": "Antivirus"
+   },
+   "emoji": "✅",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "full_moon",
+   "name": {
+    "en": "Full Moon",
+    "es": "Luna llena"
+   },
+   "emoji": "🌕",
+   "starter": false,
+   "depth": 5,
+   "depth_band": 2,
+   "tier": 1,
+   "finale": true
+  },
+  {
+   "id": "silver_bullet",
+   "name": {
+    "en": "Silver Bullet",
+    "es": "Bala de plata"
+   },
+   "emoji": "🥈",
+   "starter": false,
+   "depth": 6,
+   "depth_band": 2,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "dracula",
+   "name": {
+    "en": "Count Dracula",
+    "es": "Conde Drácula"
+   },
+   "emoji": "🧛",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "haunted_house",
+   "name": {
+    "en": "Haunted House",
+    "es": "Casa encantada"
+   },
+   "emoji": "🏚️",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "poltergeist",
+   "name": {
+    "en": "Poltergeist",
+    "es": "Poltergeist"
+   },
+   "emoji": "🪑",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "ghost_ship",
+   "name": {
+    "en": "Ghost Ship",
+    "es": "Barco fantasma"
+   },
+   "emoji": "🌫️",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "vampire_bat",
+   "name": {
+    "en": "Vampire Bat",
+    "es": "Murciélago vampiro"
+   },
+   "emoji": "🦇",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "zombie_apocalypse",
+   "name": {
+    "en": "Zombie Apocalypse",
+    "es": "Apocalipsis zombi"
+   },
+   "emoji": "🧟",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 4,
+   "finale": true
+  },
+  {
+   "id": "crypt",
+   "name": {
+    "en": "Crypt",
+    "es": "Cripta"
+   },
+   "emoji": "⚰️",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "necromancer",
+   "name": {
+    "en": "Necromancer",
+    "es": "Nigromante"
+   },
+   "emoji": "💀",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "chupacabra",
+   "name": {
+    "en": "Chupacabra",
+    "es": "Chupacabras"
+   },
+   "emoji": "🐐",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "leprechaun",
+   "name": {
+    "en": "Leprechaun",
+    "es": "Leprechaun"
+   },
+   "emoji": "🍀",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "goblin",
+   "name": {
+    "en": "Goblin",
+    "es": "Trasgo"
+   },
+   "emoji": "👾",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 2,
+   "finale": true
+  },
+  {
+   "id": "vampire_hunter",
+   "name": {
+    "en": "Vampire Hunter",
+    "es": "Cazavampiros"
+   },
+   "emoji": "🏹",
+   "starter": false,
+   "depth": 7,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "court",
+   "name": {
+    "en": "Court",
+    "es": "Tribunal"
+   },
+   "emoji": "🏛️",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "lawyer",
+   "name": {
+    "en": "Lawyer",
+    "es": "Abogado"
+   },
+   "emoji": "💼",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "jury",
+   "name": {
+    "en": "Jury",
+    "es": "Jurado"
+   },
+   "emoji": "👥",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "trial",
+   "name": {
+    "en": "Trial",
+    "es": "Juicio"
+   },
+   "emoji": "🔨",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "verdict",
+   "name": {
+    "en": "Verdict",
+    "es": "Veredicto"
+   },
+   "emoji": "📃",
+   "starter": false,
+   "depth": 12,
+   "depth_band": 4,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "prisoner",
+   "name": {
+    "en": "Prisoner",
+    "es": "Preso"
+   },
+   "emoji": "⛓️",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": false
+  },
+  {
+   "id": "handcuffs",
+   "name": {
+    "en": "Handcuffs",
+    "es": "Esposas"
+   },
+   "emoji": "🔗",
+   "starter": false,
+   "depth": 8,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "escape",
+   "name": {
+    "en": "Escape",
+    "es": "Fuga"
+   },
+   "emoji": "🏃",
+   "starter": false,
+   "depth": 9,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "police_station",
+   "name": {
+    "en": "Police Station",
+    "es": "Comisaría"
+   },
+   "emoji": "🚔",
+   "starter": false,
+   "depth": 10,
+   "depth_band": 3,
+   "tier": 3,
+   "finale": true
+  },
+  {
+   "id": "fingerprint",
+   "name": {
+    "en": "Fingerprint",
+    "es": "Huella dactilar"
+   },
+   "emoji": "👆",
+   "starter": false,
+   "depth": 11,
+   "depth_band": 4,
+   "tier": 4,
+   "finale": true
   }
  ],
  "recipes": [
+  {
+   "a": "abacus",
+   "b": "electricity",
+   "results": [
+    "calculator"
+   ]
+  },
+  {
+   "a": "abacus",
+   "b": "numbers",
+   "results": [
+    "arithmetic"
+   ]
+  },
+  {
+   "a": "acid_rain",
+   "b": "fruit",
+   "results": [
+    "lemon"
+   ]
+  },
   {
    "a": "acid_rain",
    "b": "planet",
@@ -11523,6 +15106,13 @@
    "b": "spaceship",
    "results": [
     "ufo"
+   ]
+  },
+  {
+   "a": "alphabet",
+   "b": "human",
+   "results": [
+    "language"
    ]
   },
   {
@@ -12319,6 +15909,13 @@
    ]
   },
   {
+   "a": "app",
+   "b": "human",
+   "results": [
+    "developer"
+   ]
+  },
+  {
    "a": "aquarium",
    "b": "big",
    "results": [
@@ -12355,6 +15952,13 @@
   },
   {
    "a": "arctic",
+   "b": "compass",
+   "results": [
+    "north_pole"
+   ]
+  },
+  {
+   "a": "arctic",
    "b": "dog",
    "results": [
     "husky",
@@ -12387,6 +15991,20 @@
    "b": "wagon",
    "results": [
     "sleigh"
+   ]
+  },
+  {
+   "a": "arithmetic",
+   "b": "philosophy",
+   "results": [
+    "math"
+   ]
+  },
+  {
+   "a": "arithmetic",
+   "b": "science",
+   "results": [
+    "math"
    ]
   },
   {
@@ -12461,6 +16079,13 @@
   },
   {
    "a": "armor",
+   "b": "savanna",
+   "results": [
+    "rhino"
+   ]
+  },
+  {
+   "a": "armor",
    "b": "warrior",
    "results": [
     "knight"
@@ -12489,6 +16114,13 @@
   },
   {
    "a": "army",
+   "b": "castle",
+   "results": [
+    "fort"
+   ]
+  },
+  {
+   "a": "army",
    "b": "horse",
    "results": [
     "cavalry"
@@ -12506,6 +16138,13 @@
    "b": "human",
    "results": [
     "corpse"
+   ]
+  },
+  {
+   "a": "ash",
+   "b": "clay",
+   "results": [
+    "cement"
    ]
   },
   {
@@ -12576,6 +16215,20 @@
    "b": "robot",
    "results": [
     "cyborg"
+   ]
+  },
+  {
+   "a": "athlete",
+   "b": "gold",
+   "results": [
+    "medal"
+   ]
+  },
+  {
+   "a": "athlete",
+   "b": "road",
+   "results": [
+    "marathon"
    ]
   },
   {
@@ -12775,6 +16428,41 @@
    "b": "wind",
    "results": [
     "pressure"
+   ]
+  },
+  {
+   "a": "atom",
+   "b": "atom",
+   "results": [
+    "molecule"
+   ]
+  },
+  {
+   "a": "atom",
+   "b": "energy",
+   "results": [
+    "nuclear_power"
+   ]
+  },
+  {
+   "a": "atom",
+   "b": "powerplant",
+   "results": [
+    "nuclear_power"
+   ]
+  },
+  {
+   "a": "avocado",
+   "b": "salt",
+   "results": [
+    "guacamole"
+   ]
+  },
+  {
+   "a": "avocado",
+   "b": "tomato",
+   "results": [
+    "guacamole"
    ]
   },
   {
@@ -13157,6 +16845,104 @@
    ]
   },
   {
+   "a": "ball",
+   "b": "bat",
+   "results": [
+    "baseball"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "boots",
+   "results": [
+    "football"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "bottle",
+   "results": [
+    "bowling"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "bucket",
+   "results": [
+    "basketball"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "fence",
+   "results": [
+    "tennis"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "field",
+   "results": [
+    "football"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "flag",
+   "results": [
+    "golf"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "human",
+   "results": [
+    "sport"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "lawn",
+   "results": [
+    "golf"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "net",
+   "results": [
+    "tennis"
+   ]
+  },
+  {
+   "a": "ball",
+   "b": "stick",
+   "results": [
+    "baseball"
+   ]
+  },
+  {
+   "a": "balloon",
+   "b": "campfire",
+   "results": [
+    "hot_air_balloon"
+   ]
+  },
+  {
+   "a": "balloon",
+   "b": "fire",
+   "results": [
+    "hot_air_balloon"
+   ]
+  },
+  {
+   "a": "bamboo",
+   "b": "bear",
+   "results": [
+    "panda"
+   ]
+  },
+  {
    "a": "banana",
    "b": "bread",
    "results": [
@@ -13199,10 +16985,24 @@
    ]
   },
   {
+   "a": "bandage",
+   "b": "human",
+   "results": [
+    "nurse"
+   ]
+  },
+  {
    "a": "bank",
    "b": "container",
    "results": [
     "city"
+   ]
+  },
+  {
+   "a": "bank",
+   "b": "human",
+   "results": [
+    "banker"
    ]
   },
   {
@@ -13432,6 +17232,13 @@
   },
   {
    "a": "bat",
+   "b": "blood",
+   "results": [
+    "vampire_bat"
+   ]
+  },
+  {
+   "a": "bat",
    "b": "container",
    "results": [
     "cave"
@@ -13473,10 +17280,24 @@
    ]
   },
   {
+   "a": "bat",
+   "b": "vampire",
+   "results": [
+    "vampire_bat"
+   ]
+  },
+  {
    "a": "batter",
    "b": "butter",
    "results": [
     "pancake"
+   ]
+  },
+  {
+   "a": "batter",
+   "b": "fence",
+   "results": [
+    "waffle"
    ]
   },
   {
@@ -13600,9 +17421,23 @@
   },
   {
    "a": "beach",
+   "b": "rock",
+   "results": [
+    "cliff"
+   ]
+  },
+  {
+   "a": "beach",
    "b": "sandwich",
    "results": [
     "picnic"
+   ]
+  },
+  {
+   "a": "beach",
+   "b": "scorpion",
+   "results": [
+    "crab"
    ]
   },
   {
@@ -13641,6 +17476,41 @@
    ]
   },
   {
+   "a": "bear",
+   "b": "mask",
+   "results": [
+    "raccoon"
+   ]
+  },
+  {
+   "a": "bear",
+   "b": "pillow",
+   "results": [
+    "teddy_bear"
+   ]
+  },
+  {
+   "a": "bear",
+   "b": "small",
+   "results": [
+    "koala"
+   ]
+  },
+  {
+   "a": "bear",
+   "b": "snow",
+   "results": [
+    "panda"
+   ]
+  },
+  {
+   "a": "bear",
+   "b": "toy",
+   "results": [
+    "teddy_bear"
+   ]
+  },
+  {
    "a": "beaver",
    "b": "bird",
    "results": [
@@ -13656,6 +17526,13 @@
   },
   {
    "a": "beaver",
+   "b": "fish",
+   "results": [
+    "otter"
+   ]
+  },
+  {
+   "a": "beaver",
    "b": "house",
    "results": [
     "dam"
@@ -13666,6 +17543,13 @@
    "b": "lake",
    "results": [
     "dam"
+   ]
+  },
+  {
+   "a": "beaver",
+   "b": "ocean",
+   "results": [
+    "otter"
    ]
   },
   {
@@ -13708,6 +17592,20 @@
    "b": "wood",
    "results": [
     "dam"
+   ]
+  },
+  {
+   "a": "bed",
+   "b": "human",
+   "results": [
+    "sleep"
+   ]
+  },
+  {
+   "a": "bed",
+   "b": "skyscraper",
+   "results": [
+    "hotel"
    ]
   },
   {
@@ -13933,6 +17831,13 @@
   },
   {
    "a": "big",
+   "b": "crab",
+   "results": [
+    "lobster"
+   ]
+  },
+  {
+   "a": "big",
    "b": "duckling",
    "results": [
     "duck"
@@ -13961,6 +17866,13 @@
   },
   {
    "a": "big",
+   "b": "fruit",
+   "results": [
+    "watermelon"
+   ]
+  },
+  {
+   "a": "big",
    "b": "grass",
    "results": [
     "plant"
@@ -13978,6 +17890,13 @@
    "b": "house",
    "results": [
     "skyscraper"
+   ]
+  },
+  {
+   "a": "big",
+   "b": "human",
+   "results": [
+    "giant"
    ]
   },
   {
@@ -14010,6 +17929,34 @@
   },
   {
    "a": "big",
+   "b": "mammal",
+   "results": [
+    "elephant"
+   ]
+  },
+  {
+   "a": "big",
+   "b": "meteor",
+   "results": [
+    "asteroid"
+   ]
+  },
+  {
+   "a": "big",
+   "b": "monkey",
+   "results": [
+    "gorilla"
+   ]
+  },
+  {
+   "a": "big",
+   "b": "mountain",
+   "results": [
+    "giant"
+   ]
+  },
+  {
+   "a": "big",
    "b": "mouse",
    "results": [
     "rat"
@@ -14020,6 +17967,13 @@
    "b": "ocean",
    "results": [
     "ocean"
+   ]
+  },
+  {
+   "a": "big",
+   "b": "octopus",
+   "results": [
+    "kraken"
    ]
   },
   {
@@ -14055,6 +18009,13 @@
    "b": "puddle",
    "results": [
     "pond"
+   ]
+  },
+  {
+   "a": "big",
+   "b": "rabbit",
+   "results": [
+    "kangaroo"
    ]
   },
   {
@@ -14153,6 +18114,13 @@
    "b": "watch",
    "results": [
     "clock"
+   ]
+  },
+  {
+   "a": "big",
+   "b": "wild_animal",
+   "results": [
+    "elephant"
    ]
   },
   {
@@ -14446,6 +18414,13 @@
   },
   {
    "a": "bird",
+   "b": "lemonade",
+   "results": [
+    "flamingo"
+   ]
+  },
+  {
+   "a": "bird",
    "b": "letter",
    "results": [
     "pigeon"
@@ -14664,6 +18639,13 @@
   },
   {
    "a": "bird",
+   "b": "swamp",
+   "results": [
+    "flamingo"
+   ]
+  },
+  {
+   "a": "bird",
    "b": "train",
    "results": [
     "plane"
@@ -14725,6 +18707,20 @@
    "b": "wood",
    "results": [
     "woodpecker"
+   ]
+  },
+  {
+   "a": "black_hole",
+   "b": "time",
+   "results": [
+    "wormhole"
+   ]
+  },
+  {
+   "a": "black_hole",
+   "b": "worm",
+   "results": [
+    "wormhole"
    ]
   },
   {
@@ -15141,6 +19137,20 @@
   },
   {
    "a": "blood",
+   "b": "insect",
+   "results": [
+    "mosquito"
+   ]
+  },
+  {
+   "a": "blood",
+   "b": "life",
+   "results": [
+    "heart"
+   ]
+  },
+  {
+   "a": "blood",
    "b": "ocean",
    "results": [
     "shark"
@@ -15151,6 +19161,13 @@
    "b": "sack",
    "results": [
     "blood_bag"
+   ]
+  },
+  {
+   "a": "blueprint",
+   "b": "human",
+   "results": [
+    "architect"
    ]
   },
   {
@@ -15169,6 +19186,13 @@
   },
   {
    "a": "boat",
+   "b": "money",
+   "results": [
+    "yacht"
+   ]
+  },
+  {
+   "a": "boat",
    "b": "ocean",
    "results": [
     "ship"
@@ -15179,6 +19203,13 @@
    "b": "pirate",
    "results": [
     "pirate_ship"
+   ]
+  },
+  {
+   "a": "boat",
+   "b": "river",
+   "results": [
+    "canoe"
    ]
   },
   {
@@ -15221,6 +19252,13 @@
    "b": "tool",
    "results": [
     "rope"
+   ]
+  },
+  {
+   "a": "boat",
+   "b": "tree",
+   "results": [
+    "canoe"
    ]
   },
   {
@@ -15297,6 +19335,20 @@
   },
   {
    "a": "bone",
+   "b": "idea",
+   "results": [
+    "brain"
+   ]
+  },
+  {
+   "a": "bone",
+   "b": "knife",
+   "results": [
+    "tooth"
+   ]
+  },
+  {
+   "a": "bone",
    "b": "light",
    "results": [
     "x_ray"
@@ -15314,6 +19366,13 @@
    "b": "rock",
    "results": [
     "fossil"
+   ]
+  },
+  {
+   "a": "bone",
+   "b": "small",
+   "results": [
+    "tooth"
    ]
   },
   {
@@ -15383,6 +19442,20 @@
   },
   {
    "a": "book",
+   "b": "machine",
+   "results": [
+    "printing_press"
+   ]
+  },
+  {
+   "a": "book",
+   "b": "magic",
+   "results": [
+    "spell"
+   ]
+  },
+  {
+   "a": "book",
    "b": "music",
    "results": [
     "sheet_music"
@@ -15390,9 +19463,30 @@
   },
   {
    "a": "book",
+   "b": "painting",
+   "results": [
+    "comic"
+   ]
+  },
+  {
+   "a": "book",
    "b": "recipe",
    "results": [
     "cookbook"
+   ]
+  },
+  {
+   "a": "book",
+   "b": "school",
+   "results": [
+    "university"
+   ]
+  },
+  {
+   "a": "book",
+   "b": "story",
+   "results": [
+    "novel"
    ]
   },
   {
@@ -15407,6 +19501,13 @@
    "b": "jam",
    "results": [
     "jar"
+   ]
+  },
+  {
+   "a": "bottle",
+   "b": "magic",
+   "results": [
+    "potion"
    ]
   },
   {
@@ -15463,6 +19564,13 @@
    "b": "tea",
    "results": [
     "cup"
+   ]
+  },
+  {
+   "a": "bottle",
+   "b": "wizard",
+   "results": [
+    "potion"
    ]
   },
   {
@@ -15601,6 +19709,13 @@
   },
   {
    "a": "box",
+   "b": "car",
+   "results": [
+    "truck"
+   ]
+  },
+  {
+   "a": "box",
    "b": "chain",
    "results": [
     "toolbox"
@@ -15660,6 +19775,13 @@
    "b": "tool",
    "results": [
     "toolbox"
+   ]
+  },
+  {
+   "a": "brain",
+   "b": "fish",
+   "results": [
+    "dolphin"
    ]
   },
   {
@@ -15730,6 +19852,20 @@
   },
   {
    "a": "bread",
+   "b": "rope",
+   "results": [
+    "pretzel"
+   ]
+  },
+  {
+   "a": "bread",
+   "b": "shop",
+   "results": [
+    "supermarket"
+   ]
+  },
+  {
+   "a": "bread",
    "b": "steak",
    "results": [
     "burger"
@@ -15737,9 +19873,23 @@
   },
   {
    "a": "bread",
+   "b": "stick",
+   "results": [
+    "baguette"
+   ]
+  },
+  {
+   "a": "bread",
    "b": "sugar",
    "results": [
     "cake"
+   ]
+  },
+  {
+   "a": "bread",
+   "b": "sword",
+   "results": [
+    "baguette"
    ]
   },
   {
@@ -15810,6 +19960,20 @@
    "b": "smoke",
    "results": [
     "chimney"
+   ]
+  },
+  {
+   "a": "bridge",
+   "b": "monster",
+   "results": [
+    "troll"
+   ]
+  },
+  {
+   "a": "bridge",
+   "b": "river",
+   "results": [
+    "aqueduct"
    ]
   },
   {
@@ -15884,6 +20048,13 @@
   },
   {
    "a": "broom",
+   "b": "tooth",
+   "results": [
+    "toothbrush"
+   ]
+  },
+  {
+   "a": "broom",
    "b": "wizard",
    "results": [
     "witch"
@@ -15926,6 +20097,13 @@
   },
   {
    "a": "bulb",
+   "b": "insect",
+   "results": [
+    "firefly"
+   ]
+  },
+  {
+   "a": "bulb",
    "b": "metal",
    "results": [
     "lamp"
@@ -15936,6 +20114,13 @@
    "b": "nerd",
    "results": [
     "idea"
+   ]
+  },
+  {
+   "a": "bulb",
+   "b": "road",
+   "results": [
+    "traffic_light"
    ]
   },
   {
@@ -15985,6 +20170,13 @@
    "b": "metal",
    "results": [
     "gun"
+   ]
+  },
+  {
+   "a": "bullet",
+   "b": "silver",
+   "results": [
+    "silver_bullet"
    ]
   },
   {
@@ -16123,6 +20315,27 @@
   },
   {
    "a": "butter",
+   "b": "dough",
+   "results": [
+    "croissant"
+   ]
+  },
+  {
+   "a": "butter",
+   "b": "egg",
+   "results": [
+    "fried_egg"
+   ]
+  },
+  {
+   "a": "butter",
+   "b": "fruit",
+   "results": [
+    "avocado"
+   ]
+  },
+  {
+   "a": "butter",
    "b": "metal",
    "results": [
     "gold"
@@ -16165,6 +20378,13 @@
   },
   {
    "a": "butterfly",
+   "b": "human",
+   "results": [
+    "fairy"
+   ]
+  },
+  {
+   "a": "butterfly",
    "b": "lamp",
    "results": [
     "moth"
@@ -16175,6 +20395,13 @@
    "b": "light",
    "results": [
     "moth"
+   ]
+  },
+  {
+   "a": "butterfly",
+   "b": "magic",
+   "results": [
+    "fairy"
    ]
   },
   {
@@ -16196,6 +20423,13 @@
    "b": "night",
    "results": [
     "moth"
+   ]
+  },
+  {
+   "a": "cactus",
+   "b": "fruit",
+   "results": [
+    "pineapple"
    ]
   },
   {
@@ -16243,6 +20477,20 @@
   },
   {
    "a": "cake",
+   "b": "paper_cup",
+   "results": [
+    "cupcake"
+   ]
+  },
+  {
+   "a": "cake",
+   "b": "small",
+   "results": [
+    "cupcake"
+   ]
+  },
+  {
+   "a": "cake",
    "b": "village",
    "results": [
     "bakery"
@@ -16250,9 +20498,37 @@
   },
   {
    "a": "camera",
+   "b": "human",
+   "results": [
+    "photographer"
+   ]
+  },
+  {
+   "a": "camera",
+   "b": "mirror",
+   "results": [
+    "selfie"
+   ]
+  },
+  {
+   "a": "camera",
    "b": "paper",
    "results": [
     "photo"
+   ]
+  },
+  {
+   "a": "camera",
+   "b": "phone",
+   "results": [
+    "video_call"
+   ]
+  },
+  {
+   "a": "camera",
+   "b": "rocket",
+   "results": [
+    "space_probe"
    ]
   },
   {
@@ -16443,6 +20719,34 @@
    ]
   },
   {
+   "a": "candy",
+   "b": "paper",
+   "results": [
+    "pinata"
+   ]
+  },
+  {
+   "a": "candy",
+   "b": "party",
+   "results": [
+    "pinata"
+   ]
+  },
+  {
+   "a": "candy",
+   "b": "rubber",
+   "results": [
+    "chewing_gum"
+   ]
+  },
+  {
+   "a": "candy",
+   "b": "stick",
+   "results": [
+    "lollipop"
+   ]
+  },
+  {
    "a": "cannon",
    "b": "empire",
    "results": [
@@ -16517,6 +20821,13 @@
    "b": "electricity",
    "results": [
     "electric_car"
+   ]
+  },
+  {
+   "a": "car",
+   "b": "farm",
+   "results": [
+    "truck"
    ]
   },
   {
@@ -16613,9 +20924,23 @@
   },
   {
    "a": "car",
+   "b": "mars",
+   "results": [
+    "mars_rover"
+   ]
+  },
+  {
+   "a": "car",
    "b": "metal",
    "results": [
     "tank"
+   ]
+  },
+  {
+   "a": "car",
+   "b": "money",
+   "results": [
+    "taxi"
    ]
   },
   {
@@ -16641,9 +20966,23 @@
   },
   {
    "a": "car",
+   "b": "oil",
+   "results": [
+    "gas_station"
+   ]
+  },
+  {
+   "a": "car",
    "b": "park",
    "results": [
     "roller_coaster"
+   ]
+  },
+  {
+   "a": "car",
+   "b": "petroleum",
+   "results": [
+    "gas_station"
    ]
   },
   {
@@ -16672,6 +21011,13 @@
    "b": "robot",
    "results": [
     "self_driving_car"
+   ]
+  },
+  {
+   "a": "car",
+   "b": "rubber",
+   "results": [
+    "tire"
    ]
   },
   {
@@ -16711,6 +21057,13 @@
   },
   {
    "a": "car",
+   "b": "toolbox",
+   "results": [
+    "mechanic"
+   ]
+  },
+  {
+   "a": "car",
    "b": "train",
    "results": [
     "bus"
@@ -16728,6 +21081,20 @@
    "b": "wind_turbine",
    "results": [
     "electric_car"
+   ]
+  },
+  {
+   "a": "caramel",
+   "b": "egg",
+   "results": [
+    "flan"
+   ]
+  },
+  {
+   "a": "caramel",
+   "b": "milk",
+   "results": [
+    "flan"
    ]
   },
   {
@@ -16819,6 +21186,20 @@
    "b": "water",
    "results": [
     "soda"
+   ]
+  },
+  {
+   "a": "carpet",
+   "b": "magic",
+   "results": [
+    "magic_carpet"
+   ]
+  },
+  {
+   "a": "carpet",
+   "b": "wind",
+   "results": [
+    "magic_carpet"
    ]
   },
   {
@@ -16937,6 +21318,20 @@
   },
   {
    "a": "castle",
+   "b": "gold",
+   "results": [
+    "palace"
+   ]
+  },
+  {
+   "a": "castle",
+   "b": "grave",
+   "results": [
+    "crypt"
+   ]
+  },
+  {
+   "a": "castle",
    "b": "gun",
    "results": [
     "cannon"
@@ -16972,6 +21367,13 @@
   },
   {
    "a": "castle",
+   "b": "queen",
+   "results": [
+    "palace"
+   ]
+  },
+  {
+   "a": "castle",
    "b": "sand",
    "results": [
     "sand_castle"
@@ -16989,6 +21391,13 @@
    "b": "time",
    "results": [
     "ruins"
+   ]
+  },
+  {
+   "a": "castle",
+   "b": "vampire",
+   "results": [
+    "dracula"
    ]
   },
   {
@@ -17014,6 +21423,13 @@
   },
   {
    "a": "cat",
+   "b": "internet",
+   "results": [
+    "meme"
+   ]
+  },
+  {
+   "a": "cat",
    "b": "monarch",
    "results": [
     "lion"
@@ -17031,6 +21447,20 @@
    "b": "plant",
    "results": [
     "catnip"
+   ]
+  },
+  {
+   "a": "cat",
+   "b": "rainforest",
+   "results": [
+    "tiger"
+   ]
+  },
+  {
+   "a": "cat",
+   "b": "savanna",
+   "results": [
+    "cheetah"
    ]
   },
   {
@@ -17070,6 +21500,20 @@
   },
   {
    "a": "cave",
+   "b": "coffin",
+   "results": [
+    "crypt"
+   ]
+  },
+  {
+   "a": "cave",
+   "b": "gem",
+   "results": [
+    "crystal"
+   ]
+  },
+  {
+   "a": "cave",
    "b": "hill",
    "results": [
     "tunnel"
@@ -17077,9 +21521,23 @@
   },
   {
    "a": "cave",
+   "b": "human",
+   "results": [
+    "miner"
+   ]
+  },
+  {
+   "a": "cave",
    "b": "milk",
    "results": [
     "cheese"
+   ]
+  },
+  {
+   "a": "cave",
+   "b": "monster",
+   "results": [
+    "troll"
    ]
   },
   {
@@ -17097,10 +21555,52 @@
    ]
   },
   {
+   "a": "cave",
+   "b": "time",
+   "results": [
+    "stalactite"
+   ]
+  },
+  {
+   "a": "cave",
+   "b": "tool",
+   "results": [
+    "stone_age"
+   ]
+  },
+  {
+   "a": "cave",
+   "b": "water",
+   "results": [
+    "stalactite"
+   ]
+  },
+  {
    "a": "caviar",
    "b": "seaweed",
    "results": [
     "sushi"
+   ]
+  },
+  {
+   "a": "cell",
+   "b": "science",
+   "results": [
+    "dna"
+   ]
+  },
+  {
+   "a": "cement",
+   "b": "gravel",
+   "results": [
+    "concrete"
+   ]
+  },
+  {
+   "a": "cement",
+   "b": "water",
+   "results": [
+    "concrete"
    ]
   },
   {
@@ -17115,6 +21615,20 @@
    "b": "container",
    "results": [
     "toolbox"
+   ]
+  },
+  {
+   "a": "chain",
+   "b": "police",
+   "results": [
+    "handcuffs"
+   ]
+  },
+  {
+   "a": "chain",
+   "b": "thief",
+   "results": [
+    "handcuffs"
    ]
   },
   {
@@ -17160,6 +21674,13 @@
    ]
   },
   {
+   "a": "chair",
+   "b": "ghost",
+   "results": [
+    "poltergeist"
+   ]
+  },
+  {
    "a": "chameleon",
    "b": "chameleon",
    "results": [
@@ -17199,6 +21720,13 @@
    "b": "wood",
    "results": [
     "pencil"
+   ]
+  },
+  {
+   "a": "cheese",
+   "b": "corn",
+   "results": [
+    "nachos"
    ]
   },
   {
@@ -17448,6 +21976,13 @@
    ]
   },
   {
+   "a": "chicken_soup",
+   "b": "pasta",
+   "results": [
+    "noodles"
+   ]
+  },
+  {
    "a": "chicken_wing",
    "b": "container",
    "results": [
@@ -17469,6 +22004,34 @@
    ]
   },
   {
+   "a": "child",
+   "b": "gift",
+   "results": [
+    "toy"
+   ]
+  },
+  {
+   "a": "child",
+   "b": "park",
+   "results": [
+    "playground"
+   ]
+  },
+  {
+   "a": "child",
+   "b": "wood",
+   "results": [
+    "toy"
+   ]
+  },
+  {
+   "a": "chili",
+   "b": "rice",
+   "results": [
+    "curry"
+   ]
+  },
+  {
    "a": "chimney",
    "b": "house",
    "results": [
@@ -17480,6 +22043,13 @@
    "b": "santa",
    "results": [
     "gift"
+   ]
+  },
+  {
+   "a": "chip",
+   "b": "guacamole",
+   "results": [
+    "nachos"
    ]
   },
   {
@@ -17694,9 +22264,30 @@
   },
   {
    "a": "circus",
+   "b": "human",
+   "results": [
+    "clown"
+   ]
+  },
+  {
+   "a": "circus",
+   "b": "magic",
+   "results": [
+    "magician"
+   ]
+  },
+  {
+   "a": "circus",
    "b": "roman_empire",
    "results": [
     "colosseum"
+   ]
+  },
+  {
+   "a": "city",
+   "b": "city",
+   "results": [
+    "metropolis"
    ]
   },
   {
@@ -17743,6 +22334,13 @@
   },
   {
    "a": "city",
+   "b": "football",
+   "results": [
+    "stadium"
+   ]
+  },
+  {
+   "a": "city",
    "b": "forest",
    "results": [
     "park"
@@ -17764,9 +22362,23 @@
   },
   {
    "a": "city",
+   "b": "government",
+   "results": [
+    "capital"
+   ]
+  },
+  {
+   "a": "city",
    "b": "grass",
    "results": [
     "park"
+   ]
+  },
+  {
+   "a": "city",
+   "b": "king",
+   "results": [
+    "capital"
    ]
   },
   {
@@ -17820,6 +22432,13 @@
   },
   {
    "a": "city",
+   "b": "skyscraper",
+   "results": [
+    "metropolis"
+   ]
+  },
+  {
+   "a": "city",
    "b": "smoke",
    "results": [
     "smog"
@@ -17834,6 +22453,13 @@
   },
   {
    "a": "city",
+   "b": "train",
+   "results": [
+    "subway"
+   ]
+  },
+  {
+   "a": "city",
    "b": "tsunami",
    "results": [
     "flood"
@@ -17844,6 +22470,13 @@
    "b": "wind",
    "results": [
     "smog"
+   ]
+  },
+  {
+   "a": "city",
+   "b": "zombie",
+   "results": [
+    "zombie_apocalypse"
    ]
   },
   {
@@ -17887,6 +22520,13 @@
   },
   {
    "a": "clay",
+   "b": "stick",
+   "results": [
+    "writing"
+   ]
+  },
+  {
+   "a": "clay",
    "b": "stone",
    "results": [
     "brick"
@@ -17915,6 +22555,13 @@
   },
   {
    "a": "clay",
+   "b": "toy",
+   "results": [
+    "doll"
+   ]
+  },
+  {
+   "a": "clay",
    "b": "wax",
    "results": [
     "soap"
@@ -17925,6 +22572,13 @@
    "b": "wheel",
    "results": [
     "pottery"
+   ]
+  },
+  {
+   "a": "cliff",
+   "b": "human",
+   "results": [
+    "climber"
    ]
   },
   {
@@ -17971,6 +22625,13 @@
   },
   {
    "a": "clock",
+   "b": "machine",
+   "results": [
+    "time_machine"
+   ]
+  },
+  {
+   "a": "clock",
    "b": "owl",
    "results": [
     "cuckoo"
@@ -17988,6 +22649,13 @@
    "b": "sound",
    "results": [
     "alarm_clock"
+   ]
+  },
+  {
+   "a": "clock",
+   "b": "spaceship",
+   "results": [
+    "time_machine"
    ]
   },
   {
@@ -18027,6 +22695,13 @@
   },
   {
    "a": "cloth",
+   "b": "leather",
+   "results": [
+    "glove"
+   ]
+  },
+  {
+   "a": "cloth",
    "b": "stick",
    "results": [
     "sail",
@@ -18045,6 +22720,13 @@
    "b": "taco",
    "results": [
     "burrito"
+   ]
+  },
+  {
+   "a": "cloth",
+   "b": "wool",
+   "results": [
+    "carpet"
    ]
   },
   {
@@ -18213,6 +22895,13 @@
   },
   {
    "a": "cloud",
+   "b": "star",
+   "results": [
+    "nebula"
+   ]
+  },
+  {
+   "a": "cloud",
    "b": "sugar",
    "results": [
     "cotton_candy"
@@ -18339,6 +23028,13 @@
   },
   {
    "a": "coffee",
+   "b": "house",
+   "results": [
+    "cafe"
+   ]
+  },
+  {
+   "a": "coffee",
    "b": "milk",
    "results": [
     "latte"
@@ -18349,6 +23045,13 @@
    "b": "pressure",
    "results": [
     "espresso"
+   ]
+  },
+  {
+   "a": "coffee",
+   "b": "shop",
+   "results": [
+    "cafe"
    ]
   },
   {
@@ -18395,6 +23098,13 @@
   },
   {
    "a": "coin",
+   "b": "farmer",
+   "results": [
+    "market"
+   ]
+  },
+  {
+   "a": "coin",
    "b": "house",
    "results": [
     "bank"
@@ -18402,9 +23112,30 @@
   },
   {
    "a": "coin",
+   "b": "human",
+   "results": [
+    "merchant"
+   ]
+  },
+  {
+   "a": "coin",
    "b": "king",
    "results": [
     "tax"
+   ]
+  },
+  {
+   "a": "coin",
+   "b": "sport",
+   "results": [
+    "medal"
+   ]
+  },
+  {
+   "a": "coin",
+   "b": "table",
+   "results": [
+    "shop"
    ]
   },
   {
@@ -18501,6 +23232,13 @@
   },
   {
    "a": "cold",
+   "b": "planet",
+   "results": [
+    "pluto"
+   ]
+  },
+  {
+   "a": "cold",
    "b": "puddle",
    "results": [
     "ice"
@@ -18511,6 +23249,13 @@
    "b": "rain",
    "results": [
     "snow"
+   ]
+  },
+  {
+   "a": "cold",
+   "b": "season",
+   "results": [
+    "winter"
    ]
   },
   {
@@ -18543,6 +23288,13 @@
   },
   {
    "a": "cold",
+   "b": "tomato_sauce",
+   "results": [
+    "gazpacho"
+   ]
+  },
+  {
+   "a": "cold",
    "b": "water",
    "results": [
     "ice"
@@ -18564,6 +23316,13 @@
   },
   {
    "a": "colosseum",
+   "b": "sport",
+   "results": [
+    "stadium"
+   ]
+  },
+  {
+   "a": "colosseum",
    "b": "warrior",
    "results": [
     "gladiator"
@@ -18574,6 +23333,34 @@
    "b": "wagon",
    "results": [
     "car"
+   ]
+  },
+  {
+   "a": "comic",
+   "b": "movie",
+   "results": [
+    "cartoon"
+   ]
+  },
+  {
+   "a": "comic",
+   "b": "tv",
+   "results": [
+    "cartoon"
+   ]
+  },
+  {
+   "a": "compass",
+   "b": "heat",
+   "results": [
+    "equator"
+   ]
+  },
+  {
+   "a": "compass",
+   "b": "ice",
+   "results": [
+    "north_pole"
    ]
   },
   {
@@ -18592,9 +23379,31 @@
   },
   {
    "a": "computer",
+   "b": "glasses",
+   "results": [
+    "virtual_reality"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "house",
+   "results": [
+    "office"
+   ]
+  },
+  {
+   "a": "computer",
    "b": "human",
    "results": [
-    "hacker"
+    "hacker",
+    "developer"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "key",
+   "results": [
+    "password"
    ]
   },
   {
@@ -18634,6 +23443,13 @@
   },
   {
    "a": "computer",
+   "b": "numbers",
+   "results": [
+    "calculator"
+   ]
+  },
+  {
+   "a": "computer",
    "b": "paper",
    "results": [
     "printer"
@@ -18644,6 +23460,13 @@
    "b": "radio",
    "results": [
     "phone"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "skyscraper",
+   "results": [
+    "office"
    ]
   },
   {
@@ -18676,6 +23499,20 @@
   },
   {
    "a": "computer",
+   "b": "virus",
+   "results": [
+    "computer_virus"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "watch",
+   "results": [
+    "smartwatch"
+   ]
+  },
+  {
+   "a": "computer",
    "b": "web",
    "results": [
     "internet"
@@ -18686,6 +23523,13 @@
    "b": "wire",
    "results": [
     "internet"
+   ]
+  },
+  {
+   "a": "computer",
+   "b": "writer",
+   "results": [
+    "developer"
    ]
   },
   {
@@ -18700,6 +23544,20 @@
    "b": "letter",
    "results": [
     "email"
+   ]
+  },
+  {
+   "a": "computer_virus",
+   "b": "shield",
+   "results": [
+    "antivirus"
+   ]
+  },
+  {
+   "a": "computer_virus",
+   "b": "vaccine",
+   "results": [
+    "antivirus"
    ]
   },
   {
@@ -19626,6 +24484,13 @@
   },
   {
    "a": "continent",
+   "b": "storm",
+   "results": [
+    "monsoon"
+   ]
+  },
+  {
+   "a": "continent",
    "b": "virus",
    "results": [
     "pandemic"
@@ -19647,6 +24512,13 @@
   },
   {
    "a": "cook",
+   "b": "knife",
+   "results": [
+    "chef"
+   ]
+  },
+  {
+   "a": "cook",
    "b": "milk",
    "results": [
     "cheese"
@@ -19657,6 +24529,13 @@
    "b": "paper",
    "results": [
     "recipe"
+   ]
+  },
+  {
+   "a": "cook",
+   "b": "restaurant",
+   "results": [
+    "chef"
    ]
   },
   {
@@ -20097,6 +24976,41 @@
    ]
   },
   {
+   "a": "court",
+   "b": "family",
+   "results": [
+    "jury"
+   ]
+  },
+  {
+   "a": "court",
+   "b": "human",
+   "results": [
+    "lawyer"
+   ]
+  },
+  {
+   "a": "court",
+   "b": "lawyer",
+   "results": [
+    "trial"
+   ]
+  },
+  {
+   "a": "court",
+   "b": "thief",
+   "results": [
+    "trial"
+   ]
+  },
+  {
+   "a": "court",
+   "b": "village",
+   "results": [
+    "jury"
+   ]
+  },
+  {
    "a": "cow",
    "b": "desert",
    "results": [
@@ -20294,6 +25208,20 @@
    ]
   },
   {
+   "a": "crab",
+   "b": "ocean",
+   "results": [
+    "lobster"
+   ]
+  },
+  {
+   "a": "crab",
+   "b": "rice",
+   "results": [
+    "paella"
+   ]
+  },
+  {
    "a": "crow",
    "b": "crow",
    "results": [
@@ -20394,6 +25322,13 @@
   },
   {
    "a": "cup",
+   "b": "gold",
+   "results": [
+    "trophy"
+   ]
+  },
+  {
+   "a": "cup",
    "b": "paper",
    "results": [
     "paper_cup"
@@ -20439,6 +25374,20 @@
    "b": "dance",
    "results": [
     "party"
+   ]
+  },
+  {
+   "a": "dance",
+   "b": "mask",
+   "results": [
+    "carnival"
+   ]
+  },
+  {
+   "a": "dance",
+   "b": "theater",
+   "results": [
+    "ballet"
    ]
   },
   {
@@ -20633,6 +25582,20 @@
    ]
   },
   {
+   "a": "deity",
+   "b": "house",
+   "results": [
+    "temple"
+   ]
+  },
+  {
+   "a": "deity",
+   "b": "stone",
+   "results": [
+    "temple"
+   ]
+  },
+  {
    "a": "democracy",
    "b": "law",
    "results": [
@@ -20676,9 +25639,23 @@
   },
   {
    "a": "desert",
+   "b": "field",
+   "results": [
+    "drought"
+   ]
+  },
+  {
+   "a": "desert",
    "b": "frog",
    "results": [
     "lizard"
+   ]
+  },
+  {
+   "a": "desert",
+   "b": "grass",
+   "results": [
+    "savanna"
    ]
   },
   {
@@ -20830,6 +25807,13 @@
   },
   {
    "a": "desert",
+   "b": "rabbit",
+   "results": [
+    "kangaroo"
+   ]
+  },
+  {
+   "a": "desert",
    "b": "river",
    "results": [
     "oasis"
@@ -20933,6 +25917,27 @@
    "results": [
     "dune",
     "sandstorm"
+   ]
+  },
+  {
+   "a": "detective",
+   "b": "glass",
+   "results": [
+    "fingerprint"
+   ]
+  },
+  {
+   "a": "detective",
+   "b": "ink",
+   "results": [
+    "fingerprint"
+   ]
+  },
+  {
+   "a": "developer",
+   "b": "fun",
+   "results": [
+    "viral_gaming"
    ]
   },
   {
@@ -21107,6 +26112,13 @@
    ]
   },
   {
+   "a": "diver",
+   "b": "ship",
+   "results": [
+    "submarine"
+   ]
+  },
+  {
    "a": "doctor",
    "b": "doctor",
    "results": [
@@ -21118,6 +26130,13 @@
    "b": "drum",
    "results": [
     "stethoscope"
+   ]
+  },
+  {
+   "a": "doctor",
+   "b": "hospital",
+   "results": [
+    "nurse"
    ]
   },
   {
@@ -21174,6 +26193,13 @@
    "b": "tool",
    "results": [
     "stethoscope"
+   ]
+  },
+  {
+   "a": "doctor",
+   "b": "tooth",
+   "results": [
+    "dentist"
    ]
   },
   {
@@ -21248,6 +26274,13 @@
   },
   {
    "a": "dog",
+   "b": "sheep",
+   "results": [
+    "shepherd"
+   ]
+  },
+  {
+   "a": "dog",
    "b": "snow",
    "results": [
     "husky"
@@ -21272,6 +26305,20 @@
    "b": "wild_animal",
    "results": [
     "wolf"
+   ]
+  },
+  {
+   "a": "doll",
+   "b": "rope",
+   "results": [
+    "puppet"
+   ]
+  },
+  {
+   "a": "doll",
+   "b": "thread",
+   "results": [
+    "puppet"
    ]
   },
   {
@@ -21357,6 +26404,20 @@
    "b": "village",
    "results": [
     "bakery"
+   ]
+  },
+  {
+   "a": "door",
+   "b": "metal",
+   "results": [
+    "key"
+   ]
+  },
+  {
+   "a": "door",
+   "b": "tool",
+   "results": [
+    "key"
    ]
   },
   {
@@ -21530,10 +26591,31 @@
   },
   {
    "a": "dough",
+   "b": "moon",
+   "results": [
+    "croissant"
+   ]
+  },
+  {
+   "a": "dough",
    "b": "oil",
    "results": [
     "donut",
     "churros"
+   ]
+  },
+  {
+   "a": "dough",
+   "b": "rope",
+   "results": [
+    "pretzel"
+   ]
+  },
+  {
+   "a": "dough",
+   "b": "steam",
+   "results": [
+    "dumpling"
    ]
   },
   {
@@ -21549,6 +26631,13 @@
    "results": [
     "cookie",
     "cookie_dough"
+   ]
+  },
+  {
+   "a": "dough",
+   "b": "thread",
+   "results": [
+    "noodles"
    ]
   },
   {
@@ -21591,6 +26680,20 @@
    "b": "story",
    "results": [
     "fairy_tale"
+   ]
+  },
+  {
+   "a": "dream",
+   "b": "ghost",
+   "results": [
+    "nightmare"
+   ]
+  },
+  {
+   "a": "dream",
+   "b": "monster",
+   "results": [
+    "nightmare"
    ]
   },
   {
@@ -21741,6 +26844,20 @@
    ]
   },
   {
+   "a": "dust",
+   "b": "space",
+   "results": [
+    "nebula"
+   ]
+  },
+  {
+   "a": "dust",
+   "b": "stone",
+   "results": [
+    "cement"
+   ]
+  },
+  {
    "a": "eagle",
    "b": "eagle",
    "results": [
@@ -21752,6 +26869,13 @@
    "b": "earth",
    "results": [
     "ostrich"
+   ]
+  },
+  {
+   "a": "eagle",
+   "b": "lion",
+   "results": [
+    "griffin"
    ]
   },
   {
@@ -22270,6 +27394,13 @@
   },
   {
    "a": "egg",
+   "b": "noodles",
+   "results": [
+    "ramen"
+   ]
+  },
+  {
+   "a": "egg",
    "b": "ocean",
    "results": [
     "fish",
@@ -22297,6 +27428,13 @@
    "results": [
     "frog",
     "hard_roe"
+   ]
+  },
+  {
+   "a": "egg",
+   "b": "potato",
+   "results": [
+    "tortilla_espanola"
    ]
   },
   {
@@ -22691,6 +27829,20 @@
    ]
   },
   {
+   "a": "elf",
+   "b": "monster",
+   "results": [
+    "goblin"
+   ]
+  },
+  {
+   "a": "email",
+   "b": "love",
+   "results": [
+    "emoji"
+   ]
+  },
+  {
    "a": "empire",
    "b": "pyramid",
    "results": [
@@ -22776,6 +27928,13 @@
   },
   {
    "a": "energy",
+   "b": "ore",
+   "results": [
+    "magnet"
+   ]
+  },
+  {
+   "a": "energy",
    "b": "primordial_soup",
    "results": [
     "life"
@@ -22793,6 +27952,13 @@
    "b": "sand",
    "results": [
     "sandstorm"
+   ]
+  },
+  {
+   "a": "energy",
+   "b": "small",
+   "results": [
+    "atom"
    ]
   },
   {
@@ -22866,6 +28032,13 @@
    "b": "wizard",
    "results": [
     "magic"
+   ]
+  },
+  {
+   "a": "engine",
+   "b": "human",
+   "results": [
+    "mechanic"
    ]
   },
   {
@@ -23255,6 +28428,13 @@
    ]
   },
   {
+   "a": "fabric",
+   "b": "wool",
+   "results": [
+    "carpet"
+   ]
+  },
+  {
    "a": "fairy_tale",
    "b": "garden",
    "results": [
@@ -23287,6 +28467,27 @@
    "b": "family",
    "results": [
     "village"
+   ]
+  },
+  {
+   "a": "family",
+   "b": "internet",
+   "results": [
+    "social_network"
+   ]
+  },
+  {
+   "a": "family",
+   "b": "love",
+   "results": [
+    "child"
+   ]
+  },
+  {
+   "a": "family",
+   "b": "space_station",
+   "results": [
+    "space_colony"
    ]
   },
   {
@@ -23329,6 +28530,13 @@
    "b": "pitchfork",
    "results": [
     "hay"
+   ]
+  },
+  {
+   "a": "farm",
+   "b": "science",
+   "results": [
+    "agriculture"
    ]
   },
   {
@@ -23540,6 +28748,13 @@
   },
   {
    "a": "fence",
+   "b": "pancake",
+   "results": [
+    "waffle"
+   ]
+  },
+  {
+   "a": "fence",
    "b": "plant",
    "results": [
     "hedge"
@@ -23578,6 +28793,13 @@
    "b": "gravestone",
    "results": [
     "graveyard"
+   ]
+  },
+  {
+   "a": "field",
+   "b": "heat",
+   "results": [
+    "drought"
    ]
   },
   {
@@ -23667,6 +28889,13 @@
   },
   {
    "a": "field",
+   "b": "solar_cell",
+   "results": [
+    "solar_farm"
+   ]
+  },
+  {
+   "a": "field",
    "b": "steel",
    "results": [
     "plow"
@@ -23726,6 +28955,13 @@
    "b": "war",
    "results": [
     "famine"
+   ]
+  },
+  {
+   "a": "field",
+   "b": "wind_turbine",
+   "results": [
+    "wind_farm"
    ]
   },
   {
@@ -23968,6 +29204,13 @@
    "b": "sandwich",
    "results": [
     "toast"
+   ]
+  },
+  {
+   "a": "fire",
+   "b": "sap",
+   "results": [
+    "rubber"
    ]
   },
   {
@@ -24253,6 +29496,13 @@
   },
   {
    "a": "fish",
+   "b": "ink",
+   "results": [
+    "octopus"
+   ]
+  },
+  {
+   "a": "fish",
    "b": "legend",
    "results": [
     "mermaid"
@@ -24291,6 +29541,13 @@
    "b": "seaweed",
    "results": [
     "sushi"
+   ]
+  },
+  {
+   "a": "fish",
+   "b": "ship",
+   "results": [
+    "submarine"
    ]
   },
   {
@@ -24599,6 +29856,13 @@
   },
   {
    "a": "flower",
+   "b": "season",
+   "results": [
+    "spring"
+   ]
+  },
+  {
+   "a": "flower",
    "b": "steam",
    "results": [
     "perfume"
@@ -24752,10 +30016,24 @@
    ]
   },
   {
+   "a": "football",
+   "b": "judge",
+   "results": [
+    "referee"
+   ]
+  },
+  {
    "a": "forest",
    "b": "fruit_tree",
    "results": [
     "orchard"
+   ]
+  },
+  {
+   "a": "forest",
+   "b": "human",
+   "results": [
+    "elf"
    ]
   },
   {
@@ -24785,6 +30063,20 @@
    "b": "mammal",
    "results": [
     "bear"
+   ]
+  },
+  {
+   "a": "forest",
+   "b": "mars",
+   "results": [
+    "terraforming"
+   ]
+  },
+  {
+   "a": "forest",
+   "b": "mold",
+   "results": [
+    "mushroom"
    ]
   },
   {
@@ -24873,9 +30165,23 @@
   },
   {
    "a": "fossil",
+   "b": "tool",
+   "results": [
+    "stone_age"
+   ]
+  },
+  {
+   "a": "fossil",
    "b": "water",
    "results": [
     "petroleum"
+   ]
+  },
+  {
+   "a": "fountain",
+   "b": "human",
+   "results": [
+    "plumber"
    ]
   },
   {
@@ -24883,6 +30189,13 @@
    "b": "house",
    "results": [
     "cave"
+   ]
+  },
+  {
+   "a": "fox",
+   "b": "mask",
+   "results": [
+    "raccoon"
    ]
   },
   {
@@ -24915,9 +30228,23 @@
   },
   {
    "a": "frog",
+   "b": "internet",
+   "results": [
+    "meme"
+   ]
+  },
+  {
+   "a": "frog",
    "b": "tool",
    "results": [
     "meat"
+   ]
+  },
+  {
+   "a": "fruit",
+   "b": "garden",
+   "results": [
+    "strawberry"
    ]
   },
   {
@@ -24950,6 +30277,13 @@
   },
   {
    "a": "fruit",
+   "b": "lemonade",
+   "results": [
+    "lemon"
+   ]
+  },
+  {
+   "a": "fruit",
    "b": "machine",
    "results": [
     "jam"
@@ -24967,6 +30301,13 @@
    "b": "newspaper",
    "results": [
     "recipe"
+   ]
+  },
+  {
+   "a": "fruit",
+   "b": "orchard",
+   "results": [
+    "apple"
    ]
   },
   {
@@ -25006,6 +30347,20 @@
   },
   {
    "a": "fruit",
+   "b": "small",
+   "results": [
+    "strawberry"
+   ]
+  },
+  {
+   "a": "fruit",
+   "b": "spring",
+   "results": [
+    "cherry"
+   ]
+  },
+  {
+   "a": "fruit",
    "b": "squirrel",
    "results": [
     "nut"
@@ -25016,6 +30371,20 @@
    "b": "stone",
    "results": [
     "juice"
+   ]
+  },
+  {
+   "a": "fruit",
+   "b": "sugar",
+   "results": [
+    "candy"
+   ]
+  },
+  {
+   "a": "fruit",
+   "b": "sun",
+   "results": [
+    "orange"
    ]
   },
   {
@@ -25041,6 +30410,13 @@
   },
   {
    "a": "fruit",
+   "b": "vine",
+   "results": [
+    "grape"
+   ]
+  },
+  {
+   "a": "fruit",
    "b": "water",
    "results": [
     "juice",
@@ -25059,6 +30435,13 @@
    "b": "fruit_tree",
    "results": [
     "orchard"
+   ]
+  },
+  {
+   "a": "fruit_tree",
+   "b": "orchard",
+   "results": [
+    "apple"
    ]
   },
   {
@@ -25274,10 +30657,24 @@
    ]
   },
   {
+   "a": "garlic",
+   "b": "human",
+   "results": [
+    "vampire_hunter"
+   ]
+  },
+  {
    "a": "gas",
    "b": "planet",
    "results": [
     "jupiter"
+   ]
+  },
+  {
+   "a": "gas",
+   "b": "rubber",
+   "results": [
+    "balloon"
    ]
   },
   {
@@ -25302,6 +30699,13 @@
    ]
   },
   {
+   "a": "gem",
+   "b": "ice",
+   "results": [
+    "crystal"
+   ]
+  },
+  {
    "a": "generator",
    "b": "house",
    "results": [
@@ -25317,9 +30721,44 @@
   },
   {
    "a": "ghost",
+   "b": "house",
+   "results": [
+    "haunted_house"
+   ]
+  },
+  {
+   "a": "ghost",
+   "b": "party",
+   "results": [
+    "halloween"
+   ]
+  },
+  {
+   "a": "ghost",
    "b": "pumpkin",
    "results": [
     "jack_o_lantern"
+   ]
+  },
+  {
+   "a": "ghost",
+   "b": "ship",
+   "results": [
+    "ghost_ship"
+   ]
+  },
+  {
+   "a": "ghost",
+   "b": "shipwreck",
+   "results": [
+    "ghost_ship"
+   ]
+  },
+  {
+   "a": "ghost",
+   "b": "table",
+   "results": [
+    "poltergeist"
    ]
   },
   {
@@ -25330,10 +30769,31 @@
    ]
   },
   {
+   "a": "giant",
+   "b": "lens",
+   "results": [
+    "cyclops"
+   ]
+  },
+  {
+   "a": "giant",
+   "b": "monster",
+   "results": [
+    "ogre"
+   ]
+  },
+  {
    "a": "gift",
    "b": "paper",
    "results": [
     "wrapping_paper"
+   ]
+  },
+  {
+   "a": "gift",
+   "b": "santa",
+   "results": [
+    "elf"
    ]
   },
   {
@@ -25798,9 +31258,51 @@
   },
   {
    "a": "glasses",
+   "b": "videogame",
+   "results": [
+    "virtual_reality"
+   ]
+  },
+  {
+   "a": "glasses",
    "b": "water",
    "results": [
     "swim_goggles"
+   ]
+  },
+  {
+   "a": "glove",
+   "b": "sport",
+   "results": [
+    "boxing"
+   ]
+  },
+  {
+   "a": "glove",
+   "b": "warrior",
+   "results": [
+    "boxing"
+   ]
+  },
+  {
+   "a": "gnome",
+   "b": "gold",
+   "results": [
+    "leprechaun"
+   ]
+  },
+  {
+   "a": "gnome",
+   "b": "monster",
+   "results": [
+    "goblin"
+   ]
+  },
+  {
+   "a": "gnome",
+   "b": "rainbow",
+   "results": [
+    "leprechaun"
    ]
   },
   {
@@ -25864,6 +31366,13 @@
    "b": "tool",
    "results": [
     "milk"
+   ]
+  },
+  {
+   "a": "goat",
+   "b": "vampire",
+   "results": [
+    "chupacabra"
    ]
   },
   {
@@ -25962,6 +31471,13 @@
    "b": "skyscraper",
    "results": [
     "bank"
+   ]
+  },
+  {
+   "a": "gold",
+   "b": "sport",
+   "results": [
+    "trophy"
    ]
   },
   {
@@ -26150,6 +31666,13 @@
   },
   {
    "a": "grass",
+   "b": "snow",
+   "results": [
+    "tundra"
+   ]
+  },
+  {
+   "a": "grass",
    "b": "spider",
    "results": [
     "ant"
@@ -26197,6 +31720,13 @@
    "results": [
     "field",
     "lawn_mower"
+   ]
+  },
+  {
+   "a": "grass",
+   "b": "tree",
+   "results": [
+    "bamboo"
    ]
   },
   {
@@ -26350,6 +31880,13 @@
   },
   {
    "a": "graveyard",
+   "b": "house",
+   "results": [
+    "haunted_house"
+   ]
+  },
+  {
+   "a": "graveyard",
    "b": "legend",
    "results": [
     "ghost"
@@ -26451,6 +31988,13 @@
    "b": "sailor",
    "results": [
     "pirate"
+   ]
+  },
+  {
+   "a": "gun",
+   "b": "silver",
+   "results": [
+    "silver_bullet"
    ]
   },
   {
@@ -26588,6 +32132,13 @@
   },
   {
    "a": "hammer",
+   "b": "human",
+   "results": [
+    "blacksmith"
+   ]
+  },
+  {
+   "a": "hammer",
    "b": "metal",
    "results": [
     "bell"
@@ -26662,6 +32213,13 @@
    "b": "president",
    "results": [
     "top_hat"
+   ]
+  },
+  {
+   "a": "hat",
+   "b": "rabbit",
+   "results": [
+    "magician"
    ]
   },
   {
@@ -26786,6 +32344,13 @@
   },
   {
    "a": "heat",
+   "b": "meadow",
+   "results": [
+    "savanna"
+   ]
+  },
+  {
+   "a": "heat",
    "b": "meat",
    "results": [
     "jerky"
@@ -26849,6 +32414,13 @@
   },
   {
    "a": "heat",
+   "b": "season",
+   "results": [
+    "summer"
+   ]
+  },
+  {
+   "a": "heat",
    "b": "snow",
    "results": [
     "water"
@@ -26866,6 +32438,13 @@
    "b": "sugar",
    "results": [
     "caramel"
+   ]
+  },
+  {
+   "a": "heat",
+   "b": "vegetable",
+   "results": [
+    "chili"
    ]
   },
   {
@@ -27031,6 +32610,13 @@
    ]
   },
   {
+   "a": "hippo",
+   "b": "unicorn",
+   "results": [
+    "rhino"
+   ]
+  },
+  {
    "a": "horse",
    "b": "human",
    "results": [
@@ -27088,6 +32674,13 @@
   },
   {
    "a": "horse",
+   "b": "paint",
+   "results": [
+    "zebra"
+   ]
+  },
+  {
+   "a": "horse",
    "b": "paper",
    "results": [
     "origami"
@@ -27119,6 +32712,13 @@
    "b": "sand",
    "results": [
     "camel"
+   ]
+  },
+  {
+   "a": "horse",
+   "b": "savanna",
+   "results": [
+    "zebra"
    ]
   },
   {
@@ -27184,6 +32784,13 @@
    "b": "wood",
    "results": [
     "trojan_horse"
+   ]
+  },
+  {
+   "a": "horseshoe",
+   "b": "human",
+   "results": [
+    "blacksmith"
    ]
   },
   {
@@ -27265,6 +32872,13 @@
   },
   {
    "a": "house",
+   "b": "judge",
+   "results": [
+    "court"
+   ]
+  },
+  {
+   "a": "house",
    "b": "knight",
    "results": [
     "castle"
@@ -27328,6 +32942,20 @@
   },
   {
    "a": "house",
+   "b": "mars",
+   "results": [
+    "space_colony"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "mask",
+   "results": [
+    "theater"
+   ]
+  },
+  {
+   "a": "house",
    "b": "medicine",
    "results": [
     "hospital"
@@ -27349,9 +32977,23 @@
   },
   {
    "a": "house",
+   "b": "moon",
+   "results": [
+    "moon_base"
+   ]
+  },
+  {
+   "a": "house",
    "b": "motorcycle",
    "results": [
     "garage"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "movie",
+   "results": [
+    "cinema"
    ]
   },
   {
@@ -27391,6 +33033,20 @@
   },
   {
    "a": "house",
+   "b": "police",
+   "results": [
+    "police_station"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "police_car",
+   "results": [
+    "police_station"
+   ]
+  },
+  {
+   "a": "house",
    "b": "river",
    "results": [
     "flood"
@@ -27419,6 +33075,13 @@
   },
   {
    "a": "house",
+   "b": "science",
+   "results": [
+    "laboratory"
+   ]
+  },
+  {
+   "a": "house",
    "b": "seaplane",
    "results": [
     "hangar"
@@ -27443,6 +33106,13 @@
    "b": "sky",
    "results": [
     "skyscraper"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "skyscraper",
+   "results": [
+    "apartment"
    ]
   },
   {
@@ -27503,6 +33173,13 @@
   },
   {
    "a": "house",
+   "b": "story",
+   "results": [
+    "theater"
+   ]
+  },
+  {
+   "a": "house",
    "b": "swimmer",
    "results": [
     "swimming_pool"
@@ -27520,6 +33197,13 @@
    "b": "tool",
    "results": [
     "factory"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "tower",
+   "results": [
+    "apartment"
    ]
   },
   {
@@ -27550,6 +33234,13 @@
    "b": "tsunami",
    "results": [
     "flood"
+   ]
+  },
+  {
+   "a": "house",
+   "b": "vacation",
+   "results": [
+    "hotel"
    ]
   },
   {
@@ -27632,6 +33323,13 @@
   },
   {
    "a": "human",
+   "b": "jail",
+   "results": [
+    "prisoner"
+   ]
+  },
+  {
+   "a": "human",
    "b": "jupiter",
    "results": [
     "astronaut"
@@ -27649,6 +33347,13 @@
    "b": "king",
    "results": [
     "leader"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "laboratory",
+   "results": [
+    "scientist"
    ]
   },
   {
@@ -27730,6 +33435,13 @@
   },
   {
    "a": "human",
+   "b": "love",
+   "results": [
+    "heart"
+   ]
+  },
+  {
+   "a": "human",
    "b": "machine",
    "results": [
     "engineer"
@@ -27761,6 +33473,13 @@
    "b": "meat",
    "results": [
     "butcher"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "medal",
+   "results": [
+    "athlete"
    ]
   },
   {
@@ -27807,6 +33526,13 @@
   },
   {
    "a": "human",
+   "b": "motion",
+   "results": [
+    "muscle"
+   ]
+  },
+  {
+   "a": "human",
    "b": "mountain",
    "results": [
     "cold",
@@ -27826,6 +33552,13 @@
    "results": [
     "cold",
     "skier"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "movie",
+   "results": [
+    "actor"
    ]
   },
   {
@@ -27866,6 +33599,13 @@
   },
   {
    "a": "human",
+   "b": "ore",
+   "results": [
+    "miner"
+   ]
+  },
+  {
+   "a": "human",
    "b": "oxygen",
    "results": [
     "carbon_dioxide"
@@ -27901,9 +33641,23 @@
   },
   {
    "a": "human",
+   "b": "photo",
+   "results": [
+    "photographer"
+   ]
+  },
+  {
+   "a": "human",
    "b": "pie",
    "results": [
     "baker"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "pillow",
+   "results": [
+    "sleep"
    ]
   },
   {
@@ -27925,6 +33679,13 @@
    "b": "plane",
    "results": [
     "pilot"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "plank",
+   "results": [
+    "carpenter"
    ]
   },
   {
@@ -28029,6 +33790,20 @@
   },
   {
    "a": "human",
+   "b": "school",
+   "results": [
+    "student"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "science",
+   "results": [
+    "scientist"
+   ]
+  },
+  {
+   "a": "human",
    "b": "scuba_tank",
    "results": [
     "diver"
@@ -28050,6 +33825,13 @@
   },
   {
    "a": "human",
+   "b": "seed",
+   "results": [
+    "agriculture"
+   ]
+  },
+  {
+   "a": "human",
    "b": "sewing_machine",
    "results": [
     "tailor"
@@ -28057,9 +33839,23 @@
   },
   {
    "a": "human",
+   "b": "sheep",
+   "results": [
+    "shepherd"
+   ]
+  },
+  {
+   "a": "human",
    "b": "sheet_music",
    "results": [
     "musician"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "shop",
+   "results": [
+    "merchant"
    ]
   },
   {
@@ -28078,9 +33874,37 @@
   },
   {
    "a": "human",
+   "b": "silver_bullet",
+   "results": [
+    "vampire_hunter"
+   ]
+  },
+  {
+   "a": "human",
    "b": "ski_goggles",
    "results": [
     "skier"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "skyscraper",
+   "results": [
+    "architect"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "small",
+   "results": [
+    "dwarf"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "smartphone",
+   "results": [
+    "selfie"
    ]
   },
   {
@@ -28146,6 +33970,13 @@
    "b": "spaceship",
    "results": [
     "astronaut"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "sport",
+   "results": [
+    "athlete"
    ]
   },
   {
@@ -28228,10 +34059,24 @@
   },
   {
    "a": "human",
+   "b": "table",
+   "results": [
+    "carpenter"
+   ]
+  },
+  {
+   "a": "human",
    "b": "telescope",
    "results": [
     "astronomer",
     "science"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "theater",
+   "results": [
+    "actor"
    ]
   },
   {
@@ -28260,6 +34105,20 @@
    "b": "tool",
    "results": [
     "engineer"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "tooth",
+   "results": [
+    "dentist"
+   ]
+  },
+  {
+   "a": "human",
+   "b": "toy",
+   "results": [
+    "doll"
    ]
   },
   {
@@ -28534,6 +34393,13 @@
   },
   {
    "a": "ice",
+   "b": "planet",
+   "results": [
+    "uranus"
+   ]
+  },
+  {
+   "a": "ice",
    "b": "rain",
    "results": [
     "hail"
@@ -28544,6 +34410,13 @@
    "b": "sky",
    "results": [
     "hail"
+   ]
+  },
+  {
+   "a": "ice",
+   "b": "soil",
+   "results": [
+    "tundra"
    ]
   },
   {
@@ -28607,6 +34480,13 @@
    "b": "time",
    "results": [
     "glacier"
+   ]
+  },
+  {
+   "a": "ice",
+   "b": "tomato",
+   "results": [
+    "gazpacho"
    ]
   },
   {
@@ -28688,9 +34568,44 @@
   },
   {
    "a": "idea",
+   "b": "ink",
+   "results": [
+    "writing"
+   ]
+  },
+  {
+   "a": "idea",
+   "b": "life",
+   "results": [
+    "brain"
+   ]
+  },
+  {
+   "a": "idea",
    "b": "mold",
    "results": [
     "penicillin"
+   ]
+  },
+  {
+   "a": "idea",
+   "b": "pebble",
+   "results": [
+    "numbers"
+   ]
+  },
+  {
+   "a": "idea",
+   "b": "sleep",
+   "results": [
+    "dream"
+   ]
+  },
+  {
+   "a": "idea",
+   "b": "stick",
+   "results": [
+    "numbers"
    ]
   },
   {
@@ -28710,6 +34625,20 @@
   },
   {
    "a": "ink",
+   "b": "machine",
+   "results": [
+    "printing_press"
+   ]
+  },
+  {
+   "a": "ink",
+   "b": "ocean",
+   "results": [
+    "octopus"
+   ]
+  },
+  {
+   "a": "ink",
    "b": "stick",
    "results": [
     "pen"
@@ -28717,9 +34646,37 @@
   },
   {
    "a": "insect",
+   "b": "light",
+   "results": [
+    "firefly"
+   ]
+  },
+  {
+   "a": "insect",
    "b": "rainbow",
    "results": [
     "butterfly"
+   ]
+  },
+  {
+   "a": "insect",
+   "b": "rose",
+   "results": [
+    "ladybug"
+   ]
+  },
+  {
+   "a": "insect",
+   "b": "swamp",
+   "results": [
+    "mosquito"
+   ]
+  },
+  {
+   "a": "internet",
+   "b": "key",
+   "results": [
+    "password"
    ]
   },
   {
@@ -28738,6 +34695,13 @@
   },
   {
    "a": "internet",
+   "b": "party",
+   "results": [
+    "social_network"
+   ]
+  },
+  {
+   "a": "internet",
    "b": "phone",
    "results": [
     "app"
@@ -28745,9 +34709,23 @@
   },
   {
    "a": "internet",
+   "b": "radio",
+   "results": [
+    "podcast"
+   ]
+  },
+  {
+   "a": "internet",
    "b": "robot",
    "results": [
     "ai"
+   ]
+  },
+  {
+   "a": "internet",
+   "b": "virus",
+   "results": [
+    "computer_virus"
    ]
   },
   {
@@ -28788,6 +34766,13 @@
   },
   {
    "a": "jack_o_lantern",
+   "b": "party",
+   "results": [
+    "halloween"
+   ]
+  },
+  {
+   "a": "jack_o_lantern",
    "b": "plant",
    "results": [
     "pumpkin"
@@ -28805,6 +34790,41 @@
    "b": "vegetable",
    "results": [
     "pumpkin"
+   ]
+  },
+  {
+   "a": "jail",
+   "b": "thief",
+   "results": [
+    "prisoner"
+   ]
+  },
+  {
+   "a": "jail",
+   "b": "tunnel",
+   "results": [
+    "escape"
+   ]
+  },
+  {
+   "a": "judge",
+   "b": "judge",
+   "results": [
+    "court"
+   ]
+  },
+  {
+   "a": "judge",
+   "b": "sport",
+   "results": [
+    "referee"
+   ]
+  },
+  {
+   "a": "judge",
+   "b": "trial",
+   "results": [
+    "verdict"
    ]
   },
   {
@@ -28850,6 +34870,20 @@
    ]
   },
   {
+   "a": "jury",
+   "b": "trial",
+   "results": [
+    "verdict"
+   ]
+  },
+  {
+   "a": "king",
+   "b": "knight",
+   "results": [
+    "chess"
+   ]
+  },
+  {
    "a": "king",
    "b": "love",
    "results": [
@@ -28865,6 +34899,13 @@
   },
   {
    "a": "king",
+   "b": "paper",
+   "results": [
+    "playing_cards"
+   ]
+  },
+  {
+   "a": "king",
    "b": "pyramid",
    "results": [
     "pharaoh"
@@ -28872,9 +34913,23 @@
   },
   {
    "a": "king",
+   "b": "queen",
+   "results": [
+    "chess"
+   ]
+  },
+  {
+   "a": "king",
    "b": "roman_empire",
    "results": [
     "julius_caesar"
+   ]
+  },
+  {
+   "a": "king",
+   "b": "vampire",
+   "results": [
+    "dracula"
    ]
   },
   {
@@ -28918,6 +34973,13 @@
    "b": "stone",
    "results": [
     "statue"
+   ]
+  },
+  {
+   "a": "knife",
+   "b": "vegetable",
+   "results": [
+    "onion"
    ]
   },
   {
@@ -29146,6 +35208,13 @@
   },
   {
    "a": "lamp",
+   "b": "road",
+   "results": [
+    "traffic_light"
+   ]
+  },
+  {
+   "a": "lamp",
    "b": "tool",
    "results": [
     "flashlight"
@@ -29339,6 +35408,13 @@
   },
   {
    "a": "law",
+   "b": "student",
+   "results": [
+    "lawyer"
+   ]
+  },
+  {
+   "a": "law",
    "b": "warrior",
    "results": [
     "police"
@@ -29395,6 +35471,13 @@
   },
   {
    "a": "leaf",
+   "b": "season",
+   "results": [
+    "autumn"
+   ]
+  },
+  {
+   "a": "leaf",
    "b": "sickness",
    "results": [
     "herb"
@@ -29405,6 +35488,20 @@
    "b": "steam",
    "results": [
     "tea"
+   ]
+  },
+  {
+   "a": "leaf",
+   "b": "time",
+   "results": [
+    "season"
+   ]
+  },
+  {
+   "a": "leaf",
+   "b": "vegetable",
+   "results": [
+    "lettuce"
    ]
   },
   {
@@ -29437,9 +35534,23 @@
   },
   {
    "a": "leather",
+   "b": "wind",
+   "results": [
+    "ball"
+   ]
+  },
+  {
+   "a": "leather",
    "b": "wood",
    "results": [
     "drum"
+   ]
+  },
+  {
+   "a": "leather",
+   "b": "wool",
+   "results": [
+    "glove"
    ]
   },
   {
@@ -29564,6 +35675,13 @@
   },
   {
    "a": "letter",
+   "b": "love",
+   "results": [
+    "poem"
+   ]
+  },
+  {
+   "a": "letter",
    "b": "mailbox",
    "results": [
     "mailman"
@@ -29606,9 +35724,30 @@
   },
   {
    "a": "letter",
+   "b": "wire",
+   "results": [
+    "telegraph"
+   ]
+  },
+  {
+   "a": "letter",
    "b": "wood",
    "results": [
     "mailbox"
+   ]
+  },
+  {
+   "a": "lettuce",
+   "b": "tomato",
+   "results": [
+    "salad"
+   ]
+  },
+  {
+   "a": "lettuce",
+   "b": "vegetable",
+   "results": [
+    "salad"
    ]
   },
   {
@@ -29616,6 +35755,13 @@
    "b": "librarian",
    "results": [
     "idea"
+   ]
+  },
+  {
+   "a": "librarian",
+   "b": "school",
+   "results": [
+    "teacher"
    ]
   },
   {
@@ -29637,6 +35783,20 @@
    "b": "metal",
    "results": [
     "robot"
+   ]
+  },
+  {
+   "a": "life",
+   "b": "microscope",
+   "results": [
+    "cell"
+   ]
+  },
+  {
+   "a": "life",
+   "b": "molecule",
+   "results": [
+    "dna"
    ]
   },
   {
@@ -30005,9 +36165,23 @@
   },
   {
    "a": "lion",
+   "b": "motion",
+   "results": [
+    "cheetah"
+   ]
+  },
+  {
+   "a": "lion",
    "b": "paper",
    "results": [
     "origami"
+   ]
+  },
+  {
+   "a": "lion",
+   "b": "rainforest",
+   "results": [
+    "tiger"
    ]
   },
   {
@@ -30209,6 +36383,13 @@
    ]
   },
   {
+   "a": "lobster",
+   "b": "rice",
+   "results": [
+    "paella"
+   ]
+  },
+  {
    "a": "love",
    "b": "metal",
    "results": [
@@ -30220,6 +36401,13 @@
    "b": "plant",
    "results": [
     "rose"
+   ]
+  },
+  {
+   "a": "love",
+   "b": "smartphone",
+   "results": [
+    "emoji"
    ]
   },
   {
@@ -30241,6 +36429,13 @@
    "b": "war",
    "results": [
     "peace"
+   ]
+  },
+  {
+   "a": "love",
+   "b": "writer",
+   "results": [
+    "poet"
    ]
   },
   {
@@ -30407,6 +36602,13 @@
   },
   {
    "a": "magic",
+   "b": "oil_lamp",
+   "results": [
+    "genie"
+   ]
+  },
+  {
+   "a": "magic",
    "b": "snow_globe",
    "results": [
     "crystal_ball"
@@ -30417,6 +36619,20 @@
    "b": "swimmer",
    "results": [
     "mermaid"
+   ]
+  },
+  {
+   "a": "magnet",
+   "b": "map",
+   "results": [
+    "compass"
+   ]
+  },
+  {
+   "a": "magnet",
+   "b": "needle",
+   "results": [
+    "compass"
    ]
   },
   {
@@ -30526,9 +36742,37 @@
   },
   {
    "a": "map",
+   "b": "scissors",
+   "results": [
+    "puzzle"
+   ]
+  },
+  {
+   "a": "map",
+   "b": "sun",
+   "results": [
+    "equator"
+   ]
+  },
+  {
+   "a": "map",
    "b": "treasure",
    "results": [
     "treasure_map"
+   ]
+  },
+  {
+   "a": "mars",
+   "b": "moon_rover",
+   "results": [
+    "mars_rover"
+   ]
+  },
+  {
+   "a": "mars",
+   "b": "plant",
+   "results": [
+    "terraforming"
    ]
   },
   {
@@ -30540,9 +36784,44 @@
   },
   {
    "a": "mask",
+   "b": "party",
+   "results": [
+    "carnival"
+   ]
+  },
+  {
+   "a": "mask",
    "b": "song",
    "results": [
     "opera"
+   ]
+  },
+  {
+   "a": "math",
+   "b": "pyramid",
+   "results": [
+    "geometry"
+   ]
+  },
+  {
+   "a": "math",
+   "b": "ruler",
+   "results": [
+    "geometry"
+   ]
+  },
+  {
+   "a": "meadow",
+   "b": "mountain",
+   "results": [
+    "valley"
+   ]
+  },
+  {
+   "a": "meat",
+   "b": "motion",
+   "results": [
+    "muscle"
    ]
   },
   {
@@ -30568,6 +36847,13 @@
   },
   {
    "a": "meat",
+   "b": "pie",
+   "results": [
+    "empanada"
+   ]
+  },
+  {
+   "a": "meat",
    "b": "salt",
    "results": [
     "jerky"
@@ -30589,6 +36875,13 @@
   },
   {
    "a": "meat",
+   "b": "sword",
+   "results": [
+    "kebab"
+   ]
+  },
+  {
+   "a": "meat",
    "b": "vulture",
    "results": [
     "bone"
@@ -30606,6 +36899,34 @@
    "b": "wolf",
    "results": [
     "bone"
+   ]
+  },
+  {
+   "a": "medal",
+   "b": "medal",
+   "results": [
+    "olympics"
+   ]
+  },
+  {
+   "a": "medicine",
+   "b": "shop",
+   "results": [
+    "pharmacy"
+   ]
+  },
+  {
+   "a": "medicine",
+   "b": "small",
+   "results": [
+    "pill"
+   ]
+  },
+  {
+   "a": "medicine",
+   "b": "sugar",
+   "results": [
+    "pill"
    ]
   },
   {
@@ -30683,6 +37004,13 @@
    "b": "music",
    "results": [
     "heavy_metal"
+   ]
+  },
+  {
+   "a": "metal",
+   "b": "ore",
+   "results": [
+    "bronze"
    ]
   },
   {
@@ -31007,6 +37335,13 @@
    ]
   },
   {
+   "a": "miner",
+   "b": "small",
+   "results": [
+    "dwarf"
+   ]
+  },
+  {
    "a": "mineral",
    "b": "ocean",
    "results": [
@@ -31049,6 +37384,13 @@
    ]
   },
   {
+   "a": "mold",
+   "b": "soil",
+   "results": [
+    "mushroom"
+   ]
+  },
+  {
    "a": "monarch",
    "b": "monarch",
    "results": [
@@ -31085,6 +37427,13 @@
   },
   {
    "a": "money",
+   "b": "sailboat",
+   "results": [
+    "yacht"
+   ]
+  },
+  {
+   "a": "money",
    "b": "skyscraper",
    "results": [
     "bank"
@@ -31098,10 +37447,25 @@
    ]
   },
   {
+   "a": "money",
+   "b": "table",
+   "results": [
+    "shop"
+   ]
+  },
+  {
+   "a": "monkey",
+   "b": "muscle",
+   "results": [
+    "gorilla"
+   ]
+  },
+  {
    "a": "monkey",
    "b": "time",
    "results": [
-    "human"
+    "human",
+    "evolution"
    ]
   },
   {
@@ -31113,9 +37477,37 @@
   },
   {
    "a": "monster",
+   "b": "octopus",
+   "results": [
+    "kraken"
+   ]
+  },
+  {
+   "a": "monster",
+   "b": "snake",
+   "results": [
+    "hydra"
+   ]
+  },
+  {
+   "a": "monster",
    "b": "story",
    "results": [
     "frankenstein_s_monster"
+   ]
+  },
+  {
+   "a": "moon",
+   "b": "moon",
+   "results": [
+    "full_moon"
+   ]
+  },
+  {
+   "a": "moon",
+   "b": "night",
+   "results": [
+    "full_moon"
    ]
   },
   {
@@ -31137,6 +37529,13 @@
    "b": "sky",
    "results": [
     "night"
+   ]
+  },
+  {
+   "a": "moon",
+   "b": "space_station",
+   "results": [
+    "moon_base"
    ]
   },
   {
@@ -31180,6 +37579,13 @@
    "b": "ocean",
    "results": [
     "current"
+   ]
+  },
+  {
+   "a": "motion",
+   "b": "plane",
+   "results": [
+    "jet"
    ]
   },
   {
@@ -31622,6 +38028,20 @@
    ]
   },
   {
+   "a": "movie",
+   "b": "phone",
+   "results": [
+    "video_call"
+   ]
+  },
+  {
+   "a": "movie",
+   "b": "popcorn",
+   "results": [
+    "cinema"
+   ]
+  },
+  {
    "a": "mud",
    "b": "plant",
    "results": [
@@ -31668,6 +38088,13 @@
    "b": "tree",
    "results": [
     "swamp"
+   ]
+  },
+  {
+   "a": "mummy",
+   "b": "spell",
+   "results": [
+    "curse"
    ]
   },
   {
@@ -31832,6 +38259,13 @@
    ]
   },
   {
+   "a": "newspaper",
+   "b": "writer",
+   "results": [
+    "journalist"
+   ]
+  },
+  {
    "a": "night",
    "b": "planet",
    "results": [
@@ -31926,9 +38360,30 @@
   },
   {
    "a": "ninja",
+   "b": "sport",
+   "results": [
+    "karate"
+   ]
+  },
+  {
+   "a": "ninja",
    "b": "sword",
    "results": [
     "katana"
+   ]
+  },
+  {
+   "a": "noodles",
+   "b": "soup",
+   "results": [
+    "ramen"
+   ]
+  },
+  {
+   "a": "numbers",
+   "b": "numbers",
+   "results": [
+    "arithmetic"
    ]
   },
   {
@@ -31998,6 +38453,20 @@
   },
   {
    "a": "ocean",
+   "b": "river",
+   "results": [
+    "delta"
+   ]
+  },
+  {
+   "a": "ocean",
+   "b": "rock",
+   "results": [
+    "cliff"
+   ]
+  },
+  {
+   "a": "ocean",
    "b": "sand",
    "results": [
     "beach"
@@ -32008,6 +38477,13 @@
    "b": "science",
    "results": [
     "current"
+   ]
+  },
+  {
+   "a": "ocean",
+   "b": "scorpion",
+   "results": [
+    "crab"
    ]
   },
   {
@@ -32195,6 +38671,27 @@
    ]
   },
   {
+   "a": "oil_lamp",
+   "b": "wizard",
+   "results": [
+    "genie"
+   ]
+  },
+  {
+   "a": "omelet",
+   "b": "potato",
+   "results": [
+    "tortilla_espanola"
+   ]
+  },
+  {
+   "a": "onion",
+   "b": "vegetable",
+   "results": [
+    "garlic"
+   ]
+  },
+  {
    "a": "orchard",
    "b": "wind",
    "results": [
@@ -32349,6 +38846,20 @@
    ]
   },
   {
+   "a": "painting",
+   "b": "scissors",
+   "results": [
+    "puzzle"
+   ]
+  },
+  {
+   "a": "painting",
+   "b": "story",
+   "results": [
+    "comic"
+   ]
+  },
+  {
    "a": "palm",
    "b": "pigeon",
    "results": [
@@ -32421,6 +38932,13 @@
   },
   {
    "a": "paper",
+   "b": "queen",
+   "results": [
+    "playing_cards"
+   ]
+  },
+  {
+   "a": "paper",
    "b": "river",
    "results": [
     "map"
@@ -32463,9 +38981,23 @@
   },
   {
    "a": "paper",
+   "b": "season",
+   "results": [
+    "calendar"
+   ]
+  },
+  {
+   "a": "paper",
    "b": "sky",
    "results": [
     "kite"
+   ]
+  },
+  {
+   "a": "paper",
+   "b": "song",
+   "results": [
+    "poem"
    ]
   },
   {
@@ -32541,6 +39073,13 @@
   },
   {
    "a": "park",
+   "b": "toy",
+   "results": [
+    "playground"
+   ]
+  },
+  {
+   "a": "park",
    "b": "train",
    "results": [
     "roller_coaster"
@@ -32565,6 +39104,20 @@
    "b": "singer",
    "results": [
     "concert"
+   ]
+  },
+  {
+   "a": "party",
+   "b": "toy",
+   "results": [
+    "fun"
+   ]
+  },
+  {
+   "a": "party",
+   "b": "videogame",
+   "results": [
+    "fun"
    ]
   },
   {
@@ -32646,9 +39199,23 @@
   },
   {
    "a": "pebble",
+   "b": "stick",
+   "results": [
+    "abacus"
+   ]
+  },
+  {
+   "a": "pebble",
    "b": "wind",
    "results": [
     "sand"
+   ]
+  },
+  {
+   "a": "pebble",
+   "b": "wire",
+   "results": [
+    "abacus"
    ]
   },
   {
@@ -33117,6 +39684,13 @@
   },
   {
    "a": "plane",
+   "b": "rocket",
+   "results": [
+    "jet"
+   ]
+  },
+  {
+   "a": "plane",
    "b": "space",
    "results": [
     "rocket",
@@ -33188,6 +39762,13 @@
   },
   {
    "a": "planet",
+   "b": "satellite",
+   "results": [
+    "space_probe"
+   ]
+  },
+  {
+   "a": "planet",
    "b": "sky",
    "results": [
     "moon"
@@ -33233,6 +39814,13 @@
    "b": "volcano",
    "results": [
     "venus"
+   ]
+  },
+  {
+   "a": "planet",
+   "b": "wave",
+   "results": [
+    "neptune"
    ]
   },
   {
@@ -33468,6 +40056,13 @@
   },
   {
    "a": "plastic",
+   "b": "printer",
+   "results": [
+    "three_d_printer"
+   ]
+  },
+  {
+   "a": "plastic",
    "b": "water",
    "results": [
     "bottle"
@@ -33478,6 +40073,13 @@
    "b": "soil",
    "results": [
     "field"
+   ]
+  },
+  {
+   "a": "poem",
+   "b": "writer",
+   "results": [
+    "poet"
    ]
   },
   {
@@ -33693,10 +40295,24 @@
    ]
   },
   {
+   "a": "printer",
+   "b": "statue",
+   "results": [
+    "three_d_printer"
+   ]
+  },
+  {
    "a": "prism",
    "b": "sun",
    "results": [
     "rainbow"
+   ]
+  },
+  {
+   "a": "prisoner",
+   "b": "shovel",
+   "results": [
+    "escape"
    ]
   },
   {
@@ -33736,6 +40352,13 @@
    ]
   },
   {
+   "a": "puddle",
+   "b": "wheat",
+   "results": [
+    "rice"
+   ]
+  },
+  {
    "a": "pumpkin",
    "b": "sack",
    "results": [
@@ -33771,10 +40394,24 @@
    ]
   },
   {
+   "a": "radio",
+   "b": "smartphone",
+   "results": [
+    "podcast"
+   ]
+  },
+  {
    "a": "rain",
    "b": "rain",
    "results": [
     "flood"
+   ]
+  },
+  {
+   "a": "rain",
+   "b": "rainforest",
+   "results": [
+    "monsoon"
    ]
   },
   {
@@ -33954,6 +40591,13 @@
    ]
   },
   {
+   "a": "reed",
+   "b": "wood",
+   "results": [
+    "bamboo"
+   ]
+  },
+  {
    "a": "reindeer",
    "b": "sugar",
    "results": [
@@ -33965,6 +40609,20 @@
    "b": "wool",
    "results": [
     "christmas_stocking"
+   ]
+  },
+  {
+   "a": "river",
+   "b": "rock",
+   "results": [
+    "canyon"
+   ]
+  },
+  {
+   "a": "river",
+   "b": "sand",
+   "results": [
+    "delta"
    ]
   },
   {
@@ -34004,6 +40662,13 @@
   },
   {
    "a": "river",
+   "b": "time",
+   "results": [
+    "canyon"
+   ]
+  },
+  {
+   "a": "river",
    "b": "tool",
    "results": [
     "wheel"
@@ -34030,6 +40695,13 @@
    "results": [
     "boat",
     "bridge"
+   ]
+  },
+  {
+   "a": "road",
+   "b": "train",
+   "results": [
+    "tram"
    ]
   },
   {
@@ -34194,6 +40866,13 @@
    ]
   },
   {
+   "a": "roman_empire",
+   "b": "water",
+   "results": [
+    "aqueduct"
+   ]
+  },
+  {
    "a": "rope",
    "b": "sheep",
    "results": [
@@ -34244,6 +40923,27 @@
    ]
   },
   {
+   "a": "rubber",
+   "b": "sugar",
+   "results": [
+    "chewing_gum"
+   ]
+  },
+  {
+   "a": "rubber",
+   "b": "wheel",
+   "results": [
+    "tire"
+   ]
+  },
+  {
+   "a": "rubber",
+   "b": "wind",
+   "results": [
+    "ball"
+   ]
+  },
+  {
    "a": "ruins",
    "b": "science",
    "results": [
@@ -34255,6 +40955,20 @@
    "b": "wall",
    "results": [
     "garage"
+   ]
+  },
+  {
+   "a": "sack",
+   "b": "school",
+   "results": [
+    "backpack"
+   ]
+  },
+  {
+   "a": "sack",
+   "b": "student",
+   "results": [
+    "backpack"
    ]
   },
   {
@@ -34476,10 +41190,38 @@
    ]
   },
   {
+   "a": "sap",
+   "b": "tree",
+   "results": [
+    "rubber"
+   ]
+  },
+  {
+   "a": "savanna",
+   "b": "tree",
+   "results": [
+    "giraffe"
+   ]
+  },
+  {
+   "a": "school",
+   "b": "science",
+   "results": [
+    "university"
+   ]
+  },
+  {
    "a": "science",
    "b": "science",
    "results": [
     "idea"
+   ]
+  },
+  {
+   "a": "science",
+   "b": "small",
+   "results": [
+    "atom"
    ]
   },
   {
@@ -34638,6 +41380,27 @@
    ]
   },
   {
+   "a": "season",
+   "b": "snow",
+   "results": [
+    "winter"
+   ]
+  },
+  {
+   "a": "season",
+   "b": "stone",
+   "results": [
+    "calendar"
+   ]
+  },
+  {
+   "a": "season",
+   "b": "sun",
+   "results": [
+    "summer"
+   ]
+  },
+  {
    "a": "seed",
    "b": "soil",
    "results": [
@@ -34717,6 +41480,34 @@
    ]
   },
   {
+   "a": "shop",
+   "b": "shop",
+   "results": [
+    "mall"
+   ]
+  },
+  {
+   "a": "shop",
+   "b": "skyscraper",
+   "results": [
+    "mall"
+   ]
+  },
+  {
+   "a": "shop",
+   "b": "vegetable",
+   "results": [
+    "supermarket"
+   ]
+  },
+  {
+   "a": "shop",
+   "b": "village",
+   "results": [
+    "market"
+   ]
+  },
+  {
    "a": "shovel",
    "b": "small",
    "results": [
@@ -34759,6 +41550,13 @@
    ]
   },
   {
+   "a": "skateboard",
+   "b": "stick",
+   "results": [
+    "scooter"
+   ]
+  },
+  {
    "a": "skeleton",
    "b": "stone",
    "results": [
@@ -34777,6 +41575,13 @@
    "b": "vegetable",
    "results": [
     "jack_o_lantern"
+   ]
+  },
+  {
+   "a": "skeleton",
+   "b": "wizard",
+   "results": [
+    "necromancer"
    ]
   },
   {
@@ -34927,10 +41732,24 @@
    ]
   },
   {
+   "a": "sleep",
+   "b": "story",
+   "results": [
+    "dream"
+   ]
+  },
+  {
    "a": "sleigh",
    "b": "wall",
    "results": [
     "garage"
+   ]
+  },
+  {
+   "a": "small",
+   "b": "snake",
+   "results": [
+    "worm"
    ]
   },
   {
@@ -34971,9 +41790,30 @@
   },
   {
    "a": "small",
+   "b": "turtle",
+   "results": [
+    "snail"
+   ]
+  },
+  {
+   "a": "small",
+   "b": "whale",
+   "results": [
+    "dolphin"
+   ]
+  },
+  {
+   "a": "small",
    "b": "wind",
    "results": [
     "gust"
+   ]
+  },
+  {
+   "a": "smartphone",
+   "b": "watch",
+   "results": [
+    "smartwatch"
    ]
   },
   {
@@ -34988,6 +41828,13 @@
    "b": "snake",
    "results": [
     "egg"
+   ]
+  },
+  {
+   "a": "snake",
+   "b": "soil",
+   "results": [
+    "worm"
    ]
   },
   {
@@ -35122,6 +41969,13 @@
   },
   {
    "a": "soap",
+   "b": "tooth",
+   "results": [
+    "toothbrush"
+   ]
+  },
+  {
+   "a": "soap",
    "b": "water",
    "results": [
     "soap_bubble"
@@ -35150,6 +42004,13 @@
   },
   {
    "a": "soil",
+   "b": "vegetable",
+   "results": [
+    "onion"
+   ]
+  },
+  {
+   "a": "soil",
    "b": "water",
    "results": [
     "mud"
@@ -35160,6 +42021,13 @@
    "b": "wind",
    "results": [
     "dust"
+   ]
+  },
+  {
+   "a": "solar_cell",
+   "b": "solar_cell",
+   "results": [
+    "solar_farm"
    ]
   },
   {
@@ -35219,6 +42087,13 @@
    ]
   },
   {
+   "a": "soldier",
+   "b": "wall",
+   "results": [
+    "fort"
+   ]
+  },
+  {
    "a": "solid",
    "b": "water",
    "results": [
@@ -35248,9 +42123,23 @@
   },
   {
    "a": "sound",
+   "b": "wire",
+   "results": [
+    "telegraph"
+   ]
+  },
+  {
+   "a": "sound",
    "b": "wood",
    "results": [
     "bell"
+   ]
+  },
+  {
+   "a": "sound",
+   "b": "writing",
+   "results": [
+    "alphabet"
    ]
   },
   {
@@ -35331,6 +42220,20 @@
    ]
   },
   {
+   "a": "spaceship",
+   "b": "wormhole",
+   "results": [
+    "time_machine"
+   ]
+  },
+  {
+   "a": "spell",
+   "b": "zombie",
+   "results": [
+    "curse"
+   ]
+  },
+  {
    "a": "spider",
    "b": "spider",
    "results": [
@@ -35342,6 +42245,20 @@
    "b": "thread",
    "results": [
     "web"
+   ]
+  },
+  {
+   "a": "sport",
+   "b": "torch",
+   "results": [
+    "olympics"
+   ]
+  },
+  {
+   "a": "sport",
+   "b": "warrior",
+   "results": [
+    "karate"
    ]
   },
   {
@@ -35708,6 +42625,13 @@
    ]
   },
   {
+   "a": "stone",
+   "b": "worm",
+   "results": [
+    "snail"
+   ]
+  },
+  {
    "a": "storm",
    "b": "storm",
    "results": [
@@ -35764,6 +42688,13 @@
    ]
   },
   {
+   "a": "story",
+   "b": "writer",
+   "results": [
+    "novel"
+   ]
+  },
+  {
    "a": "stream",
    "b": "tool",
    "results": [
@@ -35785,10 +42716,31 @@
    ]
   },
   {
+   "a": "student",
+   "b": "time",
+   "results": [
+    "teacher"
+   ]
+  },
+  {
    "a": "sugar",
    "b": "thread",
    "results": [
     "cotton_candy"
+   ]
+  },
+  {
+   "a": "sugar",
+   "b": "tomato",
+   "results": [
+    "ketchup"
+   ]
+  },
+  {
+   "a": "sugar",
+   "b": "tomato_sauce",
+   "results": [
+    "ketchup"
    ]
   },
   {
@@ -35803,6 +42755,13 @@
    "b": "wind",
    "results": [
     "cotton_candy"
+   ]
+  },
+  {
+   "a": "sugar",
+   "b": "wrapping_paper",
+   "results": [
+    "candy"
    ]
   },
   {
@@ -35925,6 +42884,13 @@
    "b": "time",
    "results": [
     "peat"
+   ]
+  },
+  {
+   "a": "swamp",
+   "b": "wheat",
+   "results": [
+    "rice"
    ]
   },
   {
@@ -36086,6 +43052,13 @@
   },
   {
    "a": "time",
+   "b": "tree",
+   "results": [
+    "season"
+   ]
+  },
+  {
+   "a": "time",
    "b": "twilight",
    "results": [
     "night"
@@ -36206,6 +43179,13 @@
    ]
   },
   {
+   "a": "toolbox",
+   "b": "water",
+   "results": [
+    "plumber"
+   ]
+  },
+  {
    "a": "tower",
    "b": "wall",
    "results": [
@@ -36224,6 +43204,13 @@
    "b": "wall",
    "results": [
     "garage"
+   ]
+  },
+  {
+   "a": "train",
+   "b": "tunnel",
+   "results": [
+    "subway"
    ]
   },
   {
@@ -36295,6 +43282,13 @@
    "b": "water",
    "results": [
     "narwhal"
+   ]
+  },
+  {
+   "a": "vampire",
+   "b": "vegetable",
+   "results": [
+    "garlic"
    ]
   },
   {
@@ -36380,6 +43374,13 @@
    "b": "wood",
    "results": [
     "fence"
+   ]
+  },
+  {
+   "a": "wand",
+   "b": "witch",
+   "results": [
+    "spell"
    ]
   },
   {
@@ -36536,6 +43537,13 @@
    ]
   },
   {
+   "a": "wind_turbine",
+   "b": "wind_turbine",
+   "results": [
+    "wind_farm"
+   ]
+  },
+  {
    "a": "window",
    "b": "window",
    "results": [
@@ -36564,6 +43572,13 @@
    ]
   },
   {
+   "a": "wizard",
+   "b": "zombie",
+   "results": [
+    "necromancer"
+   ]
+  },
+  {
    "a": "wood",
    "b": "wood",
    "results": [
@@ -36575,6 +43590,13 @@
    "b": "woodpecker",
    "results": [
     "egg"
+   ]
+  },
+  {
+   "a": "zombie",
+   "b": "zombie",
+   "results": [
+    "zombie_apocalypse"
    ]
   }
  ]

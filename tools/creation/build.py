@@ -872,6 +872,299 @@ vinyl|Vinyl Record|Disco de vinilo|💿
 concert|Concert|Concierto|🎟️
 orchestra|Orchestra|Orquesta|🎻
 opera|Opera|Ópera|🎼
+# batch 2 (owner 2026-11-02, toward 1000): sports, science & tech, body, earth & seasons,
+# animals, fruit & veg, dishes, transport, buildings, jobs & arts, fantasy, space, play,
+# human progress, the unreal, courts & jails; Developer + Fun = Viral Gaming (owner's easter egg)
+# sports & games
+rubber|Rubber|Goma|🟤
+ball|Ball|Pelota|🏐
+sport|Sport|Deporte|🤾
+football|Football|Fútbol|⚽
+basketball|Basketball|Baloncesto|🏀
+tennis|Tennis|Tenis|🎾
+baseball|Baseball|Béisbol|⚾
+golf|Golf|Golf|⛳
+bowling|Bowling|Bolos|🎳
+glove|Glove|Guante|🧤
+boxing|Boxing|Boxeo|🥊
+karate|Karate|Kárate|🥋
+trophy|Trophy|Trofeo|🏆
+medal|Medal|Medalla|🏅
+olympics|Olympics|Juegos Olímpicos|🤸
+stadium|Stadium|Estadio|🏟️
+referee|Referee|Árbitro|🟨
+marathon|Marathon|Maratón|🏃
+athlete|Athlete|Atleta|🏋️
+chess|Chess|Ajedrez|♟️
+playing_cards|Playing Cards|Naipes|🃏
+puzzle|Puzzle|Rompecabezas|🧩
+# science & tech
+atom|Atom|Átomo|⚛️
+molecule|Molecule|Molécula|🔵
+dna|DNA|ADN|🧬
+cell|Cell|Célula|🟢
+magnet|Magnet|Imán|🧲
+compass|Compass|Brújula|🧭
+laboratory|Laboratory|Laboratorio|🥼
+scientist|Scientist|Científico|🔬
+nuclear_power|Nuclear Power|Energía nuclear|☢️
+printing_press|Printing Press|Imprenta|📃
+telegraph|Telegraph|Telégrafo|📟
+abacus|Abacus|Ábaco|🧮
+calculator|Calculator|Calculadora|🔢
+evolution|Evolution|Evolución|🐒
+virtual_reality|Virtual Reality|Realidad virtual|🥽
+smartwatch|Smartwatch|Reloj inteligente|⌚
+selfie|Selfie|Selfi|🤳
+social_network|Social Network|Red social|👍
+emoji|Emoji|Emoji|😀
+meme|Meme|Meme|🐸
+podcast|Podcast|Pódcast|🎙️
+video_call|Video Call|Videollamada|📹
+key|Key|Llave|🔑
+password|Password|Contraseña|🔐
+three_d_printer|3D Printer|Impresora 3D|🖨️
+solar_farm|Solar Farm|Planta solar|🔆
+wind_farm|Wind Farm|Parque eólico|🌀
+# body & health
+heart|Heart|Corazón|❤️
+brain|Brain|Cerebro|🧠
+muscle|Muscle|Músculo|💪
+tooth|Tooth|Diente|🦷
+toothbrush|Toothbrush|Cepillo de dientes|🪥
+dentist|Dentist|Dentista|😁
+nurse|Nurse|Enfermero|🩹
+pill|Pill|Pastilla|💊
+sleep|Sleep|Dormir|😴
+dream|Dream|Sueño|💭
+nightmare|Nightmare|Pesadilla|😱
+# earth & seasons
+drought|Drought|Sequía|🥵
+monsoon|Monsoon|Monzón|🌧️
+canyon|Canyon|Desfiladero|🏜️
+valley|Valley|Valle|🏞️
+cliff|Cliff|Acantilado|🧗
+delta|Delta|Delta|🔺
+savanna|Savanna|Sabana|🌾
+tundra|Tundra|Tundra|🌨️
+north_pole|North Pole|Polo Norte|🧊
+equator|Equator|Ecuador|🌐
+stalactite|Stalactite|Estalactita|🔻
+season|Season|Estación del año|📅
+spring|Spring|Primavera|🌸
+summer|Summer|Verano|🌞
+autumn|Autumn|Otoño|🍁
+winter|Winter|Invierno|❄️
+# animals
+elephant|Elephant|Elefante|🐘
+giraffe|Giraffe|Jirafa|🦒
+zebra|Zebra|Cebra|🦓
+kangaroo|Kangaroo|Canguro|🦘
+koala|Koala|Koala|🐨
+bamboo|Bamboo|Bambú|🎋
+panda|Panda|Panda|🐼
+gorilla|Gorilla|Gorila|🦍
+tiger|Tiger|Tigre|🐅
+cheetah|Cheetah|Guepardo|🐆
+rhino|Rhinoceros|Rinoceronte|🦏
+octopus|Octopus|Pulpo|🐙
+crab|Crab|Cangrejo|🦀
+lobster|Lobster|Langosta|🦞
+worm|Worm|Gusano|🐛
+snail|Snail|Caracol|🐌
+mosquito|Mosquito|Mosquito|🦟
+ladybug|Ladybug|Mariquita|🐞
+firefly|Firefly|Luciérnaga|✨
+dolphin|Dolphin|Delfín|🐬
+flamingo|Flamingo|Flamenco|🦩
+otter|Otter|Nutria|🦦
+raccoon|Raccoon|Mapache|🦝
+# fruit & vegetables
+mushroom|Mushroom|Seta|🍄
+apple|Apple|Manzana|🍎
+lemon|Lemon|Limón|🍋
+orange|Orange|Naranja|🍊
+strawberry|Strawberry|Fresa|🍓
+watermelon|Watermelon|Sandía|🍉
+pineapple|Pineapple|Piña|🍍
+grape|Grape|Uva|🍇
+cherry|Cherry|Cereza|🍒
+rice|Rice|Arroz|🍚
+chili|Chili Pepper|Guindilla|🌶️
+garlic|Garlic|Ajo|🧄
+onion|Onion|Cebolla|🧅
+lettuce|Lettuce|Lechuga|🥬
+salad|Salad|Ensalada|🥗
+avocado|Avocado|Aguacate|🥑
+guacamole|Guacamole|Guacamole|🥣
+nachos|Nachos|Nachos|🧀
+# dishes
+noodles|Noodles|Fideos|🍜
+ramen|Ramen|Ramen|🍥
+dumpling|Dumpling|Dumpling|🥟
+curry|Curry|Curri|🍛
+paella|Paella|Paella|🥘
+tortilla_espanola|Spanish Omelette|Tortilla española|🍳
+gazpacho|Gazpacho|Gazpacho|🥤
+ketchup|Ketchup|Kétchup|🥫
+waffle|Waffle|Gofre|🧇
+croissant|Croissant|Cruasán|🥐
+baguette|Baguette|Barra de pan|🥖
+pretzel|Pretzel|Pretzel|🥨
+cupcake|Cupcake|Magdalena|🧁
+candy|Candy|Golosina|🍬
+lollipop|Lollipop|Piruleta|🍭
+chewing_gum|Chewing Gum|Chicle|🫧
+flan|Flan|Flan|🍮
+fried_egg|Fried Egg|Huevo frito|🍳
+kebab|Kebab|Kebab|🥙
+empanada|Empanada|Empanada|🥠
+# transport
+truck|Truck|Camión|🚚
+taxi|Taxi|Taxi|🚕
+subway|Subway|Metro|🚇
+tram|Tram|Tranvía|🚋
+scooter|Scooter|Patinete|🛴
+balloon|Balloon|Globo|🎈
+hot_air_balloon|Hot Air Balloon|Globo aerostático|🪂
+submarine|Submarine|Submarino|🐋
+yacht|Yacht|Yate|🛥️
+canoe|Canoe|Canoa|🛶
+jet|Jet|Avión a reacción|🛩️
+traffic_light|Traffic Light|Semáforo|🚦
+gas_station|Gas Station|Gasolinera|⛽
+tire|Tire|Neumático|⭕
+# buildings
+palace|Palace|Palacio|🏯
+fort|Fort|Fuerte|🧱
+temple|Temple|Templo|⛩️
+hotel|Hotel|Hotel|🏨
+shop|Shop|Tienda|🏪
+mall|Shopping Mall|Centro comercial|🛍️
+supermarket|Supermarket|Supermercado|🛒
+cinema|Cinema|Cine|🎬
+theater|Theater|Teatro|🎪
+office|Office|Oficina|🖇️
+cafe|Café|Cafetería|🫖
+pharmacy|Pharmacy|Farmacia|⚕️
+market|Market|Mercado|🧺
+apartment|Apartment|Apartamento|🏬
+metropolis|Metropolis|Metrópolis|🌆
+capital|Capital City|Capital|🏙️
+university|University|Universidad|🎓
+student|Student|Estudiante|📚
+teacher|Teacher|Profesor|🧑‍🏫
+# jobs & arts
+chef|Chef|Chef|🔪
+blacksmith|Blacksmith|Herrero|⚒️
+miner|Miner|Minero|⛏️
+carpenter|Carpenter|Carpintero|🪚
+architect|Architect|Arquitecto|📐
+mechanic|Mechanic|Mecánico|🔧
+plumber|Plumber|Fontanero|🚰
+journalist|Journalist|Periodista|🗞️
+photographer|Photographer|Fotógrafo|📸
+actor|Actor|Actor|🎞️
+shepherd|Shepherd|Pastor|🐑
+merchant|Merchant|Comerciante|💰
+banker|Banker|Banquero|💳
+developer|Developer|Desarrollador|⌨️
+fun|Fun|Diversión|🥳
+viral_gaming|Viral Gaming|Viral Gaming|🎮
+poem|Poem|Poema|📝
+poet|Poet|Poeta|✒️
+novel|Novel|Novela|📕
+comic|Comic|Cómic|💥
+cartoon|Cartoon|Dibujos animados|📺
+ballet|Ballet|Ballet|🩰
+# fantasy
+elf|Elf|Elfo|🧝
+dwarf|Dwarf|Enano|🪓
+giant|Giant|Gigante|🗿
+troll|Troll|Trol|👹
+ogre|Ogre|Ogro|👺
+fairy|Fairy|Hada|🧚
+genie|Genie|Genio|🧞
+carpet|Carpet|Alfombra|🧶
+magic_carpet|Magic Carpet|Alfombra mágica|🌠
+kraken|Kraken|Kraken|🦑
+cyclops|Cyclops|Cíclope|👁️
+griffin|Griffin|Grifo|🦅
+hydra|Hydra|Hidra|🐲
+potion|Potion|Poción|⚗️
+spell|Spell|Hechizo|🔮
+curse|Curse|Maldición|🧿
+crystal|Crystal|Cristal|💠
+# space
+nebula|Nebula|Nebulosa|🌌
+asteroid|Asteroid|Asteroide|🪨
+space_probe|Space Probe|Sonda espacial|🛰️
+mars_rover|Mars Rover|Rover marciano|🚙
+space_colony|Space Colony|Colonia espacial|🏘️
+terraforming|Terraforming|Terraformación|🌱
+wormhole|Wormhole|Agujero de gusano|🌀
+time_machine|Time Machine|Máquina del tiempo|⏳
+neptune|Neptune|Neptuno|🔵
+uranus|Uranus|Urano|🧊
+pluto|Pluto|Plutón|⚪
+moon_base|Moon Base|Base lunar|🌙
+# play & celebrations
+child|Child|Niño|🧒
+toy|Toy|Juguete|🪀
+teddy_bear|Teddy Bear|Osito de peluche|🧸
+doll|Doll|Muñeca|🪆
+puppet|Puppet|Marioneta|🎎
+pinata|Piñata|Piñata|🎉
+halloween|Halloween|Halloween|🎃
+carnival|Carnival|Carnaval|🎭
+playground|Playground|Parque infantil|🎠
+clown|Clown|Payaso|🤡
+magician|Magician|Ilusionista|🎩
+climber|Climber|Escalador|🧗
+backpack|Backpack|Mochila|🎒
+# human progress
+numbers|Numbers|Números|🔢
+arithmetic|Arithmetic|Aritmética|➕
+math|Mathematics|Matemáticas|✖️
+geometry|Geometry|Geometría|📐
+writing|Writing|Escritura|✍️
+alphabet|Alphabet|Alfabeto|🔤
+language|Language|Idioma|💬
+agriculture|Agriculture|Agricultura|🚜
+stone_age|Stone Age|Edad de Piedra|🦴
+bronze|Bronze|Bronce|🥉
+cement|Cement|Cemento|🪣
+concrete|Concrete|Hormigón|🏗️
+aqueduct|Aqueduct|Acueducto|🌉
+calendar|Calendar|Calendario|📆
+computer_virus|Computer Virus|Virus informático|⚠️
+antivirus|Antivirus|Antivirus|✅
+# the unreal
+full_moon|Full Moon|Luna llena|🌕
+silver_bullet|Silver Bullet|Bala de plata|🥈
+dracula|Count Dracula|Conde Drácula|🧛
+haunted_house|Haunted House|Casa encantada|🏚️
+poltergeist|Poltergeist|Poltergeist|🪑
+ghost_ship|Ghost Ship|Barco fantasma|🌫️
+vampire_bat|Vampire Bat|Murciélago vampiro|🦇
+zombie_apocalypse|Zombie Apocalypse|Apocalipsis zombi|🧟
+crypt|Crypt|Cripta|⚰️
+necromancer|Necromancer|Nigromante|💀
+chupacabra|Chupacabra|Chupacabras|🐐
+leprechaun|Leprechaun|Leprechaun|🍀
+goblin|Goblin|Trasgo|👾
+vampire_hunter|Vampire Hunter|Cazavampiros|🏹
+# courts & jails
+court|Court|Tribunal|🏛️
+lawyer|Lawyer|Abogado|💼
+jury|Jury|Jurado|👥
+trial|Trial|Juicio|🔨
+verdict|Verdict|Veredicto|📃
+prisoner|Prisoner|Preso|⛓️
+handcuffs|Handcuffs|Esposas|🔗
+escape|Escape|Fuga|🏃
+police_station|Police Station|Comisaría|🚔
+fingerprint|Fingerprint|Huella dactilar|👆
 """
 
 RECIPES = """
@@ -2071,7 +2364,7 @@ cold+water=ice
 cold+wind=chill
 cold+yogurt=frozen_yogurt
 combustion_engine+wagon=car
-computer+human=hacker
+computer+human=hacker,developer
 computer+letter=email
 computer+mouse=computer_mouse
 computer+net=internet
@@ -3645,7 +3938,7 @@ monarch+wall=castle
 money+pig=piggy_bank
 money+skyscraper=bank
 money+steel=safe
-monkey+time=human
+monkey+time=human,evolution
 monster+story=frankenstein_s_monster
 moon+ocean=tide
 moon+star=space
@@ -4452,6 +4745,503 @@ cannon+leader=napoleon
 sun+vegetable=tomato
 seed+sun=corn
 bird+music=song
+# batch 2 (owner 2026-11-02, toward 1000): sports, science & tech, body, earth & seasons,
+# animals, fruit & veg, dishes, transport, buildings, jobs & arts, fantasy, space, play,
+# human progress, the unreal, courts & jails; Developer + Fun = Viral Gaming (owner's easter egg)
+sap+tree=rubber
+fire+sap=rubber
+leather+wind=ball
+rubber+wind=ball
+ball+human=sport
+ball+boots=football
+ball+field=football
+ball+bucket=basketball
+ball+net=tennis
+ball+fence=tennis
+ball+bat=baseball
+ball+stick=baseball
+ball+lawn=golf
+ball+flag=golf
+ball+bottle=bowling
+cloth+leather=glove
+leather+wool=glove
+glove+warrior=boxing
+glove+sport=boxing
+ninja+sport=karate
+sport+warrior=karate
+cup+gold=trophy
+gold+sport=trophy
+coin+sport=medal
+athlete+gold=medal
+sport+torch=olympics
+medal+medal=olympics
+colosseum+sport=stadium
+city+football=stadium
+judge+sport=referee
+football+judge=referee
+athlete+road=marathon
+human+sport=athlete
+human+medal=athlete
+king+queen=chess
+king+knight=chess
+paper+queen=playing_cards
+paper+king=playing_cards
+painting+scissors=puzzle
+map+scissors=puzzle
+science+small=atom
+energy+small=atom
+atom+atom=molecule
+life+molecule=dna
+life+microscope=cell
+energy+ore=magnet
+magnet+map=compass
+magnet+needle=compass
+house+science=laboratory
+human+science=scientist
+human+laboratory=scientist
+atom+energy=nuclear_power
+atom+powerplant=nuclear_power
+book+machine=printing_press
+ink+machine=printing_press
+letter+wire=telegraph
+pebble+wire=abacus
+pebble+stick=abacus
+abacus+electricity=calculator
+computer+glasses=virtual_reality
+glasses+videogame=virtual_reality
+smartphone+watch=smartwatch
+computer+watch=smartwatch
+human+smartphone=selfie
+camera+mirror=selfie
+internet+party=social_network
+love+smartphone=emoji
+email+love=emoji
+cat+internet=meme
+frog+internet=meme
+internet+radio=podcast
+radio+smartphone=podcast
+camera+phone=video_call
+movie+phone=video_call
+door+metal=key
+door+tool=key
+computer+key=password
+internet+key=password
+plastic+printer=three_d_printer
+printer+statue=three_d_printer
+field+solar_cell=solar_farm
+solar_cell+solar_cell=solar_farm
+field+wind_turbine=wind_farm
+wind_turbine+wind_turbine=wind_farm
+blood+life=heart
+human+love=heart
+bone+idea=brain
+meat+motion=muscle
+human+motion=muscle
+bone+small=tooth
+bone+knife=tooth
+broom+tooth=toothbrush
+soap+tooth=toothbrush
+doctor+tooth=dentist
+human+tooth=dentist
+bandage+human=nurse
+doctor+hospital=nurse
+medicine+small=pill
+medicine+sugar=pill
+bed+human=sleep
+human+pillow=sleep
+idea+sleep=dream
+sleep+story=dream
+dream+monster=nightmare
+dream+ghost=nightmare
+desert+field=drought
+heat+field=drought
+continent+storm=monsoon
+rain+rainforest=monsoon
+river+rock=canyon
+meadow+mountain=valley
+beach+rock=cliff
+river+sand=delta
+ocean+river=delta
+desert+grass=savanna
+heat+meadow=savanna
+grass+snow=tundra
+ice+soil=tundra
+compass+ice=north_pole
+arctic+compass=north_pole
+map+sun=equator
+compass+heat=equator
+cave+water=stalactite
+cave+time=stalactite
+time+tree=season
+flower+season=spring
+season+sun=summer
+heat+season=summer
+leaf+season=autumn
+season+snow=winter
+cold+season=winter
+big+mammal=elephant
+big+wild_animal=elephant
+savanna+tree=giraffe
+horse+savanna=zebra
+horse+paint=zebra
+big+rabbit=kangaroo
+desert+rabbit=kangaroo
+bear+small=koala
+grass+tree=bamboo
+reed+wood=bamboo
+bamboo+bear=panda
+bear+snow=panda
+big+monkey=gorilla
+monkey+muscle=gorilla
+cat+rainforest=tiger
+lion+rainforest=tiger
+cat+savanna=cheetah
+lion+motion=cheetah
+hippo+unicorn=rhino
+armor+savanna=rhino
+fish+ink=octopus
+ink+ocean=octopus
+beach+scorpion=crab
+ocean+scorpion=crab
+big+crab=lobster
+crab+ocean=lobster
+small+snake=worm
+snake+soil=worm
+small+turtle=snail
+stone+worm=snail
+blood+insect=mosquito
+insect+swamp=mosquito
+insect+rose=ladybug
+insect+light=firefly
+bulb+insect=firefly
+small+whale=dolphin
+brain+fish=dolphin
+bird+lemonade=flamingo
+beaver+ocean=otter
+beaver+fish=otter
+fox+mask=raccoon
+mask+bear=raccoon
+mold+soil=mushroom
+forest+mold=mushroom
+fruit+orchard=apple
+fruit_tree+orchard=apple
+acid_rain+fruit=lemon
+fruit+lemonade=lemon
+fruit+sun=orange
+fruit+small=strawberry
+fruit+garden=strawberry
+big+fruit=watermelon
+cactus+fruit=pineapple
+fruit+vine=grape
+fruit+spring=cherry
+swamp+wheat=rice
+puddle+wheat=rice
+heat+vegetable=chili
+vampire+vegetable=garlic
+onion+vegetable=garlic
+soil+vegetable=onion
+knife+vegetable=onion
+leaf+vegetable=lettuce
+lettuce+tomato=salad
+lettuce+vegetable=salad
+butter+fruit=avocado
+avocado+tomato=guacamole
+avocado+salt=guacamole
+cheese+corn=nachos
+chip+guacamole=nachos
+dough+thread=noodles
+chicken_soup+pasta=noodles
+noodles+soup=ramen
+egg+noodles=ramen
+dough+steam=dumpling
+chili+rice=curry
+lobster+rice=paella
+crab+rice=paella
+omelet+potato=tortilla_espanola
+egg+potato=tortilla_espanola
+cold+tomato_sauce=gazpacho
+ice+tomato=gazpacho
+sugar+tomato_sauce=ketchup
+sugar+tomato=ketchup
+batter+fence=waffle
+fence+pancake=waffle
+dough+moon=croissant
+butter+dough=croissant
+bread+stick=baguette
+bread+sword=baguette
+bread+rope=pretzel
+dough+rope=pretzel
+cake+small=cupcake
+cake+paper_cup=cupcake
+sugar+wrapping_paper=candy
+fruit+sugar=candy
+candy+stick=lollipop
+candy+rubber=chewing_gum
+rubber+sugar=chewing_gum
+caramel+egg=flan
+caramel+milk=flan
+meat+sword=kebab
+meat+pie=empanada
+car+money=taxi
+train+tunnel=subway
+city+train=subway
+road+train=tram
+skateboard+stick=scooter
+rubber+gas=balloon
+balloon+fire=hot_air_balloon
+balloon+campfire=hot_air_balloon
+diver+ship=submarine
+fish+ship=submarine
+boat+money=yacht
+money+sailboat=yacht
+boat+tree=canoe
+boat+river=canoe
+plane+rocket=jet
+motion+plane=jet
+lamp+road=traffic_light
+bulb+road=traffic_light
+car+petroleum=gas_station
+car+oil=gas_station
+rubber+wheel=tire
+car+rubber=tire
+castle+queen=palace
+castle+gold=palace
+soldier+wall=fort
+army+castle=fort
+deity+house=temple
+deity+stone=temple
+house+vacation=hotel
+bed+skyscraper=hotel
+shop+shop=mall
+shop+skyscraper=mall
+shop+vegetable=supermarket
+bread+shop=supermarket
+house+movie=cinema
+movie+popcorn=cinema
+house+mask=theater
+story+house=theater
+computer+skyscraper=office
+computer+house=office
+coffee+house=cafe
+coffee+shop=cafe
+medicine+shop=pharmacy
+coin+farmer=market
+shop+village=market
+house+tower=apartment
+house+skyscraper=apartment
+city+skyscraper=metropolis
+city+city=metropolis
+city+government=capital
+city+king=capital
+school+science=university
+book+school=university
+human+school=student
+student+time=teacher
+librarian+school=teacher
+cook+restaurant=chef
+cook+knife=chef
+horseshoe+human=blacksmith
+human+ore=miner
+cave+human=miner
+human+plank=carpenter
+human+table=carpenter
+blueprint+human=architect
+human+skyscraper=architect
+car+toolbox=mechanic
+engine+human=mechanic
+toolbox+water=plumber
+fountain+human=plumber
+newspaper+writer=journalist
+camera+human=photographer
+human+photo=photographer
+human+theater=actor
+human+movie=actor
+human+sheep=shepherd
+dog+sheep=shepherd
+human+shop=merchant
+bank+human=banker
+paper+song=poem
+letter+love=poem
+poem+writer=poet
+love+writer=poet
+book+story=novel
+story+writer=novel
+book+painting=comic
+painting+story=comic
+comic+tv=cartoon
+comic+movie=cartoon
+dance+theater=ballet
+forest+human=elf
+gift+santa=elf
+miner+small=dwarf
+human+small=dwarf
+big+human=giant
+big+mountain=giant
+bridge+monster=troll
+cave+monster=troll
+giant+monster=ogre
+butterfly+human=fairy
+butterfly+magic=fairy
+magic+oil_lamp=genie
+oil_lamp+wizard=genie
+cloth+wool=carpet
+fabric+wool=carpet
+carpet+magic=magic_carpet
+carpet+wind=magic_carpet
+big+octopus=kraken
+monster+octopus=kraken
+giant+lens=cyclops
+eagle+lion=griffin
+monster+snake=hydra
+bottle+magic=potion
+bottle+wizard=potion
+book+magic=spell
+wand+witch=spell
+mummy+spell=curse
+spell+zombie=curse
+cave+gem=crystal
+gem+ice=crystal
+cloud+star=nebula
+dust+space=nebula
+big+meteor=asteroid
+planet+satellite=space_probe
+camera+rocket=space_probe
+car+mars=mars_rover
+mars+moon_rover=mars_rover
+house+mars=space_colony
+family+space_station=space_colony
+mars+plant=terraforming
+forest+mars=terraforming
+black_hole+time=wormhole
+black_hole+worm=wormhole
+spaceship+wormhole=time_machine
+ice+planet=uranus
+cold+planet=pluto
+house+moon=moon_base
+moon+space_station=moon_base
+family+love=child
+child+wood=toy
+child+gift=toy
+bear+toy=teddy_bear
+bear+pillow=teddy_bear
+human+toy=doll
+clay+toy=doll
+doll+thread=puppet
+doll+rope=puppet
+candy+party=pinata
+candy+paper=pinata
+jack_o_lantern+party=halloween
+ghost+party=halloween
+mask+party=carnival
+dance+mask=carnival
+child+park=playground
+park+toy=playground
+circus+human=clown
+hat+rabbit=magician
+circus+magic=magician
+cliff+human=climber
+sack+school=backpack
+sack+student=backpack
+idea+pebble=numbers
+idea+stick=numbers
+numbers+numbers=arithmetic
+abacus+numbers=arithmetic
+arithmetic+philosophy=math
+arithmetic+science=math
+math+pyramid=geometry
+math+ruler=geometry
+clay+stick=writing
+idea+ink=writing
+sound+writing=alphabet
+alphabet+human=language
+farm+science=agriculture
+human+seed=agriculture
+fossil+tool=stone_age
+metal+ore=bronze
+dust+stone=cement
+ash+clay=cement
+cement+water=concrete
+cement+gravel=concrete
+roman_empire+water=aqueduct
+bridge+river=aqueduct
+paper+season=calendar
+season+stone=calendar
+computer+virus=computer_virus
+internet+virus=computer_virus
+computer_virus+shield=antivirus
+computer_virus+vaccine=antivirus
+moon+moon=full_moon
+moon+night=full_moon
+bullet+silver=silver_bullet
+gun+silver=silver_bullet
+castle+vampire=dracula
+king+vampire=dracula
+ghost+house=haunted_house
+graveyard+house=haunted_house
+chair+ghost=poltergeist
+ghost+table=poltergeist
+ghost+ship=ghost_ship
+ghost+shipwreck=ghost_ship
+bat+vampire=vampire_bat
+bat+blood=vampire_bat
+city+zombie=zombie_apocalypse
+zombie+zombie=zombie_apocalypse
+cave+coffin=crypt
+castle+grave=crypt
+wizard+zombie=necromancer
+skeleton+wizard=necromancer
+goat+vampire=chupacabra
+gnome+rainbow=leprechaun
+gnome+gold=leprechaun
+elf+monster=goblin
+gnome+monster=goblin
+garlic+human=vampire_hunter
+human+silver_bullet=vampire_hunter
+house+judge=court
+judge+judge=court
+court+human=lawyer
+law+student=lawyer
+court+thief=trial
+court+lawyer=trial
+court+family=jury
+court+village=jury
+jury+trial=verdict
+judge+trial=verdict
+human+jail=prisoner
+jail+thief=prisoner
+chain+police=handcuffs
+chain+thief=handcuffs
+jail+tunnel=escape
+prisoner+shovel=escape
+house+police=police_station
+house+police_car=police_station
+detective+ink=fingerprint
+detective+glass=fingerprint
+cell+science=dna
+sound+wire=telegraph
+computer+numbers=calculator
+family+internet=social_network
+idea+life=brain
+river+time=canyon
+ocean+rock=cliff
+leaf+time=season
+bird+swamp=flamingo
+egg+butter=fried_egg
+box+car=truck
+car+farm=truck
+money+table=shop
+coin+table=shop
+hammer+human=blacksmith
+coin+human=merchant
+clock+machine=time_machine
+clock+spaceship=time_machine
+planet+wave=neptune
+cave+tool=stone_age
+app+human=developer
+computer+writer=developer
+party+toy=fun
+party+videogame=fun
+developer+fun=viral_gaming
 """
 
 def key(a, b): return "+".join(sorted([a, b]))
@@ -4531,6 +5321,11 @@ TIERS = """
 3|leader kingdom queen empire law democracy vote election president parliament government tax flag top_hat abraham_lincoln judge soldier army war peace shield gladiator famine plague virus mask roman_empire colosseum julius_caesar cavalry mongol_empire genghis_khan vikings ancient_egypt pharaoh cleopatra napoleon thief police jail tomato tomato_sauce corn popcorn  taco burrito hot_dog churros pancake song band singer rock_music heavy_metal opera orchestra concert
 4|espresso cappuccino vinyl pandemic vaccine detective police_car jazz dj
 5|datacenter cloud_storage rogue_robot chatbot delivery_drone self_driving_car
+1|monsoon canyon delta crystal full_moon
+2|evolution heart brain muscle tooth drought valley cliff savanna tundra season spring summer autumn winter elephant giraffe zebra kangaroo koala bamboo panda gorilla tiger cheetah rhino crab lobster snail mosquito ladybug dolphin flamingo otter mushroom apple lemon orange strawberry watermelon pineapple cherry rice chili garlic onion lettuce elf giant ogre fairy griffin child numbers vampire_bat chupacabra goblin
+3|rubber ball sport football basketball tennis baseball golf glove boxing karate trophy medal olympics stadium referee marathon athlete chess playing_cards puzzle magnet compass printing_press abacus key toothbrush dentist sleep dream nightmare north_pole equator stalactite octopus worm raccoon grape salad avocado guacamole nachos noodles ramen dumpling curry paella tortilla_espanola gazpacho ketchup waffle croissant baguette pretzel cupcake candy lollipop chewing_gum flan fried_egg kebab empanada balloon hot_air_balloon canoe palace fort temple shop theater market chef blacksmith miner carpenter actor shepherd merchant fun poem poet novel comic ballet dwarf troll genie carpet magic_carpet kraken hydra spell curse toy teddy_bear doll puppet pinata halloween carnival clown magician climber arithmetic math geometry writing alphabet language agriculture stone_age bronze cement concrete aqueduct calendar silver_bullet dracula haunted_house poltergeist crypt necromancer leprechaun vampire_hunter court lawyer jury trial verdict prisoner handcuffs escape police_station
+4|bowling atom molecule dna cell laboratory scientist nuclear_power telegraph calculator selfie emoji video_call password solar_farm wind_farm nurse pill firefly truck taxi subway tram scooter submarine yacht jet traffic_light gas_station tire hotel mall supermarket cinema office cafe pharmacy apartment metropolis capital university student teacher architect mechanic plumber journalist photographer banker developer cartoon cyclops potion playground backpack computer_virus antivirus ghost_ship zombie_apocalypse fingerprint
+5|virtual_reality smartwatch social_network meme podcast three_d_printer viral_gaming nebula asteroid space_probe mars_rover space_colony terraforming wormhole time_machine neptune uranus pluto moon_base
 """
 theme = {}
 for line in TIERS.strip().splitlines():

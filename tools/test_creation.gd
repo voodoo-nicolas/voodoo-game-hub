@@ -39,7 +39,7 @@ func _init() -> void:
 
 func _test_validator(data: Dictionary) -> void:
 	check(E.validate(data).is_empty(), "real data validates")
-	check(data.items.size() == 867 and data.recipes.size() == 3571, "867 items, 3571 recipes (263 hand-made + lil alch import 2026-10-30 + owner themes 2026-11-02): %d/%d" % [data.items.size(), data.recipes.size()])
+	check(data.items.size() == 1141 and data.recipes.size() == 4065, "1141 items, 4065 recipes (263 hand-made + lil alch import 2026-10-30 + owner themes and batch 2, 2026-11-02): %d/%d" % [data.items.size(), data.recipes.size()])
 	# broken fixtures: each one must be caught
 	var d: Dictionary = data.duplicate(true)
 	d.recipes.append({"a": "earth", "b": "nothing", "results": ["lava"]})
@@ -102,7 +102,7 @@ func _test_combine() -> void:
 	check(e.unfound_uses("water") < before, "finding a recipe lowers unfound_uses")
 	# progress
 	var tp: Array = e.tier_progress(1)
-	check(tp[1] == 110 and tp[0] >= 4, "tier 1 progress %s" % str(tp))
+	check(tp[1] == 115 and tp[0] >= 4, "tier 1 progress %s" % str(tp))
 
 func _test_gating() -> void:
 	var e = _fresh()
