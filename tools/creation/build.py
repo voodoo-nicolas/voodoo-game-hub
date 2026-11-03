@@ -798,6 +798,80 @@ yeti|Yeti|Yeti|🦧
 yogurt|Yogurt|Yogur|🥛
 zombie|Zombie|Zombi|🧟
 zoo|Zoo|Zoo|🦓
+# politics, history, war & peace, crime, AI, food, music (owner 2026-11-02;
+# historical figures only, no living politicians, no band names or trademarks)
+leader|Leader|Líder|📣
+kingdom|Kingdom|Reino|🏰
+queen|Queen|Reina|👸
+empire|Empire|Imperio|🗺️
+law|Law|Ley|📜
+democracy|Democracy|Democracia|🗳️
+vote|Vote|Voto|☑️
+election|Election|Elecciones|📢
+president|President|Presidente|🧑‍💼
+parliament|Parliament|Parlamento|🗣️
+government|Government|Gobierno|🏢
+tax|Tax|Impuesto|💸
+flag|Flag|Bandera|🚩
+top_hat|Top Hat|Sombrero de copa|🎩
+abraham_lincoln|Abraham Lincoln|Abraham Lincoln|🧔
+judge|Judge|Juez|⚖️
+soldier|Soldier|Soldado|💂
+army|Army|Ejército|🎖️
+war|War|Guerra|⚔️
+peace|Peace|Paz|🕊️
+shield|Shield|Escudo|🛡️
+gladiator|Gladiator|Gladiador|🗡️
+famine|Famine|Hambruna|🍂
+plague|Plague|Peste|☠️
+virus|Virus|Virus|🦠
+pandemic|Pandemic|Pandemia|😷
+vaccine|Vaccine|Vacuna|🧪
+mask|Mask|Máscara|🎭
+roman_empire|Roman Empire|Imperio romano|🏛️
+colosseum|Colosseum|Coliseo|🏟️
+julius_caesar|Julius Caesar|Julio César|🌿
+cavalry|Cavalry|Caballería|🏇
+mongol_empire|Mongol Empire|Imperio mongol|🐎
+genghis_khan|Genghis Khan|Gengis Kan|🏹
+vikings|Vikings|Vikingos|⚓
+ancient_egypt|Ancient Egypt|Antiguo Egipto|🏺
+pharaoh|Pharaoh|Faraón|👑
+cleopatra|Cleopatra|Cleopatra|💄
+napoleon|Napoleon|Napoleón|🐴
+thief|Thief|Ladrón|👤
+police|Police|Policía|👮
+jail|Jail|Cárcel|🔒
+detective|Detective|Detective|🕵️
+police_car|Police Car|Coche de policía|🚓
+datacenter|Datacenter|Centro de datos|🗄️
+cloud_storage|Cloud Storage|Almacenamiento en la nube|🌥️
+rogue_robot|Rogue Robot|Robot rebelde|👾
+chatbot|Chatbot|Chatbot|💬
+delivery_drone|Delivery Drone|Dron de reparto|📦
+self_driving_car|Self-Driving Car|Coche autónomo|🚘
+tomato|Tomato|Tomate|🍅
+tomato_sauce|Tomato Sauce|Salsa de tomate|🥫
+corn|Corn|Maíz|🌽
+popcorn|Popcorn|Palomitas|🍿
+espresso|Espresso|Café expreso|☕
+cappuccino|Cappuccino|Capuchino|🥛
+taco|Taco|Taco|🌮
+burrito|Burrito|Burrito|🌯
+hot_dog|Hot Dog|Perrito caliente|🌭
+churros|Churros|Churros|🥖
+pancake|Pancake|Tortita|🥞
+song|Song|Canción|🎶
+band|Band|Banda|🎷
+singer|Singer|Cantante|🎤
+rock_music|Rock Music|Música rock|🤘
+heavy_metal|Heavy Metal|Heavy metal|🔊
+jazz|Jazz|Jazz|🎺
+dj|DJ|DJ|🎧
+vinyl|Vinyl Record|Disco de vinilo|💿
+concert|Concert|Concierto|🎟️
+orchestra|Orchestra|Orquesta|🎻
+opera|Opera|Ópera|🎼
 """
 
 RECIPES = """
@@ -936,7 +1010,7 @@ wool+stick=thread
 thread+thread=cloth,rope
 cloth+knife=shirt
 cloth+sun=hat
-cloth+stick=sail
+cloth+stick=sail,flag
 honey+fire=wax
 wax+stick=candle
 wood+water=paper,boat
@@ -958,7 +1032,7 @@ cow+grass=milk
 milk+cave=cheese
 milk+stick=butter
 bread+cheese=pizza,sandwich
-bread+meat=sandwich,burger
+bread+meat=sandwich,burger,hot_dog
 meat+water=soup
 egg+fire=omelet,phoenix
 fruit+water=juice,lemonade
@@ -2388,7 +2462,7 @@ dough+human=baker
 dough+life=gingerbread_man
 dough+magic=gingerbread_man
 dough+meat=pie
-dough+oil=donut
+dough+oil=donut,churros
 dough+story=gingerbread_man
 dough+sugar=cookie,cookie_dough
 dough+warmth=bread
@@ -4240,6 +4314,144 @@ wire+wool=steel_wool
 wizard+wood=wand
 wood+wood=wall
 woodpecker+woodpecker=egg
+# politics, history, war & peace, crime, AI, food, music (owner 2026-11-02;
+# historical figures only, no living politicians, no band names or trademarks)
+king+human=leader
+king+village=kingdom
+castle+king=kingdom
+king+love=queen
+crown+love=queen
+kingdom+kingdom=empire
+kingdom+map=empire
+book+king=law
+book+leader=law
+philosophy+village=democracy
+philosophy+town=democracy
+democracy+paper=vote
+paper+leader=vote
+vote+vote=election
+democracy+leader=president
+election+leader=president
+democracy+law=parliament
+house+law=parliament
+law+leader=government
+kingdom+law=government
+government+money=tax
+coin+king=tax
+cloth+kingdom=flag
+hat+president=top_hat
+hat+tower=top_hat
+president+top_hat=abraham_lincoln
+law+wizard=judge
+human+law=judge
+flag+warrior=soldier
+soldier+soldier=army
+leader+warrior=army
+army+army=war
+army+kingdom=war
+love+war=peace
+time+war=peace
+armor+wood=shield
+armor+metal=shield
+shield+sword=gladiator
+colosseum+warrior=gladiator
+field+war=famine
+wheat+war=famine
+rat+village=plague
+rat+sickness=plague
+sickness+small=virus
+bacteria+sickness=virus
+continent+virus=pandemic
+airport+virus=pandemic
+syringe+virus=vaccine
+doctor+virus=vaccine
+cloth+human=mask
+cloth+ghost=mask
+empire+road=roman_empire
+empire+statue=roman_empire
+circus+roman_empire=colosseum
+roman_empire+stone=colosseum
+leader+roman_empire=julius_caesar
+king+roman_empire=julius_caesar
+horse+soldier=cavalry
+cavalry+empire=mongol_empire
+cavalry+meadow=mongol_empire
+leader+mongol_empire=genghis_khan
+king+mongol_empire=genghis_khan
+boat+warrior=vikings
+sailboat+warrior=vikings
+empire+pyramid=ancient_egypt
+desert+empire=ancient_egypt
+ancient_egypt+king=pharaoh
+pyramid+king=pharaoh
+ancient_egypt+queen=cleopatra
+pharaoh+queen=cleopatra
+cannon+empire=napoleon
+human+mask=thief
+mask+money=thief
+law+warrior=police
+police+thief=jail
+cage+thief=jail
+lens+police=detective
+police+story=detective
+car+police=police_car
+ai+factory=datacenter
+computer+factory=datacenter
+cloud+datacenter=cloud_storage
+cloud+internet=cloud_storage
+gun+robot=rogue_robot
+ai+war=rogue_robot
+ai+letter=chatbot
+ai+phone=chatbot
+drone+mailbox=delivery_drone
+drone+gift=delivery_drone
+ai+car=self_driving_car
+car+robot=self_driving_car
+fruit+vegetable=tomato
+pot+tomato=tomato_sauce
+fire+tomato=tomato_sauce
+dough+tomato_sauce=pizza
+bread+tomato_sauce=pizza
+field+sun=corn
+corn+fire=popcorn
+corn+heat=popcorn
+movie+corn=popcorn
+coffee+pressure=espresso
+coffee+steam=espresso
+espresso+milk=cappuccino
+cloud+espresso=cappuccino
+corn+meat=taco
+taco+taco=burrito
+cloth+taco=burrito
+bread+dog=hot_dog
+batter+fire=pancake
+batter+butter=pancake
+music+story=song
+musician+musician=band
+guitar+musician=band
+human+song=singer
+musician+song=singer
+music+rock=rock_music
+electricity+guitar=rock_music
+metal+music=heavy_metal
+metal+rock_music=heavy_metal
+music+night=jazz
+band+city=jazz
+computer+music=dj
+music+vinyl=dj
+music+plastic=vinyl
+band+party=concert
+party+singer=concert
+band+band=orchestra
+harp+musician=orchestra
+singer+story=opera
+mask+song=opera
+gun+warrior=soldier
+army+horse=cavalry
+cannon+leader=napoleon
+sun+vegetable=tomato
+seed+sun=corn
+bird+music=song
 """
 
 def key(a, b): return "+".join(sorted([a, b]))
@@ -4316,6 +4528,9 @@ TIERS = """
 3|alchemist angler apron archeologist armadillo armor arrow aviary axe baker bakery banana_bread bandage barn batter bayonet bbq bell birdcage birdhouse blender blood blood_bag blueprint boiler bow box broom bucket bullet bulletproof_vest butterfly_net cable_car cage cannon canvas cape cashmere cauldron cereal chain chainsaw chicken_coop chocolate_milk christmas_stocking circus closet coconut_milk coffin combustion_engine confetti container cookbook cookie cookie_cutter cookie_dough crayon cup cutting_board cyclist diver doctor doghouse donut dynamite electric_car engineer excalibur excavator fabric factory fence fireplace firetruck firewall fishing_rod flamethrower fork fortune_cookie fridge frozen_yogurt garage gardener gingerbread_house gingerbread_man gnome golem grenade grilled_cheese gun hammer hamster harp hedge hedgehog horseshoe ice_sculpture iced_tea igloo ivy jerky katana kite knight lasso lawn lawn_mower librarian log_cabin mac_and_cheese machine mailbox mailman maple_syrup marshmallows medusa monarch money moon_rover mouse mousetrap mummy musician needle net newspaper ninja origami painter pan_flute paper_cup parachute paraglider parrot pasta pencil pencil_sharpener pie pigeon piggy_bank pillow pirate pirate_ship pitchfork plow popsicle post_office potter pottery quicksilver rat recipe restaurant roller_coaster rope ruins ruler rust sack saddle safe sand_castle sandpaper sap scalpel scissors scuba_tank scythe sewing_machine sheet_music shovel shuriken silo skateboard sledge sleigh smoke_signal snake soap_bubble space_station spaghetti spider spoon steam_engine steamboat steel_wool stethoscope string_phone stun_gun sundial sweater sword swordfish syringe tailor tent thermometer toast toolbox tractor treasure_map treehouse trojan_horse tunnel tyrannosaurus_rex umbrella vacuum_cleaner vault vine wagon wallet wand warrior water_gun waterwheel web witch wrapping_paper writer yogurt zoo
 4|alarm_clock ambulance binoculars bus cheeseburger computer_mouse cuckoo egg_timer electric_eel electrician email flashlight frankenstein hacker hangar helicopter ice_cream_truck lamp laptop lava_lamp light magma mail_truck milk_shake nerd optical_fiber paper_airplane picnic pilot printer robot_vacuum rv safety_glasses science seaplane ski_goggles smartphone snowmobile spotlight sunglasses swim_goggles tablet tank taser trainyard wind_turbine x_ray
 5|astronaut_ice_cream astronomer cyborg drone galaxy_cluster jupiter mars mercury saturn ufo venus
+3|leader kingdom queen empire law democracy vote election president parliament government tax flag top_hat abraham_lincoln judge soldier army war peace shield gladiator famine plague virus mask roman_empire colosseum julius_caesar cavalry mongol_empire genghis_khan vikings ancient_egypt pharaoh cleopatra napoleon thief police jail tomato tomato_sauce corn popcorn  taco burrito hot_dog churros pancake song band singer rock_music heavy_metal opera orchestra concert
+4|espresso cappuccino vinyl pandemic vaccine detective police_car jazz dj
+5|datacenter cloud_storage rogue_robot chatbot delivery_drone self_driving_car
 """
 theme = {}
 for line in TIERS.strip().splitlines():

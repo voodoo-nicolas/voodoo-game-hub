@@ -4,7 +4,7 @@ Working title **Creation** (display name only: `manifest.json` `title`/`title_es
 
 ## Data pipeline (never edit the JSON by hand)
 - `tools/creation/build.py` is the source of truth (`ITEMS`, `RECIPES`, `TIERS` blocks; `#` lines are ignored inside them). `python tools/creation/build.py` validates (undefined ids, duplicate pairs, reachability, sources, every item has a tier, **free tiers completable without a paid-tier ingredient**) and writes `tools/creation/game_data.json` + `scripts/games/creation/creation_data.json` (the copy the pack ships). Exit 1 on any error.
-- Now **795 items, 3435 recipe pairs** (2026-10-30: 532 items + ~3,200 pairs imported from the owner's `Documents/lil alch.txt` list; pairs may give several results). Dropped on purpose: alcohol items (docs/claude/creation.md + CLAUDE.md rule), trademarked characters (Batman, Darth Vader, Yoda, Jedi, lightsaber, Godzilla, Ninja Turtle, Roomba, Doge, Keyboard Cat, One Ring, Little Alchemy). Tiers of imported items are computed (lowest tier that can make them). `docs/creation_combinations.md` lists every pair.
+- Now **867 items, 3571 recipe pairs** (2026-10-30: 532 items + ~3,200 pairs imported from the owner's `Documents/lil alch.txt` list; pairs may give several results. 2026-11-02: 72 owner-themed items: government/democracy, war & peace, plague/virus/vaccine, empires and long-dead historical leaders, crime/police, AI, food, music). Dropped on purpose: alcohol items (docs/claude/creation.md + CLAUDE.md rule), trademarked characters (Batman, Darth Vader, Yoda, Jedi, lightsaber, Godzilla, Ninja Turtle, Roomba, Doge, Keyboard Cat, One Ring, Little Alchemy). Tiers of imported items are computed (lowest tier that can make them). `docs/creation_combinations.md` lists every pair.
 - **Tiers are themed, not by depth** (the old depth band is kept as `depth_band`): 1 Nature 53, 2 Life 43, 3 Early Civilization 85, 4 Industry & Modern Life 62, 5 Space & Future 20. Free = tiers 1-3 (181 items), Full Game = tiers 4-5 (82).
 - Item names EN/ES live in the data (not `es.json`); `lang` only changes names, never ids.
 
@@ -17,6 +17,11 @@ Working title **Creation** (display name only: `manifest.json` `title`/`title_es
 - Save `user://creation_save.json` (autosave on every move/discovery, on pause and exit): found ids, failed pairs, locked silhouettes, table layout (fractions), hints (3/day, resets by local date), settings (`lang` auto/en/es item names; `theme` auto/dark/light), purchase flag. Pause-menu Restart only clears the table; progress reset is ⚙ > Reset progress (confirmed).
 - Top bar shows the banner `games/creation/banner.webp` (owner's art, 2026-10-28) instead of the text title (`title_label` stays as a hidden fallback if the file is missing). Shelf checkbox **Hide used-up items** (`settings.hide_spent`, saved) hides found items with `unfound_uses == 0`; silhouettes stay.
 - Skins: Classic (light/dark theme per setting or the app's) and Voodoo (neon, always dark). Modals are children of the kit (`home`) so Android back closes them.
+
+## Content rules for new items (owner 2026-11-02)
+- Historical figures only (Caesar, Cleopatra, Genghis Khan, Napoleon, Lincoln): no living or recent politicians, and no recipe that makes a real person's death (no "president + gun"). Lincoln = President + Top Hat.
+- Generic over real or trademarked: Pandemic / Virus, not COVID; Rogue Robot, not Terminator; music genres (Rock, Heavy Metal), never band names. Empires and peoples-in-history (Roman Empire, Vikings), never a recipe that stereotypes a group.
+- The manifest says min age 3: keep war/crime items mild (no gore, nothing graphic).
 
 ## Achievements and wording (owner 2026-11-02)
 - 🏅 goals in `creation_help.gd` are fixed Discoveries counts (25 / 75 / 150 / 220 / 400 / 600), all under the item total. No "find them all" badge: the item list keeps growing (goal5 "Everything" at 263 retired; its id is not reused). The How to Play goal names no total.

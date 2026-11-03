@@ -39,7 +39,7 @@ func _init() -> void:
 
 func _test_validator(data: Dictionary) -> void:
 	check(E.validate(data).is_empty(), "real data validates")
-	check(data.items.size() == 795 and data.recipes.size() == 3435, "795 items, 3435 recipes (263 hand-made + lil alch import 2026-10-30): %d/%d" % [data.items.size(), data.recipes.size()])
+	check(data.items.size() == 867 and data.recipes.size() == 3571, "867 items, 3571 recipes (263 hand-made + lil alch import 2026-10-30 + owner themes 2026-11-02): %d/%d" % [data.items.size(), data.recipes.size()])
 	# broken fixtures: each one must be caught
 	var d: Dictionary = data.duplicate(true)
 	d.recipes.append({"a": "earth", "b": "nothing", "results": ["lava"]})
