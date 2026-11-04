@@ -378,4 +378,74 @@ Day and night: the pictures are painted in flat daylight with the lamps out; the
 >
 > No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
 
-After these: the harbor (the cigar shop front, the water, the lamps) and the night road can be done the same way; their prompts get written once the street works in the game.
+After these: the harbour and the night road, Step 7.
+
+## Step 7: the harbour and the night road as paintings, like the street (2026-11-04)
+Same method as Step 6 (one chat per place; attach `bar_room.jpg` and `house_up.jpg` to every message, plus the picture just made for each next part; joins on plain walls or plain forest so the game can blend them). **These two are painted at night** (unlike the street): the story only ever brings her here at night (22:30 to past midnight), so the paintings carry their own moonlight and lamp light like the rooms and the game only adds its lamp glow for her sharpened senses. If a later chapter sends her here by day, these need a daylight version.
+Save as `reference/art/turned/gen/HR-01.png` .. `HR-03.png` and `NR-01.png` .. `NR-04.png`.
+
+### The harbour (Vellmoor Harbor, 3 parts: about 1,900 px, now 1,700)
+**HR-01 the harbour, west: where she arrives** (attach bar_room.jpg + house_up.jpg)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One straight harbour street running left to right across the whole picture. Top 40% of the picture: the fronts of tall old brick and timber warehouses along the far side, seen from the front and above, big loading doors with hoists and beams, their roofs cut off by the top edge. Below them: a stone-slab pavement, a wide cobbled road, then a strip of wooden quay planks with a low iron rail along its edge, and below that the dark harbour water filling the bottom quarter of the picture, calm, reflecting the lamps. Every object clearly visible and separate, with clear walking space on the pavement, the road and the planks. Left to right: at the far left the end of a city street opening onto the quay (where she arrives); then two big warehouses with closed loading doors; a few crates and one barrel on the quay planks; a small rowing boat moored at the quay, low in the water. Two lit gas lamp posts on the far kerb at about 15% and 55% of the width. The right edge cuts through a plain warehouse wall with a drain pipe.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**HR-02 the harbour, middle** (attach bar_room.jpg + house_up.jpg + HR-01)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One straight harbour street running left to right across the whole picture. Top 40% of the picture: the fronts of tall old brick and timber warehouses along the far side, seen from the front and above, big loading doors with hoists and beams, their roofs cut off by the top edge. Below them: a stone-slab pavement, a wide cobbled road, then a strip of wooden quay planks with a low iron rail along its edge, and below that the dark harbour water filling the bottom quarter of the picture, calm, reflecting the lamps. Every object clearly visible and separate, with clear walking space on the pavement, the road and the planks. This picture continues the attached picture to the right: its left edge starts with the same plain warehouse wall and drain pipe, with the ground, the path and the edges at exactly the same heights. Left to right: a warehouse with stacked sacks behind a half-open door; a ship chandler's with coiled ropes and a ship's lantern hanging outside; one barrel and two crates on the quay planks; the dark mast and furled sail of a moored sailing barge rising from the water near the right. Two lit gas lamp posts on the far kerb at about 15% and 55% of the width. The right edge cuts through a plain brick wall with a drain pipe.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**HR-03 the harbour, east: the cigar shop** (attach bar_room.jpg + house_up.jpg + HR-02)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One straight harbour street running left to right across the whole picture. Top 40% of the picture: the fronts of tall old brick and timber warehouses along the far side, seen from the front and above, big loading doors with hoists and beams, their roofs cut off by the top edge. Below them: a stone-slab pavement, a wide cobbled road, then a strip of wooden quay planks with a low iron rail along its edge, and below that the dark harbour water filling the bottom quarter of the picture, calm, reflecting the lamps. Every object clearly visible and separate, with clear walking space on the pavement, the road and the planks. This picture continues the attached picture to the right: its left edge starts with the same plain brick wall and drain pipe, with the ground, the path and the edges at exactly the same heights. Left to right: a narrow dark warehouse; then a small old tobacco shop in a narrow building: a brown-and-cream striped awning over a bow window full of cigar boxes and tins, a blank hanging sign, a glass-panelled shop door with one step, the door dark and closed, the window dim; then at the far right one last narrow building and a high blank wall. A barrel on the quay planks. Two lit gas lamp posts on the far kerb at about 15% and 55% of the width.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+### The night road (out of town into the forest, 4 parts: about 2,500 px, now 2,700)
+**NR-01 the night road: the last streets** (attach bar_room.jpg + house_up.jpg)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One long way at night running left to right across the whole picture, seen from the front and above. Top 40% of the picture: the fronts of the last plain terrace houses of the town, mostly dark windows, roofs cut off by the top edge. Below them: a narrow stone-slab pavement, a cobbled road across the middle, a near pavement and a low wall along the bottom edge. Three lit gas lamp posts on the far kerb at about 15%, 45% and 80% of the width. The right edge cuts through a plain house wall with a drain pipe.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**NR-02 the night road: the last lamp and the gate** (attach bar_room.jpg + house_up.jpg + NR-01)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One long way at night running left to right across the whole picture, seen from the front and above. This picture continues the attached picture to the right: its left edge starts with the same plain house wall and drain pipe, with the ground, the path and the edges at exactly the same heights. Left to right: two more poor, half-dark houses and the last lit gas lamp of the town at about 25% of the width; then the houses stop: two old stone gateposts with a rusted iron gate standing open, and the cobbles turn into a dirt path; to the right of the gate the first dark trees of a forest begin, the path running on between them at the same height, a dark wood behind it along the top, a few trees and bushes along the bottom edge. The right edge is forest path.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**NR-03 the night road: the forest and the branch** (attach bar_room.jpg + house_up.jpg + NR-02)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One long way at night running left to right across the whole picture, seen from the front and above. This picture continues the attached picture to the right: its left edge starts with the same dirt forest path between dark trees, with the ground, the path and the edges at exactly the same heights. A dirt path across the middle of the picture through a dense dark forest: tall old trees and black undergrowth along the top 40%, scattered trees, ferns, boulders and stumps along the bottom, clear walking space on the path and on the open ground beside it. Near the middle a dead leafless tree on the far edge of the path with one low bare branch reaching over the path at head height. Moonlight through gaps in the canopy, no lamps, mist between the trunks. The right edge is forest path.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**NR-04 the night road: the vine house** (attach bar_room.jpg + house_up.jpg + NR-03)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One long way at night running left to right across the whole picture, seen from the front and above. This picture continues the attached picture to the right: its left edge starts with the same dirt forest path between dark trees, with the ground, the path and the edges at exactly the same heights. The path goes on through the forest and ends at a small old stone house in a clearing at the right: a single storey, a steep slate roof, its walls almost covered in dark climbing vines, one small window with a faint warm candle glow, a low wooden door facing the path with a worn step in front of it. Tall dark trees all round. Moonlight on the clearing, mist low on the ground.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
