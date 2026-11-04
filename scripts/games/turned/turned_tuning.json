@@ -63,9 +63,9 @@
     "grab_px": 95.0,
     "door_delay_s": 4.0,
     "exit_run_speed": 150.0,
-    "exit_to": [1215.0, 172.0],
-    "mouth": [720.0, 172.0],
-    "lane_inside_y": 128.0,
+    "exit_to": [1251.8, 248.6],
+    "mouth": [710.6, 238.2],
+    "lane_inside_y": 210.1,
     "first_hint_steps": 6,
     "still_hint_s": 1.0,
     "lane_hint_px": 300.0,
@@ -73,7 +73,7 @@
     "companion_speed_mult": 1.25
   },
   "people_scale": {
-    "street": 1.0,
+    "street": 1.15,
     "harbor": 1.0,
     "night_road": 1.0,
     "bar": 2.0,

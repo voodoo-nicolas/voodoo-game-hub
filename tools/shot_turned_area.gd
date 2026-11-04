@@ -10,14 +10,14 @@ const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
 
 ## [file name, area, x, y]
 const SPOTS := [
-	["street_porch", "street", 232.0, 184.0],
-	["street_road", "street", 330.0, 262.0],
-	["street_bakery", "street", 640.0, 205.0],
-	["street_tree", "street", 980.0, 330.0],
-	["street_carriage", "street", 1330.0, 320.0],
-	["street_alley", "street", 1785.0, 150.0],
-	["street_pub", "street", 1069.0, 188.0],
-	["street_lane", "street", 720.0, 180.0],
+	["street_porch", "street", 220.0, 219.5],
+	["street_road", "street", 327.8, 328.4],
+	["street_bakery", "street", 536.8, 245.9],
+	["street_tree", "street", 1031.8, 350.4],
+	["street_carriage", "street", 1394.8, 306.4],
+	["street_alley", "street", 1771.6, 141.4],
+	["street_pub", "street", 1032.9, 240.4],
+	["street_lane", "street", 710.6, 163.4],
 	["harbor_start", "harbor", 160.0, 235.0],
 	["harbor_shop", "harbor", 1440.0, 215.0],
 	["road_gate", "night_road", 960.0, 235.0],

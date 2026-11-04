@@ -161,7 +161,7 @@ func _draw() -> void:
 	if mode == "ground":
 		# beyond the map (the camera shows it when a room is narrower than the screen)
 		# the painted floors have a grey margin of their own: carry it on past the picture's edge
-		var margin: Color = area.margin if area.painted else Color("07080d")
+		var margin: Color = area.margin if area.painted or area.pictured else Color("07080d")
 		draw_rect(Rect2(-4000, -4000, 9000, 9000), margin)
 		return
 	_draw_decals()
@@ -732,6 +732,8 @@ func _alley_door(r: Rect2) -> void:
 # ---------------------------------------------------------------- shade
 
 func _shade_ground(s: Dictionary) -> void:
+	if area.pictured:
+		return                                 # the painting has its own shadows
 	var style: String = s.get("style", "")
 	var col := Color(0.04, 0.06, 0.16, 0.34 if style == "alley" else 0.26)
 	if s.has("rect"):
@@ -817,7 +819,7 @@ func _canopy(c: Vector2, rad: float) -> void:
 ## Puddles, manholes, leaves and kerb stones, placed once from fixed numbers (same every run).
 func _make_decals() -> void:
 	_decals = []
-	if area.id != "street":
+	if area.id != "street" or area.pictured:       # the painted street has its own
 		return
 	for i in 26:
 		var x := 40.0 + _h(i, 1) * 1840.0
@@ -835,7 +837,7 @@ func _make_decals() -> void:
 		_decals.append({"t": "leaf", "p": Vector2(1745.0 + _h(i, 31) * 80.0, -290.0 + _h(i, 32) * 430.0), "a": _h(i, 33) * TAU, "k": _h(i, 34)})
 
 func _draw_decals() -> void:
-	if area.id != "street" or not T.b("art.decals"):
+	if area.id != "street" or area.pictured or not T.b("art.decals"):
 		return
 	# kerbs: a lit stone edge and a dark gutter on both sides of the road
 	for ky in [212.0, 329.0]:

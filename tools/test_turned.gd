@@ -203,9 +203,9 @@ func _test_areas() -> void:
 	var st: Area = Area.make("street") as Area
 	check(not st.indoor, "the street is outdoors")
 	check(st.in_shade(st.spawns["from_house"]) and st.is_free(st.spawns["from_house"], 9.0), "leaving the house you stand in the porch shade")
-	check(not st.in_shade(Vector2(300, 260)), "the road is in the sun")
-	check(st.in_shade(Vector2(1785, 0)), "the alley is shade")
-	check(st.in_shade(Vector2(980, 345)) and st.in_shade(Vector2(500, 170)), "tree and awning give shade")
+	check(not st.in_shade(Vector2(327.8, 328.4)), "the road is in the sun")
+	check(st.in_shade(Vector2(1771.6, 163.4)), "the alley is shade")
+	check(st.in_shade(Vector2(1034.6, 362.5)) and st.in_shade(Vector2(536.8, 240.4)), "tree and awning give shade")
 	check(st.npcs.size() >= 5 and st.npcs.size() <= 6, "5-6 villagers (%d)" % st.npcs.size())
 	var knowing := 0
 	for n in st.npcs:
@@ -224,15 +224,15 @@ func _test_areas() -> void:
 	check(knowing == 1, "exactly one Knowing villager (the Watcher)")
 	for it in st.interacts:
 		check(st.bounds.has_point(it["pos"]), "street interact %s inside the map" % it["id"])
-	check(_reachable(st, st.spawns["from_house"], Vector2(1785, 100)), "porch -> alley reachable")
-	check(_reachable(st, st.spawns["from_house"], Vector2(1785, -250)), "porch -> end of the alley reachable")
+	check(_reachable(st, st.spawns["from_house"], Vector2(1771.6, 207.4)), "porch -> alley reachable")
+	check(_reachable(st, st.spawns["from_house"], Vector2(1771.6, 130.4)), "porch -> end of the alley reachable")
 	# how far from any walkable street point to shade? (the owner wants to know)
 	var worst := 0.0
 	var worst_at := Vector2.ZERO
 	var x := 20.0
 	while x < 1900.0:
-		var y := 160.0
-		while y < 385.0:
+		var y := 230.0
+		while y < 392.0:
 			var p := Vector2(x, y)
 			if st.is_free(p, 9.0):
 				var s: Variant = st.nearest_shade(p, T.m(T.f("death.fallback_shade_radius_m")), 9.0, 8.0)
@@ -248,7 +248,7 @@ func _test_areas() -> void:
 	print("turned: farthest street point from shade: %.0f px (%.1f m) at %s" % [worst, worst / T.f("world.pixels_per_meter"), str(worst_at)])
 	check(worst < T.m(T.f("death.fallback_shade_radius_m")), "every street point has shade nearby")
 	# respawn: a point in the open road
-	var spot: Variant = st.nearest_shade(Vector2(300, 260), T.m(3.0), 9.0, 8.0)
+	var spot: Variant = st.nearest_shade(Vector2(327.8, 328.4), T.m(3.0), 9.0, 8.0)
 	check(spot == null or (st.in_shade(spot) and st.is_free(spot, 9.0)), "nearest_shade returns shade")
 
 ## Can a circle walk from a to b? Simple grid flood fill.
@@ -377,7 +377,7 @@ func _test_night() -> void:
 	check(world._glow != null and world._glow.night > 0.9, "the glow layer knows it is night (windows light up)")
 	world.clock.hour = 23.0
 	var hp0: float = world.engine.hp
-	world.player.position = Vector2(330, 262)
+	world.player.position = Vector2(327.8, 328.4)
 	_step(2.0)
 	check(world.engine.hp >= hp0, "no sun damage at night, in the open street")
 	world.save_game()
@@ -1223,7 +1223,7 @@ func _test_bar() -> void:
 	world.hud.fade = 0.0
 	world._load_area("street")
 	world.clock.hour = 14.0
-	world.player.position = Vector2(1069, 170)
+	world.player.position = Vector2(1032.9, 238.2)
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "bar_door", "A offers the pub door")
 	world.press_a()
@@ -1263,7 +1263,7 @@ func _test_bar() -> void:
 	check(hud.caption_text() == Text.INNER["sun_hot"], "'Wow, can it be any hotter out here?'")
 	check(world.engine.mission == "find_out", "the mission goes back to finding out what happened")
 	check(not world.dlg.active and not hud.dialogue_active(), "the scene is over")
-	world.player.position = Vector2(1069, 170)
+	world.player.position = Vector2(1032.9, 238.2)
 	_step(0.1)
 	world.press_a()
 	check(hud.caption_text() == Text.INNER["bar_locked"] and world.mode == "play", "the door is bolted now")
@@ -1297,14 +1297,14 @@ func _street_world_after_bar() -> void:
 
 func _test_follower() -> void:
 	var st: Area = Area.make("street") as Area
-	check(st.in_shade(Vector2(720, 60)) and st.trigger_at(Vector2(720, 60)) == "lane" and st.trigger_at(Vector2(300, 260)) == "", "the side lane is shade and a trigger")
-	check(st.is_free(Vector2(720, 100), 9.0) and not st.is_free(Vector2(680, 100), 9.0) and not st.is_free(Vector2(760, 100), 9.0), "the lane is 48 px wide between two walls")
-	check(_reachable(st, st.spawns["from_house"], Vector2(720, 60)), "the lane is reachable from the porch")
+	check(st.in_shade(Vector2(710.6, 135.9)) and st.trigger_at(Vector2(710.6, 135.9)) == "lane" and st.trigger_at(Vector2(327.8, 328.4)) == "", "the side lane is shade and a trigger")
+	check(st.is_free(Vector2(710.6, 163.4), 9.0) and not st.is_free(Vector2(674.3, 163.4), 9.0) and not st.is_free(Vector2(751.3, 163.4), 9.0), "the lane is a narrow way between two walls")
+	check(_reachable(st, st.spawns["from_house"], Vector2(710.6, 135.9)), "the lane is reachable from the porch")
 	check(Text.VERBS.has("grab") and Text.SPEAKERS.has("witness") and Text.MISSIONS.has("follower"), "verb, speaker and mission are written")
 	# the house door will not open with someone behind you
 	await _street_world_after_bar()
 	world.engine.set_flag("followed")
-	world.player.position = Vector2(232, 170)
+	world.player.position = world.area.spawns["from_house"]
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "house_door", "A offers the house door")
 	world.press_a()
@@ -1320,21 +1320,21 @@ func _test_follower() -> void:
 	check(world._follower != null and world.engine.has_flag("followed") and world._fol_state == "exit", "after a moment a man steps out of the pub")
 	check(hud.caption_text() == Text.INNER["fol_door"], "'... sees me, and runs'")
 	_step(3.0)
-	check(world._fol_state == "wait_far" and world._follower.position.distance_to(Vector2(1215, 172)) < 6.0, "he ran off along the pavement and watches you")
+	check(world._fol_state == "wait_far" and world._follower.position.distance_to(Vector2(T.arr("follower.exit_to")[0], T.arr("follower.exit_to")[1])) < 6.0, "he ran off along the pavement and watches you")
 	# walk up to him in the open: he freezes, and A grabs him (owner 2026-11-03: he was too hard to talk to)
-	world.player.position = Vector2(1180, 190)
+	world.player.position = Vector2(1218, 256)
 	_step(0.3)
 	check(world._fol_state == "frozen", "walk up to him and he freezes")
 	check(str(world._cand.get("id", "")) == "grab_follower" and world.hud.a_label == "grab", "A offers to grab him in the open")
 	_step(2.5)
 	check(world._fol_state == "frozen", "he stays frozen while you are near")
 	# walking home: he tails you along your own trail
-	world.player.position = Vector2(1069, 250)
+	world.player.position = Vector2(1027, 300)
 	_step(0.5)
-	check(_walk_to(Vector2(800, 250), 40.0), "walked west along the road")
+	check(_walk_to(Vector2(780, 300), 40.0), "walked west along the road")
 	_step(0.5)
 	check(world._fol_state == "tail", "he follows once you are far enough away")
-	check(_walk_to(Vector2(770, 250), 10.0), "walked on")
+	check(_walk_to(Vector2(750, 300), 10.0), "walked on")
 	_step(3.0)
 	var behind: float = world.player.position.distance_to(world._follower.position)
 	check(behind > 180.0 and behind < 320.0, "he stays about 8 m behind (%.0f px; state %s, he at %s, you at %s)" % [behind, world._fol_state, str(world._follower.position), str(world.player.position)])
@@ -1347,11 +1347,11 @@ func _test_follower() -> void:
 	check(world._follower.position.distance_to(held) < 1.0 and world._fol_steps == steps_now, "when you stop, he stops and his footsteps stop")
 	check(world.engine.has_flag("fol_h1") and world.engine.has_flag("fol_h2") and world.engine.mission == "follower", "the thoughts came: 'when I slow down', 'I stop, they stop'; the mission is to find out who")
 	# the corner
-	check(_walk_to(Vector2(735, 250), 10.0) and _walk_to(Vector2(735, 175), 20.0), "walked to the lane mouth")
+	check(_walk_to(Vector2(710.6, 295.4), 10.0) and _walk_to(Vector2(710.6, 243.1), 20.0), "walked to the lane mouth")
 	check(not world._fol_state == "mouth", "he is not at the corner yet")
-	check(_walk_to(Vector2(722, 118), 10.0), "stepped round the corner into the lane")
+	check(_walk_to(Vector2(710.6, 185.4), 10.0), "stepped round the corner into the lane")
 	_step(12.0)
-	check(world._fol_state == "mouth" and world._follower.position.distance_to(Vector2(720, 172)) < 12.0, "he came to the corner to look for you")
+	check(world._fol_state == "mouth" and world._follower.position.distance_to(Vector2(T.arr("follower.mouth")[0], T.arr("follower.mouth")[1])) < 12.0, "he came to the corner to look for you")
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "grab_follower" and world.hud.a_label == "grab", "A offers to grab him")
 	world.press_a()
@@ -1360,7 +1360,7 @@ func _test_follower() -> void:
 	check(world.mode == "play" and world.engine.has_flag("witness_met") and not world.engine.has_flag("witness_home") and world.engine.journal.has("witness") and world.engine.journal.has("same_note"), "'...It's really you.', what he saw, the same note, 'take me to your house'")
 	check(world.engine.mission == "go_home", "the mission is to go home")
 	check(world._follower != null and world._fol_state == "companion", "he walks with you")
-	world.player.position = Vector2(232, 170)
+	world.player.position = world.area.spawns["from_house"]
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "house_door", "A offers the house door")
 	world.press_a()
@@ -1815,14 +1815,14 @@ func _test_flow() -> void:
 	check(not hud.is_revealed("bars") and not hud.is_revealed("b"), "no bars and no B yet")
 	check(world.area.in_shade(world.player.position), "you start in the porch shade")
 	# day 1: the light does not hurt yet, it is only too bright (owner 2026-11-03)
-	world.player.position = Vector2(300, 262)
+	world.player.position = Vector2(327.8, 328.4)
 	var hp_day1: float = world.engine.hp
 	_step(3.0)
 	check(is_equal_approx(world.engine.hp, hp_day1) and world.mode == "play", "the sun does not hurt on day 1")
 	check(world.engine.has_flag("bright_said"), "'Gosh, it's so bright out.' (%s)" % hud.caption_text())
 	# later in the story it burns: pretend the cigar shop errand has begun
 	world.engine.set_flag("matches_shown")
-	world.player.position = Vector2(232, 184)
+	world.player.position = world.area.spawns["from_house"]
 	_step(0.2)
 	check(hud.is_revealed("bars"), "the bars appear once the sun burns")
 	var hp0: float = world.engine.hp
@@ -1830,12 +1830,12 @@ func _test_flow() -> void:
 	check(is_equal_approx(world.engine.hp, hp0), "no damage in the shade")
 
 	# sun damage on the road, then shade
-	world.player.position = Vector2(300, 262)
+	world.player.position = Vector2(327.8, 328.4)
 	var hp1: float = world.engine.hp
 	_step(3.0)
 	check(world.engine.hp < hp1 - 2.5 and world.engine.hp > hp1 - 3.5, "about 1 HP/s in the sun (lost %.2f in 3 s)" % (hp1 - world.engine.hp))
 	check(hud.caption_text() != "" or world.engine.has_flag("sun_said"), "the first burn is commented")
-	world.player.position = Vector2(560, 170)
+	world.player.position = Vector2(536.8, 240.4)
 	var hp2: float = world.engine.hp
 	_step(4.0)
 	check(world.engine.hp > hp2, "Health regenerates under the awning")
@@ -1846,7 +1846,7 @@ func _test_flow() -> void:
 		if n.id == "watcher":
 			watcher = n
 	check(watcher != null and watcher.position.x > 1000, "the Watcher is in the street")
-	world.player.position = Vector2(1250, 200)
+	world.player.position = Vector2(1160, 256)
 	_step(1.0)
 	check(watcher.face.x < 0.0 or watcher.face.y < 0.0, "the Watcher turns towards you")
 	world.press_a()
@@ -1854,7 +1854,7 @@ func _test_flow() -> void:
 	check(world.engine.journal.has("watcher"), "it goes in the Journal")
 
 	# death and respawn
-	world.player.position = Vector2(640, 262)
+	world.player.position = Vector2(640, 328)
 	world.engine.blood = 80.0
 	world.engine.hp = 1.0
 	var from: Vector2 = world.player.position
@@ -1869,9 +1869,9 @@ func _test_flow() -> void:
 	check(world.engine.deaths == 1, "death counted")
 
 	# the alley and B
-	world.player.position = Vector2(1785, 160)
+	world.player.position = Vector2(1771.6, 232.1)
 	check(not world.engine.has_button("b"), "no B yet")
-	check(_walk_to(Vector2(1785, 100)), "walked into the alley mouth")
+	check(_walk_to(Vector2(1771.6, 179.9)), "walked into the alley mouth")
 	_step(0.3)
 	check(world.engine.has_button("b") and hud.is_revealed("b"), "B unlocks in the alley")
 	check(hud.banner_active(), "the unlock banner shows")

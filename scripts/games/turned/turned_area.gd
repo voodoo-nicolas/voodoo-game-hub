@@ -14,6 +14,7 @@ const NPC_DATA := "res://scripts/games/turned/turned_npcs.json"
 var id := ""
 var indoor := false
 var people_scale := 1.0               # people drawn this much bigger here (painted rooms: tuning people_scale.<area id>)
+var pictured := false                 # the ground is one painting (a painted room, or the painted street)
 var painted := false                   # the floor map is one painting that is lit already (the ambient light stays near white)
 var bounds := Rect2()                  # what the camera and the player stay inside
 var solids: Array = []                 # Rect2, things you cannot walk through
@@ -768,7 +769,100 @@ func _build_night_road() -> void:
 
 # ---------------------------------------------------------------- the street
 
+## The street as the owner's painting (2026-11-04, DECISIONS B-15): ST-01..03 joined left to right into
+## `rooms/street.webp` by tools/turned_street_cuts.py (frames cut at the joins). Coordinates below are
+## PANEL pixels of each picture (k = 0, 1, 2 for ST-01..03), the same as the tool's: joined x = x - 4 +
+## 1120 k, joined y = y - 3, then ST_K world px per picture px. Each panel: the far row of houses and shops
+## down to y 415, the far pavement 415..490, the cobbled road 495..695, the near kerb to the railings at 718.
+## West to east: the dark gap, her house (porch, steps), the grey house, the bakery | the side lane, a house,
+## The Crooked Lantern, the tailor | a house, the alley with the old door, the corner house. The trees, lamp
+## posts, the stall and the carriage are cut out of the picture (props "cut") so people walk behind them.
+const ST_K := 0.55
+const ST_ART := "rooms/street"
+const ST_STEP := 1120.0
+
+static func _sp(k: int, x: float, y: float) -> Vector2:
+	return Vector2((x - 4.0 + ST_STEP * k) * ST_K, (y - 3.0) * ST_K)
+
+static func _sr(k: int, x: float, y: float, w: float, h: float) -> Rect2:
+	return Rect2(_sp(k, x, y), Vector2(w, h) * ST_K)
+
 func _build_street() -> void:
+	indoor = false
+	pictured = true
+	var paint := Vector2(3496, 845) * ST_K
+	bounds = Rect2(-20, -10, paint.x + 40, paint.y + 20)
+	deco = [{"t": "painting", "art": ST_ART, "rect": Rect2(Vector2.ZERO, paint)}]
+	solids = [
+		# her end: the dark gap and her house to the steps, the steps (you climb to the door), the rest
+		_sr(0, -400, -400, 735, 815), _sr(0, 335, -400, 135, 780), _sr(0, 470, -400, 710, 815),
+		# the side lane (x 140..212, back wall at 185), her neighbour, the pub (its doorway open to 395),
+		# the tailor
+		_sr(1, 60, -400, 80, 815), _sr(1, 140, -400, 72, 585), _sr(1, 212, -400, 123, 815),
+		_sr(1, 335, -400, 135, 780), _sr(1, 470, -400, 265, 815), _sr(1, 735, -400, 55, 795), _sr(1, 790, -400, 390, 815),
+		# the corner: the long house, the alley (between the crates and the barrels to its old door), the
+		# corner house and past the east edge
+		_sr(2, 60, -400, 275, 815), _sr(2, 335, -400, 135, 780), _sr(2, 470, -400, 380, 815),
+		_sr(2, 850, -400, 102, 772), _sr(2, 952, -400, 63, 618), _sr(2, 1015, -400, 85, 768), _sr(2, 1100, -400, 900, 815),
+		# the railings along the gardens, and the ends of the street
+		_sr(0, -400, 718, 1580, 600), _sr(1, 60, 718, 1120, 600), _sr(2, 60, 718, 1900, 600),
+		_sr(0, -400, -400, 460, 1600), _sr(2, 1204, -400, 800, 1600),
+		# lamp posts (far kerb, near kerb), the stall, the carriage and its horse
+		_sr(0, 226, 460, 16, 14), _sr(1, 226, 460, 16, 14), _sr(2, 226, 460, 16, 14),
+		_sr(0, 999, 700, 16, 18), _sr(1, 102, 700, 16, 18), _sr(1, 999, 700, 16, 18), _sr(2, 102, 700, 16, 18),
+		_sr(1, 208, 676, 155, 42),
+		_sr(2, 168, 628, 252, 64), _sr(2, 428, 646, 128, 36),
+	]
+	# the cut-outs: [name, panel, box x, y, w, h (as in the tool), base y (their foot, for the y-sort)]
+	for c in [["tree_w", 0, 8, 468, 236, 334, 800], ["tree_mid", 1, 645, 466, 240, 336, 800], ["tree_e", 2, 922, 466, 254, 336, 800],
+			["lamp_far0", 0, 210, 252, 48, 226, 472], ["lamp_far1", 1, 210, 252, 48, 226, 472], ["lamp_far2", 2, 210, 252, 48, 226, 472],
+			["lamp_near0", 0, 982, 494, 50, 228, 718], ["lamp_near1", 1, 86, 494, 50, 228, 718],
+			["lamp_near2", 1, 982, 494, 50, 228, 718], ["lamp_near3", 2, 86, 494, 50, 228, 718],
+			["stall", 1, 200, 562, 176, 198, 718], ["carriage", 2, 158, 476, 458, 220, 692]]:
+		var box := _sr(c[1], c[2], c[3], c[4], c[5])
+		props.append({"kind": "cut", "name": "street/" + str(c[0]), "rect": box, "pos": Vector2(box.get_center().x, _sp(c[1], 0, c[6]).y)})
+	# gas light: the heads of the lamp posts (a lamp is its light; the glow sits 28 px above it)
+	lamps = [_sp(0, 234, 280) + Vector2(0, 28), _sp(1, 234, 280) + Vector2(0, 28), _sp(2, 234, 280) + Vector2(0, 28),
+		_sp(0, 1007, 522) + Vector2(0, 28), _sp(1, 110, 522) + Vector2(0, 28), _sp(1, 1007, 522) + Vector2(0, 28),
+		_sp(2, 110, 522) + Vector2(0, 28)]
+	light_spots = [
+		{"pos": _sp(2, 885, 165), "color": Color("ffb45a"), "energy": 0.5, "radius": 90.0},     # the alley's wall lamps
+		{"pos": _sp(2, 1020, 115), "color": Color("ffb45a"), "energy": 0.35, "radius": 70.0},
+	]
+	shades = [
+		{"rect": _sr(0, 330, 372, 150, 66), "style": "painted"},             # her porch, over the steps
+		{"rect": _sr(0, 833, 400, 300, 48), "style": "painted"},             # the bakery's awning
+		{"rect": _sr(1, 557, 395, 290, 53), "style": "painted"},             # the pub's awning
+		{"rect": _sr(1, 1003, 400, 128, 48), "style": "painted"},            # the tailor's awning
+		{"rect": _sr(1, 132, 150, 88, 268), "style": "alley"},               # the side lane
+		{"rect": _sr(2, 848, 190, 262, 228), "style": "alley"},              # the alley
+		{"circle": _sp(0, 126, 662), "r": 95.0 * ST_K, "style": "painted"},  # the trees' shadows on the road
+		{"circle": _sp(1, 765, 662), "r": 95.0 * ST_K, "style": "painted"},
+		{"circle": _sp(2, 1058, 662), "r": 95.0 * ST_K, "style": "painted"},
+	]
+	interacts = [
+		{"id": "house_door", "pos": _sp(0, 418, 392), "r": 30.0, "verb": "enter"},
+		{"id": "alley_door", "pos": _sp(2, 985, 238), "r": 30.0, "verb": "look"},
+		{"id": "bar_door", "pos": _sp(1, 762, 420), "r": 30.0, "verb": "enter"},
+	]
+	triggers = [
+		{"id": "alley", "rect": _sr(2, 850, 190, 260, 215)},
+		{"id": "lane", "rect": _sr(1, 132, 150, 88, 265)},
+	]
+	spawns = {
+		"from_house": _sp(0, 404, 402),
+		"start": _sp(0, 404, 402),
+		"from_bar": _sp(1, 762, 438),
+	}
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(NPC_DATA))
+	if typeof(parsed) == TYPE_DICTIONARY:
+		npcs = (parsed.get("npcs", []) as Array).duplicate(true)
+	else:
+		push_error("Turned: cannot read " + NPC_DATA)
+
+## The drawn street (shader cobbles, drawn houses and awnings), kept for reference; not used since
+## 2026-11-04 (the painted street above).
+func _build_street_classic() -> void:
 	indoor = false
 	bounds = Rect2(0, -300, 1920, 700)
 	solids = [

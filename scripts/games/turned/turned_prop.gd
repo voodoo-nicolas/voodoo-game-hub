@@ -6,6 +6,7 @@ extends Node2D
 ## `sprite` = its id, drawn 1 sprite px = 1 world px with its bottom centre on the base (pixel art,
 ## nearest filter); `lift` raises it (an owl on a branch) without changing its y-sort; `fly` =
 ## [radius x, radius y, laps per second] circles it round its base, above everything (bats).
+## Kind "cut": a piece of a painted area cut out with its transparency (`name`, world `rect`).
 ## Decoration only: no collision, nothing to do.
 
 const Art = preload("res://scripts/games/turned/turned_art.gd")
@@ -39,12 +40,22 @@ func _process(dt: float) -> void:
 func _draw() -> void:
 	match kind:
 		"lib": _draw_lib()
+		"cut": _draw_cut()
 		"lamp": Art.lamp(self, bool(data.get("dim", false)))
 		"tree": Art.tree_trunk(self)
 		"stall": Art.stall(self)
 		"carriage": Art.carriage(self)
 		"crate": Art.crate(self, data.get("size", Vector2(24, 24)))
 		"barrel": Art.barrel(self, float(data.get("r", 9.0)))
+
+## A piece cut out of the area's painting (games/turned/art/<name>.png, transparent round it), drawn at
+## its world box so people behind it (a tree, a lamp post, the carriage) pass behind; y-sorted by `pos`.
+func _draw_cut() -> void:
+	var t := Art.tex(str(data["name"]))
+	if t == null:
+		return
+	var r: Rect2 = data["rect"]
+	draw_texture_rect(t, Rect2(r.position - position, r.size), false)
 
 func _draw_lib() -> void:
 	var t := SpriteLib.texture(str(data["sprite"]))
