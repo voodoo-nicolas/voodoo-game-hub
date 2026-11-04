@@ -72,6 +72,15 @@
     "companion_lag_px": 56.0,
     "companion_speed_mult": 1.25
   },
+  "people_scale": {
+    "street": 1.0,
+    "harbor": 1.0,
+    "night_road": 1.0,
+    "bar": 2.0,
+    "cigar_shop": 2.0,
+    "house_down": 2.0,
+    "house": 1.6
+  },
   "bar": {
     "opens_hour": 19.5,
     "arrive_hour": 20.5

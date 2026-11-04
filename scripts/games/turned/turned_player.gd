@@ -47,6 +47,8 @@ func hand_at(t: float) -> Vector2:
 
 func _process(delta: float) -> void:
 	hurt = maxf(0.0, hurt - delta * 2.5)
+	# standing people take the area's size (Art.people_k); lying in a painted bed she fits the painting as is
+	scale = Vector2.ONE * (Art.people_k if pose == "stand" else 1.0)
 	var sway := sin(_phase * 0.9) * T.f("prologue.hobble_sway") if hobble and moving and pose == "stand" else 0.0
 	rotation = lerpf(rotation, sway, 1.0 - exp(-14.0 * delta))
 	queue_redraw()
@@ -78,8 +80,9 @@ func set_rings(detect_px: float, noise_px: float, delta: float, speed: float) ->
 
 func _draw() -> void:
 	if show_rings and ring_detect > 1.0:
-		draw_arc(Vector2.ZERO, ring_detect, 0.0, TAU, 56, Color(0.8, 0.85, 1.0, 0.18), 1.5)
-		draw_arc(Vector2.ZERO, ring_noise, 0.0, TAU, 40, Color(Art.AMBER.r, Art.AMBER.g, Art.AMBER.b, 0.3), 1.5)
+		var rk := 1.0 / maxf(scale.x, 0.01)      # the rings are world distances: not scaled with her
+		draw_arc(Vector2.ZERO, ring_detect * rk, 0.0, TAU, 56, Color(0.8, 0.85, 1.0, 0.18), 1.5 * rk)
+		draw_arc(Vector2.ZERO, ring_noise * rk, 0.0, TAU, 40, Color(Art.AMBER.r, Art.AMBER.g, Art.AMBER.b, 0.3), 1.5 * rk)
 	if pose == "stand":
 		var a := 1.0
 		var col := Color(1, 1, 1, 1).lerp(Color(1.0, 0.62, 0.55, 1), hurt)

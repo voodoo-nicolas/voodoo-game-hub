@@ -27,6 +27,7 @@ var _afraid := false        # turns to stare at the player in shock and trembles
 var _shake := 0.0
 
 func setup(d: Dictionary) -> void:
+	scale = Vector2.ONE * Art.people_k     # the area's people size, round the feet
 	data = d
 	id = str(d["id"])
 	knows_player = int(d.get("knows_player", 0))

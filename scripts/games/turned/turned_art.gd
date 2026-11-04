@@ -16,6 +16,11 @@ const SPRITE_RATIO := 2.0
 ## (the figure fills ~72% of the canvas, feet at 92%).
 const PERSON_SCALE := 1.3
 const PERSON_CANVAS_H := 64.0
+## How much bigger people stand in the current area (1 on the drawn streets; the painted rooms are drawn at a
+## smaller scale, so their people are scaled up: area `people_scale`, tuning `people_scale.*`, owner 2026-11-04:
+## "the tavern looks like it's full of kids"). The world sets it on each area load; the player and NPC nodes
+## scale themselves by it round their feet (collision radius and positions are unchanged).
+static var people_k := 1.0
 
 const AMBER := Color("ffb45a")
 const AMBER_DIM := Color("c98a3e")

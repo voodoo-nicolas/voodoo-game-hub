@@ -310,6 +310,7 @@ func _load_area(name: String) -> void:
 		_area_root = null
 	area = Area.make(name) as Area
 	engine.area = name
+	Art.people_k = area.people_scale
 	_npcs = []
 	_lamps = []
 	_follower = null

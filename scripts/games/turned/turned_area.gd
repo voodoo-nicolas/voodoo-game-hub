@@ -13,6 +13,7 @@ const NPC_DATA := "res://scripts/games/turned/turned_npcs.json"
 
 var id := ""
 var indoor := false
+var people_scale := 1.0               # people drawn this much bigger here (painted rooms: tuning people_scale.<area id>)
 var painted := false                   # the floor map is one painting that is lit already (the ambient light stays near white)
 var bounds := Rect2()                  # what the camera and the player stay inside
 var solids: Array = []                 # Rect2, things you cannot walk through
@@ -44,6 +45,7 @@ static func make(area_id: String) -> RefCounted:
 		a._build_night_road()
 	else:
 		a._build_house()
+	a.people_scale = T.f("people_scale." + area_id)
 	return a
 
 # ---------------------------------------------------------------- queries
