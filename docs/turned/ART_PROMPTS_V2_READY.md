@@ -440,6 +440,21 @@ Save as `reference/art/turned/gen/HR-01.png` .. `HR-03.png` and `NR-01.png` .. `
 >
 > No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
 
+**Check of the first pictures (2026-11-04).** Gemini repainted the attached picture instead of continuing it, so the parts repeat (mean grey difference per 100 px column 2 to 20, where a different picture is 40+):
+- HR-02 and HR-03 are HR-01 with things added (the same lane, warehouses and lamps on the left). Usable: HR-01 whole + the right half of HR-03 (the tobacco shop and the blank wall), joined at HR-01's plain right wall: about 1,750 px. HR-02's chandler and barge are dropped (the barge's rigging runs off its right edge).
+- NR-01 is HR-03 again (the same tobacco shop, awning and warehouses), so the last streets would show the cigar shop she just left: **re-roll NR-01** with the prompt below.
+- NR-02 is good; its left wall lines up with NR-01's right wall (the same heights), so the join cuts the wall out of both.
+- NR-03 and NR-04 are the same clearing; NR-04 alone has the dead tree with its branch and the vine house, so NR-03 is not needed. Night road = NR-01 (new) + NR-02 + NR-04.
+
+**NR-01 retry** (a NEW chat; attach bar_room.jpg + house_up.jpg + NR-02)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> This picture comes BEFORE the attached night-road picture with the gate: its right edge ends with the same tall plain house wall and drain pipe that starts that picture, with the pavement, the cobbled road, the near pavement and the low wall at exactly the same heights. Do NOT copy the buildings of the attached pictures. Top 40% of the picture: the fronts of the last plain, poor terrace houses of the town, small doors with one step, mostly dark windows, one or two lit, roofs cut off by the top edge; no shops, no awnings, no hanging signs, no warehouses, no loading doors. Below them: a narrow stone-slab pavement, a cobbled road across the middle, a near pavement and a low brick wall along the bottom edge. Three lit gas lamp posts on the far kerb at about 15%, 45% and 80% of the width.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs, no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
 **NR-04 the night road: the vine house** (attach bar_room.jpg + house_up.jpg + NR-03)
 > Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
 >
