@@ -38,4 +38,4 @@ Working title **Creation** (display name only: `manifest.json` `title`/`title_es
 - Daily challenge ("Make: Bread"), share card, achievements beyond the discovery goals (v1.1).
 - Emoji icons are placeholders; newer emoji (🪨🪵🪙🛞🪈…) may show as boxes on old Android versions. Replace with drawn art later (`media/CREDITS.json` has nothing for this game yet because it ships no assets).
 - Check the recipe list against other combine games before launch (mechanic is free; ours is its own, but have the IP lawyer glance at the final store text).
-- Not published: no `bump-pack`/`publish-packs`/manifest push done; `manifest.json` has the entry at version 1.
+- Published as pack v5 (2026-11-04: phone width, landscape, Clear all); not phone-tested.
