@@ -277,7 +277,7 @@ Rules:
 ## 12. Code patterns [CURRENT]
 ```gdscript
 func _ready():
-    Orientation.lock_portrait()            # or lock_landscape()
+    Orientation.lock_portrait()            # or lock_landscape(); lock_sensor() (guarded: older apps lack it) when the layout fits both
     # ... build UI ...
     preload("res://scripts/games/<id>/<id>_i18n.gd").install(self)
     # No SettingsDrawer in new/migrated games — pause menu + Options come from the Landing kit.

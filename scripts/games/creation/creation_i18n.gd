@@ -22,7 +22,7 @@ const STRINGS := {
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
 		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
-		"Clear": "Borrar",
+		"Clear all": "Borrar todo",
 		"Close": "Cerrar",
 		"Collection": "Colección",
 		"Combine four elements into everything.": "Combina cuatro elementos para crear todo.",

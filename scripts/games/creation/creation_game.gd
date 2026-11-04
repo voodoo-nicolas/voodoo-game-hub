@@ -232,8 +232,8 @@ class Table extends Control:
 		trash_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(trash_label)
 		clear_btn = Button.new()
-		clear_btn.text = "Clear"
-		clear_btn.custom_minimum_size = Vector2(110, 54)
+		clear_btn.text = "Clear all"
+		clear_btn.custom_minimum_size = Vector2(140, 54)
 		clear_btn.add_theme_font_size_override("font_size", 22)
 		clear_btn.pressed.connect(_on_clear)
 		add_child(clear_btn)
@@ -246,8 +246,8 @@ class Table extends Control:
 			trash_rect = Rect2(10, size.y - 74, 64, 64)
 			trash_label.position = trash_rect.position
 			trash_label.size = trash_rect.size
-			clear_btn.size = Vector2(110, 54)
-			clear_btn.position = Vector2(size.x - 120, size.y - 64)
+			clear_btn.size = clear_btn.get_combined_minimum_size().max(Vector2(140, 54))
+			clear_btn.position = Vector2(size.x - clear_btn.size.x - 10, size.y - 64)
 			for c in chips():
 				place(c)
 			queue_redraw()
@@ -472,7 +472,13 @@ class ShelfDrag extends Node:
 
 func _ready() -> void:
 	preload("res://scripts/games/creation/creation_i18n.gd").install(self)
-	Orientation.lock_portrait()
+	# Follows the phone (portrait or landscape: _fit_layout puts table and shelf
+	# side by side when wide). Apps older than the sensor lock stay portrait.
+	var orient: Script = Orientation
+	if _has_static(orient, "lock_sensor"):
+		orient.call("lock_sensor")
+	else:
+		Orientation.lock_portrait()
 	engine = CreationEngine.new()
 	var errs: Array = engine.load_data(CreationEngine.parse_data(FileAccess.get_file_as_string(DATA_PATH)))
 	if not errs.is_empty():
@@ -492,6 +498,12 @@ func _ready() -> void:
 	_refresh_all()
 	loaded = true
 	_connect_account()
+
+static func _has_static(script: Script, method: String) -> bool:
+	for m in script.get_script_method_list():
+		if m.name == method:
+			return true
+	return false
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -616,12 +628,17 @@ func _build_ui() -> void:
 	count_label = Label.new()
 	count_label.add_theme_font_size_override("font_size", 22)
 	count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	count_label.clip_text = true  # long counts must not push the row past the screen edge
+	count_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	counts.add_child(count_label)
 	hide_spent_box = CheckBox.new()
 	hide_spent_box.text = tr("Hide used-up items")
 	hide_spent_box.tooltip_text = tr("Hide items that are not in any recipe you haven't found yet.")
 	hide_spent_box.button_pressed = bool(engine.settings.get("hide_spent", false))
 	hide_spent_box.add_theme_font_size_override("font_size", 20)
+	hide_spent_box.clip_text = true
+	hide_spent_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hide_spent_box.size_flags_stretch_ratio = 0.7
 	hide_spent_box.toggled.connect(_on_hide_spent_toggled)
 	counts.add_child(hide_spent_box)
 	count_bar = ProgressBar.new()
@@ -682,10 +699,12 @@ func _build_ui() -> void:
 	search.clear_button_enabled = true
 	search.custom_minimum_size = Vector2(0, 52)
 	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	search.size_flags_stretch_ratio = 0.8
 	search.text_changed.connect(_on_filter_changed.unbind(1))
 	tools.add_child(search)
 	sort_opt = OptionButton.new()
 	sort_opt.custom_minimum_size = Vector2(0, 52)
+	_shrinkable(sort_opt)
 	sort_opt.add_item(tr("Newest first"), 0)
 	sort_opt.add_item(tr("Oldest first"), 1)
 	sort_opt.add_item(tr("A–Z"), 2)
@@ -695,6 +714,7 @@ func _build_ui() -> void:
 	tools.add_child(sort_opt)
 	view_opt = OptionButton.new()
 	view_opt.custom_minimum_size = Vector2(0, 52)
+	_shrinkable(view_opt)
 	view_opt.add_item(tr("Tiles"), 0)
 	view_opt.add_item(tr("List"), 1)
 	view_opt.add_item(tr("Detailed list"), 2)
@@ -703,6 +723,7 @@ func _build_ui() -> void:
 	tools.add_child(view_opt)
 	tier_opt = OptionButton.new()
 	tier_opt.custom_minimum_size = Vector2(0, 52)
+	_shrinkable(tier_opt)
 	tier_opt.item_selected.connect(_on_filter_changed.unbind(1))
 	tools.add_child(tier_opt)
 	_fill_tier_options()
@@ -745,6 +766,14 @@ func _build_ui() -> void:
 
 	resized.connect(_fit_layout)
 	_fit_layout()
+
+## Phones: an OptionButton is as wide as its longest item by default, and the
+## four shelf tools then ran past the right edge (cutting off the table's Clear
+## button and the header's 📖 ⚙). These share the row and clip their text.
+func _shrinkable(o: OptionButton) -> void:
+	o.fit_to_longest_item = false
+	o.clip_text = true
+	o.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _icon_button(text: String, handler: Callable) -> Button:
 	var b := Button.new()
