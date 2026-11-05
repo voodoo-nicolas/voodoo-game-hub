@@ -86,12 +86,66 @@ A terrain flag (grass / shallow water, by its use) swaps the speed for these row
 ### 2.3 Still to find
 - Hitbox rectangles per pose (sword reach), sword damage per sword level, and the spin's damage multiplier.
 
-## 3. Still to find (next steps)
-- Taking damage: knockback speed and length, invincibility frames.
+## 3. Damage and health
+
+### 3.1 Health units
+- Health counts in **1/8 heart** steps. 1 heart = 8, and the most allowed is **20 hearts (160)**.
+- The save keeps max health, current health and a **pending refill** (health still to be added).
+
+### 3.2 Enemy contact
+- The touch test runs **every other frame**, half the enemies on even frames and half on odd. No hit is possible while the hurt timer (3.4) or a separate "invincible" flag is set.
+- **Damage = table[enemy's damage class][armour level]**. There are 10 classes and 3 armour levels. Values in 1/8 hearts:
+
+| Class | No armour upgrade | Armour 1 | Armour 2 |
+|---|---|---|---|
+| 0 | 2 (¼ heart) | 1 | 1 |
+| 1 | 4 (½ heart) | 4 | 4 |
+| 2 | 0 | 0 | 0 |
+| 3 | 8 (1 heart) | 4 | 2 |
+| 4 | 8 | 8 | 8 |
+| 5 | 16 (2 hearts) | 8 | 4 |
+| 6 | 32 (4 hearts) | 16 | 8 |
+| 7 | 32 | 24 | 16 |
+| 8 | 24 (3 hearts) | 16 | 8 |
+| 9 | 64 (8 hearts) | 48 | 24 |
+
+  Design takeaway: the armour upgrades mostly **halve** damage at each step. Some classes ignore armour (1, 4), and two reduce more slowly (7: full → ¾ → ½; 9: full → ¾ → ⅜).
+- Damage is not applied straight away. It goes into a pending-damage byte that the hero's update applies on the next frame (3.5).
+
+### 3.3 Knockback
+- A hit sets a **recoil timer of 19 frames** and starts the knockback state. The hero is pushed **away from the enemy at 1.5 px/frame** (the same as walking speed) and can't steer.
+- The hero also does a **small hop**: upward speed 0.75 px/f, gravity 0.125 px/f² (0.0625 in one other state). The hop lasts about 12 frames and peaks at about 2.6 px. It's only drawn as a height offset.
+- The timer stops at 1 until the hero is back on the ground, so control returns after **19 frames or on landing, whichever is later**.
+- Landing after a hit **cancels the sword swing and the charge**, and plays a landing sound.
+- A few specific enemy types push harder: a 16-frame recoil at 2 px/frame plus a long second timer (144 frames, purpose unconfirmed). Another contact type uses a 16-frame recoil at 0.25 px/frame (unconfirmed which).
+
+### 3.4 Invincibility after a hit
+- A hurt timer starts at **58 frames (about 0.97 s)**, unless one is already running. It goes down once a frame in the drawing code.
+- While it is 4 or more, the hero is drawn only on **every other frame (blinking)**. For the last 3 frames the hero is drawn normally.
+- No contact damage is possible while it runs.
+
+### 3.5 Applying damage and death
+- Each frame, if there is pending damage: the hit sound plays, the hurt timer starts, and health goes down by the damage.
+- One invulnerable state (a cloak/cape-type flag, by its use) instead throws the damage away and cancels the knockback.
+- If health would reach **0 or go below 0**, health is set to 0, the pending refill is cleared, and the game switches to the game-over mode. A revive (bottled fairy) isn't traced yet.
+
+### 3.6 Low-health warning
+- While no refill is pending, a warning beep plays **every 32 frames** whenever health is below a threshold that depends on max health:
+  - up to 7 max hearts: 1 heart or less
+  - 8–14 max hearts: 2 hearts or less
+  - 15–20 max hearts: 3 hearts or less
+
+### 3.7 Refills and max health
+- Healing goes into the **pending refill**. It's added **one heart (8) per step**, with a sound and a heart-filling animation on the HUD, and is capped at max health. The time between steps isn't traced yet.
+- **Heart container: +1 max heart**, capped at 20. There are two variants: one also queues a 1-heart refill, the other refills to full (new max − current). Unconfirmed which pickup is which.
+
+## 4. Still to find (next steps)
+- Sword hitboxes per pose, sword damage per level, enemy health.
+- Dash ending on a wall (bounce-back).
 - Pushing: how many frames before a block moves.
 - Collision box size and corner-sliding (the hero slides round corners when slightly off a gap).
-- Health: hearts, damage units, how health is refilled.
-- Enemies, items, room/dungeon structure, game loop: later sections.
+- Pickup values (small heart, fairy, magic), revive.
+- Enemies, items, room/dungeon structure, game loop.
 
 ## 9. Our game (rules taken from the sections above, in our units)
 
@@ -110,3 +164,9 @@ A terrain flag (grass / shallow water, by its use) swaps the speed for these row
 | Beam | sword level 2+, health within half a heart of full; one at a time |
 | Charge | hold past the swing: slow walk, ready after 48 more frames (0.8 s), sparkles |
 | Spin | 12 poses, 40 frames (0.67 s), rooted, full circle from facing |
+| Health | integer eighths of a heart; max 20 hearts; start value our choice |
+| Contact damage | per-enemy class × armour table; armour roughly halves |
+| Knockback | 19 frames, 90 px/s away from the hit, no steering, tiny hop; cancels sword |
+| Invincibility | 58 frames (0.97 s), sprite blinks every other frame |
+| Low-health beep | every 32 frames under 1/2/3 hearts (by max hearts) |
+| Refills | queued, one heart per step with HUD animation |
