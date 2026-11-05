@@ -5720,6 +5720,32 @@
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "cropped to 16:9 and converted to WebP (Claude Code)"
+  },
+  {
+   "file": "games/frog_crossing/landing_bg.jpg",
+   "what": "Road Hopper (frog, river and night road) Landing background",
+   "source": "reference/art/games/frog_crossing_preview_src.png",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-05",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/whack_a_mole/landing_bg.jpg",
+   "what": "Bop the Mole (moles in a fairground box) Landing background",
+   "source": "reference/art/games/whack_a_mole_art_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-05",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
   }
  ]
 }

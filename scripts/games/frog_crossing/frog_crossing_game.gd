@@ -461,6 +461,7 @@ func _build_home() -> void:
 		"help": preload("res://scripts/games/frog_crossing/frog_crossing_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,
+		"art": "res://games/frog_crossing/landing_bg.jpg",
 		"subtitle": "Hop across the road and the river into all five homes.",
 		"logo": _draw_home_logo,
 		"modes": [{"text": "🐸  Play", "sub": "Three lives", "action": _start}],

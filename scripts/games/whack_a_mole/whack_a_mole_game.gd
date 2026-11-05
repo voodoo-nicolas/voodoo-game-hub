@@ -465,6 +465,7 @@ func _build_home() -> void:
 		"help": preload("res://scripts/games/whack_a_mole/whack_a_mole_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,
+		"art": "res://games/whack_a_mole/landing_bg.jpg",
 		"subtitle": "Whack as many moles as you can in 30 seconds!",
 		"logo": _draw_home_logo,
 		"modes": [{"text": "🔨  Play", "sub": "30-second round", "action": _start_round}],
