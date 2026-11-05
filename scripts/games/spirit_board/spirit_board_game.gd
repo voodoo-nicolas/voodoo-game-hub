@@ -33,6 +33,9 @@ var ask_row: HBoxContainer
 var seance_row: HBoxContainer
 var question_edit: LineEdit
 var ask_btn: Button
+var mic_btn: Button
+var _heard_cb = null                  # web: the JavaScript callback, kept alive
+var _listening := false
 
 var tape := ""
 var reply := ""
@@ -107,7 +110,7 @@ func _build_ui() -> void:
 	ask_row.add_theme_constant_override("separation", 10)
 	rows_box.add_child(ask_row)
 	question_edit = LineEdit.new()
-	question_edit.placeholder_text = tr("Type a question, or ask it out loud")
+	question_edit.placeholder_text = tr("Type or dictate a question")
 	question_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	question_edit.custom_minimum_size = Vector2(0, 72)
 	question_edit.add_theme_font_size_override("font_size", 26)
@@ -123,6 +126,13 @@ func _build_ui() -> void:
 		box.content_margin_right = 16
 		question_edit.add_theme_stylebox_override(state, box)
 	ask_row.add_child(question_edit)
+	mic_btn = Button.new()
+	mic_btn.text = "🎤"
+	mic_btn.custom_minimum_size = Vector2(72, 72)
+	mic_btn.add_theme_font_size_override("font_size", 30)
+	mic_btn.pressed.connect(_on_mic)
+	mic_btn.visible = _can_listen()
+	ask_row.add_child(mic_btn)
 	ask_btn = Button.new()
 	ask_btn.text = tr("Ask")
 	ask_btn.custom_minimum_size = Vector2(130, 72)
@@ -236,6 +246,46 @@ func _on_ask() -> void:
 	_sfx("whoosh")
 	if info:
 		info.add("Questions asked")
+
+## 🎤: web build only (iPhone Safari, Chrome), with the browser's own speech
+## recognition. Android and iPhone keyboards have their own 🎤 key that types
+## into the box; a native mic button would need an Android plugin in the APK.
+func _can_listen() -> bool:
+	if not OS.has_feature("web"):
+		return false
+	return bool(JavaScriptBridge.eval("!!(window.SpeechRecognition || window.webkitSpeechRecognition)", true))
+
+func _on_mic() -> void:
+	if engine.moving or mode != "ask" or _listening:
+		return
+	_listening = true
+	mic_btn.disabled = true
+	if _heard_cb == null:
+		_heard_cb = JavaScriptBridge.create_callback(_on_heard)
+		var window = JavaScriptBridge.get_interface("window")
+		window.vghSpiritHeard = _heard_cb
+	var js := """(function () {
+	var R = window.SpeechRecognition || window.webkitSpeechRecognition;
+	var r = new R(); var done = false;
+	r.lang = '%s'; r.interimResults = false; r.maxAlternatives = 1;
+	function send(t) { if (!done) { done = true; window.vghSpiritHeard(t); } }
+	r.onresult = function (e) { send(e.results[0][0].transcript); };
+	r.onerror = function () { send(''); };
+	r.onend = function () { send(''); };
+	try { r.start(); } catch (err) { send(''); }
+})()"""
+	JavaScriptBridge.eval(js % ("es-MX" if _lang() == "es" else "en-US"), true)
+	status_label.text = tr("Listening… ask your question")
+
+func _on_heard(args: Array) -> void:
+	_listening = false
+	mic_btn.disabled = false
+	var text := str(args[0]).strip_edges() if args.size() > 0 else ""
+	if text == "":
+		status_label.text = tr("The spirits didn't hear you. Try again, or type it.")
+		return
+	question_edit.text = text
+	_on_ask()
 
 func _on_spirit(key: String) -> void:
 	if key == "done":

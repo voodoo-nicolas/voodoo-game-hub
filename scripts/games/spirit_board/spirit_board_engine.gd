@@ -32,34 +32,80 @@ const NAMES := ["MARIE", "ELIAS", "ODETTE", "LUCIEN", "CLAIRE", "HENRI", "AGATHA
 const REPLIES := {
 	"en": {
 		"hello": ["HELLO"],
-		"when": ["SOON", "NEVER", "TONIGHT", "IN A MONTH", "NOW", "ON MONDAY"],
-		"where": ["HERE", "BEHIND YOU", "BELOW", "FAR AWAY", "HOME", "NORTH"],
-		"who": ["YOU", "A FRIEND", "ME", "NOBODY", "YOUR EX"],
-		"why": ["FATE", "LOVE", "MONEY", "SECRETS", "YOU KNOW"],
-		"maybe": ["MAYBE", "SOON", "ASK LATER", "NOT YET"],
+		"here": ["YES", "YES", "I AM HERE", "ALWAYS"],
+		"feel": ["COLD", "LONELY", "RESTLESS", "AT PEACE", "TIRED", "WATCHING"],
+		"when": ["SOON", "NEVER", "TONIGHT", "IN A MONTH", "NEXT YEAR", "ON MONDAY", "NOT YET"],
+		"where": ["HERE", "BEHIND YOU", "BELOW", "FAR AWAY", "HOME", "NORTH", "BY THE SEA"],
+		"who": ["YOU", "A FRIEND", "ME", "NOBODY", "SOMEONE NEW", "FAMILY"],
+		"why": ["FATE", "LOVE", "MONEY", "SECRETS", "YOU KNOW", "FEAR"],
+		"how": ["SLOWLY", "WITH LOVE", "BY CHANCE", "IN SECRET", "TOGETHER", "WITH PATIENCE"],
+		"what": ["LOVE", "A SECRET", "CHANGE", "A JOURNEY", "THE TRUTH", "A GIFT", "LUCK"],
+		"color": ["RED", "BLUE", "GREEN", "BLACK", "WHITE", "GOLD", "PURPLE"],
+		"day": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"],
+		"maybe": ["MAYBE", "ASK LATER", "NOT YET", "UNCLEAR"],
 	},
 	"es": {
 		"hello": ["HOLA"],
-		"when": ["PRONTO", "NUNCA", "ESTA NOCHE", "EN UN MES", "YA", "EL LUNES"],
-		"where": ["AQUI", "DETRAS DE TI", "ABAJO", "MUY LEJOS", "EN CASA", "AL NORTE"],
-		"who": ["TU", "UN AMIGO", "YO", "NADIE", "TU EX"],
-		"why": ["DESTINO", "AMOR", "DINERO", "SECRETOS", "TU SABES"],
-		"maybe": ["QUIZAS", "PRONTO", "MAS TARDE", "AUN NO"],
+		"here": ["SI", "SI", "ESTOY AQUI", "SIEMPRE"],
+		"feel": ["FRIO", "SOLO", "INQUIETO", "EN PAZ", "CANSADO", "VIGILANDO"],
+		"when": ["PRONTO", "NUNCA", "ESTA NOCHE", "EN UN MES", "EL OTRO ANO", "EL LUNES", "AUN NO"],
+		"where": ["AQUI", "DETRAS DE TI", "ABAJO", "MUY LEJOS", "EN CASA", "AL NORTE", "JUNTO AL MAR"],
+		"who": ["TU", "UN AMIGO", "YO", "NADIE", "ALGUIEN NUEVO", "FAMILIA"],
+		"why": ["DESTINO", "AMOR", "DINERO", "SECRETOS", "TU SABES", "MIEDO"],
+		"how": ["DESPACIO", "CON AMOR", "POR AZAR", "EN SECRETO", "JUNTOS", "CON PACIENCIA"],
+		"what": ["AMOR", "UN SECRETO", "UN CAMBIO", "UN VIAJE", "LA VERDAD", "UN REGALO", "SUERTE"],
+		"color": ["ROJO", "AZUL", "VERDE", "NEGRO", "BLANCO", "DORADO", "VIOLETA"],
+		"day": ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"],
+		"maybe": ["QUIZAS", "MAS TARDE", "AUN NO", "NO SE"],
 	},
 }
 ## Question keywords, matched on the normalized question (lowercase, no
-## accents, ñ -> n, punctuation -> spaces, padded with spaces). First match wins.
+## accents, ñ -> n, punctuation -> spaces, padded with spaces). Checked in
+## order, first match wins. [kind, English words, Spanish words]. A word
+## starting with "^" only counts at the start of the question (Spanish "que"
+## is everywhere: "¿crees que...?" is a yes/no question). The language of the
+## matched word picks the language of the reply.
 const KINDS := [
-	["bye", [" goodbye ", " bye ", " farewell ", " adios ", " chau ", " hasta luego "]],
-	["name", [" your name ", " who are you ", " who is this ", " como te llamas ", " tu nombre ", " quien eres ", " su nombre "]],
-	["hello", [" hello ", " hi ", " hey ", " hola ", " buenas "]],
-	["year", [" what year ", " which year ", " que ano ", " en que ano ", " cual ano "]],
-	["number", [" how many ", " how old ", " how much ", " what number ", " cuantos ", " cuantas ", " cuanto ", " cuanta ", " que edad ", " que numero "]],
-	["when", [" when ", " cuando "]],
-	["where", [" where ", " donde ", " adonde "]],
-	["who", [" who ", " whom ", " quien ", " quienes "]],
-	["why", [" why ", " por que ", " porque "]],
+	["bye", [" goodbye ", " bye ", " farewell ", " good night "], [" adios ", " chau ", " chao ", " hasta luego ", " buenas noches "]],
+	["name", [" your name ", " who are you ", " who is this ", " who is there ", " who s there ", " who is here ", " who are u "],
+		[" como te llamas ", " tu nombre ", " quien eres ", " su nombre ", " quien esta ahi ", " quien anda ahi ", " quien esta aqui ", " quien sos "]],
+	["here", [" are you there ", " are you here ", " is anyone there ", " is anybody there ", " is anyone here ", " is anybody here ", " is someone there ", " is someone here ", " any spirits "],
+		[" estas ahi ", " estas aqui ", " hay alguien ", " hay algun espiritu ", " hay espiritus ", " sigues ahi "]],
+	["feel", [" how are you ", " how do you feel ", " are you ok ", " are you okay ", " are you happy ", " are you sad "],
+		[" como estas ", " como te sientes ", " estas bien ", " que tal "]],
+	["year", [" what year ", " which year "], [" que ano ", " cual ano ", " que fecha "]],
+	["age", [" how old ", " what age "], [" que edad ", " cuantos anos "]],
+	["time", [" what time ", " what hour "], [" que hora "]],
+	["day", [" what day ", " which day "], [" que dia ", " cual dia "]],
+	["color", [" what colour ", " what color ", " which colour ", " which color ", " favourite colour ", " favorite color "], [" que color ", " cual color ", " color favorito "]],
+	["number", [" how many ", " how much ", " what number ", " which number ", " how long "], [" cuantos ", " cuantas ", " cuanto ", " cuanta ", " que numero ", " cual numero "]],
+	["when", ["^when ", "^and when "], [" cuando "]],
+	["where", ["^where ", "^and where "], [" donde ", " adonde "]],
+	["who", ["^who ", "^whom ", "^whose ", "^and who "], ["^quien ", "^quienes ", "^a quien ", "^con quien ", "^de quien "]],
+	["why", ["^why ", "^and why "], [" por que "]],
+	["how", ["^how "], ["^como ", "^de que manera "]],
+	["what", ["^what ", "^which ", "^whats "], ["^que ", "^cual ", "^cuales ", "^de que ", "^en que "]],
+	# Question words further on ("so when will...", "tell me where..."), unless
+	# the question starts like a yes/no one ("will I be happy when I move?").
+	["when", [" when "], []],
+	["where", [" where "], []],
+	["who", [" who "], []],
+	["why", [" why "], []],
 ]
+## English yes/no questions start with one of these.
+const YESNO_START := [" is ", " are ", " am ", " do ", " does ", " did ", " will ", " would ",
+	" can ", " could ", " should ", " shall ", " may ", " might ", " must ", " have ", " has ",
+	" had ", " was ", " were ", " isn ", " aren ", " don ", " doesn ", " won ", " didn "]
+## Common words that tell Spanish from English when no keyword matched.
+const ES_HINTS := [" voy ", " vas ", " va ", " soy ", " eres ", " es ", " estoy ", " esta ", " mi ",
+	" te ", " el ", " la ", " los ", " las ", " de ", " que ", " un ", " una ", " tengo ",
+	" tiene ", " hay ", " manana ", " sera ", " seria ", " puedo ", " debo ", " con ",
+	" si ", " ella ", " ellos ", " novio ", " novia ", " amor ", " y ", " por ", " para "]
+const EN_HINTS := [" i ", " you ", " the ", " is ", " are ", " will ", " my ", " a ", " do ",
+	" does ", " should ", " can ", " it ", " be ", " to ", " of ", " and ", " get ", " am ", " have "]
+## Words that never make sense as one side of an "or" choice.
+const OR_SKIP := ["not", "no", "nope", "what", "que", "it", "this", "that", "eso", "esto",
+	"i", "you", "me", "yo", "tu", "a", "an", "the", "el", "la", "un", "una", "something", "algo"]
 
 var symbols: Array = []      # [{key, pos: Vector2, rot: float}]
 var spirit_name := ""
@@ -80,6 +126,8 @@ var _sway := 0.0
 var _dwell_key := ""
 var _dwell_t := 0.0
 var _picked := ""            # must leave this symbol before it counts again
+# Ask: the same question to the same spirit gets the same reply.
+var _asked := {}             # normalized question -> reply
 
 func _init() -> void:
 	_layout()
@@ -114,6 +162,7 @@ func start(rng: RandomNumberGenerator) -> void:
 	_dwell_key = ""
 	_dwell_t = 0.0
 	_picked = ""
+	_asked = {}
 
 ## Distance in board heights.
 static func dist(a: Vector2, b: Vector2) -> float:
@@ -152,36 +201,116 @@ static func normalize(q: String) -> String:
 		out = out.replace("  ", " ")
 	return " " + out.strip_edges() + " "
 
+## The kind of question ("yesno" when nothing else fits).
 static func kind_of(question: String) -> String:
+	return classify(question, "en")[0]
+
+## [kind, language]. The language is the matched keyword's, else a guess
+## from common words, else `lang` (the app's language).
+static func classify(question: String, lang: String) -> Array:
 	var q := normalize(question)
+	if q.strip_edges() == "":
+		return ["yesno", lang]
+	var yesno_start := false
+	for w in YESNO_START:
+		if q.begins_with(w):
+			yesno_start = true
 	for k in KINDS:
-		for word in k[1]:
-			if q.contains(word):
-				return k[0]
-	return "yesno"
+		for li in [1, 2]:
+			for word in k[li]:
+				var anchored: bool = word.begins_with("^")
+				var hit := q.begins_with(" " + word.substr(1)) if anchored else q.contains(word)
+				if not hit:
+					continue
+				if yesno_start and not anchored and li == 1 and k[0] in ["when", "where", "who", "why"]:
+					continue
+				return [k[0], "en" if li == 1 else "es"]
+	# A greeting: short, and starts with hello / hola.
+	var words := q.strip_edges().split(" ")
+	if words.size() <= 3 and words[0] in ["hello", "hi", "hey", "greetings", "hola", "buenas", "buenos", "saludos"]:
+		return ["hello", "es" if words[0] in ["hola", "buenas", "buenos", "saludos"] else "en"]
+	return ["yesno", guess_lang(q, lang)]
+
+## "es" or "en" by counting common words; `fallback` on a tie.
+static func guess_lang(q: String, fallback: String) -> String:
+	var es := 0
+	var en := 0
+	for w in ES_HINTS:
+		if q.contains(w):
+			es += 1
+	for w in EN_HINTS:
+		if q.contains(w):
+			en += 1
+	if es != en:
+		return "es" if es > en else "en"
+	return fallback
+
+## "Pizza or tacos?" -> ["PIZZA", "TACOS"]: the word either side of the last
+## "or" / "o" / "u". [] when there is no such choice ("...or not?").
+static func choices(question: String) -> Array:
+	var q := normalize(question)
+	for sep in [" or ", " o ", " u "]:
+		var i := q.rfind(sep)
+		if i < 0:
+			continue
+		var before := q.substr(0, i).strip_edges().split(" ")
+		var after := q.substr(i + sep.length()).strip_edges().split(" ")
+		var x: String = before[before.size() - 1]
+		var y: String = after[0]
+		if x == "" or y == "" or x == y or x.length() > 12 or y.length() > 12:
+			continue
+		if x in OR_SKIP or y in OR_SKIP:
+			continue
+		return [x.to_upper(), y.to_upper()]
+	return []
 
 ## The spirit's reply: "YES", "NO", "GOODBYE", or a word / number to spell.
+## `lang` is the app's language, used when the question doesn't show its own.
+## Asking the same spirit the same question again gets the same reply.
 func answer_for(question: String, lang: String, rng: RandomNumberGenerator) -> String:
-	var replies: Dictionary = REPLIES.get(lang, REPLIES["en"])
-	match kind_of(question):
+	var key := normalize(question)
+	var typed := key.strip_edges() != ""
+	if typed and _asked.has(key):
+		return _asked[key]
+	var r := _answer(question, lang, rng)
+	if typed and r != "GOODBYE":
+		_asked[key] = r
+	return r
+
+func _answer(question: String, lang: String, rng: RandomNumberGenerator) -> String:
+	var c := classify(question, lang)
+	var kind: String = c[0]
+	var replies: Dictionary = REPLIES.get(c[1], REPLIES["en"])
+	if kind in ["yesno", "who", "what"]:
+		var pair := choices(question)
+		if not pair.is_empty():
+			return _pick(pair, rng)
+	match kind:
 		"bye":
 			return "GOODBYE"
 		"name":
 			return spirit_name
 		"year":
 			return str(rng.randi_range(1888, 2066))
+		"age":
+			return str(rng.randi_range(16, 99))
+		"time":
+			return str(rng.randi_range(1, 12))
 		"number":
 			return str(rng.randi_range(1, 12) if rng.randf() < 0.7 else rng.randi_range(13, 99))
+		"here":
+			var h: String = _pick(replies["here"], rng)
+			return "YES" if h == "SI" else h
 		"who":
-			if rng.randf() < 0.55:
+			if rng.randf() < 0.45:
 				return "ABCDEFGHIJKLMNOPRSTVW"[rng.randi_range(0, 20)]
 			return _pick(replies["who"], rng)
-		"hello", "when", "where", "why":
-			return _pick(replies[kind_of(question)], rng)
-	var r := rng.randf()
-	if r < 0.45:
+		"hello", "feel", "when", "where", "why", "how", "what", "color", "day":
+			return _pick(replies[kind], rng)
+	var roll := rng.randf()
+	if roll < 0.45:
 		return "YES"
-	if r < 0.85:
+	if roll < 0.85:
 		return "NO"
 	return _pick(replies["maybe"], rng)
 
