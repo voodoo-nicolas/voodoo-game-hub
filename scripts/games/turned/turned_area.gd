@@ -16,6 +16,7 @@ var indoor := false
 var people_scale := 1.0               # people drawn this much bigger here (painted rooms: tuning people_scale.<area id>)
 var pictured := false                 # the ground is one painting (a painted room, or the painted street)
 var painted := false                   # the floor map is one painting that is lit already (the ambient light stays near white)
+var night_lit := false                 # an outdoor painting painted at night with its own moon and lamp light (the ambient stays near white)
 var bounds := Rect2()                  # what the camera and the player stay inside
 var solids: Array = []                 # Rect2, things you cannot walk through
 var shades: Array = []                 # see above
@@ -596,7 +597,9 @@ func _build_bar_classic() -> void:
 # One long night street along the quay: warehouses on the north side, gas lamps every 240 px, the water
 # to the south, the cigar shop at the east end. Placeholder layout (docs/turned/DECISIONS.md).
 
-func _build_harbor() -> void:
+## The drawn harbour (shader cobbles, drawn warehouses), kept for reference; not used since 2026-11-04 (the
+## painted harbour, `_build_harbor`).
+func _build_harbor_classic() -> void:
 	indoor = false
 	bounds = Rect2(0, -200, 1700, 580)
 	solids = [
@@ -700,7 +703,9 @@ func _build_cigar_shop_classic() -> void:
 # One long way, 2700 px: the last gas lamps of Vellmoor (x < 1000), then a dirt path through the forest
 # to a small house covered in vines (x about 2500). Placeholder layout (docs/turned/DECISIONS.md).
 
-func _build_night_road() -> void:
+## The drawn night road (placeholder layout), kept for reference; not used since 2026-11-04 (the painted night
+## road, `_build_night_road`).
+func _build_night_road_classic() -> void:
 	indoor = false
 	bounds = Rect2(0, -200, 2700, 600)
 	solids = [
@@ -767,6 +772,136 @@ func _build_night_road() -> void:
 	spawns = {"start": Vector2(60, 245)}
 	npcs = []
 
+# ---------------------------------------------------------------- painted walks: the harbour, the night road
+
+## The owner's pictures joined left to right by tools/turned_walk_join.py into `rooms/<area>.webp` (2026-11-04,
+## DECISIONS B-16). turned_walks.json (the tool writes it) holds each panel [picture, x_from, x_to, blend into
+## the next] and the cut-outs [name, panel, box x, y, w, h, base y]. Coordinates below are PANEL pixels (the
+## picture's own), k = the panel's index: joined x = 56 + off_k + (x - x_from_k), joined y = y - 3, then WALK_K
+## world px per picture px (the street's scale). Both are painted at night with their own moon and lamp light.
+const WALK_K := 0.55
+const WALK_DATA := "res://scripts/games/turned/turned_walks.json"
+var _wfrom: Array = []
+var _woff: Array = []
+
+func _wp(k: int, x: float, y: float) -> Vector2:
+	return Vector2((56.0 + float(_woff[k]) + x - float(_wfrom[k])) * WALK_K, (y - 3.0) * WALK_K)
+
+func _wr(k: int, x: float, y: float, w: float, h: float) -> Rect2:
+	return Rect2(_wp(k, x, y), Vector2(w, h) * WALK_K)
+
+## A painted walk's frame: the panels' offsets, the picture, the bounds, and its cut-outs as y-sorted props.
+func _walk_begin() -> void:
+	indoor = false
+	pictured = true
+	night_lit = true
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(WALK_DATA))
+	var d: Dictionary = {}
+	if typeof(parsed) == TYPE_DICTIONARY:
+		d = parsed.get(id, {})
+	else:
+		push_error("Turned: cannot read " + WALK_DATA)
+	margin = Color(str(d.get("margin", "4d4d4d")))        # the picture's own grey, carried on past its edge
+	var off := 0.0
+	for p in d.get("panels", []):
+		_wfrom.append(float(p[1]))
+		_woff.append(off)
+		off += float(p[2]) - float(p[1]) - float(p[3])
+	var paint := Vector2(off + 112.0, 845.0) * WALK_K
+	bounds = Rect2(-20, -10, paint.x + 40, paint.y + 20)
+	deco = [{"t": "painting", "art": "rooms/" + id, "rect": Rect2(Vector2.ZERO, paint)}]
+	for c in d.get("cuts", []):
+		var k := int(c[1])
+		var box := _wr(k, float(c[2]), float(c[3]), float(c[4]), float(c[5]))
+		props.append({"kind": "cut", "name": id + "/" + str(c[0]), "rect": box, "pos": Vector2(box.get_center().x, _wp(k, 0, float(c[6])).y)})
+
+## Vellmoor Harbor (HR-01, HR-04, HR-05): she comes down the side lane at the west end; warehouses along the far
+## side to y 393, the slab pavement, the cobbled road, an iron railing (a gap in the middle of each picture) and
+## the quay planks to the water at y 690. The cigar shop (striped awning, door at x 790..845) is near the east end.
+func _build_harbor() -> void:
+	_walk_begin()
+	solids = [
+		_wr(0, -400, -400, 460, 1600), _wr(0, 60, -400, 60, 793), _wr(0, 120, -400, 95, 630),   # the west end, the lane
+		_wr(0, 215, -400, 989, 780), _wr(1, 60, -400, 1144, 780), _wr(2, 60, -400, 1144, 780),   # the warehouses
+		_wr(2, 1204, -400, 400, 1600),                                                         # past the east end
+		_wr(1, 628, 380, 84, 25),                                   # the chandler's barrels
+		_wr(2, 628, 380, 150, 25),                                  # the cigar shop's bow window
+		_wr(2, 876, 640, 46, 20),                                   # a barrel on the planks
+	]
+	for k in 3:
+		solids.append_array([
+			_wr(k, 518, 380, 84, 30),                               # a crate and a barrel by the wall
+			_wr(k, 225, 462, 16, 14), _wr(k, 935, 462, 16, 14),     # the lamp posts
+			_wr(k, 60, 590, 285, 50), _wr(k, 918, 590, 286, 50),    # the railings
+			_wr(k, 378, 630, 147, 44), _wr(k, 527, 628, 36, 24),    # crates and a barrel on the planks
+			_wr(k, 60, 690, 1144, 400),                             # the quay's edge
+		])
+		lamps.append_array([_wp(k, 233, 280) + Vector2(0, 28), _wp(k, 943, 280) + Vector2(0, 28)])
+	light_spots = [
+		{"pos": _wp(1, 910, 255), "color": Color("ffb45a"), "energy": 0.5, "radius": 70.0},     # the hanging lanterns
+		{"pos": _wp(2, 910, 255), "color": Color("ffb45a"), "energy": 0.5, "radius": 70.0},
+		{"pos": _wp(2, 700, 350), "color": Color("ffb45a"), "energy": 0.35, "radius": 80.0},    # the shop window
+	]
+	shades = []
+	interacts = [
+		{"id": "cigar_door", "pos": _wp(2, 817, 405), "r": 30.0, "verb": "enter"},
+	]
+	triggers = [
+		{"id": "sense1", "rect": _wr(0, 700, 380, 40, 320)},
+		{"id": "sense2", "rect": _wr(1, 150, 380, 40, 320)},
+		{"id": "sense3", "rect": _wr(1, 750, 380, 40, 320)},
+		{"id": "sense4", "rect": _wr(2, 300, 380, 40, 320)},
+	]
+	spawns = {"from_city": _wp(0, 165, 370), "from_shop": _wp(2, 817, 425)}
+	npcs = []
+
+## The night walk (NR-05, NR-06, NR-07, NR-03, the vine house half of NR-04): out of the cigar shop's door along
+## the harbour street (the water filled in: bollards, planks, a near pavement, a low wall at y 748), the last
+## half-timbered houses and the last lamp, the stone gate where the cobbles end, then the forest path (y 440..640)
+## past two dead trees (NR-07's low branch is the "branch" beat) to the small house buried in vines.
+func _build_night_road() -> void:
+	_walk_begin()
+	solids = [
+		# NR-05: the west end, the far row, the bow window, the crate by the wall, the near wall
+		_wr(0, -400, -400, 460, 1600), _wr(0, 60, -400, 1032, 780), _wr(0, 628, 380, 150, 25), _wr(0, 518, 380, 84, 30),
+		_wr(0, 60, 735, 1032, 400),
+		_wr(0, 225, 462, 16, 14), _wr(0, 935, 462, 16, 14), _wr(0, 1052, 700, 16, 18),         # the lamps
+		_wr(0, 378, 630, 147, 44), _wr(0, 527, 628, 36, 24), _wr(0, 876, 640, 46, 20),         # crates, barrels
+		# NR-06: the last houses, the gate (the back post to y 495, the front post and its leaf), the bush, the wood
+		_wr(1, 60, -400, 668, 780), _wr(1, 728, -400, 160, 895), _wr(1, 888, -400, 232, 830),
+		_wr(1, 225, 462, 16, 14), _wr(1, 60, 735, 580, 400), _wr(1, 640, 615, 180, 400),
+		_wr(1, 800, 655, 115, 400), _wr(1, 858, 600, 50, 400), _wr(1, 820, 650, 300, 400),
+		# NR-07, NR-03: the forest either side of the path, two boulders
+		_wr(2, 60, -400, 1070, 840), _wr(2, 60, 640, 1070, 400), _wr(2, 615, 625, 145, 80), _wr(2, 820, 612, 170, 90),
+		_wr(3, 170, -400, 860, 840), _wr(3, 170, 650, 860, 400),
+		# NR-04: the vine house (its step at y 495..523 is open), the wood, the east end
+		_wr(4, 700, -400, 15, 840), _wr(4, 715, -400, 435, 895), _wr(4, 700, 650, 504, 400), _wr(4, 1130, -400, 474, 1600),
+	]
+	for x in [70, 205, 340, 680]:
+		solids.append(_wr(0, x - 7, 628, 14, 16))                   # the bollards
+	for x in [205, 340, 510, 680]:
+		solids.append(_wr(1, x - 7, 628, 14, 16))
+	lamps = [_wp(0, 233, 280) + Vector2(0, 28), _wp(0, 943, 280) + Vector2(0, 28), _wp(0, 1060, 470) + Vector2(0, 28),
+		_wp(1, 233, 280) + Vector2(0, 28)]
+	light_spots = [
+		{"pos": _wp(0, 910, 255), "color": Color("ffb45a"), "energy": 0.5, "radius": 70.0},     # the shop's lantern
+		{"pos": _wp(4, 805, 380), "color": Color("ffb45a"), "energy": 0.9, "radius": 120.0},    # the vine house window
+	]
+	shades = []
+	interacts = [
+		{"id": "priest_door", "pos": _wp(4, 900, 520), "r": 32.0, "verb": "enter"},
+	]
+	triggers = [
+		{"id": "walk1", "rect": _wr(0, 980, 380, 40, 360)},
+		{"id": "walk2", "rect": _wr(1, 150, 380, 40, 360)},
+		{"id": "walk3", "rect": _wr(1, 440, 380, 40, 360)},
+		{"id": "gate", "rect": _wr(1, 740, 380, 40, 260)},
+		{"id": "branch", "rect": _wr(2, 560, 430, 40, 220)},
+		{"id": "house", "rect": _wr(3, 900, 430, 40, 220)},
+	]
+	spawns = {"start": _wp(0, 817, 425)}
+	npcs = []
+
 # ---------------------------------------------------------------- the street
 
 ## The street as the owner's painting (2026-11-04, DECISIONS B-15): ST-01..03 joined left to right into
@@ -793,6 +928,7 @@ func _build_street() -> void:
 	var paint := Vector2(3496, 845) * ST_K
 	bounds = Rect2(-20, -10, paint.x + 40, paint.y + 20)
 	deco = [{"t": "painting", "art": ST_ART, "rect": Rect2(Vector2.ZERO, paint)}]
+	margin = Color("878787")                # the pictures' grey border
 	solids = [
 		# her end: the dark gap and her house to the steps, the steps (you climb to the door), the rest
 		_sr(0, -400, -400, 735, 815), _sr(0, 335, -400, 135, 780), _sr(0, 470, -400, 710, 815),

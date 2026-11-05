@@ -1441,11 +1441,12 @@ func _test_follower() -> void:
 	_step(0.5)
 	var lamp: Dictionary = world._lamps[0]
 	check(float(lamp["light"].energy) > float(lamp["base"]) * 2.0, "the gas lamps glare (%.2f against %.2f)" % [float(lamp["light"].energy), float(lamp["base"])])
-	check(_walk_to(Vector2(400, 250), 30.0) and world.engine.has_flag("sense1"), "the first sense beat: the lamps")
+	check(_walk_to(Vector2(95, 240), 10.0), "down the lane onto the harbour")
+	check(_walk_to(Vector2(420, 298), 30.0) and world.engine.has_flag("sense1"), "the first sense beat: the lamps")
 	check(world._follower.position.distance_to(world.player.position) < 140.0, "he keeps close, at your side")
-	check(_walk_to(Vector2(1100, 250), 40.0) and world.engine.has_flag("sense2") and world.engine.has_flag("sense3"), "the dog and the smells")
-	check(_walk_to(Vector2(1340, 250), 20.0) and world.engine.has_flag("sense4"), "the thirst")
-	check(_walk_to(Vector2(1521, 176), 20.0), "walked to the cigar shop")
+	check(_walk_to(Vector2(1070, 298), 40.0) and world.engine.has_flag("sense2") and world.engine.has_flag("sense3"), "the dog and the smells")
+	check(_walk_to(Vector2(1430, 298), 20.0) and world.engine.has_flag("sense4"), "the thirst")
+	check(_walk_to(Vector2(1679, 225), 20.0), "walked to the cigar shop")
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "cigar_door", "A offers the shop door")
 	world.press_a()
@@ -1520,7 +1521,8 @@ func _walk_into_scene(dir: Vector2, limit_s: float = 12.0) -> void:
 func _test_scene6() -> void:
 	var road: Area = Area.make("night_road") as Area
 	check(not road.indoor and road.is_free(road.spawns["start"], 9.0), "the night road starts on free ground")
-	check(_reachable(road, road.spawns["start"], Vector2(2566, 176)) and road.is_free(Vector2(2566, 176), 9.0), "the road leads to the vine house door")
+	var vine_door: Vector2 = road.interacts[0]["pos"]
+	check(_reachable(road, road.spawns["start"], vine_door) and road.is_free(vine_door, 9.0), "the road leads to the vine house door")
 	for it in road.interacts:
 		check(Text.VERBS.has(it["verb"]), "road interact %s has a label" % it["id"])
 	for tr in road.triggers:
@@ -1565,27 +1567,27 @@ func _test_scene6() -> void:
 	check(is_equal_approx(world.clock.hour, night_hour), "on the night road time does not pass: dawn cannot come")
 	check(Text.MISSIONS["priest"] == "Talk to the shopkeeper in the cigar shop", "the mission after the storeroom says where he is")
 	# the priest, told on the way
-	world.player.position = Vector2(110, 245)
+	world.player.position = Vector2(500, 298)
 	_walk_into_scene(Vector2.RIGHT)
 	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["r1_o1"], "'He was a priest...'")
 	_dlg_lines()
 	check(world.mode == "play" and world.engine.journal.has("road"), "told, and in the Journal")
-	check(_walk_to(Vector2(400, 245), 20.0), "walked on")
+	check(_walk_to(Vector2(600, 298), 20.0), "walked on")
 	_step(1.0)
 	var ahead: float = world._follower.position.x - world.player.position.x
 	check(ahead > 30.0 and ahead < 220.0, "he walks ahead of you (%.0f px)" % ahead)
 	# the senses and the last lamp
-	world.player.position = Vector2(480, 245)
+	world.player.position = Vector2(610, 298)
 	_walk_into_scene(Vector2.RIGHT, 0.8)
 	check(world.engine.has_flag("walk2") and hud.caption_text() == Text.INNER["road_sens2"], "restless, a racing heart")
-	world.player.position = Vector2(800, 245)
+	world.player.position = Vector2(770, 298)
 	_walk_into_scene(Vector2.RIGHT, 0.8)
 	check(world.engine.has_flag("walk3"), "every latch and shutter")
-	world.player.position = Vector2(990, 240)
+	world.player.position = Vector2(935, 298)
 	_walk_into_scene(Vector2.RIGHT, 0.8)
 	check(world.engine.has_flag("gate") and hud.caption_text() == Text.INNER["road_gate"], "the last gas lamp, then the forest")
 	# the branch
-	world.player.position = Vector2(1650, 232)
+	world.player.position = Vector2(1400, 298)
 	_step(0.3)
 	_walk_into_scene(Vector2.RIGHT, 3.0)
 	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["br_scrape"], "a branch scrapes his arm")
@@ -1599,14 +1601,14 @@ func _test_scene6() -> void:
 	_step(2.5)
 	check(world._hunger < 0.05, "the hunger is gone (%.2f)" % world._hunger)
 	check(world._fol_state == "behind", "from now on he walks behind you")
-	check(_walk_to(Vector2(1900, 230), 20.0), "walked on through the forest")
+	check(_walk_to(Vector2(1750, 298), 20.0), "walked on through the forest")
 	_step(1.5)
 	check(world._follower.position.x < world.player.position.x - 80.0, "he stays behind, hiding his arm (%.0f px)" % (world.player.position.x - world._follower.position.x))
 	# the house
-	world.player.position = Vector2(2330, 230)
+	world.player.position = Vector2(2060, 298)
 	_walk_into_scene(Vector2.RIGHT, 0.8)
 	check(world.engine.has_flag("house") and hud.caption_text() == Text.INNER["road_house"], "a light between the trees")
-	check(_walk_to(Vector2(2566, 182), 20.0), "walked to the door")
+	check(_walk_to(Vector2(2252, 290), 20.0), "walked to the door")
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "priest_door", "A offers the door")
 	world.press_a()

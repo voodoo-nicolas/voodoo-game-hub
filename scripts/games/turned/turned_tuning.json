@@ -50,6 +50,7 @@
     "moon_ambient_color": "26345e",
     "indoor_night_color": "3c3c52",
     "painting_night_color": "b8bad2",
+    "night_walk_color": "d2d4e4",
     "dusk_color": "c8806a",
     "dusk_mix": 0.3,
     "lamp_night_boost": 0.9,
@@ -74,8 +75,8 @@
   },
   "people_scale": {
     "street": 1.15,
-    "harbor": 1.0,
-    "night_road": 1.0,
+    "harbor": 1.15,
+    "night_road": 1.15,
     "bar": 2.0,
     "cigar_shop": 2.0,
     "house_down": 2.0,
@@ -96,7 +97,7 @@
     "owner_speed_mult": 1.08,
     "lamp_energy": 1.25,
     "lamp_radius_px": 200.0,
-    "path": [[40.0, 245.0], [990.0, 245.0], [1100.0, 224.0], [2540.0, 224.0]]
+    "path": [[447.2, 245.9], [547.8, 298.1], [937.2, 298.1], [1014.2, 300.9], [1102.2, 295.4], [1392.6, 295.4], [1867.8, 298.1], [2185.7, 298.1], [2246.2, 292.6]]
   },
   "senses": {
     "lamp_mult": 2.6,

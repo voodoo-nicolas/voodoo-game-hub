@@ -465,6 +465,8 @@ func _ambient_color() -> Color:
 	var day_i := clock.intensity()
 	if area.painted:
 		return T.color("moon.painting_night_color").lerp(T.color("light.painting_day_color"), day_i)
+	if area.night_lit:                         # painted at night with its own light: only dim it a little
+		return T.color("moon.night_walk_color").lerp(T.color("light.painting_day_color"), day_i)
 	if area.indoor:
 		return T.color("moon.indoor_night_color").lerp(T.color("light.indoor_color"), day_i)
 	var shade := T.color("light.shade_color")
@@ -1709,7 +1711,10 @@ func _on_area_ready() -> void:
 	elif area.id == "harbor":
 		engine.set_flag("senses")
 		if engine.has_flag("matches_shown") and not engine.has_flag("witness_gone"):
-			_make_follower(player.position + Vector2(-T.f("follower.companion_lag_px"), 0.0), true)
+			var beside := player.position + Vector2(-T.f("follower.companion_lag_px"), 0.0)
+			if not area.is_free(beside, 9.0):
+				beside = player.position + Vector2(0.0, -T.f("follower.companion_lag_px"))   # behind her, up the side lane
+			_make_follower(beside, true)
 			_fol_begin_tail()
 			_fol_state = "companion"
 	elif area.id == "street":
