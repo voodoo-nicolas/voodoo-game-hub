@@ -615,7 +615,7 @@ func _on_game_updates_checked(ok: bool) -> void:
 		lines.append(tr("All your games are up to date!"))
 	for id in _game_updates:
 		var g: Dictionary = Catalog.get_game(id)
-		lines.append("🔄 %s: v%d → v%d" % [Lang.pick(g, "title"), Catalog.local_version(id), int(g.get("version", 0))])
+		lines.append("🔄 %s: v%d → v%d" % [Lang.pick(g, "title"), Catalog.installed_version(id), int(g.get("version", 0))])
 	if after_restart > 0:
 		lines.append(tr("Games you opened since the app started update after you restart it: %d") % after_restart)
 	games_update_label.text = "\n".join(lines)

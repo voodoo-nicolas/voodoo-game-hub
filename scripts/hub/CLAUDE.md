@@ -91,7 +91,9 @@ game starts but "which packs are mounted", "did we fetch the manifest" and
 - **Editor / full desktop builds**: games whose scene already exists before
   anything is mounted count as bundled and launch from local source, so
   running the hub from the editor plays your working copy, not the published
-  pack.
+  pack. The exported PC build also bundles every game but downloads a newer
+  published pack over its bundled copy (`_pc_overlay`, docs/claude/build-ship.md
+  "PC build game updates").
 - **Web build** (root `CLAUDE.md` "Web version"): every game is bundled and
   packs can't be downloaded, so `state_of` turns an unbundled game amber
   ("Update app" reloads the page) and `check_app_update` reports nothing.

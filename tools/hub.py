@@ -1022,7 +1022,8 @@ PC_PRESET = "WindowsTest"  # all_resources: every game bundled, no downloads
 
 def cmd_pc(_args) -> None:
     """Windows build for playtesting on this PC. Games are bundled, so it
-    always runs the current source -- including changes not yet published."""
+    runs the current source -- including changes not yet published -- and
+    downloads a game's pack once a newer one is published (Catalog._pc_overlay)."""
     PC_DIR.mkdir(parents=True, exist_ok=True)
     exe = PC_DIR / "Voodoo.exe"
     code, log = run_godot("--export-debug", PC_PRESET, str(exe), timeout=900)
@@ -1063,8 +1064,10 @@ PC_README = """{title} - PC test build v{version}
    Windows may say "Windows protected your PC" (the file isn't signed):
    click "More info" -> "Run anyway".
 
-Every game is built in, so nothing downloads. Sign-in, leaderboards,
-friends and online play need an internet connection.
+Every game is built in, so it plays offline. When a newer version of a
+game comes out, it downloads the next time you open that game (or from
+Options > Game updates). Sign-in, leaderboards, friends and online play
+need an internet connection.
 
 Saves and settings live on each PC in
    %APPDATA%\\Godot\\app_userdata\\Voodoo

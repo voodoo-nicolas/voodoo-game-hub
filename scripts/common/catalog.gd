@@ -57,6 +57,16 @@ var _bundled: Dictionary = {}
 var _mounted: Dictionary = {}
 var _downloads: Dictionary = {}  # pack id -> HTTPRequest in flight
 
+## PC build (Windows export, not the editor; since 2026-11-05): every game is
+## bundled, but a game published after the build was made is downloaded like
+## on the phone and laid over the bundled copy ("overlay", see
+## _mount_overlay), so the PC no longer lags behind the phone between app
+## releases. The editor keeps playing local source.
+var _pc_overlay := false
+## id -> the version in the manifest this build shipped with (its bundled copy).
+var _bundled_version: Dictionary = {}
+const OVERLAY_DIR := "user://packs/pc"
+
 var _fetch_in_flight := false
 var _last_fetch_ok_msec := -1
 var _manifest_waiters: Array[Callable] = []
@@ -94,6 +104,11 @@ func _ready() -> void:
 		if ResourceLoader.exists(_games_by_id[id].scene):
 			_bundled[id] = true
 
+	_pc_overlay = PcUpdater.is_supported()
+	if _pc_overlay:
+		_read_bundled_versions()
+		_mount_ready_overlays()
+
 	refresh_manifest()
 
 # ---------- queries ----------
@@ -128,7 +143,11 @@ func local_version(id: String) -> int:
 ## True if tapping this game must download before it can launch: never
 ## downloaded, or a newer version is published and it isn't mounted yet.
 func needs_download(id: String) -> bool:
-	if _bundled.has(id) or _mounted.has(id):
+	if _mounted.has(id):
+		return false
+	if _overlays(id):
+		return int(get_game(id).get("version", 0)) > installed_version(id)
+	if _bundled.has(id):
 		return false
 	if not is_downloaded(id):
 		return true
@@ -141,6 +160,10 @@ func updates_available(include_mounted: bool = false) -> Array:
 	var data = SaveUtil.read(PACK_VERSIONS_PATH)
 	var out: Array = []
 	for id in _games_by_id:
+		if _overlays(id):
+			if (include_mounted or not _mounted.has(id)) and int(_games_by_id[id].get("version", 0)) > installed_version(id):
+				out.append(id)
+			continue
 		if _bundled.has(id) or (_mounted.has(id) and not include_mounted) or not is_downloaded(id):
 			continue
 		var mine := 0 if data == null else int(data.get(id, 0))
@@ -150,12 +173,26 @@ func updates_available(include_mounted: bool = false) -> Array:
 
 ## One game's check (tiles): its downloaded copy is older than the published pack.
 func has_update(id: String) -> bool:
+	if _overlays(id):
+		return int(get_game(id).get("version", 0)) > installed_version(id)
 	if _bundled.has(id) or not is_downloaded(id):
 		return false
 	return int(get_game(id).get("version", 0)) > local_version(id)
 
 func is_mounted(id: String) -> bool:
 	return _mounted.has(id)
+
+## True on the PC build for a bundled game: a newer published pack is
+## downloaded and laid over the bundled copy.
+func _overlays(id: String) -> bool:
+	return _pc_overlay and _bundled.has(id)
+
+## The version this device plays: the downloaded pack's, or on the PC build
+## the newer of the bundled copy and a downloaded pack.
+func installed_version(id: String) -> int:
+	if _overlays(id):
+		return max(int(_bundled_version.get(id, 0)), local_version(id) if is_downloaded(id) else 0)
+	return local_version(id)
 
 ## The hub's version line for a game: "Version 11", plus a note when a newer
 ## pack is out for the copy on this device. "" for a "coming soon" placeholder.
@@ -164,9 +201,9 @@ func version_text(game: Dictionary) -> String:
 		return ""
 	var id := str(game.id)
 	var published := int(game.get("version", 0))
-	if _bundled.has(id) or not is_downloaded(id):
+	if not _overlays(id) and (_bundled.has(id) or not is_downloaded(id)):
 		return tr("Version %d") % published
-	var mine := local_version(id)
+	var mine := installed_version(id)
 	if published <= mine:
 		return tr("Version %d") % mine
 	if _mounted.has(id):
@@ -493,7 +530,19 @@ func mount(id: String) -> String:
 	var game := get_game(id)
 	if game.is_empty():
 		return tr("This game isn't in the catalog.")
-	if _bundled.has(id) or _mounted.has(id):
+	if _mounted.has(id):
+		return ""
+	if _overlays(id):
+		# From now on this session plays this copy (bundled or overlay): a pack
+		# downloaded later waits for the next start, as on the phone.
+		_mounted[id] = true
+		if _overlay_wanted(id) and _mount_overlay(id) != "":
+			# A bad overlay never blocks play: drop it, play the bundled copy.
+			push_warning("Catalog: overlay for %s failed; playing the bundled copy" % id)
+			DirAccess.remove_absolute(_pack_path(id))
+			_set_local_version(id, 0)
+		return ""
+	if _bundled.has(id):
 		return ""
 	if not is_downloaded(id):
 		return tr("This game hasn't been downloaded yet.")
@@ -506,6 +555,145 @@ func mount(id: String) -> String:
 	DirAccess.remove_absolute(_pack_path(id))
 	_set_local_version(id, 0)
 	return tr("This game's files were damaged and have been removed. Tap it again to re-download.")
+
+# ---------- PC overlay (see _pc_overlay) ----------
+
+func _read_bundled_versions() -> void:
+	var shipped = _read_json_file(BUNDLED_MANIFEST)
+	var games = shipped.get("games") if typeof(shipped) == TYPE_DICTIONARY else null
+	if typeof(games) != TYPE_DICTIONARY:
+		return
+	for id in games:
+		if typeof(games[id]) == TYPE_DICTIONARY:
+			_bundled_version[str(id)] = int(games[id].get("version", 1))
+
+## At start, before anything loads a game's files (the hub reads help scripts
+## for 🏅), so the bundled copy is never half-cached under the overlay.
+func _mount_ready_overlays() -> void:
+	for id in _bundled:
+		if _overlay_wanted(id):
+			_mounted[id] = true
+			if _mount_overlay(id) != "":
+				push_warning("Catalog: overlay for %s failed; playing the bundled copy" % id)
+				DirAccess.remove_absolute(_pack_path(id))
+				_set_local_version(id, 0)
+
+## A downloaded pack newer than the bundled copy (an older one, e.g. after a
+## PC self-update brought newer bundled games, is just ignored).
+func _overlay_wanted(id: String) -> bool:
+	return is_downloaded(id) and local_version(id) > int(_bundled_version.get(id, 0))
+
+## Mounts a filtered copy of the downloaded pack with replace_files = true, so
+## its files win over the bundled ones. The copy keeps only the game's own
+## files (see _overlay_keeps): never project.binary, the global class cache
+## or a stray shared script, which must stay the build's own.
+## Returns "" or an error.
+func _mount_overlay(id: String) -> String:
+	var version := local_version(id)
+	var dst := "%s/%s.v%d.pck" % [OVERLAY_DIR, id, version]
+	if not FileAccess.file_exists(dst):
+		DirAccess.make_dir_recursive_absolute(OVERLAY_DIR)
+		for old in DirAccess.get_files_at(OVERLAY_DIR):
+			if old.begins_with(id + ".v"):
+				DirAccess.remove_absolute(OVERLAY_DIR.path_join(old))  # fails harmlessly if another window has it open
+		var error := write_overlay(_pack_path(id), dst)
+		if error != "":
+			return error
+	if not ProjectSettings.load_resource_pack(dst, true):
+		DirAccess.remove_absolute(dst)
+		return "mount failed"
+	return ""
+
+## Copies the pack at src to dst keeping only the directory entries
+## _overlay_keeps accepts. The file data stays where it was (the directory is
+## at the end of a Godot 4.4+ pack, format 3/4), so only the directory is
+## rewritten. Returns "" or an error. Public for tools/test_pc_overlay.gd.
+func write_overlay(src: String, dst: String) -> String:
+	var f := FileAccess.open(src, FileAccess.READ)
+	if f == null:
+		return "can't open"
+	if f.get_length() < 40 or f.get_buffer(4).get_string_from_ascii() != PACK_MAGIC:
+		return "not a pack"
+	var fmt := f.get_32()
+	f.get_32(); f.get_32(); f.get_32()  # engine version
+	var flags := f.get_32()
+	f.get_64()  # file base
+	var dir_offset := f.get_64()
+	if fmt < 3 or fmt > 4 or flags & 1 or dir_offset <= 0 or dir_offset >= f.get_length():
+		return "unsupported pack (format %d, flags %d)" % [fmt, flags]
+	f.seek(dir_offset)
+	var count := f.get_32()
+	var paths := PackedStringArray()
+	var entries: Array[PackedByteArray] = []
+	for i in count:
+		var start := f.get_position()
+		var plen := f.get_32()
+		var raw := f.get_buffer(plen)
+		var nul := raw.find(0)
+		paths.append((raw.slice(0, nul) if nul >= 0 else raw).get_string_from_utf8())
+		f.seek(f.get_position() + 8 + 8 + 16 + 4)  # offset, size, md5, flags
+		if f.eof_reached():
+			return "truncated directory"
+		var end := f.get_position()
+		f.seek(start)
+		entries.append(f.get_buffer(end - start))
+		f.seek(end)
+	var skip_ctex := _shared_ctex_prefixes(paths)
+	var out := FileAccess.open(dst + ".part", FileAccess.WRITE)
+	if out == null:
+		return "can't write"
+	f.seek(0)
+	var left := dir_offset
+	while left > 0:
+		var chunk := f.get_buffer(mini(left, 1 << 20))
+		if chunk.is_empty():
+			out.close()
+			DirAccess.remove_absolute(dst + ".part")
+			return "read failed"
+		out.store_buffer(chunk)
+		left -= chunk.size()
+	var kept := 0
+	for i in count:
+		if _overlay_keeps(paths[i], skip_ctex):
+			kept += 1
+	out.store_32(kept)
+	for i in count:
+		if _overlay_keeps(paths[i], skip_ctex):
+			out.store_buffer(entries[i])
+	out.close()
+	f.close()
+	if DirAccess.rename_absolute(dst + ".part", dst) != OK:
+		DirAccess.remove_absolute(dst + ".part")
+		return "can't write"
+	return ""
+
+const OVERLAY_DIRS := ["games/", "scenes/games/", "scripts/games/", "media/games/", ".godot/exported/", ".godot/imported/"]
+
+## Game-owned files only. Shared media (media/common) the build already has
+## stays the build's own copy, along with its imported texture.
+func _overlay_keeps(path: String, skip_ctex: PackedStringArray) -> bool:
+	if path == ".godot/uid_cache.bin":
+		return true
+	if path.begins_with("media/common/"):
+		return not FileAccess.file_exists("res://" + path)
+	for d in OVERLAY_DIRS:
+		if path.begins_with(d):
+			if d == ".godot/imported/":
+				for prefix in skip_ctex:
+					if path.begins_with(prefix):
+						return false
+			return true
+	return false
+
+## ".godot/imported/<file>-<md5 of its res:// path>." for the shared media in
+## this pack that the build already has (Godot names imported files that way).
+func _shared_ctex_prefixes(paths: PackedStringArray) -> PackedStringArray:
+	var out := PackedStringArray()
+	for p in paths:
+		if p.begins_with("media/common/") and p.ends_with(".import") and FileAccess.file_exists("res://" + p):
+			var source := p.trim_suffix(".import")
+			out.append(".godot/imported/%s-%s." % [source.get_file(), ("res://" + source).md5_text()])
+	return out
 
 # ---------- app update ----------
 
