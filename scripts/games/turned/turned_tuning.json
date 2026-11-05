@@ -11,6 +11,7 @@
     "sneak_speed_mult": 0.5,
     "radius": 9.0,
     "step_interval_s": 0.4,
+    "walk_frame_px": 18.4,
     "step_volume_db": -14.0,
     "sneak_step_volume_db": -30.0
   },

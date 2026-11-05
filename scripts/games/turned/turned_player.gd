@@ -30,6 +30,7 @@ var ring_noise := 0.0
 var show_rings := false
 
 var _phase := 0.0
+var _stride := 0.0             # world px walked, for the walk cycle frames (player_<dir>_w0..w3)
 
 func _ready() -> void:
 	radius = T.f("player.radius")
@@ -71,6 +72,7 @@ func walk(dir: Vector2, delta: float, area: RefCounted, speed: float, blockers: 
 			p = n.position + (off.normalized() if off.length() > 0.001 else d) * min_d
 	if not area.is_free(p, radius):
 		p = from
+	_stride += from.distance_to(p)
 	position = p
 	_phase += speed * delta * 0.22
 
@@ -99,9 +101,15 @@ func _draw() -> void:
 ## old round figure read as "a fat blob"). Painted sprites (player_down / _up / _side) replace it by name.
 func _draw_standing(alpha: float) -> void:
 	var dir := "down" if face.y > 0.35 else ("up" if face.y < -0.35 else "side")
-	if Art.tex("player_" + dir) != null:
+	var pic := "player_" + dir
+	if Art.tex(pic + "_w0") != null:
+		# her walk cycle (owner's sheets WK-01..03, DECISIONS B-18): four frames, one every walk_frame_px she
+		# walks (half a footstep); standing she holds the passing frame, so her clothes match the walk
+		var f := int(_stride / T.f("player.walk_frame_px")) % 4 if moving else 1
+		pic += "_w%d" % f
+	if Art.tex(pic) != null:
 		Art.shadow(self, Vector2(0.5, 0.5), 9.0, 3.4, 0.36 * alpha)
-	if Art.sprite(self, "player_" + dir, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0, Art.PERSON_CANVAS_H):
+	if Art.sprite(self, pic, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0, Art.PERSON_CANVAS_H):
 		if scarf:
 			# the painted sprite has no scarf: wind one round the neck (feet at 0, the head's top about 46 px up)
 			var nx := 0.0 if dir != "side" else signf(face.x) * 0.6
