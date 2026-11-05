@@ -122,7 +122,7 @@ const JOURNAL := {
 	"shop": "The shopkeeper denied everything. The water burned me and I passed out. When I woke the man from the bar was gone. The shopkeeper knows what is happening to me: he asked if I had bitten anyone. He says I have two or three days, and then he does not want to be near me. There is an old priest who left the church, with old books.",
 	"cigar": "The matches come from a cigar company. Their shop is across the city, by the harbor. He knows where.",
 	"witness": "A man from the bar followed me. I caught him round a corner. He stared at my neck and at the coat, and said: \"...It's really you.\" He knows something.",
-	"matches": "A box of matches on my nightstand, with a cigar company's logo on the lid. They are not mine.",
+	"matches": "A box of matches in the coat's right pocket, with a cigar company's logo on the lid. They are not mine.",
 	"note": "A note in the coat's right pocket: \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
 	"bar": "The Crooked Lantern: the whole room was afraid of me, not angry. The keeper threw me out and bolted the door.",
 }
@@ -273,7 +273,7 @@ const DIALOGUE := {
 	"coat_opt_wear": "Try it on",
 	"coat_opt_done": "Leave the coat",
 	"coat_left": "The left pocket is empty.",
-	"coat_right": "The right pocket. A note, folded small. \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
+	"coat_right": "The right pocket. A box of matches with a cigar company's logo on the lid, and a note, folded small. \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
 	"coat_inner": "The inside pocket is sewn shut with crude stitches. Someone did not want it opened by accident.",
 	"coat_tear": "I tear the stitches open. A note, folded small. \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"",
 	"coat_tear_thought": "Wednesday. It is Friday. Whatever happened, it happened there.",

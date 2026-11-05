@@ -75,9 +75,9 @@
     "companion_speed_mult": 1.25
   },
   "people_scale": {
-    "street": 1.15,
-    "harbor": 1.15,
-    "night_road": 1.15,
+    "street": 1.35,
+    "harbor": 1.35,
+    "night_road": 1.4,
     "bar": 2.0,
     "cigar_shop": 2.0,
     "house_down": 2.0,

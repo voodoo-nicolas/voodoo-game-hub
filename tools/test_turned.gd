@@ -1373,6 +1373,14 @@ func _test_follower() -> void:
 		if n.id == "witness":
 			wit = n
 	check(wit != null and wit.position.distance_to(world.area.spawns["witness"]) < 2.0, "the witness waits in the hall")
+	var stairs_at := Vector2.ZERO
+	for it in world.area.interacts:
+		if it["id"] == "stairs_up":
+			stairs_at = it["pos"]
+	world.player.position = world.area.spawns["from_street"]
+	var walked := _walk_to(stairs_at, 10.0)
+	_step(0.2)
+	check(walked and str(world._cand.get("id", "")) == "stairs_up", "home after the bar: the stairs up are in reach (%s at %s, A: %s)" % [walked, world.player.position, world._cand.get("id", "")])
 	world.player.position = world.area.spawns["witness"] + Vector2(0, -22)
 	_step(0.2)
 	check(str(world._cand.get("id", "")) == "npc:witness", "A offers to talk to him")
@@ -1721,12 +1729,12 @@ func _test_flow() -> void:
 	_dlg_lines()
 	check(world.dlg.view()["options"].size() == 1, "only 'leave the coat' is left")
 	_pick("coat_opt_done")
-	check(world.mode == "play" and world.engine.journal.size() == 3, "back in free play, three clues so far (%s)" % str(world.engine.journal))
+	check(world.mode == "play" and world.engine.journal.size() == 4, "back in free play, four clues so far (%s)" % str(world.engine.journal))
 	_step(0.1)
 	world.press_a()
 	_dlg_lines()
 	_pick("coat_opt_done")
-	check(world.engine.journal.size() == 3 and world.engine.items == ["note"], "the coat gives its things only once")
+	check(world.engine.journal.size() == 4 and world.engine.items == ["note", "matches"], "the coat gives its things only once (the note and the matches from the right pocket)")
 
 	# the mirror
 	check(_walk_to(Area._up(430, 650)) and _walk_to(Area._up(560, 650)) and _walk_to(Area._up(620, 720)) and _walk_to(Area._up(800, 720)) and _walk_to(Area._up(858, 650)) and _walk_to(Area._up(915, 630)) and _walk_to(Area._up(935, 480)), "walked bedroom -> landing -> bathroom mirror")

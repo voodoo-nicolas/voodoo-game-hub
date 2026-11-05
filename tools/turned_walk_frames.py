@@ -7,6 +7,8 @@ Reads reference/art/turned/gen/WK-01.jpg .. WK-03.jpg. Writes games/turned/art/p
 the green keyed out (and its spill taken off the edges), each frame on a 512 x 512 canvas laid out like the
 still sprites (player_down.png etc.: the figure about 72% of the canvas tall, the soles at 92%), one scale per
 sheet (so the four frames match), centred on the head and shoulders (the legs swing, the body does not).
+Towards and away from the camera, frames 2 and 3 are frames 0 and 1 mirrored (the sheets swing the skirt the
+same way on both steps).
 """
 import os
 import numpy as np
@@ -88,9 +90,15 @@ def main() -> None:
                 arr = np.asarray(canvas).copy()
                 arr[..., 3] = np.where(keep, arr[..., 3], 0)
                 canvas = Image.fromarray(arr)
-            out = os.path.join(ART, "player_%s_w%d.png" % (side, i))
-            canvas.save(out, optimize=True)
-            print(out, "scale %.3f" % k)
+            if side != "side" and i >= 2:
+                # towards / away from the camera both of the sheet's steps swing the skirt to the same side, so
+                # she lurched one way every step (owner: "waddles"): the second step is the first one mirrored
+                continue
+            for j, pic in ([(i, canvas)] if side == "side" else
+                           [(i, canvas), (i + 2, canvas.transpose(Image.FLIP_LEFT_RIGHT))]):
+                out = os.path.join(ART, "player_%s_w%d.png" % (side, j))
+                pic.save(out, optimize=True)
+                print(out, "scale %.3f" % k)
 
 
 if __name__ == "__main__":

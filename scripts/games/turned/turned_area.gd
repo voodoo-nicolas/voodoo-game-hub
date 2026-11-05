@@ -367,7 +367,7 @@ func _build_house_down() -> void:
 		{"id": "parlour_books", "pos": _dn(385, 330), "r": 40.0 * DN_K, "verb": "look"},
 		{"id": "front_door", "pos": _dn(512, 312), "r": 34.0 * DN_K, "verb": "door"},
 		{"id": "scarf", "pos": _dn(546, 372), "r": 24.0 * DN_K, "verb": "take", "mark": _dn(630, 215)},
-		{"id": "stairs_up", "pos": _dn(546, 322), "r": 24.0 * DN_K, "verb": "up"},
+		{"id": "stairs_up", "pos": _dn(546, 322), "r": 40.0 * DN_K, "verb": "up"},   # was 24: too small to find by thumb (owner 2026-11-04)
 		{"id": "cellar_door", "pos": _dn(635, 580), "r": 40.0 * DN_K, "verb": "door"},
 		{"id": "pantry", "pos": _dn(735, 330), "r": 40.0 * DN_K, "verb": "look"},
 		{"id": "shelves", "pos": _dn(840, 330), "r": 45.0 * DN_K, "verb": "look"},

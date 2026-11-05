@@ -8,7 +8,7 @@ const T = preload("res://scripts/games/turned/turned_tuning.gd")
 const Art = preload("res://scripts/games/turned/turned_art.gd")
 
 const LOOK := {"coat": "3f4f6e", "skin": "cfc3c6", "accent": "8d8f98", "hat": ""}
-const NIGHTSHIRT := Color("b9bccb")
+const NIGHTSHIRT := Color("e3d9c0")         # her cream blouse: she sleeps in her own clothes (DECISIONS B-17; was a grey nightshirt, b9bccb)
 const BLANKET := Color("3d4a68")
 const HAIR := Color("7a3418")       # auburn (DECISIONS P-1)
 

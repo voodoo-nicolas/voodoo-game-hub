@@ -76,7 +76,9 @@
             "effects": [
               "flag:coat_right",
               "item:+note",
+              "item:+matches",
               "journal:note",
+              "journal:matches",
               "mission:go_bar"
             ],
             "next": "right"

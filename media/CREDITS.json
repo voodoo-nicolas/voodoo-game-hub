@@ -5558,6 +5558,32 @@
    "ai_tool": "Google Gemini (owner's account)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "green keyed out, cut and scaled onto a 512 px canvas by tools/turned_walk_frames.py (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/turned/tile.webp",
+   "what": "Hub art for turned (tile 16:9): her bitten neck in the strange coat, Vellmoor at night",
+   "source": "reference/art/turned/gen/HUB-thumbnail.jpg (D:/dev/minigame art/rpg/turned/characters/thumbnail.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/HUB_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-04",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cropped and converted to WebP with tools/make_hub_art.py's convert/save (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/turned/hero.webp",
+   "what": "Hub art for turned (hero): her bitten neck in the strange coat, Vellmoor at night",
+   "source": "reference/art/turned/gen/HUB-thumbnail.jpg (D:/dev/minigame art/rpg/turned/characters/thumbnail.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/HUB_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-04",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cropped and converted to WebP with tools/make_hub_art.py's convert/save (Claude Code)"
   }
  ]
 }
