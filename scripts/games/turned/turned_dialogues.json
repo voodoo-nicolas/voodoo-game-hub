@@ -69,6 +69,19 @@
         "text": "coat_whose",
         "options": [
           {
+            "text": "coat_opt_left",
+            "if": [
+              "!flag:coat_pocket_l",
+              "!flag:coat_right"
+            ],
+            "effects": [
+              "flag:coat_pocket_l",
+              "item:+matches",
+              "journal:matches"
+            ],
+            "next": "left"
+          },
+          {
             "text": "coat_opt_right",
             "if": [
               "!flag:coat_right"
@@ -76,9 +89,7 @@
             "effects": [
               "flag:coat_right",
               "item:+note",
-              "item:+matches",
               "journal:note",
-              "journal:matches",
               "mission:go_bar"
             ],
             "next": "right"
@@ -98,6 +109,11 @@
             "next": "bye"
           }
         ]
+      },
+      "left": {
+        "speaker": "",
+        "text": "coat_left",
+        "next": "menu"
       },
       "right": {
         "speaker": "",
@@ -647,6 +663,11 @@
       "g1": {
         "speaker": "",
         "text": "coat_grab",
+        "next": "g1b"
+      },
+      "g1b": {
+        "speaker": "",
+        "text": "coat_w1",
         "next": "g2"
       },
       "g2": {

@@ -1404,11 +1404,11 @@ func _test_follower() -> void:
 	_step(0.1)
 	check(str(world._cand.get("id", "")) == "coat" and world.hud.a_label == "grab_coat", "A offers to grab the coat")
 	world.press_a()
-	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["coat_grab"], "'The ticking is coming from the left pocket.'")
+	check(world.mode == "dialogue" and world.dlg.view()["text"] == Text.DIALOGUE["coat_grab"], "'The ticking is coming from inside it, low in the lining.'")
 	_dlg_lines()
 	if world._card_open():
 		world.card_view.close()
-	check(world.engine.has_item("watch") and world.engine.has_flag("watch_found") and world.engine.journal.has("watch"), "the left pocket: a silver pocket watch")
+	check(world.engine.has_item("watch") and world.engine.has_flag("watch_found") and world.engine.journal.has("watch"), "a hidden pocket sewn in the lining: a silver pocket watch")
 	check(world.engine.mission == "get_matches", "next: grab the matches")
 	_step(0.1)
 	check(world.hud.a_label != "grab_coat", "the coat is grabbed once")
@@ -1718,8 +1718,12 @@ func _test_flow() -> void:
 	world.press_a()
 	check(world.mode == "dialogue" and world.engine.journal.has("coat"), "the coat starts its scene and goes in the Journal")
 	_dlg_lines()
-	check(world.dlg.view()["options"].size() == 3, "three things to do with the coat: the right pocket, try it on, leave it")
+	check(world.dlg.view()["options"].size() == 4, "four things to do with the coat: the left pocket, the right pocket, try it on, leave it")
 	check(not world.dlg.view()["options"].has(Text.DIALOGUE["coat_opt_inner"]), "no word yet of the sewn inside pocket")
+	_pick("coat_opt_left")
+	_dlg_lines()
+	check(world.engine.items == ["matches"] and world.engine.journal.has("matches") and not world.engine.has_item("watch"), "the left pocket: the matches (the watch stays hidden in the lining)")
+	check(world.dlg.view()["options"].size() == 3, "back to the coat: the right pocket, try it on, leave it")
 	_pick("coat_opt_right")
 	_dlg_lines()
 	if world._card_open():
@@ -1734,7 +1738,7 @@ func _test_flow() -> void:
 	world.press_a()
 	_dlg_lines()
 	_pick("coat_opt_done")
-	check(world.engine.journal.size() == 4 and world.engine.items == ["note", "matches"], "the coat gives its things only once (the note and the matches from the right pocket)")
+	check(world.engine.journal.size() == 4 and world.engine.items == ["matches", "note"], "the coat gives its things only once (the matches from the left pocket, the note from the right)")
 
 	# the mirror
 	check(_walk_to(Area._up(430, 650)) and _walk_to(Area._up(560, 650)) and _walk_to(Area._up(620, 720)) and _walk_to(Area._up(800, 720)) and _walk_to(Area._up(858, 650)) and _walk_to(Area._up(915, 630)) and _walk_to(Area._up(935, 480)), "walked bedroom -> landing -> bathroom mirror")
