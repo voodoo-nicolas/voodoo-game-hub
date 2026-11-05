@@ -1,7 +1,8 @@
 extends SceneTree
 
 ## Screenshots of the new Game Browser (needs a window, not --headless):
-##   godot --path . --resolution 1280x720 --script res://tools/shot_netflix.gd -- <out_dir> [game_id] [category_index] [strip|grid]
+##   godot --path . --resolution 1280x720 --script res://tools/shot_netflix.gd -- <out_dir> [game_id] [category_index] [strip|grid] [bundled]
+## "bundled" = show this checkout's manifest.json instead of the live/cached one (new art before it is pushed).
 ## Uses (and restores) Settings.hub_layout; no data is written.
 
 func _initialize() -> void:
@@ -18,6 +19,8 @@ func _run() -> void:
 	var settings = root.get_node("Settings")
 	var was: String = settings.hub_layout
 	settings.hub_layout = args[3] if args.size() > 3 else "strip"
+	var bundled := args.size() > 4 and args[4] == "bundled"
+	var catalog = root.get_node("Catalog")
 	load("res://scripts/common/consent.gd").prompted = true   # no consent screen over the hub
 	var hub = load("res://scenes/hub/hub.tscn").instantiate()
 	root.add_child(hub)
@@ -27,6 +30,11 @@ func _run() -> void:
 	hub._slide_done(true)
 	for i in 10:
 		await process_frame
+	if bundled:   # after the hub's background refresh has had its chance to land
+		catalog._apply_manifest(catalog._read_json_file(catalog.BUNDLED_MANIFEST))
+		hub._rebuild_list()
+		for i in 10:
+			await process_frame
 	var nx = hub.netflix
 	root.get_viewport().get_texture().get_image().save_png(out + "/0_open.png")
 	if not nx.grid_mode:

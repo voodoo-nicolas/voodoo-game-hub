@@ -6,6 +6,8 @@ extends RefCounted
 ## manifest game's optional "tile_art" / "hero_art" (res:// paths). A game with
 ## neither gets a fallback: its emoji over a gradient of its category colour.
 ## Make art: tools/make_hub_art.py.
+## Since 2026-11-05 a manifest "hero_art" is the owner's 16:9 preview picture, shown in the Game
+## Browser detail (netflix_browser.gd _set_preview) instead of the drawn teaser.
 
 const DIR := "res://media/hub/game_art/"
 

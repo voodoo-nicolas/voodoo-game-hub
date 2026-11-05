@@ -66,6 +66,7 @@ var _preview_logo: Control
 var _preview_logo_id := ""
 var _preview_teaser := false
 var _preview_emoji: Label
+var _preview_art: TextureRect
 var _bottom: VBoxContainer
 var _topbar: Control
 var _back_btn: Button
@@ -216,6 +217,12 @@ func _build_detail() -> void:
 	_preview_emoji.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_preview_emoji.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_preview.add_child(_preview_emoji)
+	_preview_art = TextureRect.new()   # the owner's preview picture (manifest "hero_art", 16:9)
+	_preview_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_preview_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_preview_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_preview_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview.add_child(_preview_art)
 
 func _draw_preview_logo() -> void:
 	if _preview_logo_id == "":
@@ -685,8 +692,21 @@ func _close_detail() -> void:
 	_layout()
 
 ## The game's teaser scene if it has one, else its logo (drawn icon or emoji) on a transparent box.
+## A manifest "hero_art" picture (the owner's preview art, 2026-11-05) wins over both.
 func _set_preview(g: Dictionary, _category_en: String) -> void:
 	var id := str(g.get("id", ""))
+	var art_path := str(g.get("hero_art", ""))
+	var art: Texture2D = load(art_path) as Texture2D if art_path != "" and ResourceLoader.exists(art_path) else null
+	_preview_art.texture = art
+	_preview_art.visible = art != null
+	if art != null:
+		_preview_teaser = false
+		_preview_logo_id = ""
+		_preview.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+		_preview.add_theme_stylebox_override("panel", HubLook.clip_style())
+		_preview_logo.queue_redraw()
+		_preview_emoji.text = ""
+		return
 	_preview_teaser = GameArt.has_teaser(id)
 	_preview_logo_id = id if (_preview_teaser or GameArt.has_logo(id)) else ""
 	_preview.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW if _preview_teaser else CanvasItem.CLIP_CHILDREN_DISABLED
