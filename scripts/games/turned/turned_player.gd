@@ -6,6 +6,11 @@ extends Node2D
 
 const T = preload("res://scripts/games/turned/turned_tuning.gd")
 const Art = preload("res://scripts/games/turned/turned_art.gd")
+const Area = preload("res://scripts/games/turned/turned_area.gd")
+
+## The owner's bed pictures (SL-01 asleep, SL-02 sitting up; DECISIONS B-21), cut by tools/turned_bed_cuts.py:
+## the box they cover in the upstairs painting's px (keep it the same as BOX there).
+const BED_BOX := Rect2(56, 436, 348, 312)
 
 const LOOK := {"coat": "3f4f6e", "skin": "cfc3c6", "accent": "8d8f98", "hat": ""}
 const NIGHTSHIRT := Color("e3d9c0")         # her cream blouse: she sleeps in her own clothes (DECISIONS B-17; was a grey nightshirt, b9bccb)
@@ -195,6 +200,17 @@ func _draw_standing(alpha: float) -> void:
 ## 2026-11-03). The painting has the blanket; this draws her and a fold of it over her legs. The origin
 ## is the middle of the bed.
 func _draw_in_painted_bed() -> void:
+	var asleep := Art.tex("bed_asleep")
+	var sitting := Art.tex("bed_sitting")
+	if asleep != null and sitting != null:
+		# the owner's pictures of her in this bed, laid over the painting: asleep, then fading into sitting up
+		# (her hand already at her neck); the drawn figure below is the fallback
+		var r := Rect2(BED_BOX.position * Area.UP_K - position, BED_BOX.size * Area.UP_K)
+		draw_texture_rect(asleep, r, false)
+		var k := smoothstep(0.15, 0.85, sit_t)
+		if k > 0.0:
+			draw_texture_rect(sitting, r, false, Color(1, 1, 1, k))
+		return
 	var skin := Art.SKIN_PALE
 	var up := sit_t
 	var sheet := Color(0.80, 0.80, 0.84)

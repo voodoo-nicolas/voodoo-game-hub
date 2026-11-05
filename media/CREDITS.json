@@ -5584,6 +5584,32 @@
    "ai_tool": "Google Gemini (owner's account)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "cropped and converted to WebP with tools/make_hub_art.py's convert/save (Claude Code)"
+  },
+  {
+   "file": "games/turned/art/bed_asleep.png",
+   "what": "Turned painting: the player asleep in her bed (opening of the prologue), the bed cut out of the upstairs painting edit",
+   "source": "reference/art/turned/gen/SL-01.jpg (D:/dev/minigame art/rpg/turned/game scenes/SL-01.jpg, 2026-11-05, prompt SL-01 in docs/turned/ART_PROMPTS_V2_READY.md Step 9, an edit of house_up.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-05",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "bed box cropped with feathered edges, PNG (tools/turned_bed_cuts.py, Claude Code)"
+  },
+  {
+   "file": "games/turned/art/bed_sitting.png",
+   "what": "Turned painting: the player sitting up in bed, hand to her neck (prologue), the bed cut out of the upstairs painting edit",
+   "source": "reference/art/turned/gen/SL-02.jpg (D:/dev/minigame art/rpg/turned/game scenes/SL-02.jpg, 2026-11-05, prompt SL-02 in docs/turned/ART_PROMPTS_V2_READY.md Step 9, an edit of house_up.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-05",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "bed box cropped with feathered edges, PNG (tools/turned_bed_cuts.py, Claude Code)"
   }
  ]
 }

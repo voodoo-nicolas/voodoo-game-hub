@@ -492,3 +492,5 @@ The game opens with her in the iron bed of the upstairs painting (`house_up.jpg`
 
 **SL-02 sitting up** (attach house_up.jpg + your SL-01)
 > Edit the first attached picture the same way as the second one (the same woman in the same bed, the same clothes, hair, face and blanket), but now she has just woken and sits up in the bed: her upper body upright at the pillow end, the blanket fallen to her waist, her legs still under it, her face turned towards the foot of the bed, frightened and confused, one hand pressed to the side of her neck. Keep everything else exactly the same as the first picture. No text, no watermark.
+
+**Done (2026-11-05):** SL-01 and SL-02 are in the game (DECISIONS B-21).
