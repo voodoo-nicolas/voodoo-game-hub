@@ -1207,6 +1207,19 @@ func _test_bar() -> void:
 			door = it
 	check(not door.is_empty() and _reachable(st, st.spawns["from_house"], Vector2(door["pos"].x, door["pos"].y + 16.0)), "the pub door in the street is reachable from the porch")
 	check(st.is_free(st.spawns["from_bar"], 9.0) and st.in_shade(st.spawns["from_bar"]), "thrown out of the bar you land in the awning's shade")
+	# the bakery (B-26): its door on the street, the painted room behind it
+	var bk_door: Dictionary = {}
+	for it in st.interacts:
+		if it["id"] == "bakery_door":
+			bk_door = it
+	check(not bk_door.is_empty() and _reachable(st, st.spawns["from_house"], st.spawns["from_bakery"]) and st.spawns["from_bakery"].distance_to(bk_door["pos"]) < float(bk_door["r"]), "the bakery door is reachable from the porch")
+	check(st.in_shade(st.spawns["from_bakery"]), "out of the bakery you stand under its awning")
+	var bk: Area = Area.make("bakery") as Area
+	check(bk.indoor and bk.painted and bk.in_shade(Vector2(100, 100)) and bk.npcs.is_empty(), "the bakery is a painted room, all shade, nobody in it yet")
+	check(bk.is_free(bk.spawns["from_street"], 9.0), "the bakery spawn is free")
+	for it in bk.interacts:
+		check(bk.is_free(it["pos"], 9.0) and Text.VERBS.has(it["verb"]) and _reachable(bk, bk.spawns["from_street"], it["pos"]), "bakery interact %s is free, labelled and reachable" % it["id"])
+	check(_reachable(bk, bk.spawns["from_street"], Area._rp(1022, 600)), "the shop -> the bakehouse (by the oven) is reachable (past the open door)")
 	# the whole of scene 2, from the street
 	_new_world()
 	await process_frame
@@ -1488,7 +1501,13 @@ func _test_follower() -> void:
 			friend_still = true
 	check(not friend_still, "the man from the bar is gone")
 	check(world.player.position.distance_to(world.area.spawns["storeroom"]) < 2.0, "on the cot at the back")
+	check(world.player.cot_t == 0.0 and world.player.cot_goal == 0.0, "painted out cold on the cot (SL-03)")
+	while world.mode == "dialogue" and world.dlg.view().get("text", "") != Text.DIALOGUE["sto_neck"]:
+		hud.dialogue_skip()
+		world._dialogue_a()
+	check(world.player.cot_goal == 1.0, "'I touch my neck': she comes round on the cot (SL-04)")
 	_dlg_lines()
+	check(world.player.cot_t < 0.0, "after the scene she is off the cot")
 	check(world.mode == "play" and world.engine.has_flag("storeroom_scene") and world.engine.mission == "priest" and world.engine.journal.has("shop"), "'two or three days': the priest is the mission")
 	keeper = null
 	for n in world._npcs:

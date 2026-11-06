@@ -9,8 +9,8 @@ height and foot line as tools/turned_walk_frames.py, which does the keying and t
 `use` picks which of the sheet's four frames goes in w0..w3: in the shopkeeper's side sheet (SK-01) the lamp is
 missing from passing frame 2, so frame 4 is used for both passing frames; his back sheet (SK-03) has a lamp in
 BOTH hands in its passing frames 2 and 4, so his back walk uses the two clean steps, each held for two frames.
-His front sheet (SK-02) came out as a side view with the face turned to the camera: not used, the still
-npc_shopkeeper_road_down.png stays.
+His first front sheet came out as a side view with the face turned to the camera (kept as SK-02-side.jpg, not
+used); the owner's redo (SK-02.jpg, 2026-11-06, DECISIONS B-26) is a true front view, all four frames clean.
 """
 import os
 import numpy as np
@@ -24,6 +24,7 @@ SHEETS = [
     # (sheet, sprite, direction, which sheet frame for w0..w3)
     ("SK-01.jpg", "shopkeeper_road", "side", [0, 3, 2, 3]),   # its frame 2 has no lamp: the other passing frame twice
     ("SK-03.jpg", "shopkeeper_road", "up", [0, 0, 2, 2]),
+    ("SK-02.jpg", "shopkeeper_road", "down", [0, 1, 2, 3]),
 ]
 
 
@@ -59,9 +60,12 @@ def cut(im: np.ndarray) -> list:
         out.append((x0, x1, ys[0], ys[-1] + 1))
     h = float(np.median([b[3] - b[2] for b in out]))
     k = wf.FIG_H * wf.CANVAS / h
-    rgba = np.dstack([rgb, alpha * 255.0]).clip(0, 255).astype(np.uint8)
     pics = []
     for x0, x1, y0, y1 in out:
+        # only this frame's columns: in a tightly spaced sheet (SK-02) the neighbours stand inside the 600 px crop
+        own = np.zeros_like(alpha)
+        own[:, x0:x1] = alpha[:, x0:x1]
+        rgba = np.dstack([rgb, own * 255.0]).clip(0, 255).astype(np.uint8)
         m = alpha[y0:y1, x0:x1] > 0.5
         top = m[: int((y1 - y0) * 0.35)]
         cx = x0 + float(np.where(top.any(0))[0].mean())

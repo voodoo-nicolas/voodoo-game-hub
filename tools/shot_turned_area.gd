@@ -8,7 +8,7 @@ extends SceneTree
 const WorldScript = preload("res://scripts/games/turned/turned_world.gd")
 const HudScript = preload("res://scripts/games/turned/turned_hud.gd")
 
-## [file name, area, x, y]
+## [file name, area, x, y, (her on the storeroom cot: 0 out cold .. 1 come round)]
 const SPOTS := [
 	["street_porch", "street", 220.0, 219.5],
 	["street_road", "street", 327.8, 328.4],
@@ -32,6 +32,10 @@ const SPOTS := [
 	["road_house", "night_road", 3185.0, 298.0],
 	["shop_front", "cigar_shop", 110.0, 300.0],
 	["shop_storeroom", "cigar_shop", 495.0, 312.0],
+	["shop_cot_out", "cigar_shop", 495.0, 312.5, 0.0],
+	["shop_cot_waking", "cigar_shop", 495.0, 312.5, 1.0],
+	["bakery_shop", "bakery", 100.0, 294.0],
+	["bakery_oven", "bakery", 511.0, 300.0],
 	["bar_room", "bar", 316.0, 278.0],
 	["bar_counter", "bar", 400.0, 205.0],
 	["house_calendar", "house", 166.0, 172.0],
@@ -88,6 +92,8 @@ func _run() -> void:
 		if spot[1] == "harbor" or spot[1] == "night_road":
 			world.engine.set_flag("senses")        # the glare of a turning vampire's eyes
 		world.player.position = Vector2(spot[2], spot[3])
+		world.player.cot_t = float(spot[4]) if spot.size() > 4 else -1.0
+		world.player.cot_goal = world.player.cot_t
 		world._snap_camera()
 		for i in 12:
 			await process_frame

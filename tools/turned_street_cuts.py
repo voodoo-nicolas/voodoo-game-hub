@@ -4,15 +4,17 @@ people walk behind (trees, lamp posts, the stall, the carriage) as transparent P
     python tools/turned_street_cuts.py
 
 Reads reference/art/turned/gen/ST-01.jpg .. ST-05.jpg (1264 x 848 each, a black frame and a grey margin).
-ST-04 and ST-05 (2026-11-06, the street made longer, DECISIONS B-25) came back with the same lower half (the
-road, the trough, the near lamp, the tree, the railings), so ST-05's lower half is moved half a picture
-along (`roll_low`) before the join: the tree, lamp and trough then stand at other places.
+ST-04 and ST-05 (2026-11-06, the street made longer, DECISIONS B-25) first came back with the same lower half
+(the road, the trough, the near lamp, the tree, the railings), so ST-05's lower half was moved half a picture
+along (`roll_low`, kept for such pictures). The owner redid ST-05 the same day (DECISIONS B-26: its own road,
+no tree or trough, a gate in the railings; the first one is reference/art/turned/gen/ST-05-first.jpg), so
+nothing is rolled now.
 Writes:
   games/turned/art/rooms/street.webp           the three pictures joined (frames cut away at the joins, 24 px
                                                  blended), the frame and margin round the whole, WebP q88
   games/turned/art/street/<name>.png           cut-outs, cropped to their box (turned_area.gd _build_street
                                                  places them at the same box, y-sorted by their base)
-Coordinates below are PANEL pixels (k = 0..4 for ST-01..05; ST-05's lower half as moved), the same as turned_area.gd `_sp` / `_sr`:
+Coordinates below are PANEL pixels (k = 0..4 for ST-01..05), the same as turned_area.gd `_sp` / `_sr`:
 joined x = x - 4 + 1120 k, joined y = y - 3.
 """
 import os
@@ -28,7 +30,7 @@ OUT_CUT = os.path.join(ROOT, "games", "turned", "art", "street")
 X0, X1, Y0, Y1 = 60, 1204, 44, 804     # the picture inside the frame
 OV = 24                                # px blended at each join
 PICS = ["ST-01", "ST-02", "ST-03", "ST-04", "ST-05"]
-ROLL = {"ST-05"}                       # pictures whose lower half (from the kerb line down) is moved along
+ROLL = set()                           # pictures whose lower half (from the kerb line down) is moved along (none since B-26)
 KERB = 481                             # the dark line along the far kerb: the move starts here
 STEP = (X1 - X0) - OV                  # 1120: one panel further along
 MX, MT, MB = 56, 41, 44                # margin round the joined picture
@@ -45,15 +47,15 @@ CUTS = [
     ("lamp_near1", 1, (86, 494, 50, 228), "lamp", {"head": (94, 494, 34, 56)}),
     ("lamp_near2", 1, (982, 494, 50, 228), "lamp", {"head": (990, 494, 34, 56)}),
     ("lamp_near3", 2, (86, 494, 50, 228), "lamp", {"head": (94, 494, 34, 56)}),
-    # ST-04: the tree by the general store; ST-05: the tree in front of the doctor's house (moved)
+    # ST-04: the tree by the general store (ST-05's plane tree in the square is not cut: nobody walks behind it)
     ("tree_e2", 3, (936, 468, 236, 334), "tree", {"trunk": (1035, 690, 45, 112)}),
-    ("tree_sq", 4, (400, 468, 236, 334), "tree", {"trunk": (499, 690, 45, 112)}),
     ("lamp_far3", 3, (210, 252, 48, 226), "lamp", {"head": (218, 252, 32, 56)}),
     ("lamp_far4", 3, (1095, 252, 48, 226), "lamp", {"head": (1103, 252, 32, 56)}),
     ("lamp_far5", 4, (210, 252, 48, 226), "lamp", {"head": (218, 252, 32, 56)}),
-    ("lamp_far6", 4, (970, 252, 48, 226), "lamp", {"head": (978, 252, 32, 56)}),
+    ("lamp_far6", 4, (1095, 252, 48, 226), "lamp", {"head": (1103, 252, 32, 56)}),
     ("lamp_near4", 3, (86, 494, 50, 228), "lamp", {"head": (94, 494, 34, 56)}),
-    ("lamp_near5", 4, (670, 494, 50, 228), "lamp", {"head": (678, 494, 34, 56)}),
+    ("lamp_near5", 4, (86, 494, 50, 228), "lamp", {"head": (94, 494, 34, 56)}),
+    ("lamp_near6", 4, (982, 494, 50, 228), "lamp", {"head": (990, 494, 34, 56)}),
     ("stall", 1, (200, 562, 176, 198), "poly", {
         "polys": [[(204, 648), (212, 568), (366, 566), (373, 648)], [(214, 664), (360, 664), (360, 702), (214, 702)],
                   [(210, 640), (221, 640), (221, 758), (210, 758)], [(347, 640), (358, 640), (358, 758), (347, 758)]]}),

@@ -3923,6 +3923,19 @@
    "processed_by": "re-saved as WebP q88 (Claude Code)"
   },
   {
+   "file": "games/turned/art/rooms/bakery.webp",
+   "what": "Turned painting: the bakery and its bakehouse as a front cutaway, the Walk-mode floor map",
+   "source": "reference/art/turned/gen/HK-01.jpg (D:/dev/Minigame Art/Turned/places/HK-01.jpg; prompt HK-01 in docs/turned/ART_PROMPTS_V2_READY.md Step 12)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-06",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "re-saved as WebP q88 (Claude Code)"
+  },
+  {
    "file": "games/turned/art/cards/CD-03.webp",
    "what": "Turned zoom card: the note, a blank folded page by candle light (the game writes the words)",
    "source": "reference/art/turned/gen/CD-03.jpg (D:/dev/minigame art/rpg/turned/game scenes/letter.jpg; prompt CD-03 blank page)",
@@ -4896,7 +4909,7 @@
   {
    "file": "games/turned/art/rooms/street.webp",
    "what": "Turned painting: the street (her house, the bakery, the side lane, The Crooked Lantern, the tailor, the alley, the apothecary, the general store, the doctor's house, the little square, the church wall), the owner's five pictures joined, the Walk-mode ground",
-   "source": "reference/art/turned/gen/ST-01.jpg .. ST-05.jpg (D:/dev/minigame art/rpg/turned/places; prompts in docs/turned/ART_PROMPTS_V2_READY.md (Step 13 for the 2026-11-06 pictures))",
+   "source": "reference/art/turned/gen/ST-01.jpg .. ST-05.jpg (ST-05: the owner's redo of 2026-11-06, ST-05b.jpg) (D:/dev/minigame art/rpg/turned/places; prompts in docs/turned/ART_PROMPTS_V2_READY.md (Step 13 for the 2026-11-06 pictures))",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
    "proof": "media/licenses/OWNER_GAME_ART.md",
@@ -4904,7 +4917,7 @@
    "date": "2026-11-04",
    "ai_tool": "Google Gemini (owner's account)",
    "ai_plan": "plan not stated by the owner",
-   "processed_by": "joined (frames cut at the joins, 24 px blended; ST-05's lower half moved half a picture along) and saved as WebP q88 by tools/turned_street_cuts.py (Claude Code)"
+   "processed_by": "joined (frames cut at the joins, 24 px blended) and saved as WebP q88 by tools/turned_street_cuts.py (Claude Code)"
   },
   {
    "file": "games/turned/art/street/tree_w.png",
@@ -4985,8 +4998,8 @@
    "processed_by": "cut out with a mask by tools/turned_street_cuts.py (Claude Code)"
   },
   {
-   "file": "games/turned/art/street/tree_sq.png",
-   "what": "Turned street cut-out: the tree in front of the doctor's house (ST-05), cut from the street painting so people walk behind it",
+   "file": "reference/art/turned/retired/street_tree_sq.png",
+   "what": "Turned street cut-out, retired 2026-11-06 (DECISIONS B-26): the tree of the first ST-05, not in the game since the owner redid ST-05; moved here, not deleted",
    "source": "reference/art/turned/gen/ST-01.jpg .. ST-05.jpg (D:/dev/minigame art/rpg/turned/places; prompts in docs/turned/ART_PROMPTS_V2_READY.md (Step 13 for the 2026-11-06 pictures))",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
@@ -5064,6 +5077,19 @@
   },
   {
    "file": "games/turned/art/street/lamp_near5.png",
+   "what": "Turned street cut-out: a near-kerb lamp post (ST-05), cut from the street painting so people walk behind it",
+   "source": "reference/art/turned/gen/ST-01.jpg .. ST-05.jpg (D:/dev/minigame art/rpg/turned/places; prompts in docs/turned/ART_PROMPTS_V2_READY.md (Step 13 for the 2026-11-06 pictures))",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-06",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cut out with a mask by tools/turned_street_cuts.py (Claude Code)"
+  },
+  {
+   "file": "games/turned/art/street/lamp_near6.png",
    "what": "Turned street cut-out: a near-kerb lamp post (ST-05), cut from the street painting so people walk behind it",
    "source": "reference/art/turned/gen/ST-01.jpg .. ST-05.jpg (D:/dev/minigame art/rpg/turned/places; prompts in docs/turned/ART_PROMPTS_V2_READY.md (Step 13 for the 2026-11-06 pictures))",
    "author": "Viral (owner)",
@@ -5856,6 +5882,32 @@
    "processed_by": "bed box cropped with feathered edges, PNG (tools/turned_bed_cuts.py, Claude Code)"
   },
   {
+   "file": "games/turned/art/cot_out.png",
+   "what": "Turned painting: the player out cold on the storeroom cot (after the blackout), the cot cut out of the cigar shop painting edit",
+   "source": "reference/art/turned/gen/SL-03.jpg (D:/dev/Minigame Art/Turned/characters/SL-03.jpg, 2026-11-06, prompt SL-03 in docs/turned/ART_PROMPTS_V2_READY.md Step 11, an edit of cigar_shop_room.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-06",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cot box cropped with feathered edges, PNG (tools/turned_bed_cuts.py, Claude Code)"
+  },
+  {
+   "file": "games/turned/art/cot_waking.png",
+   "what": "Turned painting: the player coming round on the storeroom cot, her hand at the collar, the cot cut out of the cigar shop painting edit",
+   "source": "reference/art/turned/gen/SL-04.jpg (D:/dev/Minigame Art/Turned/characters/SL-04.jpg, 2026-11-06, prompt SL-04 in docs/turned/ART_PROMPTS_V2_READY.md Step 11, an edit of cigar_shop_room.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-06",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "cot box cropped with feathered edges, PNG (tools/turned_bed_cuts.py, Claude Code)"
+  },
+  {
    "file": "media/hub/game_art/evolution/tile.webp",
    "what": "evolution hub tile picture (thumbnail) (owner's art)",
    "source": "reference/art/games/evolution_art_src.png (D:/dev/minigame art/evolution/Neon Evolution_ From Cell to Creature.png)",
@@ -6002,6 +6054,58 @@
    "file": "games/turned/art/npc_shopkeeper_road_up_w3.png",
    "what": "Turned: the shopkeeper's walk on the night road, walking away, frame 4 of 4",
    "source": "reference/art/turned/gen/SK-03.jpg (D:/dev/minigame art/rpg/turned/characters/sk-03.jpg; prompts SK-01..03 in docs/turned/ART_PROMPTS_V2_READY.md Step 10)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-06",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "green keyed out, cut and scaled onto a 512 px canvas by tools/turned_npc_walk_frames.py (Claude Code)"
+  },
+  {
+   "file": "games/turned/art/npc_shopkeeper_road_down_w0.png",
+   "what": "Turned: the shopkeeper's walk on the night road, walking towards the camera, frame 1 of 4",
+   "source": "reference/art/turned/gen/SK-02.jpg (D:/dev/Minigame Art/Turned/characters/sk-02b.jpg, the owner's redo of 2026-11-06; prompt SK-02 redo in docs/turned/ART_PROMPTS_V2_READY.md Step 10)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-06",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "green keyed out, cut and scaled onto a 512 px canvas by tools/turned_npc_walk_frames.py (Claude Code)"
+  },
+  {
+   "file": "games/turned/art/npc_shopkeeper_road_down_w1.png",
+   "what": "Turned: the shopkeeper's walk on the night road, walking towards the camera, frame 2 of 4",
+   "source": "reference/art/turned/gen/SK-02.jpg (D:/dev/Minigame Art/Turned/characters/sk-02b.jpg, the owner's redo of 2026-11-06; prompt SK-02 redo in docs/turned/ART_PROMPTS_V2_READY.md Step 10)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-06",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "green keyed out, cut and scaled onto a 512 px canvas by tools/turned_npc_walk_frames.py (Claude Code)"
+  },
+  {
+   "file": "games/turned/art/npc_shopkeeper_road_down_w2.png",
+   "what": "Turned: the shopkeeper's walk on the night road, walking towards the camera, frame 3 of 4",
+   "source": "reference/art/turned/gen/SK-02.jpg (D:/dev/Minigame Art/Turned/characters/sk-02b.jpg, the owner's redo of 2026-11-06; prompt SK-02 redo in docs/turned/ART_PROMPTS_V2_READY.md Step 10)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-06",
+   "ai_tool": "Google Gemini (owner's account)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "green keyed out, cut and scaled onto a 512 px canvas by tools/turned_npc_walk_frames.py (Claude Code)"
+  },
+  {
+   "file": "games/turned/art/npc_shopkeeper_road_down_w3.png",
+   "what": "Turned: the shopkeeper's walk on the night road, walking towards the camera, frame 4 of 4",
+   "source": "reference/art/turned/gen/SK-02.jpg (D:/dev/Minigame Art/Turned/characters/sk-02b.jpg, the owner's redo of 2026-11-06; prompt SK-02 redo in docs/turned/ART_PROMPTS_V2_READY.md Step 10)",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
    "proof": "media/licenses/OWNER_GAME_ART.md",

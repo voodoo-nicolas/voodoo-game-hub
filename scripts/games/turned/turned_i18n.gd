@@ -317,6 +317,7 @@ const STRINGS := {
 		"The Crooked Lantern": "The Crooked Lantern",
 		"The Crooked Lantern: the whole room was afraid of me, not angry. The keeper threw me out and bolted the door.": "The Crooked Lantern: todo el local me tenía miedo, no rabia. El tabernero me echó y atrancó la puerta.",
 		"The alley is cool and quiet. Something in me woke up there.": "El callejón es fresco y silencioso. Algo en mí despertó allí.",
+		"The bakery. Warm bread, and nobody behind the counter.": "La panadería. Pan caliente, y nadie detrás del mostrador.",
 		"The bath is dry. I don't think I used it last night.": "La bañera está seca. No creo que la usara anoche.",
 		"The cellar door. An old iron lock, and no key anywhere I've looked.": "La puerta del sótano. Una vieja cerradura de hierro, y ninguna llave en ningún sitio donde he mirado.",
 		"The cigar shop. This is the logo on the matches.": "La tabaquería. Este es el logo de los fósforos.",

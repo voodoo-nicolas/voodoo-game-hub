@@ -35,6 +35,7 @@ const INNER := {
 	"cellar_locked": "The cellar door. An old iron lock, and no key anywhere I've looked.",
 	"door_note": "I should go through that coat's pockets before I go out.",
 	"bar_locked": "The door is bolted from inside. Nobody is coming to open it.",
+	"bakery_in": "The bakery. Warm bread, and nobody behind the counter.",
 	"fol_door": "The pub door opens a crack. A man steps out, sees me, and runs.",
 	"fol_steps": "Footsteps behind me. When I slow down, they slow down.",
 	"fol_stop": "I stop. They stop. Someone is following me.",

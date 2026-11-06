@@ -976,6 +976,12 @@ func _interact(c: Dictionary) -> void:
 		"cigar_exit":
 			TSfx.play(self, "door", -4.0)
 			_go_area("harbor", "from_shop", true)
+		"bakery_door":
+			TSfx.play(self, "door", -4.0)
+			_go_area("bakery", "from_street", true)
+		"bakery_exit":
+			TSfx.play(self, "door", -4.0)
+			_go_area("street", "from_bakery", true)
 		"bar_exit":
 			TSfx.play(self, "door", -4.0)
 			_go_area("street", "from_bar", true)
@@ -1121,6 +1127,8 @@ func _after_dialogue_step() -> void:
 			_dlg_scene = s.substr(6)
 		elif s.begins_with("card:"):
 			show_card(s.substr(5))
+		elif s == "cot:wake":
+			player.cot_goal = 1.0
 	if engine.journal.size() > _dlg_journal:
 		hud.reveal("menu")
 		_apply_item_state()
@@ -1134,6 +1142,7 @@ func _after_dialogue_step() -> void:
 		return
 	hud.hide_dialogue()
 	hud.a_label = ""
+	player.cot_t = -1.0                       # off the cot: she stands beside it (the painting's empty cot shows)
 	mode = _dlg_back
 	_dlg_back = "play"
 	if mode == "scene" and scene_view != null:
@@ -1677,6 +1686,18 @@ func _tick_transition(delta: float) -> void:
 				save_game()
 			_on_area_ready()
 
+## Resumed in the storeroom scene: already up on her elbow once the scene has passed "cot:wake".
+func _cot_resume() -> void:
+	var nodes: Dictionary = dlg.scenes.get("storeroom_wake", {}).get("nodes", {})
+	var id := str(dlg.scenes.get("storeroom_wake", {}).get("start", ""))
+	var seen := 0
+	while id != "" and id != dlg.node_id and nodes.has(id) and seen < 50:
+		if "cot:wake" in nodes[id].get("effects", []):
+			player.cot_goal = 1.0
+			player.cot_t = 1.0
+		id = str(nodes[id].get("next", ""))
+		seen += 1
+
 ## What happens on arriving somewhere (after the fade in, and on Resume): the bar's scene.
 func _on_area_ready() -> void:
 	if area.id == "bar" and not engine.has_flag("bar_scene"):
@@ -1694,12 +1715,21 @@ func _on_area_ready() -> void:
 			_spawn_witness_at(area.spawns["witness_shop"], Vector2(-1, 0))
 			start_dialogue("shop_visit")
 		elif engine.has_flag("blackout") and not engine.has_flag("storeroom_scene"):
-			start_dialogue("storeroom_wake")
+			# she lies on the cot through the scene (owner's SL-03 / SL-04, DECISIONS B-26); "cot:wake" sits her up
+			player.cot_t = 0.0
+			player.cot_goal = 0.0
+			if dlg.active and dlg.scene_id == "storeroom_wake":
+				_cot_resume()                     # Resume in the middle of the scene
+			else:
+				start_dialogue("storeroom_wake")
 		if engine.has_flag("blackout"):
 			for n in _npcs:
 				if n.id == "shopkeeper":
 					n.position = area.spawns["keeper_stool"]    # on his stool by the cot
 					n.face = Vector2(1, 0)
+	elif area.id == "bakery" and not engine.has_flag("bakery_seen"):
+		engine.set_flag("bakery_seen")
+		hud.say(Text.INNER["bakery_in"])
 	elif area.id == "night_road":
 		engine.set_flag("senses")
 		_make_owner(player.position + Vector2(T.f("road.lead_px"), 0.0))

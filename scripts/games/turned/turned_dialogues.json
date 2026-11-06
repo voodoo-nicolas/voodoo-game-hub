@@ -415,6 +415,9 @@
       "n4": {
         "speaker": "",
         "text": "sto_neck",
+        "effects": [
+          "cot:wake"
+        ],
         "next": "n5"
       },
       "n5": {

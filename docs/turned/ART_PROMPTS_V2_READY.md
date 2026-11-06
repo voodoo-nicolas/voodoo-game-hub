@@ -510,6 +510,8 @@ On the night road he walks ahead of her with his oil lamp (then beside, then beh
 **Done (2026-11-06):** SK-01 and SK-03 are in the game (DECISIONS B-23; `tools/turned_npc_walk_frames.py`). **SK-02 needs a redo:** it came out as the side walk again with his face turned to the camera. Send this, attaching CS-04b.jpg + SK-01:
 > Same character, same style, same size as the attached walk sheet, but a true FRONT view: he walks STRAIGHT TOWARDS the viewer, his chest, both shoulders and both boot toes facing the camera, his body NOT turned sideways. Four full-body frames in a single row: 1) left foot forward; 2) passing, feet together; 3) right foot forward; 4) passing. The lit oil lamp in his right hand (on the left of the picture) in EVERY frame, only one lamp; the other hand empty. Same size and scale in every frame, feet on the same ground line, evenly spaced with green between them, nothing overlapping, nothing touching the picture's edges. Plain flat bright green background (#4CC864), no shadow, no text, no numbers. Wide landscape, 1264 x 848.
 
+**Done (2026-11-06):** the redo is in the game (DECISIONS B-26).
+
 ## Step 11: her on the cot in the cigar shop's storeroom (2026-11-06)
 After the blackout she wakes in the storeroom (`storeroom_wake`), today standing beside the cot. Like SL-01 / SL-02 (Step 9): edits of the cigar shop painting itself, so she lies on that exact cot; the game cuts the cot out and lays it over the painting. Attach `cigar_shop_room.jpg` from `reference/art/turned/gen/`. Save anywhere in the characters folder.
 
@@ -518,6 +520,8 @@ After the blackout she wakes in the storeroom (`storeroom_wake`), today standing
 
 **SL-04 waking on the cot** (attach cigar_shop_room.jpg + your SL-03)
 > Edit the first attached picture the same way as the second one (the same woman on the same cot, the same clothes, hair, face, collar and blanket), but now she has just come round and pushes herself up on one elbow, her head lifted, her face turned towards the stool, dazed and afraid, her free hand at the leather collar on her neck. Keep everything else exactly the same as the first picture. No text, no watermark.
+
+**Done (2026-11-06):** both are in the game: she lies on the cot through the storeroom scene and comes round at "I touch my neck" (DECISIONS B-26).
 
 ## Step 12: the bakery, inside (2026-11-06; nothing built yet)
 The street's bakery is a painted shop front you cannot enter. The world plan (`WORLD_MAP_AND_QUESTS.md` W1: the baker knows the matches' logo; SQ-06 scraps for the dog) needs it as a room. This is its painting, in the same cutaway as the pub and the cigar shop; it goes in once the bakery visit is written. Attach `house_up.jpg` as the first picture.
@@ -528,6 +532,8 @@ The street's bakery is a painted shop front you cannot enter. The world plan (`W
 > Two rooms side by side divided by a wall with an open doorway near the front. On the left a small Victorian bakery shop: a long wooden counter with a glass case of loaves, rolls and buns, wicker baskets of bread on wall shelves behind it, a strip of floor behind the counter for the baker, a set of brass scales on the counter, a shop door in the left wall, flour dust in the light. On the right the bakehouse: a big brick bread oven with an arched iron door glowing orange, a long floured wooden kneading table, sacks of flour stacked against the wall, wooden peels and trays on hooks, a water barrel. Warm golden light from the oven and the lamps, cool blue shadow in the corners. Every object clearly visible and separate. No person.
 >
 > No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+**Done (2026-11-06):** in the game as the room behind the street's bakery door, empty for now (DECISIONS B-26).
 
 ## Step 13: longer outdoor walks (2026-11-06, owner: "the scenes should be bigger, longer, wider")
 Today each outdoor walk is about 2.7 screens long (the street and the harbour: 3 pictures, about 1,900 world px; the night road: 5 pictures, about 2,400). This step adds **two new pictures to each**, so the street and the harbour become about 4.5 screens and the night road about 5. The game joins them the same way (`tools/turned_walk_join.py`, `tools/turned_street_cuts.py`), then I trace the new ground, lamps and shade.
@@ -599,3 +605,4 @@ The game's harbour is HR-01 + HR-04 + HR-05. These go between HR-04 and the ciga
 **After these:** I add each picture to the join tables, run the tools and trace the new ground, lamps, shade and cut-outs, then move the doors, triggers, the shopkeeper's path (`road.path`) and the tests to the new lengths. The story beats stay with their places (the cigar shop, the gate, the branch, the vine house); the new parts are walking and scenery only until a quest uses them.
 
 **Done (2026-11-06):** all six are in the game (DECISIONS B-25). ST-04 and ST-05 share their lower half, so the game moves ST-05's along; a redo of ST-05 with a different road and railings (no trough, the tree elsewhere) would let that go.
+**ST-05 redo done (2026-11-06):** in the game, nothing moved any more (DECISIONS B-26).

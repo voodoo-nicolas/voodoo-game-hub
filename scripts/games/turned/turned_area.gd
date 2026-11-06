@@ -43,6 +43,8 @@ static func make(area_id: String) -> RefCounted:
 		a._build_harbor()
 	elif area_id == "cigar_shop":
 		a._build_cigar_shop()
+	elif area_id == "bakery":
+		a._build_bakery()
 	elif area_id == "night_road":
 		a._build_night_road()
 	else:
@@ -544,6 +546,36 @@ func _build_cigar_shop() -> void:
 		"witness_shop": _rp(270, 650),     # the man from the bar, beside you in the shop
 	}
 
+## The bakery (`rooms/bakery.webp`, the owner's HK-01, 2026-11-06, DECISIONS B-26), behind the shop front on
+## the street: the shop on the left (the street door in the left wall, the glass counter and the bread shelves
+## at the back, the long front counter with the scales and two flour sacks), the dividing wall with its door
+## standing open at the front, and the bakehouse on the right (the brick oven, flour sacks, the kneading table,
+## the stool and the bread boxes, a water barrel). The shop floor is the strip between the two counters and the
+## space beside the open door; the way through is in front of the dividing wall (y 560..790). Nobody is in it
+## yet: the world plan's baker (WORLD_MAP_AND_QUESTS W1) comes with the bakery visit.
+func _build_bakery() -> void:
+	_painted_room("rooms/bakery", "bakery_npcs")
+	margin = Color("626260")
+	for r in [_r(-400, -400, 2100, 800), _r(-400, 790, 2100, 400),
+			_r(-400, -400, 555, 1300),                               # the left wall (the street door is in it)
+			_r(150, 400, 140, 155),                                  # the cupboard under the window
+			_r(290, 395, 410, 175),                                  # the glass counter, the cabinet and the sacks
+			_r(60, 615, 475, 180),                                   # the front counter with the scales
+			_r(700, -400, 35, 960),                                  # the dividing wall (open in front, y 560..790)
+			# the bakehouse: the flour sacks, the oven, the kneading table (its feet: the top is painted higher, so
+			# there is a way round behind it, along the oven), the stool and bread boxes, the barrel
+			_r(735, -400, 125, 895), _r(860, -400, 240, 880), _r(825, 545, 175, 250),
+			_r(1045, 450, 130, 255), _r(1090, 640, 120, 160), _r(1195, -400, 400, 1300)]:
+		solids.append(r)
+	interacts = [
+		{"id": "bakery_exit", "pos": _rp(180, 585), "r": 45.0 * RM_K, "verb": "door"},
+	]
+	light_spots = [
+		{"pos": _rp(990, 455), "color": Color("ff8a3a"), "energy": 0.5, "radius": 110.0},   # the oven's fire
+		{"pos": _rp(1080, 445), "color": Color("ffb45a"), "energy": 0.35, "radius": 70.0},
+	]
+	spawns = {"from_street": _rp(200, 588)}
+
 # ---------------------------------------------------------------- The Crooked Lantern (the bar)
 # One room, 640 x 400: the counter along the north wall with the keeper behind it, three tables, a
 # fireplace, the street door in the south wall. Placeholder name and layout (docs/turned/DECISIONS.md).
@@ -929,7 +961,7 @@ func _build_night_road() -> void:
 
 ## The street as the owner's painting (2026-11-04, DECISIONS B-15): ST-01..05 joined left to right into
 ## `rooms/street.webp` by tools/turned_street_cuts.py (frames cut at the joins; ST-04 and ST-05 added
-## 2026-11-06, DECISIONS B-25, ST-05's lower half moved half a picture along). Coordinates below are
+## 2026-11-06, DECISIONS B-25; ST-05 redone the same day, B-26). Coordinates below are
 ## PANEL pixels of each picture (k = 0..4 for ST-01..05), the same as the tool's: joined x = x - 4 +
 ## 1120 k, joined y = y - 3, then ST_K world px per picture px. Each panel: the far row of houses and shops
 ## down to y 415, the far pavement 415..490, the cobbled road 495..695, the near kerb to the railings at 718.
@@ -974,11 +1006,13 @@ func _build_street() -> void:
 		# sacks and vegetable crates, the sacks by its door, the trough by the railings
 		_sr(3, 60, -400, 1144, 815), _sr(3, 255, -400, 155, 830), _sr(3, 578, -400, 128, 825),
 		_sr(3, 780, -400, 215, 830), _sr(3, 1052, -400, 56, 822), _sr(3, 228, 680, 160, 45),
-		# ST-05: the plastered house, the doctor's house (its railings and steps), the square's back wall, the plane
-		# tree's bed, the fountain, the two benches, the church; the trough (moved with the lower half)
-		_sr(4, 60, -400, 120, 815), _sr(4, 175, -400, 395, 822), _sr(4, 560, -400, 78, 655), _sr(4, 560, -400, 400, 610),
-		_sr(4, 655, 230, 105, 45), _sr(4, 700, 310, 165, 70), _sr(4, 585, 300, 65, 65), _sr(4, 805, 250, 90, 50),
-		_sr(4, 952, -400, 252, 815), _sr(4, 955, -400, 72, 830), _sr(4, 812, 680, 160, 45),
+		# ST-05 (the owner's redo, B-26): the plastered wall, the doctor's house (its steps and railings), the square:
+		# its left side wall and bench, the back wall and its bench, the fountain, the plane tree's bed and the bench
+		# before it, the right bench and side wall; the church's buttress and wall (its door closed)
+		_sr(4, 60, -400, 190, 800), _sr(4, 245, -400, 310, 818),
+		_sr(4, 555, -400, 85, 775), _sr(4, 555, -400, 425, 672), _sr(4, 650, -400, 95, 688),
+		_sr(4, 697, 272, 92, 111), _sr(4, 795, 272, 120, 78), _sr(4, 915, 300, 52, 80), _sr(4, 940, -400, 40, 795),
+		_sr(4, 978, -400, 72, 820), _sr(4, 1050, -400, 154, 798),
 		# the railings along the gardens, and the ends of the street
 		_sr(0, -400, 718, 1580, 600), _sr(1, 60, 718, 1120, 600), _sr(2, 60, 718, 1144, 600), _sr(3, 60, 718, 1144, 600),
 		_sr(4, 60, 718, 1900, 600),
@@ -986,8 +1020,8 @@ func _build_street() -> void:
 		# lamp posts (far kerb, near kerb), the stall, the carriage and its horse
 		_sr(0, 226, 460, 16, 14), _sr(1, 226, 460, 16, 14), _sr(2, 226, 460, 16, 14),
 		_sr(0, 999, 700, 16, 18), _sr(1, 102, 700, 16, 18), _sr(1, 999, 700, 16, 18), _sr(2, 102, 700, 16, 18),
-		_sr(3, 226, 460, 16, 14), _sr(3, 1111, 460, 16, 14), _sr(4, 226, 460, 16, 14), _sr(4, 986, 460, 16, 14),
-		_sr(3, 102, 700, 16, 18), _sr(4, 686, 700, 16, 18),
+		_sr(3, 226, 460, 16, 14), _sr(3, 1111, 460, 16, 14), _sr(4, 226, 460, 16, 14), _sr(4, 1111, 460, 16, 14),
+		_sr(3, 102, 700, 16, 18), _sr(4, 102, 700, 16, 18), _sr(4, 999, 700, 16, 18),
 		_sr(1, 208, 676, 155, 42),
 		_sr(2, 168, 628, 252, 64), _sr(2, 428, 646, 128, 36),
 	]
@@ -997,10 +1031,11 @@ func _build_street() -> void:
 			["lamp_near0", 0, 982, 494, 50, 228, 718], ["lamp_near1", 1, 86, 494, 50, 228, 718],
 			["lamp_near2", 1, 982, 494, 50, 228, 718], ["lamp_near3", 2, 86, 494, 50, 228, 718],
 			["stall", 1, 200, 562, 176, 198, 718], ["carriage", 2, 158, 476, 458, 220, 692],
-			["tree_e2", 3, 936, 468, 236, 334, 800], ["tree_sq", 4, 400, 468, 236, 334, 800],
+			["tree_e2", 3, 936, 468, 236, 334, 800],
 			["lamp_far3", 3, 210, 252, 48, 226, 472], ["lamp_far4", 3, 1095, 252, 48, 226, 472],
-			["lamp_far5", 4, 210, 252, 48, 226, 472], ["lamp_far6", 4, 970, 252, 48, 226, 472],
-			["lamp_near4", 3, 86, 494, 50, 228, 718], ["lamp_near5", 4, 670, 494, 50, 228, 718]]:
+			["lamp_far5", 4, 210, 252, 48, 226, 472], ["lamp_far6", 4, 1095, 252, 48, 226, 472],
+			["lamp_near4", 3, 86, 494, 50, 228, 718], ["lamp_near5", 4, 86, 494, 50, 228, 718],
+			["lamp_near6", 4, 982, 494, 50, 228, 718]]:
 		var box := _sr(c[1], c[2], c[3], c[4], c[5])
 		props.append({"kind": "cut", "name": "street/" + str(c[0]), "rect": box, "pos": Vector2(box.get_center().x, _sp(c[1], 0, c[6]).y)})
 	# gas light: the heads of the lamp posts (a lamp is its light; the glow sits 28 px above it)
@@ -1008,7 +1043,8 @@ func _build_street() -> void:
 		_sp(0, 1007, 522) + Vector2(0, 28), _sp(1, 110, 522) + Vector2(0, 28), _sp(1, 1007, 522) + Vector2(0, 28),
 		_sp(2, 110, 522) + Vector2(0, 28),
 		_sp(3, 234, 280) + Vector2(0, 28), _sp(3, 1119, 280) + Vector2(0, 28), _sp(4, 234, 280) + Vector2(0, 28),
-		_sp(4, 994, 280) + Vector2(0, 28), _sp(3, 110, 522) + Vector2(0, 28), _sp(4, 694, 522) + Vector2(0, 28)]
+		_sp(4, 1119, 280) + Vector2(0, 28), _sp(3, 110, 522) + Vector2(0, 28), _sp(4, 110, 522) + Vector2(0, 28),
+		_sp(4, 1007, 522) + Vector2(0, 28)]
 	light_spots = [
 		{"pos": _sp(2, 885, 165), "color": Color("ffb45a"), "energy": 0.5, "radius": 90.0},     # the alley's wall lamps
 		{"pos": _sp(2, 1020, 115), "color": Color("ffb45a"), "energy": 0.35, "radius": 70.0},
@@ -1025,15 +1061,15 @@ func _build_street() -> void:
 		{"circle": _sp(2, 1058, 662), "r": 95.0 * ST_K, "style": "painted"},
 		{"rect": _sr(3, 825, 400, 270, 48), "style": "painted"},             # the general store's awning
 		{"circle": _sp(3, 1058, 662), "r": 95.0 * ST_K, "style": "painted"},
-		{"circle": _sp(4, 522, 662), "r": 95.0 * ST_K, "style": "painted"},
-		{"circle": _sp(4, 705, 285), "r": 110.0 * ST_K, "style": "painted"}, # the plane tree over the square
-		{"rect": _sr(4, 560, 210, 395, 60), "style": "painted"},             # along the square's back wall
-		{"rect": _sr(4, 1025, 395, 179, 40), "style": "painted"},            # under the church wall
+		{"circle": _sp(4, 820, 320), "r": 125.0 * ST_K, "style": "painted"}, # the plane tree over the square
+		{"rect": _sr(4, 640, 272, 300, 40), "style": "painted"},             # along the square's back wall
+		{"rect": _sr(4, 1050, 395, 154, 40), "style": "painted"},            # under the church wall
 	]
 	interacts = [
 		{"id": "house_door", "pos": _sp(0, 418, 392), "r": 30.0, "verb": "enter"},
 		{"id": "alley_door", "pos": _sp(2, 985, 238), "r": 30.0, "verb": "look"},
 		{"id": "bar_door", "pos": _sp(1, 762, 420), "r": 30.0, "verb": "enter"},
+		{"id": "bakery_door", "pos": _sp(0, 1058, 400), "r": 30.0, "verb": "enter"},   # (B-26)
 	]
 	triggers = [
 		{"id": "alley", "rect": _sr(2, 850, 190, 260, 215)},
@@ -1043,6 +1079,7 @@ func _build_street() -> void:
 		"from_house": _sp(0, 404, 402),
 		"start": _sp(0, 404, 402),
 		"from_bar": _sp(1, 762, 438),
+		"from_bakery": _sp(0, 1058, 418),
 	}
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(NPC_DATA))
 	if typeof(parsed) == TYPE_DICTIONARY:

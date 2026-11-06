@@ -11,6 +11,9 @@ const Area = preload("res://scripts/games/turned/turned_area.gd")
 ## The owner's bed pictures (SL-01 asleep, SL-02 sitting up; DECISIONS B-21), cut by tools/turned_bed_cuts.py:
 ## the box they cover in the upstairs painting's px (keep it the same as BOX there).
 const BED_BOX := Rect2(56, 436, 348, 312)
+## The storeroom cot in the cigar shop painting (painting px), the box tools/turned_bed_cuts.py cuts out of the
+## owner's SL-03 / SL-04 (DECISIONS B-26)
+const COT_BOX := Rect2(995, 470, 210, 315)
 
 const LOOK := {"coat": "3f4f6e", "skin": "cfc3c6", "accent": "8d8f98", "hat": ""}
 const NIGHTSHIRT := Color("e3d9c0")         # her cream blouse: she sleeps in her own clothes (DECISIONS B-17; was a grey nightshirt, b9bccb)
@@ -27,6 +30,8 @@ var sneak := false
 var pose := "stand"
 var own_blanket := false      # the bed under her is painted with its blanket: draw none (the world sets it per area)
 var sit_t := 1.0              # 0 lying ... 1 sitting up (while in bed)
+var cot_t := -1.0             # on the storeroom cot: 0 out cold ... 1 come round; -1 = not on it
+var cot_goal := 0.0
 var holding_head := false     # hands on the head ("What happened last night?")
 var wipe_t := -1.0            # 0..1 while the hand wipes the face and slides to the neck; -1 = off
 var hurt := 0.0               # 0..1, flashes the figure when the sun burns
@@ -55,6 +60,8 @@ func _process(delta: float) -> void:
 	hurt = maxf(0.0, hurt - delta * 2.5)
 	# standing people take the area's size (Art.people_k); lying in a painted bed she fits the painting as is
 	scale = Vector2.ONE * (Art.people_k if pose == "stand" else 1.0)
+	if cot_t >= 0.0:
+		cot_t = move_toward(cot_t, cot_goal, delta / 1.2)
 	var sway := sin(_phase * 0.9) * T.f("prologue.hobble_sway") if hobble and moving and pose == "stand" else 0.0
 	rotation = lerpf(rotation, sway, 1.0 - exp(-14.0 * delta))
 	queue_redraw()
@@ -90,6 +97,8 @@ func _draw() -> void:
 		var rk := 1.0 / maxf(scale.x, 0.01)      # the rings are world distances: not scaled with her
 		draw_arc(Vector2.ZERO, ring_detect * rk, 0.0, TAU, 56, Color(0.8, 0.85, 1.0, 0.18), 1.5 * rk)
 		draw_arc(Vector2.ZERO, ring_noise * rk, 0.0, TAU, 40, Color(Art.AMBER.r, Art.AMBER.g, Art.AMBER.b, 0.3), 1.5 * rk)
+	if cot_t >= 0.0 and _draw_on_cot():
+		return
 	if pose == "stand":
 		var a := 1.0
 		var col := Color(1, 1, 1, 1).lerp(Color(1.0, 0.62, 0.55, 1), hurt)
@@ -194,6 +203,23 @@ func _draw_standing(alpha: float) -> void:
 			draw_colored_polygon(Art.ellipse_points(hc + Vector2(0, -0.5), 5.2, 5.0), hair)        # the back of the head
 	draw_colored_polygon(Art.ellipse_points(hc + Vector2(-1.6, -3.2), 1.8, 0.8), Color(1, 0.75, 0.55, 0.22 * alpha))   # light on the hair
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+## On the storeroom cot after the blackout: the owner's pictures of her on it (out cold, then up on one elbow
+## with her hand at the collar), laid over the cigar shop painting; she is drawn there instead of standing.
+## False when the pictures are missing (an old pack's art): she stands beside the cot as before.
+func _draw_on_cot() -> bool:
+	var out := Art.tex("cot_out")
+	var waking := Art.tex("cot_waking")
+	if out == null or waking == null:
+		return false
+	modulate = Color.WHITE
+	var rk := 1.0 / maxf(scale.x, 0.01)       # the box is in world px: undo her people scale
+	var r := Rect2((COT_BOX.position * Area.RM_K - position) * rk, COT_BOX.size * Area.RM_K * rk)
+	draw_texture_rect(out, r, false)
+	var k := smoothstep(0.0, 1.0, cot_t)
+	if k > 0.0:
+		draw_texture_rect(waking, r, false, Color(1, 1, 1, k))
+	return true
 
 ## In the painted bed (house_up): the bed runs left to right with the pillows on the left, so she lies
 ## with her head on the pillow and sits up facing the foot of the bed, the viewer's right (owner
