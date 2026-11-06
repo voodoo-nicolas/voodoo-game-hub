@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dqdq1idafnosm"
-path="res://.godot/imported/crates2.png-7b6746e531661f7f337a132820d744e5.ctex"
+uid="uid://b4xri0slqij21"
+path="res://.godot/imported/tree_sq.png-dd35b68d12823d6975e294b9fe585139.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://games/turned/art/harbor/crates2.png"
-dest_files=["res://.godot/imported/crates2.png-7b6746e531661f7f337a132820d744e5.ctex"]
+source_file="res://games/turned/art/street/tree_sq.png"
+dest_files=["res://.godot/imported/tree_sq.png-dd35b68d12823d6975e294b9fe585139.ctex"]
 
 [params]
 

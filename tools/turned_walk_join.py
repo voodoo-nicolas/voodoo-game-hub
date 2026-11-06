@@ -34,11 +34,15 @@ MX, MT, MB = 56, 41, 44                # margin round the joined picture
 
 # area -> panels: (picture, x_from, x_to, blend into the next)
 WALKS = {
-    "harbor": [("HR-01", 60, 1204, 24), ("HR-04", 60, 1204, 24), ("HR-05", 60, 1204, 0)],
+    # HR-06 (the fish sheds) and HR-07 (the crane, the customs shed) added 2026-11-06 (DECISIONS B-25)
+    "harbor": [("HR-01", 60, 1204, 24), ("HR-04", 60, 1204, 24), ("HR-06", 60, 1204, 24), ("HR-07", 60, 1204, 24),
+               ("HR-05", 60, 1204, 0)],
     # the forest joins sit between trunks (the leaning tree at each picture's right edge and NR-03's big
     # trunk on its left are left out: blended, two trunks show through each other)
+    # NR-08 (the stream, the footbridge) and NR-09 (the wayside shrine) added 2026-11-06 (DECISIONS B-25), their
+    # big trunks at both edges left out (x 190..1150)
     "night_road": [("NR-05", 60, 1092, 24), ("NR-06", 60, 1120, 32), ("NR-07", 60, 1130, 96),
-                   ("NR-03", 170, 1030, 64), ("NR-04", 700, 1204, 0)],
+                   ("NR-08", 190, 1150, 64), ("NR-09", 190, 1150, 64), ("NR-03", 170, 1030, 64), ("NR-04", 700, 1204, 0)],
 }
 
 # area -> cut-outs: (name, panel, kind, extras, base y). The box is extras["box"] (x, y, w, h) or the polygons' bounds.
@@ -60,9 +64,11 @@ def bollard(x):
 
 
 CUTS = {
-    "harbor": [c for k in range(3) for c in (
+    "harbor": [c for k in (0, 1, 4) for c in (
         ("lamp%da" % k, k, "lamp", lamp(233), 473), ("lamp%db" % k, k, "lamp", lamp(943), 473),
-        ("crates%d" % k, k, "poly", CRATES, 671))] + [("barrel2", 2, "poly", BARREL, 657)],
+        ("crates%d" % k, k, "poly", CRATES, 671))] + [("barrel4", 4, "poly", BARREL, 657)] + [
+        # HR-06, HR-07: two lamps each (the right one at x 993)
+        c for k in (2, 3) for c in (("lamp%da" % k, k, "lamp", lamp(233), 473), ("lamp%db" % k, k, "lamp", lamp(993), 473))],
     "night_road": [
         # NR-05: the cigar shop's street (the harbour's, the water filled in)
         ("lamp0a", 0, "lamp", lamp(233), 473), ("lamp0b", 0, "lamp", lamp(943), 473),
@@ -93,15 +99,15 @@ CUTS = {
             [(762, 290), (788, 290), (795, 450), (805, 692), (768, 692), (764, 450)],
             [(528, 425), (560, 420), (600, 414), (650, 407), (690, 400), (712, 402), (745, 418), (772, 434),
              (772, 452), (740, 434), (708, 418), (690, 415), (650, 422), (600, 429), (560, 435), (528, 441)]]}, 692),
-        # NR-03: the second dead tree
-        ("dead3", 3, "poly", {"polys": [
+        # NR-03: the second dead tree (panel 5 since NR-08, NR-09)
+        ("dead3", 5, "poly", {"polys": [
             [(848, 395), (878, 395), (895, 560), (910, 688), (843, 688), (850, 560)],
             [(852, 393), (790, 363), (750, 360), (710, 368), (665, 388), (635, 418), (620, 458), (613, 482),
              (625, 484), (632, 460), (646, 428), (672, 401), (712, 381), (750, 374), (788, 377), (850, 410)]]}, 688),
         # NR-04: the stump before the vine house, the leaning tree at the end
-        ("stump4", 4, "poly", {"polys": [[(852, 615), (860, 590), (882, 590), (890, 578), (894, 600), (896, 640), (906, 690),
+        ("stump4", 6, "poly", {"polys": [[(852, 615), (860, 590), (882, 590), (890, 578), (894, 600), (896, 640), (906, 690),
                                           (846, 690)]]}, 690),
-        ("tree4", 4, "poly", {"polys": [[(1035, 800), (1100, 800), (1150, 640), (1180, 560), (1204, 470), (1204, 360),
+        ("tree4", 6, "poly", {"polys": [[(1035, 800), (1100, 800), (1150, 640), (1180, 560), (1204, 470), (1204, 360),
                                          (1185, 360), (1162, 520), (1140, 555), (1120, 540), (1050, 500), (1040, 512),
                                          (1110, 572), (1095, 650)]]}, 800),
     ],

@@ -597,3 +597,5 @@ The game's harbour is HR-01 + HR-04 + HR-05. These go between HR-04 and the ciga
 > No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
 
 **After these:** I add each picture to the join tables, run the tools and trace the new ground, lamps, shade and cut-outs, then move the doors, triggers, the shopkeeper's path (`road.path`) and the tests to the new lengths. The story beats stay with their places (the cigar shop, the gate, the branch, the vine house); the new parts are walking and scenery only until a quest uses them.
+
+**Done (2026-11-06):** all six are in the game (DECISIONS B-25). ST-04 and ST-05 share their lower half, so the game moves ST-05's along; a redo of ST-05 with a different road and railings (no trough, the tree elsewhere) would let that go.
