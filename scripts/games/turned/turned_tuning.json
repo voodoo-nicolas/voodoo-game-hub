@@ -154,7 +154,8 @@
     "walk_speed": 32.0,
     "stare_range_m": 9.0,
     "blocked_range_px": 26.0,
-    "glance_range_m": 3.0
+    "glance_range_m": 3.0,
+    "afraid_tremble_px": 0.0
   },
   "text": {
     "dialogue_cps": 42.0,

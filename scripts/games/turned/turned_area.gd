@@ -325,7 +325,7 @@ func _build_house_classic() -> void:
 ## front (y 575..640) of the two partition walls, like the cutaway's open front. In the hall the front door
 ## is in the back wall, the stairs up rise behind the railing at the back right (you take them from the
 ## corner beside the newel post), and the cellar steps go down in the well in front of them to the locked
-## cellar door. The coat stand with the grey scarf hangs by the stairs.
+## cellar door. The grey scarf hangs on the hall stand by the front door (drawn over the painting).
 const DN_K := 0.49375
 const DN_ART := "rooms/house_down"
 
@@ -340,7 +340,8 @@ func _build_house_down() -> void:
 	painted = true
 	var paint := Vector2(1024, 687) * DN_K
 	bounds = Rect2(-170, -50, paint.x + 340, paint.y + 100)   # wider than the painting: the camera centres on it
-	deco = [{"t": "painting", "art": DN_ART, "rect": Rect2(Vector2.ZERO, paint)}]
+	deco = [{"t": "painting", "art": DN_ART, "rect": Rect2(Vector2.ZERO, paint)},
+		{"t": "item", "kind": "scarf", "pos": _dn(468, 200)}]   # drawn on the hall stand; hidden once taken
 	solids = []
 	# the shell: above the back walls, below the front edge, the slanted side walls in steps
 	for r in [_d(-400, -400, 1900, 690), _d(-400, 640, 1900, 400),
@@ -366,7 +367,9 @@ func _build_house_down() -> void:
 		{"id": "piano", "pos": _dn(318, 345), "r": 40.0 * DN_K, "verb": "look"},
 		{"id": "parlour_books", "pos": _dn(385, 330), "r": 40.0 * DN_K, "verb": "look"},
 		{"id": "front_door", "pos": _dn(512, 312), "r": 34.0 * DN_K, "verb": "door"},
-		{"id": "scarf", "pos": _dn(546, 372), "r": 24.0 * DN_K, "verb": "take", "mark": _dn(630, 215)},
+		# the scarf hangs on the hall stand by the front door (owner 2026-11-06: on the banister behind the
+		# railing it was hard or impossible to get); you take it from the runner in front of the stand
+		{"id": "scarf", "pos": _dn(505, 410), "r": 40.0 * DN_K, "verb": "take", "mark": _dn(468, 215)},
 		{"id": "stairs_up", "pos": _dn(546, 322), "r": 40.0 * DN_K, "verb": "up"},   # was 24: too small to find by thumb (owner 2026-11-04)
 		{"id": "cellar_door", "pos": _dn(635, 580), "r": 40.0 * DN_K, "verb": "door"},
 		{"id": "pantry", "pos": _dn(735, 330), "r": 40.0 * DN_K, "verb": "look"},
@@ -384,7 +387,7 @@ func _build_house_down() -> void:
 	spawns = {
 		"from_street": _dn(520, 345),
 		"from_up": _dn(530, 340),
-		"witness": _dn(500, 470),        # where the man from the bar waits, on the runner
+		"witness": _dn(515, 525),        # where the man from the bar waits, on the runner (was 500,470: on the scarf's spot)
 		"parlour_door": _dn(380, 605),   # kept for the hall painting's exits (the hall scene is not opened any more)
 		"kitchen_door": _dn(740, 605),
 	}
@@ -927,7 +930,11 @@ func _build_street() -> void:
 	pictured = true
 	var paint := Vector2(3496, 845) * ST_K
 	bounds = Rect2(-20, -10, paint.x + 40, paint.y + 20)
-	deco = [{"t": "painting", "art": ST_ART, "rect": Rect2(Vector2.ZERO, paint)}]
+	deco = [{"t": "painting", "art": ST_ART, "rect": Rect2(Vector2.ZERO, paint)},
+		# the pub's name on its blank fascia board, and a lantern on its blank hanging sign (owner 2026-11-06:
+		# "the crooked lantern doesn't have any signage")
+		{"t": "sign", "rect": _sr(1, 570, 181, 256, 29), "text": "The Crooked Lantern"},
+		{"t": "sign_lantern", "rect": _sr(1, 838, 100, 36, 88)}]
 	margin = Color("878787")                # the pictures' grey border
 	solids = [
 		# her end: the dark gap and her house to the steps, the steps (you climb to the door), the rest

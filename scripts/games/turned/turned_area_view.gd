@@ -187,6 +187,8 @@ func _draw() -> void:
 			"shop_front": _shop_front(d["rect"], str(d["name"]))
 			"fence": _fence(d["rect"])
 			"alley_door": _alley_door(d["rect"])
+			"sign": _sign(d["rect"], str(d["text"]))
+			"sign_lantern": _sign_lantern(d["rect"])
 	for s in area.shades:
 		_shade_ground(s)
 	for m in marks:
@@ -713,6 +715,36 @@ func _shop_front(r: Rect2, shop: String) -> void:
 	draw_rect(sign_r, Color("14111a"))
 	draw_rect(sign_r, Color(Art.AMBER.r, Art.AMBER.g, Art.AMBER.b, 0.5), false, 1.0)
 	draw_string(font, sign_r.position + Vector2(9, 11.5), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Art.AMBER)
+
+## Gold letters on a painted shop's blank board (the painted street's pub), fitted to the board.
+func _sign(r: Rect2, text: String) -> void:
+	var font := ThemeDB.fallback_font
+	var label := tr(text).to_upper()
+	var fs := int(r.size.y * 0.62)
+	while fs > 6 and font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > r.size.x * 0.9:
+		fs -= 1
+	var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	draw_rect(r, Color("1c1712"))
+	draw_rect(r.grow(-1.0), Color("b08a48"), false, 1.0)
+	var base := Vector2(r.get_center().x - w * 0.5, r.get_center().y + font.get_ascent(fs) * 0.5 - 1.0)
+	draw_string(font, base + Vector2(0.6, 0.6), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0, 0, 0, 0.6))
+	draw_string(font, base, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("e8c370"))
+
+## A crooked lantern on the pub's hanging sign: a dark board, a tilted lamp with a warm pane.
+func _sign_lantern(r: Rect2) -> void:
+	var b := r.grow(-1.0)
+	draw_rect(b, Color("2a2018"))
+	draw_rect(b, Color("b08a48"), false, 1.0)
+	var c := b.get_center()
+	var s := minf(b.size.x, b.size.y) * 0.4
+	draw_set_transform(c, -0.3, Vector2.ONE)
+	draw_line(Vector2(0, -s * 1.5), Vector2(0, -s * 1.1), Color("b08a48"), 1.0)
+	draw_rect(Rect2(-s * 0.55, -s * 1.1, s * 1.1, s * 0.25), Color("b08a48"))
+	draw_rect(Rect2(-s * 0.45, -s * 0.85, s * 0.9, s * 1.5), Color("f0b04a"))
+	draw_rect(Rect2(-s * 0.45, -s * 0.85, s * 0.9, s * 1.5), Color("b08a48"), false, 1.0)
+	draw_line(Vector2(0, -s * 0.85), Vector2(0, s * 0.65), Color("b08a48"), 1.0)
+	draw_rect(Rect2(-s * 0.6, s * 0.65, s * 1.2, s * 0.25), Color("b08a48"))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _fence(r: Rect2) -> void:
 	var c := Color("15171f")
