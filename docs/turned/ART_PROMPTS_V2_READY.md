@@ -528,3 +528,72 @@ The street's bakery is a painted shop front you cannot enter. The world plan (`W
 > Two rooms side by side divided by a wall with an open doorway near the front. On the left a small Victorian bakery shop: a long wooden counter with a glass case of loaves, rolls and buns, wicker baskets of bread on wall shelves behind it, a strip of floor behind the counter for the baker, a set of brass scales on the counter, a shop door in the left wall, flour dust in the light. On the right the bakehouse: a big brick bread oven with an arched iron door glowing orange, a long floured wooden kneading table, sacks of flour stacked against the wall, wooden peels and trays on hooks, a water barrel. Warm golden light from the oven and the lamps, cool blue shadow in the corners. Every object clearly visible and separate. No person.
 >
 > No text, no letters, no numbers, no readable signs (signs and papers blank or unreadable scribble), no interface, no health bars, no icons, no labels, no watermark, no border, no logo, no modern objects, no cars, no phones, no neon.
+
+## Step 13: longer outdoor walks (2026-11-06, owner: "the scenes should be bigger, longer, wider")
+Today each outdoor walk is about 2.7 screens long (the street and the harbour: 3 pictures, about 1,900 world px; the night road: 5 pictures, about 2,400). This step adds **two new pictures to each**, so the street and the harbour become about 4.5 screens and the night road about 5. The game joins them the same way (`tools/turned_walk_join.py`, `tools/turned_street_cuts.py`), then I trace the new ground, lamps and shade.
+
+**What went wrong last time (Step 7):** Gemini repainted the attached picture instead of continuing it, so the parts repeated. So each prompt below names new things only and says not to copy, and **each one goes in a NEW chat** with only the pictures listed. Both edges of every new picture are plain (a plain wall with a drain pipe, or plain forest path), because the game blends about 40 px at each join. If one comes back as a copy of the attached picture (the same houses or lamps in the same places), re-roll it rather than keep it.
+
+Attach from `reference/art/turned/gen/`. Save the results as `ST-04`, `ST-05`, `HR-06`, `HR-07`, `NR-08`, `NR-09` (or anywhere in the characters / places folders; I match them by looking).
+
+### The street: two more parts east of the corner (daylight, like ST-01..03)
+**ST-04 the street, past the corner: the apothecary and the general store** (a NEW chat; attach bar_room.jpg + house_up.jpg + ST-03)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One straight town street running left to right across the whole picture, exactly like the attached street: the house fronts along the far side in the top 40% (roofs cut off by the top edge), a stone-slab pavement, a wide cobbled road across the middle, a near pavement and garden railings along the bottom edge, at exactly the same heights as the attached street. This picture continues the attached street to the RIGHT: its left edge starts with a plain brick house wall with a drain pipe. Do NOT copy the buildings or objects of the attached pictures: everything in this part is new. Left to right: a narrow apothecary with a green-painted shop front, a bow window of glass jars and bottles, a blank hanging sign; a tall red-brick terrace house with a door and two steps; a wider general store with a dark red awning, crates of vegetables and sacks on the pavement in front, a blank board above the window; a small horse trough on the near pavement. Two gas lamp posts on the far kerb at about 20% and 70% of the width (unlit). One tree in the near pavement's railing line at about 45%. The right edge cuts through a plain plastered house wall with a drain pipe.
+>
+> Flat even daylight, the gas lamps unlit, no strong shadows (the game adds the sun's shade and the night itself).
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**ST-05 the street, east end: the doctor's house and the little square** (a NEW chat; attach bar_room.jpg + house_up.jpg + ST-04)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One straight town street running left to right across the whole picture, exactly like the attached street: the house fronts along the far side in the top 40% (roofs cut off by the top edge), a stone-slab pavement, a wide cobbled road across the middle, a near pavement and garden railings along the bottom edge, at exactly the same heights as the attached street. This picture continues the attached street to the RIGHT: its left edge starts with a plain plastered house wall with a drain pipe. Do NOT copy the buildings or objects of the attached pictures: everything in this part is new. Left to right: a respectable doctor's house in pale stone, a black front door with a blank brass plate and a lamp beside it, iron railings and steps; then the street opens onto a small square: an old stone drinking fountain in the middle of the cobbles, two wooden benches, a big plane tree; at the far right the start of a church's grey stone wall with a tall arched wooden door (closed). Two gas lamp posts on the far kerb at about 15% and 60% (unlit). The right edge cuts through the church's plain grey stone wall.
+>
+> Flat even daylight, the gas lamps unlit, no strong shadows (the game adds the sun's shade and the night itself).
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+### The harbour: two more parts in the middle (night, like the harbour pictures in the game)
+The game's harbour is HR-01 + HR-04 + HR-05. These go between HR-04 and the cigar shop (HR-05), so the walk to the shop gets longer.
+
+**HR-06 the harbour: the fish sheds** (a NEW chat; attach bar_room.jpg + house_up.jpg + HR-04)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One straight harbour street running left to right across the whole picture, exactly like the attached harbour: warehouse fronts along the far side in the top 40%, a stone-slab pavement, a wide cobbled road, a strip of wooden quay planks with a low iron rail, and the dark harbour water in the bottom quarter, at exactly the same heights as the attached harbour. This picture continues the attached harbour to the RIGHT: its left edge starts with a plain warehouse wall with a drain pipe. Do NOT copy the buildings or objects of the attached pictures: everything in this part is new. Left to right: two low wooden fish sheds with wide sliding doors (closed), fish baskets and a stack of empty crates against them; a ship chandler's narrow shop with coils of rope and a ship's lantern hanging by the door (lit); on the quay planks a pile of fishing nets, a capstan and two mooring bollards; a small fishing boat tied up low in the water, its short mast wholly inside the picture. Two lit gas lamp posts on the far kerb at about 25% and 70% of the width. The right edge cuts through a plain brick warehouse wall with a drain pipe.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**HR-07 the harbour: the crane and the customs shed** (a NEW chat; attach bar_room.jpg + house_up.jpg + HR-06)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One straight harbour street running left to right across the whole picture, exactly like the attached harbour: warehouse fronts along the far side in the top 40%, a stone-slab pavement, a wide cobbled road, a strip of wooden quay planks with a low iron rail, and the dark harbour water in the bottom quarter, at exactly the same heights as the attached harbour. This picture continues the attached harbour to the RIGHT: its left edge starts with a plain brick warehouse wall with a drain pipe. Do NOT copy the buildings or objects of the attached pictures: everything in this part is new. Left to right: a tall warehouse with a wooden loading crane swung out over the quay, a hook and chain hanging from it; a squat stone customs shed with a dark barred window and a heavy door; on the quay planks a hand cart, three barrels and a heap of sacks under a tarpaulin; a flight of stone steps going down into the water at the quay edge. Two lit gas lamp posts on the far kerb at about 20% and 65%. The right edge cuts through a plain warehouse wall with a drain pipe.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, warm amber pools of light under each lit gas lamp and from a few lit windows, the cobbles wet and catching the lamp light, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+### The night road: two more parts of forest (between the dead tree with the branch, NR-07, and the clearing, NR-03)
+
+**NR-08 the night road: the stream and the footbridge** (a NEW chat; attach bar_room.jpg + house_up.jpg + NR-07)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One dirt path at night running left to right across the middle of the whole picture through a dense dark forest, exactly like the attached forest road: tall old trees and black undergrowth along the top 40%, scattered trees, ferns, boulders and stumps along the bottom, the path at exactly the same height as in the attached picture, clear walking space on the path and beside it. This picture continues the attached forest road to the RIGHT: its left edge is plain forest path between trunks. Do NOT copy the buildings or objects of the attached pictures: everything in this part is new. Near the middle a shallow stream crosses from the top of the picture to the bottom, black water with moonlit ripples over stones; the path crosses it on a narrow old wooden footbridge with one hand rail (the bridge is part of the path, at the same height). Reeds and wet rocks along the banks, a fallen log on the near side. Moonlight through gaps in the canopy, mist over the water. The right edge is plain forest path between trunks.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, no lamps, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**NR-09 the night road: the wayside shrine** (a NEW chat; attach bar_room.jpg + house_up.jpg + NR-08)
+> Match the attached pictures exactly: the same painting style, the same high front camera looking down at about 55 degrees, the same dark outline round the buildings and the same flat grey margin round the whole picture. Wide landscape, 1264 x 848.
+>
+> One dirt path at night running left to right across the middle of the whole picture through a dense dark forest, exactly like the attached forest road: tall old trees and black undergrowth along the top 40%, scattered trees, ferns, boulders and stumps along the bottom, the path at exactly the same height as in the attached picture, clear walking space on the path and beside it. This picture continues the attached forest road to the RIGHT: its left edge is plain forest path between trunks. Do NOT copy the buildings or objects of the attached pictures: everything in this part is new. Near the middle, on the far edge of the path, an old weathered wooden wayside shrine on a post with a little peaked roof, an empty niche, a few dead flowers at its foot; a narrower side track branching off upwards into the trees, blocked a few steps in by a fallen tree; a ring of standing stones half sunk in ferns on the near side; an owl's hollow in a big oak. Moonlight through the canopy. The right edge is plain forest path between trunks.
+>
+> Night, late: cold blue-teal moonlight and deep shadow, no lamps, a thin mist low over the ground.
+>
+> No text, no letters, no numbers, no readable signs (shop signs blank boards), no interface, no icons, no labels, no watermark, no border, no logo, no person, no modern objects, no cars, no neon.
+
+**After these:** I add each picture to the join tables, run the tools and trace the new ground, lamps, shade and cut-outs, then move the doors, triggers, the shopkeeper's path (`road.path`) and the tests to the new lengths. The story beats stay with their places (the cigar shop, the gate, the branch, the vine house); the new parts are walking and scenery only until a quest uses them.
