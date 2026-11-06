@@ -149,18 +149,18 @@ func _test_hints() -> void:
 	const T := 1_800_000_000  # any unix time: hints are 3 max, +1 per 24 h
 	var e = _fresh()
 	check(e.hints_available(T) == 3, "3 free hints on a new day")
-	# same+same recipes show one ingredient only and move straight on
+	# same+same recipes highlight one item and name it twice ("try Water and Water")
 	var s1: Dictionary = e.use_hint(T)
 	var sk: PackedStringArray = e.hint_key.split("+")
-	check(s1.ok and sk[0] == sk[1] and s1.ingredients.size() == 1, "same+same hint shows its single ingredient")
+	check(s1.ok and sk[0] == sk[1] and s1.ingredients.size() == 1 and s1.names == [sk[0], sk[0]], "same+same hint names its item twice")
 	e = _fresh()
 	for st in ["earth", "fire", "wind", "water"]:
 		e.try_combine(st, st)
 	var h: Dictionary = e.use_hint(T)
-	check(h.ok and h.ingredients.size() == 1 and e.hints_available(T) == 2, "a hint reveals ONE ingredient and costs one")
-	var first: String = h.ingredients[0]
+	var hk: PackedStringArray = e.hint_key.split("+")
+	check(h.ok and h.ingredients.size() == 2 and h.ingredients.has(hk[0]) and h.ingredients.has(hk[1]) and e.hints_available(T) == 2, "a hint names BOTH ingredients and costs one")
 	var h2: Dictionary = e.use_hint(T)
-	check(h2.ok and h2.second and h2.ingredients.size() == 2 and h2.ingredients.has(first), "asking again about it reveals the other ingredient")
+	check(h2.ok and e.hint_key != "+".join(hk) and h2.ingredients.size() == 2, "the next hint is about a different recipe")
 	var h3: Dictionary = e.use_hint(T)
 	check(h3.ok and e.hints_available(T) == 0, "third hint used")
 	var h4: Dictionary = e.use_hint(T)

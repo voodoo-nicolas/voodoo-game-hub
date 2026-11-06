@@ -1427,12 +1427,12 @@ func _on_hint() -> void:
 	if info:
 		info.add("Hints used")
 	var names: Array = []
-	for id in r.ingredients:
+	for id in r.get("names", r.ingredients):
 		names.append(_label_of(id))
 	if names.size() == 1:
 		_toast(tr("Hint: something needs %s") % names[0], 3.0)
 	else:
-		_toast(tr("Hint: try %s with %s") % names, 3.0)
+		_toast(tr("Hint: try %s and %s") % names, 4.0)
 	search.text = ""
 	sort_opt.select(0)
 	tier_opt.select(0)

@@ -439,8 +439,10 @@ func hint_candidates() -> Array:
 		keys.append(e[1])
 	return keys
 
-## Reveals ONE ingredient of something you haven't found. Asking again about
-## the same recipe reveals its other ingredient; then it moves on.
+## Reveals BOTH ingredients of something you haven't found ("try X and Y";
+## owner 2026-11-06: one ingredient alone was too vague). Each hint is about a
+## recipe not hinted yet; once all are hinted it starts again from the easiest.
+## (Before: one ingredient per hint, asking again showed the other one.)
 ## Returns {ok, ingredients, second, reason}; costs a free hint only if ok.
 func use_hint(now: int) -> Dictionary:
 	if hints_available(now) <= 0:
@@ -450,8 +452,7 @@ func use_hint(now: int) -> Dictionary:
 		return {"ok": false, "reason": "nothing_to_hint", "ingredients": []}
 	var pick: String = ""
 	for k in cands:
-		var p: PackedStringArray = str(k).split("+")
-		var need: int = 1 if p[0] == p[1] else 2
+		var need: int = 2  # 2 = fully revealed (old saves may hold 1 = half shown)
 		if int(hinted.get(k, 0)) < need:
 			pick = k
 			break
@@ -467,17 +468,18 @@ func use_hint(now: int) -> Dictionary:
 		other = parts[0]
 	var shown: int = int(hinted.get(pick, 0))
 	var second: bool = shown >= 1
-	hinted[pick] = shown + 1
+	hinted[pick] = 2
 	hint_key = pick
 	hint_view = [first]
-	if second and other != first:
+	if other != first:
 		hint_view.append(other)
+	var names: Array = [first, other]  # same+same: [X, X] -> "try X and X"
 	if not Gate.unlimited_hints(owns_full_game()):
 		if hints_left >= MAX_HINTS:
 			hint_stamp = now  # the 24 h clock starts with the first hint used
 		hints_left = maxi(0, hints_left - 1)
 	hints_used += 1
-	return {"ok": true, "ingredients": hint_view.duplicate(), "second": second, "reason": ""}
+	return {"ok": true, "ingredients": hint_view.duplicate(), "names": names, "second": second, "reason": ""}
 
 func _clear_hint_if_done() -> void:
 	if hint_key == "":
