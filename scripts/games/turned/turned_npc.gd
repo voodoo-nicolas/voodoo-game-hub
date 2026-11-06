@@ -25,6 +25,7 @@ var _stare := false
 var _walker := false
 var _afraid := false        # turns to stare at the player in shock and trembles (the bar's patrons)
 var _shake := 0.0
+var _stride := 0.0          # world px walked, for walk cycle frames (npc_<sprite>_<dir>_w0..w3, where they exist)
 
 func setup(d: Dictionary) -> void:
 	scale = Vector2.ONE * Art.people_k     # the area's people size, round the feet
@@ -46,6 +47,7 @@ func setup(d: Dictionary) -> void:
 
 ## The world moves this figure itself (the man who follows you): position, facing, walking or not.
 func drive(p: Vector2, f: Vector2, walking: bool, delta: float) -> void:
+	_stride += position.distance_to(p)
 	position = p
 	if f.length() > 0.01:
 		face = f.normalized()
@@ -106,6 +108,7 @@ func tick(delta: float, player: Node2D, others: Array) -> void:
 					_moving = false
 				else:
 					position += dir * T.f("npc.walk_speed") * delta
+					_stride += T.f("npc.walk_speed") * delta
 					face = dir
 					_moving = true
 	queue_redraw()
@@ -123,4 +126,6 @@ func _draw() -> void:
 	if _shake > 0.05:
 		draw_set_transform(Vector2(sin(_phase * 38.0) * _shake, 0.0), 0.0, Vector2.ONE)
 	# painted sprites by name: npc_<id>_down / _up / _side, or the data's "sprite" (the follower is the witness)
-	Art.person(self, look, face, _phase * 6.0 if _moving else 0.0, false, false, "npc_" + str(data.get("sprite", id)), 1.0, "shock" if _afraid else "")
+	# walking: a frame every npc.walk_frame_px (half a footstep, like her player.walk_frame_px); standing: frame 1
+	var frame := int(_stride / T.f("npc.walk_frame_px")) % 4 if _moving else 1
+	Art.person(self, look, face, _phase * 6.0 if _moving else 0.0, false, false, "npc_" + str(data.get("sprite", id)), 1.0, "shock" if _afraid else "", frame)

@@ -81,14 +81,18 @@ static func tinted(c: Color, k: float) -> Color:
 ## `face` is the way they look; `walk` advances the leg swing; `sneak` crouches them.
 ## Dark outlines, a lit upper-left and a shaded underside give the flat shapes some weight.
 static func person(ci: CanvasItem, look: Dictionary, face: Vector2, walk: float = 0.0, sneak: bool = false,
-		scarf: bool = false, sprite_name: String = "", alpha: float = 1.0, expr: String = "") -> void:
+		scarf: bool = false, sprite_name: String = "", alpha: float = 1.0, expr: String = "", frame: int = -1) -> void:
 	if sprite_name != "":
 		# painted art: a sprite per direction (name_down / name_up / name_side, side faces right and
-		# is mirrored for left), else a single name.png
+		# is mirrored for left), else a single name.png; `frame` 0..3 = a walk cycle frame (name_<dir>_w0..w3)
+		# where that direction has one (the shopkeeper on the night road, DECISIONS B-23)
 		var dir := "down" if face.y > 0.35 else ("up" if face.y < -0.35 else "side")
-		if tex(sprite_name + "_" + dir) != null:
+		var pic := sprite_name + "_" + dir
+		if frame >= 0 and tex(pic + "_w0") != null:
+			pic += "_w%d" % frame
+		if tex(pic) != null:
 			shadow(ci, Vector2(0.5, 0.5), 10.0, 3.6, 0.36 * alpha)          # painted people stand on the floor
-		if sprite(ci, sprite_name + "_" + dir, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0, PERSON_CANVAS_H):
+		if sprite(ci, pic, Vector2(0.5, 0.92), alpha, dir == "side" and face.x < 0.0, PERSON_CANVAS_H):
 			return
 		if sprite(ci, sprite_name, Vector2(0.5, 0.92), alpha, false, PERSON_CANVAS_H):
 			return
