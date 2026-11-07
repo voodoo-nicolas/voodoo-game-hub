@@ -31,7 +31,8 @@
       {"id": "flood_it", "family": "Fill and clear", "quick": true, "title": "Color Flood", "icon": "🌊", "title_es": "Inunda", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "same_game", "family": "Fill and clear", "quick": true, "title": "Block Collapse", "icon": "🟪", "title_es": "Derrumbe", "board": "Best score", "skins": "classic,voodoo", "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "binary_grid", "family": "Sudoku", "quick": true, "title": "Binary Grid", "icon": "⚪", "title_es": "Cuadrícula binaria", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
-      {"id": "hex", "family": "Lines", "title": "Hex", "icon": "⬡", "title_es": "Hex", "modes": "online,local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": ["online_interaction"], "notes": ""}}
+      {"id": "hex", "family": "Lines", "title": "Hex", "icon": "⬡", "title_es": "Hex", "modes": "online,local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": ["online_interaction"], "notes": ""}},
+      {"id": "maze_trail", "tile_art": "res://media/hub/game_art/maze_trail/tile.webp", "hero_art": "res://media/hub/game_art/maze_trail/hero.webp", "title": "Maze Trail", "icon": "🧭", "title_es": "Senda del laberinto", "board": "Mazes solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
     ]},
     {"name": "Intelligence", "icon": "🧠", "name_es": "Inteligencia", "games": [
       {"id": "trivia", "quick": true, "title": "Trivia", "icon": "❓", "title_es": "Trivia", "skins": "classic,voodoo", "learn": ["geo", "science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
@@ -102,7 +103,8 @@
       {"id": "cannon_duel", "title": "Cannon Duel", "icon": "💣", "title_es": "Duelo de cañones", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Artillery duel, no people shown"}},
       {"id": "crypt_crawler", "title": "Crypt Crawler", "icon": "💀", "title_es": "La cripta", "board": "Best score", "skins": "classic,voodoo", "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Dungeon crawler, fantasy combat"}},
       {"id": "mini_golf", "tile_art": "res://media/hub/game_art/mini_golf/tile.webp", "hero_art": "res://media/hub/game_art/mini_golf/hero.webp", "family": "Cue sports", "quick": true, "title": "Mini Golf", "icon": "⛳", "title_es": "Minigolf", "modes": "local", "board": "Birdies or better", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
-      {"id": "pool", "tile_art": "res://media/hub/game_art/pool/tile.webp", "hero_art": "res://media/hub/game_art/pool/hero.webp", "family": "Cue sports", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
+      {"id": "pool", "tile_art": "res://media/hub/game_art/pool/tile.webp", "hero_art": "res://media/hub/game_art/pool/hero.webp", "family": "Cue sports", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
+      {"id": "tilt_maze", "tile_art": "res://media/hub/game_art/tilt_maze/tile.webp", "hero_art": "res://media/hub/game_art/tilt_maze/hero.webp", "title": "Tilt Maze", "icon": "🔵", "title_es": "Laberinto inclinado", "board": "Mazes cleared", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
     ]},
     {"name": "Adventure", "icon": "🗡️", "name_es": "Aventura", "games": [
       {"id": "geometry_wars", "family": "Space shooters", "quick": true, "original": true, "title": "Neon Blast", "icon": "💥", "title_es": "Neon Blast", "skins": "classic,voodoo", "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Abstract neon shooter with boss fights"}},
@@ -247,6 +249,8 @@
     "creation": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/creation.pck", "scene": "res://scenes/games/creation/creation.tscn"},
     "evolution": {"version": 23, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/evolution.pck", "scene": "res://scenes/games/evolution/evolution.tscn"},
     "turned": {"version": 13, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/turned.pck", "scene": "res://scenes/games/turned/turned.tscn"},
-    "the_runner": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/the_runner.pck", "scene": "res://scenes/games/the_runner/the_runner.tscn"}
+    "the_runner": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/the_runner.pck", "scene": "res://scenes/games/the_runner/the_runner.tscn"},
+    "maze_trail": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/maze_trail.pck", "scene": "res://scenes/games/maze_trail/maze_trail.tscn"},
+    "tilt_maze": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tilt_maze.pck", "scene": "res://scenes/games/tilt_maze/tilt_maze.tscn"}
   }
 }
