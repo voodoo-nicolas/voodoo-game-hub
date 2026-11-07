@@ -19,6 +19,10 @@ const HELP := preload("res://scripts/games/maze_trail/maze_trail_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://maze_trail_save.json"
 const PROGRESS_PATH := "user://maze_trail_progress.json"
+## Owner's Landing pictures (2026-11-07): Classic = the hedge path to the castle,
+## Voodoo = the neon city maze.
+const ART_CLASSIC := "res://games/maze_trail/landing_bg.jpg"
+const ART_VOODOO := "res://games/maze_trail/landing_voodoo.jpg"
 
 ## Hints (owner, 2026-11-01, every game): at most 3, +1 every 24 h, per game.
 const MAX_HINTS := 3
@@ -165,6 +169,7 @@ func _build_ui() -> void:
 		"info": info,
 		"accent": TIER_COLORS[0],
 		"subtitle": "Find the way out. 195 mazes, from very easy to insane.",
+		"art": ART_CLASSIC,
 		"logo": _draw_home_logo,
 		"modes": [
 			{"text": "🗺 Campaign", "sub": "195 mazes · collect stars", "action": _start_campaign},
@@ -773,6 +778,21 @@ func _set_skin(name: String) -> void:
 	_geo_key = ""
 	if board:
 		board.queue_redraw()
+	_apply_landing_art()
+
+## Swaps the Landing picture for the look (the kit shows cfg "art" as a
+## covering TextureRect in its Landing layer).
+func _apply_landing_art() -> void:
+	var path := ART_CLASSIC if skin == "classic" else ART_VOODOO
+	if home == null or not ResourceLoader.exists(path):
+		return
+	var layer = home.get("home")
+	if not (layer is Control):
+		return
+	for c in layer.get_children():
+		if c is TextureRect and (c as TextureRect).stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED:
+			(c as TextureRect).texture = load(path)
+			return
 
 func _is_classic() -> bool:
 	return skin == "classic"

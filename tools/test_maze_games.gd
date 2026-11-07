@@ -122,6 +122,22 @@ func _tilt_maze() -> void:
 	var prog = JSON.parse_string(FileAccess.get_file_as_string("user://tilt_maze_progress.json"))
 	if not prog is Dictionary or int(prog.stars.get("1", 0)) < 1: _fail("tilt_maze: stars not saved")
 	if not g._unlocked(2): _fail("tilt_maze: maze 2 not open")
+	# Coins from the first clear; the shop buys and equips, refuses when short.
+	var Shop = load("res://scripts/games/tilt_maze/tilt_maze_shop.gd")
+	var c0: int = Shop.coins(g.progress)
+	if c0 < Shop.BASE + Shop.PER_STAR: _fail("tilt_maze: first clear paid %d coins" % c0)
+	if Shop.pick(g.progress, "marble", "rainbow"): _fail("tilt_maze: bought without enough coins")
+	g.progress["coins"] = 1000
+	if not Shop.pick(g.progress, "marble", "eye") or Shop.equipped(g.progress, "marble") != "eye": _fail("tilt_maze: buy marble")
+	if Shop.coins(g.progress) != 700: _fail("tilt_maze: price not taken (%d)" % Shop.coins(g.progress))
+	if not Shop.pick(g.progress, "fx", "comet") or Shop.equipped(g.progress, "fx") != "comet": _fail("tilt_maze: buy effect")
+	if not Shop.pick(g.progress, "marble", "steel") or Shop.coins(g.progress) != 400: _fail("tilt_maze: re-equip free marble")
+	Shop.pick(g.progress, "marble", "eye")
+	if Shop.coins(g.progress) != 400: _fail("tilt_maze: owned marble charged again")
+	if Shop.earn_campaign(3, 3, 0) != Shop.REPLAY + Shop.CLEAN or Shop.earn_campaign(1, 3, 1) != 2 * Shop.PER_STAR: _fail("tilt_maze: coin rules")
+	g._open_shop()
+	await _frames(3)
+	if g.shop_body == null or g.shop_body.get_child_count() < Shop.MARBLES.size() + Shop.EFFECTS.size(): _fail("tilt_maze: shop card")
 	# Falling into a hole sends the marble back to the start.
 	g._start_level(20)
 	await _frames(2)

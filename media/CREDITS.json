@@ -6114,6 +6114,97 @@
    "ai_tool": "Google Gemini (owner's account)",
    "ai_plan": "plan not stated by the owner",
    "processed_by": "green keyed out, cut and scaled onto a 512 px canvas by tools/turned_npc_walk_frames.py (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/maze_trail/tile.webp",
+   "what": "maze_trail hub tile picture (thumbnail) (owner's art: hedge maze leading to a castle)",
+   "source": "reference/art/games/maze_trail_tile_src.webp (D:/dev/Minigame Art/maze trail/2.webp)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-07",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 320x180, converted to WebP (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/maze_trail/hero.webp",
+   "what": "maze_trail hub preview picture (Game Browser detail, 16:9) (owner's art: hedge maze, village and castle)",
+   "source": "reference/art/games/maze_trail_preview_src.jpg (D:/dev/Minigame Art/maze trail/2.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-07",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 960x540, converted to WebP (Claude Code)"
+  },
+  {
+   "file": "games/maze_trail/landing_bg.jpg",
+   "what": "Maze Trail Landing background, Classic look (middle panel of the owner's 3-panel picture: cobbled path through hedges to a castle, upscaled 2x)",
+   "source": "reference/art/games/maze_trail_landing_src.jpg (D:/dev/Minigame Art/maze trail/1.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-07",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "middle panel cut out, upscaled 2x, re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/maze_trail/landing_voodoo.jpg",
+   "what": "Maze Trail Landing background, Voodoo look (neon city maze at night)",
+   "source": "reference/art/games/maze_trail_voodoo_src.jpg (D:/dev/Minigame Art/maze trail/4.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-07",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/tilt_maze/tile.webp",
+   "what": "tilt_maze hub tile picture (thumbnail) (owner's art: wooden tilt maze with a steel marble in a candle-lit hall)",
+   "source": "reference/art/games/tilt_maze_art_src.jpg (D:/dev/Minigame Art/tilt maze/2.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-07",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 320x180, converted to WebP (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/tilt_maze/hero.webp",
+   "what": "tilt_maze hub preview picture (Game Browser detail, 16:9) (owner's art)",
+   "source": "reference/art/games/tilt_maze_art_src.jpg (D:/dev/Minigame Art/tilt maze/2.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-07",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 960x540, converted to WebP (Claude Code)"
+  },
+  {
+   "file": "games/tilt_maze/landing_bg.jpg",
+   "what": "Tilt Maze Landing background (wooden tilt maze with a steel marble in a candle-lit hall; the kit prints the title)",
+   "source": "reference/art/games/tilt_maze_art_src.jpg (D:/dev/Minigame Art/tilt maze/2.jpg)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-07",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "re-saved as JPEG q84 (Claude Code)"
   }
  ]
 }

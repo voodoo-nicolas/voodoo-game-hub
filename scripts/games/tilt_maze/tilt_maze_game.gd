@@ -9,6 +9,7 @@ extends Control
 ## (PC, browsers); arrow keys on a keyboard. All art drawn in code.
 
 const TiltEngine = preload("res://scripts/games/tilt_maze/tilt_maze_engine.gd")
+const Shop = preload("res://scripts/games/tilt_maze/tilt_maze_shop.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const SoundLib = preload("res://scripts/games/tilt_maze/sound_lib.gd")
@@ -21,6 +22,11 @@ const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://tilt_maze_save.json"
 const PROGRESS_PATH := "user://tilt_maze_progress.json"
 const PREFS_PATH := "user://tilt_maze_prefs.json"
+## Owner's Landing picture (2026-11-07). His version with "Tilt Maze" painted in
+## (reference/art/games/tilt_maze_title_src.jpg) is not used: on a portrait
+## phone the painted title is wider than the screen and gets cut, and Spanish
+## needs the translated title, which the kit prints.
+const ART := "res://games/tilt_maze/landing_bg.jpg"
 
 ## Hints (owner, 2026-11-01, every game): at most 3, +1 every 24 h, per game.
 const MAX_HINTS := 3
@@ -60,6 +66,8 @@ var hint_path: Array = []
 var hint_t: float = 0.0
 var win_t: float = -1.0
 var pulse_t: float = 0.0
+var trail_pts: Array = []  # recent marble centres (cells), for the shop effects
+var shop_body: VBoxContainer
 
 var board: Control
 var title_label: Label
@@ -173,7 +181,7 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
-	home = HomeKit.new({
+	var cfg := {
 		"help": HELP,
 		"info": info,
 		"accent": Color("4fc3f7"),
@@ -185,6 +193,7 @@ func _build_ui() -> void:
 		"play": [
 			{"text": "📋 Level Select", "sub": "Pick any maze you have opened", "action": _open_map_from_landing, "card": true},
 			{"text": "📅 Daily Maze", "sub": "One maze a day, the same for everyone", "action": _start_daily},
+			{"text": "🛒 Marble Shop", "sub": "Spend your coins on marbles and effects", "action": _open_shop, "card": true},
 		],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
@@ -193,7 +202,9 @@ func _build_ui() -> void:
 		"board": "Mazes cleared",
 		"board_note": "Mazes cleared in any mode.",
 		"options": _add_game_options,
-	})
+	}
+	cfg["art"] = ART
+	home = HomeKit.new(cfg)
 	add_child(home)
 	if info:
 		add_child(info)
@@ -271,6 +282,7 @@ func _begin(m: String, lvl: int, seed_value: int) -> void:
 	hint_path.clear()
 	hint_t = 0.0
 	win_t = -1.0
+	trail_pts.clear()
 	_geo_key = ""
 	_close_end()
 	_close_map()
@@ -372,6 +384,11 @@ func _process(delta: float) -> void:
 			_on_event(ev)
 		if int(engine.time) != before:
 			_status()
+	if started and engine.falling_t < 0.0 and not engine.won:
+		if trail_pts.is_empty() or (trail_pts[trail_pts.size() - 1] as Vector2).distance_to(engine.pos) > 0.02:
+			trail_pts.append(engine.pos)
+			if trail_pts.size() > Shop.TRAIL_LEN:
+				trail_pts.pop_front()
 	if hint_t > 0.0:
 		hint_t -= delta
 		if hint_t <= 0.0:
@@ -388,6 +405,7 @@ func _on_event(ev: Array) -> void:
 			SoundLib.play(self, "impact/soft_medium", -2.0)
 			_sfx("invalid")
 			hint_path.clear()
+			trail_pts.clear()
 			_status()
 		"back":
 			_status()
@@ -443,6 +461,7 @@ func _on_solved() -> void:
 	_sfx("win")
 	var stars: int = engine.stars()
 	var note := ""
+	var old_stars: int = int(progress.stars.get(str(cur_level), 0))
 	if info:
 		info.add("Mazes cleared")
 		info.result("win")
@@ -458,6 +477,10 @@ func _on_solved() -> void:
 				progress.best[key] = snappedf(engine.time, 0.01)
 				if best > 0.0:
 					note = tr("New best time!")
+			var earned: int = Shop.earn_campaign(old_stars, stars, engine.falls)
+			progress["coins"] = Shop.coins(progress) + earned
+			var coin_line: String = tr("+%d coins (%d)") % [earned, Shop.coins(progress)]
+			note = coin_line if note == "" else note + "\n" + coin_line
 			_save_progress()
 			if info:
 				info.high("Highest maze cleared", _cleared())  # levels open in order, so cleared = highest
@@ -471,8 +494,10 @@ func _on_solved() -> void:
 				else:
 					progress.daily_streak = 1
 				progress.daily_day = day
+				var earned_d: int = Shop.earn_daily(int(progress.daily_streak), engine.falls)
+				progress["coins"] = Shop.coins(progress) + earned_d
 				_save_progress()
-				note = tr("Daily streak: %d") % int(progress.daily_streak)
+				note = tr("Daily streak: %d") % int(progress.daily_streak) + "\n" + tr("+%d coins (%d)") % [earned_d, Shop.coins(progress)]
 				if info:
 					info.high("Longest daily streak", int(progress.daily_streak))
 			else:
@@ -571,6 +596,65 @@ func _close_end() -> void:
 	if end_card and is_instance_valid(end_card):
 		end_card.queue_free()
 	end_card = null
+
+# ---------- 🛒 Marble Shop ----------
+
+func _open_shop() -> void:
+	var parts: Array = home.card(tr("🛒 Marble Shop"))
+	shop_body = parts[1]
+	_fill_shop()
+	home.show_card(parts[0])
+
+func _fill_shop() -> void:
+	if shop_body == null or not is_instance_valid(shop_body):
+		return
+	for c in shop_body.get_children():
+		c.queue_free()
+	shop_body.add_child(HomeKit.label(tr("🪙 %d coins") % Shop.coins(progress), 30, HomeKit.GOLD))
+	shop_body.add_child(HomeKit.label(tr("Earn coins by clearing mazes: more for stars and for no falls, and every day from the 📅 Daily Maze. Coins can't be bought."), 21, HomeKit.DIM, true))
+	shop_body.add_child(home.section("Marbles"))
+	for it in Shop.MARBLES:
+		shop_body.add_child(_shop_row("marble", it))
+	shop_body.add_child(home.section("Effects"))
+	for it in Shop.EFFECTS:
+		shop_body.add_child(_shop_row("fx", it))
+
+func _shop_row(kind: String, item: Dictionary) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var pic := Control.new()
+	pic.custom_minimum_size = Vector2(110 if kind == "fx" else 90, 90)
+	pic.draw.connect(Shop.draw_swatch.bind(pic, _disc, kind, str(item.id), not _is_classic()))
+	row.add_child(pic)
+	var name_l := HomeKit.label(tr(item.name), 26, HomeKit.WHITE, true)
+	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_l)
+	var owned: bool = Shop.owns(progress, kind, str(item.id))
+	var in_use: bool = Shop.equipped(progress, kind) == str(item.id)
+	var text: String
+	var color: Color = HomeKit.BUTTON
+	if in_use:
+		text = tr("✓ In use")
+	elif owned:
+		text = tr("Use")
+	else:
+		text = "🪙 %d" % int(item.price)
+		color = HomeKit.GO if Shop.coins(progress) >= int(item.price) else HomeKit.BUTTON
+	var b := HomeKit.neon_button(text, color, 22, 64)
+	b.custom_minimum_size.x = 150
+	b.disabled = in_use or (not owned and Shop.coins(progress) < int(item.price))
+	b.pressed.connect(_on_shop_pick.bind(kind, str(item.id)))
+	row.add_child(b)
+	return row
+
+func _on_shop_pick(kind: String, id: String) -> void:
+	var had: bool = Shop.owns(progress, kind, id)
+	if Shop.pick(progress, kind, id):
+		_save_progress()
+		if not had:
+			SoundLib.play(self, "rpg/handle_coins")
+		_fill_shop()
+		board.queue_redraw()
 
 # ---------- progress and the level map ----------
 
@@ -873,15 +957,15 @@ func _draw_board() -> void:
 		mr *= maxf(0.0, 1.0 - win_t * 2.0)
 	var mp: Vector2 = o + engine.pos * cs
 	if mr > 0.5:
-		if classic:
-			_disc_at(mp + Vector2(cs * 0.04, cs * 0.06), mr, Color(0, 0, 0, 0.3))
-			_disc_at(mp, mr, Color("8e99a8"))
-			_disc_at(mp - Vector2(mr, mr) * 0.12, mr * 0.82, Color("c5ccd6"))
-			_disc_at(mp - Vector2(mr, mr) * 0.38, mr * 0.3, Color(1, 1, 1, 0.9))
-		else:
-			_disc_at(mp, mr * 1.5, Color(HomeKit.CYAN, 0.25))
-			_disc_at(mp, mr, HomeKit.CYAN.lerp(Color.WHITE, 0.3))
-			_disc_at(mp - Vector2(mr, mr) * 0.35, mr * 0.3, Color(1, 1, 1, 0.9))
+		# The player's marble and effect from the 🛒 shop (tilt_maze_shop.gd).
+		var marble := Shop.equipped(progress, "marble")
+		var fx := Shop.equipped(progress, "fx")
+		if fx != "none":
+			var pts: Array = []
+			for q in trail_pts:
+				pts.append(o + (q as Vector2) * cs)
+			Shop.draw_fx_under(board, _disc, fx, marble, pts, mp, mr, pulse_t)
+		Shop.draw_marble(board, _disc, marble, mp, mr, engine.vel, pulse_t, not classic)
 	# Touch joystick.
 	if stick_on and _using_touch():
 		board.draw_arc(stick_from, STICK_RADIUS, 0, TAU, 40, Color(1, 1, 1, 0.25), 3.0)

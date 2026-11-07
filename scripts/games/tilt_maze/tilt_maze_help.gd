@@ -17,6 +17,7 @@ const HOW := [
 	"No motion sensor? Choose the touch joystick in ⚙ Options: drag anywhere on the maze. Arrow keys work on a keyboard.",
 	"💡 draws the safe way to the goal for a few seconds. You hold up to 3 hints; one comes back every 24 hours.",
 	"📅 Daily Maze: one maze a day, the same for everyone; easier early in the week, Insane on Saturday.",
+	"🛒 Marble Shop: clearing a maze earns coins (more for stars and for no falls; the Daily Maze pays once a day). Spend them on new marbles and effects. Coins are earned only, never sold.",
 ]
 const TIPS := [
 	"Small tilts. The marble keeps rolling, so tilt back a little before a bend.",
