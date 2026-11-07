@@ -14,6 +14,11 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const CHIPS_PATH := "user://blackjack_chips.json"
+## Hints (owner 2026-11-01, every game): at most 3, +1 every 24 h, per game. 💡 = the textbook move.
+const HINT_PATH := "user://blackjack_hints.json"
+const HINT_MAX := 3
+const HINT_REFILL := 86400
+const ADVICE_TEXT := {"hit": "Hit", "stand": "Stand", "double": "Double", "split": "Split"}
 const CHIP_VALUES := [10, 25, 50, 100]
 const COLOR_FELT := Color(0.03, 0.05, 0.1)
 const COLOR_CARD := Color(0.05, 0.07, 0.15)
@@ -47,6 +52,8 @@ var action_row: Control
 var double_btn: Button
 var split_btn: Button
 var next_row: Control
+var hint_btn: Button
+var hints := {"left": HINT_MAX, "stamp": 0}
 
 func _ready() -> void:
 	preload("res://scripts/games/blackjack/blackjack_i18n.gd").install(self)
@@ -56,6 +63,9 @@ func _ready() -> void:
 	if data != null:
 		engine.chips = int(data.get("chips", BlackjackEngine.STARTING_CHIPS))
 		last_bet = int(data.get("last_bet", 0))
+	var hd = SaveUtil.read(HINT_PATH)
+	if hd is Dictionary:
+		hints = {"left": int(hd.get("left", HINT_MAX)), "stamp": int(hd.get("stamp", 0))}
 	_build_ui()
 	_to_betting()  # behind the Home screen until Play
 	_chill_music()
@@ -113,6 +123,12 @@ func _build_ui() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
+	hint_btn = Button.new()
+	hint_btn.custom_minimum_size = Vector2(96, 64)
+	hint_btn.add_theme_font_size_override("font_size", 26)
+	hint_btn.focus_mode = Control.FOCUS_NONE
+	hint_btn.pressed.connect(_on_hint)
+	bar.add_child(hint_btn)
 	chips_label = Label.new()
 	chips_label.add_theme_font_size_override("font_size", 28)
 	chips_label.add_theme_color_override("font_color", Color(1, 0.84, 0.3))
@@ -314,6 +330,39 @@ func _split() -> void:
 	_sfx("card_deal")
 	_after_action()
 
+# ---------- hints ----------
+
+## Hints left now, after adding back one per full 24 h since the clock started.
+func _hints_now() -> int:
+	var now := int(Time.get_unix_time_from_system())
+	if int(hints.left) >= HINT_MAX or int(hints.stamp) <= 0 or int(hints.stamp) > now:
+		if int(hints.left) >= HINT_MAX:
+			hints.left = HINT_MAX
+		hints.stamp = now
+		return int(hints.left)
+	var gained: int = (now - int(hints.stamp)) / HINT_REFILL
+	if gained > 0:
+		hints.left = mini(HINT_MAX, int(hints.left) + gained)
+		hints.stamp = now if int(hints.left) >= HINT_MAX else int(hints.stamp) + gained * HINT_REFILL
+	return int(hints.left)
+
+func _on_hint() -> void:
+	if engine.phase != BlackjackEngine.Phase.PLAYER_TURN:
+		return
+	if _hints_now() <= 0:
+		var wait: int = maxi(60, int(hints.stamp) + HINT_REFILL - int(Time.get_unix_time_from_system()))
+		message_label.text = tr("No hints left. Next one in %d h %d min.") % [wait / 3600, (wait % 3600) / 60]
+		return
+	var move: String = engine.advice()
+	if move == "":
+		return
+	if int(hints.left) >= HINT_MAX:
+		hints.stamp = int(Time.get_unix_time_from_system())
+	hints.left = int(hints.left) - 1
+	SaveUtil.write(HINT_PATH, hints)
+	message_label.text = "💡 " + tr("Hint: %s") % tr(ADVICE_TEXT[move])
+	_render()
+
 ## Plays a sound from the app's library (silent on apps from before v0.23).
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
@@ -369,6 +418,8 @@ func _is_classic() -> bool:
 func _render() -> void:
 	chips_label.text = "🪙 %d" % engine.chips
 	var phase: int = engine.phase
+	hint_btn.text = "💡%d" % _hints_now()
+	hint_btn.disabled = phase != BlackjackEngine.Phase.PLAYER_TURN
 	bet_row.visible = phase == BlackjackEngine.Phase.BETTING
 	action_row.visible = phase == BlackjackEngine.Phase.PLAYER_TURN
 	next_row.visible = phase == BlackjackEngine.Phase.ROUND_OVER

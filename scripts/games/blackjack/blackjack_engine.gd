@@ -215,6 +215,45 @@ func _settle() -> void:
 	payout = returned - staked
 	outcome = hands[0].outcome if hands.size() == 1 else "split"
 
+## The textbook move for the hand in play (basic strategy for these rules: 6 decks, dealer
+## stands on soft 17, double after a split): "hit", "stand", "double" or "split". Used by the 💡 hint.
+func advice() -> String:
+	if phase != Phase.PLAYER_TURN or dealer.is_empty():
+		return ""
+	var up: int = 11 if int(dealer[0].rank) == 1 else _card_value(dealer[0])
+	var v: Dictionary = hand_value(player)
+	var t: int = v.total
+	var dbl := can_double()
+	if can_split():
+		var pv: int = 11 if int(player[0].rank) == 1 else _card_value(player[0])
+		var split_vs := {11: [2, 11], 8: [2, 11], 9: [2, 9], 7: [2, 7], 6: [2, 6], 4: [5, 6], 3: [2, 7], 2: [2, 7]}
+		if split_vs.has(pv) and up >= split_vs[pv][0] and up <= split_vs[pv][1] and not (pv == 9 and up == 7):
+			return "split"
+	if v.soft:
+		if t >= 20:
+			return "stand"
+		if t == 19:
+			return "double" if dbl and up == 6 else "stand"
+		if t == 18:
+			if up <= 6:
+				return "double" if dbl else "stand"
+			return "stand" if up <= 8 else "hit"
+		var lo: int = {17: 3, 16: 4, 15: 4, 14: 5, 13: 5}.get(t, 99)
+		return "double" if dbl and up >= lo and up <= 6 else "hit"
+	if t >= 17:
+		return "stand"
+	if t >= 13:
+		return "stand" if up <= 6 else "hit"
+	if t == 12:
+		return "stand" if up >= 4 and up <= 6 else "hit"
+	if t == 11:
+		return "double" if dbl else "hit"
+	if t == 10:
+		return "double" if dbl and up <= 9 else "hit"
+	if t == 9:
+		return "double" if dbl and up >= 3 and up <= 6 else "hit"
+	return "hit"
+
 ## Out of chips: start over with a fresh stack.
 func is_broke() -> bool:
 	return phase != Phase.PLAYER_TURN and chips < MIN_BET

@@ -2,6 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
+uid="uid://ouaja3d7eupk"
+path="res://.godot/imported/hero.webp-e11d47152749a8c3fc9d1b2a19295506.ctex"
 metadata={
 "vram_texture": false
 }
@@ -9,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://media/hub/game_art/the_runner/hero.webp"
-dest_files=["res://.godot/imported/hero.webp-cde5d4b645bf2452fe9d4a01e0e1d614.ctex"]
+dest_files=["res://.godot/imported/hero.webp-e11d47152749a8c3fc9d1b2a19295506.ctex"]
 
 [params]
 
