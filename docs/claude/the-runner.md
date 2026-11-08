@@ -1,6 +1,6 @@
 # The Runner (id `the_runner`, space smuggling story, Adventure, landscape)
 
-Owner's game, started 2026-11-02; **v2 "the Spiral" applied 2026-11-07** (character creation, 9 races, 46 perks, 10 factions + Hunt-Guilds, Paragon / Outlaw bars, 16 crew, 56 quests, 3 sectors / 19 planets, hull tiers, real-time battles). Read first: `docs/runner/GAME_DESIGN_THE_RUNNER_V2.md` (owner's v2 doc, source of truth for its tables), `docs/runner/DECISIONS.md` (D-18..D-34 = v2 defaults, and what is not built), `docs/runner/BRIEF.md` (hub brief: art map, screens), `docs/runner/GAME_DESIGN_THE_RUNNER.md` (v1 doc, superseded). Art: owner's paintings from `D:/dev/minigame art/runner/` in `games/the_runner/art/*.webp` (26 files, credited); ships and parts from the shared sprite library.
+Owner's game, started 2026-11-02; **v2 "the Spiral" applied 2026-11-07, pack v2 LIVE the same day (not phone-tested)** (character creation, 9 races, 46 perks, 10 factions + Hunt-Guilds, Paragon / Outlaw bars, 16 crew, 56 quests, 3 sectors / 19 planets, hull tiers, real-time battles). Read first: `docs/runner/GAME_DESIGN_THE_RUNNER_V2.md` (owner's v2 doc, source of truth for its tables), `docs/runner/DECISIONS.md` (D-18..D-34 = v2 defaults, and what is not built), `docs/runner/BRIEF.md` (hub brief: art map, screens), `docs/runner/GAME_DESIGN_THE_RUNNER.md` (v1 doc, superseded). Art: owner's paintings from `D:/dev/minigame art/runner/` in `games/the_runner/art/*.webp` (26 files, credited); ships and parts from the shared sprite library.
 
 ## Files (`scripts/games/the_runner/`)
 | File | What |
