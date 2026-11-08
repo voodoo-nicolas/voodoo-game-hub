@@ -249,7 +249,7 @@
     "creation": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/creation.pck", "scene": "res://scenes/games/creation/creation.tscn"},
     "evolution": {"version": 23, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/evolution.pck", "scene": "res://scenes/games/evolution/evolution.tscn"},
     "turned": {"version": 15, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/turned.pck", "scene": "res://scenes/games/turned/turned.tscn"},
-    "the_runner": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/the_runner.pck", "scene": "res://scenes/games/the_runner/the_runner.tscn"},
+    "the_runner": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/the_runner.pck", "scene": "res://scenes/games/the_runner/the_runner.tscn"},
     "maze_trail": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/maze_trail.pck", "scene": "res://scenes/games/maze_trail/maze_trail.tscn"},
     "tilt_maze": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tilt_maze.pck", "scene": "res://scenes/games/tilt_maze/tilt_maze.tscn"}
   }
