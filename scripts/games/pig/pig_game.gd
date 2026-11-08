@@ -171,6 +171,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Tells you whether to roll again or hold.", "action": _help_advice}],
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
 	})
@@ -478,3 +479,13 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: roll or hold? (the computer's own rule).
+func _help_advice() -> bool:
+	if busy or engine.over or not playing or not _human_turn():
+		return false
+	var hold: bool = engine.turn_total > 0 and engine.cpu_should_hold()
+	message_label.text = "💡 " + (tr("Hold now: bank your %d points.") % engine.turn_total if hold else tr("Roll again: it is worth the risk."))
+	return true

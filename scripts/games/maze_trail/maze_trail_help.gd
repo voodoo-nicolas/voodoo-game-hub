@@ -14,7 +14,7 @@ const HOW := [
 	"From Medium on, some mazes have gates. A gate opens only after you pick up the key of its colour.",
 	"Very Hard and Insane mazes may be in fog: you only see what is near you and where you have been.",
 	"Stars: 3 if your steps are within 30% of the best route, 2 within about twice it, 1 for any way out.",
-	"💡 shows the next stretch of the way. You hold up to 3 hints; one comes back every 24 hours.",
+	"💡 shows the next stretch of the way. You hold up to 3 hints; one comes back 24 hours after the last one you used.",
 	"📅 Daily Maze: one maze a day, the same for everyone; easier early in the week, Insane on Saturday.",
 ]
 const TIPS := [

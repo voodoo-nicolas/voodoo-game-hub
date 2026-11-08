@@ -186,6 +186,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Picks out cards in your hand that make a meld (then tap Meld).", "action": _help_meld}],
 		"board": "Wins",
 		"board_note": "Matches won against the computer.",
 	})
@@ -571,3 +572,33 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: selects 3 or 4 cards of your hand that make a set or a run.
+func _help_meld() -> bool:
+	if not _my_turn() or engine.phase != "play":
+		return false
+	var hand: Array = engine.hands[0]
+	var n := hand.size()
+	var found: Array = []
+	for size in [4, 3]:
+		if not found.is_empty():
+			break
+		for a in n:
+			for b in range(a + 1, n):
+				for c in range(b + 1, n):
+					if size == 3:
+						if found.is_empty() and engine.classify([hand[a], hand[b], hand[c]], {}) != "":
+							found = [hand[a], hand[b], hand[c]]
+					else:
+						for d in range(c + 1, n):
+							if found.is_empty() and engine.classify([hand[a], hand[b], hand[c], hand[d]], {}) != "":
+								found = [hand[a], hand[b], hand[c], hand[d]]
+	if found.is_empty():
+		return false
+	selected = found
+	message = tr("💡 These make a meld: tap Meld.")
+	_sfx("toggle")
+	_render()
+	return true

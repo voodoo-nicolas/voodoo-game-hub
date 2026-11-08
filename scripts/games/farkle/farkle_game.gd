@@ -399,6 +399,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start,
+		"helps": [{"text": "💡 Hint", "how": "Picks the best scoring dice to keep from your roll.", "action": _help_keep}],
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
 	})
@@ -484,3 +485,17 @@ func _person() -> bool:
 
 func _who() -> String:
 	return tr("Player %d") % (engine.turn + 1)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: selects the scoring dice the computer would keep from your roll.
+func _help_keep() -> bool:
+	if not started or not _person() or not rolled or farkled or engine.dice.is_empty():
+		return false
+	var keep: Array = engine.cpu_keep_indices()
+	if keep.is_empty():
+		return false
+	selected = keep
+	_refresh()
+	status_label.text = "💡 " + tr("Keep the marked dice: %d points.") % FEngine.score_of(_selection_values())
+	return true

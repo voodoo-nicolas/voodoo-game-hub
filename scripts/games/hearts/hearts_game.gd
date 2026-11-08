@@ -173,6 +173,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Plays a good card for you, or picks three cards to pass.", "action": _help_play}],
 		"board": "Wins",
 		"board_note": "Games won (lowest score when someone reaches 100).",
 	})
@@ -477,3 +478,22 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: picks the three cards to pass, or plays a good card.
+func _help_play() -> bool:
+	if busy or engine.round_over():
+		return false
+	if engine.passing:
+		picks = engine.cpu_pass(0)
+		_render()
+		return true
+	if engine.turn != 0:
+		return false
+	var c: int = engine.cpu_play(0)
+	if not c in engine.legal(0):
+		return false
+	received = []
+	_play(0, c)
+	return true

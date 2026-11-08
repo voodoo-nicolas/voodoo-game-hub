@@ -393,6 +393,7 @@ func _build_home() -> void:
 			{"text": "👥 2 Players", "sub": "Face to face — both play at once", "multi": true, "action": _start_two},
 		],
 		"restart": _show_start,
+		"helps": [{"text": "💡 Hint", "how": "Plays one of your cards that fits a pile.", "action": _help_play}],
 		"board": "Wins",
 		"board_note": "Races won against the computer.",
 	})
@@ -430,3 +431,18 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help (against the computer): plays one of your cards that fits a pile.
+func _help_play() -> bool:
+	if not running or two_player:
+		return false
+	for c in engine.hands[0]:
+		var t := engine.target_for(c)
+		if t >= 0:
+			engine.play(0, c, t)
+			_sfx("card_place")
+			_check_state()
+			return true
+	return false

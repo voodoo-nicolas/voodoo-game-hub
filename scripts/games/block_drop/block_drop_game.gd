@@ -463,6 +463,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start,
+		"helps": [{"text": "🧹 Clear 3 rows", "how": "Takes away the bottom three rows of the well.", "action": _help_clear}],
 		"board_note": "Your best score.",
 	})
 	add_child(home)
@@ -557,3 +558,19 @@ func _music(style: String) -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play(style, self, 0, 1.5)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🧹 help: the bottom three rows go; everything above drops down.
+func _help_clear() -> bool:
+	if not running or engine.over:
+		return false
+	var w: int = engine.w
+	var h: int = engine.h
+	var fresh: Array = []
+	fresh.resize(3 * w)
+	fresh.fill(0)
+	engine.well = fresh + engine.well.slice(0, (h - 3) * w)
+	_sfx("powerup")
+	board.queue_redraw()
+	return true

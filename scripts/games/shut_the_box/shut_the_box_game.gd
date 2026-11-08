@@ -419,6 +419,7 @@ func _build_home() -> void:
 			{"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_mode.bind("two")},
 		],
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Shuts the best tiles for this roll.", "action": _help_pick}],
 		"board": "Boxes shut",
 		"board_note": "Times you shut the box, all time.",
 	})
@@ -449,3 +450,16 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: shuts the best tiles for this roll.
+func _help_pick() -> bool:
+	if phase != "pick":
+		return false
+	var combo: Array = engine.best_combo()
+	if combo.is_empty():
+		return false
+	selected = combo.duplicate()
+	_after_pick()
+	return true

@@ -13,7 +13,7 @@ const HOW := [
 	"If nothing happens, the pair is remembered, so you won't repeat it. Nothing is ever lost.",
 	"Double-tap an item on the table to copy it. Drag it to the 🗑 to remove it, or tap Clear.",
 	"The shelf has search, sorting (recent, A–Z, tier) and a tier filter. Tap an item to see how many of its recipes you haven't found yet.",
-	"💡 names two items to combine for something you haven't found yet (and lights them up on the shelf). You can hold 3 hints, and you get 1 more every 24 hours.",
+	"💡 names two items to combine for something you haven't found yet (and lights them up on the shelf). You can hold 3 hints; one comes back 24 hours after the last one you used.",
 	"📖 lists your progress in each of the 5 tiers: Nature, Life, Early Civilization, Industry & Modern Life, Space & Future.",
 	"Your discoveries are saved automatically every time. ⚙ switches the item names between English and Spanish, and the light and dark theme.",
 ]

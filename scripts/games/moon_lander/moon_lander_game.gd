@@ -149,6 +149,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _new_game,
+		"helps": [{"text": "❤ Extra lander", "how": "Gives you one more lander.", "action": _help_life}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -394,3 +395,14 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ❤ help: one more lander (an extra life).
+func _help_life() -> bool:
+	if not started or engine.state == "over":
+		return false
+	engine.landers += 1
+	_sfx("powerup")
+	_update_hud()
+	return true

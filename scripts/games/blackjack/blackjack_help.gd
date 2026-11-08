@@ -12,7 +12,7 @@ const HOW := [
 	"Double doubles your bet on your first two cards and gives you exactly one more card.",
 	"Split appears when your first two cards have the same value (a 10 and a King count): it puts a second bet next to the first and plays each card as its own hand. Split Aces get one card each. 21 after a split pays 1 to 1, not 3 to 2.",
 	"The dealer must hit until 17. Win and you double your bet; a Blackjack (Ace + 10 on the first two cards) pays 3 to 2; a tie returns your bet.",
-	"💡 shows the textbook move for your hand. You hold up to 3 hints; one comes back every 24 hours.",
+	"💡 shows the textbook move for your hand. You hold up to 3 hints; one comes back 24 hours after the last one you used.",
 	"These are play chips only. Run out and you get a fresh stack.",
 	"Your chips are kept between visits. ⏸ pauses; leaving mid-hand returns that bet to your chips.",
 ]

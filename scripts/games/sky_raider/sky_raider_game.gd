@@ -169,6 +169,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "❤ Extra life", "how": "Gives you one more life, right now.", "action": _help_life}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -668,3 +669,13 @@ func _music(what: String, style: String, index: int = 0, fade: float = 1.5) -> v
 			m.prepare(style, index)
 		"stop":
 			m.stop(fade)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ❤ help: one more life.
+func _help_life() -> bool:
+	if not started or engine.state == "over" or engine.lives >= 5:
+		return false
+	engine.lives += 1
+	_sfx("powerup")
+	return true

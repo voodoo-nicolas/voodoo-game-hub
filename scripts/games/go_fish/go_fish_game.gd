@@ -406,6 +406,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
+		"helps": [{"text": "🔍 Sure catch", "how": "Asks for a rank the computer is holding: a sure catch.", "action": _help_ask}],
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
 	})
@@ -493,3 +494,19 @@ func _ask_sfx(res: Dictionary) -> void:
 		_sfx("card_place")
 	else:
 		_sfx("card_deal")  # go fish: drew from the pond
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🔍 help (against the computer): asks for a rank it really holds.
+func _help_ask() -> bool:
+	if hotseat or engine.turn != _me() or engine.is_over() or end_dialog.visible:
+		return false
+	var other: int = 1 - engine.turn
+	for r in engine.ranks_in_hand(engine.turn):
+		if engine.count_rank(other, r) > 0:
+			var res := engine.ask(r)
+			_ask_sfx(res)
+			log_text = tr("You asked for %s.") % _rank_name(r) + " " + _describe(0, r, res)
+			_begin_turn()
+			return true
+	return false

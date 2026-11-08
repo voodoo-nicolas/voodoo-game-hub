@@ -151,6 +151,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Plays a card that goes on the pile for you.", "action": _help_move}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -358,3 +359,16 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: plays a card that is one above or below the pile.
+func _help_move() -> bool:
+	if not started or finished:
+		return false
+	for i in TpEngine.N:
+		if not engine.gone[i] and engine.can_play(i) and engine.play(i):
+			_sfx("card_place")
+			_after()
+			return true
+	return false

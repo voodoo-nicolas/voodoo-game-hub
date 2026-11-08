@@ -175,6 +175,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "❤ Extra life", "how": "Gives you one more life, right now.", "action": _help_life}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -650,3 +651,13 @@ func _music(style: String) -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play(style, self, 0, 1.5)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ❤ help: one more life.
+func _help_life() -> bool:
+	if not started or engine.state == "over" or engine.state == "won":
+		return false
+	engine.lives += 1
+	_sfx("powerup")
+	return true

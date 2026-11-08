@@ -884,6 +884,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _resume_saved,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Makes one good move for you.", "action": _help_move}],
 		"board": "Games won",
 		"board_note": "Games won, all time.",
 		"more": [["📜 History", HomeKit.PURPLE, _show_history]],
@@ -918,3 +919,47 @@ func _fresh_deal() -> void:
 func _resume_saved() -> void:
 	if not _load_saved_game():
 		_start_new_game()
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: makes one useful move: a card up to its foundation, a run that
+## uncovers a face-down card, or the waste card onto the tableau.
+func _help_move() -> bool:
+	if not game_active or autoplaying or engine.is_won():
+		return false
+	var moved := false
+	for c in 7:
+		if not moved and engine.move_tableau_to_foundation(c):
+			moved = true
+	if not moved and engine.move_waste_to_foundation():
+		moved = true
+	if not moved:
+		for c in 7:
+			var col: Array = engine.tableau[c]
+			var k := -1
+			for i in col.size():
+				if col[i].face_up:
+					k = i
+					break
+			if k <= 0 or moved:
+				continue  # nothing hidden under this run (or a king alone)
+			for to in 7:
+				if not moved and engine.move_tableau_to_tableau(c, k, to):
+					moved = true
+	if not moved:
+		for to in 7:
+			if not moved and engine.move_waste_to_tableau(to):
+				moved = true
+	if not moved and not (engine.stock.is_empty() and engine.waste.is_empty()):
+		# Nothing to play: the move is to turn the next card of the stock.
+		engine.draw_from_stock()
+		_sfx("card_deal")
+		_clear_selection()
+		_render()
+		return true
+	if not moved:
+		return false
+	timer_running = true
+	_clear_selection()
+	_after_move()
+	return true

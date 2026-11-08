@@ -470,6 +470,7 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "🔨  Play", "sub": "30-second round", "action": _start_round}],
 		"restart": _start_round,
+		"helps": [{"text": "⏱ +10 seconds", "how": "Adds 10 seconds to the round.", "action": _help_time}],
 		"board_note": "Your best score in one round.",
 	})
 	add_child(home)
@@ -499,3 +500,13 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ⏱ help: ten more seconds this round.
+func _help_time() -> bool:
+	if not engine.running:
+		return false
+	engine.time_remaining += 10.0
+	time_label.text = tr("Time: %d") % ceili(engine.time_remaining)
+	return true

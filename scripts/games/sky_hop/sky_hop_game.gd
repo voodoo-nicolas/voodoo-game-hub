@@ -110,6 +110,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _new_game,
+		"helps": [{"text": "🚀 Super jump", "how": "Launches you up like a spring, even in mid-air.", "action": _help_jump}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -290,3 +291,13 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🚀 help: a spring-sized jump, wherever you are.
+func _help_jump() -> bool:
+	if not started or engine.over:
+		return false
+	engine.vy = ShEngine.SPRING * 1.5
+	_sfx("powerup")
+	return true

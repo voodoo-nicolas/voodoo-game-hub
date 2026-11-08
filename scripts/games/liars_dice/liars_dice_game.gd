@@ -454,6 +454,7 @@ func _build_home() -> void:
 		],
 		"multi_heading": "Pass the phone",
 		"restart": _start,
+		"helps": [{"text": "🔍 Peek", "how": "Tells you how many dice on the table really show the face of the current bid.", "action": _help_peek}],
 		"board": "Wins",
 		"board_note": "Games won.",
 	})
@@ -492,3 +493,16 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🔍 help (against the computers): how many dice really show the bid's face.
+func _help_peek() -> bool:
+	if hotseat or revealing or engine.winner != -1 or not engine.alive(0):
+		return false
+	var face: int = engine.bid.y if engine.bid != Vector2i.ZERO else my_face
+	var n: int = engine.count_face(face)
+	log_lines.append("🔍 " + tr("There are really %d × %s on the table.") % [n, str(face)])
+	_refresh()
+	status_label.text = "🔍 " + tr("There are really %d × %s on the table.") % [n, str(face)]
+	return true

@@ -769,6 +769,7 @@ func _build_home() -> void:
 			{"text": "👥 2 Players", "sub": "Same phone: bottom half vs top half", "multi": true, "action": _start_game.bind(Mode.TWO_PLAYER)},
 		] + ([{"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true, "color": HomeKit.PURPLE, "action": _on_online_pressed}] if online else []),
 		"restart": _play_again,
+		"helps": [{"text": "✂ Shrink", "how": "Cuts your snake to half its length (solo games).", "action": _help_shrink}],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
@@ -793,3 +794,17 @@ func _draw_home_logo(c: Control) -> void:
 	HomeKit.glow_polyline(c, pts, SNAKE_COLORS[0][0], k * 0.3)
 	HomeKit.glow_circle(c, pts[pts.size() - 1], k * 0.36, SNAKE_COLORS[0][1], 2.5, 0.6)
 	HomeKit.glow_circle(c, o + Vector2(6.8, 0.5) * k, k * 0.28, HomeKit.PINK, 2.5, 0.5)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ✂ help (solo): the snake loses half its length (at least 3 stay).
+func _help_shrink() -> bool:
+	if not running or _versus() or engine.game_over or engine.snakes.is_empty():
+		return false
+	var body: Array = engine.snakes[0].body
+	if body.size() <= 4:
+		return false
+	engine.snakes[0].body = body.slice(0, maxi(3, body.size() / 2))
+	_sfx("powerup")
+	board.queue_redraw()
+	return true

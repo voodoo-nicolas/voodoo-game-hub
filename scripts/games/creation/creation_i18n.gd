@@ -176,7 +176,6 @@ const STRINGS := {
 		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Hint": "💡 Pista",
 		"💡 Tips": "💡 Consejos",
-		"💡 names two items to combine for something you haven't found yet (and lights them up on the shelf). You can hold 3 hints, and you get 1 more every 24 hours.": "💡 te dice dos objetos que combinar para algo que aún no encontraste (y los resalta en el estante). Puedes guardar 3 pistas y recibes 1 más cada 24 horas.",
 		"📊 Statistics": "📊 Estadísticas",
 		"📋 How to Play": "📋 Cómo jugar",
 		"📖 lists your progress in each of the 5 tiers: Nature, Life, Early Civilization, Industry & Modern Life, Space & Future.": "📖 muestra tu progreso en cada uno de los 5 niveles: Naturaleza, Vida, Primeras civilizaciones, Industria y vida moderna, Espacio y futuro.",

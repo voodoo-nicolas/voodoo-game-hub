@@ -2271,6 +2271,7 @@ func _build_home() -> void:
 		"resume": _resume_saved,
 		"resume_text": _resume_text,
 		"restart": _restart_current,
+		"helps": [{"text": "❤ Extra life", "how": "Gives you one more life, right now.", "action": _help_life}],
 		"board_note": "Your best Endless score.",
 	})
 	add_child(home)
@@ -2337,3 +2338,13 @@ func _draw_home_logo(c: Control) -> void:
 		if Geometry2D.triangulate_polygon(sp).size() > 0:
 			c.draw_colored_polygon(sp, Color(1.0, 0.2, 0.3, 0.95))
 	HomeKit.glow_polyline(c, body, Color(0.7, 0.95, 1.0), 2.0, true)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ❤ help: one more life (not in modes without lives, nor above the most you can hold).
+func _help_life() -> bool:
+	if not game_active or game_over or int(rules.get("lives", 0)) <= 0 or lives >= MAX_LIVES:
+		return false
+	lives += 1
+	lives_label.text = "♥ %d" % lives
+	return true

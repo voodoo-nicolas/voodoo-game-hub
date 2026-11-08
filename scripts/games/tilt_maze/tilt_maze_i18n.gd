@@ -182,7 +182,6 @@ const STRINGS := {
 		"💡 Did you know?": "💡 ¿Sabías que…?",
 		"💡 Hint": "💡 Pista",
 		"💡 Tips": "💡 Consejos",
-		"💡 draws the safe way to the goal for a few seconds. You hold up to 3 hints; one comes back every 24 hours.": "💡 dibuja el camino seguro hasta la meta durante unos segundos. Tienes hasta 3 pistas; recuperas una cada 24 horas.",
 		"📅 Daily Maze": "📅 Laberinto del día",
 		"📅 Daily Maze: one maze a day, the same for everyone; easier early in the week, Insane on Saturday.": "📅 Laberinto del día: uno al día, el mismo para todos; más fácil al comienzo de la semana, Locura el sábado.",
 		"📊 Statistics": "📊 Estadísticas",

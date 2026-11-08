@@ -274,6 +274,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Removes a pair that adds up to 13 (or a King) for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Pyramids cleared.",
 	})
@@ -330,3 +331,30 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: removes a King, or two free cards that add up to 13.
+func _help_move() -> bool:
+	if not started or end_dialog.visible or engine.is_won():
+		return false
+	var free: Array = []
+	for p in 28:
+		if engine.is_free(p):
+			free.append(p)
+	if not engine.waste.is_empty():
+		free.append(100)
+	for a in free:
+		if PyrEngine.rank(engine.card_at(a)) == 13 and engine.try_remove(a):
+			return _help_done()
+	for i in free.size():
+		for j in range(i + 1, free.size()):
+			if engine.try_remove(free[i], free[j]):
+				return _help_done()
+	return false
+
+func _help_done() -> bool:
+	_sfx("merge")
+	selected = -1
+	_refresh()
+	return true

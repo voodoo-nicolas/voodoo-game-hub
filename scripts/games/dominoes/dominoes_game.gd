@@ -167,6 +167,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Plays your best tile for you (or draws when none fits).", "action": _help_play}],
 		"board": "Wins",
 		"board_note": "Games (to 100 points) won.",
 	})
@@ -594,3 +595,17 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: plays the tile the computer would play from your hand (drawing
+## first when none fits).
+func _help_play() -> bool:
+	if not started or engine.round_over or engine.turn != ME:
+		return false
+	var choice: Array = engine.cpu_choice(ME)
+	if choice.is_empty():
+		_on_action()
+		return true
+	_play_mine(choice[0], choice[1])
+	return true

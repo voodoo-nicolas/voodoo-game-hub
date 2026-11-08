@@ -15,7 +15,7 @@ const HOW := [
 	"After every 10 mazes comes a ⚡ challenge maze from the next tier, a taste of what is coming.",
 	"Stars: 3 for no falls within the par time, 2 for at most one fall within 1.6 times par, 1 for getting there.",
 	"No motion sensor? Choose the touch joystick in ⚙ Options: drag anywhere on the maze. Arrow keys work on a keyboard.",
-	"💡 draws the safe way to the goal for a few seconds. You hold up to 3 hints; one comes back every 24 hours.",
+	"💡 draws the safe way to the goal for a few seconds. You hold up to 3 hints; one comes back 24 hours after the last one you used.",
 	"📅 Daily Maze: one maze a day, the same for everyone; easier early in the week, Insane on Saturday.",
 	"🛒 Marble Shop: clearing a maze earns coins (more for stars and for no falls; the Daily Maze pays once a day). Spend them on new marbles and effects. Coins are earned only, never sold.",
 ]

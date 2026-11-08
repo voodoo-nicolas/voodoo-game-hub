@@ -345,6 +345,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start,
+		"helps": [{"text": "🎲 Extra roll", "how": "Gives you one more roll this turn.", "action": _help_roll}],
 		"board_note": "Your best total.",
 	})
 	add_child(home)
@@ -414,3 +415,14 @@ func _load_saved_game() -> void:
 		engine.scores[str(k)] = int(d.scores[k])
 	engine.yacht_bonus = int(d.get("bonus", 0))
 	_refresh()
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🎲 help: one more roll this turn (once you have rolled).
+func _help_roll() -> bool:
+	if not started or engine.is_over() or engine.rolls_left >= 3:
+		return false
+	engine.rolls_left += 1
+	_sfx("powerup")
+	_refresh()
+	return true

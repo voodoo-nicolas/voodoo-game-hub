@@ -277,6 +277,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): return tr("Moves: %d") % int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("moves", 0)),
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Makes one good move for you.", "action": _help_move}],
 		"board": "Games won",
 		"board_note": "Deals won, all time.",
 	})
@@ -337,3 +338,38 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: a card up to its foundation, else a run onto a column it fits.
+func _help_move() -> bool:
+	if not started or win_dialog.visible or engine.is_won():
+		return false
+	for i in 4:
+		if engine.cells[i] != -1 and engine.can_found(engine.cells[i]) and engine.auto_move(-1, 0, i):
+			return _help_done()
+	for c in 8:
+		var col: Array = engine.cols[c]
+		if not col.is_empty() and engine.can_found(col.back()) and engine.auto_move(c, col.size() - 1):
+			return _help_done()
+	for c in 8:
+		var col: Array = engine.cols[c]
+		if col.is_empty():
+			continue
+		for k in range(maxi(engine.run_start(c), 0), col.size()):
+			for to in 8:
+				if to != c and not engine.cols[to].is_empty() and engine.fits_on(col[k], to) \
+						and col.size() - k <= engine.max_run(-1) and engine.auto_move(c, k):
+					return _help_done()
+	for i in 4:
+		if engine.cells[i] == -1:
+			continue
+		for to in 8:
+			if not engine.cols[to].is_empty() and engine.fits_on(engine.cells[i], to) and engine.auto_move(-1, 0, i):
+				return _help_done()
+	return false
+
+func _help_done() -> bool:
+	_sfx("card_place")
+	_after_change()
+	return true

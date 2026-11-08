@@ -456,6 +456,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Plays your best card for you (or draws when nothing fits).", "action": _help_play}],
 		"board": "Wins",
 		"board_note": "Games won.",
 	})
@@ -537,3 +538,21 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: plays the card the computer would play from your hand (an 8
+## names your strongest suit), or draws when nothing fits.
+func _help_play() -> bool:
+	if not _my_turn() or suit_dialog.visible:
+		return false
+	var choice: Array = engine.cpu_choice(_me())
+	if choice.is_empty():
+		_human_draw()
+		return true
+	if C8Engine.rank(choice[0]) == 8:
+		pending_eight = choice[0]
+		_choose_suit(maxi(0, choice[1]))
+	else:
+		_human_play(choice[0])
+	return true

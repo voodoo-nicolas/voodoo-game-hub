@@ -88,6 +88,7 @@ const STRINGS := {
 		"game v%d": "juego v%d",
 		"← Hub": "← Inicio",
 		"↺  Restart": "↺  Reiniciar",
+		"⏱ +10 seconds": "⏱ +10 segundos",
 		"⏸ pauses the clock. A round is only 30 seconds, so it isn't saved for later.": "⏸ pausa el reloj. Una ronda dura solo 30 segundos, así que no se guarda.",
 		"▶  Resume": "▶  Continuar",
 		"⚙ Options": "⚙ Opciones",

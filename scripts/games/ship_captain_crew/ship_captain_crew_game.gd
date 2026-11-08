@@ -172,6 +172,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "🎲 Extra roll", "how": "Gives you one more roll this turn, before your last one.", "action": _help_roll}],
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
 	})
@@ -514,3 +515,14 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🎲 help: one more roll this turn (before the last roll banks it).
+func _help_roll() -> bool:
+	if busy or not playing or engine.over or not _human_turn() or engine.rolls_left <= 0 or engine.rolls_left >= 3:
+		return false
+	engine.rolls_left += 1
+	_sfx("powerup")
+	_render()
+	return true

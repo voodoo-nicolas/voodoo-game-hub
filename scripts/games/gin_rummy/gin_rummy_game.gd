@@ -492,6 +492,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _new_match,
+		"helps": [{"text": "💡 Hint", "how": "Draws from the better pile for you, or picks the card to throw away.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Matches won against the computer.",
 	})
@@ -570,3 +571,44 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: draws from the better pile, or selects the best card to discard
+## (then tap Discard or Knock).
+func _help_move() -> bool:
+	if not started or not _my_turn():
+		return false
+	var hand: Array = engine.hands[engine.turn]
+	if engine.phase == "draw":
+		var take := false
+		if not engine.discard.is_empty():
+			var now := GinEngine.deadwood(hand)
+			var with_top: Array = hand + [engine.discard.back()]
+			for c in hand:
+				var rest: Array = with_top.duplicate()
+				rest.erase(c)
+				take = take or GinEngine.deadwood(rest) < now - 1
+		if take:
+			engine.draw_discard()
+		else:
+			engine.draw_stock()
+		_sfx("card_deal")
+		_refresh()
+		return true
+	if engine.phase != "discard":
+		return false
+	var best := -1
+	var best_dw := 1 << 30
+	for c in hand:
+		if not engine.can_discard(c):
+			continue
+		var dw: int = engine.deadwood_after(c)
+		if dw < best_dw:
+			best_dw = dw
+			best = c
+	if best < 0:
+		return false
+	selected = best
+	_refresh()
+	return true

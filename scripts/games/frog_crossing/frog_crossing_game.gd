@@ -466,6 +466,7 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "🐸  Play", "sub": "Three lives", "action": _start}],
 		"restart": _start,
+		"helps": [{"text": "❤ Extra life", "how": "Gives you one more life, right now.", "action": _help_life}],
 		"board_note": "Your best score.",
 	})
 	add_child(home)
@@ -503,3 +504,13 @@ func _play_music() -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play("lively", self, 0, 2.0)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ❤ help: one more life.
+func _help_life() -> bool:
+	if not running or engine.over:
+		return false
+	engine.lives += 1
+	_sfx("powerup")
+	return true

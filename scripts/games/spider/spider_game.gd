@@ -305,6 +305,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr("Suits: %d") % int(d.suits),
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Makes one good move for you.", "action": _help_move}],
 		"board": "Games won",
 		"board_note": "Games won, any number of suits.",
 	})
@@ -373,3 +374,26 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: moves a run onto a card one higher (same suit first), or into an
+## empty column when nothing else goes.
+func _help_move() -> bool:
+	if not started or win_dialog.visible or engine.is_won():
+		return false
+	for allow_empty in [false, true]:
+		for c in 10:
+			if engine.cols[c].is_empty():
+				continue
+			var k := engine.run_start(c)
+			if k < 0:
+				continue
+			var to := engine.best_target(c, k)
+			if to < 0 or (engine.cols[to].is_empty() and not allow_empty):
+				continue
+			if engine.move(c, k, to):
+				_sfx("card_place")
+				_after_change()
+				return true
+	return false

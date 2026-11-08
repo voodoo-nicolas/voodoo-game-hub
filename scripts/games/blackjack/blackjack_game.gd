@@ -15,6 +15,7 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const CHIPS_PATH := "user://blackjack_chips.json"
 ## Hints (owner 2026-11-01, every game): at most 3, +1 every 24 h, per game. 💡 = the textbook move.
+## Owner 2026-11-08: the 24 h restart with every hint used; the pool is the kit's (STANDARDS §17).
 const HINT_PATH := "user://blackjack_hints.json"
 const HINT_MAX := 3
 const HINT_REFILL := 86400
@@ -332,36 +333,27 @@ func _split() -> void:
 
 # ---------- hints ----------
 
-## Hints left now, after adding back one per full 24 h since the clock started.
+## Hints left now: the kit's pool (STANDARDS §17), one back 24 h after the
+## last used. The old user://blackjack_hints.json clock is no longer read.
 func _hints_now() -> int:
-	var now := int(Time.get_unix_time_from_system())
-	if int(hints.left) >= HINT_MAX or int(hints.stamp) <= 0 or int(hints.stamp) > now:
-		if int(hints.left) >= HINT_MAX:
-			hints.left = HINT_MAX
-		hints.stamp = now
-		return int(hints.left)
-	var gained: int = (now - int(hints.stamp)) / HINT_REFILL
-	if gained > 0:
-		hints.left = mini(HINT_MAX, int(hints.left) + gained)
-		hints.stamp = now if int(hints.left) >= HINT_MAX else int(hints.stamp) + gained * HINT_REFILL
-	return int(hints.left)
+	return HomeKit.helps_left("blackjack")
 
 func _on_hint() -> void:
 	if engine.phase != BlackjackEngine.Phase.PLAYER_TURN:
 		return
-	if _hints_now() <= 0:
-		var wait: int = maxi(60, int(hints.stamp) + HINT_REFILL - int(Time.get_unix_time_from_system()))
-		message_label.text = tr("No hints left. Next one in %d h %d min.") % [wait / 3600, (wait % 3600) / 60]
-		return
+	home.try_help(_hint_now)
+	_render()
+
+## 💡 help: the textbook move for the hand in play.
+func _hint_now() -> bool:
+	if engine.phase != BlackjackEngine.Phase.PLAYER_TURN:
+		return false
 	var move: String = engine.advice()
 	if move == "":
-		return
-	if int(hints.left) >= HINT_MAX:
-		hints.stamp = int(Time.get_unix_time_from_system())
-	hints.left = int(hints.left) - 1
-	SaveUtil.write(HINT_PATH, hints)
+		return false
 	message_label.text = "💡 " + tr("Hint: %s") % tr(ADVICE_TEXT[move])
 	_render()
+	return true
 
 ## Plays a sound from the app's library (silent on apps from before v0.23).
 func _sfx(sound: String) -> void:
@@ -480,6 +472,7 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "♠  Play", "sub": "vs the dealer", "action": _to_betting}],
 		"restart": _to_betting,
+		"helps": [{"text": "💡 Hint", "how": "Shows the textbook move for your hand.", "action": _hint_now}],
 		"board": "Most chips",
 		"board_note": "The most chips you have ever held.",
 	})

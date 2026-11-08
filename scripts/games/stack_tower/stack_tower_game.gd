@@ -117,6 +117,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _new_game,
+		"helps": [{"text": "📏 Wider block", "how": "Doubles the width of the top of the tower and of the next block.", "action": _help_widen}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -302,3 +303,21 @@ func _music(style: String) -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play(style, self, 0, 1.5)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 📏 help: the top of the tower and the moving block get twice as wide.
+func _help_widen() -> bool:
+	if not started or engine.over or engine.layers.is_empty():
+		return false
+	var top: Array = engine.layers[-1]
+	var w: float = minf(StEngine.WIDTH, top[1] * 2.0)
+	if w <= top[1]:
+		return false
+	var x: float = clampf(top[0] - (w - top[1]) / 2.0, 0.0, StEngine.WIDTH - w)
+	engine.layers[-1] = [x, w]
+	engine.cur_w = w
+	engine.cur_x = clampf(engine.cur_x, 0.0, StEngine.WIDTH - w)
+	_sfx("powerup")
+	field.queue_redraw()
+	return true

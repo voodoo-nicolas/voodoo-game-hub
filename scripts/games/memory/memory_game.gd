@@ -378,6 +378,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _resume_saved,
 		"restart": _start_new_game,
+		"helps": [{"text": "👁 Match a pair", "how": "Turns over a matching pair for you.", "action": _help_pair}],
 		"board": "Games solved",
 		"board_note": "Boards cleared on your own.",
 		"online": online,
@@ -469,3 +470,25 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 👁 help: turns over a matching pair (the partner of a card already up).
+func _help_pair() -> bool:
+	if not game_active or waiting_for_resolve or _is_online() or engine.is_over():
+		return false
+	var first: int = engine.flipped[0] if engine.flipped.size() == 1 else -1
+	for i in engine.deck.size():
+		if engine.matched[i] or i == first:
+			continue
+		if first >= 0:
+			if engine.deck[i] == engine.deck[first]:
+				_flip(i)
+				return true
+			continue
+		for j in range(i + 1, engine.deck.size()):
+			if not engine.matched[j] and engine.deck[j] == engine.deck[i]:
+				_flip(i)
+				_flip(j)
+				return true
+	return false

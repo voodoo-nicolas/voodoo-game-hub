@@ -92,6 +92,7 @@ func _build_ui() -> void:
 	bm.add_child(board)
 
 	over_dialog = UI.build_dialog(tr("Game Over"), [
+		{"text": tr("❤ Extra life"), "action": _on_extra_life},
 		{"text": tr("Play Again"), "action": _start},
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
@@ -268,6 +269,7 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "▶  Play", "sub": "Tap anywhere to fly", "action": _start}],
 		"restart": _start,
+		"helps": [{"text": "❤ Extra life", "how": "After a crash, keeps your score and flies on: the next pillars open wide.", "action": _help_life}],
 		"board_note": "Your best score: pillars passed in one flight.",
 	})
 	add_child(home)
@@ -306,3 +308,24 @@ func _music(style: String) -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play(style, self, 0, 1.5)
+
+# ---------- helps (STANDARDS §17) ----------
+
+func _on_extra_life() -> void:
+	home.try_help(_help_life)
+
+## ❤ help (from the Game Over card): back in the air, the pillars ahead opened up.
+func _help_life() -> bool:
+	if not engine.dead or not over_dialog.visible:
+		return false
+	engine.dead = false
+	engine.bird_y = 450.0
+	engine.vel = BHEngine.FLAP * 0.5
+	for p in engine.pillars:
+		if p.x < BHEngine.BIRD_X + 400.0:
+			p.gap_y = 450.0
+			p.gap = maxf(float(p.gap), 520.0)
+	over_shown = false
+	over_dialog.visible = false
+	_sfx("powerup")
+	return true

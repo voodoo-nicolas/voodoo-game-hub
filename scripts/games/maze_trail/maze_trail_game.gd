@@ -25,6 +25,7 @@ const ART_CLASSIC := "res://games/maze_trail/landing_bg.jpg"
 const ART_VOODOO := "res://games/maze_trail/landing_voodoo.jpg"
 
 ## Hints (owner, 2026-11-01, every game): at most 3, +1 every 24 h, per game.
+## Owner 2026-11-08: the 24 h restart with every hint used; the pool is the kit's (STANDARDS §17).
 const MAX_HINTS := 3
 const HINT_REFILL_SECS := 86400
 const HINT_CELLS := 12  # how far ahead a hint shows the way
