@@ -1,0 +1,27 @@
+{
+  "_doc": "Balance constants v0.1 (tune in playtest). Rates per real hour.",
+  "bars": {
+    "food":   { "max": 100, "drain_per_h": 4 },
+    "water":  { "max": 100, "drain_per_h": 5 },
+    "energy": { "max": 100, "drain_per_h": 3 },
+    "hp":     { "max": 100, "regen_per_h": 2, "regen_requires": { "food_gt": 50, "water_gt": 50, "energy_gt": 30 }, "empty_bar_loss_per_h": 3 }
+  },
+  "offline_floor": 15,
+  "low_energy": { "threshold": 20, "duration_mult": 1.5, "fail_mult": 1.5 },
+  "action_energy_cost": { "chop": 12, "haul": 10, "fish": 8, "craft": 6, "explore": 15, "walk": 0 },
+  "sleep_restore_per_h": { "sand": 6, "frond_bed": 11, "hammock": 14, "frond_shelter": 15, "tent": 17, "tent_mattress": 20 },
+  "sleep_modifiers": { "day_sun": 0.5, "day_shade": 1.0, "rain_unsheltered": 0.5, "storm_unsheltered": 0.25, "temp_extreme": 0.8 },
+  "power_nap": { "minutes": 30, "energy": 15, "max_per_day": 2, "second_nap_energy": 8, "requires": ["hammock", "tent", "shade"] },
+  "rested_buff": { "min_sleep_h": 6, "min_bed": "hammock", "action_speed_bonus": 0.10 },
+  "shore_drops": {
+    "normal": { "rolls": 3, "weights": { "common": 70, "uncommon": 22, "rare": 6, "mythic": 2 } },
+    "storm":  { "rolls": 6, "weights": { "common": 62, "uncommon": 25, "rare": 10, "mythic": 3 } },
+    "pity": { "rare_after_days": 14, "mythic_after_days": 60 },
+    "streak_bonus_rolls_on_days": [7, 14, 28]
+  },
+  "tide_period_min": 745,
+  "weather_tick_min": 15,
+  "inventory": { "start_slots": 12, "barrel_bonus": 20, "chest_bonus": 30, "jar_bonus": 10 },
+  "bottle": { "max_chars": 140, "max_hops": 5 },
+  "login": { "streak_days": 30, "grace_tides_per_week": 1 }
+}

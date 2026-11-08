@@ -1,0 +1,21 @@
+{
+  "_doc": "Day/night keyframes. 'at' is either a fixed local hour or an anchor to sunrise/sunset in hours. Interpolate colors linearly in RGB between consecutive keyframes (wrap midnight). Sun times: L = 12.0 + 1.5*cos(2*pi*(doy-peak)/365), peak = 355 (south) or 172 (north); sunrise = 12.25 - L/2; sunset = 12.25 + L/2.",
+  "daylight": { "base": 12.0, "amplitude": 1.5, "solar_noon": 12.25, "peak_doy_south": 355, "peak_doy_north": 172 },
+  "keyframes": [
+    { "id": "midnight",  "at": { "fixed": 0.0 },            "sky_top": "#0a1230", "horizon": "#1b2a52", "light_tint": "#5a6fa8", "intensity": 0.35 },
+    { "id": "deep_night","at": { "fixed": 3.0 },            "sky_top": "#080e26", "horizon": "#16224a", "light_tint": "#4f63a0", "intensity": 0.30 },
+    { "id": "pre_dawn",  "at": { "sunrise": -1.0 },         "sky_top": "#2a2f5e", "horizon": "#d98a6c", "light_tint": "#9a8fb8", "intensity": 0.50 },
+    { "id": "sunrise",   "at": { "sunrise": 0.0 },          "sky_top": "#5d7fc0", "horizon": "#ffb27a", "light_tint": "#ffc9a0", "intensity": 0.75 },
+    { "id": "morning",   "at": { "sunrise": 2.0 },          "sky_top": "#4fa6d8", "horizon": "#bfe6f0", "light_tint": "#fff4e0", "intensity": 0.95 },
+    { "id": "noon",      "at": { "fixed": 12.25 },          "sky_top": "#3d9bd6", "horizon": "#cdeef2", "light_tint": "#ffffff", "intensity": 1.00 },
+    { "id": "afternoon", "at": { "sunset": -3.0 },          "sky_top": "#4aa0d6", "horizon": "#d3eef0", "light_tint": "#fff6e6", "intensity": 0.95 },
+    { "id": "golden",    "at": { "sunset": -1.0 },          "sky_top": "#5a90c8", "horizon": "#ffd9a0", "light_tint": "#ffd9a8", "intensity": 0.85 },
+    { "id": "sunset",    "at": { "sunset": 0.0 },           "sky_top": "#7a6fb0", "horizon": "#ff9a62", "light_tint": "#ffb98a", "intensity": 0.70 },
+    { "id": "dusk",      "at": { "sunset": 1.0 },           "sky_top": "#3a3a78", "horizon": "#c9627a", "light_tint": "#b08ab0", "intensity": 0.50 },
+    { "id": "night",     "at": { "sunset": 2.0 },           "sky_top": "#161c44", "horizon": "#4a3f78", "light_tint": "#6f7db8", "intensity": 0.40 },
+    { "id": "late_night","at": { "fixed": 22.0 },           "sky_top": "#0c1334", "horizon": "#202e5a", "light_tint": "#5a6fa8", "intensity": 0.35 }
+  ],
+  "stars": { "fade_in_after_sunset_h": 1.0, "fade_out_before_sunrise_h": 1.0 },
+  "moon": { "synodic_days": 29.530588, "epoch_new_moon_utc": "2000-01-06T18:14:00Z" },
+  "fire_light": { "color": "#ffb35a", "flicker_pct": 0.08 }
+}
