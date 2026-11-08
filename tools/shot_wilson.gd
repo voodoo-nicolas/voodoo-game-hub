@@ -55,6 +55,11 @@ func _run() -> void:
 	await _shot("00_landing")
 	game.home.start_mode(game.home.cfg["modes"][0])
 	await _wait(10)
+	await _shot("00b_look_picker")
+	var picker = game.get_node_or_null("LookPicker")
+	if picker:
+		game._on_look_picked(picker, "female3", game._start_island)
+	await _wait(10)
 	if game.info and "overlay" in game.info and game.info.overlay and game.info.overlay.visible:
 		game.info.close()
 	game.engine.hemisphere = "south"
@@ -93,9 +98,34 @@ func _run() -> void:
 	game._open_craft()
 	await _shot("05_craft")
 	game._close_panel()
+	for pair in [["fish_small", 2], ["coconut", 2], ["bottle", 1], ["seawater", 1], ["pearl", 1], ["clay_jar", 1]]:
+		e.debug_give(pair[0], pair[1])
+	e.add("fishing_pole", 1)
 	game._open_bag()
 	await _shot("06_bag")
+	game._item_menu("bottle")
+	await _shot("06b_item_card")
+	game._combine("bottle", "seawater")
+	await _wait(5)
+	await _shot("06c_combined")
+	game._open_craft()
+	game._panel.get_child(0).get_child(1).scroll_vertical = 99999
+	await _shot("06d_craft_bottom")
 	game._close_panel()
+	for r in ["tent", "water_still", "rain_catcher", "drying_rack", "frond_bed"]:
+		e.unlocked.append(r)
+		e.discovered.append(r)
+		e.structures[r] = {"built": e.t}
+	game.after_change()
+	await _wait(5)
+	await _shot("06e_full_camp")
+	e.structures.erase("frond_bed")
+	e.start_sleep("hammock", 2.0)
+	game.after_change()
+	await _wait(5)
+	await _shot("06f_hammock")
+	e.wake()
+	game.after_change()
 	for h in [17.0, 18.0, 19.0, 21.0, 2.0, 6.5]:
 		_hour(h)
 		e.structures.campfire.fuel_until = e.t + 30 * 3600.0

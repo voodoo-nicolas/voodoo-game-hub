@@ -78,8 +78,48 @@ static func quest_name(q: Dictionary) -> String:
 
 # ------------------------------------------------------------------ game tuning (not in the JSON)
 
-## Crafting tiers built so far (KICKOFF M2: Tier 1-2).
-const MAX_TIER := 2
+## Crafting tiers (M3: all four). Tiers 1-2 are known from the start; tier 3-4 recipes are found by
+## combining two of their materials in the bag (GDD §10 "Little-Alchemy style"), then show on 🔨.
+const MAX_TIER := 4
+const KNOWN_TIERS := 2
+
+## Tool wear (GDD §10 "tool durability"): uses before it breaks. One use = one action that needs it.
+const TOOL_USES := {"knife": 40, "stone_axe": 8, "fishing_pole": 30, "spear": 20, "shovel": 15,
+	"coconut_bowl": 25, "spark_kit": 12}
+## Fresh food spoils (GDD §10) after this many hours in the bag and turns into fish guts (compost,
+## bait later). Dried / salted food keeps. A smokehouse makes fresh food last 4x as long.
+const SPOIL_H := {"fish_small": 24.0, "fish_big": 24.0, "fish_cooked": 48.0}
+const SMOKEHOUSE_SPOIL_MULT := 4.0
+## Water structures: drinks they hold, water per drink, how they fill.
+const WATER_MAX := 4
+const WATER_PER_DRINK := 25.0
+const RAIN_FILL_PER_H := {"drizzle": 0.5, "rain": 1.0, "storm": 2.0}
+const STILL_H := 3.0            # the water still makes one drink every 3 h of daylight
+## Fish trap: one catch every 6 h, holds 3.
+const TRAP_H := 6.0
+const TRAP_MAX := 3
+const TRAP_TABLE := [["fish_small", 80], ["fish_big", 12], ["boot", 4], ["seaweed", 4]]
+
+## Skills (GDD §10). Level n needs 10 * n * (n + 1) / 2 XP (10, 30, 60...), max 10; each level makes
+## that skill's actions 3 % faster. Weather-sense comes with the weather controller (M4).
+const SKILLS := ["foraging", "woodcutting", "fishing", "fire", "cooking", "carpentry", "tinkering"]
+## (Trailing spaces = distinct i18n keys: "Fire" / "Drink" already mean something else in other games.)
+const SKILL_NAMES := {"foraging": "Foraging", "woodcutting": "Woodcutting", "fishing": "Fishing ", "fire": "Fire ",
+	"cooking": "Cooking ", "carpentry": "Carpentry", "tinkering": "Tinkering"}
+const SKILL_MAX := 10
+const SKILL_SPEED := 0.03
+const ACT_SKILL := {"gather": "foraging", "shake": "foraging", "haul": "foraging", "seawater": "foraging",
+	"chop": "woodcutting", "fish": "fishing", "empty_trap": "fishing", "light": "fire", "fuel": "fire"}
+
+## Which skill a recipe trains.
+static func recipe_skill(r: Dictionary) -> String:
+	if r.get("id", "") == "spark_kit":
+		return "fire"
+	if r.get("station", "") == "campfire":
+		return "cooking"
+	if int(r.get("tier", 1)) >= 4:
+		return "tinkering"
+	return "carpentry"
 
 ## Recipes a quest hands out (tutorial_quests.json "reward.recipe"): locked until then.
 static func reward_recipes() -> Array:
@@ -157,7 +197,6 @@ const CAMP := {
 	"frond_bed": {"pos": Vector2(470, 500), "stand": Vector2(520, 482)},
 	"hammock": {"pos": Vector2(522, 372), "stand": Vector2(522, 432)},
 	"frond_shelter": {"pos": Vector2(345, 470), "stand": Vector2(400, 482)},
-	"tent": {"pos": Vector2(345, 470), "stand": Vector2(400, 482)},
 	"crafting_stump": {"pos": Vector2(770, 480), "stand": Vector2(730, 482)},
 	"rain_catcher": {"pos": Vector2(830, 458), "stand": Vector2(820, 482)},
 	"drying_rack": {"pos": Vector2(900, 488), "stand": Vector2(880, 482)},
@@ -165,7 +204,19 @@ const CAMP := {
 	"sos_flag": {"pos": Vector2(1100, 515), "stand": Vector2(1080, 535)},
 	"garden_plot": {"pos": Vector2(980, 500), "stand": Vector2(960, 482)},
 	"canopy": {"pos": Vector2(1060, 495), "stand": Vector2(1040, 482)},
+	"tent": {"pos": Vector2(700, 452), "stand": Vector2(700, 482)},
+	"water_still": {"pos": Vector2(945, 470), "stand": Vector2(925, 482)},
+	"smokehouse": {"pos": Vector2(1140, 512), "stand": Vector2(1110, 535)},
+	"kiln": {"pos": Vector2(250, 520), "stand": Vector2(285, 535)},
+	"sundial": {"pos": Vector2(880, 552), "stand": Vector2(880, 535)},
+	"raft_section": {"pos": Vector2(640, 600), "stand": Vector2(640, 535)},
 }
+## Structures drawn from the owner's camp-builds sheet: [sprite, width on screen in plate pixels,
+## lift (hanging hammock)].
+const CAMP_ART := {"tent": ["tent", 140.0, 0.0], "hammock": ["hammock", 180.0, 6.0],
+	"garden_plot": ["garden_plot", 108.0, 0.0], "crafting_stump": ["crafting_stump", 66.0, 0.0],
+	"water_still": ["water_still", 70.0, 0.0], "drying_rack": ["drying_rack", 96.0, 0.0],
+	"frond_bed": ["frond_bed", 104.0, -6.0], "rain_catcher": ["rain_catcher", 50.0, 0.0]}
 ## Recipe stations -> where the work happens (recipes.json "station").
 const STATIONS := {
 	"camp": Vector2(600, 482), "anchors": Vector2(522, 432), "shallows": Vector2(520, 535),
@@ -189,6 +240,7 @@ const ACT := {
 	"tally": {"min": 1.0, "energy": 0.0},
 	"shore": {"min": 5.0, "cost": "haul"},
 	"nap": {"min": 30.0, "energy": 0.0},
+	"empty_trap": {"min": 3.0, "energy": 1.0},
 }
 ## What chopping a palm gives (CRAFTING.md: trunk from chopped palms).
 const CHOP_LOOT := [["trunk", 2], ["frond", 6], ["stick", 4]]
@@ -314,6 +366,11 @@ const LINES := {
 	"cold": ["I'd trade my dignity for a blanket."],
 	"fog": ["Ah yes. Visibility: zero. Mood: matching."],
 	"busy": ["One thing at a time. Five, tops."],
+	"combine_none": ["Those two don't go together. I checked. Twice.", "Nope. That's just two things touching.",
+		"Science says no."],
+	"discover": ["Eureka. Or sunstroke. Either way, a new recipe.", "I'm basically an inventor now."],
+	"broke": ["And it broke. Of course it broke."],
+	"spoiled": ["Something in my bag smells like a decision I regret."],
 	"no_nap": ["Two naps a day. Even I have standards."],
 }
 

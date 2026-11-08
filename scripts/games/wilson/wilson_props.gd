@@ -1,8 +1,9 @@
 extends Node2D
 
-## Beached: PLACEHOLDER drawings for built structures and gather piles (no art yet; ART_PROMPTS.md
-## lists the sprites to generate). One node per prop, origin = its base on the sand (plate pixels), so
-## the y-sort puts Johnny in front or behind correctly. Drawn once; `refresh()` redraws.
+## Beached: built structures and gather piles. Structures with owner art (camp builds.jpg, cut into
+## games/wilson/art/camp/) draw their sprite (`tex`, `tex_w` wide); the rest are PLACEHOLDER drawings.
+## One node per prop, origin = its base on the sand (plate pixels), so the y-sort puts Johnny in front
+## or behind correctly. Drawn once; `refresh()` redraws.
 
 const FROND := Color("5f9a3c")
 const FROND_D := Color("3f6e28")
@@ -16,6 +17,9 @@ const LINE := Color("2a1c12")
 var kind := ""
 var amount := 1.0       # piles: how full (0..1)
 var data := {}          # e.g. {"tallies": 3}
+var tex: Texture2D = null
+var tex_w := 100.0
+var tex_lift := 0.0     # how far the sprite's bottom sits above the origin (hammock hangs)
 
 func refresh() -> void:
 	queue_redraw()
@@ -27,6 +31,12 @@ func _poly(pts: Array, col: Color) -> void:
 	draw_polyline(p, LINE, 2.0)
 
 func _draw() -> void:
+	if tex and visible:
+		var sz := tex.get_size() * (tex_w / float(tex.get_width()))
+		draw_texture_rect(tex, Rect2(Vector2(-sz.x / 2.0, -sz.y - tex_lift), sz), false)
+		if kind == "crafting_stump":
+			_tallies(Vector2(-14, -8))
+		return
 	match kind:
 		"frond_bed":
 			_poly([Vector2(-48, 0), Vector2(-40, -10), Vector2(40, -10), Vector2(48, 0), Vector2(40, 6), Vector2(-40, 6)], FROND)
@@ -62,13 +72,7 @@ func _draw() -> void:
 			draw_circle(Vector2.ZERO, 22.0, Color("b98a5a"))
 			draw_arc(Vector2.ZERO, 14.0, 0, TAU, 20, WOOD_D, 2.0)
 			draw_set_transform_matrix(Transform2D.IDENTITY)
-			var n := int(data.get("tallies", 0))
-			for i in mini(n, 12):
-				var x := -16 + i * 3 + int(i / 5) * 2
-				if i % 5 == 4:
-					draw_line(Vector2(x - 14, -20), Vector2(x, -8), LINE, 1.5)
-				else:
-					draw_line(Vector2(x, -22), Vector2(x, -8), LINE, 1.5)
+			_tallies(Vector2.ZERO)
 		"rain_catcher":
 			_poly([Vector2(-18, 0), Vector2(-20, -40), Vector2(20, -40), Vector2(18, 0)], WOOD)
 			draw_line(Vector2(-20, -12), Vector2(20, -12), Color("666"), 3.0)
@@ -121,8 +125,34 @@ func _draw() -> void:
 			draw_rect(Rect2(-12, -5, 24, 10), Color(0.45, 0.75, 0.6, 0.85))
 			draw_rect(Rect2(12, -2, 6, 4), Color("6b4a2a"))
 			draw_set_transform_matrix(Transform2D.IDENTITY)
+		"smokehouse":
+			_poly([Vector2(-34, 0), Vector2(-34, -44), Vector2(34, -44), Vector2(34, 0)], WOOD)
+			_poly([Vector2(-42, -44), Vector2(0, -70), Vector2(42, -44)], FROND)
+			draw_rect(Rect2(-8, -24, 16, 24), Color(0.15, 0.1, 0.08))
+		"kiln":
+			_poly([Vector2(-30, 0), Vector2(-24, -40), Vector2(24, -40), Vector2(30, 0)], Color("a0603c"))
+			draw_rect(Rect2(-9, -16, 18, 16), Color(0.2, 0.1, 0.05))
+		"sundial":
+			draw_set_transform(Vector2(0, -2), 0.0, Vector2(1.0, 0.3))
+			draw_circle(Vector2.ZERO, 24.0, Color("bdb6a6"))
+			draw_set_transform_matrix(Transform2D.IDENTITY)
+			draw_line(Vector2(0, -2), Vector2(6, -30), WOOD, 3.0)
+		"raft_section":
+			for i in 5:
+				draw_rect(Rect2(-40 + i * 16, -10, 14, 10), WOOD)
+			draw_line(Vector2(-40, -5), Vector2(40, -5), ROPE, 2.0)
 		"stump":
 			_poly([Vector2(-12, 0), Vector2(-12, -14), Vector2(12, -14), Vector2(12, 0)], WOOD)
 			draw_set_transform(Vector2(0, -14), 0.0, Vector2(1.0, 0.35))
 			draw_circle(Vector2.ZERO, 12.0, Color("c89a66"))
 			draw_set_transform_matrix(Transform2D.IDENTITY)
+
+## Tally marks scratched on the stump (T12): bundles of five.
+func _tallies(at: Vector2) -> void:
+	var n := int(data.get("tallies", 0))
+	for i in mini(n, 15):
+		var x := -16 + i * 3 + int(i / 5) * 2
+		if i % 5 == 4:
+			draw_line(at + Vector2(x - 14, -20), at + Vector2(x, -8), LINE, 1.5)
+		else:
+			draw_line(at + Vector2(x, -22), at + Vector2(x, -8), LINE, 1.5)

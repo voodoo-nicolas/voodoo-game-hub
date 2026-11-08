@@ -1,5 +1,12 @@
 # Beached (wilson) changelog
 
+## 2026-11-08: M3 crafting and combining (not published)
+- All 42 recipes (tiers 1-4); tier 3-4 found by dragging two materials together in the bag (or two taps); "❔ ???" list with hints.
+- Tool wear (7 tools), food spoilage (fish -> guts; smokehouse slows it), clay jars +10 slots, skills (7, levels speed actions up).
+- Working structures: rain catcher + water still give drinks, fish trap catches on its own, stump / kiln / campfire menus craft there.
+- Owner art in: 8 castaway looks (19 poses, pick one on a new island), item icons, camp builds, fire parts, HUD icons.
+- Tests: 671 checks (every recipe made end to end, combine / discovery, wear, spoilage, structures, skills, storage).
+
 ## 2026-11-08: M0 + M1 + M2 (not published)
 - M0: island scene (owner's clean plate, sky cut out), real-clock day/night from daynight.json (12 keyframes on sunrise/sunset, sun + moon arcs, real moon phase, stars), sea shader (foam lines, sparkles, plankton at night), campfire (3 flame layers, sparks, smoke, flickering glow), debug panel.
 - M1: placeholder castaway; tap to walk (3 depth lanes) or tap wreckage / palms / piles / shallows / camp for actions; queue of 5 with absolute end times, caught up by timestamp while away; thought bubbles (EN/ES); journal + "While you were away".
