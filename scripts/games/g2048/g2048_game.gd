@@ -49,6 +49,8 @@ var end_buttons_box: VBoxContainer
 var touch_start: Vector2 = Vector2.ZERO
 var touch_active: bool = false
 
+var undo_state: Dictionary = {}  # the board before the last move ({} = none), for the ↩ help
+
 func _ready() -> void:
 	preload("res://scripts/games/g2048/g2048_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -89,7 +91,9 @@ func _input(event: InputEvent) -> void:
 
 func _try_move(dir: String) -> void:
 	var score_before: int = engine.score
+	var before := {"grid": engine.grid.duplicate(true), "score": engine.score}
 	if engine.move(dir):
+		undo_state = before
 		_sfx("merge" if engine.score > score_before else "slide")
 		_render()
 		if not shown_2048_banner and engine.has_2048():
@@ -342,6 +346,13 @@ func _show_end(title: String, can_continue: bool) -> void:
 			end_buttons_box.remove_child(child)
 			child.queue_free()
 
+	if not can_continue and not undo_state.is_empty():
+		var undo_btn := Button.new()
+		undo_btn.text = tr("↩ Undo last move")
+		undo_btn.custom_minimum_size = Vector2(320, 64)
+		undo_btn.pressed.connect(func(): home.try_help(_help_undo))
+		end_buttons_box.add_child(undo_btn)
+
 	if can_continue:
 		var continue_btn := Button.new()
 		continue_btn.text = tr("Keep Going")
@@ -463,6 +474,7 @@ func _build_home() -> void:
 		"resume": _resume_saved,
 		"resume_text": func(): return tr("Score: %d") % int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("score", 0)),
 		"restart": _start_new_game,
+		"helps": [{"text": "↩ Undo last move", "how": "Takes your last move back, even after Game Over.", "action": _help_undo}],
 		"board_note": "Your best score.",
 	})
 	add_child(home)
@@ -494,3 +506,17 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ↩ help: puts the board back as it was before the last move.
+func _help_undo() -> bool:
+	if undo_state.is_empty():
+		return false
+	engine.grid = undo_state.grid.duplicate(true)
+	engine.score = int(undo_state.score)
+	undo_state = {}
+	game_active = true
+	end_dialog.visible = false
+	_render()
+	return true

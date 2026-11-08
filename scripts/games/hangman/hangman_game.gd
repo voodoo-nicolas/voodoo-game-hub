@@ -295,6 +295,19 @@ func _on_letter_pressed(letter: String) -> void:
 	elif engine.is_lost():
 		_end_game(tr("Game over — the word was %s") % engine.word + _record_result("loss"), Color(0.9, 0.4, 0.4))
 
+## 💡 help (STANDARDS §17): guesses one letter that is in the word.
+func _help_letter() -> bool:
+	if not game_active or setting:
+		return false
+	var missing: Array = []
+	for ch in engine.word:
+		if letter_buttons.has(ch) and not engine.guessed.has(ch) and not missing.has(ch):
+			missing.append(ch)
+	if missing.is_empty():
+		return false
+	_on_letter_pressed(missing.pick_random())
+	return true
+
 ## A keyboard works too: letters guess (or type the word when setting),
 ## Backspace / Enter edit and finish the setter's word.
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -424,6 +437,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Reveals one missing letter of the word.", "action": _help_letter}],
 		"board": "Wins",
 		"board_note": "Words guessed on your own.",
 	})

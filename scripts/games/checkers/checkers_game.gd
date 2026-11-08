@@ -209,6 +209,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "The computer plays your best move for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Games won against the computer, at any level.",
 		"online": online,
@@ -608,3 +609,24 @@ func _move_sfx(result: Dictionary) -> void:
 		_sfx("powerup")
 	else:
 		_sfx("place")
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: the computer plays your best turn (every hop of it) for you,
+## through the same taps a player makes.
+func _help_move() -> bool:
+	if not game_active or _is_online() or engine.game_over:
+		return false
+	if _vs_cpu() and (engine.current_player != 1 or not cpu_steps.is_empty()):
+		return false
+	var steps: Array = engine.clone().cpu_turn(LEVELS.size() - 1, rng)
+	if steps.is_empty():
+		return false
+	for s in steps:
+		if selected != s[0]:
+			_tap_board(s[0])
+		_tap_board(s[1])
+	return true
+
+func _tap_board(p: Vector2i) -> void:
+	_on_square_pressed(7 - p.x if flipped else p.x, 7 - p.y if flipped else p.y)

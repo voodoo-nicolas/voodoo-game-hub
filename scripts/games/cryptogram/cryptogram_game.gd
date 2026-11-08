@@ -36,6 +36,8 @@ var checking: bool = false
 var elapsed: float = 0.0
 var playing: bool = false
 
+var hint_btn: Button  # 💡 Hint (the kit keeps its count)
+
 func _ready() -> void:
 	preload("res://scripts/games/cryptogram/cryptogram_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -129,7 +131,8 @@ func _build_ui() -> void:
 	actions.add_theme_constant_override("separation", 12)
 	row_margin.add_child(actions)
 	actions.add_child(_button(tr("✔ Check"), _on_check))
-	actions.add_child(_button(tr("💡 Hint"), _on_hint))
+	hint_btn = _button(tr("💡 Hint"), _on_hint)
+	actions.add_child(hint_btn)
 	actions.add_child(_button(tr("⌫ Clear"), _on_clear))
 
 	feedback_timer = Timer.new()
@@ -166,10 +169,12 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Decodes one letter everywhere it appears.", "action": _hint_now}],
 		"board": "Puzzles solved",
 		"board_note": "Cryptograms decoded at any level.",
 	})
 	add_child(home)
+	home.track_help_button(hint_btn, "💡 Hint")
 	if info:
 		add_child(info)
 
@@ -392,16 +397,21 @@ func _on_clear() -> void:
 		_save_game()
 
 func _on_hint() -> void:
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): decodes one letter everywhere it appears.
+func _hint_now() -> bool:
 	if engine.solved():
-		return
+		return false
 	if engine.hint() == "":
-		return
+		return false
 	selected = ""
 	_sfx("powerup")
 	_refresh()
 	_save_game()
 	if engine.solved():
 		_on_solved()
+	return true
 
 func _on_check() -> void:
 	if engine.solved():

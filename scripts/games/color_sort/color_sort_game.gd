@@ -252,6 +252,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Shows the next pour. The 💡 button spends hints you earned first, then these daily helps.", "action": _hint_now}],
 		"board": "Total stars",
 		"board_note": "Stars earned on campaign levels.",
 	})
@@ -1407,7 +1408,7 @@ func _render() -> void:
 	var locked: bool = solved_shown or ended or anim != null
 	undo_btn.disabled = not engine.can_undo() or locked
 	var campaign: bool = engine.level_no > 0
-	hint_btn.text = tr("💡 Hint (%d)") % int(progress.hints) if campaign else tr("💡 Hint")
+	hint_btn.text = tr("💡 Hint (%d)") % (int(progress.hints) + HomeKit.helps_left("color_sort")) if campaign else tr("💡 Hint")
 	hint_btn.disabled = locked
 	tube_btn.text = tr("➕ Tube (%d)") % int(progress.vials) if campaign else tr("➕ Tube")
 	tube_btn.disabled = not engine.can_add_tube() or locked or (campaign and int(progress.vials) <= 0)
@@ -1438,25 +1439,42 @@ func _unlock_effect(i: int) -> void:
 
 ## 💡 The solver's next pour, shown as two glowing vials. Costs a hint in the
 ## campaign (none left: say how to earn more); free in the quick puzzles.
+## Earned hints go first; with none left, the daily helps (STANDARDS §17:
+## 3, one back 24 h after the last used) take over.
 func _on_hint() -> void:
 	if anim != null or solved_shown or ended or not playing:
 		return
 	if engine.level_no > 0 and int(progress.hints) <= 0:
-		_toast(tr("No hints left. Win levels with 3 stars to earn more."))
+		if HomeKit.helps_left("color_sort") <= 0:
+			_toast(tr("No hints left. Win levels with 3 stars to earn more.") + " " + HomeKit.help_wait_text("color_sort"))
+		elif engine.hint().is_empty():
+			_toast(tr("No hint found. Try undoing a move."))
+		else:
+			home.try_help(_hint_now)
+			_render()
 		return
-	var h: Array = engine.hint()
-	if h.is_empty():
+	if not _hint_now():
 		_toast(tr("No hint found. Try undoing a move."))
 		return
+	if engine.level_no > 0:
+		progress.hints = int(progress.hints) - 1
+		_save_progress()
+	_render()
+
+## 💡 shows the solver's next pour (callers pay for it).
+func _hint_now() -> bool:
+	if anim != null or solved_shown or ended or not playing:
+		return false
+	var h: Array = engine.hint()
+	if h.is_empty():
+		return false
 	hint_from = int(h[0])
 	hint_to = int(h[1])
 	hint_t = 3.5
 	selected = -1
-	if engine.level_no > 0:
-		progress.hints = int(progress.hints) - 1
-		_save_progress()
 	_sfx("powerup")
 	_render()
+	return true
 
 func _toast(text: String) -> void:
 	toast_text = text

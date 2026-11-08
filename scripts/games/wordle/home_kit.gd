@@ -42,6 +42,19 @@ extends Control
 ##   Options then shows a "🎮 Controls" section (layout, look, size, opacity...).
 ##   The player's choices are saved once for every game. Older apps without the
 ##   controller simply don't show the section.
+## - Helps (STANDARDS §17; owner 2026-11-01 / 2026-11-08): every game's 💡 hint,
+##   ❤ extra life, ⏭ skip level... draws on ONE pool per game: at most HELP_MAX
+##   (3); one comes back HELP_REFILL (24 h) after the LAST help was used -- using
+##   one restarts the clock -- then one more every 24 h up to 3. cfg "helps":
+##   [{"text": "💡 Hint", "how": "Shows one good move.", "action": _hint}] puts
+##   each in the pause menu with the
+##   count; `action` returns true when it helped (one is spent) or false when
+##   it can't help right now (nothing spent, a toast says so). The kit resumes
+##   play before calling it. `home.help_button()` is a 💡 button for the game's
+##   own bar (first cfg help, or the action given); `home.try_help(action)` runs
+##   the same flow from anywhere (a game-over "Continue", say); a game's own
+##   older 💡 button: `home.track_help_button(btn)` keeps its count. Counts live in
+##   user://helps.json, per game id; `HomeKit.helps_left(id)` / `use_help(id)`.
 ## - Learning hook (§15): if the help file has `FACTS` (English strings,
 ##   through es.json like the rest), the Landing ends with a "💡 Did you
 ##   know?" card showing one at random; a tap shows the next. Facts must be
@@ -115,6 +128,10 @@ const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 const ORIENTATION_PATH := "res://scripts/common/orientation.gd"
 const HUB_SCENE := "res://scenes/hub/hub.tscn"
 const LEADERBOARD_SIZE := 10
+## Helps (see the header): the pool per game and its 24 h clock.
+const HELP_MAX := 3
+const HELP_REFILL := 86400
+const HELPS_PATH := "user://helps.json"
 
 ## Traditional colours for Classic skins (reference/art/skins/CLASSIC.md).
 const CLASSIC := {
@@ -165,6 +182,8 @@ var ach_filter: int = 0  # 0 all, 1 earned, 2 locked
 var pause_overlay: Control
 var pause_grid: GridContainer
 var _toast: Label
+var _help_btns: Array = []  # [Button, text, is_bar_button] -- pause-menu helps and help_button()s
+var _help_toast: Label  # in-game toast for helps (the pause one hides with the menu)
 var _logo: Control
 var _paused_by_me: bool = false
 var _more: GridContainer
@@ -299,6 +318,7 @@ func pause() -> void:
 	_save_game()
 	_fit_pause_layout()
 	_toast.visible = false
+	refresh_helps()
 	pause_overlay.visible = true
 	_pause_tree()
 
@@ -360,6 +380,155 @@ func pause_button(text: String = "⏸") -> Button:
 	b.add_theme_font_size_override("font_size", 30)
 	b.pressed.connect(pause)
 	return b
+
+# ---------- helps (STANDARDS §17) ----------
+
+static func _helps_all() -> Dictionary:
+	var f := FileAccess.open(HELPS_PATH, FileAccess.READ)
+	if f == null:
+		return {}
+	var d = JSON.parse_string(f.get_as_text())
+	return d if d is Dictionary else {}
+
+## Helps this game can use now: what was left at the last use, plus one per
+## full 24 h since then, up to HELP_MAX. A game never seen has all 3.
+static func helps_left(id: String) -> int:
+	var r = _helps_all().get(id)
+	if not r is Dictionary:
+		return HELP_MAX
+	var now := int(Time.get_unix_time_from_system())
+	var stamp: int = mini(int(r.get("stamp", 0)), now)  # a clock set back counts from now
+	if stamp <= 0:
+		return HELP_MAX
+	return clampi(int(r.get("left", HELP_MAX)) + (now - stamp) / HELP_REFILL, 0, HELP_MAX)
+
+## Seconds until the next help comes back (0 when all are there).
+static func help_wait(id: String) -> int:
+	if helps_left(id) >= HELP_MAX:
+		return 0
+	var r: Dictionary = _helps_all().get(id, {})
+	var now := int(Time.get_unix_time_from_system())
+	var since: int = now - mini(int(r.get("stamp", now)), now)
+	return maxi(1, HELP_REFILL - since % HELP_REFILL)
+
+## Spends one help: false when none is left. Restarts the 24 h clock.
+static func use_help(id: String) -> bool:
+	var n := helps_left(id)
+	if n <= 0:
+		return false
+	var all := _helps_all()
+	all[id] = {"left": n - 1, "stamp": int(Time.get_unix_time_from_system())}
+	var f := FileAccess.open(HELPS_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(all))
+	return true
+
+## "Next help in 5 h 12 min" (translated), or "" when all are there.
+static func help_wait_text(id: String) -> String:
+	var s := help_wait(id)
+	if s <= 0:
+		return ""
+	return str(TranslationServer.translate("Next help in %d h %d min.")) % [s / 3600, (s % 3600) / 60]
+
+func _game_id() -> String:
+	return str(consts.get("ID", cfg.get("id", "")))
+
+## Runs a help: none left -> a toast with the wait; `action` returns false ->
+## "nothing to help with" toast, nothing spent; true -> one help spent.
+func try_help(action: Callable) -> bool:
+	var id := _game_id()
+	if helps_left(id) <= 0:
+		help_toast(tr("No helps left.") + " " + help_wait_text(id))
+		return false
+	if not action.is_valid() or not action.call():
+		help_toast(tr("No help needed right now."))
+		return false
+	use_help(id)
+	refresh_helps()
+	return true
+
+## A 💡 button for the game's own bar showing the count; runs `action` (or
+## cfg "helps"[0]) through try_help().
+func help_button(text: String = "💡", action: Callable = Callable()) -> Button:
+	if not action.is_valid():
+		var hs: Array = cfg.get("helps", [])
+		action = hs[0].get("action", Callable()) if not hs.is_empty() else Callable()
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(96, 64)
+	b.add_theme_font_size_override("font_size", 28)
+	b.pressed.connect(_on_bar_help.bind(action))
+	_help_btns.append([b, text, true])
+	refresh_helps()
+	return b
+
+## A game's own help button, built before the kit: the kit keeps its text as
+## `text` + the count. Connect its pressed to `home.try_help(action)` yourself.
+func track_help_button(b: Button, text: String = "💡") -> void:
+	_help_btns.append([b, text, true])
+	refresh_helps()
+
+func _on_bar_help(action: Callable) -> void:
+	try_help(action)
+
+## Updates every help button's count (the kit does it on pause and after a help).
+func refresh_helps() -> void:
+	var id := _game_id()
+	var n := helps_left(id)
+	var keep: Array = []
+	for e in _help_btns:
+		if not is_instance_valid(e[0]):
+			continue
+		keep.append(e)
+		var b: Button = e[0]
+		if e[2]:  # the game's bar button: icon + count
+			b.text = ("%s (%d)" if " " in str(e[1]) else "%s%d") % [tr(e[1]), n]
+			b.tooltip_text = help_wait_text(id)
+		elif n > 0:
+			b.text = "%s  (%d)" % [tr(e[1]), n]
+		else:
+			b.text = "%s  · %s" % [tr(e[1]), _short_wait(help_wait(id))]
+		b.modulate.a = 1.0 if n > 0 else 0.55
+	_help_btns = keep
+
+static func _short_wait(s: int) -> String:
+	return "%dh %02dm" % [s / 3600, (s % 3600) / 60]
+
+## A short message over the game (the pause menu's toast hides with it).
+func help_toast(text: String, secs: float = 3.0) -> void:
+	if _help_toast == null:
+		_help_toast = label("", 26, WHITE, true, true)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(PANEL, 0.94)
+		sb.border_color = Color(GOLD, 0.8)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(14)
+		sb.set_content_margin_all(16)
+		_help_toast.add_theme_stylebox_override("normal", sb)
+		_help_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_help_toast.z_index = 100  # over the game's own dialogs (a game-over "❤ Extra life")
+		add_child(_help_toast)
+	var view := get_viewport_rect().size
+	var w: float = minf(620.0, view.x - 48.0)
+	_help_toast.text = text
+	_help_toast.custom_minimum_size = Vector2(w, 0)
+	_help_toast.reset_size()
+	_help_toast.position = Vector2((view.x - w) / 2.0, view.y * 0.72)
+	_help_toast.visible = true
+	_help_toast.modulate.a = 1.0
+	move_child(_help_toast, get_child_count() - 1)
+	var tw := create_tween()
+	tw.tween_interval(secs)
+	tw.tween_property(_help_toast, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(_help_toast.hide)
+
+func _on_pause_help(action: Callable) -> void:
+	if helps_left(_game_id()) <= 0:
+		_toast.text = tr("No helps left.") + " " + help_wait_text(_game_id())
+		_toast.visible = true
+		return
+	resume_play()
+	try_help(action)
 
 ## A section heading in the kit's style, for a game's "extra" controls.
 func section(text: String) -> Label:
@@ -1006,6 +1175,12 @@ func _build_info_overlay() -> void:
 		_info_section(body, tr("📋 How to Play"), consts.HOW, BUTTON)
 	if consts.has("TIPS"):
 		_info_section(body, tr("💡 Tips"), consts.TIPS, BUTTON)
+	if not cfg.get("helps", []).is_empty():
+		var lines: Array = []
+		for h in cfg.helps:
+			lines.append(tr(str(h.get("text", ""))) + ": " + tr(str(h.get("how", ""))))
+		lines.append("You hold up to 3 helps in this game (⏸ pause menu). One comes back 24 hours after the last one you used, then one more every 24 hours.")
+		_info_section(body, tr("🛟 Helps"), lines, BUTTON)
 
 func _info_section(body: VBoxContainer, heading: String, lines: Array, color: Color) -> void:
 	body.add_child(label(heading, 30, color))
@@ -1486,6 +1661,8 @@ func _build_pause_overlay() -> void:
 	pause_grid.add_theme_constant_override("v_separation", 14)
 	box.add_child(pause_grid)
 	var specs := [[tr("▶  Resume"), GO, resume_play]]
+	for h in cfg.get("helps", []):
+		specs.append([str(h.get("text", "💡 Hint")), BUTTON, _on_pause_help.bind(h.get("action", Callable())), true])
 	if cfg.has("restart"):
 		specs.append([tr("↺  Restart"), BUTTON, _on_restart])
 	specs.append([tr("❓ How to Play"), BUTTON, _show_overlay.bind(null, "info")])
@@ -1499,6 +1676,9 @@ func _build_pause_overlay() -> void:
 		var b := neon_button(s[0], s[1], 28, 74)
 		b.pressed.connect(s[2])
 		pause_grid.add_child(b)
+		if s.size() > 3:
+			_help_btns.append([b, s[0], false])
+	refresh_helps()
 	_toast = label("", 24, GO, true, true)
 	_toast.visible = false
 	box.add_child(_toast)

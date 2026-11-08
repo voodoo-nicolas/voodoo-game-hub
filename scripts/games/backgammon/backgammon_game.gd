@@ -608,6 +608,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "After you roll, the computer plays your best moves for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
 		"online": online,
@@ -782,3 +783,16 @@ func _play_music() -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play("calm", self, 2, 2.0)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: once you have rolled, the computer plays your whole turn its way.
+func _help_move() -> bool:
+	if _is_online() or not _is_person_turn() or dice.is_empty() or legal.is_empty():
+		return false
+	var side := turn
+	for m in BgEngine.best_turn(engine.state, turn, dice):
+		if turn != side or dice.is_empty() or not legal.has(m):
+			break
+		_do_human_move(m)
+	return true

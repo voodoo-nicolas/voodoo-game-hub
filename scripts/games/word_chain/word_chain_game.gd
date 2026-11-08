@@ -197,6 +197,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Types a word that fits the chain for you.", "action": _help_word}],
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
 	})
@@ -489,3 +490,19 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: types an unused word that starts with the needed letter.
+func _help_word() -> bool:
+	if thinking or not playing or engine.is_over():
+		return false
+	var pool: Array = engine._free(engine.common_by_first.get(engine.need, []))
+	if pool.is_empty():
+		pool = engine._free(engine.by_first.get(engine.need, []))
+	if pool.is_empty():
+		return false
+	typed = str(pool.pick_random())
+	_sfx("powerup")
+	_render()
+	return true

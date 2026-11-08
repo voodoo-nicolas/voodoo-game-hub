@@ -381,6 +381,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr("Guess %d of 6") % (d.guesses.size() + 1),
 		"restart": _new_game,
+		"helps": [{"text": "💡 Hint", "how": "Tells you one letter of the word and where it goes.", "action": _help_letter}],
 		"board": "Wins",
 		"board_note": "Words guessed on your own.",
 	})
@@ -435,3 +436,24 @@ func _load_saved_game() -> void:
 		engine.guesses.append(str(g))
 		engine.marks.append(WordleEngine.score_guess(str(g), engine.answer))
 	_render()
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: tells one letter of the answer and its place (one you have
+## not already got green).
+func _help_letter() -> bool:
+	if not playing or setting or engine.game_over or engine.answer == "":
+		return false
+	var open: Array = []
+	for i in engine.answer.length():
+		var got := false
+		for g in engine.marks.size():
+			got = got or engine.marks[g][i] == WordleEngine.Mark.CORRECT
+		if not got:
+			open.append(i)
+	if open.is_empty():
+		return false
+	var i: int = open.pick_random()
+	message_label.text = "💡 " + tr("Letter %d is %s") % [i + 1, engine.answer[i].to_upper()]
+	_sfx("powerup")
+	return true

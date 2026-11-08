@@ -394,6 +394,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr(str(d.difficulty).capitalize()),
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Opens one safe square for you, next to the ones you have opened.", "action": _help_safe}],
 		"board": "Wins",
 		"board_note": "Boards cleared, any size.",
 	})
@@ -465,3 +466,30 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: opens one square without a mine, next to the open area when it can.
+func _help_safe() -> bool:
+	if engine.game_over or not engine.mines_placed:
+		return false
+	var near: Array = []
+	var any: Array = []
+	for r in engine.rows:
+		for c in engine.cols:
+			if engine.revealed[r][c] or engine.mines[r][c] or engine.flagged[r][c]:
+				continue
+			any.append(Vector2i(r, c))
+			for n in engine.neighbors(r, c):
+				if engine.revealed[n.x][n.y]:
+					near.append(Vector2i(r, c))
+					break
+	var pick: Array = near if not near.is_empty() else any
+	if pick.is_empty():
+		return false
+	var p: Vector2i = pick.pick_random()
+	var was := flag_mode
+	flag_mode = false
+	_on_cell_pressed(p.x, p.y)
+	flag_mode = was
+	return true

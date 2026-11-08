@@ -301,6 +301,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "The computer plays your best move for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Games won against the computer, at any level.",
 		"online": online,
@@ -1599,3 +1600,18 @@ class EvalBar extends Control:
 		var on_white: bool = white_ahead
 		draw_string(font, Vector2(x, size.y / 2.0 + font.get_ascent(fs) * 0.38), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
 			Color(0.1, 0.1, 0.1) if on_white else Color(0.95, 0.93, 0.88))
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: the computer plays the move it thinks best for your side.
+func _help_move() -> bool:
+	if not game_active or _in_lesson() or _is_online() or promotion_dialog.visible or lesson_busy:
+		return false
+	if _vs_cpu() and (engine.current_player != ChessEngine.WHITE or cpu_busy):
+		return false
+	var mv: Dictionary = engine.clone().cpu_move(1, rng)
+	if mv.is_empty():
+		return false
+	selected = Vector2i(-1, -1)
+	_apply_move(mv.from, mv.to, ChessEngine.QUEEN)
+	return true

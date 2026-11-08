@@ -279,6 +279,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr("%d discs") % int(d.discs),
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Makes the next move of the shortest way from where you are.", "action": _help_move}],
 		"board": "Puzzles solved",
 		"board_note": "Towers moved, all sizes.",
 	})
@@ -339,3 +340,33 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: makes the next move of the shortest way from this position.
+func _help_move() -> bool:
+	if not started or win_dialog.visible or engine.is_solved():
+		return false
+	var m: Array = _first_move(engine.discs, 2)
+	if m.is_empty() or not engine.move(m[0], m[1]):
+		return false
+	_sfx("place")
+	lifted = -1
+	if engine.is_solved():
+		_on_solved()
+	_refresh()
+	return true
+
+## First move that puts discs 1..k on peg `target` (the classic recursion,
+## from any legal position): [from, to], or [] when they are there already.
+func _first_move(k: int, target: int) -> Array:
+	if k <= 0:
+		return []
+	var src := 0
+	for p in 3:
+		if engine.pegs[p].has(k):
+			src = p
+	if src == target:
+		return _first_move(k - 1, target)
+	var m := _first_move(k - 1, 3 - src - target)
+	return [src, target] if m.is_empty() else m

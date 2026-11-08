@@ -333,6 +333,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): return "%d × %d%s" % [int(SaveUtil.read(SAVE_PATH).get("n", 4)), int(SaveUtil.read(SAVE_PATH).get("n", 4)), " (+ −)" if SaveUtil.read(SAVE_PATH).get("easy", false) else ""] if SaveUtil.read(SAVE_PATH) else "",
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Fills in one square (the one you picked, if it is empty or wrong).", "action": _help_fill}],
 		"board": "Puzzles solved",
 		"board_note": "Puzzles solved, all sizes.",
 	})
@@ -406,3 +407,21 @@ func _load_saved_game() -> void:
 	size_btn.text = tr("Size: %d×%d") % [engine.n, engine.n]
 	_rebuild_pad()
 	board.queue_redraw()
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: fills one square with its answer -- the selected one if it is
+## empty or wrong, else one at random.
+func _help_fill() -> bool:
+	if not started or win_dialog.visible or engine.is_solved():
+		return false
+	var open: Array = []
+	for i in engine.values.size():
+		if engine.values[i] != engine.solution[i]:
+			open.append(i)
+	if open.is_empty():
+		return false
+	if not open.has(selected):
+		selected = open.pick_random()
+	_on_number(engine.solution[selected])
+	return true

@@ -141,7 +141,7 @@ Vs CPU · Custom. Difficulty: Easy · Normal · Hard (+ Expert where meaningful)
 
 ## 6. In-game: pause / exit / resume [CURRENT → extended]
 - Visible pause button inside the safe area.
-- Pause menu: Resume · Restart · How to Play · 🏆 Leaderboard · 📊 Stats · 📸 Screenshot · ⚙ Options · 🏠 Home.
+- Pause menu: Resume · [helps, §17] · Restart · How to Play · 🏆 Leaderboard · 📊 Stats · 📸 Screenshot · ⚙ Options · 🏠 Home.
   (No Hub link — rule N1.) Online matches: same menu without Restart, game keeps running, "Leave match" replaces Home.
 - Save on pause/exit with `SaveUtil`; Resume appears on the Landing.
 - [CHANGED] **The floating ⚙ SettingsDrawer is removed.** Its items moved: How to Play, 🏆, 📊, 📸 → pause menu;
@@ -359,3 +359,19 @@ says so in its notes.
   shared controller. Physical gamepad support is [OPEN]: no shared input layer exists yet (`HUB_V2_PLAN.md`
   decides). Until then a game offers controller options only where it has a mode for them.
 - A new shared piece goes in the shared folder the first time a second game needs it, not later.
+
+## 17. Helps: hints, extra lives, skips [NEW 2026-11-08, owner]
+Every game gives the player **helps**: a 💡 hint, ❤ extra life, ⏭ skip level, ↩ undo, 🎲 reroll... whatever
+fits the game. Purpose: bring players back daily, without ads.
+- **One pool per game, 3 max.** All of a game's helps draw on it. **One comes back 24 h after the LAST help was
+  used** (using one restarts the clock), then one more every 24 h, up to 3. A game never played has 3.
+- Shared code only: the Landing kit (cfg `"helps"`, `home.help_button()`, `home.try_help()`,
+  `home.track_help_button()`; `HomeKit.helps_left(id)` / `use_help(id)` for games without kit screens).
+  Stored in `user://helps.json` per game id. No game keeps its own hint clock.
+- Each help is in the ⏸ pause menu with its count (or the wait) and in How to Play (🛟 Helps: what each does,
+  plus the rule). A game may also put a 💡 button in its own bar. A help that can't do anything right now
+  costs nothing ("No help needed right now").
+- Online matches and scored tests never offer helps (they would change someone else's result or the score's
+  meaning): Voodoo IQ is exempt. Party games with nothing to help with are exempt too; the exempt list is in
+  `tools/hub.py` (`NO_HELPS`) with the reason for each.
+- Cross-device sync and the anonymous "who sits at 3 / who waits" counter are not built (APP_BUILD_BACKLOG).

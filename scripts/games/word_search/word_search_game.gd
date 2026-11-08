@@ -242,24 +242,7 @@ func _on_board_input(event: InputEvent) -> void:
 			drag_end = drag_start
 		elif drag_start.x >= 0:
 			if engine.try_select(drag_start, drag_end) >= 0:
-				_update_list()
-				if engine.all_found():
-					SaveUtil.delete(SAVE_PATH)
-					var secs := 0.0
-					var record := false
-					if info:
-						info.add("Puzzles solved")
-						info.celebrate("Solved!")
-						secs = info.stop_clock()
-						record = info.low("Best time (%s)" % WSEngine.LEVELS[engine.level].name, secs)
-					win_dialog.get_meta("message_label").text = tr("You found all %d words.") % engine.words.size()
-					if info:
-						win_dialog.get_meta("message_label").text += "\n" + tr("Time: %d:%02d") % [int(secs) / 60, int(secs) % 60]
-						if record:
-							win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
-					win_dialog.visible = true
-				else:
-					_sfx("letter_right")
+				_after_found()
 			drag_start = Vector2i(-1, -1)
 		board.queue_redraw()
 	elif event is InputEventMouseMotion and drag_start.x >= 0:
@@ -276,6 +259,27 @@ func _on_board_input(event: InputEvent) -> void:
 			var n: int = min(abs(d.x), abs(d.y))
 			drag_end = drag_start + Vector2i(signi(d.x) * n, signi(d.y) * n)
 		board.queue_redraw()
+
+## A word was just found (by a drag or the 💡 help).
+func _after_found() -> void:
+	_update_list()
+	if engine.all_found():
+		SaveUtil.delete(SAVE_PATH)
+		var secs := 0.0
+		var record := false
+		if info:
+			info.add("Puzzles solved")
+			info.celebrate("Solved!")
+			secs = info.stop_clock()
+			record = info.low("Best time (%s)" % WSEngine.LEVELS[engine.level].name, secs)
+		win_dialog.get_meta("message_label").text = tr("You found all %d words.") % engine.words.size()
+		if info:
+			win_dialog.get_meta("message_label").text += "\n" + tr("Time: %d:%02d") % [int(secs) / 60, int(secs) % 60]
+			if record:
+				win_dialog.get_meta("message_label").text += "  ·  " + tr("New best!")
+		win_dialog.visible = true
+	else:
+		_sfx("letter_right")
 
 func _sfx(sound: String) -> void:
 	var sfx = get_node_or_null("/root/Sfx")
@@ -301,6 +305,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Finds one of the words for you.", "action": _help_word}],
 		"board": "Puzzles solved",
 		"board_note": "Puzzles solved, every level.",
 	})
@@ -370,3 +375,22 @@ func _load_saved_game() -> void:
 	theme_label.text = tr("Theme: %s") % engine.theme
 	_update_list()
 	board.queue_redraw()
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: finds one word for you.
+func _help_word() -> bool:
+	if not started or win_dialog.visible or engine.all_found():
+		return false
+	var left: Array = []
+	for w in engine.words:
+		if not w.found:
+			left.append(w)
+	if left.is_empty():
+		return false
+	var w: Dictionary = left.pick_random()
+	if engine.try_select(w.start, w.start + w.dir * (w.word.length() - 1)) < 0:
+		return false
+	_after_found()
+	board.queue_redraw()
+	return true

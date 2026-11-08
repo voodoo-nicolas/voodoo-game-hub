@@ -223,6 +223,8 @@ func _show_question() -> void:
 	for i in 4:
 		answer_buttons[i].text = str(engine.choices[i])
 		_paint(answer_buttons[i], COLOR_BUTTON)
+		answer_buttons[i].disabled = false
+		answer_buttons[i].modulate.a = 1.0
 	count_label.text = tr("Question %d of %d") % [engine.index + 1, engine.QUESTIONS]
 	score_label.text = tr("Score: %d") % engine.score
 	feedback_label.text = " "
@@ -350,6 +352,7 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "▶  Play", "sub": "Until three misses", "action": _start_game}],
 		"restart": _start_game,
+		"helps": [{"text": "✂ 50:50", "how": "Takes away two wrong answers.", "action": _help_fifty}],
 		"board_note": "Your best score.",
 	})
 	add_child(home)
@@ -365,3 +368,21 @@ func _draw_home_logo(c: Control) -> void:
 	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
 	HomeKit.glow_text(c, ctr + Vector2(0, -h * 0.12), "2  4  8  16", int(h * 0.26), HomeKit.LIME)
 	HomeKit.glow_text(c, ctr + Vector2(0, h * 0.25), "?", int(h * 0.34), HomeKit.GOLD)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ✂ help: takes away two wrong answers.
+func _help_fifty() -> bool:
+	if not answering:
+		return false
+	var wrong: Array = []
+	for i in 4:
+		if i != engine.correct_index and not answer_buttons[i].disabled:
+			wrong.append(i)
+	if wrong.size() < 2:
+		return false
+	wrong.shuffle()
+	for i in wrong.slice(0, 2):
+		answer_buttons[i].disabled = true
+		answer_buttons[i].modulate.a = 0.25
+	return true

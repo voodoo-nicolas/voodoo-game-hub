@@ -35,6 +35,8 @@ var font: Font
 var started := false  # a puzzle is on (not just the one behind Home)
 var puzzle_seed: int = 0
 
+var reveal_btn: Button  # Reveal letter (the kit keeps its count)
+
 func _ready() -> void:
 	preload("res://scripts/games/crossword/crossword_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -119,7 +121,8 @@ func _build_ui() -> void:
 	root.add_child(tools)
 	tools.add_child(_tool_button("◀", _jump.bind(-1), 0.14))
 	tools.add_child(_tool_button(tr("Check"), _on_check, 0.3))
-	tools.add_child(_tool_button(tr("Reveal letter"), _on_reveal, 0.38))
+	reveal_btn = _tool_button(tr("Reveal letter"), _on_reveal, 0.38)
+	tools.add_child(reveal_btn)
 	tools.add_child(_tool_button("▶", _jump.bind(1), 0.14))
 
 	keyboard = VBoxContainer.new()
@@ -265,10 +268,15 @@ func _on_check() -> void:
 	board.queue_redraw()
 
 func _on_reveal() -> void:
-	if cursor.x < 0:
-		return
+	home.try_help(_reveal_now)
+
+## 💡 help (STANDARDS §17): fills the square under the cursor with its letter.
+func _reveal_now() -> bool:
+	if cursor.x < 0 or not started or engine.letters.get(cursor, "") == engine.solution[cursor]:
+		return false
 	engine.letters[cursor] = engine.solution[cursor]
 	_on_key(engine.solution[cursor])
+	return true
 
 # ---------- drawing ----------
 
@@ -366,10 +374,12 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): return tr("%d letters in") % int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("letters", []).size()),
 		"restart": _new_crossword,
+		"helps": [{"text": "💡 Reveal letter", "how": "Fills the square under the cursor with its letter.", "action": _reveal_now}],
 		"board": "Puzzles solved",
 		"board_note": "Crosswords solved, all time.",
 	})
 	add_child(home)
+	home.track_help_button(reveal_btn, "Reveal letter")
 
 func _on_pause_home() -> void:
 	home.pause()

@@ -261,6 +261,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else tr("Pegs left: %d") % int(d.get("left", 0)),
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Makes a good jump for you: the one that leaves you the most jumps after it.", "action": _help_jump}],
 		"board": "Games solved",
 		"board_note": "Boards solved down to one peg.",
 	})
@@ -316,3 +317,40 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: makes the jump that leaves the most jumps open afterwards.
+func _help_jump() -> bool:
+	if end_dialog.visible or not engine.has_moves():
+		return false
+	var best: Array = []
+	var best_n := -1
+	for r in PegEngine.SIZE:
+		for c in PegEngine.SIZE:
+			if not PegEngine.is_hole(r, c) or engine.at(r, c) != PegEngine.PEG:
+				continue
+			for t in engine.targets_from(r, c):
+				if not engine.try_move(r, c, t.y, t.x):
+					continue
+				var n := _jumps_open()
+				engine.undo()
+				if n > best_n or (n == best_n and randf() < 0.5):
+					best_n = n
+					best = [r, c, t.y, t.x]
+	if best.is_empty():
+		return false
+	engine.try_move(best[0], best[1], best[2], best[3])
+	_sfx("capture")
+	selected = Vector2i(-1, -1)
+	_refresh()
+	_check_end()
+	return true
+
+func _jumps_open() -> int:
+	var n := 0
+	for r in PegEngine.SIZE:
+		for c in PegEngine.SIZE:
+			if PegEngine.is_hole(r, c) and engine.at(r, c) == PegEngine.PEG:
+				n += engine.targets_from(r, c).size()
+	return n

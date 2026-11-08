@@ -35,6 +35,8 @@ var sel: int = -1             # tile of the bottom word being changed
 var feedback_timer: Timer
 var round_started: bool = false
 
+var hint_btn: Button  # 💡 Hint (the kit keeps its count)
+
 func _ready() -> void:
 	preload("res://scripts/games/word_ladder/word_ladder_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -134,7 +136,8 @@ func _build_ui() -> void:
 	action_row.add_theme_constant_override("separation", 12)
 	row_margin.add_child(action_row)
 	action_row.add_child(_button(tr("↩ Undo"), _on_undo))
-	action_row.add_child(_button(tr("💡 Hint"), _on_hint))
+	hint_btn = _button(tr("💡 Hint"), _on_hint)
+	action_row.add_child(hint_btn)
 	action_row.add_child(_button(tr("Skip"), _on_skip))
 
 	feedback_timer = Timer.new()
@@ -170,9 +173,11 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Plays the next word of a shortest ladder.", "action": _hint_now}],
 		"board_note": "Your best round: up to 100 points a ladder, less for extra steps and hints.",
 	})
 	add_child(home)
+	home.track_help_button(hint_btn, "💡 Hint")
 	if info:
 		add_child(info)
 
@@ -407,11 +412,15 @@ func _on_undo() -> void:
 		_save_game()
 
 func _on_hint() -> void:
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): plays the next word of a shortest ladder.
+func _hint_now() -> bool:
 	if engine.is_over() or engine.solved():
-		return
+		return false
 	var w := engine.hint()
 	if w == "":
-		return
+		return false
 	sel = -1
 	_sfx("powerup")
 	_feedback(tr("💡 Try %s") % w.to_upper(), Color(0.9, 0.8, 0.4))
@@ -419,6 +428,7 @@ func _on_hint() -> void:
 	_save_game()
 	if engine.solved():
 		_on_solved()
+	return true
 
 func _on_skip() -> void:
 	if engine.is_over() or engine.solved():

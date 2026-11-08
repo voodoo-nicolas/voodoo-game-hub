@@ -487,6 +487,7 @@ func _build_ui() -> void:
 	_build_popup()
 
 	end_dialog = UI.build_dialog("", [
+		{"text": tr("❤ Extra life"), "action": _on_extra_life},
 		{"text": tr("Play Again"), "action": _new_game},
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
@@ -511,6 +512,7 @@ func _build_ui() -> void:
 			{"text": "Hard", "key": "hard", "row": "diff", "action": _start_run.bind("hard")},
 		],
 		"restart": _new_game,
+		"helps": [{"text": "❤ Extra life", "how": "After you die, brings you back at the start of your size, with everything you evolved.", "action": _help_life}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -1753,3 +1755,20 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+func _on_extra_life() -> void:
+	home.try_help(_help_life)
+
+## ❤ help: from the game-over card, back to life (as endless mode revives).
+func _help_life() -> bool:
+	if started or engine == null or engine.alive or not end_dialog.visible:
+		return false
+	end_dialog.visible = false
+	engine.revive()
+	started = true
+	hurt = 0.0
+	_play_music()
+	_sfx("powerup")
+	return true

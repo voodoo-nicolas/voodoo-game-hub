@@ -245,6 +245,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): return tr("Moves: %d") % int(SaveUtil.read(SAVE_PATH).get("moves", 0)) if SaveUtil.read(SAVE_PATH) else "",
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Presses one light that is part of the shortest way out.", "action": _help_press}],
 		"board": "Puzzles solved",
 		"board_note": "Puzzles solved, all time.",
 	})
@@ -301,3 +302,38 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: presses one light from the shortest solution (first row tried every
+## way, then each light chased down by the row under it).
+func _help_press() -> bool:
+	if win_dialog.visible or engine.is_solved():
+		return false
+	var n: int = engine.SIZE
+	var best: Array = []
+	for mask in 1 << n:
+		var g: Array = []
+		for row in engine.grid:
+			g.append(row.duplicate())
+		var presses: Array = []
+		for r in n:
+			for c in n:
+				var press: bool = ((mask >> c) & 1) == 1 if r == 0 else g[r - 1][c]
+				if press:
+					presses.append(Vector2i(r, c))
+					for d in [Vector2i(0, 0), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]:
+						var rr: int = r + d.x
+						var cc: int = c + d.y
+						if rr >= 0 and rr < n and cc >= 0 and cc < n:
+							g[rr][cc] = not g[rr][cc]
+		var clear := true
+		for v in g[n - 1]:
+			clear = clear and not v
+		if clear and (best.is_empty() or presses.size() < best.size()):
+			best = presses
+	if best.is_empty():
+		return false
+	var p: Vector2i = best.pick_random()
+	_on_cell_pressed(p.x, p.y)
+	return true

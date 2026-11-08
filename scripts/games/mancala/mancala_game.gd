@@ -169,6 +169,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "The computer plays your best move for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Games won against the computer, at any level.",
 		"online": online,
@@ -486,3 +487,17 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: the computer sows your best pit for you.
+func _help_move() -> bool:
+	if not game_active or _is_online():
+		return false
+	if _vs_cpu() and engine.current_player != 1:
+		return false
+	var pit: int = engine.cpu_move(LEVELS.size() - 1, rng)
+	if pit < 0:
+		return false
+	_on_pit_pressed(pit)
+	return true

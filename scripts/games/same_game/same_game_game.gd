@@ -134,6 +134,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Picks the biggest group on the board: tap it to clear it.", "action": _help_group}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -336,3 +337,24 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: picks out the biggest group (tap it to clear it).
+func _help_group() -> bool:
+	if finished or not engine.has_moves():
+		return false
+	var best: Array = []
+	for x in engine.cols:
+		for y in engine.rows:
+			if engine.at(x, y) == SgEngine.EMPTY:
+				continue
+			var g: Array = engine.group(x, y)
+			if g.size() >= 2 and g.size() > best.size():
+				best = g
+	if best.is_empty():
+		return false
+	picked = best
+	_sfx("toggle")
+	_render()
+	return true

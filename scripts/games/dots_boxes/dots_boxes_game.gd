@@ -151,6 +151,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart_same,
+		"helps": [{"text": "💡 Hint", "how": "The computer draws your best line for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
 		"online": online,
@@ -1059,3 +1060,18 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: the computer draws your best line for you.
+func _help_move() -> bool:
+	if not game_active or _is_online() or engine.game_over:
+		return false
+	if vs_computer and engine.current_player == AI_PLAYER:
+		return false
+	var m: Dictionary = engine.pick_ai_move()
+	if m.is_empty():
+		return false
+	selected_edge = null
+	_commit_edge(m.o, m.r, m.c)
+	return true

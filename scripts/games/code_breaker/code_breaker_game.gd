@@ -351,6 +351,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): return tr("Try %d of %d") % [int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("guesses", []).size()) + 1, CBEngine.MAX_GUESSES],
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Puts one right colour in its right spot in your guess.", "action": _help_peg}],
 		"board": "Wins",
 		"board_note": "Codes cracked on your own.",
 	})
@@ -425,3 +426,21 @@ func _play_music() -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play("calm", self, 3, 2.0)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: puts one colour of the secret code in its spot in the guess.
+func _help_peg() -> bool:
+	if not started or setting or two_player or engine.is_over():
+		return false
+	var slots: Array = []
+	for i in CBEngine.SLOTS:
+		if current[i] != engine.secret[i]:
+			slots.append(i)
+	if slots.is_empty():
+		return false
+	var i: int = slots.pick_random()
+	current[i] = engine.secret[i]
+	_sfx("place")
+	_refresh()
+	return true

@@ -302,6 +302,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Fixes one square: fills one that belongs to the picture, or clears a wrong one.", "action": _help_fill}],
 		"board": "Puzzles solved",
 		"board_note": "Pictures revealed, all sizes.",
 	})
@@ -382,3 +383,28 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: fills one square of the picture (or clears a wrong one).
+func _help_fill() -> bool:
+	if not started or win_dialog.visible or engine.is_solved():
+		return false
+	var fill: Array = []
+	var wrong: Array = []
+	for r in engine.n:
+		for c in engine.n:
+			var want: int = engine.solution[r * engine.n + c]
+			var have: int = engine.get_cell(r, c)
+			if want == 1 and have != NonoEngine.FILLED:
+				fill.append(Vector2i(c, r))
+			elif want == 0 and have == NonoEngine.FILLED:
+				wrong.append(Vector2i(c, r))
+	var pick: Array = wrong if not wrong.is_empty() else fill
+	if pick.is_empty():
+		return false
+	var cell: Vector2i = pick.pick_random()
+	paint_value = NonoEngine.EMPTY if pick == wrong else NonoEngine.FILLED
+	_paint(cell)
+	painting = false
+	return true

@@ -33,6 +33,8 @@ var best: int = 0
 var locked: int = 0         # letters fixed in place by hints
 var feedback_timer: Timer
 
+var hint_btn: Button  # 💡 Hint (the kit keeps its count)
+
 func _ready() -> void:
 	preload("res://scripts/games/anagrams/anagrams_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -125,7 +127,8 @@ func _build_ui() -> void:
 	root.add_child(rm)
 	row.add_child(_button(tr("🔀 Shuffle"), _on_shuffle))
 	row.add_child(_button(tr("Clear"), _on_clear))
-	row.add_child(_button(tr("💡 Hint"), _on_hint))
+	hint_btn = _button(tr("💡 Hint"), _on_hint)
+	row.add_child(hint_btn)
 	row.add_child(_button(tr("Skip"), _on_skip))
 
 	feedback_timer = Timer.new()
@@ -296,8 +299,12 @@ func _on_clear() -> void:
 	_render()
 
 func _on_hint() -> void:
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): places the next letter of the answer.
+func _hint_now() -> bool:
 	if engine.is_over() or locked >= engine.target.length() - 1:
-		return
+		return false
 	engine.hints += 1
 	locked += 1
 	# rebuild: first `locked` letters of the answer, taken from the tiles
@@ -309,6 +316,7 @@ func _on_hint() -> void:
 				picked.append(i)
 				break
 	_render()
+	return true
 
 func _on_skip() -> void:
 	if engine.is_over():
@@ -333,9 +341,11 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "Places the next letter of the answer.", "action": _hint_now}],
 		"board_note": "Your best round: 10 points per letter, halved on hinted words.",
 	})
 	add_child(home)
+	home.track_help_button(hint_btn, "💡 Hint")
 
 func _on_pause_home() -> void:
 	home.pause()

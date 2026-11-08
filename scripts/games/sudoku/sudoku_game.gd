@@ -5,6 +5,8 @@ const CellButton = preload("res://scripts/games/sudoku/cell_button.gd")
 const GridLines = preload("res://scripts/games/sudoku/grid_lines.gd")
 const SudokuHome = preload("res://scripts/games/sudoku/sudoku_home.gd")
 const SudokuHints = preload("res://scripts/games/sudoku/sudoku_hints.gd")
+## Only for the shared helps pool (STANDARDS §17): 3 hints, one back 24 h after the last one used.
+const HelpPool = preload("res://scripts/games/sudoku/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -409,7 +411,7 @@ func _build_game_screen() -> void:
 	notes_button.pressed.connect(_on_notes_toggled)
 	controls.add_child(notes_action.control)
 
-	var hint_action := _icon_action_button("💡", tr("Hint: %d") % hints_remaining)
+	var hint_action := _icon_action_button("💡", tr("Hint: %d") % HelpPool.helps_left("sudoku"))
 	hint_label = hint_action.text_label
 	hint_action.button.pressed.connect(_on_hint_pressed)
 	controls.add_child(hint_action.control)
@@ -795,7 +797,7 @@ func _on_generation_complete(result: Dictionary) -> void:
 	scored_cells = {}
 	hint_elim = {}
 	_clear_hint()
-	hint_label.text = tr("Hint: %d") % hints_remaining
+	hint_label.text = tr("Hint: %d") % HelpPool.helps_left("sudoku")
 	selected = Vector2i(-1, -1)
 	notes_mode = false
 	notes_status_label.text = tr("Notes: Off")
@@ -981,7 +983,7 @@ func _on_hint_pressed() -> void:
 				hint_step = 2
 				_show_hint()
 				return
-	if hints_remaining <= 0:
+	if HelpPool.helps_left("sudoku") <= 0:
 		current_hint = {"kind": "none", "cell": -1, "cells": [], "unit": []}
 		hint_step = 2
 		_show_hint()
@@ -998,7 +1000,8 @@ func _on_hint_pressed() -> void:
 		hint_elim[key] = true
 	hint_step = 1
 	hints_remaining -= 1
-	hint_label.text = tr("Hint: %d") % hints_remaining
+	HelpPool.use_help("sudoku")
+	hint_label.text = tr("Hint: %d") % HelpPool.helps_left("sudoku")
 	_show_hint()
 
 func _show_hint() -> void:
@@ -1009,7 +1012,7 @@ func _show_hint() -> void:
 		"error":
 			t = tr("A red number is wrong. Erase it first, then ask again.")
 		"none":
-			t = tr("No hints left for this puzzle. Look for a number that fits in only one square of a box.")
+			t = tr("No hints left. Look for a number that fits in only one square of a box.") + " " + HelpPool.help_wait_text("sudoku")
 		"hidden":
 			if hint_step == 1:
 				t = {"box": tr("Look at the highlighted box. The %d fits in only one of its squares. Can you find it?"),
@@ -1297,7 +1300,7 @@ func _load_saved_game() -> void:
 	notes_mode = false
 	notes_status_label.text = tr("Notes: Off")
 	notes_button.button_pressed = false
-	hint_label.text = tr("Hint: %d") % hints_remaining
+	hint_label.text = tr("Hint: %d") % HelpPool.helps_left("sudoku")
 
 	var values: Array = data.values
 	var notes_data: Array = data.notes

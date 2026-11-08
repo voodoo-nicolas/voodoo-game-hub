@@ -203,10 +203,12 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Flashes one tile that is turned the wrong way.", "action": _hint_now}],
 		"board": "Puzzles solved",
 		"board_note": "Boards lit in any mode.",
 	})
 	add_child(home)
+	home.track_help_button(hint_btn)
 	if info:
 		add_child(info)
 
@@ -422,13 +424,19 @@ func _on_undo() -> void:
 	_update()
 
 func _on_hint() -> void:
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): flashes one tile that is turned the wrong way.
+func _hint_now() -> bool:
 	if solved or over or not started:
-		return
+		return false
 	hint_cell = engine.hint_cell(rng)
-	if hint_cell >= 0:
-		hint_t = 2.5
-		hints_used += 1
-		_play("notify")
+	if hint_cell < 0:
+		return false
+	hint_t = 2.5
+	hints_used += 1
+	_play("notify")
+	return true
 
 func _on_solved() -> void:
 	solved = true

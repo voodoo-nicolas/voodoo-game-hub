@@ -239,6 +239,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "The computer plays your best move for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Games won against the computer, at any level.",
 		"online": online,
@@ -559,3 +560,17 @@ func _play_music() -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play("calm", self, 1, 2.0)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: the computer plays your best square for you.
+func _help_move() -> bool:
+	if not game_active or _is_online():
+		return false
+	if _vs_cpu() and engine.current_player != ReversiEngine.BLACK:
+		return false
+	var m: Vector2i = engine.cpu_move(LEVELS.size() - 1, rng)
+	if m.x < 0 or not legal_now.has(m):
+		return false
+	_on_square_pressed(m.x, m.y)
+	return true

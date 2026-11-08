@@ -199,6 +199,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Shows the way ahead for a few seconds.", "action": _hint_now}],
 		"board": "Mazes cleared",
 		"board_note": "Mazes cleared in any mode.",
 		"options": _add_game_options,
@@ -206,6 +207,7 @@ func _build_ui() -> void:
 	cfg["art"] = ART
 	home = HomeKit.new(cfg)
 	add_child(home)
+	home.track_help_button(hint_btn)
 	if info:
 		add_child(info)
 
@@ -414,41 +416,31 @@ func _on_event(ev: Array) -> void:
 
 # ---------- hints ----------
 
+## The kit's pool (STANDARDS §17): 3 max, one back 24 h after the last use.
 func _hints_now() -> int:
-	var now := int(Time.get_unix_time_from_system())
-	var left: int = int(progress.get("hints", MAX_HINTS))
-	var stamp: int = int(progress.get("hint_stamp", 0))
-	if left >= MAX_HINTS or stamp <= 0 or stamp > now:
-		stamp = now
-	var gained: int = (now - stamp) / HINT_REFILL_SECS
-	if gained > 0:
-		left = mini(MAX_HINTS, left + gained)
-		stamp = now if left >= MAX_HINTS else stamp + gained * HINT_REFILL_SECS
-	progress["hints"] = left
-	progress["hint_stamp"] = stamp
-	return left
+	return HomeKit.helps_left("tilt_maze")
 
 func _hint_label() -> void:
-	hint_btn.text = "💡%d" % _hints_now()
+	if home:
+		home.refresh_helps()
+	else:
+		hint_btn.text = "💡%d" % _hints_now()
 
 func _on_hint() -> void:
+	if home:
+		home.try_help(_hint_now)
+
+## 💡 help: shows the way ahead for a few seconds.
+func _hint_now() -> bool:
 	if solved or not started:
-		return
-	if _hints_now() <= 0:
-		var now := int(Time.get_unix_time_from_system())
-		var wait: int = maxi(60, int(progress.hint_stamp) + HINT_REFILL_SECS - now)
-		tip_label.text = tr("No hints left. Next one in %d h %d min.") % [wait / 3600, (wait % 3600) / 60]
-		SoundLib.play(self, "ui/wrong", -8.0)
-		return
+		return false
 	var way: Array = engine.safe_way(engine.pos)
 	if way.is_empty():
-		return
-	progress["hints"] = int(progress.hints) - 1
-	_save_progress()
+		return false
 	hint_path = way
 	hint_t = HINT_SECONDS
-	_hint_label()
 	_sfx("notify")
+	return true
 
 # ---------- winning ----------
 

@@ -217,6 +217,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "⏱ +15 seconds", "how": "Gives the artist 15 more seconds to draw.", "action": _help_time}],
 		"board": "Drawings guessed",
 		"board_note": "Drawings your team guessed, all time.",
 	})
@@ -577,3 +578,13 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ⏱ help: fifteen more seconds for the artist.
+func _help_time() -> bool:
+	if phase != "drawing":
+		return false
+	time_left += 15.0
+	_sfx("powerup")
+	return true

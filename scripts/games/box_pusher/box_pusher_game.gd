@@ -421,6 +421,7 @@ func _build_home() -> void:
 		"resume": func(): _load_level(level),
 		"resume_text": func(): return tr("Level %d") % level,
 		"restart": _on_restart,
+		"helps": [{"text": "⏭ Skip level", "how": "Unlocks the next level and takes you there.", "action": _help_skip}],
 		"board": "Levels solved",
 		"board_note": "Levels solved, all time.",
 	})
@@ -460,3 +461,14 @@ func _play_music() -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play("calm", self, 0, 2.0)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ⏭ help: unlocks the next level and opens it.
+func _help_skip() -> bool:
+	if win_dialog.visible:
+		return false
+	if level == unlocked:
+		unlocked += 1
+	_load_level(level + 1)
+	return true

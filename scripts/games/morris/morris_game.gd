@@ -408,6 +408,7 @@ func _build_home() -> void:
 		"resume": _load_saved_game,
 		"resume_text": func(): var d = SaveUtil.read(SAVE_PATH); return "" if d == null else (tr("2 Players") if bool(d.get("two", false)) else tr("vs Computer")),
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "The computer plays your best move for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Games won against the computer.",
 		"online": online,
@@ -545,3 +546,25 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: the computer plays your best move (and the piece a mill takes).
+func _help_move() -> bool:
+	if not started or engine.winner != 0 or _is_online() or must_remove or not _my_turn():
+		return false
+	var m: Array = engine.best_move(3)
+	if m.is_empty():
+		return false
+	selected = -1
+	turn_move = [m[0], m[1], -1]
+	var mill: bool = engine.apply_move(m[0], m[1])
+	if mill and m[2] >= 0:
+		engine.remove_piece(m[2])
+		turn_move[2] = m[2]
+		_sfx("capture")
+		_end_human_turn()
+	else:
+		_after_move(mill)
+	board.queue_redraw()
+	return true

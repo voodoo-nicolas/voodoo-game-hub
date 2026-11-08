@@ -151,6 +151,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Lights up a pair you can take.", "action": _hint_now}],
 		"board": "Games solved",
 		"board_note": "Tables cleared, any layout.",
 	})
@@ -257,13 +258,20 @@ func _undo() -> void:
 		board.queue_redraw()
 
 func _hint() -> void:
+	if engine.hint().is_empty():
+		stuck_dialog.visible = true  # no pair: Shuffle, no help spent
+		return
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): lights up a pair you can take.
+func _hint_now() -> bool:
 	hinted = engine.hint()
-	used_hint = true
 	if hinted.is_empty():
-		stuck_dialog.visible = true
-	else:
-		_sfx("notify")
+		return false
+	used_hint = true
+	_sfx("notify")
 	board.queue_redraw()
+	return true
 
 func _shuffle() -> void:
 	stuck_dialog.visible = false

@@ -386,8 +386,9 @@ func list_items(query: String, sort: String, tier_filter: int, lang: String, hid
 
 # ------------------------------------------------------------------ hints
 
-## Hints come back one per 24 h up to MAX_HINTS. `hint_stamp` is when the
-## clock last ticked; it sits at "now" while the hints are full.
+## Hints come back one per 24 h up to MAX_HINTS, counted from the last hint
+## used (STANDARDS §17). `hint_stamp` is when the clock last ticked (a use, or
+## a refill); it sits at "now" while the hints are full.
 func _refill(now: int) -> void:
 	if hints_left >= MAX_HINTS:
 		hints_left = MAX_HINTS
@@ -475,8 +476,9 @@ func use_hint(now: int) -> Dictionary:
 		hint_view.append(other)
 	var names: Array = [first, other]  # same+same: [X, X] -> "try X and X"
 	if not Gate.unlimited_hints(owns_full_game()):
-		if hints_left >= MAX_HINTS:
-			hint_stamp = now  # the 24 h clock starts with the first hint used
+		# Was: the 24 h clock started with the first hint used. Owner 2026-11-08 (STANDARDS §17):
+		# it restarts with EVERY hint used -- the next one comes 24 h after the last.
+		hint_stamp = now
 		hints_left = maxi(0, hints_left - 1)
 	hints_used += 1
 	return {"ok": true, "ingredients": hint_view.duplicate(), "names": names, "second": second, "reason": ""}

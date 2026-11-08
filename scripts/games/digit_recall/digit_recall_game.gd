@@ -381,6 +381,7 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "▶  Play", "sub": "Until you miss", "action": _start_game}],
 		"restart": _start_game,
+		"helps": [{"text": "❤ Extra life", "how": "Gives you one more life in this game.", "action": _help_life}],
 		"board_note": "Your best score.",
 	})
 	add_child(home)
@@ -396,3 +397,14 @@ func _draw_home_logo(c: Control) -> void:
 	var ctr := Vector2(c.size.x / 2.0, c.size.y / 2.0)
 	HomeKit.glow_text(c, ctr + Vector2(0, -h * 0.18), "3 1 4 1 5", int(h * 0.3), HomeKit.CYAN)
 	HomeKit.glow_text(c, ctr + Vector2(0, h * 0.22), "3 1 4 _ _", int(h * 0.24), HomeKit.LIME)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ❤ help: one more life.
+func _help_life() -> bool:
+	if phase == Phase.IDLE or phase == Phase.OVER:
+		return false
+	engine.lives += 1
+	_update_hud()
+	_sfx("powerup")
+	return true

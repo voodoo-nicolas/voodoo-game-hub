@@ -250,6 +250,10 @@ func _on_enemy_input(event: InputEvent) -> void:
 	var r := floori(p.y)
 	if r < 0 or c < 0 or r >= SeaEngine.SIZE or c >= SeaEngine.SIZE:
 		return
+	_fire_at(r, c)
+
+## The player fires at (r, c) of the enemy grid (a tap, or the 💡 help).
+func _fire_at(r: int, c: int) -> void:
 	var target: int = (1 - cur) if two_player else 1
 	var res: Dictionary = engine.fire(target, r * SeaEngine.SIZE + c)
 	if not res.valid:
@@ -420,6 +424,7 @@ func _build_home() -> void:
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Sonar", "how": "Finds an enemy ship and fires at it for you.", "action": _help_sonar}],
 		"board": "Wins",
 		"board_note": "Battles won.",
 	})
@@ -500,3 +505,20 @@ func _load_saved_game() -> void:
 		_update_turn_text()
 		_show_cover()
 	_redraw()
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: fires at a square where an enemy ship is hiding.
+func _help_sonar() -> bool:
+	if not player_turn or engine.winner != -1 or (two_player and cover.visible):
+		return false
+	var target: int = (1 - cur) if two_player else 1
+	var spots: Array = []
+	for i in SeaEngine.SIZE * SeaEngine.SIZE:
+		if engine.ship_at[target][i] != -1 and engine.shots[target][i] == SeaEngine.NONE:
+			spots.append(i)
+	if spots.is_empty():
+		return false
+	var i: int = spots.pick_random()
+	_fire_at(i / SeaEngine.SIZE, i % SeaEngine.SIZE)
+	return true

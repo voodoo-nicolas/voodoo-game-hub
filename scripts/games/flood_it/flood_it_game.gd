@@ -133,6 +133,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "➕ 3 more moves", "how": "Adds 3 moves to the limit for this board.", "action": _help_moves}],
 		"board": "Puzzles solved",
 		"board_note": "Boards flooded, any size.",
 	})
@@ -357,3 +358,14 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ➕ help: three more moves for this board.
+func _help_moves() -> bool:
+	if not started or finished:
+		return false
+	engine.limit += 3
+	_sfx("powerup")
+	_render()
+	return true

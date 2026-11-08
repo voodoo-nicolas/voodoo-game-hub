@@ -282,6 +282,7 @@ func _build_home() -> void:
 		"resume": _resume_saved,
 		"resume_text": func(): return tr("Moves: %d") % int((SaveUtil.read(SAVE_PATH) if SaveUtil.read(SAVE_PATH) else {}).get("moves", 0)),
 		"restart": _new_game,
+		"helps": [{"text": "💡 Hint", "how": "Slides the tile that best moves the puzzle toward solved (it looks six slides ahead).", "action": _help_slide}],
 		"board": "Puzzles solved",
 		"board_note": "Puzzles solved, all time.",
 	})
@@ -313,3 +314,55 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: slides the tile whose six-slide look-ahead brings the tiles
+## closest to home (sum of each tile's distance from its square).
+func _help_slide() -> bool:
+	if not game_active or engine.is_solved():
+		return false
+	var t: Array = engine.tiles.duplicate()
+	var gap: int = t.find(0)
+	var best_i := -1
+	var best_d := 1 << 30
+	for n in engine._neighbors(gap):
+		_swap(t, gap, n)
+		var d: int = _look(t, n, gap, 5)
+		_swap(t, gap, n)
+		if d < best_d or (d == best_d and randf() < 0.5):
+			best_d = d
+			best_i = n
+	if best_i < 0:
+		return false
+	_on_tile_pressed(best_i)
+	return true
+
+func _swap(t: Array, a: int, b: int) -> void:
+	var v = t[a]
+	t[a] = t[b]
+	t[b] = v
+
+## Lowest distance reachable in `depth` more slides (the gap is at `gap`,
+## it just came from `back`).
+func _look(t: Array, gap: int, back: int, depth: int) -> int:
+	var here := _distance(t)
+	if depth == 0 or here == 0:
+		return here * 10 + (5 - depth)
+	var best := here * 10 + (5 - depth)
+	for n in engine._neighbors(gap):
+		if n == back:
+			continue
+		_swap(t, gap, n)
+		best = mini(best, _look(t, n, gap, depth - 1))
+		_swap(t, gap, n)
+	return best
+
+func _distance(t: Array) -> int:
+	var s: int = engine.SIZE
+	var d := 0
+	for i in t.size():
+		var v: int = t[i]
+		if v != 0:
+			d += absi(i / s - (v - 1) / s) + absi(i % s - (v - 1) % s)
+	return d

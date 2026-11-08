@@ -270,6 +270,7 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "▶  Play", "sub": "60-second round", "action": _start_round}],
 		"restart": _start_round,
+		"helps": [{"text": "⏱ +10 seconds", "how": "Adds 10 seconds to the clock.", "action": _help_time}],
 		"board_note": "Your best score in one round.",
 	})
 	add_child(home)
@@ -288,3 +289,13 @@ func _draw_home_logo(c: Control) -> void:
 		[tr("Green").to_upper(), engine.COLORS[3] if engine.COLORS.size() > 3 else HomeKit.GOLD, h * 0.36]]
 	for w in words:
 		HomeKit.glow_text(c, ctr + Vector2(0, w[2]), w[0], int(h * 0.24), w[1])
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ⏱ help: ten more seconds on the clock.
+func _help_time() -> bool:
+	if not running or engine.is_over():
+		return false
+	engine.time_left += 10.0
+	_sfx("powerup")
+	return true

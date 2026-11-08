@@ -34,6 +34,8 @@ var elapsed: float = 0.0
 var hints_used: int = 0
 var playing: bool = false
 
+var hint_btn: Button  # 💡 Hint (the kit keeps its count)
+
 func _ready() -> void:
 	preload("res://scripts/games/hidato/hidato_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -127,7 +129,8 @@ func _build_ui() -> void:
 	actions.add_theme_constant_override("separation", 10)
 	row_margin.add_child(actions)
 	actions.add_child(_button(tr("⌫ Clear"), _on_clear))
-	actions.add_child(_button(tr("💡 Hint"), _on_hint))
+	hint_btn = _button(tr("💡 Hint"), _on_hint)
+	actions.add_child(hint_btn)
 	actions.add_child(_button(tr("✔ Check"), _on_check))
 
 	feedback_timer = Timer.new()
@@ -164,10 +167,12 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Places one number for you.", "action": _hint_now}],
 		"board": "Puzzles solved",
 		"board_note": "Puzzles solved at any size.",
 	})
 	add_child(home)
+	home.track_help_button(hint_btn, "💡 Hint")
 	if info:
 		add_child(info)
 
@@ -346,15 +351,20 @@ func _after_change() -> void:
 		_feedback(tr("Every number is placed, but some don't touch the next one."), Color(1, 0.45, 0.45))
 
 func _on_hint() -> void:
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): places one number for you.
+func _hint_now() -> bool:
 	if not playing or engine.solved():
-		return
+		return false
 	var i := engine.hint()
 	if i < 0:
-		return
+		return false
 	hints_used += 1
 	selected = -1
 	_sfx("powerup")
 	_after_change()
+	return true
 
 func _on_check() -> void:
 	if not playing or engine.solved():

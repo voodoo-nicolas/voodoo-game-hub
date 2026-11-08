@@ -150,6 +150,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _start_new_game,
+		"helps": [{"text": "💡 Hint", "how": "The computer plays your best move for you.", "action": _help_move}],
 		"board": "Wins",
 		"board_note": "Games won against the computer, at any level.",
 		"online": online,
@@ -446,3 +447,13 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 💡 help: the computer plays your best point for you.
+func _help_move() -> bool:
+	if engine.winner != 0 or _is_online():
+		return false
+	if _vs_cpu() and engine.turn != 1:
+		return false
+	return _play(engine.cpu_move(2, rng))

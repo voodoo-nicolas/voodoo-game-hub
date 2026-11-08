@@ -40,6 +40,8 @@ var skin: String = "classic"
 var status_label: Label
 var end_dialog: Control
 
+var hint_btn: Button  # the 💡 Hint button (kit keeps its count)
+
 func _ready() -> void:
 	preload("res://scripts/games/binary_grid/binary_grid_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -112,6 +114,7 @@ func _build_ui() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	bm.add_child(row)
 	var hint := Button.new()
+	hint_btn = hint
 	hint.text = "💡 " + tr("Hint")
 	hint.custom_minimum_size = Vector2(200, 64)
 	hint.pressed.connect(_hint)
@@ -140,10 +143,12 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Marks a square you can work out now.", "action": _hint_now}],
 		"board": "Puzzles solved",
 		"board_note": "Puzzles solved at any size.",
 	})
 	add_child(home)
+	home.track_help_button(hint_btn, "💡 Hint")
 	if info:
 		add_child(info)
 	var drawer := SettingsDrawer.new()
@@ -200,12 +205,19 @@ func _on_board_input(event: InputEvent) -> void:
 		_finish()
 
 func _hint() -> void:
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): marks a square you can work out now.
+func _hint_now() -> bool:
 	if finished:
-		return
+		return false
 	hint_cell = engine.hint()
+	if hint_cell < 0:
+		return false
 	hints_used += 1
 	_sfx("notify")
 	board.queue_redraw()
+	return true
 
 func _finish() -> void:
 	finished = true
