@@ -1,12 +1,15 @@
 extends Control
 
-## The Runner in the hub: the Landing (Landing kit) and the game under it. Design: the owner's doc
-## docs/runner/GAME_DESIGN_THE_RUNNER.md, hub brief docs/runner/BRIEF.md, choices docs/runner/DECISIONS.md.
+## The Runner in the hub: the Landing (Landing kit) and the game under it. Design: the owner's doc v2
+## docs/runner/GAME_DESIGN_THE_RUNNER_V2.md, hub brief docs/runner/BRIEF.md, choices docs/runner/DECISIONS.md.
 ##
-## Screens (one at a time, under the HUD bar and the kit): the system map (the_runner_map.gd, the ship
-## flies there, the Pad shows), the dock of a world (the_runner_dock.gd: market, shipyard, fixer,
-## laundry, Kessel), and over them an encounter card, a story card or the ship computer (Menu: the six
-## tabs, the_runner_computer.gd). Rules: the_runner_engine.gd. Landing -> play: 1 tap (STANDARDS N6).
+## Screens (one at a time, under the HUD bar and the kit): character creation (the_runner_create.gd,
+## a new run only), the sector map (the_runner_map.gd, the ship flies there, the Pad shows), the dock
+## of a world (the_runner_dock.gd: market, shipyard, fixer, job board, crew, faction office, laundry,
+## Kessel's collector), and over them an encounter card, a real-time battle (the_runner_battle_view.gd,
+## the Pad steers), a story card or the ship computer (Menu, the_runner_computer.gd). Rules:
+## the_runner_engine.gd. Landing -> play: 1 tap with a save (STANDARDS N6); a new run asks for a
+## captain first (design doc v2 §2).
 ## Pause (⏸, the Pad's pause, Esc, Android back, the app losing focus) -> the kit's pause menu, which
 ## saves (N5). Nothing is built in _ready(): a run starts when a mode or ▶ Resume is picked.
 
@@ -22,6 +25,9 @@ const UI = preload("res://scripts/games/the_runner/the_runner_ui.gd")
 const MapView = preload("res://scripts/games/the_runner/the_runner_map.gd")
 const DockView = preload("res://scripts/games/the_runner/the_runner_dock.gd")
 const ComputerView = preload("res://scripts/games/the_runner/the_runner_computer.gd")
+const CreateView = preload("res://scripts/games/the_runner/the_runner_create.gd")
+const BattleView = preload("res://scripts/games/the_runner/the_runner_battle_view.gd")
+const S = preload("res://scripts/games/the_runner/the_runner_spiral.gd")
 const SoundLib = preload("res://scripts/games/the_runner/sound_lib.gd")
 const SpriteLib = preload("res://scripts/games/the_runner/sprite_lib.gd")
 ## The app's shared on-screen controller; older apps don't have it (the game is all taps there).
@@ -43,11 +49,13 @@ var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
 var engine = null
 var started := false
-var screen := ""                 # "map" / "dock"
+var screen := ""                 # "map" / "dock" / "create"
 var pad: Control = null
 var map: Control = null
 var dock: Control = null
 var computer: Control = null
+var battle: Control = null
+var creator: Control = null
 var _layer: Control = null       # the current screen lives here
 var _hud: PanelContainer = null
 var _hud_row: HBoxContainer = null
@@ -73,12 +81,12 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": ACCENT,
-		"subtitle": "Earth is gone. Run the lanes.",
+		"subtitle": "The Spiral is watching. Run the lanes.",
 		"logo": _draw_home_logo,
 		"art": ART,
 		"art_title": [0.02, 0.2],
 		"solo_heading": "🚀 Story",
-		"modes": [{"text": "🚀 New run", "sub": "A broke courier on Luna Port", "action": _new_game}],
+		"modes": [{"text": "🚀 New run", "sub": "Make a captain, owe Mother Kessel", "action": _new_game}],
 		"save_path": SAVE_PATH,
 		"resume": _continue_game,
 		"restart": _new_game,
@@ -106,21 +114,46 @@ func _draw_home_logo(c: Control) -> void:
 
 # ================================================================ runs
 
-## 🚀 New run (and ↺ Restart): the only places the save is deleted.
-func _new_game() -> void:
+## 🚀 New run (and ↺ Restart): character creation first; the save is deleted only when the new
+## captain starts (‹ Back on its first page leaves the old run alone).
+func _new_game(notice: String = "") -> void:
+	_clear_play()
+	started = false
+	engine = null
+	screen = "create"
+	creator = CreateView.new()
+	creator._note = notice
+	add_child(creator)
+	move_child(creator, home.get_index())
+	creator.done.connect(_on_created)
+	creator.cancelled.connect(_on_create_cancelled)
+
+func _on_created(cap: Dictionary) -> void:
 	SaveUtil.delete(SAVE_PATH)
+	_close_creator()
 	engine = Engine_.new()
-	engine.reset()
+	engine.reset(0, cap)
 	started = true
 	_won_reported = false
 	_start_play()
 
-## ▶ Resume: the last autosave.
+func _on_create_cancelled() -> void:
+	_close_creator()
+	home.show_home()
+
+func _close_creator() -> void:
+	if creator != null and is_instance_valid(creator):
+		creator.queue_free()
+	creator = null
+
+## ▶ Resume: the last autosave. A run from pack v1 (the old galaxy) can't carry over: it starts a
+## new captain, and the records (🏆, 🏅, stats) stay (owner 2026-11-07).
 func _continue_game() -> void:
 	engine = Engine_.new()
 	var d = SaveUtil.read(SAVE_PATH)
 	if not (d is Dictionary) or not (d.get("engine") is Dictionary) or not engine.from_dict(d.engine):
-		_new_game()
+		var old: bool = d is Dictionary and d.get("engine") is Dictionary and Engine_.save_version(d.engine) == 1
+		_new_game(UI.tr_s("This run is from the old galaxy and can't continue in the Spiral. Your records, 🏆 and 🏅 are kept. Make a new captain.") if old else "")
 		return
 	started = true
 	_won_reported = engine.flags.has("act1_done")
@@ -144,7 +177,7 @@ func _start_play() -> void:
 	_music("calm")
 
 func _clear_play() -> void:
-	for n in [_layer, _hud, pad, _over, computer]:
+	for n in [_layer, _hud, pad, _over, computer, battle]:
 		if n != null and is_instance_valid(n):
 			n.queue_free()
 	_layer = null
@@ -152,6 +185,7 @@ func _clear_play() -> void:
 	pad = null
 	_over = null
 	computer = null
+	battle = null
 	map = null
 	dock = null
 	_card = null
@@ -177,6 +211,12 @@ func _add_pad() -> void:
 func _on_pad(id: String) -> void:
 	if home.is_home_visible() or home.pause_overlay.visible:
 		return
+	if battle != null and is_instance_valid(battle):
+		match id:
+			"pause": home.pause()
+			"a": _battle_next_target()
+			"b": battle._use("shields")
+		return
 	match id:
 		"pause":
 			home.pause()
@@ -187,12 +227,24 @@ func _on_pad(id: String) -> void:
 		"b":
 			_pad_b()
 
-## A: dock at the world in range, else set course to the selected world.
+func _battle_next_target() -> void:
+	var sim = battle.sim
+	if sim == null:
+		return
+	for k in range(1, sim.foes.size() + 1):
+		var i: int = (sim.target + k) % sim.foes.size()
+		if sim.foes[i].alive:
+			sim.pick_target(i)
+			return
+
+## A: dock at the world in range, jump at the gate, else set course to the selected world.
 func _pad_a() -> void:
 	if map == null or screen != "map" or _over != null:
 		return
 	if map.near != "" and engine.loc == "":
 		map.dock_here()
+	elif map.at_gate:
+		_on_gate(true)
 	elif map.selected != "" and map.selected != engine.loc and engine.can_reach(map.selected):
 		_set_course(map.selected)
 
@@ -209,16 +261,22 @@ func _pad_b() -> void:
 func _update_pad() -> void:
 	if pad == null:
 		return
-	var on: bool = screen == "map" and _over == null and (computer == null or not computer.visible)
+	var fighting: bool = battle != null and is_instance_valid(battle)
+	var on: bool = (screen == "map" and _over == null and (computer == null or not computer.visible)) or fighting
 	pad.visible = on
-	if on and map != null:
+	if fighting:
+		pad.set_state("a", {"sub": UI.tr_s("Target").to_upper(), "enabled": true})
+		pad.set_state("b", {"sub": UI.tr_s("Shield").to_upper(), "enabled": true})
+	elif on and map != null:
 		var a_word := ""
 		if map.near != "" and engine.loc == "":
-			a_word = "DOCK"
+			a_word = "Dock"
+		elif map.at_gate:
+			a_word = "Jump"
 		elif map.selected != "" and map.selected != engine.loc:
-			a_word = "GO"
-		pad.set_state("a", {"sub": UI.tr_s(a_word), "enabled": a_word != ""})
-		pad.set_state("b", {"sub": UI.tr_s("STOP") if map.target != "" else "", "enabled": map.target != ""})
+			a_word = "Go"
+		pad.set_state("a", {"sub": UI.tr_s(a_word).to_upper(), "enabled": a_word != ""})
+		pad.set_state("b", {"sub": UI.tr_s("Stop").to_upper() if map.target != "" else "", "enabled": map.target != ""})
 	if _hud_row != null:
 		for b in _hud_row.get_children():
 			if b.has_meta("pill"):
@@ -276,7 +334,8 @@ func refresh_hud() -> void:
 		[UI.dirty_txt(engine.dirty), UI.c("dirty")],
 		["⛽ %d/%d" % [int(engine.fuel), engine.tank()], UI.c("warn") if engine.fuel < 3.0 else UI.c("text")],
 		["🛡 %d/%d" % [engine.hull, engine.max_hull()], UI.c("bad") if engine.hull < engine.max_hull() / 3 else UI.c("text")],
-		["🔥 " + UI.tr_s(engine.heat_tier("concord")), _heat_color(engine.heat_of("concord"))],
+		["🔥 " + UI.tr_s(engine.heat_tier()), _heat_color(engine.heat_of())],
+		["☀%d ☾%d" % [int(engine.bars.paragon), int(engine.bars.outlaw)], UI.c("dim")],
 	]
 	if engine.debt > 0:
 		bits.append([UI.tr_s("Debt %s") % UI.num(engine.debt), UI.c("bad")])
@@ -286,8 +345,16 @@ func refresh_hud() -> void:
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_hud_row.add_child(sp)
-	var where := UI.world_name(engine.loc) if engine.loc != "" else UI.tr_s("In flight")
+	if screen == "map" and map != null:
+		var ov := UI.button("🔭", _toggle_overview, UI.c("accent"), 20, 42)
+		ov.custom_minimum_size.x = 54
+		_hud_row.add_child(ov)
+	var where := UI.world_name(engine.loc) if engine.loc != "" else UI.sector_name(engine.sector)
 	_hud_row.add_child(UI.label("📍 " + where, 20, UI.c("accent")))
+
+func _toggle_overview() -> void:
+	if map != null:
+		map.toggle_overview()
 
 func _heat_color(h: float) -> Color:
 	if h > 60.0:
@@ -322,6 +389,7 @@ func show_map() -> void:
 	map.arrived.connect(_on_arrived)
 	map.encounter_opened.connect(show_encounter)
 	map.near_changed.connect(_on_near)
+	map.gate_changed.connect(_on_gate)
 	if engine.loc != "":
 		_on_world_tapped(engine.loc)
 	refresh_hud()
@@ -380,8 +448,11 @@ func _on_world_tapped(w: String) -> void:
 	var box := _side_card()
 	box.add_child(UI.label(UI.world_name(w), 28, UI.c("accent")))
 	box.add_child(UI.label(UI.tr_s(wd.desc), 18, UI.c("dim"), true))
-	var fac := UI.tr_s(D.FACTIONS[wd.faction].name)
-	box.add_child(UI.label(UI.tr_s("Held by: %s") % fac, 18))
+	var fac := UI.faction_name(wd.faction)
+	var rep_txt: String = "" if wd.faction == "none" else " (%d%%)" % engine.rep_pct(wd.faction)
+	box.add_child(UI.label(UI.tr_s("Held by: %s") % (fac + rep_txt), 18))
+	if engine.port_closed(w):
+		box.add_child(UI.label(UI.tr_s("Hostile: their ships attack on sight."), 18, UI.c("bad")))
 	box.add_child(UI.label(UI.tr_s("Law level: %d of 5") % engine.law_at(w), 18, UI.c("warn") if engine.law_at(w) >= 4 else UI.c("text")))
 	var notes := []
 	if wd.black:
@@ -403,7 +474,7 @@ func _on_world_tapped(w: String) -> void:
 	var need: float = engine.fuel_for(dist)
 	box.add_child(UI.label(UI.tr_s("Fuel: %d of %d") % [int(ceil(need)), int(engine.fuel)], 18, UI.c("bad") if need > engine.fuel else UI.c("text")))
 	var days: int = engine._days_for(dist)
-	box.add_child(UI.label(UI.tr_s("About 1 day") if days == 1 else UI.tr_s("About %d days") % days, 18))
+	box.add_child(UI.label((UI.tr_s("About 1 day") if days == 1 else UI.tr_s("About %d days") % days) + " · " + UI.tr_s("%d s of flight") % int(ceil(engine.flight_seconds(dist))), 18))
 	if engine.can_sniff():
 		box.add_child(UI.label(UI.tr_s("Patrol scan chance: %d%%") % int(engine.scan_chance(w) * 100), 18, UI.c("warn")))
 	if engine.seen_prices.has(w):
@@ -431,6 +502,34 @@ func _on_near(w: String) -> void:
 	box.add_child(UI.label(UI.world_name(w), 26, UI.c("accent")))
 	box.add_child(UI.button("⚓ " + UI.tr_s("Dock here"), map.dock_here, UI.c("go"), 22, 56))
 
+## The sector's gate: jump to another sector (Veil Expanse and Ember Drift open after Act I).
+func _on_gate(at: bool) -> void:
+	if map == null or map.target != "":
+		return
+	if not at:
+		_close_card()
+		return
+	var box := _side_card()
+	box.add_child(UI.label("⟁ " + UI.tr_s("Gate"), 26, UI.c("accent")))
+	box.add_child(UI.label(UI.tr_s("A jump costs %d fuel and a day.") % int(engine.JUMP_FUEL), 17, UI.c("dim"), true))
+	for s in D.SECTOR_ORDER:
+		if s == engine.sector:
+			continue
+		var b := UI.button("→ " + UI.sector_name(s), _jump.bind(s), UI.c("go"), 20, 50)
+		b.disabled = not engine.sector_open(s) or engine.fuel < engine.JUMP_FUEL
+		box.add_child(b)
+		if not engine.sector_open(s):
+			box.add_child(UI.label(UI.tr_s("Act III, a later update.") if s == "hollow_deep" else UI.tr_s("Opens after Act I (Ghost in the Net)."), 15, UI.c("dim"), true))
+
+func _jump(s: String) -> void:
+	if not engine.jump(s):
+		return
+	_sfx_lib("scifi/space_engine_large")
+	_close_card()
+	map.reload()
+	refresh()
+	_save_game()
+
 func _on_arrived(w: String) -> void:
 	_close_card()
 	var enc: Dictionary = engine.arrive(w)
@@ -449,11 +548,11 @@ func _after_missions(done: Array) -> void:
 	for id in done:
 		_sfx("win")
 		if info:
-			if id == "M02":
+			if id == "N02":
 				info.add("Debt paid")
-			elif id == "M03":
+			elif id == "N03":
 				info.add("Runner")
-			elif id == "M04":
+			elif id == "N04":
 				info.add("Act I")
 	if engine.flags.has("act1_done") and not _won_reported and info:
 		_won_reported = true
@@ -461,50 +560,51 @@ func _after_missions(done: Array) -> void:
 
 # ================================================================ encounters
 
-const ENC_ART := {"inspect": "", "scan_pass": "", "scan_clean": "", "scan_blind": "", "pirates": "sky_dragon",
-	"fight": "sky_dragon", "derelict": "world_asteroid", "salvage_site": "earth", "distress": "sky_milkyway",
-	"pod": "sky_milkyway", "no_fuel": "sky_ridge", "sun": "system_star", "black_hole": "hazard_blackholes",
+const ENC_ART := {"inspect": "", "scan_pass": "", "scan_clean": "", "scan_blind": "", "scan_lucky": "", "pirates": "sky_dragon",
+	"battle": "sky_dragon", "battle_offer": "", "derelict": "world_asteroid", "salvage_site": "", "distress": "sky_milkyway",
+	"pod": "sky_milkyway", "bargain": "sky_ridge", "no_fuel": "sky_ridge", "sun": "system_star", "black_hole": "hazard_blackholes",
 	"meteors": "hazard_meteors", "flare": "system_star", "tip": "sky_ridge"}
 const ENC_TITLE := {"inspect": "Patrol inspection", "scan_pass": "Patrol scan", "scan_clean": "Patrol scan",
-	"scan_blind": "Patrol scan", "pirates": "Raiders", "fight": "Combat", "derelict": "A derelict",
-	"salvage_site": "The wreck ring", "distress": "Distress beacon", "pod": "A cargo pod", "no_fuel": "Out of fuel",
-	"sun": "Solar heat", "black_hole": "The Maw", "meteors": "Meteor shower", "flare": "Solar flare", "tip": "An informant"}
+	"scan_blind": "Patrol scan", "scan_lucky": "Patrol scan", "pirates": "Raiders", "battle": "Combat",
+	"battle_offer": "Ships ahead", "derelict": "A derelict", "salvage_site": "The wreck field", "distress": "Distress beacon",
+	"pod": "A cargo pod", "bargain": "A Faustian bargain", "no_fuel": "Out of fuel", "sun": "Stellar heat",
+	"black_hole": "A black hole", "meteors": "Meteor shower", "flare": "Solar flare", "tip": "An informant"}
 const ENC_TEXT := {
 	"inspect": "The scan found something. An officer is coming aboard.",
 	"scan_pass": "A patrol sweeps your ship. The hidden hold stays hidden.",
 	"scan_clean": "A patrol sweeps your ship. Nothing to find.",
 	"scan_blind": "A patrol sweeps your ship, but the solar flare blinds their scanners.",
+	"scan_lucky": "The scan should have found your cargo. A glitch in their scanner says otherwise. Lucky.",
 	"pirates": "Raiders block your path and hail you: pay, or else.",
-	"fight": "Weapons hot.",
+	"battle_offer": "Weapons are powering up out there.",
 	"derelict": "A dead freighter drifts past, its hold torn open.",
-	"salvage_site": "Thousands of wrecks circle the dead Earth. Some still hold cargo.",
+	"salvage_site": "Wrecks drift all around the port. Some still hold cargo.",
 	"distress": "A beacon: a small ship with a dead engine asks for help.",
 	"pod": "A sealed cargo pod tumbles past. Someone dumped it in a hurry.",
+	"bargain": "A smooth voice offers you credits for nothing. Well, for a little bad luck.",
 	"no_fuel": "The tank is dry. The ship drifts.",
-	"sun": "You flew too close to the Sun.",
-	"black_hole": "The Maw: a black hole between the orbits.",
+	"sun": "You flew too close to the star.",
+	"black_hole": "A black hole between the orbits.",
 	"meteors": "You fly straight into a meteor shower.",
-	"flare": "A solar flare washes over the system. For a while, no scanner works: your next scan sees nothing.",
+	"flare": "A solar flare washes over the sector. For a while, no scanner works: your next scan sees nothing.",
 	"tip": "A voice on a private channel has something to sell, free this time.",
 }
 
-## Enemy ships from the shared sprite library (Kenney space set, CC0).
 func _enemy_sprite(enemy: String) -> Texture2D:
-	match enemy:
-		"pirate": return SpriteLib.texture("space/enemy_black_1")
-		"patrol": return SpriteLib.texture("space/enemy_blue_2")
-		"hunter": return SpriteLib.texture("space/enemy_red_3")
-	return null
+	return SpriteLib.texture(str(D.ENEMIES[enemy].sprite)) if D.ENEMIES.has(enemy) else null
 
 func show_encounter() -> void:
 	if engine.encounter.is_empty():
 		return
 	_close_over()
 	var kind := str(engine.encounter.kind)
+	if kind == "battle":
+		show_battle()
+		return
 	var art_id: String = ENC_ART.get(kind, "")
 	if art_id == "":
 		art_id = str(D.WORLDS[engine.loc].view) if engine.loc != "" else "sky_milkyway"
-	if kind == "fight" or kind == "pirates":
+	if kind == "battle_offer" or kind == "pirates":
 		_music("techno")
 	if kind.begins_with("scan") or kind == "inspect":
 		_sfx_lib("scifi/force_field")
@@ -535,7 +635,7 @@ func _fill_encounter(box: VBoxContainer) -> void:
 	var e: Dictionary = engine.encounter
 	var kind := str(e.kind)
 	box.add_child(UI.label(UI.tr_s(ENC_TITLE.get(kind, "")), 28, UI.c("accent")))
-	if kind == "pirates" or kind == "fight":
+	if kind == "pirates" or kind == "battle_offer":
 		var ed: Dictionary = D.ENEMIES[e.enemy]
 		var head := UI.hbox(12)
 		var tex: Texture2D = _enemy_sprite(str(e.enemy))
@@ -550,14 +650,18 @@ func _fill_encounter(box: VBoxContainer) -> void:
 		box.add_child(head)
 		if str(e.get("why", "")) != "":
 			box.add_child(UI.label(UI.tr_s(e.why), 18, UI.c("dim"), true))
-		box.add_child(_bar(UI.tr_s("Their hull"), int(e.ehull), int(e.emax), UI.c("bad")))
-		box.add_child(_bar(UI.tr_s("Your hull"), engine.hull, engine.max_hull(), UI.c("go")))
-		if engine.shield() > 0:
-			box.add_child(UI.label(UI.tr_s("Shield: %d") % engine.shield(), 18, UI.c("clean")))
-	if kind != "fight":
-		box.add_child(UI.label(UI.tr_s(ENC_TEXT.get(kind, "")), 20, UI.c("text"), true))
+		box.add_child(UI.label(UI.tr_s("%d ships · %d guns each · hull %d") % [int(ed.ships), int(ed.guns), int(ed.hull)], 17, UI.c("text")))
+		box.add_child(UI.meter(UI.tr_s("Your hull"), engine.hull, engine.max_hull(), UI.c("go")))
+		if e.get("duel", false):
+			box.add_child(UI.label(UI.tr_s("A duel: nobody dies, it ends at the first broken hull."), 16, UI.c("warn"), true))
+	box.add_child(UI.label(UI.tr_s(ENC_TEXT.get(kind, "")), 20, UI.c("text"), true))
 	if kind == "inspect":
 		box.add_child(UI.label(UI.tr_s("Contraband aboard: %d crates") % engine.contraband_aboard(), 18, UI.c("warn")))
+	if kind == "bargain":
+		var c := str(e.curse)
+		box.add_child(UI.label(UI.tr_s("The price: %s (%s) for %d days.") % [UI.perk_name(c), UI.perk_desc(c), S.CURSE_DAYS], 18, UI.c("bad"), true))
+	if kind in ["sun", "black_hole"] and str(e.get("hazard", "")) != "":
+		box.add_child(UI.label(UI.tr_s(str(e.hazard)), 18, UI.c("warn")))
 	for line in e.get("log", []):
 		box.add_child(UI.label(UI.msg(line), 20, UI.c("warn"), true))
 	var row := HFlowContainer.new()
@@ -565,41 +669,16 @@ func _fill_encounter(box: VBoxContainer) -> void:
 	row.add_theme_constant_override("v_separation", 10)
 	box.add_child(row)
 	for o in engine.options():
-		var b := UI.button(UI.msg(o[1]), _choose.bind(o[0]), UI.c("go") if o[0] in ["ok", "attack", "salvage", "take", "help", "tow"] else UI.c("accent"), 22, 54, true)
+		var b := UI.button(UI.msg(o[1]), _choose.bind(o[0]), UI.c("go") if o[0] in ["ok", "fight", "salvage", "take", "help", "tow"] else UI.c("accent"), 22, 54, true)
 		b.custom_minimum_size.x = 200
 		b.disabled = not o[2]
 		row.add_child(b)
-
-func _bar(title: String, v: int, mx: int, col: Color) -> Control:
-	var h := UI.hbox(10)
-	var l := UI.label(title, 18)
-	l.custom_minimum_size.x = 150
-	h.add_child(l)
-	var bar := ProgressBar.new()
-	bar.max_value = maxi(1, mx)
-	bar.value = maxi(0, v)
-	bar.show_percentage = false
-	bar.custom_minimum_size = Vector2(0, 18)
-	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = col
-	fill.set_corner_radius_all(6)
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0, 0, 0, 0.5)
-	bg.set_corner_radius_all(6)
-	bar.add_theme_stylebox_override("fill", fill)
-	bar.add_theme_stylebox_override("background", bg)
-	h.add_child(bar)
-	h.add_child(UI.label("%d/%d" % [maxi(0, v), mx], 18))
-	return h
 
 func _choose(opt: String) -> void:
 	var kind := str(engine.encounter.get("kind", ""))
 	var won_before: int = engine.stats.fights_won
 	var passed_before: int = engine.stats.scans_passed
 	var lines: Array = engine.choose(opt)
-	if opt == "attack":
-		_sfx_lib("scifi/laser_small")
 	if engine.stats.fights_won > won_before:
 		_sfx_lib("scifi/explosion_crunch")
 		if info:
@@ -607,15 +686,18 @@ func _choose(opt: String) -> void:
 	if engine.stats.scans_passed > passed_before and info:
 		info.add("Scans passed")
 	if not engine.encounter.is_empty():
-		show_encounter()   # the fight goes on (or a trap sprang)
+		if str(engine.encounter.kind) == "battle" and not lines.is_empty():
+			_show_result(lines, show_battle)   # "Weapons hot." then the fight
+			return
+		show_encounter()   # the battle starts, the inspection goes on, or a trap sprang
 		return
 	if kind.begins_with("scan_") and lines.is_empty():
 		_after_encounter()
 		return
 	_show_result(lines)
 
-## What happened, then Continue.
-func _show_result(lines: Array) -> void:
+## What happened, then Continue (`next`: what Continue does; default: back to the game).
+func _show_result(lines: Array, next: Callable = Callable()) -> void:
 	_close_over()
 	_over = Control.new()
 	_over.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -639,8 +721,44 @@ func _show_result(lines: Array) -> void:
 		box.add_child(UI.label(UI.msg(line), 22, UI.c("text"), true))
 	if lines.is_empty():
 		box.add_child(UI.label(UI.tr_s("Nothing happens."), 22))
-	box.add_child(UI.button(UI.tr_s("Continue"), _after_encounter, UI.c("go"), 22, 56))
+	box.add_child(UI.button(UI.tr_s("Continue"), next if next.is_valid() else _after_encounter, UI.c("go"), 22, 56))
 	refresh_hud()
+
+# ================================================================ battles (real time)
+
+func show_battle() -> void:
+	_close_over()
+	if battle != null and is_instance_valid(battle):
+		return
+	var e: Dictionary = engine.encounter
+	var art := "sky_dragon"
+	if engine.loc != "":
+		art = str(D.WORLDS[engine.loc].view)
+	elif str(e.get("enemy", "")) in ["pirate", "raider_base", "mine_layer"]:
+		art = "hazard_meteors"
+	battle = BattleView.new()
+	battle.game = self
+	battle.engine = engine
+	battle.pad = pad
+	battle.art_id = art
+	add_child(battle)
+	move_child(battle, _hud.get_index())
+	battle.finished.connect(_on_battle_end)
+	battle.start()
+	_music("techno")
+	_sfx_lib("scifi/force_field")
+	_update_pad()
+
+func _on_battle_end(outcome: String, binfo: Dictionary) -> void:
+	var lines: Array = engine.end_battle(outcome, binfo)
+	if info:
+		if outcome in ["won", "boarded"]:
+			info.add("Fights won")
+	if battle != null and is_instance_valid(battle):
+		battle.queue_free()
+	battle = null
+	_show_result(lines)
+	_update_pad()
 
 func _after_encounter() -> void:
 	_close_over()
@@ -656,6 +774,8 @@ func _after_encounter() -> void:
 	var done: Array = engine.auto_complete()
 	_after_missions(done)
 	_flush_story()
+	if dock != null and is_instance_valid(dock):
+		dock.page = ""
 	refresh()
 	_save_game()
 
@@ -706,7 +826,10 @@ func _show_story_card() -> void:
 	var box := UI.vbox(8)
 	p.add_child(box)
 	box.add_child(UI.label(UI.tr_s(str(card[1])), 28, UI.c("accent")))
-	box.add_child(UI.label(UI.tr_s(str(card[2])), 22, UI.c("text"), true))
+	var line := UI.tr_s(str(card[2]))
+	if line.contains("%s"):
+		line = line % str(engine.captain.name)
+	box.add_child(UI.label(line, 22, UI.c("text"), true))
 	var row := UI.hbox(10)
 	box.add_child(row)
 	var sp := Control.new()
@@ -805,9 +928,19 @@ func _report_stats() -> void:
 		engine.stats.best_net = nw
 	if nw > 0:
 		info.high("Best net worth", nw)
-	info.high("Contracts done", engine.stats.contracts)
+	info.high("Most contracts done", engine.stats.contracts)
 	info.high("Skills learned", engine.skills.size())
 	info.high("Laundered", engine.stats.laundered)
+	info.high("Most quests done", engine.stats.quests)
+	info.high("Highest Paragon", int(engine.bars.paragon))
+	info.high("Highest Outlaw", int(engine.bars.outlaw))
+	info.high("Most crew aboard", engine.crew.size())
+	var best_rep := 0
+	for f in S.FACTION_ORDER:
+		best_rep = maxi(best_rep, engine.rep_pct(f))
+	info.high("Best faction rep", best_rep)
+	if engine.ship == "runner":
+		info.high("Highest hull tier", engine.tier)
 
 func _sfx(name: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
@@ -843,7 +976,9 @@ func _save_game() -> void:
 
 func _set_skin(name: String) -> void:
 	UI.set_skin(name)
-	if engine == null:
+	if creator != null and is_instance_valid(creator):
+		creator.rebuild()
+	if engine == null or (battle != null and is_instance_valid(battle)):
 		return
 	_build_hud()
 	if screen == "map":

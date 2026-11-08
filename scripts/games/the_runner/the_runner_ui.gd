@@ -5,6 +5,7 @@ extends RefCounted
 ## turned into translated text. Every screen of the game builds from these.
 
 const D = preload("res://scripts/games/the_runner/the_runner_data.gd")
+const S = preload("res://scripts/games/the_runner/the_runner_spiral.gd")
 
 const LOOKS := {
 	"classic": {"panel": Color(0.03, 0.06, 0.11, 0.86), "edge": Color("4fc3ff"), "text": Color(0.93, 0.96, 1.0),
@@ -146,6 +147,8 @@ static func tr_s(s: String) -> String:
 static func msg(m: Variant) -> String:
 	if m is String:
 		return tr_s(m)
+	if m is Dictionary and m.is_empty():
+		return ""
 	if not (m is Dictionary) or not m.has("text"):
 		return str(m)
 	var args := []
@@ -157,11 +160,28 @@ static func msg(m: Variant) -> String:
 	var t := tr_s(str(m.text))
 	if args.is_empty():
 		return t
-	# %d with thousands separators: format numbers as strings first
-	var fixed := t.replace("%d", "%s")
+	# %d with thousands separators: format numbers as strings first ("%+d" keeps its sign)
+	var fixed := t.replace("%+d", "%s").replace("%d", "%s")
 	var shown := []
+	var signed := []
+	var i := 0
+	var at := 0
+	while true:
+		var k := t.find("%", at)
+		if k < 0 or k + 1 >= t.length():
+			break
+		if t[k + 1] == "%":
+			at = k + 2
+			continue
+		signed.append(t[k + 1] == "+")
+		at = k + 1
 	for a in args:
-		shown.append(num(a) if a is int else a)
+		if a is int:
+			var plus: bool = i < signed.size() and signed[i] and a >= 0
+			shown.append(("+" if plus else "") + num(a))
+		else:
+			shown.append(a)
+		i += 1
 	return fixed % shown
 
 static func good_name(g: String) -> String:
@@ -169,3 +189,43 @@ static func good_name(g: String) -> String:
 
 static func world_name(w: String) -> String:
 	return tr_s(D.WORLDS[w].name)
+
+static func perk_name(id: String) -> String:
+	return tr_s(S.PERKS[id].name)
+
+static func perk_desc(id: String) -> String:
+	return tr_s(S.PERKS[id].desc)
+
+static func faction_name(f: String) -> String:
+	return tr_s(S.FACTIONS.get(f, S.FACTIONS.none).name)
+
+static func race_name(r: String) -> String:
+	return tr_s(S.RACES[r].name)
+
+static func sector_name(s: String) -> String:
+	return tr_s(D.SECTORS[s].name)
+
+## A labelled bar: "title  [=====   ]  v/max".
+static func meter(title: String, v: float, mx: float, col: Color, width_title: float = 150.0, text: String = "") -> HBoxContainer:
+	var h := hbox(10)
+	var l := label(title, 18)
+	l.custom_minimum_size.x = width_title
+	h.add_child(l)
+	var bar := ProgressBar.new()
+	bar.max_value = maxf(1.0, mx)
+	bar.value = clampf(v, 0.0, mx)
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0, 16)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = col
+	fill.set_corner_radius_all(6)
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0, 0, 0, 0.5)
+	bg.set_corner_radius_all(6)
+	bar.add_theme_stylebox_override("fill", fill)
+	bar.add_theme_stylebox_override("background", bg)
+	h.add_child(bar)
+	h.add_child(label(text if text != "" else "%d/%d" % [int(v), int(mx)], 17))
+	return h

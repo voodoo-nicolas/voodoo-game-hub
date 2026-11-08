@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Plays The Runner in a real window and saves screenshots of every screen (needs a window, not
 ## --headless):
-##   godot --path . --resolution 1280x720 --script res://tools/shot_the_runner.gd -- <out_dir> [text size 0/1/2] [skin]
+##   godot --path . --resolution 1280x720 --script res://tools/shot_the_runner.gd -- <out_dir> [text size 0/1/2] [skin] [locale]
 ## For a phone shape use e.g. --resolution 1170x540. Writes user://the_runner_save.json (the game's
 ## autosave); the owner's real one is backed up and put back.
 
@@ -10,11 +10,13 @@ const SAVE := "user://the_runner_save.json"
 
 var out_dir := ""
 var game: Control
+var _locale := ""
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	out_dir = args[0] if args.size() > 0 else "user://the_runner_shots"
 	DirAccess.make_dir_recursive_absolute(out_dir)
+	_locale = args[3] if args.size() > 3 else ""
 	_run(int(args[1]) if args.size() > 1 else -1, args[2] if args.size() > 2 else "classic")
 
 func _shot(name: String) -> void:
@@ -37,6 +39,9 @@ func _run(text_size: int, skin: String) -> void:
 		var settings := root.get_node_or_null("/root/Settings")
 		if settings:
 			settings.text_size = text_size
+	var lang := root.get_node_or_null("/root/Lang")
+	if _locale != "" and lang and lang.has_method("_apply"):
+		lang._apply(_locale)   # this session only: the player's saved language is not touched
 	change_scene_to_file("res://scenes/games/the_runner/the_runner.tscn")
 	await _wait(25)
 	game = current_scene
@@ -47,72 +52,105 @@ func _run(text_size: int, skin: String) -> void:
 		game.info.close()
 	if skin != "classic":
 		game._set_skin(skin)
-	await _shot("01_prologue")
+	# character creation
+	var c = game.creator
+	c.cap.name = "Mira Vale"
+	c.rebuild()
+	await _shot("01_create_name")
+	c._go("race")
+	c._pick_race("ssaryn")
+	await _shot("02_create_race")
+	c._go("home")
+	await _shot("03_create_home")
+	c._go("perks")
+	c._toggle("G07")
+	c._toggle("G12")
+	await _shot("04_create_perks")
+	c._go("summary")
+	await _shot("05_create_summary")
+	c._finish()
+	await _wait(8)
+	await _shot("06_prologue")
 	game._skip_story()
 	await _wait(5)
-	await _shot("02_dock_luna")
+	await _shot("07_dock_cradle")
 	var e = game.engine
-	game.dock.open("market")
-	await _shot("03_market")
-	game.dock.open("shipyard")
-	await _shot("04_shipyard")
-	game.dock.open("fixer")
-	await _shot("05_fixer")
-	game.dock.open("kessel")
-	await _shot("06_kessel")
+	e.clean = 9000
+	e.flags["black_market"] = true
+	for p in ["market", "shipyard", "fixer", "jobs", "office", "kessel"]:
+		game.dock.open(p)
+		await _shot("1%d_%s" % [["market", "shipyard", "fixer", "jobs", "office", "kessel"].find(p), p])
 	game.dock.open("")
 	game.launch()
 	await _wait(5)
-	await _shot("07_map_docked")
-	game.map.world_tapped.emit("tidewater")
-	game.map.selected = "tidewater"
-	await _shot("08_map_course_card")
-	game._set_course("tidewater")
+	await _shot("20_map_docked")
+	game.map.world_tapped.emit("brass_garden")
+	game.map.selected = "brass_garden"
+	await _shot("21_map_course_card")
+	game._set_course("brass_garden")
 	e.rng.seed = 12345
-	await _wait(40)
-	await _shot("09_map_flying")
-	# an inspection at the dock
-	e.encounter = {"kind": "inspect", "faction": "concord", "bribe": e.bribe_cost(), "fine": 120, "log": []}
+	await _wait(60)
+	await _shot("22_map_flying")
+	game._toggle_overview()
+	await _shot("23_map_overview")
+	game._toggle_overview()
+	# an inspection
+	e.encounter = {"kind": "inspect", "faction": "accord", "bribe": e.bribe_cost(), "fine": 120, "log": []}
 	game.show_encounter()
-	await _shot("10_inspection")
+	await _shot("30_inspection")
 	e.encounter = {}
 	game._close_over()
-	# a fight
-	e._open_fight("pirate", "A raider ship drops out of the dark and hails you.")
+	# raiders, then the real-time battle
+	e._open_pirates("A raider ship drops out of the dark and hails you.")
 	game.show_encounter()
-	await _shot("11_pirates")
+	await _shot("31_pirates")
 	game._choose("fight")
 	await _wait(3)
-	game._choose("attack")
-	await _wait(3)
-	await _shot("12_fight")
-	while not e.encounter.is_empty():
-		game._choose("attack")
-		await _wait(2)
-	await _shot("13_fight_result")
-	game._after_encounter()
-	# arrive at Tidewater: M01 hand-over
-	if game.map != null:
-		game.map._arrive("tidewater")
-	else:
-		e.loc = "tidewater"
-		game.show_dock()
-	await _wait(5)
 	game._close_over()
+	game.show_battle()
+	await _wait(45)
+	await _shot("32_battle")
+	var guard := 0
+	while game.battle != null and guard < 1800:
+		game.battle.sim.pick_target(0)
+		await _wait(1)
+		guard += 1
+	await _shot("33_battle_result")
+	game._after_encounter()
+	# a quest battle offer with a wing
+	e.encounter = {"kind": "battle_offer", "enemy": "ashscale_raider", "why": "Reef Defense", "log": []}
+	game.show_encounter()
+	await _shot("34_battle_offer")
 	e.encounter = {}
-	await _shot("14_dock_tidewater")
-	for tab in ["inventory", "skills", "missions", "map", "ship", "stats"]:
+	game._close_over()
+	# the gate
+	if game.map == null:
+		game.show_map()
+	game.map.target = ""
+	e.loc = ""
+	e.ship_pos = e.gate_pos()
+	game.map._cam = e.ship_pos
+	game._on_gate(true)
+	await _shot("40_gate")
+	game._close_card()
+	# menu tabs, with a crew member and some rep
+	e.crew = [{"id": "C01", "loyalty": 60}]
+	e.rep["sunscale_covenant"] = 520
+	e.bars = {"paragon": 12, "outlaw": 4}
+	e._invalidate()
+	for tab in ["inventory", "skills", "missions", "map", "ship", "stats", "factions", "crew", "captain"]:
 		game.open_computer()
 		game.computer.tab = tab
 		game.computer.rebuild()
-		await _shot("20_menu_" + tab)
+		await _shot("50_menu_" + tab)
 	game.close_computer()
-	# Old Earth, the salvage site
-	e.loc = "old_earth"
+	# Scrapyard Gamma, the wreck field
+	e.loc = "scrapyard_gamma"
+	e.sector = "cradle_reach"
 	game.show_dock()
-	await _shot("30_dock_old_earth")
+	await _shot("60_dock_scrapyard")
 	game.home.pause()
-	await _shot("40_pause")
+	await _shot("70_pause")
 	game.home.resume_play()
 	if backup != "":
 		var f := FileAccess.open(SAVE, FileAccess.WRITE)
