@@ -64,6 +64,7 @@ const STRINGS := {
 		"Player 1 — draw pile: %d": "Jugador 1 — mazo: %d",
 		"Player 1: %d cards left  ·  Player 2: %d": "Jugador 1: quedan %d cartas  ·  Jugador 2: %d",
 		"Player 2 — draw pile: %d": "Jugador 2 — mazo: %d",
+		"Plays one of your cards that fits a pile.": "Juega una de tus cartas que encaja en un montón.",
 		"Quick": "Rápida",
 		"Quick Play": "Juego rápido",
 		"Races won against the computer.": "Carreras ganadas a la computadora.",

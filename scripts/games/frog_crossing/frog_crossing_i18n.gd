@@ -27,6 +27,7 @@ const STRINGS := {
 		"Game Over": "Fin del juego",
 		"Games played": "Partidas jugadas",
 		"Get your frog across the road and the river into all five homes at the top.": "Lleva a tu rana a través de la calle y el río hasta las cinco casas de arriba.",
+		"Gives you one more life, right now.": "Te da una vida más, ahora mismo.",
 		"Hard": "Difícil",
 		"Help": "Ayuda",
 		"Highest level": "Nivel más alto",

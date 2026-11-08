@@ -56,6 +56,8 @@ var fall_speed: Array = []
 var effects: Array = []       # {kind, pos (cell centre, in cells), t, life, ...}
 var popups: Array = []        # {text, pos, t, color}
 
+var hint_btn: Button  # 💡 Hint (the kit keeps its count)
+
 func _ready() -> void:
 	preload("res://scripts/games/gem_match/gem_match_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -175,7 +177,7 @@ func _build_ui() -> void:
 	rm.add_theme_constant_override("margin_bottom", 30)
 	rm.add_child(row)
 	root.add_child(rm)
-	var hint_btn := Button.new()
+	hint_btn = Button.new()
 	hint_btn.text = tr("💡 Hint")
 	hint_btn.custom_minimum_size = Vector2(220, 70)
 	hint_btn.add_theme_font_size_override("font_size", 26)
@@ -392,9 +394,15 @@ func _attempt(a: int, b: int) -> void:
 		_set_state(State.SWAP_BACK)
 
 func _on_hint() -> void:
-	if state == State.IDLE:
-		hint_pair = engine.hint()
-		board.queue_redraw()
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): shows a swap that makes a match.
+func _hint_now() -> bool:
+	if state != State.IDLE:
+		return false
+	hint_pair = engine.hint()
+	board.queue_redraw()
+	return not hint_pair.is_empty()
 
 # ---------- drawing ----------
 
@@ -682,9 +690,11 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "💎  Play", "sub": "Beat the clock", "action": _start}],
 		"restart": _start,
+		"helps": [{"text": "💡 Hint", "how": "Shows a swap that makes a match.", "action": _hint_now}],
 		"board_note": "Your best score.",
 	})
 	add_child(home)
+	home.track_help_button(hint_btn, "💡 Hint")
 
 func _on_pause_home() -> void:
 	home.pause()

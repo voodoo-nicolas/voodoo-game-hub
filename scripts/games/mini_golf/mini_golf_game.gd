@@ -57,6 +57,8 @@ var card_grid: GridContainer
 var card_totals: Label
 var card_btn: Button
 
+var mulligan: Dictionary = {}  # the ball before the last putt (solo), for the ↩ help
+
 func _ready() -> void:
 	preload("res://scripts/games/mini_golf/mini_golf_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -145,6 +147,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "↩ Mulligan", "how": "Takes your last putt back (solo games).", "action": _help_mulligan}],
 		"board": "Birdies or better",
 		"board_note": "Holes you finished under par, in any round.",
 	})
@@ -457,6 +460,7 @@ func _on_field_input(event: InputEvent) -> void:
 			var pull := pull_from - pull_to
 			var power := clampf(pull.length() / PULL_FULL, 0.0, 1.0)
 			if power > 0.05:
+				mulligan = {"ball": engine.ball, "strokes": engine.strokes, "hole": pos_in_course}
 				engine.shoot(pull, power)
 				phase = "roll"
 				trail.clear()
@@ -674,3 +678,16 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ↩ help (solo): the last putt never happened.
+func _help_mulligan() -> bool:
+	if not started or players != 1 or phase != "aim" or mulligan.is_empty() or int(mulligan.hole) != pos_in_course:
+		return false
+	engine.ball = mulligan.ball
+	engine.strokes = int(mulligan.strokes)
+	mulligan = {}
+	trail.clear()
+	field.queue_redraw()
+	return true

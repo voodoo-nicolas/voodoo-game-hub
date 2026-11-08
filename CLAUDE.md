@@ -49,7 +49,8 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
 
 ## STANDARDS digest (full text: docs/STANDARDS.md)
 - N1 only the Landing has "← Hub"; N2 every other screen 🏠 Home (deeper ones also ‹ Back); N3 selecting a game anywhere opens its Landing; N4 Android back = one step up (Landing → Hub; during play → pause menu); N5 leaving play saves via `SaveUtil`; N6 Landing → play ≤ 2 screens, Resume/Quick Play 1 tap; N7 navigation lives in the Landing kit.
-- Pause menu: Resume / Restart / How to Play / 🏆 / 📊 / 📸 / ⚙ Options / 🏠 Home. Floating SettingsDrawer retired (stub for old packs; never delete the class).
+- Pause menu: Resume / [helps] / Restart / How to Play / 🏆 / 📊 / 📸 / ⚙ Options / 🏠 Home. Floating SettingsDrawer retired (stub for old packs; never delete the class).
+- Helps (§17): every game offers 💡/❤/⏭... from one kit pool per game: 3 max, one back 24 h after the LAST use; exemptions only in `hub.py` `NO_HELPS` with a reason.
 - Skins: Classic default, Voodoo opt-in. Kit buttons one blue colour, green only for Start/Resume. Arcade games keep their own backgrounds.
 - Layout: inside safe area, fit viewport width, test text scale 1.0 and 1.4.
 - Don't market as kids' education (Google Play Families policy conflicts with Drinking Games).

@@ -80,6 +80,7 @@ const STRINGS := {
 		"Sign in (hub ⚙ Options) to put your best score on the board.": "Inicia sesión (⚙ Opciones en el menú) para poner tu mejor puntaje en la tabla.",
 		"Stacker": "Apilador",
 		"Start": "Empezar",
+		"Takes away the bottom three rows of the well.": "Quita las tres filas de abajo del pozo.",
 		"Text & button size": "Tamaño del texto y botones",
 		"The game ends when the pieces stack up to the top.": "El juego termina cuando las piezas se apilan hasta arriba.",
 		"The ↺ and ↻ buttons turn the piece left or right.": "Los botones ↺ y ↻ giran la pieza a la izquierda o a la derecha.",
@@ -131,6 +132,7 @@ const STRINGS := {
 		"🙂 Easy": "🙂 Fácil",
 		"🛟 Helps": "🛟 Ayudas",
 		"🧱 Block Drop": "🧱 Bloques",
+		"🧹 Clear 3 rows": "🧹 Quitar 3 filas",
 	},
 }
 

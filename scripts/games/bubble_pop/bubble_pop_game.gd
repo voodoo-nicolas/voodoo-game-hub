@@ -140,6 +140,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "🧹 Clear the bottom row", "how": "Pops the lowest row of bubbles.", "action": _help_clear}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -442,3 +443,19 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🧹 help: the lowest row of bubbles goes.
+func _help_clear() -> bool:
+	if not started or over or flying:
+		return false
+	for r in range(engine.grid.size() - 1, -1, -1):
+		var row: Array = engine.grid[r]
+		if row.any(func(v): return v != BubbleEngine.EMPTY):
+			for c in row.size():
+				row[c] = BubbleEngine.EMPTY
+			_sfx("powerup")
+			board.queue_redraw()
+			return true
+	return false

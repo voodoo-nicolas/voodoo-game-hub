@@ -62,6 +62,7 @@ const STRINGS := {
 		"Play": "Jugar",
 		"Play a game and your records will show up here.": "Juega una partida y aquí aparecerán tus récords.",
 		"Player": "Jugador",
+		"Plays a card that goes on the pile for you.": "Juega por ti una carta que va sobre el montón.",
 		"Quick Play": "Juego rápido",
 		"Resume": "Continuar",
 		"Score: %d": "Puntos: %d",

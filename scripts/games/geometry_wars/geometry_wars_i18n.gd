@@ -136,6 +136,7 @@ const STRINGS := {
 		"Games played": "Partidas jugadas",
 		"Gates exploded": "Puertas detonadas",
 		"Giant Slayer": "Matagigantes",
+		"Gives you one more life, right now.": "Te da una vida más, ahora mismo.",
 		"Golden Gauntlet": "Guantelete Dorado",
 		"Golden Hour": "Hora Dorada",
 		"Gravity Lord": "Señor de la Gravedad",

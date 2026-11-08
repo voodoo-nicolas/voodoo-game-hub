@@ -29,6 +29,7 @@ const STRINGS := {
 		"Fight your way through as many stages as you can and sink each stage's battleship.": "Abre paso por todas las etapas que puedas y hunde el acorazado de cada una.",
 		"Game over!": "¡Fin del juego!",
 		"Games played": "Partidas jugadas",
+		"Gives you one more life, right now.": "Te da una vida más, ahora mismo.",
 		"Guns": "Armas",
 		"Hard": "Difícil",
 		"Hard: faster and thicker fire, more islands and turrets, fewer drops, one bomb, and tougher battleships.": "Difícil: disparos más rápidos y densos, más islas y torretas, menos premios, una sola bomba y acorazados más duros.",

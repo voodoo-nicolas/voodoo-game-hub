@@ -499,6 +499,7 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_hub_name()
     errors += lint_web_threads()
     errors += lint_own_backgrounds(m)
+    errors += lint_helps(m)
     warnings += lint_legal()
     warnings += lint_game_xp(m)  # older games over the cap get trimmed as each is touched
     sys.path.insert(0, str(ROOT / "tools"))
@@ -551,6 +552,42 @@ def lint_own_backgrounds(m: dict) -> list[str]:
                       "(arcade games keep their own backgrounds) -- add it, then sync")
     for gid in sorted(listed - arcade):
         errors.append(f"{gid}: in OWN_BG_GAMES (tools/templates/home_kit.gd) but not in the Arcade category")
+    return errors
+
+
+# STANDARDS §17 (owner, 2026-11-08): every catalog game offers helps (3 per game,
+# one back 24 h after the last used) through the Landing kit's pool -- except these.
+NO_HELPS = {
+    "voodoo_iq": "a scored test: a help would change what the score means",
+    "trace_it": "a tracing tool with no score or fail state",
+    "trivia_battle": "head to head on one phone: a help favours one player",
+    "war": "pure luck, no choices to help with",
+    "bunco": "pure luck, no choices to help with",
+    "video_poker": "the free Coach (Options) already advises every decision",
+    "reaction_test": "measures your reaction time: a help would fake it",
+    "creation": "keeps its own 3 / 24 h pool (synced to the cloud, unlimited when bought), same rule",
+    "turned": "story game: hints need story-aware writing (owner to decide)",
+    "last_shift": "story game: hints need story-aware writing (owner to decide)",
+    "party_spinner": "party game: nothing to help with",
+    "truth_or_dare": "party game: nothing to help with",
+    "fortune_ball": "party game: nothing to help with",
+    "spirit_board": "party game: nothing to help with",
+    "fastest_finger": "head to head on one phone: a help favours one player",
+    "who_am_i": "head to head on one phone: a help favours one player",
+    "charades": "party game: passing a word is already free",
+}
+
+
+def lint_helps(m: dict) -> list[str]:
+    """STANDARDS §17: each catalog game uses the kit's helps pool, or is in NO_HELPS."""
+    errors = []
+    for gid in catalog_ids(m):
+        if gid in NO_HELPS:
+            continue
+        text = "".join(f.read_text(encoding="utf-8") for f in (ROOT / "scripts/games" / gid).glob("*.gd")
+                       if f.name not in ("home_kit.gd", "sound_lib.gd", "sprite_lib.gd"))
+        if '"helps":' not in text and "helps_left(" not in text:
+            errors.append(f"{gid}: no helps (STANDARDS §17) -- add cfg \"helps\" or list it in NO_HELPS with the reason")
     return errors
 
 

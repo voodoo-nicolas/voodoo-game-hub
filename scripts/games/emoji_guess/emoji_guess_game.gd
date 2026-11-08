@@ -35,6 +35,8 @@ var typed: String = ""
 var tier_pick: int = 0
 var playing: bool = false
 
+var hint_btn: Button  # 💡 Hint (the kit keeps its count)
+
 func _ready() -> void:
 	preload("res://scripts/games/emoji_guess/emoji_guess_i18n.gd").install(self)
 	Orientation.lock_portrait()
@@ -151,7 +153,8 @@ func _build_ui() -> void:
 	row_margin.add_child(actions)
 	actions.add_child(_button(tr("⌫"), _on_back, 86))
 	actions.add_child(_button(tr("✔ Enter"), _on_enter, 150))
-	actions.add_child(_button(tr("💡 Hint"), _on_hint, 130))
+	hint_btn = _button(tr("💡 Hint"), _on_hint, 130)
+	actions.add_child(hint_btn)
 	actions.add_child(_button(tr("Skip"), _on_skip, 110))
 
 	feedback_timer = Timer.new()
@@ -183,9 +186,11 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "💡 Hint", "how": "Types the next letter of the answer.", "action": _hint_now}],
 		"board_note": "Your best score in one solo round.",
 	})
 	add_child(home)
+	home.track_help_button(hint_btn, "💡 Hint")
 	if info:
 		add_child(info)
 
@@ -320,11 +325,16 @@ func _on_enter() -> void:
 		_feedback(tr("Not quite — try again"), Color(1, 0.45, 0.45))
 
 func _on_hint() -> void:
+	home.try_help(_hint_now)
+
+## 💡 help (STANDARDS §17): types the next letter of the answer.
+func _hint_now() -> bool:
 	if not playing or engine.is_over():
-		return
+		return false
 	typed = engine.hint()
 	_sfx("powerup")
 	_render()
+	return true
 
 func _on_skip() -> void:
 	if not playing or engine.is_over():

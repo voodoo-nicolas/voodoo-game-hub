@@ -58,6 +58,7 @@ const STRINGS := {
 		"Pyramids cleared.": "Pirámides despejadas.",
 		"Quick Play": "Juego rápido",
 		"Remove Kings as soon as they're uncovered — they don't need a partner.": "Quita los Reyes apenas queden libres — no necesitan pareja.",
+		"Removes a pair that adds up to 13 (or a King) for you.": "Quita por ti un par que suma 13 (o un Rey).",
 		"Resume": "Continuar",
 		"Screen": "Pantalla",
 		"Screenshot saved!": "¡Captura guardada!",

@@ -29,6 +29,7 @@ const STRINGS := {
 		"Enemies shot down": "Enemigos derribados",
 		"Expert": "Experto",
 		"Fighters come in squadrons and shoot back: 100 each. Aces chase you and take 4 hits: 250. Rocks take 3 hits: 60.": "Los cazas vienen en escuadrones y te disparan: 100 cada uno. Los ases te persiguen y aguantan 4 impactos: 250. Las rocas aguantan 3: 60.",
+		"Fills your shield right up.": "Llena tu escudo al máximo.",
 		"Fly as far as you can through the stages and score as much as you can on the way.": "Vuela lo más lejos que puedas por las etapas y suma todos los puntos que puedas en el camino.",
 		"Fly through rings when your shield is low — they're the only way to heal it.": "Pasa por los anillos cuando tengas poco escudo: son la única forma de recuperarlo.",
 		"Full throttle through the neon. Steer, shoot, fly through the rings.": "A toda máquina por el neón. Dirige, dispara, pasa por los anillos.",
@@ -134,6 +135,7 @@ const STRINGS := {
 		"😐 Normal": "😐 Normal",
 		"🙂 Easy": "🙂 Fácil",
 		"🛟 Helps": "🛟 Ayudas",
+		"🛡 Full shield": "🛡 Escudo lleno",
 	},
 }
 

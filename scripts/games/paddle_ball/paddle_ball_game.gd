@@ -220,6 +220,7 @@ func _build_home() -> void:
 			{"text": "😈 Hard", "row": "cpu", "color": HomeKit.PINK, "action": _start_level.bind(2)},
 		],
 		"restart": _start,
+		"helps": [{"text": "⏪ Take back a point", "how": "Takes one point away from the computer.", "action": _help_point}],
 		"board": "Wins",
 		"board_note": "Matches won against the computer, at any level.",
 	})
@@ -250,3 +251,13 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ⏪ help: the computer loses a point.
+func _help_point() -> bool:
+	if not running or engine.scores[1] <= 0:
+		return false
+	engine.scores[1] -= 1
+	_sfx("powerup")
+	return true

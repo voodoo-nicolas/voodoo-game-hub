@@ -64,6 +64,7 @@ const STRINGS := {
 		"Play a game and your records will show up here.": "Juega una partida y aquí aparecerán tus récords.",
 		"Play your heavy tiles early: if someone else goes out, they count against you.": "Juega pronto tus fichas pesadas: si otro se queda sin fichas, cuentan en tu contra.",
 		"Player": "Jugador",
+		"Plays your best tile for you (or draws when none fits).": "Juega por ti tu mejor ficha (o roba si ninguna sirve).",
 		"Quick Play": "Juego rápido",
 		"Resume": "Continuar",
 		"Rounds won": "Rondas ganadas",

@@ -97,6 +97,7 @@ const STRINGS := {
 		"These controls are shared: they change every game that uses the shared controller.": "Estos controles son compartidos: cambian en todos los juegos que usan el mando compartido.",
 		"These settings are app-wide: they change every game.": "Estos ajustes son de toda la app: cambian en todos los juegos.",
 		"Type the answer on the keyboard. Capitals, accents and spaces don't matter, and it is accepted as soon as it is right.": "Escribe la respuesta con el teclado. Mayúsculas, acentos y espacios no importan, y se acepta en cuanto es correcta.",
+		"Types the next letter of the answer.": "Escribe la siguiente letra de la respuesta.",
 		"Update the app to keep statistics.": "Actualiza la app para guardar estadísticas.",
 		"Update the app to see the leaderboards.": "Actualiza la app para ver las clasificaciones.",
 		"Use the hint about the answer: a food, an animal, a saying. It rules out most of the guesses.": "Aprovecha la pista sobre la respuesta: una comida, un animal, un dicho. Descarta casi todas las opciones.",

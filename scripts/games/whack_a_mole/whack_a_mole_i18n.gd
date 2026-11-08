@@ -7,6 +7,7 @@ const STRINGS := {
 		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%d ways to play": "%d formas de jugar",
 		"30-second round": "Ronda de 30 segundos",
+		"Adds 10 seconds to the round.": "Suma 10 segundos a la ronda.",
 		"All": "Todos",
 		"All unlocked!": "¡Todos desbloqueados!",
 		"App v%s": "App v%s",

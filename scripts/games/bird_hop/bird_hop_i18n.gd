@@ -6,6 +6,7 @@ const STRINGS := {
 	"es": {
 		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%d ways to play": "%d formas de jugar",
+		"After a crash, keeps your score and flies on: the next pillars open wide.": "Después de chocar, conservas tu puntaje y sigues volando: los próximos pilares se abren bien.",
 		"Aim for the middle of each gap, and get lined up early for the next one.": "Apunta al centro de cada hueco y alinéate temprano para el siguiente.",
 		"All": "Todos",
 		"All unlocked!": "¡Todos desbloqueados!",

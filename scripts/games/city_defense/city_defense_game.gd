@@ -122,6 +122,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _new_game,
+		"helps": [{"text": "🏙 Rebuild a city", "how": "Brings back one destroyed city.", "action": _help_city}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -320,3 +321,16 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🏙 help: one destroyed city is rebuilt.
+func _help_city() -> bool:
+	if not started or engine.over:
+		return false
+	for c in engine.cities:
+		if not c.alive:
+			c.alive = true
+			_update_hud()
+			return true
+	return false

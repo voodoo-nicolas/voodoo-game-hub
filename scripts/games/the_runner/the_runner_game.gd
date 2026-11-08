@@ -897,26 +897,20 @@ func _tick_hints() -> void:
 		_hints.left = mini(HINT_MAX, int(_hints.left) + gained)
 		_hints.stamp = now if int(_hints.left) >= HINT_MAX else int(_hints.stamp) + gained * HINT_REFILL
 
+## Owner 2026-11-08 (STANDARDS §17): the kit's pool -- 3 at most, one back 24 h
+## after the LAST hint used. The old user://the_runner_hints.json clock is no longer read.
 func hints_left() -> int:
-	_tick_hints()
-	return int(_hints.left)
+	return HomeKit.helps_left("the_runner")
 
 ## Seconds until the next hint comes back (0 when full).
 func hint_wait() -> int:
-	_tick_hints()
-	if int(_hints.left) >= HINT_MAX:
-		return 0
-	return maxi(0, int(_hints.stamp) + HINT_REFILL - int(Time.get_unix_time_from_system()))
+	return HomeKit.help_wait("the_runner")
 
 func use_hint() -> bool:
-	_tick_hints()
-	if int(_hints.left) <= 0:
-		return false
-	if int(_hints.left) >= HINT_MAX:
-		_hints.stamp = int(Time.get_unix_time_from_system())
-	_hints.left = int(_hints.left) - 1
-	SaveUtil.write(HINT_PATH, _hints)
-	return true
+	var ok: bool = HomeKit.use_help("the_runner")
+	if ok and home:
+		home.refresh_helps()
+	return ok
 
 # ================================================================ stats, sounds, music, save
 

@@ -166,6 +166,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "🔧 Repair", "how": "Repairs your cannon to full health (against the computer).", "action": _help_repair}],
 		"board": "Wins",
 		"board_note": "Games won against the computer, at any level.",
 	})
@@ -594,3 +595,14 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🔧 help (against the computer): your cannon back to full health.
+func _help_repair() -> bool:
+	if not started or cpu_level < 0 or phase == "over" or engine.tanks.is_empty():
+		return false
+	if int(engine.tanks[0].hp) >= CdEngine.MAX_HP:
+		return false
+	engine.tanks[0].hp = CdEngine.MAX_HP
+	return true

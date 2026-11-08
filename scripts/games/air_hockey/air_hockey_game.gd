@@ -109,6 +109,7 @@ func _build_ui() -> void:
 		"logo": _draw_home_logo,
 		"modes": modes,
 		"restart": _restart,
+		"helps": [{"text": "⏪ Take back a goal", "how": "Takes one goal away from the computer.", "action": _help_goal}],
 		"board": "Wins",
 		"board_note": "Games won against the computer, at any level.",
 	})
@@ -275,3 +276,13 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ⏪ help (against the computer): it loses a goal.
+func _help_goal() -> bool:
+	if not started or cpu_level < 0 or engine.winner != 0 or engine.score[1] <= 0:
+		return false
+	engine.score[1] -= 1
+	score_label.text = "%d  :  %d" % [engine.score[0], engine.score[1]]
+	return true

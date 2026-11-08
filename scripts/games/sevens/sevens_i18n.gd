@@ -65,6 +65,7 @@ const STRINGS := {
 		"Play a game and your records will show up here.": "Juega una partida y aquí aparecerán tus récords.",
 		"Playable cards glow in your hand. If you have no playable card you pass automatically. Passing isn't a penalty here, but it means you are stuck while others get ahead.": "Las cartas jugables brillan en tu mano. Si no tienes ninguna jugable, pasas automáticamente. Pasar no es una penalización aquí, pero significa que te quedas atascado mientras los demás avanzan.",
 		"Player": "Jugador",
+		"Plays your best card for you.": "Juega por ti tu mejor carta.",
 		"Quick Play": "Juego rápido",
 		"Resume": "Continuar",
 		"Screen": "Pantalla",

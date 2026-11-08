@@ -194,6 +194,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "✋ Ball in hand", "how": "On your turn, lets you put the white ball anywhere before you shoot.", "action": _help_hand}],
 		"board": "Wins",
 		"board_note": "Games won against the computer, at any level.",
 	})
@@ -905,3 +906,13 @@ func _music(what: String, style: String, index: int = 0, fade: float = 1.5) -> v
 			m.play(style, self, index, fade)
 		"prepare":
 			m.prepare(style, index)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ✋ help: ball in hand on your turn.
+func _help_hand() -> bool:
+	if not started or phase != "aim" or not _human() or engine.ball_in_hand or engine.break_shot:
+		return false
+	engine.ball_in_hand = true
+	_show_banner(tr("Ball in hand: %s") % _name(engine.turn))
+	return true

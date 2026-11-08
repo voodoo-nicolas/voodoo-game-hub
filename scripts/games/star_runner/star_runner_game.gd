@@ -164,6 +164,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "🛡 Full shield", "how": "Fills your shield right up.", "action": _help_shield}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -738,3 +739,13 @@ func _music(style: String) -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
 		m.play(style, self, 0, 1.5)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🛡 help: the shield back to full.
+func _help_shield() -> bool:
+	if not started or engine.state != "play" or engine.shield >= SrEngine.MAX_SHIELD:
+		return false
+	engine.shield = SrEngine.MAX_SHIELD
+	_sfx("powerup")
+	return true

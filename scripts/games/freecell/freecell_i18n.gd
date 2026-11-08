@@ -40,6 +40,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"Makes one good move for you.": "Hace por ti una buena jugada.",
 		"Medium": "Medio",
 		"More": "Más",
 		"Move all 52 cards onto the foundations, each suit from Ace up to King.": "Pasa las 52 cartas a las bases, cada palo del As al Rey.",

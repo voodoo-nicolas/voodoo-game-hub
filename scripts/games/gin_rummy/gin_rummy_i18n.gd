@@ -35,6 +35,7 @@ const STRINGS := {
 		"Discard": "Descartar",
 		"Draw from the stock or the discard pile.  Deadwood: %d": "Roba del mazo o del descarte.  Sueltas: %d",
 		"Draws": "Empates",
+		"Draws from the better pile for you, or picks the card to throw away.": "Roba por ti del mejor mazo, o elige la carta para descartar.",
 		"Each turn, draw a card from the stock or take the top discard, then discard one.": "En cada turno, roba una carta del mazo o toma la de arriba del descarte, y luego descarta una.",
 		"Earned": "Logrados",
 		"Easy": "Fácil",

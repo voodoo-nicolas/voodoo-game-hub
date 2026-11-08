@@ -28,6 +28,7 @@ const STRINGS := {
 		"Expert": "Experto",
 		"Game Over": "Fin del juego",
 		"Games played": "Partidas jugadas",
+		"Gives you one more life, right now.": "Te da una vida más, ahora mismo.",
 		"Hard": "Difícil",
 		"Help": "Ayuda",
 		"Highest level": "Nivel más alto",

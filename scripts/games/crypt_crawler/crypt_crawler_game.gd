@@ -273,6 +273,7 @@ func _build_ui() -> void:
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
 		"restart": _restart,
+		"helps": [{"text": "❤ Heal", "how": "Heals you to full health.", "action": _help_heal}],
 		"board": "Best score",
 	})
 	add_child(home)
@@ -900,3 +901,13 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## ❤ help: back to full health.
+func _help_heal() -> bool:
+	if not started or engine.state != "play" or engine.hp >= CcEngine.MAX_HP:
+		return false
+	engine.hp = CcEngine.MAX_HP
+	_update_hud()
+	return true

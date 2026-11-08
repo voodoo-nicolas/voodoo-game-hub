@@ -64,6 +64,7 @@ const STRINGS := {
 		"Play a game and your records will show up here.": "Juega una partida y aquí aparecerán tus récords.",
 		"Player": "Jugador",
 		"Pop as many bubbles as you can before the pile reaches the line at the bottom.": "Revienta todas las burbujas que puedas antes de que la pila llegue a la línea de abajo.",
+		"Pops the lowest row of bubbles.": "Revienta la fila de burbujas más baja.",
 		"Quick Play": "Juego rápido",
 		"Resume": "Continuar",
 		"Score: %d": "Puntos: %d",
@@ -117,6 +118,7 @@ const STRINGS := {
 		"🔊 Sound": "🔊 Sonido",
 		"🔔 Game invites": "🔔 Invitaciones a jugar",
 		"🛟 Helps": "🛟 Ayudas",
+		"🧹 Clear the bottom row": "🧹 Quitar la fila de abajo",
 	},
 }
 

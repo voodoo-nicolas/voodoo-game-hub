@@ -76,6 +76,7 @@ const STRINGS := {
 		"Screenshot saved!": "¡Captura guardada!",
 		"Selected: %d": "Seleccionado: %d",
 		"Shut the Box": "Cierra la caja",
+		"Shuts the best tiles for this roll.": "Cierra las mejores fichas para esta tirada.",
 		"Sign in (hub ⚙ Options) to put your best score on the board.": "Inicia sesión (⚙ Opciones en el menú) para poner tu mejor puntaje en la tabla.",
 		"Solved!": "¡Resuelto!",
 		"Start": "Empezar",

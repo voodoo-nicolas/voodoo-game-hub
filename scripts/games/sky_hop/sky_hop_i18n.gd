@@ -32,6 +32,7 @@ const STRINGS := {
 		"How high can you hop?": "¿Qué tan alto puedes saltar?",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",
+		"Launches you up like a spring, even in mid-air.": "Te lanza hacia arriba como un resorte, incluso en el aire.",
 		"Loading...": "Cargando...",
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
@@ -111,6 +112,7 @@ const STRINGS := {
 		"🔄 Rotate Screen": "🔄 Girar pantalla",
 		"🔊 Sound": "🔊 Sonido",
 		"🔔 Game invites": "🔔 Invitaciones a jugar",
+		"🚀 Super jump": "🚀 Súper salto",
 		"🛟 Helps": "🛟 Ayudas",
 	},
 }

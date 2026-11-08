@@ -71,6 +71,7 @@ const STRINGS := {
 		"Play a game and your records will show up here.": "Juega una partida y aquí aparecerán tus récords.",
 		"Play under the winning card whenever you can — let someone else take the points.": "Juega por debajo de la carta ganadora siempre que puedas: que otro se lleve los puntos.",
 		"Player": "Jugador",
+		"Plays a good card for you, or picks three cards to pass.": "Juega por ti una buena carta, o elige tres cartas para pasar.",
 		"Quick Play": "Juego rápido",
 		"Resume": "Continuar",
 		"Screen": "Pantalla",

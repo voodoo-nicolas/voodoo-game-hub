@@ -31,6 +31,7 @@ const STRINGS := {
 		"From level 2 some barrels are red and roll much faster, and a 🔥 fireball wanders up from the oil drum, even climbing ladders. Touching it costs a life; the hammer smashes it for 500.": "Desde el nivel 2 algunos barriles son rojos y ruedan mucho más rápido, y una bola de fuego 🔥 sube desde el barril de aceite, incluso por las escaleras. Tocarla cuesta una vida; el martillo la destruye por 500.",
 		"Game over!": "¡Fin del juego!",
 		"Games played": "Partidas jugadas",
+		"Gives you one more life, right now.": "Te da una vida más, ahora mismo.",
 		"Grab the 🔨 hammer to smash barrels for 300 each for a few seconds. With the hammer you can't climb or jump.": "Agarra el 🔨 martillo para destrozar barriles durante unos segundos, 300 cada uno. Con el martillo no puedes subir ni saltar.",
 		"Hard": "Difícil",
 		"Help": "Ayuda",

@@ -70,6 +70,7 @@ const STRINGS := {
 		"Score: %d": "Puntos: %d",
 		"Screen": "Pantalla",
 		"Screenshot saved!": "¡Captura guardada!",
+		"Shows a swap that makes a match.": "Muestra un intercambio que forma una combinación.",
 		"Sign in (hub ⚙ Options) to put your best score on the board.": "Inicia sesión (⚙ Opciones en el menú) para poner tu mejor puntaje en la tabla.",
 		"Start": "Empezar",
 		"Swap gems to line up three or more. Race the clock!": "Intercambia joyas para alinear tres o más. ¡Corre contra el reloj!",

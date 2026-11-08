@@ -332,6 +332,7 @@ func _build_home() -> void:
 		"logo": _draw_home_logo,
 		"modes": [{"text": "▶  Play", "sub": "One mistake ends it", "action": _start_game}],
 		"restart": _start_game,
+		"helps": [{"text": "🔁 Show again", "how": "Plays the whole sequence again; you start your answer over.", "action": _help_replay}],
 		"board": "Best level",
 		"board_note": "The longest sequence you've repeated.",
 	})
@@ -357,3 +358,13 @@ func _draw_home_logo(c: Control) -> void:
 			pts.append(ctr + Vector2(cos(a), sin(a)) * r * 0.45)
 		c.draw_colored_polygon(pts, Color(cols[k], 0.5 if k == 1 else 0.15))
 		HomeKit.glow_polyline(c, pts, cols[k], 2.0, true)
+
+# ---------- helps (STANDARDS §17) ----------
+
+## 🔁 help: replays the sequence; the answer starts over.
+func _help_replay() -> bool:
+	if not accepting_input or playing_sequence or engine.game_over:
+		return false
+	engine.player_progress = 0
+	_play_sequence()
+	return true

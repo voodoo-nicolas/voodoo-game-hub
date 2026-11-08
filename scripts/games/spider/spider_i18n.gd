@@ -45,6 +45,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"Makes one good move for you.": "Hace por ti una buena jugada.",
 		"Medium": "Medio",
 		"More": "Más",
 		"Moves: %d   Runs: %d/8   Deals left: %d": "Movimientos: %d   Escaleras: %d/8   Repartos: %d",
