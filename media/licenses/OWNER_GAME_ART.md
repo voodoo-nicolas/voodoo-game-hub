@@ -106,3 +106,13 @@ not apply). Generic pool hall and tables, no brand on them.
   hazards, ship layout), from the owner's folder `D:/dev/minigame art/runner/` (originals stay there,
   not in the repo). Made by the owner with ChatGPT / Google Gemini (see each `ai_tool`); same terms as
   above. `system_star` and `system_blackhole` are the same pictures as Neon Blast's campaign maps.
+
+## Beached (codename wilson, 2026-11-08)
+- Owner's Gemini pictures in `D:/dev/Wilson/` (1376x768; Drive "viral game hub/wilson" README calls
+  them ref_01..ref_06): `5.jpg` = clean plate (permanent background), `6.jpg` = debris sheet on green,
+  `4.jpg` = Day 1 scene, plus `landing screen.jpg`, `menu layout for reference.jpg`, `preview.jpg`,
+  `thumbnail.jpg` (not shipped yet).
+- Shipped in `games/wilson/art/`: `plate.webp` (sky and painted sun made transparent, palms C and D
+  removed and the sea behind them in-painted), `palm_C.webp` / `palm_D.webp`, `debris_*.webp` (keyed
+  off the green sheet), `landing.webp` (= 4.jpg). `cloud_1/2.webp` were drawn by Claude Code (PIL) in
+  the plate's style. Design data in `games/wilson/data/` is the owner's (Drive).

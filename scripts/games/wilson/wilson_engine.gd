@@ -1,0 +1,1068 @@
+extends RefCounted
+
+## Beached: the rules (no Nodes, headless-testable). Time is the real clock: everything is stored as
+## absolute unix timestamps and `advance(to, online)` plays the island forward in steps, so a phone that
+## was closed for two days is caught up exactly like one that stayed open (GDD §15: "store absolute end
+## timestamps, never tick counters"). `online` = the app is open and showing the island; offline the
+## chill rules apply (GDD §5: Food / Water / Energy never drop below 15, HP never drops).
+##
+## Actions: `enqueue(kind, target, extra)` adds to the queue (max 5). The head starts when Johnny is
+## free (energy is paid then, the duration is fixed then: low energy x1.5, Rested /1.1) and finishes at
+## its absolute end time. Sleep and naps are a state (`sleep`), not a queue item, once they start.
+## Events for the screen (thought bubbles, sounds, quest pop-ups) collect in `events`; the game drains it.
+
+const D = preload("res://scripts/games/wilson/wilson_data.gd")
+const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
+
+const SAVE_VERSION := 1
+const STEP := 600.0  # simulation step, seconds
+
+var t := 0.0                 # unix seconds the island has reached
+var tz := 0                  # local time offset, seconds (Time.get_time_zone_from_system().bias * 60)
+var hemisphere := "south"
+var start_day := 0           # local day index of Day 1
+var bars := {"hp": 100.0, "food": 100.0, "water": 100.0, "energy": 100.0}
+var mood := 60.0
+var slots: Array = []        # [{id, n}], at most `slot_count`
+var slot_count := 12
+var ground := {}             # overflow when the bag is full: id -> n (pulled back in when room frees)
+var structures := {}         # id -> {built: t, ...}; campfire: fuel_until
+var debris := {}             # id -> true while it lies on the beach
+var palms := {}              # id -> {coco: float, felled: t or 0}
+var spots := {}              # id -> stock (float)
+var queue: Array = []        # [{kind, target, extra, start, end, energy, consumed}]
+var sleep := {}              # {kind: sleep|nap|collapse|faint, bed, start, until}
+var naps := {"day": -1, "n": 0}
+var buffs := {}              # name -> until (t): rested, sandy, nausea
+var flags := {}
+var quest := ""              # the active tutorial quest id ("" = all done)
+var quests_done: Array = []
+var xp := {}
+var gags: Array = []
+var decor: Array = []
+var unlocked: Array = []     # recipes unlocked by quest rewards
+var fire_fails := 0
+var catches := 0
+var raw_eaten := 0
+var tallies: Array = []      # local day indexes scratched on the stump
+var weather := "clear"
+var shore := {"last_day": 0, "pile": {}, "no_rare": 0, "no_mythic": 0, "bottles": 0}
+var journal: Array = []      # [{t, text, args, away}]
+var rng := RandomNumberGenerator.new()
+var events: Array = []       # transient: [{type, ...}] for the screen
+var _online := true
+var _low := {}               # bar -> true while its low-bar line has been said
+
+# ================================================================ setup
+
+## A fresh island at time `now` (Day 1 = the local day of `now`).
+func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: int = 0) -> void:
+	t = now
+	tz = tz_seconds
+	hemisphere = hemi
+	start_day = day_index(now)
+	bars = {"hp": 100.0, "food": 80.0, "water": 70.0, "energy": 90.0}
+	mood = 55.0
+	slots = []
+	slot_count = int(D.balance().get("inventory", {}).get("start_slots", 12))
+	ground = {}
+	structures = {}
+	debris = {}
+	for id in D.DEBRIS:
+		debris[id] = true
+	palms = {}
+	for id in D.PALMS:
+		palms[id] = {"coco": float(D.PALM_COCONUTS), "felled": 0.0}
+	spots = {}
+	for id in D.SPOTS:
+		spots[id] = float(D.SPOTS[id].max)
+	queue = []
+	sleep = {}
+	naps = {"day": -1, "n": 0}
+	buffs = {}
+	flags = {}
+	quest = "T01"
+	quests_done = []
+	xp = {}
+	gags = []
+	decor = []
+	unlocked = []
+	fire_fails = 0
+	catches = 0
+	raw_eaten = 0
+	tallies = []
+	weather = "clear"
+	shore = {"last_day": start_day, "pile": {}, "no_rare": 0, "no_mythic": 0, "bottles": 0}
+	journal = []
+	events = []
+	_low = {}
+	rng.seed = seed_value if seed_value != 0 else int(now) ^ 0x5eed
+	log_entry("Day 1. Washed up on a rock with palm trees. Wreckage everywhere. Great.")
+
+# ================================================================ time helpers
+
+func local_t(at: float = -1.0) -> float:
+	return (t if at < 0.0 else at) + tz
+
+func day_index(at: float = -1.0) -> int:
+	return int(floor(local_t(at) / 86400.0))
+
+func hour(at: float = -1.0) -> float:
+	return fposmod(local_t(at), 86400.0) / 3600.0
+
+func day_number() -> int:
+	return day_index() - start_day + 1
+
+func doy(at: float = -1.0) -> int:
+	var d := Time.get_datetime_dict_from_unix_time(int(local_t(at)))
+	var jan1 := Time.get_unix_time_from_datetime_dict({"year": d.year, "month": 1, "day": 1, "hour": 0, "minute": 0, "second": 0})
+	return int(floor((local_t(at) - jan1) / 86400.0)) + 1
+
+func sunrise_h(at: float = -1.0) -> float:
+	return Astro.sunrise(doy(at), hemisphere)
+
+func sunset_h(at: float = -1.0) -> float:
+	return Astro.sunset(doy(at), hemisphere)
+
+func is_day(at: float = -1.0) -> bool:
+	var h := hour(at)
+	return h >= sunrise_h(at) and h < sunset_h(at)
+
+## Unix time of the next local `h` o'clock after `at`.
+func next_hour(h: float, at: float = -1.0) -> float:
+	var base := t if at < 0.0 else at
+	var now_h := hour(base)
+	var dh := fposmod(h - now_h, 24.0)
+	if dh < 0.0001:
+		dh = 24.0
+	return base + dh * 3600.0
+
+# ================================================================ the clock
+
+## Plays the island forward to `to`. online = the app is open on the island.
+func advance(to: float, online: bool = true) -> void:
+	_online = online
+	var guard := 0
+	while t < to - 0.001 and guard < 200000:
+		guard += 1
+		_start_next()
+		var nb := minf(to, t + STEP)
+		var act := active()
+		if not act.is_empty() and float(act.end) < nb:
+			nb = maxf(float(act.end), t)
+		if not sleep.is_empty() and float(sleep.until) < nb:
+			nb = maxf(float(sleep.until), t)
+		_integrate(nb - t)
+		t = nb
+		act = active()
+		if not act.is_empty() and t >= float(act.end) - 0.001:
+			queue.pop_front()
+			_finish(act)
+		if not sleep.is_empty():
+			if t >= float(sleep.until) - 0.001:
+				wake()
+			elif sleep.kind == "collapse" and bars.energy >= D.COLLAPSE_WAKE_ENERGY:
+				wake()
+		_daily()
+		if online:
+			_check_collapse()
+	_start_next()
+	_online = true
+
+func _integrate(dt: float) -> void:
+	if dt <= 0.0:
+		return
+	var h := dt / 3600.0
+	var b: Dictionary = D.balance().get("bars", {})
+	var prev := bars.duplicate()
+	var asleep := not sleep.is_empty()
+	var mult := D.SLEEP_DRAIN_MULT if asleep else 1.0
+	var thirst := 2.0 if weather == "heatwave" else 1.0  # GDD §8: heatwave doubles thirst
+	bars.food -= float(b.get("food", {}).get("drain_per_h", 4)) * h * mult
+	bars.water -= float(b.get("water", {}).get("drain_per_h", 5)) * h * mult * thirst
+	if asleep:
+		if sleep.kind != "nap":
+			bars.energy += sleep_rate(str(sleep.bed)) * h
+	else:
+		bars.energy -= float(b.get("energy", {}).get("drain_per_h", 3)) * h
+	for k in ["food", "water", "energy"]:
+		bars[k] = clampf(bars[k], 0.0, 100.0)
+		if not _online:
+			var floor_v := float(D.balance().get("offline_floor", 15))
+			bars[k] = maxf(bars[k], minf(prev[k], floor_v))
+	var hp: Dictionary = b.get("hp", {})
+	var req: Dictionary = hp.get("regen_requires", {})
+	if prev.food > float(req.get("food_gt", 50)) and prev.water > float(req.get("water_gt", 50)) \
+			and prev.energy > float(req.get("energy_gt", 30)):
+		bars.hp += float(hp.get("regen_per_h", 2)) * h
+	if _online:
+		var empty := 0
+		for k in ["food", "water", "energy"]:
+			if prev[k] <= 0.0:
+				empty += 1
+		bars.hp -= float(hp.get("empty_bar_loss_per_h", 3)) * h * empty
+	bars.hp = clampf(bars.hp, 0.0, 100.0)
+	_world_tick(h)
+	_mood_tick(h)
+	if _online:
+		_low_bar_lines()
+		if bars.hp <= 0.0 and (sleep.is_empty() or sleep.kind != "faint"):
+			_faint()
+
+## Coconuts and spots grow back, felled palms regrow, the fire burns.
+func _world_tick(h: float) -> void:
+	for id in palms:
+		var p: Dictionary = palms[id]
+		if float(p.felled) > 0.0:
+			if t - float(p.felled) >= D.PALM_REGROW_DAYS * 86400.0:
+				p.felled = 0.0
+				p.coco = 0.0
+		else:
+			p.coco = minf(float(D.PALM_COCONUTS), float(p.coco) + h / D.COCONUT_REGROW_H)
+	for id in spots:
+		var s: Dictionary = D.SPOTS[id]
+		spots[id] = minf(float(s.max), float(spots[id]) + float(s.per_h) * h)
+	if structures.has("campfire") and weather == "storm":
+		structures.campfire.fuel_until = minf(float(structures.campfire.get("fuel_until", 0.0)), t)
+
+func _mood_tick(h: float) -> void:
+	var target := 60.0
+	if has_buff("rested"):
+		target += 15.0
+	if has_buff("sandy"):
+		target -= 15.0
+	if has_buff("nausea"):
+		target -= 15.0
+	if fire_lit() and not is_day():
+		target += 10.0
+	for k in ["food", "water", "energy", "hp"]:
+		if bars[k] < D.LOW_BAR:
+			target -= 10.0
+	mood = move_toward(mood, clampf(target, 0.0, 100.0), 10.0 * h)
+
+func _low_bar_lines() -> void:
+	for k in ["food", "water", "energy", "hp"]:
+		if bars[k] < D.LOW_BAR and not _low.get(k, false):
+			_low[k] = true
+			say(k)
+			events.append({"type": "low", "bar": k})
+		elif bars[k] > D.LOW_BAR + 10.0:
+			_low[k] = false
+
+func _check_collapse() -> void:
+	if sleep.is_empty() and bars.energy <= 0.0:
+		_cancel_active(false)
+		sleep = {"kind": "collapse", "bed": "sand", "start": t, "until": t + 12.0 * 3600.0}
+		say("collapse")
+		log_entry("Collapsed face-first into the sand. Energy: zero.")
+		events.append({"type": "sleep"})
+
+## HP 0 (only with the app open): faints, wakes next morning, loses the queue (GDD §5, no permadeath).
+func _faint() -> void:
+	_cancel_active(false)
+	queue.clear()
+	sleep = {"kind": "faint", "bed": "sand", "start": t, "until": next_hour(sunrise_h() + 0.5)}
+	say("faint")
+	log_entry("Fainted. Woke up later with sand in my ears and no memory of the plan.")
+	events.append({"type": "sleep"})
+
+# ================================================================ daily: shore delivery
+
+func _daily() -> void:
+	var today := day_index()
+	if today > int(shore.last_day) and hour() >= sunrise_h():
+		shore.last_day = today
+		_shore_delivery()
+
+func _shore_delivery() -> void:
+	var drops: Dictionary = D.balance().get("shore_drops", {})
+	var table: Dictionary = drops.get("storm" if weather == "storm" else "normal", {})
+	var rolls := int(table.get("rolls", 3))
+	var pity: Dictionary = drops.get("pity", {})
+	var got_rare := false
+	var got_mythic := false
+	for i in rolls:
+		var rarity := roll_rarity(table.get("weights", {}))
+		if int(shore.no_mythic) + 1 >= int(pity.get("mythic_after_days", 60)) and not got_mythic:
+			rarity = "mythic"
+		elif int(shore.no_rare) + 1 >= int(pity.get("rare_after_days", 14)) and not got_rare and not got_mythic:
+			rarity = "rare"
+		if rarity == "rare":
+			got_rare = true
+		if rarity == "mythic":
+			got_mythic = true
+		var id := _shore_item(rarity)
+		if id != "":
+			shore.pile[id] = int(shore.pile.get(id, 0)) + 1
+	shore.no_rare = 0 if (got_rare or got_mythic) else int(shore.no_rare) + 1
+	shore.no_mythic = 0 if got_mythic else int(shore.no_mythic) + 1
+	shore.pile["bottle_note"] = int(shore.pile.get("bottle_note", 0)) + 1
+	log_entry("Something washed ashore.")
+	events.append({"type": "shore"})
+
+## Weighted pick from {"common": 70, ...}.
+func roll_rarity(weights: Dictionary) -> String:
+	var total := 0.0
+	for k in weights:
+		total += float(weights[k])
+	var r := rng.randf() * total
+	for k in ["common", "uncommon", "rare", "mythic"]:
+		r -= float(weights.get(k, 0))
+		if r < 0.0:
+			return k
+	return "common"
+
+func _shore_item(rarity: String) -> String:
+	var letter: String = D.RARITY_LETTER.get(rarity, "C")
+	var pool := []
+	for id in D.items():
+		if D.items()[id].r == letter and not id in D.NOT_ASHORE:
+			pool.append(id)
+	if pool.is_empty():
+		return ""
+	return pool[rng.randi() % pool.size()]
+
+# ================================================================ inventory
+
+## Bag slots: 12 to start, +20 while a barrel is in the bag (balance.json inventory.barrel_bonus;
+## CRAFTING.md §5 "barrel +20"). Turning the barrel into a rain catcher gives that room up.
+func capacity() -> int:
+	var inv: Dictionary = D.balance().get("inventory", {})
+	return slot_count + (int(inv.get("barrel_bonus", 20)) if count("barrel") > 0 else 0)
+
+func count(id: String) -> int:
+	var n := 0
+	for s in slots:
+		if s.id == id:
+			n += int(s.n)
+	return n
+
+func stack_of(id: String) -> int:
+	return int(D.item(id).get("stack", 10))
+
+## Adds to the bag; what does not fit goes on the sand (`ground`). Returns how many went on the sand.
+func add(id: String, n: int) -> int:
+	var left := n
+	var cap := stack_of(id)
+	for s in slots:
+		if left <= 0:
+			break
+		if s.id == id and int(s.n) < cap:
+			var put := mini(left, cap - int(s.n))
+			s.n = int(s.n) + put
+			left -= put
+	while left > 0 and slots.size() < capacity():
+		var put := mini(left, cap)
+		slots.append({"id": id, "n": put})
+		left -= put
+	if left > 0:
+		ground[id] = int(ground.get(id, 0)) + left
+		say("full")
+	return left
+
+func remove(id: String, n: int) -> bool:
+	if count(id) < n:
+		return false
+	var left := n
+	for i in range(slots.size() - 1, -1, -1):
+		if left <= 0:
+			break
+		var s: Dictionary = slots[i]
+		if s.id != id:
+			continue
+		var take := mini(left, int(s.n))
+		s.n = int(s.n) - take
+		left -= take
+		if int(s.n) <= 0:
+			slots.remove_at(i)
+	_settle_ground()
+	return true
+
+## Pulls what lies on the sand back into freed bag space.
+func _settle_ground() -> void:
+	for id in ground.keys():
+		var n := int(ground[id])
+		ground.erase(id)
+		var left := 0
+		var cap := stack_of(id)
+		var rest := n
+		for s in slots:
+			if s.id == id and int(s.n) < cap and rest > 0:
+				var put := mini(rest, cap - int(s.n))
+				s.n = int(s.n) + put
+				rest -= put
+		while rest > 0 and slots.size() < capacity():
+			var put := mini(rest, cap)
+			slots.append({"id": id, "n": put})
+			rest -= put
+		left = rest
+		if left > 0:
+			ground[id] = left
+
+func give_list(list: Array) -> void:
+	for pair in list:
+		add(str(pair[0]), int(pair[1]))
+
+# ================================================================ eating and drinking (instant)
+
+func can_consume(id: String) -> bool:
+	return D.FOOD.has(id) and count(id) > 0
+
+func consume(id: String) -> String:
+	if id == "seawater":
+		say("seawater")
+		return "Salt water makes you thirstier."
+	if id == "bottle_note":
+		return open_bottle()
+	if not can_consume(id):
+		return "Can't eat that."
+	var f: Dictionary = D.FOOD[id]
+	remove(id, 1)
+	bars.food = clampf(bars.food + float(f.food), 0.0, 100.0)
+	bars.water = clampf(bars.water + float(f.water), 0.0, 100.0)
+	if f.has("gives"):
+		give_list(f.gives)
+	var sick := false
+	if f.has("nausea"):
+		raw_eaten += 1
+		sick = raw_eaten == 1 or rng.randf() < float(f.nausea)
+	if sick:
+		buffs["nausea"] = t + D.NAUSEA_H * 3600.0
+		bars.water = clampf(bars.water + D.NAUSEA_WATER, 0.0, 100.0)
+		say("nausea")
+		if not "raw_fish_nausea" in gags:
+			gags.append("raw_fish_nausea")
+	var verb: String = f.verb
+	log_entry("Drank a %s." if verb == "drink" else "Ate a %s.", ["@" + id])
+	_emit("drank" if verb == "drink" else "ate", {"id": id})
+	return ""
+
+func open_bottle() -> String:
+	if count("bottle_note") <= 0:
+		return "No bottle."
+	remove("bottle_note", 1)
+	add("bottle", 1)
+	add("paper", 1)
+	var note: String = D.BOTTLE_NOTES[int(shore.bottles) % D.BOTTLE_NOTES.size()]
+	shore.bottles = int(shore.bottles) + 1
+	say("bottle")
+	log_entry("A message in a bottle: \"%s\"", ["#" + note])
+	events.append({"type": "note", "text": note})
+	_emit("bottle_opened", {})
+	return ""
+
+# ================================================================ sleep and naps
+
+func bed_available(bed: String) -> bool:
+	match bed:
+		"sand":
+			return true
+		"tent_mattress":
+			return structures.has("tent") and structures.has("frond_bed")
+		_:
+			return structures.has(bed)
+
+## The best bed built so far.
+func best_bed() -> String:
+	var best := "sand"
+	for b in D.BED_RANK:
+		if bed_available(b):
+			best = b
+	return best
+
+## Energy per hour on `bed` right now (balance.json sleep_restore_per_h x sleep_modifiers).
+func sleep_rate(bed: String, at: float = -1.0) -> float:
+	var bal := D.balance()
+	var rate := float(bal.get("sleep_restore_per_h", {}).get(bed, 6))
+	var m: Dictionary = bal.get("sleep_modifiers", {})
+	var sheltered := bed in D.SHELTERED_BEDS
+	if is_day(at):
+		rate *= float(m.get("day_shade", 1.0)) if bed in D.SHADED_BEDS else float(m.get("day_sun", 0.5))
+	if not sheltered:
+		if weather == "storm":
+			rate *= float(m.get("storm_unsheltered", 0.25))
+		elif weather in D.RAINY:
+			rate *= float(m.get("rain_unsheltered", 0.5))
+	if weather in ["heatwave", "cold_snap"]:
+		rate *= float(m.get("temp_extreme", 0.8))
+	return rate
+
+## How long "Sleep" lasts if started now: through the night to just after sunrise, or by day until
+## rested (at most DAY_NAP_MAX_H).
+func sleep_hours_for(bed: String) -> float:
+	var h := hour()
+	if h >= sunset_h() - 1.0 or h < sunrise_h():
+		return (next_hour(sunrise_h() + 0.5) - t) / 3600.0
+	var rate := maxf(1.0, sleep_rate(bed))
+	return clampf((100.0 - bars.energy) / rate, 0.5, D.DAY_NAP_MAX_H)
+
+func start_sleep(bed: String, hours: float) -> void:
+	sleep = {"kind": "sleep", "bed": bed, "start": t, "until": t + hours * 3600.0}
+	if bed == "sand":
+		say("sleep_sand")
+	elif bed == "hammock":
+		say("sleep_hammock")
+	elif bed in D.SHELTERED_BEDS:
+		say("sleep_roof")
+	events.append({"type": "sleep"})
+
+func naps_today() -> int:
+	return int(naps.n) if int(naps.day) == day_index() else 0
+
+## "" when a nap is allowed now, else why not.
+func nap_block() -> String:
+	var pn: Dictionary = D.balance().get("power_nap", {})
+	if naps_today() >= int(pn.get("max_per_day", 2)):
+		return "Two naps a day. Even I have standards."
+	return ""
+
+func start_nap() -> String:
+	var why := nap_block()
+	if why != "":
+		say("no_nap")
+		return why
+	var pn: Dictionary = D.balance().get("power_nap", {})
+	sleep = {"kind": "nap", "bed": "shade", "start": t, "until": t + float(pn.get("minutes", 30)) * 60.0}
+	events.append({"type": "sleep"})
+	return ""
+
+func wake() -> void:
+	if sleep.is_empty():
+		return
+	var s := sleep
+	sleep = {}
+	var hrs := (t - float(s.start)) / 3600.0
+	match str(s.kind):
+		"nap":
+			var pn: Dictionary = D.balance().get("power_nap", {})
+			if int(naps.day) != day_index():
+				naps = {"day": day_index(), "n": 0}
+			naps.n = int(naps.n) + 1
+			if hrs >= float(pn.get("minutes", 30)) / 60.0 - 0.01:
+				var gain := float(pn.get("energy", 15)) if int(naps.n) == 1 else float(pn.get("second_nap_energy", 8))
+				bars.energy = clampf(bars.energy + gain, 0.0, 100.0)
+			log_entry("Took a power nap in the shade.")
+			_emit("nap_taken", {})
+		"faint":
+			bars.hp = maxf(bars.hp, D.FAINT_WAKE_HP)
+			log_entry("Woke up. Still alive. Still here.")
+		_:
+			var rb: Dictionary = D.balance().get("rested_buff", {})
+			var bed := str(s.bed)
+			if hrs >= float(rb.get("min_sleep_h", 6)) and D.BED_RANK.find(bed) >= D.BED_RANK.find(str(rb.get("min_bed", "hammock"))):
+				buffs["rested"] = t + D.RESTED_H * 3600.0
+				buffs.erase("sandy")
+				say("rested")
+				log_entry("Slept %s h on the %s. Rested.", [snappedf(hrs, 0.1), "@" + bed])
+			elif bed == "sand" and hrs >= 1.0:
+				buffs["sandy"] = t + D.SANDY_H * 3600.0
+				log_entry("Slept %s h on the sand. Sandy.", [snappedf(hrs, 0.1)])
+			else:
+				log_entry("Slept %s h.", [snappedf(hrs, 0.1)])
+	events.append({"type": "wake"})
+
+func has_buff(name: String) -> bool:
+	return float(buffs.get(name, 0.0)) > t
+
+# ================================================================ fire
+
+func fire_lit() -> bool:
+	if not structures.has("campfire"):
+		return false
+	return float(structures.campfire.get("fuel_until", 0.0)) > t and not weather in D.RAINY
+
+## "lit" / "embers" (rain on a fuelled fire) / "dead" / "" (no campfire).
+func fire_state() -> String:
+	if not structures.has("campfire"):
+		return ""
+	if float(structures.campfire.get("fuel_until", 0.0)) <= t:
+		return "dead"
+	return "embers" if weather in D.RAINY else "lit"
+
+## 0..1 flame size from the fuel left (3 h or more = full).
+func fire_level() -> float:
+	if not structures.has("campfire"):
+		return 0.0
+	return clampf((float(structures.campfire.get("fuel_until", 0.0)) - t) / (D.FIRE_START_H * 3600.0), 0.0, 1.0)
+
+# ================================================================ crafting
+
+func recipe_unlocked(r: Dictionary) -> bool:
+	if int(r.get("tier", 9)) > D.MAX_TIER:
+		return false
+	if r.id in D.reward_recipes() and not r.id in unlocked:
+		return false
+	return true
+
+## The recipes on the craft screen (unlocked, tier <= MAX_TIER).
+func craft_list() -> Array:
+	var out := []
+	for r in D.recipes().values():
+		if recipe_unlocked(r):
+			out.append(r)
+	return out
+
+## "" when recipe `rid` can be queued now, else the reason (English, translated on screen).
+func craft_block(rid: String, self_q = null) -> String:
+	var r := D.recipe(rid)
+	if r.is_empty() or not recipe_unlocked(r):
+		return "Not known yet."
+	if r.out_type == "structure" and structures.has(r.out):
+		return "Already built."
+	for q in queue:
+		if q.kind == "craft" and q.target == rid and r.out_type == "structure" and not is_same(q, self_q):
+			return "Already queued."
+	for pair in r.get("in", []):
+		if count(str(pair[0])) < int(pair[1]):
+			return "Missing materials."
+	for key in ["tool", "needs"]:
+		var tool: String = str(r.get(key, ""))
+		if tool != "" and count(tool) <= 0:
+			return "Needs a %s." % D.item_name(tool)
+	var st: String = str(r.get("station", "hands"))
+	if D.STATION_STRUCTURE.has(st) and not structures.has(D.STATION_STRUCTURE[st]):
+		return "Needs a %s." % D.item_name(D.STATION_STRUCTURE[st])
+	if st == "campfire" and not fire_lit():
+		return "The fire is out."
+	return ""
+
+# ================================================================ the queue
+
+func active() -> Dictionary:
+	if queue.is_empty() or float(queue[0].get("start", 0.0)) <= 0.0:
+		return {}
+	return queue[0]
+
+func busy() -> bool:
+	return not active().is_empty() or not sleep.is_empty()
+
+## Adds an action. Returns "" or why not (English).
+func enqueue(kind: String, target: String = "", extra: Dictionary = {}) -> String:
+	if queue.size() >= D.QUEUE_MAX:
+		say("busy")
+		return "The queue is full (5)."
+	var why := action_block(kind, target, extra)
+	if why != "":
+		return why
+	queue.append({"kind": kind, "target": target, "extra": extra, "start": 0.0, "end": 0.0, "energy": 0.0, "consumed": []})
+	_start_next()
+	return ""
+
+func cancel(i: int) -> void:
+	if i < 0 or i >= queue.size():
+		return
+	if i == 0 and not active().is_empty():
+		_cancel_active(true)
+	else:
+		queue.remove_at(i)
+	_start_next()
+
+func _cancel_active(refund: bool) -> void:
+	var a := active()
+	if a.is_empty():
+		return
+	if refund:
+		give_list(a.consumed)
+	queue.pop_front()
+
+## Why `kind` on `target` can't happen (checked when queued and again when it starts).
+func action_block(kind: String, target: String, extra: Dictionary = {}, self_q = null) -> String:
+	match kind:
+		"haul":
+			if not debris.get(target, false):
+				return "Nothing there."
+			for q in queue:
+				if q.kind == "haul" and q.target == target and not is_same(q, self_q):
+					return "Already queued."
+		"gather":
+			if float(spots.get(target, 0.0)) < 1.0:
+				return "Nothing left here. Come back later."
+		"shake":
+			if float(palms[target].felled) > 0.0:
+				return "That palm is a stump now."
+		"chop":
+			if not D.PALMS[target].choppable:
+				return "Palms A and B hold the hammock. Not those."
+			if float(palms[target].felled) > 0.0:
+				return "That palm is a stump now."
+			if count("stone_axe") <= 0:
+				return "Needs a %s." % D.item_name("stone_axe")
+		"fish":
+			if count("fishing_pole") <= 0:
+				return "Needs a %s." % D.item_name("fishing_pole")
+		"seawater":
+			if count("coconut_bowl") <= 0:
+				return "Needs a %s." % D.item_name("coconut_bowl")
+		"craft":
+			return craft_block(target, self_q)
+		"fuel":
+			if not structures.has("campfire"):
+				return "No campfire."
+			if count(target) <= 0:
+				return "Missing materials."
+		"light":
+			if not structures.has("campfire"):
+				return "No campfire."
+			if count("spark_kit") <= 0:
+				return "Needs a %s." % D.item_name("spark_kit")
+			if count("dry_frond") <= 0:
+				return "Needs a %s." % D.item_name("dry_frond")
+		"tally":
+			if not structures.has("crafting_stump"):
+				return "Needs a %s." % D.item_name("crafting_stump")
+			if day_index() in tallies:
+				return "Today is already scratched in."
+		"shore":
+			if shore.pile.is_empty():
+				return "Nothing washed up yet."
+		"sleep":
+			if not bed_available(target):
+				return "No such bed."
+		"nap":
+			var why := nap_block()
+			if why != "":
+				return why
+			for q in queue:
+				if q.kind == "nap" and not is_same(q, self_q):
+					return "Already queued."
+	return ""
+
+func _cost(kind: String, target: String) -> float:
+	if kind == "craft":
+		return float(D.recipe(target).get("en", 0))
+	var a: Dictionary = D.ACT.get(kind, {})
+	if a.has("cost"):
+		return float(D.balance().get("action_energy_cost", {}).get(a.cost, 0))
+	return float(a.get("energy", 0.0))
+
+func _minutes(kind: String, target: String) -> float:
+	if kind == "craft":
+		return float(D.recipe(target).get("min", 5))
+	return float(D.ACT.get(kind, {}).get("min", 5.0))
+
+## Planned duration in seconds if it started now.
+func duration_of(kind: String, target: String) -> float:
+	var secs := _minutes(kind, target) * 60.0
+	var le: Dictionary = D.balance().get("low_energy", {})
+	if bars.energy < float(le.get("threshold", 20)):
+		secs *= float(le.get("duration_mult", 1.5))
+	if has_buff("rested"):
+		secs /= 1.0 + float(D.balance().get("rested_buff", {}).get("action_speed_bonus", 0.1))
+	return secs
+
+func energy_cost(kind: String, target: String) -> float:
+	return _cost(kind, target)
+
+func _start_next() -> void:
+	while not queue.is_empty() and float(queue[0].start) <= 0.0 and sleep.is_empty():
+		var q: Dictionary = queue[0]
+		var why := action_block(q.kind, q.target, q.extra, q)
+		if why != "":
+			queue.pop_front()
+			log_entry("Skipped a plan: %s", ["~" + why])
+			continue
+		if q.kind == "sleep":
+			queue.pop_front()
+			start_sleep(q.target, float(q.extra.get("hours", sleep_hours_for(q.target))))
+			return
+		if q.kind == "nap":
+			queue.pop_front()
+			start_nap()
+			return
+		q.start = t
+		q.end = t + duration_of(q.kind, q.target)
+		q.energy = _cost(q.kind, q.target)
+		bars.energy = clampf(bars.energy - q.energy, 0.0, 100.0)
+		q.consumed = _consume_inputs(q)
+		events.append({"type": "start", "kind": q.kind, "target": q.target})
+		return
+
+func _consume_inputs(q: Dictionary) -> Array:
+	var used := []
+	if q.kind == "craft":
+		for pair in D.recipe(q.target).get("in", []):
+			remove(str(pair[0]), int(pair[1]))
+			used.append([str(pair[0]), int(pair[1])])
+	elif q.kind == "fuel":
+		remove(q.target, 1)
+		used.append([q.target, 1])
+	elif q.kind == "light":
+		remove("dry_frond", 1)
+		used.append(["dry_frond", 1])
+	return used
+
+func _finish(q: Dictionary) -> void:
+	var tgt: String = q.target
+	match str(q.kind):
+		"haul":
+			debris.erase(tgt)
+			var loot := D.debris_loot(tgt)
+			give_list(loot)
+			log_entry("Salvaged the %s.", ["%" + tgt])
+			say("craft")
+			_emit("hauled", {"id": tgt})
+			if tgt == "crate":
+				_emit("crate_opened", {"id": tgt})
+		"gather":
+			var s: Dictionary = D.SPOTS[tgt]
+			var n := mini(int(s.n), int(floor(float(spots[tgt]))))
+			spots[tgt] = float(spots[tgt]) - n
+			if n > 0:
+				add(str(s.item), n)
+				log_entry("Gathered %d %s.", [n, "@" + str(s.item)])
+				_emit("gathered", {"id": str(s.item), "n": n})
+		"shake":
+			var p: Dictionary = palms[tgt]
+			if float(p.coco) >= 1.0:
+				p.coco = float(p.coco) - 1.0
+				add("coconut", 1)
+				log_entry("Shook palm %s. One coconut. Almost on my head.", [tgt])
+			else:
+				add("frond", 1)
+				log_entry("Shook palm %s. No coconuts. Got a frond for my trouble.", [tgt])
+		"chop":
+			var p: Dictionary = palms[tgt]
+			p.felled = t
+			var coco := int(floor(float(p.coco)))
+			p.coco = 0.0
+			give_list(D.CHOP_LOOT)
+			if coco > 0:
+				add("coconut", coco)
+			_xp("woodcutting", 3)
+			say("chop")
+			log_entry("Chopped down palm %s.", [tgt])
+			_emit("tree_felled", {"tree": tgt})
+		"fish":
+			_fish()
+		"seawater":
+			add("seawater", 1)
+			log_entry("Scooped up some seawater.")
+		"craft":
+			_finish_craft(q)
+		"fuel":
+			var c: Dictionary = structures.campfire
+			c.fuel_until = maxf(float(c.get("fuel_until", 0.0)), t) + float(D.FUEL_H.get(tgt, 0.5)) * 3600.0
+			log_entry("Fed the fire.")
+		"light":
+			var fail := fire_fail_chance()
+			if rng.randf() < fail:
+				say("fire_fail")
+				log_entry("Tried to relight the fire. Smoke, then nothing.")
+			else:
+				var c: Dictionary = structures.campfire
+				c.fuel_until = maxf(float(c.get("fuel_until", 0.0)), t) + 1.0 * 3600.0
+				_xp("fire", 2)
+				say("fire_ok")
+				log_entry("Relit the fire.")
+		"tally":
+			tallies.append(day_index())
+			say("tally")
+			log_entry("Scratched a tally mark on the stump: day %d.", [day_number()])
+			_emit("tally_added", {})
+		"shore":
+			for id in shore.pile:
+				add(id, int(shore.pile[id]))
+			shore.pile = {}
+			say("shore")
+			log_entry("Hauled in what the sea brought.")
+		"inspect":
+			say("cave")
+			log_entry("Listened at the big rock. It sounds hollow.")
+
+func fire_fail_chance() -> float:
+	var c := D.FIRE_FAIL_CHANCE * maxf(0.3, 1.0 - float(xp.get("fire", 0)) / 50.0)
+	if bars.energy < float(D.balance().get("low_energy", {}).get("threshold", 20)):
+		c *= float(D.balance().get("low_energy", {}).get("fail_mult", 1.5))
+	return c
+
+func _finish_craft(q: Dictionary) -> void:
+	var r := D.recipe(q.target)
+	if r.out == "campfire" and not structures.has("campfire"):
+		if fire_fails < D.FIRST_FIRE_FAILS:
+			fire_fails += 1
+			give_list(q.consumed)  # the stones and sticks stay; only the spark failed
+			say("fire_fail")
+			log_entry("Tried to light a fire. Attempt %d. Smoke. Sadness.", [fire_fails])
+			events.append({"type": "fail"})
+			return
+	if r.out_type == "structure":
+		structures[r.out] = {"built": t}
+		if r.out == "campfire":
+			structures.campfire.fuel_until = t + D.FIRE_START_H * 3600.0
+			_xp("fire", 5)
+			say("fire_ok")
+		else:
+			say("craft")
+		log_entry("Built a %s.", ["@" + str(r.out)])
+		_emit("structure_built", {"id": r.out})
+	else:
+		add(r.out, int(r.get("qty", 1)))
+		_xp("crafting", 1)
+		say("craft")
+		log_entry("Made a %s.", ["@" + str(r.out)])
+		_emit("crafted", {"id": r.out})
+
+func _fish() -> void:
+	var le: Dictionary = D.balance().get("low_energy", {})
+	var id := ""
+	if catches == 0:
+		id = "fish_small"
+	else:
+		var total := 0.0
+		for row in D.FISH_TABLE:
+			total += float(row[1])
+		var r := rng.randf() * total
+		for row in D.FISH_TABLE:
+			r -= float(row[1])
+			if r < 0.0:
+				id = row[0]
+				break
+		if id != "" and bars.energy < float(le.get("threshold", 20)) and rng.randf() < 0.25:
+			id = ""  # tired: it got away
+	if id == "":
+		say("nothing")
+		log_entry("Fished for a while. Caught nothing but a tan.")
+		return
+	catches += 1
+	add(id, 1)
+	_xp("fishing", 2)
+	say("boot" if id == "boot" else "fish")
+	log_entry("Caught: %s.", ["@" + id])
+	_emit("caught", {"id": id})
+
+func _xp(skill: String, n: int) -> void:
+	xp[skill] = int(xp.get(skill, 0)) + n
+
+# ================================================================ quests (tutorial T01-T12)
+
+func tap_johnny() -> void:
+	_emit("tapped_johnny", {})
+
+func _emit(ev: String, data: Dictionary) -> void:
+	if quest == "":
+		return
+	var q := D.quest(quest)
+	if q.is_empty():
+		return
+	var trig: Dictionary = q.get("trigger", {})
+	if str(trig.get("event", "")) != ev:
+		return
+	for k in trig:
+		if k == "event" or k == "any":
+			continue
+		if str(data.get(k, "")) != str(trig[k]):
+			return
+	_complete(q, ev, data)
+
+func _complete(q: Dictionary, ev: String, data: Dictionary) -> void:
+	quests_done.append(q.id)
+	var rw: Dictionary = q.get("reward", {})
+	for f in rw.get("flags", []):
+		flags[f] = true
+	for k in rw.get("xp", {}):
+		_xp(k, int(rw.xp[k]))
+	give_list(rw.get("items", []))
+	var loot: String = str(rw.get("loot", ""))
+	# T02's loot is the crate itself (recipes.json debris_loot): it was handed over when it opened.
+	if loot != "" and not (ev == "crate_opened" and str(data.get("id", "")) == loot):
+		give_list(D.debris_loot(loot))
+	var gag: String = str(rw.get("gag", ""))
+	if gag != "" and not gag in gags:
+		gags.append(gag)
+	var rec: String = str(rw.get("recipe", ""))
+	if rec != "" and not rec in unlocked:
+		unlocked.append(rec)
+	var dec: String = str(rw.get("decor", ""))
+	if dec != "" and not dec in decor:
+		decor.append(dec)
+	if q.has("journal_en"):
+		log_entry(str(q.journal_en))
+	var nxt: Array = q.get("next", [])
+	quest = str(nxt[0]) if not nxt.is_empty() else ""
+	events.append({"type": "quest", "id": q.id, "next": quest})
+
+# ================================================================ journal, lines
+
+## args: numbers as is; "@id" = an item / structure name; "%id" = a debris name; "#text" / "~text" =
+## a sentence to translate. The screen formats them (UI language at display time).
+func log_entry(text: String, args: Array = []) -> void:
+	journal.append({"t": t, "text": text, "args": args, "away": not _online})
+	if journal.size() > 300:
+		journal = journal.slice(journal.size() - 300)
+
+func say(cat: String) -> void:
+	var lines: Array = D.LINES.get(cat, [])
+	if lines.is_empty():
+		return
+	events.append({"type": "say", "text": lines[rng.randi() % lines.size()]})
+
+func pop_events() -> Array:
+	var e := events
+	events = []
+	return e
+
+# ================================================================ debug (dev panel)
+
+func debug_set_bar(k: String, v: float) -> void:
+	bars[k] = clampf(v, 0.0, 100.0)
+	_low[k] = false
+
+func debug_give(id: String, n: int) -> void:
+	add(id, n)
+
+# ================================================================ save
+
+func to_dict() -> Dictionary:
+	return {
+		"v": SAVE_VERSION, "t": t, "tz": tz, "hemisphere": hemisphere, "start_day": start_day,
+		"bars": bars, "mood": mood, "slots": slots, "slot_count": slot_count, "ground": ground,
+		"structures": structures, "debris": debris, "palms": palms, "spots": spots, "queue": queue,
+		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
+		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked,
+		"fire_fails": fire_fails, "catches": catches, "raw_eaten": raw_eaten, "tallies": tallies,
+		"weather": weather, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
+		"rng_state": str(rng.state), "low": _low,
+	}
+
+func from_dict(d: Dictionary) -> bool:
+	if int(d.get("v", 0)) != SAVE_VERSION:
+		return false
+	t = float(d.t)
+	tz = int(d.get("tz", 0))
+	hemisphere = str(d.get("hemisphere", "south"))
+	start_day = int(d.start_day)
+	bars = d.bars
+	mood = float(d.get("mood", 60))
+	slots = d.slots
+	for s in slots:
+		s.n = int(s.n)
+	slot_count = int(d.get("slot_count", 12))
+	ground = d.get("ground", {})
+	structures = d.get("structures", {})
+	debris = d.get("debris", {})
+	palms = d.get("palms", {})
+	spots = d.get("spots", {})
+	queue = d.get("queue", [])
+	sleep = d.get("sleep", {})
+	naps = d.get("naps", {"day": -1, "n": 0})
+	buffs = d.get("buffs", {})
+	flags = d.get("flags", {})
+	quest = str(d.get("quest", ""))
+	quests_done = d.get("quests_done", [])
+	xp = d.get("xp", {})
+	gags = d.get("gags", [])
+	decor = d.get("decor", [])
+	unlocked = d.get("unlocked", [])
+	fire_fails = int(d.get("fire_fails", 0))
+	catches = int(d.get("catches", 0))
+	raw_eaten = int(d.get("raw_eaten", 0))
+	tallies = []
+	for x in d.get("tallies", []):
+		tallies.append(int(x))
+	weather = str(d.get("weather", "clear"))
+	shore = d.get("shore", shore)
+	journal = d.get("journal", [])
+	_low = d.get("low", {})
+	rng.seed = int(str(d.get("rng_seed", "1")))
+	rng.state = int(str(d.get("rng_state", "0")))
+	return true

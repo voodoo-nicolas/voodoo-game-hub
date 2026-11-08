@@ -6377,6 +6377,30 @@
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "re-saved as JPEG q84 (Claude Code)"
+  },
+  {
+   "file": "games/wilson/art/",
+   "what": "Beached: island clean plate (sky cut out), palms C and D cut out, five wreck debris cut-outs, Landing (Day 1 scene); cloud_1/cloud_2 drawn in code by Claude Code to match",
+   "source": "D:/dev/Wilson/5.jpg (clean plate = ref_05), 6.jpg (debris sheet = ref_06), 4.jpg (Day 1 scene = ref_04)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-08",
+   "ai_tool": "Google Gemini (owner's account; README: 'every Gemini prompt' in art/ART_PROMPTS.md)",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "sky / sun keyed out, palms C+D cut out and the plate in-painted, debris keyed off green, WebP (Claude Code, PIL; tools/wilson_art.py)"
+  },
+  {
+   "file": "games/wilson/data/",
+   "what": "Beached: design data (day/night keyframes, balance, items, recipes, tutorial quests)",
+   "source": "Drive: viral game hub/wilson/data/*.json",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-08",
+   "processed_by": "copied unchanged except balance.json sleep_restore_per_h gained frond_shelter: 15 (README errata / KICKOFF M2)"
   }
  ]
 }

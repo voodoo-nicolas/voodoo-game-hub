@@ -2001,7 +2001,7 @@ const FELT_GAMES := ["solitaire", "blackjack", "war", "crazy_eights", "go_fish",
 const OWN_BG_GAMES := ["geometry_wars", "snake", "block_drop", "paddle_ball", "brick_breaker",
 	"bird_hop", "alien_attack", "frog_crossing", "gem_match", "simon", "whack_a_mole",
 	"reaction_test", "bubble_pop", "rock_blaster", "city_defense", "maze_muncher", "moon_lander",
-	"stack_tower", "sky_hop", "air_hockey", "barrel_climb", "cannon_duel", "crypt_crawler",
+	"stack_tower", "sky_hop", "air_hockey", "barrel_climb", "cannon_duel", "crypt_crawler", "wilson",
 	"star_runner", "sky_raider", "mini_golf", "pool", "last_shift", "turned", "the_runner", "tilt_maze", "bug_chain"]
 const BG_DIR := "res://media/hub/backgrounds/"  # in the APK (v0.34+); older apps: no texture
 

@@ -1,0 +1,402 @@
+extends SceneTree
+
+## Beached (wilson) acceptance tests: KICKOFF.md "Acceptance tests" + M0-M2 behaviour.
+##   godot --headless --path . --script res://tools/test_wilson.gd
+## Pure engine tests (no saves touched).
+
+const D = preload("res://scripts/games/wilson/wilson_data.gd")
+const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
+const Engine_ = preload("res://scripts/games/wilson/wilson_engine.gd")
+
+var fails := 0
+var checks := 0
+
+func ok(cond: bool, what: String) -> void:
+	checks += 1
+	if not cond:
+		fails += 1
+		print("FAIL: ", what)
+
+func near(a: float, b: float, eps: float, what: String) -> void:
+	ok(absf(a - b) <= eps, "%s: got %.4f want %.4f" % [what, a, b])
+
+## Unix time of a local date/time with tz = 0.
+func at(y: int, m: int, d: int, h: int = 0, mi: int = 0) -> float:
+	return float(Time.get_unix_time_from_datetime_dict({"year": y, "month": m, "day": d, "hour": h, "minute": mi, "second": 0}))
+
+## A fresh engine at a time, tz 0, fixed seed.
+func fresh(t: float, hemi := "south") -> Object:
+	var e = Engine_.new()
+	e.reset(t, 0, hemi, 12345)
+	e.bars = {"hp": 100.0, "food": 100.0, "water": 100.0, "energy": 100.0}
+	e.shore.last_day = e.day_index() + 9999  # no shore deliveries in bar tests
+	return e
+
+func _init() -> void:
+	test_sun()
+	test_moon()
+	test_keyframes()
+	test_bars()
+	test_sleep()
+	test_nap()
+	test_costs_and_tables()
+	test_json()
+	test_queue_offline()
+	test_tutorial()
+	test_save()
+	print("wilson: %d checks, %d failed" % [checks, fails])
+	quit(1 if fails > 0 else 0)
+
+# ---------------------------------------------------------------- M0 sky
+
+func test_sun() -> void:
+	near(Astro.sunrise(355, "south"), 5.50, 0.01, "sunrise doy 355 south")
+	near(Astro.sunset(355, "south"), 19.00, 0.01, "sunset doy 355 south")
+	near(Astro.sunrise(172, "south"), 7.00, 0.01, "sunrise doy 172 south")
+	near(Astro.sunset(172, "south"), 17.50, 0.01, "sunset doy 172 south")
+	near(Astro.sunrise(172, "north"), 5.50, 0.01, "sunrise doy 172 north")
+	var e = fresh(at(2026, 12, 21, 12))
+	ok(e.doy() == 355, "engine doy for 2026-12-21 = 355 (got %d)" % e.doy())
+
+func test_moon() -> void:
+	var epoch := float(Time.get_unix_time_from_datetime_string("2000-01-06T18:14:00"))
+	near(epoch, Astro.MOON_EPOCH, 0.5, "moon epoch constant")
+	near(Astro.moon_phase(epoch), 0.0, 1e-6, "moon phase at epoch")
+	near(Astro.moon_phase(epoch + 14.765294 * 86400.0), 0.5, 1e-6, "moon phase at epoch + 14.765294 d")
+	near(Astro.moon_lit(0.5), 1.0, 1e-6, "full moon fully lit")
+	var mid := Astro.moon_arc(0.0, 0.5)
+	near(mid.y, 1.0, 0.01, "full moon highest at midnight")
+
+func test_keyframes() -> void:
+	var kfs := Astro.keyframes(355, "south")
+	ok(kfs.size() == 12, "12 keyframes")
+	for i in range(1, kfs.size()):
+		ok(kfs[i][0] >= kfs[i - 1][0], "keyframes sorted (%d)" % i)
+	var noon := Astro.sky_at(12.25, 355, "south")
+	ok(Color(noon.sky_top).is_equal_approx(Color("3d9bd6")), "noon sky_top exact")
+	near(noon.intensity, 1.0, 1e-4, "noon intensity")
+	var mid := Astro.sky_at(23.0, 355, "south")  # halfway late_night (22) -> midnight (24)
+	near(mid.intensity, 0.35, 1e-4, "23:00 intensity between 0.35 and 0.35")
+	var half := Astro.sky_at(1.5, 355, "south")  # midnight 0.35 -> deep night 0.30
+	near(half.intensity, 0.325, 1e-4, "01:30 intensity lerp")
+	near(Astro.star_alpha(12.0, 355, "south"), 0.0, 1e-6, "no stars at noon")
+	near(Astro.star_alpha(23.0, 355, "south"), 1.0, 1e-6, "stars at 23:00")
+	near(Astro.star_alpha(19.5, 355, "south"), 0.5, 1e-6, "stars half in at sunset + 30 min")
+
+# ---------------------------------------------------------------- M2 bars
+
+func test_bars() -> void:
+	var e = fresh(at(2026, 6, 21, 8))
+	e.advance(e.t + 10 * 3600.0, true)
+	near(e.bars.food, 60.0, 0.01, "idle 10 h: food")
+	near(e.bars.water, 50.0, 0.01, "idle 10 h: water")
+	near(e.bars.energy, 70.0, 0.01, "idle 10 h: energy")
+	near(e.bars.hp, 100.0, 0.01, "idle 10 h: hp")
+	var o = fresh(at(2026, 6, 21, 8))
+	o.advance(o.t + 48 * 3600.0, false)
+	near(o.bars.food, 15.0, 0.01, "48 h offline: food floor")
+	near(o.bars.water, 15.0, 0.01, "48 h offline: water floor")
+	near(o.bars.energy, 15.0, 0.01, "48 h offline: energy floor")
+	near(o.bars.hp, 100.0, 0.01, "48 h offline: hp unchanged")
+	ok(o.sleep.is_empty(), "offline: no collapse")
+	var o2 = fresh(at(2026, 6, 21, 8))
+	o2.bars.hp = 70.0
+	o2.bars.food = 10.0
+	o2.advance(o2.t + 24 * 3600.0, false)
+	near(o2.bars.food, 10.0, 0.01, "offline: a bar already under 15 stays")
+	ok(o2.bars.hp >= 70.0, "offline: hp never drops")
+	# online empty bar costs hp
+	var z = fresh(at(2026, 6, 21, 8))
+	z.bars.food = 0.0
+	z.bars.water = 0.0
+	z.advance(z.t + 3600.0, true)
+	near(z.bars.hp, 94.0, 0.01, "online: two empty bars = -6 hp/h")
+	# collapse at energy 0 online
+	var c = fresh(at(2026, 6, 21, 8))
+	c.bars.energy = 1.0
+	c.advance(c.t + 3600.0, true)
+	ok(not c.sleep.is_empty() and c.sleep.kind == "collapse", "energy 0 online: collapse")
+
+# ---------------------------------------------------------------- M2 sleep
+
+func test_sleep() -> void:
+	# 21:00 -> 05:00 on 21 June (south: sunrise 07:00), so the whole 8 h is night.
+	var want := {"sand": 48.0, "frond_bed": 88.0, "hammock": 100.0, "frond_shelter": 100.0, "tent": 100.0}
+	for bed in want:
+		var e = fresh(at(2026, 6, 21, 21))
+		e.bars.energy = 0.0
+		if bed != "sand":
+			e.structures[bed] = {"built": e.t}
+		e.start_sleep(bed, 8.0)
+		e.advance(e.t + 8 * 3600.0, true)
+		near(e.bars.energy, want[bed], 0.01, "sleep 8 h on %s from 0" % bed)
+		ok(e.sleep.is_empty(), "woke after 8 h (%s)" % bed)
+	near(fresh(at(2026, 6, 21, 21)).sleep_rate("hammock") * 8.0, 112.0, 0.01, "hammock 8 h uncapped = 112")
+	near(fresh(at(2026, 6, 21, 21)).sleep_rate("tent") * 8.0, 136.0, 0.01, "tent 8 h uncapped = 136")
+	var r = fresh(at(2026, 6, 21, 21))
+	r.structures["hammock"] = {"built": r.t}
+	r.bars.energy = 10.0
+	r.start_sleep("hammock", 7.0)
+	r.advance(r.t + 7 * 3600.0, true)
+	ok(r.has_buff("rested"), "7 h on hammock: Rested")
+	var s = fresh(at(2026, 6, 21, 21))
+	s.bars.energy = 10.0
+	s.start_sleep("sand", 7.0)
+	s.advance(s.t + 7 * 3600.0, true)
+	ok(s.has_buff("sandy") and not s.has_buff("rested"), "sand: Sandy, not Rested")
+	# modifiers
+	var d = fresh(at(2026, 6, 21, 12))
+	near(d.sleep_rate("sand"), 3.0, 1e-4, "day sun x0.5 on sand")
+	d.structures["hammock"] = {"built": d.t}
+	near(d.sleep_rate("hammock"), 14.0, 1e-4, "day shade x1.0 in hammock")
+	var w = fresh(at(2026, 6, 21, 22))
+	w.weather = "rain"
+	near(w.sleep_rate("frond_bed"), 5.5, 1e-4, "rain unsheltered x0.5")
+	w.weather = "storm"
+	near(w.sleep_rate("frond_bed"), 2.75, 1e-4, "storm unsheltered x0.25")
+	near(w.sleep_rate("frond_shelter"), 15.0, 1e-4, "storm in the shelter: no penalty")
+	w.weather = "heatwave"
+	near(w.sleep_rate("hammock"), 14.0 * 0.8, 1e-4, "temp extreme x0.8")
+
+func test_nap() -> void:
+	var e = fresh(at(2026, 6, 21, 13))
+	e.bars.energy = 40.0
+	ok(e.start_nap() == "", "first nap allowed")
+	e.advance(e.t + 30 * 60.0, true)
+	near(e.bars.energy, 55.0, 0.01, "first nap +15")
+	ok(e.start_nap() == "", "second nap allowed")
+	e.advance(e.t + 30 * 60.0, true)
+	near(e.bars.energy, 63.0, 0.01, "second nap +8")
+	ok(e.start_nap() != "", "third nap refused")
+	ok(e.enqueue("nap") != "", "third nap refused through the queue too")
+
+# ---------------------------------------------------------------- costs, tables, data
+
+func test_costs_and_tables() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	e.add("stone_axe", 1)
+	var before: float = e.bars.energy
+	ok(e.enqueue("chop", "C") == "", "chop C queued")
+	near(before - e.bars.energy, 12.0, 0.001, "chop costs 12 energy")
+	near(float(D.balance().action_energy_cost.chop), 12.0, 0.0, "balance chop = 12")
+	ok(e.enqueue("chop", "A") != "", "palm A can't be chopped")
+	var drops: Dictionary = D.balance().shore_drops
+	for k in ["normal", "storm"]:
+		var sum := 0
+		for r in drops[k].weights:
+			sum += int(drops[k].weights[r])
+		ok(sum == 100, "%s drop weights sum to 100 (got %d)" % [k, sum])
+	ok(drops.normal.weights.common == 70 and drops.normal.weights.uncommon == 22 and drops.normal.weights.rare == 6 and drops.normal.weights.mythic == 2, "normal 70/22/6/2")
+	ok(drops.storm.weights.common == 62 and drops.storm.weights.uncommon == 25 and drops.storm.weights.rare == 10 and drops.storm.weights.mythic == 3, "storm 62/25/10/3")
+	# rarity roll frequencies (10 000 rolls)
+	var cnt := {"common": 0, "uncommon": 0, "rare": 0, "mythic": 0}
+	for i in 10000:
+		cnt[e.roll_rarity(drops.normal.weights)] += 1
+	near(cnt.common / 10000.0, 0.70, 0.02, "common ~70%")
+	near(cnt.rare / 10000.0, 0.06, 0.01, "rare ~6%")
+	# low energy x1.5, rested /1.1
+	var l = fresh(at(2026, 6, 21, 9))
+	var base: float = l.duration_of("fish", "")
+	l.bars.energy = 10.0
+	near(l.duration_of("fish", ""), base * 1.5, 0.01, "low energy: x1.5 duration")
+	l.bars.energy = 80.0
+	l.buffs["rested"] = l.t + 3600.0
+	near(l.duration_of("fish", ""), base / 1.1, 0.01, "rested: 10% faster")
+
+func test_json() -> void:
+	var ids := {}
+	for it in D.json("items").items:
+		ok(not ids.has(it.id), "no duplicate item id: %s" % it.id)
+		ids[it.id] = true
+		ok(it.has("en") and it.has("es"), "item %s has en + es" % it.id)
+	ok(ids.size() == 75, "75 items (got %d)" % ids.size())
+	var rids := {}
+	for r in D.json("recipes").recipes:
+		ok(not rids.has(r.id), "no duplicate recipe id: %s" % r.id)
+		rids[r.id] = true
+		for pair in r["in"]:
+			ok(ids.has(pair[0]), "recipe %s input %s exists" % [r.id, pair[0]])
+		if r.out_type == "item":
+			ok(ids.has(r.out), "recipe %s output %s exists" % [r.id, r.out])
+		else:
+			ok(D.STRUCTURE_NAMES.has(r.out), "structure %s has a name" % r.out)
+		for k in ["tool", "needs"]:
+			if r.has(k):
+				ok(ids.has(r[k]), "recipe %s %s %s exists" % [r.id, k, r[k]])
+	ok(rids.size() == 42, "42 recipes (got %d)" % rids.size())
+	for k in D.json("recipes").debris_loot:
+		for pair in D.json("recipes").debris_loot[k]:
+			ok(ids.has(pair[0]), "debris %s loot %s exists" % [k, pair[0]])
+	var qids := {}
+	for q in D.quests():
+		ok(not qids.has(q.id), "no duplicate quest id")
+		qids[q.id] = true
+		ok(D.QUEST_HINTS.has(q.id), "quest %s has a hint" % q.id)
+	ok(qids.size() == 12, "12 tutorial quests")
+	for q in D.quests():
+		ok(q.journal_en in D.QUEST_JOURNAL, "quest %s journal line listed for i18n" % q.id)
+
+# ---------------------------------------------------------------- M1 queue, offline
+
+func test_queue_offline() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	ok(e.enqueue("haul", "crate") == "", "haul crate")
+	ok(e.enqueue("haul", "crate") != "", "crate twice refused")
+	for id in ["planks", "barrel", "oar"]:
+		ok(e.enqueue("haul", id) == "", "haul " + id)
+	ok(e.enqueue("haul", "sailcloth") == "", "5th action")
+	ok(e.enqueue("gather", "sticks") != "", "6th action refused (max 5)")
+	var t0: float = e.t
+	near(float(e.queue[0].end) - t0, 5 * 60.0, 0.5, "haul ends 5 min later (absolute)")
+	# closed the app: 1 hour later everything is done, by timestamp
+	e.advance(t0 + 3600.0, false)
+	ok(e.queue.is_empty(), "offline: queue processed")
+	ok(e.count("rope") == 6 and e.count("hook") == 1 and e.count("knife") == 1, "crate loot")
+	ok(e.count("plank") == 6 and e.count("nail") == 18, "planks loot")
+	ok(e.count("sailcloth") == 1 and e.count("barrel") == 1 and e.count("oar") == 1, "other debris loot")
+	ok(e.debris.is_empty(), "all debris gone")
+	var away := 0
+	for j in e.journal:
+		if j.away:
+			away += 1
+	ok(away >= 5, "journal logged what he did while away (%d)" % away)
+	# offline queue keeps exact order and timing
+	var f = fresh(at(2026, 6, 21, 9))
+	f.enqueue("gather", "sticks")
+	f.enqueue("gather", "stones")
+	f.advance(f.t + 3 * 60.0 + 1.0, false)
+	ok(f.count("stick") == 3 and f.count("stone") == 0, "first gather done at 3 min, second running")
+	f.advance(f.t + 3 * 60.0, false)
+	ok(f.count("stone") == 3, "second gather done at 6 min")
+	# shore delivery next morning, with a bottle
+	var s = Engine_.new()
+	s.reset(at(2026, 6, 21, 9), 0, "south", 99)
+	s.advance(at(2026, 6, 22, 10), false)
+	ok(not s.shore.pile.is_empty() and s.shore.pile.get("bottle_note", 0) == 1, "day 2: shore delivery with a bottle")
+	# pity: 14 days without a rare
+	var p = fresh(at(2026, 6, 21, 9))
+	p.shore.no_rare = 13
+	p.shore.pile = {}
+	p._shore_delivery()
+	var rare := false
+	for id in p.shore.pile:
+		if D.item(id).get("r", "") in ["R", "M"]:
+			rare = true
+	ok(rare, "pity: day 14 without a rare gives one")
+	# inventory: 12 slots, overflow on the sand, pulled back
+	var b = fresh(at(2026, 6, 21, 9))
+	for id in ["stick", "stone", "frond", "shell", "sand", "seaweed", "rope", "plank", "nail", "salt", "clay", "wax"]:
+		b.add(id, 1)
+	ok(b.slots.size() == 12, "12 slots full")
+	b.add("pearl", 2)
+	ok(b.ground.get("pearl", 0) == 2, "13th item type goes on the sand")
+	b.remove("wax", 1)
+	ok(b.count("pearl") == 2 and b.ground.is_empty(), "freed slot pulls it back")
+	b.add("stick", 40)
+	ok(b.count("stick") == 30 and b.ground.get("stick", 0) == 11, "stick stacks to 30, the rest on the sand")
+
+# ---------------------------------------------------------------- M2 tutorial T01-T12 end to end
+
+func test_tutorial() -> void:
+	var e = Engine_.new()
+	e.reset(at(2026, 6, 21, 8), 0, "south", 4242)
+	tut = e
+	_fill()
+	e.tap_johnny()
+	ok(e.quest == "T02", "T01 done by tapping Johnny")
+	act("haul", "crate")
+	ok(e.quest == "T03", "T02 done (crate)")
+	ok(e.count("rope") == 6, "T02 loot not given twice (rope 6, got %d)" % e.count("rope"))
+	act("haul", "barrel")
+	ok(e.capacity() == 32, "barrel in the bag: 12 + 20 slots")
+	act("gather", "sticks")
+	act("craft", "fishing_pole")
+	ok(e.quest == "T04", "T03 done")
+	act("fish")
+	ok(e.quest == "T05", "T04 done (first catch)")
+	ok(e.count("fish_small") == 1, "first catch is a small fish")
+	e.consume("fish_small")
+	ok("raw_fish_nausea" in e.gags and e.has_buff("nausea"), "first raw fish: nausea gag")
+	act("gather", "dry_fronds")
+	for i in 3:
+		act("gather", "stones")
+	act("gather", "sticks")
+	act("gather", "sticks")
+	act("craft", "spark_kit")
+	var tries := 0
+	while e.quest == "T05" and tries < 6:
+		tries += 1
+		act("craft", "campfire")
+	ok(tries == 4 and e.fire_fails == 3, "first fire: 3 fails, then lit (tries %d)" % tries)
+	ok(e.fire_lit(), "fire burning")
+	ok(e.quest == "T06", "T05 done")
+	act("haul", "sailcloth")
+	act("craft", "hammock")
+	ok(e.quest == "T07", "T06 done")
+	ok(e.craft_block("coconut_bowl") != "", "coconut bowl locked before T07")
+	act("shake", "A")
+	ok(e.consume("coconut") == "", "drink coconut")
+	ok(e.quest == "T08", "T07 done")
+	ok(e.craft_block("coconut_bowl") == "", "coconut bowl unlocked by T07: " + e.craft_block("coconut_bowl"))
+	act("gather", "stones")
+	act("craft", "stone_axe")
+	act("chop", "C")
+	ok(e.quest == "T09", "T08 done")
+	ok(e.count("trunk") == 3, "trunk 2 from chopping + 1 reward (got %d)" % e.count("trunk"))
+	# rope for the shelter: coconuts -> husk fiber -> rope (6 fiber each)
+	for p in ["A", "A", "B", "B", "B"]:
+		act("shake", p)
+	while e.count("coconut") > 0:
+		e.consume("coconut")
+	for i in 4:
+		act("craft", "rope_fiber")
+	ok(e.count("rope") >= 4, "4 rope from coconut husk (got %d)" % e.count("rope"))
+	for i in 8:
+		act("gather", "fronds")
+	act("gather", "sticks")
+	act("craft", "frond_shelter")
+	ok(e.quest == "T10", "T09 done")
+	# next morning: the sea brings a bottle
+	e.advance(at(2026, 6, 22, 9), false)
+	_fill()
+	act("shore")
+	ok(e.count("bottle_note") >= 1, "a bottle arrived")
+	e.consume("bottle_note")
+	ok(e.quest == "T11", "T10 done")
+	act("nap")
+	ok(e.quest == "T12", "T11 done")
+	act("craft", "crafting_stump")
+	act("tally")
+	ok(e.quest == "" and e.quests_done.size() == 12, "T12 done: tutorial complete (%d)" % e.quests_done.size())
+	ok("tally_marks" in e.decor, "tally decor")
+	ok(e.enqueue("tally") != "", "one tally per day")
+
+var tut = null
+
+func _fill() -> void:
+	for k in ["energy", "food", "water"]:
+		tut.bars[k] = maxf(tut.bars[k], 70.0)
+
+## Queues one action and plays until it (and any sleep) is over; fails the test if it can't queue.
+func act(kind: String, target: String = "") -> void:
+	var why: String = tut.enqueue(kind, target)
+	ok(why == "", "%s %s: %s" % [kind, target, why])
+	var guard := 0
+	while (not tut.queue.is_empty() or not tut.sleep.is_empty()) and guard < 50:
+		guard += 1
+		tut.advance(tut.t + 600.0, true)
+		_fill()
+
+# ---------------------------------------------------------------- save
+
+func test_save() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	e.enqueue("haul", "crate")
+	e.enqueue("gather", "sticks")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(e.to_dict()))
+	var f = Engine_.new()
+	ok(f.from_dict(d), "save loads")
+	f.advance(f.t + 3600.0, false)
+	e.advance(e.t + 3600.0, false)
+	ok(f.count("rope") == e.count("rope") and f.count("stick") == e.count("stick"), "loaded save plays the same")
+	near(f.bars.food, e.bars.food, 0.001, "same bars after load")

@@ -1,0 +1,15 @@
+{"_doc":"Tutorial quests T01-T12. trigger.event names are emitted by the game (e.g. crate_opened, crafted:<id>, caught:<fish>, structure_built:<id>, drank:<item>, tree_felled, bottle_opened, nap_taken, tally_added). next = auto-unlock. Rewards use item ids or flags.",
+"quests":[
+{"id":"T01","en":"Rise and Whine","es":"Despertar quejoso","trigger":{"event":"tapped_johnny"},"reward":{"flags":["intro_done"]},"next":["T02"],"journal_en":"Day 1. Still here. Shocking."},
+{"id":"T02","en":"Loot the Wreck","es":"Saquear el naufragio","trigger":{"event":"crate_opened"},"reward":{"loot":"crate"},"next":["T03"],"journal_en":"A crate. Contents: rope, a hook, a knife. Christmas came early."},
+{"id":"T03","en":"Hook, Line, Sulk","es":"Anzuelo, hilo y mala cara","trigger":{"event":"crafted","id":"fishing_pole"},"reward":{"xp":{"fishing":5}},"next":["T04"],"journal_en":"I made a fishing pole. Humanity is proud."},
+{"id":"T04","en":"Sushi, Sort Of","es":"Sushi, más o menos","trigger":{"event":"caught","any":true},"reward":{"gag":"raw_fish_nausea"},"next":["T05"],"journal_en":"Ate it raw. Regretted it instantly."},
+{"id":"T05","en":"Spark Joy","es":"Chispa de alegría","trigger":{"event":"structure_built","id":"campfire"},"reward":{"xp":{"fire":10}},"next":["T06"],"journal_en":"Fire. After a lot of failing. Do not ask how many times."},
+{"id":"T06","en":"Better Than Sand","es":"Mejor que la arena","trigger":{"event":"structure_built","id":"hammock"},"reward":{"flags":["hammock_sleep"]},"next":["T07"],"journal_en":"Hammock. Five stars. Would swing again."},
+{"id":"T07","en":"Thirsty Work","es":"Trabajo de sed","trigger":{"event":"drank","id":"coconut"},"reward":{"recipe":"coconut_bowl"},"next":["T08"],"journal_en":"Coconut water: the sea's apology."},
+{"id":"T08","en":"Axe to Grind","es":"Un hacha para afilar","trigger":{"event":"tree_felled","tree":"C"},"reward":{"xp":{"woodcutting":10},"items":[["trunk",1]]},"next":["T09"],"journal_en":"Tree: 0. Me: 1."},
+{"id":"T09","en":"Roof Over Ego","es":"Un techo para el ego","trigger":{"event":"structure_built","id":"frond_shelter"},"reward":{"flags":["shelter_sleep"]},"next":["T10"],"journal_en":"A roof! Civilization is back, baby."},
+{"id":"T10","en":"Message Received","es":"Mensaje recibido","trigger":{"event":"bottle_opened"},"reward":{"flags":["daily_bonus_unlocked"]},"next":["T11"],"journal_en":"Mail! No bills. Best island ever."},
+{"id":"T11","en":"Nap Time","es":"Hora de la siesta","trigger":{"event":"nap_taken"},"reward":{"flags":["nap_tip_seen"]},"next":["T12"],"journal_en":"30 minutes of nothing. Perfect."},
+{"id":"T12","en":"Tally Marks","es":"Marcas de días","trigger":{"event":"tally_added"},"reward":{"decor":"tally_marks"},"next":[],"journal_en":"Day counter started. Cheerful."}
+]}

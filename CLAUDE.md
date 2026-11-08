@@ -29,6 +29,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
   - `games-notes.md`: adding a game, catalog conventions, per-game notes, arcade batch, test gotchas
   - `evolution.md`: Evolution (microbe pond: engine, endless mode, owner's trait list, what is not built)
   - `turned.md`: Turned (gothic vampire story game; the owner's story bible, brief and decisions are in `docs/turned/`; first slice = Prologue + Day 1; progressive-reveal rule)
+  - `wilson.md`: Beached (castaway sim on the real clock: engine, sky, debug panel, tests; decisions in `docs/wilson/`)
   - `the-runner.md`: The Runner (space smuggling: data file, engine, map / dock / Menu screens, 10,000-trip economy test; brief + decisions in `docs/runner/`)
   - `neon-blast.md` (+ Sky Strike) · `poker.md` · `voodoo-iq.md` · `trace-it.md` · `creation.md` (alchemy game: data pipeline, tiers, monetization seam)
   - `pad.md`: the shared on-screen controller (`scripts/common/pad/`: layouts, looks, options) and the dev-only Pad Lab app; read before writing any touch controls
