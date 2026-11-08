@@ -1,5 +1,12 @@
 # Beached (wilson) changelog
 
+## 2026-11-08: M4 weather + tides (not published)
+- Weather controller: seeded per island, 3 h spells (merge to 6 h), season weights for the player's hemisphere (no heatwave in winter, no cold snap in summer); drives the engine through `advance`, so offline catch-up replays it. Debug panel: "auto" or force a state.
+- Effects: fog +1 bottle ashore, rain bites (fishing), wind / storm regrow coconuts x2, storm log line; heatwave thirst x2, rain catcher and fire were already wired.
+- Tides: 12 h 25 min cycle, seeded phase, low = under 0.2 (~29 %); at low tide gathering shells / seaweed also finds a reef item (REEF_TABLE). HUD clock shows weather + tide.
+- Barometer forecast (12 h) + new skill "weather sense" (+3 h per level, 3 XP a day with a barometer in the bag): engine API `forecast()`, no screen yet.
+- Tests: 688 checks. Not built: forecast / tide screen, tide in the water art, tropical storm, weekly events.
+
 ## 2026-11-08: M3 crafting and combining (not published)
 - All 42 recipes (tiers 1-4); tier 3-4 found by dragging two materials together in the bag (or two taps); "❔ ???" list with hints.
 - Tool wear (7 tools), food spoilage (fish -> guts; smokehouse slows it), clay jars +10 slots, skills (7, levels speed actions up).

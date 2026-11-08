@@ -115,8 +115,9 @@ func setup(g) -> void:
 	kit.pressed.connect(_on_kit)
 	col.add_child(kit)
 
-	col.add_child(_heading("Weather (forced until M4's controller)"))
+	col.add_child(_heading("Weather (auto = the seeded controller)"))
 	_weather_pick = OptionButton.new()
+	_weather_pick.add_item("auto (controller)")
 	for w in D.WEATHER:
 		_weather_pick.add_item(w)
 	_weather_pick.item_selected.connect(_on_weather)
@@ -151,10 +152,10 @@ func refresh() -> void:
 	for pair in _scale_btns:
 		pair[0].set_pressed_no_signal(int(pair[1]) == int(game.time_scale))
 	var ph: float = game.Astro.moon_phase(e.t)
-	_info.text = "%s  day %d  %s  doy %d  %s\nsunrise %.2f  sunset %.2f  moon %.3f  weather %s\nmood %d  queue %d  t=%d" % [
+	_info.text = "%s  day %d  %s  doy %d  %s\nsunrise %.2f  sunset %.2f  moon %.3f  weather %s%s  tide %.2f\nmood %d  queue %d  t=%d" % [
 		Time.get_datetime_string_from_unix_time(int(e.local_t()), true), e.day_number(), e.hemisphere, e.doy(),
-		"day" if e.is_day() else "night", e.sunrise_h(), e.sunset_h(), ph, e.weather, int(e.mood), e.queue.size(), int(e.t)]
-	_weather_pick.select(D.WEATHER.find(e.weather))
+		"day" if e.is_day() else "night", e.sunrise_h(), e.sunset_h(), ph, e.weather, "" if e.weather_auto else " (forced)", e.tide_level(), int(e.mood), e.queue.size(), int(e.t)]
+	_weather_pick.select(0 if e.weather_auto else 1 + D.WEATHER.find(e.weather))
 
 func _on_scale(s: int) -> void:
 	game.time_scale = float(s)
@@ -191,7 +192,12 @@ func _on_kit() -> void:
 	game.after_change()
 
 func _on_weather(i: int) -> void:
-	game.engine.weather = D.WEATHER[i]
+	if i == 0:
+		game.engine.weather_auto = true
+		game.engine._weather_tick()
+	else:
+		game.engine.weather_auto = false
+		game.engine.weather = D.WEATHER[i - 1]
 	game.after_change()
 
 func _on_hemi() -> void:
