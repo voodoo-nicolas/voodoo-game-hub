@@ -1,8 +1,10 @@
 extends Control
 
-## Crypt Crawler: a first-person crawl through neon crypts. Walk with the
-## pad (or drag on the view to turn), blast skulls and wraiths with the
-## wand, find the glowing exit on every floor.
+## Crypt Crawler: a first-person crawl through torch-lit crypts. Walk with the
+## left stick, look with the right one (or drag on the view), blast the dead
+## with the wand, find the glowing exit on every floor.
+## Walls are pixel textures from the shared sprite library, drawn one column per
+## ray; floor and ceiling are a shader (FLOOR_SHADER) fed the same camera.
 
 const CcEngine = preload("res://scripts/games/crypt_crawler/crypt_crawler_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -11,6 +13,8 @@ const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
 const HomeKit = preload("res://scripts/games/crypt_crawler/home_kit.gd")
+const SpriteLib = preload("res://scripts/games/crypt_crawler/sprite_lib.gd")
+const SoundLib = preload("res://scripts/games/crypt_crawler/sound_lib.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/crypt_crawler/crypt_crawler_help.gd")
@@ -28,6 +32,73 @@ const EXIT := Color("7dff3a")
 const BOLT := Color("ffae2b")
 const PAUSE_AFTER := 1.8
 const DRAG_TURN := 0.0065
+const EYE := 0.5               # eye height above the floor (wall units)
+const UP := 1.1                # ceiling height above the eye: walls are 1.6 high, like the 64x128 textures
+const STEP_EVERY := 0.42       # seconds of walking per footstep
+
+## Every two floors the crypt changes stone: [wall, wall variant, rare wall, floor, ceiling, fog].
+const THEMES := [
+	["textures/wall_brick_stone_center", "textures/wall_brick_stone_center_depth", "textures/wall_brick_stone_center_banner",
+		"textures/floor_stone_pattern", "textures/floor_stone_pattern_small", 8.5],
+	["textures/wall_stone", "textures/wall_stone_depth", "textures/wall_brick_small_stone",
+		"textures/floor_stone", "textures/floor_stone_trimsheet", 8.0],
+	["textures/wall_rock", "textures/wall_rock_structure", "textures/wall_rock",
+		"textures/floor_ground_dirt", "textures/floor_ground_dirt", 7.0],
+	["textures/wall_brick_sand_center", "textures/wall_brick_sand_center_depth", "textures/wall_brick_sand_center_banner",
+		"textures/floor_tiles_sand_small_damaged", "textures/floor_stone_sand_random", 8.5],
+]
+## Sprite monsters and props: kind -> [sprite id, height, lift off the floor (-1 = hangs from the ceiling)].
+## Skulls, wraiths and brutes stay drawn in code (glowing spirits).
+const SPRITES := {
+	"rat": ["dungeon/rat", 0.24, 0.0],
+	"bat": ["gothic/demon_bat", 0.4, 0.5],
+	"skeleton": ["gothic/bone_revenant", 0.95, 0.0],
+	"specter": ["gothic/shadow_specter", 0.95, 0.06],
+	"gargoyle": ["gothic/gargoyle_awakened", 0.85, 0.0],
+	"monk": ["gothic/hooded_monk", 0.9, 0.0],
+	"skull_pile": ["dungeon/skull_pile", 0.22, 0.0],
+	"candelabra": ["gothic/iron_candelabra", 0.8, 0.0],
+	"tomb": ["gothic/stone_tomb", 0.3, 0.0],
+	"web": ["dungeon/spider_web", 0.45, -1.0],
+	"chains": ["dungeon/hanging_chain", 0.9, -1.0],
+}
+const GARGOYLE_STONE := "gothic/gargoyle"   # a gargoyle before it wakes
+## Classic = warm torchlight; Voodoo = cold violet light plus the old neon edges.
+const TINT_CLASSIC := Color(1.0, 0.86, 0.68)
+const TINT_VOODOO := Color(0.72, 0.58, 1.0)
+
+const FLOOR_SHADER := """shader_type canvas_item;
+uniform sampler2D floor_tex : filter_nearest, repeat_enable;
+uniform sampler2D ceil_tex : filter_nearest, repeat_enable;
+uniform vec2 view_size = vec2(720.0, 800.0);
+uniform float horizon = 400.0;
+uniform float proj = 560.0;
+uniform float eye = 0.5;
+uniform float up = 1.1;
+uniform vec2 cam_pos;
+uniform vec2 cam_dir = vec2(1.0, 0.0);
+uniform vec2 cam_plane = vec2(0.0, 0.66);
+uniform vec3 tint = vec3(1.0);
+uniform float flash = 0.0;
+uniform float fog = 8.0;
+uniform vec2 exit_cell = vec2(-9.0);
+uniform float time = 0.0;
+void fragment() {
+	vec2 px = UV * view_size;
+	float dy = px.y - horizon;
+	bool is_floor = dy > 0.0;
+	float d = (is_floor ? eye : up) * proj / max(abs(dy), 0.5);
+	float camx = 2.0 * px.x / view_size.x - 1.0;
+	vec2 w = cam_pos + (cam_dir + cam_plane * camx) * d;
+	vec3 c = is_floor ? texture(floor_tex, fract(w)).rgb : texture(ceil_tex, fract(w)).rgb * 0.7;
+	float light = clamp(1.25 - d / fog, 0.04, 1.0) + flash * clamp(1.0 - d / 5.0, 0.0, 1.0);
+	c *= tint * light;
+	if (is_floor && floor(w) == exit_cell) {
+		c = mix(c, vec3(0.45, 1.0, 0.25), 0.3 + 0.15 * sin(time * 4.0));
+	}
+	COLOR = vec4(c, 1.0);
+}
+"""
 
 var info = null  # GameInfo; null on apps without it, so guard every use
 var home  # HomeKit
@@ -41,6 +112,17 @@ var flash_t: float = 0.0
 var walk_t: float = 0.0
 var zbuf: PackedFloat32Array = PackedFloat32Array()
 var view_drag_index: int = -2
+var skin := "classic"
+var tint := TINT_CLASSIC
+var proj: float = 500.0        # pixels for one wall unit at distance 1
+var theme_i: int = -1
+var wall_tex: Array = []       # this theme's three wall textures
+var fog: float = 8.0
+var step_t: float = 0.0
+var big_map := false           # the Pad's map pill shows the map large
+var floor_rect: ColorRect
+var floor_mat: ShaderMaterial
+var pause_btn: Button
 
 var view: Control
 var score_label: Label
@@ -77,7 +159,7 @@ func _build_ui() -> void:
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 10)
 	top.add_child(bar)
-	var pause_btn := Button.new()
+	pause_btn = Button.new()
 	pause_btn.text = "⏸"
 	pause_btn.custom_minimum_size = Vector2(76, 64)
 	pause_btn.pressed.connect(_on_pause)
@@ -104,12 +186,26 @@ func _build_ui() -> void:
 	vm.add_theme_constant_override("margin_left", 8)
 	vm.add_theme_constant_override("margin_right", 8)
 	root.add_child(vm)
+	var stage := Control.new()
+	stage.clip_contents = true
+	vm.add_child(stage)
+	floor_rect = ColorRect.new()
+	floor_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sh := Shader.new()
+	sh.code = FLOOR_SHADER
+	floor_mat = ShaderMaterial.new()
+	floor_mat.shader = sh
+	floor_rect.material = floor_mat
+	stage.add_child(floor_rect)
+	floor_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	view = Control.new()
 	view.clip_contents = true
 	view.mouse_filter = Control.MOUSE_FILTER_STOP
+	view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # pixel-art walls and sprites
 	view.draw.connect(_draw_view)
 	view.gui_input.connect(_on_view_input)
-	vm.add_child(view)
+	stage.add_child(view)
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var cm := MarginContainer.new()
 	cm.add_theme_constant_override("margin_bottom", 28)
@@ -195,18 +291,46 @@ func _hold(key: String, on: bool) -> void:
 ## The shared Pad (scripts/common/pad/, docs/claude/pad.md). Older apps do not have it and keep the
 ## on-screen buttons below.
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+const PAD_LAYOUTS_PATH := "res://scripts/common/pad/pad_layouts.gd"
 const PAD_ROOM := 285.0        # height kept free under the playfield for the Pad's stick + button
+const LOOK_TURN := 1.25        # the look stick at full tilt turns this much faster than TURN
 var touch_pad: Control = null
+var pad_twin := false          # twin sticks (walk + look) with Fire between them, pause and map pills
 var _pad_held := {"fw": false, "bk": false, "sl": false, "sr": false, "fire": false}
 
 func _add_pad() -> void:
 	touch_pad = load(PAD_PATH).new()
-	touch_pad.layout_override = "stick_4"
+	# Apps whose Pad takes a game's own layout (custom_layout) get twin sticks; older ones keep
+	# stick + A with turning by dragging the view.
+	if "custom_layout" in touch_pad and ResourceLoader.exists(PAD_LAYOUTS_PATH):
+		var Layouts = load(PAD_LAYOUTS_PATH)
+		touch_pad.custom_layout = Layouts.variant("dual_stick", ["aim", "a", "b"], [
+			{"type": "stick", "id": "aim", "side": "right", "off": [200, 190], "r": 130, "knob": 60},
+			{"type": "button", "id": "a", "side": "center", "off": [0, 190], "r": 62},
+		], "crypt_crawler")
+		pad_twin = true
+	else:
+		touch_pad.layout_override = "stick_4"
 	touch_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(touch_pad)
-	for part in ["b", "x", "y", "pause", "info"]:
-		touch_pad.set_hidden(part, true)   # walk with the stick, fire with A, drag the view to turn
+	if pad_twin:
+		touch_pad.set_state("info", {"icon": "menu"})
+		touch_pad.button_pressed.connect(_on_pad_button)
+		pause_btn.visible = false          # the Pad's pause pill does it
+	else:
+		for part in ["b", "x", "y", "pause", "info"]:
+			touch_pad.set_hidden(part, true)   # walk with the stick, fire with A, drag the view to turn
 	touch_pad.set_state("a", {"glyph": "bolt", "sub": tr("Fire")})
+
+func _on_pad_button(id: String) -> void:
+	if not started:
+		return
+	match id:
+		"pause":
+			_on_pause()
+		"info":
+			big_map = not big_map
+			view.queue_redraw()
 
 ## The stick walks (forward / back / strafe) and A fires, like the keys do; written only when it
 ## changes, so the keyboard still works. Turning is still a drag on the view (or Q / E).
@@ -214,6 +338,13 @@ func _pad_tick() -> void:
 	if touch_pad == null:
 		return
 	touch_pad.visible = started and not end_dialog.visible
+	if pad_twin:
+		# Walking is read analog in _process; only Fire goes through `held`.
+		var f: bool = touch_pad.is_down("a")
+		if f != _pad_held.fire:
+			_hold("fire", f)
+		_pad_held.fire = f
+		return
 	var v: Vector2 = touch_pad.get_vector("move")
 	var now := {"fw": v.y < -0.35, "bk": v.y > 0.35, "sl": v.x < -0.35, "sr": v.x > 0.35, "fire": touch_pad.is_down("a")}
 	for k in now:
@@ -225,6 +356,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and not event.echo:
 		var map := {KEY_W: "fw", KEY_UP: "fw", KEY_S: "bk", KEY_DOWN: "bk", KEY_A: "sl", KEY_D: "sr",
 			KEY_LEFT: "tl", KEY_RIGHT: "tr", KEY_Q: "tl", KEY_E: "tr", KEY_SPACE: "fire"}
+		if pad_twin and event.keycode in [KEY_LEFT, KEY_RIGHT]:
+			return   # the Pad already reads the arrows as its look stick
 		if map.has(event.keycode):
 			_hold(map[event.keycode], event.pressed)
 
@@ -253,9 +386,11 @@ func _begin() -> void:
 	started = true
 	after = 0.0
 	banner = ""
+	big_map = false
 	held.clear()
 	end_dialog.visible = false
 	_update_hud()
+	_music("lively")
 
 func _update_hud() -> void:
 	score_label.text = str(engine.score)
@@ -285,37 +420,52 @@ func _process(delta: float) -> void:
 	var strafe := (1.0 if held.has("sr") else 0.0) - (1.0 if held.has("sl") else 0.0)
 	var turn := ((1.0 if held.has("tr") else 0.0) - (1.0 if held.has("tl") else 0.0)) * CcEngine.TURN * delta + drag_turn
 	drag_turn = 0.0
+	if pad_twin and touch_pad:
+		var mv: Vector2 = touch_pad.get_vector("move")
+		if mv.length() > 0.15:
+			fwd = -mv.y
+			strafe = mv.x
+		var look: float = touch_pad.get_vector("aim").x
+		turn += signf(look) * pow(absf(look), 1.6) * CcEngine.TURN * LOOK_TURN * delta   # gentle near the middle for aiming
 	if fwd != 0.0 or strafe != 0.0:
 		walk_t += delta
+		step_t += delta * clampf(Vector2(fwd, strafe).length(), 0.3, 1.0)
+		if step_t >= STEP_EVERY:
+			step_t = 0.0
+			_snd("rpg/footstep", -14.0)
 	var ev: Array = engine.step(delta, fwd, strafe, turn, held.has("fire"))
 	for e in ev:
 		match e:
 			"fire":
 				flash_t = 0.12
-				_sfx("shoot")
+				_snd("scifi/laser_retro", -6.0)
 			"hit_monster":
-				_sfx("hit")
+				_snd("impact/soft_medium")
 			"kill":
-				_sfx("explode")
+				_snd("scifi/explosion_crunch", -8.0)
 				if info:
 					info.add("Monsters destroyed")
 			"hurt":
-				_sfx("hit")
+				_snd("impact/punch_medium")
 				_buzz()
 			"health":
-				_sfx("powerup")
+				_snd("reward/powerup", -4.0)
 			"gem":
-				_sfx("pickup")
+				_snd("reward/coin_short")
 				if info:
 					info.add("Soul gems")
+			"wake":
+				_snd("impact/mining", -2.0)
+			"summon":
+				_snd("scifi/force_field", -8.0)
 			"exit":
-				_sfx("win")
+				_snd("rpg/door_open")
 				banner = tr("Way out! Floor %d cleared") % engine.level
 				after = PAUSE_AFTER
 				if info:
 					info.add("Floors cleared")
 			"dead":
-				_sfx("lose")
+				_snd("jingles/lose_failed", -4.0)
 				banner = tr("The crypt claims you…")
 				after = PAUSE_AFTER
 	if not ev.is_empty():
@@ -344,15 +494,18 @@ func _draw_view() -> void:
 	if s.x < 10:
 		return
 	var horizon := s.y * 0.5 + sin(walk_t * 9.0) * 3.0
-	# Ceiling and floor: dark, with faint bands that fade into the distance.
-	c.draw_rect(Rect2(Vector2.ZERO, Vector2(s.x, horizon)), Color(0.015, 0.008, 0.035))
-	c.draw_rect(Rect2(Vector2(0, horizon), Vector2(s.x, s.y - horizon)), Color(0.025, 0.012, 0.05))
-	var phase := fmod(walk_t * 2.6, 1.0)
-	for i in 8:
-		var d := 1.0 + i - phase
-		var y := horizon + s.y / (2.0 * d) * 0.95
-		c.draw_line(Vector2(0, y), Vector2(s.x, y), Color(WALL_X, 0.16 / (1.0 + i * 0.4)), 1.5)
-		c.draw_line(Vector2(0, 2.0 * horizon - y), Vector2(s.x, 2.0 * horizon - y), Color(WALL_Y, 0.08 / (1.0 + i * 0.4)), 1.0)
+	proj = s.x / (2.0 * CcEngine.FOV_PLANE)   # square pixels: the wall unit that fills the field of view
+	_use_theme()
+	var flash := flash_t / 0.12 * 0.35
+	_feed_floor(s, horizon, flash)
+	if skin == "voodoo":
+		# Faint neon bands over the floor and ceiling, as the crypt looked before it had stone.
+		var phase := fmod(walk_t * 2.6, 1.0)
+		for i in 8:
+			var d := 1.0 + i - phase
+			var y := horizon + proj * EYE / d
+			c.draw_line(Vector2(0, y), Vector2(s.x, y), Color(WALL_X, 0.16 / (1.0 + i * 0.4)), 1.5)
+			c.draw_line(Vector2(0, horizon - proj * UP / d), Vector2(s.x, horizon - proj * UP / d), Color(WALL_Y, 0.08 / (1.0 + i * 0.4)), 1.0)
 	# Walls, one ray per column.
 	var dir: Vector2 = engine.dir()
 	var pl: Vector2 = engine.plane()
@@ -367,21 +520,32 @@ func _draw_view() -> void:
 		var hit: Dictionary = engine.cast(engine.pos, dir + pl * camx, 40.0)
 		var dist: float = hit.dist
 		zbuf[i] = dist
-		var h := s.y / dist
-		var top := horizon - h / 2.0
-		var bot := horizon + h / 2.0
+		var top := horizon - proj * UP / dist
+		var bot := horizon + proj * EYE / dist
 		var col: Color = WALL_X if hit.side == 0 else WALL_Y
-		var fade := clampf(1.15 - dist / 11.0, 0.08, 1.0)
 		var x0 := i * cw
-		c.draw_rect(Rect2(x0, top, cw + 0.6, h), Color(0.02, 0.012, 0.045).lerp(col.darkened(0.62), 0.55 * fade + 0.1))
+		var tex: Texture2D = _wall_for(hit.cell)
+		if tex:
+			var tw := tex.get_width()
+			var tx := clampi(int(hit.u * tw), 0, tw - 1)
+			var shade := _light(dist, flash) * (1.0 if hit.side == 0 else 0.78)
+			var m := Color(tint.r * shade, tint.g * shade, tint.b * shade)
+			if skin == "voodoo":
+				m = m.lerp(Color(col.r * shade, col.g * shade, col.b * shade), 0.35)
+			c.draw_texture_rect_region(tex, Rect2(x0, top, cw + 0.6, bot - top), Rect2(tx, 0, 1, tex.get_height()), m)
+		else:
+			var fade := clampf(1.15 - dist / 11.0, 0.08, 1.0)
+			c.draw_rect(Rect2(x0, top, cw + 0.6, bot - top), Color(0.02, 0.012, 0.045).lerp(col.darkened(0.62), 0.55 * fade + 0.1))
+		if skin != "voodoo":
+			prev = hit
+			continue   # Classic: plain stone, no neon edges
 		var new_face: bool = prev.is_empty() or prev.cell != hit.cell or prev.side != hit.side
 		if new_face and not prev.is_empty():
 			# A corner: close the run of edges, and stand a glowing post on the nearer face.
 			_flush_edges(c, tops, bots, seg_col, seg_d)
 			var px := x0
 			var nearer: float = minf(prev.dist, dist)
-			var ph := s.y / nearer
-			HomeKit.glow_line(c, Vector2(px, horizon - ph / 2.0), Vector2(px, horizon + ph / 2.0), Color(col, clampf(1.15 - nearer / 11.0, 0.08, 1.0)), 1.5)
+			HomeKit.glow_line(c, Vector2(px, horizon - proj * UP / nearer), Vector2(px, horizon + proj * EYE / nearer), Color(col, clampf(1.15 - nearer / 11.0, 0.08, 1.0)), 1.5)
 			tops = PackedVector2Array()
 			bots = PackedVector2Array()
 		if tops.is_empty():
@@ -392,7 +556,8 @@ func _draw_view() -> void:
 		seg_col = col
 		seg_d = dist
 		prev = hit
-	_flush_edges(c, tops, bots, seg_col, seg_d)
+	if skin == "voodoo":
+		_flush_edges(c, tops, bots, seg_col, seg_d)
 	_draw_sprites(c, s, horizon, dir, pl, cw)
 	_draw_wand(c, s)
 	if engine.hurt_t > 0.0:
@@ -400,6 +565,57 @@ func _draw_view() -> void:
 	_draw_minimap(c, s)
 	if banner != "":
 		HomeKit.glow_text(c, Vector2(s.x / 2.0, s.y * 0.3), banner, int(clampf(s.x / 18.0, 22, 40)), EXIT if engine.state == "won" else SKULL)
+
+## Torchlight: full near you, fading into the dark (the floor shader uses the same curve).
+func _light(d: float, flash: float = 0.0) -> float:
+	return clampf(1.25 - d / fog, 0.04, 1.0) + flash * clampf(1.0 - d / 5.0, 0.0, 1.0)
+
+## Load this floor's stone (every two floors a new one).
+func _use_theme() -> void:
+	var t: int = ((engine.level - 1) / 2) % THEMES.size()
+	if t == theme_i:
+		return
+	theme_i = t
+	var th: Array = THEMES[t]
+	wall_tex = [SpriteLib.texture(th[0]), SpriteLib.texture(th[1]), SpriteLib.texture(th[2])]
+	fog = float(th[5])
+	if floor_mat:
+		floor_mat.set_shader_parameter("floor_tex", SpriteLib.texture(th[3]))
+		floor_mat.set_shader_parameter("ceil_tex", SpriteLib.texture(th[4]))
+
+## Which wall picture a cell shows: mostly the plain one, some variants, a rare banner.
+func _wall_for(cell: Vector2i) -> Texture2D:
+	if wall_tex.is_empty():
+		return null
+	var h := absi((cell.x * 73856093) ^ (cell.y * 19349663) ^ (engine.level * 83492791)) % 23
+	if h == 0:
+		return wall_tex[2]
+	return wall_tex[1] if h < 6 else wall_tex[0]
+
+func _feed_floor(s: Vector2, horizon: float, flash: float) -> void:
+	if floor_mat == null:
+		return
+	floor_mat.set_shader_parameter("view_size", s)
+	floor_mat.set_shader_parameter("horizon", horizon)
+	floor_mat.set_shader_parameter("proj", proj)
+	floor_mat.set_shader_parameter("eye", EYE)
+	floor_mat.set_shader_parameter("up", UP)
+	floor_mat.set_shader_parameter("cam_pos", engine.pos)
+	floor_mat.set_shader_parameter("cam_dir", engine.dir())
+	floor_mat.set_shader_parameter("cam_plane", engine.plane())
+	floor_mat.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
+	floor_mat.set_shader_parameter("flash", flash)
+	floor_mat.set_shader_parameter("fog", fog)
+	floor_mat.set_shader_parameter("exit_cell", Vector2(engine.exit_cell))
+	floor_mat.set_shader_parameter("time", Time.get_ticks_msec() / 1000.0)
+
+## The Home kit calls this with the player's look (Options): Classic = torch-lit stone,
+## Voodoo = violet light with the neon edges.
+func _set_skin(name: String) -> void:
+	skin = "voodoo" if name == "voodoo" else "classic"
+	tint = TINT_VOODOO if skin == "voodoo" else TINT_CLASSIC
+	if view:
+		view.queue_redraw()
 
 func _flush_edges(c: CanvasItem, tops: PackedVector2Array, bots: PackedVector2Array, col: Color, dist: float) -> void:
 	if tops.size() < 2:
@@ -417,6 +633,8 @@ func _draw_sprites(c: CanvasItem, s: Vector2, horizon: float, dir: Vector2, pl: 
 		list.append({"pos": it.pos, "kind": it.kind})
 	for b in engine.bolts:
 		list.append({"pos": b.pos, "kind": "bolt"})
+	for d in engine.decor:
+		list.append({"pos": d.pos, "kind": d.kind})
 	list.append({"pos": Vector2(engine.exit_cell) + Vector2(0.5, 0.5), "kind": "exit"})
 	var inv := 1.0 / (pl.x * dir.y - dir.x * pl.y)
 	for e in list:
@@ -430,7 +648,7 @@ func _draw_sprites(c: CanvasItem, s: Vector2, horizon: float, dir: Vector2, pl: 
 		if depth < 0.15:
 			continue
 		var sx: float = s.x / 2.0 * (1.0 + e.tx / depth)
-		var sz: float = s.y / depth
+		var sz: float = proj / depth
 		var col_i := int(sx / cw)
 		var visible := false
 		for k in [col_i - 2, col_i, col_i + 2]:
@@ -439,6 +657,9 @@ func _draw_sprites(c: CanvasItem, s: Vector2, horizon: float, dir: Vector2, pl: 
 		if not visible:
 			continue
 		var fade := clampf(1.2 - depth / 12.0, 0.15, 1.0)
+		if SPRITES.has(e.kind):
+			_draw_sprite(c, e, sx, horizon, depth, cw, t)
+			continue
 		match e.kind:
 			"skull", "wraith", "brute":
 				_draw_monster(c, Vector2(sx, horizon), sz, e.m, fade)
@@ -463,6 +684,62 @@ func _draw_sprites(c: CanvasItem, s: Vector2, horizon: float, dir: Vector2, pl: 
 					var rr := sz * (0.18 + 0.07 * k + 0.02 * sin(t * 4.0 + k))
 					c.draw_arc(p, rr, t * (1.5 + k) , t * (1.5 + k) + TAU * 0.75, 32, Color(EXIT, fade * (1.0 - k * 0.25)), maxf(1.5, sz * 0.012), true)
 				c.draw_circle(p, sz * 0.12, Color(EXIT, 0.15 * fade))
+
+## A pixel-art monster or prop standing in the crypt, cut column by column where walls are nearer.
+func _draw_sprite(c: CanvasItem, e: Dictionary, sx: float, horizon: float, depth: float, cw: float, t: float) -> void:
+	var spec: Array = SPRITES[e.kind]
+	var m = e.get("m")
+	var id: String = spec[0]
+	var height: float = spec[1]
+	var lift: float = spec[2]
+	var squash := 1.0
+	var mod := tint * _light(depth)
+	mod.a = 1.0   # light dims the colour, never the opacity
+	if m != null:
+		match e.kind:
+			"gargoyle":
+				if not m.awake:
+					id = GARGOYLE_STONE
+					mod = mod.darkened(0.15)
+			"bat":
+				lift += sin(m.bob * 1.7) * 0.06
+				squash = 0.75 + 0.25 * absf(sin(m.bob * 4.0))   # wing beats
+				mod = mod * 1.35
+			"skeleton", "monk":
+				lift += absf(sin(m.bob * 1.4)) * 0.025 if m.awake else 0.0
+			"specter":
+				lift += sin(m.bob) * 0.04
+				mod = Color(1.6, 1.3, 2.2, 0.8)   # its own cold light: a shadow on dark stone would vanish
+			"rat":
+				mod = mod * 1.35
+		if m.hurt > 0.0:
+			mod = Color(4, 4, 4, mod.a)   # a white flash where the wand hits
+	var tex: Texture2D = SpriteLib.texture(id)
+	if tex == null:
+		return
+	var hpx: float = height * proj / depth
+	var wpx: float = hpx * tex.get_width() / tex.get_height() * squash
+	var bottom: float
+	if lift < 0.0:
+		bottom = horizon - UP * proj / depth + hpx   # hangs from the ceiling
+	else:
+		bottom = horizon + (EYE - lift) * proj / depth
+	var x0 := sx - wpx / 2.0
+	var c0 := maxi(0, int(floorf(x0 / cw)))
+	var c1 := mini(COLS - 1, int(floorf((x0 + wpx) / cw)))
+	var run := -1
+	for col in range(c0, c1 + 2):
+		var vis := col <= c1 and zbuf[col] > depth
+		if vis and run < 0:
+			run = col
+		elif not vis and run >= 0:
+			var a := maxf(x0, run * cw)
+			var b := minf(x0 + wpx, col * cw)
+			if b > a:
+				var tw := float(tex.get_width())
+				var src := Rect2((a - x0) / wpx * tw, 0, (b - a) / wpx * tw, tex.get_height())
+				c.draw_texture_rect_region(tex, Rect2(a, bottom - hpx, b - a, hpx), src, mod)
+			run = -1
 
 func _draw_monster(c: CanvasItem, base: Vector2, sz: float, m: Dictionary, fade: float) -> void:
 	var col: Color = SKULL if m.kind == "skull" else (WRAITH if m.kind == "wraith" else BRUTE)
@@ -532,6 +809,9 @@ func _draw_minimap(c: CanvasItem, s: Vector2) -> void:
 	var n: int = engine.size
 	var cell := minf(s.x * 0.3, 190.0) / n
 	var o := Vector2(10, 10)
+	if big_map:
+		cell = minf(s.x, s.y) * 0.9 / n
+		o = (s - Vector2(n, n) * cell) / 2.0
 	c.draw_rect(Rect2(o, Vector2(n, n) * cell), Color(0, 0, 0, 0.55))
 	c.draw_rect(Rect2(o, Vector2(n, n) * cell), Color(WALL_X, 0.35), false, 1.5)
 	for y in n:
@@ -605,6 +885,16 @@ func _buzz() -> void:
 	var st = get_node_or_null("/root/Settings")
 	if st and st.has_method("buzz"):
 		st.buzz(40)
+
+## Recorded sounds from the shared library (docs/claude/sfx-library.md).
+func _snd(id: String, volume_db: float = 0.0) -> void:
+	SoundLib.play(self, id, volume_db)
+
+## Music from the shared Music autoload; older apps have none.
+func _music(style: String) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m:
+		m.play(style, self, 0, 1.5)
 
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")

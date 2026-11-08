@@ -10205,5 +10205,10 @@
  "the tie-breaking vote: +15% reward": "el voto de desempate: +15% de recompensa",
  "they leave for a while": "se va por un tiempo",
  "tribute from %s": "tributo de %s",
- "wrong shipment": "envío equivocado"
+ "wrong shipment": "envío equivocado",
+ "The left stick walks: up and down go forward and back, left and right step sideways. The right stick turns you (dragging sideways on the view turns too).": "El joystick izquierdo camina: arriba y abajo van hacia delante y atrás, izquierda y derecha dan pasos laterales. El joystick derecho te hace girar (arrastrar de lado sobre la vista también gira).",
+ "Deeper down: rats scurry in packs of three, demon bats zigzag at you (floor 2), skeletons (floor 3) take four hits, shadow specters (floor 4) drift through walls, gargoyles (floor 5) stay stone until you get close, and hooded monks (floor 6) hang back and call up bats.": "Más abajo: las ratas corren en grupos de tres, los murciélagos demonio te atacan en zigzag (piso 2), los esqueletos (piso 3) aguantan cuatro golpes, los espectros de sombra (piso 4) atraviesan paredes, las gárgolas (piso 5) siguen de piedra hasta que te acercas y los monjes encapuchados (piso 6) se quedan atrás e invocan murciélagos.",
+ "The ☰ button shows the whole map large; press it again to close it. The stone changes every two floors.": "El botón ☰ muestra el mapa completo en grande; presiónalo otra vez para cerrarlo. La piedra cambia cada dos pisos.",
+ "Shoot the monks first: every few seconds they call up two more bats.": "Dispárale primero a los monjes: cada pocos segundos invocan dos murciélagos más.",
+ "A grey gargoyle in the corridor is not decoration. Shoot it from afar before you walk past.": "Una gárgola gris en el pasillo no es decoración. Dispárale de lejos antes de pasar a su lado."
 }

@@ -19,12 +19,26 @@ const DIFFS := [
 	{"dmg": 1.0, "count": 1.0, "speed": 1.0},
 	{"dmg": 1.4, "count": 1.3, "speed": 1.15},
 ]
-## kind -> hp, speed (cells/s), score
+## kind -> hp, speed (cells/s), score, dmg (a bite / blow; 0 = shoots instead)
 const MONSTERS := {
-	"skull": {"hp": 2, "speed": 1.9, "score": 100},
-	"wraith": {"hp": 3, "speed": 1.3, "score": 200},
-	"brute": {"hp": 6, "speed": 1.1, "score": 400},
+	"skull": {"hp": 2, "speed": 1.9, "score": 100, "dmg": 9},
+	"wraith": {"hp": 3, "speed": 1.3, "score": 200, "dmg": 0},
+	"brute": {"hp": 6, "speed": 1.1, "score": 400, "dmg": 18},
+	"rat": {"hp": 1, "speed": 2.3, "score": 50, "dmg": 4},        # comes in packs of three
+	"bat": {"hp": 1, "speed": 2.9, "score": 75, "dmg": 5},        # zigzags, hard to line up
+	"skeleton": {"hp": 4, "speed": 1.45, "score": 250, "dmg": 14},
+	"specter": {"hp": 3, "speed": 0.9, "score": 300, "dmg": 12},  # drifts through walls
+	"gargoyle": {"hp": 8, "speed": 1.7, "score": 500, "dmg": 22}, # a statue until you get close
+	"monk": {"hp": 5, "speed": 1.0, "score": 450, "dmg": 0},      # keeps away, calls up bats
 }
+## Which monsters a floor can have: [kind, first floor, weight].
+const SPAWN := [
+	["skull", 1, 10], ["rat", 1, 5], ["bat", 2, 6], ["wraith", 2, 6], ["skeleton", 3, 7],
+	["brute", 3, 3], ["specter", 4, 4], ["gargoyle", 5, 3], ["monk", 6, 2],
+]
+const MAX_MONSTERS := 48      # summoned bats stop at this
+const GARGOYLE_WAKE := 2.4    # a gargoyle stays stone until you are this close (or shoot it)
+const DECOR := ["skull_pile", "candelabra", "tomb", "web", "chains"]
 
 var diff: int = 1
 var level: int = 1
@@ -42,6 +56,7 @@ var exit_cell := Vector2i(1, 1)
 var monsters: Array = []      # {"pos", "kind", "hp", "cool", "hurt", "bob"}
 var items: Array = []         # {"pos", "kind": "health" | "gem"}
 var bolts: Array = []         # monster fireballs: {"pos", "vel"}
+var decor: Array = []         # props, only drawn: {"pos", "kind"}
 var fire_cool: float = 0.0
 var hurt_t: float = 0.0       # red flash when hit
 var level_kills: int = 0
@@ -122,6 +137,7 @@ func new_level() -> void:
 	monsters = []
 	items = []
 	bolts = []
+	decor = []
 	var free: Array = []
 	for i in dist.size():
 		if dist[i] >= 6 and i != far:
@@ -131,21 +147,39 @@ func new_level() -> void:
 	var n_mon := int(roundf((4 + level * 2) * d.count))
 	for i in mini(n_mon, free.size()):
 		var cell: int = free.pop_back()
-		var kind := "skull"
-		var r := rng.randf()
-		if level >= 2 and r < 0.35:
-			kind = "wraith"
-		if level >= 3 and r > 0.88:
-			kind = "brute"
-		monsters.append({"pos": _center(cell), "kind": kind, "hp": MONSTERS[kind].hp, "cool": rng.randf_range(0.5, 2.0),
-			"hurt": 0.0, "bob": rng.randf() * TAU, "awake": false})
+		var kind := pick_kind()
+		if kind == "rat":
+			for k in 3:
+				_add_monster("rat", _center(cell) + Vector2(rng.randf_range(-0.25, 0.25), rng.randf_range(-0.25, 0.25)))
+		else:
+			_add_monster(kind, _center(cell))
 	for i in mini(2 + level / 2, free.size()):
 		items.append({"pos": _center(free.pop_back()), "kind": "health"})
 	for i in mini(4 + level, free.size()):
 		items.append({"pos": _center(free.pop_back()), "kind": "gem"})
+	for i in mini(3 + level, free.size()):
+		decor.append({"pos": _center(free.pop_back()), "kind": DECOR[rng.randi_range(0, DECOR.size() - 1)]})
 	level_kills = 0
 	state = "play"
 	_mark_seen()
+
+## A monster kind for this floor, by the SPAWN weights.
+func pick_kind() -> String:
+	var total := 0
+	for row in SPAWN:
+		if level >= int(row[1]):
+			total += int(row[2])
+	var r := rng.randi_range(1, total)
+	for row in SPAWN:
+		if level >= int(row[1]):
+			r -= int(row[2])
+			if r <= 0:
+				return str(row[0])
+	return "skull"
+
+func _add_monster(kind: String, p: Vector2) -> void:
+	monsters.append({"pos": p, "kind": kind, "hp": MONSTERS[kind].hp, "cool": rng.randf_range(0.5, 2.0),
+		"hurt": 0.0, "bob": rng.randf() * TAU, "awake": false})
 
 func _open(x: int, y: int) -> void:
 	grid[y * size + x] = 0
@@ -312,24 +346,44 @@ func _shoot(ev: Array) -> void:
 
 func _step_monsters(dt: float, ev: Array) -> void:
 	var d: Dictionary = DIFFS[diff]
+	var callers: Array = []
 	for m in monsters:
 		m.hurt = maxf(0.0, m.hurt - dt)
 		m.bob += dt * 3.0
 		m.cool = maxf(0.0, m.cool - dt)
 		var to: Vector2 = pos - m.pos
-		var dist := to.length()
+		var dist := maxf(to.length(), 0.001)
 		if not m.awake:
-			if dist < SEE and line_of_sight(m.pos, pos):
+			if m.kind == "gargoyle":
+				if dist < GARGOYLE_WAKE:
+					m.awake = true
+					ev.append("wake")
+				continue
+			if dist < SEE and (m.kind == "specter" or line_of_sight(m.pos, pos)):
 				m.awake = true
 			else:
 				continue
-		var sees := dist < SEE * 1.5 and line_of_sight(m.pos, pos)
+		# Specters see (and drift) through walls.
+		var sees: bool = dist < SEE * 1.5 and (m.kind == "specter" or line_of_sight(m.pos, pos))
 		var spd: float = MONSTERS[m.kind].speed * d.speed * (1.0 + 0.04 * (level - 1))
-		var want := 0.55 if m.kind != "wraith" else 3.5
+		var want := 0.55
+		var back := 0.0
+		if m.kind == "wraith":
+			want = 3.5
+			back = 2.5
+		elif m.kind == "monk":
+			want = 4.5
+			back = 3.0
+		var way: Vector2 = to / dist
+		if m.kind == "bat":
+			way = (way + Vector2(-way.y, way.x) * sin(m.bob * 2.5) * 0.9).normalized()
 		if sees and dist > want:
-			m.pos = _slide(m.pos, to / dist * spd * dt)
-		elif sees and m.kind == "wraith" and dist < 2.5:
-			m.pos = _slide(m.pos, -to / dist * spd * 0.6 * dt)
+			if m.kind == "specter":
+				m.pos = (m.pos + way * spd * dt).clamp(Vector2(0.6, 0.6), Vector2(size - 0.6, size - 0.6))
+			else:
+				m.pos = _slide(m.pos, way * spd * dt)
+		elif sees and back > 0.0 and dist < back:
+			m.pos = _slide(m.pos, -way * spd * 0.6 * dt)
 		# Keep monsters from stacking on one another.
 		for o in monsters:
 			if not is_same(o, m) and (o.pos as Vector2).distance_to(m.pos) < 0.45:
@@ -341,10 +395,22 @@ func _step_monsters(dt: float, ev: Array) -> void:
 				m.cool = 2.2 / d.speed
 				bolts.append({"pos": m.pos + to / dist * 0.3, "vel": to / dist * 4.2})
 				ev.append("bolt")
+		elif m.kind == "monk":
+			if sees and dist < 9.0 and monsters.size() < MAX_MONSTERS:
+				m.cool = 6.0 / d.speed
+				callers.append(m)
+				ev.append("summon")
 		elif dist < 0.75:
-			m.cool = 0.9
-			var dmg := 9 if m.kind == "skull" else 18
-			_hurt(int(roundf(dmg * d.dmg)), ev)
+			m.cool = 0.7 if m.kind in ["rat", "bat"] else 0.9
+			_hurt(int(roundf(float(MONSTERS[m.kind].dmg) * d.dmg)), ev)
+	# Two bats per call join after the loop (not while it walks the list).
+	for caller in callers:
+		for k in 2:
+			var p: Vector2 = caller.pos + Vector2(rng.randf_range(-0.3, 0.3), rng.randf_range(-0.3, 0.3))
+			if is_wall(int(p.x), int(p.y)):
+				p = caller.pos
+			_add_monster("bat", p)
+			monsters[monsters.size() - 1].awake = true
 
 func _step_bolts(dt: float, ev: Array) -> void:
 	var keep: Array = []

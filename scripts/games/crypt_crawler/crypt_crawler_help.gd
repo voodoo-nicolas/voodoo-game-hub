@@ -6,11 +6,13 @@ const ID := "crypt_crawler"
 const TITLE := "Crypt Crawler"
 const GOAL := "Go down as many floors of the crypt as you can: find each floor's glowing green exit before the dead get you."
 const HOW := [
-	"The stick walks: up and down go forward and back, left and right step sideways. Drag sideways on the view to turn.",
+	"The left stick walks: up and down go forward and back, left and right step sideways. The right stick turns you (dragging sideways on the view turns too).",
 	"Hold the bolt button to blast your wand at whatever is under the crosshair. Walls block the shot.",
 	"Skulls fly at you and bite. Wraiths (from floor 2) keep their distance and throw fireballs — dodge them sideways. Horned brutes (from floor 3) take six hits.",
+	"Deeper down: rats scurry in packs of three, demon bats zigzag at you (floor 2), skeletons (floor 3) take four hits, shadow specters (floor 4) drift through walls, gargoyles (floor 5) stay stone until you get close, and hooded monks (floor 6) hang back and call up bats.",
 	"Green crosses heal 30 health; gold soul gems are worth 50 points. Each monster destroyed scores 100 to 400.",
 	"The map in the corner fills in as you explore; the exit shows green on it once you've seen it. Walk into the green rings to finish the floor (+500 and a little health back).",
+	"The ☰ button shows the whole map large; press it again to close it. The stone changes every two floors.",
 	"Every floor is bigger, with more monsters. You have one life: at 0 health the run ends.",
 	"⏸ pauses; Resume on the Home screen keeps your score and health and starts that floor afresh.",
 ]
@@ -18,5 +20,7 @@ const TIPS := [
 	"Back away while you fire: skulls have to fly straight into your wand.",
 	"Fight at corners — peek, shoot, step back out of a wraith's line of fire.",
 	"You don't have to clear a floor. When health is low, run for the exit.",
+	"Shoot the monks first: every few seconds they call up two more bats.",
+	"A grey gargoyle in the corridor is not decoration. Shoot it from afar before you walk past.",
 ]
 const STATS := ["Best score", "Deepest floor", "Floors cleared", "Monsters destroyed", "Soul gems", "Games played"]
