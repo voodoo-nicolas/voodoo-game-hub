@@ -144,6 +144,42 @@ func _run(text_size: int, skin: String) -> void:
 		game.computer.rebuild()
 		await _shot("50_menu_" + tab)
 	game.close_computer()
+	# Quest Expansion v2.2: a muster that picks three factions, the endings, the Hollow Deep
+	e.bars = {"paragon": 60, "outlaw": 4}
+	for f in ["terran_concord", "synthesis", "high_aerie", "sunscale_covenant"]:
+		e.rep[f] = 600
+	e._invalidate()
+	e.crew = [{"id": "C01", "loyalty": 60, "q": 3}, {"id": "C07", "loyalty": 70, "rank": 2}]
+	e.quests["M12"] = {"state": "done", "progress": 0}
+	e.quests["M13a"] = {"state": "active", "progress": 0}
+	e.loc = "sunspire_citadel"
+	e.sector = "veil_expanse"
+	e.cargo["alloys"] = 8
+	game.show_dock()
+	game.dock.open("jobs")
+	await _shot("80_jobs_loyalty")
+	game.dock._handin_open("M13a")
+	game.dock._toggle_pick("terran_concord")
+	await _shot("81_handin_pick3")
+	e.quests["M15"] = {"state": "active", "progress": 1}
+	e.nodes = 3
+	e.loc = "the_ledger_core"
+	e.sector = "hollow_deep"
+	e.flags["act3"] = true
+	game.show_dock()
+	game.dock._handin_open("M15")
+	await _shot("82_handin_endings")
+	game.dock.open("")
+	game.launch()
+	await _wait(5)
+	game._toggle_overview()
+	await _shot("83_map_hollow_deep")
+	game._toggle_overview()
+	game.open_computer()
+	game.computer.tab = "crew"
+	game.computer.rebuild()
+	await _shot("84_menu_crew_ranks")
+	game.close_computer()
 	# Scrapyard Gamma, the wreck field
 	e.loc = "scrapyard_gamma"
 	e.sector = "cradle_reach"

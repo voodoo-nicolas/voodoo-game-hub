@@ -2,8 +2,8 @@ extends RefCounted
 
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 ## Written from the game's code (the_runner_engine.gd, the_runner_battle.gd, the_runner_game.gd,
-## the_runner_dock.gd, the_runner_computer.gd, the_runner_create.gd): design doc v2, Act I plus the
-## Veil Expanse and the Ember Drift. FACTS are checked astronomy (the worlds and hazards of the game)
+## the_runner_dock.gd, the_runner_computer.gd, the_runner_create.gd): design doc v2 and the Quest
+## Expansion v2.2 (Acts I to III, the Hollow Deep, the endings). FACTS are checked astronomy (the worlds and hazards of the game)
 ## and one economics fact (the markets); STANDARDS §15.
 
 const ID := "the_runner"
@@ -19,9 +19,9 @@ const HOW := [
 	"Battles are in real time: steer with the stick (or drag), tap an enemy to target it, your guns fire by themselves in range. Shields, Evade and Flee have cooldowns. Lose and they take your cargo and half your dirty credits.",
 	"Ten factions keep a rep with you (−50% to 100%). Quests change only the factions they list. At 10% a faction gives you work, at 25% and 50% discounts, at 50 / 75 / 100% a bonus each. Below −25% their ships attack you.",
 	"Quests also fill one of two bars, Paragon or Outlaw. They never go down, and each gives titles and bonuses at 10, 30, 50, 75 and 100.",
-	"Crew: do someone's quest on their planet, then hire them there. Each brings two perks and half a flaw, needs a free slot and a wage, and won't share a ship with a race they hate.",
+	"Crew: do someone's quest on their planet, then hire them there. Each brings two perks and half a flaw, needs a free slot and a wage, and won't share a ship with a race they hate. After three quests together they offer their own ♥ quest: their perk goes to Rank II.",
 	"Old Marrow's Runner can be refitted at a shipyard: Skiff, Courier, Corvette, Cruiser. Bigger hulls carry more crew, guns, engines, shields and special parts, and you see each part on the ship.",
-	"The gate at the edge of a sector jumps to the next one once Act I is done.",
+	"The gate at the edge of a sector opens once you hold a Rift Key (Act I). The story runs through three Blind Nodes to the Hollow Deep, where one of three endings waits, depending on your bars, your rep and your crew.",
 	"☰ Menu opens the ship computer: Inventory, Skill Tree, Missions, Map, Ship Layout, Stats, Factions, Crew and Captain.",
 	"Stuck with no money, nothing to sell and no fuel? Mother Kessel lends 500 (you owe 600). The game saves every time you pause.",
 ]
@@ -56,6 +56,7 @@ const ACHIEVEMENTS := [
 	{"id": "rep50", "icon": "🤝", "title": "Trusted", "desc": "Reach 50% rep with a faction", "key": "Best faction rep", "at": 50, "xp": 20},
 	{"id": "rep100", "icon": "🏛", "title": "Inner Circle", "desc": "Reach 100% rep with a faction", "key": "Best faction rep", "at": 100, "xp": 20},
 	{"id": "quests25", "icon": "📜", "title": "Job Hunter", "desc": "Finish 25 quests", "key": "Most quests done", "at": 25, "xp": 20},
+	{"id": "ending", "icon": "🌀", "title": "The Ledger's Fate", "desc": "Reach an ending of the story", "key": "Most endings reached", "at": 1, "xp": 50},
 ]
 const FACTS := [
 	"A black hole's gravity is so strong that nothing, not even light, escapes from inside its event horizon.",

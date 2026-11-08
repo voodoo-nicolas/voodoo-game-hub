@@ -66,6 +66,9 @@ var quests: Dictionary = {}       # id -> {"state": "active"|"done", "progress":
 var crew: Array = []              # {id, loyalty}
 var recruitable: Array = []       # crew ids whose discovery quest is done (not aboard)
 var lost_crew: Array = []         # crew ids that can never join (Hive Debt: handed over)
+var nodes: int = 0                # Blind Nodes found (M06 / M09 / M11): +10% stealth each on the Ghost Core
+var tributaries: Array = []       # worlds that pay you tribute every day (O25)
+var ending: String = ""           # the ending reached ("" = none yet): unify / rule / ghost
 var contracts: Array = []         # accepted: {id, kind, good, qty, from, to, pay, money, due, issuer, enemy}
 var offers: Dictionary = {}       # world -> Array of contract offers (made per day)
 var offers_day: Dictionary = {}   # world -> day the offers were made
@@ -85,7 +88,7 @@ var lucky_used: bool = false
 var flare: bool = false           # a solar flare: the next scan sees nothing
 var stats := {"runs": 0, "scans_passed": 0, "scans_failed": 0, "bribes": 0, "fights_won": 0,
 	"fights_lost": 0, "contracts": 0, "best_haul": 0, "profit": 0, "salvages": 0, "trips": 0,
-	"best_net": 0, "captured": 0, "laundered": 0, "quests": 0, "jumps": 0, "boarded": 0}
+	"best_net": 0, "captured": 0, "laundered": 0, "quests": 0, "jumps": 0, "boarded": 0, "endings": 0}
 var pending_story: Array = []     # story ids for the screens to show
 var ship_pos := Vector2.ZERO      # on the sector map (map pixels), kept by the map while flying
 var tow_to: String = ""           # set by a tow / capture: the map puts the ship there and docks
@@ -137,6 +140,9 @@ func reset(p_seed: int = 0, cap: Dictionary = {}) -> void:
 	crew = []
 	recruitable = []
 	lost_crew = []
+	nodes = 0
+	tributaries = []
+	ending = ""
 	contracts = []
 	offers = {}
 	offers_day = {}
@@ -188,9 +194,10 @@ func perk_list() -> Array:
 			out.append([p, 1.0, "pick"])
 	for m in crew:
 		var cd: Dictionary = S.CREW[m.id]
+		var r2 := int(m.get("rank", 1)) >= 2   # loyalty quest done: personal perk x1.5, quirk at 25%
 		out.append([cd.racial, 1.0, m.id])
-		out.append([cd.personal, 1.0, m.id])
-		out.append([cd.quirk, float(D.CONFIG.crew_flaw_strength), m.id])
+		out.append([cd.personal, S.RANK2_PERK if r2 else 1.0, m.id])
+		out.append([cd.quirk, S.RANK2_QUIRK if r2 else float(D.CONFIG.crew_flaw_strength), m.id])
 	for f in S.FACTION_ORDER:
 		for t in ["50", "75", "100"]:
 			if rep_of(f) >= int(t) * 10 and S.FACTIONS[f].bonuses.has(t):
@@ -261,6 +268,8 @@ func _build_fx() -> void:
 				good[k] = float(good.get(k, 0.0)) + float(v)
 			else:
 				flag[k] = maxi(int(flag.get(k, 0)), int(v))
+	if ghost_core() and nodes > 0:
+		good["stealth"] = float(good.get("stealth", 0.0)) + S.NODE_STEALTH * nodes
 	for pair in S.SYNERGY:
 		if _synergy(str(pair[0]), str(pair[1])):
 			good[pair[2]] = float(good.get(pair[2], 0.0)) + S.SYNERGY_BONUS
@@ -384,9 +393,13 @@ func guns() -> int:
 
 func stealth() -> int:
 	var s := int(hull_data().get("stealth", 0)) + int(_special_sum("stealth"))
-	if ship == "runner":
+	if ghost_core():
 		s += D.GHOST_STEALTH
 	return s
+
+## The Runner's Ghost Core is aboard (not while Queen Vask has it, M10).
+func ghost_core() -> bool:
+	return ship == "runner" and not flags.has("core_stolen")
 
 func hold_quality() -> int:
 	return int(_mod("hidden").get("quality", 0))
@@ -644,6 +657,8 @@ func _cool_heat(days: int) -> void:
 	if loc != "" and bool(world(loc).get("blind", false)):
 		rate *= 2.0
 	rate *= 1.0 + local_bonus("heat_decay", loc)
+	if flags.has("safehouse"):
+		rate *= 2.0   # M08
 	heat["accord"] = maxf(0.0, heat_of() - rate * days)
 
 # ================================================================ markets
@@ -1051,7 +1066,7 @@ func arrive(w: String) -> Dictionary:
 	_quest_arrival(w)
 	if encounter.is_empty() and hostile(faction_of(w)):
 		_open_battle("warship", "Their ships attack on sight.", {"faction": faction_of(w)})
-	if encounter.is_empty() and not (local_bonus("safe_dock", w) > 0):
+	if encounter.is_empty() and not (local_bonus("safe_dock", w) > 0) and str(flags.get("safe_dock", "")) != w:
 		_maybe_scan(w)
 	var pirate_p := 0.12 + float(bars.outlaw) / 400.0
 	if bloc_of_world(w) == "paragon":
@@ -1063,6 +1078,7 @@ func arrive(w: String) -> Dictionary:
 func pass_days(days: int) -> void:
 	for i in days:
 		day += 1
+		_check_burned()   # before the day's cooling: heat 100 and a disloyal crew = Burned
 		_cool_heat(1)
 		for w in supply:
 			for g in supply[w]:
@@ -1071,6 +1087,8 @@ func pass_days(days: int) -> void:
 		for m in _collect_laundry():
 			news.push_front(m)
 		_pay_crew()
+		if not tributaries.is_empty():
+			dirty += S.TRIBUTE_PER_DAY * tributaries.size()
 	for c in curses.keys():
 		if int(curses[c]) < day:
 			curses.erase(c)
@@ -1112,7 +1130,7 @@ func _scan_heat(w: String) -> float:
 	return heat_of() if bloc_of_world(w) == "paragon" else heat_of() * 0.5
 
 func scans_here(w: String) -> bool:
-	if law_at(w) <= 0 or local_bonus("safe_dock", w) > 0:
+	if law_at(w) <= 0 or local_bonus("safe_dock", w) > 0 or str(flags.get("safe_dock", "")) == w:
 		return false
 	return bloc_of_world(w) != "outlaw"
 
@@ -1246,6 +1264,9 @@ func _random_event() -> void:
 	var pirate_p := 0.28
 	if sector == "veil_expanse":
 		pirate_p *= 1.0 + _paragon_space_piracy()
+	if flags.has("kessel_nemesis") and rng.randf() < 0.12:
+		_open_battle("hunter", "Mother Kessel's hunters found you.")
+		return
 	if r < pirate_p:
 		if max_heat() > 60.0 and rng.randf() < 0.5:
 			_open_battle("hunter", "A bounty hunter has your face on a poster.")
@@ -1655,7 +1676,7 @@ func start_salvage() -> bool:
 	_open({"kind": "salvage_site"})
 	return true
 
-# ================================================================ quests (§10.1, §11)
+# ================================================================ quests (§10.1, §11, Quest Expansion v2.2)
 
 func quest_state(id: String) -> String:
 	return str(quests.get(id, {}).get("state", ""))
@@ -1679,34 +1700,120 @@ func quest_faction(id: String) -> String:
 	var q: Dictionary = S.QUESTS[id]
 	if q.has("giver_faction"):
 		return str(q.giver_faction)
+	if str(q.giver) == "any":
+		return ""
 	return faction_of(str(q.giver))
+
+## Kinds open to everyone (no 10% rep gate with the giver's faction, D-27).
+const OPEN_KINDS := ["main", "crew", "neutral", "location", "species", "loyalty"]
+
+## How many factions of a bloc ("paragon" / "outlaw") are at `fp` or more.
+func bloc_count(bloc: String, fp: int) -> int:
+	var n := 0
+	for f in (S.ACCORD if bloc == "paragon" else S.PACT):
+		if rep_of(f) >= fp:
+			n += 1
+	return n
+
+## Quests done with this crew member aboard (loyalty quests open at S.LOYAL_QUESTS).
+func crew_quests(cid: String) -> int:
+	return int(crew_member(cid).get("q", 0))
+
+## A crew member's rank (2 after their loyalty quest).
+func crew_rank(cid: String) -> int:
+	var m := crew_member(cid)
+	if not m.is_empty():
+		return int(m.get("rank", 1))
+	return 2 if quest_state(_loyalty_quest(cid)) == "done" else 1
+
+static func _loyalty_quest(cid: String) -> String:
+	for id in S.QUESTS:
+		if str(S.QUESTS[id].get("crew", "")) == cid:
+			return id
+	return ""
+
+## Your race or a crew member's matches this quest's race (species quests).
+func race_match(id: String) -> bool:
+	var r := str(S.QUESTS[id].get("race", ""))
+	return r != "" and races_aboard().has(r)
+
+## Is a prereq met? A message why not ({} = met). Only the parts that show as a 🔒 on the board.
+func _prereq_block(pre: Dictionary) -> Dictionary:
+	for d in pre.get("done", []):
+		if quest_state(str(d)) != "done":
+			return _l("Not yet")
+	var any: Array = pre.get("any_done", [])
+	if not any.is_empty() and not any.any(func(d): return quest_state(str(d)) == "done"):
+		return _l("Not yet")
+	for b in pre.get("bar_min", {}):
+		if int(bars[b]) < int(pre.bar_min[b]):
+			return _l("Needs Paragon %d" if b == "paragon" else "Needs Outlaw %d", [int(pre.bar_min[b])])
+	for f in pre.get("rep_min", {}):
+		if rep_of(str(f)) < int(pre.rep_min[f]):
+			return _l("Needs %s %d%%", [S.FACTIONS[f].name, int(pre.rep_min[f]) / 10])
+	for f in pre.get("rep_max", {}):
+		if rep_of(str(f)) > int(pre.rep_max[f]):
+			return _l("Only below %s %d%%", [S.FACTIONS[f].name, int(pre.rep_max[f]) / 10])
+	if pre.has("bloc_rep"):
+		var br: Dictionary = pre.bloc_rep
+		if bloc_count(str(br.bloc), int(br.fp)) < int(br.n):
+			return _l("Needs %d Accord factions at %d%%" if str(br.bloc) == "paragon" else "Needs %d Pact factions at %d%%", [int(br.n), int(br.fp) / 10])
+	if nodes < int(pre.get("nodes", 0)):
+		return _l("Needs %d Blind Nodes", [int(pre.nodes)])
+	if pre.has("aboard") and crew_member(str(pre.aboard)).is_empty():
+		return _l("%s must be aboard", [S.CREW[str(pre.aboard)].name])
+	return {}
 
 ## Why a quest can't be taken here now: a message ({} = it can).
 func quest_block(id: String) -> Dictionary:
 	var q: Dictionary = S.QUESTS[id]
 	if quests.has(id):
 		return _l("Taken")
-	var pre: Dictionary = q.get("prereq", {})
-	for d in pre.get("done", []):
-		if quest_state(str(d)) != "done":
-			return _l("Not yet")
-	for b in pre.get("bar_min", {}):
-		if int(bars[b]) < int(pre.bar_min[b]):
-			return _l("Needs Paragon %d" if b == "paragon" else "Needs Outlaw %d", [int(pre.bar_min[b])])
+	var pb := _prereq_block(q.get("prereq", {}))
+	if not pb.is_empty():
+		return pb
 	var f := quest_faction(id)
-	if q.kind != "main" and f != "none" and f != "":
-		if rep_of(f) < 0:
+	if not OPEN_KINDS.has(str(q.kind)) and f != "none" and f != "":
+		if rep_of(f) < 0 and not q.get("prereq", {}).has("rep_max"):
 			return _l("No work for you")
-		if not q.get("open", false) and q.kind != "crew" and q.kind != "neutral" and rep_of(f) < S.REP_QUESTS:
+		if not q.get("open", false) and rep_of(f) < S.REP_QUESTS:
 			return _l("Needs 10% rep")
 	if q.kind != "main" and side_active() >= quest_slots():
 		return _l("Quest slots full")
 	if q.has("recruit") and lost_crew.has(str(q.recruit)):
 		return _l("Gone")
-	for g in q.get("give", {}):
-		if space_for(g) < int(q.give[g]):
+	var give: Dictionary = _gives(id)
+	for g in give:
+		if space_for(g) < int(give[g]):
 			return _l("No room in the hold")
 	return {}
+
+## Cargo handed over when you take it (the quest's "give", plus a race bonus's).
+func _gives(id: String) -> Dictionary:
+	var q: Dictionary = S.QUESTS[id]
+	var out: Dictionary = q.get("give", {}).duplicate()
+	if race_match(id):
+		var rg: Dictionary = q.get("race_bonus", {}).get("give", {})
+		for g in rg:
+			out[g] = int(out.get(g, 0)) + int(rg[g])
+	return out
+
+## Hidden from the board: a done-prereq not met, another quest of its group taken, a loyalty quest
+## whose crew member isn't aboard (or not loyal yet).
+func _quest_hidden(id: String) -> bool:
+	var q: Dictionary = S.QUESTS[id]
+	for d in q.get("prereq", {}).get("done", []):
+		if quest_state(str(d)) != "done":
+			return true
+	if q.has("excl"):
+		for other in S.QUESTS:
+			if other != id and str(S.QUESTS[other].get("excl", "")) == str(q.excl) and quests.has(other):
+				return true
+	if q.has("crew"):
+		var cid := str(q.crew)
+		if crew_member(cid).is_empty() or crew_quests(cid) < S.LOYAL_QUESTS:
+			return true
+	return false
 
 ## Quests offered at this world now: [id, block message] ({} = can be taken).
 func quest_offers() -> Array:
@@ -1715,14 +1822,11 @@ func quest_offers() -> Array:
 		return out
 	for id in S.QUEST_ORDER:
 		var q: Dictionary = S.QUESTS[id]
-		if q.kind == "main" or str(q.giver) != loc or quests.has(id):
+		if (q.kind == "main" and not q.get("board", false)) or quests.has(id):
 			continue
-		var pre: Dictionary = q.get("prereq", {})
-		var hidden_pre := false
-		for d in pre.get("done", []):
-			if quest_state(str(d)) != "done":
-				hidden_pre = true
-		if hidden_pre:
+		if str(q.giver) != loc and str(q.giver) != "any":
+			continue
+		if _quest_hidden(id):
 			continue
 		out.append([id, quest_block(id)])
 	return out
@@ -1731,9 +1835,9 @@ func accept_quest(id: String) -> bool:
 	if not S.QUESTS.has(id) or quests.has(id):
 		return false
 	var q: Dictionary = S.QUESTS[id]
-	if q.kind != "main" and not quest_block(id).is_empty():
+	if (q.kind != "main" or q.get("board", false)) and not quest_block(id).is_empty():
 		return false
-	var give: Dictionary = q.get("give", {})
+	var give := _gives(id)
 	for g in give:
 		if space_for(g) < int(give[g]):
 			return false
@@ -1741,6 +1845,11 @@ func accept_quest(id: String) -> bool:
 	for g in give:
 		_stow(g, int(give[g]))
 		paid[g] = 0.0
+	if q.has("on_accept"):
+		flags[str(q.on_accept)] = true
+		_invalidate()
+	if race_match(id) and q.get("race_bonus", {}).get("skip", false):
+		quests[id].progress = 1   # S02: your own kind sees the trap coming
 	return true
 
 ## Kept for the old name.
@@ -1765,6 +1874,8 @@ func quest_progress(id: String) -> Array:
 		"battle": return [int(quests[id].progress), 1]
 		"crew": return [mini(crew.size(), int(st.n)), int(st.n)]
 		"reach": return [1 if loc == st.to else 0, 1]
+		"jump": return [1 if sector == st.to else 0, 1]
+		"tour": return [Array(quests[id].get("visited", [])).size(), st.to.size()]
 	return [0, 1]
 
 ## Can it be handed in here, now?
@@ -1780,32 +1891,74 @@ func can_complete(id: String) -> bool:
 		"battle": return int(quests[id].progress) >= 1
 		"crew": return crew.size() >= int(st.n)
 		"reach": return loc == st.to
+		"jump": return loc != "" and sector == st.to
+		"tour": return loc != "" and Array(quests[id].get("visited", [])).size() >= st.to.size()
 	return false
 
-## Does handing it in need a decision (a choice or a faction pick) or a button (deliver / spend)?
+## Does handing it in need a decision (a choice, a faction pick, an ending) or a button (deliver / spend)?
 func needs_hand_in(id: String) -> bool:
 	var q: Dictionary = S.QUESTS[id]
-	return q.has("choices") or q.has("pick") or str(q.step.type) in ["deliver", "spend"]
+	return q.has("choices") or q.has("pick") or q.get("endings", false) or str(q.step.type) in ["deliver", "spend"]
 
 ## Factions a "pick" quest can credit.
 func pick_options(id: String) -> Array:
-	var p := str(S.QUESTS[id].get("pick", ""))
-	if p == "paragon":
-		return S.ACCORD.duplicate()
-	if p == "any":
-		return S.FACTION_ORDER.duplicate()
-	return []
+	var q: Dictionary = S.QUESTS[id]
+	var p = q.get("pick", "")
+	var out := []
+	if p is Array:
+		out = Array(p).duplicate()
+	elif str(p) == "paragon":
+		out = S.ACCORD.duplicate()
+	elif str(p) == "outlaw":
+		out = S.PACT.duplicate()
+	elif str(p) == "any":
+		out = S.FACTION_ORDER.duplicate()
+	if q.has("pick_min"):
+		out = out.filter(func(f): return rep_of(str(f)) >= int(q.pick_min))
+	return out
 
-## Hand a quest in. `choice`: the index of a §11.5 choice; `pick`: the faction for a pick quest.
-## Returns the English lines of what you got.
+## How many factions the hand-in picks (fewer if fewer qualify).
+func pick_count(id: String) -> int:
+	return mini(int(S.QUESTS[id].get("pick_n", 1)), pick_options(id).size())
+
+## Why a choice can't be made now ({} = it can): its cost or the cargo it needs.
+func choice_block(id: String, i: int) -> Dictionary:
+	var q: Dictionary = S.QUESTS[id]
+	if q.get("endings", false):
+		return ending_block(str(S.ENDING_ORDER[i]))
+	var c: Dictionary = q.choices[i]
+	if c.has("cost") and not can_pay(int(c.cost), "any"):
+		return _l("Can't pay %d", [int(c.cost)])
+	var nd: Dictionary = c.get("needs", {})
+	for g in nd:
+		if qty(g) < int(nd[g]):
+			return _l("Needs %d x %s", [int(nd[g]), D.GOODS[g].name])
+	return {}
+
+## The choices at hand-in: the quest's choices, or the endings.
+func choice_count(id: String) -> int:
+	var q: Dictionary = S.QUESTS[id]
+	if q.get("endings", false):
+		return S.ENDING_ORDER.size()
+	return Array(q.get("choices", [])).size()
+
+## Hand a quest in. `choice`: the index of a choice (or ending); `pick`: the faction(s) for a pick
+## quest, comma-separated when it picks several. Returns the English lines of what you got.
 func complete(id: String, choice: int = -1, pick: String = "") -> Array:
 	if not can_complete(id):
 		return []
 	var q: Dictionary = S.QUESTS[id]
-	if q.has("choices") and (choice < 0 or choice >= q.choices.size()):
+	var nch := choice_count(id)
+	if nch > 0 and (choice < 0 or choice >= nch or not choice_block(id, choice).is_empty()):
 		return []
-	if q.has("pick") and not pick_options(id).has(pick):
-		return []
+	var picks := []
+	if q.has("pick"):
+		for f in pick.split(",", false):
+			if not picks.has(f):
+				picks.append(f)
+		var opts := pick_options(id)
+		if picks.size() != pick_count(id) or not picks.all(func(f): return opts.has(f)):
+			return []
 	var st: Dictionary = q.step
 	if st.type == "deliver":
 		_take(st.good, int(st.qty))
@@ -1814,18 +1967,35 @@ func complete(id: String, choice: int = -1, pick: String = "") -> Array:
 	quests[id].state = "done"
 	stats.quests += 1
 	var out := []
-	_reward(q, out)
-	if q.has("choices"):
+	var r: Dictionary = q.duplicate()
+	if race_match(id):
+		var rb: Dictionary = q.get("race_bonus", {})
+		r.credits = int(round(int(q.get("credits", 0)) * (1.0 + float(rb.get("credits", 0.0)))))
+		out.append(_l("Your kind knows this one: %s.", [str(rb.get("text", ""))]))
+	_reward(r, out)
+	if q.get("endings", false):
+		out += _end_story(str(S.ENDING_ORDER[choice]), int(q.get("credits", 0)))
+	elif q.has("choices"):
 		var c: Dictionary = q.choices[choice]
+		if c.has("cost"):
+			pay(int(c.cost), "any")
+			out.append(_l("Paid %d.", [int(c.cost)]))
+		var nd: Dictionary = c.get("needs", {})
+		for g in nd:
+			_take(g, int(nd[g]))
 		_reward(c, out)
+		if c.has("heat"):
+			add_heat("accord", float(c.heat))
+		if c.has("flag"):
+			flags[str(c.flag)] = true
 		if c.get("recruit_lost", false) and q.has("recruit"):
 			lost_crew.append(str(q.recruit))
 		if c.has("loyalty"):
 			for m in crew:
 				m.loyalty = clampi(int(m.loyalty) + int(c.loyalty), 0, 100)
-	if q.has("pick"):
-		var got := add_rep(pick, int(q.pick_fp))
-		out.append(_l("%s +%d rep.", [S.FACTIONS[pick].name, got]))
+	for f in picks:
+		var got := add_rep(f, int(q.pick_fp))
+		out.append(_l("%s %+d rep.", [S.FACTIONS[f].name, got]))
 	if q.has("recruit") and not lost_crew.has(str(q.recruit)):
 		var cid := str(q.recruit)
 		if cid == "C01" and crew.size() < crew_slots():
@@ -1835,25 +2005,103 @@ func complete(id: String, choice: int = -1, pick: String = "") -> Array:
 		elif not recruitable.has(cid):
 			recruitable.append(cid)
 			out.append(_l("%s will join you at %s (hire them at the dock).", [S.CREW[cid].name, D.WORLDS[S.CREW[cid].planet].name]))
+	_quest_extras(id, q, out)
+	if q.has("choices") and not q.get("endings", false) and q.choices[choice].get("crew_leaves", false):
+		var cid := str(q.get("crew", ""))
+		if dismiss(cid):
+			out.append(_l("%s leaves for now: hire them again at %s.", [S.CREW[cid].name, D.WORLDS[S.CREW[cid].planet].name]))
+	# crew aboard share the quest (loyalty quests open after S.LOYAL_QUESTS)
+	for m in crew:
+		m["q"] = int(m.get("q", 0)) + 1
+	bonus_points += int(q.get("points", 0))
+	add_xp(int(q.get("xp", 0)))
+	if out.is_empty():
+		out.append(_l("Done: %s.", [q.title]))
+	if q.has("story"):
+		pending_story.append(str(q.story))
+	var nxt = q.get("next", "")
+	for n in (nxt if nxt is Array else [nxt]):
+		if str(n) != "":
+			accept_quest(str(n))
+	return out
+
+## Everything a quest gives besides credits, rep and bars.
+func _quest_extras(id: String, q: Dictionary, out: Array) -> void:
 	if q.get("junk", false):
 		_stow("ore", mini(2, space_for("ore")))
 		out.append("The machine dispenses two crates of ore. Close enough.")
 	if q.has("unlock"):
 		flags[str(q.unlock)] = true
+		if str(q.unlock) == "safehouse":
+			out.append("Your safehouse is ready: heat cools twice as fast.")
+	if q.has("on_accept"):
+		flags.erase(str(q.on_accept))   # M10: the Ghost Core is back
+		_invalidate()
 	if q.has("ship"):
 		ship = str(q.ship)
 		tier = 1
 		hull = max_hull()
 		fuel = float(tank())
 		_invalidate()
-	bonus_points += int(q.get("points", 0))
-	add_xp(int(q.get("xp", 0)))
-	if q.has("story"):
-		pending_story.append(str(q.story))
-	var nxt := str(q.get("next", ""))
-	if nxt != "":
-		accept_quest(nxt)
-	return out
+	if int(q.get("node", 0)) > 0:
+		nodes += int(q.node)
+		_invalidate()
+		out.append(_l("Blind Node %d of 3: the Ghost Core gains +10%% stealth.", [nodes]))
+	if q.has("part"):
+		_give_part(str(q.part), out)
+	if int(q.get("loot", 0)) > 0:
+		var g: String = D.GOOD_ORDER[rng.randi() % D.GOOD_ORDER.size()]
+		var n := mini(int(q.loot), space_for(g))
+		if n > 0:
+			_stow(g, n)
+			paid[g] = 0.0
+			out.append(_l("And %d x %s.", [n, D.GOODS[g].name]))
+	if q.has("paint"):
+		flags["paint"] = str(q.paint)
+		out.append("A new paint job for your ship (Ship Layout).")
+	if q.has("safe_dock"):
+		flags["safe_dock"] = str(q.safe_dock)
+		out.append(_l("%s will never scan you.", [D.WORLDS[str(q.safe_dock)].name]))
+	if q.has("tributary"):
+		var w := str(q.tributary)
+		if not tributaries.has(w):
+			tributaries.append(w)
+		out.append(_l("%s pays you %d dirty credits a day.", [D.WORLDS[w].name, S.TRIBUTE_PER_DAY]))
+	if q.get("heat_reset", false):
+		heat["accord"] = 0.0
+		out.append("Your heat is gone.")
+	if q.get("free_refit", false):
+		flags["free_refit"] = true
+		out.append("Your next hull refit is free.")
+	if q.has("crew"):
+		var cid := str(q.crew)
+		var m := crew_member(cid)
+		if not m.is_empty():
+			m["rank"] = 2
+			m.loyalty = mini(100, int(m.loyalty) + S.LOYAL_BONUS)
+			_invalidate()
+		out.append(_l("%s is loyal for good: %s goes to Rank II, their quirk fades.", [S.CREW[cid].name, S.PERKS[S.CREW[cid].personal].name]))
+	if race_match(id):
+		var rb: Dictionary = q.get("race_bonus", {})
+		var fd: Dictionary = rb.get("faction", {})
+		for f in fd:
+			var got := add_rep(str(f), int(fd[f]))
+			out.append(_l("%s %+d rep.", [S.FACTIONS[f].name, got]))
+		var gd: Dictionary = rb.get("good", {})
+		for g in gd:
+			var n := mini(int(gd[g]), space_for(g))
+			if n > 0:
+				_stow(g, n)
+				paid[g] = 0.0
+				out.append(_l("And %d x %s.", [n, D.GOODS[g].name]))
+		if rb.has("part"):
+			_give_part(str(rb.part), out)
+		bonus_points += int(rb.get("points", 0))
+
+func _give_part(id: String, out: Array) -> void:
+	if not owned.has(id):
+		owned.append(id)
+	out.append(_l("A part for your shipyard: %s.", [D.MODULES[id].name]))
 
 ## Credits, faction FP and bar points of a quest (or one of its choices).
 func _reward(r: Dictionary, out: Array) -> void:
@@ -1872,8 +2120,15 @@ func _reward(r: Dictionary, out: Array) -> void:
 		add_bar(str(k), int(b[k]))
 		out.append(_l("Paragon +%d." if k == "paragon" else "Outlaw +%d.", [int(b[k])]))
 
-## Docking at a quest's or bounty's battle world opens the battle.
+## Docking: a tour quest counts this world, then a quest's or bounty's battle opens.
 func _quest_arrival(w: String) -> void:
+	for id in active_quests():
+		var st: Dictionary = S.QUESTS[id].step
+		if str(st.type) == "tour" and Array(st.to).has(w):
+			var v: Array = quests[id].get("visited", [])
+			if not v.has(w):
+				v.append(w)
+			quests[id]["visited"] = v
 	for id in active_quests():
 		var st: Dictionary = S.QUESTS[id].step
 		if str(st.type) == "battle" and str(st.to) == w and int(quests[id].progress) < 1:
@@ -1886,7 +2141,7 @@ func _quest_arrival(w: String) -> void:
 			return
 
 ## Completes every quest that finishes by itself (reach / scans / fights / battle / pay / salvage /
-## crew) and has no choice to make.
+## crew / jump / tour) and has no choice to make.
 func auto_complete() -> Array:
 	var done := []
 	for id in active_quests():
@@ -1894,6 +2149,50 @@ func auto_complete() -> Array:
 			complete(id)
 			done.append(id)
 	return done
+
+# ================================================================ endings (v2 §12)
+
+## Why this ending isn't open ({} = it is).
+func ending_block(id: String) -> Dictionary:
+	match id:
+		"unify":
+			if int(bars.paragon) < 100 or bloc_count("paragon", 750) < 4:
+				return _l("Needs Paragon 100 and 4 Accord factions at 75%")
+		"rule":
+			if int(bars.outlaw) < 100 or bloc_count("outlaw", 750) < 3:
+				return _l("Needs Outlaw 100 and 3 Pact factions at 75%")
+		"ghost":
+			if int(bars.paragon) >= 100 or int(bars.outlaw) >= 100:
+				return _l("Neither bar may be at 100")
+			if nodes < 3:
+				return _l("Needs %d Blind Nodes", [3])
+			for cid in S.GHOST_CREW:
+				if quest_state(str(cid)) != "done" or lost_crew.has(cid):
+					return _l("Needs Pip, Halcyon and Tessa Quill recruited")
+	return {}
+
+func _end_story(id: String, _credits: int) -> Array:
+	ending = id
+	stats.endings += 1
+	pending_story.append("ending_" + id)
+	return [_l("Ending: %s.", [S.ENDINGS[id].title])]
+
+## Burned (the fail ending): heat at 100 and a crew member at loyalty 20 or less. They sell you out
+## once; you lose like a capture and they leave.
+func _check_burned() -> void:
+	if flags.has("burned") or heat_of() < 100.0 or not encounter.is_empty():
+		return
+	for m in crew:
+		if int(m.loyalty) <= S.BURN_LOYALTY:
+			flags["burned"] = true
+			crew.erase(m)
+			recruitable.append(m.id)
+			_invalidate()
+			_lost_fight()
+			pending_story.erase("captured")
+			pending_story.append("burned")
+			heat["accord"] = 50.0
+			return
 
 # ================================================================ Kessel's debt and the safety net
 
@@ -1903,7 +2202,7 @@ const LOAN := 500
 const LOAN_COST := 600
 
 func can_borrow() -> bool:
-	if loc == "" or total_credits() >= 150:
+	if loc == "" or total_credits() >= 150 or flags.has("kessel_nemesis"):
 		return false
 	for g in D.GOODS:
 		if qty(g) - reserved(g) > 0 and trades(g):
@@ -2191,16 +2490,19 @@ func modules_for(slot: String) -> Array:
 func refit_price() -> int:
 	if ship != "runner" or tier >= D.TIERS.size():
 		return -1
+	if flags.has("free_refit"):
+		return 0   # T01: the hermit's hull plates
 	return int(round(int(D.TIERS[tier].cost) * (1.0 + stat("upgrade_cost"))))
 
 func can_refit() -> bool:
 	var p := refit_price()
-	return p > 0 and has_service("shipyard") and can_pay(p, "any")
+	return p >= 0 and has_service("shipyard") and can_pay(p, "any")
 
 func refit() -> bool:
 	if not can_refit():
 		return false
 	pay(refit_price(), "any")
+	flags.erase("free_refit")
 	tier += 1
 	hull = max_hull()
 	fuel = minf(float(tank()), fuel + 6.0)
@@ -2235,6 +2537,7 @@ func to_dict() -> Dictionary:
 		"cargo": cargo, "hidden": hidden, "paid": paid, "heat": heat, "rep": rep, "bars": bars, "xp": xp,
 		"bonus_points": bonus_points, "skills": skills, "branches": branches, "flags": flags, "quests": quests,
 		"crew": crew, "recruitable": recruitable, "lost_crew": lost_crew, "contracts": contracts,
+		"nodes": nodes, "tributaries": tributaries, "ending": ending,
 		"offers": offers, "offers_day": offers_day, "contract_count": contract_count, "supply": supply,
 		"events": events, "news": news, "seen_prices": seen_prices, "laundry": laundry, "curses": curses,
 		"used_calls": used_calls, "ghost_used": ghost_used, "lucky_used": lucky_used, "flare": flare,
@@ -2305,12 +2608,17 @@ func from_dict(d: Dictionary) -> bool:
 	for id in qd:
 		if S.QUESTS.has(id):
 			quests[id] = {"state": str(qd[id].get("state", "active")), "progress": int(qd[id].get("progress", 0))}
+			if qd[id].has("visited"):
+				quests[id]["visited"] = Array(qd[id].visited)
 	crew = []
 	for m in d.get("crew", []):
 		if S.CREW.has(str(m.get("id", ""))):
-			crew.append({"id": str(m.id), "loyalty": int(m.get("loyalty", 50))})
+			crew.append({"id": str(m.id), "loyalty": int(m.get("loyalty", 50)), "q": int(m.get("q", 0)), "rank": int(m.get("rank", 1))})
 	recruitable = Array(d.get("recruitable", []))
 	lost_crew = Array(d.get("lost_crew", []))
+	nodes = int(d.get("nodes", 0))
+	tributaries = Array(d.get("tributaries", [])).filter(func(w): return D.WORLDS.has(str(w)))
+	ending = str(d.get("ending", ""))
 	contracts = []
 	for c in d.get("contracts", []):
 		contracts.append(_contract_ints(c))
@@ -2349,8 +2657,24 @@ func from_dict(d: Dictionary) -> bool:
 		if encounter.has(k):
 			encounter[k] = int(encounter[k])
 	tow_to = ""
+	_migrate_v22()
 	_invalidate()
 	return true
+
+## A v2 run from before the Quest Expansion (2026-11-08): N04 opened the gates then. Keep them open
+## (the Rift Key counts as found) and start the Act I quests that come after N03 / N04.
+func _migrate_v22() -> void:
+	if quest_state("N03") == "done" and not quests.has("N09"):
+		accept_quest("N09")
+	if quest_state("N04") == "done" and not quests.has("N10"):
+		if flags.has("act1_done"):
+			flags["rift_key"] = true
+			quests["N10"] = {"state": "done", "progress": 1}
+			quests["N11"] = {"state": "done", "progress": 0}
+			accept_quest("N12")
+			accept_quest("M05")
+		else:
+			accept_quest("N10")
 
 static func _contract_ints(c: Dictionary) -> Dictionary:
 	c.qty = int(c.get("qty", 0))

@@ -33,6 +33,7 @@ func _init() -> void:
 	_test_battles()
 	_test_launder()
 	_test_quests()
+	_test_expansion()
 	_test_crew()
 	_test_contracts()
 	_test_skills_modules()
@@ -101,9 +102,13 @@ func _test_data() -> void:
 	check(S.QUEST_ORDER.size() == S.QUESTS.size(), "quest order lists every quest")
 	for id in S.QUESTS:
 		var q: Dictionary = S.QUESTS[id]
-		check(D.WORLDS.has(q.giver), "%s giver" % id)
+		check(D.WORLDS.has(q.giver) or (q.giver == "any" and q.has("crew")), "%s giver" % id)
 		var st: Dictionary = q.step
-		if st.has("to"):
+		if st.type == "tour":
+			check(st.to.size() >= 2 and st.to.all(func(w): return D.WORLDS.has(w)), "%s tour worlds" % id)
+		elif st.type == "jump":
+			check(D.SECTORS.has(st.to), "%s jump sector" % id)
+		elif st.has("to"):
 			check(D.WORLDS.has(st.to), "%s step world" % id)
 		if st.has("good"):
 			check(D.GOODS.has(st.good), "%s step good" % id)
@@ -121,7 +126,7 @@ func _test_data() -> void:
 		check(int(S.QUESTS.P14.faction[f]) == 150, "P14 +150 %s" % f)
 	for f in S.PACT:
 		check(int(S.QUESTS.O14.faction[f]) == 150, "O14 +150 %s" % f)
-	# planets and sectors (§9: 5 + 6 + 8 here, 3 planned in the Hollow Deep = 22)
+	# planets and sectors (§9: 5 + 6 + 8 + 3 = 22)
 	var count := {}
 	for w in D.WORLD_ORDER:
 		check(D.WORLDS.has(w), "world %s exists" % w)
@@ -134,8 +139,8 @@ func _test_data() -> void:
 			check(D.GOODS.has(g), "%s trades known good %s" % [w, g])
 		var z: Array = D.SECTORS[wd.sector].size
 		check(float(wd.pos[0]) > 0 and float(wd.pos[1]) > 0 and float(wd.pos[0]) < float(z[0]) and float(wd.pos[1]) < float(z[1]), "%s on its map" % w)
-	check(count.get("cradle_reach", 0) == 5 and count.get("veil_expanse", 0) == 6 and count.get("ember_drift", 0) == 8, "5 / 6 / 8 planets")
-	check(D.WORLD_ORDER.size() + D.SECTORS.hollow_deep.planned.size() == 22, "22 planets in all")
+	check(count.get("cradle_reach", 0) == 5 and count.get("veil_expanse", 0) == 6 and count.get("ember_drift", 0) == 8 and count.get("hollow_deep", 0) == 3, "5 / 6 / 8 / 3 planets")
+	check(D.WORLD_ORDER.size() == 22, "22 planets in all")
 	for s in D.SECTOR_ORDER:
 		check(ResourceLoader.exists(D.ART + str(D.SECTORS[s].map) + ".webp"), "%s map art" % s)
 	check(D.WORLD_ORDER.size() == D.WORLDS.size(), "world order lists every world")
@@ -309,8 +314,8 @@ func _test_travel() -> void:
 	g.launch()
 	g.ship_pos = g.gate_pos()
 	check(g.at_gate(), "at the gate")
-	check(not g.jump("veil_expanse"), "the Veil Expanse is shut before Act I is done")
-	g.flags["act1_done"] = true
+	check(not g.jump("veil_expanse"), "the Veil Expanse is shut before the Rift Key")
+	g.flags["rift_key"] = true
 	check(g.jump("veil_expanse") and g.sector == "veil_expanse", "jump to the Veil Expanse")
 	check(g.worlds_in(g.sector).has("aerie_spire") and g.ship_pos == g.gate_pos(), "arrive at the Veil Expanse's gate")
 	check(not g.sector_open("hollow_deep"), "the Hollow Deep stays locked")
@@ -458,7 +463,7 @@ func _test_quests() -> void:
 		e._scan_passed()
 	check(e.pending_story.has("vane"), "Marshal Vane appears")
 	e.auto_complete()
-	check(e.quest_state("N04") == "done" and e.flags.has("act1_done"), "Act I done")
+	check(e.quest_state("N04") == "done" and e.quest_state("N10") == "active" and not e.flags.has("act1_done"), "N04 done, Marrow's Cache next (Act I ends at N12)")
 	# crew quest C01: salvage three times, Pip joins
 	check(e.quest_offers().any(func(o): return o[0] == "C01" and o[1].is_empty()), "C01 offered at Scrapyard Gamma")
 	check(e.accept_quest("C01"), "accept C01")
@@ -533,6 +538,371 @@ func _test_quests() -> void:
 	hd.loc = "drift_market"
 	hd.complete("C13", 1)
 	check(hd.lost_crew.has("C13") and not hd.recruitable.has("C13"), "handed over: Quill never joins")
+
+## Quest Expansion v2.2 (docs/runner/RUNNER_QUESTS_EXPANSION.md): counts, the doc's credits, the
+## Act I chain to the Rift Key, the main spine to the endings, the new steps / prereqs / rewards, and
+## a driver that takes and hands in every quest in the game.
+func _test_expansion() -> void:
+	# counts: 56 + 88 = 144 (the doc counts M13a / b / c as one quest: 146 entries here)
+	var by := {}
+	for id in S.QUESTS:
+		var pre: String = id.substr(0, 2) if id.begins_with("CL") else id.substr(0, 1)
+		by[pre] = int(by.get(pre, 0)) + 1
+	check(S.QUESTS.size() == 146, "146 quest entries (144 + M13's two other branches): %d" % S.QUESTS.size())
+	check(by.get("N", 0) == 12 and by.get("M", 0) == 13 and by.get("P", 0) == 28 and by.get("O", 0) == 28, "N 12, M 11 (+2 branches), P 28, O 28: %s" % str(by))
+	check(by.get("F", 0) == 12 and by.get("C", 0) == 16 and by.get("CL", 0) == 16 and by.get("T", 0) == 12 and by.get("S", 0) == 9, "F 12, C 16, CL 16, T 12, S 9")
+	# the doc's credits, quest by quest (a choice that costs is a "cost", not credits)
+	var cr := {"N07": 600, "N08": 1500, "N09": 800, "N10": 1200, "N11": 0, "N12": 0, "M05": 2000, "M06": 8000, "M07": 5000,
+		"M08": 0, "M09": 12000, "M10": 15000, "M11": 10000, "M12": 0, "M13a": 20000, "M13b": 20000, "M13c": 20000,
+		"M14": 40000, "M15": 100000, "P15": 3500, "P16": 6000, "P17": 2800, "P18": 5000, "P19": 5500, "P20": 6000,
+		"P21": 5000, "P22": 6500, "P23": 3500, "P24": 4500, "P25": 8000, "P26": 7000, "P27": 1500, "P28": 30000,
+		"O15": 3500, "O16": 5000, "O17": 6000, "O18": 8000, "O19": 9000, "O20": 6000, "O21": 12000, "O22": 10000,
+		"O23": 9000, "O24": 14000, "O25": 15000, "O26": 4000, "O27": 18000, "O28": 40000, "F07": 2500, "F08": 4000,
+		"F09": 3500, "F10": 1000, "F11": 3000, "F12": 0, "CL01": 1500, "CL02": 3500, "CL03": 4000, "CL04": 4500,
+		"CL05": 3500, "CL06": 4000, "CL07": 5000, "CL08": 4500, "CL09": 6000, "CL10": 5000, "CL11": 5500, "CL12": 5000,
+		"CL13": 5000, "CL14": 6000, "CL15": 4000, "CL16": 8000, "T01": 2000, "T02": 7000, "T03": 6500, "T04": 9000,
+		"T05": 8000, "T06": 6000, "T07": 7500, "T08": 3000, "T09": 6500, "T10": 30000, "T11": 35000, "T12": 6000,
+		"S01": 4000, "S02": 6000, "S03": 4500, "S04": 7000, "S05": 5500, "S06": 5500, "S07": 6000, "S08": 6000, "S09": 6500}
+	for id in cr:
+		check(S.QUESTS.has(id), "%s exists" % id)
+		if S.QUESTS.has(id):
+			var q: Dictionary = S.QUESTS[id]
+			var c := int(q.get("credits", 0))
+			if c == 0 and q.has("choices"):
+				c = int(q.choices[0].get("credits", 0))
+			check(c == int(cr[id]), "%s pays %d (doc), got %d" % [id, cr[id], c])
+	for id in ["O15", "O16", "O17", "O18", "O19", "O20", "O21", "O22", "O23", "O24", "O25", "O26", "O27", "O28", "CL09", "CL10", "CL11", "CL12", "CL13", "CL14", "T04", "T09", "S09", "M13b"]:
+		check(str(S.QUESTS[id].get("money", "")) == "dirty", "%s pays dirty (d)" % id)
+	check(int(S.QUESTS.N11.choices[0].cost) == 8000 and int(S.QUESTS.N12.choices[0].cost) == 5000 and int(S.QUESTS.M09.choices[2].cost) == 20000, "N11 8,000 / N12 5,000 / M09 20,000")
+	check(int(S.QUESTS.M08.step.amount) == 4000 and int(S.QUESTS.F12.step.amount) == 5000, "M08 costs 4,000, F12 5,000")
+	for f in S.ACCORD:
+		check(int(S.QUESTS.P28.faction[f]) == 100, "P28 +100 %s" % f)
+	check(int(S.QUESTS.P28.faction.ashscale_warbands) == -250, "P28 Ashscale -250")
+	for f in S.PACT:
+		check(int(S.QUESTS.O28.faction[f]) == 100, "O28 +100 %s" % f)
+	check(int(S.QUESTS.O28.faction.terran_concord) == -250 and int(S.QUESTS.O28.faction.sunscale_covenant) == -100, "O28 Concord -250, Sunscale -100")
+	for id in S.QUESTS:
+		var q: Dictionary = S.QUESTS[id]
+		if q.has("crew"):
+			check(S.CREW.has(q.crew) and q.giver == "any", "%s: a crew loyalty quest" % id)
+		if q.has("race"):
+			check(S.RACES.has(q.race) and q.has("race_bonus"), "%s: species quest with a bonus" % id)
+		if q.has("part"):
+			check(D.MODULES.has(q.part), "%s part" % id)
+		for w in [q.get("safe_dock", ""), q.get("tributary", "")]:
+			check(w == "" or D.WORLDS.has(w), "%s world %s" % [id, w])
+		for c in q.get("choices", []):
+			for g in c.get("needs", {}):
+				check(D.GOODS.has(g), "%s needs a known good" % id)
+		if q.get("pick", "") is Array:
+			for f in q.pick:
+				check(S.FACTIONS.has(f), "%s pick %s" % [id, f])
+	for cid in S.CREW:
+		check(E._loyalty_quest(cid) != "", "%s has a loyalty quest" % cid)
+
+	# ---- Act I: N03 opens N04 + N09, N04 leads to N10, the Rift Key opens the gates
+	var a = _fresh()
+	a.quests["N01"] = {"state": "done", "progress": 0}
+	a.quests["N02"] = {"state": "done", "progress": 0}
+	a.quests["N03"] = {"state": "active", "progress": 0}
+	a.loc = "scrapyard_gamma"
+	a.auto_complete()
+	check(a.quest_state("N04") == "active" and a.quest_state("N09") == "active", "N03 opens N04 and First Blood")
+	for i in 3:
+		a._scan_passed()
+	a.auto_complete()
+	check(a.quest_state("N10") == "active" and not a.flags.has("act1_done"), "N04 leads to Marrow's Cache, Act I not over")
+	check(not a.sector_open("veil_expanse"), "gates still shut")
+	a.quests["N10"].progress = 1
+	a.auto_complete()
+	check(a.owned.has("eng_3") and a.quest_state("N11") == "active", "N10: a Rift Skimmer, N11 follows")
+	a.loc = "frostline"
+	a.clean = 100
+	a.dirty = 0
+	check(a.can_complete("N11") and a.needs_hand_in("N11"), "N11 is a choice at Frostline")
+	check(not a.choice_block("N11", 0).is_empty() and a.complete("N11", 0).is_empty(), "can't buy the key without 8,000")
+	var h0: float = a.heat_of()
+	check(not a.complete("N11", 1).is_empty(), "steal the key")
+	check(a.flags.has("rift_key") and a.sector_open("veil_expanse") and a.sector_open("ember_drift") and not a.sector_open("hollow_deep"), "the Rift Key opens two gates")
+	check(a.heat_of() >= h0 + 20.0 and a.rep_of("terran_concord") <= 0 and a.bars.outlaw == 1, "stealing: heat, Concord -100, Outlaw +1")
+	check(a.quest_state("N12") == "active" and a.quest_state("M05") == "active", "N12 and M05 follow")
+	a.loc = "cradle_station"
+	check(not a.complete("N12", 1).is_empty() and a.flags.has("kessel_nemesis") and a.flags.has("act1_done"), "burn Kessel's ledger: Act I done, Kessel hunts you")
+	check(not a.can_borrow(), "no more loans from Kessel")
+	# M05: through the gate, dock anywhere in the Veil Expanse
+	a.sector = "veil_expanse"
+	a.loc = "aerie_spire"
+	check(a.can_complete("M05") and not a.choice_block("M05", 2).is_empty(), "M05 done in the Veil; the forged pass needs a crate")
+	a.hidden["forged_ids"] = 1
+	check(a.choice_block("M05", 2).is_empty() and not a.complete("M05", 2).is_empty() and a.qty("forged_ids") == 0, "forged pass handed over")
+	check(a.quest_state("M06") == "active", "M06 follows")
+	var st0: float = a.stat("stealth")
+	a.quests["M06"].progress = 1
+	a.auto_complete()
+	check(a.nodes == 1 and is_equal_approx(a.stat("stealth"), st0 + 0.10), "Blind Node I: +10%% stealth (%.2f -> %.2f)" % [st0, a.stat("stealth")])
+	a.loc = "the_gilded_rock"
+	check(a.complete("M07", -1, "bloom").is_empty(), "M07: only the four patrons")
+	check(not a.complete("M07", -1, "veilbound").is_empty() and a.quest_state("M08") == "active", "M07: Veilbound patron")
+	a.clean = 4000
+	a.auto_complete()
+	check(a.complete("M08").size() >= 0 and a.flags.has("safehouse") and a.clean == 0, "M08: pay 4,000 for a safehouse")
+	var hs = _fresh()
+	hs.heat["accord"] = 50.0
+	hs.loc = "cradle_station"
+	hs.pass_days(1)
+	var cool1: float = 50.0 - hs.heat_of()
+	hs.flags["safehouse"] = true
+	hs.heat["accord"] = 50.0
+	hs.pass_days(1)
+	check(is_equal_approx(50.0 - hs.heat_of(), cool1 * 2.0), "safehouse: heat cools twice as fast")
+	a.loc = "null_point"
+	a.quests["M09"] = {"state": "active", "progress": 0}
+	check(not a.complete("M09", 0).is_empty() and a.nodes == 2 and a.quest_state("M10") == "active", "M09 heist: node II, Vask's Gambit")
+	check(a.flags.has("core_stolen") and not a.ghost_core(), "Vask stole the Ghost Core")
+	var s_lost: int = a.stealth()
+	a.quests["M10"].progress = 1
+	a.loc = "the_cinder_fort"
+	check(not a.complete("M10", 0).is_empty() and a.ghost_core() and a.stealth() == s_lost + D.GHOST_STEALTH, "M10: the Core is back")
+	a.quests["M11"].progress = 1
+	a.auto_complete()
+	check(a.nodes == 3 and a.quest_state("M12") == "active", "three nodes, M12")
+	a.loc = "scrapyard_gamma"
+	a.complete("M12", 2)
+	# M13: the musters (one of three)
+	a.loc = "sunspire_citadel"
+	var m13: Array = a.quest_offers().filter(func(o): return o[0] == "M13a")
+	check(not m13.is_empty() and not m13[0][1].is_empty(), "Muster of Light shows, locked")
+	a.bars.paragon = 50
+	for f in ["terran_concord", "synthesis", "high_aerie"]:
+		a.rep[f] = 600
+	a._invalidate()
+	check(a.quest_block("M13a").is_empty() and a.accept_quest("M13a"), "Muster of Light opens at Paragon 50 + 3 Accord at 50%")
+	a.loc = "the_cinder_fort"
+	check(not a.quest_offers().any(func(o): return o[0] == "M13b"), "one muster only")
+	a.loc = "sunspire_citadel"
+	a.cargo["alloys"] = 8
+	check(a.pick_options("M13a").size() == 3 and a.pick_count("M13a") == 3, "pick among the Accord factions at 50%")
+	check(a.complete("M13a", -1, "terran_concord,synthesis").is_empty(), "three must be picked")
+	check(not a.complete("M13a", -1, "terran_concord,synthesis,high_aerie").is_empty() and a.rep.synthesis == 700, "M13a: +100 to the three")
+	check(a.sector_open("hollow_deep") and a.quest_state("M14") == "active", "the Hollow Deep opens, M14")
+	a.quests["M14"].progress = 1
+	a.auto_complete()
+	check(a.quest_state("M15") == "active", "M15")
+	a.quests["M15"].progress = 1
+	a.loc = "the_ledger_core"
+	a.sector = "hollow_deep"
+	check(a.needs_hand_in("M15") and not a.choice_block("M15", 0).is_empty() and not a.choice_block("M15", 1).is_empty(), "Unify and Rule need 100 on a bar")
+	check(not a.choice_block("M15", 2).is_empty(), "The Ghost needs Pip, Halcyon and Quill")
+	for cid in S.GHOST_CREW:
+		a.quests[cid] = {"state": "done", "progress": 0}
+	check(a.choice_block("M15", 2).is_empty(), "The Ghost opens")
+	check(not a.complete("M15", 2).is_empty() and a.ending == "ghost" and a.pending_story.has("ending_ghost") and a.stats.endings == 1, "ending: The Ghost")
+	var u = _fresh()
+	u.bars.paragon = 100
+	for f in ["terran_concord", "synthesis", "high_aerie", "verdant_canopy"]:
+		u.rep[f] = 750
+	check(u.ending_block("unify").is_empty() and not u.ending_block("rule").is_empty() and not u.ending_block("ghost").is_empty(), "Unify the Spiral: Paragon 100 + 4 Accord at 75%")
+
+	# ---- tours, loyalty, species, the odd rewards
+	var t = _fresh()
+	t.rep["high_aerie"] = 300
+	t.loc = "aerie_spire"
+	t.sector = "veil_expanse"
+	check(t.accept_quest("P17"), "accept Wind Courier")
+	for w in ["sunspire_citadel", "abyssal_reef", "chorus_nebula"]:
+		t._quest_arrival(w)
+		t.encounter = {}
+	t.loc = "chorus_nebula"
+	check(not t.can_complete("P17") and t.quest_progress("P17") == [3, 4], "three of four nests")
+	t._quest_arrival("aerie_spire")
+	t.loc = "aerie_spire"
+	t.auto_complete()
+	check(t.quest_state("P17") == "done", "Wind Courier done")
+	var l = _fresh()
+	l.crew = [{"id": "C04", "loyalty": 60}]
+	l._invalidate()
+	check(not l.quest_offers().any(func(o): return o[0] == "CL04"), "no loyalty quest before three quests together")
+	l.crew[0]["q"] = 3
+	check(l.quest_offers().any(func(o): return o[0] == "CL04" and o[1].is_empty()), "Wingmates offered at any dock")
+	var before := 0.0
+	for p in l.perk_list():
+		if p[0] == S.CREW.C04.personal:
+			before = float(p[1])
+	l.accept_quest("CL04")
+	l.quests["CL04"].progress = 1
+	l.auto_complete()
+	var after := 0.0
+	var quirk := 0.0
+	for p in l.perk_list():
+		if p[0] == S.CREW.C04.personal:
+			after = float(p[1])
+		if p[0] == S.CREW.C04.quirk and p[2] == "C04":
+			quirk = float(p[1])
+	check(before == 1.0 and after == 1.5 and quirk == 0.25 and l.crew_rank("C04") == 2, "Rank II: perk x1.5, quirk 25%")
+	check(int(l.crew[0].loyalty) >= 85, "loyalty +25")
+	var sp = _fresh(1, {"race": "terran", "picks": ["G02", "G03"]})
+	sp.accept_quest("S01")
+	sp.loc = "frostline"
+	var c0: int = sp.clean
+	sp.complete("S01", 0)
+	var want := int(round(4600 * (1.0 + sp.stat("mission_credits"))))
+	check(sp.clean - c0 == want, "Terran: +15%% on Family Business, then the mission perks (%d, want %d)" % [sp.clean - c0, want])
+	var sy = _fresh(1, {"race": "synthari"})
+	sy.loc = "halcyon_core"
+	sy.accept_quest("S02")
+	check(sy.can_complete("S02"), "Synthari skip Mirror Mind's trap")
+	sy.auto_complete()
+	check(sy.owned.has("spc_nanites"), "and get Repair Nanites")
+	var nx = _fresh(1, {"race": "noctari"})
+	nx.loc = "drift_market"
+	nx.accept_quest("S09")
+	check(nx.qty("forged_ids") == 2 and nx.can_complete("S09"), "Noctari: the forged IDs are free")
+	var fz = _fresh()
+	fz.rep["terran_concord"] = -150
+	fz.heat["accord"] = 70.0
+	fz.loc = "port_vermillion"
+	check(fz.quest_block("F12").is_empty() and fz.accept_quest("F12"), "Clean Slate only below Concord -10%")
+	fz.clean = 5000
+	fz.auto_complete()
+	fz.complete("F12")
+	check(fz.heat_of() == 0.0 and fz.rep_of("terran_concord") == -50 and fz.clean == 0, "F12: 5,000, heat 0, Concord +100")
+	var sd = _fresh()
+	sd.flags["safe_dock"] = "frostline"
+	check(not sd.scans_here("frostline") and sd.scans_here("cradle_station"), "P27: Frostline never scans you")
+	var tb = _fresh()
+	tb.tributaries = ["sunken_orbital"]
+	var d0: int = tb.dirty
+	tb.pass_days(2)
+	check(tb.dirty - d0 == 2 * S.TRIBUTE_PER_DAY, "O25: tribute every day")
+	var fr = _fresh()
+	fr.ship = "runner"
+	fr.flags["free_refit"] = true
+	fr.clean = 0
+	check(fr.refit_price() == 0 and fr.refit() and fr.tier == 2 and not fr.flags.has("free_refit"), "T01: one free refit")
+	check(fr.refit_price() > 0, "only one")
+	var bn = _fresh()
+	bn.crew = [{"id": "C02", "loyalty": 15}]
+	bn.heat["accord"] = 100.0
+	bn.cargo["food"] = 4
+	bn.pass_days(1)
+	check(bn.flags.has("burned") and bn.crew.is_empty() and bn.pending_story.has("burned") and bn.cargo.is_empty(), "Burned: the crew sells you out")
+	# an old v2 save (gates opened by N04 then) keeps its gates and moves on to N12 / M05
+	var old = _fresh()
+	for id in ["N01", "N02", "N03", "N04"]:
+		old.quests[id] = {"state": "done", "progress": 0}
+	old.flags["act1_done"] = true
+	var d: Dictionary = old.to_dict()
+	d.erase("nodes")
+	var mg = E.new()
+	check(mg.from_dict(d), "old v2 save loads")
+	check(mg.flags.has("rift_key") and mg.sector_open("veil_expanse") and mg.quest_state("M05") == "active" and mg.quest_state("N12") == "active" and mg.quest_state("N09") == "active", "old save: gates stay open, N09 / N12 / M05 start")
+
+	# ---- the bosses can be beaten with the ship you'd have by then (the sim's autopilot, 10 seeds)
+	check(_win_rate(1, 1, "vault_guard") >= 0.7, "M06's vault drones: a Skiff with stock parts")
+	check(_win_rate(2, 2, "vask_flagship") >= 0.5, "M10 Queen Vask: a Courier with mid parts")
+	check(_win_rate(3, 2, "hollow_drones") >= 0.7, "M14 sentinels: a Corvette")
+	check(_win_rate(3, 3, "auditor") >= 0.5, "M15 AUDITOR: a Corvette with the best parts")
+	check(_win_rate(1, 1, "auditor") == 0.0, "AUDITOR is no pushover")
+
+	# ---- every quest can be taken (where it is offered) and handed in
+	for id in S.QUEST_ORDER:
+		_drive_quest(id)
+
+func _win_rate(tier: int, lv: int, enemy: String, n: int = 10) -> float:
+	var wins := 0
+	for s in n:
+		var e = _fresh(100 + s)
+		e.ship = "runner"
+		e.tier = tier
+		e.modules.weapons = "wpn_%d" % lv
+		e.modules.shields = "shd_%d" % lv
+		e.modules.engine = "eng_%d" % lv
+		e.hull = e.max_hull()
+		e._open_battle(enemy, "test")
+		if _fight(e, s) in ["won", "boarded"]:
+			wins += 1
+	return float(wins) / n
+
+func _drive_quest(id: String) -> void:
+	var q: Dictionary = S.QUESTS[id]
+	var e = _fresh(11, {"race": str(q.get("race", "terran")) if S.RACES.get(str(q.get("race", "")), {}).get("playable", false) else "terran"})
+	e.clean = 200000
+	e.flags["rift_key"] = true
+	e.flags["act3"] = true
+	var pre: Dictionary = q.get("prereq", {})
+	for d in pre.get("done", []):
+		e.quests[str(d)] = {"state": "done", "progress": 0}
+	for b in pre.get("bar_min", {}):
+		e.bars[b] = int(pre.bar_min[b])
+	for f in pre.get("rep_min", {}):
+		e.rep[f] = int(pre.rep_min[f])
+	for f in pre.get("rep_max", {}):
+		e.rep[f] = int(pre.rep_max[f]) - 10
+	if pre.has("bloc_rep"):
+		for f in (S.ACCORD if pre.bloc_rep.bloc == "paragon" else S.PACT):
+			e.rep[f] = maxi(e.rep_of(f), int(pre.bloc_rep.fp))
+	e.nodes = int(pre.get("nodes", 0))
+	if pre.has("aboard"):
+		e.crew.append({"id": str(pre.aboard), "loyalty": 60})
+	if q.has("crew"):
+		e.crew.append({"id": str(q.crew), "loyalty": 60, "q": S.LOYAL_QUESTS})
+	var gf: String = e.quest_faction(id)
+	if gf != "" and gf != "none" and not pre.has("rep_max"):
+		e.rep[gf] = maxi(e.rep_of(gf), S.REP_QUESTS)
+	e._invalidate()
+	e.loc = "cradle_station" if str(q.giver) == "any" else str(q.giver)
+	e.sector = e.sector_of(e.loc)
+	if q.kind == "main" and not q.get("board", false):
+		e.quests[id] = {"state": "active", "progress": 0}
+		if q.has("on_accept"):
+			e.flags[str(q.on_accept)] = true
+	else:
+		check(e.quest_offers().any(func(o): return o[0] == id), "%s offered at %s" % [id, e.loc])
+		check(e.quest_block(id).is_empty(), "%s can be taken: %s" % [id, str(e.quest_block(id))])
+		check(e.accept_quest(id), "%s accepted" % id)
+	if e.quest_state(id) != "active":
+		return
+	var st: Dictionary = q.step
+	match str(st.type):
+		"deliver":
+			e.loc = str(st.to)
+			e.cargo[st.good] = int(e.cargo.get(st.good, 0)) + int(st.qty)
+		"reach":
+			e.loc = str(st.to)
+		"jump":
+			e.sector = str(st.to)
+			e.loc = e.worlds_in(e.sector)[0]
+		"tour":
+			e.quests[id]["visited"] = Array(st.to).duplicate()
+			e.loc = str(st.to[-1])
+		"battle":
+			e.quests[id].progress = 1
+			e.loc = str(st.to)
+		"scans", "fights", "salvage":
+			e.quests[id].progress = int(st.n)
+		"pay":
+			e.debt = 0
+		"crew":
+			e.crew.append({"id": "C01", "loyalty": 60})
+	e.sector = e.sector_of(e.loc)
+	var choice := -1
+	if q.get("endings", false):
+		e.bars.paragon = 100
+		for f in S.ACCORD:
+			e.rep[f] = 800
+		choice = 0
+	elif q.has("choices"):
+		choice = 0
+		for g in q.choices[0].get("needs", {}):
+			e.cargo[g] = int(q.choices[0].needs[g])
+	var picks := ""
+	if q.has("pick"):
+		picks = ",".join(e.pick_options(id).slice(0, e.pick_count(id)))
+	check(e.can_complete(id), "%s can be handed in (%s)" % [id, st.type])
+	var lines: Array = e.complete(id, choice, picks)
+	check(e.quest_state(id) == "done" and not lines.is_empty(), "%s handed in" % id)
+	for line in lines:
+		_check_msg(line, "%s reward line" % id)
 
 func _test_crew() -> void:
 	var e = _fresh(1, {"race": "synthari"})

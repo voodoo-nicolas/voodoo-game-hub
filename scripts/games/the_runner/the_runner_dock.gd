@@ -16,6 +16,7 @@ var page := ""                  # "" = the dock, else market / shipyard / fixer 
 var _qty := 1                   # market: units per tap (1 / 5 / max)
 var _note := ""                 # one line of feedback on a page (translated)
 var _quest := ""                # handin page: which quest
+var _picks := []                # handin page: factions picked so far (a quest that picks several)
 
 func _ready() -> void:
 	rebuild()
@@ -201,7 +202,13 @@ static func reward_text(q: Dictionary) -> String:
 	for f in fd:
 		bits.append("%s %s%d" % [UI.faction_name(f), "+" if int(fd[f]) > 0 else "", int(fd[f])])
 	if q.has("pick"):
-		bits.append(UI.tr_s("+%d rep with a faction you pick") % int(q.pick_fp))
+		var n := int(q.get("pick_n", 1))
+		if int(q.pick_fp) < 0:
+			bits.append(UI.tr_s("%d rep with a faction you pick") % int(q.pick_fp))
+		elif n > 1:
+			bits.append(UI.tr_s("+%d rep with %d factions you pick") % [int(q.pick_fp), n])
+		else:
+			bits.append(UI.tr_s("+%d rep with a faction you pick") % int(q.pick_fp))
 	var b: Dictionary = q.get("bars", {})
 	if int(b.get("paragon", 0)) > 0:
 		bits.append(UI.tr_s("Paragon +%d") % int(b.paragon))
@@ -211,8 +218,45 @@ static func reward_text(q: Dictionary) -> String:
 		bits.append(UI.tr_s("%s can join you") % UI.tr_s(S.CREW[q.recruit].name))
 	if q.has("ship"):
 		bits.append(UI.tr_s("a ship"))
+	if int(q.get("node", 0)) > 0:
+		bits.append(UI.tr_s("a Blind Node"))
+	if q.has("part"):
+		bits.append(UI.tr_s(D.MODULES[q.part].name))
+	if int(q.get("loot", 0)) > 0:
+		bits.append(UI.tr_s("a random crate or two"))
+	if q.has("paint"):
+		bits.append(UI.tr_s("a paint job"))
+	if q.has("safe_dock"):
+		bits.append(UI.tr_s("a safe dock"))
+	if q.has("tributary"):
+		bits.append(UI.tr_s("daily tribute"))
+	if q.get("heat_reset", false):
+		bits.append(UI.tr_s("heat to zero"))
+	if q.get("free_refit", false):
+		bits.append(UI.tr_s("a free hull refit"))
+	if q.has("unlock") and str(q.unlock) == "safehouse":
+		bits.append(UI.tr_s("a safehouse"))
+	if q.has("crew"):
+		bits.append(UI.tr_s("%s's perk to Rank II") % UI.tr_s(S.CREW[q.crew].name))
+	if q.has("cost"):
+		bits.append(UI.tr_s("costs %s") % UI.num(int(q.cost)))
+	if q.has("needs"):
+		for g in q.needs:
+			bits.append(UI.tr_s("takes %d x %s") % [int(q.needs[g]), UI.good_name(g)])
+	if q.has("heat"):
+		bits.append(UI.tr_s("+%d heat") % int(q.heat))
+	if q.has("flag") and str(q.flag) == "kessel_nemesis":
+		bits.append(UI.tr_s("Kessel hunts you"))
+	if q.get("crew_leaves", false):
+		bits.append(UI.tr_s("they leave for a while"))
 	if q.has("choices"):
 		bits.append(UI.tr_s("a choice at the end"))
+	if q.get("endings", false):
+		bits.append(UI.tr_s("the ending"))
+	if q.has("race_bonus"):
+		bits.append(UI.tr_s("%s bonus: %s") % [UI.race_name(q.race), UI.tr_s(q.race_bonus.text)])
+	if bits.is_empty():
+		bits.append(UI.tr_s("nothing but the story"))
 	return UI.tr_s("Reward: %s") % ", ".join(bits)
 
 static func quest_title(id: String) -> String:
@@ -222,13 +266,14 @@ static func quest_title(id: String) -> String:
 		t += " (" + UI.tr_s(q.sub) + ")"
 	return t
 
-const KIND_ICON := {"main": "★", "neutral": "◇", "crew": "🧑‍🚀", "paragon": "☀", "outlaw": "☾", "favor": "✉"}
+const KIND_ICON := {"main": "★", "neutral": "◇", "crew": "🧑‍🚀", "paragon": "☀", "outlaw": "☾", "favor": "✉",
+	"loyalty": "♥", "location": "📍", "species": "🧬"}
 
 func _jobs() -> void:
 	var e = _e()
 	var box := _column(0.0, 1.0)
 	_page_head(box, "❗ " + UI.tr_s("Job board"))
-	box.add_child(UI.label(UI.tr_s("Quests change only the factions they list. ☀ Paragon, ☾ Outlaw, ✉ a favour, 🧑‍🚀 someone who could join your crew. Active quests: %d of %d.") % [e.side_active(), e.quest_slots()], 16, UI.c("dim"), true))
+	box.add_child(UI.label(UI.tr_s("Quests change only the factions they list. ☀ Paragon, ☾ Outlaw, ✉ a favour, 🧑‍🚀 someone who could join your crew, ♥ a crew member's own quest, 📍 this planet's story, 🧬 a species quest. Active quests: %d of %d.") % [e.side_active(), e.quest_slots()], 16, UI.c("dim"), true))
 	for j in e.quest_offers():
 		var id: String = j[0]
 		var q: Dictionary = S.QUESTS[id]
@@ -260,34 +305,66 @@ func _accept(id: String) -> void:
 
 func _handin_open(id: String) -> void:
 	_quest = id
+	_picks = []
 	open("handin")
 
 func _handin() -> void:
 	var e = _e()
 	var q: Dictionary = S.QUESTS[_quest]
-	var box := _column(0.15, 0.85, true)
+	# short hand-ins hug their content; long ones (endings, three choices, picks) scroll
+	var long: bool = q.get("endings", false) or q.has("pick") or Array(q.get("choices", [])).size() > 2
+	var box := _column(0.15, 0.85, not long)
 	_page_head(box, quest_title(_quest))
 	box.add_child(UI.label(UI.tr_s(q.brief), 18, UI.c("text"), true))
 	if not e.can_complete(_quest):
 		box.add_child(UI.label(UI.tr_s("Not ready to hand in."), 18, UI.c("warn")))
 		return
-	if q.has("choices"):
+	if q.get("endings", false):
+		box.add_child(UI.label(UI.tr_s("How does it end?"), 20, UI.c("accent")))
+		for i in S.ENDING_ORDER.size():
+			var en: Dictionary = S.ENDINGS[S.ENDING_ORDER[i]]
+			var b := UI.button(UI.tr_s(en.title), _complete.bind(i, ""), UI.c("go"), 20, 52, true)
+			var blk: Dictionary = e.choice_block(_quest, i)
+			b.disabled = not blk.is_empty()
+			box.add_child(b)
+			box.add_child(UI.label(UI.tr_s(en.req) if blk.is_empty() else "🔒 " + UI.msg(blk), 15, UI.c("clean") if blk.is_empty() else UI.c("warn"), true))
+		box.add_child(UI.label(UI.tr_s("No ending open yet? The battle is won: come back to the Ledger Core when you're ready."), 15, UI.c("dim"), true))
+	elif q.has("choices"):
 		box.add_child(UI.label(UI.tr_s("Decide:"), 20, UI.c("accent")))
 		for i in q.choices.size():
 			var c: Dictionary = q.choices[i]
 			var b := UI.button(UI.tr_s(c.label), _complete.bind(i, ""), UI.c("go"), 20, 52, true)
+			var blk: Dictionary = e.choice_block(_quest, i)
+			b.disabled = not blk.is_empty()
 			box.add_child(b)
-			box.add_child(UI.label(reward_text(c).trim_prefix(UI.tr_s("Reward: %s") % ""), 15, UI.c("clean"), true))
+			var rt := reward_text(c).trim_prefix(UI.tr_s("Reward: %s") % "")
+			box.add_child(UI.label(rt if blk.is_empty() else "🔒 " + UI.msg(blk), 15, UI.c("clean") if blk.is_empty() else UI.c("warn"), true))
 	elif q.has("pick"):
-		box.add_child(UI.label(UI.tr_s("Which faction gets the credit?"), 20, UI.c("accent")))
+		var need: int = e.pick_count(_quest)
+		box.add_child(UI.label(UI.tr_s("Which faction gets the credit?") if need <= 1 else UI.tr_s("Pick %d factions") % need + "  (%d/%d)" % [_picks.size(), need], 20, UI.c("accent")))
 		var flow := HFlowContainer.new()
 		flow.add_theme_constant_override("h_separation", 8)
 		flow.add_theme_constant_override("v_separation", 8)
 		for f in e.pick_options(_quest):
-			flow.add_child(UI.button("%s (%d%%)" % [UI.faction_name(f), e.rep_pct(f)], _complete.bind(-1, f), UI.c("accent"), 17, 46))
+			var on: bool = _picks.has(f)
+			var cb := _complete.bind(-1, f) if need <= 1 else _toggle_pick.bind(f)
+			flow.add_child(UI.button(("✔ " if on else "") + "%s (%d%%)" % [UI.faction_name(f), e.rep_pct(f)], cb, UI.c("go") if on else UI.c("accent"), 17, 46))
 		box.add_child(flow)
+		if need > 1:
+			var ok := UI.button(UI.tr_s("Hand it over"), _complete.bind(-1, ",".join(_picks)), UI.c("go"), 22, 54)
+			ok.disabled = _picks.size() != need
+			box.add_child(ok)
+		elif need == 0:
+			box.add_child(UI.button(UI.tr_s("Hand it over"), _complete.bind(-1, ""), UI.c("go"), 22, 54))
 	else:
 		box.add_child(UI.button(UI.tr_s("Hand it over"), _complete.bind(-1, ""), UI.c("go"), 22, 54))
+
+func _toggle_pick(f: String) -> void:
+	if _picks.has(f):
+		_picks.erase(f)
+	elif _picks.size() < _e().pick_count(_quest):
+		_picks.append(f)
+	rebuild()
 
 func _complete(choice: int, pick: String) -> void:
 	var lines: Array = _e().complete(_quest, choice, pick)
@@ -323,11 +400,9 @@ static func crew_card(box: VBoxContainer, e, cid: String, hire: bool, owner: Obj
 	var col := UI.vbox(3)
 	p.add_child(col)
 	var row := UI.hbox(10)
-	var em := ColorRect.new()
-	em.color = Color(S.RACES[c.race].color)
-	em.custom_minimum_size = Vector2(22, 22)
-	em.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(em)
+	var pic := UI.portrait(UI.crew_portrait_id(cid), 64)
+	pic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(pic)
 	var align: String = {"paragon": "☀ " + UI.tr_s("Paragon"), "outlaw": "☾ " + UI.tr_s("Outlaw"), "neutral": UI.tr_s("Neutral")}[c.align]
 	var tl := UI.label("%s · %s · %s · %s" % [UI.tr_s(c.name), UI.tr_s(c.role), UI.race_name(c.race), align], 19, UI.c("accent"), true)
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -340,11 +415,15 @@ static func crew_card(box: VBoxContainer, e, cid: String, hire: bool, owner: Obj
 	else:
 		row.add_child(UI.button(UI.tr_s("Let go"), owner._dismiss.bind(cid), UI.c("bad"), 16, 38))
 	col.add_child(row)
-	col.add_child(UI.label("✚ %s · ✚ %s · ✖ %s (%d%%)" % [UI.perk_name(c.racial), UI.perk_name(c.personal), UI.perk_name(c.quirk), int(D.CONFIG.crew_flaw_strength * 100)], 15, UI.c("text"), true))
+	var r2: bool = e.crew_rank(cid) >= 2
+	var quirk := int(round((S.RANK2_QUIRK if r2 else float(D.CONFIG.crew_flaw_strength)) * 100))
+	col.add_child(UI.label("✚ %s · ✚ %s%s · ✖ %s (%d%%)" % [UI.perk_name(c.racial), UI.perk_name(c.personal), " (" + UI.tr_s("Rank II") + ")" if r2 else "", UI.perk_name(c.quirk), quirk], 15, UI.c("text"), true))
 	var m: Dictionary = e.crew_member(cid)
 	var line := UI.tr_s("Wage %s a day") % UI.num(e.crew_wage(cid))
 	if not m.is_empty():
 		line += " · " + UI.tr_s("loyalty %d") % int(m.loyalty)
+		if not r2:
+			line += " · " + UI.tr_s("quests together %d/%d") % [mini(e.crew_quests(cid), S.LOYAL_QUESTS), S.LOYAL_QUESTS]
 		if e.clash(cid):
 			line += " · " + UI.tr_s("ideology clash")
 	col.add_child(UI.label(line, 15, UI.c("dim")))

@@ -295,7 +295,14 @@ func _goal_worlds() -> Array:
 	var out := []
 	for id in engine.active_quests():
 		var st: Dictionary = engine.S.QUESTS[id].step
-		if st.has("to"):
+		if st.type == "tour":
+			var seen: Array = engine.quests[id].get("visited", [])
+			for w in st.to:
+				if not seen.has(w):
+					out.append(w)
+		elif st.type == "jump":
+			pass   # a sector, not a world: the gate shows the way
+		elif st.has("to"):
 			out.append(st.to)
 		elif st.has("at"):
 			out.append(st.at)

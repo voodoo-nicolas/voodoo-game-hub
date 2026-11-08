@@ -205,6 +205,42 @@ static func race_name(r: String) -> String:
 static func sector_name(s: String) -> String:
 	return tr_s(D.SECTORS[s].name)
 
+# ---------------------------------------------------------------- portraits (owner's race art, 2026-11-08)
+
+## The race portrait's art id. Ssaryn: Sunscale gold or Ashscale ember, by home faction; Verdanti:
+## the second picture for a woman.
+static func portrait_id(race: String, home: String = "", gender: String = "") -> String:
+	match race:
+		"ssaryn": return "race_ashscale" if home == "ashscale_warbands" else "race_sunscale"
+		"verdanti": return "race_verdanti_2" if gender == "Female" else "race_verdanti"
+	return "race_" + race
+
+static func captain_portrait_id(cap: Dictionary) -> String:
+	return portrait_id(str(cap.get("race", "terran")), str(cap.get("home", "")), str(cap.get("gender", "")))
+
+## A crew member's portrait: their race's (Vorga flies for the Ashscale).
+static func crew_portrait_id(cid: String) -> String:
+	var c: Dictionary = S.CREW[cid]
+	return portrait_id(str(c.race), "ashscale_warbands" if cid == "C10" else "")
+
+## A portrait: the middle of the painting (the face), `h` pixels tall. `wide`: the whole painting.
+static func portrait(id: String, h: float, wide: bool = false) -> TextureRect:
+	var t := TextureRect.new()
+	var tex := art(id)
+	if tex != null and not wide:
+		var sz := tex.get_size()
+		var w := sz.y * 0.8
+		var at := AtlasTexture.new()
+		at.atlas = tex
+		at.region = Rect2((sz.x - w) * 0.5, 0, w, sz.y)
+		tex = at
+	t.texture = tex
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	t.custom_minimum_size = Vector2(h * (1.83 if wide else 0.8), h)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
+
 ## A labelled bar: "title  [=====   ]  v/max".
 static func meter(title: String, v: float, mx: float, col: Color, width_title: float = 150.0, text: String = "") -> HBoxContainer:
 	var h := hbox(10)

@@ -552,7 +552,7 @@ func _after_missions(done: Array) -> void:
 				info.add("Debt paid")
 			elif id == "N03":
 				info.add("Runner")
-			elif id == "N04":
+			elif id == "N12":
 				info.add("Act I")
 	if engine.flags.has("act1_done") and not _won_reported and info:
 		_won_reported = true
@@ -935,6 +935,7 @@ func _report_stats() -> void:
 	info.high("Highest Paragon", int(engine.bars.paragon))
 	info.high("Highest Outlaw", int(engine.bars.outlaw))
 	info.high("Most crew aboard", engine.crew.size())
+	info.high("Most endings reached", int(engine.stats.get("endings", 0)))
 	var best_rep := 0
 	for f in S.FACTION_ORDER:
 		best_rep = maxi(best_rep, engine.rep_pct(f))

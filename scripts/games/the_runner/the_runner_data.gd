@@ -37,22 +37,22 @@ const POLICE := ["accord"]
 
 ## Sectors (design doc v2 §9). Each is one of the owner's orbit pictures; planets sit on the
 ## picture's own planets (positions in that picture's pixels). "gate": the jump point to the other
-## sectors. "unlock": the flag that opens the sector ("" = open from the start). Hollow Deep (Act III)
-## is listed but locked: not built yet.
+## sectors. "unlock": the flag that opens the sector ("" = open from the start). The Rift Key (quest
+## N11) opens the Veil Expanse and the Ember Drift; the Hollow Deep opens with the muster (M13, "act3").
 const SECTORS := {
 	"cradle_reach": {"name": "Cradle Reach", "map": "system_1", "size": [1365, 768], "gate": [1261, 400],
 		"unlock": "", "hazards": [
 			{"id": "sun", "name": "Cradle Sun", "pos": [684, 380], "r": 112, "kind": "sun"},
 			{"id": "maw", "name": "The Maw", "pos": [930, 393], "r": 34, "kind": "black_hole"}]},
 	"veil_expanse": {"name": "Veil Expanse", "map": "system_2", "size": [1408, 768], "gate": [95, 690],
-		"unlock": "act1_done", "hazards": [
+		"unlock": "rift_key", "hazards": [
 			{"id": "pale_star", "name": "The Pale Star", "pos": [703, 368], "r": 100, "kind": "sun"}]},
 	"ember_drift": {"name": "Ember Drift", "map": "system_3", "size": [1408, 768], "gate": [95, 690],
-		"unlock": "act1_done", "hazards": [
+		"unlock": "rift_key", "hazards": [
 			{"id": "white_star", "name": "Ember Star", "pos": [703, 368], "r": 68, "kind": "sun"}]},
 	"hollow_deep": {"name": "Hollow Deep", "map": "system_blackhole", "size": [1408, 792], "gate": [100, 700],
-		"unlock": "act3", "hazards": [],
-		"planned": ["Hollow Gate Alpha", "Architect Ruins", "The Ledger Core"]},
+		"unlock": "act3", "hazards": [
+			{"id": "abyss", "name": "The Abyss", "pos": [745, 365], "r": 80, "kind": "black_hole"}]},
 }
 const SECTOR_ORDER := ["cradle_reach", "veil_expanse", "ember_drift", "hollow_deep"]
 
@@ -159,11 +159,25 @@ const WORLDS := {
 		"faction": "ashscale_warbands", "law": 2, "black": true, "blind": false, "pos": [1015, 270], "r": 55,
 		"view": "world_rocky", "dock": "port_dock", "services": ["market", "fixer", "fuel", "office"],
 		"makes": {"ore": 0.5, "alloys": 0.8}, "wants": {"food": 1.45, "water": 1.4, "medicine": 1.35, "forged_ids": 1.3}},
+	# ---- Sector 4: Hollow Deep (Act III, opens with the muster)
+	"hollow_gate_alpha": {"name": "Hollow Gate Alpha", "sector": "hollow_deep",
+		"desc": "An Architect gate older than the Spiral's memory, ringed by a ghost-runner camp.",
+		"faction": "none", "law": 0, "black": true, "blind": true, "pos": [312, 577], "r": 30,
+		"view": "sky_dragon", "dock": "port_dock", "services": ["market", "fuel", "shipyard"],
+		"makes": {"relics": 0.7}, "wants": {"food": 1.6, "water": 1.5, "medicine": 1.6, "alloys": 1.3}},
+	"architect_ruins": {"name": "Architect Ruins", "sector": "hollow_deep",
+		"desc": "A dead world of machines that are not quite dead.",
+		"faction": "none", "law": 0, "black": false, "blind": true, "pos": [1098, 529], "r": 24,
+		"view": "sky_ridge", "dock": "port_dock", "services": ["salvage", "fuel"], "makes": {}, "wants": {}},
+	"the_ledger_core": {"name": "The Ledger Core", "sector": "hollow_deep",
+		"desc": "The Ledger's heart, at the lip of the Abyss. Every trade in the Spiral passes through here.",
+		"faction": "none", "law": 0, "black": false, "blind": false, "pos": [955, 298], "r": 16,
+		"view": "hazard_blackholes", "dock": "port_moon", "services": ["fuel"], "makes": {}, "wants": {}},
 }
 const WORLD_ORDER := ["cradle_station", "scrapyard_gamma", "frostline", "port_vermillion", "brass_garden",
 	"aerie_spire", "chorus_nebula", "abyssal_reef", "sunken_orbital", "halcyon_core", "sunspire_citadel",
 	"drift_market", "bloomfall", "wreck_of_the_starlight", "meridian_station", "the_gilded_rock", "null_point",
-	"brimstone_reach", "the_cinder_fort"]
+	"brimstone_reach", "the_cinder_fort", "hollow_gate_alpha", "architect_ruins", "the_ledger_core"]
 const START_WORLD := "cradle_station"
 const HUB_WORLD := "cradle_station"   # Kessel's collector, the tow and the safety net
 
@@ -316,6 +330,45 @@ const ENEMIES := {
 		"acc": 0.65, "eva": 0.10, "speed": 150, "loot": [3000, 6000], "sprite": "space/enemy_red_4"},
 	"accord_armada": {"name": "Accord battle line", "faction": "terran_concord", "ships": 3, "hull": 110, "shield": 25, "guns": 2, "dmg": 6,
 		"acc": 0.65, "eva": 0.05, "speed": 120, "loot": [4000, 8000], "sprite": "space/enemy_blue_1"},
+	# ---- Quest Expansion v2.2
+	"vend_drones": {"name": "Vending drones", "faction": "none", "ships": 3, "hull": 20, "shield": 0, "guns": 1, "dmg": 4,
+		"acc": 0.55, "eva": 0.20, "speed": 160, "loot": [100, 300], "sprite": "space/ufo_yellow"},
+	"vault_guard": {"name": "Architect drones", "faction": "none", "ships": 2, "hull": 50, "shield": 10, "guns": 1, "dmg": 5,
+		"acc": 0.62, "eva": 0.12, "speed": 150, "loot": [800, 1500], "sprite": "space/ufo_blue"},
+	"vask_flagship": {"name": "Queen Vask's flagship", "faction": "ashscale_warbands", "ships": 1, "hull": 300, "shield": 40, "guns": 4, "dmg": 6,
+		"acc": 0.68, "eva": 0.05, "speed": 110, "loot": [4000, 8000], "sprite": "space/enemy_red_5"},
+	"oath_wardens": {"name": "Oath wardens", "faction": "hunt_guilds", "ships": 3, "hull": 80, "shield": 20, "guns": 2, "dmg": 5,
+		"acc": 0.70, "eva": 0.15, "speed": 160, "loot": [0, 0], "sprite": "space/enemy_green_5", "lethal": false},
+	"hollow_drones": {"name": "Hollow sentinels", "faction": "none", "ships": 4, "hull": 70, "shield": 25, "guns": 2, "dmg": 6,
+		"acc": 0.65, "eva": 0.15, "speed": 160, "loot": [3000, 6000], "sprite": "space/ufo_red"},
+	"auditor": {"name": "AUDITOR and Vane's flagship", "faction": "none", "ships": 2, "hull": 340, "shield": 60, "guns": 4, "dmg": 7,
+		"acc": 0.70, "eva": 0.05, "speed": 110, "loot": [10000, 20000], "sprite": "space/ufo_green"},
+	"spore_raiders": {"name": "Spore raiders", "faction": "bloom", "ships": 2, "hull": 50, "shield": 5, "guns": 1, "dmg": 6,
+		"acc": 0.65, "eva": 0.10, "speed": 150, "loot": [400, 900], "sprite": "space/enemy_green_3", "board": true},
+	"syndicate_guard": {"name": "Syndicate guns", "faction": "black_meridian", "ships": 2, "hull": 60, "shield": 10, "guns": 2, "dmg": 5,
+		"acc": 0.65, "eva": 0.15, "speed": 150, "loot": [600, 1400], "sprite": "space/enemy_black_2", "board": true},
+	"warband_trial": {"name": "Warband trial", "faction": "ashscale_warbands", "ships": 2, "hull": 70, "shield": 10, "guns": 2, "dmg": 5,
+		"acc": 0.65, "eva": 0.10, "speed": 150, "loot": [0, 0], "sprite": "space/enemy_red_3", "lethal": false},
+	"aerie_convoy": {"name": "Aerie convoy", "faction": "high_aerie", "ships": 2, "hull": 90, "shield": 20, "guns": 1, "dmg": 5,
+		"acc": 0.60, "eva": 0.20, "speed": 170, "loot": [2000, 4000], "sprite": "space/enemy_blue_2", "board": true},
+	"station_guard": {"name": "Station guard", "faction": "terran_concord", "ships": 3, "hull": 90, "shield": 20, "guns": 2, "dmg": 6,
+		"acc": 0.65, "eva": 0.05, "speed": 120, "loot": [2000, 4000], "sprite": "space/enemy_blue_1"},
+	"casino_guard": {"name": "Vault guard", "faction": "veilbound", "ships": 2, "hull": 90, "shield": 20, "guns": 2, "dmg": 6,
+		"acc": 0.65, "eva": 0.20, "speed": 160, "loot": [2000, 5000], "sprite": "space/enemy_black_4"},
+	"cage_ship": {"name": "Ashscale cage-ship", "faction": "ashscale_warbands", "ships": 1, "hull": 180, "shield": 25, "guns": 3, "dmg": 6,
+		"acc": 0.65, "eva": 0.05, "speed": 110, "loot": [1000, 2500], "sprite": "space/enemy_red_4", "board": true},
+	"ashscale_duelist": {"name": "Ashscale duelist", "faction": "ashscale_warbands", "ships": 1, "hull": 100, "shield": 20, "guns": 2, "dmg": 6,
+		"acc": 0.72, "eva": 0.15, "speed": 170, "loot": [0, 0], "sprite": "space/enemy_red_2", "lethal": false},
+	"ballroom_ai": {"name": "Ballroom drones", "faction": "none", "ships": 2, "hull": 60, "shield": 15, "guns": 1, "dmg": 6,
+		"acc": 0.65, "eva": 0.20, "speed": 170, "loot": [800, 1600], "sprite": "space/ufo_green"},
+	"arena_champion": {"name": "Arena champion", "faction": "none", "ships": 1, "hull": 150, "shield": 25, "guns": 3, "dmg": 6,
+		"acc": 0.72, "eva": 0.15, "speed": 170, "loot": [0, 0], "sprite": "space/enemy_red_1", "lethal": false},
+	"architect_guardian": {"name": "Architect guardian", "faction": "none", "ships": 1, "hull": 380, "shield": 70, "guns": 4, "dmg": 7,
+		"acc": 0.70, "eva": 0.05, "speed": 100, "loot": [5000, 10000], "sprite": "space/ufo_blue"},
+	"mirror_ai": {"name": "Mirror mind", "faction": "synthesis", "ships": 1, "hull": 120, "shield": 30, "guns": 2, "dmg": 6,
+		"acc": 0.70, "eva": 0.20, "speed": 170, "loot": [500, 1200], "sprite": "space/ufo_green"},
+	"space_beast": {"name": "Void beast", "faction": "none", "ships": 1, "hull": 300, "shield": 0, "guns": 3, "dmg": 7,
+		"acc": 0.60, "eva": 0.05, "speed": 120, "loot": [1500, 3000], "sprite": "space/ufo_red"},
 	"warship": {"name": "Faction warships", "faction": "", "ships": 2, "hull": 80, "shield": 15, "guns": 2, "dmg": 5,
 		"acc": 0.65, "eva": 0.10, "speed": 140, "loot": [400, 1000], "sprite": "space/enemy_green_2"},
 }
@@ -346,9 +399,60 @@ const STORY := {
 		["port_dock", "Marshal Idris Vane", "\"A ship the Ledger can't see. Interesting. I'll be watching the places you can't hide.\""],
 	],
 	"done_n04": [
-		["sky_dragon", "Act I complete", "The Ghost Core works. Every faction in the Spiral will want it."],
-		["system_2", "The Gates open", "The gate at the edge of the Reach now takes you to the Veil Expanse (the Accord's heartland) and the Ember Drift (the Pact's)."],
-		["sky_milkyway", "Fractured Lanes", "Act II, the Ledger's secret and the Hollow Deep come in a later update. Until then: build your crew, pick your side, keep running."],
+		["sky_dragon", "Ghost in the Net", "The Ghost Core works. Three scans, and nobody saw a thing. Every faction in the Spiral will want it."],
+		["ship_layout", "Marrow's log", "The log has one more entry: a cache, hidden somewhere in the wreck ring."],
+	],
+	"done_n10": [
+		["earth", "Marrow's Cache", "Under a hull plate: a Rift Skimmer drive, still in its wrapping, and a note. \"The gates open for a Rift Key. Frostline keeps them.\""],
+	],
+	"done_n11": [
+		["system_2", "The Rift Key", "The key hums in its case. The gate at the edge of the Reach now opens for you: the Veil Expanse (the Accord's heartland) and the Ember Drift (the Pact's)."],
+	],
+	"done_n12": [
+		["port_moon", "Debt Day", "Whatever you did, Mother Kessel's books are closed on you, one way or the other."],
+		["sky_dragon", "Act I complete", "Cold Cargo is over. Act II, Fractured Lanes: three Blind Nodes, and the Ledger's secret."],
+	],
+	"m05": [
+		["system_2", "Through the Veil", "The far side of the gate. New stars, new laws, and a Ghost Core that every patrol here would love to take apart."],
+	],
+	"m06": [
+		["sky_milkyway", "Blind Node I", "Inside the Voidglass Vault, a node of Architect glass clicks into the Ghost Core. The Core grows quieter. You grow harder to see."],
+	],
+	"m09": [
+		["sky_ridge", "Blind Node II", "The Ember Archive gives up its node. Two of three. Someone has noticed."],
+	],
+	"m10": [
+		["world_rocky", "Vask's Gambit", "Queen Vask's flagship breaks apart over the Cinder Fort. The Ghost Core is yours again, and the scanners go blind."],
+	],
+	"m11": [
+		["world_fire", "Blind Node III", "The Oath Vault opens. The last node fits. The Ghost Core sings."],
+	],
+	"m12": [
+		["earth", "The Keeper Revealed", "Old Marrow is alive. He was the Ledger's first Keeper."],
+		["ship_layout", "The Ledger's secret", "\"It doesn't just watch the Spiral. It steers markets and wars to keep it stable, and it is slowly ending free choice.\""],
+		["sky_dragon", "Act III, The Ledger Core", "\"The Ledger lives in the Hollow Deep. To reach it you need a fleet behind you.\""],
+	],
+	"m13": [
+		["hazard_blackholes", "The muster", "Ships gather at your call. The gate to the Hollow Deep opens."],
+	],
+	"m14": [
+		["hazard_blackholes", "Into the Hollow", "The sentinels fall. Beyond Hollow Gate Alpha, at the lip of the Abyss, the Ledger Core waits."],
+	],
+	"ending_unify": [
+		["sky_milkyway", "Unify the Spiral", "The Accord names you Archon. The Ledger becomes a public record, open to anyone who asks."],
+		["system_2", "Peace", "The lanes are quiet. You can keep flying; the Spiral is yours to look after now."],
+	],
+	"ending_rule": [
+		["hazard_blackholes", "Rule the Spiral", "You seize the Ledger. The Pact becomes the Spiral's shadow government, and you hold its pen."],
+		["system_3", "The shadow throne", "Nothing moves without your say. You can keep flying; every lane pays you now."],
+	],
+	"ending_ghost": [
+		["sky_dragon", "The Ghost", "Pip, Halcyon and Tessa wire you into AUDITOR. You merge with the network, and the Ledger forgets your name."],
+		["sky_milkyway", "Gone", "Nobody can see you any more. Not even the Ledger. You can keep flying, as a ghost."],
+	],
+	"burned": [
+		["port_moon", "Burned", "Your heat was too high and your crew too tired. They sold you out to the patrols."],
+		["port_moon", "Towed home", "You lose your cargo and half your dirty credits. Start again, or keep flying."],
 	],
 	"captured": [
 		["port_moon", "Caught", "They took your cargo and half your dirty credits, then towed what was left of you to Cradle Station."],

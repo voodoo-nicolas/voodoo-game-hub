@@ -16,6 +16,8 @@ const SHIELDS := {"shd_1": "space/shield_1", "shd_2": "space/shield_2", "shd_3":
 const WINGS := ["space/wing_blue_0", "space/wing_blue_3", "space/wing_blue_5"]
 const FLAMES := ["space/fire_11", "space/fire_12", "space/fire_13"]
 const SCALE_BY_TIER := [1.0, 1.0, 1.12, 1.26, 1.42]
+## Paint jobs (quest rewards) tint the hull: "vend" = VEND-O-MATIC gold (N08).
+const PAINTS := {"vend": Color(1.0, 0.85, 0.35)}
 
 static var _cache := {}
 
@@ -35,7 +37,8 @@ static func spec_of(e) -> Dictionary:
 		"shield": SHIELDS.get(e.modules.get("shields", "shd_1"), SHIELDS.shd_1),
 		"pods": {"car_1": 0, "car_2": 1, "car_3": 2}.get(e.modules.get("cargo", "car_1"), 0),
 		"antenna": {"scn_1": 0, "scn_2": 1, "scn_3": 2}.get(e.modules.get("scanner", "scn_1"), 0),
-		"ghost": e.ship == "runner", "crew": e.crew.size(), "specials": e.specials.size()}
+		"ghost": e.ghost_core(), "crew": e.crew.size(), "specials": e.specials.size(),
+		"paint": PAINTS.get(str(e.flags.get("paint", "")), Color.WHITE) if e.flags.get("paint_on", true) else Color.WHITE}
 
 ## An enemy ship as a spec (one entry of engine.battle_enemies()).
 static func spec_enemy(s: Dictionary) -> Dictionary:
@@ -86,7 +89,7 @@ static func draw(ci: CanvasItem, at: Vector2, width: float, heading: float, sp: 
 			ci.draw_rect(pr, Color(0.55, 0.6, 0.68, tint.a))
 			ci.draw_rect(pr, Color(0.15, 0.2, 0.3, tint.a), false, 1.5)
 	# the hull
-	_part(ci, base, hull, Vector2.ZERO, Vector2(w, h), false, tint)
+	_part(ci, base, hull, Vector2.ZERO, Vector2(w, h), false, tint * Color(sp.get("paint", Color.WHITE)))
 	# turrets
 	var n_gun := int(sp.get("guns", 1))
 	var gun: Texture2D = tex(str(sp.get("gun", "")))

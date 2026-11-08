@@ -3,7 +3,7 @@ extends Control
 ## Character creation (design doc v2 §2): name, gender, race (8 playable, Sskarn is NPC only), home
 ## faction (Terrans and Ssaryn choose), two starting perks, then a summary. Emits `done` with the
 ## captain ({name, gender, race, home, picks}) or `cancelled` (‹ Back on the first page).
-## The race picture is a coloured emblem until the owner paints portraits (DECISIONS D-24).
+## Race pictures: the owner's portraits (2026-11-08); Ssaryn by home faction, Verdanti by gender.
 
 signal done(captain: Dictionary)
 signal cancelled
@@ -187,20 +187,23 @@ func _page_race(box: VBoxContainer) -> void:
 	cols.add_child(info)
 	var col := UI.vbox(5)
 	info.add_child(col)
-	_race_info(col, str(cap.race))
+	_race_info(col, str(cap.race), UI.captain_portrait_id(cap))
 	box.add_child(UI.label(UI.tr_s("The Sskarn (feral reptilians) are not playable: you'll meet them as mercenaries."), 15, UI.c("dim"), true))
 	_row_next(box)
 
-static func _race_info(col: VBoxContainer, r: String) -> void:
+static func _race_info(outer: VBoxContainer, r: String, pic: String = "") -> void:
 	var rd: Dictionary = S.RACES[r]
-	var top := UI.hbox(10)
-	var em := ColorRect.new()
-	em.color = Color(rd.color)
-	em.custom_minimum_size = Vector2(28, 28)
-	em.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	top.add_child(em)
-	top.add_child(UI.label("%s · %s" % [UI.race_name(r), UI.tr_s(rd.type)], 22, UI.c("accent")))
-	col.add_child(top)
+	var col := outer
+	if pic != "":
+		var row := UI.hbox(14)
+		outer.add_child(row)
+		var pt := UI.portrait(pic, 260)
+		pt.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		row.add_child(pt)
+		col = UI.vbox(5)
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(col)
+	col.add_child(UI.label("%s · %s" % [UI.race_name(r), UI.tr_s(rd.type)], 22, UI.c("accent")))
 	col.add_child(UI.label(UI.tr_s(rd.flavor), 16, UI.c("dim"), true))
 	for p in rd.perks:
 		col.add_child(UI.label("✚ %s: %s" % [UI.perk_name(p), UI.perk_desc(p)], 16, UI.c("go"), true))
@@ -231,8 +234,12 @@ func _page_home(box: VBoxContainer) -> void:
 		var fd: Dictionary = S.FACTIONS[f]
 		var p := UI.panel(0.6)
 		box.add_child(p)
+		var prow := UI.hbox(12)
+		p.add_child(prow)
+		prow.add_child(UI.portrait(UI.portrait_id(str(cap.race), f, str(cap.gender)), 96))
 		var col := UI.vbox(4)
-		p.add_child(col)
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		prow.add_child(col)
 		col.add_child(UI.button("%s  ·  %s" % [UI.faction_name(f), UI.tr_s(S.BLOC_NAMES[fd.bloc])], _pick_home.bind(f), UI.c("go") if cap.home == f else UI.c("accent"), 20, 50))
 		col.add_child(UI.label("%s · %s" % [UI.tr_s(fd.leader), UI.tr_s(fd.ideology)], 16, UI.c("dim"), true))
 	_row_next(box)
@@ -273,8 +280,14 @@ func _toggle(p: String) -> void:
 # ---------------------------------------------------------------- summary
 
 func _page_summary(box: VBoxContainer) -> void:
-	box.add_child(UI.label(str(cap.name).strip_edges(), 30, UI.c("accent")))
-	box.add_child(UI.label("%s · %s · %s" % [UI.tr_s(cap.gender), UI.race_name(cap.race), UI.faction_name(cap.home)], 19, UI.c("text"), true))
+	var top := UI.hbox(14)
+	top.add_child(UI.portrait(UI.captain_portrait_id(cap), 150))
+	var who := UI.vbox(4)
+	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	who.add_child(UI.label(str(cap.name).strip_edges(), 30, UI.c("accent")))
+	who.add_child(UI.label("%s · %s · %s" % [UI.tr_s(cap.gender), UI.race_name(cap.race), UI.faction_name(cap.home)], 19, UI.c("text"), true))
+	top.add_child(who)
+	box.add_child(top)
 	var rd: Dictionary = S.RACES[cap.race]
 	box.add_child(UI.label(UI.tr_s("Perks"), 22, UI.c("accent")))
 	for p in rd.perks + cap.picks:

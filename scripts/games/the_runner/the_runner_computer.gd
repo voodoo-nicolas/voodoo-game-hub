@@ -213,10 +213,7 @@ func _map(box: VBoxContainer) -> void:
 		var open: bool = e.sector_open(s)
 		_h(box, ("📍 " if s == e.sector else "") + UI.sector_name(s) + ("" if open else "  🔒"))
 		if not open:
-			var planned := []
-			for n in sd.get("planned", []):
-				planned.append(UI.tr_s(n))
-			var txt := UI.tr_s("The gate won't open yet.") if s != "hollow_deep" else UI.tr_s("Act III (a later update): %s.") % ", ".join(planned)
+			var txt := UI.tr_s("The gate opens with a Rift Key (Act I).") if s != "hollow_deep" else UI.tr_s("The gate opens in Act III, when the fleets muster.")
 			box.add_child(UI.label(txt, 16, UI.c("dim"), true))
 			continue
 		for w in e.worlds_in(s):
@@ -265,6 +262,10 @@ func _map(box: VBoxContainer) -> void:
 
 # ================================================================ Ship Layout
 
+func _toggle_paint() -> void:
+	_e().flags["paint_on"] = not _e().flags.get("paint_on", true)
+	_changed()
+
 func _ship(box: VBoxContainer) -> void:
 	var e = _e()
 	var hd: Dictionary = e.hull_data()
@@ -276,6 +277,9 @@ func _ship(box: VBoxContainer) -> void:
 		box.add_child(UI.label(UI.tr_s("Old Marrow's ship. Fast, quiet, and the Ledger can't see it: the Ghost Core stays through every refit."), 15, UI.c("dim"), true))
 	else:
 		box.add_child(UI.label(UI.tr_s(D.SHIPS.moth.desc), 15, UI.c("dim"), true))
+	if str(e.flags.get("paint", "")) != "":
+		var on: bool = e.flags.get("paint_on", true)
+		box.add_child(UI.button(UI.tr_s("Paint: VEND-O-MATIC gold") + ("  ✔" if on else "  ✖"), _toggle_paint, UI.c("go") if on else UI.c("accent"), 17, 44))
 	var stats := UI.tr_s("Hold %d · Hidden %d · Tank %d · Hull %d · Shield %d · Guns %d · Stealth %d · Crew %d") % [
 		e.cargo_cap(), e.hidden_cap(), e.tank(), e.max_hull(), e.shield(), e.guns(), e.stealth(), e.crew_slots()]
 	box.add_child(UI.label(stats, 17, UI.c("text"), true))
@@ -439,14 +443,37 @@ func _dismiss(cid: String) -> void:
 func _captain(box: VBoxContainer) -> void:
 	var e = _e()
 	var cap: Dictionary = e.captain
-	box.add_child(UI.label(str(cap.name), 28, UI.c("accent")))
-	box.add_child(UI.label("%s · %s · %s" % [UI.tr_s(cap.gender), UI.race_name(cap.race), UI.faction_name(cap.home)], 18, UI.c("text")))
+	var top := UI.hbox(14)
+	top.add_child(UI.portrait(UI.captain_portrait_id(cap), 160))
+	var who := UI.vbox(4)
+	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(who)
+	box.add_child(top)
+	who.add_child(UI.label(str(cap.name), 28, UI.c("accent")))
+	who.add_child(UI.label("%s · %s · %s" % [UI.tr_s(cap.gender), UI.race_name(cap.race), UI.faction_name(cap.home)], 18, UI.c("text"), true))
+	if e.ship == "runner":
+		var core := UI.tr_s("Ghost Core: stolen by Queen Vask") if not e.ghost_core() else UI.tr_s("Ghost Core: Blind Nodes %d of 3") % e.nodes
+		who.add_child(UI.label(core, 16, UI.c("warn") if not e.ghost_core() else UI.c("dim"), true))
+	var perks_of_place := []
+	if e.flags.has("safehouse"):
+		perks_of_place.append(UI.tr_s("a safehouse (heat cools twice as fast)"))
+	if str(e.flags.get("safe_dock", "")) != "":
+		perks_of_place.append(UI.tr_s("a safe dock at %s") % UI.world_name(str(e.flags.safe_dock)))
+	for w in e.tributaries:
+		perks_of_place.append(UI.tr_s("tribute from %s") % UI.world_name(str(w)))
+	if e.flags.has("kessel_nemesis"):
+		perks_of_place.append(UI.tr_s("Mother Kessel's hunters on your trail"))
+	if not perks_of_place.is_empty():
+		for line in perks_of_place:
+			who.add_child(UI.label("• " + line, 15, UI.c("text"), true))
+	if e.ending != "":
+		who.add_child(UI.label(UI.tr_s("Ending: %s") % UI.tr_s(S.ENDINGS[e.ending].title), 18, UI.c("go"), true))
 	_h(box, UI.tr_s("Perks aboard"))
 	box.add_child(UI.label(UI.tr_s("Same perk from two sources: the second counts half, a third not at all. A stat's bonuses stop at +60%, its flaws at −40%."), 15, UI.c("dim"), true))
 	for p in e.perk_list():
 		var pd: Dictionary = S.PERKS[p[0]]
 		var src := _source(str(p[2]))
-		var strength := "" if float(p[1]) >= 1.0 else " (%d%%)" % int(float(p[1]) * 100)
+		var strength := "" if is_equal_approx(float(p[1]), 1.0) else " (%d%%)" % int(round(float(p[1]) * 100))
 		var col := UI.c("go") if pd.kind == "good" else UI.c("bad")
 		box.add_child(UI.label("%s %s%s: %s  — %s" % ["✚" if pd.kind == "good" else "✖", UI.perk_name(p[0]), strength, UI.perk_desc(p[0]), src], 15, col, true))
 	if not e.curses.is_empty():
