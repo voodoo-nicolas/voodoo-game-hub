@@ -1,6 +1,6 @@
 extends RefCounted
 
-## Sea Battle: you and the computer each hide a fleet on a 10×10 grid and take
+## Ocean Battle (id sea_battle): you and the computer each hide a fleet on a 10×10 grid and take
 ## turns firing one shot. Sink the whole enemy fleet first. Pure logic.
 
 const SIZE := 10

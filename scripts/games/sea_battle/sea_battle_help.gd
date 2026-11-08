@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "sea_battle"
-const TITLE := "Sea Battle"
+const TITLE := "Ocean Battle"
 const GOAL := "Sink the enemy's whole fleet before they sink yours — the computer's, or a friend's."
 const HOW := [
 	"Both fleets have five ships: 5, 4, 3, 3 and 2 squares long. Ships never touch, not even at the corners.",

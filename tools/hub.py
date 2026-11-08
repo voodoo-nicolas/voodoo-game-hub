@@ -772,8 +772,11 @@ def game_xp(gid: str) -> int:
     text = help_file.read_text(encoding="utf-8")
     total = XP_BY_AT[1] + XP_BY_AT[10]  # "Record Breaker" + "Always Improving"
     stats = _gd_const_block(text, "STATS")
+    skip = _gd_const_block(text, "NO_TIER_BADGES")  # stats with no tier badges (app v0.40+)
+    skipped = set(re.findall(r'"((?:[^"\\]|\\.)*)"', skip)) if skip else set()
     for key in (re.findall(r'"((?:[^"\\]|\\.)*)"', stats) if stats else []):
-        total += sum(XP_BY_AT.get(at, 25) for at in _stat_tiers(key))
+        if key not in skipped:
+            total += sum(XP_BY_AT.get(at, 25) for at in _stat_tiers(key))
     for name in ("ACHIEVEMENTS", "CHALLENGES"):
         block = _gd_const_block(text, name)
         for entry in (re.findall(r"\{[^{}]*\}", block[1:-1]) if block else []):

@@ -34,6 +34,9 @@ const TIPS := [
 	"Toxic creatures are tempting: a glow makes hunters notice you, brittle makes bites hurt more. Wait out the ailment somewhere quiet.",
 ]
 const STATS := ["Best score", "Biggest size", "Cells eaten", "Rare eaten", "Food eaten", "Distance swum (m)", "Missions done", "Games played"]
+## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
+## badges (app v0.40+; badges already earned keep their XP).
+const NO_TIER_BADGES := ["Cells eaten", "Rare eaten", "Food eaten", "Distance swum (m)"]
 
 ## Badges (achievements.gd): they unlock when the stat reaches `at`. Stats are lifetime totals ("Distance swum (m)":
 ## 10 world units = 1 m) or records ("Biggest size", "Top speed" = % of the best possible swimming speed).

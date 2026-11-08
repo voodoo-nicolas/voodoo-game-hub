@@ -36,7 +36,7 @@ Argentine IP lawyer review the final names and store listing.
 | Yahtzee | **Generala** (traditional AR name) / Five Dice |
 | Uno | Crazy Eights / Color Eights |
 | Connect Four / Connect 4 | Four in a Row / 4 en línea |
-| Battleship | Sea Battle / Batalla Naval |
+| Battleship | Ocean Battle / Batalla oceánica (was Sea Battle until 2026-11-08) |
 | Mastermind | Code Breaker / Bulls & Cows |
 | Othello | Reversi |
 | Wordle | Five-letter word guess (original name) |

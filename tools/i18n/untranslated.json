@@ -313,6 +313,9 @@
  "Move-Item -LiteralPath $n -Destination $p -Force -ErrorAction Stop;break}catch{Start-Sleep 1}};": [
   "scripts\\common\\pc_updater.gd"
  ],
+ "NO_TIER_BADGES": [
+  "scripts\\common\\achievements.gd"
+ ],
  "Noto Color Emoji font": [
   "scripts\\common\\third_party.gd"
  ],

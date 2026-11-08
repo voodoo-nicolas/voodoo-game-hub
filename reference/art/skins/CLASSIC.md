@@ -27,7 +27,7 @@ no faint grid, plain drop shadows.
 - Phase 5 (2026-10-06), category by category, each pack published as it was done:
   - Puzzle & Board: Chess, Reversi, Mancala, Backgammon, Morris, Five in a Row,
     Hex, Peg Solitaire, Mines, Light Flip, Sliding 15, Tower of Hanoi, 2048,
-    Color Flood, Block Collapse, Code Breaker, Sea Battle, Box Pusher, Pipe
+    Color Flood, Block Collapse, Code Breaker, Ocean Battle, Box Pusher, Pipe
     Flow, Mahjong, Kakuro, Nonogram, Calcudoku, Dots and Boxes. (Sudoku keeps
     its own look.)
   - Cards: the ten `<id>_cards.gd` copies share a `classic` static (ivory face,

@@ -27,6 +27,9 @@ const TIPS := [
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "White wins", "Black wins",
 	"Lessons solved", "Daily lessons", "Points earned"]
+## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
+## badges (app v0.40+; badges already earned keep their XP).
+const NO_TIER_BADGES := ["Points earned"]
 
 const ACHIEVEMENTS := [
 	{"id": "lessons10", "icon": "🎓", "title": "Good Student", "key": "Lessons solved", "at": 10},

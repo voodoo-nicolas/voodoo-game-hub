@@ -1,6 +1,6 @@
 extends Control
 
-## Sea Battle vs the computer, or two players passing the phone. Tap the
+## Ocean Battle (id sea_battle; was "Sea Battle" until 2026-11-08) vs the computer, or two players passing the phone. Tap the
 ## enemy grid to fire; a hit earns another shot. Your own fleet is the small
 ## grid below. Shuffle it before firing. With two players, a cover screen
 ## hides both boards whenever the phone changes hands.
@@ -80,7 +80,7 @@ func _build_ui() -> void:
 	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
-	title.text = tr("🚢 Sea Battle")
+	title.text = tr("🚢 Ocean Battle")
 	title.add_theme_font_size_override("font_size", 30)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -414,6 +414,7 @@ func _build_home() -> void:
 		"help": preload("res://scripts/games/sea_battle/sea_battle_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,
+		"art": "res://games/sea_battle/landing_bg.jpg",  # owner's console picture (2026-11-08)
 		"subtitle": "Find and sink the computer's fleet before it sinks yours.",
 		"logo": _draw_home_logo,
 		"modes": [

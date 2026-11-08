@@ -21,3 +21,6 @@ const TIPS := [
 	"Save a bomb for the boss's fan of fire.",
 ]
 const STATS := ["Best score", "Highest stage", "Enemies shot down", "Bosses beaten", "Rings flown through", "Bombs used", "Games played"]
+## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
+## badges (app v0.40+; badges already earned keep their XP).
+const NO_TIER_BADGES := ["Bombs used"]

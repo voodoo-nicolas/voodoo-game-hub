@@ -13,6 +13,8 @@ extends RefCounted
 ##   records where less is better (times, moves). Leave out "desc" for the
 ##   automatic "<stat>: <at>" line (only the title then needs Spanish). Unlocks when stats[key]
 ##   reaches `at`. Titles and descriptions are English literals (es.json).
+##   `NO_TIER_BADGES` (optional, since v0.40): stat names that get no generic
+##   tier badges, so the game stays within 1000 points (STANDARDS §3b).
 ## - **Hub-wide** (`HUB`): games tried, total badges, friends, invites. Kept in
 ##   user://achievements.json, checked by the hub's Achievements screen and by
 ##   Social.
@@ -71,7 +73,12 @@ static func defs_for(consts: Dictionary, stats: Dictionary) -> Array:
 		if not str(k).begins_with("_") and not keys.has(str(k)):
 			keys.append(str(k))
 	var out: Array = []
+	# A game over the 1000-point cap (STANDARDS §3b) lists side counters here: no tier badges
+	# for them from now on (badges already earned stay, with their XP). Since v0.40.
+	var no_tiers = consts.get("NO_TIER_BADGES", [])
 	for k in keys:
+		if typeof(no_tiers) == TYPE_ARRAY and no_tiers.has(k):
+			continue
 		var tiers: Array = _tiers_for(k)
 		for t in tiers:
 			out.append({"id": "%s_%d" % [k, t[0]], "icon": t[1], "title": t[2],

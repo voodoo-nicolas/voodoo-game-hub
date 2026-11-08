@@ -119,6 +119,9 @@ Contents (show only what applies to the game):
 - [NEW 2026-10-28, owner] A game offers **at most 1000 achievement points** (Viral XP) in all: generic badges +
   `ACHIEVEMENTS` + `CHALLENGES` (repeatable ones x 10). `hub.py check` adds them up (`game_xp`) and warns;
   games already over it are trimmed as each is touched. The server's own cap stays 1500 as a safety net.
+  [NEW 2026-11-08] Trim with `NO_TIER_BADGES := ["stat", ...]` in `<id>_help.gd` (those counters get no
+  generic tier badges, app v0.40+; badges already earned keep their XP) and/or an explicit lower `"xp"` on the
+  game's own badges (works on any app). `hub.py check` counts both.
 
 ## 4. Single-player setup [NEW]
 One screen: pick **mode** → **difficulty** → mode options → **Start**. Remembers last choice (feeds Quick Play).

@@ -24,6 +24,9 @@ const TIPS := [
 	"Straight-in shot? Hit dead centre and the white ball stops close by. Plain hits also roll on a little after the ball they hit.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Balls potted", "Longest run", "Pots with spin", "2-player games"]
+## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
+## badges (app v0.40+; badges already earned keep their XP).
+const NO_TIER_BADGES := ["Wins (Easy)", "Wins (Normal)", "Pots with spin", "2-player games"]
 
 const ACHIEVEMENTS := [
 	{"id": "spin10", "icon": "🌀", "title": "Spin Doctor", "key": "Pots with spin", "at": 10},

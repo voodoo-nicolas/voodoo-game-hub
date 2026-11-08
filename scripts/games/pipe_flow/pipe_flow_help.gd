@@ -23,6 +23,9 @@ const TIPS := [
 	"Locked pieces are always right, so build around them.",
 ]
 const STATS := ["Puzzles solved", "Campaign levels", "Campaign stars", "Perfect levels", "Time attack best", "Daily streak", "Green bulbs lit"]
+## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
+## badges (app v0.40+; badges already earned keep their XP).
+const NO_TIER_BADGES := ["Campaign stars", "Perfect levels", "Daily streak", "Green bulbs lit"]
 
 ## Goals (app v0.25+ shows them as achievements; see achievements.gd).
 const ACHIEVEMENTS := [

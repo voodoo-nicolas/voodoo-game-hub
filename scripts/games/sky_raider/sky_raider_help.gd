@@ -23,8 +23,9 @@ const TIPS := [
 	"Look for the gap in a wall of bullets as soon as it appears.",
 ]
 const STATS := ["Best score", "Highest stage", "Planes shot down", "Battleships sunk", "Bombs used", "Games played"]
+## Owner 2026-11-08 (STANDARDS §3b): 25 XP each, so the game stays within 1000 points.
 const ACHIEVEMENTS := [
-	{"id": "stage3", "icon": "🛩", "title": "Wingman", "key": "Highest stage", "at": 3},
-	{"id": "stage5", "icon": "✈️", "title": "Ace Pilot", "key": "Highest stage", "at": 5},
-	{"id": "stage8", "icon": "🚀", "title": "Sky Legend", "key": "Highest stage", "at": 8},
+	{"id": "stage3", "icon": "🛩", "title": "Wingman", "key": "Highest stage", "at": 3, "xp": 25},
+	{"id": "stage5", "icon": "✈️", "title": "Ace Pilot", "key": "Highest stage", "at": 5, "xp": 25},
+	{"id": "stage8", "icon": "🚀", "title": "Sky Legend", "key": "Highest stage", "at": 8, "xp": 25},
 ]

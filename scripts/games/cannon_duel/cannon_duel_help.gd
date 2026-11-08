@@ -22,6 +22,9 @@ const TIPS := [
 	"Save the Mega Bomb for when your aim is already landing close.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Direct hits", "Fewest shots to win", "2-player games"]
+## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
+## badges (app v0.40+; badges already earned keep their XP).
+const NO_TIER_BADGES := ["Wins (Easy)", "Wins (Normal)", "2-player games"]
 
 ## Learning hook (STANDARDS §15): one shows on the Home screen's
 ## "Did you know?" card. Checked facts only.

@@ -28,6 +28,9 @@ const TIPS := [
 ]
 const STATS := ["Puzzles solved", "Levels cleared", "Total stars", "3-star levels", "Highest level", "Special levels cleared",
 	"Bosses beaten", "Timed levels beaten", "Fastest level (seconds)", "Fewest moves (Easy)", "Fewest moves (Normal)", "Fewest moves (Hard)", "Fewest moves (Expert)"]
+## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
+## badges (app v0.40+; badges already earned keep their XP).
+const NO_TIER_BADGES := ["Total stars", "3-star levels", "Special levels cleared", "Bosses beaten"]
 
 const ACHIEVEMENTS := [
 	{"id": "solved1", "icon": "🧪", "title": "First Sort", "desc": "Solve 5 puzzles", "key": "Puzzles solved", "at": 5},

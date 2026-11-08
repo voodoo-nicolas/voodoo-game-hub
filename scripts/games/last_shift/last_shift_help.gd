@@ -33,6 +33,9 @@ const STATS := ["Escapes", "Fastest escape time", "Most infected in one night", 
 	"Nights started", "Times caught", "Total time played",
 	"Infected down: fists", "Infected down: knife", "Infected down: severed arm", "Infected down: pipe wrench",
 	"Infected down: pistol"]
+## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
+## badges (app v0.40+; badges already earned keep their XP).
+const NO_TIER_BADGES := ["Escapes", "Infected down", "Nights started", "Times caught", "Infected down: fists", "Infected down: knife", "Infected down: severed arm", "Infected down: pipe wrench", "Infected down: pistol"]
 
 ## The night's achievements, paid in Viral XP by the hub (docs/ADDING_A_GAME.md §2). Ids, XP and
 ## order = LsEngine.ACHIEVEMENTS; titles and descriptions = LsText.ACH (same English, so one es.json
