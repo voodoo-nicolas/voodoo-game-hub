@@ -116,3 +116,8 @@ not apply). Generic pool hall and tables, no brand on them.
   removed and the sea behind them in-painted), `palm_C.webp` / `palm_D.webp`, `debris_*.webp` (keyed
   off the green sheet), `landing.webp` (= 4.jpg). `cloud_1/2.webp` were drawn by Claude Code (PIL) in
   the plate's style. Design data in `games/wilson/data/` is the owner's (Drive).
+- M3 (2026-11-08): the owner's second batch from art/ART_PROMPTS.md (Gemini, magenta backgrounds):
+  character sheets `male1-4.jpg`, `female1.jpg`, `demale2.jpg` (female 2), `female3-4.jpg`;
+  `inventory.jpg`, `rare materials.jpg`, `camp builds.jpg`, `fire1/2/3.jpg`, `hud.jpg`, `horizon.jpg`,
+  `grand.jpg`, `sky layer.jpg`, `sea layer.jpg`, `front waves.jpg`, `sea foam1/2.jpg`,
+  `island only.jpg`. Shipped so far: cut-outs in `games/wilson/art/chars|icons|camp|fire|hud/`.

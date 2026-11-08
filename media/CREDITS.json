@@ -6380,8 +6380,8 @@
   },
   {
    "file": "games/wilson/art/",
-   "what": "Beached: island clean plate (sky cut out), palms C and D cut out, five wreck debris cut-outs, Landing (Day 1 scene); cloud_1/cloud_2 drawn in code by Claude Code to match",
-   "source": "D:/dev/Wilson/5.jpg (clean plate = ref_05), 6.jpg (debris sheet = ref_06), 4.jpg (Day 1 scene = ref_04)",
+   "what": "Beached: island clean plate (sky cut out), palms C and D, wreck debris, Landing; chars/ (8 castaway looks x 19 poses), icons/ (inventory + rare materials), camp/ (camp builds), fire/ (fire parts), hud/ (HUD icons); cloud_1/cloud_2 drawn in code by Claude Code",
+   "source": "D:/dev/Wilson: 4.jpg, 5.jpg, 6.jpg, male1-4.jpg, female1/3/4.jpg + demale2.jpg (= female2), inventory.jpg, rare materials.jpg, camp builds.jpg, fire3.jpg, hud.jpg",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
    "proof": "media/licenses/OWNER_GAME_ART.md",
@@ -6389,7 +6389,7 @@
    "date": "2026-11-08",
    "ai_tool": "Google Gemini (owner's account; README: 'every Gemini prompt' in art/ART_PROMPTS.md)",
    "ai_plan": "plan not stated by the owner",
-   "processed_by": "sky / sun keyed out, palms C+D cut out and the plate in-painted, debris keyed off green, WebP (Claude Code, PIL; tools/wilson_art.py)"
+   "processed_by": "keyed (sky / green / magenta), cut into sprites by anchor, palms C+D cut out and the plate in-painted, WebP (Claude Code, PIL + scipy; tools/wilson_art.py)"
   },
   {
    "file": "games/wilson/data/",

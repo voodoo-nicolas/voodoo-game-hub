@@ -64,6 +64,29 @@ can overrule any of it.
 - **W-22 Debug panel** (F9 or 5 quick taps on the clock) ships in the pack for now. Hide it before the
   first public pack.
 
+## M3: crafting and combining (2026-11-08)
+- **W-23 Discovery.** Tiers 1-2 are known from the start; the 15 tier 3-4 recipes are hidden ("❔ ???",
+  tier, one material shown) until the player combines two of their parts in the bag (drag one item onto
+  another, or "🔗 Combine with..." then a second tap). Combining picks the recipe that uses both items,
+  preferring one that can be made now, then an unknown one; it queues it when everything is there.
+- **W-24 Tool wear.** Uses before breaking: knife 40, stone axe 8, fishing pole 30, spear 20, shovel 15,
+  coconut bowl 25, spark kit 12. One use per action that needs the tool (failed fires too).
+- **W-25 Spoilage.** Raw fish 24 h, cooked fish 48 h, then fish guts; a stack keeps its oldest time;
+  dried / salted food keeps; a smokehouse makes new fresh food last 4x. Clay jars: +10 bag slots each
+  (balance.json jar_bonus). No chest recipe exists yet.
+- **W-26 Working structures.** Rain catcher fills 0.5 / 1 / 2 drinks an hour in drizzle / rain / storm;
+  the water still 1 drink per 3 h of daylight; both hold 4, +25 water a drink. Fish trap: a catch every
+  6 h (small fish 80, big 12, boot 4, seaweed 4), holds 3, emptied in 3 min. Canopy +5 mood by day,
+  sundial +3. Garden plot: no seeds in items.json yet (bottles, M6).
+- **W-27 Skills.** Foraging, woodcutting, fishing, fire, cooking, carpentry, tinkering. Level n at
+  10 x n x (n+1) / 2 XP, max 10; each level = 3 % faster at that skill's actions. Weather-sense: M4.
+- **W-28 Looks.** "New island" first asks "Who washed up?" (the 8 sheets); 👕 Change look in the
+  castaway's menu. Lines stay gender-neutral (DIALOGUE.md).
+- **W-29 Art used in M3:** characters (all 19 poses), inventory + rare icons, camp builds, fire parts,
+  HUD bar icons. Not used yet: sky / sea / front-wave / foam / island-only layers (M4 water), horizon
+  gags (M4-M5), Grand Projects (M7), moon-phase icons (the sky draws the real phase). The frond
+  shelter, canopy, fish trap, SOS flag, smokehouse, kiln, sundial and raft still use placeholders.
+
 ## Not built yet (later milestones)
 Weather controller and tides (M4: weather is only forced from the debug panel), full water layers,
 quests beyond T01-T12, skills screen, gag album, bottles to other players (M6), login streak,

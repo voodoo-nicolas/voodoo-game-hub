@@ -5,10 +5,6 @@
  " % [i + 1, tr(Data.ABILITIES[id].name) if id != ": [
   "scripts\\games\\evolution\\evolution_screens.gd"
  ],
- " + tr(": [
-  "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd",
-  "scripts\\games\\color_sort\\color_sort_game.gd"
- ],
  " else T.t(": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],

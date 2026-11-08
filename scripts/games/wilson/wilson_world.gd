@@ -147,6 +147,7 @@ func setup(e) -> void:
 	_shore.position = D.SHORE.pos
 	sorted.add_child(_shore)
 	castaway = Castaway.new()
+	castaway.look = engine.look
 	castaway.position = D.START_POS
 	sorted.add_child(castaway)
 	waves = ColorRect.new()
@@ -185,6 +186,11 @@ func sync() -> void:
 				var p := Props.new()
 				p.kind = id
 				p.position = D.CAMP[id].pos
+				if D.CAMP_ART.has(id):
+					var art: Array = D.CAMP_ART[id]
+					p.tex = _tex("camp/%s.webp" % art[0])
+					p.tex_w = art[1]
+					p.tex_lift = art[2]
 				sorted.add_child(p)
 				_props[id] = p
 		elif not built and _props.has(id):
@@ -206,6 +212,18 @@ func sync() -> void:
 			p.amount = amt
 			p.refresh()
 	_shore.visible = not engine.shore.pile.is_empty()
+	# the hammock sprite hides while the castaway lies in it (his "hammock" pose includes one)
+	if _props.has("hammock"):
+		_props.hammock.visible = not in_hammock()
+	if castaway and castaway.look != engine.look:
+		castaway.set_look(engine.look)
+
+## Sleeping or napping in the hammock right now.
+func in_hammock() -> bool:
+	if engine.sleep.is_empty():
+		return false
+	var bed := str(engine.sleep.get("bed", ""))
+	return bed == "hammock" or (bed == "shade" and engine.structures.has("hammock"))
 
 ## Every frame: sea motion from the weather, fire state, night glints.
 func tick(night: float, sea_amp: float, wind: float) -> void:

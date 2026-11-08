@@ -20,6 +20,7 @@ const STEP := 600.0  # simulation step, seconds
 var t := 0.0                 # unix seconds the island has reached
 var tz := 0                  # local time offset, seconds (Time.get_time_zone_from_system().bias * 60)
 var hemisphere := "south"
+var look := "male1"          # the castaway's look (8 sheets, picked on a new island)
 var start_day := 0           # local day index of Day 1
 var bars := {"hp": 100.0, "food": 100.0, "water": 100.0, "energy": 100.0}
 var mood := 60.0
@@ -41,6 +42,7 @@ var xp := {}
 var gags: Array = []
 var decor: Array = []
 var unlocked: Array = []     # recipes unlocked by quest rewards
+var discovered: Array = []   # tier 3-4 recipes found by combining (M3)
 var fire_fails := 0
 var catches := 0
 var raw_eaten := 0
@@ -56,8 +58,9 @@ var _low := {}               # bar -> true while its low-bar line has been said
 # ================================================================ setup
 
 ## A fresh island at time `now` (Day 1 = the local day of `now`).
-func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: int = 0) -> void:
+func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: int = 0, look_id: String = "male1") -> void:
 	t = now
+	look = look_id
 	tz = tz_seconds
 	hemisphere = hemi
 	start_day = day_index(now)
@@ -87,6 +90,7 @@ func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: 
 	gags = []
 	decor = []
 	unlocked = []
+	discovered = []
 	fire_fails = 0
 	catches = 0
 	raw_eaten = 0
@@ -224,6 +228,29 @@ func _world_tick(h: float) -> void:
 		spots[id] = minf(float(s.max), float(spots[id]) + float(s.per_h) * h)
 	if structures.has("campfire") and weather == "storm":
 		structures.campfire.fuel_until = minf(float(structures.campfire.get("fuel_until", 0.0)), t)
+	for s in slots:
+		var sp := float(s.get("spoil", 0.0))
+		if sp > 0.0 and sp <= t:
+			log_entry("The %s went bad. Fish guts now.", ["@" + str(s.id)])
+			s.id = "fish_guts"
+			s.erase("spoil")
+			say("spoiled")
+	if structures.has("rain_catcher"):
+		var rc: Dictionary = structures.rain_catcher
+		rc["water"] = minf(float(D.WATER_MAX), float(rc.get("water", 0.0)) + float(D.RAIN_FILL_PER_H.get(weather, 0.0)) * h)
+	if structures.has("water_still") and is_day():
+		var ws: Dictionary = structures.water_still
+		ws["water"] = minf(float(D.WATER_MAX), float(ws.get("water", 0.0)) + h / D.STILL_H)
+	if structures.has("fish_trap"):
+		var ft: Dictionary = structures.fish_trap
+		var prog := float(ft.get("prog", 0.0)) + h / D.TRAP_H
+		var caught: Array = ft.get("catch", [])
+		while prog >= 1.0:
+			prog -= 1.0
+			if caught.size() < D.TRAP_MAX:
+				caught.append(_roll(D.TRAP_TABLE))
+		ft["prog"] = prog
+		ft["catch"] = caught
 
 func _mood_tick(h: float) -> void:
 	var target := 60.0
@@ -235,6 +262,10 @@ func _mood_tick(h: float) -> void:
 		target -= 15.0
 	if fire_lit() and not is_day():
 		target += 10.0
+	if structures.has("canopy") and is_day():
+		target += 5.0
+	if structures.has("sundial"):
+		target += 3.0
 	for k in ["food", "water", "energy", "hp"]:
 		if bars[k] < D.LOW_BAR:
 			target -= 10.0
@@ -328,7 +359,8 @@ func _shore_item(rarity: String) -> String:
 ## CRAFTING.md §5 "barrel +20"). Turning the barrel into a rain catcher gives that room up.
 func capacity() -> int:
 	var inv: Dictionary = D.balance().get("inventory", {})
-	return slot_count + (int(inv.get("barrel_bonus", 20)) if count("barrel") > 0 else 0)
+	return slot_count + (int(inv.get("barrel_bonus", 20)) if count("barrel") > 0 else 0) \
+		+ int(inv.get("jar_bonus", 10)) * count("clay_jar")
 
 func count(id: String) -> int:
 	var n := 0
@@ -351,14 +383,59 @@ func add(id: String, n: int) -> int:
 			var put := mini(left, cap - int(s.n))
 			s.n = int(s.n) + put
 			left -= put
+	var spoil := _spoil_at(id)
+	if spoil > 0.0:
+		for s in slots:
+			if s.id == id and float(s.get("spoil", 0.0)) > 0.0:
+				s.spoil = minf(float(s.spoil), spoil)
 	while left > 0 and slots.size() < capacity():
 		var put := mini(left, cap)
-		slots.append({"id": id, "n": put})
+		var slot := {"id": id, "n": put}
+		if spoil > 0.0:
+			slot["spoil"] = spoil
+		slots.append(slot)
 		left -= put
 	if left > 0:
 		ground[id] = int(ground.get(id, 0)) + left
 		say("full")
 	return left
+
+## When fresh food added now goes bad (0 = never).
+func _spoil_at(id: String) -> float:
+	if not D.SPOIL_H.has(id):
+		return 0.0
+	var h: float = D.SPOIL_H[id]
+	if structures.has("smokehouse"):
+		h *= D.SMOKEHOUSE_SPOIL_MULT
+	return t + h * 3600.0
+
+## Uses left on the first `id` tool in the bag (-1: not a tool / none).
+func tool_uses(id: String) -> int:
+	if not D.TOOL_USES.has(id):
+		return -1
+	for s in slots:
+		if s.id == id:
+			return int(s.get("dur", D.TOOL_USES[id]))
+	return -1
+
+## One use of tool `id`; it breaks at 0.
+func _wear(id: String) -> void:
+	if not D.TOOL_USES.has(id):
+		return
+	for i in slots.size():
+		var s: Dictionary = slots[i]
+		if s.id != id:
+			continue
+		var left := int(s.get("dur", D.TOOL_USES[id])) - 1
+		if left <= 0:
+			slots.remove_at(i)
+			_settle_ground()
+			say("broke")
+			log_entry("The %s broke. Of course it did.", ["@" + id])
+			events.append({"type": "broke", "id": id})
+		else:
+			s["dur"] = left
+		return
 
 func remove(id: String, n: int) -> bool:
 	if count(id) < n:
@@ -433,6 +510,7 @@ func consume(id: String) -> String:
 		if not "raw_fish_nausea" in gags:
 			gags.append("raw_fish_nausea")
 	var verb: String = f.verb
+	events.append({"type": verb})
 	log_entry("Drank a %s." if verb == "drink" else "Ate a %s.", ["@" + id])
 	_emit("drank" if verb == "drink" else "ate", {"id": id})
 	return ""
@@ -587,6 +665,7 @@ func fire_level() -> float:
 
 # ================================================================ crafting
 
+## Can be made at all right now (tier built, quest reward received).
 func recipe_unlocked(r: Dictionary) -> bool:
 	if int(r.get("tier", 9)) > D.MAX_TIER:
 		return false
@@ -594,19 +673,129 @@ func recipe_unlocked(r: Dictionary) -> bool:
 		return false
 	return true
 
-## The recipes on the craft screen (unlocked, tier <= MAX_TIER).
+## Known: tier 1-2, or found by combining.
+func recipe_known(r: Dictionary) -> bool:
+	return recipe_unlocked(r) and (int(r.get("tier", 9)) <= D.KNOWN_TIERS or r.id in discovered)
+
+## The recipes on the craft screen (known ones).
 func craft_list() -> Array:
 	var out := []
 	for r in D.recipes().values():
-		if recipe_unlocked(r):
+		if recipe_known(r):
 			out.append(r)
 	return out
+
+## Recipes still to find (tier 3-4, not discovered).
+func undiscovered() -> Array:
+	var out := []
+	for r in D.recipes().values():
+		if recipe_unlocked(r) and not recipe_known(r):
+			out.append(r)
+	return out
+
+## Everything a recipe asks for, consumed or not: [[id, n], ...].
+static func recipe_parts(r: Dictionary) -> Array:
+	var out: Array = r.get("in", []).duplicate()
+	for key in ["tool", "needs"]:
+		if str(r.get(key, "")) != "":
+			out.append([str(r[key]), 1])
+	return out
+
+## Combining item `a` with item `b` in the bag (GDD §10, CRAFTING.md "combine by dragging A onto B").
+## Finds a recipe that uses both (or two of `a`), discovers it if new, and queues it when everything
+## is there. Returns {ok, recipe, discovered, queued, text}: `text` is an English line for the screen.
+func combine(a: String, b: String) -> Dictionary:
+	var best := {}
+	var best_score := -1
+	for r in D.recipes().values():
+		if not recipe_unlocked(r):
+			continue
+		var ids := {}
+		for pair in recipe_parts(r):
+			ids[str(pair[0])] = int(pair[1])
+		var fits := false
+		if a == b:
+			fits = int(ids.get(a, 0)) >= 2
+		else:
+			fits = ids.has(a) and ids.has(b)
+		if not fits:
+			continue
+		var score := 0
+		if craft_block(r.id) == "":
+			score += 4
+		if not recipe_known(r):
+			score += 2
+		if r.get("station", "hands") == "hands":
+			score += 1
+		if score > best_score:
+			best_score = score
+			best = r
+	if best.is_empty():
+		say("combine_none")
+		return {"ok": false, "recipe": "", "discovered": false, "queued": false, "text": "Those two don't go together."}
+	var found := false
+	if not recipe_known(best):
+		discovered.append(best.id)
+		found = true
+		_xp("tinkering", 3)
+		say("discover")
+		log_entry("Figured out a new recipe: %s.", ["@" + str(best.out)])
+		events.append({"type": "discover", "id": best.id})
+	var why := enqueue("craft", best.id)
+	return {"ok": true, "recipe": best.id, "discovered": found, "queued": why == "", "text": why}
+
+## Skill level from XP: level n needs 10 * n * (n + 1) / 2.
+func skill_level(skill: String) -> int:
+	var x := int(xp.get(skill, 0))
+	var n := 0
+	while n < D.SKILL_MAX and x >= 10 * (n + 1) * (n + 2) / 2:
+		n += 1
+	return n
+
+func skill_for(kind: String, target: String) -> String:
+	if kind == "craft":
+		return D.recipe_skill(D.recipe(target))
+	return str(D.ACT_SKILL.get(kind, ""))
+
+## Why the rain catcher / water still can't give a drink now ("" = it can).
+func drink_from_block(sid: String) -> String:
+	if not structures.has(sid):
+		return "Nothing there."
+	if float(structures[sid].get("water", 0.0)) < 1.0:
+		return "Empty. Come back after some rain." if sid == "rain_catcher" else "Not enough yet. It needs sun."
+	return ""
+
+## Drinks one unit from the rain catcher or water still (instant). "" or why not.
+func drink_from(sid: String) -> String:
+	var why := drink_from_block(sid)
+	if why != "":
+		return why
+	var st: Dictionary = structures[sid]
+	st["water"] = float(st.water) - 1.0
+	bars.water = clampf(bars.water + D.WATER_PER_DRINK, 0.0, 100.0)
+	events.append({"type": "drink"})
+	log_entry("Drank fresh water from the %s.", ["@" + sid])
+	_emit("drank", {"id": sid})
+	return ""
+
+func _roll(table: Array) -> String:
+	var total := 0.0
+	for row in table:
+		total += float(row[1])
+	var r := rng.randf() * total
+	for row in table:
+		r -= float(row[1])
+		if r < 0.0:
+			return str(row[0])
+	return str(table[0][0])
 
 ## "" when recipe `rid` can be queued now, else the reason (English, translated on screen).
 func craft_block(rid: String, self_q = null) -> String:
 	var r := D.recipe(rid)
 	if r.is_empty() or not recipe_unlocked(r):
 		return "Not known yet."
+	if not recipe_known(r):
+		return "Not figured out yet. Combine its materials in the bag."
 	if r.out_type == "structure" and structures.has(r.out):
 		return "Already built."
 	for q in queue:
@@ -707,6 +896,11 @@ func action_block(kind: String, target: String, extra: Dictionary = {}, self_q =
 				return "Needs a %s." % D.item_name("spark_kit")
 			if count("dry_frond") <= 0:
 				return "Needs a %s." % D.item_name("dry_frond")
+		"empty_trap":
+			if not structures.has("fish_trap"):
+				return "No fish trap."
+			if structures.fish_trap.get("catch", []).is_empty():
+				return "The trap is empty. Patience."
 		"tally":
 			if not structures.has("crafting_stump"):
 				return "Needs a %s." % D.item_name("crafting_stump")
@@ -748,6 +942,9 @@ func duration_of(kind: String, target: String) -> float:
 		secs *= float(le.get("duration_mult", 1.5))
 	if has_buff("rested"):
 		secs /= 1.0 + float(D.balance().get("rested_buff", {}).get("action_speed_bonus", 0.1))
+	var sk := skill_for(kind, target)
+	if sk != "":
+		secs *= 1.0 - D.SKILL_SPEED * skill_level(sk)
 	return secs
 
 func energy_cost(kind: String, target: String) -> float:
@@ -803,12 +1000,20 @@ func _finish(q: Dictionary) -> void:
 			_emit("hauled", {"id": tgt})
 			if tgt == "crate":
 				_emit("crate_opened", {"id": tgt})
+		"empty_trap":
+			var caught: Array = structures.fish_trap.get("catch", [])
+			for id in caught:
+				add(str(id), 1)
+			log_entry("Emptied the fish trap: %d catches.", [caught.size()])
+			structures.fish_trap["catch"] = []
+			_xp("fishing", caught.size())
 		"gather":
 			var s: Dictionary = D.SPOTS[tgt]
 			var n := mini(int(s.n), int(floor(float(spots[tgt]))))
 			spots[tgt] = float(spots[tgt]) - n
 			if n > 0:
 				add(str(s.item), n)
+				_xp("foraging", 1)
 				log_entry("Gathered %d %s.", [n, "@" + str(s.item)])
 				_emit("gathered", {"id": str(s.item), "n": n})
 		"shake":
@@ -828,6 +1033,7 @@ func _finish(q: Dictionary) -> void:
 			give_list(D.CHOP_LOOT)
 			if coco > 0:
 				add("coconut", coco)
+			_wear("stone_axe")
 			_xp("woodcutting", 3)
 			say("chop")
 			log_entry("Chopped down palm %s.", [tgt])
@@ -836,6 +1042,7 @@ func _finish(q: Dictionary) -> void:
 			_fish()
 		"seawater":
 			add("seawater", 1)
+			_wear("coconut_bowl")
 			log_entry("Scooped up some seawater.")
 		"craft":
 			_finish_craft(q)
@@ -844,6 +1051,7 @@ func _finish(q: Dictionary) -> void:
 			c.fuel_until = maxf(float(c.get("fuel_until", 0.0)), t) + float(D.FUEL_H.get(tgt, 0.5)) * 3600.0
 			log_entry("Fed the fire.")
 		"light":
+			_wear("spark_kit")
 			var fail := fire_fail_chance()
 			if rng.randf() < fail:
 				say("fire_fail")
@@ -877,6 +1085,9 @@ func fire_fail_chance() -> float:
 
 func _finish_craft(q: Dictionary) -> void:
 	var r := D.recipe(q.target)
+	for key in ["tool", "needs"]:
+		if str(r.get(key, "")) != "":
+			_wear(str(r[key]))
 	if r.out == "campfire" and not structures.has("campfire"):
 		if fire_fails < D.FIRST_FIRE_FAILS:
 			fire_fails += 1
@@ -887,6 +1098,7 @@ func _finish_craft(q: Dictionary) -> void:
 			return
 	if r.out_type == "structure":
 		structures[r.out] = {"built": t}
+		_xp(D.recipe_skill(r), 3)
 		if r.out == "campfire":
 			structures.campfire.fuel_until = t + D.FIRE_START_H * 3600.0
 			_xp("fire", 5)
@@ -897,7 +1109,7 @@ func _finish_craft(q: Dictionary) -> void:
 		_emit("structure_built", {"id": r.out})
 	else:
 		add(r.out, int(r.get("qty", 1)))
-		_xp("crafting", 1)
+		_xp(D.recipe_skill(r), 2)
 		say("craft")
 		log_entry("Made a %s.", ["@" + str(r.out)])
 		_emit("crafted", {"id": r.out})
@@ -920,12 +1132,14 @@ func _fish() -> void:
 		if id != "" and bars.energy < float(le.get("threshold", 20)) and rng.randf() < 0.25:
 			id = ""  # tired: it got away
 	if id == "":
+		_wear("fishing_pole")
 		say("nothing")
 		log_entry("Fished for a while. Caught nothing but a tan.")
 		return
 	catches += 1
 	add(id, 1)
 	_xp("fishing", 2)
+	_wear("fishing_pole")
 	say("boot" if id == "boot" else "fish")
 	log_entry("Caught: %s.", ["@" + id])
 	_emit("caught", {"id": id})
@@ -1014,11 +1228,11 @@ func debug_give(id: String, n: int) -> void:
 
 func to_dict() -> Dictionary:
 	return {
-		"v": SAVE_VERSION, "t": t, "tz": tz, "hemisphere": hemisphere, "start_day": start_day,
+		"v": SAVE_VERSION, "t": t, "tz": tz, "hemisphere": hemisphere, "look": look, "start_day": start_day,
 		"bars": bars, "mood": mood, "slots": slots, "slot_count": slot_count, "ground": ground,
 		"structures": structures, "debris": debris, "palms": palms, "spots": spots, "queue": queue,
 		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
-		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked,
+		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked, "discovered": discovered,
 		"fire_fails": fire_fails, "catches": catches, "raw_eaten": raw_eaten, "tallies": tallies,
 		"weather": weather, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
 		"rng_state": str(rng.state), "low": _low,
@@ -1030,6 +1244,7 @@ func from_dict(d: Dictionary) -> bool:
 	t = float(d.t)
 	tz = int(d.get("tz", 0))
 	hemisphere = str(d.get("hemisphere", "south"))
+	look = str(d.get("look", "male1"))
 	start_day = int(d.start_day)
 	bars = d.bars
 	mood = float(d.get("mood", 60))
@@ -1053,6 +1268,7 @@ func from_dict(d: Dictionary) -> bool:
 	gags = d.get("gags", [])
 	decor = d.get("decor", [])
 	unlocked = d.get("unlocked", [])
+	discovered = d.get("discovered", [])
 	fire_fails = int(d.get("fire_fails", 0))
 	catches = int(d.get("catches", 0))
 	raw_eaten = int(d.get("raw_eaten", 0))

@@ -44,6 +44,11 @@ func _init() -> void:
 	test_queue_offline()
 	test_tutorial()
 	test_save()
+	test_m3_combine()
+	test_m3_all_recipes()
+	test_m3_wear_spoil()
+	test_m3_structures()
+	test_m3_skills_storage()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -400,3 +405,133 @@ func test_save() -> void:
 	e.advance(e.t + 3600.0, false)
 	ok(f.count("rope") == e.count("rope") and f.count("stick") == e.count("stick"), "loaded save plays the same")
 	near(f.bars.food, e.bars.food, 0.001, "same bars after load")
+
+# ---------------------------------------------------------------- M3 crafting and combining
+
+func test_m3_combine() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	var baro := D.recipe("barometer")
+	ok(int(baro.tier) == 3 and not e.recipe_known(baro), "barometer (tier 3) unknown at start")
+	ok(e.craft_block("barometer").begins_with("Not figured out"), "unknown recipe can't be queued")
+	e.add("bottle", 1)
+	e.add("seawater", 1)
+	var r: Dictionary = e.combine("bottle", "seawater")
+	ok(r.ok and r.recipe == "barometer" and r.discovered, "bottle + seawater discovers the barometer (%s)" % str(r))
+	ok(not r.queued, "not queued without wax and a stump")
+	ok(e.recipe_known(baro) and "barometer" in e.discovered, "barometer now known")
+	var again: Dictionary = e.combine("bottle", "seawater")
+	ok(again.ok and not again.discovered, "second combine: no new discovery")
+	var none: Dictionary = e.combine("boot", "pearl")
+	ok(not none.ok, "boot + pearl: nothing")
+	# a known tier 1 recipe queues straight away
+	var f = fresh(at(2026, 6, 21, 9))
+	f.add("stick", 1)
+	f.add("stone", 1)
+	f.add("rope", 1)
+	var q: Dictionary = f.combine("stick", "stone")
+	ok(q.ok and q.queued and f.queue.size() == 1, "stick + stone queues something craftable (%s)" % str(q))
+	# same item twice: two husk fiber -> rope (needs 6)
+	var g = fresh(at(2026, 6, 21, 9))
+	g.add("husk_fiber", 6)
+	var h: Dictionary = g.combine("husk_fiber", "husk_fiber")
+	ok(h.ok and h.recipe == "rope_fiber" and h.queued, "fiber + fiber = rope")
+	ok(g.undiscovered().size() > 0, "some recipes left to find")
+
+## Every one of the 42 recipes can be made: give its parts, build its station, play it through.
+func test_m3_all_recipes() -> void:
+	ok(D.MAX_TIER == 4, "all four tiers on")
+	var made := 0
+	for r in D.json("recipes").recipes:
+		var e = fresh(at(2026, 6, 21, 10))
+		e.unlocked.append(r.id)
+		if not r.id in e.discovered:
+			e.discovered.append(r.id)
+		e.fire_fails = 3
+		for pair in e.recipe_parts(r):
+			e.add(str(pair[0]), int(pair[1]))
+		var st: String = str(r.get("station", "hands"))
+		if D.STATION_STRUCTURE.has(st):
+			e.structures[D.STATION_STRUCTURE[st]] = {"built": e.t}
+		if st == "campfire":
+			e.structures["campfire"] = {"built": e.t, "fuel_until": e.t + 99999.0}
+		var why: String = e.enqueue("craft", r.id)
+		ok(why == "", "recipe %s queues: %s" % [r.id, why])
+		e.advance(e.t + 4 * 3600.0, true)
+		if r.out_type == "structure":
+			ok(e.structures.has(r.out), "recipe %s built %s" % [r.id, r.out])
+		else:
+			ok(e.count(r.out) >= int(r.get("qty", 1)), "recipe %s made %s" % [r.id, r.out])
+		made += 1
+	ok(made == 42, "42 recipes made (got %d)" % made)
+
+func test_m3_wear_spoil() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	e.add("fishing_pole", 1)
+	e.catches = 1
+	var uses := 0
+	while e.count("fishing_pole") > 0 and uses < 100:
+		e.bars.energy = 100.0
+		e.enqueue("fish")
+		e.advance(e.t + 20 * 60.0, true)
+		uses += 1
+	ok(uses == D.TOOL_USES.fishing_pole, "fishing pole breaks after %d uses (got %d)" % [D.TOOL_USES.fishing_pole, uses])
+	var s = fresh(at(2026, 6, 21, 9))
+	s.add("fish_small", 2)
+	s.add("fish_dried", 1)
+	s.advance(s.t + 23 * 3600.0, false)
+	ok(s.count("fish_small") == 2, "fresh fish still fine at 23 h")
+	s.advance(s.t + 2 * 3600.0, false)
+	ok(s.count("fish_small") == 0 and s.count("fish_guts") == 2, "fish spoiled to guts after 24 h")
+	ok(s.count("fish_dried") == 1, "dried fish keeps")
+	var k = fresh(at(2026, 6, 21, 9))
+	k.structures["smokehouse"] = {"built": k.t}
+	k.add("fish_small", 1)
+	k.advance(k.t + 90 * 3600.0, false)
+	ok(k.count("fish_small") == 1, "smokehouse: fish keeps 4x longer")
+
+func test_m3_structures() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	e.structures["rain_catcher"] = {"built": e.t}
+	e.advance(e.t + 3600.0, true)
+	ok(e.drink_from("rain_catcher") != "", "dry weather: no rainwater")
+	e.weather = "rain"
+	e.advance(e.t + 2 * 3600.0, true)
+	e.bars.water = 40.0
+	ok(e.drink_from("rain_catcher") == "", "rain: a drink")
+	near(e.bars.water, 65.0, 0.001, "rainwater +25")
+	ok(e.drink_from("rain_catcher") == "", "second drink")
+	ok(e.drink_from("rain_catcher") != "", "third: empty (2 h of rain = 2 drinks)")
+	var w = fresh(at(2026, 6, 21, 9))
+	w.structures["water_still"] = {"built": w.t}
+	w.advance(w.t + 6.1 * 3600.0, true)
+	ok(w.drink_from("water_still") == "" and w.drink_from("water_still") == "", "still: 2 drinks after 6 h of sun")
+	var t = fresh(at(2026, 6, 21, 9))
+	t.structures["fish_trap"] = {"built": t.t}
+	t.advance(t.t + 13 * 3600.0, false)
+	ok(t.structures.fish_trap.catch.size() == 2, "trap: 2 catches in 13 h")
+	t.advance(t.t + 30 * 3600.0, false)
+	ok(t.structures.fish_trap.catch.size() == D.TRAP_MAX, "trap holds 3")
+	t.bars.energy = 80.0
+	ok(t.enqueue("empty_trap") == "", "empty the trap")
+	t.advance(t.t + 600.0, true)
+	ok(t.structures.fish_trap.catch.is_empty(), "trap emptied")
+
+func test_m3_skills_storage() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	ok(e.skill_level("fishing") == 0, "level 0")
+	e.xp["fishing"] = 10
+	ok(e.skill_level("fishing") == 1, "10 xp = level 1")
+	e.xp["fishing"] = 29
+	ok(e.skill_level("fishing") == 1, "29 xp = level 1")
+	e.xp["fishing"] = 30
+	ok(e.skill_level("fishing") == 2, "30 xp = level 2")
+	var base := 15.0 * 60.0
+	near(e.duration_of("fish", ""), base * (1.0 - 2 * D.SKILL_SPEED), 0.01, "fishing level 2: 6% faster")
+	e.xp["fishing"] = 99999
+	ok(e.skill_level("fishing") == D.SKILL_MAX, "skill caps at 10")
+	var c = fresh(at(2026, 6, 21, 9))
+	ok(c.capacity() == 12, "12 slots")
+	c.add("clay_jar", 2)
+	ok(c.capacity() == 32, "two clay jars: +20")
+	c.add("barrel", 1)
+	ok(c.capacity() == 52, "plus a barrel: +20")

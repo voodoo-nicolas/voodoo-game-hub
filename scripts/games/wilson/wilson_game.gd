@@ -22,6 +22,9 @@ const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
 const World = preload("res://scripts/games/wilson/wilson_world.gd")
 const SkyView = preload("res://scripts/games/wilson/wilson_skyview.gd")
 const Debug = preload("res://scripts/games/wilson/wilson_debug.gd")
+const Slot = preload("res://scripts/games/wilson/wilson_slot.gd")
+const Castaway = preload("res://scripts/games/wilson/wilson_castaway.gd")
+const HUD_ART := "res://games/wilson/art/hud/"
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const SAVE_PATH := "user://wilson_save.json"
@@ -71,6 +74,7 @@ var _sync_timer := 0.0
 var _stage_pos := Vector2.ZERO
 var _stage_scale := 1.0
 var _walk_kind := ""
+var _combine_from := ""   # bag: an item picked with "🔗 Combine", waiting for the second one
 var auto_pause := true    # tools/shot_wilson.gd turns this off (its window loses focus)
 
 func _ready() -> void:
@@ -118,15 +122,66 @@ func _draw_home_logo(c: Control) -> void:
 
 # ================================================================ islands
 
-## 🏝 New island (and ↺ Restart, and the debug reset): Day 1 on the beach, now.
+## 🏝 New island (and ↺ Restart, and the debug reset): first pick the castaway's look (GDD / DIALOGUE:
+## male or female, 8 sheets), then Day 1 on the beach, now. The old save stays until a look is picked.
 func new_island() -> void:
+	_pick_look(_start_island)
+
+func _start_island(look_id: String) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	engine = Engine_.new()
-	engine.reset(now(), _tz(), _default_hemisphere())
+	engine.reset(now(), _tz(), _default_hemisphere(), 0, look_id)
 	started = true
 	_start_play()
 	_bubble_queue.append(D.LINES.day1[0])
 	_save_game()
+
+## A card with the 8 looks; `done` gets the look id.
+func _pick_look(done: Callable) -> void:
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _card_style())
+	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.name = "LookPicker"
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 12)
+	card.add_child(col)
+	var l := Label.new()
+	l.text = tr("Who washed up?")
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 32)
+	l.add_theme_color_override("font_color", ACCENT)
+	col.add_child(l)
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	var center := CenterContainer.new()
+	center.add_child(grid)
+	col.add_child(center)
+	var vs := get_viewport_rect().size
+	var h := clampf((vs.y - 180.0) / 2.0, 90.0, 240.0)
+	for look_id in Castaway.LOOKS:
+		var b := TextureButton.new()
+		var path := "res://games/wilson/art/chars/%s_idle.webp" % look_id
+		if ResourceLoader.exists(path):
+			b.texture_normal = load(path)
+		b.ignore_texture_size = true
+		b.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		b.custom_minimum_size = Vector2(h * 0.55, h)
+		b.pressed.connect(_on_look_picked.bind(card, look_id, done))
+		grid.add_child(b)
+	add_child(card)
+	if home:
+		move_child(card, home.get_index())
+
+func _on_look_picked(card: Control, look_id: String, done: Callable) -> void:
+	card.queue_free()
+	done.call(look_id)
+
+func _change_look(look_id: String) -> void:
+	engine.look = look_id
+	after_change()
 
 func _continue_game() -> void:
 	engine = Engine_.new()
@@ -372,9 +427,18 @@ func _place_johnny_now() -> void:
 
 func _update_johnny() -> void:
 	var c = world.castaway
+	c.mood = engine.mood
 	if not engine.sleep.is_empty():
 		c.walking = false
-		c.pose = "sleep"
+		var kind := str(engine.sleep.kind)
+		if kind in ["collapse", "faint"]:
+			c.pose = "collapse"
+		elif world.in_hammock():
+			c.pose = "hammock"
+			c.position = D.CAMP.hammock.pos + Vector2(0, 2)
+			return
+		else:
+			c.pose = "sleep"
 		if engine.sleep.bed != "sand":
 			c.position = _bed_spot(str(engine.sleep.bed))
 		return
@@ -389,11 +453,7 @@ func _update_johnny() -> void:
 			c.walk_to(spot)
 		c.pose = "walk"
 		return
-	c.pose = {"chop": "chop", "fish": "fish", "seawater": "work"}.get(a.kind, "work")
-	if a.kind in ["haul", "gather", "shake", "craft", "fuel", "light", "tally", "shore", "inspect"]:
-		c.pose = "work"
-	if a.kind == "inspect":
-		c.pose = "idle"
+	c.pose = {"chop": "chop", "fish": "fish", "shake": "wave", "inspect": "idle", "empty_trap": "work"}.get(a.kind, "work")
 
 func _handle_events(evs: Array) -> void:
 	for e in evs:
@@ -405,14 +465,24 @@ func _handle_events(evs: Array) -> void:
 				var q := D.quest(str(e.id))
 				_show_toast("📜 " + tr("Quest done: %s") % D.quest_name(q))
 				_sfx("win")
+				world.castaway.play_once("wave", 2.0)
 				after_change()
 			"note":
 				_show_note(str(e.text))
 			"shore":
 				_show_toast("🌊 " + tr("Something washed ashore."))
 				after_change()
-			"wake", "sleep", "start", "fail":
+			"wake", "sleep", "start":
 				after_change()
+			"fail", "broke":
+				world.castaway.play_once("facepalm", 2.0)
+				after_change()
+			"eat", "drink":
+				world.castaway.play_once(str(e.type), 1.8)
+			"discover":
+				_show_toast("💡 " + tr("New recipe: %s") % _name(str(D.recipe(str(e.id)).get("out", ""))))
+				world.castaway.play_once("shrug", 2.0)
+				_sfx("record")
 			"low":
 				_sfx("notify")
 
@@ -604,6 +674,7 @@ func _johnny_menu(screen: Vector2) -> void:
 		_opt("nap", ""),
 		[tr("🎒 Bag"), _open_bag, ""],
 		[tr("🔨 Craft"), _open_craft, ""],
+		[tr("👕 Change look"), _pick_look.bind(_change_look), ""],
 	]
 	opts[0][0] = "💤 %s  ·  %s" % [action_label("sleep", bed), _mins_text(engine.sleep_hours_for(bed) * 60.0)]
 	_popup_at(screen, _mood_text(), opts)
@@ -650,6 +721,23 @@ func _structure_menu(id: String, screen: Vector2) -> void:
 					opts.append(_opt("craft", rid))
 		"crafting_stump":
 			opts.append(_opt("tally", ""))
+			for r in engine.craft_list():
+				if r.get("station", "") == "stump":
+					opts.append(_opt("craft", str(r.id)))
+		"rain_catcher", "water_still":
+			var w := int(floor(float(engine.structures[id].get("water", 0.0))))
+			opts.append(["💧 %s  (%d/%d)" % [tr("Drink fresh water"), w, D.WATER_MAX], _drink_from.bind(id), engine.drink_from_block(id)])
+		"fish_trap":
+			opts.append(_opt("empty_trap", ""))
+		"kiln":
+			for r in engine.craft_list():
+				if r.get("station", "") == "kiln":
+					opts.append(_opt("craft", str(r.id)))
+		"garden_plot":
+			_show_toast(tr("Garden plot: no seeds yet. Bottles will bring some."))
+			return
+		"canopy":
+			opts.append(_opt("nap", ""))
 		"hammock", "frond_bed", "frond_shelter", "tent":
 			var bed := id
 			if id in ["tent", "frond_bed"] and engine.bed_available("tent_mattress"):
@@ -711,11 +799,20 @@ func _build_hud() -> void:
 	for k in ["hp", "food", "energy", "water"]:
 		var r := HBoxContainer.new()
 		bars_col.add_child(r)
-		var ic := Label.new()
-		ic.text = BAR_ICONS[k]
-		ic.add_theme_font_size_override("font_size", 16 if k == "water" else 20)
-		ic.custom_minimum_size = Vector2(28, 0)
-		r.add_child(ic)
+		var hud_icon: String = HUD_ART + {"hp": "heart", "food": "food", "energy": "energy", "water": "water"}[k] + ".webp"
+		if ResourceLoader.exists(hud_icon):
+			var ti := TextureRect.new()
+			ti.texture = load(hud_icon)
+			ti.custom_minimum_size = Vector2(28, 22 if k == "water" else 26)
+			ti.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			ti.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			r.add_child(ti)
+		else:
+			var ic := Label.new()
+			ic.text = BAR_ICONS[k]
+			ic.add_theme_font_size_override("font_size", 16 if k == "water" else 20)
+			ic.custom_minimum_size = Vector2(28, 0)
+			r.add_child(ic)
 		var pb := ProgressBar.new()
 		pb.show_percentage = false
 		pb.max_value = 100
@@ -761,9 +858,15 @@ func _build_hud() -> void:
 	btns.add_theme_constant_override("separation", 8)
 	btns.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	top.add_child(btns)
-	for b in [["📓", _open_journal], ["🎒", _open_bag], ["🔨", _open_craft], ["⏸", _pause]]:
+	for b in [["📓", _open_journal, "scroll"], ["🎒", _open_bag, "backpack"], ["🔨", _open_craft, ""], ["⏸", _pause, ""]]:
 		var btn := Button.new()
 		btn.text = b[0]
+		var ip: String = HUD_ART + str(b[2]) + ".webp"
+		if b[2] != "" and ResourceLoader.exists(ip):
+			btn.text = ""
+			btn.icon = load(ip)
+			btn.expand_icon = true
+			btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		btn.custom_minimum_size = Vector2(60, 56)
 		btn.add_theme_font_size_override("font_size", 26)
 		btn.pressed.connect(b[1])
@@ -771,6 +874,7 @@ func _build_hud() -> void:
 	# queue (left, under the bars)
 	_queue_box = VBoxContainer.new()
 	_queue_box.add_theme_constant_override("separation", 4)
+	_queue_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	root.add_child(_queue_box)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -949,7 +1053,7 @@ func _open_panel(title: String) -> VBoxContainer:
 	var x := Button.new()
 	x.text = "✕"
 	x.custom_minimum_size = Vector2(56, 50)
-	x.pressed.connect(_close_panel)
+	x.pressed.connect(_close_panel_x)
 	head.add_child(x)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -965,6 +1069,10 @@ func _open_panel(title: String) -> VBoxContainer:
 	_panel.size = Vector2(vs.x * 0.76, vs.y - 90)
 	return body
 
+func _close_panel_x() -> void:
+	_combine_from = ""
+	_close_panel()
+
 func _close_panel() -> void:
 	if _panel and is_instance_valid(_panel):
 		_panel.queue_free()
@@ -972,6 +1080,16 @@ func _close_panel() -> void:
 
 func _open_bag() -> void:
 	var body := _open_panel("🎒 " + tr("Bag") + "  (%d/%d)" % [engine.slots.size(), engine.capacity()])
+	var hint := Label.new()
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7))
+	if _combine_from != "":
+		hint.text = "🔗 " + tr("Combine %s with... tap a second item.") % D.item_name(_combine_from)
+		hint.add_theme_color_override("font_color", ACCENT)
+	else:
+		hint.text = tr("Tap an item to use it. Drag one onto another to combine them and find new recipes.")
+	body.add_child(hint)
 	if engine.slots.is_empty():
 		var l := Label.new()
 		l.text = tr("Empty. Like my prospects.")
@@ -982,12 +1100,15 @@ func _open_bag() -> void:
 	grid.add_theme_constant_override("v_separation", 8)
 	body.add_child(grid)
 	for s in engine.slots:
-		var b := Button.new()
+		var b := Slot.new()
 		var id: String = s.id
-		b.text = "%s  ×%d" % [D.item_name(id), int(s.n)]
-		b.custom_minimum_size = Vector2(250, 52)
+		b.setup(id, "%s  ×%d%s" % [D.item_name(id), int(s.n), _slot_note(s)])
+		b.custom_minimum_size = Vector2(250, 66)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if id == _combine_from:
+			b.modulate = Color(1.0, 0.85, 0.5)
 		b.pressed.connect(_item_menu.bind(id))
+		b.combined.connect(_combine)
 		grid.add_child(b)
 	if not engine.ground.is_empty():
 		var l := Label.new()
@@ -998,16 +1119,99 @@ func _open_bag() -> void:
 			g.text = "  %s ×%d" % [D.item_name(id), int(engine.ground[id])]
 			body.add_child(g)
 
+## Tool uses left / when food spoils, shown on its slot.
+func _slot_note(s: Dictionary) -> String:
+	var nl := "
+"
+	if D.TOOL_USES.has(str(s.id)):
+		var uses_text := tr("%d uses") % int(s.get("dur", D.TOOL_USES[s.id]))
+		return nl + uses_text
+	var sp := float(s.get("spoil", 0.0))
+	if sp > 0.0:
+		var spoil_text := tr("spoils in %d h") % maxi(0, int(ceil((sp - engine.t) / 3600.0)))
+		return nl + spoil_text
+	return ""
+
+## Tapping a slot: the second pick of a combine, or the item's card.
 func _item_menu(id: String) -> void:
+	if _combine_from != "":
+		var a := _combine_from
+		_combine_from = ""
+		_combine(a, id)
+		return
+	var body := _open_panel(D.item_name(id))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	body.add_child(row)
+	var tex := Slot.icon_of(id)
+	if tex:
+		var tr_ := TextureRect.new()
+		tr_.texture = tex
+		tr_.custom_minimum_size = Vector2(110, 110)
+		tr_.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr_.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(tr_)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 8)
+	row.add_child(col)
+	var info_l := Label.new()
+	info_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var uses := []
+	for r in engine.craft_list():
+		for pair in engine.recipe_parts(r):
+			if str(pair[0]) == id and not _name(str(r.out)) in uses:
+				uses.append(_name(str(r.out)))
+	info_l.text = (tr("Used in: %s") % ", ".join(uses)) if not uses.is_empty() else tr("No known recipe uses it. Yet.")
+	col.add_child(info_l)
 	var f: Dictionary = D.FOOD.get(id, {})
 	if not f.is_empty():
-		_use_item(id)
-	elif id == "bottle_note":
-		_use_item(id)
-	elif id == "seawater":
-		_use_item(id)
+		var b := Button.new()
+		b.text = ("🥥 " + tr("Drink ")) if f.verb == "drink" else ("🍴 " + tr("Eat"))
+		b.pressed.connect(_use_item.bind(id))
+		col.add_child(b)
+	if id in ["bottle_note", "seawater"]:
+		var b := Button.new()
+		b.text = ("🍾 " + tr("Open")) if id == "bottle_note" else ("🥤 " + tr("Drink "))
+		b.pressed.connect(_use_item.bind(id))
+		col.add_child(b)
+	if engine.structures.has("campfire") and D.FUEL_H.has(id):
+		var b := Button.new()
+		b.text = _option_text("fuel", id)
+		b.pressed.connect(_fuel_from_bag.bind(id))
+		col.add_child(b)
+	var c := Button.new()
+	c.text = "🔗 " + tr("Combine with...")
+	c.pressed.connect(_start_combine.bind(id))
+	col.add_child(c)
+	var back := Button.new()
+	back.text = "‹ " + tr("Bag")
+	back.pressed.connect(_open_bag)
+	col.add_child(back)
+
+func _start_combine(id: String) -> void:
+	_combine_from = id
+	_open_bag()
+
+func _fuel_from_bag(id: String) -> void:
+	_try("fuel", id)
+	_open_bag()
+
+## Drag A onto B (or the two-tap combine): finds and queues a recipe that uses both.
+func _combine(a: String, b: String) -> void:
+	_combine_from = ""
+	var res: Dictionary = engine.combine(a, b)
+	_handle_events(engine.pop_events())
+	if not res.ok:
+		_show_toast(tr(str(res.text)))
+		_sfx("invalid")
+	elif not res.queued:
+		var r := D.recipe(str(res.recipe))
+		_show_toast("%s: %s" % [_name(str(r.out)), tr(str(res.text))])
 	else:
-		_show_toast(tr("%s: used for crafting (🔨).") % D.item_name(id))
+		_show_toast("🔨 " + action_label("craft", str(res.recipe)))
+	after_change()
+	_open_bag()
 
 func _use_item(id: String) -> void:
 	var why: String = engine.consume(id)
@@ -1017,6 +1221,14 @@ func _use_item(id: String) -> void:
 	after_change()
 	_open_bag()
 
+func _drink_from(sid: String) -> void:
+	_close_popup()
+	var why: String = engine.drink_from(sid)
+	if why != "":
+		_show_toast(tr(why))
+	_handle_events(engine.pop_events())
+	after_change()
+
 func _open_craft() -> void:
 	var body := _open_panel("🔨 " + tr("Craft"))
 	var list: Array = engine.craft_list()
@@ -1025,6 +1237,12 @@ func _open_craft() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		body.add_child(row)
+		var ic := TextureRect.new()
+		ic.texture = Slot.icon_of(str(r.out))
+		ic.custom_minimum_size = Vector2(48, 48)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(ic)
 		var info_l := Label.new()
 		info_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		info_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1042,11 +1260,24 @@ func _open_craft() -> void:
 		row.add_child(info_l)
 		var b := Button.new()
 		var why: String = engine.craft_block(str(r.id))
-		b.text = "%s · ⚡%d" % [_mins_text(float(r.min)), int(r.en)] if why == "" else tr(why)
+		b.text = "%s · ⚡%d" % [_mins_text(engine.duration_of("craft", str(r.id)) / 60.0), int(r.en)] if why == "" else tr(why)
 		b.disabled = why != ""
 		b.custom_minimum_size = Vector2(220, 50)
 		b.pressed.connect(_craft_from_panel.bind(str(r.id)))
 		row.add_child(b)
+	var hidden: Array = engine.undiscovered()
+	if not hidden.is_empty():
+		var h := Label.new()
+		h.text = "\n" + tr("Still to figure out (%d): drag two of the materials together in the bag.") % hidden.size()
+		h.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		h.add_theme_color_override("font_color", ACCENT)
+		body.add_child(h)
+		hidden.sort_custom(func(a, b): return [int(a.tier), str(a.id)] < [int(b.tier), str(b.id)])
+		for r in hidden:
+			var l := Label.new()
+			var first: String = str(engine.recipe_parts(r)[0][0]) if not engine.recipe_parts(r).is_empty() else ""
+			l.text = "❔ ???  ·  " + tr("tier %d") % int(r.tier) + ("  ·  " + tr("uses %s") % D.item_name(first) if first != "" else "")
+			body.add_child(l)
 
 func _craft_from_panel(rid: String) -> void:
 	_try("craft", rid)
@@ -1054,6 +1285,14 @@ func _craft_from_panel(rid: String) -> void:
 
 func _open_journal() -> void:
 	var body := _open_panel("📓 " + tr("Journal"))
+	var sk := Label.new()
+	sk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sk.add_theme_color_override("font_color", ACCENT)
+	var parts := []
+	for k in D.SKILLS:
+		parts.append("%s %d" % [tr(D.SKILL_NAMES[k]), engine.skill_level(k)])
+	sk.text = "📈 " + "  ·  ".join(parts)
+	body.add_child(sk)
 	var n: int = engine.journal.size()
 	for i in range(n - 1, maxi(-1, n - 80), -1):
 		body.add_child(_journal_line(engine.journal[i]))

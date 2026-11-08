@@ -8,6 +8,9 @@ extends Node2D
 ## CanvasModulate did not light the island on the mobile renderer).
 
 const LIGHT_COLOR := Color("ffb35a")
+## Owner's fire parts (fire3.jpg, cut by tools/wilson_art.py). Pit width on screen, plate pixels.
+const ART := "res://games/wilson/art/fire/"
+const PIT_W := 92.0
 const FLICKER := 0.08
 
 var level := 1.0          # 0..1 fuel
@@ -20,8 +23,12 @@ var _noise := FastNoiseLite.new()
 var _sparks: CPUParticles2D
 var _smoke: CPUParticles2D
 var _ring: Node2D
+var _tex := {}
 
 func _ready() -> void:
+	for n in ["pit_unlit", "pit_embers", "flame_large", "flame_mid", "flame_core", "smoke"]:
+		if ResourceLoader.exists(ART + n + ".webp"):
+			_tex[n] = load(ART + n + ".webp")
 	_noise.frequency = 2.5
 	_noise.seed = randi()
 	_ring = Node2D.new()
@@ -66,6 +73,10 @@ func _ready() -> void:
 	mg.set_color(1, Color(0.7, 0.7, 0.7, 0))
 	_smoke.color_ramp = mg
 	_smoke.show_behind_parent = true
+	if _tex.has("smoke"):
+		_smoke.texture = _tex.smoke
+		_smoke.scale_amount_min = 0.12
+		_smoke.scale_amount_max = 0.2
 	add_child(_smoke)
 
 func _process(dt: float) -> void:
@@ -92,6 +103,8 @@ func glow_radius() -> float:
 	return lerpf(170.0, 300.0, level) * (1.0 + _noise.get_noise_1d(_t * 7.0 + 30.0) * FLICKER)
 
 func _draw_ring() -> void:
+	if _tex.has("pit_unlit"):
+		return  # the pit sprite is drawn in _draw (it changes with the state)
 	# stones around the fire (drawn once)
 	for i in 9:
 		var a := PI + PI * float(i) / 8.0
@@ -105,6 +118,9 @@ func _draw_ring() -> void:
 	_ring.draw_set_transform_matrix(Transform2D.IDENTITY)
 
 func _draw() -> void:
+	if _tex.has("pit_unlit"):
+		_draw_sprites()
+		return
 	if state == "dead":
 		draw_rect(Rect2(-16, -4, 32, 6), Color(0.15, 0.12, 0.1))
 		return
@@ -129,3 +145,35 @@ func _flame(col: Color, w: float, h: float, speed: float, off: float) -> void:
 		pts.append(Vector2(-cos(a) * w * 0.5, sin(a) * w * 0.3 - w * 0.3))
 	pts.append(Vector2(skew * hh, -hh))
 	draw_colored_polygon(pts, col)
+
+## Sprite version: the stone pit (cold or glowing), then three flames from the owner's art with
+## their own sine scale and skew (outer = large, mid, core).
+func _draw_sprites() -> void:
+	var pit: Texture2D = _tex.pit_unlit if state == "dead" else _tex.get("pit_embers", _tex.pit_unlit)
+	var k := PIT_W / float(pit.get_width())
+	var psz := pit.get_size() * k
+	draw_texture_rect(pit, Rect2(Vector2(-psz.x / 2.0, -psz.y * 0.75), psz), false)
+	if state == "embers":
+		var glow := 0.55 + 0.45 * sin(_t * 3.0 + _seed)
+		draw_texture_rect(pit, Rect2(Vector2(-psz.x / 2.0, -psz.y * 0.75), psz), false, Color(1.0, 0.5, 0.3, glow * 0.4))
+	if state != "lit":
+		return
+	var s := lerpf(0.5, 1.0, level)
+	_flame_tex("flame_large", 52.0 * s, 1.7, 0.0, Color(1, 1, 1, 0.92))
+	_flame_tex("flame_mid", 38.0 * s, 2.6, 1.3, Color(1, 1, 1, 0.95))
+	_flame_tex("flame_core", 22.0 * s, 3.7, 2.1, Color(1, 1, 1, 0.95))
+
+func _flame_tex(n: String, w: float, speed: float, off: float, col: Color) -> void:
+	var tex: Texture2D = _tex.get(n)
+	if tex == null:
+		return
+	var k := _t * speed + off + _seed
+	var sy := 1.0 + 0.12 * sin(k) + 0.06 * sin(k * 2.3)
+	var sx := 1.0 - 0.06 * sin(k * 1.3)
+	var skew := 0.16 * sin(k * 0.8) + wind * 0.22
+	var h := w * tex.get_height() / float(tex.get_width())
+	# x' = x + skew * (-y): the tip leans, the base stays put
+	var m := Transform2D(Vector2(sx, 0), Vector2(-skew * sy, sy), Vector2(0, -6))
+	draw_set_transform_matrix(m)
+	draw_texture_rect(tex, Rect2(Vector2(-w / 2.0, -h), Vector2(w, h)), false, col)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
