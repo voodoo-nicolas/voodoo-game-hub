@@ -32,7 +32,7 @@ const STRINGS := {
 		"A note in the coat's right pocket: \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"": "Una nota en el bolsillo derecho del abrigo: «Nos vemos en The Crooked Lantern. El miércoles. A las 10 de la noche. Ven sin compañía.»",
 		"A note, from the coat's right pocket: \"Meet me at The Crooked Lantern. Wednesday. 10 PM. Come alone.\"": "Una nota del bolsillo derecho del abrigo: «Nos vemos en The Crooked Lantern. El miércoles. A las 10 de la noche. Ven sin compañía.»",
 		"A note? Show me.": "¿Una nota? Enséñamela.",
-		"A scarf by the front door hides the marks from people who do not already know.": "Una bufanda junto a la puerta oculta las marcas a quienes todavía no saben nada.",
+		"A scarf on the piano stool hides the marks from people who do not already know.": "Una bufanda en la banqueta del piano oculta las marcas a quienes todavía no saben nada.",
 		"A silver pocket watch from the hidden pocket sewn inside the coat. It ticks, warm and humming. It feels wrong in my hand.": "Un reloj de bolsillo de plata del bolsillo oculto cosido dentro del abrigo. Hace tictac, tibio, vibrando. Se siente mal en la mano.",
 		"A silver pocket watch, ticking in a hidden pocket sewn inside the coat's lining. It is warm and humming, and it feels wrong. I did not tell him.": "Un reloj de bolsillo de plata, haciendo tictac en un bolsillo oculto cosido dentro del forro del abrigo. Está tibio y vibra, y algo en él está mal. No se lo dije.",
 		"A silver pocket watch. It is warm, and it hums against my palm. It feels wrong.": "Un reloj de bolsillo de plata. Está tibio y vibra contra mi palma. Se siente mal.",

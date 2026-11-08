@@ -21,7 +21,7 @@ const HOW := [
 const TIPS := [
 	"Plan your route from shade to shade. The porch, the awnings and the trees are all on the way.",
 	"Inside a house the sun cannot reach you. Your own front door is always open.",
-	"A scarf by the front door hides the marks from people who do not already know.",
+	"A scarf on the piano stool hides the marks from people who do not already know.",
 	"Everyone in the street has something to say. Press A near them.",
 ]
 const STATS := ["Times died", "Clues found"]

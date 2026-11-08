@@ -327,7 +327,8 @@ func _build_house_classic() -> void:
 ## front (y 575..640) of the two partition walls, like the cutaway's open front. In the hall the front door
 ## is in the back wall, the stairs up rise behind the railing at the back right (you take them from the
 ## corner beside the newel post), and the cellar steps go down in the well in front of them to the locked
-## cellar door. The grey scarf hangs on the hall stand by the front door (drawn over the painting).
+## cellar door. The grey scarf lies over the piano stool in the parlour (drawn over the painting; it hung on the
+## hall stand by the front door until 2026-11-08).
 const DN_K := 0.49375
 const DN_ART := "rooms/house_down"
 
@@ -343,7 +344,8 @@ func _build_house_down() -> void:
 	var paint := Vector2(1024, 687) * DN_K
 	bounds = Rect2(-170, -50, paint.x + 340, paint.y + 100)   # wider than the painting: the camera centres on it
 	deco = [{"t": "painting", "art": DN_ART, "rect": Rect2(Vector2.ZERO, paint)},
-		{"t": "item", "kind": "scarf", "pos": _dn(468, 200)}]   # drawn on the hall stand; hidden once taken
+		{"t": "item", "kind": "scarf", "pos": _dn(266, 292)}]   # drawn over the piano stool; hidden once taken
+		# was _dn(468, 200): on the hall stand (owner 2026-11-08: hard to get on some phones; moved to the piano)
 	solids = []
 	# the shell: above the back walls, below the front edge, the slanted side walls in steps
 	for r in [_d(-400, -400, 1900, 690), _d(-400, 640, 1900, 400),
@@ -366,12 +368,14 @@ func _build_house_down() -> void:
 	# "mark": where the gold mission marker sits (on the painted object; "pos" is where you stand to use it)
 	interacts = [
 		{"id": "fireplace", "pos": _dn(195, 450), "r": 45.0 * DN_K, "verb": "look"},
-		{"id": "piano", "pos": _dn(318, 345), "r": 40.0 * DN_K, "verb": "look"},
+		{"id": "piano", "pos": _dn(330, 330), "r": 40.0 * DN_K, "verb": "look"},   # was 318,345: nudged right to leave the stool's front to the scarf
 		{"id": "parlour_books", "pos": _dn(385, 330), "r": 40.0 * DN_K, "verb": "look"},
 		{"id": "front_door", "pos": _dn(512, 312), "r": 34.0 * DN_K, "verb": "door"},
 		# the scarf hangs on the hall stand by the front door (owner 2026-11-06: on the banister behind the
 		# railing it was hard or impossible to get); you take it from the runner in front of the stand
-		{"id": "scarf", "pos": _dn(505, 410), "r": 40.0 * DN_K, "verb": "take", "mark": _dn(468, 215)},
+		# owner 2026-11-08: still hard to get on some phones; now draped over the piano stool, taken from the
+		# floor in front of it (between the armchair and the sofa). Was pos _dn(505, 410), mark _dn(468, 215).
+		{"id": "scarf", "pos": _dn(282, 338), "r": 48.0 * DN_K, "verb": "take", "mark": _dn(266, 305)},
 		{"id": "stairs_up", "pos": _dn(546, 322), "r": 40.0 * DN_K, "verb": "up"},   # was 24: too small to find by thumb (owner 2026-11-04)
 		{"id": "cellar_door", "pos": _dn(635, 580), "r": 40.0 * DN_K, "verb": "door"},
 		{"id": "pantry", "pos": _dn(735, 330), "r": 40.0 * DN_K, "verb": "look"},

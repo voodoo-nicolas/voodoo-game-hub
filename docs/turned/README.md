@@ -24,7 +24,7 @@ Or open the project in the editor and press F6 on `scenes/games/turned/turned.ts
 
 The mouse works on the on-screen buttons too (until the first real touch).
 
-The path of the slice: wake in bed → A (sit up) → A (wipe your face) → the d-pad appears → read the three clues → bathroom mirror → (optional) the scarf by the front door → front door → the street: the sun burns, find shade (porch, awnings, trees) → talk to the man in the grey coat → the alley at the east end gives you B → die in the sun to see the respawn → Esc, then Home and ▶ Resume to reload the autosave.
+The path of the slice: wake in bed → A (sit up) → A (wipe your face) → the d-pad appears → read the three clues → bathroom mirror → (optional) the scarf on the piano stool → front door → the street: the sun burns, find shade (porch, awnings, trees) → talk to the man in the grey coat → the alley at the east end gives you B → die in the sun to see the respawn → Esc, then Home and ▶ Resume to reload the autosave.
 
 ## Test it
 ```bash

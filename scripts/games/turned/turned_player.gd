@@ -93,7 +93,10 @@ func set_rings(detect_px: float, noise_px: float, delta: float, speed: float) ->
 	ring_noise = move_toward(ring_noise, noise_px, speed * 60.0 * delta)
 
 func _draw() -> void:
-	if show_rings and ring_detect > 1.0:
+	if not sneak:
+		ring_detect = 0.0      # owner 2026-11-08: no rings at all while walking; they grow out again on sneak
+		ring_noise = 0.0
+	elif show_rings and ring_detect > 1.0:
 		var rk := 1.0 / maxf(scale.x, 0.01)      # the rings are world distances: not scaled with her
 		draw_arc(Vector2.ZERO, ring_detect * rk, 0.0, TAU, 56, Color(0.8, 0.85, 1.0, 0.18), 1.5 * rk)
 		draw_arc(Vector2.ZERO, ring_noise * rk, 0.0, TAU, 40, Color(Art.AMBER.r, Art.AMBER.g, Art.AMBER.b, 0.3), 1.5 * rk)
