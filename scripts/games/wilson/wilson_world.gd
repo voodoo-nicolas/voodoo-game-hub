@@ -45,7 +45,7 @@ void fragment() {
 	vec2 cell = floor(vec2(UV.x * 300.0, UV.y * 160.0));
 	float h = hash(cell);
 	float tw = pow(max(0.0, sin(TIME * (1.5 + h * 3.0) + h * 40.0)), 24.0);
-	float spark = step(0.985, h) * tw * sea;
+	float spark = step(0.997, h) * tw * sea * 0.6;     // rarer, dimmer (owner, 2026-11-09: the sea mist looked weird)
 	vec3 sc = mix(vec3(1.0, 1.0, 0.92), vec3(0.4, 1.0, 0.95), night);
 	col += sc * spark * mix(0.9, 1.3, night);
 	COLOR = vec4(col, c.a);
@@ -326,7 +326,7 @@ func tick(night: float, sea_amp: float, wind: float) -> void:
 	for f in _foam:
 		var k: float = sin(tt * 0.9 + float(f[2]))
 		f[0].scale = Vector2.ONE * float(f[1]) * (1.0 + 0.04 * k)
-		f[0].modulate.a = 0.5 + 0.04 * k * 4.0 + 0.1 * night
+		f[0].modulate.a = 0.0      # hidden: the pale foam arcs read as ghostly tentacles (owner, 2026-11-09: "the sea mist is weird")
 	for id in _palms:
 		_palms[id].material.set_shader_parameter("wind", wind)
 	if fire:

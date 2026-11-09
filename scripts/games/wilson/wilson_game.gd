@@ -92,6 +92,8 @@ var _clock_taps: Array = []
 var _sync_timer := 0.0
 var _stage_pos := Vector2.ZERO
 var _stage_scale := 1.0
+const CAM_ZOOM := 1.5
+var _cam := Vector2.ZERO          # camera focus (plate pixels)
 var _walk_kind := ""
 var _combine_from := ""   # bag: an item picked with "🔗 Combine", waiting for the second one
 var auto_pause := true    # tools/shot_wilson.gd turns this off (its window loses focus)
@@ -112,7 +114,8 @@ func _build_ui() -> void:
 		"info": info,
 		"accent": ACCENT,
 		"subtitle": "One island. One castaway. Zero rescue.",
-		"logo": _draw_home_logo,
+		# "logo": _draw_home_logo,   (owner, 2026-11-09: the art already has the title, no small image over it)
+		"art_only_title": true,
 		"art": ART,
 		"art_title": [0.0, 0.26],  # "Beached" is painted in the art (landing_logo.webp = landing + the owner's logo)
 		"solo_heading": "🏝 Island",
@@ -435,6 +438,15 @@ func _layout() -> void:
 	var pos := (vs - Vector2(D.W, D.H) * s) / 2.0
 	if vs.x / vs.y >= 1.6:
 		pos.y = minf(0.0, (vs.y - D.H * s) * 0.35)  # keep more of the beach than of the sky
+	# 50 % bigger (owner, 2026-11-09): the camera follows the castaway, clamped to the plate
+	s *= CAM_ZOOM
+	var foc := Vector2(D.W, D.H) / 2.0
+	if world.castaway:
+		foc = world.castaway.position + Vector2(0, -40)
+	_cam = _cam.lerp(foc, 0.15) if _cam != Vector2.ZERO else foc
+	pos = vs / 2.0 - _cam * s
+	pos.x = clampf(pos.x, minf(0.0, vs.x - D.W * s), 0.0)
+	pos.y = clampf(pos.y, minf(0.0, vs.y - D.H * s), 0.0)
 	_stage_pos = pos
 	_stage_scale = s
 	world.position = pos
@@ -505,8 +517,8 @@ func _add_pad() -> void:
 	pad.button_pressed.connect(_on_pad_button)
 	pad.set_state("a", {"sub": tr("USE")})
 	pad.set_state("b", {"sub": tr("BACK")})
-	pad.set_state("x", {"sub": tr("ACT")})
-	pad.set_state("y", {"sub": tr("BAG")})
+	pad.set_state("x", {"sub": tr("BAG")})
+	pad.set_state("y", {"sub": tr("JOBS")})
 	pad.set_state("info", {"icon": "menu"})
 	if _sleep_row:
 		_sleep_row.visible = false
@@ -534,9 +546,9 @@ func _pad_process(dt: float) -> void:
 		_pad_back()
 		if _tut_a:
 			engine.tut_event("ab")
-	if Input.is_action_just_pressed("pad_x") and engine.tut < 0:
+	if Input.is_action_just_pressed("pad_y") and engine.tut < 0:
 		_pad_actions()
-	if Input.is_action_just_pressed("pad_y") and engine.tut_reached("bag"):
+	if Input.is_action_just_pressed("pad_x") and engine.tut_reached("bag"):
 		_close_popup()
 		_open_bag()
 	if Input.is_action_just_pressed("pad_info") and engine.tut_reached("journal"):
@@ -589,11 +601,14 @@ func nearest_interactable(reach: float) -> Dictionary:
 	var c = world.castaway
 	var best := {}
 	var bd := reach
+	var goals := _objective_ids()
 	for it in world.interactables():
 		var d: float = c.position.distance_to(it.probe)
 		var dx: float = it.probe.x - c.position.x
 		if absf(dx) > 8.0 and signf(dx) != c.facing:
 			d *= 1.5      # behind him counts for less
+		if str(it.id) in goals:
+			d *= 0.5      # the current quest target wins over a closer bystander (the barrel next to the dry fronds)
 		if d < bd and str(world.hit(it.probe).type) != "":
 			bd = d
 			best = it
@@ -681,7 +696,15 @@ func _pad_use() -> void:
 		if c.position.y > 515.0:
 			_on_tap(Vector2(c.position.x, 610.0), _stage_pos + Vector2(c.position.x, 560.0) * _stage_scale)
 		else:
-			_johnny_menu(_stage_pos + (c.position + Vector2(0, -60)) * _stage_scale)
+			_show_toast(tr("Nothing close. Walk up to something."))
+		return
+	# A just does the thing: gather a pile, shake a palm (no list)
+	var bid := str(best.id)
+	if bid.begins_with("spot:"):
+		_try("gather", bid.substr(5))
+		return
+	if bid.begins_with("palm:"):
+		_try("shake", bid.substr(5))
 		return
 	_on_tap(best.probe, _stage_pos + (best.probe + Vector2(0, -30)) * _stage_scale)
 
@@ -1068,8 +1091,8 @@ func _johnny_menu(screen: Vector2) -> void:
 		[tr("🧘 Pastimes"), _pastimes_menu.bind("long"), ""],
 	]
 	opts[0][0] = "💤 %s  ·  %s" % [action_label("sleep", bed), _mins_text(engine.sleep_hours_for(bed) * 60.0)]
-	if engine.tut >= 0:       # the opening: collecting, plus the bag / craft once they have appeared
-		opts = [opts[4]]
+	if engine.tut >= 0:       # the opening: no odd jobs yet, just the bag / craft once they have appeared
+		opts = []
 		if engine.tut_reached("bag"):
 			opts.append([tr("🎒 Bag"), _open_bag, ""])
 		if engine.tut_reached("craft"):
@@ -1081,6 +1104,8 @@ func _pastimes_menu(group: String = "long") -> void:
 	var opts := []
 	if group == "quick":
 		for sid in ["stones", "shells", "sticks", "fronds", "dry_fronds", "seaweed"]:
+			if int(engine.stats.get("got:" + str(D.SPOTS[sid].item), 0)) <= 0:
+				continue      # only things he has already picked up: the list grows as he finds more
 			var o: Array = _opt("gather", sid)
 			o[0] = o[0].replace(ICONS["gather"] + " " + action_label("gather", sid), "✋ " + tr("Collect: %s") % D.item_name(str(D.SPOTS[sid].item)) + " (%d)" % int(engine.spots[sid]))
 			opts.append(o)
@@ -1427,7 +1452,7 @@ func _apply_tut() -> void:
 		vis[k] = engine.tut_reached(k)
 	for k in ["a", "b", "bag", "craft", "mood", "clock", "journal", "pause"]:
 		vis[k] = engine.tut_reached(k)
-	vis["x"] = engine.tut < 0
+	vis["jobs"] = engine.tut < 0
 	for k in rows:
 		_bar_rows[k].visible = vis[k]
 	_bars_panel.visible = vis.hp or vis.food or vis.energy or vis.water or vis.mood
@@ -1438,7 +1463,7 @@ func _apply_tut() -> void:
 	if _sleep_row and pad == null:
 		_sleep_row.visible = engine.tut < 0
 	if pad != null and is_instance_valid(pad):
-		var pad_ids := {"a": "a", "b": "b", "x": "x", "y": "bag", "info": "journal", "pause": "pause"}
+		var pad_ids := {"a": "a", "b": "b", "x": "bag", "y": "jobs", "info": "journal", "pause": "pause"}
 		for pid in pad_ids:
 			var show: bool = vis[pad_ids[pid]]
 			if _tut_vis.get(pid, null) == show:

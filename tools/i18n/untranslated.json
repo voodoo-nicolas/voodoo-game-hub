@@ -739,6 +739,9 @@
  "free-tier item '%s' needs a paid-tier ingredient": [
   "scripts\\games\\creation\\creation_engine.gd"
  ],
+ "get the day started": [
+  "scripts\\games\\wilson\\wilson_engine.gd"
+ ],
  "godotengine.org (full licence text and engine third-party notices: Options > Credits & licences)": [
   "scripts\\common\\third_party.gd"
  ],
@@ -820,6 +823,9 @@
  ],
  "studyMs": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "the sea mist is weird": [
+  "scripts\\games\\wilson\\wilson_world.gd"
  ],
  "truncated directory": [
   "scripts\\common\\catalog.gd"

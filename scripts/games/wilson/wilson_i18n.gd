@@ -388,6 +388,7 @@ const STRINGS := {
 		"Not enough yet. It needs sun.": "Todavía no alcanza. Necesita sol.",
 		"Not figured out yet. Combine its materials in the bag.": "Todavía no lo descubriste. Combina sus materiales en el bolso.",
 		"Not known yet.": "Todavía no lo conoces.",
+		"Nothing close. Walk up to something.": "Nada cerca. Acércate a algo.",
 		"Nothing left here. Come back later.": "Acá no queda nada. Vuelve más tarde.",
 		"Nothing on the horizon. A classic.": "Nada en el horizonte. Un clásico.",
 		"Nothing there.": "No hay nada ahí.",
