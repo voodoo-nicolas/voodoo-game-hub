@@ -15,6 +15,7 @@ const D = preload("res://scripts/games/wilson/wilson_data.gd")
 const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
 const Quests = preload("res://scripts/games/wilson/wilson_quests.gd")
 const Projects = preload("res://scripts/games/wilson/wilson_projects.gd")
+const Pastimes = preload("res://scripts/games/wilson/wilson_pastimes.gd")
 
 const SAVE_VERSION := 1
 const STEP := 600.0  # simulation step, seconds
@@ -49,6 +50,7 @@ var discovered: Array = []   # tier 3-4 recipes found by combining (M3)
 var fire_fails := 0
 var catches := 0
 var raw_eaten := 0
+var streak := {"last": -1, "count": 0, "best": 0, "grace_week": -1}
 var dstats := {}             # today's counters (daily quests)
 var dq: Array = []           # today's three daily quest ids
 var dq_done: Array = []
@@ -117,6 +119,7 @@ func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: 
 	dstats = {}
 	dq = []
 	dq_done = []
+	streak = {"last": -1, "count": 0, "best": 0, "grace_week": -1}
 	_was_low = false
 	weather = "clear"
 	weather_auto = false
@@ -167,10 +170,192 @@ func next_hour(h: float, at: float = -1.0) -> float:
 		dh = 24.0
 	return base + dh * 3600.0
 
+# ================================================================ sky events, forecast checks (M4 follow-up)
+
+func is_full_moon(at: float = -1.0) -> bool:
+	return absf(Astro.moon_phase(t if at < 0.0 else at) - 0.5) < D.FULL_MOON_WIDTH
+
+## A rare, bigger storm: a storm spell that the island's seed marks as tropical.
+func is_tropical(at: float = -1.0) -> bool:
+	var x := t if at < 0.0 else at
+	if weather_at(x) != "storm" and weather != "storm":
+		return false
+	return _hf(wseed, int(floor(x / D.WEATHER_BLOCK_S)) + 777) < D.TROPICAL_CHANCE
+
+## A new-moon day the seed makes an eclipse day (the sky dims around noon).
+func is_eclipse_day(day: int = -999999) -> bool:
+	var d := day_index() if day == -999999 else day
+	var ph := Astro.moon_phase(float(d) * 86400.0 + 43200.0 - tz)
+	if ph > 0.03 and ph < 0.97:
+		return false
+	return _hf(wseed, d * 13 + 5) < D.ECLIPSE_CHANCE
+
+## 0..0.7: how much the sun is covered right now (a smooth dip 11:30-13:30 on an eclipse day).
+func eclipse_amount() -> float:
+	if not is_eclipse_day():
+		return 0.0
+	var h := hour()
+	return 0.7 * clampf(1.0 - absf(h - 12.5) / 1.0, 0.0, 1.0)
+
+# ================================================================ login streak (GDD section 12)
+
+func _week_of(day: int) -> int:
+	return int(floor(float(day) / 7.0))
+
+## Called when the player opens the island (not by offline catch-up). Counts a day, forgives one
+## missed day a week (the "grace tide"), pays the calendar day's reward. Returns the day count.
+func checkin() -> int:
+	var today := day_index()
+	var last := int(streak.last)
+	if last == today:
+		return int(streak.count)
+	var gap := today - last
+	var graced := false
+	if last < 0:
+		streak.count = 1
+	elif gap == 1:
+		streak.count = int(streak.count) + 1
+	elif gap == 2 and int(streak.grace_week) != _week_of(today):
+		streak.count = int(streak.count) + 1
+		streak.grace_week = _week_of(today)
+		graced = true
+	else:
+		streak.count = 1
+	streak.last = today
+	streak.best = maxi(int(streak.best), int(streak.count))
+	stats["streak_best"] = int(streak.best)
+	var day_n := (int(streak.count) - 1) % int(D.balance().get("login", {}).get("streak_days", 30)) + 1
+	give_list(D.STREAK_REWARDS.get(day_n, [["stick", 2]]))
+	var bonus := day_n in D.STREAK_BONUS_DAYS
+	if bonus:
+		shore["bonus_rolls"] = int(shore.get("bonus_rolls", 0)) + 1
+	if graced:
+		log_entry("The grace tide: one missed day does not break the streak.")
+	log_entry("Streak day %d. The island noticed you came back.", [int(streak.count)])
+	_check_side()
+	events.append({"type": "streak", "count": int(streak.count), "day": day_n, "bonus": bonus, "graced": graced})
+	return int(streak.count)
+
+# ================================================================ pastimes
+
+## "" when the pastime can start now, else why not.
+func pastime_block(id: String, self_q = null) -> String:
+	var p := Pastimes.get_pastime(id)
+	if p.is_empty():
+		return "No such pastime."
+	for q in queue:
+		if q.kind == "pastime" and q.target == id and not is_same(q, self_q):
+			return "Already queued."
+	var h := hour()
+	var need := str(p.get("needs", ""))
+	if need != "" and count(need) <= 0:
+		return "Needs a %s." % D.item_name(need)
+	if p.has("needs_any"):
+		var any := false
+		for sid in p.needs_any:
+			if structures.has(sid):
+				any = true
+		if not any:
+			return "Nothing to tidy yet."
+	match id:
+		"fan_fire":
+			if not fire_lit():
+				return "The fire is not lit."
+		"stargaze":
+			if is_day():
+				return "Only after dark."
+			if weather in ["rain", "drizzle", "storm", "fog", "overcast"]:
+				return "Too cloudy to see the stars."
+		"yoga":
+			var rise := sunrise_h()
+			if h < rise - 0.5 or h > rise + 1.5:
+				return "Only around sunrise."
+		"crab_race":
+			if not is_day():
+				return "The crabs sleep at night."
+			if weather == "storm":
+				return "No racing in a storm."
+		"sandcastle":
+			if weather in D.RAINY:
+				return "Rain ruins sandcastles."
+		"coconut_friend":
+			if flags.get("coco", false):
+				return "Coco is already your friend."
+			if count("coconut") <= 0:
+				return "Needs a %s." % D.item_name("coconut")
+			if count("charcoal") <= 0 and count("stick") <= 0:
+				return "Needs charcoal or a stick to draw with."
+		"chat":
+			if not flags.get("coco", false):
+				return "You have no coconut friend yet."
+	return ""
+
+func _finish_pastime(id: String) -> void:
+	var p := Pastimes.get_pastime(id)
+	if p.is_empty():
+		return
+	var lines: Array = p.lines
+	var line: String = lines[(int(stats.get("pastime:" + id, 0)) + day_index()) % lines.size()]
+	if p.has("loot"):
+		var table: Array = p.loot.duplicate()
+		if id == "comb" and is_low_tide():
+			table.append(["pearl", 2])
+			table.append(["sea_glass", 8])
+		var got := _roll(table)
+		if got != "":
+			add(got, 1)
+			_xp("foraging", 1)
+			log_entry("%s Found: %s.", ["#" + line, "@" + got])
+			line = ""
+		else:
+			log_entry("%s Nothing found.", ["#" + line])
+			line = ""
+	match id:
+		"coconut_friend":
+			remove("coconut", 1)
+			if count("charcoal") > 0:
+				remove("charcoal", 1)
+			flags["coco"] = true
+		"fan_fire":
+			structures.campfire.fuel_until = maxf(float(structures.campfire.get("fuel_until", 0.0)), t) + 1200.0
+		"skip_stone":
+			var skips := 1 + rng.randi() % 9
+			log_entry("Skipped a stone: %d bounces. A personal best." if skips >= 7 else "Skipped a stone: %d bounces.", [skips])
+			line = ""
+		"crab_race":
+			if rng.randf() < 0.5:
+				bump("crab_win")
+				line = "Won the crab race. My crab was the one that did not run away. That counts."
+				if not "crab_champ" in gags:
+					gags.append("crab_champ")
+		"sandcastle":
+			if not "sandcastle" in decor:
+				decor.append("sandcastle")
+		"draw":
+			if not "sand_portrait" in decor:
+				decor.append("sand_portrait")
+	mood = clampf(mood + float(p.mood), 0.0, 100.0)
+	if line != "":
+		log_entry("%s", ["#" + line])
+	events.append({"type": "pastime", "id": id})
+	bump("pastime:" + id)
+	if id == "stargaze" or id == "yoga":
+		_xp("weather sense", 1)
+
 # ================================================================ Grand Projects
 
 func powered() -> bool:
 	return structures.has("windmill")
+
+## A Grand Project shows on the craft screen once you hold one of its materials (or it is pinned, being
+## built, or built).
+func project_visible(p: Dictionary) -> bool:
+	if structures.has(str(p.key)) or projects.has(str(p.id)) or pinned == str(p.id):
+		return true
+	for m in p.mats:
+		if count(str(m[0])) > 0:
+			return true
+	return false
 
 ## [[id, have, need]] for every material still short.
 func project_missing(id: String) -> Array:
@@ -250,6 +435,15 @@ func _project_done(p: Dictionary) -> void:
 ## Once each morning: the radio, a ship in the spyglass, the lighthouse's bad luck.
 func _project_daily(today: int) -> void:
 	var n := today - start_day
+	if is_eclipse_day(today):
+		bump("eclipse")
+		shore.pile["meteorite_shard"] = int(shore.pile.get("meteorite_shard", 0)) + 1
+		log_entry("An eclipse today. At noon the sky went dark and something shiny fell on the beach.")
+		if not "eclipse_day" in gags:
+			gags.append("eclipse_day")
+	if is_full_moon():
+		mood = clampf(mood + 6.0, 0.0, 100.0)
+		log_entry("Full moon tonight. Everything looks silver. Even the debris.")
 	if structures.has("coconut_radio") and powered():
 		log_entry("%s", ["#" + Projects.BROADCASTS[n % Projects.BROADCASTS.size()]])
 	if structures.has("spyglass_tower"):
@@ -297,6 +491,8 @@ func weather_at(at: float) -> String:
 	return "clear"
 
 func _weather_tick() -> void:
+	if forecast_hours() > 0:
+		flags["fc_cover"] = t + float(forecast_hours()) * 3600.0
 	var low := is_low_tide()
 	if low and not _was_low:
 		bump("low_tides")
@@ -307,7 +503,12 @@ func _weather_tick() -> void:
 	if w == weather:
 		return
 	weather = w
+	if float(flags.get("fc_cover", 0.0)) >= t:
+		bump("forecast_ok")   # the barometer / tower saw this coming
 	bump("wx:" + w)
+	if w == "storm" and is_tropical():
+		bump("tropical")
+		log_entry("A tropical storm. The island is a lot smaller than I thought, and so am I.")
 	var kinds := 0
 	for k in ["rain", "wind", "fog"]:
 		if int(stats.get("wx:" + k, 0)) > 0:
@@ -545,7 +746,8 @@ func _daily() -> void:
 func _shore_delivery() -> void:
 	var drops: Dictionary = D.balance().get("shore_drops", {})
 	var table: Dictionary = drops.get("storm" if weather == "storm" else "normal", {})
-	var rolls := int(table.get("rolls", 3))
+	var rolls := int(table.get("rolls", 3)) + int(shore.get("bonus_rolls", 0)) + (3 if is_tropical() else 0)
+	shore["bonus_rolls"] = 0
 	var weights: Dictionary = table.get("weights", {}).duplicate()
 	if structures.has("shrine"):
 		for r in ["uncommon", "rare", "mythic"]:
@@ -759,17 +961,38 @@ func consume(id: String) -> String:
 	_emit("drank" if verb == "drink" else "ate", {"id": id})
 	return ""
 
+## The next tier 3-4 recipe the player has not found yet ("" = all found), cheapest tier first.
+func _recipe_for_bottle(n: int) -> String:
+	var pool: Array = []
+	for r in D.recipes().values():
+		if int(r.get("tier", 1)) > D.KNOWN_TIERS and not str(r.id) in discovered and not recipe_known(r):
+			pool.append(r)
+	if pool.is_empty():
+		return ""
+	pool.sort_custom(func(a, b): return [int(a.tier), str(a.id)] < [int(b.tier), str(b.id)])
+	return str(pool[0].id)
+
 func open_bottle() -> String:
 	if count("bottle_note") <= 0:
 		return "No bottle."
 	remove("bottle_note", 1)
 	add("bottle", 1)
 	add("paper", 1)
-	var note: String = D.BOTTLE_NOTES[int(shore.bottles) % D.BOTTLE_NOTES.size()]
-	shore.bottles = int(shore.bottles) + 1
+	var n := int(shore.bottles)
+	shore.bottles = n + 1
 	say("bottle")
-	log_entry("A message in a bottle: \"%s\"", ["#" + note])
-	events.append({"type": "note", "text": note})
+	var pal: String = D.BOTTLE_PEN_PALS[n % D.BOTTLE_PEN_PALS.size()]
+	var found := _recipe_for_bottle(n)
+	if n % 3 == 2 and found != "":
+		discovered.append(found)
+		var out := str(D.recipe(found).get("out", found))
+		log_entry("A recipe was written on the back of the note: %s.", ["@" + out])
+		events.append({"type": "note", "text": "A recipe was written on the back of the note: %s.", "args": ["@" + out]})
+		bump("recipe_bottles")
+	else:
+		var note: String = D.BOTTLE_NOTES[n % D.BOTTLE_NOTES.size()]
+		log_entry("A message in a bottle: \"%s\"", ["#" + note])
+		events.append({"type": "note", "text": note})
 	_emit("bottle_opened", {})
 	return ""
 
@@ -935,6 +1158,37 @@ func craft_list() -> Array:
 	var out := []
 	for r in D.recipes().values():
 		if recipe_known(r):
+			out.append(r)
+	return out
+
+## Terraria-style: a recipe shows once the bag holds at least one of its materials (or tools), or
+## once you have made it. Nothing is listed on an empty beach.
+func craft_visible(r: Dictionary) -> bool:
+	if _made(r):
+		return true
+	# the tree: tier 2 opens once two tier-1 things have been made
+	if int(r.get("tier", 1)) >= 2 and made_in_tier(1) < D.TIER2_NEEDS_TIER1:
+		return false
+	for part in recipe_parts(r):
+		if count(str(part[0])) > 0:
+			return true
+	return false
+
+func _made(r: Dictionary) -> bool:
+	return int(stats.get("made:" + str(r.id), 0)) > 0 or structures.has(str(r.get("out", "")))
+
+## How many different recipes of `tier` have been made so far.
+func made_in_tier(tier: int) -> int:
+	var n := 0
+	for r in D.recipes().values():
+		if int(r.get("tier", 1)) == tier and _made(r):
+			n += 1
+	return n
+
+func craft_visible_list() -> Array:
+	var out := []
+	for r in craft_list():
+		if craft_visible(r):
 			out.append(r)
 	return out
 
@@ -1162,6 +1416,8 @@ func action_block(kind: String, target: String, extra: Dictionary = {}, self_q =
 		"shore":
 			if shore.pile.is_empty():
 				return "Nothing washed up yet."
+		"pastime":
+			return pastime_block(target, self_q)
 		"sleep":
 			if not bed_available(target):
 				return "No such bed."
@@ -1175,6 +1431,8 @@ func action_block(kind: String, target: String, extra: Dictionary = {}, self_q =
 	return ""
 
 func _cost(kind: String, target: String) -> float:
+	if kind == "pastime":
+		return float(Pastimes.get_pastime(target).get("energy", 0.0))
 	if kind == "craft":
 		return float(D.recipe(target).get("en", 0))
 	var a: Dictionary = D.ACT.get(kind, {})
@@ -1183,8 +1441,12 @@ func _cost(kind: String, target: String) -> float:
 	return float(a.get("energy", 0.0))
 
 func _minutes(kind: String, target: String) -> float:
+	if kind == "pastime":
+		return float(Pastimes.get_pastime(target).get("min", 10.0))
 	if kind == "craft":
-		return float(D.recipe(target).get("min", 5))
+		var r := D.recipe(target)
+		var m := float(r.get("min", 5))
+		return m * (D.CRAFT_EARLY_MULT if int(r.get("tier", 1)) <= D.KNOWN_TIERS else 1.0)
 	return float(D.ACT.get(kind, {}).get("min", 5.0))
 
 ## Planned duration in seconds if it started now.
@@ -1334,6 +1596,8 @@ func _finish(q: Dictionary) -> void:
 			shore.pile = {}
 			say("shore")
 			log_entry("Hauled in what the sea brought.")
+		"pastime":
+			_finish_pastime(tgt)
 		"inspect":
 			say("cave")
 			log_entry("Listened at the big rock. It sounds hollow.")
@@ -1403,6 +1667,10 @@ func _fish() -> void:
 		say("nothing")
 		log_entry("Fished for a while. Caught nothing but a tan.")
 		return
+	if not is_day() and is_full_moon() and rng.randf() < D.MOON_FISH_CHANCE:
+		id = "pearl"
+		bump("moon_fish")
+		log_entry("Moonlight on the water. Something shiny took the bait.")
 	catches += 1
 	add(id, 1)
 	_xp("fishing", 2)
@@ -1559,7 +1827,7 @@ func to_dict() -> Dictionary:
 		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
 		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked, "discovered": discovered,
 		"fire_fails": fire_fails, "catches": catches, "raw_eaten": raw_eaten, "tallies": tallies,
-		"projects": projects, "pinned": pinned, "dstats": dstats, "dq": dq, "dq_done": dq_done, "weather": weather, "weather_auto": weather_auto, "stats": stats, "side_done": side_done, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
+		"projects": projects, "pinned": pinned, "streak": streak, "dstats": dstats, "dq": dq, "dq_done": dq_done, "weather": weather, "weather_auto": weather_auto, "stats": stats, "side_done": side_done, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
 		"rng_state": str(rng.state), "low": _low,
 	}
 
@@ -1606,6 +1874,7 @@ func from_dict(d: Dictionary) -> bool:
 	stats = d.get("stats", {})
 	projects = d.get("projects", {})
 	dstats = d.get("dstats", {})
+	streak = d.get("streak", streak)
 	dq = d.get("dq", [])
 	dq_done = d.get("dq_done", [])
 	pinned = str(d.get("pinned", ""))

@@ -8,6 +8,7 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 | `wilson_data.gd` | JSON loader (cached) + the game's own tuning: island layout in plate pixels (lanes, palms, debris, spots, camp), action times / costs, food values, fishing table, lines (DIALOGUE.md), quest hints, bottle notes |
 | `wilson_quests.gd` | side quests (S, W, A): data + the counter each watches; engine `bump()` / `_check_side()` |
 | `wilson_projects.gd` | Grand Projects data (12), radio / ship / beacon lines; engine `start_project` / `project_block` / `_projects_tick`, effects read `structures.has(key)`; 🏗 panel in the game |
+| `wilson_pastimes.gd` | odd jobs (5-25 s) + pastimes: data (labels, minutes, loot tables, lines); engine `pastime_block` / `_finish_pastime`; menus "⚡ Odd jobs" / "🧘 Pastimes" in the castaway menu |
 | `wilson_sky.gd` | sun times, keyframe colours, star fade, sun / moon arcs, moon phase (static) |
 | `wilson_engine.gd` | the rules (RefCounted): `advance(to, online)` in 10-min steps; bars + offline floor; queue (`enqueue` / `action_block` / `cancel`, absolute end times); sleep / naps / buffs; fire; crafting (tiers 1-4, `combine` / `discovered`, `recipe_known`), tool wear (`_wear`), spoilage, water structures + fish trap, skills (`skill_level`); weather controller (`weather_at`, `weather_auto`, seeded) + tides (`tide_level`, `is_low_tide`) + barometer `forecast()`; shore delivery; tutorial quests (`_emit` events); journal (`log_entry` args: `@id` item, `%id` debris, `#text` / `~text` sentence); `to_dict` / `from_dict` |
 | `wilson_world.gd` | the island node: plate + sea shader, palms C / D sprites (sway), debris, props, fire, Johnny, foreground waves; `hit(p)` tap targets |
@@ -18,7 +19,7 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 | `wilson_game.gd` | Landing kit, layers (sky -3, world -2 with CanvasModulate, glow -1, HUD), clock (real + debug offset), catch-up, HUD, context menus, bag / craft / journal panels, save, help "⏩ Hurry up" |
 
 ## Tests and tools
-- `godot --headless --path . --script res://tools/test_wilson.gd`: 747 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip). Pure engine, no saves touched.
+- `godot --headless --path . --script res://tools/test_wilson.gd`: 819 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip). Pure engine, no saves touched.
 - `godot --path . --resolution 1280x720 --script res://tools/shot_wilson.gd -- <dir> [en|es]`: screenshots (backs up and restores the save + debug files).
 - `python tools/wilson_art.py [sheets]`: rebuilds `games/wilson/art/` from `D:/dev/Wilson` (reproducible; `sheets` skips the slow plate step). New sheet = anchors (source pixels of each sprite) + `cut_sheet()`.
 
@@ -26,5 +27,6 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 - Timers are absolute timestamps; never tick counters. New actions: `action_block` + `_finish` + `D.ACT` + `_stand_spot` in the game.
 - Engine messages are English templates + args, translated on screen (`format_entry`); every new string through es.json.
 - Single lowercase words are skipped by the i18n extractor: use two words for anything shown (`"wrecked crate"`).
+- Craft list is Terraria-style (`craft_visible`: material held or made before; tier 2 after two tier-1 makes); Grand Projects are inside the craft panel; the focus glow (`world.set_focus`) and the Pad's A share `nearest_interactable`. Streak `checkin()`, sky events `is_eclipse_day` / `is_tropical` / `is_full_moon`, recipe bottles in `open_bottle`.
 - Controls: taps + the shared Pad (stick walks, A uses nearest, B back, X nap, Y sleep); `wilson_game.gd` "the Viral Pad" section; test `tools/test_wilson_pad.gd`.
 - Packs: no autoloads; GameInfo / Music / Sfx guarded.

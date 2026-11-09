@@ -243,20 +243,24 @@ const STATION_STRUCTURE := {"campfire": "campfire", "stump": "crafting_stump", "
 ## Action timings and costs the design leaves open (real minutes; energy from balance.json where it
 ## has a key: haul / chop / fish / craft / explore / walk).
 const ACT := {
-	"haul": {"min": 5.0, "cost": "haul"},
-	"gather": {"min": 3.0, "energy": 2.0},
-	"shake": {"min": 4.0, "energy": 2.0},
-	"chop": {"min": 30.0, "cost": "chop"},
-	"fish": {"min": 15.0, "cost": "fish"},
-	"seawater": {"min": 2.0, "energy": 1.0},
-	"inspect": {"min": 1.0, "energy": 0.0},
-	"fuel": {"min": 1.0, "energy": 0.0},
-	"light": {"min": 3.0, "energy": 2.0},
-	"tally": {"min": 1.0, "energy": 0.0},
-	"shore": {"min": 5.0, "cost": "haul"},
+	# minutes are REAL minutes (0.1 = 6 s). Early actions are quick on purpose (owner, 2026-11-09);
+	# energy is per action, scaled down with the time (the old 10-minute hauls cost 10).
+	"haul": {"min": 0.35, "energy": 2.0},
+	"gather": {"min": 0.2, "energy": 0.5},
+	"shake": {"min": 0.2, "energy": 0.5},
+	"chop": {"min": 6.0, "energy": 6.0},
+	"fish": {"min": 3.0, "energy": 3.0},
+	"seawater": {"min": 0.1, "energy": 0.2},
+	"inspect": {"min": 0.1, "energy": 0.0},
+	"fuel": {"min": 0.1, "energy": 0.0},
+	"light": {"min": 0.25, "energy": 0.5},
+	"tally": {"min": 0.1, "energy": 0.0},
+	"shore": {"min": 0.5, "energy": 1.0},
 	"nap": {"min": 30.0, "energy": 0.0},
-	"empty_trap": {"min": 3.0, "energy": 1.0},
+	"empty_trap": {"min": 0.3, "energy": 0.3},
 }
+## Crafting: tier 1-2 recipes take this fraction of the design's minutes (tiers 3-4 keep theirs).
+const CRAFT_EARLY_MULT := 0.2
 ## What chopping a palm gives (CRAFTING.md: trunk from chopped palms).
 const CHOP_LOOT := [["trunk", 2], ["frond", 6], ["stick", 4]]
 ## Fishing (GDD §5 / QUESTS S19 boot): weights out of 100. The first catch is always a small fish.
@@ -431,3 +435,21 @@ const DESALINATOR_THIRST := 0.4    # thirst drains 60 % slower
 const CELLAR_SLOTS := 20
 const SHRINE_LUCK := 1.1           # uncommon / rare / mythic weights x1.1 on the shore roll
 const TOWER_FORECAST_H := 6
+
+## --- Sky events, streak, curated bottles (2026-11-09) ---
+const TROPICAL_CHANCE := 0.15      # of storm spells, a rare "tropical" one (GDD section 8): 3 extra shore rolls
+const ECLIPSE_CHANCE := 0.35       # of new-moon days
+const FULL_MOON_WIDTH := 0.035     # phase within this of 0.5 = full moon
+const MOON_FISH_CHANCE := 0.2      # a full-moon night catch is a pearl
+## Login streak (balance.json login): rewards by day of the 30-day calendar; 7 / 14 / 28 add a shore roll.
+const STREAK_BONUS_DAYS := [7, 14, 28]
+const STREAK_REWARDS := {
+	1: [["stick", 3]], 2: [["frond", 4]], 3: [["stone", 4]], 4: [["shell", 3]], 5: [["rope", 1]],
+	6: [["seaweed", 3]], 7: [["sea_glass", 1]], 8: [["stick", 4]], 9: [["frond", 5]], 10: [["salt", 2]],
+	11: [["stone", 5]], 12: [["rope", 1]], 13: [["shell", 4]], 14: [["charcoal", 2]], 15: [["stick", 5]],
+	16: [["frond", 6]], 17: [["fish_oil", 1]], 18: [["stone", 6]], 19: [["rope", 2]], 20: [["cloth_scrap", 2]],
+	21: [["sea_glass", 1]], 22: [["stick", 6]], 23: [["frond", 6]], 24: [["nail", 2]], 25: [["rope", 2]],
+	26: [["salt", 3]], 27: [["shell", 5]], 28: [["pearl", 1]], 29: [["plank", 1]], 30: [["amber", 1]],
+}
+const BOTTLE_PEN_PALS := ["Marta (island 4)", "Old Bram", "Someone called Dot", "A very polite gull", "Captain Nobody", "Priya (island 9)"]
+const TIER2_NEEDS_TIER1 := 2       # craft tree: tier-2 recipes appear after two tier-1 things are made

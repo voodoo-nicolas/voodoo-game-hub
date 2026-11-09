@@ -120,8 +120,8 @@ func _draw() -> void:
 		draw_set_transform(Vector2(0, 0), 0.0, Vector2(1.0, 0.3))
 		draw_circle(Vector2.ZERO, sz.x * 0.32, Color(0, 0, 0, 0.2))
 		draw_set_transform_matrix(Transform2D.IDENTITY)
-	# walk frames face left on the sheets: mirror them when walking right (other poses as drawn)
-	var flip := facing > 0.0 and p.begins_with("walk")
+	# walk frames face right on the sheets (checked on the owner's phone 2026-11-09): mirror them when walking left
+	var flip := facing < 0.0 and p.begins_with("walk")
 	var at := Vector2(-sz.x / 2.0, -sz.y + 4.0 * k)
 	if p == "hammock":
 		at = Vector2(-sz.x / 2.0, -sz.y * 0.75)

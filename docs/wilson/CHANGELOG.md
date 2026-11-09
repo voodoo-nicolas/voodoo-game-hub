@@ -1,5 +1,13 @@
 # Beached (wilson) changelog
 
+## 2026-11-09: owner's phone feedback + pastimes, sky events, streak, recipe bottles (pack v7, built, not published)
+- Fixed: walking faced the wrong way (the walk sheets face right; they are mirrored when walking left).
+- Quick start: actions are seconds, not minutes (haul 21 s, gather / shake 12 s, seawater 6 s, fishing 3 min, chopping 6 min, tier 1-2 crafts at 1/5 of the design time); energy per action scaled down with it (chop 6 not 12, haul 2). 12 odd jobs of 5-25 s (search the sand, skip a stone, splash, comb the tideline, catch a crab, dig, fan the fire, tidy, stretch, wave, scan the horizon, rock pools) under "⚡ Odd jobs" in the castaway's menu, 8 longer pastimes under "🧘 Pastimes" (stargaze, sunrise stretch, stare at the horizon, crab race, sandcastle, draw in the sand, coconut friend + chat). Odd jobs and pastimes you cannot do yet (no shovel, no fire) are not listed.
+- Craft tree (Terraria-style): a recipe is listed only when the bag holds one of its materials, or it was made before; tier 2 opens after two tier-1 things are made; craftable ones first. Grand Projects moved into the craft panel (no 🏗 button), shown once you hold one of their materials.
+- A glowing outline on whatever the castaway is facing (within 110 px); the Pad's A uses the same target.
+- Sky events: eclipse days (new moon, seeded; the sky dims, a meteorite shard washes up), tropical storms (rare storm spells, +3 shore rolls), full-moon nights (mood, a pearl when fishing), forecast checks (barometer). Login streak: 30-day calendar with a reward per day, +1 shore roll on days 7 / 14 / 28, one grace tide a week; journal shows the calendar. Curated recipe bottles: every 3rd bottle carries a tier 3-4 recipe.
+- 23 more side quests (W01 W02 W06 W08 W09 W10, A01 A03 A05 A07 A08 A10, B08, L07, L28 ...). Tests: 819 checks.
+
 ## 2026-11-08: the Viral Pad (pack v6)
 - Stick + A B X Y on the shared Pad (`stick_4`): stick walks (the three depth lanes blend into one free strip, `pad_limits`), A uses the nearest thing within 140 px (its tap menu, or the castaway's menu if nothing is near; at the waterline the shallows menu), B closes a menu or cancels the running action, X = nap, Y = sleep, info pill = journal, pause pill = pause. Keyboard: WASD + K L J I (the Pad's defaults), arrows still step. Taps work as before.
 - Apps without the Pad (older than v0.40.0 here) keep taps and the 💤 😴 buttons; with the Pad those buttons are hidden. Pad is APK-side, already in v0.40.0: no app release needed.

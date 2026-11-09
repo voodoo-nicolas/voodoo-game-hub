@@ -20,6 +20,7 @@ const Engine_ = preload("res://scripts/games/wilson/wilson_engine.gd")
 const D = preload("res://scripts/games/wilson/wilson_data.gd")
 const Quests = preload("res://scripts/games/wilson/wilson_quests.gd")
 const Projects = preload("res://scripts/games/wilson/wilson_projects.gd")
+const Pastimes = preload("res://scripts/games/wilson/wilson_pastimes.gd")
 const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
 const World = preload("res://scripts/games/wilson/wilson_world.gd")
 const SkyView = preload("res://scripts/games/wilson/wilson_skyview.gd")
@@ -35,12 +36,13 @@ const ART := "res://games/wilson/art/landing_logo.webp"
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"  # APK-side: packs on older apps keep taps only
 const PAD_SPEED := 170.0       # plate pixels a second at full stick
 const PAD_REACH := 140.0       # how far A looks for something to use
+const FOCUS_REACH := 110.0     # how close he must be for the glow
 const ACCENT := Color("ffb35a")
 ## A gap longer than this between frames (real seconds) is caught up as "away".
 const AWAY_GAP := 4.0
 
 const ICONS := {"haul": "📦", "gather": "✋", "shake": "🌴", "chop": "🪓", "fish": "🎣", "seawater": "🥥",
-	"craft": "🔨", "fuel": "🔥", "light": "🔥", "tally": "✏", "shore": "🌊", "inspect": "👂", "sleep": "💤", "nap": "😴"}
+	"craft": "🔨", "fuel": "🔥", "light": "🔥", "tally": "✏", "shore": "🌊", "inspect": "👂", "sleep": "💤", "nap": "😴", "pastime": "🧘"}
 const BAR_COLORS := {"hp": Color("e0524a"), "food": Color("e8a23a"), "energy": Color("f2d43c"), "water": Color("4ab4e8")}
 const BAR_ICONS := {"hp": "❤", "food": "🐟", "energy": "⚡", "water": "💧"}
 
@@ -207,6 +209,7 @@ func _start_island(name_text: String, look_id: String) -> void:
 	engine = Engine_.new()
 	engine.reset(now(), _tz(), _default_hemisphere(), 0, look_id)
 	engine.cname = name_text
+	engine.checkin()
 	engine.weather_auto = true
 	engine._weather_tick()
 	started = true
@@ -270,6 +273,8 @@ func _continue_game() -> void:
 	started = true
 	_start_play()
 	catch_up(false)
+	engine.checkin()
+	_handle_events(engine.pop_events())
 	if engine.journal.size() > 0:
 		_bubble_queue.append(D.LINES.wake[randi() % D.LINES.wake.size()])
 
@@ -388,6 +393,7 @@ func _process(dt: float) -> void:
 	_update_sky()
 	_update_johnny()
 	_pad_process(dt)
+	_update_focus()
 	_update_bubble()
 
 func after_change() -> void:
@@ -432,6 +438,10 @@ func _update_sky() -> void:
 	if w in ["overcast", "rain", "storm", "fog"]:
 		tint = tint.lerp(Color(0.62, 0.66, 0.72), 0.35)
 	tint.a = 1.0
+	var ecl: float = engine.eclipse_amount()
+	if ecl > 0.0:
+		tint = tint.lerp(Color(0.18, 0.2, 0.3), ecl)
+		tint.a = 1.0
 	_tint.color = tint
 	var night := clampf((0.85 - inten) / 0.5, 0.0, 1.0)
 	var wind: float = {"wind": 1.0, "storm": 1.0, "rain": 0.6, "drizzle": 0.4}.get(w, 0.25)
@@ -529,6 +539,31 @@ func _on_pad_button(id: String) -> void:
 	if id == "pause":
 		_pause()
 
+## The nearest thing in reach, preferring what he is facing: {} when nothing is close.
+func nearest_interactable(reach: float) -> Dictionary:
+	var c = world.castaway
+	var best := {}
+	var bd := reach
+	for it in world.interactables():
+		var d: float = c.position.distance_to(it.probe)
+		var dx: float = it.probe.x - c.position.x
+		if absf(dx) > 8.0 and signf(dx) != c.facing:
+			d *= 1.5      # behind him counts for less
+		if d < bd and str(world.hit(it.probe).type) != "":
+			bd = d
+			best = it
+	return best
+
+## Every frame: the glowing outline on what he is facing (not while busy, asleep or in a menu).
+func _update_focus() -> void:
+	if world == null:
+		return
+	if not engine.sleep.is_empty() or engine.busy() or _panel or _popup or world.castaway.walking:
+		world.set_focus(Rect2())
+		return
+	var it := nearest_interactable(FOCUS_REACH)
+	world.set_focus(it.rect if not it.is_empty() else Rect2())
+
 ## A: the nearest thing within reach is "tapped" (its menu opens, or the haul / shore starts); if
 ## nothing is near, the castaway's own menu.
 func _pad_use() -> void:
@@ -536,13 +571,7 @@ func _pad_use() -> void:
 		_close_popup()
 		return
 	var c = world.castaway
-	var best := {}
-	var bd := PAD_REACH
-	for it in world.interactables():
-		var d: float = c.position.distance_to(it.probe)
-		if d < bd and str(world.hit(it.probe).type) != "":
-			bd = d
-			best = it
+	var best := nearest_interactable(PAD_REACH)
 	if best.is_empty():
 		if c.position.y > 515.0:
 			_on_tap(Vector2(c.position.x, 610.0), _stage_pos + Vector2(c.position.x, 560.0) * _stage_scale)
@@ -580,6 +609,9 @@ func _stand_spot(kind: String, target: String) -> Vector2:
 			return D.SHORE.stand
 		"inspect":
 			return D.CAVE.stand
+		"pastime":
+			var st = Pastimes.get_pastime(target).get("stand", null)
+			return st if st != null else (world.castaway.position if world else D.START_POS)
 		"craft":
 			var r := D.recipe(target)
 			var st: String = str(r.get("station", "hands"))
@@ -645,6 +677,9 @@ func _update_johnny() -> void:
 			c.walk_to(spot)
 		c.pose = "walk"
 		return
+	if a.kind == "pastime":
+		c.pose = str(Pastimes.get_pastime(a.target).get("pose", "sit"))
+		return
 	c.pose = {"chop": "chop", "fish": "fish", "shake": "wave", "inspect": "idle", "empty_trap": "work"}.get(a.kind, "work")
 
 func _handle_events(evs: Array) -> void:
@@ -670,7 +705,12 @@ func _handle_events(evs: Array) -> void:
 				_sfx("win")
 				after_change()
 			"note":
-				_show_note(str(e.text))
+				_show_note(format_entry(e) if e.has("args") else str(e.text))
+			"streak":
+				_show_toast("🔥 " + tr("Streak: day %d") % int(e.count) + ("  ·  " + tr("+1 shore roll") if e.bonus else "") + ("  ·  " + tr("grace tide") if e.graced else ""))
+				_sfx("win")
+			"pastime":
+				after_change()
 			"shore":
 				_show_toast("🌊 " + tr("Something washed ashore."))
 				after_change()
@@ -776,12 +816,17 @@ func _try(kind: String, target: String, extra: Dictionary = {}) -> void:
 func _option_text(kind: String, target: String) -> String:
 	var mins: float = engine.duration_of(kind, target) / 60.0
 	var en: float = engine.energy_cost(kind, target)
-	var s := "%s %s  ·  %s" % [ICONS.get(kind, "•"), action_label(kind, target), _mins_text(mins)]
-	if en > 0.0:
-		s += "  ·  ⚡%d" % int(en)
+	var icon: String = ICONS.get(kind, "•")
+	if kind == "pastime":
+		icon = str(Pastimes.get_pastime(target).get("icon", icon))
+	var s := "%s %s  ·  %s" % [icon, action_label(kind, target), _mins_text(mins)]
+	if en >= 0.95:
+		s += "  ·  ⚡%d" % int(round(en))
 	return s
 
 func _mins_text(m: float) -> String:
+	if m < 0.99:
+		return tr("%d s") % int(round(m * 60.0))
 	if m >= 60.0:
 		return tr("%d h %02d min") % [int(m / 60.0), int(m) % 60]
 	return tr("%d min") % int(ceil(m))
@@ -817,6 +862,8 @@ func action_label(kind: String, target: String) -> String:
 			return tr("Sleep: %s") % _name(target)
 		"nap":
 			return tr("Power nap")
+		"pastime":
+			return tr(str(Pastimes.get_pastime(target).get("en", target)))
 	return kind
 
 func _name(id: String) -> String:
@@ -834,7 +881,15 @@ func _popup_at(screen: Vector2, title: String, options: Array) -> void:
 	_popup.add_theme_stylebox_override("panel", _card_style())
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
-	_popup.add_child(col)
+	if options.size() > 7:
+		var sc := ScrollContainer.new()
+		sc.custom_minimum_size = Vector2(430, minf(float(options.size()) * 52.0, get_viewport_rect().size.y * 0.55))
+		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_popup.add_child(sc)
+		sc.add_child(col)
+	else:
+		_popup.add_child(col)
 	var l := Label.new()
 	l.text = title
 	l.add_theme_color_override("font_color", ACCENT)
@@ -876,11 +931,24 @@ func _johnny_menu(screen: Vector2) -> void:
 		_opt("nap", ""),
 		[tr("🎒 Bag"), _open_bag, ""],
 		[tr("🔨 Craft"), _open_craft, ""],
+		[tr("⚡ Odd jobs"), _pastimes_menu.bind("quick"), ""],
+		[tr("🧘 Pastimes"), _pastimes_menu.bind("long"), ""],
 		[tr("👕 Change look"), _pick_look.bind(_change_look), ""],
 		[tr("✏ Change name"), _ask_name.bind(_change_name, engine.cname), ""],
 	]
 	opts[0][0] = "💤 %s  ·  %s" % [action_label("sleep", bed), _mins_text(engine.sleep_hours_for(bed) * 60.0)]
 	_popup_at(screen, "%s  ·  %s" % [castaway_name(), _mood_text()], opts)
+
+## 🧘 Pastimes: small things for the mood (wilson_pastimes.gd). Greyed out ones say why.
+func _pastimes_menu(group: String = "long") -> void:
+	var opts := []
+	for p in Pastimes.group_list(group):
+		var why: String = engine.action_block("pastime", str(p.id))
+		if why.begins_with("Needs") or why in ["Nothing to tidy yet.", "The fire is not lit.", "You have no coconut friend yet.", "Coco is already your friend."]:
+			continue   # not even possible yet: it is not listed (the menu stays short)
+		opts.append(_opt("pastime", str(p.id)))
+	var c = world.castaway
+	_popup_at(_stage_pos + (c.position + Vector2(0, -60)) * _stage_scale, tr("Odd jobs") if group == "quick" else tr("Pastimes"), opts)
 
 func _spot_menu(id: String, screen: Vector2) -> void:
 	var s: Dictionary = D.SPOTS[id]
@@ -1069,7 +1137,7 @@ func _build_hud() -> void:
 	btns.add_theme_constant_override("separation", 8)
 	btns.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	top.add_child(btns)
-	for b in [["📓", _open_journal, "scroll"], ["🎒", _open_bag, "backpack"], ["🔨", _open_craft, ""], ["🏗", _open_projects, ""], ["⏸", _pause, ""]]:
+	for b in [["📓", _open_journal, "scroll"], ["🎒", _open_bag, "backpack"], ["🔨", _open_craft, ""], ["⏸", _pause, ""]]:
 		var btn := Button.new()
 		btn.text = b[0]
 		var ip: String = HUD_ART + str(b[2]) + ".webp"
@@ -1454,8 +1522,8 @@ func _drink_from(sid: String) -> void:
 
 func _open_craft() -> void:
 	var body := _open_panel("🔨 " + tr("Craft"))
-	var list: Array = engine.craft_list()
-	list.sort_custom(func(a, b): return [int(a.tier), str(a.id)] < [int(b.tier), str(b.id)])
+	var list: Array = engine.craft_visible_list()
+	list.sort_custom(func(a, b): return [0 if engine.craft_block(str(a.id)) == "" else 1, int(a.tier), str(a.id)] < [0 if engine.craft_block(str(b.id)) == "" else 1, int(b.tier), str(b.id)])
 	for r in list:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
@@ -1488,37 +1556,32 @@ func _open_craft() -> void:
 		b.custom_minimum_size = Vector2(220, 50)
 		b.pressed.connect(_craft_from_panel.bind(str(r.id)))
 		row.add_child(b)
-	var hidden: Array = engine.undiscovered()
-	if not hidden.is_empty():
-		var h := Label.new()
-		h.text = "\n" + tr("Still to figure out (%d): drag two of the materials together in the bag.") % hidden.size()
-		h.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		h.add_theme_color_override("font_color", ACCENT)
-		body.add_child(h)
-		hidden.sort_custom(func(a, b): return [int(a.tier), str(a.id)] < [int(b.tier), str(b.id)])
-		for r in hidden:
-			var l := Label.new()
-			var first: String = str(engine.recipe_parts(r)[0][0]) if not engine.recipe_parts(r).is_empty() else ""
-			l.text = "❔ ???  ·  " + tr("tier %d") % int(r.tier) + ("  ·  " + tr("uses %s") % D.item_name(first) if first != "" else "")
-			body.add_child(l)
+	if list.is_empty():
+		var none := Label.new()
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		none.text = tr("Nothing to make yet. Gather, salvage or search for something and ideas will appear here.")
+		body.add_child(none)
+	# Grand Projects: only the ones you hold a material for (or pinned / building / built)
+	var shown := 0
+	for pr in Projects.LIST:
+		if engine.project_visible(pr):
+			if shown == 0:
+				var ph := Label.new()
+				ph.text = "\n🏗 " + tr("Grand Projects")
+				ph.add_theme_color_override("font_color", ACCENT)
+				body.add_child(ph)
+			_project_card(body, pr)
+			shown += 1
+	var more := Label.new()
+	more.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	more.add_theme_font_size_override("font_size", 16)
+	more.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
+	more.text = "\n" + tr("More ideas show up as you find materials. Drag two materials together in the bag to discover recipes.")
+	body.add_child(more)
 
 func _craft_from_panel(rid: String) -> void:
 	_try("craft", rid)
 	_open_craft()
-
-## 🏗 Grand Projects: the wishlist. Pin one to see what is missing and where it tends to come from.
-func _open_projects() -> void:
-	var body := _open_panel("🏗 " + tr("Grand Projects"))
-	var intro := Label.new()
-	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	intro.add_theme_font_size_override("font_size", 18)
-	intro.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7))
-	intro.text = tr("Save rare things for weeks, then build something absurd. Never required. One build at a time.")
-	body.add_child(intro)
-	var order: Array = Projects.LIST.duplicate()
-	order.sort_custom(func(a, b): return (0 if a.id == engine.pinned else 1) < (0 if b.id == engine.pinned else 1))
-	for p in order:
-		_project_card(body, p)
 
 func _project_card(body: VBoxContainer, p: Dictionary) -> void:
 	var id: String = p.id
@@ -1597,12 +1660,12 @@ func _on_project_build(id: String) -> void:
 		_show_toast("🏗 " + tr("Building: %s") % Projects.project_name(Projects.get_project(id)))
 	_handle_events(engine.pop_events())
 	after_change()
-	_open_projects()
+	_open_craft()
 
 func _on_project_pin(id: String) -> void:
 	engine.pinned = "" if engine.pinned == id else id
 	_save_game()
-	_open_projects()
+	_open_craft()
 
 func _open_journal() -> void:
 	var body := _open_panel("📓 " + tr("%s's journal") % castaway_name())
@@ -1615,6 +1678,7 @@ func _open_journal() -> void:
 	sk.text = "📈 " + "  ·  ".join(parts)
 	body.add_child(sk)
 	body.add_child(_sea_report())
+	body.add_child(_streak_label())
 	var dh := Label.new()
 	dh.text = "☀ " + tr("Today") + "  %d/%d" % [engine.dq_done.size(), engine.dq.size()]
 	dh.add_theme_color_override("font_color", ACCENT)
@@ -1650,6 +1714,22 @@ func _open_journal() -> void:
 		var l := Label.new()
 		l.text = "\n" + tr("Quests done:") + " " + ", ".join(engine.quests_done)
 		body.add_child(l)
+
+## 🔥 The 30-day calendar: filled days so far this lap, the best streak.
+func _streak_label() -> Label:
+	var l := Label.new()
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var cnt: int = int(engine.streak.count)
+	var lap := 30
+	var filled := (cnt - 1) % lap + 1 if cnt > 0 else 0
+	var cells := ""
+	for i in lap:
+		cells += "●" if i < filled else "○"
+		if i % 10 == 9 and i < lap - 1:
+			cells += "\n"
+	l.text = "🔥 %s: %d  ·  %s %d\n%s" % [tr("Streak"), cnt, tr("best"), int(engine.streak.best), cells]
+	l.add_theme_color_override("font_color", Color(1.0, 0.8, 0.5))
+	return l
 
 ## Tides and (with a barometer) the weather ahead, for the journal panel.
 func _sea_report() -> Label:

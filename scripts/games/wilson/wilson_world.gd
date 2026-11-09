@@ -104,6 +104,8 @@ var castaway                 # Castaway node
 var fire                     # Fire node (only once built)
 var waves: ColorRect
 var surf: ColorRect
+var focus_rect := Rect2()
+var _focus_node: Node2D
 var _surf_mat: ShaderMaterial
 var _foam: Array = []        # [Sprite2D, base_scale, phase]
 var _sea_mat: ShaderMaterial
@@ -148,6 +150,10 @@ func setup(e) -> void:
 	sorted = Node2D.new()
 	sorted.y_sort_enabled = true
 	add_child(sorted)
+	_focus_node = Node2D.new()
+	_focus_node.z_index = 30
+	add_child(_focus_node)
+	_focus_node.draw.connect(_draw_focus)
 	var sway := Shader.new()
 	sway.code = SWAY_SHADER
 	var palm_origin := {"C": Vector2(1048, 140), "D": Vector2(1196, 232)}
@@ -283,6 +289,8 @@ func in_hammock() -> bool:
 
 ## Every frame: sea motion from the weather, fire state, night glints.
 func tick(night: float, sea_amp: float, wind: float) -> void:
+	if _focus_node and focus_rect.size != Vector2.ZERO:
+		_focus_node.queue_redraw()
 	_sea_mat.set_shader_parameter("amp", sea_amp)
 	_sea_mat.set_shader_parameter("night", night)
 	_wave_mat.set_shader_parameter("amp", sea_amp)
@@ -342,26 +350,51 @@ func hit(p: Vector2) -> Dictionary:
 		return {"type": "shallows"}
 	return {"type": ""}
 
-## Everything the Pad's A button can use: [{"probe": plate point that world.hit() maps to it, "id": text}].
+## Everything the castaway can use: [{"probe": plate point that hit() maps to it, "id": text, "rect": its box}].
 func interactables() -> Array:
 	var out: Array = []
 	for id in _debris:
 		var s: Sprite2D = _debris[id]
 		if s.visible and s.texture:
-			out.append({"probe": s.position + s.offset * s.scale, "id": "debris:" + str(id)})
+			var sz := s.texture.get_size() * s.scale
+			var c := s.position + s.offset * s.scale
+			out.append({"probe": c, "id": "debris:" + str(id), "rect": Rect2(c - sz / 2.0, sz)})
 	for id in D.SPOTS:
-		out.append({"probe": D.SPOTS[id].pos, "id": "spot:" + str(id)})
+		var sp: Vector2 = D.SPOTS[id].pos
+		out.append({"probe": sp, "id": "spot:" + str(id), "rect": Rect2(sp + Vector2(-34, -26), Vector2(68, 44))})
 	for id in D.PALMS:
-		if _palms.has(id) and not _palms[id].visible and not D.PALMS[id].choppable:
-			continue
 		var pm: Dictionary = D.PALMS[id]
-		out.append({"probe": Vector2(pm.pos.x, pm.pos.y - 20.0), "id": "palm:" + str(id)})
+		var top: Vector2 = pm.top
+		var base: Vector2 = pm.pos
+		out.append({"probe": Vector2(base.x, base.y - 20.0), "id": "palm:" + str(id),
+			"rect": Rect2(Vector2(minf(top.x, base.x) - 26, top.y - 30), Vector2(absf(top.x - base.x) + 52, base.y - top.y + 40))})
 	for id in _props:
-		out.append({"probe": D.CAMP[id].pos + Vector2(0, -10), "id": "structure:" + str(id)})
+		var pr = _props[id]
+		var pos: Vector2 = D.CAMP[id].pos
+		var r := Rect2(pos + Vector2(-50, -60), Vector2(100, 70))
+		if pr is Node2D and "tex" in pr and pr.tex:
+			var sz: Vector2 = pr.tex.get_size() * (float(pr.tex_w) / float(pr.tex.get_width()))
+			r = Rect2(pos + Vector2(-sz.x / 2.0, -sz.y - float(pr.tex_lift)), sz)
+		out.append({"probe": pos + Vector2(0, -10), "id": "structure:" + str(id), "rect": r})
 	if _shore and _shore.visible:
-		out.append({"probe": D.SHORE.pos, "id": "shore"})
-	out.append({"probe": D.CAVE.pos + Vector2(0, -20), "id": "cave"})
+		out.append({"probe": D.SHORE.pos, "id": "shore", "rect": Rect2(D.SHORE.pos + Vector2(-40, -36), Vector2(80, 50))})
+	out.append({"probe": D.CAVE.pos + Vector2(0, -20), "id": "cave", "rect": Rect2(D.CAVE.pos + Vector2(-80, -110), Vector2(170, 150))})
 	return out
+
+## The glowing outline round whatever the castaway is facing (an empty rect = none).
+func set_focus(r: Rect2) -> void:
+	if r == focus_rect:
+		return
+	focus_rect = r
+	if _focus_node:
+		_focus_node.queue_redraw()
+
+func _draw_focus() -> void:
+	if focus_rect.size == Vector2.ZERO:
+		return
+	var k := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
+	for i in 4:
+		_focus_node.draw_rect(focus_rect.grow(2.0 + i * 3.0), Color(1.0, 0.88, 0.35, (0.85 - i * 0.18) * (0.6 + 0.4 * k)), false, 4.0)
 
 ## Nearest walkable point to `p` (snapped to a depth lane).
 static func walk_point(p: Vector2) -> Vector2:

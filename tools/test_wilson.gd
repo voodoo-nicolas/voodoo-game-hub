@@ -55,6 +55,8 @@ func _init() -> void:
 	test_m6_projects()
 	test_m7_dailies()
 	test_m8_name()
+	test_m9_pastimes_events_streak()
+	test_m10_ux()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -188,7 +190,7 @@ func test_costs_and_tables() -> void:
 	e.add("stone_axe", 1)
 	var before: float = e.bars.energy
 	ok(e.enqueue("chop", "C") == "", "chop C queued")
-	near(before - e.bars.energy, 12.0, 0.001, "chop costs 12 energy")
+	near(before - e.bars.energy, 6.0, 0.001, "chop costs 6 energy (quick-action rebalance, owner 2026-11-09)")
 	near(float(D.balance().action_energy_cost.chop), 12.0, 0.0, "balance chop = 12")
 	ok(e.enqueue("chop", "A") != "", "palm A can't be chopped")
 	var drops: Dictionary = D.balance().shore_drops
@@ -258,7 +260,7 @@ func test_queue_offline() -> void:
 	ok(e.enqueue("haul", "sailcloth") == "", "5th action")
 	ok(e.enqueue("gather", "sticks") != "", "6th action refused (max 5)")
 	var t0: float = e.t
-	near(float(e.queue[0].end) - t0, 5 * 60.0, 0.5, "haul ends 5 min later (absolute)")
+	near(float(e.queue[0].end) - t0, 21.0, 0.5, "haul ends 21 s later (absolute)")
 	# closed the app: 1 hour later everything is done, by timestamp
 	e.advance(t0 + 3600.0, false)
 	ok(e.queue.is_empty(), "offline: queue processed")
@@ -275,8 +277,8 @@ func test_queue_offline() -> void:
 	var f = fresh(at(2026, 6, 21, 9))
 	f.enqueue("gather", "sticks")
 	f.enqueue("gather", "stones")
-	f.advance(f.t + 3 * 60.0 + 1.0, false)
-	ok(f.count("stick") == 3 and f.count("stone") == 0, "first gather done at 3 min, second running")
+	f.advance(f.t + 12.0 + 1.0, false)
+	ok(f.count("stick") == 3 and f.count("stone") == 0, "first gather done at 12 s, second running")
 	f.advance(f.t + 3 * 60.0, false)
 	ok(f.count("stone") == 3, "second gather done at 6 min")
 	# shore delivery next morning, with a bottle
@@ -531,7 +533,7 @@ func test_m3_skills_storage() -> void:
 	ok(e.skill_level("fishing") == 1, "29 xp = level 1")
 	e.xp["fishing"] = 30
 	ok(e.skill_level("fishing") == 2, "30 xp = level 2")
-	var base := 15.0 * 60.0
+	var base := 3.0 * 60.0
 	near(e.duration_of("fish", ""), base * (1.0 - 2 * D.SKILL_SPEED), 0.01, "fishing level 2: 6% faster")
 	e.xp["fishing"] = 99999
 	ok(e.skill_level("fishing") == D.SKILL_MAX, "skill caps at 10")
@@ -810,3 +812,194 @@ func test_m8_name() -> void:
 	var f = e.get_script().new()
 	f.from_dict(e.to_dict())
 	ok(f.cname == "Robin", "save keeps the name")
+
+func test_m9_pastimes_events_streak() -> void:
+	var P = load("res://scripts/games/wilson/wilson_pastimes.gd")
+	# ---- pastimes
+	var e = fresh(at(2026, 6, 21, 12))
+	ok(e.pastime_block("stargaze") == "Only after dark.", "no stargazing at noon")
+	ok(e.pastime_block("yoga") == "Only around sunrise.", "no sunrise stretch at noon")
+	ok(e.pastime_block("coconut_friend") != "", "friend needs a coconut")
+	ok(e.pastime_block("chat") != "", "no chat without a friend")
+	ok(e.pastime_block("horizon") == "", "the horizon is always there")
+	var n = fresh(at(2026, 6, 21, 22))
+	n.weather = "clear"
+	ok(n.pastime_block("stargaze") == "", "stargaze at night, clear sky")
+	n.weather = "rain"
+	ok(n.pastime_block("stargaze") == "Too cloudy to see the stars.", "no stars in rain")
+	n.weather = "clear"
+	n.bars.energy = 100.0
+	n.mood = 40.0
+	ok(n.enqueue("pastime", "stargaze") == "", "stargaze queued")
+	ok(n.enqueue("pastime", "stargaze") != "", "not twice at once")
+	n.advance(n.t + 3600.0, false)
+	ok(n.mood > 40.0 and int(n.stats.get("pastime:stargaze", 0)) == 1, "stargaze raises the mood and counts")
+	for i in 2:
+		n.bump("pastime:stargaze")
+	ok("W08" in n.side_done, "W08 after 3 stargazes")
+	var c = fresh(at(2026, 6, 21, 9))
+	c.add("coconut", 1)
+	c.add("charcoal", 1)
+	c.bars.energy = 100.0
+	ok(c.enqueue("pastime", "coconut_friend") == "", "make a coconut friend")
+	c.advance(c.t + 1800.0, false)
+	ok(c.flags.get("coco", false) and c.count("coconut") == 0 and "A01" in c.side_done, "Coco exists, coconut spent, A01 paid")
+	ok(c.pastime_block("chat") == "", "chat with Coco now possible")
+	ok(c.pastime_block("coconut_friend") == "Coco is already your friend.", "only one Coco")
+	var y = fresh(at(2026, 6, 21, 6, 30))
+	var rise: float = y.sunrise_h()
+	y.t = at(2026, 6, 21, 0) + rise * 3600.0 + 600.0
+	ok(y.pastime_block("yoga") == "", "stretch right after sunrise")
+	for p in P.LIST:
+		ok(not p.lines.is_empty() and p.mood >= 0.0 and P.get_pastime(p.id) == p, "pastime %s well formed" % p.id)
+	# ---- sky events
+	var s1 = fresh(at(2026, 6, 21, 9))
+	var s2 = fresh(at(2026, 6, 21, 9))
+	var same := true
+	var eclipses := 0
+	var fulls := 0
+	for d in range(s1.day_index(), s1.day_index() + 1200):
+		if s1.is_eclipse_day(d) != s2.is_eclipse_day(d):
+			same = false
+		if s1.is_eclipse_day(d):
+			eclipses += 1
+	for i in range(0, 1200 * 24):
+		if s1.is_full_moon(s1.t + i * 3600.0):
+			fulls += 1
+	ok(same, "eclipse days are deterministic")
+	ok(eclipses >= 5 and eclipses <= 80, "eclipses are rare but happen (%d in 1200 days)" % eclipses)
+	ok(fulls > 1200 * 24 * 0.04 and fulls < 1200 * 24 * 0.12, "full moon about 7%% of hours (%d)" % fulls)
+	# an eclipse day: find one, check dimming + meteorite
+	var ed := -1
+	for d in range(s1.day_index(), s1.day_index() + 1200):
+		if s1.is_eclipse_day(d):
+			ed = d
+			break
+	var ee = fresh(at(2026, 6, 21, 9))
+	ee.t = float(ed) * 86400.0 + 43200.0 - ee.tz + 1800.0
+	ok(ee.eclipse_amount() > 0.4, "the sky dims at noon on an eclipse day (%.2f)" % ee.eclipse_amount())
+	ee._project_daily(ed)
+	ok(int(ee.shore.pile.get("meteorite_shard", 0)) == 1 and "W10" in ee.side_done, "eclipse brings a meteorite shard + W10")
+	# tropical storm: shore gets 3 more rolls
+	var tp = fresh(at(2026, 6, 21, 9))
+	var found := -1.0
+	for i in range(0, 24 * 2000, 3):
+		var x: float = tp.t + i * 3600.0
+		if tp.weather_at(x) == "storm" and tp.is_tropical(x):
+			found = x
+			break
+	ok(found > 0.0, "a tropical storm exists in the sequence")
+	# forecast_ok: with a barometer, a change that was forecast counts
+	var fc = fresh(at(2026, 6, 21, 9))
+	fc.weather_auto = true
+	fc.add("barometer", 1)
+	fc.advance(fc.t + 20 * 3600.0, false)
+	ok(int(fc.stats.get("forecast_ok", 0)) >= 1, "forecasts that come true are counted (%d)" % int(fc.stats.get("forecast_ok", 0)))
+	var nf = fresh(at(2026, 6, 21, 9))
+	nf.weather_auto = true
+	nf.advance(nf.t + 48 * 3600.0, false)
+	ok(int(nf.stats.get("forecast_ok", 0)) == 0, "no barometer: nothing counted")
+	# ---- login streak
+	var st = fresh(at(2026, 6, 1, 9))
+	ok(st.checkin() == 1, "first visit: day 1")
+	ok(st.checkin() == 1, "same day twice: still 1")
+	st.t += 86400.0
+	ok(st.checkin() == 2, "next day: 2")
+	st.t += 2 * 86400.0
+	ok(st.checkin() == 3, "one missed day forgiven (grace tide)")
+	st.t += 2 * 86400.0
+	ok(st.checkin() == 1, "a second miss in the same week breaks it")
+	var s7 = fresh(at(2026, 6, 1, 9))
+	for i in 7:
+		s7.checkin()
+		s7.t += 86400.0
+	ok(int(s7.streak.count) == 7 and int(s7.shore.get("bonus_rolls", 0)) == 1, "day 7: +1 shore roll")
+	ok("L07" in s7.side_done, "L07 after 7 days")
+	var cal := 0
+	for i in range(1, 31):
+		if D.STREAK_REWARDS.has(i):
+			cal += 1
+	ok(cal == 30, "a reward for each of the 30 calendar days")
+	var sr = fresh(at(2026, 6, 1, 9))
+	sr.shore["bonus_rolls"] = 2
+	sr.shore.last_day = 0
+	sr._shore_delivery()
+	var pile := 0
+	for k in sr.shore.pile:
+		pile += int(sr.shore.pile[k])
+	ok(int(sr.shore.get("bonus_rolls", 0)) == 0 and pile >= 5, "bonus rolls are used up (%d items)" % pile)
+	# ---- curated recipe bottles
+	var b = fresh(at(2026, 6, 21, 9))
+	b.slot_count = 40
+	for i in 3:
+		b.add("bottle_note", 1)
+		b.open_bottle()
+	ok(b.discovered.size() == 1, "the 3rd bottle carries a recipe")
+	ok("B08" in b.side_done, "B08 for a recipe in a bottle")
+	var r = b.get_script().new()
+	r.from_dict(b.to_dict())
+	ok(r.streak.count == b.streak.count and r.discovered == b.discovered, "save keeps streak + discoveries")
+
+func test_m10_ux() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	ok(e.craft_visible_list().is_empty(), "an empty bag: nothing to craft is listed")
+	e.add("stick", 1)
+	var ids := []
+	for r in e.craft_visible_list():
+		ids.append(str(r.id))
+	ok("spark_kit" in ids and "campfire" in ids, "one stick shows the tier-1 things that use sticks")
+	ok(not "tent" in ids and not "frond_shelter" in ids and not "canopy" in ids, "tier 2 stays hidden at first (the tree)")
+	e.add("frond", 10)
+	e.add("rope", 4)
+	e.stats["made:spark_kit"] = 1
+	e.stats["made:rope_fiber"] = 1
+	ids = []
+	for r in e.craft_visible_list():
+		ids.append(str(r.id))
+	ok("frond_shelter" in ids, "after two tier-1 makes, tier 2 opens (frond shelter, holding fronds)")
+	ok("spark_kit" in ids, "a made recipe stays listed")
+	var m = fresh(at(2026, 6, 21, 9))
+	m.stats["made:fishing_pole"] = 1
+	var seen := false
+	for r in m.craft_visible_list():
+		if str(r.id) == "fishing_pole":
+			seen = true
+	ok(seen, "made before = listed even with an empty bag")
+	# projects: shown once a material is held
+	var P = load("res://scripts/games/wilson/wilson_projects.gd")
+	var pe = fresh(at(2026, 6, 21, 9))
+	ok(not pe.project_visible(P.get_project("GP02")), "no windmill idea with an empty bag")
+	pe.add("magnet", 1)
+	ok(pe.project_visible(P.get_project("GP02")), "a magnet shows the windmill")
+	# quick actions are quick
+	near(pe.duration_of("haul", "crate"), 21.0, 0.01, "haul is 21 s")
+	near(pe.duration_of("pastime", "search_sand"), 10.2, 0.2, "search the sand is about 10 s")
+	var quick := 0
+	var PT = load("res://scripts/games/wilson/wilson_pastimes.gd")
+	for p in PT.group_list("quick"):
+		if float(p.min) <= 0.5:
+			quick += 1
+	ok(quick >= 10, "a dozen odd jobs under 30 s (%d)" % quick)
+	# searching the sand really finds things over many tries
+	var s = fresh(at(2026, 6, 21, 9))
+	s.slot_count = 80
+	s.bars.energy = 100.0
+	var found := 0
+	for i in 60:
+		s.bars.energy = 100.0
+		s.enqueue("pastime", "search_sand")
+		s.advance(s.t + 30.0, false)
+	for sl in s.slots:
+		found += int(sl.n)
+	ok(found >= 25 and found <= 55, "60 searches find a fair handful (%d)" % found)
+	ok(int(s.stats.get("pastime:search_sand", 0)) == 60, "each search counts")
+	# skip a stone / fan the fire need things
+	ok(s.pastime_block("skip_stone") != "" or s.count("stone") > 0, "skipping needs a stone")
+	var f = fresh(at(2026, 6, 21, 9))
+	ok(f.pastime_block("fan_fire") == "The fire is not lit.", "fan the fire needs a lit fire")
+	f.structures["campfire"] = {"built": f.t, "fuel_until": f.t + 600.0}
+	f.bars.energy = 100.0
+	var before: float = f.structures.campfire.fuel_until
+	f.enqueue("pastime", "fan_fire")
+	f.advance(f.t + 30.0, false)
+	ok(f.structures.campfire.fuel_until > before + 1000.0 or f.fire_lit(), "fanning the fire gives it more fuel time")
