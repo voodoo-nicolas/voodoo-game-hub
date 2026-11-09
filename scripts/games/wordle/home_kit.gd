@@ -921,6 +921,8 @@ func _fit_art_title(home: Control, tex: Texture2D) -> void:
 	var painted: bool = not _compact() and top_y >= 0.0 and bottom_y <= home.size.y
 	if _title_label.visible == painted:
 		_title_label.visible = not painted
+	if cfg.get("art_only_title", false):      # the art IS the title: never a text title, never a drawn logo
+		_title_label.visible = false
 	if _logo and _logo.visible == painted:  # a drawn logo would sit on top of the painted title
 		_logo.visible = not painted
 	var h := 0.0
