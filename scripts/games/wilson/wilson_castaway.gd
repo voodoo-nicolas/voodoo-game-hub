@@ -9,6 +9,10 @@ extends Node2D
 const ART := "res://games/wilson/art/chars/"
 const POSES := ["idle", "walk1", "walk2", "walk3", "walk4", "run", "sit", "sleep", "hammock", "fish",
 	"chop", "craft", "eat", "drink", "shrug", "wave", "facepalm", "sulk", "collapse"]
+## Extra poses only the blonde (female5) has: the fishing cycle and three kinds of handwork.
+const EXTRA := ["carve", "weave", "tool", "f_ready", "f_back", "f_swing", "f_wait", "f_bite", "f_strike", "f_reel"]
+## The fishing cycle as [pose, seconds]; it loops while he fishes.
+const FISH_CYCLE := [["f_ready", 1.6], ["f_back", 0.5], ["f_swing", 0.6], ["f_wait", 4.0], ["f_bite", 1.0], ["f_strike", 0.8], ["f_reel", 1.6]]
 const LOOKS := ["male1", "male2", "male3", "male4", "female1", "female2", "female3", "female4", "female5"]
 ## Standing height on screen (plate pixels) at the middle lane.
 const HEIGHT := 124.0
@@ -36,7 +40,7 @@ func _ready() -> void:
 func set_look(l: String) -> void:
 	look = l if l in LOOKS else "male1"
 	_tex = {}
-	for p in POSES:
+	for p in POSES + EXTRA:
 		var path := ART + "%s_%s.webp" % [look, p]
 		if ResourceLoader.exists(path):
 			_tex[p] = load(path)
@@ -87,10 +91,25 @@ func current_pose() -> String:
 		return "walk%d" % (int(_t * 8.0) % 4 + 1)
 	match pose:
 		"work":
-			return "craft"
+			return _variant("craft")
 		"idle":
 			return _fidget if _fidget != "" else "idle"
-	return pose
+	return _variant(pose)
+
+## The blonde's own versions of a pose (fishing cycle, handwork); other looks keep the plain one.
+func _variant(p: String) -> String:
+	if p == "fish" and _tex.has("f_ready"):
+		var total := 0.0
+		for st in FISH_CYCLE:
+			total += float(st[1])
+		var k := fmod(_t, total)
+		for st in FISH_CYCLE:
+			k -= float(st[1])
+			if k < 0.0 and _tex.has(str(st[0])):
+				return str(st[0])
+	if p == "craft" and _tex.has("carve"):
+		return ["craft", "carve", "tool"][int(_t / 7.0) % 3]
+	return p
 
 ## Head position in plate pixels (for the thought bubble).
 func head_global() -> Vector2:
@@ -99,7 +118,7 @@ func head_global() -> Vector2:
 		return position + Vector2(0, -40)
 	if p == "hammock":
 		return position + Vector2(0, -60)
-	if p in ["sit", "sulk", "craft", "fish"]:
+	if p in ["sit", "sulk", "craft", "fish", "carve", "weave", "tool", "f_sit", "f_wait", "f_bite", "f_strike"]:
 		return position + Vector2(0, -HEIGHT * 0.8)
 	return position + Vector2(0, -HEIGHT)
 

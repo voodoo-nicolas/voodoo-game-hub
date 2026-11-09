@@ -313,6 +313,8 @@ LOOKS = {"male1": "male1.jpg", "male2": "male2.jpg", "male3": "male3.jpg", "male
 for look, f in LOOKS.items():
     cut_sheet(f, {f"{look}_{p}": xy for p, xy in POSES.items()}, "chars", scale=0.5)
 
+# The blonde's extra action poses (carve / weave / tool / fishing cycle): python tools/wilson_art_blonde.py
+
 # Inventory icons (1376x768, 6x4 grid), ids from items.json.
 INV_ROWS = [["fishing_pole", "stone_axe", "knife", "spear", "shovel", "coconut"],
             ["coconut_shell", "coconut_bowl", "rope", "hook", "shell", "stone"],
