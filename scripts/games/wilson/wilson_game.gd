@@ -19,6 +19,7 @@ const HELP = preload("res://scripts/games/wilson/wilson_help.gd")
 const Engine_ = preload("res://scripts/games/wilson/wilson_engine.gd")
 const D = preload("res://scripts/games/wilson/wilson_data.gd")
 const Quests = preload("res://scripts/games/wilson/wilson_quests.gd")
+const Projects = preload("res://scripts/games/wilson/wilson_projects.gd")
 const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
 const World = preload("res://scripts/games/wilson/wilson_world.gd")
 const SkyView = preload("res://scripts/games/wilson/wilson_skyview.gd")
@@ -470,6 +471,13 @@ func _handle_events(evs: Array) -> void:
 				_sfx("win")
 				world.castaway.play_once("wave", 2.0)
 				after_change()
+			"side":
+				_show_toast("🎯 " + tr("Quest done: %s") % Quests.quest_name(Quests.get_quest(str(e.id))))
+				_sfx("win")
+			"project_done":
+				_show_toast("🏗 " + tr("Finished building: %s.") % Projects.project_name(Projects.get_project(str(e.id))))
+				_sfx("win")
+				after_change()
 			"note":
 				_show_note(str(e.text))
 			"shore":
@@ -861,7 +869,7 @@ func _build_hud() -> void:
 	btns.add_theme_constant_override("separation", 8)
 	btns.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	top.add_child(btns)
-	for b in [["📓", _open_journal, "scroll"], ["🎒", _open_bag, "backpack"], ["🔨", _open_craft, ""], ["⏸", _pause, ""]]:
+	for b in [["📓", _open_journal, "scroll"], ["🎒", _open_bag, "backpack"], ["🔨", _open_craft, ""], ["🏗", _open_projects, ""], ["⏸", _pause, ""]]:
 		var btn := Button.new()
 		btn.text = b[0]
 		var ip: String = HUD_ART + str(b[2]) + ".webp"
@@ -1297,6 +1305,104 @@ func _craft_from_panel(rid: String) -> void:
 	_try("craft", rid)
 	_open_craft()
 
+## 🏗 Grand Projects: the wishlist. Pin one to see what is missing and where it tends to come from.
+func _open_projects() -> void:
+	var body := _open_panel("🏗 " + tr("Grand Projects"))
+	var intro := Label.new()
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro.add_theme_font_size_override("font_size", 18)
+	intro.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7))
+	intro.text = tr("Save rare things for weeks, then build something absurd. Never required. One build at a time.")
+	body.add_child(intro)
+	var order: Array = Projects.LIST.duplicate()
+	order.sort_custom(func(a, b): return (0 if a.id == engine.pinned else 1) < (0 if b.id == engine.pinned else 1))
+	for p in order:
+		_project_card(body, p)
+
+func _project_card(body: VBoxContainer, p: Dictionary) -> void:
+	var id: String = p.id
+	var built: bool = engine.structures.has(p.key)
+	var building: bool = engine.projects.has(id)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	body.add_child(HSeparator.new())
+	body.add_child(box)
+	var head := Label.new()
+	head.add_theme_font_size_override("font_size", 22)
+	var mark := "✔ " if built else ("🔨 " if building else ("📌 " if id == engine.pinned else ""))
+	head.text = mark + Projects.project_name(p)
+	head.add_theme_color_override("font_color", ACCENT if not built else Color(0.6, 0.9, 0.6))
+	box.add_child(head)
+	var fx := Label.new()
+	fx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	fx.add_theme_font_size_override("font_size", 17)
+	fx.text = tr(str(p.effect))
+	box.add_child(fx)
+	if built:
+		return
+	if building:
+		var pb := ProgressBar.new()
+		pb.custom_minimum_size = Vector2(0, 22)
+		pb.value = engine.project_progress(id) * 100.0
+		box.add_child(pb)
+		var left := Label.new()
+		var mins := int(round((float(engine.projects[id].done) - engine.t) / 60.0))
+		left.text = tr("Ready in %d h %02d min.") % [mins / 60, mins % 60]
+		box.add_child(left)
+		return
+	var miss: Array = engine.project_missing(id)
+	var mats := []
+	for m in p.mats:
+		mats.append("%s %d/%d" % [D.item_name(str(m[0])), mini(engine.count(str(m[0])), int(m[1])), int(m[1])])
+	var ml := Label.new()
+	ml.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ml.add_theme_font_size_override("font_size", 17)
+	ml.text = "  ·  ".join(mats) + "\n" + tr("Takes %d days to build.") % int(p.days)
+	box.add_child(ml)
+	if id == engine.pinned and not miss.is_empty():
+		for m in miss:
+			var hl := Label.new()
+			hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			hl.add_theme_font_size_override("font_size", 16)
+			hl.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
+			hl.text = "• %s ×%d: %s" % [D.item_name(str(m[0])), int(m[2]) - int(m[1]), tr(Projects.source_hint(str(D.item(str(m[0])).get("r", "C"))))]
+			box.add_child(hl)
+	var row := HBoxContainer.new()
+	box.add_child(row)
+	var why: String = engine.project_block(id)
+	var go := Button.new()
+	go.text = "🏗 " + tr("Build")
+	go.disabled = why != ""
+	go.custom_minimum_size = Vector2(120, 48)
+	go.pressed.connect(_on_project_build.bind(id))
+	row.add_child(go)
+	var pin := Button.new()
+	pin.text = ("📌 " + tr("Unpin")) if id == engine.pinned else ("📌 " + tr("Pin"))
+	pin.custom_minimum_size = Vector2(120, 48)
+	pin.pressed.connect(_on_project_pin.bind(id))
+	row.add_child(pin)
+	if why != "" and why != "Missing materials.":
+		var wl := Label.new()
+		wl.text = tr(why) if not why.contains("%s") else why
+		wl.add_theme_font_size_override("font_size", 16)
+		row.add_child(wl)
+
+func _on_project_build(id: String) -> void:
+	var why: String = engine.start_project(id)
+	if why != "":
+		_show_toast(tr(why))
+	else:
+		_sfx("win")
+		_show_toast("🏗 " + tr("Building: %s") % Projects.project_name(Projects.get_project(id)))
+	_handle_events(engine.pop_events())
+	after_change()
+	_open_projects()
+
+func _on_project_pin(id: String) -> void:
+	engine.pinned = "" if engine.pinned == id else id
+	_save_game()
+	_open_projects()
+
 func _open_journal() -> void:
 	var body := _open_panel("📓 " + tr("Journal"))
 	var sk := Label.new()
@@ -1334,6 +1440,10 @@ func _sea_report() -> Label:
 	var l := Label.new()
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var lines := [_tide_text()]
+	if engine.structures.has("shellphone"):
+		var rise: float = engine.sunrise_h()
+		var sset: float = engine.sunset_h()
+		lines.append("📱 %s %d%%  ·  %s %02d:%02d  ·  %s %02d:%02d" % [tr("Moon"), int(round(Astro.moon_phase(engine.t) * 100.0)), tr("sunrise"), int(rise), int(fmod(rise, 1.0) * 60.0), tr("sunset"), int(sset), int(fmod(sset, 1.0) * 60.0)])
 	var nl: float = engine.next_low_tide()
 	if not engine.is_low_tide() and nl > engine.t:
 		var mins := int(round((nl - engine.t) / 60.0))

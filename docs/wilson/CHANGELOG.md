@@ -1,5 +1,11 @@
 # Beached (wilson) changelog
 
+## 2026-11-08: Grand Projects (pack v2)
+- `wilson_projects.gd`: 12 projects (GP01-08, GP13-16). Paying the materials starts a 1-3 day build (absolute end time, one at a time); the finished project sits in `engine.structures` and its effect applies: Shellphone (moon / sun in the sea report), Windmill (power), Coconut Radio (daily broadcast, mood; needs the windmill), Desalinator (thirst -60 %), Spyglass Tower (+6 h forecast, ships), Cellar (no spoilage, +20 slots), Treehouse (26 energy / h bed), Lighthouse (ships always leave), Glider + Submarine (escape gags, a plaque each), Museum (needs 2 plaques, mood), Golden Coconut Shrine (+10 % luck on the shore roll).
+- 🏗 panel: every project with materials owned / needed, pin one for the wishlist (missing items + where they come from), Build button, progress bar. 11 G-series side quests.
+- Not built (owner): GP09 / GP10 (bottle mail), GP11 beach arcade (hub tie-in), GP12 cinema. No art for the projects yet (they show in the panel and the journal only).
+- Tests: 725 checks.
+
 ## 2026-11-08: M5 side quests + sea report (not published)
 - `wilson_quests.gd`: 21 side quests (S, W, A series) that watch engine counters (`stats`, `bump()`): made:<recipe>, ev:<event>[:id], wx:<weather>, reef, low_tides. Pay XP / items / gag / decor once, journal line "Quest done".
 - Journal panel: sea report (tide now, next low tide, barometer forecast) and the quest list with progress.

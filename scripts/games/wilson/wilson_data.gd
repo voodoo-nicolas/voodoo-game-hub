@@ -268,9 +268,9 @@ const NAUSEA_H := 3.0
 ## Sleeping and asleep drain: food / water drain at half speed while asleep or napping (design gap).
 const SLEEP_DRAIN_MULT := 0.5
 ## Beds from worst to best (balance.json sleep_restore_per_h keys + frond_shelter from the errata).
-const BED_RANK := ["sand", "frond_bed", "hammock", "frond_shelter", "tent", "tent_mattress"]
-const SHADED_BEDS := ["hammock", "frond_shelter", "tent", "tent_mattress"]
-const SHELTERED_BEDS := ["frond_shelter", "tent", "tent_mattress"]
+const BED_RANK := ["sand", "frond_bed", "hammock", "frond_shelter", "tent", "tent_mattress", "treehouse"]
+const SHADED_BEDS := ["hammock", "frond_shelter", "tent", "tent_mattress", "treehouse"]
+const SHELTERED_BEDS := ["frond_shelter", "tent", "tent_mattress", "treehouse"]
 const RESTED_H := 16.0           # how long the Rested buff lasts
 const SANDY_H := 8.0             # how long Sandy lasts
 const COLLAPSE_WAKE_ENERGY := 40.0  # collapse: sleeps on the sand until this much energy
@@ -409,3 +409,10 @@ const REEF_TABLE := [["shell", 38], ["seaweed", 24], ["salt", 14], ["sea_glass",
 const FOG_EXTRA_BOTTLE := 1
 const RAIN_FISH_BONUS := 0.12      # chance a "nothing" becomes a catch while it rains
 const WIND_REGROW_MULT := 2.0
+
+## --- Grand Projects (wilson_projects.gd) ---
+const TREEHOUSE_RATE := 26.0       # 20 energy an hour x1.3 (GDD / CRAFTING.md GP07)
+const DESALINATOR_THIRST := 0.4    # thirst drains 60 % slower
+const CELLAR_SLOTS := 20
+const SHRINE_LUCK := 1.1           # uncommon / rare / mythic weights x1.1 on the shore roll
+const TOWER_FORECAST_H := 6

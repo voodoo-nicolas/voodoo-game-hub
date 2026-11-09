@@ -14,6 +14,7 @@ extends RefCounted
 const D = preload("res://scripts/games/wilson/wilson_data.gd")
 const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
 const Quests = preload("res://scripts/games/wilson/wilson_quests.gd")
+const Projects = preload("res://scripts/games/wilson/wilson_projects.gd")
 
 const SAVE_VERSION := 1
 const STEP := 600.0  # simulation step, seconds
@@ -47,6 +48,8 @@ var discovered: Array = []   # tier 3-4 recipes found by combining (M3)
 var fire_fails := 0
 var catches := 0
 var raw_eaten := 0
+var projects := {}           # Grand Projects being built: id -> {start, done}
+var pinned := ""             # wishlist: the pinned project id
 var stats := {}              # counters the side quests watch (wilson_quests.gd)
 var side_done: Array = []    # finished side quest ids
 var _was_low := false
@@ -104,6 +107,8 @@ func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: 
 	tallies = []
 	stats = {}
 	side_done = []
+	projects = {}
+	pinned = ""
 	_was_low = false
 	weather = "clear"
 	weather_auto = false
@@ -153,6 +158,98 @@ func next_hour(h: float, at: float = -1.0) -> float:
 	if dh < 0.0001:
 		dh = 24.0
 	return base + dh * 3600.0
+
+# ================================================================ Grand Projects
+
+func powered() -> bool:
+	return structures.has("windmill")
+
+## [[id, have, need]] for every material still short.
+func project_missing(id: String) -> Array:
+	var out: Array = []
+	for m in Projects.get_project(id).get("mats", []):
+		var have := count(str(m[0]))
+		if have < int(m[1]):
+			out.append([str(m[0]), have, int(m[1])])
+	return out
+
+## "" when the build can start now, else why not.
+func project_block(id: String) -> String:
+	var p := Projects.get_project(id)
+	if p.is_empty():
+		return "No such project."
+	if structures.has(p.key):
+		return "Already built."
+	if projects.has(id):
+		return "Already under construction."
+	if not projects.is_empty():
+		return "Only one build at a time. Two hands."
+	var need: String = str(p.get("needs", ""))
+	if need != "" and not structures.has(str(Projects.get_project(need).key)):
+		return "Needs the %s first." % Projects.get_project(need).en
+	if int(p.get("plaques", 0)) > int(stats.get("escape_fails", 0)):
+		return "Needs more failed escapes."
+	if not project_missing(id).is_empty():
+		return "Missing materials."
+	return ""
+
+func start_project(id: String) -> String:
+	var why := project_block(id)
+	if why != "":
+		return why
+	var p := Projects.get_project(id)
+	for m in p.mats:
+		remove(str(m[0]), int(m[1]))
+	projects[id] = {"start": t, "done": t + float(p.days) * 86400.0}
+	log_entry("Started building: %s.", ["~" + str(p.en)])
+	events.append({"type": "project", "id": id})
+	return ""
+
+func project_progress(id: String) -> float:
+	if not projects.has(id):
+		return 1.0 if structures.has(str(Projects.get_project(id).get("key", ""))) else 0.0
+	var pr: Dictionary = projects[id]
+	return clampf((t - float(pr.start)) / maxf(1.0, float(pr.done) - float(pr.start)), 0.0, 1.0)
+
+func _projects_tick() -> void:
+	if projects.is_empty():
+		return
+	for id in projects.keys():
+		if t >= float(projects[id].done) - 0.001:
+			projects.erase(id)
+			_project_done(Projects.get_project(id))
+
+func _project_done(p: Dictionary) -> void:
+	structures[p.key] = {"built": t}
+	if not p.key in decor:
+		decor.append(p.key)
+	log_entry("Finished building: %s.", ["~" + str(p.en)])
+	events.append({"type": "project_done", "id": p.id})
+	bump("project:" + str(p.key))
+	if p.key == "glider":
+		bump("escape_fails")
+		if not "glider_fail" in gags:
+			gags.append("glider_fail")
+		log_entry("Launched the glider. It flew for four seconds. The sea was very close and very wet.")
+	elif p.key == "submarine":
+		bump("escape_fails")
+		if not "submarine_fail" in gags:
+			gags.append("submarine_fail")
+		log_entry("Launched the submarine. It sank, as designed by no one. I came back up. The barrel did not.")
+	elif p.key == "shrine":
+		log_entry("The shrine hums. The shore feels a little friendlier.")
+
+## Once each morning: the radio, a ship in the spyglass, the lighthouse's bad luck.
+func _project_daily(today: int) -> void:
+	var n := today - start_day
+	if structures.has("coconut_radio") and powered():
+		log_entry("%s", ["#" + Projects.BROADCASTS[n % Projects.BROADCASTS.size()]])
+	if structures.has("spyglass_tower"):
+		log_entry("%s", ["#" + Projects.SHIPS[n % Projects.SHIPS.size()]])
+	if structures.has("lighthouse") and n % 3 == 0:
+		log_entry("%s", ["#" + Projects.LIGHTHOUSE_FAILS[(n / 3) % Projects.LIGHTHOUSE_FAILS.size()]])
+		if not "beacon_fail" in gags:
+			gags.append("beacon_fail")
 
 # ================================================================ weather + tides (M4)
 
@@ -235,9 +332,12 @@ func next_low_tide(at: float = -1.0) -> float:
 
 ## Hours the barometer can see ahead (0 = no barometer in the bag).
 func forecast_hours() -> int:
-	if count("barometer") <= 0:
+	var base := D.FORECAST_BASE_H if count("barometer") > 0 else 0
+	if structures.has("spyglass_tower"):
+		base += D.TOWER_FORECAST_H
+	if base <= 0:
 		return 0
-	return D.FORECAST_BASE_H + D.FORECAST_PER_LEVEL_H * skill_level("weather sense")
+	return base + D.FORECAST_PER_LEVEL_H * skill_level("weather sense")
 
 ## [{t, weather}]: every change of weather inside the forecast window.
 func forecast() -> Array:
@@ -271,6 +371,7 @@ func advance(to: float, online: bool = true) -> void:
 		_integrate(nb - t)
 		t = nb
 		_weather_tick()
+		_projects_tick()
 		act = active()
 		if not act.is_empty() and t >= float(act.end) - 0.001:
 			queue.pop_front()
@@ -294,7 +395,9 @@ func _integrate(dt: float) -> void:
 	var prev := bars.duplicate()
 	var asleep := not sleep.is_empty()
 	var mult := D.SLEEP_DRAIN_MULT if asleep else 1.0
-	var thirst := 2.0 if weather == "heatwave" else 1.0  # GDD §8: heatwave doubles thirst
+	var thirst := 2.0 if weather == "heatwave" else 1.0
+	if structures.has("desalinator"):
+		thirst *= D.DESALINATOR_THIRST  # GDD §8: heatwave doubles thirst
 	bars.food -= float(b.get("food", {}).get("drain_per_h", 4)) * h * mult
 	bars.water -= float(b.get("water", {}).get("drain_per_h", 5)) * h * mult * thirst
 	if asleep:
@@ -379,6 +482,10 @@ func _mood_tick(h: float) -> void:
 		target += 5.0
 	if structures.has("sundial"):
 		target += 3.0
+	if powered() and structures.has("coconut_radio"):
+		target += 4.0
+	if structures.has("museum"):
+		target += 4.0
 	for k in ["food", "water", "energy", "hp"]:
 		if bars[k] < D.LOW_BAR:
 			target -= 10.0
@@ -414,6 +521,9 @@ func _faint() -> void:
 
 func _daily() -> void:
 	var today := day_index()
+	if today > int(flags.get("gp_day", -1)) and hour() >= sunrise_h():
+		flags["gp_day"] = today
+		_project_daily(today)
 	if today > int(flags.get("wsense_day", -1)) and count("barometer") > 0:
 		flags["wsense_day"] = today
 		_xp("weather sense", 3)
@@ -425,11 +535,15 @@ func _shore_delivery() -> void:
 	var drops: Dictionary = D.balance().get("shore_drops", {})
 	var table: Dictionary = drops.get("storm" if weather == "storm" else "normal", {})
 	var rolls := int(table.get("rolls", 3))
+	var weights: Dictionary = table.get("weights", {}).duplicate()
+	if structures.has("shrine"):
+		for r in ["uncommon", "rare", "mythic"]:
+			weights[r] = float(weights.get(r, 0)) * D.SHRINE_LUCK
 	var pity: Dictionary = drops.get("pity", {})
 	var got_rare := false
 	var got_mythic := false
 	for i in rolls:
-		var rarity := roll_rarity(table.get("weights", {}))
+		var rarity := roll_rarity(weights)
 		if int(shore.no_mythic) + 1 >= int(pity.get("mythic_after_days", 60)) and not got_mythic:
 			rarity = "mythic"
 		elif int(shore.no_rare) + 1 >= int(pity.get("rare_after_days", 14)) and not got_rare and not got_mythic:
@@ -478,7 +592,8 @@ func _shore_item(rarity: String) -> String:
 func capacity() -> int:
 	var inv: Dictionary = D.balance().get("inventory", {})
 	return slot_count + (int(inv.get("barrel_bonus", 20)) if count("barrel") > 0 else 0) \
-		+ int(inv.get("jar_bonus", 10)) * count("clay_jar")
+		+ int(inv.get("jar_bonus", 10)) * count("clay_jar") \
+		+ (D.CELLAR_SLOTS if structures.has("cellar") else 0)
 
 func count(id: String) -> int:
 	var n := 0
@@ -520,7 +635,7 @@ func add(id: String, n: int) -> int:
 
 ## When fresh food added now goes bad (0 = never).
 func _spoil_at(id: String) -> float:
-	if not D.SPOIL_H.has(id):
+	if not D.SPOIL_H.has(id) or structures.has("cellar"):
 		return 0.0
 	var h: float = D.SPOIL_H[id]
 	if structures.has("smokehouse"):
@@ -670,6 +785,8 @@ func best_bed() -> String:
 func sleep_rate(bed: String, at: float = -1.0) -> float:
 	var bal := D.balance()
 	var rate := float(bal.get("sleep_restore_per_h", {}).get(bed, 6))
+	if bed == "treehouse":
+		rate = D.TREEHOUSE_RATE
 	var m: Dictionary = bal.get("sleep_modifiers", {})
 	var sheltered := bed in D.SHELTERED_BEDS
 	if is_day(at):
@@ -1400,7 +1517,7 @@ func to_dict() -> Dictionary:
 		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
 		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked, "discovered": discovered,
 		"fire_fails": fire_fails, "catches": catches, "raw_eaten": raw_eaten, "tallies": tallies,
-		"weather": weather, "weather_auto": weather_auto, "stats": stats, "side_done": side_done, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
+		"projects": projects, "pinned": pinned, "weather": weather, "weather_auto": weather_auto, "stats": stats, "side_done": side_done, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
 		"rng_state": str(rng.state), "low": _low,
 	}
 
@@ -1444,6 +1561,8 @@ func from_dict(d: Dictionary) -> bool:
 	weather = str(d.get("weather", "clear"))
 	weather_auto = bool(d.get("weather_auto", true))
 	stats = d.get("stats", {})
+	projects = d.get("projects", {})
+	pinned = str(d.get("pinned", ""))
 	side_done = d.get("side_done", [])
 	wseed = int(d.get("wseed", int(d.t) & 0x7fffffff))
 	tide_off = float(d.get("tide_off", float(wseed % int(D.TIDE_MIN))))

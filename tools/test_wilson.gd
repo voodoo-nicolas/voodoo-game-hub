@@ -52,6 +52,7 @@ func _init() -> void:
 	test_m4_weather_tides()
 	test_m5_side_quests()
 	test_m5b_more_quests()
+	test_m6_projects()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -672,3 +673,92 @@ func test_m5b_more_quests() -> void:
 	g.add("barrel", 1)
 	g._check_side()
 	ok("S15" in g.side_done, "S15 at 32+ slots")
+
+func test_m6_projects() -> void:
+	var P = load("res://scripts/games/wilson/wilson_projects.gd")
+	var good := true
+	var keys := {}
+	for p in P.LIST:
+		if keys.has(p.key):
+			good = false
+		keys[p.key] = true
+		for m in p.mats:
+			if D.item(str(m[0])).is_empty():
+				good = false
+	ok(good, "projects: unique keys, every material is a real item")
+	var e = fresh(at(2026, 6, 21, 9))
+	ok(e.project_block("GP06") == "Missing materials.", "no materials yet")
+	for m in P.get_project("GP06").mats:
+		e.slot_count = 80
+		e.add(str(m[0]), int(m[1]))
+	ok(e.project_block("GP06") == "", "cellar: all materials in the bag")
+	var cap0: int = e.capacity()
+	ok(e.start_project("GP06") == "", "cellar build starts")
+	ok(e.count("salt") == 0 and e.count("stone") == 0, "materials spent")
+	ok(e.project_block("GP02") == "Only one build at a time. Two hands.", "one build at a time")
+	e.advance(e.t + 1.5 * 86400.0, false)
+	ok(not e.structures.has("cellar") and e.project_progress("GP06") > 0.5, "half-built after 1.5 of 2 days")
+	e.advance(e.t + 0.6 * 86400.0, false)
+	ok(e.structures.has("cellar") and e.projects.is_empty(), "cellar done after 2 days")
+	ok(e.capacity() == 80 + D.CELLAR_SLOTS and cap0 > 80, "cellar: +20 slots (the jars were spent)")
+	ok(e._spoil_at("fish_small") == 0.0, "cellar: food never spoils")
+	ok("G06" in e.side_done, "G06 quest paid")
+	# treehouse bed
+	var t = fresh(at(2026, 6, 21, 22))
+	t.structures["treehouse"] = {"built": t.t}
+	ok(t.best_bed() == "treehouse", "treehouse is the best bed")
+	near(t.sleep_rate("treehouse"), D.TREEHOUSE_RATE, 0.01, "treehouse: 26 an hour at night")
+	t.weather = "storm"
+	near(t.sleep_rate("treehouse"), D.TREEHOUSE_RATE, 0.01, "treehouse: storm-proof")
+	# desalinator
+	var a = fresh(at(2026, 6, 21, 9))
+	var b = fresh(at(2026, 6, 21, 9))
+	b.structures["desalinator"] = {"built": b.t}
+	a.advance(a.t + 5 * 3600.0, false)
+	b.advance(b.t + 5 * 3600.0, false)
+	ok(100.0 - b.bars.water < (100.0 - a.bars.water) * 0.5, "desalinator: much slower thirst")
+	# radio needs the windmill, museum needs plaques
+	var r = fresh(at(2026, 6, 21, 9))
+	for m in P.get_project("GP03").mats:
+		r.add(str(m[0]), int(m[1]))
+	ok(r.project_block("GP03") != "", "radio needs the windmill first")
+	var mu = fresh(at(2026, 6, 21, 9))
+	mu.slot_count = 40
+	mu.add("stone", 20)
+	ok(mu.project_block("GP15") == "Needs more failed escapes.", "museum needs 2 plaques")
+	mu.stats["escape_fails"] = 2
+	ok(mu.project_block("GP15") == "", "museum with 2 plaques")
+	# glider: a gag and a plaque
+	var g = fresh(at(2026, 6, 21, 9))
+	g._project_done(P.get_project("GP13"))
+	ok(int(g.stats.escape_fails) == 1 and "glider_fail" in g.gags, "glider fails, earns a plaque")
+	# tower forecast works without a barometer
+	var f = fresh(at(2026, 6, 21, 9))
+	ok(f.forecast_hours() == 0, "no forecast yet")
+	f.structures["spyglass_tower"] = {"built": f.t}
+	ok(f.forecast_hours() == D.TOWER_FORECAST_H, "tower: 6 h forecast")
+	# shrine nudges the shore roll (more rares over many days)
+	var s1 = fresh(at(2026, 6, 21, 9))
+	var s2 = fresh(at(2026, 6, 21, 9))
+	s2.structures["shrine"] = {"built": s2.t}
+	var r1 := 0
+	var r2 := 0
+	for i in 400:
+		s1.shore.pile = {}
+		s2.shore.pile = {}
+		s1._shore_delivery()
+		s2._shore_delivery()
+		for k in s1.shore.pile:
+			if D.item(k).get("r", "C") in ["R", "M"]:
+				r1 += int(s1.shore.pile[k])
+		for k in s2.shore.pile:
+			if D.item(k).get("r", "C") in ["R", "M"]:
+				r2 += int(s2.shore.pile[k])
+	ok(r2 >= r1, "shrine: no fewer rares (%d vs %d)" % [r2, r1])
+	# save round trip
+	var sv = fresh(at(2026, 6, 21, 9))
+	sv.projects = {"GP01": {"start": sv.t, "done": sv.t + 86400.0}}
+	sv.pinned = "GP02"
+	var sv2 = sv.get_script().new()
+	sv2.from_dict(sv.to_dict())
+	ok(sv2.pinned == "GP02" and sv2.projects.has("GP01"), "save keeps projects + pin")

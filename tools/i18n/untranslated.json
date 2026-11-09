@@ -166,6 +166,9 @@
  "Agosto": [
   "scripts\\account\\consent_screen.gd"
  ],
+ "Allá arriba en los árboles": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "April": [
   "scripts\\account\\consent_screen.gd"
  ],
@@ -188,8 +191,14 @@
  "BUILD_NUMBER": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
+ "Barril amarillo": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Bitstream Vera / Arev licence (free to use and redistribute)": [
   "scripts\\common\\third_party.gd"
+ ],
+ "Bodega": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
  ],
  "Bol sobre bol": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -227,6 +236,12 @@
  "Campamento de botas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Caracolófono": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "Casa del árbol": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
  "Casi invierno": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -245,6 +260,9 @@
  "Copyright Bitstream, Inc. and Tavmjong Bah; DejaVu changes public domain; licence beside the font in assets/web_fonts/": [
   "scripts\\common\\third_party.gd"
  ],
+ "Cámara fría": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "December": [
   "scripts\\account\\consent_screen.gd"
  ],
@@ -253,6 +271,9 @@
  ],
  "DejaVu Sans font": [
   "scripts\\common\\third_party.gd"
+ ],
+ "Desalinizadora": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
  ],
  "Diciembre": [
   "scripts\\account\\consent_screen.gd"
@@ -272,11 +293,53 @@
  "Facebook": [
   "scripts\\account\\account_screen.gd"
  ],
+ "Faro del disparate": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "Faro del sinsentido": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Febrero": [
   "scripts\\account\\consent_screen.gd"
  ],
  "February": [
   "scripts\\account\\consent_screen.gd"
+ ],
+ "GP01": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP02": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP03": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP04": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP05": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP06": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP07": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP08": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP13": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP14": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP15": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "GP16": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
  ],
  "Godot Engine 4": [
   "scripts\\common\\third_party.gd"
@@ -321,6 +384,9 @@
  "LibreOffice es_MX Hunspell dictionary": [
   "scripts\\common\\third_party.gd"
  ],
+ "Llámame, tal vez": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Loading": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
@@ -342,11 +408,20 @@
  "Moda ermitaña": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Molino de viento": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
  "Move-Item -LiteralPath $n -Destination $p -Force -ErrorAction Stop;break}catch{Start-Sleep 1}};": [
   "scripts\\common\\pc_updater.gd"
  ],
+ "Museo del fracaso": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
  "NO_TIER_BADGES": [
   "scripts\\common\\achievements.gd"
+ ],
+ "Needs the %s first.": [
+  "scripts\\games\\wilson\\wilson_engine.gd"
  ],
  "Niebla de guerra": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -366,6 +441,9 @@
  "Octubre": [
   "scripts\\account\\consent_screen.gd"
  ],
+ "Ojo de águila": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Party": [
   "scripts\\hub\\hub.gd",
   "scripts\\hub\\hub_art.gd"
@@ -376,11 +454,17 @@
  "Picoteo de medianoche": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Planeador: Plan Z de escape": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
  "Pole position": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Public domain": [
   "scripts\\common\\third_party.gd"
+ ],
+ "Puro genio": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Puzzle & Board": [
   "scripts\\hub\\hub.gd",
@@ -395,6 +479,9 @@
  "Racha seca": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Radio de coco": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
  "S.TOP#.": [
   "scripts\\common\\game_teasers_rest.gd"
  ],
@@ -407,11 +494,20 @@
  "Sal de la tierra": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Salón de la vergüenza": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Santuario del coco dorado": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
  "September": [
   "scripts\\account\\consent_screen.gd"
  ],
  "Septiembre": [
   "scripts\\account\\consent_screen.gd"
+ ],
+ "Sintonizá": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Social": [
   "scripts\\common\\achievements.gd",
@@ -419,6 +515,9 @@
  ],
  "Start-Process -FilePath $e -WorkingDirectory (Split-Path $e)": [
   "scripts\\common\\pc_updater.gd"
+ ],
+ "Submarino de barril": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
  ],
  "Superviviente de tormentas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -435,6 +534,9 @@
  "Tesoro de la marea baja": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Torre del catalejo": [
+  "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
  "Trampilla": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -445,6 +547,9 @@
   "scripts\\common\\auth.gd"
  ],
  "Vida limpia": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Vientos de cambio": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Vigía del tiempo": [

@@ -91,3 +91,6 @@ can overrule any of it.
 Forecast / tide screen and tide in the water art (the M4 engine is done), full water layers,
 quests beyond T01-T12, skills screen, gag album, bottles to other players (M6), login streak,
 cave + Grand Projects (M7), Voodoo skin, Pad controller ("Heather controller"), sounds, store art.
+
+- **W-30 Grand Projects (2026-11-08).** 12 of 16 built; no bottle mail (owner: no bottles for now), no arcade / cinema. One build at a time, 1-3 days, materials spent at the start. "Brass fitting" = brass tube, "palm ribs" = sticks. Projects have no art yet.
+- **W-31 Cave** left for later (owner, 2026-11-08), with bottles (M6).
