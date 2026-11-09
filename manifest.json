@@ -254,7 +254,7 @@
     "the_runner": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/the_runner.pck", "scene": "res://scenes/games/the_runner/the_runner.tscn"},
     "maze_trail": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/maze_trail.pck", "scene": "res://scenes/games/maze_trail/maze_trail.tscn"},
     "tilt_maze": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tilt_maze.pck", "scene": "res://scenes/games/tilt_maze/tilt_maze.tscn"},
-    "wilson": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wilson.pck", "scene": "res://scenes/games/wilson/wilson.tscn"},
+    "wilson": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wilson.pck", "scene": "res://scenes/games/wilson/wilson.tscn"},
     "bug_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bug_chain.pck", "scene": "res://scenes/games/bug_chain/bug_chain.tscn"}
   }
 }
