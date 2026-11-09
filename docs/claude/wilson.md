@@ -26,4 +26,5 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 - Timers are absolute timestamps; never tick counters. New actions: `action_block` + `_finish` + `D.ACT` + `_stand_spot` in the game.
 - Engine messages are English templates + args, translated on screen (`format_entry`); every new string through es.json.
 - Single lowercase words are skipped by the i18n extractor: use two words for anything shown (`"wrecked crate"`).
+- Controls: taps + the shared Pad (stick walks, A uses nearest, B back, X nap, Y sleep); `wilson_game.gd` "the Viral Pad" section; test `tools/test_wilson_pad.gd`.
 - Packs: no autoloads; GameInfo / Music / Sfx guarded.

@@ -55,6 +55,7 @@ Every adopter keeps its own old controls as the fallback for apps without the Pa
 | Barrel Climb | stick (run / climb) + Jump on A; the old arrow row is hidden, `PAD_ROOM` keeps space under the field |
 | Moon Lander | stick left/right tilts, A or stick up = engine |
 | Crypt Crawler | twin sticks (2026-11-08, owner): left walks/strafes (analog), right turns (curved, `LOOK_TURN`), Fire between them (`custom_layout` from `dual_stick`, the aim stick does not fire), pause pill, info pill = big map; dragging the view still turns. Apps without `custom_layout`: stick + A as before |
+| Beached (`wilson`, 2026-11-08) | stick walks the castaway (lanes blended, `pad_limits`), A = nearest thing / castaway menu, B = back / cancel action, X nap, Y sleep, info = journal, pause pill; the old 💤 😴 buttons hide; `tools/test_wilson_pad.gd` |
 Left alone on purpose: Alien Attack (one finger slides the cannon: a stick would be worse), swipe / tap / aim-by-drag games (Snake, Maze Muncher, Frog Crossing, Bird Hop, Sky Hop, City Defense, Cannon Duel).
 Template additions: `custom_layout` + `Layouts.variant()`, `prefs_override` (`floating`, `wide_zone`), `set_state` keys `fill` / `tint` / `glyph` (bomb, flame, jump, bolt) / `draw`, portrait scale (`PORTRAIT_K`).
 `set_state` keys `alpha` (multiplies the player's opacity for one part) and `look` (draw scale; the touch area keeps its size), 2026-10-31 for Evolution's stick (50%, 0.75). Older apps ignore them.

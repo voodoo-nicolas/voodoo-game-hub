@@ -10877,5 +10877,9 @@
  "OK": "OK",
  "Castaway": "Náufrago",
  "✏ Change name": "✏ Cambiar nombre",
- "%s's journal": "Diario de %s"
+ "%s's journal": "Diario de %s",
+ "USE": "USAR",
+ "BACK": "ATRÁS",
+ "NAP": "SIESTA",
+ "SLEEP": "DORMIR"
 }

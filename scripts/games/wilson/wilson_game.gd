@@ -32,6 +32,9 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const SAVE_PATH := "user://wilson_save.json"
 const DEBUG_PATH := "user://wilson_debug.json"
 const ART := "res://games/wilson/art/landing_logo.webp"
+const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"  # APK-side: packs on older apps keep taps only
+const PAD_SPEED := 170.0       # plate pixels a second at full stick
+const PAD_REACH := 140.0       # how far A looks for something to use
 const ACCENT := Color("ffb35a")
 ## A gap longer than this between frames (real seconds) is caught up as "away".
 const AWAY_GAP := 4.0
@@ -68,6 +71,9 @@ var _bubble_until := 0.0
 var _bubble_queue: Array = []
 var _toast: Label
 var _toast_until := 0.0
+var _sleep_row: Control = null
+var pad: Control = null          # the shared Pad (older apps do not have it: taps and the 💤 😴 buttons only)
+var _pad_busy_said := false
 var _popup: PanelContainer = null
 var _panel: PanelContainer = null
 var _debug = null
@@ -305,6 +311,7 @@ func _start_play() -> void:
 	_glow_layer.add_child(_glow)
 	_build_hud()
 	move_child(_hud, home.get_index())
+	_add_pad()
 	_place_johnny_now()
 	_last_ms = Time.get_ticks_msec()
 	_music("calm")
@@ -312,12 +319,13 @@ func _start_play() -> void:
 	_refresh_hud()
 
 func _clear_play() -> void:
-	for n in [_sky_layer, _world_layer, _glow_layer, _hud]:
+	for n in [_sky_layer, _world_layer, _glow_layer, _hud, pad]:
 		if n != null and is_instance_valid(n):
 			n.queue_free()
 	_sky_layer = null
 	_world_layer = null
 	_hud = null
+	pad = null
 	world = null
 	_popup = null
 	_panel = null
@@ -379,6 +387,7 @@ func _process(dt: float) -> void:
 	_layout()
 	_update_sky()
 	_update_johnny()
+	_pad_process(dt)
 	_update_bubble()
 
 func after_change() -> void:
@@ -440,6 +449,115 @@ func _update_sky() -> void:
 		_glow.modulate = Color(fc.r, fc.g, fc.b, 1.0) * Color(1, 1, 1, en * 0.55)
 	else:
 		_glow.visible = false
+
+# ================================================================ the Viral Pad (stick + A B X Y)
+# Stick = walk (the three depth lanes blend into a free strip), A = use what is nearest (or the
+# castaway's own menu), B = close / cancel, X = nap, Y = sleep, info pill = journal, pause pill = pause.
+# Taps keep working. Apps without the Pad keep the 💤 😴 buttons.
+
+func _add_pad() -> void:
+	if not ResourceLoader.exists(PAD_PATH):
+		return
+	pad = load(PAD_PATH).new()
+	pad.layout_override = "stick_4"
+	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(pad)
+	move_child(pad, home.get_index())       # over the world and the HUD, under the kit
+	pad.button_pressed.connect(_on_pad_button)
+	pad.set_state("a", {"sub": tr("USE")})
+	pad.set_state("b", {"sub": tr("BACK")})
+	pad.set_state("x", {"sub": tr("NAP")})
+	pad.set_state("y", {"sub": tr("SLEEP")})
+	pad.set_state("info", {"icon": "menu"})
+	if _sleep_row:
+		_sleep_row.visible = false
+
+## Where the castaway may stand: x limits blend between the three lanes (D.LANES) by depth.
+static func pad_limits(y: float) -> Vector2:
+	var l: Array = D.LANES
+	y = clampf(y, float(l[0].y), float(l[2].y))
+	var i := 0 if y <= float(l[1].y) else 1
+	var f := (y - float(l[i].y)) / (float(l[i + 1].y) - float(l[i].y))
+	return Vector2(lerpf(float(l[i].x0), float(l[i + 1].x0), f), lerpf(float(l[i].x1), float(l[i + 1].x1), f))
+
+func _pad_process(dt: float) -> void:
+	if pad == null or not is_instance_valid(pad) or world == null:
+		return
+	pad.visible = started and not _panel
+	if _panel or home.is_home_visible():
+		return
+	var c = world.castaway
+	# the face buttons (keyboard K L J I too: the Pad registers those actions)
+	if Input.is_action_just_pressed("pad_a"):
+		_pad_use()
+	if Input.is_action_just_pressed("pad_b"):
+		_pad_back()
+	if Input.is_action_just_pressed("pad_x"):
+		_close_popup()
+		_nap_now()
+	if Input.is_action_just_pressed("pad_y"):
+		_close_popup()
+		_sleep_now()
+	if Input.is_action_just_pressed("pad_info"):
+		_open_journal()
+	var v := Input.get_vector("pad_move_left", "pad_move_right", "pad_move_up", "pad_move_down")
+	if v.length() < 0.15:
+		_pad_busy_said = false
+		return
+	if not engine.sleep.is_empty():
+		engine.wake()
+		after_change()
+		_show_toast(tr("Woke up. Grumpily."))
+		return
+	if engine.busy():
+		if not _pad_busy_said:
+			_pad_busy_said = true
+			_show_toast(tr("Busy. Tap an action in the list to cancel it."))
+		return
+	_close_popup()
+	var np: Vector2 = c.position + v * PAD_SPEED * dt
+	np.y = clampf(np.y, float(D.LANES[0].y), float(D.LANES[2].y))
+	var lim := pad_limits(np.y)
+	np.x = clampf(np.x, lim.x, lim.y)
+	c.walking = false
+	c.position = np
+	c.pose = "walk"
+	if absf(v.x) > 0.1:
+		c.facing = 1.0 if v.x > 0.0 else -1.0
+
+func _on_pad_button(id: String) -> void:
+	if id == "pause":
+		_pause()
+
+## A: the nearest thing within reach is "tapped" (its menu opens, or the haul / shore starts); if
+## nothing is near, the castaway's own menu.
+func _pad_use() -> void:
+	if _popup:
+		_close_popup()
+		return
+	var c = world.castaway
+	var best := {}
+	var bd := PAD_REACH
+	for it in world.interactables():
+		var d: float = c.position.distance_to(it.probe)
+		if d < bd and str(world.hit(it.probe).type) != "":
+			bd = d
+			best = it
+	if best.is_empty():
+		if c.position.y > 515.0:
+			_on_tap(Vector2(c.position.x, 610.0), _stage_pos + Vector2(c.position.x, 560.0) * _stage_scale)
+		else:
+			_johnny_menu(_stage_pos + (c.position + Vector2(0, -60)) * _stage_scale)
+		return
+	_on_tap(best.probe, _stage_pos + (best.probe + Vector2(0, -30)) * _stage_scale)
+
+## B: close a menu, else cancel the action in progress.
+func _pad_back() -> void:
+	if _popup:
+		_close_popup()
+	elif engine.busy():
+		engine.cancel(0)
+		after_change()
 
 # ================================================================ Johnny on screen
 
@@ -974,6 +1092,7 @@ func _build_hud() -> void:
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(spacer)
 	var bottom := HBoxContainer.new()
+	_sleep_row = bottom
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom.alignment = BoxContainer.ALIGNMENT_END
 	bottom.add_theme_constant_override("separation", 10)

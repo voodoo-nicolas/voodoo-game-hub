@@ -342,6 +342,27 @@ func hit(p: Vector2) -> Dictionary:
 		return {"type": "shallows"}
 	return {"type": ""}
 
+## Everything the Pad's A button can use: [{"probe": plate point that world.hit() maps to it, "id": text}].
+func interactables() -> Array:
+	var out: Array = []
+	for id in _debris:
+		var s: Sprite2D = _debris[id]
+		if s.visible and s.texture:
+			out.append({"probe": s.position + s.offset * s.scale, "id": "debris:" + str(id)})
+	for id in D.SPOTS:
+		out.append({"probe": D.SPOTS[id].pos, "id": "spot:" + str(id)})
+	for id in D.PALMS:
+		if _palms.has(id) and not _palms[id].visible and not D.PALMS[id].choppable:
+			continue
+		var pm: Dictionary = D.PALMS[id]
+		out.append({"probe": Vector2(pm.pos.x, pm.pos.y - 20.0), "id": "palm:" + str(id)})
+	for id in _props:
+		out.append({"probe": D.CAMP[id].pos + Vector2(0, -10), "id": "structure:" + str(id)})
+	if _shore and _shore.visible:
+		out.append({"probe": D.SHORE.pos, "id": "shore"})
+	out.append({"probe": D.CAVE.pos + Vector2(0, -20), "id": "cave"})
+	return out
+
 ## Nearest walkable point to `p` (snapped to a depth lane).
 static func walk_point(p: Vector2) -> Vector2:
 	var best: Dictionary = D.LANES[0]

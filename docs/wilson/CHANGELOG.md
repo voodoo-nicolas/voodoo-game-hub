@@ -1,5 +1,10 @@
 # Beached (wilson) changelog
 
+## 2026-11-08: the Viral Pad (pack v6, built, not published)
+- Stick + A B X Y on the shared Pad (`stick_4`): stick walks (the three depth lanes blend into one free strip, `pad_limits`), A uses the nearest thing within 140 px (its tap menu, or the castaway's menu if nothing is near; at the waterline the shallows menu), B closes a menu or cancels the running action, X = nap, Y = sleep, info pill = journal, pause pill = pause. Keyboard: WASD + K L J I (the Pad's defaults), arrows still step. Taps work as before.
+- Apps without the Pad (older than v0.40.0 here) keep taps and the 💤 😴 buttons; with the Pad those buttons are hidden. Pad is APK-side, already in v0.40.0: no app release needed.
+- Tests: `tools/test_wilson_pad.gd` (10 checks on the real scene, backs up and restores the desktop save). Not built: Options screen for the Pad (kit "Controls" stays hidden, like the other adopters).
+
 ## 2026-11-08: the owner's water, sky and logo art (pack v5)
 - Sea: `sea layer.jpg` scrolls over the painted sea (same blue mask as before, the island is untouched; faster and wavier with the weather). Foam: three arcs from `sea foam2.jpg` pulse (+-4 % scale / alpha) at the shoreline. Front waves: `front waves.jpg` rises along the bottom in rain / wind / storm (nothing in calm weather).
 - Sky: the painted sun (cut from `sky layer.jpg`) replaces the drawn disc, two painted clouds join the drifting ones. The painted sky gradient itself is not used (the game's sky changes through the day and night).

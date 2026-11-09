@@ -94,6 +94,9 @@
  "%s/%s.v%d.pck": [
   "scripts\\common\\catalog.gd"
  ],
+ "%s/%s.webp": [
+  "scripts\\games\\wilson\\wilson_world.gd"
+ ],
  "%s/auth/v1/authorize?provider=%s&redirect_to=%s": [
   "scripts\\common\\auth.gd"
  ],
@@ -733,6 +736,9 @@
  ],
  "resume last game": [
   "scripts\\hub\\hub.gd"
+ ],
+ "sea/%s.webp": [
+  "scripts\\games\\wilson\\wilson_world.gd"
  ],
  "spend DNA on Growth": [
   "scripts\\games\\evolution\\evolution_engine.gd"
