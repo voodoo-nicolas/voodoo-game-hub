@@ -147,9 +147,9 @@ const H := 768.0
 const HORIZON_Y := 327.0
 ## Walkable depth lanes (KICKOFF M1: 2-3 lanes): y and the x range of each.
 const LANES := [
-	{"y": 432.0, "x0": 330.0, "x1": 760.0},
-	{"y": 482.0, "x0": 175.0, "x1": 1040.0},
-	{"y": 535.0, "x0": 200.0, "x1": 1190.0},
+	{"y": 398.0, "x0": 300.0, "x1": 800.0},      # owner, 2026-11-09: more walkable ground, closer to the back palms
+	{"y": 470.0, "x0": 165.0, "x1": 1060.0},
+	{"y": 535.0, "x0": 190.0, "x1": 1210.0},
 ]
 ## Where Johnny wakes up on Day 1.
 const START_POS := Vector2(640, 482)
