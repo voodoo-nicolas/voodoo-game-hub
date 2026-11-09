@@ -51,6 +51,7 @@ func _init() -> void:
 	test_m3_skills_storage()
 	test_m4_weather_tides()
 	test_m5_side_quests()
+	test_m5b_more_quests()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -655,3 +656,19 @@ func test_m5_side_quests() -> void:
 	var r2 = r.get_script().new()
 	r2.from_dict(r.to_dict())
 	ok(r2.side_done == r.side_done and int(r2.stats.reef) == 5, "save keeps side quests + stats")
+
+func test_m5b_more_quests() -> void:
+	var e = fresh(at(2026, 6, 21, 22))
+	for b in ["sand", "frond_bed", "hammock", "tent"]:
+		e.start_sleep(b, 1.0)
+	ok(not "S16" in e.side_done, "S16 needs 5 beds (4 so far)")
+	e.start_sleep("frond_shelter", 1.0)
+	ok("S16" in e.side_done, "S16 after 5 kinds of bed")
+	var f = fresh(at(2026, 6, 21, 23))
+	f.bump("night_cook")
+	ok("S17" in f.side_done, "S17 night cook")
+	var g = fresh(at(2026, 6, 21, 9))
+	g.add("clay_jar", 2)
+	g.add("barrel", 1)
+	g._check_side()
+	ok("S15" in g.side_done, "S15 at 32+ slots")

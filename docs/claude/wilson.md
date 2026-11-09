@@ -1,6 +1,6 @@
 # Beached (id `wilson`, castaway sim, Adventure, landscape)
 
-Owner's game, started 2026-11-08 (M0-M5 built, **not published**, not phone-tested). Design on Drive "viral game hub/wilson" (README, KICKOFF with the milestone list M0-M8 and acceptance tests, design/GDD.md, CRAFTING.md, QUESTS.md (121 quests), DIALOGUE.md, art/ART_PROMPTS.md). Data copied to `games/wilson/data/*.json` (read at runtime). Decisions and what is not built: `docs/wilson/DECISIONS.md`; history: `docs/wilson/CHANGELOG.md`. Never ship the word "Wilson" (README); "Johnny" is code-only (DECISIONS W-3).
+Owner's game, started 2026-11-08 (M0-M5 built, **published as pack v1 (2026-11-08)**, not phone-tested). Design on Drive "viral game hub/wilson" (README, KICKOFF with the milestone list M0-M8 and acceptance tests, design/GDD.md, CRAFTING.md, QUESTS.md (121 quests), DIALOGUE.md, art/ART_PROMPTS.md). Data copied to `games/wilson/data/*.json` (read at runtime). Decisions and what is not built: `docs/wilson/DECISIONS.md`; history: `docs/wilson/CHANGELOG.md`. Never ship the word "Wilson" (README); "Johnny" is code-only (DECISIONS W-3).
 
 ## Files (`scripts/games/wilson/`)
 | File | What |
@@ -17,7 +17,7 @@ Owner's game, started 2026-11-08 (M0-M5 built, **not published**, not phone-test
 | `wilson_game.gd` | Landing kit, layers (sky -3, world -2 with CanvasModulate, glow -1, HUD), clock (real + debug offset), catch-up, HUD, context menus, bag / craft / journal panels, save, help "⏩ Hurry up" |
 
 ## Tests and tools
-- `godot --headless --path . --script res://tools/test_wilson.gd`: 698 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip). Pure engine, no saves touched.
+- `godot --headless --path . --script res://tools/test_wilson.gd`: 702 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip). Pure engine, no saves touched.
 - `godot --path . --resolution 1280x720 --script res://tools/shot_wilson.gd -- <dir> [en|es]`: screenshots (backs up and restores the save + debug files).
 - `python tools/wilson_art.py [sheets]`: rebuilds `games/wilson/art/` from `D:/dev/Wilson` (reproducible; `sheets` skips the slow plate step). New sheet = anchors (source pixels of each sprite) + `cut_sheet()`.
 

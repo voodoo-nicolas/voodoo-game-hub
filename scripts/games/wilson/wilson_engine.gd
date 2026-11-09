@@ -694,6 +694,13 @@ func sleep_hours_for(bed: String) -> float:
 
 func start_sleep(bed: String, hours: float) -> void:
 	sleep = {"kind": "sleep", "bed": bed, "start": t, "until": t + hours * 3600.0}
+	stats["slept:" + bed] = 1
+	var kinds := 0
+	for b in D.balance().get("sleep_restore_per_h", {}):
+		if int(stats.get("slept:" + b, 0)) > 0:
+			kinds += 1
+	stats["bed_kinds"] = kinds
+	_check_side()
 	if bed == "sand":
 		say("sleep_sand")
 	elif bed == "hammock":
@@ -1221,6 +1228,8 @@ func _finish_craft(q: Dictionary) -> void:
 			events.append({"type": "fail"})
 			return
 	bump("made:" + str(r.id))
+	if str(r.id).begins_with("cook") and not is_day():
+		bump("night_cook")
 	if r.out_type == "structure":
 		structures[r.out] = {"built": t}
 		_xp(D.recipe_skill(r), 3)
@@ -1285,6 +1294,7 @@ func bump(key: String, n: int = 1) -> void:
 	_check_side()
 
 func _check_side() -> void:
+	stats["capacity"] = capacity()
 	for q in Quests.LIST:
 		if q.id in side_done or int(stats.get(q.stat, 0)) < int(q.need):
 			continue
