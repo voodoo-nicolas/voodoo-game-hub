@@ -1,5 +1,10 @@
 # Beached (wilson) changelog
 
+## 2026-11-08: M5 side quests + sea report (not published)
+- `wilson_quests.gd`: 21 side quests (S, W, A series) that watch engine counters (`stats`, `bump()`): made:<recipe>, ev:<event>[:id], wx:<weather>, reef, low_tides. Pay XP / items / gag / decor once, journal line "Quest done".
+- Journal panel: sea report (tide now, next low tide, barometer forecast) and the quest list with progress.
+- Tests: 698 checks. Not built (needs systems that don't exist yet): bottle quests B (M6), cave C (M7), Grand Projects G (M7), escape gags E, dailies D, most of A, W01 / W02 / W06 / W08-W10, S08 / S11 / S14-S17 / S20 / S21 / S23-S25.
+
 ## 2026-11-08: M4 weather + tides (not published)
 - Weather controller: seeded per island, 3 h spells (merge to 6 h), season weights for the player's hemisphere (no heatwave in winter, no cold snap in summer); drives the engine through `advance`, so offline catch-up replays it. Debug panel: "auto" or force a state.
 - Effects: fog +1 bottle ashore, rain bites (fishing), wind / storm regrow coconuts x2, storm log line; heatwave thirst x2, rain catcher and fire were already wired.

@@ -50,6 +50,7 @@ func _init() -> void:
 	test_m3_structures()
 	test_m3_skills_storage()
 	test_m4_weather_tides()
+	test_m5_side_quests()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -610,3 +611,47 @@ func test_m4_weather_tides() -> void:
 	var r2 = r.get_script().new()
 	r2.from_dict(r.to_dict())
 	ok(r2.wseed == r.wseed and absf(r2.tide_off - r.tide_off) < 0.001, "save keeps weather seed + tide")
+
+func test_m5_side_quests() -> void:
+	var Q = load("res://scripts/games/wilson/wilson_quests.gd")
+	var ids := {}
+	var recipes := {}
+	for r in D.json("recipes").recipes:
+		recipes[r.id] = true
+	var good := true
+	for q in Q.LIST:
+		if ids.has(q.id):
+			good = false
+		ids[q.id] = true
+		if str(q.stat).begins_with("made:") and not recipes.has(str(q.stat).substr(5)):
+			good = false
+		for pair in q.reward.get("items", []):
+			if D.item(str(pair[0])).is_empty():
+				good = false
+	ok(good, "side quests: unique ids, real recipes and items")
+	var e = fresh(at(2026, 6, 21, 9))
+	e.bump("ev:caught", 9)
+	ok(not "S05" in e.side_done, "S05 not yet at 9 fish")
+	e.bump("ev:caught")
+	ok("S05" in e.side_done, "S05 at 10 fish")
+	ok(e.count("bait") == 3 and e.skill_level("fishing") >= 1, "S05 pays bait + fishing xp")
+	var n: int = e.side_done.size()
+	e.bump("ev:caught", 50)
+	ok(e.side_done.size() == n, "a quest pays only once")
+	# real flow: salt recipe made via the queue
+	var f = fresh(at(2026, 6, 21, 9))
+	f.stats["made:salt"] = 0
+	f.bump("made:salt")
+	ok("S01" in f.side_done and f.count("salt") == 2, "S01 salt reward")
+	# weather quests via the controller
+	var w = fresh(at(2026, 6, 21, 9))
+	w.weather_auto = true
+	w.advance(w.t + 24 * 30 * 3600.0, false)
+	ok(int(w.stats.get("low_tides", 0)) >= 50, "low tides counted over a month (%d)" % int(w.stats.get("low_tides", 0)))
+	ok("W07" in w.side_done, "W07 tide table done")
+	var r = fresh(at(2026, 6, 21, 9))
+	r.bump("reef", 5)
+	ok("S10" in r.side_done, "S10 reef")
+	var r2 = r.get_script().new()
+	r2.from_dict(r.to_dict())
+	ok(r2.side_done == r.side_done and int(r2.stats.reef) == 5, "save keeps side quests + stats")

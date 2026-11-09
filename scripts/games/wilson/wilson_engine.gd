@@ -13,6 +13,7 @@ extends RefCounted
 
 const D = preload("res://scripts/games/wilson/wilson_data.gd")
 const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
+const Quests = preload("res://scripts/games/wilson/wilson_quests.gd")
 
 const SAVE_VERSION := 1
 const STEP := 600.0  # simulation step, seconds
@@ -46,6 +47,9 @@ var discovered: Array = []   # tier 3-4 recipes found by combining (M3)
 var fire_fails := 0
 var catches := 0
 var raw_eaten := 0
+var stats := {}              # counters the side quests watch (wilson_quests.gd)
+var side_done: Array = []    # finished side quest ids
+var _was_low := false
 var tallies: Array = []      # local day indexes scratched on the stump
 var weather := "clear"
 var weather_auto := false    # true = the controller drives `weather` (the game sets it); the debug panel can force one
@@ -98,6 +102,9 @@ func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: 
 	catches = 0
 	raw_eaten = 0
 	tallies = []
+	stats = {}
+	side_done = []
+	_was_low = false
 	weather = "clear"
 	weather_auto = false
 	wseed = (seed_value if seed_value != 0 else int(now)) & 0x7fffffff
@@ -185,12 +192,23 @@ func weather_at(at: float) -> String:
 	return "clear"
 
 func _weather_tick() -> void:
+	var low := is_low_tide()
+	if low and not _was_low:
+		bump("low_tides")
+	_was_low = low
 	if not weather_auto:
 		return
 	var w := weather_at(t)
 	if w == weather:
 		return
 	weather = w
+	bump("wx:" + w)
+	var kinds := 0
+	for k in ["rain", "wind", "fog"]:
+		if int(stats.get("wx:" + k, 0)) > 0:
+			kinds += 1
+	stats["wx_kinds"] = kinds
+	_check_side()
 	if w == "storm":
 		log_entry("A storm is rolling in. The palms hold on tight.")
 	elif w == "fog":
@@ -1120,6 +1138,7 @@ func _finish(q: Dictionary) -> void:
 					var reef := _roll(D.REEF_TABLE)
 					if reef != "":
 						add(reef, 1)
+						bump("reef")
 						log_entry("Low tide. The reef was showing: found %s.", ["@" + reef])
 		"shake":
 			var p: Dictionary = palms[tgt]
@@ -1201,6 +1220,7 @@ func _finish_craft(q: Dictionary) -> void:
 			log_entry("Tried to light a fire. Attempt %d. Smoke. Sadness.", [fire_fails])
 			events.append({"type": "fail"})
 			return
+	bump("made:" + str(r.id))
 	if r.out_type == "structure":
 		structures[r.out] = {"built": t}
 		_xp(D.recipe_skill(r), 3)
@@ -1259,7 +1279,36 @@ func _xp(skill: String, n: int) -> void:
 func tap_johnny() -> void:
 	_emit("tapped_johnny", {})
 
+## Count something for the side quests and finish any that are now met.
+func bump(key: String, n: int = 1) -> void:
+	stats[key] = int(stats.get(key, 0)) + n
+	_check_side()
+
+func _check_side() -> void:
+	for q in Quests.LIST:
+		if q.id in side_done or int(stats.get(q.stat, 0)) < int(q.need):
+			continue
+		side_done.append(q.id)
+		var rw: Dictionary = q.reward
+		for k in rw.get("xp", {}):
+			_xp(k, int(rw.xp[k]))
+		give_list(rw.get("items", []))
+		var gag: String = str(rw.get("gag", ""))
+		if gag != "" and not gag in gags:
+			gags.append(gag)
+		var dec: String = str(rw.get("decor", ""))
+		if dec != "" and not dec in decor:
+			decor.append(dec)
+		log_entry("Quest done: %s.", ["~" + str(q.en)])
+		say("quest")
+		events.append({"type": "side", "id": q.id})
+
 func _emit(ev: String, data: Dictionary) -> void:
+	stats["ev:" + ev] = int(stats.get("ev:" + ev, 0)) + 1
+	if data.has("id"):
+		var k := "ev:%s:%s" % [ev, data.id]
+		stats[k] = int(stats.get(k, 0)) + 1
+	_check_side()
 	if quest == "":
 		return
 	var q := D.quest(quest)
@@ -1341,7 +1390,7 @@ func to_dict() -> Dictionary:
 		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
 		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked, "discovered": discovered,
 		"fire_fails": fire_fails, "catches": catches, "raw_eaten": raw_eaten, "tallies": tallies,
-		"weather": weather, "weather_auto": weather_auto, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
+		"weather": weather, "weather_auto": weather_auto, "stats": stats, "side_done": side_done, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
 		"rng_state": str(rng.state), "low": _low,
 	}
 
@@ -1384,6 +1433,8 @@ func from_dict(d: Dictionary) -> bool:
 		tallies.append(int(x))
 	weather = str(d.get("weather", "clear"))
 	weather_auto = bool(d.get("weather_auto", true))
+	stats = d.get("stats", {})
+	side_done = d.get("side_done", [])
 	wseed = int(d.get("wseed", int(d.t) & 0x7fffffff))
 	tide_off = float(d.get("tide_off", float(wseed % int(D.TIDE_MIN))))
 	shore = d.get("shore", shore)

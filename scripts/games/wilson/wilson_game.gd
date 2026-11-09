@@ -18,6 +18,7 @@ const HomeKit = preload("res://scripts/games/wilson/home_kit.gd")
 const HELP = preload("res://scripts/games/wilson/wilson_help.gd")
 const Engine_ = preload("res://scripts/games/wilson/wilson_engine.gd")
 const D = preload("res://scripts/games/wilson/wilson_data.gd")
+const Quests = preload("res://scripts/games/wilson/wilson_quests.gd")
 const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
 const World = preload("res://scripts/games/wilson/wilson_world.gd")
 const SkyView = preload("res://scripts/games/wilson/wilson_skyview.gd")
@@ -1306,6 +1307,20 @@ func _open_journal() -> void:
 		parts.append("%s %d" % [tr(D.SKILL_NAMES[k]), engine.skill_level(k)])
 	sk.text = "📈 " + "  ·  ".join(parts)
 	body.add_child(sk)
+	body.add_child(_sea_report())
+	var qh := Label.new()
+	qh.text = "🎯 " + tr("Side quests") + "  %d/%d" % [engine.side_done.size(), Quests.LIST.size()]
+	qh.add_theme_color_override("font_color", ACCENT)
+	body.add_child(qh)
+	for q in Quests.LIST:
+		var ql := Label.new()
+		ql.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if q.id in engine.side_done:
+			ql.text = "✔ %s" % Quests.quest_name(q)
+			ql.modulate = Color(1, 1, 1, 0.6)
+		else:
+			ql.text = "• %s: %s (%d/%d)" % [Quests.quest_name(q), tr(str(q.goal)), mini(int(engine.stats.get(q.stat, 0)), int(q.need)), int(q.need)]
+		body.add_child(ql)
 	var n: int = engine.journal.size()
 	for i in range(n - 1, maxi(-1, n - 80), -1):
 		body.add_child(_journal_line(engine.journal[i]))
@@ -1313,6 +1328,28 @@ func _open_journal() -> void:
 		var l := Label.new()
 		l.text = "\n" + tr("Quests done:") + " " + ", ".join(engine.quests_done)
 		body.add_child(l)
+
+## Tides and (with a barometer) the weather ahead, for the journal panel.
+func _sea_report() -> Label:
+	var l := Label.new()
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var lines := [_tide_text()]
+	var nl: float = engine.next_low_tide()
+	if not engine.is_low_tide() and nl > engine.t:
+		var mins := int(round((nl - engine.t) / 60.0))
+		lines.append(tr("Next low tide in %d h %02d min.") % [mins / 60, mins % 60])
+	var hrs: int = engine.forecast_hours()
+	if hrs <= 0:
+		lines.append(tr("Make a barometer to see the weather ahead."))
+	else:
+		var fc: Array = engine.forecast()
+		if fc.is_empty():
+			lines.append(tr("Forecast (%d h): the same weather.") % hrs)
+		for f in fc:
+			var d := Time.get_datetime_dict_from_unix_time(int(float(f.t) + engine.tz))
+			lines.append("%s %02d:%02d  %s %s" % [tr("Forecast"), d.hour, d.minute, D.WEATHER_ICON.get(f.weather, ""), tr(D.WEATHER_NAMES.get(f.weather, ""))])
+	l.text = "\n".join(lines)
+	return l
 
 func _journal_line(e: Dictionary) -> Label:
 	var l := Label.new()
