@@ -104,7 +104,28 @@ var castaway                 # Castaway node
 var fire                     # Fire node (only once built)
 var waves: ColorRect
 var surf: ColorRect
+const GLOW_SHADER := """
+shader_type canvas_item;
+render_mode blend_add;
+uniform vec2 size = vec2(100.0, 60.0);
+uniform vec4 col : source_color = vec4(1.0, 0.85, 0.35, 1.0);
+uniform float amount = 1.0;
+uniform float spread = 20.0;
+// A soft light hugging the border of a rounded box: strongest on the edge, fading outward, faint inside.
+void fragment() {
+	vec2 p = (UV - 0.5) * size;
+	vec2 half_in = size * 0.5 - vec2(spread);
+	float rad = max(min(half_in.x, half_in.y) * 0.8, 1.0);
+	vec2 q = abs(p) - (half_in - vec2(rad));
+	float d = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - rad;
+	float out_g = exp(-pow(max(d, 0.0) / (spread * 0.5), 2.0));
+	float in_g = 0.12 + 0.88 * exp(-pow(min(d, 0.0) / (spread * 0.6), 2.0));
+	COLOR = vec4(col.rgb, col.a * amount * (d > 0.0 ? out_g : in_g));
+}
+"""
 var focus_rect := Rect2()
+var _glow_pool: Array = []
+var _glow_shader: Shader
 var mark_rects: Array = []   # quest objectives: pulsing rings
 var _focus_node: Node2D
 var _surf_mat: ShaderMaterial
@@ -154,8 +175,9 @@ func setup(e) -> void:
 	_focus_node = Node2D.new()
 	_focus_node.z_index = 30
 	add_child(_focus_node)
-	_focus_node.draw.connect(_draw_focus)
 	_focus_node.draw.connect(_draw_marks)
+	_glow_shader = Shader.new()
+	_glow_shader.code = GLOW_SHADER
 	var sway := Shader.new()
 	sway.code = SWAY_SHADER
 	var palm_origin := {"C": Vector2(1048, 140), "D": Vector2(1196, 232)}
@@ -291,8 +313,10 @@ func in_hammock() -> bool:
 
 ## Every frame: sea motion from the weather, fire state, night glints.
 func tick(night: float, sea_amp: float, wind: float) -> void:
-	if _focus_node and (focus_rect.size != Vector2.ZERO or not mark_rects.is_empty()):
-		_focus_node.queue_redraw()
+	if _focus_node:
+		_update_glows()
+		if not mark_rects.is_empty():
+			_focus_node.queue_redraw()
 	_sea_mat.set_shader_parameter("amp", sea_amp)
 	_sea_mat.set_shader_parameter("night", night)
 	_wave_mat.set_shader_parameter("amp", sea_amp)
@@ -383,40 +407,64 @@ func interactables() -> Array:
 	out.append({"probe": D.CAVE.pos + Vector2(0, -20), "id": "cave", "rect": Rect2(D.CAVE.pos + Vector2(-80, -110), Vector2(170, 150))})
 	return out
 
-## Rings round the quest objectives (the owner, 2026-11-09: "quest items should have a glowing circle").
+## Quest objectives: a bright golden glow along their border (owner, 2026-11-09: "not a circle, not a box").
 func set_marks(rects: Array) -> void:
 	mark_rects = rects
 	if _focus_node:
 		_focus_node.queue_redraw()
 
+## Only the small bobbing arrow is drawn; the glow itself is a shader (GLOW_SHADER).
 func _draw_marks() -> void:
 	var tt := Time.get_ticks_msec() * 0.004
 	for r in mark_rects:
 		var c: Vector2 = r.get_center()
-		var rad := maxf(r.size.x, r.size.y) * 0.5 + 12.0
-		var k := 0.5 + 0.5 * sin(tt)
-		for i in 3:
-			var rr := rad + float(i) * 6.0 + k * 6.0
-			_focus_node.draw_arc(c, rr, 0.0, TAU, 48, Color(0, 0, 0, 0.35 * (1.0 - i * 0.3)), 8.0, true)
-			_focus_node.draw_arc(c, rr, 0.0, TAU, 48, Color(0.75, 1.0, 0.85, (0.95 - i * 0.25) * (0.6 + 0.4 * k)), 4.5, true)
-		# a little arrow bobbing above
-		var ay: float = r.position.y - 22.0 - 5.0 * sin(tt * 1.6)
-		_focus_node.draw_colored_polygon(PackedVector2Array([Vector2(c.x - 14, ay - 20), Vector2(c.x + 14, ay - 20), Vector2(c.x, ay)]), Color(0.75, 1.0, 0.85, 0.98))
+		var ay: float = r.position.y - 26.0 - 5.0 * sin(tt * 1.6)
+		_focus_node.draw_colored_polygon(PackedVector2Array([Vector2(c.x - 12, ay - 18), Vector2(c.x + 12, ay - 18), Vector2(c.x, ay)]), Color(1.0, 0.82, 0.25, 0.95))
 
-## The glowing outline round whatever the castaway is facing (an empty rect = none).
+## Whatever the castaway is facing and can use: a soft warm glow (an empty rect = none).
 func set_focus(r: Rect2) -> void:
-	if r == focus_rect:
-		return
 	focus_rect = r
-	if _focus_node:
-		_focus_node.queue_redraw()
 
-func _draw_focus() -> void:
-	if focus_rect.size == Vector2.ZERO:
-		return
-	var k := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
-	for i in 4:
-		_focus_node.draw_rect(focus_rect.grow(2.0 + i * 3.0), Color(1.0, 0.88, 0.35, (0.85 - i * 0.18) * (0.6 + 0.4 * k)), false, 4.0)
+func _glow_node(i: int) -> ColorRect:
+	while _glow_pool.size() <= i:
+		var g := ColorRect.new()
+		g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var m := ShaderMaterial.new()
+		m.shader = _glow_shader
+		g.material = m
+		g.visible = false
+		_focus_node.add_child(g)
+		_glow_pool.append(g)
+	return _glow_pool[i]
+
+func _update_glows() -> void:
+	var list: Array = []     # [rect, colour, strength]
+	var k := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)
+	for r in mark_rects:
+		list.append([r, Color(1.0, 0.78, 0.18), 0.8 + 0.5 * k])
+	if focus_rect.size != Vector2.ZERO:
+		var dup := false
+		for r in mark_rects:
+			if r.intersects(focus_rect) and r.get_center().distance_to(focus_rect.get_center()) < 40.0:
+				dup = true
+		if not dup:
+			list.append([focus_rect, Color(1.0, 0.95, 0.8), 0.45 + 0.25 * k])
+	for i in maxi(list.size(), _glow_pool.size()):
+		if i >= list.size():
+			_glow_pool[i].visible = false
+			continue
+		var g := _glow_node(i)
+		var r: Rect2 = list[i][0]
+		var spread := 20.0
+		var box := r.grow(spread)
+		g.position = box.position
+		g.size = box.size
+		var m: ShaderMaterial = g.material
+		m.set_shader_parameter("size", box.size)
+		m.set_shader_parameter("spread", spread)
+		m.set_shader_parameter("col", list[i][1])
+		m.set_shader_parameter("amount", list[i][2])
+		g.visible = true
 
 ## Nearest walkable point to `p` (snapped to a depth lane).
 static func walk_point(p: Vector2) -> Vector2:

@@ -458,9 +458,38 @@ const TIER2_NEEDS_TIER1 := 2       # craft tree: tier-2 recipes appear after two
 ## your energy and go to bed"). Shown on the HUD goal line before the tutorial quests; the tutorial still runs.
 const START_ENERGY := 65.0
 const INTRO := [
-	{"key": "got:stone", "need": 8, "hint": "Collect some pebbles: ✋ in the castaway's menu, or tap the stones."},
-	{"key": "got:stick", "need": 6, "hint": "Collect some sticks."},
-	{"key": "got:frond", "need": 10, "hint": "Collect palm fronds."},
-	{"key": "made:frond_bed", "need": 1, "hint": "Make a frond bed in 🔨 Craft."},
-	{"key": "slept", "need": 1, "hint": "Tired? Go to bed: 💤 (or the Y button)."},
+	{"key": "got:stone", "need": 8, "hint": "Gather pebbles", "long": "Collect some pebbles: ✋ in the castaway's menu, or tap the stones."},
+	{"key": "got:stick", "need": 6, "hint": "Gather sticks", "long": "Collect some sticks."},
+	{"key": "got:frond", "need": 10, "hint": "Gather palm fronds", "long": "Collect palm fronds."},
+	{"key": "made:frond_bed", "need": 1, "hint": "Craft a frond bed", "long": "Make a frond bed in 🔨 Craft."},
+	{"key": "slept", "need": 1, "hint": "Go to bed", "long": "Tired? Go to bed: 💤 (or the Y button)."},
 ]
+
+## The guided opening (owner, 2026-11-09): the HUD builds up one part at a time. `show` = the parts that
+## appear when the step starts: a, b, bag, craft, hp, food, water, energy, mood, clock, journal, pause.
+## `reqs` = [stat key, amount]; `card` = a "Got it" card explains the HUD part. `short` is the HUD line
+## (under 5 words); `long` is the journal's fuller text.
+const TUT := [
+	{"id": "walk", "short": "Learn to walk", "long": "Push the left stick to walk around the beach.", "reqs": [["tut:walk", 1]]},
+	{"id": "buttons", "short": "Learn the buttons", "long": "A uses what is close. B goes back. Press A, then B.", "reqs": [["tut:ab", 1]], "show": ["a", "b"]},
+	{"id": "pebble", "short": "Pick up a pebble", "long": "Walk to the stones on the left and press A.", "reqs": [["got:stone", 1]], "objective": ["spot:stones"]},
+	{"id": "bag", "short": "Open your inventory", "long": "Tap the backpack, top right.", "reqs": [["tut:bag", 1]], "show": ["bag"]},
+	{"id": "pebbles", "short": "Gather more pebbles", "long": "A campfire needs plenty of stones. Keep picking them up.", "reqs": [["got:stone", 9]], "objective": ["spot:stones"]},
+	{"id": "wood", "short": "Collect wood", "long": "Six sticks from the pile in the middle, and one dry frond from the pile on the right.", "reqs": [["got:stick", 6], ["got:dry_frond", 1]], "objective": ["spot:sticks", "spot:dry_fronds"]},
+	{"id": "spark", "short": "Make a spark kit", "long": "Open the hammer button, top right. Craft a spark kit first.", "reqs": [["made:spark_kit", 1]], "show": ["craft"], "objective": ["craft"]},
+	{"id": "fire", "short": "Build a campfire", "long": "Craft a campfire: 8 stones and 5 sticks.", "reqs": [["ev:structure_built:campfire", 1]], "objective": ["craft"]},
+	{"id": "hp", "short": "Meet your health", "long": "Health. Look after the other bars and it looks after you.", "card": true, "show": ["hp"]},
+	{"id": "food", "short": "Meet your hunger", "long": "Food. Fish, coconuts and cooked meals fill it.", "card": true, "show": ["food"]},
+	{"id": "water", "short": "Meet your thirst", "long": "Water. Coconuts and rain catchers fill it. The sea does not.", "card": true, "show": ["water"]},
+	{"id": "energy", "short": "Meet your energy", "long": "Energy. Work uses it. Sleep in a bed brings it back.", "card": true, "show": ["energy"]},
+	{"id": "mood", "short": "Watch your mood", "long": "Mood. A good mood makes everything a little better.", "card": true, "show": ["mood"]},
+	{"id": "clock", "short": "Check the day", "long": "The day counter. The island runs on real time, even while you are away.", "card": true, "show": ["clock"]},
+	{"id": "journal", "short": "Open your journal", "long": "Tap the notebook, top right. Quests and news live there.", "reqs": [["tut:journal", 1]], "show": ["journal", "pause"]},
+]
+
+## HUD quest lines (under 5 words); the journal keeps the full QUEST_HINTS text.
+const QUEST_SHORT := {
+	"T01": "Wake up", "T02": "Open the crate", "T03": "Craft a fishing pole", "T04": "Catch a fish",
+	"T05": "Build a campfire", "T06": "Hang a hammock", "T07": "Drink a coconut", "T08": "Chop a palm",
+	"T09": "Build a shelter", "T10": "Open a bottle", "T11": "Take a nap", "T12": "Tally your days",
+}

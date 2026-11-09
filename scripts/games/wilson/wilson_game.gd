@@ -77,6 +77,14 @@ var _sleep_row: Control = null
 var _craft_btn: Button = null
 var pad: Control = null          # the shared Pad (older apps do not have it: taps and the 💤 😴 buttons only)
 var _pad_busy_said := false
+var _bars_panel: PanelContainer
+var _bar_rows := {}              # bar id -> its row (hidden until the opening introduces it)
+var _hud_btns := {}              # journal / bag / craft / pause -> button
+var _tut_card: PanelContainer = null
+var _tut_card_label: Label
+var _tut_vis := {}               # HUD part -> shown now (so the Pad is only touched on a change)
+var _tut_walked := 0.0
+var _tut_a := false
 var _popup: PanelContainer = null
 var _panel: PanelContainer = null
 var _debug = null
@@ -154,36 +162,35 @@ func _ask_name(done: Callable, current: String) -> void:
 	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	card.name = "NamePicker"
 	var col := VBoxContainer.new()
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 14)
+	col.alignment = BoxContainer.ALIGNMENT_BEGIN     # top of the screen: the phone keyboard covers the lower half
+	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
 	var l := Label.new()
 	l.text = tr("What's your name?")
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size", 32)
+	l.add_theme_font_size_override("font_size", 26)
 	l.add_theme_color_override("font_color", ACCENT)
 	col.add_child(l)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	col.add_child(row)
 	var edit := LineEdit.new()
 	edit.max_length = 16
 	edit.text = current
 	edit.placeholder_text = tr("Your name")
 	edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	edit.add_theme_font_size_override("font_size", 30)
-	edit.custom_minimum_size = Vector2(320, 64)
-	edit.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	col.add_child(edit)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
-	col.add_child(row)
+	edit.add_theme_font_size_override("font_size", 26)
+	edit.custom_minimum_size = Vector2(300, 52)
+	row.add_child(edit)
 	var ok := Button.new()
 	ok.text = tr("OK")
-	ok.custom_minimum_size = Vector2(140, 56)
+	ok.custom_minimum_size = Vector2(110, 52)
 	ok.pressed.connect(_on_name_done.bind(card, edit, done, true))
 	row.add_child(ok)
 	var skip := Button.new()
 	skip.text = tr("Skip")
-	skip.custom_minimum_size = Vector2(140, 56)
+	skip.custom_minimum_size = Vector2(110, 52)
 	skip.pressed.connect(_on_name_done.bind(card, edit, done, false))
 	row.add_child(skip)
 	edit.text_submitted.connect(_on_name_submitted.bind(card, edit, done))
@@ -207,8 +214,10 @@ func _change_name(n: String) -> void:
 
 func _start_island(name_text: String, look_id: String) -> void:
 	SaveUtil.delete(SAVE_PATH)
+	_set_clock_to_dawn()
 	engine = Engine_.new()
 	engine.reset(now(), _tz(), _default_hemisphere(), 0, look_id)
+	engine.tut = 0      # the guided opening: the HUD builds up one part at a time
 	engine.cname = name_text
 	engine.checkin()
 	engine.weather_auto = true
@@ -217,6 +226,16 @@ func _start_island(name_text: String, look_id: String) -> void:
 	_start_play()
 	_bubble_queue.append(D.LINES.day1[0])
 	_save_game()
+
+## A new island starts just after sunrise, bright (owner, 2026-11-09): the game clock jumps to ~25 min after dawn.
+func _set_clock_to_dawn() -> void:
+	var probe = Engine_.new()
+	probe.reset(now(), _tz(), _default_hemisphere(), 0, "male1")
+	for i in 2:      # twice: sunrise moves a minute or two between days
+		var rise: float = probe.sunrise_h(now())
+		var delta := fposmod(rise + 0.4 - probe.hour(now()), 24.0) * 3600.0
+		clock_offset += delta
+	save_debug()
 
 ## A card with the 8 looks; `done` gets the look id.
 func _pick_look(done: Callable) -> void:
@@ -396,6 +415,7 @@ func _process(dt: float) -> void:
 	_pad_process(dt)
 	_update_focus()
 	_update_marks()
+	_tut_pulse()
 	_update_bubble()
 
 func after_change() -> void:
@@ -507,16 +527,19 @@ func _pad_process(dt: float) -> void:
 		return
 	var c = world.castaway
 	# the face buttons (keyboard K L J I too: the Pad registers those actions)
-	if Input.is_action_just_pressed("pad_a"):
+	if Input.is_action_just_pressed("pad_a") and engine.tut_reached("a"):
+		_tut_a = true
 		_pad_use()
-	if Input.is_action_just_pressed("pad_b"):
+	if Input.is_action_just_pressed("pad_b") and engine.tut_reached("b"):
 		_pad_back()
-	if Input.is_action_just_pressed("pad_x"):
+		if _tut_a:
+			engine.tut_event("ab")
+	if Input.is_action_just_pressed("pad_x") and engine.tut < 0:
 		_pad_actions()
-	if Input.is_action_just_pressed("pad_y"):
+	if Input.is_action_just_pressed("pad_y") and engine.tut_reached("bag"):
 		_close_popup()
 		_open_bag()
-	if Input.is_action_just_pressed("pad_info"):
+	if Input.is_action_just_pressed("pad_info") and engine.tut_reached("journal"):
 		_open_journal()
 	var v := Input.get_vector("pad_move_left", "pad_move_right", "pad_move_up", "pad_move_down")
 	if v.length() < 0.15:
@@ -533,10 +556,24 @@ func _pad_process(dt: float) -> void:
 			_show_toast(tr("Busy. Tap an action in the list to cancel it."))
 		return
 	_close_popup()
-	var np: Vector2 = c.position + v * PAD_SPEED * dt
-	np.y = clampf(np.y, float(D.LANES[0].y), float(D.LANES[2].y))
-	var lim := pad_limits(np.y)
-	np.x = clampf(np.x, lim.x, lim.y)
+	# Each axis on its own: walking right along a lane must never slide him up and left when the lane
+	# narrows (owner, 2026-11-09: "facing the cave and walking right pushes you up and left").
+	var step := v * PAD_SPEED * dt
+	var np: Vector2 = c.position
+	var lim0 := pad_limits(np.y)
+	np.x = clampf(np.x + step.x, minf(lim0.x, np.x), maxf(lim0.y, np.x))     # never pushed back by the limit
+	var ny := clampf(np.y + step.y, float(D.LANES[0].y), float(D.LANES[2].y))
+	var lim1 := pad_limits(ny)
+	if np.x >= lim1.x - 0.5 and np.x <= lim1.y + 0.5:
+		np.y = ny
+	elif absf(step.y) > 0.01 and absf(step.x) < 0.01:
+		np.x = clampf(np.x, lim1.x, lim1.y)      # straight up / down at the edge: slide in along the new limit
+		np.y = ny
+	if engine.tut >= 0 and not _tut_vis.get("walked", false):
+		_tut_walked += c.position.distance_to(np)
+		if _tut_walked > 120.0:
+			_tut_vis["walked"] = true
+			engine.tut_event("walk")
 	c.walking = false
 	c.position = np
 	c.pose = "walk"
@@ -565,6 +602,9 @@ func nearest_interactable(reach: float) -> Dictionary:
 ## What the current objective points at: ids from world.interactables(), plus "johnny" / "shallows",
 ## and "craft" when the answer is on the 🔨 button. The Day 1 checklist comes first.
 func _objective_ids() -> Array:
+	var ts: Dictionary = engine.tut_step()
+	if not ts.is_empty():
+		return ts.get("objective", [])
 	var intro: Dictionary = engine.intro_step()
 	if not intro.is_empty():
 		match str(intro.key):
@@ -770,6 +810,13 @@ func _handle_events(evs: Array) -> void:
 			"side":
 				_show_toast("🎯 " + tr("Quest done: %s") % Quests.quest_name(Quests.get_quest(str(e.id))))
 				_sfx("win")
+			"tut":
+				_sfx("record")
+				after_change()
+			"tut_done":
+				_show_toast("🏝 " + tr("You can take it from here."))
+				_sfx("win")
+				after_change()
 			"intro_done":
 				_show_toast("🛏 " + tr("Day 1 sorted. Sleep well."))
 				_sfx("win")
@@ -843,6 +890,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_close_popup()
 		return
 	if _panel:
+		return
+	if engine.tut >= 0 and engine.tut < 2:      # walking and the buttons are learned with the stick and A / B
+		_show_toast(tr("Use the stick to walk."))
 		return
 	var p: Vector2 = (event.position - _stage_pos) / _stage_scale
 	_on_tap(p, event.position)
@@ -1016,10 +1066,14 @@ func _johnny_menu(screen: Vector2) -> void:
 		[tr("🔨 Craft"), _open_craft, ""],
 		[tr("⚡ Odd jobs"), _pastimes_menu.bind("quick"), ""],
 		[tr("🧘 Pastimes"), _pastimes_menu.bind("long"), ""],
-		[tr("👕 Change look"), _pick_look.bind(_change_look), ""],
-		[tr("✏ Change name"), _ask_name.bind(_change_name, engine.cname), ""],
 	]
 	opts[0][0] = "💤 %s  ·  %s" % [action_label("sleep", bed), _mins_text(engine.sleep_hours_for(bed) * 60.0)]
+	if engine.tut >= 0:       # the opening: collecting, plus the bag / craft once they have appeared
+		opts = [opts[4]]
+		if engine.tut_reached("bag"):
+			opts.append([tr("🎒 Bag"), _open_bag, ""])
+		if engine.tut_reached("craft"):
+			opts.append([tr("🔨 Craft"), _open_craft, ""])
 	_popup_at(screen, "%s  ·  %s" % [castaway_name(), _mood_text()], opts)
 
 ## 🧘 Pastimes: small things for the mood (wilson_pastimes.gd). Greyed out ones say why.
@@ -1158,6 +1212,7 @@ func _build_hud() -> void:
 	var bars_panel := PanelContainer.new()
 	bars_panel.add_theme_stylebox_override("panel", _card_style())
 	top.add_child(bars_panel)
+	_bars_panel = bars_panel
 	var bars_row := HBoxContainer.new()
 	bars_panel.add_child(bars_row)
 	var bars_col := VBoxContainer.new()
@@ -1166,6 +1221,7 @@ func _build_hud() -> void:
 	for k in ["hp", "food", "energy", "water"]:
 		var r := HBoxContainer.new()
 		bars_col.add_child(r)
+		_bar_rows[k] = r
 		var hud_icon: String = HUD_ART + {"hp": "heart", "food": "food", "energy": "energy", "water": "water"}[k] + ".webp"
 		if ResourceLoader.exists(hud_icon):
 			var ti := TextureRect.new()
@@ -1238,6 +1294,7 @@ func _build_hud() -> void:
 		btn.add_theme_font_size_override("font_size", 26)
 		btn.pressed.connect(b[1])
 		btns.add_child(btn)
+		_hud_btns[{"📓": "journal", "🎒": "bag", "🔨": "craft", "⏸": "pause"}[b[0]]] = btn
 		if b[0] == "🔨":
 			_craft_btn = btn
 	# queue (left, under the bars)
@@ -1279,6 +1336,30 @@ func _build_hud() -> void:
 	_bubble.add_child(_bubble_label)
 	_bubble.visible = false
 	_hud.add_child(_bubble)
+	_tut_card = PanelContainer.new()
+	_tut_card.add_theme_stylebox_override("panel", _card_style())
+	_tut_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_tut_card.offset_left = -270
+	_tut_card.offset_right = 270
+	_tut_card.offset_top = -150
+	_tut_card.offset_bottom = -20
+	_tut_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var tcol := VBoxContainer.new()
+	tcol.add_theme_constant_override("separation", 8)
+	_tut_card.add_child(tcol)
+	_tut_card_label = Label.new()
+	_tut_card_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tut_card_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tut_card_label.add_theme_font_size_override("font_size", 20)
+	tcol.add_child(_tut_card_label)
+	var tok := Button.new()
+	tok.text = tr("Got it")
+	tok.custom_minimum_size = Vector2(140, 48)
+	tok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	tok.pressed.connect(_on_tut_ack)
+	tcol.add_child(tok)
+	_tut_card.visible = false
+	_hud.add_child(_tut_card)
 	_toast = Label.new()
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast.add_theme_font_size_override("font_size", 22)
@@ -1321,14 +1402,88 @@ func _refresh_hud() -> void:
 	if time_scale != 1.0:
 		_clock.text += "  (x%d)" % int(time_scale)
 	var intro: Dictionary = engine.intro_step()
-	if not intro.is_empty():
-		_quest.text = "🎒 %s (%d/%d)" % [tr(str(intro.hint)), mini(int(intro.have), int(intro.need)), int(intro.need)]
+	var ts: Dictionary = engine.tut_step()
+	if not ts.is_empty():
+		_quest.text = "📜 " + tr(str(ts.short))
+		if int(ts.need) > 1:
+			_quest.text += "  %d/%d" % [int(ts.have), int(ts.need)]
+	elif not intro.is_empty():
+		_quest.text = "🎒 %s  %d/%d" % [tr(str(intro.hint)), mini(int(intro.have), int(intro.need)), int(intro.need)]
 	elif engine.quest != "":
-		var q := D.quest(engine.quest)
-		_quest.text = "📜 %s: %s" % [D.quest_name(q), tr(D.QUEST_HINTS.get(engine.quest, ""))]
+		_quest.text = "📜 " + tr(str(D.QUEST_SHORT.get(engine.quest, D.quest_name(D.quest(engine.quest)))))
 	else:
 		_quest.text = "📜 " + tr("Tutorial done. The island is yours. Sadly.")
 	_refresh_queue()
+	_apply_tut()
+
+## The opening shows the HUD one part at a time: stick, then A + B, the bag, the craft button, each bar,
+## the clock, the journal. Everything is shown once the opening is over (and for old saves).
+func _apply_tut() -> void:
+	if _hud == null or engine == null:
+		return
+	var rows := {"hp": "hp", "food": "food", "energy": "energy", "water": "water"}
+	var vis := {}
+	for k in rows:
+		vis[k] = engine.tut_reached(k)
+	for k in ["a", "b", "bag", "craft", "mood", "clock", "journal", "pause"]:
+		vis[k] = engine.tut_reached(k)
+	vis["x"] = engine.tut < 0
+	for k in rows:
+		_bar_rows[k].visible = vis[k]
+	_bars_panel.visible = vis.hp or vis.food or vis.energy or vis.water or vis.mood
+	_mood.visible = vis.mood
+	_clock.visible = vis.clock
+	for k in _hud_btns:
+		_hud_btns[k].visible = vis[k]
+	if _sleep_row and pad == null:
+		_sleep_row.visible = engine.tut < 0
+	if pad != null and is_instance_valid(pad):
+		var pad_ids := {"a": "a", "b": "b", "x": "x", "y": "bag", "info": "journal", "pause": "pause"}
+		for pid in pad_ids:
+			var show: bool = vis[pad_ids[pid]]
+			if _tut_vis.get(pid, null) == show:
+				continue
+			_tut_vis[pid] = show
+			if show:
+				pad.reveal(pid, engine.tut >= 0)
+			else:
+				pad.set_hidden(pid, true)
+	var ts: Dictionary = engine.tut_step()
+	var card: bool = not ts.is_empty() and ts.get("card", false)
+	_tut_card.visible = card and not _panel
+	if card:
+		_tut_card_label.text = tr(str(ts.long))
+
+func _on_tut_ack() -> void:
+	engine.tut_ack()
+	after_change()
+
+## The HUD part the current step is about pulses (a soft glow, not a box).
+func _tut_pulse() -> void:
+	if engine == null:
+		return
+	if engine.tut < 0:
+		if not _tut_vis.get("reset", false):
+			_tut_vis["reset"] = true
+			for key in _bar_rows:
+				_bar_rows[key].modulate = Color.WHITE
+			for key in _hud_btns:
+				_hud_btns[key].modulate = Color.WHITE
+			_clock.modulate = Color.WHITE
+			_mood.modulate = Color.WHITE
+		return
+	_tut_vis["reset"] = false
+	var k := 0.78 + 0.22 * sin(Time.get_ticks_msec() * 0.008)
+	var id := str(engine.tut_step().get("id", ""))
+	var glow := Color(1.25, 1.1, 0.7)
+	for key in _bar_rows:
+		_bar_rows[key].modulate = glow.lerp(Color.WHITE, k) if key == id else Color.WHITE
+	_clock.modulate = glow.lerp(Color.WHITE, k) if id == "clock" else Color.WHITE
+	_mood.modulate = glow.lerp(Color.WHITE, k) if id == "mood" else Color.WHITE
+	for key in _hud_btns:
+		var on: bool = key == id or (key == "craft" and id in ["spark", "fire"])
+		if key != "craft" or not on:
+			_hud_btns[key].modulate = glow.lerp(Color.WHITE, k) if on else Color.WHITE
 
 func _mood_face() -> String:
 	var m: float = engine.mood
@@ -1466,6 +1621,7 @@ func _close_panel() -> void:
 	_panel = null
 
 func _open_bag() -> void:
+	engine.tut_event("bag")
 	var body := _open_panel("🎒 " + tr("Bag") + "  (%d/%d)" % [engine.slots.size(), engine.capacity()])
 	var hint := Label.new()
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1764,6 +1920,7 @@ func _on_project_pin(id: String) -> void:
 	_open_craft()
 
 func _open_journal() -> void:
+	engine.tut_event("journal")
 	var body := _open_panel("📓 " + tr("%s's journal") % castaway_name())
 	var sk := Label.new()
 	sk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1790,6 +1947,30 @@ func _open_journal() -> void:
 		else:
 			dl.text = "• %s (%d/%d)" % [tr(str(dq_.en)), mini(int(engine.dstats.get(dq_.stat, 0)), int(dq_.need)), int(dq_.need)]
 		body.add_child(dl)
+	var sh := Label.new()
+	sh.text = "📜 " + tr("Story quests")
+	sh.add_theme_color_override("font_color", ACCENT)
+	body.add_child(sh)
+	if engine.tut >= 0:
+		for i in mini(engine.tut + 1, D.TUT.size()):
+			var st: Dictionary = D.TUT[i]
+			var tl := Label.new()
+			tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			tl.text = ("• %s: %s" if i == engine.tut else "✔ %s: %s") % [tr(str(st.short)), tr(str(st.long))]
+			if i < engine.tut:
+				tl.modulate = Color(1, 1, 1, 0.6)
+			body.add_child(tl)
+	else:
+		for tq in D.quests():
+			var tl2 := Label.new()
+			tl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			var short_q := tr(str(D.QUEST_SHORT.get(tq.id, D.quest_name(tq))))
+			if tq.id in engine.quests_done:
+				tl2.text = "✔ " + short_q
+				tl2.modulate = Color(1, 1, 1, 0.6)
+			else:
+				tl2.text = "• %s: %s" % [short_q, tr(D.QUEST_HINTS.get(tq.id, ""))]
+			body.add_child(tl2)
 	var qh := Label.new()
 	qh.text = "🎯 " + tr("Side quests") + "  %d/%d" % [engine.side_done.size(), Quests.LIST.size()]
 	qh.add_theme_color_override("font_color", ACCENT)

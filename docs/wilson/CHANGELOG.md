@@ -1,5 +1,15 @@
 # Beached (wilson) changelog
 
+## 2026-11-09: guided opening, locked identity, dawn start (built, not published)
+- Owner's feedback: the HUD builds up one part at a time (`D.TUT`, `engine.tut`, `tut_step()` / `tut_reached()` / `tut_event()` / `tut_ack()`). Only the stick at first; then A + B; a pebble; the bag button; more pebbles; wood; the craft button (spark kit, campfire); then one "Got it" card per HUD part (health, food, water, energy, mood, day) and the journal + pause. Old saves and tests have `tut = -1` = everything visible. `_start_island` sets `tut = 0`.
+- HUD quest line is under 5 words (`D.QUEST_SHORT`, `D.TUT.short`, `D.INTRO.hint`); the journal lists the full text (new "Story quests" section).
+- Circles and boxes gone: quest items get a golden soft glow along their border, usable items a soft warm one (`GLOW_SHADER` in `wilson_world.gd`, a rounded-box light on a ColorRect). The little bobbing arrow stays.
+- Name box sits at the top, on one row with OK / Skip (the phone keyboard covered it). Look and name are locked once chosen (menu entries removed; `_change_look` / `_change_name` kept for the future "message in a bottle" one-time change).
+- New island starts 24 min after sunrise (`_set_clock_to_dawn` moves the game clock; the debug offset file holds it).
+- Walking: x and y move separately, the lane limit never pushes him back (the "right goes up and left" slide at the cave).
+- A quest whose goal was already met in the opening completes at once (T05 campfire).
+- Tests: `tools/test_wilson.gd` 852 checks, `tools/test_wilson_opening.gd` (real scene), `tools/shot_wilson_opening.gd` (screenshots).
+
 ## 2026-11-09: owner's phone feedback round 3 (pack v8)
 - Quest objectives get a pulsing green ring and a bobbing arrow (the Day 1 checklist's pile, the crate, palms A / B / C, the shore pile, the stump...); the 🔨 button pulses when the answer is "craft".
 - He keeps facing the way he last walked (the sheets face right; every standing pose is mirrored when facing left).

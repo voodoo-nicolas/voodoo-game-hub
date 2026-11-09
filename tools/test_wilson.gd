@@ -59,6 +59,7 @@ func _init() -> void:
 	test_m10_ux()
 	test_m11_intro()
 	test_m12_discovery()
+	test_guided_opening()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -1070,3 +1071,64 @@ func test_m12_discovery() -> void:
 	t.weather_auto = true
 	t.advance(t.t + 48 * 3600.0, false)
 	ok(int(t.stats.get("low_tides", 0)) >= 3, "tides happen even if nobody reads them")
+
+# ---------------------------------------------------------------- guided opening (HUD builds up step by step)
+
+func test_guided_opening() -> void:
+	var e = Engine_.new()
+	e.reset(at(2026, 6, 21, 6, 30), 0, "south", 7)
+	ok(e.tut == -1 and e.tut_reached("craft"), "off by default: everything is visible (old saves, tests)")
+	e.tut = 0
+	ok(not e.tut_reached("a") and not e.tut_reached("bag") and not e.tut_reached("hp"), "step 1: only the stick")
+	ok(str(e.tut_step().id) == "walk", "first quest: walk")
+	e.tut_event("walk")
+	ok(e.tut_reached("a") and e.tut_reached("b") and not e.tut_reached("bag"), "step 2: A and B appear")
+	e.tut_event("ab")
+	ok(str(e.tut_step().id) == "pebble", "third quest: a pebble")
+	e.slot_count = 40
+	e.enqueue("gather", "stones")
+	e.advance(e.t + 14.0, false)
+	ok(str(e.tut_step().id) == "bag" and e.tut_reached("bag") and not e.tut_reached("craft"), "pebble done: the bag button appears")
+	e.tut_event("bag")
+	for i in 4:
+		e.enqueue("gather", "stones")
+		e.advance(e.t + 14.0, false)
+	ok(str(e.tut_step().id) == "wood", "nine pebbles: collect wood (%s)" % str(e.tut_step().get("id")))
+	for i in 3:
+		e.enqueue("gather", "sticks")
+		e.advance(e.t + 14.0, false)
+	for i in 2:
+		e.enqueue("gather", "sticks")
+		e.advance(e.t + 14.0, false)
+	e.enqueue("gather", "dry_fronds")
+	e.advance(e.t + 14.0, false)
+	ok(str(e.tut_step().id) == "spark" and e.tut_reached("craft"), "wood done: the craft button appears")
+	e.add("stone", 12)
+	e.add("stick", 6)
+	e.add("dry_frond", 2)
+	e.fire_fails = 99
+	for i in 6:
+		if int(e.stats.get("made:spark_kit", 0)) == 0:
+			e.enqueue("craft", "spark_kit")
+			e.advance(e.t + 600.0, false)
+	ok(int(e.stats.get("made:spark_kit", 0)) > 0, "spark kit made")
+	ok(str(e.tut_step().id) == "fire", "next: the campfire")
+	e.enqueue("craft", "campfire")
+	e.advance(e.t + 1200.0, false)
+	ok(e.structures.has("campfire") and str(e.tut_step().id) == "hp", "campfire built: the health bar is introduced")
+	ok(e.tut_reached("hp") and not e.tut_reached("food"), "only health shows so far")
+	e.tut_ack()
+	ok(str(e.tut_step().id) == "food", "Got it: next bar")
+	for id in ["food", "water", "energy", "mood", "clock"]:
+		e.tut_ack()
+	ok(str(e.tut_step().id) == "journal" and e.tut_reached("pause"), "tour done: the journal")
+	e.tut_event("journal")
+	ok(e.tut == -1 and e.quest == "T02", "opening over: T01 done, T02 next (%s)" % e.quest)
+	# the campfire was built during the opening: T05 completes the moment T04 does
+	e.quest = "T04"
+	e.bump("noop")
+	e._complete(D.quest("T04"), "caught", {})
+	ok(e.quest == "T06" and "T05" in e.quests_done, "T05 was already met by the opening (%s)" % e.quest)
+	var d: Dictionary = e.to_dict()
+	var e2 = Engine_.new()
+	ok(e2.from_dict(d) and e2.tut == -1, "tut round trip")

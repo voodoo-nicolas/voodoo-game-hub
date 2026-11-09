@@ -41,6 +41,7 @@ var naps := {"day": -1, "n": 0}
 var buffs := {}              # name -> until (t): rested, sandy, nausea
 var flags := {}
 var quest := ""              # the active tutorial quest id ("" = all done)
+var tut := -1                # guided opening (D.TUT index; -1 = off / finished). The game turns it on for a new island.
 var quests_done: Array = []
 var xp := {}
 var gags: Array = []
@@ -102,6 +103,7 @@ func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: 
 	buffs = {}
 	flags = {}
 	quest = "T01"
+	tut = -1
 	quests_done = []
 	xp = {}
 	gags = []
@@ -1745,7 +1747,63 @@ func intro_step() -> Dictionary:
 			return out
 	return {}
 
+## The guided opening (D.TUT): the current step with progress, {} when off or finished.
+func tut_step() -> Dictionary:
+	if tut < 0 or tut >= D.TUT.size():
+		return {}
+	var out: Dictionary = D.TUT[tut].duplicate()
+	var have := 0
+	var need := 0
+	for r in out.get("reqs", []):
+		have += mini(int(stats.get(str(r[0]), 0)), int(r[1]))
+		need += int(r[1])
+	out["have"] = have
+	out["need"] = need
+	return out
+
+## How far into the opening we are: true when step `id` was reached (so its HUD part shows).
+func tut_reached(id: String) -> bool:
+	if tut < 0:
+		return true
+	for i in mini(tut + 1, D.TUT.size()):
+		if str(D.TUT[i].id) == id or id in D.TUT[i].get("show", []):
+			return true
+	return false
+
+## The game tells the engine about a tutorial action ("walk", "ab", "bag", "ack", "journal").
+func tut_event(name: String) -> void:
+	if tut < 0:
+		return
+	stats["tut:" + name] = int(stats.get("tut:" + name, 0)) + 1
+	_check_tut()
+
+func _check_tut() -> void:
+	while tut >= 0 and tut < D.TUT.size():
+		var st: Dictionary = D.TUT[tut]
+		for r in st.get("reqs", []):
+			if int(stats.get(str(r[0]), 0)) < int(r[1]):
+				return
+		# a step with a card waits for "Got it" (tut:ack counted per step)
+		if st.get("card", false):
+			var k := "tut:ack:" + str(st.id)
+			if int(stats.get(k, 0)) < 1:
+				return
+		tut += 1
+		events.append({"type": "tut", "id": st.id})
+	if tut >= D.TUT.size():
+		tut = -1
+		events.append({"type": "tut_done"})
+		tap_johnny()      # T01 ("get the day started") is what the opening was
+
+## "Got it" on a tutorial card.
+func tut_ack() -> void:
+	if tut < 0 or tut >= D.TUT.size():
+		return
+	stats["tut:ack:" + str(D.TUT[tut].id)] = 1
+	_check_tut()
+
 func _check_intro() -> void:
+	_check_tut()
 	if flags.get("intro_all", false):
 		return
 	if intro_step().is_empty():
@@ -1825,6 +1883,15 @@ func _complete(q: Dictionary, ev: String, data: Dictionary) -> void:
 	var nxt: Array = q.get("next", [])
 	quest = str(nxt[0]) if not nxt.is_empty() else ""
 	events.append({"type": "quest", "id": q.id, "next": quest})
+	# a quest whose goal was already reached during the opening (the campfire) completes at once
+	if quest != "":
+		var nq := D.quest(quest)
+		var trig: Dictionary = nq.get("trigger", {})
+		var key := "ev:" + str(trig.get("event", "-"))
+		if trig.has("id"):
+			key += ":" + str(trig.id)
+		if nq.has("trigger") and trig.size() <= 2 and not trig.has("any") and int(stats.get(key, 0)) > 0 and (trig.size() == 1 or trig.has("id")):
+			_complete(nq, str(trig.event), {})
 
 # ================================================================ journal, lines
 
@@ -1862,7 +1929,7 @@ func to_dict() -> Dictionary:
 		"v": SAVE_VERSION, "t": t, "tz": tz, "hemisphere": hemisphere, "look": look, "cname": cname, "start_day": start_day,
 		"bars": bars, "mood": mood, "slots": slots, "slot_count": slot_count, "ground": ground,
 		"structures": structures, "debris": debris, "palms": palms, "spots": spots, "queue": queue,
-		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
+		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest, "tut": tut,
 		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked, "discovered": discovered,
 		"fire_fails": fire_fails, "catches": catches, "raw_eaten": raw_eaten, "tallies": tallies,
 		"projects": projects, "pinned": pinned, "streak": streak, "dstats": dstats, "dq": dq, "dq_done": dq_done, "weather": weather, "weather_auto": weather_auto, "stats": stats, "side_done": side_done, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
@@ -1895,6 +1962,7 @@ func from_dict(d: Dictionary) -> bool:
 	buffs = d.get("buffs", {})
 	flags = d.get("flags", {})
 	quest = str(d.get("quest", ""))
+	tut = int(d.get("tut", -1))
 	quests_done = d.get("quests_done", [])
 	xp = d.get("xp", {})
 	gags = d.get("gags", [])

@@ -23,10 +23,13 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 - `godot --path . --resolution 1280x720 --script res://tools/shot_wilson.gd -- <dir> [en|es]`: screenshots (backs up and restores the save + debug files).
 - `python tools/wilson_art.py [sheets]`: rebuilds `games/wilson/art/` from `D:/dev/Wilson` (reproducible; `sheets` skips the slow plate step). New sheet = anchors (source pixels of each sprite) + `cut_sheet()`.
 
+## Guided opening (2026-11-09)
+`engine.tut` (index into `D.TUT`, -1 = off): the HUD parts appear step by step (`wilson_game.gd` `_apply_tut`, Pad parts via `pad.reveal` / `set_hidden`); `tut_event("walk" / "ab" / "bag" / "journal")` from the game, `tut_ack()` for the "Got it" cards. New island = `tut 0`; the look and name are locked after the picker. Tests `tools/test_wilson_opening.gd`.
+
 ## Rules to keep
 - Timers are absolute timestamps; never tick counters. New actions: `action_block` + `_finish` + `D.ACT` + `_stand_spot` in the game.
 - Engine messages are English templates + args, translated on screen (`format_entry`); every new string through es.json.
 - Single lowercase words are skipped by the i18n extractor: use two words for anything shown (`"wrecked crate"`).
-- Craft list is Terraria-style (`craft_visible`: material held or made before; tier 2 after two tier-1 makes); Grand Projects are inside the craft panel; the focus glow (`world.set_focus`) and the Pad's A share `nearest_interactable`. Streak `checkin()`, sky events `is_eclipse_day` / `is_tropical` / `is_full_moon`, recipe bottles in `open_bottle`.
+- Craft list is Terraria-style (`craft_visible`: material held or made before; tier 2 after two tier-1 makes); Grand Projects are inside the craft panel; the focus glow (`world.set_focus`, a shader glow, no boxes or rings) and the Pad's A share `nearest_interactable`. Streak `checkin()`, sky events `is_eclipse_day` / `is_tropical` / `is_full_moon`, recipe bottles in `open_bottle`.
 - Controls: taps + the shared Pad (stick walks, A uses nearest, B back, X nap, Y sleep); `wilson_game.gd` "the Viral Pad" section; test `tools/test_wilson_pad.gd`.
 - Packs: no autoloads; GameInfo / Music / Sfx guarded.
