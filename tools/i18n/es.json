@@ -10647,7 +10647,6 @@
  "Fog. The horizon has been cancelled.": "Niebla. El horizonte fue cancelado.",
  "Heatwave. Even the sand is sweating.": "Ola de calor. Hasta la arena transpira.",
  "Low tide. The reef was showing: found %s.": "Marea baja. El arrecife quedó a la vista: encontré %s.",
-<<<<<<< HEAD
  "Side quests": "Misiones secundarias",
  "Quest done: %s.": "Misión cumplida: %s.",
  "Next low tide in %d h %02d min.": "Próxima marea baja en %d h %02d min.",
@@ -10701,8 +10700,7 @@
  "Midnight Snack": "Picoteo de medianoche",
  "Get your bag up to 32 slots.": "Llegar a 32 espacios en la mochila.",
  "Sleep on 5 kinds of bed.": "Dormir en 5 tipos de cama.",
- "Cook a meal at night.": "Cocinar de noche."
-=======
+ "Cook a meal at night.": "Cocinar de noche.",
  "%d bugs left": "quedan %d bichos",
  "%s: you have reached level %d of %d.": "%s: llegaste al nivel %d de %d.",
  "30 levels · 6 garden paths": "30 niveles · 6 senderos de jardín",
@@ -10771,5 +10769,4 @@
  "🌿 Campaign": "🌿 Campaña",
  "💣 Blast the front bugs": "💣 Volar los bichos de adelante",
  "🛟 Helps (pause menu, or ⏪ in the top bar): ⏪ pushes every chain back for a few seconds, 💣 pops the 8 bugs nearest each pit. You hold up to 3; one comes back 24 hours after the last one you used.": "🛟 Ayudas (menú de pausa, o ⏪ en la barra de arriba): ⏪ hace retroceder todas las cadenas unos segundos, 💣 revienta los 8 bichos más cercanos a cada hoyo. Tienes hasta 3; una vuelve 24 horas después de la última que usaste."
->>>>>>> origin/master
 }
