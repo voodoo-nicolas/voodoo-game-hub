@@ -1,6 +1,6 @@
 # Beached (wilson) changelog
 
-## 2026-11-08: daily quests + more side quests (pack v3, built, not published)
+## 2026-11-08: daily quests + more side quests (pack v3)
 - Three daily quests a day (8 in the pool, picked from the island seed, counters reset each day), listed under "Today" in the journal, small material rewards, never required.
 - Five more side quests from what exists: Seeds of Doubt, Raft #1 / #2 (escape gags), SOS in the Sand, Talent Show. Side quests: 40 in all.
 - Tests: 741 checks.
