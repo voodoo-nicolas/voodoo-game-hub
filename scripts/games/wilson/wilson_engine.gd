@@ -81,7 +81,7 @@ func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: 
 	tz = tz_seconds
 	hemisphere = hemi
 	start_day = day_index(now)
-	bars = {"hp": 100.0, "food": 80.0, "water": 70.0, "energy": 90.0}
+	bars = {"hp": 100.0, "food": 80.0, "water": 70.0, "energy": D.START_ENERGY}
 	mood = 55.0
 	slots = []
 	slot_count = int(D.balance().get("inventory", {}).get("start_slots", 12))
@@ -304,6 +304,7 @@ func _finish_pastime(id: String) -> void:
 		var got := _roll(table)
 		if got != "":
 			add(got, 1)
+			_got(got, 1)
 			_xp("foraging", 1)
 			log_entry("%s Found: %s.", ["#" + line, "@" + got])
 			line = ""
@@ -1046,6 +1047,7 @@ func sleep_hours_for(bed: String) -> float:
 func start_sleep(bed: String, hours: float) -> void:
 	sleep = {"kind": "sleep", "bed": bed, "start": t, "until": t + hours * 3600.0}
 	stats["slept:" + bed] = 1
+	stats["slept"] = int(stats.get("slept", 0)) + 1
 	var kinds := 0
 	for b in D.balance().get("sleep_restore_per_h", {}):
 		if int(stats.get("slept:" + b, 0)) > 0:
@@ -1528,6 +1530,7 @@ func _finish(q: Dictionary) -> void:
 			spots[tgt] = float(spots[tgt]) - n
 			if n > 0:
 				add(str(s.item), n)
+				_got(str(s.item), n)
 				_xp("foraging", 1)
 				log_entry("Gathered %d %s.", [n, "@" + str(s.item)])
 				_emit("gathered", {"id": str(s.item), "n": n})
@@ -1717,7 +1720,32 @@ func _check_daily() -> void:
 		log_entry("Daily done: %s.", ["~" + str(q.en)])
 		events.append({"type": "daily", "id": id})
 
+## Things picked up by hand (spots, odd jobs): the Day 1 checklist counts these.
+func _got(id: String, n: int) -> void:
+	stats["got:" + id] = int(stats.get("got:" + id, 0)) + n
+	_check_intro()
+
+## The current Day 1 checklist step ({} when it is done): {key, need, hint, have}.
+func intro_step() -> Dictionary:
+	for st in D.INTRO:
+		var have := int(stats.get(str(st.key), 0))
+		if have < int(st.need):
+			var out: Dictionary = st.duplicate()
+			out["have"] = have
+			return out
+	return {}
+
+func _check_intro() -> void:
+	if flags.get("intro_all", false):
+		return
+	if intro_step().is_empty():
+		flags["intro_all"] = true
+		give_list([["rope", 2], ["stone", 2]])
+		log_entry("Day 1 sorted: a bed, a pile of stuff, and nothing left in the tank.")
+		events.append({"type": "intro_done"})
+
 func _check_side() -> void:
+	_check_intro()
 	stats["capacity"] = capacity()
 	for q in Quests.LIST:
 		if q.id in side_done or int(stats.get(q.stat, 0)) < int(q.need):

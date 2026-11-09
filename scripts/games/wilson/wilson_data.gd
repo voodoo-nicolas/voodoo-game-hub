@@ -245,19 +245,19 @@ const STATION_STRUCTURE := {"campfire": "campfire", "stump": "crafting_stump", "
 const ACT := {
 	# minutes are REAL minutes (0.1 = 6 s). Early actions are quick on purpose (owner, 2026-11-09);
 	# energy is per action, scaled down with the time (the old 10-minute hauls cost 10).
-	"haul": {"min": 0.35, "energy": 2.0},
-	"gather": {"min": 0.2, "energy": 0.5},
-	"shake": {"min": 0.2, "energy": 0.5},
+	"haul": {"min": 0.35, "energy": 4.0},
+	"gather": {"min": 0.2, "energy": 1.5},
+	"shake": {"min": 0.2, "energy": 1.5},
 	"chop": {"min": 6.0, "energy": 6.0},
 	"fish": {"min": 3.0, "energy": 3.0},
-	"seawater": {"min": 0.1, "energy": 0.2},
+	"seawater": {"min": 0.1, "energy": 1.0},
 	"inspect": {"min": 0.1, "energy": 0.0},
 	"fuel": {"min": 0.1, "energy": 0.0},
-	"light": {"min": 0.25, "energy": 0.5},
+	"light": {"min": 0.25, "energy": 2.0},
 	"tally": {"min": 0.1, "energy": 0.0},
-	"shore": {"min": 0.5, "energy": 1.0},
+	"shore": {"min": 0.5, "energy": 3.0},
 	"nap": {"min": 30.0, "energy": 0.0},
-	"empty_trap": {"min": 0.3, "energy": 0.3},
+	"empty_trap": {"min": 0.3, "energy": 1.0},
 }
 ## Crafting: tier 1-2 recipes take this fraction of the design's minutes (tiers 3-4 keep theirs).
 const CRAFT_EARLY_MULT := 0.2
@@ -453,3 +453,14 @@ const STREAK_REWARDS := {
 }
 const BOTTLE_PEN_PALS := ["Marta (island 4)", "Old Bram", "Someone called Dot", "A very polite gull", "Captain Nobody", "Priya (island 9)"]
 const TIER2_NEEDS_TIER1 := 2       # craft tree: tier-2 recipes appear after two tier-1 things are made
+
+## Day 1 checklist (owner, 2026-11-09: "collect some stuff quickly, make the basic base, enough to use up
+## your energy and go to bed"). Shown on the HUD goal line before the tutorial quests; the tutorial still runs.
+const START_ENERGY := 65.0
+const INTRO := [
+	{"key": "got:stone", "need": 8, "hint": "Collect some pebbles: ✋ in the castaway's menu, or tap the stones."},
+	{"key": "got:stick", "need": 6, "hint": "Collect some sticks."},
+	{"key": "got:frond", "need": 10, "hint": "Collect palm fronds."},
+	{"key": "made:frond_bed", "need": 1, "hint": "Make a frond bed in 🔨 Craft."},
+	{"key": "slept", "need": 1, "hint": "Tired? Go to bed: 💤 (or the Y button)."},
+]

@@ -19,7 +19,7 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 | `wilson_game.gd` | Landing kit, layers (sky -3, world -2 with CanvasModulate, glow -1, HUD), clock (real + debug offset), catch-up, HUD, context menus, bag / craft / journal panels, save, help "⏩ Hurry up" |
 
 ## Tests and tools
-- `godot --headless --path . --script res://tools/test_wilson.gd`: 819 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip). Pure engine, no saves touched.
+- `godot --headless --path . --script res://tools/test_wilson.gd`: 830 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip). Pure engine, no saves touched.
 - `godot --path . --resolution 1280x720 --script res://tools/shot_wilson.gd -- <dir> [en|es]`: screenshots (backs up and restores the save + debug files).
 - `python tools/wilson_art.py [sheets]`: rebuilds `games/wilson/art/` from `D:/dev/Wilson` (reproducible; `sheets` skips the slow plate step). New sheet = anchors (source pixels of each sprite) + `cut_sheet()`.
 

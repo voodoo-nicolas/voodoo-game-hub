@@ -10,7 +10,7 @@ extends RefCounted
 
 const LIST := [
 	# ---------------------------------------------------------------- quick odd jobs
-	{"id": "search_sand", "group": "quick", "en": "Search the sand", "icon": "🔍", "min": 0.17, "energy": 0.3, "mood": 0.0, "pose": "craft",
+	{"id": "search_sand", "group": "quick", "en": "Search the sand", "icon": "🔍", "min": 0.17, "energy": 1.0, "mood": 0.0, "pose": "craft",
 		"loot": [["", 22], ["shell", 24], ["stone", 20], ["stick", 14], ["sand", 10], ["seaweed", 5], ["sea_glass", 3], ["nail", 1], ["old_coin", 1]],
 		"lines": ["Sifted the sand with my fingers.", "Dug around in the sand. The sand dug back.", "Searched the beach. The beach was unimpressed."]},
 	{"id": "skip_stone", "group": "quick", "en": "Skip a stone", "icon": "🪨", "min": 0.1, "energy": 0.0, "mood": 1.5, "pose": "wave", "needs": "stone",
@@ -21,13 +21,13 @@ const LIST := [
 		"lines": ["Scanned the horizon. Water. Still water.", "Looked out to sea. A seagull looked back.", "Nothing on the horizon. A classic."]},
 	{"id": "tidy", "group": "quick", "en": "Tidy the camp", "icon": "🧹", "min": 0.25, "energy": 0.3, "mood": 2.5, "pose": "craft", "needs_any": ["campfire", "tent", "hammock", "frond_bed", "frond_shelter", "crafting_stump"],
 		"lines": ["Tidied the camp. It looks exactly as tidy as a camp on a rock can.", "Straightened things. Moved a stick six inches. Felt productive."]},
-	{"id": "comb", "group": "quick", "en": "Comb the tideline", "icon": "🌊", "min": 0.4, "energy": 0.6, "mood": 0.0, "pose": "craft", "stand": Vector2(760, 535),
+	{"id": "comb", "group": "quick", "en": "Comb the tideline", "icon": "🌊", "min": 0.4, "energy": 1.5, "mood": 0.0, "pose": "craft", "stand": Vector2(760, 535),
 		"loot": [["", 18], ["shell", 26], ["seaweed", 20], ["driftwood", 10], ["stone", 10], ["sea_glass", 7], ["salt", 4], ["bottle", 3], ["pearl", 1], ["conch_shell", 1]],
 		"lines": ["Combed the tideline. The sea leaves its homework there.", "Walked the waterline looking down. A fine way to be disappointed slowly."]},
-	{"id": "catch_crab", "group": "quick", "en": "Catch a crab", "icon": "🦀", "min": 0.25, "energy": 0.5, "mood": 1.0, "pose": "craft", "stand": Vector2(990, 535),
+	{"id": "catch_crab", "group": "quick", "en": "Catch a crab", "icon": "🦀", "min": 0.25, "energy": 1.5, "mood": 1.0, "pose": "craft", "stand": Vector2(990, 535),
 		"loot": [["", 30], ["bait", 40], ["fish_small", 20], ["shell", 10]],
 		"lines": ["Chased a crab. It won the first round.", "Caught a crab. Let it go. It stared at me with great contempt."]},
-	{"id": "dig", "group": "quick", "en": "Dig a hole", "icon": "🕳", "min": 0.33, "energy": 0.8, "mood": 0.5, "pose": "craft", "needs": "shovel",
+	{"id": "dig", "group": "quick", "en": "Dig a hole", "icon": "🕳", "min": 0.33, "energy": 2.0, "mood": 0.5, "pose": "craft", "needs": "shovel",
 		"loot": [["sand", 40], ["stone", 25], ["shell", 15], ["", 15], ["nail", 3], ["old_coin", 2]],
 		"lines": ["Dug a hole. A very good hole. Possibly the best hole.", "Dug down a metre. Sand all the way. Naturally."]},
 	{"id": "fan_fire", "group": "quick", "en": "Fan the fire", "icon": "🔥", "min": 0.17, "energy": 0.2, "mood": 0.5, "pose": "craft", "stand": Vector2(700, 535),
@@ -36,7 +36,7 @@ const LIST := [
 		"lines": ["Stretched. Every joint complained in turn.", "Rolled my shoulders. Something went crunch. Fine."]},
 	{"id": "wave_nothing", "group": "quick", "en": "Wave at nothing", "icon": "👋", "min": 0.08, "energy": 0.0, "mood": 1.0, "pose": "wave",
 		"lines": ["Waved at the horizon. Politely. It did not wave back.", "Waved at a cloud. It drifted off, rude."]},
-	{"id": "shake_rocks", "group": "quick", "en": "Check the rock pools", "icon": "🦐", "min": 0.3, "energy": 0.5, "mood": 0.5, "pose": "craft", "stand": Vector2(940, 535),
+	{"id": "shake_rocks", "group": "quick", "en": "Check the rock pools", "icon": "🦐", "min": 0.3, "energy": 1.5, "mood": 0.5, "pose": "craft", "stand": Vector2(940, 535),
 		"loot": [["", 28], ["seaweed", 30], ["shell", 22], ["bait", 15], ["salt", 5]],
 		"lines": ["Peered into the rock pools. A small crab peered back.", "Poked a rock pool. It had opinions."]},
 	# ---------------------------------------------------------------- longer pastimes

@@ -470,6 +470,13 @@ func _add_pad() -> void:
 		return
 	pad = load(PAD_PATH).new()
 	pad.layout_override = "stick_4"
+	# a smaller stick + buttons tucked into the corners: the big default ring covered the wreck pile
+	# (owner, 2026-11-09: "I can't click on stuff behind the joystick"). Older Pads keep the default.
+	var lay = load("res://scripts/common/pad/pad_layouts.gd") if ResourceLoader.exists("res://scripts/common/pad/pad_layouts.gd") else null
+	if lay and "custom_layout" in pad and lay.has_method("variant"):
+		pad.custom_layout = lay.variant("stick_4", ["move", "a"], [
+			{"type": "stick", "id": "move", "side": "left", "off": [105, 100], "r": 78, "knob": 38},
+			{"type": "face4", "side": "right", "off": [112, 108], "gap": 56, "r": 33, "ids": ["y", "x", "b", "a"]}], "beached")
 	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(pad)
 	move_child(pad, home.get_index())       # over the world and the HUD, under the kit
@@ -696,6 +703,9 @@ func _handle_events(evs: Array) -> void:
 				after_change()
 			"side":
 				_show_toast("🎯 " + tr("Quest done: %s") % Quests.quest_name(Quests.get_quest(str(e.id))))
+				_sfx("win")
+			"intro_done":
+				_show_toast("🛏 " + tr("Day 1 sorted. Sleep well."))
 				_sfx("win")
 			"daily":
 				_show_toast("☀ " + tr("Daily done: %s.") % tr(str(Quests.daily(str(e.id)).en)))
@@ -942,6 +952,11 @@ func _johnny_menu(screen: Vector2) -> void:
 ## 🧘 Pastimes: small things for the mood (wilson_pastimes.gd). Greyed out ones say why.
 func _pastimes_menu(group: String = "long") -> void:
 	var opts := []
+	if group == "quick":
+		for sid in ["stones", "shells", "sticks", "fronds", "dry_fronds", "seaweed"]:
+			var o: Array = _opt("gather", sid)
+			o[0] = o[0].replace(ICONS["gather"] + " " + action_label("gather", sid), "✋ " + tr("Collect: %s") % D.item_name(str(D.SPOTS[sid].item)) + " (%d)" % int(engine.spots[sid]))
+			opts.append(o)
 	for p in Pastimes.group_list(group):
 		var why: String = engine.action_block("pastime", str(p.id))
 		if why.begins_with("Needs") or why in ["Nothing to tidy yet.", "The fire is not lit.", "You have no coconut friend yet.", "Coco is already your friend."]:
@@ -1227,7 +1242,10 @@ func _refresh_hud() -> void:
 	_clock.text += "  ·  %s %s  %s" % [D.WEATHER_ICON.get(engine.weather, ""), tr(D.WEATHER_NAMES.get(engine.weather, "")), _tide_text()]
 	if time_scale != 1.0:
 		_clock.text += "  (x%d)" % int(time_scale)
-	if engine.quest != "":
+	var intro: Dictionary = engine.intro_step()
+	if not intro.is_empty():
+		_quest.text = "🎒 %s (%d/%d)" % [tr(str(intro.hint)), mini(int(intro.have), int(intro.need)), int(intro.need)]
+	elif engine.quest != "":
 		var q := D.quest(engine.quest)
 		_quest.text = "📜 %s: %s" % [D.quest_name(q), tr(D.QUEST_HINTS.get(engine.quest, ""))]
 	else:

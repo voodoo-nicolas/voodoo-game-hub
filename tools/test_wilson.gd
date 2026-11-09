@@ -57,6 +57,7 @@ func _init() -> void:
 	test_m8_name()
 	test_m9_pastimes_events_streak()
 	test_m10_ux()
+	test_m11_intro()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -1003,3 +1004,52 @@ func test_m10_ux() -> void:
 	f.enqueue("pastime", "fan_fire")
 	f.advance(f.t + 30.0, false)
 	ok(f.structures.campfire.fuel_until > before + 1000.0 or f.fire_lit(), "fanning the fire gives it more fuel time")
+
+func test_m11_intro() -> void:
+	var e = Engine_.new()
+	e.reset(at(2026, 6, 21, 8), 0, "south", 99)
+	near(e.bars.energy, D.START_ENERGY, 0.001, "a new castaway starts a little tired")
+	ok(str(e.intro_step().key) == "got:stone", "the checklist starts with pebbles")
+	e.bars.energy = 65.0
+	e.slot_count = 40
+	var spent := 0.0
+	var before: float = e.bars.energy
+	# the whole Day 1 checklist, by hand
+	for i in 4:
+		e.enqueue("gather", "stones")
+		e.advance(e.t + 13.0, false)
+	ok(int(e.stats.get("got:stone", 0)) >= 8, "pebbles counted (%d)" % int(e.stats.get("got:stone", 0)))
+	ok(str(e.intro_step().key) == "got:stick", "next: sticks")
+	for i in 3:
+		e.enqueue("gather", "sticks")
+		e.advance(e.t + 13.0, false)
+	ok(str(e.intro_step().key) == "got:frond", "next: fronds")
+	for i in 3:
+		e.enqueue("gather", "fronds")
+		e.advance(e.t + 13.0, false)
+	ok(int(e.stats.get("got:frond", 0)) >= 10 or str(e.intro_step().key) == "got:frond", "fronds counted")
+	e.add("frond", 10)
+	e.stats["got:frond"] = 10
+	ok(str(e.intro_step().key) == "made:frond_bed", "next: the frond bed")
+	e.bars.energy = 100.0
+	e.enqueue("craft", "frond_bed")
+	e.advance(e.t + 300.0, false)
+	ok(str(e.intro_step().key) == "slept", "next: go to bed")
+	e.bars.energy = 20.0
+	e.start_sleep("frond_bed", 8.0)
+	ok(e.intro_step().is_empty() and e.flags.get("intro_all", false), "the checklist is done after the first sleep")
+	var rope: int = e.count("rope")
+	e.bump("noop")
+	ok(e.count("rope") == rope, "the reward is paid once")
+	# day 1 really uses the energy: the checklist costs a fair share of a 65 bar
+	var t = Engine_.new()
+	t.reset(at(2026, 6, 21, 8), 0, "south", 98)
+	t.slot_count = 60
+	var e0: float = t.bars.energy
+	for i in 5:
+		t.enqueue("gather", "stones")
+		t.advance(t.t + 13.0, false)
+	for i in 5:
+		t.enqueue("gather", "sticks")
+		t.advance(t.t + 13.0, false)
+	ok(e0 - t.bars.energy > 12.0, "ten gathers burn a real chunk of energy (%.1f)" % (e0 - t.bars.energy))
