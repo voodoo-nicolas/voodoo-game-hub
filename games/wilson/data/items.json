@@ -74,5 +74,15 @@
 {"id":"fish_dried","en":"Dried fish","es":"Pescado seco","r":"F","cat":"food","stack":20},
 {"id":"clay_jar","en":"Clay jar","es":"Jarra de arcilla","r":"X","cat":"storage","stack":5},
 {"id":"fish_oil_lamp","en":"Fish-oil lamp","es":"Lámpara de aceite","r":"X","cat":"tool","stack":1},
-{"id":"drum","en":"Coconut drum","es":"Tambor de coco","r":"X","cat":"tool","stack":1}
+{"id":"drum","en":"Coconut drum","es":"Tambor de coco","r":"X","cat":"tool","stack":1},
+{"id":"blunt_knife","en":"Blunt knife","es":"Cuchillo sin filo","r":"T","cat":"tool","stack":1},
+{"id":"seeds","en":"Seeds","es":"Semillas","r":"U","cat":"material","stack":10},
+{"id":"sweet_potato","en":"Sweet potato","es":"Batata","r":"F","cat":"food","stack":10},
+{"id":"sweet_potato_roast","en":"Roast sweet potato","es":"Batata asada","r":"F","cat":"food","stack":10},
+{"id":"crab","en":"Crab","es":"Cangrejo","r":"F","cat":"food","stack":10},
+{"id":"crab_cooked","en":"Cooked crab","es":"Cangrejo cocido","r":"F","cat":"food","stack":10},
+{"id":"fish_stew","en":"Fish stew","es":"Guiso de pescado","r":"F","cat":"food","stack":5},
+{"id":"seaweed_crisps","en":"Seaweed crisps","es":"Chips de alga","r":"F","cat":"food","stack":20},
+{"id":"bandage","en":"Seaweed bandage","es":"Venda de algas","r":"X","cat":"medicine","stack":5},
+{"id":"wind_chime","en":"Wind chime","es":"Campanilla de viento","r":"X","cat":"decor","stack":1}
 ]}

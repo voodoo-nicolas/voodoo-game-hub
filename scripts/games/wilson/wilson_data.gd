@@ -86,9 +86,13 @@ const KNOWN_TIERS := 2
 ## Tool wear (GDD §10 "tool durability"): uses before it breaks. One use = one action that needs it.
 const TOOL_USES := {"knife": 40, "stone_axe": 8, "fishing_pole": 30, "spear": 20, "shovel": 15,
 	"coconut_bowl": 25, "spark_kit": 12}
+## A worn-out blade goes blunt instead of vanishing (2026-11-09): the wreck's knife is the only one, and
+## the fishing pole, the coconut bowl and the bone hook all need it. Recipe sharpen_knife brings it back.
+const BLUNT := {"knife": "blunt_knife"}
 ## Fresh food spoils (GDD §10) after this many hours in the bag and turns into fish guts (compost,
 ## bait later). Dried / salted food keeps. A smokehouse makes fresh food last 4x as long.
-const SPOIL_H := {"fish_small": 24.0, "fish_big": 24.0, "fish_cooked": 48.0}
+const SPOIL_H := {"fish_small": 24.0, "fish_big": 24.0, "fish_cooked": 48.0, "crab": 24.0, "crab_cooked": 48.0,
+	"fish_stew": 24.0}
 const SMOKEHOUSE_SPOIL_MULT := 4.0
 ## Water structures: drinks they hold, water per drink, how they fill.
 const WATER_MAX := 4
@@ -109,7 +113,8 @@ const SKILL_NAMES := {"foraging": "Foraging", "woodcutting": "Woodcutting", "fis
 const SKILL_MAX := 10
 const SKILL_SPEED := 0.03
 const ACT_SKILL := {"gather": "foraging", "shake": "foraging", "haul": "foraging", "seawater": "foraging",
-	"chop": "woodcutting", "fish": "fishing", "empty_trap": "fishing", "light": "fire", "fuel": "fire"}
+	"chop": "woodcutting", "fish": "fishing", "empty_trap": "fishing", "light": "fire", "fuel": "fire",
+	"spear": "fishing", "plant": "foraging", "harvest": "foraging"}
 
 ## Which skill a recipe trains.
 static func recipe_skill(r: Dictionary) -> String:
@@ -258,6 +263,9 @@ const ACT := {
 	"shore": {"min": 0.5, "energy": 3.0},
 	"nap": {"min": 30.0, "energy": 0.0},
 	"empty_trap": {"min": 0.3, "energy": 1.0},
+	"spear": {"min": 1.0, "energy": 2.0},
+	"plant": {"min": 0.3, "energy": 2.0},
+	"harvest": {"min": 0.3, "energy": 1.5},
 }
 ## Crafting: tier 1-2 recipes take this fraction of the design's minutes (tiers 3-4 keep theirs).
 const CRAFT_EARLY_MULT := 0.2
@@ -266,6 +274,28 @@ const CHOP_LOOT := [["trunk", 2], ["frond", 6], ["stick", 4]]
 ## Fishing (GDD §5 / QUESTS S19 boot): weights out of 100. The first catch is always a small fish.
 const FISH_TABLE := [["fish_small", 70], ["fish_big", 8], ["boot", 5], ["tin_can", 5], ["seaweed", 7], ["", 5]]
 ## Campfire fuel: hours one item adds; a new fire starts with 3 h.
+## Fishing extras (2026-11-09). Bait in the bag goes on the hook: one is used per cast, the line never
+## comes up empty and a big fish is this many times as likely. The spear is quicker and needs no bait.
+const BAIT_BIG_MULT := 2
+const SPEAR_TABLE := [["fish_small", 45], ["crab", 25], ["fish_big", 12], ["", 18]]
+## The garden plot: seeds become sweet potatoes after this many hours (half with compost dug in).
+const GARDEN_GROW_H := 20.0
+const COMPOST_GROW_MULT := 0.5
+const GARDEN_YIELD := 3            # +1 with compost; one seed always comes back
+## Wax: the palms' wild bees. Chance a shake also brings down a lump of old comb (never the first shake).
+const WAX_SHAKE_CHANCE := 0.06
+## Things that help just by being in the bag.
+const HAT_HEAT_THIRST := 1.4       # frond hat: a heatwave makes him 1.4x as thirsty instead of 2x
+const NIGHT_LIGHT_MOOD := 5.0      # fish-oil lamp or torch: a better mood at night when the fire is out
+const CHIME_MOOD := 2.0            # wind chime (doubled when the wind blows)
+## A bottle thrown back into the sea (recipe bottle_post): the chance tomorrow's delivery brings an extra one.
+const BOTTLE_REPLY_CHANCE := 0.5
+const BOTTLE_REPLY_MAX := 2
+## Mood changes how fast he works (the opening's card says "a good mood makes everything a little better").
+const MOOD_HIGH := 80.0
+const MOOD_HIGH_SPEED := 0.95
+const MOOD_LOW := 25.0
+const MOOD_LOW_SPEED := 1.1
 const FUEL_H := {"stick": 0.5, "driftwood": 2.0, "dry_frond": 0.25, "trunk": 4.0, "plank": 1.5}
 const FIRE_START_H := 3.0
 ## T05: "3+ funny fails first". The first fire always fails this many times.
@@ -278,8 +308,16 @@ const FOOD := {
 	"coconut": {"verb": "drink", "food": 8, "water": 20, "gives": [["coconut_shell", 1], ["husk_fiber", 3]]},
 	"fish_small": {"verb": "eat", "food": 12, "water": 0, "nausea": 0.4},
 	"fish_big": {"verb": "eat", "food": 22, "water": 0, "nausea": 0.4},
-	"fish_cooked": {"verb": "eat", "food": 25, "water": 0, "gives": [["fish_bone", 1]]},
+	"fish_cooked": {"verb": "eat", "food": 25, "water": 0, "gives": [["fish_bone", 1]], "cooked": true},
 	"fish_dried": {"verb": "eat", "food": 20, "water": -5},
+	# 2026-11-09
+	"crab": {"verb": "eat", "food": 10, "water": 0, "nausea": 0.4},
+	"crab_cooked": {"verb": "eat", "food": 22, "water": 0, "gives": [["shell", 1]], "cooked": true},
+	"fish_stew": {"verb": "eat", "food": 35, "water": 15, "cooked": true},
+	"seaweed_crisps": {"verb": "eat", "food": 8, "water": -3},
+	"sweet_potato": {"verb": "eat", "food": 10, "water": 0},
+	"sweet_potato_roast": {"verb": "eat", "food": 30, "water": 0, "cooked": true},
+	"bandage": {"verb": "heal", "food": 0, "water": 0, "hp": 25},
 }
 const NAUSEA_WATER := -10.0
 const NAUSEA_H := 3.0
@@ -299,7 +337,7 @@ const QUEUE_MAX := 5             # KICKOFF M1
 const LOW_BAR := 25.0            # a bar under this pulses + a thought bubble
 ## Shore delivery: what never washes ashore (made on the island, or cave-only).
 const NOT_ASHORE := ["stone", "sand", "seawater", "fish_guts", "husk_fiber", "coconut_shell", "trunk",
-	"dry_frond", "clay", "wax", "fish_small", "fish_bone", "bait", "fish_big"]
+	"dry_frond", "clay", "fish_small", "fish_bone", "bait", "fish_big"]   # wax may wash up (candle stubs), 2026-11-09
 const RARITY_LETTER := {"common": "C", "uncommon": "U", "rare": "R", "mythic": "M"}
 
 ## Weather states (GDD §8). The controller (M4) is deterministic: engine.weather_at(t).
@@ -323,6 +361,14 @@ const QUEST_HINTS := {
 	"T10": "The sea brings a bottle every morning. Haul it in and open it.",
 	"T11": "Take a power nap in the shade.",
 	"T12": "Build a crafting stump, then scratch a tally mark on it.",
+	"T13": "Cook a fish on the campfire: tap the fire while it burns.",
+	"T14": "Build a rain catcher (the barrel + 4 fronds). It fills when it rains.",
+	"T15": "Build a fish trap in the shallows (8 sticks, 3 rope).",
+	"T16": "Make a shell shovel at the crafting stump (shell, stick, rope).",
+	"T17": "Dig a garden plot: 🔨 Craft, needs the shovel.",
+	"T18": "Plant seeds: tap the garden plot. Compost in the bag makes them grow twice as fast.",
+	"T19": "Wait for the plants (about a day), then harvest the garden plot.",
+	"T20": "Drag a stick onto a stone in the 🎒 bag to work out the sundial, then build it (1 stick, 12 stones).",
 }
 
 const DEBRIS_NAMES := {"crate": "wrecked crate", "planks": "pile of planks", "sailcloth": "torn sailcloth",
@@ -343,6 +389,14 @@ const QUEST_JOURNAL := [
 	"Mail! No bills. Best island ever.",
 	"30 minutes of nothing. Perfect.",
 	"Day counter started. Cheerful.",
+	"Cooked fish. It tastes like not being sick.",
+	"A barrel that waits for rain. We have that in common.",
+	"A trap that fishes while I nap. Peak engineering.",
+	"A shovel made of a shell. Somewhere a hardware store weeps.",
+	"A patch of dirt with ambitions.",
+	"Planted. Now we wait. I am excellent at waiting.",
+	"Sweet potatoes. I grew food. On purpose.",
+	"A sundial. Now I know exactly how late nobody is.",
 ]
 
 # ------------------------------------------------------------------ lines (DIALOGUE.md, EN; ES in es.json)
@@ -391,6 +445,11 @@ const LINES := {
 	"broke": ["And it broke. Of course it broke."],
 	"spoiled": ["Something in my bag smells like a decision I regret."],
 	"no_nap": ["Two naps a day. Even I have standards."],
+	"blunt": ["My knife now has the cutting power of a spoon."],
+	"spear": ["Got one! The sea is down one resident.", "Stab first, apologise later."],
+	"harvest": ["I grew this. Me. With dirt.", "Farm to table. The table is my lap."],
+	"heal": ["Seaweed on a wound. My doctor would faint. Also: no doctor."],
+	"bottle_sent": ["Dear whoever: send help. Or snacks. Mostly snacks."],
 }
 
 ## Curated bottle notes (B08 "Message of the Day" style; checked facts, GDD §1 pillar 6).
@@ -492,4 +551,6 @@ const QUEST_SHORT := {
 	"T01": "Wake up", "T02": "Open the crate", "T03": "Craft a fishing pole", "T04": "Catch a fish",
 	"T05": "Build a campfire", "T06": "Hang a hammock", "T07": "Drink a coconut", "T08": "Chop a palm",
 	"T09": "Build a shelter", "T10": "Open a bottle", "T11": "Take a nap", "T12": "Tally your days",
+	"T13": "Cook a fish", "T14": "Build a rain catcher", "T15": "Build a fish trap", "T16": "Make a shovel",
+	"T17": "Dig a garden plot", "T18": "Plant some seeds", "T19": "Harvest the garden", "T20": "Build a sundial",
 }

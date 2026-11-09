@@ -7,6 +7,9 @@ extends SceneTree
 const D = preload("res://scripts/games/wilson/wilson_data.gd")
 const Astro = preload("res://scripts/games/wilson/wilson_sky.gd")
 const Engine_ = preload("res://scripts/games/wilson/wilson_engine.gd")
+const Quests = preload("res://scripts/games/wilson/wilson_quests.gd")
+const Projects = preload("res://scripts/games/wilson/wilson_projects.gd")
+const Pastimes = preload("res://scripts/games/wilson/wilson_pastimes.gd")
 
 var fails := 0
 var checks := 0
@@ -60,6 +63,13 @@ func _init() -> void:
 	test_m11_intro()
 	test_m12_discovery()
 	test_guided_opening()
+	test_everything_obtainable()
+	test_blunt_knife()
+	test_garden()
+	test_spear_bait_food()
+	test_review_misc()
+	test_story_chapter_two()
+	test_new_quests_data()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -225,7 +235,7 @@ func test_json() -> void:
 		ok(not ids.has(it.id), "no duplicate item id: %s" % it.id)
 		ids[it.id] = true
 		ok(it.has("en") and it.has("es"), "item %s has en + es" % it.id)
-	ok(ids.size() == 75, "75 items (got %d)" % ids.size())
+	ok(ids.size() == 85, "85 items (got %d)" % ids.size())
 	var rids := {}
 	for r in D.json("recipes").recipes:
 		ok(not rids.has(r.id), "no duplicate recipe id: %s" % r.id)
@@ -239,7 +249,7 @@ func test_json() -> void:
 		for k in ["tool", "needs"]:
 			if r.has(k):
 				ok(ids.has(r[k]), "recipe %s %s %s exists" % [r.id, k, r[k]])
-	ok(rids.size() == 42, "42 recipes (got %d)" % rids.size())
+	ok(rids.size() == 50, "50 recipes (got %d)" % rids.size())
 	for k in D.json("recipes").debris_loot:
 		for pair in D.json("recipes").debris_loot[k]:
 			ok(ids.has(pair[0]), "debris %s loot %s exists" % [k, pair[0]])
@@ -248,7 +258,7 @@ func test_json() -> void:
 		ok(not qids.has(q.id), "no duplicate quest id")
 		qids[q.id] = true
 		ok(D.QUEST_HINTS.has(q.id), "quest %s has a hint" % q.id)
-	ok(qids.size() == 12, "12 tutorial quests")
+	ok(qids.size() == 20, "20 story quests")
 	for q in D.quests():
 		ok(q.journal_en in D.QUEST_JOURNAL, "quest %s journal line listed for i18n" % q.id)
 
@@ -383,7 +393,7 @@ func test_tutorial() -> void:
 	ok(e.quest == "T12", "T11 done")
 	act("craft", "crafting_stump")
 	act("tally")
-	ok(e.quest == "" and e.quests_done.size() == 12, "T12 done: tutorial complete (%d)" % e.quests_done.size())
+	ok(e.quest == "T13" and e.quests_done.size() == 12, "T12 done: the story goes on with T13 (%d)" % e.quests_done.size())
 	ok("tally_marks" in e.decor, "tally decor")
 	ok(e.enqueue("tally") != "", "one tally per day")
 
@@ -439,8 +449,11 @@ func test_m3_combine() -> void:
 	f.add("stick", 1)
 	f.add("stone", 1)
 	f.add("rope", 1)
+	# a recipe still to find comes first, and finding it never spends the materials
+	var q0: Dictionary = f.combine("stick", "stone")
+	ok(q0.ok and q0.discovered and q0.recipe == "sundial" and not q0.queued and f.queue.is_empty(), "stick + stone finds the sundial first (%s)" % str(q0))
 	var q: Dictionary = f.combine("stick", "stone")
-	ok(q.ok and q.queued and f.queue.size() == 1, "stick + stone queues something craftable (%s)" % str(q))
+	ok(q.ok and q.queued and not q.discovered and f.queue.size() == 1, "stick + stone again queues something craftable (%s)" % str(q))
 	# same item twice: two husk fiber -> rope (needs 6)
 	var g = fresh(at(2026, 6, 21, 9))
 	g.add("husk_fiber", 6)
@@ -448,7 +461,7 @@ func test_m3_combine() -> void:
 	ok(h.ok and h.recipe == "rope_fiber" and h.queued, "fiber + fiber = rope")
 	ok(g.undiscovered().size() > 0, "some recipes left to find")
 
-## Every one of the 42 recipes can be made: give its parts, build its station, play it through.
+## Every one of the 50 recipes can be made: give its parts, build its station, play it through.
 func test_m3_all_recipes() -> void:
 	ok(D.MAX_TIER == 4, "all four tiers on")
 	var made := 0
@@ -470,10 +483,12 @@ func test_m3_all_recipes() -> void:
 		e.advance(e.t + 4 * 3600.0, true)
 		if r.out_type == "structure":
 			ok(e.structures.has(r.out), "recipe %s built %s" % [r.id, r.out])
+		elif r.id == "bottle_post":
+			ok(e.count("bottle_note") == 0 and int(e.stats.get("bottles_sent", 0)) == 1, "bottle_post throws the bottle into the sea")
 		else:
 			ok(e.count(r.out) >= int(r.get("qty", 1)), "recipe %s made %s" % [r.id, r.out])
 		made += 1
-	ok(made == 42, "42 recipes made (got %d)" % made)
+	ok(made == 50, "50 recipes made (got %d)" % made)
 
 func test_m3_wear_spoil() -> void:
 	var e = fresh(at(2026, 6, 21, 9))
@@ -646,7 +661,7 @@ func test_m5_side_quests() -> void:
 	ok(e.count("bait") == 3 and e.skill_level("fishing") >= 1, "S05 pays bait + fishing xp")
 	var n: int = e.side_done.size()
 	e.bump("ev:caught", 50)
-	ok(e.side_done.size() == n, "a quest pays only once")
+	ok(e.side_done.count("S05") == 1 and e.count("bait") == 3 and e.side_done.size() == n + 1, "a quest pays only once (50 more fish: only the Fishmonger is new)")
 	# real flow: salt recipe made via the queue
 	var f = fresh(at(2026, 6, 21, 9))
 	f.stats["made:salt"] = 0
@@ -1138,3 +1153,299 @@ func test_guided_opening() -> void:
 	var d: Dictionary = e.to_dict()
 	var e2 = Engine_.new()
 	ok(e2.from_dict(d) and e2.tut == -1, "tut round trip")
+
+# ================================================================ 2026-11-09: review round (new items, quests, fixes)
+
+## Everything a recipe or a Grand Project asks for can be got somewhere on the island.
+func test_everything_obtainable() -> void:
+	var src := {}
+	for id in D.SPOTS:
+		src[str(D.SPOTS[id].item)] = true
+	for id in D.DEBRIS:
+		for pair in D.debris_loot(id):
+			src[str(pair[0])] = true
+	for id in ["coconut", "frond", "wax", "seawater", "fish_guts", "bottle_note", "sweet_potato", "seeds"]:
+		src[id] = true      # palms, the sea, spoilage, the daily bottle, the garden (seeds: T16 / T17 rewards)
+	for row in D.CHOP_LOOT:
+		src[str(row[0])] = true
+	for table in [D.FISH_TABLE, D.SPEAR_TABLE, D.TRAP_TABLE, D.REEF_TABLE]:
+		for row in table:
+			src[str(row[0])] = true
+	for p in Pastimes.LIST:
+		for row in p.get("loot", []):
+			src[str(row[0])] = true
+		for row in p.get("give", []):
+			src[str(row[0])] = true
+	for id in D.FOOD:
+		for pair in D.FOOD[id].get("gives", []):
+			src[str(pair[0])] = true
+	for id in D.BLUNT.values():
+		src[str(id)] = true
+	src["paper"] = true      # every opened bottle
+	for id in D.items():
+		if str(D.items()[id].r) in ["C", "U", "R", "M"] and not id in D.NOT_ASHORE:
+			src[id] = true   # the shore delivery
+	# recipes: an output is reachable once all its parts are
+	var grew := true
+	while grew:
+		grew = false
+		for r in D.recipes().values():
+			if r.out_type != "item" or src.has(str(r.out)):
+				continue
+			var all := true
+			for pair in Engine_.recipe_parts(r):
+				if not src.has(str(pair[0])):
+					all = false
+			if all:
+				src[str(r.out)] = true
+				grew = true
+	var missing: Array = []
+	for r in D.recipes().values():
+		for pair in Engine_.recipe_parts(r):
+			if not src.has(str(pair[0])) and not str(pair[0]) in missing:
+				missing.append(str(pair[0]))
+	for pr in Projects.LIST:
+		for m in pr.mats:
+			if not src.has(str(m[0])) and not str(m[0]) in missing:
+				missing.append(str(m[0]))
+	ok(missing.is_empty(), "every material has a source (missing: %s)" % str(missing))
+	ok(src.has("clay") and src.has("wax"), "clay (dig for it) and wax (the palms' bees) exist on the island")
+
+func test_blunt_knife() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	e.add("knife", 1)
+	for i in D.TOOL_USES.knife:
+		e._wear("knife")
+	ok(e.count("knife") == 0 and e.count("blunt_knife") == 1, "a worn-out knife goes blunt, it does not vanish")
+	ok(e.craft_block("coconut_bowl") != "", "a blunt knife is not a knife")
+	e.add("stone", 1)
+	ok(e.enqueue("craft", "sharpen_knife") == "", "sharpening queues")
+	e.advance(e.t + 600.0, true)
+	ok(e.count("knife") == 1 and e.count("blunt_knife") == 0 and e.tool_uses("knife") == D.TOOL_USES.knife, "sharpened: a knife with all its uses")
+	ok("K01" in e.side_done, "K01 Sharp Again")
+	# a hook from fish bones (the wreck only had one)
+	e.add("fish_bone", 2)
+	ok(e.enqueue("craft", "bone_hook") == "", "bone hook queues")
+	e.advance(e.t + 600.0, true)
+	ok(e.count("hook") == 1, "bone hook made")
+
+func test_garden() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	ok(e.garden_state() == "" and e.action_block("plant", "") != "", "no garden plot: no planting")
+	e.structures["garden_plot"] = {"built": e.t}
+	ok(e.garden_state() == "empty" and e.action_block("plant", "").begins_with("No seeds"), "needs seeds")
+	e.add("seeds", 1)
+	ok(e.enqueue("plant") == "", "planting queues")
+	e.advance(e.t + 60.0, true)
+	ok(e.garden_state() == "growing" and e.count("seeds") == 0, "growing, seed used")
+	ok(e.action_block("harvest", "") != "" and e.action_block("plant", "") != "", "no harvest and no second planting while it grows")
+	e.advance(e.t + (D.GARDEN_GROW_H - 1.0) * 3600.0, false)
+	ok(e.garden_state() == "growing", "still growing an hour early")
+	e.advance(e.t + 2.0 * 3600.0, false)
+	ok(e.garden_state() == "ready", "ready after %d h" % int(D.GARDEN_GROW_H))
+	ok(e.enqueue("harvest") == "", "harvest queues")
+	e.advance(e.t + 60.0, true)
+	ok(e.count("sweet_potato") == D.GARDEN_YIELD and e.count("seeds") == 1 and e.garden_state() == "empty", "3 sweet potatoes, a seed back, plot empty")
+	# compost: twice as fast, one more
+	e.add("compost", 1)
+	e.enqueue("plant")
+	e.advance(e.t + 60.0, true)
+	ok(e.count("compost") == 0 and bool(e.structures.garden_plot.rich), "compost dug in")
+	e.advance(e.t + D.GARDEN_GROW_H * D.COMPOST_GROW_MULT * 3600.0, false)
+	ok(e.garden_state() == "ready", "compost: ready in half the time")
+	e.enqueue("harvest")
+	e.advance(e.t + 60.0, true)
+	ok(e.count("sweet_potato") == D.GARDEN_YIELD * 2 + 1, "compost: one more potato")
+	# cancelling a planting gives the seed back
+	var c = fresh(at(2026, 6, 21, 9))
+	c.structures["garden_plot"] = {"built": c.t}
+	c.add("seeds", 1)
+	c.enqueue("plant")
+	c.cancel(0)
+	ok(c.count("seeds") == 1 and c.garden_state() == "empty", "cancelled planting refunds the seed")
+	# the save keeps the plot
+	e.add("seeds", 1)
+	e.enqueue("plant")
+	e.advance(e.t + 60.0, true)
+	var e2 = Engine_.new()
+	e2.from_dict(JSON.parse_string(JSON.stringify(e.to_dict())))
+	ok(e2.garden_state() == "growing", "the garden survives a save")
+
+func test_spear_bait_food() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	ok(e.action_block("spear", "").begins_with("Needs"), "spear fishing needs a spear")
+	var got := 0
+	var crabs := 0
+	for i in 200:
+		if e.count("spear") <= 0:
+			e.add("spear", 1)
+		e.bars.energy = 80.0
+		e.slots = e.slots.filter(func(s): return s.id == "spear")
+		e.enqueue("spear")
+		e.advance(e.t + 120.0, true)
+	got = int(e.stats.get("speared", 0))
+	crabs = int(e.stats.get("ev:caught:crab", 0))
+	ok(got > 120 and got < 200 and crabs > 20, "spear: mostly hits, some misses, some crabs (%d / 200, %d crabs)" % [got, crabs])
+	ok(int(e.stats.get("ev:caught", 0)) == got and "P01" in e.side_done and "P04" in e.side_done, "spear catches count as catches; P01 and P04 done")
+	# bait: never an empty line, one bait per cast
+	var b = fresh(at(2026, 6, 21, 9))
+	b.catches = 1
+	b.add("bait", 20)
+	var empty := 0
+	for i in 20:
+		if b.count("fishing_pole") <= 0:
+			b.add("fishing_pole", 1)
+		b.bars.energy = 80.0
+		var before: int = int(b.stats.get("ev:caught", 0))
+		b.enqueue("fish")
+		b.advance(b.t + 600.0, true)
+		if int(b.stats.get("ev:caught", 0)) == before:
+			empty += 1
+	ok(empty == 0 and int(b.stats.get("bait_used", 0)) == 20 and "P02" in b.side_done, "20 baited casts: 20 catches, 20 bait used (%d empty)" % empty)
+	# bandage heals, and is kept at full health
+	var h = fresh(at(2026, 6, 21, 9))
+	h.add("bandage", 2)
+	ok(h.consume("bandage") != "" and h.count("bandage") == 2, "full health: the bandage stays in the bag")
+	h.bars.hp = 40.0
+	ok(h.consume("bandage") == "" and is_equal_approx(h.bars.hp, 65.0) and h.count("bandage") == 1, "bandage: +25 health")
+	ok("H01" in h.side_done, "H01 First Aid")
+	# cooked meals count
+	h.add("fish_stew", 1)
+	h.bars.food = 10.0
+	h.consume("fish_stew")
+	ok(is_equal_approx(h.bars.food, 45.0) and int(h.stats.get("cooked_eaten", 0)) == 1, "fish stew: +35 food, a cooked meal")
+	# the frond hat in a heatwave
+	var a = fresh(at(2026, 6, 21, 9))
+	var c = fresh(at(2026, 6, 21, 9))
+	a.weather = "heatwave"
+	c.weather = "heatwave"
+	c.add("frond_hat", 1)
+	a.advance(a.t + 3600.0, true)
+	c.advance(c.t + 3600.0, true)
+	ok(c.bars.water > a.bars.water + 2.0, "a frond hat saves water in a heatwave (%.1f vs %.1f)" % [c.bars.water, a.bars.water])
+
+func test_review_misc() -> void:
+	# food that was lying on the sand still spoils once it is back in the bag
+	var e = fresh(at(2026, 6, 21, 9))
+	for i in e.capacity():
+		e.slots.append({"id": "junk%d" % i, "n": 1})
+	e.add("fish_small", 2)
+	ok(int(e.ground.get("fish_small", 0)) == 2, "bag full: the fish lie on the sand")
+	e.slots.pop_back()
+	e._settle_ground()
+	var back := {}
+	for s in e.slots:
+		if s.id == "fish_small":
+			back = s
+	ok(not back.is_empty() and float(back.get("spoil", 0.0)) > e.t, "picked back up: it has a spoil time")
+	# a bottle thrown back: no note in the bag, sometimes one more ashore the next morning
+	var b = fresh(at(2026, 6, 21, 9))
+	b.structures["crafting_stump"] = {"built": b.t}
+	var sent := 0
+	for i in 40:
+		b.add("bottle", 1)
+		b.add("paper", 1)
+		b.add("charcoal", 1)
+		b.bars.energy = 80.0
+		b.enqueue("craft", "bottle_post")
+		b.advance(b.t + 600.0, true)
+		sent += 1
+	ok(b.count("bottle_note") == 0 and int(b.stats.get("bottles_sent", 0)) == sent, "40 bottles thrown, none kept")
+	ok(int(b.shore.get("replies", 0)) == D.BOTTLE_REPLY_MAX and "M02" in b.side_done, "at most %d replies wait for the morning; M02 done" % D.BOTTLE_REPLY_MAX)
+	b.shore.last_day = b.day_index()
+	b.advance(at(2026, 6, 22, 10), false)
+	ok(int(b.shore.pile.get("bottle_note", 0)) == 1 + D.BOTTLE_REPLY_MAX and int(b.shore.get("replies", 0)) == 0, "the replies came in with the morning bottle")
+	# mood changes the pace
+	var m = fresh(at(2026, 6, 21, 9))
+	m.mood = 60.0
+	var base: float = m.duration_of("gather", "stones")
+	m.mood = 90.0
+	ok(is_equal_approx(m.duration_of("gather", "stones"), base * D.MOOD_HIGH_SPEED), "a happy castaway is 5% faster")
+	m.mood = 10.0
+	ok(is_equal_approx(m.duration_of("gather", "stones"), base * D.MOOD_LOW_SPEED), "a miserable one is 10% slower")
+	# clay: dig for it with a shovel (which wears)
+	var c = fresh(at(2026, 6, 21, 9))
+	ok(c.pastime_block("dig_clay").begins_with("Needs"), "digging clay needs a shovel")
+	c.add("shovel", 1)
+	c.enqueue("pastime", "dig_clay")
+	c.advance(c.t + 120.0, true)
+	ok(c.count("clay") == 2 and c.tool_uses("shovel") == D.TOOL_USES.shovel - 1 and int(c.stats.get("odd_jobs", 0)) == 1, "2 clay, one shovel use, an odd job counted")
+	# wax: now and then from a shaken palm, never from the first shake
+	var w = fresh(at(2026, 6, 21, 9))
+	w.enqueue("shake", "A")
+	w.advance(w.t + 60.0, true)
+	ok(w.count("wax") == 0, "the first shake is just a coconut")
+	for i in 400:
+		w.bars.energy = 80.0
+		w.enqueue("shake", "A")
+		w.advance(w.t + 60.0, true)
+	var wax: int = w.count("wax") + int(w.ground.get("wax", 0))
+	ok(wax >= 8 and wax <= 50, "400 shakes: some wax (%d)" % wax)
+	ok("L04" in w.side_done, "L04 Tree Hugger (30 shakes)")
+	# days survived
+	var d = fresh(at(2026, 6, 21, 9))
+	d.advance(at(2026, 6, 28, 9), false)
+	ok(int(d.stats.get("days", 0)) == 8 and "Y01" in d.side_done and not "Y02" in d.side_done, "Y01 on day 7, not Y02")
+
+## The story goes on after T12: T13-T20, and old saves that had finished pick it up.
+func test_story_chapter_two() -> void:
+	var seen := {}
+	for q in D.quests():
+		seen[q.id] = true
+		ok(D.QUEST_HINTS.has(q.id) and D.QUEST_SHORT.has(q.id), "quest %s has a hint and a HUD line" % q.id)
+		ok(str(q.journal_en) in D.QUEST_JOURNAL, "quest %s journal line is in QUEST_JOURNAL" % q.id)
+		for nx in q.next:
+			ok(D.quest(str(nx)).size() > 0, "quest %s leads to a real quest" % q.id)
+	ok(seen.size() == 20, "20 story quests")
+	# an old save: tutorial finished, a fish trap already built, fish already cooked
+	var e = fresh(at(2026, 6, 21, 9))
+	e.quest = ""
+	for i in 12:
+		e.quests_done.append("T%02d" % (i + 1))
+	e.stats["ev:crafted:fish_cooked"] = 2
+	e.stats["ev:structure_built:rain_catcher"] = 1
+	var e2 = Engine_.new()
+	e2.from_dict(JSON.parse_string(JSON.stringify(e.to_dict())))
+	ok(e2.quest == "T15" and "T13" in e2.quests_done and "T14" in e2.quests_done, "old save: the story resumes, what was already done counts (now %s)" % e2.quest)
+	# play the rest
+	e2.bars.energy = 100.0
+	e2._emit("structure_built", {"id": "fish_trap"})
+	ok(e2.quest == "T16" and e2.count("bait") == 3, "T15 pays bait")
+	e2._emit("crafted", {"id": "shovel"})
+	ok(e2.quest == "T17" and e2.count("seeds") == 2, "T16 pays the first seeds")
+	e2.structures["garden_plot"] = {"built": e2.t}
+	e2._emit("structure_built", {"id": "garden_plot"})
+	ok(e2.quest == "T18" and e2.count("seeds") == 3, "T17")
+	e2.enqueue("plant")
+	e2.advance(e2.t + 60.0, true)
+	ok(e2.quest == "T19", "T18 planted")
+	e2.advance(e2.t + (D.GARDEN_GROW_H + 1.0) * 3600.0, false)
+	e2.bars.energy = 100.0
+	e2.sleep = {}
+	e2.enqueue("harvest")
+	e2.advance(e2.t + 60.0, true)
+	ok(e2.quest == "T20", "T19 harvested (%s)" % e2.quest)
+	e2._emit("structure_built", {"id": "sundial"})
+	ok(e2.quest == "" and e2.quests_done.size() == 20 and "hour_stones" in e2.decor, "T20: the story is done")
+	# a finished save stays finished
+	var e3 = Engine_.new()
+	e3.from_dict(JSON.parse_string(JSON.stringify(e2.to_dict())))
+	ok(e3.quest == "" and e3.quests_done.size() == 20, "a finished story is not restarted")
+
+func test_new_quests_data() -> void:
+	var ids := {}
+	for q in Quests.LIST:
+		ids[q.id] = true
+		ok(str(q.es) != "" and str(q.goal).ends_with("."), "quest %s has Spanish and a goal" % q.id)
+	ok(ids.size() == Quests.LIST.size() and Quests.LIST.size() == 93, "93 side quests, unique ids (got %d)" % Quests.LIST.size())
+	ok(Quests.DAILY.size() == 14, "14 daily quests in the pool")
+	for q in Quests.DAILY:
+		for pair in q.reward:
+			ok(not D.item(str(pair[0])).is_empty(), "daily %s pays a real item" % q.id)
+	for p in Pastimes.LIST:
+		for row in p.get("loot", []) + p.get("give", []):
+			ok(str(row[0]) == "" or not D.item(str(row[0])).is_empty(), "pastime %s gives a real item (%s)" % [p.id, row[0]])
+	for id in D.FOOD:
+		ok(not D.item(id).is_empty(), "food %s is an item" % id)
+	for id in D.SPOIL_H:
+		ok(not D.item(id).is_empty(), "spoiling %s is an item" % id)

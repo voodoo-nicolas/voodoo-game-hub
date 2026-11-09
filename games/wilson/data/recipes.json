@@ -42,5 +42,13 @@
 {"id":"copper_tube","out":"copper_tube","qty":1,"out_type":"item","in":[["copper_wire",4]],"station":"stump","min":30,"en":6,"tier":4},
 {"id":"spyglass","out":"spyglass","qty":1,"out_type":"item","in":[["brass_tube",1],["lens",2]],"station":"stump","min":40,"en":8,"tier":4},
 {"id":"compass_fix","out":"compass","qty":1,"out_type":"item","in":[["broken_compass",1],["magnet",1]],"station":"stump","min":25,"en":6,"tier":4},
-{"id":"rubber_sling","out":"rubber_sling","qty":1,"out_type":"item","in":[["rubber_sap",4],["rope",4]],"station":"stump","min":15,"en":4,"tier":4}
+{"id":"rubber_sling","out":"rubber_sling","qty":1,"out_type":"item","in":[["rubber_sap",4],["rope",4]],"station":"stump","min":15,"en":4,"tier":4},
+{"id":"sharpen_knife","out":"knife","qty":1,"out_type":"item","in":[["blunt_knife",1],["stone",1]],"station":"hands","min":5,"en":2,"tier":1,"note":"2026-11-09: a worn knife goes blunt instead of vanishing"},
+{"id":"bone_hook","out":"hook","qty":1,"out_type":"item","in":[["fish_bone",2]],"tool":"knife","station":"hands","min":8,"en":2,"tier":1},
+{"id":"cook_crab","out":"crab_cooked","qty":1,"out_type":"item","in":[["crab",1]],"station":"campfire","min":10,"en":1,"tier":1},
+{"id":"bandage","out":"bandage","qty":1,"out_type":"item","in":[["cloth_scrap",1],["seaweed",2]],"station":"hands","min":5,"en":1,"tier":2},
+{"id":"fish_stew","out":"fish_stew","qty":1,"out_type":"item","in":[["fish_small",1],["seaweed",1],["coconut",1]],"tool":"coconut_bowl","station":"campfire","min":20,"en":2,"tier":2},
+{"id":"roast_potato","out":"sweet_potato_roast","qty":1,"out_type":"item","in":[["sweet_potato",1]],"station":"campfire","min":15,"en":1,"tier":2},
+{"id":"seaweed_crisps","out":"seaweed_crisps","qty":2,"out_type":"item","in":[["seaweed",2],["salt",1]],"station":"rack","min":60,"en":1,"tier":2},
+{"id":"wind_chime","out":"wind_chime","qty":1,"out_type":"item","in":[["tin_can",2],["shell",3],["rope",1]],"station":"stump","min":15,"en":3,"tier":3}
 ]}

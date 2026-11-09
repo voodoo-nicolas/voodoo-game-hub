@@ -1,6 +1,6 @@
 # Beached (id `wilson`, castaway sim, Adventure, landscape)
 
-Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as pack v1 (2026-11-08)**, not phone-tested). Design on Drive "viral game hub/wilson" (README, KICKOFF with the milestone list M0-M8 and acceptance tests, design/GDD.md, CRAFTING.md, QUESTS.md (121 quests), DIALOGUE.md, art/ART_PROMPTS.md). Data copied to `games/wilson/data/*.json` (read at runtime). Decisions and what is not built: `docs/wilson/DECISIONS.md`; history: `docs/wilson/CHANGELOG.md`. Never ship the word "Wilson" (README); "Johnny" is code-only (DECISIONS W-3).
+Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as pack v1 (2026-11-08)**, not phone-tested). Design on Drive "viral game hub/wilson" (README, KICKOFF with the milestone list M0-M8 and acceptance tests, design/GDD.md, CRAFTING.md, QUESTS.md (121 quests), DIALOGUE.md, art/ART_PROMPTS.md). Data copied to `games/wilson/data/*.json` (read at runtime; since 2026-11-09 it also holds 10 items, 8 recipes and quests T13-T20 that the Drive copies do not have). Decisions and what is not built: `docs/wilson/DECISIONS.md`; history: `docs/wilson/CHANGELOG.md`. Never ship the word "Wilson" (README); "Johnny" is code-only (DECISIONS W-3).
 
 ## Files (`scripts/games/wilson/`)
 | File | What |
@@ -19,7 +19,8 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 | `wilson_game.gd` | Landing kit, layers (sky -3, world -2 with CanvasModulate, glow -1, HUD), clock (real + debug offset), catch-up, HUD, context menus, bag / craft / journal panels, save, help "⏩ Hurry up" |
 
 ## Tests and tools
-- `godot --headless --path . --script res://tools/test_wilson.gd`: 835 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip). Pure engine, no saves touched.
+- `godot --headless --path . --script res://tools/test_wilson.gd`: 1229 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip, every material has a source, garden, spear / bait, story T13-T20). Pure engine, no saves touched.
+- `tools/test_wilson_review.gd` (26, real scene: garden menu + sprouts, spear, campfire / rack menus, reasons in Spanish, the action list keeping its buttons, rain loop), `test_wilson_opening.gd` (19), `test_wilson_pad.gd` (12). These three touch the desktop save (they back it up).
 - `godot --path . --resolution 1280x720 --script res://tools/shot_wilson.gd -- <dir> [en|es]`: screenshots (backs up and restores the save + debug files).
 - `python tools/wilson_art.py [sheets]`: rebuilds `games/wilson/art/` from `D:/dev/Wilson` (reproducible; `sheets` skips the slow plate step). New sheet = anchors (source pixels of each sprite) + `cut_sheet()`.
 
@@ -33,3 +34,5 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 - Craft list is Terraria-style (`craft_visible`: material held or made before; tier 2 after two tier-1 makes); Grand Projects are inside the craft panel; the focus glow (`world.set_focus`, a shader glow, no boxes or rings) and the Pad's A share `nearest_interactable`. Streak `checkin()`, sky events `is_eclipse_day` / `is_tropical` / `is_full_moon`, recipe bottles in `open_bottle`.
 - Controls: taps + the shared Pad (stick walks, A uses nearest, B back, X nap, Y sleep); `wilson_game.gd` "the Viral Pad" section; test `tools/test_wilson_pad.gd`.
 - Packs: no autoloads; GameInfo / Music / Sfx guarded.
+- Review round 2026-11-09 (CHANGELOG, DECISIONS W-36): story T13-T20; garden (`plant` / `harvest`, `garden_state()`); `spear` action; bait on the hook; knife goes blunt (`D.BLUNT`); `bottle_post` is thrown, not kept; mood changes speed; combine finds before it makes. Engine reasons go through `_why()` in the game, never bare `tr()`. The action list (`_refresh_queue`) rebuilds only when `_queue_sig` changes. Recorded sounds: `SoundLib` ids as full literals in `wilson_game.gd`.
+- New content checklist: an item needs a source (the "every material has a source" test fails otherwise); a pastime may `give` items and `wear` a tool; a side quest only needs a counter (`bump`, `_emit`, `got:`).

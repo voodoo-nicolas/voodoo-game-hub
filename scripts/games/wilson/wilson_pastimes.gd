@@ -6,7 +6,8 @@ extends RefCounted
 ## Fields: en (menu label), icon, min (real MINUTES, 0.1 = 6 s), energy, mood (added when done), stand
 ## (plate pixels; none = where he is), pose (a castaway pose), lines (journal variants, some are facts),
 ## loot ([[item id, weight], ...] one roll; "" = nothing), xp (foraging XP on a find), needs (item id
-## that must be in the bag, not used up), needs_any (a built structure), stat (quest counter).
+## that must be in the bag, not used up), needs_any (a built structure), stat (quest counter),
+## give ([[item id, n], ...] always handed over), wear (a tool that loses one use).
 
 const LIST := [
 	# ---------------------------------------------------------------- quick odd jobs
@@ -39,6 +40,9 @@ const LIST := [
 	{"id": "shake_rocks", "group": "quick", "en": "Check the rock pools", "icon": "🦐", "min": 0.3, "energy": 1.5, "mood": 0.5, "pose": "craft", "stand": Vector2(940, 535),
 		"loot": [["", 28], ["seaweed", 30], ["shell", 22], ["bait", 15], ["salt", 5]],
 		"lines": ["Peered into the rock pools. A small crab peered back.", "Poked a rock pool. It had opinions."]},
+	{"id": "dig_clay", "group": "quick", "en": "Dig for clay", "icon": "🏺", "min": 0.35, "energy": 2.5, "mood": 0.0, "pose": "craft", "needs": "shovel", "wear": "shovel", "stand": Vector2(300, 535),
+		"give": [["clay", 2]],
+		"lines": ["Dug under the wet sand by the rocks. Grey clay, cold and heavy.", "Clay is rock ground so fine that it holds water. It also holds on to my fingers."]},
 	# ---------------------------------------------------------------- longer pastimes
 	{"id": "stargaze", "group": "long", "en": "Stargaze", "icon": "🌌", "min": 45.0, "energy": 2.0, "mood": 8.0, "stand": Vector2(640, 535), "pose": "sit",
 		"lines": ["Counted stars until I lost count. The Southern Cross points roughly at the south pole.",
@@ -67,6 +71,18 @@ const LIST := [
 		"lines": ["Told Coco about my day. Coco said nothing, supportively.",
 			"Coco and I disagreed about the best way to open a coconut. Awkward.",
 			"Asked Coco for advice. The silence was wise."]},
+	{"id": "swim", "group": "long", "en": "Go for a swim", "icon": "🏊", "min": 10.0, "energy": 4.0, "mood": 6.0, "stand": Vector2(560, 535), "pose": "wave",
+		"lines": ["Swam out to where it gets deep and back. The sand is finally out of my ears.",
+			"Floated on my back. Salt water holds you up better than fresh: it is denser.",
+			"A swim. The fish kept their distance. Wise."]},
+	{"id": "sunset", "group": "long", "en": "Watch the sunset", "icon": "🌇", "min": 15.0, "energy": 0.0, "mood": 8.0, "stand": Vector2(700, 535), "pose": "sit",
+		"lines": ["Watched the sun go down. Sunsets are red because the low light crosses more air, and air scatters the blue away.",
+			"The sun sank into the sea. No hiss. I listen every time.",
+			"A good sunset. I gave it an eight. The sea gave me nothing back."]},
+	{"id": "drum", "group": "long", "en": "Play the drum", "icon": "🥁", "min": 5.0, "energy": 1.0, "mood": 7.0, "needs": "drum", "pose": "sit",
+		"lines": ["Played the coconut drum. The crabs left. Critics.",
+			"A drum solo for an audience of one palm. It swayed. I am counting that.",
+			"Kept a beat for five minutes. Lost it. Found a worse one."]},
 ]
 
 static func get_pastime(id: String) -> Dictionary:

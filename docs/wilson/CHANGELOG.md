@@ -1,5 +1,30 @@
 # Beached (wilson) changelog
 
+## 2026-11-09: review round: fixes, 10 items, 8 recipes, 52 quests (built, not published)
+Bugs fixed
+- Clay and wax could not be got anywhere, so the kiln, clay jars, the fish-oil lamp, the barometer (and with it weather sense and "Cloud Reader") and the Cellar were impossible. Clay: new odd job "Dig for clay" (shovel, 2 clay, one shovel use). Wax: a shaken palm drops old beeswax now and then (6 %, never the first shake), and candle wax may wash ashore.
+- The wreck's knife is the only one and it broke for good after 40 uses (no more fishing poles or coconut bowls), and there was one hook. A worn knife now goes blunt (`D.BLUNT`, item `blunt_knife`) and a stone sharpens it (recipe `sharpen_knife`); fish bones make hooks (`bone_hook`).
+- Combining never found a hidden recipe when a known one used the same two things (stick + stone was always "spark kit", so the sundial could only come from a bottle). A recipe still to find now wins, and finding one no longer queues it (it could have spent the only sailcloth on a tent).
+- `bottle_post` put a "message from a pen pal" in your own bag (and every third one taught a recipe). The bottle now goes out to sea; half the time one more bottle comes in with the next morning's delivery (2 at most).
+- Reasons with a name in them showed half English in Spanish ("Needs a Caña de pescar."): `_why()` in the game translates the frame and keeps the name. Also the streak's "best" and the Shellphone's sunrise / sunset labels (single lowercase words never reach the game's translation file).
+- Taps on ✕ in the action list were often lost: the list was rebuilt twice a second, and a rebuild between finger down and finger up swallowed the tap. It is rebuilt only when the list changes; countdowns are rewritten in place.
+- `debris_crate.webp.import` was committed as `valid=false` (a failed first import): the crate had no texture in local runs and tests ("Failed loading resource"), so it could not be seen or tapped there. Re-imported.
+- Food that had been lying on the sand (bag full) came back without a spoil time. Low bars flickered instead of pulsing. Built structures no longer sit in the craft list as "Already built" rows. The journal no longer ends with a raw list of quest ids. Help text said the first fire fails (it has not since round 4).
+- Spanish: the dailies and a few hints were in voseo ("Pescá", "Juntá", "¿Cómo te llamás?"); STANDARDS asks for "tú".
+- `tools/test_wilson_pad.gd` had two checks that had been failing since the lanes and the A button changed; brought up to date.
+
+New
+- Story quests T13-T20 after the tally: cook a fish, rain catcher, fish trap, shovel, garden plot, plant, harvest, sundial. Saves that had finished T12 pick the story up (`from_dict`), and what was already done counts (`_complete_if_met`).
+- Garden: the plot finally does something. `plant` (1 seed, + 1 compost if there is any: twice as fast, one more) -> 20 h -> `harvest` 3 sweet potatoes and a seed back. The plot shows the owner's sprouts sprite while it grows. Seeds: T16 / T17 rewards, shore delivery, "Green Thumb".
+- Spear fishing (the spear had no use): 1 minute, no bait, 18 % misses, crabs; at low tide no misses and twice the big fish. Bait (had no use) goes on the hook by itself: no empty lines, twice the big fish.
+- 10 items: blunt knife, seeds, sweet potato, roast sweet potato, crab, cooked crab, fish stew, seaweed crisps, seaweed bandage (+25 health, the first way to heal), wind chime. 8 recipes: sharpen knife, bone hook, cook crab, bandage, fish stew, roast potato, seaweed crisps, wind chime. None of the new items has an icon yet.
+- Things that had no use now have one: frond hat (heatwave thirst x1.4 instead of x2), fish-oil lamp / torch (+5 mood at night with no fire), drum (pastime), compost (garden), tin cans (wind chime, +2 mood, +4 in wind).
+- Mood matters: 80 or more = 5 % faster, under 25 = 10 % slower (the opening's card already promised it).
+- 4 pastimes / odd jobs: dig for clay, go for a swim (washes "Sandy" off), watch the sunset, play the drum.
+- 38 side quests (93 in all), 6 dailies (14 in the pool). The journal lists open side quests first (furthest along on top) and the finished ones on one line.
+- Sounds from the shared library: chop, salvage, craft, gather, lying down, and a rain loop in rain / storm (`sound_lib.gd`; none of it heard on a phone yet).
+- Tests: `test_wilson.gd` 1229 checks (incl. "every material has a source"), new `test_wilson_review.gd` (26, real scene), opening 19, Pad 12.
+
 ## 2026-11-09: owner's phone feedback round 4 (built, not published)
 - First campfire lights on the first try (`FIRST_FIRE_FAILS` 0; the 3 gag fails read as "it won't build").
 - Wood step: once the 6 sticks are in, only the dry frond pile glows and the HUD says "Find a dry frond" (and the reverse), so "6 of 7" no longer leaves the player guessing.

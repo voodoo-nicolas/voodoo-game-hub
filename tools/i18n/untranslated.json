@@ -160,6 +160,9 @@
  "A very polite gull": [
   "scripts\\games\\wilson\\wilson_data.gd"
  ],
+ "Abrazaárboles": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Abril": [
   "scripts\\account\\consent_screen.gd"
  ],
@@ -171,6 +174,12 @@
  ],
  "Agosto": [
   "scripts\\account\\consent_screen.gd"
+ ],
+ "Al rojo vivo": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Alimenta el fuego 2 veces": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Allá arriba en los árboles": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -191,6 +200,9 @@
  "Asado dominical": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Ataque de antojo": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "August": [
   "scripts\\account\\consent_screen.gd"
  ],
@@ -203,6 +215,9 @@
  "BUILD_NUMBER": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
+ "Baja presión": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Balsa n.º 1": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -212,6 +227,12 @@
  "Barril amarillo": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Bebe 2 cosas": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Bien alimentado": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Bitstream Vera / Arev licence (free to use and redistribute)": [
   "scripts\\common\\third_party.gd"
  ],
@@ -219,6 +240,9 @@
   "scripts\\games\\wilson\\wilson_projects.gd"
  ],
  "Bol sobre bol": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Buena puntería": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Busy/Label": [
@@ -254,11 +278,17 @@
  "Campamento de botas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Campeón de tareas": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Captain Nobody": [
   "scripts\\games\\wilson\\wilson_data.gd"
  ],
  "Caracolófono": [
   "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "Carnada y cambio": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Casa del árbol": [
   "scripts\\games\\wilson\\wilson_projects.gd"
@@ -272,13 +302,22 @@
  "Cbad": [
   "scripts\\common\\game_logos_puzzle.gd"
  ],
+ "Chiringuito de cangrejos": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Chubasco pendiente": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Cien días": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Club del amanecer": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Cociná una comida": [
+ "Cocina una comida": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Come una comida cocida": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Copyright 2022 Google Inc.; licence beside the font in assets/web_fonts/": [
@@ -286,6 +325,12 @@
  ],
  "Copyright Bitstream, Inc. and Tavmjong Bah; DejaVu changes public domain; licence beside the font in assets/web_fonts/": [
   "scripts\\common\\third_party.gd"
+ ],
+ "Croquetas de cangrejo": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Cuenta que te cuenta": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Cámara fría": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -301,6 +346,9 @@
  ],
  "Desalinizadora": [
   "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "Devolver al remitente": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Diciembre": [
   "scripts\\account\\consent_screen.gd"
@@ -320,7 +368,7 @@
  "Enhanced North American Benchmark Lexicon": [
   "scripts\\common\\third_party.gd"
  ],
- "Fabricá algo": [
+ "Fabrica algo": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Facebook": [
@@ -339,6 +387,9 @@
   "scripts\\account\\consent_screen.gd"
  ],
  "Filósofo": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Fénix": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "GP01": [
@@ -389,13 +440,25 @@
  "Grow to size N": [
   "scripts\\games\\evolution\\evolution_engine.gd"
  ],
+ "Guardián de la llama": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Guerra de cangrejos": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Habitual": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Hacé 2 siestas": [
+ "Haz 3 tareas rápidas": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Haz rebotar una piedra": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Hora dorada": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Hueso duro de roer": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "IQ %d  ±%d": [
@@ -423,10 +486,10 @@
  "Junio": [
   "scripts\\account\\consent_screen.gd"
  ],
- "Juntá 5 conchas": [
+ "Junta 5 caracoles": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Juntá 6 palitos": [
+ "Junta 6 palitos": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "La grande": [
@@ -435,7 +498,13 @@
  "Lector de nubes": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Leé la botella de hoy": [
+ "Lectura ligera": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Lee la botella de hoy": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Leñador": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "LibreOffice dictionaries; licence text in media/licenses/wordlists/": [
@@ -450,8 +519,14 @@
  "Loading": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
+ "Lobo de mar": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "MPL 1.1 (option of the MPL/GPL/LGPL tri-licence)": [
   "scripts\\common\\third_party.gd"
+ ],
+ "Mano verde": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Mansión de arena": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -495,8 +570,8 @@
  "Needs": [
   "scripts\\games\\wilson\\wilson_game.gd"
  ],
- "Needs the %s first.": [
-  "scripts\\games\\wilson\\wilson_engine.gd"
+ "New recipe": [
+  "scripts\\games\\wilson\\wilson_game.gd"
  ],
  "Niebla de guerra": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -522,6 +597,15 @@
  "Old Bram": [
   "scripts\\games\\wilson\\wilson_data.gd"
  ],
+ "Otra vez con filo": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Papa caliente": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Parlanchín": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Party": [
   "scripts\\hub\\hub.gd",
   "scripts\\hub\\hub_art.gd"
@@ -529,19 +613,28 @@
  "Pasatiempos de ola de calor": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Pesca 3 peces hoy": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Pesca lunar": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Pescá 3 peces hoy": [
+ "Pescadero": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Picoteo de medianoche": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Pies de barro": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Planeador: Plan Z de escape": [
   "scripts\\games\\wilson\\wilson_projects.gd"
  ],
  "Pole position": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Primeros auxilios": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Priya (island 9)": [
@@ -569,6 +662,12 @@
  "Radio de coco": [
   "scripts\\games\\wilson\\wilson_projects.gd"
  ],
+ "Rastrea la orilla 2 veces": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Rastreador de playa": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "S.TOP#.": [
   "scripts\\common\\game_teasers_rest.gd"
  ],
@@ -581,7 +680,13 @@
  "ST#E": [
   "scripts\\common\\game_logos_rest.gd"
  ],
+ "Sacude 3 palmeras": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Sal de la tierra": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Saltapiedras": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Salón de la vergüenza": [
@@ -589,6 +694,9 @@
  ],
  "Santuario del coco dorado": [
   "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "Sed de coco": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Semillas de duda": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -599,24 +707,39 @@
  "Septiembre": [
   "scripts\\account\\consent_screen.gd"
  ],
+ "Señales de humo": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Show de talentos": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Sintonizá": [
+ "Sinfonía de latas": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Sintoniza": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Social": [
   "scripts\\common\\achievements.gd",
   "scripts\\common\\avatar.gd"
  ],
+ "Solo de tambor": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Someone called Dot": [
   "scripts\\games\\wilson\\wilson_data.gd"
+ ],
+ "Sopa del día": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Start-Process -FilePath $e -WorkingDirectory (Split-Path $e)": [
   "scripts\\common\\pc_updater.gd"
  ],
  "Submarino de barril": [
   "scripts\\games\\wilson\\wilson_projects.gd"
+ ],
+ "Suerte de olla": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Superviviente de tormentas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -633,13 +756,22 @@
  "Tesoro de la marea baja": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Tomá 2 bebidas": [
+ "Toma 2 siestas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Torre del catalejo": [
   "scripts\\games\\wilson\\wilson_projects.gd"
  ],
  "Trampilla": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Un hoyo de nada": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Un mes de domingos": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Una semana ya": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Update N games": [
@@ -814,6 +946,12 @@
  ],
  "sea/%s.webp": [
   "scripts\\games\\wilson\\wilson_world.gd"
+ ],
+ "sleep:%s:%s|": [
+  "scripts\\games\\wilson\\wilson_game.gd"
+ ],
+ "spark kit": [
+  "scripts\\games\\wilson\\wilson_engine.gd"
  ],
  "spend DNA on Growth": [
   "scripts\\games\\evolution\\evolution_engine.gd"

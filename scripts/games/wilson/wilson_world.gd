@@ -289,6 +289,24 @@ func sync() -> void:
 		if int(st.data.get("tallies", -1)) != engine.tallies.size():
 			st.data = {"tallies": engine.tallies.size()}
 			st.refresh()
+	# the garden plot shows sprouts while something grows in it
+	if _props.has("garden_plot"):
+		var gp = _props.garden_plot
+		var gs: String = engine.garden_state()
+		if str(gp.data.get("g", "")) != gs:
+			gp.data = {"g": gs}
+			var sprouts := _tex("camp/garden_sprouts.webp") if gs in ["growing", "ready"] else null
+			gp.tex = sprouts if sprouts else _tex("camp/garden_plot.webp")
+			gp.refresh()
+	# the garden plot shows sprouts while something grows in it
+	if _props.has("garden_plot"):
+		var gp = _props.garden_plot
+		var gs: String = engine.garden_state()
+		if str(gp.data.get("g", "")) != gs:
+			gp.data = {"g": gs}
+			var sprouts := _tex("camp/garden_sprouts.webp") if gs in ["growing", "ready"] else null
+			gp.tex = sprouts if sprouts else _tex("camp/garden_plot.webp")
+			gp.refresh()
 	for id in _piles:
 		var s: Dictionary = D.SPOTS[id]
 		var amt := clampf(float(engine.spots.get(id, 0.0)) / float(s.max), 0.0, 1.0)

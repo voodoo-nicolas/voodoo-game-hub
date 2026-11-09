@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://baaxvrs80f6t5"
-valid=false
+uid="uid://dabygkjr8eskf"
+path="res://.godot/imported/debris_crate.webp-01a32c8e7f6e12fe003027ba452ba19a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://games/wilson/art/debris_crate.webp"
+dest_files=["res://.godot/imported/debris_crate.webp-01a32c8e7f6e12fe003027ba452ba19a.ctex"]
 
 [params]
 

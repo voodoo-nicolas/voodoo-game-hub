@@ -11,5 +11,13 @@
 {"id":"T09","en":"Roof Over Ego","es":"Un techo para el ego","trigger":{"event":"structure_built","id":"frond_shelter"},"reward":{"flags":["shelter_sleep"]},"next":["T10"],"journal_en":"A roof! Civilization is back, baby."},
 {"id":"T10","en":"Message Received","es":"Mensaje recibido","trigger":{"event":"bottle_opened"},"reward":{"flags":["daily_bonus_unlocked"]},"next":["T11"],"journal_en":"Mail! No bills. Best island ever."},
 {"id":"T11","en":"Nap Time","es":"Hora de la siesta","trigger":{"event":"nap_taken"},"reward":{"flags":["nap_tip_seen"]},"next":["T12"],"journal_en":"30 minutes of nothing. Perfect."},
-{"id":"T12","en":"Tally Marks","es":"Marcas de días","trigger":{"event":"tally_added"},"reward":{"decor":"tally_marks"},"next":[],"journal_en":"Day counter started. Cheerful."}
+{"id":"T12","en":"Tally Marks","es":"Marcas de días","trigger":{"event":"tally_added"},"reward":{"decor":"tally_marks"},"next":["T13"],"journal_en":"Day counter started. Cheerful."},
+{"id":"T13","en":"Hot Meal","es":"Comida caliente","trigger":{"event":"crafted","id":"fish_cooked"},"reward":{"xp":{"cooking":5}},"next":["T14"],"journal_en":"Cooked fish. It tastes like not being sick."},
+{"id":"T14","en":"Rainy Day Fund","es":"Ahorros para la lluvia","trigger":{"event":"structure_built","id":"rain_catcher"},"reward":{"items":[["coconut",2]]},"next":["T15"],"journal_en":"A barrel that waits for rain. We have that in common."},
+{"id":"T15","en":"Lazy Fishing","es":"Pesca perezosa","trigger":{"event":"structure_built","id":"fish_trap"},"reward":{"xp":{"fishing":5},"items":[["bait",3]]},"next":["T16"],"journal_en":"A trap that fishes while I nap. Peak engineering."},
+{"id":"T16","en":"Dig It","es":"A cavar","trigger":{"event":"crafted","id":"shovel"},"reward":{"items":[["seeds",2]]},"next":["T17"],"journal_en":"A shovel made of a shell. Somewhere a hardware store weeps."},
+{"id":"T17","en":"Garden Variety","es":"Huerta de variedades","trigger":{"event":"structure_built","id":"garden_plot"},"reward":{"items":[["seeds",1]]},"next":["T18"],"journal_en":"A patch of dirt with ambitions."},
+{"id":"T18","en":"Seed Money","es":"Capital semilla","trigger":{"event":"planted"},"reward":{"xp":{"foraging":5}},"next":["T19"],"journal_en":"Planted. Now we wait. I am excellent at waiting."},
+{"id":"T19","en":"Root Cause","es":"De raíz","trigger":{"event":"harvested"},"reward":{"xp":{"foraging":10},"items":[["salt",1]]},"next":["T20"],"journal_en":"Sweet potatoes. I grew food. On purpose."},
+{"id":"T20","en":"About Time","es":"Ya era hora","trigger":{"event":"structure_built","id":"sundial"},"reward":{"decor":"hour_stones"},"next":[],"journal_en":"A sundial. Now I know exactly how late nobody is."}
 ]}

@@ -27,6 +27,9 @@ const SkyView = preload("res://scripts/games/wilson/wilson_skyview.gd")
 const Debug = preload("res://scripts/games/wilson/wilson_debug.gd")
 const Slot = preload("res://scripts/games/wilson/wilson_slot.gd")
 const Castaway = preload("res://scripts/games/wilson/wilson_castaway.gd")
+## Recorded sounds from the shared library (media/common/sfx; `hub.py sync` copies the player and
+## puts the named files in the pack). UI sounds stay on the synth Sfx.
+const SoundLib = preload("res://scripts/games/wilson/sound_lib.gd")
 const HUD_ART := "res://games/wilson/art/hud/"
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -42,7 +45,8 @@ const ACCENT := Color("ffb35a")
 const AWAY_GAP := 4.0
 
 const ICONS := {"haul": "📦", "gather": "✋", "shake": "🌴", "chop": "🪓", "fish": "🎣", "seawater": "🥥",
-	"craft": "🔨", "fuel": "🔥", "light": "🔥", "tally": "✏", "shore": "🌊", "inspect": "👂", "sleep": "💤", "nap": "😴", "pastime": "🧘"}
+	"craft": "🔨", "fuel": "🔥", "light": "🔥", "tally": "✏", "shore": "🌊", "inspect": "👂", "sleep": "💤", "nap": "😴", "pastime": "🧘",
+	"spear": "🔱", "plant": "🌱", "harvest": "🧺", "empty_trap": "🪤"}
 const BAR_COLORS := {"hp": Color("e0524a"), "food": Color("e8a23a"), "energy": Color("f2d43c"), "water": Color("4ab4e8")}
 const BAR_ICONS := {"hp": "❤", "food": "🐟", "energy": "⚡", "water": "💧"}
 
@@ -96,6 +100,8 @@ const CAM_ZOOM := 1.5
 var _cam := Vector2.ZERO          # camera focus (plate pixels)
 var _walk_kind := ""
 var _combine_from := ""   # bag: an item picked with "🔗 Combine", waiting for the second one
+var _queue_sig := ""      # what the queue list shows now (rebuilt only when this changes)
+var _rain: AudioStreamPlayer = null   # the rain / storm loop
 var auto_pause := true    # tools/shot_wilson.gd turns this off (its window loses focus)
 
 func _ready() -> void:
@@ -347,9 +353,11 @@ func _start_play() -> void:
 	_refresh_hud()
 
 func _clear_play() -> void:
-	for n in [_sky_layer, _world_layer, _glow_layer, _hud, pad]:
+	for n in [_sky_layer, _world_layer, _glow_layer, _hud, pad, _rain]:
 		if n != null and is_instance_valid(n):
 			n.queue_free()
+	_rain = null
+	_queue_sig = ""
 	_sky_layer = null
 	_world_layer = null
 	_hud = null
@@ -419,6 +427,7 @@ func _process(dt: float) -> void:
 	_update_focus()
 	_update_marks()
 	_tut_pulse()
+	_pulse_bars()
 	_update_bubble()
 
 func after_change() -> void:
@@ -477,6 +486,12 @@ func _update_sky() -> void:
 		tint = tint.lerp(Color(0.18, 0.2, 0.3), ecl)
 		tint.a = 1.0
 	_tint.color = tint
+	var wet: bool = w in ["rain", "storm"]
+	if wet and (_rain == null or not is_instance_valid(_rain)):
+		_rain = SoundLib.loop(self, "weather/thunder_rain", -6.0 if w == "storm" else -14.0)
+	elif not wet and _rain != null and is_instance_valid(_rain):
+		_rain.queue_free()
+		_rain = null
 	var night := clampf((0.85 - inten) / 0.5, 0.0, 1.0)
 	var wind: float = {"wind": 1.0, "storm": 1.0, "rain": 0.6, "drizzle": 0.4}.get(w, 0.25)
 	world.tick(night, float(D.SEA.get(w, 0.4)), wind)
@@ -652,8 +667,18 @@ func _objective_ids() -> Array:
 			return ["palm:C"]
 		"T10":
 			return ["shore"]
-		"T12":
+		"T12", "T16":
 			return ["structure:crafting_stump"]
+		"T13":
+			return ["structure:campfire"]
+		"T14", "T17":
+			return ["craft"]
+		"T15":
+			return ["shallows"]
+		"T18", "T19":
+			return ["structure:garden_plot"]
+		"T20":
+			return ["craft"] if "sundial" in engine.discovered else []
 	return []
 
 func _update_marks() -> void:
@@ -740,8 +765,12 @@ func _stand_spot(kind: String, target: String) -> Vector2:
 			return D.SPOTS[target].stand
 		"shake", "chop":
 			return D.PALM_STAND[target]
-		"fish", "seawater":
+		"fish", "seawater", "spear":
 			return D.SHALLOWS.stand
+		"plant", "harvest":
+			return D.CAMP.garden_plot.stand
+		"empty_trap":
+			return D.CAMP.fish_trap.stand
 		"fuel", "light":
 			return D.CAMP.campfire.stand
 		"tally":
@@ -821,7 +850,7 @@ func _update_johnny() -> void:
 	if a.kind == "pastime":
 		c.pose = str(Pastimes.get_pastime(a.target).get("pose", "sit"))
 		return
-	c.pose = {"chop": "chop", "fish": "fish", "shake": "wave", "inspect": "idle", "empty_trap": "work"}.get(a.kind, "work")
+	c.pose = {"chop": "chop", "fish": "fish", "spear": "fish", "shake": "wave", "inspect": "idle", "empty_trap": "work"}.get(a.kind, "work")
 
 func _handle_events(evs: Array) -> void:
 	for e in evs:
@@ -865,7 +894,21 @@ func _handle_events(evs: Array) -> void:
 			"shore":
 				_show_toast("🌊 " + tr("Something washed ashore."))
 				after_change()
-			"wake", "sleep", "start":
+			"start":
+				match str(e.get("kind", "")):
+					"chop":
+						SoundLib.play(self, "rpg/chop")
+					"haul":
+						SoundLib.play(self, "impact/plank_medium", -4.0)
+					"craft":
+						SoundLib.play(self, "impact/wood_light", -4.0)
+					"gather", "plant", "harvest":
+						SoundLib.play(self, "rpg/handle_small_leather")
+				after_change()
+			"sleep":
+				SoundLib.play(self, "rpg/cloth", -4.0)
+				after_change()
+			"wake", "heal":
 				after_change()
 			"fail", "broke":
 				world.castaway.play_once("facepalm", 2.0)
@@ -960,7 +1003,7 @@ func _try(kind: String, target: String, extra: Dictionary = {}) -> void:
 	_close_popup()
 	var why: String = engine.enqueue(kind, target, extra)
 	if why != "":
-		_show_toast(tr(why))
+		_show_toast(_why(why))
 		_sfx("invalid")
 	_handle_events(engine.pop_events())
 	after_change()
@@ -1019,6 +1062,14 @@ func action_label(kind: String, target: String) -> String:
 			return tr("Haul in the shore delivery")
 		"inspect":
 			return tr("Listen at the big rock")
+		"spear":
+			return tr("Spear fish")
+		"plant":
+			return tr("Plant seeds")
+		"harvest":
+			return tr("Harvest the garden")
+		"empty_trap":
+			return tr("Empty the fish trap")
 		"sleep":
 			return tr("Sleep: %s") % _name(target)
 		"nap":
@@ -1062,8 +1113,8 @@ func _popup_at(screen: Vector2, title: String, options: Array) -> void:
 		b.custom_minimum_size = Vector2(0, 46)
 		if o.size() > 2 and o[2] != "":
 			b.disabled = true
-			b.tooltip_text = tr(o[2])
-			b.text += "  —  " + tr(o[2])
+			b.tooltip_text = _why(o[2])
+			b.text += "  —  " + _why(o[2])
 		b.pressed.connect(o[1])
 		col.add_child(b)
 	_hud.add_child(_popup)
@@ -1071,6 +1122,20 @@ func _popup_at(screen: Vector2, title: String, options: Array) -> void:
 	var vs := get_viewport_rect().size
 	_popup.position = Vector2(clampf(screen.x - _popup.size.x / 2.0, 8.0, vs.x - _popup.size.x - 8.0),
 		clampf(screen.y - _popup.size.y - 20.0, 70.0, vs.y - _popup.size.y - 8.0))
+
+## An engine reason in the player's language. Reasons with a name in them ("Needs a Fishing pole.")
+## are put together by the engine: translate the frame, keep the name (item names are already
+## in the player's language; project names are looked up).
+func _why(why: String) -> String:
+	for frame in ["Needs a %s.", "Needs the %s first."]:
+		var parts: PackedStringArray = frame.split("%s")
+		if why.begins_with(parts[0]) and why.ends_with(parts[1]) and why.length() > parts[0].length() + parts[1].length():
+			var inner := why.substr(parts[0].length(), why.length() - parts[0].length() - parts[1].length())
+			for pr in Projects.LIST:
+				if str(pr.en) == inner:
+					inner = Projects.project_name(pr)
+			return tr(frame) % inner
+	return tr(why)
 
 func _opt(kind: String, target: String, extra: Dictionary = {}) -> Array:
 	return [_option_text(kind, target), _try.bind(kind, target, extra), engine.action_block(kind, target, extra)]
@@ -1145,6 +1210,8 @@ func _palm_menu(id: String, screen: Vector2) -> void:
 
 func _shallows_menu(screen: Vector2) -> void:
 	var opts := [_opt("fish", ""), _opt("seawater", "")]
+	if engine.count("spear") > 0:
+		opts.insert(1, _opt("spear", ""))
 	if not engine.structures.has("fish_trap"):
 		var r := D.recipe("fish_trap")
 		if engine.recipe_unlocked(r):
@@ -1160,9 +1227,12 @@ func _structure_menu(id: String, screen: Vector2) -> void:
 					opts.append(_opt("fuel", f))
 			if engine.fire_state() != "lit":
 				opts.append(_opt("light", ""))
-			for rid in ["cook_fish", "cook_big_fish", "charcoal", "salt"]:
-				if engine.recipe_unlocked(D.recipe(rid)):
-					opts.append(_opt("craft", rid))
+			for r in engine.craft_list():
+				if str(r.get("station", "")) != "campfire":
+					continue
+				# the basics are always listed; the rest once he holds their main ingredient
+				if str(r.id) in ["cook_fish", "cook_big_fish", "charcoal", "salt"] or engine.count(str(r["in"][0][0])) > 0:
+					opts.append(_opt("craft", str(r.id)))
 		"crafting_stump":
 			opts.append(_opt("tally", ""))
 			for r in engine.craft_list():
@@ -1178,8 +1248,15 @@ func _structure_menu(id: String, screen: Vector2) -> void:
 				if r.get("station", "") == "kiln":
 					opts.append(_opt("craft", str(r.id)))
 		"garden_plot":
-			_show_toast(tr("Garden plot: no seeds yet. Bottles will bring some."))
-			return
+			match engine.garden_state():
+				"growing":
+					var left_s: float = float(engine.structures.garden_plot.ready) - engine.t
+					_show_toast("🌱 " + tr("Growing. Ready in %s.") % _mins_text(left_s / 60.0))
+					return
+				"ready":
+					opts.append(_opt("harvest", ""))
+				_:
+					opts.append(_opt("plant", ""))
 		"canopy":
 			opts.append(_opt("nap", ""))
 		"hammock", "frond_bed", "frond_shelter", "tent", "treehouse":
@@ -1191,7 +1268,9 @@ func _structure_menu(id: String, screen: Vector2) -> void:
 			if id in ["hammock", "frond_shelter", "tent"]:
 				opts.append(_opt("nap", ""))
 		"drying_rack":
-			opts.append(_opt("craft", "dry_fish"))
+			for r in engine.craft_list():
+				if str(r.get("station", "")) == "rack":
+					opts.append(_opt("craft", str(r.id)))
 	if opts.is_empty():
 		for pr in Projects.LIST:
 			if pr.key == id:
@@ -1420,8 +1499,6 @@ func _refresh_hud() -> void:
 		return
 	for k in _bars:
 		_bars[k].value = engine.bars[k]
-		var low: bool = engine.bars[k] < D.LOW_BAR
-		_bars[k].modulate = Color(1, 1, 1, 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() / 250.0))) if low else Color.WHITE
 	_mood.text = _mood_face()
 	var h: float = engine.hour()
 	var icon := "☀" if engine.is_day() else "🌙"
@@ -1490,6 +1567,14 @@ func _apply_tut() -> void:
 	if card:
 		_tut_card_label.text = tr(str(ts.long))
 
+## A bar under 25 pulses, smoothly.
+func _pulse_bars() -> void:
+	if engine == null:
+		return
+	var a := 0.55 + 0.45 * absf(sin(Time.get_ticks_msec() / 250.0))
+	for k in _bars:
+		_bars[k].modulate = Color(1, 1, 1, a) if engine.bars[k] < D.LOW_BAR else Color.WHITE
+
 func _on_tut_ack() -> void:
 	engine.tut_ack()
 	after_change()
@@ -1543,34 +1628,53 @@ func _mood_text() -> String:
 		parts.append(tr("Queasy"))
 	return "  ".join(parts)
 
+## The list of running / waiting actions. The buttons are rebuilt only when the list itself changes;
+## otherwise just the countdowns are rewritten (rebuilding twice a second swallowed taps on ✕
+## whenever a rebuild fell between finger down and finger up).
 func _refresh_queue() -> void:
-	for c in _queue_box.get_children():
-		c.queue_free()
+	var texts: Array = []
+	var sig := ""
 	if not engine.sleep.is_empty():
 		var s: Dictionary = engine.sleep
 		var left_s := maxf(0.0, float(s.until) - engine.t)
 		var kind: String = {"nap": "😴 " + tr("Power nap"), "collapse": "😵 " + tr("Collapsed"), "faint": "😵 " + tr("Fainted")}.get(str(s.kind), "💤 " + action_label("sleep", str(s.bed)))
-		var b := Button.new()
-		b.text = "%s  ·  %s  ✕" % [kind, _countdown_text(left_s)]
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(_wake_now)
-		_queue_box.add_child(b)
-	var i := 0
+		texts.append("%s  ·  %s  ✕" % [kind, _countdown_text(left_s)])
+		sig += "sleep:%s:%s|" % [s.kind, s.bed]
 	var at: float = engine.t
 	for q in engine.queue:
-		var b := Button.new()
-		var label := "%s %s" % [ICONS.get(q.kind, "•"), action_label(q.kind, q.target)]
+		var icon: String = ICONS.get(q.kind, "•")
+		if q.kind == "pastime":
+			icon = str(Pastimes.get_pastime(str(q.target)).get("icon", icon))
+		var label := "%s %s" % [icon, action_label(q.kind, q.target)]
 		if float(q.start) > 0.0:
 			label += "  ·  %s" % _countdown_text(float(q.end) - at)
 		else:
 			label += "  ·  " + tr("waiting its turn")
-		b.text = label + "  ✕"
+		texts.append(label + "  ✕")
+		sig += "%s:%s:%d|" % [q.kind, q.target, 1 if float(q.start) > 0.0 else 0]
+	var live: Array = []
+	for c in _queue_box.get_children():
+		if not c.is_queued_for_deletion():
+			live.append(c)
+	if sig == _queue_sig and live.size() == texts.size():
+		for k in texts.size():
+			live[k].text = texts[k]
+		return
+	_queue_sig = sig
+	for c in live:
+		c.queue_free()
+	var asleep := 1 if not engine.sleep.is_empty() else 0
+	for k in texts.size():
+		var b := Button.new()
+		b.text = texts[k]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_font_size_override("font_size", 18)
-		b.custom_minimum_size = Vector2(0, 40)
-		b.pressed.connect(_cancel.bind(i))
+		if k < asleep:
+			b.pressed.connect(_wake_now)
+		else:
+			b.add_theme_font_size_override("font_size", 18)
+			b.custom_minimum_size = Vector2(0, 40)
+			b.pressed.connect(_cancel.bind(k - asleep))
 		_queue_box.add_child(b)
-		i += 1
 
 func _cancel(i: int) -> void:
 	engine.cancel(i)
@@ -1614,10 +1718,7 @@ func _open_panel(title: String) -> VBoxContainer:
 	_close_panel()
 	_panel = PanelContainer.new()
 	_panel.add_theme_stylebox_override("panel", _card_style())
-	_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var vs := get_viewport_rect().size
-	_panel.position = Vector2(vs.x * 0.12, 70)
-	_panel.size = Vector2(vs.x * 0.76, vs.y - 90)
 	var col := VBoxContainer.new()
 	_panel.add_child(col)
 	var head := HBoxContainer.new()
@@ -1746,7 +1847,7 @@ func _item_menu(id: String) -> void:
 	var f: Dictionary = D.FOOD.get(id, {})
 	if not f.is_empty():
 		var b := Button.new()
-		b.text = ("🥥 " + tr("Drink ")) if f.verb == "drink" else ("🍴 " + tr("Eat"))
+		b.text = ("🥥 " + tr("Drink ")) if f.verb == "drink" else (("🩹 " + tr("Use")) if f.verb == "heal" else ("🍴 " + tr("Eat")))
 		b.pressed.connect(_use_item.bind(id))
 		col.add_child(b)
 	if id in ["bottle_note", "seawater"]:
@@ -1784,9 +1885,11 @@ func _combine(a: String, b: String) -> void:
 	if not res.ok:
 		_show_toast(tr(str(res.text)))
 		_sfx("invalid")
+	elif res.discovered:
+		pass      # the "New recipe" toast came with the discover event; making it is the player's call
 	elif not res.queued:
 		var r := D.recipe(str(res.recipe))
-		_show_toast("%s: %s" % [_name(str(r.out)), tr(str(res.text))])
+		_show_toast("%s: %s" % [_name(str(r.out)), _why(str(res.text))])
 	else:
 		_show_toast("🔨 " + action_label("craft", str(res.recipe)))
 	after_change()
@@ -1795,7 +1898,7 @@ func _combine(a: String, b: String) -> void:
 func _use_item(id: String) -> void:
 	var why: String = engine.consume(id)
 	if why != "":
-		_show_toast(tr(why))
+		_show_toast(_why(why))
 	_handle_events(engine.pop_events())
 	after_change()
 	_open_bag()
@@ -1804,13 +1907,15 @@ func _drink_from(sid: String) -> void:
 	_close_popup()
 	var why: String = engine.drink_from(sid)
 	if why != "":
-		_show_toast(tr(why))
+		_show_toast(_why(why))
 	_handle_events(engine.pop_events())
 	after_change()
 
 func _open_craft() -> void:
 	var body := _open_panel("🔨 " + tr("Craft"))
 	var list: Array = engine.craft_visible_list()
+	# what is already standing is done: it does not sit in the list as a greyed-out "Already built" row
+	list = list.filter(func(r): return not (str(r.get("out_type", "")) == "structure" and engine.structures.has(str(r.out))))
 	list.sort_custom(func(a, b): return [0 if engine.craft_block(str(a.id)) == "" else 1, int(a.tier), str(a.id)] < [0 if engine.craft_block(str(b.id)) == "" else 1, int(b.tier), str(b.id)])
 	for r in list:
 		var row := HBoxContainer.new()
@@ -1839,7 +1944,7 @@ func _open_craft() -> void:
 		row.add_child(info_l)
 		var b := Button.new()
 		var why: String = engine.craft_block(str(r.id))
-		b.text = "%s · ⚡%d" % [_mins_text(engine.duration_of("craft", str(r.id)) / 60.0), int(r.en)] if why == "" else tr(why)
+		b.text = "%s · ⚡%d" % [_mins_text(engine.duration_of("craft", str(r.id)) / 60.0), int(r.en)] if why == "" else _why(why)
 		b.disabled = why != ""
 		b.custom_minimum_size = Vector2(220, 50)
 		b.pressed.connect(_craft_from_panel.bind(str(r.id)))
@@ -1935,14 +2040,14 @@ func _project_card(body: VBoxContainer, p: Dictionary) -> void:
 	row.add_child(pin)
 	if why != "" and why != "Missing materials.":
 		var wl := Label.new()
-		wl.text = tr(why) if not why.contains("%s") else why
+		wl.text = _why(why)
 		wl.add_theme_font_size_override("font_size", 16)
 		row.add_child(wl)
 
 func _on_project_build(id: String) -> void:
 	var why: String = engine.start_project(id)
 	if why != "":
-		_show_toast(tr(why))
+		_show_toast(_why(why))
 	else:
 		_sfx("win")
 		_show_toast("🏗 " + tr("Building: %s") % Projects.project_name(Projects.get_project(id)))
@@ -2011,22 +2116,33 @@ func _open_journal() -> void:
 	qh.text = "🎯 " + tr("Side quests") + "  %d/%d" % [engine.side_done.size(), Quests.LIST.size()]
 	qh.add_theme_color_override("font_color", ACCENT)
 	body.add_child(qh)
+	# open quests first (the ones already under way on top), then the finished ones on one line
+	var open_q: Array = []
+	var done_names: Array = []
 	for q in Quests.LIST:
+		if q.id in engine.side_done:
+			done_names.append(Quests.quest_name(q))
+		else:
+			open_q.append(q)
+	open_q.sort_custom(func(a, b): return float(mini(int(engine.stats.get(a.stat, 0)), int(a.need))) / float(a.need) > float(mini(int(engine.stats.get(b.stat, 0)), int(b.need))) / float(b.need))
+	for q in open_q:
 		var ql := Label.new()
 		ql.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		if q.id in engine.side_done:
-			ql.text = "✔ %s" % Quests.quest_name(q)
-			ql.modulate = Color(1, 1, 1, 0.6)
-		else:
-			ql.text = "• %s: %s (%d/%d)" % [Quests.quest_name(q), tr(str(q.goal)), mini(int(engine.stats.get(q.stat, 0)), int(q.need)), int(q.need)]
+		ql.text = "• %s: %s (%d/%d)" % [Quests.quest_name(q), tr(str(q.goal)), mini(int(engine.stats.get(q.stat, 0)), int(q.need)), int(q.need)]
 		body.add_child(ql)
+	if not done_names.is_empty():
+		var dl2 := Label.new()
+		dl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dl2.text = "✔ " + ", ".join(done_names)
+		dl2.modulate = Color(1, 1, 1, 0.6)
+		body.add_child(dl2)
+	var jh := Label.new()
+	jh.text = "📓 " + tr("Lately")
+	jh.add_theme_color_override("font_color", ACCENT)
+	body.add_child(jh)
 	var n: int = engine.journal.size()
 	for i in range(n - 1, maxi(-1, n - 80), -1):
 		body.add_child(_journal_line(engine.journal[i]))
-	if not engine.quests_done.is_empty():
-		var l := Label.new()
-		l.text = "\n" + tr("Quests done:") + " " + ", ".join(engine.quests_done)
-		body.add_child(l)
 
 ## 🔥 The 30-day calendar: filled days so far this lap, the best streak.
 func _streak_label() -> Label:
@@ -2040,7 +2156,7 @@ func _streak_label() -> Label:
 		cells += "●" if i < filled else "○"
 		if i % 10 == 9 and i < lap - 1:
 			cells += "\n"
-	l.text = "🔥 %s: %d  ·  %s %d\n%s" % [tr("Streak"), cnt, tr("best"), int(engine.streak.best), cells]
+	l.text = "🔥 %s: %d  ·  %s: %d\n%s" % [tr("Streak"), cnt, tr("Best streak"), int(engine.streak.best), cells]
 	l.add_theme_color_override("font_color", Color(1.0, 0.8, 0.5))
 	return l
 
@@ -2054,7 +2170,7 @@ func _sea_report() -> Label:
 	if engine.structures.has("shellphone"):
 		var rise: float = engine.sunrise_h()
 		var sset: float = engine.sunset_h()
-		lines.append("📱 %s %d%%  ·  %s %02d:%02d  ·  %s %02d:%02d" % [tr("Moon"), int(round(Astro.moon_phase(engine.t) * 100.0)), tr("sunrise"), int(rise), int(fmod(rise, 1.0) * 60.0), tr("sunset"), int(sset), int(fmod(sset, 1.0) * 60.0)])
+		lines.append("📱 %s %d%%  ·  %s %02d:%02d  ·  %s %02d:%02d" % [tr("Moon"), int(round(Astro.moon_phase(engine.t) * 100.0)), tr("Sunrise at"), int(rise), int(fmod(rise, 1.0) * 60.0), tr("Sunset at"), int(sset), int(fmod(sset, 1.0) * 60.0)])
 	var nl: float = engine.next_low_tide()
 	if engine.knows_tide() and not engine.is_low_tide() and nl > engine.t:
 		var mins := int(round((nl - engine.t) / 60.0))
@@ -2094,7 +2210,7 @@ func format_entry(e: Dictionary) -> String:
 		elif a is String and a.begins_with("%"):
 			args.append(tr(D.DEBRIS_NAMES.get(a.substr(1), a.substr(1))))
 		elif a is String and (a.begins_with("#") or a.begins_with("~")):
-			args.append(tr(a.substr(1)))
+			args.append(_why(a.substr(1)))
 		elif a is float and absf(a - round(a)) < 0.001 and str(e.text).contains("%d"):
 			args.append(int(a))
 		else:

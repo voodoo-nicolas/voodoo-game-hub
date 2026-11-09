@@ -290,6 +290,17 @@ func pastime_block(id: String, self_q = null) -> String:
 		"chat":
 			if not flags.get("coco", false):
 				return "You have no coconut friend yet."
+		"swim":
+			if weather == "storm":
+				return "Not in a storm. I like breathing."
+			if weather == "cold_snap":
+				return "Too cold for a swim."
+		"sunset":
+			var sset := sunset_h()
+			if h < sset - 1.0 or h > sset + 0.5:
+				return "Only around sunset."
+			if weather in ["rain", "storm", "fog", "overcast"]:
+				return "Too cloudy to see the sunset."
 	return ""
 
 func _finish_pastime(id: String) -> void:
@@ -313,7 +324,16 @@ func _finish_pastime(id: String) -> void:
 		else:
 			log_entry("%s Nothing found.", ["#" + line])
 			line = ""
+	if p.has("give"):
+		give_list(p.give)
+		for pair in p.give:
+			_got(str(pair[0]), int(pair[1]))
+		_xp("foraging", 1)
+	if str(p.get("wear", "")) != "":
+		_wear(str(p.wear))
 	match id:
+		"swim":
+			buffs.erase("sandy")
 		"coconut_friend":
 			remove("coconut", 1)
 			if count("charcoal") > 0:
@@ -323,6 +343,7 @@ func _finish_pastime(id: String) -> void:
 			structures.campfire.fuel_until = maxf(float(structures.campfire.get("fuel_until", 0.0)), t) + 1200.0
 		"skip_stone":
 			var skips := 1 + rng.randi() % 9
+			stats["skip_best"] = maxi(int(stats.get("skip_best", 0)), skips)
 			log_entry("Skipped a stone: %d bounces. A personal best." if skips >= 7 else "Skipped a stone: %d bounces.", [skips])
 			line = ""
 		"crab_race":
@@ -341,6 +362,8 @@ func _finish_pastime(id: String) -> void:
 	if line != "":
 		log_entry("%s", ["#" + line])
 	events.append({"type": "pastime", "id": id})
+	if str(p.get("group", "")) == "quick":
+		bump("odd_jobs")
 	bump("pastime:" + id)
 	if id == "stargaze" or id == "yoga":
 		_xp("weather sense", 1)
@@ -617,7 +640,9 @@ func _integrate(dt: float) -> void:
 	var prev := bars.duplicate()
 	var asleep := not sleep.is_empty()
 	var mult := D.SLEEP_DRAIN_MULT if asleep else 1.0
-	var thirst := 2.0 if weather == "heatwave" else 1.0
+	var thirst := 1.0
+	if weather == "heatwave":
+		thirst = D.HAT_HEAT_THIRST if count("frond_hat") > 0 else 2.0   # a hat keeps the worst of the sun off
 	if structures.has("desalinator"):
 		thirst *= D.DESALINATOR_THIRST  # GDD §8: heatwave doubles thirst
 	bars.food -= float(b.get("food", {}).get("drain_per_h", 4)) * h * mult
@@ -708,6 +733,10 @@ func _mood_tick(h: float) -> void:
 		target += 4.0
 	if structures.has("museum"):
 		target += 4.0
+	if not is_day() and not fire_lit() and (count("fish_oil_lamp") > 0 or count("torch") > 0):
+		target += D.NIGHT_LIGHT_MOOD      # a light of his own when the fire is out
+	if count("wind_chime") > 0:
+		target += D.CHIME_MOOD * (2.0 if weather in ["wind", "storm"] else 1.0)
 	for k in ["food", "water", "energy", "hp"]:
 		if bars[k] < D.LOW_BAR:
 			target -= 10.0
@@ -746,6 +775,8 @@ func _daily() -> void:
 	if today != int(flags.get("dq_day", -1)):
 		flags["dq_day"] = today
 		_roll_dailies(today)
+		stats["days"] = maxi(int(stats.get("days", 0)), day_number())
+		_check_side()
 	if today > int(flags.get("gp_day", -1)) and hour() >= sunrise_h():
 		flags["gp_day"] = today
 		_project_daily(today)
@@ -783,7 +814,8 @@ func _shore_delivery() -> void:
 			shore.pile[id] = int(shore.pile.get(id, 0)) + 1
 	shore.no_rare = 0 if (got_rare or got_mythic) else int(shore.no_rare) + 1
 	shore.no_mythic = 0 if got_mythic else int(shore.no_mythic) + 1
-	shore.pile["bottle_note"] = int(shore.pile.get("bottle_note", 0)) + 1
+	shore.pile["bottle_note"] = int(shore.pile.get("bottle_note", 0)) + 1 + int(shore.get("replies", 0))
+	shore["replies"] = 0
 	if weather == "fog":
 		shore.pile["bottle"] = int(shore.pile.get("bottle", 0)) + D.FOG_EXTRA_BOTTLE
 	log_entry("Something washed ashore.")
@@ -886,7 +918,13 @@ func _wear(id: String) -> void:
 		if s.id != id:
 			continue
 		var left := int(s.get("dur", D.TOOL_USES[id])) - 1
-		if left <= 0:
+		if left <= 0 and D.BLUNT.has(id):
+			# a blade does not vanish: it goes blunt, and a stone puts the edge back (recipe sharpen_knife)
+			slots[i] = {"id": str(D.BLUNT[id]), "n": 1}
+			say("blunt")
+			log_entry("The %s went blunt. A stone will put the edge back.", ["@" + id])
+			events.append({"type": "broke", "id": id})
+		elif left <= 0:
 			slots.remove_at(i)
 			_settle_ground()
 			say("broke")
@@ -929,7 +967,11 @@ func _settle_ground() -> void:
 				rest -= put
 		while rest > 0 and slots.size() < capacity():
 			var put := mini(rest, cap)
-			slots.append({"id": id, "n": put})
+			var slot := {"id": id, "n": put}
+			var spoil := _spoil_at(id)      # food picked back up off the sand still goes bad
+			if spoil > 0.0:
+				slot["spoil"] = spoil
+			slots.append(slot)
 			rest -= put
 		left = rest
 		if left > 0:
@@ -953,9 +995,20 @@ func consume(id: String) -> String:
 	if not can_consume(id):
 		return "Can't eat that."
 	var f: Dictionary = D.FOOD[id]
+	if f.verb == "heal" and bars.hp >= 99.5:
+		return "Nothing to patch up."
 	remove(id, 1)
 	bars.food = clampf(bars.food + float(f.food), 0.0, 100.0)
 	bars.water = clampf(bars.water + float(f.water), 0.0, 100.0)
+	if f.verb == "heal":
+		bars.hp = clampf(bars.hp + float(f.get("hp", 0)), 0.0, 100.0)
+		say("heal")
+		events.append({"type": "heal"})
+		log_entry("Patched myself up with a %s.", ["@" + id])
+		_emit("healed", {"id": id})
+		return ""
+	if f.get("cooked", false):
+		bump("cooked_eaten")
 	if f.has("gives"):
 		give_list(f.gives)
 	var sick := false
@@ -1249,7 +1302,7 @@ func combine(a: String, b: String) -> Dictionary:
 		if craft_block(r.id) == "":
 			score += 4
 		if not recipe_known(r):
-			score += 2
+			score += 8     # a recipe still to find wins: otherwise stick + stone is always "spark kit", never the sundial
 		if r.get("station", "hands") == "hands":
 			score += 1
 		if score > best_score:
@@ -1266,6 +1319,8 @@ func combine(a: String, b: String) -> Dictionary:
 		say("discover")
 		log_entry("Figured out a new recipe: %s.", ["@" + str(best.out)])
 		events.append({"type": "discover", "id": best.id})
+		# found, not made: the materials may be meant for something else (the only sailcloth is the hammock's)
+		return {"ok": true, "recipe": best.id, "discovered": true, "queued": false, "text": ""}
 	var why := enqueue("craft", best.id)
 	return {"ok": true, "recipe": best.id, "discovered": found, "queued": why == "", "text": why}
 
@@ -1436,6 +1491,25 @@ func action_block(kind: String, target: String, extra: Dictionary = {}, self_q =
 				return "Nothing washed up yet."
 		"pastime":
 			return pastime_block(target, self_q)
+		"spear":
+			if count("spear") <= 0:
+				return "Needs a %s." % D.item_name("spear")
+		"plant":
+			if not structures.has("garden_plot"):
+				return "No garden plot."
+			if garden_state() != "empty":
+				return "Something is already growing."
+			if count("seeds") <= 0:
+				return "No seeds. The sea brings some now and then."
+			for q in queue:
+				if q.kind == "plant" and not is_same(q, self_q):
+					return "Already queued."
+		"harvest":
+			if garden_state() != "ready":
+				return "Not ready yet. Plants take their time."
+			for q in queue:
+				if q.kind == "harvest" and not is_same(q, self_q):
+					return "Already queued."
 		"sleep":
 			if not bed_available(target):
 				return "No such bed."
@@ -1478,6 +1552,11 @@ func duration_of(kind: String, target: String) -> float:
 	var sk := skill_for(kind, target)
 	if sk != "":
 		secs *= 1.0 - D.SKILL_SPEED * skill_level(sk)
+	# mood: a happy castaway works a little faster, a miserable one drags his feet
+	if mood >= D.MOOD_HIGH:
+		secs *= D.MOOD_HIGH_SPEED
+	elif mood < D.MOOD_LOW:
+		secs *= D.MOOD_LOW_SPEED
 	return secs
 
 func energy_cost(kind: String, target: String) -> float:
@@ -1519,7 +1598,46 @@ func _consume_inputs(q: Dictionary) -> Array:
 	elif q.kind == "light":
 		remove("dry_frond", 1)
 		used.append(["dry_frond", 1])
+	elif q.kind == "plant":
+		remove("seeds", 1)
+		used.append(["seeds", 1])
+		if count("compost") > 0:
+			remove("compost", 1)
+			used.append(["compost", 1])
 	return used
+
+## The garden plot: "" (none), "empty", "growing" or "ready".
+func garden_state() -> String:
+	if not structures.has("garden_plot"):
+		return ""
+	var ready := float(structures.garden_plot.get("ready", 0.0))
+	if ready <= 0.0:
+		return "empty"
+	return "ready" if t >= ready else "growing"
+
+## Spear fishing in the shallows: quick, no bait, a miss now and then. At low tide the fish have
+## nowhere to hide (no misses, big fish twice as likely).
+func _spear() -> void:
+	_wear("spear")
+	var table: Array = D.SPEAR_TABLE.duplicate(true)
+	if is_low_tide():
+		for row in table:
+			if str(row[0]) == "":
+				row[1] = 0
+			elif str(row[0]) == "fish_big":
+				row[1] = int(row[1]) * 2
+	var id := _roll(table)
+	if id == "":
+		say("nothing")
+		log_entry("Stabbed the sea. The sea did not notice.")
+		return
+	catches += 1
+	add(id, 1)
+	_xp("fishing", 2)
+	say("spear")
+	log_entry("Speared: %s.", ["@" + id])
+	bump("speared")
+	_emit("caught", {"id": id})
 
 func _finish(q: Dictionary) -> void:
 	var tgt: String = q.target
@@ -1567,6 +1685,11 @@ func _finish(q: Dictionary) -> void:
 			else:
 				add("frond", 1)
 				log_entry("Shook palm %s. No coconuts. Got a frond for my trouble.", [tgt])
+			bump("shakes")
+			# wild bees nest in palm crowns: now and then a lump of old comb comes down (the only wax on the island)
+			if int(stats.get("shakes", 0)) > 1 and rng.randf() < D.WAX_SHAKE_CHANCE:
+				add("wax", 1)
+				log_entry("A lump of old beeswax fell out of the palm. The bees have moved out. I checked. From a distance.")
 		"chop":
 			var p: Dictionary = palms[tgt]
 			p.felled = t
@@ -1592,6 +1715,7 @@ func _finish(q: Dictionary) -> void:
 			var c: Dictionary = structures.campfire
 			c.fuel_until = maxf(float(c.get("fuel_until", 0.0)), t) + float(D.FUEL_H.get(tgt, 0.5)) * 3600.0
 			log_entry("Fed the fire.")
+			bump("fed_fire")
 		"light":
 			_wear("spark_kit")
 			var fail := fire_fail_chance()
@@ -1604,6 +1728,7 @@ func _finish(q: Dictionary) -> void:
 				_xp("fire", 2)
 				say("fire_ok")
 				log_entry("Relit the fire.")
+				bump("relit")
 		"tally":
 			tallies.append(day_index())
 			say("tally")
@@ -1617,6 +1742,33 @@ func _finish(q: Dictionary) -> void:
 			log_entry("Hauled in what the sea brought.")
 		"pastime":
 			_finish_pastime(tgt)
+		"spear":
+			_spear()
+		"plant":
+			var g: Dictionary = structures.garden_plot
+			var rich := false
+			for pair in q.consumed:
+				if str(pair[0]) == "compost":
+					rich = true
+			g["planted"] = t
+			g["ready"] = t + D.GARDEN_GROW_H * 3600.0 * (D.COMPOST_GROW_MULT if rich else 1.0)
+			g["rich"] = rich
+			_xp("foraging", 2)
+			log_entry("Planted seeds in compost. They looked pleased." if rich else "Planted seeds in the garden plot.")
+			_emit("planted", {})
+		"harvest":
+			var g: Dictionary = structures.garden_plot
+			var n := D.GARDEN_YIELD + (1 if g.get("rich", false) else 0)
+			g.erase("planted")
+			g.erase("ready")
+			g.erase("rich")
+			add("sweet_potato", n)
+			add("seeds", 1)      # one kept back to plant again
+			_xp("foraging", 4)
+			say("harvest")
+			log_entry("Dug up %d sweet potatoes and kept a cutting to replant.", [n])
+			bump("harvests")
+			_emit("harvested", {})
 		"inspect":
 			say("cave")
 			log_entry("Listened at the big rock. It sounds hollow.")
@@ -1655,6 +1807,17 @@ func _finish_craft(q: Dictionary) -> void:
 			say("craft")
 		log_entry("Built a %s.", ["@" + str(r.out)])
 		_emit("structure_built", {"id": r.out})
+	elif r.id == "bottle_post":
+		# No bottle mail yet (owner, 2026-11-08): the bottle goes out to sea, and now and then one comes
+		# back with tomorrow's delivery. (It used to land in the bag as a note "from a pen pal".)
+		mood = clampf(mood + 3.0, 0.0, 100.0)
+		if int(shore.get("replies", 0)) < D.BOTTLE_REPLY_MAX and rng.randf() < D.BOTTLE_REPLY_CHANCE:
+			shore["replies"] = int(shore.get("replies", 0)) + 1
+		_xp(D.recipe_skill(r), 2)
+		say("bottle_sent")
+		log_entry("Wrote a note, corked the bottle and threw it as far as I could. So, not far.")
+		bump("bottles_sent")
+		_emit("crafted", {"id": "bottle_post"})
 	else:
 		add(r.out, int(r.get("qty", 1)))
 		_xp(D.recipe_skill(r), 2)
@@ -1665,18 +1828,21 @@ func _finish_craft(q: Dictionary) -> void:
 func _fish() -> void:
 	var le: Dictionary = D.balance().get("low_energy", {})
 	var id := ""
+	var baited := catches > 0 and count("bait") > 0
+	if baited:
+		remove("bait", 1)      # bait on the hook: no empty lines, big fish twice as likely
+		bump("bait_used")
 	if catches == 0:
 		id = "fish_small"
 	else:
-		var total := 0.0
-		for row in D.FISH_TABLE:
-			total += float(row[1])
-		var r := rng.randf() * total
-		for row in D.FISH_TABLE:
-			r -= float(row[1])
-			if r < 0.0:
-				id = row[0]
-				break
+		var table: Array = D.FISH_TABLE.duplicate(true)
+		if baited:
+			for row in table:
+				if str(row[0]) == "":
+					row[1] = 0
+				elif str(row[0]) == "fish_big":
+					row[1] = int(row[1]) * D.BAIT_BIG_MULT
+		id = _roll(table)
 		if id != "" and bars.energy < float(le.get("threshold", 20)) and rng.randf() < 0.25:
 			id = ""  # tired: it got away
 	if id == "" and weather in D.RAINY and rng.randf() < D.RAIN_FISH_BONUS:
@@ -1887,15 +2053,20 @@ func _complete(q: Dictionary, ev: String, data: Dictionary) -> void:
 	var nxt: Array = q.get("next", [])
 	quest = str(nxt[0]) if not nxt.is_empty() else ""
 	events.append({"type": "quest", "id": q.id, "next": quest})
-	# a quest whose goal was already reached during the opening (the campfire) completes at once
-	if quest != "":
-		var nq := D.quest(quest)
-		var trig: Dictionary = nq.get("trigger", {})
-		var key := "ev:" + str(trig.get("event", "-"))
-		if trig.has("id"):
-			key += ":" + str(trig.id)
-		if nq.has("trigger") and trig.size() <= 2 and not trig.has("any") and int(stats.get(key, 0)) > 0 and (trig.size() == 1 or trig.has("id")):
-			_complete(nq, str(trig.event), {})
+	_complete_if_met()
+
+## A quest whose goal was already reached (the campfire in the opening, a fish trap built before the
+## quest asked for one) completes at once.
+func _complete_if_met() -> void:
+	if quest == "":
+		return
+	var nq := D.quest(quest)
+	var trig: Dictionary = nq.get("trigger", {})
+	var key := "ev:" + str(trig.get("event", "-"))
+	if trig.has("id"):
+		key += ":" + str(trig.id)
+	if nq.has("trigger") and trig.size() <= 2 and not trig.has("any") and int(stats.get(key, 0)) > 0 and (trig.size() == 1 or trig.has("id")):
+		_complete(nq, str(trig.event), {})
 
 # ================================================================ journal, lines
 
@@ -1996,6 +2167,13 @@ func from_dict(d: Dictionary) -> bool:
 	_low = d.get("low", {})
 	rng.seed = int(str(d.get("rng_seed", "1")))
 	rng.state = int(str(d.get("rng_state", "0")))
+	# a save that finished the story before it grew (T13+ added 2026-11-09) picks it up where it now goes on
+	if quest == "" and not quests_done.is_empty():
+		var last := D.quest(str(quests_done[-1]))
+		var nxt: Array = last.get("next", [])
+		if not nxt.is_empty() and not str(nxt[0]) in quests_done:
+			quest = str(nxt[0])
+			_complete_if_met()
 	return true
 
 ## A typed name made safe: trimmed, control characters dropped, 16 characters at most.

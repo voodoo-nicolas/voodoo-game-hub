@@ -98,3 +98,13 @@ cave + Grand Projects (M7), Voodoo skin, Pad controller ("Heather controller"), 
 - **W-33 Water + sky art (2026-11-08).** The sea tile is blended onto the plate where the plate is blue (the shader's existing sea mask), so props / lanes stay tuned to 5.jpg. Front waves only from amp 0.55 (rain, wind, storm). Painted sky gradient not used on purpose (day / night keyframes drive the sky); only the sun and two clouds are.
 - **W-34 Quick start + craft tree (owner, 2026-11-09, after the first phone test).** "At the start my options are 5 min on the barrel, 5 min on the cloth: boring." Early actions take seconds; energy per action was cut with the time (chop 12 -> 6, haul 10 -> 2, fish 8 -> 3), changing the KICKOFF acceptance number for chop. Craft list shows only recipes whose materials you hold or have made; tier 2 needs two tier-1 makes. Grand Projects live in the craft panel. Odd jobs give the beach something to do between big actions.
 - **W-35 What he can read off (owner, 2026-11-09).** Time, tide and moon exist from the start but are hidden: no HUD hour until a sundial / Shellphone, no tide until a tide chart (W07 reward) / Shellphone, weather is never labelled. Mood: the island simply is cloudy. HUD goal ring + arrow mark quest objectives.
+- **W-36 Review round (2026-11-09; Claude's defaults, the owner can overrule any).**
+  - *Combining (changes W-23):* a recipe still to find beats a known one, and a discovery is only a discovery: nothing is queued or spent. Why: stick + stone always made a spark kit, so the sundial could never be found by hand; and auto-queueing a just-found tent would have eaten the hammock's sailcloth.
+  - *Knife (changes W-24):* it goes blunt at 0 uses instead of vanishing; `sharpen_knife` (blunt knife + stone) gives a full one. Hooks from 2 fish bones.
+  - *Clay and wax:* clay is dug with the shovel (odd job, 2 a dig, wears the shovel); wax falls from shaken palms (6 %) and may wash ashore. Both were "cave-only" with no cave (W-31).
+  - *Bottles you write (`bottle_post`):* thrown into the sea, 50 % chance of one extra bottle next morning, 2 waiting at most. Still no bottle mail (W-30).
+  - *Garden:* 20 h, 3 sweet potatoes + the seed back; compost halves the time and adds one. One crop only.
+  - *Mood:* 80+ works 5 % faster, under 25 works 10 % slower.
+  - *Story T13-T20* extends `tutorial_quests.json` (the owner's file): new entries are appended, T12's `next` now points at T13.
+  - *New data* (10 items, 8 recipes) is appended to the owner's `items.json` / `recipes.json`; the Drive copies do not have it.
+  - *Not done:* icons for the 10 new items; the debug panel still ships (W-22); the cave, bottle mail, a skills screen, a Voodoo skin.

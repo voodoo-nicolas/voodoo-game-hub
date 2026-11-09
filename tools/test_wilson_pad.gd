@@ -1,6 +1,7 @@
 extends SceneTree
 ## Beached on the Pad: the real scene, the stick walks, A finds the nearest thing, B backs out.
 ## Run: godot --headless --path . --script res://tools/test_wilson_pad.gd  (touches the desktop save: backs it up)
+const D = preload("res://scripts/games/wilson/wilson_data.gd")
 var fails := 0
 var checks := 0
 func ok(c: bool, what: String) -> void:
@@ -48,12 +49,22 @@ func _init() -> void:
 	Input.action_release("pad_move_down")
 	var lim: Vector2 = g.pad_limits(c.position.y)
 	ok(c.position.y <= 535.01 and c.position.x <= lim.y + 0.5, "kept on the sand (%.0f, %.0f)" % [c.position.x, c.position.y])
-	ok(absf(g.pad_limits(432.0).x - 330.0) < 0.1 and absf(g.pad_limits(535.0).y - 1190.0) < 0.1, "lane limits at the ends")
-	# A near a gather spot opens its menu; far from everything opens the castaway menu
+	ok(absf(g.pad_limits(float(D.LANES[0].y)).x - float(D.LANES[0].x0)) < 0.1 and absf(g.pad_limits(float(D.LANES[2].y)).y - float(D.LANES[2].x1)) < 0.1, "lane limits at the ends")
+	# A next to a pile just gathers it (no list, owner 2026-11-09); A next to a structure opens its menu
 	c.position = Vector2(505, 432)
+	g.engine.bars.energy = 100.0
 	g._pad_use()
 	await create_timer(0.1).timeout
-	ok(g._popup != null, "A near the sticks opens a menu")
+	ok(g._popup == null and g.engine.busy() and str(g.engine.active().get("target", "")) == "sticks", "A near the sticks gathers them")
+	g._pad_back()
+	ok(not g.engine.busy(), "B cancels it")
+	g.engine.structures["garden_plot"] = {"built": g.engine.t}
+	g.world.sync()
+	c.position = D.CAMP.garden_plot.stand
+	c.facing = 1.0
+	g._pad_use()
+	await create_timer(0.1).timeout
+	ok(g._popup != null, "A at the garden plot opens its menu (plant)")
 	g._pad_back()
 	ok(g._popup == null, "B closes the menu")
 	# while an action runs, the stick does not walk and B cancels it
