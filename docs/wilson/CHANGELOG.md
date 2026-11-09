@@ -1,6 +1,6 @@
 # Beached (wilson) changelog
 
-## 2026-11-09: owner's phone feedback + pastimes, sky events, streak, recipe bottles (pack v7, built, not published)
+## 2026-11-09: owner's phone feedback + pastimes, sky events, streak, recipe bottles (pack v7)
 - Fixed: walking faced the wrong way (the walk sheets face right; they are mirrored when walking left).
 - Quick start: actions are seconds, not minutes (haul 21 s, gather / shake 12 s, seawater 6 s, fishing 3 min, chopping 6 min, tier 1-2 crafts at 1/5 of the design time); energy per action scaled down with it (chop 6 not 12, haul 2). 12 odd jobs of 5-25 s (search the sand, skip a stone, splash, comb the tideline, catch a crab, dig, fan the fire, tidy, stretch, wave, scan the horizon, rock pools) under "⚡ Odd jobs" in the castaway's menu, 8 longer pastimes under "🧘 Pastimes" (stargaze, sunrise stretch, stare at the horizon, crab race, sandcastle, draw in the sand, coconut friend + chat). Odd jobs and pastimes you cannot do yet (no shovel, no fire) are not listed.
 - Craft tree (Terraria-style): a recipe is listed only when the bag holds one of its materials, or it was made before; tier 2 opens after two tier-1 things are made; craftable ones first. Grand Projects moved into the craft panel (no 🏗 button), shown once you hold one of their materials.
