@@ -1183,10 +1183,14 @@ func craft_visible(r: Dictionary) -> bool:
 	# the tree: tier 2 opens once two tier-1 things have been made
 	if int(r.get("tier", 1)) >= 2 and made_in_tier(1) < D.TIER2_NEEDS_TIER1:
 		return false
+	# listed only when everything it needs is in the bag at least once (the amount may still be short);
+	# in the opening only the spark kit and the campfire (owner, 2026-11-09: "give me the stuff as I need it")
+	if tut >= 0 and not str(r.id) in ["spark_kit", "campfire"]:
+		return false
 	for part in recipe_parts(r):
-		if count(str(part[0])) > 0:
-			return true
-	return false
+		if count(str(part[0])) <= 0:
+			return false
+	return true
 
 func _made(r: Dictionary) -> bool:
 	return int(stats.get("made:" + str(r.id), 0)) > 0 or structures.has(str(r.get("out", "")))

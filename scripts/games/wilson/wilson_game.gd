@@ -619,6 +619,11 @@ func nearest_interactable(reach: float) -> Dictionary:
 func _objective_ids() -> Array:
 	var ts: Dictionary = engine.tut_step()
 	if not ts.is_empty():
+		if str(ts.id) == "wood":      # point only at the pile still missing
+			if int(engine.stats.get("got:stick", 0)) >= 6:
+				return ["spot:dry_fronds"]
+			if int(engine.stats.get("got:dry_frond", 0)) >= 1:
+				return ["spot:sticks"]
 		return ts.get("objective", [])
 	var intro: Dictionary = engine.intro_step()
 	if not intro.is_empty():
@@ -1087,9 +1092,10 @@ func _johnny_menu(screen: Vector2) -> void:
 		_opt("nap", ""),
 		[tr("🎒 Bag"), _open_bag, ""],
 		[tr("🔨 Craft"), _open_craft, ""],
-		[tr("⚡ Odd jobs"), _pastimes_menu.bind("quick"), ""],
-		[tr("🧘 Pastimes"), _pastimes_menu.bind("long"), ""],
 	]
+	if engine.structures.has("campfire"):     # odd jobs and pastimes only once there is a camp to loaf around (owner, 2026-11-09)
+		opts.insert(2, [tr("⚡ Odd jobs"), _pastimes_menu.bind("quick"), ""])
+		opts.append([tr("🧘 Pastimes"), _pastimes_menu.bind("long"), ""])
 	opts[0][0] = "💤 %s  ·  %s" % [action_label("sleep", bed), _mins_text(engine.sleep_hours_for(bed) * 60.0)]
 	if engine.tut >= 0:       # the opening: no odd jobs yet, just the bag / craft once they have appeared
 		opts = []
@@ -1430,6 +1436,11 @@ func _refresh_hud() -> void:
 	var ts: Dictionary = engine.tut_step()
 	if not ts.is_empty():
 		_quest.text = "📜 " + tr(str(ts.short))
+		if str(ts.id) == "wood":
+			if int(engine.stats.get("got:stick", 0)) >= 6:
+				_quest.text = "📜 " + tr("Find a dry frond")
+			elif int(engine.stats.get("got:dry_frond", 0)) >= 1:
+				_quest.text = "📜 " + tr("Collect more sticks")
 		if int(ts.need) > 1:
 			_quest.text += "  %d/%d" % [int(ts.have), int(ts.need)]
 	elif not intro.is_empty():

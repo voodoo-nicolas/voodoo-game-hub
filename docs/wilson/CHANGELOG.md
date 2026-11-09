@@ -1,5 +1,13 @@
 # Beached (wilson) changelog
 
+## 2026-11-09: owner's phone feedback round 4 (built, not published)
+- First campfire lights on the first try (`FIRST_FIRE_FAILS` 0; the 3 gag fails read as "it won't build").
+- Wood step: once the 6 sticks are in, only the dry frond pile glows and the HUD says "Find a dry frond" (and the reverse), so "6 of 7" no longer leaves the player guessing.
+- Craft list: a recipe is listed only when every material it needs is in the bag at least once; in the opening only the spark kit and the campfire.
+- Odd jobs and Pastimes appear in the castaway menu only after the campfire is built.
+- Painted sea: the scrolling shader foam lines are off (the "sea mist"); A / Y / X were already direct / menu / bag.
+- Tests: 850 checks.
+
 ## 2026-11-09: guided opening, locked identity, dawn start (built, not published)
 - Owner's feedback: the HUD builds up one part at a time (`D.TUT`, `engine.tut`, `tut_step()` / `tut_reached()` / `tut_event()` / `tut_ack()`). Only the stick at first; then A + B; a pebble; the bag button; more pebbles; wood; the craft button (spark kit, campfire); then one "Got it" card per HUD part (health, food, water, energy, mood, day) and the journal + pause. Old saves and tests have `tut = -1` = everything visible. `_start_island` sets `tut = 0`.
 - HUD quest line is under 5 words (`D.QUEST_SHORT`, `D.TUT.short`, `D.INTRO.hint`); the journal lists the full text (new "Story quests" section).

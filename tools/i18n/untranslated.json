@@ -824,6 +824,9 @@
  "studyMs": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
  ],
+ "the bonfire won't build": [
+  "scripts\\games\\wilson\\wilson_data.gd"
+ ],
  "the sea mist is weird": [
   "scripts\\games\\wilson\\wilson_world.gd"
  ],

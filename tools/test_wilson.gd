@@ -343,7 +343,7 @@ func test_tutorial() -> void:
 	while e.quest == "T05" and tries < 6:
 		tries += 1
 		act("craft", "campfire")
-	ok(tries == 4 and e.fire_fails == 3, "first fire: 3 fails, then lit (tries %d)" % tries)
+	ok(tries == 1 and e.fire_fails == 0, "first fire lights at once (tries %d)" % tries)
 	ok(e.fire_lit(), "fire burning")
 	ok(e.quest == "T06", "T05 done")
 	act("haul", "sailcloth")
@@ -950,7 +950,13 @@ func test_m10_ux() -> void:
 	var ids := []
 	for r in e.craft_visible_list():
 		ids.append(str(r.id))
-	ok("spark_kit" in ids and "campfire" in ids, "one stick shows the tier-1 things that use sticks")
+	ok(not "campfire" in ids, "one stick alone lists no campfire")
+	e.add("stone", 1)
+	e.add("dry_frond", 1)
+	ids = []
+	for r in e.craft_visible_list():
+		ids.append(str(r.id))
+	ok("spark_kit" in ids, "stick + stone + dry frond list the spark kit")
 	ok(not "tent" in ids and not "frond_shelter" in ids and not "canopy" in ids, "tier 2 stays hidden at first (the tree)")
 	e.add("frond", 10)
 	e.add("rope", 4)

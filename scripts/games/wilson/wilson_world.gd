@@ -40,7 +40,7 @@ void fragment() {
 	float band = sin(UV.y * freq + wob + TIME * 0.35);
 	float foam = smoothstep(0.93 - amp * 0.06, 1.0, band);
 	foam *= 0.5 + 0.5 * sin(UV.x * 40.0 - TIME * (0.8 + depth * 1.4));
-	col += vec3(foam) * 0.32 * (0.5 + amp) * sea * mix(1.0, 0.3, use_tex);
+	col += vec3(foam) * 0.32 * (0.5 + amp) * sea * mix(1.0, 0.0, use_tex);   // no scrolling foam lines on the painted sea (owner: "the sea mist is weird")
 	// sun sparkles by day, plankton glints by night
 	vec2 cell = floor(vec2(UV.x * 300.0, UV.y * 160.0));
 	float h = hash(cell);

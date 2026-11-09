@@ -269,7 +269,7 @@ const FISH_TABLE := [["fish_small", 70], ["fish_big", 8], ["boot", 5], ["tin_can
 const FUEL_H := {"stick": 0.5, "driftwood": 2.0, "dry_frond": 0.25, "trunk": 4.0, "plank": 1.5}
 const FIRE_START_H := 3.0
 ## T05: "3+ funny fails first". The first fire always fails this many times.
-const FIRST_FIRE_FAILS := 3
+const FIRST_FIRE_FAILS := 0      # owner, 2026-11-09: "the bonfire won't build" (the 3 gag fails read as a bug)
 const FIRE_FAIL_CHANCE := 0.25
 
 ## Eating and drinking (GDD §5 lists the foods; amounts are ours). nausea = chance; raw fish's first
