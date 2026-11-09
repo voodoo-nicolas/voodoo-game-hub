@@ -1,6 +1,6 @@
 # Beached (wilson) changelog
 
-## 2026-11-08: the owner's water, sky and logo art (pack v5, built, not published)
+## 2026-11-08: the owner's water, sky and logo art (pack v5)
 - Sea: `sea layer.jpg` scrolls over the painted sea (same blue mask as before, the island is untouched; faster and wavier with the weather). Foam: three arcs from `sea foam2.jpg` pulse (+-4 % scale / alpha) at the shoreline. Front waves: `front waves.jpg` rises along the bottom in rain / wind / storm (nothing in calm weather).
 - Sky: the painted sun (cut from `sky layer.jpg`) replaces the drawn disc, two painted clouds join the drifting ones. The painted sky gradient itself is not used (the game's sky changes through the day and night).
 - Landing: `landing_logo.webp` = the old Landing + the wooden "Beached" logo (cut from `landing screen.jpg`), told to the kit with `art_title`.
