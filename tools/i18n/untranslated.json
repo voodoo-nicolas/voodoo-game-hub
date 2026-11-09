@@ -191,6 +191,12 @@
  "BUILD_NUMBER": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
+ "Balsa n.º 1": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Balsa n.º 2 (mejorada)": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Barril amarillo": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -254,6 +260,9 @@
  "Chubasco pendiente": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Cociná una comida": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Copyright 2022 Google Inc.; licence beside the font in assets/web_fonts/": [
   "scripts\\common\\third_party.gd"
  ],
@@ -289,6 +298,9 @@
  ],
  "Enhanced North American Benchmark Lexicon": [
   "scripts\\common\\third_party.gd"
+ ],
+ "Fabricá algo": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Facebook": [
   "scripts\\account\\account_screen.gd"
@@ -353,6 +365,9 @@
  "Grow to size N": [
   "scripts\\games\\evolution\\evolution_engine.gd"
  ],
+ "Hacé 2 siestas": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "IQ %d  ±%d": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
@@ -377,6 +392,15 @@
  ],
  "Junio": [
   "scripts\\account\\consent_screen.gd"
+ ],
+ "Juntá 5 conchas": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Juntá 6 palitos": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Leé la botella de hoy": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "LibreOffice dictionaries; licence text in media/licenses/wordlists/": [
   "scripts\\common\\third_party.gd"
@@ -451,6 +475,9 @@
  "Pasatiempos de ola de calor": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Pescá 3 peces hoy": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "Picoteo de medianoche": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -488,6 +515,9 @@
  "SIL Open Font License 1.1": [
   "scripts\\common\\third_party.gd"
  ],
+ "SOS en la arena": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "ST#E": [
   "scripts\\common\\game_logos_rest.gd"
  ],
@@ -500,11 +530,17 @@
  "Santuario del coco dorado": [
   "scripts\\games\\wilson\\wilson_projects.gd"
  ],
+ "Semillas de duda": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
  "September": [
   "scripts\\account\\consent_screen.gd"
  ],
  "Septiembre": [
   "scripts\\account\\consent_screen.gd"
+ ],
+ "Show de talentos": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Sintonizá": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -532,6 +568,9 @@
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Tesoro de la marea baja": [
+  "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Tomá 2 bebidas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Torre del catalejo": [

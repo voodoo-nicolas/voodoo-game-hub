@@ -1,5 +1,11 @@
 # Beached (wilson) changelog
 
+## 2026-11-08: daily quests + more side quests (pack v3, built, not published)
+- Three daily quests a day (8 in the pool, picked from the island seed, counters reset each day), listed under "Today" in the journal, small material rewards, never required.
+- Five more side quests from what exists: Seeds of Doubt, Raft #1 / #2 (escape gags), SOS in the Sand, Talent Show. Side quests: 40 in all.
+- Tests: 741 checks.
+- Still not built: cave (C), bottles (B), most W / A quests that need new actions (stargazing, yoga, crab race...), project art, sounds, Voodoo skin, Pad controller.
+
 ## 2026-11-08: Grand Projects (pack v2)
 - `wilson_projects.gd`: 12 projects (GP01-08, GP13-16). Paying the materials starts a 1-3 day build (absolute end time, one at a time); the finished project sits in `engine.structures` and its effect applies: Shellphone (moon / sun in the sea report), Windmill (power), Coconut Radio (daily broadcast, mood; needs the windmill), Desalinator (thirst -60 %), Spyglass Tower (+6 h forecast, ships), Cellar (no spoilage, +20 slots), Treehouse (26 energy / h bed), Lighthouse (ships always leave), Glider + Submarine (escape gags, a plaque each), Museum (needs 2 plaques, mood), Golden Coconut Shrine (+10 % luck on the shore roll).
 - 🏗 panel: every project with materials owned / needed, pin one for the wishlist (missing items + where they come from), Build button, progress bar. 11 G-series side quests.

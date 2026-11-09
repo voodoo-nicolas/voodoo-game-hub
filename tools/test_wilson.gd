@@ -53,6 +53,7 @@ func _init() -> void:
 	test_m5_side_quests()
 	test_m5b_more_quests()
 	test_m6_projects()
+	test_m7_dailies()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -762,3 +763,37 @@ func test_m6_projects() -> void:
 	var sv2 = sv.get_script().new()
 	sv2.from_dict(sv.to_dict())
 	ok(sv2.pinned == "GP02" and sv2.projects.has("GP01"), "save keeps projects + pin")
+
+func test_m7_dailies() -> void:
+	var Q = load("res://scripts/games/wilson/wilson_quests.gd")
+	var e = fresh(at(2026, 6, 21, 9))
+	e.advance(e.t + 600.0, false)
+	ok(e.dq.size() == 3 and e.dq[0] != e.dq[1] and e.dq[1] != e.dq[2], "3 different dailies a day")
+	var first: Array = e.dq.duplicate()
+	var today: int = e.day_index()
+	for q in Q.DAILY:
+		ok(not Q.daily(q.id).is_empty(), "daily %s defined" % q.id)
+	# complete the first one by feeding its counter
+	var q1: Dictionary = Q.daily(str(first[0]))
+	e.bump(str(q1.stat), int(q1.need))
+	ok(first[0] in e.dq_done, "daily paid when its counter is met")
+	var done_n: int = e.dq_done.size()
+	e.bump(str(q1.stat), 5)
+	ok(e.dq_done.size() == done_n, "a daily pays once a day")
+	# next day: new roll, counters reset
+	e.advance(e.t + 26 * 3600.0, false)
+	ok(e.day_index() > today and e.dq_done.is_empty() and e.dstats.size() <= 2, "next day resets the dailies")
+	# deterministic per island + day
+	var f = fresh(at(2026, 6, 21, 9))
+	f._roll_dailies(today)
+	ok(f.dq == first, "same island, same day, same dailies")
+	# save keeps them
+	var g = f.get_script().new()
+	g.from_dict(f.to_dict())
+	ok(g.dq == f.dq, "save keeps the dailies")
+	# new E / S / A quests
+	var h = fresh(at(2026, 6, 21, 9))
+	h.bump("made:raft_section")
+	ok("E01" in h.side_done and not "E02" in h.side_done, "E01 first raft")
+	h.bump("made:raft_section")
+	ok("E02" in h.side_done, "E02 second raft")

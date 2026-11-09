@@ -474,6 +474,9 @@ func _handle_events(evs: Array) -> void:
 			"side":
 				_show_toast("🎯 " + tr("Quest done: %s") % Quests.quest_name(Quests.get_quest(str(e.id))))
 				_sfx("win")
+			"daily":
+				_show_toast("☀ " + tr("Daily done: %s.") % tr(str(Quests.daily(str(e.id)).en)))
+				_sfx("win")
 			"project_done":
 				_show_toast("🏗 " + tr("Finished building: %s.") % Projects.project_name(Projects.get_project(str(e.id))))
 				_sfx("win")
@@ -1414,6 +1417,21 @@ func _open_journal() -> void:
 	sk.text = "📈 " + "  ·  ".join(parts)
 	body.add_child(sk)
 	body.add_child(_sea_report())
+	var dh := Label.new()
+	dh.text = "☀ " + tr("Today") + "  %d/%d" % [engine.dq_done.size(), engine.dq.size()]
+	dh.add_theme_color_override("font_color", ACCENT)
+	body.add_child(dh)
+	for id in engine.dq:
+		var dq_: Dictionary = Quests.daily(str(id))
+		if dq_.is_empty():
+			continue
+		var dl := Label.new()
+		if id in engine.dq_done:
+			dl.text = "✔ %s" % tr(str(dq_.en))
+			dl.modulate = Color(1, 1, 1, 0.6)
+		else:
+			dl.text = "• %s (%d/%d)" % [tr(str(dq_.en)), mini(int(engine.dstats.get(dq_.stat, 0)), int(dq_.need)), int(dq_.need)]
+		body.add_child(dl)
 	var qh := Label.new()
 	qh.text = "🎯 " + tr("Side quests") + "  %d/%d" % [engine.side_done.size(), Quests.LIST.size()]
 	qh.add_theme_color_override("font_color", ACCENT)

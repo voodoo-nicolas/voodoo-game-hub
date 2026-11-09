@@ -68,6 +68,16 @@ const LIST := [
 		"reward": {"gag": "yellow_barrel"}},
 	{"id": "G15", "en": "Hall of Shame", "es": "Salón de la vergüenza", "goal": "Build the Museum of Failure.", "stat": "project:museum", "need": 1,
 		"reward": {"decor": "plaque_wall"}},
+	{"id": "S11", "en": "Seeds of Doubt", "es": "Semillas de duda", "goal": "Make a seed plot.", "stat": "made:seed_plot", "need": 1,
+		"reward": {"xp": {"foraging": 4}}},
+	{"id": "E01", "en": "Raft #1", "es": "Balsa n.º 1", "goal": "Build a raft section.", "stat": "made:raft_section", "need": 1,
+		"reward": {"gag": "raft_shark"}},
+	{"id": "E02", "en": "Raft #2 (Improved)", "es": "Balsa n.º 2 (mejorada)", "goal": "Build a second raft section.", "stat": "made:raft_section", "need": 2,
+		"reward": {"gag": "raft_wave"}},
+	{"id": "E04", "en": "SOS in the Sand", "es": "SOS en la arena", "goal": "Make an SOS flag.", "stat": "made:sos_flag", "need": 1,
+		"reward": {"gag": "sos_tide"}},
+	{"id": "A06", "en": "Talent Show", "es": "Show de talentos", "goal": "Make a drum.", "stat": "made:drum", "need": 1,
+		"reward": {"gag": "crab_audience"}},
 	{"id": "W03", "en": "Fog of War", "es": "Niebla de guerra", "goal": "Sit through a fog.", "stat": "wx:fog", "need": 1,
 		"reward": {"items": [["bottle", 1]]}},
 	{"id": "W04", "en": "Heatwave Hobbies", "es": "Pasatiempos de ola de calor", "goal": "Survive a heatwave.", "stat": "wx:heatwave", "need": 1,
@@ -91,4 +101,26 @@ static func get_quest(id: String) -> Dictionary:
 	return {}
 
 static func quest_name(q: Dictionary) -> String:
+	return str(q.get("es" if TranslationServer.get_locale().begins_with("es") else "en", q.id))
+
+## Daily quests (QUESTS.md D-series): three a day, picked by the island seed, counted from sunrise.
+## Small rewards, never required. Counters live in engine.dstats (reset every day).
+const DAILY := [
+	{"id": "D01", "en": "Catch 3 fish today", "es": "Pescá 3 peces hoy", "stat": "ev:caught", "need": 3, "reward": [["bait", 2]]},
+	{"id": "D02", "en": "Cook one meal", "es": "Cociná una comida", "stat": "made:cook_fish", "need": 1, "reward": [["salt", 1]]},
+	{"id": "D03", "en": "Take 2 naps", "es": "Hacé 2 siestas", "stat": "ev:nap_taken", "need": 2, "reward": [["frond", 3]]},
+	{"id": "D04", "en": "Read today's bottle", "es": "Leé la botella de hoy", "stat": "ev:bottle_opened", "need": 1, "reward": [["paper", 1]]},
+	{"id": "D06", "en": "Collect 5 shells", "es": "Juntá 5 conchas", "stat": "shell", "need": 5, "reward": [["sea_glass", 1]]},
+	{"id": "D07", "en": "Gather 6 sticks", "es": "Juntá 6 palitos", "stat": "stick", "need": 6, "reward": [["rope", 1]]},
+	{"id": "D09", "en": "Drink 2 things", "es": "Tomá 2 bebidas", "stat": "ev:drank", "need": 2, "reward": [["coconut", 1]]},
+	{"id": "D10", "en": "Craft something", "es": "Fabricá algo", "stat": "crafted_any", "need": 1, "reward": [["stick", 3]]},
+]
+
+static func daily(id: String) -> Dictionary:
+	for q in DAILY:
+		if q.id == id:
+			return q
+	return {}
+
+static func daily_name(q: Dictionary) -> String:
 	return str(q.get("es" if TranslationServer.get_locale().begins_with("es") else "en", q.id))

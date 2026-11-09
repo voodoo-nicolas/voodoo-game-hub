@@ -48,6 +48,9 @@ var discovered: Array = []   # tier 3-4 recipes found by combining (M3)
 var fire_fails := 0
 var catches := 0
 var raw_eaten := 0
+var dstats := {}             # today's counters (daily quests)
+var dq: Array = []           # today's three daily quest ids
+var dq_done: Array = []
 var projects := {}           # Grand Projects being built: id -> {start, done}
 var pinned := ""             # wishlist: the pinned project id
 var stats := {}              # counters the side quests watch (wilson_quests.gd)
@@ -109,6 +112,9 @@ func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: 
 	side_done = []
 	projects = {}
 	pinned = ""
+	dstats = {}
+	dq = []
+	dq_done = []
 	_was_low = false
 	weather = "clear"
 	weather_auto = false
@@ -521,6 +527,9 @@ func _faint() -> void:
 
 func _daily() -> void:
 	var today := day_index()
+	if today != int(flags.get("dq_day", -1)):
+		flags["dq_day"] = today
+		_roll_dailies(today)
 	if today > int(flags.get("gp_day", -1)) and hour() >= sunrise_h():
 		flags["gp_day"] = today
 		_project_daily(today)
@@ -1258,6 +1267,8 @@ func _finish(q: Dictionary) -> void:
 				_xp("foraging", 1)
 				log_entry("Gathered %d %s.", [n, "@" + str(s.item)])
 				_emit("gathered", {"id": str(s.item), "n": n})
+				dstats[str(s.item)] = int(dstats.get(str(s.item), 0)) + n
+				_check_daily()
 				if tgt in D.REEF_SPOTS and is_low_tide():
 					var reef := _roll(D.REEF_TABLE)
 					if reef != "":
@@ -1345,6 +1356,7 @@ func _finish_craft(q: Dictionary) -> void:
 			events.append({"type": "fail"})
 			return
 	bump("made:" + str(r.id))
+	bump("crafted_any")
 	if str(r.id).begins_with("cook") and not is_day():
 		bump("night_cook")
 	if r.out_type == "structure":
@@ -1408,7 +1420,32 @@ func tap_johnny() -> void:
 ## Count something for the side quests and finish any that are now met.
 func bump(key: String, n: int = 1) -> void:
 	stats[key] = int(stats.get(key, 0)) + n
+	dstats[key] = int(dstats.get(key, 0)) + n
 	_check_side()
+	_check_daily()
+
+## Three daily quests a day, picked from the island seed (D-series).
+func _roll_dailies(today: int) -> void:
+	dstats = {}
+	dq_done = []
+	dq = []
+	var pool: Array = []
+	for q in Quests.DAILY:
+		pool.append(q.id)
+	for i in 3:
+		var k := int(floor(_hf(wseed, today * 7 + i) * pool.size()))
+		dq.append(pool[k])
+		pool.remove_at(k)
+
+func _check_daily() -> void:
+	for id in dq:
+		var q := Quests.daily(str(id))
+		if q.is_empty() or id in dq_done or int(dstats.get(q.stat, 0)) < int(q.need):
+			continue
+		dq_done.append(id)
+		give_list(q.reward)
+		log_entry("Daily done: %s.", ["~" + str(q.en)])
+		events.append({"type": "daily", "id": id})
 
 func _check_side() -> void:
 	stats["capacity"] = capacity()
@@ -1432,10 +1469,13 @@ func _check_side() -> void:
 
 func _emit(ev: String, data: Dictionary) -> void:
 	stats["ev:" + ev] = int(stats.get("ev:" + ev, 0)) + 1
+	dstats["ev:" + ev] = int(dstats.get("ev:" + ev, 0)) + 1
 	if data.has("id"):
 		var k := "ev:%s:%s" % [ev, data.id]
 		stats[k] = int(stats.get(k, 0)) + 1
+		dstats[k] = int(dstats.get(k, 0)) + 1
 	_check_side()
+	_check_daily()
 	if quest == "":
 		return
 	var q := D.quest(quest)
@@ -1517,7 +1557,7 @@ func to_dict() -> Dictionary:
 		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
 		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked, "discovered": discovered,
 		"fire_fails": fire_fails, "catches": catches, "raw_eaten": raw_eaten, "tallies": tallies,
-		"projects": projects, "pinned": pinned, "weather": weather, "weather_auto": weather_auto, "stats": stats, "side_done": side_done, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
+		"projects": projects, "pinned": pinned, "dstats": dstats, "dq": dq, "dq_done": dq_done, "weather": weather, "weather_auto": weather_auto, "stats": stats, "side_done": side_done, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
 		"rng_state": str(rng.state), "low": _low,
 	}
 
@@ -1562,6 +1602,9 @@ func from_dict(d: Dictionary) -> bool:
 	weather_auto = bool(d.get("weather_auto", true))
 	stats = d.get("stats", {})
 	projects = d.get("projects", {})
+	dstats = d.get("dstats", {})
+	dq = d.get("dq", [])
+	dq_done = d.get("dq_done", [])
 	pinned = str(d.get("pinned", ""))
 	side_done = d.get("side_done", [])
 	wseed = int(d.get("wseed", int(d.t) & 0x7fffffff))
