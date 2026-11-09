@@ -79,7 +79,7 @@ can overrule any of it.
   6 h (small fish 80, big 12, boot 4, seaweed 4), holds 3, emptied in 3 min. Canopy +5 mood by day,
   sundial +3. Garden plot: no seeds in items.json yet (bottles, M6).
 - **W-27 Skills.** Foraging, woodcutting, fishing, fire, cooking, carpentry, tinkering. Level n at
-  10 x n x (n+1) / 2 XP, max 10; each level = 3 % faster at that skill's actions. Weather-sense: M4.
+  10 x n x (n+1) / 2 XP, max 10; each level = 3 % faster at that skill's actions. Weather sense (M4): 8th skill, +3 h of barometer forecast per level.
 - **W-28 Looks.** "New island" first asks "Who washed up?" (the 8 sheets); 👕 Change look in the
   castaway's menu. Lines stay gender-neutral (DIALOGUE.md).
 - **W-29 Art used in M3:** characters (all 19 poses), inventory + rare icons, camp builds, fire parts,
@@ -88,6 +88,6 @@ can overrule any of it.
   shelter, canopy, fish trap, SOS flag, smokehouse, kiln, sundial and raft still use placeholders.
 
 ## Not built yet (later milestones)
-Weather controller and tides (M4: weather is only forced from the debug panel), full water layers,
+Forecast / tide screen and tide in the water art (the M4 engine is done), full water layers,
 quests beyond T01-T12, skills screen, gag album, bottles to other players (M6), login streak,
 cave + Grand Projects (M7), Voodoo skin, Pad controller ("Heather controller"), sounds, store art.

@@ -102,10 +102,10 @@ const TRAP_TABLE := [["fish_small", 80], ["fish_big", 12], ["boot", 4], ["seawee
 
 ## Skills (GDD §10). Level n needs 10 * n * (n + 1) / 2 XP (10, 30, 60...), max 10; each level makes
 ## that skill's actions 3 % faster. Weather-sense comes with the weather controller (M4).
-const SKILLS := ["foraging", "woodcutting", "fishing", "fire", "cooking", "carpentry", "tinkering"]
+const SKILLS := ["foraging", "woodcutting", "fishing", "fire", "cooking", "carpentry", "tinkering", "weather sense"]
 ## (Trailing spaces = distinct i18n keys: "Fire" / "Drink" already mean something else in other games.)
 const SKILL_NAMES := {"foraging": "Foraging", "woodcutting": "Woodcutting", "fishing": "Fishing ", "fire": "Fire ",
-	"cooking": "Cooking ", "carpentry": "Carpentry", "tinkering": "Tinkering"}
+	"cooking": "Cooking ", "carpentry": "Carpentry", "tinkering": "Tinkering", "weather sense": "Weather sense"}
 const SKILL_MAX := 10
 const SKILL_SPEED := 0.03
 const ACT_SKILL := {"gather": "foraging", "shake": "foraging", "haul": "foraging", "seawater": "foraging",
@@ -283,7 +283,7 @@ const NOT_ASHORE := ["stone", "sand", "seawater", "fish_guts", "husk_fiber", "co
 	"dry_frond", "clay", "wax", "fish_small", "fish_bone", "bait", "fish_big"]
 const RARITY_LETTER := {"common": "C", "uncommon": "U", "rare": "R", "mythic": "M"}
 
-## Weather states (GDD §8). M2 only uses them through the debug panel; the controller is M4.
+## Weather states (GDD §8). The controller (M4) is deterministic: engine.weather_at(t).
 const WEATHER := ["clear", "cloudy", "overcast", "drizzle", "rain", "storm", "fog", "wind", "heatwave", "cold_snap"]
 const RAINY := ["drizzle", "rain", "storm"]
 ## Sea motion per weather (0..1): the water shader's amplitude.
@@ -384,3 +384,28 @@ const BOTTLE_NOTES := [
 	"Smoke by day and fire by night are the classic signals for rescue.",
 	"Fish spoil fast in the heat: cook them, or dry them in the sun and wind.",
 ]
+
+## --- Weather controller + tides (M4, GDD section 4 and 8) ---
+const WEATHER_BLOCK_S := 10800.0   # a spell of weather lasts 3 h (two blocks can merge into one 6 h spell)
+const FORECAST_BASE_H := 12        # barometer (GDD section 8)
+const FORECAST_PER_LEVEL_H := 3    # weather sense extends it
+const TIDE_MIN := 745.0            # 12 h 25 min
+const LOW_TIDE := 0.2              # level under this = low tide (the reef shows)
+## Weights per season (summer / autumn / winter / spring of the player's hemisphere).
+const WEATHER_WEIGHTS := {
+	"summer": {"clear": 30, "cloudy": 15, "overcast": 8, "drizzle": 6, "rain": 8, "storm": 8, "fog": 3, "wind": 10, "heatwave": 12},
+	"autumn": {"clear": 25, "cloudy": 20, "overcast": 14, "drizzle": 10, "rain": 10, "storm": 5, "fog": 8, "wind": 8},
+	"winter": {"clear": 22, "cloudy": 18, "overcast": 14, "drizzle": 8, "rain": 8, "storm": 4, "fog": 8, "wind": 8, "cold_snap": 10},
+	"spring": {"clear": 30, "cloudy": 18, "overcast": 8, "drizzle": 8, "rain": 10, "storm": 5, "fog": 5, "wind": 14},
+}
+const WEATHER_ICON := {"clear": "☀", "cloudy": "⛅", "overcast": "☁", "drizzle": "🌦", "rain": "🌧", "storm": "⛈",
+	"fog": "🌫", "wind": "💨", "heatwave": "🔥", "cold_snap": "❄"}
+const WEATHER_NAMES := {"clear": "Clear sky", "cloudy": "Cloudy", "overcast": "Overcast", "drizzle": "Drizzle", "rain": "Rain",
+	"storm": "Storm", "fog": "Fog", "wind": "Windy", "heatwave": "Heatwave", "cold_snap": "Cold snap"}
+## Low tide uncovers the reef: one extra find when gathering shells or seaweed.
+const REEF_SPOTS := ["shells", "seaweed"]
+const REEF_TABLE := [["shell", 38], ["seaweed", 24], ["salt", 14], ["sea_glass", 12], ["conch_shell", 7], ["bottle", 4], ["pearl", 1]]
+## Fog brings more bottles; rain makes fish bite; wind shakes coconuts down faster.
+const FOG_EXTRA_BOTTLE := 1
+const RAIN_FISH_BONUS := 0.12      # chance a "nothing" becomes a catch while it rains
+const WIND_REGROW_MULT := 2.0

@@ -48,6 +48,9 @@ var catches := 0
 var raw_eaten := 0
 var tallies: Array = []      # local day indexes scratched on the stump
 var weather := "clear"
+var weather_auto := false    # true = the controller drives `weather` (the game sets it); the debug panel can force one
+var wseed := 1               # weather + tide seed (per island)
+var tide_off := 0.0          # minutes: tide phase offset (seeded)
 var shore := {"last_day": 0, "pile": {}, "no_rare": 0, "no_mythic": 0, "bottles": 0}
 var journal: Array = []      # [{t, text, args, away}]
 var rng := RandomNumberGenerator.new()
@@ -96,6 +99,9 @@ func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: 
 	raw_eaten = 0
 	tallies = []
 	weather = "clear"
+	weather_auto = false
+	wseed = (seed_value if seed_value != 0 else int(now)) & 0x7fffffff
+	tide_off = float(wseed % int(D.TIDE_MIN))
 	shore = {"last_day": start_day, "pile": {}, "no_rare": 0, "no_mythic": 0, "bottles": 0}
 	journal = []
 	events = []
@@ -141,6 +147,94 @@ func next_hour(h: float, at: float = -1.0) -> float:
 		dh = 24.0
 	return base + dh * 3600.0
 
+# ================================================================ weather + tides (M4)
+
+## Deterministic 0..1 hash of two ints (no server; same on every device).
+static func _hf(a: int, b: int) -> float:
+	var x := ((a * 73856093) ^ (b * 19349663) ^ 0x5bd1e995) & 0xffffffff
+	x = ((x ^ (x >> 15)) * 0x2c1b3c6d) & 0xffffffff
+	x = ((x ^ (x >> 12)) * 0x297a2d39) & 0xffffffff
+	x = x ^ (x >> 15)
+	return float(x & 0xffffff) / 16777216.0
+
+## "summer" / "autumn" / "winter" / "spring" for the player's hemisphere (real calendar).
+func season(at: float = -1.0) -> String:
+	var m: int = Time.get_datetime_dict_from_unix_time(int(local_t(at))).month
+	var north := ["winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn", "autumn", "autumn", "winter"]
+	var s: String = north[m - 1]
+	if hemisphere == "south":
+		s = {"winter": "summer", "summer": "winter", "spring": "autumn", "autumn": "spring"}[s]
+	return s
+
+## The weather at time `at`: seeded by (island seed, 3 h block); half the time a block repeats its
+## even neighbour, so spells last 3-6 h.
+func weather_at(at: float) -> String:
+	var block := int(floor(at / D.WEATHER_BLOCK_S))
+	var b := block
+	if _hf(wseed, block * 2 + 1) < 0.5:
+		b = block - (block & 1)
+	var table: Dictionary = D.WEATHER_WEIGHTS[season(float(b) * D.WEATHER_BLOCK_S)]
+	var total := 0.0
+	for k in table:
+		total += float(table[k])
+	var r := _hf(wseed, b * 2) * total
+	for k in table:
+		r -= float(table[k])
+		if r < 0.0:
+			return str(k)
+	return "clear"
+
+func _weather_tick() -> void:
+	if not weather_auto:
+		return
+	var w := weather_at(t)
+	if w == weather:
+		return
+	weather = w
+	if w == "storm":
+		log_entry("A storm is rolling in. The palms hold on tight.")
+	elif w == "fog":
+		log_entry("Fog. The horizon has been cancelled.")
+	elif w == "heatwave":
+		log_entry("Heatwave. Even the sand is sweating.")
+
+## 0 = lowest, 1 = highest. A full cycle is 12 h 25 min.
+func tide_level(at: float = -1.0) -> float:
+	var m := (t if at < 0.0 else at) / 60.0 + tide_off
+	return 0.5 + 0.5 * cos(TAU * m / D.TIDE_MIN)
+
+func is_low_tide(at: float = -1.0) -> bool:
+	return tide_level(at) < D.LOW_TIDE
+
+## Unix time the next low tide starts (steps of 5 min, within 13 h).
+func next_low_tide(at: float = -1.0) -> float:
+	var base := t if at < 0.0 else at
+	for i in range(1, 13 * 12):
+		var x := base + i * 300.0
+		if is_low_tide(x) and not is_low_tide(x - 300.0):
+			return x
+	return base
+
+## Hours the barometer can see ahead (0 = no barometer in the bag).
+func forecast_hours() -> int:
+	if count("barometer") <= 0:
+		return 0
+	return D.FORECAST_BASE_H + D.FORECAST_PER_LEVEL_H * skill_level("weather sense")
+
+## [{t, weather}]: every change of weather inside the forecast window.
+func forecast() -> Array:
+	var out: Array = []
+	var hrs := forecast_hours()
+	var last := weather
+	var x := t
+	while x <= t + hrs * 3600.0:
+		var w := weather_at(x)
+		if w != last:
+			out.append({"t": x, "weather": w})
+			last = w
+		x += 900.0
+	return out
+
 # ================================================================ the clock
 
 ## Plays the island forward to `to`. online = the app is open on the island.
@@ -158,6 +252,7 @@ func advance(to: float, online: bool = true) -> void:
 			nb = maxf(float(sleep.until), t)
 		_integrate(nb - t)
 		t = nb
+		_weather_tick()
 		act = active()
 		if not act.is_empty() and t >= float(act.end) - 0.001:
 			queue.pop_front()
@@ -222,7 +317,7 @@ func _world_tick(h: float) -> void:
 				p.felled = 0.0
 				p.coco = 0.0
 		else:
-			p.coco = minf(float(D.PALM_COCONUTS), float(p.coco) + h / D.COCONUT_REGROW_H)
+			p.coco = minf(float(D.PALM_COCONUTS), float(p.coco) + h / D.COCONUT_REGROW_H * (D.WIND_REGROW_MULT if weather in ["wind", "storm"] else 1.0))
 	for id in spots:
 		var s: Dictionary = D.SPOTS[id]
 		spots[id] = minf(float(s.max), float(spots[id]) + float(s.per_h) * h)
@@ -301,6 +396,9 @@ func _faint() -> void:
 
 func _daily() -> void:
 	var today := day_index()
+	if today > int(flags.get("wsense_day", -1)) and count("barometer") > 0:
+		flags["wsense_day"] = today
+		_xp("weather sense", 3)
 	if today > int(shore.last_day) and hour() >= sunrise_h():
 		shore.last_day = today
 		_shore_delivery()
@@ -328,6 +426,8 @@ func _shore_delivery() -> void:
 	shore.no_rare = 0 if (got_rare or got_mythic) else int(shore.no_rare) + 1
 	shore.no_mythic = 0 if got_mythic else int(shore.no_mythic) + 1
 	shore.pile["bottle_note"] = int(shore.pile.get("bottle_note", 0)) + 1
+	if weather == "fog":
+		shore.pile["bottle"] = int(shore.pile.get("bottle", 0)) + D.FOG_EXTRA_BOTTLE
 	log_entry("Something washed ashore.")
 	events.append({"type": "shore"})
 
@@ -1016,6 +1116,11 @@ func _finish(q: Dictionary) -> void:
 				_xp("foraging", 1)
 				log_entry("Gathered %d %s.", [n, "@" + str(s.item)])
 				_emit("gathered", {"id": str(s.item), "n": n})
+				if tgt in D.REEF_SPOTS and is_low_tide():
+					var reef := _roll(D.REEF_TABLE)
+					if reef != "":
+						add(reef, 1)
+						log_entry("Low tide. The reef was showing: found %s.", ["@" + reef])
 		"shake":
 			var p: Dictionary = palms[tgt]
 			if float(p.coco) >= 1.0:
@@ -1131,6 +1236,8 @@ func _fish() -> void:
 				break
 		if id != "" and bars.energy < float(le.get("threshold", 20)) and rng.randf() < 0.25:
 			id = ""  # tired: it got away
+	if id == "" and weather in D.RAINY and rng.randf() < D.RAIN_FISH_BONUS:
+		id = "fish_small"  # rain: the fish come up to bite
 	if id == "":
 		_wear("fishing_pole")
 		say("nothing")
@@ -1234,7 +1341,7 @@ func to_dict() -> Dictionary:
 		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
 		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked, "discovered": discovered,
 		"fire_fails": fire_fails, "catches": catches, "raw_eaten": raw_eaten, "tallies": tallies,
-		"weather": weather, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
+		"weather": weather, "weather_auto": weather_auto, "wseed": wseed, "tide_off": tide_off, "shore": shore, "journal": journal, "rng_seed": str(rng.seed),
 		"rng_state": str(rng.state), "low": _low,
 	}
 
@@ -1276,6 +1383,9 @@ func from_dict(d: Dictionary) -> bool:
 	for x in d.get("tallies", []):
 		tallies.append(int(x))
 	weather = str(d.get("weather", "clear"))
+	weather_auto = bool(d.get("weather_auto", true))
+	wseed = int(d.get("wseed", int(d.t) & 0x7fffffff))
+	tide_off = float(d.get("tide_off", float(wseed % int(D.TIDE_MIN))))
 	shore = d.get("shore", shore)
 	journal = d.get("journal", [])
 	_low = d.get("low", {})

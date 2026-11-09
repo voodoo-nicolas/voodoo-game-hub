@@ -131,6 +131,8 @@ func _start_island(look_id: String) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	engine = Engine_.new()
 	engine.reset(now(), _tz(), _default_hemisphere(), 0, look_id)
+	engine.weather_auto = true
+	engine._weather_tick()
 	started = true
 	_start_play()
 	_bubble_queue.append(D.LINES.day1[0])
@@ -923,6 +925,16 @@ func _build_hud() -> void:
 	_toast.visible = false
 	_hud.add_child(_toast)
 
+## "🌊 low" / "🌊 high" / rising or falling, from the tide cycle (GDD section 4).
+func _tide_text() -> String:
+	var lv: float = engine.tide_level()
+	var rising: bool = engine.tide_level(engine.t + 300.0) > lv
+	if engine.is_low_tide():
+		return "🌊 " + tr("Low tide")
+	if lv > 0.8:
+		return "🌊 " + tr("High tide")
+	return "🌊 " + tr("Tide rising") if rising else "🌊 " + tr("Tide falling")
+
 func _refresh_hud() -> void:
 	if _hud == null or engine == null:
 		return
@@ -934,6 +946,7 @@ func _refresh_hud() -> void:
 	var h: float = engine.hour()
 	var icon := "☀" if engine.is_day() else "🌙"
 	_clock.text = "%s %s %d  ·  %02d:%02d" % [icon, tr("Day"), engine.day_number(), int(h), int(fmod(h, 1.0) * 60.0)]
+	_clock.text += "  ·  %s %s  %s" % [D.WEATHER_ICON.get(engine.weather, ""), tr(D.WEATHER_NAMES.get(engine.weather, "")), _tide_text()]
 	if time_scale != 1.0:
 		_clock.text += "  (x%d)" % int(time_scale)
 	if engine.quest != "":

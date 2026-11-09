@@ -49,6 +49,7 @@ func _init() -> void:
 	test_m3_wear_spoil()
 	test_m3_structures()
 	test_m3_skills_storage()
+	test_m4_weather_tides()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -535,3 +536,77 @@ func test_m3_skills_storage() -> void:
 	ok(c.capacity() == 32, "two clay jars: +20")
 	c.add("barrel", 1)
 	ok(c.capacity() == 52, "plus a barrel: +20")
+
+func test_m4_weather_tides() -> void:
+	var a = fresh(at(2026, 6, 21, 9))
+	var b = fresh(at(2026, 6, 21, 9))
+	var seen := {}
+	var same := true
+	for i in 2000:
+		var x: float = a.t + i * 3600.0
+		if a.weather_at(x) != b.weather_at(x):
+			same = false
+		seen[a.weather_at(x)] = true
+	ok(same, "weather: same seed, same sky")
+	ok(seen.size() >= 7, "weather: variety (%d states)" % seen.size())
+	# seasons: south hemisphere June = winter: no heatwave; December = summer: no cold snap
+	var heat := false
+	var cold := false
+	for i in 1500:
+		if a.weather_at(at(2026, 6, 1, 0) + i * 3600.0) == "heatwave":
+			heat = true
+		if a.weather_at(at(2026, 12, 1, 0) + i * 3600.0) == "cold_snap":
+			cold = true
+	ok(not heat and not cold, "weather: seasonal states only")
+	a.hemisphere = "north"
+	ok(a.season(at(2026, 6, 21, 9)) == "summer", "north June = summer")
+	a.hemisphere = "south"
+	ok(a.season(at(2026, 6, 21, 9)) == "winter", "south June = winter")
+	# the controller drives the weather through advance
+	var c = fresh(at(2026, 6, 21, 9))
+	c.weather_auto = true
+	c.advance(c.t + 48 * 3600.0, false)
+	ok(c.weather == c.weather_at(c.t), "controller: weather follows the clock")
+	var f = fresh(at(2026, 6, 21, 9))
+	f.weather = "storm"
+	f.advance(f.t + 6 * 3600.0, false)
+	ok(f.weather == "storm", "forced weather stays when the controller is off")
+	# tides: 745 min cycle, low about 29 % of it
+	var e = fresh(at(2026, 6, 21, 9))
+	near(e.tide_level(e.t), e.tide_level(e.t + 745.0 * 60.0), 0.001, "tide: period 12 h 25 min")
+	var low := 0
+	for i in 745:
+		if e.is_low_tide(e.t + i * 60.0):
+			low += 1
+	ok(low > 190 and low < 240, "tide: low about 29 %% of the cycle (%d min)" % low)
+	var nl: float = e.next_low_tide()
+	ok(nl > e.t and e.is_low_tide(nl) and not e.is_low_tide(nl - 300.0), "next low tide found")
+	# barometer forecast
+	ok(e.forecast_hours() == 0, "no barometer: no forecast")
+	e.add("barometer", 1)
+	ok(e.forecast_hours() == D.FORECAST_BASE_H, "barometer: 12 h")
+	e.xp["weather sense"] = 30
+	ok(e.forecast_hours() == D.FORECAST_BASE_H + 2 * D.FORECAST_PER_LEVEL_H, "weather sense extends the forecast")
+	# reef at low tide
+	var g = fresh(at(2026, 6, 21, 9))
+	g.t = g.next_low_tide()
+	g.bars.energy = 100.0
+	var before := 0
+	for s in g.slots:
+		before += int(s.n)
+	ok(g.enqueue("gather", "shells") == "", "gather shells at low tide")
+	g.advance(g.t + 1200.0, true)
+	var after := 0
+	for s in g.slots:
+		after += int(s.n)
+	ok(after >= before + 3, "low tide: gathering gives the reef find too (%d -> %d)" % [before, after])
+	# fog: an extra bottle ashore
+	var h = fresh(at(2026, 6, 21, 9))
+	h.weather = "fog"
+	h._shore_delivery()
+	ok(int(h.shore.pile.get("bottle", 0)) >= D.FOG_EXTRA_BOTTLE, "fog: extra bottle")
+	# save round trip keeps the seed
+	var r = fresh(at(2026, 6, 21, 9))
+	var r2 = r.get_script().new()
+	r2.from_dict(r.to_dict())
+	ok(r2.wseed == r.wseed and absf(r2.tide_off - r.tide_off) < 0.001, "save keeps weather seed + tide")
