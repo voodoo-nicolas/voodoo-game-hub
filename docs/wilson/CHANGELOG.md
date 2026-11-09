@@ -1,6 +1,6 @@
 # Beached (wilson) changelog
 
-## 2026-11-08: names + Grand Project art (pack v4, built, not published)
+## 2026-11-08: names + Grand Project art (pack v4)
 - The player names the castaway: a name card after picking the look on a new island (16 characters, Skip allowed), "✏ Change name" in the castaway's menu. Shown in the menu title and the journal ("<Name>'s journal"), saved (`engine.cname`). "Castaway" when unnamed. The character is no longer implied to be a fixed "Johnny" anywhere on screen.
 - Owner's grand.jpg cut into `art/projects/` (11 sprites): Shellphone, Windmill, Coconut Radio, Spyglass Tower, Treehouse, Lighthouse, Glider, Submarine are placed on the island when built; tapping one shows its effect, the Treehouse is a bed. Slingshot, arcade and cinema are cut but their projects (GP09 / GP11 / GP12) are not built. Cellar, Desalinator, Museum, Shrine still have no art.
 - Tests: 747 checks.
