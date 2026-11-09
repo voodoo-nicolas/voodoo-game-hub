@@ -1,6 +1,6 @@
 # Beached (wilson) changelog
 
-## 2026-11-09: owner's phone feedback round 3 (pack v8, built, not published)
+## 2026-11-09: owner's phone feedback round 3 (pack v8)
 - Quest objectives get a pulsing green ring and a bobbing arrow (the Day 1 checklist's pile, the crate, palms A / B / C, the shore pile, the stump...); the 🔨 button pulses when the answer is "craft".
 - He keeps facing the way he last walked (the sheets face right; every standing pose is mirrored when facing left).
 - Running actions count down as 1:34 (m:ss), under a minute as "45 s", in the queue and the sleep row.
