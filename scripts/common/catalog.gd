@@ -143,10 +143,13 @@ func local_version(id: String) -> int:
 ## True if tapping this game must download before it can launch: never
 ## downloaded, or a newer version is published and it isn't mounted yet.
 func needs_download(id: String) -> bool:
+	if _overlays(id):
+		# PC build: what the session mounted is a separate overlay copy (user://overlay), so the
+		# downloaded pack can be replaced even while mounted; it applies at the next start. (A stale
+		# pack mounted at startup used to block its own update for ever.)
+		return int(get_game(id).get("version", 0)) > installed_version(id)
 	if _mounted.has(id):
 		return false
-	if _overlays(id):
-		return int(get_game(id).get("version", 0)) > installed_version(id)
 	if _bundled.has(id):
 		return false
 	if not is_downloaded(id):
