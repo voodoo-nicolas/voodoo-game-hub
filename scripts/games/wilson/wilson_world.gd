@@ -105,6 +105,7 @@ var fire                     # Fire node (only once built)
 var waves: ColorRect
 var surf: ColorRect
 var focus_rect := Rect2()
+var mark_rects: Array = []   # quest objectives: pulsing rings
 var _focus_node: Node2D
 var _surf_mat: ShaderMaterial
 var _foam: Array = []        # [Sprite2D, base_scale, phase]
@@ -154,6 +155,7 @@ func setup(e) -> void:
 	_focus_node.z_index = 30
 	add_child(_focus_node)
 	_focus_node.draw.connect(_draw_focus)
+	_focus_node.draw.connect(_draw_marks)
 	var sway := Shader.new()
 	sway.code = SWAY_SHADER
 	var palm_origin := {"C": Vector2(1048, 140), "D": Vector2(1196, 232)}
@@ -289,7 +291,7 @@ func in_hammock() -> bool:
 
 ## Every frame: sea motion from the weather, fire state, night glints.
 func tick(night: float, sea_amp: float, wind: float) -> void:
-	if _focus_node and focus_rect.size != Vector2.ZERO:
+	if _focus_node and (focus_rect.size != Vector2.ZERO or not mark_rects.is_empty()):
 		_focus_node.queue_redraw()
 	_sea_mat.set_shader_parameter("amp", sea_amp)
 	_sea_mat.set_shader_parameter("night", night)
@@ -380,6 +382,26 @@ func interactables() -> Array:
 		out.append({"probe": D.SHORE.pos, "id": "shore", "rect": Rect2(D.SHORE.pos + Vector2(-40, -36), Vector2(80, 50))})
 	out.append({"probe": D.CAVE.pos + Vector2(0, -20), "id": "cave", "rect": Rect2(D.CAVE.pos + Vector2(-80, -110), Vector2(170, 150))})
 	return out
+
+## Rings round the quest objectives (the owner, 2026-11-09: "quest items should have a glowing circle").
+func set_marks(rects: Array) -> void:
+	mark_rects = rects
+	if _focus_node:
+		_focus_node.queue_redraw()
+
+func _draw_marks() -> void:
+	var tt := Time.get_ticks_msec() * 0.004
+	for r in mark_rects:
+		var c: Vector2 = r.get_center()
+		var rad := maxf(r.size.x, r.size.y) * 0.5 + 12.0
+		var k := 0.5 + 0.5 * sin(tt)
+		for i in 3:
+			var rr := rad + float(i) * 6.0 + k * 6.0
+			_focus_node.draw_arc(c, rr, 0.0, TAU, 48, Color(0, 0, 0, 0.35 * (1.0 - i * 0.3)), 8.0, true)
+			_focus_node.draw_arc(c, rr, 0.0, TAU, 48, Color(0.75, 1.0, 0.85, (0.95 - i * 0.25) * (0.6 + 0.4 * k)), 4.5, true)
+		# a little arrow bobbing above
+		var ay: float = r.position.y - 22.0 - 5.0 * sin(tt * 1.6)
+		_focus_node.draw_colored_polygon(PackedVector2Array([Vector2(c.x - 14, ay - 20), Vector2(c.x + 14, ay - 20), Vector2(c.x, ay)]), Color(0.75, 1.0, 0.85, 0.98))
 
 ## The glowing outline round whatever the castaway is facing (an empty rect = none).
 func set_focus(r: Rect2) -> void:

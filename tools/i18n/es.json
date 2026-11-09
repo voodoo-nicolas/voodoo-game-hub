@@ -11018,5 +11018,8 @@
  "Tired? Go to bed: 💤 (or the Y button).": "¿Cansado? A la cama: 💤 (o el botón Y).",
  "Collect: %s": "Juntar: %s",
  "Day 1 sorted. Sleep well.": "Día 1 resuelto. Que duermas bien.",
- "Day 1 sorted: a bed, a pile of stuff, and nothing left in the tank.": "Día 1 resuelto: una cama, un montón de cosas y ni una gota de energía."
+ "Day 1 sorted: a bed, a pile of stuff, and nothing left in the tank.": "Día 1 resuelto: una cama, un montón de cosas y ni una gota de energía.",
+ "Forecast, in %d h": "Pronóstico, en %d h",
+ "ACT": "ACC",
+ "BAG": "BOLSA"
 }

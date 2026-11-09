@@ -107,6 +107,8 @@ func _scale() -> float:
 	var depth := clampf((position.y - 430.0) / 110.0, 0.0, 1.0)
 	return lerpf(0.9, 1.08, depth)
 
+const FACING_POSES := ["idle", "run", "sit", "eat", "drink", "shrug", "wave", "facepalm", "sulk"]
+
 func _draw() -> void:
 	var p := current_pose()
 	var tex: Texture2D = _tex.get(p)
@@ -121,7 +123,9 @@ func _draw() -> void:
 		draw_circle(Vector2.ZERO, sz.x * 0.32, Color(0, 0, 0, 0.2))
 		draw_set_transform_matrix(Transform2D.IDENTITY)
 	# walk frames face right on the sheets (checked on the owner's phone 2026-11-09): mirror them when walking left
-	var flip := facing < 0.0 and p.begins_with("walk")
+	# the sheets face right: mirror every standing / walking pose when he faces left, so he stays turned
+	# the way he last walked (owner, 2026-11-09). Sleeping, hammock and collapse are lying poses: as drawn.
+	var flip := facing < 0.0 and (p.begins_with("walk") or p in FACING_POSES)
 	var at := Vector2(-sz.x / 2.0, -sz.y + 4.0 * k)
 	if p == "hammock":
 		at = Vector2(-sz.x / 2.0, -sz.y * 0.75)

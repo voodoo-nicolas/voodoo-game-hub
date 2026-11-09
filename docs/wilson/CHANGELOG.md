@@ -1,5 +1,13 @@
 # Beached (wilson) changelog
 
+## 2026-11-09: owner's phone feedback round 3 (pack v8, built, not published)
+- Quest objectives get a pulsing green ring and a bobbing arrow (the Day 1 checklist's pile, the crate, palms A / B / C, the shore pile, the stump...); the 🔨 button pulses when the answer is "craft".
+- He keeps facing the way he last walked (the sheets face right; every standing pose is mirrored when facing left).
+- Running actions count down as 1:34 (m:ss), under a minute as "45 s", in the queue and the sleep row.
+- Pad: X = the castaway's action menu (sleep, nap, craft, bag, odd jobs, pastimes), Y = the bag.
+- Discovery: the HUD shows only "Day N". The hour needs a sundial (or the Shellphone); the tide needs a tide chart (quest W07) or the Shellphone; weather is never named, you see it (the barometer's forecast still names it, in "in N h" instead of clock times). Journal lines carry the hour only once the time is known. They all still happen.
+- Tests: 835 checks.
+
 ## 2026-11-09: owner's phone feedback + pastimes, sky events, streak, recipe bottles (pack v7)
 - Fixed: walking faced the wrong way (the walk sheets face right; they are mirrored when walking left).
 - Quick start: actions are seconds, not minutes (haul 21 s, gather / shake 12 s, seawater 6 s, fishing 3 min, chopping 6 min, tier 1-2 crafts at 1/5 of the design time); energy per action scaled down with it (chop 6 not 12, haul 2). 12 odd jobs of 5-25 s (search the sand, skip a stone, splash, comb the tideline, catch a crab, dig, fan the fire, tidy, stretch, wave, scan the horizon, rock pools) under "⚡ Odd jobs" in the castaway's menu, 8 longer pastimes under "🧘 Pastimes" (stargaze, sunrise stretch, stare at the horizon, crab race, sandcastle, draw in the sand, coconut friend + chat). Odd jobs and pastimes you cannot do yet (no shovel, no fire) are not listed.

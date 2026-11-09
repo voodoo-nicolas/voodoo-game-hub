@@ -776,6 +776,15 @@
  "not a pack": [
   "scripts\\common\\catalog.gd"
  ],
+ "palm:A": [
+  "scripts\\games\\wilson\\wilson_game.gd"
+ ],
+ "palm:B": [
+  "scripts\\games\\wilson\\wilson_game.gd"
+ ],
+ "palm:C": [
+  "scripts\\games\\wilson\\wilson_game.gd"
+ ],
  "read failed": [
   "scripts\\common\\catalog.gd"
  ],

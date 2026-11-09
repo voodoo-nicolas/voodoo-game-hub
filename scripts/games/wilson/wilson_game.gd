@@ -74,6 +74,7 @@ var _bubble_queue: Array = []
 var _toast: Label
 var _toast_until := 0.0
 var _sleep_row: Control = null
+var _craft_btn: Button = null
 var pad: Control = null          # the shared Pad (older apps do not have it: taps and the 💤 😴 buttons only)
 var _pad_busy_said := false
 var _popup: PanelContainer = null
@@ -394,6 +395,7 @@ func _process(dt: float) -> void:
 	_update_johnny()
 	_pad_process(dt)
 	_update_focus()
+	_update_marks()
 	_update_bubble()
 
 func after_change() -> void:
@@ -483,8 +485,8 @@ func _add_pad() -> void:
 	pad.button_pressed.connect(_on_pad_button)
 	pad.set_state("a", {"sub": tr("USE")})
 	pad.set_state("b", {"sub": tr("BACK")})
-	pad.set_state("x", {"sub": tr("NAP")})
-	pad.set_state("y", {"sub": tr("SLEEP")})
+	pad.set_state("x", {"sub": tr("ACT")})
+	pad.set_state("y", {"sub": tr("BAG")})
 	pad.set_state("info", {"icon": "menu"})
 	if _sleep_row:
 		_sleep_row.visible = false
@@ -510,11 +512,10 @@ func _pad_process(dt: float) -> void:
 	if Input.is_action_just_pressed("pad_b"):
 		_pad_back()
 	if Input.is_action_just_pressed("pad_x"):
-		_close_popup()
-		_nap_now()
+		_pad_actions()
 	if Input.is_action_just_pressed("pad_y"):
 		_close_popup()
-		_sleep_now()
+		_open_bag()
 	if Input.is_action_just_pressed("pad_info"):
 		_open_journal()
 	var v := Input.get_vector("pad_move_left", "pad_move_right", "pad_move_up", "pad_move_down")
@@ -561,6 +562,63 @@ func nearest_interactable(reach: float) -> Dictionary:
 			best = it
 	return best
 
+## What the current objective points at: ids from world.interactables(), plus "johnny" / "shallows",
+## and "craft" when the answer is on the 🔨 button. The Day 1 checklist comes first.
+func _objective_ids() -> Array:
+	var intro: Dictionary = engine.intro_step()
+	if not intro.is_empty():
+		match str(intro.key):
+			"got:stone":
+				return ["spot:stones"]
+			"got:stick":
+				return ["spot:sticks"]
+			"got:frond":
+				return ["spot:fronds"]
+			"made:frond_bed":
+				return ["craft"]
+		return []
+	match engine.quest:
+		"T01":
+			return ["johnny"]
+		"T02":
+			return ["debris:crate"]
+		"T03", "T05", "T09":
+			return ["craft"]
+		"T04":
+			return ["shallows"]
+		"T06", "T07":
+			return ["palm:A", "palm:B"]
+		"T08":
+			return ["palm:C"]
+		"T10":
+			return ["shore"]
+		"T12":
+			return ["structure:crafting_stump"]
+	return []
+
+func _update_marks() -> void:
+	if world == null:
+		return
+	var ids := _objective_ids()
+	var rects: Array = []
+	var craft := false
+	for id in ids:
+		match str(id):
+			"craft":
+				craft = true
+			"johnny":
+				var cp: Vector2 = world.castaway.position
+				rects.append(Rect2(cp + Vector2(-26, -100), Vector2(52, 104)))
+			"shallows":
+				rects.append(Rect2(D.SHALLOWS.pos + Vector2(-120, -40), Vector2(240, 70)))
+			_:
+				for it in world.interactables():
+					if it.id == id:
+						rects.append(it.rect)
+	world.set_marks(rects if not _panel else [])
+	if _craft_btn and is_instance_valid(_craft_btn):
+		_craft_btn.modulate = Color(0.7, 1.0, 0.8).lerp(Color.WHITE, 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)) if craft else Color.WHITE
+
 ## Every frame: the glowing outline on what he is facing (not while busy, asleep or in a menu).
 func _update_focus() -> void:
 	if world == null:
@@ -586,6 +644,14 @@ func _pad_use() -> void:
 			_johnny_menu(_stage_pos + (c.position + Vector2(0, -60)) * _stage_scale)
 		return
 	_on_tap(best.probe, _stage_pos + (best.probe + Vector2(0, -30)) * _stage_scale)
+
+## X: the action menu (sleep, nap, craft, bag, odd jobs, pastimes).
+func _pad_actions() -> void:
+	if _popup:
+		_close_popup()
+		return
+	var c = world.castaway
+	_johnny_menu(_stage_pos + (c.position + Vector2(0, -60)) * _stage_scale)
 
 ## B: close a menu, else cancel the action in progress.
 func _pad_back() -> void:
@@ -833,6 +899,13 @@ func _option_text(kind: String, target: String) -> String:
 	if en >= 0.95:
 		s += "  ·  ⚡%d" % int(round(en))
 	return s
+
+## A running countdown: 1:34 for a minute or more, "45 s" under it.
+func _countdown_text(secs: float) -> String:
+	var n := int(ceil(maxf(0.0, secs)))
+	if n >= 60:
+		return "%d:%02d" % [n / 60, n % 60]
+	return tr("%d s") % n
 
 func _mins_text(m: float) -> String:
 	if m < 0.99:
@@ -1165,6 +1238,8 @@ func _build_hud() -> void:
 		btn.add_theme_font_size_override("font_size", 26)
 		btn.pressed.connect(b[1])
 		btns.add_child(btn)
+		if b[0] == "🔨":
+			_craft_btn = btn
 	# queue (left, under the bars)
 	_queue_box = VBoxContainer.new()
 	_queue_box.add_theme_constant_override("separation", 4)
@@ -1238,8 +1313,11 @@ func _refresh_hud() -> void:
 	_mood.text = _mood_face()
 	var h: float = engine.hour()
 	var icon := "☀" if engine.is_day() else "🌙"
-	_clock.text = "%s %s %d  ·  %02d:%02d" % [icon, tr("Day"), engine.day_number(), int(h), int(fmod(h, 1.0) * 60.0)]
-	_clock.text += "  ·  %s %s  %s" % [D.WEATHER_ICON.get(engine.weather, ""), tr(D.WEATHER_NAMES.get(engine.weather, "")), _tide_text()]
+	_clock.text = "%s %s %d" % [icon, tr("Day"), engine.day_number()]
+	if engine.knows_time():
+		_clock.text += "  ·  %02d:%02d" % [int(h), int(fmod(h, 1.0) * 60.0)]
+	if engine.knows_tide():
+		_clock.text += "  ·  " + _tide_text()
 	if time_scale != 1.0:
 		_clock.text += "  (x%d)" % int(time_scale)
 	var intro: Dictionary = engine.intro_step()
@@ -1279,10 +1357,10 @@ func _refresh_queue() -> void:
 		c.queue_free()
 	if not engine.sleep.is_empty():
 		var s: Dictionary = engine.sleep
-		var left := maxf(0.0, (float(s.until) - engine.t) / 60.0)
+		var left_s := maxf(0.0, float(s.until) - engine.t)
 		var kind: String = {"nap": "😴 " + tr("Power nap"), "collapse": "😵 " + tr("Collapsed"), "faint": "😵 " + tr("Fainted")}.get(str(s.kind), "💤 " + action_label("sleep", str(s.bed)))
 		var b := Button.new()
-		b.text = "%s  ·  %s  ✕" % [kind, _mins_text(left)]
+		b.text = "%s  ·  %s  ✕" % [kind, _countdown_text(left_s)]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(_wake_now)
 		_queue_box.add_child(b)
@@ -1292,7 +1370,7 @@ func _refresh_queue() -> void:
 		var b := Button.new()
 		var label := "%s %s" % [ICONS.get(q.kind, "•"), action_label(q.kind, q.target)]
 		if float(q.start) > 0.0:
-			label += "  ·  %s" % _mins_text(maxf(0.0, (float(q.end) - at) / 60.0))
+			label += "  ·  %s" % _countdown_text(float(q.end) - at)
 		else:
 			label += "  ·  " + tr("waiting its turn")
 		b.text = label + "  ✕"
@@ -1753,13 +1831,15 @@ func _streak_label() -> Label:
 func _sea_report() -> Label:
 	var l := Label.new()
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var lines := [_tide_text()]
+	var lines := []
+	if engine.knows_tide():
+		lines.append(_tide_text())
 	if engine.structures.has("shellphone"):
 		var rise: float = engine.sunrise_h()
 		var sset: float = engine.sunset_h()
 		lines.append("📱 %s %d%%  ·  %s %02d:%02d  ·  %s %02d:%02d" % [tr("Moon"), int(round(Astro.moon_phase(engine.t) * 100.0)), tr("sunrise"), int(rise), int(fmod(rise, 1.0) * 60.0), tr("sunset"), int(sset), int(fmod(sset, 1.0) * 60.0)])
 	var nl: float = engine.next_low_tide()
-	if not engine.is_low_tide() and nl > engine.t:
+	if engine.knows_tide() and not engine.is_low_tide() and nl > engine.t:
 		var mins := int(round((nl - engine.t) / 60.0))
 		lines.append(tr("Next low tide in %d h %02d min.") % [mins / 60, mins % 60])
 	var hrs: int = engine.forecast_hours()
@@ -1770,9 +1850,9 @@ func _sea_report() -> Label:
 		if fc.is_empty():
 			lines.append(tr("Forecast (%d h): the same weather.") % hrs)
 		for f in fc:
-			var d := Time.get_datetime_dict_from_unix_time(int(float(f.t) + engine.tz))
-			lines.append("%s %02d:%02d  %s %s" % [tr("Forecast"), d.hour, d.minute, D.WEATHER_ICON.get(f.weather, ""), tr(D.WEATHER_NAMES.get(f.weather, ""))])
+			lines.append("%s  %s %s" % [tr("Forecast, in %d h") % int(round((float(f.t) - engine.t) / 3600.0)), D.WEATHER_ICON.get(f.weather, ""), tr(D.WEATHER_NAMES.get(f.weather, ""))])
 	l.text = "\n".join(lines)
+	l.visible = not lines.is_empty()
 	return l
 
 func _journal_line(e: Dictionary) -> Label:
@@ -1780,7 +1860,10 @@ func _journal_line(e: Dictionary) -> Label:
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var d := Time.get_datetime_dict_from_unix_time(int(float(e.t) + engine.tz))
 	var day: int = int(floor((float(e.t) + engine.tz) / 86400.0)) - engine.start_day + 1
-	l.text = "%s %d, %02d:%02d  %s" % [tr("Day"), day, d.hour, d.minute, format_entry(e)]
+	if engine.knows_time():
+		l.text = "%s %d, %02d:%02d  %s" % [tr("Day"), day, d.hour, d.minute, format_entry(e)]
+	else:
+		l.text = "%s %d  %s" % [tr("Day"), day, format_entry(e)]
 	if e.get("away", false):
 		l.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
 	return l

@@ -454,6 +454,16 @@ func _project_daily(today: int) -> void:
 		if not "beacon_fail" in gags:
 			gags.append("beacon_fail")
 
+# ================================================================ what the player can read off
+
+## The clock, the tide and the moon exist from the start but nobody tells him (owner, 2026-11-09): the
+## hour needs a sundial (or the Shellphone), the tide a tide chart (quest W07) or the Shellphone.
+func knows_time() -> bool:
+	return structures.has("sundial") or structures.has("shellphone")
+
+func knows_tide() -> bool:
+	return "tide_chart" in decor or structures.has("shellphone")
+
 # ================================================================ weather + tides (M4)
 
 ## Deterministic 0..1 hash of two ints (no server; same on every device).

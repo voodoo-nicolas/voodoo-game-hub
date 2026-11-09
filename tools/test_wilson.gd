@@ -58,6 +58,7 @@ func _init() -> void:
 	test_m9_pastimes_events_streak()
 	test_m10_ux()
 	test_m11_intro()
+	test_m12_discovery()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -1053,3 +1054,19 @@ func test_m11_intro() -> void:
 		t.enqueue("gather", "sticks")
 		t.advance(t.t + 13.0, false)
 	ok(e0 - t.bars.energy > 12.0, "ten gathers burn a real chunk of energy (%.1f)" % (e0 - t.bars.energy))
+
+func test_m12_discovery() -> void:
+	var e = fresh(at(2026, 6, 21, 9))
+	ok(not e.knows_time() and not e.knows_tide(), "a new castaway cannot read the time or the tide")
+	e.structures["sundial"] = {"built": e.t}
+	ok(e.knows_time() and not e.knows_tide(), "a sundial tells the time, not the tide")
+	e.decor.append("tide_chart")
+	ok(e.knows_tide(), "a tide chart tells the tide")
+	var s = fresh(at(2026, 6, 21, 9))
+	s.structures["shellphone"] = {"built": s.t}
+	ok(s.knows_time() and s.knows_tide(), "the Shellphone tells both")
+	# the tides still happen unseen: the low-tide counter runs and the reef still pays
+	var t = fresh(at(2026, 6, 21, 9))
+	t.weather_auto = true
+	t.advance(t.t + 48 * 3600.0, false)
+	ok(int(t.stats.get("low_tides", 0)) >= 3, "tides happen even if nobody reads them")
