@@ -31,7 +31,7 @@ const HUD_ART := "res://games/wilson/art/hud/"
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const SAVE_PATH := "user://wilson_save.json"
 const DEBUG_PATH := "user://wilson_debug.json"
-const ART := "res://games/wilson/art/landing.webp"
+const ART := "res://games/wilson/art/landing_logo.webp"
 const ACCENT := Color("ffb35a")
 ## A gap longer than this between frames (real seconds) is caught up as "away".
 const AWAY_GAP := 4.0
@@ -97,6 +97,7 @@ func _build_ui() -> void:
 		"subtitle": "One island. One castaway. Zero rescue.",
 		"logo": _draw_home_logo,
 		"art": ART,
+		"art_title": [0.0, 0.26],  # "Beached" is painted in the art (landing_logo.webp = landing + the owner's logo)
 		"solo_heading": "🏝 Island",
 		"modes": [{"text": "🏝 New island", "sub": "Day 1: wake up on the beach", "action": new_island}],
 		"save_path": SAVE_PATH,

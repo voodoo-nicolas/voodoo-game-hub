@@ -16,6 +16,8 @@ shader_type canvas_item;
 uniform float amp = 0.4;
 uniform float horizon = 0.4258;
 uniform float night = 0.0;
+uniform sampler2D sea_tex : source_color, filter_linear, repeat_enable;
+uniform float use_tex = 0.0;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void fragment() {
 	vec4 c = texture(TEXTURE, UV);
@@ -27,13 +29,18 @@ void fragment() {
 	vec4 c2 = texture(TEXTURE, uv2);
 	float sea2 = smoothstep(0.03, 0.12, c2.b - c2.r);
 	vec3 col = mix(c.rgb, c2.rgb, sea * sea2);
+	// the owner's sea layer (art/sea/sea_tile.webp) scrolls over the painted sea; the island is untouched
+	vec2 pp = vec2(UV.x * 1376.0, UV.y * 768.0);
+	vec2 tuv = vec2(pp.x / 880.0 + TIME * (0.006 + amp * 0.012) + sin(TIME * 0.4 + pp.y * 0.012) * 0.004 * (0.4 + amp),
+		(pp.y - 327.0) / 1000.0 + sin(TIME * 0.5 + pp.x * 0.005) * 0.004 * (0.4 + amp));
+	col = mix(col, texture(sea_tex, tuv).rgb, sea * 0.88 * use_tex);
 	// scrolling sine foam lines, closer together far away
 	float freq = mix(260.0, 70.0, depth);
 	float wob = sin(UV.x * (14.0 + depth * 10.0) + TIME * (0.5 + depth) * (0.6 + amp)) * (0.6 + amp * 1.6);
 	float band = sin(UV.y * freq + wob + TIME * 0.35);
 	float foam = smoothstep(0.93 - amp * 0.06, 1.0, band);
 	foam *= 0.5 + 0.5 * sin(UV.x * 40.0 - TIME * (0.8 + depth * 1.4));
-	col += vec3(foam) * 0.32 * (0.5 + amp) * sea;
+	col += vec3(foam) * 0.32 * (0.5 + amp) * sea * mix(1.0, 0.3, use_tex);
 	// sun sparkles by day, plankton glints by night
 	vec2 cell = floor(vec2(UV.x * 300.0, UV.y * 160.0));
 	float h = hash(cell);
@@ -66,6 +73,20 @@ void fragment() {
 }
 """
 
+const SURF_SHADER := """
+shader_type canvas_item;
+uniform sampler2D surf_tex : source_color, filter_linear, repeat_enable;
+uniform float amp = 0.4;
+uniform vec4 tint : source_color = vec4(1.0);
+void fragment() {
+	vec2 uv = vec2(UV.x * 1.1 + TIME * (0.012 + amp * 0.02), 0.52 + UV.y * 0.3 + sin(TIME * 0.7 + UV.x * 6.0) * 0.01 * amp);
+	vec4 t = texture(surf_tex, uv);
+	float fade = smoothstep(0.0, 0.4, UV.y);
+	float on = smoothstep(0.55, 0.95, amp);
+	COLOR = vec4(t.rgb * tint.rgb, fade * on * 0.92);
+}
+"""
+
 const SWAY_SHADER := """
 shader_type canvas_item;
 uniform float wind = 0.3;
@@ -82,6 +103,9 @@ var sorted: Node2D           # y-sorted objects
 var castaway                 # Castaway node
 var fire                     # Fire node (only once built)
 var waves: ColorRect
+var surf: ColorRect
+var _surf_mat: ShaderMaterial
+var _foam: Array = []        # [Sprite2D, base_scale, phase]
 var _sea_mat: ShaderMaterial
 var _wave_mat: ShaderMaterial
 var _palms := {}             # id -> Sprite2D (C and D: cut out so they can fall)
@@ -101,7 +125,26 @@ func setup(e) -> void:
 	sh.code = SEA_SHADER
 	_sea_mat.shader = sh
 	plate.material = _sea_mat
+	var sea_tex := _tex("sea/sea_tile.webp")
+	if sea_tex:
+		_sea_mat.set_shader_parameter("sea_tex", sea_tex)
+		_sea_mat.set_shader_parameter("use_tex", 1.0)
 	add_child(plate)
+	# foam arcs from the owner's sea foam sheet, pulsing at the shoreline (KICKOFF: +-4 % scale / alpha)
+	for f in [["foam_3", Vector2(1316, 492), 0.0, false, 0.45], ["foam_3", Vector2(84, 498), 0.0, true, 0.45],
+			["foam_1", Vector2(340, 604), 90.0, false, 0.5], ["foam_2", Vector2(1010, 606), -90.0, false, 0.5]]:
+		var ft := _tex("sea/%s.webp" % f[0])
+		if ft == null:
+			continue
+		var fs := Sprite2D.new()
+		fs.texture = ft
+		fs.position = f[1]
+		fs.rotation_degrees = f[2]
+		fs.flip_h = f[3]
+		fs.scale = Vector2.ONE * f[4]
+		fs.modulate = Color(1, 1, 1, 0.55)
+		add_child(fs)
+		_foam.append([fs, f[4], randf() * TAU])
 	sorted = Node2D.new()
 	sorted.y_sort_enabled = true
 	add_child(sorted)
@@ -160,6 +203,19 @@ func setup(e) -> void:
 	_wave_mat.shader = ws
 	waves.material = _wave_mat
 	add_child(waves)
+	var surf_tex := _tex("sea/front_waves.webp")
+	if surf_tex:
+		surf = ColorRect.new()
+		surf.position = Vector2(-400, 600)
+		surf.size = Vector2(D.W + 800, 168)
+		surf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_surf_mat = ShaderMaterial.new()
+		var ss := Shader.new()
+		ss.code = SURF_SHADER
+		_surf_mat.shader = ss
+		_surf_mat.set_shader_parameter("surf_tex", surf_tex)
+		surf.material = _surf_mat
+		add_child(surf)
 	sync()
 
 func _tex(file: String) -> Texture2D:
@@ -230,6 +286,13 @@ func tick(night: float, sea_amp: float, wind: float) -> void:
 	_sea_mat.set_shader_parameter("amp", sea_amp)
 	_sea_mat.set_shader_parameter("night", night)
 	_wave_mat.set_shader_parameter("amp", sea_amp)
+	if _surf_mat:
+		_surf_mat.set_shader_parameter("amp", sea_amp)
+	var tt := Time.get_ticks_msec() / 1000.0
+	for f in _foam:
+		var k: float = sin(tt * 0.9 + float(f[2]))
+		f[0].scale = Vector2.ONE * float(f[1]) * (1.0 + 0.04 * k)
+		f[0].modulate.a = 0.5 + 0.04 * k * 4.0 + 0.1 * night
 	for id in _palms:
 		_palms[id].material.set_shader_parameter("wind", wind)
 	if fire:
@@ -240,6 +303,8 @@ func tick(night: float, sea_amp: float, wind: float) -> void:
 
 func set_wave_color(c: Color) -> void:
 	_wave_mat.set_shader_parameter("sea_col", c)
+	if _surf_mat:
+		_surf_mat.set_shader_parameter("tint", Color(0.55 + c.r * 2.0, 0.55 + c.g * 0.8, 0.55 + c.b * 0.8))
 
 # ================================================================ tapping
 

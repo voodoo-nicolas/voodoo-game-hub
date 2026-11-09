@@ -6380,8 +6380,8 @@
   },
   {
    "file": "games/wilson/art/",
-   "what": "Beached: island clean plate (sky cut out), palms C and D, wreck debris, Landing; chars/ (8 castaway looks x 19 poses), icons/ (inventory + rare materials), camp/ (camp builds), fire/ (fire parts), hud/ (HUD icons); cloud_1/cloud_2 drawn in code by Claude Code",
-   "source": "D:/dev/Wilson: 4.jpg, 5.jpg, 6.jpg, male1-4.jpg, female1/3/4.jpg + demale2.jpg (= female2), inventory.jpg, rare materials.jpg, camp builds.jpg, fire3.jpg, hud.jpg",
+   "what": "Beached: island clean plate (sky cut out), palms C and D, wreck debris, Landing; chars/ (8 castaway looks x 19 poses), icons/ (inventory + rare materials), camp/ (camp builds), fire/ (fire parts), hud/ (HUD icons); cloud_1/cloud_2 drawn in code by Claude Code; projects/ (Grand Projects sheet), sea/ (sea layer + front waves tiles, foam arcs), sky/ (the painted sun + 2 clouds), landing_logo.webp (Landing + the wooden Beached logo)",
+   "source": "D:/dev/Wilson: 4.jpg, 5.jpg, 6.jpg, male1-4.jpg, female1/3/4.jpg + demale2.jpg (= female2), inventory.jpg, rare materials.jpg, camp builds.jpg, fire3.jpg, hud.jpg; grand.jpg, sea layer.jpg, front waves.jpg, sea foam2.jpg, sky layer.jpg, landing screen.jpg",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
    "proof": "media/licenses/OWNER_GAME_ART.md",
@@ -6401,6 +6401,32 @@
    "url": "",
    "date": "2026-11-08",
    "processed_by": "copied unchanged except balance.json sleep_restore_per_h gained frond_shelter: 15 (README errata / KICKOFF M2)"
+  },
+  {
+   "file": "media/hub/game_art/wilson/tile.webp",
+   "what": "Beached hub tile picture (thumbnail) (owner's art)",
+   "source": "D:/dev/Wilson/thumbnail.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-08",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9 and converted to WebP (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/wilson/hero.webp",
+   "what": "Beached hub 16:9 preview (the Landing art with the owner's wooden logo) (owner's art)",
+   "source": "D:/dev/Wilson/landing screen.jpg + 4.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-08",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9 and converted to WebP (Claude Code)"
   }
  ]
 }

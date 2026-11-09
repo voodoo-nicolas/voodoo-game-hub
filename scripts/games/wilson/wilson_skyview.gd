@@ -21,17 +21,20 @@ var _stars: Array = []
 var _clouds: Array = []
 var _cloud_tex: Array = []
 var _t := 0.0
+var _sun_tex: Texture2D = null
 
 func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	for i in 140:
 		_stars.append([rng.randf(), pow(rng.randf(), 1.4), rng.randf() * TAU, rng.randf_range(1.0, 2.6)])
-	for f in ["cloud_1.webp", "cloud_2.webp"]:
+	for f in ["cloud_1.webp", "cloud_2.webp", "sky/cloud_s2.webp", "sky/cloud_s4.webp"]:
 		if ResourceLoader.exists(ART + f):
 			_cloud_tex.append(load(ART + f))
+	if ResourceLoader.exists(ART + "sky/sun.webp"):
+		_sun_tex = load(ART + "sky/sun.webp")
 	for i in 6:
-		_clouds.append([rng.randf(), rng.randf_range(0.08, 0.6), rng.randf_range(0.5, 1.1), rng.randf_range(4.0, 11.0), i % 2])
+		_clouds.append([rng.randf(), rng.randf_range(0.08, 0.6), rng.randf_range(0.5, 1.1), rng.randf_range(4.0, 11.0), i])
 
 func _process(dt: float) -> void:
 	_t += dt
@@ -68,7 +71,11 @@ func _draw() -> void:
 		var warm := Color(1.0, 0.95, 0.7).lerp(Color(1.0, 0.65, 0.35), 1.0 - clampf(sun.y * 2.5, 0.0, 1.0))
 		draw_circle(sp, r * 1.9, Color(warm, 0.18))
 		draw_circle(sp, r * 1.35, Color(warm, 0.3))
-		draw_circle(sp, r, warm)
+		if _sun_tex:
+			var sw := r * 2.1
+			draw_texture_rect(_sun_tex, Rect2(sp - Vector2(sw, sw) / 2.0, Vector2(sw, sw)), false, Color(1.0, 0.97, 0.9).lerp(warm, 0.55))
+		else:
+			draw_circle(sp, r, warm)
 	# moon
 	if moon.y > -0.1:
 		var mp := Vector2(lerpf(span.x, span.y, moon.x), hy + 10.0 - moon.y * arc_h * 0.92)

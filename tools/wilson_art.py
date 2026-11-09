@@ -357,3 +357,83 @@ GRAND = {"shellphone": (190, 150), "windmill": (500, 160), "coconut_radio": (880
          "spyglass_tower": (160, 480), "treehouse": (450, 500), "lighthouse": (750, 480), "slingshot": (975, 470),
          "glider": (170, 800), "submarine": (440, 820), "arcade": (680, 800), "cinema": (940, 790)}
 cut_sheet("grand.jpg", GRAND, "projects", scale=0.5, min_area=900)
+
+# ================================================================ water + sky layers (owner 2026-11-08)
+# sea layer.jpg / front waves.jpg are used whole (scrolling tiles); the sun and the clouds are cut out of
+# sky layer.jpg (every pixel that differs from its row's sky colour); the foam variants out of sea foam2.jpg.
+def water_and_sky():
+    os.makedirs(OUT + "sky", exist_ok=True)
+    os.makedirs(OUT + "sea", exist_ok=True)
+    Image.open(SRC + "sea layer.jpg").convert("RGB").save(OUT + "sea/sea_tile.webp", "WEBP", quality=86, method=6)
+    Image.open(SRC + "front waves.jpg").convert("RGB").save(OUT + "sea/front_waves.webp", "WEBP", quality=86, method=6)
+    a = np.asarray(Image.open(SRC + "sky layer.jpg").convert("RGB")).astype(np.int32)
+    H, W, _ = a.shape
+    HOR = 676  # the dark horizon line in the 992x1059 sheet
+    row_bg = np.median(a[:HOR], axis=1)  # per-row sky colour (clouds are a minority of each row)
+    # clouds are paler than the sky: compare the RED channel with the row's sky (the sky gradient is
+    # nearly flat in red, the sun's yellow glow is what we must not pick up)
+    diff = np.zeros((H, W), np.float32)
+    diff[:HOR] = a[:HOR, :, 0] - row_bg[:, None, 0]
+    # the three clouds that sit whole inside the sheet (the others are cut by its edges), measured boxes
+    CLOUDS = {2: (15, 335, 430, 470, 40), 3: (230, 420, 765, 595, 40), 4: (480, 300, 845, 400, 70)}
+    for ci, (x0, y0, x1, y1, thr) in CLOUDS.items():
+        m = np.zeros((H, W), bool)
+        m[y0:y1, x0:x1] = diff[y0:y1, x0:x1] > thr
+        m = ndimage.binary_opening(m, iterations=2)
+        m = ndimage.binary_closing(m, iterations=2)
+        lab, n = ndimage.label(m)
+        if n == 0:
+            print("MISSING cloud", ci)
+            continue
+        sizes = ndimage.sum(m, lab, range(1, n + 1))
+        m = lab == (int(np.argmax(sizes)) + 1)
+        m = ndimage.binary_fill_holes(m)
+        ys, xs = np.nonzero(m)
+        by0, by1, bx0, bx1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+        al = Image.fromarray((m[by0:by1, bx0:bx1] * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.8))
+        img = Image.fromarray(np.dstack([a[by0:by1, bx0:bx1].astype(np.uint8), np.asarray(al)]), "RGBA")
+        img = img.resize((max(1, img.width * 2 // 3), max(1, img.height * 2 // 3)), Image.LANCZOS)
+        img.save(OUT + "sky/cloud_s%d.webp" % ci, "WEBP", quality=88, method=6)
+        print("sky cloud_s%d" % ci, img.size)
+    # the sun: the yellow disc around (833, 209), r ~100 (our own glow circles go behind it in the game)
+    yy, xx = np.mgrid[0:H, 0:W]
+    disc = ((xx - 833) ** 2 + (yy - 209) ** 2) < 104 ** 2
+    yellow = (a[..., 0] > 215) & (a[..., 2] < 190)
+    m = ndimage.binary_closing(disc & yellow, iterations=3)
+    m = ndimage.binary_fill_holes(m)
+    ys, xs = np.nonzero(m)
+    by0, by1, bx0, bx1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    al = Image.fromarray((m[by0:by1, bx0:bx1] * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.0))
+    img = Image.fromarray(np.dstack([a[by0:by1, bx0:bx1].astype(np.uint8), np.asarray(al)]), "RGBA")
+    img = img.resize((max(1, img.width // 2), max(1, img.height // 2)), Image.LANCZOS)
+    img.save(OUT + "sky/sun.webp", "WEBP", quality=90, method=6)
+    print("sky sun", img.size)
+    # foam variants (sea foam2.jpg 992x1059: three dark-magenta panels)
+    f = np.asarray(Image.open(SRC + "sea foam2.jpg").convert("RGB")).astype(np.int32)
+    light = (f[..., 1] > 150) & (np.abs(f[..., 0] - f[..., 1]) < 70) & (f[..., 2] > 150)
+    light[:150] = False
+    light[975:] = False
+    core = ndimage.binary_closing(light, iterations=2)
+    halo = ndimage.binary_dilation(core, iterations=4)
+    dark = f.sum(-1) < 330
+    keep = core | (halo & dark)
+    keep = ndimage.binary_opening(keep, iterations=1)
+    lab, n = ndimage.label(ndimage.binary_dilation(keep, iterations=6))
+    for vi, (px0, px1) in enumerate([(20, 326), (344, 650), (668, 974)]):
+        mk = keep.copy()
+        mk[:, :px0] = False
+        mk[:, px1:] = False
+        ys, xs = np.nonzero(mk)
+        if len(ys) == 0:
+            print("MISSING foam", vi + 1)
+            continue
+        y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+        sub = f[y0:y1, x0:x1].astype(np.uint8)
+        al = Image.fromarray((mk[y0:y1, x0:x1] * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.8))
+        img = Image.fromarray(np.dstack([sub, np.asarray(al)]), "RGBA")
+        img = img.resize((max(1, img.width // 2), max(1, img.height // 2)), Image.LANCZOS)
+        img.save(OUT + "sea/foam_%d.webp" % (vi + 1), "WEBP", quality=88, method=6)
+        print("foam", vi + 1, img.size)
+
+if "water" in sys.argv or not ONLY_SHEETS:
+    water_and_sky()

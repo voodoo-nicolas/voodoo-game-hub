@@ -1,5 +1,12 @@
 # Beached (wilson) changelog
 
+## 2026-11-08: the owner's water, sky and logo art (pack v5, built, not published)
+- Sea: `sea layer.jpg` scrolls over the painted sea (same blue mask as before, the island is untouched; faster and wavier with the weather). Foam: three arcs from `sea foam2.jpg` pulse (+-4 % scale / alpha) at the shoreline. Front waves: `front waves.jpg` rises along the bottom in rain / wind / storm (nothing in calm weather).
+- Sky: the painted sun (cut from `sky layer.jpg`) replaces the drawn disc, two painted clouds join the drifting ones. The painted sky gradient itself is not used (the game's sky changes through the day and night).
+- Landing: `landing_logo.webp` = the old Landing + the wooden "Beached" logo (cut from `landing screen.jpg`), told to the kit with `art_title`.
+- Hub tile + 16:9 hero: `media/hub/game_art/wilson/` (+ `tile_art` / `hero_art` in the manifest). Art is APK-side: phones see it only after the next app release.
+- `tools/wilson_art.py water` rebuilds all of it. Not used: `island only.jpg` (plate comes from 5.jpg), `preview.jpg`, the portrait landing as such, the unused front-wave / foam variants, fire1/2 (not opened).
+
 ## 2026-11-08: names + Grand Project art (pack v4)
 - The player names the castaway: a name card after picking the look on a new island (16 characters, Skip allowed), "✏ Change name" in the castaway's menu. Shown in the menu title and the journal ("<Name>'s journal"), saved (`engine.cname`). "Castaway" when unnamed. The character is no longer implied to be a fixed "Johnny" anywhere on screen.
 - Owner's grand.jpg cut into `art/projects/` (11 sprites): Shellphone, Windmill, Coconut Radio, Spyglass Tower, Treehouse, Lighthouse, Glider, Submarine are placed on the island when built; tapping one shows its effect, the Treehouse is a bed. Slingshot, arcade and cinema are cut but their projects (GP09 / GP11 / GP12) are not built. Cellar, Desalinator, Museum, Shrine still have no art.
