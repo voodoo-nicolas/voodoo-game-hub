@@ -1,6 +1,6 @@
 # Beached (wilson) changelog
 
-## 2026-11-08: the Viral Pad (pack v6, built, not published)
+## 2026-11-08: the Viral Pad (pack v6)
 - Stick + A B X Y on the shared Pad (`stick_4`): stick walks (the three depth lanes blend into one free strip, `pad_limits`), A uses the nearest thing within 140 px (its tap menu, or the castaway's menu if nothing is near; at the waterline the shallows menu), B closes a menu or cancels the running action, X = nap, Y = sleep, info pill = journal, pause pill = pause. Keyboard: WASD + K L J I (the Pad's defaults), arrows still step. Taps work as before.
 - Apps without the Pad (older than v0.40.0 here) keep taps and the 💤 😴 buttons; with the Pad those buttons are hidden. Pad is APK-side, already in v0.40.0: no app release needed.
 - Tests: `tools/test_wilson_pad.gd` (10 checks on the real scene, backs up and restores the desktop save). Not built: Options screen for the Pad (kit "Controls" stays hidden, like the other adopters).
