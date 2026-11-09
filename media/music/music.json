@@ -2,7 +2,7 @@
  "_readme": "The hub's shared music library -- written by tools/music_drop (Viral Music Drop). Each track's OGG lives on the GitHub release named in base_url; phones download a track the first time a game wants its genre / pace (scripts/common/music_library.gd). pace: slow | moderate | fast = the Music styles calm | lively | techno. play: where music plays -- \"hub\", \"category:<English name>\", \"game:<id>\" -> {style: \"\" (the game decides) | calm | lively | techno (plays by itself) | off, genres: [] (any)}; field by field, a game's own entry wins over its category's.",
  "format": 1,
  "base_url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/music-v1/",
- "updated": "2026-11-02T05:28:07Z",
+ "updated": "2026-11-09T22:06:39Z",
  "genres": [
   {
    "id": "synthwave",
@@ -47,6 +47,10 @@
   {
    "id": "techno",
    "name": "Techno"
+  },
+  {
+   "id": "tropical",
+   "name": "Tropical"
   }
  ],
  "tracks": [
@@ -1062,6 +1066,136 @@
     "commercial_ok": true,
     "proof": "media/licenses/music/a5c9b5e2-freesound-music-licences.md",
     "text": "“Techno Dread” by kasa90 — CC0 1.0"
+   }
+  },
+  {
+   "id": "tropical-slow-golden-sunset-a2bf4466",
+   "title": "Golden Sunset",
+   "genre": "tropical",
+   "pace": "slow",
+   "file": "tropical-slow-golden-sunset-a2bf4466.ogg",
+   "size": 880441,
+   "sha256": "a2bf4466dac5ef5b169f3fb28b9bdb759b72c5d201bcf3e2b8fca42e109cdcfc",
+   "src_sha256": "a2bf4466dac5ef5b169f3fb28b9bdb759b72c5d201bcf3e2b8fca42e109cdcfc",
+   "duration": 56.5,
+   "lufs": -15.9,
+   "loop_start": 0.0,
+   "added": "2026-11-09",
+   "credit": {
+    "author": "Viral",
+    "licence": "own",
+    "licence_name": "Own work",
+    "source": "Composed with Claude",
+    "url": "",
+    "ai_tool": "",
+    "ai_plan": "",
+    "commercial_ok": true,
+    "proof": "media/licenses/music/89286cc1-beached-tropical-own-work.md",
+    "text": "“Golden Sunset” by Viral — Own work"
+   }
+  },
+  {
+   "id": "tropical-slow-lagoon-morning-d764d293",
+   "title": "Lagoon Morning",
+   "genre": "tropical",
+   "pace": "slow",
+   "file": "tropical-slow-lagoon-morning-d764d293.ogg",
+   "size": 779547,
+   "sha256": "d764d293db561703ef41171e2316ca20d918a3fd563317bcb5dadf2709f9be52",
+   "src_sha256": "d764d293db561703ef41171e2316ca20d918a3fd563317bcb5dadf2709f9be52",
+   "duration": 50.6,
+   "lufs": -16.1,
+   "loop_start": 0.0,
+   "added": "2026-11-09",
+   "credit": {
+    "author": "Viral",
+    "licence": "own",
+    "licence_name": "Own work",
+    "source": "Composed with Claude",
+    "url": "",
+    "ai_tool": "",
+    "ai_plan": "",
+    "commercial_ok": true,
+    "proof": "media/licenses/music/89286cc1-beached-tropical-own-work.md",
+    "text": "“Lagoon Morning” by Viral — Own work"
+   }
+  },
+  {
+   "id": "tropical-slow-palm-shade-282f6b4b",
+   "title": "Palm Shade",
+   "genre": "tropical",
+   "pace": "slow",
+   "file": "tropical-slow-palm-shade-282f6b4b.ogg",
+   "size": 693253,
+   "sha256": "282f6b4be6701125ae71d2efa053a5b295e8bf082b41ebd544129dee97b0313e",
+   "src_sha256": "282f6b4be6701125ae71d2efa053a5b295e8bf082b41ebd544129dee97b0313e",
+   "duration": 45.8,
+   "lufs": -15.6,
+   "loop_start": 0.0,
+   "added": "2026-11-09",
+   "credit": {
+    "author": "Viral",
+    "licence": "own",
+    "licence_name": "Own work",
+    "source": "Composed with Claude",
+    "url": "",
+    "ai_tool": "",
+    "ai_plan": "",
+    "commercial_ok": true,
+    "proof": "media/licenses/music/89286cc1-beached-tropical-own-work.md",
+    "text": "“Palm Shade” by Viral — Own work"
+   }
+  },
+  {
+   "id": "tropical-slow-rolling-surf-8339bc27",
+   "title": "Rolling Surf",
+   "genre": "tropical",
+   "pace": "slow",
+   "file": "tropical-slow-rolling-surf-8339bc27.ogg",
+   "size": 744613,
+   "sha256": "8339bc2745639871f587893e6919535f6d86d1df71c076ee51e588b115434b4d",
+   "src_sha256": "8339bc2745639871f587893e6919535f6d86d1df71c076ee51e588b115434b4d",
+   "duration": 48.0,
+   "lufs": -15.6,
+   "loop_start": 0.0,
+   "added": "2026-11-09",
+   "credit": {
+    "author": "Viral",
+    "licence": "own",
+    "licence_name": "Own work",
+    "source": "Composed with Claude",
+    "url": "",
+    "ai_tool": "",
+    "ai_plan": "",
+    "commercial_ok": true,
+    "proof": "media/licenses/music/89286cc1-beached-tropical-own-work.md",
+    "text": "“Rolling Surf” by Viral — Own work"
+   }
+  },
+  {
+   "id": "tropical-slow-starlit-shore-4fb99d19",
+   "title": "Starlit Shore",
+   "genre": "tropical",
+   "pace": "slow",
+   "file": "tropical-slow-starlit-shore-4fb99d19.ogg",
+   "size": 785663,
+   "sha256": "4fb99d1966c153c4f3efc24bff3bf65e8fee770b2da7fed05688ec6383211376",
+   "src_sha256": "0deaf416d803f934681afde68f7362545af062f31d93e9f1e839ab2f4999fc38",
+   "duration": 72.0,
+   "lufs": -16.0,
+   "loop_start": 0.0,
+   "added": "2026-11-09",
+   "credit": {
+    "author": "Viral",
+    "licence": "own",
+    "licence_name": "Own work",
+    "source": "Composed with Claude",
+    "url": "",
+    "ai_tool": "",
+    "ai_plan": "",
+    "commercial_ok": true,
+    "proof": "media/licenses/music/89286cc1-beached-tropical-own-work.md",
+    "text": "“Starlit Shore” by Viral — Own work"
    }
   }
  ],
