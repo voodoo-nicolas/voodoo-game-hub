@@ -94,3 +94,4 @@ cave + Grand Projects (M7), Voodoo skin, Pad controller ("Heather controller"), 
 
 - **W-30 Grand Projects (2026-11-08).** 12 of 16 built; no bottle mail (owner: no bottles for now), no arcade / cinema. One build at a time, 1-3 days, materials spent at the start. "Brass fitting" = brass tube, "palm ribs" = sticks. Projects have no art yet.
 - **W-31 Cave** left for later (owner, 2026-11-08), with bottles (M6).
+- **W-32 The castaway's name (2026-11-08).** The player types it (new-island card, "Change name" in the menu). Never "Johnny" on screen; `johnny` stays a code identifier (W-3). Local only, 16 chars, control characters stripped; if names ever travel in bottles they need the bottle moderation filter first.

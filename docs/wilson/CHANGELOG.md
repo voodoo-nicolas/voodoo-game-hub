@@ -1,5 +1,10 @@
 # Beached (wilson) changelog
 
+## 2026-11-08: names + Grand Project art (pack v4, built, not published)
+- The player names the castaway: a name card after picking the look on a new island (16 characters, Skip allowed), "✏ Change name" in the castaway's menu. Shown in the menu title and the journal ("<Name>'s journal"), saved (`engine.cname`). "Castaway" when unnamed. The character is no longer implied to be a fixed "Johnny" anywhere on screen.
+- Owner's grand.jpg cut into `art/projects/` (11 sprites): Shellphone, Windmill, Coconut Radio, Spyglass Tower, Treehouse, Lighthouse, Glider, Submarine are placed on the island when built; tapping one shows its effect, the Treehouse is a bed. Slingshot, arcade and cinema are cut but their projects (GP09 / GP11 / GP12) are not built. Cellar, Desalinator, Museum, Shrine still have no art.
+- Tests: 747 checks.
+
 ## 2026-11-08: daily quests + more side quests (pack v3)
 - Three daily quests a day (8 in the pool, picked from the island seed, counters reset each day), listed under "Today" in the journal, small material rewards, never required.
 - Five more side quests from what exists: Seeds of Doubt, Raft #1 / #2 (escape gags), SOS in the Sand, Talent Show. Side quests: 40 in all.

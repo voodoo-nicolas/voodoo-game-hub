@@ -58,7 +58,13 @@ func _run() -> void:
 	await _shot("00b_look_picker")
 	var picker = game.get_node_or_null("LookPicker")
 	if picker:
-		game._on_look_picked(picker, "female3", game._start_island)
+		game._on_look_picked(picker, "female3", game._new_island_look)
+		await _wait(10)
+		await _shot("00c_name_picker")
+		var np = game.get_node_or_null("NamePicker")
+		if np:
+			np.queue_free()
+		game._start_island("Robin", "female3")
 	await _wait(10)
 	if game.info and "overlay" in game.info and game.info.overlay and game.info.overlay.visible:
 		game.info.close()

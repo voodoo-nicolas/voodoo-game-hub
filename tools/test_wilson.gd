@@ -54,6 +54,7 @@ func _init() -> void:
 	test_m5b_more_quests()
 	test_m6_projects()
 	test_m7_dailies()
+	test_m8_name()
 	print("wilson: %d checks, %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -797,3 +798,15 @@ func test_m7_dailies() -> void:
 	ok("E01" in h.side_done and not "E02" in h.side_done, "E01 first raft")
 	h.bump("made:raft_section")
 	ok("E02" in h.side_done, "E02 second raft")
+
+func test_m8_name() -> void:
+	ok(Engine_.clean_name("  Robin  ") == "Robin", "name: trimmed")
+	ok(Engine_.clean_name("A very long castaway name indeed").length() <= 16, "name: 16 characters at most")
+	ok(Engine_.clean_name("Ro\nbin\t") == "Robin", "name: control characters dropped")
+	ok(Engine_.clean_name("   ") == "", "name: blank stays blank")
+	var e = fresh(at(2026, 6, 21, 9))
+	ok(e.cname == "", "new island: unnamed")
+	e.cname = "Robin"
+	var f = e.get_script().new()
+	f.from_dict(e.to_dict())
+	ok(f.cname == "Robin", "save keeps the name")

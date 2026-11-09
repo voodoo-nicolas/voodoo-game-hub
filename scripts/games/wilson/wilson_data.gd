@@ -210,13 +210,28 @@ const CAMP := {
 	"kiln": {"pos": Vector2(250, 520), "stand": Vector2(285, 535)},
 	"sundial": {"pos": Vector2(880, 552), "stand": Vector2(880, 535)},
 	"raft_section": {"pos": Vector2(640, 600), "stand": Vector2(640, 535)},
+	# Grand Projects (wilson_projects.gd keys), 2026-11-08
+	"treehouse": {"pos": Vector2(215, 482), "stand": Vector2(265, 482)},
+	"spyglass_tower": {"pos": Vector2(290, 440), "stand": Vector2(330, 432)},
+	"shellphone": {"pos": Vector2(790, 545), "stand": Vector2(760, 535)},
+	"coconut_radio": {"pos": Vector2(850, 552), "stand": Vector2(830, 535)},
+	"windmill": {"pos": Vector2(1205, 548), "stand": Vector2(1150, 535)},
+	"lighthouse": {"pos": Vector2(1120, 545), "stand": Vector2(1085, 535)},
+	"glider": {"pos": Vector2(345, 548), "stand": Vector2(320, 535)},
+	"submarine": {"pos": Vector2(1170, 595), "stand": Vector2(1170, 535)},
 }
 ## Structures drawn from the owner's camp-builds sheet: [sprite, width on screen in plate pixels,
 ## lift (hanging hammock)].
 const CAMP_ART := {"tent": ["tent", 140.0, 0.0], "hammock": ["hammock", 180.0, 6.0],
 	"garden_plot": ["garden_plot", 108.0, 0.0], "crafting_stump": ["crafting_stump", 66.0, 0.0],
 	"water_still": ["water_still", 70.0, 0.0], "drying_rack": ["drying_rack", 96.0, 0.0],
-	"frond_bed": ["frond_bed", 104.0, -6.0], "rain_catcher": ["rain_catcher", 50.0, 0.0]}
+	"frond_bed": ["frond_bed", 104.0, -6.0], "rain_catcher": ["rain_catcher", 50.0, 0.0],
+	# Grand Projects: [sprite, width, lift, folder] (grand.jpg -> art/projects/). Cellar, Desalinator,
+	# Museum and Shrine have no art yet: they work but are not drawn.
+	"treehouse": ["treehouse", 190.0, 0.0, "projects"], "spyglass_tower": ["spyglass_tower", 62.0, 0.0, "projects"],
+	"shellphone": ["shellphone", 70.0, 0.0, "projects"], "coconut_radio": ["coconut_radio", 64.0, 0.0, "projects"],
+	"windmill": ["windmill", 96.0, 0.0, "projects"], "lighthouse": ["lighthouse", 62.0, 0.0, "projects"],
+	"glider": ["glider", 110.0, 0.0, "projects"], "submarine": ["submarine", 96.0, 0.0, "projects"]}
 ## Recipe stations -> where the work happens (recipes.json "station").
 const STATIONS := {
 	"camp": Vector2(600, 482), "anchors": Vector2(522, 432), "shallows": Vector2(520, 535),

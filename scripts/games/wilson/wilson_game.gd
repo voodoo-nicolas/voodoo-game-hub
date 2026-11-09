@@ -127,12 +127,79 @@ func _draw_home_logo(c: Control) -> void:
 ## 🏝 New island (and ↺ Restart, and the debug reset): first pick the castaway's look (GDD / DIALOGUE:
 ## male or female, 8 sheets), then Day 1 on the beach, now. The old save stays until a look is picked.
 func new_island() -> void:
-	_pick_look(_start_island)
+	_pick_look(_new_island_look)
 
-func _start_island(look_id: String) -> void:
+## New island, step 1 done (the look): now ask for the name, then start.
+func _new_island_look(look_id: String) -> void:
+	_ask_name(_start_island.bind(look_id), "")
+
+## What the castaway is called on screen (the player's own words; "Castaway" until they type one).
+func castaway_name() -> String:
+	return engine.cname if engine and engine.cname != "" else tr("Castaway")
+
+## A small card with a text box (16 characters). `done` gets the cleaned name ("" = skipped).
+func _ask_name(done: Callable, current: String) -> void:
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _card_style())
+	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.name = "NamePicker"
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 14)
+	card.add_child(col)
+	var l := Label.new()
+	l.text = tr("What's your name?")
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 32)
+	l.add_theme_color_override("font_color", ACCENT)
+	col.add_child(l)
+	var edit := LineEdit.new()
+	edit.max_length = 16
+	edit.text = current
+	edit.placeholder_text = tr("Your name")
+	edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	edit.add_theme_font_size_override("font_size", 30)
+	edit.custom_minimum_size = Vector2(320, 64)
+	edit.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(edit)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	col.add_child(row)
+	var ok := Button.new()
+	ok.text = tr("OK")
+	ok.custom_minimum_size = Vector2(140, 56)
+	ok.pressed.connect(_on_name_done.bind(card, edit, done, true))
+	row.add_child(ok)
+	var skip := Button.new()
+	skip.text = tr("Skip")
+	skip.custom_minimum_size = Vector2(140, 56)
+	skip.pressed.connect(_on_name_done.bind(card, edit, done, false))
+	row.add_child(skip)
+	edit.text_submitted.connect(_on_name_submitted.bind(card, edit, done))
+	add_child(card)
+	if home:
+		move_child(card, home.get_index())
+	edit.grab_focus()
+
+func _on_name_submitted(_t: String, card: Control, edit: LineEdit, done: Callable) -> void:
+	_on_name_done(card, edit, done, true)
+
+func _on_name_done(card: Control, edit: LineEdit, done: Callable, use: bool) -> void:
+	var n: String = Engine_.clean_name(edit.text) if use else ""
+	card.queue_free()
+	done.call(n)
+
+func _change_name(n: String) -> void:
+	engine.cname = n
+	_save_game()
+	after_change()
+
+func _start_island(name_text: String, look_id: String) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	engine = Engine_.new()
 	engine.reset(now(), _tz(), _default_hemisphere(), 0, look_id)
+	engine.cname = name_text
 	engine.weather_auto = true
 	engine._weather_tick()
 	started = true
@@ -417,6 +484,8 @@ func _bed_spot(bed: String) -> Vector2:
 			return D.CAMP.frond_bed.pos + Vector2(0, -4)
 		"frond_shelter", "tent", "tent_mattress":
 			return D.CAMP.frond_shelter.pos + Vector2(10, 4)
+		"treehouse":
+			return D.CAMP.treehouse.pos + Vector2(0, -4)
 	return world.castaway.position if world else D.START_POS
 
 func _place_johnny_now() -> void:
@@ -689,9 +758,10 @@ func _johnny_menu(screen: Vector2) -> void:
 		[tr("🎒 Bag"), _open_bag, ""],
 		[tr("🔨 Craft"), _open_craft, ""],
 		[tr("👕 Change look"), _pick_look.bind(_change_look), ""],
+		[tr("✏ Change name"), _ask_name.bind(_change_name, engine.cname), ""],
 	]
 	opts[0][0] = "💤 %s  ·  %s" % [action_label("sleep", bed), _mins_text(engine.sleep_hours_for(bed) * 60.0)]
-	_popup_at(screen, _mood_text(), opts)
+	_popup_at(screen, "%s  ·  %s" % [castaway_name(), _mood_text()], opts)
 
 func _spot_menu(id: String, screen: Vector2) -> void:
 	var s: Dictionary = D.SPOTS[id]
@@ -752,7 +822,7 @@ func _structure_menu(id: String, screen: Vector2) -> void:
 			return
 		"canopy":
 			opts.append(_opt("nap", ""))
-		"hammock", "frond_bed", "frond_shelter", "tent":
+		"hammock", "frond_bed", "frond_shelter", "tent", "treehouse":
 			var bed := id
 			if id in ["tent", "frond_bed"] and engine.bed_available("tent_mattress"):
 				bed = "tent_mattress"
@@ -763,9 +833,17 @@ func _structure_menu(id: String, screen: Vector2) -> void:
 		"drying_rack":
 			opts.append(_opt("craft", "dry_fish"))
 	if opts.is_empty():
+		for pr in Projects.LIST:
+			if pr.key == id:
+				_show_toast("%s: %s" % [Projects.project_name(pr), tr(str(pr.effect))])
+				return
 		_show_toast(_name(id))
 		return
-	var title := _name(id)
+	var pj := ""
+	for pr in Projects.LIST:
+		if pr.key == id:
+			pj = Projects.project_name(pr)
+	var title := pj if pj != "" else _name(id)
 	if id == "campfire":
 		title += "  ·  " + tr({"lit": "burning nicely", "embers": "embers (rain)", "dead": "out cold"}.get(engine.fire_state(), ""))
 	_popup_at(screen, title, opts)
@@ -1407,7 +1485,7 @@ func _on_project_pin(id: String) -> void:
 	_open_projects()
 
 func _open_journal() -> void:
-	var body := _open_panel("📓 " + tr("Journal"))
+	var body := _open_panel("📓 " + tr("%s's journal") % castaway_name())
 	var sk := Label.new()
 	sk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sk.add_theme_color_override("font_color", ACCENT)

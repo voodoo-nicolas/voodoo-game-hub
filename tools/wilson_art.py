@@ -350,3 +350,10 @@ HUD = {"heart": (128, 105), "food": (352, 105), "energy": (573, 105), "water": (
 for _i, (_x, _y) in enumerate([(x, y) for y in (248, 308, 368) for x in (720, 778, 836)]):
     HUD["moon_%d" % (_i + 1)] = (_x, _y)
 cut_sheet("hud.jpg", {k: (x * 1.2222, y * 1.2222) for k, (x, y) in HUD.items()}, "hud", max_side=96)
+
+# Grand Projects (grand.jpg, 1100x960, owner 2026-11-08). Keys = wilson_projects.gd `key`s; the slingshot,
+# arcade and cinema are drawn too but their projects (GP09 / GP11 / GP12) are not built yet.
+GRAND = {"shellphone": (190, 150), "windmill": (500, 160), "coconut_radio": (880, 150),
+         "spyglass_tower": (160, 480), "treehouse": (450, 500), "lighthouse": (750, 480), "slingshot": (975, 470),
+         "glider": (170, 800), "submarine": (440, 820), "arcade": (680, 800), "cinema": (940, 790)}
+cut_sheet("grand.jpg", GRAND, "projects", scale=0.5, min_area=900)

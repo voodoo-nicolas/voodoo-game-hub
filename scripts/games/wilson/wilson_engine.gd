@@ -22,6 +22,7 @@ const STEP := 600.0  # simulation step, seconds
 var t := 0.0                 # unix seconds the island has reached
 var tz := 0                  # local time offset, seconds (Time.get_time_zone_from_system().bias * 60)
 var hemisphere := "south"
+var cname := ""              # the castaway's name, typed by the player ("" = unnamed)
 var look := "male1"          # the castaway's look (8 sheets, picked on a new island)
 var start_day := 0           # local day index of Day 1
 var bars := {"hp": 100.0, "food": 100.0, "water": 100.0, "energy": 100.0}
@@ -74,6 +75,7 @@ var _low := {}               # bar -> true while its low-bar line has been said
 func reset(now: float, tz_seconds: int = 0, hemi: String = "south", seed_value: int = 0, look_id: String = "male1") -> void:
 	t = now
 	look = look_id
+	cname = ""
 	tz = tz_seconds
 	hemisphere = hemi
 	start_day = day_index(now)
@@ -1551,7 +1553,7 @@ func debug_give(id: String, n: int) -> void:
 
 func to_dict() -> Dictionary:
 	return {
-		"v": SAVE_VERSION, "t": t, "tz": tz, "hemisphere": hemisphere, "look": look, "start_day": start_day,
+		"v": SAVE_VERSION, "t": t, "tz": tz, "hemisphere": hemisphere, "look": look, "cname": cname, "start_day": start_day,
 		"bars": bars, "mood": mood, "slots": slots, "slot_count": slot_count, "ground": ground,
 		"structures": structures, "debris": debris, "palms": palms, "spots": spots, "queue": queue,
 		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest,
@@ -1568,6 +1570,7 @@ func from_dict(d: Dictionary) -> bool:
 	tz = int(d.get("tz", 0))
 	hemisphere = str(d.get("hemisphere", "south"))
 	look = str(d.get("look", "male1"))
+	cname = str(d.get("cname", ""))
 	start_day = int(d.start_day)
 	bars = d.bars
 	mood = float(d.get("mood", 60))
@@ -1615,3 +1618,12 @@ func from_dict(d: Dictionary) -> bool:
 	rng.seed = int(str(d.get("rng_seed", "1")))
 	rng.state = int(str(d.get("rng_state", "0")))
 	return true
+
+## A typed name made safe: trimmed, control characters dropped, 16 characters at most.
+static func clean_name(raw: String) -> String:
+	var out := ""
+	for i in raw.strip_edges().length():
+		var c := raw.strip_edges().substr(i, 1)
+		if c.unicode_at(0) >= 32 and c.unicode_at(0) != 127:
+			out += c
+	return out.substr(0, 16).strip_edges()

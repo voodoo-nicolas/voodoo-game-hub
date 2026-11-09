@@ -188,7 +188,7 @@ func sync() -> void:
 				p.position = D.CAMP[id].pos
 				if D.CAMP_ART.has(id):
 					var art: Array = D.CAMP_ART[id]
-					p.tex = _tex("camp/%s.webp" % art[0])
+					p.tex = _tex("%s/%s.webp" % [art[3] if art.size() > 3 else "camp", art[0]])
 					p.tex_w = art[1]
 					p.tex_lift = art[2]
 				sorted.add_child(p)

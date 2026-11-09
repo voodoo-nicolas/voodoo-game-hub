@@ -10872,5 +10872,10 @@
  "Drink 2 things": "Tomá 2 bebidas",
  "Craft something": "Fabricá algo",
  "Today": "Hoy",
- "Daily done: %s.": "Diaria cumplida: %s."
+ "Daily done: %s.": "Diaria cumplida: %s.",
+ "What's your name?": "¿Cómo te llamás?",
+ "OK": "OK",
+ "Castaway": "Náufrago",
+ "✏ Change name": "✏ Cambiar nombre",
+ "%s's journal": "Diario de %s"
 }
