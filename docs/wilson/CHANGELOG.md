@@ -6,6 +6,7 @@
 - Craft list: a recipe is listed only when every material it needs is in the bag at least once; in the opening only the spark kit and the campfire.
 - Odd jobs and Pastimes appear in the castaway menu only after the campfire is built.
 - Painted sea: the scrolling shader foam lines are off (the "sea mist"); A / Y / X were already direct / menu / bag.
+- New 9th look: the blonde (`female5`, 19 poses cut from her sheet; picker shows 5 per row). Her extra action sheets (carving, weaving, spear, fishing cycle) are saved in D:/dev/Wilson (`female5_*.jpg`) but not cut or wired yet.
 - Tests: 850 checks.
 
 ## 2026-11-09: guided opening, locked identity, dawn start (built, not published)

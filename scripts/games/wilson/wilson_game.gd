@@ -257,7 +257,7 @@ func _pick_look(done: Callable) -> void:
 	l.add_theme_color_override("font_color", ACCENT)
 	col.add_child(l)
 	var grid := GridContainer.new()
-	grid.columns = 4
+	grid.columns = 5
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	var center := CenterContainer.new()

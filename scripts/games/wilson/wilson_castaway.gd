@@ -9,7 +9,7 @@ extends Node2D
 const ART := "res://games/wilson/art/chars/"
 const POSES := ["idle", "walk1", "walk2", "walk3", "walk4", "run", "sit", "sleep", "hammock", "fish",
 	"chop", "craft", "eat", "drink", "shrug", "wave", "facepalm", "sulk", "collapse"]
-const LOOKS := ["male1", "male2", "male3", "male4", "female1", "female2", "female3", "female4"]
+const LOOKS := ["male1", "male2", "male3", "male4", "female1", "female2", "female3", "female4", "female5"]
 ## Standing height on screen (plate pixels) at the middle lane.
 const HEIGHT := 124.0
 const SKIN := Color("e0a878")

@@ -6380,7 +6380,7 @@
   },
   {
    "file": "games/wilson/art/",
-   "what": "Beached: island clean plate (sky cut out), palms C and D, wreck debris, Landing; chars/ (8 castaway looks x 19 poses), icons/ (inventory + rare materials), camp/ (camp builds), fire/ (fire parts), hud/ (HUD icons); cloud_1/cloud_2 drawn in code by Claude Code; projects/ (Grand Projects sheet), sea/ (sea layer + front waves tiles, foam arcs), sky/ (the painted sun + 2 clouds), landing_logo.webp (Landing + the wooden Beached logo)",
+   "what": "Beached: island clean plate (sky cut out), palms C and D, wreck debris, Landing; chars/ (9 castaway looks x 19 poses), icons/ (inventory + rare materials), camp/ (camp builds), fire/ (fire parts), hud/ (HUD icons); cloud_1/cloud_2 drawn in code by Claude Code; projects/ (Grand Projects sheet), sea/ (sea layer + front waves tiles, foam arcs), sky/ (the painted sun + 2 clouds), landing_logo.webp (Landing + the wooden Beached logo)",
    "source": "D:/dev/Wilson: 4.jpg, 5.jpg, 6.jpg, male1-4.jpg, female1/3/4.jpg + demale2.jpg (= female2), inventory.jpg, rare materials.jpg, camp builds.jpg, fire3.jpg, hud.jpg; grand.jpg, sea layer.jpg, front waves.jpg, sea foam2.jpg, sky layer.jpg, landing screen.jpg",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
