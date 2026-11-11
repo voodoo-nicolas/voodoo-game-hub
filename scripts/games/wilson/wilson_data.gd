@@ -224,6 +224,11 @@ const CAMP := {
 	"lighthouse": {"pos": Vector2(1120, 545), "stand": Vector2(1085, 535)},
 	"glider": {"pos": Vector2(345, 548), "stand": Vector2(320, 535)},
 	"submarine": {"pos": Vector2(1170, 595), "stand": Vector2(1170, 535)},
+	# the four that had no art until 2026-11-10
+	"desalinator": {"pos": Vector2(1030, 580), "stand": Vector2(1030, 535)},
+	"cellar": {"pos": Vector2(430, 552), "stand": Vector2(470, 535)},
+	"museum": {"pos": Vector2(610, 548), "stand": Vector2(655, 535)},
+	"shrine": {"pos": Vector2(1265, 505), "stand": Vector2(1215, 482)},
 }
 ## Structures drawn from the owner's camp-builds sheet: [sprite, width on screen in plate pixels,
 ## lift (hanging hammock)].
@@ -232,11 +237,18 @@ const CAMP_ART := {"tent": ["tent", 140.0, 0.0], "hammock": ["hammock", 180.0, 6
 	"water_still": ["water_still", 70.0, 0.0], "drying_rack": ["drying_rack", 96.0, 0.0],
 	"frond_bed": ["frond_bed", 104.0, -6.0], "rain_catcher": ["rain_catcher", 50.0, 0.0],
 	# Grand Projects: [sprite, width, lift, folder] (grand.jpg -> art/projects/). Cellar, Desalinator,
-	# Museum and Shrine have no art yet: they work but are not drawn.
+	# (Cellar, Desalinator, Museum and Shrine got art on 2026-11-10.)
 	"treehouse": ["treehouse", 190.0, 0.0, "projects"], "spyglass_tower": ["spyglass_tower", 62.0, 0.0, "projects"],
 	"shellphone": ["shellphone", 70.0, 0.0, "projects"], "coconut_radio": ["coconut_radio", 64.0, 0.0, "projects"],
 	"windmill": ["windmill", 96.0, 0.0, "projects"], "lighthouse": ["lighthouse", 62.0, 0.0, "projects"],
-	"glider": ["glider", 110.0, 0.0, "projects"], "submarine": ["submarine", 96.0, 0.0, "projects"]}
+	"glider": ["glider", 110.0, 0.0, "projects"], "submarine": ["submarine", 96.0, 0.0, "projects"],
+		"desalinator": ["desalinator", 120.0, 0.0, "projects"], "cellar": ["cellar", 120.0, 0.0, "projects"],
+		"museum": ["museum", 120.0, 0.0, "projects"], "shrine": ["shrine", 100.0, 0.0, "projects"],
+		# 2026-11-10 batch (tools/wilson_art_new.py); the sand tile is part of each picture
+		"frond_shelter": ["frond_shelter", 140.0, 0.0], "fish_trap": ["fish_trap", 110.0, 0.0],
+		"sos_flag": ["sos_flag", 64.0, 0.0], "canopy": ["canopy", 140.0, 0.0],
+		"smokehouse": ["smokehouse", 120.0, 0.0], "kiln": ["kiln", 100.0, 0.0],
+		"sundial": ["sundial", 96.0, 0.0], "raft_section": ["raft_section", 110.0, 0.0]}
 ## Recipe stations -> where the work happens (recipes.json "station").
 const STATIONS := {
 	"camp": Vector2(600, 482), "anchors": Vector2(522, 432), "shallows": Vector2(520, 535),
