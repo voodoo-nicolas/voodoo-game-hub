@@ -116,3 +116,23 @@ def wide_plate():
 
 
 wide_plate()
+
+
+# ---- 2026-11-10 later: palm2.jpg (a leaning palm = palm_E, a young palm = palm_F) and bamboo.jpg (clump + 3 items).
+# The checkerboard here is dark grey: min_v 80. cut() prints the sprite size; the foot of the trunk is measured below.
+def foot(path):
+    im = Image.open(OUT + path).convert("RGBA")
+    a = np.asarray(im)
+    ys, xs = np.nonzero(a[..., 3] > 128)
+    low = ys > ys.max() - 6
+    return im.size, int(xs[low].mean()), int(ys.max())
+
+
+cut("palm2.jpg", (60, 60, 800, 720), "palm_E", 320, min_v=80, max_sat=12, inner=True)
+cut("palm2.jpg", (820, 260, 1140, 720), "palm_F", 200, min_v=80, max_sat=12, inner=True)
+for n in ("palm_E", "palm_F"):
+    print(n, foot(n + ".webp"))
+cut("bamboo.jpg", (150, 30, 760, 740), "camp/bamboo_clump", 260, min_v=120, max_sat=12, inner=True)
+cut("bamboo.jpg", (960, 30, 1230, 370), "icons/bamboo", 128, min_v=120, max_sat=12, inner=True)
+cut("bamboo.jpg", (900, 300, 1240, 550), "icons/bamboo_pole", 128, min_v=120, max_sat=12, inner=True)
+cut("bamboo.jpg", (890, 530, 1250, 740), "icons/bamboo_bundle", 128, min_v=120, max_sat=12, inner=True)

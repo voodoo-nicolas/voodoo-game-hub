@@ -166,8 +166,8 @@ const PALMS := {
 	"B": {"pos": Vector2(910, 408), "top": Vector2(926, 266), "choppable": false},
 	"C": {"pos": Vector2(1500, 412), "top": Vector2(1483, 272), "choppable": true},
 	"D": {"pos": Vector2(1610, 458), "top": Vector2(1660, 303), "choppable": true},
-	"E": {"pos": Vector2(1190, 404), "top": Vector2(1173, 264), "choppable": true},
-	"F": {"pos": Vector2(610, 448), "top": Vector2(660, 293), "choppable": true},
+	"E": {"pos": Vector2(1190, 404), "top": Vector2(1295, 132), "choppable": true},
+	"F": {"pos": Vector2(610, 448), "top": Vector2(602, 285), "choppable": false}      # a young palm: shake only,
 }
 ## Where Johnny stands to work a palm.
 const PALM_STAND := {"A": Vector2(767, 432), "B": Vector2(882, 432), "C": Vector2(1440, 470), "D": Vector2(1560, 520),
@@ -192,6 +192,7 @@ const SPOTS := {
 	"fronds": {"pos": Vector2(684, 420), "stand": Vector2(690, 432), "item": "frond", "n": 4, "max": 30, "per_h": 2.0, "min": 3},
 	"dry_fronds": {"pos": Vector2(1009, 418), "stand": Vector2(1009, 432), "item": "dry_frond", "n": 2, "max": 10, "per_h": 1.0, "min": 3},
 	"shells": {"pos": Vector2(1361, 538), "stand": Vector2(1339, 535), "item": "shell", "n": 2, "max": 16, "per_h": 1.0, "min": 3},
+	"bamboo": {"pos": Vector2(1100, 424), "stand": Vector2(1100, 440), "item": "bamboo", "n": 2, "max": 12, "per_h": 1.0, "min": 4},
 	"seaweed": {"pos": Vector2(1152, 578), "stand": Vector2(1152, 535), "item": "seaweed", "n": 2, "max": 12, "per_h": 1.0, "min": 3},
 }
 ## The shallows (fishing, seawater) and the sealed rock (GDD §13: cave opens in M7).
@@ -251,7 +252,7 @@ const CAMP_ART := {"tent": ["tent", 140.0, 0.0], "hammock": ["hammock", 180.0, 6
 		"frond_shelter": ["frond_shelter", 140.0, 0.0], "fish_trap": ["fish_trap", 110.0, 0.0],
 		"sos_flag": ["sos_flag", 64.0, 0.0], "canopy": ["canopy", 140.0, 0.0],
 		"smokehouse": ["smokehouse", 120.0, 0.0], "kiln": ["kiln", 100.0, 0.0],
-		"sundial": ["sundial", 96.0, 0.0], "raft_section": ["raft_section", 110.0, 0.0]}
+		"sundial": ["sundial", 96.0, 0.0], "bamboo_clump": ["bamboo_clump", 100.0, 0.0], "raft_section": ["raft_section", 110.0, 0.0]}
 ## Recipe stations -> where the work happens (recipes.json "station").
 const STATIONS := {
 	"camp": Vector2(910, 482), "anchors": Vector2(824, 432), "shallows": Vector2(822, 535),

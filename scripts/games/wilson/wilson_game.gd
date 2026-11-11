@@ -1174,7 +1174,7 @@ func _johnny_menu(screen: Vector2) -> void:
 func _pastimes_menu(group: String = "long") -> void:
 	var opts := []
 	if group == "quick":
-		for sid in ["stones", "shells", "sticks", "fronds", "dry_fronds", "seaweed"]:
+		for sid in ["stones", "shells", "sticks", "fronds", "dry_fronds", "seaweed", "bamboo"]:
 			if int(engine.stats.get("got:" + str(D.SPOTS[sid].item), 0)) <= 0:
 				continue      # only things he has already picked up: the list grows as he finds more
 			var o: Array = _opt("gather", sid)

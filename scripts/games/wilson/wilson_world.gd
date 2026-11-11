@@ -182,8 +182,8 @@ func setup(e) -> void:
 	sway.code = SWAY_SHADER
 	# palm art (palm_C / palm_D were cut out of the old plate): the sprite's top-left relative to its trunk base.
 	# The wide plate has no painted palms, so all six (A and B hold the hammock) are sprites; E and F are new.
-	var palm_art := {"A": "D", "B": "C", "C": "C", "D": "D", "E": "D", "F": "C"}
-	var palm_off := {"C": Vector2(-102, -190), "D": Vector2(-26, -208)}
+	var palm_art := {"A": "D", "B": "C", "C": "C", "D": "D", "E": "E", "F": "F"}
+	var palm_off := {"C": Vector2(-102, -190), "D": Vector2(-26, -208), "E": Vector2(-45, -322), "F": Vector2(-73, -203)}
 	for id in D.PALMS:
 		var s := Sprite2D.new()
 		s.texture = _tex("palm_%s.webp" % palm_art[id])
@@ -203,6 +203,13 @@ func setup(e) -> void:
 		st.visible = false
 		sorted.add_child(st)
 		_stumps[id] = st
+	var clump := Sprite2D.new()      # the bamboo clump: scenery on the gather spot (a sand mound in the picture)
+	clump.texture = _tex("camp/bamboo_clump.webp")
+	if clump.texture:
+		clump.position = D.SPOTS.bamboo.pos + Vector2(0, 14)
+		clump.scale = Vector2.ONE * (D.CAMP_ART.bamboo_clump[1] / float(clump.texture.get_width()))
+		clump.offset = Vector2(0, -clump.texture.get_height() / 2.0)
+		sorted.add_child(clump)
 	for id in D.DEBRIS:
 		var d: Dictionary = D.DEBRIS[id]
 		var s := Sprite2D.new()

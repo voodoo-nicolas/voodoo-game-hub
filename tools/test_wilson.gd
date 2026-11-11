@@ -235,7 +235,7 @@ func test_json() -> void:
 		ok(not ids.has(it.id), "no duplicate item id: %s" % it.id)
 		ids[it.id] = true
 		ok(it.has("en") and it.has("es"), "item %s has en + es" % it.id)
-	ok(ids.size() == 85, "85 items (got %d)" % ids.size())
+	ok(ids.size() == 88, "88 items (got %d)" % ids.size())
 	var rids := {}
 	for r in D.json("recipes").recipes:
 		ok(not rids.has(r.id), "no duplicate recipe id: %s" % r.id)
@@ -249,7 +249,7 @@ func test_json() -> void:
 		for k in ["tool", "needs"]:
 			if r.has(k):
 				ok(ids.has(r[k]), "recipe %s %s %s exists" % [r.id, k, r[k]])
-	ok(rids.size() == 50, "50 recipes (got %d)" % rids.size())
+	ok(rids.size() == 52, "52 recipes (got %d)" % rids.size())
 	for k in D.json("recipes").debris_loot:
 		for pair in D.json("recipes").debris_loot[k]:
 			ok(ids.has(pair[0]), "debris %s loot %s exists" % [k, pair[0]])
@@ -461,7 +461,7 @@ func test_m3_combine() -> void:
 	ok(h.ok and h.recipe == "rope_fiber" and h.queued, "fiber + fiber = rope")
 	ok(g.undiscovered().size() > 0, "some recipes left to find")
 
-## Every one of the 50 recipes can be made: give its parts, build its station, play it through.
+## Every one of the 52 recipes can be made: give its parts, build its station, play it through.
 func test_m3_all_recipes() -> void:
 	ok(D.MAX_TIER == 4, "all four tiers on")
 	var made := 0
@@ -488,7 +488,7 @@ func test_m3_all_recipes() -> void:
 		else:
 			ok(e.count(r.out) >= int(r.get("qty", 1)), "recipe %s made %s" % [r.id, r.out])
 		made += 1
-	ok(made == 50, "50 recipes made (got %d)" % made)
+	ok(made == 52, "52 recipes made (got %d)" % made)
 
 func test_m3_wear_spoil() -> void:
 	var e = fresh(at(2026, 6, 21, 9))

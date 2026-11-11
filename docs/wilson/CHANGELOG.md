@@ -121,3 +121,4 @@ New
 - Every layout position was mapped x' = 1.1x + 250 (the old content sits on the middle of the sand; the rock outcrop on the left is the sealed cave; the right spit is scenery, not walkable). Lanes, cave, shore, foam, shallows hit box updated.
 - Palms: the old plate had A and B painted in; now all six are sprites (palm_C / palm_D art). New choppable palms E and F; old saves get them fresh (`from_dict`). No bamboo yet (needs art + items + recipes).
 - Art batch: 58 icons, 8 builds, 4 Grand Projects (cellar, desalinator, museum, shrine) placed; crate / barrel smaller, campfire right; Grand Project previews hidden in the craft list.
+- Later 2026-11-10: bamboo (a clump on the back sand: gather spot "bamboo", items bamboo / bamboo_pole / bamboo_bundle, recipes cut poles (knife) and bundle (4 poles + rope); nothing uses them yet), palm E is now the big leaning palm and palm F a young palm (shake only) from `palm2.jpg`. Old saves get the new spot and palms.

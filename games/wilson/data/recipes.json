@@ -50,5 +50,7 @@
 {"id":"fish_stew","out":"fish_stew","qty":1,"out_type":"item","in":[["fish_small",1],["seaweed",1],["coconut",1]],"tool":"coconut_bowl","station":"campfire","min":20,"en":2,"tier":2},
 {"id":"roast_potato","out":"sweet_potato_roast","qty":1,"out_type":"item","in":[["sweet_potato",1]],"station":"campfire","min":15,"en":1,"tier":2},
 {"id":"seaweed_crisps","out":"seaweed_crisps","qty":2,"out_type":"item","in":[["seaweed",2],["salt",1]],"station":"rack","min":60,"en":1,"tier":2},
-{"id":"wind_chime","out":"wind_chime","qty":1,"out_type":"item","in":[["tin_can",2],["shell",3],["rope",1]],"station":"stump","min":15,"en":3,"tier":3}
+{"id":"wind_chime","out":"wind_chime","qty":1,"out_type":"item","in":[["tin_can",2],["shell",3],["rope",1]],"station":"stump","min":15,"en":3,"tier":3},
+{"id":"bamboo_pole","out":"bamboo_pole","qty":2,"out_type":"item","in":[["bamboo",1]],"tool":"knife","station":"hands","min":4,"en":2,"tier":1},
+{"id":"bamboo_bundle","out":"bamboo_bundle","qty":1,"out_type":"item","in":[["bamboo_pole",4],["rope",1]],"station":"hands","min":8,"en":3,"tier":1}
 ]}
