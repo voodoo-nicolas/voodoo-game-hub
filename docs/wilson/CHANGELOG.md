@@ -115,3 +115,9 @@ New
 - M2: HP / food / energy / water from balance.json with the offline floor of 15; sleep on 5 bed types with all modifiers, power naps (2 a day), Rested / Sandy, collapse and faint; tutorial T01-T12; bag (12 slots, +20 with the barrel); tier 1-2 crafting (27 recipes); daily shore delivery with a bottle.
 - Tests: `tools/test_wilson.gd` (551 checks incl. every KICKOFF acceptance test and a T01-T12 run-through); screenshots: `tools/shot_wilson.gd`.
 - Stubbed / not built: weather controller (debug-forced only), tides, Johnny's real sprites, structure art, sounds, Pad controller, Voodoo skin, M3+ (see DECISIONS.md).
+
+## 2026-11-10: wide island
+- New plate `art/plate.webp` 2087x768 (from `D:/dev/Wilson/island wide.jpg`, built by `tools/wilson_art_new.py`; the old one is `plate_old.webp`). `D.W` = 2087, `HORIZON_Y` 324; the camera already follows the castaway, so it just pans further.
+- Every layout position was mapped x' = 1.1x + 250 (the old content sits on the middle of the sand; the rock outcrop on the left is the sealed cave; the right spit is scenery, not walkable). Lanes, cave, shore, foam, shallows hit box updated.
+- Palms: the old plate had A and B painted in; now all six are sprites (palm_C / palm_D art). New choppable palms E and F; old saves get them fresh (`from_dict`). No bamboo yet (needs art + items + recipes).
+- Art batch: 58 icons, 8 builds, 4 Grand Projects (cellar, desalinator, museum, shrine) placed; crate / barrel smaller, campfire right; Grand Project previews hidden in the craft list.

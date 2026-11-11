@@ -800,7 +800,7 @@ func _bed_spot(bed: String) -> Vector2:
 		"shade":
 			if engine.structures.has("hammock"):
 				return D.CAMP.hammock.pos + Vector2(0, -6)
-			return Vector2(470, 440)
+			return Vector2(767, 440)
 		"frond_bed":
 			return D.CAMP.frond_bed.pos + Vector2(0, -4)
 		"frond_shelter", "tent", "tent_mattress":

@@ -1,6 +1,6 @@
 extends Node2D
 
-## Beached: the island in plate pixels (1376x768; the game scales and places this node). Back to front
+## Beached: the island in plate pixels (2087x768; the game scales and places this node). Back to front
 ## (KICKOFF M0): [sky: wilson_skyview.gd, its own canvas layer] -> sea + island plate (shader: moving
 ## foam lines + sparkles on the painted sea only, the island untouched) -> object sprites, props,
 ## campfire and Johnny (y-sorted) -> foreground waves. The CanvasModulate tint lives on this layer.
@@ -14,7 +14,7 @@ const ART := "res://games/wilson/art/"
 const SEA_SHADER := """
 shader_type canvas_item;
 uniform float amp = 0.4;
-uniform float horizon = 0.4258;
+uniform float horizon = 0.4219;
 uniform float night = 0.0;
 uniform sampler2D sea_tex : source_color, filter_linear, repeat_enable;
 uniform float use_tex = 0.0;
@@ -30,9 +30,9 @@ void fragment() {
 	float sea2 = smoothstep(0.03, 0.12, c2.b - c2.r);
 	vec3 col = mix(c.rgb, c2.rgb, sea * sea2);
 	// the owner's sea layer (art/sea/sea_tile.webp) scrolls over the painted sea; the island is untouched
-	vec2 pp = vec2(UV.x * 1376.0, UV.y * 768.0);
+	vec2 pp = vec2(UV.x * 2087.0, UV.y * 768.0);
 	vec2 tuv = vec2(pp.x / 880.0 + TIME * (0.006 + amp * 0.012) + sin(TIME * 0.4 + pp.y * 0.012) * 0.004 * (0.4 + amp),
-		(pp.y - 327.0) / 1000.0 + sin(TIME * 0.5 + pp.x * 0.005) * 0.004 * (0.4 + amp));
+		(pp.y - 324.0) / 1000.0 + sin(TIME * 0.5 + pp.x * 0.005) * 0.004 * (0.4 + amp));
 	col = mix(col, texture(sea_tex, tuv).rgb, sea * 0.88 * use_tex);
 	// scrolling sine foam lines, closer together far away
 	float freq = mix(260.0, 70.0, depth);
@@ -155,8 +155,8 @@ func setup(e) -> void:
 		_sea_mat.set_shader_parameter("use_tex", 1.0)
 	add_child(plate)
 	# foam arcs from the owner's sea foam sheet, pulsing at the shoreline (KICKOFF: +-4 % scale / alpha)
-	for f in [["foam_3", Vector2(1316, 492), 0.0, false, 0.45], ["foam_3", Vector2(84, 498), 0.0, true, 0.45],
-			["foam_1", Vector2(340, 604), 90.0, false, 0.5], ["foam_2", Vector2(1010, 606), -90.0, false, 0.5]]:
+	for f in [["foam_3", Vector2(1760, 500), 0.0, false, 0.45], ["foam_3", Vector2(170, 505), 0.0, true, 0.45],
+			["foam_1", Vector2(700, 598), 90.0, false, 0.5], ["foam_2", Vector2(1330, 598), -90.0, false, 0.5]]:
 		var ft := _tex("sea/%s.webp" % f[0])
 		if ft == null:
 			continue
@@ -180,17 +180,20 @@ func setup(e) -> void:
 	_glow_shader.code = GLOW_SHADER
 	var sway := Shader.new()
 	sway.code = SWAY_SHADER
-	var palm_origin := {"C": Vector2(1048, 140), "D": Vector2(1196, 232)}
-	for id in palm_origin:
+	# palm art (palm_C / palm_D were cut out of the old plate): the sprite's top-left relative to its trunk base.
+	# The wide plate has no painted palms, so all six (A and B hold the hammock) are sprites; E and F are new.
+	var palm_art := {"A": "D", "B": "C", "C": "C", "D": "D", "E": "D", "F": "C"}
+	var palm_off := {"C": Vector2(-102, -190), "D": Vector2(-26, -208)}
+	for id in D.PALMS:
 		var s := Sprite2D.new()
-		s.texture = _tex("palm_%s.webp" % id)
+		s.texture = _tex("palm_%s.webp" % palm_art[id])
 		s.centered = false
 		var base: Vector2 = D.PALMS[id].pos
 		s.position = base
-		s.offset = palm_origin[id] - base
+		s.offset = palm_off[palm_art[id]]
 		var m := ShaderMaterial.new()
 		m.shader = sway
-		m.set_shader_parameter("phase", 1.7 if id == "C" else 0.4)
+		m.set_shader_parameter("phase", 0.4 + 0.9 * float(id.unicode_at(0) - 65))
 		s.material = m
 		sorted.add_child(s)
 		_palms[id] = s
@@ -390,7 +393,7 @@ func hit(p: Vector2) -> Dictionary:
 			return {"type": "palm", "id": id}
 	if Rect2(D.CAVE.pos + Vector2(-80, -110), Vector2(170, 150)).has_point(p):
 		return {"type": "cave"}
-	if p.y > 560.0 and p.y < 700.0 and p.x > 150.0 and p.x < 1250.0:
+	if p.y > 575.0 and p.y < 700.0 and p.x > 380.0 and p.x < 1650.0:
 		return {"type": "shallows"}
 	return {"type": ""}
 

@@ -146,89 +146,92 @@ const STRUCTURE_NAMES := {
 	"raft_section": "Raft section",
 }
 
-## Island layout in plate pixels (art/ref/ref_05_clean_plate = games/wilson/art/plate.webp, 1376x768).
-const W := 1376.0
+## Island layout in plate pixels (games/wilson/art/plate.webp, 2087x768 since 2026-11-10; the old 1376 plate is plate_old.webp; old x were mapped x*1.1+250).
+const W := 2087.0
 const H := 768.0
-const HORIZON_Y := 327.0
+const HORIZON_Y := 324.0
 ## Walkable depth lanes (KICKOFF M1: 2-3 lanes): y and the x range of each.
 const LANES := [
-	{"y": 398.0, "x0": 300.0, "x1": 800.0},      # owner, 2026-11-09: more walkable ground, closer to the back palms
-	{"y": 470.0, "x0": 165.0, "x1": 1060.0},
-	{"y": 535.0, "x0": 190.0, "x1": 1210.0},
+	{"y": 410.0, "x0": 640.0, "x1": 1560.0},     # owner, 2026-11-09: more walkable ground, closer to the back palms
+	{"y": 470.0, "x0": 440.0, "x1": 1650.0},     # wide plate 2026-11-10: the sand runs x ~190-1750 (a rock on the left)
+	{"y": 535.0, "x0": 430.0, "x1": 1480.0},
 ]
 ## Where Johnny wakes up on Day 1.
-const START_POS := Vector2(640, 482)
+const START_POS := Vector2(954, 482)
 const WALK_SPEED := 150.0  # plate pixels per second (walking is free: balance "walk": 0)
 
-## Palms (GDD §13): A and B hold the hammock, C and D are for chopping.
+## Palms (GDD §13): A and B hold the hammock, C-F are for chopping (E and F are new with the wide island).
 const PALMS := {
-	"A": {"pos": Vector2(445, 382), "top": Vector2(428, 240), "choppable": false},
-	"B": {"pos": Vector2(600, 382), "top": Vector2(615, 240), "choppable": false},
-	"C": {"pos": Vector2(1150, 330), "top": Vector2(1135, 190), "choppable": true},
-	"D": {"pos": Vector2(1222, 440), "top": Vector2(1268, 285), "choppable": true},
+	"A": {"pos": Vector2(740, 408), "top": Vector2(721, 266), "choppable": false},
+	"B": {"pos": Vector2(910, 408), "top": Vector2(926, 266), "choppable": false},
+	"C": {"pos": Vector2(1500, 412), "top": Vector2(1483, 272), "choppable": true},
+	"D": {"pos": Vector2(1610, 458), "top": Vector2(1660, 303), "choppable": true},
+	"E": {"pos": Vector2(1190, 404), "top": Vector2(1173, 264), "choppable": true},
+	"F": {"pos": Vector2(610, 448), "top": Vector2(660, 293), "choppable": true},
 }
 ## Where Johnny stands to work a palm.
-const PALM_STAND := {"A": Vector2(470, 432), "B": Vector2(575, 432), "C": Vector2(1035, 482), "D": Vector2(1170, 535)}
+const PALM_STAND := {"A": Vector2(767, 432), "B": Vector2(882, 432), "C": Vector2(1440, 470), "D": Vector2(1560, 520),
+	"E": Vector2(1190, 440), "F": Vector2(660, 482)}
 const PALM_COCONUTS := 3          # coconuts a palm holds
 const COCONUT_REGROW_H := 8.0     # one coconut back every 8 h
 const PALM_REGROW_DAYS := 7.0     # GDD §13: saplings regrow in ~7 days
 
 ## Wreck debris on Day 1 (ref_04_island_debris): sprite, position, and the stand spot.
 const DEBRIS := {
-	"planks": {"pos": Vector2(262, 468), "stand": Vector2(330, 482), "scale": 0.62},
-	"crate": {"pos": Vector2(528, 492), "stand": Vector2(600, 535), "scale": 0.42},
-	"barrel": {"pos": Vector2(690, 520), "stand": Vector2(745, 535), "scale": 0.4},
-	"sailcloth": {"pos": Vector2(585, 566), "stand": Vector2(640, 535), "scale": 0.6},
-	"oar": {"pos": Vector2(330, 566), "stand": Vector2(380, 535), "scale": 0.62},
+	"planks": {"pos": Vector2(538, 468), "stand": Vector2(613, 482), "scale": 0.62},
+	"crate": {"pos": Vector2(831, 492), "stand": Vector2(910, 535), "scale": 0.42},
+	"barrel": {"pos": Vector2(1009, 520), "stand": Vector2(1070, 535), "scale": 0.4},
+	"sailcloth": {"pos": Vector2(894, 566), "stand": Vector2(954, 535), "scale": 0.6},
+	"oar": {"pos": Vector2(613, 566), "stand": Vector2(668, 535), "scale": 0.62},
 }
 
 ## Gather spots (CRAFTING.md Tier 0: pick up at spots, 2-5 min each). Amount per trip, stock, regrowth.
 const SPOTS := {
-	"stones": {"pos": Vector2(248, 518), "stand": Vector2(280, 535), "item": "stone", "n": 3, "max": 30, "per_h": 3.0, "min": 3},
-	"sticks": {"pos": Vector2(505, 418), "stand": Vector2(505, 432), "item": "stick", "n": 3, "max": 24, "per_h": 2.0, "min": 3},
-	"fronds": {"pos": Vector2(395, 420), "stand": Vector2(400, 432), "item": "frond", "n": 4, "max": 30, "per_h": 2.0, "min": 3},
-	"dry_fronds": {"pos": Vector2(690, 418), "stand": Vector2(690, 432), "item": "dry_frond", "n": 2, "max": 10, "per_h": 1.0, "min": 3},
-	"shells": {"pos": Vector2(1010, 538), "stand": Vector2(990, 535), "item": "shell", "n": 2, "max": 16, "per_h": 1.0, "min": 3},
-	"seaweed": {"pos": Vector2(820, 578), "stand": Vector2(820, 535), "item": "seaweed", "n": 2, "max": 12, "per_h": 1.0, "min": 3},
+	"stones": {"pos": Vector2(523, 518), "stand": Vector2(558, 535), "item": "stone", "n": 3, "max": 30, "per_h": 3.0, "min": 3},
+	"sticks": {"pos": Vector2(806, 418), "stand": Vector2(806, 432), "item": "stick", "n": 3, "max": 24, "per_h": 2.0, "min": 3},
+	"fronds": {"pos": Vector2(684, 420), "stand": Vector2(690, 432), "item": "frond", "n": 4, "max": 30, "per_h": 2.0, "min": 3},
+	"dry_fronds": {"pos": Vector2(1009, 418), "stand": Vector2(1009, 432), "item": "dry_frond", "n": 2, "max": 10, "per_h": 1.0, "min": 3},
+	"shells": {"pos": Vector2(1361, 538), "stand": Vector2(1339, 535), "item": "shell", "n": 2, "max": 16, "per_h": 1.0, "min": 3},
+	"seaweed": {"pos": Vector2(1152, 578), "stand": Vector2(1152, 535), "item": "seaweed", "n": 2, "max": 12, "per_h": 1.0, "min": 3},
 }
 ## The shallows (fishing, seawater) and the sealed rock (GDD §13: cave opens in M7).
-const SHALLOWS := {"pos": Vector2(420, 590), "stand": Vector2(420, 535)}
-const CAVE := {"pos": Vector2(1012, 385), "stand": Vector2(960, 482)}
+const SHALLOWS := {"pos": Vector2(712, 590), "stand": Vector2(712, 535)}
+const CAVE := {"pos": Vector2(470, 410), "stand": Vector2(640, 470)}     # the rock outcrop on the left of the wide plate
 ## Shore delivery pile (daily, CRAFTING.md §2).
-const SHORE := {"pos": Vector2(905, 568), "stand": Vector2(905, 535)}
+const SHORE := {"pos": Vector2(1246, 568), "stand": Vector2(1246, 535)}
 ## Camp: where each structure goes (placeholder art), and where Johnny stands to build/use it.
 const CAMP := {
-	"campfire": {"pos": Vector2(790, 520), "stand": Vector2(845, 535)},
-	"frond_bed": {"pos": Vector2(470, 500), "stand": Vector2(520, 482)},
-	"hammock": {"pos": Vector2(522, 372), "stand": Vector2(522, 432)},
-	"frond_shelter": {"pos": Vector2(345, 470), "stand": Vector2(400, 482)},
-	"crafting_stump": {"pos": Vector2(735, 470), "stand": Vector2(700, 482)},
-	"rain_catcher": {"pos": Vector2(830, 458), "stand": Vector2(820, 482)},
-	"drying_rack": {"pos": Vector2(900, 488), "stand": Vector2(880, 482)},
-	"fish_trap": {"pos": Vector2(520, 600), "stand": Vector2(520, 535)},
-	"sos_flag": {"pos": Vector2(1100, 515), "stand": Vector2(1080, 535)},
-	"garden_plot": {"pos": Vector2(980, 500), "stand": Vector2(960, 482)},
-	"canopy": {"pos": Vector2(1060, 495), "stand": Vector2(1040, 482)},
-	"tent": {"pos": Vector2(700, 452), "stand": Vector2(700, 482)},
-	"water_still": {"pos": Vector2(945, 470), "stand": Vector2(925, 482)},
-	"smokehouse": {"pos": Vector2(1140, 512), "stand": Vector2(1110, 535)},
-	"kiln": {"pos": Vector2(250, 520), "stand": Vector2(285, 535)},
-	"sundial": {"pos": Vector2(880, 552), "stand": Vector2(880, 535)},
-	"raft_section": {"pos": Vector2(640, 600), "stand": Vector2(640, 535)},
+	"campfire": {"pos": Vector2(1119, 520), "stand": Vector2(1180, 535)},
+	"frond_bed": {"pos": Vector2(767, 500), "stand": Vector2(822, 482)},
+	"hammock": {"pos": Vector2(824, 398), "stand": Vector2(824, 440)},
+	"frond_shelter": {"pos": Vector2(630, 470), "stand": Vector2(690, 482)},
+	"crafting_stump": {"pos": Vector2(1058, 470), "stand": Vector2(1020, 482)},
+	"rain_catcher": {"pos": Vector2(1163, 458), "stand": Vector2(1152, 482)},
+	"drying_rack": {"pos": Vector2(1240, 488), "stand": Vector2(1218, 482)},
+	"fish_trap": {"pos": Vector2(822, 600), "stand": Vector2(822, 535)},
+	"sos_flag": {"pos": Vector2(1460, 515), "stand": Vector2(1438, 535)},
+	"garden_plot": {"pos": Vector2(1328, 500), "stand": Vector2(1306, 482)},
+	"canopy": {"pos": Vector2(1416, 495), "stand": Vector2(1394, 482)},
+	"tent": {"pos": Vector2(1020, 452), "stand": Vector2(1020, 482)},
+	"water_still": {"pos": Vector2(1290, 470), "stand": Vector2(1268, 482)},
+	"smokehouse": {"pos": Vector2(1504, 512), "stand": Vector2(1471, 535)},
+	"kiln": {"pos": Vector2(525, 520), "stand": Vector2(564, 535)},
+	"sundial": {"pos": Vector2(1218, 552), "stand": Vector2(1218, 535)},
+	"raft_section": {"pos": Vector2(954, 600), "stand": Vector2(954, 535)},
 	# Grand Projects (wilson_projects.gd keys), 2026-11-08
-	"treehouse": {"pos": Vector2(215, 482), "stand": Vector2(265, 482)},
-	"spyglass_tower": {"pos": Vector2(290, 440), "stand": Vector2(330, 432)},
-	"shellphone": {"pos": Vector2(790, 545), "stand": Vector2(760, 535)},
-	"coconut_radio": {"pos": Vector2(850, 552), "stand": Vector2(830, 535)},
-	"windmill": {"pos": Vector2(1205, 548), "stand": Vector2(1150, 535)},
-	"lighthouse": {"pos": Vector2(1120, 545), "stand": Vector2(1085, 535)},
-	"glider": {"pos": Vector2(345, 548), "stand": Vector2(320, 535)},
-	"submarine": {"pos": Vector2(1170, 595), "stand": Vector2(1170, 535)},
+	"treehouse": {"pos": Vector2(486, 482), "stand": Vector2(542, 482)},
+	"spyglass_tower": {"pos": Vector2(569, 440), "stand": Vector2(613, 432)},
+	"shellphone": {"pos": Vector2(1119, 545), "stand": Vector2(1086, 535)},
+	"coconut_radio": {"pos": Vector2(1185, 552), "stand": Vector2(1163, 535)},
+	"windmill": {"pos": Vector2(1576, 548), "stand": Vector2(1515, 535)},
+	"lighthouse": {"pos": Vector2(1482, 545), "stand": Vector2(1444, 535)},
+	"glider": {"pos": Vector2(630, 548), "stand": Vector2(602, 535)},
+	"submarine": {"pos": Vector2(1537, 595), "stand": Vector2(1537, 535)},
 	# the four that had no art until 2026-11-10
-	"desalinator": {"pos": Vector2(1030, 580), "stand": Vector2(1030, 535)},
-	"cellar": {"pos": Vector2(430, 552), "stand": Vector2(470, 535)},
-	"museum": {"pos": Vector2(610, 548), "stand": Vector2(655, 535)},
-	"shrine": {"pos": Vector2(1265, 505), "stand": Vector2(1215, 482)},
+	"desalinator": {"pos": Vector2(1380, 556), "stand": Vector2(1380, 535)},
+	"cellar": {"pos": Vector2(723, 552), "stand": Vector2(767, 535)},
+	"museum": {"pos": Vector2(921, 548), "stand": Vector2(971, 535)},
+	"shrine": {"pos": Vector2(1590, 495), "stand": Vector2(1535, 482)},
 }
 ## Structures drawn from the owner's camp-builds sheet: [sprite, width on screen in plate pixels,
 ## lift (hanging hammock)].
@@ -251,8 +254,8 @@ const CAMP_ART := {"tent": ["tent", 140.0, 0.0], "hammock": ["hammock", 180.0, 6
 		"sundial": ["sundial", 96.0, 0.0], "raft_section": ["raft_section", 110.0, 0.0]}
 ## Recipe stations -> where the work happens (recipes.json "station").
 const STATIONS := {
-	"camp": Vector2(600, 482), "anchors": Vector2(522, 432), "shallows": Vector2(520, 535),
-	"beach": Vector2(1000, 535), "garden": Vector2(960, 482),
+	"camp": Vector2(910, 482), "anchors": Vector2(824, 432), "shallows": Vector2(822, 535),
+	"beach": Vector2(1350, 535), "garden": Vector2(1306, 482),
 }
 ## A station that is a structure: it must be built first.
 const STATION_STRUCTURE := {"campfire": "campfire", "stump": "crafting_stump", "rack": "drying_rack", "kiln": "kiln"}

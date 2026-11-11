@@ -2134,6 +2134,9 @@ func from_dict(d: Dictionary) -> bool:
 	structures = d.get("structures", {})
 	debris = d.get("debris", {})
 	palms = d.get("palms", {})
+	for pid in D.PALMS:      # palms E and F came with the wide island (2026-11-10): older saves get them fresh
+		if not palms.has(pid):
+			palms[pid] = {"coco": float(D.PALM_COCONUTS), "felled": 0.0}
 	spots = d.get("spots", {})
 	queue = d.get("queue", [])
 	sleep = d.get("sleep", {})

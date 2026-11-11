@@ -87,3 +87,32 @@ for src, nm, folder in [("frond shelter.jpg", "frond_shelter", "camp"), ("fish t
                         ("museum.jpg", "museum", "projects"), ("golden coconut.jpg", "shrine", "projects")]:
     w, h = Image.open(SRC + src).size
     cut(src, (0, 0, w, h), f"{folder}/{nm}", 260, min_v=140, max_sat=12, inner=True, erode=3 if nm in ("cellar", "shrine") else 0)
+
+
+# ---- the wide island plate (2026-11-10): island wide.jpg (1696x624) -> plate.webp 2087x768, sky transparent
+# (the rocks above the horizon stay: they are grey-brown, the sky is blue). The old plate is games/wilson/art/plate_old.webp.
+def wide_plate():
+    im = Image.open(SRC + "island wide.jpg").convert("RGB")
+    s = 768 / im.height
+    im = im.resize((round(im.width * s), 768), Image.LANCZOS)
+    a = np.asarray(im).astype(np.int32)
+    h, w, _ = a.shape
+    hor = 324
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    sky = (b - r > 14) & (np.arange(h)[:, None] < hor)
+    sky = ndimage.binary_opening(sky, iterations=1)
+    al = Image.fromarray(((~sky) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.8))
+    al = np.asarray(al).copy()
+    al[hor:] = 255
+    out = np.dstack([a.astype(np.uint8), al])
+    os.makedirs(OUT, exist_ok=True)
+    old = OUT + "plate.webp"
+    if os.path.exists(old) and not os.path.exists(OUT + "plate_old.webp"):
+        os.replace(old, OUT + "plate_old.webp")
+    Image.fromarray(out, "RGBA").save(OUT + "plate.webp", "WEBP", quality=88, method=6)
+    sand = (r > 200) & (b < 160) & (r - b > 55)
+    np.save(os.path.expanduser("~/wilson_sand.npy"), sand)
+    print("plate", w, h)
+
+
+wide_plate()
