@@ -122,3 +122,9 @@ New
 - Palms: the old plate had A and B painted in; now all six are sprites (palm_C / palm_D art). New choppable palms E and F; old saves get them fresh (`from_dict`). No bamboo yet (needs art + items + recipes).
 - Art batch: 58 icons, 8 builds, 4 Grand Projects (cellar, desalinator, museum, shrine) placed; crate / barrel smaller, campfire right; Grand Project previews hidden in the craft list.
 - Later 2026-11-10: bamboo (a clump on the back sand: gather spot "bamboo", items bamboo / bamboo_pole / bamboo_bundle, recipes cut poles (knife) and bundle (4 poles + rope); nothing uses them yet), palm E is now the big leaning palm and palm F a young palm (shake only) from `palm2.jpg`. Old saves get the new spot and palms.
+
+## 2026-11-11: owner's playtest list
+- Craft: picking a recipe closes the panel and shows a "✔ Make: X" toast. Journal: Skills section with XP bars, no streak, no "make a barometer" line, story quests show finished + the current one only, side quests only those under way. Streak UI and journal lines removed (the engine still pays its bonus quietly).
+- Speech bubble is as wide as its text; small panels shrink to their content; the top-right ⏸ is hidden when the Pad (which has its own pause pill) is on.
+- Day-1 step "Open the crate" now comes before "Craft a frond bed" (the crate stands where the bed goes).
+- Odd jobs: all stand spots remapped to the wide island (they were still old coordinates); Splash / Swim walk into the water, Fan the fire stands at the fire facing it; Stretch uses the arms-up pose, Wave at nothing a shrug.

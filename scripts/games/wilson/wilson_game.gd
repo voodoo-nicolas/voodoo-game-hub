@@ -649,6 +649,8 @@ func _objective_ids() -> Array:
 				return ["spot:sticks"]
 			"got:frond":
 				return ["spot:fronds"]
+			"salvage:crate":
+				return ["debris:crate"]
 			"made:frond_bed":
 				return ["craft"]
 		return []
@@ -781,6 +783,8 @@ func _stand_spot(kind: String, target: String) -> Vector2:
 			return D.CAVE.stand
 		"pastime":
 			var st = Pastimes.get_pastime(target).get("stand", null)
+			if st is String:      # "water": a step into the shallows; "campfire": next to the fire
+				return Vector2(D.SHALLOWS.stand.x, 568.0) if st == "water" else D.CAMP.campfire.stand
 			return st if st != null else (world.castaway.position if world else D.START_POS)
 		"craft":
 			var r := D.recipe(target)
@@ -849,6 +853,8 @@ func _update_johnny() -> void:
 		return
 	if a.kind == "pastime":
 		c.pose = str(Pastimes.get_pastime(a.target).get("pose", "sit"))
+		if str(Pastimes.get_pastime(a.target).get("stand", "")) == "campfire":
+			c.facing = signf(D.CAMP.campfire.pos.x - c.position.x)      # face the fire
 		return
 	c.pose = {"chop": "chop", "fish": "fish", "spear": "fish", "shake": "wave", "inspect": "idle", "empty_trap": "work"}.get(a.kind, "work")
 
@@ -887,7 +893,7 @@ func _handle_events(evs: Array) -> void:
 			"note":
 				_show_note(format_entry(e) if e.has("args") else str(e.text))
 			"streak":
-				_show_toast("🔥 " + tr("Streak: day %d") % int(e.count) + ("  ·  " + tr("+1 shore roll") if e.bonus else "") + ("  ·  " + tr("grace tide") if e.graced else ""))
+				pass      # no streak on screen (owner, 2026-11-11); the shore bonus still happens quietly
 				_sfx("win")
 			"pastime":
 				after_change()
@@ -926,6 +932,9 @@ func _update_bubble() -> void:
 	var t := Time.get_ticks_msec() / 1000.0
 	if t > _bubble_until and not _bubble_queue.is_empty():
 		_bubble_label.text = tr(str(_bubble_queue.pop_front()))
+		# the box is as wide as its text (up to 300 px, then it wraps)
+		var bw: float = _bubble_label.get_theme_font("font").get_string_size(_bubble_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+		_bubble_label.custom_minimum_size = Vector2(clampf(bw + 8.0, 40.0, 300.0), 0)
 		_bubble_until = t + 4.2
 	_bubble.visible = t < _bubble_until
 	if _bubble.visible:
@@ -1547,7 +1556,7 @@ func _apply_tut() -> void:
 	_mood.visible = vis.mood
 	_clock.visible = vis.clock
 	for k in _hud_btns:
-		_hud_btns[k].visible = vis[k]
+		_hud_btns[k].visible = vis[k] and not (k == "pause" and pad != null)      # the Pad has its own pause pill
 	if _sleep_row and pad == null:
 		_sleep_row.visible = engine.tut < 0
 	if pad != null and is_instance_valid(pad):
@@ -1746,7 +1755,20 @@ func _open_panel(title: String) -> VBoxContainer:
 	_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_panel.position = Vector2(vs.x * 0.12, 70)
 	_panel.size = Vector2(vs.x * 0.76, vs.y - 90)
+	_fit_panel.call_deferred(body)
 	return body
+
+## A panel with little in it is only as big as its content (not the whole screen).
+func _fit_panel(body: Control) -> void:
+	if _panel == null or not is_instance_valid(_panel) or not is_instance_valid(body):
+		return
+	var vs := get_viewport_rect().size
+	var need: float = body.get_combined_minimum_size().y + 120.0
+	if need >= vs.y - 90.0:
+		return
+	var w := minf(vs.x * 0.76, 680.0) if need < (vs.y - 90.0) * 0.5 else vs.x * 0.76
+	_panel.size = Vector2(w, need)
+	_panel.position.x = (vs.x - w) / 2.0
 
 func _close_panel_x() -> void:
 	_combine_from = ""
@@ -1973,8 +1995,15 @@ func _open_craft() -> void:
 	body.add_child(more)
 
 func _craft_from_panel(rid: String) -> void:
-	_try("craft", rid)
-	_open_craft()
+	var why: String = engine.enqueue("craft", rid)
+	if why != "":
+		_show_toast(_why(why))
+		_sfx("invalid")
+	else:
+		_close_panel()
+		_show_toast("✔ " + action_label("craft", rid))
+	_handle_events(engine.pop_events())
+	after_change()
 
 func _project_card(body: VBoxContainer, p: Dictionary) -> void:
 	var id: String = p.id
@@ -2064,15 +2093,12 @@ func _open_journal() -> void:
 	engine.tut_event("journal")
 	var body := _open_panel("📓 " + tr("%s's journal") % castaway_name())
 	var sk := Label.new()
-	sk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sk.text = "📈 " + tr("Skills")
 	sk.add_theme_color_override("font_color", ACCENT)
-	var parts := []
-	for k in D.SKILLS:
-		parts.append("%s %d" % [tr(D.SKILL_NAMES[k]), engine.skill_level(k)])
-	sk.text = "📈 " + "  ·  ".join(parts)
 	body.add_child(sk)
+	for k in D.SKILLS:
+		body.add_child(_skill_row(k))
 	body.add_child(_sea_report())
-	body.add_child(_streak_label())
 	var dh := Label.new()
 	dh.text = "☀ " + tr("Today") + "  %d/%d" % [engine.dq_done.size(), engine.dq.size()]
 	dh.add_theme_color_override("font_color", ACCENT)
@@ -2102,18 +2128,23 @@ func _open_journal() -> void:
 				tl.modulate = Color(1, 1, 1, 0.6)
 			body.add_child(tl)
 	else:
+		var shown_current := false      # the finished ones and the one in progress; the rest stays hidden
 		for tq in D.quests():
+			var short_q := tr(str(D.QUEST_SHORT.get(tq.id, D.quest_name(tq))))
 			var tl2 := Label.new()
 			tl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			var short_q := tr(str(D.QUEST_SHORT.get(tq.id, D.quest_name(tq))))
 			if tq.id in engine.quests_done:
 				tl2.text = "✔ " + short_q
 				tl2.modulate = Color(1, 1, 1, 0.6)
-			else:
+			elif not shown_current:
+				shown_current = true
 				tl2.text = "• %s: %s" % [short_q, tr(D.QUEST_HINTS.get(tq.id, ""))]
+			else:
+				tl2.free()
+				continue
 			body.add_child(tl2)
 	var qh := Label.new()
-	qh.text = "🎯 " + tr("Side quests") + "  %d/%d" % [engine.side_done.size(), Quests.LIST.size()]
+	qh.text = "🎯 " + tr("Side quests") + ("  ✔ %d" % engine.side_done.size() if engine.side_done.size() > 0 else "")
 	qh.add_theme_color_override("font_color", ACCENT)
 	body.add_child(qh)
 	# open quests first (the ones already under way on top), then the finished ones on one line
@@ -2126,6 +2157,8 @@ func _open_journal() -> void:
 			open_q.append(q)
 	open_q.sort_custom(func(a, b): return float(mini(int(engine.stats.get(a.stat, 0)), int(a.need))) / float(a.need) > float(mini(int(engine.stats.get(b.stat, 0)), int(b.need))) / float(b.need))
 	for q in open_q:
+		if int(engine.stats.get(q.stat, 0)) <= 0:
+			continue      # only quests already under way
 		var ql := Label.new()
 		ql.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		ql.text = "• %s: %s (%d/%d)" % [Quests.quest_name(q), tr(str(q.goal)), mini(int(engine.stats.get(q.stat, 0)), int(q.need)), int(q.need)]
@@ -2144,21 +2177,37 @@ func _open_journal() -> void:
 	for i in range(n - 1, maxi(-1, n - 80), -1):
 		body.add_child(_journal_line(engine.journal[i]))
 
-## 🔥 The 30-day calendar: filled days so far this lap, the best streak.
-func _streak_label() -> Label:
+## One skill: its name, level and a small XP bar towards the next level (level n needs 10 * n * (n + 1) / 2 XP).
+func _skill_row(k: String) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var nm := Label.new()
+	nm.text = tr(D.SKILL_NAMES[k]).strip_edges()
+	nm.custom_minimum_size = Vector2(220, 0)
+	row.add_child(nm)
+	var lv: int = engine.skill_level(k)
+	var x := float(engine.xp.get(k, 0))
+	var t0 := 10.0 * lv * (lv + 1) / 2.0
+	var t1 := 10.0 * (lv + 1) * (lv + 2) / 2.0
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(220, 14)
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(1, 1, 1, 0.16)
+	track.set_corner_radius_all(6)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = ACCENT
+	fill.set_corner_radius_all(6)
+	bar.add_theme_stylebox_override("background", track)
+	bar.add_theme_stylebox_override("fill", fill)
+	bar.max_value = 1.0
+	bar.value = 1.0 if lv >= D.SKILL_MAX else clampf((x - t0) / (t1 - t0), 0.0, 1.0)
+	row.add_child(bar)
 	var l := Label.new()
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var cnt: int = int(engine.streak.count)
-	var lap := 30
-	var filled := (cnt - 1) % lap + 1 if cnt > 0 else 0
-	var cells := ""
-	for i in lap:
-		cells += "●" if i < filled else "○"
-		if i % 10 == 9 and i < lap - 1:
-			cells += "\n"
-	l.text = "🔥 %s: %d  ·  %s: %d\n%s" % [tr("Streak"), cnt, tr("Best streak"), int(engine.streak.best), cells]
-	l.add_theme_color_override("font_color", Color(1.0, 0.8, 0.5))
-	return l
+	l.text = tr("Level %d") % lv
+	row.add_child(l)
+	return row
 
 ## Tides and (with a barometer) the weather ahead, for the journal panel.
 func _sea_report() -> Label:
@@ -2176,9 +2225,7 @@ func _sea_report() -> Label:
 		var mins := int(round((nl - engine.t) / 60.0))
 		lines.append(tr("Next low tide in %d h %02d min.") % [mins / 60, mins % 60])
 	var hrs: int = engine.forecast_hours()
-	if hrs <= 0:
-		lines.append(tr("Make a barometer to see the weather ahead."))
-	else:
+	if hrs > 0:
 		var fc: Array = engine.forecast()
 		if fc.is_empty():
 			lines.append(tr("Forecast (%d h): the same weather.") % hrs)

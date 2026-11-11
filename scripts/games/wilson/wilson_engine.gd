@@ -232,8 +232,7 @@ func checkin() -> int:
 	if bonus:
 		shore["bonus_rolls"] = int(shore.get("bonus_rolls", 0)) + 1
 	if graced:
-		log_entry("The grace tide: one missed day does not break the streak.")
-	log_entry("Streak day %d. The island noticed you came back.", [int(streak.count)])
+		pass
 	_check_side()
 	events.append({"type": "streak", "count": int(streak.count), "day": day_n, "bonus": bonus, "graced": graced})
 	return int(streak.count)
@@ -1915,6 +1914,9 @@ func _got(id: String, n: int) -> void:
 func intro_step() -> Dictionary:
 	for st in D.INTRO:
 		var have := int(stats.get(str(st.key), 0))
+		if have < int(st.need) and str(st.key) == "made:frond_bed" and debris.get("crate", false):
+			# the crate stands where the bed goes (owner, 2026-11-11): open it first
+			return {"key": "salvage:crate", "need": 1, "have": 0, "hint": "Open the crate", "long": D.QUEST_HINTS.get("T02", "")}
 		if have < int(st.need):
 			var out: Dictionary = st.duplicate()
 			out["have"] = have

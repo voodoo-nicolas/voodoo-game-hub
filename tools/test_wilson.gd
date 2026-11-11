@@ -1056,6 +1056,8 @@ func test_m11_intro() -> void:
 	ok(int(e.stats.get("got:frond", 0)) >= 10 or str(e.intro_step().key) == "got:frond", "fronds counted")
 	e.add("frond", 10)
 	e.stats["got:frond"] = 10
+	ok(str(e.intro_step().key) == "salvage:crate", "the crate first: it stands where the bed goes")
+	e.debris["crate"] = false
 	ok(str(e.intro_step().key) == "made:frond_bed", "next: the frond bed")
 	e.bars.energy = 100.0
 	e.enqueue("craft", "frond_bed")

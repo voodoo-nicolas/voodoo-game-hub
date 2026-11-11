@@ -236,7 +236,7 @@ func setup(e) -> void:
 		sorted.add_child(p)
 		_piles[id] = p
 	for id in ["stones", "shells"]:
-		var ic := _tex("icons/%s.webp" % ("stone" if id == "stones" else "shell"))
+		var ic := _tex("icons/stone.webp") if id == "stones" else _tex("icons/shell.webp")
 		if ic == null:
 			continue
 		var heap := Node2D.new()
