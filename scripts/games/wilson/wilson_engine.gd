@@ -373,15 +373,19 @@ func _finish_pastime(id: String) -> void:
 func powered() -> bool:
 	return structures.has("windmill")
 
-## A Grand Project shows on the craft screen once you hold one of its materials (or it is pinned, being
-## built, or built).
+## A Grand Project shows on the craft screen once you hold every one of its materials (or it is pinned,
+## being built, or built).
 func project_visible(p: Dictionary) -> bool:
 	if structures.has(str(p.key)) or projects.has(str(p.id)) or pinned == str(p.id):
 		return true
+	# owner, 2026-11-10: no previews of the grand designs. Shown only once every material has been held at
+	# least once (the amount may still be short), never during the opening, like the recipes.
+	if tut >= 0:
+		return false
 	for m in p.mats:
-		if count(str(m[0])) > 0:
-			return true
-	return false
+		if count(str(m[0])) <= 0:
+			return false
+	return true
 
 ## [[id, have, need]] for every material still short.
 func project_missing(id: String) -> Array:

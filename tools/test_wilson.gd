@@ -989,12 +989,15 @@ func test_m10_ux() -> void:
 		if str(r.id) == "fishing_pole":
 			seen = true
 	ok(seen, "made before = listed even with an empty bag")
-	# projects: shown once a material is held
+	# projects: shown once every material has been held
 	var P = load("res://scripts/games/wilson/wilson_projects.gd")
 	var pe = fresh(at(2026, 6, 21, 9))
 	ok(not pe.project_visible(P.get_project("GP02")), "no windmill idea with an empty bag")
 	pe.add("magnet", 1)
-	ok(pe.project_visible(P.get_project("GP02")), "a magnet shows the windmill")
+	ok(not pe.project_visible(P.get_project("GP02")), "one material does not preview the windmill")
+	for m in P.get_project("GP02").mats:
+		pe.add(str(m[0]), 1)
+	ok(pe.project_visible(P.get_project("GP02")), "every material held shows the windmill")
 	# quick actions are quick
 	near(pe.duration_of("haul", "crate"), 21.0, 0.01, "haul is 21 s")
 	near(pe.duration_of("pastime", "search_sand"), 10.2, 0.2, "search the sand is about 10 s")

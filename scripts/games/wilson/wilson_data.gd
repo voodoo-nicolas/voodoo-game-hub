@@ -176,8 +176,8 @@ const PALM_REGROW_DAYS := 7.0     # GDD §13: saplings regrow in ~7 days
 ## Wreck debris on Day 1 (ref_04_island_debris): sprite, position, and the stand spot.
 const DEBRIS := {
 	"planks": {"pos": Vector2(262, 468), "stand": Vector2(330, 482), "scale": 0.62},
-	"crate": {"pos": Vector2(528, 492), "stand": Vector2(600, 535), "scale": 0.62},
-	"barrel": {"pos": Vector2(712, 520), "stand": Vector2(780, 535), "scale": 0.6},
+	"crate": {"pos": Vector2(528, 492), "stand": Vector2(600, 535), "scale": 0.42},
+	"barrel": {"pos": Vector2(690, 520), "stand": Vector2(745, 535), "scale": 0.4},
 	"sailcloth": {"pos": Vector2(585, 566), "stand": Vector2(640, 535), "scale": 0.6},
 	"oar": {"pos": Vector2(330, 566), "stand": Vector2(380, 535), "scale": 0.62},
 }
@@ -198,11 +198,11 @@ const CAVE := {"pos": Vector2(1012, 385), "stand": Vector2(960, 482)}
 const SHORE := {"pos": Vector2(905, 568), "stand": Vector2(905, 535)}
 ## Camp: where each structure goes (placeholder art), and where Johnny stands to build/use it.
 const CAMP := {
-	"campfire": {"pos": Vector2(640, 512), "stand": Vector2(700, 535)},
+	"campfire": {"pos": Vector2(790, 520), "stand": Vector2(845, 535)},
 	"frond_bed": {"pos": Vector2(470, 500), "stand": Vector2(520, 482)},
 	"hammock": {"pos": Vector2(522, 372), "stand": Vector2(522, 432)},
 	"frond_shelter": {"pos": Vector2(345, 470), "stand": Vector2(400, 482)},
-	"crafting_stump": {"pos": Vector2(770, 480), "stand": Vector2(730, 482)},
+	"crafting_stump": {"pos": Vector2(735, 470), "stand": Vector2(700, 482)},
 	"rain_catcher": {"pos": Vector2(830, 458), "stand": Vector2(820, 482)},
 	"drying_rack": {"pos": Vector2(900, 488), "stand": Vector2(880, 482)},
 	"fish_trap": {"pos": Vector2(520, 600), "stand": Vector2(520, 535)},
