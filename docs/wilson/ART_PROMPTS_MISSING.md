@@ -109,3 +109,11 @@ These are drawn as placeholder shapes now; the four Grand Projects work but are 
 
 - Characters: female2 was dropped on 2026-11-10; the 8 looks are complete.
 - Campfire in the world: the owner's pit and flame sprites exist (`art/fire/`); only its icon (B1) is missing.
+
+## E. A bigger island (decision pending, 2026-11-10)
+
+The island is one painted picture (`art/plate.webp`, 1376x768) and the camp is already crowded on it (a mock of every build placed is in the session notes). More ground needs a new plate, not code. Suggested prompt (same style block as above):
+
+- "Same hand-drawn cartoon beach-island scene as the current plate, seen straight from the front, but about 40% wider: a longer curve of golden sand, more open flat sand in the middle, a second small sand spit on the right and a rock outcrop on the left. Horizon line at the same height. Sea and sky left empty, no objects, no people, no palms, no buildings, no text. 2048x768."
+- Bamboo: "A clump of 5-7 tall green bamboo stalks with leaves, on a small sand mound, cartoon style matching the palms, transparent background, 1024 px tall." Plus "one tall bamboo stalk, one cut bamboo pole, a bundle of bamboo poles" as three icons (new materials, needs items.json + recipes first).
+- Two extra palms: "the same coconut palm as palm_C, leaning the other way, and a smaller young palm, transparent background."
