@@ -136,3 +136,47 @@ cut("bamboo.jpg", (150, 30, 760, 740), "camp/bamboo_clump", 260, min_v=120, max_
 cut("bamboo.jpg", (960, 30, 1230, 370), "icons/bamboo", 128, min_v=120, max_sat=12, inner=True)
 cut("bamboo.jpg", (900, 300, 1240, 550), "icons/bamboo_pole", 128, min_v=120, max_sat=12, inner=True)
 cut("bamboo.jpg", (890, 530, 1250, 740), "icons/bamboo_bundle", 128, min_v=120, max_sat=12, inner=True)
+
+
+# ---- 2026-11-11: fixes. (1) palm_C / palm_D (cut out of the old plate) have a hole in the crown and a ragged
+# cut trunk foot: the hole is filled with the nearest leaf colour and a grass tuft (palm_grass, from the small
+# palm's foot in palm2.jpg, trunk removed) is drawn over every foot in the game.
+def fix_palms():
+    for n in ("palm_C", "palm_D"):
+        p = OUT + n + ".webp"
+        im = Image.open(p).convert("RGBA")
+        a = np.asarray(im).copy()
+        solid = a[..., 3] > 128
+        filled = ndimage.binary_fill_holes(solid)
+        hole = filled & ~solid
+        if hole.any():
+            idx = ndimage.distance_transform_edt(~solid, return_distances=False, return_indices=True)
+            a[hole] = a[idx[0][hole], idx[1][hole]]
+            a[hole, 3] = 255
+            Image.fromarray(a, "RGBA").save(p, "WEBP", quality=90, method=6)
+        print(n, "hole px", int(hole.sum()))
+
+
+def palm_grass():
+    im = Image.open(SRC + "palm2.jpg").convert("RGB")
+    a = np.asarray(im.crop((915, 630, 1050, 690))).astype(np.int32)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    sat = a.max(-1) - a.min(-1)
+    bgp = (a.min(-1) >= 80) & (sat <= 14)
+    lab, n = ndimage.label(bgp)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    fg = ~np.isin(lab, list(edge)) & ~bgp
+    brown = (r > g + 8) & (r > b + 20)
+    fg &= ~brown
+    fg = ndimage.binary_opening(fg, iterations=1)
+    ys, xs = np.nonzero(fg)
+    box = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
+    al = Image.fromarray((fg * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.6))
+    img = Image.fromarray(np.dstack([a.clip(0, 255).astype(np.uint8), np.asarray(al)]), "RGBA").crop(box)
+    img = img.resize((round(img.width * 1.1), round(img.height * 1.1)), Image.LANCZOS)
+    img.save(OUT + "palm_grass.webp", "WEBP", quality=90, method=6)
+    print("palm_grass", img.size)
+
+
+fix_palms()
+palm_grass()

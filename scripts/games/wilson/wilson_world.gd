@@ -57,7 +57,7 @@ shader_type canvas_item;
 uniform float amp = 0.4;
 uniform vec4 sea_col : source_color = vec4(0.16, 0.55, 0.62, 1.0);
 void fragment() {
-	float x = UV.x;
+	float x = UV.x * 1.327;      // the rect is 33 % wider since the wide plate: same wave length
 	float y = UV.y;
 	float c1 = 0.35 + sin(x * 9.0 + TIME * 0.9) * 0.08 * (0.5 + amp) + sin(x * 23.0 - TIME * 1.7) * 0.03;
 	float c2 = 0.68 + sin(x * 7.0 - TIME * 0.7 + 1.3) * 0.07 * (0.5 + amp) + sin(x * 19.0 + TIME * 1.3) * 0.03;
@@ -68,7 +68,7 @@ void fragment() {
 	a = max(a, smoothstep(c1, c1 + 0.25, y) * 0.35);
 	a = max(a, smoothstep(c2, c2 + 0.25, y) * 0.45);
 	col = mix(col, vec3(0.92, 0.98, 1.0), max(l1, l2));
-	a = max(a, max(l1, l2) * 0.75);
+	a = max(a, max(l1, l2) * 0.3);
 	COLOR = vec4(col, a * (0.6 + amp * 0.4));
 }
 """
@@ -132,6 +132,8 @@ var _surf_mat: ShaderMaterial
 var _foam: Array = []        # [Sprite2D, base_scale, phase]
 var _sea_mat: ShaderMaterial
 var _wave_mat: ShaderMaterial
+var _heaps := {}             # stones / shells: spot id -> Node2D of icon sprites (the wide plate has no painted ones)
+var _palm_grass := {}        # id -> its grass tuft (hidden with a felled palm)
 var _palms := {}             # id -> Sprite2D (C and D: cut out so they can fall)
 var _stumps := {}            # id -> Props
 var _debris := {}            # id -> Sprite2D
@@ -197,6 +199,14 @@ func setup(e) -> void:
 		s.material = m
 		sorted.add_child(s)
 		_palms[id] = s
+		if palm_art[id] in ["C", "D"] and _tex("palm_grass.webp"):      # the cut-out trunks end flat: a grass tuft over the foot
+			var gs := Sprite2D.new()
+			gs.texture = _tex("palm_grass.webp")
+			gs.position = base + Vector2(0, 2)
+			gs.scale = Vector2.ONE * (58.0 / float(gs.texture.get_width()))
+			gs.offset = Vector2(0, -gs.texture.get_height() * 0.62)
+			sorted.add_child(gs)
+			_palm_grass[id] = gs
 		var st := Props.new()
 		st.kind = "stump"
 		st.position = base
@@ -225,6 +235,22 @@ func setup(e) -> void:
 		p.position = D.SPOTS[id].pos
 		sorted.add_child(p)
 		_piles[id] = p
+	for id in ["stones", "shells"]:
+		var ic := _tex("icons/%s.webp" % ("stone" if id == "stones" else "shell"))
+		if ic == null:
+			continue
+		var heap := Node2D.new()
+		heap.position = D.SPOTS[id].pos
+		var w := 26.0 if id == "stones" else 20.0
+		for off in [Vector2(-22, 4), Vector2(0, 9), Vector2(22, 3), Vector2(-9, -5), Vector2(12, -4), Vector2(-32, -3)]:
+			var sp := Sprite2D.new()
+			sp.texture = ic
+			sp.scale = Vector2.ONE * (w / float(ic.get_width()))
+			sp.position = off
+			sp.offset = Vector2(0, -ic.get_height() / 2.0)
+			heap.add_child(sp)
+		sorted.add_child(heap)
+		_heaps[id] = heap
 	_shore = Props.new()
 	_shore.kind = "shore"
 	_shore.position = D.SHORE.pos
@@ -269,6 +295,8 @@ func sync() -> void:
 	for id in _palms:
 		var felled: bool = float(engine.palms[id].felled) > 0.0
 		_palms[id].visible = not felled
+		if _palm_grass.has(id):
+			_palm_grass[id].visible = not felled
 		_stumps[id].visible = felled
 	for id in D.CAMP:
 		var built: bool = engine.structures.has(id)
@@ -325,6 +353,11 @@ func sync() -> void:
 		if absf(p.amount - amt) > 0.08:
 			p.amount = amt
 			p.refresh()
+	for id in _heaps:      # fewer icons as the stock runs down
+		var hp := clampf(float(engine.spots.get(id, 0.0)) / float(D.SPOTS[id].max), 0.0, 1.0)
+		var shown := int(ceil(hp * 6.0)) if float(engine.spots.get(id, 0.0)) >= 1.0 else 0
+		for i in _heaps[id].get_child_count():
+			_heaps[id].get_child(i).visible = i < shown
 	_shore.visible = not engine.shore.pile.is_empty()
 	# the hammock sprite hides while the castaway lies in it (his "hammock" pose includes one)
 	if _props.has("hammock"):
