@@ -995,8 +995,8 @@ func test_m10_ux() -> void:
 	ok(not pe.project_visible(P.get_project("GP02")), "no windmill idea with an empty bag")
 	pe.add("magnet", 1)
 	ok(not pe.project_visible(P.get_project("GP02")), "one material does not preview the windmill")
-	for m in P.get_project("GP02").mats:
-		pe.add(str(m[0]), 1)
+	for gm in P.get_project("GP02").mats:
+		pe.add(str(gm[0]), 1)
 	ok(pe.project_visible(P.get_project("GP02")), "every material held shows the windmill")
 	# quick actions are quick
 	near(pe.duration_of("haul", "crate"), 21.0, 0.01, "haul is 21 s")
