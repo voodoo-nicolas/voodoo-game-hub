@@ -309,7 +309,7 @@ POSES = {
     "wave": (514, 881), "facepalm": (650, 890), "sulk": (886, 832), "collapse": (830, 1010),
 }
 LOOKS = {"male1": "male1.jpg", "male2": "male2.jpg", "male3": "male3.jpg", "male4": "male4.jpg",
-         "female1": "female1.jpg", "female2": "demale2.jpg", "female3": "female3.jpg", "female4": "female4.jpg", "female5": "female5.jpg"}
+         "female1": "female1.jpg", "female3": "female3.jpg", "female4": "female4.jpg", "female5": "female5.jpg"}
 for look, f in LOOKS.items():
     cut_sheet(f, {f"{look}_{p}": xy for p, xy in POSES.items()}, "chars", scale=0.5)
 

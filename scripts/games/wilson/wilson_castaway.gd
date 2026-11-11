@@ -13,7 +13,7 @@ const POSES := ["idle", "walk1", "walk2", "walk3", "walk4", "run", "sit", "sleep
 const EXTRA := ["carve", "weave", "tool", "f_ready", "f_back", "f_swing", "f_wait", "f_bite", "f_strike", "f_reel"]
 ## The fishing cycle as [pose, seconds]; it loops while he fishes.
 const FISH_CYCLE := [["f_ready", 1.6], ["f_back", 0.5], ["f_swing", 0.6], ["f_wait", 4.0], ["f_bite", 1.0], ["f_strike", 0.8], ["f_reel", 1.6]]
-const LOOKS := ["male1", "male2", "male3", "male4", "female1", "female2", "female3", "female4", "female5"]
+const LOOKS := ["male1", "male2", "male3", "male4", "female1", "female3", "female4", "female5"]
 ## Standing height on screen (plate pixels) at the middle lane.
 const HEIGHT := 124.0
 const SKIN := Color("e0a878")
@@ -38,6 +38,8 @@ func _ready() -> void:
 	set_look(look)
 
 func set_look(l: String) -> void:
+	if l == "female2":      # dropped 2026-11-10 (a twin of female5): old saves get the other blonde
+		l = "female5"
 	look = l if l in LOOKS else "male1"
 	_tex = {}
 	for p in POSES + EXTRA:
