@@ -52,5 +52,6 @@
 {"id":"seaweed_crisps","out":"seaweed_crisps","qty":2,"out_type":"item","in":[["seaweed",2],["salt",1]],"station":"rack","min":60,"en":1,"tier":2},
 {"id":"wind_chime","out":"wind_chime","qty":1,"out_type":"item","in":[["tin_can",2],["shell",3],["rope",1]],"station":"stump","min":15,"en":3,"tier":3},
 {"id":"bamboo_pole","out":"bamboo_pole","qty":2,"out_type":"item","in":[["bamboo",1]],"tool":"knife","station":"hands","min":4,"en":2,"tier":1},
-{"id":"bamboo_bundle","out":"bamboo_bundle","qty":1,"out_type":"item","in":[["bamboo_pole",4],["rope",1]],"station":"hands","min":8,"en":3,"tier":1}
+{"id":"bamboo_bundle","out":"bamboo_bundle","qty":1,"out_type":"item","in":[["bamboo_pole",4],["rope",1]],"station":"hands","min":8,"en":3,"tier":1},
+{"id":"bamboo_fishing_pole","out":"fishing_pole","qty":1,"out_type":"item","in":[["bamboo_pole",1],["rope",1],["hook",1]],"tool":"knife","station":"hands","min":6,"en":3,"tier":1,"note":"a lighter pole: quicker and cheaper than the stick one"}
 ]}
