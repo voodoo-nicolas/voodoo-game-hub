@@ -198,6 +198,10 @@ func _ready() -> void:
 		_resume_last_game()
 	_maybe_ask_consent()
 	BootCover.show_once(self)  # hides the first, wrongly-shaped frames on some phones
+	if Engine.has_meta(BootCover.FROM_GAME_META):
+		# back from a game: its orientation switch can stretch the first hub frames
+		Engine.remove_meta(BootCover.FROM_GAME_META)
+		BootCover.cover(get_tree(), 0.35)
 
 ## A signed-in player who hasn't accepted the current Terms/Privacy is sent to the
 ## consent screens once per session (Back skips it until the next launch).
@@ -1259,6 +1263,9 @@ func _launch(game: Dictionary, show_intro: bool = true) -> void:
 	if error == "":
 		HubData.record_play(str(game.id))
 		Social.set_game(str(game.id))
+	if error == "":
+		BootCover.cover(get_tree())  # hides the orientation switch while the game loads
+		Engine.set_meta(BootCover.FROM_GAME_META, true)
 	if error == "" and get_tree().change_scene_to_file(game.scene) != OK:
 		error = tr("Something went wrong opening this game.")
 	if error == "" and show_intro:

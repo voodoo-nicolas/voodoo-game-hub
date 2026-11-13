@@ -433,9 +433,13 @@ func _set_art(key: String, tex: Texture2D) -> void:
 	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if tex == null:
-		var bg := Brand.backdrop()
-		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		pic.add_child(bg)
+		# Nothing: the hub's own backdrop (hub.gd) shows through. A second
+		# Brand.backdrop() here drifted out of step with the first one, and in
+		# landscape both showed (owner, 2026-11-13: "double background").
+		pass
+		# var bg := Brand.backdrop()
+		# bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		# pic.add_child(bg)
 	else:
 		pic.add_child(_cover(tex))
 		var dim := ColorRect.new()   # a little darker, like the hub background
