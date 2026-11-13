@@ -335,6 +335,9 @@
  "Cámara fría": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Daily": [
+  "scripts\\games\\rectangles\\rectangles_game.gd"
+ ],
  "December": [
   "scripts\\account\\consent_screen.gd"
  ],
@@ -668,6 +671,9 @@
  "Rastreador de playa": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Rectangles: clue sum must equal the cell count": [
+  "scripts\\games\\rectangles\\rectangles_generator.gd"
+ ],
  "S.TOP#.": [
   "scripts\\common\\game_teasers_rest.gd"
  ],
@@ -792,6 +798,9 @@
  "Weather (auto = the seeded controller)": [
   "scripts\\games\\wilson\\wilson_debug.gd"
  ],
+ "Weekly": [
+  "scripts\\games\\rectangles\\rectangles_game.gd"
+ ],
  "Will you remember?": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
@@ -807,6 +816,9 @@
  ],
  "Yoga en la playa": [
   "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "Zen %d×%d": [
+  "scripts\\games\\rectangles\\rectangles_game.gd"
  ],
  "[font_size=26][b]%s[/b][/font_size]": [
   "scripts\\common\\consent.gd"
@@ -846,6 +858,12 @@
  ],
  "chip_%d": [
   "scripts\\games\\video_poker\\video_poker_chips.gd"
+ ],
+ "classic-%03d": [
+  "scripts\\games\\rectangles\\rectangles_game.gd"
+ ],
+ "daily-%d": [
+  "scripts\\games\\rectangles\\rectangles_game.gd"
  ],
  "duplicate item '%s'": [
   "scripts\\games\\creation\\creation_engine.gd"
@@ -962,6 +980,9 @@
  "studyMs": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
  ],
+ "tap to remove": [
+  "scripts\\games\\rectangles\\rectangles_game.gd"
+ ],
  "the bonfire won't build": [
   "scripts\\games\\wilson\\wilson_data.gd"
  ],
@@ -984,6 +1005,9 @@
   "scripts\\games\\wilson\\wilson_data.gd",
   "scripts\\games\\wilson\\wilson_engine.gd",
   "scripts\\games\\wilson\\wilson_quests.gd"
+ ],
+ "weekly-%d": [
+  "scripts\\games\\rectangles\\rectangles_game.gd"
  ],
  "{\n \"schema_version\": 1,\n \"updated\": \"2026-10-12\",\n \"default_region\": \"AR\",\n \"emergency_note\": {\n  \"es\": \"Si hay peligro inmediato, llamá al 911.\",\n  \"en\": \"If there is immediate danger, call 911.\"\n },\n \"fallback\": {\n  \"label_es\": \"Líneas de ayuda en tu país\",\n  \"label_en\": \"Helplines in your country\",\n  \"url\": \"https://findahelpline.com\"\n },\n \"regions\": {\n  \"AR\": {\n   \"resources\": [\n    {\n     \"id\": \"ar_135\",\n     \"label_es\": \"Línea 135 — apoyo en crisis y prevención del suicidio\",\n     \"label_en\": \"Line 135 — crisis support and suicide prevention\",\n     \"dial\": \"135\",\n     \"free\": true,\n     \"note_es\": \"Funciona en Tucumán (línea provincial del Ministerio de Salud, todos los días) y en CABA/GBA (Centro de Asistencia al Suicida).\",\n     \"note_en\": \"Works in Tucumán (provincial Health Ministry line, every day) and in Buenos Aires city/area (Centro de Asistencia al Suicida).\",\n     \"provinces\": [\n      \"AR-T\",\n      \"AR-C\",\n      \"AR-B\"\n     ],\n     \"verified_on\": \"2026-10-12\",\n     \"sources\": [\n      \"https://www.lagaceta.com.ar/nota/1053494/sociedad/llamadas-linea-asistencia-al-riesgo-suicida-se-duplicaron.html\",\n      \"https://findahelpline.com/organizations/linea-de-prevencion-del-suicidio-buenos-aires\"\n     ]\n    },\n    {\n     \"id\": \"ar_cas_national\",\n     \"label_es\": \"Centro de Asistencia al Suicida — desde todo el país\",\n     \"label_en\": \"Centro de Asistencia al Suicida — from anywhere in Argentina\",\n     \"dial\": \"0800 345 1435\",\n     \"dial_alt\": \"(011) 5275-1135\",\n     \"free\": null,\n     \"note_es\": \"El 0800 es para todo el país; el (011) 5275-1135 puede tener costo según tu operador.\",\n     \"note_en\": \"The 0800 number is nationwide; (011) 5275-1135 may have a cost depending on your carrier.\",\n     \"verified_on\": \"2026-10-12\",\n     \"sources\": [\n      \"https://findahelpline.com/organizations/linea-de-prevencion-del-suicidio-buenos-aires\",\n      \"https://www.derechoenzapatillas.com/amp/2022/salud-mental-donde-buscar-ayuda/\"\n     ]\n    },\n    {\n     \"id\": \"ar_107_tuc\",\n     \"label_es\": \"107 — emergencias de salud (Tucumán)\",\n     \"label_en\": \"107 — health emergencies (Tucumán)\",\n     \"dial\": \"107\",\n     \"free\": true,\n     \"provinces\": [\n      \"AR-T\"\n     ],\n     \"verified_on\": \"2026-10-12\",\n     \"sources\": [\n      \"https://www.lagaceta.com.ar/nota/1053494/sociedad/llamadas-linea-asistencia-al-riesgo-suicida-se-duplicaron.html\"\n     ]\n    },\n    {\n     \"id\": \"ar_911\",\n     \"label_es\": \"911 — emergencias\",\n     \"label_en\": \"911 — emergency services\",\n     \"dial\": \"911\",\n     \"free\": true,\n     \"verified_on\": null,\n     \"sources\": []\n    }\n   ]\n  }\n }\n}": [
   "scripts\\common\\crisis_data.gd"
