@@ -23,6 +23,20 @@ const SAVE_PATH := "user://bridge_master_save.json"
 const PROGRESS_PATH := "user://bridge_master_progress.json"
 const ART_LANDING := "res://games/bridge_master/landing_bg.jpg"
 const BACKDROPS := ["res://games/bridge_master/bg_forest.jpg", "res://games/bridge_master/bg_desert.jpg", "res://games/bridge_master/bg_mesa.jpg"]
+## Owner's cut-out art (2026-11-13), made by tools/bridge_master_cutout.py; Classic
+## only (Voodoo keeps the neon lines). Fractions of each picture, from that tool:
+## cliffs [ground line from the top, cliff face from the left], vehicles [rear, front wheel].
+const PARTS_DIR := "res://games/bridge_master/parts/"
+const CLIFF_SETS := ["forest", "desert", "mesa"]
+const CLIFF_META := {
+	"cliff_forest_l": [0.24, 0.95], "cliff_forest_r": [0.05, 0.04],
+	"cliff_desert_l": [0.06, 0.96], "cliff_desert_r": [0.05, 0.025],
+	"cliff_mesa_l": [0.09, 0.97], "cliff_mesa_r": [0.07, 0.027],
+}
+const VEH_META := {"car": [0.18, 0.79], "van": [0.19, 0.77], "bus": [0.22, 0.78], "truck": [0.21, 0.80], "heavy": [0.18, 0.82]}
+const MAT_TEX := {"road": "road_wood", "sroad": "road_steel", "wood": "beam_wood", "steel": "beam_steel", "cable": "cable"}
+const TEX_WIDTH := {"road": 0.42, "sroad": 0.5, "wood": 0.24, "steel": 0.26, "cable": 0.1}
+const TEX_LEN := 4.0  # metres the whole picture of a piece stands for
 const BOARD := "Heaviest load (kg)"
 const ACCENT := Color("ffb74d")
 const TOP_BAR := 100.0
@@ -83,6 +97,7 @@ var map_drag = null
 var map_from_landing := false
 var _backdrops: Array = []
 var _disc: Texture2D
+var _parts := {}
 var vs := 40.0
 var vo := Vector2.ZERO
 
@@ -937,13 +952,27 @@ func _draw_board() -> void:
 	var w: float = lv.w
 	var dh: float = lv.dh
 	var bottom := sz.y + 10.0
-	# Water.
 	var wy := _to_screen(Vector2(0, float(lv.water))).y
-	board.draw_rect(Rect2(Vector2(0, wy), Vector2(sz.x, bottom - wy)), Color(0.15, 0.45, 0.7, 0.75) if classic else Color(0.1, 0.2, 0.5, 0.6))
-	board.draw_line(Vector2(0, wy), Vector2(sz.x, wy), Color(1, 1, 1, 0.5), 2.0)
-	# Cliffs.
 	var l_edge := _to_screen(Vector2(0, 0))
 	var r_edge := _to_screen(Vector2(w, dh))
+	var set_name: String = CLIFF_SETS[art]
+	if classic and _part("cliff_%s_l" % set_name) and _part("cliff_%s_r" % set_name):
+		_draw_cliff("cliff_%s_l" % set_name, l_edge, false, wy)
+		_draw_cliff("cliff_%s_r" % set_name, r_edge, true, wy)
+		if lv.pier != null and _part("pier"):
+			var pt0 := _to_screen(Vector2(float(lv.pier[0]), float(lv.pier[1])))
+			var ptex := _part("pier")
+			var pw0 := vs * 1.4
+			var ptop := pt0.y - pw0 * 0.08
+			board.draw_texture_rect(ptex, Rect2(Vector2(pt0.x - pw0 / 2.0, ptop), Vector2(pw0, wy + vs - ptop)), false)
+		_draw_water(wy, bottom, classic)
+	else:
+		_draw_code_cliffs(classic, rock, top_col, l_edge, r_edge, bottom)
+		_draw_water(wy, bottom, classic)
+	_draw_grid_and_bridge(classic, w)
+
+func _draw_code_cliffs(classic: bool, rock: Color, top_col: Color, l_edge: Vector2, r_edge: Vector2, bottom: float) -> void:
+	var sz := board.size
 	board.draw_colored_polygon(PackedVector2Array([Vector2(-10, l_edge.y), l_edge, Vector2(l_edge.x, bottom), Vector2(-10, bottom)]), rock)
 	board.draw_colored_polygon(PackedVector2Array([r_edge, Vector2(sz.x + 10, r_edge.y), Vector2(sz.x + 10, bottom), Vector2(r_edge.x, bottom)]), rock)
 	var lip := maxf(4.0, vs * 0.22)
@@ -965,6 +994,56 @@ func _draw_board() -> void:
 		var pw := vs * 1.0
 		board.draw_rect(Rect2(Vector2(pt.x - pw / 2.0, pt.y), Vector2(pw, bottom - pt.y)), rock)
 		board.draw_rect(Rect2(Vector2(pt.x - pw / 2.0, pt.y - lip * 0.3), Vector2(pw, lip)), top_col)
+
+## The river: the owner's wave strip along the waterline over deep blue (Classic).
+func _draw_water(wy: float, bottom: float, classic: bool) -> void:
+	var sz := board.size
+	var wt := _part("water") if classic else null
+	if wt:
+		var sh := vs * 1.5
+		var sw := sh * wt.get_width() / wt.get_height()
+		var top := wy - sh * 0.2
+		board.draw_rect(Rect2(Vector2(0, top + sh * 0.6), Vector2(sz.x, bottom - top)), Color("1d4f8c"))
+		var x := -fmod(sw * 0.37, sw)
+		while x < sz.x:
+			board.draw_texture_rect(wt, Rect2(Vector2(x, top), Vector2(sw, sh)), false)
+			x += sw - 1.0
+		return
+	board.draw_rect(Rect2(Vector2(0, wy), Vector2(sz.x, bottom - wy)), Color(0.15, 0.45, 0.7, 0.75) if classic else Color(0.1, 0.2, 0.5, 0.6))
+	board.draw_line(Vector2(0, wy), Vector2(sz.x, wy), Color(1, 1, 1, 0.5), 2.0)
+
+## One painted cliff: its ground line on the level's ground, its face on the gap's edge,
+## tall enough to reach under the water; the far side is filled with a strip of it.
+func _draw_cliff(name: String, edge: Vector2, right: bool, wy: float) -> void:
+	var t := _part(name)
+	var meta: Array = CLIFF_META[name]
+	var tw := float(t.get_width())
+	var th := float(t.get_height())
+	var k: float = maxf(1.0, wy + vs * 1.2 - edge.y) / ((1.0 - float(meta[0])) * th)
+	var size := Vector2(tw, th) * k
+	var pos := Vector2(edge.x - float(meta[1]) * size.x, edge.y - float(meta[0]) * size.y)
+	board.draw_texture_rect(t, Rect2(pos, size), false)
+	# Fill the rest of the screen with mirrored copies: the joins match pixel for pixel.
+	var sz := board.size
+	var x := pos.x
+	var flip := true
+	while (not right and x > 0.0) or (right and x + size.x < sz.x):
+		x += -size.x if not right else size.x
+		if flip:
+			board.draw_set_transform(Vector2(x + size.x, pos.y), 0.0, Vector2(-1, 1))
+			board.draw_texture_rect(t, Rect2(Vector2.ZERO, size), false)
+			board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		else:
+			board.draw_texture_rect(t, Rect2(Vector2(x, pos.y), size), false)
+		flip = not flip
+
+func _part(name: String) -> Texture2D:
+	if not _parts.has(name):
+		var path := PARTS_DIR + name + ".png"
+		_parts[name] = load(path) if ResourceLoader.exists(path) else null
+	return _parts[name]
+
+func _draw_grid_and_bridge(classic: bool, w: float) -> void:
 	# Build grid while editing.
 	if not testing:
 		var gc := Color(1, 1, 1, 0.6) if classic else Color(HomeKit.CYAN, 0.5)
@@ -996,6 +1075,23 @@ func _draw_board() -> void:
 	_draw_vehicle(classic)
 
 func _draw_member(a: Vector2, b: Vector2, m: String, stress: float, classic: bool, alpha: float = 1.0) -> void:
+	var t := _part(MAT_TEX[m]) if classic else null
+	if t:
+		var ln := a.distance_to(b)
+		var th := maxf(4.0, vs * float(TEX_WIDTH[m]))
+		var tint := Color(1, 1, 1, alpha)
+		if stress >= 0.0:
+			var st := clampf(stress, 0.0, 1.0)
+			var sc2 := Color("66bb6a").lerp(Color("ffee58"), st * 2.0) if st < 0.5 else Color("ffee58").lerp(Color("ff1744"), (st - 0.5) * 2.0)
+			tint = Color.WHITE.lerp(sc2, 0.35 + 0.5 * st)
+			tint.a = alpha
+		var src_w: float = minf(t.get_width(), t.get_width() * (ln / vs) / TEX_LEN)
+		# Roads hang under the line (the vehicle drives on their top); the rest is centred.
+		var y0 := -th * 0.15 if (m == "road" or m == "sroad") else -th * 0.5
+		board.draw_set_transform(a, (b - a).angle(), Vector2.ONE)
+		board.draw_texture_rect_region(t, Rect2(Vector2(0, y0), Vector2(ln, th)), Rect2(0, 0, src_w, t.get_height()), tint)
+		board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
 	var wpx: float = maxf(2.0, vs * float(MAT_WIDTH[m]))
 	var col: Color = MAT_COLORS[m] if classic else MAT_NEON[m]
 	if stress >= 0.0:
@@ -1018,6 +1114,11 @@ func _draw_member(a: Vector2, b: Vector2, m: String, stress: float, classic: boo
 
 func _draw_bolt(p: Vector2, anchor: bool, classic: bool) -> void:
 	var r := maxf(4.0, vs * (0.17 if anchor else 0.12))
+	var bt := _part("anchor" if anchor else "bolt") if classic else null
+	if bt:
+		var rr := r * 1.35
+		board.draw_texture_rect(bt, Rect2(p - Vector2(rr, rr), Vector2(rr, rr) * 2.0), false)
+		return
 	if classic:
 		_disc_at(p, r + 2.0, Color(0, 0, 0, 0.55))
 		_disc_at(p, r, Color("d32f2f") if anchor else Color("cfd8dc"))
@@ -1043,6 +1144,20 @@ func _draw_vehicle(classic: bool) -> void:
 	else:
 		p = Vector2(-1.0 - float(vd.base) * 0.5 - 0.3, 0.0)
 	var base: float = vd.base
+	var vt := _part("veh_" + str(lv.vehicle)) if classic else null
+	if vt:
+		var vm: Array = VEH_META[lv.vehicle]
+		var px_w := float(vt.get_width())
+		var k := base / ((float(vm[1]) - float(vm[0])) * px_w) * vs
+		var vsize := Vector2(vt.get_width(), vt.get_height()) * k
+		var mid := (float(vm[0]) + float(vm[1])) * 0.5
+		var tint := Color.WHITE
+		if load_test and testing:
+			tint = Color.WHITE.lerp(Color("ff8a80"), clampf((load_mult - 1.0) / 3.0, 0.0, 0.8))
+		board.draw_set_transform(_to_screen(p), -ang, Vector2.ONE)
+		board.draw_texture_rect(vt, Rect2(Vector2(-mid * vsize.x, -vsize.y), vsize), false, tint)
+		board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
 	var ln: float = vd.len
 	var ht: float = vd.h
 	var wr := 0.32 if lv.vehicle == "car" else 0.42

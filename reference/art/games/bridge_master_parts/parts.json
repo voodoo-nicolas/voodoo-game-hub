@@ -1,0 +1,125 @@
+{
+ "cliff_forest_l": {
+  "top": 0.24,
+  "edge": 0.9023
+ },
+ "size": {
+  "cliff_forest_l": [
+   512,
+   618
+  ],
+  "cliff_forest_r": [
+   512,
+   540
+  ],
+  "cliff_desert_l": [
+   512,
+   389
+  ],
+  "cliff_desert_r": [
+   512,
+   553
+  ],
+  "cliff_mesa_l": [
+   512,
+   548
+  ],
+  "cliff_mesa_r": [
+   512,
+   540
+  ],
+  "pier": [
+   256,
+   529
+  ],
+  "water": [
+   1024,
+   187
+  ],
+  "beam_wood": [
+   1024,
+   88
+  ],
+  "beam_steel": [
+   1024,
+   115
+  ],
+  "road_steel": [
+   1024,
+   175
+  ],
+  "road_wood": [
+   1024,
+   97
+  ],
+  "cable": [
+   1024,
+   75
+  ],
+  "veh_car": [
+   512,
+   293
+  ],
+  "veh_van": [
+   512,
+   322
+  ],
+  "veh_bus": [
+   640,
+   371
+  ],
+  "veh_truck": [
+   640,
+   318
+  ],
+  "veh_heavy": [
+   640,
+   361
+  ]
+ },
+ "cliff_forest_r": {
+  "top": 0.05,
+  "edge": 0.0391
+ },
+ "cliff_desert_l": {
+  "top": 0.06,
+  "edge": 0.6406
+ },
+ "cliff_desert_r": {
+  "top": 0.05,
+  "edge": 0.0254
+ },
+ "cliff_mesa_l": {
+  "top": 0.09,
+  "edge": 0.9746
+ },
+ "cliff_mesa_r": {
+  "top": 0.07,
+  "edge": 0.0273
+ },
+ "veh_car": {
+  "rear": 0.18,
+  "front": 0.79,
+  "r": 0.1
+ },
+ "veh_van": {
+  "rear": 0.19,
+  "front": 0.77,
+  "r": 0.1
+ },
+ "veh_bus": {
+  "rear": 0.22,
+  "front": 0.78,
+  "r": 0.09
+ },
+ "veh_truck": {
+  "rear": 0.21,
+  "front": 0.8,
+  "r": 0.08
+ },
+ "veh_heavy": {
+  "rear": 0.18,
+  "front": 0.82,
+  "r": 0.075
+ }
+}
