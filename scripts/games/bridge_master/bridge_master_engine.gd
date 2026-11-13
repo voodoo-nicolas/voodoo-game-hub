@@ -46,7 +46,7 @@ const VEHICLES := {
 	"heavy": {"name": "Heavy Truck", "mass": 7.0, "base": 3.6, "len": 5.2, "h": 2.2},
 }
 const VEHICLE_ORDER := ["car", "van", "bus", "truck", "heavy"]
-const SPAN_BY_CHAPTER := [4, 6, 8, 10, 10, 12, 12, 14, 14, 16]
+const SPAN_BY_CHAPTER := [4, 6, 8, 8, 10, 10, 12, 12, 14, 14]
 const VEHICLE_BY_CHAPTER := [0, 0, 1, 1, 2, 2, 3, 3, 3, 4]
 
 static var _table: Dictionary = {}
@@ -64,37 +64,75 @@ static func mats_for(n: int) -> Array:
 	return out
 
 ## The level layout from its number alone (budget not included).
-static func generate(n: int) -> Dictionary:
+## Owner 2026-11-13: "everything is the same" in the first levels. Now every level varies:
+## the span drifts up through each chapter with a random step either way, cliffs at different
+## heights from level 6, lower bolts and river pillars from chapter 1, a heavier vehicle late in
+## a chapter, and the backdrop changes every level (art_of / flip_of / tint_of).
+## Levels 1-2 are the lesson (road alone carries a car over 4 m); from level 3 on, no level can
+## be crossed with a plain road deck.
+## w_over: the span the level tool settled on (it widens a level a plain deck could cross).
+static func generate(n: int, w_over: int = 0) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = n * 7919 + 3
 	var c := chapter_of(n)
 	var i := (n - 1) % PER_CHAPTER
-	var w: int = SPAN_BY_CHAPTER[c] + 2 * (rng.randi() % 2 if i >= 10 else 0) + (2 if i >= 25 else 0)
-	if n <= 3:
-		w = 4
+	var lo: int = SPAN_BY_CHAPTER[c]
+	var hi: int = SPAN_BY_CHAPTER[mini(c + 1, SPAN_BY_CHAPTER.size() - 1)] + 2
+	var w: int = lo + roundi(float(hi - lo) * i / (PER_CHAPTER - 1) / 2.0) * 2
+	w += [-2, 0, 0, 2][rng.randi() % 4]
+	w = clampi(w, 4, 18)
 	var dh := 0
-	if c >= 3 and rng.randf() < 0.4:
-		dh = [-2, -1, 1, 2][rng.randi() % 4]
+	if n >= 6 and rng.randf() < 0.35 + 0.03 * c:
+		var r := 1 if c == 0 else 2
+		dh = rng.randi_range(-r, r)
 	var veh: int = VEHICLE_BY_CHAPTER[c]
 	if i < 8 and veh > 0 and rng.randf() < 0.5:
 		veh -= 1
-	if i >= 20 and veh < 4 and c >= 2 and rng.randf() < 0.3:
+	if i >= 12 and veh < 4 and rng.randf() < 0.2 + 0.015 * i:
 		veh += 1
+	if n <= 2:
+		w = 4
+		dh = 0
+		veh = 0
+	elif w == 4 and veh == 0:
+		# A car on 4 m of plain road always makes it: give it something to solve.
+		if rng.randf() < 0.5:
+			veh = 1
+		else:
+			w = 6
+	if w_over > 0:
+		w = w_over
 	var water := -clampi(w / 3 + 3, 4, 8)
 	var anchors: Array = [[0, 0], [w, dh]]
-	var low_p := 0.25 + 0.04 * c
+	var low_p := 0.0 if n < 4 else 0.3 + 0.04 * c
 	if rng.randf() < low_p:
 		anchors.append([0, -2])
 	if rng.randf() < low_p:
 		anchors.append([w, dh - 2])
 	var pier = null
-	if w >= 12 and c >= 3 and rng.randf() < 0.3 + 0.05 * c:
+	if n >= 8 and w >= 8 and rng.randf() < 0.25 + 0.05 * c:
 		var px: int = (w / 2) & ~1
 		pier = [px, -2]
 		anchors.append([px, -2])
 	return {"n": n, "w": w, "dh": dh, "water": water, "anchors": anchors, "pier": pier,
 		"vehicle": VEHICLE_ORDER[veh], "mats": mats_for(n), "chapter": c,
 		"budget": 0, "ref": 0}
+
+## Backdrop for a level (0 forest, 1 desert, 2 mesa): the chapter's own art, with the other two
+## mixed in, so neighbouring levels never look alike.
+static func art_of(n: int) -> int:
+	var c := chapter_of(n)
+	var i := (n - 1) % PER_CHAPTER
+	return (int(CHAPTER_ART[c]) + [0, 0, 1, 0, 2, 0][(i / 2) % 6]) % 3
+
+## Every other level shows its backdrop mirrored.
+static func flip_of(n: int) -> bool:
+	return n % 2 == 0
+
+## Light of day: morning, noon, golden hour, dusk (classic skin).
+const TINTS := [Color(1.0, 0.97, 0.92), Color(1, 1, 1), Color(1.0, 0.86, 0.7), Color(0.78, 0.8, 1.0)]
+static func tint_of(n: int) -> Color:
+	return TINTS[((n - 1) / 3) % TINTS.size()]
 
 static func load_table() -> void:
 	if not _table.is_empty() or not FileAccess.file_exists(LEVELS_PATH):
@@ -109,8 +147,8 @@ static func load_table() -> void:
 ## A playable level: layout + budget, engineer's cost and vehicle from the table.
 static func level(n: int) -> Dictionary:
 	load_table()
-	var lv := generate(n)
 	var row = _table.get(str(n))
+	var lv := generate(n, int(row.get("w", 0)) if row is Dictionary else 0)
 	if row is Dictionary:
 		lv.budget = int(row.get("budget", 0))
 		lv.ref = int(row.get("ref", 0))

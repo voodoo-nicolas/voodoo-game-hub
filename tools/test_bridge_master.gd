@@ -26,7 +26,15 @@ func _init() -> void:
 		vehicles[lv.vehicle] = vehicles.get(lv.vehicle, 0) + 1
 	print("vehicles: ", vehicles)
 	# Spot-check: the table's claim holds (a reference bridge crosses), and a bare road snaps.
-	for n in [1, 37, 120, 233, 300]:
+	# Levels 1-2 are the lesson: a plain road deck crosses; from level 3 it must not.
+	for n in [1, 3]:
+		var lvp := E.level(n)
+		var plain: Array = []
+		for m in E.ref_design(lvp, 2, "wood", "wood", "road"):
+			if str(m[4]) == "road":
+				plain.append(m)
+		check((E.simulate(lvp, plain) == "win") == (n == 1), "level %d plain deck %s" % [n, "crosses" if n == 1 else "fails"])
+	for n in [5, 37, 120, 233, 300]:
 		var lv := E.level(n)
 		var found := false
 		for h in [2, 3, 4]:

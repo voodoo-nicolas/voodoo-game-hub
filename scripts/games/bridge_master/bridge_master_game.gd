@@ -352,7 +352,12 @@ func _begin(n: int) -> void:
 	cur_level = clampi(n, 1, E.LEVEL_COUNT)
 	lv = E.level(cur_level)
 	var saved = progress.designs.get(str(cur_level))
-	design = (saved as Array).duplicate(true) if saved is Array else []
+	design = []
+	# Levels were remade (2026-11-13): keep only the saved pieces that still fit this layout.
+	if saved is Array:
+		for m in saved:
+			if m is Array and m.size() == 5 and str(m[4]) in lv.mats 					and E.check_member(lv, design, int(m[0]), int(m[1]), int(m[2]), int(m[3]), str(m[4])) == "":
+				design.append(m.duplicate())
 	undo_stack.clear()
 	testing = false
 	load_test = false
@@ -382,6 +387,12 @@ func _level_tip() -> String:
 			return tr("New material: %s") % tr(E.MATS[k].name)
 	if lv.pier != null and (n == 1 or E.generate(n - 1).pier == null):
 		return tr("A rock pillar in the river: build onto its bolt.")
+	if n == 3:
+		return tr("Too heavy for road alone: add wood under or above it in triangles.")
+	if int(lv.dh) != 0 and int(E.generate(n - 1).dh) == 0:
+		return tr("The cliffs are at different heights: the road can slope.")
+	if lv.anchors.size() > 2 and E.generate(n - 1).anchors.size() == 2 and lv.pier == null:
+		return tr("Extra bolts lower down the cliff: brace from them.")
 	return ""
 
 func _labels() -> void:
@@ -1237,14 +1248,17 @@ func _draw_board() -> void:
 	var classic := skin == "classic"
 	var sz := board.size
 	# Backdrop (cover) — the owner's canyon art; darker in Voodoo.
-	var tex: Texture2D = _backdrops[E.CHAPTER_ART[int(lv.chapter)]]
+	var art: int = E.art_of(cur_level)
+	var tex: Texture2D = _backdrops[art]
 	if tex:
 		var k := maxf(sz.x / tex.get_width(), sz.y / tex.get_height())
 		var ts := Vector2(tex.get_width(), tex.get_height()) * k
-		board.draw_texture_rect(tex, Rect2((sz - ts) / 2.0, ts), false, Color(1, 1, 1) if classic else Color(0.25, 0.22, 0.4))
+		if E.flip_of(cur_level):
+			board.draw_set_transform(Vector2(sz.x, 0), 0.0, Vector2(-1, 1))
+		board.draw_texture_rect(tex, Rect2((sz - ts) / 2.0, ts), false, E.tint_of(cur_level) if classic else Color(0.25, 0.22, 0.4))
+		board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	else:
 		board.draw_rect(Rect2(Vector2.ZERO, sz), Color("8fc6e8") if classic else HomeKit.BG)
-	var art: int = E.CHAPTER_ART[int(lv.chapter)]
 	var rock: Color = [Color("7a5a3c"), Color("b5582f"), Color("a24a26")][art] if classic else Color("0b0f1e")
 	var top_col: Color = [Color("5f9e3a"), Color("e0b878"), Color("d9a560")][art] if classic else HomeKit.CYAN
 	var w: float = lv.w
