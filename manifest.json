@@ -48,7 +48,8 @@
       {"id": "color_sort", "tile_art": "res://media/hub/game_art/color_sort/tile.webp", "quick": true, "title": "Color Sort", "icon": "🧪", "title_es": "Ordena colores", "board": "Total stars", "skins": "classic,voodoo", "learn": ["logic", "art"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "hidato", "family": "Sudoku", "title": "Hidato", "icon": "🔢", "title_es": "Hidato", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "creation", "tile_art": "res://media/hub/game_art/creation/tile.webp", "hero_art": "res://media/hub/game_art/creation/hero.webp", "title": "Creation", "icon": "⚗️", "title_es": "Creación", "board": "Discoveries", "skins": "classic,voodoo", "learn": ["science", "logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
-      {"id": "evolution", "tile_art": "res://media/hub/game_art/evolution/tile.webp", "hero_art": "res://media/hub/game_art/evolution/hero.webp", "quick": true, "original": true, "title": "Evolution", "icon": "🦠", "title_es": "Evolución", "board": "Best score", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Cartoon microbes eat each other"}}
+      {"id": "evolution", "tile_art": "res://media/hub/game_art/evolution/tile.webp", "hero_art": "res://media/hub/game_art/evolution/hero.webp", "quick": true, "original": true, "title": "Evolution", "icon": "🦠", "title_es": "Evolución", "board": "Best score", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Cartoon microbes eat each other"}},
+      {"id": "rectangles", "family": "Sudoku", "title": "Gridmaster", "icon": "🟦", "title_es": "Gridmaster", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
     ]},
     {"name": "Cards", "icon": "🃏", "name_es": "Cartas", "games": [
       {"id": "solitaire", "tile_art": "res://media/hub/game_art/solitaire/tile.webp", "hero_art": "res://media/hub/game_art/solitaire/hero.webp", "family": "Solitaire", "title": "Solitaire", "icon": "🂡", "title_es": "Solitario", "board": "Games won", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
@@ -255,6 +256,7 @@
     "maze_trail": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/maze_trail.pck", "scene": "res://scenes/games/maze_trail/maze_trail.tscn"},
     "tilt_maze": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tilt_maze.pck", "scene": "res://scenes/games/tilt_maze/tilt_maze.tscn"},
     "wilson": {"version": 13, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wilson.pck", "scene": "res://scenes/games/wilson/wilson.tscn"},
-    "bug_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bug_chain.pck", "scene": "res://scenes/games/bug_chain/bug_chain.tscn"}
+    "bug_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bug_chain.pck", "scene": "res://scenes/games/bug_chain/bug_chain.tscn"},
+    "rectangles": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rectangles.pck", "scene": "res://scenes/games/rectangles/rectangles.tscn"}
   }
 }
