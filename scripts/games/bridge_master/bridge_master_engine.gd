@@ -22,6 +22,8 @@ const LEVELS_PATH := "res://scripts/games/bridge_master/bridge_master_levels.jso
 const G := 10.0
 const H := 1.0 / 600.0      # physics substep (s)
 const SPEED := 3.0          # vehicle speed (m/s)
+## Front wheel's start, metres before the left edge (owner 2026-11-13: start further back; was -1).
+const START_X := -3.0
 const START_DELAY := 1.0    # the bridge settles before the vehicle drives on
 const GRAVITY_RAMP := 0.5
 const DAMP := 1.5           # velocity damping per second
@@ -331,7 +333,7 @@ func setup(level_dict: Dictionary, design: Array, mult: float = 1.0) -> void:
 	acc = 0.0
 	status = "running"
 	reason = ""
-	vx = -1.0
+	vx = START_X
 	vstate = "wait"
 	wheel_y = [0.0, 0.0]
 	wheel_m = [-1, -1]

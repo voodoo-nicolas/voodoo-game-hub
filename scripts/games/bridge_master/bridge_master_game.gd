@@ -27,14 +27,21 @@ const ART_LANDING := "res://games/bridge_master/landing_bg.jpg"
 const BACKDROPS := ["res://games/bridge_master/bg_forest.jpg", "res://games/bridge_master/bg_desert.jpg", "res://games/bridge_master/bg_mesa.jpg"]
 ## Owner's cut-out art (2026-11-13), made by tools/bridge_master_cutout.py; Classic
 ## only (Voodoo keeps the neon lines). Fractions of each picture, from that tool:
-## cliffs [ground line from the top, cliff face from the left], vehicles [rear, front wheel].
+## vehicles [rear, front wheel]; cliffs: CLIFF_META below.
 const PARTS_DIR := "res://games/bridge_master/parts/"
 const CLIFF_SETS := ["forest", "desert", "mesa"]
+## cliffs [ground line from the top, cliff face from the left, where the sharp painting ends
+## (below it the cut-out tool smeared the rock: never shown), top of the rock band that repeats below it].
+## 2026-11-13: desert_l face fixed 0.96 -> 0.655 (the car hung in the air past the painted edge).
 const CLIFF_META := {
-	"cliff_forest_l": [0.24, 0.95], "cliff_forest_r": [0.05, 0.04],
-	"cliff_desert_l": [0.06, 0.96], "cliff_desert_r": [0.05, 0.025],
-	"cliff_mesa_l": [0.09, 0.97], "cliff_mesa_r": [0.07, 0.027],
+	"cliff_forest_l": [0.24, 0.95, 1.0, 0.6], "cliff_forest_r": [0.05, 0.04, 1.0, 0.5],
+	"cliff_desert_l": [0.08, 0.655, 0.62, 0.3], "cliff_desert_r": [0.06, 0.025, 0.25, 0.19],
+	"cliff_mesa_l": [0.09, 0.97, 0.29, 0.21], "cliff_mesa_r": [0.07, 0.027, 0.32, 0.21],
 }
+## Cliffs drawn with another picture: the desert / mesa cut-outs are mostly smear, only
+## cliff_desert_l has a full rock face (2026-11-13). Remove a line once its art is redrawn.
+const CLIFF_BORROW := {"cliff_desert_r": "cliff_desert_l", "cliff_mesa_l": "cliff_desert_l", "cliff_mesa_r": "cliff_desert_l"}
+var _mirror_at := NAN  # while drawing a borrowed right cliff: mirror every piece about this x
 const VEH_META := {"car": [0.18, 0.79], "van": [0.19, 0.77], "bus": [0.22, 0.78], "truck": [0.21, 0.80], "heavy": [0.18, 0.82]}
 const MAT_TEX := {"road": "road_wood", "sroad": "road_steel", "wood": "beam_wood", "steel": "beam_steel", "cable": "cable"}
 const TEX_WIDTH := {"road": 0.42, "sroad": 0.5, "wood": 0.24, "steel": 0.26, "cable": 0.1}
@@ -636,9 +643,9 @@ func _clamp_view() -> void:
 		vo = _fit_vo
 	else:
 		# The fitted view's world rectangle, scaled: keep it covering the fitted screen area.
-		var fit_tl := _fit_vo + Vector2(-2.5, -(float(E.top_limit(lv)) + 0.4)) * _fit_vs
+		var fit_tl := _fit_vo + Vector2(_view_x0(), -(float(E.top_limit(lv)) + 0.4)) * _fit_vs
 		var fit_br := _fit_vo + Vector2(float(lv.w) + 2.5, -(float(lv.water) - 0.5)) * _fit_vs
-		var cur_tl := vo + Vector2(-2.5, -(float(E.top_limit(lv)) + 0.4)) * vs
+		var cur_tl := vo + Vector2(_view_x0(), -(float(E.top_limit(lv)) + 0.4)) * vs
 		var cur_br := vo + Vector2(float(lv.w) + 2.5, -(float(lv.water) - 0.5)) * vs
 		var shift := Vector2.ZERO
 		if cur_tl.x > fit_tl.x:
@@ -1210,7 +1217,7 @@ func _close_map() -> void:
 func _layout() -> void:
 	if lv.is_empty() or board == null:
 		return
-	var x0 := -2.5
+	var x0 := _view_x0()
 	var x1 := float(lv.w) + 2.5
 	var y0 := float(lv.water) - 0.5
 	var y1 := float(E.top_limit(lv)) + 0.4
@@ -1223,6 +1230,11 @@ func _layout() -> void:
 	# A new level or a new screen size starts from the whole level.
 	zoom = 1.0
 	_clamp_view()
+
+## Left edge of the fitted view: the whole parked vehicle shows (it starts at E.START_X).
+func _view_x0() -> float:
+	var base: float = E.VEHICLES[lv.vehicle].base if not lv.is_empty() else 1.6
+	return E.START_X - base - 0.9
 
 func _to_screen(p: Vector2) -> Vector2:
 	return vo + Vector2(p.x, -p.y) * vs
@@ -1325,29 +1337,70 @@ func _draw_water(wy: float, bottom: float, classic: bool) -> void:
 	board.draw_line(Vector2(0, wy), Vector2(sz.x, wy), Color(1, 1, 1, 0.5), 2.0)
 
 ## One painted cliff: its ground line on the level's ground, its face on the gap's edge,
-## tall enough to reach under the water; the far side is filled with a strip of it.
+## reaching under the water. Only the sharp top of the picture is drawn; below it a band of
+## rock repeats, mirrored. The far side is filled with mirrored copies of a clean middle strip
+## (the picture's outer edge is ragged: copying it made a dark bar on the left, 2026-11-13).
 func _draw_cliff(name: String, edge: Vector2, right: bool, wy: float) -> void:
+	# Pictures with too little sharp rock borrow the desert's left cliff (mirrored on the right).
+	_mirror_at = NAN
+	if CLIFF_BORROW.has(name):
+		name = CLIFF_BORROW[name]
+		if right:
+			_mirror_at = edge.x
+			right = false
 	var t := _part(name)
 	var meta: Array = CLIFF_META[name]
 	var tw := float(t.get_width())
 	var th := float(t.get_height())
-	var k: float = maxf(1.0, wy + vs * 1.2 - edge.y) / ((1.0 - float(meta[0])) * th)
-	var size := Vector2(tw, th) * k
-	var pos := Vector2(edge.x - float(meta[1]) * size.x, edge.y - float(meta[0]) * size.y)
-	board.draw_texture_rect(t, Rect2(pos, size), false)
-	# Fill the rest of the screen with mirrored copies: the joins match pixel for pixel.
+	var ground: float = meta[0]
+	var face: float = meta[1]
+	var sharp: float = meta[2]
+	var k: float = maxf(1.0, wy + vs * 1.2 - edge.y) / ((1.0 - ground) * th)
+	var origin := Vector2(edge.x - face * tw * k, edge.y - ground * th * k)
+	var bottom := wy + vs * 1.2
+	# Columns of the picture: the main part (outer ragged edge cut off) and the strip that repeats.
+	var cut := 0.1
+	var main := Vector2(cut, 1.0) if not right else Vector2(0.0, 1.0 - cut)
+	var strip := Vector2(cut, face - 0.15) if not right else Vector2(face + 0.15, 1.0 - cut)
+	_cliff_column(t, main.x * tw, main.y * tw, origin.x + main.x * tw * k, false, origin.y, k, sharp * th, float(meta[3]) * th, bottom)
+	var sw := (strip.y - strip.x) * tw * k
 	var sz := board.size
-	var x := pos.x
+	var x := origin.x + main.x * tw * k if not right else origin.x + main.y * tw * k
 	var flip := true
-	while (not right and x > 0.0) or (right and x + size.x < sz.x):
-		x += -size.x if not right else size.x
-		if flip:
-			board.draw_set_transform(Vector2(x + size.x, pos.y), 0.0, Vector2(-1, 1))
-			board.draw_texture_rect(t, Rect2(Vector2.ZERO, size), false)
-			board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		else:
-			board.draw_texture_rect(t, Rect2(Vector2(x, pos.y), size), false)
+	var far := 0.0 if is_nan(_mirror_at) else 2.0 * _mirror_at - sz.x
+	while (not right and x > far) or (right and x < sz.x):
+		var dx := x - sw if not right else x
+		_cliff_column(t, strip.x * tw, strip.y * tw, dx, flip, origin.y, k, sharp * th, float(meta[3]) * th, bottom)
+		x += -sw if not right else sw
 		flip = not flip
+	_mirror_at = NAN
+
+## Picture columns [sx0, sx1] drawn at screen x, scale k: rows 0..sharp as painted, then a
+## band of rock above `sharp` repeated down to `bottom` (every other copy upside down).
+func _cliff_column(t: Texture2D, sx0: float, sx1: float, x: float, flip: bool, top: float, k: float, sharp: float, band_top: float, bottom: float) -> void:
+	var w := (sx1 - sx0) * k
+	_blit(t, Rect2(sx0, 0, sx1 - sx0, sharp), Rect2(x, top, w, sharp * k), flip, false)
+	var band := sharp - band_top
+	if band < 4.0:
+		return
+	var y := top + sharp * k
+	var up := true
+	var guard := 0
+	while y < bottom and guard < 40:
+		_blit(t, Rect2(sx0, sharp - band, sx1 - sx0, band), Rect2(x, y, w, band * k), flip, up)
+		y += band * k - 1.0
+		up = not up
+		guard += 1
+
+## draw_texture_rect_region, optionally mirrored left-right and / or upside down.
+func _blit(t: Texture2D, src: Rect2, dst: Rect2, fx: bool, fy: bool) -> void:
+	if not is_nan(_mirror_at):
+		dst.position.x = 2.0 * _mirror_at - dst.end.x
+		fx = not fx
+	var o := dst.position + Vector2(dst.size.x if fx else 0.0, dst.size.y if fy else 0.0)
+	board.draw_set_transform(o, 0.0, Vector2(-1.0 if fx else 1.0, -1.0 if fy else 1.0))
+	board.draw_texture_rect_region(t, Rect2(Vector2.ZERO, dst.size), src)
+	board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _part(name: String) -> Texture2D:
 	if not _parts.has(name):
@@ -1475,7 +1528,7 @@ func _draw_vehicle(classic: bool) -> void:
 		p = engine.vehicle_pos()
 		ang = engine.vehicle_angle()
 	else:
-		p = Vector2(-1.0 - float(vd.base) * 0.5 - 0.3, 0.0)
+		p = Vector2(E.START_X - float(vd.base) * 0.5, 0.0)
 	var base: float = vd.base
 	var vt := _part("veh_" + str(lv.vehicle)) if classic else null
 	if vt:
