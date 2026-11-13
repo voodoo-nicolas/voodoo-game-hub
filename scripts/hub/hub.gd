@@ -149,6 +149,7 @@ func _ready() -> void:
 		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	else:
 		bg = Brand.backdrop()
+		_home_bg = bg
 	add_child(bg)
 	move_child(bg, 0)
 	art_layer = Control.new()
@@ -334,6 +335,8 @@ func _build_home_view() -> void:
 ## Continue (the last game opened): a small card above the Games button.
 ## Portrait: one column. Landscape (wider than tall): the wordmark on the left, the
 ## top bar, Continue card, Games button and version on the right.
+var _home_bg: Control
+
 func _apply_home_orientation() -> void:
 	var land := size.x > size.y * 1.05
 	if home_row == null or (land == _home_land and (home_row.visible == land)):
@@ -352,6 +355,8 @@ func _apply_home_orientation() -> void:
 		for n in [home_top, continue_box, games_btn, version_label]:
 			home_right.add_child(n)
 		games_btn.custom_minimum_size.y = 96
+		if _home_bg != null and _home_bg.has_method("follow"):
+			_home_bg.call("follow", banner_panel)  # the art's skull behind the wordmark
 	else:
 		home_row.visible = false
 		home_col.visible = true

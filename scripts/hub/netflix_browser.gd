@@ -33,6 +33,13 @@ const HubData = preload("res://scripts/common/hub_data.gd")
 const GameArt = preload("res://scripts/common/game_art.gd")
 
 const BAR_H := 64.0
+## Owner 2026-11-13: the sliding rows grow -- portrait: bar and tiles +25%;
+## landscape: bar text +15%, tiles +5%.
+const PORTRAIT_GROW := 1.25
+const LANDSCAPE_TEXT_GROW := 1.15
+const LANDSCAPE_TILE_GROW := 1.05
+## Grid categories folded shut (owner 2026-11-13: tap a heading to open / close it).
+static var _folded: Dictionary = {}
 const TOP_H := 84.0
 const RECENT_MAX := 1   # owner 2026-10-20: Continue playing = only the last game played
 const ART_FADE := 0.3
@@ -388,11 +395,18 @@ func _layout() -> void:
 func _layout_strip(W: float, H: float) -> float:
 	var side := float(HubLook.SIDE)
 	var tile := Vector2.ZERO
+	var k := LANDSCAPE_TEXT_GROW if landscape else PORTRAIT_GROW
+	bar.set_scale_k(k)
+	var bar_h := BAR_H * k
+	bar.custom_minimum_size.y = bar_h
 	if landscape:
-		var h := clampf(H * 0.30 - BAR_H - GameTile.TITLE_H - 2.0 * GameStrip.PAD_V - 8.0, 64.0, 150.0)
+		# var h := clampf(H * 0.30 - BAR_H - GameTile.TITLE_H - 2.0 * GameStrip.PAD_V - 8.0, 64.0, 150.0)
+		var h := clampf(H * 0.30 - BAR_H - GameTile.TITLE_H - 2.0 * GameStrip.PAD_V - 8.0, 64.0, 150.0) * LANDSCAPE_TILE_GROW
+		h = roundf(h)
 		tile = Vector2(roundf(h * 16.0 / 9.0), h)
 	else:
-		var w := roundf((W - side) / 3.4 - GameStrip.SEPARATION)
+		# var w := roundf((W - side) / 3.4 - GameStrip.SEPARATION)
+		var w := roundf(((W - side) / 3.4 - GameStrip.SEPARATION) * PORTRAIT_GROW)
 		tile = Vector2(w, roundf(w * 9.0 / 16.0))
 	if tile != _tile_size:
 		_tile_size = tile
@@ -400,7 +414,7 @@ func _layout_strip(W: float, H: float) -> float:
 		if tab != "":
 			_show_tab()
 	strip.set_arrows_enabled(landscape)
-	var bottom_h: float = BAR_H + 4.0 + strip.min_height() + 8.0
+	var bottom_h: float = bar_h + 4.0 + strip.min_height() + 8.0
 	_bottom.position = Vector2(0, H - bottom_h)
 	_bottom.size = Vector2(W, bottom_h)
 	return bottom_h
@@ -433,13 +447,9 @@ func _set_art(key: String, tex: Texture2D) -> void:
 	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if tex == null:
-		# Nothing: the hub's own backdrop (hub.gd) shows through. A second
-		# Brand.backdrop() here drifted out of step with the first one, and in
-		# landscape both showed (owner, 2026-11-13: "double background").
-		pass
-		# var bg := Brand.backdrop()
-		# bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		# pic.add_child(bg)
+		var bg := Brand.backdrop()
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pic.add_child(bg)
 	else:
 		pic.add_child(_cover(tex))
 		var dim := ColorRect.new()   # a little darker, like the hub background
@@ -626,11 +636,17 @@ func _restore_scroll(y: int) -> void:
 func _add_section(title: String, games: Array, tile_size: Vector2, empty_text: String) -> void:
 	if games.is_empty() and empty_text == "":
 		return
-	var head := HubLook.label(title, 30)
+	# var head := HubLook.label(title, 30)
+	# head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var folded := bool(_folded.get(title, false))
+	var head := HubLook.ghost_button(("▸  " if folded else "▾  ") + title, 30)
+	head.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	head.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	head.custom_minimum_size.y = 52
-	head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	head.pressed.connect(_on_grid_heading.bind(title))
 	_grid_box.add_child(head)
+	if folded:
+		return
 	if games.is_empty():
 		var l := HubLook.label(empty_text, 22, HubLook.pal().text_dim)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -647,6 +663,12 @@ func _add_section(title: String, games: Array, tile_size: Vector2, empty_text: S
 		grid.add_child(t)
 		_grid_tiles.append(t)
 		_hook_tile(t)
+
+func _on_grid_heading(title: String) -> void:
+	if scroller != null and bool(scroller.get("moved")):
+		return  # the end of a drag, not a tap
+	_folded[title] = not bool(_folded.get(title, false))
+	rebuild()
 
 ## Android back: Filtros panel first, then the open detail. True = handled.
 func handle_back() -> bool:

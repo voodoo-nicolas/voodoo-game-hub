@@ -91,6 +91,47 @@ static func embers(parent: Control) -> CPUParticles2D:
 	p.scale_amount_max = 1.5
 	return p
 
+## Slow violet / blue smoke puffs drifting up from the bottom third (owner
+## 2026-11-13: "smoke/fumes, floating particles"). One soft radial texture,
+## ~10 big faint particles: cheap. Off with Menu animations / Reduce motion.
+static func smoke(parent: Control) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	if _still(parent) or _no_decor(parent):
+		p.emitting = false
+		return p
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.55, 0.25, 1.0, 0.0))
+	grad.add_point(0.3, Color(0.5, 0.3, 1.0, 0.16))
+	grad.add_point(0.7, Color(0.25, 0.5, 1.0, 0.1))
+	grad.set_color(grad.get_point_count() - 1, Color(0.25, 0.5, 1.0, 0.0))
+	p.color_ramp = grad
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 0.0)
+	tex.width = 128
+	tex.height = 128
+	p.texture = tex
+	p.amount = 10
+	p.lifetime = 16.0
+	p.preprocess = 16.0
+	p.local_coords = false
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.direction = Vector2(0.2, -1.0)
+	p.spread = 30.0
+	p.gravity = Vector2.ZERO
+	p.initial_velocity_min = 8.0
+	p.initial_velocity_max = 22.0
+	p.angular_velocity_min = -8.0
+	p.angular_velocity_max = 8.0
+	p.scale_amount_min = 2.5
+	p.scale_amount_max = 5.0
+	return p
+
 ## Emit along the bottom edge of a `size` area.
 static func place_embers(p: CPUParticles2D, area: Vector2) -> void:
 	p.position = Vector2(area.x / 2.0, area.y + 8.0)

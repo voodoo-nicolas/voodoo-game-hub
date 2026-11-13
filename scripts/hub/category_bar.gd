@@ -20,6 +20,18 @@ var _buttons: Dictionary = {}
 var _active := ""
 var _search_on := false
 
+## Text and tab height multiplier (owner 2026-11-13: portrait 1.25, landscape 1.15);
+## netflix_browser sets it with set_scale_k on every layout.
+var scale_k := 1.0
+
+func set_scale_k(k: float) -> void:
+	if is_equal_approx(k, scale_k):
+		return
+	scale_k = k
+	for key in _buttons:
+		_buttons[key].custom_minimum_size.y = 56.0 * k
+	_style()
+
 func build(scroller_node: Node) -> void:
 	scroller = scroller_node
 	add_theme_constant_override("separation", 8)
@@ -79,7 +91,7 @@ func set_tabs(items: Array, active: String) -> void:
 		b.flat = true
 		b.focus_mode = Control.FOCUS_NONE
 		b.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-		b.custom_minimum_size = Vector2(0, 56)
+		b.custom_minimum_size = Vector2(0, 56.0 * scale_k)
 		b.pressed.connect(_on_pressed.bind(str(it.key)))
 		_row.add_child(b)
 		_buttons[str(it.key)] = b
@@ -119,7 +131,7 @@ func _style() -> void:
 	for key in _buttons:
 		var b: Button = _buttons[key]
 		var open: bool = (key == _active) or (key == "_search" and _search_on)
-		HubLook.text(b, 26, p.header_open_text if open else Color(1, 1, 1, 0.55))
+		HubLook.text(b, int(26 * scale_k), p.header_open_text if open else Color(1, 1, 1, 0.55))
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(0, 0, 0, 0)
 		sb.border_color = Color(p.link, 1.0) if open else Color(0, 0, 0, 0)
