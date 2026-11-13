@@ -6476,6 +6476,84 @@
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "composed into one portrait picture (Claude Code, tools/tarot_art.py)"
+  },
+  {
+   "file": "media/hub/game_art/bridge_master/tile.webp",
+   "what": "Bridge Master hub tile (owner's art: builder and jeep on a wooden bridge over a canyon)",
+   "source": "reference/art/games/bridge_master_landing_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 320x180, WebP (Claude Code, tools/bridge_master_art.py)"
+  },
+  {
+   "file": "media/hub/game_art/bridge_master/hero.webp",
+   "what": "Bridge Master hub preview (same picture)",
+   "source": "reference/art/games/bridge_master_landing_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 960x540, WebP (Claude Code, tools/bridge_master_art.py)"
+  },
+  {
+   "file": "games/bridge_master/landing_bg.jpg",
+   "what": "Bridge Master Landing background (same picture)",
+   "source": "reference/art/games/bridge_master_landing_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 1280x720 (Claude Code, tools/bridge_master_art.py)"
+  },
+  {
+   "file": "games/bridge_master/bg_forest.jpg",
+   "what": "Bridge Master backdrop: forest gorge with a river",
+   "source": "reference/art/games/bridge_master_forest_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "resized to 1280 wide (Claude Code, tools/bridge_master_art.py)"
+  },
+  {
+   "file": "games/bridge_master/bg_desert.jpg",
+   "what": "Bridge Master backdrop: red desert canyon",
+   "source": "reference/art/games/bridge_master_desert_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "resized to 1280 wide (Claude Code, tools/bridge_master_art.py)"
+  },
+  {
+   "file": "games/bridge_master/bg_mesa.jpg",
+   "what": "Bridge Master backdrop: sunset mesa with a river",
+   "source": "reference/art/games/bridge_master_mesa_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "resized to 1280 wide (Claude Code, tools/bridge_master_art.py)"
   }
  ]
 }
