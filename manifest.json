@@ -32,7 +32,8 @@
       {"id": "same_game", "family": "Fill and clear", "quick": true, "title": "Block Collapse", "icon": "🟪", "title_es": "Derrumbe", "board": "Best score", "skins": "classic,voodoo", "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "binary_grid", "family": "Sudoku", "quick": true, "title": "Binary Grid", "icon": "⚪", "title_es": "Cuadrícula binaria", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "hex", "family": "Lines", "title": "Hex", "icon": "⬡", "title_es": "Hex", "modes": "online,local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": ["online_interaction"], "notes": ""}},
-      {"id": "maze_trail", "tile_art": "res://media/hub/game_art/maze_trail/tile.webp", "hero_art": "res://media/hub/game_art/maze_trail/hero.webp", "title": "Maze Trail", "icon": "🧭", "title_es": "Senda del laberinto", "board": "Mazes solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
+      {"id": "maze_trail", "tile_art": "res://media/hub/game_art/maze_trail/tile.webp", "hero_art": "res://media/hub/game_art/maze_trail/hero.webp", "title": "Maze Trail", "icon": "🧭", "title_es": "Senda del laberinto", "board": "Mazes solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
+      {"id": "bridge_master", "tile_art": "res://media/hub/game_art/bridge_master/tile.webp", "hero_art": "res://media/hub/game_art/bridge_master/hero.webp", "title": "Bridge Master", "icon": "🌉", "title_es": "Maestro de puentes", "board": "Heaviest load (kg)", "skins": "classic,voodoo", "learn": ["science", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
     ]},
     {"name": "Intelligence", "icon": "🧠", "name_es": "Inteligencia", "games": [
       {"id": "trivia", "quick": true, "title": "Trivia", "icon": "❓", "title_es": "Trivia", "skins": "classic,voodoo", "learn": ["geo", "science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
@@ -257,6 +258,7 @@
     "tilt_maze": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tilt_maze.pck", "scene": "res://scenes/games/tilt_maze/tilt_maze.tscn"},
     "wilson": {"version": 14, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wilson.pck", "scene": "res://scenes/games/wilson/wilson.tscn"},
     "bug_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bug_chain.pck", "scene": "res://scenes/games/bug_chain/bug_chain.tscn"},
-    "rectangles": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rectangles.pck", "scene": "res://scenes/games/rectangles/rectangles.tscn"}
+    "rectangles": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rectangles.pck", "scene": "res://scenes/games/rectangles/rectangles.tscn"},
+    "bridge_master": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bridge_master.pck", "scene": "res://scenes/games/bridge_master/bridge_master.tscn"}
   }
 }
