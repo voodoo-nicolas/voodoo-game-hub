@@ -23,6 +23,10 @@ TILE_SRC = SRC / "tarot_tile_src.jpg"
 PREV_SRC = SRC / "tarot_preview_src.jpg"
 OUT_HUB = ROOT / "media/hub/game_art/tarot"
 OUT_LAND = ROOT / "games/tarot/landing_bg.jpg"
+TABLE_SRC = SRC / "tarot_table_src.png"   # the empty reading table, from above (owner, 2026-11-13)
+ROOM_SRC = SRC / "tarot_room_src.png"     # the room: box, candles, crystals, moon window
+OUT_PORTRAIT = ROOT / "games/tarot/landing_portrait.jpg"   # orb Landing, portrait 720x1280
+OUT_WIDE = ROOT / "games/tarot/landing_wide.jpg"           # orb Landing, landscape 1280x720
 OUT_TITLE = ROOT / "games/tarot/landing_title.webp"   # the painted title on transparency (orb Landing)
 W, H = 720, 1280
 TITLE_TOP = 120          # the Landing crops a little off the top on tall phones
@@ -96,6 +100,17 @@ def main() -> None:
     alpha = ImageChops.multiply(mv, mh)
     strip.putalpha(alpha)
     strip.save(OUT_TITLE, quality=90)
+    # Orb Landing backdrops. Portrait: the table fitted to the width, its top and bottom melting into the
+    # dark; landscape: the room picture as it is.
+    # The picture came as a screenshot with a light frame and rounded corners: cut it off.
+    table = Image.open(TABLE_SRC).convert("RGB").crop((50, 14, 1032, 1322))
+    th = round(table.height * W / table.width)
+    table = table.resize((W, th), Image.LANCZOS)
+    base = Image.new("RGB", (W, H), (9, 8, 20))
+    y0 = (H - th) // 2
+    base.paste(table, (0, y0), fade_mask(table.size, 150, 150))
+    base.save(OUT_PORTRAIT, quality=86)
+    Image.open(ROOM_SRC).convert("RGB").resize((1280, 720), Image.LANCZOS).save(OUT_WIDE, quality=86)
     print(f"landing {W}x{H}; ART_TITLE = [{top:.3f}, {bottom:.3f}]")
 
 

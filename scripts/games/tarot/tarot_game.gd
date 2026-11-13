@@ -163,6 +163,7 @@ func _build_ui() -> void:
 		"landing": "orbs",
 		"landing_style": LandingStyles,
 		"landing_title_art": "res://games/tarot/landing_title.webp",
+		"landing_art": {"portrait": "res://games/tarot/landing_portrait.jpg", "wide": "res://games/tarot/landing_wide.jpg"},
 		"orb_color": Color("e0bf4d"),
 		"subtitle": "Pull a card. Hear your fortune.",
 		"logo": _draw_home_logo,

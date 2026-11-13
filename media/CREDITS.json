@@ -6491,6 +6491,32 @@
    "processed_by": "cropped and edge-faded (Claude Code, tools/tarot_art.py)"
   },
   {
+   "file": "games/tarot/landing_portrait.jpg",
+   "what": "Tarot orb Landing backdrop, portrait 720x1280 (the owner's empty reading table fitted to the width, edges faded to dark)",
+   "source": "reference/art/games/tarot_table_src.png",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-13",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "resized (Claude Code, tools/tarot_art.py)"
+  },
+  {
+   "file": "games/tarot/landing_wide.jpg",
+   "what": "Tarot orb Landing backdrop, landscape 1280x720 (the owner's room picture)",
+   "source": "reference/art/games/tarot_room_src.png",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-13",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "resized (Claude Code, tools/tarot_art.py)"
+  },
+  {
    "file": "media/hub/game_art/bridge_master/tile.webp",
    "what": "Bridge Master hub tile (owner's art: builder and jeep on a wooden bridge over a canyon)",
    "source": "reference/art/games/bridge_master_landing_src.jpg",

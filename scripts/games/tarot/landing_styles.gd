@@ -21,6 +21,8 @@ extends RefCounted
 ## "orbs" cfg (all optional):
 ##   "orb_color": Color            ring colour of the orbs (default the kit accent)
 ##   "orb_glitter": Color          colour of the glitter (default the orb colour)
+##   "landing_art": {"portrait": path, "wide": path}   pictures behind everything, one per orientation
+##   "landing_veil": 0.42          how dark the veil over them is (0..1)
 ##   "landing_title_art": path     the title painted on a transparent picture; used while the
 ##                                 title is in English (a translated title is drawn as text)
 ##   "landing_colors": [top, mid]  the night gradient behind everything
@@ -87,6 +89,8 @@ class OrbLanding extends Control:
 	var orbs: Array = []          # every orb: see _make_orb
 	var info_col: VBoxContainer
 	var _glow: TextureRect
+	var _art: TextureRect
+	var _pics: Dictionary = {}
 	var _smoke: CPUParticles2D
 	var _glitter: CPUParticles2D
 	var _float: Tween
@@ -147,6 +151,24 @@ class OrbLanding extends Control:
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(bg)
 		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		# The game's own pictures (cfg "landing_art": {"portrait": path, "wide": path}): one per orientation,
+		# under a veil that keeps the orbs and the title readable.
+		var pics: Dictionary = kit.cfg.get("landing_art", {})
+		for k in pics:
+			if ResourceLoader.exists(str(pics[k])):
+				_pics[k] = load(str(pics[k]))
+		if not _pics.is_empty():
+			_art = TextureRect.new()
+			_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(_art)
+			_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			var veil := ColorRect.new()
+			veil.color = Color(0.02, 0.02, 0.08, float(kit.cfg.get("landing_veil", 0.42)))
+			veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(veil)
+			veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_glow = TextureRect.new()
 		_glow.texture = Fx.blob(128)
 		_glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -379,6 +401,10 @@ class OrbLanding extends Control:
 		var W := size.x
 		var H := size.y
 		var wide := W > H * 1.1
+		if _art != null:
+			var pic: Texture2D = _pics.get("wide" if wide else "portrait", _pics.values()[0])
+			if _art.texture != pic:
+				_art.texture = pic
 		var pad := 18.0
 		var hub_s := clampf(minf(W, H) * 0.11, MIN_ORB, 84.0)
 		var spreads: Array = orbs.filter(func(o): return o.kind == "spread")
