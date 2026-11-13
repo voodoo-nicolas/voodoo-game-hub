@@ -85,6 +85,9 @@ Contents (show only what applies to the game):
   [NEW 2026-10-20] Art with the title painted in sets `"art_title": [top, bottom]` (the title's band as fractions
   of the art's height): the kit hides its own title (and the drawn `logo`, which would sit on the painted letters) while that band is on screen and puts the tagline just
   under the painted title; when the crop cuts the band off (sideways), the kit's title shows. First: Evolution.
+- [NEW 2026-11-13, prototype] A game may lay the Landing out differently: kit cfg `"landing": "orbs"` + `"landing_style"` (round,
+  uneven, floating buttons; the ways to play along the bottom). Same actions and nav rules (N1-N7); `docs/claude/landing-styles.md`.
+  Optional smoke/glitter obey ⚙ Options ▸ ✨ Effects (Reduced), app-wide. First: Tarot of Destiny.
 - **Resume** (only if a save exists) · **Quick Play** (last-used mode + difficulty).
   [NEW 2026-10-14] A game where starting a new game deletes the save (story games: Last Shift) sets kit
   `"quick_with_save": false`: no Quick Play while Resume shows (Resume is the 1-tap then, N6), so one wrong tap

@@ -20,6 +20,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
 - `docs/HUB_V2_PLAN.md` roadmap/decisions/open questions · `docs/IP_AUDIT.md` · `reference/art/ART_STYLE.md` (+ `skins/`) · `docs/KICKOFF_PROMPT.md` (owner's v2 kickoff 2026-10-06).
 - `docs/claude/` topic notes — read the one(s) for what you touch:
   - `build-ship.md`: architecture, hub.py, shipping steps, signing, local tool paths, rename safety
+  - `landing-styles.md`: other Landing layouts (round floating "orbs", prototype on Tarot), `fx_lib.gd` smoke/glitter + Reduce effects; pack-only, no app release
   - `landing-kit-skins.md`: Landing/Home kit, skins, Voodoo Mode, Options/Settings, text size, safe area, orientation, resume
   - `i18n-gameinfo-sfx.md`: es.json/i18n, GameInfo (How to Play, stats), Sfx, shared sound library (+ `sfx-library.md` catalog)
   - `music.md`: Music autoload, music library, Viral Music Drop

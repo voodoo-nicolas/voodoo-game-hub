@@ -13,6 +13,7 @@ const SoundLib = preload("res://scripts/games/tarot/sound_lib.gd")
 ## Home screen + pause menu + neon look, copied into this game's folder by
 ## `hub.py sync` (CLAUDE.md "Home screen kit").
 const HomeKit = preload("res://scripts/games/tarot/home_kit.gd")
+const LandingStyles = preload("res://scripts/games/tarot/landing_styles.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -158,14 +159,19 @@ func _build_ui() -> void:
 		"accent": HomeKit.PURPLE,
 		"art": "res://games/tarot/landing_bg.jpg",
 		"art_title": [0.116, 0.157],   # the painted title (tools/tarot_art.py)
+		# Round floating Landing (docs/claude/landing-styles.md); "art" above is the stack's fallback.
+		"landing": "orbs",
+		"landing_style": LandingStyles,
+		"landing_title_art": "res://games/tarot/landing_title.webp",
+		"orb_color": Color("e0bf4d"),
 		"subtitle": "Pull a card. Hear your fortune.",
 		"logo": _draw_home_logo,
 		"solo_heading": "Choose your reading",
 		"modes": [
-			{"text": "🌙  Card of the Day", "sub": "One card, the same all day", "action": _start.bind("daily")},
-			{"text": "🔮  Three cards", "sub": "Past, present and future", "action": _start.bind("three")},
-			{"text": "⭐  Five cards", "sub": "You, the challenge, the past, the future and the outcome", "action": _start.bind("five")},
-			{"text": "🧿  Celtic Cross", "sub": "Ten cards: the full story", "action": _start.bind("celtic")},
+			{"text": "🌙  Card of the Day", "sub": "One card, the same all day", "orb": "1", "orb_name": "Today", "action": _start.bind("daily")},
+			{"text": "🔮  Three cards", "sub": "Past, present and future", "orb": "3", "orb_name": "Three", "action": _start.bind("three")},
+			{"text": "⭐  Five cards", "sub": "You, the challenge, the past, the future and the outcome", "orb": "5", "orb_name": "Five", "action": _start.bind("five")},
+			{"text": "🧿  Celtic Cross", "sub": "Ten cards: the full story", "orb": "10", "orb_name": "Celtic", "action": _start.bind("celtic")},
 		],
 		"restart": _restart,
 		"board": "Readings given",

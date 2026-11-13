@@ -15,7 +15,7 @@ Needs Pillow.
 """
 from pathlib import Path
 
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageChops, ImageEnhance, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "reference/art/games"
@@ -23,10 +23,12 @@ TILE_SRC = SRC / "tarot_tile_src.jpg"
 PREV_SRC = SRC / "tarot_preview_src.jpg"
 OUT_HUB = ROOT / "media/hub/game_art/tarot"
 OUT_LAND = ROOT / "games/tarot/landing_bg.jpg"
+OUT_TITLE = ROOT / "games/tarot/landing_title.webp"   # the painted title on transparency (orb Landing)
 W, H = 720, 1280
 TITLE_TOP = 120          # the Landing crops a little off the top on tall phones
 CARDS_SCALE = 0.8        # of the full width
 TITLE_CROP = (80, 270)   # rows of the cards picture holding the painted title
+TITLE_X = (320, 1056)    # columns holding the painted title alone (orb Landing)
 CARDS_CROP = 285         # first row of the cards
 # Painted title in the cards picture: y 135..235 of 768.
 TITLE_Y = (135 / 768, 235 / 768)
@@ -87,6 +89,13 @@ def main() -> None:
     bg.save(OUT_LAND, quality=88)
     top = (TITLE_TOP + (TITLE_Y[0] * tile.height - TITLE_CROP[0]) * k) / H
     bottom = (TITLE_TOP + (TITLE_Y[1] * tile.height - TITLE_CROP[0]) * k) / H
+    # The painted title alone, edges faded to transparent, for the orb Landing (landing_styles.gd).
+    strip = tile.crop((TITLE_X[0], TITLE_CROP[0], TITLE_X[1], TITLE_CROP[1])).convert("RGBA")
+    mv = fade_mask(strip.size, 50, 50)
+    mh = fade_mask((strip.size[1], strip.size[0]), 110, 110).transpose(Image.TRANSPOSE)
+    alpha = ImageChops.multiply(mv, mh)
+    strip.putalpha(alpha)
+    strip.save(OUT_TITLE, quality=90)
     print(f"landing {W}x{H}; ART_TITLE = [{top:.3f}, {bottom:.3f}]")
 
 

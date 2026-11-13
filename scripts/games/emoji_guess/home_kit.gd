@@ -97,6 +97,9 @@ extends Control
 ##                                           # behind one ☰ button -- for full-screen key art
 ##         "quick_with_save": false,         # optional: no ⚡ Quick Play while ▶ Resume shows (for
 ##                                           # games where a new game deletes the save)
+##         "landing": "orbs",                # optional: another Landing layout (round floating buttons);
+##         "landing_style": LandingStyles,   # preload("res://scripts/games/<id>/landing_styles.gd").
+##                                           # Same actions and nav rules. docs/claude/landing-styles.md
 ##     })
 ##     add_child(home)
 ##     if info: add_child(info)
@@ -185,6 +188,8 @@ var _toast: Label
 var _help_btns: Array = []  # [Button, text, is_bar_button] -- pause-menu helps and help_button()s
 var _help_toast: Label  # in-game toast for helps (the pause one hides with the menu)
 var _logo: Control
+## cfg "landing" + "landing_style" (docs/claude/landing-styles.md): the styled Landing's node, or null for the stack.
+var _style: Control = null
 var _paused_by_me: bool = false
 var _more: GridContainer
 var _more_toggle: Button = null  # cfg "compact": the ☰ More button that folds the cards out
@@ -303,11 +308,15 @@ func show_home() -> void:
 	pause_overlay.visible = false
 	home.visible = true
 	refresh()
+	if _style != null:
+		_style.set_active(true)
 	_pause_tree()
 	_remove_drawer()
 
 func hide_home() -> void:
 	home.visible = false
+	if _style != null:
+		_style.set_active(false)
 	_close_overlays()
 	_unpause()
 
@@ -572,6 +581,8 @@ func refresh() -> void:
 		quick_btn.visible = false
 	if quick_btn.visible:
 		quick_btn.text = "⚡  " + tr("Quick Play") + "\n" + tr(str(last.get("text", ""))).strip_edges()
+	if _style != null:
+		_style.refresh()
 	_submit_board()
 
 # ---------- Landing ----------
@@ -586,6 +597,12 @@ func _build_home() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	home.add_child(bg)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# A game that picks another Landing style (cfg "landing": "orbs" + "landing_style": its landing_styles.gd)
+	# lays the same actions out itself; an unknown style (null) falls back to the stack below.
+	if cfg.has("landing") and cfg.has("landing_style"):
+		_style = cfg.landing_style.build(self, home)
+		if _style != null:
+			return
 	var art_path: String = cfg.get("art", "")
 	if art_path != "" and ResourceLoader.exists(art_path):
 		_add_art(home, load(art_path))
@@ -674,13 +691,7 @@ func _build_home() -> void:
 	quick_btn.pressed.connect(_on_quick)
 	box.add_child(quick_btn)
 
-	var modes: Array = cfg.get("modes", []).duplicate()
-	if cfg.has("online"):
-		var inv := _invite_mode()
-		if not inv.is_empty():
-			modes.append(inv)
-	_solo = modes.filter(func(m): return not m.get("multi", false))
-	_multi = modes.filter(func(m): return m.get("multi", false))
+	_split_modes()
 	var both: bool = not _solo.is_empty() and not _multi.is_empty()
 	if not _solo.is_empty():
 		box.add_child(_group_button(_solo, false, both))
@@ -735,6 +746,16 @@ func _build_home() -> void:
 		_compact_sizes(box)
 	get_viewport().size_changed.connect(_fit_home_layout)
 	_fit_home_layout()
+
+## The ways to play, split into what the Landing shows under Single player / Multiplayer.
+func _split_modes() -> void:
+	var modes: Array = cfg.get("modes", []).duplicate()
+	if cfg.has("online"):
+		var inv := _invite_mode()
+		if not inv.is_empty():
+			modes.append(inv)
+	_solo = modes.filter(func(m): return not m.get("multi", false))
+	_multi = modes.filter(func(m): return m.get("multi", false))
 
 ## cfg "compact": the Landing as a small column at the side, so the game's key art shows.
 func _compact() -> bool:
@@ -1422,6 +1443,8 @@ func _show_options() -> void:
 	# The game's own choices (cfg "options": func(body)): toggles, panels...
 	if cfg.has("options"):
 		cfg.options.call(body)
+	if _style != null:
+		cfg.landing_style.options(self, body)   # ✨ Effects: Full / Reduced
 	if ResourceLoader.exists(ORIENTATION_PATH):
 		body.add_child(_section(tr("Screen")))
 		var rot := neon_button(tr("🔄 Rotate Screen"), BUTTON, 26, 70)

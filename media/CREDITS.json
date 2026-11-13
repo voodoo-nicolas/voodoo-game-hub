@@ -6478,6 +6478,19 @@
    "processed_by": "composed into one portrait picture (Claude Code, tools/tarot_art.py)"
   },
   {
+   "file": "games/tarot/landing_title.webp",
+   "what": "Tarot of Destiny painted title on a transparent plate, for the orb Landing (cropped from the owner's titled card picture)",
+   "source": "reference/art/games/tarot_tile_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-13",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped and edge-faded (Claude Code, tools/tarot_art.py)"
+  },
+  {
    "file": "media/hub/game_art/bridge_master/tile.webp",
    "what": "Bridge Master hub tile (owner's art: builder and jeep on a wooden bridge over a canyon)",
    "source": "reference/art/games/bridge_master_landing_src.jpg",

@@ -291,15 +291,22 @@ HOME_KIT = TEMPLATES / "home_kit.gd"
 # does the shared sprite library's loader (sprite_lib.gd).
 SOUND_LIB = TEMPLATES / "sound_lib.gd"
 SPRITE_LIB = TEMPLATES / "sprite_lib.gd"
-KITS = (HOME_KIT, SOUND_LIB, SPRITE_LIB)
+# Landing styles (round floating buttons...) and the effects they use: copied only to the games
+# that name them (docs/claude/landing-styles.md). Order matters: fx_lib is found through
+# landing_styles.gd, which sync writes first.
+LANDING_STYLES = TEMPLATES / "landing_styles.gd"
+FX_LIB = TEMPLATES / "fx_lib.gd"
+KITS = (HOME_KIT, SOUND_LIB, SPRITE_LIB, LANDING_STYLES, FX_LIB)
 
 
 def home_kit_users(ids: list[str], kit_file: Path = HOME_KIT) -> list[str]:
     users = []
     for gid in ids:
         game_dir = ROOT / "scripts/games" / gid
+        # home_kit.gd documents landing_styles.gd in its header: that is not a game using it.
+        skip = {kit_file.name} | ({HOME_KIT.name} if kit_file == LANDING_STYLES else set())
         if any(kit_file.name in f.read_text(encoding="utf-8")
-               for f in game_dir.glob("*.gd") if f.name != kit_file.name):
+               for f in game_dir.glob("*.gd") if f.name not in skip):
             users.append(gid)
     return users
 
@@ -586,7 +593,7 @@ def lint_helps(m: dict) -> list[str]:
         if gid in NO_HELPS:
             continue
         text = "".join(f.read_text(encoding="utf-8") for f in (ROOT / "scripts/games" / gid).glob("*.gd")
-                       if f.name not in ("home_kit.gd", "sound_lib.gd", "sprite_lib.gd"))
+                       if f.name not in ("home_kit.gd", "sound_lib.gd", "sprite_lib.gd", "landing_styles.gd", "fx_lib.gd"))
         if '"helps":' not in text and "helps_left(" not in text:
             errors.append(f"{gid}: no helps (STANDARDS §17) -- add cfg \"helps\" or list it in NO_HELPS with the reason")
     return errors
