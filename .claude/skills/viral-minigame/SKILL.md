@@ -26,6 +26,7 @@ Read `docs/STANDARDS.md` for full text and `docs/claude/*.md` for system details
 
 ## 3. Landing, setup, pause
 - Landing (kit): hero art/title/tagline, ▶ Resume (only if a save exists), ⚡ Quick Play (last mode+difficulty), 🎮 Single player, 👥 Multiplayer, 🏆, 🏅, ❓, ⚙ Options, ← Hub.
+- Menu style (owner 2026-11-13, reference `docs/MENU_STYLES.md`): **new game** = pick one style S1-S7 (not one used by the last 2 games), tell the owner which and why, note it in the `<id>_game.gd` header. **Editing an existing game** = offer the owner a menu-style change (suggest one); do it only on a yes.
 - Setup: mode → difficulty → mode options → Start; remembers last choice. Mode names: Classic, Campaign/Levels, Time Trial, Survival/Endless, Zen/Practice, Daily Challenge, Vs CPU, Custom. Difficulty: Easy, Normal, Hard (+Expert).
 - Multiplayer: local (player count, names) or online (invite friend, create room with code+link+QR, join by code, rejoin).
 - Pause (visible button in safe area; timers/animations/AI stop): Resume / Restart / How to Play / 🏆 / 📊 / 📸 / ⚙ Options / 🏠 Home. Online: no Restart, "Leave match" with forfeit warning.

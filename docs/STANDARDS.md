@@ -87,10 +87,8 @@ Contents (show only what applies to the game):
   under the painted title; when the crop cuts the band off (sideways), the kit's title shows. First: Evolution.
 - [NEW 2026-11-13, prototype] A game may lay the Landing out differently: kit cfg `"landing": "orbs"` + `"landing_style"` (round,
   uneven, floating buttons; the ways to play along the bottom). Same actions and nav rules (N1-N7); `docs/claude/landing-styles.md`.
-- [NEW 2026-11-13, owner] Layout library `docs/MENU_STYLES.md` (S1 Corner Ghost ... S7 Diegetic Cinema): menus should vary between
-  games. A new/restyled game picks one style (not used by the last 2 games) and notes it in its `<id>_game.gd` header. Styles are
-  layouts only: same items, order, icons and nav rules. NOT built yet in `landing_styles.gd` (only "orbs" is); until a style is built,
-  the stack stays allowed.
+- [NEW 2026-11-13, owner] Menu styles, reference only: `docs/MENU_STYLES.md` (S1-S7). A new game picks one (not used by the last 2
+  games) and notes it in its `<id>_game.gd` header; when editing an existing game, offer the owner a style change. Same items and nav rules.
   Optional smoke/glitter obey ⚙ Options ▸ ✨ Effects (Reduced), app-wide. First: Tarot of Destiny.
 - **Resume** (only if a save exists) · **Quick Play** (last-used mode + difficulty).
   [NEW 2026-10-14] A game where starting a new game deletes the save (story games: Last Shift) sets kit
