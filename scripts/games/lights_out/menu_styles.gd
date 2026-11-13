@@ -37,6 +37,8 @@ extends RefCounted
 ##   "menu_color": Color            the highlight colour (default the kit accent)
 ##   "landing_colors": [top, bottom]  the backdrop gradient
 ##   "landing_stars": 60            how many stars in the backdrop (style default otherwise)
+##   "landing_art": true            show the game's cfg "art" picture over the gradient (dimmed;
+##                                  "landing_art_alpha": 0.45)
 ## The game's cfg "logo" drawing is the hero art (big in "monument" / "cinema", a mascot in "slabs").
 
 const STYLES := ["ghost", "ring", "rail", "monument", "slabs", "cinema", "split", "marquee", "bento", "stickers"]
@@ -408,6 +410,18 @@ class MenuLanding extends Control:
 		back.stars = int(kit.cfg.get("landing_stars", back.stars))
 		add_child(back)
 		back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		# "landing_art": true keeps the game's own cfg "art" picture (arcade games keep their own
+		# backgrounds, STANDARDS), dimmed under the gradient's tint so the title and rows stay readable.
+		var art_path := str(kit.cfg.get("art", ""))
+		if bool(kit.cfg.get("landing_art", false)) and art_path != "" and ResourceLoader.exists(art_path):
+			var art := TextureRect.new()
+			art.texture = load(art_path)
+			art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			art.modulate = Color(1, 1, 1, float(kit.cfg.get("landing_art_alpha", 0.45)))
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(art)
+			art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	func _build_logo() -> void:
 		var cb: Variant = kit.cfg.get("logo", null)
