@@ -57,32 +57,37 @@ static func tex(name: String) -> Texture2D:
 
 ## ---------- the same look for the game's own buttons (play screen, result card) ----------
 
-## A plank (or steel) face for a button: "road_wood", "road_steel", "beam_steel".
-static func plank_box(face: String, state: String) -> StyleBox:
-	var t := tex(face)
-	if t == null:
-		var f := StyleBoxFlat.new()
-		f.bg_color = Color("8d5a2b")
-		f.set_corner_radius_all(10)
-		f.set_border_width_all(3)
-		f.border_color = INK
-		return f
-	var sb := StyleBoxTexture.new()
-	sb.texture = t
-	sb.texture_margin_left = 30
-	sb.texture_margin_right = 30
-	sb.texture_margin_top = 6
-	sb.texture_margin_bottom = 6
-	sb.content_margin_left = 18
-	sb.content_margin_right = 18
+## A drawn slab face (owner 2026-11-13: no pictures as buttons): chunky, rounded, a thick darker
+## bottom edge for depth, a soft shadow. face "go" = green (Resume, Test, the card's first
+## button); anything else = warm timber brown.
+static func plank_box(face: String, state: String) -> StyleBoxFlat:
+	var go := face == "go" or face == "road_steel"
+	var base := Color("3fae5f") if go else Color("a8692f")
+	var edge := Color("1d6b35") if go else Color("5a3416")
+	var f := StyleBoxFlat.new()
+	f.bg_color = base
 	match state:
 		"hover":
-			sb.modulate_color = Color(1.12, 1.08, 1.0)
+			f.bg_color = base.lightened(0.12)
 		"pressed", "hover_pressed":
-			sb.modulate_color = Color(1.35, 1.2, 0.75)
+			f.bg_color = base.darkened(0.12) if go else Color("c98a2e")
 		"disabled":
-			sb.modulate_color = Color(0.55, 0.55, 0.55, 0.8)
-	return sb
+			f.bg_color = base.darkened(0.35)
+			f.bg_color.a = 0.75
+	f.set_corner_radius_all(16)
+	f.set_border_width_all(3)
+	f.border_width_bottom = 8
+	f.border_color = edge
+	if state in ["pressed", "hover_pressed"] and not go:
+		f.border_color = Color("ffd54f")   # the chosen material: a gold rim
+	f.shadow_color = Color(0, 0, 0, 0.4)
+	f.shadow_size = 8
+	f.shadow_offset = Vector2(0, 5)
+	f.content_margin_left = 18
+	f.content_margin_right = 18
+	f.content_margin_top = 4
+	f.content_margin_bottom = 8
+	return f
 
 ## A round steel bolt-head face.
 static func bolt_box(state: String) -> StyleBoxFlat:
@@ -275,11 +280,9 @@ class SlabLanding extends Control:
 		b.clip_text = true
 		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 			b.add_theme_color_override(c, Color(0, 0, 0, 0))
-		var face := "road_steel" if kind == "resume" else "road_wood"
+		var face := "go" if kind == "resume" else "wood"
 		for st in ["normal", "hover", "pressed", "focus"]:
 			b.add_theme_stylebox_override(st, _plank_box(face, st))
-		if kind == "resume":
-			b.self_modulate = Color("9cffb8")
 		b.pressed.connect(cb)
 		b.button_down.connect(_squash.bind(b, true))
 		b.button_up.connect(_squash.bind(b, false))
@@ -288,15 +291,6 @@ class SlabLanding extends Control:
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(slot)
 		slot.add_child(b)
-		# Bolts at both ends.
-		for side in [0, 1]:
-			var bt := TextureRect.new()
-			bt.texture = SlabLanding.part("bolt")
-			bt.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			bt.stretch_mode = TextureRect.STRETCH_SCALE
-			bt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			bt.name = "Bolt" + str(side)
-			b.add_child(bt)
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 12)
@@ -335,27 +329,7 @@ class SlabLanding extends Control:
 		return load(p) if ResourceLoader.exists(p) else null
 
 	func _plank_box(face: String, state: String) -> StyleBox:
-		var t := SlabLanding.part(face)
-		if t == null:
-			var f := StyleBoxFlat.new()
-			f.bg_color = Color("8d5a2b") if face == "road_wood" else Color("4f6b5a")
-			f.set_corner_radius_all(10)
-			f.set_border_width_all(4)
-			f.border_color = INK
-			return f
-		var sb := StyleBoxTexture.new()
-		sb.texture = t
-		sb.texture_margin_left = 40
-		sb.texture_margin_right = 40
-		sb.texture_margin_top = 8
-		sb.texture_margin_bottom = 8
-		sb.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE_FIT
-		match state:
-			"hover":
-				sb.modulate_color = Color(1.12, 1.08, 1.0)
-			"pressed":
-				sb.modulate_color = Color(0.82, 0.78, 0.72)
-		return sb
+		return load("res://scripts/games/bridge_master/landing_slabs.gd").plank_box(face, state)
 
 	func _build_bolts() -> void:
 		var items: Array = [[kit.tr("❓ How to Play"), Callable(kit, "_show_overlay").bind(null, "info")]]
@@ -597,12 +571,7 @@ class SlabLanding extends Control:
 		b.size = sz
 		b.custom_minimum_size = Vector2.ZERO
 		b.pivot_offset = sz * 0.5
-		var bolt := sz.y * 0.32
-		for side in [0, 1]:
-			var bt: TextureRect = b.get_node("Bolt" + str(side))
-			bt.size = Vector2(bolt, bolt)
-			bt.position = Vector2(sz.y * 0.18 if side == 0 else sz.x - sz.y * 0.18 - bolt, (sz.y - bolt) * 0.42)
-		var inner := sz.x - sz.y * 1.2
+		var inner := sz.x - sz.y * 0.6
 		var gl: Label = s.glyph
 		gl.add_theme_font_size_override("font_size", int(sz.y * 0.4))
 		var nl: Label = s.name

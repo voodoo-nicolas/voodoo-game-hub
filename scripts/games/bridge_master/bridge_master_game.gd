@@ -235,7 +235,7 @@ func _build_ui() -> void:
 	bb.add_child(test_btn)
 	LandingSlabs.dress(erase_btn, "bolt")
 	LandingSlabs.dress(undo_btn, "bolt")
-	LandingSlabs.dress(test_btn, "road_steel", Color("9cffb8"))
+	LandingSlabs.dress(test_btn, "go")
 
 	# Particles (sparks, splash, confetti) over the board, under the bars.
 	fx_layer = Control.new()
@@ -387,7 +387,7 @@ func _build_mat_bar() -> void:
 		b.add_theme_font_size_override("font_size", 19)
 		b.pressed.connect(_pick_mat.bind(k))
 		mat_bar.add_child(b)
-		LandingSlabs.dress(b, "road_wood")
+		LandingSlabs.dress(b, "wood")
 		for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
 			var sb: StyleBox = b.get_theme_stylebox(st).duplicate()
 			sb.content_margin_left = 58
@@ -867,9 +867,9 @@ func _show_card(title_text: String, stars_text: String, msg: String, buttons: Ar
 		b.pressed.connect(_card_button.bind(spec.action))
 		grid.add_child(b)
 		if first:
-			LandingSlabs.dress(b, "road_steel", Color("9cffb8"))
+			LandingSlabs.dress(b, "go")
 		else:
-			LandingSlabs.dress(b, "road_wood")
+			LandingSlabs.dress(b, "wood")
 		first = false
 
 func _card_button(action: Callable) -> void:

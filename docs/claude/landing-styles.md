@@ -102,8 +102,8 @@ MENU_STYLES S6 "Stone Slabs" told as wooden road planks: `scripts/games/bridge_m
 game-local file with the same `build()` / `options()` contract (cfg `"landing": "slabs"`, `"landing_style":
 LandingSlabs`). Kept in the game folder, not the template, while the template was being reworked in another
 session; move it into `tools/templates/landing_styles.gd` as a `"slabs"` case when a second game wants it.
-- T1 tapered planks centre-left (the owner's `road_wood` / `road_steel` pictures as `StyleBoxTexture`, bolts at
-  both ends): Resume (green steel), Quick Play, the solo modes, cfg `play`, Multiplayer. T2 round steel bolt-head
+- T1 tapered slabs centre-left, drawn (`StyleBoxFlat`: timber brown, thick dark bottom edge, shadow; owner 2026-11-13: no pictures as buttons; at
+  first the road pictures, then dropped): Resume (green), Quick Play, the solo modes, cfg `play`, Multiplayer. T2 round steel bolt-head
   buttons bottom-right with names under them. T3 ← Hub a small plank bottom-left. Rating / fact / version as a
   small block bottom-centre only when it fits.
 - Motion: planks drop in with a bounce and settle with an elastic tilt, then sway ±0.9°; bolts pop; dust motes.
