@@ -11416,5 +11416,12 @@
  "The picture": "La imagen",
  "Linked to: %s": "Vinculada a: %s",
  "Upright": "Al derecho",
- "Tap a card you have found to read all about it.": "Toca una carta que hayas encontrado para leer todo sobre ella."
+ "Tap a card you have found to read all about it.": "Toca una carta que hayas encontrado para leer todo sobre ella.",
+ "Spread two fingers to zoom in on the spot you are building, pinch them together to zoom out, and drag with two fingers to move around. On a computer: the mouse wheel zooms, the right button drags. ⤢ shows the whole level again.": "Separa dos dedos para acercarte a donde estás construyendo, júntalos para alejarte y arrastra con dos dedos para moverte. En una computadora: la rueda del mouse hace zoom y el botón derecho arrastra. ⤢ vuelve a mostrar todo el nivel.",
+ "# switches the build grid between dots, lines (a line every metre, a stronger one every 5) and off.": "# cambia la cuadrícula de construcción entre puntos, líneas (una línea por metro, una más marcada cada 5) y apagada.",
+ "Grid: dots, lines or off": "Cuadrícula: puntos, líneas o apagada",
+ "Show the whole level": "Ver todo el nivel",
+ "Grid: dots": "Cuadrícula: puntos",
+ "Grid: lines": "Cuadrícula: líneas",
+ "Grid: off": "Cuadrícula: apagada"
 }

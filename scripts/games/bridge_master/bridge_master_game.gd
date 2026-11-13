@@ -106,6 +106,23 @@ var _disc: Texture2D
 var _parts := {}
 var vs := 40.0
 var vo := Vector2.ZERO
+## Zoom (owner 2026-11-13): pinch with two fingers, mouse wheel on PC; two fingers (or the right /
+## middle mouse button) drag the view. zoom 1 = the whole level fits (_layout).
+const ZOOM_MAX := 4.0
+var zoom := 1.0
+var _fit_vs := 40.0
+var _fit_vo := Vector2.ZERO
+var _touches := {}          # finger index -> screen position
+var _pinch_d := 0.0
+var _pinch_mid := Vector2.ZERO
+var _pinching := false      # true from the second finger down until every finger is up
+var _pan_mouse := false
+var _press_at := Vector2.ZERO
+var fit_btn: Button
+var grid_btn: Button
+## Build grid: "dots" (default), "lines" (a 1 m grid with every 5th line stronger), "off".
+const GRID_MODES := ["dots", "lines", "off"]
+var grid_mode := "dots"
 
 func _ready() -> void:
 	preload("res://scripts/games/bridge_master/bridge_master_i18n.gd").install(self)
@@ -116,6 +133,9 @@ func _ready() -> void:
 	for p in BACKDROPS:
 		_backdrops.append(load(p) if ResourceLoader.exists(p) else null)
 	_load_progress()
+	grid_mode = str(progress.get("grid", "dots"))
+	if not grid_mode in GRID_MODES:
+		grid_mode = "dots"
 	_build_ui()
 	_play_music()
 	_begin(_next_level())
@@ -195,8 +215,27 @@ func _build_ui() -> void:
 	clear_btn.custom_minimum_size = Vector2(68, 68)
 	clear_btn.pressed.connect(_clear_design)
 	bar.add_child(clear_btn)
+	grid_btn = Button.new()
+	grid_btn.text = "#"
+	grid_btn.tooltip_text = tr("Grid: dots, lines or off")
+	grid_btn.custom_minimum_size = Vector2(68, 68)
+	grid_btn.add_theme_font_size_override("font_size", 30)
+	grid_btn.pressed.connect(_cycle_grid)
+	bar.add_child(grid_btn)
+	bar.move_child(grid_btn, clear_btn.get_index())
+	fit_btn = Button.new()
+	fit_btn.text = "⤢"
+	fit_btn.tooltip_text = tr("Show the whole level")
+	fit_btn.custom_minimum_size = Vector2(68, 68)
+	fit_btn.add_theme_font_size_override("font_size", 30)
+	fit_btn.pressed.connect(_zoom_reset)
+	fit_btn.visible = false
+	bar.add_child(fit_btn)
+	bar.move_child(fit_btn, grid_btn.get_index())
 	LandingSlabs.dress(skip_btn, "bolt")
 	LandingSlabs.dress(clear_btn, "bolt")
+	LandingSlabs.dress(grid_btn, "bolt")
+	LandingSlabs.dress(fit_btn, "bolt")
 
 	var bottom := MarginContainer.new()
 	bottom.add_theme_constant_override("margin_bottom", 14)
@@ -476,14 +515,22 @@ func _design_changed() -> void:
 	board.queue_redraw()
 
 func _on_board_input(event: InputEvent) -> void:
-	if testing or not started:
+	if not started:
+		return
+	if _zoom_input(event):
+		return
+	if testing:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var w := _to_world(event.position)
-		if event.pressed:
-			if erase:
+		if erase:
+			# Erase on release, and only for a tap (a pinch must not remove anything).
+			if event.pressed:
+				_press_at = event.position
+			elif event.position.distance_to(_press_at) < 14.0:
 				_erase_at(w)
-				return
+			return
+		if event.pressed:
 			var j = _nearest_joint(w, 0.75)
 			if j == null:
 				_toast(tr("Start from a bolt: a cliff bolt or the end of a piece."))
@@ -497,6 +544,116 @@ func _on_board_input(event: InputEvent) -> void:
 			_finish_drag()
 	elif event is InputEventMouseMotion and drag_on:
 		_update_drag(_to_world(event.position))
+
+## Pinch / two-finger drag / wheel / right-drag. Returns true when the event was a view move.
+func _zoom_input(event: InputEvent) -> bool:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_touches[event.index] = event.position
+		else:
+			_touches.erase(event.index)
+		if _touches.size() >= 2:
+			_pinching = true
+			drag_on = false   # a second finger cancels the piece being laid
+			board.queue_redraw()
+			var pts: Array = _touches.values()
+			_pinch_d = (pts[0] as Vector2).distance_to(pts[1])
+			_pinch_mid = ((pts[0] as Vector2) + pts[1]) * 0.5
+		elif _touches.is_empty():
+			_pinching = false
+		return _pinching
+	if event is InputEventScreenDrag:
+		_touches[event.index] = event.position
+		if _touches.size() >= 2:
+			var pts: Array = _touches.values()
+			var d := (pts[0] as Vector2).distance_to(pts[1])
+			var mid: Vector2 = ((pts[0] as Vector2) + pts[1]) * 0.5
+			if _pinch_d > 1.0:
+				_zoom_at(mid, d / _pinch_d)
+			_pan(mid - _pinch_mid)
+			_pinch_d = d
+			_pinch_mid = mid
+			return true
+		return _pinching
+	# While two fingers are (or were) down, the phone's emulated mouse events are ignored.
+	if _pinching and (event is InputEventMouseButton or event is InputEventMouseMotion):
+		return true
+	if event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_at(event.position, 1.15)
+			return true
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_at(event.position, 1.0 / 1.15)
+			return true
+		if event.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+			_pan_mouse = event.pressed
+			return true
+	if event is InputEventMouseMotion and _pan_mouse:
+		_pan(event.relative)
+		return true
+	if event is InputEventMagnifyGesture:
+		_zoom_at(event.position, event.factor)
+		return true
+	if event is InputEventPanGesture:
+		_pan(-event.delta * 12.0)
+		return true
+	return false
+
+## Zooms by `k` keeping the world point under `at` still.
+func _zoom_at(at: Vector2, k: float) -> void:
+	var nz := clampf(zoom * k, 1.0, ZOOM_MAX)
+	if absf(nz - zoom) < 0.0001:
+		return
+	var w := _to_world(at)
+	zoom = nz
+	vs = _fit_vs * zoom
+	vo = at - Vector2(w.x, -w.y) * vs
+	_clamp_view()
+
+func _pan(d: Vector2) -> void:
+	if zoom <= 1.0001:
+		return
+	vo += d
+	_clamp_view()
+
+## Keeps the level on screen: at zoom 1 exactly the fitted view; zoomed, the level's edges
+## can't move inside the screen.
+func _clamp_view() -> void:
+	if zoom <= 1.0001:
+		zoom = 1.0
+		vs = _fit_vs
+		vo = _fit_vo
+	else:
+		# The fitted view's world rectangle, scaled: keep it covering the fitted screen area.
+		var fit_tl := _fit_vo + Vector2(-2.5, -(float(E.top_limit(lv)) + 0.4)) * _fit_vs
+		var fit_br := _fit_vo + Vector2(float(lv.w) + 2.5, -(float(lv.water) - 0.5)) * _fit_vs
+		var cur_tl := vo + Vector2(-2.5, -(float(E.top_limit(lv)) + 0.4)) * vs
+		var cur_br := vo + Vector2(float(lv.w) + 2.5, -(float(lv.water) - 0.5)) * vs
+		var shift := Vector2.ZERO
+		if cur_tl.x > fit_tl.x:
+			shift.x = fit_tl.x - cur_tl.x
+		elif cur_br.x < fit_br.x:
+			shift.x = fit_br.x - cur_br.x
+		if cur_tl.y > fit_tl.y:
+			shift.y = fit_tl.y - cur_tl.y
+		elif cur_br.y < fit_br.y:
+			shift.y = fit_br.y - cur_br.y
+		vo += shift
+	if fit_btn:
+		fit_btn.visible = zoom > 1.0001
+	board.queue_redraw()
+
+func _zoom_reset() -> void:
+	zoom = 1.0
+	_clamp_view()
+
+func _cycle_grid() -> void:
+	var i := GRID_MODES.find(grid_mode)
+	grid_mode = GRID_MODES[(i + 1) % GRID_MODES.size()]
+	progress["grid"] = grid_mode
+	_save_progress()
+	_toast({"dots": tr("Grid: dots"), "lines": tr("Grid: lines"), "off": tr("Grid: off")}[grid_mode], 1.5)
+	board.queue_redraw()
 
 func _update_drag(w: Vector2) -> void:
 	var snap = _nearest_joint(w, 0.45)
@@ -1047,10 +1204,14 @@ func _layout() -> void:
 	var y0 := float(lv.water) - 0.5
 	var y1 := float(E.top_limit(lv)) + 0.4
 	var area := Rect2(Vector2(10, TOP_BAR), board.size - Vector2(20, TOP_BAR + BOTTOM_BAR))
-	vs = minf(area.size.x / (x1 - x0), area.size.y / (y1 - y0))
-	var span := Vector2((x1 - x0) * vs, (y1 - y0) * vs)
+	var fit := minf(area.size.x / (x1 - x0), area.size.y / (y1 - y0))
+	var span := Vector2((x1 - x0) * fit, (y1 - y0) * fit)
 	var tl := area.position + (area.size - span) / 2.0
-	vo = Vector2(tl.x - x0 * vs, tl.y + y1 * vs)
+	_fit_vs = fit
+	_fit_vo = Vector2(tl.x - x0 * fit, tl.y + y1 * fit)
+	# A new level or a new screen size starts from the whole level.
+	zoom = 1.0
+	_clamp_view()
 
 func _to_screen(p: Vector2) -> Vector2:
 	return vo + Vector2(p.x, -p.y) * vs
@@ -1182,7 +1343,22 @@ func _part(name: String) -> Texture2D:
 
 func _draw_grid_and_bridge(classic: bool, w: float) -> void:
 	# Build grid while editing.
-	if not testing:
+	if not testing and grid_mode == "lines":
+		var lc := Color(1, 1, 1, 0.22) if classic else Color(HomeKit.CYAN, 0.2)
+		var lc5 := Color(1, 1, 1, 0.45) if classic else Color(HomeKit.CYAN, 0.42)
+		var y_lo := int(lv.water) + 1
+		var y_hi := E.top_limit(lv)
+		var thin := PackedVector2Array()
+		var thick := PackedVector2Array()
+		for gx in range(-3, int(w) + 4):
+			var arr := thick if gx % 5 == 0 else thin
+			arr.append_array([_to_screen(Vector2(gx, y_lo)), _to_screen(Vector2(gx, y_hi))])
+		for gy in range(y_lo, y_hi + 1):
+			var arr2 := thick if gy % 5 == 0 else thin
+			arr2.append_array([_to_screen(Vector2(-3, gy)), _to_screen(Vector2(w + 3, gy))])
+		board.draw_multiline(thin, lc, maxf(1.0, vs * 0.025))
+		board.draw_multiline(thick, lc5, maxf(1.5, vs * 0.04))
+	if not testing and grid_mode == "dots":
 		var gc := Color(1, 1, 1, 0.6) if classic else Color(HomeKit.CYAN, 0.5)
 		var gs := maxf(3.0, vs * 0.09)
 		for gx in range(-3, int(w) + 4):

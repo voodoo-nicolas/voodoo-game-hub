@@ -4,6 +4,7 @@ extends RefCounted
 
 const STRINGS := {
 	"es": {
+		"# switches the build grid between dots, lines (a line every metre, a stronger one every 5) and off.": "# cambia la cuadrícula de construcción entre puntos, líneas (una línea por metro, una más marcada cada 5) y apagada.",
 		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%d ways to play": "%d formas de jugar",
 		"300 levels in 10 chapters: the gaps get wider, the vehicles heavier, and steel, cables and steel road open on the way. Some levels have a rock pillar in the river to build on.": "300 niveles en 10 capítulos: los huecos se ensanchan, los vehículos pesan más, y en el camino se abren el acero, los cables y la carretera de acero. Algunos niveles tienen un pilar de roca en el río para apoyarte.",
@@ -51,6 +52,10 @@ const STRINGS := {
 		"Full": "Completo",
 		"Great Divide": "Gran División",
 		"Green Valley": "Valle Verde",
+		"Grid: dots": "Cuadrícula: puntos",
+		"Grid: dots, lines or off": "Cuadrícula: puntos, líneas o apagada",
+		"Grid: lines": "Cuadrícula: líneas",
+		"Grid: off": "Cuadrícula: apagada",
 		"Hard": "Difícil",
 		"Heaviest load (kg)": "Carga más pesada (kg)",
 		"Heavy Truck": "Camión pesado",
@@ -110,7 +115,9 @@ const STRINGS := {
 		"Road is what the vehicle drives on: join the two cliffs with road. Wood and steel hold the road up. Cables only pull, they cannot push.": "La carretera es por donde va el vehículo: une los dos acantilados con carretera. La madera y el acero la sostienen. Los cables solo tiran, no pueden empujar.",
 		"Screen": "Pantalla",
 		"Screenshot saved!": "¡Captura guardada!",
+		"Show the whole level": "Ver todo el nivel",
 		"Sign in (hub ⚙ Options) to put your best score on the board.": "Inicia sesión (⚙ Opciones en el menú) para poner tu mejor puntaje en la tabla.",
+		"Spread two fingers to zoom in on the spot you are building, pinch them together to zoom out, and drag with two fingers to move around. On a computer: the mouse wheel zooms, the right button drags. ⤢ shows the whole level again.": "Separa dos dedos para acercarte a donde estás construyendo, júntalos para alejarte y arrastra con dos dedos para moverte. En una computadora: la rueda del mouse hace zoom y el botón derecho arrastra. ⤢ vuelve a mostrar todo el nivel.",
 		"Stars: 1 for crossing, 2 for a cheaper bridge, 3 for matching the engineer's bridge price or beating it.": "Estrellas: 1 por cruzar, 2 por un puente más barato, 3 por igualar o mejorar el precio del puente del ingeniero.",
 		"Start": "Empezar",
 		"Start from a bolt: a cliff bolt or the end of a piece.": "Empieza desde un perno: uno del acantilado o el extremo de una pieza.",

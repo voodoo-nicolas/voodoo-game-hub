@@ -11,6 +11,8 @@ const HOW := [
 	"Road is what the vehicle drives on: join the two cliffs with road. Wood and steel hold the road up. Cables only pull, they cannot push.",
 	"Each material has a longest piece and a price per metre. The cost of your bridge must stay within the level's budget.",
 	"▶ Test sends the vehicle across. Pieces turn from green to yellow to red as they work harder, and snap when pushed past their strength.",
+	"Spread two fingers to zoom in on the spot you are building, pinch them together to zoom out, and drag with two fingers to move around. On a computer: the mouse wheel zooms, the right button drags. ⤢ shows the whole level again.",
+	"# switches the build grid between dots, lines (a line every metre, a stronger one every 5) and off.",
 	"■ Edit stops the test and puts your bridge back. 🗑 removes pieces, ↶ undoes, 🧹 clears.",
 	"Stars: 1 for crossing, 2 for a cheaper bridge, 3 for matching the engineer's bridge price or beating it.",
 	"After a crossing, 🏋 Load test sends the vehicle again with more weight each time until the bridge gives way. The heaviest load ranks you on the leaderboard.",
