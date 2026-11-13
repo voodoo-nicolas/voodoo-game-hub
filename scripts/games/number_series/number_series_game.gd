@@ -2,6 +2,8 @@ extends Control
 
 ## Number Series -- find the pattern, pick the next number. Builds its whole UI in code.
 
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/number_series/menu_styles.gd")
 const NumberSeriesEngine = preload("res://scripts/games/number_series/number_series_engine.gd")
 const HomeKit = preload("res://scripts/games/number_series/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -344,6 +346,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/number_series/number_series
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List; colours analogous greens.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/number_series/title.ttf",
+		"title_colors": [Color("a6e22e"), Color("3ddc84"), Color("2ec4b6")],
+		"landing_colors": [Color("06201a"), Color("0d3a2e")],
+		"menu_color": Color("3ddc84"),
 		"retro": true,
 		"help": preload("res://scripts/games/number_series/number_series_help.gd"),
 		"info": info,

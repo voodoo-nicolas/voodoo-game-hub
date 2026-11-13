@@ -4,6 +4,8 @@ extends Control
 ## (sideways, up, down or diagonally). Tap an empty cell, then pick the number
 ## for it from the pad. Some numbers are given.
 
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/hidato/menu_styles.gd")
 const HidatoEngine = preload("res://scripts/games/hidato/hidato_engine.gd")
 const HELP = preload("res://scripts/games/hidato/hidato_help.gd")
 const HomeKit = preload("res://scripts/games/hidato/home_kit.gd")
@@ -157,6 +159,13 @@ func _build_ui() -> void:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard", "🤯 Expert"][i], "sub": "%d × %d" % [HidatoEngine.LEVELS[i].size, HidatoEngine.LEVELS[i].size], "row": "lvl",
 			"action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring; colours triadic gold/green/violet.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/hidato/title.ttf",
+		"title_colors": [Color("ffc83c"), Color("3ce6a0"), Color("a05cff")],
+		"landing_colors": [Color("0e0a22"), Color("241a44")],
+		"menu_color": Color("ffc83c"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.GOLD,

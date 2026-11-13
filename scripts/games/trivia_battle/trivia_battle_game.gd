@@ -5,6 +5,8 @@ extends Control
 ## first right tap scores the point, a wrong tap locks you out of that
 ## question. Real multi-touch, so everyone can tap at once.
 
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/trivia_battle/menu_styles.gd")
 const TBEngine = preload("res://scripts/games/trivia_battle/trivia_battle_engine.gd")
 const HELP = preload("res://scripts/games/trivia_battle/trivia_battle_help.gd")
 const HomeKit = preload("res://scripts/games/trivia_battle/home_kit.gd")
@@ -114,6 +116,13 @@ func _build_ui() -> void:
 	for n in [2, 3, 4]:
 		modes.append({"text": "👥 %d Players" % n, "sub": "One phone", "multi": true, "row": "players", "action": _new_game.bind(n)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split; colours complementary red/blue.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/trivia_battle/title.ttf",
+		"title_colors": [Color("ff3b4e"), Color("2f8bff")],
+		"landing_colors": [Color("100818"), Color("22102e")],
+		"menu_color": Color("ff3b4e"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.MAGENTA,

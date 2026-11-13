@@ -2,6 +2,8 @@ extends Control
 
 ## Color Clash -- a Stroop test: does the color word match its ink? Builds its whole UI in code.
 
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/color_clash/menu_styles.gd")
 const ColorClashEngine = preload("res://scripts/games/color_clash/color_clash_engine.gd")
 const HomeKit = preload("res://scripts/games/color_clash/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -262,6 +264,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/color_clash/color_clash_hel
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board; colours triadic red/yellow/blue.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/color_clash/title.ttf",
+		"title_colors": [Color("ff4040"), Color("ffd23c"), Color("3c78ff")],
+		"landing_colors": [Color("1a1020"), Color("2a1838")],
+		"menu_color": Color("ffd23c"),
 		"retro": true,
 		"help": preload("res://scripts/games/color_clash/color_clash_help.gd"),
 		"info": info,

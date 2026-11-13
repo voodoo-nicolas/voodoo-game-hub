@@ -7319,6 +7319,106 @@
    "proof": "media/licenses/fonts/lilitaone-OFL.txt",
    "url": "https://github.com/google/fonts/tree/main/ofl/lilitaone",
    "date": "2026-11-13"
+  },
+  {
+   "file": "games/memory_grid/title.ttf",
+   "what": "Title font of the memory_grid Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Lilita One",
+   "author": "Juan Montoreano",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/lilitaone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/lilitaone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/color_clash/title.ttf",
+   "what": "Title font of the color_clash Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bangers",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bangers-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bangers",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/number_series/title.ttf",
+   "what": "Title font of the number_series Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Russo One",
+   "author": "Jovanny Lemonad",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/russoone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/russoone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/digit_recall/title.ttf",
+   "what": "Title font of the digit_recall Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Press Start 2P",
+   "author": "CodeMan38",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/pressstart2p-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/pressstart2p",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/sketch_it/title.ttf",
+   "what": "Title font of the sketch_it Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Permanent Marker",
+   "author": "Font Diner",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/permanentmarker-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/permanentmarker",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/trace_it/title.ttf",
+   "what": "Title font of the trace_it Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Concert One",
+   "author": "Johan Kallas, Mihkel Virkus",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/concertone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/concertone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/trivia_battle/title.ttf",
+   "what": "Title font of the trivia_battle Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bowlby One SC",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bowlbyonesc-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bowlbyonesc",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/color_sort/title.ttf",
+   "what": "Title font of the color_sort Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Luckiest Guy",
+   "author": "Astigmatic",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/luckiestguy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/luckiestguy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/hidato/title.ttf",
+   "what": "Title font of the hidato Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Titan One",
+   "author": "Rodrigo Fuenzalida",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/titanone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/titanone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/rectangles/title.ttf",
+   "what": "Title font of the rectangles Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Black Ops One",
+   "author": "James Grieshaber, Eben Sorkin",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/blackopsone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/blackopsone",
+   "date": "2026-11-13"
   }
  ]
 }

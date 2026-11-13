@@ -4,6 +4,8 @@ extends Control
 ## one number equal to its size. Drag corner to corner to draw; tap a rectangle to remove.
 ## Modes: Classic levels (stars), Daily (7x7, same for everyone), Weekly (10x10), Zen.
 
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/rectangles/menu_styles.gd")
 const Engine_ = preload("res://scripts/games/rectangles/rectangles_engine.gd")
 const Gen = preload("res://scripts/games/rectangles/rectangles_generator.gd")
 const HELP = preload("res://scripts/games/rectangles/rectangles_help.gd")
@@ -186,6 +188,13 @@ func _build_ui() -> void:
 		modes.append({"text": ZEN[i][0], "sub": "Zen · %d × %d" % [ZEN[i][1], ZEN[i][1]], "row": "zen", "key": "zen" + str(i),
 			"action": _start_zen.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs; colours analogous blues.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/rectangles/title.ttf",
+		"title_colors": [Color("3cc8ff"), Color("3a8cff"), Color("6a5cff")],
+		"landing_colors": [Color("060c24"), Color("142050")],
+		"menu_color": Color("3cc8ff"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

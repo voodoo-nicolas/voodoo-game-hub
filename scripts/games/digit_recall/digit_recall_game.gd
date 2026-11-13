@@ -3,6 +3,8 @@ extends Control
 ## Digit Recall -- memorize a number, type it back, get one digit longer.
 ## Builds its whole UI in code.
 
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/digit_recall/menu_styles.gd")
 const DigitRecallEngine = preload("res://scripts/games/digit_recall/digit_recall_engine.gd")
 const HomeKit = preload("res://scripts/games/digit_recall/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -373,6 +375,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/digit_recall/digit_recall_h
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema; colours complementary cyan/coral.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/digit_recall/title.ttf",
+		"title_colors": [Color("29e6c8"), Color("ff5a5f")],
+		"landing_colors": [Color("040a12"), Color("0c1a2a")],
+		"menu_color": Color("29e6c8"),
 		"retro": true,
 		"help": preload("res://scripts/games/digit_recall/digit_recall_help.gd"),
 		"info": info,

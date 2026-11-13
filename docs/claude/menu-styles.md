@@ -61,10 +61,22 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | same_game | slabs (S6) | Bangers |
 | binary_grid | ghost (S1) | BungeeShade |
 | hex | ring (S2) | LilitaOne |
+| memory_grid | bento (S10) | LilitaOne (complementary blue/orange) |
+| color_clash | stickers (S11) | Bangers (triadic red/yellow/blue) |
+| number_series | rail (S3) | RussoOne (analogous greens) |
+| digit_recall | cinema (S7) | PressStart2P (complementary cyan/coral) |
+| sketch_it | ghost (S1) | PermanentMarker (analogous magenta/purple/pink) |
+| trace_it | monument (S4) | ConcertOne (complementary teal/amber) |
+| trivia_battle | split (S8) | BowlbyOneSC (complementary red/blue) |
+| color_sort | marquee (S9) | LuckiestGuy (4-colour test-tube palette) |
+| hidato | ring (S2) | TitanOne (triadic gold/green/violet) |
+| rectangles | slabs (S6) | BlackOpsOne (analogous blues) |
 
 Gotcha: after wiring a game run `python tools/hub.py i18n` (the kit strings "Single player", "Menu"... must reach the
 game's own `_i18n.gd`); batch 2 first shipped without it.
-Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit.
+Intelligence batch (2026-11-13): each game's colours follow one rule (complementary, analogous, triadic or a
+set palette), 2-4 colours. Creation and Evolution keep their key-art Landing (menu styles draw no "art"); IQ Test
+has its own screen. Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit.
 
 Checked by screenshot (tools/shot.gd) at 405x720 and 960x540, Spanish, text size 1.0. NOT checked: text size 1.4, a
 real phone. First 8 published 2026-11-13.

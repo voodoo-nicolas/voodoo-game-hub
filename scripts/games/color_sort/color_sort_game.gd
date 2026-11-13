@@ -5,6 +5,8 @@ extends Control
 ## Fill every vial with a single colour. Every colour has its own pattern too.
 ## Liquid is drawn in code: layers with a wavy surface, glass shine, bubbles.
 
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/color_sort/menu_styles.gd")
 const CSEngine = preload("res://scripts/games/color_sort/color_sort_engine.gd")
 const HELP = preload("res://scripts/games/color_sort/color_sort_help.gd")
 const HomeKit = preload("res://scripts/games/color_sort/home_kit.gd")
@@ -239,6 +241,13 @@ func _build_ui() -> void:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard", "🤯 Expert"][i], "sub": "%d colors" % CSEngine.LEVELS[i].colors, "row": "lvl",
 			"action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee; colours palette: four test-tube colours.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/color_sort/title.ttf",
+		"title_colors": [Color("ff5ab4"), Color("4ddcff"), Color("ffe14d"), Color("7cff6b")],
+		"landing_colors": [Color("0a0a20"), Color("1c1440")],
+		"menu_color": Color("4ddcff"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

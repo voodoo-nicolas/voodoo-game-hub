@@ -4,6 +4,8 @@ extends Control
 ## The artist sees a secret word, draws it, and their team shouts guesses
 ## before the clock runs out. No letters, no numbers -- just drawing.
 
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/sketch_it/menu_styles.gd")
 const SketchEngine = preload("res://scripts/games/sketch_it/sketch_it_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -205,6 +207,13 @@ func _build_ui() -> void:
 		modes.append({"text": tr("%d teams") % n, "row": "teams", "multi": true,
 			"color": TEAM_COLORS[n - 2], "action": _new_game.bind(n)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost; colours analogous magenta/purple/pink.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/sketch_it/title.ttf",
+		"title_colors": [Color("ff4fa3"), Color("b05cff"), Color("ff7ac8")],
+		"landing_colors": [Color("1a0820"), Color("2e1240")],
+		"menu_color": Color("ff4fa3"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.MAGENTA,

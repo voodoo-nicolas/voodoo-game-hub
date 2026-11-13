@@ -525,6 +525,62 @@
  "Lobo de mar": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "MAIN MENU": [
+  "scripts\\games\\minesweeper\\menu_styles.gd",
+  "scripts\\games\\tictactoe\\menu_styles.gd",
+  "scripts\\games\\connect4\\menu_styles.gd",
+  "scripts\\games\\checkers\\menu_styles.gd",
+  "scripts\\games\\reversi\\menu_styles.gd",
+  "scripts\\games\\dots_boxes\\menu_styles.gd",
+  "scripts\\games\\mancala\\menu_styles.gd",
+  "scripts\\games\\backgammon\\menu_styles.gd",
+  "scripts\\games\\morris\\menu_styles.gd",
+  "scripts\\games\\peg_solitaire\\menu_styles.gd",
+  "scripts\\games\\lights_out\\menu_styles.gd",
+  "scripts\\games\\box_pusher\\menu_styles.gd",
+  "scripts\\games\\fifteen_puzzle\\menu_styles.gd",
+  "scripts\\games\\g2048\\menu_styles.gd",
+  "scripts\\games\\kakuro\\menu_styles.gd",
+  "scripts\\games\\nonogram\\menu_styles.gd",
+  "scripts\\games\\code_breaker\\menu_styles.gd",
+  "scripts\\games\\hanoi\\menu_styles.gd",
+  "scripts\\games\\calcudoku\\menu_styles.gd",
+  "scripts\\games\\pipe_flow\\menu_styles.gd",
+  "scripts\\games\\five_in_row\\menu_styles.gd",
+  "scripts\\games\\mahjong\\menu_styles.gd",
+  "scripts\\games\\flood_it\\menu_styles.gd",
+  "scripts\\games\\same_game\\menu_styles.gd",
+  "scripts\\games\\binary_grid\\menu_styles.gd",
+  "scripts\\games\\hex\\menu_styles.gd",
+  "scripts\\games\\trivia\\menu_styles.gd",
+  "scripts\\games\\quick_math\\menu_styles.gd",
+  "scripts\\games\\memory_grid\\menu_styles.gd",
+  "scripts\\games\\color_clash\\menu_styles.gd",
+  "scripts\\games\\number_series\\menu_styles.gd",
+  "scripts\\games\\digit_recall\\menu_styles.gd",
+  "scripts\\games\\sketch_it\\menu_styles.gd",
+  "scripts\\games\\trace_it\\menu_styles.gd",
+  "scripts\\games\\trivia_battle\\menu_styles.gd",
+  "scripts\\games\\color_sort\\menu_styles.gd",
+  "scripts\\games\\hidato\\menu_styles.gd",
+  "scripts\\games\\rectangles\\menu_styles.gd",
+  "scripts\\games\\blackjack\\menu_styles.gd",
+  "scripts\\games\\hearts\\menu_styles.gd",
+  "scripts\\games\\hangman\\menu_styles.gd",
+  "scripts\\games\\word_search\\menu_styles.gd",
+  "scripts\\games\\crossword\\menu_styles.gd",
+  "scripts\\games\\word_ladder\\menu_styles.gd",
+  "scripts\\games\\snake\\menu_styles.gd",
+  "scripts\\games\\simon\\menu_styles.gd",
+  "scripts\\games\\bubble_pop\\menu_styles.gd",
+  "scripts\\games\\rock_blaster\\menu_styles.gd",
+  "scripts\\games\\moon_lander\\menu_styles.gd",
+  "scripts\\games\\yacht\\menu_styles.gd",
+  "scripts\\games\\liars_dice\\menu_styles.gd",
+  "scripts\\games\\dominoes\\menu_styles.gd",
+  "scripts\\games\\spirit_board\\menu_styles.gd",
+  "scripts\\games\\emoji_guess\\menu_styles.gd"
+ ],
  "MPL 1.1 (option of the MPL/GPL/LGPL tri-licence)": [
   "scripts\\common\\third_party.gd"
  ],
@@ -744,6 +800,9 @@
  "Submarino de barril": [
   "scripts\\games\\wilson\\wilson_projects.gd"
  ],
+ "Subtitle": [
+  "scripts\\games\\tarot\\landing_styles.gd"
+ ],
  "Suerte de olla": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -861,6 +920,12 @@
  ],
  "classic-%03d": [
   "scripts\\games\\rectangles\\rectangles_game.gd"
+ ],
+ "cliff_%s_l": [
+  "scripts\\games\\bridge_master\\bridge_master_game.gd"
+ ],
+ "cliff_%s_r": [
+  "scripts\\games\\bridge_master\\bridge_master_game.gd"
  ],
  "daily-%d": [
   "scripts\\games\\rectangles\\rectangles_game.gd"
@@ -982,6 +1047,9 @@
  ],
  "tap to remove": [
   "scripts\\games\\rectangles\\rectangles_game.gd"
+ ],
+ "tarot-day-%d": [
+  "scripts\\games\\tarot\\tarot_engine.gd"
  ],
  "the bonfire won't build": [
   "scripts\\games\\wilson\\wilson_data.gd"

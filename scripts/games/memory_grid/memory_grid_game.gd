@@ -2,6 +2,8 @@ extends Control
 
 ## Memory Grid -- watch the lit tiles, then tap them from memory. Builds its whole UI in code.
 
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/memory_grid/menu_styles.gd")
 const MemoryGridEngine = preload("res://scripts/games/memory_grid/memory_grid_engine.gd")
 const HomeKit = preload("res://scripts/games/memory_grid/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -320,6 +322,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/memory_grid/memory_grid_hel
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid; colours complementary blue/orange.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/memory_grid/title.ttf",
+		"title_colors": [Color("ff9a2e"), Color("4da3ff")],
+		"landing_colors": [Color("0a1230"), Color("1a2a5c")],
+		"menu_color": Color("ff9a2e"),
 		"retro": true,
 		"help": preload("res://scripts/games/memory_grid/memory_grid_help.gd"),
 		"info": info,

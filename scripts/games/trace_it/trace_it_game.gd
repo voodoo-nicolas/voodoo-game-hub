@@ -16,6 +16,8 @@ extends Control
 ## trace_it_fx.gd (shaders). Pictures never leave the phone: an imported
 ## photo is kept only as user://trace_it_free_source.png for Resume.
 
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/trace_it/menu_styles.gd")
 const TraceItEngine = preload("res://scripts/games/trace_it/trace_it_engine.gd")
 const Art = preload("res://scripts/games/trace_it/trace_it_art.gd")
 const Cam = preload("res://scripts/games/trace_it/trace_it_camera.gd")
@@ -167,6 +169,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/trace_it/trace_it_help.gd"))
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument; colours complementary teal/amber.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/trace_it/title.ttf",
+		"title_colors": [Color("29c7e6"), Color("ffb03c")],
+		"landing_colors": [Color("081a24"), Color("13324a")],
+		"menu_color": Color("ffb03c"),
 		"help": preload("res://scripts/games/trace_it/trace_it_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,
