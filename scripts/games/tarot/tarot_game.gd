@@ -95,7 +95,7 @@ func _build_ui() -> void:
 	pause_btn.pressed.connect(_on_pause)
 	top_bar.add_child(pause_btn)
 	var title := Label.new()
-	title.text = tr("🃏 Tarot")
+	title.text = tr("🃏 Tarot of Destiny")
 	title.add_theme_font_size_override("font_size", 34)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -156,6 +156,8 @@ func _build_ui() -> void:
 		"help": preload("res://scripts/games/tarot/tarot_help.gd"),
 		"info": info,
 		"accent": HomeKit.PURPLE,
+		"art": "res://games/tarot/landing_bg.jpg",
+		"art_title": [0.116, 0.157],   # the painted title (tools/tarot_art.py)
 		"subtitle": "Pull a card. Hear your fortune.",
 		"logo": _draw_home_logo,
 		"solo_heading": "Choose your reading",

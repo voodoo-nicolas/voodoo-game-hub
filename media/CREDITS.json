@@ -6437,6 +6437,45 @@
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
    "ai_plan": "owner-supplied",
    "processed_by": "cropped to 16:9 and converted to WebP (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/tarot/tile.webp",
+   "what": "tarot hub tile picture (thumbnail) (owner's art: five tarot cards, painted title)",
+   "source": "reference/art/games/tarot_tile_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 320x180, converted to WebP (Claude Code, tools/tarot_art.py)"
+  },
+  {
+   "file": "media/hub/game_art/tarot/hero.webp",
+   "what": "tarot hub preview picture (Game Browser detail, 16:9) (owner's art: fortune teller's room, cards on the table)",
+   "source": "reference/art/games/tarot_preview_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "cropped to 16:9, 960x540, converted to WebP (Claude Code, tools/tarot_art.py)"
+  },
+  {
+   "file": "games/tarot/landing_bg.jpg",
+   "what": "Tarot Landing background (portrait 720x1280: the owner's titled card picture across the top over a blurred, darkened copy of his room picture)",
+   "source": "reference/art/games/tarot_tile_src.jpg + tarot_preview_src.jpg",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-12",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "composed into one portrait picture (Claude Code, tools/tarot_art.py)"
   }
  ]
 }

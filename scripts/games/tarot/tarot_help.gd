@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "tarot"
-const TITLE := "Tarot"
+const TITLE := "Tarot of Destiny"
 const GOAL := "Sit with the fortune teller, draw cards from the Major Arcana and read what they say. Collect all 22."
 const HOW := [
 	"Pick a reading: the Card of the Day (the same card all day), Three cards (past, present, future), Five cards (you, the challenge, the past, the future, the outcome) or the Celtic Cross (ten cards, the full story).",

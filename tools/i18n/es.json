@@ -11275,7 +11275,6 @@
  "Time %d:%02d   Hints %d": "Tiempo %d:%02d   Pistas %d",
  "Tap a colored area to remove it if needed.": "Toca un área de color para quitarla si hace falta.",
  "Drag from corner to corner to make a colored area.": "Arrastra de esquina a esquina para formar un área de color.",
- "🃏 Tarot": "🃏 Tarot",
  "🔮 Another reading": "🔮 Otra lectura",
  "Pull a card. Hear your fortune.": "Saca una carta. Escucha tu fortuna.",
  "Choose your reading": "Elige tu lectura",
@@ -11314,5 +11313,7 @@
  "Every reading except the Card of the Day is fresh each time, so ask as many questions as you like.": "Todas las lecturas, salvo la Carta del día, son nuevas cada vez, así que haz tantas preguntas como quieras.",
  "🧿  Celtic Cross": "🧿  Cruz Celta",
  "Ten cards: the full story": "Diez cartas: la historia completa",
- "Celtic Cross reading": "Lectura de la Cruz Celta"
+ "Celtic Cross reading": "Lectura de la Cruz Celta",
+ "🃏 Tarot of Destiny": "🃏 Tarot del destino",
+ "Tarot of Destiny": "Tarot del destino"
 }
