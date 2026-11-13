@@ -22,6 +22,10 @@ extends RefCounted
 ##   "monument"  S4 Monument: a huge title, two or three small rows under it, the art huge at the right
 ##   "slabs"     S6 Stone Slabs: chunky tapered slab buttons, centred; icons in the corners, mascot
 ##   "cinema"    S7 Diegetic Cinema: black bars, a drifting scene, tiny caps rows bottom-left
+##   "split"     S8 Diagonal Split: a bold slanted colour band holds the title; slanted tab buttons
+##   "marquee"   S9 Arcade Marquee: the title in a sign of chasing bulbs, neon pill buttons, round tokens
+##   "bento"     S10 Bento Grid: one big Play tile and smaller coloured tiles, like a lunch box
+##   "stickers"  S11 Sticker Board: tilted die-cut stickers with thick outlines on a dotted board
 ## (S5 Ornate Scroll is the "list" style of the other Landing styles file.)
 ##
 ## cfg (all optional):
@@ -35,7 +39,7 @@ extends RefCounted
 ##   "landing_stars": 60            how many stars in the backdrop (style default otherwise)
 ## The game's cfg "logo" drawing is the hero art (big in "monument" / "cinema", a mascot in "slabs").
 
-const STYLES := ["ghost", "ring", "rail", "monument", "slabs", "cinema"]
+const STYLES := ["ghost", "ring", "rail", "monument", "slabs", "cinema", "split", "marquee", "bento", "stickers"]
 
 static func build(kit, home: Control) -> Control:
 	var st := str(kit.cfg.get("landing", ""))
@@ -160,6 +164,11 @@ class Backdrop extends Control:
 	var ring_color := Color.WHITE
 	var bars := 0.0               # letterbox bar height (S7)
 	var drift := false            # stars drift sideways (S7 scene)
+	var band := PackedVector2Array()   # S8: the slanted colour band
+	var band_color := Color.WHITE
+	var bulbs := Rect2()          # S9: chasing bulbs around this rect
+	var bulb_color := Color.WHITE
+	var dots := false             # S11: a dotted board
 	var t := 0.0
 	var _seed: Array = []
 	var _blob: Texture2D
@@ -231,6 +240,41 @@ class Backdrop extends Control:
 					pts.append(Vector2(x, base - amp * (0.5 + 0.5 * sin(float(i) * (1.3 + layer * 0.7) + layer * 2.0))))
 				pts.append(Vector2(W, H))
 				draw_colored_polygon(pts, bottom.darkened(0.25 + 0.2 * float(layer)).lerp(accent, 0.08))
+		if dots:
+			var step := 26.0
+			var y := step * 0.5
+			var row := 0
+			while y < H:
+				var x := step * (0.25 if row % 2 == 0 else 0.75)
+				while x < W:
+					draw_rect(Rect2(x - 1.5, y - 1.5, 3.0, 3.0), Color(1, 1, 1, 0.09))
+					x += step
+				y += step
+				row += 1
+		if band.size() >= 3:
+			draw_colored_polygon(band, band_color)
+			draw_line(band[3], band[2], band_color.lightened(0.5), 6.0)
+		if bulbs.size.x > 0.0:
+			var r := bulbs
+			var per := (r.size.x + r.size.y) * 2.0
+			var nb := int(per / 26.0)
+			var bs := 11.0
+			for i in nb:
+				var d := per * float(i) / float(nb)
+				var p := Vector2()
+				if d < r.size.x:
+					p = r.position + Vector2(d, 0)
+				elif d < r.size.x + r.size.y:
+					p = r.position + Vector2(r.size.x, d - r.size.x)
+				elif d < r.size.x * 2.0 + r.size.y:
+					p = r.end - Vector2(d - r.size.x - r.size.y, 0)
+				else:
+					p = Vector2(r.position.x, r.end.y - (d - r.size.x * 2.0 - r.size.y))
+				var on := (i + int(t * 6.0)) % 3 == 0
+				var c := bulb_color if on else bulb_color.darkened(0.55)
+				if on:
+					draw_texture_rect(_blob, Rect2(p - Vector2(bs, bs) * 1.4, Vector2(bs, bs) * 2.8), false, Color(c, 0.4))
+				draw_rect(Rect2(p - Vector2(bs, bs) * 0.35, Vector2(bs, bs) * 0.7), c)
 		if bars > 0.0:
 			draw_rect(Rect2(0, 0, W, bars), Color.BLACK)
 			draw_rect(Rect2(0, H - bars, W, bars), Color.BLACK)
@@ -256,6 +300,16 @@ class Frame extends Control:
 				pts.append(c + Vector2(cos(a), sin(a)) * r)
 			draw_colored_polygon(pts.slice(0, 6), Color(color, 0.32 if lit else 0.14))
 			draw_polyline(pts, Color(color, 1.0 if lit else 0.75), 2.0, true)
+		elif kind in ["round", "tile", "sticker"]:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = color.darkened(0.25) if kind != "round" else Color(0.03, 0.03, 0.08, 0.85)
+			sb.border_color = color if kind == "round" else (Color.WHITE if kind == "sticker" else color.darkened(0.6))
+			sb.set_border_width_all(3 if kind != "sticker" else 5)
+			sb.set_corner_radius_all(2000 if kind != "tile" else 16)
+			sb.shadow_color = Color(color, 0.45) if kind == "round" else Color(0, 0, 0, 0.4)
+			sb.shadow_size = 10 if kind == "round" else 4
+			sb.shadow_offset = Vector2.ZERO if kind == "round" else Vector2(0, 4)
+			sb.draw(get_canvas_item(), Rect2(Vector2.ZERO, size))
 
 
 ## ---------- the Landing ----------
@@ -344,6 +398,13 @@ class MenuLanding extends Control:
 			"cinema":
 				back.stars = 140
 				back.drift = true
+			"split":
+				back.stars = 30
+			"marquee":
+				back.stars = 70
+				back.bokeh = 8
+			"stickers":
+				back.dots = true
 		back.stars = int(kit.cfg.get("landing_stars", back.stars))
 		add_child(back)
 		back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -389,7 +450,7 @@ class MenuLanding extends Control:
 		title.colors = kit.cfg.get("title_colors", [hi.lightened(0.2), Color.WHITE])
 		title.outline = kit.cfg.get("title_outline", Color(0.02, 0.02, 0.06))
 		title.bob = not _reduced
-		title.align = HORIZONTAL_ALIGNMENT_CENTER if style in ["ring", "slabs"] else HORIZONTAL_ALIGNMENT_LEFT
+		title.align = HORIZONTAL_ALIGNMENT_CENTER if style in ["ring", "slabs", "marquee", "stickers"] else HORIZONTAL_ALIGNMENT_LEFT
 		add_child(title)
 		if style == "rail":
 			sub_title = kit.label(str(kit.tr("Menu")).to_upper(), 30, hi, false, false)
@@ -398,7 +459,7 @@ class MenuLanding extends Control:
 			sub_title.add_theme_constant_override("outline_size", 10)
 			add_child(sub_title)
 		var sub_text: String = str(kit.cfg.get("subtitle", kit.consts.get("GOAL", "")))
-		tagline = kit.label(str(kit.tr(sub_text)), 20, Color(1, 1, 1, 0.82), true, style in ["ring", "slabs"])
+		tagline = kit.label(str(kit.tr(sub_text)), 20, Color(1, 1, 1, 0.82), true, style in ["ring", "slabs", "marquee", "stickers"])
 		tagline.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 		tagline.add_theme_constant_override("outline_size", 6)
 		tagline.visible = sub_text != "" and style != "cinema"
@@ -447,7 +508,7 @@ class MenuLanding extends Control:
 
 	## Does this style show the utilities as icons (else as text rows)?
 	func _util_icons() -> bool:
-		return style in ["ghost", "ring", "monument", "slabs"]
+		return style in ["ghost", "ring", "monument", "slabs", "split", "marquee", "bento", "stickers"]
 
 	func _make(e: Dictionary) -> void:
 		var b := Button.new()
@@ -458,11 +519,11 @@ class MenuLanding extends Control:
 			b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
 		b.tooltip_text = str(e.nm)
 		b.pressed.connect(e.cb)
-		var icon: bool = (e.kind == "util" and _util_icons()) or (e.kind == "hub" and style in ["ghost", "monument"])
+		var icon: bool = (e.kind == "util" and _util_icons()) or (e.kind == "hub" and style in ["ghost", "monument", "split", "marquee", "bento"])
 		e["icon"] = icon
 		if icon:
 			var fr := Frame.new()
-			fr.kind = "hex" if style == "ghost" else "none"
+			fr.kind = {"ghost": "hex", "marquee": "round", "bento": "tile", "stickers": "sticker", "split": "tile"}.get(style, "none")
 			fr.color = hi
 			b.add_child(fr)
 			fr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -484,13 +545,13 @@ class MenuLanding extends Control:
 			var label := str(e.nm)
 			if e.kind == "hub":
 				label = "← " + label
-			elif style in ["slabs", "ghost", "rail"] and str(e.glyph) != "":
+			elif style in ["slabs", "ghost", "rail", "split", "marquee", "bento", "stickers"] and str(e.glyph) != "":
 				label = str(e.glyph) + "  " + label
-			if style in ["rail", "cinema", "ghost", "ring"]:
+			if style in ["rail", "cinema", "ghost", "ring", "split", "marquee"]:
 				label = label.to_upper()
 			b.text = label
 			b.add_theme_font_override("font", menu_font)
-			b.alignment = HORIZONTAL_ALIGNMENT_CENTER if style in ["ring", "slabs"] else HORIZONTAL_ALIGNMENT_LEFT
+			b.alignment = HORIZONTAL_ALIGNMENT_CENTER if style in ["ring", "slabs", "marquee", "stickers"] else HORIZONTAL_ALIGNMENT_LEFT
 			b.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 			b.add_theme_constant_override("outline_size", 6 if style != "slabs" else 8)
 		b.mouse_entered.connect(_on_hover.bind(e))
@@ -553,12 +614,35 @@ class MenuLanding extends Control:
 					b.add_theme_stylebox_override("hover", _slab(base.lightened(0.08), false))
 				"cinema":
 					col = hi.lightened(0.3) if on else Color(1, 1, 1, 0.88)
-			if e.kind == "resume" and style != "slabs":
+			var tint: Color = e.get("tint", hi)
+			match style:
+				"split":
+					normal = _box(tint.darkened(0.3), Color.WHITE if on else tint.lightened(0.3), 3, 4, 0.4 if on else 0.0)
+					(normal as StyleBoxFlat).skew = Vector2(0.28, 0)
+					(normal as StyleBoxFlat).content_margin_left = 30
+				"marquee":
+					normal = _box(Color(tint, 0.85) if on else Color(0.03, 0.02, 0.08, 0.8), tint, 3, 2000, 0.6)
+				"bento":
+					normal = _box(tint.darkened(0.2), tint.lightened(0.25) if on else tint.darkened(0.5), 3, 22, 0.0)
+					(normal as StyleBoxFlat).shadow_color = Color(0, 0, 0, 0.35)
+					(normal as StyleBoxFlat).shadow_size = 6
+					(normal as StyleBoxFlat).shadow_offset = Vector2(0, 5)
+				"stickers":
+					normal = _box(tint, Color.WHITE, 6, 26, 0.0)
+					(normal as StyleBoxFlat).shadow_color = Color(0, 0, 0, 0.45)
+					(normal as StyleBoxFlat).shadow_size = 3
+					(normal as StyleBoxFlat).shadow_offset = Vector2(4, 6)
+			if style in ["split", "marquee", "bento", "stickers"]:
+				col = Color.WHITE
+			elif e.kind == "resume" and style != "slabs":
 				col = kit.GO if not on else kit.GO.lightened(0.3)
 			b.add_theme_stylebox_override("normal", normal)
 			if style != "slabs":
 				b.add_theme_stylebox_override("hover", normal)
-				b.add_theme_stylebox_override("pressed", normal)
+				var dn: StyleBox = normal.duplicate()
+				if dn is StyleBoxFlat:
+					(dn as StyleBoxFlat).bg_color = (dn as StyleBoxFlat).bg_color.lightened(0.15)
+				b.add_theme_stylebox_override("pressed", dn)
 			b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 			for c in ["font_color", "font_hover_color", "font_focus_color"]:
 				b.add_theme_color_override(c, col)
@@ -678,6 +762,8 @@ class MenuLanding extends Control:
 			(e.btn as Button).visible = e.shown
 		back.ring = Rect2()
 		back.bars = 0.0
+		back.band = PackedVector2Array()
+		back.bulbs = Rect2()
 		call("_lay_" + style, W, H, wide)
 		_paint()
 		back.queue_redraw()
@@ -865,3 +951,202 @@ class MenuLanding extends Control:
 			_put_logo(Rect2(W * 0.5, bar + ph * 0.08, W * 0.46, ph * 0.84))
 		else:
 			_put_logo(Rect2(W * 0.18, bar + 10.0, W * 0.64, maxf(0.0, ty - bar - 20.0)))
+
+
+	## The colour of item i: the title palette, Resume always green.
+	func _tint(e: Dictionary, i: int) -> Color:
+		var pal: Array = kit.cfg.get("title_colors", [hi])
+		var c: Color = kit.GO.darkened(0.2) if e.kind == "resume" else pal[i % pal.size()]
+		e["tint"] = c
+		return c
+
+	func _tint_icons(list: Array) -> void:
+		for i in list.size():
+			var e: Dictionary = list[i]
+			var c := _tint(e, i + 1)
+			if e.has("frame"):
+				(e.frame as Frame).color = c
+				(e.frame as Frame).queue_redraw()
+
+	## S8 Diagonal Split
+	func _lay_split(W: float, H: float, wide: bool) -> void:
+		var pad := 22.0
+		var mains := _of(["resume", "quick", "main"])
+		var utils := _of(["util", "hub"])
+		_tint_icons(utils)
+		var band_h := H * (0.4 if wide else 0.28)
+		var slope := H * 0.07
+		var bc: Color = (kit.cfg.get("title_colors", [hi]) as Array)[0]
+		back.band = PackedVector2Array([Vector2(0, 0), Vector2(W, 0), Vector2(W, band_h - slope), Vector2(0, band_h + slope)])
+		back.band_color = Color(bc.darkened(0.6), 0.95)
+		var tw := W * (0.62 if wide else 1.0) - pad * 2.0
+		var bottom := _place_title(Rect2(pad, pad, tw, band_h * 0.6))
+		_place_tagline(pad, bottom, tw, 18 if wide else 19)
+		var s := clampf(minf(W, H) * 0.085, 48.0, 62.0)
+		var top := band_h + slope + 18.0
+		var foot := H - pad - s - 34.0
+		var pitch := clampf((foot - top) / float(maxi(1, mains.size())), 58.0, 96.0)
+		var fs := int(clampf(pitch * 0.34, 18.0, 30.0))
+		var bw := minf(W * (0.46 if wide else 0.8), 520.0)
+		var y := top
+		for i in mains.size():
+			var e: Dictionary = mains[i]
+			_tint(e, i)
+			var b: Button = e.btn
+			b.add_theme_font_size_override("font_size", fs)
+			# each tab steps left a little, following the slant
+			_put(b, Rect2(W - pad - bw - float(i) * pad * 0.7, y, bw, pitch - 12.0))
+			y += pitch
+		_icons(utils, pad, H - pad - s, s, 8.0)
+		caption.position = Vector2(pad, H - pad - s - 26.0)
+		caption.size = Vector2(W * 0.6, 22.0)
+		if wide:
+			_put_logo(Rect2(W * 0.03, top, W * 0.4, foot - top))
+		else:
+			_put_logo(Rect2())
+
+	## S9 Arcade Marquee
+	func _lay_marquee(W: float, H: float, wide: bool) -> void:
+		var pad := 22.0
+		var mains := _of(["resume", "quick", "main"])
+		var utils := _of(["util", "hub"])
+		_tint_icons(utils)
+		var sw := minf(W - pad * 2.0, 760.0)
+		var sh := H * (0.24 if wide else 0.17)
+		var sign := Rect2((W - sw) * 0.5, pad + 6.0, sw, sh)
+		back.bulbs = sign
+		back.bulb_color = Color("ffe9a0")
+		_place_title(sign.grow(-24.0))
+		title.position.y = sign.position.y + (sign.size.y - title.used_height()) * 0.5
+		var y0 := _place_tagline(pad, sign.end.y + 12.0, W - pad * 2.0, 18 if wide else 20)
+		var s := clampf(minf(W, H) * 0.095, 50.0, 70.0)
+		var foot := H - pad - s - 34.0
+		var cols := 2 if (wide or mains.size() > 4) and mains.size() > 1 else 1
+		var rows := ceili(float(mains.size()) / float(cols))
+		var gap := 14.0
+		var bh := clampf((foot - y0 - 14.0 - gap * float(rows)) / float(maxi(1, rows)), 54.0, 84.0)
+		var bw := minf((W - pad * 2.0 - gap * float(cols - 1)) / float(cols), 360.0 if cols == 2 else 460.0)
+		var total_w := bw * float(cols) + gap * float(cols - 1)
+		var total_h := bh * float(rows) + gap * float(rows - 1)
+		var top := y0 + maxf(14.0, (foot - y0 - total_h) * 0.45)
+		var fs := int(clampf(bh * 0.32, 18.0, 28.0))
+		for i in mains.size():
+			var e: Dictionary = mains[i]
+			_tint(e, i)
+			var b: Button = e.btn
+			b.add_theme_font_size_override("font_size", fs)
+			_put(b, Rect2((W - total_w) * 0.5 + float(i % cols) * (bw + gap), top + float(i / cols) * (bh + gap), bw, bh))
+		var uw := float(utils.size()) * (s + 12.0) - 12.0
+		_icons(utils, (W - uw) * 0.5, H - pad - s, s, 12.0)
+		caption.position = Vector2(0, H - pad - s - 26.0)
+		caption.size = Vector2(W, 22.0)
+		var ls := minf(W, H) * 0.24
+		var free_top := top + total_h + 10.0
+		if foot - free_top > ls * 0.6:
+			_put_logo(Rect2((W - ls * 1.4) * 0.5, free_top, ls * 1.4, foot - free_top))
+		else:
+			_put_logo(Rect2())
+
+	## S10 Bento Grid
+	func _lay_bento(W: float, H: float, wide: bool) -> void:
+		var pad := 18.0
+		var gap := 12.0
+		var mains := _of(["resume", "quick", "main"])
+		var utils := _of(["util", "hub"])
+		_tint_icons(utils)
+		var tw := W * (0.46 if wide else 1.0) - pad * 2.0
+		var bottom := _place_title(Rect2(pad, pad, tw, H * (0.24 if wide else 0.14)))
+		bottom = _place_tagline(pad, bottom, tw, 18 if wide else 19)
+		var area: Rect2
+		if wide:
+			area = Rect2(W * 0.48, pad, W * 0.52 - pad, H - pad * 2.0)
+			_put_logo(Rect2(pad, bottom + 10.0, W * 0.42, H - bottom - pad - 10.0))
+		else:
+			area = Rect2(pad, bottom + 14.0, W - pad * 2.0, H - bottom - pad - 14.0)
+			_put_logo(Rect2())
+		# the first tile spans the width and is taller; the rest two per row; then one row of small tiles
+		var n := mains.size()
+		var main_rows := 1 + ceili(float(maxi(0, n - 1)) / 2.0)
+		var urow := clampf(area.size.y * 0.13, 52.0, 76.0)
+		var unit := clampf((area.size.y - urow - 24.0 - gap * float(main_rows)) / (float(main_rows) + 0.6), 52.0, 170.0)
+		var y := area.position.y
+		var cw := (area.size.x - gap) * 0.5
+		for i in n:
+			var e: Dictionary = mains[i]
+			_tint(e, i)
+			var b: Button = e.btn
+			var r: Rect2
+			b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if i == 0:
+				r = Rect2(area.position.x, y, area.size.x, unit * 1.6)
+				y += unit * 1.6 + gap
+				b.add_theme_font_size_override("font_size", int(clampf(unit * 0.4, 22.0, 44.0)))
+			else:
+				var c := (i - 1) % 2
+				var alone := c == 0 and i == n - 1
+				r = Rect2(area.position.x + float(c) * (cw + gap), y, area.size.x if alone else cw, unit)
+				if c == 1 or alone:
+					y += unit + gap
+				b.add_theme_font_size_override("font_size", int(clampf(unit * 0.28, 16.0, 26.0)))
+			_put(b, r)
+		var uc := utils.size()
+		var us := minf((area.size.x - gap * float(uc - 1)) / float(maxi(1, uc)), urow)
+		var uw := us * float(uc) + gap * float(uc - 1)
+		var uy := area.end.y - us
+		if not wide and uy - y > 110.0:
+			_put_logo(Rect2(area.position.x, y + 6.0, area.size.x, uy - y - 40.0))   # the art fills the gap
+		_icons(utils, area.position.x + (area.size.x - uw) * 0.5, uy, us, gap)
+		caption.position = Vector2(area.position.x, uy - 24.0)
+		caption.size = Vector2(area.size.x, 22.0)
+
+	## S11 Sticker Board
+	func _lay_stickers(W: float, H: float, wide: bool) -> void:
+		var pad := 22.0
+		var mains := _of(["resume", "quick", "main", "hub"])
+		var utils := _of(["util"])
+		_tint_icons(utils)
+		var tw := W - pad * 2.0
+		var bottom := _place_title(Rect2(pad, pad + 4.0, tw, H * (0.22 if wide else 0.16)))
+		title.pivot_offset = title.size * 0.5
+		title.rotation = deg_to_rad(-3.0)
+		bottom = _place_tagline(pad, bottom + 8.0, tw, 18 if wide else 20)
+		var s := clampf(minf(W, H) * 0.1, 52.0, 72.0)
+		var foot := H - pad - s - 34.0
+		var n := mains.size()
+		var cols := 2 if wide and n > 2 else 1
+		var rows := ceili(float(n) / float(cols))
+		var gap := 18.0
+		var bh := clampf((foot - bottom - 20.0 - gap * float(rows)) / float(maxi(1, rows)), 54.0, 90.0)
+		var bw := minf(W * (0.34 if cols == 2 else 0.72), 440.0)
+		var total_h := bh * float(rows) + gap * float(rows - 1)
+		var top := bottom + 20.0 + maxf(0.0, (foot - bottom - 20.0 - total_h) * 0.4)
+		var fs := int(clampf(bh * 0.34, 18.0, 30.0))
+		for i in n:
+			var e: Dictionary = mains[i]
+			var b: Button = e.btn
+			if e.kind == "hub":
+				e["tint"] = Color("5a5f6e")
+			else:
+				_tint(e, i)
+			b.add_theme_font_size_override("font_size", fs if e.kind != "hub" else int(fs * 0.75))
+			var col := i % cols
+			var row := i / cols
+			var w := bw * (0.6 if e.kind == "hub" else 1.0)
+			var cx := W * 0.5 + (float(col) - float(cols - 1) * 0.5) * (bw + gap * 2.0) + sin(float(i) * 2.3) * W * 0.03
+			var r := Rect2(cx - w * 0.5, top + float(row) * (bh + gap), w, bh)
+			_put(b, r)
+			b.pivot_offset = r.size * 0.5
+			b.rotation = deg_to_rad(-4.0 if i % 2 == 0 else 3.5)
+		var uw := float(utils.size()) * (s + 12.0) - 12.0
+		_icons(utils, (W - uw) * 0.5, H - pad - s, s, 12.0)
+		for i in utils.size():
+			var ub: Button = utils[i].btn
+			ub.pivot_offset = Vector2(s, s) * 0.5
+			ub.rotation = deg_to_rad(6.0 if i % 2 == 0 else -6.0)
+		caption.position = Vector2(0, H - pad - s - 26.0)
+		caption.size = Vector2(W, 22.0)
+		var ls := minf(W, H) * 0.22
+		if wide:
+			_put_logo(Rect2(W - pad - ls * 1.2, H * 0.42, ls * 1.2, ls * 1.2))
+		else:
+			_put_logo(Rect2(W - pad - ls, minf(top + total_h + 4.0, foot - ls), ls, ls))

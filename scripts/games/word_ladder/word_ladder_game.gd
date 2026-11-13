@@ -4,6 +4,8 @@ extends Control
 ## the goal word. Tap a tile of the word on the bottom rung, pick the new
 ## letter, and the new word (it must be a real one) becomes the next rung.
 
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/word_ladder/menu_styles.gd")
 const WLEngine = preload("res://scripts/games/word_ladder/word_ladder_engine.gd")
 const HELP = preload("res://scripts/games/word_ladder/word_ladder_help.gd")
 const HomeKit = preload("res://scripts/games/word_ladder/home_kit.gd")
@@ -163,6 +165,13 @@ func _build_ui() -> void:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard"][i], "sub": ["3 letters", "4 letters", "5 letters"][i],
 			"row": "lvl", "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid, own title font + colours.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/word_ladder/title.ttf",
+		"title_colors": [Color("7a5cff"), Color("ff8a3c"), Color("3cd9b0"), Color("ff5c9a")],
+		"landing_colors": [Color("0b0a1c"), Color("231d48")],
+		"menu_font": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.GOLD,

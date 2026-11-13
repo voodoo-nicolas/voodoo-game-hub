@@ -4,6 +4,8 @@ extends Control
 ## East. Your hand is along the bottom; each player's card in the current
 ## trick lands in front of them.
 
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/hearts/menu_styles.gd")
 const HeartsEngine = preload("res://scripts/games/hearts/hearts_engine.gd")
 const Cards = preload("res://scripts/games/hearts/hearts_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -162,6 +164,12 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split, own title font + colours.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/hearts/title.ttf",
+		"title_colors": [Color("ff3b6b"), Color("ffd1dc"), Color("ff8fab")],
+		"landing_colors": [Color("14030a"), Color("40081e")],
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.PINK,

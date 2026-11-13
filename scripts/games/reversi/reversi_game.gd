@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/reversi/menu_styles.gd")
 const ReversiEngine = preload("res://scripts/games/reversi/reversi_engine.gd")
 const HomeKit = preload("res://scripts/games/reversi/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -228,6 +230,12 @@ func _build_home() -> void:
 		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split, own title font + colours.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/reversi/title.ttf",
+		"title_colors": [Color("2bd96b"), Color("f5f5f5"), Color("1e1e1e")],
+		"landing_colors": [Color("03140a"), Color("0b3b20")],
 		"help": preload("res://scripts/games/reversi/reversi_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,

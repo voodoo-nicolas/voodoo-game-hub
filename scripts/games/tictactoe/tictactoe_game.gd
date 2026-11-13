@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/tictactoe/menu_styles.gd")
 const TicTacToeEngine = preload("res://scripts/games/tictactoe/tictactoe_engine.gd")
 const HomeKit = preload("res://scripts/games/tictactoe/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -179,6 +181,13 @@ func _build_home() -> void:
 		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board, own title font + colours.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/tictactoe/title.ttf",
+		"title_colors": [Color("ff5a5a"), Color("3cb4ff"), Color("ffc93c"), Color("7ae36a")],
+		"landing_colors": [Color("10233a"), Color("1d3f66")],
+		"menu_font": true,
 		"help": preload("res://scripts/games/tictactoe/tictactoe_help.gd"),
 		"info": info,
 		"accent": X_COLOR,

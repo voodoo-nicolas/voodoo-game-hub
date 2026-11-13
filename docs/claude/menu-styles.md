@@ -1,10 +1,10 @@
 # Menu styles (docs/MENU_STYLES.md, built 2026-11-13)
 
-`tools/templates/menu_styles.gd`: six Landing layouts from MENU_STYLES.md, self-contained (no fx_lib / landing_styles
+`tools/templates/menu_styles.gd`: ten Landing layouts from MENU_STYLES.md (S1-S4, S6-S11), self-contained (no fx_lib / landing_styles
 dependency). `hub.py sync` copies it into each game that names it (like home_kit.gd), so it is a **pack update only**.
 
 Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")`, then in `HomeKit.new({...})`:
-`"landing": "ghost|ring|rail|monument|slabs|cinema"`, `"landing_style": MenuStyles`,
+`"landing": "ghost|ring|rail|monument|slabs|cinema|split|marquee|bento|stickers"`, `"landing_style": MenuStyles`,
 `"title_font": "res://games/<id>/title.ttf"`, `"title_colors": [...]`, `"landing_colors": [top, bottom]`, optional
 `"menu_font": true`, `"menu_color"`, `"landing_stars"`. The game's cfg `"logo"` drawing is the hero art (scaled up).
 
@@ -33,6 +33,17 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | trivia | slabs (S6) | Titan One |
 | dominoes | monument (S4) | Bowlby One SC |
 | liars_dice | ghost (S1) | Rye |
+| reversi | split (S8) | Racing Sans One |
+| hearts | split (S8) | Shrikhand |
+| yacht | marquee (S9) | Monoton |
+| simon | marquee (S9) | Bungee Shade |
+| minesweeper | bento (S10) | Lilita One |
+| word_ladder | bento (S10) | Concert One |
+| tictactoe | stickers (S11) | Sniglet ExtraBold |
+| emoji_guess | stickers (S11) | Rampart One |
+
+Gotcha: after wiring a game run `python tools/hub.py i18n` (the kit strings "Single player", "Menu"... must reach the
+game's own `_i18n.gd`); batch 2 first shipped without it.
 
 Checked by screenshot (tools/shot.gd) at 405x720 and 960x540, Spanish, text size 1.0. NOT checked: text size 1.4, a
 real phone. First 8 published 2026-11-13.

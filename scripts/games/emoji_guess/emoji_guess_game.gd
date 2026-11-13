@@ -3,6 +3,8 @@ extends Control
 ## Emoji Guess -- the emoji spell a word or phrase. Type it on the keyboard
 ## (spaces and accents don't matter). Alone, or 2-4 players taking turns.
 
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/emoji_guess/menu_styles.gd")
 const EGEngine = preload("res://scripts/games/emoji_guess/emoji_guess_engine.gd")
 const HELP = preload("res://scripts/games/emoji_guess/emoji_guess_help.gd")
 const HomeKit = preload("res://scripts/games/emoji_guess/home_kit.gd")
@@ -175,6 +177,13 @@ func _build_ui() -> void:
 	for n in [2, 3, 4]:
 		modes.append({"text": "👥 %d Players" % n, "sub": "Take turns", "multi": true, "row": "players", "action": _new_game.bind(n)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board, own title font + colours.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/emoji_guess/title.ttf",
+		"title_colors": [Color("ffcf3c"), Color("ff6fb5"), Color("5ce1ff"), Color("9b7bff")],
+		"landing_colors": [Color("2a0e3a"), Color("5a1d6e")],
+		"menu_font": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.GOLD,

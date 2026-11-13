@@ -7039,6 +7039,86 @@
    "proof": "media/licenses/fonts/permanentmarker-LICENSE.txt",
    "url": "https://github.com/google/fonts/tree/main/apache/permanentmarker",
    "date": "2026-11-13"
+  },
+  {
+   "file": "games/reversi/title.ttf",
+   "what": "Title font of the reversi Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Racing Sans One",
+   "author": "Impallari Type",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/racingsansone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/racingsansone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/hearts/title.ttf",
+   "what": "Title font of the hearts Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Shrikhand",
+   "author": "Jonny Pinhorn",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/shrikhand-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/shrikhand",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/yacht/title.ttf",
+   "what": "Title font of the yacht Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Monoton",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/monoton-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/monoton",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/simon/title.ttf",
+   "what": "Title font of the simon Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bungee Shade",
+   "author": "David Jonathan Ross",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bungeeshade-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bungeeshade",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/minesweeper/title.ttf",
+   "what": "Title font of the minesweeper Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Lilita One",
+   "author": "Juan Montoreano",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/lilitaone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/lilitaone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/word_ladder/title.ttf",
+   "what": "Title font of the word_ladder Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Concert One",
+   "author": "Johan Kallas, Mihkel Virkus",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/concertone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/concertone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/tictactoe/title.ttf",
+   "what": "Title font of the tictactoe Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Sniglet",
+   "author": "Haley Fiege",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/sniglet-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/sniglet",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/emoji_guess/title.ttf",
+   "what": "Title font of the emoji_guess Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Rampart One",
+   "author": "Fontworks Inc.",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/rampartone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/rampartone",
+   "date": "2026-11-13"
   }
  ]
 }

@@ -4,6 +4,8 @@ extends Control
 ## on the scorecard to score this turn. Solo, or 2-4 players passing the
 ## phone: each has their own scorecard and they take turns.
 
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/yacht/menu_styles.gd")
 const YEngine = preload("res://scripts/games/yacht/yacht_engine.gd")
 const HomeKit = preload("res://scripts/games/yacht/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -329,6 +331,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/yacht/yacht_help.gd").TITLE
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee, own title font + colours.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/yacht/title.ttf",
+		"title_colors": [Color("ff4fd8"), Color("4fe9ff"), Color("ffe34f")],
+		"landing_colors": [Color("07021a"), Color("200a44")],
 		"help": preload("res://scripts/games/yacht/yacht_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

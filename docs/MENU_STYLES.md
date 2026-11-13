@@ -201,6 +201,30 @@ Mood: immersive, grounded, "the world IS the menu". Live scene behind, tiny text
 - **Touch note:** text is tiny — use ≥48dp invisible hit areas; consider +20% size on phones. Don't shrink below 12sp.
 - Best for: atmospheric/world games (Runner space ports, Turned streets), one-hero-scene games. Weak for: games without a nice idle scene.
 
+## S8 — Diagonal Split *(own design, 2026-11-13; code `"split"`)*
+Mood: sporty, fast, bold. A slanted colour band across the top holds a huge title; the menu is a staircase of
+slanted (skewed) tab buttons on the right, each in a palette colour, the chosen one with a white border.
+- Band: top 28% (portrait) / 40% (landscape) of the screen, its lower edge sloping ±7% H, a light rule along it.
+- Rows right-aligned, each next row shifted left a little (follows the slant); utilities = small tiles bottom-left.
+- Best for: sports/racing/versus games (Reversi, Hearts). Weak for: soft/zen games.
+
+## S9 — Arcade Marquee *(own design; `"marquee"`)*
+Mood: fairground, neon, arcade cabinet. The title sits inside a sign framed by chasing light bulbs.
+- Sign: centred, ≈17% H (portrait) / 24% (landscape). Buttons: neon pill outlines (filled when chosen), 1 or 2
+  columns. Utilities: round glowing tokens in a centred bottom row. Art under the buttons if room.
+- Best for: dice, casino-free arcade, party games (Generala, Memory Lights).
+
+## S10 — Bento Grid *(own design; `"bento"`)*
+Mood: modern, tidy, app-like. Coloured rounded tiles of different sizes: the first action is a big full-width
+tile, the rest two per row, the utilities a row of small square tiles at the bottom; the game art fills any gap.
+- Landscape: title + art left, the grid in the right half.
+- Best for: puzzle and word games with 2-5 modes (Mines, Word Ladder).
+
+## S11 — Sticker Board *(own design; `"stickers"`)*
+Mood: playful, crafty, kid-friendly. Thick white-outlined stickers stuck on a dotted board at slight angles
+(±4°), the title tilted too; utilities = round stickers.
+- Best for: casual, party, kids (Tic-Tac-Toe, Emoji Guess). Weak for: dark/serious tone.
+
 ---
 
 ## 1. Quick comparison

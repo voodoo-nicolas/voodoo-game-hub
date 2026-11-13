@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/simon/menu_styles.gd")
 const SimonEngine = preload("res://scripts/games/simon/simon_engine.gd")
 const HomeKit = preload("res://scripts/games/simon/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -324,6 +326,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/simon/simon_help.gd").TITLE
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee, own title font + colours.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/simon/title.ttf",
+		"title_colors": [Color("ff3b3b"), Color("3bff6b"), Color("3b8bff"), Color("ffe03b")],
+		"landing_colors": [Color("05050f"), Color("15153a")],
 		"retro": true,
 		"help": preload("res://scripts/games/simon/simon_help.gd"),
 		"info": info,

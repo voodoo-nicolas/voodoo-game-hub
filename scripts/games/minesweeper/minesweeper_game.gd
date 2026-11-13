@@ -4,6 +4,8 @@ extends Control
 ## instead (right-click also flags, for desktop). Tapping a revealed number
 ## whose flags are all placed digs its remaining neighbors.
 
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/minesweeper/menu_styles.gd")
 const MinesweeperEngine = preload("res://scripts/games/minesweeper/minesweeper_engine.gd")
 const HomeKit = preload("res://scripts/games/minesweeper/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -380,6 +382,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/minesweeper/minesweeper_hel
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid, own title font + colours.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/minesweeper/title.ttf",
+		"title_colors": [Color("ff5a3c"), Color("3cb4ff"), Color("ffd23c"), Color("6ae36a")],
+		"landing_colors": [Color("0a0f18"), Color("1c2a3e")],
+		"menu_font": true,
 		"help": preload("res://scripts/games/minesweeper/minesweeper_help.gd"),
 		"info": info,
 		"accent": HomeKit.PINK,
