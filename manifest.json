@@ -261,6 +261,6 @@
     "bug_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bug_chain.pck", "scene": "res://scenes/games/bug_chain/bug_chain.tscn"},
     "rectangles": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rectangles.pck", "scene": "res://scenes/games/rectangles/rectangles.tscn"},
     "tarot": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tarot.pck", "scene": "res://scenes/games/tarot/tarot.tscn"},
-    "bridge_master": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bridge_master.pck", "scene": "res://scenes/games/bridge_master/bridge_master.tscn"}
+    "bridge_master": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bridge_master.pck", "scene": "res://scenes/games/bridge_master/bridge_master.tscn"}
   }
 }
