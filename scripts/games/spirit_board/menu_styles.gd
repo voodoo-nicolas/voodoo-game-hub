@@ -801,7 +801,7 @@ class MenuLanding extends Control:
 		caption.position = Vector2(pad, H - pad - s - 26.0)
 		caption.size = Vector2(W * 0.5, 22.0)
 		if wide:
-			_put_logo(Rect2(W * 0.5, H * 0.12, W * 0.5, H * 1.0))
+			_put_logo(Rect2(W * 0.5, H * 0.14, W * 0.46, H * 0.86))
 		else:
 			_put_logo(Rect2(W * 0.05, end + 4.0, W * 0.9, H - end - s - pad * 2.0))
 

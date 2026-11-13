@@ -4,6 +4,8 @@ extends Control
 ## of tiles snakes across the table from the first tile outwards; your hand
 ## sits along the bottom.
 
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/dominoes/menu_styles.gd")
 const DomEngine = preload("res://scripts/games/dominoes/dominoes_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -156,6 +158,12 @@ func _build_ui() -> void:
 		modes.append({"text": tr("vs %d") % n + " 🤖", "sub": tr("1 computer") if n == 1 else tr("%d computers") % n, "row": "cpu",
 			"color": [HomeKit.CYAN, HomeKit.PURPLE, HomeKit.PINK][n - 1], "action": _new_game.bind(n + 1)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument, own title font + colours.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/dominoes/title.ttf",
+		"title_colors": [Color("fff4e0"), Color("ff4f4f"), Color("ffd35a")],
+		"landing_colors": [Color("08080c"), Color("24203a")],
 		"help": HELP,
 		"info": info,
 		"accent": RIM,

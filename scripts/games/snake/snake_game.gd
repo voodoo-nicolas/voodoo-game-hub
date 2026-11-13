@@ -3,6 +3,8 @@ extends Control
 ## Snake -- swipe anywhere to steer. Solo, 2 players on one phone (each
 ## swipes on their own half), vs the computer, or online.
 
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/snake/menu_styles.gd")
 const SnakeEngine = preload("res://scripts/games/snake/snake_engine.gd")
 const HomeKit = preload("res://scripts/games/snake/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -757,6 +759,12 @@ func _resume_text() -> String:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema, own title font + colours.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/snake/title.ttf",
+		"title_colors": [Color("8cff3a"), Color("ff3ec8"), Color("3ee0ff")],
+		"landing_colors": [Color("020806"), Color("0a2416")],
 		"retro": true,
 		"help": preload("res://scripts/games/snake/snake_help.gd"),
 		"info": info,

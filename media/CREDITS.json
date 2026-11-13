@@ -6959,6 +6959,86 @@
    "proof": "media/licenses/fonts/bangers-OFL.txt",
    "url": "https://github.com/google/fonts/tree/main/ofl/bangers",
    "date": "2026-11-13"
+  },
+  {
+   "file": "games/snake/title.ttf",
+   "what": "Title font of the snake Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Audiowide",
+   "author": "Astigmatic",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/audiowide-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/audiowide",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/g2048/title.ttf",
+   "what": "Title font of the g2048 Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Rubik Mono One",
+   "author": "Hubert and Fischer",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/rubikmonoone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/rubikmonoone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/checkers/title.ttf",
+   "what": "Title font of the checkers Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Russo One",
+   "author": "Jovanny Lemonad",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/russoone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/russoone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/word_search/title.ttf",
+   "what": "Title font of the word_search Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Chewy",
+   "author": "Sideshow",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/chewy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/chewy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/dominoes/title.ttf",
+   "what": "Title font of the dominoes Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bowlby One SC",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bowlbyonesc-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bowlbyonesc",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/liars_dice/title.ttf",
+   "what": "Title font of the liars_dice Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Rye",
+   "author": "Nicole Fally",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/rye-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/rye",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/trivia/title.ttf",
+   "what": "Title font of the trivia Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Titan One",
+   "author": "Rodrigo Fuenzalida",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/titanone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/titanone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/crossword/title.ttf",
+   "what": "Title font of the crossword Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Permanent Marker",
+   "author": "Font Diner",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/permanentmarker-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/permanentmarker",
+   "date": "2026-11-13"
   }
  ]
 }

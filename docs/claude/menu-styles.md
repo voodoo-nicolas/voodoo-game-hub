@@ -25,6 +25,14 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | moon_lander | monument (S4) | Black Ops One |
 | hangman | monument (S4) | Cinzel Decorative Black |
 | rock_blaster | cinema (S7) | Press Start 2P |
+| snake | cinema (S7) | Audiowide |
+| g2048 | ring (S2) | Rubik Mono One |
+| checkers | rail (S3) | Russo One |
+| crossword | rail (S3) | Permanent Marker |
+| word_search | slabs (S6) | Chewy |
+| trivia | slabs (S6) | Titan One |
+| dominoes | monument (S4) | Bowlby One SC |
+| liars_dice | ghost (S1) | Rye |
 
 Checked by screenshot (tools/shot.gd) at 405x720 and 960x540, Spanish, text size 1.0. NOT checked: text size 1.4, a
-real phone, packs not bumped/published.
+real phone. First 8 published 2026-11-13.

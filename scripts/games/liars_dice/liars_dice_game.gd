@@ -4,6 +4,8 @@ extends Control
 ## Raise the bid or call "Liar!". In pass-and-play only the player whose turn
 ## it is sees their own dice; a cover screen hides the table between turns.
 
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/liars_dice/menu_styles.gd")
 const LDEngine = preload("res://scripts/games/liars_dice/liars_dice_engine.gd")
 const HomeKit = preload("res://scripts/games/liars_dice/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -441,6 +443,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/liars_dice/liars_dice_help.
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost, own title font + colours.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/liars_dice/title.ttf",
+		"title_colors": [Color("ffcf6b"), Color("ff7a3a"), Color("f5e6c8")],
+		"landing_colors": [Color("060a0c"), Color("1a2a30")],
 		"help": preload("res://scripts/games/liars_dice/liars_dice_help.gd"),
 		"info": info,
 		"accent": HomeKit.PURPLE,

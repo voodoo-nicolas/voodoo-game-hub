@@ -3,6 +3,8 @@ extends Control
 ## Crossword -- tap a square to pick a word (tap again to switch between
 ## across and down), then type with the keyboard below.
 
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/crossword/menu_styles.gd")
 const CWEngine = preload("res://scripts/games/crossword/crossword_engine.gd")
 const HomeKit = preload("res://scripts/games/crossword/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -364,6 +366,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/crossword/crossword_help.gd
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List, own title font + colours.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/crossword/title.ttf",
+		"title_colors": [Color("f5f5f5"), Color("3ee0ff"), Color("ffd23f")],
+		"landing_colors": [Color("050608"), Color("1a1e26")],
 		"help": preload("res://scripts/games/crossword/crossword_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

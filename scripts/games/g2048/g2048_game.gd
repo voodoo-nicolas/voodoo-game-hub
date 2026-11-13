@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/g2048/menu_styles.gd")
 const G2048Engine = preload("res://scripts/games/g2048/g2048_engine.gd")
 const HomeKit = preload("res://scripts/games/g2048/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -464,6 +466,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/g2048/g2048_help.gd").TITLE
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring, own title font + colours.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/g2048/title.ttf",
+		"title_colors": [Color("ffb347"), Color("ff6b5a"), Color("ffe36b")],
+		"landing_colors": [Color("1a0f05"), Color("4a2a10")],
 		"help": preload("res://scripts/games/g2048/g2048_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

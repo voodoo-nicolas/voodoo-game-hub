@@ -2,6 +2,8 @@ extends Control
 
 ## Word Search -- drag from the first letter of a word to its last.
 
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/word_search/menu_styles.gd")
 const WSEngine = preload("res://scripts/games/word_search/word_search_engine.gd")
 const HomeKit = preload("res://scripts/games/word_search/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -292,6 +294,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/word_search/word_search_hel
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs, own title font + colours.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/word_search/title.ttf",
+		"title_colors": [Color("ffd23f"), Color("ff6fae"), Color("5ee6ff"), Color("9dff5a")],
+		"landing_colors": [Color("0a2a4a"), Color("1f6aa0")],
+		"menu_font": true,
 		"help": preload("res://scripts/games/word_search/word_search_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

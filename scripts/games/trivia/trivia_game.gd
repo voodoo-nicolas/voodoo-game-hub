@@ -2,6 +2,8 @@ extends Control
 
 ## Trivia -- pick a topic, answer ten questions. Builds its whole UI in code.
 
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/trivia/menu_styles.gd")
 const TriviaEngine = preload("res://scripts/games/trivia/trivia_engine.gd")
 const HomeKit = preload("res://scripts/games/trivia/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -322,6 +324,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/trivia/trivia_help.gd").TIT
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs, own title font + colours.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/trivia/title.ttf",
+		"title_colors": [Color("ff5ac8"), Color("ffe14a"), Color("4affc3"), Color("6a8bff")],
+		"landing_colors": [Color("1a0636"), Color("3b0f6e")],
+		"menu_font": true,
 		"retro": true,
 		"help": preload("res://scripts/games/trivia/trivia_help.gd"),
 		"info": info,

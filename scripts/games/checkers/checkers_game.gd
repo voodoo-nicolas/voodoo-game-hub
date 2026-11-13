@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/checkers/menu_styles.gd")
 const CheckersEngine = preload("res://scripts/games/checkers/checkers_engine.gd")
 const HomeKit = preload("res://scripts/games/checkers/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -198,6 +200,12 @@ func _build_home() -> void:
 		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List, own title font + colours.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/checkers/title.ttf",
+		"title_colors": [Color("ff3b3b"), Color("f5f5f5")],
+		"landing_colors": [Color("120404"), Color("3a0a0a")],
 		"help": preload("res://scripts/games/checkers/checkers_help.gd"),
 		"info": info,
 		"accent": COLOR_P1,
