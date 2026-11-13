@@ -48,6 +48,7 @@ RULES = {
     "blackjack": (12, ["simulated_gambling"], "Casino card game with chips, no real money"),
     "video_poker": (12, ["simulated_gambling"], "Casino card game with chips, no real money"),
     "spirit_board": (12, ["horror"], "Ouija-style spirit board (occult theme): owner to confirm the rating"),
+    "tarot": (12, [], "Tarot readings for fun (occult theme): owner to confirm the rating"),
     "truth_or_dare": (7, [], "Party prompts and dares: mild; owner to confirm"),
 }
 

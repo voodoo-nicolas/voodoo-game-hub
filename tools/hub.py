@@ -572,6 +572,7 @@ NO_HELPS = {
     "truth_or_dare": "party game: nothing to help with",
     "fortune_ball": "party game: nothing to help with",
     "spirit_board": "party game: nothing to help with",
+    "tarot": "a reading, not a puzzle: nothing to help with",
     "fastest_finger": "head to head on one phone: a help favours one player",
     "who_am_i": "head to head on one phone: a help favours one player",
     "charades": "party game: passing a word is already free",
