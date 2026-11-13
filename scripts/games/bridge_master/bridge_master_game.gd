@@ -15,6 +15,8 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const SoundLib = preload("res://scripts/games/bridge_master/sound_lib.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
 const HomeKit = preload("res://scripts/games/bridge_master/home_kit.gd")
+## Landing layout: docs/MENU_STYLES.md S6 "Stone Slabs", told as wooden road planks (landing_slabs.gd).
+const LandingSlabs = preload("res://scripts/games/bridge_master/landing_slabs.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/bridge_master/bridge_master_help.gd")
@@ -90,6 +92,10 @@ var erase_btn: Button
 var undo_btn: Button
 var test_btn: Button
 var toast_label: Label
+var budget_bar: ProgressBar
+var fx_layer: Control
+var _broken_prev := PackedByteArray()
+var _splashed := false
 var toast_t := 0.0
 var end_card: Control
 var map_layer: Control
@@ -145,7 +151,8 @@ func _build_ui() -> void:
 	top.add_child(bar)
 	var pause_btn := Button.new()
 	pause_btn.text = "⏸"
-	pause_btn.custom_minimum_size = Vector2(72, 64)
+	pause_btn.custom_minimum_size = Vector2(68, 68)
+	LandingSlabs.dress(pause_btn, "bolt")
 	pause_btn.pressed.connect(_on_pause)
 	bar.add_child(pause_btn)
 	title_label = Label.new()
@@ -155,21 +162,41 @@ func _build_ui() -> void:
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.clip_text = true
 	bar.add_child(title_label)
+	var cost_box := VBoxContainer.new()
+	cost_box.add_theme_constant_override("separation", 2)
+	cost_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	cost_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(cost_box)
 	cost_label = Label.new()
 	cost_label.add_theme_font_size_override("font_size", 28)
 	cost_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	cost_label.add_theme_constant_override("outline_size", 8)
-	bar.add_child(cost_label)
+	cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	cost_box.add_child(cost_label)
+	# How much of the budget is spent: green, then amber, red past the budget.
+	budget_bar = ProgressBar.new()
+	budget_bar.show_percentage = false
+	budget_bar.custom_minimum_size = Vector2(200, 12)
+	budget_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var back := StyleBoxFlat.new()
+	back.bg_color = Color(0, 0, 0, 0.55)
+	back.set_corner_radius_all(6)
+	back.set_border_width_all(2)
+	back.border_color = Color(1, 1, 1, 0.35)
+	budget_bar.add_theme_stylebox_override("background", back)
+	cost_box.add_child(budget_bar)
 	skip_btn = Button.new()
-	skip_btn.custom_minimum_size = Vector2(96, 64)
+	skip_btn.custom_minimum_size = Vector2(76, 68)
 	skip_btn.pressed.connect(_on_skip)
 	bar.add_child(skip_btn)
 	clear_btn = Button.new()
 	clear_btn.text = "🧹"
 	clear_btn.tooltip_text = tr("Clear the bridge")
-	clear_btn.custom_minimum_size = Vector2(72, 64)
+	clear_btn.custom_minimum_size = Vector2(68, 68)
 	clear_btn.pressed.connect(_clear_design)
 	bar.add_child(clear_btn)
+	LandingSlabs.dress(skip_btn, "bolt")
+	LandingSlabs.dress(clear_btn, "bolt")
 
 	var bottom := MarginContainer.new()
 	bottom.add_theme_constant_override("margin_bottom", 14)
@@ -191,19 +218,31 @@ func _build_ui() -> void:
 	erase_btn.text = "🗑"
 	erase_btn.tooltip_text = tr("Remove pieces")
 	erase_btn.toggle_mode = true
-	erase_btn.custom_minimum_size = Vector2(72, 68)
+	erase_btn.custom_minimum_size = Vector2(68, 68)
 	erase_btn.toggled.connect(_on_erase_toggled)
 	bb.add_child(erase_btn)
 	undo_btn = Button.new()
 	undo_btn.text = "↶"
 	undo_btn.tooltip_text = tr("Undo")
-	undo_btn.custom_minimum_size = Vector2(72, 68)
+	undo_btn.custom_minimum_size = Vector2(68, 68)
 	undo_btn.pressed.connect(_undo)
 	bb.add_child(undo_btn)
-	test_btn = HomeKit.neon_button(tr("▶ Test"), HomeKit.LIME, 28, 68)
-	test_btn.custom_minimum_size.x = 170
+	test_btn = Button.new()
+	test_btn.text = tr("▶ Test")
+	test_btn.custom_minimum_size = Vector2(190, 68)
+	test_btn.add_theme_font_size_override("font_size", 30)
 	test_btn.pressed.connect(_on_test)
 	bb.add_child(test_btn)
+	LandingSlabs.dress(erase_btn, "bolt")
+	LandingSlabs.dress(undo_btn, "bolt")
+	LandingSlabs.dress(test_btn, "road_steel", Color("9cffb8"))
+
+	# Particles (sparks, splash, confetti) over the board, under the bars.
+	fx_layer = Control.new()
+	fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(fx_layer)
+	fx_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	move_child(fx_layer, board.get_index() + 1)
 
 	toast_label = Label.new()
 	toast_label.add_theme_font_size_override("font_size", 26)
@@ -226,6 +265,8 @@ func _build_ui() -> void:
 		"accent": ACCENT,
 		"subtitle": "Build it, then drive across. 300 levels.",
 		"art": ART_LANDING,
+		"landing": "slabs",
+		"landing_style": LandingSlabs,
 		"logo": _draw_home_logo,
 		"modes": [
 			{"text": "🌉 Campaign", "sub": "300 levels · build cheap for stars", "action": _start_campaign},
@@ -314,6 +355,13 @@ func _cost_label() -> void:
 	var cost := E.design_cost(design)
 	cost_label.text = "$%s / $%s" % [_money(cost), _money(int(lv.budget))]
 	cost_label.add_theme_color_override("font_color", Color("ff5252") if cost > int(lv.budget) else Color.WHITE)
+	var share := float(cost) / maxf(1.0, float(lv.budget))
+	budget_bar.max_value = 100.0
+	budget_bar.value = clampf(share * 100.0, 0.0, 100.0)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color("66bb6a") if share <= 0.75 else (Color("ffb300") if share <= 1.0 else Color("ff1744"))
+	fill.set_corner_radius_all(6)
+	budget_bar.add_theme_stylebox_override("fill", fill)
 
 static func _money(v: int) -> String:
 	var s := str(absi(v))
@@ -337,10 +385,25 @@ func _build_mat_bar() -> void:
 		b.custom_minimum_size = Vector2(0, 68)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_font_size_override("font_size", 19)
-		b.add_theme_color_override("font_color", MAT_NEON[k])
-		b.add_theme_color_override("font_pressed_color", Color.WHITE)
 		b.pressed.connect(_pick_mat.bind(k))
 		mat_bar.add_child(b)
+		LandingSlabs.dress(b, "road_wood")
+		for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+			var sb: StyleBox = b.get_theme_stylebox(st).duplicate()
+			sb.content_margin_left = 58
+			b.add_theme_stylebox_override(st, sb)
+		var sw := TextureRect.new()
+		sw.texture = _part(MAT_TEX[k])
+		sw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sw.stretch_mode = TextureRect.STRETCH_SCALE
+		sw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sw.custom_minimum_size = Vector2(44, 18)
+		b.add_child(sw)
+		sw.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+		sw.offset_left = 12
+		sw.offset_right = 56
+		sw.offset_top = -10 if k != "cable" else -4
+		sw.offset_bottom = 10 if k != "cable" else 4
 		mat_buttons[k] = b
 
 func _pick_mat(k: String) -> void:
@@ -514,6 +577,8 @@ func _run_test() -> void:
 	result_shown = false
 	drag_on = false
 	_broken_seen = 0
+	_broken_prev = PackedByteArray()
+	_splashed = false
 	engine.setup(lv, design, load_mult)
 	_set_editing(false)
 	if load_test:
@@ -543,7 +608,15 @@ func _process(delta: float) -> void:
 	var nb: int = engine.broken_count()
 	if nb > _broken_seen:
 		SoundLib.play(self, "impact/wood_heavy" if randf() < 0.5 else "impact/metal_heavy", -4.0)
+		for i in engine.broken.size():
+			if engine.broken[i] and (i >= _broken_prev.size() or not _broken_prev[i]):
+				var mid: Vector2 = (engine.pos[engine.ma[i]] + engine.pos[engine.mb[i]]) * 0.5
+				_burst(_to_screen(mid), "sparks")
+		_broken_prev = engine.broken.duplicate()
 	_broken_seen = nb
+	if engine.vstate == "fall" and not _splashed and engine.fall_pos.y < float(lv.water):
+		_splashed = true
+		_burst(_to_screen(Vector2(engine.fall_pos.x, float(lv.water))), "splash")
 	board.queue_redraw()
 	if result_shown:
 		return
@@ -564,6 +637,7 @@ func _on_crossed() -> void:
 		return
 	SoundLib.play(self, "reward/accomplished")
 	_sfx("win")
+	_burst(_to_screen(Vector2(float(lv.w) + 1.0, float(lv.dh) + 1.0)), "confetti")
 	var cost := E.design_cost(design)
 	var stars := _stars_for(cost)
 	var key := str(cur_level)
@@ -591,6 +665,61 @@ func _on_crossed() -> void:
 	var t2 := create_tween()
 	t2.tween_interval(1.2)
 	t2.tween_callback(_show_win_card.bind(stars, msg))
+
+## One-shot particles in screen space: "sparks" (a piece snaps), "splash" (into the river),
+## "confetti" (across!). Fewer with Reduce effects on.
+func _burst(at: Vector2, kind: String) -> void:
+	var p := CPUParticles2D.new()
+	p.one_shot = true
+	p.explosiveness = 0.9
+	p.position = at
+	var few := LandingSlabs.reduced()
+	match kind:
+		"sparks":
+			p.amount = 10 if few else 22
+			p.lifetime = 0.6
+			p.spread = 180.0
+			p.initial_velocity_min = 120.0
+			p.initial_velocity_max = 260.0
+			p.gravity = Vector2(0, 600)
+			p.scale_amount_min = 2.0
+			p.scale_amount_max = 4.0
+			p.color = Color("ffcc66")
+		"splash":
+			p.amount = 16 if few else 40
+			p.lifetime = 1.0
+			p.direction = Vector2(0, -1)
+			p.spread = 35.0
+			p.initial_velocity_min = 220.0
+			p.initial_velocity_max = 420.0
+			p.gravity = Vector2(0, 900)
+			p.scale_amount_min = 3.0
+			p.scale_amount_max = 7.0
+			p.color = Color(0.85, 0.95, 1.0, 0.9)
+		_:
+			p.amount = 30 if few else 90
+			p.lifetime = 2.2
+			p.direction = Vector2(-0.4, -1)
+			p.spread = 60.0
+			p.initial_velocity_min = 300.0
+			p.initial_velocity_max = 620.0
+			p.gravity = Vector2(0, 520)
+			p.scale_amount_min = 4.0
+			p.scale_amount_max = 8.0
+			var g := Gradient.new()
+			g.set_color(0, Color("ffd54f"))
+			g.set_color(1, Color("29b6f6"))
+			g.add_point(0.33, Color("ef5350"))
+			g.add_point(0.66, Color("66bb6a"))
+			p.color_initial_ramp = g
+	fx_layer.add_child(p)
+	p.emitting = true
+	var t := Timer.new()
+	t.wait_time = p.lifetime + 0.5
+	t.one_shot = true
+	t.autostart = true
+	t.timeout.connect(p.queue_free)
+	p.add_child(t)
 
 func _stars_for(cost: int) -> int:
 	var budget := int(lv.budget)
@@ -690,7 +819,9 @@ func _show_card(title_text: String, stars_text: String, msg: String, buttons: Ar
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var panel := PanelContainer.new()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.08, 0.05, 0.96) if skin == "classic" else Color(0.05, 0.07, 0.16, 0.96)
+	sb.bg_color = Color("3a2414").darkened(0.15) if skin == "classic" else Color(0.05, 0.07, 0.16, 0.96)
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 18
 	sb.set_corner_radius_all(18)
 	sb.set_border_width_all(3)
 	sb.border_color = ACCENT
@@ -727,13 +858,19 @@ func _show_card(title_text: String, stars_text: String, msg: String, buttons: Ar
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
 	box.add_child(grid)
+	var first := true
 	for spec in buttons:
 		var b := Button.new()
 		b.text = spec.text
-		b.custom_minimum_size = Vector2(255, 60)
+		b.custom_minimum_size = Vector2(255, 62)
 		b.add_theme_font_size_override("font_size", 23)
 		b.pressed.connect(_card_button.bind(spec.action))
 		grid.add_child(b)
+		if first:
+			LandingSlabs.dress(b, "road_steel", Color("9cffb8"))
+		else:
+			LandingSlabs.dress(b, "road_wood")
+		first = false
 
 func _card_button(action: Callable) -> void:
 	if action.is_valid():
@@ -1073,6 +1210,12 @@ func _draw_grid_and_bridge(classic: bool, w: float) -> void:
 			board.draw_string(font, b + Vector2(12, -14), len_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, col)
 	# Vehicle (parked on the left cliff while editing).
 	_draw_vehicle(classic)
+	# Shade under the top and bottom bars so their text reads over the scene.
+	var sz2 := board.size
+	var dark := Color(0.03, 0.02, 0.01, 0.55)
+	var clear := Color(0.03, 0.02, 0.01, 0.0)
+	board.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(sz2.x, 0), Vector2(sz2.x, TOP_BAR + 10), Vector2(0, TOP_BAR + 10)]), PackedColorArray([dark, dark, clear, clear]))
+	board.draw_polygon(PackedVector2Array([Vector2(0, sz2.y - BOTTOM_BAR - 20), Vector2(sz2.x, sz2.y - BOTTOM_BAR - 20), Vector2(sz2.x, sz2.y), Vector2(0, sz2.y)]), PackedColorArray([clear, clear, dark, dark]))
 
 func _draw_member(a: Vector2, b: Vector2, m: String, stress: float, classic: bool, alpha: float = 1.0) -> void:
 	var t := _part(MAT_TEX[m]) if classic else null
@@ -1210,6 +1353,8 @@ func _draw_home_logo(c: Control) -> void:
 ## colours (default); "voodoo" = the canyon dimmed to night, neon pieces.
 func _set_skin(name: String) -> void:
 	skin = "voodoo" if name == "voodoo" else "classic"
+	if home and home.get("_style") != null and home._style.has_method("set_voodoo"):
+		home._style.set_voodoo(skin == "voodoo")
 	if board:
 		board.queue_redraw()
 
