@@ -3,6 +3,8 @@ extends Control
 ## Blackjack table: build a bet from chip buttons, then Hit / Stand / Double.
 ## The chip stack persists between visits; leaving mid-hand refunds the bet.
 
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/blackjack/menu_styles.gd")
 const BlackjackEngine = preload("res://scripts/games/blackjack/blackjack_engine.gd")
 const HomeKit = preload("res://scripts/games/blackjack/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -465,6 +467,12 @@ func _value_text(hand: Array) -> String:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List, own title font + colours.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/blackjack/title.ttf",
+		"title_colors": [Color("ffcf4a"), Color("ff8a2b")],
+		"landing_colors": [Color("1a0404"), Color("4a1208")],
 		"help": preload("res://scripts/games/blackjack/blackjack_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

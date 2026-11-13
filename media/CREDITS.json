@@ -6879,6 +6879,86 @@
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture), from prompts written by Claude Code",
    "ai_plan": "owner-supplied",
    "processed_by": "painted checkerboard/sky cut out, trimmed, resized (Claude Code, tools/bridge_master_cutout.py)"
+  },
+  {
+   "file": "games/bubble_pop/title.ttf",
+   "what": "Title font of the bubble_pop Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Luckiest Guy",
+   "author": "Astigmatic",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/luckiestguy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/luckiestguy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/blackjack/title.ttf",
+   "what": "Title font of the blackjack Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bungee",
+   "author": "David Jonathan Ross",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bungee-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bungee",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/spirit_board/title.ttf",
+   "what": "Title font of the spirit_board Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Creepster",
+   "author": "Sideshow",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/creepster-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/creepster",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/mahjong/title.ttf",
+   "what": "Title font of the mahjong Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Lobster",
+   "author": "Pablo Impallari",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/lobster-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/lobster",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/moon_lander/title.ttf",
+   "what": "Title font of the moon_lander Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Black Ops One",
+   "author": "James Grieshaber, Eben Sorkin",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/blackopsone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/blackopsone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/rock_blaster/title.ttf",
+   "what": "Title font of the rock_blaster Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Press Start 2P",
+   "author": "CodeMan38",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/pressstart2p-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/pressstart2p",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/hangman/title.ttf",
+   "what": "Title font of the hangman Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Cinzel Decorative Black",
+   "author": "Natanael Gama",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/cinzeldecorative-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/cinzeldecorative",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/quick_math/title.ttf",
+   "what": "Title font of the quick_math Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bangers",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bangers-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bangers",
+   "date": "2026-11-13"
   }
  ]
 }

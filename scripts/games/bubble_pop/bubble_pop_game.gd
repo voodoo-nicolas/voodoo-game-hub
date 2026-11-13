@@ -4,6 +4,8 @@ extends Control
 ## colour touching pop; anything left hanging falls for bonus points. Miss
 ## too often and the whole ceiling drops a row; touch the line and it's over.
 
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/bubble_pop/menu_styles.gd")
 const BubbleEngine = preload("res://scripts/games/bubble_pop/bubble_pop_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -129,6 +131,13 @@ func _build_ui() -> void:
 		modes.append({"text": LEVELS[i], "sub": tr("%d colours") % LEVEL_COLORS[i], "row": "levels",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs, own title font + colours.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/bubble_pop/title.ttf",
+		"title_colors": [Color("ff4fa3"), Color("ffd23f"), Color("3ee0ff"), Color("8cff5a")],
+		"landing_colors": [Color("2a0b52"), Color("5b1a8a")],
+		"menu_font": true,
 		"retro": true,
 		"help": HELP,
 		"info": info,

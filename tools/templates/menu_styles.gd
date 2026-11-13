@@ -261,6 +261,7 @@ class Frame extends Control:
 ## ---------- the Landing ----------
 
 class MenuLanding extends Control:
+	const LOGO_BASE := Vector2(240, 170)
 	var kit
 	var style := ""
 	var entries: Array = []
@@ -357,8 +358,10 @@ class MenuLanding extends Control:
 		logo.draw.connect((cb as Callable).bind(logo))
 		logo.resized.connect(logo.queue_redraw)
 		add_child(logo)
-		if style == "rail" or style == "ring":
+		if style == "rail":
 			logo.modulate.a = 0.35
+		elif style == "ring":
+			logo.modulate.a = 0.14      # a watermark inside the ring, under the rows
 
 	func _title_text() -> String:
 		var raw: String = str(kit.tr(kit.cfg.get("title", kit.consts.get("TITLE", ""))))
@@ -389,7 +392,7 @@ class MenuLanding extends Control:
 		title.align = HORIZONTAL_ALIGNMENT_CENTER if style in ["ring", "slabs"] else HORIZONTAL_ALIGNMENT_LEFT
 		add_child(title)
 		if style == "rail":
-			sub_title = kit.label(str(kit.tr("Main menu")).to_upper(), 30, hi, false, false)
+			sub_title = kit.label(str(kit.tr("Menu")).to_upper(), 30, hi, false, false)
 			sub_title.add_theme_font_override("font", title.font)
 			sub_title.add_theme_color_override("font_outline_color", Color(hi, 0.45))
 			sub_title.add_theme_constant_override("outline_size", 10)
@@ -449,8 +452,10 @@ class MenuLanding extends Control:
 	func _make(e: Dictionary) -> void:
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
-		b.flat = true
+		b.flat = false               # flat buttons skip their stylebox; the boxes below are empty or drawn
 		b.clip_text = true
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+			b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
 		b.tooltip_text = str(e.nm)
 		b.pressed.connect(e.cb)
 		var icon: bool = (e.kind == "util" and _util_icons()) or (e.kind == "hub" and style in ["ghost", "monument"])
@@ -634,9 +639,14 @@ class MenuLanding extends Control:
 		if logo == null:
 			return
 		logo.visible = r.size.x > 40.0 and r.size.y > 40.0
-		logo.position = r.position
-		logo.size = r.size
-		logo.set_meta("y", r.position.y)
+		# A game's logo drawing caps its own size (it was made for a small slot), so it is drawn at a
+		# fixed size and scaled up to fill the rect.
+		var base := LOGO_BASE
+		var k := minf(r.size.x / base.x, r.size.y / base.y)
+		logo.size = base
+		logo.scale = Vector2(k, k)
+		logo.position = r.position + (r.size - base * k) * 0.5
+		logo.set_meta("y", logo.position.y)
 
 	func _of(kinds: Array) -> Array:
 		return entries.filter(func(e): return e.kind in kinds and e.shown)
@@ -780,8 +790,8 @@ class MenuLanding extends Control:
 		var bottom := _place_title(Rect2(pad, pad, tw, H * (0.34 if wide else 0.22)))
 		bottom = _place_tagline(pad + 4.0, bottom, tw, 18)
 		var s := clampf(minf(W, H) * 0.075, 48.0, 60.0)
-		var pitch := clampf(H * 0.065, 48.0, 64.0)
-		var fs := int(clampf(pitch * 0.42, 18.0, 26.0))
+		var pitch := clampf(H * 0.075, 52.0, 72.0)
+		var fs := int(clampf(pitch * 0.46, 22.0, 32.0))
 		var bw := minf(tw * 0.7, 340.0)
 		var cx := pad + tw * 0.5
 		var end := _rows(mains, cx - bw * 0.5, bottom + 14.0, bw, pitch, fs)
@@ -815,7 +825,8 @@ class MenuLanding extends Control:
 		var sh := clampf((avail - gap * float(n)) / float(n), 52.0, 96.0)
 		var base_w := minf(W * (0.4 if wide else 0.78), 460.0)
 		var fs := int(clampf(sh * 0.36, 18.0, 34.0))
-		var y := bottom + 16.0
+		var used := float(mini(n, mains.size())) * (sh + gap) - gap
+		var y := bottom + 16.0 + maxf(0.0, (avail - used) * 0.4)
 		var palette: Array = kit.cfg.get("title_colors", [hi])
 		for i in n:
 			if i >= mains.size():

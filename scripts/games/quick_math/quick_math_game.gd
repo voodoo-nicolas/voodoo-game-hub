@@ -2,6 +2,8 @@ extends Control
 
 ## Quick Math -- 60 seconds of multiple-choice arithmetic. Builds its whole UI in code.
 
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/quick_math/menu_styles.gd")
 const QuickMathEngine = preload("res://scripts/games/quick_math/quick_math_engine.gd")
 const HomeKit = preload("res://scripts/games/quick_math/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -316,6 +318,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/quick_math/quick_math_help.
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs, own title font + colours.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/quick_math/title.ttf",
+		"title_colors": [Color("3ee0ff"), Color("ffe14a"), Color("ff5ac8"), Color("7dff6a")],
+		"landing_colors": [Color("061a33"), Color("0f4a6e")],
+		"menu_font": true,
 		"retro": true,
 		"help": preload("res://scripts/games/quick_math/quick_math_help.gd"),
 		"info": info,

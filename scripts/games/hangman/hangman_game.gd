@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/hangman/menu_styles.gd")
 const HangmanEngine = preload("res://scripts/games/hangman/hangman_engine.gd")
 const HomeKit = preload("res://scripts/games/hangman/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -425,6 +427,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/hangman/hangman_help.gd").T
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument, own title font + colours.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/hangman/title.ttf",
+		"title_colors": [Color("e8e2d0"), Color("c8ff4a")],
+		"landing_colors": [Color("0a0b08"), Color("2b2e1e")],
 		"help": preload("res://scripts/games/hangman/hangman_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,

@@ -3,6 +3,8 @@ extends Control
 ## Mahjong Solitaire: clear the stacked tiles in matching pairs. Only free
 ## tiles (nothing on top, left or right side open) can be taken.
 
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/mahjong/menu_styles.gd")
 const MjEngine = preload("res://scripts/games/mahjong/mahjong_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -141,6 +143,12 @@ func _build_ui() -> void:
 		modes.append({"text": LEVELS[i], "sub": tr("%d tiles") % _count(i), "row": "levels",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring, own title font + colours.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/mahjong/title.ttf",
+		"title_colors": [Color("4fe3a1"), Color("ff5a4f"), Color("ffd35a")],
+		"landing_colors": [Color("021512"), Color("0d3b2e")],
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.LIME,

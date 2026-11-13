@@ -1,0 +1,30 @@
+# Menu styles (docs/MENU_STYLES.md, built 2026-11-13)
+
+`tools/templates/menu_styles.gd`: six Landing layouts from MENU_STYLES.md, self-contained (no fx_lib / landing_styles
+dependency). `hub.py sync` copies it into each game that names it (like home_kit.gd), so it is a **pack update only**.
+
+Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")`, then in `HomeKit.new({...})`:
+`"landing": "ghost|ring|rail|monument|slabs|cinema"`, `"landing_style": MenuStyles`,
+`"title_font": "res://games/<id>/title.ttf"`, `"title_colors": [...]`, `"landing_colors": [top, bottom]`, optional
+`"menu_font": true`, `"menu_color"`, `"landing_stars"`. The game's cfg `"logo"` drawing is the hero art (scaled up).
+
+- Title: one colour per letter, thick outline + shadow, gentle bob; biggest size that fits (1 or 2 lines). A translated
+  title with a letter the font lacks falls back to the theme font.
+- Same actions/order as the stack (Resume, Quick Play, ≤3 solo modes as rows else "Single player", Multiplayer, play/more,
+  ❓🏆🏅📊⚙, ← Hub). Rows ≥ 48 high. Motion off when `user://fx.json` reduce (web: always off).
+- Fonts: Google Fonts (OFL / Apache), one copy per game in `games/<id>/title.ttf`, credited in media/CREDITS.json,
+  licences in media/licenses/fonts/.
+
+| Game | Style | Font |
+|---|---|---|
+| bubble_pop | slabs (S6) | Luckiest Guy |
+| quick_math | slabs (S6) | Bangers |
+| blackjack | rail (S3) | Bungee |
+| spirit_board | ghost (S1) | Creepster |
+| mahjong | ring (S2) | Lobster |
+| moon_lander | monument (S4) | Black Ops One |
+| hangman | monument (S4) | Cinzel Decorative Black |
+| rock_blaster | cinema (S7) | Press Start 2P |
+
+Checked by screenshot (tools/shot.gd) at 405x720 and 960x540, Spanish, text size 1.0. NOT checked: text size 1.4, a
+real phone, packs not bumped/published.

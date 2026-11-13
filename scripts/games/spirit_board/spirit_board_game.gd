@@ -5,6 +5,8 @@ extends Control
 ## "Séance": everyone puts a finger on the planchette and moves it; resting
 ## on a letter writes it down. Nothing to save: each séance is fresh.
 
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/spirit_board/menu_styles.gd")
 const SBEngine = preload("res://scripts/games/spirit_board/spirit_board_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -178,6 +180,12 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/spirit_board/spirit_board_help.gd"))
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost, own title font + colours.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/spirit_board/title.ttf",
+		"title_colors": [Color("b892ff"), Color("7dffb0"), Color("e8d9ff")],
+		"landing_colors": [Color("05030c"), Color("23103a")],
 		"retro": true,
 		"help": preload("res://scripts/games/spirit_board/spirit_board_help.gd"),
 		"info": info,

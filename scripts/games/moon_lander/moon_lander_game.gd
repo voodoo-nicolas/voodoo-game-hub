@@ -3,6 +3,8 @@ extends Control
 ## Moon Lander: hold ⟲ / ⟳ to tilt and 🔥 to fire the engine. Land gently
 ## and upright on a pad.
 
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/moon_lander/menu_styles.gd")
 const MlEngine = preload("res://scripts/games/moon_lander/moon_lander_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -138,6 +140,12 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument, own title font + colours.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/moon_lander/title.ttf",
+		"title_colors": [Color("f2f4ff"), Color("ffb02e"), Color("c9d2ff")],
+		"landing_colors": [Color("020309"), Color("1b1d3a")],
 		"retro": true,
 		"help": HELP,
 		"info": info,

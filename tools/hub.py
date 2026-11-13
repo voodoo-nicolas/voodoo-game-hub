@@ -296,7 +296,9 @@ SPRITE_LIB = TEMPLATES / "sprite_lib.gd"
 # landing_styles.gd, which sync writes first.
 LANDING_STYLES = TEMPLATES / "landing_styles.gd"
 FX_LIB = TEMPLATES / "fx_lib.gd"
-KITS = (HOME_KIT, SOUND_LIB, SPRITE_LIB, LANDING_STYLES, FX_LIB)
+# The six MENU_STYLES.md layouts (docs/MENU_STYLES.md): self-contained, copied the same way.
+MENU_STYLES = TEMPLATES / "menu_styles.gd"
+KITS = (HOME_KIT, SOUND_LIB, SPRITE_LIB, LANDING_STYLES, FX_LIB, MENU_STYLES)
 
 
 def home_kit_users(ids: list[str], kit_file: Path = HOME_KIT) -> list[str]:
@@ -593,7 +595,7 @@ def lint_helps(m: dict) -> list[str]:
         if gid in NO_HELPS:
             continue
         text = "".join(f.read_text(encoding="utf-8") for f in (ROOT / "scripts/games" / gid).glob("*.gd")
-                       if f.name not in ("home_kit.gd", "sound_lib.gd", "sprite_lib.gd", "landing_styles.gd", "fx_lib.gd"))
+                       if f.name not in ("home_kit.gd", "sound_lib.gd", "sprite_lib.gd", "landing_styles.gd", "fx_lib.gd", "menu_styles.gd"))
         if '"helps":' not in text and "helps_left(" not in text:
             errors.append(f"{gid}: no helps (STANDARDS §17) -- add cfg \"helps\" or list it in NO_HELPS with the reason")
     return errors

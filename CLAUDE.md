@@ -21,6 +21,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
 - `docs/claude/` topic notes — read the one(s) for what you touch:
   - `build-ship.md`: architecture, hub.py, shipping steps, signing, local tool paths, rename safety
   - `landing-styles.md`: other Landing layouts (round floating "orbs", prototype on Tarot), `fx_lib.gd` smoke/glitter + Reduce effects; pack-only, no app release
+  - `menu-styles.md`: the six MENU_STYLES layouts (`menu_styles.gd`), title fonts, which game uses which
   - `landing-kit-skins.md`: Landing/Home kit, skins, Voodoo Mode, Options/Settings, text size, safe area, orientation, resume
   - `i18n-gameinfo-sfx.md`: es.json/i18n, GameInfo (How to Play, stats), Sfx, shared sound library (+ `sfx-library.md` catalog)
   - `music.md`: Music autoload, music library, Viral Music Drop

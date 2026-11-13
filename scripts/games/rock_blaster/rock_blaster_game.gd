@@ -3,6 +3,8 @@ extends Control
 ## Rock Blaster: tap anywhere to turn and shoot that way; hold to fly
 ## towards your finger (firing as you go). The field wraps at the edges.
 
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/rock_blaster/menu_styles.gd")
 const RbEngine = preload("res://scripts/games/rock_blaster/rock_blaster_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -111,6 +113,12 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema, own title font + colours.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/rock_blaster/title.ttf",
+		"title_colors": [Color("ff6a2b"), Color("ffe14a"), Color("ff2f6d")],
+		"landing_colors": [Color("02020a"), Color("150a2a")],
 		"retro": true,
 		"help": HELP,
 		"info": info,
