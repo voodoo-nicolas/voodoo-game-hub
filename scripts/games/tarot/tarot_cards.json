@@ -3,7 +3,8 @@
  "positions": {
   "one": [{"en": "Your card", "es": "Tu carta"}],
   "three": [{"en": "Past", "es": "Pasado"}, {"en": "Present", "es": "Presente"}, {"en": "Future", "es": "Futuro"}],
-  "five": [{"en": "You", "es": "Tú"}, {"en": "The challenge", "es": "El reto"}, {"en": "The past", "es": "El pasado"}, {"en": "The future", "es": "El futuro"}, {"en": "The outcome", "es": "El desenlace"}]
+  "five": [{"en": "You", "es": "Tú"}, {"en": "The challenge", "es": "El reto"}, {"en": "The past", "es": "El pasado"}, {"en": "The future", "es": "El futuro"}, {"en": "The outcome", "es": "El desenlace"}],
+  "celtic": [{"en": "1. The heart of it", "es": "1. El corazón del asunto"}, {"en": "2. What crosses you", "es": "2. Lo que se cruza"}, {"en": "3. The foundation", "es": "3. El cimiento"}, {"en": "4. The recent past", "es": "4. El pasado reciente"}, {"en": "5. The crown", "es": "5. La corona"}, {"en": "6. The near future", "es": "6. El futuro cercano"}, {"en": "7. You", "es": "7. Tú"}, {"en": "8. Your surroundings", "es": "8. Tu entorno"}, {"en": "9. Hopes and fears", "es": "9. Esperanzas y miedos"}, {"en": "10. The outcome", "es": "10. El desenlace"}]
  },
  "summary": {
   "bright": {"en": ["The cards glow: the road ahead is kind. Say yes to what you have been putting off.", "A warm reading. Good things are closer than they look."], "es": ["Las cartas brillan: el camino que sigue es amable. Di que sí a lo que has estado posponiendo.", "Una lectura cálida. Lo bueno está más cerca de lo que parece."]},

@@ -11297,7 +11297,6 @@
  "Cards discovered: %d of 22": "Cartas descubiertas: %d de 22",
  "Cards discovered": "Cartas descubiertas",
  "Sit with the fortune teller, draw cards from the Major Arcana and read what they say. Collect all 22.": "Siéntate con la adivina, saca cartas de los Arcanos Mayores y lee lo que dicen. Reúne las 22.",
- "Pick a reading: the Card of the Day (the same card all day), a Three-Card spread (past, present, future) or a Five-Card spread (you, the challenge, the past, the future, the outcome).": "Elige una lectura: la Carta del día (la misma carta todo el día), una tirada de Tres Cartas (pasado, presente, futuro) o una de Cinco Cartas (tú, el reto, el pasado, el futuro, el desenlace).",
  "Think of a question, then tap each face-down card to turn it over.": "Piensa en una pregunta y toca cada carta boca abajo para voltearla.",
  "Tap a card to read what it means. A card can fall upright or reversed, and each way says something different.": "Toca una carta para leer su significado. Una carta puede salir derecha o invertida, y cada forma dice algo distinto.",
  "After the last card turns, the fortune teller sums up your reading.": "Cuando se voltea la última carta, la adivina resume tu lectura.",
@@ -11305,11 +11304,15 @@
  "Come back each day for your Card of the Day to build a streak.": "Vuelve cada día por tu Carta del día para armar una racha.",
  "⏸ pauses. A reading is quick, so there is nothing to save halfway: only your collection is kept.": "⏸ pausa. Una lectura es rápida, así que no hay nada que guardar a la mitad: solo se guarda tu colección.",
  "The Card of the Day is the same for everyone on the same day, and it doesn't change if you reopen the game.": "La Carta del día es la misma para todos el mismo día, y no cambia si vuelves a abrir el juego.",
- "Three- and Five-Card readings are fresh every time, so ask as many questions as you like.": "Las lecturas de Tres y Cinco Cartas son nuevas cada vez, así que haz tantas preguntas como quieras.",
  "A hard card is a warning, not a sentence. Every card has something useful to say.": "Una carta dura es una advertencia, no una condena. Todas las cartas tienen algo útil que decir.",
  "This is entertainment: tarot can't predict the future, so don't make big decisions with it.": "Esto es entretenimiento: el tarot no puede predecir el futuro, así que no tomes grandes decisiones con él.",
  "A tarot deck has 78 cards: 22 Major Arcana and 56 Minor Arcana.": "Una baraja de tarot tiene 78 cartas: 22 Arcanos Mayores y 56 Arcanos Menores.",
  "Tarot cards first appeared in northern Italy in the 1400s as a card game called tarocchi.": "Las cartas de tarot aparecieron por primera vez en el norte de Italia en el siglo XV como un juego de cartas llamado tarocchi.",
  "The Major Arcana are numbered 0 to 21, and The Fool is number 0.": "Los Arcanos Mayores están numerados del 0 al 21, y El Loco es el número 0.",
- "Fortune telling with tarot became popular in the 1700s, long after the cards were invented.": "Adivinar el futuro con el tarot se hizo popular en el siglo XVIII, mucho después de que se inventaran las cartas."
+ "Fortune telling with tarot became popular in the 1700s, long after the cards were invented.": "Adivinar el futuro con el tarot se hizo popular en el siglo XVIII, mucho después de que se inventaran las cartas.",
+ "Pick a reading: the Card of the Day (the same card all day), Three cards (past, present, future), Five cards (you, the challenge, the past, the future, the outcome) or the Celtic Cross (ten cards, the full story).": "Elige una lectura: la Carta del día (la misma carta todo el día), Tres cartas (pasado, presente, futuro), Cinco cartas (tú, el reto, el pasado, el futuro, el desenlace) o la Cruz Celta (diez cartas, la historia completa).",
+ "Every reading except the Card of the Day is fresh each time, so ask as many questions as you like.": "Todas las lecturas, salvo la Carta del día, son nuevas cada vez, así que haz tantas preguntas como quieras.",
+ "🧿  Celtic Cross": "🧿  Cruz Celta",
+ "Ten cards: the full story": "Diez cartas: la historia completa",
+ "Celtic Cross reading": "Lectura de la Cruz Celta"
 }

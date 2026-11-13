@@ -6,7 +6,7 @@ const ID := "tarot"
 const TITLE := "Tarot"
 const GOAL := "Sit with the fortune teller, draw cards from the Major Arcana and read what they say. Collect all 22."
 const HOW := [
-	"Pick a reading: the Card of the Day (the same card all day), a Three-Card spread (past, present, future) or a Five-Card spread (you, the challenge, the past, the future, the outcome).",
+	"Pick a reading: the Card of the Day (the same card all day), Three cards (past, present, future), Five cards (you, the challenge, the past, the future, the outcome) or the Celtic Cross (ten cards, the full story).",
 	"Think of a question, then tap each face-down card to turn it over.",
 	"Tap a card to read what it means. A card can fall upright or reversed, and each way says something different.",
 	"After the last card turns, the fortune teller sums up your reading.",
@@ -16,7 +16,7 @@ const HOW := [
 ]
 const TIPS := [
 	"The Card of the Day is the same for everyone on the same day, and it doesn't change if you reopen the game.",
-	"Three- and Five-Card readings are fresh every time, so ask as many questions as you like.",
+	"Every reading except the Card of the Day is fresh each time, so ask as many questions as you like.",
 	"A hard card is a warning, not a sentence. Every card has something useful to say.",
 	"This is entertainment: tarot can't predict the future, so don't make big decisions with it.",
 ]

@@ -163,6 +163,7 @@ func _build_ui() -> void:
 			{"text": "🌙  Card of the Day", "sub": "One card, the same all day", "action": _start.bind("daily")},
 			{"text": "🔮  Three cards", "sub": "Past, present and future", "action": _start.bind("three")},
 			{"text": "⭐  Five cards", "sub": "You, the challenge, the past, the future and the outcome", "action": _start.bind("five")},
+			{"text": "🧿  Celtic Cross", "sub": "Ten cards: the full story", "action": _start.bind("celtic")},
 		],
 		"restart": _restart,
 		"board": "Readings given",
@@ -245,8 +246,9 @@ func _on_board_input(ev: InputEvent) -> void:
 		return
 	if deal < 1.0:
 		return
-	for i in _rects.size():
-		if _rects[i].grow(6).has_point(ev.position):
+	for k in _rects.size():
+		var i: int = _rects.size() - 1 - k   # the card drawn last is on top
+		if _rects[i].grow(6 if spread != "celtic" else 0).has_point(ev.position):
 			_tap_card(i)
 			return
 
@@ -314,6 +316,8 @@ func _head_text() -> String:
 			return tr("Your Card of the Day")
 		"three":
 			return tr("Three-card reading")
+		"celtic":
+			return tr("Celtic Cross reading")
 		_:
 			return tr("Five-card reading")
 
@@ -354,6 +358,21 @@ func _layout() -> Array:
 		var y0 := (sz.y - LABEL_H - h) / 2.0
 		for i in 3:
 			out.append(Rect2(Vector2(x0 + i * (w + g), y0), Vector2(w, h)))
+	elif n == 10:
+		# Celtic Cross: the cross (5 columns x 3 rows, left) and the staff of
+		# four (right, 2 x 2). No labels under the cards: a number sits on each.
+		var w := minf((sz.x - 2 * m - 4 * g) / 5.0, (sz.y - 2 * m - 2 * g) / 3.0 * ASPECT)
+		var h := w / ASPECT
+		var x0 := (sz.x - (5 * w + 4 * g)) / 2.0
+		var y0 := (sz.y - (3 * h + 2 * g)) / 2.0
+		var cx := x0 + w + g
+		var cy := y0 + h + g
+		var slots := [Vector2(cx, cy), Vector2(cx + w * 0.17, cy + h * 0.1),
+			Vector2(cx, cy + h + g), Vector2(x0, cy), Vector2(cx, y0), Vector2(cx + w + g, cy),
+			Vector2(x0 + 3 * (w + g), cy + (h + g) / 2.0), Vector2(x0 + 4 * (w + g), cy + (h + g) / 2.0),
+			Vector2(x0 + 3 * (w + g), cy - (h + g) / 2.0), Vector2(x0 + 4 * (w + g), cy - (h + g) / 2.0)]
+		for i in 10:
+			out.append(Rect2(slots[i], Vector2(w, h)))
 	else:
 		# 3 + 2: Past, You, Future on top; Challenge and Outcome under.
 		var hmax := (sz.y - 2 * m - 2 * LABEL_H - g) / 2.0
@@ -381,7 +400,11 @@ func _draw_board() -> void:
 		_draw_card(i, ctr, r.size, flip[i])
 		if t >= 1.0:
 			var pos: String = engine.position_name(spread, i)
-			if pos != "":
+			if spread == "celtic":
+				# A number on the card's corner; the name shows when it is tapped.
+				board.draw_circle(r.position + Vector2(13, 13), 13, Color(0, 0, 0, 0.7))
+				_text(r.position + Vector2(13, 13), str(i + 1), 17, Color.WHITE)
+			elif pos != "":
 				_text(Vector2(r.get_center().x, r.end.y + LABEL_H * 0.55), pos, 22, HomeKit.DIM)
 		if sel == i and t >= 1.0:
 			board.draw_rect(r.grow(5), Color(SKINS[skin]["accent"], 0.9), false, 3.0)

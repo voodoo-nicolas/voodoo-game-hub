@@ -8,7 +8,7 @@ extends RefCounted
 
 const DATA_PATH := "res://scripts/games/tarot/tarot_cards.json"
 const PROGRESS_PATH := "user://tarot_progress.json"
-const SPREADS := {"one": 1, "three": 3, "five": 5}
+const SPREADS := {"one": 1, "three": 3, "five": 5, "celtic": 10}
 
 var data: Dictionary = {}
 var cards: Array = []
