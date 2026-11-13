@@ -136,7 +136,8 @@
       {"id": "spirit_board", "tile_art": "res://media/hub/game_art/spirit_board/tile.webp", "hero_art": "res://media/hub/game_art/spirit_board/hero.webp", "original": true, "title": "Spirit Board", "icon": "🔮", "title_es": "Tablero de espíritus", "modes": "party", "board": "Questions asked", "skins": "classic,voodoo", "content": {"min_age": 12, "descriptors": ["horror"], "notes": "Ouija-style spirit board (occult theme): owner to confirm the rating"}},
       {"id": "fastest_finger", "quick": true, "title": "Fastest Finger", "icon": "👆", "title_es": "Dedo veloz", "modes": "local,party", "board": "none", "skins": "classic,voodoo", "learn": ["math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "emoji_guess", "quick": true, "title": "Emoji Guess", "icon": "🤔", "title_es": "Adivina el emoji", "modes": "local,party", "skins": "classic,voodoo", "learn": ["vocab"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
-      {"id": "who_am_i", "quick": true, "title": "Who Am I?", "icon": "🕵️", "title_es": "¿Quién soy?", "modes": "local,party", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
+      {"id": "who_am_i", "quick": true, "title": "Who Am I?", "icon": "🕵️", "title_es": "¿Quién soy?", "modes": "local,party", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
+      {"id": "tarot", "tile_art": "res://media/hub/game_art/tarot/tile.webp", "hero_art": "res://media/hub/game_art/tarot/hero.webp", "original": true, "title": "Tarot of Destiny", "icon": "🃏", "title_es": "Tarot del destino", "board": "Readings given", "skins": "classic,voodoo", "learn": ["art"], "content": {"min_age": 12, "descriptors": [], "notes": "Tarot readings for fun (occult theme): owner to confirm the rating"}}
     ]}
   ],
   "games": {
@@ -259,6 +260,7 @@
     "wilson": {"version": 14, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wilson.pck", "scene": "res://scenes/games/wilson/wilson.tscn"},
     "bug_chain": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bug_chain.pck", "scene": "res://scenes/games/bug_chain/bug_chain.tscn"},
     "rectangles": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rectangles.pck", "scene": "res://scenes/games/rectangles/rectangles.tscn"},
+    "tarot": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tarot.pck", "scene": "res://scenes/games/tarot/tarot.tscn"},
     "bridge_master": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bridge_master.pck", "scene": "res://scenes/games/bridge_master/bridge_master.tscn"}
   }
 }
