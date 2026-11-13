@@ -3,6 +3,8 @@ extends Control
 ## Binary Grid: tap a cell to cycle empty -> cyan -> pink. No three of a
 ## colour in a row; every row and column half and half.
 
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/binary_grid/menu_styles.gd")
 const BgEngine = preload("res://scripts/games/binary_grid/binary_grid_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -133,6 +135,12 @@ func _build_ui() -> void:
 		modes.append({"text": LEVELS[i], "sub": "%d × %d" % [SIZES[i], SIZES[i]], "row": "levels",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost, own title font + colours.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/binary_grid/title.ttf",
+		"title_colors": [Color("3ee0ff"), Color("f5f5f5")],
+		"landing_colors": [Color("02040a"), Color("0a1a30")],
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

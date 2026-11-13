@@ -4,6 +4,8 @@ extends Control
 ## (three levels, you are Red), two players on one phone, or online (host =
 ## Red, moves first; guest = Blue).
 
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/hex/menu_styles.gd")
 const HexEngine = preload("res://scripts/games/hex/hex_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -139,6 +141,12 @@ func _build_ui() -> void:
 		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring, own title font + colours.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/hex/title.ttf",
+		"title_colors": [Color("ff5a3c"), Color("3cb4ff"), Color("ffd23c")],
+		"landing_colors": [Color("0a0814"), Color("241c3e")],
 		"help": HELP,
 		"info": info,
 		"accent": COLORS[1],

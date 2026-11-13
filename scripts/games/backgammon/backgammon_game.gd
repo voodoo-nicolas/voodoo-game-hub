@@ -7,6 +7,8 @@ extends Control
 ## Online, the host plays White and the guest Black; every roll and checker
 ## move sends the whole position, so the other phone watches it live.
 
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/backgammon/menu_styles.gd")
 const BgEngine = preload("res://scripts/games/backgammon/backgammon_engine.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const SAVE_PATH := "user://backgammon_save.json"
@@ -594,6 +596,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/backgammon/backgammon_help.
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List, own title font + colours.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/backgammon/title.ttf",
+		"title_colors": [Color("e8d2a6"), Color("c0392b")],
+		"landing_colors": [Color("0e0805"), Color("3a1e10")],
 		"help": preload("res://scripts/games/backgammon/backgammon_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

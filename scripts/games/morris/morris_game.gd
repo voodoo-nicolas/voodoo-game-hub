@@ -3,6 +3,8 @@ extends Control
 ## Nine Men's Morris vs the computer, a friend on the same phone, or online
 ## (host = White, moves first; guest = Black).
 
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/morris/menu_styles.gd")
 const MorrisEngine = preload("res://scripts/games/morris/morris_engine.gd")
 const HomeKit = preload("res://scripts/games/morris/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -392,6 +394,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/morris/morris_help.gd").TIT
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring, own title font + colours.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/morris/title.ttf",
+		"title_colors": [Color("e8d2a6"), Color("ffcf6b")],
+		"landing_colors": [Color("06090c"), Color("1e2a30")],
 		"help": preload("res://scripts/games/morris/morris_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

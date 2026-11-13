@@ -2,6 +2,8 @@ extends Control
 
 ## Tower of Hanoi -- tap a peg to lift its top disc, tap another to drop it.
 
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/hanoi/menu_styles.gd")
 const HanoiEngine = preload("res://scripts/games/hanoi/hanoi_engine.gd")
 const HomeKit = preload("res://scripts/games/hanoi/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -261,6 +263,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/hanoi/hanoi_help.gd").TITLE
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument, own title font + colours.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/hanoi/title.ttf",
+		"title_colors": [Color("ffcf3c"), Color("ff6b5a"), Color("3cb4ff")],
+		"landing_colors": [Color("060812"), Color("1c2240")],
 		"help": preload("res://scripts/games/hanoi/hanoi_help.gd"),
 		"info": info,
 		"accent": HomeKit.PURPLE,

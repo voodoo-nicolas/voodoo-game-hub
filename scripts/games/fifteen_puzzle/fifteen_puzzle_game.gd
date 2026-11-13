@@ -3,6 +3,8 @@ extends Control
 ## Sliding 15-puzzle: put 1-15 back in order. Tap a tile in line with the gap
 ## to slide it (and everything between) into the gap.
 
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/fifteen_puzzle/menu_styles.gd")
 const FifteenPuzzleEngine = preload("res://scripts/games/fifteen_puzzle/fifteen_puzzle_engine.gd")
 const HomeKit = preload("res://scripts/games/fifteen_puzzle/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -272,6 +274,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/fifteen_puzzle/fifteen_puzz
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split, own title font + colours.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/fifteen_puzzle/title.ttf",
+		"title_colors": [Color("3cb4ff"), Color("ffffff"), Color("ffcf3c")],
+		"landing_colors": [Color("040a14"), Color("10284a")],
 		"help": preload("res://scripts/games/fifteen_puzzle/fifteen_puzzle_help.gd"),
 		"info": info,
 		"accent": HomeKit.BLUE,

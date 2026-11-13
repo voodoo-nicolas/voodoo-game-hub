@@ -3,6 +3,8 @@ extends Control
 ## Calcudoku -- tap a cell, then a number. Rows and columns never repeat; each
 ## outlined cage must make its target with the operation shown.
 
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/calcudoku/menu_styles.gd")
 const CalcEngine = preload("res://scripts/games/calcudoku/calcudoku_engine.gd")
 const HomeKit = preload("res://scripts/games/calcudoku/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -316,6 +318,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/calcudoku/calcudoku_help.gd
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List, own title font + colours.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/calcudoku/title.ttf",
+		"title_colors": [Color("4affc3"), Color("ffffff")],
+		"landing_colors": [Color("020e0a"), Color("0a3226")],
 		"help": preload("res://scripts/games/calcudoku/calcudoku_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

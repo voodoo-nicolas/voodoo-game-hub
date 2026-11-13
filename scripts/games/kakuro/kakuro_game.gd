@@ -3,6 +3,8 @@ extends Control
 ## Kakuro -- tap a white cell, then a digit. Each run of white cells must add
 ## up to the clue at its start (→ across, ↓ down) without repeating a digit.
 
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/kakuro/menu_styles.gd")
 const KakuroEngine = preload("res://scripts/games/kakuro/kakuro_engine.gd")
 const HomeKit = preload("res://scripts/games/kakuro/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -316,6 +318,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/kakuro/kakuro_help.gd").TIT
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument, own title font + colours.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/kakuro/title.ttf",
+		"title_colors": [Color("ff5a3c"), Color("ffffff"), Color("ffd23c")],
+		"landing_colors": [Color("0a0a10"), Color("262636")],
 		"help": preload("res://scripts/games/kakuro/kakuro_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

@@ -7119,6 +7119,206 @@
    "proof": "media/licenses/fonts/rampartone-OFL.txt",
    "url": "https://github.com/google/fonts/tree/main/ofl/rampartone",
    "date": "2026-11-13"
+  },
+  {
+   "file": "games/connect4/title.ttf",
+   "what": "Title font of the connect4 Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Luckiest Guy",
+   "author": "Astigmatic",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/luckiestguy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/luckiestguy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/dots_boxes/title.ttf",
+   "what": "Title font of the dots_boxes Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Permanent Marker",
+   "author": "Font Diner",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/permanentmarker-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/permanentmarker",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/mancala/title.ttf",
+   "what": "Title font of the mancala Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Shrikhand",
+   "author": "Jonny Pinhorn",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/shrikhand-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/shrikhand",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/backgammon/title.ttf",
+   "what": "Title font of the backgammon Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Cinzel Decorative Black",
+   "author": "Natanael Gama",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/cinzeldecorative-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/cinzeldecorative",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/morris/title.ttf",
+   "what": "Title font of the morris Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Rye",
+   "author": "Nicole Fally",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/rye-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/rye",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/peg_solitaire/title.ttf",
+   "what": "Title font of the peg_solitaire Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Chewy",
+   "author": "Sideshow",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/chewy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/chewy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/lights_out/title.ttf",
+   "what": "Title font of the lights_out Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Monoton",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/monoton-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/monoton",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/box_pusher/title.ttf",
+   "what": "Title font of the box_pusher Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bowlby One SC",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bowlbyonesc-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bowlbyonesc",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/fifteen_puzzle/title.ttf",
+   "what": "Title font of the fifteen_puzzle Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Rubik Mono One",
+   "author": "Hubert and Fischer",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/rubikmonoone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/rubikmonoone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/kakuro/title.ttf",
+   "what": "Title font of the kakuro Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bungee",
+   "author": "David Jonathan Ross",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bungee-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bungee",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/nonogram/title.ttf",
+   "what": "Title font of the nonogram Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Press Start 2P",
+   "author": "CodeMan38",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/pressstart2p-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/pressstart2p",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/code_breaker/title.ttf",
+   "what": "Title font of the code_breaker Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Audiowide",
+   "author": "Astigmatic",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/audiowide-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/audiowide",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/hanoi/title.ttf",
+   "what": "Title font of the hanoi Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Titan One",
+   "author": "Rodrigo Fuenzalida",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/titanone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/titanone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/calcudoku/title.ttf",
+   "what": "Title font of the calcudoku Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Russo One",
+   "author": "Jovanny Lemonad",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/russoone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/russoone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/pipe_flow/title.ttf",
+   "what": "Title font of the pipe_flow Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Racing Sans One",
+   "author": "Impallari Type",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/racingsansone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/racingsansone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/five_in_row/title.ttf",
+   "what": "Title font of the five_in_row Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Black Ops One",
+   "author": "James Grieshaber, Eben Sorkin",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/blackopsone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/blackopsone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/flood_it/title.ttf",
+   "what": "Title font of the flood_it Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Sniglet",
+   "author": "Haley Fiege",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/sniglet-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/sniglet",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/same_game/title.ttf",
+   "what": "Title font of the same_game Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bangers",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bangers-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bangers",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/binary_grid/title.ttf",
+   "what": "Title font of the binary_grid Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bungee Shade",
+   "author": "David Jonathan Ross",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bungeeshade-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bungeeshade",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/hex/title.ttf",
+   "what": "Title font of the hex Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Lilita One",
+   "author": "Juan Montoreano",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/lilitaone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/lilitaone",
+   "date": "2026-11-13"
   }
  ]
 }

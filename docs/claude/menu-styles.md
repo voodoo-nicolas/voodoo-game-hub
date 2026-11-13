@@ -41,9 +41,30 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | word_ladder | bento (S10) | Concert One |
 | tictactoe | stickers (S11) | Sniglet ExtraBold |
 | emoji_guess | stickers (S11) | Rampart One |
+| connect4 | marquee (S9) | LuckiestGuy |
+| dots_boxes | stickers (S11) | PermanentMarker |
+| mancala | ghost (S1) | Shrikhand |
+| backgammon | rail (S3) | CinzelDecorative |
+| morris | ring (S2) | Rye |
+| peg_solitaire | bento (S10) | Chewy |
+| lights_out | cinema (S7) | Monoton |
+| box_pusher | slabs (S6) | BowlbyOneSC |
+| fifteen_puzzle | split (S8) | RubikMonoOne |
+| kakuro | monument (S4) | Bungee |
+| nonogram | bento (S10) | PressStart2P |
+| code_breaker | cinema (S7) | Audiowide |
+| hanoi | monument (S4) | TitanOne |
+| calcudoku | rail (S3) | RussoOne |
+| pipe_flow | marquee (S9) | RacingSansOne |
+| five_in_row | split (S8) | BlackOpsOne |
+| flood_it | stickers (S11) | Sniglet |
+| same_game | slabs (S6) | Bangers |
+| binary_grid | ghost (S1) | BungeeShade |
+| hex | ring (S2) | LilitaOne |
 
 Gotcha: after wiring a game run `python tools/hub.py i18n` (the kit strings "Single player", "Menu"... must reach the
 game's own `_i18n.gd`); batch 2 first shipped without it.
+Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit.
 
 Checked by screenshot (tools/shot.gd) at 405x720 and 960x540, Spanish, text size 1.0. NOT checked: text size 1.4, a
 real phone. First 8 published 2026-11-13.

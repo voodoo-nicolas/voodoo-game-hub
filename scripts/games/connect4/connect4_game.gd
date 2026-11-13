@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/connect4/menu_styles.gd")
 const Connect4Engine = preload("res://scripts/games/connect4/connect4_engine.gd")
 const HomeKit = preload("res://scripts/games/connect4/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -208,6 +210,13 @@ func _build_home() -> void:
 		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee, own title font + colours.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/connect4/title.ttf",
+		"title_colors": [Color("ff3b3b"), Color("ffd23f"), Color("3cb4ff")],
+		"landing_colors": [Color("050a1e"), Color("102a5e")],
+		"menu_font": true,
 		"help": preload("res://scripts/games/connect4/connect4_help.gd"),
 		"info": info,
 		"accent": COLOR_RED,

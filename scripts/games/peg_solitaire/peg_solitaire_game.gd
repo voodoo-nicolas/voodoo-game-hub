@@ -3,6 +3,8 @@ extends Control
 ## Peg Solitaire -- tap a peg, then tap the hole to jump into. Builds its whole
 ## UI in code; the board is one Control drawn in _draw_board().
 
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/peg_solitaire/menu_styles.gd")
 const PegEngine = preload("res://scripts/games/peg_solitaire/peg_solitaire_engine.gd")
 const HomeKit = preload("res://scripts/games/peg_solitaire/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -251,6 +253,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/peg_solitaire/peg_solitaire
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid, own title font + colours.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/peg_solitaire/title.ttf",
+		"title_colors": [Color("ff8a3c"), Color("3cd9b0"), Color("ffd23f"), Color("9b7bff")],
+		"landing_colors": [Color("0c0a18"), Color("2a1e44")],
+		"menu_font": true,
 		"help": preload("res://scripts/games/peg_solitaire/peg_solitaire_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

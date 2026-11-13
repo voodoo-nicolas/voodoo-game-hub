@@ -3,6 +3,8 @@ extends Control
 ## Box Pusher -- swipe on the board (or use the arrows) to walk; push every
 ## box onto a goal. Levels unlock one after another; progress is saved.
 
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/box_pusher/menu_styles.gd")
 const BoxEngine = preload("res://scripts/games/box_pusher/box_pusher_engine.gd")
 const HomeKit = preload("res://scripts/games/box_pusher/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -411,6 +413,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/box_pusher/box_pusher_help.
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs, own title font + colours.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/box_pusher/title.ttf",
+		"title_colors": [Color("ffb02e"), Color("c0874f"), Color("6ae36a")],
+		"landing_colors": [Color("1a1006"), Color("4a3218")],
+		"menu_font": true,
 		"help": preload("res://scripts/games/box_pusher/box_pusher_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

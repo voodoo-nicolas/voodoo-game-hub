@@ -3,6 +3,8 @@ extends Control
 ## Block Collapse: tap a group of matching blocks to clear it. The first
 ## tap shows the group and what it's worth; tap again to clear.
 
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/same_game/menu_styles.gd")
 const SgEngine = preload("res://scripts/games/same_game/same_game_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -124,6 +126,13 @@ func _build_ui() -> void:
 		modes.append({"text": LEVELS[i], "sub": tr("%d colours") % DIMS[i][2], "row": "levels",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs, own title font + colours.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/same_game/title.ttf",
+		"title_colors": [Color("ff4fa3"), Color("3ee0ff"), Color("ffd23f"), Color("8cff5a")],
+		"landing_colors": [Color("0c1430"), Color("1e3a7a")],
+		"menu_font": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.PURPLE,

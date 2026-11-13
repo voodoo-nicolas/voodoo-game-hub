@@ -3,6 +3,8 @@ extends Control
 ## Five in a Row: vs the computer (three levels), two players on one phone,
 ## or online (host = Black, moves first; guest = White).
 
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/five_in_row/menu_styles.gd")
 const GomokuEngine = preload("res://scripts/games/five_in_row/five_in_row_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -139,6 +141,12 @@ func _build_ui() -> void:
 		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split, own title font + colours.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/five_in_row/title.ttf",
+		"title_colors": [Color("ff3b3b"), Color("f5f5f5"), Color("3cb4ff")],
+		"landing_colors": [Color("0a0406"), Color("2a0c14")],
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.MAGENTA,

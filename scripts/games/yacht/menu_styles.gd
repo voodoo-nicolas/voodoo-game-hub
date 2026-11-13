@@ -634,6 +634,10 @@ class MenuLanding extends Control:
 					(normal as StyleBoxFlat).shadow_offset = Vector2(4, 6)
 			if style in ["split", "marquee", "bento", "stickers"]:
 				col = Color.WHITE
+				# a light tile (white, pale grey) gets dark text
+				if style != "marquee" and tint.get_luminance() > 0.62:
+					col = Color(0.08, 0.08, 0.12)
+					b.add_theme_color_override("font_outline_color", Color(1, 1, 1, 0.5))
 			elif e.kind == "resume" and style != "slabs":
 				col = kit.GO if not on else kit.GO.lightened(0.3)
 			b.add_theme_stylebox_override("normal", normal)

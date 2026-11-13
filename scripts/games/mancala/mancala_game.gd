@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/mancala/menu_styles.gd")
 const MancalaEngine = preload("res://scripts/games/mancala/mancala_engine.gd")
 const HomeKit = preload("res://scripts/games/mancala/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -158,6 +160,12 @@ func _build_home() -> void:
 		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost, own title font + colours.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/mancala/title.ttf",
+		"title_colors": [Color("ffb347"), Color("e8d2a6"), Color("ff7a3a")],
+		"landing_colors": [Color("120a04"), Color("3a2410")],
 		"help": preload("res://scripts/games/mancala/mancala_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

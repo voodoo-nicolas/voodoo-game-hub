@@ -6,6 +6,8 @@ extends Control
 ## a daily board, random boards by difficulty, and a 3-minute time attack.
 ## All art is drawn in code; the sounds come from pipe_flow_sfx.gd.
 
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/pipe_flow/menu_styles.gd")
 const PipeEngine = preload("res://scripts/games/pipe_flow/pipe_flow_engine.gd")
 const WireSfx = preload("res://scripts/games/pipe_flow/pipe_flow_sfx.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -193,6 +195,12 @@ func _build_ui() -> void:
 		modes.append({"text": ZEN_NAMES[i], "sub": "Random board", "row": "zen", "key": "zen" + str(i),
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK, HomeKit.GOLD][i], "action": _start_zen.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee, own title font + colours.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/pipe_flow/title.ttf",
+		"title_colors": [Color("3cff8a"), Color("ff3c8a"), Color("3cb4ff"), Color("ffd23c")],
+		"landing_colors": [Color("04040e"), Color("141436")],
 		"help": HELP,
 		"info": info,
 		"accent": CUR[2],

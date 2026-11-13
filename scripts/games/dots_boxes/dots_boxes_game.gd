@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/dots_boxes/menu_styles.gd")
 const DotsBoxesEngine = preload("res://scripts/games/dots_boxes/dots_boxes_engine.gd")
 const HomeKit = preload("res://scripts/games/dots_boxes/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -139,6 +141,13 @@ func _build_home() -> void:
 		modes.append({"text": "🌐 Online", "sub": "Play a friend on another phone", "multi": true,
 			"color": HomeKit.PURPLE, "action": online.open_lobby})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board, own title font + colours.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/dots_boxes/title.ttf",
+		"title_colors": [Color("3cb4ff"), Color("ff5a5a"), Color("f5f5f5")],
+		"landing_colors": [Color("0e2238"), Color("1d4066")],
+		"menu_font": true,
 		"help": preload("res://scripts/games/dots_boxes/dots_boxes_help.gd"),
 		"info": info,
 		"accent": COLOR_P1,

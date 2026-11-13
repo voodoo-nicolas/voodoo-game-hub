@@ -3,6 +3,8 @@ extends Control
 ## Flood It: tap a colour below the board; the flood from the top-left
 ## corner takes that colour and grows. Fill the board within the limit.
 
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/flood_it/menu_styles.gd")
 const FiEngine = preload("res://scripts/games/flood_it/flood_it_engine.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -123,6 +125,13 @@ func _build_ui() -> void:
 		modes.append({"text": LEVELS[i], "sub": "%d × %d" % [SIZES[i], SIZES[i]], "row": "levels",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board, own title font + colours.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/flood_it/title.ttf",
+		"title_colors": [Color("ff5a5a"), Color("ffc93c"), Color("3cb4ff"), Color("7ae36a"), Color("c77bff")],
+		"landing_colors": [Color("1a1030"), Color("3a2466")],
+		"menu_font": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

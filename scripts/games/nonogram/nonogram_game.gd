@@ -3,6 +3,8 @@ extends Control
 ## Nonogram -- tap or drag to fill cells; switch the mode to ✕ to mark cells
 ## you know are empty. Clues turn grey once their line matches.
 
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/nonogram/menu_styles.gd")
 const NonoEngine = preload("res://scripts/games/nonogram/nonogram_engine.gd")
 const HomeKit = preload("res://scripts/games/nonogram/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -289,6 +291,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/nonogram/nonogram_help.gd")
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid, own title font + colours.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/nonogram/title.ttf",
+		"title_colors": [Color("ff5c9a"), Color("5ce1ff"), Color("ffd23f"), Color("7ae36a")],
+		"landing_colors": [Color("08080e"), Color("1e1e30")],
 		"help": preload("res://scripts/games/nonogram/nonogram_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

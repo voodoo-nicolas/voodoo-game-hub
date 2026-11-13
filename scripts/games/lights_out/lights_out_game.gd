@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/lights_out/menu_styles.gd")
 const LightsOutEngine = preload("res://scripts/games/lights_out/lights_out_engine.gd")
 const HomeKit = preload("res://scripts/games/lights_out/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -235,6 +237,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/lights_out/lights_out_help.
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema, own title font + colours.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/lights_out/title.ttf",
+		"title_colors": [Color("ffe34f"), Color("4fe9ff"), Color("ff4fd8")],
+		"landing_colors": [Color("020208"), Color("0c0c24")],
 		"help": preload("res://scripts/games/lights_out/lights_out_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

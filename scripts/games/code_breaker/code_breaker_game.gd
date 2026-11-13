@@ -4,6 +4,8 @@ extends Control
 ## Check. Black pegs = right colour in the right spot, white = right colour,
 ## wrong spot. Tap a filled slot in the current row to clear it.
 
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/code_breaker/menu_styles.gd")
 const CBEngine = preload("res://scripts/games/code_breaker/code_breaker_engine.gd")
 const HomeKit = preload("res://scripts/games/code_breaker/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -338,6 +340,12 @@ const TITLE_FOR_HOME := preload("res://scripts/games/code_breaker/code_breaker_h
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema, own title font + colours.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/code_breaker/title.ttf",
+		"title_colors": [Color("3ee0ff"), Color("ff3ec8"), Color("ffe14a")],
+		"landing_colors": [Color("02060a"), Color("082030")],
 		"help": preload("res://scripts/games/code_breaker/code_breaker_help.gd"),
 		"info": info,
 		"accent": HomeKit.MAGENTA,
