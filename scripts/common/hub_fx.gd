@@ -10,7 +10,7 @@ extends RefCounted
 ## Drift on a full-rect picture: zooms 1.0 -> 1.0+`zoom` and pans a little,
 ## back and forth forever.
 static func drift(ctrl: Control, zoom: float = 0.07, seconds: float = 20.0) -> void:
-	if _still(ctrl):
+	if _still(ctrl) or _no_decor(ctrl):
 		return
 	ctrl.pivot_offset_ratio = Vector2(0.5, 0.5)
 	var t := ctrl.create_tween().set_loops()
@@ -67,7 +67,7 @@ static func stagger_in(nodes: Array, step: float = 0.055, max_count: int = 14, f
 ## the hub art. Cheap (CPU particles, ~26 of them).
 static func embers(parent: Control) -> CPUParticles2D:
 	var p := CPUParticles2D.new()
-	if _still(parent):
+	if _still(parent) or _no_decor(parent):
 		p.emitting = false
 		return p
 	var grad := Gradient.new()
@@ -116,6 +116,12 @@ static func _still(n: Node) -> bool:
 	if settings == null:
 		settings = Engine.get_main_loop().root.get_node_or_null("Settings") if Engine.get_main_loop() is SceneTree else null
 	return settings != null and bool(settings.get("reduce_motion"))
+
+## Options > Display > Menu animations off (Settings.menu_fx): no embers,
+## smoke or drift. Older APKs have no menu_fx: decor stays on.
+static func _no_decor(n: Node) -> bool:
+	var settings = Engine.get_main_loop().root.get_node_or_null("Settings") if Engine.get_main_loop() is SceneTree else null
+	return settings != null and settings.get("menu_fx") == false
 
 ## Adds the press "pop" to every Button under `screen` (now and later: dialogs,
 ## rebuilt lists). Call once from a hub screen's _ready().

@@ -31,12 +31,18 @@ static func tile_path(game: Dictionary) -> String:
 ## drawn logo (game_art.gd) and over the generated placeholder file.
 static func has_custom_tile(game: Dictionary) -> bool:
 	var custom := str(game.get("tile_art", ""))
-	return custom != "" and ResourceLoader.exists(custom)
+	return custom != "" and not _lite() and ResourceLoader.exists(custom)
+
+static func _lite() -> bool:
+	var st = Engine.get_main_loop().root.get_node_or_null("Settings") if Engine.get_main_loop() is SceneTree else null
+	return st != null and st.has_method("is_lite") and st.is_lite()
 
 static func hero_path(game: Dictionary) -> String:
 	return _path(game, "hero_art", "hero.webp")
 
 static func _path(game: Dictionary, field: String, file: String) -> String:
+	if _lite():
+		return ""  # Superlite: drawn logos and gradients only
 	var custom := str(game.get(field, ""))
 	if custom != "" and ResourceLoader.exists(custom):
 		return custom

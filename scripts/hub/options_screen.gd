@@ -20,6 +20,16 @@ const OldApkNotice = preload("res://scripts/common/old_apk_notice.gd")
 const SoundOptions = preload("res://scripts/common/sound_options.gd")
 
 const FEEDBACK_URL := Config.REPO_URL + "/issues/new"
+const Consent = preload("res://scripts/common/consent.gd")
+const LAYOUTS := ["strip", "grid", "lite"]
+## Options > Safety age slider: 0 = off, else the highest rating shown.
+const AGE_STEPS := [0, 3, 7, 12, 16]
+## Which sections are open; kept while the app runs (a text-size change reloads the scene).
+static var _open_sections: Dictionary = {}
+var _now_playing: Label
+var _music_btn: Button
+var _age_label: Label
+var _ratings_box: Label
 
 var pal: Dictionary
 var drag: Node
@@ -126,8 +136,41 @@ func _build_ui() -> void:
 	list.add_theme_constant_override("separation", 14)
 	margin.add_child(list)
 
-	# ---- Display ----
-	var display := _section(list, tr("Display"))
+	# Owner 2026-11-13: one collapsible card per topic, in this order:
+	# Profile, Friends, Notifications, Display, Audio, Vibration, Safety,
+	# Updates, Storage, About. (Before: Display, Games, Sound, Vibration &
+	# screen, Notifications, Account, Game updates, Storage, About.)
+
+	# ---- Profile ----
+	var account := _section(list, tr("👤 Profile"))
+	account_label = _body_label("")
+	account.add_child(account_label)
+	account_btn = _pill_button("", true)
+	account_btn.pressed.connect(_on_account_pressed)
+	account.add_child(account_btn)
+	var bracket := Consent.bracket()
+	if bracket != "":
+		account.add_child(_body_label(tr("Age group: %s (kept only on this device)") % bracket))
+	_update_account()
+
+	# ---- Friends ----
+	if not Catalog.online_blocked():
+		var friends := _section(list, tr("👥 Friends"))
+		friends.add_child(_body_label(tr("Add friends, see who is online and invite them to a game.")))
+		var friends_btn := _pill_button(tr("Open Friends"), true)
+		friends_btn.pressed.connect(_open_scene.bind("res://scenes/hub/friends.tscn"))
+		friends.add_child(friends_btn)
+
+	# ---- Notifications ----
+	var notes := _section(list, tr("🔔 Notifications"))
+	var invite_names: Array = []
+	for n in Settings.INVITE_MODE_NAMES:
+		invite_names.append(tr(n))
+	_choice_row(notes, tr("Game invites from friends"), tr("When a friend invites you to an online game."),
+			invite_names, maxi(0, Settings.INVITE_MODES.find(Settings.invites)), _on_invites)
+
+	# ---- Display (video + screen) ----
+	var display := _section(list, tr("🖥 Display"))
 	var size_names: Array = []
 	for n in Settings.TEXT_SIZE_NAMES:
 		size_names.append(tr(n))
@@ -141,83 +184,127 @@ func _build_ui() -> void:
 	for c in codes:
 		names.append(Lang.NAMES[c])
 	_choice_row(display, tr("Language"), "", names, codes.find(Lang.current), _on_language)
+	_choice_row(display, tr("Games menu look"), tr("Sliding tiles, every game in a grid, or Superlite: the grid with no pictures, for older phones."),
+			[tr("Sliding"), tr("Grid"), tr("Superlite")], maxi(0, LAYOUTS.find(Settings.hub_layout)), _on_hub_layout)
+	_toggle_row(display, tr("✨ Menu animations"), tr("Smoke, floating sparks and the slowly moving background in the menus."),
+			Settings.menu_fx, _on_menu_fx)
+	_toggle_row(display, tr("🎞 Reduce motion"), tr("Menus switch instantly instead of sliding and fading."),
+			Settings.reduce_motion, Settings.set_reduce_motion)
+	_toggle_row(display, tr("🎬 Intro video"), tr("A short Viral logo video when you open a game."),
+			Settings.intro_video, Settings.set_intro_video)
+	_toggle_row(display, tr("☀ Keep screen on"), tr("The screen won't turn off while you play."),
+			Settings.keep_awake, Settings.set_keep_awake)
+	if not Settings.safety_on("occult"):
+		_toggle_row(display, tr("💀 Skull mode"),
+				tr("Skulls, crossbones and voodoo dolls in Tic-Tac-Toe, Connect Four and Reversi."),
+				Voodoo.is_on(), _on_skull_mode)
 
-	# ---- Games ----
-	var games := _section(list, tr("Games"))
-	_toggle_row(games, tr("💀 Skull mode"),
-			tr("Skulls, crossbones and voodoo dolls in Tic-Tac-Toe, Connect Four and Reversi."),
-			Voodoo.is_on(), _on_skull_mode)
-
-	_choice_row(games, tr("Games menu look"), tr("Sliding tiles under a category bar, or every game in a grid divided by category."),
-			[tr("Sliding"), tr("Grid")], 1 if Settings.hub_layout == "grid" else 0, _on_hub_layout)
-
-	# ---- Sound ----
-	var sound := _section(list, tr("Sound"))
+	# ---- Audio ----
+	var sound := _section(list, tr("🔊 Audio"))
+	var np := HBoxContainer.new()
+	np.add_theme_constant_override("separation", 12)
+	sound.add_child(np)
+	_now_playing = _body_label("")
+	_now_playing.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	np.add_child(_now_playing)
+	_music_btn = _pill_button("", true)
+	_music_btn.custom_minimum_size.x = 130
+	_music_btn.pressed.connect(_on_music_pause)
+	np.add_child(_music_btn)
+	_update_now_playing()
 	var sound_opts := SoundOptions.new(pal)
 	sound_opts.drag = drag
 	sound.add_child(sound_opts)
 
-	# ---- Vibration & screen ----
-	var feel := _section(list, tr("Vibration & screen"))
-	_toggle_row(feel, tr("📳 Vibration"), tr("A buzz when you tap, win or lose."), Settings.vibrate, Settings.set_vibrate)
-	_toggle_row(feel, tr("☀ Keep screen on"), tr("The screen won't turn off while you play."),
-			Settings.keep_awake, Settings.set_keep_awake)
-	_toggle_row(feel, tr("🎬 Intro video"), tr("A short Viral logo video when you open a game."),
-			Settings.intro_video, Settings.set_intro_video)
-	_toggle_row(feel, tr("🎞 Reduce motion"), tr("Menus switch instantly instead of sliding and fading."),
-			Settings.reduce_motion, Settings.set_reduce_motion)
+	# ---- Vibration ----
+	var feel := _section(list, tr("📳 Vibration"))
+	_toggle_row(feel, tr("Vibration"), tr("A buzz when you tap, win or lose."), Settings.vibrate, Settings.set_vibrate)
 
-	# ---- Notifications ----
-	var notes := _section(list, tr("Notifications"))
-	var invite_names: Array = []
-	for n in Settings.INVITE_MODE_NAMES:
-		invite_names.append(tr(n))
-	_choice_row(notes, tr("🔔 Game invites from friends"), tr("When a friend invites you to an online game."),
-			invite_names, maxi(0, Settings.INVITE_MODES.find(Settings.invites)), _on_invites)
+	# ---- Safety (owner 2026-11-13; everything off by default) ----
+	var safety := _section(list, tr("🛡 Safety"))
+	safety.add_child(_body_label(tr("Hide kinds of games on this device. Hidden games show greyed out with a padlock.")))
+	safety.add_child(_title_label(tr("Highest age rating")))
+	_age_label = _body_label("")
+	safety.add_child(_age_label)
+	var slider := HSlider.new()
+	slider.min_value = 0
+	slider.max_value = AGE_STEPS.size() - 1
+	slider.step = 1
+	slider.tick_count = AGE_STEPS.size()
+	slider.ticks_on_borders = true
+	slider.custom_minimum_size.y = 48
+	slider.value = maxi(0, AGE_STEPS.find(Settings.safety_max_age()))
+	slider.value_changed.connect(_on_age_limit)
+	safety.add_child(slider)
+	_show_age_limit()
+	_toggle_row(safety, tr("🔮 Hide the occult"), tr("Spirit Board, Tarot, Fortune Ball. Also keeps Skull mode off."),
+			Settings.safety_on("occult"), _on_safety.bind("occult"))
+	_toggle_row(safety, tr("🎰 Hide gambling games"), tr("Blackjack, Video Poker and anything with betting."),
+			Settings.safety_on("gambling"), _on_safety.bind("gambling"))
+	_toggle_row(safety, tr("👻 Hide horror"), tr("Scary stories and monsters (Turned, Last Shift, Spirit Board)."),
+			Settings.safety_on("horror"), _on_safety.bind("horror"))
+	_toggle_row(safety, tr("💥 Hide violence"), tr("Shooting and fighting games, cartoon or realistic."),
+			Settings.safety_on("violence"), _on_safety.bind("violence"))
+	_toggle_row(safety, tr("🌐 No online play"), tr("No online games, invites or friends list."),
+			Settings.safety_on("online"), _on_safety.bind("online"))
+	_toggle_row(safety, tr("🙈 Hide other players' names"), tr("Leaderboards show ranks and scores only."),
+			Settings.safety_on("public_names"), _on_safety.bind("public_names"))
 
-	# ---- Account ----
-	var account := _section(list, tr("Account"))
-	account_label = _body_label("")
-	account.add_child(account_label)
-	account_btn = _pill_button("", true)
-	account_btn.pressed.connect(_on_account_pressed)
-	account.add_child(account_btn)
-	_update_account()
-
+	# ---- Updates (app + games together) ----
+	var updates := _section(list, tr("🔄 Updates"))
+	update_btn = _pill_button(tr("Check for app updates"), true)
+	update_btn.pressed.connect(_on_update_pressed)
+	updates.add_child(update_btn)
+	update_label = _body_label("")
+	update_label.visible = false
+	updates.add_child(update_label)
 	# ---- Game updates: the live manifest vs the packs on this device ----
 	# (tapping a game also updates it; this checks and updates them all at once).
 	# The web build can't download packs, so it has nothing to show here.
 	if not OS.has_feature("web"):
-		var games_updates := _section(list, tr("Game updates"))
 		games_update_label = _body_label(tr("Tapping a game installs its newest version. You can also check them all here."))
-		games_updates.add_child(games_update_label)
+		updates.add_child(games_update_label)
 		games_update_btn = _pill_button(tr("Check for game updates"), true)
 		games_update_btn.pressed.connect(_on_games_update_pressed)
-		games_updates.add_child(games_update_btn)
+		updates.add_child(games_update_btn)
 
 	# ---- Storage (STANDARDS §2d, since v0.30) ----
-	var storage := _section(list, tr("Storage"))
-	storage_box = storage
+	var storage := _section(list, tr("💾 Storage"))
+	storage_box = VBoxContainer.new()
+	storage_box.add_theme_constant_override("separation", 18)
+	storage.add_child(storage_box)
 	_fill_storage()
-
-	# ---- About ----
-	var about := _section(list, tr("About"))
-	about.add_child(_body_label(tr("%s v%s (build %d)") % [Brand.NAME, Version.VERSION, Version.BUILD_NUMBER]))
-	about.add_child(_body_label(Brand.tagline()))
-	update_btn = _pill_button(tr("Check for updates"), true)
-	update_btn.pressed.connect(_on_update_pressed)
-	about.add_child(update_btn)
-	update_label = _body_label("")
-	update_label.visible = false
-	about.add_child(update_label)
 	# Old installers: the browser keeps every downloaded update (~100 MB each) and Android
 	# won't let the app delete them, so we point at the Downloads screen. Not on Google Play.
 	if OS.has_feature("android") and not OS.has_feature("play"):
-		about.add_child(_body_label(tr("Each update you installed left an installer file in your Downloads (%s, about 100 MB each). The old ones are safe to delete.") % OldApkNotice.FILE_HINT))
+		storage.add_child(_body_label(tr("Each update you installed left an installer file in your Downloads (%s, about 100 MB each). The old ones are safe to delete.") % OldApkNotice.FILE_HINT))
 		var downloads_btn := _pill_button(tr("Free up space: open Downloads"), false)
 		downloads_btn.pressed.connect(OldApkNotice.open_downloads)
-		about.add_child(downloads_btn)
-	var feedback_btn := _pill_button(tr("Send feedback"), true)
+		storage.add_child(downloads_btn)
+
+	# ---- About ----
+	var about := _section(list, tr("ℹ About"))
+	about.add_child(_body_label(tr("%s v%s (build %d)") % [Brand.NAME, Version.VERSION, Version.BUILD_NUMBER]))
+	about.add_child(_body_label(Brand.tagline()))
+	var fb_btn := _pill_button(tr("Facebook"), true)
+	fb_btn.pressed.connect(_open_url.bind(Brand.FACEBOOK_URL))
+	about.add_child(fb_btn)
+	var yt_btn := _pill_button(tr("YouTube"), true)
+	yt_btn.pressed.connect(_open_url.bind(Brand.YOUTUBE_URL))
+	about.add_child(yt_btn)
+	var contact_btn := _pill_button(tr("✉ Contact us"), true)
+	contact_btn.pressed.connect(_on_contact)
+	about.add_child(contact_btn)
+	var bug_btn := _pill_button(tr("🐞 Report a bug"), false)
+	bug_btn.pressed.connect(_on_report_bug)
+	about.add_child(bug_btn)
+	var ratings_btn := _pill_button(tr("Game ratings explained"), false)
+	ratings_btn.pressed.connect(_toggle_ratings)
+	about.add_child(ratings_btn)
+	_ratings_box = _body_label(_ratings_text())
+	_ratings_box.visible = false
+	about.add_child(_ratings_box)
+	var feedback_btn := _pill_button(tr("Send feedback"), false)
 	feedback_btn.pressed.connect(_on_feedback_pressed)
 	about.add_child(feedback_btn)
 	var help_btn := _pill_button(tr("🆘 Help"), false)
@@ -370,11 +457,20 @@ func _engine_notices() -> String:
 # ---------- building blocks ----------
 
 ## A titled card; returns the VBox to put rows in.
+## Collapsible (owner 2026-11-13): the heading is a button that opens / closes its card.
 func _section(list: VBoxContainer, title_text: String) -> VBoxContainer:
-	var heading := Label.new()
-	heading.text = title_text.to_upper()
-	heading.add_theme_font_size_override("font_size", 22)
-	heading.add_theme_color_override("font_color", pal.link)
+	# var heading := Label.new()
+	# heading.text = title_text.to_upper()
+	# heading.add_theme_font_size_override("font_size", 22)
+	# heading.add_theme_color_override("font_color", pal.link)
+	var heading := Button.new()
+	heading.flat = true
+	heading.focus_mode = Control.FOCUS_NONE
+	heading.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	heading.custom_minimum_size.y = 56
+	heading.add_theme_font_size_override("font_size", 26)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		heading.add_theme_color_override(c, pal.link)
 	list.add_child(heading)
 
 	var card := PanelContainer.new()
@@ -389,7 +485,20 @@ func _section(list: VBoxContainer, title_text: String) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 18)
 	card.add_child(box)
+	card.visible = bool(_open_sections.get(title_text, false))
+	_heading_text(heading, title_text, card.visible)
+	heading.pressed.connect(_on_section_heading.bind(heading, card, title_text))
 	return box
+
+func _heading_text(heading: Button, title_text: String, open: bool) -> void:
+	heading.text = ("▾  " if open else "▸  ") + title_text.to_upper()
+
+func _on_section_heading(heading: Button, card: Control, title_text: String) -> void:
+	if drag.moved:
+		return
+	card.visible = not card.visible
+	_open_sections[title_text] = card.visible
+	_heading_text(heading, title_text, card.visible)
 
 func _title_label(text: String) -> Label:
 	var l := Label.new()
@@ -509,7 +618,8 @@ func _on_text_size(i: int) -> void:
 		get_tree().reload_current_scene()
 
 func _on_hub_layout(i: int) -> void:
-	var layout := "grid" if i == 1 else "strip"
+	# var layout := "grid" if i == 1 else "strip"
+	var layout: String = LAYOUTS[clampi(i, 0, LAYOUTS.size() - 1)]
 	if layout != Settings.hub_layout:
 		Settings.set_hub_layout(layout)
 		get_tree().reload_current_scene()   # lights the chosen pill
@@ -651,6 +761,94 @@ func _on_feedback_pressed() -> void:
 	if drag.moved:
 		return
 	OS.shell_open(FEEDBACK_URL)
+
+func _on_menu_fx(on: bool) -> void:
+	Settings.set_menu_fx(on)
+	get_tree().reload_current_scene()  # the backdrop drifts (or stops) from the start
+
+func _on_safety(on: bool, key: String) -> void:
+	Settings.set_safety(key, on)
+	Catalog.refilter()
+	if key == "occult" or key == "online":
+		get_tree().reload_current_scene()  # hides / shows Skull mode and Friends
+
+func _on_age_limit(v: float) -> void:
+	Settings.set_safety("max_age", AGE_STEPS[int(v)])
+	Catalog.refilter()
+	_show_age_limit()
+
+func _show_age_limit() -> void:
+	var a := Settings.safety_max_age()
+	_age_label.text = tr("Off: every game is shown.") if a == 0 else tr("Games rated above %d+ are locked.") % a
+
+func _update_now_playing() -> void:
+	var t: String = Music.now_playing() if Music.has_method("now_playing") else ""
+	_now_playing.text = (tr("🎵 Now playing: %s") % t) if t != "" else tr("🎵 No music playing")
+	_music_btn.text = tr("▶ Play") if Music.is_paused() else tr("⏸ Pause")
+	_music_btn.disabled = t == ""
+
+func _on_music_pause() -> void:
+	if drag.moved:
+		return
+	Music.set_paused(not Music.is_paused())
+	_update_now_playing()
+
+func _process(_delta: float) -> void:
+	if _now_playing != null and Engine.get_process_frames() % 30 == 0:
+		_update_now_playing()  # the next track may start while Options is open
+
+func _open_url(url: String) -> void:
+	if drag.moved:
+		return
+	OS.shell_open(url)
+
+func _open_scene(path: String) -> void:
+	if drag.moved:
+		return
+	get_tree().change_scene_to_file(path)
+
+func _on_contact() -> void:
+	if drag.moved:
+		return
+	OS.shell_open("mailto:%s?subject=%s" % [Brand.CONTACT_EMAIL, (Brand.NAME + " v" + Version.VERSION).uri_encode()])
+
+## Opens an email to us with the app version, the device and the end of the log.
+## Nothing is sent until the player presses Send in their own mail app.
+func _on_report_bug() -> void:
+	if drag.moved:
+		return
+	var lines := PackedStringArray([
+		"%s v%s (build %d)" % [Brand.NAME, Version.VERSION, Version.BUILD_NUMBER],
+		"%s %s, %s" % [OS.get_name(), OS.get_version(), OS.get_model_name()],
+		"",
+		tr("What happened? What did you tap just before?"),
+		"", "", "--- log ---",
+		_log_tail(1500)])
+	var subject := tr("Bug report") + " v" + Version.VERSION
+	OS.shell_open("mailto:%s?subject=%s&body=%s" % [Brand.CONTACT_EMAIL, subject.uri_encode(), "\n".join(lines).uri_encode()])
+
+## The last `chars` characters of Godot's log file (debug/file_logging), "" if none.
+func _log_tail(chars: int) -> String:
+	var path := str(ProjectSettings.get_setting("debug/file_logging/log_path", "user://logs/godot.log"))
+	if not FileAccess.file_exists(path):
+		return ""
+	var t := FileAccess.get_file_as_string(path)
+	return t.substr(maxi(0, t.length() - chars))
+
+func _toggle_ratings() -> void:
+	if drag.moved:
+		return
+	_ratings_box.visible = not _ratings_box.visible
+
+func _ratings_text() -> String:
+	return "\n".join(PackedStringArray([
+		tr("Every game shows its age rating on its page, with the reasons (for example: Cartoon violence)."),
+		tr("3+: fine for everyone."),
+		tr("7+: mild cartoon violence or mildly scary moments."),
+		tr("12+: fantasy violence, horror themes or simulated gambling."),
+		tr("16+: realistic violence, blood or strong themes."),
+		tr("Ratings answer the same questions as the Google Play (IARC) rating. Options > Safety can lock games above an age or hide kinds of games."),
+	]))
 
 func _go_to_hub() -> void:
 	get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")

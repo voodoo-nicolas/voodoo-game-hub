@@ -44,3 +44,7 @@ window/size/window_height_override=704
 renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="mobile"
 textures/vram_compression/import_etc2_astc=true
+
+[debug]
+
+file_logging/enable_file_logging=true

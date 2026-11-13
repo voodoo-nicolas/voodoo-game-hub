@@ -52,6 +52,10 @@ var outline: Color = Color(0, 0, 0, 0.55):
 var span: float = 0.82
 
 static func is_on() -> bool:
+	# Options > Safety > occult: Skull mode stays off (owner 2026-11-13).
+	var st = Engine.get_main_loop().root.get_node_or_null("Settings") if Engine.get_main_loop() is SceneTree else null
+	if st != null and st.has_method("safety_on") and st.safety_on("occult"):
+		return false
 	if not FileAccess.file_exists(SETTINGS_PATH):
 		return false
 	var data = JSON.parse_string(FileAccess.get_file_as_string(SETTINGS_PATH))

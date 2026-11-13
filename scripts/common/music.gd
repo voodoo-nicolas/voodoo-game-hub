@@ -86,6 +86,8 @@ var _genre := ""           # the genre play() was given ("" = the screen's)
 var _dl := ""              # id of the downloaded track playing, "" = synth / file
 var _auto := false         # started by the owner's "Where it plays", not a game
 var _fresh := {}           # style|genres -> true once a new track was fetched this run
+var _title := ""          # the downloaded track's title (Options > Audio shows it)
+var _paused := false       # Options > Audio pause button
 var _ending := ""          # the downloaded track already handed over to the next
 
 var _tracks := {}          # "style:index" -> AudioStreamWAV (synthesized)
@@ -203,6 +205,24 @@ func stop(fade: float = 1.5) -> void:
 func is_playing() -> bool:
 	return _key != ""
 
+## "Night Drive" for a downloaded track, "Lively (built-in)" for a synthesized one,
+## "" when nothing plays. Options > Audio shows it (owner 2026-11-13).
+func now_playing() -> String:
+	if _key == "":
+		return ""
+	if _dl != "" and _title != "":
+		return _title
+	return tr("%s (built-in)") % tr(_style.capitalize())
+
+func is_paused() -> bool:
+	return _paused
+
+## Pauses / resumes whatever plays, where it is (no fade, keeps the position).
+func set_paused(on: bool) -> void:
+	_paused = on
+	for p in _players:
+		p.stream_paused = on
+
 ## A few seconds of music for the Options volume slider, when none is on.
 func preview() -> void:
 	if _key != "":
@@ -254,6 +274,8 @@ func _apply_volume(delta: float) -> void:
 func _crossfade(stream: AudioStream, fade: float) -> void:
 	var cur: AudioStreamPlayer = _players[0]
 	var incoming: AudioStreamPlayer = _players[1]
+	if _paused:
+		set_paused(false)  # a new track (another screen or game) ends the Options pause
 	incoming.stream = stream
 	incoming.volume_db = -40.0
 	incoming.play()
@@ -308,6 +330,7 @@ func _play_downloaded(style: String, index: int, fade: float, genres: Array) -> 
 	_key = key
 	_want = ""
 	_dl = str(t.id)
+	_title = str(t.get("title", ""))
 	_ending = ""
 	library.mark_played(_dl)
 	_crossfade(s, fade)

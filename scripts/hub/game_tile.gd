@@ -121,7 +121,14 @@ func setup(g: Dictionary, category_name: String, tile_size: Vector2, scroller_no
 
 	var mark := ""
 	if g.get("locked", false) == true:
-		mark = "🔒"
+		# Owner 2026-11-13: a locked game (age rating or Options > Safety) shows
+		# greyed out with a big padlock drawn over it (not an emoji: phones lack some).
+		clip.modulate = Color(0.45, 0.45, 0.5)
+		var lock := Control.new()
+		lock.size = tile_size
+		lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock.draw.connect(_draw_padlock.bind(lock))
+		add_child(lock)
 	else:
 		match Catalog.state_of(g):
 			Catalog.STATE_NEEDS_APP_UPDATE: mark = "⬆"
@@ -217,3 +224,17 @@ func _on_pressed() -> void:
 	if _long_fired or _moved():
 		return
 	tapped.emit(id)
+
+
+## A padlock in the middle of the tile: a shackle arc over a rounded body with a keyhole.
+func _draw_padlock(c: Control) -> void:
+	var h := c.size.y * 0.42
+	var w := h * 0.82
+	var ctr := c.size * 0.5 + Vector2(0, h * 0.12)
+	var body := Rect2(ctr.x - w / 2.0, ctr.y - h * 0.15, w, h * 0.62)
+	var col := Color(0.92, 0.94, 1.0)
+	c.draw_arc(Vector2(ctr.x, body.position.y), w * 0.3, PI, TAU, 16, col, h * 0.11, true)
+	c.draw_rect(body.grow(2), Color(0, 0, 0, 0.55))
+	c.draw_rect(body, col)
+	c.draw_circle(body.get_center() - Vector2(0, h * 0.05), h * 0.07, Color(0.1, 0.1, 0.14))
+	c.draw_rect(Rect2(body.get_center().x - h * 0.025, body.get_center().y - h * 0.03, h * 0.05, h * 0.14), Color(0.1, 0.1, 0.14))

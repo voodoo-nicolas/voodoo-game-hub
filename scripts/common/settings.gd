@@ -91,8 +91,19 @@ var intro_video: bool = true
 var reduce_motion: bool = false
 ## Game Browser look: "strip" (category bar + sliding tiles, the default) or "grid"
 ## (every game in a grid, divided by category). The old accordion list is retired.
+## "lite" (Superlite, owner 2026-11-13): the grid look with no image files at all,
+## only art drawn in code -- for old phones and slow connections.
 var hub_layout: String = "strip"
 var invites: String = "all"
+## Menu decoration (embers, smoke, drifting backdrop) -- Options > Display.
+## Separate from reduce_motion, which also stops slides and fades.
+var menu_fx: bool = true
+## Options > Safety (owner 2026-11-13, all off by default). max_age 0 = off,
+## else games rated above it are greyed out with a padlock. The rest hide a
+## kind of game (Catalog.SAFETY_TAGS lists which game is which); "occult" also
+## keeps Skull mode off. "public_names" hides other players' names on boards.
+const SAFETY_KEYS := ["occult", "gambling", "horror", "violence", "online", "public_names"]
+var safety: Dictionary = {"max_age": 0}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -191,7 +202,25 @@ func group_db(id: String) -> Variant:
 	return linear_to_db(v / 100.0)
 
 func set_hub_layout(layout: String) -> void:
-	hub_layout = "grid" if layout == "grid" else "strip"
+	hub_layout = layout if layout in ["grid", "lite"] else "strip"
+	_commit()
+
+## Superlite: no image files anywhere in the hub (HubArt, Brand.backdrop, banner).
+func is_lite() -> bool:
+	return hub_layout == "lite"
+
+func set_menu_fx(on: bool) -> void:
+	menu_fx = on
+	_commit()
+
+func safety_on(key: String) -> bool:
+	return bool(safety.get(key, false))
+
+func safety_max_age() -> int:
+	return int(safety.get("max_age", 0))
+
+func set_safety(key: String, value: Variant) -> void:
+	safety[key] = value
 	_commit()
 
 func set_reduce_motion(on: bool) -> void:
@@ -482,6 +511,14 @@ func _load() -> void:
 	intro_video = bool(data.get("intro_video", true))
 	reduce_motion = bool(data.get("reduce_motion", false))
 	hub_layout = "grid" if str(data.get("hub_layout", "strip")) == "grid" else "strip"   # "classic" / "new" from v0.36 become "strip"
+	if str(data.get("hub_layout", "")) == "lite":
+		hub_layout = "lite"
+	menu_fx = bool(data.get("menu_fx", true))
+	var sf = data.get("safety", {})
+	if typeof(sf) == TYPE_DICTIONARY:
+		safety = {"max_age": clampi(int(sf.get("max_age", 0)), 0, 18)}
+		for k in SAFETY_KEYS:
+			safety[k] = bool(sf.get(k, false))
 	invites = str(data.get("invites", "all"))
 	if not INVITE_MODES.has(invites):
 		invites = "all"
@@ -493,4 +530,5 @@ func _save() -> void:
 			"text_size": text_size, "theme": theme, "sound": sound,
 			"volume": volume, "sound_groups": sound_groups,
 			"vibrate": vibrate, "keep_awake": keep_awake, "intro_video": intro_video, "reduce_motion": reduce_motion, "hub_layout": hub_layout, "invites": invites,
+			"menu_fx": menu_fx, "safety": safety,
 		}))

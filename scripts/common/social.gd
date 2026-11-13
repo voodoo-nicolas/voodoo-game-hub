@@ -369,6 +369,8 @@ func _in_that_room(inv: Dictionary) -> bool:
 ## `invite_to` once the room exists), "join" room `code`, or "lobby".
 ## Goes through the hub, which downloads the game first if needed.
 func launch_online(game_id: String, mode: String, code: String = "", invite_to: String = "", invite_name: String = "") -> void:
+	if Catalog.has_method("online_blocked") and Catalog.online_blocked():
+		return  # Options > Safety: online play off
 	var scene := get_tree().current_scene
 	if scene and scene.has_method("_save_game"):
 		scene.call("_save_game")  # leaving a game for an invite keeps its progress
@@ -398,6 +400,8 @@ func take_pending(game_id: String) -> Dictionary:
 # ---------- pop-ups ----------
 
 func _show_invite(inv: Dictionary) -> void:
+	if Catalog.has_method("online_blocked") and Catalog.online_blocked():
+		return  # Options > Safety: online play off, invites aren't shown
 	var game_id := str(inv.get("game", ""))
 	var game: Dictionary = Catalog.get_game(game_id) if has_node("/root/Catalog") else {}
 	if game.is_empty():

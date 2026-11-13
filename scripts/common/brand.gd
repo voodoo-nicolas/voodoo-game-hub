@@ -33,6 +33,11 @@ const BG_PORTRAIT := "res://media/hub/brand/hub_bg_portrait.jpg"
 const BG_LANDSCAPE := "res://media/hub/brand/hub_bg_landscape.jpg"
 const MIST := "res://scripts/common/mist.gd"
 
+## Options > About links (owner 2026-11-13). The contact address is public.
+const FACEBOOK_URL := "https://www.facebook.com/profile.php?id=61595214907419"
+const YOUTUBE_URL := "https://www.youtube.com/@ViralGameHubYT"
+const CONTACT_EMAIL := "viralgamingservice@gmail.com"
+
 static func tagline() -> String:
 	return str(TranslationServer.translate(TAGLINE))
 
@@ -41,6 +46,9 @@ static func tagline() -> String:
 ## keeps 4.5:1. Falls back to the drifting mist if the art is missing.
 ## Add it as the first child so everything sits on top.
 static func backdrop() -> Control:
+	var st = Engine.get_main_loop().root.get_node_or_null("Settings") if Engine.get_main_loop() is SceneTree else null
+	if st != null and st.has_method("is_lite") and st.is_lite():
+		return load(MIST).new()  # Superlite: coded mist, no picture
 	if ResourceLoader.exists(BG_PORTRAIT) and ResourceLoader.exists(BG_LANDSCAPE):
 		return Backdrop.new()
 	return load(MIST).new()

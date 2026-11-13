@@ -278,7 +278,9 @@ func _build_home_view() -> void:
 	friends_btn = _hub_pill(tr("👥 Friends"), pal.ready)
 	friends_btn.pressed.connect(_open_screen.bind(FRIENDS_SCENE))
 	top.add_child(friends_btn)
-	var options_btn := _hub_pill(tr("⚙ Options"), pal.accent)
+	# Owner 2026-11-13: top-bar buttons in green / blue / grey only, never orange or red.
+	# var options_btn := _hub_pill(tr("⚙ Options"), pal.accent)
+	var options_btn := _hub_pill(tr("⚙ Options"), pal.link)
 	options_btn.pressed.connect(_open_options)
 	top.add_child(options_btn)
 
@@ -290,7 +292,7 @@ func _build_home_view() -> void:
 	col.add_child(banner_panel)
 	if Settings.is_light():
 		banner_panel.add_child(Mist.new())
-	if ResourceLoader.exists(BANNER_PATH):
+	if ResourceLoader.exists(BANNER_PATH) and not Settings.is_lite():
 		var banner := TextureRect.new()
 		banner.texture = load(BANNER_PATH)
 		banner.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -548,7 +550,7 @@ func _apply_category_art() -> void:
 
 func _set_category_art(category_name: String) -> void:
 	var path: String = CATEGORY_ART.get(category_name, "")
-	if path != "" and not ResourceLoader.exists(path):
+	if path != "" and (Settings.is_lite() or not ResourceLoader.exists(path)):
 		path = ""
 	if path == _art_path:
 		return
@@ -879,6 +881,8 @@ func _update_friend_badge() -> void:
 		if str(f.get("status", "")) == "incoming":
 			waiting += 1
 	friends_btn.text = tr("👥 Friends") + (" (%d)" % waiting if waiting > 0 else "")
+	# Signed out (the Profile button needs the room) or Safety > online off: no Friends.
+	friends_btn.visible = Auth.is_logged_in() and not Catalog.online_blocked()
 
 ## The top bar's Profile button: the player's name, or "Sign In".
 func _update_account_status() -> void:
@@ -886,8 +890,24 @@ func _update_account_status() -> void:
 		return
 	if Auth.is_logged_in():
 		profile_btn.text = "👤 %s" % Auth.get_display_name()
+		_restyle_pill(profile_btn, pal.account)
 	else:
-		profile_btn.text = "👤 " + tr("Profile")
+		# profile_btn.text = "👤 " + tr("Profile")
+		# Owner 2026-11-13: a bold call to sign in, in the "go" green.
+		profile_btn.text = tr("🔑 SIGN IN TO YOUR PROFILE NOW")
+		_restyle_pill(profile_btn, pal.ready)
+	_update_friend_badge()
+
+func _restyle_pill(b: Button, color: Color) -> void:
+	for c in ["font_color", "font_hover_color", "font_pressed_color"]:
+		b.add_theme_color_override(c, color)
+	var sb := _neon_style(pal.header_fill, color, 0.5)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	for state in ["normal", "hover", "pressed", "focus"]:
+		b.add_theme_stylebox_override(state, sb)
 
 ## Shared neon-glow panel style: bright border + a blurred shadow of the same hue
 ## behind it (Godot's StyleBoxFlat shadow is a real soft blur, not a flat drop shadow),

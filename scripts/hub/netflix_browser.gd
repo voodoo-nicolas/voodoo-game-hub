@@ -85,7 +85,7 @@ var _grid_cols := 0
 
 func setup(hub_node: Node) -> void:
 	hub = hub_node
-	grid_mode = Settings.hub_layout == "grid"
+	grid_mode = Settings.hub_layout == "grid" or Settings.is_lite()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = HubLook.pal().bg
@@ -419,7 +419,7 @@ func _update_background() -> void:
 		var idx := int(tab.substr(4))
 		if idx >= 0 and idx < Catalog.categories.size():
 			var path: String = hub.CATEGORY_ART.get(str(Catalog.categories[idx].get("name", "")), "")
-			if path != "" and ResourceLoader.exists(path):
+			if path != "" and not Settings.is_lite() and ResourceLoader.exists(path):
 				_set_art(path, load(path) as Texture2D)
 				return
 	_set_art("hub", null)
@@ -700,7 +700,7 @@ func _close_detail() -> void:
 func _set_preview(g: Dictionary, _category_en: String) -> void:
 	var id := str(g.get("id", ""))
 	var art_path := str(g.get("hero_art", ""))
-	var art: Texture2D = load(art_path) as Texture2D if art_path != "" and ResourceLoader.exists(art_path) else null
+	var art: Texture2D = load(art_path) as Texture2D if art_path != "" and not Settings.is_lite() and ResourceLoader.exists(art_path) else null
 	_preview_art.texture = art
 	_preview_art.visible = art != null
 	if art != null:

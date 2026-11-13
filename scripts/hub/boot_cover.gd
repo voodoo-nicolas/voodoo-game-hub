@@ -115,7 +115,7 @@ func _draw_ring() -> void:
 		for k in 6:  # a short fading tail behind each dot
 			var a := t * 2.2 + i * TAU / 3.0 - k * 0.09
 			var p := c + Vector2(cos(a), sin(a)) * r
-			var s := 9.0 - k * 1.2
+			var s := 16.0 - k * 2.0
 			var col: Color = cols[i]
 			col.a = 1.0 - k * 0.16
 			_ring.draw_rect(Rect2(p - Vector2(s, s) * 0.5, Vector2(s, s)), col)

@@ -82,7 +82,9 @@ var app_update_checked := false
 ## can't blank the hub. `categories` holds only the games this player's age
 ## bracket allows (see refilter); `show_locked` also lists the rest, marked
 ## game.locked, which can't be opened or downloaded.
-var show_locked := false
+## Owner 2026-11-13: locked games stay in the list, greyed out with a padlock.
+# var show_locked := false
+var show_locked := true
 var _all_categories: Array = []
 var _ratings_active := false
 
@@ -380,11 +382,58 @@ func _family_less(a: Dictionary, b: Dictionary) -> bool:
 func max_age() -> int:
 	return preload("res://scripts/common/consent.gd").max_game_age()
 
-## True if the game's rating is above what this player's account allows.
+## True if the game's rating is above what this player's account allows, or
+## Options > Safety hides it (safety_reason).
 func is_age_locked(game: Dictionary) -> bool:
-	if not _ratings_active or not game.has("id"):
+	if not game.has("id"):
+		return false
+	if safety_reason(game) != "":
+		return true
+	if not _ratings_active:
 		return false
 	return bool(game.get("unrated", false)) or int(game.get("min_age", 18)) > max_age()
+
+## Options > Safety (owner 2026-11-13). Games of a kind the descriptors don't
+## cover are listed by id here (APK-side, so no manifest change is needed).
+const SAFETY_IDS := {
+	"occult": ["spirit_board", "tarot", "fortune_ball"],
+	"gambling": ["blackjack", "video_poker"],
+	"horror": [],
+	"violence": [],
+}
+## Manifest content descriptors that also count for a Safety switch.
+const SAFETY_DESCRIPTORS := {
+	"gambling": ["simulated_gambling"],
+	"horror": ["horror"],
+	"violence": ["violence_cartoon", "violence_realistic", "blood"],
+}
+
+## The Safety switch that hides this game, translated ("" = none).
+func safety_reason(game: Dictionary) -> String:
+	var st = get_node_or_null("/root/Settings")
+	if st == null or not st.has_method("safety_on"):
+		return ""
+	var id := str(game.get("id", ""))
+	var lim: int = st.safety_max_age()
+	if lim > 0 and int(game.get("min_age", 3)) > lim:
+		return tr("Safety: over ages %d+") % lim
+	var desc: Array = game.get("descriptors", [])
+	var names := {"occult": tr("Safety: occult themes"), "gambling": tr("Safety: gambling"),
+		"horror": tr("Safety: horror"), "violence": tr("Safety: violence")}
+	for key in names:
+		if not st.safety_on(key):
+			continue
+		if id in SAFETY_IDS.get(key, []):
+			return names[key]
+		for d in SAFETY_DESCRIPTORS.get(key, []):
+			if d in desc:
+				return names[key]
+	return ""
+
+## Options > Safety > online play off: no lobbies, invites or Multiplayer.
+func online_blocked() -> bool:
+	var st = get_node_or_null("/root/Settings")
+	return st != null and st.has_method("safety_on") and st.safety_on("online")
 
 ## "Ages 7+ · Cartoon violence" for the Landing's rating line; "" when the game has
 ## no content block (or the manifest has no ratings at all).
@@ -410,6 +459,9 @@ func rating_text(game: Dictionary) -> String:
 
 ## "Ages 16+" (translated) for a locked game.
 func age_reason(game: Dictionary) -> String:
+	var why := safety_reason(game)
+	if why != "":
+		return why
 	if bool(game.get("unrated", false)):
 		return tr("Not rated")
 	return tr("Ages %d+") % int(game.get("min_age", 18))

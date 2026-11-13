@@ -131,7 +131,10 @@ func _fill_board() -> void:
 		var mine: bool = str(r.get("user_id", "")) == me
 		var row := HBoxContainer.new()
 		var medal: String = ["🥇", "🥈", "🥉"][i] if i < 3 else "%d." % (i + 1)
-		var who := label("%s  %s" % [medal, str(r.get("display_name", "Player"))], 24,
+		var shown := str(r.get("display_name", "Player"))
+		if not mine and Settings.safety_on("public_names"):
+			shown = tr("Player")  # Options > Safety: other players' names hidden
+		var who := label("%s  %s" % [medal, shown], 24,
 			pal.accent if mine else pal.text, false)
 		who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		who.clip_text = true

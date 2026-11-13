@@ -140,7 +140,22 @@ func can_act(current_player_is_me: bool) -> bool:
 	return not is_online() or (current_player_is_me and opponent_here)
 
 func open_lobby() -> void:
+	var cat = get_node_or_null("/root/Catalog")
+	if cat != null and cat.has_method("online_blocked") and cat.online_blocked():
+		_safety_notice()
+		return
 	lobby.open()
+
+## Options > Safety turned online play off: say so instead of opening the lobby.
+func _safety_notice() -> void:
+	var d := AcceptDialog.new()
+	d.title = tr("Online play is off")
+	d.dialog_text = tr("Options > Safety turned online play off on this device.")
+	d.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child(d)
+	d.confirmed.connect(d.queue_free)
+	d.canceled.connect(d.queue_free)
+	d.popup_centered()
 
 func send_move(payload: Dictionary) -> void:
 	if not is_online():
