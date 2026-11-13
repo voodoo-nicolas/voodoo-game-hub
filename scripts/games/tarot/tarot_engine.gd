@@ -7,11 +7,15 @@ extends RefCounted
 ## only -- the help text says so.
 
 const DATA_PATH := "res://scripts/games/tarot/tarot_cards.json"
+const LORE_PATH := "res://scripts/games/tarot/tarot_lore.json"
 const PROGRESS_PATH := "user://tarot_progress.json"
 const SPREADS := {"one": 1, "three": 3, "five": 5, "celtic": 10}
 
 var data: Dictionary = {}
 var cards: Array = []
+## More about each card (tarot_lore.json): traditional picture, what it is linked to, keywords, love and
+## work readings, and what each position of a spread stands for. Optional: empty when the file is missing.
+var lore: Dictionary = {}
 var lang := "en"
 ## Collection: card index -> {"up": bool, "rev": bool} seen at least once.
 var seen: Dictionary = {}
@@ -28,6 +32,10 @@ func load_data(path: String = DATA_PATH) -> bool:
 		return false
 	data = parsed
 	cards = data.get("cards", [])
+	if FileAccess.file_exists(LORE_PATH):
+		var l: Variant = JSON.parse_string(FileAccess.get_file_as_string(LORE_PATH))
+		if l is Dictionary and l.get("cards", []).size() == 22:
+			lore = l
 	return cards.size() == 22
 
 func _l(d: Dictionary) -> String:
@@ -47,6 +55,37 @@ func symbol_of(i: int) -> String:
 ## The card's meaning for the way it fell.
 func meaning(i: int, rev: bool) -> String:
 	return _l(cards[i]["rev" if rev else "up"])
+
+func has_lore() -> bool:
+	return not lore.is_empty()
+
+func _lore(i: int, key: String) -> Dictionary:
+	return lore.get("cards", [])[i].get(key, {}) if has_lore() else {}
+
+## "Air", "the Moon"...: what the card is traditionally linked to.
+func assoc(i: int) -> String:
+	return _l(_lore(i, "assoc"))
+
+## The traditional picture on the card, in a sentence.
+func picture(i: int) -> String:
+	return _l(_lore(i, "pic"))
+
+## Keywords for the way the card fell, as one comma-separated line.
+func keywords(i: int, rev: bool) -> String:
+	var k: Dictionary = _lore(i, "kw").get("rev" if rev else "up", {})
+	var arr: Array = k.get(lang, k.get("en", []))
+	return ", ".join(PackedStringArray(arr))
+
+func love(i: int, rev: bool) -> String:
+	return _l(_lore(i, "love").get("rev" if rev else "up", {}))
+
+func work(i: int, rev: bool) -> String:
+	return _l(_lore(i, "work").get("rev" if rev else "up", {}))
+
+## What a position of a spread stands for ("What shaped this situation: its roots.").
+func position_note(spread: String, idx: int) -> String:
+	var arr: Array = lore.get("positions", {}).get(spread, [])
+	return _l(arr[idx]) if idx < arr.size() else ""
 
 func position_name(spread: String, idx: int) -> String:
 	var arr: Array = data.get("positions", {}).get(spread, [])

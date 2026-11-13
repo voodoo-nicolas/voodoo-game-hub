@@ -173,6 +173,111 @@ static func pop_in(n: CanvasItem, delay: float) -> void:
 	tw.tween_property(n, "modulate:a", 1.0, 0.12)
 	tw.parallel().tween_property(n, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
+## Slides a Control in from the side (and fades it in) after `delay` seconds; it ends where it is now.
+static func slide_in(n: Control, delay: float, dx: float = -36.0) -> void:
+	_kill(n)
+	var rest := n.position.x
+	n.modulate.a = 0.0
+	var tw := n.create_tween()
+	n.set_meta("fx_tween", tw)
+	tw.tween_interval(delay)
+	if reduced():
+		tw.tween_property(n, "modulate:a", 1.0, 0.15)
+		return
+	n.position.x = rest + dx
+	tw.tween_property(n, "modulate:a", 1.0, 0.25)
+	tw.parallel().tween_property(n, "position:x", rest, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+## A seamless soft noise picture (256 px), made once: the fog is drawn from it.
+static var _noise: Texture2D = null
+
+static func noise() -> Texture2D:
+	if _noise != null:
+		return _noise
+	var n := FastNoiseLite.new()
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	n.fractal_type = FastNoiseLite.FRACTAL_FBM
+	n.fractal_octaves = 4
+	n.frequency = 0.014
+	n.seed = 7
+	_noise = ImageTexture.create_from_image(n.get_seamless_image(384, 384))
+	return _noise
+
+const MIST_SHADER := """shader_type canvas_item;
+uniform vec4 tint : source_color = vec4(0.6, 0.5, 0.9, 1.0);
+uniform float amount = 0.45;
+uniform float speed = 0.012;
+uniform vec2 tiles = vec2(1.5, 2.6);
+void fragment() {
+	vec2 uv = UV * tiles;
+	float a = texture(TEXTURE, uv + vec2(TIME * speed, TIME * speed * 0.35)).r;
+	float b = texture(TEXTURE, uv * 1.9 + vec2(-TIME * speed * 0.7, TIME * speed * 0.5)).r;
+	float m = smoothstep(0.30, 1.0, a * 0.6 + b * 0.4);
+	COLOR = vec4(tint.rgb, m * amount * tint.a);
+}
+"""
+static var _mist_shader: Shader = null
+
+## Slow drifting fog over a whole screen: add it full-rect (anchors) where the haze should be. Two layers of
+## noise slide past each other in a shader (no particles, no threads). Null when effects are reduced.
+static func mist(parent: Node, tint: Color, amount: float = 0.45) -> TextureRect:
+	if reduced():
+		return null
+	if _mist_shader == null:
+		_mist_shader = Shader.new()
+		_mist_shader.code = MIST_SHADER
+	var t := TextureRect.new()
+	t.texture = noise()
+	t.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_SCALE
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mat := ShaderMaterial.new()
+	mat.shader = _mist_shader
+	mat.set_shader_parameter("tint", tint)
+	mat.set_shader_parameter("amount", amount)
+	t.material = mat
+	parent.add_child(t)
+	return t
+
+## A warm glow (additive) that flickers like a candle flame. Returns the glow; call flicker_start()
+## when it shows and flicker_stop() when it hides. `phase` keeps several flames out of step.
+static func light(parent: Node, color: Color, diameter: float) -> TextureRect:
+	var t := TextureRect.new()
+	t.texture = blob(128)
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_SCALE
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	t.material = mat
+	t.modulate = Color(color, 0.3)
+	t.size = Vector2(diameter, diameter)
+	t.pivot_offset = t.size * 0.5
+	parent.add_child(t)
+	return t
+
+static func flicker_start(t: TextureRect, phase: float) -> void:
+	_kill(t)
+	if reduced():
+		t.modulate.a = 0.28
+		return
+	var tw := t.create_tween()
+	t.set_meta("fx_tween", tw)
+	tw.set_loops()
+	tw.tween_method(_flicker.bind(t, phase), 0.0, 900.0, 900.0)
+
+static func flicker_stop(t: TextureRect) -> void:
+	_kill(t)
+
+static func _flicker(time: float, t: TextureRect, phase: float) -> void:
+	if not is_instance_valid(t):
+		return
+	var a := 0.30 + 0.09 * sin(time * 8.7 + phase) + 0.06 * sin(time * 15.9 + phase * 2.3) + 0.04 * sin(time * 3.1 + phase * 0.7)
+	t.modulate.a = clampf(a, 0.08, 0.6)
+	var s := 1.0 + 0.04 * sin(time * 6.1 + phase)
+	t.scale = Vector2(s, s)
+
 static func _kill(n: Node) -> void:
 	if n.has_meta("fx_tween"):
 		var old: Variant = n.get_meta("fx_tween")

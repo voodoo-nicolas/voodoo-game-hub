@@ -20,9 +20,16 @@ func _init() -> void:
 			check(e.name_of(i) != "", "%s name %d" % [lang, i])
 			check(e.meaning(i, false) != "" and e.meaning(i, true) != "", "%s meaning %d" % [lang, i])
 			check(str(e.symbol_of(i)) != "", "symbol %d" % i)
+			# The lore (tarot_lore.json): every card has every field, both ways, both languages.
+			check(e.has_lore(), "lore loads")
+			check(e.assoc(i) != "" and e.picture(i) != "", "%s assoc/picture %d" % [lang, i])
+			for r in [false, true]:
+				check(e.keywords(i, r).count(",") >= 2, "%s keywords %d %s" % [lang, i, r])
+				check(e.love(i, r) != "" and e.work(i, r) != "", "%s love/work %d %s" % [lang, i, r])
 		for sp in E.SPREADS:
 			for k in E.SPREADS[sp]:
 				check(e.position_name(sp, k) != "", "%s %s position %d" % [lang, sp, k])
+				check(e.position_note(sp, k) != "", "%s %s position note %d" % [lang, sp, k])
 		for t in ["bright", "mixed", "stormy"]:
 			check(e.data["summary"][t][lang].size() >= 1, "summary %s %s" % [t, lang])
 	# Draws: right size, no card twice, ids in range; reversed share near the setting.

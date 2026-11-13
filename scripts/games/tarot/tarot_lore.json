@@ -1,0 +1,1408 @@
+{
+ "cards": [
+  {
+   "assoc": {
+    "en": "Air",
+    "es": "Aire"
+   },
+   "pic": {
+    "en": "A traveller steps toward a cliff edge with a small dog at their heels, a white rose in one hand and a bundle on a stick, under a bright sun.",
+    "es": "Un viajero avanza hacia el borde de un precipicio con un perrito a sus talones, una rosa blanca en una mano y un hatillo en un palo, bajo un sol radiante."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "new beginnings",
+      "trust",
+      "spontaneity",
+      "a leap of faith"
+     ],
+     "es": [
+      "nuevos comienzos",
+      "confianza",
+      "espontaneidad",
+      "un salto de fe"
+     ]
+    },
+    "rev": {
+     "en": [
+      "recklessness",
+      "naivety",
+      "poor planning",
+      "hesitation"
+     ],
+     "es": [
+      "imprudencia",
+      "ingenuidad",
+      "mala planificación",
+      "duda"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "A fresh, open-hearted start; stay curious and honest.",
+     "es": "Un comienzo fresco y de corazón abierto; sé curioso y honesto."
+    },
+    "rev": {
+     "en": "Rushing in without thinking, or holding back from fear.",
+     "es": "Lanzarte sin pensar, o frenarte por miedo."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A new project or path: say yes and learn as you go.",
+     "es": "Un proyecto o camino nuevo: di que sí y aprende sobre la marcha."
+    },
+    "rev": {
+     "en": "A risky plan with no safety net; check the details first.",
+     "es": "Un plan arriesgado sin red de seguridad; revisa los detalles antes."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Mercury",
+    "es": "Mercurio"
+   },
+   "pic": {
+    "en": "A figure with one hand raised to the sky and one pointing to the earth stands before a table holding a cup, a coin, a sword and a wand, with an infinity sign above their head.",
+    "es": "Una figura con una mano alzada al cielo y otra señalando la tierra, ante una mesa con una copa, una moneda, una espada y una vara, con el signo del infinito sobre la cabeza."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "skill",
+      "focus",
+      "willpower",
+      "making ideas real"
+     ],
+     "es": [
+      "habilidad",
+      "concentración",
+      "voluntad",
+      "hacer realidad las ideas"
+     ]
+    },
+    "rev": {
+     "en": [
+      "scattered effort",
+      "manipulation",
+      "wasted talent",
+      "tricks"
+     ],
+     "es": [
+      "esfuerzo disperso",
+      "manipulación",
+      "talento desperdiciado",
+      "trucos"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Clear, charming communication; say what you mean.",
+     "es": "Comunicación clara y encantadora; di lo que piensas."
+    },
+    "rev": {
+     "en": "Mixed messages, or someone saying only what you want to hear.",
+     "es": "Mensajes confusos, o alguien que solo dice lo que quieres oír."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "You have the skills: pitch, build and launch.",
+     "es": "Tienes las habilidades: presenta, construye y lanza."
+    },
+    "rev": {
+     "en": "Big promises with little follow-through; watch for shortcuts.",
+     "es": "Grandes promesas con poco cumplimiento; cuidado con los atajos."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "the Moon",
+    "es": "la Luna"
+   },
+   "pic": {
+    "en": "A veiled woman sits between a black and a white pillar, a crescent moon at her feet and a scroll in her lap, with a pomegranate-patterned curtain behind her.",
+    "es": "Una mujer con velo se sienta entre un pilar negro y uno blanco, con una luna creciente a sus pies y un pergamino en el regazo, ante una cortina de granadas."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "intuition",
+      "mystery",
+      "inner wisdom",
+      "patience"
+     ],
+     "es": [
+      "intuición",
+      "misterio",
+      "sabiduría interior",
+      "paciencia"
+     ]
+    },
+    "rev": {
+     "en": [
+      "secrets",
+      "ignoring your gut",
+      "surface noise",
+      "withdrawal"
+     ],
+     "es": [
+      "secretos",
+      "ignorar tu instinto",
+      "ruido superficial",
+      "retraimiento"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Listen to what is not being said; trust your feelings.",
+     "es": "Escucha lo que no se dice; confía en lo que sientes."
+    },
+    "rev": {
+     "en": "Hidden feelings or mind games; ask directly.",
+     "es": "Sentimientos ocultos o juegos mentales; pregunta con franqueza."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Do your research quietly; the full picture is not public yet.",
+     "es": "Investiga con calma; el panorama completo aún no es público."
+    },
+    "rev": {
+     "en": "Information is being withheld, or you are ignoring a warning sign.",
+     "es": "Se oculta información, o ignoras una señal de alerta."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Venus",
+    "es": "Venus"
+   },
+   "pic": {
+    "en": "A crowned woman reclines on cushions in a lush field of wheat, with a heart-shaped shield bearing the sign of Venus and a crown of twelve stars.",
+    "es": "Una mujer coronada reposa sobre cojines en un campo de trigo, con un escudo en forma de corazón con el signo de Venus y una corona de doce estrellas."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "nurture",
+      "abundance",
+      "creativity",
+      "comfort"
+     ],
+     "es": [
+      "cuidado",
+      "abundancia",
+      "creatividad",
+      "comodidad"
+     ]
+    },
+    "rev": {
+     "en": [
+      "smothering",
+      "neglecting yourself",
+      "creative block",
+      "dependence"
+     ],
+     "es": [
+      "sobreprotección",
+      "descuidarte",
+      "bloqueo creativo",
+      "dependencia"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Warm, caring affection; love that helps both grow.",
+     "es": "Afecto cálido y cuidadoso; un amor que ayuda a crecer a ambos."
+    },
+    "rev": {
+     "en": "Giving too much, or clinging; make space for yourself.",
+     "es": "Dar demasiado o aferrarte; haz espacio para ti."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Creative work flourishes; invest in what you have planted.",
+     "es": "El trabajo creativo florece; invierte en lo que sembraste."
+    },
+    "rev": {
+     "en": "Burnout or a stalled idea; rest before you push.",
+     "es": "Agotamiento o una idea estancada; descansa antes de insistir."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Aries",
+    "es": "Aries"
+   },
+   "pic": {
+    "en": "A stern ruler on a stone throne carved with rams' heads holds an ankh-topped sceptre and an orb, with barren mountains behind him.",
+    "es": "Un gobernante severo en un trono de piedra con cabezas de carnero sostiene un cetro con una cruz ansada y un orbe, con montañas áridas detrás."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "authority",
+      "structure",
+      "protection",
+      "discipline"
+     ],
+     "es": [
+      "autoridad",
+      "estructura",
+      "protección",
+      "disciplina"
+     ]
+    },
+    "rev": {
+     "en": [
+      "rigidity",
+      "domination",
+      "stubbornness",
+      "lack of control"
+     ],
+     "es": [
+      "rigidez",
+      "dominio",
+      "terquedad",
+      "falta de control"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Stability and commitment; reliable, if serious.",
+     "es": "Estabilidad y compromiso; confiable, aunque serio."
+    },
+    "rev": {
+     "en": "Controlling behaviour, or a cold, distant partner.",
+     "es": "Conducta controladora, o una pareja fría y distante."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Build a plan, set rules, take charge.",
+     "es": "Haz un plan, pon reglas, toma el mando."
+    },
+    "rev": {
+     "en": "A rigid boss, or you over-controlling; loosen your grip.",
+     "es": "Un jefe rígido, o tú controlando demasiado; afloja el agarre."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Taurus",
+    "es": "Tauro"
+   },
+   "pic": {
+    "en": "A robed teacher sits between two pillars, one hand raised in blessing, with two followers kneeling before him and crossed keys at his feet.",
+    "es": "Un maestro con túnica se sienta entre dos pilares, con una mano alzada en bendición, dos seguidores arrodillados ante él y dos llaves cruzadas a sus pies."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "tradition",
+      "teaching",
+      "shared beliefs",
+      "guidance"
+     ],
+     "es": [
+      "tradición",
+      "enseñanza",
+      "creencias compartidas",
+      "guía"
+     ]
+    },
+    "rev": {
+     "en": [
+      "rebellion",
+      "new methods",
+      "questioning rules",
+      "nonconformity"
+     ],
+     "es": [
+      "rebeldía",
+      "métodos nuevos",
+      "cuestionar reglas",
+      "inconformismo"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Shared values and traditional commitment; a mentor-like bond.",
+     "es": "Valores compartidos y compromiso tradicional; un vínculo de maestro y aprendiz."
+    },
+    "rev": {
+     "en": "Break from expectations; choose a relationship that fits you.",
+     "es": "Rompe con las expectativas; elige una relación que encaje contigo."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Learn the proven method; a good teacher or institution helps.",
+     "es": "Aprende el método probado; ayuda un buen maestro o institución."
+    },
+    "rev": {
+     "en": "The old way no longer fits; try your own approach.",
+     "es": "El método de siempre ya no sirve; prueba el tuyo."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Gemini",
+    "es": "Géminis"
+   },
+   "pic": {
+    "en": "A man and a woman stand beneath an angel with outstretched wings, a tree of fruit and a serpent behind her and a tree of flames behind him.",
+    "es": "Un hombre y una mujer bajo un ángel de alas abiertas, con un árbol con fruto y una serpiente tras ella y un árbol de llamas tras él."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "love",
+      "harmony",
+      "shared values",
+      "a meaningful choice"
+     ],
+     "es": [
+      "amor",
+      "armonía",
+      "valores compartidos",
+      "una elección importante"
+     ]
+    },
+    "rev": {
+     "en": [
+      "disharmony",
+      "imbalance",
+      "a choice avoided",
+      "mismatched values"
+     ],
+     "es": [
+      "desarmonía",
+      "desequilibrio",
+      "una elección evitada",
+      "valores distintos"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Deep connection; two people choosing each other.",
+     "es": "Conexión profunda; dos personas que se eligen."
+    },
+    "rev": {
+     "en": "Doubt or distance; words and actions don't match.",
+     "es": "Duda o distancia; las palabras y los actos no coinciden."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A partnership or a choice that matches your values.",
+     "es": "Una alianza o decisión acorde con tus valores."
+    },
+    "rev": {
+     "en": "A conflict of interests; do not decide only to please others.",
+     "es": "Un conflicto de intereses; no decidas solo por agradar."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Cancer",
+    "es": "Cáncer"
+   },
+   "pic": {
+    "en": "An armoured figure stands in a chariot under a canopy of stars, drawn by a black and a white sphinx, with a city behind him.",
+    "es": "Una figura con armadura en un carro bajo un dosel de estrellas, tirado por una esfinge negra y otra blanca, con una ciudad detrás."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "determination",
+      "victory",
+      "control",
+      "forward drive"
+     ],
+     "es": [
+      "determinación",
+      "victoria",
+      "control",
+      "impulso"
+     ]
+    },
+    "rev": {
+     "en": [
+      "no direction",
+      "aggression",
+      "delays",
+      "losing control"
+     ],
+     "es": [
+      "falta de rumbo",
+      "agresividad",
+      "retrasos",
+      "pérdida de control"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Move forward together with a shared goal.",
+     "es": "Avancen juntos con una meta compartida."
+    },
+    "rev": {
+     "en": "Pulling in different directions; slow down and talk.",
+     "es": "Tiran cada uno por su lado; frena y conversen."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Drive and focus win the day; stay on course.",
+     "es": "El empuje y la concentración ganan; mantén el rumbo."
+    },
+    "rev": {
+     "en": "Scattered energy or a power struggle; pick one goal.",
+     "es": "Energía dispersa o lucha de poder; elige una meta."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Leo",
+    "es": "Leo"
+   },
+   "pic": {
+    "en": "A woman in white gently closes a lion's jaws, with an infinity sign above her head and a garland of flowers.",
+    "es": "Una mujer de blanco cierra con suavidad las fauces de un león, con el signo del infinito sobre su cabeza y una guirnalda de flores."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "courage",
+      "patience",
+      "compassion",
+      "quiet confidence"
+     ],
+     "es": [
+      "valor",
+      "paciencia",
+      "compasión",
+      "confianza serena"
+     ]
+    },
+    "rev": {
+     "en": [
+      "self-doubt",
+      "insecurity",
+      "raw emotion",
+      "low energy"
+     ],
+     "es": [
+      "dudas",
+      "inseguridad",
+      "emociones sin control",
+      "poca energía"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Patient, tender love; kindness tames conflict.",
+     "es": "Un amor paciente y tierno; la bondad calma el conflicto."
+    },
+    "rev": {
+     "en": "Insecurity or jealousy; be gentle with yourself first.",
+     "es": "Inseguridad o celos; sé amable contigo primero."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Calm persistence beats pressure; lead with empathy.",
+     "es": "La constancia tranquila vence a la presión; lidera con empatía."
+    },
+    "rev": {
+     "en": "Confidence is low; remember what you have already handled.",
+     "es": "La confianza está baja; recuerda lo que ya has superado."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Virgo",
+    "es": "Virgo"
+   },
+   "pic": {
+    "en": "An old man on a snowy peak holds up a lantern containing a six-pointed star and leans on a staff.",
+    "es": "Un anciano en una cima nevada alza un farol con una estrella de seis puntas y se apoya en un bastón."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "solitude",
+      "reflection",
+      "guidance",
+      "searching within"
+     ],
+     "es": [
+      "soledad",
+      "reflexión",
+      "guía",
+      "búsqueda interior"
+     ]
+    },
+    "rev": {
+     "en": [
+      "isolation",
+      "loneliness",
+      "withdrawing too far",
+      "ignoring advice"
+     ],
+     "es": [
+      "aislamiento",
+      "soledad",
+      "retirarte demasiado",
+      "ignorar consejos"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Time alone helps you know what you want.",
+     "es": "Pasar tiempo a solas te ayuda a saber qué quieres."
+    },
+    "rev": {
+     "en": "Shutting people out; reach back toward someone.",
+     "es": "Cerrarte a los demás; acércate a alguien."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Focused, independent work; seek or become a mentor.",
+     "es": "Trabajo concentrado e independiente; busca o sé un mentor."
+    },
+    "rev": {
+     "en": "Working alone too long; ask for help or feedback.",
+     "es": "Trabajar solo demasiado tiempo; pide ayuda o comentarios."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Jupiter",
+    "es": "Júpiter"
+   },
+   "pic": {
+    "en": "A great wheel marked with letters and symbols turns in the sky: a sphinx on top, a serpent descending, a jackal-headed figure rising, and four winged creatures in the corners.",
+    "es": "Una gran rueda con letras y símbolos gira en el cielo: una esfinge arriba, una serpiente que desciende, una figura con cabeza de chacal que asciende y cuatro criaturas aladas en las esquinas."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "cycles",
+      "luck",
+      "a turning point",
+      "change for the better"
+     ],
+     "es": [
+      "ciclos",
+      "suerte",
+      "punto de inflexión",
+      "cambio favorable"
+     ]
+    },
+    "rev": {
+     "en": [
+      "bad timing",
+      "resisting change",
+      "setbacks",
+      "a pause"
+     ],
+     "es": [
+      "mal momento",
+      "resistencia al cambio",
+      "contratiempos",
+      "una pausa"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "A fortunate turn; a meeting or change that feels fated.",
+     "es": "Un giro afortunado; un encuentro o cambio que parece destino."
+    },
+    "rev": {
+     "en": "A rough patch that will pass; avoid repeating old patterns.",
+     "es": "Una mala racha que pasará; evita repetir viejos patrones."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Timing is on your side; take the opening.",
+     "es": "El momento está de tu lado; aprovecha la oportunidad."
+    },
+    "rev": {
+     "en": "An unlucky stretch; stay flexible and save your energy.",
+     "es": "Una racha difícil; sé flexible y cuida tu energía."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Libra",
+    "es": "Libra"
+   },
+   "pic": {
+    "en": "A crowned figure sits between two pillars, an upright sword in one hand and a pair of scales in the other.",
+    "es": "Una figura coronada entre dos pilares, con una espada vertical en una mano y una balanza en la otra."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "fairness",
+      "truth",
+      "cause and effect",
+      "accountability"
+     ],
+     "es": [
+      "equidad",
+      "verdad",
+      "causa y efecto",
+      "responsabilidad"
+     ]
+    },
+    "rev": {
+     "en": [
+      "unfairness",
+      "dishonesty",
+      "dodging responsibility",
+      "bias"
+     ],
+     "es": [
+      "injusticia",
+      "deshonestidad",
+      "evadir la responsabilidad",
+      "sesgo"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Honest, balanced give-and-take.",
+     "es": "Un dar y recibir honesto y equilibrado."
+    },
+    "rev": {
+     "en": "Unequal effort, or a truth being avoided.",
+     "es": "Esfuerzo desigual, o una verdad que se evita."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Contracts, decisions and results are fair; read the details.",
+     "es": "Contratos, decisiones y resultados son justos; lee los detalles."
+    },
+    "rev": {
+     "en": "A decision feels unfair; gather facts before you react.",
+     "es": "Una decisión parece injusta; reúne datos antes de reaccionar."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Water",
+    "es": "Agua"
+   },
+   "pic": {
+    "en": "A calm figure hangs upside down by one foot from a wooden frame, hands behind the back, a halo around the head.",
+    "es": "Una figura serena cuelga boca abajo de un pie en un armazón de madera, con las manos a la espalda y un halo alrededor de la cabeza."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "a pause",
+      "surrender",
+      "a new perspective",
+      "letting go"
+     ],
+     "es": [
+      "pausa",
+      "entrega",
+      "nueva perspectiva",
+      "soltar"
+     ]
+    },
+    "rev": {
+     "en": [
+      "stalling",
+      "needless sacrifice",
+      "resistance",
+      "indecision"
+     ],
+     "es": [
+      "estancamiento",
+      "sacrificio inútil",
+      "resistencia",
+      "indecisión"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Wait and see it from their side; patience helps.",
+     "es": "Espera y mira desde su lado; la paciencia ayuda."
+    },
+    "rev": {
+     "en": "Stuck in limbo; decide whether to stay or let go.",
+     "es": "Atrapado en el limbo; decide si te quedas o sueltas."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A delay is useful: rethink the plan before moving.",
+     "es": "Un retraso es útil: replantea el plan antes de avanzar."
+    },
+    "rev": {
+     "en": "You are stalling; the sacrifice is not paying off.",
+     "es": "Estás posponiendo; el sacrificio no está rindiendo."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Scorpio",
+    "es": "Escorpio"
+   },
+   "pic": {
+    "en": "A skeleton in black armour rides a white horse and carries a black flag with a white rose; a sun rises between two towers behind.",
+    "es": "Un esqueleto con armadura negra cabalga un caballo blanco y lleva una bandera negra con una rosa blanca; tras él sale el sol entre dos torres."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "endings",
+      "transformation",
+      "release",
+      "a new chapter"
+     ],
+     "es": [
+      "finales",
+      "transformación",
+      "liberación",
+      "un nuevo capítulo"
+     ]
+    },
+    "rev": {
+     "en": [
+      "clinging to the past",
+      "fear of change",
+      "a slow ending",
+      "stagnation"
+     ],
+     "es": [
+      "aferrarse al pasado",
+      "miedo al cambio",
+      "final lento",
+      "estancamiento"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "A phase of the relationship ends so a truer one can begin.",
+     "es": "Termina una etapa de la relación para que empiece una más sincera."
+    },
+    "rev": {
+     "en": "Holding on to something already over.",
+     "es": "Aferrarte a algo que ya terminó."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A role or project ends; clear the way for what is next.",
+     "es": "Termina un puesto o proyecto; despeja el camino a lo siguiente."
+    },
+    "rev": {
+     "en": "Resisting a needed change; the old way is wearing out.",
+     "es": "Resistes un cambio necesario; lo de siempre se desgasta."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Sagittarius",
+    "es": "Sagitario"
+   },
+   "pic": {
+    "en": "A winged figure pours water between two cups, one foot on land and one in a stream, with a path leading toward distant mountains.",
+    "es": "Una figura alada vierte agua entre dos copas, con un pie en tierra y otro en un arroyo, y un camino hacia montañas lejanas."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "balance",
+      "moderation",
+      "patience",
+      "blending"
+     ],
+     "es": [
+      "equilibrio",
+      "moderación",
+      "paciencia",
+      "mezcla"
+     ]
+    },
+    "rev": {
+     "en": [
+      "excess",
+      "imbalance",
+      "impatience",
+      "extremes"
+     ],
+     "es": [
+      "exceso",
+      "desequilibrio",
+      "impaciencia",
+      "extremos"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Steady, give-and-take harmony; take your time.",
+     "es": "Armonía serena y recíproca; sin prisa."
+    },
+    "rev": {
+     "en": "Too much intensity or too little effort; find the middle.",
+     "es": "Demasiada intensidad o muy poco esfuerzo; busca el punto medio."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Combine skills, pace yourself, aim for the long game.",
+     "es": "Combina habilidades, dosifica tu ritmo, piensa a largo plazo."
+    },
+    "rev": {
+     "en": "Overload or uneven effort; restore balance.",
+     "es": "Sobrecarga o esfuerzo desigual; recupera el equilibrio."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Capricorn",
+    "es": "Capricornio"
+   },
+   "pic": {
+    "en": "A horned figure looms over a man and a woman bound loosely by chains around their necks, beneath an inverted pentagram.",
+    "es": "Una figura con cuernos se alza sobre un hombre y una mujer atados con cadenas flojas al cuello, bajo un pentagrama invertido."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "attachment",
+      "temptation",
+      "habits",
+      "feeling trapped"
+     ],
+     "es": [
+      "apego",
+      "tentación",
+      "hábitos",
+      "sentirse atrapado"
+     ]
+    },
+    "rev": {
+     "en": [
+      "breaking free",
+      "awareness",
+      "reclaiming power",
+      "release"
+     ],
+     "es": [
+      "liberarse",
+      "conciencia",
+      "recuperar el poder",
+      "soltar"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "An unhealthy hold or obsession; notice what you are choosing.",
+     "es": "Un apego poco sano u obsesión; fíjate en lo que eliges."
+    },
+    "rev": {
+     "en": "Freeing yourself from a bad pattern.",
+     "es": "Liberarte de un mal patrón."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A job or habit that holds you; the chains are looser than they look.",
+     "es": "Un trabajo o hábito que te ata; las cadenas están más flojas de lo que parece."
+    },
+    "rev": {
+     "en": "Leaving a draining situation; take back your time.",
+     "es": "Salir de una situación que agota; recupera tu tiempo."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Mars",
+    "es": "Marte"
+   },
+   "pic": {
+    "en": "A tall tower on a cliff is struck by lightning, its crown blown off, flames at the windows and two figures falling.",
+    "es": "Una torre alta sobre un risco es golpeada por un rayo, su corona vuela, hay llamas en las ventanas y dos figuras caen."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "sudden change",
+      "upheaval",
+      "revelation",
+      "the false collapsing"
+     ],
+     "es": [
+      "cambio repentino",
+      "trastorno",
+      "revelación",
+      "caída de lo falso"
+     ]
+    },
+    "rev": {
+     "en": [
+      "averting disaster",
+      "fear of change",
+      "a delayed fall",
+      "aftermath"
+     ],
+     "es": [
+      "evitar el desastre",
+      "miedo al cambio",
+      "caída aplazada",
+      "secuelas"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "A shock that clears out what wasn't true; rebuild honestly.",
+     "es": "Un golpe que despeja lo que no era cierto; reconstruye con honestidad."
+    },
+    "rev": {
+     "en": "Avoiding a hard conversation; the cracks remain.",
+     "es": "Evitar una conversación difícil; las grietas siguen ahí."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A sudden shake-up; what was built on sand falls.",
+     "es": "Un sacudón repentino; lo construido sobre arena cae."
+    },
+    "rev": {
+     "en": "A close call; fix the weak points now.",
+     "es": "Un susto evitado; arregla los puntos débiles ahora."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Aquarius",
+    "es": "Acuario"
+   },
+   "pic": {
+    "en": "A woman kneels by a pool, pouring water from two jugs onto land and into the pool, under a large star and seven smaller ones.",
+    "es": "Una mujer arrodillada junto a un estanque vierte agua de dos jarras en la tierra y en el agua, bajo una gran estrella y siete más pequeñas."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "hope",
+      "renewal",
+      "healing",
+      "calm after the storm"
+     ],
+     "es": [
+      "esperanza",
+      "renovación",
+      "sanación",
+      "calma tras la tormenta"
+     ]
+    },
+    "rev": {
+     "en": [
+      "discouragement",
+      "lost faith",
+      "impatience",
+      "feeling drained"
+     ],
+     "es": [
+      "desánimo",
+      "fe perdida",
+      "impaciencia",
+      "sentirse agotado"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Gentle healing and honest hope for love.",
+     "es": "Sanación suave y esperanza sincera en el amor."
+    },
+    "rev": {
+     "en": "Doubt about love; small kind acts rebuild trust.",
+     "es": "Dudas sobre el amor; los pequeños gestos reconstruyen la confianza."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A calm, hopeful stretch; your efforts are being noticed.",
+     "es": "Una etapa tranquila y esperanzadora; se nota tu esfuerzo."
+    },
+    "rev": {
+     "en": "Low motivation; set one small, achievable goal.",
+     "es": "Poca motivación; fija una meta pequeña y alcanzable."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Pisces",
+    "es": "Piscis"
+   },
+   "pic": {
+    "en": "A full moon shines between two towers over a path; a dog and a wolf howl, and a crayfish crawls from a pool.",
+    "es": "Una luna llena brilla entre dos torres sobre un sendero; un perro y un lobo aúllan, y un cangrejo de río sale de un estanque."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "illusion",
+      "intuition",
+      "uncertainty",
+      "the unconscious"
+     ],
+     "es": [
+      "ilusión",
+      "intuición",
+      "incertidumbre",
+      "el inconsciente"
+     ]
+    },
+    "rev": {
+     "en": [
+      "clarity returning",
+      "a fear fading",
+      "confusion lifting"
+     ],
+     "es": [
+      "regresa la claridad",
+      "un miedo se desvanece",
+      "se disipa la confusión"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Mixed signals and unspoken fears; wait for clarity.",
+     "es": "Señales confusas y miedos callados; espera a tener claridad."
+    },
+    "rev": {
+     "en": "Truths come out and worries ease.",
+     "es": "La verdad sale a la luz y las preocupaciones se alivian."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Not everything is clear; double-check before committing.",
+     "es": "No todo está claro; verifica antes de comprometerte."
+    },
+    "rev": {
+     "en": "Confusion lifts; the picture becomes easier to read.",
+     "es": "La confusión se disipa; el panorama se aclara."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "the Sun",
+    "es": "el Sol"
+   },
+   "pic": {
+    "en": "A radiant sun shines over a child riding a white horse, with sunflowers behind a garden wall and a red banner.",
+    "es": "Un sol radiante brilla sobre un niño que monta un caballo blanco, con girasoles tras un muro de jardín y un estandarte rojo."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "joy",
+      "success",
+      "vitality",
+      "clarity"
+     ],
+     "es": [
+      "alegría",
+      "éxito",
+      "vitalidad",
+      "claridad"
+     ]
+    },
+    "rev": {
+     "en": [
+      "passing clouds",
+      "dimmed joy",
+      "over-optimism",
+      "delay"
+     ],
+     "es": [
+      "nubes pasajeras",
+      "alegría atenuada",
+      "exceso de optimismo",
+      "retraso"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Warmth, openness and happy times together.",
+     "es": "Calidez, apertura y momentos felices juntos."
+    },
+    "rev": {
+     "en": "A cloud over a good thing; it needs a little time.",
+     "es": "Una nube sobre algo bueno; necesita un poco de tiempo."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "Success and recognition; share the credit.",
+     "es": "Éxito y reconocimiento; comparte el mérito."
+    },
+    "rev": {
+     "en": "Good results are slower than hoped; stay positive.",
+     "es": "Los buenos resultados tardan más de lo esperado; mantén el ánimo."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Fire",
+    "es": "Fuego"
+   },
+   "pic": {
+    "en": "An angel blows a trumpet from the clouds while people rise from their graves with arms open.",
+    "es": "Un ángel toca una trompeta desde las nubes mientras personas se alzan de sus tumbas con los brazos abiertos."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "a calling",
+      "reflection",
+      "forgiveness",
+      "a second chance"
+     ],
+     "es": [
+      "un llamado",
+      "reflexión",
+      "perdón",
+      "una segunda oportunidad"
+     ]
+    },
+    "rev": {
+     "en": [
+      "self-doubt",
+      "harsh self-judgement",
+      "ignoring the call",
+      "regret"
+     ],
+     "es": [
+      "dudas",
+      "autocrítica dura",
+      "ignorar el llamado",
+      "arrepentimiento"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "Honest reflection, forgiveness and a renewed start.",
+     "es": "Reflexión honesta, perdón y un nuevo comienzo."
+    },
+    "rev": {
+     "en": "Old guilt keeps you from moving on; forgive yourself.",
+     "es": "Una vieja culpa te impide avanzar; perdónate."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A career turning point; answer the call you have been feeling.",
+     "es": "Un punto de inflexión profesional; responde al llamado que sientes."
+    },
+    "rev": {
+     "en": "Doubt holds you back; don't judge yourself too harshly.",
+     "es": "La duda te frena; no te juzgues con tanta dureza."
+    }
+   }
+  },
+  {
+   "assoc": {
+    "en": "Saturn",
+    "es": "Saturno"
+   },
+   "pic": {
+    "en": "A dancing figure holds two wands inside a laurel wreath, with four creatures in the corners: an angel, an eagle, a bull and a lion.",
+    "es": "Una figura danzante sostiene dos varas dentro de una corona de laurel, con cuatro criaturas en las esquinas: un ángel, un águila, un toro y un león."
+   },
+   "kw": {
+    "up": {
+     "en": [
+      "completion",
+      "wholeness",
+      "achievement",
+      "travel"
+     ],
+     "es": [
+      "culminación",
+      "plenitud",
+      "logro",
+      "viaje"
+     ]
+    },
+    "rev": {
+     "en": [
+      "unfinished business",
+      "delays",
+      "a shortcut",
+      "feeling incomplete"
+     ],
+     "es": [
+      "asuntos sin cerrar",
+      "retrasos",
+      "un atajo",
+      "sentirse incompleto"
+     ]
+    }
+   },
+   "love": {
+    "up": {
+     "en": "A fulfilling, complete chapter; feeling at home with someone.",
+     "es": "Un capítulo pleno y completo; sentirse en casa con alguien."
+    },
+    "rev": {
+     "en": "Something is missing; finish the last conversation.",
+     "es": "Falta algo; cierra la última conversación."
+    }
+   },
+   "work": {
+    "up": {
+     "en": "A project is done and celebrated; the next level opens.",
+     "es": "Un proyecto se completa y se celebra; se abre el siguiente nivel."
+    },
+    "rev": {
+     "en": "Almost there: one loose end remains.",
+     "es": "Casi llegas: queda un cabo suelto."
+    }
+   }
+  }
+ ],
+ "positions": {
+  "one": [
+   {
+    "en": "The theme the day asks you to notice.",
+    "es": "El tema al que el día te pide prestar atención."
+   }
+  ],
+  "three": [
+   {
+    "en": "What shaped this situation: its roots.",
+    "es": "Lo que dio forma a esta situación: sus raíces."
+   },
+   {
+    "en": "Where you stand right now.",
+    "es": "Dónde estás ahora mismo."
+   },
+   {
+    "en": "Where things are heading if nothing changes.",
+    "es": "Hacia dónde van las cosas si nada cambia."
+   }
+  ],
+  "five": [
+   {
+    "en": "Who you are in this question: your mood and your role.",
+    "es": "Quién eres en esta pregunta: tu ánimo y tu papel."
+   },
+   {
+    "en": "What stands in your way or tests you.",
+    "es": "Lo que se interpone o te pone a prueba."
+   },
+   {
+    "en": "What led you here.",
+    "es": "Lo que te trajo hasta aquí."
+   },
+   {
+    "en": "What is coming next.",
+    "es": "Lo que viene después."
+   },
+   {
+    "en": "Where it settles if you follow this path.",
+    "es": "Cómo se asienta si sigues este camino."
+   }
+  ],
+  "celtic": [
+   {
+    "en": "What the question is really about.",
+    "es": "De qué trata realmente la pregunta."
+   },
+   {
+    "en": "The obstacle, or what shapes the matter.",
+    "es": "El obstáculo, o lo que da forma al asunto."
+   },
+   {
+    "en": "The root beneath it all.",
+    "es": "La raíz de todo."
+   },
+   {
+    "en": "What is passing out of your life.",
+    "es": "Lo que está dejando tu vida."
+   },
+   {
+    "en": "Your goal, or the best that could happen.",
+    "es": "Tu meta, o lo mejor que podría pasar."
+   },
+   {
+    "en": "What is about to arrive.",
+    "es": "Lo que está por llegar."
+   },
+   {
+    "en": "Your attitude and how you see yourself in this.",
+    "es": "Tu actitud y cómo te ves en esto."
+   },
+   {
+    "en": "Other people and outside influences.",
+    "es": "Otras personas e influencias externas."
+   },
+   {
+    "en": "What you want, and what you dread (often the same thing).",
+    "es": "Lo que quieres y lo que temes (a menudo es lo mismo)."
+   },
+   {
+    "en": "Where it leads if nothing changes.",
+    "es": "Adónde lleva si nada cambia."
+   }
+  ]
+ }
+}

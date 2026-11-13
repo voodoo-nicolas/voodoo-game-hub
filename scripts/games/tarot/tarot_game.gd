@@ -14,6 +14,7 @@ const SoundLib = preload("res://scripts/games/tarot/sound_lib.gd")
 ## `hub.py sync` (CLAUDE.md "Home screen kit").
 const HomeKit = preload("res://scripts/games/tarot/home_kit.gd")
 const LandingStyles = preload("res://scripts/games/tarot/landing_styles.gd")
+const Fx = preload("res://scripts/games/tarot/fx_lib.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -51,6 +52,11 @@ var head_label: Label
 var name_label: Label
 var text_label: Label
 var teller_label: Label
+var pos_label: Label         # what the selected card's position stands for
+var kw_label: Label          # the selected card's keywords
+var more_btn: Button         # opens the full page about the selected card
+var _amb: Control            # the misty backdrop of the reading screen
+var _amb_glitter: CPUParticles2D
 var again_btn: Button
 var _rects: Array = []       # current target rect per card
 
@@ -75,6 +81,7 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
 	add_child(HomeKit.backdrop())
+	_build_ambience()
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -121,7 +128,7 @@ func _build_ui() -> void:
 
 	# The teller's panel: what the selected card says, then the sum-up.
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 210)
+	scroll.custom_minimum_size = Vector2(0, 230)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var sm := MarginContainer.new()
 	sm.add_theme_constant_override("margin_left", 20)
@@ -134,8 +141,21 @@ func _build_ui() -> void:
 	scroll.add_child(col)
 	name_label = _wrap_label(30)
 	col.add_child(name_label)
+	pos_label = _wrap_label(21)
+	pos_label.add_theme_color_override("font_color", HomeKit.DIM)
+	col.add_child(pos_label)
 	text_label = _wrap_label(26)
 	col.add_child(text_label)
+	kw_label = _wrap_label(22)
+	kw_label.add_theme_color_override("font_color", HomeKit.DIM)
+	col.add_child(kw_label)
+	more_btn = Button.new()
+	more_btn.text = tr("📜 More about this card")
+	more_btn.custom_minimum_size = Vector2(0, 62)
+	more_btn.add_theme_font_size_override("font_size", 24)
+	more_btn.visible = false
+	more_btn.pressed.connect(_on_more)
+	col.add_child(more_btn)
 	teller_label = _wrap_label(26)
 	col.add_child(teller_label)
 
@@ -160,11 +180,20 @@ func _build_ui() -> void:
 		"art": "res://games/tarot/landing_bg.jpg",
 		"art_title": [0.116, 0.157],   # the painted title (tools/tarot_art.py)
 		# Round floating Landing (docs/claude/landing-styles.md); "art" above is the stack's fallback.
-		"landing": "orbs",
+		"landing": "list",
 		"landing_style": LandingStyles,
 		"landing_title_art": "res://games/tarot/landing_title.webp",
 		"landing_art": {"portrait": "res://games/tarot/landing_portrait.jpg", "wide": "res://games/tarot/landing_wide.jpg"},
 		"orb_color": Color("e0bf4d"),
+		"landing_mist": Color(0.62, 0.52, 0.95),
+		"landing_twilight": true,
+		"landing_side_veil": 0.6,
+		# Candle flames and the crystal ball on the pictures (x, y as fractions of the picture).
+		"landing_lights": {
+			"portrait": [[0.175, 0.30, 190.0, Color("ffb050")], [0.83, 0.31, 230.0, Color("9fb4ff")]],
+			"wide": [[0.19, 0.15, 190.0, Color("ffb050")], [0.257, 0.255, 170.0, Color("ffb050")],
+				[0.212, 0.35, 150.0, Color("ffb050")], [0.80, 0.28, 180.0, Color("ffb050")]],
+		},
 		"subtitle": "Pull a card. Hear your fortune.",
 		"logo": _draw_home_logo,
 		"solo_heading": "Choose your reading",
@@ -182,6 +211,9 @@ func _build_ui() -> void:
 	add_child(home)
 	if info:
 		add_child(info)
+	# The reading's mist only runs while the reading is on screen (the Landing has its own).
+	home.home.visibility_changed.connect(_on_landing_visibility)
+	_on_landing_visibility()
 
 func _wrap_label(size: int) -> Label:
 	var l := Label.new()
@@ -222,6 +254,96 @@ func _current_skin() -> String:
 
 func _lang() -> String:
 	return "es" if TranslationServer.get_locale().begins_with("es") else "en"
+
+# ---- the mist behind the reading ----
+
+## Twilight over the reading screen: a slow fog, a few glitter specks, an indigo dusk at the top.
+## Off when "Reduce effects" is on (Options).
+func _build_ambience() -> void:
+	_amb = Control.new()
+	_amb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_amb)
+	_amb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.16, 0.12, 0.45, 0.45))
+	grad.set_color(1, Color(0.95, 0.5, 0.2, 0.14))
+	grad.add_point(0.5, Color(0.1, 0.05, 0.25, 0.0))
+	var fill := GradientTexture2D.new()
+	fill.gradient = grad
+	fill.fill_from = Vector2(0, 0)
+	fill.fill_to = Vector2(0, 1)
+	fill.width = 4
+	fill.height = 128
+	var dusk := TextureRect.new()
+	dusk.texture = fill
+	dusk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	dusk.stretch_mode = TextureRect.STRETCH_SCALE
+	dusk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_amb.add_child(dusk)
+	dusk.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var mist: TextureRect = Fx.mist(_amb, Color(0.6, 0.5, 0.95), 0.2)
+	if mist:
+		mist.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_amb_glitter = Fx.glitter(_amb, Color("e8d38a"), Vector2(300, 500))
+	_amb.resized.connect(_fit_ambience)
+
+func _on_landing_visibility() -> void:
+	if _amb != null and home != null and home.home != null:
+		_amb.visible = not home.home.visible
+
+func _fit_ambience() -> void:
+	if _amb_glitter:
+		_amb_glitter.position = _amb.size * 0.5
+		_amb_glitter.emission_rect_extents = _amb.size * 0.5
+
+# ---- more about a card ----
+
+func _on_more() -> void:
+	if sel < 0 or sel >= drawn.size() or flip_to[sel] < 1.0:
+		return
+	var c: Dictionary = drawn[sel]
+	_show_detail(int(c["id"]), c["rev"], engine.position_name(spread, sel), engine.position_note(spread, sel))
+
+func _heading(text: String) -> Label:
+	var l := Label.new()
+	l.text = text.to_upper()
+	l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", SKINS[skin]["accent"])
+	return l
+
+func _para(text: String, size: int = 25, color: Color = Color.WHITE) -> Label:
+	var l := _wrap_label(size)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	l.add_theme_color_override("font_color", color)
+	l.text = text
+	return l
+
+## The full page about one card: how it fell, what it says, keywords, love and work, the other way up,
+## its position, the traditional picture and what it is linked to.
+func _show_detail(id: int, rev: bool, pos_name: String = "", pos_note: String = "") -> void:
+	engine.lang = _lang()
+	var parts: Array = home.card("%s · %s" % [ROMAN[id], engine.name_of(id)])
+	var body: Control = parts[1]
+	body.add_child(_para("%s %s" % [engine.symbol_of(id), tr("Reversed") if rev else tr("Upright")], 28, SKINS[skin]["accent"]))
+	if pos_name != "":
+		body.add_child(_heading(tr("In this position")))
+		body.add_child(_para("%s: %s" % [pos_name, pos_note], 24, HomeKit.DIM))
+	body.add_child(_heading(tr("What it says")))
+	body.add_child(_para(engine.meaning(id, rev)))
+	body.add_child(_heading(tr("Keywords")))
+	body.add_child(_para(engine.keywords(id, rev), 24, HomeKit.DIM))
+	body.add_child(_heading(tr("❤ Love")))
+	body.add_child(_para(engine.love(id, rev), 24))
+	body.add_child(_heading(tr("💼 Work")))
+	body.add_child(_para(engine.work(id, rev), 24))
+	body.add_child(_heading(tr("The other way up")))
+	body.add_child(_para("%s: %s" % [tr("Upright") if rev else tr("Reversed"), engine.keywords(id, not rev)], 24, HomeKit.DIM))
+	body.add_child(_heading(tr("The picture")))
+	body.add_child(_para(engine.picture(id), 23, HomeKit.DIM))
+	body.add_child(_para(tr("Linked to: %s") % engine.assoc(id), 23, HomeKit.DIM))
+	home.show_card(parts[0])
 
 # ---- readings ----
 
@@ -307,6 +429,9 @@ func _refresh_text() -> void:
 	head_label.text = _head_text()
 	if sel < 0 or sel >= drawn.size() or flip_to[sel] < 1.0:
 		name_label.text = ""
+		pos_label.text = ""
+		kw_label.text = ""
+		more_btn.visible = false
 		text_label.text = tr("Think of your question, then tap a card to turn it over.") if not finished else ""
 	else:
 		var c: Dictionary = drawn[sel]
@@ -316,6 +441,9 @@ func _refresh_text() -> void:
 			nm += " · " + tr("Reversed")
 		name_label.text = ("%s: %s" % [pos, nm]) if spread != "one" else nm
 		text_label.text = engine.meaning(int(c["id"]), c["rev"])
+		pos_label.text = engine.position_note(spread, sel)
+		kw_label.text = (tr("Keywords: %s") % engine.keywords(int(c["id"]), c["rev"])) if engine.has_lore() else ""
+		more_btn.visible = engine.has_lore()
 	if not finished:
 		teller_label.text = ""
 
@@ -466,6 +594,13 @@ func _show_collection() -> void:
 	head.add_theme_font_size_override("font_size", 30)
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_child(head)
+	var hint := Label.new()
+	hint.text = tr("Tap a card you have found to read all about it.")
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 22)
+	hint.add_theme_color_override("font_color", HomeKit.DIM)
+	body.add_child(hint)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 10)
@@ -473,17 +608,26 @@ func _show_collection() -> void:
 	body.add_child(grid)
 	for i in 22:
 		var e: Variant = engine.seen.get(i)
-		var l := Label.new()
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		l.add_theme_font_size_override("font_size", 24)
 		if e == null:
+			var l := Label.new()
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			l.add_theme_font_size_override("font_size", 24)
 			l.text = "%s  ?" % ROMAN[i]
 			l.add_theme_color_override("font_color", HomeKit.DIM)
+			grid.add_child(l)
 		else:
+			# A card you have turned: tap it to read all about it.
 			var marks := ("↑" if e["up"] else "") + ("↓" if e["rev"] else "")
-			l.text = "%s %s  %s  %s" % [ROMAN[i], engine.symbol_of(i), engine.name_of(i), marks]
-		grid.add_child(l)
+			var b := Button.new()
+			b.text = "%s %s  %s  %s" % [ROMAN[i], engine.symbol_of(i), engine.name_of(i), marks]
+			b.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			b.custom_minimum_size = Vector2(0, 74)
+			b.add_theme_font_size_override("font_size", 22)
+			b.pressed.connect(_show_detail.bind(i, not bool(e["up"])))
+			grid.add_child(b)
 	home.show_card(parts[0])
 
 # ---- sound ----

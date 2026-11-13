@@ -41,37 +41,45 @@ func _run(scene: String) -> void:
 	for i in 120:
 		await process_frame
 	var found: Array = []
-	_find(root, "OrbLanding", found)
+	_find(root, "StyleLanding", found)
 	if found.is_empty():
-		_fail("no OrbLanding in the scene")
+		_fail("no styled Landing in the scene")
 		quit(1)
 		return
 	var land: Control = found[0]
 	var view := land.size
 	var kit: Control = land.kit
-	# 1. orbs: inside the screen, touchable, not overlapping
-	var shown: Array = land.orbs.filter(func(o): return o.slot.visible)
-	print("orbs shown: ", shown.size(), " of ", land.orbs.size(), " in ", view)
-	for o in shown:
-		var r := Rect2(o.slot.position, o.slot.size)
+	var is_list: bool = str(kit.cfg.get("landing", "")) == "list"
+	# 1. every shown action: inside the screen, big enough to touch, not overlapping another
+	var shown: Array = land.entries.filter(func(e): return e.shown)
+	print("style ", kit.cfg.get("landing", ""), ": ", shown.size(), " actions shown of ", land.entries.size(), " in ", view)
+	var rects: Array = []
+	for e in shown:
+		var ctl: Control = e.row if is_list else e.slot
+		var r := Rect2(ctl.position, ctl.size)
+		rects.append([str(e.nm), r])
 		if r.position.x < -0.5 or r.position.y < -0.5 or r.end.x > view.x + 0.5 or r.end.y > view.y + 0.5:
-			_fail("%s outside the screen: %s" % [o.btn.text, r])
-		if r.size.x < 55.0:
-			_fail("%s too small: %s" % [o.btn.text, r.size.x])
-	for i in shown.size():
-		for j in range(i + 1, shown.size()):
-			var a: Control = shown[i].slot
-			var b: Control = shown[j].slot
-			var dist := (a.position + a.size * 0.5).distance_to(b.position + b.size * 0.5)
-			if dist < (a.size.x + b.size.x) * 0.5 - 1.0:
-				_fail("orbs overlap: %s / %s" % [shown[i].btn.text, shown[j].btn.text])
-	# 2. the title column does not run into an orb
+			_fail("%s outside the screen: %s" % [e.nm, r])
+		if (r.size.y if is_list else r.size.x) < (37.0 if is_list else 55.0):
+			_fail("%s too small: %s" % [e.nm, r.size])
+	for i in rects.size():
+		for j in range(i + 1, rects.size()):
+			var a: Rect2 = rects[i][1]
+			var b: Rect2 = rects[j][1]
+			if is_list:
+				if a.grow(-1.0).intersects(b.grow(-1.0)):
+					_fail("rows overlap: %s / %s" % [rects[i][0], rects[j][0]])
+			else:
+				var dist := a.get_center().distance_to(b.get_center())
+				if dist < (a.size.x + b.size.x) * 0.5 - 1.0:
+					_fail("orbs overlap: %s / %s" % [rects[i][0], rects[j][0]])
+	# 2. the title column does not run into an action
 	var info: Control = land.info_col
 	var info_r := Rect2(info.position, info.size)
-	for o in shown:
-		var slot_r := Rect2(o.slot.position, o.slot.size)
-		if info_r.intersects(slot_r.grow(-slot_r.size.x * 0.15)):
-			_fail("title column %s overlaps %s" % [info_r, o.btn.text])
+	for r in rects:
+		var rr: Rect2 = r[1]
+		if info_r.intersects(rr.grow(-rr.size.y * 0.15)):
+			_fail("title column %s overlaps %s" % [info_r, r[0]])
 	# 3. particles: budget and the Reduce effects switch
 	var parts: Array = []
 	_find(land, "CPUParticles2D", parts)
