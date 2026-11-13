@@ -10,6 +10,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/cannon_duel/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/cannon_duel/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -154,6 +156,13 @@ func _build_ui() -> void:
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	modes.append({"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_game.bind(-1)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs; colours complementary red/teal.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/cannon_duel/title.ttf",
+		"title_colors": [Color("ff4a3a"), Color("3ad4c8")],
+		"landing_colors": [Color("120c08"), Color("2a1c14")],
+		"menu_color": Color("3ad4c8"),
 		"retro": true,
 		"help": HELP,
 		"info": info,

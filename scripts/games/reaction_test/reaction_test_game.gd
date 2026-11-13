@@ -1,6 +1,8 @@
 extends Control
 
 const ReactionEngine = preload("res://scripts/games/reaction_test/reaction_test_engine.gd")
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/reaction_test/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/reaction_test/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -207,6 +209,13 @@ func _set_pad(color: Color, text: String) -> void:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split; colours complementary red/green.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/reaction_test/title.ttf",
+		"title_colors": [Color("ff3b3b"), Color("3bff7a")],
+		"landing_colors": [Color("0a0a0e"), Color("1a1a24")],
+		"menu_color": Color("3bff7a"),
 		"retro": true,
 		"help": preload("res://scripts/games/reaction_test/reaction_test_help.gd"),
 		"info": info,

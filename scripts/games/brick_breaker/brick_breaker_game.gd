@@ -3,6 +3,8 @@ extends Control
 ## Brick Breaker -- slide to move the paddle, tap to launch the ball.
 
 const BBEngine = preload("res://scripts/games/brick_breaker/brick_breaker_engine.gd")
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/brick_breaker/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/brick_breaker/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -218,6 +220,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/brick_breaker/brick_breaker
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee; colours analogous orange/red/magenta.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/brick_breaker/title.ttf",
+		"title_colors": [Color("ff9a2e"), Color("ff4a3a"), Color("ff3e9a")],
+		"landing_colors": [Color("140812"), Color("2a0f22")],
+		"menu_color": Color("ff9a2e"),
 		"retro": true,
 		"help": preload("res://scripts/games/brick_breaker/brick_breaker_help.gd"),
 		"info": info,

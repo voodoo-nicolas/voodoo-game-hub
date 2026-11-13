@@ -3,6 +3,8 @@ extends Control
 ## Frog Crossing -- swipe (or use the arrows) to hop.
 
 const FCEngine = preload("res://scripts/games/frog_crossing/frog_crossing_engine.gd")
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/frog_crossing/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/frog_crossing/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -457,6 +459,14 @@ const TITLE_FOR_HOME := preload("res://scripts/games/frog_crossing/frog_crossing
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board; colours analogous green/lime/yellow.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/frog_crossing/title.ttf",
+		"title_colors": [Color("4cd964"), Color("a6e22e"), Color("ffe14a")],
+		"landing_colors": [Color("0c2214"), Color("1a3a20")],
+		"menu_color": Color("a6e22e"),
+		"landing_art": true,
 		"retro": false,
 		"help": preload("res://scripts/games/frog_crossing/frog_crossing_help.gd"),
 		"info": info,

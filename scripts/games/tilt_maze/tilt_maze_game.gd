@@ -13,6 +13,8 @@ const Shop = preload("res://scripts/games/tilt_maze/tilt_maze_shop.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const SoundLib = preload("res://scripts/games/tilt_maze/sound_lib.gd")
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/tilt_maze/menu_styles.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
 const HomeKit = preload("res://scripts/games/tilt_maze/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
@@ -183,6 +185,14 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var cfg := {
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema; colours analogous violet/indigo/blue.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/tilt_maze/title.ttf",
+		"title_colors": [Color("b06aff"), Color("7a6aff"), Color("4c8cff")],
+		"landing_colors": [Color("0a0618"), Color("1a1440")],
+		"menu_color": Color("b06aff"),
+		"landing_art": true,
 		"help": HELP,
 		"info": info,
 		"accent": Color("4fc3f7"),

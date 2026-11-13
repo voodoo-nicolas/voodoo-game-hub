@@ -12,6 +12,8 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/pool/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/pool/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -182,6 +184,14 @@ func _build_ui() -> void:
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	modes.append({"text": "👥 2 Players", "sub": "Take turns on one phone", "multi": true, "action": _new_game.bind(-1)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List; colours triadic yellow/red/blue balls.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/pool/title.ttf",
+		"title_colors": [Color("ffd23c"), Color("e83a3a"), Color("3a6cff")],
+		"landing_colors": [Color("06180e"), Color("0e2e1a")],
+		"menu_color": Color("ffd23c"),
+		"landing_art": true,
 		"art": ART,
 		"help": HELP,
 		"info": info,

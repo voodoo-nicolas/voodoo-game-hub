@@ -12,6 +12,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/maze_muncher/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/maze_muncher/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -139,6 +141,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee; colours palette yellow/blue/pink/cyan.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/maze_muncher/title.ttf",
+		"title_colors": [Color("ffe23c"), Color("3e6cff"), Color("ff6ab4"), Color("3ee0ff")],
+		"landing_colors": [Color("02020c"), Color("0a0a24")],
+		"menu_color": Color("ffe23c"),
 		"retro": true,
 		"help": HELP,
 		"info": info,

@@ -3,6 +3,8 @@ extends Control
 ## Bird Hop -- tap anywhere to flap.
 
 const BHEngine = preload("res://scripts/games/bird_hop/bird_hop_engine.gd")
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/bird_hop/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/bird_hop/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -260,6 +262,14 @@ const TITLE_FOR_HOME := preload("res://scripts/games/bird_hop/bird_hop_help.gd")
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs; colours complementary gold/sky blue.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/bird_hop/title.ttf",
+		"title_colors": [Color("ffc83c"), Color("3cb4ff")],
+		"landing_colors": [Color("0d2240"), Color("1d4f80")],
+		"menu_color": Color("ffc83c"),
+		"landing_art": true,
 		"retro": true,
 		"help": preload("res://scripts/games/bird_hop/bird_hop_help.gd"),
 		"info": info,

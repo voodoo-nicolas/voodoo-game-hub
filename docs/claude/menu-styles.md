@@ -100,12 +100,33 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | sky_raider | slabs (S6) | BlackOpsOne (complementary orange/blue; key art dimmed) |
 | crypt_crawler | ghost (S1) | Creepster (analogous amber/orange/red torchlight) |
 | turned | cinema (S7) | CinzelDecorative (palette crimson/bone/moonlight blue; key art dimmed) |
+| block_drop | bento (S10) | RubikMonoOne (triadic red/yellow/blue) |
+| paddle_ball | cinema (S7) | PressStart2P (complementary cyan/coral) |
+| brick_breaker | marquee (S9) | Bungee (analogous orange/red/magenta) |
+| bird_hop | slabs (S6) | LuckiestGuy (complementary gold/sky blue) |
+| alien_attack | ghost (S1) | Audiowide (complementary lime/purple) |
+| frog_crossing | stickers (S11) | Chewy (analogous green/lime/yellow) |
+| gem_match | ring (S2) | TitanOne (triadic red/green/blue gems) |
+| whack_a_mole | stickers (S11) | Bangers (palette mole brown/grass green/gold) |
+| reaction_test | split (S8) | RacingSansOne (complementary red/green) |
+| city_defense | monument (S4) | BlackOpsOne (complementary blue/orange) |
+| maze_muncher | marquee (S9) | BungeeShade (palette yellow/blue/pink/cyan) |
+| stack_tower | monument (S4) | BowlbyOneSC (analogous orange/amber/yellow) |
+| sky_hop | ring (S2) | Sniglet (analogous sky blue/blue/aqua) |
+| air_hockey | split (S8) | RussoOne (complementary red/cyan) |
+| barrel_climb | rail (S3) | Rye (palette rust/gold/steel blue) |
+| cannon_duel | slabs (S6) | LilitaOne (complementary red/teal) |
+| mini_golf | bento (S10) | ConcertOne (analogous green/sea green/lime) |
+| pool | rail (S3) | Lobster (triadic yellow/red/blue balls) |
+| tilt_maze | cinema (S7) | Monoton (analogous violet/indigo/blue) |
+| bug_chain | ghost (S1) | PermanentMarker (complementary yellow/violet) |
 
 Gotcha: after wiring a game run `python tools/hub.py i18n` (the kit strings "Single player", "Menu"... must reach the
 game's own `_i18n.gd`); batch 2 first shipped without it.
 Intelligence batch (2026-11-13): each game's colours follow one rule (complementary, analogous, triadic or a
 set palette), 2-4 colours. Creation and Evolution keep their key-art Landing (menu styles draw no "art"); IQ Test
-has its own screen. Cards batch (same day): Video Poker keeps its key-art Landing. Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit. Dice + Party batch (same day): Tarot keeps its own "list" Landing prototype (landing-styles.md).
+has its own screen. Cards batch (same day): Video Poker keeps its key-art Landing. Arcade batch (same day): the other 20 arcade games; `"landing_art": true` keeps a game's own `art` picture dimmed
+under the backdrop (block_drop, bird_hop, frog_crossing, whack_a_mole, barrel_climb, pool, tilt_maze). Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit. Dice + Party batch (same day): Tarot keeps its own "list" Landing prototype (landing-styles.md).
 Adventure batch (same day): "landing_art": true keeps each game's key art, dimmed, behind the style. The Runner
 and Beached keep their key-art Landing (title painted in the art); Last Shift keeps the owner's key-art column layout.
 

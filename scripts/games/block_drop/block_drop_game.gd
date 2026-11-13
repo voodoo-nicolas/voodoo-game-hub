@@ -4,6 +4,8 @@ extends Control
 ## to drop. The buttons below do the same.
 
 const BDEngine = preload("res://scripts/games/block_drop/block_drop_engine.gd")
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/block_drop/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/block_drop/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -446,6 +448,14 @@ const TITLE_FOR_HOME := preload("res://scripts/games/block_drop/block_drop_help.
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid; colours triadic red/yellow/blue.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/block_drop/title.ttf",
+		"title_colors": [Color("e83a3a"), Color("ffd23c"), Color("3a7bff")],
+		"landing_colors": [Color("0c0f22"), Color("1a1f40")],
+		"menu_color": Color("ffd23c"),
+		"landing_art": true,
 		"retro": true,
 		"help": preload("res://scripts/games/block_drop/block_drop_help.gd"),
 		"info": info,

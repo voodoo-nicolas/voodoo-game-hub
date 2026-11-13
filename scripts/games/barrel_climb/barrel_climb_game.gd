@@ -9,6 +9,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/barrel_climb/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/barrel_climb/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -162,6 +164,14 @@ func _build_ui() -> void:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard"][i], "row": "diff",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List; colours palette rust/gold/steel blue.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/barrel_climb/title.ttf",
+		"title_colors": [Color("ff6a2e"), Color("ffc83c"), Color("3e9cff")],
+		"landing_colors": [Color("140a06"), Color("2a1a10")],
+		"menu_color": Color("ffc83c"),
+		"landing_art": true,
 		"retro": true,
 		"help": HELP,
 		"info": info,

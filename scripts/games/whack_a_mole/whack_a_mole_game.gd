@@ -1,6 +1,8 @@
 extends Control
 
 const WhackEngine = preload("res://scripts/games/whack_a_mole/whack_a_mole_engine.gd")
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/whack_a_mole/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/whack_a_mole/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -462,6 +464,14 @@ const TITLE_FOR_HOME := preload("res://scripts/games/whack_a_mole/whack_a_mole_h
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board; colours palette mole brown/grass green/gold.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/whack_a_mole/title.ttf",
+		"title_colors": [Color("d08a4a"), Color("6cd04a"), Color("ffd23c")],
+		"landing_colors": [Color("1a120a"), Color("2e2014")],
+		"menu_color": Color("ffd23c"),
+		"landing_art": true,
 		"help": preload("res://scripts/games/whack_a_mole/whack_a_mole_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

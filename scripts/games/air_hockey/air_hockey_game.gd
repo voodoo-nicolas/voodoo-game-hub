@@ -9,6 +9,8 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/air_hockey/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/air_hockey/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -100,6 +102,13 @@ func _build_ui() -> void:
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	modes.append({"text": "👥 2 Players", "sub": "One at each end of the phone", "multi": true, "action": _new_game.bind(-1)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split; colours complementary red/cyan.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/air_hockey/title.ttf",
+		"title_colors": [Color("ff3e5a"), Color("3ee8ff")],
+		"landing_colors": [Color("060a14"), Color("101c30")],
+		"menu_color": Color("3ee8ff"),
 		"retro": true,
 		"help": HELP,
 		"info": info,

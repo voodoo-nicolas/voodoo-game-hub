@@ -11,6 +11,8 @@ const Art = preload("res://scripts/games/bug_chain/bug_chain_art.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/bug_chain/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/bug_chain/home_kit.gd")
 const SoundLib = preload("res://scripts/games/bug_chain/sound_lib.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
@@ -172,6 +174,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost; colours complementary yellow/violet.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/bug_chain/title.ttf",
+		"title_colors": [Color("ffd83c"), Color("7a4cff")],
+		"landing_colors": [Color("0e0a1a"), Color("22163a")],
+		"menu_color": Color("ffd83c"),
 		"help": HELP,
 		"info": info,
 		"accent": Color("ff5a4a"),

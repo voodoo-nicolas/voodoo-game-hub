@@ -3,6 +3,8 @@ extends Control
 ## Alien Attack -- slide to move your cannon; it fires on its own.
 
 const AAEngine = preload("res://scripts/games/alien_attack/alien_attack_engine.gd")
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/alien_attack/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/alien_attack/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -260,6 +262,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/alien_attack/alien_attack_h
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost; colours complementary lime/purple.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/alien_attack/title.ttf",
+		"title_colors": [Color("9cff3a"), Color("b44cff")],
+		"landing_colors": [Color("060410"), Color("180a30")],
+		"menu_color": Color("9cff3a"),
 		"retro": true,
 		"help": preload("res://scripts/games/alien_attack/alien_attack_help.gd"),
 		"info": info,

@@ -3,6 +3,8 @@ extends Control
 ## Paddle Ball -- slide your finger anywhere to move your paddle (bottom).
 
 const PBEngine = preload("res://scripts/games/paddle_ball/paddle_ball_engine.gd")
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/paddle_ball/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/paddle_ball/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -207,6 +209,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/paddle_ball/paddle_ball_hel
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema; colours complementary cyan/coral.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/paddle_ball/title.ttf",
+		"title_colors": [Color("3ee0ff"), Color("ff6a4d")],
+		"landing_colors": [Color("03060c"), Color("0a1a2a")],
+		"menu_color": Color("3ee0ff"),
 		"retro": true,
 		"help": preload("res://scripts/games/paddle_ball/paddle_ball_help.gd"),
 		"info": info,

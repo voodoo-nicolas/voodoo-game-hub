@@ -10,6 +10,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/mini_golf/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/mini_golf/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -128,6 +130,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid; colours analogous green/sea green/lime.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/mini_golf/title.ttf",
+		"title_colors": [Color("4cd964"), Color("2ecc8a"), Color("a6e22e")],
+		"landing_colors": [Color("08200f"), Color("12381c")],
+		"menu_color": Color("a6e22e"),
 		"retro": true,
 		"help": HELP,
 		"info": info,

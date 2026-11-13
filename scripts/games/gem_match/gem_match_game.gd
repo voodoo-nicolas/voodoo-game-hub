@@ -6,6 +6,8 @@ extends Control
 ## 5 clears a whole colour. See gem_match_engine.gd for the rules.
 
 const GMEngine = preload("res://scripts/games/gem_match/gem_match_engine.gd")
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/gem_match/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/gem_match/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -683,6 +685,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/gem_match/gem_match_help.gd
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring; colours triadic red/green/blue gems.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/gem_match/title.ttf",
+		"title_colors": [Color("ff3e6c"), Color("3ee07a"), Color("3e8cff")],
+		"landing_colors": [Color("120a24"), Color("26144a")],
+		"menu_color": Color("ff3e6c"),
 		"help": preload("res://scripts/games/gem_match/gem_match_help.gd"),
 		"info": info,
 		"accent": HomeKit.MAGENTA,

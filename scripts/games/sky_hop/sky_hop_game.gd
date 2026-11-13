@@ -9,6 +9,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/sky_hop/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/sky_hop/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -99,6 +101,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring; colours analogous sky blue/blue/aqua.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/sky_hop/title.ttf",
+		"title_colors": [Color("6ad4ff"), Color("3e9cff"), Color("3effd4")],
+		"landing_colors": [Color("0a1a3a"), Color("1a3a6a")],
+		"menu_color": Color("6ad4ff"),
 		"retro": true,
 		"help": HELP,
 		"info": info,

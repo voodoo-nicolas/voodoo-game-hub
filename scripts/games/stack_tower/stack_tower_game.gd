@@ -8,6 +8,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/stack_tower/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/stack_tower/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -106,6 +108,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument; colours analogous orange/amber/yellow.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/stack_tower/title.ttf",
+		"title_colors": [Color("ff7a2e"), Color("ffb43c"), Color("ffe46a")],
+		"landing_colors": [Color("1a0c20"), Color("3a1a3a")],
+		"menu_color": Color("ffb43c"),
 		"retro": true,
 		"help": HELP,
 		"info": info,
