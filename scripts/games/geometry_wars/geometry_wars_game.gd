@@ -26,6 +26,8 @@ const Ship = preload("res://scripts/games/geometry_wars/geometry_wars_ship.gd")
 const Levels = preload("res://scripts/games/geometry_wars/geometry_wars_levels.gd")
 const Sounds = preload("res://scripts/games/geometry_wars/geometry_wars_sounds.gd")
 const Campaign = preload("res://scripts/games/geometry_wars/geometry_wars_campaign.gd")
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/geometry_wars/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/geometry_wars/home_kit.gd")
 const ArenaCanvas = preload("res://scripts/games/geometry_wars/arena_canvas.gd")
 const JoystickCanvas = preload("res://scripts/games/geometry_wars/joystick_canvas.gd")
@@ -2260,6 +2262,14 @@ func _set_skin(skin: String) -> void:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split; colours complementary cyan/red.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/geometry_wars/title.ttf",
+		"title_colors": [Color("30e0ff"), Color("ff3355")],
+		"landing_colors": [Color("050a1a"), Color("1a0614")],
+		"menu_color": Color("30e0ff"),
+		"landing_art": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

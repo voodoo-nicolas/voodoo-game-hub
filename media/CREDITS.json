@@ -7549,6 +7549,56 @@
    "proof": "media/licenses/fonts/concertone-OFL.txt",
    "url": "https://github.com/google/fonts/tree/main/ofl/concertone",
    "date": "2026-11-13"
+  },
+  {
+   "file": "games/geometry_wars/title.ttf",
+   "what": "Title font of the geometry_wars Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Audiowide",
+   "author": "Astigmatic",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/audiowide-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/audiowide",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/star_runner/title.ttf",
+   "what": "Title font of the star_runner Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Racing Sans One",
+   "author": "Impallari Type",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/racingsansone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/racingsansone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/sky_raider/title.ttf",
+   "what": "Title font of the sky_raider Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Black Ops One",
+   "author": "James Grieshaber, Eben Sorkin",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/blackopsone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/blackopsone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/crypt_crawler/title.ttf",
+   "what": "Title font of the crypt_crawler Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Creepster",
+   "author": "Sideshow",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/creepster-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/creepster",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/turned/title.ttf",
+   "what": "Title font of the turned Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Cinzel Decorative Black",
+   "author": "Natanael Gama",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/cinzeldecorative-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/cinzeldecorative",
+   "date": "2026-11-13"
   }
  ]
 }

@@ -10,6 +10,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/star_runner/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/star_runner/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -151,6 +153,14 @@ func _build_ui() -> void:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard"][i], "row": "diff",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument; colours triadic magenta/cyan/yellow.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/star_runner/title.ttf",
+		"title_colors": [Color("ff3cc8"), Color("3cf0ff"), Color("ffe23c")],
+		"landing_colors": [Color("080420"), Color("1c0a3a")],
+		"menu_color": Color("3cf0ff"),
+		"landing_art": true,
 		"retro": true,
 		"help": HELP,
 		"info": info,

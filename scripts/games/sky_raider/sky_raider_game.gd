@@ -10,6 +10,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/sky_raider/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/sky_raider/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -156,6 +158,14 @@ func _build_ui() -> void:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard"][i], "row": "diff",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs; colours complementary orange/blue.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/sky_raider/title.ttf",
+		"title_colors": [Color("ff8a1e"), Color("2e8bff")],
+		"landing_colors": [Color("04102a"), Color("0c2450")],
+		"menu_color": Color("ff8a1e"),
+		"landing_art": true,
 		"retro": true,
 		"help": HELP,
 		"info": info,

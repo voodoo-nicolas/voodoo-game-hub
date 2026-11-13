@@ -12,6 +12,8 @@ const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/crypt_crawler/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/crypt_crawler/home_kit.gd")
 const SpriteLib = preload("res://scripts/games/crypt_crawler/sprite_lib.gd")
 const SoundLib = preload("res://scripts/games/crypt_crawler/sound_lib.gd")
@@ -261,6 +263,13 @@ func _build_ui() -> void:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard"][i], "row": "diff",
 			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost; colours analogous torchlight amber/orange/red.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/crypt_crawler/title.ttf",
+		"title_colors": [Color("ffc845"), Color("ff7a1e"), Color("d8321e")],
+		"landing_colors": [Color("0c0806"), Color("241510")],
+		"menu_color": Color("ff7a1e"),
 		"retro": true,
 		"help": HELP,
 		"info": info,

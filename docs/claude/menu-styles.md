@@ -84,12 +84,19 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | tri_peaks | slabs (S6) | TitanOne (analogous yellow/lime/green) |
 | sevens | ghost (S1) | Shrikhand (complementary red/green) |
 | rummy | stickers (S11) | ConcertOne (palette: four suit colours) |
+| geometry_wars | split (S8) | Audiowide (complementary cyan/red; key art kept dimmed) |
+| star_runner | monument (S4) | RacingSansOne (triadic magenta/cyan/yellow; key art dimmed) |
+| sky_raider | slabs (S6) | BlackOpsOne (complementary orange/blue; key art dimmed) |
+| crypt_crawler | ghost (S1) | Creepster (analogous amber/orange/red torchlight) |
+| turned | cinema (S7) | CinzelDecorative (palette crimson/bone/moonlight blue; key art dimmed) |
 
 Gotcha: after wiring a game run `python tools/hub.py i18n` (the kit strings "Single player", "Menu"... must reach the
 game's own `_i18n.gd`); batch 2 first shipped without it.
 Intelligence batch (2026-11-13): each game's colours follow one rule (complementary, analogous, triadic or a
 set palette), 2-4 colours. Creation and Evolution keep their key-art Landing (menu styles draw no "art"); IQ Test
 has its own screen. Cards batch (same day): Video Poker keeps its key-art Landing. Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit.
+Adventure batch (same day): "landing_art": true keeps each game's key art, dimmed, behind the style. The Runner
+and Beached keep their key-art Landing (title painted in the art); Last Shift keeps the owner's key-art column layout.
 
 Checked by screenshot (tools/shot.gd) at 405x720 and 960x540, Spanish, text size 1.0. NOT checked: text size 1.4, a
 real phone. First 8 published 2026-11-13.

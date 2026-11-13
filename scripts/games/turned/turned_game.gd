@@ -14,6 +14,8 @@ extends Control
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## Home screen + pause menu + look, copied into this game's folder by `hub.py sync`.
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/turned/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/turned/home_kit.gd")
 const HELP = preload("res://scripts/games/turned/turned_help.gd")
 const Save = preload("res://scripts/games/turned/turned_save.gd")
@@ -64,6 +66,14 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema; colours palette crimson/bone/moonlight blue.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/turned/title.ttf",
+		"title_colors": [Color("c8102e"), Color("efe6d2"), Color("7d9cc8")],
+		"landing_colors": [Color("05060c"), Color("140a12")],
+		"menu_color": Color("c8102e"),
+		"landing_art": true,
 		"help": HELP,
 		"info": info,
 		"accent": ACCENT,
