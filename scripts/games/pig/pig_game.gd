@@ -7,6 +7,8 @@ extends Control
 
 const PigEngine = preload("res://scripts/games/pig/pig_engine.gd")
 const HELP = preload("res://scripts/games/pig/pig_help.gd")
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/pig/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/pig/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -160,6 +162,13 @@ func _build_ui() -> void:
 	for n in [2, 3, 4]:
 		modes.append({"text": "👥 %d Players" % n, "sub": "One phone", "multi": true, "row": "players", "action": _new_local.bind(n)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs; colours analogous pinks.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/pig/title.ttf",
+		"title_colors": [Color("ff5c8a"), Color("ff7ab6"), Color("ffb3d1")],
+		"landing_colors": [Color("2a0c1c"), Color("4a1834")],
+		"menu_color": Color("ff7ab6"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.PINK,

@@ -84,6 +84,17 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | tri_peaks | slabs (S6) | TitanOne (analogous yellow/lime/green) |
 | sevens | ghost (S1) | Shrikhand (complementary red/green) |
 | rummy | stickers (S11) | ConcertOne (palette: four suit colours) |
+| farkle | bento (S10) | LilitaOne (complementary gold/indigo) |
+| shut_the_box | monument (S4) | CinzelDecorative (analogous amber/orange/cream) |
+| pig | slabs (S6) | Chewy (analogous pinks) |
+| bunco | marquee (S9) | LuckiestGuy (triadic orange/green/violet) |
+| ship_captain_crew | rail (S3) | Rye (complementary gold/blue) |
+| party_spinner | ring (S2) | Bungee (triadic red/yellow/blue) |
+| charades | cinema (S7) | Shrikhand (complementary purple/yellow) |
+| truth_or_dare | split (S8) | BowlbyOneSC (complementary pink/green) |
+| fortune_ball | ghost (S1) | Lobster (analogous violet/blue/indigo) |
+| fastest_finger | stickers (S11) | RacingSansOne (analogous yellow/orange/red) |
+| who_am_i | bento (S10) | ConcertOne (analogous lime/green/teal) |
 | geometry_wars | split (S8) | Audiowide (complementary cyan/red; key art kept dimmed) |
 | star_runner | monument (S4) | RacingSansOne (triadic magenta/cyan/yellow; key art dimmed) |
 | sky_raider | slabs (S6) | BlackOpsOne (complementary orange/blue; key art dimmed) |
@@ -94,7 +105,7 @@ Gotcha: after wiring a game run `python tools/hub.py i18n` (the kit strings "Sin
 game's own `_i18n.gd`); batch 2 first shipped without it.
 Intelligence batch (2026-11-13): each game's colours follow one rule (complementary, analogous, triadic or a
 set palette), 2-4 colours. Creation and Evolution keep their key-art Landing (menu styles draw no "art"); IQ Test
-has its own screen. Cards batch (same day): Video Poker keeps its key-art Landing. Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit.
+has its own screen. Cards batch (same day): Video Poker keeps its key-art Landing. Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit. Dice + Party batch (same day): Tarot keeps its own "list" Landing prototype (landing-styles.md).
 Adventure batch (same day): "landing_art": true keeps each game's key art, dimmed, behind the style. The Runner
 and Beached keep their key-art Landing (title painted in the art); Last Shift keeps the owner's key-art column layout.
 

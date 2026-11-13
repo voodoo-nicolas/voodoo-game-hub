@@ -12,6 +12,8 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 ## Home screen + pause menu + neon look, copied into this game's folder by
 ## `hub.py sync` (CLAUDE.md "Home screen kit").
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/fortune_ball/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/fortune_ball/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
@@ -136,6 +138,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(preload("res://scripts/games/fortune_ball/fortune_ball_help.gd"))
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost; colours analogous violet/blue/indigo.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/fortune_ball/title.ttf",
+		"title_colors": [Color("c07cff"), Color("8a5cff"), Color("5c7cff")],
+		"landing_colors": [Color("08061c"), Color("16103a")],
+		"menu_color": Color("c07cff"),
 		"retro": true,
 		"help": preload("res://scripts/games/fortune_ball/fortune_ball_help.gd"),
 		"info": info,

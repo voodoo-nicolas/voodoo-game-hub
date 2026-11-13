@@ -6,6 +6,8 @@ extends Control
 ## without a working tilt sensor.
 
 const CHEngine = preload("res://scripts/games/charades/charades_engine.gd")
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/charades/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/charades/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -321,6 +323,13 @@ func _end_round() -> void:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema; colours complementary purple/yellow.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/charades/title.ttf",
+		"title_colors": [Color("b066ff"), Color("ffe14d")],
+		"landing_colors": [Color("0c0618"), Color("1e1036")],
+		"menu_color": Color("ffe14d"),
 		"retro": true,
 		"help": preload("res://scripts/games/charades/charades_help.gd"),
 		"info": info,

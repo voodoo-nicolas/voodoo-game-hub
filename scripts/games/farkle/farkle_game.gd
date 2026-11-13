@@ -4,6 +4,8 @@ extends Control
 ## rest or bank your points.
 
 const FEngine = preload("res://scripts/games/farkle/farkle_engine.gd")
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/farkle/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/farkle/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -386,6 +388,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/farkle/farkle_help.gd").TIT
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid; colours complementary gold/indigo.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/farkle/title.ttf",
+		"title_colors": [Color("ffc83c"), Color("5a6bff")],
+		"landing_colors": [Color("0e1030"), Color("1c2058")],
+		"menu_color": Color("ffc83c"),
 		"help": preload("res://scripts/games/farkle/farkle_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

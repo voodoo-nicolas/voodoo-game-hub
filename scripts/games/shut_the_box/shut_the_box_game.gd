@@ -5,6 +5,8 @@ extends Control
 ## (you play your round, then it plays its own; lower score wins).
 
 const STBEngine = preload("res://scripts/games/shut_the_box/shut_the_box_engine.gd")
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/shut_the_box/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/shut_the_box/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -408,6 +410,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/shut_the_box/shut_the_box_h
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument; colours analogous amber/orange/cream.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/shut_the_box/title.ttf",
+		"title_colors": [Color("ffb347"), Color("ff7f3a"), Color("f2dcae")],
+		"landing_colors": [Color("1e1208"), Color("3a2412")],
+		"menu_color": Color("ffb347"),
 		"help": preload("res://scripts/games/shut_the_box/shut_the_box_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

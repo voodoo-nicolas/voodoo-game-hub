@@ -4,6 +4,8 @@ extends Control
 ## a new move every few seconds so nobody has to leave the mat.
 
 const PSEngine = preload("res://scripts/games/party_spinner/party_spinner_engine.gd")
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/party_spinner/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/party_spinner/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
@@ -261,6 +263,13 @@ func _on_wheel_input(event: InputEvent) -> void:
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring; colours triadic red/yellow/blue.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/party_spinner/title.ttf",
+		"title_colors": [Color("ff4d4d"), Color("ffd23c"), Color("3c8cff")],
+		"landing_colors": [Color("14102a"), Color("241c48")],
+		"menu_color": Color("ffd23c"),
 		"retro": true,
 		"help": preload("res://scripts/games/party_spinner/party_spinner_help.gd"),
 		"info": info,

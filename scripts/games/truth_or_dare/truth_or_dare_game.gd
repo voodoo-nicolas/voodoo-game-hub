@@ -8,6 +8,8 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + neon look (CLAUDE.md "Home screen kit").
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/truth_or_dare/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/truth_or_dare/home_kit.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -159,6 +161,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split; colours complementary pink/green.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/truth_or_dare/title.ttf",
+		"title_colors": [Color("ff3d8b"), Color("3dff9e")],
+		"landing_colors": [Color("1a0a16"), Color("2c1226")],
+		"menu_color": Color("ff3d8b"),
 		"retro": true,
 		"help": HELP,
 		"info": info,

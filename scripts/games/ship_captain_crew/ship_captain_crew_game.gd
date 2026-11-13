@@ -7,6 +7,8 @@ extends Control
 
 const SCCEngine = preload("res://scripts/games/ship_captain_crew/ship_captain_crew_engine.gd")
 const HELP = preload("res://scripts/games/ship_captain_crew/ship_captain_crew_help.gd")
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/ship_captain_crew/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/ship_captain_crew/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -162,6 +164,13 @@ func _build_ui() -> void:
 	for n in [2, 3, 4]:
 		modes.append({"text": "👥 %d Players" % n, "sub": "One phone", "multi": true, "row": "players", "action": _new_local.bind(n)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List; colours complementary gold/blue.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/ship_captain_crew/title.ttf",
+		"title_colors": [Color("ffcc4d"), Color("3a7bd5")],
+		"landing_colors": [Color("081428"), Color("12284a")],
+		"menu_color": Color("ffcc4d"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

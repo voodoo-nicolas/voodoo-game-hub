@@ -7,6 +7,8 @@ extends Control
 
 const FFEngine = preload("res://scripts/games/fastest_finger/fastest_finger_engine.gd")
 const HELP = preload("res://scripts/games/fastest_finger/fastest_finger_help.gd")
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/fastest_finger/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/fastest_finger/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -114,6 +116,13 @@ func _build_ui() -> void:
 		modes.append({"text": "👥 %d Players" % n, "sub": "One phone", "multi": true, "row": "players",
 			"action": _new_game.bind(n)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board; colours analogous yellow/orange/red.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/fastest_finger/title.ttf",
+		"title_colors": [Color("ffe03c"), Color("ff9a2a"), Color("ff4a2a")],
+		"landing_colors": [Color("1c0e06"), Color("34180a")],
+		"menu_color": Color("ffe03c"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.GOLD,

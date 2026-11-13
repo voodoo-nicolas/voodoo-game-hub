@@ -7,6 +7,8 @@ extends Control
 
 const BuncoEngine = preload("res://scripts/games/bunco/bunco_engine.gd")
 const HELP = preload("res://scripts/games/bunco/bunco_help.gd")
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/bunco/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/bunco/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -150,6 +152,13 @@ func _build_ui() -> void:
 	for n in [2, 3, 4]:
 		modes.append({"text": "👥 %d Players" % n, "sub": "One phone", "multi": true, "row": "players", "action": _new_local.bind(n)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee; colours triadic orange/green/violet.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/bunco/title.ttf",
+		"title_colors": [Color("ff8a2a"), Color("3ccf6a"), Color("9a5cff")],
+		"landing_colors": [Color("120c22"), Color("22163c")],
+		"menu_color": Color("ff8a2a"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

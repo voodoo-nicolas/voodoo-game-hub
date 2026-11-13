@@ -7,6 +7,8 @@ extends Control
 
 const WAEngine = preload("res://scripts/games/who_am_i/who_am_i_engine.gd")
 const HELP = preload("res://scripts/games/who_am_i/who_am_i_help.gd")
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/who_am_i/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/who_am_i/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -112,6 +114,13 @@ func _build_ui() -> void:
 	for n in [2, 3, 4]:
 		modes.append({"text": "👥 %d Players" % n, "sub": "One phone", "multi": true, "row": "players", "action": _new_game.bind(n)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid; colours analogous lime/green/teal.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/who_am_i/title.ttf",
+		"title_colors": [Color("c8ff3c"), Color("4ade80"), Color("2dd4bf")],
+		"landing_colors": [Color("061a14"), Color("0e2e24")],
+		"menu_color": Color("c8ff3c"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.LIME,

@@ -7599,6 +7599,116 @@
    "proof": "media/licenses/fonts/cinzeldecorative-OFL.txt",
    "url": "https://github.com/google/fonts/tree/main/ofl/cinzeldecorative",
    "date": "2026-11-13"
+  },
+  {
+   "file": "games/farkle/title.ttf",
+   "what": "Title font of the farkle Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Lilita One",
+   "author": "Juan Montoreano",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/lilitaone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/lilitaone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/shut_the_box/title.ttf",
+   "what": "Title font of the shut_the_box Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Cinzel Decorative Black",
+   "author": "Natanael Gama",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/cinzeldecorative-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/cinzeldecorative",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/pig/title.ttf",
+   "what": "Title font of the pig Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Chewy",
+   "author": "Sideshow",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/chewy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/chewy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/bunco/title.ttf",
+   "what": "Title font of the bunco Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Luckiest Guy",
+   "author": "Astigmatic",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/luckiestguy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/luckiestguy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/ship_captain_crew/title.ttf",
+   "what": "Title font of the ship_captain_crew Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Rye",
+   "author": "Nicole Fally",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/rye-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/rye",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/party_spinner/title.ttf",
+   "what": "Title font of the party_spinner Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bungee",
+   "author": "David Jonathan Ross",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bungee-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bungee",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/charades/title.ttf",
+   "what": "Title font of the charades Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Shrikhand",
+   "author": "Jonny Pinhorn",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/shrikhand-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/shrikhand",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/truth_or_dare/title.ttf",
+   "what": "Title font of the truth_or_dare Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bowlby One SC",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bowlbyonesc-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bowlbyonesc",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/fortune_ball/title.ttf",
+   "what": "Title font of the fortune_ball Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Lobster",
+   "author": "Pablo Impallari",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/lobster-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/lobster",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/fastest_finger/title.ttf",
+   "what": "Title font of the fastest_finger Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Racing Sans One",
+   "author": "Impallari Type",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/racingsansone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/racingsansone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/who_am_i/title.ttf",
+   "what": "Title font of the who_am_i Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Concert One",
+   "author": "Johan Kallas, Mihkel Virkus",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/concertone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/concertone",
+   "date": "2026-11-13"
   }
  ]
 }
