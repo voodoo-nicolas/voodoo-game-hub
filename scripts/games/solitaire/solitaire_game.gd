@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/solitaire/menu_styles.gd")
 const SolitaireEngine = preload("res://scripts/games/solitaire/solitaire_engine.gd")
 const HomeKit = preload("res://scripts/games/solitaire/home_kit.gd")
 const CardData = preload("res://scripts/games/solitaire/card_data.gd")
@@ -875,6 +877,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/solitaire/solitaire_help.gd
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument; colours palette: felt green, gold, ivory.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/solitaire/title.ttf",
+		"title_colors": [Color("ffd23c"), Color("f4ecd8")],
+		"landing_colors": [Color("0b2a1c"), Color("145a38")],
+		"menu_color": Color("ffd23c"),
 		"help": preload("res://scripts/games/solitaire/solitaire_help.gd"),
 		"info": info,
 		"accent": HomeKit.LIME,

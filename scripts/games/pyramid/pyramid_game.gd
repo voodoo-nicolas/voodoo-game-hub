@@ -3,6 +3,8 @@ extends Control
 ## Pyramid Solitaire -- tap two uncovered cards that add up to 13 (a King goes
 ## alone). Tap the stock to turn a card onto the waste pile.
 
+## Landing menu style: S4 Monument (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/pyramid/menu_styles.gd")
 const PyrEngine = preload("res://scripts/games/pyramid/pyramid_engine.gd")
 const HomeKit = preload("res://scripts/games/pyramid/home_kit.gd")
 const Cards = preload("res://scripts/games/pyramid/pyramid_cards.gd")
@@ -265,6 +267,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/pyramid/pyramid_help.gd").T
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S4 Monument; colours analogous sand/gold/orange.
+		"landing": "monument",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/pyramid/title.ttf",
+		"title_colors": [Color("ffd27a"), Color("ffb03c"), Color("ff7a3c")],
+		"landing_colors": [Color("1a0e04"), Color("3a2208")],
+		"menu_color": Color("ffb03c"),
 		"help": preload("res://scripts/games/pyramid/pyramid_help.gd"),
 		"info": info,
 		"accent": HomeKit.GOLD,

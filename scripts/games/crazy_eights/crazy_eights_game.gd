@@ -4,6 +4,8 @@ extends Control
 ## Tap a glowing card to play it; tap the deck to draw when you have nothing
 ## to play. In pass-and-play a cover screen hides the hand between turns.
 
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/crazy_eights/menu_styles.gd")
 const C8Engine = preload("res://scripts/games/crazy_eights/crazy_eights_engine.gd")
 const HomeKit = preload("res://scripts/games/crazy_eights/home_kit.gd")
 const Cards = preload("res://scripts/games/crazy_eights/crazy_eights_cards.gd")
@@ -440,6 +442,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/crazy_eights/crazy_eights_h
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board; colours triadic magenta/yellow/cyan.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/crazy_eights/title.ttf",
+		"title_colors": [Color("ff4fa3"), Color("ffd23c"), Color("3cc8ff")],
+		"landing_colors": [Color("180c28"), Color("2c1a44")],
+		"menu_color": Color("ffd23c"),
 		"help": preload("res://scripts/games/crazy_eights/crazy_eights_help.gd"),
 		"info": info,
 		"accent": HomeKit.PINK,

@@ -4,6 +4,8 @@ extends Control
 ## and East. The 7♦ starts; then 7s open suits and everyone builds up and
 ## down from them. No playable card: you pass. First to play all 13 wins.
 
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/sevens/menu_styles.gd")
 const SevensEngine = preload("res://scripts/games/sevens/sevens_engine.gd")
 const Cards = preload("res://scripts/games/sevens/sevens_cards.gd")
 const HELP = preload("res://scripts/games/sevens/sevens_help.gd")
@@ -150,6 +152,13 @@ func _build_ui() -> void:
 	for i in 3:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard"][i], "sub": "You and three computers", "row": "lvl", "action": _new_game.bind(i)})
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost; colours complementary red/green.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/sevens/title.ttf",
+		"title_colors": [Color("ff4d5e"), Color("3ddc84")],
+		"landing_colors": [Color("140a10"), Color("2a1420")],
+		"menu_color": Color("ff4d5e"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.GOLD,

@@ -3,6 +3,8 @@ extends Control
 ## Speed vs the computer -- tap a card that's one higher or lower than a
 ## centre pile to play it. Be quick: the computer plays at the same time.
 
+## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/speed/menu_styles.gd")
 const SpeedEngine = preload("res://scripts/games/speed/speed_engine.gd")
 const HomeKit = preload("res://scripts/games/speed/home_kit.gd")
 const Cards = preload("res://scripts/games/speed/speed_cards.gd")
@@ -380,6 +382,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/speed/speed_help.gd").TITLE
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee; colours complementary orange/blue.
+		"landing": "marquee",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/speed/title.ttf",
+		"title_colors": [Color("ff8a1e"), Color("1e8aff")],
+		"landing_colors": [Color("0a0a1c"), Color("1a1440")],
+		"menu_color": Color("ff8a1e"),
 		"help": preload("res://scripts/games/speed/speed_help.gd"),
 		"info": info,
 		"accent": HomeKit.PINK,

@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S8 Diagonal Split (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/war/menu_styles.gd")
 const WarEngine = preload("res://scripts/games/war/war_engine.gd")
 const HomeKit = preload("res://scripts/games/war/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -333,6 +335,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/war/war_help.gd").TITLE
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S8 Diagonal Split; colours complementary red/cyan.
+		"landing": "split",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/war/title.ttf",
+		"title_colors": [Color("ff3b30"), Color("30d5ff")],
+		"landing_colors": [Color("140808"), Color("2a1010")],
+		"menu_color": Color("ff3b30"),
 		"help": preload("res://scripts/games/war/war_help.gd"),
 		"info": info,
 		"accent": HomeKit.PINK,

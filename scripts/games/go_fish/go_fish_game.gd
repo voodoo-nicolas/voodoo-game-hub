@@ -4,6 +4,8 @@ extends Control
 ## your cards to ask for that rank. With two players a cover screen hides
 ## the hands whenever the phone changes hands.
 
+## Landing menu style: S2 Center Ring (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/go_fish/menu_styles.gd")
 const GFEngine = preload("res://scripts/games/go_fish/go_fish_engine.gd")
 const HomeKit = preload("res://scripts/games/go_fish/home_kit.gd")
 const Cards = preload("res://scripts/games/go_fish/go_fish_cards.gd")
@@ -393,6 +395,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/go_fish/go_fish_help.gd").T
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S2 Center Ring; colours analogous blues/teal.
+		"landing": "ring",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/go_fish/title.ttf",
+		"title_colors": [Color("3cc8ff"), Color("2ee6c8"), Color("4d7cff")],
+		"landing_colors": [Color("04142a"), Color("0a2f52")],
+		"menu_color": Color("2ee6c8"),
 		"help": preload("res://scripts/games/go_fish/go_fish_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

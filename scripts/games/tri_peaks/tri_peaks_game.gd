@@ -3,6 +3,8 @@ extends Control
 ## Tri-Peaks solitaire: clear three peaks of cards by playing one rank up or
 ## down onto the waste pile. Long streaks score more.
 
+## Landing menu style: S6 Stone Slabs (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/tri_peaks/menu_styles.gd")
 const TpEngine = preload("res://scripts/games/tri_peaks/tri_peaks_engine.gd")
 const Cards = preload("res://scripts/games/tri_peaks/tri_peaks_cards.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -138,6 +140,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S6 Stone Slabs; colours analogous yellow/lime/green.
+		"landing": "slabs",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/tri_peaks/title.ttf",
+		"title_colors": [Color("ffe14d"), Color("a6e22e"), Color("3ddc84")],
+		"landing_colors": [Color("061a10"), Color("0e3420")],
+		"menu_color": Color("a6e22e"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,

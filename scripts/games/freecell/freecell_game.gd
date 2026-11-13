@@ -4,6 +4,8 @@ extends Control
 ## foundation first, then another column, then a free cell. Cards that are
 ## no longer needed fly to the foundations by themselves.
 
+## Landing menu style: S7 Diegetic Cinema (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/freecell/menu_styles.gd")
 const FCEngine = preload("res://scripts/games/freecell/freecell_engine.gd")
 const HomeKit = preload("res://scripts/games/freecell/home_kit.gd")
 const Cards = preload("res://scripts/games/freecell/freecell_cards.gd")
@@ -267,6 +269,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/freecell/freecell_help.gd")
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S7 Diegetic Cinema; colours analogous cyan/blue/indigo.
+		"landing": "cinema",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/freecell/title.ttf",
+		"title_colors": [Color("4ddcff"), Color("3a8cff"), Color("7a6cff")],
+		"landing_colors": [Color("040814"), Color("0c1630")],
+		"menu_color": Color("4ddcff"),
 		"help": preload("res://scripts/games/freecell/freecell_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

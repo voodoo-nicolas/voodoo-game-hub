@@ -7419,6 +7419,136 @@
    "proof": "media/licenses/fonts/blackopsone-OFL.txt",
    "url": "https://github.com/google/fonts/tree/main/ofl/blackopsone",
    "date": "2026-11-13"
+  },
+  {
+   "file": "games/solitaire/title.ttf",
+   "what": "Title font of the solitaire Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Cinzel Decorative Black",
+   "author": "Natanael Gama",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/cinzeldecorative-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/cinzeldecorative",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/war/title.ttf",
+   "what": "Title font of the war Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Black Ops One",
+   "author": "James Grieshaber, Eben Sorkin",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/blackopsone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/blackopsone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/crazy_eights/title.ttf",
+   "what": "Title font of the crazy_eights Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Luckiest Guy",
+   "author": "Astigmatic",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/luckiestguy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/luckiestguy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/go_fish/title.ttf",
+   "what": "Title font of the go_fish Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Chewy",
+   "author": "Sideshow",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/chewy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/chewy",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/gin_rummy/title.ttf",
+   "what": "Title font of the gin_rummy Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Lobster",
+   "author": "Pablo Impallari",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/lobster-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/lobster",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/spider/title.ttf",
+   "what": "Title font of the spider Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Creepster",
+   "author": "Sideshow",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/creepster-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/creepster",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/freecell/title.ttf",
+   "what": "Title font of the freecell Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Russo One",
+   "author": "Jovanny Lemonad",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/russoone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/russoone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/pyramid/title.ttf",
+   "what": "Title font of the pyramid Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Bowlby One SC",
+   "author": "Vernon Adams",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bowlbyonesc-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bowlbyonesc",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/speed/title.ttf",
+   "what": "Title font of the speed Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Racing Sans One",
+   "author": "Impallari Type",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/racingsansone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/racingsansone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/memory/title.ttf",
+   "what": "Title font of the memory Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Sniglet",
+   "author": "Haley Fiege",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/sniglet-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/sniglet",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/tri_peaks/title.ttf",
+   "what": "Title font of the tri_peaks Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Titan One",
+   "author": "Rodrigo Fuenzalida",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/titanone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/titanone",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/sevens/title.ttf",
+   "what": "Title font of the sevens Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Shrikhand",
+   "author": "Jonny Pinhorn",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/shrikhand-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/shrikhand",
+   "date": "2026-11-13"
+  },
+  {
+   "file": "games/rummy/title.ttf",
+   "what": "Title font of the rummy Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Concert One",
+   "author": "Johan Kallas, Mihkel Virkus",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/concertone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/concertone",
+   "date": "2026-11-13"
   }
  ]
 }

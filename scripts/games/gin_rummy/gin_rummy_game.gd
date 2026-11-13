@@ -5,6 +5,8 @@ extends Control
 ## card to select it, then Discard (or Knock / Gin when your deadwood allows).
 ## Your hand is kept sorted into melds (left) and deadwood (right).
 
+## Landing menu style: S3 Rail List (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/gin_rummy/menu_styles.gd")
 const GinEngine = preload("res://scripts/games/gin_rummy/gin_rummy_engine.gd")
 const HomeKit = preload("res://scripts/games/gin_rummy/home_kit.gd")
 const Cards = preload("res://scripts/games/gin_rummy/gin_rummy_cards.gd")
@@ -479,6 +481,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/gin_rummy/gin_rummy_help.gd
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S3 Rail List; colours complementary coral/teal.
+		"landing": "rail",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/gin_rummy/title.ttf",
+		"title_colors": [Color("ff7a59"), Color("2ec4b6")],
+		"landing_colors": [Color("0c1a1e"), Color("163238")],
+		"menu_color": Color("ff7a59"),
 		"help": preload("res://scripts/games/gin_rummy/gin_rummy_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

@@ -3,6 +3,8 @@ extends Control
 ## Spider Solitaire -- tap a card to move it (with the cards below it) to the
 ## best spot. Tap the stock (top left) to deal a new row.
 
+## Landing menu style: S1 Corner Ghost (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/spider/menu_styles.gd")
 const SpiderEngine = preload("res://scripts/games/spider/spider_engine.gd")
 const HomeKit = preload("res://scripts/games/spider/home_kit.gd")
 const Cards = preload("res://scripts/games/spider/spider_cards.gd")
@@ -291,6 +293,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/spider/spider_help.gd").TIT
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S1 Corner Ghost; colours complementary purple/lime.
+		"landing": "ghost",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/spider/title.ttf",
+		"title_colors": [Color("b05cff"), Color("a6ff3c")],
+		"landing_colors": [Color("0c0618"), Color("1e0c30")],
+		"menu_color": Color("a6ff3c"),
 		"help": preload("res://scripts/games/spider/spider_help.gd"),
 		"info": info,
 		"accent": HomeKit.PURPLE,

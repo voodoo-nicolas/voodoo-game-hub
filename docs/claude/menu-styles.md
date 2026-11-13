@@ -71,12 +71,25 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | color_sort | marquee (S9) | LuckiestGuy (4-colour test-tube palette) |
 | hidato | ring (S2) | TitanOne (triadic gold/green/violet) |
 | rectangles | slabs (S6) | BlackOpsOne (analogous blues) |
+| solitaire | monument (S4) | CinzelDecorative (palette felt green/gold/ivory) |
+| war | split (S8) | BlackOpsOne (complementary red/cyan) |
+| crazy_eights | stickers (S11) | LuckiestGuy (triadic magenta/yellow/cyan) |
+| go_fish | ring (S2) | Chewy (analogous blues/teal) |
+| gin_rummy | rail (S3) | Lobster (complementary coral/teal) |
+| spider | ghost (S1) | Creepster (complementary purple/lime) |
+| freecell | cinema (S7) | RussoOne (analogous cyan/blue/indigo) |
+| pyramid | monument (S4) | BowlbyOneSC (analogous sand/gold/orange) |
+| speed | marquee (S9) | RacingSansOne (complementary orange/blue) |
+| memory | bento (S10) | Sniglet (triadic green/orange/violet) |
+| tri_peaks | slabs (S6) | TitanOne (analogous yellow/lime/green) |
+| sevens | ghost (S1) | Shrikhand (complementary red/green) |
+| rummy | stickers (S11) | ConcertOne (palette: four suit colours) |
 
 Gotcha: after wiring a game run `python tools/hub.py i18n` (the kit strings "Single player", "Menu"... must reach the
 game's own `_i18n.gd`); batch 2 first shipped without it.
 Intelligence batch (2026-11-13): each game's colours follow one rule (complementary, analogous, triadic or a
 set palette), 2-4 colours. Creation and Evolution keep their key-art Landing (menu styles draw no "art"); IQ Test
-has its own screen. Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit.
+has its own screen. Cards batch (same day): Video Poker keeps its key-art Landing. Sudoku is not on the kit Landing (own screen): no menu style until it is moved to the kit.
 
 Checked by screenshot (tools/shot.gd) at 405x720 and 960x540, Spanish, text size 1.0. NOT checked: text size 1.4, a
 real phone. First 8 published 2026-11-13.

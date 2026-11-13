@@ -1,5 +1,7 @@
 extends Control
 
+## Landing menu style: S10 Bento Grid (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/memory/menu_styles.gd")
 const MemoryEngine = preload("res://scripts/games/memory/memory_engine.gd")
 const HomeKit = preload("res://scripts/games/memory/home_kit.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
@@ -365,6 +367,13 @@ const TITLE_FOR_HOME := preload("res://scripts/games/memory/memory_help.gd").TIT
 
 func _build_home() -> void:
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid; colours triadic green/orange/violet.
+		"landing": "bento",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/memory/title.ttf",
+		"title_colors": [Color("3ddc84"), Color("ff9a2e"), Color("a05cff")],
+		"landing_colors": [Color("0e1022"), Color("1e2244")],
+		"menu_color": Color("ff9a2e"),
 		"help": preload("res://scripts/games/memory/memory_help.gd"),
 		"info": info,
 		"accent": HomeKit.CYAN,

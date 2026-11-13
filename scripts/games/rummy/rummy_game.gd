@@ -4,6 +4,8 @@ extends Control
 ## down sets and runs, lay cards off on melds (yours or theirs), then discard
 ## one card. Go out first and score the points left in the other hand.
 
+## Landing menu style: S11 Sticker Board (docs/MENU_STYLES.md).
+const MenuStyles = preload("res://scripts/games/rummy/menu_styles.gd")
 const RummyEngine = preload("res://scripts/games/rummy/rummy_engine.gd")
 const Cards = preload("res://scripts/games/rummy/rummy_cards.gd")
 const HELP = preload("res://scripts/games/rummy/rummy_help.gd")
@@ -175,6 +177,13 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	home = HomeKit.new({
+		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board; colours palette: the four suit colours.
+		"landing": "stickers",
+		"landing_style": MenuStyles,
+		"title_font": "res://games/rummy/title.ttf",
+		"title_colors": [Color("ff4d5e"), Color("ffd23c"), Color("3ddc84"), Color("3c9bff")],
+		"landing_colors": [Color("101828"), Color("1c2a44")],
+		"menu_color": Color("3c9bff"),
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.PINK,
