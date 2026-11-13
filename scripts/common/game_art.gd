@@ -19,9 +19,11 @@ const GameTeasersArcade = preload("res://scripts/common/game_teasers_arcade.gd")
 const GameTeasersPuzzle = preload("res://scripts/common/game_teasers_puzzle.gd")
 const GameTeasersCards = preload("res://scripts/common/game_teasers_cards.gd")
 const GameTeasersRest = preload("res://scripts/common/game_teasers_rest.gd")
+const GameLogosBatch6 = preload("res://scripts/common/game_logos_batch6.gd")
+const GameTeasersBatch6 = preload("res://scripts/common/game_teasers_batch6.gd")
 
-const LOGO_SETS := [GameLogos, GameLogosArcade, GameLogosPuzzle, GameLogosCards, GameLogosRest]
-const TEASER_SETS := [GameTeasers, GameTeasersArcade, GameTeasersPuzzle, GameTeasersCards, GameTeasersRest]
+const LOGO_SETS := [GameLogos, GameLogosArcade, GameLogosPuzzle, GameLogosCards, GameLogosRest, GameLogosBatch6]
+const TEASER_SETS := [GameTeasers, GameTeasersArcade, GameTeasersPuzzle, GameTeasersCards, GameTeasersRest, GameTeasersBatch6]
 
 static func has_logo(id: String) -> bool:
 	for s in LOGO_SETS:
