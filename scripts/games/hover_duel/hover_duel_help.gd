@@ -3,7 +3,7 @@ extends RefCounted
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
 
 const ID := "hover_duel"
-const TITLE := "Hover Duel"
+const TITLE := "Thrust - Zero-G Duels"
 const GOAL := "Knock the other hovercraft's armour down to zero before it does the same to you."
 const HOW := [
 	"Hold the phone sideways. Push the stick the way you want to go: your hovercraft turns that way and speeds up. Let go and it drifts.",
