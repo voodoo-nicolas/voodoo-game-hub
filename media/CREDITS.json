@@ -4435,6 +4435,16 @@
    "date": "2026-11-13"
   },
   {
+   "file": "games/ink_ninja/title.ttf",
+   "what": "Title font of the Ink Ninja Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Permanent Marker",
+   "author": "Font Diner",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/permanentmarker-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/permanentmarker",
+   "date": "2026-11-14"
+  },
+  {
    "file": "games/crossword/title.ttf",
    "what": "Title font of the crossword Landing (menu style, docs/MENU_STYLES.md)",
    "source": "Google Fonts: Permanent Marker",
