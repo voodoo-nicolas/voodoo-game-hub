@@ -24,35 +24,35 @@ const MAX_WRATH := 10
 
 ## Story stops, in the order of the Aeneid (books 1-7). "god" names the emblem drawn.
 const STOPS := [
-	{"id": "thrace", "place": "Thrace", "god": "mars",
+	{"id": "thrace", "goal": "Find a place to found a new Troy", "place": "Thrace", "god": "mars",
 		"text": "You land in Thrace to found a new city. As you cut myrtle for an altar, the roots bleed, and a voice from the ground: it is Polydorus, Priam's murdered son. \"Flee this cruel land!\"",
 		"fact": "Polydorus, youngest son of King Priam of Troy, had been sent to Thrace with gold for safety; its king murdered him for it (Aeneid, book 3).",
 		"choices": [
 			{"text": "Give Polydorus a proper funeral, then leave", "fx": {"favor": 2, "food": -2}, "res": "The rites are done. The gods approve of your piety."},
 			{"text": "Ignore the omen and keep building", "fx": {"wrath": 2, "crew": -15}, "res": "Sickness and quarrels break out. At last you sail, fewer than before."},
 		]},
-	{"id": "delos", "place": "Delos", "god": "apollo",
+	{"id": "delos", "goal": "Learn where the gods want you to go", "place": "Delos", "god": "apollo",
 		"text": "On the sacred island of Delos, the temple of Apollo shakes and a voice answers: \"Seek out your ancient mother.\"",
 		"fact": "Apollo kept his Greek name in Rome, one of the few gods who did. His oracle meant Italy, home of Dardanus, founder of Troy's royal line.",
 		"choices": [
 			{"text": "Sacrifice a bull to Apollo", "fx": {"favor": 2, "food": -3}, "res": "Apollo is honoured. The sea ahead looks kinder."},
 			{"text": "Thank the god and sail on", "fx": {}, "res": "You leave with the riddle and your stores intact."},
 		]},
-	{"id": "crete", "place": "Crete", "god": "penates",
+	{"id": "crete", "goal": "Escape the plague", "place": "Crete", "god": "penates",
 		"text": "Your father Anchises thinks the \"ancient mother\" is Crete. You build walls there, but a plague strikes men and fields alike.",
 		"fact": "In a dream, the Penates, Troy's household gods carried by Aeneas, told him the real goal was Italy. Romans kept Penates in every home.",
 		"choices": [
 			{"text": "Leave Crete at once", "fx": {"food": -3}, "res": "You load what you can and put to sea before the plague spreads."},
 			{"text": "Stay one more season to harvest", "fx": {"food": 8}, "chance": 0.5, "fail": {"food": 2, "crew": -25}, "res": "The harvest holds and no one falls sick. Lucky.", "res_fail": "The plague takes many before you sail."},
 		]},
-	{"id": "strophades", "place": "Strophades Islands", "god": "harpy",
+	{"id": "strophades", "goal": "Keep your food from the Harpies", "place": "Strophades Islands", "god": "harpy",
 		"text": "You feast on cattle you found grazing, but Harpies, bird-women with filthy claws, swoop down on your tables.",
 		"fact": "Celaeno, queen of the Harpies, cursed the Trojans: they would not found their city until hunger made them eat their own tables.",
 		"choices": [
 			{"text": "Draw swords and fight them", "fx": {"food": -2, "crew": -5}, "chance": 0.6, "fail": {"food": -6, "crew": -5, "wrath": 1}, "res": "Your swords drive them off, though their feathers turn the blades.", "res_fail": "Steel cannot hurt them. Celaeno curses you as they ruin the feast."},
 			{"text": "Abandon the feast and row away", "fx": {"food": -4}, "res": "You lose the meat but no men."},
 		]},
-	{"id": "buthrotum", "place": "Buthrotum", "god": "apollo",
+	{"id": "buthrotum", "goal": "Learn what lies ahead", "place": "Buthrotum", "god": "apollo",
 		"text": "In Buthrotum you find Helenus, Priam's son and a seer, ruling a little copy of Troy with Andromache.",
 		"fact": "Helenus warned Aeneas to sail round Sicily rather than through the straits of Scylla and Charybdis, to honour Juno above all, and to visit the Sibyl of Cumae.",
 		"choices": [
@@ -60,7 +60,7 @@ const STOPS := [
 			{"text": "Accept his gifts of food and men", "fx": {"food": 8, "crew": 15}, "res": "Your ships leave heavier with grain, and new oarsmen join you."},
 			{"text": "Offer at Juno's altar, as he urges", "fx": {"wrath": -2, "food": -3}, "res": "Juno's anger cools, a little."},
 		]},
-	{"id": "straits", "place": "Straits of Messina", "god": "neptune",
+	{"id": "straits", "goal": "Get past Scylla and Charybdis", "place": "Straits of Messina", "god": "neptune",
 		"text": "Between Italy and Sicily lie Scylla, a six-headed monster in her cave, and Charybdis, a whirlpool that swallows the sea three times a day.",
 		"fact": "Scylla and Charybdis were placed on either side of the Strait of Messina; \"between Scylla and Charybdis\" still means choosing between two dangers.",
 		"choices": [
@@ -69,35 +69,35 @@ const STOPS := [
 			{"text": "Risk the whirlpool's edge", "fx": {}, "chance": 0.5, "fail": {"ships": -2}, "res": "You slip past while Charybdis sleeps.", "res_fail": "The whirlpool spins two ships down into the deep."},
 			{"text": "Pray to Neptune for safe passage", "need": {"favor": 3}, "fx": {"favor": -3}, "res": "The sea lies flat and you pass between the monsters untouched."},
 		]},
-	{"id": "cyclops", "place": "Mount Etna", "god": "cyclops",
+	{"id": "cyclops", "goal": "Escape the Cyclopes", "place": "Mount Etna", "god": "cyclops",
 		"text": "Under smoking Etna a ragged Greek begs for rescue: Achaemenides, left behind by Ulysses. The blinded Cyclops Polyphemus and his brothers are coming down the hill.",
 		"fact": "Ulysses is the Latin name of Odysseus. Romans placed the Cyclopes' forge under Mount Etna, where they made Jupiter's thunderbolts.",
 		"choices": [
 			{"text": "Take the Greek aboard and row hard", "fx": {"crew": 1, "favor": 1}, "res": "Mercy to an enemy: the gods notice. You escape with one more oarsman."},
 			{"text": "Stop to load sheep and water first", "fx": {"food": 8}, "chance": 0.5, "fail": {"food": 8, "ships": -1}, "res": "Loaded and away before the giants reach the shore.", "res_fail": "A hurled boulder smashes one ship as you pull away."},
 		]},
-	{"id": "drepanum", "place": "Drepanum, Sicily", "god": "lar",
+	{"id": "drepanum", "goal": "Honour your father", "place": "Drepanum, Sicily", "god": "lar",
 		"text": "In the harbour of Drepanum your old father Anchises, who carried the gods out of Troy, dies in your arms.",
 		"fact": "Aeneas carried Anchises on his back out of burning Troy; Romans called Aeneas \"pius\" for this devotion to family and gods.",
 		"choices": [
 			{"text": "Bury him with full honours", "fx": {"favor": 2, "food": -3}, "res": "You raise a tomb. Piety is Rome's first virtue."},
 			{"text": "A quick burial; time is short", "fx": {"food": -1}, "res": "You sail on, heavy-hearted."},
 		]},
-	{"id": "storm", "place": "Sea off Sicily", "god": "juno", "storm": true,
+	{"id": "storm", "goal": "Survive Juno's storm", "place": "Sea off Sicily", "god": "juno", "storm": true,
 		"text": "Juno sees you almost in Italy. She bribes Aeolus, king of the winds, to let every wind loose on your fleet at once.",
 		"fact": "Juno, queen of the gods (Hera to the Greeks), hated Troy and loved Carthage. In the Aeneid it is Neptune who calms her storm.",
 		"choices": [
 			{"text": "Pray to Neptune to calm the sea", "need": {"favor": 3}, "fx": {"favor": -3}, "res": "Neptune rises, angry that anyone stirs his sea without leave, and smooths the waves."},
 			{"text": "Ride out the storm", "storm": true, "fx": {}, "res": "The storm passes. You count the ships that are left."},
 		]},
-	{"id": "carthage", "place": "Carthage", "god": "venus",
+	{"id": "carthage", "goal": "Choose between love and duty", "place": "Carthage", "god": "venus",
 		"text": "Wrecked on Africa's shore, you are welcomed by Dido, queen of Carthage. Your mother Venus makes her fall in love with you. Stay, and be king?",
 		"fact": "Jupiter sent Mercury, the messenger god, to remind Aeneas of his duty. Virgil made Dido's curse the mythical root of the wars between Rome and Carthage.",
 		"choices": [
 			{"text": "Obey Mercury and sail for Italy", "fx": {"favor": 2, "wrath": 1, "food": 6}, "res": "You leave at night. Dido's pyre burns behind you, and Juno's hate burns hotter."},
 			{"text": "Stay with Dido for a while", "fx": {"food": 12, "crew": 20, "favor": -3}, "res": "Months of feasting. Jupiter is displeased; at last you go anyway."},
 		]},
-	{"id": "games", "place": "Eryx, Sicily", "god": "iris",
+	{"id": "games", "goal": "Save the fleet from the fire", "place": "Eryx, Sicily", "god": "iris",
 		"text": "While you hold funeral games for Anchises, Iris, sent by Juno and disguised as an old woman, urges the weary Trojan women to burn the ships.",
 		"fact": "Iris, goddess of the rainbow, was Juno's messenger. Jupiter answered Aeneas' prayer with a downpour; four ships were lost.",
 		"choices": [
@@ -105,14 +105,14 @@ const STOPS := [
 			{"text": "Fight the fire yourselves", "fx": {"ships": -2, "crew": -5}, "res": "You save most of the fleet, but two ships burn to the waterline."},
 			{"text": "Leave the weary behind to found a town", "fx": {"crew": -25, "food": 6, "wrath": -1}, "res": "The tired and old stay in Sicily and found Acesta. The rest sail lighter."},
 		]},
-	{"id": "cumae", "place": "Cumae", "god": "sibyl",
+	{"id": "cumae", "goal": "Find the golden bough", "place": "Cumae", "god": "sibyl",
 		"text": "At Cumae the Sibyl, Apollo's priestess, will guide you to the Underworld to see your father, if you find the golden bough for Proserpina.",
 		"fact": "In the Underworld, Anchises showed Aeneas the souls of future Romans, from Romulus to Augustus. Proserpina is the Roman Persephone.",
 		"choices": [
 			{"text": "Seek the golden bough and go below", "fx": {"favor": 3, "food": -3}, "flag": "underworld", "res": "Two doves of Venus lead you to the bough. Below, your father shows you Rome's future."},
 			{"text": "Make an offering and press on", "fx": {"favor": 1, "food": -1}, "res": "The Sibyl's leaves scatter in the wind. You sail north."},
 		]},
-	{"id": "tiber", "place": "Mouth of the Tiber", "god": "jupiter", "final": true,
+	{"id": "tiber", "goal": "Found your city in Latium", "place": "Mouth of the Tiber", "god": "jupiter", "final": true,
 		"text": "Hungry, your men eat even the flat bread they used as plates. \"We are eating our tables!\" Celaeno's curse is fulfilled: this is the land. You have reached Latium.",
 		"fact": "Aeneas married Lavinia, daughter of King Latinus. His son Ascanius founded Alba Longa, and their line led to Romulus and Remus, founders of Rome.",
 		"choices": [
@@ -193,6 +193,7 @@ var lost_reason: String = ""
 var last_res: String = ""
 var last_delta: Dictionary = {}
 var decisions: int = 0
+var last_myth: String = ""  # fact id met for the first time this voyage by the last pick
 var starved: bool = false   # the last leg ran out of food
 var used_sea: Array = []
 var rng := RandomNumberGenerator.new()
@@ -269,8 +270,12 @@ func pick(i: int) -> bool:
 		fx["ships"] = int(fx.get("ships", 0)) - storm_loss()
 	if ch.has("flag"):
 		flags[ch.flag] = true
+	if ch.has("need"):
+		flags["prayed"] = true
+	last_myth = ""
 	if ev.has("fact") and not ev.id in seen_facts:
 		seen_facts.append(ev.id)
+		last_myth = ev.id
 	_apply(fx)
 	decisions += 1
 	_advance(ev)

@@ -4575,6 +4575,16 @@
    "date": "2026-11-13"
   },
   {
+   "file": "games/roman_voyage/title.ttf",
+   "what": "Title font of the Voyage of Aeneas Landing (menu style S2 Ring, docs/MENU_STYLES.md); copy of games/backgammon/title.ttf",
+   "source": "Google Fonts: Cinzel Decorative Black",
+   "author": "Natanael Gama",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/cinzeldecorative-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/cinzeldecorative",
+   "date": "2026-11-14"
+  },
+  {
    "file": "games/morris/title.ttf",
    "what": "Title font of the morris Landing (menu style, docs/MENU_STYLES.md)",
    "source": "Google Fonts: Rye",

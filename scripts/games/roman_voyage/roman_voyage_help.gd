@@ -15,6 +15,8 @@ const HOW := [
 	"You lose if your last ship sinks or your last man is gone. Reach the Tiber to win.",
 	"Score: 100 per ship, 3 per man, 2 per food, 20 per favor, minus 10 per wrath; ×1.5 on Normal, ×2 on Hard.",
 	"📅 Daily Voyage: today's seas are the same for everyone (Normal).",
+	"🎯 Story: each stop shows its goal on the way to Italy. The Chronicle keeps every myth you meet, on any voyage.",
+	"📅 Daily objective: a new one every day. 🗓 Weekly objective: counted over all your voyages that week. Each one done earns laurels 🌿 (1 a day, 3 a week). See them on the Home screen under 🎯 Objectives.",
 	"⏸ pauses; Resume on the Home screen carries on the same voyage.",
 ]
 const TIPS := [
@@ -23,13 +25,15 @@ const TIPS := [
 	"Honouring the gods costs food now and saves ships later.",
 	"Lowering Juno's wrath makes the open sea much safer.",
 ]
-const STATS := ["Wins", "Losses", "Best score", "Most ships at the Tiber", "Voyages won (Easy)", "Voyages won (Normal)", "Voyages won (Hard)", "Daily voyages won", "Underworld visits", "Myths met"]
-const NO_TIER_BADGES := ["Voyages won (Easy)", "Voyages won (Normal)", "Daily voyages won", "Most ships at the Tiber", "Myths met"]
+const STATS := ["Wins", "Losses", "Best score", "Most ships at the Tiber", "Voyages won (Easy)", "Voyages won (Normal)", "Voyages won (Hard)", "Daily voyages won", "Underworld visits", "Myths met", "Laurels", "Myths in the Chronicle"]
+const NO_TIER_BADGES := ["Voyages won (Easy)", "Voyages won (Normal)", "Daily voyages won", "Most ships at the Tiber", "Myths met", "Laurels", "Myths in the Chronicle", "Underworld visits"]
 
 const ACHIEVEMENTS := [
 	{"id": "landfall", "icon": "🏛", "title": "Founder", "key": "Wins", "at": 1, "xp": 25},
 	{"id": "hard_voyage", "icon": "🦅", "title": "Pius Aeneas", "key": "Voyages won (Hard)", "at": 1, "xp": 50},
 	{"id": "underworld", "icon": "🌿", "title": "The Golden Bough", "key": "Underworld visits", "at": 1, "xp": 25},
+	{"id": "laurels10", "icon": "🌿", "title": "Crowned in Laurel", "key": "Laurels", "at": 10, "xp": 50},
+	{"id": "chronicle", "icon": "📜", "title": "Chronicler", "key": "Myths in the Chronicle", "at": 20, "xp": 50},
 	{"id": "full_fleet", "icon": "⛵", "title": "Whole Fleet", "key": "Most ships at the Tiber", "at": 10, "xp": 50},
 ]
 

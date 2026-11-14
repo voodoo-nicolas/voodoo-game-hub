@@ -64,5 +64,40 @@ func _init() -> void:
 					score_sum += e.score()
 					check(e.score() >= 0, "score")
 			print("diff %d %s: won %d/%d, avg score %d" % [d, strat, won, total, score_sum / max(1, won)])
+	_test_goals()
 	print("FAILS: %d" % fails)
 	quit(1 if fails else 0)
+
+## Objectives: every daily shows up within a week, rollover resets, a won voyage counts.
+func _test_goals() -> void:
+	const G = preload("res://scripts/games/roman_voyage/roman_voyage_goals.gd")
+	var t0 := 1_800_000_000.0
+	var ids := {}
+	for d in G.DAILY.size():
+		ids[G.daily_for(t0 + d * 86400.0).id] = true
+	check(ids.size() == G.DAILY.size(), "dailies cover the cycle")
+	check(G.week_index(t0) != G.week_index(t0 + 7 * 86400.0), "week changes")
+	var s := G.normalize({}, t0)
+	s.daily_done = true
+	s.week_count = 2
+	check(G.normalize(s, t0 + 86400.0).daily_done == false, "daily rolls over")
+	check(int(G.normalize(s, t0 + 8 * 86400.0).week_count) == 0, "weekly rolls over")
+	check(G.all_myths().size() == 20, "20 myths, got %d" % G.all_myths().size())
+	# Find a won voyage and run it through the goals.
+	for seed_v in 50:
+		var e = E.new()
+		e.reset(0, seed_v)
+		var st: Dictionary = G.normalize({}, t0)
+		while not e.over:
+			var ok: Array = e.choices().filter(func(c): return c.ok)
+			e.pick(ok[0].index)
+			G.on_choice(st, e, t0, e.last_myth)
+		if not e.won:
+			continue
+		var before_l := int(st.laurels)
+		var got: Array = G.on_end(st, e, t0)
+		check(st.chronicle.size() > 5, "chronicle filled")
+		check(int(st.furthest) == E.STOPS.size() - 1, "furthest = Tiber")
+		check(int(st.laurels) == before_l + (G.DAILY_LAURELS if "daily" in got else 0) + (G.WEEKLY_LAURELS if "weekly" in got else 0), "laurels add up")
+		check(G.on_end(st, e, t0).filter(func(x): return x == "daily").is_empty(), "daily pays once")
+		break
