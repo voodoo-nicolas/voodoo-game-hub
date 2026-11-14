@@ -94,7 +94,7 @@ var pickup_t: float = 0.0
 var winner: int = -1          # -1 playing, 0 / 1, 2 = both gone
 var time: float = 0.0
 var rng := RandomNumberGenerator.new()
-var events: Array = []        # filled by step(): ["shot", i], ["hit", i, pos], ["boom", pos, size], ["wall", pos], ["pick", i, kind], ["missile", i], ["mine", i], ["dead", i]
+var events: Array = []        # filled by step(): ["shot", i], ["hit", i, pos, src], ["boom", pos, size], ["wall", pos], ["pick", i, kind], ["missile", i], ["mine", i], ["dead", i, src]; src = gun / missile / mine / lava / wall
 
 # ---------- setup ----------
 
@@ -289,7 +289,7 @@ func step(dt: float, inputs: Array) -> Array:
 		if inp.get("mine", false):
 			drop_mine(i)
 		if theme.liquid == "lava" and is_liquid(c.p):
-			_damage(i, LAVA_DPS * dt, c.p, false)
+			_damage(i, LAVA_DPS * dt, c.p, false, "lava")
 	_step_effects(dt)
 	_step_pickups(dt)
 	_check_end()
@@ -333,7 +333,7 @@ func _drive(i: int, move: Vector2, dt: float) -> void:
 			np = c.p
 			c.v *= -0.4
 		if speed > 220.0:
-			_damage(i, (speed - 220.0) * 0.04, c.p, false)
+			_damage(i, (speed - 220.0) * 0.04, c.p, false, "wall")
 			events.append(["wall", c.p])
 	c.p = np
 	# Craft bump each other.
@@ -392,7 +392,7 @@ func _step_effects(dt: float) -> void:
 		for j in 2:
 			var c: Dictionary = crafts[j]
 			if j != s.o and c.alive and s.p.distance_to(c.p) < CRAFT_R:
-				_damage(j, s.dmg, s.p, true)
+				_damage(j, s.dmg, s.p, true, "gun")
 				s.t = -1.0
 				break
 	shots = shots.filter(func(s): return s.t > 0.0)
@@ -409,7 +409,7 @@ func _step_effects(dt: float) -> void:
 			m.t = -1.0
 			events.append(["boom", m.p, 0.6])
 		elif target.alive and m.p.distance_to(target.p) < CRAFT_R + 4.0:
-			_damage(1 - m.o, MISSILE_DMG, m.p, true)
+			_damage(1 - m.o, MISSILE_DMG, m.p, true, "missile")
 			events.append(["boom", m.p, 1.0])
 			m.t = -1.0
 		elif m.t <= 0.0:
@@ -422,7 +422,7 @@ func _step_effects(dt: float) -> void:
 		for j in 2:
 			var c: Dictionary = crafts[j]
 			if c.alive and mn.p.distance_to(c.p) < MINE_R:
-				_damage(j, MINE_DMG, mn.p, true)
+				_damage(j, MINE_DMG, mn.p, true, "mine")
 				events.append(["boom", mn.p, 1.3])
 				mn.t = -99.0
 				break
@@ -460,19 +460,19 @@ func _take(i: int, kind: String) -> void:
 			c.shield = 6.0
 	events.append(["pick", i, kind])
 
-func _damage(i: int, amount: float, at: Vector2, loud: bool) -> void:
+func _damage(i: int, amount: float, at: Vector2, loud: bool, src: String = "") -> void:
 	var c: Dictionary = crafts[i]
 	if not c.alive or c.shield > 0.0:
 		return
 	c.hp -= amount
 	c.hit_t = 0.25
 	if loud:
-		events.append(["hit", i, at])
+		events.append(["hit", i, at, src])
 	if c.hp <= 0.0:
 		c.hp = 0.0
 		c.alive = false
 		events.append(["boom", c.p, 2.2])
-		events.append(["dead", i])
+		events.append(["dead", i, src])
 
 func _check_end() -> void:
 	var a: bool = crafts[0].alive

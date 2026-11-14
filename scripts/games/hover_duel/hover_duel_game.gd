@@ -22,6 +22,10 @@ const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://hover_duel_save.json"
 const CAMPAIGN_PATH := "user://hover_duel_campaign.json"
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
+const Goals = preload("res://scripts/games/hover_duel/hover_duel_goals.gd")
+const Story = preload("res://scripts/games/hover_duel/hover_duel_story.gd")
+const TERRAIN_SHADER = preload("res://scripts/games/hover_duel/hover_duel_terrain.gdshader")
+const LANDING_ART := "res://games/hover_duel/landing_bg.jpg"
 
 const LEVELS := ["Easy", "Normal", "Hard"]
 const VS_THEMES := ["valley", "isles", "highlands", "desert", "glacier", "volcano"]
@@ -49,11 +53,20 @@ var started := false
 var result_recorded := false
 var over_t: float = 0.0
 var camp: Dictionary = {"reached": 0, "stars": {}}
+var goals = Goals.new()
+var tally: Dictionary = {}    # this battle, for the objectives (see hover_duel_goals.gd)
+var engine_snd: AudioStreamPlayer = null
+var terrain: Control          # the map picture, drawn through the terrain shader
+var mask_tex: ImageTexture
 
 var field: Control
 var hud: Control
 var end_dialog: Control
 var next_btn: Button
+var brief_dialog: Control
+var brief_title: Label
+var brief_text: Label
+var briefing := false         # a Campaign briefing is up: the battle waits
 var terrain_tex: ImageTexture
 var cam := Vector2(E.W / 2.0, E.H / 2.0)
 var zoom: float = 0.5
@@ -64,6 +77,7 @@ var shake: float = 0.0
 var banner := ""
 var banner_t: float = 0.0
 var shot_sfx_t: float = 0.0
+var wall_sfx_t: float = 0.0
 
 # Touch controls: the shared Pad in 1-player games; own two-half controls in
 # 2 Players and on apps without the Pad.
@@ -76,6 +90,7 @@ func _ready() -> void:
 	Orientation.lock_landscape()
 	engine = E.new()
 	_load_campaign()
+	goals.load_saved(SaveUtil.read(Goals.PATH))
 	engine.reset("valley", 1101, ["skimmer", "gnat"], [-1, 0])
 	_build_ui()
 	_rebuild_terrain()
@@ -89,6 +104,15 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
+	terrain = Control.new()
+	terrain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	terrain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	terrain.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var mat := ShaderMaterial.new()
+	mat.shader = TERRAIN_SHADER
+	terrain.material = mat
+	terrain.draw.connect(_draw_terrain)
+	add_child(terrain)
 	field = Control.new()
 	field.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	field.clip_contents = true
@@ -120,14 +144,13 @@ func _build_ui() -> void:
 	], true)
 	add_child(end_dialog)
 	next_btn = _find_button(end_dialog, tr("Next battle"))
+	_build_briefing()
 	_add_pad()
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = []
-	for i in LEVELS.size():
-		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard"][i], "row": "cpu",
-			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_vs.bind(i)})
+	modes.append({"text": "⚡ Quick Duel", "sub": "vs Computer (Normal), random land", "action": _new_vs.bind(1)})
 	modes.append({"text": "👥 2 Players", "sub": "One phone held sideways, one half each", "multi": true, "action": _new_duo})
 	home = HomeKit.new({
 		# Menu style (docs/MENU_STYLES.md): S3 Rail List; colours: sky blue vs signal red.
@@ -143,8 +166,15 @@ func _build_ui() -> void:
 		"solo_heading": "vs Computer",
 		"subtitle": "Hovercraft duel over hills, rivers and rock. High ground wins.",
 		"logo": _draw_home_logo,
+		"art": LANDING_ART if ResourceLoader.exists(LANDING_ART) else "",
+		"landing_art": true,
+		"landing_art_alpha": 0.7,
 		"modes": modes,
-		"play": [{"text": "🗺 Campaign", "sub": "12 rivals, 6 lands", "action": _open_campaign, "card": true}],
+		"play": [
+			{"text": "🗺 Campaign", "sub": "12 rivals, 6 lands", "action": _open_campaign, "card": true},
+			{"text": "🤖 vs Computer", "sub": "Easy, Normal or Hard", "action": _open_vs, "card": true},
+			{"text": "🎯 Objectives", "sub": "Daily, weekly and story goals", "action": _open_goals, "card": true},
+		],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
@@ -229,12 +259,79 @@ func _begin() -> void:
 	trails.clear()
 	fingers.clear()
 	end_dialog.visible = false
+	tally = {"battles": 1}
+	briefing = false
+	brief_dialog.visible = false
+	if mode == "campaign" and engine.time <= 0.0:
+		briefing = true
+		var ch: Dictionary = Story.CHAPTERS[level]
+		var head := tr("Battle %d") % (level + 1) + " · " + tr(E.CAMPAIGN[level].rival)
+		var txt := ""
+		if level == 0:
+			txt = tr(Story.INTRO) + "\n\n"
+		txt += "🎯 " + tr(ch.goal) + "\n\n" + tr(ch.brief)
+		brief_title.text = head
+		brief_text.text = txt
+		brief_dialog.visible = true
+	_engine_sound(true)
 	cam = (engine.crafts[0].p + engine.crafts[1].p) / 2.0
 	zoom = 0.0
 	if touch_pad:
 		touch_pad.release_all()
 	_show_banner(_battle_name())
 	_music("play", "techno", (level if mode == "campaign" else randi() % 4))
+
+## The Campaign briefing: a wide dark panel, story text that scrolls, ▶ Fight!
+func _build_briefing() -> void:
+	brief_dialog = ColorRect.new()
+	brief_dialog.color = Color(0, 0, 0, 0.55)
+	brief_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	brief_dialog.visible = false
+	add_child(brief_dialog)
+	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	m.anchor_left = 0.12
+	m.anchor_right = 0.88
+	m.anchor_top = 0.08
+	m.anchor_bottom = 0.92
+	m.offset_left = 0
+	m.offset_right = 0
+	m.offset_top = 0
+	m.offset_bottom = 0
+	brief_dialog.add_child(m)
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.03, 0.06, 0.09, 0.94)
+	sb.border_color = Color("4ab0ff")
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(14)
+	sb.set_content_margin_all(22)
+	panel.add_theme_stylebox_override("panel", sb)
+	m.add_child(panel)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 14)
+	panel.add_child(col)
+	brief_title = Label.new()
+	brief_title.add_theme_font_size_override("font_size", 30)
+	brief_title.add_theme_color_override("font_color", Color("ff9a6a"))
+	col.add_child(brief_title)
+	var sc := ScrollContainer.new()
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	col.add_child(sc)
+	brief_text = Label.new()
+	brief_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	brief_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brief_text.add_theme_font_size_override("font_size", 22)
+	sc.add_child(brief_text)
+	var go := HomeKit.neon_button("▶ " + tr("Fight!"), HomeKit.LIME, 28, 70)
+	go.pressed.connect(_end_briefing)
+	col.add_child(go)
+
+func _end_briefing() -> void:
+	briefing = false
+	brief_dialog.visible = false
+	_show_banner(_battle_name())
 
 func _battle_name() -> String:
 	if mode == "campaign":
@@ -282,6 +379,12 @@ func _open_campaign() -> void:
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_child(note)
+	var story := Label.new()
+	story.text = tr(Story.ENDING) if camp.get("done", false) else tr(Story.INTRO)
+	story.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	story.add_theme_font_size_override("font_size", 18)
+	story.modulate = Color(1, 1, 1, 0.8)
+	body.add_child(story)
 	for n in E.CAMPAIGN.size():
 		var b: Dictionary = E.CAMPAIGN[n]
 		var open: bool = n <= camp.reached
@@ -302,6 +405,127 @@ func _open_campaign() -> void:
 func _pick_battle(n: int, c: Control) -> void:
 	home.close_card(c)
 	home.play_now(_start_campaign.bind(n))
+
+func _open_vs() -> void:
+	var parts: Array = home.card("🤖 " + tr("vs Computer"))
+	var body: VBoxContainer = parts[1]
+	for i in LEVELS.size():
+		var b := HomeKit.neon_button(tr(["🙂 Easy", "😐 Normal", "😈 Hard"][i]) + "  ·  " + tr(E.CRAFTS[["gnat", "hornet", "stingray"][i]].name),
+			[HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], 26, 76)
+		b.pressed.connect(_pick_vs.bind(i, parts[0]))
+		body.add_child(b)
+	var note := Label.new()
+	note.text = tr("A new random land every battle.")
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.add_child(note)
+	home.show_card(parts[0])
+
+func _pick_vs(i: int, c: Control) -> void:
+	home.close_card(c)
+	home.play_now(_new_vs.bind(i))
+
+# ---------- objectives ----------
+
+func _open_goals() -> void:
+	goals.roll()
+	var parts: Array = home.card("🎯 " + tr("Objectives"))
+	var body: VBoxContainer = parts[1]
+	var medals := Label.new()
+	medals.text = "🏅 " + tr("Medals: %d") % int(goals.data.medals)
+	medals.add_theme_font_size_override("font_size", 26)
+	medals.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.add_child(medals)
+	# Story objective: the next Campaign battle.
+	var nxt: int = mini(int(camp.reached), E.CAMPAIGN.size() - 1)
+	var story_line: String
+	if camp.get("done", false):
+		story_line = tr("Campaign complete! Every rival beaten.")
+	else:
+		story_line = tr("Battle %d") % (nxt + 1) + ": " + tr(Story.CHAPTERS[nxt].goal) + " (" + tr(E.CAMPAIGN[nxt].rival) + ")"
+	_goal_row(body, "📖 " + tr("Story"), story_line, 1.0 if camp.get("done", false) else float(nxt) / E.CAMPAIGN.size(), "")
+	var d: Dictionary = goals.daily()
+	_goal_row(body, "📅 " + tr("Daily"), tr(d.text), minf(1.0, float(goals.data.day_n) / d.need),
+		("✔ " + tr("Done")) if goals.data.day_done else "%d / %d  ·  +%d 🏅" % [mini(int(goals.data.day_n), d.need), d.need, Goals.DAILY_MEDALS])
+	var w: Dictionary = goals.weekly()
+	_goal_row(body, "🗓 " + tr("Weekly"), tr(w.text), minf(1.0, float(goals.data.week_n) / w.need),
+		("✔ " + tr("Done")) if goals.data.week_done else "%d / %d  ·  +%d 🏅" % [mini(int(goals.data.week_n), w.need), w.need, Goals.WEEKLY_MEDALS])
+	var ph := Label.new()
+	ph.text = "🎨 " + tr("Hull paint (medals unlock more)")
+	ph.add_theme_font_size_override("font_size", 22)
+	body.add_child(ph)
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	body.add_child(grid)
+	for i in Goals.PAINTS.size():
+		var pt: Array = Goals.PAINTS[i]
+		var ok: bool = goals.paint_unlocked(i)
+		var b := HomeKit.neon_button(("✔ " if int(goals.data.paint) == i else "") + tr(pt[0]) if ok else "🔒 %d 🏅" % pt[2], pt[1], 22, 62)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.disabled = not ok
+		b.pressed.connect(_pick_paint.bind(i, parts[0]))
+		grid.add_child(b)
+	home.show_card(parts[0])
+
+func _goal_row(body: Control, head: String, text: String, frac: float, right: String) -> void:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	body.add_child(box)
+	var top := HBoxContainer.new()
+	box.add_child(top)
+	var h := Label.new()
+	h.text = head
+	h.add_theme_font_size_override("font_size", 22)
+	h.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(h)
+	var r := Label.new()
+	r.text = right
+	top.add_child(r)
+	var t := Label.new()
+	t.text = text
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(t)
+	var bar := ProgressBar.new()
+	bar.min_value = 0.0
+	bar.max_value = 1.0
+	bar.value = frac
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0, 12)
+	box.add_child(bar)
+
+func _pick_paint(i: int, c: Control) -> void:
+	goals.data.paint = i
+	SaveUtil.write(Goals.PATH, goals.to_dict())
+	home.close_card(c)
+	_open_goals()
+
+func _player_colors() -> Array:
+	var cols: Array = COLORS[skin].duplicate()
+	if int(goals.data.paint) > 0:
+		cols[0] = goals.paint_color()
+	return cols
+
+## Finished a battle (not 2 Players): feed the objectives, celebrate what got done.
+func _feed_goals(won: bool) -> String:
+	tally["won"] = 1 if won else 0
+	var c: Dictionary = engine.crafts[0]
+	if won and c.hp >= c.max:
+		tally["flawless"] = 1
+	if won and mode == "cpu" and level == 2:
+		tally["hard"] = 1
+	if won and engine.time < 60.0:
+		tally["fast"] = 1
+	var done: Array = goals.add_battle(tally)
+	SaveUtil.write(Goals.PATH, goals.to_dict())
+	var out := ""
+	for k in done:
+		out += "\n🏅 " + (tr("Daily objective done!") if k == "daily" else tr("Weekly objective done!"))
+		if info:
+			info.add("Objectives done")
+	if not done.is_empty():
+		SoundLib.play(self, "reward/coin_plingy")
+	return out
 
 # ---------- input ----------
 
@@ -444,16 +668,23 @@ func _safe() -> Vector4:
 
 func _process(delta: float) -> void:
 	if touch_pad:
-		touch_pad.visible = started and _uses_pad() and not engine.is_over()
+		touch_pad.visible = started and _uses_pad() and not engine.is_over() and not briefing
 	if not started and not engine.is_over():
 		return
 	delta = minf(delta, 0.05)
+	if briefing:
+		_update_camera(delta)
+		terrain.queue_redraw()
+		field.queue_redraw()
+		return
 	var inputs := _gather_inputs()
 	var evs: Array = engine.step(delta, inputs)
 	_handle_events(evs)
 	banner_t = maxf(0.0, banner_t - delta)
 	shake = maxf(0.0, shake - delta * 2.5)
 	shot_sfx_t = maxf(0.0, shot_sfx_t - delta)
+	wall_sfx_t = maxf(0.0, wall_sfx_t - delta)
+	_engine_tick()
 	for s in sparks:
 		s[0] += s[1] * delta
 		s[1] *= 0.92
@@ -473,6 +704,7 @@ func _process(delta: float) -> void:
 		over_t += delta
 		if over_t > 1.4 and not result_recorded:
 			_game_over()
+	terrain.queue_redraw()
 	field.queue_redraw()
 	hud.queue_redraw()
 
@@ -484,12 +716,17 @@ func _handle_events(evs: Array) -> void:
 					SoundLib.play(self, "scifi/laser_small", -14.0)
 					shot_sfx_t = 0.09
 			"hit":
+				if mode != "duo" and e[1] == 1 and e.size() > 3:
+					tally[e[3]] = int(tally.get(e[3], 0)) + 1
 				_burst(e[2], Color("ffd27a"), 6)
 				SoundLib.play(self, "scifi/impact_metal", -10.0)
 				if mode != "duo" and e[1] == 0:
 					_vibrate(30)
 			"wall":
 				_burst(e[1], Color(0.8, 0.75, 0.6), 3)
+				if wall_sfx_t <= 0.0:
+					SoundLib.play(self, "impact/metal_light", -12.0)
+					wall_sfx_t = 0.25
 			"boom":
 				booms.append([e[1], e[2], 0.0])
 				_burst(e[1], Color("ff8a2a"), int(10 * e[2]))
@@ -498,8 +735,10 @@ func _handle_events(evs: Array) -> void:
 			"missile":
 				SoundLib.play(self, "scifi/laser_large", -8.0)
 			"mine":
-				_sfx("tap")
+				SoundLib.play(self, "impact/plate_light", -6.0)
 			"pick":
+				if e[1] == 0:
+					tally["crates"] = int(tally.get("crates", 0)) + 1
 				SoundLib.play(self, "reward/powerup", -6.0)
 				_show_banner(tr({"repair": "Repaired!", "missiles": "+2 missiles", "mines": "+2 mines", "shield": "Shield!"}[e[2]]))
 			"dead":
@@ -548,6 +787,7 @@ func _game_over() -> void:
 			msg += "\n" + "★".repeat(stars) + "☆".repeat(3 - stars)
 			if mode == "campaign":
 				var key := str(level)
+				tally["stars"] = maxi(0, stars - int(camp.stars.get(key, 0)))
 				camp.stars[key] = maxi(int(camp.stars.get(key, 0)), stars)
 				camp.reached = maxi(camp.reached, mini(level + 1, E.CAMPAIGN.size() - 1))
 				if level + 1 >= E.CAMPAIGN.size():
@@ -562,11 +802,14 @@ func _game_over() -> void:
 				info.add("Wins (%s)" % LEVELS[level])
 			if info and c.hp >= c.max:
 				info.add("Flawless wins")
+		msg += _feed_goals(won)
 		if info:
 			msg += "\n" + info.summary(["Wins", "Losses", "Best streak"])
 	end_dialog.get_meta("message_label").text = msg
 	end_dialog.visible = true
-	_music("stop", "")
+	_engine_sound(false)
+	SoundLib.play(self, "reward/accomplished" if (w == 0 or (mode == "duo" and w < 2)) else "ui/wrong", -2.0)
+	_music("play", "calm", level % 3, 2.0)
 
 # ---------- terrain picture ----------
 
@@ -578,6 +821,8 @@ func _rebuild_terrain() -> void:
 	var r := RandomNumberGenerator.new()
 	r.seed = engine.map_seed
 	var neon := skin == "voodoo"
+	var mask := Image.create(E.GW, E.GH, false, Image.FORMAT_RGB8)
+	var lava: bool = engine.theme.liquid == "lava"
 	for y in E.GH:
 		for x in E.GW:
 			var h: float = engine.cell(x, y)
@@ -602,9 +847,30 @@ func _rebuild_terrain() -> void:
 				if h >= rock - 0.01 and h < rock + 0.01 or (h >= sea and h < sea + 0.012):
 					col = Color("9b4dff") if h >= rock - 0.01 else Color("29e6ff")
 			img.set_pixel(x, y, col)
+			# Shader mask: R = liquid, G = lava, B = rock.
+			mask.set_pixel(x, y, Color(1.0 if h < sea else 0.0, 1.0 if lava and h < sea else 0.0, 1.0 if h >= rock else 0.0))
 	terrain_tex = ImageTexture.create_from_image(img)
+	mask_tex = ImageTexture.create_from_image(mask)
+	if terrain:
+		terrain.queue_redraw()
 
 # ---------- drawing ----------
+
+## The map picture through the terrain shader (moving water / lava, fine grain,
+## drifting cloud shadows, a soft vignette): hover_duel_terrain.gdshader.
+func _draw_terrain() -> void:
+	terrain.draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.03, 0.05))
+	if terrain_tex == null:
+		return
+	var off := Vector2.ZERO
+	if shake > 0.0:
+		off = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * shake * 10.0
+	var mat: ShaderMaterial = terrain.material
+	mat.set_shader_parameter("mask", mask_tex)
+	mat.set_shader_parameter("t", float(Time.get_ticks_msec() % 1000000) / 1000.0)
+	mat.set_shader_parameter("grid", Vector2(E.GW, E.GH))
+	mat.set_shader_parameter("neon", 1.0 if skin == "voodoo" else 0.0)
+	terrain.draw_texture_rect(terrain_tex, Rect2(_w2s(Vector2.ZERO) + off, Vector2(E.W, E.H) * zoom), false)
 
 func _w2s(p: Vector2) -> Vector2:
 	return (p - cam) * zoom + size / 2.0
@@ -615,12 +881,8 @@ func _draw_field() -> void:
 	if shake > 0.0:
 		off = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * shake * 10.0
 	c.draw_set_transform(off)
-	c.draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.03, 0.05))
-	c.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if terrain_tex:
-		c.draw_texture_rect(terrain_tex, Rect2(_w2s(Vector2.ZERO), Vector2(E.W, E.H) * zoom), false)
 	var k := zoom
-	var cols: Array = COLORS[skin]
+	var cols: Array = _player_colors()
 	# Wakes.
 	for t in trails:
 		var a: float = 1.0 - t[1] / 0.9
@@ -705,7 +967,7 @@ func _draw_hud() -> void:
 	var c := hud
 	var font := ThemeDB.fallback_font
 	var inset := _safe()
-	var cols: Array = COLORS[skin]
+	var cols: Array = _player_colors()
 	var bw := clampf(size.x * 0.28, 160.0, 360.0)
 	for i in 2:
 		var cr: Dictionary = engine.crafts[i]
@@ -749,10 +1011,12 @@ func _draw_hud() -> void:
 		c.draw_string(font, Vector2(0, size.y * 0.32), banner, HORIZONTAL_ALIGNMENT_CENTER, size.x, 40, Color(1, 1, 1, a))
 
 func _draw_home_logo(c: Control) -> void:
+	if ResourceLoader.exists(LANDING_ART):
+		return   # the Landing picture already shows the duel
 	var k := minf(c.size.y / 260.0, 0.9)
 	var o := c.size / 2.0
 	c.draw_rect(Rect2(o + Vector2(-170, 30) * k, Vector2(340, 26) * k), Color(0.25, 0.55, 0.85, 0.5))
-	var cols: Array = COLORS[skin]
+	var cols: Array = _player_colors()
 	_draw_craft(c, o + Vector2(-80, 0) * k, -0.3, k * 1.6, cols[0], 0.0, false, false, true)
 	_draw_craft(c, o + Vector2(90, -10) * k, PI + 0.25, k * 1.6, cols[1], 1.0, false, false, true)
 	_draw_craft(c, o + Vector2(-80, 0) * k, -0.3, k * 1.6, cols[0], 0.0, false, false, false)
@@ -809,6 +1073,22 @@ func _load_saved_game() -> void:
 	_begin()
 
 # ---------- sound / helps ----------
+
+## Your craft's fans: a quiet loop whose pitch follows your speed.
+func _engine_sound(on: bool) -> void:
+	if engine_snd and is_instance_valid(engine_snd):
+		engine_snd.queue_free()
+	engine_snd = null
+	if on:
+		engine_snd = SoundLib.loop(self, "scifi/engine_circular", -26.0)
+
+func _engine_tick() -> void:
+	if engine_snd == null or not is_instance_valid(engine_snd):
+		return
+	var c: Dictionary = engine.crafts[0]
+	var f: float = clampf(c.v.length() / 380.0, 0.0, 1.0) if c.alive else 0.0
+	engine_snd.pitch_scale = 0.7 + f * 0.6
+	engine_snd.volume_db = -30.0 + f * 10.0
 
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")

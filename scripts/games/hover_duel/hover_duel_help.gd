@@ -12,8 +12,9 @@ const HOW := [
 	"High ground wins: shots fly at the height they were fired from, so a hill between you stops the shots of the craft below. Grey cliffs stop everything, and ramming them at speed hurts.",
 	"Crates appear now and then: + repairs 30%, M gives 2 missiles, X gives 2 mines, S is a shield for 6 seconds.",
 	"In the Ash Fields the rivers are lava: hovering over them burns.",
-	"🗺 Campaign: beat 12 rivals across 6 lands, one at a time. Win with more armour left for more stars (3 stars = 60% or more).",
-	"vs Computer: a new random land every battle. 2 Players: the left half of the screen is Player 1's, the right half Player 2's; each has a stick wherever the thumb lands and Fire / 🚀 / 💣 at the outer edge.",
+	"🗺 Campaign: the story of the Long Circuit. Beat 12 rivals across 6 lands, one at a time; each battle opens with a briefing. Win with more armour left for more stars (3 stars = 60% or more).",
+	"🎯 Objectives: a new Daily objective every day and a Weekly one every Monday (2 Players doesn't count). Each pays medals (daily 1, weekly 3); medals unlock hull paints. The Story objective is your next Campaign battle.",
+	"⚡ Quick Duel = vs Computer on Normal. vs Computer: a new random land every battle. 2 Players: the left half of the screen is Player 1's, the right half Player 2's; each has a stick wherever the thumb lands and Fire / 🚀 / 💣 at the outer edge.",
 	"⏸ pauses; Resume on the Home screen carries on the same battle.",
 ]
 const TIPS := [
@@ -23,8 +24,8 @@ const TIPS := [
 	"Lay a mine where you are going to circle back, then lead them over it.",
 	"Grab repair crates before the other craft does.",
 ]
-const STATS := ["Wins", "Losses", "Draws", "Best streak", "Campaign stars", "Campaign battles won", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Flawless wins", "2-player games"]
-const NO_TIER_BADGES := ["Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Draws", "Flawless wins", "2-player games"]
+const STATS := ["Wins", "Losses", "Draws", "Best streak", "Campaign stars", "Campaign battles won", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Flawless wins", "Objectives done", "2-player games"]
+const NO_TIER_BADGES := ["Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Draws", "Flawless wins", "Objectives done", "2-player games"]
 
 const ACHIEVEMENTS := [
 	{"id": "first_rival", "icon": "🛸", "title": "First Rival", "key": "Campaign battles won", "at": 1, "xp": 25},

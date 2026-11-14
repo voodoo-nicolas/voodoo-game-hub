@@ -7995,6 +7995,19 @@
    "url": "",
    "date": "2026-10-13",
    "processed_by": "converted to WebP (Claude Code)"
+  },
+  {
+   "file": "games/hover_duel/landing_bg.jpg",
+   "what": "Hover Duel Landing background: a staged duel rendered by the game itself (code-drawn terrain, craft and shader)",
+   "source": "tools/shot_hover_duel.gd -- games/hover_duel art",
+   "author": "Viral; rendered by Claude Code from the game's own drawing code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-14",
+   "ai_tool": "Claude Code (rendered from game code, no image model)",
+   "ai_plan": "n/a (code-drawn)",
+   "processed_by": "Godot save_jpg q88"
   }
  ]
 }

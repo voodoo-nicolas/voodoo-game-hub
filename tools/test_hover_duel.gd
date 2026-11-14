@@ -34,6 +34,31 @@ func _init() -> void:
 			e2.from_dict(JSON.parse_string(JSON.stringify(d)))
 			if absf(e2.crafts[0].hp - e.crafts[0].hp) > 0.01 or e2.hgt != e.hgt:
 				print("FAIL save round trip lv", lv); fails += 1
+	# Objectives: daily / weekly roll over by date, finish once, pay medals once.
+	var G = load("res://scripts/games/hover_duel/hover_duel_goals.gd")
+	var g = G.new()
+	g.roll(20000)
+	var d: Dictionary = g.daily()
+	var got: Array = g.add_battle({d.stat: d.need}, 20000)
+	if not got.has("daily") or int(g.data.medals) < G.DAILY_MEDALS:
+		print("FAIL daily not done"); fails += 1
+	var m: int = int(g.data.medals)
+	g.add_battle({d.stat: 99}, 20000)
+	if int(g.data.medals) != m:
+		print("FAIL daily paid twice"); fails += 1
+	g.roll(20001)
+	if g.data.day_done or int(g.data.day_n) != 0:
+		print("FAIL day did not roll"); fails += 1
+	if G.week_of(20000) == G.week_of(20000 + 7):
+		print("FAIL week did not roll"); fails += 1
+	var w: Dictionary = g.weekly()
+	if not g.add_battle({w.stat: w.need}, 20001).has("weekly"):
+		print("FAIL weekly not done"); fails += 1
+	if not g.paint_unlocked(0) or g.paint_unlocked(5):
+		print("FAIL paints"); fails += 1
+	var Story = load("res://scripts/games/hover_duel/hover_duel_story.gd")
+	if Story.CHAPTERS.size() != E.CAMPAIGN.size():
+		print("FAIL story chapters"); fails += 1
 	print("battles ended: %d / 24, avg %.0f s, %d ms" % [ends, total_t / 24.0, Time.get_ticks_msec() - t0])
 	if ends < 20:
 		print("FAIL too many stalemates"); fails += 1
