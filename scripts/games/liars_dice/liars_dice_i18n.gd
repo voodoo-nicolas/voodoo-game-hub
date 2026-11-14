@@ -53,6 +53,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Lose all your dice and you're out.": "Si pierdes todos tus dados, quedas fuera.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

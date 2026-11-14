@@ -33,6 +33,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Makes the next move of the shortest way from where you are.": "Hace el siguiente movimiento del camino más corto desde donde estás.",
 		"Medium": "Medio",
 		"Menu": "Menú",

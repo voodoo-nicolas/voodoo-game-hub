@@ -41,6 +41,7 @@ const STRINGS := {
 		"Look at both centre piles at once — there's often a play on the other one.": "Mira las dos pilas del centro a la vez — muchas veces hay jugada en la otra.",
 		"Look for runs in your hand, like 5-6-7, and play them one after another.": "Busca escaleras en tu mano, como 5-6-7, y júgalas una tras otra.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

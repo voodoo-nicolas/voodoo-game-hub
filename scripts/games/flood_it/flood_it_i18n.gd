@@ -44,6 +44,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look a move ahead: a colour that swallows little now may open up a big patch next.": "Piensa una jugada adelante: un color que traga poco ahora puede abrir una zona grande después.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

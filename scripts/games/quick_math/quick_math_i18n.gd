@@ -47,6 +47,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Mental Math": "Cálculo mental",
 		"Menu": "Menú",

@@ -41,6 +41,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Marks a square you can work out now.": "Marca una casilla que ya puedes deducir.",
 		"Medium": "Medio",
 		"Menu": "Menú",

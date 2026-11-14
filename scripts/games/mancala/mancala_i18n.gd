@@ -38,6 +38,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look for a pit whose seed count reaches your store exactly — a free extra turn.": "Busca un hoyo cuyas semillas lleguen justo a tu depósito — un turno extra gratis.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Mancala": "Mancala",
 		"Mancala is a family of sowing games played for centuries across Africa and Asia: Oware, Kalah and Bao are some of them.": "El mancala es una familia de juegos de siembra que se juega desde hace siglos en África y Asia: Oware, Kalah y Bao son algunos.",
 		"Medium": "Medio",

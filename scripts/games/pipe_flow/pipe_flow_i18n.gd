@@ -72,6 +72,7 @@ const STRINGS := {
 		"Locked pieces are always right, so build around them.": "Las piezas bloqueadas siempre están bien, así que construye a partir de ellas.",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Master Wirer": "Maestro del cableado",
 		"Medium": "Medio",
 		"Menu": "Menú",

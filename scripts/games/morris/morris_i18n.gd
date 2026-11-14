@@ -46,6 +46,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"Mill! Tap a black piece to remove it.": "¡Molino! Toca una ficha negra para quitarla.",

@@ -56,6 +56,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look at the four names first: the kinds of things they are (all animals, say) tell you what the clues are about.": "Mira primero los cuatro nombres: el tipo de cosas que son (todos animales, por ejemplo) te dice de qué hablan las pistas.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Match over": "Fin de la partida",
 		"Matches played": "Partidas jugadas",
 		"Medium": "Medio",

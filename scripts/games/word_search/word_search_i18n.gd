@@ -42,6 +42,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look for rare letters like Q, X, Z or J — they stand out.": "Busca letras poco comunes como Q, X, Z o J — resaltan.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Medium (10 × 10, 8 words) and Hard (14 × 14, 12 words) also hide words backwards.": "Medio (10 × 10, 8 palabras) y Difícil (14 × 14, 12 palabras) también esconden palabras al revés.",
 		"Menu": "Menú",

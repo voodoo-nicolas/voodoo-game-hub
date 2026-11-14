@@ -45,6 +45,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look for the 1-2-1 pattern along a wall: the mines are under the two 1s.": "Busca el patrón 1-2-1 junto a un borde: las minas están bajo los dos 1.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Mathematician Richard Kaye proved in 2000 that checking a Mines board is NP-complete — one of the hardest kinds of problems.": "El matemático Richard Kaye demostró en 2000 que revisar un tablero de Buscaminas es NP-completo, uno de los tipos de problema más difíciles.",
 		"Medium": "Medio",
 		"Menu": "Menú",

@@ -42,6 +42,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Match the ends, empty your hand, score the pips. First to 100.": "Sigue los extremos, vacía tu mano, suma los puntos. Gana el primero en llegar a 100.",
 		"Medium": "Medio",
 		"Menu": "Menú",

@@ -47,6 +47,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Match the suit or the rank — eights are wild. You vs two computers.": "Juega del mismo palo o número; los ochos son comodines. Tú contra dos computadoras.",
 		"Medium": "Medio",
 		"Menu": "Menú",

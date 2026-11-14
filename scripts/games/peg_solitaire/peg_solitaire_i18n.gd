@@ -38,6 +38,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Makes a good jump for you: the one that leaves you the most jumps after it.": "Hace un buen salto por ti: el que te deja más saltos después.",
 		"Medium": "Medio",
 		"Menu": "Menú",

@@ -76,6 +76,7 @@ const STRINGS := {
 		"Longest chain reaction": "Reacción en cadena más larga",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Meadow": "Pradera",
 		"Medium": "Medio",
 		"Menu": "Menú",

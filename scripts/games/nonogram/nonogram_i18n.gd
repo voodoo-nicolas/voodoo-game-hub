@@ -36,6 +36,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Mark the squares you've ruled out. Every ✕ narrows down the lines that cross it.": "Marca las casillas que descartaste. Cada ✕ reduce las opciones de las líneas que la cruzan.",
 		"Medium": "Medio",
 		"Menu": "Menú",

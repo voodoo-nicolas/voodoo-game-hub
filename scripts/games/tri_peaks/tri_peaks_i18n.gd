@@ -41,6 +41,7 @@ const STRINGS := {
 		"Longest streak": "Racha más larga",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

@@ -40,6 +40,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look for shapes (a line, an L, a corner) instead of memorizing single tiles.": "Busca figuras (una línea, una L, una esquina) en lugar de memorizar casillas sueltas.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Memory Grid": "Cuadrícula de memoria",
 		"Menu": "Menú",

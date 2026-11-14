@@ -54,6 +54,7 @@ const STRINGS := {
 		"Long Boi": "Larguísima",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Make its snake crash first": "Haz que su serpiente choque primero",
 		"Medium": "Medio",
 		"Menu": "Menú",

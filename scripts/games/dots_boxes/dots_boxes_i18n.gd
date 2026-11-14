@@ -53,6 +53,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Mathematician Elwyn Berlekamp wrote a whole book about this game; strong players win by counting long chains.": "El matemático Elwyn Berlekamp escribió un libro entero sobre este juego; los buenos jugadores ganan contando las cadenas largas.",
 		"Medium": "Medio",
 		"Menu": "Menú",

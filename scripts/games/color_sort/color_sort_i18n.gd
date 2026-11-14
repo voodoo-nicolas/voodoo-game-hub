@@ -95,6 +95,7 @@ const STRINGS := {
 		"Locked vials": "Frascos con candado",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Maroon": "Granate",
 		"Medium": "Medio",
 		"Menu": "Menú",

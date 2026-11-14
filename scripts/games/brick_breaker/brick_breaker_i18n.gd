@@ -43,6 +43,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"Miss the ball and you lose one of your three lives.": "Si se te escapa la pelota, pierdes una de tus tres vidas.",

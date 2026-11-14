@@ -214,6 +214,7 @@ const STRINGS := {
 		"Losses": "Derrotas",
 		"Lovely morning. Far too bright for me, mind.": "Hermosa mañana. Demasiado luminosa para mi gusto, eso sí.",
 		"Lv %d": "Nv %d",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Man from the bar": "Hombre del bar",
 		"Man in the grey coat": "Hombre del abrigo gris",
 		"Man with a newspaper": "Hombre con un periódico",

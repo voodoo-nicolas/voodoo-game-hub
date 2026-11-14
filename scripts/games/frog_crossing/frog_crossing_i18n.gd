@@ -42,6 +42,7 @@ const STRINGS := {
 		"Logs carry you sideways — don't ride one off the edge of the screen.": "Los troncos te llevan de costado — no te dejes sacar por el borde de la pantalla.",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

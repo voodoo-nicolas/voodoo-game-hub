@@ -44,6 +44,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Mahjong": "Mahjong",
 		"Mahjong Solitaire": "Mahjong solitario",
 		"Match free tiles in pairs until the table is clear.": "Empareja fichas libres hasta limpiar la mesa.",

@@ -40,6 +40,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look at the next gap, not at the bird.": "Mira el próximo hueco, no al pájaro.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

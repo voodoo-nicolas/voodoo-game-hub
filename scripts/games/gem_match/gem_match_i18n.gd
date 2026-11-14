@@ -44,6 +44,7 @@ const STRINGS := {
 		"Longest chain": "Cadena más larga",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Make matches near the bottom: more gems fall, so more chains happen.": "Haz combinaciones cerca de abajo: caen más joyas y se forman más cadenas.",
 		"Match quickly to build a multiplier (up to ×8) — wait too long between matches and it drops back to ×1.": "Combina rápido para subir el multiplicador (hasta ×8) — si tardas mucho entre combinaciones vuelve a ×1.",
 		"Medium": "Medio",

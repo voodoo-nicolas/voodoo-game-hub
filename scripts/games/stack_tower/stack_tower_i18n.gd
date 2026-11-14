@@ -39,6 +39,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"Miss the tower completely and the game is over. The slabs slide faster as the tower grows.": "Si fallas la torre por completo, se acaba el juego. Los bloques van más rápido a medida que la torre crece.",

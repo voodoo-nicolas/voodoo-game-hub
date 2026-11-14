@@ -44,6 +44,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look at the given numbers that have only one empty cell near them: they often have one possible neighbor.": "Mira los números dados que tienen una sola casilla vacía cerca: a menudo solo tienen un vecino posible.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

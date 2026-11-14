@@ -44,6 +44,7 @@ const STRINGS := {
 		"Longest number: %d digits": "Número más largo: %d dígitos",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Memorize the number, then type it back. How long can you go?": "Memoriza el número y luego escríbelo. ¿Hasta dónde puedes llegar?",
 		"Memorize the number…": "Memoriza el número…",

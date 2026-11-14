@@ -51,6 +51,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Makes one correct rectangle blink.": "Hace parpadear un rectángulo correcto.",
 		"Master Tiler": "Maestro del mosaico",
 		"Medium": "Medio",

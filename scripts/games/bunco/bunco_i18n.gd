@@ -51,6 +51,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
 		"Lucky Roller": "Tirador afortunado",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

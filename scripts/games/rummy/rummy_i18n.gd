@@ -43,6 +43,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Matches won against the computer.": "Partidas ganadas a la computadora.",
 		"Medium": "Medio",
 		"Melds go here": "Las combinaciones van aquí",

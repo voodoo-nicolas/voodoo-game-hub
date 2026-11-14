@@ -44,6 +44,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Look for the gap in a wall of bullets as soon as it appears.": "Busca el hueco de un muro de balas apenas aparece.",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"More": "Más",

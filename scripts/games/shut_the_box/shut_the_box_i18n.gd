@@ -39,6 +39,7 @@ const STRINGS := {
 		"Lower score wins": "Gana el puntaje más bajo",
 		"Lowest score": "Puntaje más bajo",
 		"Lowest score you can": "El puntaje más bajo que puedas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Medium": "Medio",
 		"Menu": "Menú",
 		"Mode: Solo": "Modo: solo",

@@ -71,6 +71,7 @@ const STRINGS := {
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
 		"Low": "Baja",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Marble Wizard": "Mago de la canica",
 		"Marbles": "Canicas",
 		"Maze %d": "Laberinto %d",

@@ -37,6 +37,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Matches won against the computer, at any level.": "Partidos ganados a la computadora, en cualquier nivel.",
 		"Medium": "Medio",
 		"Menu": "Menú",

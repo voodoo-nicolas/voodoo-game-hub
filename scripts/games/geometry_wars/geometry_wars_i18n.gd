@@ -184,6 +184,7 @@ const STRINGS := {
 		"Longest time survived": "Mayor tiempo sobrevivido",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Max": "Máx.",
 		"Medium": "Medio",
 		"Menagerie": "Zoológico espiritual",

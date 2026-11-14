@@ -45,6 +45,7 @@ const STRINGS := {
 		"Locked": "Bloqueados",
 		"Look": "Aspecto",
 		"Losses": "Derrotas",
+		"MAIN MENU": "MENÚ PRINCIPAL",
 		"Maze Muncher": "Come laberintos",
 		"Medium": "Medio",
 		"Menu": "Menú",
