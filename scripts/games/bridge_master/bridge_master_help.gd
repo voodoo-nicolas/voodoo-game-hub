@@ -21,6 +21,7 @@ const HOW := [
 	"Your bridge on each level is kept, so you can come back and build it cheaper.",
 	"📅 Daily Bridge: a new bridge every day. Its stars count double and go to the Garage; a better result later the same day pays the difference.",
 	"🚗 Garage: spend your stars on new vehicles, from a hot dog car to a tank, then pick the one you drive. Only the look changes: the level's vehicle still sets the weight.",
+	"🎯 Objectives: three for today, three for this week, and the story: rebuild the 30 bridges of each chapter to bring its towns back. Every finished objective pays stars to the Garage at once.",
 ]
 const TIPS := [
 	"Triangles keep their shape; squares fold. Brace every square with a diagonal.",

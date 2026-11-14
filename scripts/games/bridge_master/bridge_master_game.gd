@@ -21,6 +21,8 @@ const LandingSlabs = preload("res://scripts/games/bridge_master/landing_slabs.gd
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/bridge_master/bridge_master_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
+## Daily / weekly / story objectives (owner 2026-11-14); pay stars into the Garage wallet.
+const OBJ := preload("res://scripts/games/bridge_master/bridge_master_objectives.gd")
 const SAVE_PATH := "user://bridge_master_save.json"
 const PROGRESS_PATH := "user://bridge_master_progress.json"
 const ART_LANDING := "res://games/bridge_master/landing_bg.jpg"
@@ -44,6 +46,10 @@ const CLIFF_META := {
 const CLIFF_BORROW := {"cliff_desert_r": "cliff_desert_l", "cliff_mesa_l": "cliff_desert_l", "cliff_mesa_r": "cliff_desert_l"}
 var daily := false  # playing today's Daily Bridge
 var garage_layer: Control
+var obj_layer: Control
+var engine_hum: AudioStreamPlayer  # the vehicle's motor while a test runs
+var sky_fx: ColorRect     # light rays + vignette over the play board (shader)
+var water_fx: ColorRect   # moving glints on the river (shader)
 var _mirror_at := NAN  # while drawing a borrowed right cliff: mirror every piece about this x
 ## Garage (owner 2026-11-14): stars buy vehicle looks. Only the picture changes; the level's
 ## vehicle (weight, axles) stays, so every level stays solvable. Pictures: parts/skin_<id>.png
@@ -311,6 +317,7 @@ func _build_ui() -> void:
 	add_child(fx_layer)
 	fx_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	move_child(fx_layer, board.get_index() + 1)
+	_build_shaders()
 
 	toast_label = Label.new()
 	toast_label.add_theme_font_size_override("font_size", 26)
@@ -337,12 +344,13 @@ func _build_ui() -> void:
 		"landing_style": LandingSlabs,
 		"logo": _draw_home_logo,
 		"modes": [
-			{"text": "🌉 Campaign", "sub": "300 levels · build cheap for stars", "action": _start_campaign},
-			{"text": "📅 Daily Bridge", "sub": "A new bridge every day · double stars", "action": _start_daily},
+			{"text": "🌉 Campaign", "sub": "300 levels · build cheap for stars", "action": _start_campaign, "detail": _campaign_detail},
+			{"text": "📅 Daily Bridge", "sub": "A new bridge every day · double stars", "action": _start_daily, "detail": _daily_detail},
 		],
 		"play": [
-			{"text": "📋 Level Select", "sub": "Pick any level you have opened", "action": _open_map_from_landing, "card": true},
-			{"text": "🚗 Garage", "sub": "Spend stars on awesome vehicles", "action": _open_garage_from_landing, "card": true},
+			{"text": "📋 Level Select", "sub": "Pick any level you have opened", "action": _open_map_from_landing, "card": true, "detail": _levels_detail},
+			{"text": "🚗 Garage", "sub": "Spend stars on awesome vehicles", "action": _open_garage_from_landing, "card": true, "detail": _garage_detail},
+			{"text": "🎯 Objectives", "sub": "Daily, weekly and story goals pay stars", "action": _open_objectives_from_landing, "card": true, "detail": _objectives_detail},
 		],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
@@ -361,7 +369,13 @@ func _on_board_resized() -> void:
 	_layout()
 	board.queue_redraw()
 
+func _hide_toast() -> void:
+	toast_t = 0.0
+	toast_label.visible = false
+
 func _toast(text: String, secs: float = 2.5) -> void:
+	# Over the result card in play; under the Landing / pause menu (they pause the fade).
+	toast_label.z_index = 0 if (home == null or home.is_home_visible()) else 10
 	toast_label.text = text
 	toast_t = secs
 	toast_label.visible = true
@@ -374,8 +388,10 @@ func _start_campaign() -> void:
 func _start_level(n: int) -> void:
 	_close_map()
 	_close_garage()
+	_close_objectives()
 	daily = false
 	_begin(n)
+	_story_intro()
 
 ## Today's level: picked from the date, among the levels a little past the player's progress.
 func _daily_level() -> int:
@@ -393,6 +409,7 @@ func _daily_stars_today() -> int:
 func _start_daily() -> void:
 	_close_map()
 	_close_garage()
+	_close_objectives()
 	daily = true
 	_begin(_daily_level())
 
@@ -511,6 +528,7 @@ func _build_mat_bar() -> void:
 		mat_buttons[k] = b
 
 func _pick_mat(k: String) -> void:
+	SoundLib.play(self, "ui/click", -10.0, "taps")
 	mat = k
 	erase = false
 	erase_btn.set_pressed_no_signal(false)
@@ -518,6 +536,7 @@ func _pick_mat(k: String) -> void:
 		(mat_buttons[key] as Button).set_pressed_no_signal(key == k)
 
 func _on_erase_toggled(on: bool) -> void:
+	SoundLib.play(self, "rpg/metal_click", -8.0, "taps")
 	erase = on
 
 func _set_editing(on: bool) -> void:
@@ -560,6 +579,7 @@ func _push_undo() -> void:
 		undo_stack.pop_front()
 
 func _undo() -> void:
+	SoundLib.play(self, "rpg/metal_click", -8.0, "taps")
 	if testing or undo_stack.is_empty():
 		return
 	design = undo_stack.pop_back()
@@ -803,11 +823,15 @@ func _run_test() -> void:
 	_splashed = false
 	engine.setup(lv, design, load_mult)
 	_set_editing(false)
+	_motor(true)
+	_play_music("lively")
 	if load_test:
 		_toast(tr("Load test: %s kg") % _money(_load_kg(load_mult)), 2.0)
 	board.queue_redraw()
 
 func _stop_test() -> void:
+	_motor(false)
+	_play_music("calm")
 	testing = false
 	load_test = false
 	_close_end()
@@ -821,6 +845,7 @@ func _load_kg(mult: float) -> int:
 var _broken_seen := 0
 
 func _process(delta: float) -> void:
+	_place_fx()
 	if toast_t > 0.0:
 		toast_t -= delta
 		toast_label.modulate.a = clampf(toast_t * 2.0, 0.0, 1.0)
@@ -853,16 +878,21 @@ func _on_crossed() -> void:
 	if load_test:
 		load_best = load_mult
 		load_mult += LOAD_STEP
+		SoundLib.play(self, "impact/plate_heavy", -6.0)
+		_obj_cheer(OBJ.record(progress, "load"), [])
+		_save_progress()
 		var t := create_tween()
 		t.tween_interval(0.6)
 		t.tween_callback(_run_test)
 		return
+	_motor(false)
 	SoundLib.play(self, "reward/accomplished")
 	_sfx("win")
 	_burst(_to_screen(Vector2(float(lv.w) + 1.0, float(lv.dh) + 1.0)), "confetti")
 	var cost := E.design_cost(design)
 	var stars := _stars_for(cost)
 	if daily:
+		_obj_crossed(cost, stars, false)
 		_daily_crossed(cost, stars)
 		return
 	var key := str(cur_level)
@@ -874,6 +904,7 @@ func _on_crossed() -> void:
 		progress.best[key] = cost
 	progress.skipped.erase(key)
 	_save_progress()
+	_obj_crossed(cost, stars, first)
 	if info:
 		info.add("Bridges built")
 		info.result("win")
@@ -991,6 +1022,7 @@ func _stars_for(cost: int) -> int:
 	return 1
 
 func _on_failed() -> void:
+	_motor(false)
 	SoundLib.play(self, "impact/soft_heavy", -2.0)
 	if load_test:
 		var kg := _load_kg(load_best)
@@ -1013,6 +1045,7 @@ func _on_failed() -> void:
 	var why: String = engine.reason
 	if why == "":
 		why = "The vehicle fell."
+	SoundLib.play(self, "jingles/lose_failed", -10.0, "results")
 	var t2 := create_tween()
 	t2.tween_interval(1.0)
 	t2.tween_callback(_show_card.bind(tr("It fell!"), "", tr(why) + "\n" + tr("Red pieces were near breaking. Add triangles or stronger pieces."), [
@@ -1069,6 +1102,13 @@ func _skip_now() -> bool:
 
 func _show_card(title_text: String, stars_text: String, msg: String, buttons: Array) -> void:
 	_close_end()
+	_play_music("calm")
+	if "★" in stars_text:
+		SoundLib.play(self, "jingles/win_succeeded", -10.0, "results")
+		var t0 := create_tween()
+		for i in stars_text.count("★"):
+			t0.tween_interval(0.22)
+			t0.tween_callback(_pling.bind(i))
 	end_card = ColorRect.new()
 	(end_card as ColorRect).color = Color(0, 0, 0, 0.6)
 	end_card.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1149,6 +1189,8 @@ func _load_progress() -> void:
 	for k in ["stars", "best", "designs", "skipped", "loads", "daily", "garage"]:
 		if not progress.get(k) is Dictionary:
 			progress[k] = {}
+	OBJ.roll(progress)
+	OBJ.pay_story(progress, E.CHAPTERS.size(), E.PER_CHAPTER, _done)  # chapters built before objectives existed
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
@@ -1189,6 +1231,7 @@ func _open_map_from_landing() -> void:
 	_open_map(true)
 
 func _open_map(from_landing: bool) -> void:
+	_hide_toast()
 	_close_end()
 	_close_map()
 	if testing:
@@ -1297,6 +1340,388 @@ func _close_map() -> void:
 	map_layer = null
 	map_drag = null
 
+# ---------- Landing details ----------
+
+func _campaign_detail() -> String:
+	var n := _next_level()
+	return tr("Level %d") % n + " · " + tr(E.CHAPTERS[E.chapter_of(n)])
+
+func _daily_detail() -> String:
+	var st := _daily_stars_today()
+	if st <= 0:
+		return tr("Not built today · double ★")
+	var t := ""
+	for i in 3:
+		t += "★" if i < st else "☆"
+	return tr("Today: %s") % t
+
+func _garage_detail() -> String:
+	return tr("%d ★ to spend") % _wallet()
+
+func _levels_detail() -> String:
+	return "★ %d / %d" % [_total_stars(), E.LEVEL_COUNT * 3]
+
+func _objectives_detail() -> String:
+	var s: Array = OBJ.summary(progress)
+	return tr("Today %d/%d · Week %d/%d") % [s[0], OBJ.PER_PERIOD, s[1], OBJ.PER_PERIOD]
+
+# ---------- objectives ----------
+
+## A bridge held (campaign or daily, not a Load Test round): count it for the objectives.
+func _obj_crossed(cost: int, stars: int, first: bool) -> void:
+	var done: Array = []
+	var first_daily := daily and _daily_stars_today() == 0
+	done.append_array(OBJ.record(progress, "cross"))
+	done.append_array(OBJ.record(progress, "stars", stars))
+	if stars == 3:
+		done.append_array(OBJ.record(progress, "three"))
+	if cost * 10 <= int(lv.budget) * 6:
+		done.append_array(OBJ.record(progress, "cheap"))
+	if first:
+		done.append_array(OBJ.record(progress, "new"))
+	if first_daily:
+		done.append_array(OBJ.record(progress, "daily"))
+	var plain := true
+	for m in design:
+		if str(m[4]) in ["steel", "cable", "sroad"]:
+			plain = false
+			break
+	if plain:
+		done.append_array(OBJ.record(progress, "wood"))
+	var chapters: Array = [] if daily else OBJ.pay_story(progress, E.CHAPTERS.size(), E.PER_CHAPTER, _done)
+	_save_progress()
+	_obj_cheer(done, chapters)
+
+## Finished objectives: one toast with every line, a power-up sound (a fanfare for a chapter).
+func _obj_cheer(done: Array, chapters: Array) -> void:
+	if done.is_empty() and chapters.is_empty():
+		return
+	var lines: Array = []
+	for d in done:
+		lines.append(tr("🎯 Objective done: +%d ★") % int(d.reward) + "  " + tr(str(d.text)) % int(d.target))
+	for c in chapters:
+		lines.append(tr("📖 %s rebuilt! +%d ★") % [tr(E.CHAPTERS[c]), OBJ.STORY_REWARD])
+	SoundLib.play(self, "reward/powerup", -4.0, "results")
+	if not chapters.is_empty():
+		SoundLib.play(self, "jingles/win_victory", -6.0, "results")
+	_toast("\n".join(lines), 4.0 + lines.size())
+	if info:
+		info.add("Objectives done", done.size() + chapters.size())
+
+## The story beat of a chapter, once, when the player first plays in it.
+func _story_intro() -> void:
+	if daily:
+		return
+	var c := E.chapter_of(cur_level)
+	var o: Dictionary = OBJ.roll(progress)
+	var seen: Array = o.get("seen", [])
+	if c in seen or c in o.story:
+		return
+	seen.append(c)
+	o["seen"] = seen
+	_save_progress()
+	_toast("📖 " + tr(E.CHAPTERS[c]) + "\n" + tr(OBJ.STORY[c][0]), 7.0)
+
+func _open_objectives_from_landing() -> void:
+	_open_objectives(true)
+
+## 🎯 Objectives: today's three, this week's three, and the story so far (only chapters reached).
+func _open_objectives(from_landing: bool) -> void:
+	_hide_toast()
+	_close_end()
+	_close_map()
+	_close_garage()
+	_close_objectives()
+	if testing:
+		_stop_test()
+	SoundLib.play(self, "rpg/book_open", -6.0, "taps")
+	map_from_landing = from_landing
+	obj_layer = ColorRect.new()
+	(obj_layer as ColorRect).color = Color(0.08, 0.06, 0.04, 0.98) if skin == "classic" else Color(0.03, 0.04, 0.1, 0.98)
+	obj_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	obj_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(obj_layer)
+	obj_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_wood_grain(obj_layer)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	obj_layer.add_child(scroll)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_drag = HomeKit._DragScroll.new()
+	scroll.add_child(map_drag)
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right"]:
+		margin.add_theme_constant_override("margin_" + side, 24)
+	margin.add_theme_constant_override("margin_top", 28)
+	margin.add_theme_constant_override("margin_bottom", 40)
+	scroll.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	margin.add_child(box)
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 10)
+	box.add_child(bar)
+	var home_btn := HomeKit.neon_button(tr("🏠 Home"), HomeKit.BUTTON, 24, 60)
+	home_btn.custom_minimum_size.x = 170
+	home_btn.pressed.connect(_obj_home)
+	bar.add_child(home_btn)
+	if not from_landing:
+		var back := HomeKit.neon_button(tr("‹ Back"), HomeKit.BUTTON, 24, 60)
+		back.custom_minimum_size.x = 150
+		back.pressed.connect(_obj_back)
+		bar.add_child(back)
+	var heading := Label.new()
+	heading.text = tr("🎯 Objectives") + "   " + tr("🚗 Garage") + ": " + tr("%d ★ to spend") % _wallet()
+	heading.add_theme_font_size_override("font_size", 30)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	heading.clip_text = true
+	bar.add_child(heading)
+	var wide := get_viewport_rect().size.x > 1100
+	var cols: BoxContainer = HBoxContainer.new() if wide else VBoxContainer.new()
+	cols.add_theme_constant_override("separation", 18)
+	box.add_child(cols)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 10)
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cols.add_child(left)
+	left.add_child(_obj_heading(tr("📅 Today") + "  ·  " + tr("new ones at midnight")))
+	for row in OBJ.daily_list(progress):
+		left.add_child(_obj_row(row, false))
+	left.add_child(_obj_heading(tr("🗓 This week") + "  ·  " + tr("new ones on Monday")))
+	for row in OBJ.weekly_list(progress):
+		left.add_child(_obj_row(row, true))
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 10)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cols.add_child(right)
+	right.add_child(_obj_heading(tr("📖 Story")))
+	var o: Dictionary = OBJ.roll(progress)
+	var cur := -1
+	for c in E.CHAPTERS.size():
+		if not c in o.story:
+			cur = c
+			break
+	if cur >= 0:
+		var n := OBJ.chapter_done_count(cur, E.PER_CHAPTER, _done)
+		right.add_child(_obj_panel(tr("Chapter %d: %s") % [cur + 1, tr(E.CHAPTERS[cur])], tr(OBJ.STORY[cur][0]),
+			tr("Build all %d bridges of the chapter") % E.PER_CHAPTER, n, E.PER_CHAPTER, OBJ.STORY_REWARD, false))
+	for i in range(o.story.size() - 1, -1, -1):
+		var c: int = int(o.story[i])
+		right.add_child(_obj_panel(tr("Chapter %d: %s") % [c + 1, tr(E.CHAPTERS[c])], tr(OBJ.STORY[c][1]), "", E.PER_CHAPTER, E.PER_CHAPTER, OBJ.STORY_REWARD, true))
+
+func _obj_heading(text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 26)
+	l.add_theme_color_override("font_color", ACCENT)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
+
+func _obj_row(row: Array, weekly: bool) -> Control:
+	var st: Array = OBJ.state(progress, row, weekly)
+	return _obj_panel("", tr(str(row[4])) % int(row[2]), "", int(st[0]), int(st[1]), int(row[3]), bool(st[2]))
+
+## One objective: optional title, text, optional goal line, a progress bar and its reward.
+func _obj_panel(title_text: String, text: String, goal: String, have: int, need: int, reward: int, paid: bool) -> Control:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("3a2414") if skin == "classic" else Color(0.06, 0.08, 0.18)
+	sb.set_corner_radius_all(14)
+	sb.set_border_width_all(3)
+	sb.border_color = Color("76ff03") if paid else Color(ACCENT, 0.5)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 12
+	panel.add_theme_stylebox_override("panel", sb)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 14)
+	panel.add_child(h)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(v)
+	if title_text != "":
+		var t := Label.new()
+		t.text = title_text
+		t.add_theme_font_size_override("font_size", 26)
+		t.add_theme_color_override("font_color", Color("ffe0a3"))
+		v.add_child(t)
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 22)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(l)
+	if goal != "":
+		var g := Label.new()
+		g.text = "🎯 " + goal
+		g.add_theme_font_size_override("font_size", 20)
+		g.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(g)
+	if not paid:
+		var bar := ProgressBar.new()
+		bar.max_value = need
+		bar.value = have
+		bar.show_percentage = false
+		bar.custom_minimum_size = Vector2(0, 14)
+		var back := StyleBoxFlat.new()
+		back.bg_color = Color(0, 0, 0, 0.5)
+		back.set_corner_radius_all(7)
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = Color("ffb74d")
+		fill.set_corner_radius_all(7)
+		bar.add_theme_stylebox_override("background", back)
+		bar.add_theme_stylebox_override("fill", fill)
+		v.add_child(bar)
+	var r := Label.new()
+	r.text = ("✔ +%d ★" % reward) if paid else ("%d / %d\n+%d ★" % [have, need, reward])
+	r.add_theme_font_size_override("font_size", 24)
+	r.add_theme_color_override("font_color", Color("76ff03") if paid else Color("ffd54f"))
+	r.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	r.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	r.custom_minimum_size = Vector2(110, 0)
+	h.add_child(r)
+	return panel
+
+func _obj_home() -> void:
+	if map_drag and map_drag.moved:
+		return
+	var from_landing := map_from_landing
+	_close_objectives()
+	if from_landing:
+		home.refresh()
+	else:
+		_go_home()
+
+func _obj_back() -> void:
+	if map_drag and map_drag.moved:
+		return
+	_close_objectives()
+	board.queue_redraw()
+
+func _close_objectives() -> void:
+	if obj_layer and is_instance_valid(obj_layer):
+		obj_layer.queue_free()
+	obj_layer = null
+
+# ---------- textures and shaders ----------
+
+## Wood grain under a full-screen panel (Garage, Objectives): stretched simplex noise, Classic only.
+func _wood_grain(layer: Control) -> void:
+	if skin != "classic":
+		return
+	var n := FastNoiseLite.new()
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	n.frequency = 0.03
+	n.fractal_octaves = 3
+	n.seed = 7
+	var nt := NoiseTexture2D.new()
+	nt.width = 48
+	nt.height = 512
+	nt.noise = n
+	var grain := TextureRect.new()
+	grain.texture = nt
+	grain.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	grain.stretch_mode = TextureRect.STRETCH_SCALE
+	grain.modulate = Color(0.85, 0.52, 0.26, 0.3)
+	grain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(grain)
+	layer.move_child(grain, 0)
+	grain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+const SKY_SHADER := """
+shader_type canvas_item;
+// Soft sun rays from the top-left + a vignette (Classic); a vignette + faint scanlines (Voodoo).
+uniform float rays = 1.0;
+uniform float vig = 0.35;
+uniform float scan = 0.0;
+uniform float speed = 1.0;
+void fragment() {
+	vec2 d = UV - vec2(-0.12, -0.3);
+	float ang = atan(d.y, d.x);
+	float t = TIME * speed;
+	float r = (sin(ang * 23.0 + t * 0.3) * 0.5 + 0.5) * (sin(ang * 37.0 - t * 0.21) * 0.5 + 0.5);
+	float light = r * clamp(1.0 - length(d) * 0.85, 0.0, 1.0) * rays * 0.2;
+	float v = smoothstep(0.42, 0.95, length(UV - vec2(0.5)) * 1.25) * vig;
+	float s = scan * (0.5 + 0.5 * sin(FRAGCOORD.y * 3.14159)) * 0.07;
+	float a = clamp(light + v + s, 0.0, 1.0);
+	COLOR = vec4(vec3(1.0, 0.93, 0.75) * (light / max(a, 0.001)), a);
+}
+"""
+
+const WATER_SHADER := """
+shader_type canvas_item;
+render_mode blend_add;
+// Sun glints moving on the river.
+uniform vec2 rect_size = vec2(800.0, 200.0);
+uniform float speed = 1.0;
+uniform float strength = 0.35;
+void fragment() {
+	vec2 p = UV * rect_size / 70.0;
+	float t = TIME * speed;
+	float w = sin(p.x * 2.3 + t * 1.6 + sin(p.y * 3.1 + t) * 1.8) * sin(p.x * 1.3 - t * 1.1 + p.y * 2.7);
+	float g = smoothstep(0.72, 0.97, w);
+	COLOR = vec4(vec3(0.75, 0.9, 1.0) * g * strength * (1.0 - UV.y * 0.8), 1.0);
+}
+"""
+
+## Shaders over the play board (owner 2026-11-14: "shaders/textures"): light rays + vignette,
+## and glints on the river. Still with Reduce effects on.
+func _build_shaders() -> void:
+	water_fx = ColorRect.new()
+	water_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var wm := ShaderMaterial.new()
+	wm.shader = Shader.new()
+	wm.shader.code = WATER_SHADER
+	water_fx.material = wm
+	add_child(water_fx)
+	move_child(water_fx, board.get_index() + 1)
+	sky_fx = ColorRect.new()
+	sky_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sm := ShaderMaterial.new()
+	sm.shader = Shader.new()
+	sm.shader.code = SKY_SHADER
+	sky_fx.material = sm
+	add_child(sky_fx)
+	move_child(sky_fx, water_fx.get_index() + 1)
+	sky_fx.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+var _fx_key := ""
+var _fx_tick := 0
+var _fx_reduced := false
+func _place_fx() -> void:
+	if water_fx == null or lv.is_empty():
+		return
+	if _fx_tick % 120 == 0:  # the Reduce effects file, read every ~2 s, not every frame
+		_fx_reduced = LandingSlabs.reduced()
+	_fx_tick += 1
+	var top := _to_screen(Vector2(0, float(lv.water))).y + vs * 0.45
+	water_fx.position = Vector2(0, top)
+	water_fx.size = Vector2(board.size.x, maxf(0.0, board.size.y - top))
+	var key := skin + str(_fx_reduced)
+	if key == _fx_key:
+		(water_fx.material as ShaderMaterial).set_shader_parameter("rect_size", water_fx.size)
+		return
+	_fx_key = key
+	var calm := 0.0 if _fx_reduced else 1.0
+	var classic := skin == "classic"
+	var sm := sky_fx.material as ShaderMaterial
+	sm.set_shader_parameter("rays", 1.0 if classic else 0.0)
+	sm.set_shader_parameter("vig", 0.35 if classic else 0.5)
+	sm.set_shader_parameter("scan", 0.0 if classic else 1.0)
+	sm.set_shader_parameter("speed", calm)
+	var wm := water_fx.material as ShaderMaterial
+	wm.set_shader_parameter("speed", calm)
+	wm.set_shader_parameter("strength", 0.35 if classic else 0.25)
+	wm.set_shader_parameter("rect_size", water_fx.size)
+
+## One rising coin per star on the result card.
+func _pling(i: int) -> void:
+	SoundLib.play(self, "reward/coin_short", -4.0, "results", 1.0 + 0.12 * i)
+
 # ---------- garage ----------
 
 ## The vehicle look in use: a GARAGE entry, or {} for the level's own vehicle.
@@ -1315,6 +1740,7 @@ func _open_garage_from_landing() -> void:
 ## Garage: every vehicle with its picture; buy with stars, then tap Use. Only the look
 ## changes (Classic look; Voodoo keeps the neon outline vehicles).
 func _open_garage(from_landing: bool) -> void:
+	_hide_toast()
 	_close_end()
 	_close_map()
 	_close_garage()
@@ -1327,6 +1753,7 @@ func _open_garage(from_landing: bool) -> void:
 	garage_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(garage_layer)
 	garage_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_wood_grain(garage_layer)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	garage_layer.add_child(scroll)
@@ -1443,6 +1870,7 @@ func _garage_buy(id: String) -> void:
 			progress.garage.pick = id
 			_save_progress()
 			SoundLib.play(self, "reward/accomplished")
+			SoundLib.play(self, "rpg/handle_coins", -4.0)
 			_open_garage(map_from_landing)
 			return
 
@@ -1459,7 +1887,9 @@ func _garage_home() -> void:
 		return
 	var from_landing := map_from_landing
 	_close_garage()
-	if not from_landing:
+	if from_landing:
+		home.refresh()  # the Landing's wallet line
+	else:
 		_go_home()
 
 func _garage_back() -> void:
@@ -1872,11 +2302,14 @@ func _current_skin() -> String:
 # ---------- pause / save ----------
 
 func _on_pause() -> void:
+	toast_label.z_index = 0
 	home.pause()
 
 func _go_home() -> void:
+	toast_label.z_index = 0
 	_stop_test()
 	_close_garage()
+	_close_objectives()
 	home.go_home()
 
 ## The bridge itself lives in the progress file (per level); the save only says
@@ -1911,8 +2344,22 @@ func _sfx(sound: String) -> void:
 	if s:
 		s.play(sound)
 
-## Music from the hub's shared library (apps before v0.33 play none).
-func _play_music() -> void:
+## Music from the hub's shared library (apps before v0.33 play none): calm while building,
+## lively while a test drives (owner 2026-11-14: "add music").
+var _music_style := ""
+func _play_music(style: String = "calm") -> void:
+	if style == _music_style:
+		return
+	_music_style = style
 	var m = get_node_or_null("/root/Music")
 	if m:
-		m.play("calm", self, -1, 2.0)
+		m.play(style, self, 0, 1.5)
+
+## The vehicle's motor: a low engine loop while a test drives.
+func _motor(on: bool) -> void:
+	if engine_hum and is_instance_valid(engine_hum):
+		engine_hum.queue_free()
+	engine_hum = null
+	if on:
+		engine_hum = SoundLib.loop(self, "scifi/engine_circular", -22.0)
+		engine_hum.pitch_scale = 0.55 if load_test else 0.5

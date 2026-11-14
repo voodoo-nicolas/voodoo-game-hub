@@ -10,7 +10,9 @@ extends RefCounted
 ## Lives in the game's folder (not the shared template) so the pack carries it as is.
 ##
 ##  T1  tapered plank slabs, centre-left (the art's bridge and builder stay clear on the right):
-##      ▶ Resume (steel, green), ⚡ Quick Play, the ways to play (cfg modes), cfg play items
+##      ▶ Resume (steel, green), ⚡ Quick Play, the ways to play (cfg modes); the cfg play items
+##      sit under them as one row of square tiles (glyph over name; 2026-11-14, owner: "fix the
+##      menu layout"). A mode or play item with "detail": Callable shows that text under its name.
 ##  T2  a cluster of round bolt buttons bottom-right: ❓ 🏆 🏅 📊 ⚙
 ##  T3  ← Hub: a small plank bottom-left (N1)
 ## The slabs drop in like planks swung by a crane and sway a little; dust drifts in the light.
@@ -265,15 +267,15 @@ class SlabLanding extends Control:
 		_slab("quick", "⚡", str(kit.tr("Quick Play")), Callable(kit, "_on_quick"))
 		for m in kit._solo:
 			var p: Array = split_glyph(str(m.get("text", "")))
-			_slab("mode", p[0], str(kit.tr(p[1])), Callable(kit, "_on_mode").bind(m))
+			_slab("mode", p[0], str(kit.tr(p[1])), Callable(kit, "_on_mode").bind(m), m)
 		for it in kit.cfg.get("play", []):
 			var q: Array = split_glyph(str(it.get("text", "")))
-			_slab("play", q[0], str(kit.tr(q[1])), Callable(kit, "_on_play_item").bind(it))
+			_slab("play", q[0], str(kit.tr(q[1])), Callable(kit, "_on_play_item").bind(it), it)
 		if not kit._multi.is_empty():
 			_slab("multi", "👥", str(kit.tr("Multiplayer")), Callable(kit, "_on_group").bind(true))
 		hub = _slab("hub", "←", str(kit.tr("Hub")), Callable(kit, "_on_hub_pressed"))
 
-	func _slab(kind: String, glyph: String, nm: String, cb: Callable) -> Dictionary:
+	func _slab(kind: String, glyph: String, nm: String, cb: Callable, item: Dictionary = {}) -> Dictionary:
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
 		b.text = (glyph + " " + nm).strip_edges()   # real text for tests and screen readers
@@ -291,9 +293,9 @@ class SlabLanding extends Control:
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(slot)
 		slot.add_child(b)
-		var row := HBoxContainer.new()
+		var row: BoxContainer = VBoxContainer.new() if kind == "play" else HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("separation", 12)
+		row.add_theme_constant_override("separation", 0 if kind == "play" else 12)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(row)
 		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -308,18 +310,18 @@ class SlabLanding extends Control:
 		col.add_theme_constant_override("separation", -4)
 		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(col)
-		var nl: Label = kit.label(nm, 32, CREAM, false, false)
+		var nl: Label = kit.label(nm, 32, CREAM, false, kind == "play")
 		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		nl.add_theme_color_override("font_outline_color", INK)
 		nl.add_theme_constant_override("outline_size", 10)
 		col.add_child(nl)
-		var dl: Label = kit.label("", 18, Color("ffe0a3"), false, false)
+		var dl: Label = kit.label("", 18, Color("ffe0a3"), false, kind == "play")
 		dl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		dl.add_theme_color_override("font_outline_color", INK)
 		dl.add_theme_constant_override("outline_size", 6)
 		dl.visible = false
 		col.add_child(dl)
-		var d := {"kind": kind, "btn": b, "slot": slot, "glyph": gl, "name": nl, "detail": dl, "nm": nm,
+		var d := {"kind": kind, "btn": b, "slot": slot, "glyph": gl, "name": nl, "detail": dl, "nm": nm, "item": item,
 			"shown": kind != "resume" and kind != "quick"}
 		slabs.append(d)
 		return d
@@ -394,6 +396,8 @@ class SlabLanding extends Control:
 				s["shown"] = kit.quick_btn.visible
 				var t2: String = kit.quick_btn.text
 				_detail(s, t2.get_slice("\n", 1).strip_edges() if "\n" in t2 else "")
+			elif (s.item as Dictionary).get("detail") is Callable and (s.item.detail as Callable).is_valid():
+				_detail(s, str(s.item.detail.call()))
 		_layout()
 
 	func _detail(s: Dictionary, text: String) -> void:
@@ -534,20 +538,37 @@ class SlabLanding extends Control:
 		var shown: Array = slabs.filter(func(s): return s.kind != "hub" and s.shown)
 		for s in slabs:
 			(s.slot as Control).visible = s.kind == "hub" or s.shown
+		var full: Array = shown.filter(func(s): return s.kind != "play")
+		var tiles: Array = shown.filter(func(s): return s.kind == "play")
 		var area_top := top_end + H * 0.02
 		var area_bot := (row_y - 12.0) if not wide else (H - pad - hub_h - 14.0)
-		var n := shown.size()
-		if n > 0:
-			var gap := clampf(H * 0.022, 8.0, 18.0)
-			var sh := clampf((area_bot - area_top - gap * (n - 1)) / n, MIN_HIT, H * (0.15 if wide else 0.09))
-			var cx := W * (0.3 if wide else 0.5)
-			var w0 := W * (0.36 if wide else 0.8)
-			var y := area_top + maxf(0.0, (area_bot - area_top - (sh * n + gap * (n - 1))) * 0.35)
+		var n := full.size()
+		var rows := float(n) + (1.3 if not tiles.is_empty() else 0.0)  # the tile row is 1.3 planks tall
+		if rows > 0.0:
+			var gap := clampf(H * 0.022, 8.0, 16.0)
+			var gaps := gap * (ceilf(rows) - 1.0)
+			var sh := clampf((area_bot - area_top - gaps) / rows, MIN_HIT, H * (0.12 if wide else 0.085))
+			var cx := W * (0.27 if wide else 0.5)
+			var w0 := W * (0.36 if wide else 0.84)
+			var used := sh * rows + gaps
+			var y := area_top + maxf(0.0, (area_bot - area_top - used) * 0.3)
 			for i in n:
-				var w := maxf(w0 * (1.0 - 0.045 * i), 260.0)
-				_size_slab(shown[i], Vector2(w, sh))
-				(shown[i].slot as Control).position = Vector2(cx - w * 0.5, y)
+				var w := maxf(w0 * (1.0 - 0.035 * i), 260.0)
+				_size_slab(full[i], Vector2(w, sh))
+				(full[i].slot as Control).position = Vector2(cx - w * 0.5, y)
 				y += sh + gap
+			if not tiles.is_empty():
+				var k := tiles.size()
+				var tw0 := maxf(w0 * (1.0 - 0.035 * n), 260.0)
+				var tgap := gap
+				var tile_w := (tw0 - tgap * (k - 1)) / k
+				var tile_h := sh * 1.3
+				var x := cx - tw0 * 0.5
+				for t in tiles:
+					_size_slab(t, Vector2(tile_w, tile_h))
+					(t.slot as Control).position = Vector2(x, y)
+					x += tile_w + tgap
+				y += tile_h + gap
 		# --- small sign bottom-centre: rating / fact / version, only if it fits ---
 		var free_l := pad + hub_w + 16.0
 		var free_w := cluster_left - free_l - 16.0
@@ -571,8 +592,15 @@ class SlabLanding extends Control:
 		b.size = sz
 		b.custom_minimum_size = Vector2.ZERO
 		b.pivot_offset = sz * 0.5
-		var inner := sz.x - sz.y * 0.6
 		var gl: Label = s.glyph
+		if s.kind == "play":  # square tile: glyph over name over detail
+			gl.add_theme_font_size_override("font_size", int(sz.y * 0.3))
+			var tn: Label = s.name
+			tn.add_theme_font_size_override("font_size", fit_font(tn.text, sz.x - 18.0, int(sz.y * 0.2), 12))
+			var td: Label = s.detail
+			td.add_theme_font_size_override("font_size", fit_font(td.text, sz.x - 14.0, int(sz.y * 0.14), 10))
+			return
+		var inner := sz.x - sz.y * 0.6
 		gl.add_theme_font_size_override("font_size", int(sz.y * 0.4))
 		var nl: Label = s.name
 		var has_detail: bool = (s.detail as Label).visible
