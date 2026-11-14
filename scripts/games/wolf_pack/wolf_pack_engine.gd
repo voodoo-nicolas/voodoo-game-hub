@@ -38,7 +38,44 @@ const DIFF := [   # hunger per second, prey speed factor
 	{"drain": 1.55, "speed": 1.06},
 ]
 
-var mode := "year"        # year (one year, 4 seasons) or endless
+## Story "The Long Winter": one hunt per chapter, each with one goal, inside
+## one season (survive goals: the whole season). pack = wolves at the start.
+const STORY := [
+	{"title": "Two Wolves", "season": 0, "pack": 2, "goal": {"type": "catch", "kind": "hare", "n": 5},
+		"text": "You are Grey, a young wolf who has left the pack you were born in. With Ash, your mate, you set out to find a valley of your own. First, you need to eat."},
+	{"title": "Bigger Game", "season": 0, "pack": 2, "goal": {"type": "catch", "kind": "deer", "n": 1},
+		"text": "Hares will not feed a family. Down by the river, deer graze in the evening. Two wolves are just enough, if you hunt as one."},
+	{"title": "The Den", "season": 1, "pack": 2, "goal": {"type": "pack", "n": 4},
+		"text": "Ash has dug a den under the roots of an old pine. Pups are coming. Bring home enough meat to raise them."},
+	{"title": "Summer Plenty", "season": 1, "pack": 4, "goal": {"type": "catch", "kind": "deer", "n": 3},
+		"text": "The pups are growing fast and always hungry. The meadows are full of deer: teach the young ones to run with you."},
+	{"title": "The Elk Herd", "season": 2, "pack": 4, "goal": {"type": "catch", "kind": "elk", "n": 1},
+		"text": "Autumn. The elk come down from the mountains, huge and proud. Their kicks can break a wolf's ribs. Three wolves must hold one."},
+	{"title": "Before the Snow", "season": 2, "pack": 5, "goal": {"type": "meat", "n": 400},
+		"text": "The first frost whitens the grass at dawn. The pack must eat well now: winter is long and the hares are hiding."},
+	{"title": "The Long Winter", "season": 3, "pack": 5, "goal": {"type": "survive", "n": 4},
+		"text": "Snow lies deep across the valley. Every hunt is harder and every wolf is hungry. Keep the family together until spring."},
+	{"title": "King of the Valley", "season": 3, "pack": 6, "goal": {"type": "catch", "kind": "bison", "n": 1},
+		"text": "One last test before the thaw: an old bison bull, as big as a hill. If your family can bring it down, the valley is yours."},
+]
+## Daily Hunt goals (one season, pack of 4): picked by the date.
+const DAILY := [
+	{"type": "catch", "kind": "hare", "n": 8},
+	{"type": "catch", "kind": "deer", "n": 3},
+	{"type": "catch", "kind": "elk", "n": 2},
+	{"type": "meat", "n": 300},
+	{"type": "pack", "n": 7},
+	{"type": "catch", "kind": "bison", "n": 1},
+]
+## Weekly Trial goals (a whole year on Hard, pack of 4): picked by the week.
+const WEEKLY := [
+	{"type": "meat", "n": 2000},
+	{"type": "catch", "kind": "elk", "n": 8},
+	{"type": "catch", "kind": "bison", "n": 3},
+	{"type": "survive", "n": 9},
+]
+
+var mode := "year"        # year (one year), endless, story, daily, weekly
 var diff: int = 1
 var time: float = 0.0
 var hunger: float = 100.0
@@ -52,12 +89,23 @@ var biggest: int = 0
 var over := false
 var won := false
 var rng := RandomNumberGenerator.new()
+var goal: Dictionary = {}      # {} = none; see STORY for the kinds
+var start_time: float = 0.0
+var limit: int = 4             # seasons this run lasts; 0 = endless
+var start_pack: int = 4
+var seed_used: int = 1
 
-func reset(m: String, d: int, seed_v: int) -> void:
+## opts: "pack" wolves at the start, "season" to start in, "goal", "limit" seasons.
+func reset(m: String, d: int, seed_v: int, opts: Dictionary = {}) -> void:
 	mode = m
 	diff = clampi(d, 0, 2)
+	seed_used = seed_v
 	rng.seed = seed_v
-	time = 0.0
+	start_pack = clampi(int(opts.get("pack", 4)), 1, MAX_PACK)
+	goal = (opts.get("goal", {}) as Dictionary).duplicate()
+	limit = int(opts.get("limit", 0 if m == "endless" else 4))
+	start_time = float(opts.get("season", 0)) * SEASON_LEN
+	time = start_time
 	hunger = 100.0
 	spare = 0.0
 	meat = 0
@@ -67,7 +115,7 @@ func reset(m: String, d: int, seed_v: int) -> void:
 	kills = {"hare": 0, "deer": 0, "elk": 0, "bison": 0}
 	wolves.clear()
 	prey.clear()
-	for i in 4:
+	for i in start_pack:
 		_add_wolf(Vector2(W / 2.0 + rng.randf_range(-40, 40), H / 2.0 + 40.0 + i * 30.0), i == 0)
 	biggest = wolves.size()
 	_top_up(true)
@@ -84,6 +132,40 @@ func year() -> int:
 func season_left() -> float:
 	return SEASON_LEN - fmod(time, SEASON_LEN)
 
+## Seconds left in a run with a time limit (-1: no limit).
+func time_left() -> float:
+	if limit <= 0:
+		return -1.0
+	return maxf(0.0, start_time + limit * SEASON_LEN - time)
+
+## Options for a story chapter, a Daily Hunt or a Weekly Trial.
+static func story_opts(ch: int) -> Dictionary:
+	var c: Dictionary = STORY[clampi(ch, 0, STORY.size() - 1)]
+	return {"pack": c.pack, "season": c.season, "goal": c.goal, "limit": 1}
+
+static func daily_opts(day: int) -> Dictionary:
+	return {"pack": 4, "season": posmod(day * 7 + 3, 4), "goal": DAILY[posmod(day * 5 + 1, DAILY.size())], "limit": 1}
+
+static func weekly_opts(week: int) -> Dictionary:
+	return {"pack": 4, "season": 0, "goal": WEEKLY[posmod(week, WEEKLY.size())], "limit": 4}
+
+## [have, need] for the goal.
+func goal_progress() -> Array:
+	match str(goal.get("type", "")):
+		"catch":
+			return [int(kills.get(goal.kind, 0)), int(goal.n)]
+		"meat":
+			return [meat, int(goal.n)]
+		"pack", "survive":
+			return [wolves.size(), int(goal.n)]
+	return [0, 0]
+
+func goal_met() -> bool:
+	if goal.is_empty():
+		return true
+	var gp := goal_progress()
+	return gp[0] >= gp[1]
+
 func leader() -> Dictionary:
 	return wolves[0]
 
@@ -99,13 +181,14 @@ func step(delta: float, inp: Dictionary) -> Array:
 		return ev
 	var old_season := season()
 	time += delta
+	if limit > 0 and time >= start_time + limit * SEASON_LEN:
+		# Time is up: a survive goal (or none) is won by lasting; others needed doing by now.
+		over = true
+		won = goal_met()
+		ev.append(["win"] if won else ["timeout"])
+		return ev
 	if season() != old_season:
 		ev.append(["season", season()])
-		if mode == "year" and time >= SEASON_LEN * 4.0:
-			over = true
-			won = true
-			ev.append(["win"])
-			return ev
 	# Hunger.
 	var drain: float = DIFF[diff].drain * (1.0 + 0.07 * (wolves.size() - 1)) * (1.5 if season() == 3 else 1.0)
 	hunger -= drain * delta
@@ -122,6 +205,10 @@ func step(delta: float, inp: Dictionary) -> Array:
 	_move_wolves(delta, inp)
 	_move_prey(delta, ev)
 	_top_up(false)
+	if not goal.is_empty() and str(goal.get("type", "")) != "survive" and goal_met():
+		over = true
+		won = true
+		ev.append(["goal"])
 	return ev
 
 func _move_wolves(delta: float, inp: Dictionary) -> void:
@@ -289,10 +376,13 @@ func to_dict() -> Dictionary:
 	for pr in prey:
 		ps.append([pr.kind, pr.p.x, pr.p.y, pr.stam, pr.wander])
 	return {"mode": mode, "diff": diff, "time": time, "hunger": hunger, "spare": spare, "meat": meat,
-		"stamina": stamina, "wolves": ws, "prey": ps, "kills": kills.duplicate(), "biggest": biggest, "seed": rng.seed}
+		"stamina": stamina, "wolves": ws, "prey": ps, "kills": kills.duplicate(), "biggest": biggest, "seed": seed_used,
+		"goal": goal.duplicate(), "start": start_time, "limit": limit, "pack0": start_pack}
 
 func from_dict(d: Dictionary) -> void:
-	reset(str(d.get("mode", "year")), int(d.get("diff", 1)), int(d.get("seed", 1)) + 7)
+	reset(str(d.get("mode", "year")), int(d.get("diff", 1)), int(d.get("seed", 1)) + 7,
+		{"goal": d.get("goal", {}), "limit": int(d.get("limit", 4)), "pack": int(d.get("pack0", 4))})
+	start_time = float(d.get("start", 0.0))
 	time = float(d.get("time", 0.0))
 	hunger = float(d.get("hunger", 100.0))
 	spare = float(d.get("spare", 0.0))

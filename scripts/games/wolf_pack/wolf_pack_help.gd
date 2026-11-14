@@ -13,7 +13,9 @@ const HOW := [
 	"Elk and bison kick back when too few wolves are round them: the wolves are knocked away and the pack gets hungrier.",
 	"Hunger goes down all the time, faster with a bigger pack and much faster in winter. When it runs out, one wolf leaves the pack. If the leader is alone and starving, the game ends.",
 	"Meat the pack can't eat is saved: every 60 spare raises a new pup, up to 10 wolves.",
-	"One Year: live through spring, summer, autumn and winter (75 seconds each). Endless: keep going for as long as you can. Your score is the meat the pack has eaten, in kg.",
+	"🌙 Story, The Long Winter: 8 chapters about Grey and Ash starting a pack of their own. Each chapter has one goal (🎯 at the top of the screen) to reach before its season ends. The more time left, the more stars.",
+	"🎯 Challenges: 📅 Daily Hunt is a new goal every day, the same for everyone; win it on following days for a streak. 📆 Weekly Trial is a whole year on Hard with one big goal, new every Monday.",
+	"🎮 Free Hunt: One Year means living through spring, summer, autumn and winter (75 seconds each). Endless keeps going for as long as you can. Your score is the meat the pack has eaten, in kg.",
 	"⏸ pauses; Resume on the Home screen carries on the same hunt.",
 ]
 const TIPS := [
@@ -22,14 +24,18 @@ const TIPS := [
 	"Chase an animal for a while before going in: a tired one runs slower.",
 	"A bison feeds the whole pack and raises pups, but only bring 5 wolves or more.",
 ]
-const STATS := ["Best score", "Games played", "Years survived", "Biggest pack", "Hares caught", "Deer caught", "Elk caught", "Bison caught"]
-const NO_TIER_BADGES := ["Games played", "Hares caught", "Bison caught"]
+const STATS := ["Best score", "Games played", "Years survived", "Biggest pack", "Hares caught", "Deer caught", "Elk caught", "Bison caught",
+	"Story stars", "Story chapters done", "Daily hunts won", "Best daily streak", "Weekly trials won"]
+const NO_TIER_BADGES := ["Games played", "Hares caught", "Bison caught", "Story stars", "Story chapters done", "Best daily streak", "Weekly trials won", "Deer caught"]
 
 const ACHIEVEMENTS := [
 	{"id": "first_elk", "icon": "🦌", "title": "Elk Hunters", "key": "Elk caught", "at": 1, "xp": 25},
 	{"id": "first_bison", "icon": "🦬", "title": "Bison Down", "key": "Bison caught", "at": 1, "xp": 50},
 	{"id": "full_pack", "icon": "🐺", "title": "Full Pack", "key": "Biggest pack", "at": 10, "xp": 50},
 	{"id": "one_year", "icon": "❄", "title": "Through the Winter", "key": "Years survived", "at": 1, "xp": 25},
+	{"id": "story_done", "icon": "🌙", "title": "King of the Valley", "key": "Story chapters done", "at": 8, "xp": 50},
+	{"id": "week_streak", "icon": "📅", "title": "Seven Dawns", "key": "Best daily streak", "at": 7, "xp": 25},
+	{"id": "weekly", "icon": "📆", "title": "Trial by Snow", "key": "Weekly trials won", "at": 1, "xp": 25},
 ]
 
 ## Learning hook (STANDARDS §15): checked facts only.
