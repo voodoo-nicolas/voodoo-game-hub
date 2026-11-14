@@ -1,10 +1,12 @@
 extends Control
 
-## Mini Golf: 18 holes of neon crazy golf. Pull back anywhere on the green
+## Mini Golf: 18 holes of crazy golf on a sunny course (stone walls, brick
+## blocks, real windmills; art generated in mini_golf_art.gd). Pull back anywhere on the green
 ## (like a slingshot) and let go to putt. Solo, or 2-4 players taking turns
 ## on one phone.
 
 const MgEngine = preload("res://scripts/games/mini_golf/mini_golf_engine.gd")
+const Art = preload("res://scripts/games/mini_golf/mini_golf_art.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -51,6 +53,9 @@ var banner_t: float = 0.0
 var round_recorded := false
 
 var field: Control
+var static_layer: Control   # the course, redrawn per hole
+var dyn: Control            # ball, windmills, water..., redrawn per frame
+var shore: Dictionary = {}  # rim lines per hole: {"water": PackedVector2Array, "sand": ...}
 var hole_label: Label
 var turn_label: Label
 var card: Control
@@ -121,9 +126,20 @@ func _build_ui() -> void:
 	field = Control.new()
 	field.clip_contents = true
 	field.mouse_filter = Control.MOUSE_FILTER_STOP
-	field.draw.connect(_draw_field)
 	field.gui_input.connect(_on_field_input)
 	fm.add_child(field)
+	# Two layers: the course itself (grass, walls, sand...) is drawn once per
+	# hole; only the moving things are redrawn every frame (cheap on phones).
+	static_layer = Control.new()
+	dyn = Control.new()
+	for layer in [static_layer, dyn]:
+		layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		field.add_child(layer)
+	static_layer.draw.connect(_draw_static)
+	dyn.draw.connect(_draw_dynamic)
+	field.resized.connect(static_layer.queue_redraw)
 
 	_build_card()
 
@@ -137,7 +153,7 @@ func _build_ui() -> void:
 		"title_colors": [Color("4cd964"), Color("2ecc8a"), Color("a6e22e")],
 		"landing_colors": [Color("08200f"), Color("12381c")],
 		"menu_color": Color("a6e22e"),
-		"retro": true,
+		# Own skins (_set_skin): the kit's retro filter flattened the course art.
 		"help": HELP,
 		"info": info,
 		"accent": GREEN,
@@ -242,6 +258,8 @@ func _start_hole_for(p: int) -> void:
 		_show_banner(tr("Player %d") % (cur + 1))
 	else:
 		_show_banner(tr("Hole %d") % (engine.index + 1) + " · " + tr("Par %d") % engine.par())
+	shore = {"water": _rims(engine.hole.get("water", [])), "sand": _rims(engine.hole.get("sand", []))}
+	static_layer.queue_redraw()
 	_update_hud()
 
 func _show_banner(text: String, t: float = 1.6) -> void:
@@ -302,7 +320,7 @@ func _process(delta: float) -> void:
 		phase_t -= delta
 		if phase_t <= 0.0:
 			_finish_hole_for_player()
-	field.queue_redraw()
+	dyn.queue_redraw()
 
 ## Out of strokes: the ball is picked up with the maximum.
 func _check_max() -> void:
@@ -422,8 +440,10 @@ func _on_card_button() -> void:
 		_go_home()
 	elif between and phase == "card":
 		pos_in_course += 1
-		_save_game()
+		# Start the hole first: saving while still in "card" phase skipped a
+		# hole and, on a course's last hole, indexed past the end (the freeze).
 		_start_hole_for(0)
+		_save_game()
 
 func _round_over() -> void:
 	started = false
@@ -475,10 +495,10 @@ func _on_field_input(event: InputEvent) -> void:
 				trail.clear()
 				_sfx("hit")
 				_update_hud()
-		field.queue_redraw()
+		dyn.queue_redraw()
 	elif event is InputEventMouseMotion and pulling:
 		pull_to = event.position
-		field.queue_redraw()
+		dyn.queue_redraw()
 
 # ---------- drawing ----------
 
@@ -490,117 +510,330 @@ func _geom() -> Dictionary:
 func _rect(r: Array, o: Vector2, k: float) -> Rect2:
 	return Rect2(o + Vector2(r[0], r[1]) * k, Vector2(r[2] - r[0], r[3] - r[1]) * k)
 
-func _draw_field() -> void:
+const WALL_T := 16.0          # stone wall thickness, world units
+
+func _r(a: Array) -> Rect2:
+	return Rect2(Vector2(a[0], a[1]), Vector2(a[2] - a[0], a[3] - a[1]))
+
+func _uv(pts: PackedVector2Array, tile: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p in pts:
+		out.append(p / tile)
+	return out
+
+## Edges of a set of touching rectangles, minus the shared parts (so the
+## island hole's five water rects read as one pond), as multiline pairs.
+func _rims(rects: Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in rects.size():
+		var r := _r(rects[i])
+		var cs := [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]
+		for e in 4:
+			var a: Vector2 = cs[e]
+			var b: Vector2 = cs[(e + 1) % 4]
+			var nn := (b - a).orthogonal().normalized()
+			if r.has_point((a + b) / 2.0 + nn):
+				nn = -nn
+			var steps := maxi(1, int((b - a).length() / 6.0))
+			for si in steps:
+				var p0 := a.lerp(b, float(si) / steps)
+				var p1 := a.lerp(b, float(si + 1) / steps)
+				var mid := (p0 + p1) / 2.0 + nn * 3.0
+				var shared := false
+				for j in rects.size():
+					if j != i and MgEngine.in_rect(mid, rects[j]):
+						shared = true
+				if not shared:
+					out.append_array([p0, p1])
+	return out
+
+## The course, drawn once per hole: rough grass everywhere, the mown green,
+## stone walls, brick blocks, sand, the tee mat and the cup.
+func _draw_static() -> void:
+	var c := static_layer
+	c.draw_texture_rect(Art.tex("rough"), Rect2(Vector2.ZERO, c.size), true)
+	if engine.hole.is_empty():
+		return
+	var g := _geom()
+	var k: float = g.k
+	c.draw_set_transform(g.o, 0.0, Vector2(k, k))
+	var h: Dictionary = engine.hole
+	var poly: PackedVector2Array = engine.poly
+	_draw_decor(c, poly)
+	c.draw_colored_polygon(poly, Color.WHITE, _uv(poly, 100.0), Art.tex("grass"))
+	# Slopes: shaded from high to low side.
+	for s in h.get("slopes", []):
+		var r := _r(s)
+		var dir := Vector2(s[4], s[5]).normalized()
+		for i in 5:
+			var f := float(i) / 5.0
+			var band: Rect2
+			if absf(dir.x) > absf(dir.y):
+				band = Rect2(r.position + Vector2(r.size.x * f, 0), Vector2(r.size.x / 5.0, r.size.y))
+				if dir.x < 0:
+					f = 1.0 - f
+			else:
+				band = Rect2(r.position + Vector2(0, r.size.y * f), Vector2(r.size.x, r.size.y / 5.0))
+				if dir.y < 0:
+					f = 1.0 - f
+			c.draw_rect(band, Color(1, 1, 0.8, 0.10 * (1.0 - f)) if f < 0.5 else Color(0, 0.1, 0, 0.12 * f))
+	# Sand bunkers.
+	for s in h.get("sand", []):
+		c.draw_texture_rect(Art.tex("sand"), _r(s), true)
+	var sand_rim: PackedVector2Array = shore.get("sand", PackedVector2Array())
+	if sand_rim.size() > 1:
+		c.draw_multiline(sand_rim, Color("a8854a"), 4.0)
+		c.draw_multiline(sand_rim, Color(0.2, 0.35, 0.1, 0.5), 1.5)
+	# Tee mat.
+	var tee := Vector2(h.tee[0], h.tee[1])
+	var mat := Rect2(tee - Vector2(28, 22), Vector2(56, 44))
+	c.draw_rect(mat.grow(2), Color(0, 0, 0, 0.25))
+	c.draw_rect(mat, Color("2e8a40"))
+	c.draw_rect(mat, Color("1d5e2a"), false, 2.0)
+	# Block shadows, then the stone walls, then brick blocks.
+	for b in h.get("blocks", []):
+		c.draw_rect(Rect2(_r(b).position + Vector2(4, 6), _r(b).size), Color(0, 0, 0, 0.28))
+	_draw_walls(c, poly)
+	var hi := PackedVector2Array()
+	var lo := PackedVector2Array()
+	for b in h.get("blocks", []):
+		var r := _r(b)
+		c.draw_texture_rect(Art.tex("brick"), r, true)
+		var tr_ := Vector2(r.end.x, r.position.y)
+		var bl := Vector2(r.position.x, r.end.y)
+		hi.append_array([r.position, tr_, r.position, bl])
+		lo.append_array([tr_, r.end, bl, r.end])
+	if hi.size() > 1:
+		c.draw_multiline(hi, Color(1, 0.9, 0.8, 0.45), 2.0)
+		c.draw_multiline(lo, Color(0.15, 0.05, 0.02, 0.6), 2.5)
+	for m in h.get("mills", []):
+		_draw_mill_tower(c, Vector2(m[0], m[1]), m[2])
+	# The cup: a white lip round a dark hole.
+	var cp: Vector2 = engine.cup()
+	Art.disc(c, cp, MgEngine.CUP_R + 3.0, Color(1, 1, 1, 0.9))
+	Art.disc(c, cp, MgEngine.CUP_R, Color("141414"))
+	Art.disc(c, cp + Vector2(2, 3), MgEngine.CUP_R * 0.6, Color("262626"))
+	c.draw_set_transform(Vector2.ZERO)
+
+## The windmill's body, seen from the front like a toy-course windmill: a
+## whitewashed tower narrowing upward, a red roof, a door the ball rolls
+## through and a little window. Drawn under the sails.
+func _draw_mill_tower(c: CanvasItem, ctr: Vector2, rad: float) -> void:
+	var base_w := rad * 1.0
+	var top_w := rad * 0.62
+	var y_base := ctr.y + rad * 0.32
+	var y_top := ctr.y - rad * 1.05
+	var body := PackedVector2Array([Vector2(ctr.x - base_w / 2, y_base), Vector2(ctr.x - top_w / 2, y_top),
+		Vector2(ctr.x + top_w / 2, y_top), Vector2(ctr.x + base_w / 2, y_base)])
+	var shadow := PackedVector2Array()
+	for p in body:
+		shadow.append(p + Vector2(8, 10))
+	c.draw_colored_polygon(shadow, Color(0, 0, 0, 0.3))
+	c.draw_colored_polygon(body, Color(1.0, 0.97, 0.9), _uv(body, 96.0), Art.tex("stone"))
+	c.draw_colored_polygon(body, Color(1, 1, 1, 0.45))
+	# Shade on the right half for roundness.
+	var half := PackedVector2Array([Vector2(ctr.x + base_w * 0.18, y_base), Vector2(ctr.x + top_w * 0.18, y_top),
+		Vector2(ctr.x + top_w / 2, y_top), Vector2(ctr.x + base_w / 2, y_base)])
+	c.draw_colored_polygon(half, Color(0.1, 0.1, 0.25, 0.18))
+	c.draw_polyline(PackedVector2Array([body[0], body[1], body[2], body[3]]), Color("5a5246"), 2.5)
+	# Roof.
+	var roof := PackedVector2Array([Vector2(ctr.x - top_w * 0.62, y_top + 4), Vector2(ctr.x, y_top - rad * 0.42),
+		Vector2(ctr.x + top_w * 0.62, y_top + 4)])
+	c.draw_colored_polygon(roof, Color(0.85, 0.35, 0.3), _uv(roof, 64.0), Art.tex("wood"))
+	c.draw_polyline(PackedVector2Array([roof[0], roof[1], roof[2], roof[0]]), Color("4a1a12"), 2.5)
+	# Door (the tunnel) and window.
+	var dw := rad * 0.34
+	var door := Rect2(ctr.x - dw / 2, y_base - rad * 0.3, dw, rad * 0.3)
+	c.draw_rect(door, Color("1c1410"))
+	Art.disc(c, Vector2(ctr.x, door.position.y), dw / 2, Color("1c1410"))
+	c.draw_rect(Rect2(ctr.x - 7, y_top + rad * 0.2, 14, 18), Color("2a3a55"))
+	c.draw_rect(Rect2(ctr.x - 7, y_top + rad * 0.2, 14, 18), Color("5a3a1a"), false, 2.0)
+
+## Thick stone walls on the outside of the green, with a shadow inside.
+func _draw_walls(c: CanvasItem, poly: PackedVector2Array) -> void:
+	var n := poly.size()
+	var normals: Array = []
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var nn := (b - a).orthogonal().normalized()
+		if Geometry2D.is_point_in_polygon((a + b) / 2.0 + nn * 2.0, poly):
+			nn = -nn
+		normals.append(nn)
+	var shade := PackedVector2Array()
+	var inner := PackedVector2Array()
+	var outer := PackedVector2Array()
+	var stone := Art.tex("stone")
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var nn: Vector2 = normals[i]
+		shade.append_array([a - nn * 4.0, b - nn * 4.0])
+		inner.append_array([a, b])
+		outer.append_array([a + nn * WALL_T, b + nn * WALL_T])
+	c.draw_multiline(shade, Color(0, 0, 0, 0.22), 8.0)
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var nn: Vector2 = normals[i]
+		var quad := PackedVector2Array([a, b, b + nn * WALL_T, a + nn * WALL_T])
+		c.draw_colored_polygon(quad, Color.WHITE, _uv(quad, 96.0), stone)
+		# The corner block after this side.
+		var n2: Vector2 = normals[(i + 1) % n]
+		if nn.dot(n2) < 0.999:
+			var cap := PackedVector2Array([b, b + nn * WALL_T, b + (nn + n2) * WALL_T, b + n2 * WALL_T])
+			c.draw_colored_polygon(cap, Color.WHITE, _uv(cap, 96.0), stone)
+	c.draw_multiline(inner, Color(1, 1, 0.95, 0.5), 2.5)
+	c.draw_multiline(outer, Color(0, 0, 0, 0.45), 2.5)
+
+## Bushes and flowers in the rough, the same every visit to a hole.
+func _draw_decor(c: CanvasItem, poly: PackedVector2Array) -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = 1000 + engine.index
+	var flowers := [Color("ffffff"), Color("ffd93a"), Color("ff7ab0"), Color("b48cff")]
+	for i in 70:
+		var p := Vector2(r.randf_range(-60, MgEngine.W + 60), r.randf_range(-40, MgEngine.H + 40))
+		var near := Geometry2D.is_point_in_polygon(p, poly)
+		for sg in engine.segs:
+			if p.distance_to(Geometry2D.get_closest_point_to_segment(p, sg[0], sg[1])) < WALL_T + 22.0:
+				near = true
+				break
+		if near:
+			continue
+		if r.randf() < 0.35:
+			var s := r.randf_range(14, 26)
+			Art.disc(c, p + Vector2(5, 7), s * 1.15, Color(0, 0, 0, 0.35), true)
+			Art.disc(c, p, s, Color("1f5220"))
+			Art.disc(c, p + Vector2(-s * 0.3, -s * 0.25), s * 0.7, Color("2f7330"))
+			Art.disc(c, p + Vector2(s * 0.35, -s * 0.1), s * 0.55, Color("3a8a3a"))
+			Art.disc(c, p + Vector2(-s * 0.4, -s * 0.45), s * 0.25, Color("5aa850"))
+		else:
+			var col: Color = flowers[r.randi() % flowers.size()]
+			for j in 3:
+				var q := p + Vector2(r.randf_range(-8, 8), r.randf_range(-8, 8))
+				Art.disc(c, q, 3.0, col)
+				Art.disc(c, q, 1.2, Color("ffcc33"))
+
+## Everything that moves: water, bridges, slopes' arrows, gates, bumpers,
+## windmills, the flag, the ball and the aim.
+func _draw_dynamic() -> void:
+	var c := dyn
+	if engine.hole.is_empty():
+		return
 	var g := _geom()
 	var k: float = g.k
 	var o: Vector2 = g.o
-	var c := field
 	var h: Dictionary = engine.hole
 	var tt: float = engine.t
-	var outline := PackedVector2Array()
-	for p in engine.outline():
-		outline.append(o + p * k)
-	c.draw_colored_polygon(outline, Color(0.02, 0.09, 0.06))
-	# A faint mowing pattern.
-	var stripe := 50.0 * k
-	var y0 := o.y
-	var n := 0
-	while y0 < o.y + MgEngine.H * k:
-		if n % 2 == 0:
-			var band := Rect2(Vector2(0, y0), Vector2(field.size.x, stripe))
-			var clipped := Geometry2D.intersect_polygons(outline, PackedVector2Array([band.position, Vector2(band.end.x, band.position.y), band.end, Vector2(band.position.x, band.end.y)]))
-			for poly in clipped:
-				c.draw_colored_polygon(poly, Color(GREEN, 0.035))
-		y0 += stripe
-		n += 1
+	c.draw_set_transform(o, 0.0, Vector2(k, k))
+	# Water: two layers drifting apart, a stone kerb round the pond.
+	var wt := Art.tex("water")
+	for w in h.get("water", []):
+		var r := _r(w)
+		c.draw_texture_rect_region(wt, r, Rect2(r.position + Vector2(tt * 7.0, tt * 3.0), r.size))
+		c.draw_texture_rect_region(wt, r, Rect2(r.position * 0.7 + Vector2(-tt * 5.0, tt * 8.0), r.size * 0.7), Color(1, 1, 1, 0.35))
+	var wrim: PackedVector2Array = shore.get("water", PackedVector2Array())
+	if wrim.size() > 1:
+		c.draw_multiline(wrim, Color("77736a"), 7.0)
+		c.draw_multiline(wrim, Color(1, 1, 1, 0.3), 2.0)
+	for b in h.get("bridges", []):
+		var r := _r(b)
+		c.draw_rect(Rect2(r.position + Vector2(5, 7), r.size), Color(0, 0, 0, 0.3))
+		c.draw_texture_rect(Art.tex("wood"), r, true)
+		var rail := Color("4a3018")
+		c.draw_line(r.position + Vector2(3, 0), Vector2(r.position.x + 3, r.end.y), rail, 6.0)
+		for y in [r.position.y + 4, r.end.y - 4]:
+			Art.disc(c, Vector2(r.position.x + 3, y), 6.0, rail)
+	# Slope arrows, painted on the turf and drifting downhill.
+	var arrows := PackedVector2Array()
 	for s in h.get("slopes", []):
-		var r := _rect(s, o, k)
+		var r := _r(s)
 		var dir := Vector2(s[4], s[5]).normalized()
 		var ph := fmod(tt * 0.8, 1.0)
 		for i in 4:
 			for j in 3:
-				var p := r.position + Vector2(r.size.x * (i + 0.5) / 4.0, r.size.y * (j + 0.5) / 3.0) + dir * (ph - 0.5) * 30.0 * k
-				var a := p + dir * 12.0 * k
-				c.draw_line(a, a - dir.rotated(0.6) * 12.0 * k, Color(GREEN, 0.35), 2.0)
-				c.draw_line(a, a - dir.rotated(-0.6) * 12.0 * k, Color(GREEN, 0.35), 2.0)
-	for s in h.get("sand", []):
-		var r := _rect(s, o, k)
-		c.draw_rect(r, Color(SAND, 0.18))
-		HomeKit.glow_rect(c, r, Color(SAND, 0.7), 1.2)
-		for i in 14:
-			c.draw_circle(r.position + Vector2(fmod(i * 37.0, r.size.x), fmod(i * 23.0, r.size.y)), 1.5, Color(SAND, 0.5))
-	for w in h.get("water", []):
-		var r := _rect(w, o, k)
-		c.draw_rect(r, Color(WATER, 0.25))
-		HomeKit.glow_rect(c, r, WATER, 1.2)
-		var wy := r.position.y + 14.0 * k
-		while wy < r.end.y - 6.0:
-			var pts := PackedVector2Array()
-			var x := r.position.x + 6.0
-			while x < r.end.x - 6.0:
-				pts.append(Vector2(x, wy + sin(x * 0.08 + tt * 3.0) * 3.0))
-				x += 8.0
-			if pts.size() > 1:
-				c.draw_polyline(pts, Color(WATER, 0.5), 1.2)
-			wy += 22.0 * k
-	HomeKit.glow_polyline(c, outline, GREEN, 2.2, true)
-	for b in h.get("blocks", []):
-		var r := _rect(b, o, k)
-		c.draw_rect(r, Color(WALL, 0.22))
-		HomeKit.glow_rect(c, r, WALL, 2.0)
-	for b in h.get("bumpers", []):
-		var p := o + Vector2(b[0], b[1]) * k
-		var lit: bool = bump_flash.has(str(b))
-		HomeKit.glow_circle(c, p, b[2] * k, HomeKit.WHITE if lit else BUMPER, 2.2, 0.35 if lit else 0.15)
-		c.draw_circle(p, b[2] * 0.4 * k, Color(BUMPER, 0.6))
+				var p := r.position + Vector2(r.size.x * (i + 0.5) / 4.0, r.size.y * (j + 0.5) / 3.0) + dir * (ph - 0.5) * 30.0
+				var a := p + dir * 12.0
+				arrows.append_array([a, a - dir.rotated(0.6) * 14.0, a, a - dir.rotated(-0.6) * 14.0])
+	if arrows.size() > 1:
+		c.draw_multiline(arrows, Color(1, 1, 1, 0.35), 3.0)
+	# Sliding wooden gates.
 	for s in h.get("sliders", []):
 		var r: Rect2 = MgEngine.slider_rect(s, tt)
-		var rr := Rect2(o + r.position * k, r.size * k)
-		c.draw_rect(rr, Color(GATE, 0.2))
-		HomeKit.glow_rect(c, rr, GATE, 2.0)
+		c.draw_rect(Rect2(r.position + Vector2(4, 6), r.size), Color(0, 0, 0, 0.3))
+		c.draw_texture_rect(Art.tex("wood"), r, true)
+		c.draw_rect(r, Color("3a2412"), false, 2.5)
+		for x in [r.position.x + 8, r.end.x - 8]:
+			c.draw_line(Vector2(x, r.position.y), Vector2(x, r.end.y), Color("2b2b30"), 4.0)
+	# Bumpers: rubber rings on a steel post.
+	for b in h.get("bumpers", []):
+		var p := Vector2(b[0], b[1])
+		var rad: float = b[2]
+		var lit: bool = bump_flash.has(str(b))
+		Art.disc(c, p + Vector2(4, 6), rad * 1.2, Color(0, 0, 0, 0.4), true)
+		Art.disc(c, p, rad, Color("8c9198"))
+		Art.disc(c, p, rad * 0.9, Color("ffd6d6") if lit else Color("c62a3a"))
+		Art.disc(c, p, rad * 0.6, Color("fff2f2") if lit else Color("ec4a58"))
+		Art.disc(c, p, rad * 0.32, Color("d9dde2"))
+		Art.disc(c, p - Vector2(rad, rad) * 0.3, rad * 0.22, Color(1, 1, 1, 0.55))
+	# Windmills from above: sails with cloth on a lattice, a shingled cap.
+	var sail := Art.tex("sail")
 	for m in h.get("mills", []):
-		var cpos := o + Vector2(m[0], m[1]) * k
-		for b in int(m[4]):
-			var a: float = tt * m[3] + TAU * b / m[4]
-			HomeKit.glow_line(c, cpos, cpos + Vector2(cos(a), sin(a)) * m[2] * k, MILL, 3.0)
-		HomeKit.glow_circle(c, cpos, 12.0 * k, MILL, 2.0, 0.4)
-	# The cup and its flag.
-	var cp: Vector2 = o + engine.cup() * k
-	c.draw_circle(cp, MgEngine.CUP_R * k, Color(0, 0, 0))
-	HomeKit.glow_circle(c, cp, MgEngine.CUP_R * k, HomeKit.WHITE, 1.6)
+		var cpos := Vector2(m[0], m[1])
+		var rad: float = m[2]
+		var w := rad * 0.26
+		for pass_ in 2:
+			for b in int(m[4]):
+				var a: float = tt * m[3] + TAU * b / m[4]
+				var shift := Vector2(6, 9) * k if pass_ == 0 else Vector2.ZERO
+				c.draw_set_transform(o + cpos * k + shift, a, Vector2(k, k))
+				c.draw_texture_rect(sail, Rect2(0, -w / 2.0, rad, w), false, Color(0, 0, 0, 0.3) if pass_ == 0 else Color.WHITE)
+		c.draw_set_transform(o, 0.0, Vector2(k, k))
+		Art.disc(c, cpos, 13.0, Color("3a2412"))
+		Art.disc(c, cpos, 9.0, Color("7a4a26"))
+		Art.disc(c, cpos - Vector2(2, 2), 3.5, Color("d8c8a8"))
+	# The flag.
+	var cp: Vector2 = engine.cup()
 	if not engine.holed:
-		var top := cp + Vector2(0, -70) * k
-		c.draw_line(cp, top, HomeKit.WHITE, 2.0)
-		var wave := sin(tt * 4.0) * 4.0 * k
-		var flag := PackedVector2Array([top, top + Vector2(34 * k, 10 * k + wave), top + Vector2(0, 22 * k)])
-		c.draw_colored_polygon(flag, Color(BUMPER, 0.6))
-		HomeKit.glow_polyline(c, flag, BUMPER, 1.5, true)
-	# The ball, its trail and the aim.
+		var top := cp + Vector2(0, -70)
+		c.draw_line(cp, cp + Vector2(34, -18), Color(0, 0, 0, 0.3), 3.0)
+		c.draw_line(cp, top, Color("e8e8e8"), 3.0)
+		var wave := sin(tt * 4.0) * 4.0
+		var flag := PackedVector2Array([top, top + Vector2(36, 10 + wave), top + Vector2(0, 22)])
+		c.draw_colored_polygon(flag, Color("e8333f"))
+		c.draw_polyline(PackedVector2Array([top, top + Vector2(36, 10 + wave), top + Vector2(0, 22)]), Color("8a1520"), 1.5)
+	# Trail, ball, aim.
 	var col: Color = BALL_COLORS[cur]
 	for i in trail.size():
-		c.draw_circle(o + trail[i] * k, MgEngine.BALL_R * k * 0.5, Color(col, 0.05 + 0.25 * i / trail.size()))
-	var bp: Vector2 = o + engine.ball * k
+		Art.disc(c, trail[i], MgEngine.BALL_R * 0.55, Color(1, 1, 1, 0.05 + 0.3 * i / trail.size()))
+	var bp: Vector2 = engine.ball
+	var r_ := MgEngine.BALL_R
 	if not engine.holed:
-		c.draw_circle(bp, MgEngine.BALL_R * k, HomeKit.WHITE)
-		HomeKit.glow_circle(c, bp, MgEngine.BALL_R * k, col, 2.0)
+		Art.disc(c, bp + Vector2(3, 4), r_ * 1.4, Color(0, 0, 0, 0.45), true)
+		if players > 1:
+			Art.disc(c, bp, r_ + 3.0, col)
+		Art.disc(c, bp, r_, Color("c9ced6"))
+		Art.disc(c, bp - Vector2(0.8, 0.8), r_ * 0.85, Color("ffffff"))
+		Art.disc(c, bp - Vector2(3, 3), r_ * 0.3, Color(1, 1, 1, 1))
 	if pulling and phase == "aim":
-		var pull := pull_from - pull_to
-		var power := clampf(pull.length() / PULL_FULL, 0.0, 1.0)
+		var pull := (pull_from - pull_to) / k
+		var power := clampf(pull.length() * k / PULL_FULL, 0.0, 1.0)
 		if power > 0.02:
 			var dir := pull.normalized()
 			var reach := 40.0 + power * 260.0
 			var steps := int(reach / 14.0)
-			var pc := GREEN.lerp(BUMPER, power)
+			var pc := Color.WHITE.lerp(Color("ff3030"), power)
 			for i in steps:
-				c.draw_circle(bp + dir * (18.0 + i * 14.0) * k, 3.0 * k * (1.0 - 0.5 * i / steps), Color(pc, 1.0 - 0.6 * i / steps))
-			# Power meter by the ball.
-			var mr := Rect2(bp + Vector2(24, -40) * k, Vector2(10, 80) * k)
-			c.draw_rect(mr, Color(1, 1, 1, 0.1))
+				Art.disc(c, bp + dir * (18.0 + i * 14.0), 3.5 * (1.0 - 0.5 * i / steps), Color(pc, 1.0 - 0.6 * i / steps))
+			var mr := Rect2(bp + Vector2(24, -40), Vector2(10, 80))
+			c.draw_rect(mr.grow(2), Color(0, 0, 0, 0.5))
 			c.draw_rect(Rect2(Vector2(mr.position.x, mr.end.y - mr.size.y * power), Vector2(mr.size.x, mr.size.y * power)), pc)
-	elif phase == "aim" and engine.strokes == 0 and pos_in_course == 0 and cur == 0:
-		c.draw_string(ThemeDB.fallback_font, bp + Vector2(-160, 46 * k), tr("Pull back and let go"), HORIZONTAL_ALIGNMENT_CENTER, 320, 20, HomeKit.DIM)
+	c.draw_set_transform(Vector2.ZERO)
+	if not pulling and phase == "aim" and engine.strokes == 0 and pos_in_course == 0 and cur == 0:
+		var sp: Vector2 = o + bp * k
+		c.draw_string(ThemeDB.fallback_font, sp + Vector2(-160, 50 * k), tr("Pull back and let go"), HORIZONTAL_ALIGNMENT_CENTER, 320, 20, Color.WHITE)
 	if banner_t > 0.0:
-		HomeKit.glow_text(c, Vector2(field.size.x / 2.0, field.size.y * 0.42), banner, int(clampf(field.size.x / 15.0, 24, 44)), col.lerp(Color.WHITE, 0.3))
+		HomeKit.glow_text(c, Vector2(c.size.x / 2.0, c.size.y * 0.42), banner, int(clampf(c.size.x / 15.0, 24, 44)), col.lerp(Color.WHITE, 0.3))
 
 func _draw_home_logo(c: Control) -> void:
 	var s := c.size
@@ -644,7 +877,7 @@ func _save_game() -> void:
 	var strokes: int = engine.strokes
 	if phase == "card":
 		# Between holes: the next one, from its tee.
-		hole_pos += 1
+		hole_pos = mini(hole_pos + 1, _holes().size() - 1)
 		who = 0
 		var tee: Array = MgEngine.HOLES[_holes()[hole_pos]].tee
 		ball = Vector2(tee[0], tee[1])
@@ -683,6 +916,19 @@ func _load_saved_game() -> void:
 	engine.strokes = int(d.get("strokes", 0))
 	_update_hud()
 
+# ---------- skins ----------
+
+var skin := "classic"
+
+## Classic: a sunny course. Voodoo: the same course by moonlight.
+func _set_skin(name_: String) -> void:
+	skin = name_
+	if field:
+		field.modulate = Color(0.55, 0.62, 0.95) if skin == "voodoo" else Color.WHITE
+
+func _current_skin() -> String:
+	return skin
+
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
@@ -698,5 +944,5 @@ func _help_mulligan() -> bool:
 	engine.strokes = int(mulligan.strokes)
 	mulligan = {}
 	trail.clear()
-	field.queue_redraw()
+	dyn.queue_redraw()
 	return true

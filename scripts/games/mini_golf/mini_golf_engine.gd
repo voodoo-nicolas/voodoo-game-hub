@@ -4,7 +4,7 @@ extends RefCounted
 ## outline plus blocks inside) with any of: sand (slows the ball), water
 ## (back to where you shot from, +1 stroke), slopes (push the ball),
 ## bumpers (bounce it hard), windmills (spinning blades) and sliding
-## gates. Pure physics in world units (W x H, y down), stepped by the game.
+## gates ("bridges" are only drawn). Pure physics in world units (W x H, y down), stepped by the game.
 
 const W := 600.0
 const H := 1000.0
@@ -41,7 +41,7 @@ const HOLES := [
 		"blocks": [[150, 470, 235, 530], [365, 470, 450, 530]], "mills": [[300, 500, 105, 1.5, 4]]},
 	# 7 -- over the bridge
 	{"par": 3, "tee": [300, 880], "cup": [200, 200], "outline": [[100, 100], [500, 100], [500, 950], [100, 950]],
-		"water": [[100, 420, 390, 560]]},
+		"water": [[100, 420, 390, 560]], "bridges": [[390, 405, 500, 575]]},
 	# 8 -- crosswind slope
 	{"par": 2, "tee": [300, 880], "cup": [240, 180], "outline": [[130, 100], [470, 100], [470, 950], [130, 950]],
 		"slopes": [[130, 330, 470, 670, 170, 0]]},
@@ -90,12 +90,14 @@ var holed := false
 var last_shot := Vector2.ZERO
 var strokes: int = 0
 var segs: Array = []          # static wall segments: [a, b]
+var poly := PackedVector2Array()  # the outline, cached
 
 func load_hole(i: int) -> void:
 	index = i
 	hole = HOLES[i]
 	segs = []
 	var outline := _pts(hole.outline)
+	poly = outline
 	for k in outline.size():
 		segs.append([outline[k], outline[(k + 1) % outline.size()]])
 	for r in hole.get("blocks", []):
@@ -188,8 +190,11 @@ func step(dt: float) -> Array:
 	var ev: Array = []
 	if not moving:
 		t += dt
-		if not holed and _hit_moving(ev):
-			moving = vel.length() > STOP_SPEED
+		var prev := ball
+		if not holed:
+			if _hit_moving(ev):
+				moving = vel.length() > STOP_SPEED
+			_keep_inside(prev)
 		return ev
 	var n := maxi(1, int(ceilf(vel.length() * dt / SUB_MOVE)))
 	var h := dt / n
@@ -214,6 +219,7 @@ func _sub_step(h: float, ev: Array) -> void:
 	var sp := vel.length()
 	if sp > 0.0:
 		vel = vel / sp * maxf(0.0, sp - decel * h)
+	var prev := ball
 	ball += vel * h
 	# Walls (static and moving).
 	for sg in segs:
@@ -231,6 +237,9 @@ func _sub_step(h: float, ev: Array) -> void:
 				vel -= (1.0 + BUMPER_BOUNCE) * vel.dot(nn) * nn
 				vel = vel.limit_length(MAX_SPEED)
 				_sound(ev, "bumper")
+	# A gate or blade can squeeze the ball against a wall: never let it
+	# through (it used to fly off the course and the hole never ended).
+	_keep_inside(prev)
 	# Water: back to where the shot was played from, one stroke added.
 	for w in hole.get("water", []):
 		if in_rect(ball, w):
@@ -257,6 +266,29 @@ func _sub_step(h: float, ev: Array) -> void:
 		vel = Vector2.ZERO
 		moving = false
 		ev.append("stopped")
+
+## True if the ball's centre is on the green and not inside a block/gate.
+func valid_spot(p: Vector2) -> bool:
+	if not Geometry2D.is_point_in_polygon(p, poly):
+		return false
+	for r in hole.get("blocks", []):
+		if in_rect(p, r):
+			return false
+	for sl in hole.get("sliders", []):
+		if slider_rect(sl, t).has_point(p):
+			return false
+	return true
+
+func _keep_inside(prev: Vector2) -> void:
+	if valid_spot(ball):
+		return
+	if valid_spot(prev):
+		ball = prev
+		vel = -vel * 0.4
+	else:
+		ball = last_shot
+		vel = Vector2.ZERO
+		moving = false
 
 func _sound(ev: Array, e: String) -> void:
 	if not ev.has(e):
