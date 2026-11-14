@@ -19,6 +19,8 @@ const HOW := [
 	"300 levels in 10 chapters: the gaps get wider, the vehicles heavier, and steel, cables and steel road open on the way. Some levels have a rock pillar in the river to build on.",
 	"⏭ Skip opens the next level. You hold up to 3 skips; one comes back 24 hours after the last one you used.",
 	"Your bridge on each level is kept, so you can come back and build it cheaper.",
+	"📅 Daily Bridge: a new bridge every day. Its stars count double and go to the Garage; a better result later the same day pays the difference.",
+	"🚗 Garage: spend your stars on new vehicles, from a hot dog car to a tank, then pick the one you drive. Only the look changes: the level's vehicle still sets the weight.",
 ]
 const TIPS := [
 	"Triangles keep their shape; squares fold. Brace every square with a diagonal.",

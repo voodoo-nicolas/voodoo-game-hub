@@ -49,7 +49,23 @@ PARTS = {
     "car3.jpg": ("veh_bus", "checker", 640),
     "car4.jpg": ("veh_truck", "checker", 640),
     "car5.jpg": ("veh_heavy", "checker", 640),
+    # 2026-11-14: sharp desert cliff (replaces 3a.jpg) and the Garage vehicles (bought with stars).
+    "21.jpg": ("cliff_desert_l", "cliff", 640),
+    "car 6.jpg": ("skin_monster", "checker", 512),
+    "car7.jpg": ("skin_rusty", "checker", 512),
+    "car8.jpg": ("skin_racer", "checker", 512),
+    "car9.jpg": ("skin_wiener", "checker", 512),
+    "car10.jpg": ("skin_icecream", "checker", 512),
+    "car11.jpg": ("skin_convertible", "checker", 512),
+    "car13.jpg": ("skin_firetruck", "checker", 640),
+    "limo.png": ("skin_limo", "png", 640),
+    "pumpin.jpg": ("skin_pumpkin", "checker", 512),
+    "rover.png": ("skin_rover", "png", 512),
+    "taco.png": ("skin_taco", "png", 512),
+    "tank.png": ("skin_tank", "png", 512),
 }
+# Sources replaced by a later picture (same output name): skipped.
+SUPERSEDED = {"3a.jpg"}
 
 
 def grey_levels(im: Image.Image) -> list:
@@ -164,12 +180,30 @@ WHEELS = {
     "veh_heavy": {"rear": 0.18, "front": 0.82, "r": 0.075},
 }
 
+# Garage vehicles: outer wheel centres (rear, front) and tyre radius, fractions of the
+# width, read off the cut pictures by eye (wheels() guesses badly on these). The tank's are
+# the ends of its tracks, the rover's its outer wheels.
+SKIN_WHEELS = {
+    "skin_convertible": {"rear": 0.26, "front": 0.82, "r": 0.065},
+    "skin_firetruck": {"rear": 0.225, "front": 0.845, "r": 0.055},
+    "skin_icecream": {"rear": 0.20, "front": 0.86, "r": 0.08},
+    "skin_limo": {"rear": 0.105, "front": 0.81, "r": 0.04},
+    "skin_monster": {"rear": 0.17, "front": 0.83, "r": 0.17},
+    "skin_pumpkin": {"rear": 0.12, "front": 0.87, "r": 0.11},
+    "skin_racer": {"rear": 0.16, "front": 0.78, "r": 0.06},
+    "skin_rover": {"rear": 0.10, "front": 0.79, "r": 0.09},
+    "skin_rusty": {"rear": 0.18, "front": 0.76, "r": 0.07},
+    "skin_taco": {"rear": 0.17, "front": 0.76, "r": 0.085},
+    "skin_tank": {"rear": 0.12, "front": 0.86, "r": 0.08},
+    "skin_wiener": {"rear": 0.16, "front": 0.78, "r": 0.07},
+}
+
 # Ground line of each cliff (fraction of the cut picture's height), read off the
 # pictures by eye: the trees on the forest cliff stand above it.
-CLIFF_TOP = {"cliff_forest_l": 0.24, "cliff_forest_r": 0.05, "cliff_desert_l": 0.06,
+CLIFF_TOP = {"cliff_forest_l": 0.24, "cliff_forest_r": 0.05, "cliff_desert_l": 0.04,
              "cliff_desert_r": 0.05, "cliff_mesa_l": 0.09, "cliff_mesa_r": 0.07}
 # Where the painted checkerboard starts showing through the rock (fraction of height).
-CLIFF_FADE = {"cliff_desert_l": 0.68, "cliff_desert_r": 0.28, "cliff_mesa_l": 0.36, "cliff_mesa_r": 0.40}
+CLIFF_FADE = {"cliff_desert_r": 0.28, "cliff_mesa_l": 0.36, "cliff_mesa_r": 0.40}
 
 
 def heal_cliff(im: Image.Image, start: float) -> Image.Image:
@@ -203,6 +237,44 @@ def glass(im: Image.Image) -> Image.Image:
             if a > 0 and max(r, g, b) - min(r, g, b) < 16 and 120 <= (r + g + b) / 3 <= 256:
                 k = y / h
                 px[x, y] = (int(200 - 60 * k), int(232 - 30 * k), int(248 - 15 * k), a)
+    return im
+
+
+def cover_brand(im: Image.Image) -> Image.Image:
+    """The AI painted a real brand on the hot-dog car (a meat company's name and its
+    trademarked car name): paint each label over with the bun colour (no real brands,
+    docs/IP_AUDIT.md)."""
+    from PIL import ImageDraw
+    w, h = im.size
+    px = im.load()
+    # Mean of the light bun pixels left of the first label.
+    b0 = BRAND_BOXES[0]
+    cs = [px[x, y] for x in range(int((b0[0] - 0.05) * w), int(b0[0] * w)) for y in range(int(b0[1] * h), int(b0[3] * h))
+          if px[x, y][3] > 200 and sum(px[x, y][:3]) > 330]
+    col = tuple(sum(c[i] for c in cs) // len(cs) for i in range(3)) + (255,)
+    for box in BRAND_BOXES:
+        ImageDraw.Draw(im).rounded_rectangle((int(box[0] * w), int(box[1] * h), int(box[2] * w), int(box[3] * h)), radius=6, fill=col)
+    return im
+
+
+# Labels to paint over on skin_wiener (fractions of the cut picture), read off by eye.
+BRAND_BOXES = [(0.255, 0.38, 0.385, 0.66), (0.575, 0.47, 0.69, 0.68)]
+
+
+# Checker left inside a vehicle's outline that should be see-through (not glass):
+# under the monster truck, between the fire ladder's rungs, the pumpkin's windows.
+HOLES = {"skin_monster": (0.0, 0.45, 1.0, 0.8), "skin_firetruck": (0.0, 0.0, 1.0, 0.25),
+         "skin_pumpkin": (0.3, 0.15, 0.85, 0.7)}
+
+
+def holes(im: Image.Image, box: tuple) -> Image.Image:
+    px = im.load()
+    w, h = im.size
+    for y in range(int(box[1] * h), int(box[3] * h)):
+        for x in range(int(box[0] * w), int(box[2] * w)):
+            r, g, b, a = px[x, y]
+            if a > 0 and max(r, g, b) - min(r, g, b) < 16 and 110 <= (r + g + b) / 3 <= 256:
+                px[x, y] = (r, g, b, 0)
     return im
 
 
@@ -264,6 +336,8 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     meta = {}
     for name, (out, kind, width) in PARTS.items():
+        if name in SUPERSEDED:
+            continue
         f = src / name
         if not f.exists():
             print("missing", f)
@@ -291,7 +365,10 @@ def main() -> None:
             im.save(OUT / f"{out}.png", optimize=True)
             meta.setdefault("size", {})[out] = [im.width, im.height]
             continue
-        im = cut(im, "sky" if kind == "sky" else "checker")
+        if kind == "png":
+            im = im.convert("RGBA")  # already transparent
+        else:
+            im = cut(im, "sky" if kind == "sky" else "checker")
         if kind == "sky":
             # Keep the pillar above the waterline (the river is drawn by the game).
             a = im.getchannel("A")
@@ -304,7 +381,11 @@ def main() -> None:
         im = resize_w(im, width)
         if out in CLIFF_FADE:
             im = heal_cliff(im, CLIFF_FADE[out])
-        if out.startswith("veh_"):
+        if out in HOLES:
+            im = holes(im, HOLES[out])
+        if out == "skin_wiener":
+            im = cover_brand(im)
+        if out.startswith("veh_") or (out.startswith("skin_") and kind != "png"):
             im = glass(im)
             if out in FACE_LEFT:
                 im = im.transpose(Image.FLIP_LEFT_RIGHT)
@@ -314,6 +395,8 @@ def main() -> None:
             meta[out]["top"] = CLIFF_TOP[out]
         elif out.startswith("veh_"):
             meta[out] = WHEELS[out]
+        elif out.startswith("skin_"):
+            meta[out] = SKIN_WHEELS[out]
         meta.setdefault("size", {})[out] = [im.width, im.height]
         print(out, im.size, meta.get(out, ""))
     (KEEP / "parts.json").write_text(json.dumps(meta, indent=1) + "\n", encoding="utf-8")

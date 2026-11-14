@@ -32,16 +32,38 @@ const PARTS_DIR := "res://games/bridge_master/parts/"
 const CLIFF_SETS := ["forest", "desert", "mesa"]
 ## cliffs [ground line from the top, cliff face from the left, where the sharp painting ends
 ## (below it the cut-out tool smeared the rock: never shown), top of the rock band that repeats below it].
-## 2026-11-13: desert_l face fixed 0.96 -> 0.655 (the car hung in the air past the painted edge).
+## 2026-11-13: desert_l face fixed 0.96 -> 0.655 (the car hung in the air past the painted edge);
+## 2026-11-14: desert_l redrawn by the owner (sharp to the rubble at its foot).
 const CLIFF_META := {
 	"cliff_forest_l": [0.24, 0.95, 1.0, 0.6], "cliff_forest_r": [0.05, 0.04, 1.0, 0.5],
-	"cliff_desert_l": [0.08, 0.655, 0.62, 0.3], "cliff_desert_r": [0.06, 0.025, 0.25, 0.19],
+	"cliff_desert_l": [0.04, 0.82, 0.82, 0.35], "cliff_desert_r": [0.06, 0.025, 0.25, 0.19],
 	"cliff_mesa_l": [0.09, 0.97, 0.29, 0.21], "cliff_mesa_r": [0.07, 0.027, 0.32, 0.21],
 }
 ## Cliffs drawn with another picture: the desert / mesa cut-outs are mostly smear, only
-## cliff_desert_l has a full rock face (2026-11-13). Remove a line once its art is redrawn.
+## cliff_desert_l has a full rock face (2026-11-13; redrawn 2026-11-14). Remove a line once its art is redrawn.
 const CLIFF_BORROW := {"cliff_desert_r": "cliff_desert_l", "cliff_mesa_l": "cliff_desert_l", "cliff_mesa_r": "cliff_desert_l"}
+var daily := false  # playing today's Daily Bridge
+var garage_layer: Control
 var _mirror_at := NAN  # while drawing a borrowed right cliff: mirror every piece about this x
+## Garage (owner 2026-11-14): stars buy vehicle looks. Only the picture changes; the level's
+## vehicle (weight, axles) stays, so every level stays solvable. Pictures: parts/skin_<id>.png
+## (tools/bridge_master_cutout.py); wheels = [rear, front] as fractions of the width.
+const GARAGE := [
+	{"id": "rusty", "name": "Rusty Racer", "price": 15, "wheels": [0.18, 0.76]},
+	{"id": "convertible", "name": "Cool Convertible", "price": 25, "wheels": [0.26, 0.82]},
+	{"id": "icecream", "name": "Ice Cream Truck", "price": 40, "wheels": [0.20, 0.86]},
+	{"id": "wiener", "name": "Hot Dog Car", "price": 50, "wheels": [0.16, 0.78]},
+	{"id": "racer", "name": "Race Car", "price": 60, "wheels": [0.16, 0.78]},
+	{"id": "taco", "name": "Taco Truck", "price": 75, "wheels": [0.17, 0.76]},
+	{"id": "firetruck", "name": "Fire Truck", "price": 90, "wheels": [0.225, 0.845]},
+	{"id": "monster", "name": "Monster Truck", "price": 110, "wheels": [0.17, 0.83]},
+	{"id": "limo", "name": "Golden Limo", "price": 130, "wheels": [0.105, 0.81]},
+	{"id": "pumpkin", "name": "Pumpkin Coach", "price": 150, "wheels": [0.12, 0.87]},
+	{"id": "rover", "name": "Moon Rover", "price": 180, "wheels": [0.10, 0.79]},
+	{"id": "tank", "name": "Tank", "price": 220, "wheels": [0.12, 0.86]},
+]
+## Daily Bridge: one level a day; its stars count double, into the Garage wallet only.
+const DAILY_MULT := 2
 const VEH_META := {"car": [0.18, 0.79], "van": [0.19, 0.77], "bus": [0.22, 0.78], "truck": [0.21, 0.80], "heavy": [0.18, 0.82]}
 const MAT_TEX := {"road": "road_wood", "sroad": "road_steel", "wood": "beam_wood", "steel": "beam_steel", "cable": "cable"}
 const TEX_WIDTH := {"road": 0.42, "sroad": 0.5, "wood": 0.24, "steel": 0.26, "cable": 0.1}
@@ -316,9 +338,11 @@ func _build_ui() -> void:
 		"logo": _draw_home_logo,
 		"modes": [
 			{"text": "🌉 Campaign", "sub": "300 levels · build cheap for stars", "action": _start_campaign},
+			{"text": "📅 Daily Bridge", "sub": "A new bridge every day · double stars", "action": _start_daily},
 		],
 		"play": [
 			{"text": "📋 Level Select", "sub": "Pick any level you have opened", "action": _open_map_from_landing, "card": true},
+			{"text": "🚗 Garage", "sub": "Spend stars on awesome vehicles", "action": _open_garage_from_landing, "card": true},
 		],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
@@ -349,7 +373,28 @@ func _start_campaign() -> void:
 
 func _start_level(n: int) -> void:
 	_close_map()
+	_close_garage()
+	daily = false
 	_begin(n)
+
+## Today's level: picked from the date, among the levels a little past the player's progress.
+func _daily_level() -> int:
+	var pool := clampi(_cleared() + 10, 15, E.LEVEL_COUNT)
+	var h := absi(hash(_today() + "bridge"))
+	return 1 + h % pool
+
+static func _today() -> String:
+	return Time.get_date_string_from_system()
+
+func _daily_stars_today() -> int:
+	var d: Dictionary = progress.daily
+	return int(d.get("stars", 0)) if str(d.get("day", "")) == _today() else 0
+
+func _start_daily() -> void:
+	_close_map()
+	_close_garage()
+	daily = true
+	_begin(_daily_level())
 
 func _restart() -> void:
 	_stop_test()
@@ -405,6 +450,8 @@ func _level_tip() -> String:
 func _labels() -> void:
 	var c: int = lv.chapter
 	title_label.text = tr("Level %d") % cur_level + " · " + tr(E.CHAPTERS[c]) + " · " + tr(E.VEHICLES[lv.vehicle].name)
+	if daily:
+		title_label.text = tr("📅 Daily Bridge") + " · " + tr(E.CHAPTERS[c]) + " · " + tr(E.VEHICLES[lv.vehicle].name)
 	_cost_label()
 	_help_label()
 
@@ -815,6 +862,9 @@ func _on_crossed() -> void:
 	_burst(_to_screen(Vector2(float(lv.w) + 1.0, float(lv.dh) + 1.0)), "confetti")
 	var cost := E.design_cost(design)
 	var stars := _stars_for(cost)
+	if daily:
+		_daily_crossed(cost, stars)
+		return
 	var key := str(cur_level)
 	var first := int(progress.stars.get(key, 0)) == 0
 	if stars > int(progress.stars.get(key, 0)):
@@ -840,6 +890,41 @@ func _on_crossed() -> void:
 	var t2 := create_tween()
 	t2.tween_interval(1.2)
 	t2.tween_callback(_show_win_card.bind(stars, msg))
+
+## Daily Bridge won: better stars than earlier today pay the difference, doubled, into the
+## Garage wallet (progress.bonus). The campaign's stars and unlocks are not touched.
+func _daily_crossed(cost: int, stars: int) -> void:
+	var before := _daily_stars_today()
+	var gain := maxi(0, stars - before) * DAILY_MULT
+	progress.daily = {"day": _today(), "stars": maxi(before, stars)}
+	progress.bonus = int(progress.get("bonus", 0)) + gain
+	_save_progress()
+	if info:
+		info.result("win")
+		info.celebrate(tr("It holds!"))
+	var msg := tr("Cost: $%s of $%s") % [_money(cost), _money(int(lv.budget))]
+	if gain > 0:
+		msg += "\n" + tr("Daily Bridge: +%d ★ for the Garage") % gain
+	else:
+		msg += "\n" + tr("Beat today's best for more stars.")
+	msg += "\n" + tr("Garage: %d ★") % _wallet()
+	var buttons: Array = [
+		{"text": tr("🚗 Garage"), "action": _open_garage.bind(false)},
+		{"text": tr("🏋 Load test"), "action": _start_load_test},
+	]
+	if stars < 3:
+		buttons.append({"text": tr("✏ Build cheaper"), "action": _stop_test})
+	buttons.append({"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home})
+	var star_text := ""
+	for i in 3:
+		star_text += "★" if i < stars else "☆"
+	var t := create_tween()
+	t.tween_interval(1.2)
+	t.tween_callback(_show_card.bind(tr("It holds!"), star_text, msg, buttons))
+
+## Stars to spend in the Garage: campaign stars + Daily Bridge bonus - spent.
+func _wallet() -> int:
+	return _total_stars() + int(progress.get("bonus", 0)) - int(progress.get("spent", 0))
 
 ## One-shot particles in screen space: "sparks" (a piece snaps), "splash" (into the river),
 ## "confetti" (across!). Fewer with Reduce effects on.
@@ -920,7 +1005,7 @@ func _on_failed() -> void:
 		var t := create_tween()
 		t.tween_interval(1.2)
 		t.tween_callback(_show_card.bind(tr("🏋 Load test"), "", msg, [
-			{"text": tr("Next level"), "action": _start_level.bind(cur_level + 1)} if cur_level < E.LEVEL_COUNT else {"text": tr("📋 Levels"), "action": _open_map.bind(false)},
+			{"text": tr("🚗 Garage"), "action": _open_garage.bind(false)} if daily else ({"text": tr("Next level"), "action": _start_level.bind(cur_level + 1)} if cur_level < E.LEVEL_COUNT else {"text": tr("📋 Levels"), "action": _open_map.bind(false)}),
 			{"text": tr("✏ Edit bridge"), "action": _stop_test},
 			{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 		]))
@@ -968,7 +1053,7 @@ func _on_skip() -> void:
 
 ## ⏭ help: opens the next level and goes there (no stars for this one).
 func _skip_now() -> bool:
-	if not started or cur_level >= E.LEVEL_COUNT:
+	if not started or cur_level >= E.LEVEL_COUNT or daily:
 		return false
 	var key := str(cur_level)
 	if int(progress.stars.get(key, 0)) > 0 or progress.skipped.has(key):
@@ -1061,7 +1146,7 @@ func _close_end() -> void:
 func _load_progress() -> void:
 	var d = SaveUtil.read(PROGRESS_PATH)
 	progress = d if d is Dictionary else {}
-	for k in ["stars", "best", "designs", "skipped", "loads"]:
+	for k in ["stars", "best", "designs", "skipped", "loads", "daily", "garage"]:
 		if not progress.get(k) is Dictionary:
 			progress[k] = {}
 
@@ -1144,7 +1229,7 @@ func _open_map(from_landing: bool) -> void:
 		back.pressed.connect(_map_back)
 		bar.add_child(back)
 	var heading := Label.new()
-	heading.text = tr("Levels") + "   ★ %d / %d" % [_total_stars(), E.LEVEL_COUNT * 3]
+	heading.text = tr("Levels") + "   ★ %d / %d" % [_total_stars(), E.LEVEL_COUNT * 3] + "   🚗 %d ★" % _wallet()
 	heading.add_theme_font_size_override("font_size", 32)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -1211,6 +1296,182 @@ func _close_map() -> void:
 		map_layer.queue_free()
 	map_layer = null
 	map_drag = null
+
+# ---------- garage ----------
+
+## The vehicle look in use: a GARAGE entry, or {} for the level's own vehicle.
+func _garage_pick() -> Dictionary:
+	var id := str(progress.garage.get("pick", ""))
+	if id == "" or not id in progress.garage.get("owned", []):
+		return {}
+	for g in GARAGE:
+		if g.id == id:
+			return g
+	return {}
+
+func _open_garage_from_landing() -> void:
+	_open_garage(true)
+
+## Garage: every vehicle with its picture; buy with stars, then tap Use. Only the look
+## changes (Classic look; Voodoo keeps the neon outline vehicles).
+func _open_garage(from_landing: bool) -> void:
+	_close_end()
+	_close_map()
+	_close_garage()
+	if testing:
+		_stop_test()
+	map_from_landing = from_landing
+	garage_layer = ColorRect.new()
+	(garage_layer as ColorRect).color = Color(0.08, 0.06, 0.04, 0.98) if skin == "classic" else Color(0.03, 0.04, 0.1, 0.98)
+	garage_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	garage_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(garage_layer)
+	garage_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	garage_layer.add_child(scroll)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_drag = HomeKit._DragScroll.new()
+	scroll.add_child(map_drag)
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right"]:
+		margin.add_theme_constant_override("margin_" + side, 24)
+	margin.add_theme_constant_override("margin_top", 28)
+	margin.add_theme_constant_override("margin_bottom", 40)
+	scroll.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	margin.add_child(box)
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 10)
+	box.add_child(bar)
+	var home_btn := HomeKit.neon_button(tr("🏠 Home"), HomeKit.BUTTON, 24, 60)
+	home_btn.custom_minimum_size.x = 170
+	home_btn.pressed.connect(_garage_home)
+	bar.add_child(home_btn)
+	if not from_landing:
+		var back := HomeKit.neon_button(tr("‹ Back"), HomeKit.BUTTON, 24, 60)
+		back.custom_minimum_size.x = 150
+		back.pressed.connect(_garage_back)
+		bar.add_child(back)
+	var heading := Label.new()
+	heading.text = tr("🚗 Garage") + "   " + tr("%d ★ to spend") % _wallet()
+	heading.add_theme_font_size_override("font_size", 32)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	bar.add_child(heading)
+	var note := Label.new()
+	note.text = tr("Stars come from the campaign and the 📅 Daily Bridge (double stars). A new look does not change the weight: the level's vehicle still crosses.")
+	note.add_theme_font_size_override("font_size", 20)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(note)
+	var grid := GridContainer.new()
+	grid.columns = 3 if get_viewport_rect().size.x > 1100 else 2
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	box.add_child(grid)
+	grid.add_child(_garage_card({}))
+	for g in GARAGE:
+		grid.add_child(_garage_card(g))
+
+func _garage_card(g: Dictionary) -> Control:
+	var owned: Array = progress.garage.get("owned", [])
+	var pick := str(progress.garage.get("pick", ""))
+	var id := str(g.get("id", ""))
+	var has := g.is_empty() or id in owned
+	var in_use := (id == pick and has) or (g.is_empty() and _garage_pick().is_empty())
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("3a2414") if skin == "classic" else Color(0.06, 0.08, 0.18)
+	sb.set_corner_radius_all(14)
+	sb.set_border_width_all(3)
+	sb.border_color = Color("76ff03") if in_use else Color(ACCENT, 0.5)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 12
+	panel.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	panel.add_child(v)
+	var pic := TextureRect.new()
+	pic.custom_minimum_size = Vector2(0, 130)
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.texture = _part("skin_" + id) if not g.is_empty() else _part("veh_car")
+	if not has:
+		pic.modulate = Color(0.55, 0.55, 0.55)
+	v.add_child(pic)
+	var name_label := Label.new()
+	name_label.text = tr(str(g.name)) if not g.is_empty() else tr("Level's own vehicle")
+	name_label.add_theme_font_size_override("font_size", 24)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(name_label)
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(0, 58)
+	b.add_theme_font_size_override("font_size", 22)
+	if in_use:
+		b.text = tr("✔ In use")
+		b.disabled = true
+		LandingSlabs.dress(b, "wood")
+	elif has:
+		b.text = tr("Use")
+		b.pressed.connect(_garage_use.bind(id))
+		LandingSlabs.dress(b, "go")
+	else:
+		b.text = tr("Buy · %d ★") % int(g.price)
+		b.disabled = _wallet() < int(g.price)
+		b.pressed.connect(_garage_buy.bind(id))
+		LandingSlabs.dress(b, "wood")
+	v.add_child(b)
+	return panel
+
+func _garage_buy(id: String) -> void:
+	if map_drag and map_drag.moved:
+		return
+	for g in GARAGE:
+		if g.id == id and _wallet() >= int(g.price):
+			var owned: Array = progress.garage.get("owned", [])
+			if id in owned:
+				return
+			owned.append(id)
+			progress.garage.owned = owned
+			progress.spent = int(progress.get("spent", 0)) + int(g.price)
+			progress.garage.pick = id
+			_save_progress()
+			SoundLib.play(self, "reward/accomplished")
+			_open_garage(map_from_landing)
+			return
+
+func _garage_use(id: String) -> void:
+	if map_drag and map_drag.moved:
+		return
+	progress.garage.pick = id
+	_save_progress()
+	_open_garage(map_from_landing)
+	board.queue_redraw()
+
+func _garage_home() -> void:
+	if map_drag and map_drag.moved:
+		return
+	var from_landing := map_from_landing
+	_close_garage()
+	if not from_landing:
+		_go_home()
+
+func _garage_back() -> void:
+	if map_drag and map_drag.moved:
+		return
+	_close_garage()
+	board.queue_redraw()
+
+func _close_garage() -> void:
+	if garage_layer and is_instance_valid(garage_layer):
+		garage_layer.queue_free()
+	garage_layer = null
 
 # ---------- drawing ----------
 
@@ -1531,8 +1792,12 @@ func _draw_vehicle(classic: bool) -> void:
 		p = Vector2(E.START_X - float(vd.base) * 0.5, 0.0)
 	var base: float = vd.base
 	var vt := _part("veh_" + str(lv.vehicle)) if classic else null
+	var vm: Array = VEH_META.get(lv.vehicle, [0.2, 0.8])
+	var pick := _garage_pick()
+	if classic and not pick.is_empty() and _part("skin_" + str(pick.id)):
+		vt = _part("skin_" + str(pick.id))
+		vm = pick.wheels
 	if vt:
-		var vm: Array = VEH_META[lv.vehicle]
 		var px_w := float(vt.get_width())
 		var k := base / ((float(vm[1]) - float(vm[0])) * px_w) * vs
 		var vsize := Vector2(vt.get_width(), vt.get_height()) * k
@@ -1611,6 +1876,7 @@ func _on_pause() -> void:
 
 func _go_home() -> void:
 	_stop_test()
+	_close_garage()
 	home.go_home()
 
 ## The bridge itself lives in the progress file (per level); the save only says
@@ -1618,18 +1884,23 @@ func _go_home() -> void:
 func _save_game() -> void:
 	if not started:
 		return
-	SaveUtil.write(SAVE_PATH, {"level": cur_level})
+	SaveUtil.write(SAVE_PATH, {"level": cur_level, "daily": daily})
 
 func _resume_text() -> String:
 	var d = SaveUtil.read(SAVE_PATH)
 	if not d is Dictionary or not d.has("level"):
 		return ""
+	if d.get("daily", false):
+		return tr("📅 Daily Bridge")
 	return tr("Level %d") % int(d.level)
 
 func _load_saved_game() -> void:
 	var d = SaveUtil.read(SAVE_PATH)
 	if not d is Dictionary or not d.has("level"):
 		_start_campaign()
+		return
+	if d.get("daily", false):
+		_start_daily()  # a new day picks the new bridge
 		return
 	_start_level(int(d.level))
 
