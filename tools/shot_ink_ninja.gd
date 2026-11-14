@@ -29,7 +29,15 @@ func _run() -> void:
 	await _wait(25)
 	game = current_scene
 	await _shot("00_landing")
+	var gc: Control = game._show_goals()
+	await _wait(10)
+	await _shot("05_objectives")
+	game.home.close_card(gc)
+	await _wait(5)
 	game.home.play_now(game._new_game.bind(1))
+	await _wait(20)
+	await _shot("08_chapter")
+	game.card_text = []
 	game.key_r = true
 	await _wait(90)
 	game.q.slash = true

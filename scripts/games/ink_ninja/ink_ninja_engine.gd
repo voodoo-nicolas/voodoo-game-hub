@@ -54,6 +54,7 @@ var hurt_t := 0.0
 var run_t := 0.0
 var combo := 0
 var combo_t := 0.0
+var hits_taken := 0   # hearts lost this stage (for "clear a stage without a hit")
 
 var solids: Array = []     # Rect2 (ground pieces, ledges, walls)
 var pits: Array = []       # [x0, x1]
@@ -155,8 +156,11 @@ func build_stage() -> void:
 	dash_t = 0.0
 	slash_t = 0.0
 	hurt_t = 0.0
+	hits_taken = 0
 
 func boss_kind() -> int:
+	if stage >= STAGES:
+		return 3   # the last duel is always the Shadow Daimyo (story, ink_ninja_story.gd)
 	return (stage - 1) % BOSS_NAMES.size()
 
 func boss_name() -> String:
@@ -260,6 +264,8 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 				if not on_ground and move < -0.2:
 					wall = -1
 			r = _box()
+	var was_ground := on_ground
+	var fall_v := vy
 	py += vy * dt
 	r = _box()
 	on_ground = false
@@ -276,6 +282,8 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 			r = _box()
 	if on_ground:
 		wall = 0
+		if not was_ground and fall_v > 300.0:
+			events.append("land")
 	if locked:
 		px = maxf(px, arena_x + 40 + PW / 2)
 	if on_ground and absf(vx) > 10:
@@ -315,7 +323,7 @@ func _foe_box(f: Dictionary) -> Rect2:
 func boss_box() -> Rect2:
 	return Rect2(boss.x - 34, boss.y - 110, 68, 110)
 
-func _hit_foe(f: Dictionary, dmg: int, dir: int) -> void:
+func _hit_foe(f: Dictionary, dmg: int, dir: int, by_star: bool = false) -> void:
 	f.hp -= dmg
 	f.hit = 0.15
 	f.vx = dir * 200.0
@@ -324,6 +332,10 @@ func _hit_foe(f: Dictionary, dmg: int, dir: int) -> void:
 		combo_t = 2.0
 		score += 100 * mini(combo, 5)
 		events.append("kill")
+		if by_star:
+			events.append("starkill")
+		if combo == 5:
+			events.append("combo5")
 		events.append("ink:%d:%d" % [int(f.x), int(f.y - 40)])
 		if f.kind == "thrower" and rng.randf() < 0.6:
 			stars += 2
@@ -345,6 +357,7 @@ func _hurt(dmg: int, fell: bool = false) -> void:
 	if not fell and (hurt_t > 0.0 or dash_t > 0.0):
 		return   # a dash passes through attacks
 	hp -= dmg
+	hits_taken += 1
 	hurt_t = INVULN
 	events.append("hurt")
 	events.append("ink:%d:%d" % [int(px), int(py - 40)])
@@ -506,7 +519,7 @@ func _shots(dt: float) -> void:
 		if s.mine:
 			for f in foes:
 				if f.hp > 0 and _foe_box(f).has_point(pt):
-					_hit_foe(f, 1, 1 if s.vx > 0 else -1)
+					_hit_foe(f, 1, 1 if s.vx > 0 else -1, true)
 					s.life = 0.0
 					break
 			if s.life > 0.0 and not boss.is_empty() and boss.hp > 0 and boss_box().has_point(pt):

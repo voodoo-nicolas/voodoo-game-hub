@@ -19,6 +19,9 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/ink_ninja/ink_ninja_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://ink_ninja_save.json"
+const Story = preload("res://scripts/games/ink_ninja/ink_ninja_story.gd")
+const Goals = preload("res://scripts/games/ink_ninja/ink_ninja_goals.gd")
+const PAPER_SHADER := preload("res://scripts/games/ink_ninja/ink_ninja_paper.gdshader")
 const DIFF_NAMES := ["Easy", "Normal", "Hard"]
 const PAUSE_AFTER := 1.8
 
@@ -45,6 +48,13 @@ var shake := 0.0
 var splats: Array = []   # [pos, vel, life, size] flying drops
 var stains: Array = []   # [world pos, size, alpha] ink left on the ground
 var disc: Texture2D
+var blot: Texture2D      # an irregular ink blot for splashes and stains
+var goals                # Goals (daily + weekly objectives)
+var card_text := []      # the chapter card on screen: [title, text, objective] (empty = none)
+var card_t := 0.0
+var prologue := false    # stage 1 of a new game shows the prologue first
+var paper: ColorRect     # paper grain + vignette shader over the field
+var step_t := 0.0
 
 var field: Control
 var hud: Label
@@ -57,10 +67,14 @@ func _ready() -> void:
 	Orientation.lock_landscape()
 	engine = Engine_.new()
 	disc = _make_disc()
+	blot = _make_blot()
+	goals = Goals.new()
+	goals.load_data(Goals.today_num(), Goals.week_num())
 	_build_ui()
 	_hud_colors()
+	_paper_params()
 	engine.reset(1)
-	_music("techno")
+	_music("lively")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -76,6 +90,41 @@ func _make_disc() -> Texture2D:
 			img.set_pixel(x, y, Color(1, 1, 1, clampf((1.0 - d) * 6.0, 0.0, 1.0)))
 	return ImageTexture.create_from_image(img)
 
+## An irregular ink blot: a few overlapping dabs with a ragged edge (seeded, same every run).
+func _make_blot() -> Texture2D:
+	var n := 64
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	var r := RandomNumberGenerator.new()
+	r.seed = 77
+	var dabs: Array = [[Vector2(32, 32), 16.0]]
+	for i in 7:
+		var a := r.randf() * TAU
+		dabs.append([Vector2(32, 32) + Vector2.RIGHT.rotated(a) * r.randf_range(8, 20), r.randf_range(4, 9)])
+	for y in n:
+		for x in n:
+			var al := 0.0
+			for d in dabs:
+				var q2: float = (Vector2(x, y).distance_to(d[0]) - d[1]) / 2.0
+				al = maxf(al, clampf(1.0 - q2, 0.0, 1.0))
+			img.set_pixel(x, y, Color(1, 1, 1, al * (0.85 + 0.15 * r.randf())))
+	return ImageTexture.create_from_image(img)
+
+## Paper grain and vignette for the current look.
+func _paper_params() -> void:
+	if paper == null:
+		return
+	var m: ShaderMaterial = paper.material
+	if skin == "voodoo":
+		m.set_shader_parameter("grain_col", Color(0.75, 0.75, 0.78))
+		m.set_shader_parameter("edge_col", Color(0, 0, 0))
+		m.set_shader_parameter("grain", 0.06)
+		m.set_shader_parameter("edge", 0.6)
+	else:
+		m.set_shader_parameter("grain_col", Color(0.3, 0.27, 0.22))
+		m.set_shader_parameter("edge_col", Color(0.12, 0.1, 0.08))
+		m.set_shader_parameter("grain", 0.12)
+		m.set_shader_parameter("edge", 0.4)
+
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
@@ -85,6 +134,13 @@ func _build_ui() -> void:
 	field.clip_contents = true
 	field.draw.connect(_draw_field)
 	add_child(field)
+	paper = ColorRect.new()
+	paper.set_anchors_preset(Control.PRESET_FULL_RECT)
+	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mat := ShaderMaterial.new()
+	mat.shader = PAPER_SHADER
+	paper.material = mat
+	add_child(paper)
 
 	var top := MarginContainer.new()
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -158,7 +214,8 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": Color("d8d8d8"),
-		"solo_heading": "Play",
+		"solo_heading": "Story",
+		"more": [["Objectives", Color("8a8a8a"), _show_goals]],
 		"subtitle": "Ten stages of ink and steel. One ninja.",
 		"logo": _draw_home_logo,
 		"modes": modes,
@@ -217,6 +274,9 @@ func _hold(what: String, on: bool) -> void:
 				q[what] = true
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not card_text.is_empty() and event is InputEventMouseButton and event.pressed:
+		q.slash = true   # a tap closes the chapter card
+		return
 	if event is InputEventKey and not event.echo:
 		match event.keycode:
 			KEY_LEFT, KEY_A:
@@ -244,6 +304,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _new_game(d: int) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	engine.reset(d)
+	prologue = true
 	_begin()
 
 func _restart() -> void:
@@ -252,8 +313,14 @@ func _restart() -> void:
 func _begin() -> void:
 	started = true
 	after = 0.0
-	banner = tr("Stage %d") % engine.stage
-	after = -1.2   # negative = a short title card that does not stop play
+	banner = ""
+	# The chapter card stops play until any button / tap (or 6 s).
+	var ch: Array = Story.CHAPTERS[engine.stage - 1]
+	card_text = [tr("Chapter %d") % engine.stage + " · " + tr(ch[0]), (tr(Story.PROLOGUE) + "\n\n" if prologue else "") + tr(ch[1]), tr(ch[2])]
+	card_t = 6.0 if not prologue else 9.0
+	prologue = false
+	SoundLib.play(self, "rpg/book_flip", -6.0)
+	_music("lively")
 	splats.clear()
 	stains.clear()
 	end_dialog.visible = false
@@ -278,6 +345,16 @@ func _process(delta: float) -> void:
 		if s[2] <= 0.0 and s[0].y > Engine_.GROUND - 20 and s[0].y < Engine_.GROUND + 40 and stains.size() < 160:
 			stains.append([Vector2(s[0].x, Engine_.GROUND + 2), s[3] * 1.4, 0.55])
 	splats = splats.filter(func(s): return s[2] > 0.0)
+	if not card_text.is_empty():
+		card_t -= delta
+		var any: bool = q.jump or q.slash or q.throw or q.dash
+		for k in q:
+			q[k] = false
+		if card_t <= 0.0 or (any and card_t < 5.5):
+			card_text = []
+			SoundLib.play(self, "rpg/draw_knife", -6.0)
+		field.queue_redraw()
+		return
 	if after < 0.0:
 		after = minf(0.0, after + delta)
 		if after == 0.0:
@@ -297,6 +374,11 @@ func _process(delta: float) -> void:
 			m = 0.0
 	m = clampf(m + (1.0 if key_r else 0.0) - (1.0 if key_l else 0.0), -1.0, 1.0)
 	var ev: Array = engine.step(delta, m, q.jump, q.slash, q.throw, q.dash)
+	if engine.on_ground and absf(engine.vx) > 120.0 and engine.dash_t <= 0.0:
+		step_t -= delta
+		if step_t <= 0.0:
+			step_t = 0.28
+			SoundLib.play(self, "impact/footstep_grass", -18.0)
 	for k in q:
 		q[k] = false
 	for e in ev:
@@ -316,21 +398,33 @@ func _event(e: String) -> void:
 		"dash":
 			_sfx("whoosh")
 		"slash":
-			SoundLib.play(self, "impact/metal_light", -12.0)
+			SoundLib.play(self, "rpg/knife_slice", -6.0)
 		"throw":
 			_sfx("shoot")
 		"parry":
 			SoundLib.play(self, "impact/metal_heavy", -6.0)
+			_goal("parries")
 			if info:
 				info.add("Stars parried")
 		"kill":
-			SoundLib.play(self, "impact/punch_heavy", -6.0)
+			SoundLib.play(self, "rpg/chop", -4.0)
+			_goal("kills")
 			if info:
 				info.add("Ninjas defeated")
 		"hit", "bosshit":
 			SoundLib.play(self, "impact/punch_medium", -6.0)
 		"scroll":
-			_sfx("pickup")
+			SoundLib.play(self, "rpg/book_flip", -4.0)
+			_goal("scrolls")
+		"starkill":
+			_goal("star_kills")
+		"combo5":
+			SoundLib.play(self, "reward/coin_plingy", -6.0)
+			_goal("combo5")
+		"land":
+			SoundLib.play(self, "impact/soft_medium", -14.0)
+		"telegraph":
+			SoundLib.play(self, "impact/bell_heavy", -16.0)
 		"hurt":
 			_sfx("lose")
 			shake = 10.0
@@ -340,11 +434,20 @@ func _event(e: String) -> void:
 		"boss":
 			banner = tr(engine.boss_name())
 			after = -1.6
+			SoundLib.play(self, "impact/bell_heavy", -4.0)
+			_music("techno")
 		"die":
 			banner = tr("Fallen!") if engine.state == "dead" else tr("Game over!")
 			after = PAUSE_AFTER
+			SoundLib.play(self, "jingles/lose_failed", -6.0)
 		"win":
-			_sfx("win")
+			SoundLib.play(self, "jingles/win_victory", -4.0)
+			_goal("bosses")
+			_goal("stages")
+			if engine.hits_taken == 0:
+				_goal("nohit")
+			if engine.diff == 2:
+				_goal("hard_bosses")
 			banner = tr("%s defeated!") % tr(engine.boss_name())
 			after = PAUSE_AFTER + 0.6
 			if info:
@@ -375,7 +478,7 @@ func _splash(p: Vector2) -> void:
 func _game_over(won: bool) -> void:
 	started = false
 	SaveUtil.delete(SAVE_PATH)
-	var msg := (tr("You mastered the ink!") if won else tr("Game over!")) + "\n" + tr("Score: %d") % engine.score + "   ·   " + tr("Stage %d") % engine.stage
+	var msg := (tr("You mastered the ink!") + "\n" + tr(Story.EPILOGUE) if won else tr("Game over!")) + "\n" + tr("Score: %d") % engine.score + "   ·   " + tr("Stage %d") % engine.stage
 	if info:
 		info.add("Games played")
 		info.result("win" if won else "loss")
@@ -419,7 +522,7 @@ func _draw_field() -> void:
 			x += w
 	for st in stains:
 		var p: Vector2 = o + st[0] * k
-		c.draw_texture_rect(disc, Rect2(p - Vector2(st[1], st[1] * 0.25) * k, Vector2(st[1] * 2, st[1] * 0.5) * k), false, Color(pal.near, st[2]))
+		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.near, st[2]))
 	# Arena gate.
 	if engine.locked:
 		var gx: float = o.x + engine.arena_x * k
@@ -440,7 +543,7 @@ func _draw_field() -> void:
 	for s in splats:
 		var p: Vector2 = o + s[0] * k
 		var r: float = s[3] * k
-		c.draw_texture_rect(disc, Rect2(p - Vector2(r, r), Vector2(r, r) * 2), false, pal.ink)
+		c.draw_texture_rect(blot, Rect2(p - Vector2(r, r), Vector2(r, r) * 2), false, pal.ink)
 	_hud_draw(c, sz, k)
 
 func _ridge(c: CanvasItem, off: float, k: float, base: float, amp: float, col: Color, seed_: int) -> void:
@@ -596,26 +699,115 @@ func _hud_draw(c: CanvasItem, sz: Vector2, k: float) -> void:
 		var tp := Vector2(0, sz.y * 0.42)
 		c.draw_string_outline(font, tp, banner, HORIZONTAL_ALIGNMENT_CENTER, sz.x, fs, int(10 * k), pal.paper)
 		c.draw_string(font, tp, banner, HORIZONTAL_ALIGNMENT_CENTER, sz.x, fs, pal.ink)
+	# Story objective under the progress line.
+	var obj: String = tr("Defeat %s") % tr(engine.boss_name()) if engine.locked else tr(Story.CHAPTERS[engine.stage - 1][2])
+	c.draw_string(font, Vector2(x0, y + 26 * k), "▸ " + obj, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, int(18 * k), pal.near)
+	if not card_text.is_empty():
+		_draw_card(c, sz, k)
 
+## Landing hero: an ensō (one-stroke brush circle) with a pale ninja mid-leap and
+## a few ink drops, so it reads on the dark Landing.
 func _draw_home_logo(c: Control) -> void:
 	var k := minf(c.size.y / 170.0, 1.3)
 	var o := c.size / 2.0
-	var save := pal
-	pal = LOOKS.voodoo
 	if disc == null:
 		disc = _make_disc()
-	c.draw_texture_rect(disc, Rect2(o + Vector2(20, -80) * k - Vector2(70, 70) * k, Vector2(140, 140) * k), false, Color(1, 1, 1, 0.85))
-	c.draw_line(o + Vector2(-170, 60) * k, o + Vector2(170, 60) * k, Color(0.9, 0.9, 0.9), 5.0 * k)
-	var ink := Color(0.05, 0.05, 0.05)
-	var feet := o + Vector2(0, 60) * k
-	var neck := feet + Vector2(0, -84) * k
-	c.draw_line(feet + Vector2(-20, 0) * k, feet + Vector2(0, -45) * k, ink, 9 * k)
-	c.draw_line(feet + Vector2(26, -6) * k, feet + Vector2(0, -45) * k, ink, 9 * k)
-	c.draw_line(feet + Vector2(0, -45) * k, neck, ink, 16 * k)
-	c.draw_texture_rect(disc, Rect2(neck + Vector2(-15, -30) * k, Vector2(30, 30) * k), false, ink)
-	c.draw_line(neck, neck + Vector2(70, -70) * k, ink, 5 * k)
-	c.draw_line(neck + Vector2(-8, -16) * k, neck + Vector2(-60, -6) * k, Color(0.6, 0.6, 0.6), 4 * k)
-	pal = save
+	if blot == null:
+		blot = _make_blot()
+	# Ensō: one tapered brush ribbon (a single polygon) that thins out and leaves a gap.
+	var n := 120
+	var outer := PackedVector2Array()
+	var inner := PackedVector2Array()
+	for i in n + 1:
+		var f := float(i) / n
+		var a := -2.2 + f * TAU * 0.9
+		var r := 92.0 * k + sin(f * 9.0) * 1.5 * k
+		var w := lerpf(9.0, 0.8, f * f) * k
+		outer.append(o + Vector2.RIGHT.rotated(a) * (r + w))
+		inner.append(o + Vector2.RIGHT.rotated(a) * (r - w))
+	inner.reverse()
+	c.draw_colored_polygon(outer + inner, Color(0.82, 0.82, 0.82, 0.9))
+	var pale := Color(0.93, 0.93, 0.93)
+	var hip := o + Vector2(-6, 18) * k
+	var neck := o + Vector2(10, -22) * k
+	c.draw_line(hip, hip + Vector2(-38, 26) * k, pale, 8 * k)
+	c.draw_line(hip, hip + Vector2(26, 34) * k, pale, 8 * k)
+	c.draw_line(hip, neck, pale, 14 * k)
+	c.draw_texture_rect(disc, Rect2(neck + Vector2(-2, -32) * k, Vector2(26, 26) * k), false, pale)
+	c.draw_line(neck + Vector2(4, -20) * k, neck + Vector2(-36, -30) * k, Color(0.6, 0.6, 0.6), 4 * k)   # headband tail
+	c.draw_line(neck, neck + Vector2(34, -10) * k, pale, 6 * k)
+	c.draw_line(neck + Vector2(34, -10) * k, neck + Vector2(110, -64) * k, pale, 4 * k)   # sword
+	c.draw_line(neck, neck + Vector2(-26, 14) * k, pale, 6 * k)
+	for d in [[Vector2(70, -40), 10.0], [Vector2(96, -14), 6.0], [Vector2(-80, 50), 8.0], [Vector2(-60, -70), 5.0]]:
+		c.draw_texture_rect(blot, Rect2(o + d[0] * k - Vector2(d[1], d[1]) * k, Vector2(d[1], d[1]) * 2 * k), false, Color(0.75, 0.75, 0.75))
+
+# ---------- objectives (daily, weekly, story) ----------
+
+func _goal(key: String) -> void:
+	if goals == null:
+		return
+	goals.roll(Goals.today_num(), Goals.week_num())
+	for done in goals.count(key):
+		var txt := tr("Daily objective complete!") if done == "daily" else tr("Weekly objective complete!")
+		SoundLib.play(self, "reward/accomplished", -2.0)
+		engine.score += 1000 if done == "daily" else 5000
+		_update_hud()
+		if info:
+			info.add("Daily objectives" if done == "daily" else "Weekly objectives")
+			info.celebrate(txt)
+
+func _goal_line(g: Array, n: int, done: bool) -> String:
+	var t: String = tr(g[2]) % int(g[1])
+	return ("✓ " if done else "") + t + "  (%d / %d)" % [mini(n, int(g[1])), int(g[1])]
+
+## The Objectives card (Landing → More): today's goal, this week's, the story chapter.
+func _show_goals() -> Control:
+	goals.roll(Goals.today_num(), Goals.week_num())
+	var parts: Array = home.card(tr("Objectives"))
+	var body: Control = parts[1]
+	var d: Dictionary = goals.data
+	var ch: Array = Story.CHAPTERS[_story_stage() - 1]
+	var rows := [
+		[tr("Today"), _goal_line(goals.daily(), int(d.d_n), bool(d.d_done)), tr("Reward: %d points") % 1000, tr("A new one tomorrow")],
+		[tr("This week"), _goal_line(goals.weekly(), int(d.w_n), bool(d.w_done)), tr("Reward: %d points") % 5000, tr("A new one every Monday")],
+		[tr("Story"), tr("Chapter %d") % _story_stage() + " · " + tr(ch[0]), tr(ch[2]), tr("Ten chapters, one stolen brush")],
+	]
+	for r in rows:
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 4)
+		for i in r.size():
+			var l := Label.new()
+			l.text = r[i]
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			l.add_theme_font_size_override("font_size", [30, 26, 22, 18][i])
+			l.add_theme_color_override("font_color", [Color(1, 1, 1), Color(0.9, 0.9, 0.9), Color(0.7, 0.7, 0.7), Color(0.55, 0.55, 0.55)][i])
+			box.add_child(l)
+		body.add_child(box)
+		body.add_child(HSeparator.new())
+	home.show_card(parts[0])
+	return parts[0]
+
+## The chapter the player is on: the running stage, else the saved one, else 1.
+func _story_stage() -> int:
+	if started:
+		return engine.stage
+	var sv = SaveUtil.read(SAVE_PATH)
+	return 1 if sv == null else clampi(int(sv.get("stage", 1)), 1, Engine_.STAGES)
+
+## The chapter card: a paper sheet with the title, the story lines and the objective.
+func _draw_card(c: CanvasItem, sz: Vector2, k: float) -> void:
+	var font := ThemeDB.fallback_font
+	c.draw_rect(Rect2(Vector2.ZERO, sz), Color(pal.paper, 0.75))
+	var w := minf(sz.x * 0.7, 900.0 * k)
+	var r := Rect2((sz.x - w) / 2.0, sz.y * 0.18, w, sz.y * 0.6)
+	c.draw_rect(r, pal.moon)
+	c.draw_rect(r, pal.ink, false, 3.0 * k)
+	c.draw_line(r.position + Vector2(30, 92) * k, Vector2(r.end.x - 30 * k, r.position.y + 92 * k), pal.mid, 2.0 * k)
+	c.draw_string(font, r.position + Vector2(0, 64 * k), card_text[0], HORIZONTAL_ALIGNMENT_CENTER, w, int(40 * k), pal.ink)
+	c.draw_multiline_string(font, r.position + Vector2(40, 140) * k, card_text[1], HORIZONTAL_ALIGNMENT_LEFT, w - 80 * k, int(24 * k), -1, pal.near)
+	c.draw_string(font, Vector2(r.position.x, r.end.y - 70 * k), "▸ " + card_text[2], HORIZONTAL_ALIGNMENT_CENTER, w, int(28 * k), pal.ink)
+	if card_t < 5.5 and fmod(anim_t, 1.0) < 0.7:
+		c.draw_string(font, Vector2(r.position.x, r.end.y - 24 * k), tr("Press any button"), HORIZONTAL_ALIGNMENT_CENTER, w, int(18 * k), pal.mid)
 
 # ---------- skins ----------
 
@@ -623,6 +815,7 @@ func _set_skin(name: String) -> void:
 	skin = name if LOOKS.has(name) else "classic"
 	pal = LOOKS[skin]
 	_hud_colors()
+	_paper_params()
 	if field:
 		field.queue_redraw()
 
