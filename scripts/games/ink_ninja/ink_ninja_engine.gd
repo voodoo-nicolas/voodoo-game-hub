@@ -23,6 +23,7 @@ const STAR_V := 900.0
 const INVULN := 1.0
 const PW := 34.0   # player box
 const PH := 70.0
+const CROUCH_H := 40.0   # crouching: low enemy stars (thrown at 45) fly over
 const MAX_HP := 5
 const START_STARS := 8
 
@@ -54,6 +55,7 @@ var hurt_t := 0.0
 var run_t := 0.0
 var combo := 0
 var combo_t := 0.0
+var crouch := false
 var hits_taken := 0   # hearts lost this stage (for "clear a stage without a hit")
 
 var solids: Array = []     # Rect2 (ground pieces, ledges, walls)
@@ -182,7 +184,7 @@ func _spawn_boss() -> void:
 # ---------- step ----------
 
 ## move: -1..1, jump/slash/throw/dash: pressed this frame. Returns events.
-func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bool) -> Array:
+func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bool, down: bool = false) -> Array:
 	events = []
 	if state != "play":
 		return events
@@ -192,6 +194,7 @@ func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bo
 	combo_t -= dt
 	if combo_t <= 0.0:
 		combo = 0
+	crouch = down and on_ground and dash_t <= 0.0
 	_player(dt, move, jump, slash, throw, dash)
 	_foes(dt)
 	_boss(dt)
@@ -221,7 +224,7 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 		vx = facing * DASH_V
 		vy = 0.0
 	else:
-		var target := move * RUN
+		var target := 0.0 if crouch else move * RUN   # crouching: turn only, no walking
 		vx = move_toward(vx, target, (3000.0 if on_ground else 1800.0) * dt)
 		vy += GRAV * dt
 		if wall != 0 and vy > WALL_SLIDE:
@@ -247,7 +250,7 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 		events.append("slash")
 	if throw and stars > 0:
 		stars -= 1
-		shots.append({"x": px + facing * 20, "y": py - PH * 0.6, "vx": facing * STAR_V, "vy": 0.0, "mine": true, "life": 1.2})
+		shots.append({"x": px + facing * 20, "y": py - height() * 0.6, "vx": facing * STAR_V, "vy": 0.0, "mine": true, "life": 1.2})
 		events.append("throw")
 	# Move and collide, axis by axis.
 	px += vx * dt
@@ -277,7 +280,7 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 				on_ground = true
 				jumps = 0
 			else:
-				py = s.end.y + PH
+				py = s.end.y + height()
 				vy = 0.0
 			r = _box()
 	if on_ground:
@@ -292,12 +295,15 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 		slash_t -= dt
 		_slash_hits()
 
+func height() -> float:
+	return CROUCH_H if crouch else PH
+
 func _box() -> Rect2:
-	return Rect2(px - PW / 2, py - PH, PW, PH)
+	return Rect2(px - PW / 2, py - height(), PW, height())
 
 func slash_rect() -> Rect2:
 	var x0 := px if facing > 0 else px - SLASH_REACH
-	return Rect2(x0, py - PH - 10, SLASH_REACH, PH + 20)
+	return Rect2(x0, py - height() - 10, SLASH_REACH, height() + 20)
 
 func _slash_hits() -> void:
 	var sr := slash_rect()

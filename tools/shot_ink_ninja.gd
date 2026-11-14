@@ -49,6 +49,11 @@ func _run() -> void:
 	game.engine.px = game.engine.arena_x + 200
 	await _wait(60)
 	await _shot("20_boss")
+	game.key_d = true
+	game.q.slash = true
+	await _wait(4)
+	await _shot("25_crouch")
+	game.key_d = false
 	game._set_skin("voodoo")
 	await _wait(10)
 	await _shot("30_voodoo")

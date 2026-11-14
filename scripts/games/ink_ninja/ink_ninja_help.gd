@@ -6,7 +6,7 @@ const ID := "ink_ninja"
 const TITLE := "Ink Ninja"
 const GOAL := "Run, leap and cut your way through 10 ink-painted stages and defeat the boss waiting at the end of each one."
 const HOW := [
-	"Push the stick left or right to run.",
+	"Push the stick left or right to run. Pull it down to crouch: low enemy stars fly over your head, and your slash cuts low.",
 	"A jumps. Press it again in the air for a double jump. Hold the stick against a wall while falling to slide down it, then press A to kick off.",
 	"B slashes your sword in front of you. A slash also cuts enemy throwing stars out of the air.",
 	"X throws a star. You start each stage with at least 8; star throwers sometimes drop 2 more.",
@@ -23,6 +23,7 @@ const TIPS := [
 	"Dash through a boss's charge instead of jumping over it.",
 	"Jump when a boss lands from a leap: the shockwave only hits you on the ground.",
 	"Keep a few stars for the boss and slash the small fry.",
+	"Crouch under a star thrower's stars instead of jumping them.",
 ]
 const STATS := ["Best score", "Highest stage", "Bosses defeated", "Ninjas defeated", "Stars parried", "Daily objectives", "Weekly objectives", "Games played"]
 const ACHIEVEMENTS := [

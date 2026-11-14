@@ -57,5 +57,14 @@ func _init() -> void:
 	e2.state = "won"
 	e2.next_stage()
 	check(e2.state == "cleared", "cleared after stage 10")
+	# Crouching: an enemy star at thrower height flies over; standing, it hits.
+	for crouching in [true, false]:
+		var e3 = E.new()
+		e3.reset(1)
+		e3.foes.clear()
+		e3.shots = [{"x": e3.px + 200.0, "y": E.GROUND - 45.0, "vx": -520.0, "vy": 0.0, "mine": false, "life": 2.0}]
+		for i in 60:
+			e3.step(1.0 / 60.0, 0.0, false, false, false, false, crouching)
+		check((e3.hp == E.MAX_HP) == crouching, "crouch=%s star %s" % [crouching, "misses" if crouching else "hits"])
 	print("ink_ninja: %s (%d failures)" % ["OK" if fails == 0 else "FAILED", fails])
 	quit(1 if fails else 0)

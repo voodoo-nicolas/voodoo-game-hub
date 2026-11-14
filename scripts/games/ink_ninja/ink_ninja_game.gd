@@ -27,8 +27,8 @@ const PAUSE_AFTER := 1.8
 
 ## Two looks, both pure greyscale: Classic = black ink on paper, Voodoo = white ink on night.
 const LOOKS := {
-	"classic": {"paper": Color("ece6d8"), "paper2": Color("d8d0bf"), "ink": Color("111111"), "far": Color("b9b2a4"), "mid": Color("8e887d"), "near": Color("4a4743"), "moon": Color("f7f3ea")},
-	"voodoo": {"paper": Color("08080a"), "paper2": Color("1a1a1d"), "ink": Color("f0f0f0"), "far": Color("2a2a2e"), "mid": Color("45454a"), "near": Color("707075"), "moon": Color("d9d9d9")},
+	"classic": {"paper": Color("ece6d8"), "paper2": Color("d8d0bf"), "ink": Color("111111"), "far": Color("b9b2a4"), "mid": Color("8e887d"), "near": Color("4a4743"), "moon": Color("f7f3ea"), "fog": Color("f4f1ea"), "shadow": Color("2a2723"), "smoke": Color("8a857c")},
+	"voodoo": {"paper": Color("08080a"), "paper2": Color("1a1a1d"), "ink": Color("f0f0f0"), "far": Color("2a2a2e"), "mid": Color("45454a"), "near": Color("707075"), "moon": Color("d9d9d9"), "fog": Color("5a5a60"), "shadow": Color("000000"), "smoke": Color("9a9aa0")},
 }
 
 var info = null
@@ -40,6 +40,7 @@ var pal: Dictionary = LOOKS.classic
 var move := 0.0
 var key_l := false
 var key_r := false
+var key_d := false
 var q := {"jump": false, "slash": false, "throw": false, "dash": false}
 var after := 0.0
 var banner := ""
@@ -48,6 +49,11 @@ var shake := 0.0
 var splats: Array = []   # [pos, vel, life, size] flying drops
 var stains: Array = []   # [world pos, size, alpha] ink left on the ground
 var disc: Texture2D
+var pines_far: Texture2D
+var pines_mid: Texture2D
+var fog_tex: Texture2D
+var smoke: Array = []   # smoke puffs (_puff)
+var mist: Array = []    # drifting wisps: [x 0..1, world y, speed, width, phase]
 var blot: Texture2D      # an irregular ink blot for splashes and stains
 var goals                # Goals (daily + weekly objectives)
 var card_text := []      # the chapter card on screen: [title, text, objective] (empty = none)
@@ -69,6 +75,11 @@ func _ready() -> void:
 	disc = _make_disc()
 	blot = _make_blot()
 	goals = Goals.new()
+	pines_far = _make_pines(11, 34, 140.0, 260.0)
+	pines_mid = _make_pines(23, 22, 200.0, 340.0)
+	fog_tex = _make_fog()
+	for i in 7:
+		mist.append([randf() * 1.6 - 0.3, randf_range(380.0, 560.0), randf_range(0.006, 0.02), randf_range(260.0, 520.0), randf() * TAU])
 	goals.load_data(Goals.today_num(), Goals.week_num())
 	_build_ui()
 	_hud_colors()
@@ -176,7 +187,7 @@ func _build_ui() -> void:
 	old_controls.add_theme_constant_override("separation", 10)
 	old_controls.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(old_controls)
-	for spec in [["◀", "left"], ["▶", "right"], ["⤒", "jump"], ["⚔", "slash"], ["✴", "throw"], ["»", "dash"]]:
+	for spec in [["◀", "left"], ["▶", "right"], ["▼", "down"], ["⤒", "jump"], ["⚔", "slash"], ["✴", "throw"], ["»", "dash"]]:
 		var b := Button.new()
 		b.text = spec[0]
 		b.custom_minimum_size = Vector2(110, 100)
@@ -269,6 +280,8 @@ func _hold(what: String, on: bool) -> void:
 			key_l = on
 		"right":
 			key_r = on
+		"down":
+			key_d = on
 		_:
 			if on:
 				q[what] = true
@@ -283,6 +296,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				key_l = event.pressed
 			KEY_RIGHT, KEY_D:
 				key_r = event.pressed
+			KEY_DOWN, KEY_S:
+				key_d = event.pressed
 			KEY_SPACE, KEY_W, KEY_UP:
 				if event.pressed:
 					q.jump = true
@@ -338,6 +353,7 @@ func _process(delta: float) -> void:
 		return
 	delta = minf(delta, 0.05)
 	shake = maxf(0.0, shake - delta * 30.0)
+	_smoke_tick(delta)
 	for s in splats:
 		s[0] += s[1] * delta
 		s[1].y += 1400.0 * delta
@@ -368,12 +384,15 @@ func _process(delta: float) -> void:
 		field.queue_redraw()
 		return
 	var m := 0.0
+	var dn := key_d
 	if touch_pad:
-		m = touch_pad.get_vector("move").x
+		var pv: Vector2 = touch_pad.get_vector("move")
+		m = pv.x
+		dn = dn or pv.y > 0.55
 		if absf(m) < 0.25:
 			m = 0.0
 	m = clampf(m + (1.0 if key_r else 0.0) - (1.0 if key_l else 0.0), -1.0, 1.0)
-	var ev: Array = engine.step(delta, m, q.jump, q.slash, q.throw, q.dash)
+	var ev: Array = engine.step(delta, m, q.jump, q.slash, q.throw, q.dash, dn)
 	if engine.on_ground and absf(engine.vx) > 120.0 and engine.dash_t <= 0.0:
 		step_t -= delta
 		if step_t <= 0.0:
@@ -397,6 +416,7 @@ func _event(e: String) -> void:
 			_sfx("jump")
 		"dash":
 			_sfx("whoosh")
+			_puff(Vector2(engine.px, engine.py - 10), 6, 18.0, 90.0)
 		"slash":
 			SoundLib.play(self, "rpg/knife_slice", -6.0)
 		"throw":
@@ -422,6 +442,7 @@ func _event(e: String) -> void:
 			SoundLib.play(self, "reward/coin_plingy", -6.0)
 			_goal("combo5")
 		"land":
+			_puff(Vector2(engine.px, engine.py - 4), 4, 14.0, 70.0)
 			SoundLib.play(self, "impact/soft_medium", -14.0)
 		"telegraph":
 			SoundLib.play(self, "impact/bell_heavy", -16.0)
@@ -430,6 +451,7 @@ func _event(e: String) -> void:
 			shake = 10.0
 		"slam":
 			shake = 14.0
+			_puff(Vector2(engine.boss.x, engine.boss.y - 6), 14, 30.0, 220.0)
 			SoundLib.play(self, "impact/wood_heavy", -4.0)
 		"boss":
 			banner = tr(engine.boss_name())
@@ -469,6 +491,7 @@ func _after_pause() -> void:
 			_game_over(false)
 
 func _splash(p: Vector2) -> void:
+	_puff(p, 3, 16.0, 60.0)
 	for i in 16:
 		var v := Vector2.RIGHT.rotated(randf() * TAU) * randf_range(120, 520) + Vector2(0, -220)
 		splats.append([p, v, randf_range(0.35, 0.8), randf_range(5.0, 14.0)])
@@ -502,11 +525,15 @@ func _draw_field() -> void:
 	var bands := 10
 	for i in bands:
 		c.draw_rect(Rect2(0, sz.y * i / bands, sz.x, sz.y / bands + 1), pal.paper.lerp(pal.paper2, float(i) / bands))
-	c.draw_texture_rect(disc, Rect2(Vector2(sz.x * 0.78, sz.y * 0.08) - Vector2(70, 70) * k, Vector2(140, 140) * k), false, pal.moon)
-	# Three mountain layers, scrolling slower than the ground.
-	_ridge(c, cam * 0.15, k, 330.0, 140.0, pal.far, 3)
-	_ridge(c, cam * 0.35, k, 420.0, 110.0, pal.mid, 7)
-	_bamboo(c, cam * 0.6, k)
+	# Misty pine forest (owner's references, 2026-11-14): far and mid pine layers fading into
+	# fog, tall dark trunks in front, each scrolling slower than the ground.
+	c.draw_texture_rect(disc, Rect2(Vector2(sz.x * 0.72, sz.y * 0.06) - Vector2(90, 90) * k, Vector2(180, 180) * k), false, Color(pal.moon, 0.55))
+	_pine_layer(c, pines_far, cam * 0.12, k, 440.0, pal.far)
+	_fog(c, k, 300.0, 470.0, 0.85)
+	_pine_layer(c, pines_mid, cam * 0.3, k, 540.0, pal.mid)
+	_fog(c, k, 420.0, 560.0, 0.7)
+	_trunks(c, cam * 0.62, k)
+	_fog(c, k, 520.0, 600.0, 0.5)
 	var o := Vector2(-cam * k, 0) + sh
 	# Ground and ledges: solid ink with a dry-brush top edge.
 	for s in engine.solids:
@@ -531,6 +558,11 @@ func _draw_field() -> void:
 	for s in engine.scrolls:
 		_scroll(c, o + s * k, k)
 	for f in engine.foes:
+		_shadow(c, o, f.x, f.y, k, 26.0)
+	if not engine.boss.is_empty() and engine.boss.hp > 0:
+		_shadow(c, o, engine.boss.x, engine.boss.y, k, 40.0)
+	_shadow(c, o, engine.px, engine.py, k, 24.0)
+	for f in engine.foes:
 		_figure(c, o + Vector2(f.x, f.y) * k, k, f.face, f.kind, f.hit > 0.0, f.get("atk", 0.0) > 0.0, false, anim_t * 6.0 + f.id)
 	if not engine.boss.is_empty() and engine.boss.hp > 0:
 		var b: Dictionary = engine.boss
@@ -544,123 +576,288 @@ func _draw_field() -> void:
 		var p: Vector2 = o + s[0] * k
 		var r: float = s[3] * k
 		c.draw_texture_rect(blot, Rect2(p - Vector2(r, r), Vector2(r, r) * 2), false, pal.ink)
+	_draw_smoke(c, o, k)
+	_draw_mist(c, sz, k)
 	_hud_draw(c, sz, k)
 
-func _ridge(c: CanvasItem, off: float, k: float, base: float, amp: float, col: Color, seed_: int) -> void:
-	var sz := field.size
-	var pts := PackedVector2Array()
-	var step := 60.0
-	var x0 := -fmod(off, step)
-	var i0 := int(floor(off / step))
-	var n := int(sz.x / (step * k)) + 3
-	for i in n:
-		var wx := float(i0 + i)
-		var h := sin(wx * 0.37 + seed_) * 0.5 + sin(wx * 0.11 + seed_ * 2.0) * 0.5
-		pts.append(Vector2((x0 + i * step) * k, (base - h * amp) * k))
-	pts.append(Vector2(pts[pts.size() - 1].x, sz.y))
-	pts.append(Vector2(pts[0].x, sz.y))
-	c.draw_colored_polygon(pts, col)
+## A strip of pine silhouettes (white, tinted when drawn), 1024 x 400, the forest floor
+## solid along the bottom. Built row by row with fill_rect (fast), tiers give jagged branches.
+func _make_pines(seed_: int, count: int, hmin: float, hmax: float) -> Texture2D:
+	var w := 1024
+	var h := 400
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_
+	var base := h - 36
+	for i in count:
+		var cx := r.randi_range(0, w - 1)
+		var th := r.randf_range(hmin, hmax)
+		var hw := th * r.randf_range(0.16, 0.22)
+		var tiers := r.randf_range(7.0, 11.0)
+		for yy in int(th):
+			var t := float(yy) / th
+			var half := (2.0 + t * hw) * (0.5 + 0.5 * fmod(t * tiers, 1.0))
+			var y := base - int(th) + yy
+			for dx in [0, -w, w]:
+				var x0: int = int(cx - half) + dx
+				var x1: int = int(cx + half) + dx
+				x0 = maxi(x0, 0)
+				x1 = mini(x1, w)
+				if x1 > x0 and y >= 0:
+					img.fill_rect(Rect2i(x0, y, x1 - x0, 1), Color.WHITE)
+	img.fill_rect(Rect2i(0, base, w, h - base), Color.WHITE)
+	return ImageTexture.create_from_image(img)
 
-func _bamboo(c: CanvasItem, off: float, k: float) -> void:
+## A vertical alpha ramp (clear at the top, solid at the bottom) for fog bands.
+func _make_fog() -> Texture2D:
+	var img := Image.create(1, 64, false, Image.FORMAT_RGBA8)
+	for y in 64:
+		var t := float(y) / 63.0
+		img.set_pixel(0, y, Color(1, 1, 1, t * t * (3.0 - 2.0 * t)))
+	return ImageTexture.create_from_image(img)
+
+func _pine_layer(c: CanvasItem, tex: Texture2D, off: float, k: float, base: float, col: Color) -> void:
 	var sz := field.size
-	var gap := 170.0
+	var tw := 1024.0 * k * 1.1
+	var th := 400.0 * k * 1.1
+	var x := -fmod(off * k, tw)
+	var top := base * k - th + 36.0 * k * 1.1
+	while x < sz.x:
+		c.draw_texture_rect(tex, Rect2(x, top, tw + 1.0, th), false, col)
+		x += tw
+	c.draw_rect(Rect2(0, top + th - 1.0, sz.x, sz.y), col)
+
+## Mist between two heights (world units), thicker toward the bottom.
+func _fog(c: CanvasItem, k: float, y0: float, y1: float, a: float) -> void:
+	c.draw_texture_rect(fog_tex, Rect2(0, y0 * k, field.size.x, (y1 - y0) * k), false, Color(pal.fog, a))
+
+## Tall straight trunks rising out of the top of the screen, a few bare branch strokes.
+func _trunks(c: CanvasItem, off: float, k: float) -> void:
+	var sz := field.size
+	var gap := 210.0
 	var i0 := int(floor(off / gap))
-	for i in int(sz.x / (gap * k)) + 2:
+	for i in int(sz.x / (gap * k)) + 3:
 		var wx := float(i0 + i)
-		var x := (wx * gap - off + sin(wx * 3.1) * 50.0) * k
-		var top := (120.0 + absf(sin(wx * 1.7)) * 120.0) * k
-		var col := Color(pal.near, 0.55)
-		c.draw_line(Vector2(x, top), Vector2(x, Engine_.GROUND * k), col, 7.0 * k)
-		var y := top + 40 * k
-		while y < Engine_.GROUND * k:
-			c.draw_line(Vector2(x - 5 * k, y), Vector2(x + 5 * k, y), pal.paper2, 2.0 * k)
-			y += 70 * k
-		c.draw_line(Vector2(x, top + 30 * k), Vector2(x + 40 * k, top + 10 * k), col, 3.0 * k)
-		c.draw_line(Vector2(x, top + 60 * k), Vector2(x - 36 * k, top + 44 * k), col, 3.0 * k)
+		var x := (wx * gap - off + sin(wx * 3.1) * 70.0) * k
+		var wd := (9.0 + absf(sin(wx * 1.3)) * 10.0) * k
+		var lean := sin(wx * 2.3) * 14.0 * k
+		var col := Color(pal.near, 0.85)
+		var top := Vector2(x + lean, -10)
+		var bot := Vector2(x, Engine_.GROUND * k)
+		c.draw_line(top, bot, col, wd)
+		c.draw_line(top + Vector2(wd * 0.25, 0), bot + Vector2(wd * 0.25, 0), Color(pal.mid, 0.35), wd * 0.25)   # dry-brush streak
+		for b in 3:
+			var by := (90.0 + b * 95.0 + absf(sin(wx * 5.0 + b)) * 40.0) * k
+			var bp := top.lerp(bot, by / bot.y)
+			var s := 1.0 if int(wx + b) % 2 == 0 else -1.0
+			c.draw_line(bp, bp + Vector2(s * 46, -18) * k, col, 3.0 * k)
+			c.draw_line(bp + Vector2(s * 30, -12) * k, bp + Vector2(s * 52, -6) * k, col, 2.0 * k)
 
-## The hero: an ink stroke figure with a pale scarf trailing behind.
+## One brush stroke: a solid core plus rough offset edges and a grey dry-brush streak.
+func _brush(c: CanvasItem, a: Vector2, b: Vector2, w: float, col: Color) -> void:
+	c.draw_line(a, b, col, w)
+	var n := (b - a).normalized().orthogonal() * w * 0.35
+	c.draw_line(a + n, b + n * 0.6, col, w * 0.55)
+	c.draw_line(a - n * 0.5, b - n, col, w * 0.4)
+	c.draw_line(a.lerp(b, 0.15) + n * 0.2, a.lerp(b, 0.8) + n * 0.2, Color(pal.mid, 0.55), maxf(1.0, w * 0.12))
+
+## A tapered ribbon through points (headband tails, sash, the sword's crescent): one polygon.
+func _ribbon(c: CanvasItem, pts: Array, w0: float, w1: float, col: Color) -> void:
+	if pts.size() < 2:
+		return
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	for i in pts.size():
+		var p: Vector2 = pts[i]
+		var d: Vector2 = (pts[mini(i + 1, pts.size() - 1)] - pts[maxi(i - 1, 0)]).normalized().orthogonal()
+		var w := lerpf(w0, w1, float(i) / (pts.size() - 1)) * 0.5
+		left.append(p + d * w)
+		right.append(p - d * w)
+	right.reverse()
+	_poly(c, left + right, col)
+
+## Joints of an ink figure (feet at `feet`, 70 units tall standing). pose: run phase,
+## crouch, air. Returns hip, neck, head, knees, feet.
+func _pose(feet: Vector2, k: float, f: int, ph: float, running: bool, crouch: bool, air: bool) -> Dictionary:
+	var drop := 18.0 if crouch else 0.0
+	var lean := (9.0 if running else 0.0) + (8.0 if crouch else 0.0)
+	var hip := feet + Vector2(-f * 2, -30 + drop) * k
+	var neck := hip + Vector2(f * lean, -26 + drop * 0.2) * k
+	var head := neck + Vector2(f * 3, -11) * k
+	var fa: Vector2
+	var fb: Vector2
+	var ka: Vector2
+	var kb: Vector2
+	if crouch:
+		fa = feet + Vector2(f * 24, 0) * k
+		fb = feet + Vector2(-f * 22, 0) * k
+		ka = hip + Vector2(f * 24, -4) * k
+		kb = hip + Vector2(-f * 6, 12) * k
+	elif air:
+		fa = feet + Vector2(f * 16, -12) * k
+		fb = feet + Vector2(-f * 14, -2) * k
+		ka = hip + Vector2(f * 18, 4) * k
+		kb = hip + Vector2(-f * 2, 14) * k
+	else:
+		var s := sin(ph) if running else 0.0
+		var lift := maxf(0.0, cos(ph)) * 8.0 if running else 0.0
+		fa = feet + Vector2(f * (s * 18 + 10), -lift) * k
+		fb = feet + Vector2(f * (-s * 18 - 10), -(8.0 - lift if running else 0.0)) * k
+		ka = hip.lerp(fa, 0.5) + Vector2(f * 6, -3) * k
+		kb = hip.lerp(fb, 0.5) + Vector2(f * 6, -3) * k
+	return {"hip": hip, "neck": neck, "head": head, "fa": fa, "fb": fb, "ka": ka, "kb": kb}
+
+## Body, legs, head and flowing headband for any ink figure.
+func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk: float, tails: bool, phase: float) -> void:
+	_brush(c, j.hip, j.kb, 8.0 * k * bulk, col)
+	_brush(c, j.kb, j.fb, 7.0 * k * bulk, col)
+	_brush(c, j.hip, j.ka, 8.0 * k * bulk, col)
+	_brush(c, j.ka, j.fa, 7.0 * k * bulk, col)
+	# Baggy trousers: a wedge from the hip over the knees.
+	_poly(c, PackedVector2Array([j.hip + Vector2(-9, -4) * k * bulk, j.hip + Vector2(9, -4) * k * bulk, j.ka, j.kb]), col)
+	_brush(c, j.hip, j.neck, 15.0 * k * bulk, col)
+	c.draw_texture_rect(disc, Rect2(j.head - Vector2(12, 12) * k * bulk, Vector2(24, 24) * k * bulk), false, col)
+	# Eye slit: a pale cut in the mask.
+	c.draw_line(j.head + Vector2(f * 2, -1) * k, j.head + Vector2(f * 10, -1) * k, pal.paper, 2.5 * k)
+	# Sash knot at the hip with a short tail.
+	c.draw_line(j.hip + Vector2(-10, -6) * k, j.hip + Vector2(10, -6) * k, pal.mid, 4.0 * k)
+	if tails:
+		for t in 2:
+			var pts := []
+			var start: Vector2 = j.head + Vector2(-f * 9, -5 + t * 3) * k
+			for i in 7:
+				pts.append(start + Vector2(-f * i * 13.0, sin(phase - i * 0.8 + t * 1.3) * i * 1.8 - i * 1.5 + t * i * 2.0) * k)
+			_ribbon(c, pts, 6.0 * k, 1.0 * k, col)
+		var sp := []
+		var s0: Vector2 = j.hip + Vector2(-f * 8, -6) * k
+		for i in 5:
+			sp.append(s0 + Vector2(-f * i * 9.0, i * 3.0 + sin(phase * 0.8 - i) * i) * k)
+		_ribbon(c, sp, 5.0 * k, 1.0 * k, col)
+
+## A katana: ink outline with a pale edge so it reads on dark ground too.
+func _katana(c: CanvasItem, hand: Vector2, tip: Vector2, k: float) -> void:
+	c.draw_line(hand, tip, pal.ink, 4.0 * k)
+	c.draw_line(hand.lerp(tip, 0.12), tip, pal.moon, 1.5 * k)
+	var n := (tip - hand).normalized().orthogonal() * 6.0 * k
+	c.draw_line(hand.lerp(tip, 0.1) - n, hand.lerp(tip, 0.1) + n, pal.ink, 3.0 * k)   # guard
+
+## The hero: brush-stroke ninja, long headband tails, katana held ready; a slash leaves a
+## sweeping ink crescent (owner's references).
 func _ninja(c: CanvasItem, feet: Vector2, k: float) -> void:
 	var f: int = engine.facing
 	var ink: Color = pal.ink
-	var legs := sin(engine.run_t * 16.0) * 10.0 if engine.on_ground else 6.0
-	var hip := feet + Vector2(0, -30) * k
-	var neck := feet + Vector2(0, -56) * k
-	var head := feet + Vector2(0, -66) * k
-	var lean := 6.0 * f if absf(engine.vx) > 50 else 0.0
-	neck.x += lean * k
-	head.x += lean * k
+	var running: bool = engine.on_ground and absf(engine.vx) > 40.0
+	var j := _pose(feet, k, f, engine.run_t * 14.0, running, engine.crouch, not engine.on_ground)
 	if engine.dash_t > 0.0:
 		for i in 4:
-			c.draw_line(hip - Vector2(f * (30 + i * 22), i * 6 - 10) * k, hip - Vector2(f * (60 + i * 22), i * 6 - 10) * k, Color(pal.mid, 0.6), 3.0 * k)
-	c.draw_line(hip, feet + Vector2(legs, 0) * k, ink, 6.0 * k)
-	c.draw_line(hip, feet + Vector2(-legs, 0) * k, ink, 6.0 * k)
-	c.draw_line(hip, neck, ink, 11.0 * k)
-	c.draw_texture_rect(disc, Rect2(head - Vector2(10, 10) * k, Vector2(20, 20) * k), false, ink)
-	# Headband tails and scarf: a pale band so the hero reads against ink.
-	var wave := sin(anim_t * 12.0) * 5.0
-	var tail0 := head + Vector2(-f * 8, -3) * k
-	c.draw_line(tail0, tail0 + Vector2(-f * 22, -6 + wave) * k, pal.mid, 3.0 * k)
-	c.draw_line(tail0 + Vector2(-f * 22, -6 + wave) * k, tail0 + Vector2(-f * 40, wave * 1.5) * k, pal.mid, 2.0 * k)
-	c.draw_line(head + Vector2(-9, -2) * k, head + Vector2(9, -2) * k, pal.mid, 3.0 * k)
-	c.draw_line(head + Vector2(f * 3, 0) * k, head + Vector2(f * 8, 0) * k, pal.paper, 2.0 * k)   # eye slit
-	# Arms and sword.
-	var hand := neck + Vector2(f * 16, 10) * k
+			c.draw_line(j.hip - Vector2(f * (30 + i * 22), i * 7 - 10) * k, j.hip - Vector2(f * (70 + i * 22), i * 7 - 10) * k, Color(pal.mid, 0.6), (5 - i) * k)
+	_ink_body(c, j, k, f, ink, 1.0, true, anim_t * 10.0 + (engine.vx * 0.01))
+	var neck: Vector2 = j.neck
 	if engine.slash_t > 0.0:
 		var t: float = 1.0 - engine.slash_t / Engine_.SLASH_T
-		var a := lerpf(-1.3, 1.1, t)
-		hand = neck + Vector2(f * 18, 0).rotated(a * f) * k
-		c.draw_line(neck, hand, ink, 5.0 * k)
-		var tip := hand + Vector2(f * 70, 0).rotated(a * f) * k
-		c.draw_line(hand, tip, ink, 3.0 * k)
-		# The cut: a crescent of grey brush strokes.
-		for i in 5:
-			var aa := lerpf(-1.3, a, float(i) / 4.0)
-			var p1 := neck + Vector2(f * 60, 0).rotated(aa * f) * k
-			var p2 := neck + Vector2(f * 92, 0).rotated(aa * f) * k
-			c.draw_line(p1, p2, Color(pal.mid, 0.25 + i * 0.12), (3 + i) * k)
+		var a := lerpf(-1.4, 1.2, t)
+		var hand := neck + Vector2(f * 20, 4).rotated(a * f) * k
+		_brush(c, neck, hand, 6.0 * k, ink)
+		_katana(c, hand, hand + Vector2(f * 74, 0).rotated(a * f) * k, k)
+		# The cut: a thick crescent that sweeps after the blade and thins at its tail.
+		var pts := []
+		for i in 12:
+			var aa := lerpf(-1.4, a, float(i) / 11.0)
+			pts.append(neck + Vector2(f * 84, 0).rotated(aa * f) * k)
+		_ribbon(c, pts, 1.0 * k, 16.0 * k, Color(ink, 0.85))
 	else:
-		c.draw_line(neck, hand, ink, 5.0 * k)
-		c.draw_line(neck + Vector2(-f * 4, 2) * k, neck + Vector2(-f * 34, -30) * k, ink, 3.0 * k)   # sword on the back
-	c.draw_line(neck, neck + Vector2(-f * 12, 18) * k, ink, 5.0 * k)
+		var hand := neck + Vector2(f * 18, 12) * k
+		_brush(c, neck, hand, 6.0 * k, ink)
+		_brush(c, neck, neck + Vector2(f * 10, 14) * k, 5.0 * k, ink)
+		var tip := hand + (Vector2(f * 58, 22) if not engine.crouch else Vector2(f * 62, 4)) * k
+		_katana(c, hand, tip, k)
 
-## Foes and bosses: the same ink figure, bigger or bulkier, with a grey sash.
+## Foes and bosses: the same brush figure in a lighter ink, bulkier for brutes and bosses.
 func _figure(c: CanvasItem, feet: Vector2, k: float, f: int, kind: String, flash: bool, windup: bool, _x: bool, t: float) -> void:
-	var ink: Color = pal.mid if flash else pal.near.lerp(pal.ink, 0.5)
-	var bulk := 1.4 if kind == "brute" or kind == "boss0" or kind == "boss3" else 1.0
-	var hip := feet + Vector2(0, -30) * k
-	var neck := feet + Vector2(0, -56) * k
-	var head := feet + Vector2(0, -66) * k
-	var legs := sin(t) * 8.0
-	c.draw_line(hip, feet + Vector2(legs, 0) * k, ink, 6.0 * k * bulk)
-	c.draw_line(hip, feet + Vector2(-legs, 0) * k, ink, 6.0 * k * bulk)
-	c.draw_line(hip, neck, ink, 12.0 * k * bulk)
-	c.draw_texture_rect(disc, Rect2(head - Vector2(10, 10) * k * bulk, Vector2(20, 20) * k * bulk), false, ink)
-	c.draw_line(hip + Vector2(-8, -4) * k, hip + Vector2(8, -4) * k, pal.far, 4.0 * k)
+	var ink: Color = pal.mid if flash else pal.near.lerp(pal.ink, 0.45)
+	var bulk := 1.35 if kind == "brute" or kind == "boss0" or kind == "boss3" else 1.0
+	var j := _pose(feet, k, f, t, true, false, false)
+	_ink_body(c, j, k, f, ink, bulk, kind.begins_with("boss") or kind == "blade", t * 1.3)
+	var neck: Vector2 = j.neck
+	var head: Vector2 = j.head
 	match kind:
 		"boss0":   # Iron Monk: wide straw hat and a staff
-			c.draw_colored_polygon(PackedVector2Array([head + Vector2(-26, 2) * k, head + Vector2(0, -16) * k, head + Vector2(26, 2) * k]), ink)
-			c.draw_line(neck + Vector2(f * 16, -40) * k, neck + Vector2(f * 16, 56) * k, ink, 4.0 * k)
+			_poly(c, PackedVector2Array([head + Vector2(-28, 2) * k, head + Vector2(0, -18) * k, head + Vector2(28, 2) * k]), ink)
+			_brush(c, neck + Vector2(f * 16, -44) * k, neck + Vector2(f * 16, 60) * k, 5.0 * k, ink)
 		"boss1":   # Twin Blade: two swords
 			for s in [-1, 1]:
-				c.draw_line(neck + Vector2(f * 14, 8) * k, neck + Vector2(f * 14, 8) * k + Vector2(f * 56, -20 * s).rotated(-0.6 if windup else 0.0) * k, ink, 3.0 * k)
+				var h2 := neck + Vector2(f * 14, 8) * k
+				_katana(c, h2, h2 + Vector2(f * 56, -20 * s).rotated(-0.6 if windup else 0.0) * k, k)
 		"boss2":   # Paper Crane: wide sleeves like wings
 			var w := 1.0 + 0.3 * sin(t * 2.0)
-			c.draw_colored_polygon(PackedVector2Array([neck, neck + Vector2(-50, 30 * w) * k, neck + Vector2(-20, 34) * k]), Color(ink, 0.7))
-			c.draw_colored_polygon(PackedVector2Array([neck, neck + Vector2(50, 30 * w) * k, neck + Vector2(20, 34) * k]), Color(ink, 0.7))
-		"boss3":   # Shadow Daimyo: helmet crest and long blade
-			c.draw_line(head + Vector2(-14, -10) * k, head + Vector2(-22, -30) * k, ink, 3.0 * k)
-			c.draw_line(head + Vector2(14, -10) * k, head + Vector2(22, -30) * k, ink, 3.0 * k)
-			c.draw_line(neck + Vector2(f * 14, 6) * k, neck + Vector2(f * 90, -10) * k, ink, 4.0 * k)
+			_poly(c, PackedVector2Array([neck, neck + Vector2(-54, 30 * w) * k, neck + Vector2(-20, 34) * k]), Color(ink, 0.75))
+			_poly(c, PackedVector2Array([neck, neck + Vector2(54, 30 * w) * k, neck + Vector2(20, 34) * k]), Color(ink, 0.75))
+		"boss3":   # Shadow Daimyo: helmet crest and a long blade
+			_brush(c, head + Vector2(-14, -10) * k, head + Vector2(-24, -32) * k, 3.0 * k, ink)
+			_brush(c, head + Vector2(14, -10) * k, head + Vector2(24, -32) * k, 3.0 * k, ink)
+			_katana(c, neck + Vector2(f * 14, 6) * k, neck + Vector2(f * 96, -12) * k, k)
 		"thrower":
-			c.draw_line(neck, neck + Vector2(f * 18, -14) * k, ink, 5.0 * k)
+			_brush(c, neck, neck + Vector2(f * 18, -16) * k, 5.0 * k, ink)
 		_:
-			var up := -1.4 if windup else 0.2
+			var up := -1.4 if windup else 0.3
 			var hand := neck + Vector2(f * 18, 8) * k
-			c.draw_line(neck, hand, ink, 5.0 * k)
-			c.draw_line(hand, hand + Vector2(f * 46, 0).rotated(up * f) * k, ink, 3.0 * k)
+			_brush(c, neck, hand, 5.0 * k, ink)
+			_katana(c, hand, hand + Vector2(f * 50, 0).rotated(up * f) * k, k)
 	if windup:
-		# Telegraph: a pale flash over the head ("!" without colour).
 		c.draw_string(ThemeDB.fallback_font, head + Vector2(-8, -30) * k, "!", HORIZONTAL_ALIGNMENT_LEFT, -1, int(34 * k), pal.ink)
+
+## A soft shadow on the ground under a figure: smaller and fainter the higher it is.
+func _shadow(c: CanvasItem, o: Vector2, x: float, y: float, k: float, w: float) -> void:
+	var gy := Engine_.GROUND
+	for s in engine.solids:
+		if x > s.position.x and x < s.end.x and s.position.y >= y - 1.0 and s.position.y < gy:
+			gy = s.position.y   # a ledge under the feet
+	var hgt := clampf((gy - y) / 300.0, 0.0, 1.0)
+	var ww := w * (1.0 - hgt * 0.6)
+	var p := o + Vector2(x, gy) * k
+	c.draw_texture_rect(disc, Rect2(p - Vector2(ww, ww * 0.18) * k, Vector2(ww * 2, ww * 0.36) * k), false, Color(pal.shadow, 0.55 * (1.0 - hgt)))
+
+## Smoke puffs: soft grey discs that grow, drift up and fade. [world pos, vel, life, max life, size]
+func _puff(p: Vector2, n: int, size: float, spread: float) -> void:
+	for i in n:
+		if smoke.size() >= 90:
+			return
+		var v := Vector2(randf_range(-spread, spread), randf_range(-60, -10))
+		var life := randf_range(0.5, 1.0)
+		smoke.append([p + Vector2(randf_range(-10, 10), randf_range(-6, 6)), v, life, life, size * randf_range(0.7, 1.3)])
+
+func _smoke_tick(delta: float) -> void:
+	for s in smoke:
+		s[0] += s[1] * delta
+		s[1] *= 1.0 - 1.5 * delta
+		s[2] -= delta
+	smoke = smoke.filter(func(s): return s[2] > 0.0)
+	for m in mist:
+		m[0] += m[2] * delta
+		if m[0] > 1.3:
+			m[0] -= 1.6
+
+func _draw_smoke(c: CanvasItem, o: Vector2, k: float) -> void:
+	for s in smoke:
+		var t: float = 1.0 - s[2] / s[3]
+		var r: float = s[4] * (0.6 + t * 1.2) * k
+		c.draw_texture_rect(disc, Rect2(o + s[0] * k - Vector2(r, r), Vector2(r, r) * 2), false, Color(pal.smoke, 0.45 * (1.0 - t)))
+
+## Mist wisps drifting across the field in front of everything (screen space, slow).
+func _draw_mist(c: CanvasItem, sz: Vector2, k: float) -> void:
+	for m in mist:
+		var x: float = m[0] * sz.x
+		var y: float = m[1] * k
+		var w: float = m[3] * k
+		var breathe := 0.75 + 0.25 * sin(anim_t * 0.5 + m[4])
+		c.draw_texture_rect(disc, Rect2(Vector2(x - w, y - w * 0.16), Vector2(w * 2, w * 0.32)), false, Color(pal.fog, 0.22 * breathe))
+
+## draw_colored_polygon, skipped when the shape folds over itself (Godot cannot
+## triangulate it and prints an error every frame).
+func _poly(c: CanvasItem, pts: PackedVector2Array, col: Color) -> void:
+	if Geometry2D.triangulate_polygon(pts).is_empty():
+		return
+	c.draw_colored_polygon(pts, col)
 
 func _star(c: CanvasItem, p: Vector2, k: float, mine: bool) -> void:
 	var a := anim_t * 20.0
@@ -692,8 +889,8 @@ func _hud_draw(c: CanvasItem, sz: Vector2, k: float) -> void:
 		var bx := (sz.x - w) / 2.0
 		var by := sz.y - 50.0 * k
 		c.draw_rect(Rect2(bx, by, w, 14 * k), Color(pal.far, 0.8))
-		c.draw_rect(Rect2(bx, by, w * float(engine.boss.hp) / float(engine.boss.max), 14 * k), pal.ink)
-		c.draw_string(font, Vector2(bx, by - 8 * k), tr(engine.boss_name()), HORIZONTAL_ALIGNMENT_CENTER, w, int(22 * k), pal.ink)
+		c.draw_rect(Rect2(bx, by, w * float(engine.boss.hp) / float(engine.boss.max), 14 * k), pal.paper)   # on the ink ground: paper colour
+		c.draw_string(font, Vector2(bx, by - 8 * k), tr(engine.boss_name()), HORIZONTAL_ALIGNMENT_CENTER, w, int(22 * k), pal.paper)
 	if banner != "":
 		var fs := int(64 * k)
 		var tp := Vector2(0, sz.y * 0.42)
@@ -834,6 +1031,7 @@ func _current_skin() -> String:
 func _on_pause() -> void:
 	key_l = false
 	key_r = false
+	key_d = false
 	home.pause()
 
 func _go_home() -> void:
