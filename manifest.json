@@ -267,7 +267,7 @@
     "tarot": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tarot.pck", "scene": "res://scenes/games/tarot/tarot.tscn"},
     "bridge_master": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bridge_master.pck", "scene": "res://scenes/games/bridge_master/bridge_master.tscn"},
     "hover_duel": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hover_duel.pck", "scene": "res://scenes/games/hover_duel/hover_duel.tscn"},
-    "ink_ninja": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ink_ninja.pck", "scene": "res://scenes/games/ink_ninja/ink_ninja.tscn"},
+    "ink_ninja": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ink_ninja.pck", "scene": "res://scenes/games/ink_ninja/ink_ninja.tscn"},
     "wolf_pack": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wolf_pack.pck", "scene": "res://scenes/games/wolf_pack/wolf_pack.tscn"},
     "mini_golf_3d": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf_3d.pck", "scene": "res://scenes/games/mini_golf_3d/mini_golf_3d.tscn"}
   }
