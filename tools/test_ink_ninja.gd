@@ -27,7 +27,7 @@ func _init() -> void:
 			var deaths := 0
 			var best := 0.0
 			var dt := 1.0 / 30.0
-			while t < 150.0 and e.state == "play":
+			while t < 700.0 and e.state == "play":
 				var near_pit := false
 				for p in e.pits:
 					if e.px > p[0] - 90 and e.px < p[0]:
@@ -49,7 +49,7 @@ func _init() -> void:
 			if e.state == "won":
 				won += 1
 	print("boss reached in %d/30 runs, won %d/30" % [reached, won])
-	check(reached >= 25, "a random bot crosses almost every stage to the boss in 150 s")
+	check(reached >= 25, "a random bot crosses almost every stage to the boss in 700 s")
 	# next_stage past the last one clears the campaign
 	var e2 = E.new()
 	e2.reset(1)

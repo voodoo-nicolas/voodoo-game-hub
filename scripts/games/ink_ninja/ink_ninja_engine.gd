@@ -79,6 +79,8 @@ var solids: Array = []     # Rect2 (ledges, pillars, walls; the ground is `heigh
 var pits: Array = []       # [x0, x1] (no pits since round 3; kept for old callers)
 var heights := PackedFloat32Array()   # ground top every SEG world units
 var pools: Array = []      # {"x0", "x1", "level"}: water filling a dip
+var checkpoints: Array = []   # world x of the stone lanterns; dying restarts at the last one passed
+var checkpoint_x := 0.0
 var dips: Array = []       # {"x0", "x1", "level", "wet"}: every dip, wet or dry (fog sits in them)
 var foes: Array = []       # Dictionary
 var shots: Array = []      # {x, y, vx, vy, mine}
@@ -107,7 +109,7 @@ func build_stage() -> void:
 	rng.seed = stage * 7919 + 13
 	state = "play"
 	time = 0.0
-	length = 3600.0 + stage * 500.0
+	length = (3600.0 + stage * 500.0) * 5.0   # owner 2026-11-15: stages 5x longer ("too short, too quick")
 	arena_x = length
 	locked = false
 	solids.clear()
@@ -122,24 +124,31 @@ func build_stage() -> void:
 	# start and in the arena. The old pits are now soft dips, most filled with water.
 	var n := int((length + VIEW_W) / SEG) + 2
 	heights.resize(n)
-	var amp := minf(40.0 + stage * 5.0, 85.0)
+	var amp := minf(110.0 + stage * 6.0, 165.0)   # owner's reference pictures: land that really rises and falls
 	var ph1 := rng.randf() * TAU
 	var ph2 := rng.randf() * TAU
 	for i in n:
 		var gxx := i * SEG
-		var wave := 0.5 + 0.5 * (0.65 * sin(gxx / 470.0 + ph1) + 0.35 * sin(gxx / 190.0 + ph2))
-		var blend := smoothstep(350.0, 800.0, gxx) * (1.0 - smoothstep(length - 600.0, length - 150.0, gxx))
-		heights[i] = GROUND - amp * wave * blend
+		var wave := 0.5 + 0.5 * (0.6 * sin(gxx / 520.0 + ph1) + 0.4 * sin(gxx / 230.0 + ph2))
+		# Terraces: flat stretches joined by short soft ramps, like stepped hillsides.
+		var tt := wave * 3.0
+		var fl := floorf(tt)
+		wave = (fl + smoothstep(0.2, 0.8, tt - fl)) / 3.0
+		var rough := sin(gxx * 0.09) * 3.0 + sin(gxx * 0.23 + ph2) * 1.5   # a ragged, hand-painted rim
+		var blend := smoothstep(350.0, 800.0, gxx) * (1.0 - smoothstep(length - 700.0, length - 150.0, gxx))
+		heights[i] = GROUND - (amp * wave + rough) * blend
 	var x := 700.0
 	while x < length - 700.0:
 		x += rng.randf_range(520.0, 900.0)
 		if x > length - 700.0:
 			break
-		if rng.randf() < 0.45 + stage * 0.03:
-			var depth := rng.randf_range(60.0, 140.0 + stage * 6.0)
-			var hw := maxf(rng.randf_range(130.0, 220.0), depth * 1.8)   # soft banks, never a cliff
+		if rng.randf() < 0.35 + stage * 0.04:
+			var depth := rng.randf_range(80.0, 150.0 + stage * 6.0)
+			var hw := maxf(rng.randf_range(220.0, 420.0), depth * 3.0)   # wide, flat-bottomed lakes with soft banks
+			if x + hw > length - 700.0:
+				break
 			_carve(x, hw, depth, rng.randf() < 0.8)
-			x += hw
+			x += hw * 1.2
 	pits.clear()
 	# Left and right world walls (the right one closes the arena).
 	solids.append(Rect2(-60, -400, 60, 1300))
@@ -179,6 +188,14 @@ func build_stage() -> void:
 		var sx := rng.randf_range(300.0, length - 300.0)
 		if not _over_pit(sx):
 			scrolls.append(Vector2(sx, ground_y(sx) - 60))
+	# Stone lanterns: 4 checkpoints per stage, each moved onto dry land.
+	checkpoints.clear()
+	checkpoint_x = 120.0
+	for c in range(1, 5):
+		var cx := length * c / 5.0
+		while water_depth(cx) > 0.0 or _over_pit(cx):
+			cx += 40.0
+		checkpoints.append(cx)
 	px = 120.0
 	py = ground_y(px)
 	air = AIR
@@ -238,7 +255,7 @@ func _carve(cx: float, hw: float, depth: float, wet: bool) -> void:
 	for i in range(i0, i1 + 1):
 		var dx := absf(i * SEG - cx)
 		if dx < hw:
-			heights[i] = minf(LOWEST, heights[i] + depth * 0.5 * (1.0 + cos(PI * dx / hw)))
+			heights[i] = minf(LOWEST, heights[i] + depth * (1.0 - smoothstep(hw * 0.35, hw, dx)))
 	var level := maxf(ground_y(cx - hw), ground_y(cx + hw)) + 6.0
 	var a := cx
 	while a > cx - hw and ground_y(a) > level:
@@ -280,6 +297,10 @@ func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bo
 			scrolls.erase(s)
 			score += 50
 			events.append("scroll")
+	for c in checkpoints:
+		if px >= c and checkpoint_x < c:
+			checkpoint_x = c
+			events.append("checkpoint")
 	if not locked and px > arena_x + 80:
 		locked = true
 		solids.append(Rect2(arena_x, -400, 40, GROUND + 400))   # the gate shuts behind you
@@ -501,7 +522,16 @@ func _hurt(dmg: int, fell: bool = false, from_x: float = NAN) -> void:
 func retry() -> void:
 	hp = MAX_HP
 	stars = maxi(stars, START_STARS)
+	var cp := checkpoint_x
 	build_stage()
+	restart_at(cp)
+
+## Put the hero back at a lantern (retry after a fall, or Resume from a save).
+func restart_at(cp: float) -> void:
+	checkpoint_x = cp
+	px = cp
+	py = ground_y(px)
+	foes = foes.filter(func(f): return absf(f.x - px) > 500.0)   # no ambush on the spot
 
 ## After "won": next stage, or the campaign is cleared.
 func next_stage() -> void:

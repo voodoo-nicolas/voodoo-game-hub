@@ -443,6 +443,9 @@ func _event(e: String) -> void:
 				info.add("Ninjas defeated")
 		"hit", "bosshit":
 			SoundLib.play(self, "impact/punch_medium", -6.0)
+		"checkpoint":
+			SoundLib.play(self, "impact/bell_heavy", -10.0, "game", 1.4)
+			_puff(Vector2(engine.px, engine.py - 60), 5, 14.0, 60.0)
 		"scroll":
 			SoundLib.play(self, "rpg/book_flip", -4.0)
 			_goal("scrolls")
@@ -562,6 +565,17 @@ func _draw_field() -> void:
 		if r.end.x < 0 or r.position.x > sz.x:
 			continue
 		c.draw_rect(r, pal.ink)
+		if s.size.y < 30.0:
+			# A ledge is a floating chunk of earth (owner's reference pictures): a ragged,
+			# tapering underside hanging below the walkable top.
+			var under := PackedVector2Array([r.position + Vector2(0, r.size.y)])
+			var n := maxi(3, int(s.size.x / 30.0))
+			for i in range(1, n):
+				var t := float(i) / n
+				var depth := (sin(t * PI) * 46.0 + fmod(s.position.x * 0.7 + i * 37.0, 14.0)) * k
+				under.append(Vector2(r.position.x + r.size.x * t, r.end.y + depth))
+			under.append(r.end)
+			_poly(c, under, pal.ink)
 		var y := r.position.y
 		var x := r.position.x
 		while x < r.end.x:
@@ -576,6 +590,8 @@ func _draw_field() -> void:
 		var gx: float = o.x + engine.arena_x * k
 		for i in 4:
 			c.draw_line(Vector2(gx + (8 + i * 9) * k, 0), Vector2(gx + (8 + i * 9) * k, Engine_.GROUND * k), pal.near, 4.0 * k)
+	for cpx in engine.checkpoints:
+		_lantern(c, o + Vector2(cpx, engine.ground_y(cpx)) * k, k, engine.checkpoint_x >= cpx)
 	for s in engine.scrolls:
 		_scroll(c, o + s * k, k)
 	for f in engine.foes:
@@ -698,6 +714,20 @@ func _draw_haze(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			var ww := w * (0.75 - m * 0.12)
 			var cx := (a.x + b.x) / 2.0 + drift * (1.0 - m)
 			c.draw_texture_rect(disc, Rect2(Vector2(cx - ww / 2.0, cy - 50.0 * k), Vector2(ww, 100.0 * k)), false, Color(pal.haze, (0.7 - m * 0.18) * f))
+
+## A stone lantern checkpoint: a warm glow once you have passed it.
+func _lantern(c: CanvasItem, base: Vector2, k: float, lit: bool) -> void:
+	var col: Color = pal.near
+	c.draw_rect(Rect2(base + Vector2(-14, -10) * k, Vector2(28, 10) * k), col)
+	c.draw_rect(Rect2(base + Vector2(-5, -46) * k, Vector2(10, 36) * k), col)
+	c.draw_rect(Rect2(base + Vector2(-13, -66) * k, Vector2(26, 20) * k), col)
+	_poly(c, PackedVector2Array([base + Vector2(-22, -66) * k, base + Vector2(22, -66) * k, base + Vector2(0, -84) * k]), col)
+	if lit:
+		var glow := 0.55 + 0.15 * sin(anim_t * 3.0)
+		c.draw_texture_rect(disc, Rect2(base + Vector2(-30, -86) * k, Vector2(60, 60) * k), false, Color(1.0, 0.85, 0.55, glow * 0.45))
+		c.draw_rect(Rect2(base + Vector2(-7, -62) * k, Vector2(14, 12) * k), Color(1.0, 0.82, 0.5, glow))
+	else:
+		c.draw_rect(Rect2(base + Vector2(-7, -62) * k, Vector2(14, 12) * k), pal.paper2)
 
 ## A strip of pine silhouettes (white, tinted when drawn), 1024 x 400, the forest floor
 ## solid along the bottom. Built row by row with fill_rect (fast), tiers give jagged branches.
@@ -1163,7 +1193,7 @@ func _save_game() -> void:
 	var st: int = engine.stage
 	if engine.state == "won":
 		st = mini(Engine_.STAGES, st + 1)
-	SaveUtil.write(SAVE_PATH, {"score": engine.score, "stage": st, "lives": maxi(1, engine.lives), "stars": engine.stars, "diff": engine.diff})
+	SaveUtil.write(SAVE_PATH, {"score": engine.score, "stage": st, "lives": maxi(1, engine.lives), "stars": engine.stars, "diff": engine.diff, "cp": engine.checkpoint_x if engine.state != "won" else 0.0})
 
 func _resume_text() -> String:
 	var d = SaveUtil.read(SAVE_PATH)
@@ -1180,6 +1210,8 @@ func _load_saved_game() -> void:
 	engine.lives = clampi(int(d.get("lives", 3)), 1, 3)
 	engine.stars = maxi(0, int(d.get("stars", Engine_.START_STARS)))
 	engine.build_stage()
+	if float(d.get("cp", 0.0)) > 200.0:
+		engine.restart_at(float(d.get("cp", 0.0)))
 	_begin()
 
 func _sfx(sound: String) -> void:
