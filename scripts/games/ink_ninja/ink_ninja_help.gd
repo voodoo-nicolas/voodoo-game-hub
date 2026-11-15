@@ -6,11 +6,11 @@ const ID := "ink_ninja"
 const TITLE := "Ink Ninja"
 const GOAL := "Run, leap and cut your way through 10 ink-painted stages and defeat the boss waiting at the end of each one."
 const HOW := [
-	"Push the stick left or right to run. Pull it down to crouch: low enemy stars fly over your head, and your slash cuts low.",
-	"A jumps. Press it again in the air for a double jump. Hold the stick against a wall while falling to slide down it, then press A to kick off.",
-	"B slashes your sword in front of you. A slash also cuts enemy throwing stars out of the air.",
-	"X throws a star. You start each stage with at least 8; star throwers sometimes drop 2 more.",
-	"Y dashes forward. While dashing, attacks pass straight through you.",
+	"Push the stick left or right to run. Pull it down to crouch and creep: low enemy stars fly over your head, and Swing becomes a low jab.",
+	"Push the stick up to jump; push it up again in the air for a double jump. Hold the stick against a wall while falling to slide down it, then push up to kick off.",
+	"A (Swing) cuts in front of you. A swing also cuts enemy throwing stars out of the air.",
+	"Y (Block), from stage 2: hold it to stop stars and blades coming from the front. X (Star), once you beat stage 2: throws a star; you start each stage with at least 8, and throwers sometimes drop 2 more.",
+	"B (Thrust), once you beat stage 3: lunge forward and run your blade through the first foe in your way (2 damage). While lunging, attacks pass through you.",
 	"Blade ninjas raise their sword before they cut, leapers jump at you, brutes take 3 hits and hit twice as hard.",
 	"You have 5 hearts and 3 lives. Losing all your hearts costs a life and sends you back to the last stone lantern you passed (4 on each stage). When something hits you, you are knocked back out of reach.",
 	"The ground rolls over hills and hollows, and many hollows hold water. Wading is slower. Where it is too deep to stand, press A to swim up.",
@@ -22,11 +22,12 @@ const HOW := [
 	"⏸ pauses; Resume on the Home screen keeps your score, lives and stars and restarts the stage.",
 ]
 const TIPS := [
-	"Dash through a boss's charge instead of jumping over it.",
+	"Thrust through a boss's charge instead of jumping over it.",
 	"Jump when a boss lands from a leap: the shockwave only hits you on the ground.",
 	"Keep a few stars for the boss and slash the small fry.",
 	"Crouch under a star thrower's stars instead of jumping them.",
 	"Ninjas will not follow you into deep water.",
+	"A single blow never takes your last spare heart: you always get one more chance to get clear.",
 ]
 const STATS := ["Best score", "Highest stage", "Bosses defeated", "Ninjas defeated", "Stars parried", "Daily objectives", "Weekly objectives", "Games played"]
 const ACHIEVEMENTS := [

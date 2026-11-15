@@ -67,6 +67,15 @@ var run_t := 0.0
 var combo := 0
 var combo_t := 0.0
 var crouch := false
+var blocking := false
+var jab := false       # this attack is a crouching jab (straight forward, low)
+var thrust_hit := {}   # foes already run through by this thrust
+var tips: Array = []   # [x0, x1, key]: tutorial lines shown while the hero is between x0 and x1
+## Abilities unlock as the story goes (owner 2026-11-15): stage 1 teaches move, crouch,
+## jump and swing; block from stage 2; throwing stars once stage 2 is beaten; the thrust
+## once stage 3 is beaten.
+const UNLOCK := {"block": 2, "star": 3, "thrust": 4}
+const TUTOR := 2800.0   # stage 1: the first stretch is a quiet tutorial
 var hits_taken := 0   # hearts lost this stage (for "clear a stage without a hit")
 
 var air := AIR
@@ -91,6 +100,9 @@ var locked := false
 var time := 0.0
 var rng := RandomNumberGenerator.new()
 var events: Array = []
+
+func can(ability: String) -> bool:
+	return stage >= int(UNLOCK.get(ability, 1))
 
 func reset(d: int) -> void:
 	diff = clampi(d, 0, 2)
@@ -122,6 +134,7 @@ func build_stage() -> void:
 	dips.clear()
 	# Rolling ground (owner 2026-11-15): two slow waves rising above GROUND, flat at the
 	# start and in the arena. The old pits are now soft dips, most filled with water.
+	var t0 := TUTOR if stage == 1 else 0.0   # the tutorial stretch stays flat and quiet
 	var n := int((length + VIEW_W) / SEG) + 2
 	heights.resize(n)
 	var amp := minf(110.0 + stage * 6.0, 165.0)   # owner's reference pictures: land that really rises and falls
@@ -135,9 +148,9 @@ func build_stage() -> void:
 		var fl := floorf(tt)
 		wave = (fl + smoothstep(0.2, 0.8, tt - fl)) / 3.0
 		var rough := sin(gxx * 0.09) * 3.0 + sin(gxx * 0.23 + ph2) * 1.5   # a ragged, hand-painted rim
-		var blend := smoothstep(350.0, 800.0, gxx) * (1.0 - smoothstep(length - 700.0, length - 150.0, gxx))
+		var blend := smoothstep(350.0 + t0, 800.0 + t0, gxx) * (1.0 - smoothstep(length - 700.0, length - 150.0, gxx))
 		heights[i] = GROUND - (amp * wave + rough) * blend
-	var x := 700.0
+	var x := 700.0 + t0
 	while x < length - 700.0:
 		x += rng.randf_range(520.0, 900.0)
 		if x > length - 700.0:
@@ -154,7 +167,7 @@ func build_stage() -> void:
 	solids.append(Rect2(-60, -400, 60, 1300))
 	solids.append(Rect2(length + VIEW_W - 60, -400, 60, 1300))
 	# Ledges and pillars to climb.
-	x = 500.0
+	x = 500.0 + t0
 	while x < length - 600.0:
 		x += rng.randf_range(350.0, 650.0)
 		if _over_pit(x) or _over_pit(x + 160):
@@ -168,7 +181,7 @@ func build_stage() -> void:
 			solids.append(Rect2(x, ly, lw, 22))
 			scrolls.append(Vector2(x + lw / 2.0, ly - 40))
 	# Foes.
-	x = 900.0
+	x = 900.0 + t0 + (600.0 if stage == 2 else 0.0)
 	while x < length - 300.0:
 		x += rng.randf_range(260.0, 520.0) / (1.0 + diff * 0.15)
 		if _over_pit(x):
@@ -188,6 +201,7 @@ func build_stage() -> void:
 		var sx := rng.randf_range(300.0, length - 300.0)
 		if not _over_pit(sx):
 			scrolls.append(Vector2(sx, ground_y(sx) - 60))
+	_tutorial()
 	# Stone lanterns: 4 checkpoints per stage, each moved onto dry land.
 	checkpoints.clear()
 	checkpoint_x = 120.0
@@ -220,6 +234,33 @@ func boss_kind() -> int:
 
 func boss_name() -> String:
 	return BOSS_NAMES[boss_kind()]
+
+## Tutorial props and tip lines: stage 1 teaches the basics one at a time; later stages
+## open with a line about what was just unlocked.
+func _tutorial() -> void:
+	tips.clear()
+	match stage:
+		1:
+			tips = [[0.0, 700.0, "move"], [700.0, 1250.0, "crouch"], [1250.0, 1850.0, "jump"], [1850.0, 2700.0, "swing"]]
+			solids.append(Rect2(1000.0, GROUND - 230.0, 170.0, 230.0 - 52.0))   # a low beam: crouch to pass under
+			solids.append(Rect2(1550.0, GROUND - 120.0, 46.0, 120.0))   # a stump to jump
+			foes.append({"kind": "blade", "x": 2300.0, "y": GROUND, "vx": 0.0, "vy": 0.0, "hp": 1, "face": -1,
+				"t": 1.0, "atk": 0.0, "hit": 0.0, "id": foes.size()})
+		2:
+			tips = [[0.0, 1600.0, "block"]]
+			foes.append({"kind": "thrower", "x": 1250.0, "y": ground_y(1250.0), "vx": 0.0, "vy": 0.0, "hp": 1, "face": -1,
+				"t": 1.5, "atk": 0.0, "hit": 0.0, "id": foes.size()})
+		3:
+			tips = [[0.0, 900.0, "star"]]
+		4:
+			tips = [[0.0, 900.0, "thrust"]]
+
+## The tip key for where the hero stands ("" = none).
+func tip() -> String:
+	for t in tips:
+		if px >= t[0] and px < t[1]:
+			return t[2]
+	return ""
 
 ## Over a dip (wet or dry): nothing is placed there.
 func _over_pit(x: float) -> bool:
@@ -269,7 +310,7 @@ func _carve(cx: float, hw: float, depth: float, wet: bool) -> void:
 
 func _spawn_boss() -> void:
 	var k := boss_kind()
-	var hpb := int((12 + stage * 2) * [0.7, 1.0, 1.3][diff] * (0.6 if stage == 1 else 1.0))   # the first duel is a gentle one (owner 2026-11-15)
+	var hpb := int((12 + stage * 2) * [0.7, 1.0, 1.3][diff] * (0.75 if stage == 1 else 1.0))   # the first duel is a gentle one (owner 2026-11-15)
 	boss = {"kind": k, "x": arena_x + VIEW_W - 260, "y": GROUND, "vx": 0.0, "vy": 0.0, "hp": hpb, "max": hpb,
 		"face": -1, "phase": "idle", "t": 1.2, "hit": 0.0, "n": 0}
 	events.append("boss")
@@ -277,7 +318,7 @@ func _spawn_boss() -> void:
 # ---------- step ----------
 
 ## move: -1..1, jump/slash/throw/dash: pressed this frame. Returns events.
-func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bool, down: bool = false) -> Array:
+func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bool, down: bool = false, block: bool = false) -> Array:
 	events = []
 	if state != "play":
 		return events
@@ -287,7 +328,15 @@ func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bo
 	combo_t -= dt
 	if combo_t <= 0.0:
 		combo = 0
+	var was_crouch := crouch
 	crouch = down and on_ground and dash_t <= 0.0
+	if was_crouch and not crouch and on_ground and _blocked_overhead():
+		crouch = true   # no room to stand up under a beam
+	blocking = block and can("block") and on_ground and dash_t <= 0.0 and slash_t <= 0.0
+	if not can("star"):
+		throw = false
+	if not can("thrust"):
+		dash = false
 	_player(dt, move, jump, slash, throw, dash)
 	_foes(dt)
 	_boss(dt)
@@ -315,6 +364,7 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 	if dash and dash_cd <= 0.0:
 		dash_t = DASH_T
 		dash_cd = DASH_CD
+		thrust_hit = {}
 		events.append("dash")
 	var lv := water_level(px)
 	in_water = py > lv + 8.0   # feet in the water
@@ -326,8 +376,11 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 		dash_t -= dt
 		vx = facing * DASH_V * (WADE if in_water else 1.0)
 		vy = 0.0
+		_thrust_hits()
 	else:
-		var target := 0.0 if crouch else move * RUN * (WADE if in_water else 1.0)   # crouching: turn only, no walking
+		var target := move * RUN * (WADE if in_water else 1.0) * (0.4 if crouch else 1.0)   # crouching: a slow creep (was: turn only)
+		if blocking:
+			target = 0.0   # feet planted behind the guard
 		vx = move_toward(vx, target, (3000.0 if on_ground else 1800.0) * dt)
 		if in_water:
 			vy = minf(vy + GRAV * 0.3 * dt, 200.0)   # water holds you up: a slow sink
@@ -375,7 +428,8 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 	if slash and slash_t <= 0.0:
 		slash_t = SLASH_T
 		slash_hit = {}
-		events.append("slash")
+		jab = crouch
+		events.append("jab" if jab else "slash")
 	if throw and stars > 0:
 		stars -= 1
 		shots.append({"x": px + facing * 20, "y": py - height() * 0.6, "vx": facing * STAR_V, "vy": 0.0, "mine": true, "life": 1.2})
@@ -436,7 +490,38 @@ func height() -> float:
 func _box() -> Rect2:
 	return Rect2(px - PW / 2, py - height(), PW, height())
 
+## Standing up would hit a solid (crouched under a beam).
+func _blocked_overhead() -> bool:
+	var r := Rect2(px - PW / 2 + 2, py - PH, PW - 4, PH - CROUCH_H)
+	for s in solids:
+		if r.intersects(s):
+			return true
+	return false
+
+## The thrust (owner 2026-11-15: running into a foe used to hurt YOU): the blade leads,
+## every foe it meets takes 2, the boss 1; it stops at the first body and you bounce back.
+func _thrust_hits() -> void:
+	var r := Rect2(px - PW / 2 if facing > 0 else px - PW / 2 - 70, py - height(), PW + 70, height())
+	for f in foes:
+		if f.hp > 0 and not thrust_hit.has(f.id) and r.intersects(_foe_box(f)):
+			thrust_hit[f.id] = true
+			_hit_foe(f, 2, facing)
+			if f.hp > 0:
+				_thrust_stop()
+	if not boss.is_empty() and boss.hp > 0 and not thrust_hit.has("boss") and r.intersects(boss_box()):
+		thrust_hit["boss"] = true
+		_hit_boss(1)
+		_thrust_stop()
+
+func _thrust_stop() -> void:
+	dash_t = 0.0
+	vx = -facing * 260.0
+	hurt_t = maxf(hurt_t, 0.5)   # a moment to get clear
+
 func slash_rect() -> Rect2:
+	if jab:
+		var jx := px if facing > 0 else px - SLASH_REACH - 24
+		return Rect2(jx, py - height() - 4, SLASH_REACH + 24, height())   # a jab reaches further, low and narrow
 	var x0 := px if facing > 0 else px - SLASH_REACH
 	return Rect2(x0, py - height() - 10, SLASH_REACH, height() + 20)
 
@@ -500,6 +585,14 @@ func _hit_boss(dmg: int) -> void:
 func _hurt(dmg: int, fell: bool = false, from_x: float = NAN) -> void:
 	if not fell and (hurt_t > 0.0 or dash_t > 0.0):
 		return   # a dash passes through attacks
+	if not fell and blocking and not is_nan(from_x) and signf(from_x - px) == float(facing):
+		events.append("block")   # the guard takes it: no damage, a small push back
+		score += 10
+		hurt_t = 0.25
+		vx = -facing * 220.0
+		return
+	if not fell:
+		dmg = mini(dmg, maxi(1, hp - 1))   # owner 2026-11-15: one hit is never death while you have hearts to spare
 	hp -= dmg
 	hits_taken += 1
 	hurt_t = INVULN
@@ -626,7 +719,7 @@ func _boss(dt: float) -> void:
 			if boss.t > 0.0:
 				boss.vx = 0.0
 			else:
-				boss.vx = boss.face * 700.0 * p * (0.7 if stage == 1 else 1.0)
+				boss.vx = boss.face * 700.0 * p * (0.8 if stage == 1 else 1.0)
 				if boss.x <= lo or boss.x >= hi or boss.t < -1.2:
 					_boss_rest()
 		"leap":
@@ -661,7 +754,7 @@ func _boss(dt: float) -> void:
 func _boss_rest() -> void:
 	boss.phase = "idle"
 	boss.vx = 0.0
-	boss.t = maxf(0.7, 1.8 - stage * 0.08 - diff * 0.2) + (0.8 if stage == 1 else 0.0)
+	boss.t = maxf(0.7, 1.8 - stage * 0.08 - diff * 0.2) + (0.5 if stage == 1 else 0.0)
 
 func _shots(dt: float) -> void:
 	for s in shots:

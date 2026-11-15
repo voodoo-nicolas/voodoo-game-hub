@@ -130,5 +130,48 @@ func _init() -> void:
 	for i in 90:
 		e7.step(1.0 / 60.0, 1.0, false, false, false, false)   # keep pushing into it
 	check(e7.hp >= E.MAX_HP - 2, "stage-1 boss contact for 1.5 s costs at most 2 hearts (hp %d)" % e7.hp)
+	# Owner round 4 (2026-11-15): thrust attacks, block, crouch under the tutorial beam, no one-hit death.
+	for st in [4, 6, 9]:
+		var t1 = E.new()
+		t1.reset(1)
+		t1.stage = st
+		t1.build_stage()
+		t1.foes.clear()
+		t1.foes.append({"kind": "brute", "x": t1.px + 120.0, "y": t1.ground_y(t1.px + 120.0), "vx": 0.0, "vy": 0.0, "hp": 3, "face": -1, "t": 9.0, "atk": 0.0, "hit": 0.0, "id": 0})
+		t1.step(1.0 / 60.0, 1.0, false, false, false, true)
+		for i in 60:
+			t1.step(1.0 / 60.0, 1.0, false, false, false, false)
+		check(t1.state == "play" and t1.hp >= E.MAX_HP - 1, "thrust into a brute s%d: hero fine (hp %d)" % [st, t1.hp])
+		check(t1.foes.is_empty() or t1.foes[0].hp < 3, "thrust damages the brute s%d" % st)
+	var t2 = E.new()
+	t2.reset(1)
+	t2.stage = 2
+	t2.build_stage()
+	t2.foes.clear()
+	t2.shots = [{"x": t2.px + 200.0, "y": t2.py - 45.0, "vx": -520.0, "vy": 0.0, "mine": false, "life": 2.0}]
+	for i in 60:
+		t2.step(1.0 / 60.0, 0.0, false, false, false, false, false, true)
+	check(t2.hp == E.MAX_HP, "block stops a star on stage 2")
+	var t3 = E.new()
+	t3.reset(1)
+	check(not t3.can("block") and not t3.can("star") and not t3.can("thrust"), "stage 1: basics only")
+	t3.foes.clear()
+	var thrown: int = t3.stars
+	t3.step(1.0 / 60.0, 0.0, false, false, true, false)
+	check(t3.stars == thrown, "no stars on stage 1")
+	t3.px = 900.0
+	for i in 300:
+		t3.step(1.0 / 60.0, 1.0, false, false, false, false, true)
+	check(t3.px > 1200.0, "crouch-creep under the tutorial beam (x %d)" % t3.px)
+	for i in 30:
+		t3.step(1.0 / 60.0, 1.0, false, false, false, false)
+	check(t3.py >= t3.ground_y(t3.px) - 1.0, "stands up on the ground, not on the beam")
+	var t4 = E.new()
+	t4.reset(1)
+	t4.stage = 5
+	t4.build_stage()
+	t4.hp = E.MAX_HP
+	t4._hurt(5, false, t4.px + 50.0)
+	check(t4.state == "play" and t4.hp >= 1, "one blow never kills a hero with hearts to spare")
 	print("ink_ninja: %s (%d failures)" % ["OK" if fails == 0 else "FAILED", fails])
 	quit(1 if fails else 0)

@@ -31,9 +31,9 @@ const PAUSE_AFTER := 1.8
 ## blow lands (`water`, `red`, `tint_far`, `tint_mid`, `haze` below).
 const WASH := {
 	"classic": {"paper": Color("efe8d8"), "paper2": Color("d6d4c8"), "far": Color("aeb6b9"), "mid": Color("858c86"), "moon": Color("f8efdc"), "fog": Color("eef0ee"),
-		"water": Color(0.42, 0.58, 0.72, 0.5), "surf": Color(0.3, 0.45, 0.6, 0.8), "red": Color(0.62, 0.16, 0.13), "haze": Color("e4e7e8")},
+		"water": Color(0.2, 0.45, 0.82, 0.62), "surf": Color(0.12, 0.35, 0.75, 0.9), "red": Color(0.8, 0.05, 0.04), "haze": Color("e4e7e8")},
 	"voodoo": {"paper": Color("08090c"), "paper2": Color("181a1f"), "far": Color("262b33"), "mid": Color("3f4544"), "moon": Color("dcd6c8"), "fog": Color("566068"),
-		"water": Color(0.16, 0.28, 0.42, 0.6), "surf": Color(0.45, 0.6, 0.75, 0.7), "red": Color(0.72, 0.24, 0.2), "haze": Color("3a4048")},
+		"water": Color(0.1, 0.25, 0.6, 0.7), "surf": Color(0.35, 0.6, 0.95, 0.85), "red": Color(0.85, 0.1, 0.08), "haze": Color("3a4048")},
 }
 const LOOKS := {
 	"classic": {"paper": Color("ece6d8"), "paper2": Color("d8d0bf"), "ink": Color("111111"), "far": Color("b9b2a4"), "mid": Color("8e887d"), "near": Color("4a4743"), "moon": Color("f7f3ea"), "fog": Color("f4f1ea"), "shadow": Color("2a2723"), "smoke": Color("8a857c")},
@@ -50,6 +50,19 @@ var move := 0.0
 var key_l := false
 var key_r := false
 var key_d := false
+var key_b := false       # block held (keyboard I / Ctrl, old button)
+var stick_up := false    # the stick was pushed up last frame (jump fires on the push)
+## Tutorial lines (owner 2026-11-15: stage 1 teaches moving, crouching, jumping and the
+## sword; stage 2 opens with block; stars and the thrust are announced when unlocked).
+const TIPS := {
+	"move": "Push the stick left or right to run.  (Keyboard: A / D)",
+	"crouch": "Pull the stick down to crouch and creep under the beam.  (Keyboard: S)",
+	"jump": "Push the stick up to jump; push again in the air to jump higher.  (Keyboard: W / Space)",
+	"swing": "Press Swing to cut. Crouch and press Swing to jab low.  (Keyboard: J)",
+	"block": "Hold Block to stop stars and blades in front of you.  (Keyboard: I / Ctrl)",
+	"star": "New: Star throws a shuriken.  (Keyboard: K)",
+	"thrust": "New: Thrust lunges forward and runs your blade through a foe.  (Keyboard: L / Shift)",
+}
 var q := {"jump": false, "slash": false, "throw": false, "dash": false}
 var after := 0.0
 var banner := ""
@@ -94,7 +107,7 @@ func _ready() -> void:
 	_hud_colors()
 	_paper_params()
 	engine.reset(1)
-	_music("lively")
+	_music("calm", "asian")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -196,7 +209,7 @@ func _build_ui() -> void:
 	old_controls.add_theme_constant_override("separation", 10)
 	old_controls.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(old_controls)
-	for spec in [["◀", "left"], ["▶", "right"], ["▼", "down"], ["⤒", "jump"], ["⚔", "slash"], ["✴", "throw"], ["»", "dash"]]:
+	for spec in [["◀", "left"], ["▶", "right"], ["▼", "down"], ["⤒", "jump"], ["⚔", "slash"], ["»", "dash"], ["✴", "throw"], ["⛨", "block"]]:
 		var b := Button.new()
 		b.text = spec[0]
 		b.custom_minimum_size = Vector2(110, 100)
@@ -266,22 +279,33 @@ func _add_pad() -> void:
 	add_child(touch_pad)
 	for part in ["pause", "info"]:
 		touch_pad.set_hidden(part, true)
-	touch_pad.set_state("a", {"glyph": "jump", "sub": tr("Jump")})
-	touch_pad.set_state("b", {"sub": tr("Slash")})
+	# Owner 2026-11-15: the four buttons are Swing, Thrust, Star and Block; jumping is on
+	# the stick (push up) or the keyboard. Locked moves stay hidden until they unlock.
+	touch_pad.set_state("a", {"sub": tr("Swing")})
+	touch_pad.set_state("b", {"sub": tr("Thrust")})
 	touch_pad.set_state("x", {"sub": tr("Star")})
-	touch_pad.set_state("y", {"sub": tr("Dash")})
+	touch_pad.set_state("y", {"sub": tr("Block")})
 	touch_pad.button_pressed.connect(_on_pad_button)
+
+## Show only the buttons this stage allows; a newly unlocked one pops in.
+func _pad_unlocks(reveal: bool) -> void:
+	if not touch_pad:
+		return
+	for pair in [["y", "block"], ["x", "star"], ["b", "thrust"]]:
+		var ok: bool = engine.can(pair[1])
+		if ok and reveal and int(Engine_.UNLOCK[pair[1]]) == engine.stage and touch_pad.has_method("reveal"):
+			touch_pad.reveal(pair[0])
+		else:
+			touch_pad.set_hidden(pair[0], not ok)
 
 func _on_pad_button(id: String) -> void:
 	match id:
 		"a":
-			q.jump = true
-		"b":
 			q.slash = true
+		"b":
+			q.dash = true
 		"x":
 			q.throw = true
-		"y":
-			q.dash = true
 
 func _hold(what: String, on: bool) -> void:
 	match what:
@@ -291,6 +315,8 @@ func _hold(what: String, on: bool) -> void:
 			key_r = on
 		"down":
 			key_d = on
+		"block":
+			key_b = on
 		_:
 			if on:
 				q[what] = true
@@ -319,6 +345,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_L, KEY_SHIFT:
 				if event.pressed:
 					q.dash = true
+			KEY_I, KEY_CTRL:
+				key_b = event.pressed
 			KEY_ESCAPE:
 				if event.pressed and started:
 					_on_pause()
@@ -344,7 +372,8 @@ func _begin() -> void:
 	card_t = 6.0 if not prologue else 9.0
 	prologue = false
 	SoundLib.play(self, "rpg/book_flip", -6.0)
-	_music("lively")
+	_music("calm", "asian")
+	_pad_unlocks(engine.stage == 2 or engine.stage == 3 or engine.stage == 4)
 	splats.clear()
 	stains.clear()
 	end_dialog.visible = false
@@ -395,14 +424,20 @@ func _process(delta: float) -> void:
 		return
 	var m := 0.0
 	var dn := key_d
+	var blk := key_b
 	if touch_pad:
 		var pv: Vector2 = touch_pad.get_vector("move")
 		m = pv.x
 		dn = dn or pv.y > 0.55
+		var up := pv.y < -0.6
+		if up and not stick_up:
+			q.jump = true   # jump = push the stick up
+		stick_up = up
+		blk = blk or touch_pad.is_down("y")
 		if absf(m) < 0.25:
 			m = 0.0
 	m = clampf(m + (1.0 if key_r else 0.0) - (1.0 if key_l else 0.0), -1.0, 1.0)
-	var ev: Array = engine.step(delta, m, q.jump, q.slash, q.throw, q.dash, dn)
+	var ev: Array = engine.step(delta, m, q.jump, q.slash, q.throw, q.dash, dn, blk)
 	if engine.on_ground and absf(engine.vx) > 120.0 and engine.dash_t <= 0.0:
 		step_t -= delta
 		if step_t <= 0.0:
@@ -423,12 +458,17 @@ func _event(e: String) -> void:
 		return
 	match e:
 		"jump", "walljump":
-			_sfx("jump")
+			SoundLib.play(self, "rpg/cloth", -4.0, "game", 1.15)   # a cloth whip, not the arcade boing (owner 2026-11-15)
 		"dash":
-			_sfx("whoosh")
+			SoundLib.play(self, "rpg/draw_knife", -3.0, "game", 0.85)
 			_puff(Vector2(engine.px, engine.py - 10), 6, 18.0, 90.0)
 		"slash":
-			SoundLib.play(self, "rpg/knife_slice", -6.0)
+			SoundLib.play(self, "rpg/draw_knife", -5.0, "game", 1.2)   # a blade whoosh (owner 2026-11-15)
+		"jab":
+			SoundLib.play(self, "rpg/knife_slice", -6.0, "game", 1.3)
+		"block":
+			SoundLib.play(self, "impact/metal_light", -4.0)
+			_goal("parries")
 		"throw":
 			_sfx("shoot")
 		"parry":
@@ -564,6 +604,27 @@ func _draw_field() -> void:
 		var r := Rect2(o + s.position * k, s.size * k)
 		if r.end.x < 0 or r.position.x > sz.x:
 			continue
+		var tower: bool = s.size.y >= 30.0
+		if tower:
+			# Towers, stumps and walls: grey stone blocks with ink mortar and an ink outline,
+			# so they stand apart from the black earth (owner 2026-11-15).
+			c.draw_rect(r, pal.near)
+			var mortar := PackedVector2Array()
+			var row := 0
+			var by := r.position.y + 18.0 * k
+			while by < minf(r.end.y, field.size.y):
+				mortar.append(Vector2(r.position.x, by))
+				mortar.append(Vector2(r.end.x, by))
+				var bx := r.position.x + (12.0 if row % 2 == 0 else 26.0) * k
+				while bx < r.end.x:
+					mortar.append(Vector2(bx, by - 18.0 * k))
+					mortar.append(Vector2(bx, by))
+					bx += 28.0 * k
+				by += 18.0 * k
+				row += 1
+			c.draw_multiline(mortar, pal.ink, 1.5 * k)
+			c.draw_rect(r, pal.ink, false, 3.0 * k)
+			continue
 		c.draw_rect(r, pal.ink)
 		if s.size.y < 30.0:
 			# A ledge is a floating chunk of earth (owner's reference pictures): a ragged,
@@ -584,7 +645,7 @@ func _draw_field() -> void:
 			x += w
 	for st in stains:
 		var p: Vector2 = o + st[0] * k
-		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.red, st[2] * 0.45) if st[3] else Color(pal.near, st[2]))
+		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.red, st[2] * 0.8) if st[3] else Color(pal.near, st[2]))
 	# Arena gate.
 	if engine.locked:
 		var gx: float = o.x + engine.arena_x * k
@@ -612,7 +673,7 @@ func _draw_field() -> void:
 	for s in splats:
 		var p: Vector2 = o + s[0] * k
 		var r: float = s[3] * k
-		c.draw_texture_rect(blot, Rect2(p - Vector2(r, r), Vector2(r, r) * 2), false, Color(pal.red, 0.75) if s[4] else pal.ink)
+		c.draw_texture_rect(blot, Rect2(p - Vector2(r, r), Vector2(r, r) * 2), false, Color(pal.red, 0.95) if s[4] else pal.ink)
 	_draw_water_front(c, o, k)
 	_draw_breath(c, o, k)
 	_draw_smoke(c, o, k)
@@ -643,6 +704,36 @@ func _draw_ground(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 	pts.append(Vector2(pts[0].x, sz.y + 4))
 	c.draw_colored_polygon(pts, pal.ink)
 	c.draw_multiline(rim, pal.ink, 2.0 * k)
+	# Texture (owner 2026-11-15): grass tufts on the rim, soil strata and stones below,
+	# in lighter ink so the land reads apart from towers and figures. One multiline each.
+	var grass := PackedVector2Array()
+	var strata := PackedVector2Array()
+	var stones := PackedVector2Array()
+	x = x0
+	while x <= x1:
+		var gy: float = engine.ground_y(x)
+		if engine.water_depth(x) <= 0.0:
+			var h := 6.0 + fmod(absf(x) * 0.731, 7.0)
+			var lean := fmod(absf(x) * 0.37, 6.0) - 3.0
+			grass.append(o + Vector2(x, gy) * k)
+			grass.append(o + Vector2(x + lean, gy - h) * k)
+			grass.append(o + Vector2(x + 7, gy) * k)
+			grass.append(o + Vector2(x + 7 + lean * 0.6, gy - h * 0.7) * k)
+		for d in [22.0, 48.0, 84.0]:
+			if fmod(absf(x) + d * 3.0, 60.0) < 40.0:
+				var a := o + Vector2(x, engine.ground_y(x) + d) * k
+				var b := o + Vector2(x + step, engine.ground_y(x + step) + d) * k
+				strata.append(a)
+				strata.append(b)
+		var sh := fmod(absf(x) * 1.37, 97.0)
+		if sh < 30.0:
+			var sp := o + Vector2(x + sh * 0.5, gy + 30.0 + sh * 2.0) * k
+			stones.append(sp)
+			stones.append(sp + Vector2(6.0 + sh * 0.2, 0) * k)
+		x += step
+	c.draw_multiline(grass, pal.ink, 2.0 * k)
+	c.draw_multiline(strata, Color(pal.near, 0.55), 2.0 * k)
+	c.draw_multiline(stones, Color(pal.mid, 0.6), 4.0 * k)
 
 ## Water filling a dip: a polygon from the surface down along the dip's bed (drawn
 ## twice: behind the ground for the body, and as a pale veil in front of the figures so
@@ -700,7 +791,7 @@ func _draw_haze(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 		f = 0.35
 	if f <= 0.0:
 		return
-	c.draw_texture_rect(fog_tex, Rect2(0, sz.y * 0.15, sz.x, sz.y * 0.85), false, Color(pal.haze, 0.45 * f))
+	c.draw_texture_rect(fog_tex, Rect2(0, sz.y * 0.15, sz.x, sz.y * 0.85), false, Color(pal.haze, 0.7 * f))
 	for d in engine.dips:
 		var a: Vector2 = o + Vector2(d.x0 - 60.0, d.level - 90.0) * k
 		var b: Vector2 = o + Vector2(d.x1 + 60.0, Engine_.LOWEST + 20) * k
@@ -709,11 +800,11 @@ func _draw_haze(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 		# Soft overlapping blobs (no hard edges), thickest down in the hollow.
 		var drift := sin(anim_t * 0.4 + d.x0) * 20.0 * k
 		var w := b.x - a.x
-		for m in 3:
+		for m in 4:
 			var cy: float = o.y + (d.level - 10.0 - m * 26.0) * k
 			var ww := w * (0.75 - m * 0.12)
 			var cx := (a.x + b.x) / 2.0 + drift * (1.0 - m)
-			c.draw_texture_rect(disc, Rect2(Vector2(cx - ww / 2.0, cy - 50.0 * k), Vector2(ww, 100.0 * k)), false, Color(pal.haze, (0.7 - m * 0.18) * f))
+			c.draw_texture_rect(disc, Rect2(Vector2(cx - ww / 2.0, cy - 50.0 * k), Vector2(ww, 100.0 * k)), false, Color(pal.haze, (0.95 - m * 0.2) * f))
 
 ## A stone lantern checkpoint: a warm glow once you have passed it.
 func _lantern(c: CanvasItem, base: Vector2, k: float, lit: bool) -> void:
@@ -902,7 +993,21 @@ func _ninja(c: CanvasItem, feet: Vector2, k: float) -> void:
 			c.draw_line(j.hip - Vector2(f * (30 + i * 22), i * 7 - 10) * k, j.hip - Vector2(f * (70 + i * 22), i * 7 - 10) * k, Color(pal.mid, 0.6), (5 - i) * k)
 	_ink_body(c, j, k, f, ink, 1.0, true, anim_t * 10.0 + (engine.vx * 0.01))
 	var neck: Vector2 = j.neck
-	if engine.slash_t > 0.0:
+	var jabbing: bool = engine.slash_t > 0.0 and engine.jab
+	if engine.dash_t > 0.0 or jabbing:
+		# Thrust / crouching jab (owner 2026-11-15): arm straight out, blade level, point first.
+		var reach := 1.0
+		if jabbing:
+			var t0: float = 1.0 - engine.slash_t / Engine_.SLASH_T
+			reach = sin(minf(t0 * 1.6, 1.0) * PI * 0.5)
+		var hand := neck + Vector2(f * (8 + 22 * reach), 10) * k
+		_brush(c, neck, hand, 6.0 * k, ink)
+		var tip := hand + Vector2(f * (60 + 30 * reach), 2) * k
+		_katana(c, hand, tip, k)
+		for i in 3:
+			var yy := (i - 1) * 7.0 * k
+			c.draw_line(tip + Vector2(-f * (20 + i * 12) * k, yy), tip + Vector2(-f * (70 + i * 16) * k, yy), Color(ink, 0.35 * reach), 2.0 * k)
+	elif engine.slash_t > 0.0:
 		var t: float = 1.0 - engine.slash_t / Engine_.SLASH_T
 		var a := lerpf(-1.4, 1.2, t)
 		var hand := neck + Vector2(f * 20, 4).rotated(a * f) * k
@@ -914,11 +1019,16 @@ func _ninja(c: CanvasItem, feet: Vector2, k: float) -> void:
 			var aa := lerpf(-1.4, a, float(i) / 11.0)
 			pts.append(neck + Vector2(f * 84, 0).rotated(aa * f) * k)
 		_ribbon(c, pts, 1.0 * k, 16.0 * k, Color(ink, 0.85))
-	else:
-		var hand := neck + Vector2(f * 18, 12) * k
+	elif engine.blocking:
+		# Guard: blade upright in front of the face.
+		var hand := neck + Vector2(f * 22, 6) * k
 		_brush(c, neck, hand, 6.0 * k, ink)
-		_brush(c, neck, neck + Vector2(f * 10, 14) * k, 5.0 * k, ink)
-		var tip := hand + (Vector2(f * 58, 22) if not engine.crouch else Vector2(f * 62, 4)) * k
+		_katana(c, hand + Vector2(0, 24) * k, hand + Vector2(f * 6, -58) * k, k)
+	else:
+		# At rest and running the sword trails at the side, point behind (owner 2026-11-15).
+		var hand: Vector2 = j.hip + Vector2(f * 6, -6) * k
+		_brush(c, neck, hand, 6.0 * k, ink)
+		var tip: Vector2 = hand + (Vector2(-f * 62, 14) if not engine.crouch else Vector2(-f * 64, 2)) * k
 		_katana(c, hand, tip, k)
 
 ## Foes and bosses: the same brush figure in a lighter ink, bulkier for brutes and bosses.
@@ -1048,6 +1158,12 @@ func _hud_draw(c: CanvasItem, sz: Vector2, k: float) -> void:
 	# Story objective under the progress line.
 	var obj: String = tr("Defeat %s") % tr(engine.boss_name()) if engine.locked else tr(Story.CHAPTERS[engine.stage - 1][2])
 	c.draw_string(font, Vector2(x0, y + 26 * k), "▸ " + obj, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, int(18 * k), pal.near)
+	var tip: String = engine.tip()
+	if tip != "" and card_text.is_empty():
+		var ty := y + 66 * k
+		var tw := sz.x * 0.62
+		c.draw_rect(Rect2((sz.x - tw) / 2.0, ty - 26 * k, tw, 38 * k), Color(pal.paper, 0.75))
+		c.draw_string(font, Vector2((sz.x - tw) / 2.0, ty), tr(TIPS[tip]), HORIZONTAL_ALIGNMENT_CENTER, tw, int(19 * k), pal.ink)
 	if not card_text.is_empty():
 		_draw_card(c, sz, k)
 
@@ -1219,10 +1335,15 @@ func _sfx(sound: String) -> void:
 	if s:
 		s.play(sound)
 
-func _music(style: String) -> void:
+## genre: a Music Drop genre to prefer (owner 2026-11-15: calm Asian music on the road);
+## apps whose Music has no library ignore it.
+func _music(style: String, genre: String = "") -> void:
 	var m = get_node_or_null("/root/Music")
 	if m:
-		m.play(style, self, 0, 1.5)
+		if genre != "" and "library" in m:
+			m.play(style, self, 0, 1.5, genre)
+		else:
+			m.play(style, self, 0, 1.5)
 
 # ---------- helps (STANDARDS §17) ----------
 
