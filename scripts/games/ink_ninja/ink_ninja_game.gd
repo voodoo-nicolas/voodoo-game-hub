@@ -416,6 +416,7 @@ func _begin() -> void:
 	card_t = 6.0 if not prologue else 9.0
 	prologue = false
 	SoundLib.play(self, "rpg/book_flip", -6.0)
+	SoundLib.play(self, "sword/draw_katana_fast", -8.0)
 	_music("calm", "asian")
 	_pad_unlocks(engine.stage == 2 or engine.stage == 3 or engine.stage == 4)
 	splats.clear()
@@ -504,24 +505,24 @@ func _event(e: String) -> void:
 		"jump", "walljump":
 			SoundLib.play(self, "rpg/cloth", -4.0, "game", 1.15)   # a cloth whip, not the arcade boing (owner 2026-11-15)
 		"dash":
-			SoundLib.play(self, "rpg/draw_knife", -3.0, "game", 0.85)
+			SoundLib.play(self, "sword/swing_seax", -3.0)   # was rpg/draw_knife at 0.85 pitch
 			_puff(Vector2(engine.px, engine.py - 10), 6, 18.0, 90.0)
 		"slash":
-			SoundLib.play(self, "rpg/draw_knife", -5.0, "game", 1.2)   # a blade whoosh (owner 2026-11-15)
+			SoundLib.play(self, "sword/swing_katana", -5.0)   # was rpg/draw_knife, a blade whoosh (owner 2026-11-15); real katana swings now
 		"jab":
-			SoundLib.play(self, "rpg/knife_slice", -6.0, "game", 1.3)
+			SoundLib.play(self, "sword/swing_dagger", -6.0)   # was rpg/knife_slice
 		"block":
-			SoundLib.play(self, "impact/metal_light", -4.0)
+			SoundLib.play(self, "sword/clash", -4.0)   # was impact/metal_light
 			_goal("parries")
 		"throw":
 			_sfx("shoot")
 		"parry":
-			SoundLib.play(self, "impact/metal_heavy", -6.0)
+			SoundLib.play(self, "sword/clash_sabre", -4.0)   # was impact/metal_heavy
 			_goal("parries")
 			if info:
 				info.add("Stars parried")
 		"kill":
-			SoundLib.play(self, "rpg/chop", -4.0)
+			SoundLib.play(self, "sword/attack", -3.0)   # was rpg/chop
 			_goal("kills")
 			if info:
 				info.add("Ninjas defeated")
@@ -570,6 +571,7 @@ func _event(e: String) -> void:
 			SoundLib.play(self, "jingles/lose_failed", -6.0)
 		"win":
 			SoundLib.play(self, "jingles/win_victory", -4.0)
+			SoundLib.play(self, "sword/sheath_katana_slow", -6.0)
 			if not engine.scrolls.is_empty():
 				all_scrolls = false
 			_goal("bosses")
@@ -586,6 +588,7 @@ func _event(e: String) -> void:
 		"clear":
 			# A stage without a boss, cleared at its gate (24-stage campaign, owner 2026-11-15).
 			SoundLib.play(self, "jingles/win_succeeded", -4.0)
+			SoundLib.play(self, "sword/sheath_katana_fast", -6.0)
 			if not engine.scrolls.is_empty():
 				all_scrolls = false
 			_goal("stages")

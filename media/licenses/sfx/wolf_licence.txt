@@ -1,0 +1,7 @@
+Licences read from each source page on 2026-11-15 (per D:/Dev/Audio/new-sounds/CREDITS_new_sounds.md and SOURCES.csv). Files were trimmed/normalized to mono OGG q4, peak -3 dBFS; the long recordings were cut at silences.
+
+- Nivatius, "wolves yellowstone national park" (freesound.org/people/Nivatius/sounds/519592): CC0 -> howl_yellowstone
+- "Many Wolves Howling", "Medium Pack Of Wolves Howling": US Fish & Wildlife Service via SoundBible, Public Domain -> howl_pack_many, howl_pack_medium
+- Mixkit "Lone wolf howling", "Wolf attack": Mixkit License (free, no credit; do not resell as a standalone pack) -> howl_lone, attack
+- 80 CC0 creature SFX, rubberduck (opengameart.org/content/80-cc0-creature-sfx): CC0 -> howl_short
+- Dog Snarl Grunt Grumble, qubodup (opengameart.org/content/dog-snarl-grunt-grumble): CC0 -> snarl, snarl_growl, snarl_grumble

@@ -66,6 +66,7 @@ var banner_t: float = 0.0
 var step_t: float = 0.0
 var music_style := ""
 var music_t: float = 0.0
+var _bed: Node = null                # distant pack howls, a quiet loop while hunting
 var touch_pad: Control = null
 var fog_tex: ImageTexture
 var fog_t: float = 0.0
@@ -196,6 +197,9 @@ func _begin() -> void:
 	zoom = 1.0
 	music_style = ""
 	music_t = 0.0
+	if is_instance_valid(_bed):
+		_bed.queue_free()
+	_bed = SoundLib.loop(self, "wolf/howl_pack_medium", -22.0)
 	chunks.clear()
 	if touch_pad:
 		touch_pad.release_all()
@@ -237,7 +241,7 @@ func _buttons(delta: float) -> void:
 	var sense_now := Input.is_key_pressed(KEY_E) or _pad_down("x")
 	if sense_now and not prev_sense and not wheel_open:
 		if engine.sense():
-			SoundLib.play(self, "ui/select", -6.0)
+			SoundLib.play(self, "wolf/snarl_grumble", -10.0)
 			_show_banner(tr("Sense"), 1.0)
 	prev_sense = sense_now
 	var howl_now := Input.is_key_pressed(KEY_Q) or _pad_down("y")
@@ -246,11 +250,12 @@ func _buttons(delta: float) -> void:
 		if howl_down > 0.3 and not wheel_open:
 			wheel_open = true
 			wheel_idle = 0.0
-			SoundLib.play(self, "ui/click", -8.0)
+			SoundLib.play(self, "wolf/howl_lone", -8.0)   # the command wheel opens on a howl
 	elif prev_howl:
 		# A tap on Howl is a Rally (design §3); a hold opened the wheel.
 		if howl_down >= 0.0 and howl_down <= 0.3 and not wheel_open:
 			_command("rally")
+			SoundLib.play(self, "wolf/howl_short", -4.0)
 		howl_down = -1.0
 	prev_howl = howl_now
 	if wheel_open and not howl_now:
@@ -361,23 +366,26 @@ func _handle(evs: Array) -> void:
 			"bite":
 				puffs.append([e[1], 0.0, Color("e8d8b0")])
 				SoundLib.play(self, "impact/punch_medium", -8.0)
+				SoundLib.play(self, "wolf/snarl", -6.0)
 			"kick":
 				puffs.append([e[1], 0.0, Color("ffcf7a")])
 				SoundLib.play(self, "impact/punch_heavy", -6.0)
+				SoundLib.play(self, "creature/hurt", -4.0)   # the elk kicks back
 				_vibrate(60)
 				shake = minf(1.0, shake + 0.5)
 			"kill":
 				puffs.append([e[1], 0.0, Color(1, 1, 1)])
 				SoundLib.play(self, "impact/soft_heavy", -4.0)
+				SoundLib.play(self, "creature/roar", -6.0)
 				if info:
 					info.add("Elk caught")
 				_show_banner(tr("Elk down! The pack eats. %d / %d") % [engine.kills, engine.goal_kills])
 			"fed":
 				SoundLib.play(self, "reward/coin_short", -10.0)
 			"alarm":
-				SoundLib.play(self, "impact/soft_medium", -16.0)
+				SoundLib.play(self, "creature/grunt", -10.0)   # the herd is alarmed (was impact/soft_medium)
 			"down":
-				SoundLib.play(self, "ui/wrong", -6.0)
+				SoundLib.play(self, "creature/hurt", -4.0)   # was ui/wrong
 				_show_banner(tr("You are down. You wake at the den."), 3.0)
 				quote_i = (quote_i + 1) % HELP.QUOTES.size()
 				quote_t = 6.0

@@ -8008,6 +8008,36 @@
    "ai_tool": "Claude Code (rendered from game code, no image model)",
    "ai_plan": "n/a (code-drawn)",
    "processed_by": "Godot save_jpg q88"
+  },
+  {
+   "file": "media/common/sfx/sword/",
+   "what": "Shared sound library, set 'sword' (every file in the folder)",
+   "source": "OpenGameArt / Freesound / SoundBible / Mixkit pages listed in the proof, picked from D:/Dev/Audio/new-sounds",
+   "author": "Ink Ninja sword set: StarNinjas, Ben Jaszczak & Brian Nelson, artisticdude",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/sword_licence.txt",
+   "url": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+   "date": "2026-11-15"
+  },
+  {
+   "file": "media/common/sfx/wolf/",
+   "what": "Shared sound library, set 'wolf' (every file in the folder)",
+   "source": "OpenGameArt / Freesound / SoundBible / Mixkit pages listed in the proof, picked from D:/Dev/Audio/new-sounds",
+   "author": "Wolf howls, snarls and attack: Nivatius, US Fish & Wildlife Service (via SoundBible), Mixkit, rubberduck, qubodup",
+   "licence": "CC0 / Public Domain / Mixkit License",
+   "proof": "media/licenses/sfx/wolf_licence.txt",
+   "url": "https://soundbible.com/tags-wolves-howling.html",
+   "date": "2026-11-15"
+  },
+  {
+   "file": "media/common/sfx/creature/",
+   "what": "Shared sound library, set 'creature' (every file in the folder)",
+   "source": "OpenGameArt / Freesound / SoundBible / Mixkit pages listed in the proof, picked from D:/Dev/Audio/new-sounds",
+   "author": "Creature sounds: rubberduck, CaveboyTup",
+   "licence": "CC0",
+   "proof": "media/licenses/sfx/creature_licence.txt",
+   "url": "https://opengameart.org/content/80-cc0-creature-sfx",
+   "date": "2026-11-15"
   }
  ]
 }

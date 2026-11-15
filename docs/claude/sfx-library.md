@@ -177,3 +177,53 @@ A sound id is `<set>/<name>`. "Takes" = how many recordings it has (`SoundLib.pl
 | id | takes | length |
 |---|---|---|
 | `weather/thunder_rain` | 1 | 54.8 s |
+
+## sword (19 sounds, 753 KB; Ink Ninja picks (CC0))
+
+| id | takes | length |
+|---|---|---|
+| `sword/attack` | 10 | 0.5-1.4 s |
+| `sword/clash` | 10 | 0.7-1.3 s |
+| `sword/clash_axe` | 5 | 0.2-0.3 s |
+| `sword/clash_dagger` | 1 | 0.7 s |
+| `sword/clash_mace` | 6 | 0.2-0.3 s |
+| `sword/clash_sabre` | 4 | 0.2-0.4 s |
+| `sword/clash_seax` | 5 | 0.2-0.7 s |
+| `sword/clash_spear` | 10 | 0.3-0.5 s |
+| `sword/draw_katana_fast` | 6 | 0.3-0.5 s |
+| `sword/draw_katana_slow` | 2 | 1.6-1.9 s |
+| `sword/draw_rpg` | 2 | 0.4 s |
+| `sword/sheath_katana_fast` | 7 | 0.4-0.6 s |
+| `sword/sheath_katana_slow` | 5 | 0.3-1.2 s |
+| `sword/swing_axe` | 4 | 0.6-2.1 s |
+| `sword/swing_dagger` | 2 | 0.9-1.9 s |
+| `sword/swing_katana` | 5 | 0.3-0.5 s |
+| `sword/swing_rpg` | 3 | 0.1 s |
+| `sword/swing_sabre` | 4 | 0.9-2.7 s |
+| `sword/swing_seax` | 5 | 0.3-0.3 s |
+
+## wolf (9 sounds, 858 KB; CC0 / Public Domain / Mixkit licence)
+
+| id | takes | length |
+|---|---|---|
+| `wolf/attack` | 1 | 1.3 s |
+| `wolf/howl_lone` | 1 | 4.6 s |
+| `wolf/howl_pack_many` | 1 | 28.3 s |
+| `wolf/howl_pack_medium` | 1 | 19.7 s |
+| `wolf/howl_short` | 1 | 0.6 s |
+| `wolf/howl_yellowstone` | 1 | 34.7 s |
+| `wolf/snarl` | 1 | 0.7 s |
+| `wolf/snarl_growl` | 1 | 0.6 s |
+| `wolf/snarl_grumble` | 1 | 0.6 s |
+
+## creature (7 sounds, 264 KB; CC0)
+
+| id | takes | length |
+|---|---|---|
+| `creature/barking` | 2 | 0.3 s |
+| `creature/cry_monster` | 1 | 1.5 s |
+| `creature/cute` | 10 | 0.3-0.6 s |
+| `creature/grunt` | 5 | 0.4-0.7 s |
+| `creature/hurt` | 5 | 0.3-0.4 s |
+| `creature/monster` | 7 | 0.3-1.1 s |
+| `creature/roar` | 3 | 0.3-0.8 s |

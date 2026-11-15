@@ -1,0 +1,6 @@
+Licences read from each source page on 2026-11-15 (per D:/Dev/Audio/new-sounds/CREDITS_new_sounds.md and SOURCES.csv). Files were trimmed/normalized to mono OGG q4, peak -3 dBFS; the long recordings were cut at silences.
+
+All CC0:
+- Medieval SFX textures + weapon-on-weapon, Ben Jaszczak & Brian Nelson (+ Kickstarter team): opengameart.org/node/146862, /node/146863
+- 20 Sword Sound Effects (attacks, clashes), StarNinjas: opengameart.org/content/20-sword-sound-effects-attacks-and-clashes (author asks for credit)
+- RPG Sound Pack, artisticdude: opengameart.org/content/rpg-sound-pack

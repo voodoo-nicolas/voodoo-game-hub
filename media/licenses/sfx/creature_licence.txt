@@ -1,0 +1,4 @@
+Licences read from each source page on 2026-11-15 (per D:/Dev/Audio/new-sounds/CREDITS_new_sounds.md and SOURCES.csv). Files were trimmed/normalized to mono OGG q4, peak -3 dBFS; the long recordings were cut at silences.
+
+- 80 CC0 creature SFX, rubberduck: opengameart.org/content/80-cc0-creature-sfx (CC0)
+- Wolf Monster Sound, CaveboyTup: opengameart.org/node/118896 (CC0) -> cry_monster
