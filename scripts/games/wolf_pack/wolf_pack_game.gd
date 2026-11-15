@@ -76,12 +76,15 @@ var prev_howl := false
 var prev_sense := false
 var time_scale: float = 1.0
 var shake: float = 0.0
+var quote_i: int = 0
+var quote_t: float = 0.0
 
 func _ready() -> void:
 	Orientation.lock_landscape()
 	preload("res://scripts/games/wolf_pack/wolf_pack_i18n.gd").install(self)
 	engine = E.new()
 	engine.reset(1)
+	quote_i = randi() % HELP.QUOTES.size()
 	grass_tex = SpriteLib.texture("textures/floor_ground_grass")
 	_build_ui()
 	var m = get_node_or_null("/root/Music")
@@ -141,7 +144,7 @@ func _build_ui() -> void:
 		"info": info,
 		"accent": Color("8fb4d8"),
 		"solo_heading": "Hunt",
-		"subtitle": "You are a leader when others choose to follow.",
+		"subtitle": _quote_line(quote_i),
 		"logo": _draw_home_logo,
 		"modes": [{"text": "🐺 First Hunt", "sub": "Slice: lead your pack, bring down two elk", "action": _new_game}],
 		"save_path": SAVE_PATH,
@@ -196,7 +199,14 @@ func _begin() -> void:
 	chunks.clear()
 	if touch_pad:
 		touch_pad.release_all()
+	quote_i = (quote_i + 1) % HELP.QUOTES.size()
+	quote_t = 7.0
 	_show_banner(tr("Bring down 2 elk. Sense shows the weak ones."), 4.0)
+
+## "text" - Who. The quote is translated, the author's name is kept as it is.
+func _quote_line(i: int) -> String:
+	var q: Array = HELP.QUOTES[i % HELP.QUOTES.size()]
+	return "\"%s\" - %s" % [tr(q[0]), tr(q[1])]
 
 func _show_banner(t: String, secs: float = 2.2) -> void:
 	banner = t
@@ -300,6 +310,7 @@ func _process(delta: float) -> void:
 	var sd := delta * time_scale
 	_handle(engine.step(sd, _inputs()))
 	banner_t = maxf(0.0, banner_t - delta)
+	quote_t = maxf(0.0, quote_t - delta)
 	shake = maxf(0.0, shake - delta * 2.5)
 	for p in puffs:
 		p[1] += delta
@@ -368,6 +379,8 @@ func _handle(evs: Array) -> void:
 			"down":
 				SoundLib.play(self, "ui/wrong", -6.0)
 				_show_banner(tr("You are down. You wake at the den."), 3.0)
+				quote_i = (quote_i + 1) % HELP.QUOTES.size()
+				quote_t = 6.0
 				_vibrate(150)
 			"heir":
 				_show_banner(tr("The heir would take over here (not built yet)."), 3.0)
@@ -380,6 +393,7 @@ func _game_over() -> void:
 	SaveUtil.delete(SAVE_PATH)
 	SoundLib.play(self, "jingles/win_succeeded")
 	var msg := tr("The pack is fed. A good hunt!") + "\n" + tr("Time: %d:%02d") % [int(engine.time) / 60, int(engine.time) % 60]
+	msg += "\n\n" + _quote_line(quote_i)
 	if info:
 		info.result("win")
 		info.add("Games played")
@@ -661,6 +675,11 @@ func _draw_hud() -> void:
 		c.draw_rect(Rect2(bx, size.y - 70, 260, 14), Color(0, 0, 0, 0.6))
 		c.draw_rect(Rect2(bx, size.y - 70, 260.0 * clampf(engine.hold_progress, 0.0, 1.0), 14), Color("ff8a4a"))
 		c.draw_string(font, Vector2(bx, size.y - 76), tr("Holding the bite"), HORIZONTAL_ALIGNMENT_CENTER, 260, 18, Color.WHITE)
+	if quote_t > 0.0 and not wheel_open:
+		var qa := clampf(quote_t, 0.0, 1.0)
+		var ql := _quote_line(quote_i)
+		c.draw_string_outline(font, Vector2(120, size.y - 120), ql, HORIZONTAL_ALIGNMENT_CENTER, size.x - 240, 22, 10, Color(0.02, 0.04, 0.1, 0.9 * qa))
+		c.draw_string(font, Vector2(120, size.y - 120), ql, HORIZONTAL_ALIGNMENT_CENTER, size.x - 240, 22, Color(1, 0.95, 0.8, qa))
 	if wheel_open:
 		_draw_wheel(c)
 	if banner_t > 0.0 and banner != "":
