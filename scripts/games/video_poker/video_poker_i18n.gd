@@ -523,7 +523,7 @@ const STRINGS := {
 		"Solid and aggressive, with a good read on you.": "Sólida y agresiva, con buena lectura de ti.",
 		"Solid and aggressive. Picks good spots to bluff.": "Sólido y agresivo. Elige bien cuándo farolear.",
 		"Split pot": "Bote dividido",
-		"Stage cleared!": "¡Etapa superada!",
+		"Stage cleared!": "¡Fase superada!",
 		"Stages cleared": "Etapas superadas",
 		"Stakes": "Apuestas",
 		"Stand pat": "Plantarse",

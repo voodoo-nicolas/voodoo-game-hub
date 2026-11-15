@@ -335,9 +335,6 @@
  "Cámara fría": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Daily": [
-  "scripts\\games\\rectangles\\rectangles_game.gd"
- ],
  "December": [
   "scripts\\account\\consent_screen.gd"
  ],
@@ -375,6 +372,7 @@
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
  "Facebook": [
+  "scripts\\hub\\options_screen.gd",
   "scripts\\account\\account_screen.gd"
  ],
  "Faro del disparate": [
@@ -524,75 +522,6 @@
  ],
  "Lobo de mar": [
   "scripts\\games\\wilson\\wilson_quests.gd"
- ],
- "MAIN MENU": [
-  "scripts\\games\\minesweeper\\menu_styles.gd",
-  "scripts\\games\\tictactoe\\menu_styles.gd",
-  "scripts\\games\\connect4\\menu_styles.gd",
-  "scripts\\games\\checkers\\menu_styles.gd",
-  "scripts\\games\\reversi\\menu_styles.gd",
-  "scripts\\games\\dots_boxes\\menu_styles.gd",
-  "scripts\\games\\mancala\\menu_styles.gd",
-  "scripts\\games\\backgammon\\menu_styles.gd",
-  "scripts\\games\\morris\\menu_styles.gd",
-  "scripts\\games\\peg_solitaire\\menu_styles.gd",
-  "scripts\\games\\lights_out\\menu_styles.gd",
-  "scripts\\games\\box_pusher\\menu_styles.gd",
-  "scripts\\games\\fifteen_puzzle\\menu_styles.gd",
-  "scripts\\games\\g2048\\menu_styles.gd",
-  "scripts\\games\\kakuro\\menu_styles.gd",
-  "scripts\\games\\nonogram\\menu_styles.gd",
-  "scripts\\games\\code_breaker\\menu_styles.gd",
-  "scripts\\games\\hanoi\\menu_styles.gd",
-  "scripts\\games\\calcudoku\\menu_styles.gd",
-  "scripts\\games\\pipe_flow\\menu_styles.gd",
-  "scripts\\games\\five_in_row\\menu_styles.gd",
-  "scripts\\games\\mahjong\\menu_styles.gd",
-  "scripts\\games\\flood_it\\menu_styles.gd",
-  "scripts\\games\\same_game\\menu_styles.gd",
-  "scripts\\games\\binary_grid\\menu_styles.gd",
-  "scripts\\games\\hex\\menu_styles.gd",
-  "scripts\\games\\trivia\\menu_styles.gd",
-  "scripts\\games\\quick_math\\menu_styles.gd",
-  "scripts\\games\\memory_grid\\menu_styles.gd",
-  "scripts\\games\\color_clash\\menu_styles.gd",
-  "scripts\\games\\number_series\\menu_styles.gd",
-  "scripts\\games\\digit_recall\\menu_styles.gd",
-  "scripts\\games\\sketch_it\\menu_styles.gd",
-  "scripts\\games\\trace_it\\menu_styles.gd",
-  "scripts\\games\\trivia_battle\\menu_styles.gd",
-  "scripts\\games\\color_sort\\menu_styles.gd",
-  "scripts\\games\\hidato\\menu_styles.gd",
-  "scripts\\games\\rectangles\\menu_styles.gd",
-  "scripts\\games\\solitaire\\menu_styles.gd",
-  "scripts\\games\\blackjack\\menu_styles.gd",
-  "scripts\\games\\war\\menu_styles.gd",
-  "scripts\\games\\crazy_eights\\menu_styles.gd",
-  "scripts\\games\\go_fish\\menu_styles.gd",
-  "scripts\\games\\gin_rummy\\menu_styles.gd",
-  "scripts\\games\\spider\\menu_styles.gd",
-  "scripts\\games\\freecell\\menu_styles.gd",
-  "scripts\\games\\pyramid\\menu_styles.gd",
-  "scripts\\games\\speed\\menu_styles.gd",
-  "scripts\\games\\memory\\menu_styles.gd",
-  "scripts\\games\\tri_peaks\\menu_styles.gd",
-  "scripts\\games\\hearts\\menu_styles.gd",
-  "scripts\\games\\sevens\\menu_styles.gd",
-  "scripts\\games\\rummy\\menu_styles.gd",
-  "scripts\\games\\hangman\\menu_styles.gd",
-  "scripts\\games\\word_search\\menu_styles.gd",
-  "scripts\\games\\crossword\\menu_styles.gd",
-  "scripts\\games\\word_ladder\\menu_styles.gd",
-  "scripts\\games\\snake\\menu_styles.gd",
-  "scripts\\games\\simon\\menu_styles.gd",
-  "scripts\\games\\bubble_pop\\menu_styles.gd",
-  "scripts\\games\\rock_blaster\\menu_styles.gd",
-  "scripts\\games\\moon_lander\\menu_styles.gd",
-  "scripts\\games\\yacht\\menu_styles.gd",
-  "scripts\\games\\liars_dice\\menu_styles.gd",
-  "scripts\\games\\dominoes\\menu_styles.gd",
-  "scripts\\games\\spirit_board\\menu_styles.gd",
-  "scripts\\games\\emoji_guess\\menu_styles.gd"
  ],
  "MPL 1.1 (option of the MPL/GPL/LGPL tri-licence)": [
   "scripts\\common\\third_party.gd"
@@ -870,9 +799,6 @@
  "Weather (auto = the seeded controller)": [
   "scripts\\games\\wilson\\wilson_debug.gd"
  ],
- "Weekly": [
-  "scripts\\games\\rectangles\\rectangles_game.gd"
- ],
  "Will you remember?": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
@@ -913,11 +839,32 @@
  "\\{([LR])([+-][0-9.]+)?\\}": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd"
  ],
+ "after-1B": [
+  "scripts\\games\\ink_ninja\\cutscene.gd"
+ ],
+ "after-2B": [
+  "scripts\\games\\ink_ninja\\cutscene.gd"
+ ],
+ "after-3B": [
+  "scripts\\games\\ink_ninja\\cutscene.gd"
+ ],
+ "after-4B": [
+  "scripts\\games\\ink_ninja\\cutscene.gd"
+ ],
+ "after-5B": [
+  "scripts\\games\\ink_ninja\\cutscene.gd"
+ ],
  "auto (controller)": [
   "scripts\\games\\wilson\\wilson_debug.gd"
  ],
+ "before:%d": [
+  "scripts\\games\\ink_ninja\\cutscene.gd"
+ ],
  "big spots": [
   "scripts\\games\\bug_chain\\bug_chain_art.gd"
+ ],
+ "boss%d": [
+  "scripts\\games\\ink_ninja\\ink_ninja_game.gd"
  ],
  "c_<id>#<n>": [
   "scripts\\common\\achievements.gd"
@@ -933,6 +880,9 @@
  ],
  "classic-%03d": [
   "scripts\\games\\rectangles\\rectangles_game.gd"
+ ],
+ "clear a stage without a hit": [
+  "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
  ],
  "cliff_%s_l": [
   "scripts\\games\\bridge_master\\bridge_master_game.gd"
@@ -979,6 +929,9 @@
  "in the menus": [
   "scripts\\hub\\hub.gd"
  ],
+ "ink:%d:%d": [
+  "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
+ ],
  "item '%s' has unknown tier %s": [
   "scripts\\games\\creation\\creation_engine.gd"
  ],
@@ -990,6 +943,15 @@
  ],
  "item without id": [
   "scripts\\games\\creation\\creation_engine.gd"
+ ],
+ "lantern:%d:%d": [
+  "scripts\\games\\ink_ninja\\ink_ninja_game.gd"
+ ],
+ "mailto:%s?subject=%s": [
+  "scripts\\hub\\options_screen.gd"
+ ],
+ "mailto:%s?subject=%s&body=%s": [
+  "scripts\\hub\\options_screen.gd"
  ],
  "make the bosses harder": [
   "scripts\\games\\evolution\\evolution_boss.gd",
@@ -1037,6 +999,9 @@
  "recipe %s+%s uses an undefined id": [
   "scripts\\games\\creation\\creation_engine.gd"
  ],
+ "red:%d:%d": [
+  "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
+ ],
  "resume last game": [
   "scripts\\hub\\hub.gd"
  ],
@@ -1070,6 +1035,9 @@
  "the sea mist is weird": [
   "scripts\\games\\wilson\\wilson_world.gd"
  ],
+ "too short, too quick": [
+  "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
+ ],
  "truncated directory": [
   "scripts\\common\\catalog.gd"
  ],
@@ -1081,6 +1049,9 @@
  ],
  "v%d_%s_%d_%d.png": [
   "scripts\\games\\bug_chain\\bug_chain_game.gd"
+ ],
+ "viralgamingservice@gmail.com": [
+  "scripts\\common\\brand.gd"
  ],
  "weather sense": [
   "scripts\\games\\wilson\\wilson_data.gd",
