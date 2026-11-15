@@ -50,7 +50,7 @@ const SCENES := {
 }
 
 ## Where each scene plays in THIS build (10 stages; the bible has 6 acts / 24 stages).
-## Proposed mapping (owner to confirm): Act 1 = stage 1, Act 2 = 2, Act 3 = 3,
+## Mapping (owner OK 2026-11-15): Act 1 = stage 1, Act 2 = 2, Act 3 = 3,
 ## Act 4 = 4-5, Act 5 = 6-7, Act 6 = 8-10. Storyboard slots in the comments.
 const SLOTS := {
 	"before:1": ["intro"],              # before 1-1
