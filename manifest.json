@@ -234,7 +234,7 @@
     "crypt_crawler": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/crypt_crawler.pck", "scene": "res://scenes/games/crypt_crawler/crypt_crawler.tscn"},
     "star_runner": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/star_runner.pck", "scene": "res://scenes/games/star_runner/star_runner.tscn"},
     "sky_raider": {"version": 13, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sky_raider.pck", "scene": "res://scenes/games/sky_raider/sky_raider.tscn"},
-    "mini_golf": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf.pck", "scene": "res://scenes/games/mini_golf/mini_golf.tscn"},
+    "mini_golf": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf.pck", "scene": "res://scenes/games/mini_golf/mini_golf.tscn"},
     "pool": {"version": 11, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/pool.pck", "scene": "res://scenes/games/pool/pool.tscn"},
     "fortune_ball": {"version": 9, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/fortune_ball.pck", "scene": "res://scenes/games/fortune_ball/fortune_ball.tscn"},
     "spirit_board": {"version": 9, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/spirit_board.pck", "scene": "res://scenes/games/spirit_board/spirit_board.tscn"},
