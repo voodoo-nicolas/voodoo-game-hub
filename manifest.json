@@ -107,7 +107,8 @@
       {"id": "pool", "tile_art": "res://media/hub/game_art/pool/tile.webp", "hero_art": "res://media/hub/game_art/pool/hero.webp", "family": "Cue sports", "title": "Pool", "icon": "🎱", "title_es": "Billar", "modes": "local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "tilt_maze", "tile_art": "res://media/hub/game_art/tilt_maze/tile.webp", "hero_art": "res://media/hub/game_art/tilt_maze/hero.webp", "title": "Tilt Maze", "icon": "🔵", "title_es": "Laberinto inclinado", "board": "Mazes cleared", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "bug_chain", "title": "Bug Chain", "icon": "🐞", "title_es": "Cadena de bichos", "board": "Best score", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
-      {"id": "hover_duel", "title": "Thrust - Zero-G Duels", "icon": "🛸", "title_es": "Thrust - Duelos en gravedad cero", "modes": "local,cpu", "board": "Campaign stars", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Hovercraft shoot each other, no people shown"}}
+      {"id": "hover_duel", "title": "Thrust - Zero-G Duels", "icon": "🛸", "title_es": "Thrust - Duelos en gravedad cero", "modes": "local,cpu", "board": "Campaign stars", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Hovercraft shoot each other, no people shown"}},
+      {"id": "mini_golf_3d", "title": "Mini Golf 3D", "icon": "⛳"}
     ]},
     {"name": "Adventure", "icon": "🗡️", "name_es": "Aventura", "games": [
       {"id": "wolf_pack", "original": true, "title": "Stonewater", "icon": "🐺", "title_es": "Stonewater", "board": "none", "skins": "classic", "learn": ["science", "geo"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Wolves hunt elk; hits are dust puffs, no blood, no people"}},
@@ -267,8 +268,9 @@
     "tarot": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tarot.pck", "scene": "res://scenes/games/tarot/tarot.tscn"},
     "bridge_master": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bridge_master.pck", "scene": "res://scenes/games/bridge_master/bridge_master.tscn"},
     "hover_duel": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hover_duel.pck", "scene": "res://scenes/games/hover_duel/hover_duel.tscn"},
-    "ink_ninja": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ink_ninja.pck", "scene": "res://scenes/games/ink_ninja/ink_ninja.tscn"},
-    "wolf_pack": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wolf_pack.pck", "scene": "res://scenes/games/wolf_pack/wolf_pack.tscn"},
-    "roman_voyage": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/roman_voyage.pck", "scene": "res://scenes/games/roman_voyage/roman_voyage.tscn"}
+    "ink_ninja": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ink_ninja.pck", "scene": "res://scenes/games/ink_ninja/ink_ninja.tscn"},
+    "wolf_pack": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wolf_pack.pck", "scene": "res://scenes/games/wolf_pack/wolf_pack.tscn"},
+    "roman_voyage": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/roman_voyage.pck", "scene": "res://scenes/games/roman_voyage/roman_voyage.tscn"},
+    "mini_golf_3d": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf_3d.pck", "scene": "res://scenes/games/mini_golf_3d/mini_golf_3d.tscn"}
   }
 }
