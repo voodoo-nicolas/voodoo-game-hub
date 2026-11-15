@@ -143,6 +143,12 @@ func _tex(key: String) -> Texture2D:
 	return t
 
 
+## Where the picture sits on screen: picture pixels / source size * fit ->
+## this transform -> screen (the accuracy check maps it into the camera).
+func holder_transform() -> Transform2D:
+	return _holder.get_transform()
+
+
 ## `look`: {mode, lo?, hi?} -- a step definition, or just a mode.
 func _apply(t: TextureRect, look: Dictionary, alpha: float, color: Color) -> void:
 	var m: ShaderMaterial = t.material
