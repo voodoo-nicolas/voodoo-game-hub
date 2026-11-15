@@ -1,49 +1,42 @@
 extends RefCounted
 
 ## How to Play text and stats for GameInfo (scripts/common/game_info.gd).
+## Stonewater, M0 vertical slice: describes what the code does today.
 
 const ID := "wolf_pack"
-const TITLE := "Wolf Pack"
-const GOAL := "Lead your wolf pack through the wild, hunt to keep it fed, and raise pups to make it grow."
+const TITLE := "Stonewater"
+const GOAL := "Lead your pack to bring down two elk and feed everyone."
 const HOW := [
-	"Push the stick (or hold a finger on the screen) the way you want the lead wolf to run. The rest of the pack follows you.",
-	"Hold Sprint (or Shift) to run faster. Sprinting tires the leader out; the bar refills when you stop sprinting.",
-	"Run close to an animal and the pack joins the chase. Animals run away, but they get tired.",
-	"A hare needs only one wolf. A deer needs 2 wolves round it, an elk 3, a bison 5, and the bigger ones must be held for a moment.",
-	"Elk and bison kick back when too few wolves are round them: the wolves are knocked away and the pack gets hungrier.",
-	"Hunger goes down all the time, faster with a bigger pack and much faster in winter. When it runs out, one wolf leaves the pack. If the leader is alone and starving, the game ends.",
-	"Meat the pack can't eat is saved: every 60 spare raises a new pup, up to 10 wolves.",
-	"🌙 Story, The Long Winter: 8 chapters about Grey and Ash starting a pack of their own. Each chapter has one goal (🎯 at the top of the screen) to reach before its season ends. The more time left, the more stars.",
-	"🎯 Challenges: 📅 Daily Hunt is a new goal every day, the same for everyone; win it on following days for a streak. 📆 Weekly Trial is a whole year on Hard with one big goal, new every Monday.",
-	"🎮 Free Hunt: One Year means living through spring, summer, autumn and winter (75 seconds each). Endless keeps going for as long as you can. Your score is the meat the pack has eaten, in kg.",
+	"Move with the stick (or W A S D). Hold Sprint (Shift) to run: it uses stamina, and the bar fills again when you stop.",
+	"Elk run when wolves come near, and a running elk gets tired. A herd always has a few weak animals, and the strong ones are much harder to catch.",
+	"Sense (E) shows scent trails, marks the weak elk with a ◆ and shows each elk's stamina. The line on the bar is where an elk is tired enough to be held. It lasts 4 seconds and then needs a rest.",
+	"Tap Howl (Q) to call the pack back to you. Hold Howl to open the command wheel (time slows down) and tap a command, or press 1 to 6.",
+	"Rally: follow me. Hold: stay here. Scout ahead: the scout runs in front and shows more of the map. Drive: the chaser runs the elk down and tires it. Flank: wolves cut off its escape. Strike: the pack closes in and bites.",
+	"When an elk is tired, get close and hold Bite. A bar fills: each wolf biting helps. A healthy elk kicks, which breaks your hold and hurts; grab it again and the bar carries on.",
+	"Mud (brown, dashed edge) slows everyone, and slows elk the most. The den (marked on the map) is where you wake up if you go down.",
+	"The pack has a hunger bar. Eating fills it. When it is empty, wolves recover stamina slower, but you never lose the game for it.",
 	"⏸ pauses; Resume on the Home screen carries on the same hunt.",
 ]
 const TIPS := [
-	"Hares are easy food early on; save your sprint for the big chases.",
-	"Grow the pack before winter: a pack of 2 can't take an elk.",
-	"Chase an animal for a while before going in: a tired one runs slower.",
-	"A bison feeds the whole pack and raises pups, but only bring 5 wolves or more.",
+	"Aim for the weak elk first: use Sense and look for the ◆.",
+	"Send the chaser (Drive) first, then Strike when the elk is tired.",
+	"Don't sprint straight at a herd: it runs early. Walk close, then sprint.",
+	"A kicked bite isn't lost: grab again and the bar carries on.",
+	"Drive the elk into the mud: it slows them more than you.",
 ]
-const STATS := ["Best score", "Games played", "Years survived", "Biggest pack", "Hares caught", "Deer caught", "Elk caught", "Bison caught",
-	"Story stars", "Story chapters done", "Daily hunts won", "Best daily streak", "Weekly trials won"]
-const NO_TIER_BADGES := ["Games played", "Hares caught", "Bison caught", "Story stars", "Story chapters done", "Best daily streak", "Weekly trials won", "Deer caught"]
+const STATS := ["Elk caught", "Games played"]
+const NO_TIER_BADGES := ["Games played"]
 
 const ACHIEVEMENTS := [
-	{"id": "first_elk", "icon": "🦌", "title": "Elk Hunters", "key": "Elk caught", "at": 1, "xp": 25},
-	{"id": "first_bison", "icon": "🦬", "title": "Bison Down", "key": "Bison caught", "at": 1, "xp": 50},
-	{"id": "full_pack", "icon": "🐺", "title": "Full Pack", "key": "Biggest pack", "at": 10, "xp": 50},
-	{"id": "one_year", "icon": "❄", "title": "Through the Winter", "key": "Years survived", "at": 1, "xp": 25},
-	{"id": "story_done", "icon": "🌙", "title": "King of the Valley", "key": "Story chapters done", "at": 8, "xp": 50},
-	{"id": "week_streak", "icon": "📅", "title": "Seven Dawns", "key": "Best daily streak", "at": 7, "xp": 25},
-	{"id": "weekly", "icon": "📆", "title": "Trial by Snow", "key": "Weekly trials won", "at": 1, "xp": 25},
+	{"id": "first_elk", "icon": "🦌", "title": "First Elk", "key": "Elk caught", "at": 1, "xp": 25},
+	{"id": "ten_elk", "icon": "🐺", "title": "Pack Hunters", "key": "Elk caught", "at": 10, "xp": 50},
 ]
 
 ## Learning hook (STANDARDS §15): checked facts only.
 const FACTS := [
-	"A wolf pack is usually one family: a mother and father wolf and their young from the last few years.",
-	"Gray wolves were brought back to Yellowstone National Park in 1995, about 70 years after they had been wiped out there.",
-	"Elk are the main prey of the wolves in Yellowstone.",
-	"Most wolf hunts fail: the prey escapes far more often than it is caught.",
-	"A hungry wolf can eat about 9 kg of meat in one meal, then go days without food.",
-	"Wolves howl to find each other and to tell other packs to keep away; a howl can carry for kilometres.",
+	"Most wild wolf packs are families: a mother and father and their young.",
+	"Young wolves usually become pack leaders by leaving home, finding a mate and starting their own pack.",
+	"Most wolf hunts fail: wolves test a herd and go after the animals that are weak, old or young.",
+	"Wolves use scent marks and howls to tell other packs where their land begins.",
+	"Elk are the main prey of the wolves in Yellowstone National Park.",
 ]
