@@ -42,11 +42,11 @@ const FACTS := [
 ]
 
 ## Quotes shown on the Landing, at the start of a hunt, when you go down and at the end.
-## [text, who said it]. Attributions are as the owner supplied them (2026-11-15).
+## [text, who said it]. Gervais and Carlin lines are marked Unknown: no verified source (owner, 2026-11-15).
 const QUOTES := [
-	["I am not a wolf in sheep's clothing, I'm a wolf in wolf's clothing.", "Ricky Gervais"],
+	["I am not a wolf in sheep's clothing, I'm a wolf in wolf's clothing.", "Unknown"],
 	["A gentleman is simply a patient wolf.", "Lana Turner"],
-	["There are nights when the wolves are silent and only the moon howls.", "George Carlin"],
+	["There are nights when the wolves are silent and only the moon howls.", "Unknown"],
 	["A fox is a wolf who sends flowers.", "Ruth Brown"],
 	["All stories are about wolves. All worth repeating, that is. Anything else is sentimental drivel.", "Margaret Atwood"],
 	["The lion may be more powerful, but the wolf does not perform in the circus.", "Unknown"],
