@@ -94,6 +94,7 @@ var pits: Array = []       # [x0, x1] (no pits since round 3; kept for old calle
 var heights := PackedFloat32Array()   # ground top every SEG world units
 var pools: Array = []      # {"x0", "x1", "level"}: water filling a dip
 var torii: Array = []         # torii gates (scenery): world x
+var flora: Array = []         # black/grey scenery: {"x","kind" bamboo|bush|grass,"s","h"}
 var trees: Array = []         # cherry trees: {"x", "h", "s", "blood"}; exactly one per stage has blood-red leaves
 var checkpoints: Array = []   # world x of the stone lanterns; dying restarts at the last one passed
 var checkpoint_x := 0.0
@@ -257,28 +258,56 @@ func build_stage() -> void:
 func _trees() -> void:
 	trees.clear()
 	torii.clear()
+	flora.clear()
 	var r := RandomNumberGenerator.new()
 	r.seed = stage * 104729 + 5
 	var tx := 900.0
 	while tx < length - 700.0:
 		tx += r.randf_range(1400.0, 2800.0)
-		if tx < length - 700.0 and not _over_pit(tx - 80.0) and not _over_pit(tx + 80.0):
+		if tx < length - 700.0 and not _over_pit(tx - 110.0) and not _over_pit(tx + 110.0) and not _scenery_blocked(tx, 150.0):
 			torii.append(tx)
+	# Pink cherry trees: half as common as round 7 (owner 2026-11-15); bamboo, bushes and tall grass fill in.
 	var x := 650.0
 	while x < length - 500.0:
-		x += r.randf_range(500.0, 1200.0)
+		x += r.randf_range(1000.0, 2400.0)
 		if x > length - 500.0:
 			break
-		if _over_pit(x) or _over_pit(x + 80.0):
+		if _over_pit(x) or _over_pit(x + 80.0) or _scenery_blocked(x, 130.0) or _near_torii(x, 260.0):
 			continue
 		trees.append({"x": x, "h": r.randf_range(200.0, 280.0), "s": r.randi() % 100000, "blood": false})
 	if trees.is_empty():
 		var mx := length * 0.5
-		while _over_pit(mx):
+		while _over_pit(mx) or _scenery_blocked(mx, 130.0) or _near_torii(mx, 260.0):
 			mx += 60.0
 		trees.append({"x": mx, "h": 240.0, "s": 7, "blood": false})
 	var pick := trees.size() / 3 + r.randi() % (trees.size() - trees.size() / 3)
 	trees[pick].blood = true
+	var fr := RandomNumberGenerator.new()
+	fr.seed = stage * 7919 + 11
+	var fx := 400.0
+	while fx < length - 400.0:
+		fx += fr.randf_range(160.0, 520.0)
+		if fx > length - 400.0:
+			break
+		var kind: String = ["bamboo", "bush", "grass", "grass", "bush"][fr.randi() % 5]
+		if _over_pit(fx - 40.0) or _over_pit(fx + 40.0) or _scenery_blocked(fx, 70.0) or _near_torii(fx, 150.0):
+			continue
+		flora.append({"x": fx, "kind": kind, "s": fr.randi() % 100000, "h": fr.randf_range(0.8, 1.25)})
+
+## True when a ledge, pillar or wall sits within `half` of x (scenery never overlaps them).
+func _scenery_blocked(x: float, half: float) -> bool:
+	for s in solids:
+		if s.size.y > 600.0:
+			continue   # the world and arena walls
+		if x + half > s.position.x and x - half < s.position.x + s.size.x:
+			return true
+	return false
+
+func _near_torii(x: float, half: float) -> bool:
+	for t in torii:
+		if absf(t - x) < half:
+			return true
+	return false
 
 ## The blood-red tree when the hero stands within reach of it (else empty).
 func heart_tree_near(reach: float = 170.0) -> Dictionary:

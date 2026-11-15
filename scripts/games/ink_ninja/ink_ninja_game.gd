@@ -32,9 +32,9 @@ const PAUSE_AFTER := 1.8
 ## blow lands (`water`, `red`, `tint_far`, `tint_mid`, `haze` below).
 const WASH := {
 	"classic": {"paper": Color("efe8d8"), "paper2": Color("d6d4c8"), "far": Color("aeb6b9"), "mid": Color("858c86"), "moon": Color("f8efdc"), "fog": Color("eef0ee"),
-		"water": Color(0.08, 0.4, 0.95, 0.74), "surf": Color(0.04, 0.3, 0.92, 0.95), "red": Color(0.8, 0.05, 0.04), "haze": Color("e4e7e8")},
+		"water": Color(0.14, 0.425, 0.885, 0.68), "surf": Color(0.08, 0.325, 0.835, 0.925), "red": Color(0.8, 0.05, 0.04), "haze": Color("e4e7e8")},
 	"voodoo": {"paper": Color("08090c"), "paper2": Color("181a1f"), "far": Color("262b33"), "mid": Color("3f4544"), "moon": Color("dcd6c8"), "fog": Color("566068"),
-		"water": Color(0.06, 0.26, 0.78, 0.8), "surf": Color(0.35, 0.65, 1.0, 0.9), "red": Color(0.85, 0.1, 0.08), "haze": Color("3a4048")},
+		"water": Color(0.08, 0.255, 0.69, 0.75), "surf": Color(0.35, 0.625, 0.975, 0.875), "red": Color(0.85, 0.1, 0.08), "haze": Color("3a4048")},
 }
 const LOOKS := {
 	"classic": {"paper": Color("ece6d8"), "paper2": Color("d8d0bf"), "ink": Color("111111"), "far": Color("b9b2a4"), "mid": Color("8e887d"), "near": Color("4a4743"), "moon": Color("f7f3ea"), "fog": Color("f4f1ea"), "shadow": Color("2a2723"), "smoke": Color("8a857c")},
@@ -83,6 +83,7 @@ const BAND := Color("b3231d")   # the hero's red headband (owner 2026-11-15, mat
 var hearts: Array = []   # stages whose blood-red cherry tree has a heart carved in it (all 24 = achievement)
 var toast := ""
 var toast_t := 0.0
+var flowers: Array = []  # cherry blossom textures (_make_flowers)
 var blot: Texture2D      # an irregular ink blot for splashes and stains
 var goals                # Goals (daily + weekly objectives)
 var card_text := []      # the chapter card on screen: [title, text, objective] (empty = none)
@@ -473,7 +474,7 @@ func _process(delta: float) -> void:
 		s[2] -= delta
 		var sg: float = engine.ground_y(s[0].x)
 		if s[2] <= 0.0 and s[0].y > sg - 20 and s[0].y < sg + 40 and stains.size() < 420 and engine.water_depth(s[0].x) <= 0.0:
-			stains.append([Vector2(s[0].x, sg + 3), s[3] * (2.0 if s[4] else 1.4), 0.9 if s[4] else 0.55, s[4]])
+			stains.append([Vector2(s[0].x, sg + 3), s[3] * (2.0 if s[4] else 1.4) * 0.7, 0.9 if s[4] else 0.55, s[4]])
 	splats = splats.filter(func(s): return s[2] > 0.0)
 	if not card_text.is_empty():
 		card_t -= delta
@@ -685,7 +686,7 @@ func _splash(p: Vector2, red: bool = false, big: bool = false) -> void:
 	for n in (4 if big else 1):
 		var sx := p.x + randf_range(-30, 30) * (2.0 if big else 1.0)
 		if stains.size() < 420 and engine.water_depth(sx) <= 0.0:
-			stains.append([Vector2(sx, engine.ground_y(sx) + 3), randf_range(50, 85) if (big and n == 0) else (randf_range(26, 48) if big else randf_range(22, 40)), 0.9 if red else 0.7, red])
+			stains.append([Vector2(sx, engine.ground_y(sx) + 3), (randf_range(50, 85) if (big and n == 0) else (randf_range(26, 48) if big else randf_range(22, 40))) * 0.7, 0.9 if red else 0.7, red])   # owner: 30% smaller
 
 func _game_over(won: bool) -> void:
 	started = false
@@ -732,6 +733,10 @@ func _draw_field() -> void:
 		if r.end.x < 0 or r.position.x > sz.x:
 			continue
 		var tower: bool = s.size.y >= 30.0
+		if tower and s.size.y < 600.0:
+			# Stand on the ground, never sink into it (owner 2026-11-15): cut the bottom at the earth.
+			var gb: float = maxf(engine.ground_y(s.position.x), engine.ground_y(s.position.x + s.size.x))
+			r.size.y = minf(r.size.y, o.y + (gb + 1.0) * k - r.position.y)
 		if tower:
 			# Towers, stumps and walls: grey stone blocks with ink mortar and an ink outline,
 			# so they stand apart from the black earth (owner 2026-11-15).
@@ -773,6 +778,7 @@ func _draw_field() -> void:
 	for st in stains:
 		var p: Vector2 = o + st[0] * k
 		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.red, minf(st[2], 1.0)) if st[3] else Color(pal.near, st[2]))
+	_draw_flora(c, o, sz, k)
 	_draw_torii(c, o, sz, k)
 	_draw_trees(c, o, sz, k)
 	# Arena gate.
@@ -812,6 +818,7 @@ func _draw_field() -> void:
 	_hud_draw(c, sz, k)
 
 ## Torii gates (owner 2026-11-15): scenery you walk through, a faint brown with a faint red top beam.
+## Round 8: wider, like the owner's reference (the top beam is 1.5x the height, tips curled up).
 func _draw_torii(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 	var wood := Color(0.36, 0.24, 0.16, 0.6)
 	var redtop := Color(0.72, 0.16, 0.12, 0.6)
@@ -819,21 +826,61 @@ func _draw_torii(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 		var x: float = o.x + tx * k
 		if x < -150.0 * k or x > sz.x + 150.0 * k:
 			continue
-		var gl: float = engine.ground_y(tx - 60.0)
-		var gr: float = engine.ground_y(tx + 60.0)
-		var top: float = minf(gl, gr) - 190.0
-		var l := Vector2(x - 60.0 * k, gl + 3.0)
-		var rr := Vector2(x + 60.0 * k, gr + 3.0)
+		var gl: float = engine.ground_y(tx - 78.0)
+		var gr: float = engine.ground_y(tx + 78.0)
+		var top: float = minf(gl, gr) - 165.0
 		var tp := o.y + top * k
-		c.draw_line(Vector2(l.x, o.y + l.y * k), Vector2(l.x, tp), wood, 13.0 * k)
-		c.draw_line(Vector2(rr.x, o.y + rr.y * k), Vector2(rr.x, tp), wood, 13.0 * k)
-		c.draw_line(Vector2(l.x, tp + 36.0 * k), Vector2(rr.x, tp + 36.0 * k), wood, 9.0 * k)   # nuki, the lower beam
-		_poly(c, PackedVector2Array([Vector2(x - 84.0 * k, tp - 4.0 * k), Vector2(x + 84.0 * k, tp - 4.0 * k), Vector2(x + 70.0 * k, tp + 14.0 * k), Vector2(x - 70.0 * k, tp + 14.0 * k)]), redtop)   # kasagi, the red top beam
-		c.draw_line(Vector2(x - 66.0 * k, tp + 20.0 * k), Vector2(x + 66.0 * k, tp + 20.0 * k), wood, 8.0 * k)
+		var lb := Vector2(x - 78.0 * k, o.y + (gl + 3.0) * k)
+		var rb := Vector2(x + 78.0 * k, o.y + (gr + 3.0) * k)
+		# Pillars: tapered, leaning slightly in.
+		_poly(c, PackedVector2Array([lb + Vector2(-8.0 * k, 0), lb + Vector2(8.0 * k, 0), Vector2(x - 70.0 * k, tp + 14.0 * k), Vector2(x - 82.0 * k, tp + 14.0 * k)]), wood)
+		_poly(c, PackedVector2Array([rb + Vector2(-8.0 * k, 0), rb + Vector2(8.0 * k, 0), Vector2(x + 82.0 * k, tp + 14.0 * k), Vector2(x + 70.0 * k, tp + 14.0 * k)]), wood)
+		c.draw_line(Vector2(x - 100.0 * k, tp + 46.0 * k), Vector2(x + 100.0 * k, tp + 46.0 * k), wood, 9.0 * k)   # nuki, the lower beam
+		c.draw_rect(Rect2(Vector2(x - 8.0 * k, tp + 24.0 * k), Vector2(16.0 * k, 22.0 * k)), Color(wood, 0.8))   # the name plaque
+		c.draw_line(Vector2(x - 96.0 * k, tp + 22.0 * k), Vector2(x + 96.0 * k, tp + 22.0 * k), wood, 8.0 * k)   # shimaki
+		# Kasagi: the curved red top beam, tips curled up.
+		var upper := PackedVector2Array()
+		var lower := PackedVector2Array()
+		for i in 11:
+			var f := i / 10.0 * 2.0 - 1.0
+			var cv := f * f * 16.0
+			upper.append(Vector2(x + f * 118.0 * k, tp - (4.0 + cv) * k))
+			lower.append(Vector2(x + f * 106.0 * k, tp + (15.0 - cv * 0.55) * k))
+		lower.reverse()
+		_poly(c, upper + lower, redtop)
+
+## A cherry blossom: five soft petals, a paler rim and a dark heart (like the owner's two
+## cherry references). White so it takes any tint; three turns so a branch is not a stamp.
+func _make_flowers() -> Array:
+	var out := []
+	for turn in 3:
+		var n := 64
+		var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+		var rot := turn * 0.7
+		for y in n:
+			for x in n:
+				var v := Vector2(x - n / 2.0 + 0.5, y - n / 2.0 + 0.5)
+				var d := v.length() / (n / 2.0)
+				var th := v.angle() + rot
+				var edge := 0.62 + 0.38 * pow(absf(cos(2.5 * th)), 0.55)   # five rounded petals
+				var al := clampf((edge - d) * 14.0, 0.0, 1.0)
+				var shade := 1.0
+				if d > edge - 0.12:
+					shade = 0.8   # the outline the owner asked for
+				if d < 0.2:
+					shade = 0.28 + d * 1.6   # dark centre
+				elif absf(sin(2.5 * th)) < 0.05 and d < 0.55:
+					shade *= 0.88   # a faint vein
+				img.set_pixel(x, y, Color(shade, shade, shade, al))
+		out.append(ImageTexture.create_from_image(img))
+	return out
 
 ## Cherry trees (owner 2026-11-15): a dark brush trunk and branches under clouds of pink
 ## blossom; one tree per stage has blood-red leaves, with a carved heart once visited.
+## Round 8: thinner, more delicate branches with twigs, and real five-petal blossoms.
 func _draw_trees(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
+	if flowers.is_empty():
+		flowers = _make_flowers()
 	var r := RandomNumberGenerator.new()
 	for t in engine.trees:
 		if o.x + t.x * k < -260.0 * k or o.x + t.x * k > sz.x + 260.0 * k:
@@ -845,36 +892,122 @@ func _draw_trees(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 		for i in 8:
 			var f := i / 7.0
 			trunk.append(base + Vector2(sin(f * 2.2 + lean) * 16.0 * f + lean * f * 3.0, -h * 0.62 * f) * k)
-		_ribbon(c, trunk, 17.0 * k, 7.0 * k, pal.ink)
+		_ribbon(c, trunk, 15.0 * k, 5.0 * k, pal.ink)
 		var blood: bool = t.blood
 		var leaf: Color = Color(0.7, 0.04, 0.06) if blood else Color(0.96, 0.62, 0.73)
 		var leaf2: Color = Color(0.48, 0.02, 0.05) if blood else Color(1.0, 0.82, 0.88)
 		r.seed = t.s
-		var tops := [trunk[7]]
-		for b in 3:
-			var st: Vector2 = trunk[3 + b] if b < 2 else trunk[6]
+		var twigs := PackedVector2Array()
+		var spots := []   # where blossom sits
+		for b in 5:
+			var st: Vector2 = trunk[2 + b] if b < 4 else trunk[7]
 			var dir := -1.0 if b % 2 == 0 else 1.0
-			var en: Vector2 = st + Vector2(dir * r.randf_range(55.0, 105.0), -r.randf_range(35.0, 80.0)) * k
-			_ribbon(c, [st, st.lerp(en, 0.5) + Vector2(0, 8 * k), en], 7.0 * k, 2.0 * k, pal.ink)
-			tops.append(en)
-		for tp in tops:
-			c.draw_texture_rect(disc, Rect2(tp - Vector2(62, 50) * k, Vector2(124, 100) * k), false, Color(leaf, 0.3))
-			for i in 16:
-				var off := Vector2(r.randf_range(-58.0, 58.0), r.randf_range(-44.0, 40.0))
-				off += Vector2(sin(anim_t * 1.1 + i), cos(anim_t * 0.9 + i * 1.7)) * 2.0
-				var sz2 := r.randf_range(5.0, 11.0) * k
-				c.draw_texture_rect(disc, Rect2(tp + off * k - Vector2(sz2, sz2), Vector2(sz2, sz2) * 2), false, leaf if i % 3 != 0 else leaf2)
+			var en: Vector2 = st + Vector2(dir * r.randf_range(55.0, 110.0), -r.randf_range(28.0, 80.0)) * k
+			var mid: Vector2 = st.lerp(en, 0.5) + Vector2(0, 9.0 * k)
+			_ribbon(c, [st, mid, en], 5.0 * k, 1.4 * k, pal.ink)
+			# Twigs: little zig-zags off the branch, blossom along them.
+			for q in 4:
+				var f := 0.35 + q * 0.2
+				var bp: Vector2 = st.lerp(mid, f * 2.0) if f < 0.5 else mid.lerp(en, (f - 0.5) * 2.0)
+				var tdir := Vector2(dir * r.randf_range(0.4, 1.0), -r.randf_range(0.3, 1.0)).normalized()
+				var p1: Vector2 = bp + tdir * r.randf_range(14.0, 26.0) * k
+				var p2: Vector2 = p1 + tdir.rotated(r.randf_range(-0.7, 0.7)) * r.randf_range(10.0, 20.0) * k
+				twigs.append(bp)
+				twigs.append(p1)
+				twigs.append(p1)
+				twigs.append(p2)
+				spots.append(p1)
+				spots.append(p2)
+			spots.append(en)
+		c.draw_multiline(twigs, pal.ink, 1.5 * k)
+		for sp in spots:
+			c.draw_texture_rect(disc, Rect2(sp - Vector2(26, 20) * k, Vector2(52, 40) * k), false, Color(leaf, 0.12))
+		for i in spots.size():
+			var n_f := 2 if i % 3 == 0 else 1
+			for j in n_f:
+				var off := Vector2(r.randf_range(-12.0, 12.0), r.randf_range(-10.0, 9.0))
+				off += Vector2(sin(anim_t * 1.1 + i), cos(anim_t * 0.9 + i * 1.7)) * 1.5
+				var fs := r.randf_range(6.5, 10.5) * k
+				var fp: Vector2 = spots[i] + off * k
+				c.draw_texture_rect(flowers[(i + j) % 3], Rect2(fp - Vector2(fs, fs), Vector2(fs, fs) * 2), false, leaf if (i + j) % 3 != 0 else leaf2)
 		for i in 7:   # fallen petals
 			var px2 := base.x + r.randf_range(-80.0, 80.0) * k
-			c.draw_texture_rect(disc, Rect2(Vector2(px2, base.y - 3.0 * k), Vector2(7, 4) * k), false, Color(leaf, 0.85))
+			c.draw_texture_rect(flowers[i % 3], Rect2(Vector2(px2, base.y - 4.0 * k), Vector2(6, 6) * k), false, Color(leaf, 0.85))
 		if blood and hearts.has(engine.stage):
-			# The carved heart: a pale notch on the trunk.
-			var hc: Vector2 = base + Vector2(lean * 1.2, -h * 0.2) * k
+			# The carved heart: a pale notch sized to the trunk, set on the trunk's own line.
+			var ti := (0.2 / 0.62) * 7.0
+			var hc: Vector2 = (trunk[int(ti)] as Vector2).lerp(trunk[int(ti) + 1], ti - int(ti))
 			var hp := PackedVector2Array()
 			for i in 24:
 				var a := i / 24.0 * TAU
-				hp.append(hc + Vector2(16.0 * pow(sin(a), 3.0), -(13.0 * cos(a) - 5.0 * cos(2.0 * a) - 2.0 * cos(3.0 * a) - cos(4.0 * a))) * 0.9 * k)
+				hp.append(hc + Vector2(16.0 * pow(sin(a), 3.0), -(13.0 * cos(a) - 5.0 * cos(2.0 * a) - 2.0 * cos(3.0 * a) - cos(4.0 * a))) * 0.26 * k)
 			_poly(c, hp, pal.paper)
+
+## Black and grey scenery between the cherry trees (owner 2026-11-15): bamboo, bushes, tall grass.
+## Each thing is one or two batched line calls plus a few textured blobs.
+func _draw_flora(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
+	var r := RandomNumberGenerator.new()
+	for fl in engine.flora:
+		var fx: float = o.x + fl.x * k
+		if fx < -120.0 * k or fx > sz.x + 120.0 * k:
+			continue
+		var base := Vector2(fx, o.y + (engine.ground_y(fl.x) + 3.0) * k)
+		var hm: float = fl.h
+		r.seed = fl.s
+		match fl.kind:
+			"bamboo":
+				var stalk := PackedVector2Array()
+				var leaves := PackedVector2Array()
+				var nodes := PackedVector2Array()
+				for q in r.randi_range(3, 5):
+					var bx := base + Vector2(r.randf_range(-22.0, 22.0), 0) * k
+					var th := r.randf_range(150.0, 250.0) * hm
+					var lean := r.randf_range(-0.12, 0.12)
+					var prev := bx
+					var segs := 7
+					for sg in segs:
+						var f := (sg + 1) / float(segs)
+						var cur := bx + Vector2(lean * th * f + sin(anim_t * 0.8 + fl.x * 0.01 + q) * 3.0 * f, -th * f) * k
+						stalk.append(prev)
+						stalk.append(cur)
+						nodes.append(cur + Vector2(-3.5, 0) * k)
+						nodes.append(cur + Vector2(3.5, 0) * k)
+						if sg >= 2:   # sprigs of narrow leaves, drooping from the upper nodes
+							for lf in 3:
+								var d := -1.0 if lf % 2 == 0 else 1.0
+								var ang := d * r.randf_range(0.3, 1.1)
+								var ln := r.randf_range(16.0, 30.0) * k
+								var tip := cur + Vector2(sin(ang), -cos(ang) * 0.35 + 0.55) * ln
+								leaves.append(cur)
+								leaves.append(tip)
+						prev = cur
+				c.draw_multiline(stalk, pal.ink.lerp(pal.mid, 0.2), 3.2 * k)
+				c.draw_multiline(nodes, pal.ink, 2.2 * k)
+				c.draw_multiline(leaves, pal.ink.lerp(pal.near, 0.3), 2.6 * k)
+			"bush":
+				var col: Color = pal.near.lerp(pal.ink, 0.45)
+				for i in 9:
+					var p := base + Vector2(r.randf_range(-34.0, 34.0) * hm, -r.randf_range(8.0, 34.0) * hm) * k
+					var rad := r.randf_range(14.0, 24.0) * hm * k
+					c.draw_texture_rect(disc, Rect2(p - Vector2(rad, rad * 0.85), Vector2(rad, rad * 0.85) * 2), false, Color(col, 0.9))
+				var spikes := PackedVector2Array()
+				for i in 14:
+					var p := base + Vector2(r.randf_range(-40.0, 40.0) * hm, -r.randf_range(10.0, 40.0) * hm) * k
+					spikes.append(p)
+					spikes.append(p + Vector2(r.randf_range(-12.0, 12.0), -r.randf_range(8.0, 18.0)) * k)
+				c.draw_multiline(spikes, col, 2.0 * k)
+			_:
+				var blades := PackedVector2Array()
+				for i in 16:
+					var bx := base + Vector2(r.randf_range(-18.0, 18.0), 0) * k
+					var bl := r.randf_range(34.0, 78.0) * hm
+					var bend := r.randf_range(-26.0, 26.0) + sin(anim_t * 1.2 + i + fl.x * 0.02) * 3.0
+					var m := bx + Vector2(bend * 0.35, -bl * 0.55) * k
+					blades.append(bx)
+					blades.append(m)
+					blades.append(m)
+					blades.append(bx + Vector2(bend, -bl) * k)
+				c.draw_multiline(blades, pal.ink.lerp(pal.mid, 0.35), 2.0 * k)
 
 ## The rolling ground (owner 2026-11-15): one ink polygon along the height field, with a
 ## dry-brush rim in short strokes (one draw_multiline call).
