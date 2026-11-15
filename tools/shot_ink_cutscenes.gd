@@ -5,7 +5,9 @@ extends SceneTree
 ##   godot --path . --resolution 1280x720 --script res://tools/shot_ink_cutscenes.gd -- <out_dir>
 
 const Cut = preload("res://scripts/games/ink_ninja/cutscene.gd")
-const SHOTS := {"intro": [2.0, 6.0, 10.5, 13.0, 17.5, 22.0, 24.5, 27.0], "after-1B": [1.0, 3.0, 5.5, 7.6, 9.0, 11.0]}
+const SHOTS := {"intro": [6.0, 13.0, 24.5], "drip": [4.0, 7.5, 11.0], "after-1B": [3.0, 11.0], "after-2B": [3.0, 5.6, 11.0],
+	"after-3B": [5.0, 10.5, 11.3, 13.0, 19.0], "act4": [5.0, 9.5], "after-4B": [3.0, 9.0, 14.0], "act5": [2.05, 5.0, 10.2],
+	"after-5B": [4.0, 11.0], "seal": [1.0, 3.0, 6.5, 10.0, 12.5, 14.2], "ending-a": [5.0, 15.0, 22.0, 27.0], "ending-b": [4.0, 10.9, 13.0, 18.0]}
 
 func _initialize() -> void:
 	_run()
@@ -21,11 +23,15 @@ func _run() -> void:
 	var c = Cut.new()
 	host.add_child(c)
 	await process_frame
+	var only := OS.get_cmdline_user_args()[1] if OS.get_cmdline_user_args().size() > 1 else ""
 	for scene in SHOTS:
+		if only != "" and scene != only:
+			continue
 		c.play(scene)
 		for at in SHOTS[scene]:
 			c.t = at
 			c.last = at
+			c.wait_done = at > 12.6 or (scene == "ending-b" and at > 10.75)   # past a Slash wait: as if slashed
 			for i in 3:
 				await process_frame
 			root.get_texture().get_image().save_png(out.path_join("%s_%04.1f.png" % [scene, at]))
@@ -38,6 +44,7 @@ func _run() -> void:
 		while tt < float(Cut.SCENES[scene].dur):
 			c.t = tt
 			c.last = tt
+			c.wait_done = true
 			c.queue_redraw()
 			await process_frame
 			worst = maxf(worst, c.draw_ms)

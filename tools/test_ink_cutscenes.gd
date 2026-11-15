@@ -39,7 +39,10 @@ func _run() -> void:
 	for i in 5:
 		await process_frame
 	check(g.cut_on and g.cutscene.playing and g.cutscene.id == "intro", "new game plays the intro")
-	check(Cut.for_stage(1) == "intro" and Cut.for_stage(2) == "after-1B" and Cut.for_stage(3) == "", "slots")
+	check(Cut.for_stage(1) == ["intro"] and Cut.for_stage(2) == ["after-1B"] and Cut.for_stage(4) == ["after-3B", "act4"] and Cut.for_stage(5) == [], "slots")
+	for sc in Cut.SCENES:
+		check(g.cutscene.has_scene(sc), "scene " + sc)
+	check(Cut.SCENES.size() == 12, "12 scenes")
 	g.cutscene.t = 2.0
 	await process_frame
 	check(not g.cutscene.skip_btn.visible, "first intro: no Skip")
@@ -73,6 +76,57 @@ func _run() -> void:
 	await process_frame
 	check(g.cutscene.skip_btn.visible, "intro skippable once seen")
 	g.cutscene._end()
+	await process_frame
+	# Drip at stage 1's second lantern.
+	g.cut_on = false
+	g.card_text = []
+	g.engine.stage = 1
+	g.engine.build_stage()
+	g.engine.checkpoint_x = g.engine.checkpoints[1]
+	g._event("checkpoint")
+	await process_frame
+	check(g.cut_on and g.cutscene.id == "drip", "drip at the second lantern of stage 1")
+	g.cutscene._end()
+	await process_frame
+	check(not g.cut_on, "play resumes after the drip")
+	# Seal waits for Slash.
+	g.cutscene.play("seal")
+	g.cutscene.t = 13.5
+	for i in 3:
+		await process_frame
+	check(g.cutscene.t <= 12.6 and g.cutscene.playing, "seal holds on the SLASH prompt")
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_J
+	ev.pressed = true
+	g.cutscene._unhandled_input(ev)
+	await process_frame
+	check(g.cutscene.t >= 14.0, "Slash continues the seal")
+	g.cutscene._end()
+	# Ending B: no input for 10 s -> the brush leaves on its own.
+	g.cutscene.play("ending-b")
+	g.cutscene.t = 10.7
+	g.cutscene.wait_t = 9.95
+	for i in 6:
+		await process_frame
+	check(g.cutscene.idle and g.cutscene.t > 10.7, "ending-b: idle 10 s, the brush leaves")
+	g.cutscene._end()
+	# Beating the last stage: seal + ending A (+ B with every scroll).
+	g.cut_on = false
+	g.engine.stage = 10
+	g.engine.state = "won"
+	g.all_scrolls = true
+	g._after_pause()
+	await process_frame
+	check(g.cut_on and g.cutscene.id == "seal" and g.cut_queue == ["ending-a", "ending-b"], "final: seal, ending A, ending B")
+	g.cutscene._end()
+	await process_frame
+	check(g.cutscene.id == "ending-a", "ending A follows the seal")
+	g.cutscene._end()
+	g.cutscene._end()
+	await process_frame
+	g.cutscene._end()
+	await process_frame
+	check(not g.cut_on and g.end_dialog.visible, "the end screen after the endings")
 	g.started = false
 	_put_back(Cut.SEEN_PATH, seen0)
 	_put_back(SAVE, save0)

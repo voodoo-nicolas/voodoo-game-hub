@@ -87,6 +87,8 @@ var step_t := 0.0
 var cutscene              # cutscene.gd (between-stage scenes, owner's storyboard 2026-11-15)
 var cut_on := false
 var cut_then: Callable    # what runs when the cutscene ends or is skipped
+var cut_queue: Array = [] # scenes still to play in this slot
+var all_scrolls := true   # every scroll of every stage so far was picked up (Ending B)
 
 var field: Control
 var hud: Label
@@ -367,12 +369,18 @@ func _new_game(d: int) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	engine.reset(d)
 	prologue = true
+	all_scrolls = true
 	_cutscene_then(Cutscene_.for_stage(1), _begin)
 
 ## Play a cutscene (if there is one), then `then`. Play state stays "started" so leaving
 ## mid-scene still saves the run.
-func _cutscene_then(scene: String, then: Callable) -> void:
-	if scene == "" or cutscene == null or not cutscene.has_scene(scene):
+func _cutscene_then(scenes: Array, then: Callable) -> void:
+	cut_queue = []
+	if cutscene != null:
+		for sc in scenes:
+			if cutscene.has_scene(sc):
+				cut_queue.append(sc)
+	if cut_queue.is_empty():
 		then.call()
 		return
 	started = true
@@ -380,14 +388,20 @@ func _cutscene_then(scene: String, then: Callable) -> void:
 	cut_then = then
 	card_text = []
 	end_dialog.visible = false
-	cutscene.play(scene)
+	cutscene.play(cut_queue.pop_front())
 
 func _on_cutscene_done(_scene: String) -> void:
+	if not cut_queue.is_empty():
+		cutscene.play(cut_queue.pop_front())   # the next scene of the same slot
+		return
 	cut_on = false
 	if cut_then.is_valid():
 		var c := cut_then
 		cut_then = Callable()
 		c.call()
+
+func _noop() -> void:
+	pass
 
 func _restart() -> void:
 	_new_game(engine.diff)
@@ -516,6 +530,8 @@ func _event(e: String) -> void:
 		"checkpoint":
 			SoundLib.play(self, "impact/bell_heavy", -10.0, "game", 1.4)
 			_puff(Vector2(engine.px, engine.py - 60), 5, 14.0, 60.0)
+			var lantern: int = engine.checkpoints.find(engine.checkpoint_x) + 1
+			_cutscene_then(Cutscene_.for_slot("lantern:%d:%d" % [engine.stage, lantern]), _noop)
 		"scroll":
 			SoundLib.play(self, "rpg/book_flip", -4.0)
 			_goal("scrolls")
@@ -554,6 +570,8 @@ func _event(e: String) -> void:
 			SoundLib.play(self, "jingles/lose_failed", -6.0)
 		"win":
 			SoundLib.play(self, "jingles/win_victory", -4.0)
+			if not engine.scrolls.is_empty():
+				all_scrolls = false
 			_goal("bosses")
 			_goal("stages")
 			if engine.hits_taken == 0:
@@ -574,7 +592,10 @@ func _after_pause() -> void:
 		"won":
 			engine.next_stage()
 			if engine.state == "cleared":
-				_game_over(true)
+				var fin: Array = Cutscene_.for_slot("final")
+				if all_scrolls:
+					fin.append_array(Cutscene_.for_slot("final_all_scrolls"))
+				_cutscene_then(fin, _game_over.bind(true))
 			else:
 				_save_game()
 				_cutscene_then(Cutscene_.for_stage(engine.stage), _begin)
@@ -1340,7 +1361,7 @@ func _save_game() -> void:
 	var st: int = engine.stage
 	if engine.state == "won":
 		st = mini(Engine_.STAGES, st + 1)
-	SaveUtil.write(SAVE_PATH, {"score": engine.score, "stage": st, "lives": maxi(1, engine.lives), "stars": engine.stars, "diff": engine.diff, "cp": engine.checkpoint_x if engine.state != "won" else 0.0})
+	SaveUtil.write(SAVE_PATH, {"score": engine.score, "stage": st, "lives": maxi(1, engine.lives), "stars": engine.stars, "diff": engine.diff, "cp": engine.checkpoint_x if engine.state != "won" else 0.0, "all_scrolls": all_scrolls})
 
 func _resume_text() -> String:
 	var d = SaveUtil.read(SAVE_PATH)
@@ -1356,6 +1377,7 @@ func _load_saved_game() -> void:
 	engine.stage = clampi(int(d.get("stage", 1)), 1, Engine_.STAGES)
 	engine.lives = clampi(int(d.get("lives", 3)), 1, 3)
 	engine.stars = maxi(0, int(d.get("stars", Engine_.START_STARS)))
+	all_scrolls = bool(d.get("all_scrolls", false))
 	engine.build_stage()
 	if float(d.get("cp", 0.0)) > 200.0:
 		engine.restart_at(float(d.get("cp", 0.0)))
