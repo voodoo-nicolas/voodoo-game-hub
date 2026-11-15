@@ -729,7 +729,7 @@ func _draw_field() -> void:
 	if not engine.boss.is_empty() and engine.boss.hp > 0:
 		var b: Dictionary = engine.boss
 		var tele: bool = b.phase != "idle" and b.t > 0.0
-		_figure(c, o + Vector2(b.x, b.y) * k, k * 1.5, b.face, "boss%d" % b.kind, b.hit > 0.0, tele, false, anim_t * 4.0)
+		_boss_art(c, o + Vector2(b.x, b.y) * k, k, b, tele)   # each act's own boss (was: _figure "boss%d" by move set)
 	for s in engine.shots:
 		_star(c, o + Vector2(s.x, s.y) * k, k, s.mine)
 	if engine.hurt_t <= 0.0 or fmod(anim_t, 0.16) < 0.08:
@@ -1128,6 +1128,199 @@ func _figure(c: CanvasItem, feet: Vector2, k: float, f: int, kind: String, flash
 			_katana(c, hand, hand + Vector2(f * 50, 0).rotated(up * f) * k, k)
 	if windup:
 		c.draw_string(ThemeDB.fallback_font, head + Vector2(-8, -30) * k, "!", HORIZONTAL_ALIGNMENT_LEFT, -1, int(34 * k), pal.ink)
+
+## The six act bosses (story bible, owner 2026-11-15), each in its own shape, matching
+## the cutscenes: 1 Gate Warden (stone lion-dog), 2 Tora (tiger), 3 the Dragon, 4 Tsuru
+## (crane), 5 the Calligrapher (monk with Hakuu's brush), 6 Lord Shu's Hand. Each wears
+## Lord Shu's red seal: SHU_RED is the bible's seal red (a3201a), the crane's crown the one
+## other red. The hit box and attacks stay the engine's (boss_box, BOSS_KIND move sets).
+const SHU_RED := Color("a3201a")
+
+func _boss_art(c: CanvasItem, feet: Vector2, k: float, b: Dictionary, tele: bool) -> void:
+	var act: int = engine.act()
+	var f: int = b.face
+	var flash: bool = b.hit > 0.0
+	var ink: Color = pal.mid if flash else pal.near.lerp(pal.ink, 0.8)   # darker than the foes: bosses read through the mist
+	var t := anim_t * 4.0
+	var air: bool = b.y < Engine_.GROUND - 2.0
+	var moving: bool = absf(b.vx) > 20.0
+	var top := feet + Vector2(0, -110) * k   # where the "!" goes
+	match act:
+		1:
+			top = _boss_warden(c, feet, k, f, ink, t, moving)
+		2:
+			top = _boss_tora(c, feet, k, f, ink, t, moving, air)
+		3:
+			top = _boss_dragon(c, feet, k, f, ink, t)
+		4:
+			top = _boss_tsuru(c, feet, k, f, ink, t, air)
+		5:
+			top = _boss_calligrapher(c, feet, k, f, ink, t, tele)
+		_:
+			top = _boss_hand(c, feet, k, f, ink, t, air)
+	if tele:
+		c.draw_string(ThemeDB.fallback_font, top + Vector2(-8, -10) * k, "!", HORIZONTAL_ALIGNMENT_LEFT, -1, int(42 * k), pal.ink)
+
+func _ell(c: CanvasItem, ctr: Vector2, rx: float, ry: float, col: Color, rot := 0.0) -> void:
+	var pts := PackedVector2Array()
+	for i in 18:
+		var a := TAU * i / 18.0
+		pts.append(ctr + Vector2(cos(a) * rx, sin(a) * ry).rotated(rot))
+	c.draw_colored_polygon(pts, col)
+
+## Lord Shu's seal: a small red square with a pale carved mark.
+func _seal(c: CanvasItem, p: Vector2, s: float) -> void:
+	c.draw_rect(Rect2(p - Vector2(s, s) / 2.0, Vector2(s, s)), SHU_RED)
+	c.draw_line(p + Vector2(-s * 0.25, -s * 0.2), p + Vector2(s * 0.25, -s * 0.2), pal.paper, maxf(1.0, s * 0.1))
+	c.draw_line(p + Vector2(0, -s * 0.3), p + Vector2(0, s * 0.3), pal.paper, maxf(1.0, s * 0.1))
+
+## Quadratic points (for curved shapes).
+func _q(p0: Vector2, cc: Vector2, p1: Vector2, n := 6) -> PackedVector2Array:
+	var o := PackedVector2Array()
+	for i in range(1, n + 1):
+		var u := float(i) / n
+		o.append(p0.lerp(cc, u).lerp(cc.lerp(p1, u), u))
+	return o
+
+## 1 Gate Warden: a stone lion-dog, heavy and low, a curled mane, the seal on its brow.
+func _boss_warden(c: CanvasItem, feet: Vector2, k: float, f: int, ink: Color, t: float, moving: bool) -> Vector2:
+	var stone: Color = ink.lerp(pal.mid, 0.25)
+	var step := sin(t * 1.5) * 6.0 if moving else 0.0
+	for lx in [-44.0, -24.0, 26.0, 46.0]:   # four thick legs
+		var sw := step if lx * f > 0 else -step
+		c.draw_rect(Rect2(feet + Vector2(lx * f - 9 + sw, -40) * k, Vector2(18, 40) * k), stone)
+	var body := PackedVector2Array([feet + Vector2(-70 * f, -36) * k])
+	body.append_array(_q(feet + Vector2(-70 * f, -36) * k, feet + Vector2(-74 * f, -96) * k, feet + Vector2(-20 * f, -92) * k))
+	body.append_array(_q(feet + Vector2(-20 * f, -92) * k, feet + Vector2(40 * f, -110) * k, feet + Vector2(66 * f, -60) * k))
+	body.append(feet + Vector2(60 * f, -36) * k)
+	_poly(c, body, stone)
+	# Mane: overlapping curls around the head.
+	var head := feet + Vector2(58 * f, -96) * k
+	for i in 7:
+		var a := -2.6 + i * 0.55
+		_ell(c, head + Vector2(cos(a) * 30 * f, sin(a) * 26) * k, 13 * k, 13 * k, ink)
+	_ell(c, head, 26 * k, 22 * k, stone)
+	c.draw_line(head + Vector2(6 * f, -6) * k, head + Vector2(18 * f, -6) * k, pal.paper, 3.0 * k)   # stone eye
+	c.draw_line(head + Vector2(4 * f, 10) * k, head + Vector2(24 * f, 12) * k, ink, 3.0 * k)   # mouth
+	# Tail: a stone flame curling up.
+	_brush(c, feet + Vector2(-68 * f, -70) * k, feet + Vector2(-92 * f, -112) * k, 9.0 * k, ink)
+	_seal(c, head + Vector2(4 * f, -18) * k, 12 * k)
+	return head + Vector2(0, -40) * k
+
+## 2 Tora: a long low tiger, pale stripes cut through the ink, the seal on its flank.
+func _boss_tora(c: CanvasItem, feet: Vector2, k: float, f: int, ink: Color, t: float, moving: bool, air: bool) -> Vector2:
+	var run := sin(t * 3.0) * (14.0 if moving else 2.0)
+	var tuck := 14.0 if air else 0.0
+	for i in 4:   # legs
+		var lx: float = [-50.0, -30.0, 34.0, 54.0][i]
+		var sw := run if i % 2 == 0 else -run
+		_brush(c, feet + Vector2(lx * f, -36) * k, feet + Vector2((lx + sw) * f, -tuck) * k, 9.0 * k, ink)
+	_ell(c, feet + Vector2(0, -52) * k, 78 * k, 26 * k, ink)
+	var head := feet + Vector2(78 * f, -66) * k
+	_ell(c, head, 24 * k, 20 * k, ink)
+	_poly(c, PackedVector2Array([head + Vector2(-10 * f, -16) * k, head + Vector2(-4 * f, -30) * k, head + Vector2(4 * f, -16) * k]), ink)   # ear
+	c.draw_line(head + Vector2(8 * f, -4) * k, head + Vector2(18 * f, -6) * k, pal.paper, 3.0 * k)
+	for i in 6:   # stripes: paper strokes across the back
+		var sx := -56.0 + i * 20.0
+		_brush(c, feet + Vector2(sx * f, -76) * k, feet + Vector2((sx + 6) * f, -40) * k, 4.0 * k, Color(pal.paper, 0.6))
+	var tail := PackedVector2Array([feet + Vector2(-76 * f, -58) * k])
+	tail.append_array(_q(tail[0], feet + Vector2(-120 * f, -60 + sin(t) * 10) * k, feet + Vector2(-110 * f, -104) * k))
+	c.draw_polyline(tail, ink, 6.0 * k)
+	_seal(c, feet + Vector2(-16 * f, -56) * k, 13 * k)
+	return head + Vector2(0, -36) * k
+
+## 3 The Dragon: the carp that climbed the falls: a long coiling body rising behind the
+## head, whiskers, a crest, the seal on its brow.
+func _boss_dragon(c: CanvasItem, feet: Vector2, k: float, f: int, ink: Color, t: float) -> Vector2:
+	var pts := PackedVector2Array()
+	for i in 11:
+		var u := float(i) / 10.0
+		pts.append(feet + Vector2((40 - u * 190) * f, -40 - u * 70 + sin(t * 0.8 + u * 7.0) * 26) * k)
+	for i in pts.size() - 1:   # body: thick to thin, scales as pale ticks
+		var w := lerpf(30.0, 8.0, float(i) / pts.size())
+		_brush(c, pts[i], pts[i + 1], w * k, ink)
+		if i % 2 == 0:
+			c.draw_line(pts[i] + Vector2(0, -w * 0.3) * k, pts[i] + Vector2(-6 * f, -w * 0.1) * k, Color(pal.paper, 0.45), 2.0 * k)
+	for i in [3, 6]:   # crest spikes along the back
+		_poly(c, PackedVector2Array([pts[i] + Vector2(-8, -12) * k, pts[i] + Vector2(-2 * f, -34) * k, pts[i] + Vector2(8, -12) * k]), ink)
+	_brush(c, pts[2], pts[2] + Vector2(10 * f, 40) * k, 6.0 * k, ink)   # a claw to the ground
+	var head := pts[0] + Vector2(30 * f, -10) * k
+	_ell(c, head, 36 * k, 18 * k, ink, -0.2 * f)
+	_poly(c, PackedVector2Array([head + Vector2(-10 * f, -12) * k, head + Vector2(-30 * f, -42) * k, head + Vector2(4 * f, -16) * k]), ink)   # horn
+	for s in [-1.0, 1.0]:   # whiskers
+		c.draw_polyline(PackedVector2Array([head + Vector2(26 * f, 4) * k] + Array(_q(head + Vector2(26 * f, 4) * k, head + Vector2(70 * f, s * 24 + sin(t * 2) * 8) * k, head + Vector2(100 * f, s * 8) * k))), ink, 2.0 * k)
+	c.draw_line(head + Vector2(8 * f, -4) * k, head + Vector2(20 * f, -6) * k, pal.paper, 3.0 * k)
+	_seal(c, head + Vector2(-2 * f, -10) * k, 11 * k)
+	return head + Vector2(0, -50) * k
+
+## 4 Tsuru, Sealed: a tall crane, wings half open, the red crown (its own) and Lord Shu's
+## seal on its chest.
+func _boss_tsuru(c: CanvasItem, feet: Vector2, k: float, f: int, ink: Color, t: float, air: bool) -> Vector2:
+	var flap := sin(t * (3.0 if air else 0.8)) * (1.0 if air else 0.3)
+	if not air:
+		c.draw_line(feet + Vector2(-6 * f, -60) * k, feet + Vector2(-10 * f, 0) * k, ink, 3.5 * k)
+		c.draw_line(feet + Vector2(6 * f, -60) * k, feet + Vector2(12 * f, 0) * k, ink, 3.5 * k)
+	else:
+		c.draw_line(feet + Vector2(-4 * f, -60) * k, feet + Vector2(-40 * f, -50) * k, ink, 3.5 * k)
+	var body := feet + Vector2(0, -78) * k
+	for sd in [-1.0, 1.0]:   # wings
+		var tip := body + Vector2(-70 * f, (-50 - 30 * flap) * sd * 0.6 - 20) * k
+		var wing := PackedVector2Array([body + Vector2(10 * f, -4) * k])
+		wing.append_array(_q(wing[0], body + Vector2(-30 * f, -50 * sd * 0.5 - 20) * k, tip))
+		wing.append_array(_q(tip, body + Vector2(-40 * f, 0) * k, body + Vector2(-20 * f, 10) * k))
+		_poly(c, wing, Color(ink, 0.85))
+	_ell(c, body, 40 * k, 22 * k, ink, -0.3 * f)
+	var neck := PackedVector2Array([body + Vector2(28 * f, -10) * k])
+	neck.append_array(_q(neck[0], body + Vector2(46 * f, -60) * k, body + Vector2(34 * f, -100) * k))
+	c.draw_polyline(neck, ink, 6.0 * k)
+	var head := body + Vector2(34 * f, -104) * k
+	_ell(c, head, 9 * k, 8 * k, ink)
+	c.draw_line(head + Vector2(6 * f, 0) * k, head + Vector2(46 * f, 6) * k, ink, 3.0 * k)   # beak
+	_ell(c, head + Vector2(-1 * f, -7) * k, 4.5 * k, 4.5 * k, SHU_RED)   # the crown: the crane's own red
+	_seal(c, body + Vector2(14 * f, -4) * k, 13 * k)
+	return head + Vector2(0, -24) * k
+
+## 5 The Calligrapher: a robed monk with Hakuu's giant brush, its tip loaded with ink; the
+## seal on the brush hand. On a telegraph he raises the brush to paint.
+func _boss_calligrapher(c: CanvasItem, feet: Vector2, k: float, f: int, ink: Color, t: float, tele: bool) -> Vector2:
+	var robe := PackedVector2Array([feet + Vector2(-46, 0) * k])
+	robe.append_array(_q(robe[0], feet + Vector2(-44, -80) * k, feet + Vector2(0, -96) * k))
+	robe.append_array(_q(feet + Vector2(0, -96) * k, feet + Vector2(44, -80) * k, feet + Vector2(46, 0) * k))
+	_poly(c, robe, ink)
+	c.draw_line(feet + Vector2(-30, -50) * k, feet + Vector2(30, -54) * k, pal.mid, 3.0 * k)   # sash
+	var head := feet + Vector2(4 * f, -112) * k
+	_ell(c, head, 17 * k, 17 * k, ink)
+	c.draw_line(head + Vector2(2 * f, -2) * k, head + Vector2(12 * f, -2) * k, pal.paper, 2.5 * k)
+	var hand := feet + Vector2(34 * f, -64) * k
+	var ang := (-1.9 if tele else -0.9) + sin(t * 0.7) * 0.15
+	var tip := hand + Vector2(f * 140, 0).rotated(ang * f) * k
+	var tail := hand - (tip - hand) * 0.3
+	c.draw_line(tail, tip, Color("6a5a40"), 7.0 * k)   # the brush's bamboo handle
+	_ell(c, tip + (tip - hand).normalized() * 12 * k, 12 * k, 22 * k, ink, (tip - hand).angle() + PI / 2)
+	_brush(c, feet + Vector2(0, -80) * k, hand, 9.0 * k, ink)   # arm
+	_seal(c, hand, 12 * k)
+	return head + Vector2(0, -30) * k
+
+## 6 Lord Shu's Hand: a giant hand reaching down from above the frame, fingers spread
+## over the ground, the red signet ring. Its knuckles are the hit box.
+func _boss_hand(c: CanvasItem, feet: Vector2, k: float, f: int, ink: Color, t: float, air: bool) -> Vector2:
+	var dark: Color = Color("211d1a") if pal.ink.v < 0.5 else ink
+	if bool(engine.boss.get("hit", 0.0) > 0.0):
+		dark = pal.mid
+	var palm := feet + Vector2(0, -70) * k
+	var arm := PackedVector2Array([palm + Vector2(-60, -900) * k, palm + Vector2(-58, -20) * k])
+	arm.append_array(_q(palm + Vector2(-58, -20) * k, palm + Vector2(-50, 40) * k, palm + Vector2(0, 46) * k))
+	arm.append_array(_q(palm + Vector2(0, 46) * k, palm + Vector2(56, 40) * k, palm + Vector2(64, -20) * k))
+	arm.append(palm + Vector2(68, -900) * k)
+	_poly(c, arm, dark)
+	var curl := 0.0 if air else 10.0 + sin(t) * 4.0
+	for i in 4:   # fingers reaching to the ground
+		var fx := -44.0 + i * 30.0
+		_ell(c, palm + Vector2(fx, 50 + curl * 0.5) * k, 12 * k, 30 * k, dark)
+	_ell(c, palm + Vector2(f * 70, 20) * k, 12 * k, 26 * k, dark, 0.6 * f)   # thumb
+	_ell(c, palm + Vector2(-14, 34) * k, 11 * k, 7 * k, SHU_RED)   # the signet ring
+	_seal(c, palm + Vector2(0, -10) * k, 16 * k)
+	return palm + Vector2(0, -60) * k
 
 ## A soft shadow on the ground under a figure: smaller and fainter the higher it is.
 func _shadow(c: CanvasItem, o: Vector2, x: float, y: float, k: float, w: float) -> void:
