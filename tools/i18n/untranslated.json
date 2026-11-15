@@ -41,6 +41,12 @@
  "#3DFF9A": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
  ],
+ "#3fa34d": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#3fb7ff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
  "#4B6BDB": [
   "scripts\\common\\avatar.gd"
  ],
@@ -48,6 +54,33 @@
   "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd",
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd",
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "#4caf50": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#4cbf55": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#4fc3f7": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#5fd35f": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#6fb6ff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#7b3fe4": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#7fd3ff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#7fffd4": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#9b7bff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
  ],
  "#B69CFF": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd",
@@ -84,6 +117,72 @@
  ],
  "#TAPE.S": [
   "scripts\\common\\game_teasers_rest.gd"
+ ],
+ "#a9b8ff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#bfe9ff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#c06cff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#fdf7ff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ff4f6d": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ff5d8f": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ff6f61": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ff6fa8": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ff7a5c": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ff8fc8": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ff9ad5": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ffb347": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ffcf3f": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ffd93f": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ffd9f0": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ffe3a3": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ffe6f5": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#fff27a": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#fff3d6": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#fff4dc": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#fffaf0": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
+ ],
+ "#ffffff": [
+  "scripts\\games\\mini_golf_3d\\mini_golf_3d_world.gd"
  ],
  "%s  %s: %s  +%d XP": [
   "scripts\\common\\achievements.gd"
