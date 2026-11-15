@@ -4435,6 +4435,19 @@
    "date": "2026-11-13"
   },
   {
+   "file": "games/ink_ninja/landing_bg.jpg",
+   "what": "Ink Ninja Landing background (moon, pagoda, red-scarf ninja, cherry blossom)",
+   "source": "owner picture, 2026-11-15",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-15",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)",
+   "ai_plan": "owner-supplied",
+   "processed_by": "converted from WebP to JPEG q85 (Claude Code)"
+  },
+  {
    "file": "games/ink_ninja/title.ttf",
    "what": "Title font of the Ink Ninja Landing (menu style, docs/MENU_STYLES.md)",
    "source": "Google Fonts: Permanent Marker",

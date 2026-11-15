@@ -1101,6 +1101,9 @@
  "red:%d:%d": [
   "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
  ],
+ "red:%d:%d:big": [
+  "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
+ ],
  "resume last game": [
   "scripts\\hub\\hub.gd"
  ],
@@ -1133,9 +1136,6 @@
  ],
  "the sea mist is weird": [
   "scripts\\games\\wilson\\wilson_world.gd"
- ],
- "too short, too quick": [
-  "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
  ],
  "truncated directory": [
   "scripts\\common\\catalog.gd"

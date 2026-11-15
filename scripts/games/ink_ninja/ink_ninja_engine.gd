@@ -93,6 +93,8 @@ var solids: Array = []     # Rect2 (ledges, pillars, walls; the ground is `heigh
 var pits: Array = []       # [x0, x1] (no pits since round 3; kept for old callers)
 var heights := PackedFloat32Array()   # ground top every SEG world units
 var pools: Array = []      # {"x0", "x1", "level"}: water filling a dip
+var torii: Array = []         # torii gates (scenery): world x
+var trees: Array = []         # cherry trees: {"x", "h", "s", "blood"}; exactly one per stage has blood-red leaves
 var checkpoints: Array = []   # world x of the stone lanterns; dying restarts at the last one passed
 var checkpoint_x := 0.0
 var dips: Array = []       # {"x0", "x1", "level", "wet"}: every dip, wet or dry (fog sits in them)
@@ -224,6 +226,7 @@ func build_stage() -> void:
 		if not _over_pit(sx):
 			scrolls.append(Vector2(sx, ground_y(sx) - 60))
 	_tutorial()
+	_trees()
 	# Stone lanterns: 4 checkpoints per stage, each moved onto dry land.
 	checkpoints.clear()
 	checkpoint_x = 120.0
@@ -248,6 +251,41 @@ func build_stage() -> void:
 	slash_t = 0.0
 	hurt_t = 0.0
 	hits_taken = 0
+
+## Cherry trees along the road (owner 2026-11-15): pink leaves, and one per stage with
+## blood-red leaves (carve a heart in it). Own rng, so foes and land stay as they were.
+func _trees() -> void:
+	trees.clear()
+	torii.clear()
+	var r := RandomNumberGenerator.new()
+	r.seed = stage * 104729 + 5
+	var tx := 900.0
+	while tx < length - 700.0:
+		tx += r.randf_range(1400.0, 2800.0)
+		if tx < length - 700.0 and not _over_pit(tx - 80.0) and not _over_pit(tx + 80.0):
+			torii.append(tx)
+	var x := 650.0
+	while x < length - 500.0:
+		x += r.randf_range(500.0, 1200.0)
+		if x > length - 500.0:
+			break
+		if _over_pit(x) or _over_pit(x + 80.0):
+			continue
+		trees.append({"x": x, "h": r.randf_range(200.0, 280.0), "s": r.randi() % 100000, "blood": false})
+	if trees.is_empty():
+		var mx := length * 0.5
+		while _over_pit(mx):
+			mx += 60.0
+		trees.append({"x": mx, "h": 240.0, "s": 7, "blood": false})
+	var pick := trees.size() / 3 + r.randi() % (trees.size() - trees.size() / 3)
+	trees[pick].blood = true
+
+## The blood-red tree when the hero stands within reach of it (else empty).
+func heart_tree_near(reach: float = 170.0) -> Dictionary:
+	for t in trees:
+		if t.blood and absf(t.x - px) < reach:
+			return t
+	return {}
 
 func boss_kind() -> int:
 	return BOSS_KIND[clampi(act(), 1, 6) - 1]

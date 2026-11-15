@@ -4375,7 +4375,7 @@
  "📖 Lessons: OFF": "📖 Lecciones: NO",
  "📖 Lessons: ON": "📖 Lecciones: SÍ",
  "🪜 Steps: draw it the way artists do -- big shapes first, then the main lines, then the details and the shading. Next shows the next step. A photo's shading can be tones, hatching or dots.": "🪜 Pasos: dibuja como los artistas: primero las formas grandes, después las líneas principales, luego los detalles y el sombreado. ▶ muestra el paso siguiente. El sombreado de una foto puede ser en tonos, rayado o puntos.",
- " and ": " y ",
+ " and ": null,
  "Accuracy checks": "Controles de precisión",
  "Best accuracy": "Mejor precisión",
  "Checking your drawing...": "Revisando tu dibujo...",
@@ -8835,7 +8835,6 @@
  "The spirits didn't hear you. Try again, or type it.": "Los espíritus no te oyeron. Inténtalo de nuevo o escríbela.",
  " am ": null,
  " amor ": null,
- " and ": null,
  " any spirits ": null,
  " are ": null,
  " are you happy ": null,
@@ -12179,5 +12178,11 @@
  "Watch the windmill sails go round once before you putt through the tunnel.": "Mira girar las aspas del molino una vez antes de golpear por el túnel.",
  "Best round": "Mejor ronda",
  "To get round a loop, a ball must still be moving fast enough at the top that gravity alone can keep it on the track.": "Para dar la vuelta a un rizo, la bola debe ir tan rápido arriba que la gravedad sola la mantenga en la pista.",
- "A rolling ball keeps some of its energy in the spin, so it climbs a ramp less high than a sliding block launched at the same speed.": "Una bola que rueda guarda parte de su energía en el giro, así que sube una rampa menos que un bloque que se desliza lanzado a la misma velocidad."
+ "A rolling ball keeps some of its energy in the spin, so it climbs a ramp less high than a sliding block launched at the same speed.": "Una bola que rueda guarda parte de su energía en el giro, así que sube una rampa menos que un bloque que se desliza lanzado a la misma velocidad.",
+ "Tap the red tree (or swing) to carve a heart": "Toca el árbol rojo (o da un tajo) para grabar un corazón",
+ "Heart carved! (%d of %d)": "¡Corazón grabado! (%d de %d)",
+ "A heart is already carved here": "Ya hay un corazón grabado aquí",
+ "Walk up to the red tree first": "Acércate primero al árbol rojo",
+ "Heart Carver": "Grabador de corazones",
+ "Hearts carved": "Corazones grabados"
 }

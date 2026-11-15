@@ -29,7 +29,7 @@ const TIPS := [
 	"Ninjas will not follow you into deep water.",
 	"A single blow never takes your last spare heart: you always get one more chance to get clear.",
 ]
-const STATS := ["Best score", "Highest stage", "Bosses defeated", "Ninjas defeated", "Stars parried", "Daily objectives", "Weekly objectives", "Games played"]
+const STATS := ["Best score", "Highest stage", "Bosses defeated", "Ninjas defeated", "Stars parried", "Daily objectives", "Weekly objectives", "Hearts carved", "Games played"]
 const ACHIEVEMENTS := [
 	{"id": "boss1", "icon": "🗡️", "title": "First Duel", "key": "Bosses defeated", "at": 1, "xp": 12},
 	{"id": "stage5", "icon": "⛩️", "title": "Halfway Up the Mountain", "key": "Highest stage", "at": 12, "xp": 12},
@@ -37,6 +37,7 @@ const ACHIEVEMENTS := [
 	{"id": "kills500", "icon": "🖌️", "title": "Five Hundred Strokes", "key": "Ninjas defeated", "at": 500, "xp": 12},
 	{"id": "daily7", "icon": "📅", "title": "Daily Discipline", "key": "Daily objectives", "at": 7, "xp": 12},
 	{"id": "weekly4", "icon": "🗓️", "title": "A Month of Ink", "key": "Weekly objectives", "at": 4, "xp": 12},
+	{"id": "hearts24", "icon": "❤️", "title": "Heart Carver", "key": "Hearts carved", "at": 24, "xp": 12},
 	{"id": "parry50", "icon": "✨", "title": "Star Cutter", "key": "Stars parried", "at": 50, "xp": 12},
 ]
 ## Learning hook (STANDARDS §15): checked facts about real ninja (shinobi) history and ink painting.

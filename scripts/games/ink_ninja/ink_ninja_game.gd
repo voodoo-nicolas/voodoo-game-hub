@@ -78,6 +78,11 @@ var fog_tex: Texture2D
 var smoke: Array = []   # smoke puffs (_puff)
 var mist: Array = []    # drifting wisps: [x 0..1, world y, speed, width, phase]
 var motes: Array = []    # floating dust / embers: [screen x 0..1, screen y 0..1, rise speed, size, phase, depth, cool?]
+const HEARTS_PATH := "user://ink_ninja_hearts.json"
+const BAND := Color("b3231d")   # the hero's red headband (owner 2026-11-15, matches the artwork)
+var hearts: Array = []   # stages whose blood-red cherry tree has a heart carved in it (all 24 = achievement)
+var toast := ""
+var toast_t := 0.0
 var blot: Texture2D      # an irregular ink blot for splashes and stains
 var goals                # Goals (daily + weekly objectives)
 var card_text := []      # the chapter card on screen: [title, text, objective] (empty = none)
@@ -111,6 +116,12 @@ func _ready() -> void:
 		mist.append([randf() * 1.6 - 0.3, randf_range(380.0, 560.0), randf_range(0.006, 0.02), randf_range(260.0, 520.0), randf() * TAU])
 	for i in 46:
 		motes.append([randf(), randf(), randf_range(0.01, 0.045), randf_range(2.5, 7.0), randf() * TAU, randf_range(0.15, 0.9), randf() < 0.35])
+	if FileAccess.file_exists(HEARTS_PATH):
+		var hf := FileAccess.open(HEARTS_PATH, FileAccess.READ)
+		var hd = JSON.parse_string(hf.get_as_text()) if hf else null
+		if hd is Array:
+			for v in hd:
+				hearts.append(int(v))
 	goals.load_data(Goals.today_num(), Goals.week_num())
 	_build_ui()
 	_hud_colors()
@@ -253,7 +264,10 @@ func _build_ui() -> void:
 		"landing": "ghost",
 		"landing_style": MenuStyles,
 		"title_font": "res://games/ink_ninja/title.ttf",
-		"title_colors": [Color("f2f2f2"), Color("9a9a9a"), Color("d0d0d0")],
+		"title_colors": [Color("050505")],   # all black (owner 2026-11-15), over a pale outline so it reads on the picture
+		"title_outline": Color(0.96, 0.93, 0.86, 0.85),
+		"title_scale": 0.78,
+		"title_dx": 70.0,
 		"landing_colors": [Color("0a0a0a"), Color("2a2a2a")],
 		"menu_color": Color("e0e0e0"),
 		"retro": true,
@@ -263,7 +277,10 @@ func _build_ui() -> void:
 		"solo_heading": "Story",
 		"more": [["Objectives", Color("8a8a8a"), _show_goals]],
 		"subtitle": "Ten stages of ink and steel. One ninja.",
-		"logo": _draw_home_logo,
+		"art": "res://games/ink_ninja/landing_bg.jpg",   # owner picture 2026-11-15 (moon, pagoda, red-scarf ninja)
+		"landing_art": true,
+		"landing_art_alpha": 0.9,
+		# "logo": _draw_home_logo,   # retired: the owner's Landing picture replaces the ensō drawing (2026-11-15)
 		"modes": modes,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
@@ -340,6 +357,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not card_text.is_empty() and event is InputEventMouseButton and event.pressed:
 		q.slash = true   # a tap closes the chapter card
 		return
+	if started and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and after == 0.0:
+		var kk: float = field.size.y / Engine_.H
+		var wx: float = event.position.x / kk + engine.cam_x()
+		for t in engine.trees:
+			if t.blood and absf(t.x - wx) < 110.0:
+				if absf(t.x - engine.px) < 260.0:
+					_carve_here()
+				else:
+					_toast(tr("Walk up to the red tree first"))
 	if event is InputEventKey and not event.echo:
 		match event.keycode:
 			KEY_LEFT, KEY_A:
@@ -439,6 +465,7 @@ func _process(delta: float) -> void:
 		return
 	delta = minf(delta, 0.05)
 	shake = maxf(0.0, shake - delta * 30.0)
+	toast_t = maxf(0.0, toast_t - delta)
 	_smoke_tick(delta)
 	for s in splats:
 		s[0] += s[1] * delta
@@ -499,6 +526,31 @@ func _process(delta: float) -> void:
 		_update_hud()
 	field.queue_redraw()
 
+## Carve a heart in the blood-red cherry tree (owner 2026-11-15): tap it, or swing near it.
+## Carving it on every one of the 24 stages is an achievement.
+func _try_carve() -> void:
+	if engine.heart_tree_near().is_empty():
+		return
+	_carve_here()
+
+func _carve_here() -> void:
+	if hearts.has(engine.stage):
+		_toast(tr("A heart is already carved here"))
+		return
+	hearts.append(engine.stage)
+	var hf := FileAccess.open(HEARTS_PATH, FileAccess.WRITE)
+	if hf:
+		hf.store_string(JSON.stringify(hearts))
+	if info:
+		info.high("Hearts carved", hearts.size())
+	SoundLib.play(self, "rpg/knife_slice", -4.0)
+	_puff(Vector2(engine.px, engine.py - 50), 6, 14.0, 70.0)
+	_toast(tr("Heart carved! (%d of %d)") % [hearts.size(), Engine_.STAGES])
+
+func _toast(t: String) -> void:
+	toast = t
+	toast_t = 2.5
+
 func _event(e: String) -> void:
 	if e.begins_with("ink:") or e.begins_with("red:"):
 		var p := e.split(":")
@@ -511,8 +563,10 @@ func _event(e: String) -> void:
 			SoundLib.play(self, "sword/swing_seax", -3.0)   # was rpg/draw_knife at 0.85 pitch
 			_puff(Vector2(engine.px, engine.py - 10), 6, 18.0, 90.0)
 		"slash":
+			_try_carve()
 			SoundLib.play(self, "sword/swing_katana", -5.0)   # was rpg/draw_knife, a blade whoosh (owner 2026-11-15); real katana swings now
 		"jab":
+			_try_carve()
 			SoundLib.play(self, "sword/swing_dagger", -6.0)   # was rpg/knife_slice
 		"block":
 			SoundLib.play(self, "sword/clash", -4.0)   # was impact/metal_light
@@ -719,6 +773,8 @@ func _draw_field() -> void:
 	for st in stains:
 		var p: Vector2 = o + st[0] * k
 		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.red, minf(st[2], 1.0)) if st[3] else Color(pal.near, st[2]))
+	_draw_torii(c, o, sz, k)
+	_draw_trees(c, o, sz, k)
 	# Arena gate.
 	if engine.locked:
 		var gx: float = o.x + engine.arena_x * k
@@ -754,6 +810,71 @@ func _draw_field() -> void:
 	_draw_motes(c, sz, k)
 	_draw_haze(c, o, sz, k)
 	_hud_draw(c, sz, k)
+
+## Torii gates (owner 2026-11-15): scenery you walk through, a faint brown with a faint red top beam.
+func _draw_torii(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
+	var wood := Color(0.36, 0.24, 0.16, 0.6)
+	var redtop := Color(0.72, 0.16, 0.12, 0.6)
+	for tx in engine.torii:
+		var x: float = o.x + tx * k
+		if x < -150.0 * k or x > sz.x + 150.0 * k:
+			continue
+		var gl: float = engine.ground_y(tx - 60.0)
+		var gr: float = engine.ground_y(tx + 60.0)
+		var top: float = minf(gl, gr) - 190.0
+		var l := Vector2(x - 60.0 * k, gl + 3.0)
+		var rr := Vector2(x + 60.0 * k, gr + 3.0)
+		var tp := o.y + top * k
+		c.draw_line(Vector2(l.x, o.y + l.y * k), Vector2(l.x, tp), wood, 13.0 * k)
+		c.draw_line(Vector2(rr.x, o.y + rr.y * k), Vector2(rr.x, tp), wood, 13.0 * k)
+		c.draw_line(Vector2(l.x, tp + 36.0 * k), Vector2(rr.x, tp + 36.0 * k), wood, 9.0 * k)   # nuki, the lower beam
+		_poly(c, PackedVector2Array([Vector2(x - 84.0 * k, tp - 4.0 * k), Vector2(x + 84.0 * k, tp - 4.0 * k), Vector2(x + 70.0 * k, tp + 14.0 * k), Vector2(x - 70.0 * k, tp + 14.0 * k)]), redtop)   # kasagi, the red top beam
+		c.draw_line(Vector2(x - 66.0 * k, tp + 20.0 * k), Vector2(x + 66.0 * k, tp + 20.0 * k), wood, 8.0 * k)
+
+## Cherry trees (owner 2026-11-15): a dark brush trunk and branches under clouds of pink
+## blossom; one tree per stage has blood-red leaves, with a carved heart once visited.
+func _draw_trees(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
+	var r := RandomNumberGenerator.new()
+	for t in engine.trees:
+		if o.x + t.x * k < -260.0 * k or o.x + t.x * k > sz.x + 260.0 * k:
+			continue
+		var base: Vector2 = o + Vector2(t.x, engine.ground_y(t.x) + 4.0) * k
+		var h: float = t.h
+		var lean := float(t.s % 7) - 3.0
+		var trunk := []
+		for i in 8:
+			var f := i / 7.0
+			trunk.append(base + Vector2(sin(f * 2.2 + lean) * 16.0 * f + lean * f * 3.0, -h * 0.62 * f) * k)
+		_ribbon(c, trunk, 17.0 * k, 7.0 * k, pal.ink)
+		var blood: bool = t.blood
+		var leaf: Color = Color(0.7, 0.04, 0.06) if blood else Color(0.96, 0.62, 0.73)
+		var leaf2: Color = Color(0.48, 0.02, 0.05) if blood else Color(1.0, 0.82, 0.88)
+		r.seed = t.s
+		var tops := [trunk[7]]
+		for b in 3:
+			var st: Vector2 = trunk[3 + b] if b < 2 else trunk[6]
+			var dir := -1.0 if b % 2 == 0 else 1.0
+			var en: Vector2 = st + Vector2(dir * r.randf_range(55.0, 105.0), -r.randf_range(35.0, 80.0)) * k
+			_ribbon(c, [st, st.lerp(en, 0.5) + Vector2(0, 8 * k), en], 7.0 * k, 2.0 * k, pal.ink)
+			tops.append(en)
+		for tp in tops:
+			c.draw_texture_rect(disc, Rect2(tp - Vector2(62, 50) * k, Vector2(124, 100) * k), false, Color(leaf, 0.3))
+			for i in 16:
+				var off := Vector2(r.randf_range(-58.0, 58.0), r.randf_range(-44.0, 40.0))
+				off += Vector2(sin(anim_t * 1.1 + i), cos(anim_t * 0.9 + i * 1.7)) * 2.0
+				var sz2 := r.randf_range(5.0, 11.0) * k
+				c.draw_texture_rect(disc, Rect2(tp + off * k - Vector2(sz2, sz2), Vector2(sz2, sz2) * 2), false, leaf if i % 3 != 0 else leaf2)
+		for i in 7:   # fallen petals
+			var px2 := base.x + r.randf_range(-80.0, 80.0) * k
+			c.draw_texture_rect(disc, Rect2(Vector2(px2, base.y - 3.0 * k), Vector2(7, 4) * k), false, Color(leaf, 0.85))
+		if blood and hearts.has(engine.stage):
+			# The carved heart: a pale notch on the trunk.
+			var hc: Vector2 = base + Vector2(lean * 1.2, -h * 0.2) * k
+			var hp := PackedVector2Array()
+			for i in 24:
+				var a := i / 24.0 * TAU
+				hp.append(hc + Vector2(16.0 * pow(sin(a), 3.0), -(13.0 * cos(a) - 5.0 * cos(2.0 * a) - 2.0 * cos(3.0 * a) - cos(4.0 * a))) * 0.9 * k)
+			_poly(c, hp, pal.paper)
 
 ## The rolling ground (owner 2026-11-15): one ink polygon along the height field, with a
 ## dry-brush rim in short strokes (one draw_multiline call).
@@ -907,8 +1028,8 @@ func _lantern(c: CanvasItem, base: Vector2, k: float, lit: bool) -> void:
 	_poly(c, PackedVector2Array([base + Vector2(-22, -66) * k, base + Vector2(22, -66) * k, base + Vector2(0, -84) * k]), col)
 	if lit:
 		var glow := 0.55 + 0.15 * sin(anim_t * 3.0)
-		c.draw_texture_rect(disc, Rect2(base + Vector2(-30, -86) * k, Vector2(60, 60) * k), false, Color(1.0, 0.85, 0.55, glow * 0.45))
-		c.draw_rect(Rect2(base + Vector2(-7, -62) * k, Vector2(14, 12) * k), Color(1.0, 0.82, 0.5, glow))
+		c.draw_texture_rect(disc, Rect2(base + Vector2(-30, -86) * k, Vector2(60, 60) * k), false, Color(1.0, 0.72, 0.22, glow * 0.6))
+		c.draw_rect(Rect2(base + Vector2(-7, -62) * k, Vector2(14, 12) * k), Color(1.0, 0.76, 0.2, glow))
 	else:
 		c.draw_rect(Rect2(base + Vector2(-7, -62) * k, Vector2(14, 12) * k), pal.paper2)
 
@@ -1040,7 +1161,7 @@ func _pose(feet: Vector2, k: float, f: int, ph: float, running: bool, crouch: bo
 	return {"hip": hip, "neck": neck, "head": head, "fa": fa, "fb": fb, "ka": ka, "kb": kb}
 
 ## Body, legs, head and flowing headband for any ink figure.
-func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk: float, tails: bool, phase: float, tl: float = 1.0) -> void:
+func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk: float, tails: bool, phase: float, tl: float = 1.0, band: Color = Color(0, 0, 0, 0)) -> void:
 	_brush(c, j.hip, j.kb, 8.0 * k * bulk, col)
 	_brush(c, j.kb, j.fb, 7.0 * k * bulk, col)
 	_brush(c, j.hip, j.ka, 8.0 * k * bulk, col)
@@ -1055,19 +1176,20 @@ func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk:
 	c.draw_line(j.hip + Vector2(-10, -6) * k, j.hip + Vector2(10, -6) * k, pal.mid, 4.0 * k)
 	if tails:
 		# Headband across the brow (so a bare head never reads as a cap), tails flow behind.
-		if tl < 1.0:
-			c.draw_line(j.head + Vector2(-f * 11, -5) * k, j.head + Vector2(f * 11, -5) * k, pal.mid, 4.0 * k)
+		var bc: Color = band if band.a > 0.0 else col
+		if tl < 1.0 or band.a > 0.0:
+			c.draw_line(j.head + Vector2(-f * 11, -5) * k, j.head + Vector2(f * 11, -5) * k, band if band.a > 0.0 else pal.mid, 4.0 * k)
 		for t in 2:
 			var pts := []
 			var start: Vector2 = j.head + Vector2(-f * 9, -5 + t * 3) * k
 			for i in maxi(3, int(ceil(7.0 * tl))):
 				pts.append(start + Vector2(-f * i * 13.0, sin(phase - i * 0.8 + t * 1.3) * i * 1.8 - i * 1.5 + t * i * 2.0) * k)
-			_ribbon(c, pts, 6.0 * k, 1.0 * k, col)
+			_ribbon(c, pts, 6.0 * k, 1.0 * k, bc)
 		var sp := []
 		var s0: Vector2 = j.hip + Vector2(-f * 8, -6) * k
 		for i in maxi(3, int(5 * maxf(tl, 0.7))):
 			sp.append(s0 + Vector2(-f * i * 9.0, i * 3.0 + sin(phase * 0.8 - i) * i) * k)
-		_ribbon(c, sp, 5.0 * k, 1.0 * k, col)
+		_ribbon(c, sp, 5.0 * k, 1.0 * k, bc if band.a > 0.0 else col)
 
 ## A katana: ink outline with a pale edge so it reads on dark ground too.
 func _katana(c: CanvasItem, hand: Vector2, tip: Vector2, k: float) -> void:
@@ -1086,7 +1208,7 @@ func _ninja(c: CanvasItem, feet: Vector2, k: float) -> void:
 	if engine.dash_t > 0.0:
 		for i in 4:
 			c.draw_line(j.hip - Vector2(f * (30 + i * 22), i * 7 - 10) * k, j.hip - Vector2(f * (70 + i * 22), i * 7 - 10) * k, Color(pal.mid, 0.6), (5 - i) * k)
-	_ink_body(c, j, k, f, ink, 1.0, true, anim_t * 10.0 + (engine.vx * 0.01))
+	_ink_body(c, j, k, f, ink, 1.0, true, anim_t * 10.0 + (engine.vx * 0.01), 1.0, BAND)
 	var neck: Vector2 = j.neck
 	var jabbing: bool = engine.slash_t > 0.0 and engine.jab
 	if engine.dash_t > 0.0 or jabbing:
@@ -1471,6 +1593,13 @@ func _hud_draw(c: CanvasItem, sz: Vector2, k: float) -> void:
 		var tw := sz.x * 0.62
 		c.draw_rect(Rect2((sz.x - tw) / 2.0, ty - 26 * k, tw, 38 * k), Color(pal.paper, 0.75))
 		c.draw_string(font, Vector2((sz.x - tw) / 2.0, ty), tr(TIPS[tip]), HORIZONTAL_ALIGNMENT_CENTER, tw, int(19 * k), pal.ink)
+	var near_tree: bool = not engine.heart_tree_near().is_empty() and not hearts.has(engine.stage)
+	var note := toast if toast_t > 0.0 else (tr("Tap the red tree (or swing) to carve a heart") if near_tree and tip == "" else "")
+	if note != "" and card_text.is_empty():
+		var nw := sz.x * 0.62
+		var ny := sz.y * 0.3
+		c.draw_rect(Rect2((sz.x - nw) / 2.0, ny - 26 * k, nw, 38 * k), Color(pal.paper, 0.8))
+		c.draw_string(font, Vector2((sz.x - nw) / 2.0, ny), note, HORIZONTAL_ALIGNMENT_CENTER, nw, int(20 * k), Color(0.65, 0.08, 0.08))
 	if not card_text.is_empty():
 		_draw_card(c, sz, k)
 

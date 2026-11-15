@@ -32,6 +32,7 @@ extends RefCounted
 ##   "title_font": "res://games/<id>/title.ttf"   the title's font (falls back to the theme font when a
 ##                                                 letter of the translated title is missing)
 ##   "title_colors": [Color, ...]   letters cycle through these (default: accent + white)
+##   "title_scale": 0.8 / "title_dx": 60   (ghost) a smaller title, moved right
 ##   "title_outline": Color         thick outline under the letters (default near-black)
 ##   "menu_font": true              the buttons use the title font too
 ##   "menu_color": Color            the highlight colour (default the kit accent)
@@ -810,8 +811,10 @@ class MenuLanding extends Control:
 		var util_w := float(utils.size()) * (s + gap) - gap
 		var tw := W * 0.48 if wide else W - pad * 2.0
 		var ty := pad + (0.0 if wide else s + 26.0)
-		var bottom := _place_title(Rect2(pad + 6.0, ty, tw, H * (0.24 if wide else 0.17)))
-		bottom = _place_tagline(pad + 8.0, bottom + 4.0, tw, 18 if wide else 20)
+		var tsc: float = float(kit.cfg.get("title_scale", 1.0))   # optional: a smaller title (ghost layout)
+		var tdx: float = float(kit.cfg.get("title_dx", 0.0))      # optional: the title (and tagline) moved right
+		var bottom := _place_title(Rect2(pad + 6.0 + tdx, ty, tw * tsc, H * (0.24 if wide else 0.17) * tsc))
+		bottom = _place_tagline(pad + 8.0 + tdx, bottom + 4.0, tw, 18 if wide else 20)
 		var pitch := clampf((H - bottom - pad - 20.0) / float(maxi(1, mains.size())), 48.0, H * 0.09)
 		var fs := int(clampf(pitch * 0.42, 18.0, 30.0))
 		var end := _rows(mains, pad + 10.0, bottom + 18.0, tw, pitch, fs)

@@ -591,6 +591,13 @@ func caption(txt: String, x: float, y: float, sz: float, a: float, col := Color(
 	if a <= 0.0:
 		return
 	var f: Font = _italic if italic else _font
+	# A soft plate behind the words so busy scenes (bamboo, rain, the crane's legs, the scroll's
+	# rod) never cover them (owner 2026-11-15: captions overlapped by the pictures).
+	var tw := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, int(sz)).x
+	var plate := WASH_FOG if (col.r + col.g + col.b) / 3.0 < 0.5 else Color(0.05, 0.04, 0.04)
+	for i in 3:
+		var grow := 10.0 + i * 12.0
+		draw_rect(Rect2(x - tw / 2.0 - grow - 8.0, y - sz * 0.95 - grow * 0.5, tw + grow * 2.0 + 16.0, sz * 1.4 + grow), _col(plate, 0.2 * a))
 	draw_string(f, Vector2(x - W / 2, y), txt, HORIZONTAL_ALIGNMENT_CENTER, W, int(sz), _col(col, a))
 
 ## Points along a quadratic curve (for the filled shapes the HTML builds with quadraticCurveTo).
@@ -870,8 +877,8 @@ func _intro(tt: float) -> void:
 			wash(W / 2 + 108, 168 + d * 260, 8 + d * 8, 0.5 * d, WASH_RED)
 		_restore()
 		# Captions outside the camera, so the push-in never crops them.
-		caption(tr("The world is a scroll. Its painter died before he finished."), W / 2, H - 24, 22, ss(3, 4.5, tt) * (1 - ss(8, 9, tt)))
-		caption(tr("A collector stamped his seal on it. The red began to spread."), W / 2, H - 24, 22, ss(11, 12, tt) * (1 - ss(14.5, 15.5, tt)))
+		caption(tr("The world is a scroll. Its painter died before he finished."), W / 2, H - 8, 22, ss(3, 4.5, tt) * (1 - ss(8, 9, tt)))
+		caption(tr("A collector stamped his seal on it. The red began to spread."), W / 2, H - 8, 22, ss(11, 12, tt) * (1 - ss(14.5, 15.5, tt)))
 		# Fade through clean paper into the forest.
 		draw_set_transform_matrix(Transform2D.IDENTITY)
 		draw_rect(Rect2(Vector2.ZERO, size), Color(PAPER, ss(14.8, 16, tt)))
