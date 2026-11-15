@@ -209,7 +209,9 @@ func build_stage() -> void:
 		elif roll > 0.85:
 			gap = rng.randf_range(800.0, 1300.0)   # a breather
 		x += gap / (1.0 + diff * 0.15)
-		if _over_pit(x):
+		while (_over_pit(x) or water_depth(x) > 0.0 or water_depth(x + 40.0) > 0.0) and x < length - 300.0:
+			x += 40.0   # never stand a foe in the water: move him onto dry land (owner 2026-11-15)
+		if _over_pit(x) or water_depth(x) > 0.0:
 			continue
 		var kinds := ["blade"]
 		if stage >= 2:

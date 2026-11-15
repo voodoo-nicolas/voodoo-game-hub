@@ -32,7 +32,7 @@ const PAUSE_AFTER := 1.8
 ## blow lands (`water`, `red`, `tint_far`, `tint_mid`, `haze` below).
 const WASH := {
 	"classic": {"paper": Color("efe8d8"), "paper2": Color("d6d4c8"), "far": Color("aeb6b9"), "mid": Color("858c86"), "moon": Color("f8efdc"), "fog": Color("eef0ee"),
-		"water": Color(0.14, 0.425, 0.885, 0.68), "surf": Color(0.08, 0.325, 0.835, 0.925), "red": Color(0.8, 0.05, 0.04), "haze": Color("e4e7e8")},
+		"water": Color(0.3, 0.5, 0.76, 0.6), "surf": Color(0.2, 0.42, 0.7, 0.9), "red": Color(0.8, 0.05, 0.04), "haze": Color("e4e7e8")},
 	"voodoo": {"paper": Color("08090c"), "paper2": Color("181a1f"), "far": Color("262b33"), "mid": Color("3f4544"), "moon": Color("dcd6c8"), "fog": Color("566068"),
 		"water": Color(0.08, 0.255, 0.69, 0.75), "surf": Color(0.35, 0.625, 0.975, 0.875), "red": Color(0.85, 0.1, 0.08), "haze": Color("3a4048")},
 }
@@ -79,10 +79,12 @@ var smoke: Array = []   # smoke puffs (_puff)
 var mist: Array = []    # drifting wisps: [x 0..1, world y, speed, width, phase]
 var motes: Array = []    # floating dust / embers: [screen x 0..1, screen y 0..1, rise speed, size, phase, depth, cool?]
 const HEARTS_PATH := "user://ink_ninja_hearts.json"
-const BAND := Color("b3231d")   # the hero's red headband (owner 2026-11-15, matches the artwork)
+const BAND := Color("8f3b36")   # the hero's red headband (owner 2026-11-15, matches the artwork)
 var hearts: Array = []   # stages whose blood-red cherry tree has a heart carved in it (all 24 = achievement)
 var toast := ""
 var toast_t := 0.0
+var band_hang := 0.0   # 1 = standing still: the headband tails hang
+var band_rise := 0.0   # 1 = falling: the tails flutter upward
 var flowers: Array = []  # cherry blossom textures (_make_flowers)
 var blot: Texture2D      # an irregular ink blot for splashes and stains
 var goals                # Goals (daily + weekly objectives)
@@ -460,6 +462,10 @@ func _update_hud() -> void:
 
 func _process(delta: float) -> void:
 	anim_t += delta
+	var still: bool = engine.on_ground and absf(engine.vx) < 20.0 and not engine.crouch
+	var falling: bool = not engine.on_ground and engine.vy > 40.0
+	band_hang = move_toward(band_hang, 1.0 if still else 0.0, delta * 3.0)
+	band_rise = move_toward(band_rise, 1.0 if falling else 0.0, delta * 6.0)
 	if touch_pad:
 		touch_pad.visible = started and not end_dialog.visible and not cut_on
 	if not started or cut_on:
@@ -919,6 +925,14 @@ func _draw_trees(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 				spots.append(p1)
 				spots.append(p2)
 			spots.append(en)
+		# The trunk carries on as a fine leader with a crown of blossom (no blunt cut-off top).
+		var tt: Vector2 = trunk[7]
+		var lead := [tt, tt + Vector2(lean * 1.5, -26.0) * k, tt + Vector2(lean * 3.0 + 4.0, -52.0) * k]
+		_ribbon(c, lead, 5.0 * k, 0.8 * k, pal.ink)
+		for cp in [lead[1], lead[2], tt + Vector2(-24, -34) * k, tt + Vector2(26, -38) * k, tt + Vector2(lean * 3.0, -68.0) * k]:
+			twigs.append(lead[1] if cp != lead[1] else tt)
+			twigs.append(cp)
+			spots.append(cp)
 		c.draw_multiline(twigs, pal.ink, 1.5 * k)
 		for sp in spots:
 			c.draw_texture_rect(disc, Rect2(sp - Vector2(26, 20) * k, Vector2(52, 40) * k), false, Color(leaf, 0.12))
@@ -1161,7 +1175,7 @@ func _lantern(c: CanvasItem, base: Vector2, k: float, lit: bool) -> void:
 	_poly(c, PackedVector2Array([base + Vector2(-22, -66) * k, base + Vector2(22, -66) * k, base + Vector2(0, -84) * k]), col)
 	if lit:
 		var glow := 0.55 + 0.15 * sin(anim_t * 3.0)
-		c.draw_texture_rect(disc, Rect2(base + Vector2(-30, -86) * k, Vector2(60, 60) * k), false, Color(1.0, 0.72, 0.22, glow * 0.6))
+		c.draw_texture_rect(disc, Rect2(base + Vector2(-56, -112) * k, Vector2(112, 112) * k), false, Color(1.0, 0.72, 0.22, glow * 0.6))
 		c.draw_rect(Rect2(base + Vector2(-7, -62) * k, Vector2(14, 12) * k), Color(1.0, 0.76, 0.2, glow))
 	else:
 		c.draw_rect(Rect2(base + Vector2(-7, -62) * k, Vector2(14, 12) * k), pal.paper2)
@@ -1294,7 +1308,7 @@ func _pose(feet: Vector2, k: float, f: int, ph: float, running: bool, crouch: bo
 	return {"hip": hip, "neck": neck, "head": head, "fa": fa, "fb": fb, "ka": ka, "kb": kb}
 
 ## Body, legs, head and flowing headband for any ink figure.
-func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk: float, tails: bool, phase: float, tl: float = 1.0, band: Color = Color(0, 0, 0, 0)) -> void:
+func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk: float, tails: bool, phase: float, tl: float = 1.0, band: Color = Color(0, 0, 0, 0), hang: float = 0.0, rise: float = 0.0) -> void:
 	_brush(c, j.hip, j.kb, 8.0 * k * bulk, col)
 	_brush(c, j.kb, j.fb, 7.0 * k * bulk, col)
 	_brush(c, j.hip, j.ka, 8.0 * k * bulk, col)
@@ -1316,7 +1330,10 @@ func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk:
 			var pts := []
 			var start: Vector2 = j.head + Vector2(-f * 9, -5 + t * 3) * k
 			for i in maxi(3, int(ceil(7.0 * tl))):
-				pts.append(start + Vector2(-f * i * 13.0, sin(phase - i * 0.8 + t * 1.3) * i * 1.8 - i * 1.5 + t * i * 2.0) * k)
+				var fl := Vector2(-f * 13.0, sin(phase - i * 0.8 + t * 1.3) * 1.8 - 1.5 + t * 2.0)   # flowing behind
+				fl = fl.lerp(Vector2(-f * 2.5, 11.0 + t * 1.5), hang)   # at rest: hangs down
+				fl = fl.lerp(Vector2(-f * 6.0, -9.0 + sin(phase * 0.7 - i + t) * 3.0), rise)   # falling: flutters up
+				pts.append(start + fl * i * k)
 			_ribbon(c, pts, 6.0 * k, 1.0 * k, bc)
 		var sp := []
 		var s0: Vector2 = j.hip + Vector2(-f * 8, -6) * k
@@ -1341,7 +1358,7 @@ func _ninja(c: CanvasItem, feet: Vector2, k: float) -> void:
 	if engine.dash_t > 0.0:
 		for i in 4:
 			c.draw_line(j.hip - Vector2(f * (30 + i * 22), i * 7 - 10) * k, j.hip - Vector2(f * (70 + i * 22), i * 7 - 10) * k, Color(pal.mid, 0.6), (5 - i) * k)
-	_ink_body(c, j, k, f, ink, 1.0, true, anim_t * 10.0 + (engine.vx * 0.01), 1.0, BAND)
+	_ink_body(c, j, k, f, ink, 1.0, true, anim_t * 10.0 + (engine.vx * 0.01), 1.0, BAND, band_hang, band_rise)
 	var neck: Vector2 = j.neck
 	var jabbing: bool = engine.slash_t > 0.0 and engine.jab
 	if engine.dash_t > 0.0 or jabbing:
