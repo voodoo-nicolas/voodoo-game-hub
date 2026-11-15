@@ -21,6 +21,7 @@ const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://ink_ninja_save.json"
 const Story = preload("res://scripts/games/ink_ninja/ink_ninja_story.gd")
 const Goals = preload("res://scripts/games/ink_ninja/ink_ninja_goals.gd")
+const Cutscene_ = preload("res://scripts/games/ink_ninja/cutscene.gd")
 const PAPER_SHADER := preload("res://scripts/games/ink_ninja/ink_ninja_paper.gdshader")
 const DIFF_NAMES := ["Easy", "Normal", "Hard"]
 const PAUSE_AFTER := 1.8
@@ -83,6 +84,9 @@ var card_t := 0.0
 var prologue := false    # stage 1 of a new game shows the prologue first
 var paper: ColorRect     # paper grain + vignette shader over the field
 var step_t := 0.0
+var cutscene              # cutscene.gd (between-stage scenes, owner's storyboard 2026-11-15)
+var cut_on := false
+var cut_then: Callable    # what runs when the cutscene ends or is skipped
 
 var field: Control
 var hud: Label
@@ -222,6 +226,10 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(PAD_PATH):
 		old_controls.visible = false
 		_add_pad()
+	# Cutscenes sit over everything (pack code: no APK calls).
+	cutscene = Cutscene_.new()
+	add_child(cutscene)
+	cutscene.finished.connect(_on_cutscene_done)
 
 	end_dialog = UI.build_dialog("", [
 		{"text": tr("Play Again"), "action": _restart},
@@ -322,6 +330,8 @@ func _hold(what: String, on: bool) -> void:
 				q[what] = true
 
 func _unhandled_input(event: InputEvent) -> void:
+	if cut_on:
+		return
 	if not card_text.is_empty() and event is InputEventMouseButton and event.pressed:
 		q.slash = true   # a tap closes the chapter card
 		return
@@ -357,7 +367,27 @@ func _new_game(d: int) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	engine.reset(d)
 	prologue = true
-	_begin()
+	_cutscene_then(Cutscene_.for_stage(1), _begin)
+
+## Play a cutscene (if there is one), then `then`. Play state stays "started" so leaving
+## mid-scene still saves the run.
+func _cutscene_then(scene: String, then: Callable) -> void:
+	if scene == "" or cutscene == null or not cutscene.has_scene(scene):
+		then.call()
+		return
+	started = true
+	cut_on = true
+	cut_then = then
+	card_text = []
+	end_dialog.visible = false
+	cutscene.play(scene)
+
+func _on_cutscene_done(_scene: String) -> void:
+	cut_on = false
+	if cut_then.is_valid():
+		var c := cut_then
+		cut_then = Callable()
+		c.call()
 
 func _restart() -> void:
 	_new_game(engine.diff)
@@ -386,8 +416,8 @@ func _update_hud() -> void:
 func _process(delta: float) -> void:
 	anim_t += delta
 	if touch_pad:
-		touch_pad.visible = started and not end_dialog.visible
-	if not started:
+		touch_pad.visible = started and not end_dialog.visible and not cut_on
+	if not started or cut_on:
 		return
 	delta = minf(delta, 0.05)
 	shake = maxf(0.0, shake - delta * 30.0)
@@ -546,7 +576,8 @@ func _after_pause() -> void:
 			if engine.state == "cleared":
 				_game_over(true)
 			else:
-				_begin()
+				_save_game()
+				_cutscene_then(Cutscene_.for_stage(engine.stage), _begin)
 		"over":
 			_game_over(false)
 
