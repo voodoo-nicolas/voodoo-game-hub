@@ -12,7 +12,7 @@ const HOW := [
 	"X throws a star. You start each stage with at least 8; star throwers sometimes drop 2 more.",
 	"Y dashes forward. While dashing, attacks pass straight through you.",
 	"Blade ninjas raise their sword before they cut, leapers jump at you, brutes take 3 hits and hit twice as hard.",
-	"You have 5 hearts and 3 lives. Losing all your hearts costs a life and restarts the stage. When something hits you, you are knocked back out of reach.",
+	"You have 5 hearts and 3 lives. Losing all your hearts costs a life and sends you back to the last stone lantern you passed (4 on each stage). When something hits you, you are knocked back out of reach.",
 	"The ground rolls over hills and hollows, and many hollows hold water. Wading is slower. Where it is too deep to stand, press A to swim up.",
 	"Under water you hold your breath: the bubbles over your head count it down. Put your head above the surface to breathe again; with no breath left you lose a heart every few seconds.",
 	"At the end of each stage a gate shuts and a boss attacks. Watch for the pause before each move: a charge, a leap that shakes the ground, or a fan of stars.",

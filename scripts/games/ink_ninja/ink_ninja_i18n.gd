@@ -180,7 +180,7 @@ const STRINGS := {
 		"Wins": "Victorias",
 		"X throws a star. You start each stage with at least 8; star throwers sometimes drop 2 more.": "X lanza una estrella. Empiezas cada etapa con al menos 8; los lanzadores a veces sueltan 2 más.",
 		"Y dashes forward. While dashing, attacks pass straight through you.": "Y te impulsa hacia adelante. Mientras te impulsas, los ataques te atraviesan.",
-		"You have 5 hearts and 3 lives. Losing all your hearts costs a life and restarts the stage. When something hits you, you are knocked back out of reach.": "Tienes 5 corazones y 3 vidas. Perder todos los corazones cuesta una vida y reinicia la fase. Cuando algo te golpea, sales despedido fuera de su alcance.",
+		"You have 5 hearts and 3 lives. Losing all your hearts costs a life and sends you back to the last stone lantern you passed (4 on each stage). When something hits you, you are knocked back out of reach.": "Tienes 5 corazones y 3 vidas. Perder todos los corazones cuesta una vida y te devuelve a la última linterna de piedra que pasaste (hay 4 en cada fase). Cuando algo te golpea, sales despedido fuera de su alcance.",
 		"You hold up to 3 helps in this game (⏸ pause menu). One comes back 24 hours after the last one you used, then one more every 24 hours.": "Tienes hasta 3 ayudas en este juego (menú de pausa ⏸). Recuperas una 24 horas después de la última que usaste, y luego una más cada 24 horas.",
 		"You lose!": "¡Perdiste!",
 		"You mastered the ink!": "¡Dominas la tinta!",
