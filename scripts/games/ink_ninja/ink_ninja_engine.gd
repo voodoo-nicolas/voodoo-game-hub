@@ -134,9 +134,9 @@ func build_stage() -> void:
 	rng.seed = stage * 7919 + 13
 	state = "play"
 	time = 0.0
-	length = (3600.0 + act() * 600.0) * 5.0   # owner 2026-11-15: stages 5x longer ("too short, too quick")
+	length = (3600.0 + act() * 600.0) * 7.5   # owner 2026-11-15: stages 5x longer, then 50% longer again (7.5x the old length)
 	if boss_stage():
-		length = 3600.0 + act() * 400.0   # a boss stage: a short climb to the duel
+		length = (3600.0 + act() * 400.0) * 1.5   # a boss stage: a climb to the duel (50% longer, owner 2026-11-15)
 	arena_x = length
 	locked = false
 	solids.clear()
@@ -198,7 +198,14 @@ func build_stage() -> void:
 	# Foes.
 	x = 900.0 + t0 + (600.0 if stage == 2 else 0.0)
 	while x < length - 300.0:
-		x += rng.randf_range(260.0, 520.0) / (1.0 + diff * 0.15)
+		# Uneven spacing (owner 2026-11-15): now a tight pair, now a long quiet stretch.
+		var roll := rng.randf()
+		var gap := rng.randf_range(260.0, 520.0)
+		if roll < 0.22:
+			gap = rng.randf_range(110.0, 200.0)   # right behind the last one
+		elif roll > 0.85:
+			gap = rng.randf_range(800.0, 1300.0)   # a breather
+		x += gap / (1.0 + diff * 0.15)
 		if _over_pit(x):
 			continue
 		var kinds := ["blade"]
@@ -581,7 +588,7 @@ func _hit_foe(f: Dictionary, dmg: int, dir: int, by_star: bool = false) -> void:
 			events.append("starkill")
 		if combo == 5:
 			events.append("combo5")
-		events.append("red:%d:%d" % [int(f.x), int(f.y - 40)])
+		events.append("red:%d:%d:big" % [int(f.x), int(f.y - 40)])   # a kill leaves a big lasting pool
 		if f.kind == "thrower" and rng.randf() < 0.6:
 			stars += 2
 	else:

@@ -32,9 +32,9 @@ const PAUSE_AFTER := 1.8
 ## blow lands (`water`, `red`, `tint_far`, `tint_mid`, `haze` below).
 const WASH := {
 	"classic": {"paper": Color("efe8d8"), "paper2": Color("d6d4c8"), "far": Color("aeb6b9"), "mid": Color("858c86"), "moon": Color("f8efdc"), "fog": Color("eef0ee"),
-		"water": Color(0.2, 0.45, 0.82, 0.62), "surf": Color(0.12, 0.35, 0.75, 0.9), "red": Color(0.8, 0.05, 0.04), "haze": Color("e4e7e8")},
+		"water": Color(0.08, 0.4, 0.95, 0.74), "surf": Color(0.04, 0.3, 0.92, 0.95), "red": Color(0.8, 0.05, 0.04), "haze": Color("e4e7e8")},
 	"voodoo": {"paper": Color("08090c"), "paper2": Color("181a1f"), "far": Color("262b33"), "mid": Color("3f4544"), "moon": Color("dcd6c8"), "fog": Color("566068"),
-		"water": Color(0.1, 0.25, 0.6, 0.7), "surf": Color(0.35, 0.6, 0.95, 0.85), "red": Color(0.85, 0.1, 0.08), "haze": Color("3a4048")},
+		"water": Color(0.06, 0.26, 0.78, 0.8), "surf": Color(0.35, 0.65, 1.0, 0.9), "red": Color(0.85, 0.1, 0.08), "haze": Color("3a4048")},
 }
 const LOOKS := {
 	"classic": {"paper": Color("ece6d8"), "paper2": Color("d8d0bf"), "ink": Color("111111"), "far": Color("b9b2a4"), "mid": Color("8e887d"), "near": Color("4a4743"), "moon": Color("f7f3ea"), "fog": Color("f4f1ea"), "shadow": Color("2a2723"), "smoke": Color("8a857c")},
@@ -77,6 +77,7 @@ var pines_mid: Texture2D
 var fog_tex: Texture2D
 var smoke: Array = []   # smoke puffs (_puff)
 var mist: Array = []    # drifting wisps: [x 0..1, world y, speed, width, phase]
+var motes: Array = []    # floating dust / embers: [screen x 0..1, screen y 0..1, rise speed, size, phase, depth, cool?]
 var blot: Texture2D      # an irregular ink blot for splashes and stains
 var goals                # Goals (daily + weekly objectives)
 var card_text := []      # the chapter card on screen: [title, text, objective] (empty = none)
@@ -108,6 +109,8 @@ func _ready() -> void:
 	fog_tex = _make_fog()
 	for i in 7:
 		mist.append([randf() * 1.6 - 0.3, randf_range(380.0, 560.0), randf_range(0.006, 0.02), randf_range(260.0, 520.0), randf() * TAU])
+	for i in 46:
+		motes.append([randf(), randf(), randf_range(0.01, 0.045), randf_range(2.5, 7.0), randf() * TAU, randf_range(0.15, 0.9), randf() < 0.35])
 	goals.load_data(Goals.today_num(), Goals.week_num())
 	_build_ui()
 	_hud_colors()
@@ -442,8 +445,8 @@ func _process(delta: float) -> void:
 		s[1].y += 1400.0 * delta
 		s[2] -= delta
 		var sg: float = engine.ground_y(s[0].x)
-		if s[2] <= 0.0 and s[0].y > sg - 20 and s[0].y < sg + 40 and stains.size() < 160 and engine.water_depth(s[0].x) <= 0.0:
-			stains.append([Vector2(s[0].x, sg + 2), s[3] * 1.4, 0.55, s[4]])
+		if s[2] <= 0.0 and s[0].y > sg - 20 and s[0].y < sg + 40 and stains.size() < 420 and engine.water_depth(s[0].x) <= 0.0:
+			stains.append([Vector2(s[0].x, sg + 3), s[3] * (2.0 if s[4] else 1.4), 0.9 if s[4] else 0.55, s[4]])
 	splats = splats.filter(func(s): return s[2] > 0.0)
 	if not card_text.is_empty():
 		card_t -= delta
@@ -499,7 +502,7 @@ func _process(delta: float) -> void:
 func _event(e: String) -> void:
 	if e.begins_with("ink:") or e.begins_with("red:"):
 		var p := e.split(":")
-		_splash(Vector2(float(p[1]), float(p[2])), e.begins_with("red:"))
+		_splash(Vector2(float(p[1]), float(p[2])), e.begins_with("red:"), p.size() > 3)
 		return
 	match e:
 		"jump", "walljump":
@@ -554,7 +557,8 @@ func _event(e: String) -> void:
 		"telegraph":
 			SoundLib.play(self, "impact/bell_heavy", -16.0)
 		"hurt":
-			_sfx("lose")
+			SoundLib.play(self, "creature/grunt", -1.0, "game", 1.25)   # a grunt when the hero is hit (owner 2026-11-15)
+			SoundLib.play(self, "impact/punch_medium", -8.0)
 			shake = 10.0
 		"slam":
 			shake = 14.0
@@ -618,14 +622,16 @@ func _after_pause() -> void:
 			_game_over(false)
 
 ## red: a blow the hero landed (owner 2026-11-15: a slight red mark); otherwise grey ink.
-func _splash(p: Vector2, red: bool = false) -> void:
+func _splash(p: Vector2, red: bool = false, big: bool = false) -> void:
 	_puff(p, 3, 16.0, 60.0)
-	for i in (10 if red else 16):
+	for i in (22 if big else (10 if red else 16)):
 		var v := Vector2.RIGHT.rotated(randf() * TAU) * randf_range(120, 520) + Vector2(0, -220)
 		splats.append([p, v, randf_range(0.35, 0.8), randf_range(5.0, 14.0) * (0.8 if red else 1.0), red])
-	var sx := p.x + randf_range(-30, 30)
-	if stains.size() < 160 and engine.water_depth(sx) <= 0.0:
-		stains.append([Vector2(sx, engine.ground_y(sx) + 2), randf_range(22, 40), 0.7, red])
+	# A kill leaves a big pool plus spatter that stays for the whole stage (owner 2026-11-15).
+	for n in (4 if big else 1):
+		var sx := p.x + randf_range(-30, 30) * (2.0 if big else 1.0)
+		if stains.size() < 420 and engine.water_depth(sx) <= 0.0:
+			stains.append([Vector2(sx, engine.ground_y(sx) + 3), randf_range(50, 85) if (big and n == 0) else (randf_range(26, 48) if big else randf_range(22, 40)), 0.9 if red else 0.7, red])
 
 func _game_over(won: bool) -> void:
 	started = false
@@ -712,7 +718,7 @@ func _draw_field() -> void:
 			x += w
 	for st in stains:
 		var p: Vector2 = o + st[0] * k
-		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.red, st[2] * 0.8) if st[3] else Color(pal.near, st[2]))
+		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.red, minf(st[2], 1.0)) if st[3] else Color(pal.near, st[2]))
 	# Arena gate.
 	if engine.locked:
 		var gx: float = o.x + engine.arena_x * k
@@ -728,7 +734,7 @@ func _draw_field() -> void:
 		_shadow(c, o, engine.boss.x, engine.boss.y, k, 40.0)
 	_shadow(c, o, engine.px, engine.py, k, 24.0)
 	for f in engine.foes:
-		_figure(c, o + Vector2(f.x, f.y) * k, k, f.face, f.kind, f.hit > 0.0, f.get("atk", 0.0) > 0.0, false, anim_t * 6.0 + f.id)
+		_figure(c, o + Vector2(f.x, f.y) * k, k, f.face, f.kind, f.hit > 0.0, f.get("atk", 0.0) > 0.0, absf(f.vx) > 30.0 and f.y >= engine.ground_y(f.x) - 2.0, f.x * 0.11 + f.id)
 	if not engine.boss.is_empty() and engine.boss.hp > 0:
 		var b: Dictionary = engine.boss
 		var tele: bool = b.phase != "idle" and b.t > 0.0
@@ -745,6 +751,7 @@ func _draw_field() -> void:
 	_draw_breath(c, o, k)
 	_draw_smoke(c, o, k)
 	_draw_mist(c, sz, k)
+	_draw_motes(c, sz, k)
 	_draw_haze(c, o, sz, k)
 	_hud_draw(c, sz, k)
 
@@ -773,34 +780,52 @@ func _draw_ground(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 	c.draw_multiline(rim, pal.ink, 2.0 * k)
 	# Texture (owner 2026-11-15): grass tufts on the rim, soil strata and stones below,
 	# in lighter ink so the land reads apart from towers and figures. One multiline each.
-	var grass := PackedVector2Array()
+	# Grass in three layers and tones (owner 2026-11-15: more depth and colour variation, blacks
+	# and greys): tall pale blades behind, mid grey in the middle, short near-black in front.
+	var grass: Array = [PackedVector2Array(), PackedVector2Array(), PackedVector2Array()]
 	var strata := PackedVector2Array()
+	var strata2 := PackedVector2Array()
 	var stones := PackedVector2Array()
+	var stones2 := PackedVector2Array()
+	var sway := sin(anim_t * 1.3) * 1.5
 	x = x0
 	while x <= x1:
 		var gy: float = engine.ground_y(x)
 		if engine.water_depth(x) <= 0.0:
-			var h := 6.0 + fmod(absf(x) * 0.731, 7.0)
-			var lean := fmod(absf(x) * 0.37, 6.0) - 3.0
-			grass.append(o + Vector2(x, gy) * k)
-			grass.append(o + Vector2(x + lean, gy - h) * k)
-			grass.append(o + Vector2(x + 7, gy) * k)
-			grass.append(o + Vector2(x + 7 + lean * 0.6, gy - h * 0.7) * k)
+			for L in 3:
+				var hx := absf(x) + L * 131.0
+				var h := (14.0 - L * 4.0) + fmod(hx * 0.731, 9.0 - L * 2.0)
+				var lean := fmod(hx * 0.37, 8.0) - 4.0 + sway * (1.0 - L * 0.3)
+				var off := fmod(hx * 0.53, float(Engine_.SEG))
+				grass[L].append(o + Vector2(x + off, gy + 1.0 + L) * k)
+				grass[L].append(o + Vector2(x + off + lean, gy - h) * k)
+				grass[L].append(o + Vector2(x + off + 5.0, gy + 1.0 + L) * k)
+				grass[L].append(o + Vector2(x + off + 5.0 + lean * 0.6, gy - h * 0.7) * k)
 		for d in [22.0, 48.0, 84.0]:
 			if fmod(absf(x) + d * 3.0, 60.0) < 40.0:
 				var a := o + Vector2(x, engine.ground_y(x) + d) * k
 				var b := o + Vector2(x + step, engine.ground_y(x + step) + d) * k
-				strata.append(a)
-				strata.append(b)
+				(strata if d < 60.0 else strata2).append(a)
+				(strata if d < 60.0 else strata2).append(b)
 		var sh := fmod(absf(x) * 1.37, 97.0)
 		if sh < 30.0:
 			var sp := o + Vector2(x + sh * 0.5, gy + 30.0 + sh * 2.0) * k
 			stones.append(sp)
 			stones.append(sp + Vector2(6.0 + sh * 0.2, 0) * k)
+		elif sh > 80.0:
+			var sp2 := o + Vector2(x + sh * 0.3, gy + 18.0 + (sh - 80.0) * 3.0) * k
+			stones2.append(sp2)
+			stones2.append(sp2 + Vector2(10.0, 0) * k)
 		x += step
-	c.draw_multiline(grass, pal.ink, 2.0 * k)
 	c.draw_multiline(strata, Color(pal.near, 0.55), 2.0 * k)
+	c.draw_multiline(strata2, Color(pal.mid, 0.4), 3.0 * k)
 	c.draw_multiline(stones, Color(pal.mid, 0.6), 4.0 * k)
+	c.draw_multiline(stones2, Color(pal.far, 0.5), 5.0 * k)
+	c.draw_multiline(grass[0], Color(pal.mid, 0.85), 2.0 * k)
+	c.draw_multiline(grass[1], Color(pal.near, 0.95), 2.2 * k)
+	c.draw_multiline(grass[2], pal.ink.lerp(pal.near, 0.15), 2.4 * k)
+	# A lighter highlight along the rim lifts the edge off the black earth.
+	c.draw_multiline(rim, Color(pal.mid, 0.55), 1.2 * k)
 
 ## Water filling a dip: a polygon from the surface down along the dip's bed (drawn
 ## twice: behind the ground for the body, and as a pale veil in front of the figures so
@@ -1015,7 +1040,7 @@ func _pose(feet: Vector2, k: float, f: int, ph: float, running: bool, crouch: bo
 	return {"hip": hip, "neck": neck, "head": head, "fa": fa, "fb": fb, "ka": ka, "kb": kb}
 
 ## Body, legs, head and flowing headband for any ink figure.
-func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk: float, tails: bool, phase: float) -> void:
+func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk: float, tails: bool, phase: float, tl: float = 1.0) -> void:
 	_brush(c, j.hip, j.kb, 8.0 * k * bulk, col)
 	_brush(c, j.kb, j.fb, 7.0 * k * bulk, col)
 	_brush(c, j.hip, j.ka, 8.0 * k * bulk, col)
@@ -1029,15 +1054,18 @@ func _ink_body(c: CanvasItem, j: Dictionary, k: float, f: int, col: Color, bulk:
 	# Sash knot at the hip with a short tail.
 	c.draw_line(j.hip + Vector2(-10, -6) * k, j.hip + Vector2(10, -6) * k, pal.mid, 4.0 * k)
 	if tails:
+		# Headband across the brow (so a bare head never reads as a cap), tails flow behind.
+		if tl < 1.0:
+			c.draw_line(j.head + Vector2(-f * 11, -5) * k, j.head + Vector2(f * 11, -5) * k, pal.mid, 4.0 * k)
 		for t in 2:
 			var pts := []
 			var start: Vector2 = j.head + Vector2(-f * 9, -5 + t * 3) * k
-			for i in 7:
+			for i in maxi(3, int(ceil(7.0 * tl))):
 				pts.append(start + Vector2(-f * i * 13.0, sin(phase - i * 0.8 + t * 1.3) * i * 1.8 - i * 1.5 + t * i * 2.0) * k)
 			_ribbon(c, pts, 6.0 * k, 1.0 * k, col)
 		var sp := []
 		var s0: Vector2 = j.hip + Vector2(-f * 8, -6) * k
-		for i in 5:
+		for i in maxi(3, int(5 * maxf(tl, 0.7))):
 			sp.append(s0 + Vector2(-f * i * 9.0, i * 3.0 + sin(phase * 0.8 - i) * i) * k)
 		_ribbon(c, sp, 5.0 * k, 1.0 * k, col)
 
@@ -1099,11 +1127,12 @@ func _ninja(c: CanvasItem, feet: Vector2, k: float) -> void:
 		_katana(c, hand, tip, k)
 
 ## Foes and bosses: the same brush figure in a lighter ink, bulkier for brutes and bosses.
-func _figure(c: CanvasItem, feet: Vector2, k: float, f: int, kind: String, flash: bool, windup: bool, _x: bool, t: float) -> void:
+func _figure(c: CanvasItem, feet: Vector2, k: float, f: int, kind: String, flash: bool, windup: bool, moving: bool, t: float) -> void:
 	var ink: Color = pal.mid if flash else pal.near.lerp(pal.ink, 0.45)
 	var bulk := 1.35 if kind == "brute" or kind == "boss0" or kind == "boss3" else 1.0
-	var j := _pose(feet, k, f, t, true, false, false)
-	_ink_body(c, j, k, f, ink, bulk, kind.begins_with("boss") or kind == "blade", t * 1.3)
+	var j := _pose(feet, k, f, t * 1.0, moving, false, false)   # legs stride only while the foe really moves (phase = distance walked)
+	var tl := 1.0 if kind.begins_with("boss") else (0.5 if kind == "blade" or kind == "thrower" else 0.0)
+	_ink_body(c, j, k, f, ink, bulk, tl > 0.0, anim_t * 6.0 + t, tl)
 	var neck: Vector2 = j.neck
 	var head: Vector2 = j.head
 	match kind:
@@ -1351,6 +1380,11 @@ func _smoke_tick(delta: float) -> void:
 		s[1] *= 1.0 - 1.5 * delta
 		s[2] -= delta
 	smoke = smoke.filter(func(s): return s[2] > 0.0)
+	for mo in motes:
+		mo[1] -= mo[2] * delta
+		if mo[1] < -0.05:
+			mo[1] += 1.1
+			mo[0] = randf()
 	for m in mist:
 		m[0] += m[2] * delta
 		if m[0] > 1.3:
@@ -1363,6 +1397,19 @@ func _draw_smoke(c: CanvasItem, o: Vector2, k: float) -> void:
 		c.draw_texture_rect(disc, Rect2(o + s[0] * k - Vector2(r, r), Vector2(r, r) * 2), false, Color(pal.smoke, 0.45 * (1.0 - t)))
 
 ## Mist wisps drifting across the field in front of everything (screen space, slow).
+## Floating particles (owner 2026-11-15): soft glowing motes drifting up in front of the land,
+## parallax with the camera. Warm embers and a few cool blue-white ones.
+func _draw_motes(c: CanvasItem, sz: Vector2, k: float) -> void:
+	var cam: float = engine.cam_x()
+	for mo in motes:
+		var x := fposmod(mo[0] * sz.x - cam * k * mo[5] * 0.5 + sin(anim_t * 0.6 + mo[4]) * 14.0 * k, sz.x)
+		var y: float = mo[1] * sz.y
+		var r: float = mo[3] * k * (0.8 + 0.3 * sin(anim_t * 1.7 + mo[4]))
+		var tw := 0.55 + 0.45 * sin(anim_t * 2.1 + mo[4] * 2.0)
+		var col := Color(0.45, 0.75, 1.0, 0.55 * tw) if mo[6] else Color(1.0, 0.7, 0.28, 0.7 * tw)
+		c.draw_texture_rect(disc, Rect2(Vector2(x - r * 2.2, y - r * 2.2), Vector2(r, r) * 4.4), false, Color(col, col.a * 0.25))
+		c.draw_texture_rect(disc, Rect2(Vector2(x - r, y - r), Vector2(r, r) * 2), false, col)
+
 func _draw_mist(c: CanvasItem, sz: Vector2, k: float) -> void:
 	for m in mist:
 		var x: float = m[0] * sz.x
