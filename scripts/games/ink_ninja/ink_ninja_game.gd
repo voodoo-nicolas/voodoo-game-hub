@@ -583,6 +583,18 @@ func _event(e: String) -> void:
 			if info:
 				info.add("Bosses defeated")
 				info.high("Highest stage", engine.stage)
+		"clear":
+			# A stage without a boss, cleared at its gate (24-stage campaign, owner 2026-11-15).
+			SoundLib.play(self, "jingles/win_succeeded", -4.0)
+			if not engine.scrolls.is_empty():
+				all_scrolls = false
+			_goal("stages")
+			if engine.hits_taken == 0:
+				_goal("nohit")
+			banner = tr("Stage cleared!")
+			after = PAUSE_AFTER + 0.6
+			if info:
+				info.high("Highest stage", engine.stage)
 
 func _after_pause() -> void:
 	match engine.state:

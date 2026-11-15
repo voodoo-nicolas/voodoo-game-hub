@@ -49,17 +49,16 @@ const SCENES := {
 	"ending-b": {"dur": 22.0, "cues": [[2.0, "flute"], [16.0, "bell"]], "wait": [10.7, 10.8, 10.0]},
 }
 
-## Where each scene plays in THIS build (10 stages; the bible has 6 acts / 24 stages).
-## Mapping (owner OK 2026-11-15): Act 1 = stage 1, Act 2 = 2, Act 3 = 3,
-## Act 4 = 4-5, Act 5 = 6-7, Act 6 = 8-10. Storyboard slots in the comments.
+## Where each scene plays: the story bible's own slots, now that the game has its
+## 24 stages (owner 2026-11-15). Stage n of act a = (a - 1) * 4 + n; 4, 8... are bosses.
 const SLOTS := {
 	"before:1": ["intro"],              # before 1-1
-	"lantern:1:2": ["drip"],            # before 1-3: at stage 1's second lantern
-	"before:2": ["after-1B"],           # after 1-B, before 2-1
-	"before:3": ["after-2B"],           # after 2-B, before 3-1
-	"before:4": ["after-3B", "act4"],   # after 3-B; before 4-1
-	"before:6": ["after-4B", "act5"],   # after 4-B; before 5-1
-	"before:8": ["after-5B"],           # after 5-B, before 6-1
+	"before:3": ["drip"],               # before 1-3
+	"before:5": ["after-1B"],           # after 1-B, before 2-1
+	"before:9": ["after-2B"],           # after 2-B, before 3-1
+	"before:13": ["after-3B", "act4"],  # after 3-B; before 4-1
+	"before:17": ["after-4B", "act5"],  # after 4-B; before 5-1
+	"before:21": ["after-5B"],          # after 5-B, before 6-1
 	"final": ["seal", "ending-a"],      # 6-B phase 3 (waits for Slash), then Ending A
 	"final_all_scrolls": ["ending-b"],  # after Ending A when every scroll was found
 }

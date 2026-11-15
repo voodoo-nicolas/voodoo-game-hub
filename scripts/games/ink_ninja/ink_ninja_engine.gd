@@ -12,7 +12,8 @@ extends RefCounted
 const VIEW_W := 1280.0
 const H := 720.0
 const GROUND := 600.0
-const STAGES := 10
+const STAGES := 24   # owner 2026-11-15: the bible's 6 acts x (3 stages + a boss stage); was 10
+const ACT_LEN := 4   # stages per act; the 4th of each act is its boss stage
 
 const GRAV := 2200.0
 const RUN := 380.0
@@ -38,7 +39,11 @@ const DROWN_TICK := 1.5    # out of breath: lose a heart this often
 const SWIM_V := 430.0      # an A stroke under water
 const KNOCK_T := 0.28      # hit: knocked back, no control for this long
 
-const BOSS_NAMES := ["Iron Monk", "Twin Blade", "Paper Crane", "Shadow Daimyo"]
+## Boss per act (story bible, mixed with the first story: Lord Shu IS the Shadow Daimyo).
+## They fight with the four boss figures/move sets already built (BOSS_KIND); their own
+## art (lion-dog, tiger, dragon, crane, monk, the Hand) is not drawn yet.
+const BOSS_NAMES := ["Gate Warden", "Tora", "The Dragon", "Tsuru", "The Calligrapher", "Lord Shu"]
+const BOSS_KIND := [0, 1, 0, 2, 1, 3]   # figure + attack set: 0 Iron Monk, 1 Twin Blade, 2 Paper Crane, 3 Daimyo
 
 var diff := 1
 var stage := 1
@@ -115,13 +120,23 @@ func reset(d: int) -> void:
 
 ## Speed / aggression multiplier for foes.
 func power() -> float:
-	return [0.75, 1.0, 1.3][diff] * (1.0 + (stage - 1) * 0.06)
+	return [0.75, 1.0, 1.3][diff] * (1.0 + (stage - 1) * 0.025)   # 24 stages end about where 10 did
+
+## Act 1..6 (4 stages each).
+func act() -> int:
+	return (stage - 1) / ACT_LEN + 1
+
+## The last stage of each act is its boss duel; the others end at the gate.
+func boss_stage() -> bool:
+	return stage % ACT_LEN == 0
 
 func build_stage() -> void:
 	rng.seed = stage * 7919 + 13
 	state = "play"
 	time = 0.0
-	length = (3600.0 + stage * 500.0) * 5.0   # owner 2026-11-15: stages 5x longer ("too short, too quick")
+	length = (3600.0 + act() * 600.0) * 5.0   # owner 2026-11-15: stages 5x longer ("too short, too quick")
+	if boss_stage():
+		length = 3600.0 + act() * 400.0   # a boss stage: a short climb to the duel
 	arena_x = length
 	locked = false
 	solids.clear()
@@ -137,7 +152,7 @@ func build_stage() -> void:
 	var t0 := TUTOR if stage == 1 else 0.0   # the tutorial stretch stays flat and quiet
 	var n := int((length + VIEW_W) / SEG) + 2
 	heights.resize(n)
-	var amp := minf(110.0 + stage * 6.0, 165.0)   # owner's reference pictures: land that really rises and falls
+	var amp := minf(110.0 + act() * 10.0, 165.0)   # owner's reference pictures: land that really rises and falls
 	var ph1 := rng.randf() * TAU
 	var ph2 := rng.randf() * TAU
 	for i in n:
@@ -155,8 +170,8 @@ func build_stage() -> void:
 		x += rng.randf_range(520.0, 900.0)
 		if x > length - 700.0:
 			break
-		if rng.randf() < 0.35 + stage * 0.04:
-			var depth := rng.randf_range(80.0, 150.0 + stage * 6.0)
+		if rng.randf() < 0.35 + act() * 0.06:
+			var depth := rng.randf_range(80.0, 150.0 + act() * 10.0)
 			var hw := maxf(rng.randf_range(220.0, 420.0), depth * 3.0)   # wide, flat-bottomed lakes with soft banks
 			if x + hw > length - 700.0:
 				break
@@ -189,9 +204,9 @@ func build_stage() -> void:
 		var kinds := ["blade"]
 		if stage >= 2:
 			kinds.append("thrower")
-		if stage >= 3:
-			kinds.append("leaper")
 		if stage >= 5:
+			kinds.append("leaper")
+		if stage >= 9:
 			kinds.append("brute")
 		var k: String = kinds[rng.randi() % kinds.size()]
 		var hp_f: int = {"blade": 1, "thrower": 1, "leaper": 1, "brute": 3}[k]
@@ -228,12 +243,10 @@ func build_stage() -> void:
 	hits_taken = 0
 
 func boss_kind() -> int:
-	if stage >= STAGES:
-		return 3   # the last duel is always the Shadow Daimyo (story, ink_ninja_story.gd)
-	return (stage - 1) % BOSS_NAMES.size()
+	return BOSS_KIND[clampi(act(), 1, 6) - 1]
 
 func boss_name() -> String:
-	return BOSS_NAMES[boss_kind()]
+	return BOSS_NAMES[clampi(act(), 1, 6) - 1]
 
 ## Tutorial props and tip lines: stage 1 teaches the basics one at a time; later stages
 ## open with a line about what was just unlocked.
@@ -310,7 +323,7 @@ func _carve(cx: float, hw: float, depth: float, wet: bool) -> void:
 
 func _spawn_boss() -> void:
 	var k := boss_kind()
-	var hpb := int((12 + stage * 2) * [0.7, 1.0, 1.3][diff] * (0.75 if stage == 1 else 1.0))   # the first duel is a gentle one (owner 2026-11-15)
+	var hpb := int((12 + act() * 5) * [0.7, 1.0, 1.3][diff] * (0.75 if act() == 1 else 1.0))   # the first duel is a gentle one (owner 2026-11-15)
 	boss = {"kind": k, "x": arena_x + VIEW_W - 260, "y": GROUND, "vx": 0.0, "vy": 0.0, "hp": hpb, "max": hpb,
 		"face": -1, "phase": "idle", "t": 1.2, "hit": 0.0, "n": 0}
 	events.append("boss")
@@ -350,6 +363,12 @@ func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bo
 		if px >= c and checkpoint_x < c:
 			checkpoint_x = c
 			events.append("checkpoint")
+	if not locked and px > arena_x + 80 and not boss_stage():
+		# A stage without a boss is cleared at its gate.
+		state = "won"
+		score += 500 + maxi(0, int(600 - time))
+		events.append("clear")
+		return events
 	if not locked and px > arena_x + 80:
 		locked = true
 		solids.append(Rect2(arena_x, -400, 40, GROUND + 400))   # the gate shuts behind you
@@ -719,7 +738,7 @@ func _boss(dt: float) -> void:
 			if boss.t > 0.0:
 				boss.vx = 0.0
 			else:
-				boss.vx = boss.face * 700.0 * p * (0.8 if stage == 1 else 1.0)
+				boss.vx = boss.face * 700.0 * p * (0.8 if act() == 1 else 1.0)
 				if boss.x <= lo or boss.x >= hi or boss.t < -1.2:
 					_boss_rest()
 		"leap":
@@ -742,19 +761,19 @@ func _boss(dt: float) -> void:
 	if boss.y >= GROUND:
 		if boss.vy > 300:
 			events.append("slam")
-			if on_ground and absf(dx) < (150 if stage == 1 else 220):
+			if on_ground and absf(dx) < (150 if act() == 1 else 220):
 				_hurt(1, false, boss.x)
 			if boss.phase == "leap":
 				_boss_rest()
 		boss.y = GROUND
 		boss.vy = 0.0
 	if boss_box().intersects(_box()):
-		_hurt(2 if boss.phase == "charge" and stage > 1 else 1, false, boss.x)
+		_hurt(2 if boss.phase == "charge" and act() > 1 else 1, false, boss.x)
 
 func _boss_rest() -> void:
 	boss.phase = "idle"
 	boss.vx = 0.0
-	boss.t = maxf(0.7, 1.8 - stage * 0.08 - diff * 0.2) + (0.5 if stage == 1 else 0.0)
+	boss.t = maxf(0.7, 1.8 - act() * 0.14 - diff * 0.2) + (0.5 if act() == 1 else 0.0)
 
 func _shots(dt: float) -> void:
 	for s in shots:

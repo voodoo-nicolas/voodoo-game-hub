@@ -39,7 +39,7 @@ func _run() -> void:
 	for i in 5:
 		await process_frame
 	check(g.cut_on and g.cutscene.playing and g.cutscene.id == "intro", "new game plays the intro")
-	check(Cut.for_stage(1) == ["intro"] and Cut.for_stage(2) == ["after-1B"] and Cut.for_stage(4) == ["after-3B", "act4"] and Cut.for_stage(5) == [], "slots")
+	check(Cut.for_stage(1) == ["intro"] and Cut.for_stage(3) == ["drip"] and Cut.for_stage(5) == ["after-1B"] and Cut.for_stage(13) == ["after-3B", "act4"] and Cut.for_stage(2) == [], "slots (bible)")
 	for sc in Cut.SCENES:
 		check(g.cutscene.has_scene(sc), "scene " + sc)
 	check(Cut.SCENES.size() == 12, "12 scenes")
@@ -57,9 +57,14 @@ func _run() -> void:
 	g.engine.state = "won"
 	g._after_pause()
 	await process_frame
-	check(g.engine.stage == 2 and g.cut_on and g.cutscene.id == "after-1B", "after 1-B plays before stage 2")
+	check(g.engine.stage == 2 and not g.cut_on, "stage 1 -> 2: no cutscene")
+	g.engine.stage = 4
+	g.engine.state = "won"
+	g._after_pause()
+	await process_frame
+	check(g.engine.stage == 5 and g.cut_on and g.cutscene.id == "after-1B", "after 1-B plays before stage 5 (2-1)")
 	var sv = JSON.parse_string(FileAccess.get_file_as_string(SAVE))
-	check(sv is Dictionary and int(sv.stage) == 2, "run saved at stage 2 before the cutscene")
+	check(sv is Dictionary and int(sv.stage) == 5, "run saved at stage 5 before the cutscene")
 	g.cutscene.t = 0.5
 	await process_frame
 	check(not g.cutscene.skip_btn.visible, "no Skip in the first second")
@@ -68,7 +73,7 @@ func _run() -> void:
 	check(g.cutscene.skip_btn.visible, "Skip after 1 s")
 	g.cutscene.skip_btn.pressed.emit()
 	await process_frame
-	check(not g.cut_on and g.card_text.size() == 3, "Skip goes straight to stage 2's card")
+	check(not g.cut_on and g.card_text.size() == 3, "Skip goes straight to stage 5's card")
 	# Second new game: the intro can now be skipped.
 	g._new_game(1)
 	await process_frame
@@ -77,18 +82,17 @@ func _run() -> void:
 	check(g.cutscene.skip_btn.visible, "intro skippable once seen")
 	g.cutscene._end()
 	await process_frame
-	# Drip at stage 1's second lantern.
+	# Drip before 1-3.
 	g.cut_on = false
 	g.card_text = []
-	g.engine.stage = 1
-	g.engine.build_stage()
-	g.engine.checkpoint_x = g.engine.checkpoints[1]
-	g._event("checkpoint")
+	g.engine.stage = 2
+	g.engine.state = "won"
+	g._after_pause()
 	await process_frame
-	check(g.cut_on and g.cutscene.id == "drip", "drip at the second lantern of stage 1")
+	check(g.cut_on and g.cutscene.id == "drip", "drip before stage 3 (1-3)")
 	g.cutscene._end()
 	await process_frame
-	check(not g.cut_on, "play resumes after the drip")
+	check(not g.cut_on, "stage 3 starts after the drip")
 	# Seal waits for Slash.
 	g.cutscene.play("seal")
 	g.cutscene.t = 13.5
@@ -112,7 +116,7 @@ func _run() -> void:
 	g.cutscene._end()
 	# Beating the last stage: seal + ending A (+ B with every scroll).
 	g.cut_on = false
-	g.engine.stage = 10
+	g.engine.stage = 24
 	g.engine.state = "won"
 	g.all_scrolls = true
 	g._after_pause()

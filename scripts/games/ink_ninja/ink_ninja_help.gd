@@ -4,7 +4,7 @@ extends RefCounted
 
 const ID := "ink_ninja"
 const TITLE := "Ink Ninja"
-const GOAL := "Run, leap and cut your way through 10 ink-painted stages and defeat the boss waiting at the end of each one."
+const GOAL := "Run, leap and cut your way up a painted scroll: 24 stages in 6 acts, each act ending in a boss duel."
 const HOW := [
 	"Push the stick left or right to run. Pull it down to crouch and creep: low enemy stars fly over your head, and Swing becomes a low jab.",
 	"Push the stick up to jump; push it up again in the air for a double jump. Hold the stick against a wall while falling to slide down it, then push up to kick off.",
@@ -15,9 +15,9 @@ const HOW := [
 	"You have 5 hearts and 3 lives. Losing all your hearts costs a life and sends you back to the last stone lantern you passed (4 on each stage). When something hits you, you are knocked back out of reach.",
 	"The ground rolls over hills and hollows, and many hollows hold water. Wading is slower. Where it is too deep to stand, press A to swim up.",
 	"Under water you hold your breath: the bubbles over your head count it down. Put your head above the surface to breathe again; with no breath left you lose a heart every few seconds.",
-	"At the end of each stage a gate shuts and a boss attacks. Watch for the pause before each move: a charge, a leap that shakes the ground, or a fan of stars.",
-	"Kills in a row score 100, 200, 300... up to 500 each. Scrolls score 50. A boss scores 2000 plus a bonus for speed.",
-	"The story runs over 10 chapters: a card before each stage tells the next part, and the ▸ line under the progress bar shows the stage's goal.",
+	"Reach the gate at the end of a stage to clear it. Every fourth stage, the gate shuts behind you and the act's boss attacks. Watch for the pause before each move: a charge, a leap that shakes the ground, or a fan of stars.",
+	"Kills in a row score 100, 200, 300... up to 500 each. Scrolls score 50. Clearing a stage scores 500 plus a bonus for speed; a boss scores 2000 plus a bonus for speed. Find every scroll in a whole run for the second ending.",
+	"The story runs over 24 chapters: a card before each stage tells the next part, a painted scene plays between acts, and the ▸ line under the progress bar shows the stage's goal.",
 	"Objectives (on the Landing): one daily goal and one weekly goal. Finishing one adds 1000 (daily) or 5000 (weekly) points to the run you are playing.",
 	"⏸ pauses; Resume on the Home screen keeps your score, lives and stars and restarts the stage.",
 ]
@@ -32,8 +32,8 @@ const TIPS := [
 const STATS := ["Best score", "Highest stage", "Bosses defeated", "Ninjas defeated", "Stars parried", "Daily objectives", "Weekly objectives", "Games played"]
 const ACHIEVEMENTS := [
 	{"id": "boss1", "icon": "🗡️", "title": "First Duel", "key": "Bosses defeated", "at": 1, "xp": 12},
-	{"id": "stage5", "icon": "⛩️", "title": "Halfway Up the Mountain", "key": "Highest stage", "at": 5, "xp": 12},
-	{"id": "stage10", "icon": "🥷", "title": "Master of Ink", "key": "Highest stage", "at": 10, "xp": 12},
+	{"id": "stage5", "icon": "⛩️", "title": "Halfway Up the Mountain", "key": "Highest stage", "at": 12, "xp": 12},
+	{"id": "stage10", "icon": "🥷", "title": "Master of Ink", "key": "Highest stage", "at": 24, "xp": 12},
 	{"id": "kills500", "icon": "🖌️", "title": "Five Hundred Strokes", "key": "Ninjas defeated", "at": 500, "xp": 12},
 	{"id": "daily7", "icon": "📅", "title": "Daily Discipline", "key": "Daily objectives", "at": 7, "xp": 12},
 	{"id": "weekly4", "icon": "🗓️", "title": "A Month of Ink", "key": "Weekly objectives", "at": 4, "xp": 12},

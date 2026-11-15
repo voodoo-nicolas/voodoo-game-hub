@@ -22,7 +22,7 @@ func _init() -> void:
 			e.stage = st
 			e.build_stage()
 			check(e.on_ground and e.py == E.GROUND, "start on ground d%d s%d" % [d, st])
-			check(e.foes.size() > 3, "foes d%d s%d" % [d, st])
+			check(e.foes.size() > (1 if e.boss_stage() else 3), "foes d%d s%d" % [d, st])   # a boss stage is a short climb
 			var t := 0.0
 			var deaths := 0
 			var best := 0.0
@@ -48,15 +48,15 @@ func _init() -> void:
 				print("stuck d%d s%d at x=%d/%d best=%d deaths=%d" % [d, st, e.px, e.arena_x, best, deaths])
 			if e.state == "won":
 				won += 1
-	print("boss reached in %d/30 runs, won %d/30" % [reached, won])
-	check(reached >= 25, "a random bot crosses almost every stage to the boss in 700 s")
+	print("end reached in %d/%d runs, won %d" % [reached, 3 * E.STAGES, won])
+	check(reached >= 3 * E.STAGES - 5, "a random bot crosses almost every stage to the boss in 700 s")
 	# next_stage past the last one clears the campaign
 	var e2 = E.new()
 	e2.reset(1)
 	e2.stage = E.STAGES
 	e2.state = "won"
 	e2.next_stage()
-	check(e2.state == "cleared", "cleared after stage 10")
+	check(e2.state == "cleared", "cleared after the last stage")
 	# Crouching: an enemy star at thrower height flies over; standing, it hits.
 	for crouching in [true, false]:
 		var e3 = E.new()
@@ -173,5 +173,20 @@ func _init() -> void:
 	t4.hp = E.MAX_HP
 	t4._hurt(5, false, t4.px + 50.0)
 	check(t4.state == "play" and t4.hp >= 1, "one blow never kills a hero with hearts to spare")
+	# 24 stages: bosses only on every 4th; a plain stage is cleared at its gate.
+	var e8 = E.new()
+	e8.reset(1)
+	e8.foes.clear()
+	e8.px = e8.arena_x + 100
+	var ev8: Array = e8.step(1.0 / 60.0, 1.0, false, false, false, false)
+	check(e8.state == "won" and "clear" in ev8 and e8.boss.is_empty(), "stage 1 cleared at its gate, no boss")
+	e8.stage = 4
+	e8.build_stage()
+	e8.foes.clear()
+	e8.px = e8.arena_x + 100
+	e8.step(1.0 / 60.0, 1.0, false, false, false, false)
+	check(e8.state == "play" and not e8.boss.is_empty() and e8.boss_name() == "Gate Warden", "stage 4: the Gate Warden")
+	e8.stage = 24
+	check(e8.boss_name() == "Lord Shu" and e8.act() == 6, "stage 24: Lord Shu, act 6")
 	print("ink_ninja: %s (%d failures)" % ["OK" if fails == 0 else "FAILED", fails])
 	quit(1 if fails else 0)
