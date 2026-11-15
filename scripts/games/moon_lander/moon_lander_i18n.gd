@@ -86,7 +86,7 @@ const STRINGS := {
 		"The first levels are forgiving: wide pads, lots of fuel, gentle limits, and the lander straightens itself when you let go of ⟲ / ⟳. It gets stricter with every landing until level 6.": "Los primeros niveles son fáciles: plataformas anchas, mucho combustible, límites suaves, y la nave se endereza sola cuando sueltas ⟲ / ⟳. Se vuelve más exigente con cada aterrizaje hasta el nivel 6.",
 		"These controls are shared: they change every game that uses the shared controller.": "Estos controles son compartidos: cambian en todos los juegos que usan el mando compartido.",
 		"These settings are app-wide: they change every game.": "Estos ajustes son de toda la app: cambian en todos los juegos.",
-		"Thrust": "Propulsión",
+		"Thrust": "Estocada",
 		"Tilt: %d°": "Inclinación: %d°",
 		"To land safely: touch down on a green pad, slowly and nearly upright. The Down, Sideways and Tilt numbers turn green when they're safe.": "Para aterrizar bien: posa la nave en una plataforma verde, despacio y casi derecha. Los números de Bajada, Lateral e Inclinación se ponen verdes cuando son seguros.",
 		"Update the app to keep statistics.": "Actualiza la app para guardar estadísticas.",
