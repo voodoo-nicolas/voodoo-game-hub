@@ -46,6 +46,17 @@ func _run() -> void:
 	game.key_r = false
 	game.engine.stage = 3
 	game.engine.build_stage()
+	game.engine.foes.clear()
+	if not game.engine.pools.is_empty():
+		var w: Dictionary = game.engine.pools[0]
+		game.engine.px = (w.x0 + w.x1) / 2.0
+		game.engine.py = w.level
+	await _wait(150)
+	await _shot("12_water")
+	game.engine.px = game.engine.arena_x - 500
+	game.engine.py = game.engine.ground_y(game.engine.px) - 5
+	await _wait(30)
+	await _shot("15_haze")
 	game.engine.px = game.engine.arena_x + 200
 	await _wait(60)
 	await _shot("20_boss")

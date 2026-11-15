@@ -4,6 +4,10 @@ extends RefCounted
 ## World units: the camera sees VIEW_W x H; the ground top is at GROUND.
 ## A stage is a strip of ground with pits, ledges, foes and ink scrolls,
 ## ending in a walled arena where a boss waits. 10 stages; boss kinds rotate.
+## Owner round 3 (2026-11-15): the ground rolls (a height field, `ground_y()`), and the
+## old pits became soft dips, most filled with water (`pools`). Water slows walking 30%;
+## deep water lets you swim (A strokes up) but your breath runs out while your head is
+## under; surfacing refills it. Nothing has a 90-degree drop any more.
 
 const VIEW_W := 1280.0
 const H := 720.0
@@ -20,12 +24,19 @@ const DASH_CD := 0.7
 const SLASH_T := 0.22
 const SLASH_REACH := 92.0
 const STAR_V := 900.0
-const INVULN := 1.0
+const INVULN := 1.3
 const PW := 34.0   # player box
 const PH := 70.0
 const CROUCH_H := 40.0   # crouching: low enemy stars (thrown at 45) fly over
 const MAX_HP := 5
 const START_STARS := 8
+const SEG := 20.0          # height-field sample spacing
+const LOWEST := 695.0      # dips never go below this (the screen ends at H)
+const WADE := 0.7          # walking speed in water (30% slower)
+const AIR := 6.0           # seconds of breath with the head under water
+const DROWN_TICK := 1.5    # out of breath: lose a heart this often
+const SWIM_V := 430.0      # an A stroke under water
+const KNOCK_T := 0.28      # hit: knocked back, no control for this long
 
 const BOSS_NAMES := ["Iron Monk", "Twin Blade", "Paper Crane", "Shadow Daimyo"]
 
@@ -58,8 +69,17 @@ var combo_t := 0.0
 var crouch := false
 var hits_taken := 0   # hearts lost this stage (for "clear a stage without a hit")
 
-var solids: Array = []     # Rect2 (ground pieces, ledges, walls)
-var pits: Array = []       # [x0, x1]
+var air := AIR
+var drown_t := 0.0
+var knock_t := 0.0
+var in_water := false
+var was_wet := false
+
+var solids: Array = []     # Rect2 (ledges, pillars, walls; the ground is `heights`)
+var pits: Array = []       # [x0, x1] (no pits since round 3; kept for old callers)
+var heights := PackedFloat32Array()   # ground top every SEG world units
+var pools: Array = []      # {"x0", "x1", "level"}: water filling a dip
+var dips: Array = []       # {"x0", "x1", "level", "wet"}: every dip, wet or dry (fog sits in them)
 var foes: Array = []       # Dictionary
 var shots: Array = []      # {x, y, vx, vy, mine}
 var scrolls: Array = []    # Vector2
@@ -96,21 +116,31 @@ func build_stage() -> void:
 	shots.clear()
 	scrolls.clear()
 	boss = {}
-	# Ground with pits (none in the first 700 or in the arena).
-	var x := 0.0
-	var gx := 0.0
-	x = 700.0
-	while x < length - 500.0:
-		x += rng.randf_range(500.0, 900.0)
-		if x > length - 500.0:
+	pools.clear()
+	dips.clear()
+	# Rolling ground (owner 2026-11-15): two slow waves rising above GROUND, flat at the
+	# start and in the arena. The old pits are now soft dips, most filled with water.
+	var n := int((length + VIEW_W) / SEG) + 2
+	heights.resize(n)
+	var amp := minf(40.0 + stage * 5.0, 85.0)
+	var ph1 := rng.randf() * TAU
+	var ph2 := rng.randf() * TAU
+	for i in n:
+		var gxx := i * SEG
+		var wave := 0.5 + 0.5 * (0.65 * sin(gxx / 470.0 + ph1) + 0.35 * sin(gxx / 190.0 + ph2))
+		var blend := smoothstep(350.0, 800.0, gxx) * (1.0 - smoothstep(length - 600.0, length - 150.0, gxx))
+		heights[i] = GROUND - amp * wave * blend
+	var x := 700.0
+	while x < length - 700.0:
+		x += rng.randf_range(520.0, 900.0)
+		if x > length - 700.0:
 			break
-		if rng.randf() < 0.35 + stage * 0.03:
-			var w := rng.randf_range(110.0, 170.0 + stage * 6.0)
-			solids.append(Rect2(gx, GROUND, x - gx, 200))
-			pits.append([x, x + w])
-			gx = x + w
-			x += w
-	solids.append(Rect2(gx, GROUND, length + VIEW_W - gx, 200))
+		if rng.randf() < 0.45 + stage * 0.03:
+			var depth := rng.randf_range(60.0, 140.0 + stage * 6.0)
+			var hw := maxf(rng.randf_range(130.0, 220.0), depth * 1.8)   # soft banks, never a cliff
+			_carve(x, hw, depth, rng.randf() < 0.8)
+			x += hw
+	pits.clear()
 	# Left and right world walls (the right one closes the arena).
 	solids.append(Rect2(-60, -400, 60, 1300))
 	solids.append(Rect2(length + VIEW_W - 60, -400, 60, 1300))
@@ -121,10 +151,11 @@ func build_stage() -> void:
 		if _over_pit(x) or _over_pit(x + 160):
 			continue
 		if rng.randf() < 0.3:
-			solids.append(Rect2(x, GROUND - 140, 46, 140))     # a pillar: one jump clears it (a taller one turned the second jump into a wall-kick)
+			var pg := maxf(ground_y(x), ground_y(x + 46))
+			solids.append(Rect2(x, minf(ground_y(x), ground_y(x + 46)) - 140, 46, 140 + 140 + pg - minf(ground_y(x), ground_y(x + 46))))     # a pillar: one jump clears it (a taller one turned the second jump into a wall-kick)
 		else:
 			var lw := rng.randf_range(160.0, 260.0)
-			var ly := GROUND - rng.randf_range(130.0, 190.0)
+			var ly := minf(ground_y(x), ground_y(x + lw)) - rng.randf_range(130.0, 190.0)
 			solids.append(Rect2(x, ly, lw, 22))
 			scrolls.append(Vector2(x + lw / 2.0, ly - 40))
 	# Foes.
@@ -142,14 +173,19 @@ func build_stage() -> void:
 			kinds.append("brute")
 		var k: String = kinds[rng.randi() % kinds.size()]
 		var hp_f: int = {"blade": 1, "thrower": 1, "leaper": 1, "brute": 3}[k]
-		foes.append({"kind": k, "x": x, "y": GROUND, "vx": 0.0, "vy": 0.0, "hp": hp_f, "face": -1,
+		foes.append({"kind": k, "x": x, "y": ground_y(x), "vx": 0.0, "vy": 0.0, "hp": hp_f, "face": -1,
 			"t": rng.randf() * 2.0, "atk": 0.0, "hit": 0.0, "id": foes.size()})
 	for i in 3:
 		var sx := rng.randf_range(300.0, length - 300.0)
 		if not _over_pit(sx):
-			scrolls.append(Vector2(sx, GROUND - 60))
+			scrolls.append(Vector2(sx, ground_y(sx) - 60))
 	px = 120.0
-	py = GROUND
+	py = ground_y(px)
+	air = AIR
+	drown_t = 0.0
+	knock_t = 0.0
+	in_water = false
+	was_wet = false
 	vx = 0.0
 	vy = 0.0
 	facing = 1
@@ -168,15 +204,55 @@ func boss_kind() -> int:
 func boss_name() -> String:
 	return BOSS_NAMES[boss_kind()]
 
+## Over a dip (wet or dry): nothing is placed there.
 func _over_pit(x: float) -> bool:
-	for p in pits:
-		if x > p[0] - 40 and x < p[1] + 40:
+	for d in dips:
+		if x > d.x0 - 40 and x < d.x1 + 40:
 			return true
 	return false
 
+## Ground top at world x (smooth, linear between samples).
+func ground_y(x: float) -> float:
+	if heights.is_empty():
+		return GROUND
+	var f := clampf(x / SEG, 0.0, heights.size() - 1.001)
+	var i := int(f)
+	return lerpf(heights[i], heights[i + 1], f - i)
+
+## Water surface over x, or INF when there is no water there.
+func water_level(x: float) -> float:
+	for p in pools:
+		if x > p.x0 and x < p.x1:
+			return p.level
+	return INF
+
+## How deep the water is at x (0 = dry).
+func water_depth(x: float) -> float:
+	var lv := water_level(x)
+	return 0.0 if lv == INF else maxf(0.0, ground_y(x) - lv)
+
+## A soft cosine dip centred on cx; wet ones fill with water up to the lower rim.
+func _carve(cx: float, hw: float, depth: float, wet: bool) -> void:
+	var i0 := maxi(0, int((cx - hw) / SEG))
+	var i1 := mini(heights.size() - 1, int((cx + hw) / SEG) + 1)
+	for i in range(i0, i1 + 1):
+		var dx := absf(i * SEG - cx)
+		if dx < hw:
+			heights[i] = minf(LOWEST, heights[i] + depth * 0.5 * (1.0 + cos(PI * dx / hw)))
+	var level := maxf(ground_y(cx - hw), ground_y(cx + hw)) + 6.0
+	var a := cx
+	while a > cx - hw and ground_y(a) > level:
+		a -= 4.0
+	var b := cx
+	while b < cx + hw and ground_y(b) > level:
+		b += 4.0
+	dips.append({"x0": cx - hw, "x1": cx + hw, "level": level, "wet": wet and b - a > 60.0})
+	if wet and b - a > 60.0:
+		pools.append({"x0": a, "x1": b, "level": level})
+
 func _spawn_boss() -> void:
 	var k := boss_kind()
-	var hpb := int((12 + stage * 2) * [0.7, 1.0, 1.3][diff])
+	var hpb := int((12 + stage * 2) * [0.7, 1.0, 1.3][diff] * (0.6 if stage == 1 else 1.0))   # the first duel is a gentle one (owner 2026-11-15)
 	boss = {"kind": k, "x": arena_x + VIEW_W - 260, "y": GROUND, "vx": 0.0, "vy": 0.0, "hp": hpb, "max": hpb,
 		"face": -1, "phase": "idle", "t": 1.2, "hit": 0.0, "n": 0}
 	events.append("boss")
@@ -219,18 +295,49 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 		dash_t = DASH_T
 		dash_cd = DASH_CD
 		events.append("dash")
-	if dash_t > 0.0:
+	var lv := water_level(px)
+	in_water = py > lv + 8.0   # feet in the water
+	var swim := in_water and ground_y(px) - lv > PH * 0.75   # too deep to stand with the head out
+	knock_t = maxf(0.0, knock_t - dt)
+	if knock_t > 0.0:
+		vy += GRAV * dt
+	elif dash_t > 0.0:
 		dash_t -= dt
-		vx = facing * DASH_V
+		vx = facing * DASH_V * (WADE if in_water else 1.0)
 		vy = 0.0
 	else:
-		var target := 0.0 if crouch else move * RUN   # crouching: turn only, no walking
+		var target := 0.0 if crouch else move * RUN * (WADE if in_water else 1.0)   # crouching: turn only, no walking
 		vx = move_toward(vx, target, (3000.0 if on_ground else 1800.0) * dt)
-		vy += GRAV * dt
+		if in_water:
+			vy = minf(vy + GRAV * 0.3 * dt, 200.0)   # water holds you up: a slow sink
+		else:
+			vy += GRAV * dt
 		if wall != 0 and vy > WALL_SLIDE:
 			vy = WALL_SLIDE
-	if jump:
-		if on_ground:
+	if not was_wet and in_water and vy > 250.0:
+		events.append("splash")
+	was_wet = in_water
+	# Breath: only while the head is under water; surfacing refills it at once.
+	if py - height() > lv + 4.0:
+		air -= dt
+		if air <= 0.0:
+			drown_t -= dt
+			if drown_t <= 0.0:
+				drown_t = DROWN_TICK
+				_hurt(1, true)
+				events.append("drown")
+	else:
+		if air < AIR - 0.5:
+			events.append("breathe")
+		air = AIR
+		drown_t = 0.0
+	if jump and knock_t <= 0.0:
+		if in_water and (swim or not on_ground):
+			# A stroke: near the surface it leaps you out, deeper it pulls you up.
+			vy = -JUMP_V * 0.8 if py - height() < lv + 30.0 else -SWIM_V
+			jumps = 1
+			events.append("swim")
+		elif on_ground:
 			vy = -JUMP_V
 			jumps = 1
 			events.append("jump")
@@ -283,6 +390,13 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 				py = s.end.y + height()
 				vy = 0.0
 			r = _box()
+	# The rolling ground: never sink into it; walking downhill keeps your feet on it.
+	var g := ground_y(px)
+	if not on_ground and (py >= g or (was_ground and vy >= 0.0 and g - py < 28.0)):
+		py = g
+		vy = 0.0
+		on_ground = true
+		jumps = 0
 	if on_ground:
 		wall = 0
 		if not was_ground and fall_v > 300.0:
@@ -342,29 +456,38 @@ func _hit_foe(f: Dictionary, dmg: int, dir: int, by_star: bool = false) -> void:
 			events.append("starkill")
 		if combo == 5:
 			events.append("combo5")
-		events.append("ink:%d:%d" % [int(f.x), int(f.y - 40)])
+		events.append("red:%d:%d" % [int(f.x), int(f.y - 40)])
 		if f.kind == "thrower" and rng.randf() < 0.6:
 			stars += 2
 	else:
 		events.append("hit")
+		events.append("red:%d:%d" % [int(f.x), int(f.y - 40)])   # damage dealt leaves a faint red mark (owner 2026-11-15)
 
 func _hit_boss(dmg: int) -> void:
 	boss.hp -= dmg
 	boss.hit = 0.15
 	events.append("bosshit")
-	events.append("ink:%d:%d" % [int(boss.x), int(boss.y - 60)])
+	events.append("red:%d:%d" % [int(boss.x), int(boss.y - 60)])
 	if boss.hp <= 0:
 		score += 2000 + maxi(0, int(300 - time) * 5)
 		events.append("bosskill")
 		state = "won"
 		events.append("win")
 
-func _hurt(dmg: int, fell: bool = false) -> void:
+## from_x: where the blow came from; the hero is knocked away from it (owner 2026-11-15:
+## a boss used to pin you and land every hit in a row, "one touch and you die").
+func _hurt(dmg: int, fell: bool = false, from_x: float = NAN) -> void:
 	if not fell and (hurt_t > 0.0 or dash_t > 0.0):
 		return   # a dash passes through attacks
 	hp -= dmg
 	hits_taken += 1
 	hurt_t = INVULN
+	if not is_nan(from_x):
+		var away := 1.0 if px >= from_x else -1.0
+		vx = away * 420.0
+		vy = -460.0
+		knock_t = KNOCK_T
+		on_ground = false
 	events.append("hurt")
 	events.append("ink:%d:%d" % [int(px), int(py - 40)])
 	if hp <= 0:
@@ -407,7 +530,7 @@ func _foes(dt: float) -> void:
 				if f.atk > 0.0:
 					f.atk -= dt * p
 					if f.atk <= 0.0 and absf(dx) < 80 and absf(py - f.y) < 60:
-						_hurt(2 if f.kind == "brute" else 1)
+						_hurt(2 if f.kind == "brute" else 1, false, f.x)
 				elif absf(dx) < 70:
 					f.atk = 0.45   # wind-up, then the cut lands
 					events.append("foeswing")
@@ -421,26 +544,27 @@ func _foes(dt: float) -> void:
 					shots.append({"x": f.x, "y": f.y - 45, "vx": f.face * sp, "vy": 0.0, "mine": false, "life": 2.0})
 					events.append("foethrow")
 			"leaper":
-				if f.y >= GROUND and f.t <= 0.0 and absf(dx) < 500:
+				if f.y >= ground_y(f.x) - 1.0 and f.t <= 0.0 and absf(dx) < 500:
 					f.t = 1.8
 					f.vy = -700.0
 					f.vx = clampf(dx * 1.1, -420, 420)
 		f.vy += GRAV * dt
 		var nx: float = f.x + f.vx * dt
-		if f.y >= GROUND and _over_pit(nx) and f.kind != "leaper":
-			f.vx = 0.0   # foes don't walk into pits
+		if f.y >= ground_y(f.x) - 1.0 and water_depth(nx) > 20.0 and f.kind != "leaper":
+			f.vx = 0.0   # foes don't wade into water
 		else:
 			f.x = nx
 		f.y += f.vy * dt
-		if f.y >= GROUND and not _pit_under(f.x):
-			f.y = GROUND
+		var fg := ground_y(f.x)
+		if f.y >= fg or (f.vy >= 0.0 and fg - f.y < 24.0 and f.kind != "leaper"):
+			f.y = fg
 			f.vy = 0.0
 			if f.kind == "leaper":
 				f.vx = 0.0
 		if f.y > H + 100:
 			f.hp = 0
 		if f.hp > 0 and _foe_box(f).intersects(_box()):
-			_hurt(1)
+			_hurt(1, false, f.x)
 	foes = foes.filter(func(f): return f.hp > 0)
 
 func _pit_under(x: float) -> bool:
@@ -472,7 +596,7 @@ func _boss(dt: float) -> void:
 			if boss.t > 0.0:
 				boss.vx = 0.0
 			else:
-				boss.vx = boss.face * 700.0 * p
+				boss.vx = boss.face * 700.0 * p * (0.7 if stage == 1 else 1.0)
 				if boss.x <= lo or boss.x >= hi or boss.t < -1.2:
 					_boss_rest()
 		"leap":
@@ -495,19 +619,19 @@ func _boss(dt: float) -> void:
 	if boss.y >= GROUND:
 		if boss.vy > 300:
 			events.append("slam")
-			if on_ground and absf(dx) < 220:
-				_hurt(1)
+			if on_ground and absf(dx) < (150 if stage == 1 else 220):
+				_hurt(1, false, boss.x)
 			if boss.phase == "leap":
 				_boss_rest()
 		boss.y = GROUND
 		boss.vy = 0.0
 	if boss_box().intersects(_box()):
-		_hurt(2 if boss.phase == "charge" else 1)
+		_hurt(2 if boss.phase == "charge" and stage > 1 else 1, false, boss.x)
 
 func _boss_rest() -> void:
 	boss.phase = "idle"
 	boss.vx = 0.0
-	boss.t = maxf(0.7, 1.8 - stage * 0.08 - diff * 0.2)
+	boss.t = maxf(0.7, 1.8 - stage * 0.08 - diff * 0.2) + (0.8 if stage == 1 else 0.0)
 
 func _shots(dt: float) -> void:
 	for s in shots:
@@ -517,6 +641,8 @@ func _shots(dt: float) -> void:
 		if s.life <= 0.0:
 			continue
 		var pt := Vector2(s.x, s.y)
+		if pt.y > ground_y(pt.x):
+			s.life = 0.0
 		for so in solids:
 			if so.has_point(pt):
 				s.life = 0.0
@@ -532,7 +658,7 @@ func _shots(dt: float) -> void:
 				_hit_boss(1)
 				s.life = 0.0
 		elif _box().has_point(pt):
-			_hurt(1)
+			_hurt(1, false, s.x - s.vx)
 			s.life = 0.0
 	shots = shots.filter(func(s): return s.life > 0.0)
 

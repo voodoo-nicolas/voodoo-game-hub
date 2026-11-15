@@ -26,6 +26,15 @@ const DIFF_NAMES := ["Easy", "Normal", "Hard"]
 const PAUSE_AFTER := 1.8
 
 ## Two looks, both pure greyscale: Classic = black ink on paper, Voodoo = white ink on night.
+## Owner round 3 (2026-11-15): a watercolour wash. Still black, white and grey, but with faint
+## hues: a warm paper, blue-grey far hills, a slight blue for water, a faint red mark where a
+## blow lands (`water`, `red`, `tint_far`, `tint_mid`, `haze` below).
+const WASH := {
+	"classic": {"paper": Color("efe8d8"), "paper2": Color("d6d4c8"), "far": Color("aeb6b9"), "mid": Color("858c86"), "moon": Color("f8efdc"), "fog": Color("eef0ee"),
+		"water": Color(0.42, 0.58, 0.72, 0.5), "surf": Color(0.3, 0.45, 0.6, 0.8), "red": Color(0.62, 0.16, 0.13), "haze": Color("e4e7e8")},
+	"voodoo": {"paper": Color("08090c"), "paper2": Color("181a1f"), "far": Color("262b33"), "mid": Color("3f4544"), "moon": Color("dcd6c8"), "fog": Color("566068"),
+		"water": Color(0.16, 0.28, 0.42, 0.6), "surf": Color(0.45, 0.6, 0.75, 0.7), "red": Color(0.72, 0.24, 0.2), "haze": Color("3a4048")},
+}
 const LOOKS := {
 	"classic": {"paper": Color("ece6d8"), "paper2": Color("d8d0bf"), "ink": Color("111111"), "far": Color("b9b2a4"), "mid": Color("8e887d"), "near": Color("4a4743"), "moon": Color("f7f3ea"), "fog": Color("f4f1ea"), "shadow": Color("2a2723"), "smoke": Color("8a857c")},
 	"voodoo": {"paper": Color("08080a"), "paper2": Color("1a1a1d"), "ink": Color("f0f0f0"), "far": Color("2a2a2e"), "mid": Color("45454a"), "near": Color("707075"), "moon": Color("d9d9d9"), "fog": Color("5a5a60"), "shadow": Color("000000"), "smoke": Color("9a9aa0")},
@@ -36,7 +45,7 @@ var home
 var engine
 var started := false
 var skin := "classic"
-var pal: Dictionary = LOOKS.classic
+var pal: Dictionary = LOOKS.classic.merged(WASH.classic, true)
 var move := 0.0
 var key_l := false
 var key_r := false
@@ -358,8 +367,9 @@ func _process(delta: float) -> void:
 		s[0] += s[1] * delta
 		s[1].y += 1400.0 * delta
 		s[2] -= delta
-		if s[2] <= 0.0 and s[0].y > Engine_.GROUND - 20 and s[0].y < Engine_.GROUND + 40 and stains.size() < 160:
-			stains.append([Vector2(s[0].x, Engine_.GROUND + 2), s[3] * 1.4, 0.55])
+		var sg: float = engine.ground_y(s[0].x)
+		if s[2] <= 0.0 and s[0].y > sg - 20 and s[0].y < sg + 40 and stains.size() < 160 and engine.water_depth(s[0].x) <= 0.0:
+			stains.append([Vector2(s[0].x, sg + 2), s[3] * 1.4, 0.55, s[4]])
 	splats = splats.filter(func(s): return s[2] > 0.0)
 	if not card_text.is_empty():
 		card_t -= delta
@@ -407,9 +417,9 @@ func _process(delta: float) -> void:
 	field.queue_redraw()
 
 func _event(e: String) -> void:
-	if e.begins_with("ink:"):
+	if e.begins_with("ink:") or e.begins_with("red:"):
 		var p := e.split(":")
-		_splash(Vector2(float(p[1]), float(p[2])))
+		_splash(Vector2(float(p[1]), float(p[2])), e.begins_with("red:"))
 		return
 	match e:
 		"jump", "walljump":
@@ -444,6 +454,13 @@ func _event(e: String) -> void:
 		"land":
 			_puff(Vector2(engine.px, engine.py - 4), 4, 14.0, 70.0)
 			SoundLib.play(self, "impact/soft_medium", -14.0)
+		"splash":
+			SoundLib.play(self, "impact/soft_medium", -6.0, "game", 0.6)
+			_puff(Vector2(engine.px, engine.water_level(engine.px)), 6, 14.0, 120.0)
+		"swim":
+			SoundLib.play(self, "impact/soft_medium", -16.0, "game", 0.75)
+		"breathe":
+			_sfx("whoosh")
 		"telegraph":
 			SoundLib.play(self, "impact/bell_heavy", -16.0)
 		"hurt":
@@ -490,13 +507,15 @@ func _after_pause() -> void:
 		"over":
 			_game_over(false)
 
-func _splash(p: Vector2) -> void:
+## red: a blow the hero landed (owner 2026-11-15: a slight red mark); otherwise grey ink.
+func _splash(p: Vector2, red: bool = false) -> void:
 	_puff(p, 3, 16.0, 60.0)
-	for i in 16:
+	for i in (10 if red else 16):
 		var v := Vector2.RIGHT.rotated(randf() * TAU) * randf_range(120, 520) + Vector2(0, -220)
-		splats.append([p, v, randf_range(0.35, 0.8), randf_range(5.0, 14.0)])
-	if stains.size() < 160:
-		stains.append([Vector2(p.x + randf_range(-30, 30), Engine_.GROUND + 2), randf_range(22, 40), 0.7])
+		splats.append([p, v, randf_range(0.35, 0.8), randf_range(5.0, 14.0) * (0.8 if red else 1.0), red])
+	var sx := p.x + randf_range(-30, 30)
+	if stains.size() < 160 and engine.water_depth(sx) <= 0.0:
+		stains.append([Vector2(sx, engine.ground_y(sx) + 2), randf_range(22, 40), 0.7, red])
 
 func _game_over(won: bool) -> void:
 	started = false
@@ -535,7 +554,9 @@ func _draw_field() -> void:
 	_trunks(c, cam * 0.62, k)
 	_fog(c, k, 520.0, 600.0, 0.5)
 	var o := Vector2(-cam * k, 0) + sh
-	# Ground and ledges: solid ink with a dry-brush top edge.
+	_draw_water_back(c, o, k)
+	_draw_ground(c, o, sz, k)
+	# Ledges, pillars and walls: solid ink with a dry-brush top edge.
 	for s in engine.solids:
 		var r := Rect2(o + s.position * k, s.size * k)
 		if r.end.x < 0 or r.position.x > sz.x:
@@ -549,7 +570,7 @@ func _draw_field() -> void:
 			x += w
 	for st in stains:
 		var p: Vector2 = o + st[0] * k
-		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.near, st[2]))
+		c.draw_texture_rect(blot, Rect2(p - Vector2(st[1], st[1] * 0.3) * k, Vector2(st[1] * 2, st[1] * 0.6) * k), false, Color(pal.red, st[2] * 0.45) if st[3] else Color(pal.near, st[2]))
 	# Arena gate.
 	if engine.locked:
 		var gx: float = o.x + engine.arena_x * k
@@ -575,10 +596,108 @@ func _draw_field() -> void:
 	for s in splats:
 		var p: Vector2 = o + s[0] * k
 		var r: float = s[3] * k
-		c.draw_texture_rect(blot, Rect2(p - Vector2(r, r), Vector2(r, r) * 2), false, pal.ink)
+		c.draw_texture_rect(blot, Rect2(p - Vector2(r, r), Vector2(r, r) * 2), false, Color(pal.red, 0.75) if s[4] else pal.ink)
+	_draw_water_front(c, o, k)
+	_draw_breath(c, o, k)
 	_draw_smoke(c, o, k)
 	_draw_mist(c, sz, k)
+	_draw_haze(c, o, sz, k)
 	_hud_draw(c, sz, k)
+
+## The rolling ground (owner 2026-11-15): one ink polygon along the height field, with a
+## dry-brush rim in short strokes (one draw_multiline call).
+func _draw_ground(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
+	var cam: float = engine.cam_x()
+	var step := Engine_.SEG
+	var x0 := floorf(cam / step) * step - step
+	var x1 := cam + sz.x / k + step
+	var pts := PackedVector2Array()
+	var rim := PackedVector2Array()
+	var x := x0
+	var prev := Vector2.ZERO
+	while x <= x1:
+		var p := o + Vector2(x, engine.ground_y(x)) * k
+		pts.append(p)
+		if x > x0:
+			rim.append(prev + Vector2(0, -2.0 * k))
+			rim.append(p + Vector2(0, -(2.0 + fmod(x * 0.37, 3.0)) * k))
+		prev = p
+		x += step
+	pts.append(Vector2(pts[pts.size() - 1].x, sz.y + 4))
+	pts.append(Vector2(pts[0].x, sz.y + 4))
+	c.draw_colored_polygon(pts, pal.ink)
+	c.draw_multiline(rim, pal.ink, 2.0 * k)
+
+## Water filling a dip: a polygon from the surface down along the dip's bed (drawn
+## twice: behind the ground for the body, and as a pale veil in front of the figures so
+## a swimmer looks under it).
+func _water_poly(o: Vector2, k: float, w: Dictionary) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	pts.append(o + Vector2(w.x0, w.level) * k)
+	var x: float = w.x0
+	while x < w.x1:
+		pts.append(o + Vector2(x, maxf(w.level, engine.ground_y(x)) + 2.0) * k)
+		x += Engine_.SEG * 0.5
+	pts.append(o + Vector2(w.x1, w.level) * k)
+	return pts
+
+func _draw_water_back(c: CanvasItem, o: Vector2, k: float) -> void:
+	for w in engine.pools:
+		if (o.x + w.x1 * k) < 0 or (o.x + w.x0 * k) > field.size.x:
+			continue
+		_poly(c, _water_poly(o, k, w), pal.water)
+
+func _draw_water_front(c: CanvasItem, o: Vector2, k: float) -> void:
+	for w in engine.pools:
+		var a: Vector2 = o + Vector2(w.x0, w.level) * k
+		var bx: float = o.x + w.x1 * k
+		if bx < 0 or a.x > field.size.x:
+			continue
+		_poly(c, _water_poly(o, k, w), Color(pal.water, pal.water.a * 0.55))
+		var lines := PackedVector2Array()
+		var x: float = a.x
+		while x < bx - 1.0:
+			var nx := minf(x + 14.0 * k, bx)
+			lines.append(Vector2(x, a.y + sin(x * 0.05 + anim_t * 2.0) * 1.5 * k))
+			lines.append(Vector2(nx, a.y + sin(nx * 0.05 + anim_t * 2.0) * 1.5 * k))
+			x = nx
+		c.draw_multiline(lines, pal.surf, 2.0 * k)
+
+## Breath bubbles over the hero's head while under water: one per second left.
+func _draw_breath(c: CanvasItem, o: Vector2, k: float) -> void:
+	if engine.air >= Engine_.AIR:
+		return
+	var n := int(ceil(maxf(0.0, engine.air)))
+	var head: Vector2 = o + Vector2(engine.px, engine.py - engine.height() - 26) * k
+	for i in int(Engine_.AIR):
+		var p := head + Vector2((i - Engine_.AIR / 2.0 + 0.5) * 14.0, 0) * k
+		var col: Color = pal.surf if i < n else Color(pal.near, 0.35)
+		c.draw_texture_rect(disc, Rect2(p - Vector2(5, 5) * k, Vector2(10, 10) * k), false, col)
+	if engine.air <= 0.0 and fmod(anim_t, 0.5) < 0.25:
+		c.draw_texture_rect(disc, Rect2(head - Vector2(60, 12) * k, Vector2(120, 24) * k), false, Color(pal.red, 0.25))
+
+## Before the boss gate (owner 2026-11-15): a haze thickens over the last stretch, and
+## the dips fill with a deeper, thicker fog.
+func _draw_haze(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
+	var f := clampf((engine.px - (engine.arena_x - 1700.0)) / 900.0, 0.0, 1.0)
+	if engine.locked:
+		f = 0.35
+	if f <= 0.0:
+		return
+	c.draw_texture_rect(fog_tex, Rect2(0, sz.y * 0.15, sz.x, sz.y * 0.85), false, Color(pal.haze, 0.45 * f))
+	for d in engine.dips:
+		var a: Vector2 = o + Vector2(d.x0 - 60.0, d.level - 90.0) * k
+		var b: Vector2 = o + Vector2(d.x1 + 60.0, Engine_.LOWEST + 20) * k
+		if b.x < 0 or a.x > sz.x:
+			continue
+		# Soft overlapping blobs (no hard edges), thickest down in the hollow.
+		var drift := sin(anim_t * 0.4 + d.x0) * 20.0 * k
+		var w := b.x - a.x
+		for m in 3:
+			var cy: float = o.y + (d.level - 10.0 - m * 26.0) * k
+			var ww := w * (0.75 - m * 0.12)
+			var cx := (a.x + b.x) / 2.0 + drift * (1.0 - m)
+			c.draw_texture_rect(disc, Rect2(Vector2(cx - ww / 2.0, cy - 50.0 * k), Vector2(ww, 100.0 * k)), false, Color(pal.haze, (0.7 - m * 0.18) * f))
 
 ## A strip of pine silhouettes (white, tinted when drawn), 1024 x 400, the forest floor
 ## solid along the bottom. Built row by row with fill_rect (fast), tiers give jagged branches.
@@ -808,7 +927,7 @@ func _figure(c: CanvasItem, feet: Vector2, k: float, f: int, kind: String, flash
 
 ## A soft shadow on the ground under a figure: smaller and fainter the higher it is.
 func _shadow(c: CanvasItem, o: Vector2, x: float, y: float, k: float, w: float) -> void:
-	var gy := Engine_.GROUND
+	var gy: float = engine.ground_y(x)
 	for s in engine.solids:
 		if x > s.position.x and x < s.end.x and s.position.y >= y - 1.0 and s.position.y < gy:
 			gy = s.position.y   # a ledge under the feet
@@ -1010,7 +1129,7 @@ func _draw_card(c: CanvasItem, sz: Vector2, k: float) -> void:
 
 func _set_skin(name: String) -> void:
 	skin = name if LOOKS.has(name) else "classic"
-	pal = LOOKS[skin]
+	pal = LOOKS[skin].merged(WASH[skin], true)
 	_hud_colors()
 	_paper_params()
 	if field:

@@ -12,7 +12,9 @@ const HOW := [
 	"X throws a star. You start each stage with at least 8; star throwers sometimes drop 2 more.",
 	"Y dashes forward. While dashing, attacks pass straight through you.",
 	"Blade ninjas raise their sword before they cut, leapers jump at you, brutes take 3 hits and hit twice as hard.",
-	"You have 5 hearts and 3 lives. Falling into a pit costs a life and restarts the stage.",
+	"You have 5 hearts and 3 lives. Losing all your hearts costs a life and restarts the stage. When something hits you, you are knocked back out of reach.",
+	"The ground rolls over hills and hollows, and many hollows hold water. Wading is slower. Where it is too deep to stand, press A to swim up.",
+	"Under water you hold your breath: the bubbles over your head count it down. Put your head above the surface to breathe again; with no breath left you lose a heart every few seconds.",
 	"At the end of each stage a gate shuts and a boss attacks. Watch for the pause before each move: a charge, a leap that shakes the ground, or a fan of stars.",
 	"Kills in a row score 100, 200, 300... up to 500 each. Scrolls score 50. A boss scores 2000 plus a bonus for speed.",
 	"The story runs over 10 chapters: a card before each stage tells the next part, and the ▸ line under the progress bar shows the stage's goal.",
@@ -24,6 +26,7 @@ const TIPS := [
 	"Jump when a boss lands from a leap: the shockwave only hits you on the ground.",
 	"Keep a few stars for the boss and slash the small fry.",
 	"Crouch under a star thrower's stars instead of jumping them.",
+	"Ninjas will not follow you into deep water.",
 ]
 const STATS := ["Best score", "Highest stage", "Bosses defeated", "Ninjas defeated", "Stars parried", "Daily objectives", "Weekly objectives", "Games played"]
 const ACHIEVEMENTS := [
