@@ -14,6 +14,7 @@ const HOW := [
 	"In the Ash Fields the rivers are lava: hovering over them burns.",
 	"🗺 Campaign: the story of the Long Circuit. Beat 12 rivals across 6 lands, one at a time; each battle opens with a briefing. Win with more armour left for more stars (3 stars = 60% or more).",
 	"🎯 Objectives: a new Daily objective every day and a Weekly one every Monday (2 Players doesn't count). Each pays medals (daily 1, weekly 3); medals unlock hull paints. The Story objective is your next Campaign battle.",
+	"🛠 Hangar: every battle in the Campaign or vs Computer pays credits (more for wins, stars, a first win over a rival and bosses). Spend them on new ships or on upgrades: each ship is rated 1 to 10 for Attack, Armor, Acceleration, Top speed and Handling, and each rating takes up to 3 upgrades. Better ratings cost more. 2 Players always uses the Skimmer.",
 	"⚡ Quick Duel = vs Computer on Normal. vs Computer: a new random land every battle. 2 Players: the left half of the screen is Player 1's, the right half Player 2's; each has a stick wherever the thumb lands and Fire / 🚀 / 💣 at the outer edge.",
 	"⏸ pauses; Resume on the Home screen carries on the same battle.",
 ]
@@ -24,7 +25,7 @@ const TIPS := [
 	"Lay a mine where you are going to circle back, then lead them over it.",
 	"Grab repair crates before the other craft does.",
 ]
-const STATS := ["Wins", "Losses", "Draws", "Best streak", "Campaign stars", "Campaign battles won", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Flawless wins", "Objectives done", "2-player games"]
+const STATS := ["Wins", "Losses", "Draws", "Best streak", "Campaign stars", "Campaign battles won", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Flawless wins", "Objectives done", "2-player games", "Credits earned"]
 const NO_TIER_BADGES := ["Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Draws", "Flawless wins", "Objectives done", "2-player games"]
 
 const ACHIEVEMENTS := [

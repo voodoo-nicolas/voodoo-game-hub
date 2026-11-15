@@ -12148,5 +12148,22 @@
  "The ground rolls over hills and hollows, and many hollows hold water. Wading is slower. Where it is too deep to stand, press A to swim up.": "El suelo sube y baja entre colinas y hondonadas, y muchas hondonadas tienen agua. Caminar por el agua es más lento. Donde no haces pie, pulsa A para nadar hacia arriba.",
  "Under water you hold your breath: the bubbles over your head count it down. Put your head above the surface to breathe again; with no breath left you lose a heart every few seconds.": "Bajo el agua aguantas la respiración: las burbujas sobre tu cabeza la cuentan. Saca la cabeza del agua para volver a respirar; sin aire pierdes un corazón cada pocos segundos.",
  "Ninjas will not follow you into deep water.": "Los ninjas no te siguen al agua profunda.",
- "You have 5 hearts and 3 lives. Losing all your hearts costs a life and sends you back to the last stone lantern you passed (4 on each stage). When something hits you, you are knocked back out of reach.": "Tienes 5 corazones y 3 vidas. Perder todos los corazones cuesta una vida y te devuelve a la última linterna de piedra que pasaste (hay 4 en cada fase). Cuando algo te golpea, sales despedido fuera de su alcance."
+ "You have 5 hearts and 3 lives. Losing all your hearts costs a life and sends you back to the last stone lantern you passed (4 on each stage). When something hits you, you are knocked back out of reach.": "Tienes 5 corazones y 3 vidas. Perder todos los corazones cuesta una vida y te devuelve a la última linterna de piedra que pasaste (hay 4 en cada fase). Cuando algo te golpea, sales despedido fuera de su alcance.",
+ "🛠 Hangar": "🛠 Hangar",
+ "Hangar": "Hangar",
+ "Earn credits, buy and upgrade ships": "Gana créditos, compra y mejora naves",
+ "Win battles to earn credits. Better ratings cost more. Each rating takes up to 3 upgrades.": "Gana batallas para ganar créditos. Mejores valores cuestan más. Cada valor admite hasta 3 mejoras.",
+ "Flying": "En uso",
+ "Owned": "Tuya",
+ "Fly this ship": "Volar esta nave",
+ "Lv %d/%d": "Nv %d/%d",
+ "Acceleration": "Aceleración",
+ "Handling": "Manejo",
+ "+%d credits (Hangar: %d)": "+%d créditos (Hangar: %d)",
+ "Comet": "Cometa",
+ "Viper": "Víbora",
+ "Aegis": "Égida",
+ "Phantom": "Fantasma",
+ "Credits earned": "Créditos ganados",
+ "🛠 Hangar: every battle in the Campaign or vs Computer pays credits (more for wins, stars, a first win over a rival and bosses). Spend them on new ships or on upgrades: each ship is rated 1 to 10 for Attack, Armor, Acceleration, Top speed and Handling, and each rating takes up to 3 upgrades. Better ratings cost more. 2 Players always uses the Skimmer.": "🛠 Hangar: cada batalla de la Campaña o contra la computadora paga créditos (más por ganar, por estrellas, por la primera victoria ante un rival y por los jefes). Gástalos en naves nuevas o en mejoras: cada nave tiene un valor de 1 a 10 en Ataque, Armadura, Aceleración, Velocidad máxima y Manejo, y cada valor admite hasta 3 mejoras. Mejores valores cuestan más. 2 Jugadores siempre usa el Skimmer."
 }

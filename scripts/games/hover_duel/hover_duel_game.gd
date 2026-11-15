@@ -21,6 +21,7 @@ const HELP := preload("res://scripts/games/hover_duel/hover_duel_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://hover_duel_save.json"
 const CAMPAIGN_PATH := "user://hover_duel_campaign.json"
+const HANGAR_PATH := "user://hover_duel_hangar.json"   # credits, owned ships, upgrades, ship flown
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
 const Goals = preload("res://scripts/games/hover_duel/hover_duel_goals.gd")
 const Story = preload("res://scripts/games/hover_duel/hover_duel_story.gd")
@@ -28,6 +29,7 @@ const TERRAIN_SHADER = preload("res://scripts/games/hover_duel/hover_duel_terrai
 const LANDING_ART := "res://games/hover_duel/landing_bg.jpg"
 
 const LEVELS := ["Easy", "Normal", "Hard"]
+const CRAFT_SCALE := 1.6     # ship drawing size (world units per hull unit)
 const VS_THEMES := ["valley", "isles", "highlands", "desert", "glacier", "volcano"]
 const COLORS := {
 	"classic": [Color("2f7dff"), Color("ff4a3a")],
@@ -53,6 +55,7 @@ var started := false
 var result_recorded := false
 var over_t: float = 0.0
 var camp: Dictionary = {"reached": 0, "stars": {}}
+var hangar: Dictionary = {"credits": 0, "owned": ["skimmer"], "ups": {}, "ship": "skimmer"}
 var goals = Goals.new()
 var tally: Dictionary = {}    # this battle, for the objectives (see hover_duel_goals.gd)
 var engine_snd: AudioStreamPlayer = null
@@ -68,6 +71,7 @@ var brief_title: Label
 var brief_text: Label
 var briefing := false         # a Campaign briefing is up: the battle waits
 var terrain_tex: ImageTexture
+var glow_tex: Texture2D       # soft disc for smoke / glow / blasts (see _soft)
 var cam := Vector2(E.W / 2.0, E.H / 2.0)
 var zoom: float = 0.5
 var sparks: Array = []        # [pos, vel, life, colour]
@@ -90,6 +94,7 @@ func _ready() -> void:
 	Orientation.lock_landscape()
 	engine = E.new()
 	_load_campaign()
+	_load_hangar()
 	goals.load_saved(SaveUtil.read(Goals.PATH))
 	engine.reset("valley", 1101, ["skimmer", "gnat"], [-1, 0])
 	_build_ui()
@@ -104,10 +109,15 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
+	var backdrop := ColorRect.new()    # beyond the map edge
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop.color = Color(0.02, 0.03, 0.05)
+	add_child(backdrop)
 	terrain = Control.new()
 	terrain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	terrain.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	terrain.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	terrain.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var mat := ShaderMaterial.new()
 	mat.shader = TERRAIN_SHADER
 	terrain.material = mat
@@ -174,6 +184,7 @@ func _build_ui() -> void:
 			{"text": "🗺 Campaign", "sub": "12 rivals, 6 lands", "action": _open_campaign, "card": true},
 			{"text": "🤖 vs Computer", "sub": "Easy, Normal or Hard", "action": _open_vs, "card": true},
 			{"text": "🎯 Objectives", "sub": "Daily, weekly and story goals", "action": _open_goals, "card": true},
+			{"text": "🛠 Hangar", "sub": "Earn credits, buy and upgrade ships", "action": _open_hangar, "card": true},
 		],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
@@ -242,11 +253,11 @@ func _restart() -> void:
 	match mode:
 		"campaign":
 			var b: Dictionary = E.CAMPAIGN[level]
-			engine.reset(b.theme, b.seed, ["skimmer", b.foe], [-1, b.ai])
+			engine.reset(b.theme, b.seed, [_my_ship(), b.foe], [-1, b.ai], [_my_ups(), {}])
 		"duo":
 			engine.reset(VS_THEMES[randi() % VS_THEMES.size()], randi() % 100000, ["skimmer", "skimmer"], [-1, -1])
 		_:
-			engine.reset(VS_THEMES[randi() % VS_THEMES.size()], randi() % 100000, ["skimmer", ["gnat", "hornet", "stingray"][level]], [-1, [0, 1, 2][level]])
+			engine.reset(VS_THEMES[randi() % VS_THEMES.size()], randi() % 100000, [_my_ship(), ["gnat", "hornet", "stingray"][level]], [-1, [0, 1, 2][level]], [_my_ups(), {}])
 	_begin()
 
 func _begin() -> void:
@@ -693,12 +704,20 @@ func _process(delta: float) -> void:
 	for b in booms:
 		b[2] += delta
 	booms = booms.filter(func(b): return b[2] < 0.8)
+	# Exhaust smoke: puffs leave both nozzles, drift back, swell and fade.
 	for t in trails:
 		t[1] += delta
-	trails = trails.filter(func(t): return t[1] < 0.9)
+		t[0] += t[2] * delta
+		t[2] *= 0.94
+	trails = trails.filter(func(t): return t[1] < 1.1)
 	for c in engine.crafts:
-		if c.alive and c.v.length() > 60.0 and randf() < 0.5:
-			trails.append([c.p - Vector2.RIGHT.rotated(c.a) * E.CRAFT_R, 0.0])
+		var th: float = c.get("thrust", 0.0)
+		if c.alive and th > 0.08 and randf() < 0.35 + th * 0.65:
+			var back := Vector2.LEFT.rotated(c.a)
+			for q in _design(c.type).noz:
+				var nz: Vector2 = c.p + (q as Vector2).rotated(c.a) * CRAFT_SCALE
+				var vel: Vector2 = c.v * 0.3 + back.rotated(randf_range(-0.25, 0.25)) * (60.0 + 140.0 * th)
+				trails.append([nz + back * 18.0 * th, 0.0, vel, 0.6 + th])
 	_update_camera(delta)
 	if engine.is_over():
 		over_t += delta
@@ -781,6 +800,7 @@ func _game_over() -> void:
 		msg = tr("Both craft destroyed — a draw!") if w == 2 else (tr("You win!") if won else tr("%s wins!") % _name(1))
 		if info:
 			info.result("draw" if w == 2 else ("win" if won else "loss"))
+		var earned := _award(won)
 		if won:
 			var c: Dictionary = engine.crafts[0]
 			var stars := 3 if c.hp >= c.max * 0.6 else (2 if c.hp >= c.max * 0.3 else 1)
@@ -803,6 +823,8 @@ func _game_over() -> void:
 			if info and c.hp >= c.max:
 				info.add("Flawless wins")
 		msg += _feed_goals(won)
+		if earned > 0:
+			msg += "\n💰 " + tr("+%d credits (Hangar: %d)") % [earned, int(hangar.credits)]
 		if info:
 			msg += "\n" + info.summary(["Wins", "Losses", "Best streak"])
 	end_dialog.get_meta("message_label").text = msg
@@ -814,44 +836,42 @@ func _game_over() -> void:
 # ---------- terrain picture ----------
 
 func _rebuild_terrain() -> void:
-	var pal: Array = PALETTE[engine.theme_id]
-	var img := Image.create(E.GW, E.GH, false, Image.FORMAT_RGB8)
-	var sea: float = engine.theme.sea
-	var rock: float = engine.theme.rock
-	var r := RandomNumberGenerator.new()
-	r.seed = engine.map_seed
-	var neon := skin == "voodoo"
-	var mask := Image.create(E.GW, E.GH, false, Image.FORMAT_RGB8)
-	var lava: bool = engine.theme.liquid == "lava"
+	# A height map (one float per cell), blown up 4x with cubic filtering so the
+	# shader sees smooth hills; colour, light and shadow are all done there.
+	# Two soft blur passes first: carved rivers and cliffs are stepped cell by
+	# cell, and the eye should see banks and slopes, not stairs.
+	var hm := PackedFloat32Array()
+	hm.resize(E.GW * E.GH)
 	for y in E.GH:
 		for x in E.GW:
-			var h: float = engine.cell(x, y)
-			var col: Color
-			if h < sea:
-				col = pal[1].lerp(pal[0], clampf((sea - h) / 0.12, 0.0, 1.0))
-			elif h < sea + 0.025:
-				col = pal[2]
-			elif h < rock:
-				col = pal[3].lerp(pal[4], clampf((h - sea) / (rock - sea), 0.0, 1.0))
-			else:
-				col = pal[5]
-				# Cliff edge: a dark rim where rock meets open ground.
-				if engine.cell(x - 1, y) < rock or engine.cell(x + 1, y) < rock or engine.cell(x, y - 1) < rock or engine.cell(x, y + 1) < rock:
-					col = col.darkened(0.45)
-			# Light from the top-left: slopes facing it are brighter.
-			var hs := maxf(engine.cell(x - 1, y - 1), sea) - maxf(engine.cell(x + 1, y + 1), sea)
-			col = col.lightened(clampf(hs * 6.0, 0.0, 0.35)) if hs > 0.0 else col.darkened(clampf(-hs * 6.0, 0.0, 0.45))
-			col = col.darkened(r.randf() * 0.08)
-			if neon:
-				col = Color(col.r * 0.35 + 0.04, col.g * 0.3, col.b * 0.45 + 0.08)
-				if h >= rock - 0.01 and h < rock + 0.01 or (h >= sea and h < sea + 0.012):
-					col = Color("9b4dff") if h >= rock - 0.01 else Color("29e6ff")
-			img.set_pixel(x, y, col)
-			# Shader mask: R = liquid, G = lava, B = rock.
-			mask.set_pixel(x, y, Color(1.0 if h < sea else 0.0, 1.0 if lava and h < sea else 0.0, 1.0 if h >= rock else 0.0))
+			hm[y * E.GW + x] = engine.cell(x, y)
+	for pass_i in 2:
+		var nb := hm.duplicate()
+		for y in E.GH:
+			for x in E.GW:
+				var sum := 0.0
+				var wsum := 0.0
+				for dy in range(-1, 2):
+					for dx in range(-1, 2):
+						var xx := clampi(x + dx, 0, E.GW - 1)
+						var yy := clampi(y + dy, 0, E.GH - 1)
+						var w := 4.0 if dx == 0 and dy == 0 else (2.0 if dx == 0 or dy == 0 else 1.0)
+						sum += hm[yy * E.GW + xx] * w
+						wsum += w
+				nb[y * E.GW + x] = sum / wsum
+		hm = nb
+	var img := Image.create_from_data(E.GW, E.GH, false, Image.FORMAT_RF, hm.to_byte_array())
+	img.resize(E.GW * 4, E.GH * 4, Image.INTERPOLATE_CUBIC)
 	terrain_tex = ImageTexture.create_from_image(img)
-	mask_tex = ImageTexture.create_from_image(mask)
 	if terrain:
+		var pal: Array = PALETTE[engine.theme_id]
+		var mat: ShaderMaterial = terrain.material
+		for i in 6:
+			mat.set_shader_parameter(["c_deep", "c_shallow", "c_shore", "c_low", "c_high", "c_rock"][i], pal[i])
+		mat.set_shader_parameter("sea", float(engine.theme.sea))
+		mat.set_shader_parameter("rock", float(engine.theme.rock))
+		mat.set_shader_parameter("lava", 1.0 if engine.theme.liquid == "lava" else 0.0)
+		mat.set_shader_parameter("snow", 1.0 if engine.theme.ice or engine.theme_id == "highlands" else 0.0)
 		terrain.queue_redraw()
 
 # ---------- drawing ----------
@@ -859,16 +879,14 @@ func _rebuild_terrain() -> void:
 ## The map picture through the terrain shader (moving water / lava, fine grain,
 ## drifting cloud shadows, a soft vignette): hover_duel_terrain.gdshader.
 func _draw_terrain() -> void:
-	terrain.draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.03, 0.05))
 	if terrain_tex == null:
 		return
 	var off := Vector2.ZERO
 	if shake > 0.0:
 		off = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * shake * 10.0
 	var mat: ShaderMaterial = terrain.material
-	mat.set_shader_parameter("mask", mask_tex)
+	mat.set_shader_parameter("height_tex", terrain_tex)
 	mat.set_shader_parameter("t", float(Time.get_ticks_msec() % 1000000) / 1000.0)
-	mat.set_shader_parameter("grid", Vector2(E.GW, E.GH))
 	mat.set_shader_parameter("neon", 1.0 if skin == "voodoo" else 0.0)
 	terrain.draw_texture_rect(terrain_tex, Rect2(_w2s(Vector2.ZERO) + off, Vector2(E.W, E.H) * zoom), false)
 
@@ -883,10 +901,13 @@ func _draw_field() -> void:
 	c.draw_set_transform(off)
 	var k := zoom
 	var cols: Array = _player_colors()
-	# Wakes.
+	# Exhaust smoke (hot and orange when fresh, grey and wide as it cools).
 	for t in trails:
-		var a: float = 1.0 - t[1] / 0.9
-		c.draw_rect(Rect2(_w2s(t[0]) - Vector2(2, 2) * k, Vector2(4, 4) * k * (1.0 + t[1] * 2.0)), Color(1, 1, 1, 0.25 * a))
+		var age: float = t[1] / 1.1
+		var a: float = (1.0 - age) * (1.0 - age)
+		var rad: float = (5.0 + 26.0 * age) * float(t[3]) * k
+		var sc := Color(1.0, 0.55, 0.2).lerp(Color(0.45, 0.45, 0.48), clampf(age * 4.0, 0.0, 1.0))
+		_soft(c, _w2s(t[0]), rad * 1.3, Color(sc, 0.4 * a))
 	# Pickups.
 	for pk in engine.pickups:
 		var p := _w2s(pk.p)
@@ -907,11 +928,11 @@ func _draw_field() -> void:
 	for i in 2:
 		var cr: Dictionary = engine.crafts[i]
 		if cr.alive:
-			_draw_craft(c, _w2s(cr.p), cr.a, k, cols[i], engine.time + i, cr.hit_t > 0.0, cr.shield > 0.0, true)
+			_draw_craft(c, _w2s(cr.p), cr.a, k, cols[i], engine.time + i, cr.hit_t > 0.0, cr.shield > 0.0, true, 0.0, cr.type)
 	for i in 2:
 		var cr: Dictionary = engine.crafts[i]
 		if cr.alive:
-			_draw_craft(c, _w2s(cr.p), cr.a, k, cols[i], engine.time + i, cr.hit_t > 0.0, cr.shield > 0.0, false)
+			_draw_craft(c, _w2s(cr.p), cr.a, k, cols[i], engine.time + i, cr.hit_t > 0.0, cr.shield > 0.0, false, cr.get("thrust", 0.0), cr.type)
 	# Shots and missiles.
 	for s in engine.shots:
 		var p := _w2s(s.p)
@@ -925,35 +946,137 @@ func _draw_field() -> void:
 	for b in booms:
 		var t: float = b[2] / 0.8
 		var rad: float = 40.0 * b[1] * (0.4 + t) * k
-		c.draw_rect(Rect2(_w2s(b[0]) - Vector2(rad, rad), Vector2(rad, rad) * 2.0), Color(1.0, 0.55 - t * 0.4, 0.1, 0.45 * (1.0 - t)))
-		c.draw_rect(Rect2(_w2s(b[0]) - Vector2(rad, rad) * 0.5, Vector2(rad, rad)), Color(1, 0.95, 0.7, 0.6 * (1.0 - t)))
+		_soft(c, _w2s(b[0]), rad * 1.8, Color(1.0, 0.55 - t * 0.4, 0.1, 0.8 * (1.0 - t)))
+		_soft(c, _w2s(b[0]), rad * 0.8, Color(1, 0.95, 0.7, 0.9 * (1.0 - t)))
 	for s in sparks:
 		var p := _w2s(s[0])
 		c.draw_rect(Rect2(p - Vector2(2, 2), Vector2(4, 4)), Color(s[3], clampf(s[2] * 2.5, 0.0, 1.0)))
 	c.draw_set_transform(Vector2.ZERO)
 
-## A hovercraft from above: rounded skirt, deck, cabin, two fans at the back.
-## Drawn with chunky polygons to match the pixel terrain.
-func _draw_craft(c: CanvasItem, p: Vector2, a: float, k: float, col: Color, t: float, flash: bool, shield: bool, shadow: bool) -> void:
-	var s := maxf(k, 0.8) * 1.3
-	var bob := sin(t * 5.0) * 1.5
+## Ship designs, one per craft type: the top half of the outline (nose at +x,
+## from the nose round to the tail centre; mirrored for the other half) and
+## the engine nozzles on the top half (mirrored too). Hull units, x -30..30.
+const DESIGNS := {
+	"skimmer": {"half": [[26, 0], [14, 5], [3, 7], [-8, 20], [-19, 23], [-24, 15], [-22, 6], [-22, 0]], "noz": [[-22, 9]]},
+	"gnat": {"half": [[30, 0], [10, 4], [-6, 6], [-14, 14], [-20, 14], [-18, 5], [-20, 0]], "noz": [[-19, 4]]},
+	"hornet": {"half": [[24, 0], [12, 4], [4, 6], [2, 16], [20, 18], [22, 21], [-2, 22], [-20, 20], [-22, 14], [-14, 10], [-18, 4], [-18, 0]], "noz": [[-21, 17]]},
+	"comet": {"half": [[28, 0], [18, 8], [0, 12], [-14, 12], [-22, 6], [-24, 0]], "noz": [[-23, 4]]},
+	"stingray": {"half": [[26, 0], [18, 6], [4, 20], [-6, 28], [-14, 24], [-16, 10], [-22, 5], [-22, 0]], "noz": [[-22, 5]]},
+	"barge": {"half": [[22, 0], [20, 10], [12, 18], [-18, 20], [-24, 14], [-24, 0]], "noz": [[-24, 5], [-24, 14]]},
+	"viper": {"half": [[30, 0], [20, 3], [22, 10], [8, 8], [-4, 18], [-20, 24], [-16, 8], [-22, 5], [-22, 0]], "noz": [[-22, 4]]},
+	"bulwark": {"half": [[24, 0], [18, 14], [2, 22], [-16, 22], [-26, 12], [-26, 0]], "noz": [[-26, 5], [-24, 15]]},
+	"aegis": {"half": [[22, 0], [20, 10], [12, 18], [0, 22], [-12, 20], [-20, 14], [-24, 6], [-24, 0]], "noz": [[-24, 5], [-21, 13]]},
+	"wraith": {"half": [[22, 0], [10, 5], [14, 16], [20, 24], [4, 22], [-12, 14], [-20, 8], [-20, 0]], "noz": [[-20, 5]]},
+	"warden": {"half": [[30, 0], [16, 6], [6, 8], [2, 26], [-6, 28], [-10, 10], [-22, 10], [-26, 18], [-30, 16], [-26, 0]], "noz": [[-26, 5], [-28, 15]]},
+	"phantom": {"half": [[26, 0], [8, 8], [10, 18], [-2, 30], [-10, 20], [-16, 26], [-22, 14], [-18, 6], [-22, 0]], "noz": [[-21, 4], [-18, 15]]},
+}
+const SUN_2D := Vector2(-0.6, -0.8)   # light from the top-left, like the terrain
+var _design_cache: Dictionary = {}
+
+## The design's full outline and its nozzle points (both halves).
+func _design(type: String) -> Dictionary:
+	if _design_cache.has(type):
+		return _design_cache[type]
+	var d: Dictionary = DESIGNS.get(type, DESIGNS.skimmer)
+	var half: Array = d.half
+	var hull: Array = []
+	for q in half:
+		hull.append(Vector2(q[0], q[1]))
+	for i in range(half.size() - 2, 0, -1):
+		hull.append(Vector2(half[i][0], -half[i][1]))
+	var noz: Array = []
+	for q in d.noz:
+		noz.append(Vector2(q[0], q[1]))
+		noz.append(Vector2(q[0], -q[1]))
+	var inner: Array = []
+	for v in hull:
+		inner.append(Vector2(v.x * 0.72 - 2.0, v.y * 0.62))
+	var out := {"hull": hull, "noz": noz, "inner": inner, "nose": float(half[0][0])}
+	_design_cache[type] = out
+	return out
+
+## A polygon in brushed metal: each corner lit by how much it faces the sun,
+## so the shine slides across the hull as the ship turns.
+func _metal(c: CanvasItem, pts: Array, p: Vector2, a: float, s: float, base: Color, shine: float) -> void:
+	var out := PackedVector2Array()
+	var cols := PackedColorArray()
+	for q in pts:
+		var v: Vector2 = (q as Vector2).rotated(a)
+		out.append(p + v * s)
+		var l := v.normalized().dot(SUN_2D) if v.length() > 0.01 else 0.0
+		cols.append(base.lightened(clampf(l, 0.0, 1.0) * shine) if l > 0.0 else base.darkened(clampf(-l, 0.0, 1.0) * shine * 0.9))
+	c.draw_polygon(out, cols)
+
+## The ship from above in its own design: chrome hull, a team-coloured inner
+## panel, glass canopy, and engines whose flame, glow and smoke grow with
+## thrust (0..1).
+func _draw_craft(c: CanvasItem, p: Vector2, a: float, k: float, col: Color, t: float, flash: bool, shield: bool, shadow: bool, thrust: float = 0.0, type: String = "skimmer") -> void:
+	var s := maxf(k, 0.8) * CRAFT_SCALE
+	var d := _design(type)
+	var hull: Array = d.hull
+	var bob := sin(t * 5.0) * 1.2
 	if shadow:
-		var sp := p + Vector2(10, 13) * s
-		c.draw_colored_polygon(_shape([Vector2(22, 0), Vector2(14, 15), Vector2(-16, 16), Vector2(-22, 8), Vector2(-22, -8), Vector2(-16, -16), Vector2(14, -15)], sp, a, s), Color(0, 0, 0, 0.35))
+		c.draw_colored_polygon(_shape(hull, p + Vector2(9, 12) * s, a, s), Color(0, 0, 0, 0.32))
 		return
 	p += Vector2(0, -bob) * s
-	var skirt := Color(0.12, 0.12, 0.14)
-	c.draw_colored_polygon(_shape([Vector2(22, 0), Vector2(14, 15), Vector2(-16, 16), Vector2(-22, 8), Vector2(-22, -8), Vector2(-16, -16), Vector2(14, -15)], p, a, s), skirt)
-	var body := Color.WHITE if flash else col
-	c.draw_colored_polygon(_shape([Vector2(19, 0), Vector2(12, 12), Vector2(-14, 12), Vector2(-18, 6), Vector2(-18, -6), Vector2(-14, -12), Vector2(12, -12)], p, a, s), body)
-	c.draw_colored_polygon(_shape([Vector2(10, 0), Vector2(4, 7), Vector2(-6, 7), Vector2(-6, -7), Vector2(4, -7)], p, a, s), body.lightened(0.35))
-	c.draw_colored_polygon(_shape([Vector2(9, 0), Vector2(5, 4), Vector2(1, 4), Vector2(1, -4), Vector2(5, -4)], p, a, s), Color(0.55, 0.85, 1.0))
-	for fy in [-7.0, 7.0]:
-		var fc := p + Vector2(-15, fy).rotated(a) * s
-		var spin := t * 30.0
-		c.draw_line(fc + Vector2(0, 5).rotated(spin) * s, fc - Vector2(0, 5).rotated(spin) * s, Color(0.85, 0.85, 0.85), maxf(1.0, 2.0 * s))
+	var fwd := Vector2.RIGHT.rotated(a)
+	var side := Vector2(0, 1).rotated(a)
+	var flick := 0.85 + 0.15 * sin(t * 47.0) + 0.08 * sin(t * 83.0)
+	var noz: Array = d.noz
+	var nk := 1.0 / sqrt(noz.size() / 2.0)   # more engines = smaller flames each
+	# Engine light on the ground and the flame plumes (drawn under the hull).
+	if thrust > 0.02:
+		var gl := (18.0 + 40.0 * thrust) * s * flick
+		var gp := p - fwd * (30.0 + 20.0 * thrust) * s
+		_soft(c, gp, gl * 1.8, Color(1.0, 0.5, 0.12, 0.35 * thrust))
+		_soft(c, gp, gl * 0.8, Color(1.0, 0.8, 0.4, 0.3 * thrust))
+		for q in noz:
+			var nz: Vector2 = p + (q as Vector2).rotated(a) * s
+			var ln := (10.0 + 46.0 * thrust) * flick * s * nk
+			var wd := (3.5 + 2.5 * thrust) * s * nk
+			var wob := side * sin(t * 31.0 + q.y) * 1.2 * s
+			c.draw_colored_polygon(PackedVector2Array([nz + side * wd * 1.3, nz - fwd * ln * 0.55 + side * wd * 1.1, nz - fwd * ln + wob, nz - fwd * ln * 0.55 - side * wd * 1.1, nz - side * wd * 1.3]), Color(1.0, 0.4, 0.06, 0.6))
+			c.draw_colored_polygon(PackedVector2Array([nz + side * wd * 0.7, nz - fwd * ln * 0.5 + wob * 0.5, nz - side * wd * 0.7]), Color(1.0, 0.93, 0.7, 0.95))
+	# Hull: chrome body, team panel, engine bells, canopy.
+	var metal := Color(0.66, 0.69, 0.74)
+	if flash:
+		metal = Color.WHITE
+	_metal(c, hull, p, a, s, metal.darkened(0.12), 0.55)
+	_metal(c, d.inner, p, a, s, metal.lerp(col, 0.65), 0.5)
+	for q in noz:
+		var nz: Vector2 = p + (q as Vector2).rotated(a) * s
+		_soft(c, nz, 4.5 * s, Color(0.08, 0.08, 0.1, 0.95))
+		if thrust > 0.02:
+			_soft(c, nz, 3.0 * s, Color(1.0, 0.75, 0.3, thrust))
+	var nose: float = d.nose
+	var cx := nose * 0.45
+	_metal(c, [Vector2(cx + 6, 0), Vector2(cx + 2, 3.2), Vector2(cx - 6, 3.4), Vector2(cx - 9, 0), Vector2(cx - 6, -3.4), Vector2(cx + 2, -3.2)], p, a, s, Color(0.15, 0.35, 0.55), 0.7)
+	_soft(c, p + Vector2(cx, 0).rotated(a) * s + SUN_2D * 1.6 * s, 2.0 * s, Color(1, 1, 1, 0.85))
+	# Rim light and a sliding specular glint on the hull.
+	var rim := _shape(hull, p, a, s)
+	rim.append(rim[0])
+	c.draw_polyline(rim, Color(1, 1, 1, 0.28), maxf(1.0, 0.7 * s), true)
+	_soft(c, p + SUN_2D * 6.0 * s, 4.0 * s, Color(1, 1, 1, 0.55))
 	if shield:
-		c.draw_arc(p, 30.0 * s, 0.0, TAU, 20, Color(0.4, 0.85, 1.0, 0.5 + 0.3 * sin(t * 10.0)), maxf(2.0, 3.0 * s))
+		c.draw_arc(p, 38.0 * s, 0.0, TAU, 40, Color(0.4, 0.85, 1.0, 0.5 + 0.3 * sin(t * 10.0)), maxf(2.0, 3.0 * s), true)
+
+## A soft round blob (one textured quad: draw_circle costs ~100 us per call
+## in Godot 4.7, a texture rect ~0.5 us). Used for smoke, glow, explosions.
+func _soft(c: CanvasItem, at: Vector2, r: float, col: Color) -> void:
+	if glow_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.45, Color(1, 1, 1, 0.45))
+		var gt := GradientTexture2D.new()
+		gt.gradient = g
+		gt.fill = GradientTexture2D.FILL_RADIAL
+		gt.fill_from = Vector2(0.5, 0.5)
+		gt.fill_to = Vector2(1.0, 0.5)
+		gt.width = 64
+		gt.height = 64
+		glow_tex = gt
+	c.draw_texture_rect(glow_tex, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0), false, col)
 
 func _shape(pts: Array, p: Vector2, a: float, s: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
@@ -1119,3 +1242,201 @@ func _help_repair() -> bool:
 		SoundLib.play(self, "reward/powerup")
 		return true
 	return false
+
+# ---------- hangar: credits, ships, upgrades ----------
+
+const STAT_NAMES := {"attack": "Attack", "armor": "Armor", "accel": "Acceleration", "speed": "Top speed", "handling": "Handling"}
+
+func _load_hangar() -> void:
+	var d = SaveUtil.read(HANGAR_PATH)
+	if not d is Dictionary:
+		return
+	hangar.credits = maxi(0, int(d.get("credits", 0)))
+	var owned: Array = ["skimmer"]
+	for t in d.get("owned", []):
+		if E.CRAFTS.has(str(t)) and not owned.has(str(t)):
+			owned.append(str(t))
+	hangar.owned = owned
+	var u = d.get("ups", {})
+	hangar.ups = u if u is Dictionary else {}
+	var sh := str(d.get("ship", "skimmer"))
+	hangar.ship = sh if owned.has(sh) else "skimmer"
+
+func _save_hangar() -> void:
+	SaveUtil.write(HANGAR_PATH, hangar)
+
+func _my_ship() -> String:
+	return hangar.ship
+
+func _my_ups(type: String = "") -> Dictionary:
+	if type == "":
+		type = hangar.ship
+	var u = hangar.ups.get(type, {})
+	return u if u is Dictionary else {}
+
+## Credits for a finished battle (Campaign and vs Computer; 2 Players earns none).
+## Campaign: win 60 + 30 per star, +100 the first time a rival falls (+100 more
+## for a boss); loss 15. vs Computer: win 40 / 70 / 110 by difficulty; loss 10.
+## Called before the Campaign stars are updated (first-win check).
+func _award(won: bool) -> int:
+	var n := 0
+	if mode == "campaign":
+		if won:
+			var c: Dictionary = engine.crafts[0]
+			var stars := 3 if c.hp >= c.max * 0.6 else (2 if c.hp >= c.max * 0.3 else 1)
+			n = 60 + 30 * stars
+			if int(camp.stars.get(str(level), 0)) == 0:
+				n += 100 + (100 if E.CAMPAIGN[level].get("boss", false) else 0)
+		else:
+			n = 15
+	elif mode == "cpu":
+		n = [40, 70, 110][clampi(level, 0, 2)] if won else 10
+	hangar.credits = int(hangar.credits) + n
+	_save_hangar()
+	if info and n > 0:
+		info.add("Credits earned", n)
+	return n
+
+func _open_hangar() -> void:
+	var parts: Array = home.card("🛠 " + tr("Hangar"))
+	var body: VBoxContainer = parts[1]
+	var head := Label.new()
+	head.text = "💰 " + tr("Credits: %d") % int(hangar.credits)
+	head.add_theme_font_size_override("font_size", 28)
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.add_child(head)
+	var note := Label.new()
+	note.text = tr("Win battles to earn credits. Better ratings cost more. Each rating takes up to 3 upgrades.")
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.modulate = Color(1, 1, 1, 0.8)
+	body.add_child(note)
+	for type in E.HANGAR:
+		_hangar_row(body, type, parts[0])
+	home.show_card(parts[0])
+
+## One ship: name and price, picture + five rating bars, then Buy, or Fly and upgrades.
+func _hangar_row(body: Control, type: String, card: Control) -> void:
+	var owned: bool = hangar.owned.has(type)
+	var flying: bool = hangar.ship == type
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.04, 0.07, 0.1, 0.9)
+	sb.border_color = Color("5be36a") if flying else (Color("4ab0ff") if owned else Color(0.3, 0.35, 0.42))
+	sb.set_border_width_all(3 if flying else 2)
+	sb.set_corner_radius_all(12)
+	sb.set_content_margin_all(12)
+	panel.add_theme_stylebox_override("panel", sb)
+	body.add_child(panel)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	panel.add_child(col)
+	var title := Label.new()
+	var tag := ""
+	if flying:
+		tag = "  ·  ✔ " + tr("Flying")
+	elif owned:
+		tag = "  ·  " + tr("Owned")
+	else:
+		tag = "  ·  💰 %d" % E.price(type)
+	title.text = tr(E.CRAFTS[type].name) + tag
+	title.add_theme_font_size_override("font_size", 26)
+	col.add_child(title)
+	var pic := Control.new()
+	pic.custom_minimum_size = Vector2(0, 170)
+	pic.draw.connect(_draw_hangar_pic.bind(pic, type))
+	col.add_child(pic)
+	if not owned:
+		var price: int = E.price(type)
+		var b := HomeKit.neon_button(tr("Buy") + "  💰 %d" % price, HomeKit.LIME, 22, 60)
+		b.disabled = int(hangar.credits) < price
+		b.pressed.connect(_buy_ship.bind(type, card))
+		col.add_child(b)
+		return
+	if not flying:
+		var f := HomeKit.neon_button("🚀 " + tr("Fly this ship"), HomeKit.LIME, 22, 60)
+		f.pressed.connect(_fly_ship.bind(type, card))
+		col.add_child(f)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	col.add_child(grid)
+	var ups := _my_ups(type)
+	for st in E.STATS:
+		var lv := int(ups.get(st, 0))
+		var txt := "⬆ " + tr(STAT_NAMES[st]) + "  " + tr("Lv %d/%d") % [lv, E.UP_MAX]
+		var cost := 0
+		if lv < E.UP_MAX:
+			cost = E.upgrade_cost(type, lv)
+			txt += "  💰 %d" % cost
+		var u := HomeKit.neon_button(txt, HomeKit.CYAN, 18, 54)
+		u.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		u.disabled = lv >= E.UP_MAX or int(hangar.credits) < cost
+		u.pressed.connect(_upgrade.bind(type, st, card))
+		grid.add_child(u)
+
+## Ship picture (engines lit) on the left; rating bars on the right: blue =
+## the ship's own rating, green = what upgrades added. Ratings run 1..10.
+func _draw_hangar_pic(c: Control, type: String) -> void:
+	var w := c.size.x
+	var h := c.size.y
+	var cols: Array = _player_colors()
+	var pw := minf(w * 0.36, 220.0)
+	c.draw_rect(Rect2(0, 0, pw, h), Color(0.02, 0.04, 0.06, 0.8))
+	_draw_craft(c, Vector2(pw * 0.5, h * 0.42), -PI / 2.0, 1.1, cols[0], 0.3, false, false, false, 0.7, type)
+	var s := E.spec_for(type, _my_ups(type))
+	var base := E.spec_for(type)
+	var font := ThemeDB.fallback_font
+	var x0 := pw + 14.0
+	var bw := maxf(40.0, w - x0 - 50.0)
+	var rh := h / 5.0
+	for i in E.STATS.size():
+		var st: String = E.STATS[i]
+		var y := rh * i
+		var r: float = E.rating(s, st)
+		var r0: float = E.rating(base, st)
+		c.draw_string(font, Vector2(x0, y + rh * 0.42), tr(STAT_NAMES[st]), HORIZONTAL_ALIGNMENT_LEFT, bw, 16, Color(0.85, 0.9, 1.0))
+		var by := y + rh * 0.52
+		c.draw_rect(Rect2(x0, by, bw, rh * 0.32), Color(1, 1, 1, 0.1))
+		c.draw_rect(Rect2(x0, by, bw * r0 / 10.0, rh * 0.32), Color("4ab0ff"))
+		if r > r0:
+			c.draw_rect(Rect2(x0 + bw * r0 / 10.0, by, bw * (r - r0) / 10.0, rh * 0.32), Color("5be36a"))
+		var num := ("%.1f" % r) if fmod(r, 1.0) != 0.0 else str(int(r))
+		c.draw_string(font, Vector2(x0 + bw + 8, by + rh * 0.3), num, HORIZONTAL_ALIGNMENT_LEFT, 44, 18, Color.WHITE)
+
+func _buy_ship(type: String, card: Control) -> void:
+	var price: int = E.price(type)
+	if hangar.owned.has(type) or int(hangar.credits) < price:
+		return
+	hangar.credits = int(hangar.credits) - price
+	hangar.owned.append(type)
+	hangar.ship = type
+	_save_hangar()
+	SoundLib.play(self, "reward/accomplished", -4.0)
+	_reopen_hangar(card)
+
+func _fly_ship(type: String, card: Control) -> void:
+	if hangar.owned.has(type):
+		hangar.ship = type
+		_save_hangar()
+	_reopen_hangar(card)
+
+func _upgrade(type: String, st: String, card: Control) -> void:
+	var ups: Dictionary = _my_ups(type).duplicate()
+	var lv := int(ups.get(st, 0))
+	if lv >= E.UP_MAX:
+		return
+	var cost: int = E.upgrade_cost(type, lv)
+	if int(hangar.credits) < cost:
+		return
+	hangar.credits = int(hangar.credits) - cost
+	ups[st] = lv + 1
+	hangar.ups[type] = ups
+	_save_hangar()
+	SoundLib.play(self, "reward/accomplished", -6.0)
+	_reopen_hangar(card)
+
+func _reopen_hangar(card: Control) -> void:
+	home.close_card(card)
+	_open_hangar()

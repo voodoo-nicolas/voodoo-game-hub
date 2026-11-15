@@ -43,7 +43,59 @@ const CRAFTS := {
 	"bulwark": {"name": "Bulwark", "speed": 270.0, "accel": 470.0, "turn": 3.3, "hp": 220.0, "cd": 0.26, "dmg": 9.0, "missiles": 4, "mines": 3},
 	"wraith": {"name": "Wraith", "speed": 400.0, "accel": 820.0, "turn": 5.0, "hp": 120.0, "cd": 0.16, "dmg": 7.0, "missiles": 4, "mines": 2},
 	"warden": {"name": "Warden", "speed": 320.0, "accel": 640.0, "turn": 4.2, "hp": 300.0, "cd": 0.15, "dmg": 8.0, "missiles": 6, "mines": 4},
+	# Hangar-only ships (bought with credits; rivals never fly them).
+	"comet": {"name": "Comet", "speed": 395.0, "accel": 800.0, "turn": 4.4, "hp": 85.0, "cd": 0.21, "dmg": 6.0, "missiles": 2, "mines": 1},
+	"viper": {"name": "Viper", "speed": 345.0, "accel": 680.0, "turn": 4.7, "hp": 105.0, "cd": 0.14, "dmg": 7.5, "missiles": 4, "mines": 1},
+	"aegis": {"name": "Aegis", "speed": 290.0, "accel": 560.0, "turn": 3.8, "hp": 240.0, "cd": 0.22, "dmg": 8.0, "missiles": 3, "mines": 3},
+	"phantom": {"name": "Phantom", "speed": 410.0, "accel": 860.0, "turn": 5.2, "hp": 160.0, "cd": 0.14, "dmg": 8.0, "missiles": 5, "mines": 3},
 }
+
+## The hangar shows these ships in this order (the Skimmer is free and always owned).
+const HANGAR := ["skimmer", "gnat", "hornet", "comet", "stingray", "barge", "viper", "bulwark", "aegis", "wraith", "warden", "phantom"]
+const STATS := ["attack", "armor", "accel", "speed", "handling"]
+const UP_MAX := 3                 # upgrade levels per stat
+## Each upgrade level adds this much (fraction) to the stat behind the rating.
+const UP_STEP := {"attack": 0.08, "armor": 0.12, "accel": 0.07, "speed": 0.05, "handling": 0.07}
+
+## The craft's numbers with upgrades applied. up = {"attack": 0..3, ...}.
+static func spec_for(type: String, up: Dictionary = {}) -> Dictionary:
+	var s: Dictionary = (CRAFTS.get(type, CRAFTS.skimmer) as Dictionary).duplicate()
+	s.dmg = float(s.dmg) * (1.0 + UP_STEP.attack * int(up.get("attack", 0)))
+	s.hp = float(s.hp) * (1.0 + UP_STEP.armor * int(up.get("armor", 0)))
+	s.accel = float(s.accel) * (1.0 + UP_STEP.accel * int(up.get("accel", 0)))
+	s.speed = float(s.speed) * (1.0 + UP_STEP.speed * int(up.get("speed", 0)))
+	s.turn = float(s.turn) * (1.0 + UP_STEP.handling * int(up.get("handling", 0)))
+	return s
+
+## A 1..10 rating for one stat (0.5 steps), from the spec's real numbers.
+static func rating(s: Dictionary, stat: String) -> float:
+	var v := 0.0
+	match stat:
+		"attack": v = inverse_lerp(22.0, 62.0, float(s.dmg) / float(s.cd)) + int(s.missiles) * 0.025
+		"armor": v = inverse_lerp(70.0, 300.0, float(s.hp))
+		"accel": v = inverse_lerp(420.0, 880.0, float(s.accel))
+		"speed": v = inverse_lerp(250.0, 420.0, float(s.speed))
+		"handling": v = inverse_lerp(3.0, 5.3, float(s.turn))
+	return clampf(roundf((1.0 + 9.0 * v) * 2.0) / 2.0, 1.0, 10.0)
+
+static func rating_total(type: String) -> float:
+	var s := spec_for(type)
+	var t := 0.0
+	for st in STATS:
+		t += rating(s, st)
+	return t
+
+## Price in credits: grows faster than the ratings (a 40-point ship costs far more than two 20s).
+static func price(type: String) -> int:
+	if type == "skimmer":
+		return 0
+	var x := maxf(0.0, rating_total(type) - 10.0)
+	return int(round((300.0 + x * 30.0 + x * x * 4.0) / 50.0) * 50.0)
+
+## Cost of the next upgrade level of one stat (lv = current level 0..2).
+static func upgrade_cost(type: String, lv: int) -> int:
+	var base := maxf(200.0, float(price(type)) * 0.18)
+	return int(round(base * (lv + 1) / 25.0) * 25.0)
 
 ## Map themes: the generator's knobs. sea / rock = height thresholds,
 ## rivers = how many are carved, liquid = "water" or "lava", ice = slippery land.
@@ -99,7 +151,7 @@ var events: Array = []        # filled by step(): ["shot", i], ["hit", i, pos, s
 # ---------- setup ----------
 
 ## types: [type0, type1]; ai: [-1 or level, -1 or level].
-func reset(theme_: String, seed_: int, types: Array, ai: Array) -> void:
+func reset(theme_: String, seed_: int, types: Array, ai: Array, ups: Array = [{}, {}]) -> void:
 	theme_id = theme_ if THEMES.has(theme_) else "valley"
 	theme = THEMES[theme_id]
 	map_seed = seed_
@@ -108,9 +160,10 @@ func reset(theme_: String, seed_: int, types: Array, ai: Array) -> void:
 	crafts = []
 	var spots := _start_spots()
 	for i in 2:
-		var c: Dictionary = CRAFTS.get(types[i], CRAFTS.skimmer)
+		var up: Dictionary = ups[i] if i < ups.size() and ups[i] is Dictionary else {}
+		var c: Dictionary = spec_for(str(types[i]), up)
 		var p: Vector2 = spots[i]
-		crafts.append({"p": p, "v": Vector2.ZERO, "a": (spots[1 - i] - p).angle(), "hp": c.hp, "max": c.hp,
+		crafts.append({"p": p, "v": Vector2.ZERO, "a": (spots[1 - i] - p).angle(), "hp": c.hp, "max": c.hp, "spec": c, "up": up.duplicate(),
 			"type": types[i] if CRAFTS.has(types[i]) else "skimmer", "cd": 0.0, "missiles": c.missiles, "mines": c.mines,
 			"shield": 0.0, "ai": int(ai[i]), "think": 0.0, "plan": Vector2.ZERO, "alive": true, "hit_t": 0.0,
 			"fire": false, "wiggle": rng.randf() * TAU, "last_d": 1e9, "stuck": 0.0, "detour": 0.0, "detour_a": 0.0})
@@ -297,15 +350,19 @@ func step(dt: float, inputs: Array) -> Array:
 
 func _drive(i: int, move: Vector2, dt: float) -> void:
 	var c: Dictionary = crafts[i]
-	var spec: Dictionary = CRAFTS[c.type]
+	var spec: Dictionary = c.spec
 	var m := move.limit_length(1.0)
+	var drive := 0.0
 	if m.length() > 0.08:
 		# Turn towards the stick, thrust harder the better we face it.
 		var want := m.angle()
 		var diff := wrapf(want - c.a, -PI, PI)
 		c.a = wrapf(c.a + clampf(diff, -spec.turn * dt, spec.turn * dt), -PI, PI)
 		var facing := maxf(0.0, cos(diff))
-		c.v += Vector2.RIGHT.rotated(c.a) * spec.accel * m.length() * (0.35 + 0.65 * facing) * dt
+		drive = m.length() * (0.35 + 0.65 * facing)
+		c.v += Vector2.RIGHT.rotated(c.a) * spec.accel * drive * dt
+	# How hard the engines are burning, 0..1, eased so the flame grows and fades (drawing only).
+	c.thrust = move_toward(float(c.get("thrust", 0.0)), drive, dt * 4.0)
 	# Hills: climbing slows, going down speeds up.
 	var here := surface_at(c.p)
 	var grad := Vector2(surface_at(c.p + Vector2(CELL, 0)) - surface_at(c.p - Vector2(CELL, 0)),
@@ -354,7 +411,7 @@ func _blocked(p: Vector2) -> bool:
 
 func _fire(i: int) -> void:
 	var c: Dictionary = crafts[i]
-	var spec: Dictionary = CRAFTS[c.type]
+	var spec: Dictionary = c.spec
 	c.cd = spec.cd
 	var dir := Vector2.RIGHT.rotated(c.a)
 	var side := dir.orthogonal() * (7.0 if int(time * 1000.0 / (spec.cd * 1000.0)) % 2 == 0 else -7.0)
@@ -600,7 +657,7 @@ func to_dict() -> Dictionary:
 	var cs: Array = []
 	for c in crafts:
 		cs.append({"p": [c.p.x, c.p.y], "v": [c.v.x, c.v.y], "a": c.a, "hp": c.hp, "max": c.max, "type": c.type,
-			"missiles": c.missiles, "mines": c.mines, "shield": c.shield, "ai": c.ai, "alive": c.alive})
+			"missiles": c.missiles, "mines": c.mines, "shield": c.shield, "ai": c.ai, "alive": c.alive, "up": c.get("up", {})})
 	var ms: Array = []
 	for m in mines:
 		ms.append({"p": [m.p.x, m.p.y], "o": m.o, "t": m.t})
@@ -613,10 +670,13 @@ func from_dict(d: Dictionary) -> void:
 	var cs: Array = d.get("crafts", [])
 	var types := ["skimmer", "skimmer"]
 	var ai := [-1, 1]
+	var ups := [{}, {}]
 	for i in mini(2, cs.size()):
 		types[i] = str(cs[i].get("type", "skimmer"))
 		ai[i] = int(cs[i].get("ai", -1))
-	reset(str(d.get("theme", "valley")), int(d.get("seed", 1)), types, ai)
+		var u = cs[i].get("up", {})
+		ups[i] = u if u is Dictionary else {}
+	reset(str(d.get("theme", "valley")), int(d.get("seed", 1)), types, ai, ups)
 	for i in mini(2, cs.size()):
 		var s: Dictionary = cs[i]
 		var c: Dictionary = crafts[i]
