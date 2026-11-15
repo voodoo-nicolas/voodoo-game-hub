@@ -334,6 +334,40 @@ func _geom() -> Dictionary:
 func _center(p: Vector2, g: Dictionary) -> Vector2:
 	return g.o + (p + Vector2(0.5, 0.5)) * g.ts
 
+# ---------- cheap circles (2026-10-29) ----------
+# In Godot 4.7 every draw_circle call costs 60-110 µs (each one makes its own GPU buffer), while a texture rect
+# costs 0.5 µs. A full maze is ~240 dots (41 fps on a weak GPU), so circles are drawn as a white disc texture.
+
+static var _disc_tex: Array = []  # white discs, 16 / 64 / 256 px (the closest size keeps the edge sharp)
+
+static func _disc_texture(px: float) -> Texture2D:
+	if _disc_tex.is_empty():
+		for s in [16, 64, 256]:
+			var g := Gradient.new()
+			g.set_offset(0, 0.0)
+			g.set_color(0, Color.WHITE)
+			g.set_offset(1, 1.0)
+			g.set_color(1, Color(1, 1, 1, 0))
+			g.add_point(1.0 - 2.0 / float(s), Color.WHITE)  # solid to one texel from the rim
+			var tex := GradientTexture2D.new()
+			tex.gradient = g
+			tex.fill = GradientTexture2D.FILL_RADIAL
+			tex.fill_from = Vector2(0.5, 0.5)
+			tex.fill_to = Vector2(1.0, 0.5)
+			tex.width = s
+			tex.height = s
+			_disc_tex.append(tex)
+	if px <= 16.0:
+		return _disc_tex[0]
+	return _disc_tex[1] if px <= 64.0 else _disc_tex[2]
+
+## A filled circle (like draw_circle) on canvas item `ci`.
+static func _disc(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
+	if r > 0.0:
+		var tex := _disc_texture(r * 2.0)
+		r /= 1.0 - 1.0 / float(tex.get_width())  # the texture's soft rim straddles the circle's edge
+		ci.draw_texture_rect(tex, Rect2(c.x - r, c.y - r, r * 2.0, r * 2.0), false, col)
+
 func _draw_field() -> void:
 	var g := _geom()
 	var ts: float = g.ts
@@ -370,10 +404,10 @@ func _draw_field() -> void:
 		var c := _center(Vector2(t), g)
 		if engine.dots[t] == 2:
 			var pulse := 0.75 + 0.25 * sin(anim * 8.0)
-			field.draw_circle(c, ts * 0.3 * pulse, Color(DOT, 0.3))
-			field.draw_circle(c, ts * 0.2 * pulse, DOT)
+			_disc(field, c, ts * 0.3 * pulse, Color(DOT, 0.3))
+			_disc(field, c, ts * 0.2 * pulse, DOT)
 		else:
-			field.draw_circle(c, ts * 0.09, DOT)
+			_disc(field, c, ts * 0.09, DOT)
 	if not started and engine.player.is_empty():
 		return
 	if engine.player.is_empty():
@@ -405,7 +439,7 @@ func _draw_ghost(c: CanvasItem, at: Vector2, ts: float, gh: Dictionary) -> void:
 	if not gh.eaten:
 		# A skull spirit: round cranium, narrower jaw, two teeth gaps.
 		var head := at + Vector2(0, -r * 0.12)
-		c.draw_circle(head, r * 0.82, Color(col, 0.85))
+		_disc(c, head, r * 0.82, Color(col, 0.85))
 		var jaw := Rect2(at + Vector2(-r * 0.48, r * 0.3), Vector2(r * 0.96, r * 0.55))
 		c.draw_rect(jaw, Color(col, 0.85))
 		c.draw_arc(head, r * 0.82, 0, TAU, 24, col.lightened(0.3), 1.5, true)
@@ -425,8 +459,8 @@ func _draw_ghost(c: CanvasItem, at: Vector2, ts: float, gh: Dictionary) -> void:
 	var look := Vector2(gh.d) * r * 0.1
 	for sx in [-0.33, 0.33]:
 		var e := at + Vector2(r * sx, -r * 0.2)
-		c.draw_circle(e, r * 0.24, Color(0.02, 0.02, 0.05))
-		c.draw_circle(e + look, r * 0.11, col.lightened(0.5))
+		_disc(c, e, r * 0.24, Color(0.02, 0.02, 0.05))
+		_disc(c, e + look, r * 0.11, col.lightened(0.5))
 
 func _draw_home_logo(c: Control) -> void:
 	var ts := minf(c.size.y / 2.0, 72.0)
@@ -438,7 +472,7 @@ func _draw_home_logo(c: Control) -> void:
 		pts.append(Vector2(x0, y) + Vector2.RIGHT.rotated(a) * ts * 0.5)
 	c.draw_colored_polygon(pts, PLAYER)
 	for k in 3:
-		c.draw_circle(Vector2(x0 + ts * (0.9 + k * 0.45), y), ts * 0.07, DOT)
+		_disc(c, Vector2(x0 + ts * (0.9 + k * 0.45), y), ts * 0.07, DOT)
 	_draw_logo_skull(c, Vector2(x0 + ts * 2.7, y), ts, GHOSTS[0])
 	_draw_logo_skull(c, Vector2(x0 + ts * 3.9, y), ts, GHOSTS[1])
 

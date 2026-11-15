@@ -290,7 +290,7 @@ func _draw() -> void:
 	if state == S.DOWN or state == S.DEAD:
 		# Knocked out (or dead, v0.5: in a pool of blood), lying on the floor.
 		if state == S.DEAD:
-			draw_circle(Vector2(2, 6), 17.0, Color("6e0a0e"))
+			A.disc(self, Vector2(2, 6), 17.0, Color("6e0a0e"))
 		A.shadow(self, Vector2(0, 8), 16, 6)
 		A.ink_rect(self, Rect2(-14, -4, 28, 14), UNIFORM)
 		A.ink_rect(self, Rect2(12, -6, 9, 9), SKIN)
@@ -317,4 +317,4 @@ func _draw() -> void:
 		A.ink_circle(self, Vector2(0, -32), 5.0, A.YELLOW, 1.5)     # "!" marker over his head
 		draw_rect(Rect2(-1, -35, 2, 5), A.INK)
 	if state == S.WINDUP and int(_timer * 16.0) % 2 == 0:
-		draw_arc(Vector2(0, -2), 21.0, 0.0, TAU, 24, Color.WHITE, 3.0)
+		A.arc(self, Vector2(0, -2), 21.0, 0.0, TAU, 24, Color.WHITE, 3.0)

@@ -114,8 +114,8 @@ func _draw() -> void:
 		draw_colored_polygon(PackedVector2Array([p + Vector2(-5 * f, -1), p + Vector2(-9 * f, -3),
 			p + Vector2(-8 * f, 1)]), A.INK)
 		A.ink_circle(self, p, 4.2, body, 1.4)
-		draw_circle(p + Vector2(-1 * f, 0.5), 2.4, wing)
+		A.disc(self, p + Vector2(-1 * f, 0.5), 2.4, wing)
 		var hp := p + Vector2(4 * f, -3 + bob)
 		A.ink_circle(self, hp, 2.4, head, 1.2)
 		draw_line(hp + Vector2(2 * f, 0.4), hp + Vector2(4.2 * f, 1.0), Color("3a3a36") if crows else Color("d9a35a"), 1.4)
-		draw_circle(hp + Vector2(0.8 * f, -0.6), 0.6, Color.WHITE if not crows else Color("c9ccd3"))
+		A.disc(self, hp + Vector2(0.8 * f, -0.6), 0.6, Color.WHITE if not crows else Color("c9ccd3"))

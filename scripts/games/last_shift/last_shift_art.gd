@@ -33,6 +33,71 @@ const FIRE := Color("ff7a1a")
 
 # --- small helpers
 
+# ---------- cheap drawing (2026-10-29) ----------
+# In Godot 4.7 every draw_circle / draw_arc / draw_polyline call costs 60-110 µs and is its own draw call at render
+# time, every frame, even when nothing redraws (each one makes its own GPU buffer), while a texture rect costs
+# 0.5 µs and batches with the rects around it. The parking lot alone (cars, trees, lamp posts) was ~175 draw calls:
+# 32 fps on a weak GPU. So circles are a white disc texture and arcs / polylines one draw_multiline each. Same
+# signatures as the CanvasItem calls, with the canvas item first.
+
+static var _disc_tex: Array = []  # white discs, 16 / 64 / 256 px (the closest size keeps the edge sharp)
+
+static func _disc_texture(px: float) -> Texture2D:
+	if _disc_tex.is_empty():
+		for s in [16, 64, 256]:
+			var g := Gradient.new()
+			g.set_offset(0, 0.0)
+			g.set_color(0, Color.WHITE)
+			g.set_offset(1, 1.0)
+			g.set_color(1, Color(1, 1, 1, 0))
+			g.add_point(1.0 - 2.0 / float(s), Color.WHITE)  # solid to one texel from the rim
+			var tex := GradientTexture2D.new()
+			tex.gradient = g
+			tex.fill = GradientTexture2D.FILL_RADIAL
+			tex.fill_from = Vector2(0.5, 0.5)
+			tex.fill_to = Vector2(1.0, 0.5)
+			tex.width = s
+			tex.height = s
+			_disc_tex.append(tex)
+	if px <= 16.0:
+		return _disc_tex[0]
+	return _disc_tex[1] if px <= 64.0 else _disc_tex[2]
+
+## A filled circle (like draw_circle).
+static func disc(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
+	if r <= 0.0:
+		return
+	var tex := _disc_texture(r * 2.0)
+	r /= 1.0 - 1.0 / float(tex.get_width())  # the texture's soft rim straddles the circle's edge
+	ci.draw_texture_rect(tex, Rect2(c.x - r, c.y - r, r * 2.0, r * 2.0), false, col)
+
+## An arc outline (like draw_arc: `n` points from angle a0 to a1).
+static func arc(ci: CanvasItem, c: Vector2, r: float, a0: float, a1: float, n: int, col: Color, w: float = -1.0) -> void:
+	if n < 2:
+		return
+	var segs := PackedVector2Array()
+	segs.resize((n - 1) * 2)
+	var prev := c + Vector2(cos(a0), sin(a0)) * r
+	for i in range(1, n):
+		var a := lerpf(a0, a1, float(i) / float(n - 1))
+		var p := c + Vector2(cos(a), sin(a)) * r
+		segs[(i - 1) * 2] = prev
+		segs[(i - 1) * 2 + 1] = p
+		prev = p
+	ci.draw_multiline(segs, col, w)
+
+## A line through the points (like draw_polyline).
+static func strip(ci: CanvasItem, pts: PackedVector2Array, col: Color, w: float = -1.0) -> void:
+	var n := pts.size()
+	if n < 2:
+		return
+	var segs := PackedVector2Array()
+	segs.resize((n - 1) * 2)
+	for i in range(1, n):
+		segs[(i - 1) * 2] = pts[i - 1]
+		segs[(i - 1) * 2 + 1] = pts[i]
+	ci.draw_multiline(segs, col, w)
+
 static func shade(c: Color, amount: float) -> Color:
 	## amount > 0 lightens, < 0 darkens (keeps alpha).
 	return c.lightened(amount) if amount > 0.0 else c.darkened(-amount)
@@ -52,17 +117,17 @@ static func flat_rect(ci: CanvasItem, r: Rect2, fill: Color, w: float = 1.5) -> 
 	ci.draw_rect(r, fill)
 
 static func ink_circle(ci: CanvasItem, c: Vector2, radius: float, fill: Color, w: float = 2.0) -> void:
-	ci.draw_circle(c, radius + w * 0.5, INK)
-	ci.draw_circle(c, radius, fill)
+	disc(ci, c, radius + w * 0.5, INK)
+	disc(ci, c, radius, fill)
 	# crescent of shadow on the lower right
-	ci.draw_arc(c, radius * 0.72, 0.15, PI * 0.85, 10, shade(fill, -0.26), radius * 0.5)
-	ci.draw_circle(c + Vector2(-radius * 0.35, -radius * 0.4), radius * 0.2, shade(fill, 0.3))
+	arc(ci, c, radius * 0.72, 0.15, PI * 0.85, 10, shade(fill, -0.26), radius * 0.5)
+	disc(ci, c + Vector2(-radius * 0.35, -radius * 0.4), radius * 0.2, shade(fill, 0.3))
 
 static func ink_poly(ci: CanvasItem, pts: PackedVector2Array, fill: Color, w: float = 2.0) -> void:
 	ci.draw_colored_polygon(pts, fill)
 	var o := pts.duplicate()
 	o.append(pts[0])
-	ci.draw_polyline(o, INK, w)
+	strip(ci, o, INK, w)
 
 ## Hard oval drop shadow on the floor.
 static func shadow(ci: CanvasItem, c: Vector2, rx: float, ry: float, alpha: float = 0.38) -> void:
@@ -208,10 +273,10 @@ static func _person_front(ci: CanvasItem, o: Dictionary, step: float, oy: float)
 
 static func _head_front(ci: CanvasItem, o: Dictionary, c: Dictionary, head: Vector2, zombie: bool) -> void:
 	# ears, head, messy hair with a highlight
-	ci.draw_circle(head + Vector2(-8, 1), 2.6, INK)
-	ci.draw_circle(head + Vector2(8, 1), 2.6, INK)
-	ci.draw_circle(head + Vector2(-8, 1), 1.6, c.skin)
-	ci.draw_circle(head + Vector2(8, 1), 1.6, shade(c.skin, -0.15))
+	disc(ci, head + Vector2(-8, 1), 2.6, INK)
+	disc(ci, head + Vector2(8, 1), 2.6, INK)
+	disc(ci, head + Vector2(-8, 1), 1.6, c.skin)
+	disc(ci, head + Vector2(8, 1), 1.6, shade(c.skin, -0.15))
 	ink_circle(ci, head, 8.0, c.skin)
 	var hair: Color = c.hair
 	var hp := PackedVector2Array([Vector2(-8.4, 1), Vector2(-8.7, -4), Vector2(-6.5, -8.5), Vector2(-4.5, -11),
@@ -224,19 +289,19 @@ static func _head_front(ci: CanvasItem, o: Dictionary, c: Dictionary, head: Vect
 	ci.draw_line(head + Vector2(-5, -7.5), head + Vector2(-1, -8.5), shade(hair, 0.3), 1.4)
 	var eye := Color("ff3a2a") if o.get("red_eyes", false) else INK
 	if zombie:
-		ci.draw_circle(head + Vector2(-3, 0.5), 2.0, INK)
-		ci.draw_circle(head + Vector2(3, 0.5), 2.0, INK)
+		disc(ci, head + Vector2(-3, 0.5), 2.0, INK)
+		disc(ci, head + Vector2(3, 0.5), 2.0, INK)
 	else:
 		ci.draw_line(head + Vector2(-5, -2.2), head + Vector2(-1.5, -1.7), shade(hair, -0.2), 1.5)
 		ci.draw_line(head + Vector2(1.5, -1.7), head + Vector2(5, -2.2), shade(hair, -0.2), 1.5)
-		ci.draw_circle(head + Vector2(-3, 0.5), 1.3, eye)
-		ci.draw_circle(head + Vector2(3, 0.5), 1.3, eye)
+		disc(ci, head + Vector2(-3, 0.5), 1.3, eye)
+		disc(ci, head + Vector2(3, 0.5), 1.3, eye)
 		ci.draw_rect(Rect2(head.x - 0.7, head.y + 1.6, 1.4, 1.8), shade(c.skin, -0.22))   # nose
 	if o.get("mouth_open", false):
-		ci.draw_circle(head + Vector2(0, 4.5), 2.6, INK)
+		disc(ci, head + Vector2(0, 4.5), 2.6, INK)
 	else:
 		if o.get("stubble", true):
-			ci.draw_arc(head + Vector2(0, 0.5), 6.2, 0.35, PI - 0.35, 10, Color(0, 0, 0, 0.2), 3.2)
+			arc(ci, head + Vector2(0, 0.5), 6.2, 0.35, PI - 0.35, 10, Color(0, 0, 0, 0.2), 3.2)
 		ci.draw_line(head + Vector2(-2, 4.6), head + Vector2(2, 4.3), shade(c.skin, -0.45), 1.0)
 
 static func _person_back(ci: CanvasItem, o: Dictionary, step: float, oy: float) -> void:
@@ -259,12 +324,12 @@ static func _person_back(ci: CanvasItem, o: Dictionary, step: float, oy: float) 
 	_torso_extras(ci, o, c, oy, "back", 0.0)
 	_held(ci, o, Vector2(12.5, 5 + oy), Vector2(0, -1), 0)
 	var head := Vector2(0, -15 + oy + (2.0 if zombie else 0.0))
-	ci.draw_circle(head + Vector2(-8, 1), 2.4, INK)
-	ci.draw_circle(head + Vector2(8, 1), 2.4, INK)
-	ci.draw_circle(head + Vector2(-8, 1), 1.4, c.skin)
-	ci.draw_circle(head + Vector2(8, 1), 1.4, shade(c.skin, -0.15))
+	disc(ci, head + Vector2(-8, 1), 2.4, INK)
+	disc(ci, head + Vector2(8, 1), 2.4, INK)
+	disc(ci, head + Vector2(-8, 1), 1.4, c.skin)
+	disc(ci, head + Vector2(8, 1), 1.4, shade(c.skin, -0.15))
 	ink_circle(ci, head, 8.0, c.hair)
-	ci.draw_arc(head + Vector2(0, 2), 5.0, 0.3, PI - 0.3, 8, shade(c.hair, 0.12), 2.0)
+	arc(ci, head + Vector2(0, 2), 5.0, 0.3, PI - 0.3, 8, shade(c.hair, 0.12), 2.0)
 	ci.draw_line(head + Vector2(-4, -6), head + Vector2(0, -7.5), shade(c.hair, 0.3), 1.4)
 	ci.draw_rect(Rect2(head.x - 5, head.y + 6, 10, 2.5), shade(c.skin, -0.1))   # neck
 	_head_extras(ci, o, head, 0.0)
@@ -319,8 +384,8 @@ static func _person_side(ci: CanvasItem, o: Dictionary, step: float, oy: float, 
 	# head
 	var head := Vector2(side * 1.5, -15 + oy + (2.0 if zombie else 0.0))
 	ink_circle(ci, head, 8.0, c.skin)
-	ci.draw_circle(head + Vector2(-side * 2.0, 1.5), 1.9, shade(c.skin, -0.2))   # ear
-	ci.draw_arc(head + Vector2(-side * 2.0, 1.5), 1.9, 0.0, TAU, 8, shade(c.skin, -0.4), 0.8)
+	disc(ci, head + Vector2(-side * 2.0, 1.5), 1.9, shade(c.skin, -0.2))   # ear
+	arc(ci, head + Vector2(-side * 2.0, 1.5), 1.9, 0.0, TAU, 8, shade(c.skin, -0.4), 0.8)
 	# hair: back and top of the head, a few spikes
 	ci.draw_colored_polygon(PackedVector2Array([head + Vector2(-side * 8.4, 3), head + Vector2(-side * 8.6, -5),
 		head + Vector2(-side * 5, -10.5), head + Vector2(-side * 2, -9.4), head + Vector2(side * 1, -11),
@@ -329,16 +394,16 @@ static func _person_side(ci: CanvasItem, o: Dictionary, step: float, oy: float, 
 	ci.draw_line(head + Vector2(-side * 4, -8), head + Vector2(side * 0.5, -9), shade(c.hair, 0.3), 1.4)
 	# face: brow, eye, nose, stubble, mouth
 	if zombie:
-		ci.draw_circle(head + Vector2(side * 4, 0), 2.0, INK)
+		disc(ci, head + Vector2(side * 4, 0), 2.0, INK)
 	else:
 		ci.draw_line(head + Vector2(side * 3.0, -2.3), head + Vector2(side * 6, -2.0), shade(c.hair, -0.2), 1.2)
-		ci.draw_circle(head + Vector2(side * 4, -0.2), 1.3, INK)
+		disc(ci, head + Vector2(side * 4, -0.2), 1.3, INK)
 		if o.get("stubble", true):
-			ci.draw_arc(head + Vector2(side * 2.5, 1.5), 5.0, 0.2 if side > 0 else PI * 0.5, PI * 0.5 if side > 0 else PI - 0.2,
+			arc(ci, head + Vector2(side * 2.5, 1.5), 5.0, 0.2 if side > 0 else PI * 0.5, PI * 0.5 if side > 0 else PI - 0.2,
 				6, Color(0, 0, 0, 0.2), 3.0)
 	ink_rect(ci, Rect2(head.x + side * 7.5 - (0.5 if side > 0 else 1.5), head.y + 1.0, 2, 2.5), c.skin, 1.0)   # nose
 	if o.get("mouth_open", false):
-		ci.draw_circle(head + Vector2(side * 4.5, 4.5), 2.4, INK)
+		disc(ci, head + Vector2(side * 4.5, 4.5), 2.4, INK)
 	_head_extras(ci, o, head, side)
 
 const HIVIS := Color("ff7a1a")
@@ -383,8 +448,8 @@ static func _torso_extras(ci: CanvasItem, o: Dictionary, c: Dictionary, oy: floa
 			Vector2(0, 3.5 + oy), Vector2(-2.5, 1 + oy)]), BLOOD, 1.0)
 	if o.get("blood", false):
 		# a few dark stains (comic, not gory)
-		ci.draw_circle(Vector2(x0 + w * 0.3, -3 + oy), 3.2, GORE)
-		ci.draw_circle(Vector2(x0 + w * 0.65, 1 + oy), 2.2, GORE)
+		disc(ci, Vector2(x0 + w * 0.3, -3 + oy), 3.2, GORE)
+		disc(ci, Vector2(x0 + w * 0.65, 1 + oy), 2.2, GORE)
 		ci.draw_rect(Rect2(x0 + w * 0.3 - 0.8, -3 + oy, 1.6, 7), GORE)
 
 ## Things worn on the head: party hat, cook's hat, riot helmet.
@@ -402,7 +467,7 @@ static func _head_extras(ci: CanvasItem, o: Dictionary, head: Vector2, side: flo
 		var col: Color = o.get("hat_color", Color("e84a8a"))
 		ink_poly(ci, PackedVector2Array([head + Vector2(-5, -7), head + Vector2(5, -7), head + Vector2(side * 2.0, -19)]), col, 1.4)
 		ci.draw_line(head + Vector2(-3, -11), head + Vector2(3, -11), YELLOW, 1.4)
-		ci.draw_circle(head + Vector2(side * 2.0, -19), 1.8, YELLOW)
+		disc(ci, head + Vector2(side * 2.0, -19), 1.8, YELLOW)
 	if o.get("toque", false):
 		ink_rect(ci, Rect2(head.x - 6, head.y - 13, 12, 6), Color("f0ece4"), 1.4)
 		ink_circle(ci, head + Vector2(0, -15), 5.5, Color("f0ece4"), 1.4)
@@ -447,7 +512,7 @@ static func _held(ci: CanvasItem, o: Dictionary, hand: Vector2, dir: Vector2, sw
 			ci.draw_line(hand, tip, INK, 7.0)
 			ci.draw_line(hand, tip, ZOMBIE, 4.5)
 			ink_circle(ci, tip, 3.6, ZOMBIE, 1.2)
-			ci.draw_circle(hand - d * 1.5, 2.6, BLOOD)
+			disc(ci, hand - d * 1.5, 2.6, BLOOD)
 		"coolant":
 			# v0.5: a small white-and-blue coolant can
 			ink_rect(ci, Rect2(hand.x - 3.5, hand.y - 6, 7, 10), Color("e8eef4"), 1.2)

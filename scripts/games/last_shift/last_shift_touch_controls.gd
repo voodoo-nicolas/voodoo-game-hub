@@ -374,8 +374,8 @@ func _draw() -> void:
 	_draw_b()
 	if show_swap:
 		var sc := _swap_center()
-		draw_circle(sc, SWAP_RADIUS, Color(1, 1, 1, 0.5 if (_swap_down or wheel_open) else 0.18))
-		draw_arc(sc, SWAP_RADIUS, 0.0, TAU, 32, Color(1, 1, 1, 0.6), 3.0)
+		A.disc(self, sc, SWAP_RADIUS, Color(1, 1, 1, 0.5 if (_swap_down or wheel_open) else 0.18))
+		A.arc(self, sc, SWAP_RADIUS, 0.0, TAU, 32, Color(1, 1, 1, 0.6), 3.0)
 		Icons.draw(self, "wheel", sc, 40.0, 0.9)
 	var r := _pause_rect()
 	draw_rect(r, Color(1, 1, 1, 0.5 if _pause_down else 0.2), true)
@@ -402,11 +402,11 @@ func _draw_arrow(center: Vector2, dir: Vector2, lit: bool) -> void:
 	draw_colored_polygon(pts, Color(1, 1, 1, 0.5 if lit else 0.18))
 	var outline := pts.duplicate()
 	outline.append(pts[0])
-	draw_polyline(outline, Color(1, 1, 1, 0.6), 3.0)
+	A.strip(self, outline, Color(1, 1, 1, 0.6), 3.0)
 
 func _button_base(center: Vector2, down: bool) -> void:
-	draw_circle(center, BUTTON_RADIUS, Color(1, 1, 1, 0.5 if down else 0.18))
-	draw_arc(center, BUTTON_RADIUS, 0.0, TAU, 40, Color(1, 1, 1, 0.6), 3.0)
+	A.disc(self, center, BUTTON_RADIUS, Color(1, 1, 1, 0.5 if down else 0.18))
+	A.arc(self, center, BUTTON_RADIUS, 0.0, TAU, 40, Color(1, 1, 1, 0.6), 3.0)
 
 ## Text centered on a point, shrunk until it fits `max_w` pixels.
 func _centered_text(center: Vector2, text: String, size_px: int, max_w: float, color: Color) -> void:
@@ -426,7 +426,7 @@ func _draw_a() -> void:
 	var c := _a_center()
 	_button_base(c, _a_down)
 	if a_progress >= 0.0:
-		draw_arc(c, BUTTON_RADIUS - 7.0, -PI * 0.5, -PI * 0.5 + TAU * a_progress, 40, A.AMBER, 8.0)
+		A.arc(self, c, BUTTON_RADIUS - 7.0, -PI * 0.5, -PI * 0.5 + TAU * a_progress, 40, A.AMBER, 8.0)
 	var col := Color(1, 1, 1, 0.95) if a_active else Color(1, 1, 1, 0.4)
 	_centered_text(c, a_label, 26, BUTTON_RADIUS * 2.0 - 20.0, col)
 
@@ -440,7 +440,7 @@ func _draw_b() -> void:
 
 func _draw_wheel() -> void:
 	var wc := _wheel_center()
-	draw_circle(wc, WHEEL_OUTER + 10.0, Color(0, 0, 0, 0.45))
+	A.disc(self, wc, WHEEL_OUTER + 10.0, Color(0, 0, 0, 0.45))
 	var n := WHEEL_ORDER.size()
 	var seg := TAU / n
 	for i in n:
@@ -452,8 +452,8 @@ func _draw_wheel() -> void:
 		var fill := Color(0.88, 0.6, 0.1, 0.75) if sel else (Color(0.12, 0.12, 0.15, 0.85) if owned else Color(0.08, 0.08, 0.1, 0.6))
 		# segment: a thick arc between the inner and outer radius, with gaps between segments
 		var r_mid := (WHEEL_OUTER + WHEEL_INNER) * 0.5
-		draw_arc(wc, r_mid, mid - seg * 0.5 + 0.05, mid + seg * 0.5 - 0.05, 24, fill, WHEEL_OUTER - WHEEL_INNER)
-		draw_arc(wc, WHEEL_OUTER, mid - seg * 0.5 + 0.05, mid + seg * 0.5 - 0.05, 24, Color(1, 1, 1, 0.5), 2.0)
+		A.arc(self, wc, r_mid, mid - seg * 0.5 + 0.05, mid + seg * 0.5 - 0.05, 24, fill, WHEEL_OUTER - WHEEL_INNER)
+		A.arc(self, wc, WHEEL_OUTER, mid - seg * 0.5 + 0.05, mid + seg * 0.5 - 0.05, 24, Color(1, 1, 1, 0.5), 2.0)
 		var ic := wc + Vector2(cos(mid), sin(mid)) * r_mid
 		if owned:
 			Icons.draw(self, wid, ic + Vector2(0, -6), 50.0)
@@ -462,6 +462,6 @@ func _draw_wheel() -> void:
 		else:
 			_centered_text(ic, "?", 34, 60.0, Color(1, 1, 1, 0.35))
 	# the middle: the equipped weapon's name
-	draw_circle(wc, WHEEL_INNER - 4.0, Color(0.06, 0.06, 0.08, 0.92))
-	draw_arc(wc, WHEEL_INNER - 4.0, 0.0, TAU, 32, A.AMBER, 2.5)
+	A.disc(self, wc, WHEEL_INNER - 4.0, Color(0.06, 0.06, 0.08, 0.92))
+	A.arc(self, wc, WHEEL_INNER - 4.0, 0.0, TAU, 32, A.AMBER, 2.5)
 	_centered_text(wc, str(wheel_names.get(wheel_equipped, "")), 18, WHEEL_INNER * 2.0 - 20.0, Color("ffd479"))
