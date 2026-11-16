@@ -33,6 +33,7 @@ Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall
   - `turned.md`: Turned (gothic vampire story game; the owner's story bible, brief and decisions are in `docs/turned/`; first slice = Prologue + Day 1; progressive-reveal rule)
   - `wilson.md`: Beached (castaway sim on the real clock: engine, sky, debug panel, tests; decisions in `docs/wilson/`)
   - `the-runner.md`: The Runner (space smuggling: data file, engine, map / dock / Menu screens, 10,000-trip economy test; brief + decisions in `docs/runner/`)
+  - `ink-ninja.md`: Ink Ninja (round 11: structures, lakes + drawbridge, spike boards, night stages, torch, secrets)
   - `neon-blast.md` (+ Sky Strike) · `poker.md` · `voodoo-iq.md` · `trace-it.md` · `creation.md` (alchemy game: data pipeline, tiers, monetization seam)
   - `pad.md`: the shared on-screen controller (`scripts/common/pad/`: layouts, looks, options) and the dev-only Pad Lab app; read before writing any touch controls
   - Hub shell internals (hub.gd, Catalog): `scripts/hub/CLAUDE.md`. Working on one game: you shouldn't need `hub.gd`; working on the hub: shouldn't need `scripts/games/`.

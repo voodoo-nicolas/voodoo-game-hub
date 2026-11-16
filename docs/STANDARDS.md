@@ -396,6 +396,9 @@ fits the game. Purpose: bring players back daily, without ads.
 - Each help is in the ⏸ pause menu with its count (or the wait) and in How to Play (🛟 Helps: what each does,
   plus the rule). A game may also put a 💡 button in its own bar. A help that can't do anything right now
   costs nothing ("No help needed right now").
+  **Exception (owner 2026-11-16): Ink Ninja** has no pause-menu buttons and no Helps lines in How to Play: its 3 helps
+  are extra lives that the game spends by itself when the last heart goes (`HomeKit.helps_left` / `use_help`, shown
+  as the number beside the headband on the HUD).
 - Online matches and scored tests never offer helps (they would change someone else's result or the score's
   meaning): Voodoo IQ is exempt. Party games with nothing to help with are exempt too; the exempt list is in
   `tools/hub.py` (`NO_HELPS`) with the reason for each.

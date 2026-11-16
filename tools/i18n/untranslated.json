@@ -895,6 +895,9 @@
  "Vigía del tiempo": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Water is slippery and fast; ice too. Grass grips. Climbing a hill slows you down a little; the ground never stops your shots, only grey cliffs do.": [
+  "scripts\\games\\hover_duel\\hover_duel_help.gd"
+ ],
  "Weather (auto = the seeded controller)": [
   "scripts\\games\\wilson\\wilson_debug.gd"
  ],
@@ -1012,6 +1015,9 @@
  ],
  "flashMs": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "foedrown:%d:%d": [
+  "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
  ],
  "for($i=0;$i -lt 60;$i++){try{Copy-Item -LiteralPath $p -Destination ($p+'.bak') -Force -ErrorAction Stop;": [
   "scripts\\common\\pc_updater.gd"

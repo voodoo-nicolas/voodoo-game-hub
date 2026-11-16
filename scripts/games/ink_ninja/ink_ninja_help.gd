@@ -4,32 +4,18 @@ extends RefCounted
 
 const ID := "ink_ninja"
 const TITLE := "Ink Ninja"
-const GOAL := "Run, leap and cut your way up a painted scroll: 24 stages in 6 acts, each act ending in a boss duel."
+const GOAL := "Run, leap and cut your way through a painted scroll."
+## Owner 2026-11-16: How to Play is the controller layout, nothing after it.
 const HOW := [
-	"Push the stick left or right to run. Pull it down to crouch and creep: low enemy stars fly over your head, and Swing becomes a low jab.",
-	"Push the stick up to jump; push it up again in the air for a double jump. Hold the stick against a wall while falling to slide down it, then push up to kick off.",
-	"A (Swing) cuts in front of you. A swing also cuts enemy throwing stars out of the air.",
-	"Y (Block), from stage 2: hold it to stop stars and blades coming from the front. X (Star), once you beat stage 2: throws a star; you start each stage with at least 8, and throwers sometimes drop 2 more.",
-	"B (Thrust), once you beat stage 3: lunge forward and run your blade through the first foe in your way (2 damage). While lunging, attacks pass through you.",
-	"Blade ninjas raise their sword before they cut, leapers jump at you, brutes take 3 hits and hit twice as hard.",
-	"You have 5 hearts and 3 lives. Losing all your hearts costs a life and sends you back to the last stone lantern you passed (4 on each stage). When something hits you, you are knocked back out of reach.",
-	"The ground rolls over hills and hollows, and many hollows hold water. Wading is slower. Where it is too deep to stand, press A to swim up.",
-	"Under water you hold your breath: the bubbles over your head count it down. Put your head above the surface to breathe again; with no breath left you lose a heart every few seconds.",
-	"Reach the gate at the end of a stage to clear it. Every fourth stage, the gate shuts behind you and the act's boss attacks. Watch for the pause before each move: a charge, a leap that shakes the ground, or a fan of stars.",
-	"Kills in a row score 100, 200, 300... up to 500 each. Scrolls score 50. Clearing a stage scores 500 plus a bonus for speed; a boss scores 2000 plus a bonus for speed. Find every scroll in a whole run for the second ending.",
-	"The story runs over 24 chapters: a card before each stage tells the next part, a painted scene plays between acts, and the ▸ line under the progress bar shows the stage's goal.",
-	"Objectives (on the Landing): one daily goal and one weekly goal. Finishing one adds 1000 (daily) or 5000 (weekly) points to the run you are playing.",
-	"⏸ pauses; Resume on the Home screen keeps your score, lives and stars and restarts the stage.",
+	"Stick: push left or right to run. Pull down to crouch and creep. Push up to jump; push up again in the air to jump higher. Against a wall, push up to kick off.",
+	"A (Swing): cut. Crouch and swing for a low jab. While rising, the cut goes straight up; while falling, it plunges down onto a foe.",
+	"Y (Block): hold to stop stars and blades from the front.",
+	"X (Star): throw a star.",
+	"B (Thrust): lunge forward and run your blade through a foe. While lunging, attacks pass through you.",
+	"Bomb: drop a smoke bomb. Foes in the cloud are blinded.",
 ]
-const TIPS := [
-	"Thrust through a boss's charge instead of jumping over it.",
-	"Jump when a boss lands from a leap: the shockwave only hits you on the ground.",
-	"Keep a few stars for the boss and slash the small fry.",
-	"Crouch under a star thrower's stars instead of jumping them.",
-	"Ninjas will not follow you into deep water.",
-	"A single blow never takes your last spare heart: you always get one more chance to get clear.",
-]
-const STATS := ["Best score", "Highest stage", "Bosses defeated", "Ninjas defeated", "Stars parried", "Daily objectives", "Weekly objectives", "Hearts carved", "Games played"]
+const TIPS := []
+const STATS := ["Best score", "Highest stage", "Bosses defeated", "Ninjas defeated", "Stars parried", "Daily objectives", "Weekly objectives", "Hearts carved", "Secrets found", "Pagodas climbed", "Games played"]
 const ACHIEVEMENTS := [
 	{"id": "boss1", "icon": "🗡️", "title": "First Duel", "key": "Bosses defeated", "at": 1, "xp": 12},
 	{"id": "stage5", "icon": "⛩️", "title": "Halfway Up the Mountain", "key": "Highest stage", "at": 12, "xp": 12},
@@ -39,6 +25,8 @@ const ACHIEVEMENTS := [
 	{"id": "weekly4", "icon": "🗓️", "title": "A Month of Ink", "key": "Weekly objectives", "at": 4, "xp": 12},
 	{"id": "hearts24", "icon": "❤️", "title": "Heart Carver", "key": "Hearts carved", "at": 24, "xp": 12},
 	{"id": "parry50", "icon": "✨", "title": "Star Cutter", "key": "Stars parried", "at": 50, "xp": 12},
+	{"id": "secrets10", "icon": "📜", "title": "Keeper of Secrets", "key": "Secrets found", "at": 10, "xp": 12},
+	{"id": "pagodas5", "icon": "🏯", "title": "Rooftop Runner", "key": "Pagodas climbed", "at": 5, "xp": 12},
 ]
 ## Learning hook (STANDARDS §15): checked facts about real ninja (shinobi) history and ink painting.
 const FACTS := [
