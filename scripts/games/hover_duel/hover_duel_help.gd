@@ -8,8 +8,8 @@ const GOAL := "Knock the other hovercraft's armour down to zero before it does t
 const HOW := [
 	"Hold the phone sideways. Push the stick the way you want to go: your hovercraft turns that way and speeds up. Let go and it drifts.",
 	"Fire shoots straight ahead, as fast as your guns reload. 🚀 Missile chases the other craft round corners. 💣 Mine drops behind you and blows up anyone who touches it after a second, you too.",
-	"Water is slippery and fast; ice too. Grass grips. Climbing a hill slows you down, and rolling down speeds you up.",
-	"High ground wins: shots fly at the height they were fired from, so a hill between you stops the shots of the craft below. Grey cliffs stop everything, and ramming them at speed hurts.",
+	"Water is slippery and fast; ice too. Grass grips. Climbing a hill slows you down a little; the ground never stops your shots, only grey cliffs do.",
+	"Shots and missiles fly over hills, rivers and lava. Grey cliffs stop everything, and ramming them at speed hurts. Blasts leave burnt marks on the ground.",
 	"Crates appear now and then: + repairs 30%, M gives 2 missiles, X gives 2 mines, S is a shield for 6 seconds.",
 	"In the Ash Fields the rivers are lava: hovering over them burns.",
 	"🗺 Campaign: the story of the Long Circuit. Beat 12 rivals across 6 lands, one at a time; each battle opens with a briefing. Win with more armour left for more stars (3 stars = 60% or more).",

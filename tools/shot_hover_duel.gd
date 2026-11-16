@@ -43,8 +43,13 @@ func _art() -> void:
 		if ch is Button or (game.touch_pad != null and ch == game.touch_pad):
 			ch.visible = false
 	game.home.visible = false
-	game.zoom = 1.0
-	game.cam = c0 + Vector2(-190, -60)
+	game.zoom = 1.15
+	game.cam = c0 + Vector2(-130, -20)
+	for k in 6:
+		game.scorches.append([c0 + Vector2(-60 + k * 38, 40 + (k % 3) * 22), 14.0 + k * 3.0, k * 1.3])
+	game.booms.append([c0 + Vector2(200, -80), 1.2, 0.15])
+	game._scorch(c0 + Vector2(200, -80), 30.0)
+	game.trails.append([c0 + Vector2(-30, 8), 0.2, Vector2(-80, 0), 1.0])
 	_hide_text(root, "?")
 	game.set_process(false)
 	game.terrain.queue_redraw()

@@ -74,6 +74,7 @@ var terrain_tex: ImageTexture
 var glow_tex: Texture2D       # soft disc for smoke / glow / blasts (see _soft)
 var cam := Vector2(E.W / 2.0, E.H / 2.0)
 var zoom: float = 0.5
+var scorches: Array = []      # [pos, radius, rot] burnt ground marks
 var sparks: Array = []        # [pos, vel, life, colour]
 var booms: Array = []         # [pos, size, age]
 var trails: Array = []        # [pos, age] wakes behind the craft
@@ -164,17 +165,17 @@ func _build_ui() -> void:
 	modes.append({"text": "👥 2 Players", "sub": "One phone held sideways, one half each", "multi": true, "action": _new_duo})
 	home = HomeKit.new({
 		# Menu style (docs/MENU_STYLES.md): S3 Rail List; colours: sky blue vs signal red.
-		"landing": "rail",
+		"landing": "monument",
 		"landing_style": MenuStyles,
 		"title_colors": [Color("4ab0ff"), Color("ff5a3a")],
 		"landing_colors": [Color("071018"), Color("16301c")],
 		"menu_color": Color("4ab0ff"),
-		"retro": true,
+		# "retro": true,   # (pixel look dropped: it made the Landing art blocky, 2026-11-16)
 		"help": HELP,
 		"info": info,
 		"accent": Color("4ab0ff"),
 		"solo_heading": "vs Computer",
-		"subtitle": "Hovercraft duel over hills, rivers and rock. High ground wins.",
+		"subtitle": "Fast one-on-one hovercraft duels over hills, rivers and rock.",
 		"logo": _draw_home_logo,
 		"art": LANDING_ART if ResourceLoader.exists(LANDING_ART) else "",
 		"landing_art": true,
@@ -214,8 +215,9 @@ func _add_pad() -> void:
 	touch_pad.layout_override = "stick_4"
 	touch_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(touch_pad)
-	for part in ["y", "pause", "info"]:
+	for part in ["pause", "info"]:
 		touch_pad.set_hidden(part, true)
+	touch_pad.set_state("y", {"sub": tr("Boost")})
 	touch_pad.set_state("a", {"glyph": "bolt", "sub": tr("Fire")})
 	touch_pad.set_state("b", {"sub": tr("Missile")})
 	touch_pad.set_state("x", {"glyph": "bomb", "sub": tr("Mine")})
@@ -253,12 +255,18 @@ func _restart() -> void:
 	match mode:
 		"campaign":
 			var b: Dictionary = E.CAMPAIGN[level]
-			engine.reset(b.theme, b.seed, [_my_ship(), b.foe], [-1, b.ai], [_my_ups(), {}])
+			engine.reset(b.theme, b.seed, [_my_ship(), b.foe], [-1, b.ai], [_my_ups(), {}], [false, bool(b.get("boss", false))], _campaign_abilities(level))
 		"duo":
 			engine.reset(VS_THEMES[randi() % VS_THEMES.size()], randi() % 100000, ["skimmer", "skimmer"], [-1, -1])
 		_:
 			engine.reset(VS_THEMES[randi() % VS_THEMES.size()], randi() % 100000, [_my_ship(), ["gnat", "hornet", "stingray"][level]], [-1, [0, 1, 2][level]], [_my_ups(), {}])
 	_begin()
+
+## The Campaign hands out one ability per battle: guns first, then missiles, mines, boost.
+func _campaign_abilities(battle: int) -> Array:
+	return E.ABILITIES.slice(0, clampi(battle + 1, 1, E.ABILITIES.size()))
+
+const ABILITY_NEW := ["", "🚀 New ability: Missiles! (L, or the 🚀 button) They chase the other craft.", "💣 New ability: Mines! (J, or the 💣 button) Drop one behind you.", "⚡ New ability: Boost! (Shift, or the ⚡ button) A burst of speed, back after 5 seconds."]
 
 func _begin() -> void:
 	_rebuild_terrain()
@@ -266,6 +274,7 @@ func _begin() -> void:
 	result_recorded = false
 	over_t = 0.0
 	sparks.clear()
+	scorches.clear()
 	booms.clear()
 	trails.clear()
 	fingers.clear()
@@ -281,6 +290,10 @@ func _begin() -> void:
 		if level == 0:
 			txt = tr(Story.INTRO) + "\n\n"
 		txt += "🎯 " + tr(ch.goal) + "\n\n" + tr(ch.brief)
+		if level >= 1 and level < ABILITY_NEW.size():
+			txt += "\n\n" + tr(ABILITY_NEW[level])
+		if E.CAMPAIGN[level].get("boss", false):
+			txt += "\n\n" + tr("⚠ Boss: it launches small attack drones. Shoot them down.")
 		brief_title.text = head
 		brief_text.text = txt
 		brief_dialog.visible = true
@@ -543,26 +556,33 @@ func _feed_goals(won: bool) -> String:
 func _gather_inputs() -> Array:
 	var out := [{"move": Vector2.ZERO, "fire": false, "missile": false, "mine": false},
 		{"move": Vector2.ZERO, "fire": false, "missile": false, "mine": false}]
-	# Keyboard. 1 player: WASD or arrows, Space / K fire, L missile, J mine.
+	# Keyboard, ship-relative: W thrust, S brake, A / D turn. 1 player: WASD or arrows,
+	# Space / K fire, L missile, J mine, Shift / B boost.
 	# 2 players: P1 WASD + Space/F/G, P2 arrows + Enter/. /,
 	var duo := mode == "duo"
 	var k1 := Vector2(float(Input.is_key_pressed(KEY_D)) - float(Input.is_key_pressed(KEY_A)),
-		float(Input.is_key_pressed(KEY_S)) - float(Input.is_key_pressed(KEY_W)))
+		float(Input.is_key_pressed(KEY_W)) - float(Input.is_key_pressed(KEY_S)))
 	var k2 := Vector2(float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT)),
-		float(Input.is_key_pressed(KEY_DOWN)) - float(Input.is_key_pressed(KEY_UP)))
+		float(Input.is_key_pressed(KEY_UP)) - float(Input.is_key_pressed(KEY_DOWN)))
 	if duo:
-		out[0].move = k1
+		_key_drive(out[0], k1)
 		out[0].fire = Input.is_key_pressed(KEY_SPACE)
-		out[1].move = k2
+		_key_drive(out[1], k2)
 		out[1].fire = Input.is_key_pressed(KEY_ENTER)
+		out[0].boost = Input.is_key_pressed(KEY_SHIFT)
+		out[1].boost = Input.is_key_pressed(KEY_SLASH)
 	else:
-		out[0].move = k1 if k1 != Vector2.ZERO else k2
+		_key_drive(out[0], k1 if k1 != Vector2.ZERO else k2)
 		out[0].fire = Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_K)
+		out[0].boost = Input.is_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_B)
 	if _uses_pad():
 		var v: Vector2 = touch_pad.get_vector("move")
 		if v.length() > 0.05:
 			out[0].move = v
+			out[0].erase("turn")
+			out[0].erase("thrust")
 		out[0].fire = out[0].fire or touch_pad.is_down("a")
+		out[0].boost = out[0].get("boost", false) or touch_pad.is_down("y")
 	# Own touch halves.
 	for f in fingers.values():
 		var s: int = f.side
@@ -577,6 +597,12 @@ func _gather_inputs() -> Array:
 		out[s].mine = edge_press[s].get("mine", false)
 		edge_press[s] = {}
 	return out
+
+## Keys give turn / thrust (the engine's tank-style steering); a stick gives "move".
+func _key_drive(inp: Dictionary, k: Vector2) -> void:
+	if k != Vector2.ZERO:
+		inp["turn"] = k.x
+		inp["thrust"] = k.y
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.pressed or event.echo or not started:
@@ -653,6 +679,10 @@ func _stick_r() -> float:
 
 ## The fire / missile / mine buttons of one side, at its outer bottom corner.
 func _buttons(side: int) -> Array:
+	var all := _all_buttons(side)
+	return all.filter(func(b): return b.kind == "fire" or engine.abilities.has(b.kind))
+
+func _all_buttons(side: int) -> Array:
 	var r := clampf(minf(size.x, size.y) * 0.075, 34.0, 60.0)
 	var inset := _safe()
 	var right: bool = mode != "duo" or side == 1
@@ -680,6 +710,9 @@ func _safe() -> Vector4:
 func _process(delta: float) -> void:
 	if touch_pad:
 		touch_pad.visible = started and _uses_pad() and not engine.is_over() and not briefing
+		touch_pad.set_hidden("b", not engine.abilities.has("missile"))
+		touch_pad.set_hidden("x", not engine.abilities.has("mine"))
+		touch_pad.set_hidden("y", not engine.abilities.has("boost"))
 	if not started and not engine.is_over():
 		return
 	delta = minf(delta, 0.05)
@@ -741,13 +774,28 @@ func _handle_events(evs: Array) -> void:
 				SoundLib.play(self, "scifi/impact_metal", -10.0)
 				if mode != "duo" and e[1] == 0:
 					_vibrate(30)
+			"ground":
+				_scorch(e[1], 7.0)
+				_burst(e[1], Color(0.8, 0.75, 0.6), 2)
+			"splash":
+				_burst(e[1], Color(0.75, 0.9, 1.0), 2)
+			"boost":
+				if e[1] == 0:
+					SoundLib.play(self, "scifi/laser_large", -10.0)
+					_show_banner(tr("Boost!"))
+			"drone":
+				_burst(e[1], Color(1.0, 0.4, 0.3), 6)
+			"dronedead":
+				_scorch(e[1], 9.0)
 			"wall":
+				_scorch(e[1], 8.0)
 				_burst(e[1], Color(0.8, 0.75, 0.6), 3)
 				if wall_sfx_t <= 0.0:
 					SoundLib.play(self, "impact/metal_light", -12.0)
 					wall_sfx_t = 0.25
 			"boom":
 				booms.append([e[1], e[2], 0.0])
+				_scorch(e[1], 22.0 * e[2])
 				_burst(e[1], Color("ff8a2a"), int(10 * e[2]))
 				shake = minf(1.0, shake + e[2] * 0.35)
 				SoundLib.play(self, "scifi/explosion_crunch" if e[2] < 2.0 else "scifi/low_frequency_explosion", -4.0)
@@ -762,6 +810,12 @@ func _handle_events(evs: Array) -> void:
 				_show_banner(tr({"repair": "Repaired!", "missiles": "+2 missiles", "mines": "+2 mines", "shield": "Shield!"}[e[2]]))
 			"dead":
 				_vibrate(120)
+
+## A burnt mark on the ground that stays for the rest of the battle.
+func _scorch(at: Vector2, r: float) -> void:
+	scorches.append([at, r * randf_range(0.85, 1.15), randf() * TAU])
+	if scorches.size() > 260:
+		scorches.pop_front()
 
 func _burst(at: Vector2, col: Color, n: int) -> void:
 	for i in n:
@@ -908,6 +962,15 @@ func _draw_field() -> void:
 		var rad: float = (5.0 + 26.0 * age) * float(t[3]) * k
 		var sc := Color(1.0, 0.55, 0.2).lerp(Color(0.45, 0.45, 0.48), clampf(age * 4.0, 0.0, 1.0))
 		_soft(c, _w2s(t[0]), rad * 1.3, Color(sc, 0.4 * a))
+	# Burnt marks on the ground (a dark soft core and a ragged halo).
+	for sc in scorches:
+		var sp := _w2s(sc[0])
+		var sr: float = sc[1] * k
+		_soft(c, sp, sr * 1.5, Color(0.0, 0.0, 0.0, 0.22))
+		_soft(c, sp, sr * 0.9, Color(0.04, 0.03, 0.02, 0.5))
+		for q in 3:
+			var ang: float = sc[2] + q * 2.1
+			_soft(c, sp + Vector2.RIGHT.rotated(ang) * sr * 0.7, sr * 0.45, Color(0.03, 0.02, 0.02, 0.3))
 	# Pickups.
 	for pk in engine.pickups:
 		var p := _w2s(pk.p)
@@ -933,6 +996,15 @@ func _draw_field() -> void:
 		var cr: Dictionary = engine.crafts[i]
 		if cr.alive:
 			_draw_craft(c, _w2s(cr.p), cr.a, k, cols[i], engine.time + i, cr.hit_t > 0.0, cr.shield > 0.0, false, cr.get("thrust", 0.0), cr.type)
+	# Boss drones: small red darts.
+	for d in engine.drones:
+		var dp := _w2s(d.p)
+		var fw := Vector2.RIGHT.rotated(d.a)
+		var sd := fw.orthogonal()
+		var ds := 11.0 * maxf(k, 0.8)
+		c.draw_colored_polygon(PackedVector2Array([dp + fw * ds * 1.4, dp - fw * ds + sd * ds * 0.9, dp - fw * ds * 0.5, dp - fw * ds - sd * ds * 0.9]), Color(0.78, 0.2, 0.18))
+		c.draw_colored_polygon(PackedVector2Array([dp + fw * ds * 0.7, dp - fw * ds * 0.2 + sd * ds * 0.35, dp - fw * ds * 0.2 - sd * ds * 0.35]), Color(1.0, 0.85, 0.5))
+		_soft(c, dp - fw * ds * 1.1, ds * 0.9, Color(1.0, 0.5, 0.15, 0.6))
 	# Shots and missiles.
 	for s in engine.shots:
 		var p := _w2s(s.p)
@@ -1096,14 +1168,26 @@ func _draw_hud() -> void:
 		var cr: Dictionary = engine.crafts[i]
 		var x: float = inset.x if i == 0 else size.x - inset.z - bw
 		var y: float = inset.y + 4.0
-		c.draw_rect(Rect2(x - 4, y - 4, bw + 8, 66), Color(0, 0, 0, 0.55))
 		var al := HORIZONTAL_ALIGNMENT_LEFT if i == 0 else HORIZONTAL_ALIGNMENT_RIGHT
-		c.draw_string(font, Vector2(x, y + 20), _name(i) + "  ·  " + tr(E.CRAFTS[cr.type].name), al, bw, 20, cols[i].lightened(0.45))
+		var nm := _name(i) + "  ·  " + tr(E.CRAFTS[cr.type].name)
+		c.draw_string_outline(font, Vector2(x, y + 20), nm, al, bw, 20, 6, Color(0, 0, 0, 0.85))
+		c.draw_string(font, Vector2(x, y + 20), nm, al, bw, 20, cols[i].lightened(0.45))
+		c.draw_rect(Rect2(x - 1, y + 27, bw + 2, 14), Color(0, 0, 0, 0.5))
 		c.draw_rect(Rect2(x, y + 28, bw, 12), Color(1, 1, 1, 0.15))
 		var f: float = cr.hp / cr.max
 		var hc := Color("5be36a") if f > 0.5 else (Color("ffb02e") if f > 0.25 else Color("ff4a3a"))
 		c.draw_rect(Rect2(x if i == 0 else x + bw * (1.0 - f), y + 28, bw * f, 12), hc)
-		c.draw_string(font, Vector2(x, y + 60), "🚀 %d   💣 %d" % [cr.missiles, cr.mines] + ("   🛡" if cr.shield > 0.0 else ""), al, bw, 18, Color(0.9, 0.9, 0.9))
+		var ammo_txt := ""
+		if engine.abilities.has("missile"):
+			ammo_txt += "🚀 %d   " % cr.missiles
+		if engine.abilities.has("mine"):
+			ammo_txt += "💣 %d   " % cr.mines
+		if engine.abilities.has("boost"):
+			ammo_txt += "⚡ " + ("%.0f" % ceilf(cr.boost_cd) if cr.boost_cd > 0.0 else tr("ready")) + "   "
+		ammo_txt += "🛡" if cr.shield > 0.0 else ""
+		if ammo_txt != "":
+			c.draw_string_outline(font, Vector2(x, y + 60), ammo_txt, al, bw, 18, 5, Color(0, 0, 0, 0.85))
+			c.draw_string(font, Vector2(x, y + 60), ammo_txt, al, bw, 18, Color(0.95, 0.95, 0.95))
 	# Own touch controls.
 	if not _uses_pad() and started and not engine.is_over():
 		var sides := [0, 1] if mode == "duo" else [0]

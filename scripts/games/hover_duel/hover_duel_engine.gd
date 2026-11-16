@@ -31,6 +31,19 @@ const PICKUP_EVERY := 11.0
 const PICKUP_MAX := 3
 const LAVA_DPS := 9.0
 const KINDS := ["repair", "missiles", "mines", "shield"]
+## Handling: the craft table's numbers are scaled up so the ships feel like jets, not barges.
+const SPEED_K := 1.6
+const ACCEL_K := 1.7
+const TURN_K := 1.7
+const DRAG := 0.7             # air friction (1/s); liquid and ice slide more
+const GRIP := 5.0             # how fast sideways drift dies (1/s) on firm ground
+const BOOST_TIME := 1.1
+const BOOST_CD := 5.0
+const DRONE_HP := 14.0
+const DRONE_SPEED := 300.0
+const DRONE_MAX := 3
+const DRONE_EVERY := 8.0
+const ABILITIES := ["gun", "missile", "mine", "boost"]   # the Campaign unlocks them one per battle
 
 ## Craft types. speed (units/s), accel, turn (rad/s), hp, cd (s between
 ## shots), dmg per shot, missiles / mines at the start.
@@ -142,21 +155,25 @@ var shots: Array = []         # {"p","v","z","o"(owner),"t","dmg"}
 var missiles: Array = []      # {"p","v","o","t","target"}
 var mines: Array = []         # {"p","o","t"}
 var pickups: Array = []       # {"p","kind","t"}
+var drones: Array = []        # {"p","v","a","hp","o"(owner craft),"cd","t"}
+var abilities: Array = ABILITIES.duplicate()
 var pickup_t: float = 0.0
 var winner: int = -1          # -1 playing, 0 / 1, 2 = both gone
 var time: float = 0.0
 var rng := RandomNumberGenerator.new()
-var events: Array = []        # filled by step(): ["shot", i], ["hit", i, pos, src], ["boom", pos, size], ["wall", pos], ["pick", i, kind], ["missile", i], ["mine", i], ["dead", i, src]; src = gun / missile / mine / lava / wall
+var events: Array = []        # filled by step(): ["shot", i], ["hit", i, pos, src], ["boom", pos, size], ["wall", pos], ["pick", i, kind], ["missile", i], ["mine", i], ["dead", i, src], ["ground", pos] (a shot ran out over the ground), ["splash", pos], ["boost", i], ["drone", pos], ["dronedead", pos]; src = gun / missile / mine / lava / wall
 
 # ---------- setup ----------
 
 ## types: [type0, type1]; ai: [-1 or level, -1 or level].
-func reset(theme_: String, seed_: int, types: Array, ai: Array, ups: Array = [{}, {}]) -> void:
+func reset(theme_: String, seed_: int, types: Array, ai: Array, ups: Array = [{}, {}], bosses: Array = [false, false], abil: Array = ABILITIES) -> void:
 	theme_id = theme_ if THEMES.has(theme_) else "valley"
 	theme = THEMES[theme_id]
 	map_seed = seed_
 	rng.seed = seed_
 	_make_map()
+	abilities = abil.duplicate()
+	drones = []
 	crafts = []
 	var spots := _start_spots()
 	for i in 2:
@@ -164,7 +181,9 @@ func reset(theme_: String, seed_: int, types: Array, ai: Array, ups: Array = [{}
 		var c: Dictionary = spec_for(str(types[i]), up)
 		var p: Vector2 = spots[i]
 		crafts.append({"p": p, "v": Vector2.ZERO, "a": (spots[1 - i] - p).angle(), "hp": c.hp, "max": c.hp, "spec": c, "up": up.duplicate(),
-			"type": types[i] if CRAFTS.has(types[i]) else "skimmer", "cd": 0.0, "missiles": c.missiles, "mines": c.mines,
+			"type": types[i] if CRAFTS.has(types[i]) else "skimmer", "cd": 0.0,
+			"missiles": c.missiles if abil.has("missile") else 0, "mines": c.mines if abil.has("mine") else 0,
+			"boss": i < bosses.size() and bool(bosses[i]), "drone_t": DRONE_EVERY * 0.6, "boost_t": 0.0, "boost_cd": 0.0, "splash_t": 0.0,
 			"shield": 0.0, "ai": int(ai[i]), "think": 0.0, "plan": Vector2.ZERO, "alive": true, "hit_t": 0.0,
 			"fire": false, "wiggle": rng.randf() * TAU, "last_d": 1e9, "stuck": 0.0, "detour": 0.0, "detour_a": 0.0})
 	shots = []
@@ -312,7 +331,7 @@ func line_clear(a: Vector2, b: Vector2, z: float) -> bool:
 	var n := int(a.distance_to(b) / (CELL * 1.5)) + 1
 	for i in range(1, n):
 		var p := a.lerp(b, float(i) / n)
-		if is_rock(p) or surface_at(p) > z:
+		if is_rock(p):
 			return false
 	return true
 
@@ -331,7 +350,7 @@ func step(dt: float, inputs: Array) -> Array:
 		if not c.alive:
 			continue
 		var inp: Dictionary = _ai_input(i, dt) if c.ai >= 0 else (inputs[i] if i < inputs.size() else {})
-		_drive(i, inp.get("move", Vector2.ZERO), dt)
+		_drive(i, inp, dt)
 		c.cd = maxf(0.0, c.cd - dt)
 		c.shield = maxf(0.0, c.shield - dt)
 		c.hit_t = maxf(0.0, c.hit_t - dt)
@@ -341,39 +360,73 @@ func step(dt: float, inputs: Array) -> Array:
 			fire_missile(i)
 		if inp.get("mine", false):
 			drop_mine(i)
+		if inp.get("boost", false) and abilities.has("boost") and c.boost_cd <= 0.0:
+			c.boost_t = BOOST_TIME
+			c.boost_cd = BOOST_CD
+			events.append(["boost", i])
+		c.boost_t = maxf(0.0, c.boost_t - dt)
+		c.boost_cd = maxf(0.0, c.boost_cd - dt)
+		if c.boss:
+			_boss_drones(i, dt)
 		if theme.liquid == "lava" and is_liquid(c.p):
 			_damage(i, LAVA_DPS * dt, c.p, false, "lava")
 	_step_effects(dt)
+	_step_drones(dt)
 	_step_pickups(dt)
 	_check_end()
 	return events
 
-func _drive(i: int, move: Vector2, dt: float) -> void:
+func _drive(i: int, inp: Dictionary, dt: float) -> void:
 	var c: Dictionary = crafts[i]
 	var spec: Dictionary = c.spec
-	var m := move.limit_length(1.0)
 	var drive := 0.0
-	if m.length() > 0.08:
-		# Turn towards the stick, thrust harder the better we face it.
-		var want := m.angle()
-		var diff := wrapf(want - c.a, -PI, PI)
-		c.a = wrapf(c.a + clampf(diff, -spec.turn * dt, spec.turn * dt), -PI, PI)
-		var facing := maxf(0.0, cos(diff))
-		drive = m.length() * (0.35 + 0.65 * facing)
-		c.v += Vector2.RIGHT.rotated(c.a) * spec.accel * drive * dt
+	var turn_rate: float = spec.turn * TURN_K
+	if inp.has("turn") or inp.has("thrust"):
+		# Keyboard: A / D steer, W thrusts, S brakes and backs off gently.
+		var tn: float = float(inp.get("turn", 0.0))
+		var th: float = float(inp.get("thrust", 0.0))
+		c.a = wrapf(c.a + tn * turn_rate * dt, -PI, PI)
+		drive = maxf(th, 0.0)
+		if th < 0.0:
+			c.v *= maxf(0.0, 1.0 - 3.5 * dt)
+			c.v -= Vector2.RIGHT.rotated(c.a) * spec.accel * ACCEL_K * 0.35 * dt
+	else:
+		var m: Vector2 = (inp.get("move", Vector2.ZERO) as Vector2).limit_length(1.0)
+		if m.length() > 0.08:
+			# Turn towards the stick; full thrust once roughly facing it.
+			var want := m.angle()
+			var diff := wrapf(want - c.a, -PI, PI)
+			c.a = wrapf(c.a + clampf(diff, -turn_rate * dt, turn_rate * dt), -PI, PI)
+			drive = m.length() * clampf(1.15 - absf(diff) / 1.3, 0.3, 1.0)
+	var boosting: bool = c.boost_t > 0.0
+	if boosting:
+		drive = 1.0
+	if drive > 0.0:
+		c.v += Vector2.RIGHT.rotated(c.a) * spec.accel * ACCEL_K * (2.2 if boosting else 1.0) * drive * dt
 	# How hard the engines are burning, 0..1, eased so the flame grows and fades (drawing only).
 	c.thrust = move_toward(float(c.get("thrust", 0.0)), drive, dt * 4.0)
-	# Hills: climbing slows, going down speeds up.
+	# The ground barely matters: only a climb eases the top speed a little.
 	var here := surface_at(c.p)
-	var grad := Vector2(surface_at(c.p + Vector2(CELL, 0)) - surface_at(c.p - Vector2(CELL, 0)),
-		surface_at(c.p + Vector2(0, CELL)) - surface_at(c.p - Vector2(0, CELL))) / (2.0 * CELL)
-	c.v -= grad * 15000.0 * dt
-	# Friction: liquid and ice are slippery.
 	var slick: bool = is_liquid(c.p) or (theme.ice and here > theme.sea + 0.05)
-	var fr := 0.9 if slick else 2.6
-	c.v *= maxf(0.0, 1.0 - fr * dt)
-	var top: float = spec.speed * (1.1 if slick else 1.0)
+	var top: float = spec.speed * SPEED_K * (1.1 if slick else 1.0) * (1.5 if boosting else 1.0)
+	var sp: float = c.v.length()
+	if sp > 1.0:
+		var grad := Vector2(surface_at(c.p + Vector2(CELL, 0)) - surface_at(c.p - Vector2(CELL, 0)),
+			surface_at(c.p + Vector2(0, CELL)) - surface_at(c.p - Vector2(0, CELL))) / (2.0 * CELL)
+		var climb: float = maxf(0.0, grad.dot(c.v / sp))
+		top *= 1.0 - clampf(climb * 22.0, 0.0, 0.3)
+	c.v *= maxf(0.0, 1.0 - (0.35 if slick else DRAG) * dt)
+	if not slick:
+		# Grip: sideways drift fades so the ship goes where its nose points.
+		var fwd := Vector2.RIGHT.rotated(c.a)
+		var side := fwd.orthogonal()
+		c.v = fwd * c.v.dot(fwd) + side * c.v.dot(side) * maxf(0.0, 1.0 - GRIP * dt)
 	c.v = c.v.limit_length(top)
+	# Splashing over water.
+	c.splash_t = maxf(0.0, c.splash_t - dt)
+	if is_liquid(c.p) and theme.liquid == "water" and c.v.length() > 120.0 and c.splash_t <= 0.0:
+		c.splash_t = 0.08
+		events.append(["splash", c.p - c.v.normalized() * 10.0])
 	var np: Vector2 = c.p + c.v * dt
 	if _blocked(np):
 		# Slide along the cliff: try each axis, else bounce.
@@ -389,8 +442,8 @@ func _drive(i: int, move: Vector2, dt: float) -> void:
 		else:
 			np = c.p
 			c.v *= -0.4
-		if speed > 220.0:
-			_damage(i, (speed - 220.0) * 0.04, c.p, false, "wall")
+		if speed > 300.0:
+			_damage(i, (speed - 300.0) * 0.03, c.p, false, "wall")
 			events.append(["wall", c.p])
 	c.p = np
 	# Craft bump each other.
@@ -442,9 +495,14 @@ func _step_effects(dt: float) -> void:
 	for s in shots:
 		s.p += s.v * dt
 		s.t -= dt
-		if is_rock(s.p) or surface_at(s.p) > s.z:
+		if is_rock(s.p):
 			s.t = -1.0
 			events.append(["wall", s.p])
+			continue
+		if s.t <= 0.0:
+			events.append(["ground", s.p])
+			continue
+		if _shot_hits_drone(s):
 			continue
 		for j in 2:
 			var c: Dictionary = crafts[j]
@@ -485,6 +543,67 @@ func _step_effects(dt: float) -> void:
 				break
 	mines = mines.filter(func(m): return m.t > -50.0)
 
+# ---------- boss drones ----------
+
+## A boss launches small drones that hunt the other craft.
+func _boss_drones(i: int, dt: float) -> void:
+	var c: Dictionary = crafts[i]
+	c.drone_t -= dt
+	var mine_n := 0
+	for d in drones:
+		if d.o == i:
+			mine_n += 1
+	if c.drone_t <= 0.0 and mine_n < DRONE_MAX and crafts[1 - i].alive:
+		c.drone_t = DRONE_EVERY
+		var dir := Vector2.RIGHT.rotated(c.a + (PI * 0.5 if mine_n % 2 == 0 else -PI * 0.5))
+		drones.append({"p": c.p + dir * CRAFT_R, "v": dir * 200.0, "a": dir.angle(), "hp": DRONE_HP, "o": i, "cd": 1.0, "t": 0.0})
+		events.append(["drone", c.p])
+
+func _step_drones(dt: float) -> void:
+	for d in drones:
+		d.t += dt
+		var target: Dictionary = crafts[1 - d.o]
+		if not target.alive:
+			d.hp = 0.0
+			continue
+		var to: Vector2 = target.p - d.p
+		var want: Vector2 = to.normalized()
+		# Weave round the target at close range so they keep shooting.
+		if to.length() < 150.0:
+			want = (-want + want.orthogonal() * 1.4).normalized()
+		d.v = d.v.lerp(want * DRONE_SPEED, minf(1.0, 2.5 * dt))
+		var np: Vector2 = d.p + d.v * dt
+		if is_rock(np):
+			d.v = -d.v * 0.5
+			np = d.p
+		d.p = np
+		d.a = d.v.angle()
+		d.cd -= dt
+		if d.cd <= 0.0 and to.length() < 420.0:
+			d.cd = 0.9
+			var dir := to.normalized()
+			shots.append({"p": d.p + dir * 10.0, "v": dir * SHOT_SPEED * 0.8, "z": 0.0, "o": d.o, "t": SHOT_LIFE, "dmg": 2.5, "drone": true})
+		if to.length() < CRAFT_R + 8.0:
+			_damage(1 - d.o, 4.0, d.p, true, "gun")
+			d.hp = 0.0
+			events.append(["boom", d.p, 0.7])
+	for d in drones:
+		if d.hp <= 0.0:
+			events.append(["dronedead", d.p])
+	drones = drones.filter(func(d): return d.hp > 0.0)
+
+## A shot of the other side that touches a drone damages it. True if it did.
+func _shot_hits_drone(s: Dictionary) -> bool:
+	for d in drones:
+		if d.o != s.o and s.p.distance_to(d.p) < 14.0:
+			d.hp -= s.dmg
+			s.t = -1.0
+			events.append(["hit", -1, s.p, "gun"])
+			if d.hp <= 0.0:
+				events.append(["boom", d.p, 0.8])
+			return true
+	return false
+
 func _step_pickups(dt: float) -> void:
 	pickup_t -= dt
 	if pickup_t <= 0.0 and pickups.size() < PICKUP_MAX:
@@ -492,7 +611,10 @@ func _step_pickups(dt: float) -> void:
 		for tries in 30:
 			var p := Vector2(rng.randf_range(80, W - 80), rng.randf_range(80, H - 80))
 			if not _blocked(p) and not (theme.liquid == "lava" and is_liquid(p)):
-				pickups.append({"p": p, "kind": KINDS[rng.randi() % KINDS.size()], "t": 0.0})
+				var kind: String = KINDS[rng.randi() % KINDS.size()]
+				if (kind == "missiles" and not abilities.has("missile")) or (kind == "mines" and not abilities.has("mine")):
+					kind = "repair"
+				pickups.append({"p": p, "kind": kind, "t": 0.0})
 				break
 	for pk in pickups:
 		pk.t += dt
@@ -657,26 +779,28 @@ func to_dict() -> Dictionary:
 	var cs: Array = []
 	for c in crafts:
 		cs.append({"p": [c.p.x, c.p.y], "v": [c.v.x, c.v.y], "a": c.a, "hp": c.hp, "max": c.max, "type": c.type,
-			"missiles": c.missiles, "mines": c.mines, "shield": c.shield, "ai": c.ai, "alive": c.alive, "up": c.get("up", {})})
+			"missiles": c.missiles, "mines": c.mines, "shield": c.shield, "ai": c.ai, "alive": c.alive, "up": c.get("up", {}), "boss": c.boss})
 	var ms: Array = []
 	for m in mines:
 		ms.append({"p": [m.p.x, m.p.y], "o": m.o, "t": m.t})
 	var ps: Array = []
 	for pk in pickups:
 		ps.append({"p": [pk.p.x, pk.p.y], "kind": pk.kind})
-	return {"theme": theme_id, "seed": map_seed, "crafts": cs, "mines": ms, "pickups": ps, "time": time}
+	return {"theme": theme_id, "seed": map_seed, "abil": abilities, "crafts": cs, "mines": ms, "pickups": ps, "time": time}
 
 func from_dict(d: Dictionary) -> void:
 	var cs: Array = d.get("crafts", [])
 	var types := ["skimmer", "skimmer"]
 	var ai := [-1, 1]
 	var ups := [{}, {}]
+	var bosses := [false, false]
 	for i in mini(2, cs.size()):
+		bosses[i] = bool(cs[i].get("boss", false))
 		types[i] = str(cs[i].get("type", "skimmer"))
 		ai[i] = int(cs[i].get("ai", -1))
 		var u = cs[i].get("up", {})
 		ups[i] = u if u is Dictionary else {}
-	reset(str(d.get("theme", "valley")), int(d.get("seed", 1)), types, ai, ups)
+	reset(str(d.get("theme", "valley")), int(d.get("seed", 1)), types, ai, ups, bosses, d.get("abil", ABILITIES))
 	for i in mini(2, cs.size()):
 		var s: Dictionary = cs[i]
 		var c: Dictionary = crafts[i]

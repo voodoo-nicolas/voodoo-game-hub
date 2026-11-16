@@ -13,7 +13,7 @@ const CHAPTERS := [
 	{"goal": "Earn the valley's respect", "brief": "Pip has watched every duel in the valley for years and finally wants a turn. Use the river: water is fast, and Pip hates getting wet."},
 	{"goal": "Get past the ferryman of the Isles", "brief": "Old Mossback's Barge is slow and built like a wall. Stay out of mine range, circle, and wear it down."},
 	{"goal": "Cross the open sea", "brief": "Reef's Stingray owns the open water. Fight near the islands, where its speed counts for less."},
-	{"goal": "Climb into the Highlands", "brief": "Crag never comes down from the hilltops. Remember: from below, the hill eats your shots. Get up there."},
+	{"goal": "Climb into the Highlands", "brief": "Crag never comes down from the hilltops. Hills only slow you a little, so climb up and take the fight to him."},
 	{"goal": "Topple The Mountain", "brief": "The Mountain guards the high pass in a Bulwark with twice your armour. Missiles, crates, patience."},
 	{"goal": "Find the oasis road", "brief": "Mirage only fights at noon, in the shimmer off the dunes. Watch the shadows, not the craft."},
 	{"goal": "Outrun the Sidewinder", "brief": "Sidewinder flies a Gnat with nothing to lose. Don't chase it into the dunes: let it come to you."},
