@@ -585,6 +585,7 @@ NO_HELPS = {
     "fastest_finger": "head to head on one phone: a help favours one player",
     "who_am_i": "head to head on one phone: a help favours one player",
     "charades": "party game: passing a word is already free",
+    "hesperia": "story adventure: hints need story-aware writing (owner to decide)",
 }
 
 

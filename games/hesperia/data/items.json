@@ -1,0 +1,634 @@
+[
+ {
+  "id": "gaff",
+  "name": "Fisher's Gaff",
+  "category": "sword",
+  "source": "D0 Gull Cave (father's)",
+  "effect": "Short reach, 1 dmg. Starting weapon.",
+  "myth": "Fisherman's hook"
+ },
+ {
+  "id": "xiphos",
+  "name": "Bronze Xiphos",
+  "category": "sword",
+  "source": "Mycenor armory after Seal II",
+  "effect": "2 dmg, wider arc.",
+  "myth": "Hoplite short sword"
+ },
+ {
+  "id": "harpe",
+  "name": "Harpe of Perseus",
+  "category": "sword",
+  "source": "Pythona temple after Seals I-III",
+  "effect": "4 dmg, sword beam at full hearts. The 'master blade'.",
+  "myth": "Perseus' sickle-sword"
+ },
+ {
+  "id": "harpe_t",
+  "name": "Tempered Harpe",
+  "category": "sword",
+  "source": "Forge of Hephaestus (temper)",
+  "effect": "8 dmg, beam always.",
+  "myth": "Forged by Hephaestus"
+ },
+ {
+  "id": "orichalcum_harpe",
+  "name": "Orichalcum Harpe",
+  "category": "sword",
+  "source": "D11 Hesperides (upgrade)",
+  "effect": "16 dmg, hurts Titans.",
+  "myth": "Atlantean orichalcum"
+ },
+ {
+  "id": "wicker",
+  "name": "Wicker Shield",
+  "category": "shield",
+  "source": "Start",
+  "effect": "Blocks arrows/rocks.",
+  "myth": "—"
+ },
+ {
+  "id": "hoplon",
+  "name": "Bronze Hoplon",
+  "category": "shield",
+  "source": "Mycenor smith (side)",
+  "effect": "Blocks fireballs too.",
+  "myth": "Hoplite shield"
+ },
+ {
+  "id": "aegis",
+  "name": "Aegis Shield (Girdle)",
+  "category": "shield",
+  "source": "D9 Themiscyra",
+  "effect": "Reflects magic and arrows. Gorgon head emblem.",
+  "myth": "Aegis of Athena"
+ },
+ {
+  "id": "linen",
+  "name": "Linen Tunic",
+  "category": "armor",
+  "source": "Start",
+  "effect": "Base defense.",
+  "myth": "—"
+ },
+ {
+  "id": "cuirass",
+  "name": "Hoplite Cuirass",
+  "category": "armor",
+  "source": "Side quest: Mycenor",
+  "effect": "-50% damage.",
+  "myth": "Bronze breastplate"
+ },
+ {
+  "id": "lion_hide",
+  "name": "Nemean Lion Hide",
+  "category": "armor",
+  "source": "D2 / Argyros tailor",
+  "effect": "-75% damage.",
+  "myth": "Heracles' impenetrable pelt"
+ },
+ {
+  "id": "torch",
+  "name": "Prometheus Torch",
+  "category": "key",
+  "source": "D0 Gull Cave",
+  "effect": "Lights dark rooms, burns bushes/webs. Magic cost.",
+  "myth": "Fire stolen by Prometheus"
+ },
+ {
+  "id": "fire_rod",
+  "name": "Brand of Iolaus",
+  "category": "key",
+  "source": "D1 Lerna",
+  "effect": "Fire bolt; cauterizes hydra stumps; melts ice.",
+  "myth": "Iolaus burned the hydra's necks"
+ },
+ {
+  "id": "gauntlets",
+  "name": "Gauntlets of Heracles",
+  "category": "key",
+  "source": "D2 Nemean",
+  "effect": "Lift heavy rocks. Upgrade 'Titan Grip' lifts boulders (Act III).",
+  "myth": "Heracles' strength"
+ },
+ {
+  "id": "bow",
+  "name": "Bow of Artemis",
+  "category": "key",
+  "source": "D3 Artemis Wood",
+  "effect": "Arrows (wooden); silver arrows later.",
+  "myth": "Artemis the Huntress"
+ },
+ {
+  "id": "sandals",
+  "name": "Winged Sandals",
+  "category": "key",
+  "source": "Ephyra side quest (Hermes)",
+  "effect": "Hold to dash; breaks bushes/boulders, crosses short gaps.",
+  "myth": "Talaria of Hermes"
+ },
+ {
+  "id": "boat",
+  "name": "Boat 'Kymothoe'",
+  "category": "key",
+  "source": "Halcyon Cove repair chain",
+  "effect": "Sail the sea map; islands.",
+  "myth": "Your father's boat, named for a Nereid"
+ },
+ {
+  "id": "mirror",
+  "name": "Mirror of Hermes",
+  "category": "key",
+  "source": "Dungeon Senate Palace",
+  "effect": "Warp between Hesperia and Aurea; shows true form.",
+  "myth": "Hermes' polished shield"
+ },
+ {
+  "id": "iron_ring",
+  "name": "Iron Ring",
+  "category": "key",
+  "source": "Forge of Hephaestus",
+  "effect": "Immune to Gilding in Aurea. Iron = the age to come.",
+  "myth": "Hesiod's Age of Iron"
+ },
+ {
+  "id": "hammer",
+  "name": "Hammer of Hephaestus",
+  "category": "key",
+  "source": "Forge of Hephaestus",
+  "effect": "Smash pegs, crack stone, flatten spikes.",
+  "myth": "Smith-god's hammer"
+ },
+ {
+  "id": "ice_rod",
+  "name": "Horn of Boreas",
+  "category": "key",
+  "source": "D4 Frostpeak",
+  "effect": "Ice bolt; freezes enemies/water into blocks.",
+  "myth": "Boreas, north wind"
+ },
+ {
+  "id": "fins",
+  "name": "Nereid Fins",
+  "category": "key",
+  "source": "D5 Augean Stables",
+  "effect": "Swim rivers/lakes; dive for items.",
+  "myth": "Nereids"
+ },
+ {
+  "id": "boomerang",
+  "name": "Rattle of Hephaestus",
+  "category": "key",
+  "source": "D6 Stymphalian Mere",
+  "effect": "Stuns, retrieves items, hits switches. Upgrade: Bronze Wind.",
+  "myth": "Bronze krotala that scared the birds"
+ },
+ {
+  "id": "thread",
+  "name": "Ariadne's Thread",
+  "category": "key",
+  "source": "D7 Labyrinth",
+  "effect": "Grapple tether; pulls to posts/pulls items.",
+  "myth": "Ariadne's clew"
+ },
+ {
+  "id": "reins",
+  "name": "Reins of Diomedes",
+  "category": "key",
+  "source": "D8 Stables",
+  "effect": "Whistle for horse: fast-travel between 10 stables.",
+  "myth": "Mares of Diomedes"
+ },
+ {
+  "id": "cloak",
+  "name": "Cloak of Geryon",
+  "category": "key",
+  "source": "D10 Erytheia",
+  "effect": "Invisibility (magic drain); pass through bolts.",
+  "myth": "Geryon's red cattle cloak"
+ },
+ {
+  "id": "golden_apple",
+  "name": "Golden Apple",
+  "category": "key",
+  "source": "D11 Hesperides",
+  "effect": "Full heal item (1 per bottle). Grants Magic Meter upgrade.",
+  "myth": "Apples of the Hesperides"
+ },
+ {
+  "id": "helm",
+  "name": "Helm of Hades",
+  "category": "key",
+  "source": "D12 Avernus",
+  "effect": "Dark vision, stealth past guards, breaks Gilding in Aurea.",
+  "myth": "Cap of invisibility of Hades"
+ },
+ {
+  "id": "sibyl_scroll",
+  "name": "Sibyl's Scroll",
+  "category": "key",
+  "source": "Cumae side quest",
+  "effect": "Read glyph tablets (Linear B).",
+  "myth": "Cumaean Sibyl"
+ },
+ {
+  "id": "pan_flute",
+  "name": "Pan's Flute",
+  "category": "key",
+  "source": "Satyr Wood side quest",
+  "effect": "Charms animals; opens secret grottos.",
+  "myth": "Pan"
+ },
+ {
+  "id": "spade",
+  "name": "Spade of Demeter",
+  "category": "key",
+  "source": "Lavinium side quest",
+  "effect": "Dig for treasure; plant seeds.",
+  "myth": "Demeter"
+ },
+ {
+  "id": "net",
+  "name": "Nymph Net",
+  "category": "key",
+  "source": "Ostia Nova",
+  "effect": "Catches fish, bees, nymphs (fairies) into amphorae.",
+  "myth": "Dryads/Nereids"
+ },
+ {
+  "id": "wand_circe",
+  "name": "Wand of Circe",
+  "category": "key",
+  "source": "Aeaea",
+  "effect": "Turns enemies into swine (temporary).",
+  "myth": "Circe's pigs"
+ },
+ {
+  "id": "wind_bag",
+  "name": "Wind Bag of Aeolus",
+  "category": "key",
+  "source": "Cloud Palace",
+  "effect": "Hover/glide short distance.",
+  "myth": "Aeolus' bag of winds"
+ },
+ {
+  "id": "gorgon_eye",
+  "name": "Gorgon's Eye",
+  "category": "key",
+  "source": "Gorgon's Lair",
+  "effect": "Petrify/stun in a cone (magic).",
+  "myth": "Gorgon gaze"
+ },
+ {
+  "id": "trident",
+  "name": "Trident of Poseidon",
+  "category": "key",
+  "source": "Sunken Temple of Tritonis (dW)",
+  "effect": "Water jet bolt; flips current switches; breathes underwater for 60 s.",
+  "myth": "Poseidon's trident"
+ },
+ {
+  "id": "fishing_rod",
+  "name": "Fisher's Line",
+  "category": "key",
+  "source": "Stavros (Halcyon Cove)",
+  "effect": "Fishing; catch fish for obols and hearts.",
+  "myth": "Fisherman"
+ },
+ {
+  "id": "pearl",
+  "name": "Pearl",
+  "category": "collectible",
+  "source": "Salt Lagoon / shipwrecks",
+  "effect": "Sold or traded; 5 for a quest.",
+  "myth": "Pearl divers"
+ },
+ {
+  "id": "greek_fire",
+  "name": "Greek Fire Pots",
+  "category": "consumable",
+  "source": "Shops",
+  "effect": "Bombs; blast cracked walls.",
+  "myth": "Greek fire"
+ },
+ {
+  "id": "boon_zeus",
+  "name": "Thunder of Zeus/Jupiter",
+  "category": "boon",
+  "source": "Shrine of Zeus (Aventina)",
+  "effect": "Screen-wide lightning.",
+  "myth": "Zeus"
+ },
+ {
+  "id": "boon_apollo",
+  "name": "Sunfire of Apollo/Sol",
+  "category": "boon",
+  "source": "Shrine of Apollo (Pythona)",
+  "effect": "Burns all in a ring; reveals hidden.",
+  "myth": "Apollo"
+ },
+ {
+  "id": "boon_poseidon",
+  "name": "Earthshaker of Poseidon",
+  "category": "boon",
+  "source": "Shrine of Poseidon (Halcyon)",
+  "effect": "Quake damages grounded foes; breaks floors.",
+  "myth": "Poseidon"
+ },
+ {
+  "id": "boon_hermes",
+  "name": "Swiftness of Hermes",
+  "category": "boon",
+  "source": "Shrine of Hermes (Ephyra)",
+  "effect": "Temporary double speed.",
+  "myth": "Hermes"
+ },
+ {
+  "id": "boon_athena",
+  "name": "Insight of Athena",
+  "category": "boon",
+  "source": "Shrine of Athena (Mycenor)",
+  "effect": "Shows weakpoints and secret doors.",
+  "myth": "Athena"
+ },
+ {
+  "id": "boon_ares",
+  "name": "Fury of Ares/Mars",
+  "category": "boon",
+  "source": "Shrine of Ares (Castra Lupa)",
+  "effect": "Damage x2 for a time.",
+  "myth": "Ares"
+ },
+ {
+  "id": "boon_artemis",
+  "name": "Moonlight of Artemis",
+  "category": "boon",
+  "source": "Shrine of Artemis (Artemis Wood)",
+  "effect": "Silver arrows; night vision.",
+  "myth": "Artemis"
+ },
+ {
+  "id": "boon_hephaestus",
+  "name": "Anvil of Hephaestus",
+  "category": "boon",
+  "source": "Forge of Hephaestus",
+  "effect": "Temper gear free once per upgrade.",
+  "myth": "Hephaestus"
+ },
+ {
+  "id": "boon_demeter",
+  "name": "Bounty of Demeter/Ceres",
+  "category": "boon",
+  "source": "Shrine of Demeter (Lavinium)",
+  "effect": "Heals hearts from crops/enemies drop more.",
+  "myth": "Demeter"
+ },
+ {
+  "id": "boon_aphrodite",
+  "name": "Charm of Aphrodite/Venus",
+  "category": "boon",
+  "source": "Shrine of Aphrodite (Lavinium)",
+  "effect": "Enemies pause; shops -20%.",
+  "myth": "Aphrodite"
+ },
+ {
+  "id": "boon_dionysus",
+  "name": "Revelry of Dionysus/Bacchus",
+  "category": "boon",
+  "source": "Shrine in Ephyra",
+  "effect": "Confuses enemies; random buffs.",
+  "myth": "Dionysus"
+ },
+ {
+  "id": "boon_hestia",
+  "name": "Hearth of Hestia/Vesta",
+  "category": "boon",
+  "source": "Shrine in Halcyon Cove",
+  "effect": "Revive once per dungeon.",
+  "myth": "Hestia"
+ },
+ {
+  "id": "heart_piece",
+  "name": "Laurel Leaf (heart piece)",
+  "category": "collectible",
+  "source": "Overworld/side quests",
+  "effect": "4 leaves = +1 heart. 24 leaves in the world = +6 hearts.",
+  "myth": "Laurel of Apollo"
+ },
+ {
+  "id": "heart_container",
+  "name": "Heart Vessel",
+  "category": "collectible",
+  "source": "Labor bosses (12)",
+  "effect": "+1 heart.",
+  "myth": "Vitality of heroes"
+ },
+ {
+  "id": "magic_1",
+  "name": "Magic Upgrade (half cost)",
+  "category": "upgrade",
+  "source": "Pythona (side quest)",
+  "effect": "Magic costs 1/2.",
+  "myth": "Sibyl's blessing"
+ },
+ {
+  "id": "magic_2",
+  "name": "Magic Upgrade (quarter cost)",
+  "category": "upgrade",
+  "source": "D11 Golden Apple",
+  "effect": "Magic costs 1/4.",
+  "myth": "Hesperides"
+ },
+ {
+  "id": "amphora",
+  "name": "Amphora (bottle)",
+  "category": "upgrade",
+  "source": "4 locations",
+  "effect": "Stores potions/fairies/honey/water.",
+  "myth": "Clay amphora"
+ },
+ {
+  "id": "quiver_up",
+  "name": "Bigger Quiver",
+  "category": "upgrade",
+  "source": "Shop/side quest",
+  "effect": "30 -> 50 -> 70 arrows.",
+  "myth": "—"
+ },
+ {
+  "id": "pouch_up",
+  "name": "Bigger Fire-Pot Pouch",
+  "category": "upgrade",
+  "source": "Shop/side quest",
+  "effect": "10 -> 30 -> 50 pots.",
+  "myth": "—"
+ },
+ {
+  "id": "purse_up",
+  "name": "Larger Purse",
+  "category": "upgrade",
+  "source": "Shops",
+  "effect": "Obol cap 99 -> 500 -> 999.",
+  "myth": "Obol coins"
+ },
+ {
+  "id": "titan_grip",
+  "name": "Titan Grip",
+  "category": "upgrade",
+  "source": "Side quest: Lemnos",
+  "effect": "Lift boulders.",
+  "myth": "Titan strength"
+ },
+ {
+  "id": "silver_arrows",
+  "name": "Silver Arrows",
+  "category": "upgrade",
+  "source": "Artemis side quest",
+  "effect": "Strong vs bosses.",
+  "myth": "Artemis"
+ },
+ {
+  "id": "bronze_wind",
+  "name": "Bronze Wind",
+  "category": "upgrade",
+  "source": "Lemnos smith",
+  "effect": "Boomerang range and damage.",
+  "myth": "—"
+ },
+ {
+  "id": "gilded_soul_token",
+  "name": "Gilded Soul",
+  "category": "collectible",
+  "source": "Aurea statues",
+  "effect": "40 freed civilians; rewards at milestones.",
+  "myth": "Midas victims"
+ },
+ {
+  "id": "honey",
+  "name": "Honeycomb",
+  "category": "consumable",
+  "source": "Bees/shops",
+  "effect": "Restores 3 hearts.",
+  "myth": "Bees of Hymettus"
+ },
+ {
+  "id": "nectar",
+  "name": "Nectar Potion",
+  "category": "consumable",
+  "source": "Shops/side quests",
+  "effect": "Restores hearts and magic.",
+  "myth": "Nectar"
+ },
+ {
+  "id": "ambrosia",
+  "name": "Ambrosia",
+  "category": "consumable",
+  "source": "Rare",
+  "effect": "Restores all, +1 temporary heart.",
+  "myth": "Food of gods"
+ },
+ {
+  "id": "nymph",
+  "name": "Nymph in Amphora",
+  "category": "consumable",
+  "source": "Net/Fountain",
+  "effect": "Auto-revive.",
+  "myth": "Nymph fairy"
+ },
+ {
+  "id": "obol",
+  "name": "Obol",
+  "category": "currency",
+  "source": "Everywhere",
+  "effect": "Currency.",
+  "myth": "Charon's fee"
+ },
+ {
+  "id": "drachma",
+  "name": "Drachma",
+  "category": "currency",
+  "source": "Everywhere",
+  "effect": "5 obols.",
+  "myth": "—"
+ },
+ {
+  "id": "talent",
+  "name": "Silver Talent",
+  "category": "currency",
+  "source": "Rare",
+  "effect": "20 obols.",
+  "myth": "—"
+ },
+ {
+  "id": "heart_drop",
+  "name": "Heart (drop)",
+  "category": "pickup",
+  "source": "Enemies",
+  "effect": "Restores 1 heart.",
+  "myth": "—"
+ },
+ {
+  "id": "magic_jar",
+  "name": "Oil Jar (magic)",
+  "category": "pickup",
+  "source": "Enemies",
+  "effect": "Restores magic.",
+  "myth": "—"
+ },
+ {
+  "id": "arrow_drop",
+  "name": "Arrow bundle",
+  "category": "pickup",
+  "source": "Enemies",
+  "effect": "+5 arrows.",
+  "myth": "—"
+ },
+ {
+  "id": "pot_drop",
+  "name": "Fire-Pot",
+  "category": "pickup",
+  "source": "Enemies",
+  "effect": "+1 fire pot.",
+  "myth": "—"
+ },
+ {
+  "id": "small_key",
+  "name": "Bronze Key",
+  "category": "dungeon",
+  "source": "Dungeons",
+  "effect": "Opens locked doors.",
+  "myth": "—"
+ },
+ {
+  "id": "big_key",
+  "name": "Gold Key",
+  "category": "dungeon",
+  "source": "Dungeons",
+  "effect": "Opens boss gate and big chest.",
+  "myth": "—"
+ },
+ {
+  "id": "compass",
+  "name": "Compass of Argo",
+  "category": "dungeon",
+  "source": "Dungeons",
+  "effect": "Shows chests and boss.",
+  "myth": "Argo"
+ },
+ {
+  "id": "dungeon_map",
+  "name": "Cartographer's Map",
+  "category": "dungeon",
+  "source": "Dungeons",
+  "effect": "Shows dungeon layout.",
+  "myth": "—"
+ },
+ {
+  "id": "seal_fragment",
+  "name": "Seal Fragment",
+  "category": "seal",
+  "source": "Bosses (12)",
+  "effect": "Twelve seals; each restores a Labor guardian.",
+  "myth": "Seals binding Kronos"
+ }
+]

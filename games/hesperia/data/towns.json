@@ -1,0 +1,101 @@
+[
+ {
+  "id": "halcyon_cove",
+  "name": "Halcyon Cove",
+  "cell": "B7",
+  "culture": "Hellene",
+  "size": "small",
+  "patron": "Poseidon/Neptune",
+  "desc": "Fishing hamlet. Start. Raided in prologue; rebuilt over the game."
+ },
+ {
+  "id": "argyros",
+  "name": "Argyros",
+  "cell": "C2",
+  "culture": "Hellene",
+  "size": "medium",
+  "patron": "Hephaestus/Vulcan",
+  "desc": "Silver-mining town of tunnels, bellows and smoke. Miners' guild; Hephaestus smiths."
+ },
+ {
+  "id": "pythona",
+  "name": "Pythona",
+  "cell": "C4",
+  "culture": "Hellene",
+  "size": "medium",
+  "patron": "Apollo/Sol",
+  "desc": "Oracle town on a gorge lip. Temple of the Pythia, ruined theatre, laurel groves."
+ },
+ {
+  "id": "mycenor",
+  "name": "Mycenor",
+  "cell": "B5",
+  "culture": "Hellene",
+  "size": "medium",
+  "patron": "Ares/Mars",
+  "desc": "Cliff fortress, Lion Gate, cursed House of the Atreids; warrior culture."
+ },
+ {
+  "id": "ephyra",
+  "name": "Ephyra",
+  "cell": "D6",
+  "culture": "Hellene",
+  "size": "large",
+  "patron": "Hermes/Mercury",
+  "desc": "River-port merchant town. Market, shipwrights, shady alleys, Hermes' shrine."
+ },
+ {
+  "id": "castra_lupa",
+  "name": "Castra Lupa",
+  "cell": "H3",
+  "culture": "Latin",
+  "size": "medium",
+  "patron": "Mars/Ares",
+  "desc": "Legion fortress on the Tiberis. Barracks, parade ground, wolf statue."
+ },
+ {
+  "id": "aventina",
+  "name": "Aventina",
+  "cell": "G4",
+  "culture": "Latin",
+  "size": "large",
+  "patron": "Jupiter/Zeus",
+  "desc": "Capital on seven hills. Forum, Senate Palace, baths, arena."
+ },
+ {
+  "id": "cumae_vetus",
+  "name": "Cumae Vetus",
+  "cell": "F5",
+  "culture": "Latin",
+  "size": "medium",
+  "patron": "Apollo/Sol",
+  "desc": "Town of the Sibyl on the shore of Lake Avernus. Cave oracle, fog, tombs."
+ },
+ {
+  "id": "lavinium",
+  "name": "Lavinium",
+  "cell": "G6",
+  "culture": "Latin",
+  "size": "medium",
+  "patron": "Venus/Aphrodite",
+  "desc": "Farm town of Trojan descendants. Granaries, festival ground, Aeneas shrine."
+ },
+ {
+  "id": "ostia_nova",
+  "name": "Ostia Nova",
+  "cell": "I6",
+  "culture": "Latin",
+  "size": "medium",
+  "patron": "Neptune/Poseidon",
+  "desc": "Harbor town at the Tiberis mouth. Docks, salt, lighthouse, sailors' guild."
+ },
+ {
+  "id": "lemnos_village",
+  "name": "Lemnos Village",
+  "cell": "C8",
+  "culture": "Hellene",
+  "size": "small",
+  "patron": "Hephaestus/Vulcan",
+  "desc": "Island village of smiths under a volcano. Forge of Hephaestus mini-dungeon. Only inhabited island."
+ }
+]

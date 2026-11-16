@@ -1,0 +1,114 @@
+{
+ "b00_idle": {
+  "faces": "down",
+  "fh": 36,
+  "fps": 4,
+  "fw": 47,
+  "n": 4
+ },
+ "e01_move": {
+  "faces": "right",
+  "fh": 16,
+  "fps": 6,
+  "fw": 20,
+  "n": 4
+ },
+ "e02_move": {
+  "faces": "down",
+  "fh": 14,
+  "fps": 8,
+  "fw": 16,
+  "n": 6
+ },
+ "e03_move": {
+  "faces": "down",
+  "fh": 14,
+  "fps": 5,
+  "fw": 17,
+  "n": 4
+ },
+ "e04_move": {
+  "faces": "down",
+  "fh": 14,
+  "fps": 5,
+  "fw": 19,
+  "n": 4
+ },
+ "e07_move": {
+  "faces": "left",
+  "fh": 14,
+  "fps": 6,
+  "fw": 24,
+  "n": 4
+ },
+ "e08_move": {
+  "faces": "right",
+  "fh": 12,
+  "fps": 6,
+  "fw": 22,
+  "n": 2
+ },
+ "e15_move": {
+  "faces": "left",
+  "fh": 10,
+  "fps": 4,
+  "fw": 17,
+  "n": 3
+ },
+ "hero_f_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_f_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_f_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 17,
+  "n": 4
+ },
+ "hero_f_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_m_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 16,
+  "n": 4
+ },
+ "hero_m_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ }
+}

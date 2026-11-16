@@ -1,0 +1,493 @@
+{
+ "_prologue": {
+  "entries": [
+   {
+    "node": "p1"
+   }
+  ],
+  "nodes": {
+   "p1": {
+    "speaker": "kleo",
+    "text": {
+     "en": "{name}! The tide is wrong tonight. There are ships out there with no lanterns.",
+     "es": "¡{name}! La marea está rara esta noche. Hay barcos ahí fuera sin faroles."
+    },
+    "next": "p2"
+   },
+   "p2": {
+    "speaker": "argos",
+    "text": {
+     "en": "Gold masks on the bow... Raiders! Get to the shed, both of you. Move!",
+     "es": "Máscaras de oro en la proa... ¡Saqueadores! Al cobertizo, los dos. ¡Rápido!"
+    },
+    "next": "p3"
+   },
+   "p3": {
+    "speaker": "",
+    "text": {
+     "en": "Fire jumps from roof to roof. Shouts, splintering wood. Strangers in golden masks drag Kleo toward the water.",
+     "es": "El fuego salta de tejado en tejado. Gritos, madera astillada. Extraños con máscaras doradas arrastran a Kleo hacia el agua."
+    },
+    "next": "p4"
+   },
+   "p4": {
+    "speaker": "kleo",
+    "text": {
+     "en": "{name}! Don't follow them! Find Father's gaff... the cave under the cliffs...",
+     "es": "¡{name}! ¡No nos sigas! Busca el bichero de Padre... la cueva bajo los acantilados..."
+    },
+    "next": "p5"
+   },
+   "p5": {
+    "speaker": "argos",
+    "text": {
+     "en": "Too late for me, {g:lad|lass}. Take the scroll. Go north to the Gull Cave: your father hid his gaff there. Then bring your sister home.",
+     "es": "Para mí ya es tarde, {g:muchacho|muchacha}. Toma el pergamino. Ve al norte, a la Cueva de las Gaviotas: tu padre escondió allí su bichero. Luego trae a tu hermana a casa."
+    },
+    "next": "p6"
+   },
+   "p6": {
+    "speaker": "",
+    "text": {
+     "en": "Old Argos goes quiet. By morning the raiders' sails are gone, and so is Kleo.",
+     "es": "El viejo Argos calla para siempre. Al amanecer las velas de los saqueadores han desaparecido, y Kleo también."
+    },
+    "do": [
+     "flag:prologue_done"
+    ]
+   }
+  }
+ },
+ "iolaus": {
+  "entries": [
+   {
+    "if": "quest:s01=done",
+    "node": "done"
+   },
+   {
+    "if": "quest:s01=active&flag:s01_found&!flag:s01_returned",
+    "node": "return"
+   },
+   {
+    "if": "quest:s01=active",
+    "node": "active"
+   },
+   {
+    "node": "offer"
+   }
+  ],
+  "nodes": {
+   "offer": {
+    "speaker": "iolaus",
+    "text": {
+     "en": "I came when I saw the smoke, {name}. Too late for Argos, but not for this village. Will you help me set Halcyon on its feet?",
+     "es": "Vine al ver el humo, {name}. Tarde para Argos, pero no para esta aldea. ¿Me ayudas a levantar Halcyon?"
+    },
+    "choices": [
+     {
+      "text": {
+       "en": "Yes, let's begin.",
+       "es": "Sí, empecemos."
+      },
+      "goto": "yes",
+      "do": [
+       "quest:s01"
+      ]
+     },
+     {
+      "text": {
+       "en": "Not yet.",
+       "es": "Todavía no."
+      },
+      "goto": "later"
+     }
+    ]
+   },
+   "yes": {
+    "speaker": "iolaus",
+    "text": {
+     "en": "Good. Start on the beach: Argos' pack washed ashore near the boat shed. Bring it here.",
+     "es": "Bien. Empieza por la playa: el morral de Argos quedó varado junto al cobertizo. Tráelo aquí."
+    }
+   },
+   "later": {
+    "speaker": "iolaus",
+    "text": {
+     "en": "The cove will wait. Barely.",
+     "es": "La cala esperará. A duras penas."
+    }
+   },
+   "active": {
+    "speaker": "iolaus",
+    "text": {
+     "en": "Argos' pack is on the beach, near the boat shed. Then Stavros, Dora and Hestia's hearth need you.",
+     "es": "El morral de Argos está en la playa, junto al cobertizo. Luego Stavros, Dora y el hogar de Hestia te necesitan."
+    }
+   },
+   "return": {
+    "speaker": "iolaus",
+    "text": {
+     "en": "His pipe... and good cord. Thank you, {name}. Stavros needs cord for the roofs. Go and ask him.",
+     "es": "Su pipa... y buena cuerda. Gracias, {name}. Stavros necesita cuerda para los tejados. Ve a pedírsela."
+    },
+    "do": [
+     "flag:s01_returned"
+    ]
+   },
+   "done": {
+    "speaker": "iolaus",
+    "text": {
+     "en": "Halcyon has a roof again, because of you. The Hydra in Lerna is next. Fire, {name}. Remember: fire.",
+     "es": "Halcyon tiene techo otra vez, gracias a ti. La Hidra de Lerna es lo siguiente. Fuego, {name}. Recuérdalo: fuego."
+    }
+   }
+  }
+ },
+ "fisher_stavros": {
+  "entries": [
+   {
+    "if": "quest:s01=active&flag:s01_returned&!flag:s01_rope",
+    "node": "rope"
+   },
+   {
+    "node": "idle"
+   }
+  ],
+  "nodes": {
+   "rope": {
+    "speaker": "fisher_stavros",
+    "text": {
+     "en": "Cord for the roofs? Take all of my spare rope. And these obols, for the trouble.",
+     "es": "¿Cuerda para los tejados? Llévate toda mi soga de repuesto. Y estos óbolos, por las molestias."
+    },
+    "do": [
+     "flag:s01_rope",
+     "obol:+5"
+    ]
+   },
+   "idle": {
+    "speaker": "fisher_stavros",
+    "text": {
+     "en": "Fish are scarce. The raiders cut the nets and took the best boat.",
+     "es": "Hay poco pescado. Los saqueadores cortaron las redes y se llevaron el mejor bote."
+    }
+   }
+  }
+ },
+ "baker_dora": {
+  "entries": [
+   {
+    "if": "quest:s01=active&flag:s01_rope&!flag:s01_bread",
+    "node": "bread"
+   },
+   {
+    "node": "idle"
+   }
+  ],
+  "nodes": {
+   "bread": {
+    "speaker": "baker_dora",
+    "text": {
+     "en": "The roofers will be hungry. Take this bread to the hearth... Hestia will know what to do with it.",
+     "es": "Los tejadores tendrán hambre. Lleva este pan al hogar... Hestia sabrá qué hacer."
+    },
+    "do": [
+     "flag:s01_bread",
+     "give:honey:1"
+    ]
+   },
+   "idle": {
+    "speaker": "baker_dora",
+    "text": {
+     "en": "The ovens survived. That's something.",
+     "es": "Los hornos sobrevivieron. Eso es algo."
+    }
+   }
+  }
+ },
+ "hestia": {
+  "entries": [
+   {
+    "if": "quest:s01=active&flag:s01_bread&!flag:s01_hearth&has:torch",
+    "node": "light"
+   },
+   {
+    "if": "quest:s01=active&flag:s01_bread&!flag:s01_hearth",
+    "node": "need_torch"
+   },
+   {
+    "node": "idle"
+   }
+  ],
+  "nodes": {
+   "light": {
+    "speaker": "hestia",
+    "text": {
+     "en": "That torch carries the first fire, child. Let it light my hearth again.",
+     "es": "Esa antorcha lleva el primer fuego, {g:hijo mío|hija mía}. Que encienda mi hogar otra vez."
+    },
+    "do": [
+     "flag:s01_hearth",
+     "heal:99",
+     "save"
+    ]
+   },
+   "need_torch": {
+    "speaker": "hestia",
+    "text": {
+     "en": "My hearth is cold. Bring a flame worth carrying. The Gull Cave keeps one.",
+     "es": "Mi hogar está frío. Trae una llama digna. La Cueva de las Gaviotas guarda una."
+    }
+   },
+   "idle": {
+    "speaker": "hestia",
+    "text": {
+     "en": "Sit. The hearth keeps what matters.",
+     "es": "Siéntate. El hogar guarda lo que importa."
+    },
+    "choices": [
+     {
+      "text": {
+       "en": "Rest and save.",
+       "es": "Descansar y guardar."
+      },
+      "do": [
+       "heal:99",
+       "save"
+      ]
+     },
+     {
+      "text": {
+       "en": "Leave.",
+       "es": "Salir."
+      }
+     }
+    ]
+   }
+  }
+ },
+ "ino": {
+  "entries": [
+   {
+    "node": "inn"
+   }
+  ],
+  "nodes": {
+   "inn": {
+    "speaker": "ino",
+    "text": {
+     "en": "Beds are free for those who lost someone. Rest, {name}.",
+     "es": "Las camas son gratis para quien perdió a alguien. Descansa, {name}."
+    },
+    "choices": [
+     {
+      "text": {
+       "en": "Rest and save.",
+       "es": "Descansar y guardar."
+      },
+      "do": [
+       "heal:99",
+       "save"
+      ]
+     },
+     {
+      "text": {
+       "en": "Any news of Kleo?",
+       "es": "¿Noticias de Kleo?"
+      },
+      "goto": "news"
+     },
+     {
+      "text": {
+       "en": "Leave.",
+       "es": "Salir."
+      }
+     }
+    ]
+   },
+   "news": {
+    "speaker": "ino",
+    "text": {
+     "en": "Gold-masked ships sailed west. That's all anyone saw.",
+     "es": "Los barcos de máscaras doradas fueron al oeste. Es todo lo que alguien vio."
+    }
+   }
+  }
+ },
+ "poseidon": {
+  "entries": [
+   {
+    "node": "s"
+   }
+  ],
+  "nodes": {
+   "s": {
+    "speaker": "poseidon",
+    "text": {
+     "en": "The old shrine hums with salt and thunder. Poseidon listens.",
+     "es": "El viejo santuario zumba de sal y trueno. Poseidón escucha."
+    },
+    "choices": [
+     {
+      "text": {
+       "en": "Pray (save).",
+       "es": "Rezar (guardar)."
+      },
+      "do": [
+       "save",
+       "heal:99"
+      ]
+     },
+     {
+      "text": {
+       "en": "Leave.",
+       "es": "Salir."
+      }
+     }
+    ]
+   }
+  }
+ },
+ "child_melia": {
+  "entries": [
+   {
+    "node": "a"
+   }
+  ],
+  "nodes": {
+   "a": {
+    "speaker": "child_melia",
+    "text": {
+     "en": "Crabs have shells in front, but nothing behind! Hit them from behind, {name}!",
+     "es": "¡Los cangrejos tienen caparazón delante, pero nada detrás! ¡Pégales por la espalda, {name}!"
+    }
+   }
+  }
+ },
+ "pyrros_guard": {
+  "entries": [
+   {
+    "node": "a"
+   }
+  ],
+  "nodes": {
+   "a": {
+    "speaker": "pyrros_guard",
+    "text": {
+     "en": "North are the cliffs and the Gull Cave. East, Lerna Marsh: don't go without a light.",
+     "es": "Al norte, los acantilados y la Cueva de las Gaviotas. Al este, el Pantano de Lerna: no vayas sin luz."
+    }
+   }
+  }
+ },
+ "old_nonna": {
+  "entries": [
+   {
+    "if": "flag:nonna_gift",
+    "node": "b"
+   },
+   {
+    "node": "a"
+   }
+  ],
+  "nodes": {
+   "a": {
+    "speaker": "old_nonna",
+    "text": {
+     "en": "You are thin, {name}. Honeycomb. Eat it when you are hurt.",
+     "es": "Estás {g:flaco|flaca}, {name}. Panal de miel. Cómelo cuando estés {g:herido|herida}."
+    },
+    "do": [
+     "give:honey:1",
+     "flag:nonna_gift"
+    ]
+   },
+   "b": {
+    "speaker": "old_nonna",
+    "text": {
+     "en": "My mother said the Hydra ate nine boats once. Burn the necks, child.",
+     "es": "Mi madre decía que la Hidra se comió nueve barcos. Quema los cuellos, {g:hijo|hija}."
+    }
+   }
+  }
+ },
+ "kleo": {
+  "entries": [
+   {
+    "node": "a"
+   }
+  ],
+  "nodes": {
+   "a": {
+    "speaker": "kleo",
+    "text": {
+     "en": "...",
+     "es": "..."
+    }
+   }
+  }
+ },
+ "argos": {
+  "entries": [
+   {
+    "node": "a"
+   }
+  ],
+  "nodes": {
+   "a": {
+    "speaker": "argos",
+    "text": {
+     "en": "...",
+     "es": "..."
+    }
+   }
+  }
+ },
+ "hermes": {
+  "entries": [
+   {
+    "node": "hi"
+   }
+  ],
+  "nodes": {
+   "hi": {
+    "speaker": "hermes",
+    "text": {
+     "en": "Mercator, at your service! Sundries from every shore, and not a single golden mask in the lot.",
+     "es": "¡Mercator, a tu servicio! Chucherías de todas las costas, y ni una máscara dorada en el lote."
+    },
+    "choices": [
+     {
+      "text": {
+       "en": "Browse wares.",
+       "es": "Ver mercancías."
+      },
+      "do": [
+       "shop"
+      ]
+     },
+     {
+      "text": {
+       "en": "Any advice?",
+       "es": "¿Algún consejo?"
+      },
+      "goto": "tip"
+     },
+     {
+      "text": {
+       "en": "Leave.",
+       "es": "Salir."
+      }
+     }
+    ]
+   },
+   "tip": {
+    "speaker": "hermes",
+    "text": {
+     "en": "Push stones, strike crabs from behind, and burn what regrows. Free advice. The rest costs obols.",
+     "es": "Empuja piedras, golpea a los cangrejos por detrás y quema lo que rebrote. Consejo gratis. Lo demás cuesta óbolos."
+    }
+   }
+  }
+ }
+}

@@ -8051,6 +8051,30 @@
    "proof": "media/licenses/sfx/creature_licence.txt",
    "url": "https://opengameart.org/content/80-cc0-creature-sfx",
    "date": "2026-11-15"
+  },
+  {
+   "file": "games/hesperia/data/",
+   "what": "Hesperia: design tables (quests, items, enemies, bosses, NPCs, dungeons, towns, cells) + vertical-slice maps, dialogue, quests, shop, UI strings EN/ES",
+   "source": "D:/Dev/Hesperia/hesperia/data/*.json (standalone project; copied by its tools/port_to_hub.py)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-16",
+   "processed_by": "copied unchanged"
+  },
+  {
+   "file": "games/hesperia/art/",
+   "what": "Hesperia: hero m/f, 12 NPCs, 7 enemies, 2 bosses + Hydra head, 11 ground tiles, tree/cliff/door overlays, 16 animation strips (anims.json)",
+   "source": "D:/Dev/Hesperia/hesperia/art_src/ sheets (owner's prompts, 08_AI_ART_PROMPTS.md); per-file list in D:/Dev/Hesperia/hesperia/CREDITS.json",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-16",
+   "ai_tool": "TODO owner: name the image generator",
+   "ai_plan": "plan not stated by the owner",
+   "processed_by": "keyed, cropped, box-downscaled, cut into frames (Claude Code, PIL + numpy; tools/slice_art.py)"
   }
  ]
 }

@@ -1,0 +1,283 @@
+[
+ {
+  "id": "d0",
+  "name": "Gull Cave",
+  "cell": "B6",
+  "world": "Hesperia",
+  "type": "tutorial",
+  "boss": "Stone-Back Crab",
+  "item": "Fisher's Gaff + Prometheus Torch",
+  "seal": null,
+  "requires": [],
+  "notes": "Tutorial. Sea cave under Mycenor Cliffs. Teaches move/attack/torch/push blocks."
+ },
+ {
+  "id": "d1",
+  "name": "Lerna Marsh Sanctum",
+  "cell": "C7",
+  "world": "Hesperia",
+  "type": "labor",
+  "boss": "Lernaean Hydra",
+  "item": "Brand of Iolaus (fire rod)",
+  "seal": 1,
+  "requires": [
+   "torch"
+  ],
+  "notes": "Seal I. Boardwalks, flooding rooms, water levels. Hydra: burn the stumps."
+ },
+ {
+  "id": "d2",
+  "name": "Nemean Cave",
+  "cell": "D2",
+  "world": "Hesperia",
+  "type": "labor",
+  "boss": "Nemean Lion",
+  "item": "Gauntlets of Heracles (lift)",
+  "seal": 2,
+  "requires": [
+   "fire_rod"
+  ],
+  "notes": "Seal II. Dark caves, rolling boulders, push puzzles. Lion: immune to blades, wrestle then hit pelt gap."
+ },
+ {
+  "id": "d3",
+  "name": "Artemis Wood Shrine",
+  "cell": "C3",
+  "world": "Hesperia",
+  "type": "labor",
+  "boss": "Ceryneian Hind (chase) + Huntress Wraith",
+  "item": "Bow of Artemis",
+  "seal": 3,
+  "requires": [
+   "gauntlets"
+  ],
+  "notes": "Seal III. Forest maze, moving hedges, archery switches. Hind: arrows while it circles the arena."
+ },
+ {
+  "id": "dC",
+  "name": "Senate Palace",
+  "cell": "G4",
+  "world": "Hesperia",
+  "type": "castle",
+  "boss": "Gold Legate Tiberius Auric, then Aurelia (duel)",
+  "item": "Mirror of Hermes",
+  "seal": null,
+  "requires": [
+   "harpe"
+  ],
+  "notes": "Act I climax. Infiltration, guards, secret passage. Ends with the Gilding of Aventina."
+ },
+ {
+  "id": "dF",
+  "name": "Forge of Hephaestus",
+  "cell": "C8",
+  "world": "Hesperia",
+  "type": "mini",
+  "boss": "Talos (bronze giant)",
+  "item": "Hammer + Iron Ring",
+  "seal": null,
+  "requires": [
+   "boat"
+  ],
+  "notes": "Lemnos volcano. Fire/lava rooms. Iron Ring blocks Gilding."
+ },
+ {
+  "id": "d4",
+  "name": "Frostpeak Den",
+  "cell": "H1",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Erymanthian Boar",
+  "item": "Horn of Boreas (ice rod)",
+  "seal": 4,
+  "requires": [
+   "iron_ring",
+   "fire_rod"
+  ],
+  "notes": "Seal IV. Ice slides, snow bridges, wind. Boar charges into pillars."
+ },
+ {
+  "id": "d5",
+  "name": "Augean Stables",
+  "cell": "D7",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Augean Colossus (gilded mud golem)",
+  "item": "Nereid Fins (swim)",
+  "seal": 5,
+  "requires": [
+   "iron_ring",
+   "hammer"
+  ],
+  "notes": "Seal V. Flood the stables by redirecting rivers; water-level puzzles."
+ },
+ {
+  "id": "d6",
+  "name": "Stymphalian Mere",
+  "cell": "F3",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Stymphalid Matriarch (bronze bird)",
+  "item": "Rattle of Hephaestus (boomerang)",
+  "seal": 6,
+  "requires": [
+   "iron_ring",
+   "bow"
+  ],
+  "notes": "Seal VI. Reed towers, bird swarms, wind sail platforms."
+ },
+ {
+  "id": "d7",
+  "name": "Labyrinth of Knossos",
+  "cell": "E8",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Minotaur, then Cretan Bull",
+  "item": "Ariadne's Thread (grapple)",
+  "seal": 7,
+  "requires": [
+   "iron_ring",
+   "boat",
+   "fins"
+  ],
+  "notes": "Seal VII. Maze with thread switches; thread tethers across gaps."
+ },
+ {
+  "id": "d8",
+  "name": "Stables of Diomedes",
+  "cell": "H3",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Diomedes the Gilded + man-eating mares",
+  "item": "Reins of Diomedes (horse whistle: fast travel)",
+  "seal": 8,
+  "requires": [
+   "iron_ring",
+   "thread"
+  ],
+  "notes": "Seal VIII. Fortress, horse-chase sections, spiked pits."
+ },
+ {
+  "id": "d9",
+  "name": "Themiscyra Fortress",
+  "cell": "B4",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Hippolyta (duel, spared)",
+  "item": "Girdle of Hippolyta (Aegis Shield: reflects)",
+  "seal": 9,
+  "requires": [
+   "iron_ring",
+   "ice_rod"
+  ],
+  "notes": "Seal IX. Amazon fortress, shield-guard enemies, reflect puzzles."
+ },
+ {
+  "id": "d10",
+  "name": "Erytheia Pastures",
+  "cell": "A2",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Geryon (three bodies) + Orthrus",
+  "item": "Cloak of Geryon (invisibility cape)",
+  "seal": 10,
+  "requires": [
+   "iron_ring",
+   "boat",
+   "thread"
+  ],
+  "notes": "Seal X. Island ranch dungeon, cattle stampede rooms, triple-split boss."
+ },
+ {
+  "id": "d11",
+  "name": "Garden of the Hesperides",
+  "cell": "A8",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Ladon (hundred-headed dragon)",
+  "item": "Golden Apple + Orichalcum upgrade",
+  "seal": 11,
+  "requires": [
+   "iron_ring",
+   "boat",
+   "aegis",
+   "cloak"
+  ],
+  "notes": "Seal XI. Golden hedge maze, sleeping dragon puzzle."
+ },
+ {
+  "id": "d12",
+  "name": "Avernus Descent",
+  "cell": "E5",
+  "world": "Aurea",
+  "type": "labor",
+  "boss": "Cerberus (three heads)",
+  "item": "Helm of Hades (dark vision + stealth)",
+  "seal": 12,
+  "requires": [
+   "iron_ring",
+   "fins",
+   "cloak"
+  ],
+  "notes": "Seal XII. Underworld: Styx boat, Asphodel fields, Hades' court."
+ },
+ {
+  "id": "dT",
+  "name": "Tartarus Spire",
+  "cell": "E1",
+  "world": "Aurea",
+  "type": "final",
+  "boss": "Midas the Gilded, then Aurelia, then Kronos-Saturn (3 phases)",
+  "item": "—",
+  "seal": null,
+  "requires": [
+   "seals_12",
+   "orichalcum_harpe",
+   "helm"
+  ],
+  "notes": "Final. Boss-rush of earlier bosses, then the three-phase finale."
+ },
+ {
+  "id": "dW",
+  "name": "Sunken Temple of Tritonis",
+  "cell": "C5",
+  "world": "Hesperia",
+  "type": "mini",
+  "boss": "Triton Warden",
+  "item": "Trident of Poseidon (water jet, current switches)",
+  "seal": null,
+  "requires": [
+   "fins"
+  ],
+  "notes": "Optional. Underwater halls, current switches, air pockets. Athena was born at this lake."
+ },
+ {
+  "id": "dA",
+  "name": "Cloud Palace of Aeolus",
+  "cell": "J2",
+  "world": "Hesperia",
+  "type": "mini",
+  "boss": "Storm Harpy Queen",
+  "item": "Wind Bag (hover/glide)",
+  "seal": null,
+  "requires": [
+   "bow",
+   "boat"
+  ],
+  "notes": "Optional. Floating island, wind currents."
+ },
+ {
+  "id": "dG",
+  "name": "Gorgon's Lair",
+  "cell": "I3",
+  "world": "Hesperia",
+  "type": "mini",
+  "boss": "Stheno (Gorgon)",
+  "item": "Gorgon's Eye (stone-gaze mirror)",
+  "seal": null,
+  "requires": [
+   "aegis"
+  ],
+  "notes": "Optional. Reflect-shield puzzles. (Cold Strand sea cave.)"
+ }
+]

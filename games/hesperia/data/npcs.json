@@ -1,0 +1,1010 @@
+[
+ {
+  "id": "hero",
+  "name": "The Hero (player-named)",
+  "group": "hero",
+  "role": "Hero",
+  "loc": "B7",
+  "desc": "19-yr-old fisher's apprentice. Player picks male or female body and types a name. Short brown hair, linen tunic, bare feet at start. Same stats for both."
+ },
+ {
+  "id": "kleo",
+  "name": "Kleo",
+  "group": "main",
+  "role": "Sister / later Aurelia",
+  "loc": "B7",
+  "desc": "The hero's older sister, 23, dark braid, shell necklace. Taken in the raid; becomes the Gilded Matron 'Aurelia'."
+ },
+ {
+  "id": "argos",
+  "name": "Old Argos",
+  "group": "main",
+  "role": "Mentor, boatwright",
+  "loc": "B7",
+  "desc": "Grizzled one-eyed boatwright, white beard, pipe. Dies in prologue; leaves the map-scroll."
+ },
+ {
+  "id": "hermes",
+  "name": "Hermes (as Mercator the peddler)",
+  "group": "god",
+  "role": "Guide god in disguise",
+  "loc": "D6",
+  "desc": "Traveling peddler with a huge pack, winged hat hidden. Gives Sandals, Mirror, hints. Roman name Mercurius."
+ },
+ {
+  "id": "pythia",
+  "name": "The Pythia (Daphne)",
+  "group": "main",
+  "role": "Oracle of Apollo",
+  "loc": "C4",
+  "desc": "Old priestess over a tripod, laurel crown, trance voice. Gives Act I prophecy; partly twisted by the Order."
+ },
+ {
+  "id": "sibyl",
+  "name": "The Sibyl of Cumae",
+  "group": "main",
+  "role": "Latin oracle",
+  "loc": "F5",
+  "desc": "Ancient woman in a cave, tiny, hundreds of years old, writes on leaves. Contradicts the Pythia; truth is both."
+ },
+ {
+  "id": "atalanta",
+  "name": "Atalanta Venatrix",
+  "group": "ally",
+  "role": "Huntress, companion",
+  "loc": "C3",
+  "desc": "Fast huntress, short spear, red band. Guards Artemis Wood; joins late as Hind-lore guide."
+ },
+ {
+  "id": "iolaus",
+  "name": "Iolaus the Old",
+  "group": "ally",
+  "role": "Heracles' nephew, hint-giver",
+  "loc": "B7",
+  "desc": "Retired charioteer, limp, laurel scars. Teaches the Labor lore and fire against the hydra."
+ },
+ {
+  "id": "heracles",
+  "name": "Heracles (gilded statue)",
+  "group": "ally",
+  "role": "Freed hero",
+  "loc": "G4",
+  "desc": "Colossal golden statue in the Forum (Aurea). Freed at the end of Act II; gives a boon."
+ },
+ {
+  "id": "midas",
+  "name": "King Midas",
+  "group": "antagonist",
+  "role": "Gilded King",
+  "loc": "G4",
+  "desc": "Old king, gaunt, golden gauntlet, crown of golden ears hidden under hood. Tragic pawn."
+ },
+ {
+  "id": "aurelia",
+  "name": "Aurelia, the Gilded Matron",
+  "group": "antagonist",
+  "role": "Order High Priestess",
+  "loc": "G4",
+  "desc": "Veiled woman, gold mask, white robes, golden sun staff. Is Kleo."
+ },
+ {
+  "id": "tiberius",
+  "name": "Gold Legate Tiberius Auric",
+  "group": "antagonist",
+  "role": "Order general",
+  "loc": "G4",
+  "desc": "Giant in gold lorica and wolf-crest helmet. Boss of Senate Palace."
+ },
+ {
+  "id": "kronos",
+  "name": "Kronos-Saturn",
+  "group": "antagonist",
+  "role": "Titan of Time",
+  "loc": "E1",
+  "desc": "Gaunt bearded giant of sand and hourglass, scythe. Final boss."
+ },
+ {
+  "id": "chrysor",
+  "name": "Hierophant Chrysor",
+  "group": "antagonist",
+  "role": "Order recruiter/spy",
+  "loc": "C4",
+  "desc": "Smiling priest in Pythona; the Pythia's aide who edits the prophecy."
+ },
+ {
+  "id": "vettia",
+  "name": "Decurion Vettia Ferrox",
+  "group": "antagonist",
+  "role": "Order field commander (recurring)",
+  "loc": "H3",
+  "desc": "Scarred woman, gold half-mask, whip-sword. Mid-game rival."
+ },
+ {
+  "id": "gorgo",
+  "name": "Gorgo the Whisperer",
+  "group": "antagonist",
+  "role": "Order spy master",
+  "loc": "D6",
+  "desc": "Pale man with a thousand scribbles; sells secrets. Turns on the Order late."
+ },
+ {
+  "id": "zeus",
+  "name": "Zeus-Jupiter (statue)",
+  "group": "god",
+  "role": "King of gods",
+  "loc": "G4",
+  "desc": "Gilded in the Capitoline temple; freed in the finale."
+ },
+ {
+  "id": "athena",
+  "name": "Athena-Minerva",
+  "group": "god",
+  "role": "Wisdom",
+  "loc": "B5",
+  "desc": "Appears as an owl and a shield-maiden in her Mycenor shrine."
+ },
+ {
+  "id": "apollo",
+  "name": "Apollo-Sol",
+  "group": "god",
+  "role": "Sun/oracle",
+  "loc": "C4",
+  "desc": "Voice behind the Pythia; weak, tired, kind."
+ },
+ {
+  "id": "artemis",
+  "name": "Artemis-Diana",
+  "group": "god",
+  "role": "Hunt",
+  "loc": "C3",
+  "desc": "Silver-haired huntress goddess; tests the hero."
+ },
+ {
+  "id": "hephaestus",
+  "name": "Hephaestus-Vulcan",
+  "group": "god",
+  "role": "Smith",
+  "loc": "C8",
+  "desc": "Limping, muscular, soot-covered smith god on Lemnos."
+ },
+ {
+  "id": "poseidon",
+  "name": "Poseidon-Neptune",
+  "group": "god",
+  "role": "Sea",
+  "loc": "B7",
+  "desc": "Heard in the waves; manifests as a giant wave-face."
+ },
+ {
+  "id": "hades",
+  "name": "Hades-Dis Pater",
+  "group": "god",
+  "role": "Underworld ally",
+  "loc": "E5",
+  "desc": "Pale, tired king; wants the Order out of his realm."
+ },
+ {
+  "id": "persephone",
+  "name": "Persephone-Proserpina",
+  "group": "god",
+  "role": "Spring queen",
+  "loc": "E5",
+  "desc": "Green-eyed, vines in hair, runs the Asphodel gardens."
+ },
+ {
+  "id": "demeter",
+  "name": "Demeter-Ceres",
+  "group": "god",
+  "role": "Grain",
+  "loc": "G6",
+  "desc": "Matronly woman among wheat; hates the Golden Age (nothing grows)."
+ },
+ {
+  "id": "ares",
+  "name": "Ares-Mars",
+  "group": "god",
+  "role": "War",
+  "loc": "H3",
+  "desc": "Brooding warrior in a ruined temple; wants a fight."
+ },
+ {
+  "id": "aphrodite",
+  "name": "Aphrodite-Venus",
+  "group": "god",
+  "role": "Love",
+  "loc": "G6",
+  "desc": "Beautiful, vain, funny; gives charm and gossip."
+ },
+ {
+  "id": "dionysus",
+  "name": "Dionysus-Bacchus",
+  "group": "god",
+  "role": "Wine",
+  "loc": "D6",
+  "desc": "Chubby drunk god in a vine-crowned tavern; comic relief."
+ },
+ {
+  "id": "hera",
+  "name": "Hera-Juno",
+  "group": "god",
+  "role": "Queen of gods",
+  "loc": "G4",
+  "desc": "Stern, peacock cloak; gilded with Zeus."
+ },
+ {
+  "id": "hestia",
+  "name": "Hestia-Vesta",
+  "group": "god",
+  "role": "Hearth",
+  "loc": "B7",
+  "desc": "Small old woman at a hearth; the gentlest god; gives revive."
+ },
+ {
+  "id": "charon",
+  "name": "Charon",
+  "group": "ally",
+  "role": "Ferryman of the dead",
+  "loc": "E5",
+  "desc": "Skeletal ferryman, asks one obol. Gets a side quest."
+ },
+ {
+  "id": "circe",
+  "name": "Circe",
+  "group": "sidefree",
+  "role": "Witch of Aeaea",
+  "loc": "A3",
+  "desc": "Elegant sorceress with pigs. Gives Wand."
+ },
+ {
+  "id": "calypso",
+  "name": "Calypso",
+  "group": "sidefree",
+  "role": "Nymph of Ogygia",
+  "loc": "A5",
+  "desc": "Lonely nymph in a cave; asks you not to leave."
+ },
+ {
+  "id": "polyphemus",
+  "name": "Polyphemus",
+  "group": "sidefree",
+  "role": "Cyclops",
+  "loc": "D7",
+  "desc": "Gentle giant (sheep). Boss only if you steal his flock."
+ },
+ {
+  "id": "scylla",
+  "name": "Scylla",
+  "group": "sidefree",
+  "role": "Sea monster",
+  "loc": "G8",
+  "desc": "Six-headed strait monster; optional boss."
+ },
+ {
+  "id": "aeolus",
+  "name": "Aeolus",
+  "group": "sidefree",
+  "role": "Keeper of winds",
+  "loc": "J2",
+  "desc": "Cloud-hair old man in a sky palace."
+ },
+ {
+  "id": "atlas",
+  "name": "Atlas",
+  "group": "sidefree",
+  "role": "Titan holding the sky",
+  "loc": "A8",
+  "desc": "Huge exhausted man; side quest to give him a rest."
+ },
+ {
+  "id": "prometheus",
+  "name": "Prometheus",
+  "group": "sidefree",
+  "role": "Fire titan, chained",
+  "loc": "I1",
+  "desc": "Bound to a rock; wants a message delivered; free in the finale."
+ },
+ {
+  "id": "helios",
+  "name": "Helios (shrine voice)",
+  "group": "sidefree",
+  "role": "Sun-god",
+  "loc": "H8",
+  "desc": "Voice at the sun shrine; asks about his cattle."
+ },
+ {
+  "id": "tiresias",
+  "name": "Tiresias",
+  "group": "sidefree",
+  "role": "Blind seer",
+  "loc": "F7",
+  "desc": "Old blind man in a tomb; riddles and visions."
+ },
+ {
+  "id": "phineus",
+  "name": "Phineus",
+  "group": "sidefree",
+  "role": "Cursed king",
+  "loc": "I2",
+  "desc": "Starving king pestered by harpies; side quest."
+ },
+ {
+  "id": "perseus",
+  "name": "Perseus (ghost)",
+  "group": "ally",
+  "role": "Gives the Harpe",
+  "loc": "C4",
+  "desc": "Ghostly young man with winged sandals, in the Pythona temple."
+ },
+ {
+  "id": "ariadne",
+  "name": "Ariadne",
+  "group": "ally",
+  "role": "Gives the Thread",
+  "loc": "E8",
+  "desc": "Ghostly woman at the Labyrinth gate."
+ },
+ {
+  "id": "hippolyta",
+  "name": "Hippolyta",
+  "group": "ally",
+  "role": "Amazon queen",
+  "loc": "B4",
+  "desc": "Tall queen with a bronze axe; duel boss, then ally."
+ },
+ {
+  "id": "pan",
+  "name": "Pan",
+  "group": "sidefree",
+  "role": "Satyr god",
+  "loc": "C6",
+  "desc": "Goat-legged god with pipes; mischievous."
+ },
+ {
+  "id": "nereus",
+  "name": "Nereus",
+  "group": "sidefree",
+  "role": "Old man of the sea",
+  "loc": "B3",
+  "desc": "Shape-shifting fish-man; riddle quest."
+ },
+ {
+  "id": "midas_cook",
+  "name": "Dolia (Midas's cook)",
+  "group": "sidemain",
+  "role": "Palace servant",
+  "loc": "G4",
+  "desc": "Plump cook, frightened; sneaks you into the palace."
+ },
+ {
+  "id": "senator_gaius",
+  "name": "Senator Gaius Fabrius",
+  "group": "sidemain",
+  "role": "Loyal senator",
+  "loc": "G4",
+  "desc": "Gray, dignified, prisoner in the Senate; gives Palace key."
+ },
+ {
+  "id": "consul_livia",
+  "name": "Consul Livia Corvina",
+  "group": "sidemain",
+  "role": "Senate head, wavers",
+  "loc": "G4",
+  "desc": "Elegant woman in red; first to be gilded."
+ },
+ {
+  "id": "captain_leon",
+  "name": "Captain Leon of Mycenor",
+  "group": "sidemain",
+  "role": "Mycenor guard captain",
+  "loc": "B5",
+  "desc": "Burly, scarred; gives Xiphos if you prove yourself."
+ },
+ {
+  "id": "agamemnon_g",
+  "name": "The Ghost of Agamemnon",
+  "group": "sidemain",
+  "role": "Cursed ghost",
+  "loc": "B5",
+  "desc": "Spirit in the cursed house; requests a burial quest."
+ },
+ {
+  "id": "timon",
+  "name": "Timon the Miner",
+  "group": "sidemain",
+  "role": "Argyros foreman",
+  "loc": "C2",
+  "desc": "Dusty man with a lamp; knows the mines."
+ },
+ {
+  "id": "cassia",
+  "name": "Cassia the Shipwright",
+  "group": "sidemain",
+  "role": "Ephyra shipwright",
+  "loc": "D6",
+  "desc": "Short brawny woman with a mallet; repairs Kymothoe."
+ },
+ {
+  "id": "brutus_gate",
+  "name": "Marcus the Gatekeeper",
+  "group": "sidemain",
+  "role": "Castra Lupa gate sentry",
+  "loc": "H3",
+  "desc": "Bored sentry; can be bribed or helped."
+ },
+ {
+  "id": "drusilla",
+  "name": "Drusilla the Herbalist",
+  "group": "sidemain",
+  "role": "Healer",
+  "loc": "G6",
+  "desc": "Calm woman with herbs; makes potions; Order victim's cure."
+ },
+ {
+  "id": "lykon",
+  "name": "Lykon the Ferryman",
+  "group": "sidemain",
+  "role": "Lake ferry",
+  "loc": "E4",
+  "desc": "Old man who ferries across Avernus' north shore."
+ },
+ {
+  "id": "nikandros",
+  "name": "Nikandros the Bard",
+  "group": "sidemain",
+  "role": "Wandering singer",
+  "loc": "D4",
+  "desc": "Lyre-player; spreads rumors; side quest 'Songs of Heracles'."
+ },
+ {
+  "id": "tullia",
+  "name": "Tullia the Smith",
+  "group": "sidemain",
+  "role": "Castra Lupa blacksmith",
+  "loc": "H3",
+  "desc": "Muscular smith; upgrades gear."
+ },
+ {
+  "id": "petra",
+  "name": "Petra of Lemnos",
+  "group": "sidemain",
+  "role": "Lemnos apprentice",
+  "loc": "C8",
+  "desc": "Teenage smith girl, braided hair; sells fire pots."
+ },
+ {
+  "id": "ino",
+  "name": "Ino the Innkeeper",
+  "group": "town",
+  "role": "Halcyon Cove inn",
+  "loc": "B7",
+  "desc": "Mother-hen innkeeper; save point."
+ },
+ {
+  "id": "fisher_stavros",
+  "name": "Stavros the Fisherman",
+  "group": "town",
+  "role": "Fishing minigame",
+  "loc": "B7",
+  "desc": "Cheerful man with a huge hat."
+ },
+ {
+  "id": "child_melia",
+  "name": "Melia (child)",
+  "group": "town",
+  "role": "Lost child",
+  "loc": "B7",
+  "desc": "Little girl with a toy boat."
+ },
+ {
+  "id": "baker_dora",
+  "name": "Dora the Baker",
+  "group": "town",
+  "role": "Bakery",
+  "loc": "B7",
+  "desc": "Flour on her face; honey cakes."
+ },
+ {
+  "id": "pyrros_guard",
+  "name": "Pyrros the Guard",
+  "group": "town",
+  "role": "Halcyon guard",
+  "loc": "B7",
+  "desc": "Bored militiaman."
+ },
+ {
+  "id": "old_nonna",
+  "name": "Old Nonna Thea",
+  "group": "town",
+  "role": "Gossip",
+  "loc": "B7",
+  "desc": "Rocks on her porch; hints about hidden caves."
+ },
+ {
+  "id": "argyros_smith",
+  "name": "Hector the Silversmith",
+  "group": "town",
+  "role": "Shop",
+  "loc": "C2",
+  "desc": "Silver arrows and ornaments."
+ },
+ {
+  "id": "argyros_kid",
+  "name": "Pip the Mine Boy",
+  "group": "town",
+  "role": "Ambient",
+  "loc": "C2",
+  "desc": "Soot-faced kid; shows a secret shaft."
+ },
+ {
+  "id": "argyros_elder",
+  "name": "Elder Menelaos",
+  "group": "town",
+  "role": "Elder",
+  "loc": "C2",
+  "desc": "Town council; hint on D2."
+ },
+ {
+  "id": "argyros_tailor",
+  "name": "Maeve the Tailor",
+  "group": "town",
+  "role": "Lion hide tailor",
+  "loc": "C2",
+  "desc": "Sewing needle, stitches armor."
+ },
+ {
+  "id": "pythona_priest",
+  "name": "Priest Lysandros",
+  "group": "town",
+  "role": "Temple keeper",
+  "loc": "C4",
+  "desc": "Nervous young priest; hints."
+ },
+ {
+  "id": "pythona_vendor",
+  "name": "Hedy the Laurel Seller",
+  "group": "town",
+  "role": "Shop",
+  "loc": "C4",
+  "desc": "Laurels and potions."
+ },
+ {
+  "id": "pythona_actor",
+  "name": "Thespis the Actor",
+  "group": "town",
+  "role": "Theatre",
+  "loc": "C4",
+  "desc": "Melodramatic actor; minigame."
+ },
+ {
+  "id": "pythona_beggar",
+  "name": "Beggar Aesop",
+  "group": "town",
+  "role": "Fable teller",
+  "loc": "C4",
+  "desc": "Tells fables with real hints."
+ },
+ {
+  "id": "mycenor_smith",
+  "name": "Brontes the Smith",
+  "group": "town",
+  "role": "Shield smith",
+  "loc": "B5",
+  "desc": "Burly smith; upgrades shield."
+ },
+ {
+  "id": "mycenor_gate",
+  "name": "Gate Captain Dion",
+  "group": "town",
+  "role": "Lion Gate guard",
+  "loc": "B5",
+  "desc": "Strict; requires a pass."
+ },
+ {
+  "id": "mycenor_widow",
+  "name": "Widow Clytie",
+  "group": "town",
+  "role": "Ambient",
+  "loc": "B5",
+  "desc": "Mourning; mentions cursed house."
+ },
+ {
+  "id": "mycenor_trainer",
+  "name": "Lakon the Trainer",
+  "group": "town",
+  "role": "Sword training",
+  "loc": "B5",
+  "desc": "Spartan-style drill master; training minigame."
+ },
+ {
+  "id": "ephyra_market",
+  "name": "Philo the Merchant",
+  "group": "town",
+  "role": "Main shop",
+  "loc": "D6",
+  "desc": "Fast-talking merchant; sells everything."
+ },
+ {
+  "id": "ephyra_bank",
+  "name": "Argyra the Banker",
+  "group": "town",
+  "role": "Bank",
+  "loc": "D6",
+  "desc": "Stores obols; interest."
+ },
+ {
+  "id": "ephyra_dock",
+  "name": "Dockhand Nico",
+  "group": "town",
+  "role": "Ambient",
+  "loc": "D6",
+  "desc": "Humming docker; gives boat hints."
+ },
+ {
+  "id": "ephyra_thief",
+  "name": "Slippery Skiron",
+  "group": "town",
+  "role": "Thief",
+  "loc": "D6",
+  "desc": "Steals obols; side quest 'catch the thief'."
+ },
+ {
+  "id": "ephyra_gambler",
+  "name": "Gambler Kybos",
+  "group": "town",
+  "role": "Dice minigame",
+  "loc": "D6",
+  "desc": "Dice and wine."
+ },
+ {
+  "id": "ephyra_priestess",
+  "name": "Priestess of Hermes",
+  "group": "town",
+  "role": "Shrine",
+  "loc": "D6",
+  "desc": "Offers Boon of Hermes."
+ },
+ {
+  "id": "lupa_commander",
+  "name": "Prefect Gnaeus",
+  "group": "town",
+  "role": "Castra Lupa garrison",
+  "loc": "H3",
+  "desc": "Stiff; secretly pro-Order."
+ },
+ {
+  "id": "lupa_recruit",
+  "name": "Recruit Quintus",
+  "group": "town",
+  "role": "Ambient",
+  "loc": "H3",
+  "desc": "Nervous kid; sword practice."
+ },
+ {
+  "id": "lupa_vet",
+  "name": "Veteran Septimus",
+  "group": "town",
+  "role": "Training",
+  "loc": "H3",
+  "desc": "One-legged veteran; shield lore."
+ },
+ {
+  "id": "lupa_cook",
+  "name": "Cook Marta",
+  "group": "town",
+  "role": "Barracks cook",
+  "loc": "H3",
+  "desc": "Stews; honey."
+ },
+ {
+  "id": "aventina_herald",
+  "name": "Herald Cato",
+  "group": "town",
+  "role": "Forum herald",
+  "loc": "G4",
+  "desc": "Loud town crier; news."
+ },
+ {
+  "id": "aventina_shop",
+  "name": "Fulvia the Armorer",
+  "group": "town",
+  "role": "Shop",
+  "loc": "G4",
+  "desc": "Top-tier armor."
+ },
+ {
+  "id": "aventina_bath",
+  "name": "Bathkeeper Tertius",
+  "group": "town",
+  "role": "Bath house",
+  "loc": "G4",
+  "desc": "Heal for obols."
+ },
+ {
+  "id": "aventina_gladiator",
+  "name": "Spartacus the Younger",
+  "group": "town",
+  "role": "Arena",
+  "loc": "G4",
+  "desc": "Gladiator; arena minigame."
+ },
+ {
+  "id": "aventina_scribe",
+  "name": "Scribe Naso",
+  "group": "town",
+  "role": "Library",
+  "loc": "G4",
+  "desc": "Reads Latin; lore."
+ },
+ {
+  "id": "aventina_vendor",
+  "name": "Olive Seller Livia",
+  "group": "town",
+  "role": "Ambient",
+  "loc": "G4",
+  "desc": "Rumors."
+ },
+ {
+  "id": "cumae_priestess",
+  "name": "Acolyte Fausta",
+  "group": "town",
+  "role": "Sibyl attendant",
+  "loc": "F5",
+  "desc": "Pale acolyte."
+ },
+ {
+  "id": "cumae_fisher",
+  "name": "Mourner Cynthia",
+  "group": "town",
+  "role": "Ambient",
+  "loc": "F5",
+  "desc": "Fog, tombs."
+ },
+ {
+  "id": "cumae_gravedigger",
+  "name": "Gravedigger Orcus",
+  "group": "town",
+  "role": "Side quest",
+  "loc": "F5",
+  "desc": "Humorous, dark."
+ },
+ {
+  "id": "lavinium_farmer",
+  "name": "Farmer Silvanus",
+  "group": "town",
+  "role": "Crop quest",
+  "loc": "G6",
+  "desc": "Weary; wheat blight."
+ },
+ {
+  "id": "lavinium_priestess",
+  "name": "Priestess Lavinia",
+  "group": "town",
+  "role": "Venus shrine",
+  "loc": "G6",
+  "desc": "Warm; gives boon hints."
+ },
+ {
+  "id": "lavinium_kid",
+  "name": "Gaia the Shepherd Girl",
+  "group": "town",
+  "role": "Ambient",
+  "loc": "G6",
+  "desc": "Goat herder."
+ },
+ {
+  "id": "lavinium_festival",
+  "name": "Festival Master Faustus",
+  "group": "town",
+  "role": "Games",
+  "loc": "G6",
+  "desc": "Runs festival minigames."
+ },
+ {
+  "id": "ostia_captain",
+  "name": "Captain Remus",
+  "group": "town",
+  "role": "Ostia port",
+  "loc": "I6",
+  "desc": "Salt-hardened sailor."
+ },
+ {
+  "id": "ostia_net",
+  "name": "Neria the Net-Maker",
+  "group": "town",
+  "role": "Nymph Net",
+  "loc": "I6",
+  "desc": "Sells net."
+ },
+ {
+  "id": "ostia_pirate",
+  "name": "Pirate Barbarossa Lucius",
+  "group": "town",
+  "role": "Smuggler",
+  "loc": "I6",
+  "desc": "Eye patch; sells maps."
+ },
+ {
+  "id": "ostia_lighthouse",
+  "name": "Lamplighter Pharos",
+  "group": "town",
+  "role": "Lighthouse",
+  "loc": "I6",
+  "desc": "Climbs the light."
+ },
+ {
+  "id": "lemnos_elder",
+  "name": "Elder Kyklos",
+  "group": "town",
+  "role": "Lemnos elder",
+  "loc": "C8",
+  "desc": "Smith elder; shy."
+ },
+ {
+  "id": "lemnos_apprentice",
+  "name": "Apprentice Cadmus",
+  "group": "town",
+  "role": "Lemnos smith",
+  "loc": "C8",
+  "desc": "Learns fast."
+ },
+ {
+  "id": "lemnos_hearth",
+  "name": "Hearthkeeper Hestiaia",
+  "group": "town",
+  "role": "Hearth",
+  "loc": "C8",
+  "desc": "Keeps the forge-flame."
+ },
+ {
+  "id": "lemnos_kid",
+  "name": "Kid Phorbas",
+  "group": "town",
+  "role": "Ambient",
+  "loc": "C8",
+  "desc": "Wants to be a hero."
+ },
+ {
+  "id": "sidefree_hermit",
+  "name": "Hermit Anaxis",
+  "group": "sidefree",
+  "role": "Tiberis Forest hermit",
+  "loc": "I5",
+  "desc": "Mutters riddles; side quest."
+ },
+ {
+  "id": "sidefree_farmer_twin",
+  "name": "The Twin Brothers Cleon",
+  "group": "sidefree",
+  "role": "Feuding farmers",
+  "loc": "D5",
+  "desc": "Quarrel over a well."
+ },
+ {
+  "id": "sidefree_ghost_child",
+  "name": "Ghost of Little Rhea",
+  "group": "sidefree",
+  "role": "Lost spirit",
+  "loc": "F7",
+  "desc": "Wants her toy."
+ },
+ {
+  "id": "sidefree_pirate_queen",
+  "name": "Pirate Queen Anne-Mira",
+  "group": "sidefree",
+  "role": "Smuggler boss",
+  "loc": "I4",
+  "desc": "Boat race side quest."
+ },
+ {
+  "id": "sidefree_runner",
+  "name": "Runner Ladas",
+  "group": "sidefree",
+  "role": "Foot racer",
+  "loc": "D3",
+  "desc": "Wants a race."
+ },
+ {
+  "id": "sidefree_potter",
+  "name": "Potter Kallias",
+  "group": "sidefree",
+  "role": "Cracked pots",
+  "loc": "E6",
+  "desc": "Needs clay."
+ },
+ {
+  "id": "sidefree_astronomer",
+  "name": "Astronomer Ptolema",
+  "group": "sidefree",
+  "role": "Sky watcher",
+  "loc": "F7",
+  "desc": "Needs constellations."
+ },
+ {
+  "id": "sidefree_wolfmother",
+  "name": "Lupa the Wolf Mother",
+  "group": "sidefree",
+  "role": "Wolf spirit",
+  "loc": "G3",
+  "desc": "Wants pups found."
+ },
+ {
+  "id": "sidefree_giant_fisher",
+  "name": "Triton the Fisher-King",
+  "group": "sidefree",
+  "role": "Merman",
+  "loc": "E7",
+  "desc": "Wants a pearl."
+ },
+ {
+  "id": "sidefree_vintner",
+  "name": "Vintner Ampelos",
+  "group": "sidefree",
+  "role": "Vineyard owner",
+  "loc": "D3",
+  "desc": "Grape thieves."
+ },
+ {
+  "id": "sidefree_lighthouse",
+  "name": "Keeper Pharia",
+  "group": "sidefree",
+  "role": "Heron Strand",
+  "loc": "B3",
+  "desc": "Ghost-lights."
+ },
+ {
+  "id": "sidefree_dancer",
+  "name": "Dancer Terpsi",
+  "group": "sidefree",
+  "role": "Troupe",
+  "loc": "F7",
+  "desc": "Needs a lost anklet."
+ },
+ {
+  "id": "sidefree_twins",
+  "name": "Castor and Pollux",
+  "group": "sidefree",
+  "role": "Boxing twins",
+  "loc": "G7",
+  "desc": "Boxing minigame."
+ },
+ {
+  "id": "sidefree_nurse",
+  "name": "Nurse Hygeia",
+  "group": "sidefree",
+  "role": "Healer",
+  "loc": "E6",
+  "desc": "Cures sick villagers."
+ },
+ {
+  "id": "sidefree_peddler",
+  "name": "Wandering Peddler Xenia",
+  "group": "sidefree",
+  "role": "Shop",
+  "loc": "G5",
+  "desc": "Random rare items."
+ },
+ {
+  "id": "sidefree_mapmaker",
+  "name": "Mapmaker Anaximander",
+  "group": "sidefree",
+  "role": "Map vendor",
+  "loc": "J3",
+  "desc": "Sells sea maps."
+ },
+ {
+  "id": "sidefree_siren",
+  "name": "Siren Ligeia",
+  "group": "sidefree",
+  "role": "Siren",
+  "loc": "F8",
+  "desc": "Song minigame."
+ },
+ {
+  "id": "sidefree_sphinx",
+  "name": "The Sphinx",
+  "group": "sidefree",
+  "role": "Riddle monster",
+  "loc": "F7",
+  "desc": "Riddles for treasure."
+ }
+]

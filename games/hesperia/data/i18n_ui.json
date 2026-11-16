@@ -1,0 +1,334 @@
+{
+ "title": {
+  "en": "HESPERIA",
+  "es": "HESPERIA"
+ },
+ "subtitle": {
+  "en": "Oath of Bronze",
+  "es": "Juramento de Bronce"
+ },
+ "new_game": {
+  "en": "New Game",
+  "es": "Nueva partida"
+ },
+ "continue": {
+  "en": "Continue",
+  "es": "Continuar"
+ },
+ "language": {
+  "en": "Language: English",
+  "es": "Idioma: Español"
+ },
+ "choose_name": {
+  "en": "Your name",
+  "es": "Tu nombre"
+ },
+ "choose_body": {
+  "en": "Body",
+  "es": "Cuerpo"
+ },
+ "body_male": {
+  "en": "Male",
+  "es": "Masculino"
+ },
+ "body_female": {
+  "en": "Female",
+  "es": "Femenino"
+ },
+ "start": {
+  "en": "Begin",
+  "es": "Comenzar"
+ },
+ "default_name_m": {
+  "en": "Theron",
+  "es": "Teron"
+ },
+ "default_name_f": {
+  "en": "Thalia",
+  "es": "Talía"
+ },
+ "quest_new": {
+  "en": "New quest",
+  "es": "Nueva misión"
+ },
+ "quest_done": {
+  "en": "Quest complete",
+  "es": "Misión completa"
+ },
+ "hud_quest": {
+  "en": "Quest",
+  "es": "Misión"
+ },
+ "paused": {
+  "en": "Paused",
+  "es": "En pausa"
+ },
+ "resume": {
+  "en": "Resume",
+  "es": "Reanudar"
+ },
+ "save": {
+  "en": "Save",
+  "es": "Guardar"
+ },
+ "saved": {
+  "en": "Game saved",
+  "es": "Partida guardada"
+ },
+ "quit_title": {
+  "en": "Quit to title",
+  "es": "Salir al título"
+ },
+ "tab_items": {
+  "en": "Items",
+  "es": "Objetos"
+ },
+ "tab_quests": {
+  "en": "Quests",
+  "es": "Misiones"
+ },
+ "tab_options": {
+  "en": "Options",
+  "es": "Opciones"
+ },
+ "text_size": {
+  "en": "Text size",
+  "es": "Tamaño de texto"
+ },
+ "equip_x": {
+  "en": "Equip X",
+  "es": "Equipar X"
+ },
+ "equip_y": {
+  "en": "Equip Y",
+  "es": "Equipar Y"
+ },
+ "no_quests": {
+  "en": "No active quests.",
+  "es": "No hay misiones activas."
+ },
+ "empty": {
+  "en": "Nothing yet.",
+  "es": "Nada todavía."
+ },
+ "shop_title": {
+  "en": "Wares",
+  "es": "Mercancías"
+ },
+ "buy": {
+  "en": "Buy",
+  "es": "Comprar"
+ },
+ "not_enough": {
+  "en": "Not enough obols.",
+  "es": "No tienes suficientes óbolos."
+ },
+ "bought": {
+  "en": "Bought!",
+  "es": "¡Comprado!"
+ },
+ "sold_out": {
+  "en": "Sold out",
+  "es": "Agotado"
+ },
+ "close": {
+  "en": "Close",
+  "es": "Cerrar"
+ },
+ "got_item": {
+  "en": "Got",
+  "es": "Obtienes"
+ },
+ "locked": {
+  "en": "Locked.",
+  "es": "Cerrado."
+ },
+ "opened_gate": {
+  "en": "A gate rumbles open.",
+  "es": "Una reja se abre con estruendo."
+ },
+ "used_key": {
+  "en": "Used a Bronze Key.",
+  "es": "Usas una Llave de Bronce."
+ },
+ "no_magic": {
+  "en": "Not enough magic.",
+  "es": "Sin magia suficiente."
+ },
+ "died": {
+  "en": "You fall... and wake at the last shrine.",
+  "es": "Caes... y despiertas en el último santuario."
+ },
+ "boss_down": {
+  "en": "Victory!",
+  "es": "¡Victoria!"
+ },
+ "boss_crab": {
+  "en": "Stone-Back Crab",
+  "es": "Cangrejo Lomo de Piedra"
+ },
+ "boss_hydra": {
+  "en": "Lernaean Hydra",
+  "es": "Hidra de Lerna"
+ },
+ "hint_crab": {
+  "en": "Its shell blocks the front!",
+  "es": "¡El caparazón protege el frente!"
+ },
+ "hint_hydra": {
+  "en": "Cut a neck, then burn the stump!",
+  "es": "¡Corta un cuello y quema el muñón!"
+ },
+ "hero_default": {
+  "en": "Hero",
+  "es": "Héroe"
+ },
+ "a_talk": {
+  "en": "Talk",
+  "es": "Hablar"
+ },
+ "slice_end": {
+  "en": "End of the vertical slice. Thank you for playing!",
+  "es": "Fin del avance. ¡Gracias por jugar!"
+ },
+ "obol": {
+  "en": "Obols",
+  "es": "Óbolos"
+ },
+ "magic": {
+  "en": "Magic",
+  "es": "Magia"
+ },
+ "level_up": {
+  "en": "Heart gained!",
+  "es": "¡Corazón ganado!"
+ },
+ "name.obol": {
+  "en": "Obol",
+  "es": "Óbolo"
+ },
+ "name.gaff": {
+  "en": "Fisher's Gaff",
+  "es": "Bichero del pescador"
+ },
+ "name.torch": {
+  "en": "Prometheus Torch",
+  "es": "Antorcha de Prometeo"
+ },
+ "name.fire_rod": {
+  "en": "Brand of Iolaus",
+  "es": "Tizón de Yolao"
+ },
+ "name.small_key": {
+  "en": "Bronze Key",
+  "es": "Llave de Bronce"
+ },
+ "name.honey": {
+  "en": "Honeycomb",
+  "es": "Panal de miel"
+ },
+ "name.nectar": {
+  "en": "Nectar Potion",
+  "es": "Poción de néctar"
+ },
+ "name.wicker": {
+  "en": "Wicker Shield",
+  "es": "Escudo de mimbre"
+ },
+ "name.seal_fragment": {
+  "en": "Seal Fragment",
+  "es": "Fragmento de sello"
+ },
+ "name.argos_pack": {
+  "en": "Argos' pack",
+  "es": "Morral de Argos"
+ },
+ "name.m01": {
+  "en": "Salt and Smoke",
+  "es": "Sal y humo"
+ },
+ "name.m02": {
+  "en": "Under the Cliffs",
+  "es": "Bajo los acantilados"
+ },
+ "name.s01": {
+  "en": "Argos' Last Orders",
+  "es": "Las últimas órdenes de Argos"
+ },
+ "name.kleo": {
+  "en": "Kleo",
+  "es": "Kleo"
+ },
+ "name.argos": {
+  "en": "Old Argos",
+  "es": "El viejo Argos"
+ },
+ "name.iolaus": {
+  "en": "Iolaus the Old",
+  "es": "Yolao el Viejo"
+ },
+ "name.poseidon": {
+  "en": "Poseidon",
+  "es": "Poseidón"
+ },
+ "name.hestia": {
+  "en": "Hestia",
+  "es": "Hestia"
+ },
+ "name.ino": {
+  "en": "Ino the Innkeeper",
+  "es": "Ino la posadera"
+ },
+ "name.fisher_stavros": {
+  "en": "Stavros",
+  "es": "Stavros"
+ },
+ "name.child_melia": {
+  "en": "Melia",
+  "es": "Melia"
+ },
+ "name.baker_dora": {
+  "en": "Dora",
+  "es": "Dora"
+ },
+ "name.pyrros_guard": {
+  "en": "Pyrros",
+  "es": "Pirro"
+ },
+ "name.old_nonna": {
+  "en": "Nonna Thea",
+  "es": "Abuela Thea"
+ },
+ "name.hermes": {
+  "en": "Mercator",
+  "es": "Mercator"
+ },
+ "name.e01": {
+  "en": "Giant Gull",
+  "es": "Gaviota gigante"
+ },
+ "name.e02": {
+  "en": "Rock Crab",
+  "es": "Cangrejo de roca"
+ },
+ "name.e03": {
+  "en": "Marsh Frog",
+  "es": "Rana del pantano"
+ },
+ "name.e04": {
+  "en": "Water Snake",
+  "es": "Culebra de agua"
+ },
+ "name.e07": {
+  "en": "Giant Spider",
+  "es": "Araña gigante"
+ },
+ "name.e08": {
+  "en": "Cave Bat",
+  "es": "Murciélago de cueva"
+ },
+ "name.e15": {
+  "en": "Marsh Leech",
+  "es": "Sanguijuela del pantano"
+ }
+}

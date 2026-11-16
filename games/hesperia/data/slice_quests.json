@@ -1,0 +1,102 @@
+{
+ "m01": {
+  "steps": [
+   {
+    "ev": "flag:prologue_done",
+    "text": {
+     "en": "Survive the raid on Halcyon Cove.",
+     "es": "Sobrevive a la incursión en Cala Halcyon."
+    }
+   }
+  ],
+  "reward": {
+   "renown": 0
+  },
+  "next": [
+   "m02"
+  ]
+ },
+ "m02": {
+  "steps": [
+   {
+    "ev": "enter:d0",
+    "text": {
+     "en": "Go north to the Gull Cave under the Mycenor Cliffs.",
+     "es": "Ve al norte, a la Cueva de las Gaviotas bajo los acantilados de Micenor."
+    }
+   },
+   {
+    "ev": "item:gaff",
+    "text": {
+     "en": "Find your father's gaff.",
+     "es": "Encuentra el bichero de tu padre."
+    }
+   },
+   {
+    "ev": "item:torch",
+    "text": {
+     "en": "Find the Prometheus Torch.",
+     "es": "Encuentra la Antorcha de Prometeo."
+    }
+   },
+   {
+    "ev": "kill:b00",
+    "text": {
+     "en": "Defeat the Stone-Back Crab. Strike it from behind!",
+     "es": "Derrota al Cangrejo Lomo de Piedra. ¡Golpéalo por detrás!"
+    }
+   }
+  ],
+  "reward": {
+   "renown": 1
+  }
+ },
+ "s01": {
+  "steps": [
+   {
+    "ev": "flag:s01_found",
+    "text": {
+     "en": "Find Argos' pack on the beach, near the boat shed.",
+     "es": "Encuentra el morral de Argos en la playa, junto al cobertizo."
+    }
+   },
+   {
+    "ev": "flag:s01_returned",
+    "text": {
+     "en": "Return the pack to Iolaus.",
+     "es": "Devuelve el morral a Yolao."
+    }
+   },
+   {
+    "ev": "flag:s01_rope",
+    "text": {
+     "en": "Ask Stavros for rope to mend the roofs.",
+     "es": "Pídele soga a Stavros para arreglar los tejados."
+    }
+   },
+   {
+    "ev": "flag:s01_bread",
+    "text": {
+     "en": "Fetch bread from Dora the baker.",
+     "es": "Recoge pan de Dora, la panadera."
+    }
+   },
+   {
+    "ev": "flag:s01_hearth",
+    "text": {
+     "en": "Light Hestia's hearth with the Prometheus Torch.",
+     "es": "Enciende el hogar de Hestia con la Antorcha de Prometeo."
+    }
+   }
+  ],
+  "reward": {
+   "items": {
+    "nectar": 1
+   },
+   "renown": 2,
+   "flags": [
+    "hamlet_restored"
+   ]
+  }
+ }
+}

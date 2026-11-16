@@ -1,0 +1,47 @@
+{
+ "screens": 80,
+ "land_screens": 55,
+ "island_cells": 9,
+ "towns": 11,
+ "npcs": 126,
+ "npc_groups": {
+  "hero": 1,
+  "main": 4,
+  "god": 15,
+  "ally": 7,
+  "antagonist": 7,
+  "sidefree": 30,
+  "sidemain": 13,
+  "town": 49
+ },
+ "dungeons": 19,
+ "labors": 12,
+ "bosses": 27,
+ "enemies": 72,
+ "items_total": 79,
+ "item_cats": {
+  "sword": 5,
+  "shield": 3,
+  "armor": 3,
+  "key": 26,
+  "collectible": 4,
+  "consumable": 5,
+  "boon": 12,
+  "upgrade": 9,
+  "currency": 3,
+  "pickup": 4,
+  "dungeon": 4,
+  "seal": 1
+ },
+ "quests": 99,
+ "quest_types": {
+  "main": 28,
+  "sidemain": 18,
+  "sidefree": 34,
+  "minigame": 11,
+  "collect": 8
+ },
+ "main_quest_steps": 28,
+ "side_total": 52,
+ "minigames": 11
+}

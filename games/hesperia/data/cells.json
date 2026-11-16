@@ -1,0 +1,482 @@
+[
+ {
+  "id": "A1",
+  "name": "Hyperborean Sea",
+  "terrain": "SEA",
+  "notes": "open water, ice floes"
+ },
+ {
+  "id": "B1",
+  "name": "Northern Skerries",
+  "terrain": "SEA",
+  "notes": "rocks, fog"
+ },
+ {
+  "id": "C1",
+  "name": "Pindos Peaks",
+  "terrain": "MTN",
+  "notes": "cliffs, goat paths, hidden grotto"
+ },
+ {
+  "id": "D1",
+  "name": "Pindos Pass",
+  "terrain": "MTN",
+  "notes": "north gate, sealed by Order (opens Act III)"
+ },
+ {
+  "id": "E1",
+  "name": "Mount Olympos",
+  "terrain": "MTN",
+  "notes": "cloud gate, sealed; Aurea: TARTARUS SPIRE (final dungeon)"
+ },
+ {
+  "id": "F1",
+  "name": "Olympos East Face",
+  "terrain": "MTN",
+  "notes": "waterfalls, eagle nests"
+ },
+ {
+  "id": "G1",
+  "name": "Frost Pass",
+  "terrain": "MTN",
+  "notes": "snow, wind gusts"
+ },
+ {
+  "id": "H1",
+  "name": "Frostpeak",
+  "terrain": "MTN",
+  "notes": "snow peak; Aurea: D4 ERYMANTHIAN BOAR lair"
+ },
+ {
+  "id": "I1",
+  "name": "Frozen Coast",
+  "terrain": "BCH",
+  "notes": "ice shore, walrus-men camp"
+ },
+ {
+  "id": "J1",
+  "name": "Hyperborean Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "A2",
+  "name": "Erytheia",
+  "terrain": "ISL",
+  "notes": "far-west uninhabited isle; Aurea: D10 CATTLE OF GERYON"
+ },
+ {
+  "id": "B2",
+  "name": "Argyros Bay",
+  "terrain": "BCH",
+  "notes": "silver-ore barges, driftwood"
+ },
+ {
+  "id": "C2",
+  "name": "ARGYROS",
+  "terrain": "TOWN",
+  "notes": "silver-mining hill town (Hellene)"
+ },
+ {
+  "id": "D2",
+  "name": "Nemean Heights",
+  "terrain": "MTN",
+  "notes": "D2 NEMEAN CAVE (Lion)"
+ },
+ {
+  "id": "E2",
+  "name": "Alpheios Source",
+  "terrain": "MTN",
+  "notes": "river source, spring shrine"
+ },
+ {
+  "id": "F2",
+  "name": "Tiberis Source",
+  "terrain": "MTN",
+  "notes": "river source, spring shrine"
+ },
+ {
+  "id": "G2",
+  "name": "Wolf Pass",
+  "terrain": "FOR",
+  "notes": "pine pass, bandit road to Castra Lupa"
+ },
+ {
+  "id": "H2",
+  "name": "Snowy Pines",
+  "terrain": "FOR",
+  "notes": "snow forest, lumber camp"
+ },
+ {
+  "id": "I2",
+  "name": "Boreal Shore",
+  "terrain": "BCH",
+  "notes": "cold beach, shipwreck"
+ },
+ {
+  "id": "J2",
+  "name": "Aeolia",
+  "terrain": "ISL",
+  "notes": "floating wind island (reachable late); cloud palace mini-dungeon"
+ },
+ {
+  "id": "A3",
+  "name": "Aeaea",
+  "terrain": "ISL",
+  "notes": "uninhabited; Circe's house and sty"
+ },
+ {
+  "id": "B3",
+  "name": "Heron Strand",
+  "terrain": "BCH",
+  "notes": "marsh birds, lighthouse ruin"
+ },
+ {
+  "id": "C3",
+  "name": "Artemis Wood",
+  "terrain": "FOR",
+  "notes": "deep forest; D3 CERYNEIAN HIND shrine-dungeon"
+ },
+ {
+  "id": "D3",
+  "name": "Hillside Terraces",
+  "terrain": "FLD",
+  "notes": "vineyards, goat herds, road to Pythona"
+ },
+ {
+  "id": "E3",
+  "name": "Alpheios Gorge",
+  "terrain": "RIV",
+  "notes": "river gorge, rope bridges"
+ },
+ {
+  "id": "F3",
+  "name": "Tiberis Meadows",
+  "terrain": "FLD",
+  "notes": "meadows, horse ranch; Aurea: D6 STYMPHALIAN MERE"
+ },
+ {
+  "id": "G3",
+  "name": "Lupa Wood",
+  "terrain": "FOR",
+  "notes": "wolf den, hidden Lupercal cave"
+ },
+ {
+  "id": "H3",
+  "name": "CASTRA LUPA",
+  "terrain": "TOWN",
+  "notes": "fortress town on Tiberis (Latin); Aurea: D8 MARES OF DIOMEDES"
+ },
+ {
+  "id": "I3",
+  "name": "Cold Strand",
+  "terrain": "BCH",
+  "notes": "east coast, sea-cave"
+ },
+ {
+  "id": "J3",
+  "name": "Eastern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "A4",
+  "name": "Western Sea",
+  "terrain": "SEA",
+  "notes": "open water, whirlpool"
+ },
+ {
+  "id": "B4",
+  "name": "Olive Terraces",
+  "terrain": "FLD",
+  "notes": "olive groves; Aurea: D9 THEMISCYRA (Girdle)"
+ },
+ {
+  "id": "C4",
+  "name": "PYTHONA",
+  "terrain": "TOWN",
+  "notes": "oracle town above a gorge (Hellene)"
+ },
+ {
+  "id": "D4",
+  "name": "Sacred Way Ford",
+  "terrain": "RIV",
+  "notes": "processional road crossing the Alpheios; stepping stones, ferry"
+ },
+ {
+  "id": "E4",
+  "name": "Lake Avernus (north)",
+  "terrain": "LAK",
+  "notes": "steaming lake, no birds"
+ },
+ {
+  "id": "F4",
+  "name": "Sibyl's Road",
+  "terrain": "FLD",
+  "notes": "paved road, tombs"
+ },
+ {
+  "id": "G4",
+  "name": "AVENTINA",
+  "terrain": "TOWN",
+  "notes": "capital on seven hills (Latin); Senate Palace (Act I climax)"
+ },
+ {
+  "id": "H4",
+  "name": "Tiberis Bend",
+  "terrain": "RIV",
+  "notes": "river bend with ferry, estates and parade grounds"
+ },
+ {
+  "id": "I4",
+  "name": "Pine Coast",
+  "terrain": "FOR",
+  "notes": "coastal pines, smugglers' cove"
+ },
+ {
+  "id": "J4",
+  "name": "Eastern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "A5",
+  "name": "Ogygia",
+  "terrain": "ISL",
+  "notes": "uninhabited; Calypso's cave"
+ },
+ {
+  "id": "B5",
+  "name": "MYCENOR",
+  "terrain": "TOWN",
+  "notes": "cliff fortress town (Hellene), cursed house"
+ },
+ {
+  "id": "C5",
+  "name": "Lake Tritonis",
+  "terrain": "LAK",
+  "notes": "mirror lake; dW SUNKEN TEMPLE OF TRITONIS (needs Fins)"
+ },
+ {
+  "id": "D5",
+  "name": "Alpheios Banks",
+  "terrain": "RIV",
+  "notes": "olive farms on a wide slow river; canoes, reed islands"
+ },
+ {
+  "id": "E5",
+  "name": "Lake Avernus (south)",
+  "terrain": "LAK",
+  "notes": "D12 CERBERUS cave entrance on south shore"
+ },
+ {
+  "id": "F5",
+  "name": "CUMAE VETUS",
+  "terrain": "TOWN",
+  "notes": "Sibyl's town on Avernus east shore (Latin)"
+ },
+ {
+  "id": "G5",
+  "name": "Imperial Crossroads",
+  "terrain": "FLD",
+  "notes": "inn, milestones, toll gate"
+ },
+ {
+  "id": "H5",
+  "name": "Via Aurea Fords",
+  "terrain": "RIV",
+  "notes": "wheat banks, river fords, mill wheels"
+ },
+ {
+  "id": "I5",
+  "name": "Tiberis Forest",
+  "terrain": "FOR",
+  "notes": "old forest, hermit"
+ },
+ {
+  "id": "J5",
+  "name": "Eastern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "A6",
+  "name": "Western Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "B6",
+  "name": "Mycenor Cliffs",
+  "terrain": "BCH",
+  "notes": "sea cliffs; D0 GULL CAVE"
+ },
+ {
+  "id": "C6",
+  "name": "Satyr Wood",
+  "terrain": "FOR",
+  "notes": "dense woods, Pan's glade"
+ },
+ {
+  "id": "D6",
+  "name": "EPHYRA",
+  "terrain": "TOWN",
+  "notes": "river-port merchant town (Hellene)"
+ },
+ {
+  "id": "E6",
+  "name": "Hellene Farms",
+  "terrain": "FLD",
+  "notes": "barns, orchards"
+ },
+ {
+  "id": "F6",
+  "name": "Lake Albanus",
+  "terrain": "LAK",
+  "notes": "crater lake on the Latin border; ferry, fishing derby; Aurea: frozen sunken ship"
+ },
+ {
+  "id": "G6",
+  "name": "LAVINIUM",
+  "terrain": "TOWN",
+  "notes": "farm town, Trojan-descended (Latin)"
+ },
+ {
+  "id": "H6",
+  "name": "Wheat Sea",
+  "terrain": "FLD",
+  "notes": "endless wheat, scarecrow maze"
+ },
+ {
+  "id": "I6",
+  "name": "OSTIA NOVA",
+  "terrain": "TOWN",
+  "notes": "harbor town at Tiberis mouth (Latin)"
+ },
+ {
+  "id": "J6",
+  "name": "Eastern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "A7",
+  "name": "Western Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "B7",
+  "name": "HALCYON COVE",
+  "terrain": "TOWN",
+  "notes": "fishing hamlet, START (Hellene)"
+ },
+ {
+  "id": "C7",
+  "name": "Lerna Marsh",
+  "terrain": "MAR",
+  "notes": "swamp, boardwalks; D1 LERNAEAN HYDRA"
+ },
+ {
+  "id": "D7",
+  "name": "Alpheios Delta",
+  "terrain": "RIV",
+  "notes": "river delta, reed islands; Aurea: D5 AUGEAN STABLES"
+ },
+ {
+  "id": "E7",
+  "name": "Salt Lagoon",
+  "terrain": "LAK",
+  "notes": "shallow swimmable lagoon, salt pans, pearl divers"
+ },
+ {
+  "id": "F7",
+  "name": "Sunburnt Hills",
+  "terrain": "FLD",
+  "notes": "dry hills, ruins, tomb"
+ },
+ {
+  "id": "G7",
+  "name": "Via Appia Marsh",
+  "terrain": "MAR",
+  "notes": "drowned road, boardwalk, stepping stones"
+ },
+ {
+  "id": "H7",
+  "name": "Lavinian Shore",
+  "terrain": "BCH",
+  "notes": "lighthouse, fishing"
+ },
+ {
+  "id": "I7",
+  "name": "Tiber Mouth",
+  "terrain": "BCH",
+  "notes": "dunes, wreck"
+ },
+ {
+  "id": "J7",
+  "name": "Eastern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "A8",
+  "name": "Hesperides",
+  "terrain": "ISL",
+  "notes": "far-SW garden isle; D11 LADON & GOLDEN APPLES"
+ },
+ {
+  "id": "B8",
+  "name": "Southern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "C8",
+  "name": "Lemnos",
+  "terrain": "ISL",
+  "notes": "ONLY inhabited island: smith village + volcano forge (mini-dungeon)"
+ },
+ {
+  "id": "D8",
+  "name": "Southern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "E8",
+  "name": "Crete",
+  "terrain": "ISL",
+  "notes": "uninhabited ruins; D7 LABYRINTH (Cretan Bull)"
+ },
+ {
+  "id": "F8",
+  "name": "Sirenusae",
+  "terrain": "ISL",
+  "notes": "siren rocks, uninhabited, song puzzle"
+ },
+ {
+  "id": "G8",
+  "name": "Southern Sea",
+  "terrain": "SEA",
+  "notes": "open water, whirlpool (Charybdis)"
+ },
+ {
+  "id": "H8",
+  "name": "Thrinacia",
+  "terrain": "ISL",
+  "notes": "uninhabited, cattle of Helios, sun shrine"
+ },
+ {
+  "id": "I8",
+  "name": "Southern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ },
+ {
+  "id": "J8",
+  "name": "Southern Sea",
+  "terrain": "SEA",
+  "notes": "open water"
+ }
+]

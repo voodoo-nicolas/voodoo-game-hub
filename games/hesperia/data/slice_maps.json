@@ -1,0 +1,943 @@
+{
+ "b7": {
+  "name": {
+   "en": "Halcyon Cove",
+   "es": "Cala Halcyon"
+  },
+  "kind": "outdoor",
+  "cell": "B7",
+  "w": 32,
+  "h": 32,
+  "rows": [
+   "##############....##############",
+   "##############....##############",
+   "###...........................##",
+   "###.....T...........T......T..##",
+   "###.T......T............T.....##",
+   "###...........................##",
+   "###...........................##",
+   "###...HHHHHH........HHHHHH....##",
+   "###...HHHHHH........HHHHHH....##",
+   "###...HHHHHH........HHHHHH....##",
+   "~~~...HHDHHH........HHDHHH.T..##",
+   "~~~...........................##",
+   "~~~.T...........................",
+   "~~~.............................",
+   "~~~................T............",
+   "~~~...HHHH..HHHHH.........T.....",
+   "~~~T..HHHH..HHHHH.............##",
+   "~~~...HHHH..HHHHH.............##",
+   "~~~...........................##",
+   "~~~...................HHHHHH..##",
+   "~~~..T................HHHHHHT.##",
+   "~~~...................HHHHHH..##",
+   "~~~,,.........................##",
+   "~~~,,.........................##",
+   "~~~,,.........................##",
+   ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,",
+   ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,",
+   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+  ],
+  "edges": {
+   "n": "b6",
+   "e": "c7"
+  },
+  "doors": [
+   {
+    "x": 8,
+    "y": 10,
+    "to": "b7_inn",
+    "tx": 7,
+    "ty": 8
+   },
+   {
+    "x": 22,
+    "y": 10,
+    "to": "b7_shop",
+    "tx": 7,
+    "ty": 8,
+    "show_if": "flag:prologue_done"
+   }
+  ],
+  "npcs": [
+   {
+    "id": "kleo",
+    "x": 15,
+    "y": 23,
+    "face": "s",
+    "hide_if": "flag:prologue_done"
+   },
+   {
+    "id": "argos",
+    "x": 24,
+    "y": 22,
+    "face": "s",
+    "hide_if": "flag:prologue_done"
+   },
+   {
+    "id": "iolaus",
+    "x": 17,
+    "y": 19,
+    "face": "s",
+    "show_if": "flag:prologue_done"
+   },
+   {
+    "id": "poseidon",
+    "x": 15,
+    "y": 21,
+    "face": "s"
+   },
+   {
+    "id": "fisher_stavros",
+    "x": 10,
+    "y": 24,
+    "face": "e"
+   },
+   {
+    "id": "child_melia",
+    "x": 19,
+    "y": 22,
+    "face": "w"
+   },
+   {
+    "id": "baker_dora",
+    "x": 8,
+    "y": 18,
+    "face": "n"
+   },
+   {
+    "id": "pyrros_guard",
+    "x": 15,
+    "y": 3,
+    "face": "s"
+   },
+   {
+    "id": "old_nonna",
+    "x": 5,
+    "y": 13,
+    "face": "e"
+   }
+  ],
+  "chests": [
+   {
+    "x": 28,
+    "y": 24,
+    "flag": "s01_found",
+    "id": "argos_pack",
+    "hide_if": "flag:s01_found",
+    "show_if": "flag:prologue_done",
+    "msg": {
+     "en": "Argos' pack, wet with salt: his pipe and a knot of cord.",
+     "es": "El morral de Argos, mojado de sal: su pipa y un nudo de cuerda."
+    }
+   },
+   {
+    "x": 4,
+    "y": 23,
+    "item": "obol",
+    "n": 5,
+    "flag": "b7_obols"
+   }
+  ],
+  "signs": [
+   {
+    "x": 17,
+    "y": 4,
+    "text": {
+     "en": "North: Mycenor Cliffs and the Gull Cave. East: Lerna Marsh.",
+     "es": "Norte: Acantilados de Micenor y la Cueva de las Gaviotas. Este: Pantano de Lerna."
+    }
+   }
+  ],
+  "enemies": [],
+  "start": {
+   "x": 16,
+   "y": 25
+  }
+ },
+ "b6": {
+  "name": {
+   "en": "Mycenor Cliffs",
+   "es": "Acantilados de Micenor"
+  },
+  "kind": "outdoor",
+  "cell": "B6",
+  "w": 32,
+  "h": 32,
+  "rows": [
+   "################################",
+   "################################",
+   "################################",
+   "################################",
+   "####........#########.......####",
+   "####........#########.......####",
+   "####........#########..T....####",
+   "####........#########.......####",
+   "####......T.#########.......####",
+   "####........####D####.......####",
+   "####..T.....................####",
+   "####........................####",
+   "####....,,,,,,,,,,,,,,T,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####....,,,,,,,,,,,,,,,,,...####",
+   "####........................####",
+   "####...T....................####",
+   "####....................T...####",
+   "####........................####",
+   "####........................####",
+   "##############,,,,##############",
+   "##############,,,,##############",
+   "##############,,,,##############",
+   "##############,,,,##############"
+  ],
+  "edges": {
+   "s": "b7"
+  },
+  "doors": [
+   {
+    "x": 16,
+    "y": 9,
+    "to": "d0_r1",
+    "tx": 12,
+    "ty": 12
+   }
+  ],
+  "npcs": [],
+  "chests": [],
+  "signs": [
+   {
+    "x": 15,
+    "y": 11,
+    "text": {
+     "en": "Gull Cave. Mind the crabs.",
+     "es": "Cueva de las Gaviotas. Cuidado con los cangrejos."
+    }
+   }
+  ],
+  "enemies": [
+   {
+    "id": "e01",
+    "x": 10,
+    "y": 14
+   },
+   {
+    "id": "e01",
+    "x": 22,
+    "y": 16
+   },
+   {
+    "id": "e02",
+    "x": 12,
+    "y": 19
+   },
+   {
+    "id": "e02",
+    "x": 20,
+    "y": 20
+   },
+   {
+    "id": "e01",
+    "x": 16,
+    "y": 24
+   }
+  ]
+ },
+ "d0_r1": {
+  "name": {
+   "en": "Gull Cave",
+   "es": "Cueva de las Gaviotas"
+  },
+  "kind": "dungeon",
+  "dungeon": "d0",
+  "w": 24,
+  "h": 14,
+  "rows": [
+   "############D###########",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "###########FDF##########"
+  ],
+  "enter": "d0",
+  "doors": [
+   {
+    "x": 12,
+    "y": 13,
+    "to": "b6",
+    "tx": 16,
+    "ty": 10
+   },
+   {
+    "x": 12,
+    "y": 0,
+    "to": "d0_r2",
+    "tx": 12,
+    "ty": 12,
+    "gate": "d0_gate"
+   }
+  ],
+  "gates": [
+   {
+    "x": 12,
+    "y": 1,
+    "flag": "d0_gate"
+   }
+  ],
+  "plates": [
+   {
+    "x": 5,
+    "y": 4,
+    "flag": "d0_gate"
+   }
+  ],
+  "blocks": [
+   {
+    "x": 9,
+    "y": 7
+   }
+  ],
+  "chests": [
+   {
+    "x": 19,
+    "y": 3,
+    "item": "gaff",
+    "n": 1,
+    "flag": "d0_gaff"
+   }
+  ],
+  "npcs": [],
+  "signs": [
+   {
+    "x": 11,
+    "y": 11,
+    "text": {
+     "en": "Push (B) the stone onto the plate.",
+     "es": "Empuja (B) la piedra sobre la placa."
+    }
+   }
+  ],
+  "enemies": [
+   {
+    "id": "e08",
+    "x": 17,
+    "y": 7
+   },
+   {
+    "id": "e08",
+    "x": 7,
+    "y": 9
+   }
+  ],
+  "dark": false
+ },
+ "d0_r2": {
+  "name": {
+   "en": "Gull Cave: Inner Hall",
+   "es": "Cueva de las Gaviotas: sala interior"
+  },
+  "kind": "dungeon",
+  "dungeon": "d0",
+  "w": 24,
+  "h": 14,
+  "rows": [
+   "############D###########",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFF###FFFFFF###FFFFF#",
+   "#FFFFF###FFFFFF###FFFFF#",
+   "#FFFFF###FFFFFF###FFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "############D###########"
+  ],
+  "doors": [
+   {
+    "x": 12,
+    "y": 13,
+    "to": "d0_r1",
+    "tx": 12,
+    "ty": 2
+   },
+   {
+    "x": 12,
+    "y": 0,
+    "to": "d0_boss",
+    "tx": 12,
+    "ty": 12,
+    "req": "has:torch",
+    "msg": {
+     "en": "The passage is pitch black. You need a light.",
+     "es": "El pasaje está negro como la brea. Necesitas luz."
+    }
+   }
+  ],
+  "chests": [
+   {
+    "x": 3,
+    "y": 3,
+    "item": "torch",
+    "n": 1,
+    "flag": "d0_torch"
+   },
+   {
+    "x": 20,
+    "y": 10,
+    "item": "obol",
+    "n": 10,
+    "flag": "d0_obols"
+   }
+  ],
+  "npcs": [],
+  "signs": [],
+  "blocks": [],
+  "plates": [],
+  "gates": [],
+  "enemies": [
+   {
+    "id": "e02",
+    "x": 10,
+    "y": 8
+   },
+   {
+    "id": "e08",
+    "x": 18,
+    "y": 3
+   },
+   {
+    "id": "e08",
+    "x": 4,
+    "y": 10
+   },
+   {
+    "id": "e07",
+    "x": 19,
+    "y": 9
+   }
+  ]
+ },
+ "d0_boss": {
+  "name": {
+   "en": "Gull Cave: Crab Lair",
+   "es": "Cueva de las Gaviotas: guarida del cangrejo"
+  },
+  "kind": "dungeon",
+  "dungeon": "d0",
+  "w": 24,
+  "h": 14,
+  "rows": [
+   "########################",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "############D###########"
+  ],
+  "doors": [
+   {
+    "x": 12,
+    "y": 13,
+    "to": "d0_r2",
+    "tx": 12,
+    "ty": 2,
+    "lock_in_boss": true
+   }
+  ],
+  "chests": [],
+  "npcs": [],
+  "signs": [],
+  "blocks": [],
+  "plates": [],
+  "gates": [],
+  "enemies": [],
+  "boss": {
+   "id": "b00",
+   "x": 12,
+   "y": 5,
+   "after": {
+    "exit": {
+     "to": "b6",
+     "tx": 16,
+     "ty": 10
+    },
+    "item": "small_key",
+    "heart": false
+   }
+  },
+  "dark": false
+ },
+ "c7": {
+  "name": {
+   "en": "Lerna Marsh",
+   "es": "Pantano de Lerna"
+  },
+  "kind": "outdoor",
+  "cell": "C7",
+  "w": 32,
+  "h": 32,
+  "rows": [
+   "################################",
+   "################################",
+   "################################",
+   "################################",
+   "#MMMMMMMMMMMMMMMMMMMMMMMD=MMMMM#",
+   "#MMMMMMMMMMMMMMMMMMMMMMM==MMMMM#",
+   "#MMMMTMMMM================MMMMM#",
+   "#MMMMMMMMM================MMMMM#",
+   "#MmmmmmmmM==MMMMMMMMMMMMMMMMMMM#",
+   "#MmmmmmmmM==MMMMMMMMMMMMMMMMMMM#",
+   "#MmmmmmmmM==MMMMMMMMMMMMMMMMMMM#",
+   "#MMMMMMMMM==MMMMMMMMMMMMMMMMMMM#",
+   "============MMMMMMMMTMMMMMTMMMM#",
+   "============MMMMMMMMMMMMMMMMMMM#",
+   "=MMMMMMMMMMM===MMMMMMMMMMMMMMMM#",
+   "=MMMMMMMMMMM===MMMMMMMMMMMMMMMM#",
+   "#MMMMMMMMMMM===MMMMMMMMMMMMMMMM#",
+   "#MMMMMMMMMMM===MMMMMMMMMMMMMMMM#",
+   "#MMMmmmmmmmm===mmmmmmMMMMMMMMMM#",
+   "#MMMmmmmmmmm===mmmmmmMMMMMMMMMM#",
+   "#MMMmmmmmmmm===mmmmmmMMMMMMMTMM#",
+   "#MMMmmmmmmmmmmmmmmmmmMMMMMMMMMM#",
+   "#MMMmmmmmmmmmmmmmmmmmMTMMMMMMMM#",
+   "#MMMmmmmmmmmmmmmmmmmmMMMMMMMMMM#",
+   "#MMMmmmmmmmmmmmmmmmmmMMMMMMMMMM#",
+   "#MMMMMMMMMMMMMMMMMMMMMMMMMMMMMM#",
+   "#MMTMMMMMMMMMMTMMMMMMMMMMMMMMMM#",
+   "#MMMMMMMMMMMMMMMMMMMMMMMMMMMMMM#",
+   "################################",
+   "################################",
+   "################################",
+   "################################"
+  ],
+  "edges": {
+   "w": "b7"
+  },
+  "doors": [
+   {
+    "x": 24,
+    "y": 4,
+    "to": "d1_r1",
+    "tx": 12,
+    "ty": 12,
+    "req": "has:torch",
+    "msg": {
+     "en": "The sanctum reeks of dark, stagnant water. Come back with a light.",
+     "es": "El santuario huele a agua oscura y estancada. Vuelve con una luz."
+    }
+   }
+  ],
+  "npcs": [],
+  "chests": [
+   {
+    "x": 7,
+    "y": 9,
+    "item": "honey",
+    "n": 1,
+    "flag": "c7_honey"
+   }
+  ],
+  "signs": [
+   {
+    "x": 26,
+    "y": 6,
+    "text": {
+     "en": "Lerna Sanctum. Seal I. Many heads, one fire.",
+     "es": "Santuario de Lerna. Sello I. Muchas cabezas, un fuego."
+    }
+   }
+  ],
+  "enemies": [
+   {
+    "id": "e03",
+    "x": 14,
+    "y": 10
+   },
+   {
+    "id": "e03",
+    "x": 22,
+    "y": 10
+   },
+   {
+    "id": "e04",
+    "x": 8,
+    "y": 20
+   },
+   {
+    "id": "e04",
+    "x": 16,
+    "y": 21
+   },
+   {
+    "id": "e15",
+    "x": 12,
+    "y": 22
+   },
+   {
+    "id": "e03",
+    "x": 6,
+    "y": 14
+   }
+  ]
+ },
+ "d1_r1": {
+  "name": {
+   "en": "Lerna Sanctum: Flooded Hall",
+   "es": "Santuario de Lerna: sala inundada"
+  },
+  "kind": "dungeon",
+  "dungeon": "d1",
+  "w": 24,
+  "h": 14,
+  "rows": [
+   "############D###########",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFmmmmmmmm===mmmmmmmFF#",
+   "#FFmmmmmmmm===mmmmmmmFF#",
+   "#FFmmmmmmmm===mmmmmmmFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "############D###########"
+  ],
+  "doors": [
+   {
+    "x": 12,
+    "y": 13,
+    "to": "c7",
+    "tx": 24,
+    "ty": 5
+   },
+   {
+    "x": 12,
+    "y": 0,
+    "to": "d1_r2",
+    "tx": 12,
+    "ty": 12,
+    "locked": "small_key",
+    "msg": {
+     "en": "Locked. A Bronze Key would open it.",
+     "es": "Cerrada. Una Llave de Bronce la abriría."
+    }
+   }
+  ],
+  "chests": [
+   {
+    "x": 3,
+    "y": 2,
+    "item": "small_key",
+    "n": 1,
+    "flag": "d1_key"
+   }
+  ],
+  "npcs": [],
+  "signs": [
+   {
+    "x": 11,
+    "y": 11,
+    "text": {
+     "en": "Brand of Iolaus lies beyond. Fire answers the Hydra.",
+     "es": "Más allá yace el Tizón de Yolao. El fuego responde a la Hidra."
+    }
+   }
+  ],
+  "blocks": [],
+  "plates": [],
+  "gates": [],
+  "enemies": [
+   {
+    "id": "e03",
+    "x": 6,
+    "y": 4
+   },
+   {
+    "id": "e04",
+    "x": 18,
+    "y": 4
+   },
+   {
+    "id": "e15",
+    "x": 8,
+    "y": 10
+   },
+   {
+    "id": "e03",
+    "x": 17,
+    "y": 10
+   }
+  ]
+ },
+ "d1_r2": {
+  "name": {
+   "en": "Lerna Sanctum: Brand Chamber",
+   "es": "Santuario de Lerna: cámara del Tizón"
+  },
+  "kind": "dungeon",
+  "dungeon": "d1",
+  "w": 24,
+  "h": 14,
+  "rows": [
+   "############D###########",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "############D###########"
+  ],
+  "doors": [
+   {
+    "x": 12,
+    "y": 13,
+    "to": "d1_r1",
+    "tx": 12,
+    "ty": 2
+   },
+   {
+    "x": 12,
+    "y": 0,
+    "to": "d1_boss",
+    "tx": 12,
+    "ty": 12,
+    "req": "has:fire_rod",
+    "msg": {
+     "en": "The Hydra's breath rolls through the door. You will need fire.",
+     "es": "El aliento de la Hidra sale por la puerta. Necesitarás fuego."
+    }
+   }
+  ],
+  "chests": [
+   {
+    "x": 12,
+    "y": 5,
+    "item": "fire_rod",
+    "n": 1,
+    "flag": "d1_fire_rod"
+   },
+   {
+    "x": 19,
+    "y": 10,
+    "item": "honey",
+    "n": 1,
+    "flag": "d1_honey"
+   }
+  ],
+  "npcs": [],
+  "signs": [],
+  "blocks": [],
+  "plates": [],
+  "gates": [],
+  "enemies": [
+   {
+    "id": "e04",
+    "x": 5,
+    "y": 9
+   },
+   {
+    "id": "e04",
+    "x": 18,
+    "y": 5
+   },
+   {
+    "id": "e07",
+    "x": 8,
+    "y": 3
+   }
+  ]
+ },
+ "d1_boss": {
+  "name": {
+   "en": "Lerna Sanctum: Hydra Pool",
+   "es": "Santuario de Lerna: estanque de la Hidra"
+  },
+  "kind": "dungeon",
+  "dungeon": "d1",
+  "w": 24,
+  "h": 14,
+  "rows": [
+   "########################",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "#FmmmmmmmmmmmmmmmmmmmmF#",
+   "#FmmmmmmmmmmmmmmmmmmmmF#",
+   "#FmmmmFFFFFFFFFFFFmmmmF#",
+   "#FmmmmFFFFFFFFFFFFmmmmF#",
+   "#FmmmmFFFFFFFFFFFFmmmmF#",
+   "#FmmmmFFFFFFFFFFFFmmmmF#",
+   "#FmmmmFFFFFFFFFFFFmmmmF#",
+   "#FmmmmFFFFFFFFFFFFmmmmF#",
+   "#FmmmmmmmmmmmmmmmmmmmmF#",
+   "#FmmmmmmmmmmmmmmmmmmmmF#",
+   "#FFFFFFFFFFFFFFFFFFFFFF#",
+   "############D###########"
+  ],
+  "doors": [
+   {
+    "x": 12,
+    "y": 13,
+    "to": "d1_r2",
+    "tx": 12,
+    "ty": 2,
+    "lock_in_boss": true
+   }
+  ],
+  "chests": [],
+  "npcs": [],
+  "signs": [],
+  "blocks": [],
+  "plates": [],
+  "gates": [],
+  "enemies": [],
+  "boss": {
+   "id": "b01",
+   "x": 12,
+   "y": 3,
+   "after": {
+    "exit": {
+     "to": "c7",
+     "tx": 24,
+     "ty": 5
+    },
+    "item": "seal_fragment",
+    "heart": true
+   }
+  }
+ },
+ "b7_inn": {
+  "name": {
+   "en": "Ino's Inn",
+   "es": "Posada de Ino"
+  },
+  "kind": "interior",
+  "w": 16,
+  "h": 10,
+  "rows": [
+   "HHHHHHHHHHHHHHHH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HHHHHHHDHHHHHHHH"
+  ],
+  "doors": [
+   {
+    "x": 7,
+    "y": 9,
+    "to": "b7",
+    "tx": 8,
+    "ty": 11
+   }
+  ],
+  "npcs": [
+   {
+    "id": "ino",
+    "x": 4,
+    "y": 3,
+    "face": "s"
+   },
+   {
+    "id": "hestia",
+    "x": 11,
+    "y": 3,
+    "face": "s"
+   }
+  ],
+  "chests": [],
+  "signs": [],
+  "enemies": [],
+  "blocks": [],
+  "plates": [],
+  "gates": []
+ },
+ "b7_shop": {
+  "name": {
+   "en": "The Peddler's Stall",
+   "es": "El puesto del buhonero"
+  },
+  "kind": "interior",
+  "w": 16,
+  "h": 10,
+  "rows": [
+   "HHHHHHHHHHHHHHHH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HFFFFFFFFFFFFFFH",
+   "HHHHHHHDHHHHHHHH"
+  ],
+  "doors": [
+   {
+    "x": 7,
+    "y": 9,
+    "to": "b7",
+    "tx": 22,
+    "ty": 11
+   }
+  ],
+  "npcs": [
+   {
+    "id": "hermes",
+    "x": 7,
+    "y": 4,
+    "face": "s"
+   }
+  ],
+  "chests": [],
+  "signs": [],
+  "enemies": [],
+  "blocks": [],
+  "plates": [],
+  "gates": []
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "stock": [
+  {
+   "item": "honey",
+   "price": 10
+  },
+  {
+   "item": "wicker",
+   "price": 15,
+   "once": true
+  },
+  {
+   "item": "nectar",
+   "price": 30
+  }
+ ]
+}
