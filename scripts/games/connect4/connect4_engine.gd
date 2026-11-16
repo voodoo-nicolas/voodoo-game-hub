@@ -51,6 +51,25 @@ func winner() -> int:
 					return v
 	return EMPTY
 
+## The four (or more) winning cells as [row, col] pairs; empty when nobody has won.
+func win_cells() -> Array:
+	for r in range(ROWS):
+		for c in range(COLS):
+			var v: int = board[r][c]
+			if v == EMPTY:
+				continue
+			for dir in [[0, 1], [1, 0], [1, 1], [1, -1]]:
+				var cells: Array = [[r, c]]
+				var nr: int = r + dir[0]
+				var nc: int = c + dir[1]
+				while nr >= 0 and nr < ROWS and nc >= 0 and nc < COLS and board[nr][nc] == v:
+					cells.append([nr, nc])
+					nr += dir[0]
+					nc += dir[1]
+				if cells.size() >= 4:
+					return cells
+	return []
+
 func is_full() -> bool:
 	for c in range(COLS):
 		if board[0][c] == EMPTY:

@@ -1247,6 +1247,7 @@ func _open_map(from_landing: bool) -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	map_layer.add_child(scroll)
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fat_scrollbar(scroll)
 	map_drag = HomeKit._DragScroll.new()
 	scroll.add_child(map_drag)
 	var margin := MarginContainer.new()
@@ -1447,6 +1448,7 @@ func _open_objectives(from_landing: bool) -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	obj_layer.add_child(scroll)
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fat_scrollbar(scroll)
 	map_drag = HomeKit._DragScroll.new()
 	scroll.add_child(map_drag)
 	var margin := MarginContainer.new()
@@ -1758,6 +1760,7 @@ func _open_garage(from_landing: bool) -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	garage_layer.add_child(scroll)
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fat_scrollbar(scroll)
 	map_drag = HomeKit._DragScroll.new()
 	scroll.add_child(map_drag)
 	var margin := MarginContainer.new()
@@ -1905,6 +1908,21 @@ func _close_garage() -> void:
 
 # ---------- drawing ----------
 
+## A thicker, easier-to-grab scroll bar on the right of a list (owner 2026-11-16).
+func _fat_scrollbar(scroll: ScrollContainer) -> void:
+	var bar := scroll.get_v_scroll_bar()
+	bar.custom_minimum_size = Vector2(44, 0)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(1, 1, 1, 0.12)
+	track.set_corner_radius_all(22)
+	var grab := StyleBoxFlat.new()
+	grab.bg_color = HomeKit.CYAN if skin != "classic" else Color("e0a24a")
+	grab.set_corner_radius_all(22)
+	grab.set_content_margin_all(4)
+	bar.add_theme_stylebox_override("scroll", track)
+	for st in ["grabber", "grabber_highlight", "grabber_pressed"]:
+		bar.add_theme_stylebox_override(st, grab)
+
 func _layout() -> void:
 	if lv.is_empty() or board == null:
 		return
@@ -1953,15 +1971,19 @@ func _draw_board() -> void:
 	# Backdrop (cover) — the owner's canyon art; darker in Voodoo.
 	var art: int = E.art_of(cur_level)
 	var tex: Texture2D = _backdrops[art]
+	# The scene is inset by the phone's cutout (settings.gd _apply_safe_area); paint behind the inset too, so no black bar.
+	var inl: float = maxf(offset_left, 0.0)
+	var inr: float = maxf(-offset_right, 0.0)
+	var full := Vector2(sz.x + inl + inr, sz.y)
 	if tex:
-		var k := maxf(sz.x / tex.get_width(), sz.y / tex.get_height())
+		var k := maxf(full.x / tex.get_width(), full.y / tex.get_height())
 		var ts := Vector2(tex.get_width(), tex.get_height()) * k
 		if E.flip_of(cur_level):
-			board.draw_set_transform(Vector2(sz.x, 0), 0.0, Vector2(-1, 1))
-		board.draw_texture_rect(tex, Rect2((sz - ts) / 2.0, ts), false, E.tint_of(cur_level) if classic else Color(0.25, 0.22, 0.4))
+			board.draw_set_transform(Vector2(sz.x + inr - inl, 0), 0.0, Vector2(-1, 1))
+		board.draw_texture_rect(tex, Rect2(Vector2(-inl, 0) + (full - ts) / 2.0, ts), false, E.tint_of(cur_level) if classic else Color(0.25, 0.22, 0.4))
 		board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	else:
-		board.draw_rect(Rect2(Vector2.ZERO, sz), Color("8fc6e8") if classic else HomeKit.BG)
+		board.draw_rect(Rect2(Vector2(-inl, 0), full), Color("8fc6e8") if classic else HomeKit.BG)
 	var rock: Color = [Color("7a5a3c"), Color("b5582f"), Color("a24a26")][art] if classic else Color("0b0f1e")
 	var top_col: Color = [Color("5f9e3a"), Color("e0b878"), Color("d9a560")][art] if classic else HomeKit.CYAN
 	var w: float = lv.w
@@ -1988,18 +2010,20 @@ func _draw_board() -> void:
 
 func _draw_code_cliffs(classic: bool, rock: Color, top_col: Color, l_edge: Vector2, r_edge: Vector2, bottom: float) -> void:
 	var sz := board.size
-	board.draw_colored_polygon(PackedVector2Array([Vector2(-10, l_edge.y), l_edge, Vector2(l_edge.x, bottom), Vector2(-10, bottom)]), rock)
-	board.draw_colored_polygon(PackedVector2Array([r_edge, Vector2(sz.x + 10, r_edge.y), Vector2(sz.x + 10, bottom), Vector2(r_edge.x, bottom)]), rock)
+	var lx: float = -maxf(offset_left, 0.0) - 10.0
+	var rx: float = sz.x + maxf(-offset_right, 0.0) + 10.0
+	board.draw_colored_polygon(PackedVector2Array([Vector2(lx, l_edge.y), l_edge, Vector2(l_edge.x, bottom), Vector2(lx, bottom)]), rock)
+	board.draw_colored_polygon(PackedVector2Array([r_edge, Vector2(rx, r_edge.y), Vector2(rx, bottom), Vector2(r_edge.x, bottom)]), rock)
 	var lip := maxf(4.0, vs * 0.22)
-	board.draw_rect(Rect2(Vector2(-10, l_edge.y - lip * 0.3), Vector2(l_edge.x + 10, lip)), top_col)
-	board.draw_rect(Rect2(Vector2(r_edge.x, r_edge.y - lip * 0.3), Vector2(sz.x + 10 - r_edge.x, lip)), top_col)
+	board.draw_rect(Rect2(Vector2(lx, l_edge.y - lip * 0.3), Vector2(l_edge.x - lx, lip)), top_col)
+	board.draw_rect(Rect2(Vector2(r_edge.x, r_edge.y - lip * 0.3), Vector2(rx - r_edge.x, lip)), top_col)
 	# Rock strata lines for texture.
 	var strata := Color(0, 0, 0, 0.18) if classic else Color(HomeKit.CYAN, 0.15)
 	for i in range(1, 12):
 		var yy := l_edge.y + i * vs * 1.3
-		board.draw_line(Vector2(0, yy), Vector2(l_edge.x - 2, yy + vs * 0.2), strata, 2.0)
+		board.draw_line(Vector2(lx, yy), Vector2(l_edge.x - 2, yy + vs * 0.2), strata, 2.0)
 		var yr := r_edge.y + i * vs * 1.3
-		board.draw_line(Vector2(r_edge.x + 2, yr + vs * 0.2), Vector2(sz.x, yr), strata, 2.0)
+		board.draw_line(Vector2(r_edge.x + 2, yr + vs * 0.2), Vector2(rx, yr), strata, 2.0)
 	if not classic:
 		board.draw_line(l_edge, Vector2(l_edge.x, bottom), HomeKit.CYAN, 2.0)
 		board.draw_line(r_edge, Vector2(r_edge.x, bottom), HomeKit.CYAN, 2.0)
@@ -2013,19 +2037,21 @@ func _draw_code_cliffs(classic: bool, rock: Color, top_col: Color, l_edge: Vecto
 ## The river: the owner's wave strip along the waterline over deep blue (Classic).
 func _draw_water(wy: float, bottom: float, classic: bool) -> void:
 	var sz := board.size
+	var wl: float = -maxf(offset_left, 0.0)
+	var ww: float = sz.x - wl + maxf(-offset_right, 0.0)
 	var wt := _part("water") if classic else null
 	if wt:
 		var sh := vs * 1.5
 		var sw := sh * wt.get_width() / wt.get_height()
 		var top := wy - sh * 0.2
-		board.draw_rect(Rect2(Vector2(0, top + sh * 0.6), Vector2(sz.x, bottom - top)), Color("1d4f8c"))
-		var x := -fmod(sw * 0.37, sw)
-		while x < sz.x:
+		board.draw_rect(Rect2(Vector2(wl, top + sh * 0.6), Vector2(ww, bottom - top)), Color("1d4f8c"))
+		var x := wl - fmod(sw * 0.37, sw)
+		while x < wl + ww:
 			board.draw_texture_rect(wt, Rect2(Vector2(x, top), Vector2(sw, sh)), false)
 			x += sw - 1.0
 		return
-	board.draw_rect(Rect2(Vector2(0, wy), Vector2(sz.x, bottom - wy)), Color(0.15, 0.45, 0.7, 0.75) if classic else Color(0.1, 0.2, 0.5, 0.6))
-	board.draw_line(Vector2(0, wy), Vector2(sz.x, wy), Color(1, 1, 1, 0.5), 2.0)
+	board.draw_rect(Rect2(Vector2(wl, wy), Vector2(ww, bottom - wy)), Color(0.15, 0.45, 0.7, 0.75) if classic else Color(0.1, 0.2, 0.5, 0.6))
+	board.draw_line(Vector2(wl, wy), Vector2(wl + ww, wy), Color(1, 1, 1, 0.5), 2.0)
 
 ## One painted cliff: its ground line on the level's ground, its face on the gap's edge,
 ## reaching under the water. Only the sharp top of the picture is drawn; below it a band of
@@ -2058,8 +2084,10 @@ func _draw_cliff(name: String, edge: Vector2, right: bool, wy: float) -> void:
 	var sz := board.size
 	var x := origin.x + main.x * tw * k if not right else origin.x + main.y * tw * k
 	var flip := true
-	var far := 0.0 if is_nan(_mirror_at) else 2.0 * _mirror_at - sz.x
-	while (not right and x > far) or (right and x < sz.x):
+	var inl: float = maxf(offset_left, 0.0)
+	var inr: float = maxf(-offset_right, 0.0)
+	var far := -inl if is_nan(_mirror_at) else 2.0 * _mirror_at - sz.x - inr
+	while (not right and x > far) or (right and x < sz.x + inr):
 		var dx := x - sw if not right else x
 		_cliff_column(t, strip.x * tw, strip.y * tw, dx, flip, origin.y, k, sharp * th, float(meta[3]) * th, bottom)
 		x += -sw if not right else sw

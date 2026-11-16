@@ -61,6 +61,8 @@ var vy: float = 0.0
 var facing: int = 1
 var climb_ladder: Dictionary = {}
 var walk_t: float = 0.0       # for the leg animation
+var _prev_vert: int = 0       # last frame's up/down, so a fresh UP press away from a ladder is a jump
+var _jump_buf: float = 0.0    # a jump pressed just before landing still counts (0.12 s)
 
 var _throw_t: float = 1.5
 var _fire_t: float = 12.0
@@ -141,6 +143,8 @@ func _respawn() -> void:
 	mode = "walk"
 	vx = 0.0
 	vy = 0.0
+	_prev_vert = 0
+	_jump_buf = 0.0
 	facing = 1
 	hammer_t = 0.0
 	climb_ladder = {}
@@ -206,6 +210,10 @@ func step(dt: float, move: int, vert: int, jump: bool) -> Array:
 func _step_player(dt: float, move: int, vert: int, jump: bool, ev: Array) -> void:
 	if move != 0:
 		facing = move
+	# D-pad / stick UP jumps when there is no ladder to climb here (a fresh press only).
+	var up_press := vert < 0 and _prev_vert >= 0
+	_prev_vert = vert
+	_jump_buf = 0.12 if (jump or up_press) else maxf(0.0, _jump_buf - dt)
 	match mode:
 		"walk":
 			var l := _ladder_here(vert)
@@ -215,7 +223,8 @@ func _step_player(dt: float, move: int, vert: int, jump: bool, ev: Array) -> voi
 				px = l.x
 				py += 2.0 * vert   # step onto the ladder
 				return
-			if jump and hammer_t <= 0.0:
+			if _jump_buf > 0.0 and hammer_t <= 0.0:
+				_jump_buf = 0.0
 				mode = "air"
 				vy = -JUMP_V
 				vx = move * SPEED
@@ -250,6 +259,7 @@ func _step_player(dt: float, move: int, vert: int, jump: bool, ev: Array) -> voi
 				mode = "walk"
 		"air":
 			vy += GRAVITY * dt
+			vx = lerpf(vx, move * SPEED, minf(1.0, 8.0 * dt))   # steer a little in the air
 			px = clampf(px + vx * dt, floor_x0(pfloor) + 12.0, floor_x1(pfloor) - 12.0)
 			py += vy * dt
 			var g := y_at(pfloor, px)

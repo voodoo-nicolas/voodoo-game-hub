@@ -108,6 +108,7 @@ func _build_ui() -> void:
 
 	field = Control.new()
 	field.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # inside an HBox: without this the board is 0 px wide
 	field.mouse_filter = Control.MOUSE_FILTER_STOP
 	field.draw.connect(_draw_field)
 	field.gui_input.connect(_on_field_input)

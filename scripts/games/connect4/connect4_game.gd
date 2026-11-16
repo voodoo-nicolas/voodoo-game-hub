@@ -307,6 +307,19 @@ func _build_win_dialog() -> void:
 		{"text": tr("Play Again"), "action": _start_new_game},
 		{"text": tr("🏠 Four in a Row Home"), "action": _go_home},
 	], true)
+	# Don't hide the board: no dimming, taps pass through, and the panel sits at the bottom so the winning four stay visible.
+	win_dialog.color = Color(0, 0, 0, 0)
+	win_dialog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var center: Control = win_dialog.get_child(0)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var panel: Control = center.get_child(0)
+	center.remove_child(panel)
+	win_dialog.remove_child(center)
+	center.queue_free()
+	win_dialog.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 24)
+	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	add_child(win_dialog)
 	win_label = win_dialog.get_meta("message_label")
 
@@ -479,6 +492,17 @@ func _render() -> void:
 				_style_slot(cell_views[r][c], color)
 				if voodoo:
 					marks[r][c].kind = voodoo.NONE
+
+	# The winning four glow white so you can see how the game was won / lost.
+	if engine.is_over():
+		for rc in engine.win_cells():
+			var slot: Button = cell_views[rc[0]][rc[1]]
+			var sb = slot.get_theme_stylebox("normal")
+			if sb is StyleBoxFlat:
+				sb.border_color = Color.WHITE
+				sb.set_border_width_all(maxi(4, int(cell_size * 0.1)))
+				sb.shadow_color = Color(1, 1, 1, 0.8)
+				sb.shadow_size = maxi(8, int(cell_size * 0.22))
 
 	var color_name := _color_name(engine.turn)
 	if _is_online():
