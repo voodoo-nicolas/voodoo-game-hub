@@ -75,6 +75,15 @@ var crouch := false
 var blocking := false
 var jab := false       # this attack is a crouching jab (straight forward, low)
 var thrust_hit := {}   # foes already run through by this thrust
+var swing := 0          # which cut of the 3-cut combo this slash is: 0 chop down, 1 rising diagonal, 2 sideways sweep (owner 2026-11-15)
+var swing_t := 0.0      # the next slash within this time continues the combo
+var bombs := 2          # smoke bombs: crouch + star throws one (owner 2026-11-15)
+var drops: Array = []   # pickups: {x, y, vy, kind "star"|"heart"|"bomb", age}
+var smokes: Array = []  # smoke clouds: {x, y, t}; foes inside are blinded
+var gates: Array = []   # rope-tied wooden gates: {rect, open, rx, ry (the rope knot), cut}
+var traps: Array = []   # spike traps: {x, y, armed, sx, sy (the switch a star can hit)}
+var torii_used := {}    # torii already passed (each gives one heart, once)
+var scroll_n := 0       # scrolls this stage: every third heals a heart
 var tips: Array = []   # [x0, x1, key]: tutorial lines shown while the hero is between x0 and x1
 ## Abilities unlock as the story goes (owner 2026-11-15): stage 1 teaches move, crouch,
 ## jump and swing; block from stage 2; throwing stars once stage 2 is beaten; the thrust
@@ -119,6 +128,7 @@ func reset(d: int) -> void:
 	lives = 3
 	hp = MAX_HP
 	stars = START_STARS
+	bombs = 2
 	build_stage()
 
 ## Speed / aggression multiplier for foes.
@@ -148,6 +158,12 @@ func build_stage() -> void:
 	shots.clear()
 	scrolls.clear()
 	boss = {}
+	drops.clear()
+	smokes.clear()
+	gates.clear()
+	traps.clear()
+	torii_used = {}
+	scroll_n = 0
 	pools.clear()
 	dips.clear()
 	# Rolling ground (owner 2026-11-15): two slow waves rising above GROUND, flat at the
@@ -229,6 +245,7 @@ func build_stage() -> void:
 		if not _over_pit(sx):
 			scrolls.append(Vector2(sx, ground_y(sx) - 60))
 	_tutorial()
+	_objectives()
 	_trees()
 	# Stone lanterns: 4 checkpoints per stage, each moved onto dry land.
 	checkpoints.clear()
@@ -254,6 +271,63 @@ func build_stage() -> void:
 	slash_t = 0.0
 	hurt_t = 0.0
 	hits_taken = 0
+
+## Minor objectives from stage 3 (owner 2026-11-15): a rope-tied wooden gate that only a throwing
+## star through the rope knot opens, and spike traps a star disarms from afar at their switch.
+func _objectives() -> void:
+	if stage < 3:
+		return
+	var r := RandomNumberGenerator.new()
+	r.seed = stage * 31337 + 3
+	var used: Array = []
+	for tries in 40:
+		var gx := r.randf_range(length * 0.25, length * 0.5)
+		if _flat_dry(gx - 160.0, gx + 70.0):
+			var gy := ground_y(gx)
+			var rect := Rect2(gx, gy - 400.0, 34.0, 402.0)
+			var knot := gx - 120.0
+			gates.append({"rect": rect, "open": false, "rx": knot, "ry": ground_y(knot) - 46.0, "cut": false})
+			solids.append(rect)
+			drops.append({"x": knot - 70.0, "y": ground_y(knot - 70.0) - 20.0, "vy": 0.0, "kind": "star", "age": 0.0})
+			drops.append({"x": knot - 100.0, "y": ground_y(knot - 100.0) - 20.0, "vy": 0.0, "kind": "star", "age": 0.0})
+			used.append(gx)
+			break
+	for n in (2 if stage < 8 else 3):
+		for tries in 40:
+			var tx := r.randf_range(1200.0, length - 900.0)
+			var clear := true
+			for u in used:
+				if absf(u - tx) < 500.0:
+					clear = false
+			if clear and _flat_dry(tx - 280.0, tx + 90.0):
+				traps.append({"x": tx, "y": ground_y(tx), "armed": true, "sx": tx - 230.0, "sy": ground_y(tx - 230.0) - 46.0})
+				used.append(tx)
+				break
+	foes = foes.filter(func(f):
+		for g in gates:
+			if absf(f.x - g.rect.position.x) < 260.0:
+				return false
+		for t in traps:
+			if f.x > t.sx - 60.0 and f.x < t.x + 90.0:
+				return false
+		return true)
+	scrolls = scrolls.filter(func(sv):
+		for g in gates:
+			if absf(sv.x - g.rect.position.x) < 60.0:
+				return false
+		return true)
+
+## Level, dry ground between x0 and x1 (nothing sits on a slope or in water).
+func _flat_dry(x0: float, x1: float) -> bool:
+	if x0 < 800.0 or x1 > length - 700.0 or _over_pit(x0) or _over_pit(x1) or _scenery_blocked((x0 + x1) / 2.0, (x1 - x0) / 2.0):
+		return false
+	var g0 := ground_y(x0)
+	var x := x0
+	while x <= x1:
+		if absf(ground_y(x) - g0) > 14.0 or water_depth(x) > 0.0:
+			return false
+		x += 20.0
+	return true
 
 ## Cherry trees along the road (owner 2026-11-15): pink leaves, and one per stage with
 ## blood-red leaves (carve a heart in it). Own rng, so foes and land stay as they were.
@@ -340,7 +414,7 @@ func _tutorial() -> void:
 			foes.append({"kind": "thrower", "x": 1250.0, "y": ground_y(1250.0), "vx": 0.0, "vy": 0.0, "hp": 1, "face": -1,
 				"t": 1.5, "atk": 0.0, "hit": 0.0, "id": foes.size()})
 		3:
-			tips = [[0.0, 900.0, "star"]]
+			tips = [[0.0, 900.0, "star"], [900.0, 1700.0, "bomb"]]
 		4:
 			tips = [[0.0, 900.0, "thrust"]]
 
@@ -349,6 +423,12 @@ func tip() -> String:
 	for t in tips:
 		if px >= t[0] and px < t[1]:
 			return t[2]
+	for g in gates:
+		if not g.open and px > g.rx - 520.0 and px < g.rect.position.x:
+			return "rope"
+	for t in traps:
+		if t.armed and px > t.sx - 420.0 and px < t.x - 60.0:
+			return "trap"
 	return ""
 
 ## Over a dip (wet or dry): nothing is placed there.
@@ -413,6 +493,7 @@ func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bo
 		return events
 	time += dt
 	hurt_t = maxf(0.0, hurt_t - dt)
+	swing_t = maxf(0.0, swing_t - dt)
 	dash_cd = maxf(0.0, dash_cd - dt)
 	combo_t -= dt
 	if combo_t <= 0.0:
@@ -435,6 +516,11 @@ func step(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash: bo
 			scrolls.erase(s)
 			score += 50
 			events.append("scroll")
+			scroll_n += 1
+			if scroll_n % 3 == 0 and hp < MAX_HP:
+				hp += 1
+				events.append("heal")   # every third scroll heals a heart (owner 2026-11-15)
+	_world(dt)
 	for c in checkpoints:
 		if px >= c and checkpoint_x < c:
 			checkpoint_x = c
@@ -524,8 +610,17 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 		slash_t = SLASH_T
 		slash_hit = {}
 		jab = crouch
+		swing = (swing + 1) % 3 if swing_t > 0.0 else 0
+		swing_t = 0.75
+		if jab:
+			swing = 0
 		events.append("jab" if jab else "slash")
-	if throw and stars > 0:
+	if throw and crouch and bombs > 0:
+		bombs -= 1
+		var bx := px + facing * 70.0
+		smokes.append({"x": bx, "y": ground_y(bx), "t": 4.5})
+		events.append("bomb")
+	elif throw and stars > 0:
 		stars -= 1
 		shots.append({"x": px + facing * 20, "y": py - height() * 0.6, "vx": facing * STAR_V, "vy": 0.0, "mine": true, "life": 1.2})
 		events.append("throw")
@@ -617,8 +712,11 @@ func slash_rect() -> Rect2:
 	if jab:
 		var jx := px if facing > 0 else px - SLASH_REACH - 24
 		return Rect2(jx, py - height() - 4, SLASH_REACH + 24, height())   # a jab reaches further, low and narrow
-	var x0 := px if facing > 0 else px - SLASH_REACH
-	return Rect2(x0, py - height() - 10, SLASH_REACH, height() + 20)
+	var reach := SLASH_REACH * (1.25 if swing == 2 else 1.0)
+	var x0 := px if facing > 0 else px - reach
+	if swing == 1:
+		return Rect2(x0, py - height() - 70, reach, height() + 80)   # the rising cut reaches high (leapers, branches)
+	return Rect2(x0, py - height() - 10, reach, height() + 20)
 
 func _slash_hits() -> void:
 	var sr := slash_rect()
@@ -629,6 +727,14 @@ func _slash_hits() -> void:
 	if not boss.is_empty() and boss.hp > 0 and not slash_hit.has("boss") and sr.intersects(boss_box()):
 		slash_hit["boss"] = true
 		_hit_boss(1)
+	for fl in flora:
+		if fl.kind == "bamboo" and not fl.get("cut", false) and sr.position.x - 8.0 < fl.x and sr.end.x + 8.0 > fl.x and absf(py - ground_y(fl.x)) < 90.0:
+			fl.cut = true
+			events.append("bamboo:%d:%d" % [int(fl.x), int(ground_y(fl.x) - 60.0)])
+			var roll := rng.randf()
+			var kind := "star" if roll < 0.42 else ("heart" if roll < 0.6 else ("bomb" if roll < 0.72 else ""))
+			if kind != "":
+				drops.append({"x": fl.x, "y": ground_y(fl.x) - 70.0, "vy": -260.0, "kind": kind, "age": 0.0})
 	# A slash cuts enemy stars out of the air.
 	for s in shots:
 		if not s.mine and sr.has_point(Vector2(s.x, s.y)):
@@ -660,6 +766,8 @@ func _hit_foe(f: Dictionary, dmg: int, dir: int, by_star: bool = false) -> void:
 		events.append("red:%d:%d:big" % [int(f.x), int(f.y - 40)])   # a kill leaves a big lasting pool
 		if f.kind == "thrower" and rng.randf() < 0.6:
 			stars += 2
+		elif rng.randf() < 0.14:
+			drops.append({"x": f.x, "y": f.y - 40.0, "vy": -300.0, "kind": "heart" if rng.randf() < 0.6 else "bomb", "age": 0.0})
 	else:
 		events.append("hit")
 		events.append("red:%d:%d" % [int(f.x), int(f.y - 40)])   # damage dealt leaves a faint red mark (owner 2026-11-15)
@@ -701,7 +809,10 @@ func _hurt(dmg: int, fell: bool = false, from_x: float = NAN) -> void:
 	events.append("ink:%d:%d" % [int(px), int(py - 40)])
 	if hp <= 0:
 		lives -= 1
-		state = "over" if lives <= 0 else "dead"
+		if lives <= 0:
+			lives = 3   # owner 2026-11-15: losing every life never starts the game over; you keep your stage and lanterns
+			events.append("relife")
+		state = "dead"
 		events.append("die")
 	elif fell:
 		pass
@@ -710,6 +821,7 @@ func _hurt(dmg: int, fell: bool = false, from_x: float = NAN) -> void:
 func retry() -> void:
 	hp = MAX_HP
 	stars = maxi(stars, START_STARS)
+	bombs = maxi(bombs, 2)
 	var cp := checkpoint_x
 	build_stage()
 	restart_at(cp)
@@ -729,6 +841,7 @@ func next_stage() -> void:
 	stage += 1
 	hp = mini(MAX_HP, hp + 2)
 	stars = maxi(stars, START_STARS)
+	bombs = maxi(bombs, 2)
 	build_stage()
 
 func _foes(dt: float) -> void:
@@ -741,6 +854,16 @@ func _foes(dt: float) -> void:
 		if absf(dx) > VIEW_W * 0.7:
 			continue   # asleep off screen
 		f.face = 1 if dx > 0 else -1
+		if _in_smoke(f.x, f.y):
+			f.atk = 0.0
+			f.vx = move_toward(f.vx, 0.0, 900 * dt)   # blinded: stands coughing, can't cut or throw
+			f.blind = 0.3
+			f.vy += GRAV * dt
+			f.y = minf(f.y + f.vy * dt, ground_y(f.x))
+			if f.y >= ground_y(f.x):
+				f.vy = 0.0
+			continue
+		f.blind = 0.0
 		f.t -= dt * p
 		match f.kind:
 			"blade", "brute":
@@ -784,6 +907,47 @@ func _foes(dt: float) -> void:
 		if f.hp > 0 and _foe_box(f).intersects(_box()):
 			_hurt(1, false, f.x)
 	foes = foes.filter(func(f): return f.hp > 0)
+
+func _in_smoke(x: float, y: float) -> bool:
+	for s in smokes:
+		if absf(s.x - x) < 135.0 and absf(s.y - y) < 120.0:
+			return true
+	return false
+
+## Pickups, smoke, torii blessings and spike traps (owner 2026-11-15).
+func _world(dt: float) -> void:
+	for d in drops:
+		d.age += dt
+		d.vy += GRAV * 0.6 * dt
+		d.y += d.vy * dt
+		var g := ground_y(d.x) - 18.0
+		if d.y > g:
+			d.y = g
+			d.vy = 0.0
+		if absf(d.x - px) < 38.0 and absf(d.y - (py - PH / 2.0)) < 60.0 and d.age > 0.25:
+			if d.kind == "star":
+				stars += 2
+			elif d.kind == "bomb":
+				bombs += 1
+			elif hp < MAX_HP:
+				hp += 1
+			else:
+				continue   # a heart waits until you need it
+			d.age = -999.0
+			events.append("pick:" + d.kind)
+	drops = drops.filter(func(d): return d.age > -900.0)
+	for s in smokes:
+		s.t -= dt
+	smokes = smokes.filter(func(s): return s.t > 0.0)
+	for tx in torii:
+		if not torii_used.has(tx) and absf(tx - px) < 24.0 and hp < MAX_HP:
+			torii_used[tx] = true
+			hp += 1
+			events.append("torii")   # the first pass heals one heart; the gate's incense is lit
+	for t in traps:
+		if t.armed and hurt_t <= 0.0 and dash_t <= 0.0 and Rect2(t.x - 34.0, t.y - 22.0, 68.0, 22.0).intersects(_box()):
+			_hurt(1, false, t.x)
+			events.append("spiked")
 
 func _pit_under(x: float) -> bool:
 	for pt in pits:
@@ -867,6 +1031,22 @@ func _shots(dt: float) -> void:
 		if s.life <= 0.0:
 			continue
 		if s.mine:
+			for g in gates:
+				if not g.cut and Vector2(g.rx, g.ry).distance_to(pt) < 26.0:
+					g.cut = true
+					g.open = true
+					solids.erase(g.rect)
+					s.life = 0.0
+					score += 150
+					events.append("rope")
+			for t in traps:
+				if t.armed and Vector2(t.sx, t.sy).distance_to(pt) < 26.0:
+					t.armed = false
+					s.life = 0.0
+					score += 100
+					events.append("disarm")
+			if s.life <= 0.0:
+				continue
 			for f in foes:
 				if f.hp > 0 and _foe_box(f).has_point(pt):
 					_hit_foe(f, 1, 1 if s.vx > 0 else -1, true)

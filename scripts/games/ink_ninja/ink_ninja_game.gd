@@ -62,6 +62,9 @@ const TIPS := {
 	"swing": "Press Swing to cut. Crouch and press Swing to jab low.  (Keyboard: J)",
 	"block": "Hold Block to stop stars and blades in front of you.  (Keyboard: I / Ctrl)",
 	"star": "New: Star throws a shuriken.  (Keyboard: K)",
+	"bomb": "Crouch and press Star to drop a smoke bomb: foes in the cloud are blinded.  (Keyboard: S + K)",
+	"rope": "A gate bars the road. Throw a Star at the rope knot to cut it.  (Keyboard: K)",
+	"trap": "Spikes ahead! Hit the round switch with a Star to disarm them, or jump over.",
 	"thrust": "New: Thrust lunges forward and runs your blade through a foe.  (Keyboard: L / Shift)",
 }
 var q := {"jump": false, "slash": false, "throw": false, "dash": false}
@@ -87,6 +90,23 @@ var band_hang := 0.0   # 1 = standing still: the headband tails hang
 var band_rise := 0.0   # 1 = falling: the tails flutter upward
 var flowers: Array = []  # cherry blossom textures (_make_flowers)
 var blot: Texture2D      # an irregular ink blot for splashes and stains
+var mount_tex: Texture2D # far mountain ridge (round 10 backgrounds)
+var clouds: Array = []   # drifting cloud banks: [x 0..1.6, y, width, speed, phase]
+var petals: Array = []   # falling blossom petals in front of the field: [x 0..1, y 0..1, fall, size, phase]
+var sparks: Array = []   # impact streaks: [world pos, vel, life, max life, kind 0 steel / 1 ink / 2 gold]
+var plate_sb: StyleBoxFlat   # the HUD plates
+var hitstop := 0.0       # a short freeze when a blow lands
+var flash := 0.0         # screen-edge flash (hurt = red, heal = gold)
+var flash_col := Color(0.7, 0.05, 0.04)
+var fade := 1.0          # paper fade between stages
+var land_t := 0.0        # squash after landing
+var jump_t := 0.0        # stretch after jumping
+var score_shown := 0.0
+var score_pop := 0.0
+var boss_trail := 1.0
+var toast_col := Color(0.65, 0.08, 0.08)
+var mood_col := Color(1, 0.86, 0.68)
+var relife := false      # all lives were lost: they come back, the stage stays
 var goals                # Goals (daily + weekly objectives)
 var card_text := []      # the chapter card on screen: [title, text, objective] (empty = none)
 var card_t := 0.0
@@ -115,6 +135,11 @@ func _ready() -> void:
 	pines_far = _make_pines(11, 34, 140.0, 260.0)
 	pines_mid = _make_pines(23, 22, 200.0, 340.0)
 	fog_tex = _make_fog()
+	mount_tex = _make_mountains()
+	for i in 6:
+		clouds.append([randf() * 1.6 - 0.2, randf_range(30.0, 250.0), randf_range(220.0, 420.0), randf_range(0.004, 0.012), randf() * TAU])
+	for i in 26:
+		petals.append([randf(), randf(), randf_range(0.03, 0.07), randf_range(5.0, 10.0), randf() * TAU])
 	for i in 7:
 		mist.append([randf() * 1.6 - 0.3, randf_range(380.0, 560.0), randf_range(0.006, 0.02), randf_range(260.0, 520.0), randf() * TAU])
 	for i in 46:
@@ -127,6 +152,8 @@ func _ready() -> void:
 				hearts.append(int(v))
 	goals.load_data(Goals.today_num(), Goals.week_num())
 	_build_ui()
+	hud.visible = false   # round 10: the HUD is drawn on the field (hearts, stars, bombs, lives, score plates)
+	score_label.visible = false
 	_hud_colors()
 	_paper_params()
 	engine.reset(1)
@@ -170,6 +197,13 @@ func _paper_params() -> void:
 	if paper == null:
 		return
 	var m: ShaderMaterial = paper.material
+	# Colour grading per act (round 10): dawn, day, dusk, storm, night, blood dawn.
+	var moods: Array = [Color(1.0, 0.86, 0.68, 0.12), Color(0.85, 0.93, 1.0, 0.07), Color(1.0, 0.55, 0.3, 0.15), Color(0.5, 0.6, 0.78, 0.17), Color(0.35, 0.35, 0.7, 0.2), Color(0.85, 0.2, 0.15, 0.15)]
+	var mood: Color = moods[clampi(engine.act() - 1 if engine else 0, 0, 5)]
+	if skin == "voodoo":
+		mood = Color(mood.r * 0.5, mood.g * 0.55, mood.b * 0.9, mood.a * 0.7)
+	m.set_shader_parameter("tint", mood)
+	mood_col = mood
 	if skin == "voodoo":
 		m.set_shader_parameter("grain_col", Color(0.75, 0.75, 0.78))
 		m.set_shader_parameter("edge_col", Color(0, 0, 0))
@@ -292,6 +326,7 @@ func _build_ui() -> void:
 		"helps": [
 			{"text": "❤ Heal", "how": "Fills your hearts back up, right now.", "action": _help_heal},
 			{"text": "✴ Stars", "how": "Gives you 5 more throwing stars.", "action": _help_stars},
+			{"text": "✚ Life", "how": "Gives you one extra life.", "action": _help_life},
 		],
 		"board": "Best score",
 	})
@@ -442,6 +477,11 @@ func _begin() -> void:
 	started = true
 	after = 0.0
 	banner = ""
+	fade = 1.0
+	relife = false
+	boss_trail = 1.0
+	score_shown = float(engine.score)
+	_paper_params()
 	# The chapter card stops play until any button / tap (or 6 s).
 	var ch: Array = Story.CHAPTERS[engine.stage - 1]
 	card_text = [tr("Chapter %d") % engine.stage + " · " + tr(ch[0]), (tr(Story.PROLOGUE) + "\n\n" if prologue else "") + tr(ch[1]), tr(ch[2])]
@@ -457,6 +497,8 @@ func _begin() -> void:
 	_update_hud()
 
 func _update_hud() -> void:
+	if float(engine.score) > score_shown + 1.0:
+		score_pop = 1.0
 	hud.text = "♥".repeat(maxi(0, engine.hp)) + "♡".repeat(maxi(0, Engine_.MAX_HP - engine.hp)) + "   " + tr("Stars %d") % engine.stars + "   " + tr("Lives %d") % engine.lives
 	score_label.text = str(engine.score)
 
@@ -472,6 +514,21 @@ func _process(delta: float) -> void:
 		return
 	delta = minf(delta, 0.05)
 	shake = maxf(0.0, shake - delta * 30.0)
+	flash = maxf(0.0, flash - delta * 2.2)
+	land_t = maxf(0.0, land_t - delta)
+	jump_t = maxf(0.0, jump_t - delta)
+	score_pop = maxf(0.0, score_pop - delta * 4.0)
+	score_shown = move_toward(score_shown, float(engine.score), maxf(40.0, absf(engine.score - score_shown) * 6.0) * delta)
+	var fade_to := 1.0 if (after > 0.0 and after < 0.45) else 0.0
+	fade = move_toward(fade, fade_to, delta * (2.4 if fade_to > fade else 1.6))
+	if paper and paper.material:
+		paper.material.set_shader_parameter("flash", flash)
+		paper.material.set_shader_parameter("flash_col", flash_col)
+	if not engine.boss.is_empty() and engine.boss.hp > 0:
+		var ratio := float(engine.boss.hp) / float(engine.boss.max)
+		boss_trail = maxf(ratio, move_toward(boss_trail, ratio, delta * 0.35))
+	else:
+		boss_trail = 1.0
 	toast_t = maxf(0.0, toast_t - delta)
 	_smoke_tick(delta)
 	for s in splats:
@@ -502,6 +559,10 @@ func _process(delta: float) -> void:
 			after = 0.0
 			banner = ""
 			_after_pause()
+		field.queue_redraw()
+		return
+	if hitstop > 0.0:
+		hitstop -= delta   # a blow landed: a heartbeat of stillness
 		field.queue_redraw()
 		return
 	var m := 0.0
@@ -554,17 +615,28 @@ func _carve_here() -> void:
 	_puff(Vector2(engine.px, engine.py - 50), 6, 14.0, 70.0)
 	_toast(tr("Heart carved! (%d of %d)") % [hearts.size(), Engine_.STAGES])
 
-func _toast(t: String) -> void:
+func _toast(t: String, col: Color = Color(0.65, 0.08, 0.08)) -> void:
 	toast = t
 	toast_t = 2.5
+	toast_col = col
 
 func _event(e: String) -> void:
 	if e.begins_with("ink:") or e.begins_with("red:"):
 		var p := e.split(":")
 		_splash(Vector2(float(p[1]), float(p[2])), e.begins_with("red:"), p.size() > 3)
 		return
+	if e.begins_with("bamboo:"):
+		var bq := e.split(":")
+		var bpos := Vector2(float(bq[1]), float(bq[2]))
+		SoundLib.play(self, "rpg/knife_slice", -8.0, "game", 0.8)
+		_puff(bpos, 6, 12.0, 90.0)
+		for i in 6:
+			sparks.append([bpos, Vector2(randf_range(-160, 160), randf_range(-260, -60)), 0.5, 0.5, 1])
+		return
 	match e:
 		"jump", "walljump":
+			jump_t = 0.16
+			_puff(Vector2(engine.px, engine.py - 2), 3, 10.0, 50.0)
 			SoundLib.play(self, "rpg/cloth", -4.0, "game", 1.15)   # a cloth whip, not the arcade boing (owner 2026-11-15)
 		"dash":
 			SoundLib.play(self, "sword/swing_seax", -3.0)   # was rpg/draw_knife at 0.85 pitch
@@ -586,11 +658,14 @@ func _event(e: String) -> void:
 			if info:
 				info.add("Stars parried")
 		"kill":
+			hitstop = 0.08
+			shake = maxf(shake, 5.0)
 			SoundLib.play(self, "sword/attack", -3.0)   # was rpg/chop
 			_goal("kills")
 			if info:
 				info.add("Ninjas defeated")
 		"hit", "bosshit":
+			hitstop = 0.05
 			SoundLib.play(self, "impact/punch_medium", -6.0)
 		"checkpoint":
 			SoundLib.play(self, "impact/bell_heavy", -10.0, "game", 1.4)
@@ -606,6 +681,7 @@ func _event(e: String) -> void:
 			SoundLib.play(self, "reward/coin_plingy", -6.0)
 			_goal("combo5")
 		"land":
+			land_t = 0.2
 			_puff(Vector2(engine.px, engine.py - 4), 4, 14.0, 70.0)
 			SoundLib.play(self, "impact/soft_medium", -14.0)
 		"splash":
@@ -618,6 +694,9 @@ func _event(e: String) -> void:
 		"telegraph":
 			SoundLib.play(self, "impact/bell_heavy", -16.0)
 		"hurt":
+			flash = 1.0
+			flash_col = Color(0.7, 0.04, 0.03)
+			hitstop = 0.07
 			SoundLib.play(self, "creature/grunt", -1.0, "game", 1.25)   # a grunt when the hero is hit (owner 2026-11-15)
 			SoundLib.play(self, "impact/punch_medium", -8.0)
 			shake = 10.0
@@ -630,8 +709,38 @@ func _event(e: String) -> void:
 			after = -1.6
 			SoundLib.play(self, "impact/bell_heavy", -4.0)
 			_music("techno")
+		"relife":
+			relife = true
+		"heal":
+			_heal_fx(tr("Scrolls restore a heart"))
+		"torii":
+			_heal_fx(tr("The gate blesses you: +1 heart"))
+		"pick:star":
+			_pick_fx(tr("+2 Stars"), 2)
+		"pick:heart":
+			_heal_fx(tr("+1 heart"))
+		"pick:bomb":
+			_pick_fx(tr("+1 smoke bomb"), 2)
+		"bomb":
+			SoundLib.play(self, "impact/soft_medium", -4.0, "game", 0.5)
+			_sfx("whoosh")
+			var bp: Vector2 = Vector2(engine.px + engine.facing * 70.0, engine.py - 20.0)
+			_puff(bp, 12, 40.0, 160.0)
+		"rope":
+			SoundLib.play(self, "sword/clash", -6.0, "game", 1.3)
+			SoundLib.play(self, "impact/wood_heavy", -4.0)
+			shake = 9.0
+			_toast(tr("Rope cut! The gate falls open"), Color(0.2, 0.2, 0.2))
+			for g in engine.gates:
+				if g.cut:
+					_puff(Vector2(g.rect.position.x + 17.0, g.rect.end.y - 40.0), 12, 36.0, 200.0)
+		"disarm":
+			SoundLib.play(self, "impact/bell_heavy", -10.0, "game", 1.6)
+			_toast(tr("Trap disarmed"), Color(0.2, 0.2, 0.2))
+		"spiked":
+			_toast(tr("Spikes!"))
 		"die":
-			banner = tr("Fallen!") if engine.state == "dead" else tr("Game over!")
+			banner = (tr("Fallen! Lives restored") if relife else tr("Fallen!")) if engine.state == "dead" else tr("Game over!")
 			after = PAUSE_AFTER
 			SoundLib.play(self, "jingles/lose_failed", -6.0)
 		"win":
@@ -664,6 +773,20 @@ func _event(e: String) -> void:
 			if info:
 				info.high("Highest stage", engine.stage)
 
+func _heal_fx(t: String) -> void:
+	flash = 0.8
+	flash_col = Color(0.95, 0.78, 0.3)
+	_toast(t, Color(0.45, 0.3, 0.02))
+	SoundLib.play(self, "reward/coin_plingy", -6.0, "game", 1.2)
+	for i in 10:
+		sparks.append([Vector2(engine.px, engine.py - 30.0), Vector2(randf_range(-120, 120), randf_range(-320, -80)), 0.8, 0.8, 2])
+
+func _pick_fx(t: String, n: int) -> void:
+	_toast(t, Color(0.2, 0.2, 0.2))
+	SoundLib.play(self, "reward/coin_plingy", -10.0, "game", 1.5)
+	for i in n * 3:
+		sparks.append([Vector2(engine.px, engine.py - 30.0), Vector2(randf_range(-200, 200), randf_range(-240, -40)), 0.5, 0.5, 2])
+
 func _after_pause() -> void:
 	match engine.state:
 		"dead":
@@ -685,6 +808,9 @@ func _after_pause() -> void:
 ## red: a blow the hero landed (owner 2026-11-15: a slight red mark); otherwise grey ink.
 func _splash(p: Vector2, red: bool = false, big: bool = false) -> void:
 	_puff(p, 3, 16.0, 60.0)
+	for i in (12 if big else (8 if red else 5)):
+		var sa := randf() * TAU
+		sparks.append([p, Vector2.RIGHT.rotated(sa) * randf_range(260.0, 720.0), randf_range(0.14, 0.3), 0.3, 0 if red else 1])
 	for i in (22 if big else (10 if red else 16)):
 		var v := Vector2.RIGHT.rotated(randf() * TAU) * randf_range(120, 520) + Vector2(0, -220)
 		splats.append([p, v, randf_range(0.35, 0.8), randf_range(5.0, 14.0) * (0.8 if red else 1.0), red])
@@ -718,12 +844,15 @@ func _draw_field() -> void:
 	var cam: float = engine.cam_x()
 	var sh := Vector2(randf_range(-shake, shake), randf_range(-shake, shake)) * k
 	# Paper with a soft wash toward the bottom.
-	var bands := 10
+	var bands := 14
+	var sky_top: Color = pal.paper.lerp(pal.far, 0.6)   # a watercolour sky: tinted at the top, clear toward the horizon
 	for i in bands:
-		c.draw_rect(Rect2(0, sz.y * i / bands, sz.x, sz.y / bands + 1), pal.paper.lerp(pal.paper2, float(i) / bands))
+		var bt := float(i) / bands
+		var bc: Color = sky_top.lerp(pal.paper, smoothstep(0.0, 0.55, bt)) if bt < 0.55 else pal.paper.lerp(pal.paper2, (bt - 0.55) / 0.45)
+		c.draw_rect(Rect2(0, sz.y * i / bands, sz.x, sz.y / bands + 1), bc)
 	# Misty pine forest (owner's references, 2026-11-14): far and mid pine layers fading into
 	# fog, tall dark trunks in front, each scrolling slower than the ground.
-	c.draw_texture_rect(disc, Rect2(Vector2(sz.x * 0.72, sz.y * 0.06) - Vector2(90, 90) * k, Vector2(180, 180) * k), false, Color(pal.moon, 0.55))
+	_draw_sky(c, sz, k, cam)
 	_pine_layer(c, pines_far, cam * 0.12, k, 440.0, pal.far)
 	_fog(c, k, 300.0, 470.0, 0.85)
 	_pine_layer(c, pines_mid, cam * 0.3, k, 540.0, pal.mid)
@@ -796,6 +925,7 @@ func _draw_field() -> void:
 		_lantern(c, o + Vector2(cpx, engine.ground_y(cpx)) * k, k, engine.checkpoint_x >= cpx)
 	for s in engine.scrolls:
 		_scroll(c, o + s * k, k)
+	_draw_props(c, o, sz, k)
 	for f in engine.foes:
 		_shadow(c, o, f.x, f.y, k, 26.0)
 	if not engine.boss.is_empty() and engine.boss.hp > 0:
@@ -810,7 +940,23 @@ func _draw_field() -> void:
 	for s in engine.shots:
 		_star(c, o + Vector2(s.x, s.y) * k, k, s.mine)
 	if engine.hurt_t <= 0.0 or fmod(anim_t, 0.16) < 0.08:
-		_ninja(c, o + Vector2(engine.px, engine.py) * k, k)
+		var sq := Vector2(1.0, 1.0)
+		if land_t > 0.0:
+			sq = Vector2(1.0 + 0.14 * land_t / 0.2, 1.0 - 0.16 * land_t / 0.2)
+		elif jump_t > 0.0:
+			sq = Vector2(1.0 - 0.08 * jump_t / 0.16, 1.0 + 0.12 * jump_t / 0.16)
+		elif engine.on_ground and absf(engine.vx) < 20.0:
+			sq.y = 1.0 + 0.014 * sin(anim_t * 2.4)   # breathing at rest
+		var lean: float = clampf(engine.vx / Engine_.RUN, -1.2, 1.2) * 0.07
+		c.draw_set_transform(o + Vector2(engine.px, engine.py) * k, lean, sq)
+		_ninja(c, Vector2.ZERO, k)
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	for sp in sparks:
+		var sa: float = sp[2] / sp[3]
+		var sv: Vector2 = sp[1]
+		var spp: Vector2 = o + sp[0] * k
+		var scol: Color = [Color(1.0, 0.95, 0.85, sa), Color(pal.ink, sa), Color(1.0, 0.8, 0.3, sa)][sp[4]]
+		c.draw_line(spp, spp - sv.normalized() * (6.0 + 22.0 * sa) * k, scol, (2.0 + 2.0 * sa) * k)
 	for s in splats:
 		var p: Vector2 = o + s[0] * k
 		var r: float = s[3] * k
@@ -820,11 +966,156 @@ func _draw_field() -> void:
 	_draw_smoke(c, o, k)
 	_draw_mist(c, sz, k)
 	_draw_motes(c, sz, k)
+	_draw_petals(c, sz, k)
 	_draw_haze(c, o, sz, k)
 	_hud_draw(c, sz, k)
+	if fade > 0.01:
+		c.draw_rect(Rect2(Vector2.ZERO, sz), Color(pal.paper, fade))
+
+## Round 10 sky: a glowing moon with halo rings, soft god rays, slow cloud banks and a far
+## mountain ridge between the moon and the pines (all parallax, all cheap textures).
+func _draw_sky(c: CanvasItem, sz: Vector2, k: float, cam: float) -> void:
+	var mp := Vector2(sz.x * 0.72, sz.y * 0.13)
+	var pulse := 0.9 + 0.1 * sin(anim_t * 0.5)
+	c.draw_texture_rect(disc, Rect2(mp - Vector2(380, 380) * k, Vector2(760, 760) * k), false, Color(pal.moon, 0.16 * pulse))
+	c.draw_texture_rect(disc, Rect2(mp - Vector2(210, 210) * k, Vector2(420, 420) * k), false, Color(pal.moon, 0.2 * pulse))
+	c.draw_texture_rect(disc, Rect2(mp - Vector2(104, 104) * k, Vector2(208, 208) * k), false, Color(pal.near, 0.16))   # an ink-wash ring so the moon reads on pale paper
+	c.draw_texture_rect(disc, Rect2(mp - Vector2(90, 90) * k, Vector2(180, 180) * k), false, Color(pal.moon, 0.95))
+	c.draw_texture_rect(disc, Rect2(mp - Vector2(60, 60) * k + Vector2(14, 8) * k, Vector2(70, 70) * k), false, Color(pal.far, 0.18))   # a crater smudge
+	for i in 4:
+		var sh := 0.5 + 0.5 * sin(anim_t * 0.4 + i * 1.7)
+		var a0 := 1.9 + i * 0.22
+		var d := Vector2(cos(a0), sin(a0))
+		var perp := d.orthogonal() * (26.0 + i * 8.0) * k
+		var far := mp + d * sz.y * 1.2
+		_poly(c, PackedVector2Array([mp - perp * 0.2, mp + perp * 0.2, far + perp * 1.6, far - perp * 1.6]), Color(pal.moon, 0.035 + 0.03 * sh))
+	# Horizon glow in the act's mood colour (dawn gold, dusk orange, storm blue...).
+	c.draw_texture_rect(disc, Rect2(Vector2(sz.x * 0.5 - sz.x * 0.8, 470.0 * k - 150.0 * k), Vector2(sz.x * 1.6, 300.0 * k)), false, Color(mood_col.r, mood_col.g, mood_col.b, 0.42))
+	var mw2 := 1024.0 * k * 1.9
+	var mx2 := -fmod(cam * 0.025 * k + 300.0 * k, mw2)
+	var mtop2 := 330.0 * k - 300.0 * k * 1.9 + 60.0 * k
+	while mx2 < sz.x:
+		c.draw_texture_rect(mount_tex, Rect2(mx2, mtop2, mw2 + 1.0, 300.0 * k * 1.9), false, Color(pal.far.lerp(pal.paper, 0.6), 0.55))
+		mx2 += mw2
+	var mw := 1024.0 * k * 1.3
+	var mx := -fmod(cam * 0.05 * k, mw)
+	var mtop := 395.0 * k - 300.0 * k * 1.3 + 40.0 * k
+	while mx < sz.x:
+		c.draw_texture_rect(mount_tex, Rect2(mx, mtop, mw + 1.0, 300.0 * k * 1.3), false, Color(pal.far.lerp(pal.paper, 0.35), 0.8))
+		mx += mw
+	c.draw_rect(Rect2(0, mtop + 300.0 * k * 1.3 - 1.0, sz.x, 400.0 * k), Color(pal.far.lerp(pal.paper, 0.35), 0.8))
+	for cl in clouds:
+		var cx: float = fposmod(cl[0] * sz.x - cam * 0.04 * k, sz.x * 1.8) - sz.x * 0.3
+		var w: float = cl[2] * k
+		var cy: float = cl[1] * k + sin(anim_t * 0.2 + cl[4]) * 4.0 * k
+		c.draw_texture_rect(disc, Rect2(Vector2(cx - w, cy - w * 0.12), Vector2(w * 2.0, w * 0.24)), false, Color(pal.fog, 0.3))
+		c.draw_texture_rect(disc, Rect2(Vector2(cx - w * 0.6, cy - w * 0.2), Vector2(w * 1.2, w * 0.3)), false, Color(pal.fog, 0.22))
+
+## Foreground blossom petals drifting across the screen.
+func _draw_petals(c: CanvasItem, sz: Vector2, k: float) -> void:
+	var col := Color(0.93, 0.62, 0.68, 0.75) if skin == "classic" else Color(0.75, 0.78, 0.9, 0.55)
+	for pe in petals:
+		var x: float = pe[0] * sz.x + sin(anim_t * 1.3 + pe[4]) * 22.0 * k
+		var y: float = pe[1] * sz.y
+		var w: float = pe[3] * k * (0.6 + 0.4 * absf(sin(anim_t * 2.0 + pe[4])))
+		c.draw_texture_rect(disc, Rect2(Vector2(x - w, y - w * 0.5), Vector2(w * 2.0, w)), false, col)
+
+## Spike traps, their remote switches, rope-tied gates, pickups and smoke bombs (round 10).
+func _draw_props(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
+	var wood := Color(0.36, 0.25, 0.17)
+	for g in engine.gates:
+		var r: Rect2 = g.rect
+		var gx: float = o.x + r.position.x * k
+		if gx < -200.0 * k or gx > sz.x + 200.0 * k:
+			continue
+		var gb: float = o.y + (r.end.y - 2.0) * k
+		if g.open:
+			for i in 3:
+				c.draw_rect(Rect2(gx - (20 - i * 30) * k, gb - (10 + i * 3) * k, 78.0 * k, 9.0 * k), Color(wood, 0.9))
+			continue
+		var rr := Rect2(gx, o.y + r.position.y * k, r.size.x * k, gb - (o.y + r.position.y * k))
+		c.draw_rect(rr, wood)
+		c.draw_rect(rr, pal.ink, false, 3.0 * k)
+		var pl := PackedVector2Array()
+		for i in range(1, 4):
+			pl.append(Vector2(rr.position.x + rr.size.x * i / 4.0, rr.position.y))
+			pl.append(Vector2(rr.position.x + rr.size.x * i / 4.0, rr.end.y))
+		for yy in range(1, 6):
+			var by := rr.position.y + rr.size.y * yy / 6.0
+			pl.append(Vector2(rr.position.x - 4.0 * k, by))
+			pl.append(Vector2(rr.end.x + 4.0 * k, by))
+		c.draw_multiline(pl, Color(pal.ink, 0.7), 2.0 * k)
+		var kn := o + Vector2(g.rx, g.ry) * k
+		var top := Vector2(rr.position.x + 4.0 * k, rr.position.y + 24.0 * k)
+		var mid := (top + kn) * 0.5 + Vector2(0, 34.0 * k + sin(anim_t * 2.0) * 3.0 * k)
+		c.draw_polyline(PackedVector2Array([top, (top + mid) * 0.5 + Vector2(0, 8.0 * k), mid, (mid + kn) * 0.5 + Vector2(0, 6.0 * k), kn]), Color(0.78, 0.66, 0.42), 3.0 * k)
+		var pr := (14.0 + 5.0 * sin(anim_t * 5.0)) * k
+		c.draw_texture_rect(disc, Rect2(kn - Vector2(pr, pr) * 1.6, Vector2(pr, pr) * 3.2), false, Color(0.85, 0.25, 0.15, 0.28))
+		c.draw_texture_rect(disc, Rect2(kn - Vector2(9, 9) * k, Vector2(18, 18) * k), false, Color(0.78, 0.66, 0.42))
+		c.draw_texture_rect(disc, Rect2(kn - Vector2(4, 4) * k, Vector2(8, 8) * k), false, pal.ink)
+	for t in engine.traps:
+		var tx: float = o.x + t.x * k
+		if tx < -300.0 * k or tx > sz.x + 400.0 * k:
+			continue
+		var ty: float = o.y + (t.y + 3.0) * k
+		if t.armed:
+			var sp := PackedVector2Array()
+			for i in 6:
+				var bx := tx + (-30.0 + i * 12.0) * k
+				var hgt := (20.0 + 3.0 * sin(anim_t * 4.0 + i)) * k
+				sp.append(Vector2(bx - 6.0 * k, ty))
+				sp.append(Vector2(bx, ty - hgt))
+				sp.append(Vector2(bx + 6.0 * k, ty))
+			for i in 6:
+				_poly(c, PackedVector2Array([sp[i * 3], sp[i * 3 + 1], sp[i * 3 + 2]]), pal.ink)
+			c.draw_texture_rect(disc, Rect2(Vector2(tx, ty - 12.0 * k) - Vector2(46, 20) * k, Vector2(92, 40) * k), false, Color(0.8, 0.1, 0.06, 0.12 + 0.08 * sin(anim_t * 6.0)))
+		else:
+			c.draw_line(Vector2(tx - 32.0 * k, ty - 3.0 * k), Vector2(tx + 32.0 * k, ty - 3.0 * k), Color(pal.ink, 0.5), 3.0 * k)
+		var sw := o + Vector2(t.sx, t.sy) * k
+		c.draw_line(Vector2(sw.x, o.y + (engine.ground_y(t.sx) + 3.0) * k), sw, wood, 5.0 * k)
+		var on: bool = t.armed
+		var ring := (13.0 + (3.0 * sin(anim_t * 5.0) if on else 0.0)) * k
+		c.draw_texture_rect(disc, Rect2(sw - Vector2(ring, ring), Vector2(ring, ring) * 2.0), false, Color(0.75, 0.15, 0.1) if on else Color(pal.mid, 0.9))
+		c.draw_texture_rect(disc, Rect2(sw - Vector2(7, 7) * k, Vector2(14, 14) * k), false, pal.paper)
+		if not on:
+			c.draw_line(sw + Vector2(-5, -5) * k, sw + Vector2(5, 5) * k, pal.ink, 2.0 * k)
+			c.draw_line(sw + Vector2(5, -5) * k, sw + Vector2(-5, 5) * k, pal.ink, 2.0 * k)
+	for d in engine.drops:
+		var dp: Vector2 = o + Vector2(d.x, d.y + sin(anim_t * 4.0 + d.x) * 4.0) * k
+		if dp.x < -40.0 or dp.x > sz.x + 40.0:
+			continue
+		var gcol := Color(1.0, 0.85, 0.4, 0.3 + 0.12 * sin(anim_t * 6.0))
+		c.draw_texture_rect(disc, Rect2(dp - Vector2(26, 26) * k, Vector2(52, 52) * k), false, gcol)
+		match d.kind:
+			"star":
+				_star(c, dp, k * 0.9, true)
+			"heart":
+				_heart(c, dp, 11.0 * k, pal.red)
+			_:
+				c.draw_texture_rect(disc, Rect2(dp - Vector2(10, 10) * k, Vector2(20, 20) * k), false, pal.ink)
+				c.draw_line(dp + Vector2(4, -9) * k, dp + Vector2(10, -16) * k, pal.near, 2.0 * k)
+				c.draw_texture_rect(disc, Rect2(dp + Vector2(6, -20) * k, Vector2(8, 8) * k), false, Color(1.0, 0.6, 0.2))
+	for sm in engine.smokes:
+		var sx: float = o.x + sm.x * k
+		if sx < -200.0 * k or sx > sz.x + 200.0 * k:
+			continue
+		var grow := minf(1.0, (4.5 - sm.t) * 3.0)
+		var fadeo := minf(1.0, sm.t)
+		for i in 9:
+			var an := i * 2.4 + anim_t * 0.4
+			var rr2 := (60.0 + (i % 3) * 22.0) * grow * k
+			var cp := Vector2(sx + cos(an) * 60.0 * grow * k, o.y + (sm.y - 50.0) * k + sin(an * 1.3) * 34.0 * k - float(i) * 3.0 * k)
+			c.draw_texture_rect(disc, Rect2(cp - Vector2(rr2, rr2), Vector2(rr2, rr2) * 2.0), false, Color(pal.smoke, 0.5 * fadeo))
+
+func _heart(c: CanvasItem, p: Vector2, s: float, col: Color) -> void:
+	var r := s * 0.58
+	c.draw_texture_rect(disc, Rect2(p + Vector2(-s * 0.5 - r, -s * 0.3 - r), Vector2(r, r) * 2.0), false, col)
+	c.draw_texture_rect(disc, Rect2(p + Vector2(s * 0.5 - r, -s * 0.3 - r), Vector2(r, r) * 2.0), false, col)
+	_poly(c, PackedVector2Array([p + Vector2(-s * 1.04, -s * 0.12), p + Vector2(s * 1.04, -s * 0.12), p + Vector2(0, s * 1.05)]), col)
 
 ## Torii gates (owner 2026-11-15): scenery you walk through, a faint brown with a faint red top beam.
 ## Round 8: wider, like the owner's reference (the top beam is 1.5x the height, tips curled up).
+## Round 10: the first pass heals one heart and lights the incense.
 func _draw_torii(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 	var wood := Color(0.36, 0.24, 0.16, 0.6)
 	var redtop := Color(0.72, 0.16, 0.12, 0.6)
@@ -854,6 +1145,17 @@ func _draw_torii(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			lower.append(Vector2(x + f * 106.0 * k, tp + (15.0 - cv * 0.55) * k))
 		lower.reverse()
 		_poly(c, upper + lower, redtop)
+		# Incense at the left pillar: unlit until the gate has blessed you, then glowing with rising smoke.
+		var ib := Vector2(x - 112.0 * k, o.y + (engine.ground_y(tx - 112.0) + 2.0) * k)
+		c.draw_rect(Rect2(ib + Vector2(-9, -8) * k, Vector2(18, 8) * k), Color(0.3, 0.3, 0.3, 0.8))
+		c.draw_line(ib + Vector2(0, -8) * k, ib + Vector2(0, -34) * k, Color(0.5, 0.35, 0.2), 2.0 * k)
+		if engine.torii_used.has(tx):
+			var tip := ib + Vector2(0, -34) * k
+			c.draw_texture_rect(disc, Rect2(tip - Vector2(10, 10) * k, Vector2(20, 20) * k), false, Color(1.0, 0.55, 0.2, 0.5 + 0.3 * sin(anim_t * 6.0)))
+			var wisp := PackedVector2Array()
+			for i in 12:
+				wisp.append(tip + Vector2(sin(anim_t * 1.6 + i * 0.55) * (4.0 + i * 1.4), -i * 7.0) * k)
+			c.draw_polyline(wisp, Color(pal.smoke, 0.5), 2.2 * k)
 
 ## A cherry blossom: five soft petals, a paler rim and a dark heart (like the owner's two
 ## cherry references). White so it takes any tint; three turns so a branch is not a stamp.
@@ -968,6 +1270,11 @@ func _draw_flora(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 		var base := Vector2(fx, o.y + (engine.ground_y(fl.x) + 3.0) * k)
 		var hm: float = fl.h
 		r.seed = fl.s
+		if fl.get("cut", false):
+			for q in 3:
+				var sx := base + Vector2((q - 1) * 12.0, 0) * k
+				c.draw_line(sx, sx + Vector2(0, -(16.0 + q * 6.0)) * k, pal.ink.lerp(pal.mid, 0.2), 4.0 * k)
+			continue
 		match fl.kind:
 			"bamboo":
 				var stalk := PackedVector2Array()
@@ -1208,6 +1515,19 @@ func _make_pines(seed_: int, count: int, hmin: float, hmax: float) -> Texture2D:
 	img.fill_rect(Rect2i(0, base, w, h - base), Color.WHITE)
 	return ImageTexture.create_from_image(img)
 
+## A tileable far mountain ridge: two sine ridges whose frequencies divide the width.
+func _make_mountains() -> Texture2D:
+	var w := 1024
+	var h := 300
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for x in w:
+		var t := float(x) / w * TAU
+		var top := 150.0 - (46.0 * sin(t * 2.0 + 0.6) + 30.0 * sin(t * 5.0 + 2.1) + 14.0 * sin(t * 11.0) + 7.0 * sin(t * 23.0 + 1.0))
+		for y in range(maxi(0, int(top)), h):
+			var a := clampf((y - top) / 3.0, 0.0, 1.0)
+			img.set_pixel(x, y, Color(1, 1, 1, a))
+	return ImageTexture.create_from_image(img)
+
 ## A vertical alpha ramp (clear at the top, solid at the bottom) for fog bands.
 func _make_fog() -> Texture2D:
 	var img := Image.create(1, 64, false, Image.FORMAT_RGBA8)
@@ -1376,16 +1696,23 @@ func _ninja(c: CanvasItem, feet: Vector2, k: float) -> void:
 			c.draw_line(tip + Vector2(-f * (20 + i * 12) * k, yy), tip + Vector2(-f * (70 + i * 16) * k, yy), Color(ink, 0.35 * reach), 2.0 * k)
 	elif engine.slash_t > 0.0:
 		var t: float = 1.0 - engine.slash_t / Engine_.SLASH_T
-		var a := lerpf(-1.4, 1.2, t)
+		# Three cuts in a combo (owner 2026-11-15): a chop down, a rising diagonal, a long sideways sweep.
+		var sw: int = engine.swing
+		var a0: float = [-1.4, 1.35, 0.4][sw]
+		var a1: float = [1.2, -1.45, -0.4][sw]
+		var te := 1.0 - pow(1.0 - t, 2.2)   # fast start, soft finish
+		var a := lerpf(a0, a1, te)
+		var rl := 1.25 if sw == 2 else 1.0
 		var hand := neck + Vector2(f * 20, 4).rotated(a * f) * k
 		_brush(c, neck, hand, 6.0 * k, ink)
-		_katana(c, hand, hand + Vector2(f * 74, 0).rotated(a * f) * k, k)
+		_katana(c, hand, hand + Vector2(f * 74 * rl, 0).rotated(a * f) * k, k)
 		# The cut: a thick crescent that sweeps after the blade and thins at its tail.
 		var pts := []
 		for i in 12:
-			var aa := lerpf(-1.4, a, float(i) / 11.0)
-			pts.append(neck + Vector2(f * 84, 0).rotated(aa * f) * k)
-		_ribbon(c, pts, 1.0 * k, 16.0 * k, Color(ink, 0.85))
+			var aa := lerpf(a0, a, float(i) / 11.0)
+			pts.append(neck + Vector2(f * 84 * rl, 0).rotated(aa * f) * k)
+		_ribbon(c, pts, 1.0 * k, (16.0 if sw != 2 else 11.0) * k, Color(ink, 0.85))
+		_ribbon(c, pts, 0.5 * k, 5.0 * k, Color(pal.moon, 0.7 * (1.0 - t)))
 	elif engine.blocking:
 		# Guard: blade upright in front of the face.
 		var hand := neck + Vector2(f * 22, 6) * k
@@ -1661,6 +1988,23 @@ func _smoke_tick(delta: float) -> void:
 		m[0] += m[2] * delta
 		if m[0] > 1.3:
 			m[0] -= 1.6
+	for cl in clouds:
+		cl[0] += cl[3] * delta
+		if cl[0] > 1.4:
+			cl[0] -= 1.8
+	for pe in petals:
+		pe[1] += pe[2] * delta
+		pe[0] += (0.012 + 0.01 * sin(anim_t * 0.9 + pe[4])) * delta
+		if pe[1] > 1.05:
+			pe[1] -= 1.15
+			pe[0] = randf()
+		if pe[0] > 1.05:
+			pe[0] -= 1.1
+	for sp in sparks:
+		sp[0] += sp[1] * delta
+		sp[1] *= 1.0 - 5.0 * delta
+		sp[2] -= delta
+	sparks = sparks.filter(func(sp): return sp[2] > 0.0)
 
 func _draw_smoke(c: CanvasItem, o: Vector2, k: float) -> void:
 	for s in smoke:
@@ -1714,29 +2058,92 @@ func _scroll(c: CanvasItem, p: Vector2, k: float) -> void:
 
 func _hud_draw(c: CanvasItem, sz: Vector2, k: float) -> void:
 	var font := ThemeDB.fallback_font
-	# Stage progress: a brush line with the ninja's dot.
+	var u := clampf(k, 0.8, 1.5)
+	if plate_sb == null:
+		plate_sb = StyleBoxFlat.new()
+		plate_sb.bg_color = Color(pal.paper, 0.78)
+		plate_sb.border_color = Color(pal.ink, 0.85)
+		plate_sb.set_border_width_all(2)
+		plate_sb.set_corner_radius_all(16)
+		plate_sb.shadow_color = Color(0, 0, 0, 0.28)
+		plate_sb.shadow_size = 7
+		plate_sb.shadow_offset = Vector2(0, 3)
+	# Status plate: hearts, stars, smoke bombs, lives (beside the pause button).
+	var hx := 112.0
+	var cy := 46.0
+	var pw := (5 * 30.0 + 3 * 82.0 + 20.0) * u
+	c.draw_style_box(plate_sb, Rect2(hx, 16.0, pw, 60.0))
+	for i in Engine_.MAX_HP:
+		var hp_pos := Vector2(hx + (24.0 + i * 30.0) * u, cy)
+		var full: bool = i < engine.hp
+		var beat := 1.0 + (0.16 * sin(anim_t * 9.0) if engine.hp == 1 and full else 0.0)
+		if full:
+			_heart(c, hp_pos + Vector2(0, -2.0 * u), 10.0 * u * beat, Color(pal.red).lightened(0.05))
+			_heart(c, hp_pos + Vector2(-3.0, -5.0) * u, 3.5 * u, Color(1, 1, 1, 0.35))   # glint
+		else:
+			_heart(c, hp_pos + Vector2(0, -2.0 * u), 9.0 * u, Color(pal.ink, 0.22))
+	var sx0 := hx + (5 * 30.0 + 30.0) * u
+	_star(c, Vector2(sx0, cy), u * 0.95, true)
+	c.draw_string(font, Vector2(sx0 + 14.0 * u, cy + 8.0 * u), str(engine.stars), HORIZONTAL_ALIGNMENT_LEFT, -1, int(24 * u), pal.ink)
+	var bx0 := sx0 + 82.0 * u
+	c.draw_texture_rect(disc, Rect2(Vector2(bx0 - 10.0 * u, cy - 8.0 * u), Vector2(20, 20) * u), false, pal.ink)
+	c.draw_line(Vector2(bx0 + 4.0 * u, cy - 7.0 * u), Vector2(bx0 + 10.0 * u, cy - 15.0 * u), pal.near, 2.0 * u)
+	c.draw_texture_rect(disc, Rect2(Vector2(bx0 + 6.0 * u, cy - 19.0 * u), Vector2(8, 8) * u), false, Color(1.0, 0.6, 0.2, 0.7 + 0.3 * sin(anim_t * 8.0)))
+	c.draw_string(font, Vector2(bx0 + 16.0 * u, cy + 8.0 * u), str(engine.bombs), HORIZONTAL_ALIGNMENT_LEFT, -1, int(24 * u), pal.ink)
+	var lx0 := bx0 + 82.0 * u
+	c.draw_texture_rect(disc, Rect2(Vector2(lx0 - 10.0 * u, cy - 10.0 * u), Vector2(20, 20) * u), false, pal.ink)
+	c.draw_rect(Rect2(Vector2(lx0 - 10.0 * u, cy - 5.0 * u), Vector2(20.0 * u, 4.0 * u)), BAND)
+	c.draw_string(font, Vector2(lx0 + 16.0 * u, cy + 8.0 * u), str(engine.lives), HORIZONTAL_ALIGNMENT_LEFT, -1, int(24 * u), pal.ink)
+	# Score plate (top right), the number rolls up and pops.
+	var sw := 190.0 * u
+	var sbx := sz.x - 24.0 - sw
+	c.draw_style_box(plate_sb, Rect2(sbx, 16.0, sw, 60.0))
+	var pop := score_pop
+	c.draw_string(font, Vector2(sbx, cy + 12.0 * u), str(int(score_shown)), HORIZONTAL_ALIGNMENT_CENTER, sw, int((32.0 + 8.0 * pop) * u), pal.ink)
+	if engine.combo >= 2 and engine.combo_t > 0.0:
+		var cb := "x%d" % engine.combo
+		c.draw_string_outline(font, Vector2(sbx, 104.0 * u), cb, HORIZONTAL_ALIGNMENT_RIGHT, sw, int(30 * u), int(6 * u), pal.paper)
+		c.draw_string(font, Vector2(sbx, 104.0 * u), cb, HORIZONTAL_ALIGNMENT_RIGHT, sw, int(30 * u), pal.red)
+	# Stage progress: a brush track with lantern marks, the gate and the ninja's dot.
 	var y := 96.0 * k
 	var x0 := sz.x * 0.3
 	var x1 := sz.x * 0.7
-	c.draw_line(Vector2(x0, y), Vector2(x1, y), Color(pal.mid, 0.6), 3.0 * k)
+	c.draw_line(Vector2(x0, y), Vector2(x1, y), Color(pal.far, 0.85), 7.0 * u)
 	var px := lerpf(x0, x1, engine.progress())
-	c.draw_texture_rect(disc, Rect2(Vector2(px, y) - Vector2(7, 7) * k, Vector2(14, 14) * k), false, pal.ink)
-	c.draw_string(font, Vector2(x0, y - 10 * k), tr("Stage %d") % engine.stage, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, int(20 * k), pal.near)
+	c.draw_line(Vector2(x0, y), Vector2(px, y), Color(pal.ink, 0.95), 5.0 * u)
+	for ci in 4:
+		var lxp := lerpf(x0, x1, float(ci + 1) / 5.0)
+		var lit: bool = engine.checkpoint_x >= engine.checkpoints[ci] if ci < engine.checkpoints.size() else false
+		c.draw_texture_rect(disc, Rect2(Vector2(lxp - 6.0 * u, y - 6.0 * u), Vector2(12, 12) * u), false, Color(1.0, 0.8, 0.3) if lit else Color(pal.ink, 0.5))
+	c.draw_rect(Rect2(Vector2(x1 - 2.0 * u, y - 12.0 * u), Vector2(4.0 * u, 24.0 * u)), Color(0.72, 0.16, 0.12))
+	c.draw_texture_rect(disc, Rect2(Vector2(px, y) - Vector2(12, 12) * u, Vector2(24, 24) * u), false, Color(pal.paper, 0.9))
+	c.draw_texture_rect(disc, Rect2(Vector2(px, y) - Vector2(8, 8) * u, Vector2(16, 16) * u), false, pal.ink)
+	c.draw_string_outline(font, Vector2(x0, y - 14 * u), tr("Stage %d") % engine.stage, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, int(20 * u), int(5 * u), pal.paper)
+	c.draw_string(font, Vector2(x0, y - 14 * u), tr("Stage %d") % engine.stage, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, int(20 * u), pal.ink)
 	if not engine.boss.is_empty() and engine.boss.hp > 0:
 		var w := sz.x * 0.5
 		var bx := (sz.x - w) / 2.0
-		var by := sz.y - 50.0 * k
-		c.draw_rect(Rect2(bx, by, w, 14 * k), Color(pal.far, 0.8))
-		c.draw_rect(Rect2(bx, by, w * float(engine.boss.hp) / float(engine.boss.max), 14 * k), pal.paper)   # on the ink ground: paper colour
-		c.draw_string(font, Vector2(bx, by - 8 * k), tr(engine.boss_name()), HORIZONTAL_ALIGNMENT_CENTER, w, int(22 * k), pal.paper)
+		var by := sz.y - 46.0 * u
+		var ratio := float(engine.boss.hp) / float(engine.boss.max)
+		c.draw_style_box(plate_sb, Rect2(bx - 18.0 * u, by - 42.0 * u, w + 36.0 * u, 64.0 * u))
+		c.draw_string(font, Vector2(bx, by - 18 * u), tr(engine.boss_name()), HORIZONTAL_ALIGNMENT_CENTER, w, int(22 * u), pal.ink)
+		c.draw_rect(Rect2(bx, by - 6.0 * u, w, 14 * u), Color(pal.far, 0.7))
+		c.draw_rect(Rect2(bx, by - 6.0 * u, w * boss_trail, 14 * u), Color(pal.red, 0.65))
+		c.draw_rect(Rect2(bx, by - 6.0 * u, w * ratio, 14 * u), pal.ink)
+		c.draw_rect(Rect2(bx, by - 6.0 * u, w * ratio, 4 * u), Color(1, 1, 1, 0.18))
+		c.draw_rect(Rect2(bx, by - 6.0 * u, w, 14 * u), Color(pal.ink, 0.8), false, 2.0 * u)
 	if banner != "":
 		var fs := int(64 * k)
 		var tp := Vector2(0, sz.y * 0.42)
+		c.draw_rect(Rect2(0, tp.y - fs * 0.95, sz.x, fs * 1.35), Color(pal.paper, 0.55))
+		c.draw_rect(Rect2(0, tp.y - fs * 0.95, sz.x, 3.0 * k), Color(pal.ink, 0.7))
+		c.draw_rect(Rect2(0, tp.y + fs * 0.4, sz.x, 3.0 * k), Color(pal.ink, 0.7))
 		c.draw_string_outline(font, tp, banner, HORIZONTAL_ALIGNMENT_CENTER, sz.x, fs, int(10 * k), pal.paper)
 		c.draw_string(font, tp, banner, HORIZONTAL_ALIGNMENT_CENTER, sz.x, fs, pal.ink)
 	# Story objective under the progress line.
 	var obj: String = tr("Defeat %s") % tr(engine.boss_name()) if engine.locked else tr(Story.CHAPTERS[engine.stage - 1][2])
-	c.draw_string(font, Vector2(x0, y + 26 * k), "▸ " + obj, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, int(18 * k), pal.near)
+	c.draw_string_outline(font, Vector2(x0, y + 26 * u), "▸ " + obj, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, int(18 * u), int(5 * u), pal.paper)
+	c.draw_string(font, Vector2(x0, y + 26 * u), "▸ " + obj, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, int(18 * u), pal.ink)
 	var tip: String = engine.tip()
 	if tip != "" and card_text.is_empty():
 		var ty := y + 66 * k
@@ -1749,7 +2156,7 @@ func _hud_draw(c: CanvasItem, sz: Vector2, k: float) -> void:
 		var nw := sz.x * 0.62
 		var ny := sz.y * 0.3
 		c.draw_rect(Rect2((sz.x - nw) / 2.0, ny - 26 * k, nw, 38 * k), Color(pal.paper, 0.8))
-		c.draw_string(font, Vector2((sz.x - nw) / 2.0, ny), note, HORIZONTAL_ALIGNMENT_CENTER, nw, int(20 * k), Color(0.65, 0.08, 0.08))
+		c.draw_string(font, Vector2((sz.x - nw) / 2.0, ny), note, HORIZONTAL_ALIGNMENT_CENTER, nw, int(20 * k), toast_col if toast_t > 0.0 else Color(0.65, 0.08, 0.08))
 	if not card_text.is_empty():
 		_draw_card(c, sz, k)
 
@@ -1862,6 +2269,7 @@ func _draw_card(c: CanvasItem, sz: Vector2, k: float) -> void:
 func _set_skin(name: String) -> void:
 	skin = name if LOOKS.has(name) else "classic"
 	pal = LOOKS[skin].merged(WASH[skin], true)
+	plate_sb = null
 	_hud_colors()
 	_paper_params()
 	if field:
@@ -1938,6 +2346,14 @@ func _help_heal() -> bool:
 	if not started or engine.state != "play" or engine.hp >= Engine_.MAX_HP:
 		return false
 	engine.hp = Engine_.MAX_HP
+	_update_hud()
+	_sfx("powerup")
+	return true
+
+func _help_life() -> bool:
+	if not started or engine.state != "play":
+		return false
+	engine.lives += 1
 	_update_hud()
 	_sfx("powerup")
 	return true

@@ -956,6 +956,9 @@
  "auto (controller)": [
   "scripts\\games\\wilson\\wilson_debug.gd"
  ],
+ "bamboo:%d:%d": [
+  "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
+ ],
  "before:%d": [
   "scripts\\games\\ink_ninja\\cutscene.gd"
  ],

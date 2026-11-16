@@ -8,6 +8,9 @@ uniform vec4 grain_col : source_color = vec4(0.25, 0.22, 0.18, 1.0);
 uniform vec4 edge_col : source_color = vec4(0.1, 0.09, 0.08, 1.0);
 uniform float grain = 0.10;
 uniform float edge = 0.45;
+uniform vec4 tint : source_color = vec4(0.0);   // colour grading per act (round 10)
+uniform vec4 flash_col : source_color = vec4(0.7, 0.05, 0.04, 1.0);
+uniform float flash = 0.0;   // screen-edge pulse: hurt (red) / heal (gold)
 uniform vec2 px_size = vec2(1280.0, 720.0);
 
 float hash(vec2 p) {
@@ -31,5 +34,15 @@ void fragment() {
 	vec2 c = UV - 0.5;
 	float v = smoothstep(0.35, 0.85, length(c * vec2(1.0, 1.25))) * edge;
 	vec3 col = mix(grain_col.rgb, edge_col.rgb, v / max(v + g, 0.001));
-	COLOR = vec4(col, clamp(g + v, 0.0, 0.85));
+	float fl = flash * smoothstep(0.1, 0.8, length(c * vec2(1.0, 1.15)));
+	float a = clamp(g + v, 0.0, 0.85);
+	vec3 base = col;
+	// flash: a soft coloured rim
+	base = mix(base, flash_col.rgb, clamp(fl, 0.0, 1.0));
+	a = max(a, fl * 0.75);
+	// grading: stronger toward the horizon and the bottom, with a gentle sky tint
+	float ta = tint.a * mix(0.6, 1.35, UV.y);
+	float oa = a + ta * (1.0 - a);
+	vec3 oc = (base * a + tint.rgb * ta * (1.0 - a)) / max(oa, 0.001);
+	COLOR = vec4(oc, oa);
 }
