@@ -151,7 +151,10 @@ void fragment() {
 	// Cloud shadows (not at night in neon).
 	vec2 cp = wp / 60.0;
 	float cloud = smoothstep(0.55, 0.8, fbm(cp * 1.3 + vec2(t * 0.03, t * 0.012)));
-	lit *= 1.0 - 0.22 * cloud * (1.0 - neon);
+	lit *= 1.0 - 0.16 * cloud * (1.0 - neon);
+	// Grade: a touch more saturation and contrast so ships and pickups pop.
+	lit = mix(vec3(dot(lit, vec3(0.3, 0.59, 0.11))), lit, 1.2);
+	lit = mix(lit, lit * lit * (3.0 - 2.0 * min(lit, vec3(1.0))), 0.35);
 
 	if (neon > 0.5) {
 		lit = vec3(lit.r * 0.35 + 0.03, lit.g * 0.3, lit.b * 0.45 + 0.07);
@@ -161,6 +164,6 @@ void fragment() {
 	}
 
 	vec2 q = SCREEN_UV - 0.5;
-	lit *= 1.0 - 0.45 * dot(q, q);
+	lit *= (1.0 - 0.6 * dot(q, q)) * vec3(0.97, 0.99, 1.03);
 	COLOR = vec4(lit, 1.0);
 }

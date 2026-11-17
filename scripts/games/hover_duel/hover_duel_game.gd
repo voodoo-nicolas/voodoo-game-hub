@@ -83,6 +83,16 @@ var banner := ""
 var banner_t: float = 0.0
 var shot_sfx_t: float = 0.0
 var wall_sfx_t: float = 0.0
+# Look layer (2026-11-17 visual pass): additive glow over the field, then the HUD.
+var fx: Control               # glows, shock rings, spark streaks, drifting motes (additive)
+var ring_tex: Texture2D       # thin soft ring, for shock waves and shields
+var rings: Array = []         # [pos, max radius, age, colour, life] expanding shock rings
+var flashes: Array = []       # [pos, angle, age] muzzle flashes
+var motes: Array = []         # [pos, vel, phase, size] drifting dust / snow / embers
+var hp_trail := [1.0, 1.0]    # the pale "damage just taken" part of each health bar
+var punch: float = 0.0        # short camera zoom-in on big blasts
+var banner_len: float = 2.0
+var hud_box: StyleBoxFlat = null
 
 # Touch controls: the shared Pad in 1-player games; own two-half controls in
 # 2 Players and on apps without the Pad.
@@ -130,6 +140,15 @@ func _build_ui() -> void:
 	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	field.draw.connect(_draw_field)
 	add_child(field)
+	fx = Control.new()
+	fx.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fx.clip_contents = true
+	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var add_mat := CanvasItemMaterial.new()
+	add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	fx.material = add_mat
+	fx.draw.connect(_draw_fx)
+	add_child(fx)
 	hud = Control.new()
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -277,6 +296,11 @@ func _begin() -> void:
 	scorches.clear()
 	booms.clear()
 	trails.clear()
+	rings.clear()
+	flashes.clear()
+	motes.clear()
+	hp_trail = [1.0, 1.0]
+	punch = 0.0
 	fingers.clear()
 	end_dialog.visible = false
 	tally = {"battles": 1}
@@ -374,7 +398,8 @@ func _name(i: int) -> String:
 
 func _show_banner(t: String) -> void:
 	banner = t
-	banner_t = 2.0
+	banner_len = 2.0
+	banner_t = banner_len
 
 func _next_battle() -> void:
 	if mode == "campaign" and level + 1 < E.CAMPAIGN.size():
@@ -720,9 +745,16 @@ func _process(delta: float) -> void:
 		_update_camera(delta)
 		terrain.queue_redraw()
 		field.queue_redraw()
+		fx.queue_redraw()
+		_tick_fx(delta)
 		return
 	var inputs := _gather_inputs()
-	var evs: Array = engine.step(delta, inputs)
+	# The final blow plays in slow motion that eases back to full speed (the
+	# battle is already decided, so this is presentation only).
+	var sim := delta
+	if engine.is_over():
+		sim = delta * clampf(0.22 + over_t * 0.6, 0.22, 1.0)
+	var evs: Array = engine.step(sim, inputs)
 	_handle_events(evs)
 	banner_t = maxf(0.0, banner_t - delta)
 	shake = maxf(0.0, shake - delta * 2.5)
@@ -751,6 +783,11 @@ func _process(delta: float) -> void:
 				var nz: Vector2 = c.p + (q as Vector2).rotated(c.a) * CRAFT_SCALE
 				var vel: Vector2 = c.v * 0.3 + back.rotated(randf_range(-0.25, 0.25)) * (60.0 + 140.0 * th)
 				trails.append([nz + back * 18.0 * th, 0.0, vel, 0.6 + th])
+	# Missile smoke: a fiery, then grey, puff every other frame.
+	if Engine.get_process_frames() % 2 == 0:
+		for m in engine.missiles:
+			trails.append([m.p, 0.25, -(m.v as Vector2) * 0.05 + Vector2(randf_range(-12, 12), randf_range(-12, 12)), 0.5])
+	_tick_fx(delta)
 	_update_camera(delta)
 	if engine.is_over():
 		over_t += delta
@@ -758,19 +795,52 @@ func _process(delta: float) -> void:
 			_game_over()
 	terrain.queue_redraw()
 	field.queue_redraw()
+	fx.queue_redraw()
 	hud.queue_redraw()
+
+## Timers of the look layer: shock rings, muzzle flashes, drifting motes, the
+## pale damage part of the health bars, the camera punch.
+func _tick_fx(delta: float) -> void:
+	for r in rings:
+		r[2] += delta
+	rings = rings.filter(func(r): return r[2] < r[4])
+	for f in flashes:
+		f[2] += delta
+	flashes = flashes.filter(func(f): return f[2] < 0.09)
+	punch = maxf(0.0, punch - delta * 3.0)
+	for i in 2:
+		var fr: float = clampf(engine.crafts[i].hp / engine.crafts[i].max, 0.0, 1.0)
+		hp_trail[i] = fr if fr >= hp_trail[i] else maxf(fr, hp_trail[i] - delta * 0.35)
+	if motes.is_empty():
+		for i in 44:
+			motes.append([Vector2(randf() * E.W, randf() * E.H), Vector2.ZERO, randf() * TAU, randf_range(0.6, 1.5)])
+	var lava: bool = engine.theme.liquid == "lava"
+	var snowy: bool = engine.theme.ice or engine.theme_id == "highlands"
+	for m in motes:
+		m[2] += delta
+		var drift := Vector2(18.0, 6.0)
+		if lava:
+			drift = Vector2(6.0, -26.0)
+		elif snowy:
+			drift = Vector2(-10.0, 22.0)
+		m[0] += (drift + Vector2(sin(m[2] * 0.9) * 10.0, cos(m[2] * 0.7) * 8.0)) * delta * m[3]
+		m[0].x = fposmod(m[0].x, float(E.W))
+		m[0].y = fposmod(m[0].y, float(E.H))
 
 func _handle_events(evs: Array) -> void:
 	for e in evs:
 		match e[0]:
 			"shot":
+				var sc: Dictionary = engine.crafts[e[1]]
+				flashes.append([sc.p + Vector2.RIGHT.rotated(sc.a) * 30.0 * CRAFT_SCALE, sc.a, 0.0])
 				if shot_sfx_t <= 0.0:
 					SoundLib.play(self, "scifi/laser_small", -14.0)
 					shot_sfx_t = 0.09
 			"hit":
 				if mode != "duo" and e[1] == 1 and e.size() > 3:
 					tally[e[3]] = int(tally.get(e[3], 0)) + 1
-				_burst(e[2], Color("ffd27a"), 6)
+				_burst(e[2], Color("ffd27a"), 10)
+				rings.append([e[2], 34.0, 0.0, Color(1.0, 0.85, 0.5), 0.22])
 				SoundLib.play(self, "scifi/impact_metal", -10.0)
 				if mode != "duo" and e[1] == 0:
 					_vibrate(30)
@@ -796,7 +866,10 @@ func _handle_events(evs: Array) -> void:
 			"boom":
 				booms.append([e[1], e[2], 0.0])
 				_scorch(e[1], 22.0 * e[2])
-				_burst(e[1], Color("ff8a2a"), int(10 * e[2]))
+				_burst(e[1], Color("ff8a2a"), int(14 * e[2]))
+				_burst(e[1], Color(1.0, 0.9, 0.6), int(6 * e[2]))
+				rings.append([e[1], 120.0 * e[2], 0.0, Color(1.0, 0.7, 0.35), 0.5])
+				punch = minf(1.0, punch + e[2] * 0.4)
 				shake = minf(1.0, shake + e[2] * 0.35)
 				SoundLib.play(self, "scifi/explosion_crunch" if e[2] < 2.0 else "scifi/low_frequency_explosion", -4.0)
 			"missile":
@@ -806,9 +879,18 @@ func _handle_events(evs: Array) -> void:
 			"pick":
 				if e[1] == 0:
 					tally["crates"] = int(tally.get("crates", 0)) + 1
+				var pcol: Color = {"repair": Color("5be36a"), "missiles": Color("ffb02e"), "mines": Color("c070ff"), "shield": Color("4ad8ff")}[e[2]]
+				rings.append([engine.crafts[e[1]].p, 70.0, 0.0, pcol, 0.45])
+				_burst(engine.crafts[e[1]].p, pcol, 12)
 				SoundLib.play(self, "reward/powerup", -6.0)
 				_show_banner(tr({"repair": "Repaired!", "missiles": "+2 missiles", "mines": "+2 mines", "shield": "Shield!"}[e[2]]))
 			"dead":
+				var dc: Dictionary = engine.crafts[e[1]]
+				rings.append([dc.p, 220.0, 0.0, Color(1.0, 0.95, 0.8), 0.8])
+				rings.append([dc.p, 140.0, 0.0, Color(1.0, 0.5, 0.2), 0.6])
+				_burst(dc.p, Color(0.85, 0.88, 0.95), 26)
+				punch = 1.0
+				shake = 1.0
 				_vibrate(120)
 
 ## A burnt mark on the ground that stays for the rest of the battle.
@@ -827,6 +909,7 @@ func _update_camera(delta: float) -> void:
 	var mid := (a + b) / 2.0
 	var span := Vector2(absf(a.x - b.x), absf(a.y - b.y)) + Vector2(420, 360)
 	var want := clampf(minf(size.x / span.x, size.y / span.y), minf(size.x / E.W, size.y / E.H), 1.1 * minf(size.y, size.x) / 600.0)
+	want *= 1.0 + punch * 0.07
 	if zoom <= 0.0:
 		zoom = want
 		cam = mid
@@ -947,6 +1030,111 @@ func _draw_terrain() -> void:
 func _w2s(p: Vector2) -> Vector2:
 	return (p - cam) * zoom + size / 2.0
 
+func _pick_box(col: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = col
+	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(2)
+	sb.border_color = col.lightened(0.55)
+	sb.shadow_color = Color(col, 0.35)
+	sb.shadow_size = 5
+	return sb
+
+func _ring(c: CanvasItem, at: Vector2, r: float, col: Color) -> void:
+	if ring_tex == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.68, 0.86, 1.0])
+		g.colors = PackedColorArray([Color(1, 1, 1, 0), Color(1, 1, 1, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
+		var gt := GradientTexture2D.new()
+		gt.gradient = g
+		gt.fill = GradientTexture2D.FILL_RADIAL
+		gt.fill_from = Vector2(0.5, 0.5)
+		gt.fill_to = Vector2(1.0, 0.5)
+		gt.width = 128
+		gt.height = 128
+		ring_tex = gt
+	c.draw_texture_rect(ring_tex, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0), false, col)
+
+## Additive light over the field: shot / missile glow, muzzle flashes, blasts and
+## shock rings, spark streaks, pickup halos, shields, drifting motes.
+func _draw_fx() -> void:
+	var c := fx
+	var k := zoom
+	var off := Vector2.ZERO
+	if shake > 0.0:
+		off = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * shake * 10.0
+	c.draw_set_transform(off)
+	var cols: Array = _player_colors()
+	var tt: float = engine.time
+	# Drifting motes (dust, snow or embers), brighter near the screen centre.
+	var snowy: bool = engine.theme.ice or engine.theme_id == "highlands"
+	var mc := Color(1.0, 0.55, 0.2, 0.5) if engine.theme.liquid == "lava" else (Color(0.9, 0.95, 1.0, 0.4) if snowy else Color(1.0, 0.95, 0.75, 0.22))
+	for m in motes:
+		var mp := _w2s(m[0])
+		if mp.x < -8 or mp.y < -8 or mp.x > size.x + 8 or mp.y > size.y + 8:
+			continue
+		var tw := 0.6 + 0.4 * sin(m[2] * 2.0)
+		_soft(c, mp, (2.2 + 1.6 * m[3]) * maxf(k, 0.7), Color(mc, mc.a * tw))
+	# Pickup halos and rings.
+	for pk in engine.pickups:
+		var p := _w2s(pk.p)
+		var col: Color = {"repair": Color("5be36a"), "missiles": Color("ffb02e"), "mines": Color("c070ff"), "shield": Color("4ad8ff")}[pk.kind]
+		var pulse := 0.5 + 0.5 * sin(tt * 3.0 + pk.p.x)
+		_soft(c, p + Vector2(0, -4) * k, 34.0 * k, Color(col, 0.25 + 0.15 * pulse))
+		_ring(c, p + Vector2(0, -4) * k, (26.0 + 6.0 * pulse) * k, Color(col, 0.7))
+	# Armed mines blink red-hot.
+	for mn in engine.mines:
+		if mn.t >= E.MINE_ARM and int(tt * 4.0) % 2 == 0:
+			_soft(c, _w2s(mn.p), 22.0 * k, Color(cols[mn.o], 0.5))
+	# Shields as a bubble.
+	for i in 2:
+		var cr: Dictionary = engine.crafts[i]
+		if cr.alive and cr.shield > 0.0:
+			var sp := _w2s(cr.p)
+			var pu := 0.7 + 0.3 * sin(tt * 9.0 + i)
+			_soft(c, sp, 44.0 * k * 1.6, Color(0.3, 0.8, 1.0, 0.16 * pu))
+			_ring(c, sp, 46.0 * k * 1.6, Color(0.5, 0.9, 1.0, 0.8 * pu))
+	# Shots: a long soft streak and a hot head.
+	for s in engine.shots:
+		var p := _w2s(s.p)
+		var d: Vector2 = s.v.normalized()
+		var col: Color = cols[s.o].lightened(0.35)
+		c.draw_line(p, p - d * 30.0 * k, Color(col, 0.35), maxf(5.0, 9.0 * k))
+		_soft(c, p, 13.0 * maxf(k, 0.8), Color(col, 0.75))
+	# Missiles: bright head, long flame.
+	for m in engine.missiles:
+		var p := _w2s(m.p)
+		var d: Vector2 = m.v.normalized()
+		c.draw_line(p, p - d * 44.0 * k, Color(1.0, 0.45, 0.1, 0.45), maxf(6.0, 11.0 * k))
+		_soft(c, p, 24.0 * maxf(k, 0.8), Color(1.0, 0.7, 0.3, 0.8))
+	# Muzzle flashes.
+	for f in flashes:
+		var fp := _w2s(f[0])
+		var fa: float = 1.0 - f[2] / 0.09
+		var fd := Vector2.RIGHT.rotated(f[1])
+		_soft(c, fp, 20.0 * maxf(k, 0.8) * fa, Color(1.0, 0.9, 0.6, 0.9 * fa))
+		c.draw_line(fp, fp + fd * 34.0 * k * fa, Color(1.0, 0.95, 0.8, fa), maxf(2.0, 4.0 * k))
+	# Blasts: white-hot core, orange bloom.
+	for b in booms:
+		var t: float = b[2] / 0.8
+		var rad: float = 40.0 * b[1] * (0.4 + t) * k
+		_soft(c, _w2s(b[0]), rad * 2.4, Color(1.0, 0.45 - t * 0.3, 0.08, 0.5 * (1.0 - t)))
+		_soft(c, _w2s(b[0]), rad * 1.1, Color(1.0, 0.8, 0.4, 0.9 * (1.0 - t)))
+		_soft(c, _w2s(b[0]), rad * 0.5, Color(1, 1, 0.9, 1.0 * (1.0 - t)))
+	# Shock rings.
+	for r in rings:
+		var t: float = r[2] / r[4]
+		var e := 1.0 - (1.0 - t) * (1.0 - t)
+		_ring(c, _w2s(r[0]), maxf(4.0, r[1] * e * k), Color(r[3], 0.85 * (1.0 - t)))
+	# Sparks as streaks along their motion.
+	for s in sparks:
+		var p := _w2s(s[0])
+		var tail := _w2s(s[0] - (s[1] as Vector2) * 0.05)
+		var al := clampf(s[2] * 2.5, 0.0, 1.0)
+		c.draw_line(p, tail, Color(s[3], al), 2.5)
+		c.draw_line(p, p + (tail - p) * 0.25, Color(1, 1, 1, al * 0.8), 2.5)
+	c.draw_set_transform(Vector2.ZERO)
+
 func _draw_field() -> void:
 	var c := field
 	var off := Vector2.ZERO
@@ -976,17 +1164,27 @@ func _draw_field() -> void:
 		var p := _w2s(pk.p)
 		var bob := sin(engine.time * 4.0 + pk.p.x) * 3.0 * k
 		var col: Color = {"repair": Color("5be36a"), "missiles": Color("ffb02e"), "mines": Color("c070ff"), "shield": Color("4ad8ff")}[pk.kind]
-		c.draw_rect(Rect2(p + Vector2(-13, -13 + bob) * k, Vector2(26, 26) * k), Color(0, 0, 0, 0.5))
-		c.draw_rect(Rect2(p + Vector2(-11, -15 + bob) * k, Vector2(22, 22) * k), col)
-		c.draw_string(ThemeDB.fallback_font, p + Vector2(-11, 2 + bob) * k, {"repair": "+", "missiles": "M", "mines": "X", "shield": "S"}[pk.kind],
-			HORIZONTAL_ALIGNMENT_CENTER, 22 * k, int(18 * k), Color(0.05, 0.05, 0.05))
+		_soft(c, p + Vector2(4, 9) * k, 16.0 * k, Color(0, 0, 0, 0.35))   # ground shadow
+		var pb := _pick_box(col)
+		var pr := Rect2(p + Vector2(-12, -16 + bob) * k, Vector2(24, 24) * k)
+		c.draw_style_box(pb, pr)
+		c.draw_rect(Rect2(pr.position + Vector2(3, 3) * k, Vector2(pr.size.x - 6 * k, pr.size.y * 0.3)), Color(1, 1, 1, 0.22))
+		c.draw_string_outline(ThemeDB.fallback_font, p + Vector2(-12, 2 + bob) * k, {"repair": "+", "missiles": "M", "mines": "X", "shield": "S"}[pk.kind],
+			HORIZONTAL_ALIGNMENT_CENTER, 24 * k, int(19 * k), 3, Color(1, 1, 1, 0.5))
+		c.draw_string(ThemeDB.fallback_font, p + Vector2(-12, 2 + bob) * k, {"repair": "+", "missiles": "M", "mines": "X", "shield": "S"}[pk.kind],
+			HORIZONTAL_ALIGNMENT_CENTER, 24 * k, int(19 * k), Color(0.04, 0.05, 0.07))
 	# Mines.
 	for mn in engine.mines:
 		var p := _w2s(mn.p)
 		var armed: bool = mn.t >= E.MINE_ARM
 		var blink := armed and int(engine.time * 4.0) % 2 == 0
-		c.draw_rect(Rect2(p - Vector2(7, 7) * k, Vector2(14, 14) * k), Color(0.15, 0.15, 0.15))
-		c.draw_rect(Rect2(p - Vector2(3, 3) * k, Vector2(6, 6) * k), cols[mn.o].lightened(0.3) if blink else Color(0.4, 0.4, 0.4))
+		_soft(c, p + Vector2(2, 3) * k, 11.0 * k, Color(0, 0, 0, 0.4))
+		for q in 4:
+			var sa := q * PI / 4.0
+			c.draw_line(p - Vector2.RIGHT.rotated(sa) * 9.5 * k, p + Vector2.RIGHT.rotated(sa) * 9.5 * k, Color(0.3, 0.31, 0.34), maxf(2.0, 2.5 * k))
+		_soft(c, p, 8.0 * k, Color(0.12, 0.13, 0.15))
+		_soft(c, p - Vector2(1.5, 2) * k, 4.0 * k, Color(0.5, 0.52, 0.58, 0.8))
+		_soft(c, p, 3.2 * k, cols[mn.o].lightened(0.3) if blink else Color(0.3, 0.3, 0.32))
 	# Craft (shadow first, then hull).
 	for i in 2:
 		var cr: Dictionary = engine.crafts[i]
@@ -1015,14 +1213,6 @@ func _draw_field() -> void:
 		var d: Vector2 = m.v.normalized()
 		c.draw_line(p - d * 16.0 * k, p, Color(1, 0.9, 0.7), maxf(3.0, 6.0 * k))
 		c.draw_line(p - d * 30.0 * k, p - d * 16.0 * k, Color(1, 0.5, 0.1, 0.7), maxf(2.0, 4.0 * k))
-	for b in booms:
-		var t: float = b[2] / 0.8
-		var rad: float = 40.0 * b[1] * (0.4 + t) * k
-		_soft(c, _w2s(b[0]), rad * 1.8, Color(1.0, 0.55 - t * 0.4, 0.1, 0.8 * (1.0 - t)))
-		_soft(c, _w2s(b[0]), rad * 0.8, Color(1, 0.95, 0.7, 0.9 * (1.0 - t)))
-	for s in sparks:
-		var p := _w2s(s[0])
-		c.draw_rect(Rect2(p - Vector2(2, 2), Vector2(4, 4)), Color(s[3], clampf(s[2] * 2.5, 0.0, 1.0)))
 	c.draw_set_transform(Vector2.ZERO)
 
 ## Ship designs, one per craft type: the top half of the outline (nose at +x,
@@ -1164,30 +1354,86 @@ func _draw_hud() -> void:
 	var inset := _safe()
 	var cols: Array = _player_colors()
 	var bw := clampf(size.x * 0.28, 160.0, 360.0)
+	var tt := float(Time.get_ticks_msec()) / 1000.0
 	for i in 2:
 		var cr: Dictionary = engine.crafts[i]
 		var x: float = inset.x if i == 0 else size.x - inset.z - bw
 		var y: float = inset.y + 4.0
 		var al := HORIZONTAL_ALIGNMENT_LEFT if i == 0 else HORIZONTAL_ALIGNMENT_RIGHT
-		var nm := _name(i) + "  ·  " + tr(E.CRAFTS[cr.type].name)
-		c.draw_string_outline(font, Vector2(x, y + 20), nm, al, bw, 20, 6, Color(0, 0, 0, 0.85))
-		c.draw_string(font, Vector2(x, y + 20), nm, al, bw, 20, cols[i].lightened(0.45))
-		c.draw_rect(Rect2(x - 1, y + 27, bw + 2, 14), Color(0, 0, 0, 0.5))
-		c.draw_rect(Rect2(x, y + 28, bw, 12), Color(1, 1, 1, 0.15))
-		var f: float = cr.hp / cr.max
-		var hc := Color("5be36a") if f > 0.5 else (Color("ffb02e") if f > 0.25 else Color("ff4a3a"))
-		c.draw_rect(Rect2(x if i == 0 else x + bw * (1.0 - f), y + 28, bw * f, 12), hc)
-		var ammo_txt := ""
+		var f: float = clampf(cr.hp / cr.max, 0.0, 1.0)
+		var low: bool = f <= 0.25 and cr.alive
+		var chips: Array = []
 		if engine.abilities.has("missile"):
-			ammo_txt += "🚀 %d   " % cr.missiles
+			chips.append(["missile", str(cr.missiles)])
 		if engine.abilities.has("mine"):
-			ammo_txt += "💣 %d   " % cr.mines
+			chips.append(["mine", str(cr.mines)])
 		if engine.abilities.has("boost"):
-			ammo_txt += "⚡ " + ("%.0f" % ceilf(cr.boost_cd) if cr.boost_cd > 0.0 else tr("ready")) + "   "
-		ammo_txt += "🛡" if cr.shield > 0.0 else ""
-		if ammo_txt != "":
-			c.draw_string_outline(font, Vector2(x, y + 60), ammo_txt, al, bw, 18, 5, Color(0, 0, 0, 0.85))
-			c.draw_string(font, Vector2(x, y + 60), ammo_txt, al, bw, 18, Color(0.95, 0.95, 0.95))
+			chips.append(["boost", ("%.0f" % ceilf(cr.boost_cd)) if cr.boost_cd > 0.0 else tr("ready")])
+		if cr.shield > 0.0:
+			chips.append(["shield", ""])
+		# Glass panel with a team-coloured edge (red pulse when armour is low).
+		if hud_box == null:
+			hud_box = StyleBoxFlat.new()
+			hud_box.set_corner_radius_all(12)
+			hud_box.set_border_width_all(2)
+			hud_box.shadow_size = 6
+			hud_box.shadow_color = Color(0, 0, 0, 0.35)
+		hud_box.bg_color = Color(0.03, 0.05, 0.09, 0.62)
+		hud_box.border_color = Color("ff4a3a", 0.5 + 0.4 * sin(tt * 8.0)) if low else Color(cols[i].lightened(0.2), 0.7)
+		var ph := 84.0 if chips.size() > 0 else 56.0
+		c.draw_style_box(hud_box, Rect2(x - 10, y - 4, bw + 20, ph))
+		# Team colour stripe on the outer edge.
+		c.draw_rect(Rect2(x - 10 if i == 0 else x + bw + 4, y + 4, 6, ph - 20), Color(cols[i], 0.9))
+		var nm := _name(i) + "  ·  " + tr(E.CRAFTS[cr.type].name)
+		c.draw_string_outline(font, Vector2(x, y + 18), nm, al, bw, 19, 5, Color(0, 0, 0, 0.8))
+		c.draw_string(font, Vector2(x, y + 18), nm, al, bw, 19, cols[i].lightened(0.55))
+		# Health bar: dark track, pale damage trail, coloured fill with gloss.
+		var bx := x
+		var by := y + 26.0
+		var track := StyleBoxFlat.new()
+		track.bg_color = Color(0, 0, 0, 0.6)
+		track.set_corner_radius_all(6)
+		c.draw_style_box(track, Rect2(bx - 2, by - 2, bw + 4, 18))
+		var tr_w: float = bw * hp_trail[i]
+		if tr_w > f * bw + 1.0:
+			var tb := StyleBoxFlat.new()
+			tb.bg_color = Color(1, 1, 1, 0.75)
+			tb.set_corner_radius_all(5)
+			c.draw_style_box(tb, Rect2(bx if i == 0 else bx + bw - tr_w, by, maxf(10.0, tr_w), 14))
+		var hc := Color("5be36a") if f > 0.5 else (Color("ffb02e") if f > 0.25 else Color("ff4a3a"))
+		var fw := maxf(10.0, bw * f) if f > 0.0 else 0.0
+		if fw > 0.0:
+			var fb := StyleBoxFlat.new()
+			fb.bg_color = hc
+			fb.set_corner_radius_all(5)
+			var fr := Rect2(bx if i == 0 else bx + bw - fw, by, fw, 14)
+			c.draw_style_box(fb, fr)
+			c.draw_rect(Rect2(fr.position + Vector2(4, 2), Vector2(maxf(0.0, fr.size.x - 8), 4)), Color(1, 1, 1, 0.3))
+		# Ability chips drawn as small icons (no emoji: they differ per phone).
+		var cx := x + 2 if i == 0 else x + bw - 2
+		var cy := y + 62.0
+		var dir := 1.0 if i == 0 else -1.0
+		for ch in chips:
+			var ic := Vector2(cx + dir * 9.0, cy)
+			match ch[0]:
+				"missile":
+					var fd := Vector2.RIGHT
+					c.draw_colored_polygon(PackedVector2Array([ic + fd * 10, ic + Vector2(-2, -4), ic + Vector2(-8, -6), ic + Vector2(-6, 0), ic + Vector2(-8, 6), ic + Vector2(-2, 4)]), Color("ffb02e"))
+				"mine":
+					_soft(c, ic, 9.0, Color(0.7, 0.45, 1.0, 0.9))
+					_soft(c, ic, 5.0, Color(0.15, 0.1, 0.25))
+				"boost":
+					var rdy: bool = cr.boost_cd <= 0.0
+					c.draw_colored_polygon(PackedVector2Array([ic + Vector2(2, -10), ic + Vector2(-5, 2), ic + Vector2(-1, 2), ic + Vector2(-3, 10), ic + Vector2(6, -3), ic + Vector2(1, -3)]), Color("ffe14a") if rdy else Color(0.6, 0.6, 0.6))
+				"shield":
+					c.draw_arc(ic, 8.0, 0, TAU, 20, Color(0.5, 0.9, 1.0), 2.5)
+			var lw := 0.0
+			if ch[1] != "":
+				var lx := cx + dir * 22.0 if i == 0 else cx + dir * 22.0 - 60.0
+				c.draw_string_outline(font, Vector2(lx, cy + 7), ch[1], HORIZONTAL_ALIGNMENT_LEFT if i == 0 else HORIZONTAL_ALIGNMENT_RIGHT, 60.0, 18, 5, Color(0, 0, 0, 0.8))
+				c.draw_string(font, Vector2(lx, cy + 7), ch[1], HORIZONTAL_ALIGNMENT_LEFT if i == 0 else HORIZONTAL_ALIGNMENT_RIGHT, 60.0, 18, Color(0.95, 0.95, 0.95))
+				lw = font.get_string_size(ch[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+			cx += dir * (30.0 + lw + 14.0)
 	# Own touch controls.
 	if not _uses_pad() and started and not engine.is_over():
 		var sides := [0, 1] if mode == "duo" else [0]
@@ -1214,8 +1460,18 @@ func _draw_hud() -> void:
 		if mode == "duo" and engine.time < 4.0:
 			c.draw_line(Vector2(size.x / 2.0, 100), Vector2(size.x / 2.0, size.y), Color(1, 1, 1, 0.25), 2.0)
 	if banner_t > 0.0 and banner != "":
-		var a := clampf(banner_t, 0.0, 1.0)
-		c.draw_string(font, Vector2(0, size.y * 0.32), banner, HORIZONTAL_ALIGNMENT_CENTER, size.x, 40, Color(1, 1, 1, a))
+		var age := banner_len - banner_t
+		var pop := 1.0 + 0.55 * exp(-age * 9.0)
+		var fade := clampf(banner_t / 0.5, 0.0, 1.0)
+		var slide := (1.0 - clampf(age / 0.25, 0.0, 1.0)) * 24.0
+		var ctr := Vector2(size.x / 2.0, size.y * 0.3 + slide)
+		var bwid := minf(size.x * 0.8, font.get_string_size(banner, HORIZONTAL_ALIGNMENT_LEFT, -1, 40).x + 160.0)
+		if glow_tex:
+			c.draw_texture_rect(glow_tex, Rect2(ctr - Vector2(bwid, 44.0), Vector2(bwid * 2.0, 88.0)), false, Color(0.02, 0.05, 0.1, 0.55 * fade))
+		c.draw_set_transform(ctr, 0.0, Vector2(pop, pop))
+		c.draw_string_outline(font, Vector2(-size.x / 2.0, 14), banner, HORIZONTAL_ALIGNMENT_CENTER, size.x, 40, 10, Color(0.02, 0.06, 0.12, 0.9 * fade))
+		c.draw_string(font, Vector2(-size.x / 2.0, 14), banner, HORIZONTAL_ALIGNMENT_CENTER, size.x, 40, Color(1, 1, 1, fade))
+		c.draw_set_transform(Vector2.ZERO)
 
 func _draw_home_logo(c: Control) -> void:
 	if ResourceLoader.exists(LANDING_ART):

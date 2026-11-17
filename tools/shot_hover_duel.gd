@@ -54,6 +54,7 @@ func _art() -> void:
 	game.set_process(false)
 	game.terrain.queue_redraw()
 	game.field.queue_redraw()
+	game.fx.queue_redraw()
 	await _wait(10)
 	var img := root.get_texture().get_image()
 	img.save_jpg(out_dir.path_join("landing_bg.jpg"), 0.88)
