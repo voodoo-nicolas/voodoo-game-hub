@@ -31,6 +31,7 @@
 6. Commit + push source incl. `manifest.json` **last** (not `builds/`, gitignored); pushing it announces versions, so only after packs are uploaded.
 7. **Ask owner**, then (if the app was bumped) `python tools/hub.py release --notes "..."`.
 8. `python tools/hub.py verify` compares live manifest + pack URLs with local builds.
+9. **Every app release also reaches PC and iPhone (owner, 2026-11-17).** PC: `hub.py release` attaches the PC `.pck` and PCs self-update (check it is on the release). iPhone/Safari: re-publish the web build from a clean origin/master worktree (`web_shrink.py`, `godot --import`, `hub.py web --publish`, commit `docs/play/` + `assets/web_fonts`, push; docs/claude/web-build.md). Web bundles games at build time, so re-publish it after new games too.
 
 ## App signing
 - `hub.py apk` makes a **release** build signed with `C:\Users\nick_\Android\Keystore\voodoo-release.keystore` (alias `voodoo`; password in `voodoo-release.json` beside it), passed via `GODOT_ANDROID_KEYSTORE_RELEASE_*` env vars. **Never commit either file, never print the password.** Losing the key = installed apps can never update; owner keeps a backup. `hub.py apk --debug` = local testing only.
