@@ -14,6 +14,7 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 ## Home screen + pause menu + look, copied into this game's folder by `hub.py sync`.
+const Grade = preload("res://scripts/games/wilson/wilson_grade.gd")
 const HomeKit = preload("res://scripts/games/wilson/home_kit.gd")
 const HELP = preload("res://scripts/games/wilson/wilson_help.gd")
 const Engine_ = preload("res://scripts/games/wilson/wilson_engine.gd")
@@ -64,6 +65,7 @@ var _world_layer: CanvasLayer
 var _tint: CanvasModulate
 var _glow_layer: CanvasLayer
 var _glow: Sprite2D
+var _grade                  # Grade: horizon warmth, vignette, motes
 var world = null
 var _hud: Control
 var _bars := {}

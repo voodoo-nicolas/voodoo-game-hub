@@ -95,6 +95,11 @@ func _draw() -> void:
 		var col := tint
 		if cloudiness > 0.6:
 			col = col.lerp(Color(0.55, 0.58, 0.62, col.a), (cloudiness - 0.6) * 1.8)
+		# sunrise / sunset: the clouds take the horizon's colour instead of staying dirty grey
+		var glow := clampf(1.0 - absf(float(sun.y) - 0.05) / 0.5, 0.0, 1.0) * (1.0 - clampf(cloudiness - 0.5, 0.0, 0.5))
+		if glow > 0.0:
+			var warm := Color(sky.horizon).lerp(Color(1.0, 0.7, 0.5), 0.5)
+			col = Color(col.r, col.g, col.b, col.a).lerp(Color(minf(warm.r * 1.3, 1.0), minf(warm.g * 1.15, 1.0), minf(warm.b * 1.05, 1.0), col.a), glow * 0.95)
 		draw_texture_rect(tex, Rect2(x, y, w, tex.get_height() * c[2] * stage_scale), false, col)
 
 ## The lit part of the disc for the real phase (0 new, 0.25 first quarter, 0.5 full, 0.75 last).
