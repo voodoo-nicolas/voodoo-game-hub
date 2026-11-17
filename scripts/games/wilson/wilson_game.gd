@@ -920,8 +920,27 @@ func _update_johnny() -> void:
 		return
 	c.pose = {"chop": "chop", "fish": "fish", "spear": "fish", "shake": "wave", "inspect": "idle", "empty_trap": "work"}.get(a.kind, "work")
 
+## Little bursts where something just happened (dust when gathering / salvaging, sparks when made, chips for the crate).
+func _fx_event(e: Dictionary) -> void:
+	var c = world.castaway
+	var front: Vector2 = c.position + Vector2(c.facing * 34.0, -16.0)
+	match str(e.type):
+		"gathered":
+			world.burst(front, "dust")
+		"hauled":
+			var pos: Vector2 = D.DEBRIS[str(e.id)].pos + Vector2(0, -20) if D.DEBRIS.has(str(e.id)) else front
+			world.burst(pos, "chips" if str(e.id) == "crate" else "dust")
+		"crate_opened":
+			world.burst(front + Vector2(0, -20), "spark")
+		"crafted":
+			world.burst(c.position + Vector2(0, -70), "spark")
+		"structure_built":
+			var sid := str(e.id)
+			world.burst((D.CAMP[sid].pos if D.CAMP.has(sid) else c.position) + Vector2(0, -30), "spark")
+
 func _handle_events(evs: Array) -> void:
 	for e in evs:
+		_fx_event(e)
 		match str(e.type):
 			"say":
 				if _bubble_queue.size() < 3:

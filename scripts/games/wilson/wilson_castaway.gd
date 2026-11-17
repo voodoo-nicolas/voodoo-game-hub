@@ -139,6 +139,8 @@ func _draw() -> void:
 	var idle: Texture2D = _tex.get("idle", tex)
 	var k := HEIGHT / float(idle.get_height()) * _scale()
 	var sz := tex.get_size() * k
+	if p in ["idle", "sit", "shrug", "sulk", "facepalm"]:      # breathing: a slow 1 % rise from the feet
+		sz.y *= 1.0 + 0.012 * sin(_t * 2.1)
 	if p != "hammock":
 		draw_set_transform(Vector2(0, 0), 0.0, Vector2(1.0, 0.3))
 		draw_circle(Vector2.ZERO, sz.x * 0.32, Color(0, 0, 0, 0.2))

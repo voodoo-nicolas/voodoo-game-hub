@@ -204,6 +204,7 @@ func setup(e) -> void:
 		s.material = m
 		sorted.add_child(s)
 		_palms[id] = s
+		_add_shadow(s, 90.0)
 		if palm_art[id] in ["C", "D"] and _tex("palm_grass.webp"):      # the cut-out trunks end flat: a grass tuft over the foot
 			var gs := Sprite2D.new()
 			gs.texture = _tex("palm_grass.webp")
@@ -234,6 +235,8 @@ func setup(e) -> void:
 		s.offset = Vector2(0, -s.texture.get_height() * 0.42) if s.texture else Vector2.ZERO
 		sorted.add_child(s)
 		_debris[id] = s
+		if s.texture:
+			_add_shadow(s, float(s.texture.get_width()) * s.scale.x * 0.85)
 	for id in ["sticks", "fronds", "dry_fronds", "seaweed"]:
 		var p := Props.new()
 		p.kind = {"sticks": "pile_sticks", "fronds": "pile_fronds", "dry_fronds": "pile_dry", "seaweed": "pile_seaweed"}[id]
@@ -288,6 +291,79 @@ func setup(e) -> void:
 		surf.material = _surf_mat
 		add_child(surf)
 	sync()
+
+static var _shadow_tex: Texture2D
+
+## A soft contact shadow on the sand under `n` (its origin is its base), `w` plate pixels wide. It follows the
+## node (hides with it) and draws behind it.
+func _add_shadow(n: Node2D, w: float) -> void:
+	if _shadow_tex == null:
+		var g := GradientTexture2D.new()
+		g.width = 64
+		g.height = 64
+		g.fill = GradientTexture2D.FILL_RADIAL
+		g.fill_from = Vector2(0.5, 0.5)
+		g.fill_to = Vector2(1.0, 0.5)
+		var gr := Gradient.new()
+		gr.set_color(0, Color(0, 0, 0, 0.55))
+		gr.set_color(1, Color(0, 0, 0, 0))
+		gr.add_point(0.55, Color(0, 0, 0, 0.3))
+		g.gradient = gr
+		_shadow_tex = g
+	var sh := Sprite2D.new()
+	sh.texture = _shadow_tex
+	sh.show_behind_parent = true
+	sh.modulate = Color(0.12, 0.08, 0.04, 0.7)
+	var k := w / 64.0
+	sh.scale = Vector2(k, k * 0.3) / n.scale
+	sh.position = Vector2(0, 2) / n.scale
+	n.add_child(sh)
+
+## A one-shot puff at plate position `p`: "dust" (gather / salvage), "spark" (made / built), "chips" (crate).
+func burst(p: Vector2, kind: String) -> void:
+	var c := CPUParticles2D.new()
+	c.position = p
+	c.one_shot = true
+	c.emitting = true
+	c.explosiveness = 0.95
+	c.direction = Vector2(0, -1)
+	c.spread = 75.0
+	c.gravity = Vector2(0, 260)
+	c.lifetime = 0.7
+	match kind:
+		"spark":
+			c.amount = 16
+			c.initial_velocity_min = 50.0
+			c.initial_velocity_max = 120.0
+			c.gravity = Vector2(0, 60)
+			c.scale_amount_min = 2.0
+			c.scale_amount_max = 4.0
+			c.color = Color(1.0, 0.86, 0.4)
+			var cm := CanvasItemMaterial.new()
+			cm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+			c.material = cm
+			c.lifetime = 0.9
+		"chips":
+			c.amount = 14
+			c.initial_velocity_min = 70.0
+			c.initial_velocity_max = 170.0
+			c.scale_amount_min = 2.5
+			c.scale_amount_max = 5.0
+			c.color = Color(0.58, 0.4, 0.22)
+		_:
+			c.amount = 12
+			c.initial_velocity_min = 25.0
+			c.initial_velocity_max = 70.0
+			c.gravity = Vector2(0, 40)
+			c.scale_amount_min = 3.0
+			c.scale_amount_max = 7.0
+			c.color = Color(0.9, 0.78, 0.55, 0.8)
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1, 1, 1, 1))
+	ramp.set_color(1, Color(1, 1, 1, 0))
+	c.color_ramp = ramp
+	_focus_node.add_child(c)
+	get_tree().create_timer(1.6).timeout.connect(c.queue_free)
 
 func _tex(file: String) -> Texture2D:
 	var p := ART + file
