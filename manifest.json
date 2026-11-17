@@ -121,7 +121,7 @@
       {"id": "crypt_crawler", "title": "Crypt Crawler", "icon": "💀", "title_es": "La cripta", "board": "Best score", "skins": "classic,voodoo", "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Dungeon crawler, fantasy combat"}},
       {"id": "wilson", "tile_art": "res://media/hub/game_art/wilson/tile.webp", "hero_art": "res://media/hub/game_art/wilson/hero.webp", "original": true, "title": "Beached", "icon": "🏝", "title_es": "Beached", "board": "Most days survived", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["crude_humor"], "notes": "Castaway sim: sarcastic humour, a raw-fish nausea gag; no violence, no user content. Owner to confirm the rating"}},
       {"id": "ink_ninja", "original": true, "title": "Ink Ninja", "icon": "🥷", "title_es": "Ninja de tinta", "board": "Best score", "skins": "classic,voodoo", "learn": ["history"], "content": {"min_age": 12, "descriptors": ["violence_cartoon"], "notes": "Side-scrolling ninja action in black and white: sword and throwing stars against ninjas and bosses; hits splash stylised ink, no blood or gore"}},
-      {"id": "hesperia", "original": true, "title": "Hesperia", "icon": "🏛️", "title_es": "Hesperia", "board": "none", "skins": "classic", "learn": ["history"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Top-down Greek-myth adventure: a gaff and shield against crabs, frogs, bats and a Hydra; foes flash and vanish, no blood. Owner to confirm the rating"}}
+      {"id": "hesperia", "tile_art": "res://media/hub/game_art/hesperia/tile.webp", "hero_art": "res://media/hub/game_art/hesperia/hero.webp", "original": true, "title": "Hesperia", "icon": "🏛️", "title_es": "Hesperia", "board": "none", "skins": "classic", "learn": ["history"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Top-down Greek-myth adventure: a gaff and shield against crabs, frogs, bats and a Hydra; foes flash and vanish, no blood. Owner to confirm the rating"}}
     ]},
     {"name": "Dice", "icon": "🎲", "name_es": "Dados", "games": [
       {"id": "yacht", "family": "Dice scoring", "quick": true, "title": "Yacht Dice", "icon": "🎲", "title_es": "Generala", "modes": "local", "skins": "classic,voodoo", "learn": ["math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
@@ -271,6 +271,6 @@
     "ink_ninja": {"version": 9, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ink_ninja.pck", "scene": "res://scenes/games/ink_ninja/ink_ninja.tscn"},
     "wolf_pack": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wolf_pack.pck", "scene": "res://scenes/games/wolf_pack/wolf_pack.tscn"},
     "mini_golf_3d": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf_3d.pck", "scene": "res://scenes/games/mini_golf_3d/mini_golf_3d.tscn"},
-    "hesperia": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hesperia.pck", "scene": "res://scenes/games/hesperia/hesperia.tscn"}
+    "hesperia": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hesperia.pck", "scene": "res://scenes/games/hesperia/hesperia.tscn"}
   }
 }
