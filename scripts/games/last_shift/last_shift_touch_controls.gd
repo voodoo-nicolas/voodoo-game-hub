@@ -374,22 +374,18 @@ func _draw() -> void:
 	_draw_b()
 	if show_swap:
 		var sc := _swap_center()
-		A.disc(self, sc, SWAP_RADIUS, Color(1, 1, 1, 0.5 if (_swap_down or wheel_open) else 0.18))
-		A.arc(self, sc, SWAP_RADIUS, 0.0, TAU, 32, Color(1, 1, 1, 0.6), 3.0)
+		_round_pad(sc, SWAP_RADIUS, _swap_down or wheel_open)
 		Icons.draw(self, "wheel", sc, 40.0, 0.9)
 	var r := _pause_rect()
-	draw_rect(r, Color(1, 1, 1, 0.5 if _pause_down else 0.2), true)
-	draw_rect(r, Color(1, 1, 1, 0.6), false, 3.0)
+	_rect_pad(r, _pause_down)
 	# Pause icon: two bars.
 	draw_rect(Rect2(r.get_center() + Vector2(-12, -10), Vector2(8, 20)), Color(1, 1, 1, 0.7))
 	draw_rect(Rect2(r.get_center() + Vector2(4, -10), Vector2(8, 20)), Color(1, 1, 1, 0.7))
 	var br := _bag_rect()
-	draw_rect(br, Color(1, 1, 1, 0.5 if _bag_down else 0.2), true)
-	draw_rect(br, Color(1, 1, 1, 0.6), false, 3.0)
+	_rect_pad(br, _bag_down)
 	Icons.draw(self, "bag", br.get_center() + Vector2(0, 1), 34.0, 0.9)
 	var mr := _map_rect()
-	draw_rect(mr, Color(1, 1, 1, 0.5 if _map_down else 0.2), true)
-	draw_rect(mr, Color(1, 1, 1, 0.6), false, 3.0)
+	_rect_pad(mr, _map_down)
 	Icons.draw(self, "map", mr.get_center(), 34.0, 0.9)
 	if wheel_open:
 		_draw_wheel()
@@ -399,14 +395,39 @@ func _draw_arrow(center: Vector2, dir: Vector2, lit: bool) -> void:
 	var tip := center + dir * 120.0
 	var base := center + dir * 50.0
 	var pts := PackedVector2Array([tip, base + side * 44.0, base - side * 44.0])
-	draw_colored_polygon(pts, Color(1, 1, 1, 0.5 if lit else 0.18))
+	# v0.6 polish: smoked-glass arrow with a drop shadow; amber when pressed
+	var sh := PackedVector2Array()
+	for q in pts:
+		sh.append(q + Vector2(0, 4))
+	draw_colored_polygon(sh, Color(0, 0, 0, 0.25))
+	draw_colored_polygon(pts, _pad_fill(lit))
 	var outline := pts.duplicate()
 	outline.append(pts[0])
-	A.strip(self, outline, Color(1, 1, 1, 0.6), 3.0)
+	A.strip(self, outline, _pad_rim(lit), 3.0)
 
 func _button_base(center: Vector2, down: bool) -> void:
-	A.disc(self, center, BUTTON_RADIUS, Color(1, 1, 1, 0.5 if down else 0.18))
-	A.arc(self, center, BUTTON_RADIUS, 0.0, TAU, 40, Color(1, 1, 1, 0.6), 3.0)
+	_round_pad(center, BUTTON_RADIUS, down)
+
+## v0.6 polish: shared "smoked glass" look for every on-screen control. Dark tinted fill (reads on
+## light and dark floors), a light rim, a soft drop shadow, a top highlight; amber when held.
+## (cheap A.disc / A.arc, as in the hub perf pass)
+func _pad_fill(down: bool) -> Color:
+	return Color(0.88, 0.6, 0.1, 0.42) if down else Color(0.05, 0.05, 0.07, 0.32)
+
+func _pad_rim(down: bool) -> Color:
+	return Color(1.0, 0.85, 0.45, 0.95) if down else Color(1, 1, 1, 0.55)
+
+func _round_pad(center: Vector2, radius: float, down: bool) -> void:
+	A.disc(self, center + Vector2(0, 4), radius, Color(0, 0, 0, 0.22))
+	A.disc(self, center, radius, _pad_fill(down))
+	A.arc(self, center, radius - 5.0, PI * 1.1, PI * 1.9, 24, Color(1, 1, 1, 0.12), 4.0)
+	A.arc(self, center, radius, 0.0, TAU, 48, _pad_rim(down), 3.0)
+
+func _rect_pad(r: Rect2, down: bool) -> void:
+	draw_rect(Rect2(r.position + Vector2(0, 4), r.size), Color(0, 0, 0, 0.22), true)
+	draw_rect(r, _pad_fill(down), true)
+	draw_line(r.position + Vector2(4, 4), r.position + Vector2(r.size.x - 4, 4), Color(1, 1, 1, 0.12), 2.0)
+	draw_rect(r, _pad_rim(down), false, 3.0)
 
 ## Text centered on a point, shrunk until it fits `max_w` pixels.
 func _centered_text(center: Vector2, text: String, size_px: int, max_w: float, color: Color) -> void:

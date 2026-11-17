@@ -139,6 +139,8 @@ var _flicker_mult := 1.0
 var _shake := 0.0
 var _hurt := 0.0
 var _vignette: ColorRect
+var _blood_screen: ColorRect     # v0.6: blood soaked in from the screen edges (less health = more)
+var _blood_amt := 0.0
 var _nash_light: PointLight2D
 var _prev_interpolation := false
 const SHOW_DEBUG := false
@@ -301,6 +303,8 @@ func _ready() -> void:
 	camera.position_smoothing_speed = 9.0     # was 6: the camera trailed Nash and felt sluggish
 	nash.add_child(camera)
 	camera.make_current()
+	# v0.6 polish: faint dust motes drifting in the air around the view
+	camera.add_child(LsFx.dust_motes(get_viewport_rect().size / WORLD_ZOOM))
 	_siren = AudioStreamPlayer.new()
 	_siren.stream = LsSfx.siren()
 	_siren.volume_db = SIREN_DB + LsSettings.sfx_db()
@@ -348,6 +352,7 @@ func _process(delta: float) -> void:
 	camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake
 	_hurt = move_toward(_hurt, 0.0, delta * 2.2)
 	(_vignette.material as ShaderMaterial).set_shader_parameter("hurt", _hurt)
+	_update_blood_screen(delta)
 	_bag_full_t = maxf(0.0, _bag_full_t - delta)
 	_run_tasks(delta)
 	_run_atmosphere(delta)
@@ -551,6 +556,9 @@ func _load_room(room_id: String, spawn_name: String) -> void:
 	move_child(room_root, 0)   # behind the actors
 	var rows: Array = data.rows
 	room_root.add_child(_build_tiles(rows, _theme))
+	# v0.6: large soft grime/wear patches over the floor (breaks up tile repetition)
+	room_root.add_child(LsFx.grime(Vector2(rows[0].length(), rows.size()) * TILE, room_id.hash(),
+		0.14 if _theme == "lot" else 0.22))
 	props.clear()
 	enemies.clear()
 	_people.clear()
@@ -578,6 +586,7 @@ func _load_room(room_id: String, spawn_name: String) -> void:
 	_spawn_people()
 	if _theme != "lot":
 		_build_lights(rows)
+	_build_fumes(rows, room_id)
 	_fit_camera(Vector2(rows[0].length(), rows.size()) * TILE)
 	camera.reset_smoothing()
 	_on_room_entered()
@@ -638,6 +647,37 @@ func _open_mask(rows: Array, x: int, y: int) -> int:
 
 func _cell_hash(x: int, y: int) -> int:
 	return absi((x * 73856093) ^ (y * 19349663)) % 100003
+
+## v0.6: fumes in the machine rooms: a slow drifting haze over the room, and a few vents along
+## the north wall puffing steam (plant/pump), cold vapour (cooling, white-blue: never cyan) or
+## warm exhaust (servers). Positions come from the room's cell hash, so they're stable.
+const FUMES := {
+	"plant": {"fog": Color(0.85, 0.86, 0.9, 0.16), "vent": Color(0.92, 0.92, 0.95, 0.4), "vents": 6},
+	"pump_room": {"fog": Color(0.8, 0.85, 0.9, 0.18), "vent": Color(0.92, 0.94, 0.97, 0.42), "vents": 6},
+	"cooling_floor": {"fog": Color(0.86, 0.92, 1.0, 0.2), "vent": Color(0.92, 0.96, 1.0, 0.45), "vents": 7},
+	"corridor": {"fog": Color(0.85, 0.86, 0.9, 0.09), "vent": Color(0.88, 0.88, 0.9, 0.3), "vents": 3},
+	"server_room": {"fog": Color(0.9, 0.85, 0.8, 0.11), "vent": Color(0.8, 0.8, 0.83, 0.32), "vents": 4},
+	"server_floor": {"fog": Color(0.9, 0.85, 0.8, 0.11), "vent": Color(0.8, 0.8, 0.83, 0.32), "vents": 4},
+}
+
+func _build_fumes(rows: Array, room_id: String) -> void:
+	if not FUMES.has(room_id):
+		return
+	var f: Dictionary = FUMES[room_id]
+	var room_px := Vector2(rows[0].length(), rows.size()) * TILE
+	room_root.add_child(LsFx.fog_layer(room_px, f.fog, room_id.hash()))
+	var spots: Array = []
+	for y in range(1, rows.size()):
+		for x in rows[y].length():
+			# along the north wall (pipes/vents), plus a few leaks out on the floor
+			# (not the top two rows: those sit under the HUD)
+			var by_wall: bool = y >= 3 and _is_wall(rows, x, y - 1) and _cell_hash(x, y) % 4 == 0
+			if not _is_wall(rows, x, y) and (by_wall or (y >= 3 and _cell_hash(x, y) % 13 == 0)):
+				spots.append(Vector2i(x, y))
+	var n: int = mini(int(f.vents), spots.size())
+	for i in n:
+		var c: Vector2i = spots[(i * spots.size()) / maxi(n, 1)]
+		room_root.add_child(LsFx.smoke_vent((Vector2(c) + Vector2(0.5, 0.2)) * TILE, f.vent))
 
 ## Ceiling lights on a loose grid (white pools of light on the floor). Not outdoors.
 func _build_lights(rows: Array) -> void:
@@ -1562,6 +1602,10 @@ func on_guard_down(g: Node2D) -> void:
 	state.dead[g.id] = true
 	enemies.erase(g)
 	_play(LsSfx.hit())
+	# v0.6: a guard going down bleeds too
+	LsFx.burst(actors, g.position, Color("8a0e12"), 22, 170.0, 0.5, 3.2)
+	for i in 4:
+		_splat(g.position + Vector2(randf_range(-24, 24), randf_range(-10, 18)), randf_range(3.0, 6.0))
 	_drop("corpse", g.position, {"look": "hidden", "loot": LsEngine.body_loot(g.id, g.kind)})
 	if not state.guard_down_said:
 		state.guard_down_said = true
@@ -1633,14 +1677,36 @@ func shooter_hits_infected(sh: Node2D, z: Node2D) -> void:
 func on_enemy_hit(e: Node2D, from_pos: Vector2) -> void:
 	var away: Vector2 = (e.position - from_pos).normalized()
 	LsFx.burst(actors, e.position + Vector2(0, -6), Color("a8141a"), 16, 170.0, 0.4, 3.0)
+	LsFx.spray(actors, e.position + Vector2(0, -8), away, 20)        # v0.6: directional spray
 	for i in randi_range(2, 3):
-		_splat(e.position + away * randf_range(8.0, 34.0) + Vector2(randf_range(-6, 6), 10), randf_range(2.5, 6.5))
+		_splat(e.position + away * randf_range(8.0, 34.0) + Vector2(randf_range(-6, 6), 10), randf_range(2.5, 6.5), away)
+
+## v0.6: the bloody screen. Target = how much health is missing (none above 75%, full at 0),
+## plus a spike from the hurt flash; under 30% it throbs like a heartbeat. Eases toward the target,
+## so a hit soaks in quickly and healing washes it out slowly. Hidden at 0 (costs nothing).
+func _update_blood_screen(delta: float) -> void:
+	if _blood_screen == null or nash == null:
+		return
+	var frac := clampf(float(nash.hp) / float(nash.MAX_HP), 0.0, 1.0)
+	var target := clampf((0.75 - frac) / 0.75, 0.0, 1.0) * 0.9 + _hurt * 0.35
+	if frac < 0.3 and nash.hp > 0:
+		target += 0.06 * maxf(0.0, sin(_clock * 7.5)) * maxf(0.0, sin(_clock * 7.5 + 0.6))
+	_blood_amt = move_toward(_blood_amt, clampf(target, 0.0, 1.0), delta * (3.0 if target > _blood_amt else 0.35))
+	_blood_screen.visible = _blood_amt > 0.01
+	if _blood_screen.visible:
+		(_blood_screen.material as ShaderMaterial).set_shader_parameter("amount", _blood_amt)
+
+## v0.6: a person (guard) hit by Nash bleeds like the infected do.
+func on_person_hit(p: Node2D, from_pos: Vector2) -> void:
+	on_enemy_hit(p, from_pos)
 
 ## A blood splat on the floor of this room (decoration, not saved; the oldest go first).
-func _splat(pos: Vector2, r: float) -> void:
+## v0.6: `dir` (optional) throws streaked drops that way.
+func _splat(pos: Vector2, r: float, dir: Vector2 = Vector2.ZERO) -> void:
 	var d := Splat.new()
 	d.position = pos
 	d.radius = r
+	d.dir = dir
 	d.z_index = -7
 	room_root.add_child(d)
 	_decals.append(d)
@@ -1650,17 +1716,31 @@ func _splat(pos: Vector2, r: float) -> void:
 			old.queue_free()
 
 ## A few dark red drops (drawn once).
+## v0.6: two tones (dark rim, wetter centre, a tiny glossy highlight) and, when thrown (`dir`),
+## elongated streaks and satellite drops flying that way, like a real spatter.
 class Splat extends Node2D:
 	var radius := 4.0
+	var dir := Vector2.ZERO
 
 	func _draw() -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = int(position.x * 13.0 + position.y * 7.0)
 		var col := Color("6e0a0e")
+		var wet := Color("7a0d12")
 		A.disc(self, Vector2.ZERO, radius, col)
+		A.disc(self, Vector2(-radius * 0.15, -radius * 0.15), radius * 0.7, wet)
+		A.disc(self, Vector2(-radius * 0.35, -radius * 0.4), maxf(0.6, radius * 0.18), Color(1, 0.6, 0.6, 0.35))
 		for i in 6:
 			var d := Vector2.RIGHT.rotated(rng.randf() * TAU) * rng.randf_range(radius, radius * 2.6)
 			A.disc(self, d, rng.randf_range(0.8, radius * 0.45), col)
+		if dir != Vector2.ZERO:
+			for i in 5:
+				var a := dir.angle() + rng.randf_range(-0.45, 0.45)
+				var u := Vector2.RIGHT.rotated(a)
+				var start := u * radius * rng.randf_range(0.6, 1.0)
+				var length := rng.randf_range(radius * 1.5, radius * 4.5)
+				draw_line(start, start + u * length, col, rng.randf_range(1.0, maxf(1.2, radius * 0.5)))
+				A.disc(self, start + u * (length + 1.5), rng.randf_range(0.8, 1.8), col)
 
 func guard_shout(text: String, _who: Node2D = null) -> void:
 	if _guard_shout_t > 0.0:
@@ -2491,9 +2571,10 @@ func _update_light() -> void:
 	elif state.alarm:
 		var speed := 3.0 if _siren.playing else 1.4
 		var k := 0.5 + 0.5 * sin(_clock * speed)
-		amb = Color(0.5, 0.2 + 0.07 * k, 0.2 + 0.07 * k)
-		light_col = Color(1.0, 0.3 + 0.1 * k, 0.27 + 0.08 * k)
-		energy = 0.75
+		# v0.6: darker red ambient + brighter light pools = depth instead of a flat red wash
+		amb = Color(0.42, 0.17 + 0.06 * k, 0.19 + 0.06 * k)
+		light_col = Color(1.0, 0.36 + 0.1 * k, 0.3 + 0.08 * k)
+		energy = 0.95
 	var m := _flicker_mult
 	_light.color = Color(amb.r * m, amb.g * m, amb.b * m, 1.0)
 	for l in _room_lights:
@@ -2576,6 +2657,11 @@ func _build_hud() -> void:
 	_vignette.material = LsFx.vignette_material()
 	_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vlayer.add_child(_vignette)
+	_blood_screen = ColorRect.new()
+	_blood_screen.material = LsFx.blood_screen_material()
+	_blood_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_blood_screen.visible = false
+	vlayer.add_child(_blood_screen)
 	var hud := CanvasLayer.new()
 	add_child(hud)
 	var controls := TouchControls.new()
@@ -2701,6 +2787,8 @@ func _on_region_tapped(region: String) -> void:
 func _layout_hud() -> void:
 	var v := get_viewport_rect().size
 	_vignette.size = v
+	_blood_screen.size = v
+	(_blood_screen.material as ShaderMaterial).set_shader_parameter("aspect", v.x / maxf(v.y, 1.0))
 	# as wide as the gap between the D-pad and the weapon-wheel button allows (they sit on that line)
 	var half := minf(v.x * 0.5 - 320.0, (v.x - 433.0) - v.x * 0.5)
 	_sub_label.max_width = clampf(half * 2.0, 380.0, 600.0)

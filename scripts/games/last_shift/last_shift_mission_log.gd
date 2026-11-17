@@ -47,7 +47,10 @@ func _font() -> Font:
 	return ThemeDB.fallback_font
 
 func _box(r: Rect2) -> void:
-	draw_rect(r, Color(0.055, 0.055, 0.07, 0.84))
+	# v0.6 polish: hard drop shadow + a faint lit top edge (same language as the panels/buttons)
+	draw_rect(Rect2(r.position + Vector2(3, 4), r.size), Color(0, 0, 0, 0.35))
+	draw_rect(r, Color(0.055, 0.055, 0.07, 0.86))
+	draw_line(r.position + Vector2(2, 1), r.position + Vector2(r.size.x - 2, 1), Color(1, 0.83, 0.47, 0.25), 2.0)
 	draw_rect(r, Color("0e0e12"), false, 2.0)
 
 ## Open steps: the main quest first, then the others, newest first.

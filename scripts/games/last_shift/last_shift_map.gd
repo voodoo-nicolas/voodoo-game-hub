@@ -99,7 +99,12 @@ func _cell_rect(rid: String) -> Rect2:
 	return Rect2(c - box * 0.5, box)
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.03, 0.03, 0.045, 0.94))
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.03, 0.035, 0.05, 0.95))
+	# v0.6 polish: faint blueprint grid behind the floor plan
+	for gx in range(0, int(size.x), 32):
+		draw_line(Vector2(gx, 0), Vector2(gx, size.y), Color(0.4, 0.55, 0.75, 0.05 if gx % 128 else 0.1), 1.0)
+	for gy in range(0, int(size.y), 32):
+		draw_line(Vector2(0, gy), Vector2(size.x, gy), Color(0.4, 0.55, 0.75, 0.05 if gy % 128 else 0.1), 1.0)
 	var font := ThemeDB.fallback_font
 	var title := tr(LsText.UI.map_title)
 	draw_string_outline(font, Vector2(40, 58), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 6, Color.BLACK)

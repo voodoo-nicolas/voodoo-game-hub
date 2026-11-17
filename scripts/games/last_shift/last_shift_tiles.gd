@@ -20,34 +20,37 @@ const THEMES := {
 	"plant": {
 		"floor": Color("4d5057"), "floor2": Color("565961"), "grid": Color("43464c"), "stain": Color("5a3a28"),
 		"face": Color("5c6670"), "face_dark": Color("424a54"), "top": Color("2a2d33"), "trim": Color("e09a1a"),
-		"decor": "pipes", "ambient": Color(0.44, 0.46, 0.52), "light": Color(0.95, 0.96, 1.0),
+		"decor": "pipes", "mat": "concrete", "ambient": Color(0.44, 0.46, 0.52), "light": Color(0.95, 0.96, 1.0),
 	},
 	"locker": {
 		"floor": Color("5a6259"), "floor2": Color("636b61"), "grid": Color("4c544c"), "stain": Color("4a4a40"),
 		"face": Color("6f7d70"), "face_dark": Color("55625a"), "top": Color("2c322e"), "trim": Color("3a4038"),
-		"decor": "tiles", "ambient": Color(0.52, 0.55, 0.53), "light": Color(1.0, 0.97, 0.88),
+		"decor": "tiles", "mat": "ceramic", "ambient": Color(0.52, 0.55, 0.53), "light": Color(1.0, 0.97, 0.88),
 	},
 	"security": {
-		"floor": Color("3f4552"), "floor2": Color("474e5c"), "grid": Color("363b46"), "stain": Color("2c303a"),
+		# v0.6: was "3f4552"/"474e5c"; greyer so the colour grade doesn't push it to saturated blue
+		"floor": Color("41444b"), "floor2": Color("45484f"), "grid": Color("35373d"), "stain": Color("2c2e33"),
 		"face": Color("4c5668"), "face_dark": Color("39414f"), "top": Color("23262e"), "trim": Color("e09a1a"),
-		"decor": "panels", "ambient": Color(0.46, 0.5, 0.58), "light": Color(0.92, 0.95, 1.0),
+		"decor": "panels", "mat": "vinyl", "ambient": Color(0.46, 0.5, 0.58), "light": Color(0.92, 0.95, 1.0),
 	},
 	"office": {
-		"floor": Color("66607a"), "floor2": Color("6d6783"), "grid": Color("5b556e"), "stain": Color("4e4560"),
+		# v0.6: was "66607a"/"6d6783" (pastel lilac checkerboard) -> darker, greyer carpet tiles
+		"floor": Color("4e4a5c"), "floor2": Color("534f62"), "grid": Color("413e4d"), "stain": Color("3e3548"),
 		"face": Color("8a8798"), "face_dark": Color("6e6b7c"), "top": Color("2d2b36"), "trim": Color("6a3fd6"),
-		"decor": "posters", "ambient": Color(0.55, 0.53, 0.6), "light": Color(1.0, 0.98, 0.92),
+		"decor": "posters", "mat": "carpet", "ambient": Color(0.55, 0.53, 0.6), "light": Color(1.0, 0.98, 0.92),
 	},
 	"lobby": {
-		"floor": Color("797982"), "floor2": Color("83838d"), "grid": Color("767680"), "stain": Color("7a7a84"),
+		# v0.6: was "797982"/"83838d" (flat grey checkerboard) -> polished stone with veins
+		"floor": Color("6c6b72"), "floor2": Color("706f77"), "grid": Color("4f4e57"), "stain": Color("8a8890"),
 		"face": Color("6e6a80"), "face_dark": Color("55516a"), "top": Color("2b2a36"), "trim": Color("6a3fd6"),
-		"decor": "posters", "ambient": Color(0.56, 0.55, 0.62), "light": Color(1.0, 0.96, 0.88),
+		"decor": "posters", "mat": "stone", "ambient": Color(0.56, 0.55, 0.62), "light": Color(1.0, 0.96, 0.88),
 	},
 	# Outdoors: asphalt, and the building's front (concrete, dark glass windows) along the top.
 	# The lot's other edges are hedges ('H' in the map).
 	"lot": {
 		"floor": Color("45474c"), "floor2": Color("4a4c51"), "grid": Color("45474c"), "stain": Color("36383c"),
 		"face": Color("a39e94"), "face_dark": Color("7d796f"), "top": Color("34363b"), "trim": Color("5c5850"),
-		"decor": "facade", "ambient": Color(1.0, 1.0, 1.0), "light": Color(1.0, 1.0, 1.0),
+		"decor": "facade", "mat": "asphalt", "ambient": Color(1.0, 1.0, 1.0), "light": Color(1.0, 1.0, 1.0),
 	},
 }
 
@@ -116,33 +119,102 @@ static func _speckle(img: Image, o: Vector2i, rng: RandomNumberGenerator, base: 
 
 # ---------------------------------------------------------------- floors
 
+## v0.6: floors are drawn as a MATERIAL per theme instead of a flat two-tone checkerboard:
+## per-pixel grain, a bevelled seam (lit top-left edge, dark bottom-right), material detail
+## (aggregate, carpet weave, grout, stone veins, pebbles) and soft-edged stains. Variants 0/1 differ
+## only by grain, so the old checker pattern is gone; 2 = crack, 3 = stain (unchanged roles).
 static func _floor(img: Image, o: Vector2i, th: Dictionary, v: int, shadow: bool, seed_v: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_v * 7919 + 13
-	var base: Color = th.floor if v % 2 == 0 else th.floor2
-	_r(img, o, 0, 0, TILE, TILE, base)
-	# tile seams (right and bottom edge)
-	_r(img, o, TILE - 1, 0, 1, TILE, th.grid)
-	_r(img, o, 0, TILE - 1, TILE, 1, th.grid)
-	_speckle(img, o, rng, base, 16)
+	var mat: String = th.get("mat", "concrete")
+	var base: Color = (th.floor as Color).lerp(th.floor2, 0.5 if v % 2 == 1 else 0.0)
+	var grain: float = {"concrete": 0.055, "ceramic": 0.025, "vinyl": 0.03, "carpet": 0.07,
+		"stone": 0.025, "asphalt": 0.08}.get(mat, 0.05)
+	for y in TILE:
+		for x in TILE:
+			var n := rng.randf_range(-1.0, 1.0) * grain
+			if mat == "carpet" and (x + y * 2) % 4 == 0:
+				n -= 0.05                          # diagonal weave
+			img.set_pixel(o.x + x, o.y + y, _shade(base, n))
+	match mat:
+		"concrete":
+			# aggregate specks + a faint trowel swirl
+			for i in 22:
+				_r(img, o, rng.randi_range(1, TILE - 3), rng.randi_range(1, TILE - 3), rng.randi_range(1, 2), 1,
+					_shade(base, rng.randf_range(-0.16, 0.14)))
+			_bevel(img, o, base, 0.10, 0.22)
+		"ceramic":
+			# small 8 px tiles with grout and a glaze highlight
+			for t in 4:
+				_r(img, o, t * 8, 0, 1, TILE, th.grid)
+				_r(img, o, 0, t * 8, TILE, 1, th.grid)
+				for u in 4:
+					_r(img, o, t * 8 + 1, u * 8 + 1, 3, 1, _shade(base, 0.10))
+		"vinyl":
+			# speckled institutional vinyl, big panels (seam only)
+			for i in 30:
+				_r(img, o, rng.randi_range(0, TILE - 1), rng.randi_range(0, TILE - 1), 1, 1,
+					[Color("2a2e38"), Color("5b6372"), _shade(base, 0.15)][rng.randi_range(0, 2)])
+			_bevel(img, o, base, 0.08, 0.18)
+		"carpet":
+			# carpet tiles: soft seam, alternating pile direction
+			_r(img, o, 0, TILE - 1, TILE, 1, _shade(base, -0.14))
+			_r(img, o, TILE - 1, 0, 1, TILE, _shade(base, -0.14))
+			if v % 2 == 1:
+				for y in range(0, TILE, 3):
+					_r(img, o, 0, y, TILE - 1, 1, _shade(base, 0.04))
+		"stone":
+			# polished stone: thin veins + a diagonal sheen, sharp seam
+			var x := rng.randi_range(0, TILE - 1)
+			for y in TILE:
+				x = clampi(x + rng.randi_range(-1, 1), 0, TILE - 1)
+				if rng.randf() < 0.75:
+					_r(img, o, x, y, 1, 1, _shade(base, 0.16))
+			for i in TILE:
+				var sy := TILE - 1 - i
+				if sy >= 0 and i < TILE:
+					var px := img.get_pixel(o.x + i, o.y + sy)
+					img.set_pixel(o.x + i, o.y + sy, _shade(px, 0.06))
+			_bevel(img, o, base, 0.14, 0.28)
+		"asphalt":
+			for i in 40:
+				_r(img, o, rng.randi_range(0, TILE - 2), rng.randi_range(0, TILE - 2), 1, 1,
+					_shade(base, rng.randf_range(-0.2, 0.22)))
 	if v == 2:
-		# a crack
+		# a crack with a lit lip
 		var x := rng.randi_range(6, 14)
 		var y := 4
 		for i in 12:
-			_r(img, o, x, y, 2, 2, base.darkened(0.35))
+			_r(img, o, x, y, 2, 2, base.darkened(0.4))
+			_r(img, o, x + 2, y, 1, 2, _shade(base, 0.08))
 			x += rng.randi_range(-1, 2)
 			y += 2
 	elif v == 3:
-		# a stain / puddle
-		_r(img, o, 8, 10, 14, 9, base.lerp(th.stain, 0.35))
-		_r(img, o, 11, 8, 8, 13, base.lerp(th.stain, 0.35))
+		# a soft-edged stain (radial falloff instead of two rectangles)
+		var c := Vector2(rng.randf_range(12, 20), rng.randf_range(12, 20))
+		var rad := rng.randf_range(7.0, 11.0)
+		for yy in TILE:
+			for xx in TILE:
+				var d := Vector2(xx, yy).distance_to(c) / rad
+				if d < 1.0:
+					var px := img.get_pixel(o.x + xx, o.y + yy)
+					img.set_pixel(o.x + xx, o.y + yy, px.lerp(th.stain, 0.4 * (1.0 - d * d)))
 	if shadow:
-		for y in 11:
-			var a := (11.0 - y) / 11.0 * 0.5
+		for y in 13:
+			var a := pow((13.0 - y) / 13.0, 1.6) * 0.6
 			for x in TILE:
 				var px := img.get_pixel(o.x + x, o.y + y)
 				img.set_pixel(o.x + x, o.y + y, px.darkened(a))
+
+static func _shade(c: Color, amount: float) -> Color:
+	return c.lightened(amount) if amount > 0.0 else c.darkened(-amount)
+
+## Lit top-left edge, dark bottom-right seam: makes each slab read as a slightly raised plate.
+static func _bevel(img: Image, o: Vector2i, base: Color, lit: float, dark: float) -> void:
+	_r(img, o, 0, 0, TILE, 1, _shade(base, lit))
+	_r(img, o, 0, 0, 1, TILE, _shade(base, lit * 0.6))
+	_r(img, o, 0, TILE - 1, TILE, 1, _shade(base, -dark))
+	_r(img, o, TILE - 1, 0, 1, TILE, _shade(base, -dark))
 
 # ---------------------------------------------------------------- walls
 
@@ -156,10 +228,19 @@ static func _wall(img: Image, o: Vector2i, th: Dictionary, mask: int, variant: i
 	if s_open:
 		_face(img, o, th, variant, logo, rng)
 	else:
-		# flat dark top of a wall seen from above
-		_r(img, o, 0, 0, TILE, TILE, th.top)
-		_r(img, o, 2, 2, TILE - 4, TILE - 4, th.top.lightened(0.06))
-		_speckle(img, o, rng, th.top, 8)
+		# top of a wall seen from above. v0.6: textured cap (grain + specks) with a lit rim on the
+		# edges that meet open floor, so wall runs read as solid blocks instead of flat dark strips.
+		var top: Color = th.top
+		for y in TILE:
+			for x in TILE:
+				img.set_pixel(o.x + x, o.y + y, _shade(top, rng.randf_range(-0.04, 0.04)))
+		_speckle(img, o, rng, top, 10)
+		if n_open:
+			_r(img, o, 0, 2, TILE, 2, top.lightened(0.38))
+		if w_open:
+			_r(img, o, 2, 0, 2, TILE, top.lightened(0.26))
+		if e_open:
+			_r(img, o, TILE - 4, 0, 2, TILE, top.darkened(0.25))
 	# ink lines on every side that touches open floor
 	if n_open:
 		_r(img, o, 0, 0, TILE, 2, INK)
@@ -173,15 +254,29 @@ static func _wall(img: Image, o: Vector2i, th: Dictionary, mask: int, variant: i
 ## The visible front of a wall: baseboard trim, panel seams, and decoration by theme.
 static func _face(img: Image, o: Vector2i, th: Dictionary, variant: int, logo: bool, rng: RandomNumberGenerator) -> void:
 	var face: Color = th.face
-	_r(img, o, 0, 0, TILE, TILE, face)
-	_r(img, o, 0, 0, TILE, 3, face.lightened(0.18))          # lit top edge
-	_r(img, o, 0, TILE - 12, TILE, 12, face.darkened(0.12))   # lower half a little darker
-	# panel seams
+	# v0.6: smooth vertical light falloff (lit from above) + fine grain, instead of two flat bands
+	for y in TILE:
+		var k := float(y) / float(TILE - 1)
+		var row := _shade(face, 0.16 - 0.40 * k)
+		for x in TILE:
+			img.set_pixel(o.x + x, o.y + y, _shade(row, rng.randf_range(-0.03, 0.03)))
+	_r(img, o, 0, 0, TILE, 2, face.lightened(0.4))          # lit top edge (cap lip)
+	_r(img, o, 0, 2, TILE, 2, face.darkened(0.18))           # shadow under the lip
+	# panel seams: dark groove with a lit edge beside it
 	_r(img, o, 0, 0, 1, TILE, th.face_dark)
+	_r(img, o, 1, 4, 1, TILE - 4, face.lightened(0.12))
 	_r(img, o, TILE - 1, 0, 1, TILE, th.face_dark)
-	# baseboard / trim stripe
+	# grime creeping up from the floor
+	for x in TILE:
+		var gh := rng.randi_range(2, 6)
+		for y in gh:
+			var yy := TILE - 8 - y
+			var px := img.get_pixel(o.x + x, o.y + yy)
+			img.set_pixel(o.x + x, o.y + yy, px.darkened(0.18 * (1.0 - float(y) / gh)))
+	# baseboard / trim stripe with a highlight and a dark kick plate under it
 	_r(img, o, 0, TILE - 7, TILE, 5, th.trim.darkened(0.1))
-	_r(img, o, 0, TILE - 7, TILE, 1, th.trim.lightened(0.25))
+	_r(img, o, 0, TILE - 7, TILE, 1, th.trim.lightened(0.3))
+	_r(img, o, 0, TILE - 3, TILE, 1, th.trim.darkened(0.4))
 	if th.decor == "pipes":
 		# hazard stripes on the baseboard
 		for i in 4:

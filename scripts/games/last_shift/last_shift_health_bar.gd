@@ -19,6 +19,8 @@ var medkits := 0
 var snacks := 0
 var armor := 0
 var _t := 0.0
+var _trail := 1.0      # v0.6 polish: the pale "damage taken" chunk that drains after a hit
+var _low_t := 0.0      # pulse timer while health is low
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -39,20 +41,43 @@ func _process(delta: float) -> void:
 	if regen:
 		_t += delta
 		queue_redraw()
+	var frac := clampf(float(hp) / float(maxi(max_hp, 1)), 0.0, 1.0)
+	if _trail < frac:
+		_trail = frac          # healing: no trail
+	elif _trail > frac:
+		_trail = move_toward(_trail, frac, delta * 0.6)
+		queue_redraw()
+	if frac <= 0.3 and hp > 0:
+		_low_t += delta
+		queue_redraw()
 
 func _draw() -> void:
 	var f := ThemeDB.fallback_font
 	var r := Rect2(Vector2.ZERO, BAR)
+	# v0.6 polish: hard drop shadow, recessed dark track, damage trail, cel-shaded fill, 10% notches
+	draw_rect(Rect2(r.position + Vector2(3, 4), r.size), Color(0, 0, 0, 0.45))
 	draw_rect(r, Color("0e0e12"))
+	draw_rect(Rect2(Vector2(3, 3), Vector2(BAR.x - 6, BAR.y - 6)), Color("1b1f2a"))
 	var frac := clampf(float(hp) / float(max_hp), 0.0, 1.0)
+	if _trail > frac:
+		draw_rect(Rect2(Vector2(3 + (BAR.x - 6) * frac, 3), Vector2((BAR.x - 6) * (_trail - frac), BAR.y - 6)),
+			Color("f2d13a", 0.85))
 	var fill := Rect2(Vector2(3, 3), Vector2((BAR.x - 6) * frac, BAR.y - 6))
-	draw_rect(fill, RED)
-	draw_rect(Rect2(fill.position, Vector2(fill.size.x, 3)), RED.lightened(0.3))
+	var col := RED
+	if frac <= 0.3:
+		col = RED.lerp(Color("ff6a4d"), 0.5 + 0.5 * sin(_low_t * 7.0))
+	draw_rect(fill, col)
+	draw_rect(Rect2(fill.position + Vector2(0, fill.size.y * 0.62), Vector2(fill.size.x, fill.size.y * 0.38)), col.darkened(0.3))
+	draw_rect(Rect2(fill.position, Vector2(fill.size.x, 4)), col.lightened(0.35))
+	for i in range(1, 10):
+		var nx := 3.0 + (BAR.x - 6) * i / 10.0
+		draw_line(Vector2(nx, 4), Vector2(nx, BAR.y - 4), Color(0, 0, 0, 0.35), 1.0)
 	if regen and frac < 1.0:
 		# a soft green sheen sliding along the bar while health ticks back
 		var x := fposmod(_t * 160.0, BAR.x - 6)
 		draw_rect(Rect2(Vector2(3 + x, 3), Vector2(minf(24.0, fill.size.x), BAR.y - 6)).intersection(fill), Color(GREEN, 0.35))
 	draw_rect(r, Color(1, 1, 1, 0.55), false, 2.0)
+	draw_line(Vector2(1, 1), Vector2(BAR.x - 1, 1), Color("ffd479", 0.6), 2.0)
 	if armor > 0:
 		var ar := Rect2(0, BAR.y + 3, BAR.x, 8)
 		draw_rect(ar, Color("0e0e12"))

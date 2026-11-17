@@ -143,6 +143,9 @@ func _hurt(from_pos: Vector2, dmg: int) -> void:
 	if state == S.DOWN or state == S.DEAD:
 		return
 	hp -= dmg
+	# v0.6: blood on every hit (visual only)
+	if world != null and world.has_method("on_person_hit"):
+		world.on_person_hit(self, from_pos)
 	if hp <= 0:
 		state = S.DOWN
 		velocity = Vector2.ZERO

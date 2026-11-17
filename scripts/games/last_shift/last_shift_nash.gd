@@ -207,7 +207,18 @@ func _draw() -> void:
 			LsArt.disc(self, fist, 4.2, GLOVE)
 			LsArt.arc(self, Vector2(0, 2), 24.0, a - 0.5, a + 0.5, 8, Color(1, 1, 1, 0.55), 3.0)
 		else:
-			LsArt.arc(self, Vector2(0, 2), 30.0, a - 0.9, a + 0.9, 12, Color(1, 1, 1, 0.8), 4.0)
+			# v0.6 polish: a sweeping smear that follows the swing (eased), thick at the head and
+			# tapering + fading behind it, instead of one static arc. Same timing, visual only.
+			# (cheap LsArt.arc, as in the hub perf pass)
+			var e := 1.0 - pow(1.0 - progress, 3.0)
+			var head := a - 0.9 + 1.8 * e
+			for i in 5:
+				var k := float(i) / 5.0
+				var a0 := maxf(a - 0.9, head - 0.45 - k * 0.5)
+				var a1 := head - k * 0.5
+				if a1 > a0:
+					LsArt.arc(self, Vector2(0, 2), 30.0 - k * 2.0, a0, a1, 8,
+						Color(1, 1, 1, (0.85 - k * 0.17) * (1.0 - progress * 0.6)), 5.0 - k * 0.8)
 	if _flash > 0.0:
 		var side := Vector2(-f.y, f.x)
 		LsArt.disc(self, side * 8.0 + f * 24.0 + Vector2(0, 4), 7.0, Color("fff0a0"))
