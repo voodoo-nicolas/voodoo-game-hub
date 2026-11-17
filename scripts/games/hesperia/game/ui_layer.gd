@@ -209,7 +209,46 @@ func _run_actions(list: Array) -> void:
 			"shop":
 				shop_after_close = true
 
+## Stick up/down moves between buttons, A presses the focused one (dialogue choices, shop, menu):
+## on a phone the Pad feeds these actions, so lists work without tapping.
+func _pad_nav() -> bool:
+	var f := get_viewport().gui_get_focus_owner()
+	if f == null or not is_ancestor_of(f) or not f.is_visible_in_tree():
+		var first := _first_button(panel if panel != null else self)
+		if first != null and (Input.is_action_just_pressed("mv_down") or Input.is_action_just_pressed("mv_up")):
+			first.grab_focus()
+		return false
+	if Input.is_action_just_pressed("mv_down") or Input.is_action_just_pressed("mv_right"):
+		var n := f.find_next_valid_focus()
+		if n != null and is_ancestor_of(n):
+			n.grab_focus()
+	elif Input.is_action_just_pressed("mv_up") or Input.is_action_just_pressed("mv_left"):
+		var p := f.find_prev_valid_focus()
+		if p != null and is_ancestor_of(p):
+			p.grab_focus()
+	elif Input.is_action_just_pressed("btn_a") and f is BaseButton and not f.disabled:
+		f.emit_signal("pressed")
+		return true
+	return false
+
+func _first_button(n: Node) -> Button:
+	if n == null:
+		return null
+	for c in n.get_children():
+		if c is Button and c.is_visible_in_tree() and not c.disabled:
+			return c
+		var b := _first_button(c)
+		if b != null:
+			return b
+	return null
+
 func _process(dt: float) -> void:
+	if mode == "dialogue" and choices_box != null and choices_box.get_child_count() > 0 and choices_box.get_child(0).visible:
+		if _pad_nav():
+			return
+	elif mode == "shop" or mode == "menu":
+		if _pad_nav():
+			return
 	if mode == "dialogue" or mode == "text":
 		if text_label != null:
 			typing_t += dt * 60.0
@@ -252,6 +291,9 @@ func open_shop() -> void:
 		b.disabled = sold
 		b.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.5))
 	_btn(Data.tr_ui("close"), close)
+	var fb := _first_button(panel)
+	if fb != null:
+		fb.grab_focus()   # stick + A work straight away
 
 func _buy(s: Dictionary) -> void:
 	if WorldState.item_count("obol") < int(s["price"]):

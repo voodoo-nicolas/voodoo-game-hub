@@ -41,7 +41,9 @@ func _ready() -> void:
 	add_child(bg)
 	box = SubViewportContainer.new()
 	box.stretch = true
-	box.process_mode = Node.PROCESS_MODE_PAUSABLE
+	# ALWAYS: a paused SubViewportContainer drops every tap, and Hesperia pauses the tree for dialogue,
+	# shop and menus (their buttons are inside). The game itself stays PAUSABLE (set in _spawn).
+	box.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(box)
 	view = SubViewport.new()
 	view.size = VIEW
@@ -102,6 +104,7 @@ func _spawn() -> void:
 	if game != null and is_instance_valid(game):
 		game.queue_free()
 	game = MAIN.new()
+	game.process_mode = Node.PROCESS_MODE_PAUSABLE   # its UI layer / HUD are ALWAYS on their own
 	view.add_child(game)
 	Data.lang = "es" if TranslationServer.get_locale().begins_with("es") else "en"
 	Prefs.lang = Data.lang
