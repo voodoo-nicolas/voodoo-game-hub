@@ -14,6 +14,7 @@ const T := 16
 var world: Node2D
 var area
 var player
+const CAM_ZOOM := 4.0 / 3.0  ## world appears 33% bigger (UI layers unaffected)
 var camera: Camera2D
 var hud
 var ui
@@ -36,6 +37,7 @@ func _ready() -> void:
 	camera = Camera2D.new()
 	add_child(camera)
 	camera.position = Vector2(192, 108)
+	camera.zoom = Vector2(CAM_ZOOM, CAM_ZOOM)
 	camera.make_current()
 	var layer := CanvasLayer.new()
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -249,7 +251,7 @@ func _cam_axis(p: float, view: float, size: float) -> float:
 
 func _cam_follow() -> void:
 	var sz: Vector2 = area.pixel_size()
-	var c := Vector2(_cam_axis(player.position.x, 384.0, sz.x), _cam_axis(player.position.y, 216.0, sz.y))
+	var c := Vector2(_cam_axis(player.position.x, 384.0 / CAM_ZOOM, sz.x), _cam_axis(player.position.y, 216.0 / CAM_ZOOM, sz.y))
 	if area.shake_t > 0.0:
 		c += Vector2(randf_range(-2, 2), randf_range(-2, 2))
 	camera.position = c

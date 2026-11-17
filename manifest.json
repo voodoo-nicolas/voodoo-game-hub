@@ -271,6 +271,6 @@
     "ink_ninja": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ink_ninja.pck", "scene": "res://scenes/games/ink_ninja/ink_ninja.tscn"},
     "wolf_pack": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wolf_pack.pck", "scene": "res://scenes/games/wolf_pack/wolf_pack.tscn"},
     "mini_golf_3d": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf_3d.pck", "scene": "res://scenes/games/mini_golf_3d/mini_golf_3d.tscn"},
-    "hesperia": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hesperia.pck", "scene": "res://scenes/games/hesperia/hesperia.tscn"}
+    "hesperia": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hesperia.pck", "scene": "res://scenes/games/hesperia/hesperia.tscn"}
   }
 }
