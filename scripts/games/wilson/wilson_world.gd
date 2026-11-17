@@ -556,7 +556,7 @@ func _clone_for_glow(src: Node2D) -> Node2D:
 func _glow_slot(i: int) -> Dictionary:
 	while _glow_pool.size() <= i:
 		var vp := SubViewport.new()
-		vp.own_world_2d = true
+		vp.world_2d = World2D.new()
 		vp.transparent_bg = true
 		vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		vp.size = Vector2i(8, 8)
