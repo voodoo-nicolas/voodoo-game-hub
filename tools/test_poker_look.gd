@@ -60,19 +60,28 @@ func _init() -> void:
 
 ## The card art and the code that lays pips over it.
 func _cards() -> void:
-	# Classic has all its art: a missing import would show as a fallback card, silently.
+	# Classic has its table art (a missing import would show a fallback, silently).
+	# Since 2b2cdf33 its cards are plain code-drawn cards: no card art there.
 	Look.set_skin("classic")
-	var slots := ["card_back", "card_face", "dealer", "table_portrait"]
-	for s in "shdc":
-		for r in "AJQK":
-			slots.append("face_%s_%s" % [r, s])
+	var slots := ["dealer", "table_portrait", "crest", "landing"]
 	for i in range(1, 7):
 		slots.append("chip_%d" % i)
 	for k in slots:
 		ok(Look.tex(k) != null, "classic art slot %s loads" % k)
 	for k in ["card_back", "card_face", "face_K_h"]:
+		ok(Look.tex(k) == null, "classic draws %s in code" % k)
+	# The card art lives in the Skull (voodoo) look.
+	Look.set_skin("voodoo")
+	var cards := ["card_back", "card_face"]
+	for s in "shdc":
+		for r in "AJQK":
+			cards.append("face_%s_%s" % [r, s])
+	for k in cards:
+		ok(Look.tex(k) != null, "voodoo art slot %s loads" % k)
+	for k in ["card_back", "card_face", "face_K_h"]:
 		var t := Look.tex(k)
 		ok(t != null and t.get_width() == 350 and t.get_height() == 500, "%s is 350x500" % k)
+	Look.set_skin("classic")
 	# Number cards: the pip layouts hold exactly their rank, inside the card.
 	for r in range(2, 11):
 		var pips: Array = Cards.PIPS[r]
