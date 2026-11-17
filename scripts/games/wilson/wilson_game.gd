@@ -1017,8 +1017,10 @@ func _update_bubble() -> void:
 		var bw: float = _bubble_label.get_theme_font("font").get_string_size(_bubble_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 		_bubble_label.custom_minimum_size = Vector2(clampf(bw + 8.0, 40.0, 300.0), 0)
 		_bubble_until = t + 4.2
+		_pop_in(_bubble)
 	_bubble.visible = t < _bubble_until
 	if _bubble.visible:
+		_bubble.pivot_offset = Vector2(_bubble.size.x / 2.0, _bubble.size.y)
 		var head: Vector2 = world.castaway.head_global()
 		var sp := _stage_pos + head * _stage_scale
 		_bubble.reset_size()
@@ -1493,6 +1495,7 @@ func _build_hud() -> void:
 		btn.custom_minimum_size = Vector2(60, 56)
 		btn.add_theme_font_size_override("font_size", 26)
 		btn.pressed.connect(b[1])
+		_press_fx(btn)
 		btns.add_child(btn)
 		_hud_btns[{"📓": "journal", "🎒": "bag", "🔨": "craft", "⏸": "pause"}[b[0]]] = btn
 		if b[0] == "🔨":
@@ -1521,9 +1524,12 @@ func _build_hud() -> void:
 		bottom.add_child(btn)
 	_bubble = PanelContainer.new()
 	var bsb := StyleBoxFlat.new()
-	bsb.bg_color = Color(1, 1, 0.97, 0.95)
-	bsb.border_color = Color(0.2, 0.15, 0.1)
+	bsb.bg_color = Color(1.0, 0.985, 0.93, 0.96)
+	bsb.border_color = Color(0.32, 0.22, 0.12)
 	bsb.set_border_width_all(2)
+	bsb.shadow_color = Color(0, 0, 0, 0.28)
+	bsb.shadow_size = 8
+	bsb.shadow_offset = Vector2(0, 3)
 	bsb.set_corner_radius_all(16)
 	bsb.set_content_margin_all(10)
 	_bubble.add_theme_stylebox_override("panel", bsb)
@@ -1563,8 +1569,20 @@ func _build_hud() -> void:
 	_toast = Label.new()
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast.add_theme_font_size_override("font_size", 22)
-	_toast.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	_toast.add_theme_constant_override("outline_size", 8)
+	var pill := StyleBoxFlat.new()
+	pill.bg_color = Color(0.05, 0.12, 0.16, 0.78)
+	pill.border_color = Color(1, 1, 1, 0.18)
+	pill.set_border_width_all(1)
+	pill.set_corner_radius_all(22)
+	pill.content_margin_left = 18
+	pill.content_margin_right = 18
+	pill.content_margin_top = 6
+	pill.content_margin_bottom = 6
+	pill.shadow_color = Color(0, 0, 0, 0.3)
+	pill.shadow_size = 6
+	_toast.add_theme_stylebox_override("normal", pill)
+	_toast.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+	_toast.add_theme_constant_override("outline_size", 3)
 	_toast.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_toast.offset_top = -120
 	_toast.offset_bottom = -80
@@ -1785,11 +1803,33 @@ func _pause() -> void:
 	if home:
 		home.pause()
 
+## A short pop-in: fades up and settles from 85 % (bubbles, toasts).
+func _pop_in(c: Control) -> void:
+	c.modulate.a = 0.0
+	c.scale = Vector2(0.85, 0.85)
+	var tw := c.create_tween().set_parallel(true)
+	tw.tween_property(c, "modulate:a", 1.0, 0.16)
+	tw.tween_property(c, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## A HUD button squashes a little while held and springs back.
+func _press_fx(btn: Button) -> void:
+	btn.button_down.connect(func():
+		btn.pivot_offset = btn.size / 2.0
+		btn.create_tween().tween_property(btn, "scale", Vector2(0.9, 0.9), 0.07))
+	btn.button_up.connect(func():
+		btn.create_tween().tween_property(btn, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT))
+
 func _show_toast(text: String) -> void:
 	if _toast == null:
 		return
 	_toast.text = text
 	_toast.visible = true
+	var tw_px: float = _toast.get_theme_font("font").get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x + 44.0
+	tw_px = minf(tw_px, 800.0)
+	_toast.offset_left = -tw_px / 2.0      # the pill hugs its text
+	_toast.offset_right = tw_px / 2.0
+	_toast.pivot_offset = Vector2(tw_px / 2.0, 20.0)
+	_pop_in(_toast)
 	_toast_until = Time.get_ticks_msec() / 1000.0 + 3.0
 
 func _on_clock_input(ev: InputEvent) -> void:
