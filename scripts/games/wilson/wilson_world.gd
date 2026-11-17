@@ -107,24 +107,29 @@ var surf: ColorRect
 const GLOW_SHADER := """
 shader_type canvas_item;
 render_mode blend_add;
-uniform vec2 size = vec2(100.0, 60.0);
 uniform vec4 col : source_color = vec4(1.0, 0.85, 0.35, 1.0);
 uniform float amount = 1.0;
-uniform float spread = 20.0;
-// A soft light hugging the border of a rounded box: strongest on the edge, fading outward, faint inside.
+uniform float reach = 10.0;      // halo width in texture pixels
+// A halo traced from the object's own silhouette (alpha): strongest at its edge, fading outward, nothing inside.
 void fragment() {
-	vec2 p = (UV - 0.5) * size;
-	vec2 half_in = size * 0.5 - vec2(spread);
-	float rad = max(min(half_in.x, half_in.y) * 0.8, 1.0);
-	vec2 q = abs(p) - (half_in - vec2(rad));
-	float d = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - rad;
-	float out_g = exp(-pow(max(d, 0.0) / (spread * 0.5), 2.0));
-	float in_g = 0.12 + 0.88 * exp(-pow(min(d, 0.0) / (spread * 0.6), 2.0));
-	COLOR = vec4(col.rgb, col.a * amount * (d > 0.0 ? out_g : in_g));
+	vec2 px = TEXTURE_PIXEL_SIZE;
+	float a = texture(TEXTURE, UV).a;
+	float g = 0.0;
+	for (int r = 1; r <= 5; r++) {
+		float f = float(r) / 5.0;
+		float w = exp(-f * f * 2.2);
+		for (int i = 0; i < 16; i++) {
+			float ang = float(i) * 0.3927;
+			g = max(g, texture(TEXTURE, UV + vec2(cos(ang), sin(ang)) * reach * f * px).a * w);
+		}
+	}
+	COLOR = vec4(col.rgb, col.a * amount * g * (1.0 - a));
 }
 """
 var focus_rect := Rect2()
-var _glow_pool: Array = []
+var focus_id := ""
+var mark_ids: Array = []
+var _glow_pool: Array = []     # slots: {vp, holder, spr, mat, id, built}
 var _glow_shader: Shader
 var mark_rects: Array = []   # quest objectives: pulsing rings
 var _focus_node: Node2D
@@ -468,13 +473,15 @@ func interactables() -> Array:
 	out.append({"probe": D.CAVE.pos + Vector2(0, -20), "id": "cave", "rect": Rect2(D.CAVE.pos + Vector2(-80, -110), Vector2(170, 150))})
 	return out
 
-## Quest objectives: a bright golden glow along their border (owner, 2026-11-09: "not a circle, not a box").
-func set_marks(rects: Array) -> void:
+## Quest objectives: a golden halo hugging their silhouette (owner, 2026-11-09: "not a circle, not a box";
+## 2026-11-17: "just outside its silhouette"). `ids` = the interactable ids, parallel to `rects`.
+func set_marks(rects: Array, ids: Array = []) -> void:
 	mark_rects = rects
+	mark_ids = ids
 	if _focus_node:
 		_focus_node.queue_redraw()
 
-## Only the small bobbing arrow is drawn; the glow itself is a shader (GLOW_SHADER).
+## Only the small bobbing arrow is drawn; the halo itself is a shader (GLOW_SHADER).
 func _draw_marks() -> void:
 	var tt := Time.get_ticks_msec() * 0.004
 	for r in mark_rects:
@@ -482,50 +489,131 @@ func _draw_marks() -> void:
 		var ay: float = r.position.y - 26.0 - 5.0 * sin(tt * 1.6)
 		_focus_node.draw_colored_polygon(PackedVector2Array([Vector2(c.x - 12, ay - 18), Vector2(c.x + 12, ay - 18), Vector2(c.x, ay)]), Color(1.0, 0.82, 0.25, 0.95))
 
-## Whatever the castaway is facing and can use: a soft warm glow (an empty rect = none).
-func set_focus(r: Rect2) -> void:
+## What a button press would hit right now (close and directly in front): a soft warm halo (empty = none).
+## Everything else that is selectable stays dark unless it is the current objective.
+func set_focus(r: Rect2, id: String = "") -> void:
 	focus_rect = r
+	focus_id = id
 
-func _glow_node(i: int) -> ColorRect:
+const GLOW_PAD := 30.0       # plate pixels around the object for the halo
+const GLOW_RES := 0.5        # the mask is rendered at half size: the halo is soft anyway
+
+## The node drawing the thing behind an interactable id, or null (the cave, the shallows, Johnny, the fire:
+## those get the arrow only).
+func _glow_source(id: String) -> Node2D:
+	var kind := id.get_slice(":", 0)
+	var key := id.get_slice(":", 1) if ":" in id else ""
+	match kind:
+		"debris":
+			return _debris.get(key)
+		"palm":
+			return _palms.get(key)
+		"structure":
+			var pr = _props.get(key)
+			return pr if pr is Props else null
+		"spot":
+			if _heaps.has(key):
+				return _heaps[key]
+			return _piles.get(key)
+		"shore":
+			return _shore
+	return null
+
+## Plate-space box of the sprites under `n` (children are not scaled or rotated in this scene).
+func _sprite_box(n: Node2D, base: Vector2, acc: Array) -> void:
+	var at := base + n.position
+	if n is Sprite2D and n.texture and n.visible:
+		var sz: Vector2 = n.texture.get_size() * n.scale
+		var o: Vector2 = n.offset * n.scale
+		acc.append(Rect2(at + o - (sz / 2.0 if n.centered else Vector2.ZERO), sz))
+	for ch in n.get_children():
+		if ch is Node2D:
+			_sprite_box(ch, at, acc)
+
+func _glow_box(src: Node2D, rect: Rect2) -> Rect2:
+	var boxes: Array = []
+	_sprite_box(src, Vector2.ZERO, boxes)
+	var out := rect
+	for b in boxes:
+		out = out.merge(b)
+	if src is Props and src.tex:
+		var sz: Vector2 = src.tex.get_size() * (float(src.tex_w) / float(src.tex.get_width()))
+		out = out.merge(Rect2(src.position + Vector2(-sz.x / 2.0, -sz.y - float(src.tex_lift)), sz))
+	return out.grow(GLOW_PAD)
+
+func _clone_for_glow(src: Node2D) -> Node2D:
+	if src is Props:
+		var p := Props.new()
+		p.kind = src.kind
+		p.amount = src.amount
+		p.data = src.data.duplicate()
+		p.tex = src.tex
+		p.tex_w = src.tex_w
+		p.tex_lift = src.tex_lift
+		return p
+	return src.duplicate()
+
+func _glow_slot(i: int) -> Dictionary:
 	while _glow_pool.size() <= i:
-		var g := ColorRect.new()
-		g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var vp := SubViewport.new()
+		vp.own_world_2d = true
+		vp.transparent_bg = true
+		vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		vp.size = Vector2i(8, 8)
+		var holder := Node2D.new()
+		holder.scale = Vector2.ONE * GLOW_RES
+		vp.add_child(holder)
+		_focus_node.add_child(vp)
+		var spr := Sprite2D.new()
+		spr.centered = false
+		spr.scale = Vector2.ONE / GLOW_RES
 		var m := ShaderMaterial.new()
 		m.shader = _glow_shader
-		g.material = m
-		g.visible = false
-		_focus_node.add_child(g)
-		_glow_pool.append(g)
+		m.set_shader_parameter("reach", 10.0)
+		spr.material = m
+		spr.texture = vp.get_texture()
+		spr.visible = false
+		_focus_node.add_child(spr)
+		_glow_pool.append({"vp": vp, "holder": holder, "spr": spr, "mat": m, "id": "", "built": 0})
 	return _glow_pool[i]
 
 func _update_glows() -> void:
-	var list: Array = []     # [rect, colour, strength]
+	var list: Array = []     # [id, rect, colour, strength]
 	var k := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)
-	for r in mark_rects:
-		list.append([r, Color(1.0, 0.78, 0.18), 0.8 + 0.5 * k])
-	if focus_rect.size != Vector2.ZERO:
-		var dup := false
-		for r in mark_rects:
-			if r.intersects(focus_rect) and r.get_center().distance_to(focus_rect.get_center()) < 40.0:
-				dup = true
-		if not dup:
-			list.append([focus_rect, Color(1.0, 0.95, 0.8), 0.45 + 0.25 * k])
+	for i in mark_rects.size():
+		var mid := str(mark_ids[i]) if i < mark_ids.size() else ""
+		list.append([mid, mark_rects[i], Color(1.0, 0.78, 0.18), 1.1 + 0.6 * k])
+	if focus_rect.size != Vector2.ZERO and focus_id != "" and not (focus_id in mark_ids):
+		list.append([focus_id, focus_rect, Color(1.0, 0.95, 0.8), 0.7 + 0.3 * k])
+	var now := Time.get_ticks_msec()
 	for i in maxi(list.size(), _glow_pool.size()):
-		if i >= list.size():
-			_glow_pool[i].visible = false
+		var slot: Dictionary = _glow_slot(i) if i < list.size() else _glow_pool[i]
+		var spr: Sprite2D = slot.spr
+		var src: Node2D = _glow_source(str(list[i][0])) if i < list.size() else null
+		if src == null or not src.visible:
+			spr.visible = false
+			slot.id = ""
 			continue
-		var g := _glow_node(i)
-		var r: Rect2 = list[i][0]
-		var spread := 20.0
-		var box := r.grow(spread)
-		g.position = box.position
-		g.size = box.size
-		var m: ShaderMaterial = g.material
-		m.set_shader_parameter("size", box.size)
-		m.set_shader_parameter("spread", spread)
-		m.set_shader_parameter("col", list[i][1])
-		m.set_shader_parameter("amount", list[i][2])
-		g.visible = true
+		var id := str(list[i][0])
+		# (re)draw the mask when the target changes, and a few times a second (piles shrink, doors open)
+		if slot.id != id or now - int(slot.built) > 400:
+			slot.id = id
+			slot.built = now
+			var box := _glow_box(src, list[i][1])
+			var holder: Node2D = slot.holder
+			for ch in holder.get_children():
+				ch.queue_free()
+			var cl := _clone_for_glow(src)
+			cl.position = src.position - box.position
+			holder.add_child(cl)
+			var vp: SubViewport = slot.vp
+			vp.size = Vector2i(maxi(int(ceil(box.size.x * GLOW_RES)), 8), maxi(int(ceil(box.size.y * GLOW_RES)), 8))
+			vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+			spr.position = box.position
+		var m: ShaderMaterial = slot.mat
+		m.set_shader_parameter("col", list[i][2])
+		m.set_shader_parameter("amount", list[i][3])
+		spr.visible = true
 
 ## Nearest walkable point to `p` (snapped to a depth lane).
 static func walk_point(p: Vector2) -> Vector2:

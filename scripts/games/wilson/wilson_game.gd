@@ -612,7 +612,7 @@ func _on_pad_button(id: String) -> void:
 		_pause()
 
 ## The nearest thing in reach, preferring what he is facing: {} when nothing is close.
-func nearest_interactable(reach: float) -> Dictionary:
+func nearest_interactable(reach: float, facing_only := false) -> Dictionary:
 	var c = world.castaway
 	var best := {}
 	var bd := reach
@@ -621,6 +621,8 @@ func nearest_interactable(reach: float) -> Dictionary:
 		var d: float = c.position.distance_to(it.probe)
 		var dx: float = it.probe.x - c.position.x
 		if absf(dx) > 8.0 and signf(dx) != c.facing:
+			if facing_only:
+				continue      # the glow is only for what a button press would hit: directly in front
 			d *= 1.5      # behind him counts for less
 		if str(it.id) in goals:
 			d *= 0.5      # the current quest target wins over a closer bystander (the barrel next to the dry fronds)
@@ -688,6 +690,7 @@ func _update_marks() -> void:
 		return
 	var ids := _objective_ids()
 	var rects: Array = []
+	var mids: Array = []
 	var craft := false
 	for id in ids:
 		match str(id):
@@ -696,13 +699,16 @@ func _update_marks() -> void:
 			"johnny":
 				var cp: Vector2 = world.castaway.position
 				rects.append(Rect2(cp + Vector2(-26, -100), Vector2(52, 104)))
+				mids.append("johnny")
 			"shallows":
 				rects.append(Rect2(D.SHALLOWS.pos + Vector2(-120, -40), Vector2(240, 70)))
+				mids.append("shallows")
 			_:
 				for it in world.interactables():
 					if it.id == id:
 						rects.append(it.rect)
-	world.set_marks(rects if not _panel else [])
+						mids.append(str(id))
+	world.set_marks(rects if not _panel else [], mids if not _panel else [])
 	if _craft_btn and is_instance_valid(_craft_btn):
 		_craft_btn.modulate = Color(0.7, 1.0, 0.8).lerp(Color.WHITE, 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)) if craft else Color.WHITE
 
@@ -711,10 +717,13 @@ func _update_focus() -> void:
 	if world == null:
 		return
 	if not engine.sleep.is_empty() or engine.busy() or _panel or _popup or world.castaway.walking:
-		world.set_focus(Rect2())
+		world.set_focus(Rect2(), "")
 		return
-	var it := nearest_interactable(FOCUS_REACH)
-	world.set_focus(it.rect if not it.is_empty() else Rect2())
+	var it := nearest_interactable(FOCUS_REACH, true)
+	if it.is_empty():
+		world.set_focus(Rect2(), "")
+	else:
+		world.set_focus(it.rect, str(it.id))
 
 ## A: the nearest thing within reach is "tapped" (its menu opens, or the haul / shore starts); if
 ## nothing is near, the castaway's own menu.
@@ -730,15 +739,30 @@ func _pad_use() -> void:
 		else:
 			_show_toast(tr("Nothing close. Walk up to something."))
 		return
-	# A just does the thing: gather a pile, shake a palm (no list)
 	var bid := str(best.id)
+	var dx: float = best.probe.x - c.position.x
+	if absf(dx) > 4.0:
+		c.facing = signf(dx)      # turn to it first (owner, 2026-11-17)
+	# A just does the thing: gather a pile, shake a palm (no list)
 	if bid.begins_with("spot:"):
 		_try("gather", bid.substr(5))
 		return
 	if bid.begins_with("palm:"):
 		_try("shake", bid.substr(5))
 		return
-	_on_tap(best.probe, _stage_pos + (best.probe + Vector2(0, -30)) * _stage_scale)
+	# Dispatch by id: hit() at the probe would return Johnny herself when she stands in front of a crate
+	# (owner, 2026-11-17: "i cannot open/use the crate").
+	var scr: Vector2 = _stage_pos + (best.probe + Vector2(0, -30)) * _stage_scale
+	if bid.begins_with("debris:"):
+		_try("haul", bid.substr(7))
+	elif bid.begins_with("structure:"):
+		_structure_menu(bid.substr(10), scr)
+	elif bid == "shore":
+		_try("shore", "")
+	elif bid == "cave":
+		_try("inspect", "")
+	else:
+		_on_tap(best.probe, scr)
 
 ## X: the action menu (sleep, nap, craft, bag, odd jobs, pastimes).
 func _pad_actions() -> void:
@@ -757,6 +781,38 @@ func _pad_back() -> void:
 		after_change()
 
 # ================================================================ Johnny on screen
+
+## The thing `kind` on `target` works on (plate pixels), so she can face it; null = no particular side.
+func _face_point(kind: String, target: String):
+	match kind:
+		"haul":
+			return D.DEBRIS[target].pos
+		"gather":
+			return D.SPOTS[target].pos
+		"shake", "chop":
+			return D.PALMS[target].pos
+		"fish", "seawater", "spear":
+			return D.SHALLOWS.pos
+		"plant", "harvest":
+			return D.CAMP.garden_plot.pos
+		"empty_trap":
+			return D.CAMP.fish_trap.pos
+		"fuel", "light":
+			return D.CAMP.campfire.pos
+		"tally":
+			return D.CAMP.crafting_stump.pos
+		"shore":
+			return D.SHORE.pos
+		"inspect":
+			return D.CAVE.pos
+		"craft":
+			var r := D.recipe(target)
+			var st: String = str(r.get("station", "hands"))
+			if r.get("out_type", "") == "structure" and D.CAMP.has(r.out):
+				return D.CAMP[r.out].pos
+			if D.STATION_STRUCTURE.has(st) and D.CAMP.has(D.STATION_STRUCTURE[st]):
+				return D.CAMP[D.STATION_STRUCTURE[st]].pos
+	return null
 
 ## Where `kind` on `target` happens (plate pixels).
 func _stand_spot(kind: String, target: String) -> Vector2:
@@ -851,6 +907,10 @@ func _update_johnny() -> void:
 			c.walk_to(spot)
 		c.pose = "walk"
 		return
+	# arrived: turn to the thing being worked on (owner, 2026-11-17: sat next to the pebbles with her back to them)
+	var fp = _face_point(str(a.kind), str(a.target))
+	if fp != null and absf(fp.x - c.position.x) > 4.0:
+		c.facing = signf(fp.x - c.position.x)
 	if a.kind == "pastime":
 		c.pose = str(Pastimes.get_pastime(a.target).get("pose", "sit"))
 		if str(Pastimes.get_pastime(a.target).get("stand", "")) == "campfire":
