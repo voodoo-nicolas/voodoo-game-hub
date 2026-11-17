@@ -23,6 +23,8 @@ func _run() -> void:
 	root.add_child(g)
 	await _shot("1_landing")
 	g.new_journey()
+	g.game.ui._pick_body(false)
+	g.game.ui._pick_hair("orange")
 	await _shot("2_new_journey")
 	g.game.ui._begin()
 	for i in 30:
@@ -40,6 +42,12 @@ func _run() -> void:
 		await process_frame
 	Input.action_release("mv_right")
 	await _shot("4_cove_pad")
+	g.game.player._press_a()   # side swing (new attack_side art)
+	for i in 3:
+		await process_frame
+	await _shot("4b_swing")
+	g.game._load_area("b7", Vector2(120, 380))   # the shoreline (autotile edges)
+	await _shot("4c_shore")
 	g.game._load_area("d0_boss", Vector2(160, 150))
 	await _shot("5_crab")
 	g._save_game()

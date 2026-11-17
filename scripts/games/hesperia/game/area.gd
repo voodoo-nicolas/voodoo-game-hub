@@ -367,6 +367,33 @@ func _door_msg(d: Dictionary) -> void:
 		emit_signal("read_text", d["msg"])
 
 # -- drawing --------------------------------------------------------------------------------------
+## Autotile: edge art (art/e_|c_|d_<what>_<dir>.png, tools/slice_art.py) when a neighbour is one of `other`.
+## e_ = one side, c_ = two sides (corner), d_ = diagonal only. null = no edge (or no art for this case).
+func _edge_tex(x: int, y: int, other: String, what: String) -> Texture2D:
+	var hit := func(dx: int, dy: int) -> bool:
+		var nx := x + dx
+		var ny := y + dy
+		return nx >= 0 and ny >= 0 and nx < w and ny < h and other.contains(rows[ny][nx])
+	var n: bool = hit.call(0, -1)
+	var s: bool = hit.call(0, 1)
+	var e: bool = hit.call(1, 0)
+	var wv: bool = hit.call(-1, 0)
+	var ids: Array[String] = []
+	if (n or s) and (e or wv):
+		ids.append("c_%s_%s%s" % [what, "n" if n else "s", "e" if e else "w"])
+	for d in [[n, "n"], [s, "s"], [e, "e"], [wv, "w"]]:
+		if d[0]:
+			ids.append("e_%s_%s" % [what, d[1]])
+	if ids.is_empty():
+		for d in [[-1, -1, "nw"], [1, -1, "ne"], [-1, 1, "sw"], [1, 1, "se"]]:
+			if hit.call(d[0], d[1]):
+				ids.append("d_%s_%s" % [what, d[2]])
+	for id in ids:
+		var t := Art.tex(id)
+		if t != null:
+			return t
+	return null
+
 func _draw() -> void:
 	for y in h:
 		for x in w:
@@ -381,9 +408,9 @@ func _draw() -> void:
 			var v := (x * 7 + y * 13) % 11
 			var grass_id := "tile_flowers" if v == 0 else ("tile_grass2" if v < 4 else "tile_grass")
 			match c:
-				".": tt = Art.tex(grass_id)
+				".": tt = _edge_tex(x, y, "~,", "sand"); tt = tt if tt != null else Art.tex(grass_id)
 				"T": tt = Art.tex(grass_id); over = Art.tex("tile_tree")
-				",": tt = Art.tex("tile_sand")
+				",": tt = _edge_tex(x, y, "~", "sea"); tt = tt if tt != null else Art.tex("tile_sand")
 				"~": tt = Art.tex("tile_sea")
 				"m": tt = Art.tex("tile_marsh_water")
 				"M": tt = Art.tex("tile_mud")

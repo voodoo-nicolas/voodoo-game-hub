@@ -36,6 +36,31 @@ static var _anims_loaded: bool = false
 ## Animation strip res://games/hesperia/art/<key>.png + metadata in res://games/hesperia/art/anims.json (written by tools/slice_art.py).
 ## Draws frame for time `t` with feet at pos + (0, feet). want_dir: "left"/"right"/"" - mirrors if the source faces the other way.
 ## frame < 0 = animate by time; frame >= 0 = hold that frame. Returns false if the strip doesn't exist (caller falls back).
+## Frame count of an animation strip, 0 if it doesn't exist.
+static func anim_frames(key: String) -> int:
+	_load_anims()
+	if not _anims.has(key) or tex(key) == null:
+		return 0
+	return int(_anims[key]["n"])
+
+static func _load_anims() -> void:
+	if not _anims_loaded:
+		_anims_loaded = true
+		if FileAccess.file_exists("res://games/hesperia/art/anims.json"):
+			var d = JSON.parse_string(FileAccess.get_file_as_string("res://games/hesperia/art/anims.json"))
+			if d is Dictionary:
+				_anims = d
+
+## One frame of a strip as a texture (for UI previews). null if missing.
+static func anim_frame_tex(key: String, frame: int = 0) -> Texture2D:
+	if anim_frames(key) == 0:
+		return null
+	var m: Dictionary = _anims[key]
+	var at := AtlasTexture.new()
+	at.atlas = tex(key)
+	at.region = Rect2(frame * float(m["fw"]), 0, float(m["fw"]), float(m["fh"]))
+	return at
+
 static func anim(ci: CanvasItem, key: String, pos: Vector2, t: float, want_dir: String = "", frame: int = -1, mod: Color = Color.WHITE, feet: float = 4.0) -> bool:
 	if not _anims_loaded:
 		_anims_loaded = true

@@ -62,6 +62,146 @@
   "fw": 25,
   "n": 4
  },
+ "hero_f_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_f_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_f_black_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_f_black_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_f_black_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_f_black_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_f_black_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 17,
+  "n": 4
+ },
+ "hero_f_black_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_f_blonde_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_f_blonde_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_f_blonde_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_f_blonde_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_f_blonde_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 17,
+  "n": 4
+ },
+ "hero_f_blonde_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_f_orange_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_f_orange_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_f_orange_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_f_orange_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_f_orange_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 17,
+  "n": 4
+ },
+ "hero_f_orange_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
  "hero_f_walk_down": {
   "faces": "down",
   "fh": 24,
@@ -83,11 +223,193 @@
   "fw": 13,
   "n": 4
  },
+ "hero_f_white_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_f_white_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_f_white_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_f_white_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_f_white_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 17,
+  "n": 4
+ },
+ "hero_f_white_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
  "hero_m_attack": {
   "faces": "down",
   "fh": 28,
   "fps": 20,
   "fw": 25,
+  "n": 4
+ },
+ "hero_m_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_m_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_m_black_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_m_black_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_m_black_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_m_black_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_black_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 16,
+  "n": 4
+ },
+ "hero_m_black_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_blonde_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_m_blonde_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_m_blonde_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_m_blonde_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_blonde_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 16,
+  "n": 4
+ },
+ "hero_m_blonde_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_orange_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_m_orange_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_m_orange_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_m_orange_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_orange_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 16,
+  "n": 4
+ },
+ "hero_m_orange_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
   "n": 4
  },
  "hero_m_walk_down": {
@@ -105,6 +427,48 @@
   "n": 4
  },
  "hero_m_walk_up": {
+  "faces": "up",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_white_attack": {
+  "faces": "down",
+  "fh": 28,
+  "fps": 20,
+  "fw": 25,
+  "n": 4
+ },
+ "hero_m_white_attack_side": {
+  "faces": "right",
+  "fh": 26,
+  "fps": 20,
+  "fw": 30,
+  "n": 4
+ },
+ "hero_m_white_attack_up": {
+  "faces": "up",
+  "fh": 28,
+  "fps": 20,
+  "fw": 10,
+  "n": 1
+ },
+ "hero_m_white_walk_down": {
+  "faces": "down",
+  "fh": 24,
+  "fps": 8,
+  "fw": 13,
+  "n": 4
+ },
+ "hero_m_white_walk_side": {
+  "faces": "left",
+  "fh": 24,
+  "fps": 8,
+  "fw": 16,
+  "n": 4
+ },
+ "hero_m_white_walk_up": {
   "faces": "up",
   "fh": 24,
   "fps": 8,

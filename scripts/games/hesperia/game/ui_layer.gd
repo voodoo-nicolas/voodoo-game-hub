@@ -1,6 +1,7 @@
 extends Control
 const Cond = preload("res://scripts/games/hesperia/core/cond.gd")
 const Tokens = preload("res://scripts/games/hesperia/core/tokens.gd")
+const Art = preload("res://scripts/games/hesperia/game/art.gd")
 const Prefs = preload("res://scripts/games/hesperia/game/prefs.gd")
 const Data = preload("res://scripts/games/hesperia/data.gd")
 const WorldState = preload("res://scripts/games/hesperia/world_state.gd")
@@ -27,6 +28,9 @@ var text_label: Label
 var choices_box: VBoxContainer
 var tab: String = "items"
 var male_pick: bool = true
+var hair_pick: String = "brown"
+const HAIRS := {"brown": Color(0.45, 0.26, 0.1), "black": Color(0.12, 0.11, 0.16), "blonde": Color(0.85, 0.7, 0.32),
+	"orange": Color(0.85, 0.35, 0.09), "white": Color(0.88, 0.87, 0.86)}
 var name_edit: LineEdit
 var tap: bool = false
 
@@ -389,11 +393,40 @@ func _open_new_game() -> void:
 	bf.disabled = not male_pick
 	bm.add_theme_color_override("font_disabled_color", Color(1, 0.85, 0.4))
 	bf.add_theme_color_override("font_disabled_color", Color(1, 0.85, 0.4))
+	_lbl(Data.tr_ui("choose_hair"), 9, Color(1, 0.85, 0.4), false)
+	var hrow := HBoxContainer.new()
+	vbox.add_child(hrow)
+	for h in HAIRS:
+		var sw := Button.new()
+		sw.custom_minimum_size = Vector2(22, 16)
+		sw.tooltip_text = Data.tr_ui("hair_" + h)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = HAIRS[h]
+		sb.set_border_width_all(2 if h == hair_pick else 1)
+		sb.border_color = Color(1, 0.85, 0.4) if h == hair_pick else Color(0.3, 0.3, 0.35)
+		for st in ["normal", "hover", "pressed", "focus"]:
+			sw.add_theme_stylebox_override(st, sb)
+		sw.pressed.connect(_pick_hair.bind(h))
+		hrow.add_child(sw)
+	var base := "hero_m" if male_pick else "hero_f"
+	var pv := TextureRect.new()   # preview of the chosen look
+	pv.texture = Art.anim_frame_tex(base + ("" if hair_pick == "brown" else "_" + hair_pick) + "_walk_down")
+	pv.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	pv.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pv.custom_minimum_size = Vector2(26, 24)
+	pv.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hrow.add_child(pv)
 	_btn(Data.tr_ui("start"), _begin)
 
 func _pick_body(m: bool) -> void:
 	var keep := name_edit.text if name_edit else ""
 	male_pick = m
+	_open_new_game()
+	name_edit.text = keep
+
+func _pick_hair(h: String) -> void:
+	var keep := name_edit.text if name_edit else ""
+	hair_pick = h
 	_open_new_game()
 	name_edit.text = keep
 

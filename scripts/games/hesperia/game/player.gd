@@ -154,14 +154,21 @@ func _draw() -> void:
 		return
 	var col := Color(0.85, 0.7, 0.5) if WorldState.male else Color(0.9, 0.65, 0.55)
 	var base := "hero_m" if WorldState.male else "hero_f"
+	var hb := base if WorldState.hair == "brown" else base + "_" + WorldState.hair   # hair colour strips
 	var side := "left" if facing.x < 0 else ("right" if facing.x > 0 else "")
 	var drew := false
 	if sword_t > 0.0:
 		var fr := clampi(int((1.0 - sword_t / SWORD_TIME) * 4.0), 0, 3)
-		drew = Art.anim(self, base + "_attack", Vector2.ZERO, 0.0, side, fr)
+		var at := "_attack_side" if facing.x != 0 else ("_attack_up" if facing.y < 0 else "_attack")
+		for k in [hb + at, base + at, hb + "_attack", base + "_attack"]:
+			if Art.anim_frames(k) > 0:
+				drew = Art.anim(self, k, Vector2.ZERO, 0.0, side, fr % Art.anim_frames(k))
+				break
 	else:
 		var a := "_walk_side" if facing.x != 0 else ("_walk_up" if facing.y < 0 else "_walk_down")
-		drew = Art.anim(self, base + a, Vector2.ZERO, anim_t, side, -1 if moving else 0)
+		drew = Art.anim(self, hb + a, Vector2.ZERO, anim_t, side, -1 if moving else 0)
+		if not drew:
+			drew = Art.anim(self, base + a, Vector2.ZERO, anim_t, side, -1 if moving else 0)
 	if not drew:
 		Art.actor(self, base, Vector2.ZERO, 12.0, col, facing)
 		draw_rect(Rect2(Vector2(-6, -7), Vector2(12, 4)), Color(0.35, 0.22, 0.12))   # hair

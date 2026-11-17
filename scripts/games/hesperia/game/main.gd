@@ -103,6 +103,7 @@ func _on_new_game(hero_name: String, male: bool) -> void:
 	WorldState.new_state()
 	WorldState.hero_name = hero_name
 	WorldState.male = male
+	WorldState.hair = ui.hair_pick
 	WorldState.start_quest("m01")
 	_begin_game()
 	# Prologue: the raid on Halcyon Cove

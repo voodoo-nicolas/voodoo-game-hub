@@ -13,6 +13,7 @@ const MAX_MAGIC_START := 16
 static var bus = preload("res://scripts/games/hesperia/ws_bus.gd").new()
 static var hero_name: String = "Hero"
 static var male: bool = true
+static var hair: String = "brown"         # brown | black | blonde | orange | white (art: hero_<m|f>_<hair>_*)
 static var flags: Dictionary = {}
 static var inventory: Dictionary = {}
 static var half_hearts: int = 6           # current health in half-hearts
@@ -37,6 +38,7 @@ static func _ready() -> void:
 static func new_state() -> void:
 	hero_name = "Hero"
 	male = true
+	hair = "brown"
 	flags = {}
 	inventory = {"obol": 12}
 	max_half_hearts = MAX_HEARTS_START * 2
@@ -152,7 +154,7 @@ static func use_magic(n: int) -> bool:
 # -- save / load ---------------------------------------------------------------------------------
 static func to_dict() -> Dictionary:
 	return {
-		"hero_name": hero_name, "male": male, "flags": flags, "inventory": inventory,
+		"hero_name": hero_name, "male": male, "hair": hair, "flags": flags, "inventory": inventory,
 		"half_hearts": half_hearts, "max_half_hearts": max_half_hearts, "magic": magic, "max_magic": max_magic,
 		"renown": renown, "gilding": gilding, "world": world, "area": area,
 		"pos": [pos.x, pos.y], "respawn_area": respawn_area, "respawn_pos": [respawn_pos.x, respawn_pos.y],
@@ -162,6 +164,7 @@ static func to_dict() -> Dictionary:
 static func from_dict(d: Dictionary) -> void:
 	hero_name = d["hero_name"]
 	male = d["male"]
+	hair = str(d.get("hair", "brown"))   # saves from before the hair choice
 	flags = d["flags"]
 	inventory = d["inventory"]
 	half_hearts = int(d["half_hearts"])

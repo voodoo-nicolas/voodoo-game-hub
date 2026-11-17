@@ -56,6 +56,9 @@ func _ready() -> void:
 		"landing": "rail",
 		"landing_style": MenuStyles,
 		"landing_colors": [Color("070b18"), Color("1d2a44")],
+		"art": "res://games/hesperia/landing_bg.jpg",   # night cove under the temple (owner art, prompt A7c)
+		"landing_art": true,
+		"landing_art_alpha": 0.8,
 		"menu_color": Color("ffd98a"),
 		"help": HELP,
 		"info": info,
@@ -87,6 +90,8 @@ func _fit() -> void:
 	box.position = ((size - s) * 0.5).floor()
 
 func _draw_home_logo(c: Control) -> void:
+	if ResourceLoader.exists("res://games/hesperia/landing_bg.jpg"):
+		return   # the painted temple in the Landing art is the logo
 	var mid := c.size / 2.0
 	HomeKit.glow_text(c, mid, "🏛", int(c.size.y * 0.45), ACCENT)   # the rail style already prints the title
 
