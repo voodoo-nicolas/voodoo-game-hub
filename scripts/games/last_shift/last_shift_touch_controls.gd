@@ -36,7 +36,10 @@ signal weapon_chosen(weapon: String)
 ## A world-provided tap area was tapped ("log", "heal").
 signal region_tapped(name: String)
 
-const DPAD_RADIUS := 130.0     # touch area of the D-pad
+const DPAD_RADIUS := 130.0     # touch area of the joystick (was the D-pad; v0.6: joystick)
+const STICK_RING := 104.0      # v0.6: joystick ring radius (drawn)
+const STICK_KNOB := 44.0       # v0.6: knob radius
+const STICK_TRAVEL := 72.0     # v0.6: how far the knob moves; full push at this distance
 const DPAD_DEADZONE := 28.0    # thumb must leave the centre by this much
 const DPAD_HYSTERESIS := 1.3   # the other axis must be this much stronger to switch (no flicker on diagonals)
 const BUTTON_RADIUS := 62.0
@@ -55,7 +58,7 @@ const MOVE_ACTIONS := {
 }
 
 var _pointers := {}            # pointer id -> role ("dpad", "a", "b", "swap", "pause", "bag", ...)
-var _dpad_dir := Vector2.ZERO  # current D-pad direction (one axis only)
+var _dpad_dir := Vector2.ZERO  # current stick push, -1..1 per axis (v0.6: analog joystick; was one axis only)
 var _a_down := false
 var _b_down := false
 var _pause_down := false
@@ -322,29 +325,32 @@ func _wheel_segment(pos: Vector2) -> String:
 	var a := fposmod(atan2(d.x, -d.y) + seg * 0.5, TAU)
 	return WHEEL_ORDER[int(a / seg) % n]
 
-## True D-pad: only the dominant axis counts, so Nash walks in 4 directions. Near a diagonal the
-## current axis is kept (hysteresis), so a thumb resting at 45 degrees doesn't flicker between two
-## directions (that read as stuttery, "laggy" movement).
+## v0.6 (owner: "the D pad on the left should be a joystick"): an analog joystick, like the shared
+## Pad's stick. Past the dead zone the push grows with distance (full at STICK_TRAVEL) in any
+## direction; each move action gets its own strength, so Input.get_vector() in Nash reads it exactly
+## as it reads the Pad.
+## (Before v0.6: a 4-way D-pad, dominant axis only, with hysteresis near the diagonals.)
 func _set_dpad(pos: Vector2) -> void:
 	var d := pos - _dpad_center()
-	if d.length() < DPAD_DEADZONE:
+	var dist := d.length()
+	if dist < DPAD_DEADZONE:
 		_dpad_dir = Vector2.ZERO
 	else:
-		var horizontal: bool
-		if _dpad_dir.x != 0.0:
-			horizontal = absf(d.y) <= absf(d.x) * DPAD_HYSTERESIS
-		elif _dpad_dir.y != 0.0:
-			horizontal = absf(d.x) > absf(d.y) * DPAD_HYSTERESIS
-		else:
-			horizontal = absf(d.x) > absf(d.y)
-		_dpad_dir = Vector2(signf(d.x), 0.0) if horizontal else Vector2(0.0, signf(d.y))
+		var k := clampf((dist - DPAD_DEADZONE) / (STICK_TRAVEL - DPAD_DEADZONE), 0.0, 1.0)
+		_dpad_dir = d / dist * maxf(k, 0.35)
 	_apply_dpad()
 
 func _apply_dpad() -> void:
-	_set_action(MOVE_ACTIONS.left, _dpad_dir.x < 0.0)
-	_set_action(MOVE_ACTIONS.right, _dpad_dir.x > 0.0)
-	_set_action(MOVE_ACTIONS.up, _dpad_dir.y < 0.0)
-	_set_action(MOVE_ACTIONS.down, _dpad_dir.y > 0.0)
+	_set_strength(MOVE_ACTIONS.left, -_dpad_dir.x)
+	_set_strength(MOVE_ACTIONS.right, _dpad_dir.x)
+	_set_strength(MOVE_ACTIONS.up, -_dpad_dir.y)
+	_set_strength(MOVE_ACTIONS.down, _dpad_dir.y)
+
+func _set_strength(action: String, v: float) -> void:
+	if v > 0.0:
+		Input.action_press(action, clampf(v, 0.0, 1.0))
+	else:
+		Input.action_release(action)
 
 func _set_action(action: String, down: bool) -> void:
 	if down:
@@ -368,8 +374,7 @@ func _draw() -> void:
 		return
 	var c := _dpad_center()
 	# One arrow per direction; lit when pressed.
-	for dir in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-		_draw_arrow(c, dir, _dpad_dir == dir)
+	_draw_stick(c)
 	_draw_a()
 	_draw_b()
 	if show_swap:
@@ -390,6 +395,25 @@ func _draw() -> void:
 	if wheel_open:
 		_draw_wheel()
 
+## v0.6: the joystick: smoked-glass ring with four faint direction ticks, and a knob that follows
+## the thumb (amber while held).
+func _draw_stick(c: Vector2) -> void:
+	var held := _dpad_dir != Vector2.ZERO
+	A.disc(self, c + Vector2(0, 4), STICK_RING, Color(0, 0, 0, 0.22))
+	A.disc(self, c, STICK_RING, _pad_fill(false))
+	A.arc(self, c, STICK_RING, 0.0, TAU, 48, _pad_rim(held), 3.0)
+	for dir: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+		var side := Vector2(-dir.y, dir.x)
+		var tip := c + dir * (STICK_RING - 10.0)
+		draw_colored_polygon(PackedVector2Array([tip, tip - dir * 12.0 + side * 9.0, tip - dir * 12.0 - side * 9.0]),
+			Color(1, 1, 1, 0.35))
+	var k := c + _dpad_dir * STICK_TRAVEL
+	A.disc(self, k + Vector2(0, 5), STICK_KNOB, Color(0, 0, 0, 0.3))
+	A.disc(self, k, STICK_KNOB, Color(0.88, 0.6, 0.1, 0.55) if held else Color(0.12, 0.12, 0.15, 0.6))
+	A.arc(self, k, STICK_KNOB - 6.0, PI * 1.1, PI * 1.9, 20, Color(1, 1, 1, 0.18), 4.0)
+	A.arc(self, k, STICK_KNOB, 0.0, TAU, 40, _pad_rim(held), 3.0)
+
+## (Unused since v0.6: the old D-pad arrow. Kept for reference.)
 func _draw_arrow(center: Vector2, dir: Vector2, lit: bool) -> void:
 	var side := Vector2(-dir.y, dir.x)
 	var tip := center + dir * 120.0
