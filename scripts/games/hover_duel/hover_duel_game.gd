@@ -457,6 +457,30 @@ func _total_stars() -> int:
 		n += int(camp.stars[k])
 	return n
 
+## Cards (Campaign, vs Computer, Objectives, Hangar) get the battle map as a
+## dimmed backdrop instead of flat black.
+func _dress_card(card: Control) -> void:
+	if terrain_tex == null or terrain == null:
+		return
+	var bg := Control.new()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var mat: ShaderMaterial = (terrain.material as ShaderMaterial).duplicate()
+	mat.set_shader_parameter("height_tex", terrain_tex)
+	mat.set_shader_parameter("t", 3.0)
+	bg.material = mat
+	bg.draw.connect(func(): bg.draw_texture_rect(terrain_tex, Rect2(Vector2.ZERO, bg.size), false))
+	var dim := ColorRect.new()
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim.color = Color(0.015, 0.03, 0.06, 0.8)
+	card.color = Color(0, 0, 0, 1)
+	card.add_child(bg)
+	card.add_child(dim)
+	card.move_child(dim, 0)
+	card.move_child(bg, 0)
+
 func _open_campaign() -> void:
 	var parts: Array = home.card("🗺 " + tr("Campaign"))
 	var body: VBoxContainer = parts[1]
@@ -486,6 +510,7 @@ func _open_campaign() -> void:
 		btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		btn.pressed.connect(_pick_battle.bind(n, parts[0]))
 		body.add_child(btn)
+	_dress_card(parts[0])
 	home.show_card(parts[0])
 
 func _pick_battle(n: int, c: Control) -> void:
@@ -504,6 +529,7 @@ func _open_vs() -> void:
 	note.text = tr("A new random land every battle.")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_child(note)
+	_dress_card(parts[0])
 	home.show_card(parts[0])
 
 func _pick_vs(i: int, c: Control) -> void:
@@ -552,6 +578,7 @@ func _open_goals() -> void:
 		b.disabled = not ok
 		b.pressed.connect(_pick_paint.bind(i, parts[0]))
 		grid.add_child(b)
+	_dress_card(parts[0])
 	home.show_card(parts[0])
 
 func _goal_row(body: Control, head: String, text: String, frac: float, right: String) -> void:
@@ -1699,6 +1726,7 @@ func _open_hangar() -> void:
 	body.add_child(note)
 	for type in E.HANGAR:
 		_hangar_row(body, type, parts[0])
+	_dress_card(parts[0])
 	home.show_card(parts[0])
 
 ## One ship: name and price, picture + five rating bars, then Buy, or Fly and upgrades.
@@ -1770,7 +1798,8 @@ func _draw_hangar_pic(c: Control, type: String) -> void:
 	var cols: Array = _player_colors()
 	var pw := minf(w * 0.36, 220.0)
 	c.draw_rect(Rect2(0, 0, pw, h), Color(0.02, 0.04, 0.06, 0.8))
-	_draw_craft(c, Vector2(pw * 0.5, h * 0.42), -PI / 2.0, 1.1, cols[0], 0.3, false, false, false, 0.7, type)
+	_soft(c, Vector2(pw * 0.5, h * 0.4), pw * 0.55, Color(0.25, 0.55, 0.95, 0.28))   # a pool of light behind the ship
+	_draw_craft(c, Vector2(pw * 0.5, h * 0.36), -PI / 2.0, 0.8, cols[0], 0.3, false, false, false, 0.6, type)
 	var s := E.spec_for(type, _my_ups(type))
 	var base := E.spec_for(type)
 	var font := ThemeDB.fallback_font
