@@ -58,14 +58,31 @@ func house(c: CanvasItem, X: float, Y: float, w: float, u: float, seed_: int) ->
 	c.draw_rect(Rect2(X - bw / 2.0 - 4.0 * u, Y - 120.0 * u, bw + 8.0 * u, 8.0 * u), wood)   # the beam under the eaves
 	roof(c, X, Y - 126.0 * u, w + 40.0, u, g.pal.ink)
 
-func pagoda(c: CanvasItem, X: float, Y: float, w: float, tiers: int, u: float, ruin: bool, open_door: bool = true) -> void:
+func pagoda(c: CanvasItem, X: float, Y: float, w: float, tiers: int, u: float, ruin: bool, open_door: bool = true, open_sides: bool = false) -> void:
 	var wood: Color = _wood()
 	var roofc: Color = g.pal.ink if not ruin else Color(g.pal.ink).lerp(g.pal.mid, 0.35)
+	var h0: float = g.engine.PAG_H0
+	var dh: float = g.engine.PAG_DH
+	var tp: float = g.engine.PAG_TAPER
 	for i in tiers:
-		var ry := Y - (120.0 + i * 118.0) * u
-		var bw := (w - 70.0 - i * 70.0) * u
-		var by1 := Y if i == 0 else Y - (120.0 + (i - 1) * 118.0) * u
+		var ry := Y - (h0 + i * dh) * u
+		var bw := (w - tp + 10.0 - i * tp) * u
+		var by1 := Y if i == 0 else Y - (h0 + (i - 1) * dh) * u
 		var by0 := ry + 16.0 * u
+		if open_sides:
+			# A gazebo: posts, a low rail and a hanging lantern; you see straight through.
+			c.draw_rect(Rect2(X - bw / 2.0, by0, bw, by1 - by0), Color(g.pal.ink, 0.28))
+			for px in [-0.5, -0.17, 0.17, 0.5]:
+				c.draw_rect(Rect2(X + px * bw - 6.0 * u, by0, 12.0 * u, by1 - by0), wood)
+			c.draw_rect(Rect2(X - bw / 2.0, by1 - 40.0 * u, bw, 7.0 * u), wood)
+			c.draw_rect(Rect2(X - bw / 2.0, by0 + 8.0 * u, bw, 9.0 * u), wood.darkened(0.2))
+			var lp := Vector2(X, by0 + 44.0 * u)
+			c.draw_line(Vector2(lp.x, by0), lp - Vector2(0, 10.0 * u), g.pal.ink, 2.0 * u)
+			c.draw_texture_rect(g.disc, Rect2(lp - Vector2(48, 48) * u, Vector2(96, 96) * u), false, Color(1.0, 0.7, 0.3, 0.34 + 0.05 * sin(g.anim_t * 4.0 + i)))
+			c.draw_rect(Rect2(lp + Vector2(-8, -10) * u, Vector2(16, 24) * u), Color(1.0, 0.82, 0.45, 0.92))
+			c.draw_rect(Rect2(lp + Vector2(-8, -10) * u, Vector2(16, 24) * u), g.pal.ink, false, 2.0 * u)
+			roof(c, X, ry, w + 40.0 - i * tp, u, roofc)
+			continue
 		c.draw_rect(Rect2(X - bw / 2.0, by0, bw, by1 - by0), wood.darkened(0.3))
 		# lit paper panels with a lattice
 		var pn := 3
@@ -80,9 +97,9 @@ func pagoda(c: CanvasItem, X: float, Y: float, w: float, tiers: int, u: float, r
 			c.draw_line(Vector2(rx + pw * 0.5, by0 + 14.0 * u), Vector2(rx + pw * 0.5, by0 + 76.0 * u), Color(g.pal.ink, 0.5), 1.5 * u)
 		for px in [-0.5, 0.5]:
 			c.draw_rect(Rect2(X + px * bw - 5.0 * u, by0, 10.0 * u, by1 - by0), wood)
-		roof(c, X, ry, w + 40.0 - i * 70.0, u, roofc)
+		roof(c, X, ry, w + 40.0 - i * tp, u, roofc)
 	# the spire: a staff with rings
-	var top := Y - (120.0 + (tiers - 1) * 118.0) * u
+	var top := Y - (h0 + (tiers - 1) * dh) * u
 	if not ruin:
 		c.draw_line(Vector2(X, top - 6.0 * u), Vector2(X, top - 74.0 * u), g.pal.ink, 4.0 * u)
 		for r in 5:
@@ -91,7 +108,7 @@ func pagoda(c: CanvasItem, X: float, Y: float, w: float, tiers: int, u: float, r
 		c.draw_line(Vector2(X, top - 6.0 * u), Vector2(X + 10.0 * u, top - 34.0 * u), g.pal.ink, 4.0 * u)
 		for i in 4:
 			var vx := X + (-w * 0.35 + i * w * 0.23) * u
-			c.draw_polyline(PackedVector2Array([Vector2(vx, Y - 122.0 * u), Vector2(vx + 6.0 * u, Y - 90.0 * u), Vector2(vx - 4.0 * u, Y - 64.0 * u), Vector2(vx + 3.0 * u, Y - 40.0 * u)]), Color(g.pal.mid, 0.8), 3.0 * u)
+			c.draw_polyline(PackedVector2Array([Vector2(vx, Y - (h0 + 2.0) * u), Vector2(vx + 6.0 * u, Y - 90.0 * u), Vector2(vx - 4.0 * u, Y - 64.0 * u), Vector2(vx + 3.0 * u, Y - 40.0 * u)]), Color(g.pal.mid, 0.8), 3.0 * u)
 
 func shrine(c: CanvasItem, X: float, Y: float, u: float, seed_: int) -> void:
 	var wood: Color = _wood()
@@ -108,10 +125,10 @@ func shrine(c: CanvasItem, X: float, Y: float, u: float, seed_: int) -> void:
 	for i in 3:
 		var zx := X - 30.0 * u + i * 30.0 * u
 		c.draw_rect(Rect2(zx - 3.0 * u, Y - 62.0 * u + sin((zx - X) * 0.05 + 2.0) * 3.0 * u, 6.0 * u, 12.0 * u), g.pal.paper)
-	g._lantern(c, Vector2(X - 112.0 * u, Y), u, false)
-	g._lantern(c, Vector2(X + 112.0 * u, Y), u, false)
-	komainu(c, X - 78.0 * u, Y, u, 1)
-	komainu(c, X + 78.0 * u, Y, u, -1)
+	g._lantern(c, Vector2(X - 160.0 * u, Y), u, false)
+	g._lantern(c, Vector2(X + 160.0 * u, Y), u, false)
+	komainu(c, X - 104.0 * u, Y, u, 1)
+	komainu(c, X + 104.0 * u, Y, u, -1)
 	# incense in front
 	var ib := Vector2(X, Y - 3.0 * u)
 	c.draw_rect(Rect2(ib + Vector2(-10, -8) * u, Vector2(20, 8) * u), Color(0.3, 0.3, 0.3, 0.85))
@@ -125,6 +142,7 @@ func shrine(c: CanvasItem, X: float, Y: float, u: float, seed_: int) -> void:
 
 ## A stone lion-dog on a plinth; f is the way it faces.
 func komainu(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
+	u *= 1.6   # owner 2026-11-17: bigger statues
 	var stone: Color = g.pal.near
 	c.draw_rect(Rect2(X - 22.0 * u, Y - 24.0 * u, 44.0 * u, 24.0 * u), stone)
 	c.draw_rect(Rect2(X - 22.0 * u, Y - 24.0 * u, 44.0 * u, 24.0 * u), g.pal.ink, false, 2.0 * u)
@@ -142,6 +160,7 @@ func komainu(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
 
 ## Hachiko, the loyal Akita, waiting on his plinth.
 func akita(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
+	u *= 1.5
 	var stone: Color = g.pal.near
 	var fur: Color = g.pal.ink.lerp(g.pal.near, 0.35)
 	c.draw_rect(Rect2(X - 46.0 * u, Y - 34.0 * u, 92.0 * u, 34.0 * u), stone)
@@ -167,6 +186,7 @@ func akita(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
 	c.draw_polyline(tail, fur, 8.0 * u)
 
 func dragon(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
+	u *= 1.4   # the engine plinth is 1.4x too
 	var stone: Color = g.pal.near
 	c.draw_rect(Rect2(X - 55.0 * u, Y - 90.0 * u, 110.0 * u, 90.0 * u), stone)
 	c.draw_rect(Rect2(X - 55.0 * u, Y - 90.0 * u, 110.0 * u, 90.0 * u), g.pal.ink, false, 3.0 * u)
@@ -188,9 +208,10 @@ func dragon(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
 		c.draw_line(sp, sp + Vector2(-10.0, -6.0) * u, g.pal.mid, 2.0 * u)
 
 func warriors(c: CanvasItem, X: float, Y: float, u: float, seed_: int, ruin: bool) -> void:
+	u *= 1.5
 	var clay: Color = _clay()
 	for i in 5:
-		var wx := X + (i - 2) * 96.0 * u
+		var wx := X + (i - 2) * 64.0 * u
 		var broken := ruin and (seed_ + i * 7) % 3 == 0
 		c.draw_rect(Rect2(wx - 20.0 * u, Y - 12.0 * u, 40.0 * u, 12.0 * u), g.pal.near)   # plinth
 		_poly(c, PackedVector2Array([Vector2(wx - 14.0 * u, Y - 12.0 * u), Vector2(wx + 14.0 * u, Y - 12.0 * u), Vector2(wx + 11.0 * u, Y - 44.0 * u), Vector2(wx - 11.0 * u, Y - 44.0 * u)]), clay.darkened(0.15))   # the robe

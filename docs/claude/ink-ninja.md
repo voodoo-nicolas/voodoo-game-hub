@@ -4,6 +4,12 @@ Side-scrolling ink-wash ninja game: `scripts/games/ink_ninja/` (engine = pure lo
 `ink_ninja_scenery.gd` = buildings/statues/bridges/traps drawing, `ink_ninja_dark.gdshader` = dusk/night wash).
 Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/shot_ink_ninja.gd`.
 
+## Round 12 (owner, 2026-11-17, pack v11)
+- Pagodas bigger (`PAG_H0` 140, `PAG_DH` 136, `PAG_TAPER` 80, width 400); about half the regular ones (seed even) are
+  open **gazebos** (posts, rail, hanging lantern; `open_sides` in `scenery.pagoda`). Statues drawn 1.4-1.6x; dragon plinth solid 154x126.
+- Arch-bridge decks (`bridge_decks`) allow a 60 px step up (banks dip away from the deck, which used to wall you off at the first bridge). Not reproduced headless, not phone-tested.
+- `test_ink_ninja.gd`: the lake test checks the lowest hp (a later heart may heal you); the random-bot "reaches the boss" check already failed before this round (65/72).
+
 ## Round 11 (owner playtest, 2026-11-16)
 - **Length / space**: stages are 15x the old base (boss stages 3x); nothing stands in the last `END_CLEAR` (1500 px).
 - **Pickups**: stars/bombs only drop once the hero can use them (`UNLOCK`: star + bomb stage 3); caps `MAX_STARS` 20,

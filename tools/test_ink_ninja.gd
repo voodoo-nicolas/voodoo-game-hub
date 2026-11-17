@@ -293,11 +293,13 @@ func _init() -> void:
 	var br2: Dictionary = b2.bridges[0]
 	b2.px = br2.x0 - 20.0
 	b2.py = b2.ground_y(b2.px)
+	var lake_min_hp: int = b2.hp
 	for i in 1500:
 		b2.step(1.0 / 60.0, 1.0, i % 25 == 0, false, false, false)
+		lake_min_hp = mini(lake_min_hp, b2.hp)   # a heart further along the road may heal you afterwards
 		if b2.state == "dead":
 			break
-	check(b2.state == "dead" or b2.hp <= 2, "crossing the deep lake without the bridge costs nearly everything (hp %d)" % b2.hp)
+	check(b2.state == "dead" or lake_min_hp <= 2, "crossing the deep lake without the bridge costs nearly everything (lowest hp %d)" % lake_min_hp)
 	# Spike board: kills foes under it when it drops.
 	var k1 = E.new()
 	k1.reset(1)

@@ -1254,7 +1254,7 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			"house":
 				scn.house(c, X, Y, st.w, k, st.seed)
 			"pagoda":
-				scn.pagoda(c, X, Y, st.w, st.tiers, k, false)
+				scn.pagoda(c, X, Y, st.w, st.tiers, k, false, true, st.seed % 2 == 0)
 			"ruin_pagoda":
 				scn.pagoda(c, X, Y, st.w, st.tiers, k, true)
 			"shrine":
@@ -1262,8 +1262,8 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			"akita":
 				scn.akita(c, X, Y, k, 1 if st.seed % 2 == 0 else -1)
 			"komainu":
-				scn.komainu(c, X - 70.0 * k, Y, k, 1)
-				scn.komainu(c, X + 70.0 * k, Y, k, -1)
+				scn.komainu(c, X - 100.0 * k, Y, k, 1)
+				scn.komainu(c, X + 100.0 * k, Y, k, -1)
 			"dragon":
 				scn.dragon(c, X, Y, k, 1 if st.seed % 2 == 0 else -1)
 			"warriors":

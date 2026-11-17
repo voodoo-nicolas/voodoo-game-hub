@@ -96,6 +96,7 @@ var reserved: Array = []  # [x0, x1] stretches kept clear of random scenery (lak
 var structs: Array = []   # houses, pagodas, shrines, statues, ruins (decor + climbable roofs)
 var roofs: Array = []     # the Rect2 roof ledges of structures (drawn as roofs, not as earth)
 var secrets: Array = []   # hidden golden scrolls: {x, y, got}
+var bridge_decks: Array = []   # the decks of arch_bridges (Rect2): a long step up, the banks dip away from them
 var arch_bridges: Array = []  # decorative bridges over rivers: {x0, x1, y}
 var night := false
 var ruins := false
@@ -192,6 +193,7 @@ func build_stage() -> void:
 	roofs.clear()
 	secrets.clear()
 	arch_bridges.clear()
+	bridge_decks.clear()
 	night_lanterns.clear()
 	torii_used = {}
 	scroll_n = 0
@@ -364,8 +366,13 @@ func _plan_lakes() -> void:
 			drops.append({"x": sx, "y": lb - 20.0, "vy": 0.0, "kind": "star", "age": 0.0})
 
 ## Houses, pagodas, shrines and statues along the road; ruins on the ruined stages.
-const STRUCT_W := {"house": 280.0, "shrine": 260.0, "pagoda": 340.0, "akita": 200.0, "komainu": 320.0, "dragon": 260.0,
-	"warriors": 520.0, "ruin_wall": 460.0, "ruin_arch": 360.0, "ruin_pagoda": 340.0}
+## Pagoda tiers (owner 2026-11-17: a little bigger): first roof PAG_H0 up, each next PAG_DH higher, each PAG_TAPER narrower.
+## The jump is 168 px, so a roof is always one jump from the one below.
+const PAG_H0 := 140.0
+const PAG_DH := 136.0
+const PAG_TAPER := 80.0
+const STRUCT_W := {"house": 280.0, "shrine": 260.0, "pagoda": 400.0, "akita": 240.0, "komainu": 360.0, "dragon": 320.0,
+	"warriors": 600.0, "ruin_wall": 460.0, "ruin_arch": 360.0, "ruin_pagoda": 400.0}
 
 func _plan_structs() -> void:
 	var r := RandomNumberGenerator.new()
@@ -410,12 +417,12 @@ func _build_struct(kind: String, x: float, gy: float, w: float, r: RandomNumberG
 			var tiers := 3 if kind == "pagoda" else 2
 			s.tiers = tiers
 			for i in tiers:
-				var tw := w + 40.0 - i * 70.0
-				_roof(Rect2(x - tw / 2.0, gy - 120.0 - i * 118.0, tw, 16.0))
-			_secret(x, gy - 120.0 - (tiers - 1) * 118.0 - 32.0)
-			s["top"] = gy - 120.0 - (tiers - 1) * 118.0
+				var tw := w + 40.0 - i * PAG_TAPER
+				_roof(Rect2(x - tw / 2.0, gy - PAG_H0 - i * PAG_DH, tw, 16.0))
+			_secret(x, gy - PAG_H0 - (tiers - 1) * PAG_DH - 32.0)
+			s["top"] = gy - PAG_H0 - (tiers - 1) * PAG_DH
 		"dragon":
-			solids.append(Rect2(x - 55.0, gy - 90.0, 110.0, 90.0))   # a stone plinth you can climb
+			solids.append(Rect2(x - 77.0, gy - 126.0, 154.0, 126.0))   # a stone plinth you can climb (drawn 1.4x)
 		"warriors":
 			if r.randf() < 0.4:
 				_secret(x + r.randf_range(-120.0, 120.0), gy - 40.0)   # buried behind the ranks
@@ -439,7 +446,9 @@ func _arch_bridges() -> void:
 		var y := minf(g0, g1) - 2.0
 		var b := {"x0": p.x0 - 40.0, "x1": p.x1 + 40.0, "y": y}
 		arch_bridges.append(b)
-		_roof(Rect2(b.x0, y, b.x1 - b.x0, 14.0))
+		var deck := Rect2(b.x0, y, b.x1 - b.x0, 14.0)
+		_roof(deck)
+		bridge_decks.append(deck)
 
 ## Spike boards that swing down on a beat (owner 2026-11-16): lure the foes under one.
 func _plan_traps() -> void:
@@ -815,7 +824,7 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 	wall = 0
 	for s in solids:
 		if r.intersects(s):
-			if s.size.y < 30.0 and py > s.position.y and py - s.position.y <= 14.0 and vy >= 0.0:
+			if s.size.y < 30.0 and py > s.position.y and py - s.position.y <= (60.0 if bridge_decks.has(s) else 14.0) and vy >= 0.0:
 				py = s.position.y   # a small step up onto a thin deck or roof edge
 				vy = 0.0
 				r = _box()
