@@ -23,10 +23,14 @@ func _run() -> void:
 	root.add_child(g)
 	await _shot("1_landing")
 	g.new_journey()
-	g.game.ui._pick_body(false)
-	g.game.ui._pick_hair("orange")
 	await _shot("2_new_journey")
-	g.game.ui._begin()
+	var card = g.get_node("HesperiaCard")
+	g._on_look_picked(card, false, "orange")
+	await _shot("2b_name")
+	var ed = g.find_children("*", "LineEdit", true, false).filter(func(n): return not n.is_queued_for_deletion() and n.is_visible_in_tree())[0]
+	var c2 = ed.get_parent().get_parent().get_parent()
+	ed.text = "Ione"
+	g._on_name_done(c2, ed, false, "orange", true)
 	for i in 30:
 		await process_frame
 	await _shot("3_prologue")

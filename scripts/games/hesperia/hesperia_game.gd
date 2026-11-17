@@ -16,6 +16,7 @@ const MAIN = preload("res://scripts/games/hesperia/game/main.gd")
 const Prefs = preload("res://scripts/games/hesperia/game/prefs.gd")
 const Data = preload("res://scripts/games/hesperia/data.gd")
 const WorldState = preload("res://scripts/games/hesperia/world_state.gd")
+const Art = preload("res://scripts/games/hesperia/game/art.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"  # APK-side: older apps keep Hesperia's own touch pad
 const SAVE_PATH := "user://hesperia_save.json"
@@ -109,9 +110,108 @@ func _spawn() -> void:
 	game.ui.quit_to_title_requested.connect(_on_quit_to_title)
 	home.hide_home()
 
+## New journey, Beached-style: full-screen hub cards (not the 384x216 game UI, too small to tap / type in):
+## 1) tap a hero (2 bodies x 5 hair colours), 2) type a name (box at the top: the keyboard covers the bottom).
 func new_journey() -> void:
+	home.hide_home()
+	_pick_look()
+
+const HAIRS := ["brown", "black", "blonde", "orange", "white"]
+
+func _card(title: String) -> VBoxContainer:
+	var card := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.03, 0.04, 0.08, 0.97)
+	sb.content_margin_top = 28
+	sb.content_margin_bottom = 20
+	card.add_theme_stylebox_override("panel", sb)
+	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.name = "HesperiaCard"
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 14)
+	card.add_child(col)
+	var l := Label.new()
+	l.text = tr(title)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_color_override("font_color", ACCENT)
+	col.add_child(l)
+	add_child(card)
+	return col
+
+func _pick_look() -> void:
+	Data.lang = "es" if TranslationServer.get_locale().begins_with("es") else "en"
+	Data.load_all()   # the name defaults (tr_ui) before the game exists
+	var col := _card("Choose your hero")
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	var grid := GridContainer.new()
+	grid.columns = HAIRS.size()
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 18)
+	var center := CenterContainer.new()
+	center.add_child(grid)
+	col.add_child(center)
+	var h := clampf((size.y - 160.0) / 2.0, 90.0, 240.0)
+	for male in [true, false]:
+		for hair in HAIRS:
+			var base := "hero_m" if male else "hero_f"
+			var key: String = base + ("" if hair == "brown" else "_" + hair) + "_walk_down"
+			var b := TextureButton.new()
+			b.texture_normal = Art.anim_frame_tex(key)
+			b.ignore_texture_size = true
+			b.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			b.custom_minimum_size = Vector2(h * 0.6, h)
+			b.pressed.connect(_on_look_picked.bind(col.get_parent(), male, hair))
+			grid.add_child(b)
+	var back := Button.new()
+	back.text = tr("← Back")
+	back.custom_minimum_size = Vector2(160, 52)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	back.pressed.connect(_on_card_back.bind(col.get_parent()))
+	col.add_child(back)
+
+func _on_card_back(card: Control) -> void:
+	card.queue_free()
+	home.show_home()
+
+func _on_look_picked(card: Control, male: bool, hair: String) -> void:
+	card.queue_free()
+	var col := _card("What's your name?")
+	col.alignment = BoxContainer.ALIGNMENT_BEGIN
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	col.add_child(row)
+	var edit := LineEdit.new()
+	edit.max_length = 12
+	edit.placeholder_text = Data.tr_ui("default_name_m") if male else Data.tr_ui("default_name_f")
+	edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	edit.add_theme_font_size_override("font_size", 26)
+	edit.custom_minimum_size = Vector2(300, 52)
+	row.add_child(edit)
+	var c2: Control = col.get_parent()
+	for pair in [["OK", true], ["Skip", false]]:
+		var b := Button.new()
+		b.text = tr(pair[0])
+		b.custom_minimum_size = Vector2(110, 52)
+		b.pressed.connect(_on_name_done.bind(c2, edit, male, hair, pair[1]))
+		row.add_child(b)
+	edit.text_submitted.connect(_on_name_submitted.bind(c2, edit, male, hair))
+	edit.grab_focus()
+
+func _on_name_submitted(_t: String, card: Control, edit: LineEdit, male: bool, hair: String) -> void:
+	_on_name_done(card, edit, male, hair, true)
+
+func _on_name_done(card: Control, edit: LineEdit, male: bool, hair: String, use: bool) -> void:
+	var nm := edit.text.strip_edges() if use else ""
+	card.queue_free()
 	_spawn()
-	game.ui._open_new_game()
+	if nm == "":
+		nm = Data.tr_ui("default_name_m") if male else Data.tr_ui("default_name_f")
+	game.ui.hair_pick = hair
+	game.ui._leave_title()
+	game._on_new_game(nm, male)
 
 func continue_journey() -> void:
 	_spawn()
