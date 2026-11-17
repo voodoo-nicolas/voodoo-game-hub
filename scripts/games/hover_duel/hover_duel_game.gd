@@ -93,6 +93,7 @@ var hp_trail := [1.0, 1.0]    # the pale "damage just taken" part of each health
 var punch: float = 0.0        # short camera zoom-in on big blasts
 var banner_len: float = 2.0
 var hud_box: StyleBoxFlat = null
+var end_title: Label = null     # VICTORY / DEFEAT above the end-of-battle message
 
 # Touch controls: the shared Pad in 1-player games; own two-half controls in
 # 2 Players and on apps without the Pad.
@@ -174,6 +175,8 @@ func _build_ui() -> void:
 	], true)
 	add_child(end_dialog)
 	next_btn = _find_button(end_dialog, tr("Next battle"))
+	_dress_end_dialog()
+	_dress_pause(pause_btn)
 	_build_briefing()
 	_add_pad()
 
@@ -217,6 +220,40 @@ func _build_ui() -> void:
 	add_child(home)
 	if info:
 		add_child(info)
+
+## Glass pause button: dark rounded plate, cyan edge, brighter when pressed.
+func _dress_pause(b: Button) -> void:
+	for st in ["normal", "hover", "pressed", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.03, 0.07, 0.12, 0.7 if st != "pressed" else 0.95)
+		sb.set_corner_radius_all(18)
+		sb.set_border_width_all(2)
+		sb.border_color = Color(0.4, 0.85, 1.0, 0.9 if st == "pressed" else 0.6)
+		sb.shadow_size = 6
+		sb.shadow_color = Color(0.2, 0.7, 1.0, 0.25)
+		b.add_theme_stylebox_override(st, sb)
+	b.pivot_offset = Vector2(36, 30)
+
+## End-of-battle panel: a big coloured title and a glass panel edge.
+func _dress_end_dialog() -> void:
+	var panel := end_dialog.get_child(0).get_child(0) as PanelContainer
+	var box := panel.get_child(0)
+	end_title = Label.new()
+	end_title.add_theme_font_size_override("font_size", 56)
+	end_title.add_theme_constant_override("outline_size", 10)
+	end_title.add_theme_color_override("font_outline_color", Color(0.02, 0.05, 0.1, 0.9))
+	end_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(end_title)
+	box.move_child(end_title, 0)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.04, 0.07, 0.12, 0.94)
+	sb.set_corner_radius_all(20)
+	sb.set_border_width_all(2)
+	sb.border_color = Color(0.4, 0.85, 1.0, 0.7)
+	sb.shadow_size = 14
+	sb.shadow_color = Color(0.2, 0.7, 1.0, 0.3)
+	sb.set_content_margin_all(24)
+	panel.add_theme_stylebox_override("panel", sb)
 
 func _find_button(n: Node, text: String) -> Button:
 	for ch in n.get_children():
@@ -965,7 +1002,16 @@ func _game_over() -> void:
 		if info:
 			msg += "\n" + info.summary(["Wins", "Losses", "Best streak"])
 	end_dialog.get_meta("message_label").text = msg
+	var win_title := w == 0 or (mode == "duo" and w < 2)
+	end_title.text = tr("VICTORY") if win_title else (tr("DRAW") if w == 2 else tr("DEFEAT"))
+	end_title.add_theme_color_override("font_color", Color("5be36a") if win_title else (Color("ffd27a") if w == 2 else Color("ff5a3a")))
 	end_dialog.visible = true
+	end_title.pivot_offset = end_title.size / 2.0
+	end_title.scale = Vector2(1.6, 1.6)
+	end_title.modulate.a = 0.0
+	var tw := end_title.create_tween().set_parallel(true)
+	tw.tween_property(end_title, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(end_title, "modulate:a", 1.0, 0.25)
 	_engine_sound(false)
 	SoundLib.play(self, "reward/accomplished" if (w == 0 or (mode == "duo" and w < 2)) else "ui/wrong", -2.0)
 	_music("play", "calm", level % 3, 2.0)

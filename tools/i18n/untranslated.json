@@ -419,6 +419,9 @@
  "Come una comida cocida": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Control": [
+  "scripts\\games\\video_poker\\video_poker_game.gd"
+ ],
  "Copyright 2022 Google Inc.; licence beside the font in assets/web_fonts/": [
   "scripts\\common\\third_party.gd"
  ],
@@ -595,6 +598,10 @@
  "La grande": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Lady Six": [
+  "scripts\\games\\video_poker\\video_poker_career.gd",
+  "scripts\\games\\video_poker\\video_poker_characters.gd"
+ ],
  "Lector de nubes": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -652,6 +659,10 @@
  "Mirastrellas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Mister Twitch": [
+  "scripts\\games\\video_poker\\video_poker_career.gd",
+  "scripts\\games\\video_poker\\video_poker_characters.gd"
+ ],
  "Moda ermitaña": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -696,6 +707,10 @@
  ],
  "Old Bram": [
   "scripts\\games\\wilson\\wilson_data.gd"
+ ],
+ "Old Thorn": [
+  "scripts\\games\\video_poker\\video_poker_career.gd",
+  "scripts\\games\\video_poker\\video_poker_characters.gd"
  ],
  "Otra vez con filo": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -997,6 +1012,12 @@
  ],
  "daily-%d": [
   "scripts\\games\\rectangles\\rectangles_game.gd"
+ ],
+ "damage just taken": [
+  "scripts\\games\\hover_duel\\hover_duel_game.gd"
+ ],
+ "damage taken": [
+  "scripts\\games\\last_shift\\last_shift_health_bar.gd"
  ],
  "duplicate item '%s'": [
   "scripts\\games\\creation\\creation_engine.gd"

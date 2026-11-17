@@ -12318,5 +12318,8 @@
  "Friends table": "Mesa de amigos",
  "2 to 6 friends, each on their own phone": "De 2 a 6 amigos, cada uno en su teléfono",
  "Training": "Entrenamiento",
- "Cash table · %s · %d opponents": "Mesa de cash · %s · %d rivales"
+ "Cash table · %s · %d opponents": "Mesa de cash · %s · %d rivales",
+ "VICTORY": "VICTORIA",
+ "DEFEAT": "DERROTA",
+ "DRAW": "EMPATE"
 }
