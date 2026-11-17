@@ -34,7 +34,7 @@ func _run() -> void:
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
 	game.profile = Profile.new(path)
-	var st: Dictionary = Career.STAGES[5]   # the vault: a boss with 1.5x the chips
+	var st: Dictionary = Career.stage("the_vault")   # a boss with 1.5x the chips
 	game._start_career(st.id)
 	await process_frame
 	var t = game.t
@@ -61,7 +61,7 @@ func _run() -> void:
 	game.meta.start = game.t.seats.size()
 	game._check_match_over()
 	ok(game.profile.career_stars(st.id) >= 2, "a win without help earns at least two stars (%d)" % game.profile.career_stars(st.id))
-	ok(Career.unlocked(6, game.profile.d.career), "the next stage is open")
+	ok(Career.unlocked(Career.index_of("skull_throne"), game.profile.d.career), "the next stage of the ladder is open")
 	ok(game.end_dialog.visible, "the end message shows")
 	# lose another
 	game._start_career("back_room")

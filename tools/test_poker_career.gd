@@ -56,7 +56,13 @@ func _characters() -> void:
 			ok(es.get(str(c[k])) != null and str(es.get(str(c[k]), "")) != str(c[k]), "%s: %s is translated" % [c.name, k])
 		if bool(c.boss):
 			bosses += 1
-	ok(bosses == Career.STAGES.size(), "one boss per stage (%d)" % bosses)
+	ok(bosses == 12, "twelve bosses (%d)" % bosses)
+	var used := {}
+	for s in Career.STAGES:
+		used[str(s.boss)] = true
+	for c in Characters.ALL:
+		if bool(c.boss):
+			ok(used.has(c.name), c.name + " is the boss of a stage")
 	ok(Characters.roster().size() == Characters.ROSTER_SIZE, "roster size")
 	ok(Characters.names() == AI.NAMES, "the AI's name list is the roster, in order")
 	for c in Characters.roster():
@@ -97,8 +103,12 @@ func _stages() -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 7
 		ok(t.start_hand(rng), s.id + ": a hand can be dealt")
-	ok(Career.STAGES.size() == 8, "eight stages")
-	ok(Career.index_of("the_vault") == 5 and Career.index_of("nope") == -1 and Career.stage("nope").is_empty(), "lookup")
+	ok(Career.STAGES.size() == 25, "25 stages")
+	for v in Table.VARIANTS:
+		ok(Career.ladder(v).size() >= 3, v + ": a ladder of at least three stages")
+		var last: Dictionary = Career.STAGES[Career.ladder(v).back()]
+		ok(int(last.level) == 2, v + ": the ladder ends at the hard level")
+	ok(Career.index_of("the_vault") == 2 and Career.index_of("nope") == -1 and Career.stage("nope").is_empty(), "lookup")
 
 func _stars() -> void:
 	ok(Career.stars("back_room", false, false, 5) == 0, "no stars for a loss")
@@ -112,6 +122,14 @@ func _stars() -> void:
 	ok(Career.unlocked(1, earned) and not Career.unlocked(2, earned), "a clear opens the next")
 	earned["candle_cellar"] = 3
 	ok(Career.cleared(earned) == 2 and Career.total_stars(earned) == 4, "cleared and star totals")
+	# ladders are per game: each game's first stage is open from the start
+	var omaha: Array = Career.ladder("omaha")
+	ok(Career.unlocked(omaha[0], {}) and not Career.unlocked(omaha[1], {}), "each ladder opens at its first stage")
+	ok(Career.previous(omaha[0]) == -1 and Career.previous(omaha[1]) == omaha[0], "the stage before is in the same game")
+	# a stage starred on the old single ladder stays open
+	ok(Career.unlocked(Career.index_of("riverboat"), {"riverboat": 2}), "an old clear keeps its stage open")
+	ok(Career.ladder_stars("holdem", earned) == 4 and Career.ladder_stars("omaha", earned) == 0, "stars per ladder")
+	ok(Career.ladder_cleared("holdem", earned) == 2 and Career.ladder_cleared("", earned) == 2, "clears per ladder")
 
 func _profile() -> void:
 	var path := "user://test_poker_career_profile.json"

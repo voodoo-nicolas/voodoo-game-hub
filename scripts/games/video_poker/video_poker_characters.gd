@@ -88,6 +88,19 @@ const ALL := [
 	{"id": "king", "name": "The Skull King", "icon": "👑", "style": 1, "tight": 0.55, "aggr": 0.8, "bluff": 0.18, "quirk": "bully", "skill": 1, "sharp": true, "boss": true,
 		"bio": "Boss of the Skull Throne. Sharp, aggressive and starts with twice the chips. The final test.",
 		"win": "The throne is mine.", "allin": "The King wagers his crown: all in.", "bust": "The crown falls."},
+	# Bosses of the per-game Career ladders (2026-11-17): one for each newer game.
+	{"id": "sixes", "name": "Lady Six", "icon": "🎲", "style": 2, "tight": 0.3, "aggr": 0.85, "bluff": 0.22, "quirk": "bully", "skill": 1, "sharp": false, "boss": true,
+		"bio": "Boss of the Short Deck. No twos to fives, so hands run big and she bets them all. Trap her with the nuts.",
+		"win": "Sixes and up, darling.", "allin": "Lady Six rolls it all in.", "bust": "Snake eyes."},
+	{"id": "thorn", "name": "Old Thorn", "icon": "🍍", "style": 0, "tight": 0.8, "aggr": 0.55, "bluff": 0.06, "quirk": "trapper", "skill": 1, "sharp": true, "boss": true,
+		"bio": "Boss of the Pineapple ladder. Throws away the right card every time and waits for you to step on a spike.",
+		"win": "Prickly, wasn't it?", "allin": "Old Thorn digs in: all in.", "bust": "The old plant wilts."},
+	{"id": "twitch", "name": "Mister Twitch", "icon": "🌀", "style": 2, "tight": 0.2, "aggr": 0.9, "bluff": 0.3, "quirk": "tilt", "skill": 1, "sharp": false, "boss": true,
+		"bio": "Boss of the Crazy Pineapple ladder. Wild, fast and wilder still when he loses. Keep calm and let him spin.",
+		"win": "Round and round!", "allin": "Mister Twitch spins it all in!", "bust": "The spinning stops."},
+	{"id": "masks", "name": "The Twin Masks", "icon": "🌗", "style": 4, "tight": 0.6, "aggr": 0.65, "bluff": 0.12, "quirk": "", "skill": 1, "sharp": true, "boss": true,
+		"bio": "Boss of the Hi-Lo ladder. Plays for both halves of the pot and almost never gets scooped.",
+		"win": "Both halves, as always.", "allin": "The Masks go all in, high and low.", "bust": "Both masks crack."},
 ]
 
 static var _by_name := {}

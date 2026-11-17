@@ -29,6 +29,8 @@ const Career = preload("res://scripts/games/video_poker/video_poker_career.gd")
 const CareerScreen = preload("res://scripts/games/video_poker/video_poker_career_screen.gd")
 const StatsScreen = preload("res://scripts/games/video_poker/video_poker_stats_screen.gd")
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
+const Menu = preload("res://scripts/games/video_poker/video_poker_menu.gd")
+const PokerFx = preload("res://scripts/games/video_poker/video_poker_fx.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SettingsDrawer = preload("res://scripts/common/settings_drawer.gd")
 const UI = preload("res://scripts/common/ui.gd")
@@ -170,6 +172,10 @@ var machine: Control
 var training: Control
 var stats_screen: Control
 var career_screen: Control
+var menu: Control             # one game's own menu (video_poker_menu.gd)
+var menu_variant := ""        # the game whose menu the player came from ("" = the Landing)
+var picker: Control           # the Landing's "Choose your game" tiles
+var landing_chips: Label
 var profile = Profile.new()   # XP, level and lifetime numbers (user://video_poker_profile.json)
 var cover: ColorRect
 var cover_label: Label
@@ -292,15 +298,15 @@ func _update_most_chips() -> void:
 ## Look (STANDARDS §9): "classic" = traditional ivory cards on green felt (default); "voodoo" = the neon
 ## board. Set by the kit (Options → Look).
 var skin: String = "classic"
-var bg: ColorRect
+var bg: Control   # the table screen's room (video_poker_fx.gd): the look's picture, light, dust
 
 func _set_skin(name: String) -> void:
 	skin = "voodoo" if name == "voodoo" else "classic"
 	Look.set_skin(skin)  # the table, seats, chips and cards all read their colours from it
-	if bg:
-		bg.color = Look.c("room")
-		if bg.get_child_count() > 0:
-			bg.get_child(0).visible = skin != "classic"
+	# the rooms behind the table, menus, Career and Stats follow the look
+	for r in find_children("*", "Control", true, false):
+		if r.has_method("_apply"):
+			r.call("_apply")
 	_apply_landing_art()
 	_redraw_cards()
 
@@ -327,7 +333,8 @@ func _is_classic() -> bool:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
-	bg = HomeKit.backdrop()
+	# Was: bg = HomeKit.backdrop() (the shared felt, STANDARDS §9 FELT_GAMES); since 2026-11-17 Poker has its own room.
+	bg = PokerFx.room(0.4)
 	add_child(bg)
 	_build_table_screen()
 
@@ -352,6 +359,12 @@ func _build_ui() -> void:
 	career_screen.back_pressed.connect(_leave_career)
 	career_screen.start_pressed.connect(_start_career)
 	add_child(career_screen)
+	menu = Menu.new()
+	menu.visible = false
+	menu.home_pressed.connect(_close_menu)
+	menu.action.connect(_on_menu_action)
+	menu.limit_picked.connect(_pick_limit)
+	add_child(menu)
 
 	_build_cover()
 	end_dialog = UI.build_dialog("", [
@@ -431,9 +444,10 @@ func _build_ui() -> void:
 		"board_note": "The most chips you've ever had. Play chips only.",
 		"online": online,
 		"options": _add_game_options,
-		"more": [["📈 My stats", HomeKit.PURPLE, _open_stats]],
+		"more": [["📈 My stats", HomeKit.PURPLE, _open_all_stats]],
 	})
 	add_child(home)
+	_install_picker()
 	if info:
 		add_child(info)
 	var drawer := SettingsDrawer.new()
@@ -548,6 +562,7 @@ func _build_table_screen() -> void:
 		b.clip_text = true
 		b.pressed.connect(s[1])
 		size_row.add_child(b)
+		PokerFx.press(b)
 
 	var bm := MarginContainer.new()
 	bottom_margin = bm
@@ -626,6 +641,7 @@ func _action_button(text: String, color: Color, action: Callable) -> Button:
 	var b := HomeKit.neon_button(tr(text), color, 25, 76)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.pressed.connect(action)
+	PokerFx.press(b)
 	action_row.add_child(b)
 	return b
 
@@ -661,6 +677,7 @@ func _show_screen(which: String) -> void:
 	training.visible = which == "training"
 	stats_screen.visible = which == "stats"
 	career_screen.visible = which == "career"
+	menu.visible = which == "menu"
 	if which != "table":
 		cover.visible = false
 
@@ -757,11 +774,154 @@ func _draw_home_logo(c: Control) -> void:
 		Cards.draw_card(c, Rect2(Vector2(-w / 2.0, -h / 2.0), Vector2(w, h)), cards[k], true, k == 1)
 	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
+# ---------- the game picker and each game's menu ----------
+
+## The Landing (kit stack) gets a "Choose your game" block right under Resume /
+## Quick Play; the kit's Single player / Multiplayer buttons are hidden (their
+## modes stay in the cfg so the kit's Quick Play and invites still work). The
+## kit itself is not changed (it is synced from tools/templates).
+func _install_picker() -> void:
+	var qb: Button = home.get("quick_btn")
+	if qb == null or qb.get_parent() == null:
+		return
+	var box: Node = qb.get_parent()
+	landing_chips = HomeKit.label("", 26, Look.c("gold").lerp(Color.WHITE, 0.35), true, true)
+	landing_chips.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	landing_chips.add_theme_constant_override("outline_size", 8)
+	box.add_child(landing_chips)
+	box.move_child(landing_chips, qb.get_index() + 1)
+	_rebuild_picker()
+	# hide the kit's group buttons (they sit between the picker and "More")
+	var after := false
+	for c in box.get_children():
+		if c == picker:
+			after = true
+			continue
+		if after and c is Button:
+			(c as Button).visible = false
+		elif after:
+			break
+	home.visibility_changed.connect(_on_landing_shown)
+
+func _rebuild_picker() -> void:
+	if landing_chips == null:
+		return
+	var box: Node = landing_chips.get_parent()
+	if picker:
+		picker.queue_free()
+	picker = Menu.picker(_open_menu, _on_picker_extra, str(prefs.variant))
+	box.add_child(picker)
+	box.move_child(picker, landing_chips.get_index() + 1)
+	_update_landing_chips()
+
+func _update_landing_chips() -> void:
+	if landing_chips:
+		landing_chips.text = "🪙 " + tr("Your chips: %s") % View._chips(chips) + "  ·  " + tr("Level %d · %s") % [profile.level(), tr(Profile.title_for(profile.level()))]
+
+func _on_landing_shown() -> void:
+	if home.visible:
+		menu_variant = ""
+		_refill_if_broke()
+		_rebuild_picker()
+
+func _on_picker_extra(key: String) -> void:
+	match key:
+		"vp":
+			home.play_now(_start_vp)
+		"training":
+			home.hide_home()
+			_open_training()
+
+## One game's menu.
+func _open_menu(v: String) -> void:
+	_pick_variant(v)
+	menu_variant = v
+	mode = ""
+	home.hide_home()
+	_show_screen("menu")
+	menu.open(v, _menu_data(v))
+
+func _menu_data(v: String) -> Dictionary:
+	var hands: Array = History.load_all().filter(func(h): return str(h.get("variant", "holdem")) == v and int(h.get("hero", -1)) >= 0)
+	var net := 0
+	for h in hands:
+		var nets: Array = h.get("net", [])
+		var hero := int(h.hero)
+		if hero < nets.size():
+			net += int(nets[hero])
+	var st: int = _affordable_stakes()
+	var quick: String = tr("Not enough chips for those stakes.")
+	if st >= 0:
+		quick = tr("Cash table · %s · %d opponents") % [tr(STAKE_NAMES[st]), int(prefs.opps)]
+	return {
+		"chips_text": View._chips(chips), "hands": hands.size(), "net_text": ("+" if net > 0 else "") + View._chips(net),
+		"stars": Career.ladder_stars(v, profile.d.career), "stars_max": Career.ladder(v).size() * 3,
+		"quick": quick, "limit": _limit_for(v), "friends": table_net != null, "online": online != null,
+	}
+
+func _close_menu() -> void:
+	menu_variant = ""
+	_show_screen("")
+	home.show_home()
+
+## Back from a sheet, Career or Stats: to the game's menu it came from, else the Landing.
+func _back_to_menu() -> void:
+	if menu_variant != "":
+		_open_menu(menu_variant)
+	else:
+		_show_screen("")
+		home.show_home()
+
+func _on_menu_action(key: String) -> void:
+	match key:
+		"quick":
+			_quick_game()
+		"cash":
+			_ask_cash()
+		"tourney":
+			_ask_tourney()
+		"career":
+			_open_career()
+		"stats":
+			_open_stats()
+		"local":
+			_ask_local()
+		"friends":
+			if table_net:
+				_ask_friends()
+		"online":
+			if online:
+				menu.visible = false
+				online.open_lobby()
+
+## The highest stakes the player can sit at, no higher than the last picked; -1 none.
+func _affordable_stakes() -> int:
+	var best := -1
+	for i in STAKES.size():
+		if chips >= int(STAKES[i][2] * MIN_BUYIN):
+			best = i
+	return mini(best, int(prefs.stakes)) if best >= 0 else -1
+
+## ▶ Quick game: a cash table at the last stakes and opponents, no sheet.
+func _quick_game() -> void:
+	_refill_if_broke()
+	var st := _affordable_stakes()
+	if st < 0:
+		return
+	prefs.stakes = st
+	_sit_cash()
+
+func _open_all_stats() -> void:
+	menu_variant = ""
+	_open_stats()
+
 # ---------- setup sheets ----------
 
 ## A full-screen panel with a title, the given rows and Start / Cancel.
 func _open_sheet(title: String, build: Callable, start_text: String, start: Callable) -> void:
 	_close_sheet()
+	if menu:
+		menu.visible = false
 	sheet = ColorRect.new()
 	(sheet as ColorRect).color = Color(HomeKit.BG, 0.98)
 	sheet.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -806,7 +966,7 @@ func _close_sheet() -> void:
 
 func _cancel_sheet() -> void:
 	_close_sheet()
-	home.show_home()
+	_back_to_menu()
 
 func _limit_for(variant: String) -> String:
 	var forced: String = Table.rules_for(variant).forced_limit()
@@ -961,7 +1121,7 @@ func _sit_cash() -> void:
 	buyin = mini(int(s[2]), chips)
 	if buyin < int(s[2] * MIN_BUYIN):
 		note = tr("Not enough chips for those stakes.")
-		home.show_home()
+		_back_to_menu()
 		return
 	chips -= buyin
 	_save_chips()
@@ -997,12 +1157,11 @@ func _open_career() -> void:
 	mode = "career"
 	home.hide_home()
 	_show_screen("career")
-	career_screen.open(profile)
+	career_screen.open(profile, str(prefs.variant))
 
 func _leave_career() -> void:
 	mode = ""
-	_show_screen("")
-	home.show_home()
+	_back_to_menu()
 
 ## One Career stage: the boss and the stage's characters at a normal tournament table.
 func _start_career(id: String) -> void:
@@ -1330,7 +1489,11 @@ func _hand_over() -> void:
 		_say(top, "win")
 	if my_win > 0:
 		_sfx("pickup")
-	elif shown:
+	if me >= 0 and int(t.seats[me].won) > 0 and table_screen.visible:
+		# a soft glow and a pop on the result line: bigger pots glow more
+		PokerFx.win_glow(self, clampf(float(t.seats[me].won) / float(maxi(1, t.bb * 40)), 0.35, 1.0))
+		PokerFx.bump(status_label)
+	if my_win <= 0 and shown:
 		_sfx("card_flip")
 	match mode:
 		"cash":
@@ -2322,12 +2485,11 @@ func _open_stats() -> void:
 	mode = "stats"
 	home.hide_home()
 	_show_screen("stats")
-	stats_screen.open(profile)
+	stats_screen.open(profile, menu_variant)
 
 func _leave_stats() -> void:
 	mode = ""
-	_show_screen("")
-	home.show_home()
+	_back_to_menu()
 
 func _leave_training() -> void:
 	mode = ""

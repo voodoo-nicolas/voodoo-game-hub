@@ -223,6 +223,12 @@ game's traditional colours (it does not follow the app's light/dark theme; only 
   app without them the kit keeps the flat colour + grid. A game with its own `"art"` keeps it.
   [NEW 2026-10-07, owner] **Arcade games never take the shared felt / leather**: each keeps a background of its own
   (`HomeKit.OWN_BG_GAMES` = the manifest's Arcade + Adventure categories; `hub.py check` fails if a new arcade game is missing).
+- [NEW 2026-11-17, owner] **Poker has its own backgrounds** (exception to the shared felt above): its table,
+  game menus, Career and Stats sit in the look's casino room (the owner's table art, a slow drift, a wandering
+  light, a vignette, a few dust motes; `video_poker_fx.gd`, motion off under ⚙ ✨ Effects Reduced). Poker stays
+  in `FELT_GAMES` so older packs keep working; the felt is simply not used by its screens. Poker's own screens
+  (game picker, per-game menus) may use game tiles in the look's felt and gold beside the kit-blue buttons;
+  the kit's own screens keep one blue. Future Casino games may follow the same pattern (owner to confirm each).
 - [NEW 2026-10-24, owner] Looks a game sells for points earned in play (Chess's 🛒 Shop: boards, piece sets) are
   **variants of the Classic look**; Voodoo keeps its own neon look. Points are per game, earned by playing
   (lessons, daily, wins), and the first item of each kind is free and owned.

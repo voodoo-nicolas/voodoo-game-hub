@@ -16,6 +16,7 @@ const Profile = preload("res://scripts/games/video_poker/video_poker_profile.gd"
 const Stats = preload("res://scripts/games/video_poker/video_poker_stats.gd")
 const Look = preload("res://scripts/games/video_poker/video_poker_look.gd")
 const HomeKit = preload("res://scripts/games/video_poker/home_kit.gd")
+const PokerFx = preload("res://scripts/games/video_poker/video_poker_fx.gd")
 const Career = preload("res://scripts/games/video_poker/video_poker_career.gd")
 const ReplayScreen = preload("res://scripts/games/video_poker/video_poker_replay_screen.gd")
 
@@ -23,6 +24,8 @@ const ReplayScreen = preload("res://scripts/games/video_poker/video_poker_replay
 const LIST_MAX := 100
 
 var profile
+var variant := ""            # "" every game, else only this one's hands
+var title_label: Label
 var hands: Array = []
 var tab := "stats"
 var with_aids := true
@@ -37,7 +40,7 @@ var replay: Control
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(HomeKit.backdrop())
+	add_child(PokerFx.room(0.82))  # dark: plain text rows sit on it
 	var page := MarginContainer.new()
 	for side in ["left", "right"]:
 		page.add_theme_constant_override("margin_" + side, 28)
@@ -55,7 +58,8 @@ func _ready() -> void:
 	back.custom_minimum_size.x = 76
 	back.pressed.connect(back_pressed.emit)
 	head.add_child(back)
-	var title := HomeKit.label(tr("📈 My stats"), 36, HomeKit.WHITE)
+	var title := HomeKit.label(tr("📈 My stats"), 36, HomeKit.WHITE, true)
+	title_label = title
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(title)
@@ -87,9 +91,15 @@ func _ready() -> void:
 	add_child(replay)
 
 ## Call each time the screen is opened.
-func open(p) -> void:
+## `v` keeps one game's hands ("" = all games).
+func open(p, v: String = "") -> void:
 	profile = p
+	variant = v
+	if title_label:
+		title_label.text = tr("📈 My stats") + ("" if v == "" else " · " + tr(Table.rules_for(v).short_title()))
 	hands = History.load_all()
+	if v != "":
+		hands = hands.filter(func(h): return str(h.get("variant", "holdem")) == v)
 	replay.visible = false
 	_render()
 
