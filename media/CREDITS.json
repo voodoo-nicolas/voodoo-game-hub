@@ -8112,6 +8112,28 @@
    "url": "",
    "date": "2026-10-13",
    "processed_by": "placeholder: category art + code-drawn glow (Claude Code)"
+  },
+  {
+   "file": "games/hesperia/fonts/",
+   "what": "Hesperia: Micro 5 pixel font (game text) + its licence text",
+   "source": "https://github.com/google/fonts/tree/main/ofl/micro5",
+   "author": "The Soft Type Project Authors",
+   "licence": "SIL Open Font License 1.1",
+   "proof": "games/hesperia/fonts/OFL_Micro5.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/micro5",
+   "date": "2026-11-18",
+   "processed_by": "unchanged"
+  },
+  {
+   "file": "games/hesperia/shaders/",
+   "what": "Hesperia: colour-grade and iris-transition shaders",
+   "source": "D:/Dev/Hesperia/hesperia/shaders/ (standalone project; copied by its tools/port_to_hub.py)",
+   "author": "Viral (owner) + Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-18",
+   "processed_by": "written in code (Claude Code)"
   }
  ]
 }

@@ -49,11 +49,12 @@
    "p6": {
     "speaker": "",
     "text": {
-     "en": "Old Argos goes quiet. By morning the raiders' sails are gone, and so is Kleo.",
-     "es": "El viejo Argos calla para siempre. Al amanecer las velas de los saqueadores han desaparecido, y Kleo también."
+     "en": "Old Argos goes quiet. By morning the raiders' sails are gone, and so is Kleo. Beside him lies his old driftwood club.",
+     "es": "El viejo Argos calla para siempre. Al amanecer las velas de los saqueadores han desaparecido, y Kleo también. A su lado queda su viejo garrote de deriva."
     },
     "do": [
-     "flag:prologue_done"
+     "flag:prologue_done",
+     "give:stick"
     ]
    }
   }

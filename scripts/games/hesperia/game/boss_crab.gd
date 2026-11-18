@@ -85,6 +85,7 @@ func hit_rect(r: Rect2, dir_v: Vector2i, dmg: int, src: String) -> bool:
 		amount = dmg
 	hp -= amount
 	flash = 0.2
+	area.hit_spark(r.get_center().lerp(position, 0.5), amount == 0)
 	if state == "stun":
 		t = max(t, 0.4)
 	if hp <= 0:
@@ -93,6 +94,8 @@ func hit_rect(r: Rect2, dir_v: Vector2i, dmg: int, src: String) -> bool:
 	return true
 
 func _draw() -> void:
+	var sh := Vector2(0, 14)
+	draw_colored_polygon(PackedVector2Array([sh + Vector2(-16, 0), sh + Vector2(-11, -4), sh + Vector2(11, -4), sh + Vector2(16, 0), sh + Vector2(11, 4), sh + Vector2(-11, 4)]), Color(0.02, 0.03, 0.06, 0.3))
 	var col := Color(0.55, 0.45, 0.4)
 	if flash > 0.0:
 		col = Color.WHITE
@@ -107,4 +110,6 @@ func _draw() -> void:
 	var sz := Vector2(5, 20) if facing.x != 0 else Vector2(20, 5)
 	draw_rect(Rect2(c - sz * 0.5, sz), Color(0.35, 0.33, 0.3))
 	# hp bar
+	draw_rect(Rect2(Vector2(-15, -21), Vector2(30, 4)), Color(0.05, 0.03, 0.04, 0.85))
 	draw_rect(Rect2(Vector2(-14, -20), Vector2(28.0 * float(hp) / float(max_hp), 2)), Color(0.9, 0.2, 0.2))
+	draw_rect(Rect2(Vector2(-14, -20), Vector2(28.0 * float(hp) / float(max_hp), 1)), Color(1, 0.55, 0.5))

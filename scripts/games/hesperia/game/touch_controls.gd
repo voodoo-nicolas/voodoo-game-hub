@@ -17,6 +17,18 @@ var touches: Dictionary = {}    # finger index -> {"kind": "pad"|action, ...}
 var pad_vec: Vector2 = Vector2.ZERO
 var held: Dictionary = {}
 var enabled: bool = true
+const UiTheme := preload("res://scripts/games/hesperia/game/ui_theme.gd")
+var press_t: Dictionary = {}    # visual: pop on press
+
+## Button centre in the real viewport: the right cluster sticks to the right edge, the centre pair to the centre.
+func _c(a: String) -> Vector2:
+	var c: Vector2 = BTN[a]["c"]
+	var dx := get_viewport_rect().size.x - 384.0
+	if c.x > 250.0:
+		return c + Vector2(dx, 0)
+	if c.x > 150.0:
+		return c + Vector2(dx * 0.5, 0)
+	return c
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -45,7 +57,7 @@ func _touch(idx: int, p: Vector2, down: bool) -> void:
 			_set_pad(p)
 			return
 		for a in BTN.keys():
-			if p.distance_to(BTN[a]["c"]) < float(BTN[a]["r"]) + 6.0:
+			if p.distance_to(_c(a)) < float(BTN[a]["r"]) + 6.0:
 				touches[idx] = {"kind": a}
 				_press(a, true)
 				return
@@ -79,18 +91,50 @@ func _axis(a: String, s: float) -> void:
 func _press(a: String, down: bool) -> void:
 	held[a] = down
 	if down:
+		press_t[a] = 0.15
 		Input.action_press(a)
 	else:
 		Input.action_release(a)
 	queue_redraw()
 
+func _process(dt: float) -> void:
+	if press_t.is_empty():
+		return
+	for a in press_t.keys():
+		press_t[a] -= dt
+		if press_t[a] <= 0.0:
+			press_t.erase(a)
+	queue_redraw()
+
 func _draw() -> void:
 	if not enabled:
 		return
-	var alpha := 0.35
-	draw_circle(PAD_C, PAD_R, Color(1, 1, 1, 0.08))
-	draw_circle(PAD_C + pad_vec * PAD_R * 0.6, 14.0, Color(1, 1, 1, alpha))
+	# pad: dark well, bronze ring, 4 chevrons that light toward the stick, knob with highlight
+	var bronze := Color(0.85, 0.65, 0.35)
+	draw_circle(PAD_C, PAD_R, Color(0.03, 0.02, 0.05, 0.28))
+	draw_arc(PAD_C, PAD_R, 0.0, TAU, 40, Color(bronze.r, bronze.g, bronze.b, 0.4), 1.0)
+	for dv in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+		var on := pad_vec.dot(dv) > 0.4
+		var tip: Vector2 = PAD_C + dv * (PAD_R - 5.0)
+		var side := Vector2(-dv.y, dv.x) * 3.0
+		draw_colored_polygon(PackedVector2Array([tip, tip - dv * 4.0 + side, tip - dv * 4.0 - side]), Color(1, 0.9, 0.6, 0.85 if on else 0.3))
+	var kc := PAD_C + pad_vec * PAD_R * 0.6
+	draw_circle(kc + Vector2(0, 1), 14.0, Color(0, 0, 0, 0.25))
+	draw_circle(kc, 14.0, Color(1, 1, 1, 0.22 if pad_vec == Vector2.ZERO else 0.36))
+	draw_arc(kc, 14.0, 0.0, TAU, 32, Color(1, 1, 1, 0.35), 1.0)
+	draw_arc(kc, 10.0, PI * 1.1, PI * 1.6, 8, Color(1, 1, 1, 0.35), 1.0)
+	var tint := {"btn_a": Color(0.95, 0.75, 0.35), "btn_b": Color(0.85, 0.4, 0.35), "btn_x": Color(0.45, 0.7, 0.9), "btn_y": Color(0.55, 0.8, 0.45)}
 	for a in BTN.keys():
-		var c: Vector2 = BTN[a]["c"]
-		draw_circle(c, float(BTN[a]["r"]), Color(1, 1, 1, 0.5 if held[a] else 0.18))
-		draw_string(ThemeDB.fallback_font, c + Vector2(-4, 4), BTN[a]["t"], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.8))
+		var c: Vector2 = _c(a)
+		var r := float(BTN[a]["r"]) * (1.0 + 0.12 * float(press_t.get(a, 0.0)) / 0.15)
+		var tc: Color = tint.get(a, Color(0.85, 0.85, 0.9))
+		draw_circle(c + Vector2(0, 1), r, Color(0, 0, 0, 0.25))
+		draw_circle(c, r, Color(0.04, 0.03, 0.06, 0.55 if held[a] else 0.32))
+		if held[a]:
+			draw_circle(c, r - 1.0, Color(tc.r, tc.g, tc.b, 0.35))
+		draw_arc(c, r, 0.0, TAU, 32, Color(tc.r, tc.g, tc.b, 0.85 if held[a] else 0.5), 1.0)
+		draw_arc(c, r - 2.0, PI * 1.1, PI * 1.6, 8, Color(1, 1, 1, 0.25), 1.0)
+		var fs := 10   # Micro 5 native size
+		var tw := UiTheme.font().get_string_size(BTN[a]["t"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string_outline(UiTheme.font(), c + Vector2(-tw * 0.5, 4), BTN[a]["t"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.6))
+		draw_string(UiTheme.font(), c + Vector2(-tw * 0.5, 4), BTN[a]["t"], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 0.97, 0.9, 0.95 if held[a] else 0.8))

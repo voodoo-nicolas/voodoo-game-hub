@@ -211,6 +211,34 @@
   "en": "Fisher's Gaff",
   "es": "Bichero del pescador"
  },
+ "name.stick": {
+  "en": "Driftwood Club",
+  "es": "Garrote de deriva"
+ },
+ "choose_hair": {
+  "en": "Hair",
+  "es": "Pelo"
+ },
+ "hair_brown": {
+  "en": "Brown",
+  "es": "Castaño"
+ },
+ "hair_black": {
+  "en": "Black",
+  "es": "Negro"
+ },
+ "hair_blonde": {
+  "en": "Blonde",
+  "es": "Rubio"
+ },
+ "hair_orange": {
+  "en": "Red",
+  "es": "Pelirrojo"
+ },
+ "hair_white": {
+  "en": "White",
+  "es": "Blanco"
+ },
  "name.torch": {
   "en": "Prometheus Torch",
   "es": "Antorcha de Prometeo"
@@ -330,29 +358,5 @@
  "name.e15": {
   "en": "Marsh Leech",
   "es": "Sanguijuela del pantano"
- },
- "choose_hair": {
-  "en": "Hair",
-  "es": "Pelo"
- },
- "hair_brown": {
-  "en": "Brown",
-  "es": "Castaño"
- },
- "hair_black": {
-  "en": "Black",
-  "es": "Negro"
- },
- "hair_blonde": {
-  "en": "Blonde",
-  "es": "Rubio"
- },
- "hair_orange": {
-  "en": "Red",
-  "es": "Pelirrojo"
- },
- "hair_white": {
-  "en": "White",
-  "es": "Blanco"
  }
 }

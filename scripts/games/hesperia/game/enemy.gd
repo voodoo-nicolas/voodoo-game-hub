@@ -27,6 +27,7 @@ var dir: Vector2 = Vector2.ZERO
 var kb: Vector2 = Vector2.ZERO
 var flash: float = 0.0
 var HALF: Vector2
+const Fx := preload("res://scripts/games/hesperia/game/fx.gd")
 
 func setup(enemy_id: String, a, p) -> void:
 	id = enemy_id
@@ -123,10 +124,12 @@ func hit_rect(r: Rect2, dir_v: Vector2i, dmg: int, src: String) -> bool:
 		mult = Combat.crab_hit_mult(dir_v, facing)
 	if mult == 0:
 		kb = Combat.knockback(player.position, position, 40.0)
+		area.hit_spark(r.get_center().lerp(position, 0.5), true)
 		return true
 	hp -= dmg * mult
 	flash = 0.15
 	kb = Combat.knockback(player.position, position, 160.0)
+	area.hit_spark(r.get_center().lerp(position, 0.5))
 	if hp <= 0:
 		area.enemy_died(self)
 	return true
@@ -137,7 +140,18 @@ func _draw() -> void:
 		col = Color.WHITE
 	var side := "left" if facing.x < 0 else ("right" if facing.x > 0 else "")
 	var mod := Color(3, 3, 3) if flash > 0.0 else Color.WHITE
-	if not Art.anim(self, id + "_move", Vector2.ZERO, Time.get_ticks_msec() / 1000.0 + float(get_instance_id() % 7) * 0.13, side, -1, mod, float(style["size"]) * 0.5):
+	# visual pass: contact shadow; flyers hover above theirs with a slow bob (hitbox unchanged)
+	var sz := float(style["size"])
+	var flyer: bool = style["move"] == "swoop" or style["move"] == "flutter"
+	var lift := Vector2.ZERO
+	if flyer:
+		lift = Vector2(0, -5.0 + roundf(sin(Time.get_ticks_msec() / 220.0 + float(get_instance_id() % 7)) * 1.5))
+		Fx.shadow(self, Vector2(0, sz * 0.5), sz * 0.35, 0.22)
+	else:
+		Fx.shadow(self, Vector2(0, sz * 0.5 - 1.0), sz * 0.55, 0.3)
+	if kb.length() > 1.0 and flash <= 0.0:
+		mod = Color(1.4, 1.2, 1.2)
+	if not Art.anim(self, id + "_move", lift, Time.get_ticks_msec() / 1000.0 + float(get_instance_id() % 7) * 0.13, side, -1, mod, float(style["size"]) * 0.5):
 		Art.actor(self, id, Vector2.ZERO, float(style["size"]), col, facing)
 	if style["shell"]:
 		var f := Vector2(facing) * float(style["size"]) * 0.5

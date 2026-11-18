@@ -33,6 +33,13 @@ const HAIRS := {"brown": Color(0.45, 0.26, 0.1), "black": Color(0.12, 0.11, 0.16
 	"orange": Color(0.85, 0.35, 0.09), "white": Color(0.88, 0.87, 0.86)}
 var name_edit: LineEdit
 var tap: bool = false
+const UiTheme := preload("res://scripts/games/hesperia/game/ui_theme.gd")
+const Sounds := preload("res://scripts/games/hesperia/hesperia_sounds.gd")
+const TITLE_BG := preload("res://scripts/games/hesperia/game/title_bg.gd")
+var title_bg: Control = null     # animated backdrop, survives _clear() while on title / new-game
+var shown_mode: String = ""      # panel pop-in plays once per opened screen, not on every rebuild
+var line_done: bool = false      # dialogue: line fully typed and no choices -> draw the advance arrow
+var ui_t: float = 0.0
 
 func _input(ev: InputEvent) -> void:
 	if (mode == "dialogue" or mode == "text") and ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
@@ -43,14 +50,17 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = true
+	theme = UiTheme.build()
 
 func is_open() -> bool:
 	return mode != ""
 
 func _clear() -> void:
 	for c in get_children():
-		c.queue_free()
+		if c != title_bg:
+			c.queue_free()
 	panel = null
+	line_done = false
 	text_label = null
 	choices_box = null
 
@@ -59,17 +69,43 @@ func _mk_panel(rect: Rect2) -> VBoxContainer:
 	panel = PanelContainer.new()
 	panel.position = rect.position
 	panel.size = rect.size
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.07, 0.12, 0.93)
-	sb.border_color = Color(0.85, 0.7, 0.35)
-	sb.set_border_width_all(1)
-	sb.set_content_margin_all(5)
+	var sb := UiTheme.panel_box()   # visual pass: bronze-rimmed lacquer panel with drop shadow (was flat navy + 1px border)
 	panel.add_theme_stylebox_override("panel", sb)
 	add_child(panel)
+	panel.draw.connect(_draw_arrow)
 	vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 2)
 	panel.add_child(vbox)
+	if shown_mode != mode:
+		shown_mode = mode
+		_pop(panel, rect)
 	return vbox
+
+## Pop-in: fade + slight rise and scale with a soft overshoot. Runs while paused (UI is PROCESS_MODE_ALWAYS).
+func _pop(c: Control, rect: Rect2) -> void:
+	c.pivot_offset = rect.size * 0.5
+	c.modulate.a = 0.0
+	c.scale = Vector2(0.94, 0.94)
+	c.position = rect.position + Vector2(0, 4)
+	var tw := c.create_tween().set_parallel(true)
+	tw.tween_property(c, "modulate:a", 1.0, 0.14)
+	tw.tween_property(c, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(c, "position", rect.position, 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+## Speaker nameplate: gold tab above the dialogue text.
+func _nameplate(text: String) -> void:
+	var l := _lbl(text, 8, Color(0.12, 0.07, 0.04), false)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = UiTheme.BRONZE
+	sb.border_color = UiTheme.GOLD
+	sb.border_width_top = 1
+	sb.set_corner_radius_all(2)
+	sb.content_margin_left = 5
+	sb.content_margin_right = 5
+	sb.anti_aliasing = false
+	l.add_theme_stylebox_override("normal", sb)
+	l.add_theme_color_override("font_shadow_color", Color(1, 1, 1, 0))
+	l.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 
 func _btn(text: String, cb: Callable, parent: Node = null) -> Button:
 	var b := Button.new()
@@ -93,8 +129,12 @@ func _lbl(text: String, size: int = 9, col: Color = Color.WHITE, wrap: bool = tr
 
 func close() -> void:
 	_clear()
+	_drop_title_bg()
 	var was := mode
+	if was == "menu" or was == "shop":
+		Sounds.menu_close(self)
 	mode = ""
+	shown_mode = ""
 	get_tree().paused = false
 	if was == "dialogue" or was == "text":
 		emit_signal("dialogue_closed")
@@ -125,18 +165,19 @@ func show_text(t, speaker: String = "") -> void:
 	mode = "text"
 	_mk_panel(Rect2(24, 128, 336, 62))
 	if speaker != "":
-		_lbl(speaker, 8, Color(1, 0.85, 0.4), false)
+		_nameplate(speaker)
 	text_label = _lbl(Tokens.resolve(Data.loc(t), WorldState.hero_name, WorldState.male), 9)
 	text_label.visible_characters = 0
 	typing_t = 0.0
 
 func _show_node(id: String) -> void:
 	node_id = id
+	Sounds.page(self)
 	var n: Dictionary = dlg["nodes"][id]
 	_mk_panel(Rect2(24, 118, 336, 78))
 	var who: String = n.get("speaker", "")
 	if who != "":
-		_lbl(Data.name_of(who) if who != "hero" else WorldState.hero_name, 8, Color(1, 0.85, 0.4), false)
+		_nameplate(Data.name_of(who) if who != "hero" else WorldState.hero_name)
 	text_label = _lbl(Tokens.resolve(Data.loc(n["text"]), WorldState.hero_name, WorldState.male), 9)
 	text_label.visible_characters = 0
 	typing_t = 0.0
@@ -243,6 +284,12 @@ func _first_button(n: Node) -> Button:
 	return null
 
 func _process(dt: float) -> void:
+	ui_t += dt
+	if mode == "dialogue" or mode == "text":
+		var nch := choices_box != null and choices_box.get_child_count() > 0
+		line_done = text_label != null and text_label.visible_characters >= text_label.text.length() and not nch
+		if panel != null and is_instance_valid(panel):
+			panel.queue_redraw()
 	if mode == "dialogue" and choices_box != null and choices_box.get_child_count() > 0 and choices_box.get_child(0).visible:
 		if _pad_nav():
 			return
@@ -301,12 +348,14 @@ func _buy(s: Dictionary) -> void:
 		return
 	WorldState.remove_item("obol", int(s["price"]))
 	WorldState.add_item(s["item"], 1)
+	Sounds.buy(self)
 	WorldState.bus.emit_signal("toast", Data.tr_ui("bought"))
 	open_shop()
 
 # ---------------------------------------------------------------------------------------------- menu
 func open_menu() -> void:
 	get_tree().paused = true
+	Sounds.menu_open(self)
 	mode = "menu"
 	_build_menu()
 
@@ -397,14 +446,83 @@ func _cycle_touch() -> void:
 func open_title() -> void:
 	get_tree().paused = true
 	mode = "title"
-	_mk_panel(Rect2(92, 40, 200, 140))
-	_lbl(Data.tr_ui("title"), 18, Color(0.95, 0.8, 0.35), false)
-	_lbl(Data.tr_ui("subtitle"), 9, Color(0.8, 0.8, 0.9), false)
-	_btn(Data.tr_ui("new_game"), _open_new_game)
+	# Landing style S4 "Monument" (MENU_STYLES.md): huge logo top-left, 3 tiny title-case rows centred under it,
+	# no boxes, selected = white, hero large on the right of the animated backdrop (title_bg.gd).
+	_clear()
+	_ensure_title_bg()
+	var vw: float = get_viewport_rect().size.x
+	var vh: float = get_viewport_rect().size.y
+	var logo := Label.new()
+	logo.text = Data.tr_ui("title")
+	var ls := LabelSettings.new()
+	ls.font = UiTheme.font()
+	ls.font_size = 40
+	ls.font_color = Color(0.98, 0.8, 0.42)
+	ls.outline_size = 6
+	ls.outline_color = Color(0.22, 0.09, 0.07)
+	ls.shadow_size = 2
+	ls.shadow_color = Color(0.05, 0.02, 0.08, 0.8)
+	ls.shadow_offset = Vector2(0, 3)
+	logo.label_settings = ls
+	logo.position = Vector2(roundf(vw * 0.05), roundf(vh * 0.02))
+	add_child(logo)
+	var sub := Label.new()
+	sub.text = Data.tr_ui("subtitle")
+	var ss := LabelSettings.new()
+	ss.font = UiTheme.font()
+	ss.font_size = 10
+	ss.font_color = Color(0.55, 0.85, 0.85)       # the one accent colour on the logo block (sea-teal)
+	ss.outline_size = 2
+	ss.outline_color = Color(0.08, 0.04, 0.1)
+	sub.label_settings = ss
+	sub.position = Vector2(roundf(vw * 0.05) + 2, roundf(vh * 0.255))
+	add_child(sub)
+	vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 0)
+	vbox.position = Vector2(roundf(vw * 0.27) - 60.0, roundf(vh * 0.36))
+	vbox.size = Vector2(120, 40)
+	add_child(vbox)
+	var rows: Array = []
+	rows.append(_btn(Data.tr_ui("new_game"), _open_new_game))
 	var c := _btn(Data.tr_ui("continue"), func(): _leave_title(); emit_signal("continue_requested"))
 	c.disabled = not WorldState.has_save()
 	c.add_theme_color_override("font_disabled_color", Color(0.45, 0.45, 0.45))
-	_btn(Data.tr_ui("language"), func(): _toggle_lang_title())
+	rows.append(c)
+	rows.append(_btn(Data.tr_ui("language"), func(): _toggle_lang_title()))
+	for b in rows:
+		UiTheme.flat_button(b)
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.add_theme_font_size_override("font_size", Prefs.fs(9))
+	if not c.disabled:
+		c.grab_focus.call_deferred()      # returning player: Continue is the obvious choice
+	else:
+		rows[0].grab_focus.call_deferred()
+	# entrance: logo drops in, rows stagger
+	logo.modulate.a = 0.0
+	sub.modulate.a = 0.0
+	var tw := logo.create_tween()
+	tw.tween_property(logo, "modulate:a", 1.0, 0.5).set_delay(0.1)
+	tw.parallel().tween_property(logo, "position:y", logo.position.y, 0.6).from(logo.position.y - 8.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT).set_delay(0.1)
+	tw.tween_property(sub, "modulate:a", 1.0, 0.35)
+	for i in rows.size():
+		var b: Button = rows[i]
+		b.modulate.a = 0.0
+		var tb := b.create_tween()
+		tb.tween_property(b, "modulate:a", 1.0, 0.3).set_delay(0.55 + 0.08 * float(i))
+	title_bg.male = male_pick
+	title_bg.hair = hair_pick
+
+func _ensure_title_bg() -> void:
+	if title_bg == null or not is_instance_valid(title_bg):
+		title_bg = Control.new()
+		title_bg.set_script(TITLE_BG)
+		add_child(title_bg)
+		move_child(title_bg, 0)
+
+func _drop_title_bg() -> void:
+	if title_bg != null and is_instance_valid(title_bg):
+		title_bg.queue_free()
+	title_bg = null
 
 func _toggle_lang_title() -> void:
 	Data.lang = "es" if Data.lang == "en" else "en"
@@ -414,12 +532,18 @@ func _toggle_lang_title() -> void:
 
 func _leave_title() -> void:
 	_clear()
+	_drop_title_bg()
 	mode = ""
+	shown_mode = ""
 	get_tree().paused = false
 
 func _open_new_game() -> void:
+	mode = "newgame"
+	_ensure_title_bg()
+	title_bg.male = male_pick
+	title_bg.hair = hair_pick
+	_mk_panel(Rect2(24, 30, 224, 156))   # left of the hero so the backdrop previews the chosen look
 	mode = "title"
-	_mk_panel(Rect2(80, 30, 224, 156))
 	_lbl(Data.tr_ui("choose_name"), 9, Color(1, 0.85, 0.4), false)
 	name_edit = LineEdit.new()
 	name_edit.max_length = 12
@@ -478,3 +602,12 @@ func _begin() -> void:
 		nm = Data.tr_ui("default_name_m") if male_pick else Data.tr_ui("default_name_f")
 	_leave_title()
 	emit_signal("new_game_requested", nm, male_pick)
+
+## Dialogue advance arrow: small bobbing gold chevron at the panel's bottom-right once the line is fully typed.
+## Drawn through the panel's draw signal so it sits on top of the panel background.
+func _draw_arrow() -> void:
+	if not line_done or panel == null or not is_instance_valid(panel):
+		return
+	var p := panel.size - Vector2(10, 7) + Vector2(0, roundf(sin(ui_t * 6.0) * 1.5))
+	panel.draw_colored_polygon(PackedVector2Array([p + Vector2(-3, -2), p + Vector2(3, -2), p + Vector2(0, 2)]), UiTheme.GOLD)
+	panel.draw_colored_polygon(PackedVector2Array([p + Vector2(-3, -2), p + Vector2(0, -2), p + Vector2(0, 2)]), UiTheme.BRONZE)

@@ -84,6 +84,8 @@ func hit_rect(r: Rect2, dir_v: Vector2i, dmg: int, src: String) -> bool:
 				flash[i] = 0.2
 				any = true
 				WorldState.bus.emit_signal("toast", Data.tr_ui("hint_hydra"))
+		if any:
+			area.hit_spark(head_rect(i).get_center())
 	return any
 
 func _draw() -> void:

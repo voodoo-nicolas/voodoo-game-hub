@@ -3,6 +3,7 @@ extends RefCounted
 ## Drop real sprites in art/ with the same ids (hero_m, hero_f, npc ids, enemy ids, tile ids) - no code change needed.
 ## Record every asset licence in CREDITS.json.
 
+const UiTheme := preload("res://scripts/games/hesperia/game/ui_theme.gd")
 static var _cache: Dictionary = {}
 
 static func tex(id: String) -> Texture2D:
@@ -86,4 +87,4 @@ static func anim(ci: CanvasItem, key: String, pos: Vector2, t: float, want_dir: 
 	return true
 
 static func label(ci: CanvasItem, text: String, pos: Vector2, size: int = 8, col: Color = Color.WHITE) -> void:
-	ci.draw_string(ThemeDB.fallback_font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+	ci.draw_string(UiTheme.font(), pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)

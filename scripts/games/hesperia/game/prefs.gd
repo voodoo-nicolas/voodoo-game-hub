@@ -15,7 +15,9 @@ static func touch_visible() -> bool:
 	return OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
 
 static func fs(base: int) -> int:
-	return int(round(float(base) * text_scale))
+	# Micro 5 pixel font: 10 px is its native size (crisp); small bases snap up to it, then the user's text scale applies.
+	var b: int = 10 if base <= 10 else base
+	return int(round(float(b) * text_scale))
 
 static func load_prefs() -> void:
 	if not FileAccess.file_exists(PATH):
