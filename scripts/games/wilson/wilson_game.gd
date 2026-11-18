@@ -1383,7 +1383,7 @@ func _structure_menu(id: String, screen: Vector2) -> void:
 
 func _card_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.09, 0.07, 0.05, 0.9)
+	sb.bg_color = Color(0.09, 0.07, 0.05, 0.96)
 	sb.border_color = Color(1.0, 0.7, 0.35, 0.8)
 	sb.set_border_width_all(2)
 	sb.set_corner_radius_all(12)

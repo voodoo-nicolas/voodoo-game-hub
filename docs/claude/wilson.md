@@ -36,3 +36,11 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 - Packs: no autoloads; GameInfo / Music / Sfx guarded.
 - Review round 2026-11-09 (CHANGELOG, DECISIONS W-36): story T13-T20; garden (`plant` / `harvest`, `garden_state()`); `spear` action; bait on the hook; knife goes blunt (`D.BLUNT`); `bottle_post` is thrown, not kept; mood changes speed; combine finds before it makes. Engine reasons go through `_why()` in the game, never bare `tr()`. The action list (`_refresh_queue`) rebuilds only when `_queue_sig` changes. Recorded sounds: `SoundLib` ids as full literals in `wilson_game.gd`.
 - New content checklist: an item needs a source (the "every material has a source" test fails otherwise); a pastime may `give` items and `wear` a tool; a side quest only needs a counter (`bump`, `_emit`, `got:`).
+
+## Visual pass (2026-11-17, owner brief "visual quality overhaul")
+- **Glow** (`wilson_world.gd`): a halo traced from the object's own silhouette (a mask rendered in a small own-world `SubViewport` per glowing slot, half resolution, redrawn ~2.5x/s, outline shader `GLOW_SHADER`). Only quest objectives glow, plus what a button press would hit (close AND directly facing: `nearest_interactable(reach, true)`). No source node (cave, shallows, Johnny, fire) = arrow only. Godot 4.7 has no `own_world_2d`: use `world_2d = World2D.new()`.
+- **Facing**: she turns to the work on arrival (`_face_point`) and on A. **A dispatches by id**, never through `hit()` at the probe (it returned Johnny when she stood in front of the crate).
+- **Light** (`wilson_grade.gd`, layer under the HUD): warm horizon band at sunrise/sunset, night vignette, slow motes (dust by day, fireflies at night). Sky clouds take the horizon colour at dusk (`wilson_skyview.gd`).
+- **Feel**: contact shadows (`World._add_shadow`), breathing idle, `World.burst` (dust / spark / chips) from `_fx_event`, toast pill, bubble pop-in, HUD button squash.
+- Not done: goal line and bag / craft / journal panel restyle, foreground water still a static pattern, nothing phone-tested, pack not bumped.
+- Screenshots: `python`-free, `godot --path . --resolution 1280x720 --audio-driver Dummy --script res://tools/shot_wilson.gd -- <dir>` (Dummy audio = silent). Run one Godot at a time: a stale one made `hub.py test` hang.
