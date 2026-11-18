@@ -82,15 +82,23 @@ func _ready() -> void:
 	add_child(SettingsDrawer.new())
 	_fit()
 
-## Whole-number pixel scale, centred (black bars on odd aspect ratios).
+## Whole-number pixel scale in REAL screen pixels, centred (black bars on odd aspect ratios).
+## The hub stretches its UI by a non-whole factor (canvas_items), so k is chosen against physical pixels
+## and the box is counter-scaled by 1/cs; otherwise every game pixel lands 2 or 3 screen pixels wide at
+## random and the 1-px pixel font tears (owner photo 2026-11-18: "the text is hard to read").
 func _fit() -> void:
 	if box == null:
 		return
-	var k := maxi(1, mini(int(size.x / VIEW.x), int(size.y / VIEW.y)))
+	var cs := get_viewport().get_final_transform().get_scale().x
+	if cs <= 0.0:
+		cs = 1.0
+	var phys := size * cs
+	var k := maxi(1, mini(int(phys.x / VIEW.x), int(phys.y / VIEW.y)))
 	var s := Vector2(VIEW * k)
 	box.stretch_shrink = k
 	box.size = s
-	box.position = ((size - s) * 0.5).floor()
+	box.scale = Vector2.ONE / cs
+	box.position = ((phys - s) * 0.5).floor() / cs
 
 func _draw_home_logo(c: Control) -> void:
 	if ResourceLoader.exists("res://games/hesperia/landing_bg.jpg"):

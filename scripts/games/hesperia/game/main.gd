@@ -116,7 +116,17 @@ func _dev_shot(path: String) -> void:
 		Input.action_press("mv_right", 0.6)
 	elif args.has("--dev-talk"):
 		ui.show_text({"en": "The gulls came before the ships did. Keep your blade close, child of the Cove.", "es": "Las gaviotas llegaron antes que los barcos."}, "Argos")
-	if args.has("--dev-fx") and player != null:
+	if args.has("--dev-swing") and player != null:   # --dev-swing --dev-left: frozen mid-swing for anchor review
+		if not player.has_sword():
+			WorldState.add_item("stick")
+		player.facing = Vector2i(-1, 0) if args.has("--dev-left") else Vector2i(1, 0)
+		await get_tree().create_timer(1.4, true).timeout
+		player.sword_t = player.SWORD_TIME * 0.6
+		player.queue_redraw()
+		get_tree().paused = true
+		await get_tree().process_frame
+		await get_tree().process_frame
+	elif args.has("--dev-fx") and player != null:
 		await get_tree().create_timer(1.3, true).timeout
 		player.hurt(1, player.position + Vector2(12, 0))
 		area.hit_spark(player.position + Vector2(-24, -6))

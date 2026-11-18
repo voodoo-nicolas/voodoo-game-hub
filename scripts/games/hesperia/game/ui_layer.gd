@@ -127,6 +127,17 @@ func _lbl(text: String, size: int = 9, col: Color = Color.WHITE, wrap: bool = tr
 	vbox.add_child(l)
 	return l
 
+## Spoken line: 2x the pixel font (crisp, readable on phones) when it fits the box, else the native 1x size.
+func _say(text: String, has_choices: bool = false) -> Label:
+	var big := Prefs.fs(20)
+	var f := UiTheme.font()
+	var lines := f.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, 320.0, big).y / maxf(1.0, f.get_height(big))
+	if lines <= (2.0 if has_choices else 3.0) + 0.1:
+		var l := _lbl(text, 20)
+		l.add_theme_constant_override("line_spacing", -int(big * 0.3))
+		return l
+	return _lbl(text, 9)
+
 func close() -> void:
 	_clear()
 	_drop_title_bg()
@@ -166,7 +177,7 @@ func show_text(t, speaker: String = "") -> void:
 	_mk_panel(Rect2(24, 128, 336, 62))
 	if speaker != "":
 		_nameplate(speaker)
-	text_label = _lbl(Tokens.resolve(Data.loc(t), WorldState.hero_name, WorldState.male), 9)
+	text_label = _say(Tokens.resolve(Data.loc(t), WorldState.hero_name, WorldState.male))
 	text_label.visible_characters = 0
 	typing_t = 0.0
 
@@ -178,7 +189,7 @@ func _show_node(id: String) -> void:
 	var who: String = n.get("speaker", "")
 	if who != "":
 		_nameplate(Data.name_of(who) if who != "hero" else WorldState.hero_name)
-	text_label = _lbl(Tokens.resolve(Data.loc(n["text"]), WorldState.hero_name, WorldState.male), 9)
+	text_label = _say(Tokens.resolve(Data.loc(n["text"]), WorldState.hero_name, WorldState.male), n.has("choices"))
 	text_label.visible_characters = 0
 	typing_t = 0.0
 	choices_box = VBoxContainer.new()

@@ -80,9 +80,18 @@ static func anim(ci: CanvasItem, key: String, pos: Vector2, t: float, want_dir: 
 	var fh := float(m["fh"])
 	var f := frame if frame >= 0 else int(t * float(m["fps"])) % n
 	var flip: bool = want_dir != "" and (m["faces"] == "left" or m["faces"] == "right") and want_dir != m["faces"]
-	var dst := Rect2(pos + Vector2(-fw * 0.5, feet - fh), Vector2(fw, fh))
+	# keep the body (head centre, "ax" from tools/slice_art.py) on pos.x, so mirrored or wide frames don't jump
+	var ax := 0.0
+	if m.has("ax") and f < (m["ax"] as Array).size():
+		ax = float(m["ax"][f])
+	var dst := Rect2(pos + Vector2(-fw * 0.5 - ax, feet - fh), Vector2(fw, fh))
 	if flip:
-		dst = Rect2(dst.position + Vector2(fw, 0), Vector2(-fw, fh))
+		# mirror about pos.x with a transform: a negative-width rect is normalised by the renderer and lands a
+		# whole frame-width to the right (that was the "body jumps sideways when hitting left" bug)
+		ci.draw_set_transform(Vector2(2.0 * pos.x, 0.0), 0.0, Vector2(-1, 1))
+		ci.draw_texture_rect_region(tx, dst, Rect2(f * fw, 0, fw, fh), mod)
+		ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return true
 	ci.draw_texture_rect_region(tx, dst, Rect2(f * fw, 0, fw, fh), mod)
 	return true
 
