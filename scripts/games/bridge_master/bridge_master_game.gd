@@ -158,6 +158,11 @@ var grid_btn: Button
 ## Build grid: "dots" (default), "lines" (a 1 m grid with every 5th line stronger), "off".
 const GRID_MODES := ["dots", "lines", "off"]
 var grid_mode := "dots"
+## Visual polish (2026-11-17): drifting motes, level fade, screen shake, dust under the wheels.
+var _shake_off := Vector2.ZERO
+var _fade: ColorRect
+var _motes: CPUParticles2D
+var _dust: CPUParticles2D
 
 func _ready() -> void:
 	preload("res://scripts/games/bridge_master/bridge_master_i18n.gd").install(self)
@@ -318,6 +323,7 @@ func _build_ui() -> void:
 	fx_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	move_child(fx_layer, board.get_index() + 1)
 	_build_shaders()
+	_build_atmosphere()
 
 	toast_label = Label.new()
 	toast_label.add_theme_font_size_override("font_size", 26)
@@ -445,6 +451,7 @@ func _begin(n: int) -> void:
 		_toast(lvl_info, 5.0)
 	board.queue_redraw()
 	_save_game()
+	_fade_in()
 
 ## A one-line note when a level brings something new.
 func _level_tip() -> String:
@@ -764,6 +771,7 @@ func _finish_drag() -> void:
 	_push_undo()
 	design.append([drag_from.x, drag_from.y, drag_to.x, drag_to.y, mat])
 	_design_changed()
+	_burst(_to_screen(Vector2(drag_to)), "place")
 	match mat:
 		"steel", "sroad":
 			SoundLib.play(self, "impact/metal_light", -6.0)
@@ -850,6 +858,8 @@ func _process(delta: float) -> void:
 		toast_t -= delta
 		toast_label.modulate.a = clampf(toast_t * 2.0, 0.0, 1.0)
 	if not testing:
+		if _dust:
+			_dust.emitting = false
 		return
 	engine.advance(delta * (LOAD_SPEED if load_test else TEST_SPEED))
 	var nb: int = engine.broken_count()
@@ -859,11 +869,15 @@ func _process(delta: float) -> void:
 			if engine.broken[i] and (i >= _broken_prev.size() or not _broken_prev[i]):
 				var mid: Vector2 = (engine.pos[engine.ma[i]] + engine.pos[engine.mb[i]]) * 0.5
 				_burst(_to_screen(mid), "sparks")
+				_burst(_to_screen(mid), "debris")
+		_shake(9.0)
 		_broken_prev = engine.broken.duplicate()
 	_broken_seen = nb
 	if engine.vstate == "fall" and not _splashed and engine.fall_pos.y < float(lv.water):
 		_splashed = true
 		_burst(_to_screen(Vector2(engine.fall_pos.x, float(lv.water))), "splash")
+		_shake(12.0)
+	_update_dust()
 	board.queue_redraw()
 	if result_shown:
 		return
@@ -987,6 +1001,30 @@ func _burst(at: Vector2, kind: String) -> void:
 			p.scale_amount_min = 3.0
 			p.scale_amount_max = 7.0
 			p.color = Color(0.85, 0.95, 1.0, 0.9)
+		"debris":
+			p.amount = 6 if few else 14
+			p.lifetime = 1.1
+			p.spread = 180.0
+			p.initial_velocity_min = 60.0
+			p.initial_velocity_max = 200.0
+			p.gravity = Vector2(0, 900)
+			p.angular_velocity_min = -540.0
+			p.angular_velocity_max = 540.0
+			p.scale_amount_min = 3.0
+			p.scale_amount_max = 6.0
+			p.color = MAT_COLORS["wood"] if skin == "classic" else Color(HomeKit.CYAN)
+			p.color_ramp = _fade_ramp()
+		"place":
+			p.amount = 5 if few else 10
+			p.lifetime = 0.35
+			p.spread = 180.0
+			p.initial_velocity_min = 40.0
+			p.initial_velocity_max = 110.0
+			p.gravity = Vector2.ZERO
+			p.scale_amount_min = 2.0
+			p.scale_amount_max = 3.5
+			p.color = Color(1, 0.95, 0.7, 0.9) if skin == "classic" else Color(HomeKit.CYAN)
+			p.color_ramp = _fade_ramp()
 		_:
 			p.amount = 30 if few else 90
 			p.lifetime = 2.2
@@ -1131,6 +1169,16 @@ func _show_card(title_text: String, stars_text: String, msg: String, buttons: Ar
 	sb.content_margin_bottom = 18
 	panel.add_theme_stylebox_override("panel", sb)
 	center.add_child(panel)
+	# Panel pops in; the dim backdrop fades up.
+	if not LandingSlabs.reduced():
+		panel.resized.connect(_center_pivot.bind(panel))
+		panel.scale = Vector2(0.85, 0.85)
+		panel.modulate.a = 0.0
+		end_card.modulate.a = 0.0
+		var pt := create_tween().set_parallel(true)
+		pt.tween_property(end_card, "modulate:a", 1.0, 0.2)
+		pt.tween_property(panel, "modulate:a", 1.0, 0.2)
+		pt.tween_property(panel, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	panel.add_child(box)
@@ -1140,12 +1188,28 @@ func _show_card(title_text: String, stars_text: String, msg: String, buttons: Ar
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(t)
 	if stars_text != "":
-		var s := Label.new()
-		s.text = stars_text
-		s.add_theme_font_size_override("font_size", 60)
-		s.add_theme_color_override("font_color", Color("ffd54f"))
-		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		box.add_child(s)
+		# One label per star so each pops in with the coin sound (0.22 s apart).
+		var srow := HBoxContainer.new()
+		srow.alignment = BoxContainer.ALIGNMENT_CENTER
+		srow.add_theme_constant_override("separation", 6)
+		box.add_child(srow)
+		for i in stars_text.length():
+			var s := Label.new()
+			var got := stars_text[i] == "★"
+			s.text = stars_text[i]
+			s.add_theme_font_size_override("font_size", 60)
+			s.add_theme_color_override("font_color", Color("ffd54f") if got else Color(1, 1, 1, 0.35))
+			s.add_theme_color_override("font_outline_color", Color(0.3, 0.15, 0, 0.9))
+			s.add_theme_constant_override("outline_size", 8 if got else 0)
+			srow.add_child(s)
+			if got and not LandingSlabs.reduced():
+				s.modulate.a = 0.0
+				s.resized.connect(_center_pivot.bind(s))
+				var st := s.create_tween()
+				st.tween_interval(0.22 * (i + 1))
+				st.tween_property(s, "modulate:a", 1.0, 0.05)
+				s.scale = Vector2(2.2, 2.2)
+				st.tween_property(s, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var m := Label.new()
 	m.text = msg
 	m.add_theme_font_size_override("font_size", 24)
@@ -1171,6 +1235,9 @@ func _show_card(title_text: String, stars_text: String, msg: String, buttons: Ar
 		else:
 			LandingSlabs.dress(b, "wood")
 		first = false
+
+func _center_pivot(c: Control) -> void:
+	c.pivot_offset = c.size / 2.0
 
 func _card_button(action: Callable) -> void:
 	if action.is_valid():
@@ -1701,7 +1768,8 @@ func _place_fx() -> void:
 		_fx_reduced = LandingSlabs.reduced()
 	_fx_tick += 1
 	var top := _to_screen(Vector2(0, float(lv.water))).y + vs * 0.45
-	water_fx.position = Vector2(0, top)
+	water_fx.position = Vector2(0, top) + _shake_off
+	_tune_atmosphere()
 	water_fx.size = Vector2(board.size.x, maxf(0.0, board.size.y - top))
 	var key := skin + str(_fx_reduced)
 	if key == _fx_key:
@@ -1719,6 +1787,95 @@ func _place_fx() -> void:
 	wm.set_shader_parameter("speed", calm)
 	wm.set_shader_parameter("strength", 0.35 if classic else 0.25)
 	wm.set_shader_parameter("rect_size", water_fx.size)
+
+## White to transparent over a particle's life.
+func _fade_ramp() -> Gradient:
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	return g
+
+## Ambient life on the play board: slow drifting motes (pollen/dust by day, neon sparks in
+## Voodoo), a dust puff that follows the vehicle's wheels, and the level fade-in cover.
+func _build_atmosphere() -> void:
+	_motes = CPUParticles2D.new()
+	_motes.amount = 14
+	_motes.lifetime = 9.0
+	_motes.preprocess = 9.0
+	_motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	_motes.direction = Vector2(1, -0.2)
+	_motes.spread = 25.0
+	_motes.initial_velocity_min = 8.0
+	_motes.initial_velocity_max = 22.0
+	_motes.scale_amount_min = 1.5
+	_motes.scale_amount_max = 3.5
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 0))
+	g.add_point(0.2, Color(1, 1, 1, 0.55))
+	g.add_point(0.8, Color(1, 1, 1, 0.55))
+	g.set_color(g.get_point_count() - 1, Color(1, 1, 1, 0))
+	_motes.color_ramp = g
+	fx_layer.add_child(_motes)
+	_dust = CPUParticles2D.new()
+	_dust.emitting = false
+	_dust.amount = 12
+	_dust.lifetime = 0.7
+	_dust.direction = Vector2(-1, -0.6)
+	_dust.spread = 25.0
+	_dust.initial_velocity_min = 20.0
+	_dust.initial_velocity_max = 60.0
+	_dust.scale_amount_min = 3.0
+	_dust.scale_amount_max = 7.0
+	_dust.color = Color(0.85, 0.78, 0.65, 0.5)
+	_dust.color_ramp = _fade_ramp()
+	fx_layer.add_child(_dust)
+	_fade = ColorRect.new()
+	_fade.color = Color(0, 0, 0, 1)
+	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fade.modulate.a = 0.0
+	add_child(_fade)
+	_fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	move_child(_fade, fx_layer.get_index() + 1)
+
+## Keep the motes' emitter sized to the board and tinted for the skin (called every frame, cheap).
+func _tune_atmosphere() -> void:
+	if _motes == null:
+		return
+	var calm := _fx_reduced
+	_motes.emitting = not calm
+	_motes.position = Vector2(-20, board.size.y * 0.55)
+	_motes.emission_rect_extents = Vector2(10, board.size.y * 0.3)
+	_motes.color = Color(1, 0.95, 0.75) if skin == "classic" else Color(HomeKit.MAGENTA)
+
+## Level start: quick fade up from black.
+func _fade_in() -> void:
+	if _fade == null or LandingSlabs.reduced():
+		return
+	_fade.modulate.a = 1.0
+	var t := create_tween()
+	t.tween_property(_fade, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+## A short, decaying camera shake of the board and its particles.
+func _shake(amount: float) -> void:
+	if LandingSlabs.reduced():
+		return
+	var t := create_tween()
+	t.tween_method(_shake_step.bind(amount), 1.0, 0.0, 0.35)
+	t.tween_callback(_shake_step.bind(0.0, 0.0))
+
+func _shake_step(k: float, amount: float) -> void:
+	_shake_off = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * amount * k
+	board.position = _shake_off
+	fx_layer.position = _shake_off
+
+## Dust kicked up behind the vehicle while it drives.
+func _update_dust() -> void:
+	if _dust == null:
+		return
+	var on: bool = engine.vstate == "drive" and not _fx_reduced
+	_dust.emitting = on
+	if on:
+		_dust.position = _to_screen(engine.vehicle_pos() + Vector2(-float(E.VEHICLES[lv.vehicle].base) * 0.5, -0.1))
 
 ## One rising coin per star on the result card.
 func _pling(i: int) -> void:
@@ -2180,6 +2337,10 @@ func _draw_grid_and_bridge(classic: bool, w: float) -> void:
 	board.draw_polygon(PackedVector2Array([Vector2(0, sz2.y - BOTTOM_BAR - 20), Vector2(sz2.x, sz2.y - BOTTOM_BAR - 20), Vector2(sz2.x, sz2.y), Vector2(0, sz2.y)]), PackedColorArray([clear, clear, dark, dark]))
 
 func _draw_member(a: Vector2, b: Vector2, m: String, stress: float, classic: bool, alpha: float = 1.0) -> void:
+	# Pieces near breaking throb red so the weak spot reads at a glance.
+	if stress > 0.7:
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.016)
+		board.draw_line(a, b, Color(1, 0.15, 0.1, (0.18 + 0.3 * pulse) * alpha * clampf((stress - 0.7) * 3.3, 0.0, 1.0)), maxf(6.0, vs * 0.34))
 	var t := _part(MAT_TEX[m]) if classic else null
 	if t:
 		var ln := a.distance_to(b)
@@ -2249,6 +2410,13 @@ func _draw_vehicle(classic: bool) -> void:
 	else:
 		p = Vector2(E.START_X - float(vd.base) * 0.5, 0.0)
 	var base: float = vd.base
+	# Soft ground shadow under the vehicle (fades as it falls away from the road).
+	if engine.vstate != "fall":
+		var sc := _to_screen(p)
+		var sw := base * vs * 0.62
+		board.draw_set_transform(sc + Vector2(0, vs * 0.1), -ang, Vector2(1, 0.22))
+		_disc_at(Vector2.ZERO, sw, Color(0, 0, 0, 0.28))
+		board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var vt := _part("veh_" + str(lv.vehicle)) if classic else null
 	var vm: Array = VEH_META.get(lv.vehicle, [0.2, 0.8])
 	var pick := _garage_pick()
