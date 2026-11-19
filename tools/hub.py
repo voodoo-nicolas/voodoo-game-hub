@@ -10,6 +10,7 @@ chore that used to be a hand-edit across several files.
     python tools/hub.py test [ID...]          headless-boot the hub, account screen and games
     python tools/hub.py export [ID...|--all]  build game .pck files into builds/packs/
     python tools/hub.py apk                   build the release Android APK (signed with the private key) into builds/
+    python tools/hub.py products              list the Play subscriptions to create (builds/play_products.csv, docs/BILLING.md)
     python tools/hub.py pc                    build the Windows version (every game built in) + desktop shortcut
     python tools/hub.py pc-zip                the same, zipped into builds/ to copy to other PCs
     python tools/hub.py web [--publish]       build the browser version (iPhone / Safari) into builds/web/ [and docs/play/]
@@ -483,6 +484,11 @@ def validate() -> tuple[list[str], list[str]]:
                 errors.append(f"{gid}: scripts/games/{gid}/ does not exist")
             if not str(entry.get("url", "")).endswith(f"/{gid}.pck"):
                 errors.append(f"{gid}: url should end in /{gid}.pck")
+            # Store (ported from branch `store`, 2026-11-19).
+            if "free" in g and not isinstance(g["free"], bool):
+                errors.append(f'{gid}: "free" must be true or false')
+            if len(gid) > 40:
+                errors.append(f"{gid}: ids longer than 40 letters can't be store products")
     for gid in games:
         if gid not in seen:
             warnings.append(f'{gid}: in "games" but not in any category, so the hub never shows it')
@@ -503,6 +509,7 @@ def validate() -> tuple[list[str], list[str]]:
     current = PRESETS.read_text(encoding="utf-8")
     if render_presets(catalog_ids(m)) != current:
         errors.append("export_presets.cfg is out of date (pack presets, Android version or app name) -- run sync")
+    errors += lint_store(m)
     errors += lint_credits()
     errors += lint_music(m)
     errors += lint_hub_name()
@@ -517,6 +524,37 @@ def validate() -> tuple[list[str], list[str]]:
     errors += ["ratings: " + e for e in rating_errors]
     print(f"  hub rating {rating_report.hub_rating(m)}+ (max age of any game; the Play content-rating answers must match: python tools/rating_report.py)")
     return errors, warnings
+
+
+# The store's Play product ids (docs/BILLING.md). Config.gd is the source; this
+# copy and supabase/functions/_shared/store.ts must say the same (lint_store).
+HUB_PRODUCT = "hub_monthly"
+GAME_PRODUCT = "game_%s_monthly"
+HUB_PRICE_USD = "4.99"
+GAME_PRICE_USD = "1.00"
+
+
+def lint_store(m: dict) -> list[str]:
+    """The manifest's "store" block, and the product ids agreeing everywhere."""
+    errors = []
+    store = m.get("store", {})
+    if not isinstance(store, dict):
+        return ['manifest.json: "store" must be an object']
+    if store:
+        if not isinstance(store.get("enabled", False), bool) or not isinstance(store.get("promos", True), bool):
+            errors.append('manifest.json: store "enabled" / "promos" must be true or false')
+        if not isinstance(store.get("trial_days", 3), int) or store.get("trial_days", 3) < 1:
+            errors.append('manifest.json: store "trial_days" must be a whole number of days')
+    cfg = CONFIG_GD.read_text(encoding="utf-8")
+    for const, want in [("STORE_HUB_PRODUCT", HUB_PRODUCT), ("STORE_GAME_PRODUCT", GAME_PRODUCT)]:
+        if f'const {const} := "{want}"' not in cfg:
+            errors.append(f'config.gd {const} differs from tools/hub.py ("{want}") -- keep docs/BILLING.md in step')
+    ts = (ROOT / "supabase/functions/_shared/store.ts")
+    if ts.is_file():
+        t = ts.read_text(encoding="utf-8")
+        if f'HUB_PRODUCT = "{HUB_PRODUCT}"' not in t or "_monthly$/" not in t:
+            errors.append("supabase/functions/_shared/store.ts product ids differ from config.gd")
+    return errors
 
 
 def lint_legal() -> list[str]:
@@ -854,6 +892,31 @@ def cmd_check(_args=None) -> None:
     m = load_manifest()
     print(f"OK -- v{version} (build {build}), {len(live_ids(m))} games live"
           f" (+{len(archived_ids(m))} archived)")
+
+
+def cmd_products(_args) -> None:
+    """Every Play product to create in Play Console (docs/BILLING.md): one
+    $1/month subscription per paid game and the hub subscription."""
+    m = load_manifest()
+    rows = [("product_id", "type", "base_plan", "title", "price_usd", "offers")]
+    free = 0
+    for cat in m.get("categories", []):
+        for g in cat.get("games", []):
+            gid = g.get("id")
+            if not gid or gid in archived_ids(m):
+                continue
+            if g.get("free"):
+                free += 1
+                continue
+            rows.append((GAME_PRODUCT % gid, "subscription", "monthly", g.get("title", gid), GAME_PRICE_USD, "none (3-day trial is in-app, server-side)"))
+    rows.append((HUB_PRODUCT, "subscription", "monthly", "All games", HUB_PRICE_USD,
+                 "7-day free trial + $2.99/month for 3 billing periods (new subscribers)"))
+    out = ROOT / "builds/play_products.csv"
+    out.parent.mkdir(exist_ok=True)
+    import csv
+    with out.open("w", encoding="utf-8", newline="") as f:
+        csv.writer(f).writerows(rows)
+    print(f"  {len(rows) - 2} game subscriptions + 1 hub subscription ({free} free games skipped) -> {out.relative_to(ROOT)}")
 
 
 def cmd_new_game(args) -> None:
@@ -1584,6 +1647,7 @@ def main() -> int:
     p.add_argument("--draft-legal", action="store_true",
                    help="release-signed TEST build although the legal text still has open markers (installs over the real app; never publish it)")
     p.set_defaults(fn=cmd_apk)
+    sub.add_parser("products").set_defaults(fn=cmd_products)
     p = sub.add_parser("aab")
     p.add_argument("--draft-legal", action="store_true", help="build although the legal text still has open markers (never upload)")
     p.set_defaults(fn=cmd_aab)
