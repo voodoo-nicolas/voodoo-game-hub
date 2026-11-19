@@ -50,7 +50,8 @@
       {"id": "hidato", "family": "Sudoku", "title": "Hidato", "icon": "🔢", "title_es": "Hidato", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "creation", "tile_art": "res://media/hub/game_art/creation/tile.webp", "hero_art": "res://media/hub/game_art/creation/hero.webp", "title": "Creation", "icon": "⚗️", "title_es": "Creación", "board": "Discoveries", "skins": "classic,voodoo", "learn": ["science", "logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "evolution", "tile_art": "res://media/hub/game_art/evolution/tile.webp", "hero_art": "res://media/hub/game_art/evolution/hero.webp", "quick": true, "original": true, "title": "Evolution", "icon": "🦠", "title_es": "Evolución", "board": "Best score", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 7, "descriptors": ["violence_cartoon"], "notes": "Cartoon microbes eat each other"}},
-      {"id": "rectangles", "family": "Sudoku", "title": "Gridmaster", "icon": "🟦", "title_es": "Gridmaster", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
+      {"id": "rectangles", "family": "Sudoku", "title": "Gridmaster", "icon": "🟦", "title_es": "Gridmaster", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
+      {"id": "arrows", "title": "Arrows", "icon": "➡️", "title_es": "Flechas", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
     ]},
     {"name": "Cards", "icon": "🃏", "name_es": "Cartas", "games": [
       {"id": "solitaire", "tile_art": "res://media/hub/game_art/solitaire/tile.webp", "hero_art": "res://media/hub/game_art/solitaire/hero.webp", "family": "Solitaire", "title": "Solitaire", "icon": "🂡", "title_es": "Solitario", "board": "Games won", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
@@ -271,6 +272,7 @@
     "ink_ninja": {"version": 12, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ink_ninja.pck", "scene": "res://scenes/games/ink_ninja/ink_ninja.tscn"},
     "wolf_pack": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wolf_pack.pck", "scene": "res://scenes/games/wolf_pack/wolf_pack.tscn"},
     "mini_golf_3d": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf_3d.pck", "scene": "res://scenes/games/mini_golf_3d/mini_golf_3d.tscn"},
-    "hesperia": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hesperia.pck", "scene": "res://scenes/games/hesperia/hesperia.tscn"}
+    "hesperia": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hesperia.pck", "scene": "res://scenes/games/hesperia/hesperia.tscn"},
+    "arrows": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/arrows.pck", "scene": "res://scenes/games/arrows/arrows.tscn"}
   }
 }
