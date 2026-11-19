@@ -74,6 +74,8 @@ var _manifest_waiters: Array[Callable] = []
 ## Set once the hub has checked GitHub for a newer APK this session, so
 ## returning to the hub doesn't re-hit the rate-limited API or re-nag.
 var app_update_checked := false
+## The manifest's top-level "store" block (read by the Store autoload).
+var store_config: Dictionary = {}
 
 ## Age ratings (since v0.35, compliance pack Task 4). Each manifest game has
 ## "content": {"min_age", "descriptors", "notes"}. When the manifest carries any
@@ -339,6 +341,8 @@ func _apply_manifest(data: Variant) -> bool:
 			game["content_notes"] = str(content.get("notes", "")) if typeof(content) == TYPE_DICTIONARY else ""
 			if typeof(content) == TYPE_DICTIONARY:
 				ratings_seen = true
+			# Store (docs/monetization/PLAN.md): free forever, no trial needed.
+			game["free"] = bool(raw_game.get("free", false))
 			cat_games.append(game)
 		cat_games.sort_custom(_family_less)
 		var category := {
@@ -360,6 +364,8 @@ func _apply_manifest(data: Variant) -> bool:
 	categories = refiltered()
 	_games_by_id = games_by_id
 	archived_ids = archived
+	# The Store autoload's switch: {"enabled", "trial_days", "promos"}; missing = off.
+	store_config = data.get("store") if data.get("store") is Dictionary else {}
 	return true
 
 ## Category order: by family (a game without one counts as its own family),
@@ -782,6 +788,11 @@ func check_app_update(on_newer: Callable, on_none: Callable = Callable()) -> voi
 					return
 		_safe_call(on_none, [true])
 	)
+
+## Builds for the Play Store carry the "play" custom feature (its export
+## preset): Play installs updates, so the GitHub release check is skipped.
+static func is_play_build() -> bool:
+	return OS.has_feature("play")
 
 ## Dotted versions compared numerically segment by segment ("0.10.0" > "0.9.1").
 static func is_newer_version(remote: String, local: String) -> bool:

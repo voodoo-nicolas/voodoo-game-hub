@@ -48,6 +48,8 @@ var _game_updates_running := false
 var _content_margin: MarginContainer
 var storage_box: VBoxContainer
 var credits_box: VBoxContainer
+var member_label: Label
+var member_btn: Button
 
 func _ready() -> void:
 	Orientation.lock_sensor()
@@ -56,6 +58,8 @@ func _ready() -> void:
 	# Plain method callables (see CLAUDE.md): freed with this scene.
 	Auth.signed_in.connect(_update_account.unbind(2))
 	Auth.signed_out.connect(_update_account)
+	Store.changed.connect(_update_membership)
+	Store.purchase_failed.connect(_on_purchase_message)
 
 ## Landscape: the scrolling content keeps a phone-width column in the middle.
 const CONTENT_MAX_WIDTH := 760.0
@@ -152,6 +156,19 @@ func _build_ui() -> void:
 	if bracket != "":
 		account.add_child(_body_label(tr("Age group: %s (kept only on this device)") % bracket))
 	_update_account()
+
+	# ---- Membership (only while the store is switched on) ----
+	if Store.enabled():
+		var member := _section(list, tr("⭐ Membership"))
+		member_label = _body_label("")
+		member.add_child(member_label)
+		member_btn = _pill_button("", true)
+		member_btn.pressed.connect(_on_member_pressed)
+		member.add_child(member_btn)
+		var restore_btn := _pill_button(tr("Restore purchases"), false)
+		restore_btn.pressed.connect(_on_restore_pressed)
+		member.add_child(restore_btn)
+		_update_membership()
 
 	# ---- Friends ----
 	if not Catalog.online_blocked():
@@ -658,6 +675,45 @@ func _on_account_pressed() -> void:
 		Auth.sign_out()
 	else:
 		get_tree().change_scene_to_file("res://scenes/account/account.tscn")
+
+func _update_membership() -> void:
+	if member_label == null:
+		return
+	var sub: Dictionary = Store.subscription()
+	if not sub.is_empty():
+		var exp = sub.get("expires", null)
+		var when := Time.get_date_string_from_unix_time(int(exp)) if exp != null else ""
+		if exp == null:
+			member_label.text = tr("You have every game, for good. Thank you!")
+		elif str(sub.get("state", "")) == "canceled":
+			member_label.text = tr("All %d games until %s (won't renew).") % [Store.game_count(), when]
+		else:
+			member_label.text = tr("All %d games. Renews %s.") % [Store.game_count(), when]
+		member_btn.text = tr("Manage subscription")
+		member_btn.visible = exp != null
+	else:
+		member_label.text = tr("Every game in the hub, and every new one we add: %s.") % Store.subscription_terms()
+		member_btn.text = tr("⭐ Get all games")
+		member_btn.visible = true
+
+func _on_member_pressed() -> void:
+	if drag.moved:
+		return
+	if Store.is_subscribed():
+		Store.manage_subscription()
+	else:
+		Store.open_paywall({})
+
+func _on_restore_pressed() -> void:
+	if drag.moved:
+		return
+	member_label.text = tr("Checking your purchases...")
+	Store.restore()
+
+func _on_purchase_message(message: String) -> void:
+	# The paywall shows its own; this is for Restore pressed here.
+	if member_label and message != "" and get_tree().get_nodes_in_group("modal_overlay").is_empty():
+		member_label.text = message
 
 func _on_update_pressed() -> void:
 	if drag.moved:

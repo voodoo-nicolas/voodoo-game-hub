@@ -104,6 +104,7 @@ func _exit_tree() -> void:
 ## Online games pass online = true: they're counted apart ("Online wins"),
 ## since the same screen also counts same-phone games per side.
 func result(outcome: String, online: bool = false) -> void:
+	_maybe_promo(online)
 	if outcome == "loss":
 		_buzz()  # wins buzz in celebrate(), which many games call directly
 		_sfx("lose")
@@ -130,6 +131,8 @@ func result(outcome: String, online: bool = false) -> void:
 func add(key: String, n: int = 1) -> void:
 	stats[key] = int(stats.get(key, 0)) + n
 	_save()
+	if key == "Games played":  # how arcade games mark a game over
+		_maybe_promo(false)
 
 ## Higher is better. Returns true if `value` is a new record. A new
 ## "Best score" also goes on the online leaderboard when signed in.
@@ -176,6 +179,7 @@ func _process(delta: float) -> void:
 ## end screen (mouse_filter IGNORE, so its buttons keep working). `text` is
 ## translated here: "You win!", "Solved!" and "New best!" are the stock ones.
 func celebrate(text: String = "You win!") -> void:
+	_maybe_promo(false)
 	_buzz()
 	_sfx("record" if text == "New best!" else "win")
 	if _party:
@@ -662,6 +666,151 @@ func _end_toast(panel: Control) -> void:
 	panel.queue_free()
 	_toast_panel = null
 	_next_toast()
+
+# ---------- promo cards (the hub's own "ads", docs/monetization/PLAN.md) ----------
+
+## A game just ended: the Store autoload decides whether a card is due (at
+## most one every few games, never online, off unless the store is on). It
+## slides in from the top after the result has had its moment, like a badge
+## toast, but can be tapped: ⭐ subscribe, or open another game. ✕ or 8 s
+## closes it. Apps without Store (and packs on them) simply never show one.
+var _promo_msec: int = -100000
+var _promo_panel: Control
+
+func _maybe_promo(online: bool) -> void:
+	# One game end often reports twice (result() + celebrate()).
+	if Time.get_ticks_msec() - _promo_msec < 5000:
+		return
+	_promo_msec = Time.get_ticks_msec()
+	var store = get_node_or_null("/root/Store")
+	if store == null or not store.has_method("promo_for"):
+		return
+	var p: Dictionary = store.promo_for(str(consts.get("ID", "")), online)
+	if p.is_empty():
+		return
+	var tw := create_tween()
+	tw.tween_interval(2.2)
+	tw.tween_callback(_show_promo.bind(p))
+
+func _show_promo(p: Dictionary) -> void:
+	if not is_inside_tree() or _promo_panel != null:
+		return
+	if _toast_panel != null:  # a badge toast first
+		var tw := create_tween()
+		tw.tween_interval(3.5)
+		tw.tween_callback(_show_promo.bind(p))
+		return
+	var store = get_node_or_null("/root/Store")
+	var lang = get_node_or_null("/root/Lang")
+	if store == null:
+		return
+	var icon_text := "⭐"
+	var title := ""
+	var line := ""
+	var action := tr("Try it")
+	if p.kind == "sub":
+		var days := int(store.prices.get("hub_all:trial_days", 7))
+		if p.get("owned", false):
+			title = tr("Unlock the other %d games") % (store.game_count() - 1)
+		else:
+			title = tr("All %d games — %d days free") % [store.game_count(), days]
+		line = store.subscription_terms()
+	else:
+		var g: Dictionary = p.game
+		icon_text = str(g.get("icon", "🎮"))
+		var game_name: String = lang.pick(g, "title") if lang else str(g.get("title", ""))
+		title = tr("You might like %s") % game_name
+		line = tr("A game you haven't tried yet.")
+		action = tr("Play")
+
+	var vp: Vector2 = get_viewport_rect().size
+	var panel := PanelContainer.new()
+	var sb := Ui.panel_style()
+	sb.border_color = Color(1, 0.75, 0.2) if p.kind == "sub" else Color(0.3, 0.85, 1)
+	sb.shadow_color = Color(sb.border_color, 0.5)
+	sb.shadow_size = 14
+	sb.content_margin_left = 18
+	sb.content_margin_right = 14
+	sb.content_margin_top = 14
+	sb.content_margin_bottom = 14
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	panel.add_child(row)
+	var icon := Label.new()
+	icon.text = icon_text
+	icon.add_theme_font_size_override("font_size", 44)
+	icon.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	row.add_child(icon)
+	var w: float = minf(vp.x - 32.0, 620.0)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Wrapped labels need a real width, or the card measures one word per line.
+	col.custom_minimum_size = Vector2(maxf(100.0, w - 262.0), 0)  # w minus icon, buttons, gaps
+	col.add_theme_constant_override("separation", 2)
+	row.add_child(col)
+	for spec in [[title, 24, Color(1, 1, 1)], [line, 17, Color(0.75, 0.8, 0.9)]]:
+		var l := Label.new()
+		l.text = spec[0]
+		l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.add_theme_font_size_override("font_size", spec[1])
+		l.add_theme_color_override("font_color", spec[2])
+		col.add_child(l)
+	var go := Button.new()
+	go.text = action
+	go.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	go.custom_minimum_size = Vector2(100, 60)
+	go.add_theme_font_size_override("font_size", 22)
+	go.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	go.pressed.connect(_on_promo_go.bind(p, panel))
+	row.add_child(go)
+	var close := Button.new()
+	close.text = "✕"
+	close.flat = true
+	close.custom_minimum_size = Vector2(40, 48)
+	close.add_theme_font_size_override("font_size", 24)
+	close.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	close.pressed.connect(_end_promo.bind(panel))
+	row.add_child(close)
+	add_child(panel)
+	panel.custom_minimum_size = Vector2(w, 0)
+	panel.position = Vector2((vp.x - w) / 2.0, -4000.0)  # out of sight until measured
+	_promo_panel = panel
+	# Wrapped labels only know their height once laid out at their width, so
+	# measure a moment later (a free-floating panel never shrinks by itself).
+	var wait := panel.create_tween()
+	wait.tween_interval(0.05)
+	wait.tween_callback(_slide_promo.bind(panel))
+
+func _slide_promo(panel: Control) -> void:
+	panel.reset_size()
+	panel.position = Vector2((get_viewport_rect().size.x - panel.size.x) / 2.0, -panel.size.y - 20.0)
+	var tw := panel.create_tween()
+	tw.tween_property(panel, "position:y", 70.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(8.0)
+	tw.tween_property(panel, "position:y", -panel.size.y - 20.0, 0.3)
+	tw.tween_callback(_end_promo.bind(panel))
+
+func _on_promo_go(p: Dictionary, panel: Control) -> void:
+	_end_promo(panel)
+	if p.kind == "sub":
+		var store = get_node_or_null("/root/Store")
+		if store:
+			store.subscribe()
+		return
+	# Open the other game through the hub, like an invite does.
+	var social = get_node_or_null("/root/Social")
+	if social:
+		social.launch_request = str(p.game.get("id", ""))
+	Ui.exit_to_hub(get_parent() if get_parent() else self)
+
+func _end_promo(panel: Control) -> void:
+	if is_instance_valid(panel):
+		panel.queue_free()
+	if _promo_panel == panel:
+		_promo_panel = null
 
 ## Hub-wide badges may follow (games tried, badges total), and the badge
 ## count goes on the 🏅 leaderboard when signed in.

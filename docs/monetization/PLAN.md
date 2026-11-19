@@ -1,7 +1,9 @@
 # Monetization plan — trials, $1 games, hub subscription
 
-**Status: APPROVED plan (2026-10-04), decisions at the bottom. Nothing here
-is built or live yet.**
+**Status (2026-10-05): phases 3 and 4 BUILT on branch `store`, switched off.
+Nothing is live: the SQL isn't run, the functions aren't deployed, the
+manifest says `"store": {"enabled": false}`. Next: phase 1 (Play Console,
+Gradle build + billing plugin) -- see "Still to do" at the bottom.**
 Target: the next big release. Until the plan is approved, nothing in this folder ships, and nothing goes into
 `supabase/migrations/` (so it can't be run by accident).
 
@@ -147,7 +149,7 @@ by code are the same thing.
 
 ### Server (Supabase)
 
-Draft SQL: [`entitlements_draft.sql`](entitlements_draft.sql).
+SQL: [`supabase/migrations/20261005000000_store.sql`](../../supabase/migrations/20261005000000_store.sql) (not run yet).
 
 - `store_trials (user_id, game, started_at)` — one row per user per game,
   `started_at default now()`; never updated.
@@ -275,7 +277,7 @@ Findings from reading the code, so tomorrow starts at the keyboard.
 - `hub.py aab` (Play bundle), `hub.py apk` unchanged.
 
 **Manifest**
-- `"free": true` on the 13 free games' category entries (older apps ignore
+- `"free": true` on the 15 free games' category entries (older apps ignore
   unknown fields, so this can be pushed any time).
 - `"store": {"enabled": false, "trial_days": 3, "promos": true}` — flip
   `enabled` at launch.
@@ -283,14 +285,56 @@ Findings from reading the code, so tomorrow starts at the keyboard.
 **Docs**: CLAUDE.md gets a "Store" section and the softened login-wall rule
 when this ships.
 
+## What was built (2026-10-05, branch `store`)
+
+- **Server**: the migration (times returned as unix seconds),
+  `supabase/functions/_shared/play.ts` (service-account JWT, Play API),
+  `_shared/store.ts`, `purchase-verify/`, `play-rtdn/` (secret `?token=`
+  in the Pub/Sub URL, deploy with `--no-verify-jwt`). Tests:
+  `deno test --allow-read --allow-env supabase/functions/_tests/store_test.ts`.
+- **App** (all APK-side, games untouched): `scripts/common/store.gd`
+  (autoload `Store`), `store_billing.gd` (the only file that touches the
+  plugin; fake mode for PC), `paywall.gd`; `Catalog` reads `"free"` and
+  the `"store"` block and skips the GitHub update check on Play builds
+  (custom feature `play`); hub gate + tile tags; Options "⭐ Membership";
+  GameInfo promo cards. Test: `tools/test_store.gd`.
+- **Manifest**: the 15 free games flagged; `"store"` block present, off.
+- **Tooling**: `hub.py products` (builds/play_products.csv, 87 games +
+  the subscription), `hub.py check` validates the store fields.
+- **Try it on PC**: `HUB_STORE=1 HUB_FAKE_BILLING=1` forces the store
+  on with instant fake purchases (the live manifest has no free flags until
+  this branch's manifest is pushed, so every tile shows "Try free").
+
+## Still to do
+
+1. **Phase 1 (needs you)**: Play Console app (listing, privacy policy,
+   content rating, internal testing track), upload the existing release
+   key to Play App Signing, then: install the billing plugin into
+   `addons/` (check `store_billing.gd`'s key names against it), switch the
+   Android preset to the Gradle build + an `.aab` export with the `play`
+   custom feature (`hub.py aab`), check the target SDK Play requires.
+2. **Play Console products**: create them from `hub.py products`; the
+   subscription `hub_all`, base plan `monthly`, offers: 7-day free trial
+   and $2.99 x 3 months.
+3. **Server go-live**: run the migration; Google Cloud service account
+   with Play Console access -> secrets `PLAY_SERVICE_ACCOUNT_JSON`,
+   `PLAY_RTDN_TOKEN`; deploy `purchase-verify` and `play-rtdn`; Pub/Sub
+   topic + push subscription; point Play Console's RTDN at the topic.
+4. **Test with license testers** on the internal track (test cards).
+5. **Launch**: grants for testers, `min_build` on paid packs, merge the
+   branch, release the APK, then flip `"enabled": true` in the manifest.
+   Update CLAUDE.md's login-wall rule.
+
 ## Decisions (approved 2026-10-04)
 
 1. **Free forever set** (`"free": true` in the manifest; playable signed
    out, no trial). One per category so no category is all-locked.
-   Proposed, adjust freely: Tic-Tac-Toe, Connect Four, Sudoku, Minesweeper
+   Tic-Tac-Toe, Connect Four, Checkers, Reversi, Sudoku, Minesweeper
    (Puzzle & Board); Trivia (Intelligence); Solitaire (Cards); Hangman,
    Word Search (Word); Snake, Brick Breaker (Arcade); Yacht (Dice & Party);
-   King's Cup (Drinking); Party Spinner (Other) — 13 games.
+   King's Cup (Drinking); Party Spinner (Other) — 15 games (Checkers and
+   Reversi added 2026-10-05: free online board games bring a second player in).
+   The paywall presents the hub first ("Best value"), the $0.99 game second.
 2. **Trials: both.** Each paid game gets our own 3-day trial (no card).
    The hub subscription gets **Play's built-in 7-day free trial** offer
    (Play asks for a payment method, auto-renews unless cancelled, one

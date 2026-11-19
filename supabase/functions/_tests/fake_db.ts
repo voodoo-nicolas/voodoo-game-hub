@@ -9,12 +9,15 @@ const PK: Record<string, string[]> = {
   profiles: ["id"], sessions: ["id"], responses: ["session_id", "seq"], section_scores: ["session_id", "sec"],
   blitz_best: ["user_id", "scope", "dur_s", "season"], daily: ["user_id", "day"], duels: ["code"],
   duel_results: ["code", "user_id"], certificates: ["token"], client_reports: ["id"],
+  store_trials: ["user_id", "game"], store_entitlements: ["id"],
 };
 const DEFAULTS: Record<string, () => Row> = {
   profiles: () => ({ minor: false, lang: "es", created_at: new Date().toISOString() }),
   sessions: () => ({ id: crypto.randomUUID(), kind: "normal", status: "live", flags: {}, result: null, state: {}, started_at: new Date().toISOString() }),
   section_scores: () => ({ created_at: new Date().toISOString() }),
   client_reports: () => ({ id: crypto.randomUUID(), created_at: new Date().toISOString() }),
+  store_trials: () => ({ started_at: new Date().toISOString() }),
+  store_entitlements: () => ({ id: Math.floor(Math.random() * 1e12), state: "active", updated_at: new Date().toISOString() }),
 };
 
 function get(row: Row, col: string) {

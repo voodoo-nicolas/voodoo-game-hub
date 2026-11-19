@@ -182,6 +182,8 @@ func _ready() -> void:
 	# A newer live manifest can add games or change versions while the hub is
 	# open. Plain method connection, not a lambda -- see CLAUDE.md gotcha.
 	Catalog.catalog_changed.connect(_on_catalog_changed)
+	Store.changed.connect(_rebuild_list)  # trials, purchases: tile tags change
+	Store.refresh()
 	Catalog.refresh_manifest(Config.MANIFEST_MAX_AGE_SEC)
 	_rebuild_list()
 	_refresh_home()
@@ -859,7 +861,7 @@ func _resume_last_game() -> void:
 	for category in Catalog.categories:
 		for entry in category.get("games", []):
 			var game: Dictionary = Catalog.get_game(entry.get("id", ""))
-			if game.get("scene", "") == scene and Catalog.state_of(game) == Catalog.STATE_READY:
+			if game.get("scene", "") == scene and Catalog.state_of(game) == Catalog.STATE_READY 					and Store.access(game).allowed:
 				busy = true
 				call_deferred("_launch", game, false)
 				return
@@ -1142,6 +1144,11 @@ func _make_tile(game: Dictionary, heading: String = "") -> Control:
 		state_color = pal.soon
 		tag_text = "🔒 " + Catalog.age_reason(game)
 
+	# Store tags (trial days left, try free, unlock) replace Play / Download.
+	var store_badge: Dictionary = Store.badge(game) if available else {}
+	if not store_badge.is_empty() and state != Catalog.STATE_NEEDS_APP_UPDATE:
+		tag_text = store_badge.text
+
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 128)
 	var sb: StyleBoxFlat
@@ -1221,7 +1228,8 @@ func _make_tile(game: Dictionary, heading: String = "") -> Control:
 	var tag := Label.new()
 	tag.text = tag_text
 	tag.add_theme_font_size_override("font_size", 22)
-	tag.add_theme_color_override("font_color", state_color)
+	tag.add_theme_color_override("font_color",
+			pal[store_badge.color] if not store_badge.is_empty() and state != Catalog.STATE_NEEDS_APP_UPDATE else state_color)
 	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(tag)
 
@@ -1275,6 +1283,14 @@ func _on_tile_pressed(id: String) -> void:
 			{"text": tr("Later"), "action": Callable()},
 		])
 		return
+	# The store (docs/monetization/PLAN.md): opens the paywall instead when the
+	# game isn't unlocked; with the store switched off it just carries on.
+	Store.gate(game, _open_game.bind(id))
+
+func _open_game(id: String) -> void:
+	if busy or not is_inside_tree():
+		return
+	var game: Dictionary = Catalog.get_game(id)
 	if Catalog.needs_download(id):
 		_start_download(game)
 	else:

@@ -56,3 +56,16 @@ const HTTP_TIMEOUT := 10.0
 const DOWNLOAD_TIMEOUT := 180.0
 ## How long a fetched manifest is trusted before a tile tap refetches it.
 const MANIFEST_MAX_AGE_SEC := 300
+
+## Play Billing products -- the ONE place for their ids (docs/BILLING.md lists
+## them for Play Console; supabase/functions/_shared/store.ts and tools/hub.py
+## `products` must match, `hub.py check` compares them). Since 2026-11-19 all
+## are monthly auto-renewing subscriptions with base plan STORE_BASE_PLAN:
+## the hub ($4.99; offer: 7-day free trial + $2.99 for 3 months) and one per
+## paid game ($1; the 3-day game trial is ours, server-side, no card).
+const STORE_HUB_PRODUCT := "hub_monthly"
+const STORE_GAME_PRODUCT := "game_%s_monthly"
+const STORE_BASE_PLAN := "monthly"
+## The Play Store package (the sideloaded APK is com.viral.voodoo).
+const PLAY_PACKAGE := "com.viral.gamehub"
+const PLAY_SUBSCRIPTIONS_URL := "https://play.google.com/store/account/subscriptions"
