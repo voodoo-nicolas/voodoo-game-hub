@@ -4305,6 +4305,16 @@
    "date": "2026-11-13"
   },
   {
+   "file": "games/arrows/title.ttf",
+   "what": "Title font of the arrows Landing (menu style S11, MENU_STYLES.md; copy of the Blackjack one)",
+   "source": "Google Fonts: Bungee",
+   "author": "David Jonathan Ross",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/bungee-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/bungee",
+   "date": "2026-11-19"
+  },
+  {
    "file": "games/spirit_board/title.ttf",
    "what": "Title font of the spirit_board Landing (menu style, docs/MENU_STYLES.md)",
    "source": "Google Fonts: Creepster",

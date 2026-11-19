@@ -410,6 +410,9 @@
  "Cien días": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Cleared!": [
+  "scripts\\games\\arrows\\arrows_game.gd"
+ ],
  "Club del amanecer": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -999,7 +1002,8 @@
   "scripts\\games\\video_poker\\video_poker_chips.gd"
  ],
  "classic-%03d": [
-  "scripts\\games\\rectangles\\rectangles_game.gd"
+  "scripts\\games\\rectangles\\rectangles_game.gd",
+  "scripts\\games\\arrows\\arrows_generator.gd"
  ],
  "clear a stage without a hit": [
   "scripts\\games\\ink_ninja\\ink_ninja_engine.gd"
@@ -1011,7 +1015,8 @@
   "scripts\\games\\bridge_master\\bridge_master_game.gd"
  ],
  "daily-%d": [
-  "scripts\\games\\rectangles\\rectangles_game.gd"
+  "scripts\\games\\rectangles\\rectangles_game.gd",
+  "scripts\\games\\arrows\\arrows_game.gd"
  ],
  "damage just taken": [
   "scripts\\games\\hover_duel\\hover_duel_game.gd"
