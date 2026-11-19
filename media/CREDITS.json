@@ -4728,6 +4728,16 @@
    "date": "2026-11-13"
   },
   {
+   "file": "games/arrow_pop/title.ttf",
+   "what": "Title font of the arrow_pop Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Sniglet",
+   "author": "Haley Fiege",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/sniglet-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/sniglet",
+   "date": "2026-11-19"
+  },
+  {
    "file": "games/flood_it/title.ttf",
    "what": "Title font of the flood_it Landing (menu style, docs/MENU_STYLES.md)",
    "source": "Google Fonts: Sniglet",
