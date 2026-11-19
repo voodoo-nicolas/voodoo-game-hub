@@ -33,7 +33,8 @@
       {"id": "binary_grid", "family": "Sudoku", "quick": true, "title": "Binary Grid", "icon": "⚪", "title_es": "Cuadrícula binaria", "board": "Puzzles solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
       {"id": "hex", "family": "Lines", "title": "Hex", "icon": "⬡", "title_es": "Hex", "modes": "online,local,cpu", "board": "Wins", "skins": "classic,voodoo", "learn": ["logic", "math"], "content": {"min_age": 3, "descriptors": ["online_interaction"], "notes": ""}},
       {"id": "maze_trail", "tile_art": "res://media/hub/game_art/maze_trail/tile.webp", "hero_art": "res://media/hub/game_art/maze_trail/hero.webp", "title": "Maze Trail", "icon": "🧭", "title_es": "Senda del laberinto", "board": "Mazes solved", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
-      {"id": "bridge_master", "tile_art": "res://media/hub/game_art/bridge_master/tile.webp", "hero_art": "res://media/hub/game_art/bridge_master/hero.webp", "title": "Bridge Master", "icon": "🌉", "title_es": "Maestro de puentes", "board": "Heaviest load (kg)", "skins": "classic,voodoo", "learn": ["science", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}}
+      {"id": "bridge_master", "tile_art": "res://media/hub/game_art/bridge_master/tile.webp", "hero_art": "res://media/hub/game_art/bridge_master/hero.webp", "title": "Bridge Master", "icon": "🌉", "title_es": "Maestro de puentes", "board": "Heaviest load (kg)", "skins": "classic,voodoo", "learn": ["science", "math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
+      {"id": "block_escape", "title": "Block Escape", "icon": "🧱", "title_es": "Escape de Bloques", "board": "Levels cleared", "skins": "classic,voodoo", "learn": ["logic"], "content": {"min_age": 3, "descriptors": [], "notes": ""}, "desc": "Slide coloured blocks out through the gate of their colour before the clock runs out. 300 levels, a Daily board and a Zen mode.", "desc_es": "Desliza los bloques de colores hacia la puerta de su color antes de que se acabe el tiempo. 300 niveles, un tablero diario y un modo Zen."}
     ]},
     {"name": "Intelligence", "icon": "🧠", "name_es": "Inteligencia", "games": [
       {"id": "trivia", "quick": true, "title": "Trivia", "icon": "❓", "title_es": "Trivia", "skins": "classic,voodoo", "learn": ["geo", "science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}},
@@ -273,6 +274,7 @@
     "wolf_pack": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wolf_pack.pck", "scene": "res://scenes/games/wolf_pack/wolf_pack.tscn"},
     "mini_golf_3d": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf_3d.pck", "scene": "res://scenes/games/mini_golf_3d/mini_golf_3d.tscn"},
     "hesperia": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hesperia.pck", "scene": "res://scenes/games/hesperia/hesperia.tscn"},
-    "arrows": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/arrows.pck", "scene": "res://scenes/games/arrows/arrows.tscn"}
+    "arrows": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/arrows.pck", "scene": "res://scenes/games/arrows/arrows.tscn"},
+    "block_escape": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/block_escape.pck", "scene": "res://scenes/games/block_escape/block_escape.tscn"}
   }
 }
