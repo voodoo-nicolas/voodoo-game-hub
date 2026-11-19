@@ -99,7 +99,7 @@ func _build_overview(f: Dictionary) -> void:
 func _game_row(g: Dictionary) -> Control:
 	var gid := str(g.get("game", ""))
 	var entry: Dictionary = Catalog.get_game(gid)
-	var title: String = Lang.pick(entry, "title") if not entry.is_empty() else (tr("Viral Game Hub") if gid == "hub" else gid)
+	var title: String = Lang.pick(entry, "title") if not entry.is_empty() else (Brand.NAME if gid == "hub" else gid)
 	var root := Control.new()
 	root.custom_minimum_size = Vector2(0, 76)
 	var hit := Button.new()
@@ -149,7 +149,7 @@ func _on_compare(ok: bool, rows: Variant, game_id: String) -> void:
 ## Per game: every challenge either of you has earned, mine vs theirs.
 func _build_compare(f: Dictionary) -> void:
 	var entry: Dictionary = Catalog.get_game(_compare_game)
-	var title: String = Lang.pick(entry, "title") if not entry.is_empty() else (tr("Viral Game Hub") if _compare_game == "hub" else _compare_game)
+	var title: String = Lang.pick(entry, "title") if not entry.is_empty() else (Brand.NAME if _compare_game == "hub" else _compare_game)
 	var box := section(tr("Compare: %s") % title)
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 8)

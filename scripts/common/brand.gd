@@ -17,14 +17,14 @@ extends RefCounted
 
 const PATH := "res://scripts/common/brand.gd"
 
-const NAME := "Viral Game Hub"
+const NAME := "Viral Gaming Hub"
 const DEVELOPER := "Viral"
 ## English source; the Spanish comes from tools/i18n/es.json like any UI text.
 ## Use tagline(), not the constant, wherever it's shown.
 const TAGLINE := "No ads, ever."
 ## Play Store titles (max 30 characters, decided in docs/HUB_V2_PLAN.md §1).
 ## Store listing text: the owner approves any change before it's used.
-const STORE_TITLE := {"en": "Viral Game Hub – No Ads", "es": "Viral: Juegos sin anuncios"}
+const STORE_TITLE := {"en": "Viral Gaming Hub – No Ads", "es": "Viral: Juegos sin anuncios"}
 
 ## Shipped brand art (made by tools/brand/make_brand.py from the owner's
 ## sources in reference/art/brand/; credits in media/CREDITS.json).

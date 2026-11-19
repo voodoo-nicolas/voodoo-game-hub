@@ -3,16 +3,16 @@
 Read with `docs/STANDARDS.md`. Items move from here into STANDARDS once decided.
 
 ## 1. Naming — DECIDED (pending trademark check)
-- **Developer: Viral. Hub: Viral Game Hub.** Icon: neon crowned skull. One brand for studio + app.
-- Play titles (max 30 chars, localized per language): EN `Viral Game Hub – No Ads` · ES `Viral: Juegos sin anuncios`.
+- **Developer: Viral. Hub: Viral Gaming Hub** (renamed from "Viral Game Hub", owner 2026-11-19; trademark filing name TBD). Icon: neon crowned skull. One brand for studio + app.
+- Play titles (max 30 chars, localized per language): EN `Viral Gaming Hub – No Ads` · ES `Viral: Juegos sin anuncios`.
 - Known same-word users (low risk: small, different territories, "viral" is a common word): Viral Game Studios
   (Spain, indie), Simple Viral Games (India), the game *Viral* (UK). Check EUIPO before any EU marketing push.
 - **"Voodoo" is retired as a brand** (Voodoo SAS, Paris, is a giant IP-active mobile publisher). It survives only
   as the skin name ("Voodoo mode"). Rename the game "Voodoo IQ" and its "Blitz" mode (Voodoo also runs an app
   called Blitz) — new names OPEN.
-- TODO owner: file "VIRAL GAME HUB" (word + logo) at INPI Argentina, classes 9 and 41. Argentina is first-to-file:
+- TODO owner: file the mark (word + logo; filing name TBD -- "VIRAL GAMING HUB" or "VIRAL GAME HUB") at INPI Argentina, classes 9 and 41. Argentina is first-to-file:
   the registration, not first use, gives the right.
-- Code: `Brand.NAME = "Viral Game Hub"`, `Brand.DEVELOPER = "Viral"`. Use the brand freely, but always read these constants instead of typing the name (one-line rename if the trademark check fails).
+- Code: `Brand.NAME = "Viral Gaming Hub"`, `Brand.DEVELOPER = "Viral"`. Use the brand freely, but always read these constants instead of typing the name (one-line rename if the trademark check fails).
 
 ## 2. Phases (suggested order)
 | Phase | Work | Why this order |

@@ -1,9 +1,10 @@
-# Viral Game Hub — Claude Code instructions
+# Viral Gaming Hub — Claude Code instructions
 
-Developer **Viral**; hub **"Viral Game Hub"** (pending INPI/EUIPO check, `docs/HUB_V2_PLAN.md` §1). "Voodoo" is ONLY the neon-skull skin name.
+Developer **Viral**; hub **"Viral Gaming Hub"** (renamed 2026-11-19; trademark filing name TBD; pending INPI/EUIPO check, `docs/HUB_V2_PLAN.md` §1). "Voodoo" is ONLY the neon-skull skin name.
 Show the brand as much as you like, but always read it from `scripts/common/brand.gd` (`Brand.NAME` = hub, `Brand.DEVELOPER` = developer), never type it out: the name is still pending its trademark check, so a rename must stay a one-line change.
 Free, ad-free (**no ads, ever**), ever-growing mini-game hub: Godot 4.7.2 / GDScript, no Gradle. Public repo https://github.com/voodoo-nicolas/voodoo-game-hub. ~100 games as downloadable `.pck` packs on GitHub Releases (tag `packs-v1`); goal: 100 games live before monetization ("a million games behind one icon"). Supabase: auth, leaderboards, friends/invites, Realtime rooms, entitlements. Bilingual EN/ES.
 Monetization is built but **not live**: `store.gd`, `store_billing.gd`, `paywall.gd` on branch `store` (worktree `../voodoo-game-hub-store`), not merged. Don't rebuild; integrate only when the owner says (2026-10-06: hub and games first). Plan `docs/monetization/PLAN.md`: 3-day trials for signed-in players, $0.99/game (Voodoo IQ $1.99), $4.99/month hub (7-day trial + $2.99 x 3 intro), 15 games always free.
+**Update 2026-11-19:** the store is ported onto branch `feature/launch-billing` (not merged to master until the owner confirms; `store` is kept as an archive). Prices now: hub `hub_monthly` $4.99/month (Play offer: 7-day free trial + $2.99 x 3 periods), each paid game `game_<id>_monthly` $1/month (our 3-day trial). Product ids live only in `scripts/common/config.gd` (`STORE_*`), listed in `docs/BILLING.md`; `hub.py check` keeps hub.py and `_shared/store.ts` in step. PC test: `HUB_STORE=1 HUB_FAKE_BILLING=1`. Account deletion: `supabase/functions/delete-account` + `docs/ACCOUNT_DELETION.md` (any new table with user data goes in both).
 
 ## Owner
 - Terse, often voice. Prefer doing over discussing. Ask only for **OPEN** plan decisions or conflicting standards.
