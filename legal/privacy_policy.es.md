@@ -1,4 +1,4 @@
-# Política de Privacidad — Viral Game Hub
+# Política de Privacidad — Viral Gaming Hub
 
 Versión {{VERSION}} · Vigente desde {{FECHA_VIGENCIA}}
 
@@ -6,7 +6,7 @@ Versión {{VERSION}} · Vigente desde {{FECHA_VIGENCIA}}
 
 ## 1. Responsable
 
-{{TITULAR}} (CUIT {{CUIT}}), con domicilio en {{DOMICILIO_LEGAL}} ("Viral", "nosotros"), es responsable del tratamiento de los datos personales en Viral Game Hub (el "Hub"). Contacto de privacidad: {{EMAIL_PRIVACIDAD}}.
+{{TITULAR}} (CUIT {{CUIT}}), con domicilio en {{DOMICILIO_LEGAL}} ("Viral", "nosotros"), es responsable del tratamiento de los datos personales en Viral Gaming Hub (el "Hub"). Contacto de privacidad: {{EMAIL_PRIVACIDAD}}.
 
 ## 2. Qué datos recolectamos
 

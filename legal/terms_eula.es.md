@@ -1,4 +1,4 @@
-# Términos de Servicio y Licencia de Uso (EULA) — Viral Game Hub
+# Términos de Servicio y Licencia de Uso (EULA) — Viral Gaming Hub
 
 Versión {{VERSION}} · Vigente desde {{FECHA_VIGENCIA}}
 
@@ -8,7 +8,7 @@ Versión {{VERSION}} · Vigente desde {{FECHA_VIGENCIA}}
 
 ## 1. Quiénes somos y aceptación
 
-Estos términos (los "Términos") rigen el uso de Viral Game Hub (el "Hub"), un servicio de juegos provisto por {{TITULAR}} (CUIT {{CUIT}}, domicilio {{DOMICILIO_LEGAL}}; "Viral", "nosotros"). Al crear una cuenta o usar el Hub aceptás estos Términos y la Política de Privacidad. Si no estás de acuerdo, no uses el Hub.
+Estos términos (los "Términos") rigen el uso de Viral Gaming Hub (el "Hub"), un servicio de juegos provisto por {{TITULAR}} (CUIT {{CUIT}}, domicilio {{DOMICILIO_LEGAL}}; "Viral", "nosotros"). Al crear una cuenta o usar el Hub aceptás estos Términos y la Política de Privacidad. Si no estás de acuerdo, no uses el Hub.
 
 ## 2. Quién puede usar el Hub
 
@@ -34,20 +34,22 @@ Podemos quitar nombres o contenido, reiniciar puntajes inválidos y suspender o 
 
 ## 6. Pruebas, compras y suscripción
 
-- **Prueba gratuita:** {{DIAS_PRUEBA}} días por juego.
-- **Compra individual:** {{PRECIO_JUEGO}} por juego, con acceso permanente mientras el Hub esté disponible.
-- **Suscripción:** {{PRECIO_SUSCRIPCION}} por mes, con acceso a todos los juegos incluidos. Se renueva automáticamente hasta que la canceles. Podés cancelarla en Google Play → Pagos y suscripciones, o desde el enlace dentro del Hub; mantenés el acceso hasta el fin del período pagado.
+- **Suscripción al Hub:** {{PRECIO_SUSCRIPCION}} por mes, con acceso a todos los juegos incluidos. Incluye {{DIAS_PRUEBA_HUB}} días de prueba gratuita para nuevos suscriptores y puede ofrecerse un precio introductorio de {{PRECIO_INTRO}} por mes durante los primeros 3 meses.
+- **Suscripción por juego:** {{PRECIO_JUEGO}} por mes por juego, con {{DIAS_PRUEBA}} días de prueba gratuita en cada juego.
+- **Renovación y cancelación:** las suscripciones se renuevan automáticamente hasta que las canceles; si no cancelás antes de que termine la prueba, se cobra el período siguiente. Podés cancelarlas en Google Play → Pagos y suscripciones, o desde el enlace dentro del Hub; mantenés el acceso hasta el fin del período pagado.
+- **Acceso fundador:** podemos otorgar a quienes nos apoyen desde el principio beneficios extra o de por vida, a nuestro criterio. Es personal, está ligado a tu cuenta, no es transferible, no tiene valor en dinero y puede revocarse por incumplimiento de estos Términos.
+- **Apuestas simuladas:** algunos juegos simulan juegos de casino o naipes con fichas o puntos virtuales sin valor en dinero real: no se compran con dinero, ni se retiran, cambian o canjean por dinero, premios ni nada de valor.
 - **Precios:** te mostramos el precio final antes de pagar, en la moneda que muestra Google Play.
 - **Pagos:** los procesa Google Play. No vemos los datos de tu tarjeta. Los reembolsos siguen las políticas de Google Play y los derechos irrenunciables que te da la ley (revocación: art. 34, Ley 24.240 y arts. 1110 y ss., Código Civil y Comercial; botón de baja y de arrepentimiento: Res. SCI 316/2018 y 424/2020).
 - **Cambios de precio:** los avisamos con anticipación, no afectan el período ya pagado y, en suscripciones, requieren tu conformidad según lo gestiona Google Play.
 
 ## 7. Disponibilidad y cambios del servicio
 
-Trabajamos para que el Hub funcione bien, pero no garantizamos disponibilidad ininterrumpida. Podemos agregar, modificar o retirar juegos. Si retiramos un juego que compraste individualmente, o cerramos el Hub, te avisaremos con al menos {{DIAS_AVISO_CIERRE}} días y podrás conservar el acceso sin conexión a lo ya descargado.
+Trabajamos para que el Hub funcione bien, pero no garantizamos disponibilidad ininterrumpida. Podemos agregar, modificar o retirar juegos. Si retiramos un juego al que estás suscripto individualmente, o cerramos el Hub, te avisaremos con al menos {{DIAS_AVISO_CIERRE}} días y podrás conservar el acceso sin conexión a lo ya descargado.
 
 ## 8. Propiedad intelectual
 
-El Hub, los juegos, el arte, la música, el logo y el nombre "Viral Game Hub" son de Viral o de sus licenciantes y están protegidos por la Ley 11.723 y, en su caso, la Ley 22.362. Las reglas de juegos tradicionales (ajedrez, naipes, sudoku, etc.) son de uso común; los nombres y marcas de terceros pertenecen a sus titulares y no implican afiliación. La marca "Viral Game Hub" está en trámite ante el INPI.
+El Hub, los juegos, el arte, la música, el logo y el nombre "Viral Gaming Hub" son de Viral o de sus licenciantes y están protegidos por la Ley 11.723 y, en su caso, la Ley 22.362. Las reglas de juegos tradicionales (ajedrez, naipes, sudoku, etc.) son de uso común; los nombres y marcas de terceros pertenecen a sus titulares y no implican afiliación. La marca "Viral Gaming Hub" está en trámite ante el INPI.
 
 Tu nombre de usuario, avatar y calificaciones siguen siendo tuyos. Nos otorgás una licencia gratuita, no exclusiva y mundial para mostrarlos dentro del Hub según su función (rankings, perfil, amigos) mientras tu cuenta exista.
 

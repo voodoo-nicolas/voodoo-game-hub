@@ -1,4 +1,4 @@
-# Privacy Policy — Viral Game Hub
+# Privacy Policy — Viral Gaming Hub
 
 Version {{VERSION}} · Effective {{FECHA_VIGENCIA}}
 
@@ -8,7 +8,7 @@ Version {{VERSION}} · Effective {{FECHA_VIGENCIA}}
 
 ## 1. Controller
 
-{{TITULAR}} (CUIT {{CUIT}}), located at {{DOMICILIO_LEGAL}} ("Viral", "we"), is the controller of personal data in Viral Game Hub (the "Hub"). Privacy contact: {{EMAIL_PRIVACIDAD}}.
+{{TITULAR}} (CUIT {{CUIT}}), located at {{DOMICILIO_LEGAL}} ("Viral", "we"), is the controller of personal data in Viral Gaming Hub (the "Hub"). Privacy contact: {{EMAIL_PRIVACIDAD}}.
 
 ## 2. Data we collect
 

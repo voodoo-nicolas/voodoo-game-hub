@@ -8,7 +8,7 @@
     "EMAIL_PRIVACIDAD": "Viralgamingservice@gmail.com",
     "URL_ELIMINAR_CUENTA": "https://voodoo-nicolas.github.io/voodoo-game-hub/delete-account.html",
     "URL_DEFENSA_CONSUMIDOR": "https://www.argentina.gob.ar/economia/industria-y-comercio/defensadelconsumidor",
-    "VERSION": "1.0.0",
+    "VERSION": "1.1.0",
     "REGION_SUPABASE": "US East (Ohio, us-east-2)",
     "EDAD_MINIMA": "13",
     "DIAS_BORRADO": "30",
@@ -16,15 +16,19 @@
     "DIAS_AVISO_CAMBIOS": "30"
   },
   "es": {
-    "FECHA_VIGENCIA": "12 de octubre de 2026",
-    "DIAS_PRUEBA": "7",
-    "PRECIO_JUEGO": "USD 0,99",
-    "PRECIO_SUSCRIPCION": "USD 4,99"
+    "FECHA_VIGENCIA": "19 de noviembre de 2026",
+    "DIAS_PRUEBA": "3",
+    "PRECIO_JUEGO": "USD 1",
+    "PRECIO_SUSCRIPCION": "USD 4,99",
+    "DIAS_PRUEBA_HUB": "7",
+    "PRECIO_INTRO": "USD 2,99"
   },
   "en": {
-    "FECHA_VIGENCIA": "October 12, 2026",
-    "DIAS_PRUEBA": "7",
-    "PRECIO_JUEGO": "USD 0.99",
-    "PRECIO_SUSCRIPCION": "USD 4.99"
+    "FECHA_VIGENCIA": "November 19, 2026",
+    "DIAS_PRUEBA": "3",
+    "PRECIO_JUEGO": "USD 1",
+    "PRECIO_SUSCRIPCION": "USD 4.99",
+    "DIAS_PRUEBA_HUB": "7",
+    "PRECIO_INTRO": "USD 2.99"
   }
 }
