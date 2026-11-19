@@ -11,7 +11,7 @@ const PATH := "user://ink_ninja_goals.json"
 const DAILY := [
 	["kills", 40, "Defeat %d ninjas"],
 	["parries", 6, "Cut %d enemy stars out of the air"],
-	["scrolls", 8, "Collect %d scrolls"],
+	["scrolls", 8, "Collect %d gold coins"],
 	["bosses", 1, "Defeat %d boss"],
 	["nohit", 1, "Clear %d stage without losing a heart"],
 	["combo5", 1, "Reach a 5-kill combo %d time"],
@@ -22,7 +22,7 @@ const WEEKLY := [
 	["kills", 300, "Defeat %d ninjas"],
 	["bosses", 5, "Defeat %d bosses"],
 	["parries", 40, "Cut %d enemy stars out of the air"],
-	["scrolls", 50, "Collect %d scrolls"],
+	["scrolls", 50, "Collect %d gold coins"],
 	["nohit", 3, "Clear %d stages without losing a heart"],
 	["stages", 15, "Clear %d stages"],
 	["hard_bosses", 1, "Defeat %d boss on Hard"],

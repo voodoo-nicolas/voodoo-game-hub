@@ -8134,6 +8134,138 @@
    "url": "",
    "date": "2026-11-18",
    "processed_by": "written in code (Claude Code)"
+  },
+  {
+   "file": "games/ink_ninja/art/komainu_l.png",
+   "what": "Ink Ninja scenery: komainu l (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/3.png (left half), 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/komainu_r.png",
+   "what": "Ink Ninja scenery: komainu r (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/3.png (right half), 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/dragon.png",
+   "what": "Ink Ninja scenery: dragon (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/2.png, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/kitsune.png",
+   "what": "Ink Ninja scenery: kitsune (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/54.jpg, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/jizo.png",
+   "what": "Ink Ninja scenery: jizo (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/21.jpg, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/lantern.png",
+   "what": "Ink Ninja scenery: lantern (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/55.jpg, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/shrine.png",
+   "what": "Ink Ninja scenery: shrine (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/77.jpg, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/bell.png",
+   "what": "Ink Ninja scenery: bell (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/43.jpg, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/gate.png",
+   "what": "Ink Ninja scenery: gate (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/11.png, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/ruin_house.png",
+   "what": "Ink Ninja scenery: ruin house (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/12.png, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/ruin_stones.png",
+   "what": "Ink Ninja scenery: ruin stones (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/14.png, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/art/nio.png",
+   "what": "Ink Ninja scenery: nio (cut out, colours muted)",
+   "source": "owner picture D:/Dev/Minigame Art/ink ninja/artwork/13.png, 2026-11-19",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-19",
+   "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
   }
  ]
 }

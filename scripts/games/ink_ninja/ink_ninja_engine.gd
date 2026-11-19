@@ -369,18 +369,26 @@ func _plan_lakes() -> void:
 ## Pagoda tiers (owner 2026-11-17: a little bigger): first roof PAG_H0 up, each next PAG_DH higher, each PAG_TAPER narrower.
 ## The jump is 168 px, so a roof is always one jump from the one below.
 const PAG_H0 := 140.0
+## The dragon statue (games/ink_ninja/art/dragon.png drawn DRAGON_H tall): its plinth is a solid you can climb.
+const DRAGON_H := 470.0
+const DRAGON_PLINTH := Vector2(200.0, 78.0)
 const PAG_DH := 136.0
 const PAG_TAPER := 80.0
 const STRUCT_W := {"house": 280.0, "shrine": 260.0, "pagoda": 400.0, "akita": 240.0, "komainu": 360.0, "dragon": 320.0,
-	"warriors": 600.0, "ruin_wall": 460.0, "ruin_arch": 360.0, "ruin_pagoda": 400.0}
+	"warriors": 600.0, "ruin_wall": 460.0, "ruin_arch": 360.0, "ruin_pagoda": 400.0,
+	# owner artwork 2026-11-19 (games/ink_ninja/art): painted shrines and statues
+	"kitsune": 200.0, "jizo": 320.0, "lantern": 160.0, "bell": 360.0, "gate": 540.0, "nio": 260.0,
+	"ruin_house": 420.0, "ruin_stones": 400.0}
 
 func _plan_structs() -> void:
 	var r := RandomNumberGenerator.new()
 	r.seed = stage * 55331 + 17
 	var x := 1900.0 + (TUTOR if stage == 1 else 0.0)
 	var span := 3000.0
-	var pool: Array = ["ruin_wall", "ruin_arch", "warriors", "dragon", "ruin_pagoda", "akita", "komainu", "warriors", "ruin_wall"] if ruins \
-		else ["house", "house", "shrine", "pagoda", "akita", "komainu", "dragon", "house", "shrine", "pagoda"]
+	#var pool: Array = ["ruin_wall", "ruin_arch", "warriors", "dragon", "ruin_pagoda", "akita", "komainu", "warriors", "ruin_wall"] if ruins \
+	#	else ["house", "house", "shrine", "pagoda", "akita", "komainu", "dragon", "house", "shrine", "pagoda"]
+	var pool: Array = ["ruin_wall", "ruin_arch", "warriors", "dragon", "ruin_pagoda", "akita", "komainu", "ruin_house", "ruin_stones", "nio", "ruin_wall"] if ruins \
+		else ["house", "house", "shrine", "pagoda", "akita", "komainu", "dragon", "house", "shrine", "pagoda", "kitsune", "jizo", "lantern", "bell", "gate"]
 	while x < length - END_CLEAR - 400.0:
 		x += r.randf_range(span * 0.7, span * 1.3)
 		var kind: String = pool[r.randi() % pool.size()]
@@ -419,10 +427,11 @@ func _build_struct(kind: String, x: float, gy: float, w: float, r: RandomNumberG
 			for i in tiers:
 				var tw := w + 40.0 - i * PAG_TAPER
 				_roof(Rect2(x - tw / 2.0, gy - PAG_H0 - i * PAG_DH, tw, 16.0))
-			_secret(x, gy - PAG_H0 - (tiers - 1) * PAG_DH - 32.0)
+			_secret(x - 80.0, gy - PAG_H0 - (tiers - 1) * PAG_DH - 32.0)   # on the top roof, beside the spire
 			s["top"] = gy - PAG_H0 - (tiers - 1) * PAG_DH
 		"dragon":
-			solids.append(Rect2(x - 77.0, gy - 126.0, 154.0, 126.0))   # a stone plinth you can climb (drawn 1.4x)
+			#solids.append(Rect2(x - 77.0, gy - 126.0, 154.0, 126.0))   # a stone plinth you can climb (drawn 1.4x)
+			solids.append(Rect2(x - DRAGON_PLINTH.x / 2.0, gy - DRAGON_PLINTH.y, DRAGON_PLINTH.x, DRAGON_PLINTH.y))   # the painted statue's plinth (owner art 2026-11-19)
 		"warriors":
 			if r.randf() < 0.4:
 				_secret(x + r.randf_range(-120.0, 120.0), gy - 40.0)   # buried behind the ranks

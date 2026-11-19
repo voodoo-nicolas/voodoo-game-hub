@@ -708,7 +708,7 @@ func _event(e: String) -> void:
 			var lantern: int = engine.checkpoints.find(engine.checkpoint_x) + 1
 			_cutscene_then(Cutscene_.for_slot("lantern:%d:%d" % [engine.stage, lantern]), _noop)
 		"scroll":
-			SoundLib.play(self, "rpg/book_flip", -4.0)
+			SoundLib.play(self, "reward/coin_plingy", -8.0, "game", 1.3)   # a coin now (owner 2026-11-19), was rpg/book_flip
 			_goal("scrolls")
 		"starkill":
 			_goal("star_kills")
@@ -753,11 +753,15 @@ func _event(e: String) -> void:
 			for i in 12:
 				sparks.append([Vector2(engine.px + engine.facing * 60.0, engine.py - 50.0), Vector2(randf_range(-160, 160), randf_range(-300, -60)), 0.8, 0.8, 2])
 		"secret":
-			_heal_fx(tr("A secret!"))
+			# Owner 2026-11-19: no "A secret!" text, no "You reached the top": just the find.
+			# _heal_fx(tr("A secret!"))
+			SoundLib.play(self, "reward/coin_plingy", -4.0, "game", 0.8)
+			for i in 10:
+				sparks.append([Vector2(engine.px, engine.py - 60.0), Vector2(randf_range(-140, 140), randf_range(-260, -60)), 0.7, 0.7, 2])
 			if info:
 				info.add("Secrets found")
 		"pagoda":
-			_toast(tr("You reached the top"), Color(0.45, 0.3, 0.02))
+			# _toast(tr("You reached the top"), Color(0.45, 0.3, 0.02))
 			if info:
 				info.add("Pagodas climbed")
 		"trapslam":
@@ -1147,8 +1151,8 @@ func _draw_props(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 		if sp2.x < -40.0 or sp2.x > sz.x + 40.0:
 			continue
 		var tw := 0.5 + 0.5 * sin(anim_t * 3.0 + sc.x)
-		c.draw_texture_rect(disc, Rect2(sp2 - Vector2(30, 30) * k, Vector2(60, 60) * k), false, Color(1.0, 0.82, 0.3, 0.12 + 0.18 * tw))
-		_scroll(c, sp2, k)
+		c.draw_texture_rect(disc, Rect2(sp2 - Vector2(30, 30) * k, Vector2(60, 60) * k), false, Color(0.6, 1.0, 0.75, 0.1 + 0.16 * tw))
+		_magatama(c, sp2, k)
 	for nl in engine.night_lanterns:
 		var nlx: float = o.x + nl.x * k
 		if nlx < -80.0 * k or nlx > sz.x + 80.0 * k:
@@ -1258,14 +1262,36 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			"ruin_pagoda":
 				scn.pagoda(c, X, Y, st.w, st.tiers, k, true)
 			"shrine":
-				scn.shrine(c, X, Y, k, st.seed)
+				if not scn.art(c, "shrine", X, Y, 300.0, k):
+					scn.shrine(c, X, Y, k, st.seed)
 			"akita":
 				scn.akita(c, X, Y, k, 1 if st.seed % 2 == 0 else -1)
+			# Owner artwork 2026-11-19 (games/ink_ninja/art, colours muted); the drawn versions
+			# stay as the fallback when a picture is missing.
 			"komainu":
-				scn.komainu(c, X - 100.0 * k, Y, k, 1)
-				scn.komainu(c, X + 100.0 * k, Y, k, -1)
+				if not (scn.art(c, "komainu_l", X - 100.0 * k, Y, 230.0, k) and scn.art(c, "komainu_r", X + 100.0 * k, Y, 230.0, k)):
+					scn.komainu(c, X - 100.0 * k, Y, k, 1)
+					scn.komainu(c, X + 100.0 * k, Y, k, -1)
 			"dragon":
-				scn.dragon(c, X, Y, k, 1 if st.seed % 2 == 0 else -1)
+				var df := 1 if st.seed % 2 == 0 else -1
+				if not scn.art(c, "dragon", X + df * 21.0 * k, Y, Engine_.DRAGON_H, k, df < 0):
+					scn.dragon(c, X, Y, k, df)
+			"kitsune":
+				scn.art(c, "kitsune", X, Y, 290.0, k, st.seed % 2 == 1)
+			"jizo":
+				scn.art(c, "jizo", X, Y, 170.0, k)
+			"lantern":
+				scn.art(c, "lantern", X, Y, 250.0, k)
+			"bell":
+				scn.art(c, "bell", X, Y, 380.0, k)
+			"gate":
+				scn.art(c, "gate", X, Y, 330.0, k)
+			"nio":
+				scn.art(c, "nio", X, Y, 380.0, k, st.seed % 2 == 1)
+			"ruin_house":
+				scn.art(c, "ruin_house", X, Y, 260.0, k, st.seed % 2 == 1)
+			"ruin_stones":
+				scn.art(c, "ruin_stones", X, Y, 240.0, k)
 			"warriors":
 				scn.warriors(c, X, Y, k, st.seed, st.ruin)
 			"ruin_arch":
@@ -2201,13 +2227,43 @@ func _star(c: CanvasItem, p: Vector2, k: float, mine: bool) -> void:
 		var d := Vector2(10, 0).rotated(a + i * PI / 2) * k
 		c.draw_line(p - d, p + d, col, 3.5 * k)
 
+## The pickup (engine.scrolls; owner 2026-11-19: the paper scrolls looked like envelopes):
+## a gold koban coin, a turning oval with stamped bands. Texture rects only (cheap).
+## The old paper look, kept as the owner asked never to delete:
+#	var r := Rect2(p + Vector2(-14, -9 + bob / k) * k, Vector2(28, 18) * k)
+#	c.draw_rect(r, pal.moon)
+#	c.draw_rect(r, pal.ink, false, 2.0 * k)
+#	c.draw_line(r.position + Vector2(6, 6) * k, r.position + Vector2(22, 6) * k, pal.mid, 2.0 * k)
+#	c.draw_line(r.position + Vector2(6, 11) * k, r.position + Vector2(18, 11) * k, pal.mid, 2.0 * k)
 func _scroll(c: CanvasItem, p: Vector2, k: float) -> void:
 	var bob := sin(anim_t * 3.0 + p.x) * 4.0 * k
-	var r := Rect2(p + Vector2(-14, -9 + bob / k) * k, Vector2(28, 18) * k)
-	c.draw_rect(r, pal.moon)
-	c.draw_rect(r, pal.ink, false, 2.0 * k)
-	c.draw_line(r.position + Vector2(6, 6) * k, r.position + Vector2(22, 6) * k, pal.mid, 2.0 * k)
-	c.draw_line(r.position + Vector2(6, 11) * k, r.position + Vector2(18, 11) * k, pal.mid, 2.0 * k)
+	var ctr := p + Vector2(0, bob)
+	var turn := absf(cos(anim_t * 2.2 + p.x * 0.01))
+	var hw := maxf(3.0, 13.0 * turn) * k
+	var hh := 18.0 * k
+	c.draw_texture_rect(disc, Rect2(ctr - Vector2(hw + 2.0 * k, hh + 2.0 * k), Vector2(hw + 2.0 * k, hh + 2.0 * k) * 2.0), false, Color(0.42, 0.28, 0.02))
+	c.draw_texture_rect(disc, Rect2(ctr - Vector2(hw, hh), Vector2(hw, hh) * 2.0), false, Color(0.95, 0.76, 0.24))
+	c.draw_texture_rect(disc, Rect2(ctr - Vector2(hw * 0.55, hh * 0.7) + Vector2(-hw * 0.2, -hh * 0.15), Vector2(hw * 0.55, hh * 0.5)), false, Color(1.0, 0.95, 0.7, 0.7))
+	if turn > 0.35:
+		for i in 4:
+			var ly := ctr.y + (-9.0 + i * 6.0) * k
+			c.draw_line(Vector2(ctr.x - hw * 0.55, ly), Vector2(ctr.x + hw * 0.55, ly), Color(0.6, 0.42, 0.06, 0.8), 1.5 * k)
+
+## A hidden treasure (engine.secrets): a jade magatama with a soft glow (owner 2026-11-19).
+func _magatama(c: CanvasItem, p: Vector2, k: float) -> void:
+	var bob := sin(anim_t * 2.4 + p.x) * 5.0 * k
+	var ctr := p + Vector2(0, bob)
+	var jade := Color(0.3, 0.75, 0.55)
+	c.draw_texture_rect(disc, Rect2(ctr - Vector2(15, 15) * k, Vector2(30, 30) * k), false, jade.darkened(0.45))
+	c.draw_texture_rect(disc, Rect2(ctr - Vector2(13, 13) * k, Vector2(26, 26) * k), false, jade)
+	# the comma tail curling down and back
+	for i in 6:
+		var a := 0.3 + i * 0.32
+		var r := (11.0 - i * 1.4) * k
+		var q := ctr + Vector2(cos(a) * 12.0, sin(a) * 12.0 + 6.0) * k
+		c.draw_texture_rect(disc, Rect2(q - Vector2(r, r) * 0.5, Vector2(r, r)), false, jade)
+	c.draw_texture_rect(disc, Rect2(ctr - Vector2(4, 4) * k, Vector2(8, 8) * k), false, jade.darkened(0.55))   # the hole
+	c.draw_texture_rect(disc, Rect2(ctr + Vector2(-9, -10) * k, Vector2(8, 6) * k), false, Color(1, 1, 1, 0.6))
 
 func _hud_draw(c: CanvasItem, sz: Vector2, k: float) -> void:
 	var font := ThemeDB.fallback_font

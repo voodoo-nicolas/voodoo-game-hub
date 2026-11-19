@@ -34,3 +34,15 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
 - Less telling: no stage/chapter numbers on screen, How to Play = the controller layout only.
 - Not built: the weekly-bridge variants (only one drawbridge type), interiors you enter through doors (houses are open
   at the front), real statues as solids beyond the dragon plinth, a distinct torch-only sword for non-night stages.
+
+## Round 13 (owner, 2026-11-19)
+- **Owner artwork** in `games/ink_ninja/art/` (cut from `D:/Dev/Minigame Art/ink ninja/artwork`: white made transparent,
+  saturation 45 %, slightly warm, max 420 px). Drawn by `scenery.art(c, name, X, Y, h, k, flip)` (false when missing ->
+  the drawn fallback). Komainu, dragon (plinth solid `DRAGON_PLINTH` 200x78, statue `DRAGON_H` 470) and shrine use it;
+  new decor kinds `kitsune`, `jizo`, `lantern`, `bell`, `gate` (village pool) and `nio`, `ruin_house`, `ruin_stones` (ruins).
+  New kinds change the stage layouts. The pagoda stays drawn (its roofs are climbable solids) with a stone base,
+  bracket bands, railed balconies and a nine-ring spire; the drawn komainu/dragon were redrawn too (fallback only now).
+- **Pickups**: `engine.scrolls` are drawn as gold koban coins (goal text "Collect %d gold coins"); secrets are jade
+  magatama (pagoda one sits on the top roof beside the spire).
+- **Less telling**: no "A secret!" / "You reached the top" text (sound + sparks only); the two secret badges say
+  "Keep playing to find out." (`desc` in `ink_ninja_help.gd`).

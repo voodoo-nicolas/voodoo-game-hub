@@ -10,6 +10,27 @@ var g
 func _init(game) -> void:
 	g = game
 
+## Owner artwork (games/ink_ninja/art/<name>.png, cut out and colour-muted by hand from
+## D:/Dev/Minigame Art/ink ninja/artwork, 2026-11-19). Loaded once, on first use.
+var _art := {}
+
+## Draws picture `name` standing on (X, Y), `h` world units tall (k = world to screen).
+## false when the picture is missing, so the caller can draw its own version.
+func art(c: CanvasItem, name: String, X: float, Y: float, h: float, k: float, flip: bool = false) -> bool:
+	if not _art.has(name):
+		var path := "res://games/ink_ninja/art/%s.png" % name
+		_art[name] = load(path) if ResourceLoader.exists(path) else null
+	var t: Texture2D = _art[name]
+	if t == null:
+		return false
+	var sz := Vector2(t.get_width() * h / t.get_height(), h) * k
+	var r := Rect2(Vector2(X - sz.x / 2.0, Y - sz.y + 4.0 * k), sz)
+	if flip:
+		r.position.x += sz.x
+		r.size.x = -sz.x
+	c.draw_texture_rect(t, r, false)
+	return true
+
 func _wood() -> Color:
 	return Color(0.36, 0.25, 0.17, 0.95) if g.skin == "classic" else g.pal.mid
 
@@ -97,13 +118,37 @@ func pagoda(c: CanvasItem, X: float, Y: float, w: float, tiers: int, u: float, r
 			c.draw_line(Vector2(rx + pw * 0.5, by0 + 14.0 * u), Vector2(rx + pw * 0.5, by0 + 76.0 * u), Color(g.pal.ink, 0.5), 1.5 * u)
 		for px in [-0.5, 0.5]:
 			c.draw_rect(Rect2(X + px * bw - 5.0 * u, by0, 10.0 * u, by1 - by0), wood)
+		# Owner 2026-11-19 "fix the structures": a stone base, a bracket band under every
+		# roof and a railed balcony on the upper floors, so it reads as a pagoda, not stacked boxes.
+		if i == 0:
+			c.draw_rect(Rect2(X - bw / 2.0 - 14.0 * u, Y - 14.0 * u, bw + 28.0 * u, 14.0 * u), _stone().darkened(0.2))
+			c.draw_rect(Rect2(X - bw / 2.0 - 14.0 * u, Y - 14.0 * u, bw + 28.0 * u, 4.0 * u), _stone())
+		else:
+			var rail := PackedVector2Array()
+			var ry0 := by1 - 30.0 * u
+			rail.append_array([Vector2(X - bw / 2.0 - 10.0 * u, ry0), Vector2(X + bw / 2.0 + 10.0 * u, ry0)])
+			var nposts := int(bw / (26.0 * u))
+			for j in nposts + 1:
+				var qx := X - bw / 2.0 - 10.0 * u + (bw + 20.0 * u) * j / maxf(1.0, nposts)
+				rail.append_array([Vector2(qx, ry0), Vector2(qx, by1 - 6.0 * u)])
+			c.draw_rect(Rect2(X - bw / 2.0 - 12.0 * u, by1 - 8.0 * u, bw + 24.0 * u, 8.0 * u), wood)   # the balcony floor
+			c.draw_multiline(rail, wood.darkened(0.25), 3.0 * u)
+		c.draw_rect(Rect2(X - bw / 2.0 - 8.0 * u, by0 - 2.0 * u, bw + 16.0 * u, 12.0 * u), wood.darkened(0.5))   # the bracket band
+		var brk := PackedVector2Array()
+		var nb := int((bw + 16.0 * u) / (18.0 * u))
+		for j in nb + 1:
+			var qx := X - bw / 2.0 - 8.0 * u + (bw + 16.0 * u) * j / maxf(1.0, nb)
+			brk.append_array([Vector2(qx, by0), Vector2(qx, by0 + 8.0 * u)])
+		c.draw_multiline(brk, Color(g.pal.paper2, 0.35), 3.0 * u)
 		roof(c, X, ry, w + 40.0 - i * tp, u, roofc)
-	# the spire: a staff with rings
+	# the spire (sorin): a base, nine rings on a staff, a flame-jewel on top
 	var top := Y - (h0 + (tiers - 1) * dh) * u
 	if not ruin:
-		c.draw_line(Vector2(X, top - 6.0 * u), Vector2(X, top - 74.0 * u), g.pal.ink, 4.0 * u)
-		for r in 5:
-			c.draw_rect(Rect2(X - (11.0 - r * 1.6) * u, top - (22.0 + r * 11.0) * u, (22.0 - r * 3.2) * u, 4.0 * u), g.pal.ink)
+		c.draw_rect(Rect2(X - 12.0 * u, top - 14.0 * u, 24.0 * u, 10.0 * u), g.pal.ink)
+		c.draw_line(Vector2(X, top - 6.0 * u), Vector2(X, top - 96.0 * u), g.pal.ink, 4.0 * u)
+		for r in 9:
+			c.draw_rect(Rect2(X - (12.0 - r * 0.8) * u, top - (22.0 + r * 7.5) * u, (24.0 - r * 1.6) * u, 3.5 * u), g.pal.ink)
+		_poly(c, PackedVector2Array([Vector2(X, top - 112.0 * u), Vector2(X + 7.0 * u, top - 98.0 * u), Vector2(X, top - 92.0 * u), Vector2(X - 7.0 * u, top - 98.0 * u)]), g.pal.ink)
 	else:
 		c.draw_line(Vector2(X, top - 6.0 * u), Vector2(X + 10.0 * u, top - 34.0 * u), g.pal.ink, 4.0 * u)
 		for i in 4:
@@ -140,23 +185,99 @@ func shrine(c: CanvasItem, X: float, Y: float, u: float, seed_: int) -> void:
 
 # ---------- statues ----------
 
-## A stone lion-dog on a plinth; f is the way it faces.
+## A stone lion-dog on a plinth; f is the way it faces. Owner 2026-11-19 (three photos): sits
+## upright on straight front legs, broad chest with a collar and bell, a big head with a
+## curled mane, bulging brow, an open mouth with fangs, a curled tail rising behind.
 func komainu(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
 	u *= 1.6   # owner 2026-11-17: bigger statues
-	var stone: Color = g.pal.near
-	c.draw_rect(Rect2(X - 22.0 * u, Y - 24.0 * u, 44.0 * u, 24.0 * u), stone)
-	c.draw_rect(Rect2(X - 22.0 * u, Y - 24.0 * u, 44.0 * u, 24.0 * u), g.pal.ink, false, 2.0 * u)
-	var y0 := Y - 24.0 * u
-	g._ell(c, Vector2(X - f * 6.0 * u, y0 - 16.0 * u), 17.0 * u, 15.0 * u, stone)
-	_poly(c, PackedVector2Array([Vector2(X - f * 14.0 * u, y0 - 2.0 * u), Vector2(X + f * 14.0 * u, y0 - 2.0 * u), Vector2(X + f * 14.0 * u, y0 - 38.0 * u), Vector2(X + f * 2.0 * u, y0 - 46.0 * u), Vector2(X - f * 8.0 * u, y0 - 28.0 * u)]), stone)
-	var head := Vector2(X + f * 10.0 * u, y0 - 50.0 * u)
-	for i in 6:
-		var a := i * 1.05 + (0.3 if f > 0 else 0.0)
-		c.draw_texture_rect(g.disc, Rect2(head + Vector2(cos(a), sin(a)) * 11.0 * u - Vector2(6, 6) * u, Vector2(12, 12) * u), false, g.pal.ink)   # curled mane
-	g._ell(c, head, 11.0 * u, 10.0 * u, stone)
-	c.draw_line(head + Vector2(f * 2.0, 3.0) * u, head + Vector2(f * 12.0, 3.0) * u, g.pal.ink, 2.0 * u)   # the open mouth
-	c.draw_texture_rect(g.disc, Rect2(head + Vector2(f * 3.0 - 2.0, -5.0) * u, Vector2(4, 4) * u), false, g.pal.ink)
-	c.draw_rect(Rect2(X + f * 10.0 * u - 3.0 * u, y0 - 28.0 * u, 6.0 * u, 26.0 * u), g.pal.ink)   # the front leg
+	var st: Color = _stone()
+	var sh: Color = st.darkened(0.32)
+	var hi: Color = st.lightened(0.18)
+	var ink: Color = g.pal.ink
+	var F := float(f)
+	# the plinth: a base slab and a block with a carved band
+	c.draw_rect(Rect2(X - 34.0 * u, Y - 8.0 * u, 68.0 * u, 8.0 * u), sh)
+	c.draw_rect(Rect2(X - 29.0 * u, Y - 30.0 * u, 58.0 * u, 22.0 * u), st)
+	c.draw_rect(Rect2(X - 31.0 * u, Y - 33.0 * u, 62.0 * u, 5.0 * u), hi)
+	c.draw_rect(Rect2(X - 29.0 * u, Y - 30.0 * u, 58.0 * u, 22.0 * u), Color(ink, 0.7), false, 1.5 * u)
+	c.draw_rect(Rect2(X - 22.0 * u, Y - 25.0 * u, 44.0 * u, 12.0 * u), Color(sh, 0.6), false, 1.2 * u)
+	var b := 33.0   # top of the plinth
+	# the tail: three curls rising behind the haunch
+	for i in 3:
+		g._ell(c, _at(X, Y, u, F, -24.0 - i * 3.0, b + 22.0 + i * 12.0), (8.0 - i) * u, (7.0 - i) * u, sh if i % 2 == 0 else st)
+	# the haunch and the folded hind leg
+	g._ell(c, _at(X, Y, u, F, -12.0, b + 15.0), 19.0 * u, 16.0 * u, st)
+	g._ell(c, _at(X, Y, u, F, -8.0, b + 4.0), 15.0 * u, 5.0 * u, sh)
+	# the body: back down to the haunch, chest pushed forward
+	var body := PackedVector2Array()
+	for q in [[-26, 10], [-22, 30], [-6, 46], [10, 52], [20, 42], [20, 22], [10, 6], [-12, 2]]:
+		body.append(_at(X, Y, u, F, q[0], b + q[1]))
+	_poly(c, body, st)
+	var chest := PackedVector2Array()
+	for q in [[-4, 44], [10, 50], [19, 40], [18, 24], [8, 30]]:
+		chest.append(_at(X, Y, u, F, q[0], b + q[1]))
+	_poly(c, chest, hi)
+	# collar and bell
+	c.draw_line(_at(X, Y, u, F, -2.0, b + 44.0), _at(X, Y, u, F, 19.0, b + 38.0), sh, 4.0 * u)
+	g._ell(c, _at(X, Y, u, F, 15.0, b + 33.0), 4.0 * u, 4.5 * u, sh)
+	# straight front legs (the far one darker) with clawed paws
+	var claws := PackedVector2Array()
+	for leg in [[4.0, sh], [13.0, st]]:
+		var lx: float = leg[0]
+		_poly(c, PackedVector2Array([_at(X, Y, u, F, lx - 4.0, b + 30.0), _at(X, Y, u, F, lx + 5.0, b + 30.0), _at(X, Y, u, F, lx + 4.5, b + 3.0), _at(X, Y, u, F, lx - 3.5, b + 3.0)]), leg[1])
+		g._ell(c, _at(X, Y, u, F, lx + 3.0, b + 2.5), 7.0 * u, 3.5 * u, leg[1])
+		for t in 3:
+			claws.append(_at(X, Y, u, F, lx + 3.0 + t * 2.5, b + 4.0))
+			claws.append(_at(X, Y, u, F, lx + 4.0 + t * 2.5, b))
+	# the mane: curls behind and under the head
+	var hc: Vector2 = _at(X, Y, u, F, 10.0, b + 64.0)
+	var spir := PackedVector2Array()
+	for cv in [Vector2(-14, -6), Vector2(-15, 6), Vector2(-10, 15), Vector2(-2, 19), Vector2(-9, -15), Vector2(0, -18), Vector2(7, 17)]:
+		var cp: Vector2 = hc + Vector2(F * cv.x, cv.y) * u
+		c.draw_texture_rect(g.disc, Rect2(cp - Vector2(8, 8) * u, Vector2(16, 16) * u), false, st.darkened(0.12))
+		_spiral(spir, cp, 6.0 * u, F)
+	# the head: skull, snout, open jaw with fangs, brow, eye, ear
+	g._ell(c, hc, 14.0 * u, 13.0 * u, st)
+	g._ell(c, hc + Vector2(F * 13.0, 2.0) * u, 9.0 * u, 7.5 * u, st)
+	_poly(c, PackedVector2Array([hc + Vector2(F * 6.0, 6.0) * u, hc + Vector2(F * 22.0, 4.0) * u, hc + Vector2(F * 19.0, 12.0) * u, hc + Vector2(F * 8.0, 11.0) * u]), Color(ink, 0.85))
+	g._ell(c, hc + Vector2(F * 13.0, 14.0) * u, 8.0 * u, 3.5 * u, sh)   # the lower jaw
+	for fx in [10.0, 18.0]:
+		_poly(c, PackedVector2Array([hc + Vector2(F * fx, 5.0) * u, hc + Vector2(F * (fx + 2.5), 5.0) * u, hc + Vector2(F * (fx + 1.2), 9.0) * u]), hi)
+	g._ell(c, hc + Vector2(F * 21.0, -1.0) * u, 3.5 * u, 3.0 * u, sh)   # the nose
+	g._ell(c, hc + Vector2(F * 7.0, -6.0) * u, 7.0 * u, 3.5 * u, hi, -0.2 * F)   # the bulging brow
+	c.draw_texture_rect(g.disc, Rect2(hc + Vector2(F * 8.0 - 2.5, -3.5) * u, Vector2(5, 5) * u), false, ink)
+	_poly(c, PackedVector2Array([hc + Vector2(F * -4.0, -9.0) * u, hc + Vector2(F * -12.0, -16.0) * u, hc + Vector2(F * -1.0, -14.0) * u]), sh)   # the ear
+	_spiral(spir, hc + Vector2(F * -4.0, 2.0) * u, 4.0 * u, F)
+	c.draw_multiline(spir, Color(ink, 0.4), 1.2 * u)
+	c.draw_multiline(claws, Color(ink, 0.8), 1.2 * u)
+	_speckle(c, X, Y - 60.0 * u, 30.0 * u, 55.0 * u, 7 if f > 0 else 11)
+
+## A statue point: x forward (by facing F), y up from the ground, in statue units.
+func _at(X: float, Y: float, u: float, F: float, x: float, y: float) -> Vector2:
+	return Vector2(X + F * x * u, Y - y * u)
+
+## Granite (owner's statue photos): a pale grey stone that reads against the dark ground.
+func _stone() -> Color:
+	return Color(0.66, 0.65, 0.62) if g.skin == "classic" else g.pal.near
+
+## Adds a carved curl (about two turns) to `out` as line segments for one draw_multiline.
+func _spiral(out: PackedVector2Array, ctr: Vector2, r: float, f: float) -> void:
+	var prev := ctr
+	for i in 13:
+		var a := i * 0.95
+		var p := ctr + Vector2(cos(a) * f, sin(a)) * r * (i / 12.0)
+		if i > 0:
+			out.append(prev)
+			out.append(p)
+		prev = p
+
+## A few dark granite flecks over a statue (cheap rects; a fixed pattern per statue).
+func _speckle(c: CanvasItem, X: float, cy: float, hw: float, hh: float, seed_: int) -> void:
+	var col := Color(g.pal.ink, 0.22)
+	for i in 14:
+		var h := (seed_ * 31 + i * 97) % 1000
+		var p := Vector2(X + ((h % 100) / 50.0 - 1.0) * hw, cy + ((int(h / 10.0) % 100) / 50.0 - 1.0) * hh)
+		c.draw_rect(Rect2(p, Vector2(2.0, 2.0)), col)
 
 ## Hachiko, the loyal Akita, waiting on his plinth.
 func akita(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
@@ -185,27 +306,90 @@ func akita(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
 		tail.append(Vector2(X - f * 28.0 * u, y0 - 28.0 * u) + Vector2(cos(a) * f, sin(a)) * (13.0 - i * 0.5) * u)
 	c.draw_polyline(tail, fur, 8.0 * u)
 
+## A stone dragon coiled up a pillar on a carved plinth (the plinth is the engine solid
+## 154 x 126 = 110 x 90 drawn at 1.4). Owner 2026-11-19: a statue, not a black snake.
 func dragon(c: CanvasItem, X: float, Y: float, u: float, f: int) -> void:
 	u *= 1.4   # the engine plinth is 1.4x too
-	var stone: Color = g.pal.near
-	c.draw_rect(Rect2(X - 55.0 * u, Y - 90.0 * u, 110.0 * u, 90.0 * u), stone)
-	c.draw_rect(Rect2(X - 55.0 * u, Y - 90.0 * u, 110.0 * u, 90.0 * u), g.pal.ink, false, 3.0 * u)
-	for i in 4:
-		c.draw_line(Vector2(X - 55.0 * u, Y - 20.0 * u - i * 18.0 * u), Vector2(X + 55.0 * u, Y - 20.0 * u - i * 18.0 * u), Color(g.pal.ink, 0.5), 1.5 * u)
+	var st: Color = _stone()
+	var sh: Color = st.darkened(0.32)
+	var hi: Color = st.lightened(0.18)
+	var ink: Color = g.pal.ink
+	var F := float(f)
+	# the plinth: a step, the carved block with waves, a cap stone
+	c.draw_rect(Rect2(X - 55.0 * u, Y - 10.0 * u, 110.0 * u, 10.0 * u), sh)
+	c.draw_rect(Rect2(X - 50.0 * u, Y - 82.0 * u, 100.0 * u, 72.0 * u), st)
+	c.draw_rect(Rect2(X - 50.0 * u, Y - 82.0 * u, 100.0 * u, 72.0 * u), Color(ink, 0.7), false, 2.0 * u)
+	c.draw_rect(Rect2(X - 55.0 * u, Y - 90.0 * u, 110.0 * u, 9.0 * u), hi)
+	c.draw_rect(Rect2(X - 55.0 * u, Y - 90.0 * u, 110.0 * u, 9.0 * u), Color(ink, 0.6), false, 1.5 * u)
+	var waves := PackedVector2Array()
+	for row in 2:
+		for i in 5:
+			_spiral(waves, Vector2(X + (-36.0 + i * 18.0) * u, Y - (54.0 - row * 22.0) * u), 7.0 * u, 1.0)
+	c.draw_multiline(waves, Color(sh, 0.9), 1.4 * u)
+	# the pillar it coils around
+	var top := Y - 90.0 * u
+	c.draw_rect(Rect2(X - 11.0 * u, top - 150.0 * u, 22.0 * u, 150.0 * u), sh)
+	c.draw_rect(Rect2(X - 16.0 * u, top - 156.0 * u, 32.0 * u, 8.0 * u), st)
+	# the body: an S coil up the pillar; the turns behind the pillar are darker
 	var body: Array = []
-	for i in 22:
-		var t := i / 21.0
-		body.append(Vector2(X + sin(t * TAU * 1.25) * 44.0 * u, Y - 92.0 * u - t * 170.0 * u))
-	g._ribbon(c, body, 30.0 * u, 12.0 * u, g.pal.ink)
-	var head: Vector2 = body[-1]
-	g._ell(c, head, 16.0 * u, 11.0 * u, g.pal.ink)
-	_poly(c, PackedVector2Array([head + Vector2(f * 8.0, -4.0) * u, head + Vector2(f * 36.0, 0.0) * u, head + Vector2(f * 30.0, 10.0) * u, head + Vector2(f * 6.0, 8.0) * u]), g.pal.ink)
-	for e in [-1, 1]:
-		c.draw_line(head + Vector2(-f * 4.0, -8.0) * u, head + Vector2(-f * 20.0, -24.0 + e * 4.0) * u, g.pal.ink, 3.0 * u)   # antlers
-	c.draw_texture_rect(g.disc, Rect2(head + Vector2(f * 6.0 - 3.0, -5.0) * u, Vector2(6, 6) * u), false, g.pal.moon)
-	for i in 8:
-		var sp: Vector2 = body[2 + i * 2]
-		c.draw_line(sp, sp + Vector2(-10.0, -6.0) * u, g.pal.mid, 2.0 * u)
+	for i in 26:
+		var t := i / 25.0
+		body.append(Vector2(X + sin(t * TAU * 1.5 + 0.4) * 34.0 * u, top - 4.0 * u - t * 128.0 * u))
+	var fins := PackedVector2Array()
+	# one ribbon per run of turns on the same side (each polygon is its own draw call)
+	var run0 := 0
+	for i in range(1, 27):
+		var side_prev: bool = cos((i - 1) / 25.0 * TAU * 1.5 + 0.4) * F < 0.0
+		if i < 26 and (cos(i / 25.0 * TAU * 1.5 + 0.4) * F < 0.0) == side_prev:
+			continue
+		var end := mini(i, 25)
+		g._ribbon(c, body.slice(run0, end + 1), lerpf(30.0, 18.0, run0 / 25.0) * u, lerpf(30.0, 18.0, end / 25.0) * u, sh if side_prev else st)
+		run0 = end
+	# belly scales (chevrons) and spine fins
+	var marks := PackedVector2Array()
+	for i in range(1, 25):
+		var p: Vector2 = body[i]
+		var d: Vector2 = (body[i + 1] - body[i - 1]).normalized()
+		var n := d.orthogonal()
+		var w := lerpf(13.0, 8.0, i / 25.0) * u
+		marks.append(p + n * w * 0.2 - d * 3.0 * u)
+		marks.append(p - n * w * 0.6)
+		marks.append(p + n * w * 0.2 - d * 3.0 * u)
+		marks.append(p + n * w * 0.9)
+		if i % 3 == 0:
+			_poly(c, PackedVector2Array([p + n * w, p + n * (w + 9.0 * u) + d * 3.0 * u, p + n * w + d * 7.0 * u]), sh)
+	c.draw_multiline(marks, Color(ink, 0.45), 1.3 * u)
+	# a front claw holding the pearl
+	var arm: Vector2 = body[17]
+	var claw := arm + Vector2(F * 34.0, 6.0) * u
+	c.draw_line(arm, claw, st, 9.0 * u)
+	for t in 3:
+		fins.append(claw)
+		fins.append(claw + Vector2(F * (5.0 + t * 2.0), -8.0 + t * 6.0) * u)
+	c.draw_texture_rect(g.disc, Rect2(claw + Vector2(F * 9.0 - 9.0, -12.0) * u, Vector2(18, 18) * u), false, hi)
+	# the head: mane, long snout, open jaws with fangs, brow, horns swept back, whiskers
+	var hd: Vector2 = body[25] + Vector2(F * 8.0, -6.0) * u
+	_poly(c, PackedVector2Array([hd + Vector2(F * -14.0, -14.0) * u, hd + Vector2(F * -28.0, -2.0) * u, hd + Vector2(F * -20.0, 14.0) * u, hd + Vector2(F * -8.0, 6.0) * u]), sh)
+	g._ell(c, hd, 16.0 * u, 12.0 * u, st)
+	_poly(c, PackedVector2Array([hd + Vector2(F * 6.0, -9.0) * u, hd + Vector2(F * 34.0, -6.0) * u, hd + Vector2(F * 36.0, 1.0) * u, hd + Vector2(F * 8.0, 3.0) * u]), st)
+	_poly(c, PackedVector2Array([hd + Vector2(F * 6.0, 5.0) * u, hd + Vector2(F * 30.0, 12.0) * u, hd + Vector2(F * 27.0, 16.0) * u, hd + Vector2(F * 4.0, 11.0) * u]), sh)
+	_poly(c, PackedVector2Array([hd + Vector2(F * 8.0, 3.0) * u, hd + Vector2(F * 34.0, 1.0) * u, hd + Vector2(F * 29.0, 12.0) * u, hd + Vector2(F * 6.0, 5.0) * u]), Color(ink, 0.85))
+	for fx in [14.0, 24.0]:
+		_poly(c, PackedVector2Array([hd + Vector2(F * fx, 1.0) * u, hd + Vector2(F * (fx + 3.0), 1.0) * u, hd + Vector2(F * (fx + 1.5), 6.0) * u]), hi)
+	g._ell(c, hd + Vector2(F * 4.0, -8.0) * u, 7.0 * u, 3.5 * u, hi, -0.2 * F)
+	c.draw_texture_rect(g.disc, Rect2(hd + Vector2(F * 6.0 - 2.5, -6.0) * u, Vector2(5, 5) * u), false, ink)
+	for e in [0.0, 1.0]:
+		var hb := hd + Vector2(F * (-4.0 - e * 4.0), -10.0) * u
+		c.draw_line(hb, hb + Vector2(F * -22.0, -16.0 - e * 6.0) * u, sh, (4.0 - e) * u)
+	for side in [-1.0, 1.0]:
+		var prev := hd + Vector2(F * 32.0, -2.0 + side * 2.0) * u
+		for i in range(1, 7):
+			var p := hd + Vector2(F * (32.0 + i * 5.0), -2.0 + side * 2.0 + sin(i * 0.9) * 5.0 + i * 1.5) * u
+			fins.append(prev)
+			fins.append(p)
+			prev = p
+	c.draw_multiline(fins, Color(ink, 0.7), 1.6 * u)
+	_speckle(c, X, Y - 45.0 * u, 50.0 * u, 40.0 * u, 3 if f > 0 else 5)
 
 func warriors(c: CanvasItem, X: float, Y: float, u: float, seed_: int, ruin: bool) -> void:
 	u *= 1.5

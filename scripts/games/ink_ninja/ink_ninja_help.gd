@@ -25,8 +25,8 @@ const ACHIEVEMENTS := [
 	{"id": "weekly4", "icon": "🗓️", "title": "A Month of Ink", "key": "Weekly objectives", "at": 4, "xp": 12},
 	{"id": "hearts24", "icon": "❤️", "title": "Heart Carver", "key": "Hearts carved", "at": 24, "xp": 12},
 	{"id": "parry50", "icon": "✨", "title": "Star Cutter", "key": "Stars parried", "at": 50, "xp": 12},
-	{"id": "secrets10", "icon": "📜", "title": "Keeper of Secrets", "key": "Secrets found", "at": 10, "xp": 12},
-	{"id": "pagodas5", "icon": "🏯", "title": "Rooftop Runner", "key": "Pagodas climbed", "at": 5, "xp": 12},
+	{"id": "secrets10", "icon": "📜", "title": "Keeper of Secrets", "key": "Secrets found", "at": 10, "xp": 12, "desc": "Keep playing to find out."},
+	{"id": "pagodas5", "icon": "🏯", "title": "Rooftop Runner", "key": "Pagodas climbed", "at": 5, "xp": 12, "desc": "Keep playing to find out."},
 ]
 ## Learning hook (STANDARDS §15): checked facts about real ninja (shinobi) history and ink painting.
 const FACTS := [
