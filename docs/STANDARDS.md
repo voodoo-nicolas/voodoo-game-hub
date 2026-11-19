@@ -355,6 +355,14 @@ if ResourceLoader.exists(ONLINE_LOBBY_PATH):
 | SettingsDrawer | `settings_drawer.gd` | **retired** — no-op stub kept only for old packs |
 | Brand | `brand.gd` [NEW] | hub name, links, store text keys |
 
+**User data and account deletion (since 2026-11-19, Google Play requirement).** Every Supabase table that
+stores anything about a player must be listed in `supabase/functions/delete-account/handler.ts` (`USER_ROWS`)
+and in `docs/ACCOUNT_DELETION.md` in the same commit that creates it. Deletion keeps nothing (owner
+2026-11-19). The in-app path is Profile -> red "Delete account" at the bottom -> type DELETE; the web path is
+`https://viralgamehub.github.io/delete.html`. Store products are subscriptions only; their ids live in
+`Config.STORE_*` and `docs/BILLING.md`. The paywall always shows price, trial length, trial end date and
+"cancel any time in Google Play".
+
 ## 14. IP / copyright [NEW]
 No game may use a trademarked game name, logo, character, card/board art, or copied rules text.
 Mechanics are fine; names and look are not. Full checklist: `docs/IP_AUDIT.md`. Every new or modified

@@ -18,6 +18,14 @@ const PHOTO_MAX_SIDE := 1536
 ## run once in the Supabase SQL editor by the owner); until then the button
 ## explains instead of failing silently.
 const DELETE_RPC := "delete_my_account"
+## Since v0.42 the delete-account Edge Function does it (deletes every row we
+## hold, then the sign-in; docs/ACCOUNT_DELETION.md). DELETE_RPC is unused now.
+const DELETE_FN := "delete-account"
+const PLAY_SUBSCRIPTIONS_URL := "https://play.google.com/store/account/subscriptions"
+## Local files that belong to the account (not game saves), cleared after a delete.
+const ACCOUNT_FILES := ["user://store.json", "user://awards_synced.json", "user://consent.json",
+		"user://online_room.json", "user://online_table.json", "user://social_prefs.json"]
+const DANGER_RED := Color(0.93, 0.26, 0.3)
 
 func _title() -> String:
 	return tr("👤 Profile")
@@ -94,14 +102,9 @@ func _build() -> void:
 		list.add_child(gap)
 		var danger := section(tr("Danger zone"))
 		danger.add_child(dim(tr("Deleting your account is permanent.")))
-		var del := Button.new()
-		del.text = tr("Delete my account")
-		del.flat = true
-		del.focus_mode = Control.FOCUS_NONE
-		del.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		del.add_theme_font_size_override("font_size", 20)
-		for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-			del.add_theme_color_override(key, pal.text_dim)
+		# Owner 2026-11-19 (Play requirement): a red button, last thing on the screen.
+		var del := pill(tr("Delete account"), true)
+		style_pill(del, true, DANGER_RED)
 		del.pressed.connect(_on_delete_pressed)
 		danger.add_child(del)
 
@@ -186,15 +189,20 @@ func _on_sign_out() -> void:
 func _on_delete_pressed() -> void:
 	if not tapped():
 		return
-	var box := dialog(tr("Delete my account?"))
-	box.add_child(label(tr("This can't be undone. Deleted: your profile, friends, scores, achievements and play time stored online, and your sign-in. Games and saves on this phone stay."), 24))
-	var tag := Auth.get_display_name()
-	box.add_child(label(tr("Type your gamer tag (%s) or DELETE to confirm.") % tag, 22, pal.card_message))
+	var box := dialog(tr("Delete account?"))
+	box.add_child(label(tr("This can't be undone. We delete everything stored online for this account: profile, friends and invites, scores and leaderboards, achievements, cloud progress, trials and purchase records, and your sign-in."), 24))
+	box.add_child(label(tr("Subscriptions are NOT cancelled by this. Cancel them in Google Play first, or you'll keep being charged."), 22, DANGER_RED))
+	var subs := pill(tr("Open Google Play subscriptions"), false, 22)
+	subs.pressed.connect(OS.shell_open.bind(PLAY_SUBSCRIPTIONS_URL))
+	box.add_child(subs)
+	var tag := ""  # DELETE only (owner 2026-11-19); the gamer tag no longer confirms
+	box.add_child(label(tr("Type DELETE to confirm."), 22, pal.card_message))
 	var edit := LineEdit.new()
 	edit.custom_minimum_size = Vector2(0, 64)
 	edit.add_theme_font_size_override("font_size", 28)
 	box.add_child(edit)
-	var yes := pill(tr("Delete my account"), true)
+	var yes := pill(tr("Delete account"), true)
+	style_pill(yes, true, DANGER_RED)
 	yes.disabled = true
 	yes.pressed.connect(_delete_account)
 	edit.text_changed.connect(_on_confirm_typed.bind(yes, tag))
@@ -298,17 +306,32 @@ func _open_editor(path: String) -> void:
 
 func _delete_account() -> void:
 	close_dialog()
-	if Auth.has_method("db_call"):
-		Auth.db_call(DELETE_RPC, {}, _on_deleted)
-	else:
-		_on_deleted(false, null)
+	var box := dialog(tr("Deleting your account..."))
+	box.add_child(label(tr("Don't close the app."), 22, pal.card_message))
+	Auth.fn_call(DELETE_FN, {}, _on_deleted)
 
-func _on_deleted(ok: bool, _result: Variant) -> void:
+## No silent failures: offline and server errors both say so and offer Retry.
+func _on_deleted(ok: bool, result: Variant, code: int) -> void:
 	if not is_inside_tree():
 		return
-	if not ok:
-		message(tr("Delete my account"), tr("Couldn't delete the account right now. Use Options → Send feedback and we'll delete it for you."))
+	close_dialog()
+	if not ok or not (result is Dictionary and result.get("ok", false) == true):
+		var why := tr("No internet connection. Connect and try again.") if code == 0 				else tr("The server couldn't delete your account (error %d). Try again; if it keeps failing, email %s.") % [code, Brand.CONTACT_EMAIL]
+		var box := dialog(tr("Account not deleted"))
+		box.add_child(label(why, 24))
+		var retry := pill(tr("Retry"), true)
+		retry.pressed.connect(_delete_account)
+		box.add_child(retry)
+		var no := pill(tr("Cancel"), false)
+		no.pressed.connect(close_dialog)
+		box.add_child(no)
 		return
+	for f in ACCOUNT_FILES:
+		if FileAccess.file_exists(f):
+			DirAccess.remove_absolute(f)
 	Auth.sign_out()
-	message(tr("Delete my account"), tr("Your account was deleted."))
-	rebuild()
+	var done := dialog(tr("Account deleted"))
+	done.add_child(label(tr("Your account and its online data were deleted."), 24))
+	var home := pill(tr("OK"), true)
+	home.pressed.connect(go_hub)
+	done.add_child(home)

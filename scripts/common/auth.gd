@@ -320,6 +320,22 @@ func _db_call_with_token(ok: bool, fn: String, args: Dictionary, on_done: Callab
 func _on_db_call(ok: bool, parsed: Variant, _code: int, on_done: Callable) -> void:
 	_safe_call(on_done, [ok, parsed])
 
+## Calls an Edge Function (`/functions/v1/<fn>`) as the signed-in player:
+## on_done.call(ok, parsed, code). code 0 = no connection. Since v0.42
+## (account deletion).
+func fn_call(fn: String, body: Dictionary, on_done: Callable) -> void:
+	_ensure_fresh_token(_fn_call_with_token.bind(fn, body, on_done))
+
+func _fn_call_with_token(ok: bool, fn: String, body: Dictionary, on_done: Callable) -> void:
+	if not ok:
+		_safe_call(on_done, [false, null, 0])
+		return
+	var headers: PackedStringArray = ["Authorization: Bearer " + access_token]
+	_request(HTTPClient.METHOD_POST, "/functions/v1/" + fn, body, headers, _on_fn_call.bind(on_done))
+
+func _on_fn_call(ok: bool, parsed: Variant, code: int, on_done: Callable) -> void:
+	_safe_call(on_done, [ok, parsed, code])
+
 # ---------- session lifecycle ----------
 
 func _apply_session(parsed: Dictionary, name_hint: String) -> void:
