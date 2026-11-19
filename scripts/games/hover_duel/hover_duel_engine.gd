@@ -10,6 +10,8 @@ extends RefCounted
 ## a craft, and a shot flies at the height it was fired from, so a hill
 ## between two craft stops the shots of the one below (high ground wins).
 
+const TerrainGen = preload("res://scripts/games/hover_duel/terrain_gen.gd")
+
 const GW := 240
 const GH := 180
 const CELL := 8.0
@@ -112,14 +114,25 @@ static func upgrade_cost(type: String, lv: int) -> int:
 
 ## Map themes: the generator's knobs. sea / rock = height thresholds,
 ## rivers = how many are carved, liquid = "water" or "lava", ice = slippery land.
+## sea_share / rock_share: how much of the map (before rivers) ends below sea / at rock,
+## measured from the old generator so the walls and lakes stay as they were (2026-11-18).
+## terrain: per-theme TerrainGen knobs over TERRAIN. bias: the old generator's lift (unused now).
 const THEMES := {
-	"valley": {"name": "Green Valley", "sea": 0.30, "rock": 0.86, "rivers": 2, "liquid": "water", "ice": false, "bias": 0.06},
-	"isles": {"name": "Stone Isles", "sea": 0.52, "rock": 0.72, "rivers": 0, "liquid": "water", "ice": false, "bias": -0.02},
-	"highlands": {"name": "Highlands", "sea": 0.22, "rock": 0.78, "rivers": 1, "liquid": "water", "ice": false, "bias": 0.12},
-	"desert": {"name": "Dune Sea", "sea": 0.20, "rock": 0.84, "rivers": 1, "liquid": "water", "ice": false, "bias": 0.08},
-	"glacier": {"name": "Glacier", "sea": 0.34, "rock": 0.80, "rivers": 2, "liquid": "water", "ice": true, "bias": 0.04},
-	"volcano": {"name": "Ash Fields", "sea": 0.30, "rock": 0.76, "rivers": 2, "liquid": "lava", "ice": false, "bias": 0.06},
+	"valley": {"name": "Green Valley", "sea": 0.30, "rock": 0.86, "rivers": 2, "liquid": "water", "ice": false, "bias": 0.06,
+		"sea_share": 0.12, "rock_share": 0.081, "terrain": {}},
+	"isles": {"name": "Stone Isles", "sea": 0.52, "rock": 0.72, "rivers": 0, "liquid": "water", "ice": false, "bias": -0.02,
+		"sea_share": 0.553, "rock_share": 0.146, "terrain": {"hill": 30.0, "macro": 0.7}},
+	"highlands": {"name": "Highlands", "sea": 0.22, "rock": 0.78, "rivers": 1, "liquid": "water", "ice": false, "bias": 0.12,
+		"sea_share": 0.035, "rock_share": 0.245, "terrain": {"macro": 1.1, "ridge": 0.35}},
+	"desert": {"name": "Dune Sea", "sea": 0.20, "rock": 0.84, "rivers": 1, "liquid": "water", "ice": false, "bias": 0.08,
+		"sea_share": 0.04, "rock_share": 0.119, "terrain": {"warp": 0.9, "ridge": 0.1}},
+	"glacier": {"name": "Glacier", "sea": 0.34, "rock": 0.80, "rivers": 2, "liquid": "water", "ice": true, "bias": 0.04,
+		"sea_share": 0.18, "rock_share": 0.115, "terrain": {}},
+	"volcano": {"name": "Ash Fields", "sea": 0.30, "rock": 0.76, "rivers": 2, "liquid": "lava", "ice": false, "bias": 0.06,
+		"sea_share": 0.12, "rock_share": 0.183, "terrain": {"ridge": 0.3}},
 }
+## TerrainGen knobs every theme starts from (tools/templates/terrain_gen.gd).
+const TERRAIN := {"hill": 36.0, "octaves": 5, "warp": 0.6, "macro": 0.9, "macro_size": 3.0, "ridge": 0.2}
 
 ## Campaign: 12 battles, one rival each, harder as you go.
 ## ai = 0 easy .. 3 expert. Every third battle is a boss.
@@ -196,34 +209,14 @@ func reset(theme_: String, seed_: int, types: Array, ai: Array, ups: Array = [{}
 	rng.randomize()   # the map is the seed's; the battle's luck is fresh
 
 func _make_map() -> void:
-	hgt.resize(GW * GH)
 	# Value noise: a few octaves of smoothly blended random lattices.
-	var octaves := [[8, 0.55], [16, 0.27], [32, 0.13], [64, 0.05]]
-	var lattices: Array = []
-	for o in octaves:
-		var n: int = o[0]
-		var lat := PackedFloat32Array()
-		lat.resize((n + 2) * (n + 2))
-		for j in lat.size():
-			lat[j] = rng.randf()
-		lattices.append(lat)
-	for y in GH:
-		for x in GW:
-			var v := 0.0
-			for oi in octaves.size():
-				var n: int = octaves[oi][0]
-				var fx := float(x) / GW * n
-				var fy := float(y) / GH * n * float(GH) / GW
-				var ix := int(fx)
-				var iy := int(fy)
-				var tx := _smooth(fx - ix)
-				var ty := _smooth(fy - iy)
-				var lat: PackedFloat32Array = lattices[oi]
-				var s := n + 2
-				var a := lerpf(lat[iy * s + ix], lat[iy * s + ix + 1], tx)
-				var b := lerpf(lat[(iy + 1) * s + ix], lat[(iy + 1) * s + ix + 1], tx)
-				v += lerpf(a, b, ty) * octaves[oi][1]
-			hgt[y * GW + x] = clampf((v - 0.5) * 1.6 + 0.5 + theme.bias, 0.0, 1.0)
+	# [CHANGED 2026-11-18: now the shared TerrainGen (terrain_gen.gd): warped rolling hills over
+	# broad highlands and basins, so far more height difference. remap_shares keeps each theme's
+	# share of liquid and rock as it was, so no more of the map is a wall than before.]
+	var opts: Dictionary = TERRAIN.duplicate()
+	opts.merge(theme.get("terrain", {}), true)
+	hgt = TerrainGen.generate(GW, GH, map_seed, opts)
+	TerrainGen.remap_shares(hgt, [[float(theme.sea_share), float(theme.sea)], [1.0 - float(theme.rock_share), float(theme.rock)]])
 	for r in int(theme.rivers):
 		_carve_river()
 	# A border of rock so nobody leaves the map.

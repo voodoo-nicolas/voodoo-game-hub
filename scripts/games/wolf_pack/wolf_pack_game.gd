@@ -57,6 +57,8 @@ var field: Control
 var hud: Control
 var end_dialog: Control
 var grass_tex: Texture2D
+var relief_tex: ImageTexture        # hill shading over the grass (_rebuild_relief)
+var relief_seed: int = -1
 var chunks := {}                     # Vector2i -> Array of [texture, pos, scale]
 var cam := E.DEN
 var zoom: float = 1.0
@@ -455,6 +457,25 @@ func _update_fog() -> void:
 
 # ---------- drawing ----------
 
+## The hill shading picture for the current map: TerrainGen's shade turned into a
+## dark / light veil over the grass, blown up 4x with cubic filtering so it's smooth.
+func _rebuild_relief() -> void:
+	relief_seed = engine.seed_used
+	if engine.hgt.is_empty():
+		relief_tex = null
+		return
+	var src: Image = E.TerrainGen.shade_image(engine.hgt, E.TGW, E.TGH, 9.0)
+	var img := Image.create(E.TGW, E.TGH, false, Image.FORMAT_RGBA8)
+	for y in E.TGH:
+		for x in E.TGW:
+			var s: float = src.get_pixel(x, y).r
+			if s < 0.9:
+				img.set_pixel(x, y, Color(0.02, 0.05, 0.03, clampf((0.9 - s) * 0.75, 0.0, 0.55)))
+			else:
+				img.set_pixel(x, y, Color(1.0, 0.97, 0.82, clampf((s - 0.9) * 0.45, 0.0, 0.22)))
+	img.resize(E.TGW * 4, E.TGH * 4, Image.INTERPOLATE_CUBIC)
+	relief_tex = ImageTexture.create_from_image(img)
+
 func _w2s(p: Vector2) -> Vector2:
 	return (p - cam) * zoom + size / 2.0
 
@@ -470,6 +491,11 @@ func _draw_field() -> void:
 		c.draw_set_transform(origin + off, 0.0, Vector2(2, 2) * zoom)
 		c.draw_texture_rect(grass_tex, Rect2(Vector2.ZERO, Vector2(E.W, E.H) / 2.0), true, Color(0.95, 1.02, 0.88))
 		c.draw_set_transform(off)
+	# Hills: sunlit slopes lighter, shaded slopes and valleys darker (engine.hgt).
+	if relief_seed != engine.seed_used:
+		_rebuild_relief()
+	if relief_tex:
+		c.draw_texture_rect(relief_tex, Rect2(origin, Vector2(E.W, E.H) * zoom), false)
 	# Mud: slows everybody. Brown with a dashed edge, so it isn't colour alone.
 	for r in E.MUD:
 		var rr: Rect2 = r

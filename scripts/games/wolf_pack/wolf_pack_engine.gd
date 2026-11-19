@@ -5,8 +5,20 @@ extends RefCounted
 ## attacker, scout), one elk herd with weak-target logic, Sense, pack commands,
 ## bite-and-hold, pack hunger. The old arcade game is in git history (6318dcf8).
 
+const TerrainGen = preload("res://scripts/games/wolf_pack/terrain_gen.gd")
+
 const W := 6144.0
 const H := 4608.0
+## Rolling hills (shared TerrainGen, 2026-11-18): one height per 32 px cell. Climbing
+## slows everybody, running downhill is a little faster; max_slope keeps every hill
+## crossable (no cliffs), so the hills shape the chase without walling anything off.
+const TCELL := 32.0
+const TGW := 192                   # W / TCELL
+const TGH := 144                   # H / TCELL
+const TERRAIN := {"hill": 30.0, "octaves": 5, "warp": 0.7, "macro": 1.0, "macro_size": 3.0, "ridge": 0.15, "max_slope": 0.045}
+const UPHILL := 7.0                # speed lost per unit of height climbed per cell
+const SLOPE_MIN := 0.65            # steepest climb still keeps this share of the speed
+const SLOPE_MAX := 1.12            # steepest run downhill
 const CHUNK := 1024.0
 const DEN := Vector2(1100.0, 3700.0)
 const LANDMARK := Vector2(3100.0, 2100.0)
@@ -65,12 +77,14 @@ var heir_used := false
 var over := false
 var trails: Array = []            # [elk id, pos, age]
 var revealed := PackedByteArray()
+var hgt := PackedFloat32Array()   # TGW x TGH heights 0..1, rebuilt from the seed (not saved)
 const FOG_W := 192
 const FOG_H := 144
 
 func reset(seed_v: int = 1) -> void:
 	seed_used = seed_v
 	rng.seed = seed_v
+	hgt = TerrainGen.generate(TGW, TGH, seed_v, TERRAIN)
 	time = 0.0
 	stage = "leader"
 	var st: Dictionary = STAGES[stage]
@@ -123,6 +137,17 @@ func in_mud(p: Vector2) -> bool:
 		if (r as Rect2).has_point(p):
 			return true
 	return false
+
+## Ground height 0..1 at a world point.
+func height_at(p: Vector2) -> float:
+	return TerrainGen.sample(hgt, TGW, TGH, p.x / TCELL - 0.5, p.y / TCELL - 0.5)
+
+## Speed factor for moving along dir at p: uphill slows, downhill helps a little.
+func slope_mult(p: Vector2, dir: Vector2) -> float:
+	if hgt.is_empty() or dir.length() < 0.01:
+		return 1.0
+	var g := TerrainGen.gradient(hgt, TGW, TGH, p.x / TCELL - 0.5, p.y / TCELL - 0.5)
+	return clampf(1.0 - g.dot(dir.normalized()) * UPHILL, SLOPE_MIN, SLOPE_MAX)
 
 ## The elk the pack goes for: the nearest to the hero, weak ones count as closer.
 func pick_target(from: Vector2, reach: float = 700.0) -> int:
@@ -195,6 +220,7 @@ func _hero(delta: float, inp: Dictionary, ev: Array) -> void:
 	var spd: float = TROT * st.speed * mv.length() * (SPRINT_MULT if sprint else 1.0)
 	if in_mud(h.p):
 		spd *= 0.85
+	spd *= slope_mult(h.p, mv)
 	if hold_id != -1:
 		spd *= 0.15
 	if sprint:
@@ -335,6 +361,7 @@ func _pack(delta: float, _ev: Array) -> void:
 			w.stam = minf(w.max_stam, w.stam + STAM_REGEN * _regen_mult() * delta)
 		if in_mud(w.p):
 			spd *= 0.85
+		spd *= slope_mult(w.p, to)
 		var want: Vector2 = to.normalized() * minf(spd, to.length() * 4.0)
 		for o in pack:
 			if o != w:
@@ -407,6 +434,7 @@ func _herd(delta: float, ev: Array) -> void:
 			if e.p.y < 200.0: edge.y += 1.0
 			if e.p.y > H - 200.0: edge.y -= 1.0
 			want = (dir + edge * 1.6).normalized() * spd
+			want *= slope_mult(e.p, want)
 			e.stam = maxf(0.0, e.stam - ELK_DRAIN * delta)
 		else:
 			e.flee = false
