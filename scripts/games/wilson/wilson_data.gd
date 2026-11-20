@@ -111,6 +111,8 @@ const SKILLS := ["foraging", "woodcutting", "fishing", "fire", "cooking", "carpe
 const SKILL_NAMES := {"foraging": "Foraging", "woodcutting": "Woodcutting", "fishing": "Fishing ", "fire": "Fire ",
 	"cooking": "Cooking ", "carpentry": "Carpentry", "tinkering": "Tinkering", "weather sense": "Weather sense"}
 const SKILL_MAX := 10
+## Grand Projects stay hidden until both Carpentry and Tinkering reach this level (owner, 2026-11-20).
+const PROJECT_SKILL_LEVEL := 5
 const SKILL_SPEED := 0.03
 ## Weather sense level that shows high / low tide (owner, 2026-11-19).
 const TIDE_SENSE_LEVEL := 3

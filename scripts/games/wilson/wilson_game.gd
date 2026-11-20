@@ -768,6 +768,8 @@ func _pad_use() -> void:
 		_try("shore", "")
 	elif bid == "cave":
 		_try("inspect", "")
+	elif bid == "shallows":
+		_shallows_menu(scr)
 	else:
 		_on_tap(best.probe, scr)
 
@@ -1157,7 +1159,7 @@ func action_label(kind: String, target: String) -> String:
 		"chop":
 			return tr("Chop palm %s") % target
 		"fish":
-			return tr("Fish")
+			return tr("Catch a fish")      # owner, 2026-11-20 (was "Fish")
 		"seawater":
 			return tr("Scoop seawater")
 		"craft":
@@ -1291,6 +1293,11 @@ func _pastimes_menu(group: String = "long") -> void:
 			var o: Array = _opt("gather", sid)
 			o[0] = o[0].replace(ICONS["gather"] + " " + action_label("gather", sid), "✋ " + tr("Collect: %s") % D.item_name(str(D.SPOTS[sid].item)) + " (%d)" % int(engine.spots[sid]))
 			opts.append(o)
+	if group == "quick":      # owner, 2026-11-20: "Catch a fish" in the odd jobs too, not only at the water
+		if engine.count("fishing_pole") > 0:
+			opts.append(_opt("fish", ""))
+		if engine.count("spear") > 0:
+			opts.append(_opt("spear", ""))
 	for p in Pastimes.group_list(group):
 		var why: String = engine.action_block("pastime", str(p.id))
 		if why.begins_with("Needs") or why in ["Not for you.", "Nothing to tidy yet.", "The fire is not lit.", "You have no coconut friend yet.", "Coco is already your friend."]:

@@ -399,6 +399,9 @@ func project_visible(p: Dictionary) -> bool:
 	# least once (the amount may still be short), never during the opening, like the recipes.
 	if tut >= 0:
 		return false
+	# owner, 2026-11-20: "stop showing the grand projects" until Carpentry and Tinkering are much higher
+	if skill_level("carpentry") < D.PROJECT_SKILL_LEVEL or skill_level("tinkering") < D.PROJECT_SKILL_LEVEL:
+		return false
 	for m in p.mats:
 		if count(str(m[0])) <= 0:
 			return false

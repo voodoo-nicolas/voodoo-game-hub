@@ -549,6 +549,8 @@ func interactables() -> Array:
 		out.append({"probe": pos + Vector2(0, -10), "id": "structure:" + str(id), "rect": r})
 	if _shore and _shore.visible:
 		out.append({"probe": D.SHORE.pos, "id": "shore", "rect": Rect2(D.SHORE.pos + Vector2(-40, -36), Vector2(80, 50))})
+	# the water's edge (owner, 2026-11-20: could not get past "Catch a fish"; A never reached the water)
+	out.append({"probe": D.SHALLOWS.pos, "id": "shallows", "rect": Rect2(D.SHALLOWS.pos + Vector2(-120, 30), Vector2(240, 70))})
 	out.append({"probe": D.CAVE.pos + Vector2(0, -20), "id": "cave", "rect": Rect2(D.CAVE.pos + Vector2(-80, -110), Vector2(170, 150))})
 	return out
 
