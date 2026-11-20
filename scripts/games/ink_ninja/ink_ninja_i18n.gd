@@ -182,6 +182,7 @@ const STRINGS := {
 		"Secrets found": "Secretos encontrados",
 		"Sign in (hub ⚙ Options) to put your best score on the board.": "Inicia sesión (⚙ Opciones en el menú) para poner tu mejor puntaje en la tabla.",
 		"Single player": "Un jugador",
+		"Skip": "Saltar",
 		"Skip ›": "Saltar ›",
 		"Something Follows": "Algo te sigue",
 		"Spikes!": "¡Pinchos!",

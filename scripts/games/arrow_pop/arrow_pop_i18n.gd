@@ -106,6 +106,7 @@ const STRINGS := {
 		"There are 320 levels. Boards grow, colours are added and the order you must fire in gets longer as you go.": "Hay 320 niveles. Los tableros crecen, se suman colores y el orden en que debes disparar se hace más largo a medida que avanzas.",
 		"These controls are shared: they change every game that uses the shared controller.": "Estos controles son compartidos: cambian en todos los juegos que usan el mando compartido.",
 		"These settings are app-wide: they change every game.": "Estos ajustes son de toda la app: cambian en todos los juegos.",
+		"Time's up!": "¡Se acabó el tiempo!",
 		"Total stars": "Estrellas totales",
 		"Try again": "Intentar de nuevo",
 		"Turn on Color-blind shapes in the setup screen: every colour then gets its own mark.": "Activa Formas para daltónicos en la pantalla de inicio: cada color tendrá su propia marca.",

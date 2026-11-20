@@ -678,6 +678,7 @@ var _promo_msec: int = -100000
 var _promo_panel: Control
 
 func _maybe_promo(online: bool) -> void:
+	_tame_end_screen_soon()
 	# One game end often reports twice (result() + celebrate()).
 	if Time.get_ticks_msec() - _promo_msec < 5000:
 		return
@@ -691,6 +692,144 @@ func _maybe_promo(online: bool) -> void:
 	var tw := create_tween()
 	tw.tween_interval(2.2)
 	tw.tween_callback(_show_promo.bind(p))
+
+# ---------- end-screen safety net (STANDARDS §6b) ----------
+
+## Every game builds its own game-over dialog, and many (Hangman, ...) had
+## two bugs: a long one-line label ("You win! The word was ...  Wins: 2 ·
+## Losses: 1 · ...") pushed the panel off a narrow phone, and the dim
+## full-screen card hid the board, so you couldn't see how you won or lost.
+## Fixed here once, for every pack on this APK: when a game ends we find the
+## visible end dialog, wrap its text to the screen, and add "👁 See board",
+## which hides the dialog and leaves a small "📋 Results" chip to bring it back.
+const END_MARGIN := 48.0
+
+func _tame_end_screen_soon() -> void:
+	# The game shows its dialog right after reporting; some after a short tween.
+	var tw := create_tween()
+	tw.tween_interval(0.05)
+	tw.tween_callback(_tame_end_screen)
+	tw.tween_interval(0.9)
+	tw.tween_callback(_tame_end_screen)
+
+func _tame_end_screen() -> void:
+	var root := get_parent() as Control
+	if root == null:
+		return
+	var vp: Vector2 = get_viewport_rect().size
+	for c in _end_candidates(root, 0):
+		if not c.has_meta("_tamed"):
+			c.set_meta("_tamed", true)
+			_fit_to_screen(c, vp.x - END_MARGIN * 2.0)
+			_add_peek(c)
+
+## Visible, (nearly) full-screen controls that hold a panel: a game's
+## end/overlay card. Our own card, the Landing kit and the party are skipped.
+func _end_candidates(node: Node, depth: int) -> Array:
+	var out: Array = []
+	if depth > 3:
+		return out
+	var vp: Vector2 = get_viewport_rect().size
+	for n in node.get_children():
+		var c := n as Control
+		if c == null or not c.visible or c == self or c == _party:
+			continue
+		if c.has_method("celebrate") or c.has_method("start_mode") or c.has_method("open"):
+			continue
+		var full: bool = c.size.x >= vp.x * 0.9 and c.size.y >= vp.y * 0.9 and c.mouse_filter == Control.MOUSE_FILTER_STOP
+		if full and _find_panel(c) != null and (c is ColorRect or c is Panel or c is PanelContainer):
+			out.append(c)
+		else:
+			out.append_array(_end_candidates(c, depth + 1))
+	return out
+
+func _find_panel(node: Node) -> Control:
+	for n in node.get_children():
+		if n is PanelContainer:
+			return n
+		var deep := _find_panel(n)
+		if deep:
+			return deep
+	return null
+
+## One-line labels wrap at the screen width; wide buttons shrink to fit.
+func _fit_to_screen(node: Node, max_w: float) -> void:
+	for n in node.get_children():
+		if n is Label:
+			var l: Label = n
+			if l.autowrap_mode == TextServer.AUTOWRAP_OFF:
+				var natural: float = l.get_minimum_size().x
+				if natural > max_w * 0.6:
+					l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					l.custom_minimum_size.x = minf(natural, max_w - 60.0)
+		elif n is Button:
+			var b: Button = n
+			if b.custom_minimum_size.x > max_w - 60.0:
+				b.custom_minimum_size.x = max_w - 60.0
+			if b.get_minimum_size().x > max_w - 60.0:
+				b.clip_text = true
+		_fit_to_screen(n, max_w)
+
+func _add_peek(dialog: Control) -> void:
+	var panel := _find_panel(dialog)
+	var box: Node = null
+	for n in panel.get_children():
+		if n is BoxContainer:
+			box = n
+			break
+	if box == null:
+		return
+	var peek := Button.new()
+	peek.text = "👁  " + tr("See board")
+	peek.flat = true
+	peek.add_theme_font_size_override("font_size", 22)
+	peek.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
+	peek.custom_minimum_size = Vector2(0, 52)
+	peek.pressed.connect(_peek_board.bind(dialog))
+	box.add_child(peek)
+
+func _peek_board(dialog: Control) -> void:
+	var parent := dialog.get_parent() as Control
+	if parent == null:
+		return
+	dialog.visible = false
+	var chip := Button.new()
+	chip.text = "📋  " + tr("Results")
+	chip.add_theme_font_size_override("font_size", 26)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.12, 0.2, 0.92)
+	sb.border_color = Color(0.35, 0.8, 1.0)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(28)
+	sb.content_margin_left = 26
+	sb.content_margin_right = 26
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	for st in ["normal", "hover", "pressed", "focus"]:
+		chip.add_theme_stylebox_override(st, sb)
+	chip.add_theme_color_override("font_color", Color(1, 1, 1))
+	chip.z_index = 50
+	parent.add_child(chip)
+	chip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE)
+	var safe_bottom := 0.0
+	var safe: Rect2i = DisplayServer.get_display_safe_area()
+	var screen: Vector2i = DisplayServer.screen_get_size()
+	if screen.y > 0 and safe.size.y > 0:
+		safe_bottom = float(screen.y - safe.end.y) * get_viewport_rect().size.y / float(screen.y)
+	chip.position.y -= 40.0 + safe_bottom
+	chip.pressed.connect(_unpeek.bind(dialog, chip))
+	# The game may reopen/replace the dialog itself (restart, home).
+	dialog.visibility_changed.connect(_drop_chip.bind(chip), CONNECT_ONE_SHOT)
+	dialog.tree_exiting.connect(_drop_chip.bind(chip), CONNECT_ONE_SHOT)
+
+func _unpeek(dialog: Control, chip: Button) -> void:
+	_drop_chip(chip)
+	if is_instance_valid(dialog):
+		dialog.visible = true
+
+func _drop_chip(chip: Button) -> void:
+	if is_instance_valid(chip) and not chip.is_queued_for_deletion():
+		chip.queue_free()
 
 func _show_promo(p: Dictionary) -> void:
 	if not is_inside_tree() or _promo_panel != null:

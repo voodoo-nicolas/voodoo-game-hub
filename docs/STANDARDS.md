@@ -177,6 +177,15 @@ Vs CPU · Custom. Difficulty: Easy · Normal · Hard (+ Expert where meaningful)
   **no-op stub** (keeps the class name, builds nothing, `queue_free()`s itself) until every pack is migrated.
   Never delete the class while any published pack references it.
 
+### 6b. Game-over / result screen [NEW 2026-11-20]
+- Must fit a 360-dp-wide phone at text scale 1.4: every label in it uses `autowrap_mode = AUTOWRAP_WORD_SMART`
+  (put stats on their own line), no button wider than the screen minus margins.
+- Must not hide how the game ended for good: offer a way to see the board (dock the card at the bottom, or a
+  "👁 See board" button that hides the card and leaves a "📋 Results" chip to bring it back).
+- Safety net: on APK ≥ 0.41.1 `game_info.gd` does both automatically for any visible full-screen dim card holding a
+  `PanelContainer` when the game reports its end (`result()`, `celebrate()`, `add("Games played")`). New games
+  should still get it right themselves — older APKs don't have the net.
+
 ## 7. Options: global vs per-game [CHANGED — resolves a conflict]
 App-wide settings stay in the `Settings` autoload (one source of truth). The game Options screen shows
 them too, but editing them changes the global value. Per-game items are stored per game.
@@ -243,10 +252,10 @@ Goal: players with many games download shared media once.
 
 | Tier | Pack | `res://` root | Examples |
 |---|---|---|---|
-| 0 Hub | in APK | `res://media/hub/` | hub music loop, UI stingers (prefer synthesized `Sfx`) |
+| 0 Hub | in APK | `res://media/hub/` | hub music (`res://media/hub/music/hub/`, hub screens only, rule below), UI stingers (prefer synthesized `Sfx`) |
 | 1 Common | `media-common.v<N>.pck` | `res://media/common/` | menu music, win/lose stingers, skull/bone/doll/lips sprites |
 | 2 Category | `media-cat-<cat>.v<N>.pck` | `res://media/cat/<cat>/` | cards: deck art, shuffle/deal/flip; word: tiles; arcade: lasers/explosions; board: piece clacks; dice: rolls |
-| 3 Game | `<id>.pck` | `res://games/<id>/` | that game's hero art, unique sounds (music: shared library only, rule below). [CURRENT 2026-10-07] pack presets include `games/<id>/*`; the APK / HubOnly / TraceDev presets exclude `games/*`; `hub.py check` wants a CREDITS.json entry for every file there; images import Lossy (0.85) like the brand art |
+| 3 Game | `<id>.pck` | `res://games/<id>/` | that game's hero art, unique sounds, its own music (`res://games/<id>/music/`, rule below; was "music: shared library only" until 2026-11-20). [CURRENT 2026-10-07] pack presets include `games/<id>/*`; the APK / HubOnly / TraceDev presets exclude `games/*`; `hub.py check` wants a CREDITS.json entry for every file there; images import Lossy (0.85) like the brand art |
 
 Rules:
 - Promote an asset to Tier 2 only when ≥ 3 games in the category use it; to Tier 1 when ≥ 2 categories do.
@@ -274,10 +283,29 @@ Rules:
   `texture_filter = TEXTURE_FILTER_NEAREST`. Arcade games keep their own look (§ skins); a library sprite is an
   option, not a requirement. Nothing with an alcohol reference goes in the library (the importer renames or leaves
   it out); sound and sprite set names never clash (`check`).
-- [NEW 2026-10-07, owner] **Every game's music comes from the hub's shared library** (APK autoload `Music`,
+- ~~[NEW 2026-10-07, owner] **Every game's music comes from the hub's shared library** (APK autoload `Music`,
   `scripts/common/music.gd`; CLAUDE.md "Music library"): a game picks a style (calm / lively / techno) and a track
   number, it never synthesizes or ships its own music. Real tracks are added to the library
-  (`res://media/common/music/<style>/` or `res://media/hub/music/<style>/`), never to one game's pack.
+  (`res://media/common/music/<style>/` or `res://media/hub/music/<style>/`), never to one game's pack.~~
+  [CHANGED 2026-11-20, owner — replaced by the next rule; the shared library stays for games without own tracks]
+- [NEW 2026-11-20, owner, APK ≥ 0.43.0] **Hub music and game music never mix or carry over.**
+  - **Hub music plays only in the hub**: style `hub` (`Music.HUB_STYLE`), files in the APK at
+    `res://media/hub/music/hub/` (loop on). Games can't ask for it (`play()` only takes calm / lively / techno).
+    It fades out within 0.5 s (`Music.HUB_FADE`) the moment a game's scene opens (or the game asks for music, whichever
+    is first) and resumes where it was when the player is back on a hub screen.
+  - **A game may ship its own tracks** in its pack at `res://games/<id>/music/<name>.ogg` (namespaced, so packs never
+    collide), credited in `media/CREDITS.json` like any game media (CC BY: shown with its link in Options → Credits).
+    It plays them through `Music.play_stream(stream, owner, fade, then)` (🎵 switch, volume, pause dip, fade-out on
+    leaving; `then` follows a one-shot). Each game keeps a `<id>_music.gd` helper that guards the call
+    (`get_node_or_null("/root/Music")` + `has_method("play_stream")`); on older apps it stops their `Music` and plays
+    the track on a player of its own, on the `Music` bus. Those games are set to `"off"` in `music.json` `"play"`, so
+    an older app never starts library music over them.
+  - Games without own tracks keep using the shared library (calm / lively / techno, next rule); the hub never
+    shares a track with them.
+  - Loop is set in the `.import` (`loop=true`); a one-shot (e.g. Beached's `tropoix_arrival`) has `loop=false`.
+  - `hub.py check`: game music is `.ogg` under a real game id; hub tracks loop; no game script names
+    `res://media/hub/music/` or another game's `music/`; every `play_stream(` call is guarded with
+    `has_method("play_stream")`.
 - [NEW 2026-10-07, owner] **Music is the exception to media packs: downloaded tracks.** The usual way to add a
   real track is **Viral Music Drop** (`tools/music_drop/`, run by the owner on the PC, no Claude): it converts to the
   rules below (OGG Vorbis ~96 kbps, −16 LUFS, true peak −1.5 dB), uploads the OGG to the GitHub pre-release
@@ -313,6 +341,7 @@ func _ready():
     preload("res://scripts/games/<id>/<id>_i18n.gd").install(self)
     # No SettingsDrawer in new/migrated games — pause menu + Options come from the Landing kit.
 ```
+- [2026-11-19] `project.godot` `window/handheld/orientation` stays `6` (sensor, an int). Any fixed value makes Android imply a required `android.hardware.screen.*` feature and Play restricts installs (build 56 pre-review). Orientation is locked per screen at runtime only. `hub.py check` enforces this.
 Guarded calls into APK systems (packs run on older apps):
 ```gdscript
 if info:

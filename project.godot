@@ -34,7 +34,7 @@ Store="*res://scripts/common/store.gd"
 
 window/size/viewport_width=720
 window/size/viewport_height=1280
-window/handheld/orientation="portrait"
+window/handheld/orientation=6
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/size/window_width_override=396

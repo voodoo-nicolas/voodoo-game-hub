@@ -1,12 +1,12 @@
-# Privacy Policy — Viral Game Hub
+# Privacy Policy — Viral Gaming Hub
 
-Version 1.0.0 · Effective October 12, 2026
+Version 1.1.0 · Effective November 19, 2026
 
 > Courtesy translation. If there is any difference, the Spanish version prevails.
 
 ## 1. Controller
 
-Nicolas Gargiulo (CUIT 20-30807137-6), located at Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina ("Viral", "we"), is the controller of personal data in Viral Game Hub (the "Hub"). Privacy contact: Viralgamingservice@gmail.com.
+Nicolas Gargiulo (CUIT 20-30807137-6), located at Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina ("Viral", "we"), is the controller of personal data in Viral Gaming Hub (the "Hub"). Privacy contact: Viralgamingservice@gmail.com.
 
 ## 2. Data we collect
 

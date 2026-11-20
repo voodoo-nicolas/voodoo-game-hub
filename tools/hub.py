@@ -512,6 +512,7 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_store(m)
     errors += lint_credits()
     errors += lint_music(m)
+    errors += lint_game_music(m)
     errors += lint_hub_name()
     errors += lint_web_threads()
     errors += lint_own_backgrounds(m)
@@ -523,6 +524,15 @@ def validate() -> tuple[list[str], list[str]]:
     rating_errors, _flags = rating_report.problems(m)
     errors += ["ratings: " + e for e in rating_errors]
     print(f"  hub rating {rating_report.hub_rating(m)}+ (max age of any game; the Play content-rating answers must match: python tools/rating_report.py)")
+    # Play pre-review (build 56): a fixed orientation makes Android imply a REQUIRED
+    # android.hardware.screen.<landscape|portrait> feature, restricting installs. Godot 4
+    # wants an int here; a string like "portrait" silently parses as 0 = landscape.
+    # 6 = sensor; the Orientation autoload locks each screen at runtime.
+    pg = (ROOT / "project.godot").read_text(encoding="utf-8")
+    om = re.search(r"^window/handheld/orientation=(.*)$", pg, re.M)
+    if not om or om.group(1).strip() != "6":
+        errors.append("project.godot: window/handheld/orientation must be 6 (sensor) -- "
+                      "anything else makes Play require a screen.* feature")
     return errors, warnings
 
 
@@ -722,6 +732,44 @@ def lint_music(m: dict) -> list[str]:
             errors.append(f"{where}: play {key!r}: no category with that name in manifest.json")
         elif not (key == "hub" or key.startswith(("game:", "category:"))):
             errors.append(f"{where}: play {key!r}: keys are hub, category:<name> or game:<id>")
+    return errors
+
+
+def lint_game_music(m: dict) -> list[str]:
+    """STANDARDS §10 (owner 2026-11-20): hub music and game music never mix.
+    Hub tracks (media/hub/music/hub/) loop and are the hub's alone; a game's own
+    tracks are .ogg in games/<id>/music/ for a real game id; no game script names
+    the hub's music or another game's; every play_stream( call is guarded
+    (packs run on apps without it)."""
+    errors = []
+    ids = set(m.get("games", {}))
+    hub_dir = MEDIA / "hub" / "music" / "hub"
+    if hub_dir.is_dir():
+        for f in sorted(hub_dir.glob("*.import")):
+            if not re.search(r"^loop=true$", f.read_text(encoding="utf-8"), re.M):
+                errors.append(f"{f.relative_to(ROOT).as_posix()}: hub music must loop (loop=true in the import)")
+    for d in sorted(GAME_MEDIA.glob("*/music")) if GAME_MEDIA.is_dir() else []:
+        gid = d.parent.name
+        if gid not in ids:
+            errors.append(f"games/{gid}/music/: no game with id {gid!r} in manifest.json")
+        for f in sorted(d.rglob("*")):
+            if f.is_dir() or f.suffix in (".import", ".uid"):
+                continue
+            if f.suffix.lower() != ".ogg":
+                errors.append(f"{f.relative_to(ROOT).as_posix()}: game music must be OGG Vorbis (.ogg)")
+    games_code = ROOT / "scripts" / "games"
+    for f in sorted(games_code.rglob("*.gd")) if games_code.is_dir() else []:
+        gid = f.relative_to(games_code).parts[0]
+        rel = f.relative_to(ROOT).as_posix()
+        code = "\n".join(l for l in f.read_text(encoding="utf-8").splitlines() if not l.lstrip().startswith("#"))
+        if "res://media/hub/music" in code:
+            errors.append(f"{rel}: games never play the hub's music (res://media/hub/music/)")
+        for other in set(re.findall(r"res://games/([a-z0-9_]+)/music/", code)) - {gid}:
+            errors.append(f"{rel}: uses games/{other}/music/ -- a game plays only its own tracks")
+        # Only Music's play_stream (sound_lib.gd and Sfx have their own of that name).
+        if '"/root/Music"' in code and re.search(r"\b(m|music|Music)\.play_stream\(", code) \
+                and 'has_method("play_stream")' not in code:
+            errors.append(f'{rel}: play_stream( needs a has_method("play_stream") guard (older apps lack it)')
     return errors
 
 
@@ -1004,6 +1052,19 @@ def run_godot(*args: str, timeout: int = 300, env: dict | None = None) -> tuple[
 
 
 ERROR_RE = re.compile(r"SCRIPT ERROR|Parse Error|^ERROR:|Failed to load", re.M)
+## Headless boots stop the engine while a music file still plays; the dummy audio
+## driver never mixes again, so Godot reports that track as "still in use at exit".
+## Harmless (a phone's OS just ends the process), and only accepted when a verbose
+## re-run shows every leftover resource is a music file (STANDARDS §10, 2026-11-20).
+STILL_IN_USE_RE = re.compile(r"^ERROR: \d+ resources? still in use at exit", re.M)
+MUSIC_RES_RE = re.compile(r"^Resource still in use: res://(media/hub/music/|media/common/music/|games/[a-z0-9_]+/music/)", re.M)
+
+
+def music_only_leak(scene: str) -> bool:
+    """True when the only leftovers at exit are music files that were playing."""
+    _, out = run_godot("--verbose", scene, "--quit-after", "60")
+    left = [l for l in out.splitlines() if l.startswith("Resource still in use:")]
+    return bool(left) and all(MUSIC_RES_RE.match(l) for l in left)
 
 
 def cmd_test(args) -> None:
@@ -1019,6 +1080,8 @@ def cmd_test(args) -> None:
     for scene in scenes:
         _, out = run_godot(scene, "--quit-after", "60")
         problems = [line for line in out.splitlines() if ERROR_RE.search(line)]
+        if problems and all(STILL_IN_USE_RE.match(p) for p in problems) and music_only_leak(scene):
+            problems = []  # only a music track still playing at engine exit (see STILL_IN_USE_RE)
         print(("  FAIL " if problems else "  ok   ") + scene)
         for line in problems[:8]:
             print("         " + line)

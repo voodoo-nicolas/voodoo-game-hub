@@ -1,6 +1,6 @@
-# Terms of Service and End User License Agreement (EULA) — Viral Game Hub
+# Terms of Service and End User License Agreement (EULA) — Viral Gaming Hub
 
-Version 1.0.0 · Effective October 12, 2026
+Version 1.1.0 · Effective November 19, 2026
 
 > Courtesy translation. If there is any difference, the Spanish version prevails.
 
@@ -8,7 +8,7 @@ Version 1.0.0 · Effective October 12, 2026
 
 ## 1. Who we are and acceptance
 
-These terms (the "Terms") govern your use of Viral Game Hub (the "Hub"), a games service provided by Nicolas Gargiulo (CUIT 20-30807137-6, address Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina; "Viral", "we"). By creating an account or using the Hub you accept these Terms and the Privacy Policy. If you do not agree, do not use the Hub.
+These terms (the "Terms") govern your use of Viral Gaming Hub (the "Hub"), a games service provided by Nicolas Gargiulo (CUIT 20-30807137-6, address Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina; "Viral", "we"). By creating an account or using the Hub you accept these Terms and the Privacy Policy. If you do not agree, do not use the Hub.
 
 ## 2. Who can use the Hub
 
@@ -34,20 +34,22 @@ We may remove names or content, reset invalid scores, and suspend or close accou
 
 ## 6. Trials, purchases and subscription
 
-- **Free trial:** 7 days per game.
-- **Individual purchase:** USD 0.99 per game, with permanent access while the Hub is available.
-- **Subscription:** USD 4.99 per month, with access to all included games. It renews automatically until you cancel. Cancel in Google Play → Payments & subscriptions, or from the link inside the Hub; you keep access until the end of the paid period.
+- **Hub subscription:** USD 4.99 per month, with access to all included games. Includes a 7-day free trial for new subscribers, and an introductory price of USD 2.99 per month for the first 3 months may be offered.
+- **Per-game subscription:** USD 1 per month per game, with a 3-day free trial for each game.
+- **Renewal and cancellation:** subscriptions renew automatically until you cancel; if you do not cancel before a trial ends, the next period is charged. Cancel in Google Play → Payments & subscriptions, or from the link inside the Hub; you keep access until the end of the paid period.
+- **Founder access:** we may grant early supporters extra or lifetime benefits at our discretion. It is personal, tied to your account, non-transferable, has no cash value and can be revoked for breach of these Terms.
+- **Simulated gambling:** some games simulate casino or card games using virtual chips or points with no real-money value: they cannot be bought with money, or withdrawn, exchanged or redeemed for money, prizes or anything of value.
 - **Prices:** we show the final price before you pay, in the currency shown by Google Play.
 - **Payments:** processed by Google Play. We never see your card details. Refunds follow Google Play policies and the non-waivable rights the law gives you (withdrawal: art. 34, Law 24,240 and arts. 1110 ff., Civil and Commercial Code; cancellation and withdrawal buttons: SCI Res. 316/2018 and 424/2020).
 - **Price changes:** announced in advance, they do not affect the period already paid and, for subscriptions, require your consent as handled by Google Play.
 
 ## 7. Availability and service changes
 
-We work to keep the Hub running well but do not guarantee uninterrupted availability. We may add, change or remove games. If we remove a game you bought individually, or shut down the Hub, we will give you at least 30 days' notice and you will keep offline access to what you have already downloaded.
+We work to keep the Hub running well but do not guarantee uninterrupted availability. We may add, change or remove games. If we remove a game you subscribe to individually, or shut down the Hub, we will give you at least 30 days' notice and you will keep offline access to what you have already downloaded.
 
 ## 8. Intellectual property
 
-The Hub, games, art, music, logo and the name "Viral Game Hub" belong to Viral or its licensors and are protected by Law 11,723 and, where applicable, Law 22,362. The rules of traditional games (chess, card games, sudoku, etc.) are in common use; third-party names and trademarks belong to their owners and imply no affiliation. The "Viral Game Hub" trademark is pending registration at the INPI.
+The Hub, games, art, music, logo and the name "Viral Gaming Hub" belong to Viral or its licensors and are protected by Law 11,723 and, where applicable, Law 22,362. The rules of traditional games (chess, card games, sudoku, etc.) are in common use; third-party names and trademarks belong to their owners and imply no affiliation. The "Viral Gaming Hub" trademark is pending registration at the INPI.
 
 Your username, avatar and ratings remain yours. You grant us a free, non-exclusive, worldwide license to display them within the Hub for their function (leaderboards, profile, friends) while your account exists.
 

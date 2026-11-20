@@ -1,11 +1,11 @@
-# Política de Privacidad — Viral Game Hub
+# Política de Privacidad — Viral Gaming Hub
 
-Versión 1.0.0 · Vigente desde 12 de octubre de 2026
+Versión 1.1.0 · Vigente desde 19 de noviembre de 2026
 
 
 ## 1. Responsable
 
-Nicolas Gargiulo (CUIT 20-30807137-6), con domicilio en Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina ("Viral", "nosotros"), es responsable del tratamiento de los datos personales en Viral Game Hub (el "Hub"). Contacto de privacidad: Viralgamingservice@gmail.com.
+Nicolas Gargiulo (CUIT 20-30807137-6), con domicilio en Lavalle 2797, San Miguel de Tucumán, CP 4000, Argentina ("Viral", "nosotros"), es responsable del tratamiento de los datos personales en Viral Gaming Hub (el "Hub"). Contacto de privacidad: Viralgamingservice@gmail.com.
 
 ## 2. Qué datos recolectamos
 

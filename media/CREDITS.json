@@ -9376,6 +9376,83 @@
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
   },
   {
+   "file": "games/arrow_pop/menu_bg.jpg",
+   "what": "Bubble-wrap texture behind the Arrow Pop Landing",
+   "source": "Generated procedurally (Python/Pillow script, no source images), 2026-11-20",
+   "author": "Viral (owner design); made by Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "Claude Code (procedural image script)"
+  },
+  {
+   "file": "games/arrow_pop/bg_light.jpg",
+   "what": "Pale bubble-wrap texture behind the Arrow Pop board (Classic)",
+   "source": "Generated procedurally by tools/art/puzzle_backdrops.py (Python/Pillow, no source images), 2026-11-20",
+   "author": "Viral (owner design); made by Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "Claude Code (procedural image script)"
+  },
+  {
+   "file": "games/block_escape/bg_light.jpg",
+   "what": "Toy baseplate texture behind the Block Escape board (Classic)",
+   "source": "Generated procedurally by tools/art/puzzle_backdrops.py (Python/Pillow, no source images), 2026-11-20",
+   "author": "Viral (owner design); made by Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "Claude Code (procedural image script)"
+  },
+  {
+   "file": "games/arrows/bg_light.jpg",
+   "what": "Graph-paper texture behind the Arrows board (Classic)",
+   "source": "Generated procedurally by tools/art/puzzle_backdrops.py (Python/Pillow, no source images), 2026-11-20",
+   "author": "Viral (owner design); made by Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "Claude Code (procedural image script)"
+  },
+  {
+   "file": "games/block_escape/landing.jpg",
+   "what": "Landing-page art: toy-brick board with a brick escaping its gate",
+   "source": "Generated procedurally by tools/art/puzzle_landing_art.py (Python/Pillow, no source images), 2026-11-20",
+   "author": "Viral (owner design); made by Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "Claude Code (procedural image script)"
+  },
+  {
+   "file": "games/arrow_pop/landing.jpg",
+   "what": "Landing-page art: two-colour arrows popping bubble-wrap",
+   "source": "Generated procedurally by tools/art/puzzle_landing_art.py (Python/Pillow, no source images), 2026-11-20",
+   "author": "Viral (owner design); made by Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "Claude Code (procedural image script)"
+  },
+  {
+   "file": "games/arrows/landing.jpg",
+   "what": "Landing-page art: tangled arrows on graph paper, one flying free",
+   "source": "Generated procedurally by tools/art/puzzle_landing_art.py (Python/Pillow, no source images), 2026-11-20",
+   "author": "Viral (owner design); made by Claude Code",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "Claude Code (procedural image script)"
+  },
+  {
    "file": "games/ink_ninja/intro.ogv",
    "what": "Ink Ninja intro film (12 s, 720p Ogg Theora + Vorbis)",
    "source": "owner video D:/Dev/hub/ink ninja final1.mp4, converted with ffmpeg 2026-11-20",
@@ -9385,6 +9462,182 @@
    "url": "",
    "date": "2026-11-20",
    "ai_tool": "owner (tool not recorded)"
+  },
+  {
+   "file": "media/hub/music/hub/menu_chill.ogg",
+   "what": "Hub music (hub screens only): \"Menu Chill Music\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "etrock",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/menu-chill-music",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "media/hub/music/hub/simple_loop.ogg",
+   "what": "Hub music (hub screens only): \"Simple menu/background music loop\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "polosik",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/node/186484",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "media/hub/music/hub/chill_main_menu.ogg",
+   "what": "Hub music (hub screens only): \"Chill Main Menu music\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Augmentality (Brandon Morris)",
+   "licence": "CC0 (also offered as OGA-BY 3.0; used under CC0)",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/node/3976",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/wilson/music/feel_good_island_loop.ogg",
+   "what": "Beached (wilson) music: \"Feel Good Island (loop)\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Brandon Morris (loop by AntumDeluge)",
+   "licence": "CC0 (also offered as OGA-BY 3.0; used under CC0)",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/feel-good-island-loop",
+   "date": "2026-11-20",
+   "processed_by": "unchanged"
+  },
+  {
+   "file": "games/wilson/music/tropoix_arrival.ogg",
+   "what": "Beached (wilson) music: \"Tropoix\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Tozan",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/tropoix",
+   "date": "2026-11-20",
+   "processed_by": "unchanged"
+  },
+  {
+   "file": "games/wilson/music/tropical_loop.ogg",
+   "what": "Beached (wilson) music: \"Tropical Loop\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "wipics",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/tropical-loop",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/wilson/music/monkey_island_band_loop.ogg",
+   "what": "Beached (wilson) music: \"Monkey Island Band (loop)\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Eric Matyas, soundimage.org",
+   "licence": "CC-BY 3.0/4.0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/monkey-island-band-loop",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/wilson/music/bamboo_blitz.ogg",
+   "what": "Beached (wilson) music: \"Bamboo Blitz\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Tsorthan Grove",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/node/187881",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/ink_ninja/music/treacherous_path.ogg",
+   "what": "Ink Ninja music: \"Treacherous Path Loop\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "beardalaxy",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/treacherous-path-loop",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/ink_ninja/music/asian_oriental1.ogg",
+   "what": "Ink Ninja music: \"Asianoriental1\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Tozan",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/asianoriental1",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/ink_ninja/music/asian_oriental2.ogg",
+   "what": "Ink Ninja music: \"Asianoriental2\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Tozan",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/asianoriental2",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/ink_ninja/music/jaoan.ogg",
+   "what": "Ink Ninja music: \"Jaoan\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Tozan",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/jaoan",
+   "date": "2026-11-20",
+   "processed_by": "unchanged"
+  },
+  {
+   "file": "games/ink_ninja/music/dojo_menu.ogg",
+   "what": "Ink Ninja music: \"Menu Music (dojo)\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "wipics",
+   "licence": "CC0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/node/101396",
+   "date": "2026-11-20",
+   "processed_by": "converted from MP3 to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/ink_ninja/music/samurai.ogg",
+   "what": "Ink Ninja music: \"Samurai\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "TAD",
+   "licence": "CC-BY 4.0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/content/samurai",
+   "date": "2026-11-20",
+   "processed_by": "converted from MP3 to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/ink_ninja/music/taiko_drums.ogg",
+   "what": "Ink Ninja music: \"Taiko drums (seamless loop)\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "jobro (submitted by congusbongus)",
+   "licence": "CC-BY 3.0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/node/50300",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "games/ink_ninja/music/kawarayu.ogg",
+   "what": "Ink Ninja music: \"Kawarayu\"",
+   "source": "OpenGameArt, picked by the owner (D:/Dev/Music)",
+   "author": "Yubatake",
+   "licence": "CC-BY 4.0",
+   "proof": "media/licenses/music/owner-tracks-2026-11-20.json",
+   "url": "https://opengameart.org/node/15058",
+   "date": "2026-11-20",
+   "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
   }
  ]
 }

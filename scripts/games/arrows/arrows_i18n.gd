@@ -5,6 +5,7 @@ extends RefCounted
 const STRINGS := {
 	"es": {
 		"%d arrows   Time %d:%02d": "%d flechas   Tiempo %d:%02d",
+		"%d arrows left.": "Quedan %d flechas.",
 		"%d arrows left. Use a ❤ help to keep going, or start the board again.": "Quedan %d flechas. Usa una ayuda ❤ para seguir, o empieza el tablero de nuevo.",
 		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%d ways to play": "%d formas de jugar",
@@ -106,6 +107,7 @@ const STRINGS := {
 		"These controls are shared: they change every game that uses the shared controller.": "Estos controles son compartidos: cambian en todos los juegos que usan el mando compartido.",
 		"These settings are app-wide: they change every game.": "Estos ajustes son de toda la app: cambian en todos los juegos.",
 		"Time %d:%02d": "Tiempo %d:%02d",
+		"Time's up!": "¡Se acabó el tiempo!",
 		"Update the app to keep statistics.": "Actualiza la app para guardar estadísticas.",
 		"Update the app to see the leaderboards.": "Actualiza la app para ver las clasificaciones.",
 		"Vibration": "Vibración",
