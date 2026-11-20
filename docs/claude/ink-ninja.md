@@ -59,3 +59,4 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
 - Pines: feathered dry-brush tiers (`_pine_span`), darker, plus a dark near row (`pines_near`).
 - Not built: the intro video `D:/Dev/hub/ink ninja final1.mp4` (95 MB mp4; Godot plays only Ogg Theora).
 - Test keys: **F9** jumps to the stage end (gate / boss), **F10** 1500 units ahead (keyboard only).
+- Landscape touch screens zoom to 1.9x (like portrait), the boss arena eases out to fit; the field slides so the hero stays at 38 % of the visible width.

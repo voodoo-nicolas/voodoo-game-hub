@@ -1057,23 +1057,39 @@ func _draw_field() -> void:
 ## (up to 1.4x) as far as the screen width still shows the whole boss arena (VIEW_W); the
 ## extra height is cut mostly from the sky and follows the hero up a pagoda.
 var view_y := 0.0
+var zoom := 0.0
 func _fit_field(delta: float) -> void:
 	if field == null:
 		return
 	var vs := size
 	if vs.y < 1.0 or vs.x < 1.0:
 		return
-	var z := clampf(vs.x / vs.y * Engine_.H / Engine_.VIEW_W, 1.0, 1.4)
+	#var z := clampf(vs.x / vs.y * Engine_.H / Engine_.VIEW_W, 1.0, 1.4)
+	# Owner 2026-11-20: portrait phones look right; landscape phones need about the same
+	# world scale, so a touch screen in landscape shows ~380 units of height (ground low on
+	# screen). The boss arena eases back out so its whole width (VIEW_W) fits.
+	var fit := vs.x / vs.y * Engine_.H / Engine_.VIEW_W
+	var zt := clampf(fit, 1.0, 1.4)
+	if DisplayServer.is_touchscreen_available() and vs.x > vs.y:
+		zt = 1.9
+	if engine.locked:
+		zt = clampf(fit, 1.0, zt)
+	zoom = zt if delta <= 0.0 or zoom <= 0.0 else lerpf(zoom, zt, minf(1.0, delta * 2.0))
+	var z := zoom
 	var extra := vs.y * (z - 1.0)
 	var k := vs.y / Engine_.H
-	var want := -extra * 0.75
+	var want := vs.y * 0.84 - Engine_.GROUND * k * z   # the ground line at 84 % of the screen
 	want = maxf(want, vs.y * 0.2 - (engine.py - 70.0) * k * z)   # keep the hero's head in view
 	want = clampf(want, -extra, 0.0)
 	view_y = want if delta <= 0.0 or absf(view_y - want) > extra + 1.0 else lerpf(view_y, want, minf(1.0, delta * 4.0))
 	field.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	field.scale = Vector2(z, z)
-	field.size = Vector2(vs.x / z, vs.y)
-	field.position = Vector2(0.0, view_y)
+	# Zoomed in, the hero would stand right of centre (the camera keeps him at 0.38 x VIEW_W):
+	# slide the field left so he stays at 38 % of what is visible, with room to see ahead.
+	var visw := vs.x / z / k
+	var off := clampf(engine.px - engine.cam_x() - visw * 0.38, 0.0, Engine_.VIEW_W * 0.38)
+	field.size = Vector2(vs.x / z + off * k, vs.y)
+	field.position = Vector2(-off * k * z, view_y)
 	if dark:
 		dark.position = Vector2.ZERO
 		dark.size = field.size
