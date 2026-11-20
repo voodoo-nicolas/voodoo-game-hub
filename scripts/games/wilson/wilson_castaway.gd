@@ -161,7 +161,11 @@ func _scale() -> float:
 	return lerpf(0.9, 1.08, depth)
 
 # craft / carve / weave / tool / chop added 2026-11-19: they never mirrored, so she knelt with her back to the pebbles
-const FACING_POSES := ["idle", "run", "sit", "eat", "drink", "shrug", "wave", "facepalm", "sulk", "craft", "carve", "weave", "tool", "chop"]
+# const FACING_POSES := ["idle", "run", "sit", "eat", "drink", "shrug", "wave", "facepalm", "sulk", "craft", "carve", "weave", "tool", "chop"]
+const FACING_POSES := ["idle", "run", "sit", "eat", "drink", "shrug", "wave", "facepalm", "sulk", "carve", "chop"]
+## Poses drawn looking LEFT on the sheets (the basket, the rope tool, weaving): mirrored when she faces right.
+## (2026-11-20: mirroring them like the right-facing ones turned her away from the pebbles, owner's photo.)
+const LEFT_POSES := ["craft", "weave", "tool"]
 
 func _draw() -> void:
 	var p := current_pose()
@@ -185,7 +189,7 @@ func _draw() -> void:
 	# walk frames face right on the sheets (checked on the owner's phone 2026-11-09): mirror them when walking left
 	# the sheets face right: mirror every standing / walking pose when he faces left, so he stays turned
 	# the way he last walked (owner, 2026-11-09). Sleeping, hammock and collapse are lying poses: as drawn.
-	var flip := facing < 0.0 and (p.begins_with("walk") or p in FACING_POSES)
+	var flip := (facing < 0.0 and (p.begins_with("walk") or p in FACING_POSES)) or (facing > 0.0 and p in LEFT_POSES)
 	var at := Vector2(-sz.x / 2.0, -sz.y + 4.0 * k)
 	if p == "hammock":
 		at = Vector2(-sz.x / 2.0, -sz.y * 0.75)

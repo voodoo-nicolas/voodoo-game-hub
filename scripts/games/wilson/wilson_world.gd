@@ -208,8 +208,11 @@ func setup(e) -> void:
 		if palm_art[id] in ["C", "D"] and _tex("palm_grass.webp"):      # the cut-out trunks end flat: a grass tuft over the foot
 			var gs := Sprite2D.new()
 			gs.texture = _tex("palm_grass.webp")
-			gs.position = base + Vector2(0, 2)
-			gs.scale = Vector2.ONE * (58.0 / float(gs.texture.get_width()))
+			# gs.position = base + Vector2(0, 2)
+			# the cut-out trunks end ~10 px under their base in a thin point: the tuft sat above it and the palm
+			# looked like it stood on a stilt (owner, 2026-11-20); cover the trunk end instead
+			gs.position = base + Vector2(0, 13)
+			gs.scale = Vector2.ONE * (70.0 / float(gs.texture.get_width()))
 			gs.offset = Vector2(0, -gs.texture.get_height() * 0.62)
 			sorted.add_child(gs)
 			_palm_grass[id] = gs

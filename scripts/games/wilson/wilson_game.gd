@@ -1646,6 +1646,8 @@ func _refresh_hud() -> void:
 		_quest.text = "🎒 %s  %d/%d" % [tr(str(intro.hint)), mini(int(intro.have), int(intro.need)), int(intro.need)]
 	elif engine.quest != "":
 		_quest.text = "📜 " + tr(str(D.QUEST_SHORT.get(engine.quest, D.quest_name(D.quest(engine.quest)))))
+		if D.QUEST_HINTS.has(engine.quest):      # how to do it, under the goal (owner, 2026-11-20: "catch a fish... but what do I do?")
+			_quest.text += "\n" + tr(str(D.QUEST_HINTS[engine.quest]))
 	else:
 		_quest.text = "📜 " + tr("Tutorial done. The island is yours. Sadly.")
 	_refresh_queue()
