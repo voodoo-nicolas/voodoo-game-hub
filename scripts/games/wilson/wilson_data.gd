@@ -111,6 +111,8 @@ const SKILLS := ["foraging", "woodcutting", "fishing", "fire", "cooking", "carpe
 const SKILL_NAMES := {"foraging": "Foraging", "woodcutting": "Woodcutting", "fishing": "Fishing ", "fire": "Fire ",
 	"cooking": "Cooking ", "carpentry": "Carpentry", "tinkering": "Tinkering", "weather sense": "Weather sense"}
 const SKILL_MAX := 10
+## Grand Projects stay hidden until both Carpentry and Tinkering reach this level (owner, 2026-11-20).
+const PROJECT_SKILL_LEVEL := 5
 const SKILL_SPEED := 0.03
 ## Weather sense level that shows high / low tide (owner, 2026-11-19).
 const TIDE_SENSE_LEVEL := 3
@@ -370,7 +372,8 @@ const QUEST_HINTS := {
 	"T01": "Tap the castaway. Someone has to get this day started.",
 	"T02": "Tap the wrecked crate to open it.",
 	"T03": "🔨 Craft a fishing pole (stick + rope + hook, needs the knife).",
-	"T04": "Tap the shallows to fish.",
+	# "T04": "Tap the shallows to fish.",
+	"T04": "Walk to the water's edge under the arrow and press A, or tap the water. The fishing pole does the rest.",
 	"T05": "Make a spark kit, then build a campfire (8 stones, 5 sticks).",
 	"T06": "Salvage the sailcloth, then hang the hammock between palms A and B.",
 	"T07": "Shake a palm for a coconut, then drink it from the 🎒 bag.",

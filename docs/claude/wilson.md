@@ -27,6 +27,8 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 ## Easter eggs (owner, 2026-11-20)
 - `engine.egg()`: the blonde (female5) named Heather or Emilia (any case) gets secret odd jobs (`egg` field in `wilson_pastimes.gd`, `say` = speech bubble; Emilia's labels are Spanish in both languages); a white man (male1-3) named Nicolas is drawn with his own sheet (`shown_look()` = "nicolas", `Castaway.SPECIAL`).
 - Job frames: `castaway.job` (action kind / pastime id) cycles `<look>_job_<id>_<n>.webp` or `job_<id>_<n>.webp` while working (`JOB_ALIAS` lends frames). Art: `python tools/wilson_art_eggs.py` (special1/2, heather1-3, Emilia, blondecry in D:/dev/Wilson; slow, a few minutes).
+- Action pictures for all 7 castaways (owner's People folder, 2026-11-20): `python tools/wilson_art_people.py` -> `<look>_job_<job>_<n>.webp` (splash, seawater, spear, fish, skip_stone, search_sand, dig, shake, haul, fan_fire, roast, catch_crab, tally, carve, sandcastle, peek, yoga, rest, drum, swim, float), each scaled to a height per job (`H`). The picker shows 7 looks (`Castaway.PICK`: male1/3/4, female1/3/4/5); male2 only for old saves.
+- Fishing: tapping works again (root Control was swallowing clicks, fix had never shipped until v18), A reaches the water (`shallows` interactable), "Catch a fish" also in ⚡ Odd jobs. Grand Projects hidden until Carpentry and Tinkering reach `D.PROJECT_SKILL_LEVEL` (5).
 - Skill drills show the skill they raise in the menu: "Study the plants (+Foraging)".
 
 ## Guided opening (2026-11-09)

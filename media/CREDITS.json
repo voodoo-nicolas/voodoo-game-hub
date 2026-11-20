@@ -3727,7 +3727,7 @@
   {
    "file": "games/wilson/art/",
    "what": "Beached: island clean plate (sky cut out), palms C and D, wreck debris, Landing; chars/ (9 castaway looks x 19 poses), icons/ (inventory + rare materials), camp/ (camp builds), fire/ (fire parts), hud/ (HUD icons); cloud_1/cloud_2 drawn in code by Claude Code; projects/ (Grand Projects sheet), sea/ (sea layer + front waves tiles, foam arcs), sky/ (the painted sun + 2 clouds), landing_logo.webp (Landing + the wooden Beached logo)",
-   "source": "D:/dev/Wilson: 4.jpg, 5.jpg, 6.jpg, male1-4.jpg, female1/3/4.jpg + demale2.jpg (= female2), inventory.jpg, rare materials.jpg, camp builds.jpg, fire3.jpg, hud.jpg; grand.jpg, sea layer.jpg, front waves.jpg, sea foam2.jpg, sky layer.jpg, landing screen.jpg; 2026-11-10 batch (tools/wilson_art_new.py): palm2.jpg, bamboo.jpg, island wide.jpg, sheet 1-7.jpg, frond shelter / fish trap / SOS flag / canopy / Smokehouse / kiln / Sundial / raft section / desalinator / cellar / museum / golden coconut.jpg; 2026-11-20 easter eggs (tools/wilson_art_eggs.py): special1.jpg, special2.jpg (Nicolas), heather1-3.jpg, Emilia.jpg, blondecry.jpg",
+   "source": "D:/dev/Wilson: 4.jpg, 5.jpg, 6.jpg, male1-4.jpg, female1/3/4.jpg + demale2.jpg (= female2), inventory.jpg, rare materials.jpg, camp builds.jpg, fire3.jpg, hud.jpg; grand.jpg, sea layer.jpg, front waves.jpg, sea foam2.jpg, sky layer.jpg, landing screen.jpg; 2026-11-10 batch (tools/wilson_art_new.py): palm2.jpg, bamboo.jpg, island wide.jpg, sheet 1-7.jpg, frond shelter / fish trap / SOS flag / canopy / Smokehouse / kiln / Sundial / raft section / desalinator / cellar / museum / golden coconut.jpg; 2026-11-20 easter eggs (tools/wilson_art_eggs.py): special1.jpg, special2.jpg (Nicolas), heather1-3.jpg, Emilia.jpg, blondecry.jpg; 2026-11-20 People folder action sheets (tools/wilson_art_people.py): IMG_3030-3036, the two 22-pose transparent sheets, the blonde IMG_3002-3027",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",
    "proof": "media/licenses/OWNER_GAME_ART.md",
@@ -9376,6 +9376,17 @@
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
   },
   {
+   "file": "games/ink_ninja/intro.ogv",
+   "what": "Ink Ninja intro film (12 s, 720p Ogg Theora + Vorbis)",
+   "source": "owner video D:/Dev/hub/ink ninja final1.mp4, converted with ffmpeg 2026-11-20",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "owner (tool not recorded)"
+  },
+  {
    "file": "games/arrow_pop/menu_bg.jpg",
    "what": "Bubble-wrap texture behind the Arrow Pop Landing",
    "source": "Generated procedurally (Python/Pillow script, no source images), 2026-11-20",
@@ -9451,17 +9462,6 @@
    "url": "",
    "date": "2026-11-20",
    "ai_tool": "Claude Code (procedural image script)"
-  },
-  {
-   "file": "games/ink_ninja/intro.ogv",
-   "what": "Ink Ninja intro film (12 s, 720p Ogg Theora + Vorbis)",
-   "source": "owner video D:/Dev/hub/ink ninja final1.mp4, converted with ffmpeg 2026-11-20",
-   "author": "Viral (owner)",
-   "licence": "owner-proprietary",
-   "proof": "media/licenses/OWNER_GAME_ART.md",
-   "url": "",
-   "date": "2026-11-20",
-   "ai_tool": "owner (tool not recorded)"
   },
   {
    "file": "media/hub/music/hub/menu_chill.ogg",

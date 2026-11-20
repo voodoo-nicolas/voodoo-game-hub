@@ -359,6 +359,9 @@
  "C.CCL.GG..": [
   "scripts\\common\\game_teasers_arcade.gd"
  ],
+ "CC-BY": [
+  "scripts\\hub\\options_screen.gd"
+ ],
  "CC......": [
   "scripts\\common\\game_teasers_puzzle.gd"
  ],
@@ -977,6 +980,10 @@
  "\\{([LR])([+-][0-9.]+)?\\}": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_art.gd"
  ],
+ "_OwnMusic": [
+  "scripts\\games\\wilson\\wilson_music.gd",
+  "scripts\\games\\ink_ninja\\ink_ninja_music.gd"
+ ],
  "after-1B": [
   "scripts\\games\\ink_ninja\\cutscene.gd"
  ],
@@ -1016,6 +1023,9 @@
  "can't write": [
   "scripts\\common\\catalog.gd"
  ],
+ "catch a fish... but what do I do?": [
+  "scripts\\games\\wilson\\wilson_game.gd"
+ ],
  "chip_%d": [
   "scripts\\games\\video_poker\\video_poker_chips.gd"
  ],
@@ -1041,6 +1051,12 @@
  ],
  "damage taken": [
   "scripts\\games\\last_shift\\last_shift_health_bar.gd"
+ ],
+ "day:%d": [
+  "scripts\\games\\wilson\\wilson_game.gd"
+ ],
+ "day:<n>": [
+  "scripts\\games\\wilson\\wilson_game.gd"
  ],
  "duplicate item '%s'": [
   "scripts\\games\\creation\\creation_engine.gd"

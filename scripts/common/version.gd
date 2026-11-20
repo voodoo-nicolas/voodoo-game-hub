@@ -10,4 +10,4 @@ const VERSION := "0.42.1"
 ## Android requires an integer versionCode that strictly increases with every
 ## release build, or installs of a newer APK over an older one will be rejected.
 ## Bump this every time a new APK is built for testers, independent of VERSION.
-const BUILD_NUMBER := 57
+const BUILD_NUMBER := 58

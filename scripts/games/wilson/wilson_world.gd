@@ -208,8 +208,11 @@ func setup(e) -> void:
 		if palm_art[id] in ["C", "D"] and _tex("palm_grass.webp"):      # the cut-out trunks end flat: a grass tuft over the foot
 			var gs := Sprite2D.new()
 			gs.texture = _tex("palm_grass.webp")
-			gs.position = base + Vector2(0, 2)
-			gs.scale = Vector2.ONE * (58.0 / float(gs.texture.get_width()))
+			# gs.position = base + Vector2(0, 2)
+			# the cut-out trunks end ~10 px under their base in a thin point: the tuft sat above it and the palm
+			# looked like it stood on a stilt (owner, 2026-11-20); cover the trunk end instead
+			gs.position = base + Vector2(0, 13)
+			gs.scale = Vector2.ONE * (70.0 / float(gs.texture.get_width()))
 			gs.offset = Vector2(0, -gs.texture.get_height() * 0.62)
 			sorted.add_child(gs)
 			_palm_grass[id] = gs
@@ -546,6 +549,8 @@ func interactables() -> Array:
 		out.append({"probe": pos + Vector2(0, -10), "id": "structure:" + str(id), "rect": r})
 	if _shore and _shore.visible:
 		out.append({"probe": D.SHORE.pos, "id": "shore", "rect": Rect2(D.SHORE.pos + Vector2(-40, -36), Vector2(80, 50))})
+	# the water's edge (owner, 2026-11-20: could not get past "Catch a fish"; A never reached the water)
+	out.append({"probe": D.SHALLOWS.pos, "id": "shallows", "rect": Rect2(D.SHALLOWS.pos + Vector2(-120, 30), Vector2(240, 70))})
 	out.append({"probe": D.CAVE.pos + Vector2(0, -20), "id": "cave", "rect": Rect2(D.CAVE.pos + Vector2(-80, -110), Vector2(170, 150))})
 	return out
 

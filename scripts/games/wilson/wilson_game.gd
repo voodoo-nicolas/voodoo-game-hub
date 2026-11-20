@@ -118,6 +118,9 @@ func _ready() -> void:
 	Orientation.lock_landscape()
 	preload("res://scripts/games/wilson/wilson_i18n.gd").install(self)
 	_load_debug()
+	# the root Control defaulted to STOP and swallowed every click, so taps on the island never reached
+	# _unhandled_input: nothing opened anywhere (owner, 2026-11-20). Only the Pad worked.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_ui()
 	GameMusic.play(self, DAY_TRACKS[0])   # the Landing: the island's main loop (the hub's music has stopped)
 
@@ -136,6 +139,9 @@ func _build_ui() -> void:
 		"art": ART,
 		"art_title": [0.0, 0.26],  # "Beached" is painted in the art (landing_logo.webp = landing + the owner's logo)
 		"solo_heading": "🏝 Island",
+		# owner, 2026-11-20: a sleeker Landing with only Resume / New island / Options / Hub; the rest is in Options
+		"landing": "beached",
+		"landing_style": load("res://scripts/games/wilson/wilson_landing.gd"),
 		"modes": [{"text": "🏝 New island", "sub": "Day 1: wake up on the beach", "action": new_island}],
 		"save_path": SAVE_PATH,
 		"resume": _continue_game,
@@ -275,7 +281,7 @@ func _pick_look(done: Callable) -> void:
 	l.add_theme_color_override("font_color", ACCENT)
 	col.add_child(l)
 	var grid := GridContainer.new()
-	grid.columns = 5
+	grid.columns = 4      # 7 castaways: 4 + 3
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	var center := CenterContainer.new()
@@ -283,7 +289,7 @@ func _pick_look(done: Callable) -> void:
 	col.add_child(center)
 	var vs := get_viewport_rect().size
 	var h := clampf((vs.y - 180.0) / 2.0, 90.0, 240.0)
-	for look_id in Castaway.LOOKS:
+	for look_id in Castaway.PICK:
 		var b := TextureButton.new()
 		var path := "res://games/wilson/art/chars/%s_idle.webp" % look_id
 		if ResourceLoader.exists(path):
@@ -716,7 +722,9 @@ func _update_marks() -> void:
 				rects.append(Rect2(cp + Vector2(-26, -100), Vector2(52, 104)))
 				mids.append("johnny")
 			"shallows":
-				rects.append(Rect2(D.SHALLOWS.pos + Vector2(-120, -40), Vector2(240, 70)))
+				# rects.append(Rect2(D.SHALLOWS.pos + Vector2(-120, -40), Vector2(240, 70)))
+				# the arrow sat on the sand, on her own legs, where she stands to fish (owner's photo 2026-11-20): over the water now
+				rects.append(Rect2(D.SHALLOWS.pos + Vector2(-120, 30), Vector2(240, 70)))
 				mids.append("shallows")
 			_:
 				for it in world.interactables():
@@ -776,6 +784,8 @@ func _pad_use() -> void:
 		_try("shore", "")
 	elif bid == "cave":
 		_try("inspect", "")
+	elif bid == "shallows":
+		_shallows_menu(scr)
 	else:
 		_on_tap(best.probe, scr)
 
@@ -1165,7 +1175,7 @@ func action_label(kind: String, target: String) -> String:
 		"chop":
 			return tr("Chop palm %s") % target
 		"fish":
-			return tr("Fish")
+			return tr("Catch a fish")      # owner, 2026-11-20 (was "Fish")
 		"seawater":
 			return tr("Scoop seawater")
 		"craft":
@@ -1299,6 +1309,11 @@ func _pastimes_menu(group: String = "long") -> void:
 			var o: Array = _opt("gather", sid)
 			o[0] = o[0].replace(ICONS["gather"] + " " + action_label("gather", sid), "✋ " + tr("Collect: %s") % D.item_name(str(D.SPOTS[sid].item)) + " (%d)" % int(engine.spots[sid]))
 			opts.append(o)
+	if group == "quick":      # owner, 2026-11-20: "Catch a fish" in the odd jobs too, not only at the water
+		if engine.count("fishing_pole") > 0:
+			opts.append(_opt("fish", ""))
+		if engine.count("spear") > 0:
+			opts.append(_opt("spear", ""))
 	for p in Pastimes.group_list(group):
 		var why: String = engine.action_block("pastime", str(p.id))
 		if why.begins_with("Needs") or why in ["Not for you.", "Nothing to tidy yet.", "The fire is not lit.", "You have no coconut friend yet.", "Coco is already your friend."]:
@@ -1659,6 +1674,8 @@ func _refresh_hud() -> void:
 		_quest.text = "🎒 %s  %d/%d" % [tr(str(intro.hint)), mini(int(intro.have), int(intro.need)), int(intro.need)]
 	elif engine.quest != "":
 		_quest.text = "📜 " + tr(str(D.QUEST_SHORT.get(engine.quest, D.quest_name(D.quest(engine.quest)))))
+		if D.QUEST_HINTS.has(engine.quest):      # how to do it, under the goal (owner, 2026-11-20: "catch a fish... but what do I do?")
+			_quest.text += "\n" + tr(str(D.QUEST_HINTS[engine.quest]))
 	else:
 		_quest.text = "📜 " + tr("Tutorial done. The island is yours. Sadly.")
 	_refresh_queue()
