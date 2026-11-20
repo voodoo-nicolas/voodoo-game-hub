@@ -268,7 +268,7 @@ func _pick_look(done: Callable) -> void:
 	l.add_theme_color_override("font_color", ACCENT)
 	col.add_child(l)
 	var grid := GridContainer.new()
-	grid.columns = 5
+	grid.columns = 4      # 7 castaways: 4 + 3
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	var center := CenterContainer.new()
@@ -276,7 +276,7 @@ func _pick_look(done: Callable) -> void:
 	col.add_child(center)
 	var vs := get_viewport_rect().size
 	var h := clampf((vs.y - 180.0) / 2.0, 90.0, 240.0)
-	for look_id in Castaway.LOOKS:
+	for look_id in Castaway.PICK:
 		var b := TextureButton.new()
 		var path := "res://games/wilson/art/chars/%s_idle.webp" % look_id
 		if ResourceLoader.exists(path):

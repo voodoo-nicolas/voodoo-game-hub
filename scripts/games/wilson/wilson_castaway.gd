@@ -14,6 +14,8 @@ const EXTRA := ["carve", "weave", "tool", "f_ready", "f_back", "f_swing", "f_wai
 ## The fishing cycle as [pose, seconds]; it loops while he fishes.
 const FISH_CYCLE := [["f_ready", 1.6], ["f_back", 0.5], ["f_swing", 0.6], ["f_wait", 4.0], ["f_bite", 1.0], ["f_strike", 0.8], ["f_reel", 1.6]]
 const LOOKS := ["male1", "male2", "male3", "male4", "female1", "female3", "female4", "female5"]
+## The picker: the owner's 7 castaways (2026-11-20: "3 men, 4 women"; People folder). male2 stays drawable for old saves.
+const PICK := ["male1", "male3", "male4", "female1", "female3", "female4", "female5"]
 ## Easter-egg looks (owner, 2026-11-20): never in the picker; the engine's `shown_look()` picks them by name.
 const SPECIAL := ["nicolas"]
 ## Job frames: a running action / pastime may have its own pictures, <look>_job_<id>_<n>.webp (Nicolas's
@@ -21,7 +23,8 @@ const SPECIAL := ["nicolas"]
 ## Some jobs borrow another job's pictures.
 const JOB_ALIAS := {"practise_roast": "roast", "bank_embers": "fan_fire", "comb": "search_sand", "shake_rocks": "search_sand",
 	"dig_clay": "dig", "practise_cast": "fish", "read_sky": "peek", "horizon": "peek", "learn_plants": "search_sand",
-	"knot_practice": "carve", "fiddle_junk": "carve", "stretch": "yoga", "salvage": "haul",
+	"knot_practice": "carve", "fiddle_junk": "carve", "stretch": "yoga", "salvage": "haul", "stargaze": "rest",
+	"split_kindling": "carve", "wave_nothing": "peek", "tidy": "search_sand", "draw": "tally",
 	"egg_beber": "egg_drink", "egg_llorar": "egg_cry"}
 const JOB_FRAME_S := 0.9
 ## Standing height on screen (plate pixels) at the middle lane.
@@ -171,6 +174,8 @@ func _draw() -> void:
 	var p := current_pose()
 	var tex: Texture2D = _tex.get(p)
 	var frames: Array = job_frames(job) if not walking and pose not in ["idle", "walk", "sleep", "hammock", "collapse"] else []
+	if job == "fish" and _tex.has("f_ready"):
+		frames = []         # the blonde keeps her seven-step fishing cycle
 	if not frames.is_empty():
 		tex = frames[int(_t / JOB_FRAME_S) % frames.size()]
 		p = "craft"         # job frames turn with him like the work poses
