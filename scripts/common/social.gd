@@ -81,6 +81,8 @@ func _ready() -> void:
 		visibility = "private"
 	Auth.signed_in.connect(_on_signed_in.unbind(2))
 	Auth.signed_out.connect(_on_signed_out)
+	Auth.progress_question.connect(_ask_progress)
+	Auth.progress_answered.connect(_on_progress_answered)
 	_layer = CanvasLayer.new()
 	_layer.layer = 90
 	add_child(_layer)
@@ -113,6 +115,7 @@ func _on_signed_in() -> void:
 	preload("res://scripts/common/hub_data.gd").sync_favorites()   # ★ follow the account (2026-11-20)
 
 func _on_signed_out() -> void:
+	_on_signed_out_progress()   # signed out before answering: nothing was given
 	current_game = ""
 	available = false
 	friend_code = ""
@@ -177,8 +180,8 @@ func _on_presence(ok: bool, _result: Variant) -> void:
 ## (new ones only; the server ignores repeats). Safe to call any time; does
 ## nothing offline / signed out / before the SQL is run.
 func sync_awards() -> void:
-	if _awards_busy or not _awards_ok or not Auth.is_logged_in():
-		return
+	if _awards_busy or not _awards_ok or not Auth.is_logged_in() or Auth.progress_pending:
+		return   # (pending: the player hasn't said yet whether the device's badges are theirs)
 	var done := _synced_keys()
 	var fresh: Array = []
 	for a in Achievements.collect_awards(Catalog.archived_ids.keys()):
@@ -436,6 +439,97 @@ func _on_join_invite(panel: Control, game_id: String, code: String) -> void:
 	launch_online(game_id, "join", code)
 
 ## Short notes ("Achievement unlocked: Friendly") that fade by themselves.
+# ---------- "Add the progress on this device to NAME?" (owner 2026-11-20: ask first) ----------
+
+var _progress_card: Control
+
+func _ask_progress(name: String) -> void:
+	if _progress_card != null and is_instance_valid(_progress_card):
+		return
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.62)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.add_to_group("modal_overlay")
+	_layer.add_child(dim)
+	_progress_card = dim
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.add_child(center)
+	var card := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.12, 0.18)
+	sb.border_color = Color(0.08, 1.0, 0.55)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(18)
+	sb.set_content_margin_all(26)
+	card.add_theme_stylebox_override("panel", sb)
+	card.custom_minimum_size = Vector2(minf(600.0, get_viewport().get_visible_rect().size.x - 40.0), 0)
+	center.add_child(card)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 14)
+	card.add_child(v)
+	var t := Label.new()
+	t.text = tr("Add the progress on this device to %s?") % name
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.add_theme_font_size_override("font_size", 30)
+	v.add_child(t)
+	var l := Label.new()
+	l.text = tr("Badges and best scores played here before you signed in (by a guest or another account). Game saves stay on this device either way.")
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", Color(0.72, 0.74, 0.82))
+	v.add_child(l)
+	var yes := _progress_button(tr("Yes, add it to %s") % name, true)
+	yes.pressed.connect(_answer_progress.bind(true))
+	v.add_child(yes)
+	var no := _progress_button(tr("No, keep it off my account"), false)
+	no.pressed.connect(_answer_progress.bind(false))
+	v.add_child(no)
+	dim.modulate.a = 0.0
+	dim.create_tween().tween_property(dim, "modulate:a", 1.0, 0.16)
+	yes.grab_focus.call_deferred()
+
+func _progress_button(text: String, primary: bool) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, 76)
+	b.add_theme_font_size_override("font_size", 26)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var s := StyleBoxFlat.new()
+		s.bg_color = Color(0.1, 0.32, 0.2) if primary else Color(0.12, 0.14, 0.2)
+		if state == "hover" or state == "pressed":
+			s.bg_color = s.bg_color.lightened(0.12)
+		s.border_color = Color(0.08, 1.0, 0.55) if (primary or state == "focus") else Color(0.25, 0.3, 0.4)
+		s.set_border_width_all(2)
+		s.set_corner_radius_all(14)
+		s.set_content_margin_all(12)
+		b.add_theme_stylebox_override(state, s)
+	return b
+
+func _answer_progress(added: bool) -> void:
+	if _progress_card != null and is_instance_valid(_progress_card):
+		_progress_card.queue_free()
+	_progress_card = null
+	Auth.answer_progress(added)
+
+func _on_progress_answered(added: bool) -> void:
+	if not added:
+		# The badges already on the device are never sent for this account.
+		var done := _synced_keys()
+		for a in Achievements.collect_awards([]):
+			done["%s|%s" % [a.game, a.id]] = true
+		SaveUtil.write(SYNCED_PATH, {"user": Auth.user_id, "keys": done})
+	_awards_ok = true
+	sync_awards()
+	toast(tr("Added to your account.") if added else tr("Kept off your account."))
+
+func _on_signed_out_progress() -> void:
+	if _progress_card != null and is_instance_valid(_progress_card):
+		_progress_card.queue_free()
+	_progress_card = null
+
 func toast(text: String) -> void:
 	if _invite_box == null:
 		return  # not ready yet (very early, or in a test)

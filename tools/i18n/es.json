@@ -12644,5 +12644,11 @@
  "That sign-in has expired. Sign in once more and it's remembered again.": "Ese inicio de sesión venció. Inicia sesión una vez más y se recordará otra vez.",
  "Forget %s on this device?": "¿Olvidar a %s en este dispositivo?",
  "You'll need your email and password (or Google / Facebook) next time.": "La próxima vez vas a necesitar tu correo y contraseña (o Google / Facebook).",
- "Forget": "Olvidar"
+ "Forget": "Olvidar",
+ "Add the progress on this device to %s?": "¿Sumar el progreso de este dispositivo a %s?",
+ "Badges and best scores played here before you signed in (by a guest or another account). Game saves stay on this device either way.": "Insignias y mejores puntajes jugados aquí antes de iniciar sesión (por un invitado u otra cuenta). Las partidas guardadas quedan en este dispositivo en ambos casos.",
+ "Yes, add it to %s": "Sí, sumarlo a %s",
+ "No, keep it off my account": "No, dejarlo fuera de mi cuenta",
+ "Added to your account.": "Sumado a tu cuenta.",
+ "Kept off your account.": "Quedó fuera de tu cuenta."
 }

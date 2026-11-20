@@ -1361,6 +1361,7 @@ func _launch(game: Dictionary, show_intro: bool = true) -> void:
 	var error: String = Catalog.mount(game.id)
 	if error == "":
 		HubData.record_play(str(game.id))
+		Auth.note_play()   # signed out: the device now holds a guest's progress (asked about on sign-in)
 		Social.set_game(str(game.id))
 	if error == "":
 		BootCover.cover(get_tree())  # hides the orientation switch while the game loads

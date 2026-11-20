@@ -39,6 +39,10 @@ func _ready() -> void:
 	# Keep working while a game is paused (GameInfo pauses the tree).
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_load_session()
+	# Launched with a saved session: hold uploads at once if this device's progress isn't
+	# this account's yet (the question shows once the screens are up).
+	if is_logged_in():
+		_check_progress_owner.call_deferred()
 	if refresh_token != "":
 		_refresh_session(Callable())  # silent background refresh on launch
 
@@ -227,6 +231,8 @@ func reconcile_stat(field_name: String, local_value: int, on_done: Callable) -> 
 	)
 
 func push_stat(field_name: String, value: int) -> void:
+	if progress_pending:
+		return   # this device's progress isn't this account's yet (asked on sign-in)
 	_ensure_fresh_token(func(ok):
 		if not ok:
 			return
@@ -246,6 +252,8 @@ func push_stat(field_name: String, value: int) -> void:
 ## Posts `score` as this player's best for `game` (ignored if lower than
 ## what's there). Does nothing when signed out or offline.
 func submit_score(game: String, score: int) -> void:
+	if not _score_allowed(game, score):
+		return   # held, or only the device's older (declined) best: see whose-progress below
 	_ensure_fresh_token(_post_score.bind(game, score))
 
 func _post_score(ok: bool, game: String, score: int) -> void:
@@ -314,6 +322,9 @@ func _on_consents(ok: bool, parsed: Variant, _code: int, on_done: Callable) -> v
 ## on_done.call(ok, result). ok is false when signed out, offline, or the
 ## function doesn't exist yet (its SQL not run). Since v0.25.
 func db_call(fn: String, args: Dictionary, on_done: Callable) -> void:
+	if progress_pending and HELD_FNS.has(fn):
+		_safe_call(on_done, [false, null])   # held until the player answers; callers retry later
+		return
 	_ensure_fresh_token(_db_call_with_token.bind(fn, args, on_done))
 
 func _db_call_with_token(ok: bool, fn: String, args: Dictionary, on_done: Callable) -> void:
@@ -361,6 +372,7 @@ func _apply_session(parsed: Dictionary, name_hint: String) -> void:
 		if parsed.has("user") and typeof(parsed.user) == TYPE_DICTIONARY:
 			email = str(parsed.user.get("email", ""))
 		_remember(user_id, display_name, email, refresh_token)
+	_check_progress_owner()   # before signed_in: syncs that start on it are already held
 	signed_in.emit(user_id, display_name)
 
 func _extract_display_name(parsed: Dictionary) -> String:
@@ -436,12 +448,106 @@ func _save_session() -> void:
 	})
 
 func _clear_session() -> void:
+	progress_pending = false   # signed out before answering: nothing was given
 	access_token = ""
 	refresh_token = ""
 	expires_at = 0
 	user_id = ""
 	display_name = ""
 	SaveUtil.delete(SESSION_PATH)
+
+# ---------- whose progress is on this device (owner 2026-11-20: ask first) ----------
+# Games keep one set of saves per device, not per account. Before 0.43 whatever was played
+# signed out (or by another account on this phone) went up to whoever signed in next. Now:
+# the device remembers whose progress it holds; when someone else signs in and there is
+# progress to give, nothing goes up until they answer "Add the progress on this device to
+# NAME?" (Social shows the card). Add = as before. Keep it off = the badges already on the
+# device are never sent for this account, and each leaderboard only gets scores beyond the
+# device's best at that moment. Game saves themselves stay on the device either way.
+
+const PROGRESS_PATH := "user://progress_owner.json"
+const AchievementsLib = preload("res://scripts/common/achievements.gd")
+## Server calls that carry the device's progress (packs call them too: one gate covers all).
+const HELD_FNS := ["xp_report", "save_game_progress"]
+## Raised while waiting for the answer (name = who just signed in).
+signal progress_question(name: String)
+signal progress_answered(added: bool)
+var progress_pending := false
+
+func _progress() -> Dictionary:
+	var d = SaveUtil.read(PROGRESS_PATH)
+	return d if d is Dictionary else {}
+
+## A game opened while signed out: the device now holds a guest's progress.
+func note_play() -> void:
+	if is_logged_in():
+		return
+	var d := _progress()
+	if str(d.get("uid", "")) != "" or not bool(d.get("dirty", false)):
+		SaveUtil.write(PROGRESS_PATH, {"uid": "", "dirty": true})
+
+func _check_progress_owner() -> void:
+	var d := _progress()
+	var owner := str(d.get("uid", ""))
+	if owner == user_id:
+		return   # mine (a token refresh lands here too)
+	var someone := owner != "" or bool(d.get("dirty", false))
+	if not someone or not _device_has_progress():
+		_set_owner(user_id, {})   # a fresh device: nothing to give, nothing to ask
+		return
+	progress_pending = true
+	progress_question.emit(display_name)
+
+## Anything a game recorded: badges, or a game opened at all. Fresh installs have neither.
+## Tests set this to 0 / 1 to fake a fresh or a played-on device (-1 = look at the files).
+var _test_has_progress := -1
+
+func _device_has_progress() -> bool:
+	if _test_has_progress >= 0:
+		return _test_has_progress == 1
+	if not AchievementsLib.collect_awards([]).is_empty():
+		return true
+	return FileAccess.file_exists("user://recent_games.json") and FileAccess.get_file_as_string("user://recent_games.json").length() > 2
+
+## The player's answer (Social's card). added = give the device's progress to this account.
+func answer_progress(added: bool) -> void:
+	if not is_logged_in():
+		progress_pending = false
+		return
+	var extra := {}
+	if not added:
+		extra = {"declined": true, "floors": _device_bests()}
+	_set_owner(user_id, extra)
+	progress_pending = false
+	progress_answered.emit(added)
+
+func _set_owner(uid: String, extra: Dictionary) -> void:
+	var d := {"uid": uid, "dirty": false}
+	d.merge(extra, true)
+	SaveUtil.write(PROGRESS_PATH, d)
+
+## Scores while declined: each leaderboard only gets scores beyond the device's best at the
+## moment of the answer (that best wasn't this player's).
+func _score_allowed(game: String, score: int) -> bool:
+	if progress_pending:
+		return false
+	var d := _progress()
+	if not bool(d.get("declined", false)) or str(d.get("uid", "")) != user_id:
+		return true
+	var floors: Dictionary = d.get("floors", {}) if d.get("floors") is Dictionary else {}
+	return score > int(floors.get(game, -1))
+
+## Every game's "Best score" on this device (GameInfo's user://stats_<id>.json), and the badge
+## count for the badges board: the floors when the player keeps the device's progress off.
+func _device_bests() -> Dictionary:
+	var out := {}
+	for f in DirAccess.get_files_at("user://"):
+		if f.begins_with("stats_") and f.ends_with(".json"):
+			var s = SaveUtil.read("user://" + f)
+			if s is Dictionary and s.has("Best score"):
+				out[f.trim_prefix("stats_").trim_suffix(".json")] = int(s["Best score"])
+	out[AchievementsLib.BOARD_ID] = AchievementsLib.total_unlocked()
+	return out
 
 # ---------- this device's accounts: "remember me" (owner 2026-11-20) ----------
 # "A remember me / quick log-in option for trusted devices: select them, hit confirm."

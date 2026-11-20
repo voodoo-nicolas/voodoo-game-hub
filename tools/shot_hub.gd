@@ -13,6 +13,7 @@ func _run() -> void:
 	var out: String = args[0] if args.size() > 0 else "user://shots"
 	var name: String = args[1] if args.size() > 1 else "hub"
 	var options := args.size() > 2 and args[2] == "options"
+	var progress := args.size() > 2 and args[2] == "progress"
 	var wait: int = int(args[3]) if args.size() > 3 else 90
 	DirAccess.make_dir_recursive_absolute(out)
 	for i in 3:
@@ -22,6 +23,12 @@ func _run() -> void:
 	for i in wait:
 		await process_frame
 	root.get_viewport().get_texture().get_image().save_png("%s/%s.png" % [out, name])
+	if progress:
+		root.get_node("Social")._ask_progress("Nico")   # the sign-in question, no account change
+		for i in 20:
+			await process_frame
+		root.get_viewport().get_texture().get_image().save_png("%s/%s_progress.png" % [out, name])
+		root.get_node("Social")._on_signed_out_progress()
 	if options:
 		current_scene._open_options()   # the hub's own way: a layer over itself
 		for i in 30:
