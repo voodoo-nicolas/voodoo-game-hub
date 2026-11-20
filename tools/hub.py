@@ -1060,11 +1060,24 @@ STILL_IN_USE_RE = re.compile(r"^ERROR: \d+ resources? still in use at exit", re.
 MUSIC_RES_RE = re.compile(r"^Resource still in use: res://(media/hub/music/|media/common/music/|games/[a-z0-9_]+/music/)", re.M)
 
 
+AUDIO_LEAK_CLASSES = {"AudioStreamOggVorbis", "AudioStreamPlaybackOggVorbis", "OggPacketSequence", "OggPacketSequencePlayback"}
+
+
 def music_only_leak(scene: str) -> bool:
-    """True when the only leftovers at exit are music files that were playing."""
-    _, out = run_godot("--verbose", scene, "--quit-after", "60")
-    left = [l for l in out.splitlines() if l.startswith("Resource still in use:")]
-    return bool(left) and all(MUSIC_RES_RE.match(l) for l in left)
+    """True when the only leftovers at exit are music files that were playing.
+    Timing decides whether a track is playing at frame 60 and whether Godot's
+    exit lines get printed, so up to 3 verbose re-runs look for the evidence:
+    every "Resource still in use" line is a music file and every leaked
+    instance is an Ogg audio stream / playback."""
+    for _ in range(3):
+        _, out = run_godot("--verbose", scene, "--quit-after", "60")
+        lines = out.splitlines()
+        left = [l for l in lines if l.startswith("Resource still in use:")]
+        leaked = [m.group(1) for l in lines if (m := re.match(r"^Leaked instance: (\w+):", l))]
+        if not left and not leaked:
+            continue  # nothing printed this time: try again
+        return all(MUSIC_RES_RE.match(l) for l in left) and all(c in AUDIO_LEAK_CLASSES for c in leaked)
+    return False
 
 
 def cmd_test(args) -> None:
