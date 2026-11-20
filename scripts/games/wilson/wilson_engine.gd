@@ -366,6 +366,8 @@ func _finish_pastime(id: String) -> void:
 	bump("pastime:" + id)
 	if id == "stargaze" or id == "yoga":
 		_xp("weather sense", 1)
+	for sk in p.get("xp", {}):        # odd jobs that train one skill (owner, 2026-11-19)
+		_xp(str(sk), int(p.xp[sk]))
 
 # ================================================================ Grand Projects
 
@@ -489,8 +491,10 @@ func _project_daily(today: int) -> void:
 func knows_time() -> bool:
 	return structures.has("sundial") or structures.has("shellphone")
 
+## Owner, 2026-11-19: high / low tide shows from Weather sense level 3 (was: the tide chart from W07).
 func knows_tide() -> bool:
-	return "tide_chart" in decor or structures.has("shellphone")
+	# return "tide_chart" in decor or structures.has("shellphone")
+	return skill_level("weather sense") >= D.TIDE_SENSE_LEVEL or structures.has("shellphone")
 
 # ================================================================ weather + tides (M4)
 
@@ -1412,7 +1416,7 @@ func busy() -> bool:
 func enqueue(kind: String, target: String = "", extra: Dictionary = {}) -> String:
 	if queue.size() >= D.QUEUE_MAX:
 		say("busy")
-		return "The queue is full (5)."
+		return "The queue is full (3)."
 	var why := action_block(kind, target, extra)
 	if why != "":
 		return why
@@ -1546,6 +1550,8 @@ func _minutes(kind: String, target: String) -> float:
 
 ## Planned duration in seconds if it started now.
 func duration_of(kind: String, target: String) -> float:
+	if kind == "nap":       # a nap is a fixed length: the menu said 45 min (low energy x1.5), the nap ran 30 (owner, 2026-11-19)
+		return float(D.balance().get("power_nap", {}).get("minutes", 30)) * 60.0
 	var secs := _minutes(kind, target) * 60.0
 	var le: Dictionary = D.balance().get("low_energy", {})
 	if bars.energy < float(le.get("threshold", 20)):
@@ -1678,7 +1684,10 @@ func _finish(q: Dictionary) -> void:
 					if reef != "":
 						add(reef, 1)
 						bump("reef")
-						log_entry("Low tide. The reef was showing: found %s.", ["@" + reef])
+						if knows_tide():
+							log_entry("Low tide. The reef was showing: found %s.", ["@" + reef])
+						else:
+							log_entry("The water was low. Found %s on the rocks.", ["@" + reef])
 		"shake":
 			var p: Dictionary = palms[tgt]
 			if float(p.coco) >= 1.0:

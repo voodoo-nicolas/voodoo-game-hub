@@ -1,5 +1,14 @@
 # Beached (wilson) changelog
 
+## 2026-11-19: owner's list (built, not published)
+- Power nap: the menu showed 45 min when tired (low-energy x1.5) but the nap ran 30. A nap is now a fixed 30 min everywhere (`duration_of`).
+- Tides: high / low tide shows only from Weather sense level 3 (`D.TIDE_SENSE_LEVEL`) or the Shellphone; the tide chart (W07) no longer unlocks it. Reef finds before then say "The water was low".
+- Skills stay 0-10. Eight new odd jobs, one per skill (`xp` field in `wilson_pastimes.gd`): Study the plants, Split some kindling, Practise casting, Bank the embers, Practise roasting, Practise knots, Fiddle with the junk, Read the sky (+2 XP each).
+- Action queue: 3 max (was 5).
+- She faces her work in the craft / carve / weave / tool / chop poses (they were never mirrored: back to the pebbles).
+- Palm C (2nd from the right) moved down 20 px; it hung over the waterline.
+- Dev: Ctrl+9 cycles the time speed x1 / x60 / x3600 (same as the F9 panel).
+
 ## 2026-11-09: review round: fixes, 10 items, 8 recipes, 52 quests (built, not published)
 Bugs fixed
 - Clay and wax could not be got anywhere, so the kiln, clay jars, the fish-oil lamp, the barometer (and with it weather sense and "Cloud Reader") and the Cellar were impossible. Clay: new odd job "Dig for clay" (shovel, 2 clay, one shovel use). Wax: a shaken palm drops old beeswax now and then (6 %, never the first shake), and candle wax may wash ashore.

@@ -15,11 +15,11 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 | `wilson_skyview.gd` | sky gradient, stars, sun, moon with phase, clouds (screen pixels, own layer) |
 | `wilson_fire.gd` / `wilson_castaway.gd` / `wilson_props.gd` | campfire (owner's pit + flame sprites), the castaway (8 looks x 19 poses (female2 dropped 2026-11-10) from `art/chars/`, walk cycle, fidgets, `play_once`), structures (camp sprites or placeholders) and piles |
 | `wilson_slot.gd` | a bag slot: icon, tap, drag onto another slot = `engine.combine(a, b)` |
-| `wilson_debug.gd` | debug panel (F9 / 5 taps on the clock): time x1 / x60 / x3600, jump to an hour, away hours, bars, items, weather, hemisphere, reset |
+| `wilson_debug.gd` | debug panel (F9 / 5 taps on the clock; Ctrl+9 cycles the speed without it): time x1 / x60 / x3600, jump to an hour, away hours, bars, items, weather, hemisphere, reset |
 | `wilson_game.gd` | Landing kit, layers (sky -3, world -2 with CanvasModulate, glow -1, HUD), clock (real + debug offset), catch-up, HUD, context menus, bag / craft / journal panels, save, help "⏩ Hurry up" |
 
 ## Tests and tools
-- `godot --headless --path . --script res://tools/test_wilson.gd`: 1229 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip, every material has a source, garden, spear / bait, story T13-T20). Pure engine, no saves touched.
+- `godot --headless --path . --script res://tools/test_wilson.gd`: 1277 checks (KICKOFF acceptance tests, every recipe made, combine / discovery, wear, spoilage, structures, skills, queue / offline, inventory, shore + pity, a full T01-T12 run, save round trip, every material has a source, garden, spear / bait, story T13-T20). Pure engine, no saves touched.
 - `tools/test_wilson_review.gd` (26, real scene: garden menu + sprouts, spear, campfire / rack menus, reasons in Spanish, the action list keeping its buttons, rain loop), `test_wilson_opening.gd` (19), `test_wilson_pad.gd` (12). These three touch the desktop save (they back it up).
 - `godot --path . --resolution 1280x720 --script res://tools/shot_wilson.gd -- <dir> [en|es]`: screenshots (backs up and restores the save + debug files).
 - `python tools/wilson_art.py [sheets]`: rebuilds `games/wilson/art/` from `D:/dev/Wilson` (reproducible; `sheets` skips the slow plate step). New sheet = anchors (source pixels of each sprite) + `cut_sheet()`.

@@ -1040,6 +1040,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_toggle_debug()
 			get_viewport().set_input_as_handled()
 			return
+		if event.keycode == KEY_9 and event.ctrl_pressed:     # dev: Ctrl+9 cycles time x1 -> x60 -> x3600 (owner, 2026-11-19)
+			time_scale = {1.0: 60.0, 60.0: 3600.0}.get(time_scale, 1.0)
+			save_debug()
+			_show_toast("⏩ x%d" % int(time_scale))
+			get_viewport().set_input_as_handled()
+			return
 		var dir := {KEY_LEFT: Vector2(-80, 0), KEY_RIGHT: Vector2(80, 0), KEY_UP: Vector2(0, -50), KEY_DOWN: Vector2(0, 50)}
 		if dir.has(event.keycode):
 			_walk_to(world.castaway.position + dir[event.keycode])
