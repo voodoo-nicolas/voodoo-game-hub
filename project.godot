@@ -43,7 +43,7 @@ window/size/window_height_override=704
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/GodotGooglePlayBilling/plugin.cfg")
+enabled=PackedStringArray("res://addons/GodotGooglePlayBilling/plugin.cfg", "res://addons/viral_signin_return/plugin.cfg")
 
 [rendering]
 
