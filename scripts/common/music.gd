@@ -59,6 +59,16 @@ extends Node
 ## a game or category set to a style gets that music by itself when its
 ## screen opens (unless the game plays its own), and "off" means none there.
 ## The music pauses with the app (Android sends it to the background).
+##
+## Hub music and game music never mix (owner 2026-11-20, STANDARDS §10):
+## - The hub plays only its own tracks (style HUB_STYLE, files in the APK at
+##   res://media/hub/music/hub/). No game can ask for them. They fade out
+##   (HUB_FADE) the moment a game's scene opens and resume, where they were,
+##   when the player is back in the hub.
+## - A game may ship its own tracks in its pack (res://games/<id>/music/) and
+##   play them with play_stream(stream, owner, fade, then). Packs check
+##   has_method("play_stream"): older apps don't have it.
+##   The "Where it plays" setting doesn't apply to a game's own tracks.
 
 const Library = preload("res://scripts/common/music_library.gd")
 const BUS := "Music"
@@ -78,6 +88,10 @@ const WEB_BUDGET_USEC := 4000
 const KEEP_READY := 4
 const NEXT_FADE := 3.0
 const GAMES_DIR := "res://scenes/games/"
+## The hub's own music: a style only the hub plays (files in FILE_DIRS/hub/).
+const HUB_STYLE := "hub"
+## How fast the hub's music gets out of the way when a game opens.
+const HUB_FADE := 0.5
 
 ## The downloaded tracks (music_library.gd); Options → Storage / Credits use it.
 var library: Node = null
@@ -105,6 +119,9 @@ var _task := -1
 var _job: Dictionary = {}  # browser build: the track being rendered, bar by bar
 var _preview_t := 0.0
 var _bus_db := -80.0
+var _then: AudioStream = null  # play_stream(): what follows a track that doesn't loop
+var _hub_resume := {}      # the hub track a game interrupted: {"index", "pos"}
+var _leaving_hub := false  # the next crossfade drops the hub's track within HUB_FADE
 
 func _ready() -> void:
 	# Fades and the render queue carry on behind a paused game.
@@ -147,10 +164,14 @@ func _play(style: String, owner: Node, index: int, fade: float, genre: String, a
 	if not STYLES.has(style):
 		return
 	var setting := _setting_for(owner)
+	if owner:
+		_leave_hub()  # a game asked: the hub's track goes, even for the same style
 	if owner and str(setting.style) == "off":
-		stop(fade)  # the owner turned music off for this game
+		stop(HUB_FADE if _leaving_hub else fade)  # the owner turned music off for this game
+		_leaving_hub = false
 		return
 	_owner_ref = weakref(owner) if owner else null
+	_then = null
 	_preview_t = 0.0
 	_auto = auto
 	_style = style
@@ -172,8 +193,36 @@ func _play(style: String, owner: Node, index: int, fade: float, genre: String, a
 		_want = key
 		_want_fade = fade
 		_request(key, true)
+		if _leaving_hub:
+			_fade_out(HUB_FADE)  # the game's track is still being made: the hub's goes now anyway
 		return
 	_want = ""
+	_crossfade(stream, fade)
+
+## A game's own track, from its pack (res://games/<id>/music/, STANDARDS §10).
+## Plays while `owner` is in the tree, on the Music bus (the 🎵 switch and
+## volume apply), and fades out by itself when the owner leaves. Loops if the
+## stream's import says so. `then` follows a track that doesn't loop, e.g. a
+## one-shot arrival theme, then the main loop. Asking for what is already
+## playing does nothing.
+func play_stream(stream: AudioStream, owner: Node, fade: float = 1.5, then: AudioStream = null) -> void:
+	if stream == null:
+		return
+	var key := "file:" + (stream.resource_path if stream.resource_path != "" else str(stream.get_instance_id()))
+	if owner:
+		_leave_hub()
+	_then = then
+	_owner_ref = weakref(owner) if owner else null
+	_preview_t = 0.0
+	_auto = false
+	_style = ""
+	_genre = ""
+	_dl = ""
+	_want = ""
+	_title = stream.resource_path.get_file().get_basename().replace("_", " ").capitalize()
+	if key == _key and _players[0].playing:
+		return
+	_key = key
 	_crossfade(stream, fade)
 
 func prepare(style: String, index: int = -1) -> void:
@@ -187,13 +236,20 @@ func prepare(style: String, index: int = -1) -> void:
 	_request("%s:%d" % [style, posmod(index, _count(style))], false)
 
 func stop(fade: float = 1.5) -> void:
+	_leave_hub()  # a game silencing the hub's track: the hub picks it up again later
 	_key = ""
 	_want = ""
+	_then = null
 	_owner_ref = null
 	_preview_t = 0.0
 	_style = ""
 	_dl = ""
 	_auto = false
+	_fade_out(fade)
+
+## Fades out whatever plays and stops the players (the state is the caller's).
+func _fade_out(fade: float) -> void:
+	_leaving_hub = false
 	if _tween:
 		_tween.kill()
 	_tween = create_tween().set_parallel(true)
@@ -210,7 +266,7 @@ func is_playing() -> bool:
 func now_playing() -> String:
 	if _key == "":
 		return ""
-	if _dl != "" and _title != "":
+	if (_dl != "" or _key.begins_with("file:") or _style == HUB_STYLE) and _title != "":
 		return _title
 	return tr("%s (built-in)") % tr(_style.capitalize())
 
@@ -271,21 +327,26 @@ func _apply_volume(delta: float) -> void:
 	AudioServer.set_bus_mute(bus, false)
 	AudioServer.set_bus_volume_db(bus, _bus_db)
 
-func _crossfade(stream: AudioStream, fade: float) -> void:
+func _crossfade(stream: AudioStream, fade: float, from_pos: float = 0.0) -> void:
 	var cur: AudioStreamPlayer = _players[0]
 	var incoming: AudioStreamPlayer = _players[1]
 	if _paused:
 		set_paused(false)  # a new track (another screen or game) ends the Options pause
 	incoming.stream = stream
 	incoming.volume_db = -40.0
-	incoming.play()
+	incoming.play(from_pos)
 	if _tween:
 		_tween.kill()
 	_tween = create_tween().set_parallel(true)
 	_tween.tween_property(incoming, "volume_db", 0.0, maxf(fade, 0.05)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	# The hub's track always leaves within HUB_FADE when something else comes in.
+	var out_fade := minf(fade, HUB_FADE) if _leaving_hub or (_is_hub_stream(cur.stream) and not _is_hub_stream(stream)) else fade
+	_leaving_hub = false
 	if cur.playing:
-		_tween.tween_property(cur, "volume_db", -60.0, maxf(fade, 0.05)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	_tween.chain().tween_callback(cur.stop)
+		_tween.tween_property(cur, "volume_db", -60.0, maxf(out_fade, 0.05)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	# The outgoing track stops as soon as its own fade ends (the hub's after HUB_FADE),
+	# not when the incoming one is fully in.
+	_tween.tween_callback(cur.stop).set_delay(maxf(out_fade, 0.05))
 	_players.reverse()
 
 func _stop_players() -> void:
@@ -348,6 +409,11 @@ func _next_track(fade: float) -> void:
 	_play(_style, _owner_now(), -1, fade, _genre, _auto)
 
 func _on_player_finished(p: AudioStreamPlayer) -> void:
+	if p == _players[0] and _key.begins_with("file:"):
+		# A game's one-shot ended: its follow-up (play_stream's `then`), if the game is still open.
+		if _then != null and _owner_now() != null:
+			play_stream(_then, _owner_now(), 0.5)
+		return
 	if p == _players[0] and _dl != "":
 		_ending = ""
 		_next_track(0.5)
@@ -371,10 +437,17 @@ func _on_scene_changed() -> void:
 	if library == null or not is_inside_tree():
 		return
 	var scene := get_tree().current_scene
+	var in_game := scene != null and scene.scene_file_path.begins_with(GAMES_DIR)
+	# The hub's music never carries into a game (owner 2026-11-20).
+	if in_game and _style == HUB_STYLE:
+		_leave_hub()
+		stop(HUB_FADE)
 	if _owner_now() != null and not _auto:
 		return
+	# Hub screens play the hub's own tracks, carried on from screen to screen.
+	if not in_game and _play_hub():
+		return
 	var setting: Dictionary = library.setting_for(scene)
-	var in_game := scene != null and scene.scene_file_path.begins_with(GAMES_DIR)
 	var style := str(setting.style)
 	if style == "off":
 		stop(0.8)
@@ -384,6 +457,47 @@ func _on_scene_changed() -> void:
 			_play(style, scene if in_game else null, -1, 1.5, "", true)
 	elif _auto or _owner_ref != null:
 		stop(0.8)  # nothing set here, and whoever started the music has left
+
+## The hub's own music (HUB_STYLE). False when the APK has no hub tracks:
+## then the owner's "Where it plays" setting for the hub applies, as before.
+## A game interrupted it: it picks up the same track where it was.
+func _play_hub() -> bool:
+	var files := _files_of(HUB_STYLE)
+	if files.is_empty():
+		return false
+	if _style == HUB_STYLE and _key != "":
+		return true
+	var index := int(_hub_resume.get("index", -1))
+	var pos := float(_hub_resume.get("pos", 0.0))
+	_hub_resume = {}
+	if index < 0 or index >= files.size():
+		index = posmod(int(_last_index.get(HUB_STYLE, -1)) + 1, files.size())
+		pos = 0.0
+	_last_index[HUB_STYLE] = index
+	var stream: AudioStream = files[index]
+	_owner_ref = null
+	_preview_t = 0.0
+	_auto = true
+	_style = HUB_STYLE
+	_genre = ""
+	_dl = ""
+	_want = ""
+	_then = null
+	_title = stream.resource_path.get_file().get_basename().replace("_", " ").capitalize()
+	_key = "%s:%d" % [HUB_STYLE, index]
+	_crossfade(stream, 1.5, pos)
+	return true
+
+func _is_hub_stream(s: AudioStream) -> bool:
+	return s != null and _files_of(HUB_STYLE).has(s)
+
+## The hub's track is about to give way to a game: remember where it was
+## (the hub resumes it there) and make it fade out fast (HUB_FADE).
+func _leave_hub() -> void:
+	if _style != HUB_STYLE or _key == "":
+		return
+	_hub_resume = {"index": int(_last_index.get(HUB_STYLE, 0)), "pos": _players[0].get_playback_position()}
+	_leaving_hub = true
 
 ## The list arrived (or changed): the screen may have music now.
 func _on_list_changed() -> void:

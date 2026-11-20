@@ -1,0 +1,20 @@
+{
+  "music": [
+    {"file":"hub/menu_chill.ogg","title":"Menu Chill Music","author":"etrock","license":"CC0","source":"https://opengameart.org/content/menu-chill-music"},
+    {"file":"hub/simple_loop.ogg","title":"Simple menu/background music loop","author":"polosik","license":"CC0","source":"https://opengameart.org/node/186484"},
+    {"file":"hub/chill_main_menu.ogg","title":"Chill Main Menu music","author":"Augmentality (Brandon Morris)","license":"CC0 / OGA-BY 3.0","source":"https://opengameart.org/node/3976"},
+    {"file":"beached/feel_good_island_loop.ogg","title":"Feel Good Island (loop)","author":"Brandon Morris (loop by AntumDeluge)","license":"CC0 / OGA-BY 3.0","source":"https://opengameart.org/content/feel-good-island-loop"},
+    {"file":"beached/tropoix_arrival.ogg","title":"Tropoix","author":"Tozan","license":"CC0","source":"https://opengameart.org/content/tropoix"},
+    {"file":"beached/tropical_loop.ogg","title":"Tropical Loop","author":"wipics","license":"CC0","source":"https://opengameart.org/content/tropical-loop"},
+    {"file":"beached/monkey_island_band_loop.ogg","title":"Monkey Island Band (loop)","author":"Eric Matyas, soundimage.org","license":"CC-BY 3.0/4.0 — CREDIT REQUIRED","source":"https://opengameart.org/content/monkey-island-band-loop"},
+    {"file":"beached/bamboo_blitz.ogg","title":"Bamboo Blitz","author":"Tsorthan Grove","license":"CC0","source":"https://opengameart.org/node/187881"},
+    {"file":"ink_ninja/treacherous_path.ogg","title":"Treacherous Path Loop","author":"beardalaxy","license":"CC0","source":"https://opengameart.org/content/treacherous-path-loop"},
+    {"file":"ink_ninja/asian_oriental1.ogg","title":"Asianoriental1","author":"Tozan","license":"CC0","source":"https://opengameart.org/content/asianoriental1"},
+    {"file":"ink_ninja/asian_oriental2.ogg","title":"Asianoriental2","author":"Tozan","license":"CC0","source":"https://opengameart.org/content/asianoriental2"},
+    {"file":"ink_ninja/jaoan.ogg","title":"Jaoan","author":"Tozan","license":"CC0","source":"https://opengameart.org/content/jaoan"},
+    {"file":"ink_ninja/dojo_menu.mp3","title":"Menu Music (dojo)","author":"wipics","license":"CC0","source":"https://opengameart.org/node/101396"},
+    {"file":"ink_ninja/samurai.mp3","title":"Samurai","author":"TAD","license":"CC-BY 4.0 — CREDIT REQUIRED","source":"https://opengameart.org/content/samurai"},
+    {"file":"ink_ninja/taiko_drums.ogg","title":"Taiko drums (seamless loop)","author":"jobro (submitted by congusbongus)","license":"CC-BY 3.0 — CREDIT REQUIRED","source":"https://opengameart.org/node/50300"},
+    {"file":"ink_ninja/kawarayu.ogg","title":"Kawarayu","author":"Yubatake","license":"CC-BY 4.0 — CREDIT REQUIRED","source":"https://opengameart.org/node/15058"}
+  ]
+}

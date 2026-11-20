@@ -422,7 +422,12 @@ func _show_credits() -> void:
 	var assets: Array = data.get("assets", []) if data is Dictionary else []
 	credits_box.add_child(_body_label(tr("Code and games: Viral. Sounds and most art are made in code.")))
 	for a in assets:
-		credits_box.add_child(_body_label("• %s — %s (%s)" % [str(a.get("what", a.get("file", ""))), str(a.get("author", "")), str(a.get("licence", ""))]))
+		# credits_box.add_child(_body_label("• %s — %s (%s)" % [str(a.get("what", a.get("file", ""))), str(a.get("author", "")), str(a.get("licence", ""))]))
+		var line := "• %s — %s (%s)" % [str(a.get("what", a.get("file", ""))), str(a.get("author", "")), str(a.get("licence", ""))]
+		# CC BY needs the source with the credit (owner 2026-11-20: the four CC BY music tracks).
+		if str(a.get("licence", "")).to_upper().replace(" ", "-").begins_with("CC-BY") and str(a.get("url", "")) != "":
+			line += " · " + str(a.url)
+		credits_box.add_child(_body_label(line))
 	# Third-party software and data (scripts/common/third_party.gd).
 	credits_box.add_child(_body_label(tr("Third-party software and data")))
 	for item in preload("res://scripts/common/third_party.gd").ITEMS:

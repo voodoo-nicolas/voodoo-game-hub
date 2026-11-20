@@ -1,5 +1,7 @@
 extends Control
 
+const GameMusic = preload("res://scripts/games/ink_ninja/ink_ninja_music.gd")
+
 ## Ink Ninja cutscenes: procedural sumi-e painted in _draw(), every frame computed from
 ## the scene time t (a port of the owner's D:\Dev\ink_ninja_cutscenes.html, 2026-11-15).
 ## Everything is drawn in a 1280 x 720 frame, centred and scaled to fit the height.
@@ -167,9 +169,10 @@ func play(scene: String) -> void:
 	wait_t = 0.0
 	idle = false
 	_cache.clear()
-	var m = get_node_or_null("/root/Music")
-	if m and m.has_method("stop"):
-		m.stop(1.0)
+	# var m = get_node_or_null("/root/Music")
+	# if m and m.has_method("stop"):
+	# 	m.stop(1.0)
+	GameMusic.stop(_game(), 1.0)   # also the game's own player, on apps before v0.43
 	queue_redraw()
 
 func _process(delta: float) -> void:
@@ -212,6 +215,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if playing and event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_J, KEY_SPACE, KEY_ENTER]:
 		if slash_input():
 			get_viewport().set_input_as_handled()
+
+## The game the cutscene sits in: the music belongs to it (it fades when the game closes).
+func _game() -> Node:
+	return get_parent() if get_parent() != null else self
 
 func _end() -> void:
 	if not playing:
@@ -267,18 +274,21 @@ func _cue(name: String) -> void:
 		"slash":
 			SoundLib.play(self, "rpg/knife_slice", -2.0, "game", 0.9)
 		"silence":
-			var ms = get_node_or_null("/root/Music")
-			if ms and ms.has_method("stop"):
-				ms.stop(0.4)
+			# var ms = get_node_or_null("/root/Music")
+			# if ms and ms.has_method("stop"):
+			# 	ms.stop(0.4)
+			GameMusic.stop(_game(), 0.4)
 		"flute":
 			# No flute in the sound library yet: the shakuhachi phrase is the calm Asian
 			# music track fading in (Music library, genre "asian"; older apps: any calm).
-			var m = get_node_or_null("/root/Music")
-			if m:
-				if "library" in m:
-					m.play("calm", self, 0, 2.5, "asian")
-				else:
-					m.play("calm", self, 0, 2.5)
+			# var m = get_node_or_null("/root/Music")
+			# if m:
+			# 	if "library" in m:
+			# 		m.play("calm", self, 0, 2.5, "asian")
+			# 	else:
+			# 		m.play("calm", self, 0, 2.5)
+			# Owner 2026-11-20: the game's own calm track (kawarayu), never the hub's music.
+			GameMusic.play(_game(), "kawarayu", "", 2.5)
 
 # ---------- drawing ----------
 

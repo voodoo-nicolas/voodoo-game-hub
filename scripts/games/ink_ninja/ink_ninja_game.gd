@@ -15,6 +15,14 @@ const SaveUtil = preload("res://scripts/common/save_util.gd")
 const MenuStyles = preload("res://scripts/games/ink_ninja/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/ink_ninja/home_kit.gd")
 const SoundLib = preload("res://scripts/games/ink_ninja/sound_lib.gd")
+const GameMusic = preload("res://scripts/games/ink_ninja/ink_ninja_music.gd")
+## Ink Ninja's own music (owner 2026-11-20, res://games/ink_ninja/music/), never the hub's:
+## the dojo theme on the Landing, the road tracks in turn, taiko drums on a boss stage's road,
+## the samurai theme once the boss wakes (kawarayu: the calm cutscenes, cutscene.gd).
+const MENU_TRACK := "dojo_menu"
+const ROAD_TRACKS := ["treacherous_path", "asian_oriental1", "asian_oriental2", "jaoan"]
+const FIGHT_TRACK := "taiko_drums"
+const BOSS_TRACK := "samurai"
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/ink_ninja/ink_ninja_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
@@ -195,9 +203,11 @@ func _ready() -> void:
 	# Owner 2026-11-20: the intro film first, every time the game opens; the Landing music after it.
 	var reload: bool = Time.get_ticks_msec() - int(get_tree().get_meta("ink_ninja_left", -100000)) < 2000
 	if reload:
-		_music("calm", "asian")   # 🏠 Home reloaded the scene: no film again
+		# _music("calm", "asian")   # 🏠 Home reloaded the scene: no film again
+		_menu_music()   # 🏠 Home reloaded the scene: no film again
 	else:
-		_play_intro(_music.bind("calm", "asian"))
+		# _play_intro(_music.bind("calm", "asian"))
+		_play_intro(_menu_music)
 
 func _exit_tree() -> void:
 	get_tree().set_meta("ink_ninja_left", Time.get_ticks_msec())   # tells a 🏠 Home reload from a fresh open
@@ -583,7 +593,8 @@ func _begin() -> void:
 	prologue = false
 	SoundLib.play(self, "rpg/book_flip", -6.0)
 	SoundLib.play(self, "sword/draw_katana_fast", -8.0)
-	_music("calm", "asian")
+	# _music("calm", "asian")
+	GameMusic.play(self, FIGHT_TRACK if engine.boss_stage() else ROAD_TRACKS[posmod(engine.stage - 1, ROAD_TRACKS.size())])
 	_pad_unlocks(engine.stage == 2 or engine.stage == 3 or engine.stage == 4)
 	splats.clear()
 	stains.clear()
@@ -820,7 +831,8 @@ func _event(e: String) -> void:
 			banner = tr(engine.boss_name())
 			after = -1.6
 			SoundLib.play(self, "impact/bell_heavy", -4.0)
-			_music("techno")
+			# _music("techno")
+			GameMusic.play(self, BOSS_TRACK, "", 1.0)
 		"pogo":
 			hitstop = 0.05
 			_puff(Vector2(engine.px, engine.py), 4, 12.0, 60.0)
@@ -2795,6 +2807,10 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+## The Landing's dojo theme (after the intro film).
+func _menu_music() -> void:
+	GameMusic.play(self, MENU_TRACK)
 
 ## genre: a Music Drop genre to prefer (owner 2026-11-15: calm Asian music on the road);
 ## apps whose Music has no library ignore it.

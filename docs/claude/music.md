@@ -1,6 +1,11 @@
 # Music library + Viral Music Drop
 
 Owner rule (2026-10-07): **every game takes its music from the shared `Music` autoload**; no game synthesizes or ships its own.
+**Changed 2026-11-20 (owner, APK ≥ 0.43.0, STANDARDS §10): hub music and game music never mix.**
+- Hub screens play only style `hub` (`Music.HUB_STYLE`, files in the APK at `res://media/hub/music/hub/`; `_play_hub()`), never offered to games. A game's scene opening (or a game calling `play()` / `play_stream()`) drops it within `HUB_FADE` (0.5 s); back in the hub it resumes at the same spot (`_hub_resume`). With no hub files the old `"hub"` play-map entry still applies.
+- A game may ship its own tracks in `res://games/<id>/music/*.ogg` (CREDITS.json, loop in `.import`) and play them through `Music.play_stream(stream, owner, fade, then)` via its own `<id>_music.gd` helper (Beached: `wilson_music.gd`, Ink Ninja: `ink_ninja_music.gd`): guarded `has_method("play_stream")`, else stops the old app's Music and plays on a child `AudioStreamPlayer` on the `Music` bus. Such games are `"off"` in the `play` map so old apps never start library music over them (play_stream ignores the map).
+- Test: `godot --headless --path . --script res://tools/test_music_split.gd`.
+- Boot test (`hub.py test`): a headless boot quits while a music file still plays, and Godot then reports it "still in use at exit" (the dummy audio driver never mixes again). `hub.py` re-runs that scene with `--verbose` and accepts it only if every leftover resource is a music file.
 
 ## Music autoload (`scripts/common/music.gd`; header = how-to)
 - Styles `calm`/`lively`/`techno`, 4 tracks each. `play(style, owner, index, fade, genre = "")` crossfades (same index = no-op; index -1 = next track), `prepare(style, index)` pre-renders (call from `_ready()`), `stop(fade)`. Fades out when `owner` leaves the tree; dips 10 dB while paused; pauses with the app (`NOTIFICATION_APPLICATION_PAUSED`).

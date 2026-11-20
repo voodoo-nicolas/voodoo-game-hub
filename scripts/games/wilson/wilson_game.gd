@@ -31,6 +31,12 @@ const Castaway = preload("res://scripts/games/wilson/wilson_castaway.gd")
 ## Recorded sounds from the shared library (media/common/sfx; `hub.py sync` copies the player and
 ## puts the named files in the pack). UI sounds stay on the synth Sfx.
 const SoundLib = preload("res://scripts/games/wilson/sound_lib.gd")
+const GameMusic = preload("res://scripts/games/wilson/wilson_music.gd")
+## The island's own music (owner 2026-11-20, res://games/wilson/music/): one loop a day in turn,
+## the arrival theme once on Day 1, the action track while a storm blows.
+const DAY_TRACKS := ["feel_good_island_loop", "tropical_loop", "monkey_island_band_loop"]
+const ARRIVAL_TRACK := "tropoix_arrival"
+const STORM_TRACK := "bamboo_blitz"
 const HUD_ART := "res://games/wilson/art/hud/"
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it.
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
@@ -55,6 +61,8 @@ var info = null  # GameInfo; null on apps without it
 var home         # HomeKit
 var engine = null
 var started := false
+var _music_mode := ""     # what the island music plays now: "storm" / "day:<n>" ("" = not chosen yet)
+var _arrival := false     # a new island: the arrival theme plays once first
 var clock_offset := 0.0   # debug: seconds added to the real clock
 var time_scale := 1.0     # debug: x1 / x60 / x3600
 var _last_ms := 0
@@ -111,6 +119,7 @@ func _ready() -> void:
 	preload("res://scripts/games/wilson/wilson_i18n.gd").install(self)
 	_load_debug()
 	_build_ui()
+	GameMusic.play(self, DAY_TRACKS[0])   # the Landing: the island's main loop (the hub's music has stopped)
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -234,6 +243,7 @@ func _start_island(name_text: String, look_id: String) -> void:
 	engine.weather_auto = true
 	engine._weather_tick()
 	started = true
+	_arrival = true
 	_start_play()
 	_bubble_queue.append(D.LINES.day1[0])
 	_save_game()
@@ -350,7 +360,9 @@ func _start_play() -> void:
 	_add_pad()
 	_place_johnny_now()
 	_last_ms = Time.get_ticks_msec()
-	_music("calm")
+	# _music("calm")   # owner 2026-11-20: the island plays its own tracks, never the shared library
+	_music_mode = ""
+	_island_music()
 	_layout()
 	_refresh_hud()
 
@@ -477,6 +489,7 @@ func _update_sky() -> void:
 	_skyview.moon = Astro.moon_arc(h, _skyview.moon_phase)
 	_skyview.south = engine.hemisphere == "south"
 	var w: String = engine.weather
+	_island_music()   # a storm or a new day changes the track
 	_skyview.cloudiness = {"clear": 0.2, "cloudy": 0.6, "overcast": 0.9, "drizzle": 0.8, "rain": 0.95, "storm": 1.0, "fog": 0.7}.get(w, 0.35)
 	# CanvasModulate: the keyframe's light tint, dimmed by its intensity (0.55 floor keeps night playable)
 	var tint: Color = Color(sky.light_tint) * lerpf(0.55, 1.0, inten)
@@ -2464,6 +2477,28 @@ func _music(style: String) -> void:
 	var m = get_node_or_null("/root/Music")
 	if m and m.has_method("play"):
 		m.play(style, self)
+
+## The island's own music for now: the storm track while a storm blows, else the day's loop
+## (the arrival theme first on a new island). Only switches when the choice changes, so the
+## sky update can call it every tick.
+func _island_music() -> void:
+	if engine == null or not started:
+		return
+	var mode := "storm" if str(engine.weather) == "storm" else "day:%d" % posmod(engine.day_number() - 1, DAY_TRACKS.size())
+	if mode == _music_mode:
+		return
+	var first := _music_mode == ""
+	_music_mode = mode
+	if mode == "storm":
+		_arrival = false
+		GameMusic.play(self, STORM_TRACK, "", 1.0 if first else 2.0)
+		return
+	var track: String = DAY_TRACKS[int(mode.get_slice(":", 1))]
+	if _arrival:
+		_arrival = false
+		GameMusic.play(self, ARRIVAL_TRACK, track, 1.0)
+		return
+	GameMusic.play(self, track, "", 1.5 if first else 3.0)
 
 func _sfx(name: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
