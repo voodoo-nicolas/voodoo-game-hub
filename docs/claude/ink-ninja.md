@@ -92,8 +92,13 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
 - **Swords**: silver from stage 21 (after boss 5) on Easy/Normal; **gold** in Hard from stage 13 (after boss 3),
   x1.33 (`GOLD_FROM`, `GOLD_MULT`, `engine.blade()`), tip "gold". Both leave a soft trail (`_blade_trail`, kept
   relative to the hero's feet, `TRAIL_T` 0.16 s, plain lines).
-- Not built: the intro video (still mp4 only); per-boss move sets are still the four old ones; the rainbow colouring
+- Not built: per-boss move sets are still the four old ones; the rainbow colouring
   also tints weapons that stick out of the body box (spear and naginata tips).
 - **Swing buffer** (owner: "A sticky / not responsive"): a Swing pressed while a cut is still playing (`SLASH_T`
   0.22 s) used to be dropped; now it is kept `SLASH_BUFFER` 0.25 s and fires when the cut ends (tested). The shared pad
   already lets go of every button when it hides (cutscenes) or the tree pauses.
+- **Intro film** (`games/ink_ninja/intro.ogv`, 12 s, 720p Theora, 2.6 MB; owner's mp4 converted with
+  `ffmpeg -vf scale=-2:720 -c:v libtheora -q:v 6 -c:a libvorbis -q:a 4`): plays every time the game opens (app or hub),
+  over the Landing, before its music; tap or Skip ends it. Not replayed when the pause menu's 🏠 Home reloads the
+  scene (`_exit_tree` stamps the tree meta `ink_ninja_left`; a reopen within 2 s counts as that reload). It runs with
+  `PROCESS_MODE_ALWAYS` because the Landing pauses the tree (it froze on a black first frame).
