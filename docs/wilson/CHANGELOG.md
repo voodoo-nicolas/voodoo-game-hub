@@ -4,7 +4,9 @@
 - Pebbles: the sheets are not all drawn the same way. Craft (basket), tool and weave look LEFT; carve and chop look right. v16 mirrored them all alike, so the left-looking ones turned away. `LEFT_POSES` in `wilson_castaway.gd`; checked in screenshots for every pose of the cycle.
 - Palm C (and the two hammock palms, same art): the trunk ended ~10 px under its grass tuft in a thin point, so it looked like it stood on a stilt. The tuft now sits on the trunk end and is a bit bigger.
 - Story quests: the HUD shows how to do it under the goal (QUEST_HINTS). T04 now says to walk to the water's edge under the arrow and press A, or tap the water.
-- `tools/shot_wilson_spots.gd`: close-up screenshots of the pebbles (each look, each pose), palm C and the fishing goal.
+- **Taps did nothing anywhere** (owner: "clicking all over... nothing comes up"): the game's root Control kept Godot's default mouse filter STOP and swallowed every click before `_unhandled_input`; only the Pad worked. Root is IGNORE now; checked by pushing real clicks on the water (the shallows menu opens).
+- The fishing arrow sat on the sand, on her own legs; it now hangs over the water.
+- `tools/shot_wilson_spots.gd`: close-up screenshots of the pebbles (each look, each pose), palm C, the fishing goal and two real clicks on the water.
 
 ## 2026-11-19: owner's list (built, not published)
 - Power nap: the menu showed 45 min when tired (low-energy x1.5) but the nap ran 30. A nap is now a fixed 30 min everywhere (`duration_of`).

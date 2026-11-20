@@ -77,6 +77,20 @@ func _run() -> void:
 	game.after_change()
 	await _wait(10)
 	await _shot("shallows")
+	e.add("fishing_pole", 1)
+	for at in [Vector2(640, 520), Vector2(900, 600)]:
+		for pressed in [true, false]:
+			var ev := InputEventMouseButton.new()
+			ev.button_index = MOUSE_BUTTON_LEFT
+			ev.pressed = pressed
+			ev.position = at
+			ev.global_position = at
+			root.push_input(ev)
+			await _wait(2)
+		await _wait(10)
+		await _shot("tap_water_%d" % int(at.y))
+		game._close_popup()
+		await _wait(3)
 	for f in FILES:
 		if FileAccess.file_exists(f):
 			DirAccess.remove_absolute(f)

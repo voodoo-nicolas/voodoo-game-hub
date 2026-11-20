@@ -110,6 +110,9 @@ func _ready() -> void:
 	Orientation.lock_landscape()
 	preload("res://scripts/games/wilson/wilson_i18n.gd").install(self)
 	_load_debug()
+	# the root Control defaulted to STOP and swallowed every click, so taps on the island never reached
+	# _unhandled_input: nothing opened anywhere (owner, 2026-11-20). Only the Pad worked.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_ui()
 
 func _build_ui() -> void:
@@ -703,7 +706,9 @@ func _update_marks() -> void:
 				rects.append(Rect2(cp + Vector2(-26, -100), Vector2(52, 104)))
 				mids.append("johnny")
 			"shallows":
-				rects.append(Rect2(D.SHALLOWS.pos + Vector2(-120, -40), Vector2(240, 70)))
+				# rects.append(Rect2(D.SHALLOWS.pos + Vector2(-120, -40), Vector2(240, 70)))
+				# the arrow sat on the sand, on her own legs, where she stands to fish (owner's photo 2026-11-20): over the water now
+				rects.append(Rect2(D.SHALLOWS.pos + Vector2(-120, 30), Vector2(240, 70)))
 				mids.append("shallows")
 			_:
 				for it in world.interactables():
