@@ -1,7 +1,8 @@
 extends SceneTree
 
 ## Ink Ninja: each act's boss in its arena (one shot per act), plus Voodoo for act 6.
-##   godot --path . --resolution 1280x720 --script res://tools/shot_ink_bosses.gd -- <out_dir>
+##   godot --path . --resolution 1280x720 --script res://tools/shot_ink_bosses.gd -- <out_dir> [hard]
+## Each act: the boss standing, then winding up a fan / cast (with Hard's colour burst when "hard").
 ## Starts a game, so the save and the cutscene memory are put back afterwards.
 
 func _initialize() -> void:
@@ -25,7 +26,8 @@ func _run() -> void:
 	for i in 25:
 		await process_frame
 	var g = current_scene
-	g.home.play_now(g._new_game.bind(1))
+	var hard := OS.get_cmdline_user_args().size() > 1 and OS.get_cmdline_user_args()[1] == "hard"
+	g.home.play_now(g._new_game.bind(2 if hard else 1))
 	for i in 10:
 		await process_frame
 	g.cutscene._end()
@@ -47,6 +49,16 @@ func _run() -> void:
 		for i in 4:
 			await process_frame
 		root.get_texture().get_image().save_png(out.path_join("boss_act%d.png" % act))
+		g.engine.boss.phase = "fan"
+		g.engine.boss.t = 9.0
+		if hard:
+			g._hard_fx("bossfan")
+		g.engine.px = g.engine.arena_x + 300
+		g.engine.slash_t = 0.1
+		for i in 6:
+			await process_frame
+		root.get_texture().get_image().save_png(out.path_join("boss_act%d_cast.png" % act))
+		g.engine.boss.phase = "idle"
 		print("SHOT act ", act)
 	g._set_skin("voodoo")
 	for i in 5:
