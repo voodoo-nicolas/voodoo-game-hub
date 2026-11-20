@@ -179,6 +179,7 @@ func _ready() -> void:
 	Social.friends_changed.connect(_update_friend_badge)
 	Social.set_game("")  # back in the menus: friends see "in the menus"
 	Social.sync_awards()  # badges earned in the game just played become Viral XP
+	HubData.sync_favorites()  # ★ changed on another device show here too
 	Consent.sync()  # my acceptance of the Terms/Privacy, once per account + version
 	CrisisHelp.refresh(self, Config.CRISIS_URL)  # newer helpline numbers, at most once a day
 	_update_friend_badge()
@@ -907,6 +908,11 @@ func _on_options_closed() -> void:
 		return
 	_update_account_status()
 	_update_friend_badge()
+	_refresh_home()
+
+## HubData.sync_favorites() brought another device's ★ list: redraw what shows them.
+func favorites_synced() -> void:
+	_rebuild_list()
 	_refresh_home()
 
 ## Leaving the hub (a game, another screen, quitting): collect the Options preload so the

@@ -110,6 +110,7 @@ func _notification(what: int) -> void:
 func _on_signed_in() -> void:
 	_beat_left = 0.1
 	_inbox_left = 2.0
+	preload("res://scripts/common/hub_data.gd").sync_favorites()   # ★ follow the account (2026-11-20)
 
 func _on_signed_out() -> void:
 	current_game = ""

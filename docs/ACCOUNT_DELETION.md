@@ -34,6 +34,7 @@ For the caller's user id, in this order. Missing tables are skipped.
 | `scores` | `user_id` | leaderboard rows |
 | `player_awards` | `user_id` | achievements earned |
 | `game_progress` | `user_id` | cloud saves / progress |
+| `user_favorites` | `user_id` | ★ favorites across devices (since 2026-11-20; also cascades from `auth.users`) |
 | `friendships` | `requester` **and** `target` | friends and friend requests, both directions |
 | `game_invites` | `sender` **and** `recipient` | online game invites / room invitations, both directions |
 | `store_trials` | `user_id` | free-trial start dates |
