@@ -18,6 +18,7 @@ const HomeKit = preload("res://scripts/games/arrow_pop/home_kit.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const HELP := preload("res://scripts/games/arrow_pop/arrow_pop_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
+const BG_TEX := "res://games/arrow_pop/bg_light.jpg"
 const SAVE_PATH := "user://arrow_pop_save.json"
 const PROGRESS_PATH := "user://arrow_pop_progress.json"
 
@@ -46,9 +47,14 @@ var held: Dictionary = {}  # cell -> true: a bumping arrow, drawn by its flight 
 var pops_fx: Array = []      # {cell, k, t}
 var shake: Dictionary = {}   # cell -> time left
 var hint_cell := -1
+## [NEW 2026-11-20, owner: "more intense"] From level 4 every board runs against a clock.
+var clock: bool = false
+var time_left: float = 0.0
+var time_label: Label
 var hint_t := 0.0
 
 var bg: ColorRect
+var tex_bg: TextureRect
 var board: Control
 var level_label: Label
 var hearts_label: Label
@@ -76,6 +82,15 @@ func _build_ui() -> void:
 	theme = HomeKit.neon_theme()
 	bg = HomeKit.backdrop()
 	add_child(bg)
+	# [NEW 2026-11-20] Textured Classic backdrop (tools/art/puzzle_backdrops.py), over the flat colour.
+	tex_bg = TextureRect.new()
+	if ResourceLoader.exists(BG_TEX):
+		tex_bg.texture = load(BG_TEX)
+	tex_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tex_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	tex_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tex_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(tex_bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -110,6 +125,10 @@ func _build_ui() -> void:
 	hearts_label.add_theme_font_size_override("font_size", 40)
 	hearts_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(hearts_label)
+	time_label = Label.new()
+	time_label.add_theme_font_size_override("font_size", 30)
+	time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root.add_child(time_label)
 
 	board = Control.new()
 	board.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -140,18 +159,28 @@ func _build_ui() -> void:
 		"landing": "bento",
 		"landing_style": MenuStyles,
 		"title_font": "res://games/arrow_pop/title.ttf",
-		"title_colors": [CLASSIC_PAL[0], CLASSIC_PAL[3], CLASSIC_PAL[5], CLASSIC_PAL[1], CLASSIC_PAL[4], CLASSIC_PAL[2]],
-		"landing_colors": [Color("0d1830"), Color("1d3358")],
-		"menu_color": Color("6fc8ff"),
+		# "title_colors": [CLASSIC_PAL[0], CLASSIC_PAL[3], CLASSIC_PAL[5], CLASSIC_PAL[1], CLASSIC_PAL[4], CLASSIC_PAL[2]],
+		# "landing_colors": [Color("0d1830"), Color("1d3358")],
+		# "menu_color": Color("6fc8ff"),
+		# [CHANGED 2026-11-20, owner: "less colours, give it textures"] Two colours (coral + cream)
+		# on a bubble-wrap texture (games/arrow_pop/menu_bg.jpg, tools/art/arrow_pop_menu_bg.py).
+		"title_colors": [Color("ff6b5e"), Color("ffe3b3")],
+		"landing_colors": [Color("12203a"), Color("0a1222")],
+		"landing_stars": 0,
+		# "art": "res://games/arrow_pop/menu_bg.jpg",
+		"art": "res://games/arrow_pop/landing.jpg",  # [2026-11-20] tools/art/puzzle_landing_art.py
+		"landing_art": true,
+		"landing_art_alpha": 0.9,
+		"menu_color": Color("ff6b5e"),
 		"menu_font": true,
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,
 		"subtitle": "Fire each arrow at its own colour. Never hit another colour.",
-		"logo": _draw_home_logo,
-		"modes": [{"text": "▶  Play", "sub": "320 levels", "key": "campaign", "color": HomeKit.CYAN, "action": _continue}],
+		# "logo": _draw_home_logo,  # [2026-11-20] off: the landing art (landing.jpg) is the hero picture now
+		"modes": [{"text": "▶  Play", "sub": "320 levels", "key": "campaign", "color": Color("ff6b5e"), "action": _continue}],
 		"extra": _add_options,
-		"more": [["🗺 Levels", HomeKit.CYAN, _show_levels]],
+		"more": [["🗺 Levels", Color("ffe3b3"), _show_levels]],
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
@@ -221,6 +250,8 @@ func _deal(n: int) -> void:
 	engine.load_level(level)
 	started = true
 	finished = false
+	clock = level >= 4
+	time_left = _time_for()
 	flights.clear()
 	ghosts.clear()
 	held.clear()
@@ -231,7 +262,39 @@ func _deal(n: int) -> void:
 	lose_dialog.visible = false
 	_render()
 
+## Seconds for this board: ~2.6 s per arrow at level 4, 1.5 s by the last level.
+func _time_for() -> float:
+	var arrows := 0
+	for kd in engine.kind:
+		if kd == ApEngine.ARROW:
+			arrows += 1
+	var k := clampf(float(level - 4) / float(ApEngine.LEVEL_COUNT - 4), 0.0, 1.0)
+	return ceilf((10.0 + arrows * lerpf(2.6, 1.5, k)) / 5.0) * 5.0
+
+func _render_clock() -> void:
+	if time_label == null:
+		return
+	time_label.visible = clock
+	var t := int(ceil(maxf(time_left, 0.0)))
+	time_label.text = "⏱ %d:%02d" % [t / 60, t % 60]
+	var low := time_left <= 10.0
+	var ink: Color = CLASSIC_INK if skin == "classic" else HomeKit.WHITE
+	time_label.add_theme_color_override("font_color", Color("e5484d") if low else ink)
+
+func _time_up() -> void:
+	time_left = 0.0
+	finished = true
+	SaveUtil.delete(SAVE_PATH)
+	if info:
+		info.result("loss")
+	_sfx("lose")
+	lose_dialog.get_meta("message_label").text = tr("Time's up!") + "
+" + tr("Level %d") % level
+	lose_dialog.visible = true
+	_render_clock()
+
 func _render() -> void:
+	_render_clock()
 	level_label.text = tr("Level %d") % level
 	var lost: int = maxi(0, ApEngine.MAX_HEARTS - engine.hearts)
 	hearts_label.text = " ".join(_hearts_list(engine.hearts, lost))
@@ -333,6 +396,15 @@ func _finish(won: bool) -> void:
 
 func _process(delta: float) -> void:
 	var busy := false
+	if clock and started and not finished and not home.visible and not win_dialog.visible and not lose_dialog.visible:
+		var before := int(ceil(time_left))
+		time_left -= delta
+		if int(ceil(time_left)) != before:
+			_render_clock()
+			if before == 11:
+				_sfx("notify")
+		if time_left <= 0.0:
+			_time_up()
 	for f in flights.duplicate():
 		busy = true
 		f.t += delta
@@ -400,8 +472,12 @@ func _set_skin(name: String) -> void:
 func _apply_colors() -> void:
 	if bg:
 		bg.color = CLASSIC_BG if skin == "classic" else HomeKit.BG
-		if bg.get_child_count() > 0:
-			bg.get_child(0).visible = skin != "classic"
+		# if bg.get_child_count() > 0:
+		# 	bg.get_child(0).visible = skin != "classic"
+		for ch in bg.get_children():  # all of the kit's dark layers (the leather showed through)
+			ch.visible = skin != "classic"
+	if tex_bg:
+		tex_bg.visible = skin == "classic"
 	var ink: Color = CLASSIC_INK if skin == "classic" else HomeKit.WHITE
 	for l in [level_label, hearts_label]:
 		if l:
@@ -415,6 +491,18 @@ func _draw_board() -> void:
 	var g := _geom()
 	var cs: float = g.cs
 	var classic := skin == "classic"
+	# A rounded tray under the grid (drop shadow, rim, inset) so the board reads as one object.
+	var span := Vector2(cs * engine.w, cs * engine.h)
+	var tray := StyleBoxFlat.new()
+	tray.set_corner_radius_all(int(cs * 0.35))
+	tray.anti_aliasing = true
+	tray.shadow_size = int(cs * 0.25)
+	tray.shadow_offset = Vector2(0, cs * 0.12)
+	tray.shadow_color = Color(0.1, 0.2, 0.35, 0.3) if classic else Color(0, 0, 0, 0.6)
+	tray.bg_color = Color("8fb9d6") if classic else Color(0.03, 0.04, 0.09)
+	tray.border_color = Color("6d9cbf") if classic else Color(HomeKit.CYAN, 0.25)
+	tray.set_border_width_all(maxi(2, int(cs * 0.05)))
+	tray.draw(board.get_canvas_item(), Rect2(g.o, span).grow(cs * 0.18))
 	var tile := StyleBoxFlat.new()
 	tile.set_corner_radius_all(int(cs * 0.2))
 	if not classic:
@@ -529,7 +617,8 @@ func _draw_home_logo(c: Control) -> void:
 	for i in 9:
 		var cc: Vector2 = o + (Vector2(i % 3, i / 3) + Vector2(0.5, 0.5)) * cs
 		var k: int = layout[i][1]
-		var col: Color = NEON_PAL[k]
+		# var col: Color = NEON_PAL[k]
+		var col: Color = Color("ff6b5e") if k % 2 == 0 else Color("ffe3b3")  # the menu's two colours
 		if layout[i][0] == 1:
 			c.draw_circle(cc, cs * 0.34, Color(col, 0.2))
 			c.draw_arc(cc, cs * 0.34, 0, TAU, 32, col, 3.0)
@@ -611,7 +700,9 @@ func _go_home() -> void:
 func _save_game() -> void:
 	if not started or finished:
 		return
-	SaveUtil.write(SAVE_PATH, engine.to_dict())
+	var d: Dictionary = engine.to_dict()
+	d["time_left"] = time_left
+	SaveUtil.write(SAVE_PATH, d)
 
 func _resume_text() -> String:
 	var d = SaveUtil.read(SAVE_PATH)
@@ -624,6 +715,7 @@ func _load_saved_game() -> void:
 	_deal(int(d.get("level", progress.level)) if d is Dictionary else int(progress.level))
 	if d is Dictionary and engine.from_dict(d):
 		level = engine.level_no
+		time_left = float(d.get("time_left", time_left))
 		_render()
 
 func _sfx(sound: String) -> void:

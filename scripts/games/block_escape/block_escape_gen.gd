@@ -26,8 +26,16 @@ const SHAPES := [
 	["hook", [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(0, 2), Vector2i(1, 2)], 110],
 ]
 
+## [CHANGED 2026-11-20, owner: "levels 1-3 easy, then significantly harder right away"]
+## Levels 1-3 stay the tutorial. From level 4 the generator plays as if it were level 40,
+## climbing to 300 by the last level, so the old 4x4 / 2-colour stretch is gone.
+static func effective(level: int) -> int:
+	if level <= 3:
+		return level
+	return clampi(40 + int(round(float(level - 4) * 260.0 / float(LEVELS - 4))), 40, LEVELS)
+
 ## 0..1 over the 300 levels, with a small saw-tooth: every 10th level is a little
-## harder, the one after it a breather.
+## harder, the one after it a breather. `level` here is already effective().
 static func difficulty(level: int) -> float:
 	var t := clampf(float(level - 1) / 220.0, 0.0, 1.0)
 	var saw := float((level - 1) % 10) / 9.0
@@ -40,7 +48,7 @@ static func generate(level: int, seed_val: int, fast: bool = false) -> Dictionar
 	var best: Dictionary = {}
 	# A few tries; keep the fullest board (rare dead ends leave a sparse one).
 	for attempt in (1 if fast else 3):
-		var p := _try(level, rng, fast)
+		var p := _try(effective(level), rng, fast)
 		if best.is_empty() or p.blocks.size() > best.blocks.size():
 			best = p
 		if p.get("full", false):
@@ -52,7 +60,9 @@ static func generate(level: int, seed_val: int, fast: bool = false) -> Dictionar
 static func _try(level: int, rng: RandomNumberGenerator, fast: bool) -> Dictionary:
 	var d := difficulty(level)
 	var e := Engine_.new()
-	var n := 4 + mini(4, (level + 10) / 35)          # 4x4 at level 1 .. 8 wide from level 130
+	# var n := 4 + mini(4, (level + 10) / 35)          # 4x4 at level 1 .. 8 wide from level 130
+	# 4x4 tutorial (levels 1-3), then 6 wide at once, 7 from effective 120, 8 from 220.
+	var n := 4 if level <= 3 else 6 + mini(2, maxi(0, level - 20) / 100)
 	var rows := n + (1 if level > 45 and rng.randf() < 0.5 else 0)
 	e.setup(rows, n)
 	var colours := clampi(2 + level / 18, 2, 8)
@@ -69,13 +79,16 @@ static func _try(level: int, rng: RandomNumberGenerator, fast: bool) -> Dictiona
 	for v in e.holes:
 		if v == 0:
 			free += 1
-	var fill := lerpf(0.45, 0.78, d)
+	# var fill := lerpf(0.45, 0.78, d)
+	var fill := lerpf(0.45, 0.78, d) if level <= 3 else lerpf(0.66, 0.9, d)  # denser boards from level 4
 	var target := int(round(free * fill))
 	if level <= 2:
 		target = mini(target, 4 + level)
 	var filled := 0
-	var lock_p := 0.0 if level < 20 else lerpf(0.10, 0.30, d)
-	var axis_p := 0.0 if level < 40 else lerpf(0.12, 0.30, d)
+	# var lock_p := 0.0 if level < 20 else lerpf(0.10, 0.30, d)
+	# var axis_p := 0.0 if level < 40 else lerpf(0.12, 0.30, d)
+	var lock_p := 0.0 if level < 20 else lerpf(0.18, 0.40, d)
+	var axis_p := 0.0 if level < 40 else lerpf(0.20, 0.40, d)
 	var pool: Array = []
 	for s in SHAPES:
 		if level >= int(s[2]):
@@ -129,7 +142,8 @@ static func _try(level: int, rng: RandomNumberGenerator, fast: bool) -> Dictiona
 ## Seconds on the clock: generous early, tight late. Rounded up to 5 s.
 static func time_for(level: int, block_count: int) -> int:
 	var d := difficulty(level)
-	var per := lerpf(9.0, 4.6, d)
+	# var per := lerpf(9.0, 4.6, d)
+	var per := lerpf(9.0, 4.6, d) if level <= 3 else lerpf(6.5, 3.6, d)  # tighter clock from level 4
 	var s := 15.0 + per * block_count
 	return int(ceil(s / 5.0)) * 5
 

@@ -21,10 +21,13 @@ const I18N_PATH := "res://scripts/games/block_escape/block_escape_i18n.gd"
 ## Written by tools/block_escape_gen.gd; a level missing here is generated from the same seed.
 const LEVELS_PATH := "res://games/block_escape/levels.json"
 
+const BG_TEX := "res://games/block_escape/bg_light.jpg"
 const SAVE_PATH := "user://block_escape_save.json"
 const PROGRESS_PATH := "user://block_escape_progress.json"
 const EXTRA_TIME := 30
-const ZEN := [["🙂 Easy", 40], ["😐 Normal", 110], ["😈 Hard", 200], ["🤯 Expert", 300]]
+# const ZEN := [["🙂 Easy", 40], ["😐 Normal", 110], ["😈 Hard", 200], ["🤯 Expert", 300]]
+## Levels-mode numbers; the generator ramps from level 4 (Gen.effective), so these sit lower.
+const ZEN := [["🙂 Easy", 18], ["😐 Normal", 80], ["😈 Hard", 180], ["🤯 Expert", 285]]
 
 ## Classic look: bright toy colours on a sky backdrop (original palette).
 const SKY := Color("cfe3f7")
@@ -36,12 +39,14 @@ const TOY := [Color("e8382f"), Color("2f8fe8"), Color("f5b81c"), Color("38b54a")
 const NEON := [Color("ff4f4f"), Color("38b6ff"), Color("ffd23f"), Color("8cff5a"), Color("b36bff"),
 	Color("ff8a3d"), Color("ff5fa2"), Color("27e0d0")]
 ## Colour is never the only cue (STANDARDS §9): each colour also has a mark, on blocks and gates.
+## [CHANGED 2026-11-20] Marks are drawn shapes now (_draw_mark): these glyphs showed as odd symbols.
 const MARKS := ["●", "■", "▲", "◆", "★", "✚", "♥", "⬢"]
 
 var info = null
 var home
 var engine: Engine_
 var bg: ColorRect
+var tex_bg: TextureRect
 var skin: String = "classic"
 var title_label: Label
 var time_label: Label
@@ -95,6 +100,15 @@ func _build_ui() -> void:
 	theme = HomeKit.neon_theme()
 	bg = HomeKit.backdrop()
 	add_child(bg)
+	# [NEW 2026-11-20] Textured Classic backdrop (tools/art/puzzle_backdrops.py), over the flat colour.
+	tex_bg = TextureRect.new()
+	if ResourceLoader.exists(BG_TEX):
+		tex_bg.texture = load(BG_TEX)
+	tex_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tex_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	tex_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tex_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(tex_bg)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -202,12 +216,16 @@ func _build_ui() -> void:
 		"landing_style": MenuStyles,
 		"title_colors": [TOY[0], TOY[2], TOY[1]],
 		"landing_colors": [Color("0a1430"), Color("1b2d5c")],
+		# [2026-11-20] Landing art: games/block_escape/landing.jpg (tools/art/puzzle_landing_art.py).
+		"art": "res://games/block_escape/landing.jpg",
+		"landing_art": true,
+		"landing_art_alpha": 0.85,
 		"menu_color": TOY[1],
 		"help": HELP,
 		"info": info,
 		"accent": HomeKit.CYAN,
 		"subtitle": "Slide every block out through the gate of its colour. Beat the clock.",
-		"logo": _draw_home_logo,
+		# "logo": _draw_home_logo,  # [2026-11-20] off: the landing art (landing.jpg) is the hero picture now
 		"modes": modes,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
@@ -271,6 +289,8 @@ func _set_skin(name: String) -> void:
 		bg.color = SKY if skin == "classic" else HomeKit.BG
 		for ch in bg.get_children():
 			ch.visible = skin != "classic"
+	if tex_bg:
+		tex_bg.visible = skin == "classic"
 	for l in [title_label, left_label]:
 		if l:
 			l.add_theme_color_override("font_color", INK if skin == "classic" else Color.WHITE)
@@ -336,7 +356,12 @@ func _draw_board() -> void:
 	var fw := s * 0.5  # frame width
 	var area := Rect2(o, Vector2(engine.cols * s, engine.rows * s))
 	var frame_col := FRAME if classic else Color("12162a")
-	_round_rect(area.grow(fw), frame_col, s * 0.35)
+	# _round_rect(area.grow(fw), frame_col, s * 0.35)
+	# Frame with depth: drop shadow, outer rim, face, recessed inner lip.
+	_round_rect(Rect2(area.grow(fw).position + Vector2(0, s * 0.12), area.grow(fw).size), Color(0, 0, 0, 0.25), s * 0.35)
+	_round_rect(area.grow(fw), frame_col.darkened(0.25), s * 0.35)
+	_round_rect(area.grow(fw * 0.9), frame_col, s * 0.32)
+	_round_rect(area.grow(fw * 0.45), frame_col.darkened(0.35), s * 0.2)
 	if not classic:
 		HomeKit.glow_rect(board, area.grow(fw), HomeKit.CYAN, 2.0, 0.0)
 	# gates on the frame: colour + the colour's mark + an arrow out
@@ -351,11 +376,13 @@ func _draw_board() -> void:
 		var along := Vector2(absf(d.y), absf(d.x))  # direction along the frame
 		var span := gr.size.x if side % 2 == 0 else gr.size.y
 		_arrow(gr.get_center() + along * span * 0.25, side, s * 0.13, Color(1, 1, 1, 0.9))
-		var mark: String = MARKS[int(g.color) % MARKS.size()]
-		var fs := int(s * 0.28)
-		var mw: float = font.get_string_size(mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		var mc := gr.get_center() - along * span * 0.25
-		board.draw_string(font, mc + Vector2(-mw / 2.0, fs * 0.36), mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.95))
+		# var mark: String = MARKS[int(g.color) % MARKS.size()]
+		# var fs := int(s * 0.28)
+		# var mw: float = font.get_string_size(mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		# var mc := gr.get_center() - along * span * 0.25
+		# board.draw_string(font, mc + Vector2(-mw / 2.0, fs * 0.36), mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.95))
+		# Drawn mark, not a font glyph (the phone font showed the glyphs as odd symbols).
+		_draw_mark(gr.get_center() - along * span * 0.25, s * 0.11, int(g.color), Color(1, 1, 1, 0.95))
 	# floor + holes
 	for y in engine.rows:
 		for x in engine.cols:
@@ -363,8 +390,17 @@ func _draw_board() -> void:
 			if engine.holes[y * engine.cols + x] == 1:
 				_round_rect(r.grow(fw * 0.15), frame_col, s * 0.2)
 			else:
-				board.draw_rect(r.grow(-1.0), FLOOR if classic else Color(0.1, 0.12, 0.2))
-				board.draw_rect(r.grow(-s * 0.08), FLOOR.lightened(0.08) if classic else Color(0.13, 0.15, 0.26))
+				# board.draw_rect(r.grow(-1.0), FLOOR if classic else Color(0.1, 0.12, 0.2))
+				# board.draw_rect(r.grow(-s * 0.08), FLOOR.lightened(0.08) if classic else Color(0.13, 0.15, 0.26))
+				# Bevelled floor tile: dark seam, lit top-left edge, shaded bottom-right, light checker.
+				var base := FLOOR if classic else Color(0.1, 0.12, 0.2)
+				if (x + y) % 2 == 1:
+					base = base.darkened(0.06)
+				board.draw_rect(r, base.darkened(0.3))
+				var inner := r.grow(-s * 0.035)
+				board.draw_rect(inner, base.lightened(0.1))
+				board.draw_rect(Rect2(inner.position + Vector2(s * 0.05, s * 0.05), inner.size - Vector2(s * 0.05, s * 0.05)), base.darkened(0.08))
+				board.draw_rect(Rect2(inner.position + Vector2(s * 0.05, s * 0.05), inner.size - Vector2(s * 0.1, s * 0.1)), base)
 	for lv in leaving:
 		var a := clampf(1.0 - lv.t / 0.35, 0.0, 1.0)
 		_draw_block(lv.cells, lv.from + lv.dir * (lv.t / 0.35) * 2.5, int(lv.color), s, o, a, 0, 0)
@@ -427,7 +463,11 @@ func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, al
 				_round_rect(Rect2(r.position + Vector2(0, s * 0.07), r.size), Color(col.darkened(0.45), alpha), rad)
 			else:
 				_round_rect(r, Color(col, alpha) if classic else Color(col, 0.22 * alpha), rad)
-				if not classic:
+				if classic:
+					# glossy upper half + darker lower lip: reads as a moulded plastic brick
+					_round_rect(Rect2(r.position + Vector2(s * 0.06, s * 0.05), Vector2(r.size.x - s * 0.12, r.size.y * 0.42)), Color(col.lightened(0.22), alpha), rad * 0.8)
+					_round_rect(Rect2(r.position + Vector2(0, r.size.y - s * 0.12), Vector2(r.size.x, s * 0.12)), Color(col.darkened(0.18), alpha), rad * 0.5)
+				else:
 					board.draw_rect(r, Color(col, alpha), false, 2.0)
 	for cc in cells:
 		var c := o + (p + Vector2(cc) + Vector2(0.5, 0.5)) * s
@@ -439,11 +479,14 @@ func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, al
 			board.draw_arc(c, s * 0.2, 0, TAU, 20, Color(col, 0.7 * alpha), 2.0)
 	var box := _block_box(cells, p, s, o)
 	var font: Font = ThemeDB.fallback_font
-	var fs := int(s * 0.34)
+	# var fs := int(s * 0.34)
 	var c0 := o + (p + Vector2(cells[0]) + Vector2(0.5, 0.5)) * s
-	var mark: String = MARKS[colour % MARKS.size()]
-	var mw: float = font.get_string_size(mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	board.draw_string(font, c0 + Vector2(-mw / 2.0, fs * 0.36), mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85 * alpha))
+	# var mark: String = MARKS[colour % MARKS.size()]
+	# var mw: float = font.get_string_size(mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	# board.draw_string(font, c0 + Vector2(-mw / 2.0, fs * 0.36), mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85 * alpha))
+	# Colour-blind cue (STANDARDS §9): a small embossed shape on one stud instead of a font glyph.
+	if axis == 0 and lock == 0:
+		_draw_mark(c0, s * 0.09, colour, Color(col.darkened(0.35), 0.8 * alpha) if classic else Color(col.lightened(0.4), alpha))
 	if axis != 0:
 		var cen := box.get_center()
 		var dirs := [1, 3] if axis == Engine_.AXIS_H else [0, 2]
@@ -467,6 +510,28 @@ func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, al
 		var tf := int(s * 0.36)
 		var tw: float = font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, tf).x
 		board.draw_string(font, cen + Vector2(-tw / 2.0, s * 0.13), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tf, INK)
+
+## Colour-blind marks, one per colour: dot, square, triangle, diamond, plus, ring, bar, cross.
+func _draw_mark(c: Vector2, m: float, k: int, col: Color) -> void:
+	match k % 8:
+		0:
+			board.draw_circle(c, m, col)
+		1:
+			board.draw_rect(Rect2(c - Vector2(m, m) * 0.85, Vector2(m, m) * 1.7), col)
+		2:
+			board.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -m * 1.1), c + Vector2(m, m * 0.8), c + Vector2(-m, m * 0.8)]), col)
+		3:
+			board.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -m * 1.2), c + Vector2(m, 0), c + Vector2(0, m * 1.2), c + Vector2(-m, 0)]), col)
+		4:
+			board.draw_rect(Rect2(c - Vector2(m, m * 0.32), Vector2(m * 2, m * 0.64)), col)
+			board.draw_rect(Rect2(c - Vector2(m * 0.32, m), Vector2(m * 0.64, m * 2)), col)
+		5:
+			board.draw_arc(c, m * 0.8, 0, TAU, 20, col, maxf(1.5, m * 0.4))
+		6:
+			board.draw_rect(Rect2(c - Vector2(m * 1.1, m * 0.4), Vector2(m * 2.2, m * 0.8)), col)
+		_:
+			board.draw_line(c - Vector2(m, m), c + Vector2(m, m), col, maxf(2.0, m * 0.55))
+			board.draw_line(c + Vector2(-m, m), c + Vector2(m, -m), col, maxf(2.0, m * 0.55))
 
 func _round_rect(r: Rect2, col: Color, radius: float) -> void:
 	var sb := StyleBoxFlat.new()

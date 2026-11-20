@@ -38,26 +38,37 @@ const BITMAPS := {
 }
 
 ## The recipe for Classic level `lvl` (1-based).
+## [CHANGED 2026-11-20, owner: levels 1-3 easy, then much harder and a much bigger board at once]
+## Was: w = 5 + lvl*0.06 (5 wide until level 17), max_len 3 + lvl/15, aim lvl/240.
 static func classic_spec(lvl: int) -> Dictionary:
-	var w := mini(5 + int(lvl * 0.06), 26)
+	var w: int
+	var t: float  # 0..1 hardness
+	if lvl <= 3:
+		w = 4 + lvl            # 5, 6, 7: the tutorial
+		t = 0.05 * lvl
+	else:
+		var k := float(lvl - 4) / float(LEVELS - 4)
+		# w = 11 + int(round(15.0 * k))   # 11 wide at level 4 .. 26 at 360
+		# t = 0.45 + 0.55 * k
+		w = 12 + int(round(14.0 * k))   # 12 wide at level 4 .. 26 at 360
+		t = 0.65 + 0.35 * k
 	var h := int(round(w * 1.45))
 	var shape := "rect"
 	if w >= 9 and lvl % 4 != 0:
 		shape = SHAPES[(lvl * 7) % SHAPES.size()]
-	var t := minf(lvl, 220.0) / 220.0
 	return {
 		"cols": w, "rows": h, "shape": shape, "seed": lvl * 7919 + 101,
-		"max_len": clampi(3 + lvl / 15, 3, 16),
+		"max_len": clampi(3 + int(9.0 * t), 3, 12),  # long but not few: more arrows tangle more
 		"turn": 0.2 + 0.4 * t,
-		"aim": minf(0.85, lvl / 240.0),
+		"aim": minf(0.85, 0.9 * t),
 	}
 
 static func difficulty(lvl: int) -> String:
-	if lvl < 25:
+	if lvl <= 3:
 		return "Easy"
-	if lvl < 90:
+	if lvl < 60:
 		return "Normal"
-	if lvl < 200:
+	if lvl < 180:
 		return "Hard"
 	return "Expert"
 

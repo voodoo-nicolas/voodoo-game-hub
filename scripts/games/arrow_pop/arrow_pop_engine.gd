@@ -33,8 +33,23 @@ var mistakes: int = 0
 # ---------- level shape ----------
 
 ## Board width, height, colours, fill and how deep the chain of "fire this first" should be.
+## [CHANGED 2026-11-20, owner: levels 1-3 easy, then much harder and a much bigger board at once]
+## Levels 1-3 are the old 4x4 tutorial; from level 4 the old curve continues from level 110
+## (7 wide, 5 colours, deep chains) and reaches the old cap, 9x13 / 6 colours, by ~level 200.
 static func params(n: int) -> Dictionary:
 	n = clampi(n, 1, LEVEL_COUNT)
+	if n <= 3:
+		return _old_params(n)
+	var e: int = 110 + int(round(float(n - 4) * 210.0 / float(LEVEL_COUNT - 4)))
+	var p := _old_params(mini(e, LEVEL_COUNT))
+	p.w = mini(9, p.w + 1)
+	p.h = p.w + mini(4, 2 + n / 60)
+	# p.depth = 6 + n / 25
+	p.depth = 8 + n / 18
+	p.fill = 1.0
+	return p
+
+static func _old_params(n: int) -> Dictionary:
 	var wd: int = 4
 	for step in [12, 35, 75, 130, 200, 270]:
 		if n > step:
