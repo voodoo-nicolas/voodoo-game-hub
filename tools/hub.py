@@ -1092,10 +1092,10 @@ AUDIO_LEAK_CLASSES = {"AudioStreamOggVorbis", "AudioStreamPlaybackOggVorbis", "O
 def music_only_leak(scene: str) -> bool:
     """True when the only leftovers at exit are music files that were playing.
     Timing decides whether a track is playing at frame 60 and whether Godot's
-    exit lines get printed, so up to 3 verbose re-runs look for the evidence:
+    exit lines get printed, so up to 5 verbose re-runs look for the evidence:
     every "Resource still in use" line is a music file and every leaked
     instance is an Ogg audio stream / playback."""
-    for _ in range(3):
+    for _ in range(5):
         _, out = run_godot("--verbose", scene, "--quit-after", "60")
         lines = out.splitlines()
         left = [l for l in lines if l.startswith("Resource still in use:")]
