@@ -9374,6 +9374,17 @@
    "url": "",
    "date": "2026-11-20",
    "ai_tool": "Gemini or ChatGPT (owner; which one not recorded per picture)"
+  },
+  {
+   "file": "games/ink_ninja/intro.ogv",
+   "what": "Ink Ninja intro film (12 s, 720p Ogg Theora + Vorbis)",
+   "source": "owner video D:/Dev/hub/ink ninja final1.mp4, converted with ffmpeg 2026-11-20",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "owner (tool not recorded)"
   }
  ]
 }

@@ -31,7 +31,11 @@ const Poses = preload("res://scripts/games/ink_ninja/ink_ninja_poses.gd")
 const BOSS_IDS := ["warden", "tora", "dragon", "tsuru", "calligrapher", "shu"]
 const BOSS_H := 175.0          # world height of a boss's body (the hero is 70)
 const TRAIL_T := 0.16          # how long the silver / gold sword trail lingers
-const HARD_UNLOCK_PATH := "user://ink_ninja_unlock.json"   # {"hard": true} once the story is beaten on Normal
+const HARD_UNLOCK_PATH := "user://ink_ninja_unlock.json"
+## Owner's intro film (2026-11-20, D:/Dev/hub/ink ninja final1.mp4 as 720p Ogg Theora): plays every time
+## the game is opened (from the app or the hub), before the Landing. A tap or Skip ends it. Not when the
+## pause menu's 🏠 Home reloads the scene (that is the same visit).
+const INTRO_PATH := "res://games/ink_ninja/intro.ogv"   # {"hard": true} once the story is beaten on Normal
 const DIFF_NAMES := ["Easy", "Normal", "Hard"]
 const PAUSE_AFTER := 1.8
 
@@ -126,6 +130,8 @@ var rainbow: Array = []   # Hard: colour puffs round the boss [world pos, vel, l
 var blade_trail: Array = []   # silver / gold sword: [hand, tip (world units from the hero's feet), age]
 var hero_feet := Vector2.ZERO # screen feet of the hero this frame (the trail is kept relative to them)
 var lock_dialog: Control
+var intro: Control = null     # the intro film on screen (null = none)
+var intro_then: Callable      # what runs when it ends or is skipped
 var toast_col := Color(0.65, 0.08, 0.08)
 var mood_col := Color(1, 0.86, 0.68)
 var relife := false      # all lives were lost: they come back, the stage stays
@@ -186,7 +192,15 @@ func _ready() -> void:
 	_hud_colors()
 	_paper_params()
 	engine.reset(1)
-	_music("calm", "asian")
+	# Owner 2026-11-20: the intro film first, every time the game opens; the Landing music after it.
+	var reload: bool = Time.get_ticks_msec() - int(get_tree().get_meta("ink_ninja_left", -100000)) < 2000
+	if reload:
+		_music("calm", "asian")   # 🏠 Home reloaded the scene: no film again
+	else:
+		_play_intro(_music.bind("calm", "asian"))
+
+func _exit_tree() -> void:
+	get_tree().set_meta("ink_ninja_left", Time.get_ticks_msec())   # tells a 🏠 Home reload from a fresh open
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -2947,3 +2961,58 @@ func _blade_trail(c: CanvasItem, hand: Vector2, tip: Vector2, k: float) -> void:
 		c.draw_line(m1, t1, Color(col, 0.16 * fade), 6.0 * k)
 		c.draw_line(t0, t1, Color(col, 0.22 * fade), 12.0 * k)
 		c.draw_line(t0, t1, Color(col, 0.55 * fade), 4.0 * k)
+
+# ---------- intro film (owner 2026-11-20) ----------
+
+## Plays the intro film full screen over the Landing (16:9, black bars), then `then`. Missing film = straight on.
+func _play_intro(then: Callable) -> void:
+	var stream = load(INTRO_PATH) if ResourceLoader.exists(INTRO_PATH) else null
+	if stream == null or not ClassDB.class_exists("VideoStreamPlayer"):
+		then.call()
+		return
+	intro_then = then
+	var m = get_node_or_null("/root/Music")   # the hub's music stops; the Landing's starts after the film
+	if m and m.has_method("stop"):
+		m.stop(0.4)
+	intro = ColorRect.new()
+	(intro as ColorRect).color = Color.BLACK
+	intro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	intro.mouse_filter = Control.MOUSE_FILTER_STOP
+	intro.process_mode = Node.PROCESS_MODE_ALWAYS   # the Landing pauses the tree: the film must keep playing
+	intro.gui_input.connect(_on_intro_input)
+	var ar := AspectRatioContainer.new()
+	ar.ratio = 16.0 / 9.0
+	ar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	intro.add_child(ar)
+	var vp := VideoStreamPlayer.new()
+	vp.stream = stream
+	vp.expand = true
+	vp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vp.finished.connect(_intro_done)
+	ar.add_child(vp)
+	var skip := Button.new()
+	skip.text = tr("Skip") + "  ›"
+	skip.add_theme_font_size_override("font_size", 26)
+	skip.modulate = Color(1, 1, 1, 0.75)
+	skip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	skip.position -= Vector2(170, 90)
+	skip.pressed.connect(_intro_done)
+	intro.add_child(skip)
+	add_child(intro)
+	vp.play()
+
+## Phones send a tap twice (touch + emulated mouse): only the mouse press ends the film.
+func _on_intro_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		_intro_done()
+
+func _intro_done() -> void:
+	if intro == null:
+		return
+	intro.queue_free()
+	intro = null
+	var c := intro_then
+	intro_then = Callable()
+	if c.is_valid():
+		c.call()
