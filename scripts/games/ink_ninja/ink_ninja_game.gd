@@ -25,6 +25,13 @@ const Cutscene_ = preload("res://scripts/games/ink_ninja/cutscene.gd")
 const PAPER_SHADER := preload("res://scripts/games/ink_ninja/ink_ninja_paper.gdshader")
 const DARK_SHADER := preload("res://scripts/games/ink_ninja/ink_ninja_dark.gdshader")
 const Scenery = preload("res://scripts/games/ink_ninja/ink_ninja_scenery.gd")
+const Poses = preload("res://scripts/games/ink_ninja/ink_ninja_poses.gd")
+## Owner art 2026-11-20: each act's boss is a set of painted poses (games/ink_ninja/art/boss,
+## cut by tools/ink_ninja_art.py); the drawn bosses stay as the fallback.
+const BOSS_IDS := ["warden", "tora", "dragon", "tsuru", "calligrapher", "shu"]
+const BOSS_H := 175.0          # world height of a boss's body (the hero is 70)
+const TRAIL_T := 0.16          # how long the silver / gold sword trail lingers
+const HARD_UNLOCK_PATH := "user://ink_ninja_unlock.json"   # {"hard": true} once the story is beaten on Normal
 const DIFF_NAMES := ["Easy", "Normal", "Hard"]
 const PAUSE_AFTER := 1.8
 
@@ -69,6 +76,7 @@ const TIPS := {
 	"trap": "The spikes drop on a beat. Back off and let them chase you through.",
 	"torch": "Night. Your torch lights the way: swing it at a dark lantern to light it.  (Keyboard: J)",
 	"silver": "New: a silver sword. Every cut hits a quarter harder.",
+	"gold": "New: a golden sword. Every cut hits a third harder.",
 	"thrust": "New: Thrust lunges forward and runs your blade through a foe.  (Keyboard: L / Shift)",
 }
 var q := {"jump": false, "slash": false, "throw": false, "dash": false, "bomb": false}
@@ -109,6 +117,15 @@ var jump_t := 0.0        # stretch after jumping
 var score_shown := 0.0
 var score_pop := 0.0
 var boss_trail := 1.0
+var boss_tex := {}        # loaded pose pictures ("<boss>_<pose>[_hard]" -> Texture2D or null)
+var boss_hold := ""       # a pose held for a moment after the move ("cast" after a fan, "stagger" after losing a third)
+var boss_hold_t := 0.0
+var boss_third := 3       # thirds of health left (a lost third = a stagger)
+var corpse := {}          # the beaten boss lying there: {x, y, face, act, t}
+var rainbow: Array = []   # Hard: colour puffs round the boss [world pos, vel, life, max, hue, size]
+var blade_trail: Array = []   # silver / gold sword: [hand, tip (world units from the hero's feet), age]
+var hero_feet := Vector2.ZERO # screen feet of the hero this frame (the trail is kept relative to them)
+var lock_dialog: Control
 var toast_col := Color(0.65, 0.08, 0.08)
 var mood_col := Color(1, 0.86, 0.68)
 var relife := false      # all lives were lost: they come back, the stage stays
@@ -318,8 +335,9 @@ func _build_ui() -> void:
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = []
 	for i in DIFF_NAMES.size():
-		modes.append({"text": ["Easy", "Normal", "Hard"][i], "row": "diff",
-			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i)})
+		# Owner 2026-11-20: Hard opens once the story is beaten on Normal (its bosses blaze with colour).
+		modes.append({"text": ["Easy", "Normal", "Hard" if _hard_open() else "Hard 🔒"][i], "row": "diff",
+			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][i], "action": _new_game.bind(i) if i < 2 else _try_hard})
 	home = HomeKit.new({
 		# Menu style (docs/MENU_STYLES.md): S1 Ghost; greys only, like the game.
 		"landing": "ghost",
@@ -354,6 +372,9 @@ func _build_ui() -> void:
 	add_child(home)
 	if info:
 		add_child(info)
+	lock_dialog = UI.build_dialog("", [{"text": tr("OK"), "action": _go_home}], true)
+	lock_dialog.get_meta("message_label").text = tr("Beat the story on Normal to unlock Hard.")
+	add_child(lock_dialog)
 
 # ---------- controls ----------
 
@@ -473,6 +494,18 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ---------- flow ----------
 
+## Hard is open once the story was beaten on Normal or Hard (HARD_UNLOCK_PATH).
+func _hard_open() -> bool:
+	var d = SaveUtil.read(HARD_UNLOCK_PATH)
+	return d is Dictionary and bool(d.get("hard", false))
+
+func _try_hard() -> void:
+	if _hard_open():
+		_new_game(2)
+	else:
+		lock_dialog.visible = true
+		move_child(lock_dialog, -1)
+
 func _new_game(d: int) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	engine.reset(d)
@@ -521,6 +554,9 @@ func _begin() -> void:
 	fade = 1.0
 	relife = false
 	boss_trail = 1.0
+	corpse = {}
+	rainbow.clear()
+	boss_hold_t = 0.0
 	score_shown = float(engine.score)
 	_paper_params()
 	# The chapter card stops play until any button / tap (or 6 s).
@@ -574,6 +610,7 @@ func _process(delta: float) -> void:
 		boss_trail = 1.0
 	toast_t = maxf(0.0, toast_t - delta)
 	_smoke_tick(delta)
+	_boss_fx_tick(delta)
 	for s in splats:
 		s[0] += s[1] * delta
 		s[1].y += 1400.0 * delta
@@ -681,7 +718,15 @@ func _event(e: String) -> void:
 		for i in 6:
 			sparks.append([bpos, Vector2(randf_range(-160, 160), randf_range(-260, -60)), 0.5, 0.5, 1])
 		return
+	if engine.diff == 2 and not engine.boss.is_empty():
+		_hard_fx(e)
 	match e:
+		"bosskill":
+			var kb: Dictionary = engine.boss
+			corpse = {"x": kb.x, "y": Engine_.GROUND, "face": kb.face, "act": engine.act(), "t": 0.0}
+		"bossfan":
+			boss_hold = "cast"
+			boss_hold_t = 0.45
 		"jump", "walljump":
 			jump_t = 0.16
 			_puff(Vector2(engine.px, engine.py - 2), 3, 10.0, 50.0)
@@ -753,6 +798,8 @@ func _event(e: String) -> void:
 			_puff(Vector2(engine.boss.x, engine.boss.y - 6), 14, 30.0, 220.0)
 			SoundLib.play(self, "impact/wood_heavy", -4.0)
 		"boss":
+			boss_third = 3
+			corpse = {}
 			banner = tr(engine.boss_name())
 			after = -1.6
 			SoundLib.play(self, "impact/bell_heavy", -4.0)
@@ -897,6 +944,8 @@ func _splash(p: Vector2, red: bool = false, big: bool = false) -> void:
 func _game_over(won: bool) -> void:
 	started = false
 	SaveUtil.delete(SAVE_PATH)
+	if won and engine.diff >= 1:
+		SaveUtil.write(HARD_UNLOCK_PATH, {"hard": true})
 	var msg := (tr("You mastered the ink!") + "\n" + tr(Story.EPILOGUE) if won else tr("Game over!")) + "\n" + tr("Score: %d") % engine.score
 	if info:
 		info.add("Games played")
@@ -1018,9 +1067,17 @@ func _draw_field() -> void:
 	if not engine.boss.is_empty() and engine.boss.hp > 0:
 		var b: Dictionary = engine.boss
 		var tele: bool = b.phase != "idle" and b.t > 0.0
+		_draw_rainbow(c, o, k)
 		_boss_art(c, o + Vector2(b.x, b.y) * k, k, b, tele)   # each act's own boss (was: _figure "boss%d" by move set)
+	elif not corpse.is_empty():
+		_draw_rainbow(c, o, k)
+		var fa: float = clampf(1.0 - (corpse.t - 1.4) / 1.2, 0.0, 1.0)   # lies there, then dissolves into the paper
+		_draw_pose(c, o + Vector2(corpse.x, corpse.y) * k, k, corpse.act, "dead", corpse.face, Color(1, 1, 1, fa))
 	for s in engine.shots:
-		_star(c, o + Vector2(s.x, s.y) * k, k, s.mine)
+		if s.get("boss", false) and engine.diff == 2:
+			_rainbow_shot(c, o + Vector2(s.x, s.y) * k, Vector2(s.vx, s.vy), k)
+		else:
+			_star(c, o + Vector2(s.x, s.y) * k, k, s.mine)
 	if engine.hurt_t <= 0.0 or fmod(anim_t, 0.16) < 0.08:
 		var sq := Vector2(1.0, 1.0)
 		if land_t > 0.0:
@@ -1334,9 +1391,10 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			# Owner artwork 2026-11-19 (games/ink_ninja/art, colours muted); the drawn versions
 			# stay as the fallback when a picture is missing.
 			"komainu":
-				# Owner 2026-11-20: the pair stands apart, not shoulder to shoulder.
+				# Owner 2026-11-20: the pair stands apart, not shoulder to shoulder; two painted pairs (st.art).
 				var gap: float = 230.0 + (st.seed % 3) * 45.0
-				if not (_prop(c, o, "komainu_l", st.x - gap, 230.0, k, false, st.seed) and _prop(c, o, "komainu_r", st.x + gap, 230.0, k, false, st.seed + 7)):
+				var pair: Array = st.get("art", ["komainu_l", "komainu_r"])
+				if not (_prop(c, o, pair[0], st.x - gap, 230.0, k, false, st.seed) and _prop(c, o, pair[1], st.x + gap, 230.0, k, false, st.seed + 7)):
 					scn.komainu(c, X - 100.0 * k, Y, k, 1)
 					scn.komainu(c, X + 100.0 * k, Y, k, -1)
 			"dragon":
@@ -1355,16 +1413,29 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			"gate":
 				_prop(c, o, "gate", st.x, 330.0, k, false, st.seed)
 			"nio":
-				_prop(c, o, "nio", st.x, 380.0, k, st.seed % 2 == 1, st.seed)
+				_prop(c, o, _art1(st, "nio"), st.x, 380.0, k, st.seed % 2 == 1, st.seed)
+			# Owner artwork 2026-11-20 (artwork/2): lions on rocks, a bonsai table, three more dragons.
+			"lion":
+				_prop(c, o, _art1(st, "lion_a"), st.x, 300.0, k, st.seed % 2 == 1, st.seed)
+			"bonsai":
+				_prop(c, o, "bonsai", st.x, 230.0, k, st.seed % 2 == 1, st.seed)
+			"dragon2":
+				var dn := _art1(st, "dragon_rock")
+				_prop(c, o, dn, st.x, {"dragon_rock": 380.0, "dragon_coil": 420.0, "dragon_snake": 270.0}.get(dn, 340.0), k, st.seed % 2 == 1, st.seed)
 			"ruin_house":
 				_prop(c, o, "ruin_house", st.x, 260.0, k, st.seed % 2 == 1, st.seed)
 			"ruin_stones":
 				_prop(c, o, "ruin_stones", st.x, 240.0, k, false, st.seed)
 			"warriors":
 				# Owner 2026-11-20: art/warrior.png when added (a row of three), else the owner's nio picture.
+				#if _art_ok("warrior"):
+				#	for j in 3:
+				#		_prop(c, o, "warrior", st.x + (j - 1) * 120.0, 300.0 - j % 2 * 20.0, k, j == 2, st.seed + j)
+				# Owner art 2026-11-20: three different warriors (front, side, other side) in a row.
 				if _art_ok("warrior"):
-					for j in 3:
-						_prop(c, o, "warrior", st.x + (j - 1) * 120.0, 300.0 - j % 2 * 20.0, k, j == 2, st.seed + j)
+					var ws: Array = st.get("art", ["warrior", "warrior", "warrior"])
+					for j in ws.size():
+						_prop(c, o, ws[j], st.x + (j - 1) * 130.0, 300.0 - j % 2 * 20.0, k, false, st.seed + j)
 				elif not _prop(c, o, "nio", st.x, 380.0, k, st.seed % 2 == 1, st.seed):
 					scn.warriors(c, X, Y, k, st.seed, st.ruin)
 			"ruin_arch":
@@ -1373,6 +1444,11 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 				scn.ruin_wall(c, X, Y, st.w, k, st.seed)
 	if engine.boss_stage():
 		_boss_hall(c, o, sz, k)
+
+## The picture this statue was given by the engine (st.art), else `fallback`.
+func _art1(st: Dictionary, fallback: String) -> String:
+	var a: Array = st.get("art", [])
+	return str(a[0]) if not a.is_empty() and str(a[0]) != "" else fallback
 
 ## True when picture `name` exists in games/ink_ninja/art.
 func _art_ok(name: String) -> bool:
@@ -1980,8 +2056,14 @@ func _katana(c: CanvasItem, hand: Vector2, tip: Vector2, k: float, torch: bool =
 	if torch and engine.night:
 		_torch(c, hand, tip, k)
 		return
+	if engine.blade() > 0:
+		_blade_trail(c, hand, tip, k)
 	c.draw_line(hand, tip, pal.ink, 4.0 * k)
-	if engine.silver():   # owner 2026-11-20: the shiny silver sword, with a travelling glint
+	if engine.gold():   # owner 2026-11-20: Hard mode's golden sword (third boss), warm glint
+		c.draw_line(hand.lerp(tip, 0.12), tip, Color(1.0, 0.8, 0.3), 2.8 * k)
+		var gg: Vector2 = hand.lerp(tip, 0.2 + 0.75 * fposmod(anim_t * 0.6, 1.0))
+		c.draw_texture_rect(disc, Rect2(gg - Vector2(5, 5) * k, Vector2(10, 10) * k), false, Color(1, 0.95, 0.7, 0.95))
+	elif engine.silver():   # owner 2026-11-20: the shiny silver sword, with a travelling glint
 		c.draw_line(hand.lerp(tip, 0.12), tip, Color(0.86, 0.9, 0.96), 2.6 * k)
 		var gl: Vector2 = hand.lerp(tip, 0.2 + 0.75 * fposmod(anim_t * 0.6, 1.0))
 		c.draw_texture_rect(disc, Rect2(gl - Vector2(5, 5) * k, Vector2(10, 10) * k), false, Color(1, 1, 1, 0.9))
@@ -1993,6 +2075,7 @@ func _katana(c: CanvasItem, hand: Vector2, tip: Vector2, k: float, torch: bool =
 ## The hero: brush-stroke ninja, long headband tails, katana held ready; a slash leaves a
 ## sweeping ink crescent (owner's references).
 func _ninja(c: CanvasItem, feet: Vector2, k: float) -> void:
+	hero_feet = feet
 	var f: int = engine.facing
 	var ink: Color = pal.ink
 	var running: bool = engine.on_ground and absf(engine.vx) > 40.0
@@ -2098,6 +2181,10 @@ func _figure(c: CanvasItem, feet: Vector2, k: float, f: int, kind: String, flash
 const SHU_RED := Color("a3201a")
 
 func _boss_art(c: CanvasItem, feet: Vector2, k: float, b: Dictionary, tele: bool) -> void:
+	if _draw_pose(c, feet, k, engine.act(), _boss_pose(b), b.face, Color(1.0, 0.62, 0.55) if b.hit > 0.0 else Color.WHITE):
+		if tele:
+			c.draw_string(ThemeDB.fallback_font, feet + Vector2(-8, -BOSS_H - 40) * k, "!", HORIZONTAL_ALIGNMENT_LEFT, -1, int(42 * k), pal.ink)
+		return
 	var act: int = engine.act()
 	var f: int = b.face
 	var flash: bool = b.hit > 0.0
@@ -2714,3 +2801,149 @@ func _auto_revive() -> bool:
 	if home:
 		home.refresh_helps()
 	return true
+
+# ---------- painted bosses, Hard colour, sword trail (owner 2026-11-20) ----------
+
+## The pose for the boss's move: wind-up (the telegraph), strike, in the air, casting, hit.
+func _boss_pose(b: Dictionary) -> String:
+	if b.hit > 0.0:
+		return "hit"
+	match b.phase:
+		"charge":
+			return "wind" if b.t > 0.0 else "strike"
+		"leap":
+			return "wind" if b.t > 0.0 and b.y >= Engine_.GROUND - 2.0 else "air"
+		"fan":
+			return "cast"
+	if boss_hold_t > 0.0:
+		return boss_hold
+	return "idle"
+
+## Draws pose `pose` of act `act`'s boss standing on `feet`. Hard mode uses the colour
+## version when there is one. False when the picture is missing (the drawn boss is used).
+func _draw_pose(c: CanvasItem, feet: Vector2, k: float, act: int, pose: String, face: int, mod: Color) -> bool:
+	var id: String = BOSS_IDS[clampi(act, 1, 6) - 1]
+	var d: Dictionary = Poses.POSES.get(id, {})
+	if not d.has(pose):
+		return false
+	var e: Array = d[pose]
+	var hard: bool = engine.diff == 2 and bool(e[3])
+	var key := "%s_%s%s" % [id, pose, "_hard" if hard else ""]
+	if not boss_tex.has(key):
+		var path := "res://games/ink_ninja/art/boss/%s.png" % key
+		boss_tex[key] = load(path) if ResourceLoader.exists(path) else null
+	var t: Texture2D = boss_tex[key]
+	if t == null:
+		return false
+	var s: float = BOSS_H / Poses.FIG_PX * k
+	var ax: float = e[0]
+	var ay: float = e[1]
+	if hard and e.size() > 4:
+		ax = e[4]   # the owner's own colour picture: its own feet point
+		ay = e[5]
+	var bob := 1.0 + (0.015 * sin(anim_t * 2.6) if pose == "idle" else 0.0)
+	var sz := Vector2(t.get_width() * s, t.get_height() * s * bob)
+	var r := Rect2(feet - Vector2(ax * s, ay * s * bob), sz)
+	if face != int(e[2]):
+		r.position.x = feet.x + ax * s
+		r.size.x = -sz.x
+	# A soft paper halo behind the body, and the picture a shade darker, so the boss reads
+	# through the mist and against the pagoda.
+	var hw := BOSS_H * 0.75 * k
+	c.draw_texture_rect(disc, Rect2(feet + Vector2(-hw, -BOSS_H * 1.15 * k), Vector2(hw * 2.0, BOSS_H * 1.25 * k)), false, Color(pal.paper, 0.35 * mod.a))
+	c.draw_texture_rect(t, r, false, Color(mod.r * 0.82, mod.g * 0.82, mod.b * 0.82, mod.a))
+	return true
+
+func _boss_fx_tick(delta: float) -> void:
+	boss_hold_t = maxf(0.0, boss_hold_t - delta)
+	if not corpse.is_empty():
+		corpse.t += delta
+	for r in rainbow:
+		r[0] += r[1] * delta
+		r[1] *= maxf(0.0, 1.0 - 1.8 * delta)
+		r[2] -= delta
+	rainbow = rainbow.filter(_alive)
+	for bt in blade_trail:
+		bt[2] += delta
+	blade_trail = blade_trail.filter(_trail_alive)
+	var b: Dictionary = engine.boss
+	if b.is_empty() or b.hp <= 0:
+		return
+	var third := clampi(int(ceil(float(b.hp) / float(b.max) * 3.0)), 0, 3)
+	if third < boss_third:
+		boss_hold = "stagger"
+		boss_hold_t = 0.7
+	boss_third = third
+	if engine.diff == 2 and rainbow.size() < 240:
+		# Hard: colour wisps always rise round the boss; a charge leaves a stream behind it.
+		var charging: bool = b.phase == "charge" and b.t <= 0.0
+		for i in (3 if charging else 1):
+			_rainbow_puff(Vector2(b.x + randf_range(-70, 70), b.y - randf_range(0, 150)),
+				Vector2(-b.vx * 0.3 + randf_range(-40, 40), randf_range(-90, -20)), randf_range(0.6, 1.2), randf_range(14, 30))
+
+func _alive(r: Array) -> bool:
+	return r[2] > 0.0
+
+func _trail_alive(t: Array) -> bool:
+	return t[2] < TRAIL_T
+
+func _rainbow_puff(p: Vector2, v: Vector2, life: float, size: float) -> void:
+	rainbow.append([p, v, life, life, fposmod(anim_t * 0.35 + randf() * 0.35, 1.0), size])
+
+## Hard mode: each boss move bursts in vivid colour (owner 2026-11-20, his 5hard / 6hard pictures).
+func _hard_fx(e: String) -> void:
+	var b: Dictionary = engine.boss
+	match e:
+		"bosshit":
+			for i in 10:
+				_rainbow_puff(Vector2(b.x, b.y - 80.0), Vector2.RIGHT.rotated(randf() * TAU) * randf_range(120, 380), randf_range(0.3, 0.6), randf_range(8, 16))
+		"bossfan":
+			for i in 26:
+				_rainbow_puff(Vector2(b.x + b.face * 40.0, b.y - 80.0), Vector2(b.face * randf_range(60, 420), randf_range(-260, 160)), randf_range(0.5, 1.0), randf_range(12, 26))
+		"bossland":
+			for i in 40:
+				var sd := -1.0 if i % 2 == 0 else 1.0
+				_rainbow_puff(Vector2(b.x, b.y - 8.0), Vector2(sd * randf_range(150, 640), randf_range(-140, -10)), randf_range(0.5, 1.0), randf_range(14, 30))
+		"bosskill":
+			for i in 90:
+				_rainbow_puff(Vector2(b.x + randf_range(-40, 40), b.y - randf_range(20, 140)), Vector2.RIGHT.rotated(randf() * TAU) * randf_range(80, 520), randf_range(0.8, 1.8), randf_range(14, 34))
+
+func _draw_rainbow(c: CanvasItem, o: Vector2, k: float) -> void:
+	for r in rainbow:
+		var t: float = 1.0 - r[2] / r[3]
+		var rad: float = r[5] * (0.6 + t * 1.1) * k
+		var col := Color.from_hsv(fposmod(r[4] + t * 0.15, 1.0), 0.9, 1.0, 0.8 * (1.0 - t))
+		c.draw_texture_rect(disc, Rect2(o + r[0] * k - Vector2(rad, rad), Vector2(rad, rad) * 2.0), false, col)
+
+## Hard mode boss shot: a glowing colour orb with a short tail.
+func _rainbow_shot(c: CanvasItem, p: Vector2, v: Vector2, k: float) -> void:
+	var dir := v.normalized()
+	var hue := fposmod(anim_t * 1.2 + p.x * 0.002, 1.0)
+	for i in range(4, 0, -1):
+		var q := p - dir * i * 12.0 * k
+		var rr := (14.0 - i * 2.0) * k
+		c.draw_texture_rect(disc, Rect2(q - Vector2(rr, rr), Vector2(rr, rr) * 2.0), false, Color.from_hsv(fposmod(hue + i * 0.12, 1.0), 0.95, 1.0, 0.5 - i * 0.08))
+	c.draw_texture_rect(disc, Rect2(p - Vector2(16, 16) * k, Vector2(32, 32) * k), false, Color.from_hsv(hue, 0.9, 1.0, 0.95))
+	c.draw_texture_rect(disc, Rect2(p - Vector2(6, 6) * k, Vector2(12, 12) * k), false, Color(1, 1, 1, 0.95))
+
+## Owner 2026-11-20: the silver and golden swords leave a soft trail. Kept relative to the
+## hero's feet (it follows the swing, not the run): a few faint blade sweeps and a glowing
+## tip line, all plain lines (cheap).
+func _blade_trail(c: CanvasItem, hand: Vector2, tip: Vector2, k: float) -> void:
+	if k <= 0.0:
+		return
+	if blade_trail.is_empty() or blade_trail[-1][2] > 0.0:
+		blade_trail.append([(hand - hero_feet) / k, (tip - hero_feet) / k, 0.0])
+	var col := Color(1.0, 0.8, 0.32) if engine.gold() else Color(0.85, 0.92, 1.0)
+	for i in range(1, blade_trail.size()):
+		var a0: Array = blade_trail[i - 1]
+		var a1: Array = blade_trail[i]
+		var fade: float = 1.0 - a1[2] / TRAIL_T
+		var t0: Vector2 = hero_feet + a0[1] * k
+		var t1: Vector2 = hero_feet + a1[1] * k
+		if t0.distance_to(t1) < 1.5 * k:
+			continue
+		var m1: Vector2 = hero_feet + (a1[0] as Vector2).lerp(a1[1], 0.45) * k
+		c.draw_line(m1, t1, Color(col, 0.16 * fade), 6.0 * k)
+		c.draw_line(t0, t1, Color(col, 0.22 * fade), 12.0 * k)
+		c.draw_line(t0, t1, Color(col, 0.55 * fade), 4.0 * k)

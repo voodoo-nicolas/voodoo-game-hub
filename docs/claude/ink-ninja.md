@@ -70,3 +70,30 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
 - Night lanterns keep 450 units from checkpoint lanterns; decor stone lanterns are skipped near checkpoints (`_near_checkpoint`).
 - **Silver sword** from stage 21 (after the act-5 boss): `engine.sword()` x1.25 (`SILVER_MULT`), silver blade with a glint, tip "silver".
 - **Stars on bosses** do 0.67 (`STAR_BOSS`); on foes still 1 (regular foes have 1 hp). Hp values are floats now.
+
+## Round 16 (owner, 2026-11-20)
+- **Art tool** `tools/ink_ninja_art.py` cuts `D:/Dev/Minigame Art/ink ninja/artwork/2` (paper -> alpha by un-blending
+  from the paper colour). Statues -> `games/ink_ninja/art/` (akita, bonsai, dragon_rock / _coil / _snake, komainu2_l/_r,
+  lion_a/_b, nio2, warrior / _b / _c; saturation 45 %). Boss poses -> `games/ink_ninja/art/boss/<boss>_<pose>.png`
+  (8 poses: idle, wind, strike, cast, air, hit, stagger, dead; saturation 60 %; imported lossy WebP 0.82) and
+  `<boss>_<pose>_hard.png`. Feet anchors / facing in the generated `ink_ninja_poses.gd`. The pose table (which picture
+  is which pose, body boxes) is at the top of the tool; re-run it after new pictures, then `godot --import`.
+- **Painted bosses** (`_draw_pose`, `_boss_pose` in the game): wind-up = the telegraph, strike = charge, air = leap,
+  cast = fan (held 0.45 s after the shots, engine event `bossfan`), hit = flinch, stagger for 0.7 s each time a third
+  of the health goes, dead = the body lies there and fades (`corpse`). Drawn `BOSS_H` 175 tall; `boss_box` grew to
+  76 x 130 to match. The drawn bosses stay as the fallback.
+- **Statues**: `STRUCT_ART` lists the pictures per kind; `_pick_art` picks a variant and never puts more than
+  `MAX_SAME` (4) of one picture in a stage (tested). New kinds `lion`, `bonsai`, `dragon2` (no solid; the old `dragon`
+  keeps its climbable plinth). Warriors stand as three different pictures.
+- **Hard** opens once the story is beaten on Normal (or Hard): `user://ink_ninja_unlock.json`; the Landing shows
+  "Hard 🔒" and a dialog until then. A Hard run already saved still resumes. Hard bosses use the `_hard` pictures
+  (effects repainted in rainbow colour by the tool; the owner's 5hard / 6hard are the Calligrapher's and Lord Shu's
+  cast poses) plus colour wisps, bursts on hit / fan / landing / defeat (`_hard_fx`) and colour orbs for their shots.
+- **Swords**: silver from stage 21 (after boss 5) on Easy/Normal; **gold** in Hard from stage 13 (after boss 3),
+  x1.33 (`GOLD_FROM`, `GOLD_MULT`, `engine.blade()`), tip "gold". Both leave a soft trail (`_blade_trail`, kept
+  relative to the hero's feet, `TRAIL_T` 0.16 s, plain lines).
+- Not built: the intro video (still mp4 only); per-boss move sets are still the four old ones; the rainbow colouring
+  also tints weapons that stick out of the body box (spear and naginata tips).
+- **Swing buffer** (owner: "A sticky / not responsive"): a Swing pressed while a cut is still playing (`SLASH_T`
+  0.22 s) used to be dropped; now it is kept `SLASH_BUFFER` 0.25 s and fires when the cut ends (tested). The shared pad
+  already lets go of every button when it hides (cutscenes) or the tree pauses.

@@ -49,6 +49,10 @@ const NIGHT_STAGES := [17, 18, 19]
 # silver sword that cuts 25 % harder. Read from the stage, so nothing new is saved.
 const SILVER_FROM := 21
 const SILVER_MULT := 1.25
+# Owner 2026-11-20: in Hard mode the third boss (stage 12) gives a golden sword instead (stage 13 on);
+# it outranks the silver one, so Hard never shows the silver.
+const GOLD_FROM := 13
+const GOLD_MULT := 1.33
 # Owner 2026-11-20: a star does a third less to a boss (it still kills a 1-hp foe outright).
 const STAR_BOSS := 0.67
 const RUINS_STAGES := [10, 19]      # overgrown ruins: statues, broken walls
@@ -95,6 +99,10 @@ var thrust_hit := {}   # foes already run through by this thrust
 var air_dir := 0        # this slash: 0 forward, 1 up (rising), 2 down (falling)
 var swing := 0          # which cut of the 3-cut combo this slash is: 0 chop down, 1 rising diagonal, 2 sideways sweep (owner 2026-11-15)
 var swing_t := 0.0      # the next slash within this time continues the combo
+# Owner 2026-11-20 ("A feels sticky / not responsive"): a Swing pressed while the last cut is still
+# playing used to be thrown away; it is now kept this long and fires the moment the cut ends.
+const SLASH_BUFFER := 0.25
+var slash_buf := 0.0
 var bombs := 2          # smoke bombs: their own button (owner 2026-11-16: crouch + star was wrong)
 var drops: Array = []   # pickups: {x, y, vy, kind "star"|"heart"|"bomb", age}
 var smokes: Array = []  # smoke clouds: {x, y, t}; foes inside are blinded
@@ -238,7 +246,10 @@ func build_stage() -> void:
 			var hw := maxf(rng.randf_range(220.0, 420.0), depth * 3.4)   # wide, flat-bottomed lakes with soft banks
 			if x + hw > length - END_CLEAR:
 				break
-			if _over_pit(x - hw - 80.0) or _over_pit(x + hw + 80.0) or _over_pit(x):
+			#if _over_pit(x - hw - 80.0) or _over_pit(x + hw + 80.0) or _over_pit(x):
+			# Owner art 2026-11-20: a narrow statue (bonsai) could sit between those three checks
+			# and end up under water: the whole span is checked now.
+			if _zone_busy(x - hw - 80.0, x + hw + 80.0):
 				continue   # never on top of a deep lake or a structure
 			_carve(x, hw, depth, rng.randf() < 0.8)
 			x += hw * 1.2
@@ -319,6 +330,7 @@ func build_stage() -> void:
 	wall = 0
 	dash_t = 0.0
 	slash_t = 0.0
+	slash_buf = 0.0
 	hurt_t = 0.0
 	hits_taken = 0
 
@@ -387,7 +399,40 @@ const STRUCT_W := {"house": 280.0, "shrine": 260.0, "pagoda": 400.0, "akita": 24
 	"warriors": 600.0, "ruin_wall": 460.0, "ruin_arch": 360.0, "ruin_pagoda": 400.0,
 	# owner artwork 2026-11-19 (games/ink_ninja/art): painted shrines and statues
 	"kitsune": 200.0, "jizo": 320.0, "lantern": 160.0, "bell": 360.0, "gate": 540.0, "nio": 260.0,
-	"ruin_house": 420.0, "ruin_stones": 400.0}
+	"ruin_house": 420.0, "ruin_stones": 400.0,
+	# owner artwork 2026-11-20 (artwork/2): lions, bonsai, three more dragons
+	"lion": 260.0, "bonsai": 240.0, "dragon2": 320.0}
+
+## Owner 2026-11-20: the pictures each kind can use (one variant is picked per statue), and
+## never more than MAX_SAME of the exact same picture in one stage.
+const MAX_SAME := 4
+const STRUCT_ART := {
+	"akita": [["akita"]], "komainu": [["komainu_l", "komainu_r"], ["komainu2_l", "komainu2_r"]],
+	"dragon": [["dragon"]], "dragon2": [["dragon_rock"], ["dragon_coil"], ["dragon_snake"]],
+	"lion": [["lion_a"], ["lion_b"]], "bonsai": [["bonsai"]], "kitsune": [["kitsune"]], "jizo": [["jizo"]],
+	"lantern": [["lantern"]], "bell": [["bell"]], "gate": [["gate"]], "nio": [["nio"], ["nio2"]],
+	"ruin_house": [["ruin_house"]], "ruin_stones": [["ruin_stones"]], "shrine": [["shrine"]],
+	"warriors": [["warrior", "warrior_b", "warrior_c"]],
+}
+
+## A picture variant for `kind` that keeps every picture under MAX_SAME this stage.
+## [""] for kinds drawn without pictures (houses, pagodas, ruin walls); [] = none left.
+func _pick_art(kind: String, r: RandomNumberGenerator, used: Dictionary) -> Array:
+	if not STRUCT_ART.has(kind):
+		return [""]
+	var opts: Array = STRUCT_ART[kind]
+	var start := r.randi() % opts.size()
+	for i in opts.size():
+		var o: Array = opts[(start + i) % opts.size()]
+		var ok := true
+		for n in o:
+			if int(used.get(n, 0)) >= MAX_SAME:
+				ok = false
+		if ok:
+			for n in o:
+				used[n] = int(used.get(n, 0)) + 1
+			return o
+	return []
 
 func _plan_structs() -> void:
 	var r := RandomNumberGenerator.new()
@@ -396,8 +441,12 @@ func _plan_structs() -> void:
 	var span := 3000.0
 	#var pool: Array = ["ruin_wall", "ruin_arch", "warriors", "dragon", "ruin_pagoda", "akita", "komainu", "warriors", "ruin_wall"] if ruins \
 	#	else ["house", "house", "shrine", "pagoda", "akita", "komainu", "dragon", "house", "shrine", "pagoda"]
-	var pool: Array = ["ruin_wall", "ruin_arch", "warriors", "dragon", "ruin_pagoda", "akita", "komainu", "ruin_house", "ruin_stones", "nio", "ruin_wall"] if ruins \
-		else ["house", "house", "shrine", "pagoda", "akita", "komainu", "dragon", "house", "shrine", "pagoda", "kitsune", "jizo", "lantern", "bell", "gate"]
+	#var pool: Array = ["ruin_wall", "ruin_arch", "warriors", "dragon", "ruin_pagoda", "akita", "komainu", "ruin_house", "ruin_stones", "nio", "ruin_wall"] if ruins \
+	#	else ["house", "house", "shrine", "pagoda", "akita", "komainu", "dragon", "house", "shrine", "pagoda", "kitsune", "jizo", "lantern", "bell", "gate"]
+	# Owner 2026-11-20: the new statue pictures (lions, bonsai, three more dragons) join the pools.
+	var pool: Array = ["ruin_wall", "ruin_arch", "warriors", "dragon", "ruin_pagoda", "akita", "komainu", "ruin_house", "ruin_stones", "nio", "ruin_wall", "lion", "dragon2", "warriors"] if ruins \
+		else ["house", "house", "shrine", "pagoda", "akita", "komainu", "dragon", "house", "shrine", "pagoda", "kitsune", "jizo", "lantern", "bell", "gate", "lion", "bonsai", "dragon2", "nio"]
+	var used := {}   # picture -> how many stand in this stage (MAX_SAME)
 	while x < length - END_CLEAR - 400.0:
 		x += r.randf_range(span * 0.7, span * 1.3)
 		var kind: String = pool[r.randi() % pool.size()]
@@ -408,10 +457,14 @@ func _plan_structs() -> void:
 		var xb := x + w * 0.5 + 90.0
 		if xb + 100.0 > length - END_CLEAR or _zone_busy(xa - 120.0, xb + 120.0):
 			continue
+		var art := _pick_art(kind, r, used)
+		if art.is_empty():
+			continue   # every variant of this statue already stands MAX_SAME times here
 		var gy := ground_y(x)
 		_flatten(xa, xb, gy, 170.0)
 		reserved.append([xa - 40.0, xb + 40.0])
 		_build_struct(kind, x, gy, w, r)
+		structs[-1]["art"] = art
 
 ## Near where a checkpoint lantern goes (length / 5 steps; it may shift a little off water).
 func _near_checkpoint(x: float, d: float) -> bool:
@@ -506,13 +559,22 @@ func _plan_traps() -> void:
 			foes.append({"kind": "blade", "x": fx, "y": ground_y(fx), "vx": 0.0, "vy": 0.0, "hp": 1, "face": -1,
 				"t": 0.0, "atk": 0.0, "hit": 0.0, "id": 1000 + i * 10 + j})
 
-## The silver sword (stage 21 on).
+## The sword this stage: 0 the plain katana, 1 silver (stage 21 on), 2 gold (Hard, stage 13 on).
+func blade() -> int:
+	if diff == 2 and stage >= GOLD_FROM:
+		return 2
+	return 1 if stage >= SILVER_FROM else 0
+
+## The silver sword (stage 21 on, not in Hard: the gold one outranks it).
 func silver() -> bool:
-	return stage >= SILVER_FROM
+	return blade() == 1
+
+func gold() -> bool:
+	return blade() == 2
 
 ## Sword damage after the upgrade.
 func sword(dmg: float) -> float:
-	return dmg * (SILVER_MULT if silver() else 1.0)
+	return dmg * [1.0, SILVER_MULT, GOLD_MULT][blade()]
 
 ## 0 = day, 1 = sunset, 2 = dusk, 3 = pitch black (the order in NIGHT_STAGES).
 func night_level() -> int:
@@ -637,7 +699,11 @@ func _tutorial() -> void:
 		4:
 			tips = [[0.0, 900.0, "thrust"]]
 		SILVER_FROM:
-			tips = [[0.0, 1400.0, "silver"]]
+			if silver():
+				tips = [[0.0, 1400.0, "silver"]]
+		GOLD_FROM:
+			if gold():
+				tips = [[0.0, 1400.0, "gold"]]
 	if night:
 		tips.append([0.0, 1400.0, "torch"])
 
@@ -839,7 +905,12 @@ func _player(dt: float, move: float, jump: bool, slash: bool, throw: bool, dash:
 			vy = -JUMP_V * 0.85
 			jumps = 2
 			events.append("jump")
-	if slash and slash_t <= 0.0:
+	#if slash and slash_t <= 0.0:
+	if slash:
+		slash_buf = SLASH_BUFFER
+	slash_buf = maxf(0.0, slash_buf - dt)
+	if slash_buf > 0.0 and slash_t <= 0.0:
+		slash_buf = 0.0
 		slash_t = SLASH_T
 		slash_hit = {}
 		jab = crouch
@@ -1017,7 +1088,7 @@ func _foe_box(f: Dictionary) -> Rect2:
 	return Rect2(f.x - w / 2, f.y - h, w, h)
 
 func boss_box() -> Rect2:
-	return Rect2(boss.x - 34, boss.y - 110, 68, 110)
+	return Rect2(boss.x - 38, boss.y - 130, 76, 130)   # owner art 2026-11-20: the painted bosses stand taller (was 68 x 110)
 
 func _hit_foe(f: Dictionary, dmg: float, dir: int, by_star: bool = false) -> void:
 	f.hp -= dmg
@@ -1314,7 +1385,8 @@ func _boss(dt: float) -> void:
 				for i in n:
 					var a := -0.5 + i * (0.6 / maxf(1, n - 1))
 					var v := Vector2(boss.face * 480.0 * p, 0).rotated(a * boss.face)
-					shots.append({"x": boss.x, "y": boss.y - 70, "vx": v.x, "vy": v.y, "mine": false, "life": 2.5})
+					shots.append({"x": boss.x, "y": boss.y - 70, "vx": v.x, "vy": v.y, "mine": false, "life": 2.5, "boss": true})
+				events.append("bossfan")
 				events.append("foethrow")
 				_boss_rest()
 	boss.vy += GRAV * dt
@@ -1323,6 +1395,7 @@ func _boss(dt: float) -> void:
 	if boss.y >= GROUND:
 		if boss.vy > 300:
 			events.append("slam")
+			events.append("bossland")
 			if on_ground and absf(dx) < (150 if act() == 1 else 220):
 				_hurt(1, false, boss.x)
 			if boss.phase == "leap":

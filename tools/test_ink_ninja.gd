@@ -392,5 +392,61 @@ func _init() -> void:
 	sx1.vy = 0.0
 	var ev3: Array = sx1.step(1.0 / 60.0, 0.0, false, false, false, false)
 	check("secret" in ev3 and sx1.secrets_found == 1, "collecting a secret")
+	# Owner 2026-11-20: never more than 4 of the exact same statue picture in a stage; the
+	# new pictures (lions, bonsai, dragons, warriors) are used somewhere.
+	var seen := {}
+	var worst := 0
+	for st2 in range(1, E.STAGES + 1):
+		var ea = E.new()
+		ea.reset(1)
+		ea.stage = st2
+		ea.build_stage()
+		var cnt := {}
+		for s2 in ea.structs:
+			for n in s2.get("art", []):
+				if str(n) != "":
+					cnt[n] = int(cnt.get(n, 0)) + 1
+					seen[n] = true
+		for n in cnt:
+			worst = maxi(worst, cnt[n])
+	check(worst <= E.MAX_SAME, "at most %d of one statue per stage (worst %d)" % [E.MAX_SAME, worst])
+	for n in ["lion_a", "lion_b", "bonsai", "dragon_rock", "dragon_coil", "dragon_snake", "komainu2_l", "nio2", "warrior_b", "akita"]:
+		check(seen.has(n), "statue %s stands somewhere" % n)
+		check(ResourceLoader.exists("res://games/ink_ninja/art/%s.png" % n), "picture %s exists" % n)
+	# Owner 2026-11-20 "A not responsive": a Swing pressed during a cut is kept and fires when it ends.
+	var sb = E.new()
+	sb.reset(1)
+	sb.stage = 2
+	sb.build_stage()
+	sb.foes.clear()
+	sb.step(1.0 / 60.0, 0.0, false, true, false, false)
+	var cuts := 1
+	for i in 40:
+		var evs: Array = sb.step(1.0 / 60.0, 0.0, false, i == 8, false, false)
+		if "slash" in evs:
+			cuts += 1
+	check(cuts == 2, "a Swing tapped mid-cut is not lost (%d cuts)" % cuts)
+	# Swords: silver after boss 5 (stage 21) on Easy/Normal; Hard gets gold after boss 3 (stage 13).
+	var sw = E.new()
+	sw.reset(1)
+	sw.stage = 20
+	check(sw.blade() == 0, "normal stage 20: plain katana")
+	sw.stage = 21
+	check(sw.silver() and absf(sw.sword(1.0) - E.SILVER_MULT) < 0.001, "normal stage 21: silver")
+	sw.reset(2)
+	sw.stage = 12
+	check(sw.blade() == 0, "hard stage 12: plain katana")
+	sw.stage = 13
+	check(sw.gold() and not sw.silver() and absf(sw.sword(1.0) - E.GOLD_MULT) < 0.001, "hard stage 13: gold")
+	sw.stage = 24
+	check(sw.gold(), "hard keeps gold to the end")
+	# Every boss pose has its picture (and the hard colour version where the table says so).
+	const P = preload("res://scripts/games/ink_ninja/ink_ninja_poses.gd")
+	for bid in P.POSES:
+		for pose in ["idle", "wind", "strike", "cast", "air", "hit", "stagger", "dead"]:
+			check(P.POSES[bid].has(pose), "%s has a %s pose" % [bid, pose])
+			check(ResourceLoader.exists("res://games/ink_ninja/art/boss/%s_%s.png" % [bid, pose]), "%s_%s picture" % [bid, pose])
+			if P.POSES[bid].has(pose) and P.POSES[bid][pose][3]:
+				check(ResourceLoader.exists("res://games/ink_ninja/art/boss/%s_%s_hard.png" % [bid, pose]), "%s_%s hard picture" % [bid, pose])
 	print("ink_ninja: %s (%d failures)" % ["OK" if fails == 0 else "FAILED", fails])
 	quit(1 if fails else 0)
