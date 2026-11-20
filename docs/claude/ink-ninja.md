@@ -46,3 +46,15 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
   magatama (pagoda one sits on the top roof beside the spire).
 - **Less telling**: no "A secret!" / "You reached the top" text (sound + sparks only); the two secret badges say
   "Keep playing to find out." (`desc` in `ink_ninja_help.gd`).
+
+## Round 14 (owner, 2026-11-20)
+- **Phone zoom** (`_fit_field`): the field is scaled up to 1.4x as far as the screen still shows the whole
+  arena width (`VIEW_W`); the cut height comes mostly off the sky and follows the hero up. `dark` is a child of the field.
+- Pagodas a fainter brown; no red-tree hint text or "walk up" toast.
+- Owner art sits on the ground (`scenery._bottom_pad` drops the picture's empty bottom rows, sinks 10 px). Komainu pair
+  stands 230-320 apart (`STRUCT_W` 860). Decor lantern is 150 tall; checkpoint + night lanterns use the same picture
+  (grey when unlit, glow when lit; drawn lantern is the fallback).
+- `_prop`: each decor picture gets size 80-125 %, a contact shadow, a seed-picked mist veil, ground mist, and for a third
+  a pine trunk in front.
+- Pines: feathered dry-brush tiers (`_pine_span`), darker, plus a dark near row (`pines_near`).
+- Not built: the intro video `D:/Dev/hub/ink ninja final1.mp4` (95 MB mp4; Godot plays only Ogg Theora).

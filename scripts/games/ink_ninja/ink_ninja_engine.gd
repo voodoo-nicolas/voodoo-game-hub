@@ -374,7 +374,7 @@ const DRAGON_H := 470.0
 const DRAGON_PLINTH := Vector2(200.0, 78.0)
 const PAG_DH := 136.0
 const PAG_TAPER := 80.0
-const STRUCT_W := {"house": 280.0, "shrine": 260.0, "pagoda": 400.0, "akita": 240.0, "komainu": 360.0, "dragon": 320.0,
+const STRUCT_W := {"house": 280.0, "shrine": 260.0, "pagoda": 400.0, "akita": 240.0, "komainu": 860.0, "dragon": 320.0,
 	"warriors": 600.0, "ruin_wall": 460.0, "ruin_arch": 360.0, "ruin_pagoda": 400.0,
 	# owner artwork 2026-11-19 (games/ink_ninja/art): painted shrines and statues
 	"kitsune": 200.0, "jizo": 320.0, "lantern": 160.0, "bell": 360.0, "gate": 540.0, "nio": 260.0,

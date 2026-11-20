@@ -80,6 +80,7 @@ var stains: Array = []   # [world pos, size, alpha] ink left on the ground
 var disc: Texture2D
 var pines_far: Texture2D
 var pines_mid: Texture2D
+var pines_near: Texture2D
 var fog_tex: Texture2D
 var smoke: Array = []   # smoke puffs (_puff)
 var mist: Array = []    # drifting wisps: [x 0..1, world y, speed, width, phase]
@@ -143,6 +144,7 @@ func _ready() -> void:
 	goals = Goals.new()
 	pines_far = _make_pines(11, 34, 140.0, 260.0)
 	pines_mid = _make_pines(23, 22, 200.0, 340.0)
+	pines_near = _make_pines(37, 6, 280.0, 360.0)   # owner 2026-11-20: a dark near row
 	fog_tex = _make_fog()
 	mount_tex = _make_mountains()
 	for i in 6:
@@ -228,7 +230,7 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
 	field = Control.new()
-	field.set_anchors_preset(Control.PRESET_FULL_RECT)
+	field.set_anchors_preset(Control.PRESET_FULL_RECT)   # until _fit_field takes over (owner zoom 2026-11-20)
 	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	field.clip_contents = true
 	field.draw.connect(_draw_field)
@@ -239,7 +241,7 @@ func _build_ui() -> void:
 	var dmat := ShaderMaterial.new()
 	dmat.shader = DARK_SHADER
 	dark.material = dmat
-	add_child(dark)
+	field.add_child(dark)   # owner 2026-11-20: rides the field's zoom so the lantern holes stay put
 	hud_layer = Control.new()
 	hud_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -423,13 +425,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if started and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and after == 0.0:
 		var kk: float = field.size.y / Engine_.H
-		var wx: float = event.position.x / kk + engine.cam_x()
+		var wx: float = (event.position.x - field.position.x) / field.scale.x / kk + engine.cam_x()
 		for t in engine.trees:
 			if t.blood and absf(t.x - wx) < 110.0:
 				if absf(t.x - engine.px) < 260.0:
 					_carve_here()
 				else:
-					_toast(tr("Walk up to the red tree first"))
+					pass   # owner 2026-11-20: no telling (was a "Walk up to the red tree first" toast)
 	if event is InputEventKey and not event.echo:
 		match event.keycode:
 			KEY_LEFT, KEY_A:
@@ -534,6 +536,7 @@ func _update_hud() -> void:
 
 func _process(delta: float) -> void:
 	anim_t += delta
+	_fit_field(delta)
 	var still: bool = engine.on_ground and absf(engine.vx) < 20.0 and not engine.crouch
 	var falling: bool = not engine.on_ground and engine.vy > 40.0
 	band_hang = move_toward(band_hang, 1.0 if still else 0.0, delta * 3.0)
@@ -914,10 +917,15 @@ func _draw_field() -> void:
 	# Misty pine forest (owner's references, 2026-11-14): far and mid pine layers fading into
 	# fog, tall dark trunks in front, each scrolling slower than the ground.
 	_draw_sky(c, sz, k, cam)
-	_pine_layer(c, pines_far, cam * 0.12, k, 440.0, pal.far)
-	_fog(c, k, 300.0, 470.0, 0.85)
-	_pine_layer(c, pines_mid, cam * 0.3, k, 540.0, pal.mid)
-	_fog(c, k, 420.0, 560.0, 0.7)
+	# Owner 2026-11-20: the pines a little darker, the nearer ones darkest (like his photo).
+	#_pine_layer(c, pines_far, cam * 0.12, k, 440.0, pal.far)
+	_pine_layer(c, pines_far, cam * 0.12, k, 440.0, Color(pal.far).lerp(pal.mid, 0.35))
+	_fog(c, k, 300.0, 470.0, 0.8)
+	#_pine_layer(c, pines_mid, cam * 0.3, k, 540.0, pal.mid)
+	_pine_layer(c, pines_mid, cam * 0.3, k, 540.0, Color(pal.mid).lerp(pal.near, 0.4))
+	_fog(c, k, 420.0, 560.0, 0.6)
+	_pine_layer(c, pines_near, cam * 0.45, k, 600.0, Color(pal.near).lerp(pal.shadow, 0.35))
+	_fog(c, k, 480.0, 600.0, 0.55)
 	_trunks(c, cam * 0.62, k)
 	_fog(c, k, 520.0, 600.0, 0.5)
 	var o := Vector2(-cam * k, 0) + sh
@@ -1035,6 +1043,31 @@ func _draw_field() -> void:
 	_draw_haze(c, o, sz, k)
 	_update_dark(sz, k, o)
 	hud_layer.queue_redraw()
+
+## Owner 2026-11-20: on a wide landscape phone the world looked tiny. The field is zoomed in
+## (up to 1.4x) as far as the screen width still shows the whole boss arena (VIEW_W); the
+## extra height is cut mostly from the sky and follows the hero up a pagoda.
+var view_y := 0.0
+func _fit_field(delta: float) -> void:
+	if field == null:
+		return
+	var vs := size
+	if vs.y < 1.0 or vs.x < 1.0:
+		return
+	var z := clampf(vs.x / vs.y * Engine_.H / Engine_.VIEW_W, 1.0, 1.4)
+	var extra := vs.y * (z - 1.0)
+	var k := vs.y / Engine_.H
+	var want := -extra * 0.75
+	want = maxf(want, vs.y * 0.2 - (engine.py - 70.0) * k * z)   # keep the hero's head in view
+	want = clampf(want, -extra, 0.0)
+	view_y = want if delta <= 0.0 or absf(view_y - want) > extra + 1.0 else lerpf(view_y, want, minf(1.0, delta * 4.0))
+	field.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	field.scale = Vector2(z, z)
+	field.size = Vector2(vs.x / z, vs.y)
+	field.position = Vector2(0.0, view_y)
+	if dark:
+		dark.position = Vector2.ZERO
+		dark.size = field.size
 
 func _draw_hud_layer() -> void:
 	var sz := hud_layer.size
@@ -1269,7 +1302,9 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			# Owner artwork 2026-11-19 (games/ink_ninja/art, colours muted); the drawn versions
 			# stay as the fallback when a picture is missing.
 			"komainu":
-				if not (scn.art(c, "komainu_l", X - 100.0 * k, Y, 230.0, k) and scn.art(c, "komainu_r", X + 100.0 * k, Y, 230.0, k)):
+				# Owner 2026-11-20: the pair stands apart, not shoulder to shoulder.
+				var gap: float = 230.0 + (st.seed % 3) * 45.0
+				if not (_prop(c, o, "komainu_l", st.x - gap, 230.0, k, false, st.seed) and _prop(c, o, "komainu_r", st.x + gap, 230.0, k, false, st.seed + 7)):
 					scn.komainu(c, X - 100.0 * k, Y, k, 1)
 					scn.komainu(c, X + 100.0 * k, Y, k, -1)
 			"dragon":
@@ -1277,21 +1312,22 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 				if not scn.art(c, "dragon", X + df * 21.0 * k, Y, Engine_.DRAGON_H, k, df < 0):
 					scn.dragon(c, X, Y, k, df)
 			"kitsune":
-				scn.art(c, "kitsune", X, Y, 290.0, k, st.seed % 2 == 1)
+				_prop(c, o, "kitsune", st.x, 290.0, k, st.seed % 2 == 1, st.seed)
 			"jizo":
-				scn.art(c, "jizo", X, Y, 170.0, k)
+				_prop(c, o, "jizo", st.x, 170.0, k, false, st.seed)
 			"lantern":
-				scn.art(c, "lantern", X, Y, 250.0, k)
+				#scn.art(c, "lantern", X, Y, 250.0, k)
+				_prop(c, o, "lantern", st.x, 150.0, k, false, st.seed)   # owner 2026-11-20: smaller
 			"bell":
-				scn.art(c, "bell", X, Y, 380.0, k)
+				_prop(c, o, "bell", st.x, 380.0, k, false, st.seed)
 			"gate":
-				scn.art(c, "gate", X, Y, 330.0, k)
+				_prop(c, o, "gate", st.x, 330.0, k, false, st.seed)
 			"nio":
-				scn.art(c, "nio", X, Y, 380.0, k, st.seed % 2 == 1)
+				_prop(c, o, "nio", st.x, 380.0, k, st.seed % 2 == 1, st.seed)
 			"ruin_house":
-				scn.art(c, "ruin_house", X, Y, 260.0, k, st.seed % 2 == 1)
+				_prop(c, o, "ruin_house", st.x, 260.0, k, st.seed % 2 == 1, st.seed)
 			"ruin_stones":
-				scn.art(c, "ruin_stones", X, Y, 240.0, k)
+				_prop(c, o, "ruin_stones", st.x, 240.0, k, false, st.seed)
 			"warriors":
 				scn.warriors(c, X, Y, k, st.seed, st.ruin)
 			"ruin_arch":
@@ -1300,6 +1336,33 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 				scn.ruin_wall(c, X, Y, st.w, k, st.seed)
 	if engine.boss_stage():
 		_boss_hall(c, o, sz, k)
+
+## Owner 2026-11-20: each statue looks its own: size 80-125 %, a soft contact shadow,
+## some deeper in the mist (a fog-coloured copy over it), some half behind a trunk.
+## `wx` is the world x; stands on the ground there. False when the picture is missing.
+func _prop(c: CanvasItem, o: Vector2, name: String, wx: float, h: float, k: float, flip: bool, seed_: int) -> bool:
+	var X: float = o.x + wx * k
+	var Y: float = o.y + (engine.ground_y(wx) + 3.0) * k
+	var r := absi(seed_ * 2654435761) % 1000
+	var sc := 0.8 + (r % 10) * 0.05
+	var hh := h * sc
+	var w := hh * 0.9 * k
+	c.draw_texture_rect(disc, Rect2(X - w * 0.6, Y - 12.0 * k, w * 1.2, 26.0 * k), false, Color(pal.shadow, 0.28))
+	if not scn.art(c, name, X, Y, hh, k, flip):
+		return false
+	var mist := float((r / 10) % 4) * 0.12   # 0, .12, .24, .36
+	if mist > 0.0:
+		scn.art(c, name, X, Y, hh, k, flip, Color(pal.fog, mist))
+	c.draw_texture_rect(fog_tex, Rect2(X - w * 0.7, Y - hh * k * 0.35, w * 1.4, hh * k * 0.35 + 6.0 * k), false, Color(pal.fog, 0.35))   # ground mist round its feet
+	if (r / 40) % 3 == 0:
+		# a pine trunk in front, part of it hidden
+		var tx := X + (float(r % 7) - 3.0) / 3.0 * w * 0.35
+		var tw := (12.0 + r % 9) * k
+		c.draw_line(Vector2(tx, Y + 8.0 * k), Vector2(tx + 6.0 * k, -10.0), pal.near, tw)
+		var by := Y - hh * k * (0.45 + (r % 5) * 0.08)
+		var sd := 1.0 if r % 2 == 0 else -1.0
+		c.draw_line(Vector2(tx, by), Vector2(tx + sd * 50.0 * k, by - 20.0 * k), pal.near, 3.0 * k)
+	return true
 
 ## Owner 2026-11-16: each boss waits inside a pagoda. It stands behind the arena.
 func _boss_hall(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
@@ -1633,6 +1696,16 @@ func _draw_haze(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 
 ## A stone lantern checkpoint: a warm glow once you have passed it.
 func _lantern(c: CanvasItem, base: Vector2, k: float, lit: bool) -> void:
+	# Owner 2026-11-20: checkpoint and night lanterns are the owner's stone lantern picture
+	# (small); the drawn one below stays as the fallback.
+	var lh := 118.0
+	if scn.art(c, "lantern", base.x, base.y, lh, k, false, Color.WHITE if lit else Color(0.62, 0.62, 0.66)):
+		var wy := base + Vector2(0, -lh * 0.62) * k   # the window
+		if lit:
+			var gl := 0.55 + 0.15 * sin(anim_t * 3.0)
+			c.draw_texture_rect(disc, Rect2(wy - Vector2(110, 110) * k, Vector2(220, 220) * k), false, Color(1.0, 0.72, 0.22, gl * 0.28))
+			c.draw_texture_rect(disc, Rect2(wy - Vector2(40, 40) * k, Vector2(80, 80) * k), false, Color(1.0, 0.72, 0.22, gl * 0.6))
+		return
 	var col: Color = pal.near
 	c.draw_rect(Rect2(base + Vector2(-14, -10) * k, Vector2(28, 10) * k), col)
 	c.draw_rect(Rect2(base + Vector2(-5, -46) * k, Vector2(10, 36) * k), col)
@@ -1660,19 +1733,51 @@ func _make_pines(seed_: int, count: int, hmin: float, hmax: float) -> Texture2D:
 		var th := r.randf_range(hmin, hmax)
 		var hw := th * r.randf_range(0.16, 0.22)
 		var tiers := r.randf_range(7.0, 11.0)
+		# Owner 2026-11-20 (photo of misty firs): drooping tiers with ragged, feathered
+		# edges, like many thin needles from a dry brush. Solid core, broken see-through rim.
 		for yy in int(th):
 			var t := float(yy) / th
-			var half := (2.0 + t * hw) * (0.5 + 0.5 * fmod(t * tiers, 1.0))
+			var tier := fmod(t * tiers, 1.0)
+			var prof := 0.5 + 0.5 * pow(tier, 0.7)
 			var y := base - int(th) + yy
-			for dx in [0, -w, w]:
-				var x0: int = int(cx - half) + dx
-				var x1: int = int(cx + half) + dx
-				x0 = maxi(x0, 0)
-				x1 = mini(x1, w)
-				if x1 > x0 and y >= 0:
-					img.fill_rect(Rect2i(x0, y, x1 - x0, 1), Color.WHITE)
+			if y < 0:
+				continue
+			for sd in [-1, 1]:
+				var half: float = (1.5 + t * hw) * prof * r.randf_range(0.75, 1.2)
+				var core := half * 0.55
+				_pine_span(img, w, cx, cx + sd * core, y, 1.0)
+				var px := core
+				while px < half:
+					var seg := r.randf_range(1.5, 4.5)
+					if r.randf() < 0.68:
+						_pine_span(img, w, cx + sd * px, cx + sd * minf(px + seg, half), y, r.randf_range(0.45, 1.0))
+					px += seg + r.randf_range(0.0, 2.0)
+				# a needle tip hanging below the tier's edge
+				if tier > 0.85 and r.randf() < 0.5:
+					var nx: float = cx + sd * half * r.randf_range(0.6, 1.0)
+					for d in r.randi_range(2, 5):
+						if y + d < base:
+							_pine_span(img, w, nx, nx + sd, y + d, 0.7)
+		_pine_span(img, w, cx - 1.5, cx + 1.5, base - int(th) - 6, 1.0)   # the leader
 	img.fill_rect(Rect2i(0, base, w, h - base), Color.WHITE)
 	return ImageTexture.create_from_image(img)
+
+## One row of a pine texture from x0 to x1 (any order), wrapping round the tile edges.
+func _pine_span(img: Image, w: int, x0: float, x1: float, y: int, a: float) -> void:
+	var lo := int(minf(x0, x1))
+	var hi := int(ceil(maxf(x0, x1)))
+	if hi <= lo:
+		hi = lo + 1
+	for dx in [0, -w, w]:
+		var l: int = maxi(lo + dx, 0)
+		var rr: int = mini(hi + dx, w)
+		if rr > l:
+			if a >= 1.0:
+				img.fill_rect(Rect2i(l, y, rr - l, 1), Color.WHITE)
+			else:
+				for xx in range(l, rr):
+					if img.get_pixel(xx, y).a < a:
+						img.set_pixel(xx, y, Color(1, 1, 1, a))
 
 ## A tileable far mountain ridge: two sine ridges whose frequencies divide the width.
 func _make_mountains() -> Texture2D:
@@ -2359,8 +2464,10 @@ func _hud_draw(c: CanvasItem, sz: Vector2, k: float) -> void:
 		var tw := sz.x * 0.62
 		c.draw_rect(Rect2((sz.x - tw) / 2.0, ty - 26 * k, tw, 38 * k), Color(pal.paper, 0.75))
 		c.draw_string(font, Vector2((sz.x - tw) / 2.0, ty), tr(TIPS[tip]), HORIZONTAL_ALIGNMENT_CENTER, tw, int(19 * k), pal.ink)
-	var near_tree: bool = not engine.heart_tree_near().is_empty() and not hearts.has(engine.stage)
-	var note := toast if toast_t > 0.0 else (tr("Tap the red tree (or swing) to carve a heart") if near_tree and tip == "" else "")
+	#var near_tree: bool = not engine.heart_tree_near().is_empty() and not hearts.has(engine.stage)
+	# Owner 2026-11-20: no hint at the red tree any more (finding the carving is part of the secret).
+	#var note := toast if toast_t > 0.0 else (tr("Tap the red tree (or swing) to carve a heart") if near_tree and tip == "" else "")
+	var note := toast if toast_t > 0.0 else ""
 	if note != "" and card_text.is_empty():
 		var nw := sz.x * 0.62
 		var ny := sz.y * 0.3
