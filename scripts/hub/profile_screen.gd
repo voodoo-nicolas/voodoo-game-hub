@@ -329,7 +329,11 @@ func _on_deleted(ok: bool, result: Variant, code: int) -> void:
 	for f in ACCOUNT_FILES:
 		if FileAccess.file_exists(f):
 			DirAccess.remove_absolute(f)
-	Auth.sign_out()
+	# The account is gone: drop it from this device's quick sign-in list too (older apps: no list).
+	if Auth.has_method("forget_account"):
+		Auth.forget_account(Auth.user_id)   # also signs out
+	else:
+		Auth.sign_out()
 	var done := dialog(tr("Account deleted"))
 	done.add_child(label(tr("Your account and its online data were deleted."), 24))
 	var home := pill(tr("OK"), true)

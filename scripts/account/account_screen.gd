@@ -18,6 +18,13 @@ var status_label: Label
 var social_box: VBoxContainer
 ## True between opening Google/Facebook in the browser and getting the code back.
 var waiting_for_code: bool = false
+var remember_check: CheckBox
+var quick_box: VBoxContainer
+var _confirm: Control
+var _other_btn: Button
+var _form_nodes: Array = []
+var _form_shown := true
+var _drag: Node   # drag_scroll.gd: a drag that started on a button doesn't press it
 
 func _ready() -> void:
 	Orientation.lock_portrait()
@@ -101,6 +108,10 @@ func _build_ui() -> void:
 
 	var hub_btn := Button.new()
 	hub_btn.text = tr("Hub")
+	# A real tap target (it was text-sized; owner 2026-11-20: ease of use).
+	hub_btn.text = "← " + tr("Hub")
+	hub_btn.custom_minimum_size = Vector2(120, 60)
+	hub_btn.add_theme_font_size_override("font_size", 26)
 	hub_btn.pressed.connect(_go_to_hub)
 	top_bar.add_child(hub_btn)
 
@@ -116,9 +127,20 @@ func _build_ui() -> void:
 	spacer.custom_minimum_size = Vector2(60, 0)
 	top_bar.add_child(spacer)
 
+	# var center := CenterContainer.new()
+	# center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# root.add_child(center)
+	# Scrolls when it doesn't fit (remembered accounts + the form, text size 1.4), centred when it does.
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(scroll)
+	_drag = preload("res://scripts/common/drag_scroll.gd").new()
+	scroll.add_child(_drag)
 	var center := CenterContainer.new()
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(center)
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center)
+	scroll.resized.connect(func(): center.custom_minimum_size.y = scroll.size.y)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 16)
@@ -149,6 +171,13 @@ func _build_ui() -> void:
 
 	var sep := HSeparator.new()
 	box.add_child(sep)
+
+	# Quick sign-in (owner 2026-11-20): this device's remembered accounts. Tap, confirm, done.
+	quick_box = VBoxContainer.new()
+	quick_box.add_theme_constant_override("separation", 10)
+	box.add_child(quick_box)
+	box.move_child(quick_box, 0)   # first thing on the screen: the fastest way in
+	_fill_quick_box()
 
 	display_name_row = VBoxContainer.new()
 	display_name_row.add_theme_constant_override("separation", 4)
@@ -194,10 +223,20 @@ func _build_ui() -> void:
 	show_password_check.toggled.connect(_on_show_password_toggled)
 	box.add_child(show_password_check)
 
+	# Remember me (owner 2026-11-20): next time this account is two taps away (On this device).
+	remember_check = CheckBox.new()
+	remember_check.text = tr("Remember me on this device")
+	remember_check.add_theme_font_size_override("font_size", 26)
+	remember_check.focus_mode = Control.FOCUS_NONE
+	remember_check.button_pressed = Auth.remember_me
+	remember_check.toggled.connect(Auth.set_remember_me)
+	box.add_child(remember_check)
+
 	submit_btn = Button.new()
 	submit_btn.custom_minimum_size = Vector2(0, 76)
 	submit_btn.add_theme_font_size_override("font_size", 30)
 	submit_btn.pressed.connect(_on_submit)
+	_quick_style(submit_btn, true)   # the main action looks like one (was plain text)
 	box.add_child(submit_btn)
 
 	forgot_btn = Button.new()
@@ -222,6 +261,7 @@ func _build_ui() -> void:
 		b.custom_minimum_size = Vector2(0, 68)
 		b.add_theme_font_size_override("font_size", 26)
 		b.pressed.connect(_on_oauth.bind(spec[0]))
+		_quick_style(b, false)
 		social_box.add_child(b)
 	var paste := Button.new()
 	paste.text = tr("Paste sign-in code")
@@ -237,6 +277,12 @@ func _build_ui() -> void:
 	box.add_child(status_label)
 
 	_update_mode_ui()
+	# With remembered accounts, the long form waits behind "Sign in another way" (cleaner, and it
+	# can't push Google / Facebook off a small phone).
+	for c in box.get_children():
+		if c != quick_box and c != status_label:
+			_form_nodes.append(c)
+	_show_form(Auth.known_accounts().is_empty() or not Consent.draft.is_empty())
 
 func _on_show_password_toggled(on: bool) -> void:
 	password_field.secret = not on
@@ -345,6 +391,178 @@ func _after_consent_restore() -> void:
 
 func _go_to_hub() -> void:
 	get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
+
+# ---------- On this device: quick sign-in (owner 2026-11-20) ----------
+
+const QUICK_GREEN := Color(0.08, 1.0, 0.55)
+
+func _fill_quick_box() -> void:
+	for c in quick_box.get_children():
+		c.queue_free()
+	var accounts: Array = Auth.known_accounts()
+	quick_box.visible = not accounts.is_empty()
+	if accounts.is_empty():
+		return
+	var welcome := Label.new()
+	welcome.text = tr("Welcome back! Who's playing?")
+	welcome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	welcome.add_theme_font_size_override("font_size", 32)
+	quick_box.add_child(welcome)
+	var head := Label.new()
+	head.text = tr("On this device")
+	head.add_theme_font_size_override("font_size", 26)
+	head.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	quick_box.add_child(head)
+	for a in accounts:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		quick_box.add_child(row)
+		var b := Button.new()
+		var hint := str(a.email_hint)
+		b.text = "👤  " + str(a.name) + ("\n      " + hint if hint != "" else "")
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.custom_minimum_size = Vector2(0, 84)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.add_theme_font_size_override("font_size", 27)
+		b.focus_mode = Control.FOCUS_ALL
+		_quick_style(b, false)
+		b.pressed.connect(_on_quick_pick.bind(a))
+		row.add_child(b)
+		var x := Button.new()
+		x.text = "✕"
+		x.tooltip_text = tr("Forget this account on this device")
+		x.custom_minimum_size = Vector2(72, 84)
+		x.add_theme_font_size_override("font_size", 26)
+		x.pressed.connect(_on_quick_forget.bind(a))
+		row.add_child(x)
+	_other_btn = Button.new()
+	_other_btn.text = tr("Sign in another way ▾")
+	_other_btn.flat = true
+	_other_btn.custom_minimum_size = Vector2(0, 64)
+	_other_btn.add_theme_font_size_override("font_size", 24)
+	_other_btn.add_theme_color_override("font_color", Color(0.6, 0.75, 1.0))
+	_other_btn.pressed.connect(func(): _show_form(not _form_shown))
+	quick_box.add_child(_other_btn)
+
+## The email / Google / Facebook part: shown, or folded behind "Sign in another way".
+func _show_form(on: bool) -> void:
+	_form_shown = on
+	for n in _form_nodes:
+		if is_instance_valid(n):
+			n.visible = on
+	if on:
+		_update_mode_ui()   # the name row's own rule
+	if _other_btn != null and is_instance_valid(_other_btn):
+		_other_btn.text = tr("Hide other ways ▴") if on else tr("Sign in another way ▾")
+
+func _quick_style(b: Button, primary: bool) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.1, 0.32, 0.2) if primary else Color(0.12, 0.14, 0.2)
+		if state == "hover" or state == "pressed":
+			sb.bg_color = sb.bg_color.lightened(0.12)
+		sb.border_color = QUICK_GREEN if (primary or state == "focus") else Color(0.25, 0.3, 0.4)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(14)
+		sb.content_margin_left = 18
+		sb.content_margin_right = 18
+		b.add_theme_stylebox_override(state, sb)
+
+## Tap 1: who. A small card asks to confirm (tap 2), so a shared phone isn't one stray tap away.
+func _on_quick_pick(a: Dictionary) -> void:
+	if _drag != null and _drag.moved:
+		return
+	_close_confirm()
+	var hint := str(a.email_hint)
+	_confirm = _confirm_card(tr("Sign in as %s?") % str(a.name), hint, tr("Sign in"), _on_quick_confirm.bind(a))
+
+func _on_quick_confirm(a: Dictionary) -> void:
+	_close_confirm()
+	_show_status(tr("Signing in..."), true)
+	Auth.quick_sign_in(str(a.user_id), _on_quick_done)
+
+func _on_quick_done(ok: bool, why: String) -> void:
+	if not is_inside_tree() or ok:
+		return   # ok: _on_signed_in takes it from here
+	_fill_quick_box()
+	_show_form(_form_shown or Auth.known_accounts().is_empty())
+	if why == "offline":
+		_show_status(tr("No internet connection. Connect and try again."), false)
+	else:
+		_show_status(tr("That sign-in has expired. Sign in once more and it's remembered again."), false)
+
+func _on_quick_forget(a: Dictionary) -> void:
+	if _drag != null and _drag.moved:
+		return
+	_close_confirm()
+	_confirm = _confirm_card(tr("Forget %s on this device?") % str(a.name),
+		tr("You'll need your email and password (or Google / Facebook) next time."), tr("Forget"), _on_forget_confirm.bind(a))
+
+func _on_forget_confirm(a: Dictionary) -> void:
+	_close_confirm()
+	Auth.forget_account(str(a.user_id))
+	_fill_quick_box()
+	_show_form(_form_shown or Auth.known_accounts().is_empty())
+
+func _close_confirm() -> void:
+	if _confirm != null and is_instance_valid(_confirm):
+		_confirm.queue_free()
+	_confirm = null
+
+## A dim layer with a small card: title, a line, [action] and Cancel. Fades in.
+func _confirm_card(title_text: String, line: String, action: String, on_yes: Callable) -> Control:
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.add_to_group("modal_overlay")   # the list behind doesn't scroll under the card
+	add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.add_child(center)
+	var card := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.12, 0.18)
+	sb.border_color = QUICK_GREEN
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(18)
+	sb.set_content_margin_all(26)
+	card.add_theme_stylebox_override("panel", sb)
+	card.custom_minimum_size = Vector2(minf(560.0, get_viewport_rect().size.x - 48.0), 0)
+	center.add_child(card)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 14)
+	card.add_child(v)
+	var t := Label.new()
+	t.text = title_text
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.add_theme_font_size_override("font_size", 30)
+	v.add_child(t)
+	if line != "":
+		var l := Label.new()
+		l.text = line
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.add_theme_font_size_override("font_size", 23)
+		l.add_theme_color_override("font_color", Color(0.7, 0.72, 0.8))
+		v.add_child(l)
+	var yes := Button.new()
+	yes.text = action
+	yes.custom_minimum_size = Vector2(0, 76)
+	yes.add_theme_font_size_override("font_size", 28)
+	_quick_style(yes, true)
+	yes.pressed.connect(on_yes)
+	v.add_child(yes)
+	var no := Button.new()
+	no.text = tr("Cancel")
+	no.flat = true
+	no.custom_minimum_size = Vector2(0, 64)
+	no.add_theme_font_size_override("font_size", 25)
+	no.pressed.connect(_close_confirm)
+	v.add_child(no)
+	dim.modulate.a = 0.0
+	create_tween().tween_property(dim, "modulate:a", 1.0, 0.14)
+	yes.grab_focus.call_deferred()   # Enter / A on a pad confirms
+	return dim
 
 func _on_auth_error(_context: String, message: String) -> void:
 	submit_btn.disabled = false

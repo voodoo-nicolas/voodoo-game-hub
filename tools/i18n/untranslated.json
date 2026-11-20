@@ -546,6 +546,9 @@
  "GP16": [
   "scripts\\games\\wilson\\wilson_projects.gd"
  ],
+ "Glints": [
+  "scripts\\common\\hub_fx.gd"
+ ],
  "Godot Engine 4": [
   "scripts\\common\\third_party.gd"
  ],

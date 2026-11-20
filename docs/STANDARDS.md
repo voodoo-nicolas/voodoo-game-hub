@@ -368,7 +368,7 @@ if ResourceLoader.exists(ONLINE_LOBBY_PATH):
 ## 13. Shared systems (APK-side, reach every game with no game code) [CURRENT + NEW]
 | System | File | Purpose |
 |---|---|---|
-| Auth | `auth.gd` | sign up/in/out, reset, sync, leaderboards |
+| Auth | `auth.gd` | sign up/in/out, reset, sync, leaderboards; [NEW 2026-11-20, APK ≥ 0.43.0] **Remember me / quick sign-in**: "Remember me on this device" (on by default) keeps up to 5 accounts' refresh tokens in `user://known_accounts.dat`, encrypted with a device-bound key; the Account screen lists them first (tap → confirm card → signed in; the form folds behind "Sign in another way"). Signing out of a remembered account is local only (token kept); ✕ Forget revokes it on the server (`logout?scope=local`) and deletes it; account deletion forgets it. Never show a full email on that list (`Auth.email_hint`). Test: `tools/test_known_accounts.gd` |
 | Catalog | `catalog.gd` | manifest, download/mount packs, versions; [NEW] media deps + ref counts |
 | IntroVideo | `intro_video.gd` | Viral brand video when a game opens (N8); clips in `media/hub/intro/` |
 | GameInfo | `game_info.gd` | How to Play card, first-play pause, results/stats |

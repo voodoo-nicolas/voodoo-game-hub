@@ -12632,5 +12632,17 @@
  "Rome": null,
  "Sparta": null,
  "the North": null,
- "cpu_%d": null
+ "cpu_%d": null,
+ "Remember me on this device": "Recordarme en este dispositivo",
+ "On this device": "En este dispositivo",
+ "Welcome back! Who's playing?": "¡Hola de nuevo! ¿Quién juega?",
+ "Sign in another way ▾": "Entrar de otra forma ▾",
+ "Hide other ways ▴": "Ocultar otras formas ▴",
+ "Forget this account on this device": "Olvidar esta cuenta en este dispositivo",
+ "Sign in as %s?": "¿Entrar como %s?",
+ "Sign in": "Entrar",
+ "That sign-in has expired. Sign in once more and it's remembered again.": "Ese inicio de sesión venció. Inicia sesión una vez más y se recordará otra vez.",
+ "Forget %s on this device?": "¿Olvidar a %s en este dispositivo?",
+ "You'll need your email and password (or Google / Facebook) next time.": "La próxima vez vas a necesitar tu correo y contraseña (o Google / Facebook).",
+ "Forget": "Olvidar"
 }

@@ -84,6 +84,12 @@ func sign_in(email: String, password: String) -> void:
 	)
 
 func sign_out() -> void:
+	# A remembered account (this device's quick sign-in) only leaves this screen: its token
+	# stays valid and stored, so signing back in is two taps. Forget it to revoke it.
+	if user_id != "" and is_remembered(user_id):
+		_clear_session()
+		signed_out.emit()
+		return
 	if access_token != "":
 		var headers: PackedStringArray = ["Authorization: Bearer " + access_token]
 		_request(HTTPClient.METHOD_POST, "/auth/v1/logout", {}, headers, func(_ok, _parsed, _code): pass)
@@ -347,6 +353,14 @@ func _apply_session(parsed: Dictionary, name_hint: String) -> void:
 		user_id = str(parsed.user.get("id", ""))
 	display_name = name_hint if name_hint != "" else "Player"
 	_save_session()
+	# Every new session (sign-in, refresh: Supabase rotates the token each time) keeps a
+	# remembered account's stored token current.
+	_load_known()
+	if remember_me or is_remembered(user_id):
+		var email := ""
+		if parsed.has("user") and typeof(parsed.user) == TYPE_DICTIONARY:
+			email = str(parsed.user.get("email", ""))
+		_remember(user_id, display_name, email, refresh_token)
 	signed_in.emit(user_id, display_name)
 
 func _extract_display_name(parsed: Dictionary) -> String:
@@ -380,6 +394,7 @@ func _refresh_session(on_done: Callable) -> void:
 		if success:
 			_apply_session(parsed, display_name)
 		elif code >= 400 and code < 500:
+			_forget_local(user_id)   # its stored quick sign-in token is dead too
 			_clear_session()
 			signed_out.emit()
 		var waiters := _refresh_waiters
@@ -427,6 +442,136 @@ func _clear_session() -> void:
 	user_id = ""
 	display_name = ""
 	SaveUtil.delete(SESSION_PATH)
+
+# ---------- this device's accounts: "remember me" (owner 2026-11-20) ----------
+# "A remember me / quick log-in option for trusted devices: select them, hit confirm."
+# Signing in with Remember me on (the default) keeps that account's refresh token in an
+# encrypted file on this device. The sign-in screen lists them: tap one, confirm, done.
+# The file never leaves the device; Forget revokes the token on the server and deletes it.
+
+const KNOWN_PATH := "user://known_accounts.dat"
+const KNOWN_MAX := 5
+signal known_changed
+
+## The sign-in screen's "Remember me on this device" box (kept between launches).
+var remember_me: bool = true
+var _known: Array = []   # [{user_id, name, email, token, last}] newest first
+var _known_loaded := false
+
+## This device's remembered accounts, newest first, without their tokens.
+func known_accounts() -> Array:
+	_load_known()
+	return _known.map(func(e): return {"user_id": e.user_id, "name": e.name,
+		"email_hint": email_hint(str(e.email)), "last": e.last})
+
+func is_remembered(uid: String) -> bool:
+	_load_known()
+	return uid != "" and _known.any(func(e): return e.user_id == uid)
+
+func set_remember_me(on: bool) -> void:
+	_load_known()
+	remember_me = on
+	_save_known()
+
+## "nico@gmail.com" -> "ni•••@gmail.com": enough to tell two accounts apart on a shared screen.
+static func email_hint(email: String) -> String:
+	var at := email.find("@")
+	if at <= 0:
+		return ""
+	return email.substr(0, mini(2, at)) + "•••" + email.substr(at)
+
+## Two-tap sign-in with a remembered account. on_done(ok: bool, why: String):
+## why = "" (ok), "offline" (kept, try again), "expired" (forgotten: sign in again once).
+func quick_sign_in(uid: String, on_done: Callable) -> void:
+	_load_known()
+	var found: Array = _known.filter(func(e): return e.user_id == uid)
+	if found.is_empty():
+		_safe_call(on_done, [false, "expired"])
+		return
+	var e: Dictionary = found[0]
+	_request(HTTPClient.METHOD_POST, "/auth/v1/token?grant_type=refresh_token", {"refresh_token": e.token},
+		PackedStringArray(), _on_quick_reply.bind(e, on_done))
+
+func _on_quick_reply(ok: bool, parsed: Variant, code: int, e: Dictionary, on_done: Callable) -> void:
+	if ok and typeof(parsed) == TYPE_DICTIONARY and parsed.has("access_token"):
+		_apply_session(parsed, str(e.name))
+		_safe_call(on_done, [true, ""])
+	elif code >= 400 and code < 500:
+		_forget_local(str(e.user_id))   # revoked / used up elsewhere: sign in once more to remember it again
+		_safe_call(on_done, [false, "expired"])
+	else:
+		_safe_call(on_done, [false, "offline"])
+
+## Removes an account from this device and revokes its stored token on the server.
+func forget_account(uid: String) -> void:
+	_load_known()
+	var found: Array = _known.filter(func(e): return e.user_id == uid)
+	_forget_local(uid)
+	if uid == user_id:
+		sign_out()   # not remembered any more: a real sign-out (revokes the session)
+		return
+	if not found.is_empty():
+		# Swap the stored token for an access token, then end that session (scope=local: only it).
+		_request(HTTPClient.METHOD_POST, "/auth/v1/token?grant_type=refresh_token", {"refresh_token": found[0].token},
+			PackedStringArray(), _on_forget_token)
+
+func _on_forget_token(ok: bool, parsed: Variant, _code: int) -> void:
+	if ok and typeof(parsed) == TYPE_DICTIONARY and parsed.has("access_token"):
+		var headers: PackedStringArray = ["Authorization: Bearer " + str(parsed.access_token)]
+		_request(HTTPClient.METHOD_POST, "/auth/v1/logout?scope=local", {}, headers, _ignore_reply)
+
+func _remember(uid: String, name: String, email: String, token: String) -> void:
+	if uid == "" or token == "":
+		return
+	_load_known()
+	var old: Array = _known.filter(func(e): return e.user_id == uid)
+	if email == "" and not old.is_empty():
+		email = str(old[0].email)   # a refresh reply may leave the email out
+	_known = _known.filter(func(e): return e.user_id != uid)
+	_known.push_front({"user_id": uid, "name": name, "email": email, "token": token,
+		"last": int(Time.get_unix_time_from_system())})
+	if _known.size() > KNOWN_MAX:
+		_known.resize(KNOWN_MAX)
+	_save_known()
+	known_changed.emit()
+
+func _forget_local(uid: String) -> void:
+	_load_known()
+	var n := _known.size()
+	_known = _known.filter(func(e): return e.user_id != uid)
+	if _known.size() != n:
+		_save_known()
+		known_changed.emit()
+
+## The file is encrypted with a key tied to this device, so a copied file is useless elsewhere.
+static func _known_key() -> String:
+	return "viral-known-v1:" + OS.get_unique_id()
+
+func _load_known() -> void:
+	if _known_loaded:
+		return
+	_known_loaded = true
+	if not FileAccess.file_exists(KNOWN_PATH):
+		return
+	var f := FileAccess.open_encrypted_with_pass(KNOWN_PATH, FileAccess.READ, _known_key())
+	if f == null:
+		return   # another device's file, or damaged: start empty
+	var data = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	remember_me = bool(data.get("remember", true))
+	for e in data.get("accounts", []):
+		if typeof(e) == TYPE_DICTIONARY and str(e.get("user_id", "")) != "" and str(e.get("token", "")) != "":
+			_known.append({"user_id": str(e.user_id), "name": str(e.get("name", "")), "email": str(e.get("email", "")),
+				"token": str(e.token), "last": int(e.get("last", 0))})
+
+func _save_known() -> void:
+	var f := FileAccess.open_encrypted_with_pass(KNOWN_PATH, FileAccess.WRITE, _known_key())
+	if f == null:
+		return
+	f.store_string(JSON.stringify({"remember": remember_me, "accounts": _known}))
+	f.close()
 
 # ---------- low-level HTTP helper ----------
 
