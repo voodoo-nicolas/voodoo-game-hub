@@ -42,7 +42,15 @@ const KNOCK_T := 0.28      # hit: knocked back, no control for this long
 const END_CLEAR := 1500.0  # owner 2026-11-16: nothing stands in the last stretch before the gate
 const MAX_STARS := 20      # owner 2026-11-16: 70+ stars piled up; pickups stop at a cap
 const MAX_BOMBS := 4
-const NIGHT_STAGES := [6, 14, 23]   # the road is dark: lanterns and your torch are the only light
+#const NIGHT_STAGES := [6, 14, 23]   # the road is dark: lanterns and your torch are the only light
+# Owner 2026-11-20: the dark stages back to back in act 5 (the night act): sunset, dusk, pitch black.
+const NIGHT_STAGES := [17, 18, 19]
+# Owner 2026-11-20: beating the second-to-last boss (stage 20) upgrades the katana to a shiny
+# silver sword that cuts 25 % harder. Read from the stage, so nothing new is saved.
+const SILVER_FROM := 21
+const SILVER_MULT := 1.25
+# Owner 2026-11-20: a star does a third less to a boss (it still kills a 1-hp foe outright).
+const STAR_BOSS := 0.67
 const RUINS_STAGES := [10, 19]      # overgrown ruins: statues, broken walls
 const DEADLY_AIR := 0.8             # a deep lake: little breath, a fast drowning tick
 const DEADLY_TICK := 0.5
@@ -286,8 +294,7 @@ func build_stage() -> void:
 		if not _over_pit(sx):
 			scrolls.append(Vector2(sx, ground_y(sx) - 60))
 	_tutorial()
-	_plan_night()
-	_trees()
+	# Stone lanterns first: the night lanterns keep away from them.
 	# Stone lanterns: 4 checkpoints per stage, each moved onto dry land.
 	checkpoints.clear()
 	checkpoint_x = 120.0
@@ -296,6 +303,8 @@ func build_stage() -> void:
 		while water_depth(cx) > 0.0 or _over_pit(cx):
 			cx += 40.0
 		checkpoints.append(cx)
+	_plan_night()
+	_trees()
 	px = 120.0
 	py = ground_y(px)
 	air = AIR
@@ -392,6 +401,8 @@ func _plan_structs() -> void:
 	while x < length - END_CLEAR - 400.0:
 		x += r.randf_range(span * 0.7, span * 1.3)
 		var kind: String = pool[r.randi() % pool.size()]
+		if kind == "lantern" and _near_checkpoint(x, 700.0):
+			continue   # owner 2026-11-20: a stone lantern never stands beside a checkpoint lantern
 		var w: float = STRUCT_W[kind]
 		var xa := x - w * 0.5 - 90.0
 		var xb := x + w * 0.5 + 90.0
@@ -401,6 +412,14 @@ func _plan_structs() -> void:
 		_flatten(xa, xb, gy, 170.0)
 		reserved.append([xa - 40.0, xb + 40.0])
 		_build_struct(kind, x, gy, w, r)
+
+## Near where a checkpoint lantern goes (length / 5 steps; it may shift a little off water).
+func _near_checkpoint(x: float, d: float) -> bool:
+	for c in range(1, 5):
+		var cx := length * c / 5.0
+		if x > cx - d and x < cx + d + 400.0:
+			return true
+	return false
 
 func _roof(rect: Rect2) -> void:
 	solids.append(rect)
@@ -487,6 +506,18 @@ func _plan_traps() -> void:
 			foes.append({"kind": "blade", "x": fx, "y": ground_y(fx), "vx": 0.0, "vy": 0.0, "hp": 1, "face": -1,
 				"t": 0.0, "atk": 0.0, "hit": 0.0, "id": 1000 + i * 10 + j})
 
+## The silver sword (stage 21 on).
+func silver() -> bool:
+	return stage >= SILVER_FROM
+
+## Sword damage after the upgrade.
+func sword(dmg: float) -> float:
+	return dmg * (SILVER_MULT if silver() else 1.0)
+
+## 0 = day, 1 = sunset, 2 = dusk, 3 = pitch black (the order in NIGHT_STAGES).
+func night_level() -> int:
+	return NIGHT_STAGES.find(stage) + 1
+
 ## Night stages: dark lanterns along the road, lit by swinging the torch next to them.
 func _plan_night() -> void:
 	if not night:
@@ -494,7 +525,12 @@ func _plan_night() -> void:
 	var x := 700.0
 	while x < length - 300.0:
 		x += rng.randf_range(650.0, 1000.0)
-		if x < length - 300.0 and not _over_pit(x) and water_depth(x) <= 0.0:
+		# Owner 2026-11-20: never next to a checkpoint lantern.
+		var near_cp := false
+		for c in checkpoints:
+			if absf(x - c) < 450.0:
+				near_cp = true
+		if x < length - 300.0 and not near_cp and not _over_pit(x) and water_depth(x) <= 0.0:
 			night_lanterns.append({"x": x, "lit": false})
 
 ## Level, dry ground between x0 and x1 (nothing sits on a slope or in water).
@@ -600,6 +636,8 @@ func _tutorial() -> void:
 			tips = [[0.0, 900.0, "star"], [900.0, 1700.0, "bomb"]]
 		4:
 			tips = [[0.0, 900.0, "thrust"]]
+		SILVER_FROM:
+			tips = [[0.0, 1400.0, "silver"]]
 	if night:
 		tips.append([0.0, 1400.0, "torch"])
 
@@ -903,12 +941,12 @@ func _thrust_hits() -> void:
 	for f in foes:
 		if f.hp > 0 and not thrust_hit.has(f.id) and r.intersects(_foe_box(f)):
 			thrust_hit[f.id] = true
-			_hit_foe(f, 2, facing)
+			_hit_foe(f, sword(2), facing)
 			if f.hp > 0:
 				_thrust_stop()
 	if not boss.is_empty() and boss.hp > 0 and not thrust_hit.has("boss") and r.intersects(boss_box()):
 		thrust_hit["boss"] = true
-		_hit_boss(1)
+		_hit_boss(sword(1))
 		_thrust_stop()
 
 func _thrust_stop() -> void:
@@ -936,11 +974,11 @@ func _slash_hits() -> void:
 	for f in foes:
 		if f.hp > 0 and not slash_hit.has(f.id) and sr.intersects(_foe_box(f)):
 			slash_hit[f.id] = true
-			_hit_foe(f, 2 if air_dir == 2 else 1, facing)
+			_hit_foe(f, sword(2 if air_dir == 2 else 1), facing)
 			pogo = pogo or air_dir == 2
 	if not boss.is_empty() and boss.hp > 0 and not slash_hit.has("boss") and sr.intersects(boss_box()):
 		slash_hit["boss"] = true
-		_hit_boss(1)
+		_hit_boss(sword(1))
 		pogo = pogo or air_dir == 2
 	if pogo:
 		vy = -JUMP_V * 0.7   # a plunge that lands bounces you up again
@@ -981,7 +1019,7 @@ func _foe_box(f: Dictionary) -> Rect2:
 func boss_box() -> Rect2:
 	return Rect2(boss.x - 34, boss.y - 110, 68, 110)
 
-func _hit_foe(f: Dictionary, dmg: int, dir: int, by_star: bool = false) -> void:
+func _hit_foe(f: Dictionary, dmg: float, dir: int, by_star: bool = false) -> void:
 	f.hp -= dmg
 	f.hit = 0.15
 	f.vx = dir * 200.0
@@ -1004,7 +1042,7 @@ func _hit_foe(f: Dictionary, dmg: int, dir: int, by_star: bool = false) -> void:
 		events.append("hit")
 		events.append("red:%d:%d" % [int(f.x), int(f.y - 40)])   # damage dealt leaves a faint red mark (owner 2026-11-15)
 
-func _hit_boss(dmg: int) -> void:
+func _hit_boss(dmg: float) -> void:
 	boss.hp -= dmg
 	boss.hit = 0.15
 	events.append("bosshit")
@@ -1330,7 +1368,7 @@ func _shots(dt: float) -> void:
 					s.life = 0.0
 					break
 			if s.life > 0.0 and not boss.is_empty() and boss.hp > 0 and boss_box().has_point(pt):
-				_hit_boss(1)
+				_hit_boss(STAR_BOSS)
 				s.life = 0.0
 		elif _box().has_point(pt):
 			_hurt(1, false, s.x - s.vx)

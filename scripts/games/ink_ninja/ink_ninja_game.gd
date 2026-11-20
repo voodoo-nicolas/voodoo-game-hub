@@ -68,6 +68,7 @@ const TIPS := {
 	"rope": "The bridge is raised. Jump, then throw a Star at the rope knot.  (Keyboard: K)",
 	"trap": "The spikes drop on a beat. Back off and let them chase you through.",
 	"torch": "Night. Your torch lights the way: swing it at a dark lantern to light it.  (Keyboard: J)",
+	"silver": "New: a silver sword. Every cut hits a quarter harder.",
 	"thrust": "New: Thrust lunges forward and runs your blade through a foe.  (Keyboard: L / Shift)",
 }
 var q := {"jump": false, "slash": false, "throw": false, "dash": false, "bomb": false}
@@ -1106,7 +1107,9 @@ func _update_dark(sz: Vector2, k: float, o: Vector2) -> void:
 	if dark == null or dark.material == null:
 		return
 	var m: ShaderMaterial = dark.material
-	var dim := 0.9 if engine.night else (0.2 if skin == "classic" else 0.12)
+	# Owner 2026-11-20: the three night stages run back to back and get darker: sunset, dusk, pitch black.
+	var nl_lv: int = engine.night_level()
+	var dim: float = [0.2 if skin == "classic" else 0.12, 0.5, 0.75, 0.97][nl_lv]
 	var arr := PackedVector4Array()
 	if engine.night:
 		arr.append(Vector4((o.x + engine.px * k) / sz.x, (o.y + (engine.py - 40.0) * k) / sz.y, 0.3 + 0.012 * sin(anim_t * 11.0), 0.9))   # the torch
@@ -1128,7 +1131,8 @@ func _update_dark(sz: Vector2, k: float, o: Vector2) -> void:
 	m.set_shader_parameter("count", n)
 	m.set_shader_parameter("dim", dim)
 	m.set_shader_parameter("aspect", sz.x / maxf(1.0, sz.y))
-	m.set_shader_parameter("shade", Color(0.05, 0.05, 0.14) if skin == "classic" else Color(0.0, 0.0, 0.03))
+	var shades: Array = [Color(0.05, 0.05, 0.14), Color(0.45, 0.16, 0.06), Color(0.14, 0.06, 0.2), Color(0.0, 0.0, 0.02)]
+	m.set_shader_parameter("shade", shades[nl_lv] if skin == "classic" else Color(0.0, 0.0, 0.03))
 
 ## Round 10 sky: a glowing moon with halo rings, soft god rays, slow cloud banks and a far
 ## mountain ridge between the moon and the pines (all parallax, all cheap textures).
@@ -1136,7 +1140,7 @@ func _draw_sky(c: CanvasItem, sz: Vector2, k: float, cam: float) -> void:
 	var ms := 1.45 if engine.night else 1.0   # the night moon is big and bright
 	var mp := Vector2(sz.x * 0.72, sz.y * (0.16 if engine.night else 0.13))
 	var pulse := 0.9 + 0.1 * sin(anim_t * 0.5)
-	if engine.night:
+	if engine.night_level() >= 2:   # no stars yet at sunset
 		for i in 70:
 			var sx := fposmod(i * 0.6180339 * 7.0, 1.0) * sz.x
 			var sy := fposmod(i * 0.7548776 * 3.0, 1.0) * sz.y * 0.55
@@ -1323,7 +1327,10 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 				if not scn.art(c, "shrine", X, Y, 300.0, k):
 					scn.shrine(c, X, Y, k, st.seed)
 			"akita":
-				scn.akita(c, X, Y, k, 1 if st.seed % 2 == 0 else -1)
+				# Owner 2026-11-20: no more drawn statues. Its own picture (art/akita.png) when the
+				# owner adds one, else the owner's komainu picture; the drawn Akita is the last fallback.
+				if not _prop(c, o, "akita" if _art_ok("akita") else "komainu_l", st.x, 220.0, k, st.seed % 2 == 1, st.seed):
+					scn.akita(c, X, Y, k, 1 if st.seed % 2 == 0 else -1)
 			# Owner artwork 2026-11-19 (games/ink_ninja/art, colours muted); the drawn versions
 			# stay as the fallback when a picture is missing.
 			"komainu":
@@ -1354,13 +1361,22 @@ func _draw_structs(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			"ruin_stones":
 				_prop(c, o, "ruin_stones", st.x, 240.0, k, false, st.seed)
 			"warriors":
-				scn.warriors(c, X, Y, k, st.seed, st.ruin)
+				# Owner 2026-11-20: art/warrior.png when added (a row of three), else the owner's nio picture.
+				if _art_ok("warrior"):
+					for j in 3:
+						_prop(c, o, "warrior", st.x + (j - 1) * 120.0, 300.0 - j % 2 * 20.0, k, j == 2, st.seed + j)
+				elif not _prop(c, o, "nio", st.x, 380.0, k, st.seed % 2 == 1, st.seed):
+					scn.warriors(c, X, Y, k, st.seed, st.ruin)
 			"ruin_arch":
 				scn.ruin_arch(c, X, Y, k, st.seed)
 			"ruin_wall":
 				scn.ruin_wall(c, X, Y, st.w, k, st.seed)
 	if engine.boss_stage():
 		_boss_hall(c, o, sz, k)
+
+## True when picture `name` exists in games/ink_ninja/art.
+func _art_ok(name: String) -> bool:
+	return ResourceLoader.exists("res://games/ink_ninja/art/%s.png" % name)
 
 ## Owner 2026-11-20: each statue looks its own: size 80-125 %, a soft contact shadow,
 ## some deeper in the mist (a fog-coloured copy over it), some half behind a trunk.
@@ -1965,7 +1981,12 @@ func _katana(c: CanvasItem, hand: Vector2, tip: Vector2, k: float, torch: bool =
 		_torch(c, hand, tip, k)
 		return
 	c.draw_line(hand, tip, pal.ink, 4.0 * k)
-	c.draw_line(hand.lerp(tip, 0.12), tip, pal.moon, 1.5 * k)
+	if engine.silver():   # owner 2026-11-20: the shiny silver sword, with a travelling glint
+		c.draw_line(hand.lerp(tip, 0.12), tip, Color(0.86, 0.9, 0.96), 2.6 * k)
+		var gl: Vector2 = hand.lerp(tip, 0.2 + 0.75 * fposmod(anim_t * 0.6, 1.0))
+		c.draw_texture_rect(disc, Rect2(gl - Vector2(5, 5) * k, Vector2(10, 10) * k), false, Color(1, 1, 1, 0.9))
+	else:
+		c.draw_line(hand.lerp(tip, 0.12), tip, pal.moon, 1.5 * k)
 	var n := (tip - hand).normalized().orthogonal() * 6.0 * k
 	c.draw_line(hand.lerp(tip, 0.1) - n, hand.lerp(tip, 0.1) + n, pal.ink, 3.0 * k)   # guard
 

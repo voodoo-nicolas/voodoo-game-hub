@@ -60,3 +60,13 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
 - Not built: the intro video `D:/Dev/hub/ink ninja final1.mp4` (95 MB mp4; Godot plays only Ogg Theora).
 - Test keys: **F9** jumps to the stage end (gate / boss), **F10** 1500 units ahead (keyboard only).
 - Landscape touch screens zoom to 1.9x (like portrait), the boss arena eases out to fit; the field slides so the hero stays at 38 % of the visible width.
+
+## Round 15 (owner, 2026-11-20)
+- **No drawn statues left**: Akita uses `art/akita.png` when added, else the komainu picture; terracotta
+  warriors use `art/warrior.png` (a row of three) when added, else the nio picture. Drawn versions stay as the last fallback.
+  Image-gen prompts for those two, the bosses and the other statues: `docs/ink_ninja/art_prompts.md`.
+- **Night stages back to back**: `NIGHT_STAGES` [17, 18, 19] (act 5, was 6/14/23); `engine.night_level()` 1 sunset
+  (dim 0.5, red-orange shade, no stars), 2 dusk (0.75, purple), 3 pitch black (0.97). Stage 19 is also a ruins stage.
+- Night lanterns keep 450 units from checkpoint lanterns; decor stone lanterns are skipped near checkpoints (`_near_checkpoint`).
+- **Silver sword** from stage 21 (after the act-5 boss): `engine.sword()` x1.25 (`SILVER_MULT`), silver blade with a glint, tip "silver".
+- **Stars on bosses** do 0.67 (`STAR_BOSS`); on foes still 1 (regular foes have 1 hp). Hp values are floats now.
