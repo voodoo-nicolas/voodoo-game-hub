@@ -24,6 +24,11 @@ Owner's game, started 2026-11-08 (M0-M5 + Grand Projects built, **published as p
 - `godot --path . --resolution 1280x720 --script res://tools/shot_wilson.gd -- <dir> [en|es]`: screenshots (backs up and restores the save + debug files).
 - `python tools/wilson_art.py [sheets]`: rebuilds `games/wilson/art/` from `D:/dev/Wilson` (reproducible; `sheets` skips the slow plate step). New sheet = anchors (source pixels of each sprite) + `cut_sheet()`.
 
+## Easter eggs (owner, 2026-11-20)
+- `engine.egg()`: the blonde (female5) named Heather or Emilia (any case) gets secret odd jobs (`egg` field in `wilson_pastimes.gd`, `say` = speech bubble; Emilia's labels are Spanish in both languages); a white man (male1-3) named Nicolas is drawn with his own sheet (`shown_look()` = "nicolas", `Castaway.SPECIAL`).
+- Job frames: `castaway.job` (action kind / pastime id) cycles `<look>_job_<id>_<n>.webp` or `job_<id>_<n>.webp` while working (`JOB_ALIAS` lends frames). Art: `python tools/wilson_art_eggs.py` (special1/2, heather1-3, Emilia, blondecry in D:/dev/Wilson; slow, a few minutes).
+- Skill drills show the skill they raise in the menu: "Study the plants (+Foraging)".
+
 ## Guided opening (2026-11-09)
 `engine.tut` (index into `D.TUT`, -1 = off): the HUD parts appear step by step (`wilson_game.gd` `_apply_tut`, Pad parts via `pad.reveal` / `set_hidden`); `tut_event("walk" / "ab" / "bag" / "journal")` from the game, `tut_ack()` for the "Got it" cards. New island = `tut 0`; the look and name are locked after the picker. Tests `tools/test_wilson_opening.gd`.
 

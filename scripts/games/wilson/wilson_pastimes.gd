@@ -61,6 +61,23 @@ const LIST := [
 		"lines": ["Took apart a bit of wreckage to see how it worked. Put most of it back.", "A lever lets a small push lift a big load. I lifted a big rock. Briefly."]},
 	{"id": "read_sky", "group": "quick", "en": "Read the sky", "icon": "☁", "min": 0.25, "energy": 0.0, "mood": 0.5, "pose": "idle", "xp": {"weather sense": 2},
 		"lines": ["Watched the clouds. High wispy ones often come a day before the weather turns.", "Licked a finger and held it up. The wind comes from the side that goes cold.", "Watched the sea. Rough water means wind somewhere, even if not here yet."]},
+	# ---------------------------------------------------------------- easter eggs (owner, 2026-11-20)
+	# Only for the blonde (female5) named Heather or Emilia (`egg`, engine.egg()); pictures job_<id>_<n>.webp
+	# (tools/wilson_art_eggs.py), `say` = the speech bubble when done. Emilia's labels are Spanish in both languages.
+	{"id": "egg_freak", "group": "quick", "egg": "heather", "en": "Freak out", "icon": "😱", "min": 0.1, "energy": 0.0, "mood": 1.0, "pose": "sit",
+		"lines": ["Freaked out. Thoroughly. Then a bit more."]},
+	{"id": "egg_hair", "group": "quick", "egg": "heather", "en": "Play with hair", "icon": "💇", "min": 0.1, "energy": 0.0, "mood": 1.0, "pose": "sit",
+		"lines": ["Played with my hair. It is mostly salt now."]},
+	{"id": "egg_soothe", "group": "quick", "egg": "heather", "en": "Self-soothe", "icon": "🫂", "min": 0.15, "energy": 0.0, "mood": 2.0, "pose": "sit", "say": "Self soothing",
+		"lines": ["Hugged my knees until the world stopped spinning."]},
+	{"id": "egg_drink", "group": "quick", "egg": "heather", "en": "Drink!", "icon": "🥥", "min": 0.15, "energy": 0.0, "mood": 1.0, "pose": "sit", "say": "Burp!",
+		"lines": ["Drank a whole coconut in one go. Regrets: one."]},
+	{"id": "egg_cry", "group": "quick", "egg": "heather", "en": "Cry.", "icon": "😭", "min": 0.15, "energy": 0.0, "mood": 1.5, "pose": "sit", "say": "!@#!!&?!",
+		"lines": ["Had a good cry. The sea is salty enough already."]},
+	{"id": "egg_beber", "group": "quick", "egg": "emilia", "en": "¡Beber!", "icon": "🥥", "min": 0.15, "energy": 0.0, "mood": 1.0, "pose": "sit", "say": "Burp!",
+		"lines": ["Drank a whole coconut in one go. Regrets: one."]},
+	{"id": "egg_llorar", "group": "quick", "egg": "emilia", "en": "¡Llorar!", "icon": "😭", "min": 0.15, "energy": 0.0, "mood": 1.5, "pose": "sit", "say": "!@#%&#!",
+		"lines": ["Had a good cry. The sea is salty enough already."]},
 	# ---------------------------------------------------------------- longer pastimes
 	{"id": "stargaze", "group": "long", "en": "Stargaze", "icon": "🌌", "min": 45.0, "energy": 2.0, "mood": 8.0, "stand": Vector2(954, 535), "pose": "sit",
 		"lines": ["Counted stars until I lost count. The Southern Cross points roughly at the south pole.",

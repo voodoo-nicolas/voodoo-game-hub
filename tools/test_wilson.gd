@@ -834,6 +834,22 @@ func test_m9_pastimes_events_streak() -> void:
 	var P = load("res://scripts/games/wilson/wilson_pastimes.gd")
 	# ---- pastimes
 	var e = fresh(at(2026, 6, 21, 12))
+	# ---- easter eggs (owner, 2026-11-20)
+	ok(e.pastime_block("egg_freak") == "Not for you.", "no Heather jobs for others")
+	var lk: String = e.look
+	var nm: String = e.cname
+	e.look = "female5"
+	e.cname = " heather "
+	ok(e.egg() == "heather" and e.pastime_block("egg_freak") == "" and e.pastime_block("egg_beber") == "Not for you.", "Heather gets her jobs")
+	e.cname = "Emilia"
+	ok(e.egg() == "emilia" and e.pastime_block("egg_llorar") == "", "Emilia gets hers")
+	e.look = "male4"
+	e.cname = "Nicolas"
+	ok(e.egg() == "" and e.shown_look() == "male4", "Nicolas egg only for the white men")
+	e.look = "male2"
+	ok(e.shown_look() == "nicolas", "Nicolas gets his own sheet")
+	e.look = lk
+	e.cname = nm
 	ok(e.pastime_block("stargaze") == "Only after dark.", "no stargazing at noon")
 	ok(e.pastime_block("yoga") == "Only around sunrise.", "no sunrise stretch at noon")
 	ok(e.pastime_block("coconut_friend") != "", "friend needs a coconut")
