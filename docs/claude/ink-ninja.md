@@ -58,3 +58,4 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
   a pine trunk in front.
 - Pines: feathered dry-brush tiers (`_pine_span`), darker, plus a dark near row (`pines_near`).
 - Not built: the intro video `D:/Dev/hub/ink ninja final1.mp4` (95 MB mp4; Godot plays only Ogg Theora).
+- Test keys: **F9** jumps to the stage end (gate / boss), **F10** 1500 units ahead (keyboard only).

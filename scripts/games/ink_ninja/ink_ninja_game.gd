@@ -432,6 +432,15 @@ func _unhandled_input(event: InputEvent) -> void:
 					_carve_here()
 				else:
 					pass   # owner 2026-11-20: no telling (was a "Walk up to the red tree first" toast)
+	# Owner test keys (2026-11-20, keyboard only): F9 = to the end of the stage (the gate or
+	# the boss), F10 = 1500 units ahead to look at the scenery.
+	if started and event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_F9, KEY_F10]:
+		var to: float = engine.arena_x - 150.0 if event.keycode == KEY_F9 else minf(engine.px + 1500.0, engine.arena_x - 150.0)
+		engine.px = to
+		engine.py = engine.ground_y(to) - 200.0
+		engine.vx = 0.0
+		engine.vy = 0.0
+		return
 	if event is InputEventKey and not event.echo:
 		match event.keycode:
 			KEY_LEFT, KEY_A:
