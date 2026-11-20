@@ -9638,6 +9638,28 @@
    "url": "https://opengameart.org/node/15058",
    "date": "2026-11-20",
    "processed_by": "re-encoded to OGG Vorbis ~96 kbps"
+  },
+  {
+   "file": "media/hub/brand/logo_classic.webp",
+   "what": "V-skull logo icon, Classic (greyscale)",
+   "source": "reference/art/brand/vskull_icon_classic_src.webp",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "ChatGPT (OpenAI), Free plan"
+  },
+  {
+   "file": "media/hub/brand/logo_voodoo.png",
+   "what": "V-skull logo icon, Voodoo (neon)",
+   "source": "reference/art/brand/vskull_icon_voodoo_src.png",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_BRAND_ART.md",
+   "url": "",
+   "date": "2026-11-20",
+   "ai_tool": "ChatGPT (OpenAI), Free plan"
   }
  ]
 }

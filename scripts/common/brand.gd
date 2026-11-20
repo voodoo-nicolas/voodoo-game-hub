@@ -32,9 +32,16 @@ const WORDMARK := "res://media/hub/brand/hub_wordmark.png"
 const BG_PORTRAIT := "res://media/hub/brand/hub_bg_portrait.jpg"
 const BG_LANDSCAPE := "res://media/hub/brand/hub_bg_landscape.jpg"
 const MIST := "res://scripts/common/mist.gd"
+## V-skull logo icons (owner 2026-11-20), one per skin. Shown on every game's
+## Landing (STANDARDS §3/§17). Packs: check ResourceLoader.exists() first.
+const LOGO_CLASSIC := "res://media/hub/brand/logo_classic.webp"
+const LOGO_VOODOO := "res://media/hub/brand/logo_voodoo.png"
 
-## Options > About links (owner 2026-11-13). The contact address is public.
-const FACEBOOK_URL := "https://www.facebook.com/profile.php?id=61595214907419"
+## Options > About links (owner 2026-11-13, updated 2026-11-20). The contact address is public.
+# const FACEBOOK_URL := "https://www.facebook.com/profile.php?id=61595214907419"
+const FACEBOOK_URL := "https://www.facebook.com/viralgaminghubapp"
+const WEBSITE_URL := "https://viralgamehub.github.io/index.html"
+const CONTACT_FORM_URL := "https://viralgamehub.github.io/#contact"
 const YOUTUBE_URL := "https://www.youtube.com/@ViralGameHubYT"
 const CONTACT_EMAIL := "viralgamingservice@gmail.com"
 
