@@ -112,6 +112,8 @@ const SKILL_NAMES := {"foraging": "Foraging", "woodcutting": "Woodcutting", "fis
 	"cooking": "Cooking ", "carpentry": "Carpentry", "tinkering": "Tinkering", "weather sense": "Weather sense"}
 const SKILL_MAX := 10
 const SKILL_SPEED := 0.03
+## Weather sense level that shows high / low tide (owner, 2026-11-19).
+const TIDE_SENSE_LEVEL := 3
 const ACT_SKILL := {"gather": "foraging", "shake": "foraging", "haul": "foraging", "seawater": "foraging",
 	"chop": "woodcutting", "fish": "fishing", "empty_trap": "fishing", "light": "fire", "fuel": "fire",
 	"spear": "fishing", "plant": "foraging", "harvest": "foraging"}
@@ -164,13 +166,13 @@ const WALK_SPEED := 150.0  # plate pixels per second (walking is free: balance "
 const PALMS := {
 	"A": {"pos": Vector2(740, 408), "top": Vector2(721, 266), "choppable": false},
 	"B": {"pos": Vector2(910, 408), "top": Vector2(926, 266), "choppable": false},
-	"C": {"pos": Vector2(1500, 412), "top": Vector2(1483, 272), "choppable": true},
+	"C": {"pos": Vector2(1500, 432), "top": Vector2(1483, 292), "choppable": true},     # was y 412: hung over the waterline (owner, 2026-11-19)
 	"D": {"pos": Vector2(1610, 458), "top": Vector2(1660, 303), "choppable": true},
 	"E": {"pos": Vector2(1190, 404), "top": Vector2(1295, 132), "choppable": true},
 	"F": {"pos": Vector2(610, 448), "top": Vector2(602, 285), "choppable": false}      # a young palm: shake only,
 }
 ## Where Johnny stands to work a palm.
-const PALM_STAND := {"A": Vector2(767, 432), "B": Vector2(882, 432), "C": Vector2(1440, 470), "D": Vector2(1560, 520),
+const PALM_STAND := {"A": Vector2(767, 432), "B": Vector2(882, 432), "C": Vector2(1440, 490), "D": Vector2(1560, 520),
 	"E": Vector2(1190, 440), "F": Vector2(660, 482)}
 const PALM_COCONUTS := 3          # coconuts a palm holds
 const COCONUT_REGROW_H := 8.0     # one coconut back every 8 h
@@ -349,7 +351,7 @@ const SANDY_H := 8.0             # how long Sandy lasts
 const COLLAPSE_WAKE_ENERGY := 40.0  # collapse: sleeps on the sand until this much energy
 const FAINT_WAKE_HP := 25.0      # HP 0: wakes next morning with this much HP
 const DAY_NAP_MAX_H := 4.0       # "Sleep" by day: until rested, at most this long
-const QUEUE_MAX := 5             # KICKOFF M1
+const QUEUE_MAX := 3             # KICKOFF M1 said 5; owner 2026-11-19: 3 tops
 const LOW_BAR := 25.0            # a bar under this pulses + a thought bubble
 ## Shore delivery: what never washes ashore (made on the island, or cave-only).
 const NOT_ASHORE := ["stone", "sand", "seawater", "fish_guts", "husk_fiber", "coconut_shell", "trunk",

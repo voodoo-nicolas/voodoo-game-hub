@@ -128,7 +128,8 @@ func _scale() -> float:
 	var depth := clampf((position.y - 430.0) / 110.0, 0.0, 1.0)
 	return lerpf(0.9, 1.08, depth)
 
-const FACING_POSES := ["idle", "run", "sit", "eat", "drink", "shrug", "wave", "facepalm", "sulk"]
+# craft / carve / weave / tool / chop added 2026-11-19: they never mirrored, so she knelt with her back to the pebbles
+const FACING_POSES := ["idle", "run", "sit", "eat", "drink", "shrug", "wave", "facepalm", "sulk", "craft", "carve", "weave", "tool", "chop"]
 
 func _draw() -> void:
 	var p := current_pose()

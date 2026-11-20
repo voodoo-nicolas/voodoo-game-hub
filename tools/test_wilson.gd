@@ -268,10 +268,9 @@ func test_queue_offline() -> void:
 	var e = fresh(at(2026, 6, 21, 9))
 	ok(e.enqueue("haul", "crate") == "", "haul crate")
 	ok(e.enqueue("haul", "crate") != "", "crate twice refused")
-	for id in ["planks", "barrel", "oar"]:
+	for id in ["planks", "barrel"]:
 		ok(e.enqueue("haul", id) == "", "haul " + id)
-	ok(e.enqueue("haul", "sailcloth") == "", "5th action")
-	ok(e.enqueue("gather", "sticks") != "", "6th action refused (max 5)")
+	ok(e.enqueue("haul", "oar") != "", "4th action refused (max 3, owner 2026-11-19)")
 	var t0: float = e.t
 	near(float(e.queue[0].end) - t0, 21.0, 0.5, "haul ends 21 s later (absolute)")
 	# closed the app: 1 hour later everything is done, by timestamp
@@ -279,13 +278,13 @@ func test_queue_offline() -> void:
 	ok(e.queue.is_empty(), "offline: queue processed")
 	ok(e.count("rope") == 6 and e.count("hook") == 1 and e.count("knife") == 1, "crate loot")
 	ok(e.count("plank") == 6 and e.count("nail") == 18, "planks loot")
-	ok(e.count("sailcloth") == 1 and e.count("barrel") == 1 and e.count("oar") == 1, "other debris loot")
-	ok(e.debris.is_empty(), "all debris gone")
+	ok(e.count("barrel") == 1, "other debris loot")
+	ok(e.debris.size() == 2, "three debris gone, oar and sailcloth left")
 	var away := 0
 	for j in e.journal:
 		if j.away:
 			away += 1
-	ok(away >= 5, "journal logged what he did while away (%d)" % away)
+	ok(away >= 3, "journal logged what he did while away (%d)" % away)
 	# offline queue keeps exact order and timing
 	var f = fresh(at(2026, 6, 21, 9))
 	f.enqueue("gather", "sticks")
@@ -1088,7 +1087,26 @@ func test_m12_discovery() -> void:
 	e.structures["sundial"] = {"built": e.t}
 	ok(e.knows_time() and not e.knows_tide(), "a sundial tells the time, not the tide")
 	e.decor.append("tide_chart")
-	ok(e.knows_tide(), "a tide chart tells the tide")
+	ok(not e.knows_tide(), "a tide chart alone no longer tells the tide (owner 2026-11-19)")
+	e.xp["weather sense"] = 30
+	ok(not e.knows_tide(), "weather sense 2: still no tide")
+	e.xp["weather sense"] = 60
+	ok(e.knows_tide(), "weather sense 3 tells the tide")
+	ok(int(e.duration_of("nap", "")) == 1800, "a power nap is 30 min in the menu too")
+	e.bars.energy = 5.0
+	ok(int(e.duration_of("nap", "")) == 1800, "even when tired (was shown as 45 min)")
+	for p in Pastimes.LIST:
+		if p.has("xp"):
+			for sk in p.xp:
+				ok(sk in D.SKILLS, "odd job %s trains a real skill (%s)" % [p.id, sk])
+	var trained := {}
+	for p in Pastimes.LIST:
+		for sk in p.get("xp", {}):
+			trained[sk] = true
+	ok(trained.size() == D.SKILLS.size(), "every skill has an odd job that trains it (%d)" % trained.size())
+	var x0 := int(e.xp.get("fire", 0))
+	e._finish_pastime("bank_embers")
+	ok(int(e.xp.get("fire", 0)) == x0 + 2, "bank the embers: +2 fire XP")
 	var s = fresh(at(2026, 6, 21, 9))
 	s.structures["shellphone"] = {"built": s.t}
 	ok(s.knows_time() and s.knows_tide(), "the Shellphone tells both")
