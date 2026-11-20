@@ -130,6 +130,9 @@ func _build_ui() -> void:
 		"art": ART,
 		"art_title": [0.0, 0.26],  # "Beached" is painted in the art (landing_logo.webp = landing + the owner's logo)
 		"solo_heading": "🏝 Island",
+		# owner, 2026-11-20: a sleeker Landing with only Resume / New island / Options / Hub; the rest is in Options
+		"landing": "beached",
+		"landing_style": load("res://scripts/games/wilson/wilson_landing.gd"),
 		"modes": [{"text": "🏝 New island", "sub": "Day 1: wake up on the beach", "action": new_island}],
 		"save_path": SAVE_PATH,
 		"resume": _continue_game,

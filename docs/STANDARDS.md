@@ -107,6 +107,8 @@ Contents (show only what applies to the game):
 - [NEW 2026-11-13, owner] Menu styles, reference only: `docs/MENU_STYLES.md` (S1-S7). A new game picks one (not used by the last 2
   games) and notes it in its `<id>_game.gd` header; when editing an existing game, offer the owner a style change. Same items and nav rules.
   Optional smoke/glitter obey ⚙ Options ▸ ✨ Effects (Reduced), app-wide. First: Tarot of Destiny.
+- [NEW 2026-11-20, owner] A **minimal Landing**: only Resume / the one way to play / ⚙ Options / ← Hub on screen; 🏆 🏅 📊 ❓
+  move to the top of ⚙ Options ("More"), one tap deeper (the style's `options()` hook). First: Beached (`wilson_landing.gd`).
 - **Resume** (only if a save exists) · **Quick Play** (last-used mode + difficulty).
   [NEW 2026-10-14] A game where starting a new game deletes the save (story games: Last Shift) sets kit
   `"quick_with_save": false`: no Quick Play while Resume shows (Resume is the 1-tap then, N6), so one wrong tap
