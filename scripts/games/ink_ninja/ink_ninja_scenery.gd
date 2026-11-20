@@ -16,20 +16,42 @@ var _art := {}
 
 ## Draws picture `name` standing on (X, Y), `h` world units tall (k = world to screen).
 ## false when the picture is missing, so the caller can draw its own version.
-func art(c: CanvasItem, name: String, X: float, Y: float, h: float, k: float, flip: bool = false) -> bool:
+func art(c: CanvasItem, name: String, X: float, Y: float, h: float, k: float, flip: bool = false, mod: Color = Color.WHITE) -> bool:
 	if not _art.has(name):
 		var path := "res://games/ink_ninja/art/%s.png" % name
 		_art[name] = load(path) if ResourceLoader.exists(path) else null
+		_art_pad[name] = _bottom_pad(_art[name])
 	var t: Texture2D = _art[name]
 	if t == null:
 		return false
 	var sz := Vector2(t.get_width() * h / t.get_height(), h) * k
-	var r := Rect2(Vector2(X - sz.x / 2.0, Y - sz.y + 4.0 * k), sz)
+	# Owner 2026-11-20 (fox floating): the empty rows under the picture's feet are dropped,
+	# and it sinks a little so it sits in the grass on a slope.
+	var r := Rect2(Vector2(X - sz.x / 2.0, Y - sz.y + sz.y * _art_pad[name] + 10.0 * k), sz)
 	if flip:
 		r.position.x += sz.x
 		r.size.x = -sz.x
-	c.draw_texture_rect(t, r, false)
+	c.draw_texture_rect(t, r, false, mod)
 	return true
+
+var _art_pad := {}
+
+## Fraction of the picture's height that is see-through below its lowest solid pixel.
+func _bottom_pad(t: Texture2D) -> float:
+	if t == null:
+		return 0.0
+	var img := t.get_image()
+	if img == null:
+		return 0.0
+	if img.is_compressed():
+		img.decompress()
+	var w := img.get_width()
+	var hh := img.get_height()
+	for y in range(hh - 1, hh / 2, -1):
+		for x in range(0, w, 2):
+			if img.get_pixel(x, y).a > 0.5:
+				return float(hh - 1 - y) / hh
+	return 0.0
 
 func _wood() -> Color:
 	return Color(0.36, 0.25, 0.17, 0.95) if g.skin == "classic" else g.pal.mid
@@ -80,7 +102,8 @@ func house(c: CanvasItem, X: float, Y: float, w: float, u: float, seed_: int) ->
 	roof(c, X, Y - 126.0 * u, w + 40.0, u, g.pal.ink)
 
 func pagoda(c: CanvasItem, X: float, Y: float, w: float, tiers: int, u: float, ruin: bool, open_door: bool = true, open_sides: bool = false) -> void:
-	var wood: Color = _wood()
+	#var wood: Color = _wood()
+	var wood: Color = _wood().lerp(g.pal.paper, 0.45)   # owner 2026-11-20: a fainter brown
 	var roofc: Color = g.pal.ink if not ruin else Color(g.pal.ink).lerp(g.pal.mid, 0.35)
 	var h0: float = g.engine.PAG_H0
 	var dh: float = g.engine.PAG_DH
