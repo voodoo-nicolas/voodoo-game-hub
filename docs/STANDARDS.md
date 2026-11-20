@@ -177,6 +177,15 @@ Vs CPU · Custom. Difficulty: Easy · Normal · Hard (+ Expert where meaningful)
   **no-op stub** (keeps the class name, builds nothing, `queue_free()`s itself) until every pack is migrated.
   Never delete the class while any published pack references it.
 
+### 6b. Game-over / result screen [NEW 2026-11-20]
+- Must fit a 360-dp-wide phone at text scale 1.4: every label in it uses `autowrap_mode = AUTOWRAP_WORD_SMART`
+  (put stats on their own line), no button wider than the screen minus margins.
+- Must not hide how the game ended for good: offer a way to see the board (dock the card at the bottom, or a
+  "👁 See board" button that hides the card and leaves a "📋 Results" chip to bring it back).
+- Safety net: on APK ≥ 0.41.1 `game_info.gd` does both automatically for any visible full-screen dim card holding a
+  `PanelContainer` when the game reports its end (`result()`, `celebrate()`, `add("Games played")`). New games
+  should still get it right themselves — older APKs don't have the net.
+
 ## 7. Options: global vs per-game [CHANGED — resolves a conflict]
 App-wide settings stay in the `Settings` autoload (one source of truth). The game Options screen shows
 them too, but editing them changes the global value. Per-game items are stored per game.

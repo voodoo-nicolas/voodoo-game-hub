@@ -473,6 +473,8 @@ const ES := {
 	"You were at table %s when you left. Rejoin to pick up where you were.": "Estabas en la mesa %s cuando saliste. Vuelve para seguir donde estabas.",
 	"You were in game %s when you left. Rejoin to pick up where you were.": "Estabas en la partida %s cuando saliste. Vuelve para seguir donde estabas.",
 	"You win!": "¡Ganaste!",
+	"See board": "Ver tablero",
+	"Results": "Resultado",
 	"You're friends now!": "¡Ya son amigos!",
 	"You're up to date!": "¡Tienes la última versión!",
 	"You've already added them.": "Ya lo agregaste.",
