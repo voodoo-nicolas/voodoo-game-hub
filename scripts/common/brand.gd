@@ -90,8 +90,9 @@ class Backdrop extends TextureRect:
 		if what == NOTIFICATION_RESIZED:
 			_pick()
 			if _embers != null and is_instance_valid(_embers):
-				_embers.position = Vector2(size.x / 2.0, size.y + 8.0)
-				_embers.emission_rect_extents = Vector2(size.x / 2.0, 4.0)
+				# _embers.position = Vector2(size.x / 2.0, size.y + 8.0)
+				# _embers.emission_rect_extents = Vector2(size.x / 2.0, 4.0)
+				load("res://scripts/common/hub_fx.gd").place_embers(_embers, size)  # one place decides (lower band)
 			if _smoke != null and is_instance_valid(_smoke):
 				_smoke.position = Vector2(size.x / 2.0, size.y + 8.0)
 				_smoke.emission_rect_extents = Vector2(size.x / 2.0, 4.0)

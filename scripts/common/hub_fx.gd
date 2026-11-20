@@ -77,19 +77,56 @@ static func embers(parent: Control) -> CPUParticles2D:
 	grad.set_color(grad.get_point_count() - 1, Color(0.45, 0.9, 1.0, 0.0))
 	p.color_ramp = grad
 	p.texture = _dot()
-	p.amount = 26
-	p.lifetime = 9.0
-	p.preprocess = 9.0
+	# p.amount = 26   # owner 2026-11-20 (screenshot): grow it -- more, bigger, filling the lower half
+	p.amount = EMBERS
+	p.lifetime = 11.0
+	p.preprocess = 11.0
 	p.local_coords = false
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	p.direction = Vector2(0.15, -1.0)
-	p.spread = 25.0
+	p.spread = 28.0
 	p.gravity = Vector2.ZERO
-	p.initial_velocity_min = 18.0
-	p.initial_velocity_max = 46.0
-	p.scale_amount_min = 0.5
-	p.scale_amount_max = 1.5
+	p.initial_velocity_min = 14.0
+	p.initial_velocity_max = 44.0
+	p.scale_amount_min = 0.7
+	p.scale_amount_max = 2.3
+	# A gentle sideways sway so they drift like sparks, not a conveyor.
+	p.tangential_accel_min = -6.0
+	p.tangential_accel_max = 6.0
+	var add := CanvasItemMaterial.new()
+	add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	p.material = add
+	# A few big soft glints over the small sparks (child: placed and switched off with them).
+	var g := CPUParticles2D.new()
+	var gg := Gradient.new()
+	gg.set_color(0, Color(1.0, 0.7, 0.3, 0.0))
+	gg.add_point(0.3, Color(1.0, 0.5, 0.15, 0.55))
+	gg.add_point(0.75, Color(0.3, 0.8, 1.0, 0.4))
+	gg.set_color(gg.get_point_count() - 1, Color(0.4, 0.85, 1.0, 0.0))
+	g.color_ramp = gg
+	g.texture = _dot()
+	g.material = add
+	g.amount = GLINTS
+	g.lifetime = 14.0
+	g.preprocess = 14.0
+	g.local_coords = false
+	g.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	g.direction = Vector2(0.1, -1.0)
+	g.spread = 20.0
+	g.gravity = Vector2.ZERO
+	g.initial_velocity_min = 8.0
+	g.initial_velocity_max = 20.0
+	g.scale_amount_min = 2.5
+	g.scale_amount_max = 4.5
+	g.name = "Glints"
+	p.add_child(g)
 	return p
+
+## Embers: small sparks / big soft glints (CPU particles, cheap on any phone).
+const EMBERS := 80
+const GLINTS := 9
+## The band the embers start in: the lower part of the screen (0.45 = bottom 45%).
+const EMBER_BAND := 0.45
 
 ## Slow violet / blue smoke puffs drifting up from the bottom third (owner
 ## 2026-11-13: "smoke/fumes, floating particles"). One soft radial texture,
@@ -134,8 +171,16 @@ static func smoke(parent: Control) -> CPUParticles2D:
 
 ## Emit along the bottom edge of a `size` area.
 static func place_embers(p: CPUParticles2D, area: Vector2) -> void:
-	p.position = Vector2(area.x / 2.0, area.y + 8.0)
-	p.emission_rect_extents = Vector2(area.x / 2.0, 4.0)
+	# p.position = Vector2(area.x / 2.0, area.y + 8.0)
+	# p.emission_rect_extents = Vector2(area.x / 2.0, 4.0)
+	# Owner 2026-11-20: grow it. Sparks are born across the lower band, not only the bottom edge,
+	# so the empty lower half of the screen is alive from the first frame.
+	var band := area.y * EMBER_BAND / 2.0
+	p.position = Vector2(area.x / 2.0, area.y - band + 8.0)
+	p.emission_rect_extents = Vector2(area.x / 2.0, band)
+	var g := p.get_node_or_null("Glints") as CPUParticles2D
+	if g:
+		g.emission_rect_extents = p.emission_rect_extents
 
 static func _dot() -> Texture2D:
 	var g := Gradient.new()

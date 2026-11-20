@@ -250,6 +250,30 @@ def pack_preset_names() -> dict[str, str]:
     return names
 
 
+## The PC icon (owner 2026-11-20: "add the icon to the PC version"): made from
+## assets/pc_icon.png (the owner's skull-V) with 16-256 px sizes. Stamped into the .exe
+## by Godot's own resource editor (modify_resources; no rcedit), and the window /
+## taskbar icon at run time (project.godot config/windows_native_icon).
+PC_ICON = "res://assets/icon.ico"
+
+
+def windows_app_fields(body: str, version: str, build: int, brand: str) -> str:
+    """A Windows app preset (PC build, HubOnly): our icon and version info in the .exe."""
+    win_version = f"{version}.{build}"   # Windows wants a.b.c.d
+    sets = {"application/modify_resources": "true", "application/icon": f'"{PC_ICON}"',
+            "application/file_version": f'"{win_version}"', "application/product_version": f'"{win_version}"',
+            "application/company_name": '"Viral"', "application/file_description": f'"{brand}"'}
+    for key, val in sets.items():
+        body = re.sub(rf"(?m)^{re.escape(key)}=.*$", f"{key}={val}", body)
+    # The .ico is not a Godot resource: the window icon needs it inside the .pck.
+    def add_ico(m: re.Match) -> str:
+        cur = m.group(1)
+        if "assets/icon.ico" in cur:
+            return m.group(0)
+        return 'include_filter="%s"' % (cur + ", assets/icon.ico" if cur else "assets/icon.ico")
+    return re.sub(r'(?m)^include_filter="(.*)"$', add_ico, body, count=1)
+
+
 def render_presets(ids: list[str]) -> str:
     """export_presets.cfg with every pack preset regenerated from `ids`, the
     Android preset's version fields synced to version.gd, and the app name
@@ -273,6 +297,8 @@ def render_presets(ids: list[str]) -> str:
         suffix = {"PadLabDev": " Pad Lab", "TurnedDev": " Turned Dev", "PadGamesDev": " Pad Games"}.get(p["name"], " Dev" if p["name"].endswith("Dev") else "")
         body = re.sub(r'(?m)^package/name=.*$', f'package/name="{brand}{suffix}"', body)
         body = re.sub(r'(?m)^application/product_name=.*$', f'application/product_name="{brand}"', body)
+        if 'platform="Windows Desktop"' in body:
+            body = windows_app_fields(body, version, build, brand)
         body = re.sub(r'(?m)^exclude_filter="(.*)"$', lambda m: sprite_exclude(m.group(1), body, ids), body, count=1)
         chunks.append(body)
     # Existing presets keep their order (stable diffs); new games go last.

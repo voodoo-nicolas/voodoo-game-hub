@@ -119,6 +119,10 @@ var account_status_btn: Button
 ## second tap -- on the same tile or another -- can't start a parallel flow.
 var busy: bool = false
 var download_overlay: Control
+const Voodoo = preload("res://scripts/common/voodoo.gd")
+var _options: Control          # Options, open as a layer over the hub (null = closed)
+var _options_look := ""        # _look_signature() when it opened
+const OPTIONS_SCENE := "res://scenes/hub/options.tscn"
 var _pc_updater: PcUpdater  # Windows self-update in progress
 var list_scroll: ScrollContainer
 ## The open category's header, pinned to the top of the list while its games
@@ -185,7 +189,14 @@ func _ready() -> void:
 	Store.changed.connect(_rebuild_list)  # trials, purchases: tile tags change
 	Store.refresh()
 	Catalog.refresh_manifest(Config.MANIFEST_MAX_AGE_SEC)
-	_rebuild_list()
+	# _rebuild_list()
+	# Owner 2026-11-20 (lag): netflix.setup() above already built the list; building it a
+	# second time cost ~0.8 s on a PC on every hub entry. The classic list still needs it.
+	if netflix == null:
+		_rebuild_list()
+	# Options' scene loads on a worker thread while the home shows: the first ⚙ tap is quick too.
+	if ResourceLoader.load_threaded_get_status(OPTIONS_SCENE) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		ResourceLoader.load_threaded_request(OPTIONS_SCENE)
 	_refresh_home()
 	_show_home(false)
 	_animate_home()
@@ -867,8 +878,49 @@ func _resume_last_game() -> void:
 				return
 
 func _open_options() -> void:
-	if not busy:
-		get_tree().change_scene_to_file("res://scenes/hub/options.tscn")
+	# if not busy:
+	# 	get_tree().change_scene_to_file("res://scenes/hub/options.tscn")
+	# Owner 2026-11-20: menu <-> Options lagged -- the hub was freed on the way in and rebuilt
+	# from scratch on the way back (~2 s on a PC). Options now opens as a layer over the hub,
+	# which stays alive: back is instant. A look change (text size, theme, language...)
+	# rebuilds the hub once, on close.
+	if busy or _options != null:
+		return
+	_options_look = _look_signature()
+	var scene: PackedScene
+	if ResourceLoader.load_threaded_get_status(OPTIONS_SCENE) == ResourceLoader.THREAD_LOAD_LOADED:
+		scene = ResourceLoader.load_threaded_get(OPTIONS_SCENE)   # preloaded while the home showed
+	else:
+		scene = load(OPTIONS_SCENE)
+	var o = scene.instantiate()
+	o.as_overlay = true
+	o.add_to_group("modal_overlay")   # the hub's own back handling stays out of the way
+	add_child(o)
+	_options = o
+	o.closed.connect(_on_options_closed)
+	o.play_open()
+
+func _on_options_closed() -> void:
+	_options = null
+	if _look_signature() != _options_look:
+		get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")   # built with the new look
+		return
+	_update_account_status()
+	_update_friend_badge()
+	_refresh_home()
+
+## Leaving the hub (a game, another screen, quitting): collect the Options preload so the
+## loader doesn't keep it (or a half-done load) alive after the hub is gone.
+func _exit_tree() -> void:
+	var st := ResourceLoader.load_threaded_get_status(OPTIONS_SCENE)
+	if st == ResourceLoader.THREAD_LOAD_LOADED or st == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		ResourceLoader.load_threaded_get(OPTIONS_SCENE)
+
+## What, if changed in Options, needs the hub rebuilt (sizes, colours and text are fixed at build).
+func _look_signature() -> String:
+	return var_to_str([Settings.text_size, Settings.theme, Settings.hub_layout, Settings.menu_fx,
+		Settings.reduce_motion, Settings.safety, Settings.is_lite(), TranslationServer.get_locale(),
+		Voodoo.is_on(), Settings.invites])
 
 func _gap(h: float) -> Control:
 	var c := Control.new()

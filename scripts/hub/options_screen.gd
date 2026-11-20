@@ -45,6 +45,12 @@ var _game_updates_total := 0
 var _game_update_failed: Array = []
 var _game_updates_running := false
 
+## Opened by the hub as a layer over itself (hub.gd _open_options): back closes it.
+var as_overlay := false
+var _closing := false
+signal closed
+const OVERLAY_FADE := 0.16
+
 var _content_margin: MarginContainer
 var storage_box: VBoxContainer
 var credits_box: VBoxContainer
@@ -637,33 +643,33 @@ func _on_toggle(b: Button, on_change: Callable) -> void:
 func _on_text_size(i: int) -> void:
 	if i != Settings.text_size:
 		Settings.set_text_size(i)
-		get_tree().reload_current_scene()
+		_reload()
 
 func _on_hub_layout(i: int) -> void:
 	# var layout := "grid" if i == 1 else "strip"
 	var layout: String = LAYOUTS[clampi(i, 0, LAYOUTS.size() - 1)]
 	if layout != Settings.hub_layout:
 		Settings.set_hub_layout(layout)
-		get_tree().reload_current_scene()   # lights the chosen pill
+		_reload()   # lights the chosen pill
 
 func _on_theme(i: int) -> void:
 	var t := "light" if i == 1 else "dark"
 	if t != Settings.theme:
 		Settings.set_theme(t)
-		get_tree().reload_current_scene()
+		_reload()
 
 func _on_language(i: int) -> void:
 	var code: String = Lang.SUPPORTED[i]
 	if code != Lang.current:
 		Lang.set_language(code)
-		get_tree().reload_current_scene()
+		_reload()
 
 func _on_skull_mode(on: bool) -> void:
 	Voodoo.set_on(on)
 
 func _on_invites(i: int) -> void:
 	Settings.set_invites(Settings.INVITE_MODES[i])
-	get_tree().reload_current_scene()  # relights the chosen tab
+	_reload()  # relights the chosen tab
 
 func _update_account() -> void:
 	if Auth.is_logged_in():
@@ -825,13 +831,13 @@ func _on_feedback_pressed() -> void:
 
 func _on_menu_fx(on: bool) -> void:
 	Settings.set_menu_fx(on)
-	get_tree().reload_current_scene()  # the backdrop drifts (or stops) from the start
+	_reload()  # the backdrop drifts (or stops) from the start
 
 func _on_safety(on: bool, key: String) -> void:
 	Settings.set_safety(key, on)
 	Catalog.refilter()
 	if key == "occult" or key == "online":
-		get_tree().reload_current_scene()  # hides / shows Skull mode and Friends
+		_reload()  # hides / shows Skull mode and Friends
 
 func _on_age_limit(v: float) -> void:
 	Settings.set_safety("max_age", AGE_STEPS[int(v)])
@@ -912,4 +918,49 @@ func _ratings_text() -> String:
 	]))
 
 func _go_to_hub() -> void:
+	if as_overlay:
+		_close_overlay()
+		return
 	get_tree().change_scene_to_file("res://scenes/hub/hub.tscn")
+
+# ---------- opened over the hub (owner 2026-11-20: menu <-> Options lagged) ----------
+# The hub used to be freed on the way in and rebuilt from scratch on the way back
+# (~2 s on a PC). Now the hub opens this screen as a layer over itself: back is instant.
+
+## Fades out, then tells the hub (which rebuilds itself only if the look changed).
+func _close_overlay() -> void:
+	if _closing:
+		return
+	_closing = true
+	mouse_filter = Control.MOUSE_FILTER_STOP   # no taps reach the hub mid-fade
+	var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw.tween_property(self, "modulate:a", 0.0, OVERLAY_FADE)
+	tw.tween_property(self, "position:x", size.x * 0.04, OVERLAY_FADE)
+	tw.chain().tween_callback(func():
+		closed.emit()
+		queue_free())
+
+## Slides in from slightly right, fading up.
+func play_open() -> void:
+	modulate.a = 0.0
+	position.x = size.x * 0.04
+	var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(self, "modulate:a", 1.0, OVERLAY_FADE)
+	tw.tween_property(self, "position:x", 0.0, OVERLAY_FADE)
+
+## A setting that changes how screens are built (text size, theme, language...):
+## rebuild this screen in place when it is a layer, else reload the scene as before.
+func _reload() -> void:
+	if not as_overlay:
+		get_tree().reload_current_scene()
+		return
+	var old_scroll := drag.get_parent() as ScrollContainer if drag != null else null
+	var at := old_scroll.scroll_vertical if old_scroll else 0
+	for c in get_children():
+		remove_child(c)
+		c.queue_free()
+	pal = Settings.palette()
+	_build_ui()
+	var new_scroll := drag.get_parent() as ScrollContainer if drag != null else null
+	if new_scroll:
+		new_scroll.set_deferred("scroll_vertical", at)   # stay where the player was
