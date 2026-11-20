@@ -14,6 +14,16 @@ const EXTRA := ["carve", "weave", "tool", "f_ready", "f_back", "f_swing", "f_wai
 ## The fishing cycle as [pose, seconds]; it loops while he fishes.
 const FISH_CYCLE := [["f_ready", 1.6], ["f_back", 0.5], ["f_swing", 0.6], ["f_wait", 4.0], ["f_bite", 1.0], ["f_strike", 0.8], ["f_reel", 1.6]]
 const LOOKS := ["male1", "male2", "male3", "male4", "female1", "female3", "female4", "female5"]
+## Easter-egg looks (owner, 2026-11-20): never in the picker; the engine's `shown_look()` picks them by name.
+const SPECIAL := ["nicolas"]
+## Job frames: a running action / pastime may have its own pictures, <look>_job_<id>_<n>.webp (Nicolas's
+## action sheet) or job_<id>_<n>.webp (the blonde's secret odd jobs); they cycle while the job runs.
+## Some jobs borrow another job's pictures.
+const JOB_ALIAS := {"practise_roast": "roast", "bank_embers": "fan_fire", "comb": "search_sand", "shake_rocks": "search_sand",
+	"dig_clay": "dig", "practise_cast": "fish", "read_sky": "peek", "horizon": "peek", "learn_plants": "search_sand",
+	"knot_practice": "carve", "fiddle_junk": "carve", "stretch": "yoga", "salvage": "haul",
+	"egg_beber": "egg_drink", "egg_llorar": "egg_cry"}
+const JOB_FRAME_S := 0.9
 ## Standing height on screen (plate pixels) at the middle lane.
 const HEIGHT := 124.0
 const SKIN := Color("e0a878")
@@ -31,6 +41,8 @@ var _fidget_until := 0.0
 var _next_fidget := 8.0
 var _once := ""            # a short pose on top (eat, drink, wave, shrug) until _once_until
 var _once_until := 0.0
+var job := ""              # the running action kind or pastime id (set by the game; "" = none)
+var _jobs := {}            # job id -> Array of textures (cached, empty = none)
 
 signal arrived
 
@@ -40,8 +52,9 @@ func _ready() -> void:
 func set_look(l: String) -> void:
 	if l == "female2":      # dropped 2026-11-10 (a twin of female5): old saves get the other blonde
 		l = "female5"
-	look = l if l in LOOKS else "male1"
+	look = l if l in LOOKS or l in SPECIAL else "male1"
 	_tex = {}
+	_jobs = {}
 	for p in POSES + EXTRA:
 		var path := ART + "%s_%s.webp" % [look, p]
 		if ResourceLoader.exists(path):
@@ -113,6 +126,25 @@ func _variant(p: String) -> String:
 		return ["craft", "carve", "tool"][int(_t / 7.0) % 3]
 	return p
 
+## The job's own frames (see JOB_ALIAS), [] when it has none.
+func job_frames(id: String) -> Array:
+	if id == "":
+		return []
+	if not _jobs.has(id):
+		var out: Array = []
+		for key in [id, str(JOB_ALIAS.get(id, ""))]:
+			if key == "" or not out.is_empty():
+				continue
+			for pre in ["%s_job_%s_" % [look, key], "job_%s_" % key]:
+				var n := 1
+				while ResourceLoader.exists(ART + pre + "%d.webp" % n):
+					out.append(load(ART + pre + "%d.webp" % n))
+					n += 1
+				if not out.is_empty():
+					break
+		_jobs[id] = out
+	return _jobs[id]
+
 ## Head position in plate pixels (for the thought bubble).
 func head_global() -> Vector2:
 	var p := current_pose()
@@ -134,6 +166,10 @@ const FACING_POSES := ["idle", "run", "sit", "eat", "drink", "shrug", "wave", "f
 func _draw() -> void:
 	var p := current_pose()
 	var tex: Texture2D = _tex.get(p)
+	var frames: Array = job_frames(job) if not walking and pose not in ["idle", "walk", "sleep", "hammock", "collapse"] else []
+	if not frames.is_empty():
+		tex = frames[int(_t / JOB_FRAME_S) % frames.size()]
+		p = "craft"         # job frames turn with him like the work poses
 	if tex == null:
 		_draw_placeholder()
 		return

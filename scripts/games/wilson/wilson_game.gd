@@ -899,6 +899,7 @@ func _update_johnny() -> void:
 			c.position = _bed_spot(str(engine.sleep.bed))
 		return
 	var a: Dictionary = engine.active()
+	c.job = "" if a.is_empty() else (str(a.target) if a.kind == "pastime" else str(a.kind))
 	if a.is_empty():
 		if not c.walking:
 			c.pose = "idle"
@@ -977,6 +978,9 @@ func _handle_events(evs: Array) -> void:
 				pass      # no streak on screen (owner, 2026-11-11); the shore bonus still happens quietly
 				_sfx("win")
 			"pastime":
+				var say := str(Pastimes.get_pastime(str(e.id)).get("say", ""))
+				if say != "":
+					_bubble_queue.append(say)      # the easter eggs' line in the bubble
 				after_change()
 			"shore":
 				_show_toast("🌊 " + tr("Something washed ashore."))
@@ -1114,7 +1118,11 @@ func _option_text(kind: String, target: String) -> String:
 	var icon: String = ICONS.get(kind, "•")
 	if kind == "pastime":
 		icon = str(Pastimes.get_pastime(target).get("icon", icon))
-	var s := "%s %s  ·  %s" % [icon, action_label(kind, target), _mins_text(mins)]
+	var label := action_label(kind, target)
+	if kind == "pastime":      # skill drills say which skill they raise (owner, 2026-11-20): "Study the plants (+Foraging)"
+		for k in Pastimes.get_pastime(target).get("xp", {}):
+			label += " (+%s)" % tr(D.SKILL_NAMES[k]).strip_edges()
+	var s := "%s %s  ·  %s" % [icon, label, _mins_text(mins)]
 	if en >= 0.95:
 		s += "  ·  ⚡%d" % int(round(en))
 	return s
@@ -1280,7 +1288,7 @@ func _pastimes_menu(group: String = "long") -> void:
 			opts.append(o)
 	for p in Pastimes.group_list(group):
 		var why: String = engine.action_block("pastime", str(p.id))
-		if why.begins_with("Needs") or why in ["Nothing to tidy yet.", "The fire is not lit.", "You have no coconut friend yet.", "Coco is already your friend."]:
+		if why.begins_with("Needs") or why in ["Not for you.", "Nothing to tidy yet.", "The fire is not lit.", "You have no coconut friend yet.", "Coco is already your friend."]:
 			continue   # not even possible yet: it is not listed (the menu stays short)
 		opts.append(_opt("pastime", str(p.id)))
 	var c = world.castaway

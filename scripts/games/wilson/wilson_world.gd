@@ -443,8 +443,8 @@ func sync() -> void:
 	# the hammock sprite hides while the castaway lies in it (his "hammock" pose includes one)
 	if _props.has("hammock"):
 		_props.hammock.visible = not in_hammock()
-	if castaway and castaway.look != engine.look:
-		castaway.set_look(engine.look)
+	if castaway and castaway.look != engine.shown_look():
+		castaway.set_look(engine.shown_look())
 
 ## Sleeping or napping in the hammock right now.
 func in_hammock() -> bool:

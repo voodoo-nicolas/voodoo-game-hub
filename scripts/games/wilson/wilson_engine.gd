@@ -239,6 +239,20 @@ func checkin() -> int:
 
 # ================================================================ pastimes
 
+## Easter eggs (owner, 2026-11-20): the blonde named Heather or Emilia gets her own odd jobs, a white man
+## named Nicolas gets his own pictures. "" = none.
+func egg() -> String:
+	var n := cname.strip_edges().to_lower()
+	if look == "female5" and n in ["heather", "emilia"]:
+		return n
+	if look in ["male1", "male2", "male3"] and n == "nicolas":
+		return "nicolas"
+	return ""
+
+## The look drawn on screen (an egg can swap it).
+func shown_look() -> String:
+	return "nicolas" if egg() == "nicolas" else look
+
 ## "" when the pastime can start now, else why not.
 func pastime_block(id: String, self_q = null) -> String:
 	var p := Pastimes.get_pastime(id)
@@ -247,6 +261,8 @@ func pastime_block(id: String, self_q = null) -> String:
 	for q in queue:
 		if q.kind == "pastime" and q.target == id and not is_same(q, self_q):
 			return "Already queued."
+	if p.has("egg") and egg() != str(p.egg):
+		return "Not for you."
 	var h := hour()
 	var need := str(p.get("needs", ""))
 	if need != "" and count(need) <= 0:
