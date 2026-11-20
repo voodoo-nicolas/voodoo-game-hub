@@ -14,6 +14,7 @@ outside the body box is "effect" and is coloured in the hard versions.
 import os, sys, zlib
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
+from scipy import ndimage
 
 SRC = "D:/Dev/Minigame Art/ink ninja/artwork/2"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,6 +27,7 @@ RATIO_BOSS = {("tora", "hit"): 0.7, ("tora", "stagger"): 0.6, ("tora", "wind"): 
 INNER_SMOKE = {"dragon"}   # smoke wraps the figure: the smooth grey wash inside the body box is coloured too
 # Bosses: a steeper paper cut (opaque bodies, not see-through washes) and darker mid-greys.
 BOSS_LO, BOSS_HI, BOSS_GAMMA = 0.04, 0.16, 1.35
+HOLE_MAX = 0.006      # solid(): biggest gap filled, as a share of the picture
 FIG_PX = 340          # body-box height of the idle pose in the output (the other poses keep its scale)
 
 # name: (file, sub x0..x1 or None, box)
@@ -139,6 +141,39 @@ def cut(im, lo=0.07, hi=0.32):
     return rgb, alpha
 
 
+def solid(im, rgb, alpha, box=None):
+    """Owner 2026-11-20 ("the new sprites are slightly transparent"): the paper cut also made every pale
+    part inside a figure (light stone, white fur, pale robes) half see-through. Fill the inside of the
+    silhouette: alpha 1 there, colour = the painting as it was on the paper. The soft cut stays on the
+    outline and on smoke / ink outside `box` (the body box, normalised; None = the whole picture)."""
+    a = np.asarray(im).astype(np.float32) / 255.0
+    h, w = alpha.shape
+    m = alpha > 0.35
+    m = ndimage.binary_closing(m, iterations=3)
+    holes = ndimage.binary_fill_holes(m) & ~m
+    # Only small gaps: pale fur / stone is split by brush strokes into many small ones, while a real
+    # opening (under a table, inside a ring of smoke) is one big area and stays see-through.
+    # With a body box, a gap counts only when it lies wholly inside it (no straight seam at the box).
+    lab, n = ndimage.label(holes)
+    if n:
+        idx = np.arange(1, n + 1)
+        area = ndimage.sum(holes, lab, index=idx)
+        ok = area < HOLE_MAX * h * w
+        if box is not None:
+            inbox = np.zeros_like(holes)
+            inbox[int(box[1] * h):int(box[3] * h) + 1, int(box[0] * w):int(box[2] * w) + 1] = True
+            ok &= ndimage.sum(holes & inbox, lab, index=idx) >= area
+        keep = np.concatenate([[False], ok])
+        holes = keep[lab]
+    filled = m | holes
+    core = ndimage.binary_erosion(filled, iterations=2).astype(np.float32)
+    core = ndimage.gaussian_filter(core, 1.2)
+    new_a = np.maximum(alpha, core)
+    add = (new_a - alpha)[..., None]
+    rgb2 = np.clip((rgb * alpha[..., None] + a * add) / np.maximum(new_a, 1e-3)[..., None], 0.0, 1.0)
+    return rgb2, new_a
+
+
 def mute(rgb, sat, warm=0.0):
     grey = (rgb * np.array([0.299, 0.587, 0.114])).sum(axis=2, keepdims=True)
     out = grey + (rgb - grey) * sat
@@ -210,7 +245,9 @@ def main():
     debug = sys.argv[sys.argv.index("--debug") + 1] if "--debug" in sys.argv else None
     os.makedirs(BOSS_OUT, exist_ok=True)
     for name, (f, sub) in STATUES.items():
-        rgb, alpha = cut(load(f, sub))
+        src = load(f, sub)
+        rgb, alpha = cut(src)
+        rgb, alpha = solid(src, rgb, alpha)
         rgb = mute(rgb, 0.45, 0.03)
         save(rgb, alpha, os.path.join(ART, name + ".png"), maxpx=420, crop_to=bbox(alpha))
     lines = ["extends RefCounted", "",
@@ -223,9 +260,10 @@ def main():
         for pose, (f, sub, face, box, fx) in poses.items():
             src = load(f, sub)
             rgb, alpha = cut(src, BOSS_LO, BOSS_HI)
+            bb = bbox(alpha)   # the anchors keep the old cut's frame
+            rgb, alpha = solid(src, rgb, alpha, box)
             rgb = rgb ** BOSS_GAMMA   # darker mid-greys: the boss reads in the mist
             h, w = alpha.shape
-            bb = bbox(alpha)
             scale = FIG_PX * RATIO_BOSS.get((boss, pose), RATIO[pose]) / ((box[3] - box[1]) * h)
             ax = ((box[0] + box[2]) / 2 * w - bb[0]) * scale
             ay = (box[3] * h - bb[1]) * scale
@@ -236,6 +274,7 @@ def main():
                 hs = load(hf, None)
                 hrgb, ha = cut(hs, BOSS_LO, BOSS_HI)
                 hb = bbox(ha)
+                hrgb, ha = solid(hs, hrgb, ha, hbox)
                 # same body size as the normal pose
                 hscale = scale * ((box[3] - box[1]) * h) / ((hbox[3] - hbox[1]) * hs.height)
                 hrgb = np.where(np.repeat(((hrgb.max(axis=2) - hrgb.min(axis=2)) < 0.25)[..., None], 3, axis=2), mute(hrgb, 0.6), hrgb)

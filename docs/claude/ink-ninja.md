@@ -102,3 +102,11 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
   over the Landing, before its music; tap or Skip ends it. Not replayed when the pause menu's 🏠 Home reloads the
   scene (`_exit_tree` stamps the tree meta `ink_ninja_left`; a reopen within 2 s counts as that reload). It runs with
   `PROCESS_MODE_ALWAYS` because the Landing pauses the tree (it froze on a black first frame).
+
+## Solid sprites + PC key labels (owner playtest, 2026-11-20)
+- New statues / boss poses were half see-through inside (the paper cut turned pale fur / stone into alpha).
+  `tools/ink_ninja_art.py` `solid()` now fills the small gaps inside each silhouette (opaque, painting colour);
+  big openings (under the bonsai table, smoke rings) and gaps crossing a boss's body box stay cut (`HOLE_MAX`).
+  Anchors (`ink_ninja_poses.gd`) unchanged.
+- "A won't swing after jump / crouch / run" on PC = Windows touchpad ignoring taps while typing (not the game).
+  On a PC without a touchscreen the Pad buttons now show their key: Swing (J), Thrust (L), Star (K), Block (I), Bomb (B).

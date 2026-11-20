@@ -410,11 +410,14 @@ func _add_pad() -> void:
 		touch_pad.set_hidden(part, true)
 	# Owner 2026-11-15: the four buttons are Swing, Thrust, Star and Block; jumping is on
 	# the stick (push up) or the keyboard. Locked moves stay hidden until they unlock.
-	touch_pad.set_state("a", {"sub": tr("Swing")})
-	touch_pad.set_state("b", {"sub": tr("Thrust")})
-	touch_pad.set_state("x", {"sub": tr("Star")})
-	touch_pad.set_state("y", {"sub": tr("Block")})
-	touch_pad.set_state("s", {"sub": tr("Bomb")})
+	# Owner 2026-11-20 ("A won't swing after I jump / crouch / run" on a laptop): Windows ignores
+	# touchpad taps while keys are held or just typed, so on a PC each button also names its key.
+	var keys := {} if DisplayServer.is_touchscreen_available() else {"a": " (J)", "b": " (L)", "x": " (K)", "y": " (I)", "s": " (B)"}
+	touch_pad.set_state("a", {"sub": tr("Swing") + keys.get("a", "")})
+	touch_pad.set_state("b", {"sub": tr("Thrust") + keys.get("b", "")})
+	touch_pad.set_state("x", {"sub": tr("Star") + keys.get("x", "")})
+	touch_pad.set_state("y", {"sub": tr("Block") + keys.get("y", "")})
+	touch_pad.set_state("s", {"sub": tr("Bomb") + keys.get("s", "")})
 	touch_pad.button_pressed.connect(_on_pad_button)
 
 ## Show only the buttons this stage allows; a newly unlocked one pops in.
