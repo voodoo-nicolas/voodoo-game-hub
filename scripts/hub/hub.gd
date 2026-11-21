@@ -123,6 +123,8 @@ const Voodoo = preload("res://scripts/common/voodoo.gd")
 var _options: Control          # Options, open as a layer over the hub (null = closed)
 var _options_look := ""        # _look_signature() when it opened
 const OPTIONS_SCENE := "res://scenes/hub/options.tscn"
+const LayoutD = preload("res://scripts/hub/layout_d.gd")
+var layout_d: Control   # Layout D, the main menu since 0.43 (null = the old home + browser)
 var _pc_updater: PcUpdater  # Windows self-update in progress
 var list_scroll: ScrollContainer
 ## The open category's header, pinned to the top of the list while its games
@@ -162,10 +164,18 @@ func _ready() -> void:
 	add_child(art_layer)
 	move_child(art_layer, 1)
 
-	_build_browser_view()
-	_build_home_view()
-	resized.connect(_apply_home_orientation)
-	_apply_home_orientation()
+	# Layout D (owner 2026-11-20): rail + Home + grids replace the home view and the Game
+	# Browser (their code stays; HUB_OLD_MENU=1 brings them back for comparison).
+	if OS.get_environment("HUB_OLD_MENU") != "1":
+		layout_d = LayoutD.new()
+		add_child(layout_d)
+		layout_d.setup(self)
+		get_tree().quit_on_go_back = false   # Android back moves inside the menu first
+	else:
+		_build_browser_view()
+		_build_home_view()
+		resized.connect(_apply_home_orientation)
+		_apply_home_orientation()
 
 	# .unbind(2) rather than a lambda on purpose: Godot only auto-disconnects a
 	# signal when the connected Callable points at the freed object. A lambda is
@@ -193,7 +203,7 @@ func _ready() -> void:
 	# _rebuild_list()
 	# Owner 2026-11-20 (lag): netflix.setup() above already built the list; building it a
 	# second time cost ~0.8 s on a PC on every hub entry. The classic list still needs it.
-	if netflix == null:
+	if netflix == null and layout_d == null:
 		_rebuild_list()
 	# Options' scene loads on a worker thread while the home shows: the first ⚙ tap is quick too.
 	if ResourceLoader.load_threaded_get_status(OPTIONS_SCENE) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
@@ -245,6 +255,12 @@ func _on_catalog_changed() -> void:
 
 ## Android back: the browser goes back to the home view.
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and layout_d != null:
+		if not get_tree().get_nodes_in_group("modal_overlay").filter(func(n): return n.is_visible_in_tree() and n != layout_d._dim).is_empty():
+			return   # a dialog / the Options layer handles its own back
+		if not layout_d.handle_back():
+			get_tree().quit()   # on Home: leave the app, as before
+		return
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and browser_view and browser_view.visible \
 			and get_tree().get_nodes_in_group("modal_overlay").filter(func(n): return n.is_visible_in_tree()).is_empty():
 		if netflix != null and netflix.handle_back():
@@ -380,6 +396,9 @@ func _apply_home_orientation() -> void:
 		games_btn.custom_minimum_size.y = 124
 
 func _refresh_home() -> void:
+	if layout_d != null:
+		layout_d.refresh_home()
+		return
 	if continue_box == null:
 		return
 	for c in continue_box.get_children():
@@ -521,12 +540,14 @@ func _hub_pill(text: String, color: Color) -> Button:
 	return b
 
 func _show_home(animate: bool = true) -> void:
+	if layout_d != null:
+		return   # Layout D has no separate browser to slide away from
 	_set_category_art("")
 	_slide_to(false, animate)
 	_refresh_home()
 
 func _show_browser() -> void:
-	if busy:
+	if busy or layout_d != null:
 		return
 	_rebuild_list()
 	_apply_category_art()
@@ -918,6 +939,7 @@ func favorites_synced() -> void:
 ## Leaving the hub (a game, another screen, quitting): collect the Options preload so the
 ## loader doesn't keep it (or a half-done load) alive after the hub is gone.
 func _exit_tree() -> void:
+	get_tree().quit_on_go_back = true   # games keep Android's default back
 	var st := ResourceLoader.load_threaded_get_status(OPTIONS_SCENE)
 	if st == ResourceLoader.THREAD_LOAD_LOADED or st == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
 		ResourceLoader.load_threaded_get(OPTIONS_SCENE)
@@ -951,6 +973,9 @@ func _update_friend_badge() -> void:
 
 ## The top bar's Profile button: the player's name, or "Sign In".
 func _update_account_status() -> void:
+	if layout_d != null:
+		layout_d.update_account()
+		return
 	if profile_btn == null:
 		return
 	if Auth.is_logged_in():
@@ -1011,6 +1036,9 @@ const GLASS := 0.78
 ## a header button's own `pressed` signal, and Godot refuses to free a node whose
 ## signal is still emitting, leaking it instead.
 func _rebuild_list() -> void:
+	if layout_d != null:
+		layout_d.rebuild()
+		return
 	if netflix != null:
 		netflix.rebuild()
 		return
@@ -1322,7 +1350,8 @@ func _on_star(id: String, star: Button) -> void:
 ## already knows whether an update exists. Offline, a downloaded game just
 ## launches, and a failed update download falls back to the copy on disk.
 func _on_tile_pressed(id: String) -> void:
-	if busy or (browser_view.visible and drag.moved):
+	# if busy or (browser_view.visible and drag.moved):
+	if busy or (browser_view != null and browser_view.visible and drag != null and drag.moved):
 		return
 	var game: Dictionary = Catalog.get_game(id)
 	if game.is_empty():

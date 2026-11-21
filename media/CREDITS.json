@@ -9660,6 +9660,17 @@
    "url": "",
    "date": "2026-11-20",
    "ai_tool": "ChatGPT (OpenAI), Free plan"
+  },
+  {
+   "file": "media/hub/icons/",
+   "what": "Hub rail and category icons (Layout D): 18 outline icons, stroke recoloured white for tinting",
+   "source": "Tabler Icons 3.19.0 (npm @tabler/icons, cdn.jsdelivr.net)",
+   "author": "Paweł Kuna and contributors (tabler.io)",
+   "licence": "MIT",
+   "proof": "media/licenses/icons/tabler-icons-LICENSE.txt",
+   "url": "https://tabler.io/icons",
+   "date": "2026-11-20",
+   "processed_by": "stroke currentColor -> #ffffff"
   }
  ]
 }

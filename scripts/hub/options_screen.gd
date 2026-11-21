@@ -207,8 +207,16 @@ func _build_ui() -> void:
 	for c in codes:
 		names.append(Lang.NAMES[c])
 	_choice_row(display, tr("Language"), "", names, codes.find(Lang.current), _on_language)
-	_choice_row(display, tr("Games menu look"), tr("Sliding tiles, every game in a grid, or Superlite: the grid with no pictures, for older phones."),
-			[tr("Sliding"), tr("Grid"), tr("Superlite")], maxi(0, LAYOUTS.find(Settings.hub_layout)), _on_hub_layout)
+	# Since 0.43 the main menu is Layout D (scripts/hub/layout_d.gd): Sliding / Grid no longer
+	# apply, only Superlite (no pictures) does. The old three pills stay for HUB_OLD_MENU=1.
+	# _choice_row(display, tr("Games menu look"), tr("Sliding tiles, every game in a grid, or Superlite: the grid with no pictures, for older phones."),
+	# 		[tr("Sliding"), tr("Grid"), tr("Superlite")], maxi(0, LAYOUTS.find(Settings.hub_layout)), _on_hub_layout)
+	if _old_menu():
+		_choice_row(display, tr("Games menu look"), tr("Sliding tiles, every game in a grid, or Superlite: the grid with no pictures, for older phones."),
+				[tr("Sliding"), tr("Grid"), tr("Superlite")], maxi(0, LAYOUTS.find(Settings.hub_layout)), _on_hub_layout)
+	else:
+		_choice_row(display, tr("Games menu look"), tr("Standard, or Superlite: no pictures, for older phones."),
+				[tr("Standard"), tr("Superlite")], 1 if Settings.is_lite() else 0, _on_menu_look)
 	_toggle_row(display, tr("✨ Menu animations"), tr("Smoke, floating sparks and the slowly moving background in the menus."),
 			Settings.menu_fx, _on_menu_fx)
 	_toggle_row(display, tr("🎞 Reduce motion"), tr("Menus switch instantly instead of sliding and fading."),
@@ -651,6 +659,17 @@ func _on_hub_layout(i: int) -> void:
 	if layout != Settings.hub_layout:
 		Settings.set_hub_layout(layout)
 		_reload()   # lights the chosen pill
+
+## Layout D: 0 = Standard, 1 = Superlite. Standard keeps the old menu's Sliding / Grid choice
+## (it only matters with HUB_OLD_MENU=1), coming back from Superlite as Sliding.
+func _on_menu_look(i: int) -> void:
+	var layout: String = "lite" if i == 1 else (Settings.hub_layout if not Settings.is_lite() else "strip")
+	if layout != Settings.hub_layout:
+		Settings.set_hub_layout(layout)
+		_reload()   # lights the chosen pill
+
+func _old_menu() -> bool:
+	return OS.get_environment("HUB_OLD_MENU") == "1"
 
 func _on_theme(i: int) -> void:
 	var t := "light" if i == 1 else "dark"

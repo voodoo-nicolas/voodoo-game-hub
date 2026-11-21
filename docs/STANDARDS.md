@@ -54,6 +54,52 @@ Goal: fewer buttons, no scrolling on the hub home.
 - [2026-11-13] Hub decoration: embers + slow smoke (`hub_fx.gd`), off with Options > Display > ✨ Menu animations
   (`Settings.menu_fx`) or Reduce motion.
 
+### 2L. Layout D: the main menu [CURRENT since v0.43.0, 2026-11-20, owner]
+Replaces the hub home (§2 top bar + Continue card + 🎮 Games) and the Game Browser (§2a) as what the hub shows.
+Their code stays (`HUB_OLD_MENU=1` brings them back for comparison); §2 / §2a still describe that old menu.
+Code: `scripts/hub/layout_d.gd` (+ `categories.gd`; tiles, the game card and the scroller are the Game Browser's
+`game_tile.gd`, `game_detail.gd`, `touch_scroll.gd`). Tests: `tools/test_layout_d.gd` (headless),
+`tools/perf_layout_d.gd` (window: switch / rotation timings), screenshots `tools/shot_layout_d.gd` → `docs/screens/hub_layout_d/`.
+- **Rail** (left, full height), top to bottom: **Profile & settings** (pinned; avatar + name, or 🔑 Sign in; opens
+  Options as a layer) · divider · **Search** · **Home** · **Favorites** · divider · the categories of
+  `scripts/hub/categories.gd`, in its order. A category with fewer than `MIN_GAMES_TO_SHOW` (= 6) live games is
+  hidden (Puzzle / Action / Sports at launch: intended). The selected item: tinted, accent bar on its left.
+  Phone: icons only (long-press shows the name); tablet / PC: icon + label, rail as wide as the longest label
+  (160-250 dp). Phone landscape: the list scrolls under the pinned Profile, a fade + chevron says there is more.
+- **Device class** from the screen's SHORT side in dp, never from pixels or orientation: phone < 600 dp ≤ tablet
+  < 1000 dp ≤ PC; a desktop OS window of 600 dp or more counts as PC. It doesn't change on rotation; the layout
+  follows the orientation. Sizes are in dp, so text size 1.0-1.4 grows only the text. Fake a device for
+  screenshots with `HUB_DEVICE=phone|tablet|pc` + `HUB_DP_SHORT=<dp>`.
+- **Home**, top to bottom: **Featured** banner (manifest top-level `"featured"`: game ids, auto-advances every 5 s,
+  ‹ › arrows / swipe, ▶ Play; phone landscape: banner left of the next row) · **Continue playing** (recently opened,
+  newest first) or, on a first launch, **Start here** (manifest top-level `"starter"`) · **New** (per-game `"added"`,
+  newest first) · **Recently updated** (pack `"updated"`; becomes "Popular this week" once Supabase counts plays).
+  A row shows up to 10 tiles (phone portrait 3 visible, tablet portrait 5, else 6-8, the next one peeks out) and
+  **See all ›** opens the full list as a grid with "‹ Home".
+- **Category / Favorites / See all**: a grid with a header "<name> · N games" (always counted from the list,
+  never typed). Columns: phone 3 (landscape 5-6), tablet 4 (landscape 5-6), PC 5-8.
+- **Search**: one field (placeholder "Search N games"; matches every word against the EN + ES name, the category
+  and the tags in EN + ES) + chips **Multiplayer** (tag `multiplayer`), **Quick play** (tag `quick` or `quick: true`),
+  **Offline** (tag `offline` AND downloaded: playable right now with no connection). PC: the field takes focus;
+  phones: no surprise keyboard.
+- Tap a tile = the game card (picture, title, ★, category · age, description, modes, ▶ Play = the hub's usual
+  age / update / store / download / launch flow); long-press = ★ favourite. Back (Android / Esc / B): card →
+  Home → leaves the app. Keyboard / controller: the first arrow focuses the rail; tiles show a focus ring; Enter / A
+  opens, Esc / B goes back.
+- **Smooth**: views are cached (Home + the last few, `MAX_PARKED` = 4, parked off-screen) so going back is instant;
+  the first categories build in the background after Home shows; a new grid builds half a screen at once and the
+  rest a few tiles per frame; tile pictures load on a worker thread, only near the screen. Rail switch to a built
+  view ≈ 2-3 ms on a PC (`tools/perf_layout_d.gd`); keep a first-time category under 100 ms there.
+- **Options > Display > Games menu look**: **Standard** or **Superlite** (no image files anywhere in the hub).
+  Sliding / Grid only exist with `HUB_OLD_MENU=1`.
+- **Manifest fields** (since 0.43; older apps ignore them and keep reading the old `categories` groups):
+  per game `"category"` (one id of `categories.gd`; missing = Arcade + a check warning), `"tags"` (lowercase
+  words: `multiplayer`, `online`, `offline`, `quick`, `original`...), `"added"` (YYYY-MM-DD, from git history for the
+  first 130); pack entry `"updated"` (YYYY-MM-DD, stamped by `hub.py bump-pack`); top level `"featured"` and
+  `"starter"` (live game ids). `hub.py new-game` writes the per-game fields.
+- **Lint** (`hub.py check`, `lint_layout_d`): every live game's category is a known id (missing = warning), tags
+  are lowercase words, `added` / `updated` are real dates, `featured` / `starter` name only live (not archived) games.
+
 ### 2a. Game Browser [CURRENT since v0.30.0 — except ratings, "Top rated", "New", Newest sort, size badge: no data yet]
 - Search box + **Filters** button (chips and sort fold away until tapped; shows "Filters (N)" while any are on) + filter chips: Single player · Same phone · Online · Party · Category ▾ · Top rated ·
   Never played · Downloaded · Favorites · New.

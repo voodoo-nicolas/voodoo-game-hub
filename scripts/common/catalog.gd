@@ -76,6 +76,10 @@ var _manifest_waiters: Array[Callable] = []
 var app_update_checked := false
 ## The manifest's top-level "store" block (read by the Store autoload).
 var store_config: Dictionary = {}
+## Layout D (v0.43): Home banner picks and the first-launch "Start here" row (manifest top level).
+var featured: Array = []
+var starter: Array = []
+const Categories = preload("res://scripts/hub/categories.gd")
 
 ## Age ratings (since v0.35, compliance pack Task 4). Each manifest game has
 ## "content": {"min_age", "descriptors", "notes"}. When the manifest carries any
@@ -279,6 +283,8 @@ func _apply_manifest(data: Variant) -> bool:
 			"url": str(entry.get("url", Config.PACK_BASE_URL + str(id) + ".pck")),
 			"scene": str(entry.get("scene", "res://scenes/games/%s/%s.tscn" % [id, id])),
 			"min_build": int(entry.get("min_build", 0)),
+			# Since v0.43 (Layout D): when the pack version last changed (Home "Recently updated").
+			"updated": str(entry.get("updated", "")),
 		}
 
 	var archived := {}
@@ -343,6 +349,14 @@ func _apply_manifest(data: Variant) -> bool:
 				ratings_seen = true
 			# Store (docs/monetization/PLAN.md): free forever, no trial needed.
 			game["free"] = bool(raw_game.get("free", false))
+			# Since v0.43, Layout D (scripts/hub/categories.gd): the game's category id (unknown
+			# or missing = the fallback; older apps read the old groups instead), lowercase
+			# tags for search and its filter chips, and the date it was added (Home "New").
+			var cat_id := str(raw_game.get("category", ""))
+			game["category"] = cat_id if Categories.is_valid(cat_id) else str(Categories.FROM_OLD.get(str(raw_cat.get("name", "")), Categories.FALLBACK))
+			var tags = raw_game.get("tags", [])
+			game["tags"] = tags.map(func(x): return str(x).to_lower()) if tags is Array else []
+			game["added"] = str(raw_game.get("added", ""))
 			cat_games.append(game)
 		cat_games.sort_custom(_family_less)
 		var category := {
@@ -366,7 +380,34 @@ func _apply_manifest(data: Variant) -> bool:
 	archived_ids = archived
 	# The Store autoload's switch: {"enabled", "trial_days", "promos"}; missing = off.
 	store_config = data.get("store") if data.get("store") is Dictionary else {}
+	# Layout D Home: the owner's picks (manifest top level; missing / archived ids are skipped).
+	featured = _id_list(data.get("featured"))
+	starter = _id_list(data.get("starter"))
 	return true
+
+func _id_list(v: Variant) -> Array:
+	var out: Array = []
+	if v is Array:
+		for x in v:
+			if typeof(x) == TYPE_STRING and not archived_ids.has(x) and _games_by_id.has(x) and not out.has(x):
+				out.append(x)
+	return out
+
+## Every listed game the player may see (age filter applied), each once, in category order.
+func all_games() -> Array:
+	var out: Array = []
+	var seen := {}
+	for cat in categories:
+		for g in cat.games:
+			var id := str(g.get("id", ""))
+			if id != "" and not seen.has(id):
+				seen[id] = true
+				out.append(g)
+	return out
+
+## The games of one Layout D category id, in the old groups' order (family, then title).
+func games_in(category_id: String) -> Array:
+	return all_games().filter(func(g): return str(g.get("category", "")) == category_id)
 
 ## Category order: by family (a game without one counts as its own family),
 ## then title; "coming soon" placeholders (no id) last. English titles, so the

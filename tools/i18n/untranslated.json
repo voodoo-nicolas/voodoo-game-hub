@@ -298,10 +298,6 @@
  "April": [
   "scripts\\account\\consent_screen.gd"
  ],
- "Arcade": [
-  "scripts\\hub\\hub.gd",
-  "scripts\\hub\\hub_art.gd"
- ],
  "Artista del carbón": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -488,10 +484,6 @@
  "Fabrica algo": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Facebook": [
-  "scripts\\hub\\options_screen.gd",
-  "scripts\\account\\account_screen.gd"
- ],
  "Faro del disparate": [
   "scripts\\games\\wilson\\wilson_projects.gd"
  ],
@@ -567,6 +559,10 @@
  "Guerra de cangrejos": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "HUB_OLD_MENU": [
+  "scripts\\hub\\hub.gd",
+  "scripts\\hub\\options_screen.gd"
+ ],
  "Habitual": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -587,10 +583,6 @@
  ],
  "IQ*": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
- ],
- "Intelligence": [
-  "scripts\\hub\\hub.gd",
-  "scripts\\hub\\hub_art.gd"
  ],
  "January": [
   "scripts\\account\\consent_screen.gd"
@@ -739,10 +731,6 @@
  "Parlanchín": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
- "Party": [
-  "scripts\\hub\\hub.gd",
-  "scripts\\hub\\hub_art.gd"
- ],
  "Pasatiempos de ola de calor": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -778,10 +766,6 @@
  ],
  "Puro genio": [
   "scripts\\games\\wilson\\wilson_quests.gd"
- ],
- "Puzzle & Board": [
-  "scripts\\hub\\hub.gd",
-  "scripts\\hub\\hub_art.gd"
  ],
  "RIM#": [
   "scripts\\common\\game_logos_rest.gd"
@@ -951,10 +935,6 @@
  ],
  "Windows": [
   "scripts\\common\\pc_updater.gd"
- ],
- "Word": [
-  "scripts\\hub\\hub.gd",
-  "scripts\\hub\\hub_art.gd"
  ],
  "Yoga en la playa": [
   "scripts\\games\\wilson\\wilson_quests.gd"

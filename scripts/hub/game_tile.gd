@@ -174,6 +174,12 @@ func setup(g: Dictionary, category_name: String, tile_size: Vector2, scroller_no
 	_timer.timeout.connect(_on_long)
 	add_child(_timer)
 
+## The title's font size in px (Layout D sizes it in dp; the default grows with the tile).
+## Since 0.43 (APK-side; packs that build tiles never call it).
+func set_title_px(px: int) -> void:
+	if _title != null:
+		_title.add_theme_font_size_override("font_size", px)
+
 ## Loads / drops the picture. Called by the browser for tiles near the screen.
 func set_loaded(on: bool) -> void:
 	if on == _loaded or not _has_art:

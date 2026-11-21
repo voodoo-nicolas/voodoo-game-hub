@@ -46,6 +46,7 @@ import subprocess
 import sys
 import urllib.request
 import zipfile
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -539,6 +540,9 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_credits()
     errors += lint_music(m)
     errors += lint_game_music(m)
+    e_ld, w_ld = lint_layout_d(m)
+    errors += e_ld
+    warnings += w_ld
     errors += lint_hub_name()
     errors += lint_web_threads()
     errors += lint_own_backgrounds(m)
@@ -759,6 +763,73 @@ def lint_music(m: dict) -> list[str]:
         elif not (key == "hub" or key.startswith(("game:", "category:"))):
             errors.append(f"{where}: play {key!r}: keys are hub, category:<name> or game:<id>")
     return errors
+
+
+# ---- Layout D (owner 2026-11-20): categories, tags, Home fields
+
+CATEGORIES_GD = ROOT / "scripts" / "hub" / "categories.gd"
+CATEGORY_FALLBACK = "arcade"
+OLD_GROUP_TO_CATEGORY = {"Puzzle & Board": "board", "Intelligence": "brain", "Cards": "cards", "Word": "word",
+                         "Arcade": "arcade", "Adventure": "adventure", "Dice": "dice", "Party": "party"}
+TAG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def category_ids() -> list[str]:
+    """The category ids, read from scripts/hub/categories.gd (the one list)."""
+    text = CATEGORIES_GD.read_text(encoding="utf-8") if CATEGORIES_GD.is_file() else ""
+    return re.findall(r'\{"id": "([a-z_]+)"', text)
+
+
+def _valid_date(s) -> bool:
+    if not isinstance(s, str) or not DATE_RE.match(s):
+        return False
+    try:
+        date.fromisoformat(s)
+        return True
+    except ValueError:
+        return False
+
+
+def lint_layout_d(m: dict) -> tuple[list[str], list[str]]:
+    """Every live game has a valid "category" (missing = Arcade + a warning), lowercase
+    "tags", a real "added" date; "featured" / "starter" name live games; pack "updated"
+    dates are real dates. STANDARDS §2 (Layout D)."""
+    errors, warnings = [], []
+    ids = category_ids()
+    if not ids:
+        return [f"{CATEGORIES_GD.relative_to(ROOT)}: no categories found"], []
+    live = set()
+    for cat in m.get("categories", []):
+        for g in cat.get("games", []):
+            gid = g.get("id")
+            if not gid or cat.get("archived") or g.get("archived"):
+                continue
+            live.add(gid)
+            c = g.get("category")
+            if c is None:
+                warnings.append(f"{gid}: no \"category\" -- shown under {CATEGORY_FALLBACK} (pick one of {', '.join(ids)})")
+            elif c not in ids:
+                errors.append(f"{gid}: category {c!r} isn't one of {', '.join(ids)} (scripts/hub/categories.gd)")
+            tags = g.get("tags", [])
+            if not isinstance(tags, list) or any(not isinstance(x, str) or not TAG_RE.match(x) for x in tags):
+                errors.append(f"{gid}: \"tags\" must be a list of lowercase words (a-z, 0-9, -): {tags!r}")
+            if "added" not in g:
+                warnings.append(f"{gid}: no \"added\" date (Home 'New' row)")
+            elif not _valid_date(g["added"]):
+                errors.append(f"{gid}: \"added\" must be a date YYYY-MM-DD, not {g['added']!r}")
+    for key in ("featured", "starter"):
+        lst = m.get(key, [])
+        if not isinstance(lst, list):
+            errors.append(f"manifest {key!r} must be a list of game ids")
+            continue
+        for gid in lst:
+            if gid not in live:
+                errors.append(f"manifest {key!r}: {gid!r} isn't a live game (missing or archived)")
+    for gid, entry in m.get("games", {}).items():
+        if "updated" in entry and not _valid_date(entry["updated"]):
+            errors.append(f"games.{gid}.updated must be a date YYYY-MM-DD, not {entry['updated']!r}")
+    return errors, warnings
 
 
 def lint_game_music(m: dict) -> list[str]:
@@ -1023,14 +1094,20 @@ def cmd_new_game(args) -> None:
         dest.write_text(text, encoding="utf-8", newline="\n")
         print(f"  created {dest.relative_to(ROOT)}")
 
+    # Layout D fields: the new category id (from the old group), tags, the date it was added.
+    fresh = {"id": gid, "title": args.title, "icon": args.icon,
+             "category": OLD_GROUP_TO_CATEGORY.get(cat.get("name", ""), CATEGORY_FALLBACK),
+             "tags": [], "added": date.today().isoformat()}
     # Replace a "coming soon" placeholder of the same title if there is one.
     for g in cat["games"]:
         if not g.get("id") and g.get("title", "").lower() == args.title.lower():
             g.clear()
-            g.update({"id": gid, "title": args.title, "icon": args.icon})
+            # g.update({"id": gid, "title": args.title, "icon": args.icon})
+            g.update(fresh)
             break
     else:
-        cat["games"].append({"id": gid, "title": args.title, "icon": args.icon})
+        # cat["games"].append({"id": gid, "title": args.title, "icon": args.icon})
+        cat["games"].append(fresh)
     save_manifest(m)
     cmd_sync()
     print(f"\nNext: build the game in scripts/games/{gid}/, then `python tools/hub.py test {gid}`.")
@@ -1042,6 +1119,7 @@ def cmd_bump_pack(args) -> None:
         if gid not in m["games"]:
             raise ToolError(f"unknown game {gid}")
         m["games"][gid]["version"] += 1
+        m["games"][gid]["updated"] = date.today().isoformat()   # Home "Recently updated" (Layout D)
         print(f"  {gid}: version {m['games'][gid]['version']}")
     save_manifest(m)
 
