@@ -484,10 +484,28 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Owner test keys (2026-11-20, keyboard only): F9 = to the end of the stage (the gate or
 	# the boss), F10 = 1500 units ahead to look at the scenery.
 	# F11 (2026-11-21) = invincible on / off (no damage; a fall returns you to the lantern).
-	if started and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
-		engine.god = not engine.god
-		_toast(tr("Invincible: on") if engine.god else tr("Invincible: off"), Color(0.2, 0.2, 0.2))
-		return
+	# Owner 2026-11-21 "F11 isn't doing anything": laptop F-keys often send media keys unless Fn is
+	# held, so G (god mode) does the same, and the physical key is checked too.
+	# if started and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
+	# Owner 2026-11-21: F7, G or Caps Lock too (any of them toggles); F5 = full stars and bombs,
+	# F6 = full hearts.
+	if started and event is InputEventKey and event.pressed and not event.echo:
+		var kc: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+		if kc in [KEY_F11, KEY_F7, KEY_G, KEY_CAPSLOCK] or event.keycode in [KEY_F11, KEY_F7, KEY_G, KEY_CAPSLOCK]:
+			engine.god = not engine.god
+			_toast(tr("Invincible: on") if engine.god else tr("Invincible: off"), Color(0.2, 0.2, 0.2))
+			return
+		if kc == KEY_F5 or event.keycode == KEY_F5:
+			engine.stars = Engine_.MAX_STARS
+			engine.bombs = Engine_.MAX_BOMBS
+			_update_hud()
+			_toast(tr("Stars and bombs full"), Color(0.2, 0.2, 0.2))
+			return
+		if kc == KEY_F6 or event.keycode == KEY_F6:
+			engine.hp = Engine_.MAX_HP
+			_update_hud()
+			_toast(tr("Hearts full"), Color(0.2, 0.2, 0.2))
+			return
 	if started and event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_F9, KEY_F10]:
 		var to: float = engine.arena_x - 150.0 if event.keycode == KEY_F9 else minf(engine.px + 1500.0, engine.arena_x - 150.0)
 		engine.px = to
