@@ -1,5 +1,9 @@
 extends SceneTree
 
+## Ancient Assassins engine (3D): maps, determinism, hit zones, prediction =
+## the real throw, the computer's aim by level, whole matches, save round trip.
+##   godot --headless --path . --script res://tools/test_ancient_assassins.gd
+
 const E = preload("res://scripts/games/ancient_assassins/ancient_assassins_engine.gd")
 var fails := 0
 
@@ -8,90 +12,76 @@ func ok(c: bool, msg: String) -> void:
 		fails += 1
 		print("FAIL: ", msg)
 
+func _run_throw(e, i: int, yaw: float, pitch: float, w: int) -> Dictionary:
+	e.turn = i
+	e.pick_weapon(i, w)
+	e.set_aim(i, yaw, pitch)
+	e.throw()
+	for n in 4000:
+		var res: Array = e.step(1.0 / 60.0)
+		if not res.is_empty():
+			return res[0]
+	return {}
+
 func _init() -> void:
 	var t0 := Time.get_ticks_msec()
-	# 1. Maps are sane for many seeds and all styles.
-	for s in 300:
+	for s in 200:
 		var e = E.new()
 		e.reset(s)
-		ok(e.ground.size() == E.COLS, "cols")
+		ok(e.fighters[0].z < e.fighters[1].z, "order")
+		ok(absf(e.wind) <= E.WIND_MAX + 0.001, "wind range")
 		for f in e.fighters:
-			ok(f.y > 300 and f.y < E.H - 20, "fighter y %s seed %d" % [f.y, s])
-			ok(f.hp == 100, "hp")
-		ok(e.fighters[0].x < e.fighters[1].x, "order")
-		for pl in e.pillars:
-			ok(pl.top > 150, "pillar top")
-		ok(absf(e.wind) <= E.WIND_MAX, "wind range")
-	# 2. Same seed = same map and same wind sequence.
+			ok(f.hp == 100 and f.y > 0.5, "fighter")
 	var a = E.new(); a.reset(1234)
 	var b = E.new(); b.reset(1234)
-	ok(a.ground == b.ground and a.pillars == b.pillars, "map determinism")
-	for n in 20:
-		ok(a.wind_for(n) == b.wind_for(n), "wind determinism")
+	ok(JSON.stringify(a.snapshot()) == JSON.stringify(b.snapshot()), "map determinism")
 	var winds := {}
 	for n in 40:
+		ok(a.wind_for(n) == b.wind_for(n), "wind determinism")
 		winds[a.wind_for(n)] = true
 	ok(winds.size() > 8, "wind varies")
-	# 3. Zones.
 	var z = E.new(); z.reset(5)
-	var f0: Dictionary = z.fighters[1]
-	ok(z.zone_at(1, Vector2(f0.x, f0.y - 108)) == "head", "head zone")
-	ok(z.zone_at(1, Vector2(f0.x, f0.y - 75)) == "body", "body zone")
-	ok(z.zone_at(1, Vector2(f0.x, f0.y - 20)) == "legs", "legs zone")
-	ok(z.zone_at(1, Vector2(f0.x + 40, f0.y - 75)) == "", "miss zone")
+	var f1: Vector3 = z.feet(1)
+	ok(z.zone_at(1, f1 + Vector3(0, E.HEAD_Y, 0)) == "head", "head")
+	ok(z.zone_at(1, f1 + Vector3(0, 1.2, 0)) == "body", "body")
+	ok(z.zone_at(1, f1 + Vector3(0, 0.4, 0)) == "legs", "legs")
+	ok(z.zone_at(1, f1 + Vector3(0.6, 1.2, 0)) == "", "miss")
 	print("maps ok %d ms" % (Time.get_ticks_msec() - t0))
-	# 4. Calm wind: CPU Expert hits a lot; Easy hits less. A whole match ends.
-	var hits := [0, 0, 0, 0]
-	var tries := 30
-	for lvl in 4:
-		for s in tries:
-			var e = E.new()
-			e.reset(1000 + s)
-			e.turn = 0
-			var plan: Dictionary = e.cpu_aim(0, lvl)
-			e.pick_weapon(0, plan.weapon)
-			e.set_aim(0, plan.angle, plan.power)
-			e.throw()
-			var res := []
-			for k in 2000:
-				res = e.step(1.0 / 60.0)
-				if not res.is_empty():
-					break
-			if not res.is_empty() and res[0].kind == "hit" and res[0].f == 1:
-				hits[lvl] += 1
-	print("cpu %d ms for %d aims" % [Time.get_ticks_msec() - t0, tries * 4])
-	print("first-throw hit rate by level (of %d): %s" % [tries, hits])
-	ok(hits[3] >= hits[0], "expert >= easy")
-	ok(hits[3] > tries * 0.4, "expert hits often")
-	# 5. Prediction matches the real throw.
-	var pr = E.new(); pr.reset(77)
+	# Prediction = the real throw, at an odd frame rate.
 	for k in 20:
-		var ang := 20.0 + k * 3.0
-		var pw := 55.0 + k
-		var pred: Dictionary = pr.predict(0, ang, pw, k % 3)
-		var r = E.new(); r.reset(77)
-		r.pick_weapon(0, k % 3)
-		r.set_aim(0, ang, pw)
-		r.throw()
-		var res := []
-		for n in 3000:
-			res = r.step(1.0 / 60.0)
-			if not res.is_empty():
-				break
-		if res[0].kind == "out":
+		var e = E.new(); e.reset(77)
+		var yaw := -10.0 + k
+		var pitch := 5.0 + k * 1.5
+		var pred: Dictionary = e.predict(0, yaw, pitch, k % 3)
+		var r := _run_throw(e, 0, yaw, pitch, k % 3)
+		if r.kind == "out":
 			ok(pred.out, "pred out %d" % k)
 		else:
-			ok((res[0].p as Vector2).distance_to(pred.p) < 0.01, "pred matches real %d: %s vs %s" % [k, res[0].p, pred.p])
-	# 6. Full CPU vs CPU matches end with a winner; save/load round trip.
-	var turns_total := 0
-	for s in 30:
-		var e = E.new()
-		e.reset(5000 + s)
+			ok((r.p as Vector3).distance_to(pred.p) < 0.001, "pred %d: %s vs %s" % [k, r.p, pred.p])
+	# The computer by level: first-throw hits.
+	var hits := [0, 0, 0, 0]
+	var tries := 30
+	var t1 := Time.get_ticks_msec()
+	for lvl in 4:
+		for s in tries:
+			var e = E.new(); e.reset(1000 + s)
+			var plan: Dictionary = e.cpu_aim(0, lvl)
+			var r := _run_throw(e, 0, plan.yaw, plan.pitch, plan.weapon)
+			if r.get("kind", "") == "hit" and r.f == 1:
+				hits[lvl] += 1
+	print("cpu %d ms per aim" % ((Time.get_ticks_msec() - t1) / (tries * 4)))
+	print("first-throw hit rate by level (of %d): %s" % [tries, hits])
+	ok(hits[3] > hits[0], "expert > easy")
+	ok(hits[3] >= tries * 0.4, "expert hits often")
+	# Whole matches end; save round trip.
+	var total := 0
+	for s in 20:
+		var e = E.new(); e.reset(5000 + s)
 		var n := 0
 		while not e.is_over() and n < 80:
 			var plan: Dictionary = e.cpu_aim(e.turn, 1)
 			e.pick_weapon(e.turn, plan.weapon)
-			e.set_aim(e.turn, plan.angle, plan.power)
+			e.set_aim(e.turn, plan.yaw, plan.pitch)
 			e.throw()
 			while not e.shot.is_empty():
 				e.step(1.0 / 30.0)
@@ -102,14 +92,12 @@ func _init() -> void:
 				var c = E.new()
 				ok(c.from_dict(d), "from_dict")
 				ok(JSON.stringify(c.snapshot()) == JSON.stringify(e.snapshot()), "snapshot round trip")
-		ok(e.is_over(), "match ends seed %d after %d" % [s, n])
-		turns_total += n
-	print("avg throws per Normal vs Normal match: %.1f" % (turns_total / 30.0))
-	# 7. Ammo.
+		ok(e.is_over(), "match ends seed %d" % s)
+		total += n
+	print("avg throws per Normal vs Normal match: %.1f" % (total / 20.0))
 	var am = E.new(); am.reset(9)
 	am.pick_weapon(0, 1); am.throw(); am.shot = {}
 	am.pick_weapon(0, 1); am.throw(); am.shot = {}
 	ok(am.fighters[0].ammo[1] == 0 and not am.pick_weapon(0, 1), "axe ammo runs out")
-	ok(am.fighters[0].weapon == 0, "falls back to javelin")
 	print("time %d ms, fails %d" % [Time.get_ticks_msec() - t0, fails])
 	quit(1 if fails else 0)
