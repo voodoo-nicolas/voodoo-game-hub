@@ -9671,6 +9671,52 @@
    "url": "https://tabler.io/icons",
    "date": "2026-11-20",
    "processed_by": "stroke currentColor -> #ffffff"
+  },
+  {
+   "file": "games/ancient_assassins/models/",
+   "what": "Ancient Assassins 3D assassins: Quaternius female base character (Superhero proportions), 4 hairstyles, textures (downscaled to 1024/512 px)",
+   "source": "Universal Base Characters [Standard] (free tier), itch.io",
+   "author": "Quaternius",
+   "licence": "CC0 1.0",
+   "proof": "media/licenses/models/quaternius_CC0.txt",
+   "url": "https://quaternius.itch.io/universal-base-characters",
+   "date": "2026-11-21",
+   "processed_by": "textures downscaled (Pillow); recoloured in game by shader"
+  },
+  {
+   "file": "games/ancient_assassins/models/aa_anims.res",
+   "what": "Ancient Assassins animations: 9 clips (idle, aim, throw, hits, death, dance, sword idle) cut from the Universal Animation Library",
+   "source": "Universal Animation Library [Standard] (free tier), itch.io",
+   "author": "Quaternius",
+   "licence": "CC0 1.0",
+   "proof": "media/licenses/models/quaternius_CC0.txt",
+   "url": "https://quaternius.itch.io/universal-animation-library",
+   "date": "2026-11-21",
+   "processed_by": "tools/aa_build_anims.gd"
+  },
+  {
+   "file": "games/ancient_assassins/models/kenney/",
+   "what": "Ancient Assassins ruins: column, damaged column, stone stairs, trees (+ their textures)",
+   "source": "Kenney Retro Fantasy Kit 2.0 (owner's copy D:/Dev/Sprites)",
+   "author": "Kenney (kenney.nl)",
+   "licence": "CC0 1.0",
+   "proof": "media/licenses/models/kenney_retro_fantasy_CC0.txt",
+   "url": "https://kenney.nl/assets/retro-fantasy-kit",
+   "date": "2026-11-21",
+   "processed_by": "unchanged"
+  },
+  {
+   "file": "games/ancient_assassins/landing_bg.jpg",
+   "what": "Ancient Assassins Landing picture: a render of the game's own 3D scene",
+   "source": "rendered in Godot (tools/shot_ancient_assassins.gd art) from the CC0 models above",
+   "author": "Viral (owner); rendered by Claude Code",
+   "licence": "owner-proprietary (render of CC0 models)",
+   "proof": "media/licenses/models/quaternius_CC0.txt",
+   "url": "",
+   "date": "2026-11-21",
+   "ai_tool": "Claude Code (scripted 3D render)",
+   "ai_plan": "n/a (code-rendered)",
+   "processed_by": "tools/shot_ancient_assassins.gd"
   }
  ]
 }

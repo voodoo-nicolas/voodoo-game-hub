@@ -7,19 +7,20 @@ const ID := "ancient_assassins"
 const TITLE := "Ancient Assassins"
 const GOAL := "Throw your weapons across the ruins and bring the other assassin's health to zero before she does it to you."
 const HOW := [
-	"Players take turns. On your turn, press anywhere on the field, pull back like a slingshot and let go: the weapon flies the opposite way. The longer the pull, the harder the throw.",
-	"While you hold, the dotted line shows your direction and power and the first stretch of the arc. It does not show the wind: that part is up to you.",
-	"The wind (top middle, and the flags and the dust) changes every turn. It pushes the weapon sideways the whole time it flies.",
+	"You see the fight over your assassin's shoulder; your rival waits on the island across the water. Players take turns.",
+	"On your turn, hold anywhere and drag: up and down set the elevation (the ruler on the left), left and right turn your aim. Let go to throw.",
+	"While you hold, the striped ribbon shows the first stretch of the arc. It does not show the wind: that part is up to you.",
+	"The crosswind (top middle, and the red flag) changes every turn. It pushes the weapon sideways the whole time it flies.",
 	"Where it hits matters: head ×2 damage, body ×1, legs ×0.6. Both assassins start with 100 health.",
-	"Weapons, bottom left: 🗡 Javelin (34, unlimited), 🪓 Throwing Axe (46, 2 per fight; heavy, the wind barely moves it, but it doesn't fly far) and ⭕ Chakram (26, 3 per fight; flies fast and flat, the wind throws it around).",
-	"Columns and hills block throws. Your own weapon can come down on you.",
+	"Weapons, at the bottom: 🗡 Javelin (34, unlimited), 🪓 Throwing Axe (46, 2 per fight; heavy, the wind barely moves it, but it doesn't fly far) and ⭕ Chakram (26, 3 per fight; fast and flat, the wind throws it around).",
+	"Columns and rocks block throws; a throw that falls short lands in the water.",
 	"📜 Contracts: 8 rivals in a row, each tougher than the last, with stars for the health you keep. vs Computer: Easy, Normal, Hard or Expert. 2 Players: pass the phone each turn. 🌐 Online: play a friend on another phone.",
 	"⏸ pauses; Resume on the Landing carries on the same fight (not online fights).",
 ]
 const TIPS := [
-	"Throw once to see where the wind takes it, then change only the power, a little at a time.",
-	"Into a strong wind, take the axe: it hardly drifts.",
-	"A high, slow throw drifts the most; a flat, fast one the least, but hills and columns are in the way.",
+	"Throw once to see where the wind takes it, then change only one thing at a time.",
+	"Into a strong crosswind, take the axe: it hardly drifts.",
+	"Aim into the wind: if it blows to the right, turn your aim a little to the left.",
 	"The head is small but worth double: go for it once your throws land close.",
 ]
 const STATS := ["Wins", "Losses", "Best streak", "Wins (Easy)", "Wins (Normal)", "Wins (Hard)", "Wins (Expert)",
