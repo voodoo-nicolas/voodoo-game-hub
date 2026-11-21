@@ -440,6 +440,42 @@ func _init() -> void:
 	check(sw.gold() and not sw.silver() and absf(sw.sword(1.0) - E.GOLD_MULT) < 0.001, "hard stage 13: gold")
 	sw.stage = 24
 	check(sw.gold(), "hard keeps gold to the end")
+	# Owner 2026-11-21: Gate Warden full health on Normal (gentle on Easy only); Tora -25 % on Normal.
+	var hp_of := func(d: int, st: int) -> float:
+		var b = E.new()
+		b.reset(d)
+		b.stage = st
+		b.build_stage()
+		b.foes.clear()
+		b.px = b.arena_x + 100
+		b.step(1.0 / 60.0, 1.0, false, false, false, false)
+		return float(b.boss.get("max", 0.0))
+	check(hp_of.call(1, 4) == 17.0, "Normal Gate Warden 17 hp (was 12): %s" % hp_of.call(1, 4))
+	check(hp_of.call(0, 4) == float(int(17 * 0.7 * 0.75)), "Easy Gate Warden stays gentle")
+	check(hp_of.call(1, 8) == float(int(22 * 0.75)), "Normal Tora 16 hp (was 22): %s" % hp_of.call(1, 8))
+	check(hp_of.call(2, 8) == float(int(22 * 1.3)), "Hard Tora unchanged")
+	var tb = E.new()
+	tb.reset(1)
+	tb.stage = 8
+	tb.build_stage()
+	tb.foes.clear()
+	tb.px = tb.arena_x + 100
+	tb.step(1.0 / 60.0, 1.0, false, false, false, false)
+	var lost := 0
+	for i in 8:
+		tb.hp = E.MAX_HP
+		tb.hurt_t = 0.0
+		tb.dash_t = 0.0
+		tb.blocking = false
+		tb._boss_hurt(2, tb.px + 50.0)
+		lost += E.MAX_HP - tb.hp
+	check(lost == 12, "Tora's 8 charges (2 each) on Normal cost 12 hearts, not 16 (%d)" % lost)
+	var gm = E.new()
+	gm.reset(1)
+	gm.god = true
+	gm._hurt(2, false, gm.px + 10.0)
+	gm._hurt(E.MAX_HP, true)
+	check(gm.hp == E.MAX_HP and gm.state == "play", "F11 invincible: no damage, a fall costs nothing")
 	# Every boss pose has its picture (and the hard colour version where the table says so).
 	const P = preload("res://scripts/games/ink_ninja/ink_ninja_poses.gd")
 	for bid in P.POSES:

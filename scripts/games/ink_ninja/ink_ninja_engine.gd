@@ -150,6 +150,8 @@ var foes: Array = []       # Dictionary
 var shots: Array = []      # {x, y, vx, vy, mine}
 var scrolls: Array = []    # Vector2
 var boss := {}
+var boss_owe := 0.0   # Tora on Normal: the hearts a boss hit still owes (x0.75, owner 2026-11-21)
+var god := false   # owner test key F11: the hero takes no damage (not saved)
 var arena_x := 0.0
 var locked := false
 var time := 0.0
@@ -778,7 +780,11 @@ func _carve(cx: float, hw: float, depth: float, wet: bool) -> void:
 
 func _spawn_boss() -> void:
 	var k := boss_kind()
-	var hpb := int((12 + act() * 5) * [0.7, 1.0, 1.3][diff] * (0.75 if act() == 1 else 1.0))   # the first duel is a gentle one (owner 2026-11-15)
+	# var hpb := int((12 + act() * 5) * [0.7, 1.0, 1.3][diff] * (0.75 if act() == 1 else 1.0))   # the first duel is a gentle one (owner 2026-11-15)
+	# Owner 2026-11-21: the first boss was too easy on Normal (gentle on Easy only now); Tora was
+	# very hard on Normal: 25 % less health and damage (BOSS_NERF).
+	var hpb := int((12 + act() * 5) * [0.7, 1.0, 1.3][diff] * (0.75 if _gentle() else 1.0) * _nerf())
+	boss_owe = 0.0
 	boss = {"kind": k, "x": arena_x + VIEW_W - 260, "y": GROUND, "vx": 0.0, "vy": 0.0, "hp": hpb, "max": hpb,
 		"face": -1, "phase": "idle", "t": 1.2, "hit": 0.0, "n": 0}
 	events.append("boss")
@@ -1127,6 +1133,13 @@ func _hit_boss(dmg: float) -> void:
 ## from_x: where the blow came from; the hero is knocked away from it (owner 2026-11-15:
 ## a boss used to pin you and land every hit in a row, "one touch and you die").
 func _hurt(dmg: int, fell: bool = false, from_x: float = NAN) -> void:
+	if god:
+		if fell:
+			px = checkpoint_x   # F11: a fall or a deadly lake puts you back at the lantern, no harm
+			py = ground_y(px) - 200.0
+			vx = 0.0
+			vy = 0.0
+		return
 	if not fell and (hurt_t > 0.0 or dash_t > 0.0):
 		return   # a dash passes through attacks
 	if not fell and blocking and not is_nan(from_x) and signf(from_x - px) == float(facing):
@@ -1371,7 +1384,8 @@ func _boss(dt: float) -> void:
 			if boss.t > 0.0:
 				boss.vx = 0.0
 			else:
-				boss.vx = boss.face * 700.0 * p * (0.8 if act() == 1 else 1.0)
+				# boss.vx = boss.face * 700.0 * p * (0.8 if act() == 1 else 1.0)
+				boss.vx = boss.face * 700.0 * p * (0.8 if _gentle() else (0.9 if act() == 1 else 1.0))
 				if boss.x <= lo or boss.x >= hi or boss.t < -1.2:
 					_boss_rest()
 		"leap":
@@ -1397,18 +1411,39 @@ func _boss(dt: float) -> void:
 			events.append("slam")
 			events.append("bossland")
 			if on_ground and absf(dx) < (150 if act() == 1 else 220):
-				_hurt(1, false, boss.x)
+				_boss_hurt(1, boss.x)
 			if boss.phase == "leap":
 				_boss_rest()
 		boss.y = GROUND
 		boss.vy = 0.0
 	if boss_box().intersects(_box()):
-		_hurt(2 if boss.phase == "charge" and act() > 1 else 1, false, boss.x)
+		_boss_hurt(2 if boss.phase == "charge" and act() > 1 else 1, boss.x)
 
 func _boss_rest() -> void:
 	boss.phase = "idle"
 	boss.vx = 0.0
-	boss.t = maxf(0.7, 1.8 - act() * 0.14 - diff * 0.2) + (0.5 if act() == 1 else 0.0)
+	# boss.t = maxf(0.7, 1.8 - act() * 0.14 - diff * 0.2) + (0.5 if act() == 1 else 0.0)
+	boss.t = maxf(0.7, 1.8 - act() * 0.14 - diff * 0.2) + (0.5 if _gentle() else (0.15 if act() == 1 else 0.0))
+
+## The first duel is the gentle one on Easy only (owner 2026-11-21: too easy on Normal).
+func _gentle() -> bool:
+	return act() == 1 and diff == 0
+
+## Per-boss health / damage scale on Normal (owner 2026-11-21: Tora -25 %).
+const BOSS_NERF := {2: 0.75}
+func _nerf() -> float:
+	return float(BOSS_NERF.get(act(), 1.0)) if diff == 1 else 1.0
+
+## A boss blow: scaled by _nerf(); the fraction is carried so the hearts lost add up to x0.75.
+func _boss_hurt(dmg: int, from_x: float) -> void:
+	var f := _nerf()
+	if f >= 1.0 or god or hurt_t > 0.0 or dash_t > 0.0 or (blocking and signf(from_x - px) == float(facing)):
+		_hurt(dmg, false, from_x)   # unchanged blow, or one that _hurt turns away anyway
+		return
+	boss_owe += dmg * f
+	var take := floori(boss_owe + 0.5)
+	boss_owe -= take
+	_hurt(maxi(take, 0), false, from_x)
 
 func _shots(dt: float) -> void:
 	for s in shots:
@@ -1444,7 +1479,10 @@ func _shots(dt: float) -> void:
 				_hit_boss(STAR_BOSS)
 				s.life = 0.0
 		elif _box().has_point(pt):
-			_hurt(1, false, s.x - s.vx)
+			if s.get("boss", false):
+				_boss_hurt(1, s.x - s.vx)
+			else:
+				_hurt(1, false, s.x - s.vx)
 			s.life = 0.0
 	shots = shots.filter(func(s): return s.life > 0.0)
 
