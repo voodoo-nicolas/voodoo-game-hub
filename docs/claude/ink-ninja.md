@@ -110,3 +110,14 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
   Anchors (`ink_ninja_poses.gd`) unchanged.
 - "A won't swing after jump / crouch / run" on PC = Windows touchpad ignoring taps while typing (not the game).
   On a PC without a touchscreen the Pad buttons now show their key: Swing (J), Thrust (L), Star (K), Block (I), Bomb (B).
+
+## Playtest fixes (owner, 2026-11-21)
+- **Gate Warden** (act 1) on Normal: full health (17, was 12), charge 0.9x (was 0.8x), rest +0.15 s (was +0.5 s).
+  The gentle first duel is Easy only now (`engine._gentle()`).
+- **Tora** (act 2) on Normal: health and damage x0.75 (`BOSS_NERF`, `_nerf()`). Hearts are whole, so a boss
+  blow goes through `_boss_hurt()`, which carries the fraction (`boss_owe`): 8 charges of 2 cost 12 hearts.
+- Painted boss **hit tint** was a red multiply that read as his skin changing colour: now a short light flash.
+- **Spike-board slams** shook the screen from anywhere on the stage (every 3.4 s from stage 5): only a board
+  that is down within 300 units of the hero shakes it now, and less (3, was 5).
+- **Coins / magatama** jittered while running: their bob/turn phase used the screen x; it uses the world x now.
+- Test key **F11**: invincible on / off (`engine.god`, not saved; a fall puts you back at the lantern).

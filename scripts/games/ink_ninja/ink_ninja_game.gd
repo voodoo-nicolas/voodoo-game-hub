@@ -483,6 +483,11 @@ func _unhandled_input(event: InputEvent) -> void:
 					pass   # owner 2026-11-20: no telling (was a "Walk up to the red tree first" toast)
 	# Owner test keys (2026-11-20, keyboard only): F9 = to the end of the stage (the gate or
 	# the boss), F10 = 1500 units ahead to look at the scenery.
+	# F11 (2026-11-21) = invincible on / off (no damage; a fall returns you to the lantern).
+	if started and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
+		engine.god = not engine.god
+		_toast(tr("Invincible: on") if engine.god else tr("Invincible: off"), Color(0.2, 0.2, 0.2))
+		return
 	if started and event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_F9, KEY_F10]:
 		var to: float = engine.arena_x - 150.0 if event.keycode == KEY_F9 else minf(engine.px + 1500.0, engine.arena_x - 150.0)
 		engine.px = to
@@ -854,7 +859,11 @@ func _event(e: String) -> void:
 			if info:
 				info.add("Pagodas climbed")
 		"trapslam":
-			shake = maxf(shake, 5.0)
+			# shake = maxf(shake, 5.0)
+			# Owner 2026-11-21 ("screen shaking every few seconds, level 5"): every spike board on the
+			# stage shook the screen on its beat, even far off screen. Only a near one does now, softly.
+			if _trap_near(300.0):
+				shake = maxf(shake, 3.0)
 			SoundLib.play(self, "impact/wood_heavy", -8.0, "game", 0.8)
 		"trapkill":
 			_toast(tr("Trapped!"), Color(0.2, 0.2, 0.2))
@@ -1084,7 +1093,7 @@ func _draw_field() -> void:
 	for cpx in engine.checkpoints:
 		_lantern(c, o + Vector2(cpx, engine.ground_y(cpx)) * k, k, engine.checkpoint_x >= cpx)
 	for s in engine.scrolls:
-		_scroll(c, o + s * k, k)
+		_scroll(c, o + s * k, k, s.x)
 	_draw_props(c, o, sz, k)
 	for f in engine.foes:
 		_shadow(c, o, f.x, f.y, k, 26.0)
@@ -1300,7 +1309,7 @@ func _draw_props(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			continue
 		var tw := 0.5 + 0.5 * sin(anim_t * 3.0 + sc.x)
 		c.draw_texture_rect(disc, Rect2(sp2 - Vector2(30, 30) * k, Vector2(60, 60) * k), false, Color(0.6, 1.0, 0.75, 0.1 + 0.16 * tw))
-		_magatama(c, sp2, k)
+		_magatama(c, sp2, k, sc.x)
 	for nl in engine.night_lanterns:
 		var nlx: float = o.x + nl.x * k
 		if nlx < -80.0 * k or nlx > sz.x + 80.0 * k:
@@ -2210,7 +2219,10 @@ func _figure(c: CanvasItem, feet: Vector2, k: float, f: int, kind: String, flash
 const SHU_RED := Color("a3201a")
 
 func _boss_art(c: CanvasItem, feet: Vector2, k: float, b: Dictionary, tele: bool) -> void:
-	if _draw_pose(c, feet, k, engine.act(), _boss_pose(b), b.face, Color(1.0, 0.62, 0.55) if b.hit > 0.0 else Color.WHITE):
+	# if _draw_pose(c, feet, k, engine.act(), _boss_pose(b), b.face, Color(1.0, 0.62, 0.55) if b.hit > 0.0 else Color.WHITE):
+	# Owner 2026-11-21 "his skin colour changes": the red hit tint dyed the painted skin. A hit is a
+	# brief lighter flash now (the hit pose already shows the blow).
+	if _draw_pose(c, feet, k, engine.act(), _boss_pose(b), b.face, Color(1.18, 1.18, 1.18) if b.hit > 0.0 else Color.WHITE):
 		if tele:
 			c.draw_string(ThemeDB.fallback_font, feet + Vector2(-8, -BOSS_H - 40) * k, "!", HORIZONTAL_ALIGNMENT_LEFT, -1, int(42 * k), pal.ink)
 		return
@@ -2502,10 +2514,21 @@ func _star(c: CanvasItem, p: Vector2, k: float, mine: bool) -> void:
 #	c.draw_rect(r, pal.ink, false, 2.0 * k)
 #	c.draw_line(r.position + Vector2(6, 6) * k, r.position + Vector2(22, 6) * k, pal.mid, 2.0 * k)
 #	c.draw_line(r.position + Vector2(6, 11) * k, r.position + Vector2(18, 11) * k, pal.mid, 2.0 * k)
-func _scroll(c: CanvasItem, p: Vector2, k: float) -> void:
-	var bob := sin(anim_t * 3.0 + p.x) * 4.0 * k
+## wx: the coin's world x, so its bob / turn phase stays put while the camera scrolls (owner
+## 2026-11-21: coins "shake" when you run; the phase used the screen x, which moves every frame).
+## True when a spike board that is down sits within `d` units of the hero.
+func _trap_near(d: float) -> bool:
+	for t in engine.traps:
+		if t.state == "down" and absf(t.x - engine.px) < d:
+			return true
+	return false
+
+func _scroll(c: CanvasItem, p: Vector2, k: float, wx: float = 0.0) -> void:
+	# var bob := sin(anim_t * 3.0 + p.x) * 4.0 * k
+	var bob := sin(anim_t * 3.0 + wx) * 4.0 * k
 	var ctr := p + Vector2(0, bob)
-	var turn := absf(cos(anim_t * 2.2 + p.x * 0.01))
+	# var turn := absf(cos(anim_t * 2.2 + p.x * 0.01))
+	var turn := absf(cos(anim_t * 2.2 + wx * 0.01))
 	var hw := maxf(3.0, 13.0 * turn) * k
 	var hh := 18.0 * k
 	c.draw_texture_rect(disc, Rect2(ctr - Vector2(hw + 2.0 * k, hh + 2.0 * k), Vector2(hw + 2.0 * k, hh + 2.0 * k) * 2.0), false, Color(0.42, 0.28, 0.02))
@@ -2517,8 +2540,9 @@ func _scroll(c: CanvasItem, p: Vector2, k: float) -> void:
 			c.draw_line(Vector2(ctr.x - hw * 0.55, ly), Vector2(ctr.x + hw * 0.55, ly), Color(0.6, 0.42, 0.06, 0.8), 1.5 * k)
 
 ## A hidden treasure (engine.secrets): a jade magatama with a soft glow (owner 2026-11-19).
-func _magatama(c: CanvasItem, p: Vector2, k: float) -> void:
-	var bob := sin(anim_t * 2.4 + p.x) * 5.0 * k
+func _magatama(c: CanvasItem, p: Vector2, k: float, wx: float = 0.0) -> void:
+	# var bob := sin(anim_t * 2.4 + p.x) * 5.0 * k
+	var bob := sin(anim_t * 2.4 + wx) * 5.0 * k   # world x: steady while the camera scrolls
 	var ctr := p + Vector2(0, bob)
 	var jade := Color(0.3, 0.75, 0.55)
 	c.draw_texture_rect(disc, Rect2(ctr - Vector2(15, 15) * k, Vector2(30, 30) * k), false, jade.darkened(0.45))

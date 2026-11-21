@@ -107,6 +107,8 @@ const STRINGS := {
 		"Ink Ninja": "Ninja de tinta",
 		"Ink and steel. One ninja.": "Tinta y acero. Un ninja.",
 		"Inscription": "Inscripción",
+		"Invincible: off": "Invencible: no",
+		"Invincible: on": "Invencible: sí",
 		"Keep playing to find out.": "Sigue jugando para descubrirlo.",
 		"Keep screen on": "Mantener la pantalla encendida",
 		"Keeper of Secrets": "Guardián de secretos",
