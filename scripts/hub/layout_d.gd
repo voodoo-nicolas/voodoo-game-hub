@@ -34,6 +34,12 @@ const ROW_MAX := 10              # tiles in a Home row before "See all"
 const BANNER_SECONDS := 5.0      # featured banner auto-advance
 const LONG_PRESS := 0.45         # rail: long-press shows the label when labels are hidden
 const FADE := 0.16               # view change
+## Rail auto-hide (owner 2026-11-21): RAIL_IDLE s with no touch on the rail slides it away and the
+## games take the full width; then a drag from the left edge (EDGE_DP wide) toward the centre
+## pulls it back over the games, and it slides away again after RAIL_IDLE s.
+const RAIL_IDLE := 15.0
+const EDGE_DP := 24.0
+const RAIL_SLIDE := 0.22
 ## Search's Spanish words for tags, so "multijugador" finds multiplayer games too.
 const TAG_ES := {"multiplayer": "multijugador", "online": "en línea", "offline": "sin conexión",
 	"quick": "rápido", "original": "original"}
@@ -106,6 +112,14 @@ var _built_key := ""
 var _relayout_queued := false
 var _home_key := ""              # refresh_home(): what Home showed last
 var _account_key := ""           # update_account(): who the rail showed last
+var _rail_docked := true         # the rail takes its own column (until it first auto-hides)
+var _rail_open := true           # the rail is on screen (docked, or pulled out over the games)
+var _rail_idle: Timer
+var _rail_tween: Tween
+var _rail_handle: Control        # the little tab at the left edge while the rail is away
+var _edge_drag := false          # a drag that started at the left edge, pulling the rail out
+var _edge_start := Vector2.ZERO
+var _kb_input := false           # last input was keys / pad (focus on the rail keeps it out)
 
 # ---------- setup ----------
 
@@ -121,6 +135,11 @@ func setup(hub_node: Node) -> void:
 	_banner_timer.wait_time = BANNER_SECONDS
 	_banner_timer.timeout.connect(_banner_step.bind(1))
 	add_child(_banner_timer)
+	_rail_idle = Timer.new()
+	_rail_idle.one_shot = true
+	_rail_idle.wait_time = RAIL_IDLE
+	_rail_idle.timeout.connect(_on_rail_idle)
+	add_child(_rail_idle)
 	resized.connect(_queue_relayout)
 	_build()
 	# The categories' background pictures load on a worker thread now and stay in memory, so
@@ -156,7 +175,7 @@ func _relayout() -> void:
 	_relayout_queued = false
 	var was_land := landscape
 	_measure()
-	var key := "%s|%s|%d|%d" % [device, landscape, int(size.x), int(size.y)]
+	var key := "%s|%s|%d|%d|%s" % [device, landscape, int(size.x), int(size.y), _rail_docked]
 	if key == _built_key:
 		return
 	if was_land != landscape and _built_key != "":
@@ -175,7 +194,7 @@ func _build() -> void:
 	# The old layout (a rotation, a new manifest...) is hidden now and freed a view per
 	# frame (_process): freeing ~100 tiles at once stalled a rotation by ~130 ms on a PC.
 	for c in get_children():
-		if c != _press_timer and c != _banner_timer and not _trash.has(c):
+		if c != _press_timer and c != _banner_timer and c != _rail_idle and not _trash.has(c):
 			if c is CanvasItem:
 				c.visible = false
 			c.set_process_mode(Node.PROCESS_MODE_DISABLED)
@@ -187,12 +206,14 @@ func _build() -> void:
 	_art_path_of.clear()
 	_tiles = []
 	_measure()
-	_built_key = "%s|%s|%d|%d" % [device, landscape, int(size.x), int(size.y)]
+	_built_key = "%s|%s|%d|%d|%s" % [device, landscape, int(size.x), int(size.y), _rail_docked]
 	scroller = TouchScroll.new()
 	scroller.bounds = self
+	scroller.set("skip_press", _on_rail_or_edge)
 	add_child(scroller)
 	_build_rail()
 	_build_main()
+	_place_rail()
 	get_tree().create_timer(WARM_DELAY, false).timeout.connect(_warm_up)
 	_home_key = var_to_str([HubData.recent(), HubData.favorites()])
 	_account_key = _profile_name() + str(Auth.is_logged_in())
@@ -512,12 +533,155 @@ func _on_rail_pressed(key: String) -> void:
 		return
 	_show(key)
 
+# ---------- rail auto-hide + edge swipe ----------
+
+## After a (re)build: a docked rail stays put; an undocked one starts away, above the games.
+func _place_rail() -> void:
+	_edge_drag = false
+	_rail_handle = Panel.new()
+	var hs := StyleBoxFlat.new()
+	hs.bg_color = Color(HubLook.pal().link, 0.55)
+	hs.set_corner_radius_all(int(dp(3)))
+	_rail_handle.add_theme_stylebox_override("panel", hs)
+	_rail_handle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rail_handle.size = Vector2(maxf(2.0, dp(4)), dp(48))
+	_rail_handle.position = Vector2(dp(2), (size.y - dp(48)) / 2.0)
+	add_child(_rail_handle)
+	if _rail_docked:
+		_rail_open = true
+		_rail.position.x = 0.0
+		_rail_handle.visible = false
+		_rail_idle.start()
+	else:
+		move_child(_rail, -1)   # drawn over the games
+		_set_rail_x(0.0 if _rail_open else -rail_w)
+		if _rail_open:
+			_rail_idle.start()
+
+func _set_rail_x(x: float) -> void:
+	_rail.position.x = x
+	_rail.visible = x > -rail_w + 0.5
+	_rail_handle.visible = not _rail_docked and x <= -rail_w + 0.5
+
+func _slide_rail(to_x: float, done: Callable = Callable()) -> void:
+	if _rail_tween != null and _rail_tween.is_valid():
+		_rail_tween.kill()
+	_rail.visible = true
+	_rail_handle.visible = false
+	if Settings.reduce_motion:
+		_set_rail_x(to_x)
+		if done.is_valid():
+			done.call()
+		return
+	_rail_tween = _rail.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_rail_tween.tween_method(_set_rail_x, _rail.position.x, to_x, RAIL_SLIDE)
+	if done.is_valid():
+		_rail_tween.tween_callback(done)
+
+func _open_rail() -> void:
+	if _rail == null or not is_instance_valid(_rail):
+		return
+	_rail_idle.start()
+	if _rail_open and _rail.position.x >= 0.0:
+		return
+	_rail_open = true
+	_slide_rail(0.0)
+
+func _close_rail() -> void:
+	_rail_idle.stop()
+	_rail_open = false
+	var f := get_viewport().gui_get_focus_owner()
+	if f != null and _rail.is_ancestor_of(f):
+		f.release_focus()
+	if _rail_docked:
+		# First hide: slide away, then lay the games out over the full width (once).
+		_slide_rail(-rail_w, _undock)
+	else:
+		_slide_rail(-rail_w)
+
+func _undock() -> void:
+	_rail_docked = false
+	_build()
+
+func _on_rail_idle() -> void:
+	if _rail == null or not is_instance_valid(_rail) or not _rail_open:
+		return
+	if not is_visible_in_tree() or _overlay_open() or _press_timer.time_left > 0.0:
+		_rail_idle.start()   # Options / a dialog is up, or a finger is down on the rail
+		return
+	var f := get_viewport().gui_get_focus_owner()
+	if _kb_input and f != null and _rail.is_ancestor_of(f):
+		_rail_idle.start()   # walking the rail with keys / a pad
+		return
+	_close_rail()
+
+func _overlay_open() -> bool:
+	for n in get_tree().get_nodes_in_group("modal_overlay"):
+		if not n.is_queued_for_deletion() and n.is_visible_in_tree():
+			return true
+	return false
+
+## TouchScroll asks this on every press: the rail (when it is over the games) and the edge
+## strip are not the games' scroll area.
+func _on_rail_or_edge(pos: Vector2) -> bool:
+	if _rail_docked or _rail == null or not is_instance_valid(_rail):
+		return false
+	if _rail.visible and _rail.get_global_rect().has_point(pos):
+		return true
+	return not _rail_open and pos.x - get_global_rect().position.x <= dp(EDGE_DP)
+
+func _input(e: InputEvent) -> void:
+	if not (e is InputEventMouse):
+		if e is InputEventKey or e is InputEventJoypadButton or e is InputEventJoypadMotion:
+			_kb_input = true
+			if _rail_open and _rail != null and is_instance_valid(_rail):
+				var f := get_viewport().gui_get_focus_owner()
+				if f != null and _rail.is_ancestor_of(f):
+					_rail_idle.start()
+		return
+	if _rail == null or not is_instance_valid(_rail) or not is_visible_in_tree():
+		return
+	var pos: Vector2 = e.position
+	var touch := DisplayServer.is_touchscreen_available()
+	if e is InputEventMouseButton or (e as InputEventMouseMotion).button_mask != 0 or not touch:
+		_kb_input = false
+	# Any touch on the rail while it is out: it stays another RAIL_IDLE s.
+	if _rail_open and _rail.visible and _rail.get_global_rect().has_point(pos):
+		if e is InputEventMouseButton or (e as InputEventMouseMotion).button_mask != 0 or not touch:
+			_rail_idle.start()
+	if _rail_docked or _overlay_open():
+		return
+	var edge_x := pos.x - get_global_rect().position.x
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		if e.pressed and not _rail_open and edge_x <= dp(EDGE_DP):
+			_edge_drag = true
+			_edge_start = pos
+			get_viewport().set_input_as_handled()   # not a tap on the banner / tile under it
+		elif not e.pressed and _edge_drag:
+			_edge_drag = false
+			get_viewport().set_input_as_handled()
+			if _rail.position.x > -rail_w * 0.66:
+				_open_rail()
+			else:
+				_slide_rail(-rail_w)
+	elif e is InputEventMouseMotion:
+		if _edge_drag and (e.button_mask & MOUSE_BUTTON_MASK_LEFT):
+			get_viewport().set_input_as_handled()
+			var dx := pos.x - _edge_start.x
+			if _rail_tween != null and _rail_tween.is_valid():
+				_rail_tween.kill()
+			_rail.visible = true
+			_rail_handle.visible = false
+			_rail.position.x = clampf(-rail_w + dx, -rail_w, 0.0)   # the rail follows the finger
+		elif e.button_mask == 0 and not _rail_open and edge_x <= dp(4) and not touch:
+			_open_rail()   # a mouse pushed against the left edge (PC)
+
 # ---------- main area ----------
 
 func _build_main() -> void:
 	_main = Control.new()
-	_main.position = Vector2(rail_w, 0)
-	_main.size = Vector2(size.x - rail_w, size.y)
+	_main.position = Vector2(_main_x(), 0)
+	_main.size = Vector2(size.x - _main_x(), size.y)
 	_main.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_main)
 	var v := VBoxContainer.new()
@@ -567,7 +731,11 @@ func _build_main() -> void:
 	bm.add_child(_body_root)
 
 func _avail_w() -> float:
-	return size.x - rail_w - dp(32)
+	return size.x - _main_x() - dp(32)
+
+## Where the games start: after the rail while it is docked, at the left edge once it hides.
+func _main_x() -> float:
+	return rail_w if _rail_docked else 0.0
 
 ## Shows a view. `animate`: a short fade + rise (off with Reduce motion).
 func _show(key: String, animate: bool = true) -> void:
@@ -1471,6 +1639,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		if handle_back():
 			get_viewport().set_input_as_handled()
 		elif _rail_items.has("home"):
+			_open_rail()
 			(_rail_items["home"] as Control).grab_focus()
 			get_viewport().set_input_as_handled()
 		return
@@ -1479,6 +1648,7 @@ func _unhandled_input(e: InputEvent) -> void:
 	if not (e is InputEventMouse) and get_viewport().gui_get_focus_owner() == null \
 			and (e.is_action_pressed("ui_down") or e.is_action_pressed("ui_up") or e.is_action_pressed("ui_left") or e.is_action_pressed("ui_right")):
 		var key := current if _rail_items.has(current) else "home"
+		_open_rail()
 		(_rail_items[key] as Control).grab_focus()
 		get_viewport().set_input_as_handled()
 

@@ -18,6 +18,9 @@ signal vertical_scrolled
 
 var vertical: ScrollContainer
 var bounds: Control
+## Optional: (position) -> bool, true = a press there isn't a scroll (Layout D: the rail over
+## the games, the left-edge strip that pulls the rail out).
+var skip_press: Callable
 var moved := false
 var _tracking := false
 var _axis := 0                   # 0 undecided, 1 sideways, 2 vertical
@@ -49,7 +52,8 @@ func _input(event: InputEvent) -> void:
 			moved = false
 			_axis = 0
 			_vel = Vector2.ZERO
-			_tracking = not _overlay_open() and area.get_global_rect().has_point(event.position)
+			_tracking = not _overlay_open() and area.get_global_rect().has_point(event.position) \
+					and not (skip_press.is_valid() and skip_press.call(event.position))
 			_row = _row_under(event.position) if _tracking else null
 			_start = event.position
 			_last = event.position

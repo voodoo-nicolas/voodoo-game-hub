@@ -7,6 +7,7 @@ extends SceneTree
 
 const Categories = preload("res://scripts/hub/categories.gd")
 var fails := 0
+var _ld: Node
 
 func _initialize() -> void:
 	_run()
@@ -25,6 +26,22 @@ func _key(action: String) -> void:
 	e.action = action
 	e.pressed = true
 	root.push_input(e)
+
+func _mouse(at: Vector2, down: bool) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = down
+	e.position = at
+	e.global_position = at
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT if down else 0
+	_ld._input(e)   # straight to the layout: headless push_input drops mouse events
+
+func _drag(at: Vector2) -> void:
+	var e := InputEventMouseMotion.new()
+	e.position = at
+	e.global_position = at
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT
+	_ld._input(e)
 
 func _run() -> void:
 	load("res://scripts/common/consent.gd").prompted = true
@@ -116,6 +133,37 @@ func _run() -> void:
 	_key("ui_cancel")
 	await _frames(2)
 	ok(ld._dim == null, "Esc / B closes it")
+
+	# Rail auto-hide (owner 2026-11-21): idle -> slides away, games take the full width;
+	# a drag from the left edge pulls it back over the games.
+	_ld = ld
+	root.gui_release_focus()
+	ok(ld._rail_docked and ld._rail_idle.wait_time == 15.0 and not ld._rail_idle.is_stopped(), "rail idle timer runs (15 s)")
+	ld._rail_idle.stop()
+	ld._on_rail_idle()
+	for i in 60:
+		if not ld._rail_docked:
+			break
+		await process_frame
+	await _frames(3)
+	ok(not ld._rail_docked and not ld._rail.visible and ld._main.position.x == 0.0, "idle: rail hides, games start at the left edge")
+	ok(ld._rail_handle.visible, "edge tab shows while the rail is away")
+	var lx: float = ld.get_global_rect().position.x
+	var y: float = ld.size.y / 2.0
+	_mouse(Vector2(lx + 4, y), true)
+	for dx in [20.0, 60.0, ld.rail_w + 20.0]:
+		_drag(Vector2(lx + 4 + dx, y))
+		await process_frame
+	_mouse(Vector2(lx + ld.rail_w + 24, y), false)
+	await _frames(30)
+	ok(ld._rail_open and ld._rail.visible and ld._rail.position.x == 0.0, "edge drag opens the rail over the games")
+	ld._on_rail_idle()
+	await _frames(30)
+	ok(not ld._rail_open and not ld._rail.visible, "idle again: rail slides away")
+	for i in 300:   # let the old layout (before the rail hid) finish freeing, a piece per frame
+		if ld._trash.is_empty():
+			break
+		await process_frame
 
 	print("layout d logic: %d failure(s)" % fails)
 	quit(fails)

@@ -66,6 +66,12 @@ Code: `scripts/hub/layout_d.gd` (+ `categories.gd`; tiles, the game card and the
   hidden (Puzzle / Action / Sports at launch: intended). The selected item: tinted, accent bar on its left.
   Phone: icons only (long-press shows the name); tablet / PC: icon + label, rail as wide as the longest label
   (160-250 dp). Phone landscape: the list scrolls under the pinned Profile, a fade + chevron says there is more.
+  **Auto-hide** [owner 2026-11-21]: 15 s (`RAIL_IDLE`) with no touch on the rail → it slides away and the games
+  take the full width (one re-layout, the first time). Then a press within 24 dp (`EDGE_DP`) of the left edge
+  dragged toward the centre pulls it back (it follows the finger; let go past a third = open) **over** the games,
+  and it slides away again after 15 s idle. A thin accent tab at the left edge shows while it is away. PC: the
+  mouse pushed against the left edge opens it; keyboard / pad focus on the rail opens it and keeps it out.
+  Not while Options, a dialog or the game card is up. Tests: `tools/test_layout_d.gd`.
 - **Device class** from the screen's SHORT side in dp, never from pixels or orientation: phone < 600 dp ≤ tablet
   < 1000 dp ≤ PC; a desktop OS window of 600 dp or more counts as PC. It doesn't change on rotation; the layout
   follows the orientation. Sizes are in dp, so text size 1.0-1.4 grows only the text. Fake a device for
