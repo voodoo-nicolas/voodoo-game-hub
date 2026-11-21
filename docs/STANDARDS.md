@@ -69,17 +69,24 @@ Code: `scripts/hub/layout_d.gd` (+ `categories.gd`; tiles, the game card and the
   **Auto-hide** [owner 2026-11-21]: 15 s (`RAIL_IDLE`) with no touch on the rail → it slides away and the games
   take the full width (one re-layout, the first time). Then a press within 24 dp (`EDGE_DP`) of the left edge
   dragged toward the centre pulls it back (it follows the finger; let go past a third = open) **over** the games,
-  and it slides away again after 15 s idle. A thin accent tab at the left edge shows while it is away. PC: the
+  and it slides away again after 15 s idle. While it is away the left edge shows a glowing line that pulses, with
+  ripples leaving it toward the centre every 1.2 s (`edge_hint.gd`; still line only with Reduce motion or Menu
+  animations off). **Options > Display > Side menu**: **Hides** (default) or **Always shown** (the 0.43.0 rail,
+  never hides; `Settings.rail_fixed`). PC: the
   mouse pushed against the left edge opens it; keyboard / pad focus on the rail opens it and keeps it out.
   Not while Options, a dialog or the game card is up. Tests: `tools/test_layout_d.gd`.
 - **Device class** from the screen's SHORT side in dp, never from pixels or orientation: phone < 600 dp ≤ tablet
-  < 1000 dp ≤ PC; a desktop OS window of 600 dp or more counts as PC. It doesn't change on rotation; the layout
+  < 1000 dp ≤ PC; a desktop OS window of 600 dp or more counts as PC. dp = pixels × base ÷ the reported dpi, base 160
+  on Android / iOS apps, 96 on Windows **and in every browser** (a browser reports 96 × devicePixelRatio; with 160
+  an iPhone in Safari came out 655 dp = tablet, fixed 2026-11-21; `short_side_dp()`, tested). It doesn't change on rotation; the layout
   follows the orientation. Sizes are in dp, so text size 1.0-1.4 grows only the text. Fake a device for
   screenshots with `HUB_DEVICE=phone|tablet|pc` + `HUB_DP_SHORT=<dp>`.
 - **Home**, top to bottom: **Featured** banner (manifest top-level `"featured"`: game ids, auto-advances every 5 s,
   ‹ › arrows / swipe, ▶ Play; phone landscape: banner left of the next row) · **Continue playing** (recently opened,
   newest first) or, on a first launch, **Start here** (manifest top-level `"starter"`) · **New** (per-game `"added"`,
-  newest first) · **Recently updated** (pack `"updated"`; becomes "Popular this week" once Supabase counts plays).
+  newest first) · **Recently updated** (pack `"updated"`; becomes "Popular this week" once Supabase counts plays)
+  · **★ Favorites** (when any) · then **one row per shown category**, in `categories.gd` order (owner 2026-11-21:
+  fills the phone screen; their **See all ›** opens Favorites / the category grid itself).
   A row shows up to 10 tiles (phone portrait 3 visible, tablet portrait 5, else 6-8, the next one peeks out) and
   **See all ›** opens the full list as a grid with "‹ Home".
 - **Category / Favorites / See all**: a grid with a header "<name> · N games" (always counted from the list,

@@ -217,6 +217,8 @@ func _build_ui() -> void:
 	else:
 		_choice_row(display, tr("Games menu look"), tr("Standard, or Superlite: no pictures, for older phones."),
 				[tr("Standard"), tr("Superlite")], 1 if Settings.is_lite() else 0, _on_menu_look)
+		_choice_row(display, tr("Side menu"), tr("Hides after 15 seconds; swipe in from the left edge to bring it back. Or always shown."),
+				[tr("Hides"), tr("Always shown")], 1 if Settings.rail_fixed else 0, _on_rail_fixed)
 	_toggle_row(display, tr("✨ Menu animations"), tr("Smoke, floating sparks and the slowly moving background in the menus."),
 			Settings.menu_fx, _on_menu_fx)
 	_toggle_row(display, tr("🎞 Reduce motion"), tr("Menus switch instantly instead of sliding and fading."),
@@ -666,6 +668,11 @@ func _on_menu_look(i: int) -> void:
 	var layout: String = "lite" if i == 1 else (Settings.hub_layout if not Settings.is_lite() else "strip")
 	if layout != Settings.hub_layout:
 		Settings.set_hub_layout(layout)
+		_reload()   # lights the chosen pill
+
+func _on_rail_fixed(i: int) -> void:
+	if (i == 1) != Settings.rail_fixed:
+		Settings.set_rail_fixed(i == 1)
 		_reload()   # lights the chosen pill
 
 func _old_menu() -> bool:

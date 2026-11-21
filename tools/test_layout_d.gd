@@ -106,6 +106,10 @@ func _run() -> void:
 		if str(new_row[i].added) < str(new_row[i + 1].added):
 			sorted_ok = false
 	ok(new_row.size() == mini(10, cat.all_games().size()) and sorted_ok, "New: 10 newest first")
+	# Home rows after Recently updated: ★ Favorites (when any), then each shown category, in order.
+	var cat_rows: Array = ld._visible_categories().filter(func(c): return not ld._row_games("cat:" + c, 1).is_empty())
+	ok(cat_rows.size() == ld._visible_categories().size() and ld._row_title("cat:board") == Categories.label("board"), "Home: a row per shown category (%d)" % cat_rows.size())
+	ok(ld._row_games("cat:board", 1000).size() == cat.games_in("board").filter(ld._listed).size(), "category row = the category's games")
 	ok(cat.featured.all(func(id): return not cat.get_game(id).is_empty()), "featured lists only live games")
 
 	# Back: grid -> Home; Home -> not handled (the hub leaves the app).
@@ -134,6 +138,13 @@ func _run() -> void:
 	await _frames(2)
 	ok(ld._dim == null, "Esc / B closes it")
 
+	# Device class on the web (owner 2026-11-21): a browser reports 96 x devicePixelRatio dpi.
+	var LD = load("res://scripts/hub/layout_d.gd")
+	ok(is_equal_approx(LD.short_side_dp(1179, 288, true, true), 393.0), "iPhone in Safari = 393 dp (a phone, was 655 = tablet)")
+	ok(is_equal_approx(LD.short_side_dp(1488, 192, true, true), 744.0), "iPad mini in Safari = 744 dp (a tablet)")
+	ok(is_equal_approx(LD.short_side_dp(1080, 420, true, false), 1080.0 * 160.0 / 420.0), "Android APK keeps 160 dpi = 1 dp")
+	ok(is_equal_approx(LD.short_side_dp(1440, 144, false, false), 960.0), "Windows keeps 96")
+	LD = null   # or the script is still held at quit
 	# Rail auto-hide (owner 2026-11-21): idle -> slides away, games take the full width;
 	# a drag from the left edge pulls it back over the games.
 	_ld = ld
@@ -160,6 +171,19 @@ func _run() -> void:
 	ld._on_rail_idle()
 	await _frames(30)
 	ok(not ld._rail_open and not ld._rail.visible, "idle again: rail slides away")
+	ok(ld._rail_handle.visible and ld._rail_handle.get_script() == preload("res://scripts/hub/edge_hint.gd") and ld._rail_handle.mouse_filter == Control.MOUSE_FILTER_IGNORE, "edge line + ripples show, never take input")
+	# Options > Display > Side menu: Always shown (the 0.43.0 rail). Not saved: the var only.
+	root.get_node("Settings").rail_fixed = true
+	ld._build()
+	await _frames(3)
+	ld._on_rail_idle()
+	await _frames(30)
+	ok(ld._rail_docked and ld._rail.visible and ld._rail_idle.is_stopped() and ld._main.position.x == ld.rail_w, "Always shown: rail docked, never hides")
+	root.get_node("Settings").rail_fixed = false
+	for i in 300:
+		if ld._trash.is_empty():
+			break
+		await process_frame
 	for i in 300:   # let the old layout (before the rail hid) finish freeing, a piece per frame
 		if ld._trash.is_empty():
 			break

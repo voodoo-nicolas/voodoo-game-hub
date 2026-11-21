@@ -12696,5 +12696,9 @@
  "en línea": null,
  "rápido": null,
  "sin conexión": null,
- "there's more": null
+ "there's more": null,
+ "Side menu": "Menú lateral",
+ "Hides after 15 seconds; swipe in from the left edge to bring it back. Or always shown.": "Se oculta tras 15 segundos; desliza desde el borde izquierdo para volver a abrirlo. O siempre visible.",
+ "Hides": "Se oculta",
+ "Always shown": "Siempre visible"
 }

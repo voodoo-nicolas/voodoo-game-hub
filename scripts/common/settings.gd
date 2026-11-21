@@ -95,6 +95,9 @@ var reduce_motion: bool = false
 ## only art drawn in code -- for old phones and slow connections.
 var hub_layout: String = "strip"
 var invites: String = "all"
+## Layout D's side rail (owner 2026-11-21): false = hides after 15 s idle, comes back with a
+## swipe from the left edge (the default since 0.43.1); true = always shown (the 0.43.0 menu).
+var rail_fixed: bool = false
 ## Menu decoration (embers, smoke, drifting backdrop) -- Options > Display.
 ## Separate from reduce_motion, which also stops slides and fades.
 var menu_fx: bool = true
@@ -200,6 +203,10 @@ func group_db(id: String) -> Variant:
 	if not group_on(id) or v <= 0:
 		return null
 	return linear_to_db(v / 100.0)
+
+func set_rail_fixed(on: bool) -> void:
+	rail_fixed = on
+	_commit()
 
 func set_hub_layout(layout: String) -> void:
 	hub_layout = layout if layout in ["grid", "lite"] else "strip"
@@ -514,6 +521,7 @@ func _load() -> void:
 	if str(data.get("hub_layout", "")) == "lite":
 		hub_layout = "lite"
 	menu_fx = bool(data.get("menu_fx", true))
+	rail_fixed = bool(data.get("rail_fixed", false))
 	var sf = data.get("safety", {})
 	if typeof(sf) == TYPE_DICTIONARY:
 		safety = {"max_age": clampi(int(sf.get("max_age", 0)), 0, 18)}
@@ -530,5 +538,5 @@ func _save() -> void:
 			"text_size": text_size, "theme": theme, "sound": sound,
 			"volume": volume, "sound_groups": sound_groups,
 			"vibrate": vibrate, "keep_awake": keep_awake, "intro_video": intro_video, "reduce_motion": reduce_motion, "hub_layout": hub_layout, "invites": invites,
-			"menu_fx": menu_fx, "safety": safety,
+			"menu_fx": menu_fx, "rail_fixed": rail_fixed, "safety": safety,
 		}))

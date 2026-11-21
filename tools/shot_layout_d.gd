@@ -3,7 +3,8 @@ extends SceneTree
 ## Screenshots of Layout D (needs a window, not --headless). Fake the device with env vars:
 ##   HUB_DEVICE=phone HUB_DP_SHORT=411 godot --path . --resolution 405x880 \
 ##       --script res://tools/shot_layout_d.gd -- <out_dir> <name> [all]
-## Shoots Home; with "all" also a category grid, search ("a" + the Quick play chip) and a game card.
+## Shoots Home; with "all" also a category grid, search ("a" + the Quick play chip), a game card and
+## the rail hidden (edge line + ripples); "edge" shoots only Home and the hidden rail.
 ## Writes no save data (no tile is opened, nothing is starred).
 
 func _initialize() -> void:
@@ -49,4 +50,14 @@ func _run() -> void:
 		ld._open_detail("chess")
 		await _wait(20)
 		_shot("%s/%s_card.png" % [out, name])
+		ld._close_detail()
+	# The rail away: the glowing edge line + ripples (two moments of the pulse).
+	if args.size() > 2 and args[2] in ["all", "edge"] and ld != null:
+		ld._rail_idle.stop()
+		ld._on_rail_idle()
+		await _wait(60)
+		print("edge hint still=%s (Reduce motion / Menu animations)" % ld._rail_handle.still)
+		_shot("%s/%s_edge.png" % [out, name])
+		await _wait(40)
+		_shot("%s/%s_edge2.png" % [out, name])
 	quit()

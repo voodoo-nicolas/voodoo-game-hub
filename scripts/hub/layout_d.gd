@@ -26,6 +26,7 @@ const GameDetail = preload("res://scripts/hub/game_detail.gd")
 const TouchScroll = preload("res://scripts/hub/touch_scroll.gd")
 const HubLook = preload("res://scripts/hub/hub_look.gd")
 const HubArt = preload("res://scripts/hub/hub_art.gd")
+const EdgeHint = preload("res://scripts/hub/edge_hint.gd")
 const HubData = preload("res://scripts/common/hub_data.gd")
 const GameArt = preload("res://scripts/common/game_art.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -116,7 +117,7 @@ var _rail_docked := true         # the rail takes its own column (until it first
 var _rail_open := true           # the rail is on screen (docked, or pulled out over the games)
 var _rail_idle: Timer
 var _rail_tween: Tween
-var _rail_handle: Control        # the little tab at the left edge while the rail is away
+var _rail_handle: Control        # the glowing edge line (edge_hint.gd) while the rail is away
 var _edge_drag := false          # a drag that started at the left edge, pulling the rail out
 var _edge_start := Vector2.ZERO
 var _kb_input := false           # last input was keys / pad (focus on the rail keeps it out)
@@ -186,6 +187,9 @@ func _relayout() -> void:
 func _build() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
+	if _rail_fixed():
+		_rail_docked = true   # Side menu: Always shown (switched in Options: the hub rebuilds)
+		_rail_open = true
 	_remember_scroll()
 	_view_cache.clear()
 	_recent_views.clear()
@@ -228,10 +232,11 @@ static func device_info(view_size: Vector2) -> Dictionary:
 		win = view_size   # headless (tests): no window, the view is the screen
 	var mobile := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
 	var dpi := float(DisplayServer.screen_get_dpi())
-	var base := 160.0 if mobile else 96.0   # Android dp / Windows device-independent px
-	if dpi <= 0.0:
-		dpi = base
-	var short_dp := minf(win.x, win.y) * base / dpi
+	# var base := 160.0 if mobile else 96.0   # Android dp / Windows device-independent px
+	# A browser reports 96 x devicePixelRatio as its dpi (a CSS px is ~1 dp on a phone), so the
+	# web build divides by 96 too: with 160 an iPhone (393 CSS px, ratio 3) came out 655 dp =
+	# a tablet -- labelled rail, 5 small tiles a row (owner's screenshot, 2026-11-21).
+	var short_dp := short_side_dp(minf(win.x, win.y), dpi, mobile, OS.has_feature("web"))
 	if OS.get_environment("HUB_DP_SHORT") != "":
 		short_dp = float(OS.get_environment("HUB_DP_SHORT"))
 	# phone < 600 dp <= tablet < 1000 dp <= PC; a desktop window of 600 dp or more is a PC.
@@ -244,6 +249,13 @@ static func device_info(view_size: Vector2) -> Dictionary:
 		dev = OS.get_environment("HUB_DEVICE")
 	var short_cu := minf(view_size.x, view_size.y)
 	return {"device": dev, "short_dp": short_dp, "u": short_cu / maxf(short_dp, 1.0)}
+
+## The screen's short side in dp from its pixels and the dpi the platform reports.
+static func short_side_dp(short_px: float, dpi: float, mobile: bool, web: bool) -> float:
+	var base := 96.0 if (web or not mobile) else 160.0
+	if dpi <= 0.0:
+		dpi = base
+	return short_px * base / dpi
 
 func _measure() -> void:
 	var info := device_info(size)
@@ -538,20 +550,22 @@ func _on_rail_pressed(key: String) -> void:
 ## After a (re)build: a docked rail stays put; an undocked one starts away, above the games.
 func _place_rail() -> void:
 	_edge_drag = false
-	_rail_handle = Panel.new()
-	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(HubLook.pal().link, 0.55)
-	hs.set_corner_radius_all(int(dp(3)))
-	_rail_handle.add_theme_stylebox_override("panel", hs)
-	_rail_handle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_rail_handle.size = Vector2(maxf(2.0, dp(4)), dp(48))
-	_rail_handle.position = Vector2(dp(2), (size.y - dp(48)) / 2.0)
+	# The glowing, pulsing edge line + ripples toward the centre (edge_hint.gd), while away.
+	# _rail_handle = Panel.new()   (2026-11-21 v0.43.1: a plain 4 x 48 dp accent tab)
+	var hint = EdgeHint.new()
+	hint.u = u
+	hint.color = HubLook.pal().link
+	hint.still = Settings.reduce_motion or not Settings.menu_fx
+	_rail_handle = hint
+	_rail_handle.position = Vector2.ZERO
+	_rail_handle.size = Vector2(dp(160), size.y)
 	add_child(_rail_handle)
 	if _rail_docked:
 		_rail_open = true
 		_rail.position.x = 0.0
 		_rail_handle.visible = false
-		_rail_idle.start()
+		if not _rail_fixed():
+			_rail_idle.start()
 	else:
 		move_child(_rail, -1)   # drawn over the games
 		_set_rail_x(0.0 if _rail_open else -rail_w)
@@ -603,8 +617,12 @@ func _undock() -> void:
 	_rail_docked = false
 	_build()
 
+## Options > Display > Side menu: Always shown = the rail never hides (the 0.43.0 menu).
+func _rail_fixed() -> bool:
+	return bool(Settings.get("rail_fixed"))
+
 func _on_rail_idle() -> void:
-	if _rail == null or not is_instance_valid(_rail) or not _rail_open:
+	if _rail == null or not is_instance_valid(_rail) or not _rail_open or _rail_fixed():
 		return
 	if not is_visible_in_tree() or _overlay_open() or _press_timer.time_left > 0.0:
 		_rail_idle.start()   # Options / a dialog is up, or a finger is down on the rail
@@ -897,7 +915,12 @@ func _view_home() -> void:
 			var full_h := minf(bw * 9.0 / 16.0, size.y * (0.38 if landscape else 0.34))
 			_body.add_child(_build_banner(feats, Vector2(bw, full_h)))
 		_body.add_child(_row(cont_key, _avail_w()))
-	for key in ["new", "updated"]:
+	# Then ★ Favorites and a row per category (owner 2026-11-21: a phone in portrait had a
+	# quarter of the screen empty under Recently updated). "See all" opens the grid itself.
+	var keys: Array = ["new", "updated", "favs"]
+	for c in _visible_categories():
+		keys.append("cat:" + c)
+	for key in keys:
 		if not _row_games(key, 1).is_empty():
 			_body.add_child(_row(key, _avail_w()))
 
@@ -907,6 +930,9 @@ func _row_title(key: String) -> String:
 		"start": return tr("Start here")
 		"new": return tr("New")
 		"updated": return tr("Recently updated")   # TODO: "Popular this week" once Supabase counts plays
+		"favs": return "★ " + tr("Favorites")
+	if key.begins_with("cat:"):
+		return Categories.label(key.trim_prefix("cat:"))
 	return ""
 
 ## A Home row's games, newest first; `limit` (ROW_MAX for the row itself).
@@ -930,6 +956,10 @@ func _row_games(key: String, limit: int) -> Array:
 		"updated":
 			out = all.filter(func(g): return str(g.get("updated", "")) != "")
 			out.sort_custom(func(a, b): return str(a.updated) > str(b.updated) or (str(a.updated) == str(b.updated) and str(a.id) < str(b.id)))
+		"favs":
+			out = _favorites()
+	if key.begins_with("cat:"):
+		out = Catalog.games_in(key.trim_prefix("cat:")).filter(_listed)   # the grid's order
 	return out.slice(0, limit)
 
 func _listed(g: Dictionary) -> bool:
@@ -963,7 +993,8 @@ func _row(key: String, avail: float) -> Control:
 	if _row_games(key, ROW_MAX + 1).size() > 0:
 		var all := HubLook.ghost_button(tr("See all") + " ›", fs(15), HubLook.pal().link)
 		all.focus_mode = Control.FOCUS_ALL
-		all.pressed.connect(_show.bind("all:" + key))
+		# Favorites / a category: their own view (rail item lit); the rest: the full list.
+		all.pressed.connect(_show.bind(key if (key == "favs" or key.begins_with("cat:")) else "all:" + key))
 		head.add_child(all)
 	var sc := ScrollContainer.new()
 	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

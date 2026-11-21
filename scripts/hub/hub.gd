@@ -948,7 +948,7 @@ func _exit_tree() -> void:
 func _look_signature() -> String:
 	return var_to_str([Settings.text_size, Settings.theme, Settings.hub_layout, Settings.menu_fx,
 		Settings.reduce_motion, Settings.safety, Settings.is_lite(), TranslationServer.get_locale(),
-		Voodoo.is_on(), Settings.invites])
+		Voodoo.is_on(), Settings.invites, Settings.rail_fixed])
 
 func _gap(h: float) -> Control:
 	var c := Control.new()
