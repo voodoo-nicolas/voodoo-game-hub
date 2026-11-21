@@ -235,7 +235,7 @@ func test_json() -> void:
 		ok(not ids.has(it.id), "no duplicate item id: %s" % it.id)
 		ids[it.id] = true
 		ok(it.has("en") and it.has("es"), "item %s has en + es" % it.id)
-	ok(ids.size() == 88, "88 items (got %d)" % ids.size())
+	ok(ids.size() == 89, "89 items (got %d)" % ids.size())
 	var rids := {}
 	for r in D.json("recipes").recipes:
 		ok(not rids.has(r.id), "no duplicate recipe id: %s" % r.id)
@@ -249,7 +249,7 @@ func test_json() -> void:
 		for k in ["tool", "needs"]:
 			if r.has(k):
 				ok(ids.has(r[k]), "recipe %s %s %s exists" % [r.id, k, r[k]])
-	ok(rids.size() == 53, "53 recipes (got %d)" % rids.size())
+	ok(rids.size() == 54, "54 recipes (got %d)" % rids.size())
 	for k in D.json("recipes").debris_loot:
 		for pair in D.json("recipes").debris_loot[k]:
 			ok(ids.has(pair[0]), "debris %s loot %s exists" % [k, pair[0]])
@@ -308,13 +308,13 @@ func test_queue_offline() -> void:
 		if D.item(id).get("r", "") in ["R", "M"]:
 			rare = true
 	ok(rare, "pity: day 14 without a rare gives one")
-	# inventory: 12 slots, overflow on the sand, pulled back
+	# inventory: 16 slots (12 before 2026-11-21), overflow on the sand, pulled back
 	var b = fresh(at(2026, 6, 21, 9))
-	for id in ["stick", "stone", "frond", "shell", "sand", "seaweed", "rope", "plank", "nail", "salt", "clay", "wax"]:
+	for id in ["stick", "stone", "frond", "shell", "sand", "seaweed", "rope", "plank", "nail", "salt", "clay", "wax", "coconut", "husk_fiber", "sailcloth", "cloth_scrap"]:
 		b.add(id, 1)
-	ok(b.slots.size() == 12, "12 slots full")
+	ok(b.slots.size() == 16, "16 slots full")
 	b.add("pearl", 2)
-	ok(b.ground.get("pearl", 0) == 2, "13th item type goes on the sand")
+	ok(b.ground.get("pearl", 0) == 2, "17th item type goes on the sand")
 	b.remove("wax", 1)
 	ok(b.count("pearl") == 2 and b.ground.is_empty(), "freed slot pulls it back")
 	b.add("stick", 40)
@@ -333,7 +333,7 @@ func test_tutorial() -> void:
 	ok(e.quest == "T03", "T02 done (crate)")
 	ok(e.count("rope") == 6, "T02 loot not given twice (rope 6, got %d)" % e.count("rope"))
 	act("haul", "barrel")
-	ok(e.capacity() == 32, "barrel in the bag: 12 + 20 slots")
+	ok(e.capacity() == 36, "barrel in the bag: 16 + 20 slots")
 	act("gather", "sticks")
 	act("craft", "fishing_pole")
 	ok(e.quest == "T04", "T03 done")
@@ -460,7 +460,7 @@ func test_m3_combine() -> void:
 	ok(h.ok and h.recipe == "rope_fiber" and h.queued, "fiber + fiber = rope")
 	ok(g.undiscovered().size() > 0, "some recipes left to find")
 
-## Every one of the 53 recipes can be made: give its parts, build its station, play it through.
+## Every one of the 54 recipes can be made: give its parts, build its station, play it through.
 func test_m3_all_recipes() -> void:
 	ok(D.MAX_TIER == 4, "all four tiers on")
 	var made := 0
@@ -487,7 +487,7 @@ func test_m3_all_recipes() -> void:
 		else:
 			ok(e.count(r.out) >= int(r.get("qty", 1)), "recipe %s made %s" % [r.id, r.out])
 		made += 1
-	ok(made == 53, "53 recipes made (got %d)" % made)
+	ok(made == 54, "54 recipes made (got %d)" % made)
 
 func test_m3_wear_spoil() -> void:
 	var e = fresh(at(2026, 6, 21, 9))
@@ -555,11 +555,24 @@ func test_m3_skills_storage() -> void:
 	e.xp["fishing"] = 99999
 	ok(e.skill_level("fishing") == D.SKILL_MAX, "skill caps at 10")
 	var c = fresh(at(2026, 6, 21, 9))
-	ok(c.capacity() == 12, "12 slots")
+	ok(c.capacity() == 16, "16 slots")
 	c.add("clay_jar", 2)
-	ok(c.capacity() == 32, "two clay jars: +20")
+	ok(c.capacity() == 36, "two clay jars: +20")
 	c.add("barrel", 1)
-	ok(c.capacity() == 52, "plus a barrel: +20")
+	ok(c.capacity() == 56, "plus a barrel: +20")
+	c.add("palm_basket", 1)
+	ok(c.capacity() == 66, "plus a palm basket: +10")
+	# letting go (owner, 2026-11-21): throw away, camp stash, take back
+	c.add("stone", 5)
+	ok(c.discard("stone", 2) and c.count("stone") == 3, "throw two stones away")
+	ok(c.store("stone") == 3 and c.count("stone") == 0 and int(c.stash.stone) == 3, "stones go to the camp stash")
+	c.add("fish_small", 1)
+	ok(not c.can_stash("fish_small") and c.store("fish_small") == 0, "spoiling food stays out of the stash")
+	ok(c.take("stone") == 3 and c.count("stone") == 3 and not c.stash.has("stone"), "take the stones back")
+	c.store("stone")
+	var c2 = Engine_.new()
+	c2.from_dict(c.to_dict())
+	ok(int(c2.stash.get("stone", 0)) == 3, "the stash survives a save")
 
 func test_m4_weather_tides() -> void:
 	var a = fresh(at(2026, 6, 21, 9))

@@ -8,6 +8,7 @@
 {"id":"campfire","out":"campfire","qty":1,"out_type":"structure","in":[["stone",8],["stick",5]],"needs":"spark_kit","station":"camp","min":10,"en":4,"tier":1},
 {"id":"hammock","out":"hammock","qty":1,"out_type":"structure","in":[["sailcloth",1],["rope",4]],"station":"anchors","min":15,"en":6,"tier":1},
 {"id":"frond_bed","out":"frond_bed","qty":1,"out_type":"structure","in":[["frond",10]],"station":"camp","min":10,"en":5,"tier":1},
+{"id":"palm_basket","out":"palm_basket","qty":1,"out_type":"item","in":[["frond",6],["rope",1]],"station":"hands","min":8,"en":3,"tier":1,"note":"+10 bag slots (owner, 2026-11-21)"},
 {"id":"coconut_bowl","out":"coconut_bowl","qty":1,"out_type":"item","in":[["coconut_shell",1]],"tool":"knife","station":"hands","min":5,"en":2,"tier":1},
 {"id":"torch","out":"torch","qty":1,"out_type":"item","in":[["stick",1],["cloth_scrap",1],["fish_oil",1]],"station":"hands","min":4,"en":2,"tier":1},
 {"id":"frond_shelter","out":"frond_shelter","qty":1,"out_type":"structure","in":[["frond",25],["stick",6],["rope",4]],"station":"camp","min":20,"en":8,"tier":2,"note":"first roof; sleep 15/h, sheltered"},

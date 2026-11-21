@@ -23,7 +23,8 @@ func setup(id: String, text_: String) -> void:
 	add_theme_constant_override("icon_max_width", 44)
 	alignment = HORIZONTAL_ALIGNMENT_LEFT
 	clip_text = false
-	add_theme_font_size_override("font_size", 18)
+	# add_theme_font_size_override("font_size", 18)
+	add_theme_font_size_override("font_size", 21)     # bigger: "stuff is hard to read" (owner, 2026-11-21)
 
 func _get_drag_data(_at: Vector2) -> Variant:
 	var prev := TextureRect.new()

@@ -21,7 +21,7 @@
   },
   "tide_period_min": 745,
   "weather_tick_min": 15,
-  "inventory": { "start_slots": 12, "barrel_bonus": 20, "chest_bonus": 30, "jar_bonus": 10 },
+  "inventory": { "start_slots": 16, "basket_bonus": 10, "barrel_bonus": 20, "chest_bonus": 30, "jar_bonus": 10 },
   "bottle": { "max_chars": 140, "max_hops": 5 },
   "login": { "streak_days": 30, "grace_tides_per_week": 1 }
 }

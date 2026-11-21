@@ -72,6 +72,7 @@
 {"id":"fish_cooked","en":"Cooked fish","es":"Pescado cocido","r":"F","cat":"food","stack":10},
 {"id":"compost","en":"Compost","es":"Compost","r":"X","cat":"material","stack":10},
 {"id":"fish_dried","en":"Dried fish","es":"Pescado seco","r":"F","cat":"food","stack":20},
+{"id":"palm_basket","en":"Palm basket","es":"Cesta de palma","r":"C","cat":"storage","stack":1},
 {"id":"clay_jar","en":"Clay jar","es":"Jarra de arcilla","r":"X","cat":"storage","stack":5},
 {"id":"fish_oil_lamp","en":"Fish-oil lamp","es":"Lámpara de aceite","r":"X","cat":"tool","stack":1},
 {"id":"drum","en":"Coconut drum","es":"Tambor de coco","r":"X","cat":"tool","stack":1},
