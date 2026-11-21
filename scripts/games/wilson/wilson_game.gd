@@ -1425,7 +1425,8 @@ func _structure_menu(id: String, screen: Vector2) -> void:
 
 func _card_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.09, 0.07, 0.05, 0.96)
+	# sb.bg_color = Color(0.09, 0.07, 0.05, 0.96)
+	sb.bg_color = Color(0.09, 0.07, 0.05, 1.0)     # fully opaque: the beach showed through the bag (owner, 2026-11-21 "hard to read")
 	sb.border_color = Color(1.0, 0.7, 0.35, 0.8)
 	sb.set_border_width_all(2)
 	sb.set_corner_radius_all(12)
@@ -1949,8 +1950,8 @@ func _open_bag() -> void:
 	var body := _open_panel("🎒 " + tr("Bag") + "  (%d/%d)" % [engine.slots.size(), engine.capacity()])
 	var hint := Label.new()
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.add_theme_font_size_override("font_size", 18)
-	hint.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7))
+	hint.add_theme_font_size_override("font_size", 22)
+	hint.add_theme_color_override("font_color", Color(0.95, 0.9, 0.8))
 	if _combine_from != "":
 		hint.text = "🔗 " + tr("Combine %s with... tap a second item.") % D.item_name(_combine_from)
 		hint.add_theme_color_override("font_color", ACCENT)
@@ -1970,13 +1971,31 @@ func _open_bag() -> void:
 		var b := Slot.new()
 		var id: String = s.id
 		b.setup(id, "%s  ×%d%s" % [D.item_name(id), int(s.n), _slot_note(s)])
-		b.custom_minimum_size = Vector2(250, 66)
+		b.custom_minimum_size = Vector2(250, 72)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if id == _combine_from:
 			b.modulate = Color(1.0, 0.85, 0.5)
 		b.pressed.connect(_item_menu.bind(id))
 		b.combined.connect(_combine)
 		grid.add_child(b)
+	if not engine.stash.is_empty():
+		var sl := Label.new()
+		sl.text = "📦 " + tr("Camp stash (tap to take back):")
+		sl.add_theme_font_size_override("font_size", 22)
+		sl.add_theme_color_override("font_color", ACCENT)
+		body.add_child(sl)
+		var sg := GridContainer.new()
+		sg.columns = 3
+		sg.add_theme_constant_override("h_separation", 8)
+		sg.add_theme_constant_override("v_separation", 8)
+		body.add_child(sg)
+		for sid in engine.stash:
+			var sb_ := Slot.new()
+			sb_.setup(str(sid), "%s  ×%d" % [D.item_name(str(sid)), int(engine.stash[sid])])
+			sb_.custom_minimum_size = Vector2(250, 72)
+			sb_.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			sb_.pressed.connect(_take_from_stash.bind(str(sid)))
+			sg.add_child(sb_)
 	if not engine.ground.is_empty():
 		var l := Label.new()
 		l.text = tr("On the sand (no room in the bag):")
@@ -2051,10 +2070,44 @@ func _item_menu(id: String) -> void:
 	c.text = "🔗 " + tr("Combine with...")
 	c.pressed.connect(_start_combine.bind(id))
 	col.add_child(c)
+	# letting go of things (owner, 2026-11-21: "can't drop? can't trash? can't store it?")
+	if engine.can_stash(id):
+		var st := Button.new()
+		st.text = "📦 " + tr("Store at camp")
+		st.pressed.connect(_store_item.bind(id))
+		col.add_child(st)
+	var d1 := Button.new()
+	d1.text = "🌊 " + tr("Throw one away")
+	d1.pressed.connect(_discard_item.bind(id, 1))
+	col.add_child(d1)
+	if engine.count(id) > 1:
+		var da := Button.new()
+		da.text = "🌊 " + tr("Throw all away") + " (×%d)" % engine.count(id)
+		da.pressed.connect(_discard_item.bind(id, engine.count(id)))
+		col.add_child(da)
 	var back := Button.new()
 	back.text = "‹ " + tr("Bag")
 	back.pressed.connect(_open_bag)
 	col.add_child(back)
+
+func _store_item(id: String) -> void:
+	var n: int = engine.store(id)
+	if n > 0:
+		_show_toast("📦 " + tr("Stored at camp: %s") % ("%s ×%d" % [D.item_name(id), n]))
+	_open_bag()
+
+func _discard_item(id: String, n: int) -> void:
+	if engine.discard(id, n):
+		_show_toast("🌊 " + tr("Thrown away: %s") % ("%s ×%d" % [D.item_name(id), n]))
+	if engine.count(id) > 0:
+		_item_menu(id)
+	else:
+		_open_bag()
+
+func _take_from_stash(id: String) -> void:
+	if engine.take(id) <= 0:
+		_show_toast("🎒 " + tr("No room in the bag."))
+	_open_bag()
 
 func _start_combine(id: String) -> void:
 	_combine_from = id

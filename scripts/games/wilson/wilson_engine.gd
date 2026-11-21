@@ -30,6 +30,7 @@ var bars := {"hp": 100.0, "food": 100.0, "water": 100.0, "energy": 100.0}
 var mood := 60.0
 var slots: Array = []        # [{id, n}], at most `slot_count`
 var slot_count := 12
+var stash: Dictionary = {}    # id -> n: the camp stash (owner, 2026-11-21: "can't drop? can't store it?"); no cap, no spoiling food
 var ground := {}             # overflow when the bag is full: id -> n (pulled back in when room frees)
 var structures := {}         # id -> {built: t, ...}; campfire: fuel_until
 var debris := {}             # id -> true while it lies on the beach
@@ -871,12 +872,13 @@ func _shore_item(rarity: String) -> String:
 
 # ================================================================ inventory
 
-## Bag slots: 12 to start, +20 while a barrel is in the bag (balance.json inventory.barrel_bonus;
+## Bag slots: 16 to start (12 before 2026-11-21), +10 while a palm basket is in the bag, +20 while a barrel is in the bag (balance.json inventory.barrel_bonus;
 ## CRAFTING.md §5 "barrel +20"). Turning the barrel into a rain catcher gives that room up.
 func capacity() -> int:
 	var inv: Dictionary = D.balance().get("inventory", {})
 	return slot_count + (int(inv.get("barrel_bonus", 20)) if count("barrel") > 0 else 0) \
 		+ int(inv.get("jar_bonus", 10)) * count("clay_jar") \
+		+ (int(inv.get("basket_bonus", 10)) if count("palm_basket") > 0 else 0) \
 		+ (D.CELLAR_SLOTS if structures.has("cellar") else 0)
 
 func count(id: String) -> int:
@@ -1002,6 +1004,47 @@ func _settle_ground() -> void:
 		left = rest
 		if left > 0:
 			ground[id] = left
+
+## Throws `n` of `id` away (into the sea). Owner, 2026-11-21: the bag had no way to let go of anything.
+func discard(id: String, n: int) -> bool:
+	n = mini(n, count(id))
+	if n <= 0 or not remove(id, n):
+		return false
+	log_entry("Threw %s into the sea. Travel light.", ["@" + id])
+	return true
+
+## Food that spoils cannot go in the stash (it would come back fresh); the cellar keeps everything.
+func can_stash(id: String) -> bool:
+	return count(id) > 0 and (not D.SPOIL_H.has(id) or structures.has("cellar"))
+
+## Moves every `id` from the bag to the camp stash. Returns how many moved.
+func store(id: String) -> int:
+	if not can_stash(id):
+		return 0
+	var n := count(id)
+	remove(id, n)
+	stash[id] = int(stash.get(id, 0)) + n
+	return n
+
+## Takes as many `id` as fit back from the stash. Returns how many came back.
+func take(id: String) -> int:
+	var n := int(stash.get(id, 0))
+	if n <= 0:
+		return 0
+	var cap := stack_of(id)
+	var room := (capacity() - slots.size()) * cap
+	for s in slots:
+		if s.id == id:
+			room += cap - int(s.n)
+	var put := mini(n, room)
+	if put <= 0:
+		return 0
+	if put < n:
+		stash[id] = n - put
+	else:
+		stash.erase(id)
+	add(id, put)
+	return put
 
 func give_list(list: Array) -> void:
 	for pair in list:
@@ -2136,7 +2179,7 @@ func debug_give(id: String, n: int) -> void:
 func to_dict() -> Dictionary:
 	return {
 		"v": SAVE_VERSION, "t": t, "tz": tz, "hemisphere": hemisphere, "look": look, "cname": cname, "start_day": start_day,
-		"bars": bars, "mood": mood, "slots": slots, "slot_count": slot_count, "ground": ground,
+		"bars": bars, "mood": mood, "slots": slots, "slot_count": slot_count, "stash": stash, "ground": ground,
 		"structures": structures, "debris": debris, "palms": palms, "spots": spots, "queue": queue,
 		"sleep": sleep, "naps": naps, "buffs": buffs, "flags": flags, "quest": quest, "tut": tut,
 		"quests_done": quests_done, "xp": xp, "gags": gags, "decor": decor, "unlocked": unlocked, "discovered": discovered,
@@ -2159,7 +2202,10 @@ func from_dict(d: Dictionary) -> bool:
 	slots = d.slots
 	for s in slots:
 		s.n = int(s.n)
-	slot_count = int(d.get("slot_count", 12))
+	# the start bag grew 12 -> 16 (owner, 2026-11-21): older saves get the bigger bag too
+	# slot_count = int(d.get("slot_count", 12))
+	slot_count = maxi(int(d.get("slot_count", 12)), int(D.balance().get("inventory", {}).get("start_slots", 16)))
+	stash = d.get("stash", {})
 	ground = d.get("ground", {})
 	structures = d.get("structures", {})
 	debris = d.get("debris", {})

@@ -49,7 +49,37 @@ var _jobs := {}            # job id -> Array of textures (cached, empty = none)
 
 signal arrived
 
+## A dark ink outline + a little more colour, so she reads as solid against the sand like the
+## island's own inked art (owner, 2026-11-21: "she's kinda transparent": soft pale edges, no line).
+const INK_SHADER := """
+shader_type canvas_item;
+uniform vec4 ink : source_color = vec4(0.22, 0.13, 0.07, 1.0);
+uniform float width = 1.6;
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	vec2 px = TEXTURE_PIXEL_SIZE * width;
+	float a = 0.0;
+	a = max(a, texture(TEXTURE, UV + vec2(px.x, 0.0)).a);
+	a = max(a, texture(TEXTURE, UV - vec2(px.x, 0.0)).a);
+	a = max(a, texture(TEXTURE, UV + vec2(0.0, px.y)).a);
+	a = max(a, texture(TEXTURE, UV - vec2(0.0, px.y)).a);
+	a = max(a, texture(TEXTURE, UV + px * 0.7).a);
+	a = max(a, texture(TEXTURE, UV - px * 0.7).a);
+	vec3 rgb = c.rgb;
+	float g = dot(rgb, vec3(0.299, 0.587, 0.114));
+	rgb = clamp(mix(vec3(g), rgb, 1.15) * 1.04 - 0.02, 0.0, 1.0);
+	float body = smoothstep(0.35, 0.8, c.a);
+	vec4 o = vec4(mix(ink.rgb, rgb, body), max(body, a * ink.a));
+	COLOR = o * COLOR;
+}
+"""
+
 func _ready() -> void:
+	var sh := Shader.new()
+	sh.code = INK_SHADER
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	material = m
 	set_look(look)
 
 func set_look(l: String) -> void:
