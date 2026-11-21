@@ -120,4 +120,4 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
 - **Spike-board slams** shook the screen from anywhere on the stage (every 3.4 s from stage 5): only a board
   that is down within 300 units of the hero shakes it now, and less (3, was 5).
 - **Coins / magatama** jittered while running: their bob/turn phase used the screen x; it uses the world x now.
-- Test key **F11**: invincible on / off (`engine.god`, not saved; a fall puts you back at the lantern).
+- Test keys: **F7 / G / Caps Lock / F11** invincible on / off, **F5** full stars + bombs, **F6** full hearts (laptop F-keys may need Fn); invincible (`engine.god`, not saved; a fall puts you back at the lantern).
