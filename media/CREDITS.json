@@ -9717,6 +9717,17 @@
    "ai_tool": "Claude Code (scripted 3D render)",
    "ai_plan": "n/a (code-rendered)",
    "processed_by": "tools/shot_ancient_assassins.gd"
+  },
+  {
+   "file": "games/sniper_hold/landing.jpg",
+   "what": "Sniper Hold Landing picture: the game's own dusk valley, drawn in code (sniper_hold_scenery.gd) and captured from the game",
+   "source": "rendered from the game's own code, 2026-11-22",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/OWNER_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-22",
+   "ai_tool": "none (code-drawn)"
   }
  ]
 }

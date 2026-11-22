@@ -1000,6 +1000,9 @@
  "c_<id>#<n>": [
   "scripts\\common\\achievements.gd"
  ],
+ "can't drop? can't store it?": [
+  "scripts\\games\\wilson\\wilson_engine.gd"
+ ],
  "can't open": [
   "scripts\\common\\catalog.gd"
  ],
@@ -1077,6 +1080,9 @@
  "growth_%d": [
   "scripts\\games\\evolution\\evolution_engine.gd"
  ],
+ "hard to read": [
+  "scripts\\games\\wilson\\wilson_game.gd"
+ ],
  "in the menus": [
   "scripts\\hub\\hub.gd"
  ],
@@ -1132,6 +1138,9 @@
  "palm:C": [
   "scripts\\games\\wilson\\wilson_game.gd"
  ],
+ "pinch to zoom": [
+  "scripts\\games\\sniper_hold\\sniper_hold_game.gd"
+ ],
  "read failed": [
   "scripts\\common\\catalog.gd"
  ],
@@ -1165,6 +1174,9 @@
  "sea/%s.webp": [
   "scripts\\games\\wilson\\wilson_world.gd"
  ],
+ "season%d": [
+  "scripts\\games\\sniper_hold\\sniper_hold_game.gd"
+ ],
  "sleep:%s:%s|": [
   "scripts\\games\\wilson\\wilson_game.gd"
  ],
@@ -1179,6 +1191,9 @@
  ],
  "studyMs": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "stuff is hard to read": [
+  "scripts\\games\\wilson\\wilson_slot.gd"
  ],
  "tap to remove": [
   "scripts\\games\\rectangles\\rectangles_game.gd"
