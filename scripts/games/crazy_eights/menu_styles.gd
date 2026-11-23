@@ -639,6 +639,9 @@ class MenuLanding extends Control:
 					normal = _box(Color(tint, 0.85) if on else Color(0.03, 0.02, 0.08, 0.8), tint, 3, 2000, 0.6)
 				"bento":
 					normal = _box(tint.darkened(0.2), tint.lightened(0.25) if on else tint.darkened(0.5), 3, 22, 0.0)
+					# [2026-11-23] raised-key look: thick darker lip underneath, so the tile isn't flat
+					(normal as StyleBoxFlat).border_width_bottom = 10
+					(normal as StyleBoxFlat).border_color = tint.darkened(0.55)
 					(normal as StyleBoxFlat).shadow_color = Color(0, 0, 0, 0.35)
 					(normal as StyleBoxFlat).shadow_size = 6
 					(normal as StyleBoxFlat).shadow_offset = Vector2(0, 5)
@@ -1089,7 +1092,7 @@ class MenuLanding extends Control:
 		var n := mains.size()
 		var main_rows := 1 + ceili(float(maxi(0, n - 1)) / 2.0)
 		var urow := clampf(area.size.y * 0.13, 52.0, 76.0)
-		var unit := clampf((area.size.y - urow - 24.0 - gap * float(main_rows)) / (float(main_rows) + 0.6), 52.0, 170.0)
+		var unit := clampf((area.size.y - urow - 24.0 - gap * float(main_rows)) / (float(main_rows) + 0.6), 52.0, 112.0)  # [2026-11-23] not so big
 		var y := area.position.y
 		var cw := (area.size.x - gap) * 0.5
 		for i in n:
@@ -1099,8 +1102,8 @@ class MenuLanding extends Control:
 			var r: Rect2
 			b.alignment = HORIZONTAL_ALIGNMENT_CENTER
 			if i == 0:
-				r = Rect2(area.position.x, y, area.size.x, unit * 1.6)
-				y += unit * 1.6 + gap
+				r = Rect2(area.position.x, y, area.size.x, unit * 1.3)
+				y += unit * 1.3 + gap
 				b.add_theme_font_size_override("font_size", int(clampf(unit * 0.4, 22.0, 44.0)))
 			else:
 				var c := (i - 1) % 2

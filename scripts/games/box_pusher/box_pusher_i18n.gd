@@ -96,6 +96,7 @@ const STRINGS := {
 		"← Hub": "← Inicio",
 		"↶ Undo": "↶ Deshacer",
 		"↺  Restart": "↺  Reiniciar",
+		"↺ Start over": "↺ Reiniciar",
 		"⏭ Skip level": "⏭ Saltar nivel",
 		"▶  Play": "▶  Jugar",
 		"▶  Resume": "▶  Continuar",

@@ -679,9 +679,7 @@ func _build_home() -> void:
 			sub.add_theme_constant_override("outline_size", 8)
 		box.add_child(sub)
 
-	var rating := _rating_row()
-	if rating != null:
-		box.add_child(rating)
+	var rating := _rating_row()  # [2026-11-23] now added at the bottom of the menu
 
 	box.add_child(gap(6))
 	resume_btn = neon_button("", GO, 30, 84)
@@ -742,6 +740,8 @@ func _build_home() -> void:
 	var ver := _version_row()
 	if ver != null:
 		box.add_child(ver)
+	if rating != null:
+		box.add_child(rating)
 	if _compact():
 		_compact_sizes(box)
 	get_viewport().size_changed.connect(_fit_home_layout)
@@ -2022,7 +2022,7 @@ static func draw_grid(c: Control) -> void:
 ## manifest's Arcade category; `hub.py check` keeps the two in step.
 const FELT_GAMES := ["solitaire", "blackjack", "war", "crazy_eights", "go_fish", "gin_rummy",
 	"spider", "freecell", "pyramid", "speed", "memory", "tri_peaks", "hearts", "video_poker",
-	"sevens", "rummy", "spades"]
+	"sevens", "rummy", "spades", "truco", "el_9", "chinchon"]
 const OWN_BG_GAMES := ["geometry_wars", "snake", "block_drop", "paddle_ball", "brick_breaker",
 	"bird_hop", "alien_attack", "frog_crossing", "gem_match", "simon", "whack_a_mole",
 	"reaction_test", "bubble_pop", "rock_blaster", "city_defense", "maze_muncher", "moon_lander",

@@ -83,7 +83,7 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bar.add_child(title)
 	var restart_btn := Button.new()
-	restart_btn.text = "↺"
+	restart_btn.text = tr("↺ Start over")
 	restart_btn.custom_minimum_size = Vector2(76, 64)
 	restart_btn.add_theme_font_size_override("font_size", 30)
 	restart_btn.add_theme_font_size_override("font_size", 26)
@@ -125,19 +125,24 @@ func _build_ui() -> void:
 	root.add_child(board)
 
 	var controls := HBoxContainer.new()
-	controls.alignment = BoxContainer.ALIGNMENT_CENTER
 	controls.add_theme_constant_override("separation", 24)
 	var cm := MarginContainer.new()
 	cm.add_theme_constant_override("margin_bottom", 30)
+	cm.add_theme_constant_override("margin_left", 24)   # [2026-11-23] controller layout: d-pad left, undo right
+	cm.add_theme_constant_override("margin_right", 24)
 	cm.add_child(controls)
 	root.add_child(cm)
 	var undo_btn := Button.new()
 	undo_btn.text = tr("↶ Undo")
-	undo_btn.custom_minimum_size = Vector2(170, 80)
+	undo_btn.custom_minimum_size = Vector2(150, 64) if get_viewport_rect().size.x > get_viewport_rect().size.y * 1.1 else Vector2(170, 80)
+	undo_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	undo_btn.add_theme_font_size_override("font_size", 26)
 	undo_btn.pressed.connect(_on_undo)
-	controls.add_child(undo_btn)
 	controls.add_child(_build_dpad())
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls.add_child(spacer)
+	controls.add_child(undo_btn)
 
 	win_dialog = UI.build_dialog(tr("Level Complete!"), [
 		{"text": tr("Next Level"), "action": _change_level.bind(1)},
@@ -157,19 +162,21 @@ func _build_dpad() -> Control:
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 6)
+	var wide := get_viewport_rect().size.x > get_viewport_rect().size.y * 1.1
+	var bs := Vector2(60, 52) if wide else Vector2(76, 70)
 	var arrows := {1: ["▲", 0], 3: ["◀", 3], 5: ["▶", 1], 7: ["▼", 2]}
 	for i in 9:
 		if arrows.has(i):
 			var b := Button.new()
 			b.text = arrows[i][0]
-			b.custom_minimum_size = Vector2(76, 70)
+			b.custom_minimum_size = bs
 			b.add_theme_font_size_override("font_size", 30)
 			b.focus_mode = Control.FOCUS_NONE
 			b.pressed.connect(_on_move.bind(arrows[i][1]))
 			grid.add_child(b)
 		else:
 			var gap := Control.new()
-			gap.custom_minimum_size = Vector2(76, 70)
+			gap.custom_minimum_size = bs
 			grid.add_child(gap)
 	return grid
 

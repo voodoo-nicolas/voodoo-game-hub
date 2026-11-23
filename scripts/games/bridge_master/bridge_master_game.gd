@@ -156,7 +156,8 @@ var _press_at := Vector2.ZERO
 var fit_btn: Button
 var grid_btn: Button
 ## Build grid: "dots" (default), "lines" (a 1 m grid with every 5th line stronger), "off".
-const GRID_MODES := ["dots", "lines", "off"]
+# [2026-11-23] white / black dots, white / black lines, off (white dots were hard to see on some levels).
+const GRID_MODES := ["dots", "dots_k", "lines", "lines_k", "off"]
 var grid_mode := "dots"
 ## Visual polish (2026-11-17): drifting motes, level fade, screen shake, dust under the wheels.
 var _shake_off := Vector2.ZERO
@@ -165,6 +166,7 @@ var _motes: CPUParticles2D
 var _dust: CPUParticles2D
 
 func _ready() -> void:
+	_road_load()
 	preload("res://scripts/games/bridge_master/bridge_master_i18n.gd").install(self)
 	Orientation.lock_landscape()
 	engine = E.new()
@@ -611,6 +613,8 @@ func _on_board_input(event: InputEvent) -> void:
 		return
 	if _zoom_input(event):
 		return
+	if road_edit and _road_input(event):
+		return
 	if testing:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -744,7 +748,7 @@ func _cycle_grid() -> void:
 	grid_mode = GRID_MODES[(i + 1) % GRID_MODES.size()]
 	progress["grid"] = grid_mode
 	_save_progress()
-	_toast({"dots": tr("Grid: dots"), "lines": tr("Grid: lines"), "off": tr("Grid: off")}[grid_mode], 1.5)
+	_toast({"dots": tr("Grid: white dots"), "dots_k": tr("Grid: black dots"), "lines": tr("Grid: white lines"), "lines_k": tr("Grid: black lines"), "off": tr("Grid: off")}[grid_mode], 1.5)
 	board.queue_redraw()
 
 func _update_drag(w: Vector2) -> void:
@@ -2201,7 +2205,18 @@ func _draw_water(wy: float, bottom: float, classic: bool) -> void:
 		var sh := vs * 1.5
 		var sw := sh * wt.get_width() / wt.get_height()
 		var top := wy - sh * 0.2
-		board.draw_rect(Rect2(Vector2(wl, top + sh * 0.6), Vector2(ww, bottom - top)), Color("1d4f8c"))
+		# [2026-11-23] deep water: a fade from river blue to dark, with soft ripple bands, not a flat slab.
+		var dy := top + sh * 0.6
+		var shallow := Color("2a6bb0")
+		var deep := Color("0f2f5c")
+		board.draw_polygon(PackedVector2Array([Vector2(wl, dy), Vector2(wl + ww, dy), Vector2(wl + ww, bottom), Vector2(wl, bottom)]),
+			PackedColorArray([shallow, shallow, deep, deep]))
+		var by := dy + vs * 0.5
+		var bi := 0
+		while by < bottom:
+			board.draw_line(Vector2(wl, by), Vector2(wl + ww, by), Color(1, 1, 1, 0.07 - 0.004 * bi), maxf(2.0, vs * 0.06))
+			by += vs * (0.55 + 0.12 * bi)
+			bi += 1
 		var x := wl - fmod(sw * 0.37, sw)
 		while x < wl + ww:
 			board.draw_texture_rect(wt, Rect2(Vector2(x, top), Vector2(sw, sh)), false)
@@ -2286,9 +2301,10 @@ func _part(name: String) -> Texture2D:
 
 func _draw_grid_and_bridge(classic: bool, w: float) -> void:
 	# Build grid while editing.
-	if not testing and grid_mode == "lines":
-		var lc := Color(1, 1, 1, 0.22) if classic else Color(HomeKit.CYAN, 0.2)
-		var lc5 := Color(1, 1, 1, 0.45) if classic else Color(HomeKit.CYAN, 0.42)
+	if not testing and grid_mode.begins_with("lines"):
+		var dark_g := grid_mode.ends_with("_k")
+		var lc := Color(0, 0, 0, 0.35) if dark_g else (Color(1, 1, 1, 0.22) if classic else Color(HomeKit.CYAN, 0.2))
+		var lc5 := Color(0, 0, 0, 0.65) if dark_g else (Color(1, 1, 1, 0.45) if classic else Color(HomeKit.CYAN, 0.42))
 		var y_lo := int(lv.water) + 1
 		var y_hi := E.top_limit(lv)
 		var thin := PackedVector2Array()
@@ -2301,8 +2317,8 @@ func _draw_grid_and_bridge(classic: bool, w: float) -> void:
 			arr2.append_array([_to_screen(Vector2(-3, gy)), _to_screen(Vector2(w + 3, gy))])
 		board.draw_multiline(thin, lc, maxf(1.0, vs * 0.025))
 		board.draw_multiline(thick, lc5, maxf(1.5, vs * 0.04))
-	if not testing and grid_mode == "dots":
-		var gc := Color(1, 1, 1, 0.6) if classic else Color(HomeKit.CYAN, 0.5)
+	if not testing and grid_mode.begins_with("dots"):
+		var gc := Color(0, 0, 0, 0.8) if grid_mode == "dots_k" else (Color(1, 1, 1, 0.9) if classic else Color(HomeKit.CYAN, 0.7))
 		var gs := maxf(3.0, vs * 0.09)
 		for gx in range(-3, int(w) + 4):
 			for gy in range(int(lv.water) + 1, E.top_limit(lv) + 1):
@@ -2329,6 +2345,8 @@ func _draw_grid_and_bridge(classic: bool, w: float) -> void:
 			board.draw_string(font, b + Vector2(12, -14), len_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, col)
 	# Vehicle (parked on the left cliff while editing).
 	_draw_vehicle(classic)
+	if road_edit:
+		_draw_road_handles()
 	# Shade under the top and bottom bars so their text reads over the scene.
 	var sz2 := board.size
 	var dark := Color(0.03, 0.02, 0.01, 0.55)
@@ -2400,6 +2418,115 @@ func _draw_sim_members(classic: bool) -> void:
 	for i in engine.pos.size():
 		_draw_bolt(_to_screen(engine.pos[i]), engine.fixed[i] == 1, classic)
 
+# ---------- road approach path (visual only; the physics ground stays flat) ----------
+# [2026-11-23] First-guess curves for the road leading to / from the bridge, so the vehicle follows
+# the painted road instead of a straight line. Each point is [x, dy]: x in metres from the cliff
+# edge (approach: negative, exit: positive), dy = height above/below the flat ground line.
+# Edit on a PC: F9 = show/drag the points, F10 = save to user://road_paths.json (overrides this).
+const ROAD_FILE := "user://road_paths.json"
+const ROAD_DEFAULT := {
+	"in": [[-7.0, -0.5], [-5.0, 0.35], [-3.0, 0.15], [-1.2, 0.05], [0.0, 0.0]],
+	"out": [[0.0, 0.0], [1.2, 0.05], [3.0, 0.15], [5.0, 0.35], [7.0, -0.5]],
+}
+var road_paths: Dictionary = {}
+var road_edit := false
+var road_drag := ["", -1]
+
+func _road_load() -> void:
+	var d = SaveUtil.read(ROAD_FILE)
+	road_paths = d if d is Dictionary else {}
+
+func _road_pts(out: bool) -> Array:
+	var lvl: Dictionary = road_paths.get(str(cur_level), {})
+	var k := "out" if out else "in"
+	if lvl.has(k) and lvl[k] is Array and lvl[k].size() >= 2:
+		return lvl[k]
+	return ROAD_DEFAULT[k]
+
+func _road_dy(out: bool, x: float) -> float:
+	var pts := _road_pts(out)
+	if x <= float(pts[0][0]):
+		return float(pts[0][1])
+	for i in range(1, pts.size()):
+		var a: Array = pts[i - 1]
+		var b: Array = pts[i]
+		if x <= float(b[0]):
+			var t := (x - float(a[0])) / maxf(0.001, float(b[0]) - float(a[0]))
+			return lerpf(float(a[1]), float(b[1]), t * t * (3.0 - 2.0 * t))
+	return float(pts[pts.size() - 1][1])
+
+## Extra height and tilt of the vehicle at world x, on the road before / after the bridge.
+func _road_pose(x: float) -> Vector2:
+	var w: float = lv.w
+	var out := x > w
+	if x >= 0.0 and x <= w:
+		return Vector2.ZERO
+	var lx := x - w if out else x
+	var dy := _road_dy(out, lx)
+	var slope := (_road_dy(out, lx + 0.1) - _road_dy(out, lx - 0.1)) / 0.2
+	return Vector2(dy, atan(slope))
+
+func _road_ground(out: bool) -> float:
+	return float(lv.dh) if out else 0.0
+
+func _road_handle_world(out: bool, i: int) -> Vector2:
+	var pt: Array = _road_pts(out)[i]
+	return Vector2(float(pt[0]) + (float(lv.w) if out else 0.0), _road_ground(out) + float(pt[1]))
+
+func _draw_road_handles() -> void:
+	for out in [false, true]:
+		var pts := _road_pts(out)
+		for i in pts.size():
+			var c := _to_screen(_road_handle_world(out, i))
+			_disc_at(c, vs * 0.22, Color("ffeb3b"))
+			if i > 0:
+				board.draw_line(_to_screen(_road_handle_world(out, i - 1)), c, Color("ffeb3b"), 2.0)
+	board.draw_string(ThemeDB.fallback_font, Vector2(12, board.size.y - 14), "Road editor: drag the yellow dots, F10 saves, F9 closes", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("ffeb3b"))
+
+func _road_input(event: InputEvent) -> bool:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			var best := 0.6
+			road_drag = ["", -1]
+			for out in [false, true]:
+				var pts := _road_pts(out)
+				for i in pts.size():
+					var d := _to_world(event.position).distance_to(_road_handle_world(out, i))
+					if d < best:
+						best = d
+						road_drag = ["out" if out else "in", i]
+		else:
+			road_drag = ["", -1]
+		return true
+	if event is InputEventMouseMotion and road_drag[1] >= 0:
+		var out: bool = road_drag[0] == "out"
+		var lvl: Dictionary = road_paths.get(str(cur_level), {})
+		var pts: Array = _road_pts(out).duplicate(true)
+		var i: int = road_drag[1]
+		var wp := _to_world(event.position)
+		var lx := wp.x - (float(lv.w) if out else 0.0)
+		if i > 0 and i < pts.size() - 1:
+			pts[i][0] = snappedf(lx, 0.1)
+		pts[i][1] = snappedf(wp.y - _road_ground(out), 0.05) if i != (0 if out else pts.size() - 1) else 0.0
+		lvl["out" if out else "in"] = pts
+		for k in ["in", "out"]:
+			if not lvl.has(k):
+				lvl[k] = _road_pts(k == "out").duplicate(true)
+		road_paths[str(cur_level)] = lvl
+		board.queue_redraw()
+		return true
+	return false
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F9:
+			road_edit = not road_edit
+			board.queue_redraw()
+		elif event.keycode == KEY_F10 and road_edit:
+			SaveUtil.write(ROAD_FILE, road_paths)
+			print("road_paths = ", JSON.stringify(road_paths))
+			_toast(tr("Road paths saved"), 2.0)
+
 func _draw_vehicle(classic: bool) -> void:
 	var vd: Dictionary = E.VEHICLES[lv.vehicle]
 	var p: Vector2
@@ -2409,6 +2536,10 @@ func _draw_vehicle(classic: bool) -> void:
 		ang = engine.vehicle_angle()
 	else:
 		p = Vector2(E.START_X - float(vd.base) * 0.5, 0.0)
+	if engine.vstate != "fall":
+		var rp := _road_pose(p.x)
+		p.y += rp.x
+		ang += rp.y
 	var base: float = vd.base
 	# Soft ground shadow under the vehicle (fades as it falls away from the road).
 	if engine.vstate != "fall":
