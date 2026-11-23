@@ -152,6 +152,44 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
 		_save_game()
 
+var _root: VBoxContainer
+var _mid: HBoxContainer
+var _side: VBoxContainer
+var _wide := false
+
+## Wide windows (PC): players, captured pieces and the move list go in a column
+## beside the board, which then grows to the full height. Narrow: stacked as before.
+func _fit_layout() -> void:
+	if _root == null or _mid == null or strips.size() < 2 or moves_scroll == null:
+		return
+	var vp := get_viewport_rect().size
+	var wide := vp.x > vp.y * 1.15
+	if wide == _wide:
+		return
+	_wide = wide
+	var s0: Control = strips[0].box
+	var s1: Control = strips[1].box
+	var mp: Control = moves_scroll.get_parent()
+	for n in [s0, s1, mp]:
+		n.get_parent().remove_child(n)
+	if wide:
+		_side.visible = true
+		_side.add_child(s0)
+		_side.add_child(mp)
+		_side.add_child(s1)
+		mp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		moves_scroll.custom_minimum_size = Vector2(0, 120)
+	else:
+		_side.visible = false
+		_root.add_child(s0)
+		_root.move_child(s0, eval_bar.get_index())
+		_root.add_child(s1)
+		_root.move_child(s1, _mid.get_index() + 1)
+		_root.add_child(mp)
+		_root.move_child(mp, s1.get_index() + 1)
+		mp.size_flags_vertical = Control.SIZE_FILL
+		moves_scroll.custom_minimum_size = Vector2(0, 40)
+
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
@@ -181,6 +219,7 @@ func _build_ui() -> void:
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 8)
 	margin.add_child(root)
+	_root = root
 
 	var top_bar := HBoxContainer.new()
 	top_bar.add_theme_constant_override("separation", 10)
@@ -212,19 +251,30 @@ func _build_ui() -> void:
 	_build_lesson_panel(root)
 	strips.append(_build_strip(root))
 	eval_bar = EvalBar.new()
-	eval_bar.custom_minimum_size = Vector2(0, 22)
+	eval_bar.custom_minimum_size = Vector2(0, 14)
 	root.add_child(eval_bar)
 
 	board_view = BoardView.new()
 	board_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	board_view.custom_minimum_size = Vector2(0, 240)
 	board_view.square_pressed.connect(_on_square_pressed)
-	root.add_child(board_view)
+	# [2026-11-23] board row: on wide windows the info panels move to a column beside the board.
+	_mid = HBoxContainer.new()
+	_mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_mid.add_theme_constant_override("separation", 12)
+	root.add_child(_mid)
+	board_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_mid.add_child(board_view)
+	_side = VBoxContainer.new()
+	_side.custom_minimum_size = Vector2(320, 0)
+	_side.add_theme_constant_override("separation", 10)
+	_side.visible = false
+	_mid.add_child(_side)
 
 	strips.append(_build_strip(root))
 
 	moves_scroll = ScrollContainer.new()
-	moves_scroll.custom_minimum_size = Vector2(0, 64)
+	moves_scroll.custom_minimum_size = Vector2(0, 40)  # [2026-11-23] smaller, so the board grows
 	moves_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var moves_panel := PanelContainer.new()
 	moves_panel.add_theme_stylebox_override("panel", _strip_style())
@@ -236,6 +286,9 @@ func _build_ui() -> void:
 	moves_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	moves_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	moves_scroll.add_child(moves_label)
+
+	get_viewport().size_changed.connect(_fit_layout)
+	call_deferred("_fit_layout")
 
 	status_label = Label.new()
 	status_label.add_theme_font_size_override("font_size", 28)

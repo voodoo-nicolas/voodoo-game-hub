@@ -83,6 +83,10 @@ var smash_t: float = 0.0
 var smash_at := Vector2.ZERO
 var shake_t: float = 0.0
 var warned: bool = false
+var started: bool = false   # the clock waits for the first move
+var show_marks: bool = false   # colour-blind shapes (⚙ Options), off by default
+var tip_dialog: ColorRect
+var how_btn: Button
 
 func _ready() -> void:
 	if ResourceLoader.exists(I18N_PATH):
@@ -180,6 +184,9 @@ func _build_ui() -> void:
 	var hint_btn := _button("💡", _on_help.bind(_help_hint))
 	for b in [time_btn, hammer_btn, hint_btn]:
 		actions.add_child(b)
+	for b in [time_btn, hammer_btn, hint_btn]:
+		b.add_theme_font_size_override("font_size", 56)
+		b.custom_minimum_size = Vector2(0, 92)
 	help_btns = [[time_btn, "⏳"], [hammer_btn, "🔨"], [hint_btn, "💡"]]
 	actions.add_child(_button(tr("⟲ Retry"), _restart))
 
@@ -194,6 +201,16 @@ func _build_ui() -> void:
 		{"text": tr("🏠 %s Home") % tr(HELP.TITLE), "action": _go_home},
 	], true)
 	add_child(end_dialog)
+	how_btn = Button.new()
+	how_btn.text = tr("💡 How to improve")
+	how_btn.custom_minimum_size = Vector2(320, 64)
+	how_btn.add_theme_font_size_override("font_size", 26)
+	how_btn.pressed.connect(_show_tip)
+	var end_box: VBoxContainer = end_dialog.get_child(0).get_child(0).get_child(0)
+	end_box.add_child(how_btn)
+	end_box.move_child(how_btn, 2)
+	tip_dialog = UI.build_dialog(tr("How to improve"), [{"text": tr("OK"), "action": Callable()}], true)
+	add_child(tip_dialog)
 	lose_dialog = UI.build_dialog(tr("Time's up!"), [
 		{"text": tr("⏳ +%d seconds (help)") % EXTRA_TIME, "action": _lose_more_time},
 		{"text": tr("⟲ Try again"), "action": _restart},
@@ -214,7 +231,8 @@ func _build_ui() -> void:
 		# Menu style (docs/MENU_STYLES.md): S10 Bento Grid; toy-brick colours.
 		"landing": "bento",
 		"landing_style": MenuStyles,
-		"title_colors": [TOY[0], TOY[2], TOY[1]],
+		"title_colors": [TOY[1]],
+		"title_font": "res://games/block_escape/title.ttf",  # [2026-11-23] one colour, own font
 		"landing_colors": [Color("0a1430"), Color("1b2d5c")],
 		# [2026-11-20] Landing art: games/block_escape/landing.jpg (tools/art/puzzle_landing_art.py).
 		"art": "res://games/block_escape/landing.jpg",
@@ -236,6 +254,7 @@ func _build_ui() -> void:
 			{"text": "🔨 Hammer", "how": "Tap a block to smash it. It counts as out, so chains count down too.", "action": _help_hammer},
 			{"text": "💡 Hint", "how": "Shows a block that can get out right now.", "action": _help_hint},
 		],
+		"options": _add_game_options,
 		"board": "Levels cleared",
 		"board_note": "Highest Levels-mode level cleared.",
 	})
@@ -356,6 +375,16 @@ func _draw_board() -> void:
 	var fw := s * 0.5  # frame width
 	var area := Rect2(o, Vector2(engine.cols * s, engine.rows * s))
 	var frame_col := FRAME if classic else Color("12162a")
+	# [2026-11-23] backdrop detail: a faint blueprint grid and soft corner glow behind the tray.
+	var bsz := board.size
+	var gstep := s * 1.0
+	var gcol := Color(1, 1, 1, 0.10) if classic else Color(HomeKit.CYAN, 0.07)
+	var gx0 := fposmod(o.x, gstep)
+	var gy0 := fposmod(o.y, gstep)
+	for i in int(bsz.x / gstep) + 1:
+		board.draw_line(Vector2(gx0 + i * gstep, 0), Vector2(gx0 + i * gstep, bsz.y), gcol, 1.0)
+	for i in int(bsz.y / gstep) + 1:
+		board.draw_line(Vector2(0, gy0 + i * gstep), Vector2(bsz.x, gy0 + i * gstep), gcol, 1.0)
 	# _round_rect(area.grow(fw), frame_col, s * 0.35)
 	# Frame with depth: drop shadow, outer rim, face, recessed inner lip.
 	_round_rect(Rect2(area.grow(fw).position + Vector2(0, s * 0.12), area.grow(fw).size), Color(0, 0, 0, 0.25), s * 0.35)
@@ -364,6 +393,16 @@ func _draw_board() -> void:
 	_round_rect(area.grow(fw * 0.45), frame_col.darkened(0.35), s * 0.2)
 	if not classic:
 		HomeKit.glow_rect(board, area.grow(fw), HomeKit.CYAN, 2.0, 0.0)
+	# Rivets along the frame + corner bolts, so the board reads as a machined tray.
+	var rv := area.grow(fw * 0.72)
+	for i in range(1, engine.cols * 2):
+		var rx := rv.position.x + rv.size.x * float(i) / float(engine.cols * 2)
+		for ry in [rv.position.y, rv.end.y]:
+			board.draw_circle(Vector2(rx, ry), s * 0.045, frame_col.lightened(0.28))
+	for i in range(1, engine.rows * 2):
+		var ry2 := rv.position.y + rv.size.y * float(i) / float(engine.rows * 2)
+		for rx2 in [rv.position.x, rv.end.x]:
+			board.draw_circle(Vector2(rx2, ry2), s * 0.045, frame_col.lightened(0.28))
 	# gates on the frame: colour + the colour's mark + an arrow out
 	var font: Font = ThemeDB.fallback_font
 	for g in engine.gates:
@@ -382,7 +421,8 @@ func _draw_board() -> void:
 		# var mc := gr.get_center() - along * span * 0.25
 		# board.draw_string(font, mc + Vector2(-mw / 2.0, fs * 0.36), mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.95))
 		# Drawn mark, not a font glyph (the phone font showed the glyphs as odd symbols).
-		_draw_mark(gr.get_center() - along * span * 0.25, s * 0.11, int(g.color), Color(1, 1, 1, 0.95))
+		if show_marks:
+			_draw_mark(gr.get_center() - along * span * 0.25, s * 0.11, int(g.color), Color(1, 1, 1, 0.95))
 	# floor + holes
 	for y in engine.rows:
 		for x in engine.cols:
@@ -460,8 +500,10 @@ func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, al
 			if cells.has(cc + Vector2i(0, 1)):
 				r.size.y += m * 2.0
 			if pass_i == 0:
-				_round_rect(Rect2(r.position + Vector2(0, s * 0.07), r.size), Color(col.darkened(0.45), alpha), rad)
+				_round_rect(Rect2(r.position + Vector2(0, s * 0.07), r.size).grow(s * 0.035), Color(col.darkened(0.7), alpha), rad)
 			else:
+				# dark outer edge so each block's size and shape reads at a glance
+				_round_rect(r.grow(s * 0.03), Color(col.darkened(0.6), alpha), rad)
 				_round_rect(r, Color(col, alpha) if classic else Color(col, 0.22 * alpha), rad)
 				if classic:
 					# glossy upper half + darker lower lip: reads as a moulded plastic brick
@@ -485,7 +527,7 @@ func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, al
 	# var mw: float = font.get_string_size(mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	# board.draw_string(font, c0 + Vector2(-mw / 2.0, fs * 0.36), mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.85 * alpha))
 	# Colour-blind cue (STANDARDS §9): a small embossed shape on one stud instead of a font glyph.
-	if axis == 0 and lock == 0:
+	if show_marks and axis == 0 and lock == 0:
 		_draw_mark(c0, s * 0.09, colour, Color(col.darkened(0.35), 0.8 * alpha) if classic else Color(col.lightened(0.4), alpha))
 	if axis != 0:
 		var cen := box.get_center()
@@ -565,6 +607,7 @@ func _on_board_input(event: InputEvent) -> void:
 			var bi := engine.block_at(_cell_at(event.position))
 			if hammer_armed:
 				if bi >= 0:
+					started = true
 					_smash(bi)
 				return
 			if bi < 0:
@@ -575,6 +618,7 @@ func _on_board_input(event: InputEvent) -> void:
 				_feedback(tr("Chained: %d more blocks must get out first.") % int(engine.blocks[bi].lock), _soft())
 				board.queue_redraw()
 				return
+			started = true
 			drag_block = bi
 			drag_from_px = event.position
 			drag_from_pos = engine.blocks[bi].pos
@@ -705,8 +749,9 @@ func _lose_more_time() -> void:
 func _process(delta: float) -> void:
 	var redraw := false
 	if playing and engine.rows > 0 and not engine.solved():
-		elapsed += delta
-		if mode != "zen":
+		if started:
+			elapsed += delta
+		if mode != "zen" and started:
 			time_left -= delta
 			if time_left <= 10.0 and not warned:
 				warned = true
@@ -800,9 +845,41 @@ func _on_solved() -> void:
 	if note != "":
 		msg += "\n" + note
 	end_dialog.get_meta("message_label").text = msg
+	how_btn.visible = mode == "levels" and stars < 3
+	if how_btn.visible:
+		tip_dialog.get_meta("message_label").text = _improve_text(stars)
 	end_dialog.visible = true
 	_update_hud()
 	board.queue_redraw()
+
+## Why the missing stars were missed, and what to do differently.
+func _improve_text(stars: int) -> String:
+	var frac := time_left / maxf(1.0, float(engine.time_limit))
+	var lines: Array = []
+	if stars < 3:
+		if helps_used > 0:
+			lines.append(tr("3 ★ needs a clear with no help: you used ⏳ / 🔨 / 💡 %d time(s).") % helps_used)
+		if frac < 0.5:
+			lines.append(tr("3 ★ also needs half the clock left: you finished with %d%%.") % int(frac * 100.0))
+	if stars < 2:
+		lines.append(tr("2 ★ needs a quarter of the clock left. Move first the blocks that nothing blocks, and plan the order before you drag."))
+	return "
+".join(lines)
+
+func _show_tip() -> void:
+	tip_dialog.visible = true
+
+func _add_game_options(body: Control) -> void:
+	body.add_child(home.section("Colour-blind shapes"))
+	body.add_child(home.choice_row(["Off", "On"], 1 if show_marks else 0, _on_marks_pick))
+	body.add_child(HomeKit.label(tr("Draws a small shape (dot, square, triangle…) on each block and gate of the same colour."), 21, HomeKit.DIM, true))
+
+func _on_marks_pick(i: int) -> void:
+	show_marks = i == 1
+	progress.marks = show_marks
+	_save_progress()
+	if board:
+		board.queue_redraw()
 
 ## Levels cleared in a row from level 1 (the leaderboard number).
 func _levels_done() -> int:
@@ -863,6 +940,7 @@ func _begin(p: Dictionary) -> void:
 
 func _begin_play() -> void:
 	playing = true
+	started = elapsed > 0.0
 	warned = false
 	hint_t = 0.0
 	drag_block = -1
@@ -926,6 +1004,7 @@ func _load_progress() -> void:
 		progress.stars = {}
 	if not progress.has("next"):
 		progress.next = 1
+	show_marks = bool(progress.get("marks", false))
 	hammer_armed = bool(progress.get("hammer", false))  # a paid-for 🔨 waits for the next board
 
 func _save_progress() -> void:

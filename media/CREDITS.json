@@ -4566,6 +4566,15 @@
    "proof": "media/licenses/fonts/rampartone-OFL.txt",
    "url": "https://github.com/google/fonts/tree/main/ofl/rampartone",
    "date": "2026-11-13"
+  },  {
+   "file": "games/block_escape/title.ttf",
+   "what": "Title font of the block_escape Landing (menu style, docs/MENU_STYLES.md)",
+   "source": "Google Fonts: Rampart One",
+   "author": "Fontworks Inc.",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/rampartone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/rampartone",
+   "date": "2026-11-13"
   },
   {
    "file": "games/connect4/title.ttf",

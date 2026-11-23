@@ -396,7 +396,7 @@ func _finish(won: bool) -> void:
 
 func _process(delta: float) -> void:
 	var busy := false
-	if clock and started and not finished and not home.visible and not win_dialog.visible and not lose_dialog.visible:
+	if clock and started and not finished and not home.is_home_visible() and not win_dialog.visible and not lose_dialog.visible:
 		var before := int(ceil(time_left))
 		time_left -= delta
 		if int(ceil(time_left)) != before:

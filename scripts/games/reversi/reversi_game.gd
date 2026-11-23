@@ -130,8 +130,10 @@ func _build_ui() -> void:
 	root.add_child(center)
 
 	var viewport_width: float = get_viewport_rect().size.x
-	var board_margin := 12.0
-	var cell_size: float = floor((viewport_width - board_margin * 2.0) / 8.0)
+	var board_margin := maxf(16.0, viewport_width * 0.05)  # [2026-11-23] "no fly zone" between board and screen edge
+	# [2026-11-23] fit height too (PC windows are wider than tall): leave ~300 px for the bars and status.
+	var avail: float = minf(viewport_width, get_viewport_rect().size.y - 300.0)
+	var cell_size: float = floor((avail - board_margin * 2.0) / 8.0)
 	var board_size: float = cell_size * 8.0
 
 	var board_sb := StyleBoxFlat.new()
