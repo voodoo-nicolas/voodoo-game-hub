@@ -121,3 +121,10 @@ Tests: `tools/test_ink_ninja.gd` (`godot --headless --script`), shots: `tools/sh
   that is down within 300 units of the hero shakes it now, and less (3, was 5).
 - **Coins / magatama** jittered while running: their bob/turn phase used the screen x; it uses the world x now.
 - Test keys: **F7 / G / Caps Lock / F11** invincible on / off, **F5** full stars + bombs, **F6** full hearts (laptop F-keys may need Fn); invincible (`engine.god`, not saved; a fall puts you back at the lantern).
+
+## Dip backdrop (owner photo, 2026-11-23)
+- Where the land dips below the ground line (600) the backdrop ended in a straight line (fog bands and trunks stopped at 600).
+  `_fog` now carries its mist on to the bottom of the field and `_trunks` draws each trunk on down past the ground line.
+- Swing taps on a laptop touchpad that "sometimes" do nothing: the pad and the game's Swing queue + 0.25 s buffer were
+  checked again and drop nothing they receive; Windows' touchpad tap delay (Settings > Touchpad > Taps > sensitivity)
+  swallows the tap before the game sees it. A physical touchpad click or the J key always reaches the game.
