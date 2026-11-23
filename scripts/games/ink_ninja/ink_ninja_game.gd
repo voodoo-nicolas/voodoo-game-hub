@@ -1987,6 +1987,9 @@ func _pine_layer(c: CanvasItem, tex: Texture2D, off: float, k: float, base: floa
 ## Mist between two heights (world units), thicker toward the bottom.
 func _fog(c: CanvasItem, k: float, y0: float, y1: float, a: float) -> void:
 	c.draw_texture_rect(fog_tex, Rect2(0, y0 * k, field.size.x, (y1 - y0) * k), false, Color(pal.fog, a))
+	# Owner 2026-11-23 (photo): where the land dips below the ground line the backdrop ended in a
+	# straight line. The mist carries on at its full strength down to the bottom of the field.
+	c.draw_rect(Rect2(0, y1 * k - 1.0, field.size.x, field.size.y - y1 * k + 2.0), Color(pal.fog, a))
 
 ## Tall straight trunks rising out of the top of the screen, a few bare branch strokes.
 func _trunks(c: CanvasItem, off: float, k: float) -> void:
@@ -2003,6 +2006,11 @@ func _trunks(c: CanvasItem, off: float, k: float) -> void:
 		var bot := Vector2(x, Engine_.GROUND * k)
 		c.draw_line(top, bot, col, wd)
 		c.draw_line(top + Vector2(wd * 0.25, 0), bot + Vector2(wd * 0.25, 0), Color(pal.mid, 0.35), wd * 0.25)   # dry-brush streak
+		# On down past the ground line, so a dip in the land shows trunk, not a cut-off (owner 2026-11-23).
+		var lean_dir := (bot - top) / (bot.y - top.y)
+		var deep := bot + lean_dir * (sz.y + 10.0 - bot.y)
+		c.draw_line(bot - lean_dir * 2.0, deep, col, wd)
+		c.draw_line(bot + Vector2(wd * 0.25, 0), deep + Vector2(wd * 0.25, 0), Color(pal.mid, 0.35), wd * 0.25)
 		for b in 3:
 			var by := (90.0 + b * 95.0 + absf(sin(wx * 5.0 + b)) * 40.0) * k
 			var bp := top.lerp(bot, by / bot.y)
