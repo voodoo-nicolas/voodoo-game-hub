@@ -60,4 +60,9 @@ func _run() -> void:
 		_shot("%s/%s_edge.png" % [out, name])
 		await _wait(40)
 		_shot("%s/%s_edge2.png" % [out, name])
+		# Pulled back out over a category: its title moves clear of the rail.
+		ld._show("cat:board", false)
+		ld._open_rail()
+		await _wait(40)
+		_shot("%s/%s_edge_open.png" % [out, name])
 	quit()

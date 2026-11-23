@@ -39,6 +39,9 @@ const FADE := 0.16               # view change
 ## games take the full width; then a drag from the left edge (EDGE_DP wide) toward the centre
 ## pulls it back over the games, and it slides away again after RAIL_IDLE s.
 const RAIL_IDLE := 15.0
+## Owner 2026-11-21: once the pointer leaves the rail (mouse off it, or a tap on the games),
+## it hides RAIL_LEAVE s later instead.
+const RAIL_LEAVE := 3.0
 const EDGE_DP := 24.0
 const RAIL_SLIDE := 0.22
 ## Search's Spanish words for tags, so "multijugador" finds multiplayer games too.
@@ -114,12 +117,16 @@ var _relayout_queued := false
 var _home_key := ""              # refresh_home(): what Home showed last
 var _account_key := ""           # update_account(): who the rail showed last
 var _rail_docked := true         # the rail takes its own column (until it first auto-hides)
+var _was_fixed := false          # Side menu was Always shown at the last build
+var _unfixed := false            # this build follows a switch back to Auto-hide
 var _rail_open := true           # the rail is on screen (docked, or pulled out over the games)
 var _rail_idle: Timer
 var _rail_tween: Tween
 var _rail_handle: Control        # the glowing edge line (edge_hint.gd) while the rail is away
 var _edge_drag := false          # a drag that started at the left edge, pulling the rail out
 var _edge_start := Vector2.ZERO
+var _pointer_on_rail := false   # the mouse / finger was last on the rail (RAIL_LEAVE once it leaves)
+var _header_margin: MarginContainer   # its left margin clears the rail while it is out over the games
 var _kb_input := false           # last input was keys / pad (focus on the rail keeps it out)
 
 # ---------- setup ----------
@@ -187,6 +194,8 @@ func _relayout() -> void:
 func _build() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
+	_unfixed = _was_fixed and not _rail_fixed()
+	_was_fixed = _rail_fixed()
 	if _rail_fixed():
 		_rail_docked = true   # Side menu: Always shown (switched in Options: the hub rebuilds)
 		_rail_open = true
@@ -565,17 +574,28 @@ func _place_rail() -> void:
 		_rail.position.x = 0.0
 		_rail_handle.visible = false
 		if not _rail_fixed():
-			_rail_idle.start()
+			_rail_idle.start(RAIL_LEAVE if _unfixed else RAIL_IDLE)   # just switched to Auto-hide: go soon
 	else:
 		move_child(_rail, -1)   # drawn over the games
 		_set_rail_x(0.0 if _rail_open else -rail_w)
 		if _rail_open:
-			_rail_idle.start()
+			_rail_idle.start(RAIL_IDLE)
 
 func _set_rail_x(x: float) -> void:
 	_rail.position.x = x
 	_rail.visible = x > -rail_w + 0.5
 	_rail_handle.visible = not _rail_docked and x <= -rail_w + 0.5
+	_fit_header()
+
+## The view's title (a category's name, "N games") moves right while the rail is out over the
+## games, so the rail never covers it (owner 2026-11-21).
+func _fit_header() -> void:
+	if _header_margin == null or not is_instance_valid(_header_margin):
+		return
+	var cover := 0.0
+	if not _rail_docked and _rail != null and is_instance_valid(_rail) and _rail.visible:
+		cover = maxf(0.0, _rail.position.x + rail_w)
+	_header_margin.add_theme_constant_override("margin_left", int(dp(16) + cover))
 
 func _slide_rail(to_x: float, done: Callable = Callable()) -> void:
 	if _rail_tween != null and _rail_tween.is_valid():
@@ -595,7 +615,7 @@ func _slide_rail(to_x: float, done: Callable = Callable()) -> void:
 func _open_rail() -> void:
 	if _rail == null or not is_instance_valid(_rail):
 		return
-	_rail_idle.start()
+	_rail_idle.start(RAIL_IDLE)
 	if _rail_open and _rail.position.x >= 0.0:
 		return
 	_rail_open = true
@@ -604,6 +624,7 @@ func _open_rail() -> void:
 func _close_rail() -> void:
 	_rail_idle.stop()
 	_rail_open = false
+	_pointer_on_rail = false
 	var f := get_viewport().gui_get_focus_owner()
 	if f != null and _rail.is_ancestor_of(f):
 		f.release_focus()
@@ -625,11 +646,13 @@ func _on_rail_idle() -> void:
 	if _rail == null or not is_instance_valid(_rail) or not _rail_open or _rail_fixed():
 		return
 	if not is_visible_in_tree() or _overlay_open() or _press_timer.time_left > 0.0:
-		_rail_idle.start()   # Options / a dialog is up, or a finger is down on the rail
+		# Options / a dialog is up, or a finger is down on the rail: look again in RAIL_LEAVE s,
+		# so the rail goes 3 s after Options closes (switching Side menu back to Auto-hide shows).
+		_rail_idle.start(RAIL_LEAVE)
 		return
 	var f := get_viewport().gui_get_focus_owner()
 	if _kb_input and f != null and _rail.is_ancestor_of(f):
-		_rail_idle.start()   # walking the rail with keys / a pad
+		_rail_idle.start(RAIL_IDLE)   # walking the rail with keys / a pad
 		return
 	_close_rail()
 
@@ -655,7 +678,7 @@ func _input(e: InputEvent) -> void:
 			if _rail_open and _rail != null and is_instance_valid(_rail):
 				var f := get_viewport().gui_get_focus_owner()
 				if f != null and _rail.is_ancestor_of(f):
-					_rail_idle.start()
+					_rail_idle.start(RAIL_IDLE)
 		return
 	if _rail == null or not is_instance_valid(_rail) or not is_visible_in_tree():
 		return
@@ -663,10 +686,17 @@ func _input(e: InputEvent) -> void:
 	var touch := DisplayServer.is_touchscreen_available()
 	if e is InputEventMouseButton or (e as InputEventMouseMotion).button_mask != 0 or not touch:
 		_kb_input = false
-	# Any touch on the rail while it is out: it stays another RAIL_IDLE s.
-	if _rail_open and _rail.visible and _rail.get_global_rect().has_point(pos):
-		if e is InputEventMouseButton or (e as InputEventMouseMotion).button_mask != 0 or not touch:
-			_rail_idle.start()
+	# On the rail (a touch, a drag, or a mouse over it): it stays another RAIL_IDLE s. Once the
+	# pointer leaves it (the mouse moves off, or a tap lands on the games): RAIL_LEAVE s.
+	if _rail_open and _rail.visible and not _rail_fixed():
+		var counts: bool = e is InputEventMouseButton or (e as InputEventMouseMotion).button_mask != 0 or not touch
+		if counts and _rail.get_global_rect().has_point(pos):
+			_pointer_on_rail = true
+			_rail_idle.start(RAIL_IDLE)
+		elif counts and (_pointer_on_rail or (e is InputEventMouseButton and e.pressed)):
+			_pointer_on_rail = false
+			if _rail_idle.is_stopped() or _rail_idle.time_left > RAIL_LEAVE:
+				_rail_idle.start(RAIL_LEAVE)
 	if _rail_docked or _overlay_open():
 		return
 	var edge_x := pos.x - get_global_rect().position.x
@@ -691,6 +721,7 @@ func _input(e: InputEvent) -> void:
 			_rail.visible = true
 			_rail_handle.visible = false
 			_rail.position.x = clampf(-rail_w + dx, -rail_w, 0.0)   # the rail follows the finger
+			_fit_header()
 		elif e.button_mask == 0 and not _rail_open and edge_x <= dp(4) and not touch:
 			_open_rail()   # a mouse pushed against the left edge (PC)
 
@@ -707,6 +738,7 @@ func _build_main() -> void:
 	v.add_theme_constant_override("separation", 0)
 	_main.add_child(v)
 	var hm := MarginContainer.new()
+	_header_margin = hm
 	for side in ["left", "right"]:
 		hm.add_theme_constant_override("margin_" + side, int(dp(16)))
 	hm.add_theme_constant_override("margin_top", int(dp(12)))

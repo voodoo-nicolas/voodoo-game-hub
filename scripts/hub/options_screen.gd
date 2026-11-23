@@ -217,8 +217,11 @@ func _build_ui() -> void:
 	else:
 		_choice_row(display, tr("Games menu look"), tr("Standard, or Superlite: no pictures, for older phones."),
 				[tr("Standard"), tr("Superlite")], 1 if Settings.is_lite() else 0, _on_menu_look)
-		_choice_row(display, tr("Side menu"), tr("Hides after 15 seconds; swipe in from the left edge to bring it back. Or always shown."),
-				[tr("Hides"), tr("Always shown")], 1 if Settings.rail_fixed else 0, _on_rail_fixed)
+		# _choice_row(display, tr("Side menu"), tr("Hides after 15 seconds; swipe in from the left edge to bring it back. Or always shown."),
+		# 		[tr("Hides"), tr("Always shown")], 1 if Settings.rail_fixed else 0, _on_rail_fixed)
+		# 2026-11-23 owner couldn't find the way back to the new menu: "Hides" didn't read as a style.
+		_choice_row(display, tr("Side menu style"), tr("Auto-hide (new): slides away when you leave it; swipe in from the left edge to bring it back. Always shown: the menu stays on screen."),
+				[tr("Auto-hide"), tr("Always shown")], 1 if Settings.rail_fixed else 0, _on_rail_fixed)
 	_toggle_row(display, tr("✨ Menu animations"), tr("Smoke, floating sparks and the slowly moving background in the menus."),
 			Settings.menu_fx, _on_menu_fx)
 	_toggle_row(display, tr("🎞 Reduce motion"), tr("Menus switch instantly instead of sliding and fading."),

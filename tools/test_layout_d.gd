@@ -43,6 +43,12 @@ func _drag(at: Vector2) -> void:
 	e.button_mask = MOUSE_BUTTON_MASK_LEFT
 	_ld._input(e)
 
+func _hover(at: Vector2) -> void:
+	var e := InputEventMouseMotion.new()
+	e.position = at
+	e.global_position = at
+	_ld._input(e)
+
 func _run() -> void:
 	load("res://scripts/common/consent.gd").prompted = true
 	await process_frame   # autoloads must be in the tree before the catalog filters games
@@ -168,9 +174,22 @@ func _run() -> void:
 	_mouse(Vector2(lx + ld.rail_w + 24, y), false)
 	await _frames(30)
 	ok(ld._rail_open and ld._rail.visible and ld._rail.position.x == 0.0, "edge drag opens the rail over the games")
+	ok(ld._header_margin.get_theme_constant("margin_left") == int(ld.dp(16) + ld.rail_w), "the view's title moves clear of the open rail")
+	_hover(Vector2(lx + ld.rail_w / 2.0, y))
+	ok(ld._rail_idle.time_left > 14.0, "mouse on the rail: 15 s")
+	_hover(Vector2(lx + ld.rail_w + 60, y))
+	ok(ld._rail_idle.time_left <= 3.0 and ld._rail_idle.time_left > 2.0, "mouse leaves the rail: hides 3 s later")
+	_hover(Vector2(lx + ld.rail_w + 90, y))
+	ok(ld._rail_idle.time_left <= 3.0, "moving over the games doesn't restart the 3 s")
+	_mouse(Vector2(lx + ld.rail_w / 2.0, y), true)
+	_mouse(Vector2(lx + ld.rail_w / 2.0, y), false)
+	_mouse(Vector2(lx + ld.rail_w + 60, y + 40), true)
+	_mouse(Vector2(lx + ld.rail_w + 60, y + 40), false)
+	ok(ld._rail_idle.time_left <= 3.0, "a tap on the games: hides 3 s later")
 	ld._on_rail_idle()
 	await _frames(30)
 	ok(not ld._rail_open and not ld._rail.visible, "idle again: rail slides away")
+	ok(ld._header_margin.get_theme_constant("margin_left") == int(ld.dp(16)), "title back at the edge once the rail hides")
 	ok(ld._rail_handle.visible and ld._rail_handle.get_script() == preload("res://scripts/hub/edge_hint.gd") and ld._rail_handle.mouse_filter == Control.MOUSE_FILTER_IGNORE, "edge line + ripples show, never take input")
 	# Options > Display > Side menu: Always shown (the 0.43.0 rail). Not saved: the var only.
 	root.get_node("Settings").rail_fixed = true
@@ -180,6 +199,9 @@ func _run() -> void:
 	await _frames(30)
 	ok(ld._rail_docked and ld._rail.visible and ld._rail_idle.is_stopped() and ld._main.position.x == ld.rail_w, "Always shown: rail docked, never hides")
 	root.get_node("Settings").rail_fixed = false
+	ld._build()   # Options closed after switching back to Auto-hide
+	await _frames(3)
+	ok(not ld._rail_idle.is_stopped() and ld._rail_idle.time_left <= 3.0, "back to Auto-hide: the rail goes 3 s later, visibly")
 	for i in 300:
 		if ld._trash.is_empty():
 			break
