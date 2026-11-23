@@ -347,6 +347,11 @@ Rules:
   `texture_filter = TEXTURE_FILTER_NEAREST`. Arcade games keep their own look (§ skins); a library sprite is an
   option, not a requirement. Nothing with an alcohol reference goes in the library (the importer renames or leaves
   it out); sound and sprite set names never clash (`check`).
+- [NEW 2026-11-18, owner] **Height-field land comes from the shared terrain generator** (`tools/templates/terrain_gen.gd`,
+  copied by `hub.py sync` as `scripts/games/<id>/terrain_gen.gd` into every game that names it, like the kits in N7).
+  Rolling, domain-warped hills over broad highlands and basins, full 0..1 height range; `max_slope` keeps every hill
+  crossable, `remap_shares` keeps a game's share of water / walls fixed. Games pass their own knobs; never fork the
+  generator into a game. Users: Thrust (hover_duel), Wolf Pack. Test: `tools/test_terrain_gen.gd`.
 - ~~[NEW 2026-10-07, owner] **Every game's music comes from the hub's shared library** (APK autoload `Music`,
   `scripts/common/music.gd`; CLAUDE.md "Music library"): a game picks a style (calm / lively / techno) and a track
   number, it never synthesizes or ships its own music. Real tracks are added to the library

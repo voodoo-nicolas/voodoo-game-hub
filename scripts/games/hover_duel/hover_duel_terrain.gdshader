@@ -14,7 +14,7 @@ shader_type canvas_item;
 uniform float t = 0.0;
 uniform float sea = 0.3;
 uniform float rock = 0.8;
-uniform float relief = 90.0;      // how tall the hills look
+uniform float relief = 120.0;     // how tall the hills look (was 90 before the TerrainGen hills, 2026-11-18)
 uniform float neon = 0.0;
 uniform float lava = 0.0;
 uniform float snow = 0.0;         // 1 = cap the high peaks with snow

@@ -326,7 +326,9 @@ LANDING_STYLES = TEMPLATES / "landing_styles.gd"
 FX_LIB = TEMPLATES / "fx_lib.gd"
 # The six MENU_STYLES.md layouts (docs/MENU_STYLES.md): self-contained, copied the same way.
 MENU_STYLES = TEMPLATES / "menu_styles.gd"
-KITS = (HOME_KIT, SOUND_LIB, SPRITE_LIB, LANDING_STYLES, FX_LIB, MENU_STYLES)
+# The shared terrain generator (rolling height fields: Thrust, Wolf Pack): copied the same way.
+TERRAIN_GEN = TEMPLATES / "terrain_gen.gd"
+KITS = (HOME_KIT, SOUND_LIB, SPRITE_LIB, LANDING_STYLES, FX_LIB, MENU_STYLES, TERRAIN_GEN)
 
 
 def home_kit_users(ids: list[str], kit_file: Path = HOME_KIT) -> list[str]:
