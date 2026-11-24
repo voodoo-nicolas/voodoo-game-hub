@@ -87,7 +87,7 @@ func _build_ui() -> void:
 	hub_btn.pressed.connect(_on_pause_home)
 	bar.add_child(hub_btn)
 	var title := Label.new()
-	title.text = tr("🎲 Word Hunt")
+	title.text = tr("🔍 Word Hunt")
 	title.add_theme_font_size_override("font_size", 30)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -161,7 +161,7 @@ func _build_ui() -> void:
 	clock.timeout.connect(_on_tick)
 	add_child(clock)
 
-	start_dialog = UI.build_dialog(tr("🎲 Word Hunt"), [
+	start_dialog = UI.build_dialog(tr("🔍 Word Hunt"), [
 		{"text": tr("Start"), "action": _start_round},
 		{"text": tr("🏠 %s Home") % tr(TITLE_FOR_HOME), "action": _go_home},
 	], true)
