@@ -275,6 +275,6 @@
     "mini_golf_3d": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/mini_golf_3d.pck", "scene": "res://scenes/games/mini_golf_3d/mini_golf_3d.tscn"},
     "hesperia": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hesperia.pck", "scene": "res://scenes/games/hesperia/hesperia.tscn"},
     "arrows": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/arrows.pck", "scene": "res://scenes/games/arrows/arrows.tscn"},
-    "block_escape": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/block_escape.pck", "scene": "res://scenes/games/block_escape/block_escape.tscn"}
+    "block_escape": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/block_escape.pck", "scene": "res://scenes/games/block_escape/block_escape.tscn"}
   }
 }
