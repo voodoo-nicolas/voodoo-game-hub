@@ -623,6 +623,31 @@ def require_legal_clean() -> None:
         raise ToolError("legal text is not publishable:\n  " + "\n  ".join(problems))
 
 
+def shrunk_pictures() -> list[str]:
+    """Texture .import files changed for the web build (tools/web_shrink.py: lossy,
+    longest side capped). Never in the APK, PC or game packs: 0.43.1-0.43.3 were
+    built in the web worktree, so PC Beached drew its 1024 px plate at 2087 px
+    coordinates (owner, 2026-11-24)."""
+    bad = []
+    for imp in ROOT.rglob("*.import"):
+        if ".godot" in imp.parts or "docs" in imp.relative_to(ROOT).parts[:1]:
+            continue
+        text = imp.read_text(encoding="utf-8", errors="replace")
+        if 'importer="texture"' in text and re.search(r"^process/size_limit=[1-9]", text, re.M):
+            bad.append(str(imp.relative_to(ROOT)))
+    changed = subprocess.run(["git", "diff", "--name-only", "HEAD", "--", "*.import"], cwd=ROOT,
+                             capture_output=True, text=True).stdout.split()
+    return sorted(set(bad) | {c for c in changed if not c.startswith("docs/")})
+
+
+def require_full_pictures() -> None:
+    """APK, AAB, PC and pack builds: refuse a tree that web_shrink.py touched."""
+    bad = shrunk_pictures()
+    if bad:
+        raise ToolError(f"{len(bad)} picture imports are changed or size-capped (web_shrink.py?) -- "
+                        "build from a clean checkout. First: " + ", ".join(bad[:5]))
+
+
 def lint_own_backgrounds(m: dict) -> list[str]:
     """STANDARDS §9 (owner, 2026-10-07): arcade games keep their own
     backgrounds, never the shared felt / leather -- the kit's OWN_BG_GAMES
@@ -1210,6 +1235,7 @@ def cmd_test(args) -> None:
 
 
 def cmd_export(args) -> None:
+    require_full_pictures()
     m = load_manifest()
     ids = live_ids(m) if args.all else args.ids
     if not ids:
@@ -1252,6 +1278,7 @@ def release_signing_env() -> dict:
 
 def cmd_apk(args) -> None:
     cmd_check()
+    require_full_pictures()
     if not args.debug and not args.draft_legal:
         require_legal_clean()
     version, _ = read_version()
@@ -1289,6 +1316,7 @@ def cmd_aab(args) -> None:
     Play *upload* key (viral-play-upload.*, outside the repo; back it up). Needs the
     Gradle build template in android/build (gitignored; Project > Install Android Build Template)."""
     cmd_check()
+    require_full_pictures()
     if not args.draft_legal:
         require_legal_clean()
     if not PLAY_KEY_INFO.is_file():
@@ -1320,6 +1348,7 @@ def cmd_pc(_args) -> None:
     """Windows build for playtesting on this PC. Games are bundled, so it
     runs the current source -- including changes not yet published -- and
     downloads a game's pack once a newer one is published (Catalog._pc_overlay)."""
+    require_full_pictures()
     PC_DIR.mkdir(parents=True, exist_ok=True)
     exe = PC_DIR / "Voodoo.exe"
     code, log = run_godot("--export-debug", PC_PRESET, str(exe), timeout=900)
@@ -1716,6 +1745,7 @@ def cmd_publish_packs(args) -> None:
 
 def cmd_release(args) -> None:
     require_legal_clean()
+    require_full_pictures()
     version, _ = read_version()
     apk = ROOT / f"builds/voodoo-v{version}.apk"
     if not apk.is_file():

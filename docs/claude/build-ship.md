@@ -27,6 +27,7 @@
 2. Boot test: `python tools/hub.py test <id>` (none = hub, account screen, every game); fails on `SCRIPT ERROR`/`Parse Error`.
 3. Version: game changed → `python tools/hub.py bump-pack <id>`; anything APK-side (`scripts/common/`, `scripts/hub/`, `scripts/account/`, `project.godot`) → `python tools/hub.py bump-app [patch|minor|major]` (bumps `VERSION` + `BUILD_NUMBER`, syncs preset).
 4. Build: `python tools/hub.py export <id>...|--all`; `python tools/hub.py apk` (release-signed; fails if arm64-v8a, armeabi-v7a or x86_64 missing; copies to `builds/voodoo-vX.Y.Z.apk`).
+   **Never build the APK, AAB, PC pack or game packs in a web worktree**: `web_shrink.py` caps pictures at 1024-1600 px, and 0.43.1-0.43.3 shipped that way (PC Beached drew a half-size island). `export` / `apk` / `aab` / `pc` / `release` now refuse any size-capped or changed texture `.import` (`require_full_pictures`).
 5. **Ask owner**, then `python tools/hub.py publish-packs <id>...` (media packs too).
 6. Commit + push source incl. `manifest.json` **last** (not `builds/`, gitignored); pushing it announces versions, so only after packs are uploaded.
 7. **Ask owner**, then (if the app was bumped) `python tools/hub.py release --notes "..."`.
