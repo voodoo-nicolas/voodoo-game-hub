@@ -106,6 +106,11 @@ func _run() -> void:
 	game._pick_char(0)
 	pc.queue_free()
 	await _start(1)
+	game._start_intro()
+	await _wait(45)
+	await _shot("1d_intro")
+	game.world.skip_intro()
+	await _wait(5)
 	var e = game.engine
 	e.reset(4242, {"chars": [0, 1], "style": 1})
 	game._reset_fx()

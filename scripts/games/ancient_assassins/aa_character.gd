@@ -151,6 +151,10 @@ func build(ch: Dictionary, skull: bool = false) -> void:
 	if _anims:
 		anim.add_animation_library("", _anims)
 	play("idle", 0.0)
+	# No two assassins breathe in step: a random start and a slightly different pace.
+	if anim.has_animation("idle"):
+		anim.seek(randf() * anim.get_animation("idle").length, true)
+	anim.speed_scale = randf_range(0.93, 1.07)
 
 ## A node that follows `bone` (sits exactly on it).
 func _attach(bone: String) -> Node3D:
