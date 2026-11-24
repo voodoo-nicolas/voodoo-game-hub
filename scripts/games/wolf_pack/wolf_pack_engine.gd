@@ -15,7 +15,8 @@ const H := 4608.0
 const TCELL := 32.0
 const TGW := 192                   # W / TCELL
 const TGH := 144                   # H / TCELL
-const TERRAIN := {"hill": 30.0, "octaves": 5, "warp": 0.7, "macro": 1.0, "macro_size": 3.0, "ridge": 0.15, "max_slope": 0.045}
+const TERRAIN := {"hill": 30.0, "octaves": 5, "warp": 0.7, "macro": 1.0, "macro_size": 3.0, "ridge": 0.15, "max_slope": 0.055,
+	"valleys": 0.45, "erosion": 0.8}   # valleys + erosion: 2026-11-23 (max_slope still runs last: all crossable)
 const UPHILL := 7.0                # speed lost per unit of height climbed per cell
 const SLOPE_MIN := 0.65            # steepest climb still keeps this share of the speed
 const SLOPE_MAX := 1.12            # steepest run downhill

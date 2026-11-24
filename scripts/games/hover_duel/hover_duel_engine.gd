@@ -132,7 +132,8 @@ const THEMES := {
 		"sea_share": 0.12, "rock_share": 0.183, "terrain": {"ridge": 0.3}},
 }
 ## TerrainGen knobs every theme starts from (tools/templates/terrain_gen.gd).
-const TERRAIN := {"hill": 36.0, "octaves": 5, "warp": 0.6, "macro": 0.9, "macro_size": 3.0, "ridge": 0.2}
+const TERRAIN := {"hill": 36.0, "octaves": 5, "warp": 0.6, "macro": 0.9, "macro_size": 3.0, "ridge": 0.2,
+	"valleys": 0.5, "erosion": 1.0}   # valleys + erosion: 2026-11-23
 
 ## Campaign: 12 battles, one rival each, harder as you go.
 ## ai = 0 easy .. 3 expert. Every third battle is a boss.

@@ -21,6 +21,10 @@ extends RefCounted
 ## - crests: a little ridged noise for sharper hilltops (ridge = 0 turns it off);
 ## - always crossable: max_slope caps how much two neighbouring cells may
 ##   differ, so a hill can be tall but never a cliff (0 = no cap).
+## - valleys: long winding troughs that run on and branch, so the hills sit
+##   between connected low paths instead of in a random field;
+## - erosion: simulated rain carves gullies down every slope and leaves soft
+##   fans at the bottom, which is what makes land read as real depth.
 ## Same seed + same options = same map on every device (FastNoiseLite is
 ## deterministic), so a save only needs the seed.
 
@@ -34,6 +38,10 @@ const DEFAULTS := {
 	"ridge": 0.2,        # 0..1 share of ridged noise (sharper crests)
 	"curve": 1.0,        # >1 widens the lowlands and sharpens peaks, <1 the opposite
 	"max_slope": 0.0,    # cap on the height step between neighbouring cells (0 = none)
+	# [NEW 2026-11-23] depth passes:
+	"valleys": 0.0,      # 0..~0.6: long winding valleys cut through the hills (connected low paths)
+	"valley_size": 2.2,  # valley spacing, in hill sizes
+	"erosion": 0.0,      # 0..~1.5: rain erosion (gullies down the slopes, soft fans at the bottom); cost grows with it
 }
 
 static func generate(gw: int, gh: int, seed_v: int, opts: Dictionary = {}) -> PackedFloat32Array:
@@ -69,6 +77,19 @@ static func generate(gw: int, gh: int, seed_v: int, opts: Dictionary = {}) -> Pa
 	ridged.fractal_octaves = 3
 	var rmix: float = clampf(float(o.ridge), 0.0, 1.0)
 	var mamp: float = float(o.macro)
+	# Valleys: where a warped noise crosses zero, a narrow trough; the zero lines of
+	# simplex noise are long connected curves, so the valleys run on and branch.
+	var vamp: float = float(o.valleys)
+	var vnoise := FastNoiseLite.new()
+	vnoise.seed = seed_v * 13 + 5
+	vnoise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	vnoise.frequency = 1.0 / (hill * float(o.valley_size))
+	vnoise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	vnoise.fractal_octaves = 2
+	vnoise.domain_warp_enabled = true
+	vnoise.domain_warp_type = FastNoiseLite.DOMAIN_WARP_SIMPLEX
+	vnoise.domain_warp_amplitude = hill * 0.8
+	vnoise.domain_warp_frequency = 1.0 / (hill * 2.0)
 	var h := PackedFloat32Array()
 	h.resize(gw * gh)
 	var lo := INF
@@ -82,6 +103,9 @@ static func generate(gw: int, gh: int, seed_v: int, opts: Dictionary = {}) -> Pa
 			if rmix > 0.0:
 				v += ridged.get_noise_2d(fx, fy) * rmix
 			v += macro.get_noise_2d(fx, fy) * mamp
+			if vamp > 0.0:
+				var vv: float = 1.0 - minf(1.0, absf(vnoise.get_noise_2d(fx, fy)) * 4.0)
+				v -= vv * vv * vamp   # smooth U-shaped trough, 0 away from the valley line
 			h[y * gw + x] = v
 			lo = minf(lo, v)
 			hi = maxf(hi, v)
@@ -91,9 +115,86 @@ static func generate(gw: int, gh: int, seed_v: int, opts: Dictionary = {}) -> Pa
 	for i in h.size():
 		var t: float = (h[i] - lo) / span
 		h[i] = pow(t, curve) if curve != 1.0 else t
+	if float(o.erosion) > 0.0:
+		erode(h, gw, gh, seed_v, float(o.erosion))
 	if float(o.max_slope) > 0.0:
 		limit_slope(h, gw, gh, float(o.max_slope))
 	return h
+
+## Rain erosion (droplet model): each drop runs downhill, picks up soil where it
+## speeds up and drops it where it slows, carving gullies and leaving soft fans.
+## Deterministic (own seeded rng). Re-stretched to 0..1 afterwards.
+## amount 1.0 = about one drop per 20 cells, 30 steps each.
+static func erode(h: PackedFloat32Array, gw: int, gh: int, seed_v: int, amount: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v * 7 + 11
+	var drops := int(gw * gh * 0.05 * amount)
+	const INERTIA := 0.08
+	const CAP := 10.0
+	const MIN_CAP := 0.002
+	const ERODE := 0.5
+	const DEPOSIT := 0.3
+	const EVAP := 0.03
+	const GRAV := 6.0
+	for _d in drops:
+		var px := rng.randf_range(1.0, gw - 2.0)
+		var py := rng.randf_range(1.0, gh - 2.0)
+		var dx := 0.0
+		var dy := 0.0
+		var speed := 1.0
+		var water := 1.0
+		var sed := 0.0
+		for _life in 30:
+			var ix := int(px)
+			var iy := int(py)
+			var ox := px - ix
+			var oy := py - iy
+			var i := iy * gw + ix
+			var h00: float = h[i]
+			var h10: float = h[i + 1]
+			var h01: float = h[i + gw]
+			var h11: float = h[i + gw + 1]
+			var gx: float = (h10 - h00) * (1.0 - oy) + (h11 - h01) * oy
+			var gy: float = (h01 - h00) * (1.0 - ox) + (h11 - h10) * ox
+			var hh: float = h00 * (1 - ox) * (1 - oy) + h10 * ox * (1 - oy) + h01 * (1 - ox) * oy + h11 * ox * oy
+			dx = dx * INERTIA - gx * (1.0 - INERTIA)
+			dy = dy * INERTIA - gy * (1.0 - INERTIA)
+			var dl := sqrt(dx * dx + dy * dy)
+			if dl < 0.000001:
+				break
+			dx /= dl
+			dy /= dl
+			px += dx
+			py += dy
+			if px < 1.0 or py < 1.0 or px >= gw - 2.0 or py >= gh - 2.0:
+				break
+			var nh := sample(h, gw, gh, px, py)
+			var dh := nh - hh
+			var cap := maxf(-dh * speed * water * CAP, MIN_CAP)
+			if sed > cap or dh > 0.0:
+				var put := minf(dh, sed) if dh > 0.0 else (sed - cap) * DEPOSIT
+				sed -= put
+				h[i] += put * (1 - ox) * (1 - oy)
+				h[i + 1] += put * ox * (1 - oy)
+				h[i + gw] += put * (1 - ox) * oy
+				h[i + gw + 1] += put * ox * oy
+			else:
+				var take := minf((cap - sed) * ERODE, -dh)
+				sed += take
+				h[i] -= take * (1 - ox) * (1 - oy)
+				h[i + 1] -= take * ox * (1 - oy)
+				h[i + gw] -= take * (1 - ox) * oy
+				h[i + gw + 1] -= take * ox * oy
+			speed = sqrt(maxf(0.0, speed * speed + dh * GRAV))
+			water *= 1.0 - EVAP
+	var lo := INF
+	var hi := -INF
+	for v in h:
+		lo = minf(lo, v)
+		hi = maxf(hi, v)
+	var span: float = maxf(hi - lo, 0.0001)
+	for k in h.size():
+		h[k] = (h[k] - lo) / span
 
 ## Caps the height step between 8-neighbours at `max_step` by lowering the
 ## higher cell (peaks soften, nothing becomes a wall). Two sweeps, forward
