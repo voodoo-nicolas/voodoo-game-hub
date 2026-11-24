@@ -4566,7 +4566,8 @@
    "proof": "media/licenses/fonts/rampartone-OFL.txt",
    "url": "https://github.com/google/fonts/tree/main/ofl/rampartone",
    "date": "2026-11-13"
-  },  {
+  },
+  {
    "file": "games/block_escape/title.ttf",
    "what": "Title font of the block_escape Landing (menu style, docs/MENU_STYLES.md)",
    "source": "Google Fonts: Rampart One",
@@ -9716,16 +9717,59 @@
   },
   {
    "file": "games/ancient_assassins/landing_bg.jpg",
-   "what": "Ancient Assassins Landing picture: a render of the game's own 3D scene",
-   "source": "rendered in Godot (tools/shot_ancient_assassins.gd art) from the CC0 models above",
-   "author": "Viral (owner); rendered by Claude Code",
-   "licence": "owner-proprietary (render of CC0 models)",
-   "proof": "media/licenses/models/quaternius_CC0.txt",
+   "what": "Amazonia Landing picture: spear, skull and savanna hills (portrait crop of the owner's title art, logo left out)",
+   "source": "owner's AI art, sent in chat 2026-11-23 (Amazonia rename)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/HUB_GAME_ART.md",
    "url": "",
-   "date": "2026-11-21",
-   "ai_tool": "Claude Code (scripted 3D render)",
-   "ai_plan": "n/a (code-rendered)",
-   "processed_by": "tools/shot_ancient_assassins.gd"
+   "date": "2026-11-23",
+   "ai_tool": "TODO owner: name the image generator",
+   "processed_by": "left 434 px of the 1672x941 art, scaled to 720x1560 JPEG (Claude Code)"
+  },
+  {
+   "file": "games/ancient_assassins/title.ttf",
+   "what": "Title font of the Ancient Assassins Landing and its banners",
+   "source": "Google Fonts: Cinzel Decorative Black",
+   "author": "Natanael Gama",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/cinzeldecorative-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/cinzeldecorative",
+   "date": "2026-11-23"
+  },
+  {
+   "file": "games/ancient_assassins/cinzel.ttf",
+   "what": "Ancient Assassins HUD font (variable weight)",
+   "source": "Google Fonts: Cinzel",
+   "author": "Natanael Gama (The Cinzel Project Authors)",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/cinzel-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/cinzel",
+   "date": "2026-11-23"
+  },
+  {
+   "file": "media/hub/game_art/ancient_assassins/tile.webp",
+   "what": "Hub art for ancient_assassins / Amazonia (tile 16:9): the AMAZONIA logo on sky",
+   "source": "owner's AI art, sent in chat 2026-11-23 (Amazonia rename)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/HUB_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-23",
+   "ai_tool": "TODO owner: name the image generator",
+   "processed_by": "cropped 3:2 to 16:9, 320x180 WebP (Claude Code)"
+  },
+  {
+   "file": "media/hub/game_art/ancient_assassins/hero.webp",
+   "what": "Hub art for ancient_assassins / Amazonia (hero, 16:9 preview): title over spear, skeleton and savanna",
+   "source": "owner's AI art, sent in chat 2026-11-23 (Amazonia rename)",
+   "author": "Viral (owner)",
+   "licence": "owner-proprietary",
+   "proof": "media/licenses/HUB_GAME_ART.md",
+   "url": "",
+   "date": "2026-11-23",
+   "ai_tool": "TODO owner: name the image generator",
+   "processed_by": "scaled to 1920x1080 WebP (Claude Code)"
   }
  ]
 }

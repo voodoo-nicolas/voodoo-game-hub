@@ -1,6 +1,10 @@
 extends Control
 
-## Ancient Assassins: turn-based throwing duels in 3D, over the shoulder (portrait).
+## Amazonia (was Ancient Assassins; renamed 2026-11-23, the id stays
+## ancient_assassins): turn-based throwing duels in 3D, over the shoulder (portrait).
+## Since the rename: aim locked on the rival (drag up / down only), power always
+## the weapon's own, wind along the line, and a see-through ghost arc + angle of
+## your previous throw to correct from.
 ## Your assassin stands on a rock island in the foreground; the rival waits on
 ## another island across the lagoon. Hold, drag to aim (up / down = elevation,
 ## sideways = direction), release: javelin, throwing axe or chakram fly in an arc
@@ -38,24 +42,27 @@ const LEVELS := ["Easy", "Normal", "Hard", "Expert"]
 ## The six assassins (original characters; names are data, never translated).
 ## c1 = her colour (outfit), c2 = trim (bracers, headband), hair3d = hairstyle,
 ## skin3d = skin tint over the base texture.
+## Amazonia (2026-11-23): jungle warriors after the owner's reference sheet --
+## red / spear, blue / blonde braid, gold / curls, green / red hair, purple / bun,
+## teal / feathers; no capes, leather headbands.
 const CHARS := [
-	{"name": "Nefret", "c1": Color("e8b33a"), "c2": Color("2a5bd7"), "hair3d": "parted", "hair_col": Color("15100c"), "skin3d": Color(0.86, 0.68, 0.54), "circlet": true, "cape": false},
-	{"name": "Thalia", "c1": Color("c8202f"), "c2": Color("d09040"), "hair3d": "long", "hair_col": Color("4a2c18"), "skin3d": Color(1.0, 0.9, 0.82), "circlet": false, "cape": true},
-	{"name": "Sigrun", "c1": Color("7fc4f0"), "c2": Color("9a8a78"), "hair3d": "long", "hair_col": Color("e6c46c"), "skin3d": Color(1.08, 1.0, 0.95), "circlet": false, "cape": false},
-	{"name": "Zahra", "c1": Color("18a89a"), "c2": Color("e0b040"), "hair3d": "long", "hair_col": Color("120c0e"), "skin3d": Color(0.9, 0.74, 0.6), "circlet": true, "cape": false},
-	{"name": "Livia", "c1": Color("7a2ea0"), "c2": Color("f2ece0"), "hair3d": "buns", "hair_col": Color("7a3018"), "skin3d": Color(1.0, 0.88, 0.8), "circlet": false, "cape": true},
-	{"name": "Amani", "c1": Color("ff8a1e"), "c2": Color("1fb36a"), "hair3d": "short", "hair_col": Color("100a08"), "skin3d": Color(0.45, 0.32, 0.25), "circlet": true, "cape": false},
+	{"name": "Yara", "c1": Color("b8262c"), "c2": Color("7a4a24"), "hair3d": "long", "hair_col": Color("140e0c"), "skin3d": Color(0.86, 0.66, 0.5), "circlet": false, "cape": false},
+	{"name": "Ilka", "c1": Color("2a5d9a"), "c2": Color("7a5a3a"), "hair3d": "long", "hair_col": Color("e2c06a"), "skin3d": Color(1.05, 0.93, 0.84), "circlet": false, "cape": false},
+	{"name": "Amani", "c1": Color("e0a020"), "c2": Color("6a4020"), "hair3d": "short", "hair_col": Color("100a08"), "skin3d": Color(0.45, 0.32, 0.25), "circlet": true, "cape": false},
+	{"name": "Rubí", "c1": Color("4f7a2a"), "c2": Color("6a4a26"), "hair3d": "long", "hair_col": Color("b8441a"), "skin3d": Color(1.0, 0.86, 0.76), "circlet": false, "cape": false},
+	{"name": "Nayra", "c1": Color("5e2e86"), "c2": Color("5a3a24"), "hair3d": "buns", "hair_col": Color("1a120e"), "skin3d": Color(0.9, 0.72, 0.58), "circlet": false, "cape": false},
+	{"name": "Tainá", "c1": Color("1f9a96"), "c2": Color("e0b040"), "hair3d": "parted", "hair_col": Color("120c0a"), "skin3d": Color(0.8, 0.6, 0.45), "circlet": true, "cape": false},
 ]
 ## The 8 Contracts: place, computer level, distance (m), strongest crosswind (m/s²), map style, rival health.
 const CONTRACTS := [
-	{"place": "The Harbour", "level": 0, "dist": 22.0, "wind": 0.8, "style": 0, "hp": 70},
-	{"place": "The Temple Steps", "level": 1, "dist": 23.0, "wind": 1.1, "style": 1, "hp": 80},
-	{"place": "The Old Aqueduct", "level": 1, "dist": 24.0, "wind": 1.3, "style": 2, "hp": 90},
-	{"place": "The Salt Road", "level": 2, "dist": 25.0, "wind": 1.5, "style": 1, "hp": 100},
-	{"place": "The Lion Gate", "level": 2, "dist": 26.0, "wind": 1.7, "style": 0, "hp": 100},
-	{"place": "The Sun Temple", "level": 2, "dist": 27.0, "wind": 1.9, "style": 2, "hp": 100},
-	{"place": "The Royal Gardens", "level": 3, "dist": 28.0, "wind": 2.0, "style": 1, "hp": 100},
-	{"place": "The Throne Hill", "level": 3, "dist": 30.0, "wind": 2.2, "style": 2, "hp": 100},
+	{"place": "The Lagoon", "level": 0, "dist": 22.0, "wind": 0.8, "style": 0, "hp": 70},
+	{"place": "The Tall Grass", "level": 1, "dist": 23.0, "wind": 1.1, "style": 1, "hp": 80},
+	{"place": "The Red Cliffs", "level": 1, "dist": 24.0, "wind": 1.3, "style": 2, "hp": 90},
+	{"place": "The River Bend", "level": 2, "dist": 25.0, "wind": 1.5, "style": 1, "hp": 100},
+	{"place": "The Stone Islands", "level": 2, "dist": 26.0, "wind": 1.7, "style": 0, "hp": 100},
+	{"place": "The Sun Hills", "level": 2, "dist": 27.0, "wind": 1.9, "style": 2, "hp": 100},
+	{"place": "The Waterfall", "level": 3, "dist": 28.0, "wind": 2.0, "style": 1, "hp": 100},
+	{"place": "The Great Falls", "level": 3, "dist": 30.0, "wind": 2.2, "style": 2, "hp": 100},
 ]
 const WEAPON_ICONS := ["🗡", "🪓", "⭕"]
 const GOLD := Color("ffc24a")
@@ -105,6 +112,22 @@ var banner := ""
 var banner_t := 0.0
 var red_flash := 0.0
 var shake := 0.0
+## Look (2026-11-23 visual pass): fonts, the health bars' trailing "ghost",
+## bar shakes, a brief freeze on every hit, banner timing.
+const TITLE_FONT := "res://games/ancient_assassins/title.ttf"     # Cinzel Decorative Black (OFL)
+const UI_FONT := "res://games/ancient_assassins/cinzel.ttf"       # Cinzel (OFL), variable weight
+var title_font: Font
+var ui_font: Font
+var ui_bold: Font
+var hp_disp := [100.0, 100.0]
+var hp_ghost := [100.0, 100.0]
+var bar_shake := [0.0, 0.0]
+var hitstop := 0.0
+var banner_age := 0.0
+var aim_disp := 15.0
+var stars_t := -1.0
+var end_title: Label
+var end_stars := 0
 
 var touch: Control
 var hud: Control
@@ -142,6 +165,7 @@ func _build_ui() -> void:
 	vc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(vc)
 	vc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_load_fonts()
 	view3d = SubViewport.new()
 	view3d.own_world_3d = true
 	view3d.msaa_3d = Viewport.MSAA_2X
@@ -150,6 +174,22 @@ func _build_ui() -> void:
 	view3d.add_child(world)
 	world.setup(engine, _defs(), false)
 	world.snap_camera(0)
+	# A soft vignette over the 3D view: draws the eye to the middle.
+	var vig := TextureRect.new()
+	var gt := GradientTexture2D.new()
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.45)
+	gt.fill_to = Vector2(1.05, 1.0)
+	var vg := Gradient.new()
+	vg.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	vg.colors = PackedColorArray([Color(0, 0, 0, 0), Color(0, 0, 0, 0.05), Color(0, 0, 0, 0.42)])
+	gt.gradient = vg
+	vig.texture = gt
+	vig.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	vig.stretch_mode = TextureRect.STRETCH_SCALE
+	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(vig)
+	vig.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	touch = Control.new()
 	touch.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -162,9 +202,11 @@ func _build_ui() -> void:
 	add_child(hud)
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	pause_btn = HomeKit.neon_button("⏸", HomeKit.BUTTON, 26, 56)
-	pause_btn.custom_minimum_size = Vector2(60, 56)
-	pause_btn.position = Vector2(12, 30)
+	pause_btn = Button.new()
+	pause_btn.text = "II"
+	_style_button(pause_btn, false, 22, 26)
+	pause_btn.custom_minimum_size = Vector2(52, 52)
+	pause_btn.position = Vector2(12, 32)
 	pause_btn.pressed.connect(_on_pause)
 	add_child(pause_btn)
 
@@ -178,8 +220,10 @@ func _build_ui() -> void:
 	weapon_row.add_theme_constant_override("separation", 12)
 	wm.add_child(weapon_row)
 	for w in AaEngine.WEAPONS.size():
-		var b := HomeKit.neon_button("", GOLD, 24, 62)
-		b.custom_minimum_size = Vector2(104, 62)
+		var b := Button.new()
+		_style_button(b, false, 22, 32)
+		b.custom_minimum_size = Vector2(98, 64)
+		b.pivot_offset = Vector2(49, 32)
 		b.focus_mode = Control.FOCUS_NONE
 		b.pressed.connect(_on_weapon.bind(w))
 		weapon_row.add_child(b)
@@ -190,7 +234,7 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	if ResourceLoader.exists(ONLINE_MATCH_PATH):
-		online = load(ONLINE_MATCH_PATH).new("ancient_assassins", tr("Ancient Assassins"), _online_state)
+		online = load(ONLINE_MATCH_PATH).new("ancient_assassins", tr("Amazonia"), _online_state)
 		online.started.connect(_on_online_started)
 		online.remote_move.connect(_on_remote_move)
 		online.remote_state.connect(_on_remote_state)
@@ -210,7 +254,8 @@ func _build_ui() -> void:
 		# Menu style (docs/MENU_STYLES.md): S4 Monument; sunlit gold + crimson.
 		"landing": "monument",
 		"landing_style": MenuStyles,
-		"title_colors": [Color("ffc24a"), Color("e8452f")],
+		"title_font": TITLE_FONT,
+		"title_colors": [Color("ffd77a"), Color("e8452f")],
 		"landing_colors": [Color("0d2a44"), Color("2f78d0")],
 		"menu_color": GOLD,
 		"help": HELP,
@@ -232,7 +277,7 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(LANDING_ART):
 		cfg["art"] = LANDING_ART
 		cfg["landing_art"] = true          # the render is the hero art: barely dimmed
-		cfg["landing_art_alpha"] = 0.92
+		cfg["landing_art_alpha"] = 0.8   # was 0.92: the painted art is busier than the old render
 	home = HomeKit.new(cfg)
 	add_child(home)
 	if info:
@@ -261,14 +306,38 @@ func _build_end_panel() -> void:
 	m.add_theme_constant_override("margin_bottom", 26)
 	end_panel.add_child(m)
 	var pc := PanelContainer.new()
-	pc.add_theme_stylebox_override("panel", UI.panel_style())
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color(0.07, 0.05, 0.04, 0.88)
+	ps.border_color = Color(GOLD, 0.85)
+	ps.set_border_width_all(2)
+	ps.set_corner_radius_all(18)
+	ps.shadow_color = Color(0, 0, 0, 0.5)
+	ps.shadow_size = 18
+	ps.set_content_margin_all(20)
+	pc.add_theme_stylebox_override("panel", ps)
 	m.add_child(pc)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	pc.add_child(box)
+	end_title = Label.new()
+	end_title.add_theme_font_size_override("font_size", 44)
+	if title_font:
+		end_title.add_theme_font_override("font", title_font)
+	end_title.add_theme_color_override("font_color", GOLD)
+	end_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	end_title.add_theme_constant_override("outline_size", 8)
+	end_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	end_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(end_title)
+	var stars_box := Control.new()
+	stars_box.name = "Stars"
+	stars_box.draw.connect(_draw_end_stars.bind(stars_box))
+	box.add_child(stars_box)
 	end_label = Label.new()
-	end_label.add_theme_font_size_override("font_size", 26)
-	end_label.add_theme_color_override("font_color", GOLD)
+	end_label.add_theme_font_size_override("font_size", 22)
+	if ui_bold:
+		end_label.add_theme_font_override("font", ui_bold)
+	end_label.add_theme_color_override("font_color", Color("f3e6c8"))
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(end_label)
@@ -321,6 +390,26 @@ func _add_char_picker(box: VBoxContainer) -> void:
 	sun.rotation_degrees = Vector3(-30, 25, 0)
 	sun.light_energy = 1.2
 	picker_view.add_child(sun)
+	var rim := DirectionalLight3D.new()   # a warm rim from behind
+	rim.rotation_degrees = Vector3(-15, 200, 0)
+	rim.light_energy = 1.6
+	rim.light_color = Color("ffb877")
+	picker_view.add_child(rim)
+	var disc := MeshInstance3D.new()       # a gold plinth ring under her feet
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.42
+	tm.outer_radius = 0.5
+	tm.rings = 40
+	disc.mesh = tm
+	disc.scale = Vector3(1, 0.15, 1)
+	var dm := StandardMaterial3D.new()
+	dm.albedo_color = Color("e8b84a")
+	dm.metallic = 0.8
+	dm.roughness = 0.3
+	dm.emission_enabled = true
+	dm.emission = Color("ffb84a") * 0.4
+	disc.material_override = dm
+	picker_view.add_child(disc)
 	var cam := Camera3D.new()
 	cam.position = Vector3(0, 1.05, 3.1)
 	cam.fov = 40
@@ -348,6 +437,7 @@ func _add_char_picker(box: VBoxContainer) -> void:
 func _show_picker_char() -> void:
 	if picker_view == null or not is_instance_valid(picker_view):
 		return
+	weapon_row.visible = kill_zoom < 0.05 and world.intro_t < 0.0
 	if picker_char and is_instance_valid(picker_char):
 		picker_char.queue_free()
 	picker_char = AaCharacter.new()
@@ -372,8 +462,9 @@ func _update_ui() -> void:
 		var ammo: int = f.ammo[w]
 		b.text = WEAPON_ICONS[w] + " " + ("∞" if ammo < 0 else str(ammo))
 		b.disabled = not mine or ammo == 0
-		b.modulate = Color(1, 1, 1, 1.0 if w == f.weapon else 0.55)
-	weapon_row.modulate.a = 1.0 if mine else 0.35
+	_style_weapons()
+	var tw := weapon_row.create_tween()
+	tw.tween_property(weapon_row, "modulate:a", (1.0 if mine else 0.3) if phase != "over" else 0.0, 0.25)
 	hud.queue_redraw()
 
 # ---------- flow ----------
@@ -426,10 +517,15 @@ func _restart() -> void:
 
 func _begin() -> void:
 	_reset_fx()
-	_sound("voice/fight", -4.0)
 	_music("play", "lively", 2)
 	_start_turn()
 	world.snap_camera(_view_seat())
+	_start_intro()
+
+## The VS card over a camera flyover from the rival to your shoulder; a tap skips it.
+func _start_intro() -> void:
+	world.start_intro(_view_seat())
+	_sound("voice/fight", -4.0)
 
 ## A fresh fight on screen: the arena and assassins rebuilt, effects cleared.
 func _reset_fx() -> void:
@@ -448,6 +544,12 @@ func _reset_fx() -> void:
 	results_chip.visible = false
 	world.rebuild(_defs())
 	world.hide_projectile()
+	world.celebrate(0, false)
+	hp_disp = [float(engine.fighters[0].hp), float(engine.fighters[1].hp)]
+	hp_ghost = hp_disp.duplicate()
+	bar_shake = [0.0, 0.0]
+	hitstop = 0.0
+	stars_t = -1.0
 
 func _is_online() -> bool:
 	return online != null and online.is_online()
@@ -508,6 +610,7 @@ func _start_turn() -> void:
 func _show_banner(text: String) -> void:
 	banner = text
 	banner_t = 1.8
+	banner_age = 0.0
 
 func _on_weapon(w: int) -> void:
 	if phase != "aim" or not _my_turn():
@@ -548,6 +651,26 @@ func _process(delta: float) -> void:
 	_kill_cam(delta)
 	var real := delta
 	delta *= tscale
+	if hitstop > 0.0:   # a few frames' freeze on a hit: the blow lands
+		hitstop -= real
+		delta *= 0.04
+	banner_age += real
+	for i in 2:
+		if engine.fighters.size() == 2:
+			var hp := float(engine.fighters[i].hp)
+			hp_disp[i] = move_toward(hp_disp[i], hp, real * 160.0)
+			hp_ghost[i] = move_toward(hp_ghost[i], hp_disp[i], real * (12.0 if hp_ghost[i] - hp_disp[i] < 30.0 else 60.0))
+		bar_shake[i] = maxf(0.0, bar_shake[i] - real * 2.5)
+	if engine.fighters.size() == 2:
+		aim_disp = lerpf(aim_disp, engine.angle_of(engine.turn), minf(1.0, real * 14.0))
+	weapon_row.visible = kill_zoom < 0.05 and world.intro_t < 0.0
+	if picker_char and is_instance_valid(picker_char):
+		picker_char.rotation.y += real * 0.5
+	if stars_t >= 0.0:
+		stars_t += real
+		var sb := end_panel.find_child("Stars", true, false)
+		if sb:
+			sb.queue_redraw()
 	if not started:
 		world.tick(real, {"view": 0})
 		return
@@ -562,7 +685,10 @@ func _process(delta: float) -> void:
 	floats = floats.filter(func(f): return f[2] < 1.4)
 	if holding:
 		hold_t += real
-	match phase:
+	var in_intro: bool = world.intro_t >= 0.0
+	match "intro" if in_intro else phase:
+		"intro":
+			pass   # the flyover: nobody acts yet
 		"aim":
 			if _my_turn():
 				_keys(real)
@@ -588,6 +714,7 @@ func _process(delta: float) -> void:
 	world.view3d_shake = shake
 	world.tick(real, {"view": _view_seat(), "aiming": aiming, "show_ribbon": phase == "aim" and aiming >= 0,
 		"eagle": eagle, "kill": kill_target, "zoom": kill_zoom,
+		"ghost": engine.turn if phase == "aim" and _my_turn() else -1,
 		"winner": engine.winner if phase == "over" and kill_zoom <= 0.01 else -1})
 	hud.queue_redraw()
 
@@ -619,10 +746,7 @@ func _keys(delta: float) -> void:
 		p += 15.0 * delta
 	if held.has("down"):
 		p -= 15.0 * delta
-	if held.has("right"):
-		y += 10.0 * delta
-	if held.has("left"):
-		y -= 10.0 * delta
+	# Left / right no longer aim (locked on the rival); y stays 0.
 	engine.set_aim(i, y, p)
 
 func _on_landed(ev: Dictionary, v: Vector3, w: int) -> void:
@@ -632,7 +756,11 @@ func _on_landed(ev: Dictionary, v: Vector3, w: int) -> void:
 			var f: int = ev.f
 			hurt[f] = 0.45
 			var head: bool = ev.zone == "head"
+			hitstop = 0.11 if head else 0.07
+			bar_shake[f] = 1.0
 			world.chars[f].flash()
+			if int(engine.fighters[f].hp) <= 0:
+				world._delay(0.9, world.burst.bind(engine.feet(f) + Vector3(0, 0.1, 0), "ko"))
 			world.chars[f].play("hit_head" if head else "hit", 0.05, true)
 			if int(engine.fighters[f].hp) > 0:
 				world.chars[f].queue_after("idle")
@@ -643,7 +771,7 @@ func _on_landed(ev: Dictionary, v: Vector3, w: int) -> void:
 			var txt := "−%d" % ev.dmg
 			if head:
 				txt = tr("HEADSHOT!") + "  " + txt
-			floats.append([txt, p + Vector3(0, 0.4, 0), 0.0, GOLD if head else Color.WHITE])
+			floats.append([txt, p + Vector3(0, 0.4, 0), 0.0, GOLD if head else Color("fff3dc")])
 			if f == _view_seat():
 				red_flash = 1.0
 				shake = 1.0
@@ -776,7 +904,21 @@ func _game_over() -> void:
 			info.add("2-player games")
 			info.celebrate(msg)
 	end_label.text = msg
+	# The headline, the Contract stars, petals round the winner.
+	var won_here: bool = (w == my_seat) if _is_online() else (w == 0 if _vs_cpu() else true)
+	end_title.text = (tr("Victory") if won_here else tr("Defeat")).to_upper() if mode != "2p" else _name(w).to_upper()
+	end_title.add_theme_color_override("font_color", GOLD if won_here else Color("ff6a5a"))
+	end_stars = 0
+	if mode == "contract" and w == 0:
+		var hp0: int = engine.fighters[0].hp
+		end_stars = 1 + (1 if hp0 >= 50 else 0) + (1 if hp0 >= AaEngine.MAX_HP else 0)
+	stars_t = 0.0
+	world.celebrate(w, true)
 	end_panel.visible = true
+	end_panel.modulate.a = 0.0
+	var tw := end_panel.create_tween()
+	tw.tween_interval(0.6)
+	tw.tween_property(end_panel, "modulate:a", 1.0, 0.35)
 	results_chip.visible = false
 	_update_ui()
 
@@ -796,6 +938,10 @@ func _show_results() -> void:
 # ---------- input: hold, drag to aim, release ----------
 
 func _on_touch(event: InputEvent) -> void:
+	if world.intro_t >= 0.0:
+		if event is InputEventMouseButton and event.pressed:
+			world.skip_intro()
+		return
 	if phase != "aim" or not _my_turn() or not started:
 		return
 	var i: int = engine.turn
@@ -816,7 +962,8 @@ func _on_touch(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and holding:
 		var d: Vector2 = event.position - drag_from
 		var k := 720.0 / maxf(size.x, 1.0)
-		engine.set_aim(i, aim_from.x + d.x * k * YAW_PER_PX, aim_from.y - d.y * k * PITCH_PER_PX)
+		# Up / down only: left / right is locked on the rival (was aim_from.x + d.x * k * YAW_PER_PX).
+		engine.set_aim(i, 0.0, aim_from.y - d.y * k * PITCH_PER_PX)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey):
@@ -995,113 +1142,349 @@ func _music(what: String, style: String, index: int = 0, fade: float = 1.5) -> v
 	elif m.has_method("stop"):
 		m.stop(fade)
 
-# ---------- the HUD ----------
+# ---------- the HUD (drawn; Cinzel fonts, gold on dark glass) ----------
 
+func _load_fonts() -> void:
+	if ResourceLoader.exists(TITLE_FONT):
+		title_font = load(TITLE_FONT)
+	if ResourceLoader.exists(UI_FONT):
+		var base: Font = load(UI_FONT)
+		var reg := FontVariation.new()
+		reg.base_font = base
+		reg.variation_opentype = {"wght": 500}
+		ui_font = reg
+		var bold := FontVariation.new()
+		bold.base_font = base
+		bold.variation_opentype = {"wght": 800}
+		ui_bold = bold
+	var fb := ThemeDB.fallback_font
+	# Cinzel has no emoji, arrows or ∞: fall back to the default font for those.
+	for f in [ui_font, ui_bold]:
+		if f:
+			f.fallbacks = [fb]
+	if ResourceLoader.exists(TITLE_FONT):
+		var tf := FontVariation.new()
+		tf.base_font = load(TITLE_FONT)
+		tf.fallbacks = [fb]
+		title_font = tf
+	if ui_font == null:
+		ui_font = fb
+		ui_bold = fb
+	if title_font == null:
+		title_font = ui_bold
+
+## Dark glass, round, gold edge when picked; pressed sinks a little.
+func _style_button(b: Button, picked: bool, fs: int, radius: int) -> void:
+	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.06, 0.04, 0.03, 0.62 if st != "pressed" else 0.8)
+		sb.border_color = Color(GOLD, 0.95) if picked else Color(1, 1, 1, 0.28)
+		sb.set_border_width_all(3 if picked else 1)
+		sb.set_corner_radius_all(radius)
+		sb.shadow_color = Color(GOLD, 0.45) if picked else Color(0, 0, 0, 0.35)
+		sb.shadow_size = 10 if picked else 6
+		sb.set_content_margin_all(6)
+		if st == "pressed":
+			sb.content_margin_top = 9
+		if st == "focus":
+			sb.draw_center = false
+			sb.set_border_width_all(0)
+			sb.shadow_size = 0
+		b.add_theme_stylebox_override(st, sb)
+	if ui_bold:
+		b.add_theme_font_override("font", ui_bold)
+	b.add_theme_font_size_override("font_size", fs)
+	b.add_theme_color_override("font_color", GOLD if picked else Color("f3e6c8"))
+	b.add_theme_color_override("font_hover_color", GOLD if picked else Color.WHITE)
+	b.add_theme_color_override("font_pressed_color", GOLD)
+	b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.35))
+	b.focus_mode = Control.FOCUS_NONE
+
+## The weapon chips: icon + ammo, the one in hand gold and a touch bigger.
+func _style_weapons() -> void:
+	if engine.fighters.is_empty():
+		return
+	var f: Dictionary = engine.fighters[engine.turn]
+	for w in weapon_btns.size():
+		var b: Button = weapon_btns[w]
+		var picked: bool = w == int(f.weapon)
+		_style_button(b, picked, 22, 32)
+		var target := Vector2.ONE * (1.08 if picked else 1.0)
+		if b.scale != target:
+			var tw := b.create_tween()
+			tw.tween_property(b, "scale", target, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Result stars (Contracts): they pop in one after another.
+func _draw_end_stars(c: Control) -> void:
+	if end_stars <= 0 or stars_t < 0.0:
+		c.custom_minimum_size.y = 0
+		return
+	c.custom_minimum_size.y = 64
+	var mid := c.size.x / 2.0
+	for k in 3:
+		var t := clampf((stars_t - 0.25 - k * 0.22) / 0.3, 0.0, 1.0)
+		var pop := 1.0 + sin(t * PI) * 0.35
+		var centre := Vector2(mid + (k - 1) * 64.0, 32)
+		var lit := k < end_stars and t > 0.0
+		_star(c, centre, 24.0 * (pop if lit else 1.0), GOLD if lit else Color(1, 1, 1, 0.18), lit)
+
+func _star(c: CanvasItem, centre: Vector2, r: float, col: Color, glow: bool) -> void:
+	var pts := PackedVector2Array()
+	for k in 10:
+		var a := -PI / 2.0 + k * PI / 5.0
+		pts.append(centre + Vector2(cos(a), sin(a)) * (r if k % 2 == 0 else r * 0.45))
+	if glow:
+		c.draw_circle(centre, r * 1.25, Color(col, 0.18))
+	c.draw_colored_polygon(pts, col)
+	var closed := pts.duplicate()
+	closed.append(pts[0])
+	c.draw_polyline(closed, Color(0, 0, 0, 0.5), 1.5, true)
+
+func _text(c: CanvasItem, font: Font, pos: Vector2, text: String, fs: int, col: Color, align: int = HORIZONTAL_ALIGNMENT_CENTER, w: float = 640.0, outline: int = 6) -> void:
+	var p := pos
+	if align == HORIZONTAL_ALIGNMENT_CENTER:
+		p.x -= w / 2.0
+	elif align == HORIZONTAL_ALIGNMENT_RIGHT:
+		p.x -= w
+	if outline > 0:
+		c.draw_string_outline(font, p, text, align, w, fs, outline, Color(0, 0, 0, col.a * 0.72))
+	c.draw_string(font, p, text, align, w, fs, col)
+
+## Kept for older call sites: centred, outlined text in the UI font.
 func _outlined(c: CanvasItem, center: Vector2, text: String, fs: int, col: Color, w: float = 640.0) -> void:
-	var font := ThemeDB.fallback_font
-	var pos := center - Vector2(w / 2.0, -fs / 3.0)
-	c.draw_string_outline(font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, w, fs, 6, Color(0, 0, 0, col.a * 0.75))
-	c.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, w, fs, col)
+	_text(c, ui_bold, center + Vector2(0, fs / 3.0), text, fs, col, HORIZONTAL_ALIGNMENT_CENTER, w)
+
+func _glass(c: CanvasItem, r: Rect2, radius: int = 14, alpha: float = 0.5, border: Color = Color(1, 1, 1, 0.16)) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.035, 0.03, alpha)
+	sb.border_color = border
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(radius)
+	c.draw_style_box(sb, r)
 
 func _draw_hud() -> void:
 	var c := hud
 	var sz := hud.size
-	var font := ThemeDB.fallback_font
 	var skull := skin == "voodoo"
-	# A dark backing so ⏸ reads against the sky.
-	var pb := Rect2(pause_btn.position - Vector2(4, 4), pause_btn.size + Vector2(8, 8))
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0, 0, 0, 0.45)
-	sb.set_corner_radius_all(12)
-	c.draw_style_box(sb, pb)
 	if red_flash > 0.0:
-		c.draw_rect(Rect2(Vector2.ZERO, sz), Color(1, 0, 0, red_flash * 0.25))
+		c.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.8, 0, 0, red_flash * 0.22))
+	# Kill cam letterbox.
+	if kill_zoom > 0.01:
+		var lb := sz.y * 0.085 * kill_zoom
+		c.draw_rect(Rect2(0, 0, sz.x, lb), Color.BLACK)
+		c.draw_rect(Rect2(0, sz.y - lb, sz.x, lb), Color.BLACK)
 	if not started or engine.fighters.is_empty():
 		return
-	# Health bars: this phone's player (or player 1) left in blue, the rival right in red.
+	var in_intro: bool = world.intro_t >= 0.0
+	var mid := sz.x / 2.0
+	if in_intro:
+		_draw_vs(c, sz)
+		return
+	if kill_zoom > 0.3:
+		_draw_floats(c)
+		_draw_banner(c, sz)
+		return
+	_draw_bars(c, sz, skull)
+	_draw_wind(c, Vector2(mid, 128), skull)
+	var show_ruler: bool = phase in ["aim", "cpu", "fly"] and not engine.is_over()
+	if show_ruler:
+		_draw_ruler(c, sz, skull)
+	if phase == "aim" and _my_turn():
+		var f: Dictionary = engine.fighters[engine.turn]
+		_text(c, ui_bold, Vector2(mid, sz.y - 104), tr(str(AaEngine.WEAPONS[int(f.weapon)].name)).to_upper(), 17, Color(GOLD, 0.95), HORIZONTAL_ALIGNMENT_CENTER, 400, 5)
+		if not holding and held.is_empty():
+			var pulse := 0.7 + 0.3 * sin(Time.get_ticks_msec() / 320.0)
+			var hint := tr("Hold, drag up or down, let go to throw")
+			var hw := ui_font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 36.0
+			_glass(c, Rect2(mid - hw / 2.0, sz.y * 0.78 - 22, hw, 40), 20, 0.45 * pulse, Color(GOLD, 0.35 * pulse))
+			_text(c, ui_font, Vector2(mid, sz.y * 0.78 + 5), hint, 18, Color(1, 0.96, 0.88, pulse), HORIZONTAL_ALIGNMENT_CENTER, 600, 0)
+	if _is_online() and not engine.is_over():
+		_text(c, ui_font, Vector2(mid, sz.y - 136), online.status_text(engine.turn == my_seat, _name(engine.turn)), 18, Color.WHITE)
+	_draw_floats(c)
+	_draw_banner(c, sz)
+
+## Two framed health bars with medallions; the one taking a hit shakes and a
+## white "ghost" chunk drains after the bar.
+func _draw_bars(c: CanvasItem, sz: Vector2, skull: bool) -> void:
 	var left := _view_seat() if mode != "2p" else 0
-	var top := 34.0
-	var x0 := 84.0
-	var gap := 12.0
-	var bw := (sz.x - x0 - 14.0 - gap) / 2.0
+	var top := 32.0
+	var x0 := 74.0
+	var gap := 10.0
+	var bw := (sz.x - x0 - 12.0 - gap) / 2.0
 	for k in 2:
 		var i := left if k == 0 else 1 - left
 		var f: Dictionary = engine.fighters[i]
-		var x := x0 if k == 0 else x0 + bw + gap
-		var col: Color = (P_BLUE if k == 0 else P_RED) if not skull else (HomeKit.CYAN if k == 0 else HomeKit.MAGENTA)
-		var r := Rect2(x, top, bw, 26)
-		c.draw_rect(r, Color(0, 0, 0, 0.45))
-		var frac := clampf(float(f.hp) / AaEngine.MAX_HP, 0.0, 1.0)
-		var fill := Rect2(r.position, Vector2(bw * frac, 26)) if k == 0 else Rect2(Vector2(r.end.x - bw * frac, top), Vector2(bw * frac, 26))
-		c.draw_rect(fill, col)
-		c.draw_rect(r, Color(1, 1, 1, 0.7), false, 2.0)
-		var label := _who(i).to_upper() if mode != "2p" else _name(i).to_upper()
-		c.draw_string_outline(font, Vector2(x + 4, top + 50), label + ("" if mode == "2p" else " · " + _name(i)), HORIZONTAL_ALIGNMENT_LEFT if k == 0 else HORIZONTAL_ALIGNMENT_RIGHT, bw - 8, 18, 5, Color(0, 0, 0, 0.6))
-		c.draw_string(font, Vector2(x + 4, top + 50), label + ("" if mode == "2p" else " · " + _name(i)), HORIZONTAL_ALIGNMENT_LEFT if k == 0 else HORIZONTAL_ALIGNMENT_RIGHT, bw - 8, 18, Color.WHITE)
-		if engine.turn == i and not engine.is_over():
-			var mx := r.position.x + 12 if k == 0 else r.end.x - 12
-			c.draw_circle(Vector2(mx, r.get_center().y), 6, Color.WHITE)
-	# Wind, under the bars: an arrow and its strength.
-	var wy := top + 84.0
+		var ch: Dictionary = CHARS[int(f.char)]
+		var jolt := Vector2(sin(Time.get_ticks_msec() * 0.09) * 5.0 * bar_shake[i], 0)
+		var x := (x0 if k == 0 else x0 + bw + gap) + jolt.x
+		var plate := Rect2(x, top, bw, 54)
+		var turn_glow: bool = engine.turn == i and not engine.is_over()
+		_glass(c, plate, 14, 0.55, Color(GOLD, 0.75) if turn_glow else Color(1, 1, 1, 0.14))
+		# Medallion: her colour, her initial.
+		var med := Vector2(plate.position.x + 27 if k == 0 else plate.end.x - 27, plate.position.y + 27)
+		var col: Color = ch.c1
+		if skull:
+			col = HomeKit.CYAN if k == 0 else HomeKit.MAGENTA
+		c.draw_circle(med, 21, Color(0, 0, 0, 0.5))
+		c.draw_circle(med, 19, col.darkened(0.35))
+		c.draw_circle(med + Vector2(-4, -5), 11, Color(col.lightened(0.2), 0.55))
+		c.draw_arc(med, 20, 0, TAU, 32, GOLD if turn_glow else Color(1, 1, 1, 0.6), 2.0, true)
+		_text(c, title_font, med + Vector2(0, 9), str(ch.name).substr(0, 1), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 40, 4)
+		# Name above the bar.
+		var who := _who(i) if mode != "2p" else tr("Player %d") % (i + 1)
+		var name_x := plate.position.x + 54 if k == 0 else plate.end.x - 54
+		_text(c, ui_bold, Vector2(name_x, top + 19), str(ch.name).to_upper() + "  ·  " + who, 15, Color("f3e6c8"),
+			HORIZONTAL_ALIGNMENT_LEFT if k == 0 else HORIZONTAL_ALIGNMENT_RIGHT, bw - 64, 3)
+		# The bar.
+		var br := Rect2(plate.position.x + 52 if k == 0 else plate.position.x + 8, top + 26, bw - 60, 18)
+		var rs := StyleBoxFlat.new()
+		rs.bg_color = Color(0, 0, 0, 0.6)
+		rs.set_corner_radius_all(9)
+		c.draw_style_box(rs, br)
+		var bar_col: Color = (P_BLUE if k == 0 else P_RED) if not skull else (HomeKit.CYAN if k == 0 else HomeKit.MAGENTA)
+		if f.hp <= 30:
+			bar_col = bar_col.lerp(Color("ff3b3b"), 0.6 + 0.4 * sin(Time.get_ticks_msec() / 150.0))
+		var g := clampf(hp_ghost[i] / AaEngine.MAX_HP, 0.0, 1.0)
+		var d := clampf(hp_disp[i] / AaEngine.MAX_HP, 0.0, 1.0)
+		var inner := br.grow(-2)
+		var ghost := Rect2(inner.position, Vector2(inner.size.x * g, inner.size.y)) if k == 0 else Rect2(Vector2(inner.end.x - inner.size.x * g, inner.position.y), Vector2(inner.size.x * g, inner.size.y))
+		var fill := Rect2(inner.position, Vector2(inner.size.x * d, inner.size.y)) if k == 0 else Rect2(Vector2(inner.end.x - inner.size.x * d, inner.position.y), Vector2(inner.size.x * d, inner.size.y))
+		if g > d:
+			var gs := StyleBoxFlat.new()
+			gs.bg_color = Color(1, 0.95, 0.85, 0.85)
+			gs.set_corner_radius_all(7)
+			c.draw_style_box(gs, ghost)
+		if d > 0.0:
+			var fs := StyleBoxFlat.new()
+			fs.bg_color = bar_col
+			fs.set_corner_radius_all(7)
+			c.draw_style_box(fs, fill)
+			c.draw_rect(Rect2(fill.position + Vector2(3, 2), Vector2(maxf(0.0, fill.size.x - 6), fill.size.y * 0.3)), Color(1, 1, 1, 0.28))
+		for q in [0.25, 0.5, 0.75]:
+			var tx: float = inner.position.x + inner.size.x * q
+			c.draw_line(Vector2(tx, inner.position.y + 3), Vector2(tx, inner.end.y - 3), Color(0, 0, 0, 0.35), 1.0)
+		_text(c, ui_bold, Vector2(br.get_center().x, br.position.y + 15), str(int(ceilf(hp_disp[i]))), 14, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 80, 4)
+
+## Wind: a glass pill, chevrons flowing the way it blows (faster when stronger).
+## It blows along the line now: chevrons up = tailwind (the throw goes further),
+## down = headwind (shorter), for whoever is throwing.
+func _draw_wind(c: CanvasItem, centre: Vector2, skull: bool) -> void:
 	var wv: float = engine.wind / AaEngine.WIND_MAX
-	var mid := sz.x / 2.0
-	var wcol := Color.WHITE if not skull else HomeKit.LIME
-	_outlined(c, Vector2(mid, wy - 8), tr("Wind"), 18, wcol)
-	var strength := snappedf(absf(engine.wind) * 10.0, 1.0)
-	if strength < 1.0:
-		_outlined(c, Vector2(mid, wy + 18), tr("calm"), 22, wcol)
-	else:
-		var l := 20.0 + 60.0 * absf(wv)
-		var d := signf(wv)
-		var ay := wy + 16.0
-		c.draw_line(Vector2(mid - d * l, ay), Vector2(mid + d * l, ay), Color(0, 0, 0, 0.55), 9.0)
-		c.draw_line(Vector2(mid - d * l, ay), Vector2(mid + d * l, ay), wcol, 4.0)
-		var tip := Vector2(mid + d * l, ay)
-		c.draw_colored_polygon(PackedVector2Array([tip + Vector2(d * 10, 0), tip + Vector2(-d * 8, -10), tip + Vector2(-d * 8, 10)]), wcol)
-		_outlined(c, Vector2(mid, ay + 26), str(int(strength)), 22, wcol)
-	# The elevation ruler, left edge.
-	var ri: int = engine.turn
-	var show_ruler: bool = phase in ["aim", "cpu", "fly"] and not engine.is_over()
-	if show_ruler:
-		var ry0 := sz.y * 0.26
-		var ry1 := sz.y * 0.70
-		var rx := 16.0
-		c.draw_rect(Rect2(rx, ry0, 34, ry1 - ry0), Color(1, 1, 1, 0.16))
-		var lo := -10.0
-		var hi := 70.0
-		var deg := lo
-		while deg <= hi:
-			var y := lerpf(ry1, ry0, (deg - lo) / (hi - lo))
-			var big := int(deg) % 10 == 0
-			c.draw_line(Vector2(rx, y), Vector2(rx + (24 if big else 12), y), Color(1, 1, 1, 0.85), 2.0 if big else 1.0)
-			deg += 5.0
-		var a: float = engine.angle_of(ri)
-		var my := lerpf(ry1, ry0, (clampf(a, lo, hi) - lo) / (hi - lo))
-		var tag := Rect2(rx + 26, my - 15, 64, 30)
-		c.draw_rect(tag, GOLD if not skull else HomeKit.CYAN)
-		c.draw_colored_polygon(PackedVector2Array([Vector2(rx + 18, my), Vector2(rx + 27, my - 9), Vector2(rx + 27, my + 9)]), GOLD if not skull else HomeKit.CYAN)
-		c.draw_string(font, Vector2(tag.position.x, my + 8), "%d°" % int(roundf(a)), HORIZONTAL_ALIGNMENT_CENTER, 64, 20, Color(0.1, 0.06, 0.02))
-		var yw: float = engine.yaw_of(ri)
-		if absf(yw) >= 0.5:
-			c.draw_string_outline(font, Vector2(rx, ry1 + 30), ("◀ %d°" if yw < 0 else "%d° ▶") % int(roundf(absf(yw))), HORIZONTAL_ALIGNMENT_LEFT, 120, 18, 5, Color(0, 0, 0, 0.6))
-			c.draw_string(font, Vector2(rx, ry1 + 30), ("◀ %d°" if yw < 0 else "%d° ▶") % int(roundf(absf(yw))), HORIZONTAL_ALIGNMENT_LEFT, 120, 18, Color.WHITE)
-	# Weapon in hand + what to do.
-	if phase == "aim" and _my_turn():
-		var f: Dictionary = engine.fighters[engine.turn]
-		_outlined(c, Vector2(mid, sz.y - 112), tr(str(AaEngine.WEAPONS[int(f.weapon)].name)), 22, GOLD)
-		if not holding and held.is_empty():
-			_outlined(c, Vector2(mid, sz.y * 0.8), tr("Hold, drag to aim, let go to throw"), 22, Color(1, 1, 1, 0.65 + 0.35 * sin(Time.get_ticks_msec() / 300.0)))
-	if _is_online() and not engine.is_over():
-		_outlined(c, Vector2(mid, sz.y - 140), online.status_text(engine.turn == my_seat, _name(engine.turn)), 20, Color.WHITE)
-	# Floating hit numbers over the 3D scene.
+	var strength := int(roundf(absf(engine.wind) * 10.0))
+	var r := Rect2(centre.x - 92, centre.y - 22, 184, 50)
+	_glass(c, r, 25, 0.5)
+	var col := Color("f3e6c8") if not skull else HomeKit.LIME
+	_text(c, ui_bold, Vector2(centre.x, r.position.y + 15), tr("Wind").to_upper(), 11, Color(col, 0.75), HORIZONTAL_ALIGNMENT_CENTER, 200, 0)
+	if strength == 0:
+		_text(c, ui_bold, Vector2(centre.x, r.position.y + 40), tr("calm"), 18, col, HORIZONTAL_ALIGNMENT_CENTER, 200, 3)
+		return
+	# Up the screen = away from the camera's assassin (the thrower's tailwind on her own turn).
+	var d := signf(wv) * (1.0 if engine.turn == _view_seat() else -1.0)
+	var y := r.position.y + 33
+	var t := fposmod(Time.get_ticks_msec() / 1000.0 * (0.6 + absf(wv) * 1.6), 1.0)
+	for k in 3:
+		var u := fposmod(t + k / 3.0, 1.0)
+		var cy := y + 9.0 - u * 18.0 if d > 0 else y - 9.0 + u * 18.0
+		var a := sin(u * PI) * (0.4 + 0.6 * absf(wv))
+		var tip := Vector2(centre.x - 34, cy - d * 4)
+		c.draw_polyline(PackedVector2Array([tip + Vector2(-8, d * 7), tip, tip + Vector2(8, d * 7)]), Color(col, a), 3.0, true)
+	_text(c, title_font, Vector2(centre.x + 30, y + 9), str(strength), 24, GOLD if not skull else HomeKit.LIME, HORIZONTAL_ALIGNMENT_CENTER, 80, 4)
+
+## The elevation ruler: a glass strip with ticks, a gold tag that slides.
+func _draw_ruler(c: CanvasItem, sz: Vector2, skull: bool) -> void:
+	var ry0 := sz.y * 0.27
+	var ry1 := sz.y * 0.69
+	var rx := 12.0
+	_glass(c, Rect2(rx, ry0 - 10, 40, ry1 - ry0 + 20), 12, 0.38)
+	var lo := -10.0
+	var hi := 70.0
+	var deg := lo
+	while deg <= hi:
+		var y := lerpf(ry1, ry0, (deg - lo) / (hi - lo))
+		var big := int(deg) % 10 == 0
+		c.draw_line(Vector2(rx + 4, y), Vector2(rx + (24 if big else 13), y), Color(1, 0.96, 0.88, 0.85 if big else 0.45), 2.0 if big else 1.0)
+		if big and int(deg) % 20 == 0:
+			_text(c, ui_font, Vector2(rx + 27, y + 4), str(int(deg)), 10, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_LEFT, 30, 0)
+		deg += 5.0
+	# The previous throw's angle: a see-through tag to correct from.
+	var lt: Dictionary = engine.last[engine.turn]
+	if not lt.is_empty():
+		var la: float = float(lt.pitch) / 10.0
+		var ly := lerpf(ry1, ry0, (clampf(la, lo, hi) - lo) / (hi - lo))
+		var gc := Color(1, 1, 1, 0.42)
+		var gtag := Rect2(rx + 30, ly - 13, 62, 26)
+		var gs := StyleBoxFlat.new()
+		gs.bg_color = Color(0, 0, 0, 0.35)
+		gs.border_color = gc
+		gs.set_border_width_all(2)
+		gs.set_corner_radius_all(8)
+		c.draw_style_box(gs, gtag)
+		c.draw_line(Vector2(rx + 4, ly), Vector2(rx + 30, ly), gc, 2.0)
+		_text(c, ui_bold, Vector2(gtag.get_center().x, ly + 6), "%d°" % int(roundf(la)), 16, Color(1, 1, 1, 0.7), HORIZONTAL_ALIGNMENT_CENTER, 62, 0)
+	var my := lerpf(ry1, ry0, (clampf(aim_disp, lo, hi) - lo) / (hi - lo))
+	var tagc := GOLD if not skull else HomeKit.CYAN
+	var tag := Rect2(rx + 30, my - 15, 62, 30)
+	var ts := StyleBoxFlat.new()
+	ts.bg_color = tagc
+	ts.set_corner_radius_all(8)
+	ts.shadow_color = Color(tagc, 0.5)
+	ts.shadow_size = 8
+	c.draw_style_box(ts, tag)
+	c.draw_colored_polygon(PackedVector2Array([Vector2(rx + 22, my), Vector2(rx + 31, my - 8), Vector2(rx + 31, my + 8)]), tagc)
+	_text(c, ui_bold, Vector2(tag.get_center().x, my + 7), "%d°" % int(roundf(aim_disp)), 19, Color(0.12, 0.07, 0.02), HORIZONTAL_ALIGNMENT_CENTER, 62, 0)
+	# (The ◀ / ▶ yaw readout is gone: the aim is locked on the rival.)
+
+## Hit numbers: pop in with an overshoot, rise and fade.
+func _draw_floats(c: CanvasItem) -> void:
 	for fl in floats:
 		var sp = world.screen_of(fl[1])
 		if sp == null:
 			continue
 		var t: float = fl[2] / 1.4
-		_outlined(c, (sp as Vector2) + Vector2(0, -50.0 * t), fl[0], 30, Color(fl[3], 1.0 - t * t))
-	if banner_t > 0.0 and banner != "":
-		var a := clampf(banner_t * 2.0, 0.0, 1.0)
-		var lines := banner.split("\n")
-		for j in lines.size():
-			_outlined(c, Vector2(mid, sz.y * 0.34 + j * 50), lines[j], 40 if j == 0 else 28, Color(GOLD, a))
+		var pop := 1.0 + 0.6 * exp(-t * 18.0)
+		var fs := int(30.0 * pop)
+		var pos: Vector2 = (sp as Vector2) + Vector2(0, -60.0 * ease(t, 0.5))
+		var a := 1.0 - clampf((t - 0.6) / 0.4, 0.0, 1.0)
+		_text(c, title_font, pos, fl[0], fs, Color(fl[3], a), HORIZONTAL_ALIGNMENT_CENTER, 640, 7)
+
+## Banners ("Your turn", contract names, "Finishing blow!"): pop in with an
+## overshoot, gold rules grow out to the sides, fade out.
+func _draw_banner(c: CanvasItem, sz: Vector2) -> void:
+	if banner_t <= 0.0 or banner == "":
+		return
+	var age := banner_age
+	var a := clampf(banner_t * 2.5, 0.0, 1.0) * clampf(age * 6.0, 0.0, 1.0)
+	var s := 1.0 + 0.35 * exp(-age * 9.0) * cos(age * 20.0)
+	var y := sz.y * 0.33
+	var lines := banner.split("\n")
+	for j in lines.size():
+		var fs := int((38.0 if j == 0 else 22.0) * s)
+		var font := title_font if j == 0 else ui_bold
+		_text(c, font, Vector2(sz.x / 2.0, y + j * 44), lines[j].to_upper() if j == 0 else lines[j], fs, Color(GOLD if j == 0 else Color("f3e6c8"), a), HORIZONTAL_ALIGNMENT_CENTER, sz.x, 8)
+	var grow := clampf(age * 3.0, 0.0, 1.0)
+	var half := sz.x * 0.36 * grow
+	var ly := y + 16
+	c.draw_line(Vector2(sz.x / 2.0 - half, ly), Vector2(sz.x / 2.0 - 24, ly), Color(GOLD, a * 0.8), 2.0, true)
+	c.draw_line(Vector2(sz.x / 2.0 + 24, ly), Vector2(sz.x / 2.0 + half, ly), Color(GOLD, a * 0.8), 2.0, true)
+	c.draw_circle(Vector2(sz.x / 2.0, ly), 4, Color(GOLD, a))
+
+## The VS card for the intro flyover: names sweep in from the sides.
+func _draw_vs(c: CanvasItem, sz: Vector2) -> void:
+	var t: float = world.intro_t
+	var end: float = world.INTRO_LEN
+	var a := clampf(t * 3.0, 0.0, 1.0) * clampf((end - t) * 2.5, 0.0, 1.0)
+	var e := 1.0 - pow(1.0 - clampf(t / 0.6, 0.0, 1.0), 3.0)
+	var y := sz.y * 0.42
+	c.draw_rect(Rect2(0, y - 70, sz.x, 140), Color(0, 0, 0, 0.45 * a))
+	c.draw_line(Vector2(0, y - 70), Vector2(sz.x, y - 70), Color(GOLD, 0.7 * a), 2.0)
+	c.draw_line(Vector2(0, y + 70), Vector2(sz.x, y + 70), Color(GOLD, 0.7 * a), 2.0)
+	var left := _view_seat() if mode != "2p" else 0
+	var n0 := _name(left).to_upper()
+	var n1 := _name(1 - left).to_upper()
+	_text(c, title_font, Vector2(lerpf(-sz.x * 0.5, sz.x * 0.27, e), y - 14), n0, 30, Color(Color("8fc4ff"), a), HORIZONTAL_ALIGNMENT_CENTER, sz.x * 0.6, 6)
+	_text(c, title_font, Vector2(lerpf(sz.x * 1.5, sz.x * 0.73, e), y + 44), n1, 30, Color(Color("ff9a8a"), a), HORIZONTAL_ALIGNMENT_CENTER, sz.x * 0.6, 6)
+	var vs_s := 1.0 + 0.8 * exp(-t * 6.0)
+	_text(c, title_font, Vector2(sz.x / 2.0, y + 18), "VS", int(46 * vs_s), Color(GOLD, a), HORIZONTAL_ALIGNMENT_CENTER, 200, 8)
+	if mode == "contract":
+		_text(c, ui_bold, Vector2(sz.x / 2.0, y - 90), tr("Contract %d of 8") % (contract + 1) + " · " + tr(CONTRACTS[contract].place), 18, Color(Color("f3e6c8"), a), HORIZONTAL_ALIGNMENT_CENTER, sz.x, 5)
+	_text(c, ui_font, Vector2(sz.x / 2.0, sz.y * 0.8), tr("Tap to skip"), 15, Color(1, 1, 1, 0.55 * a), HORIZONTAL_ALIGNMENT_CENTER, 300, 3)

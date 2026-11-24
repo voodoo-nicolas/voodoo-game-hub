@@ -791,6 +791,9 @@
  "Results": [
   "scripts\\common\\game_info.gd"
  ],
+ "Road editor: drag the yellow dots, F10 saves, F9 closes": [
+  "scripts\\games\\bridge_master\\bridge_master_game.gd"
+ ],
  "S.TOP#.": [
   "scripts\\common\\game_teasers_rest.gd"
  ],
@@ -1000,6 +1003,9 @@
  "c_<id>#<n>": [
   "scripts\\common\\achievements.gd"
  ],
+ "can't drop? can't store it?": [
+  "scripts\\games\\wilson\\wilson_engine.gd"
+ ],
  "can't open": [
   "scripts\\common\\catalog.gd"
  ],
@@ -1077,6 +1083,9 @@
  "growth_%d": [
   "scripts\\games\\evolution\\evolution_engine.gd"
  ],
+ "hard to read": [
+  "scripts\\games\\wilson\\wilson_game.gd"
+ ],
  "in the menus": [
   "scripts\\hub\\hub.gd"
  ],
@@ -1120,6 +1129,9 @@
  "mount failed": [
   "scripts\\common\\catalog.gd"
  ],
+ "no fly zone": [
+  "scripts\\games\\reversi\\reversi_game.gd"
+ ],
  "not a pack": [
   "scripts\\common\\catalog.gd"
  ],
@@ -1162,6 +1174,9 @@
  "resume last game": [
   "scripts\\hub\\hub.gd"
  ],
+ "road_paths = ": [
+  "scripts\\games\\bridge_master\\bridge_master_game.gd"
+ ],
  "sea/%s.webp": [
   "scripts\\games\\wilson\\wilson_world.gd"
  ],
@@ -1179,6 +1194,9 @@
  ],
  "studyMs": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_items.gd"
+ ],
+ "stuff is hard to read": [
+  "scripts\\games\\wilson\\wilson_slot.gd"
  ],
  "tap to remove": [
   "scripts\\games\\rectangles\\rectangles_game.gd"

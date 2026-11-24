@@ -5,6 +5,11 @@ extends RefCounted
 ## javelin, throwing axe, chakram. Hold, drag to aim (left / right and the
 ## elevation), release. Gravity bends the arc, the crosswind pushes it sideways
 ## (more for light weapons). Head ×2, body ×1, legs ×0.6.
+## Amazonia (2026-11-23): the aim is locked on the rival left / right, so only
+## the elevation changes (drag up / down); the power is the weapon's own, never
+## charged; the wind blows along the line (tailwind = further, headwind =
+## shorter), so it can always be beaten by aiming higher or lower. last[i]
+## keeps each fighter's previous throw (angle + path) for the ghost arc.
 ## Pure simulation in metres (x = sideways, y = up, z = from fighter 0 towards
 ## fighter 1), no Nodes. The game draws it in 3D (aa_world.gd).
 ##
@@ -36,7 +41,8 @@ const WEAPONS := [
 ## Map styles: 0 = lagoon, 1 = ruins (columns in the way), 2 = cliffs (a rock to throw over).
 const STYLES := 3
 const PITCH_RANGE := [-10.0, 80.0]
-const YAW_RANGE := [-35.0, 35.0]
+## Was [-35.0, 35.0]: the aim is locked on the rival now (up / down only).
+const YAW_RANGE := [0.0, 0.0]
 
 var islands: Array = []        # {"x", "z", "r", "top"}: standing ground (flat-topped rock)
 var blocks: Array = []         # {"x", "z", "r", "top", "kind": "column"|"rock"}: in the way, from the water up
@@ -47,10 +53,11 @@ var turn: int = 0
 var winner: int = -1
 var seed_: int = 0
 var throws: int = 0
-var wind: float = 0.0          # + pushes towards +x
+var wind: float = 0.0          # + = tailwind for whoever throws (along the line), - = headwind
 var wind_max: float = WIND_MAX
 var shot: Dictionary = {}      # {"p", "prev", "v", "w", "owner", "age", "trail"}
 var last_hit: Dictionary = {}
+var last: Array = [{}, {}]     # per fighter: {"pitch" (tenths), "w", "pts": PackedVector3Array} of the previous throw
 var rng := RandomNumberGenerator.new()
 var acc: float = 0.0
 
@@ -100,6 +107,7 @@ func reset(p_seed: int = -1, opts: Dictionary = {}) -> void:
 	throws = 0
 	shot = {}
 	last_hit = {}
+	last = [{}, {}]
 	acc = 0.0
 	wind = wind_for(0)
 
@@ -139,7 +147,11 @@ func set_aim(i: int, yaw: float, pitch: float) -> void:
 
 ## The throw's direction for an aim.
 func direction(i: int, yaw: float, pitch: float) -> Vector3:
-	var fw := forward(i)
+	# Yaw 0 runs from her hand to the rival's centre line (the hand sits off the
+	# feet-to-feet line), so the locked aim never drifts past a head.
+	var fw := feet(1 - i) - hand(i)
+	fw.y = 0.0
+	fw = fw.normalized()
 	var right := fw.cross(Vector3.UP).normalized()
 	var y := deg_to_rad(yaw)
 	var flat := fw * cos(y) + right * sin(y)
@@ -182,6 +194,7 @@ func throw() -> void:
 		f.ammo[w] -= 1
 	shot = _new_shot(turn, w)
 	shot["trail"] = [shot.p]
+	last[turn] = {"pitch": int(aim[turn][1]), "w": w, "pts": path(turn, w)}
 	acc = 0.0
 	last_hit = {}
 	throws += 1
@@ -205,7 +218,8 @@ func step(dt: float) -> Array:
 func _tick(s: Dictionary, real: bool) -> Dictionary:
 	var wpn: Dictionary = WEAPONS[s.w]
 	s.prev = s.p
-	s.v += Vector3(wind * float(wpn.wind), -float(wpn.g), 0.0) * DT
+	# Was sideways (Vector3(wind * wind factor, -g, 0)); now along the line.
+	s.v += (forward(int(s.owner)) * wind * float(wpn.wind) + Vector3(0.0, -float(wpn.g), 0.0)) * DT
 	s.p += s.v * DT
 	s.age += DT
 	if real:
@@ -287,6 +301,7 @@ func predict(i: int, yaw: float, pitch: float, w: int) -> Dictionary:
 	return {"p": res.p, "f": int(res.get("f", -1)), "zone": str(res.get("zone", "")), "out": false, "surface": str(res.get("surface", ""))}
 
 ## The path of fighter i's current aim (🦅 Eagle Eye, wind included): a point every few ticks.
+## Also kept as the ghost arc of the last throw (it's the flight that really happened).
 func path(i: int, w: int) -> PackedVector3Array:
 	var s := _new_shot(i, w)
 	var pts := PackedVector3Array([s.p])
@@ -361,7 +376,9 @@ func cpu_think(plan: Dictionary) -> bool:
 			plan.yaw = 0.0
 		return false
 	# Degrees of deliberate error (yaw, pitch): a body is under 1° wide at 25 m.
-	var noise: Array = [[2.2, 2.6], [1.0, 1.2], [0.5, 0.6], [0.22, 0.28]][clampi(plan.level, 0, 3)]
+	# Was [[2.2, 2.6], [1.0, 1.2], [0.5, 0.6], [0.22, 0.28]]: with the yaw locked,
+	# all of the error goes into the elevation.
+	var noise: Array = [[0.0, 4.2], [0.0, 2.0], [0.0, 0.95], [0.0, 0.4]][clampi(plan.level, 0, 3)]
 	@warning_ignore("integer_division")
 	var mine := (throws + (1 if i == 0 else 0)) / 2
 	var sharpen := maxf(0.55, 1.35 - 0.2 * mine)
