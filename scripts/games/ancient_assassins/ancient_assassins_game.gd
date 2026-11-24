@@ -36,6 +36,8 @@ const ONLINE_MATCH_PATH := "res://scripts/common/online_match.gd"
 const HELP := preload("res://scripts/games/ancient_assassins/ancient_assassins_help.gd")
 const SAVE_PATH := "user://ancient_assassins_save.json"
 const PROGRESS_PATH := "user://ancient_assassins_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const LANDING_ART := "res://games/ancient_assassins/landing_bg.jpg"
 
 const LEVELS := ["Easy", "Normal", "Hard", "Expert"]
@@ -146,6 +148,10 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = AaEngine.new()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("ancient_assassins", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	my_char = int(progress.get("char", 0))
 	engine.reset(-1, {"chars": [my_char, (my_char + 1) % CHARS.size()]})
 	_build_ui()
@@ -1106,6 +1112,22 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		var n := 0
+		for v in progress.stars:
+			if int(v) > 0:
+				n += 1
+		cloud.report_completion(n, CONTRACTS.size())
+
+## Cloud vs device (STANDARDS §18): the copy with more contracts cleared (then stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var st = d.get("stars", [])
+	var n := 0
+	if st is Array:
+		for v in st:
+			n += (4 + int(v)) if int(v) > 0 else 0
+	return n
 
 # ---------- helps (STANDARDS §17) ----------
 
