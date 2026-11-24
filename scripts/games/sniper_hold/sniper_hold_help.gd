@@ -4,7 +4,7 @@ extends RefCounted
 ## sniper_hold_engine.gd / sniper_hold_game.gd. Run `hub.py i18n` after editing.
 
 const ID := "sniper_hold"
-const TITLE := "Sniper Hold"
+const TITLE := "The Hunt"
 const GOAL := "Take the right animals with clean shots, from far away, before the time or the rounds run out."
 const HOW := [
 	"Hold the phone sideways. You look out over one valley. Drag to aim; pinch (or drag the 🔭 slider on the right) to zoom the scope up to x12.",

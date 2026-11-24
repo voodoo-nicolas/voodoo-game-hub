@@ -4355,6 +4355,16 @@
    "date": "2026-11-13"
   },
   {
+   "file": "games/red_mist/title.ttf",
+   "what": "Title font of the red_mist Landing (menu style S7, docs/MENU_STYLES.md); copy of the moon_lander file",
+   "source": "Google Fonts: Black Ops One",
+   "author": "James Grieshaber, Eben Sorkin",
+   "licence": "OFL-1.1",
+   "proof": "media/licenses/fonts/blackopsone-OFL.txt",
+   "url": "https://github.com/google/fonts/tree/main/ofl/blackopsone",
+   "date": "2026-11-20"
+  },
+  {
    "file": "games/rock_blaster/title.ttf",
    "what": "Title font of the rock_blaster Landing (menu style, docs/MENU_STYLES.md)",
    "source": "Google Fonts: Press Start 2P",
@@ -9720,7 +9730,7 @@
   },
   {
    "file": "games/sniper_hold/landing.jpg",
-   "what": "Sniper Hold Landing picture: the game's own dusk valley, drawn in code (sniper_hold_scenery.gd) and captured from the game",
+   "what": "The Hunt (sniper_hold) Landing picture: the game's own dusk valley, drawn in code (sniper_hold_scenery.gd) and captured from the game",
    "source": "rendered from the game's own code, 2026-11-22",
    "author": "Viral (owner)",
    "licence": "owner-proprietary",

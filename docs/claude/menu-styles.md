@@ -120,6 +120,7 @@ Game cfg: `const MenuStyles = preload("res://scripts/games/<id>/menu_styles.gd")
 | pool | rail (S3) | Lobster (triadic yellow/red/blue balls) |
 | tilt_maze | cinema (S7) | Monoton (analogous violet/indigo/blue) |
 | bug_chain | ghost (S1) | PermanentMarker (complementary yellow/violet) |
+| red_mist | cinema (S7) | BlackOpsOne (blood red / dusk amber). Its cfg "logo" draws the game's live valley (a SubViewport) full-screen behind the menu, letterboxed, so the scene is the backdrop |
 
 Gotcha: after wiring a game run `python tools/hub.py i18n` (the kit strings "Single player", "Menu"... must reach the
 game's own `_i18n.gd`); batch 2 first shipped without it.

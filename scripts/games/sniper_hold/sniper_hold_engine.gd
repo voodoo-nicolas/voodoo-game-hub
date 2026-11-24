@@ -1,6 +1,6 @@
 extends RefCounted
 
-## Sniper Hold -- pure logic, no Nodes (headless-testable: tools/test_sniper_hold.gd).
+## The Hunt (id sniper_hold) -- pure logic, no Nodes (headless-testable: tools/test_sniper_hold.gd).
 ##
 ## The world is one fixed valley, W x H world units (16:9). Depth is in metres: an animal at
 ## distance d stands on the ground line ground_y(d) and is drawn PX_M / d world units per metre.

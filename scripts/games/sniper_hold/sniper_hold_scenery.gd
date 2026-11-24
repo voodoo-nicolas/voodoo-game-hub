@@ -1,6 +1,6 @@
 extends RefCounted
 
-## Sniper Hold -- the valley, drawn in code (no image files): sky, sun, clouds, birds, three
+## The Hunt (id sniper_hold) -- the valley, drawn in code (no image files): sky, sun, clouds, birds, three
 ## mountain ranges with snow and sunlit faces, forested hills, a lake that mirrors them, the
 ## far-shore pines, a meadow with a dirt track, grass, flowers, trees, rocks, bushes, logs,
 ## the animals, swaying foreground grass and the weather (mist, leaves, snow, fireflies, pollen).

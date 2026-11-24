@@ -1,6 +1,6 @@
 extends Control
 
-## Sniper Hold -- a hunting rifle in one valley. Pinch to zoom the scope, wait for the breath to
+## The Hunt (id sniper_hold; renamed 2026-11-23, the id and saves stay) -- a hunting rifle in one valley. Pinch to zoom the scope, wait for the breath to
 ## steady (or hold it), tap to shoot. One static scene; the aim sways with breath and heartbeat
 ## (sniper_hold_engine.gd), far shots drop and drift with the wind (Normal / Hard).
 ## Landing menu style: S7 Diegetic Cinema ("cinema", docs/MENU_STYLES.md): the valley itself is
@@ -9,6 +9,11 @@ extends Control
 ## Layers (children of `world`, which the camera scales and moves): sky + land are drawn once
 ## (static); clouds, water, actors (props + animals, depth-sorted), weather and foreground grass
 ## redraw each frame. Over them: the Skull-mode thermal filter, the scope, the HUD.
+##
+## Learned from Red Mist (its sister combat game): the kill cam on long clean shots
+## (the world slows, the camera closes on the animal; tap skips), the rifle seen
+## lying on its bipod in the spotting view with muzzle smoke after a shot, and the
+## dark eye-box crescent at the edge of the lens that moves as the aim sways.
 
 const E = preload("res://scripts/games/sniper_hold/sniper_hold_engine.gd")
 const Scenery = preload("res://scripts/games/sniper_hold/sniper_hold_scenery.gd")
@@ -105,6 +110,8 @@ var bird_t := 3.0
 var banner := ""
 var banner_t := 0.0
 var hint_t := 6.0               # "pinch to zoom" hint at the start
+var kc: Dictionary = {}         # kill cam: {"p", "t", "z0", "z1", "cam0"}
+var smoke: Array = []           # muzzle smoke (screen space): {"p", "v", "t"}
 
 var touches: Dictionary = {}    # index -> {"kind", "pos", "start", "ms", "moved"}
 var pinch_d := 0.0
@@ -334,7 +341,7 @@ func _contract_line(n: int) -> String:
 
 func _process(delta: float) -> void:
 	base = maxf(size.x / E.W, size.y / E.H)
-	var dt := delta * (0.3 if slowmo > 0.0 else 1.0)
+	var dt := delta * (0.22 if not kc.is_empty() else (0.3 if slowmo > 0.0 else 1.0))
 	slowmo = maxf(0.0, slowmo - delta)
 	var t: float = engine.t
 	if started and not engine.over:
@@ -374,11 +381,40 @@ func _process(delta: float) -> void:
 		if tracer.t >= 1.0:
 			tracer = {}
 	_ambient(delta)
+	for sm in smoke.duplicate():
+		sm.t += delta
+		if sm.t > 1.6:
+			smoke.erase(sm)
+	_kill_cam_tick(delta)
 	_place_camera()
 	for l in [cloud_l, water_l, actor_l, weather_l, fx_l, fg_l, scope, hud]:
 		l.queue_redraw()
 	if thermal.visible:
 		(thermal.material as ShaderMaterial).set_shader_parameter("t", t)
+
+## Kill cam: the world at 0.22x, the camera eases in until the animal fills about a third
+## of the screen, holds, then hands the scope back where it was.
+func _start_kill_cam(p: Vector2, s: float) -> void:
+	kc = {"p": p - Vector2(0, s * 0.5), "t": 0.0, "z0": zoom, "cam0": cam,
+		"z1": clampf(0.33 * size.y / (s * 1.4 * base), zoom, 40.0)}
+
+func _kill_cam_tick(delta: float) -> void:
+	if kc.is_empty():
+		return
+	kc.t += delta
+	var f := clampf(float(kc.t) / 0.7, 0.0, 1.0)
+	var e := f * f * (3.0 - 2.0 * f)
+	zoom = lerpf(float(kc.z0), float(kc.z1), e)
+	cam = (kc.cam0 as Vector2).lerp(kc.p, e)
+	if kc.t > 2.0:
+		_end_kill_cam()
+
+func _end_kill_cam() -> void:
+	if kc.is_empty():
+		return
+	cam = kc.cam0
+	zoom = kc.z0
+	kc = {}
 
 func _aim() -> Vector2:
 	return cam + engine.sway()
@@ -388,7 +424,7 @@ func _place_camera() -> void:
 	var half := size / (2.0 * k)
 	cam.x = clampf(cam.x, half.x, maxf(half.x, E.W - half.x))
 	cam.y = clampf(cam.y, half.y, maxf(half.y, E.H - half.y))
-	var aim := _aim() if started else cam
+	var aim := _aim() if started and kc.is_empty() else cam
 	world.scale = Vector2(k, k)
 	world.position = size * 0.5 - aim * k + Vector2(0, recoil * size.y * 0.18)
 
@@ -425,7 +461,9 @@ func _on_event(ev: Dictionary) -> void:
 			SoundLib.play(self, "impact/soft_heavy", -4.0)
 			_vibrate(40)
 			if ev.ok:
-				if ev.d >= 300.0:
+				if ev.d >= 250.0 and _in_scope():
+					_start_kill_cam(p, s)
+				elif ev.d >= 300.0:
 					slowmo = 0.45
 				if info:
 					info.add("Animals taken")
@@ -643,6 +681,9 @@ func _hold(on: bool) -> void:
 		_play(snd_breath, -12.0, 1.1)
 
 func _fire() -> void:
+	if not kc.is_empty():
+		_end_kill_cam()  # a tap skips the kill cam
+		return
 	if not engine.can_fire():
 		if engine.rounds <= 0 and not engine.over:
 			_show_banner(tr("Out of rounds"))
@@ -656,6 +697,8 @@ func _fire() -> void:
 	recoil = 1.0
 	flash = 1.0
 	bolt_snd = 0.45
+	for k in 7:
+		smoke.append({"p": Vector2(randf_range(-20.0, 20.0), randf_range(-10.0, 10.0)), "v": Vector2(randf_range(-30.0, 30.0) + engine.wind * 25.0, randf_range(-70.0, -30.0)), "t": 0.0})
 	var d := E.dist_at_y(aim.y)
 	tracer = {"to": aim, "t": 0.0, "dur": E.flight(minf(d, 900.0)) if d < INF else 0.6}
 	scenery.flush_birds(Vector2(randf_range(100.0, E.W - 100.0), 440.0))
@@ -703,7 +746,7 @@ func _in_scope() -> bool:
 	return zoom >= SCOPE_AT
 
 func _draw_scope() -> void:
-	if not started:
+	if not started or not kc.is_empty():
 		return
 	var c := size * 0.5
 	var v := skin == "voodoo"
@@ -721,9 +764,17 @@ func _draw_scope() -> void:
 			scope.draw_line(c + d * gap, c + d * (gap + L), Color(1, 1, 1, 0.85), 2.0)
 			scope.draw_line(c + d * gap, c + d * (gap + L), Color(0, 0, 0, 0.5), 4.0)
 		scope.draw_circle(c, 2.5, Color(1, 0.2, 0.15))
+		_draw_rifle()
 		return
 	var R := _scope_r()
 	var far := size.length()
+	# The eye a little off-centre behind the glass: a dark crescent on the far side,
+	# moving as the aim sways.
+	var eye: Vector2 = -engine.sway() * base * zoom * 0.45
+	if eye.length() > R * 0.12:
+		eye = eye.normalized() * R * 0.12
+	scope.draw_arc(c + eye, R * 1.03, 0, TAU, 96, Color(0, 0, 0, 0.55), R * 0.2, true)
+	_draw_smoke(c + Vector2(0, R * 0.95))
 	# Everything outside the lens is the scope tube: black, with a soft inner shadow.
 	scope.draw_arc(c, R + far * 0.5, 0, TAU, 96, Color.BLACK, far, true)
 	for i in 6:
@@ -774,6 +825,37 @@ func _draw_scope() -> void:
 			_shadow_text(scope, font, Vector2(rx - 260.0, y + 30.0), tr("Hold over"), 260.0, 16, Color(1, 0.9, 0.6, 0.85), HORIZONTAL_ALIGNMENT_RIGHT)
 			_shadow_text(scope, font, Vector2(rx - 260.0, y + 54.0), hs + tr(" mil"), 260.0, 18, Color(1, 0.9, 0.6, 0.95), HORIZONTAL_ALIGNMENT_RIGHT)
 
+## The rifle on its bipod along the bottom right (spotting view); it kicks back when fired.
+func _draw_rifle() -> void:
+	var sz := size
+	var kick := recoil * 26.0
+	var b := Vector2(sz.x * 0.86, sz.y + 30.0)
+	var tip := Vector2(sz.x * 0.56, sz.y * 0.66)
+	var dir := (tip - b).normalized()
+	var n := dir.orthogonal()
+	b -= dir * kick
+	tip -= dir * kick
+	var dark := Color(0.09, 0.08, 0.07)
+	var wood := Color(0.32, 0.2, 0.12)
+	var len_ := b.distance_to(tip)
+	var at := func(f: float, off: float) -> Vector2: return b + dir * len_ * f + n * off
+	var leg: Vector2 = at.call(0.62, 0.0)
+	scope.draw_line(leg, leg + Vector2(-26.0, 70.0), dark, 6.0)
+	scope.draw_line(leg, leg + Vector2(22.0, 74.0), dark, 6.0)
+	scope.draw_colored_polygon(PackedVector2Array([at.call(0.0, -34.0), at.call(0.0, 34.0), at.call(0.55, 12.0), at.call(0.55, -10.0)]), wood)
+	scope.draw_line(at.call(0.5, 0.0), tip, dark, 9.0)
+	scope.draw_colored_polygon(PackedVector2Array([at.call(0.3, -16.0), at.call(0.3, -42.0), at.call(0.62, -36.0), at.call(0.62, -14.0)]), Color(0.18, 0.18, 0.2))
+	scope.draw_circle(at.call(0.3, -29.0), 15.0, dark)
+	scope.draw_circle(at.call(0.62, -25.0), 12.0, dark)
+	scope.draw_line(at.call(0.33, -40.0), at.call(0.6, -35.0), Color(1, 1, 1, 0.12), 3.0)
+	scope.draw_circle(at.call(0.22, 26.0), 20.0, Color(0.2, 0.16, 0.12))
+	_draw_smoke(tip)
+
+func _draw_smoke(origin: Vector2) -> void:
+	for sm in smoke:
+		var k: float = sm.t / 1.6
+		scope.draw_circle(origin + sm.p + sm.v * sm.t, 10.0 + k * 40.0, Color(0.85, 0.85, 0.85, 0.22 * (1.0 - k)))
+
 func _draw_skull(c: Vector2, r: float, col: Color) -> void:
 	scope.draw_arc(c + Vector2(0, -r * 0.15), r, PI * 0.95, PI * 2.05, 20, col, 1.6, true)
 	scope.draw_line(c + Vector2(-r * 0.75, r * 0.45), c + Vector2(r * 0.75, r * 0.45), col, 1.6)
@@ -803,6 +885,11 @@ func _draw_hud() -> void:
 	var hot := Color("f0a858")
 	if flash > 0.0:
 		hud.draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.95, 0.85, 0.18 * flash))
+	if not kc.is_empty():
+		var bar := size.y * 0.1
+		hud.draw_rect(Rect2(0, 0, size.x, bar), Color(0, 0, 0, 0.85))
+		hud.draw_rect(Rect2(0, size.y - bar, size.x, bar), Color(0, 0, 0, 0.85))
+		_shadow_text(hud, font, Vector2(28, size.y - bar * 0.35), tr("SLOW MOTION · tap to skip"), 400.0, 16, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_LEFT)
 	# Popups and the tracer (world positions).
 	for p in popups:
 		var a: float = p[2] / 2.4
