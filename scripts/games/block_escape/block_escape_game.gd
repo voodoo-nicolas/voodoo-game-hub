@@ -24,6 +24,8 @@ const LEVELS_PATH := "res://games/block_escape/levels.json"
 const BG_TEX := "res://games/block_escape/bg_light.jpg"
 const SAVE_PATH := "user://block_escape_save.json"
 const PROGRESS_PATH := "user://block_escape_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const EXTRA_TIME := 30
 # const ZEN := [["🙂 Easy", 40], ["😐 Normal", 110], ["😈 Hard", 200], ["🤯 Expert", 300]]
 ## Levels-mode numbers; the generator ramps from level 4 (Gen.effective), so these sit lower.
@@ -94,6 +96,10 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = Engine_.new()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("block_escape", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	_build_ui()
 	var m = get_node_or_null("/root/Music")
 	if m:
@@ -221,7 +227,10 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = [
-		{"text": "🧱 Levels", "sub": "300 levels against the clock · collect stars", "action": _start_levels},
+		# {"text": "🧱 Levels", "sub": "300 levels against the clock · collect stars", "action": _start_levels},
+		# [CHANGED 2026-11-24, owner] never state the level count (STANDARDS §18)
+		{"text": "🧱 Levels", "sub": "Against the clock · collect stars", "action": _start_levels},
+		{"text": "📋 Level Select", "sub": "Replay any level you have reached", "action": _open_level_select, "card": true},
 		{"text": "📅 Daily Challenge", "sub": "One board a day, the same for everyone", "action": _start_daily},
 	]
 	for i in ZEN.size():
@@ -1022,6 +1031,29 @@ func _load_progress() -> void:
 func _save_progress() -> void:
 	progress.hammer = hammer_armed
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(_stars_cleared(), Gen.LEVELS)
+
+## Cloud vs device (STANDARDS §18): the copy with more levels cleared (then stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var st = d.get("stars", {})
+	if not st is Dictionary:
+		return 0
+	var n := 0
+	var total := 0
+	for k in st:
+		if int(st[k]) > 0:
+			n += 1
+			total += int(st[k])
+	return n * 4 + total
+
+func _stars_cleared() -> int:
+	var n := 0
+	for k in progress.get("stars", {}):
+		if int(progress.stars[k]) > 0:
+			n += 1
+	return n
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
@@ -1065,3 +1097,32 @@ func _buzz(ms: int) -> void:
 	var st = get_node_or_null("/root/Settings")
 	if st and st.has_method("buzz"):
 		st.buzz(ms)
+
+# ---------- level select [NEW 2026-11-24, owner: replay without losing progress] ----------
+
+func _open_level_select() -> void:
+	var parts: Array = home.card("📋 Level Select")
+	var body: VBoxContainer = parts[1]
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	body.add_child(grid)
+	for n in range(1, _reached_level() + 1):
+		var b := Button.new()
+		var st := int(progress.stars.get(str(n), 0))
+		b.text = str(n) if st == 0 else "%d
+%s" % [n, "★".repeat(st)]
+		b.custom_minimum_size = Vector2(0, 70)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(_pick_level.bind(n, parts[0]))
+		grid.add_child(b)
+	home.show_card(parts[0])
+
+func _pick_level(n: int, card: Control) -> void:
+	home.close_card(card)
+	SaveUtil.delete(SAVE_PATH)
+	home.play_now(_start_level.bind(n))
+
+func _reached_level() -> int:
+	return clampi(int(progress.get("next", 1)), 1, Gen.LEVELS)

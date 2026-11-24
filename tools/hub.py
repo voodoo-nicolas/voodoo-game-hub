@@ -718,9 +718,11 @@ def lint_level_counts(m: dict) -> list[str]:
     for gid in catalog_ids(m):
         hits = 0
         for f in (ROOT / "scripts/games" / gid).glob("*.gd"):
+            if f.name.endswith("_i18n.gd"):
+                continue   # generated copies of the strings counted in the source
             for line in f.read_text(encoding="utf-8").splitlines():
-                if line.lstrip().startswith("#"):
-                    continue
+                if line.lstrip().startswith("#") or '"desc":' in line:
+                    continue   # comments; achievement milestones ("Clear 50 levels") are fine
                 hits += len(LEVEL_COUNT_RE.findall(line))
         if hits:
             out.append(f"{gid}: {hits} string(s) state a level count (STANDARDS §18) -- drop the number")

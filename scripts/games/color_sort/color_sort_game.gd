@@ -20,6 +20,8 @@ const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 
 const SAVE_PATH := "user://color_sort_save.json"
 const PROGRESS_PATH := "user://color_sort_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const OPTS_PATH := "user://color_sort_opts.json"
 const LEVEL_NAMES := ["Easy", "Normal", "Hard", "Expert"]
 ## Eighteen colours; most levels use far fewer.
@@ -137,6 +139,10 @@ func _ready() -> void:
 		voodoo = load(VOODOO_PATH)
 	_load_opts()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("color_sort", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	_init_particles()
 	_build_ui()
 	_calm_music()
@@ -235,7 +241,7 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = [{"text": "▶ Play", "sub": tr("Level %d") % int(progress.level), "key": "campaign",
-		"action": _start_campaign}, {"text": "⏱ Timed", "sub": tr("Level %d") % int(progress.timed_level), "key": "timed",
+		"action": _start_campaign}, {"text": "📋 Level Select", "sub": "Replay any level you have reached", "action": _open_level_select, "card": true}, {"text": "⏱ Timed", "sub": tr("Level %d") % int(progress.timed_level), "key": "timed",
 		"action": _start_timed}]
 	for i in 4:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard", "🤯 Expert"][i], "sub": "%d colors" % CSEngine.LEVELS[i].colors, "row": "lvl",
@@ -325,6 +331,12 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+
+## Cloud vs device (STANDARDS §18): the copy further along the campaign wins, then Timed.
+func _progress_score(d: Dictionary) -> int:
+	return int(d.get("level", 1)) * 100000 + int(d.get("timed_level", 1))
 
 # ---------- looks ----------
 
@@ -1842,3 +1854,36 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- level select [NEW 2026-11-24, owner: replay without losing progress] ----------
+
+func _open_level_select() -> void:
+	var parts: Array = home.card("📋 Level Select")
+	var body: VBoxContainer = parts[1]
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	body.add_child(grid)
+	for n in range(1, _reached_level() + 1):
+		var b := Button.new()
+		var st := 0
+		b.text = str(n) if st == 0 else "%d
+%s" % [n, "★".repeat(st)]
+		b.custom_minimum_size = Vector2(0, 70)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(_pick_level.bind(n, parts[0]))
+		grid.add_child(b)
+	home.show_card(parts[0])
+
+func _pick_level(n: int, card: Control) -> void:
+	home.close_card(card)
+	SaveUtil.delete(SAVE_PATH)
+	home.play_now(_replay_level.bind(n))
+
+func _reached_level() -> int:
+	return maxi(1, int(progress.level))
+
+func _replay_level(n: int) -> void:
+	timed = false
+	_new_level(n)

@@ -23,6 +23,8 @@ const HELP := preload("res://scripts/games/tilt_maze/tilt_maze_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://tilt_maze_save.json"
 const PROGRESS_PATH := "user://tilt_maze_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const PREFS_PATH := "user://tilt_maze_prefs.json"
 ## Owner's Landing picture (2026-11-07). His version with "Tilt Maze" painted in
 ## (reference/art/games/tilt_maze_title_src.jpg) is not used: on a portrait
@@ -93,6 +95,10 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = TiltEngine.new()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("tilt_maze", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	var p = SaveUtil.read(PREFS_PATH)
 	prefs = p if p is Dictionary else {}
 	_disc = _make_disc()
@@ -199,7 +205,7 @@ func _build_ui() -> void:
 		"subtitle": "Tilt your phone, roll the marble home, miss the holes.",
 		"logo": _draw_home_logo,
 		"modes": [
-			{"text": "🗺 Campaign", "sub": "195 mazes · collect stars", "action": _start_campaign},
+			{"text": "🗺 Campaign", "sub": "Collect stars", "action": _start_campaign},
 		],
 		"play": [
 			{"text": "📋 Level Select", "sub": "Pick any maze you have opened", "action": _open_map_from_landing, "card": true},
@@ -529,7 +535,7 @@ func _show_solved_card(stars: int, msg: String) -> void:
 				label = tr("Next: %s") % tr(TiltEngine.TIERS[TiltEngine.block_of(cur_level + 1)])
 			buttons.append({"text": label, "action": _start_level.bind(cur_level + 1)})
 		else:
-			msg += "\n" + tr("All 195 mazes cleared!")
+			msg += "\n" + tr("Every maze cleared!")
 		if stars < 3:
 			buttons.append({"text": tr("Try for 3 stars"), "action": _restart})
 		buttons.append({"text": tr("📋 Levels"), "action": _open_map.bind(false)})
@@ -671,6 +677,29 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(_stars_cleared(), TiltEngine.LEVEL_COUNT)
+
+## Cloud vs device (STANDARDS §18): the copy with more levels cleared (then stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var st = d.get("stars", {})
+	if not st is Dictionary:
+		return 0
+	var n := 0
+	var total := 0
+	for k in st:
+		if int(st[k]) > 0:
+			n += 1
+			total += int(st[k])
+	return n * 4 + total
+
+func _stars_cleared() -> int:
+	var n := 0
+	for k in progress.get("stars", {}):
+		if int(progress.stars[k]) > 0:
+			n += 1
+	return n
 
 func _cleared() -> int:
 	var n := 0

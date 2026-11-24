@@ -16,7 +16,7 @@ const HOW := [
 	"■ Edit stops the test and puts your bridge back. 🗑 removes pieces, ↶ undoes, 🧹 clears.",
 	"Stars: 1 for crossing, 2 for a cheaper bridge, 3 for matching the engineer's bridge price or beating it.",
 	"After a crossing, 🏋 Load test sends the vehicle again with more weight each time until the bridge gives way. The heaviest load ranks you on the leaderboard.",
-	"300 levels in 10 chapters: the gaps get wider, the vehicles heavier, and steel, cables and steel road open on the way. Some levels have a rock pillar in the river to build on.",
+	"Chapter after chapter: the gaps get wider, the vehicles heavier, and steel, cables and steel road open on the way. Some levels have a rock pillar in the river to build on.",
 	"⏭ Skip opens the next level. You hold up to 3 skips; one comes back 24 hours after the last one you used.",
 	"Your bridge on each level is kept, so you can come back and build it cheaper.",
 	"📅 Daily Bridge: a new bridge every day. Its stars count double and go to the Garage; a better result later the same day pays the difference.",
