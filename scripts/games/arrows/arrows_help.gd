@@ -12,7 +12,7 @@ const HOW := [
 	"You have 3 hearts per board. Lose all 3 and you can use a ❤ help or try the board again.",
 	"Pinch with two fingers to zoom in on big boards, and drag with one finger to look around. ⤢ Fit shows the whole board again.",
 	"💡 Hint makes one arrow that can leave right now blink.",
-	"Classic: 360 levels that grow bigger and more tangled, in all kinds of pictures. Stars = hearts left. Daily: one picture a day, the same for everyone. Zen: endless random boards.",
+	"Classic: levels that grow bigger and more tangled, in all kinds of pictures. Stars = hearts left. Daily: one picture a day, the same for everyone. Zen: endless random boards.",
 ]
 const TIPS := [
 	"Follow the line in front of an arrow's head all the way to the edge before you tap.",

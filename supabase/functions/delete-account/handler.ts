@@ -28,6 +28,7 @@ export const USER_ROWS: [string, string][] = [
   ["scores", "user_id"],
   ["player_awards", "user_id"],
   ["game_progress", "user_id"],
+  ["completion_alerts", "user_id"],
   ["user_favorites", "user_id"],
   // Friends and invites, both directions.
   ["friendships", "requester"],

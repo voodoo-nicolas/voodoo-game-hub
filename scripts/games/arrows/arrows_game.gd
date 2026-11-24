@@ -3,7 +3,8 @@ extends Control
 ## Arrows -- tap an arrow to slide it out the way it points. It only leaves if nothing
 ## is in its way; a wrong tap bumps, paints the arrow red and costs one of 3 hearts.
 ## Boards fill pictures (circle, heart, dog...). Pinch to zoom, drag to look around.
-## Modes: Classic (360 levels, stars = hearts left), Daily, Zen.
+## Modes: Classic (levels that keep growing, stars = hearts left), Daily, Zen.
+## Progress follows the account (scripts/common/cloud_save.gd, STANDARDS §18).
 ## Parts: arrows_engine.gd (rules), arrows_generator.gd (levels), tools/test_arrows.gd.
 
 ## Landing menu style: S11 Sticker Board (MENU_STYLES.md; last two games used Rail List and Orbs).
@@ -23,6 +24,8 @@ const I18N_PATH := "res://scripts/games/arrows/arrows_i18n.gd"
 const BG_TEX := "res://games/arrows/bg_light.jpg"
 const SAVE_PATH := "user://arrows_save.json"
 const PROGRESS_PATH := "user://arrows_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # APK-side: load() guarded, older apps stay local
+var cloud: Node = null
 const PREFS_PATH := "user://arrows_prefs.json"
 ## [name, cols, rows, max_len, turn, aim]
 const ZEN := [["🙂 Easy", 7, 10, 4, 0.25, 0.1], ["😐 Normal", 11, 16, 7, 0.35, 0.4],
@@ -99,6 +102,10 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = Engine_.new()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("arrows", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	var p = SaveUtil.read(PREFS_PATH)
 	prefs = p if p is Dictionary else {}
 	# colors = int(prefs.get("colors", 0))
@@ -222,7 +229,10 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = [
-		{"text": "🗺 Classic", "sub": "360 levels · collect stars", "color": HomeKit.GOLD, "action": _start_classic},
+		# {"text": "🗺 Classic", "sub": "360 levels · collect stars", "color": HomeKit.GOLD, "action": _start_classic},
+		# [CHANGED 2026-11-24, owner] never state the level count (STANDARDS §18)
+		{"text": "🗺 Classic", "sub": "Bigger every level · collect stars", "color": HomeKit.GOLD, "action": _start_classic},
+		{"text": "📋 Level Select", "sub": "Replay any level you have reached", "action": _open_level_select, "card": true},
 		{"text": "📅 Daily Challenge", "sub": "One picture a day, same for everyone", "color": HomeKit.PINK, "action": _start_daily},
 	]
 	for i in ZEN.size():
@@ -990,6 +1000,46 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(_levels_done(), Gen.LEVELS)
+
+## Cloud vs device: the copy with more Classic levels cleared (then stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var st = d.get("stars", {})
+	var total := 0
+	if st is Dictionary:
+		for k in st:
+			total += int(st[k])
+		return st.size() * 4 + total
+	return 0
+
+# ---------- level select ----------
+
+func _open_level_select() -> void:
+	var parts: Array = home.card("📋 Level Select")
+	var body: VBoxContainer = parts[1]
+	var reached := clampi(int(progress.get("next", 1)), 1, Gen.LEVELS)
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	body.add_child(grid)
+	for n in range(1, reached + 1):
+		var b := Button.new()
+		var st := int(progress.stars.get(str(n), 0))
+		b.text = str(n) if st == 0 else "%d
+%s" % [n, "★".repeat(st)]
+		b.custom_minimum_size = Vector2(0, 70)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(_pick_level.bind(n, parts[0]))
+		grid.add_child(b)
+	home.show_card(parts[0])
+
+func _pick_level(n: int, card: Control) -> void:
+	home.close_card(card)
+	SaveUtil.delete(SAVE_PATH)
+	home.play_now(_start_level.bind(n))
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
