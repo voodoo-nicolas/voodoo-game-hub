@@ -416,7 +416,8 @@ func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, al
 	var col := _col(colour)
 	var m := s * 0.05
 	var rad := s * 0.2
-	for pass_i in 2:  # 0 shadow, 1 body
+	var ow := maxf(2.0, s * 0.05)  # dark outline width
+	for pass_i in 3:  # 0 shadow, 1 dark outline, 2 body
 		for cc in cells:
 			var r := Rect2(o + (p + Vector2(cc)) * s, Vector2(s, s)).grow(-m)
 			if cells.has(cc + Vector2i(1, 0)):
@@ -425,6 +426,17 @@ func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, al
 				r.size.y += m * 2.0
 			if pass_i == 0:
 				_round_rect(Rect2(r.position + Vector2(0, s * 0.07), r.size), Color(col.darkened(0.45), alpha), rad)
+			elif pass_i == 1:
+				if classic:
+					_round_rect(r.grow(ow), Color(col.darkened(0.7), alpha), rad + ow)
+				else:  # translucent skin: ring only, so the body isn't tinted
+					var ob := StyleBoxFlat.new()
+					ob.bg_color = Color(0, 0, 0, 0)
+					ob.border_color = Color(col.darkened(0.7), alpha)
+					ob.set_border_width_all(int(ceil(ow)))
+					ob.set_corner_radius_all(int(rad + ow))
+					ob.anti_aliasing = true
+					board.draw_style_box(ob, r.grow(ow))
 			else:
 				_round_rect(r, Color(col, alpha) if classic else Color(col, 0.22 * alpha), rad)
 				if not classic:
