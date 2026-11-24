@@ -83,6 +83,11 @@ func _init(help_script: Script) -> void:
 			SaveUtil.write(save_path, stats)
 
 func _ready() -> void:
+	# [NEW 2026-11-24] STANDARDS §18: stats + badges follow the account (every game at once).
+	# Cloud id "stats_<ID>" so it never clashes with a game's own progress row.
+	_cloud = CloudSave.new()
+	_cloud.setup("stats_" + str(consts.get("ID", "game")), save_path, _cloud_score, _cloud_loaded, merge_stats)
+	add_child(_cloud)
 	# In the tree already, so set_anchors_preset alone would keep our 0×0 size.
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -586,6 +591,8 @@ func _save() -> void:
 	Achievements.merge_saved(save_path, stats)  # badges restored from the server meanwhile
 	var got: Array = Achievements.check(consts, stats)
 	SaveUtil.write(save_path, stats)
+	if _cloud:
+		_cloud.saved()
 	for def in got:
 		_toast_achievement(def)
 	if not got.is_empty():
@@ -970,3 +977,39 @@ func _sfx(sound: String) -> void:
 	var sfx = get_node_or_null("/root/Sfx")
 	if sfx:
 		sfx.play(sound)
+
+# ---------- cloud (STANDARDS §18) ----------
+
+const CloudSave = preload("res://scripts/common/cloud_save.gd")
+var _cloud: Node = null
+
+func _cloud_score(_d: Dictionary) -> int:
+	return 0   # unused: stats merge key by key (merge_stats)
+
+func _cloud_loaded() -> void:
+	var data = SaveUtil.read(save_path)
+	if data is Dictionary:
+		stats = data
+		Achievements.check(consts, stats)
+
+## Lower-is-better record keys (times, fewest moves...); everything else numeric keeps the max.
+static func _lower_better(key: String) -> bool:
+	var k := key.to_lower()
+	return k.begins_with("fewest") or k.begins_with("fastest") or k.begins_with("lowest") 		or (k.begins_with("best") and "time" in k)
+
+## Device + cloud stats, key by key: counts and highs take the bigger, times and
+## "fewest" the smaller; anything else keeps the device value (or the cloud's when missing).
+static func merge_stats(local: Dictionary, cloud: Dictionary) -> Dictionary:
+	var out := local.duplicate(true)
+	for k in cloud:
+		var c = cloud[k]
+		if not out.has(k):
+			out[k] = c
+			continue
+		var l = out[k]
+		var num := (typeof(l) == TYPE_INT or typeof(l) == TYPE_FLOAT) and (typeof(c) == TYPE_INT or typeof(c) == TYPE_FLOAT)
+		if num:
+			var better := float(c) < float(l) if _lower_better(str(k)) else float(c) > float(l)
+			if better:
+				out[k] = c   # only a better cloud value replaces (types kept: no 3 -> 3.0 churn)
+	return out

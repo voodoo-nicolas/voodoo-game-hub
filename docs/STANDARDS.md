@@ -524,6 +524,8 @@ fits the game. Purpose: bring players back daily, without ads.
   wins; ties keep the device copy. The in-play board save (resume) stays on the device.
 - Campaigns offer a level select over every level already reached; replaying an old level never lowers
   progress, and Continue / Quick Play always goes to the furthest level.
+- Every game's GameInfo stats + badges (`user://stats_<id>.json`) sync too, merged key by key (counts and
+  highs keep the bigger, times / fewest the smaller; cloud row `stats_<id>`). Test: `tools/test_cloud_save.gd`.
 - Never state how many levels a game has ("300 levels!"): `hub.py check` warns (`lint_level_counts`) and
   each game drops the number when touched.
 - 80 % alert: level games call `report_completion(done, total)`; the owner reads

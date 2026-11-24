@@ -29,13 +29,17 @@ var game := ""
 var path := ""
 var score_fn: Callable
 var on_loaded: Callable
+## Optional merge_fn(local: Dictionary, cloud: Dictionary) -> Dictionary: instead of keeping
+## the copy with more progress, both are merged (GameInfo stats: per-key best).
+var merge_fn: Callable
 var _timer: Timer
 
-func setup(game_id: String, save_path: String, score: Callable, loaded: Callable = Callable()) -> void:
+func setup(game_id: String, save_path: String, score: Callable, loaded: Callable = Callable(), merge: Callable = Callable()) -> void:
 	game = game_id
 	path = save_path
 	score_fn = score
 	on_loaded = loaded
+	merge_fn = merge
 
 func _ready() -> void:
 	add_to_group("cloud_save")   # static save code finds it (geometry_wars_campaign.gd)
@@ -80,6 +84,17 @@ func _on_pulled(ok: bool, result: Variant) -> void:
 	if not ok:
 		return
 	var local = SaveUtil.read(path)
+	if merge_fn.is_valid():
+		var l: Dictionary = local if local is Dictionary else {}
+		var c: Dictionary = result if result is Dictionary else {}
+		var merged: Dictionary = merge_fn.call(l, c)
+		if merged != l:
+			SaveUtil.write(path, merged)
+			if on_loaded.is_valid():
+				on_loaded.call()
+		if merged != c and not merged.is_empty():
+			push()
+		return
 	var local_score := _score(local)
 	var cloud_score := _score(result)
 	if cloud_score > local_score:
